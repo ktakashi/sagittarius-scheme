@@ -453,8 +453,8 @@
 			 other))))
 
   (define (match-status-code? pattern code clause)
-    (cond ((string? pattern) (equal? pattern code))
-	  ((regexp? pattern) (rxmatch pattern code))
+    (cond ((string? pattern)  (equal? pattern code))
+	  ((regex-pattern? pattern) (pattern code))
 	  (else (error 'match-status-code?
 		       "invalid pattern in a clause of http-cond-receiver"
 		       clause))))

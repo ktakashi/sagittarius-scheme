@@ -53,9 +53,10 @@
 	    <asymmetric-key>
 	    )
     (import (rnrs)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius dynamic-module))
 
-  (load-dynamic-library "sagittarius--crypto")
+  (load-dynamic-module "sagittarius--crypto")
 
   (define-condition-type &crypto-error &error
     make-crypto-error crypto-error?)

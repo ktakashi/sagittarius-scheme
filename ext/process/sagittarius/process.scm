@@ -58,8 +58,9 @@
 	    )
     (import (core)
 	    (sagittarius)
+	    (sagittarius dynamic-module)
 	    (sagittarius threads))
-  (load-dynamic-library "sagittarius--process")
+  (load-dynamic-module "sagittarius--process")
 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)

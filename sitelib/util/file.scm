@@ -90,7 +90,7 @@
 
   (define (decompose-path path)
     (if (looking-at #/[\/\\]$/ path)
-	(values (string-trim-right path path-set) #f #f)
+	(values (string-trim-right path *path-set*) #f #f)
 	(let* ((delim-pos (string-index-right path
 					      (cond-expand
 					       (sagittarius.os.windows 

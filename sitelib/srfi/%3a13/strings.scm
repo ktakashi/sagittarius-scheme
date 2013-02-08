@@ -1463,32 +1463,28 @@
 ;;; input comes in chunks of text. We hand-integrate the KMP-STEP loop
 ;;; for speed.
 
-(define (string-kmp-partial-search pat rv s i . c=+p-start+s-start+s-end)
+(define (string-kmp-partial-search pat rv s i 
+				   :optional (c= char=?)
+				   (p-start 0)
+				   s-start
+				   s-end
+				   c=+p-start+s-start+s-end)
   (check-arg vector? rv string-kmp-partial-search)
-  (let-optionals* c=+p-start+s-start+s-end
-		  ((c=      char=? (procedure? c=))
-		   (p-start 0 (and (integer? p-start) (exact? p-start) (<= 0 p-start)))
-		   ((s-start s-end) (lambda (args)
-				      (string-parse-start+end string-kmp-partial-search
-							      s args))))
-    (let ((patlen (vector-length rv)))
-      (check-arg (lambda (i) (and (integer? i) (exact? i) (<= 0 i) (< i patlen)))
-		 i string-kmp-partial-search)
-
-      ;; Enough prelude. Here's the actual code.
-      (let lp ((si s-start)		; An index into S.
-	       (vi i))			; An index into RV.
-	(cond ((= vi patlen) (- si))	; Win.
-	      ((= si s-end) vi)		; Ran off the end.
-	      (else			; Match s[si] & loop.
-	       (let ((c (string-ref s si)))
-		 (lp (+ si 1)	
-		     (let lp2 ((vi vi))	; This is just KMP-STEP.
-		       (if (c= c (string-ref pat (+ vi p-start)))
-			   (+ vi 1)
-			   (let ((vi (vector-ref rv vi)))
-			     (if (= vi -1) 0
-				 (lp2 vi)))))))))))))
+  (let ((patlen (vector-length rv)))
+    ;; Enough prelude. Here's the actual code.
+    (let lp ((si s-start)		; An index into S.
+	     (vi i))			; An index into RV.
+      (cond ((= vi patlen) (- si))	; Win.
+	    ((= si s-end) vi)		; Ran off the end.
+	    (else			; Match s[si] & loop.
+	     (let ((c (string-ref s si)))
+	       (lp (+ si 1)	
+		   (let lp2 ((vi vi))	; This is just KMP-STEP.
+		     (if (c= c (string-ref pat (+ vi p-start)))
+			 (+ vi 1)
+			 (let ((vi (vector-ref rv vi)))
+			   (if (= vi -1) 0
+			       (lp2 vi))))))))))))
 
 
 ;;; Misc

@@ -519,7 +519,7 @@ static SG_DEFINE_SUBR(list_transpose_p_stub, 1, 1, list_transpose_p,
 
 void Sg__InitPair()
 {
-  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
   SG_PROCEDURE_NAME(&list_transpose_s_stub) = SG_MAKE_STRING("list-transpose*");
   Sg_InsertBinding(lib, SG_INTERN("list-transpose*"),
 		   SG_OBJ(&list_transpose_s_stub));

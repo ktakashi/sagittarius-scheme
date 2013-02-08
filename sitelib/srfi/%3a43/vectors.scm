@@ -384,7 +384,7 @@
     (cond ((and (eq? target src) (= sstart tstart))
 	   (vector-reverse! target tstart send))
 	  ((and (eq? tstart src)
-		(or (between? sstart tstart end)
+		(or (between? sstart tstart send)
 		    (between? tstart sstart (+ tstart (- send sstart)))))
 	   (assertion-violation 'vector-reverse-copy!
 				"vector range for self-copying overlaps"

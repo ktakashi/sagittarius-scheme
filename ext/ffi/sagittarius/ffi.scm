@@ -155,8 +155,9 @@
 	    (core syntax)
 	    (core misc)
 	    (sagittarius)
+	    (sagittarius dynamic-module)
 	    (sagittarius vm))
-  (load-dynamic-library "sagittarius--ffi")
+  (load-dynamic-module "sagittarius--ffi")
 
   (define void               'void)
   (define char               'char)
@@ -363,7 +364,7 @@
 	     ;; if there are more than one struct in the same library,
 	     ;; and if one of them refere it, it cause unbound variable error.
 	     ;; to avoid it, we need to do this. ugly...
-	     (%insert-binding (vm-current-library)
+	     (%insert-binding (current-library)
 			      'name
 			      (make-c-struct 
 			       'name 

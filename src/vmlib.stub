@@ -409,7 +409,7 @@
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_CONST_INLINING)))
 
   (define-c-proc gc () ::<void> Sg_GC)
-
+  
   ;; call/pc
   (define-c-proc %call/pc (p::<procedure>)
     (result (Sg_VMCallPC p)))
@@ -451,4 +451,11 @@
       (result n)))
 
   (define-c-proc current-transformer-env () (result (-> (Sg_VM) transEnv)))
+
+  ;; misc
+  (define-c-proc vm-warn (msg::<string>)
+    (let ((vm::SgVM* (Sg_VM)))
+      (when (SG_VM_LOG_LEVEL vm SG_WARN_LEVEL)
+	(Sg_Printf (-> vm logPort) (UC "WARNING: %A\n") msg))))
+
 )

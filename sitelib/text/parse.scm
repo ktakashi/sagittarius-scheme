@@ -64,7 +64,7 @@
 	   char-list-contains?/char-set/eof)
 	  ((memq '*eof* char-list)
 	   (if (for-all character-or-eof? char-list)
-	       char-list/contains?/char/eof
+	       char-list-contains?/chars/eof
 	       char-list-contains?/eof))
 	  ((for-all char? char-list) char-list-contains?/chars)
 	  (else

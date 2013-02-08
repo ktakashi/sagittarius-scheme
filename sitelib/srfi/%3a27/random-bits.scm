@@ -42,6 +42,7 @@
 	    random-source-make-integers
 	    random-source-make-reals)
     (import (rnrs)
+	    (sagittarius)
 	    (math)
 	    (math mt-random))
   ;; default random source is mt-random without seed

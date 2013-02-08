@@ -14,6 +14,8 @@
     (import (rnrs)
 	    (rnrs mutable-pairs))
 
+(define (slib:error msg . irr) (error #f msg irr))
+
 ;; "queue.scm"  Queues/Stacks for Scheme
 ;; Written by Andrew Wilcox (awilcox@astro.psu.edu) on April 1, 1992.
 ;;

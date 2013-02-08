@@ -131,9 +131,6 @@
       (test-false (or #f #f #f))
       (test-equal '(b c) (or (memq 'b '(a b c)) (/ 3 0)))
 
-      (test-unspecified (unless (= 1 1.0)
-			  (display "1")
-			  (display "2")))
       ;; 4.2.2
       (test-equal 6 (let ((x 2) (y 3)) (* x y)))
       (test-equal 35 (let ((x 2) (y 3))

@@ -5,5 +5,6 @@
 		    (write/ss write-shared)
 		    (write write-simple))
 	    display)
-    (import (rnrs) (sagittarius)))
+    (import (only (rnrs) display write)
+	    (only (sagittarius) write/ss write-cyclic)))
 

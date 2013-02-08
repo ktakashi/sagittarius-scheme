@@ -25,6 +25,7 @@
 	    sxml:child-nodes sxml:child-elements
 	    sxml:xpath
 	    sxml:xpath+index
+	    sxml:xpath+root
 	    sxml:xpath+root+vars
 	    sxml:xpointer+index
 	    sxml:xpointer+root+vars)
@@ -35,11 +36,16 @@
 	    (srfi :13 strings)
 	    (pp)
 	    (sagittarius io)
+	    (rename (only (sagittarius regex) string-split)
+		    (string-split regex:string-split))
 	    (text parse)
 	    (text sxml tools)
 	    (text sxml sxpath private)
 	    (text sxml txpath-parser)
 	    (text sxml helper))
+
+(define (string-split s delim)
+  (regex:string-split s (list->string delim)))
 
 ;;			XML processing in Scheme
 ;		     SXPath -- SXML Query Language

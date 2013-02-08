@@ -15,11 +15,14 @@
 	    sxml:parse-check
 	    sxml:assert-end-of-path
 	    sxml:skip-ws
+	    sxml:whitespace
+	    sxml:delimiter
 	    sxml:non-first?
 	    txp:signal-semantic-error
 	    txp:semantic-errs-detected?
 	    txp:error?)
     (import (rnrs)
+	    (rnrs r5rs)
 	    (srfi :2 and-let*)
 	    (text sxml helper))
 

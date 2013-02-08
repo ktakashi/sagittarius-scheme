@@ -51,6 +51,7 @@
 	    access-token-expires
 	    access-token-authorization-expires
 	    access-token-expired?
+	    access-token-origin-uri
 	    ;; predicate
 	    access-token?
 	    )
@@ -59,7 +60,8 @@
 	    (sagittarius)
 	    (sagittarius mop validator)
 	    (net oauth misc)
-	    (srfi :27 random-bits))
+	    (srfi :27 random-bits)
+	    (srfi :19 time))
 
   ;; (expt 36 25)
   (define-constant random-n 808281277464764060643139600456536293376)

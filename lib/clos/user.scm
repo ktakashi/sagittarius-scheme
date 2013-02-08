@@ -42,9 +42,9 @@
 	    )
     (import (rnrs) 
 	    (sagittarius)
+	    (sagittarius vm)
 	    (clos core)
-	    (only (sagittarius clos) %ensure-generic-function)
-	    (sagittarius vm))
+	    (only (sagittarius clos) %ensure-generic-function))
 
   ;; We provides CL like define-class
   ;; The syntax is (define-class ?name (?supers ...) ({slot-specifier}*))
@@ -252,21 +252,43 @@
 	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
-	    #`(begin
-		(let ((#,gf (%ensure-generic-function
-			     'true-name (vm-current-library))))
-		  (add-method #,gf
-			      (make <method>
-				:specializers  (list #,@specializers)
-				:qualifier     #,qualifier
-				:generic       true-name
-				:lambda-list  '#,lambda-list
-				:procedure     #,real-body))
-		  #,@(if #'getter-name
-			 `((unless (has-setter? ,#'getter-name)
-			     (set! (setter ,#'getter-name) ,gf)))
-			 '())
-		  #,gf)))))
+	    (let ((def? (find-binding (current-library) 
+				      (syntax->datum #'true-name) #f)))
+	      (%ensure-generic-function (syntax->datum #'true-name)
+					(current-library))
+	      #`(begin
+		  #,@(if def?
+			'()
+			`((define-generic ,generic)))
+		  
+		  (let ((#,gf true-name))
+		    (add-method #,gf
+				(make <method>
+				  :specializers  (list #,@specializers)
+				  :qualifier     #,qualifier
+				  :generic       true-name
+				  :lambda-list  '#,lambda-list
+				  :procedure     #,real-body))
+		    #,@(if #'getter-name
+			   `((unless (has-setter? ,#'getter-name)
+			       (set! (setter ,#'getter-name) ,gf)))
+			   '())
+		    #,gf)
+		  #;
+		  (let ((#,gf (%ensure-generic-function
+			       'true-name (current-library))))
+		    (add-method #,gf
+				(make <method>
+				  :specializers  (list #,@specializers)
+				  :qualifier     #,qualifier
+				  :generic       true-name
+				  :lambda-list  '#,lambda-list
+				  :procedure     #,real-body))
+		    #,@(if #'getter-name
+			   `((unless (has-setter? ,#'getter-name)
+			       (set! (setter ,#'getter-name) ,gf)))
+			   '())
+		    #,gf))))))
       (syntax-case x ()
 	((_ ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)

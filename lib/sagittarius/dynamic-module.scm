@@ -1,8 +1,8 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; code:utf-8; -*-
 ;;;
-;;; query-string.scm - OAuth 1.0 library.
+;;; sagittarius/dynamic-module - sort of kludge library
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,28 +28,19 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (net oauth query-string)
-    (export alist->query-string
-	    query-string->alist)
-    (import (rnrs)
-	    (sagittarius regex)
-	    (net oauth misc)
-	    (srfi :13 strings)
-	    (srfi :26 cut))
+(library (sagittarius dynamic-module)
+    (export load-dynamic-module)
+    (import (core) (core syntax) (sagittarius))
 
-  ;; query string
-  ;; TODO move this to somewhere, this is too general only for OAuth
-  (define (alist->query-string alist :key (url-encode #f)
-			       (include-leading-ampersand #t))
-    (let ((result (string-join
-		   (map (cut string-join <> "=")
-			(if url-encode
-			    (map (lambda (l) 
-				   (list (oauth-uri-encode (car l))
-					 (oauth-uri-encode (cadr l)))) alist)
-			    alist))
-		   "&")))
-      (if (or (zero? (string-length result)) include-leading-ampersand)
-	  result
-	  (string-copy result 1))))
+  (define-syntax load-dynamic-module
+    (lambda (x)
+      (syntax-case x ()
+	((_ name)
+	 (string? (syntax->datum #'name))
+	 (begin
+	   ;; FIXME to avoid caching problem,
+	   ;; we need to call load-dynamic-library twice
+	   ;; one in macro expansion, one in runtime...
+	   (load-dynamic-library #'name)
+	   #'(load-dynamic-library #'name))))))
 )

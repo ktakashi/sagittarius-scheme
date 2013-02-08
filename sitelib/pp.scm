@@ -323,7 +323,7 @@
 
 (define (pretty-print-to-string obj)
   (let ((result '()))
-    (generic-write obj #f (output-port-width port)
+    (generic-write obj #f (output-port-width (current-output-port))
 		   (lambda (str) (set! result (cons str result)) #t))
     (reverse-string-append result)))
 

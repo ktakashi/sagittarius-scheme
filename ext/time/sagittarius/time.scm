@@ -1,8 +1,8 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; time.scm - srfi-19 time library
+;;; sagittarius/time.scm - srfi-19 time library
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -122,10 +122,12 @@
 	    )
     (import (core)
 	    (core base)
+	    (core io)
 	    (core errors)
 	    (sagittarius)
+	    (sagittarius dynamic-module)
 	    (srfi :6 basic-string-ports))
-  (load-dynamic-library "sagittarius--time")
+  (load-dynamic-module "sagittarius--time")
   (define (tm:time-error caller type value)
     (if (member type tm:time-error-types)
         (if value
@@ -198,21 +200,21 @@
   ;; ie (set! tm:leap-second-table (tm:read-tai-utc-date "tai-utc.dat"))
   (define (tm:read-tai-utc-data filename)
     (define (convert-jd jd)
-      (* (- (inexact->exact jd) tm:tai-epoch-in-jd) tm:sid))
-    (define (convert-sec sec)
-      (inexact->exact sec))
+      (* (- (exact jd) tm:tai-epoch-in-jd) tm:sid))
+    (define convert-sec exact)
     (let ((port (open-input-file filename))
-          (table '()))
+	  (table '()))
       (let loop ((line (get-line port)))
-        (if (not (eq? line eof))
-            (begin
-              (let* ((data (read (open-input-string (string-append "(" line ")"))))
-                     (year (car data))
-                     (jd   (cadddr (cdr data)))
-                     (secs (cadddr (cdddr data))))
-                (if (>= year 1972)
-                    (set! table (cons (cons (convert-jd jd) (convert-sec secs)) table)))
-                (loop (get-line port))))))
+	(if (not (eof-object? line))
+	    (let* ((data (read (open-input-string 
+				(string-append "(" line ")"))))
+		   (year (car data))
+		   (jd   (cadddr (cdr data)))
+		   (secs (cadddr (cdddr data))))
+	      (if (>= year 1972)
+		  (set! table (acons (convert-jd jd) (convert-sec secs) table)))
+	      (loop (get-line port)))))
+      (close-input-port port)
       table))
 
   ;; each entry is ( utc seconds since epoch . # seconds to add for tai )
@@ -377,8 +379,12 @@
 
   (define (time-tai->date time . tz-offset)
     (if (tm:tai-before-leap-second? (time-second time))
-        ;; if it's *right* before the leap, we need to pretend to subtract a second ...
-        (let ((d (tm:time->date (subtract-duration! (time-tai->time-utc time) (make-time time-duration 0 1)) tz-offset time-utc)))
+        ;; if it's *right* before the leap, we need to pretend to 
+	;; subtract a second ...
+        (let ((d (tm:time->date (subtract-duration! 
+				 (time-tai->time-utc time)
+				 (make-time time-duration 0 1))
+				tz-offset time-utc)))
           (set-date-second! d 60)
           d)
         (tm:time->date (time-tai->time-utc time) tz-offset time-utc)))
@@ -438,6 +444,22 @@
          (- (quotient y 100))
          (quotient y 400)
          -32045)))
+
+  (define (tm:char-pos char str index len)
+    (cond
+     ((>= index len) #f)
+     ((char=? (string-ref str index) char)
+      index)
+     (else
+      (tm:char-pos char str (+ index 1) len))))
+
+  (define (tm:fractional-part r)
+    (if (integer? r) "0"
+	(let ((str (number->string (inexact r))))
+	  (let ((ppos (tm:char-pos #\. str 0 (string-length str))))
+	    (substring str  (+ ppos 1) (string-length str))))))
+
+
   ;; gives the seconds/date/month/year
   (define (tm:decode-julian-day-number jdn)
     (let* ((days (truncate jdn))
@@ -534,6 +556,13 @@
     (if (= (date-second d) 60)
         (subtract-duration! (time-utc->time-tai! (date->time-utc d)) (make-time time-duration 0 1))
         (time-utc->time-tai! (date->time-utc d))))
+
+  (define (tm:leap-year? year)
+    (or (= (modulo year 400) 0)
+	(and (= (modulo year 4) 0) (not (= (modulo year 100) 0)))))
+
+  (define (leap-year? date)
+    (tm:leap-year? (date-year date)))
 
   ;; tm:year-day fixed: adding wrong number of days.
   (define  tm:month-assoc '((0 . 0) (1 . 31)  (2 . 59)   (3 . 90)   (4 . 120)

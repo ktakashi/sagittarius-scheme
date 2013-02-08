@@ -76,8 +76,9 @@
 	    )
     (import (core)
 	    (core syntax)
-	    (sagittarius))
-  (load-dynamic-library "sagittarius--threads")
+	    (sagittarius)
+	    (sagittarius dynamic-module))
+  (load-dynamic-module "sagittarius--threads")
   ;; NB: actually, we can make mutex recursively by default.
   ;;     I'm not sure if it's a good proposal or not, so for now,
   ;;     like this.

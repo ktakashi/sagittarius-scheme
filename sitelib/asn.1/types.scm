@@ -362,13 +362,13 @@
     ;; DERIA5String
     (define-class <der-ia5-string> (<asn.1-object> <der-string>)
       ((string :init-keyword :string)))
-    (define (is-ia5-string s)
+    (define (ia5-string? s)
       (for-all (lambda (ch) (> (char->integer ch) #x007f))
 	       (string->list s)))
     (define-method make-der-ia5-string ((s <string>))
       (make-der-ia5-string s #f))
     (define-method make-der-ia5-string ((s <string>) (validate? <boolean>))
-      (when (and validate? (not (is5-string? s)))
+      (when (and validate? (not (ia5-string? s)))
 	(assertion-violation 'make-der-ia5-string
 			     "string contains illegal characters" s))
       (make <der-ia5-string> :string s))
@@ -809,7 +809,7 @@
       (string->date s "~Y~m~d~H~M~S~z") ;; check
       (make <der-utc-time> :time s))
     (define-method make-der-utc-time ((d <date>))
-      (make <der-utc-time> :time (date->string s "~Y~m~d~H~M~S~Z")))
+      (make <der-utc-time> :time (date->string d "~Y~m~d~H~M~S~Z")))
     (define-method make-der-utc-time ((b <bytevector>))
       (make <der-utc-time> :time (bytevector->string b)))
     (define-method der-encode ((o <der-utc-time>) (p <port>))
@@ -878,7 +878,7 @@
     (define-method make-der-external
       ((dr <der-object-identifier>) (idr <der-integer>) (dvd <asn.1-object>)
        (ed <der-tagged-object>))
-      (make-der-external dv idr dvd (slot-ref ed 'tag-no)
+      (make-der-external dr idr dvd (slot-ref ed 'tag-no)
 			 (der-encodable->der-object ed)))
     (define-method make-der-external
       ((dr <der-object-identifier>) (idr <der-integer>) (dvd <asn.1-object>)

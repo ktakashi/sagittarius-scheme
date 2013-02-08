@@ -60,6 +60,7 @@
 	    (net oauth signature)
 	    (net oauth parameters)
 	    (net oauth request-adapter)
+	    (net oauth query-string)
 	    (clos user)
 	    (rfc uri)
 	    (net oauth token)
@@ -87,9 +88,9 @@
 				 (string-concatenate 
 				  (or query "")
 				  "oauth_token=" 
-				  (oauth-url-encode (token-key request-token))
+				  (oauth-uri-encode (token-key request-token))
 				  "&oauth_verifier="
-				  (oauth-url-encode (request-token-verification-code request-token))))))
+				  (oauth-uri-encode (request-token-verification-code request-token))))))
 	  (if frag
 	      (string-append merged "#" frag)
 	      merged)))))
@@ -214,8 +215,8 @@
   (define (make-response alist)
     (alist->query-string
      (map (lambda (p)
-	    (cons (oauth-url-encode (car p))
-		  (oauth-url-encode (cdr p)))) alist)
+	    (cons (oauth-uri-encode (car p))
+		  (oauth-uri-encode (cdr p)))) alist)
      :include-leading-ampersand #f))
 
   ;; Respond to a valid request token request. [6.1.2]
@@ -311,7 +312,7 @@
 	  access-token))))
   
   (define (access-token-response access-token :rest additional-parameters)
-    (oauth-url-encode
+    (oauth-uri-encode
      (alist->query-string
       `(("oauth_token" . ,(token-key access-token))
 	("oauth_token_secret" . ,(token-secret access-token))))))

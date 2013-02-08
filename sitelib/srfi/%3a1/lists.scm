@@ -76,7 +76,7 @@
 	 cond else apply list cadr caddr cadddr cddddr values zero? begin
 	 let-values let* append call-with-current-continuation reverse =>
 	 letrec equal? memq _ length symbol? string? assertion-violation
-	 caar when memv list-ref negative?
+	 caar when memv list-ref negative? error
 	 ;; on Sagittarius these are the same as R6RS
 	 filter partition cons* fold-right map for-each
 	 caaaar caaadr caaar caadar caaddr

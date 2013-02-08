@@ -28,11 +28,13 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (net oauth misc)
     (export oauth-compose-query
 	    oauth-uri-encode
 	    build-auth-string
+	    ;; 
+	    query-string->alist
 	    ;; for now
 	    normalize-uri
 	    random-source
@@ -44,6 +46,12 @@
 	    (rfc uri)
 	    (srfi :13 strings)
 	    (srfi :27 random-bits))
+
+  (define (query-string->alist qs)
+    (let ((kv-pairs (string-split qs "&")))
+      (map (lambda (kv-pair)
+	     (string-split kv-pair "="))
+	   kv-pairs)))
 
   ;; OAuth expects upper case somehow...
   (define (%-fix str)

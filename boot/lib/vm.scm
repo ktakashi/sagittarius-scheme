@@ -27,6 +27,10 @@
 (define (cachable? o)
   (or (string? o) (number? o) (symbol? o)))
 
+(define (vm-warn msg)
+  ;; it was too much to see...
+  #;(format (current-error-port) "WARNING: ~a~%" msg))
+
 ;; for declare-procedure
 (define (parse-type type)
   (if (and (pair? type)

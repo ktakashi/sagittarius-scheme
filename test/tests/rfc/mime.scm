@@ -159,6 +159,14 @@ Content</div>
 ;;	    (mime-encode-word "\x5ddd;\x5408; \x53f2;\x6717;"
 ;;			 :charset 'iso-2022-jp))
 
+(define (mime-message-resolver mesg parent)
+  (unless (eqv? (mime-part-parent mesg) parent) (error "parent link broken"))
+  (cons* (string-append (mime-part-type mesg) "/" (mime-part-subtype mesg))
+         (mime-part-index mesg)
+         (if (string? (mime-part-content mesg))
+           (list (mime-part-content mesg))
+           (map (cut mime-message-resolver <> mesg) (mime-part-content mesg)))))
+
 (define (mime-message-tester num headers)
   (let ((src (string-append (current-directory)
 			    "/test/data/rfc-mime-"
@@ -186,13 +194,7 @@ Content</div>
 			    #f)
 			   )))))
     ))
-(define (mime-message-resolver mesg parent)
-  (unless (eqv? (mime-part-parent mesg) parent) (error "parent link broken"))
-  (cons* (string-append (mime-part-type mesg) "/" (mime-part-subtype mesg))
-         (mime-part-index mesg)
-         (if (string? (mime-part-content mesg))
-           (list (mime-part-content mesg))
-           (map (cut mime-message-resolver <> mesg) (mime-part-content mesg)))))
+
 
 (import (sagittarius control)) ;; for dotimes
 (dotimes (n 8)

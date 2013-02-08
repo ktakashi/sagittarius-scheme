@@ -200,7 +200,7 @@
 			     (endian (ref bv o endian))
 			     (else
 			      (let* ((name (aux:lookup-name c #f))
-				     (nref (->native name #f)))
+				     (nref (aux:->native name #f)))
 				(nref bv o))))))
 		    (if indefinite
 			(begin

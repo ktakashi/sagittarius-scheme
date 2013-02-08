@@ -30,7 +30,7 @@
 
 ;; NOTE: this library handle only RFC 1421 format for now.
 ;;  http://tools.ietf.org/html/rfc1421
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (rfc pem)
     (export parse-pem
 	    parse-pem-file
@@ -102,7 +102,7 @@
 				   (read-asn.1-object 
 				    (open-bytevector-input-port base64))
 				   base64))))))
-	      (else (loop (get-line p))))))
+	      (else (loop (get-line in))))))
 
     (let loop ((r '()))
       (receive (params content) (rec in)

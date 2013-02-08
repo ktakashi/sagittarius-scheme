@@ -25,6 +25,8 @@
 		       (get-output-string p))))))
 
     (define (run-r7rs-write-tests)
+      (test-unspecified (unless (= 1 1.0) (display "1") (display "2")))
+
       (test-io-unspecified "12" (when (= 1 1.0) (display "1") (display "2")))
       (test-io-unspecified "" (unless (= 1 1.0) (display "1") (display "2")))
       (test-io-unspecified "4 plus 1 equals 5"

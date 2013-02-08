@@ -87,7 +87,7 @@
     (make <ber-application-specific> :tag tag
 	  (call-with-bytevector-output-port
 	   (lambda (p)
-	     (for-each (o) (der-encode o p) l)))))
+	     (for-each (lambda (o) (der-encode o p)) l)))))
 
   (define-class <ber-tagged-object> (<der-tagged-object>) ())
   (define-method make-ber-tagged-object

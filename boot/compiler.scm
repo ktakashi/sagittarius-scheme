@@ -3861,14 +3861,16 @@
 		(if (null? lifted)
 		    iform		; shortcut
 		    (let ((iform. (pass4/subst iform (make-label-dic '()))))
-		      ($seq `(,@(imap pass4/lifted-define lifted) ,iform.)))))))
+		      ($seq `(,@(imap pass4/lifted-define lifted)
+			      ,iform.)))))))
 	)))
 
 (define (pass4/lifted-define lambda-node)
-  ($define ($lambda-src lambda-node)
-	   '() ;;'(const) ;; somehow it doesn't work with const flag
-	   ($lambda-lifted-var lambda-node)
-	   lambda-node))
+  (let ((id ($lambda-lifted-var lambda-node)))
+    (library-defined-add! (id-library id) (id-name id))
+    ($define ($lambda-src lambda-node)
+	     '() ;;'(const) ;; somehow it doesn't work with const flag
+	     id lambda-node)))
 
 ;; scan
 (cond-expand
@@ -4492,17 +4494,29 @@
 	(var-stack-size (pass5/compile-assign ($lset-lvar iform) cb renv)))
     (+ val-stack-size var-stack-size)))
 
+(define (check-bound-identifier id)
+  (let ((lib (id-library id))
+	(name (id-name id)))
+    (unless (or (find-binding (id-library id) (id-name id) #f)
+		(memq name (library-defined lib)))
+      (if (vm-r6rs-mode?)
+	  (undefined-violation name "unbound identifier")
+	  (vm-warn (format "reference to undefined variable: ~a in ~a"
+			   name (library-name lib)))))))
+
 (define (pass5/$GREF iform cb renv ctx)
   (let ((id ($gref-id iform)))
+    (check-bound-identifier id)
     (cb-emit0oi! cb GREF id id)
     0))
 
 (define (pass5/$GSET iform cb renv ctx)
-  (let ((val-stack-size (pass5/rec ($gset-expr iform) cb renv
-				   (normal-context ctx)))
-	(id ($gset-id iform)))
-    (cb-emit0oi! cb GSET id id)
-    val-stack-size))
+  (let ((id ($gset-id iform)))
+    (check-bound-identifier id)
+    (let ((val-stack-size (pass5/rec ($gset-expr iform) cb renv
+				     (normal-context ctx))))
+      (cb-emit0oi! cb GSET id id)
+      val-stack-size)))
 
 (define (pass5/$CONST iform cb renv ctx)
   (unless (stmt-context? ctx)

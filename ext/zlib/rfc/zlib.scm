@@ -78,8 +78,9 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
+	    (sagittarius dynamic-module)
 	    (sagittarius control))
-  (load-dynamic-library "sagittarius--zlib")
+  (load-dynamic-module "sagittarius--zlib")
 
   (define-condition-type &zlib-error &error make-zlib-error
     zlib-error?
@@ -336,7 +337,7 @@
 
   (define (inflate-bytevector bv . args)
     (call-with-bytevector-output-port
-     (^p (let1 p2 (apply open-inflating-output-port p args)
+     (^p (let1 p2 (apply open-inflating-input-port p args)
 	   (put-bytevector p2 bv)
 	   (close-output-port p2)))))
 	
