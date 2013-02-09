@@ -573,6 +573,8 @@ static char special[] = {
 
 static int symbol_need_bar(const SgChar *s, int n)
 {
+  /* R7RS allows these without escape. */
+#if 0
   switch (s[0]) {
   case '@': return TRUE;
   case '+':
@@ -588,6 +590,7 @@ static int symbol_need_bar(const SgChar *s, int n)
     if (s[3] == 0) return FALSE;
     return TRUE;
   }
+#endif
 
   if (isdigit(s[0])) {
     return TRUE;
@@ -599,7 +602,7 @@ static int symbol_need_bar(const SgChar *s, int n)
       if (c & 0x80) continue;
 	  if (c >= 0xFF) return TRUE;
       if (isalnum(c)) continue;
-      if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
+      if (strchr("|!$%&/:*<=>?^_~+-.@", (char)c)) continue;
       return TRUE;
     }
     return FALSE;
