@@ -131,7 +131,7 @@
   (define fuga 'fuga))
 
 (library (test)
-    (export)
+    (export ok)
     (import (rnrs) (sagittarius) (inner))
   (define test '*test*)
   (define test1 'oops)
@@ -141,6 +141,11 @@
 
   (define variable 1)
   (export variable)
+
+  (define (ok) (ok-aux))
+  (define-syntax ok-aux
+    (syntax-rules ()
+      ((_) 'ok)))
   )
 (import (test))
 (test-equal "multi export syntax" car first)
@@ -824,6 +829,8 @@
   (define-inline (print args) args)
   (test-equal "issue 94 (def->macro)" "abc" (print "abc"))
   )
+(test-equal "define-syntax after define" 'ok (ok))
+#|
 (let ()
   (define-syntax define-inline
     (syntax-rules ()
@@ -835,5 +842,6 @@
   (define-inline (print args) args)
   (define (puts args) args)
   (test-equal "issue 94 (macro->def)" "abc" (print "abc")))
+|#
 
 (test-end)

@@ -2473,19 +2473,27 @@
   (pass1/import form (p1env-library p1env)))
 
 (define (pass1/library form lib p1env)
+  (define (finish iform save)
+    ;; restore
+    (vm-current-library save)
+    iform)
+  ;; removed dynamic-wind, eval always restore vm's current library
+  ;; so we didn't need it.
   (let ((save (vm-current-library))) ;; save current library
-    (dynamic-wind
-	(lambda ()
-	  (vm-current-library lib))
-	(lambda ()
-	  (let ((iforms (imap (lambda (x) (pass1 x p1env)) form)))
-	    ($seq (append
-		   (list ($library lib)) ; put library here
-		   (pass1/collect-inlinable! iforms lib)
-		   (list ($undef))))))
-	(lambda ()
-	  ;; restore current library
-	  (vm-current-library save)))))
+    (vm-current-library lib)
+    ;; compile define-syntax first
+    ;; FIXME: this might be too simple to handle all cases.
+    (let* ((form (ifold (lambda (x s)
+			  (if (and (pair? x)
+				   (global-eq? (car x) 'define-syntax p1env))
+			      (begin (pass1 x p1env) s)
+			      (cons x s))) '() form))
+	   (iforms (imap (lambda (x) (pass1 x p1env)) (reverse! form))))
+      (finish ($seq (append
+		     (list ($library lib)) ; put library here
+		     (pass1/collect-inlinable! iforms lib)
+		     (list ($undef))))
+	      save))))
 
 (define-pass1-syntax (library form p1env) :sagittarius
   (define (check tag clause name)
