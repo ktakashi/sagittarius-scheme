@@ -811,4 +811,18 @@
     (define-thing)
     (test-equal "issue 93" 1 (prob (thing a)))))
 
+;; issue 94
+(let ()
+  (define-syntax define-inline
+    (syntax-rules ()
+      ((_ (name . args) body ...)
+       (define-syntax name
+	 (syntax-rules ()
+	   ((_ . args)
+	    (begin body ...)))))))
+  (define (puts args) args)
+  (define-inline (print args) args)
+  (test-equal "issue 94" "abc" (print "abc"))
+  )
+
 (test-end)

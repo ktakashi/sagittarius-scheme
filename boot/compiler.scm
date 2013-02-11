@@ -2793,14 +2793,14 @@
      newenv))
 
 (define (pass1/body-inner-rec mac exprs intdefs intmacros p1env)
-  (define (finish exprs p1env intdefs intmacros rec?)
+  (define (finish exprs p1env intdefs rec?)
     (cond (mac
 	   (pass1/body-rec
 	    (acons ($history (call-macro-expander mac (caar exprs) p1env)
 			     (caar exprs))
-		   (cdar exprs) ; src
-		   (cdr exprs)) ; rest
-	    intdefs intmacros p1env))
+		   (cdar exprs)		; src
+		   (cdr exprs))		; rest
+	    intdefs '() p1env))
 	  (rec?
 	   (pass1/body-rec exprs intdefs '() p1env))
 	  (else
@@ -2809,27 +2809,25 @@
   (let* ((intdefs. (reverse intdefs))
 	 (vars (imap car intdefs.))
 	 (frame (car (p1env-frames p1env)))
-	 ;; internal macro can make duplicated lvars but it should not
-	 ;; happen so first we need to check if there is already lvar
-	 ;; or not, and if not we can make it.
 	 (lvars (imap
 		 (lambda (var)
-		   ;; internal macro is in the same frame, so if the var
-		   ;; is in the same frame as a lvar, we need to return
-		   ;; it
+		   ;; internal macros are in the same frame, so if the var
+		   ;; is in the same frame as a lvar, we need to return it
 		   (or (and-let* ((slot (assq var frame))
 				  (lvar? (cdr slot)))
 			 (cdr slot))
 		       (make-lvar var))) vars))
 	 (newenv (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL)))
     (cond ((and (null? intdefs) (null? intmacros))
-	   (finish exprs p1env '() '() #f))
+	   (finish exprs p1env '() #f))
 	  ((null? intmacros)
-	   ($let #f 'rec lvars
-		 (imap2 (lambda (lv def)
-			  (pass1/body-init lv def newenv))
-			lvars (imap cdr intdefs.))
-		 (finish exprs newenv '() '() #f)))
+	   (if mac
+	       (finish exprs newenv intdefs #f)
+	       ($let #f 'rec lvars
+		     (imap2 (lambda (lv def)
+			      (pass1/body-init lv def newenv))
+			    lvars (imap cdr intdefs.))
+		     (finish exprs newenv '() #f))))
 	  (else
 	   ;; intmacro list is like this
 	   ;; ((<type> . ((name expr) ...)) ...)
@@ -2847,7 +2845,7 @@
 				 ((let)
 				  (let-syntax-parser (cdar exprs) env)))))
 			  (loop (cdr exprs) new-env))))))
-	     (finish exprs macenv intdefs '() #t))))))
+	     (finish exprs macenv intdefs #t))))))
 
 ;; Resolve all internal defines and macros so far we collect.
 (define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)
@@ -3973,7 +3971,8 @@
 
 (define (pass4-scan/$DEFINE iform bs fs t? labels)
   (unless t?
-    (error 'pass4/lambda-lifting "[internal] $DEFINE in non-toplevel"))
+    (error 'pass4/lambda-lifting "[internal] $DEFINE in non-toplevel"
+	   (unwrap-syntax ($define-src iform))))
   (pass4/scan ($define-expr iform) bs fs #t labels))
 (define (pass4-scan/$LREF iform bs fs t? labels)
   (pass4/add-lvar ($lref-lvar iform) bs fs))
