@@ -139,6 +139,14 @@
 	 (proc (car p1) (car p2))
 	 (loop (cdr p1) (cdr p2)))))))
 
+(define-syntax ifold
+  (syntax-rules ()
+    ((_ proc seed lis)
+     (let loop ((p1 lis) (knil seed))
+       (if (null? p1)
+	   knil
+	   (loop (cdr p1) (proc (car p1) knil)))))))
+
 (define-syntax $append-map1
   (syntax-rules ()
     ((_ f l)
@@ -2806,8 +2814,7 @@
 	  (else
 	   (pass1/body-rest exprs p1env))))
 
-  (let* ((intdefs. (reverse intdefs))
-	 (vars (imap car intdefs.))
+  (let* ((vars (ifold (lambda (v s) (cons (car v) s)) '() intdefs))
 	 (frame (car (p1env-frames p1env)))
 	 (lvars (imap
 		 (lambda (var)
@@ -2826,7 +2833,8 @@
 	       ($let #f 'rec lvars
 		     (imap2 (lambda (lv def)
 			      (pass1/body-init lv def newenv))
-			    lvars (imap cdr intdefs.))
+			    lvars 
+			    (ifold (lambda (v s) (cons (cdr v) s)) '() intdefs))
 		     (finish exprs newenv '() #f))))
 	  (else
 	   ;; intmacro list is like this

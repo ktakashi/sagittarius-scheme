@@ -50,11 +50,11 @@
 (define (fold proc seed lst1 . lst2)
   (if (null? lst2)
       (let loop ((lis lst1) (knil seed))
-	(if (null-list? lis)
+	(if (null? lis)
 	    knil
 	    (loop (cdr lis) (proc (car lis) knil))))
       (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
-	(if (null-list? lis)
+	(if (null? lis)
 	    knil 
 	    (loop (cdr lis) (apply proc (append (car lis) (list knil))))))))
 
@@ -171,7 +171,7 @@
       (assertion-violation 'find-tail
 			   (wrong-type-argument-message "procedure" pred 2)))
   (let lp ((list list))
-    (and (not (null-list? list))
+    (and (not (null? list))
      (if (pred (car list)) list
          (lp (cdr list))))))
 
@@ -196,7 +196,7 @@
 (define (reduce f ridentity lis)
   (or (procedure? f)
       (assertion-violation 'reduce (wrong-type-argument-message "procedure" = 1)))
-  (if (null-list? lis) ridentity
+  (if (null? lis) ridentity
       (fold f (car lis) (cdr lis))))
 
 (define (lset-union = . lists)
@@ -220,7 +220,7 @@
       (assertion-violation 'lset-intersection
 			   (wrong-type-argument-message "procedure" = 1)))
   (let ((lists (delete lis1 lists eq?))) ; Throw out any LIS1 vals.
-    (cond ((exists null-list? lists) '())      ; Short cut
+    (cond ((exists null? lists) '())      ; Short cut
       ((null? lists)          lis1)     ; Short cut
       (else (filter (lambda (x)
               (for-all (lambda (lis) (member x lis =)) lists))
@@ -592,9 +592,9 @@
 (define (fold-left proc seed lst1 . lst2)
   (if (null? lst2)
       (let loop ((lis lst1) (knil seed))
-	(if (null-list? lis) knil (loop (cdr lis) (proc knil (car lis)))))
+	(if (null? lis) knil (loop (cdr lis) (proc knil (car lis)))))
       (let loop ((lis (apply list-transpose* lst1 lst2)) (knil seed))
-	(if (null-list? lis)
+	(if (null? lis)
 	    knil 
 	    (loop (cdr lis) (apply proc knil (car lis)))))))
 
@@ -603,12 +603,12 @@
   (if (null? lst2)
       (let loop ((lis (reverse lst1))
 		 (result seed))
-	(if (null-list? lis)
+	(if (null? lis)
 	    result
 	    (loop (cdr lis)
 		  (proc (car lis) result))))
       (let loop ((lis (reverse! (apply list-transpose* lst1 lst2))) (knil seed))
-	(if (null-list? lis)
+	(if (null? lis)
 	    knil
 	    (loop (cdr lis)
 		  (apply proc (append! (car lis) (list knil))))))))

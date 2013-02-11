@@ -822,7 +822,18 @@
 	    (begin body ...)))))))
   (define (puts args) args)
   (define-inline (print args) args)
-  (test-equal "issue 94" "abc" (print "abc"))
+  (test-equal "issue 94 (def->macro)" "abc" (print "abc"))
   )
+(let ()
+  (define-syntax define-inline
+    (syntax-rules ()
+      ((_ (name . args) body ...)
+       (define-syntax name
+	 (syntax-rules ()
+	   ((_ . args)
+	    (begin body ...)))))))
+  (define-inline (print args) args)
+  (define (puts args) args)
+  (test-equal "issue 94 (macro->def)" "abc" (print "abc")))
 
 (test-end)
