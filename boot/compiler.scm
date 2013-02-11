@@ -2472,23 +2472,66 @@
   (check-toplevel form p1env)
   (pass1/import form (p1env-library p1env)))
 
+(cond-expand
+ (sagittarius.scheme.vm
+  (define (expand-macro form p1env)
+    (let loop ((form form) (r '()) (expanded? #f))
+      (if (null? form)
+	  (values (reverse! r) expanded?)
+	  (let* ((expr (car form))
+		 (name (if (pair? expr) (car expr) expr))
+		 (gloc (if (variable? name)
+			   (find-binding (p1env-library p1env)
+					 (variable-name name)
+					 #f)
+			   #f)))
+	    ;; toplevel must be bounded to something
+	    ;; FIXME, we can't check it here...
+	    ;; (unless gloc
+	    ;;   (assertion-violation name "unbound variable" expr))
+	    (or (and-let* (( gloc )
+			   (m (gloc-ref gloc))
+			   ( (macro? m))
+			   (e ($history (call-macro-expander m expr p1env) 
+					expr)))
+		  (loop (cdr form) (cons e r) #t))
+		(loop (cdr form) (cons expr r) expanded?))))))
+  (define (compile-define-syntax form p1env)
+    (let loop ((form form) (r '()) (exists? #f))
+      (if (null? form)
+	  (values (reverse! r) exists?)
+	  (let ((expr (car form)))
+	    (cond ((and (pair? expr)
+			(global-eq? (car expr) 'define-syntax p1env))
+		   (pass1 expr p1env) ; we don't need the result
+		   (loop (cdr form) r #t))
+		  (else (loop (cdr form) (cons expr r) exists?)))))))
+
+  (define (expand-form form p1env)
+    (let*-values (((form exists?) (compile-define-syntax form p1env))
+		  ((form expanded?) (expand-macro form p1env)))
+      ;; if define-syntax exists then there might be toplevel macros
+      ;; if macro is expanded then it might have some other macro
+      ;; definition
+      (if (and (not (null? form)) (or exists? expanded?))
+	  (expand-form form p1env)
+	  form))))
+ (else
+  (define (expand-form form p1env) form)))
+
+
 (define (pass1/library form lib p1env)
   (define (finish iform save)
     ;; restore
     (vm-current-library save)
     iform)
+
   ;; removed dynamic-wind, eval always restore vm's current library
   ;; so we didn't need it.
   (let ((save (vm-current-library))) ;; save current library
     (vm-current-library lib)
     ;; compile define-syntax first
-    ;; FIXME: this might be too simple to handle all cases.
-    (let* ((form (ifold (lambda (x s)
-			  (if (and (pair? x)
-				   (global-eq? (car x) 'define-syntax p1env))
-			      (begin (pass1 x p1env) s)
-			      (cons x s))) '() form))
-	   (iforms (imap (lambda (x) (pass1 x p1env)) (reverse! form))))
+    (let ((iforms (imap (lambda (x) (pass1 x p1env)) (expand-form form p1env))))
       (finish ($seq (append
 		     (list ($library lib)) ; put library here
 		     (pass1/collect-inlinable! iforms lib)

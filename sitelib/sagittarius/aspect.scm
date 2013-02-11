@@ -1,7 +1,7 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 #!compatible
 (library (sagittarius aspect)
-    (export point-cut %insert-binding gloc-set!)
+    (export point-cut)
     (import (core)
 	    (core base)
 	    (core errors)
