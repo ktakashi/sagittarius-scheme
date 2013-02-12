@@ -640,16 +640,7 @@
 		     ((identifier? lst)
 		      (cond ((check-binding (id-name lst) mac-env
 					    (id-library lst)) lst)
-			    ((lookup-pattern-variable p1env vars lst)
-			     => (lambda (pv)
-				  ;; if the returned variable is already
-				  ;; in transformer env, then we need to
-				  ;; return the same value otherwise the
-				  ;; input form variable won't be the same
-				  ;; input per macro expansion.
-				  (cond ((eq? pv lst) pv)
-					((lookup-transformer-env pv))
-					(else pv))))
+			    ((lookup-pattern-variable p1env vars lst))
 			    (else lst)))
 		     (else lst)))
 	      ((null? lst) '())

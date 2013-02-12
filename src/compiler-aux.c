@@ -35,7 +35,7 @@ static struct sg__wcRec {
   /*    11 */        0x00000003           /* 11     (CONST) */,
   /*    12 */        WORD(SG_UNDEF), /* (($UNDEF . 0) ($DEFINE . 1) ($LREF . 2) ($LSET . 3) ($GREF . 4) ($GSET . 5) ($CONST . 6) ($IF . 7) ($LET . 8) ($LAMBDA . 9) ($RECEIVE . 10) ($LABEL . 11) ($SEQ . 12) ($CALL . 13) ($ASM . 14) ($IT . 15) ($LIST . 16) ($LIBRARY . 17)) */
   /*    13 */        0x00000133           /* 13     (DEFINE) */,
-  /*    14 */        WORD(SG_UNDEF)  /* identifier#|.intermediate-tags.| */,
+  /*    14 */        WORD(SG_UNDEF)  /* identifier#.intermediate-tags. */,
   /*    15 */        0x00000004           /* 15     (CONSTI) */,
   /*    16 */        0x00000133           /* 16     (DEFINE) */,
   /*    17 */        WORD(SG_UNDEF)  /* identifier#$UNDEF */,
@@ -157,24 +157,29 @@ void Sg__Init_sagittarius_compiler_util()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(sagittarius compiler util)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[91] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
-  sg__wc.w[84] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[95] = STRINGW("invalid library tag:");
   sg__wc.w[1] = SYMBOLW("(sagittarius compiler util)");
-  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
-  sg__wc.w[87] = KEYWORDW("base");
   sg__wc.w[7] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SYMBOL("parse-args");
-  sg__wc.w[80] = KEYWORDW("sagittarius");
+  sg__wc.w[91] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
   sg__wc.w[3] = WORD(&sg__wc.cb[0]);
   sg__wc.cb[0].name = SYMBOL("ensure-library-name");
+  sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
+  sg__wc.w[95] = STRINGW("invalid library tag:");
   sg__wc.w[73] = KEYWORDW("null");
+  sg__wc.w[84] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
+  sg__wc.w[80] = KEYWORDW("sagittarius");
+  sg__wc.w[87] = KEYWORDW("base");
+  sg__wc.w[47] = IDENT("$RECEIVE", lib);
+  sg__wc.w[98] = IDENT("error", lib);
+  sg__wc.w[17] = IDENT("$UNDEF", lib);
+  sg__wc.w[50] = IDENT("$LABEL", lib);
+  sg__wc.w[20] = IDENT("$DEFINE", lib);
   sg__wc.w[53] = IDENT("$SEQ", lib);
   sg__wc.w[23] = IDENT("$LREF", lib);
   sg__wc.w[56] = IDENT("$CALL", lib);
+  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[26] = IDENT("$LSET", lib);
   sg__wc.w[59] = IDENT("$ASM", lib);
-  sg__wc.w[98] = IDENT("error", lib);
   sg__wc.w[14] = IDENT(".intermediate-tags.", lib);
   sg__wc.w[29] = IDENT("$GREF", lib);
   sg__wc.w[62] = IDENT("$IT", lib);
@@ -182,17 +187,12 @@ void Sg__Init_sagittarius_compiler_util()
   sg__wc.w[65] = IDENT("$LIST", lib);
   sg__wc.w[35] = IDENT("$CONST", lib);
   sg__wc.w[68] = IDENT("$LIBRARY", lib);
-  sg__wc.w[9] = IDENT("parse-args", lib);
   sg__wc.w[38] = IDENT("$IF", lib);
+  sg__wc.w[9] = IDENT("parse-args", lib);
   sg__wc.w[41] = IDENT("$LET", lib);
   sg__wc.w[44] = IDENT("$LAMBDA", lib);
-  sg__wc.w[47] = IDENT("$RECEIVE", lib);
-  sg__wc.w[17] = IDENT("$UNDEF", lib);
-  sg__wc.w[5] = IDENT("ensure-library-name", lib);
-  sg__wc.w[50] = IDENT("$LABEL", lib);
-  sg__wc.w[20] = IDENT("$DEFINE", lib);
-  sg__wc.w[93] = SYMBOLW("ensure-library-name");
   sg__wc.w[77] = SYMBOLW("null");
+  sg__wc.w[93] = SYMBOLW("ensure-library-name");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core errors)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
