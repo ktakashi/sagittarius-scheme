@@ -2,34 +2,42 @@
 #!compatible
 (library (scheme private)
     (export define-values)
-    (import (rnrs) (match) (sagittarius))
+    (import (rnrs) (rnrs mutable-pairs))
 
-  ;; if I use syntax-case or syntax-rules, it can not use in let
-  ;; so ugly solution.
+  ;; FIXME, remove set-cdr!
   (define-syntax define-values
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((_define (rename 'define))       (_set! (rename 'set!))
-	     (_undefined (rename 'undefined)) (_receive (rename 'receive))
-	     (_begin (rename 'begin)))
-	 (define (construct vars expr)
-	   (define (gen-vars vars)
-	     (map (lambda (var)
-		    `(,_define ,var (,_undefined))) vars))
-	   (define (map-vars tmps vars)
-	     (map (lambda (tmp var)
-		    `(,_set! ,var ,tmp)) tmps vars))
-	   (let ((tmps (map (lambda (_) (gensym)) vars)))
-	     `(,_begin 
-	       ,@(gen-vars vars)
-	       (,_receive ,tmps ,expr
-		     ,@(map-vars tmps vars)
-		     (,_undefined))))
-	   )
-	 (match form
-	   ((_ (var ...) expr)
-	    (construct var expr))
-	   (_ (syntax-violation 'define-values
-				"malformed define-values" form)))))))
+    (syntax-rules ()
+      ((define-values () expr)
+       (define dummy (let-values ((args expr)) #f)))
+      ((define-values (var) expr)
+       (define var expr))
+      ((define-values (var0 var1 ... varn) expr)
+       (begin
+	 (define var0
+	   (let-values ((tmp expr)) tmp))
+	 (define var1
+	   (let ((v (cadr var0)))
+	     (set-cdr! var0 (cddr var0))
+	     v))
+	 ...
+	 (define varn
+	   (let ((v (cadr var0)))
+	     (set! var0 (car var0))
+	     v))))
+      ((define-values (var0 var1 ... . var-dot) expr)
+       (begin
+	 (define var0
+	   (let-values ((tmp expr)) tmp))
+	 (define var1
+	   (let ((v (cadr var0)))
+	     (set-cdr! var0 (cddr var0))
+	     v))
+	 ...
+	 (define var-dot
+	   (let ((v (cdr var0)))
+	     (set! var0 (car var0))
+	     v))))
+      ((define-values var expr)
+       (define var (let-values ((tmp expr)) tmp)))))
 
 )

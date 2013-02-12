@@ -169,6 +169,31 @@
 (let*-values (((root rem) (exact-integer-sqrt 32)))
   (test 35 (* root rem)))
 
+
+(test '(1073741824 0)
+    (let*-values (((root rem) (exact-integer-sqrt (expt 2 60))))
+      (list root rem)))
+
+(test '(1518500249 3000631951)
+    (let*-values (((root rem) (exact-integer-sqrt (expt 2 61))))
+      (list root rem)))
+#|
+(test '(815238614083298888 443242361398135744)
+    (let*-values (((root rem) (exact-integer-sqrt (expt 2 119))))
+      (list root rem)))
+
+(test '(1152921504606846976 0)
+    (let*-values (((root rem) (exact-integer-sqrt (expt 2 120))))
+      (list root rem)))
+
+(test '(1630477228166597776 1772969445592542976)
+    (let*-values (((root rem) (exact-integer-sqrt (expt 2 121))))
+      (list root rem)))
+|#
+(let*-values (((root rem) (exact-integer-sqrt (expt 2 140))))
+  (test 0 rem)
+  (test (expt 2 140) (square root)))
+
 (test '(x y x y) (let ((a 'a) (b 'b) (x 'x) (y 'y))
   (let*-values (((a b) (values x y))
                 ((x y) (values a b)))
@@ -361,9 +386,30 @@
   (define bar (lambda (a b) (+ (* a b) a)))
   (foo (+ x 3))))
 
-(test 3 (let ()
-  (define-values (x y) (values 1 2))
-  (+ x y)))
+(test 'ok
+    (let ()
+      (define-values () (values))
+      'ok))
+(test 1
+    (let ()
+      (define-values (x) (values 1))
+      x))
+(test 3
+    (let ()
+      (define-values x (values 1 2))
+      (apply + x)))
+(test 3
+    (let ()
+      (define-values (x y) (values 1 2))
+      (+ x y)))
+(test 6
+    (let ()
+      (define-values (x y z) (values 1 2 3))
+      (+ x y z)))
+(test 10
+    (let ()
+      (define-values (x y . z) (values 1 2 3 4))
+      (+ x y (car z) (cadr z))))
 
 (test '(2 1) (let ((x 1) (y 2))
   (define-syntax swap!
@@ -866,36 +912,36 @@
 (test #f (char? 'a))
 (test #f (char? 0))
 
-(test #t (char=? #\a #\a))
+(test #t (char=? #\a #\a #\a))
 (test #f (char=? #\a #\A))
-(test #t (char<? #\a #\b))
+(test #t (char<? #\a #\b #\c))
 (test #f (char<? #\a #\a))
 (test #f (char<? #\b #\a))
 (test #f (char>? #\a #\b))
 (test #f (char>? #\a #\a))
-(test #t (char>? #\b #\a))
-(test #t (char<=? #\a #\b))
+(test #t (char>? #\c #\b #\a))
+(test #t (char<=? #\a #\b #\b))
 (test #t (char<=? #\a #\a))
 (test #f (char<=? #\b #\a))
 (test #f (char>=? #\a #\b))
 (test #t (char>=? #\a #\a))
-(test #t (char>=? #\b #\a))
+(test #t (char>=? #\b #\b #\a))
 
 (test #t (char-ci=? #\a #\a))
-(test #t (char-ci=? #\a #\A))
+(test #t (char-ci=? #\a #\A #\a))
 (test #f (char-ci=? #\a #\b))
-(test #t (char-ci<? #\a #\B))
+(test #t (char-ci<? #\a #\B #\c))
 (test #f (char-ci<? #\A #\a))
 (test #f (char-ci<? #\b #\A))
 (test #f (char-ci>? #\A #\b))
 (test #f (char-ci>? #\a #\A))
-(test #t (char-ci>? #\B #\a))
-(test #t (char-ci<=? #\a #\B))
+(test #t (char-ci>? #\c #\B #\a))
+(test #t (char-ci<=? #\a #\B #\b))
 (test #t (char-ci<=? #\A #\a))
 (test #f (char-ci<=? #\b #\A))
 (test #f (char-ci>=? #\A #\b))
 (test #t (char-ci>=? #\a #\A))
-(test #t (char-ci>=? #\B #\a))
+(test #t (char-ci>=? #\b #\B #\a))
 
 (test #t (char-alphabetic? #\a))
 (test #f (char-alphabetic? #\space))
@@ -976,32 +1022,32 @@
 (test "a-c" (let ((str (string #\a #\b #\c))) (string-set! str 1 #\-) str))
 
 (test #t (string=? "" ""))
-(test #t (string=? "abc" "abc"))
+(test #t (string=? "abc" "abc" "abc"))
 (test #f (string=? "" "abc"))
 (test #f (string=? "abc" "aBc"))
 
 (test #f (string<? "" ""))
 (test #f (string<? "abc" "abc"))
-(test #t (string<? "abc" "abcd"))
+(test #t (string<? "abc" "abcd" "acd"))
 (test #f (string<? "abcd" "abc"))
 (test #t (string<? "abc" "bbc"))
 
 (test #f (string>? "" ""))
 (test #f (string>? "abc" "abc"))
 (test #f (string>? "abc" "abcd"))
-(test #t (string>? "abcd" "abc"))
+(test #t (string>? "acd" "abcd" "abc"))
 (test #f (string>? "abc" "bbc"))
 
 (test #t (string<=? "" ""))
 (test #t (string<=? "abc" "abc"))
-(test #t (string<=? "abc" "abcd"))
+(test #t (string<=? "abc" "abcd" "abcd"))
 (test #f (string<=? "abcd" "abc"))
 (test #t (string<=? "abc" "bbc"))
 
 (test #t (string>=? "" ""))
 (test #t (string>=? "abc" "abc"))
 (test #f (string>=? "abc" "abcd"))
-(test #t (string>=? "abcd" "abc"))
+(test #t (string>=? "abcd" "abcd" "abc"))
 (test #f (string>=? "abc" "bbc"))
 
 (test #t (string-ci=? "" ""))
@@ -1026,7 +1072,7 @@
 (test #f (string-ci>=? "abc" "aBcD"))
 (test #t (string-ci>=? "ABCd" "aBc"))
 
-(test #t (string-ci=? "ΑΒΓ" "αβγ"))
+(test #t (string-ci=? "ΑΒΓ" "αβγ" "αβγ"))
 (test #f (string-ci<? "ΑΒΓ" "αβγ"))
 (test #f (string-ci>? "ΑΒΓ" "αβγ"))
 (test #t (string-ci<=? "ΑΒΓ" "αβγ"))
@@ -1545,6 +1591,10 @@
 (test #u8(1 2) (read-bytevector 3 (open-input-bytevector #u8(1 2))))
 (test #u8(1 2 3) (read-bytevector 3 (open-input-bytevector #u8(1 2 3))))
 (test #u8(1 2 3) (read-bytevector 3 (open-input-bytevector #u8(1 2 3 4))))
+
+(test #t
+    (let ((bv (bytevector 1 2 3 4 5)))
+      (eof-object? (read-bytevector! bv (open-input-bytevector #u8())))))
 
 (test #u8(6 7 8 9 10)
   (let ((bv (bytevector 1 2 3 4 5)))

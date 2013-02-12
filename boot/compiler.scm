@@ -2577,6 +2577,7 @@
   (define (process-declare body current-lib p1env)
     (let ((seq ($seq '()))
 	  (save (vm-current-library)))
+      (vm-current-library current-lib)
       (let-syntax ((pass1 (syntax-rules ()
 			    ((_ expr p1env)
 			     (pass1 expr p1env)))))
@@ -2584,6 +2585,7 @@
 	  (smatch clauses
 	    (() 
 	     (when finish?
+	       (vm-current-library save)
 	       ($seq-body-set! seq
 		(append!
 		 (list ($library current-lib))
