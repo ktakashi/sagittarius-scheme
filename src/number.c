@@ -3070,8 +3070,8 @@ SgObject Sg_ExactIntegerSqrt(SgObject k)
     return Sg_Values2(s, Sg_Sub(k, Sg_Mul(s, s)));
   } else {
     SgObject s = exact_integer_sqrt(k);
-    SgObject s2 = Sg_Mul(s, s);
     while (TRUE) {
+      SgObject s2 = Sg_Mul(s, s);
       if (Sg_NumCmp(k, s2) < 0) {
 	s = Sg_Quotient(Sg_Add(s2, k), Sg_Mul(SG_MAKE_INT(2), s), NULL);
 	continue;
