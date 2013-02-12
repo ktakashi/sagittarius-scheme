@@ -686,9 +686,11 @@
     (newline)
     (indent ind))
   (define (id->string id)
-    (if (id-library id)
-	(format "~s#~s" (id-name id) (library-name (id-library id)))
-	(format "~s" (id-name id))))
+    (if (identifier? id)
+	(if (id-library id)
+	    (format "~s#~s" (id-name id) (library-name (id-library id)))
+	    (format "~s" (id-name id)))
+	(format "~s" id)))
   (define (lvar->string lvar)
     (format "~a[~a.~a]"
 	    (if (identifier? (lvar-name lvar))
@@ -698,7 +700,7 @@
   (define (rec ind iform)
     (cond
      ((has-tag? iform $CONST)
-      (format #t "($const ~s)" ($const-value iform)))
+      (format/ss #t "($const ~s)" ($const-value iform)))
      ((has-tag? iform $UNDEF)
       (format #t "($const #<undef>)"))
      ((has-tag? iform $LAMBDA)
@@ -850,13 +852,15 @@
 	      (p1env-current-proc p1env)))
 
 ;; for local macros
+;; this must be called from inside of pass1/body
+;; so we can assume there is a fresh lexical frame.
 (define (p1env-extend! p1env frame type)
-  (let* ((oframe (p1env-frames p1env))
-	 (old    (cdr (car oframe)))
-	 (new-frame (append! frame old)))
-    ;; the first one must be the one we need to add
+  ;; ignore type
+  (let* ((oframes (p1env-frames p1env))
+	 (oframe  (car oframes)))
+    (set-cdr! oframe (append! (cdr oframe) frame))
     (make-p1env (p1env-library p1env)
-		(cons (cons type new-frame) (cdr oframe))
+		oframes
 		(p1env-exp-name p1env)
 		(p1env-current-proc p1env))))
 
@@ -902,7 +906,7 @@
        (let ((v (p1env-lookup p1env var LEXICAL)))
 	 (and (identifier? v)
 	      (eq? (id-name v) sym)
-	      (null? (id-envs v))
+	      ;;(null? (id-envs v))
 	      (cond ((find-binding (id-library v) sym #f)
 		     => (lambda (gloc)
 			  (let ((s (gloc-ref gloc)))
@@ -1538,7 +1542,7 @@
 		 (lp (cdr vars) (cons vars pool)))))))
   (smatch form
     ;; trivial case
-    ((- () body ___) (pass1/body body (p1env-extend p1env '() LEXICAL)))
+    ((- () body ___) (pass1/body body p1env))
     ((- ((vars expr) ___) body ___)
      (unless ref?
        ;; check duplicates
@@ -1585,7 +1589,7 @@
 (define-pass1-syntax (and-let* form p1env) :sagittarius
   (define (process-binds binds body p1env)
     (smatch binds
-      (() (pass1/body body (p1env-extend p1env '() LEXICAL)))
+      (() (pass1/body body p1env))
       (((exp) . more)
        ($if form (pass1 exp (p1env-sans-name p1env))
 	    (process-binds more body p1env)
@@ -1779,7 +1783,7 @@
   (smatch form
     ((- () body ___)
      ;; to make env lookup work properly, we need to extend it
-     (pass1/body body (p1env-extend p1env '() LEXICAL)))
+     (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))
@@ -1818,7 +1822,7 @@
 		(p1env p1env)
 		(src form))
        (if (null? vars)
-	   (pass1/body body (p1env-extend p1env '() LEXICAL))
+	   (pass1/body body p1env)
 	   (let* ((lv (make-lvar (car vars)))
 		  (newenv (p1env-extend p1env `((,(car vars) . ,lv)) LEXICAL))
 		  ;; can not refer itself in its init
@@ -1839,7 +1843,7 @@
   (smatch form
     ((- () body ___)
      ;; see let
-     (pass1/body body (p1env-extend p1env '() LEXICAL)))
+     (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))
@@ -2740,7 +2744,9 @@
   )
 
 (define (pass1/body exprs p1env)
-  (pass1/body-rec (imap list exprs) '() '() p1env))
+  (pass1/body-rec (imap list exprs) '() '() 
+		  ;; add dummy env so that we can just extend!
+		  (p1env-extend p1env '() LEXICAL)))
 
 (define (pass1/body-rec exprs intdefs intmacros p1env)
   (smatch exprs
@@ -2823,7 +2829,10 @@
 						     intdefs intmacros p1env))
 		      (pass1/body-finish intdefs intmacros exprs p1env)))
 		 (else
-		  (scheme-error 'pass1/body "[internal] pass1/body" op head))))
+		  (error 'pass1/body 
+			 "[internal] p1env-lookup returned weird obj"
+			  head
+			 `(,op . ,args)))))
 	 (pass1/body-finish intdefs intmacros exprs p1env)))
     (- (pass1/body-finish intdefs intmacros exprs p1env))))
 
@@ -2835,20 +2844,22 @@
 			   (variable-name n)
 			   x (p1env-add-name p1env (variable-name n))))
 		     names (imap cadr exprs)))
-	 (newenv (p1env-extend! p1env ($map-cons-dup names trans) LEXICAL)))
+	 (newenv (p1env-extend! p1env (%map-cons names trans) LEXICAL)))
     newenv))
 
 (define (letrec-syntax-parser exprs p1env)
   (let* ((names (imap car exprs))
 	 (bodys (imap cadr exprs))
-	 (newenv (p1env-extend! p1env ($map-cons-dup names bodys) LEXICAL))
+	 (frame (%map-cons names bodys))
+	 (newenv (p1env-extend! p1env frame LEXICAL))
 	 (trans (imap2 (lambda (n x)
 			 (pass1/eval-macro-rhs
 			  'letrec-syntax
 			  (variable-name n)
 			  x (p1env-add-name newenv (variable-name n))))
 		       names bodys)))
-    (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) trans)
+    ;; update proper named frame
+    (ifor-each2 set-cdr! frame trans)
      newenv))
 
 (define (pass1/body-inner-rec mac exprs intdefs intmacros p1env)
@@ -2865,46 +2876,58 @@
 	  (else
 	   (pass1/body-rest exprs p1env))))
 
-  (let* ((vars (ifold (lambda (v s) (cons (car v) s)) '() intdefs))
-	 (frame (car (p1env-frames p1env)))
-	 (lvars (imap
-		 (lambda (var)
-		   ;; internal macros are in the same frame, so if the var
-		   ;; is in the same frame as a lvar, we need to return it
-		   (or (and-let* ((slot (assq var frame))
-				  (lvar? (cdr slot)))
-			 (cdr slot))
-		       (make-lvar var))) vars))
-	 (newenv (p1env-extend p1env ($map-cons-dup vars lvars) LEXICAL)))
-    (cond ((and (null? intdefs) (null? intmacros))
-	   (finish exprs p1env '() #f))
-	  ((null? intmacros)
-	   (if mac
-	       (finish exprs newenv intdefs #f)
-	       ($let #f 'rec lvars
-		     (imap2 (lambda (lv def)
-			      (pass1/body-init lv def newenv))
-			    lvars 
-			    (ifold (lambda (v s) (cons (cdr v) s)) '() intdefs))
-		     (finish exprs newenv '() #f))))
-	  (else
-	   ;; intmacro list is like this
-	   ;; ((<type> . ((name expr) ...)) ...)
-	   ;; <type> : rec or let.
-	   ;;          rec = define-syntax or letrec-syntax
-	   ;;          let = let-syntax
-	   (let ((macenv
-		  (let loop ((exprs intmacros) (env newenv))
-		    (if (null? exprs)
-			env
-			(let ((new-env
-			       (case (caar exprs)
-				 ((rec)
-				  (letrec-syntax-parser (cdar exprs) env))
-				 ((let)
-				  (let-syntax-parser (cdar exprs) env)))))
-			  (loop (cdr exprs) new-env))))))
-	     (finish exprs macenv intdefs #t))))))
+  (define (make/collect-lvars frame vars need?)
+    (let loop ((vars vars) (r '()) (used '()))
+      (if (null? vars)
+	  (values (reverse! r) (reverse! used))
+	  (let ((var (car vars)))
+	    (cond ((and-let* ((slot (assq var frame))
+			      (lvar (cdr slot))
+			      ( (lvar? lvar) ))
+		     lvar) =>
+		     (lambda (v)
+		       (loop (cdr vars) (if need? (cons v r) r) used)))
+		  (else (loop (cdr vars) (cons (make-lvar var) r)
+			      (if need? used (cons var used)))))))))
+
+  (define (collect-lvars frame vars) (make/collect-lvars frame vars #f))
+  (define (make-lvars frame vars) 
+    (receive (lvars used) (make/collect-lvars frame vars #t) lvars))
+
+  (let ((vars (ifold (lambda (v s) (cons (car v) s)) '() intdefs)))
+    (receive (lvars used) (collect-lvars (car (p1env-frames p1env)) vars)
+      (let ((newenv (p1env-extend! p1env (%map-cons used lvars) LEXICAL)))
+	(cond ((and (null? intdefs) (null? intmacros))
+	       (finish exprs p1env '() #f))
+	      ((null? intmacros)
+	       (if mac
+		   (finish exprs newenv intdefs #f)
+		   (let ((lvars (make-lvars (car (p1env-frames newenv)) vars)))
+		     ($let #f 'rec lvars
+			   (imap2 (lambda (lv def)
+				    (pass1/body-init lv def newenv))
+				  lvars 
+				  (ifold (lambda (v s) (cons (cdr v) s))
+					 '() intdefs))
+			   (finish exprs newenv '() #f)))))
+	      (else
+	       ;; intmacro list is like this
+	       ;; ((<type> . ((name expr) ...)) ...)
+	       ;; <type> : rec or let.
+	       ;;          rec = define-syntax or letrec-syntax
+	       ;;          let = let-syntax
+	       (let ((macenv
+		      (let loop ((exprs intmacros) (env newenv))
+			(if (null? exprs)
+			    env
+			    (let ((new-env
+				   (case (caar exprs)
+				     ((rec)
+				      (letrec-syntax-parser (cdar exprs) env))
+				     ((let)
+				      (let-syntax-parser (cdar exprs) env)))))
+			      (loop (cdr exprs) new-env))))))
+		 (finish exprs macenv intdefs #t))))))))
 
 ;; Resolve all internal defines and macros so far we collect.
 (define (pass1/body-macro-expand-rec mac exprs intdefs intmacros p1env)

@@ -830,7 +830,7 @@
   (test-equal "issue 94 (def->macro)" "abc" (print "abc"))
   )
 (test-equal "define-syntax after define" 'ok (ok))
-#|
+
 (let ()
   (define-syntax define-inline
     (syntax-rules ()
@@ -842,6 +842,5 @@
   (define-inline (print args) args)
   (define (puts args) args)
   (test-equal "issue 94 (macro->def)" "abc" (print "abc")))
-|#
 
 (test-end)

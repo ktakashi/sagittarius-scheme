@@ -461,8 +461,15 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
+      cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);	
       if (ctx->macroPhaseP) {
+	/* compiler now share the frame so we need to check each frame
+	   separately here.*/
+	SgObject cp;
 	cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
+	SG_FOR_EACH(cp, SG_IDENTIFIER_ENVS(obj)) {
+	  cbs = write_cache_scan(SG_CAR(cp), cbs, ctx);
+	}
       }
       if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
 	cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),
@@ -472,21 +479,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
     } else if (SG_MACROP(obj)) {
       /* local macro in transformersEnv */
-      cbs = write_cache_scan(SG_MACRO(obj)->name, cbs, ctx);
-      cbs = write_cache_scan(SG_MACRO(obj)->env, cbs, ctx);
-      if (SG_CLOSUREP(SG_MACRO(obj)->data)) {
-	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->data)->code,
-		       SG_MAKE_INT(ctx->index), cbs);
-	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->data)->code,
-				cbs, NULL, ctx);
-      }
-      if (SG_CLOSUREP(SG_MACRO(obj)->transformer)) {
-	cbs = Sg_Acons(SG_CLOSURE(SG_MACRO(obj)->transformer)->code,
-		       SG_MAKE_INT(ctx->index), cbs);
-	cbs = write_cache_pass1(SG_CLOSURE(SG_MACRO(obj)->transformer)->code,
-				cbs, NULL, ctx);
-      }
-      cbs = write_cache_scan(SG_MACRO(obj)->maybeLibrary, cbs, ctx);
+      /* do nothing */
     } else {
       SgClass *klass = Sg_ClassOf(obj);
       if (SG_PROCEDUREP(klass->cscanner)) {
@@ -498,6 +491,24 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   }
   return cbs;
 }
+
+static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
+{
+  cbs = write_cache_scan(m->name, cbs, ctx);
+  cbs = write_cache_scan(m->env, cbs, ctx);
+  if (SG_CLOSUREP(m->data)) {
+    cbs = Sg_Acons(SG_CLOSURE(m->data)->code, SG_MAKE_INT(ctx->index), cbs);
+    cbs = write_cache_pass1(SG_CLOSURE(m->data)->code, cbs, NULL, ctx);
+  }
+  if (SG_CLOSUREP(m->transformer)) {
+    cbs = Sg_Acons(SG_CLOSURE(m->transformer)->code, 
+		   SG_MAKE_INT(ctx->index), cbs);
+    cbs = write_cache_pass1(SG_CLOSURE(m->transformer)->code,cbs, NULL, ctx);
+  }
+  cbs = write_cache_scan(m->maybeLibrary, cbs, ctx);
+  return cbs;
+}
+
 
 SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
 {
@@ -530,10 +541,7 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 	*/
 	break;
       }
-      if (!cachable_p(o)) ESCAPE(ctx, "non cacheable object %S\n", o);
-      if (interesting_p(o)) {
-	r = write_cache_scan(o, r, ctx);
-      }
+      r = write_cache_scan(o, r, ctx);
     }
     i += 1 + info->argc;
   }
@@ -653,7 +661,7 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
 static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 			       cache_ctx *ctx)
 {
-  SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
+  SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_UNBOUND);
   if (SG_INTP(sharedState)) {
     put_word(out, SG_INT_VALUE(sharedState), LOOKUP_TAG);
     return;
@@ -662,6 +670,16 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     put_word(out, uid, DEFINING_SHARED_TAG);
     Sg_HashTableSet(ctx->sharedObjects, o, SG_MAKE_INT(uid), 0);
   }
+#if 0
+  else if (SG_UNDEFP(sharedState)) {
+    /* something is wrong */
+    /* Sg_PrintfShared(Sg_StandardErrorPort(), UC(";; -> %S\n"), o); */
+    ESCAPE(ctx, "not collected cyclic object %#20S\n", o);
+  } else if (SG_FALSEP(sharedState)){
+    /* mark for safety */
+    Sg_HashTableSet(ctx->sharedObjects, o, SG_UNDEF, 0);
+  }
+#endif
 
   if (!SG_PTRP(o)) {
     emit_immediate(out, o);
@@ -735,15 +753,6 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     /* this must be local macro, global macros are emitted in
        write_macro_cache. So just put UNBOUND */
     emit_immediate(out, SG_UNBOUND);
-#if 0
-    if (ctx->macroPhaseP) {
-      write_macro(out, o, cbs, ctx);
-    } else {
-      /* this must be local macro, global macros are emitted in
-         write_macro_cache. So just put UNBOUND */
-      emit_immediate(out, SG_UNBOUND);
-    }
-#endif
   } else {
     SgClass *klass = Sg_ClassOf(o);
     if (SG_PROCEDUREP(klass->cwriter)) {
@@ -857,7 +866,7 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
      */
     /* do the same trik as identifier for macro env*/
     SG_VECTOR_ELEMENT(macro->env, 3) = SG_FALSE;
-    closures = write_cache_scan(macro, closures, ctx);
+    closures = write_macro_scan(macro, closures, ctx);
     /* Sg_Printf(Sg_StandardErrorPort(), UC("writing macro %S\n"), macro); */
     write_macro(out, macro, closures, ctx);
   }
