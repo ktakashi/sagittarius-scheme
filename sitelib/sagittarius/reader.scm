@@ -6,6 +6,7 @@
 	    define-dispatch-macro
 	    get-macro-character
 	    set-macro-character
+	    make-dispatch-macro-character
 	    get-dispatch-macro-character
 	    set-dispatch-macro-character
 	    read-delimited-list
