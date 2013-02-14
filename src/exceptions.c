@@ -220,6 +220,7 @@ SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc)
 /* for c use conditions */
 static SgObject make_non_continuable_violation;
 static SgObject make_assertion_violation;
+static SgObject make_undefined_violation;
 static SgObject make_implementation_restriction_violation;
 static SgObject make_who_condition;
 static SgObject make_message_condition;
@@ -238,6 +239,11 @@ SgObject Sg_MakeNonContinuableViolation()
 SgObject Sg_MakeAssertionViolation()
 {
   return Sg_Apply0(make_assertion_violation);
+}
+
+SgObject Sg_MakeUndefinedViolation()
+{
+  return Sg_Apply0(make_undefined_violation);
 }
 
 SgObject Sg_MakeImplementationRestrictionViolation()
@@ -422,6 +428,8 @@ void Sg__InitConsitions()
   SgObject nulllib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
   SgObject rtd, rcd, ctr, pred;
 
+  SgObject immutable = SG_INTERN("immutable");
+
   /* we know all conditions are non-sealed, non-opaque and without uid */
 #define INIT_RECORD_TYPE(iname, cname)				\
   SG_INIT_RECORD_TYPE(cname, SG_INTERN(#iname), rtd, rcd)
@@ -481,7 +489,7 @@ void Sg__InitConsitions()
   }
   {
     /* &message */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable,
 						SG_INTERN("message")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_PARENT(&message, &condition, fields);
@@ -520,7 +528,7 @@ void Sg__InitConsitions()
   }
   {
     /* irritants */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, 
 						SG_INTERN("irritants")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_PARENT(&irritants, &condition, fields);
@@ -531,8 +539,7 @@ void Sg__InitConsitions()
   }
   {
     /* who */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("who")));
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("who")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_PARENT(&who, &condition, fields);
     INTERN_CTR_PRED(&who, make-who-condition, who-condition?);
@@ -550,10 +557,8 @@ void Sg__InitConsitions()
     /* syntax */
     SgObject fields = Sg_MakeVector(2, SG_UNDEF);
     DeclareAccessor();
-    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(SG_INTERN("immutable"),
-					    SG_INTERN("form"));
-    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(SG_INTERN("immutable"),
-					    SG_INTERN("subform"));
+    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(immutable, SG_INTERN("form"));
+    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(immutable, SG_INTERN("subform"));
     INTERN_CONDITION_WITH_PARENT(&syntax, &violation, fields);
     INTERN_CTR_PRED(&syntax, make-syntax-violation, syntax-violation?);
     /* this macro is not so smart, we need to manage like this */
@@ -567,6 +572,7 @@ void Sg__InitConsitions()
     /* undefined */
     INTERN_CONDITION_WITH_PARENT(&undefined, &violation, nullvec);
     INTERN_CTR_PRED(&undefined, make-undefined-violation, undefined-violation?);
+    make_undefined_violation = ctr;
   }
   {
     /* non-continuable */
@@ -639,8 +645,8 @@ void Sg__InitConsitions()
   }
   {
     /* &i/o-invalid-position */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable")
-						, SG_INTERN("position")));
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable,
+						SG_INTERN("position")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_CNAME(&io_invalid_position_type,
 				&i/o-invalid-position, &io_type, fields);
@@ -652,8 +658,7 @@ void Sg__InitConsitions()
   }
   {
     /* &i/o-filename */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("filename")));
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("filename")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_CNAME(&io_filename_type, &i/o-filename,
 				&io_type, fields);
@@ -703,8 +708,7 @@ void Sg__InitConsitions()
   }
   {
     /* &i/o-port */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("port")));
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("port")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_CNAME(&io_port_type, &i/o-port, &io_type, fields);
     INTERN_CTR_PRED_WITH_CNAME(&io_port_type, &i/o-port,
@@ -723,8 +727,7 @@ void Sg__InitConsitions()
   }
   {
     /* &i/o-encoding */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("char")));
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("char")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_CNAME(&io_encoding_type, &i/o-encoding,
 				&io_port_type, fields);
@@ -739,10 +742,8 @@ void Sg__InitConsitions()
     /* &compile */
     SgObject fields = Sg_MakeVector(2, SG_UNDEF);
     DeclareAccessor();
-    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(SG_INTERN("immutable"),
-					    SG_INTERN("source"));
-    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(SG_INTERN("immutable"),
-					    SG_INTERN("program"));
+    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(immutable, SG_INTERN("source"));
+    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(immutable, SG_INTERN("program"));
     INTERN_CONDITION_WITH_PARENT(&compile, &error, fields);
     INTERN_CTR_PRED(&compile, make-compile-error, compile-error?);
     INTERN_ACCE(&compile, &compile-source, 0);
@@ -752,7 +753,7 @@ void Sg__InitConsitions()
   }
   {
     /* &import */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
+    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, 
 						SG_INTERN("library")));
     DeclareAccessor();
     INTERN_CONDITION_WITH_PARENT(&import, &compile, fields);

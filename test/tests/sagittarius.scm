@@ -465,7 +465,7 @@
 (renaming-test b 'b)
 (test-equal "rename a" 'a (a))
 (test-equal "rename b" 'b (b))
-(test-error "unbound dummy" assertion-violation? dummy)
+(test-error "unbound dummy" violation? dummy)
 
 ;; Issue 26
 (test-assert "cond-features" (constant-literal? (cond-features)))

@@ -82,7 +82,7 @@ static void library_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgLibrary *lib = obj;
   Sg_Putuz(port, UC("#<library "));
-  Sg_Write(lib->name, port, ctx->mode);
+  Sg_Write(lib->name, port, SG_WRITE_DISPLAY);
   Sg_Putc(port, '>');
 }
 

@@ -186,6 +186,20 @@ void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)
   Sg_Raise(cond, FALSE);
 }
 
+void Sg_UndefinedViolation(SgObject who, SgObject message)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+
+  SG_APPEND1(h, t, Sg_MakeUndefinedViolation());
+  if (who && !SG_FALSEP(who)) {
+    SG_APPEND1(h, t, Sg_MakeWhoCondition(who));
+  }
+  if (message && !SG_FALSEP(message)) {
+    SG_APPEND1(h, t, Sg_MakeMessageCondition(message));
+  }
+  Sg_Raise(Sg_Condition(h), FALSE);
+}
+
 void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message,
 					   SgObject irritants)
 {

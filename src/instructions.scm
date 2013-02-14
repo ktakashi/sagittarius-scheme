@@ -110,11 +110,9 @@
 				      (SG_IDENTIFIER_NAME var)
 				      SG_UNBOUND)))
 	  (when (SG_UNBOUNDP oldval)
-	    (Sg_AssertionViolation 
-	     (SG_MAKE_STRING "set!")
-	     (Sg_Sprintf (UC "unbound variable %S")
-			 (SG_IDENTIFIER_NAME var))
-	     (SG_IDENTIFIER_NAME var)))
+	    (Sg_UndefinedViolation var 
+				   (Sg_Sprintf (UC "unbound variable %S")
+					       (SG_IDENTIFIER_NAME var))))
 	  (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 				   (SG_IDENTIFIER_NAME var)
 				   (AC vm)

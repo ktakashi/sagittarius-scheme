@@ -1161,10 +1161,9 @@ static SgWord boundaryFrameMark = NOP;
 	ret = SG_GLOC_GET(SG_GLOC(value));				\
 	*(PC(vm)-1) = SG_WORD(value);					\
       } else {								\
-	Sg_AssertionViolation(SG_MAKE_STRING("vm"),			\
+	Sg_UndefinedViolation((ret),					\
 			      Sg_Sprintf(UC("unbound variable %S"),	\
-					 SG_IDENTIFIER_NAME(ret)),	\
-			      (ret));					\
+					 SG_IDENTIFIER_NAME(ret)));	\
       }									\
     }									\
   } while (0)

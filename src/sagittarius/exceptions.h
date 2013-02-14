@@ -125,6 +125,7 @@ SG_EXTERN SgObject Sg_MakeWarning();
 SG_EXTERN SgObject Sg_MakeReaderCondition(SgObject msg);
 SG_EXTERN SgObject Sg_MakeError(SgObject msg);
 SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
+SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 

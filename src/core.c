@@ -194,9 +194,9 @@ void Sg_Init()
   {
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
+    SgObject er_rename = SG_INTERN("er-rename");
     Sg_InsertBinding(core_base_lib,
-		     SG_INTERN("er-rename"),
-		     Sg_FindBinding(compsym, SG_INTERN("er-rename"), SG_FALSE));
+		     er_rename, Sg_FindBinding(compsym, er_rename, SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
 		     Sg_FindBinding(core_base_lib, 

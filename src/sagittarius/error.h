@@ -56,18 +56,31 @@ SG_EXTERN void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
 			  SgObject file, SgObject port);
 SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port);
 SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port);
-SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants);
-SG_EXTERN void Sg_ImplementationRestrictionViolation(SgObject who, SgObject message, SgObject irritants);
+SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, 
+				     SgObject irritants);
+SG_EXTERN void Sg_UndefinedViolation(SgObject who, SgObject message);
+SG_EXTERN void Sg_ImplementationRestrictionViolation(SgObject who,
+						     SgObject message,
+						     SgObject irritants);
 
 /* these are for stub files */
-SG_EXTERN void Sg_WrongTypeOfArgumentViolation(SgObject who, SgObject requiredType,
-					       SgObject gotValue, SgObject irritants);
-SG_EXTERN void Sg_WrongNumberOfArgumentsViolation(SgObject who, int requiredCounts,
-						  int gotCounts, SgObject irritants);
-SG_EXTERN void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who, int requiredCounts,
-							 int gotCounts, SgObject irritants);
-SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who, int startCounts, int endCounts,
-							 int gotCounts, SgObject irritants);
+SG_EXTERN void Sg_WrongTypeOfArgumentViolation(SgObject who,
+					       SgObject requiredType,
+					       SgObject gotValue,
+					       SgObject irritants);
+SG_EXTERN void Sg_WrongNumberOfArgumentsViolation(SgObject who,
+						  int requiredCounts,
+						  int gotCounts,
+						  SgObject irritants);
+SG_EXTERN void Sg_WrongNumberOfArgumentsAtLeastViolation(SgObject who,
+							 int requiredCounts,
+							 int gotCounts,
+							 SgObject irritants);
+SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who,
+							 int startCounts,
+							 int endCounts,
+							 int gotCounts,
+							 SgObject irritants);
 
 SG_EXTERN SgObject Sg_Raise(SgObject condition, int continuableP);
 
