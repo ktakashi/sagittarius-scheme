@@ -1001,12 +1001,7 @@
   (define-c-proc symbol=? (s1::<symbol> s2::<symbol> :rest rest) ::<boolean>
     (x=? check-symbol SG_EQ symbol=? s1 s2 rest))
 
-  (define-c-proc string->symbol (z::<string>) 
-    (if (not (SG_LITERAL_STRINGP z))
-	(let ((s (Sg_MakeStringEx (SG_STRING_VALUE z) SG_LITERAL_STRING
-				  (SG_STRING_SIZE z))))
-	  (result (Sg_Intern s)))
-	(result (Sg_Intern z))))
+  (define-c-proc string->symbol (z::<string>) Sg_Intern)
 
   ;; 11.11 characters
   (define-cise-stmt check-char
@@ -1076,8 +1071,7 @@
 
   (define-c-proc string-ref (s::<string> k::<fixnum> :optional fallback)
     (setter string-set!)
-    (cond ((and (>= k 0)
-		(< k (SG_STRING_SIZE s)))
+    (cond ((and (>= k 0) (< k (SG_STRING_SIZE s)))
 	   (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
 	  (else 
 	   (when (SG_UNBOUNDP fallback)

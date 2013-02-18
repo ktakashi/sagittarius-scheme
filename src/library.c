@@ -808,6 +808,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
 
+ reent:
   /* first look up from library table */
   ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);
   if (SG_UNBOUNDP(ret)) {
@@ -823,14 +824,26 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
 	/* if parent exports it, do it recursively */
 	SgObject pexport = SG_LIBRARY_EXPORTED(plib);
 	SgObject slot = SG_FALSE;
+	SgObject mq = SG_FALSE;
 	if (SG_FALSEP(pexport) ||
-	    !SG_FALSEP(two_memq(unrenamed, SG_KEYWORD_ALL, SG_CAR(pexport))) ||
+	    !SG_FALSEP((mq = two_memq(unrenamed, SG_KEYWORD_ALL, 
+				      SG_CAR(pexport)))) ||
 	    !SG_FALSEP((slot = cadr_assq(unrenamed, SG_CDR(pexport))))) {
+	  /* some manual optimisation */
 	  if (!SG_FALSEP(slot)) {
-	    unrenamed = SG_CAR(slot);
+	    lib = plib; name = SG_CAR(slot);
+	    goto reent;
+	  } else {
+	    /* c stub or :all doesn't always have the variables,
+	       so we need to keep searching. */
+	    if (SG_FALSEP(pexport) || SG_EQ(SG_KEYWORD_ALL, mq)) {
+	      ret = Sg_FindBinding(plib, unrenamed, callback);
+	      if (ret != callback) goto out;
+	    } else {
+	      lib = plib; name = unrenamed;
+	      goto reent;
+	    }
 	  }
-	  ret = Sg_FindBinding(plib, unrenamed, callback);
-	  if (ret != callback) goto out;
 	}
       }
     }

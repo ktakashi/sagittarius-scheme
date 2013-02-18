@@ -3847,19 +3847,20 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
     SgObject nume, deno;
     nume = Sg_NumberToString(SG_RATIONAL(obj)->numerator, radix, use_upper);
     deno = Sg_NumberToString(SG_RATIONAL(obj)->denominator, radix, use_upper);
-    r = Sg_StringAppend(SG_LIST3(nume, SG_MAKE_STRING("/"), deno));
+    r = Sg_StringAppend2(nume, SG_MAKE_STRING("/"));
+    r = Sg_StringAppend2(r, deno);
   } else if (SG_COMPLEXP(obj)) {
     SgObject real, imag;
     int needPlus = FALSE;
     real = Sg_NumberToString(SG_COMPLEX(obj)->real, radix, use_upper);
     imag = Sg_NumberToString(SG_COMPLEX(obj)->imag, radix, use_upper);
-    needPlus = (SG_STRING_VALUE_AT(imag, 0) != '+' && SG_STRING_VALUE_AT(imag, 0) != '-');
+    needPlus = (SG_STRING_VALUE_AT(imag, 0) != '+' &&
+		SG_STRING_VALUE_AT(imag, 0) != '-');
     if (needPlus) {
       r = Sg_StringAppend(SG_LIST4(real, SG_MAKE_STRING("+"),
 				   imag, SG_MAKE_STRING("i")));
     } else {
-      r = Sg_StringAppend(SG_LIST3(real, 
-				   imag, SG_MAKE_STRING("i")));
+      r = Sg_StringAppend(SG_LIST3(real, imag, SG_MAKE_STRING("i")));
     }
   } else {
     Sg_Error(UC("number required: %S"), obj);

@@ -1408,29 +1408,54 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
   }
 }
 
+static long calc_string_size(SgBignum *q, int radix)
+{
+  long count = 0, rem;
+  long size = SG_BIGNUM_GET_COUNT(q);
+  for (; size > 0;) {
+    rem = bignum_sdiv(q, radix);
+    count++;
+    for (; q->elements[size - 1] == 0 && size > 0; size--);
+  }
+  return count;
+}
+
 SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
 {
   static const char ltab[] = "0123456789abcdefghijklmnopqrstuvwxyz";
   static const char utab[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const char *tab = use_upper ? utab : ltab;
-  SgObject h = SG_NIL, t = SG_NIL;
+  /* SgObject h = SG_NIL, t = SG_NIL; */
+  SgObject rs;;
   SgBignum *q;
-  long rem, size;
+  long rem, size, count;
+  int i;
   if (radix < 2 || radix > 36) {
     Sg_Error(UC("radix out of range: %d"), radix);
   }
   /* special case 0 */
   if (SG_BIGNUM_GET_SIGN(b) == 0) return SG_MAKE_STRING("0");
+
   q = SG_BIGNUM(Sg_BignumCopy(b));
   size = SG_BIGNUM_GET_COUNT(q);
-  for (; size > 0;) {
+
+  count = calc_string_size(q, radix);
+  if (SG_BIGNUM_GET_SIGN(q) < 0) count++;
+  for (i = 0; i < size; i++) q->elements[i] = b->elements[i];
+  rs = Sg_ReserveString(count, 0);
+
+  for (i = count-1; size > 0; i--) {
     rem = bignum_sdiv(q, radix);
-    ASSERT(rem >= 0 && rem < radix);
-    SG_APPEND1(h, t, SG_MAKE_CHAR(tab[rem]));
+    /* SG_APPEND1(h, t, SG_MAKE_CHAR(tab[rem])); */
+    SG_STRING_VALUE_AT(rs, i) = tab[rem];
     for (; q->elements[size - 1] == 0 && size > 0; size--);
   }
-  if (SG_BIGNUM_GET_SIGN(q) < 0) SG_APPEND1(h, t, SG_MAKE_CHAR('-'));
-  return Sg_ListToString(Sg_ReverseX(h), 0, -1);
+  if (SG_BIGNUM_GET_SIGN(q) < 0) {
+    SG_STRING_VALUE_AT(rs, 0) = '-';
+    /* SG_APPEND1(h, t, SG_MAKE_CHAR('-')); */
+  }
+  /* return Sg_ListToString(Sg_ReverseX(h), 0, -1); */
+  return rs;
 }
 
 /* we do this destructively */

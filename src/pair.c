@@ -96,8 +96,7 @@ SgObject Sg_VaList(va_list elts)
 
   for (obj = va_arg(elts, SgObject);
        obj != NULL;
-       obj = va_arg(elts, SgObject));
-  {
+       obj = va_arg(elts, SgObject)) {
     if (SG_NULLP(start)) {
       start = SG_OBJ(make_pair());
       SG_SET_CAR(start, obj);
@@ -115,7 +114,8 @@ SgObject Sg_VaList(va_list elts)
   return start;
 }
 
-static inline SgObject array_to_list_with_tail(SgObject *array, int nelts, SgObject tail)
+static inline SgObject array_to_list_with_tail(SgObject *array,
+					       int nelts, SgObject tail)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   if (array) {
@@ -136,7 +136,7 @@ SgObject Sg_ArrayToListWithTail(SgObject *array, int nelts, SgObject tail)
   return array_to_list_with_tail(array, nelts, tail);
 }
 
-SgObject* Sg_ListToArray(SgObject list, int nullTermP)
+static SgObject* list_to_array_rec(SgObject list, int nullTermP, int *rlen)
 {
   SgObject *array, lp;
   int len = Sg_Length(list), i, offset = 0;;
@@ -148,7 +148,13 @@ SgObject* Sg_ListToArray(SgObject list, int nullTermP)
   }
   /* just in case */
   if (nullTermP) array[len] = NULL;
+  if (rlen) *rlen= len;
   return array;
+}
+
+SgObject* Sg_ListToArray(SgObject list, int nullTermP)
+{
+  return list_to_array_rec(list, nullTermP, NULL);
 }
 
 #define CXR(cname, sname, body)			\
@@ -422,8 +428,8 @@ SgObject Sg_Assoc(SgObject obj, SgObject alist)
 static SgObject do_transpose(int shortest_len, SgObject args[])
 {
   SgObject ans = SG_NIL, tail = SG_NIL;
-  int i, n, argc = Sg_Length(args[1]);
-  SgObject *rest = Sg_ListToArray(args[1], FALSE);
+  int i, n, argc;
+  SgObject *rest = list_to_array_rec(args[1], FALSE, &argc);
 
   for (i = 0; i < shortest_len; i++) {
     SgObject elt = SG_NIL, elt_tail = SG_NIL;
