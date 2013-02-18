@@ -597,9 +597,23 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   if (SG_LIBRARYP(e)) {
     Sg_VM()->currentLibrary = e;
   }
-  r = Sg_Apply2(compiler, o, e);
-  Sg_VM()->history = SG_NIL;
-  Sg_VM()->currentLibrary = save;
+#define restore_vm()				\
+  do {						\
+    Sg_VM()->history = SG_NIL;			\
+    Sg_VM()->currentLibrary = save;		\
+  } while(0)
+
+  SG_UNWIND_PROTECT {
+    r = Sg_Apply2(compiler, o, e);
+    restore_vm();
+  }
+  SG_WHEN_ERROR {
+    restore_vm();
+    SG_NEXT_HANDLER;
+  }
+  SG_END_PROTECT;
+
+#undef restore_vm;
   return r;
 }
 

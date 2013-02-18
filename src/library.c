@@ -237,7 +237,7 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
-  add_library(z);
+  /* add_library(z); */
   return z;
 }
 
