@@ -389,14 +389,21 @@ static SgObject userlib = NULL;
 #define ALLOC_TEMP_STRING(var, size) (var) = Sg_ReserveString(size, 0);
 #endif
 
-#define copy_string(dst, src, offset)					\
+#define copy_string(dst, offset, src, start)				\
   do {									\
     int __i;								\
     for (__i = 0; __i < SG_STRING_SIZE(src); __i++) {			\
-      SG_STRING_VALUE_AT(dst, __i+(offset))=SG_STRING_VALUE_AT(src, __i); \
+      SG_STRING_VALUE_AT(dst, __i+(offset)) =				\
+	SG_STRING_VALUE_AT(src, __i+(start));				\
     }									\
-    (offset) += SG_STRING_SIZE(src);					\
   } while(0)
+
+
+#define copy_string0(dst, src, offset) \
+  do {				       \
+    copy_string(dst, offset, src, 0);  \
+    (offset) += SG_STRING_SIZE(src);   \
+  } while (0)
 
 #define copy_uz(dst, src, offset, len)				\
   do {								\
@@ -430,18 +437,18 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name)
     SG_FOR_EACH(dir, vm->loadPath) {
       /* first specific otherwise it won't handle specific file properly */
       check_length(SG_STRING_SIZE(SG_CAR(dir)));
-      copy_string(buf, SG_CAR(dir), offset);
+      copy_string0(buf, SG_CAR(dir), offset);
       check_length(sep_size);
       copy_uz(buf, sep, offset, sep_size);
       check_length(SG_STRING_SIZE(path));
-      copy_string(buf, path, offset);
+      copy_string0(buf, path, offset);
 
       save = offset;
       check_length(SPECIFIC_SIZE);
       copy_uz(buf, specific, offset, SPECIFIC_SIZE);
     second:
       check_length(SG_STRING_SIZE(SG_CAR(ext)));
-      copy_string(buf, SG_CAR(ext), offset);
+      copy_string0(buf, SG_CAR(ext), offset);
       SG_STRING_VALUE_AT(buf, offset) = 0;
       SG_STRING_SIZE(buf) = offset;
       if (Sg_FileExistP(buf)) {
@@ -599,98 +606,22 @@ SgObject Sg_SearchLibrary(SgObject lib)
     }									\
   }
 
-static SgObject rename_exported(SgObject key, SgObject specs)
-{
-  SgObject cp;
-  /* pre check */
-  if (SG_FALSEP(key)) return key;
-
-  SG_FOR_EACH(cp, specs) {
-    SgObject spec = SG_CAR(cp);
-    if (SG_EQ(SG_CAR(spec), SG_SYMBOL_ONLY)) {
-      if (SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
-    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_RENAME)) {
-      SgObject rename = Sg_Assq(key, SG_CDR(spec));
-      if (!SG_FALSEP(rename)) key = SG_CADR(rename);
-    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_EXCEPT)) {
-      if (!SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
-    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_PREFIX)) {
-      /* Issue 92 
-	 when spec or key (most definitely both) is symbol
-	 then (symbol->string x) equivalent must be used,
-	 otherwise +name+ will be prefix\|+name+\| and
-	 will get unbound variable error.
-       */
-      key = Sg_Intern(Sg_Sprintf(UC("%A%A"), SG_CDR(spec), key));
-    }
-  }
-  return key;
-}
-/*
-  spec: ((keyword info) ...)
-  keyword: only, rename, except and prefix
-
-  exports if exported variables by from library.
-
-  return how the given key imported (renamed . key)
- */
-static SgObject resolve_variable(SgObject key, SgObject oname, SgObject specs,
-				 SgObject exports)
-{
-  SgObject renamed = SG_FALSE, renamedExported = SG_FALSE;
-  if (SG_FALSEP(exports)) {
-    /* :all keyword or c-stub library */
-    renamed = key;
-  } else {
-    renamed = Sg_Memq(key, SG_CAR(exports));
-    if (!SG_FALSEP(renamed)) {
-      renamed = SG_CAR(renamed);
-    }
-    /* something like this; (export car (rename (car first))) */
-    /* I even don't know if this allowed and practical either... */
-    renamedExported = Sg_Assq(key, SG_CDR(exports));
-    if (!SG_FALSEP(renamedExported)) {
-      renamedExported = SG_CADR(renamedExported);
-    }
-  }
-
-  renamed = rename_exported(renamed, specs);
-  renamedExported = rename_exported(renamedExported, specs);
-  /* target variable is not exported from from library. */
-  if (SG_FALSEP(renamed) && SG_FALSEP(renamedExported)) return SG_NIL;
-
-  if (SG_FALSEP(renamed)) {
-    return SG_LIST1(Sg_Cons(renamedExported, oname));
-  } else  if (SG_FALSEP(renamedExported)) {
-    return SG_LIST1(Sg_Cons(renamed, oname));
-  } else {
-    return SG_LIST2(Sg_Cons(renamed, oname),
-		    Sg_Cons(renamedExported, oname));
-  }
-}
-
-static SgObject import_parents(SgLibrary *fromlib, SgObject spec, int allP)
+static SgObject import_parents(SgLibrary *fromlib, SgObject spec)
 {
   SgObject parents = fromlib->parents;
-  SgObject exportSpec = (allP) ? SG_FALSE : SG_LIBRARY_EXPORTED(fromlib);
   /* we need to check if fromlib's export spec exports variables */
   SgObject exported = SG_NIL, cp;
-  /* parents ::= ((<lib> . ((rename . org) ...)) ...) */
   SG_FOR_EACH(cp, parents) {
     SgObject lib = SG_CAAR(cp);
     SgObject alist = SG_CDAR(cp);
     SgObject h = SG_NIL, t = SG_NIL;
-    SgObject slot2;
-    SG_FOR_EACH(slot2, alist) {
-      /* we only have interest in renamed name */
-      SG_APPEND(h, t, resolve_variable(SG_CAAR(slot2), SG_CDAR(slot2),
-				       spec, exportSpec));
+    if (!SG_NULLP(alist) && SG_EQ(fromlib, SG_CAR(alist))) {
+      SG_APPEND(h, t, Sg_Cons(lib, spec));
     }
     if (!SG_NULLP(h)) {
       exported = Sg_Acons(lib, h, exported);
     }
   }
-  /* we just need to simply append */
   return exported;
 }
 
@@ -713,10 +644,10 @@ static void import_reader_macro(SgLibrary *to, SgLibrary *from)
   (import (foo) (bar))
   
   library parents must be like this;
-  ((#<(bar)> . ((imported)))
-   (#<(foo)> . ((imported)))
-   (#<(foo parent)> . ((imported)))
-   (#<(buzz)> . ((imported))))
+  ((#<(bar)> ...)
+   (#<(foo)> ...)
+   (#<(foo parent)> ...)
+   (#<(buzz)> ...))
 
   The purpos for this is, if (buzz) contains the same exported variable as
   (foo parent) does, then (foo parent)'s one must be used. R6RS actually
@@ -728,12 +659,11 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   SgLibrary *tolib, *fromlib;
   SgObject parents, slot, exportSpec;
   SgVM *vm = Sg_VM();
-  int allP = FALSE;
 
   ENSURE_LIBRARY(to, tolib);
   ENSURE_LIBRARY(from, fromlib);
   Sg_LockMutex(&tolib->lock);
-  /* tolib->parents = Sg_Acons(fromlib, SG_NIL, tolib->parents); */
+
   slot = Sg_Cons(fromlib, SG_NIL);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
@@ -742,22 +672,13 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   }
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, spec,
 					SG_LIBRARY_IMPORTED(tolib));
-  if (!SG_FALSEP(exportSpec)) {
-    allP = !SG_FALSEP(Sg_Memq(SG_KEYWORD_ALL, SG_CAR(exportSpec)));
-  }
   {
     /* means something is defined, we add all information here */
-    SgObject h = SG_NIL, t = SG_NIL, exports = (allP) ? SG_FALSE : exportSpec;
-    SgHashIter itr;
-    SgHashEntry *e;
-    Sg_HashIterInit(SG_HASHTABLE_CORE(SG_LIBRARY_TABLE(fromlib)), &itr);
-    while((e = Sg_HashIterNext(&itr)) != NULL) {
-      SgObject key = SG_HASH_ENTRY_KEY(e);
-      SG_APPEND(h, t, resolve_variable(key, key, spec, exports));
-    }
+    SgObject h = SG_NIL, t = SG_NIL;
+    SG_APPEND(h, t, Sg_Cons(fromlib, spec));
     SG_SET_CDR(slot, h);
   }
-  parents = import_parents(fromlib, spec, allP);
+  parents = import_parents(fromlib, spec);
 
   tolib->parents = Sg_Append2X(Sg_Cons(slot, parents), tolib->parents);
   if (!SG_FALSEP(exportSpec)) {
@@ -816,12 +737,72 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
   return g;
 }
 
+/* utility */
+static SgObject cadr_assq(SgObject v, SgObject l)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, l) {
+    SgObject slot = SG_CAR(cp);
+    if (SG_PAIRP(slot) && SG_EQ(v, SG_CADR(slot))) return slot;
+  }
+  return SG_FALSE;
+}
+
+static SgObject two_memq(SgObject v1, SgObject v2, SgObject l)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, l) {
+    SgObject o = SG_CAR(cp);
+    if (SG_EQ(v1, o) || SG_EQ(v2, o)) return o;
+  }
+  return SG_FALSE;
+}
+
+/*
+  To save some memory allocation, we resolve variables renaming at runtime.
+  The library parents structure is now like this;
+  ((<lib> <parent-lib> . <import spec>) ...)
+ */
+static SgObject unrename_variable(SgObject key, SgObject specs)
+{
+  SgObject cp;
+
+  if (SG_NULLP(specs)) return key;
+
+  SG_FOR_EACH(cp, specs) {
+    SgObject spec = SG_CAR(cp);
+    if (SG_EQ(SG_CAR(spec), SG_SYMBOL_ONLY)) {
+      if (SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
+    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_RENAME)) {
+      SgObject rename = cadr_assq(key, SG_CDR(spec));
+      if (!SG_FALSEP(rename)) key = SG_CAR(rename);
+    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_EXCEPT)) {
+      if (!SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
+    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_PREFIX)) {
+      SgObject prefix, name, buf;
+      int i;
+      name = SG_SYMBOL(key)->name;
+      prefix = SG_SYMBOL(SG_CDR(spec))->name;
+      /* obvious case */
+      if (SG_STRING_SIZE(name) < SG_STRING_SIZE(prefix)) return SG_FALSE;
+      for (i = 0; i < SG_STRING_SIZE(prefix); i++) {
+	if (SG_STRING_VALUE_AT(prefix, i) != SG_STRING_VALUE_AT(name, i))
+	  return SG_FALSE;
+      }
+      ALLOC_TEMP_STRING(buf, SG_STRING_SIZE(name) - i);
+      copy_string(buf, 0, name, i);
+      key = Sg_Intern(buf);
+    }
+  }
+  return key;
+}
 
 SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
 {
   SgLibrary *lib;
   SgObject ret;
   ASSERT(SG_SYMBOLP(name));
+
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
   else if (SG_FALSEP(library)) lib = Sg_VMCurrentLibrary();
   else lib = Sg_FindLibrary(library, FALSE);
@@ -833,14 +814,24 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
     /* second we need to look up from parents */
     SgObject cp;
     SG_FOR_EACH(cp, lib->parents) {
-      /* (<lib> . ((<imported> . <name>) ...)) */
-      SgObject alist = SG_CDAR(cp);
-      SgObject slot = Sg_Assq(name, alist);
-      /* check renamed import first */
-      if (!SG_FALSEP(slot)) {
-	SgObject oname = SG_CDR(slot);
-	ret = Sg_HashTableRef(SG_LIBRARY_TABLE(SG_CAAR(cp)), oname, callback);
-	goto out;
+      /* (<lib> <parent-lib> . spec) */
+      SgObject head = SG_CAR(cp);
+      SgObject plib = SG_CADR(head), spec = SG_CDDR(head);
+      /* TODO reverse it in compile time */
+      SgObject unrenamed = unrename_variable(name, spec);
+      if (!SG_FALSEP(unrenamed)) {
+	/* if parent exports it, do it recursively */
+	SgObject pexport = SG_LIBRARY_EXPORTED(plib);
+	SgObject slot = SG_FALSE;
+	if (SG_FALSEP(pexport) ||
+	    !SG_FALSEP(two_memq(unrenamed, SG_KEYWORD_ALL, SG_CAR(pexport))) ||
+	    !SG_FALSEP((slot = cadr_assq(unrenamed, SG_CDR(pexport))))) {
+	  if (!SG_FALSEP(slot)) {
+	    unrenamed = SG_CAR(slot);
+	  }
+	  ret = Sg_FindBinding(plib, unrenamed, callback);
+	  if (ret != callback) goto out;
+	}
       }
     }
     ret = callback;

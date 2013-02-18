@@ -2190,6 +2190,8 @@
 	 (values ref `(,@resolved (except ,@ids)) trans?)))
       ;; prefix
       (((? (lambda (x) (eq? 'prefix (variable-name x))) -) set prefix)
+       (unless (symbol? prefix)
+	 (syntax-error 'import "bad prefix" form))
        (receive (ref resolved trans?) (parse-spec set)
 	 (values ref `(,@resolved (prefix . ,prefix)) trans?)))
       ;; for
@@ -2205,7 +2207,9 @@
 			(raise (condition (make-import-error
 					   (format-source-info info) 
 					   form spec) e)))))
-	(import-library to-lib from-lib resolved-spec trans?)))
+	(import-library to-lib from-lib
+			(reverse! resolved-spec)
+			trans?)))
     (cond ((symbol? spec)
 	   ;; SHORTCUT if it's symbol, just import is without any
 	   ;; information
