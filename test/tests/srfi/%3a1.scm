@@ -1,4 +1,5 @@
 ;; original tests are from guile
+#!compatible
 (import (rnrs) 
 	(rnrs r5rs)
 	(srfi :1 lists)

@@ -57,11 +57,12 @@
       (load "./test/r7rs-tests/r7rs-tests.scm")
       (flush-output-port (current-output-port)))
 
-    (define (sitelib-test)
+    (define (sitelib-test :optional (multithread? #t))
       ;; for sitelib
       (print "testing sitelib")
       (flush-output-port (current-output-port))
       (load "./test/tests.scm")
+      (run-sitelib-tests multithread?)
       (flush-output-port (current-output-port)))
     (define (ext-test)
       ;; for extensions
@@ -82,7 +83,8 @@
 		    (case (string->symbol test)
 		      ((r6rs) (r6rs-test))
 		      ((r7rs) (r7rs-test))
-		      ((sitelib) (sitelib-test))
+		      ((sitelib sitelib-m) (sitelib-test))
+		      ((sitelib-s) (sitelib-test #f))
 		      ((ext) (ext-test))
 		      (else
 		       (error 'run-test

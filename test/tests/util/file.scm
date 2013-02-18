@@ -2,6 +2,7 @@
 	(util file)
 	(sagittarius)
 	(sagittarius control)
+	(srfi :1)
 	(srfi :64 testing))
 
 (test-begin "File operations tests")

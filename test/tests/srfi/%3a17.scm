@@ -1,4 +1,6 @@
+#!compatible
 (import (rnrs)
+	(rnrs mutable-pairs)
 	(srfi :17 generalized-set!)
 	(srfi :64 testing))
 

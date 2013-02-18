@@ -4,17 +4,17 @@
     (export (rename (r7rs:load load)))
     (import (rnrs)
 	    (rnrs eval)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius vm)
+	    (srfi :39))
 
   (define r7rs:load
     (case-lambda
      ((file env)
-      (call-with-input-file file
-	(lambda (in)
-	  (let loop ((e (read/ss in)))
-	    (unless (eof-object? e)
-	      (eval e env)
-	      (loop (read/ss in)))))))
+      ;; To detect #!reader=... notation, we need to use
+      ;; 'load' procedure, otherwise it can't detect it.
+      (parameterize ((vm-current-library env))
+	(r7rs:load file)))
      ((file) (load file))))
 
 )

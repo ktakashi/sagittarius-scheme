@@ -1,4 +1,5 @@
 ;; how should we test this?
+#!compatible
 #!reader=srfi/:49
 (import (rnrs) (srfi :49) (srfi :64))
 

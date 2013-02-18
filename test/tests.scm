@@ -26,11 +26,13 @@
 	(core errors)
 	;;(srfi :18 multithreading)
 	(sagittarius threads)
+	(sagittarius control)
 	;; child thread can not access to default parameter value,
 	;; so parent must import this.
 	(srfi :64 testing)
 	(util file)
-	(sagittarius io))
+	(sagittarius io)
+	(scheme load))
 
 ;; simple future
 (define-class <promise> ()
@@ -129,28 +131,19 @@
 	      promises)
     rest))
 
-(let ((files (find-files (or config path) :pattern ".scm")))
-  (do ((files (run-tests files) (run-tests files)))
-      ((null? files))))
-
-#|
-(import (rnrs) (util file) (core errors) (scheme load))
-(cond-expand
- (sagittarius.os.windows
-  (define-constant path "test\\tests"))
- (else
-  (define-constant path "test/tests")))
-
-(let* ((files (find-files path :pattern ".scm"))
-       (thunks (map (lambda (file)
-		      (lambda ()
-			(load file (environment '(rnrs) '(sagittarius)))))
-		    files)))
-  (for-each (lambda (file thunk)
-	      (print file)
-	      (guard (e (#t
-			 (print (describe-condition e))))
-		(thunk))
-	      (print))
-	    files thunks))
-|#
+(define (run-sitelib-tests :optional (multithread? #t))
+  (let ((files (find-files (or config path) :pattern ".scm")))
+    (if multithread?
+	(do ((files (run-tests files) (run-tests files)))
+	    ((null? files)))
+	(let ((thunks (map (^f
+			     (^()
+			       (load f (environment '(rnrs) '(sagittarius)))))
+			   files)))
+	  (for-each (lambda (file thunk)
+		      (thunk)
+		      #;
+		      (guard (e (#t (print (describe-condition e))))
+			)
+		      (print))
+		    files thunks)))))
