@@ -1,4 +1,4 @@
-(import (rnrs)
+(import (rnrs) (rnrs eval)
 	(srfi :64)
 	(binary pack))
 
