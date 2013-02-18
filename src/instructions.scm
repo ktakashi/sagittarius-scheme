@@ -496,14 +496,14 @@
   NEXT)
 
 (define-inst CAR (0 0 #t)
-  (unless (SG_PAIRP (AC vm))
-    (wrong-type-of-argument-violation "car" "pair" (AC vm)))
-  (call-one-arg SG_CAR))
+  (if (SG_PAIRP (AC vm))
+      (call-one-arg SG_CAR)
+      (wrong-type-of-argument-violation "car" "pair" (AC vm))))
 
 (define-inst CDR (0 0 #t)
-  (unless (SG_PAIRP (AC vm))
-    (wrong-type-of-argument-violation "cdr" "pair" (AC vm)))
-  (call-one-arg SG_CDR))
+  (if (SG_PAIRP (AC vm))
+      (call-one-arg SG_CDR)
+      (wrong-type-of-argument-violation "cdr" "pair" (AC vm))))
 
 (define-inst CONS (0 0 #t)
   (call-two-args-proc (POP (SP vm)) Sg_Cons))
@@ -583,10 +583,9 @@
   ($result:b (SG_VECTORP (AC vm))))
 
 (define-inst VEC_LEN (0 0 #t)
-  (unless (SG_VECTORP (AC vm))
-    (wrong-type-of-argument-violation "vector-length"
-				      "vector" (AC vm)))
-  ($result:i (SG_VECTOR_SIZE (AC vm))))
+  (if (SG_VECTORP (AC vm))
+      ($result:i (SG_VECTOR_SIZE (AC vm)))
+      (wrong-type-of-argument-violation "vector-length" "vector" (AC vm))))
 
 (define-inst VEC_REF (0 0 #t)
   (let ((obj (POP (SP vm))))
@@ -662,12 +661,12 @@
 (define-cise-stmt $cxxr
   ((_ name a b)
    `(let ((obj (AC vm)))
-      (unless (SG_PAIRP obj)
-	(wrong-type-of-argument-violation ,name "pair" obj))
-      (let ((obj2 (,b obj)))
-	(unless (SG_PAIRP obj2)
-	  (wrong-type-of-argument-violation ,name "pair" obj2 obj))
-	($result (,a obj2))))))
+      (if (SG_PAIRP obj)
+	  (let ((obj2 (,b obj)))
+	    (if (SG_PAIRP obj2)
+		($result (,a obj2))
+		(wrong-type-of-argument-violation ,name "pair" obj2 obj)))
+	  (wrong-type-of-argument-violation ,name "pair" obj)))))
 
 (define-inst CAAR (0 0 #t) ($cxxr "caar" SG_CAR SG_CAR))
 (define-inst CADR (0 0 #t) ($cxxr "cadr" SG_CAR SG_CDR))

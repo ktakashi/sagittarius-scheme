@@ -140,7 +140,7 @@ CASE(CONSTI)
 int val1;
 {
 #line 78 "instructions.scm"
-{long cise__29=INSN_VALUE1(c);{AC(vm)=(SG_MAKE_INT(cise__29));NEXT1;}}}
+{long cise__178=INSN_VALUE1(c);{AC(vm)=(SG_MAKE_INT(cise__178));NEXT1;}}}
 }
 
 label_LREF:
@@ -257,7 +257,7 @@ CASE(ADD)
 #line 143 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
-{long cise__30=(SG_INT_VALUE(obj))+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__30))&&((SG_INT_MAX)>=(cise__30))){{AC(vm)=(SG_MAKE_INT(cise__30));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__30));NEXT1;}}}}else if(
+{long cise__179=(SG_INT_VALUE(obj))+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__179))&&((SG_INT_MAX)>=(cise__179))){{AC(vm)=(SG_MAKE_INT(cise__179));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__179));NEXT1;}}}}else if(
 (SG_FLONUMP(AC(vm)))&&(SG_FLONUMP(obj))){
 {AC(vm)=(Sg_MakeFlonum((SG_FLONUM_VALUE(obj))+(
 SG_FLONUM_VALUE(AC(vm)))));NEXT1;}} else {
@@ -274,9 +274,9 @@ int val1;
 INSN_VAL1(val1,c);
 #line 158 "instructions.scm"
 if (SG_INTP(AC(vm))){
-{long cise__32=(val1)+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__32))&&((SG_INT_MAX)>=(cise__32))){{AC(vm)=(SG_MAKE_INT(cise__32));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__32));NEXT1;}}}}else if(
+{long cise__181=(val1)+(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__181))&&((SG_INT_MAX)>=(cise__181))){{AC(vm)=(SG_MAKE_INT(cise__181));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__181));NEXT1;}}}}else if(
 SG_FLONUMP(AC(vm))){
-{double cise__31=(((double )(val1)))+(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__31));NEXT1;}}} else {
+{double cise__180=(((double )(val1)))+(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__180));NEXT1;}}} else {
 #line 163 "instructions.scm"
 {AC(vm)=(Sg_Add(SG_MAKE_INT(val1),AC(vm)));NEXT1;}}}
 }
@@ -288,9 +288,9 @@ CASE(SUB)
 #line 166 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((SG_INTP(AC(vm)))&&(SG_INTP(obj))){
-{long cise__34=(SG_INT_VALUE(obj))-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__34))&&((SG_INT_MAX)>=(cise__34))){{AC(vm)=(SG_MAKE_INT(cise__34));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__34));NEXT1;}}}}else if(
+{long cise__183=(SG_INT_VALUE(obj))-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__183))&&((SG_INT_MAX)>=(cise__183))){{AC(vm)=(SG_MAKE_INT(cise__183));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__183));NEXT1;}}}}else if(
 (SG_FLONUMP(AC(vm)))&&(SG_FLONUMP(obj))){
-{double cise__33=(SG_FLONUM_VALUE(obj))-(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__33));NEXT1;}}} else {
+{double cise__182=(SG_FLONUM_VALUE(obj))-(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__182));NEXT1;}}} else {
 #line 172 "instructions.scm"
 {SgObject v=obj;{AC(vm)=(Sg_Sub(v,AC(vm)));NEXT1;}}}}}
 }
@@ -304,9 +304,9 @@ int val1;
 INSN_VAL1(val1,c);
 #line 176 "instructions.scm"
 if (SG_INTP(AC(vm))){
-{long cise__36=(val1)-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__36))&&((SG_INT_MAX)>=(cise__36))){{AC(vm)=(SG_MAKE_INT(cise__36));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__36));NEXT1;}}}}else if(
+{long cise__185=(val1)-(SG_INT_VALUE(AC(vm)));if (((SG_INT_MIN)<=(cise__185))&&((SG_INT_MAX)>=(cise__185))){{AC(vm)=(SG_MAKE_INT(cise__185));NEXT1;}} else {{AC(vm)=(Sg_MakeBignumFromSI(cise__185));NEXT1;}}}}else if(
 SG_FLONUMP(AC(vm))){
-{double cise__35=(((double )(val1)))-(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__35));NEXT1;}}} else {
+{double cise__184=(((double )(val1)))-(SG_FLONUM_VALUE(AC(vm)));{AC(vm)=(Sg_MakeFlonum(cise__184));NEXT1;}}} else {
 #line 181 "instructions.scm"
 {AC(vm)=(Sg_Sub(SG_MAKE_INT(val1),AC(vm)));NEXT1;}}}
 }
@@ -399,7 +399,7 @@ CASE(BNNUME)
 {
 {
 #line 259 "instructions.scm"
-{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))==(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__39=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__39));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))==(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__38=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__38));}}} else {if (Sg_NumEq(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__37=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__37));}}}NEXT;}}
+{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))==(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__188=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__188));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))==(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__187=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__187));}}} else {if (Sg_NumEq(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__186=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__186));}}}NEXT;}}
 }
 
 label_BNLT:
@@ -407,7 +407,7 @@ CASE(BNLT)
 {
 {
 #line 262 "instructions.scm"
-{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))<(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__42=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__42));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))<(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__41=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__41));}}} else {if (Sg_NumLt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__40=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__40));}}}NEXT;}}
+{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))<(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__191=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__191));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))<(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__190=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__190));}}} else {if (Sg_NumLt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__189=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__189));}}}NEXT;}}
 }
 
 label_BNLE:
@@ -415,7 +415,7 @@ CASE(BNLE)
 {
 {
 #line 265 "instructions.scm"
-{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__45=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__45));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))<=(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__44=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__44));}}} else {if (Sg_NumLe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__43=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__43));}}}NEXT;}}
+{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))<=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__194=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__194));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))<=(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__193=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__193));}}} else {if (Sg_NumLe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__192=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__192));}}}NEXT;}}
 }
 
 label_BNGT:
@@ -423,7 +423,7 @@ CASE(BNGT)
 {
 {
 #line 268 "instructions.scm"
-{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))>(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__48=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__48));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))>(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__47=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__47));}}} else {if (Sg_NumGt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__46=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__46));}}}NEXT;}}
+{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))>(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__197=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__197));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))>(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__196=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__196));}}} else {if (Sg_NumGt(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__195=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__195));}}}NEXT;}}
 }
 
 label_BNGE:
@@ -431,7 +431,7 @@ CASE(BNGE)
 {
 {
 #line 271 "instructions.scm"
-{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__51=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__51));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))>=(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__50=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__50));}}} else {if (Sg_NumGe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__49=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__49));}}}NEXT;}}
+{SgObject s=POP(SP(vm));if ((SG_INTP(AC(vm)))&(SG_INTP(s))){if ((((intptr_t )(s)))>=(((intptr_t )(AC(vm))))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__200=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__200));}}}else if((SG_FLONUMP(AC(vm)))&(SG_FLONUMP(s))){if ((SG_FLONUM_VALUE(s))>=(SG_FLONUM_VALUE(AC(vm)))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__199=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__199));}}} else {if (Sg_NumGe(s,AC(vm))){{AC(vm)=(SG_TRUE);(PC(vm))++;}} else {{SgObject cise__198=PEEK_OPERAND(PC(vm));AC(vm)=(SG_FALSE);(PC(vm))+=(SG_INT_VALUE(cise__198));}}}NEXT;}}
 }
 
 label_BNEQ:
@@ -527,14 +527,14 @@ AC(vm));return (SG_UNDEF);}}}
 if ((val2)==(0)){
 #line 344 "instructions.scm"
 if ((val1)>(0)){{PUSH(SP(vm),AC(vm));}}
-{int i=0;int cise__53=(val1)-(1);for (;(i)<(cise__53);(i)++){
+{int i=0;int cise__202=(val1)-(1);for (;(i)<(cise__202);(i)++){
 PUSH(SP(vm),SG_VALUES_REF(vm,i));}}}else if(
 (val1)==(0)){
 #line 349 "instructions.scm"
 {SgObject h=SG_NIL;SgObject t=SG_NIL;
 if ((numValues)>(0)){{SG_APPEND1(h,t,AC(vm));}}
 if ((numValues)>(1)){{
-{int i=0;int cise__52=(numValues)-(1);for (;(i)<(cise__52);(i)++){
+{int i=0;int cise__201=(numValues)-(1);for (;(i)<(cise__201);(i)++){
 SG_APPEND1(h,t,SG_VALUES_REF(vm,i));}}}}
 PUSH(SP(vm),h);}} else {
 #line 357 "instructions.scm"
@@ -727,10 +727,9 @@ CASE(CAR)
 {
 {
 #line 499 "instructions.scm"
-if ((!(SG_PAIRP(AC(vm))))){{
+if (SG_PAIRP(AC(vm))){
+{AC(vm)=(SG_CAR(AC(vm)));NEXT1;}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);return (SG_UNDEF);}}}
-#line 501 "instructions.scm"
-{AC(vm)=(SG_CAR(AC(vm)));NEXT1;}}
 }
 
 label_CDR:
@@ -738,10 +737,9 @@ CASE(CDR)
 {
 {
 #line 504 "instructions.scm"
-if ((!(SG_PAIRP(AC(vm))))){{
+if (SG_PAIRP(AC(vm))){
+{AC(vm)=(SG_CDR(AC(vm)));NEXT1;}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);return (SG_UNDEF);}}}
-#line 506 "instructions.scm"
-{AC(vm)=(SG_CDR(AC(vm)));NEXT1;}}
 }
 
 label_CONS:
@@ -764,7 +762,7 @@ INSN_VAL1(val1,c);
 #line 515 "instructions.scm"
 if ((val1)>(0)){{
 ret=(Sg_Cons(AC(vm),ret));
-{int i=0;int cise__54=n;for (;(i)<(cise__54);(i)++){
+{int i=0;int cise__203=n;for (;(i)<(cise__203);(i)++){
 ret=(Sg_Cons(INDEX(SP(vm),i),ret));}}
 (SP(vm))-=(n);}}
 {AC(vm)=(ret);NEXT1;}}}
@@ -782,7 +780,7 @@ INSN_VAL1(val1,c);
 #line 526 "instructions.scm"
 if ((val1)>(0)){{
 ret=(AC(vm));
-{int i=0;int cise__55=nargs;for (;(i)<(cise__55);(i)++){
+{int i=0;int cise__204=nargs;for (;(i)<(cise__204);(i)++){
 {SgObject obj=INDEX(SP(vm),i);
 if ((Sg_Length(obj))<(0)){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("append"),SG_MAKE_STRING("list"),obj,SG_NIL);return (SG_UNDEF);}}}
@@ -882,18 +880,16 @@ CASE(VEC_LEN)
 {
 {
 #line 586 "instructions.scm"
-if ((!(SG_VECTORP(AC(vm))))){{
-{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),
-AC(vm),SG_NIL);return (SG_UNDEF);}}}
-#line 589 "instructions.scm"
-{long cise__56=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__56));NEXT1;}}}
+if (SG_VECTORP(AC(vm))){
+{long cise__205=SG_VECTOR_SIZE(AC(vm));{AC(vm)=(SG_MAKE_INT(cise__205));NEXT1;}}} else {
+{Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-length"),SG_MAKE_STRING("vector"),AC(vm),SG_NIL);return (SG_UNDEF);}}}
 }
 
 label_VEC_REF:
 CASE(VEC_REF) 
 {
 {
-#line 592 "instructions.scm"
+#line 591 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((!(SG_VECTORP(obj)))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-ref"),SG_MAKE_STRING("vector"),obj,SG_NIL);return (SG_UNDEF);}}}
@@ -910,14 +906,14 @@ label_VEC_SET:
 CASE(VEC_SET) 
 {
 {
-#line 604 "instructions.scm"
+#line 603 "instructions.scm"
 {SgObject index=POP(SP(vm));SgObject obj=
 POP(SP(vm));
 if ((!(SG_VECTORP(obj)))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("vector"),obj,SG_NIL);return (SG_UNDEF);}}}
 if (SG_LITERAL_VECTORP(obj)){{
 {Sg_AssertionViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("attempt to modify immutable vector"),
-#line 611 "instructions.scm"
+#line 610 "instructions.scm"
 SG_LIST1(obj));return (SG_UNDEF);}}}
 if ((!(SG_INTP(index)))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("vector-set!"),SG_MAKE_STRING("fixnum"),index,SG_NIL);return (SG_UNDEF);}}}
@@ -976,7 +972,7 @@ CASE(CONSTI_PUSH)
 int val1;
 {
 #line 78 "instructions.scm"
-{long cise__57=INSN_VALUE1(c);{PUSH(SP(vm),SG_MAKE_INT(cise__57));NEXT1;}}}
+{long cise__206=INSN_VALUE1(c);{PUSH(SP(vm),SG_MAKE_INT(cise__206));NEXT1;}}}
 }
 
 label_GREF_CALL:
@@ -1007,7 +1003,7 @@ label_SET_CAR:
 CASE(SET_CAR) 
 {
 {
-#line 644 "instructions.scm"
+#line 643 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((!(SG_PAIRP(obj)))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-car!"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}
@@ -1021,7 +1017,7 @@ label_SET_CDR:
 CASE(SET_CDR) 
 {
 {
-#line 654 "instructions.scm"
+#line 653 "instructions.scm"
 {SgObject obj=POP(SP(vm));
 if ((!(SG_PAIRP(obj)))){{
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("set-cdr!"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}
@@ -1035,32 +1031,32 @@ label_CAAR:
 CASE(CAAR) 
 {
 {
-#line 672 "instructions.scm"
-{SgObject obj=AC(vm);if ((!(SG_PAIRP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}{SgObject obj2=SG_CAR(obj);if ((!(SG_PAIRP(obj2)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}{AC(vm)=(SG_CAR(obj2));NEXT1;}}}}
+#line 671 "instructions.scm"
+{SgObject obj=AC(vm);if (SG_PAIRP(obj)){{SgObject obj2=SG_CAR(obj);if (SG_PAIRP(obj2)){{AC(vm)=(SG_CAR(obj2));NEXT1;}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("caar"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}}
 }
 
 label_CADR:
 CASE(CADR) 
 {
 {
-#line 673 "instructions.scm"
-{SgObject obj=AC(vm);if ((!(SG_PAIRP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}{SgObject obj2=SG_CDR(obj);if ((!(SG_PAIRP(obj2)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}{AC(vm)=(SG_CAR(obj2));NEXT1;}}}}
+#line 672 "instructions.scm"
+{SgObject obj=AC(vm);if (SG_PAIRP(obj)){{SgObject obj2=SG_CDR(obj);if (SG_PAIRP(obj2)){{AC(vm)=(SG_CAR(obj2));NEXT1;}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cadr"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}}
 }
 
 label_CDAR:
 CASE(CDAR) 
 {
 {
-#line 674 "instructions.scm"
-{SgObject obj=AC(vm);if ((!(SG_PAIRP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}{SgObject obj2=SG_CAR(obj);if ((!(SG_PAIRP(obj2)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}{AC(vm)=(SG_CDR(obj2));NEXT1;}}}}
+#line 673 "instructions.scm"
+{SgObject obj=AC(vm);if (SG_PAIRP(obj)){{SgObject obj2=SG_CAR(obj);if (SG_PAIRP(obj2)){{AC(vm)=(SG_CDR(obj2));NEXT1;}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdar"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}}
 }
 
 label_CDDR:
 CASE(CDDR) 
 {
 {
-#line 675 "instructions.scm"
-{SgObject obj=AC(vm);if ((!(SG_PAIRP(obj)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}{SgObject obj2=SG_CDR(obj);if ((!(SG_PAIRP(obj2)))){{{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}{AC(vm)=(SG_CDR(obj2));NEXT1;}}}}
+#line 674 "instructions.scm"
+{SgObject obj=AC(vm);if (SG_PAIRP(obj)){{SgObject obj2=SG_CDR(obj);if (SG_PAIRP(obj2)){{AC(vm)=(SG_CDR(obj2));NEXT1;}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"),SG_MAKE_STRING("pair"),obj2,obj);return (SG_UNDEF);}}}} else {{Sg_WrongTypeOfArgumentViolation(SG_INTERN("cddr"),SG_MAKE_STRING("pair"),obj,SG_NIL);return (SG_UNDEF);}}}}
 }
 
 label_CAR_PUSH:
@@ -1068,10 +1064,9 @@ CASE(CAR_PUSH)
 {
 {
 #line 499 "instructions.scm"
-if ((!(SG_PAIRP(AC(vm))))){{
+if (SG_PAIRP(AC(vm))){
+{PUSH(SP(vm),SG_CAR(AC(vm)));NEXT1;}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("car"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);return (SG_UNDEF);}}}
-#line 501 "instructions.scm"
-{PUSH(SP(vm),SG_CAR(AC(vm)));NEXT1;}}
 }
 
 label_CDR_PUSH:
@@ -1079,10 +1074,9 @@ CASE(CDR_PUSH)
 {
 {
 #line 504 "instructions.scm"
-if ((!(SG_PAIRP(AC(vm))))){{
+if (SG_PAIRP(AC(vm))){
+{PUSH(SP(vm),SG_CDR(AC(vm)));NEXT1;}} else {
 {Sg_WrongTypeOfArgumentViolation(SG_INTERN("cdr"),SG_MAKE_STRING("pair"),AC(vm),SG_NIL);return (SG_UNDEF);}}}
-#line 506 "instructions.scm"
-{PUSH(SP(vm),SG_CDR(AC(vm)));NEXT1;}}
 }
 
 label_CONS_PUSH:
@@ -1246,16 +1240,16 @@ label_APPLY_VALUES:
 CASE(APPLY_VALUES) 
 {
 int val1;
-{SgObject cise__58;
-#line 729 "instructions.scm"
+{SgObject cise__207;
+#line 728 "instructions.scm"
 {SgObject rest=FETCH_OPERAND(PC(vm));int i;
-#line 731 "instructions.scm"
+#line 730 "instructions.scm"
 INSN_VAL1(val1,c);
 CHECK_STACK(val1,vm);
 for (i=(0);(i)<(val1);(i)++){
 if ((i)==(DEFAULT_VALUES_SIZE)){{break;}}
 PUSH(SP(vm),((vm)->values)[i]);}
-SG_FOR_EACH(cise__58,rest) {{SgObject v=SG_CAR(cise__58);
+SG_FOR_EACH(cise__207,rest) {{SgObject v=SG_CAR(cise__207);
 PUSH(SP(vm),v);}}
 goto label_TAIL_CALL;}}
 }
