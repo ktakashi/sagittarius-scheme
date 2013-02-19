@@ -90,23 +90,23 @@ static void* thread_entry(void *data)
       SgObject exc;
       switch (vm->escapeReason) {
       case SG_VM_ESCAPE_CONT:
-	vm->resultException = Sg_MakeString(UC("stale continuation throws"), SG_LITERAL_STRING);
+	vm->resultException = SG_MAKE_STRING("stale continuation throws");
 	break;
       default:
 	Sg_Panic("unknown escape");
       case SG_VM_ESCAPE_ERROR:
 	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
 	vm->resultException = exc;
-	Sg_ReportError(SG_OBJ(vm->escapeData[1]));
+	Sg_ReportError(SG_OBJ(vm->escapeData[1]), vm->currentErrorPort);
 	break;
       }
     } SG_END_PROTECT;
   } else {
     /* I'm not sure if this happen */
-    /* if this happen, we can not use any Sg_Apply related methods such as error creations.
-       so just create string.
+    /* if this happen, we can not use any Sg_Apply related methods such as
+       error creations. so just create string.
      */
-    vm->resultException = Sg_MakeString(UC("set-current-vm failed"), SG_LITERAL_STRING);
+    vm->resultException = SG_MAKE_STRING("set-current-vm failed");
   }
   thread_cleanup_pop(TRUE);
   return NULL;

@@ -363,7 +363,7 @@ SgObject Sg_VMValues3(SgVM *vm, SgObject v1, SgObject v2, SgObject v3)
 #endif
 
 
-static inline void report_error(SgObject exception)
+static inline void report_error(SgObject exception, SgObject out)
 {
   static const int MAX_STACK_TRACE = 20;
   SgObject error = SG_NIL, stackTrace = SG_NIL;
@@ -435,11 +435,11 @@ static inline void report_error(SgObject exception)
       }
     }
   }
-  Sg_Write(Sg_GetStringFromStringPort(buf), SG_PORT(Sg_StandardErrorPort()), SG_WRITE_DISPLAY);
+  Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
 }
 
-void Sg_ReportError(SgObject e)
+void Sg_ReportError(SgObject e, SgObject out)
 {
   SgVM *vm = Sg_VM();
 
@@ -453,7 +453,7 @@ void Sg_ReportError(SgObject e)
       Sg_Apply1(vm->defaultEscapeHandler, e);
     } else {
       Sg_FlushAllPort(FALSE);
-      report_error(e);
+      report_error(e, out);
     }
   }
   SG_WHEN_ERROR {
@@ -1719,7 +1719,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
       SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
     }
   } else {
-    Sg_ReportError(e);
+    Sg_ReportError(e, vm->currentErrorPort);
     SG_FOR_EACH(hp, vm->dynamicWinders) {
       SgObject proc = SG_CDAR(hp);
       vm->dynamicWinders = SG_CDR(hp);

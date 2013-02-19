@@ -439,7 +439,7 @@ SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
 SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
 SG_EXTERN SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 					 int rewindBefore);
-SG_EXTERN void     Sg_ReportError(SgObject e);
+SG_EXTERN void     Sg_ReportError(SgObject e, SgObject out);
 
 /* finalizer */
 SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);

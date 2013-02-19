@@ -219,8 +219,8 @@
   (define-c-proc sagittarius-version () ::<top>
     (result (Sg_MakeString (UC SAGITTARIUS_VERSION) SG_LITERAL_STRING)))
 
-  (define-c-proc report-error (e) ::<void>
-    (Sg_ReportError e))
+  (define-c-proc report-error (e :optional (out (Sg_CurrentErrorPort))) ::<void>
+    Sg_ReportError)
 
   (define-c-proc describe-condition (e) Sg_DescribeCondition)
 

@@ -1533,9 +1533,6 @@ SgObject Sg_Exact(SgObject obj)
       SgObject m;
       int exp, sign;
       m = Sg_DecodeFlonum(d, &exp, &sign);
-      if (exp >= 0) {
-	Sg_ReportError(SG_MAKE_STRING("exp >= 0"));
-      }
       ASSERT(exp < 0); /* exp >= case should be handled above */
       obj = Sg_Div(m, Sg_Ash(SG_MAKE_INT(1), -exp));
       if (sign < 0) obj = Sg_Negate(obj);
