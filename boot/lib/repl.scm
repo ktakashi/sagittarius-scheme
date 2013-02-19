@@ -6,11 +6,13 @@
 	    current-exception-printer
 	    current-evaluator
 	    current-prompter
+	    current-exit
 	    default-exception-printer
 	    default-evaluator
 	    default-printer
 	    default-reader
-	    default-prompter)
+	    default-prompter
+	    default-exit)
     (import null
 	    (core base)
 	    (core errors)
@@ -52,9 +54,7 @@
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
   (define (default-printer . args)
-    (for-each (lambda (arg)
-		(write/ss arg)(newline))
-	      args))
+    (for-each (lambda (arg) (write/ss arg)(newline)) args))
 
   (define current-printer
     (make-parameter
@@ -67,8 +67,7 @@
 	       'current-printer
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
-  (define (default-reader in)
-    (read/ss in))
+  (define (default-reader in) (read/ss in))
 
   (define current-reader
     (make-parameter 
@@ -81,8 +80,7 @@
 	       'current-reader
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
-  (define (default-prompter)
-    (display "sash> "))
+  (define (default-prompter) (display "sash> "))
 
   (define current-prompter
     (make-parameter 
@@ -95,6 +93,18 @@
 	       'current-prompter
 	       (format "expected procedure or #f, but got ~s" x)))))))
 
+  (define (default-exit) (exit 0))
+
+  (define current-exit
+    (make-parameter 
+     default-exit
+     (lambda (x)
+       (cond ((not x) values)
+	     ((procedure? x) x)
+	     (else
+	      (assertion-violation
+	       'current-exit
+	       (format "expected procedure or #f, but got ~s" x)))))))
   ;; initialise env
   (define (read-eval-print-loop)
     (define interactive-environment
@@ -123,10 +133,12 @@
 	       ((current-prompter))
 	       (flush-output-port (current-output-port))
 	       (let ((form ((current-reader) (current-input-port))))
-		 (and (eof-object? form) (exit 0))
-		 (and plugged (flush-output-port (current-output-port)))
-		 (receive ans ((current-evaluator) form interactive-environment)
-		   (apply (current-printer) ans)
-		   (flush-output-port (current-output-port))))))))
+		 (cond ((eof-object? form) ((current-exit)))
+		       (else
+			(and plugged (flush-output-port (current-output-port)))
+			(receive ans ((current-evaluator) form
+				      interactive-environment)
+			  (apply (current-printer) ans)
+			  (flush-output-port (current-output-port))))))))))
 	(loop))))
 )
