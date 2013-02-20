@@ -331,14 +331,23 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
   /* int count = 0, osize = size; */
   CLOSE_SOCKET("socket-recv", socket);
   for (;;) {
-    const int ret = recv(socket->socket, (char*)data, size, flags);
+    const int ret = recv(socket->socket, (char*)data, size,
+			 /* we don't want SIGPIPE */
+			 flags | MSG_NOSIGNAL);
     if (ret == -1) {
       if (errno == EINTR) {
 	continue;
+      } else if (errno == EPIPE) {
+	if (flags & MSG_NOSIGNAL) {
+	  return 0;
+	} else {
+	  goto err;
+	}
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	return ret;
       } else {
+      err:
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
 		   SG_FALSE, SG_NIL);
@@ -356,14 +365,23 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
 
   CLOSE_SOCKET("socket-send", socket);
   while (rest > 0) {
-    const int ret = send(socket->socket, (char*)data, size, flags);
+    const int ret = send(socket->socket, (char*)data, size, 
+			 /* we don't want SIGPIPE */
+			 flags | MSG_NOSIGNAL);
     if (ret == -1) {
       if (errno == EINTR) {
 	continue;
+      } else if (errno == EPIPE) {
+	if (flags & MSG_NOSIGNAL) {
+	  return 0;
+	} else {
+	  goto err;
+	}	
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	continue;
       } else {
+      err:
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-send"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
 		   SG_FALSE, SG_NIL);
