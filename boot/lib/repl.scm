@@ -106,14 +106,14 @@
 	       'current-exit
 	       (format "expected procedure or #f, but got ~s" x)))))))
   ;; initialise env
-  (define (read-eval-print-loop)
+  (define (read-eval-print-loop :optional (load-resouce #t))
     (define interactive-environment
       (let ((env (find-library 'user #f)))
 	(eval '(import (rnrs)) env)
 	env))
     (let ((plugged (getenv "EMACS")))
       ;; load resource file
-      (when (file-exists? +resource-file+)
+      (when (and load-resouce (file-exists? +resource-file+))
 	(call-with-port
 	 (open-file-input-port +resource-file+ #f 'block (native-transcoder))
 	 (lambda (p)

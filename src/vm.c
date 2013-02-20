@@ -449,7 +449,10 @@ void Sg_ReportError(SgObject e, SgObject out)
   }
   SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   SG_UNWIND_PROTECT {
-    if (SG_PROCEDUREP(vm->defaultEscapeHandler)) {
+    /* FIXME this is ugly... */
+    if ((SG_EQ(vm->currentErrorPort, out) ||
+	 SG_EQ(vm->currentOutputPort, out)) &&
+	SG_PROCEDUREP(vm->defaultEscapeHandler)) {
       Sg_Apply1(vm->defaultEscapeHandler, e);
     } else {
       Sg_FlushAllPort(FALSE);

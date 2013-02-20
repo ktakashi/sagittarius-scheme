@@ -1,3 +1,33 @@
+;;; -*- mode:scheme; coding:utf-8; -*-
+;;;
+;;; sagittarius/remote-repl.scm - remote REPL library.
+;;;  
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
 (library (sagittarius remote-repl)
     (export connect-remote-repl
 	    make-remote-repl
@@ -41,7 +71,7 @@
   ;;   on auth   : :request-authenticate for authenticate
   ;;               :response-authenticate <result>
   ;;   on success: :values <n> <value 1> ... <value n>
-  ;;   on error  : :error  <message>
+  ;;   on error  : :error <expression> <message>
   ;;   on exit   : :exit
   ;;   other i/o : {no-tags just strings}
 
@@ -50,10 +80,15 @@
      (^o (write tag o)
 	 (for-each (^d (display #\space o) (write d o)) data))))
 
+  (define-syntax send-packed-data
+    (syntax-rules ()
+      ((_ socket tag data ...)
+       (send-datum socket (pack-data tag data ...)))))
+
   (define (connect-remote-repl node service :optional (secure #f))
     (define (make-evaluator socket)
       (lambda (form env)
-	(send-datum socket (pack-data :datum form))))
+	(send-packed-data socket :datum form)))
     (define (make-printer socket)
       (lambda args
 	(define (handle-values n port)
@@ -65,7 +100,9 @@
 	    (unless (eof-object? tag)
 	      (case tag
 		((:values) (handle-values (read/ss port) port))
-		((:error)  (display (read/ss port)) (newline))
+		((:error)
+		 (format #t "error in: ~s~%" (read/ss port))
+		 (display (read/ss port)) (newline))
 		((:exit) (display ";; finished") (newline) (exit 0))
 		(else 
 		 ;; other I/O
@@ -80,7 +117,7 @@
 	      ((:prompt)
 	       (display (read/ss port))
 	       (flush-output-port)
-	       (send-datum socket (pack-data :user-input (read/ss)))
+	       (send-packed-data socket :user-input (read/ss))
 	       (loop))))))
       (case (read/ss (recv-datum socket))
 	((:request-authenticate) (wait-response))
@@ -92,9 +129,8 @@
 	  (parameterize ((current-evaluator (make-evaluator socket))
 			 (current-printer   (make-printer socket))
 			 (current-exit (lambda ()
-					 (send-datum socket 
-						     (pack-data :exit))))))
-	    (read-eval-print-loop))))
+					 (send-packed-data socket :exit))))
+	    (read-eval-print-loop #f)))))
     (format #t "~%[exit]~%")
     (flush-output-port))
 
@@ -115,9 +151,9 @@
 		   (error 'username&password-authenticate
 			  "invalid response" r))))))
 	(let loop ((count 1))
-	  (send-datum socket (pack-data :prompt "username> "))
+	  (send-packed-data socket :prompt "username> ")
 	  (let1 input-username (read-response socket)
-	    (send-datum socket (pack-data :prompt "password> "))
+	    (send-packed-data socket :prompt "password> ")
 	    (let* ((input-password (read-response socket))
 		   (input (string->utf8 
 			   (string-append (->string input-username) "&"
@@ -126,13 +162,13 @@
 	      (cond ((bytevector=? credential h))
 		    ((= count max-try)
 		     ;; TODO log it
-		     (send-datum socket 
-				 (pack-data :alert "login failed, disconnect"))
+		     (send-packed-data socket :alert "login failed, disconnect")
 		     #f)
 		    (else (loop (+ count 1))))))))))
 		    
   (define (make-remote-repl service :key (secure #f)
-			    (authenticate #f))
+			    (authenticate #f)
+			    (log (current-output-port)))
     (define (detach server socket)
       (define (main-loop in out err)
 	(define (set-ports! p)
@@ -143,29 +179,32 @@
 	  (current-input-port in)
 	  (current-output-port out)
 	  (current-error-port err))
-	(let1 stop? #f
+	(let ((stop? #f) (current-expression #f))
+	  (format log "remote-repl: connect ~s~%" socket)
 	  (let loop ()
 	    (call/cc
 	     (lambda (continue)
 	       (with-exception-handler
 		(lambda (c)
 		  (restor-ports!)
-		  (format #t "~%error in ~a: ~a~%" server c)
+		  (format log "~%error in ~a: ~a~%" server
+			  (if (message-condition? c)
+			      (condition-message c)
+			      c))
 		  ;; socket connection
-		  (send-datum socket 
-			      (pack-data :error
-					 (call-with-string-output-port
-					  (lambda (err) (report-error c err)))))
+		  (let1 msg (describe-condition c)
+		    (send-packed-data socket :error current-expression msg))
 		  (and (serious-condition? c) (continue)))
 		(lambda ()
-		  (format #t "remote-repl: connect ~s~%" socket)
 		  (let1 in (recv-datum socket)
 		    (define (data->string r) (map (^e (format "~s" e)) r))
 		    (case (read/ss in)
 		      ((:datum)
 		       (let ((e (read/ss in))
-			     (p (make-remote-in/out-port socket)))
+			     (p (transcoded-port (socket-port socket)
+						 (native-transcoder))))
 			 (set-ports! p)
+			 (set! current-expression e)
 			 (if (eof-object? e)
 			     (set! stop? #t)
 			     (receive r (eval e interaction-environment)
@@ -174,26 +213,24 @@
 				(apply pack-data :values (length r)
 				       (data->string r)))))))
 		      ((:exit)
-		       (send-datum socket (pack-data :exit))
+		       (send-packed-data socket :exit)
 		       (set! stop? #t))
 		      (else 
 		       => (^t 
 			   ;; invalid protocol
-			   (send-datum 
-			    socket 
-			    (pack-data :error 
-				       (format "unknown tag ~s" t)))))))))))
+			   (send-packed-data 
+			    socket :error (format "unknown tag ~s" t))))))))))
 	    (restor-ports!)
 	    (unless stop? (loop)))))
       (define (do-authenticate socket)
 	(if authenticate
 	    ;; send authenticate request
 	    (begin
-	      (send-datum socket (pack-data :request-authenticate))
+	      (send-packed-data socket :request-authenticate)
 	      (let1 r (authenticate socket)
-		(send-datum socket (pack-data :response-authenticate r))
+		(send-packed-data socket :response-authenticate r)
 		r))
-	    (send-datum socket (pack-data :no-authenticate))))
+	    (send-packed-data socket :no-authenticate)))
 	
       (lambda ()
 	(call-with-socket socket
@@ -204,23 +241,12 @@
 	      (when (do-authenticate socket)
 		(main-loop in out err)))))))
     (let1 server (make-server-socket service)
-      (format #t "~%remote-repl: ~a~%~%" server)
+      (format log "~%remote-repl: ~a~%~%" server)
       (lambda ()
 	(let loop ()
 	  (let* ((socket (socket-accept server))
 		 (thread (make-thread (detach server socket))))
 	    (thread-start! thread)
 	    (loop))))))
-  ;; why do i need this?
-  (define (make-remote-in/out-port socket)
-    (define (read! bv start count)
-      (let1 r (socket-recv socket count)
-	(bytevector-copy! r 0 bv start (bytevector-length r))
-	(bytevector-length r)))
-    (define (write! bv start count)
-      (socket-send socket (bytevector-copy bv start (+ start count)))
-      count)
-    (transcoded-port
-     (make-custom-binary-input/output-port "remote-port" read! write! #f #f #f)
-     (native-transcoder)))
+
 )
