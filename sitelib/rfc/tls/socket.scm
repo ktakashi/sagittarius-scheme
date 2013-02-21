@@ -33,6 +33,7 @@
     (export make-client-tls-socket
 	    make-server-tls-socket
 
+	    tls-socket?
 	    tls-socket-send
 	    tls-socket-recv
 	    tls-socket-close
@@ -43,6 +44,8 @@
 	    *tls-version-1.2*
 	    *tls-version-1.1*
 	    *tls-version-1.0*
+
+	    socket-close
 	    )
     (import (rnrs)
 	    (core errors)
@@ -142,6 +145,7 @@
 	      (if (~ o 'raw-socket)
 		  ""
 		  " closed"))))
+  (define (tls-socket? o) (is-a? o <tls-socket>))
   (define (tls-socket-closed? socket) (~ socket 'session 'closed?))
 
   (define (negotiated-version socket)
@@ -190,8 +194,9 @@
   (define (tls-packet->bytevector p)
     (call-with-bytevector-output-port (^o (write-tls-packet p o))))
 
-  (define (make-server-tls-socket port private-key certificates
+  (define (make-server-tls-socket port certificates
 				  :key (prng (secure-random RC4))
+				  (private-key #f)
 				  (version *tls-version-1.2*)
 				  :allow-other-keys opt)
     (let1 raw-socket (apply make-server-socket port opt)
@@ -239,10 +244,14 @@
       (let* ((vv (~ hello 'cipher-suites))
 	     (bv (~ vv 'value))
 	     (len (bytevector-length bv))
+	     (have-key? (~ socket 'private-key))
 	     (suppoting-suites *cipher-suites*))
 	(let loop ((i 0))
 	  (cond ((>= i len) (error 'tls-server-handshake "no cipher"))
-		((assv (bytevector-u16-ref bv i 'big) suppoting-suites)
+		((and-let* ((spec (bytevector-u16-ref bv i 'big))
+			    ( (or have-key? 
+				  (memv spec *dh-key-exchange-algorithms*)) ))
+		   (assv spec suppoting-suites))
 		 => (^s
 		     (set! (~ socket 'session 'cipher-suite) (car s))))
 		(else (loop (+ i 2)))))))
@@ -315,6 +324,9 @@
 	      (set! (~ session 'master-secret)
 		    (compute-master-secret session pre-master-secret))))))
     (define (send-server-finished)
+      ;; send change cipher spec first
+      (tls-socket-send-inner socket (make-tls-change-cipher-spec #x01)
+			     0 *change-cipher-spec* #f)
       (let* ((session (~ socket 'session))
 	     (out (~ session 'messages))
 	     (handshake-messages (get-output-bytevector out))
@@ -326,7 +338,7 @@
 	   (finish-message-hash session
 	    *server-finished-label* 
 	    (bytevector-concat handshake-messages client-finished))))
-	 0 *handshake* #f)))
+	 0 *handshake* #t)))
     (let ((hello (read-record socket 0)))
       (unless (tls-client-hello? hello)
 	(assertion-violation 'tls-server-handshake
@@ -1107,4 +1119,9 @@
     (socket-close (~ socket 'raw-socket))
     ;; if we don't have any socket, we can't reconnect
     (set! (~ socket 'raw-socket) #f))
+
+  ;; to make call-with-socket available for tls-socket
+  (define-method socket-close ((o <tls-socket>))
+    (tls-socket-close o))
+
   )

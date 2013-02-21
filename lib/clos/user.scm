@@ -205,7 +205,6 @@
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
 
-
   ;; never be symbol
   (define (%make-setter-name name)
     (string->symbol (format "setter of ~a" (syntax->datum name))))
@@ -252,43 +251,41 @@
 	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
-	    #;
-	    #`(let ((#,gf (%ensure-generic-function
-			   'true-name (current-library))))
-		(add-method #,gf
-			    (make <method>
-			      :specializers  (list #,@specializers)
-			      :qualifier     #,qualifier
-			      :generic       true-name
-			      :lambda-list  '#,lambda-list
-			      :procedure     #,real-body))
-		#,@(if #'getter-name
-		       `((unless (has-setter? ,#'getter-name)
-			   (set! (setter ,#'getter-name) ,gf)))
-		       '())
-		#,gf)
-	    (let ((def? (find-binding (current-library) 
-				      (syntax->datum #'true-name) #f)))
-	      (%ensure-generic-function (syntax->datum #'true-name)
-					(current-library))
-	      #`(begin
-		  #,@(if def?
-			'()
-			`((define-generic ,generic)))
-		  
-		  (let ((#,gf true-name))
-		    (add-method #,gf
-				(make <method>
-				  :specializers  (list #,@specializers)
-				  :qualifier     #,qualifier
-				  :generic       true-name
-				  :lambda-list  '#,lambda-list
-				  :procedure     #,real-body))
-		    #,@(if #'getter-name
-			   `((unless (has-setter? ,#'getter-name)
-			       (set! (setter ,#'getter-name) ,gf)))
-			   '())
-		    #,gf))))))
+;; 	    #`(let ((#,gf (%ensure-generic-function
+;; 			   'true-name (current-library))))
+;; 		(add-method #,gf
+;; 			    (make <method>
+;; 			      :specializers  (list #,@specializers)
+;; 			      :qualifier     #,qualifier
+;; 			      :generic       true-name
+;; 			      :lambda-list  '#,lambda-list
+;; 			      :procedure     #,real-body))
+;; 		#,@(if #'getter-name
+;; 		       `((unless (has-setter? ,#'getter-name)
+;; 			   (set! (setter ,#'getter-name) ,gf)))
+;; 		       '())
+;; 		#,gf)
+	    #`(begin
+		(let ((#,gf
+		       (or (and-let* ((g (find-binding (current-library)
+						       'true-name #f))
+				      (gf (gloc-ref g))
+				      ( (is-a? gf <generic>) ))
+			     gf)
+			   (%ensure-generic-function 'true-name 
+						     (current-library)))))
+		  (add-method #,gf
+			      (make <method>
+				:specializers  (list #,@specializers)
+				:qualifier     #,qualifier
+				:generic       true-name
+				:lambda-list  '#,lambda-list
+				:procedure     #,real-body))
+		  #,@(if #'getter-name
+			 `((unless (has-setter? ,#'getter-name)
+			     (set! (setter ,#'getter-name) ,gf)))
+			 '())
+		  #,gf)))))
       (syntax-case x ()
 	((_ ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
@@ -311,6 +308,7 @@
 	   (with-syntax ((true-name (generate-true-name #'k #'name))
 			 (class-name (datum->syntax #'k class)))
 	     ;; to avoid duplicated definition...
+	     #;
 	     (%ensure-generic-function (syntax->datum #'true-name)
 				       (current-library))
 	     #'(begin
@@ -322,6 +320,7 @@
 				   '<generic>)))
 	   ;; to avoid duplicated definition...
 	   ;; FIXME this smells bugs
+	   #;
 	   (%ensure-generic-function (syntax->datum #'name) (current-library))
 	   (with-syntax ((class-name (datum->syntax #'k class)))
 	     #'(define name (make class-name :definition-name 'name))))))))
