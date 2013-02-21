@@ -31,6 +31,7 @@
 (library (rfc x.509)
     (export make-x509-certificate
 	    x509-certificate?
+	    x509-certificate->bytevector
 	    <x509-certificate>
 	    x509-certificate-get-version
 	    x509-certificate-get-serial-number
@@ -47,6 +48,7 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius control)
+	    (sagittarius object)
 	    (rename (crypto) (verify crypto:verify))
 	    (srfi :19 time)
 	    (math)
@@ -275,6 +277,8 @@
       :algorithm-identifier (make-algorithm-identifier (asn.1-sequence-get s 1))
       ;; must be der bit string
       :signature (asn.1-sequence-get s 2)))
+  (define-method der-encode ((o <x509-certificate-structure>) p)
+    (der-encode (~ o 'sequence) p))
 
   (define-class <basic-constraints> (<asn.1-encodable>)
     ((ca :init-keyword :ca :init-form (make-der-boolean #f))
@@ -356,6 +360,7 @@
 	:basic-constraints constraints
 	:key-usage key-usage)))
   (define (x509-certificate? o) (is-a? o <x509-certificate>))
+  (define (x509-certificate->bytevector o) (encode (~ o 'c)))
 
   ;; accessor
   (define (x509-certificate-get-version cert)

@@ -48,8 +48,12 @@
       count)
     (define (close)
       (tls-socket-close socket))
-    (make-custom-binary-input/output-port
-     "tls-socket-port" read! write! #f #f close)
+    (define (ready?) 
+      (let1 raw-socket (~ socket 'raw-socket)
+	(receive (r w e) (socket-select (list raw-socket) '() '() 0)
+	  (not (null? r)))))
+    (make-custom-binary-input/output-port "tls-socket-port"
+					  read! write! #f #f close ready?)
     )
 
   )

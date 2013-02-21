@@ -108,16 +108,10 @@
 
   (define *cipher-suites*
     `(
+      ;; cipher suite number   .   public key  (scheme . key-length) hash
       ;; DHE
       (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1))
       (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1))
-
-      ;; cipher suite number   .   public key  (scheme . key-length) hash
-      (,TLS-NULL-WITH-NULL-NULL         . (#f #f #f))
-      ;; I guess these need client certificate...
-      (,TLS-RSA-WITH-NULL-MD5	        . (,RSA #f ,MD5))
-      (,TLS-RSA-WITH-NULL-SHA	        . (,RSA #f ,SHA-1))
-      (,TLS-RSA-WITH-NULL-SHA256        . (,RSA #f ,SHA-256))
       ;;(,TLS-RSA-WITH-RC4-128-MD5        . (,RSA (RC4 . 16) MD5))
       ;;(,TLS-RSA-WITH-RC4-128-SHA        . (,RSA (RC4 . 16) SHA-1))
       (,TLS-RSA-WITH-3DES-EDE-CBC-SHA   . (,RSA (,DES3 . 24) ,SHA-1))
@@ -125,6 +119,13 @@
       (,TLS-RSA-WITH-AES-256-CBC-SHA    . (,RSA (,AES . 32) ,SHA-1))
       (,TLS-RSA-WITH-AES-128-CBC-SHA256 . (,RSA (,AES . 16) ,SHA-256))
       (,TLS-RSA-WITH-AES-256-CBC-SHA256 . (,RSA (,AES . 32) ,SHA-256))
+
+      ;; do not support this (not only for security reason...)
+      ;;(,TLS-NULL-WITH-NULL-NULL         . (#f #f #f))
+      ;; I guess these need client certificate...
+      ;;(,TLS-RSA-WITH-NULL-MD5	        . (,RSA #f ,MD5))
+      ;;(,TLS-RSA-WITH-NULL-SHA	        . (,RSA #f ,SHA-1))
+      ;;(,TLS-RSA-WITH-NULL-SHA256        . (,RSA #f ,SHA-256))
       ))
 
   ;; 6.2 Record Layer

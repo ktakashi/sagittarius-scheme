@@ -59,11 +59,13 @@
 	    ;; predicate
 	    tls-handshake?
 	    tls-hello-request?
+	    tls-client-hello?
 	    tls-server-hello?
 	    tls-certificate?
 	    tls-server-key-exchange?
 	    tls-server-hello-done?
 	    tls-change-cipher-spec?
+	    tls-client-key-exchange?
 	    tls-finished?
 	    ;; handshake accessor
 	    tls-handshake-body
@@ -75,8 +77,10 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
+	    (sagittarius object)
 	    (sagittarius control)
 	    (clos user)
+	    (rfc x.509)
 	    (srfi :19 time)
 	    (srfi :39 parameters))
 
@@ -162,7 +166,7 @@
     (make <variable-vector> :length-size size :value bv))
   (define-method write-object ((o <variable-vector>) out)
     (when (*start*) (display "#<variable-vector "))
-    (display (slot-ref o 'value) out)
+    (display (~ o 'value) out)
     (when (*start*) (display "> ")))
 
   ;; Change Cipher Spec
@@ -231,8 +235,8 @@
     (write-tls-packet (slot-ref o 'compression-methods) out)
     (and-let* ((ext (slot-ref o 'extensions)))
       (write-tls-packet ext out)))
-  (define (make-tls-client-hello . opt)
-    (apply make <tls-client-hello> opt))
+  (define (make-tls-client-hello . opt) (apply make <tls-client-hello> opt))
+  (define (tls-client-hello? o) (is-a? o <tls-client-hello>))
 
   ;; Server Hello
   (define-class <tls-server-hello> (<tls-packet-component>)
@@ -287,7 +291,13 @@
   ;; Server Certificate
   (define-class <tls-certificate> (<tls-packet-component>)
     ((certificates :init-keyword :certificates)))
-  ;; TODO write-tls-packet
+  (define-method write-tls-packet ((o <tls-certificate>) out)
+    (let1 certs (~ o 'certificates)
+      (put-bytevector out (integer->bytevector (length certs) 3))
+      (for-each (^c (let1 body (x509-certificate->bytevector c)
+		      (put-bytevector out
+		       (integer->bytevector (bytevector-length body) 3))
+		      (put-bytevector out body))) certs)))
   (define (make-tls-certificate certificates)
     (make <tls-certificate> :certificates certificates))
   (define-method write-object ((o <tls-certificate>) out)
@@ -314,6 +324,11 @@
      (dh-Ys :init-keyword :dh-Ys)))
   (define (make-tls-server-dh-params p g ys)
     (make <tls-server-dh-params> :dh-p p :dh-g g :dh-Ys ys))
+  (define-method write-tls-packet ((o <tls-server-dh-params>) out)
+    (write-tls-packet (make-variable-vector 2 (~ o 'dh-p)) out)
+    (write-tls-packet (make-variable-vector 2 (~ o 'dh-g)) out)
+    (write-tls-packet (make-variable-vector 2 (~ o 'dh-Ys)) out)
+    )
 
   ;; Server Key Exchange
   (define-class <tls-server-key-exchange> (<tls-packet-component>)
@@ -322,6 +337,9 @@
   (define (make-tls-server-key-exchange params signed-params)
     (make <tls-server-key-exchange> :params params 
 	  :signed-params signed-params))
+  (define-method write-tls-packet ((o <tls-server-key-exchange>) out)
+    (write-tls-packet (~ o 'params) out)
+    (put-bytevector out (~ o 'signed-params)))
   (define (tls-server-key-exchange? o) (is-a? o <tls-server-key-exchange>))
 
   ;; Server Hello done
@@ -337,6 +355,7 @@
     (write-tls-packet (slot-ref o 'exchange-keys) out))
   (define (make-tls-client-key-exchange keys)
     (make <tls-client-key-exchange> :exchange-keys keys))
+  (define (tls-client-key-exchange? o) (is-a? o <tls-client-key-exchange>))
 
   ;; Client Verify
   ;; since TLS 1.2 verify just contains signed handshake messages,
@@ -360,14 +379,13 @@
     (write-tls-packet (slot-ref o 'pre-master-secret) out))
   (define (make-tls-encrypted-pre-master-secret bv)
     ;; RFC 5246 page 59 Implementation note.
-    (let1 data (make-variable-vector 2 bv)
-      (make <tls-encrypted-pre-master-secret> :pre-master-secret data)))
+    (make <tls-encrypted-pre-master-secret> :pre-master-secret bv))
 
   ;; ClientDiffieHellmanPublic
   (define-class <tls-client-diffie-hellman-public> (<tls-packet-component>)
     ((dh-public :init-keyword :dh-public)))
   (define-method write-tls-packet ((o <tls-client-diffie-hellman-public>) out)
-    (let1 public (slot-ref o 'dh-public)
+    (let1 public (~ o 'dh-public)
       ;; if implicit it does not have any value
       (when public
 	(write-tls-packet public out))))
