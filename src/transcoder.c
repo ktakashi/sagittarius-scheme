@@ -227,13 +227,16 @@ SgChar Sg_TranscoderGetc(SgObject self, SgPort *port)
    +---+---+---+----+---+
    We want to share the memory.
  */
-static int resolve_eol(SgPort *port, 
-		       SgTranscoder *tran, SgChar *dst, SgChar 
-		       *src, int64_t count)
+static int resolve_eol(SgPort *port, SgTranscoder *tran, SgChar *dst,
+		       SgChar  *src, int64_t count)
 {
   int64_t i;
   int diff = 0;
+  SgChar *end = src + count;
   for (i = 0; i < count; i++) {
+    /* check overflow*/
+    if (src >= end) break;
+
     if (tran->eolStyle == E_NONE) {
       if (*src == LF) {
 	SG_TRANSCODED_PORT_LINE_NO(port)++;
@@ -288,7 +291,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
   /* now we can finally read from port */
  retry:
   if (trans->codec->type == SG_BUILTIN_CODEC) {
-    int64_t r;
+    int64_t r, i;
     r = SG_CODEC_BUILTIN(trans->codec)->readc(trans->codec, src_port,
 					      buf+read, size-read,
 					      trans->mode, FALSE);
