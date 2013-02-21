@@ -266,6 +266,12 @@
 ;; 		       '())
 ;; 		#,gf)
 	    #`(begin
+		#,@(cond ((find-binding (current-library) 
+					(syntax->datum #'true-name) #f) '())
+			 (else
+			  (%ensure-generic-function (syntax->datum #'true-name)
+						    (current-library))
+			  `((define-generic ,(syntax->datum #'true-name)))))
 		(let ((#,gf
 		       (or (and-let* ((g (find-binding (current-library)
 						       'true-name #f))
@@ -308,7 +314,6 @@
 	   (with-syntax ((true-name (generate-true-name #'k #'name))
 			 (class-name (datum->syntax #'k class)))
 	     ;; to avoid duplicated definition...
-	     #;
 	     (%ensure-generic-function (syntax->datum #'true-name)
 				       (current-library))
 	     #'(begin
@@ -320,7 +325,6 @@
 				   '<generic>)))
 	   ;; to avoid duplicated definition...
 	   ;; FIXME this smells bugs
-	   #;
 	   (%ensure-generic-function (syntax->datum #'name) (current-library))
 	   (with-syntax ((class-name (datum->syntax #'k class)))
 	     #'(define name (make class-name :definition-name 'name))))))))
