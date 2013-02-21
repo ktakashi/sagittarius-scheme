@@ -291,7 +291,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
   /* now we can finally read from port */
  retry:
   if (trans->codec->type == SG_BUILTIN_CODEC) {
-    int64_t r, i;
+    int64_t r;
     r = SG_CODEC_BUILTIN(trans->codec)->readc(trans->codec, src_port,
 					      buf+read, size-read,
 					      trans->mode, FALSE);
