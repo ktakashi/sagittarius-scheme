@@ -809,7 +809,7 @@
       (string->date s "~Y~m~d~H~M~S~z") ;; check
       (make <der-utc-time> :time s))
     (define-method make-der-utc-time ((d <date>))
-      (make <der-utc-time> :time (date->string d "~Y~m~d~H~M~S~Z")))
+      (make <der-utc-time> :time (date->string d "~Y~m~d~H~M~S~z")))
     (define-method make-der-utc-time ((b <bytevector>))
       (make <der-utc-time> :time (bytevector->string b)))
     (define-method der-encode ((o <der-utc-time>) (p <port>))
