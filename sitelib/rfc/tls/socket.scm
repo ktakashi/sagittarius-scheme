@@ -39,6 +39,8 @@
 	    tls-socket-close
 	    tls-socket-closed?
 	    tls-socket-accept
+	    call-with-tls-socket
+	    <tls-socket>
 
 	    ;; for the user who wants to specify TSL version
 	    *tls-version-1.2*
@@ -46,6 +48,10 @@
 	    *tls-version-1.0*
 
 	    socket-close
+	    socket-send
+	    socket-recv
+	    socket-accept
+	    call-with-socket
 	    )
     (import (rnrs)
 	    (core errors)
@@ -1120,8 +1126,24 @@
     ;; if we don't have any socket, we can't reconnect
     (set! (~ socket 'raw-socket) #f))
 
+  ;; utility
+  (define (call-with-tls-socket socket proc)
+    (receive args (proc socket)
+      (tls-socket-close socket)
+      (apply values args)))
+
+
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
     (tls-socket-close o))
+  (define-method socket-send ((o <tls-socket>) data :optional (flags 0))
+    (tls-socket-send o data flags))
+  (define-method socket-recv ((o <tls-socket>) size :optional (flags 0))
+    (tls-socket-recv o size flags))
+  (define-method socket-accept ((o <tls-socket>))
+    (tls-socket-accept o))
+
+  (define-method call-with-socket ((o <tls-socket>) proc)
+    (call-with-tls-socket o proc))
 
   )

@@ -30,9 +30,14 @@
 
 ;; Caution this library is not well tested and not secure yet.
 (library (rfc tls port)
-    (export tls-socket-port)
+    (export tls-socket-port socket-port)
     (import (rnrs)
-	    (rfc tls socket))
+	    (rfc tls socket)
+	    (sagittarius)
+	    (sagittarius socket)
+	    (sagittarius object)
+	    (sagittarius control)
+	    (clos user))
 
   ;; make custom port
   (define (tls-socket-port socket)
@@ -56,4 +61,6 @@
 					  read! write! #f #f close ready?)
     )
 
+  (define-method socket-port ((sock <tls-socket>))
+    (tls-socket-port sock))
   )

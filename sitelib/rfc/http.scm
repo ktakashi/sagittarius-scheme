@@ -210,18 +210,18 @@
   (define (with-connection conn proc)
     (let* ((secure? (http-connection-secure conn))
 	   (make-socket (if secure? make-client-tls-socket make-client-socket))
-	   (close-socket (if secure? tls-socket-close socket-close))
-	   (port-convert (if secure? tls-socket-port socket-port))
+	   ;;(close-socket (if secure? tls-socket-close socket-close))
+	   ;;(port-convert (if secure? tls-socket-port socket-port))
 	   (port (if secure? "443" "80")))
       (let ((s (server->socket (or (http-connection-proxy conn)
 				   (http-connection-server conn))
 			       port make-socket))
 	    (auth (invoke-auth-handler conn)))
 	(unwind-protect
-	 (proc (transcoded-port (port-convert s)
+	 (proc (transcoded-port (socket-port s)
 				(make-transcoder (utf-8-codec) 'lf))
 	       auth)
-	 (close-socket s)))))
+	 (socket-close s)))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options enc)
