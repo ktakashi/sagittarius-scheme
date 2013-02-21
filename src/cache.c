@@ -1462,7 +1462,8 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   lib = Sg_MakeLibrary(name);
   lib->exported = expot;
 
-  keys = Sg_ReverseX(later);
+  keys = later;
+
   SG_FOR_EACH(key, keys) {
     /* keys are alist */
     from = SG_CAAR(key);
