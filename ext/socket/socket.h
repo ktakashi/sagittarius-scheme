@@ -2,7 +2,7 @@
 /*
  * socket.h
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -85,6 +85,36 @@ SG_CLASS_DECL(Sg_AddrinfoClass);
 #define SG_ADDRINFO(obj)  ((SgAddrinfo*)obj)
 #define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
 
+typedef enum {
+  None,
+  IPv4,
+  IPv6
+} INET_TYPE;
+typedef struct SgIpAddressRec
+{
+  SG_HEADER;
+  SgObject ip;
+  INET_TYPE type;
+} SgIpAddress;
+
+SG_CLASS_DECL(Sg_IpAddressClass);
+#define SG_CLASS_IP_ADDRESS  (&Sg_IpAddressClass)
+#define SG_IP_ADDRESS(obj)   ((SgIpAddress*)obj)
+#define SG_IP_ADDRESS_P(obj) SG_XTYPEP(obj, SG_CLASS_IP_ADDRESS)
+
+typedef struct SgSocketInfoRec
+{
+  SG_HEADER;
+  SgObject  hostname;		/* string */
+  SgObject  ipaddress;
+  int       port;
+} SgSocketInfo;
+
+SG_CLASS_DECL(Sg_SocketInfoClass);
+#define SG_CLASS_SOCKET_INFO (&Sg_SocketInfoClass)
+#define SG_SOCKET_INFO(obj)  ((SgSocketInfo*)obj)
+#define SG_SOCKET_INFO_P(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET_INFO)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
@@ -123,6 +153,11 @@ SG_EXTERN void      Sg_ShutdownPort(SgPort *port);
 /* select */
 SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,
 				    SgObject errors, SgObject timeout);
+
+/* misc */
+SG_EXTERN SgObject  Sg_SocketPeer(SgObject socket);
+SG_EXTERN SgObject  Sg_SocketName(SgObject socket);
+SG_EXTERN SgObject  Sg_IpAddressToString(SgObject ip);
 
 SG_CDECL_END
 

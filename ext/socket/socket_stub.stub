@@ -17,6 +17,8 @@
 
 (define-type <socket> "SgSocket*")
 (define-type <addrinfo> "SgAddrinfo*")
+(define-type <ip-address> "SgIpAddress*")
+(define-type <socket-info> "SgSocketInfo*")
 
 (define-c-proc addrinfo? (o) ::<boolean>  SG_ADDRINFOP)
 (define-c-proc make-addrinfo ()  Sg_MakeAddrinfo)
@@ -85,3 +87,9 @@
   Sg_SocketBlocking)
 
 (define-c-proc socket-select (reads writes errors timeval) Sg_SocketSelect)
+
+(define-c-proc socket-peer (o::<socket>) Sg_SocketPeer)
+(define-c-proc socket-name (o::<socket>) Sg_SocketName)
+(define-c-proc ip-address->string (ip::<ip-address>) Sg_IpAddressToString)
+(define-c-proc ip-address->bytevector (ip::<ip-address>) 
+  (result (-> ip ip)))

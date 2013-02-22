@@ -124,11 +124,13 @@
       (case (read/ss (recv-datum socket))
 	((:request-authenticate) (wait-response))
 	((:no-authenticate) #t)))
-    (format #t "~%connect: ~a:~a (enter ^D to exit) ~%~%" node service)
     (call-with-socket (if secure
 			  (make-client-tls-socket node service)
 			  (make-client-socket node service))
       (lambda (socket)
+	(let-values (((name ip port) (socket-info-values socket)))
+	  (format #t "~%connect: ~a:~a (enter ^D to exit) ~%~%"
+		  name port))
 	(when (authenticate socket)
 	  (parameterize ((current-evaluator (make-evaluator socket))
 			 (current-printer   (make-printer socket))
@@ -175,7 +177,7 @@
 			    (certificates '())
 			    (private-key #f)
 			    (log (current-output-port)))
-    (define (detach server socket)
+    (define (detach socket)
       (define (main-loop in out err)
 	(define (set-ports! p)
 	  (current-input-port p)
@@ -193,7 +195,7 @@
 	       (with-exception-handler
 		(lambda (c)
 		  (restor-ports!)
-		  (format log "~%error in ~a: ~a~%" server
+		  (format log "~%error in ~a: ~a~%" socket
 			  (if (message-condition? c)
 			      (condition-message c)
 			      c))
@@ -239,6 +241,12 @@
 	    (send-packed-data socket :no-authenticate)))
 	
       (lambda ()
+	(when secure
+	  (format log "remote-repl: TLS handshake ~s~%" socket)
+	  (with-exception-handler
+	   (lambda (c)
+	     (format log "remote-repl: TLS handshake failed ~s~%" socket))
+	   (lambda () (tls-server-handshake socket))))
 	(call-with-socket socket
 	  (lambda (socket)
 	    (let ((in    (current-input-port))
@@ -253,9 +261,11 @@
       (format log "~%remote-repl: ~a~%~%" server)
       (lambda ()
 	(let loop ()
-	  (let* ((socket (socket-accept server))
-		 (thread (make-thread (detach server socket))))
-	    (thread-start! thread)
-	    (loop))))))
+	  (let1 socket (socket-accept server #f)
+	    (let-values (((name ip port) (socket-info-values socket)))
+	      (format log "accept ~a(~a):~s~%" name 
+		      (ip-address->string ip) port)
+	      (thread-start! (make-thread (detach socket)))
+	      (loop)))))))
 
 )

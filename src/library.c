@@ -392,7 +392,7 @@ static SgObject userlib = NULL;
 #define copy_string(dst, offset, src, start)				\
   do {									\
     int __i;								\
-    for (__i = 0; __i < SG_STRING_SIZE(src); __i++) {			\
+    for (__i = 0; __i < SG_STRING_SIZE(src)-(start); __i++) {		\
       SG_STRING_VALUE_AT(dst, __i+(offset)) =				\
 	SG_STRING_VALUE_AT(src, __i+(start));				\
     }									\

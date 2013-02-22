@@ -105,10 +105,17 @@
 	    ;; addrinfo
 	    addrinfo? make-addrinfo make-hint-addrinfo get-addrinfo
 	    next-addrinfo
-
+	    ;; socket-info
+	    socket-peer
+	    socket-name
+	    socket-info-values
+	    ;; ip-address
+	    ip-address->string
+	    ip-address->bytevector
 	    ;; clos
 	    <socket>
 	    <addrinfo>
+	    <socket-info>
 	    )
     (import (core)
 	    (core errors)
@@ -201,4 +208,12 @@
 
   (define (socket-error-select timeout . rest)
     (receive (r w e) (socket-select '() '() rest timeout) e))
+
+  (define (socket-info-values socket)
+    (let ((peer (socket-peer socket)))
+      (if peer
+	  (values (slot-ref peer 'hostname)
+		  (slot-ref peer 'ip-address)
+		  (slot-ref peer 'port))
+	  (values #f #f #f))))
 )

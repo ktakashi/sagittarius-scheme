@@ -37,6 +37,10 @@
 #define EINTR  WSAEINTR
 #define EAGAIN WSATRY_AGAIN
 #define EWOULDBLOCK WSAEWOULDBLOCK
+#define EPIPE WSAEINVAL
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL 0		/* no support */
+#endif
 #endif
 
 #include <sagittarius.h>
@@ -57,8 +61,8 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
 
 
-static SgString* get_address_string(const struct sockaddr *addr,
-				    socklen_t addrlen)
+static SgString* get_address_string_rec(const struct sockaddr *addr,
+					socklen_t addrlen, int port_p)
 {
   int ret;
   char host[NI_MAXHOST];
@@ -70,8 +74,18 @@ static SgString* get_address_string(const struct sockaddr *addr,
 		      host, sizeof(host),
 		      serv, sizeof(serv), NI_NUMERICSERV);
   } while (EAI_AGAIN == ret);
-  snprintf(name, sizeof(name), "%s:%s", host, serv);
+  if (port_p) {
+    snprintf(name, sizeof(name), "%s:%s", host, serv);
+  } else {
+    snprintf(name, sizeof(name), "%s", host);
+  }
   return SG_STRING(Sg_MakeStringC(name));
+}
+
+static SgString* get_address_string(const struct sockaddr *addr,
+				    socklen_t addrlen)
+{
+  return get_address_string_rec(addr, addrlen, TRUE);
 }
 
 static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
@@ -82,6 +96,128 @@ static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AddrinfoClass, addrinfo_printer);
+
+#define IPv4_INADDER_SIZE 0x4
+#define IPv6_INADDER_SIZE 0x10
+#define IPv6_INT16_SIZE   0x2
+
+static SgObject bytevector_to_v4_string(SgObject bv)
+{
+  /* bv must have 4 length */
+  ASSERT(SG_BVECTOR_SIZE(bv) >= IPv4_INADDER_SIZE);
+  return Sg_Sprintf(UC("%d.%d.%d.%d"),
+		    SG_BVECTOR_ELEMENT(bv, 0),
+		    SG_BVECTOR_ELEMENT(bv, 1),
+		    SG_BVECTOR_ELEMENT(bv, 2),
+		    SG_BVECTOR_ELEMENT(bv, 3));
+}
+
+static SgObject bytevector_to_v6_string(SgObject bv)
+{
+  static const char table[] = "0123456789abcdef";
+  SgObject sp = Sg_MakeStringOutputPort(39);
+  int i;
+  for (i = 0; i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE); i++) {
+    int hi = SG_BVECTOR_ELEMENT(bv, (i<<1));
+    int lo = SG_BVECTOR_ELEMENT(bv, ((i<<1)+1));
+    Sg_PutcUnsafe(SG_PORT(sp), table[hi]);
+    Sg_PutcUnsafe(SG_PORT(sp), table[lo]);
+    if (i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE) - 1) {
+      Sg_PutcUnsafe(SG_PORT(sp), ':');
+    }
+  }
+  return Sg_GetStringFromStringPort(SG_PORT(sp));
+}
+
+static SgObject ip_to_string(SgIpAddress *ip)
+{
+  switch (ip->type) {
+  case IPv4: return bytevector_to_v4_string(ip->ip);
+  case IPv6: return bytevector_to_v6_string(ip->ip);
+  default: return SG_FALSE;
+  }
+}
+
+static void ip_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<ip-address %A>"), ip_to_string(SG_IP_ADDRESS(self)));
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_IpAddressClass, ip_printer);
+
+static void socktinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  SgSocketInfo *info = SG_SOCKET_INFO(self);
+  Sg_Printf(port, UC("#<socket-info %A(%A:%d)>"),
+	    info->hostname, info->ipaddress, info->port);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketInfoClass, socktinfo_printer);
+
+static SgIpAddress *make_ip_address(struct sockaddr_storage *info)
+{
+  SgIpAddress *z = SG_NEW(SgIpAddress);
+  SgObject ip;
+  SG_SET_CLASS(z, SG_CLASS_IP_ADDRESS);
+  if (info->ss_family == AF_INET) {
+    struct sockaddr_in *s = (struct sockaddr_in *)info;
+    ip = Sg_MakeByteVector(IPv4_INADDER_SIZE, 0);
+    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)s->sin_addr.s_addr,
+	   IPv4_INADDER_SIZE);
+    z->type = IPv4;
+  } else {			/* AF_INET6 */
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *)info;
+    ip = Sg_MakeByteVector(IPv6_INADDER_SIZE, 0);
+    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)s->sin6_addr.s6_addr,
+	   IPv6_INADDER_SIZE);
+    z->type = IPv6;
+  }
+  z->ip = ip;
+  return z;
+}
+
+static SgSocketInfo* make_socket_info(struct sockaddr_storage *info)
+{
+  SgSocketInfo *si = SG_NEW(SgSocketInfo);
+  int port, addr_len;
+  SgObject ip, host;
+  SG_SET_CLASS(si, SG_CLASS_SOCKET_INFO);
+  if (info->ss_family == AF_INET) {
+    struct sockaddr_in *s = (struct sockaddr_in *)info;
+    port = ntohs(s->sin_port);
+    addr_len = sizeof(struct sockaddr_in);
+  } else {			/* AF_INET6 */
+    struct sockaddr_in6 *s = (struct sockaddr_in6 *)info;
+    port = ntohs(s->sin6_port);
+    addr_len = sizeof(struct sockaddr_in6);
+  }
+  ip = make_ip_address(info);
+  host = get_address_string_rec((struct sockaddr *)info, addr_len, FALSE);
+  si->hostname = host;
+  si->ipaddress = ip;
+  si->port = port;
+  return si;
+}
+
+static SgObject si_hostname(SgSocketInfo *si)
+{
+  return si->hostname;
+}
+static SgObject si_ip_address(SgSocketInfo *si)
+{
+  return si->ipaddress;
+}
+static SgObject si_port(SgSocketInfo *si)
+{
+  return SG_MAKE_INT(si->port);
+}
+
+static SgSlotAccessor si_slots[] = {
+  SG_CLASS_SLOT_SPEC("hostname",   0, si_hostname, NULL),
+  SG_CLASS_SLOT_SPEC("ip-address", 1, si_ip_address, NULL),
+  SG_CLASS_SLOT_SPEC("port",       2, si_port, NULL),
+  { { NULL } }
+};
 
 #ifdef _WIN32
 #define last_error WSAGetLastError()
@@ -542,6 +678,30 @@ SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
   return Sg_Values3(rr, wr, er);
 }
 
+SgObject Sg_SocketPeer(SgObject socket)
+{
+  struct sockaddr_storage name;
+  int len = sizeof(name), ret;
+  ret = getpeername(SG_SOCKET(socket)->socket, (struct sockaddr *)&name, &len);
+  if (ret == 0) {
+    return make_socket_info(&name);
+  } else {
+    return SG_FALSE;
+  }
+}
+
+SgObject Sg_SocketName(SgObject socket)
+{
+  SgObject address = SG_SOCKET(socket)->address;
+  if (address) return address;
+  else return SG_FALSE;
+}
+
+SgObject Sg_IpAddressToString(SgObject ip)
+{
+  return ip_to_string(SG_IP_ADDRESS(ip));
+}
+
 int Sg_SocketOpenP(SgSocket *socket)
 {
   return socket->socket != -1;
@@ -829,6 +989,10 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_ADDRINFO, UC("<addrinfo>"), lib, NULL,
 			     SG_FALSE, ai_slots, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_IP_ADDRESS, UC("<ip-address>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_SOCKET_INFO, UC("<socket-info>"), lib,
+			     NULL, SG_FALSE, si_slots, 0);
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)

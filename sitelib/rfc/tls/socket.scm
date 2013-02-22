@@ -39,6 +39,9 @@
 	    tls-socket-close
 	    tls-socket-closed?
 	    tls-socket-accept
+	    tls-socket-peer
+	    tls-socket-name
+	    tls-socket-info-values
 	    call-with-tls-socket
 	    <tls-socket>
 
@@ -52,6 +55,12 @@
 	    socket-recv
 	    socket-accept
 	    call-with-socket
+	    socket-peer
+	    socket-name
+	    socket-info-values
+	    ;; to send handshake explicitly
+	    tls-server-handshake
+	    tls-client-handshake
 	    )
     (import (rnrs)
 	    (core errors)
@@ -213,7 +222,7 @@
 	    :certificates certificates
 	    :session (make-initial-session prng <tls-server-session>))))
 
-  (define (tls-socket-accept socket)
+  (define (tls-socket-accept socket :optional (handshake #t))
     (let* ((raw-socket (socket-accept (~ socket 'raw-socket)))
 	   (new-socket (make <tls-server-socket> :raw-socket raw-socket
 			     :version (~ socket 'version)
@@ -223,7 +232,8 @@
 				       <tls-server-session>)
 			     :private-key (~ socket 'private-key)
 			     :certificates (~ socket 'certificates))))
-      (tls-server-handshake new-socket)
+      (when handshake
+	(tls-server-handshake new-socket))
       new-socket))
 
   (define (verify-mac socket finish label restore-message?)
@@ -379,6 +389,7 @@
 				  :key (prng (secure-random RC4))
 				  (version *tls-version-1.2*)
 				  (session #f)
+				  (handshake #t)
 				  :allow-other-keys opt)
     (let* ((raw-socket (apply make-client-socket server service opt))
 	   (socket (make <tls-socket> :raw-socket raw-socket
@@ -386,7 +397,8 @@
 			 :session (if session
 				      session
 				      (make-initial-session prng)))))
-      (tls-client-handshake socket)
+      (when handshake
+	(tls-client-handshake socket))
       socket))
 
 
@@ -1132,6 +1144,12 @@
       (tls-socket-close socket)
       (apply values args)))
 
+  (define (tls-socket-peer socket)
+    (socket-peer (~ socket 'raw-socket)))
+  (define (tls-socket-name socket)
+    (socket-name (~ socket 'raw-socket)))
+  (define (tls-socket-info-values socket)
+    (socket-info-values (~ socket 'raw-socket)))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
@@ -1142,8 +1160,19 @@
     (tls-socket-recv o size flags))
   (define-method socket-accept ((o <tls-socket>))
     (tls-socket-accept o))
+  (define-method socket-accept ((o <tls-socket>) (handshake <boolean>))
+    (tls-socket-accept o handshake))
+  ;; To avoid
+  (define-method socket-accept ((o <socket>) (dummy <boolean>))
+    (socket-accept o))
 
   (define-method call-with-socket ((o <tls-socket>) proc)
     (call-with-tls-socket o proc))
 
+  (define-method socket-peer ((o <tls-socket>))
+    (tls-socket-peer o))
+  (define-method socket-name ((o <tls-socket>))
+    (tls-socket-name o))
+  (define-method socket-info-values ((o <tls-socket>))
+    (tls-socket-info-values o))
   )

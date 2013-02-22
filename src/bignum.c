@@ -1426,7 +1426,7 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   static const char utab[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const char *tab = use_upper ? utab : ltab;
   /* SgObject h = SG_NIL, t = SG_NIL; */
-  SgObject rs;;
+  SgObject rs;
   SgBignum *q;
   long rem, size, count;
   int i;
