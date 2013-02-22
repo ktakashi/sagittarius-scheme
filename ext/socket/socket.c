@@ -162,13 +162,13 @@ static SgIpAddress *make_ip_address(struct sockaddr_storage *info)
   if (info->ss_family == AF_INET) {
     struct sockaddr_in *s = (struct sockaddr_in *)info;
     ip = Sg_MakeByteVector(IPv4_INADDER_SIZE, 0);
-    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)s->sin_addr.s_addr,
+    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)&s->sin_addr.s_addr,
 	   IPv4_INADDER_SIZE);
     z->type = IPv4;
   } else {			/* AF_INET6 */
     struct sockaddr_in6 *s = (struct sockaddr_in6 *)info;
     ip = Sg_MakeByteVector(IPv6_INADDER_SIZE, 0);
-    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)s->sin6_addr.s6_addr,
+    memcpy(SG_BVECTOR_ELEMENTS(ip), (void *)&s->sin6_addr.s6_addr,
 	   IPv6_INADDER_SIZE);
     z->type = IPv6;
   }
