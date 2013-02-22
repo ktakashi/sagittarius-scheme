@@ -177,6 +177,12 @@
 			    (certificates '())
 			    (private-key #f)
 			    (log (current-output-port)))
+    (define-syntax logging
+      (syntax-rules ()
+	((_ socket fmt args ...)
+	 (let-values (((name ip port) (socket-info-values socket)))
+	   (format log (string-append "remote-repl: [~a(~a):~a]" fmt "~%")
+		   name (ip-address->string ip) port args ...)))))
     (define (detach socket)
       (define (main-loop in out err)
 	(define (set-ports! p)
@@ -188,17 +194,16 @@
 	  (current-output-port out)
 	  (current-error-port err))
 	(let ((stop? #f) (current-expression #f))
-	  (format log "remote-repl: connect ~s~%" socket)
+	  (logging socket "connect")
 	  (let loop ()
 	    (call/cc
 	     (lambda (continue)
 	       (with-exception-handler
 		(lambda (c)
 		  (restor-ports!)
-		  (format log "~%error in ~a: ~a~%" socket
-			  (if (message-condition? c)
-			      (condition-message c)
-			      c))
+		  (logging socket "error: ~a" (if (message-condition? c)
+						  (condition-message c)
+						  c))
 		  ;; socket connection
 		  (let1 msg (describe-condition c)
 		    (send-packed-data socket :error current-expression msg))
@@ -242,10 +247,10 @@
 	
       (lambda ()
 	(when secure
-	  (format log "remote-repl: TLS handshake ~s~%" socket)
+	  (logging socket "TLS handshake")
 	  (with-exception-handler
 	   (lambda (c)
-	     (format log "remote-repl: TLS handshake failed ~s~%" socket))
+	     (logging socket "TLS handshake failed!"))
 	   (lambda () (tls-server-handshake socket))))
 	(call-with-socket socket
 	  (lambda (socket)
@@ -258,14 +263,12 @@
 		     (make-server-tls-socket service certificates
 					     :private-key private-key)
 		     (make-server-socket service))
-      (format log "~%remote-repl: ~a~%~%" server)
+      (format log "~%remote-repl: ~a~%" (socket-name server))
       (lambda ()
 	(let loop ()
 	  (let1 socket (socket-accept server #f)
-	    (let-values (((name ip port) (socket-info-values socket)))
-	      (format log "accept ~a(~a):~s~%" name 
-		      (ip-address->string ip) port)
-	      (thread-start! (make-thread (detach socket)))
-	      (loop)))))))
+	    (logging socket "accept")
+	    (thread-start! (make-thread (detach socket)))
+	    (loop))))))
 
 )
