@@ -61,6 +61,9 @@
 	    ;; to send handshake explicitly
 	    tls-server-handshake
 	    tls-client-handshake
+
+	    ;; for testing
+	    *cipher-suites*
 	    )
     (import (rnrs)
 	    (core errors)
@@ -137,6 +140,8 @@
     ((raw-socket :init-keyword :raw-socket)
      ;; should this be in session?
      (version    :init-keyword :version)
+     ;; for convenience to test.
+     (cipher-suites :init-keyword :cipher-suites)
      (prng       :init-keyword :prng)
      (session    :init-keyword :session)
      ;; for tls-socket-recv, we need to store application data
@@ -168,11 +173,11 @@
       (or (~ session 'version)
 	  (~ socket 'version))))
 
-  (define (make-cipher-suites)
-    (let* ((size (length *cipher-suites*))
+  (define (make-cipher-suites socket)
+    (let* ((suites (~ socket 'cipher-suites))
+	   (size (length suites))
 	   (bv (make-bytevector (* size 2))))
-      (do ((i 0 (+ i 2))
-	   (ciphers *cipher-suites* (cdr ciphers)))
+      (do ((i 0 (+ i 2)) (ciphers suites (cdr ciphers)))
 	  ((null? ciphers))
 	(bytevector-u16-set! bv i (caar ciphers) 'big))
       bv))
@@ -183,7 +188,7 @@
 	   (random-bytes (read-random-bytes (~ socket 'prng) 28))
 	   (random (make-tls-random random-bytes))
 	   (session-id (make-variable-vector 1 (~ session 'session-id)))
-	   (cipher-suite (make-variable-vector 2 (make-cipher-suites)))
+	   (cipher-suite (make-variable-vector 2 (make-cipher-suites socket)))
 	   (compression-methods (make-variable-vector 1 (~ session 'methods)))
 	   (hello (apply make-tls-client-hello
 			 :version version
@@ -390,10 +395,12 @@
 				  (version *tls-version-1.2*)
 				  (session #f)
 				  (handshake #t)
+				  (cipher-suites *cipher-suites*)
 				  :allow-other-keys opt)
     (let* ((raw-socket (apply make-client-socket server service opt))
 	   (socket (make <tls-socket> :raw-socket raw-socket
 			 :version version :prng prng
+			 :cipher-suites cipher-suites
 			 :session (if session
 				      session
 				      (make-initial-session prng)))))
