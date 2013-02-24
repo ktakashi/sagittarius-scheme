@@ -14,24 +14,21 @@
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h> <sagittarius/generic.h>))
 
-  (define-c-proc slot-ref (o name::<symbol>) ::<top>
+  (define-c-proc slot-ref (o name::<symbol>)
     (setter slot-set!)
-    (result (Sg_SlotRef o name)))
+    Sg_VMSlotRef)
 
-  (define-c-proc slot-set! (o name::<symbol> v) ::<void>
-    (Sg_SlotSet o name v))
+  (define-c-proc slot-set! (o name::<symbol> v) ::<void> Sg_VMSlotSet)
 
-  (define-c-proc slot-ref-using-accessor (o sa::<slot-accessor>) ::<top>
-    (result (Sg_SlotRefUsingAccessor o sa)))
+  (define-c-proc slot-ref-using-accessor (o sa::<slot-accessor>)
+    Sg_SlotRefUsingAccessor)
 
   (define-c-proc slot-set-using-accessor! (o sa::<slot-accessor> v) ::<void>
-    (Sg_SlotSetUsingAccessor o sa v))
+    Sg_SlotSetUsingAccessor)
 
-  (define-c-proc class-of (o) ::<top>
-    (result (Sg_ClassOf o)))
+  (define-c-proc class-of (o) Sg_ClassOf)
 
-  (define-c-proc is-a? (o klass) ::<boolean>
-    (result (Sg_TypeP o klass)))
+  (define-c-proc is-a? (o klass) ::<boolean> Sg_TypeP)
 
   (define-cfn call-fallback-proc (args::SgObject* nargs::int gf::SgGeneric*)
     :static

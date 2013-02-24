@@ -859,7 +859,7 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
   return SG_UNDEF;		/* dummy */
 }
 
-SgObject Sg_SlotRef(SgObject obj, SgObject name)
+static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP)
 {
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
   if (accessor->getter) {
@@ -869,26 +869,55 @@ SgObject Sg_SlotRef(SgObject obj, SgObject name)
     if (SG_FALSEP(accessor->getterS)) {
       return SG_INSTANCE(obj)->slots[accessor->index];
     } else {
-      return Sg_Apply1(accessor->getterS, obj);
+      /* Hope this will be removed by compiler... */
+      if (vmP) {
+	return Sg_VMApply1(accessor->getterS, obj);
+      } else {
+	return Sg_Apply1(accessor->getterS, obj);
+      }
     }
   }
 }
 
-void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
+SgObject Sg_SlotRef(SgObject obj, SgObject name)
+{
+  return slot_ref_rec(obj, name, FALSE);
+}
+SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
+{
+  return slot_ref_rec(obj, name, TRUE);
+}
+
+static SgObject slot_set_rec(SgObject obj, SgObject name,
+			     SgObject value, int vmp)
 {
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
   if (accessor->setter) {
     accessor->setter(obj, value);
+    return SG_UNDEF;
   } else {
     /* scheme accessor */
     if (SG_FALSEP(accessor->setterS)) {
       SG_INSTANCE(obj)->slots[accessor->index] = value;
     } else {
-      Sg_Apply2(accessor->setterS, obj, value);
+      if (vmp) {
+	return Sg_VMApply2(accessor->setterS, obj, value);
+      } else {
+	Sg_Apply2(accessor->setterS, obj, value);
+	return SG_UNDEF;
+      }
     }
   }
 }
+void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
+{
+  slot_set_rec(obj, name, value, FALSE);
+}
 
+SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value)
+{
+  return slot_set_rec(obj, name, value, TRUE);
+}
 /* For now, these 2 are really simple */
 SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
 {

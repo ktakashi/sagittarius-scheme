@@ -103,6 +103,14 @@
 (test-assert "pseudo-random?" (pseudo-random? (pseudo-random RC4)))
 (test-assert "secure-random?" (secure-random? (secure-random RC4)))
 
+(test-assert "cipher-iv" (bytevector? (cipher-iv des/cbc-cipher)))
+(test-equal "cipher-iv (set!)"
+	    (cipher-iv des/cbc-cipher)
+	    (let ((iv (cipher-iv des/cbc-cipher)))
+	     (cipher-iv des/cbc-cipher iv)
+	     (cipher-iv des/cbc-cipher)))
+
+
 ;; key suggest
 
 ;;(test-equal "DES key size" 8 (cipher-keysize DES 8))

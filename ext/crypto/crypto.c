@@ -584,15 +584,15 @@ static SgObject bci_iv(SgBuiltinCipherSpi *spi)
 static void bci_iv_set(SgBuiltinCipherSpi *spi, SgObject value)
 {
   unsigned long len;
-  if (spi->setiv) {
-    Sg_Error(UC("target cipher does not have iv"), spi);
+  if (!spi->setiv) {
+    Sg_Error(UC("target cipher does not have iv %S"), spi);
   }
   if (!SG_BVECTORP(value)) {
-    Sg_Error(UC("iv must be bytevector"), value);
+    Sg_Error(UC("iv must be bytevector. %S"), value);
   }
   len = cipher_descriptor[spi->cipher].block_length;
   if (SG_BVECTOR_SIZE(value) != len) {
-    Sg_Error(UC("invalid size of iv"), value);
+    Sg_Error(UC("invalid size of iv. %S"), value);
   }
   spi->setiv(SG_BVECTOR_ELEMENTS(value), &len, &spi->skey);
 }
