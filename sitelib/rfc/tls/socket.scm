@@ -524,11 +524,12 @@
 	  (let1 rsa-cipher (cipher RSA (~ socket 'private-key)
 				   ;; block type 1
 				   :block-type PKCS-1-EMSA)
-	    (sign rsa-cipher
-		  (if (< (~ session 'version) *tls-version-1.2*)
-		      (bytevector-concat (hash MD5 message)
-					 (hash SHA-1 message))
-		      message)))))))
+	    ;; use encrypt not sign
+	    (encrypt rsa-cipher
+		     (if (< (~ session 'version) *tls-version-1.2*)
+			 (bytevector-concat (hash MD5 message)
+					    (hash SHA-1 message))
+			 message)))))))
 
     (define (wait-and-process-server socket)
       (let1 session (~ socket 'session)

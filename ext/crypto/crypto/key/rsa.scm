@@ -225,10 +225,6 @@
   ;; encrypt/decrypt
   ;; This procedure must be called from C and bv may be padded there.
   (define (rsa-encrypt bv key)
-    (unless (rsa-public-key? key)
-      (raise-encrypt-error 'rsa-encrypt
-			   "public key required"
-			   'RSA key))
     (let ((key-length (align-size (slot-ref key 'modulus)))
 	  (data-length (bytevector-length bv)))
       ;; for consistancy with JCE
@@ -239,10 +235,6 @@
       (rsa-mod-expt bv key)))
     
   (define (rsa-decrypt bv key)
-    (unless (rsa-private-key? key)
-      (raise-decrypt-error 'rsa-encrypt
-			   "private key required"
-			   'RSA key))
     (let ((key-length (align-size (slot-ref key 'modulus)))
 	  (data-length (bytevector-length bv)))
       ;; for consistancy with JCE
@@ -318,8 +310,7 @@
 	    (message-length (bytevector-length data))
 	    (type (bytevector-u8-ref data 0)))
 	(unless (= type block-type)
-	  (raise-decode-error 'pkcs-v1.5-padding
-			      "invalid block type"))
+	  (raise-decode-error 'pkcs-v1.5-padding "invalid block type"))
 	(let ((from (do ((i 1 (+ i 1)))
 			((= (bytevector-u8-ref data i) 0) (+ i 1))
 		      (unless (or (= type PKCS-1-EME)
@@ -329,28 +320,22 @@
 					    (bytevector-u8-ref data i))))))
 	  (when (or (>= from modulus-length)
 		    (< from 9))
-	    (raise-decode-error 'pkcs-v1.5-padding
-				"invalid padding length"))
+	    (raise-decode-error 'pkcs-v1.5-padding "invalid padding length"))
 	  (let* ((len (- message-length from))
 		 (bv (make-bytevector len 0)))
 	    (bytevector-copy! data from bv 0 len)
 	    bv))))
 
     (lambda (data pad?)
-      (unless (or (rsa-public-key? key)
-		  (rsa-private-key? key))
+      (unless (or (rsa-public-key? key) (rsa-private-key? key))
 	(if pad?
-	    (raise-encode-error 'pkcs-v1.5-padding
-				"public key required"
-				key)
-	    (raise-decode-error 'pkcs-v1.5-padding
-				"private key required"
-				key)))
+	    (raise-encode-error 'pkcs-v1.5-padding "public key required" key)
+	    (raise-decode-error 'pkcs-v1.5-padding "private key required" key)))
       ;; both public and private key has the same slot
       (let ((modulus (slot-ref key 'modulus)))
-      (if pad?
-	  (encode data modulus)
-	  (decode data modulus)))))
+	(if pad?
+	    (encode data modulus)
+	    (decode data modulus)))))
 
   #|
       RSAPublicKey ::= SEQUENCE {
