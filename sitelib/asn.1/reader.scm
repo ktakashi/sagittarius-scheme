@@ -95,9 +95,9 @@
     (when (eof-object? data)
       (assertion-violation 'build-object "EOF found during reading data"))
     (cond ((not (zero? (bitwise-and b APPLICATION)))
-	   (make-der-application-specific constructed? b data))
+	   (make-der-application-specific constructed? tag data))
 	  ((not (zero? (bitwise-and b TAGGED)))
-	   (read-tagged-object #f data constructed? b))	  
+	   (read-tagged-object #f data constructed? tag))
 	  (constructed?
 	   (cond ((= tag OCTET-STRING)
 		  (apply make-ber-constructed-octet-string data))

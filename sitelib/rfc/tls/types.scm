@@ -54,6 +54,7 @@
 	    make-tls-client-verify
 	    make-tls-encrypted-pre-master-secret
 	    make-tls-client-diffie-hellman-public
+	    make-tls-certificate-request
 	    make-tls-finished
 	    make-tls-ciphered-data
 	    ;; predicate
@@ -66,6 +67,7 @@
 	    tls-server-hello-done?
 	    tls-change-cipher-spec?
 	    tls-client-key-exchange?
+	    tls-certificate-request?
 	    tls-finished?
 	    ;; handshake accessor
 	    tls-handshake-body
@@ -293,11 +295,14 @@
     ((certificates :init-keyword :certificates)))
   (define-method write-tls-packet ((o <tls-certificate>) out)
     (let1 certs (~ o 'certificates)
-      (put-bytevector out (integer->bytevector (length certs) 3))
-      (for-each (^c (let1 body (x509-certificate->bytevector c)
-		      (put-bytevector out
-		       (integer->bytevector (bytevector-length body) 3))
-		      (put-bytevector out body))) certs)))
+      (write-tls-packet 
+       (make-variable-vector 3
+	(call-with-bytevector-output-port
+	 (^o
+	  (for-each (^c (let1 body (x509-certificate->bytevector c)
+			  (write-tls-packet (make-variable-vector 3 body) o)))
+		    certs))))
+       out)))
   (define (make-tls-certificate certificates)
     (make <tls-certificate> :certificates certificates))
   (define-method write-object ((o <tls-certificate>) out)
@@ -327,8 +332,7 @@
   (define-method write-tls-packet ((o <tls-server-dh-params>) out)
     (write-tls-packet (make-variable-vector 2 (~ o 'dh-p)) out)
     (write-tls-packet (make-variable-vector 2 (~ o 'dh-g)) out)
-    (write-tls-packet (make-variable-vector 2 (~ o 'dh-Ys)) out)
-    )
+    (write-tls-packet (make-variable-vector 2 (~ o 'dh-Ys)) out))
 
   ;; Server Key Exchange
   (define-class <tls-server-key-exchange> (<tls-packet-component>)
@@ -364,7 +368,7 @@
   (define-class <tls-client-verify> (<tls-packet-component>)
     ((signature :init-keyword :signature)))
   (define-method write-tls-packet ((o <tls-client-verify>) out)
-    (put-bytevector out (slot-ref o 'signature)))
+    (write-tls-packet (make-variable-vector 2 (~ o 'signature)) out))
   (define (make-tls-client-verify signature)
     (make <tls-client-verify> :signature signature))
 
@@ -391,6 +395,20 @@
 	(write-tls-packet public out))))
   (define (make-tls-client-diffie-hellman-public public)
     (make <tls-client-diffie-hellman-public> :dh-public public))
+
+  ;; CertificateRequest
+  (define-class <tls-certificate-request> (<tls-packet-component>)
+    ((certificate-types :init-keyword :certificate-types)
+     (certificate-authorities :init-keyword :certificate-authorities)))
+  (define (tls-certificate-request? o) (is-a? o <tls-certificate-request>))
+  (define-method write-tls-packet ((o <tls-certificate-request>) out)
+    ;; I haven't decided how we should hold this
+    (write-tls-packet (~ o 'certificate-types) out)
+    (write-tls-packet (~ o 'certificate-authorities) out))
+  (define (make-tls-certificate-request type name)
+    (make <tls-certificate-request>
+      :certificate-types type
+      :certificate-authorities name))
 
   ;; Finished
   (define-class <tls-finished> (<tls-packet-component>)

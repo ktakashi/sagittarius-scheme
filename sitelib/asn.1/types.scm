@@ -120,6 +120,7 @@
     (import (except (rnrs) bytevector->string)
 	    (clos user)
 	    (sagittarius)
+	    (sagittarius object)
 	    (sagittarius control)
 	    (sagittarius time) ;; for <date>
 	    (asn.1 der tags)
@@ -682,7 +683,7 @@
        (bitwise-ior SEQUENCE CONSTRUCTED)
        (call-with-bytevector-output-port
 	(lambda (p)
-	  (let loop ((l (slot-ref o 'sequence)))
+	  (let loop ((l (~ o 'sequence)))
 	    (unless (null? l)
 	      (der-write-object (car l) p)
 	      (loop (cdr l))))))
@@ -835,27 +836,23 @@
     (define-method make-der-tagged-object ((tag-no <integer>))
       (make <der-tagged-object> 
 	:explicit? #f :tag-no tag-no :obj (make-der-sequence)))
-    (define-method der-encode ((o <der-tagged-object>) (p <port>))
-      (cond ((slot-ref o 'empty?)
-	     (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
-				(slot-ref o 'tag-no) #vu8() p))
-	    (else
-	     (let* ((obj (slot-ref o 'obj))
-		    (bytes (asn.1-encodable-encoded
-			    (der-encodable->der-object obj))))
-	       (cond ((slot-ref o 'explicit?)
-		      (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
-					 (slot-ref o 'tag-no) bytes p))
-		     (else
-		      (let ((flag (cond ((zero? (bitwise-and
-						 (bytevector-u8-ref bytes 0)
-						 CONSTRUCTED))
-					 (bitwise-ior CONSTRUCTED TAGGED))
-					(else TAGGED))))
-			(der-write-tag flag (slot-ref o 'tag-no) p)
-			(put-bytevector p bytes 1 (- (bytevector-length bytes)
-						     1)))
-		      ))))))
+    (define-method der-encode ((o <der-tagged-object>) p)
+      (if (~ o 'empty?)
+	  (der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
+			     (~ o 'tag-no) #vu8() p)
+	  (let1 bytes (asn.1-encodable-encoded
+		       (der-encodable->der-object (~ o 'obj)))
+	    (if (~ o 'explicit?)
+		(der-write-encoded (bitwise-ior CONSTRUCTED TAGGED)
+				   (~ o 'tag-no) bytes p)
+		(let1 flag (cond ((zero? (bitwise-and
+					  (bytevector-u8-ref bytes 0)
+					  CONSTRUCTED))
+				  (bitwise-ior CONSTRUCTED TAGGED))
+				 (else TAGGED))
+		  (der-write-tag flag (~ o 'tag-no) p)
+		  (put-bytevector p bytes 1 (- (bytevector-length bytes) 1))
+		  )))))
     (define-method write-object ((o <der-tagged-object>) (p <port>))
       (generic-write "der-tagged-object" 
 		     (format "[~a] ~a~a" (slot-ref o 'tag-no)
@@ -891,11 +888,11 @@
 	:external-content (der-encodable->der-object ed)))
 
     (define-method der-encode ((o <der-external>) (p <port>))
-      (let ((dr  (slot-ref o 'direct-reference))
-	    (idr (slot-ref o 'indirect-reference))
-	    (dvd (slot-ref o 'data-value-descriptor))
-	    (obj (make-der-tagged-object (slot-ref o 'encoding)
-					 (slot-ref o 'external-content))))
+      (let ((dr  (~ o 'direct-reference))
+	    (idr (~ o 'indirect-reference))
+	    (dvd (~ o 'data-value-descriptor))
+	    (obj (make-der-tagged-object (~ o 'encoding)
+					 (~ o 'external-content))))
 	(der-write-encoded CONSTRUCTED EXTERNAL
 			   (call-with-bytevector-output-port
 			    (lambda (p)
@@ -906,11 +903,11 @@
 			   p)))
     (define-method write-object ((o <der-external>) (p <port>))
       (generic-write "der-external" 
-		     (der-list->string (list (slot-ref o 'direct-reference)
-					     (slot-ref o 'indirect-reference)
-					     (slot-ref o 'data-value-descriptor)
-					     (slot-ref o 'encoding)
-					     (slot-ref o 'external-content)))
+		     (der-list->string (list (~ o 'direct-reference)
+					     (~ o 'indirect-reference)
+					     (~ o 'data-value-descriptor)
+					     (~ o 'encoding)
+					     (~ o 'external-content)))
 		     p))
 
     ;; unknown tag. we insert one of these when we find a tag we don't know

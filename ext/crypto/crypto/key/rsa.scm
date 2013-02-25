@@ -298,13 +298,13 @@
 	       (ps (if (= block-type PKCS-1-EME)
 		       (read-random-bytes prng ps-length)
 		       (make-bytevector ps-length #xFF))))
-	  (if (= block-type PKCS-1-EME)
-	      (do ((i 0 (+ i 1)))
-		  ((= i ps-length) #t)
-		;; transform zero bytes (if any) to non-zero random bytes
-		(when (zero? (bytevector-u8-ref ps i))
-		  (bytevector-u8-set! ps i (bytevector-u8-ref
-					    (read-random-bytes prng 1) 0)))))
+	  (when (= block-type PKCS-1-EME)
+	    (do ((i 0 (+ i 1)))
+		((= i ps-length) #t)
+	      ;; transform zero bytes (if any) to non-zero random bytes
+	      (when (zero? (bytevector-u8-ref ps i))
+		(bytevector-u8-set! ps i (bytevector-u8-ref
+					  (read-random-bytes prng 1) 0)))))
 	  (let ((bv (make-bytevector (+ 2 ps-length 1 message-length) 0)))
 	    ;; set block-type
 	    (bytevector-u8-set! bv 1 block-type)

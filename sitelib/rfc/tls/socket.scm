@@ -136,28 +136,31 @@
      ;; ugly ...
      (client-finished)))
 
+  ;; abstract class for tls sockets
   (define-class <tls-socket> ()
     ((raw-socket :init-keyword :raw-socket)
      ;; should this be in session?
      (version    :init-keyword :version)
-     ;; for convenience to test.
-     (cipher-suites :init-keyword :cipher-suites)
      (prng       :init-keyword :prng)
      (session    :init-keyword :session)
      ;; for tls-socket-recv, we need to store application data
      ;; in this buffer to be able to take size argument.
-     (buffer     :init-value #f)))
-
-  (define-class <tls-server-socket> (<tls-socket>)
-    (;; for server socket
+     (buffer     :init-value #f)
+     ;; both server and client need these slots
      (certificates :init-value '() :init-keyword :certificates)
      (private-key  :init-value #f  :init-keyword :private-key)))
+
+  (define-class <tls-client-socket> (<tls-socket>)
+    (;; for convenience to test.
+     (cipher-suites :init-keyword :cipher-suites)))
+  ;; as a marker
+  (define-class <tls-server-socket> (<tls-socket>) ())
 
   (define-method write-object ((o <tls-socket>) out)
     (let1 session (~ o 'session)
       (format out "#<~a ~x~a~a>" 
 	      (if (is-a? o <tls-server-socket>)
-		  "tls-server-socket" "tls-socket") 
+		  "tls-server-socket" "tls-client-socket") 
 	      (~ session 'version)
 	      (if (~ session 'closed?)
 		  " session-closed"
@@ -396,11 +399,15 @@
 				  (session #f)
 				  (handshake #t)
 				  (cipher-suites *cipher-suites*)
+				  (certificates '())
+				  (private-key #f)
 				  :allow-other-keys opt)
     (let* ((raw-socket (apply make-client-socket server service opt))
-	   (socket (make <tls-socket> :raw-socket raw-socket
+	   (socket (make <tls-client-socket> :raw-socket raw-socket
 			 :version version :prng prng
 			 :cipher-suites cipher-suites
+			 :certificates certificates
+			 :private-key private-key
 			 :session (if session
 				      session
 				      (make-initial-session prng)))))
@@ -500,6 +507,10 @@
 	  (make-tls-client-diffie-hellman-public 
 	   (make-variable-vector 2 (integer->bytevector Yc)))))))
 
+    (define (make-client-certificate socket)
+      (make-tls-handshake *certificate*
+       (make-tls-certificate (~ socket 'certificates))))
+
     (define (make-client-verify socket)
       (let* ((session (~ socket 'session))
 	     (in (~ session 'messages))
@@ -507,20 +518,17 @@
 	     (message (get-output-bytevector in)))
 	;; restore
 	(put-bytevector in message)
-	(if (< (~ session 'version) *tls-version-1.2*)
-	    (make-tls-client-verify
-	     ;; TODO get it from cipher-suite
-	     (let1 rsa-cipher (cipher RSA (~ session 'public-key)
-				      ;; block type 1
-				      :block-type PKCS-1-EMSA)
-	       (sign rsa-cipher
-		(bytevector-concat (hash MD5 message) (hash SHA-1 message)))))
-	    (make-tls-client-verify
-	     (let1 rsa-cipher (cipher RSA (~ session 'public-key)
-				      ;; block type 1 (correct?)
-				      :block-type PKCS-1-EMSA)
-	       ;; TODO 1.2 hash
-	       (sign rsa-cipher message))))))
+	(make-tls-handshake *certificate-verify*
+	 (make-tls-client-verify
+	  ;; TODO get it from cipher-suite
+	  (let1 rsa-cipher (cipher RSA (~ socket 'private-key)
+				   ;; block type 1
+				   :block-type PKCS-1-EMSA)
+	    (sign rsa-cipher
+		  (if (< (~ session 'version) *tls-version-1.2*)
+		      (bytevector-concat (hash MD5 message)
+					 (hash SHA-1 message))
+		      message)))))))
 
     (define (wait-and-process-server socket)
       (let1 session (~ socket 'session)
@@ -536,6 +544,9 @@
 			(process-certificate socket o))
 		       ((tls-server-key-exchange? o)
 			(process-server-key-exchange socket o))
+		       ;; TODO
+		       ((tls-certificate-request? o)
+			(set! (~ session 'need-certificate?) #t))
 		       ((tls-change-cipher-spec? o)
 			(set! (~ session 'session-encrypted?) #t))
 		       (else
@@ -549,9 +560,8 @@
       (wait-and-process-server socket)
       ;; If server send CertificateRequest
       (when (~ session 'need-certificate?)
-	;; TODO send certificate
-	(assertion-violation 'tls-handshake
-			     "client certificate is not supported yet"))
+	(tls-socket-send-inner socket (make-client-certificate socket)
+			       0 *handshake* #f))
       ;; client key exchange message
       (tls-socket-send-inner socket 
 			     (if (is-dh? session)
@@ -560,7 +570,9 @@
 			     0 *handshake* #f)
 
       ;; send certificate verify.
-      (when (~ session 'need-certificate?)
+      (when (and (~ session 'need-certificate?)
+		 (~ socket 'private-key)
+		 (not (null? (~ socket 'certificates))))
 	(tls-socket-send-inner socket (make-client-verify socket)
 			       0 *handshake* #f))
 
@@ -870,6 +882,11 @@
 		     (cert (make-x509-certificate body)))
 		(loop (+ i 1) (cons cert certs) (+ read-size size)))))))
 
+    (define (read-certificate-request in)
+      (let ((types (read-variable-vector in 1))
+	    (name  (read-variable-vector in 2)))
+	(make-tls-certificate-request types name)))
+
     (define (read-finished in) (make-tls-finished (get-bytevector-all in)))
 
     (and-let* ((type (get-u8 in))
@@ -893,6 +910,8 @@
 	     (make-tls-server-hello-done))
 	    ((= type *client-key-exchange*)
 	     (read-client-key-exchange (open-bytevector-input-port body)))
+	    ((= type *certificate-request*)
+	     (read-certificate-request (open-bytevector-input-port body)))
 	    ((= type *finished*)
 	     (read-finished (open-bytevector-input-port body)))
 	    (else

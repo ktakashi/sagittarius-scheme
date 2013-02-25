@@ -181,7 +181,7 @@
       (syntax-rules ()
 	((_ socket fmt args ...)
 	 (let-values (((name ip port) (socket-info-values socket)))
-	   (format log (string-append "remote-repl: [~a(~a):~a]" fmt "~%")
+	   (format log (string-append "remote-repl: [~a(~a):~a] " fmt "~%")
 		   name (ip-address->string ip) port args ...)))))
     (define (detach socket)
       (define (main-loop in out err)
