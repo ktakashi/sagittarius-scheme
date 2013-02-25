@@ -527,7 +527,8 @@
 	    (asn.1:encode
 	     (make-der-sequence
 	      (make-der-sequence
-	       (make-der-object-identifier "1.3.14.3.2.26.5.0"))
+	       (make-der-object-identifier "1.3.14.3.2.26")
+	       (make-der-null))
 	      (make-der-octet-string signature))))
 	  ;; For now only supports RSA and SHA-1
 	  (make-tls-signature-with-algorhtm
