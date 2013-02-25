@@ -52,6 +52,8 @@
 	    make-tls-server-hello-done
 	    make-tls-client-key-exchange
 	    make-tls-client-verify
+	    make-tls-signature
+	    make-tls-signature-with-algorhtm
 	    make-tls-encrypted-pre-master-secret
 	    make-tls-client-diffie-hellman-public
 	    make-tls-certificate-request
@@ -368,9 +370,29 @@
   (define-class <tls-client-verify> (<tls-packet-component>)
     ((signature :init-keyword :signature)))
   (define-method write-tls-packet ((o <tls-client-verify>) out)
-    (write-tls-packet (make-variable-vector 2 (~ o 'signature)) out))
+    (write-tls-packet (~ o 'signature) out))
   (define (make-tls-client-verify signature)
     (make <tls-client-verify> :signature signature))
+
+  (define-class <signature> (<tls-packet-component>)
+    ((signature :init-keyword :signature)))
+  (define-method write-tls-packet ((o <signature>) out)
+    (write-tls-packet (make-variable-vector 2 (~ o 'signature)) out))
+  (define (make-tls-signature signature)
+    (make <signature> :signature signature))
+
+  (define-class <signature-with-algorithm> (<signature>)
+    ((hash :init-keyword :hash)
+     (algorithm :init-keyword :algorithm)))
+  (define-method write-tls-packet ((o <signature-with-algorithm>) out)
+    (put-u8 out (~ o 'hash))
+    (put-u8 out (~ o 'algorithm))
+    (call-next-method))
+  (define (make-tls-signature-with-algorhtm hash algorithm signature)
+    (make <signature-with-algorithm>
+      :hash hash
+      :algorithm algorithm
+      :signature signature))
 
   ;; PreMasterSecret
   ;; the value will be immediately encrypted so we don't need this.

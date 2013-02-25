@@ -75,6 +75,7 @@
 	    (rfc tls constant)
 	    (rfc x.509)
 	    (rfc hmac)
+	    (rename (asn.1) (encode asn.1:encode))
 	    (util bytevector)
 	    (except (math) lookup-hash)
 	    (crypto)
@@ -516,6 +517,22 @@
 	     (in (~ session 'messages))
 	     (position (port-position in))
 	     (message (get-output-bytevector in)))
+	(define (handle-1.1 rsa-cipher message)
+	  (make-tls-signature
+	   (encrypt rsa-cipher
+		    (bytevector-concat (hash MD5 message)
+				       (hash SHA-1 message)))))
+	(define (handle-1.2 rsa-cipher message)
+	  (define (encode-signature signature)
+	    (asn.1:encode
+	     (make-der-sequence
+	      (make-der-sequence
+	       (make-der-object-identifier "1.3.14.3.2.26.5.0"))
+	      (make-der-octet-string signature))))
+	  ;; For now only supports RSA and SHA-1
+	  (make-tls-signature-with-algorhtm
+	   2 1
+	   (encrypt rsa-cipher (encode-signature (hash SHA-1 message)))))
 	;; restore
 	(put-bytevector in message)
 	(make-tls-handshake *certificate-verify*
@@ -525,11 +542,9 @@
 				   ;; block type 1
 				   :block-type PKCS-1-EMSA)
 	    ;; use encrypt not sign
-	    (encrypt rsa-cipher
-		     (if (< (~ session 'version) *tls-version-1.2*)
-			 (bytevector-concat (hash MD5 message)
-					    (hash SHA-1 message))
-			 message)))))))
+	    (if (< (~ session 'version) *tls-version-1.2*)
+		(handle-1.1 rsa-cipher message)
+		(handle-1.2 rsa-cipher message)))))))
 
     (define (wait-and-process-server socket)
       (let1 session (~ socket 'session)
