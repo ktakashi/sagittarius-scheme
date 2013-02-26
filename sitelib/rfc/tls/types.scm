@@ -70,6 +70,7 @@
 	    tls-change-cipher-spec?
 	    tls-client-key-exchange?
 	    tls-certificate-request?
+	    tls-client-veify?
 	    tls-finished?
 	    ;; handshake accessor
 	    tls-handshake-body
@@ -311,9 +312,7 @@
     (write-indent 0 out)
     (when (*start*) (display "#<" out))
     (display "tls-certificate" out) (newline)
-    (for-each (lambda (cert)
-		(display cert out) (newline out))
-	      (slot-ref o 'certificates))
+    (display (~ o 'certificates) out) (newline)
     (when (*start*) (display ">" out)))
   (define (tls-certificate? o) (is-a? o <tls-certificate>))
 
@@ -373,6 +372,7 @@
     (write-tls-packet (~ o 'signature) out))
   (define (make-tls-client-verify signature)
     (make <tls-client-verify> :signature signature))
+  (define (tls-client-veify? o) (is-a? o <tls-client-verify>))
 
   (define-class <signature> (<tls-packet-component>)
     ((signature :init-keyword :signature)))

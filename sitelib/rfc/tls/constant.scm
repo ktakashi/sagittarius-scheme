@@ -178,5 +178,5 @@
       (,*sha384* . ,SHA-384)
       (,*sha512* . ,SHA-512)))
 
-  (define *supported-signatures* `((,*rsa* ,RSA)))
+  (define *supported-signatures* `((,*rsa* . ,RSA)))
 )

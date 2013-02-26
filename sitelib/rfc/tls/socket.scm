@@ -138,7 +138,11 @@
   (define-class <tls-server-session> (<tls-session>)
     ;; for DHE
     ((a :init-value #f)
+     (authority :init-value '())
      ;; ugly ...
+     ;; for certificate verify
+     (verify-message :init-value #f)
+     ;; to keep client-finish message ...
      (client-finished)))
 
   ;; abstract class for tls sockets
@@ -158,8 +162,10 @@
   (define-class <tls-client-socket> (<tls-socket>)
     (;; for convenience to test.
      (cipher-suites :init-keyword :cipher-suites)))
-  ;; as a marker
-  (define-class <tls-server-socket> (<tls-socket>) ())
+
+  (define-class <tls-server-socket> (<tls-socket>) 
+    ;; for certificate request and verify
+    ((authorities :init-keyword :authorities)))
 
   (define-method write-object ((o <tls-socket>) out)
     (let1 session (~ o 'session)
@@ -226,6 +232,7 @@
 				  :key (prng (secure-random RC4))
 				  (private-key #f)
 				  (version *tls-version-1.2*)
+				  (authorities '())
 				  :allow-other-keys opt)
     (let1 raw-socket (apply make-server-socket port opt)
       (make <tls-server-socket> :raw-socket raw-socket
@@ -233,6 +240,7 @@
 	    ;; so far we don't need this but for later
 	    :private-key private-key
 	    :certificates certificates
+	    :authorities authorities
 	    :session (make-initial-session prng <tls-server-session>))))
 
   (define (tls-socket-accept socket :optional (handshake #t))
@@ -244,7 +252,8 @@
 				       (~ socket 'prng)
 				       <tls-server-session>)
 			     :private-key (~ socket 'private-key)
-			     :certificates (~ socket 'certificates))))
+			     :certificates (~ socket 'certificates)
+			     :authorities (~ socket 'authorities))))
       (when handshake
 	(tls-server-handshake new-socket))
       new-socket))
@@ -265,10 +274,7 @@
       (unless (<= *tls-version-1.0*  (~ hello 'version) *tls-version-1.2*)
 	(assertion-violation 'tls-server-handshake
 			     "non supported TLS version" (~ hello 'version)))
-      ;; for now only supports max TLS1.1
-      (if (> (~ hello 'version) *tls-version-1.1*)
-	  (set! (~ socket 'session 'version) *tls-version-1.1*)
-	  (set! (~ socket 'session 'version) (~ hello 'version)))
+      (set! (~ socket 'session 'version) (~ hello 'version))
       (set! (~ socket 'session 'client-random) (~ hello 'random))
       (let* ((vv (~ hello 'cipher-suites))
 	     (bv (~ vv 'value))
@@ -327,14 +333,76 @@
 	 (make-tls-handshake *server-key-echange*
 	  (make-tls-server-key-exchange params signature))
 	 0 *handshake* #f)))
+    
+    (define (send-certificate-request)
+      (define (make-supports)
+	(let lp1 ((s *supported-signatures*) (r '()))
+	  (if (null? s)
+	      (u8-list->bytevector (reverse! r))
+	      (let lp2 ((h *supported-hashes*) (r r))
+		(if (null? h)
+		    (lp1 (cdr s) r)
+		    (lp2 (cdr h) (cons* (caar s) (caar h) r)))))))
+      (let ((types (u8-list->bytevector (map car *supported-signatures*)))
+	    (algos (if (>= (~ socket 'session 'version) *tls-version-1.2*)
+		       (make-supports)
+		       #f))
+	    ;; we don't support certificate_authorities
+	    (auth  #vu8(0)))
+	(tls-socket-send-inner socket
+	 (make-tls-handshake *certificate-request*
+	  (if algos
+	      (make-tls-certificate-request
+	       (make-variable-vector 1 types)
+	       (make-variable-vector 2 algos)
+	       (make-variable-vector 2 auth))
+	      (make-tls-certificate-request
+	       (make-variable-vector 1 types)
+	       (make-variable-vector 2 auth))))
+	 0 *handshake* #f)))
+
+    ;; assume the first certificate is the client certificate
+    ;; FIXME probably we need to check all chains as well
+    (define (process-verify socket o)
+      (let* ((session (~ socket 'session))
+	     (message (~ session 'verify-message))
+	     (signature (~ o 'signature 'signature))
+	     (key (x509-certificate-get-public-key
+		   (car (~ socket 'authorities)))))
+
+	(if (>= (~ session 'version) *tls-version-1.2*)
+	    (or (and-let* ((s (assv (~ o 'signature 'hash) *supported-hashes*))
+			   (c (assv (~ o 'signature 'algorithm)
+				    *supported-signatures*))
+			   (v-cipher (cipher (cdr c) key
+					       :block-type PKCS-1-EMSA))
+			   (msg (decrypt v-cipher signature))
+			   (obj (read-asn.1-object
+				 (open-bytevector-input-port msg))))
+		  (bytevector=? (hash (cdr s) message)
+				(~ (asn.1-sequence-get obj 1) 'string)))
+		(error 'certificate-verify "verify failed"))
+	    (let1 rsa-cipher (cipher RSA key :block-type PKCS-1-EMSA)
+	      (or (bytevector=? (bytevector-concat (hash MD5 message)
+						   (hash SHA-1 message))
+				(decrypt rsa-cipher signature))
+		  (error 'certificate-verify "verify failed"))))))
+
     (define (send-server-hello-done)
       (tls-socket-send-inner socket
        (make-tls-handshake *server-hello-done*
 	(make-tls-server-hello-done))
        0 *handshake* #f))
+
     (define (process-client-key-exchange socket o)
       (let ((session (~ socket 'session))
 	    (dh (~ o 'exchange-keys)))
+	;; store client verify message hash if needed
+	(unless (null? (~ socket 'authorities))
+	  (let1 message (get-output-bytevector (~ session 'messages))
+	    ;; we need this later so restore it
+	    (put-bytevector (~ session 'messages) message)
+	    (set! (~ session 'verify-message) message)))
 	(if (is-dh? session)
 	    ;; Diffie-Hellman key exchange
 	    ;; Ka = B^a mod p
@@ -377,7 +445,8 @@
       (send-certificate)
       (when (is-dh? (~ socket 'session))
 	(send-server-key-exchange))
-
+      (unless (null? (~ socket 'authorities))
+	(send-certificate-request))
       ;; TODO send DH param if we need.
       (send-server-hello-done)
       ;; wait for client
@@ -391,6 +460,12 @@
 		     (calculate-session-key socket)
 		     (set! (~ socket 'session 'session-encrypted?) #t)
 		     (loop #t))
+		    ((tls-certificate? o)
+		     (set! (~ socket 'session 'authority) (~ o 'certificates))
+		     (loop had-spec?))
+		    ((tls-client-veify? o)
+		     (process-verify socket o)
+		     (loop had-spec?))
 		    ((tls-client-key-exchange? o)
 		     (process-client-key-exchange socket o) 
 		     (loop had-spec?))
@@ -643,12 +718,12 @@
 	 0 *handshake* #t))
       (wait-and-process-server socket)))
 
-  (define (dump-all-handshake-messages msg dh?)
+  (define (dump-all-handshake-messages msg dh? v)
     (let1 in (open-bytevector-input-port msg)
-      (let loop ((o (read-handshake in dh?)))
+      (let loop ((o (read-handshake in dh? v)))
 	(when o
 	  (display o) (newline)
-	  (loop (read-handshake in dh?))))))
+	  (loop (read-handshake in dh? v))))))
 
   ;; internals
   (define-constant *master-secret-label* (string->utf8 "master secret"))
@@ -797,7 +872,8 @@
 			     (= type *finished*))
 		    (set! (~ session 'client-finished) message)))
 		(read-handshake (open-bytevector-input-port message)
-				(is-dh? session)))
+				(is-dh? session)
+				(~ session 'version)))
 	       ((= type *alert*)
 		(let1 alert (read-alert (open-bytevector-input-port message))
 		  (cond ((= *close-notify* (~ alert 'description))
@@ -839,7 +915,7 @@
   (define (is-dh? session)
     (check-key-exchange-algorithm (~ session 'cipher-suite)
 				  *dh-key-exchange-algorithms*))
-  (define (read-handshake in dh?)
+  (define (read-handshake in dh? version)
 
     (define (read-random in)
       (let ((time (bytevector->integer (get-bytevector-n in 4)))
@@ -939,6 +1015,18 @@
 	    (make-tls-certificate-request types name-or-algo maybe-name)
 	    (make-tls-certificate-request types name-or-algo))))
 
+    (define (read-certificate-verify in)
+      (if (>= version *tls-version-1.2*)
+	  (let ((hash (get-u8 in))
+		(sign (get-u8 in))
+		(signature (read-variable-vector in 2)))
+	    (make-tls-client-verify
+	     (make-tls-signature-with-algorhtm hash sign 
+					       (~ signature 'value))))
+	  (make-tls-client-verify
+	   (make-tls-signature
+	    (~ (read-variable-vector in 2) 'value)))))
+
     (define (read-finished in) (make-tls-finished (get-bytevector-all in)))
 
     (and-let* ((type (get-u8 in))
@@ -964,6 +1052,8 @@
 	     (read-client-key-exchange (open-bytevector-input-port body)))
 	    ((= type *certificate-request*)
 	     (read-certificate-request (open-bytevector-input-port body)))
+	    ((= type *certificate-verify*)
+	     (read-certificate-verify (open-bytevector-input-port body)))
 	    ((= type *finished*)
 	     (read-finished (open-bytevector-input-port body)))
 	    (else
