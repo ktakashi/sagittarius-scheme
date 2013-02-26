@@ -81,6 +81,7 @@
 	    (crypto)
 	    (clos user)
 	    (srfi :19 time)
+	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
   (define-class <session-key> ()
@@ -243,7 +244,7 @@
 	    :authorities authorities
 	    :session (make-initial-session prng <tls-server-session>))))
 
-  (define (tls-socket-accept socket :optional (handshake #t))
+  (define (tls-socket-accept socket :key (handshake #t) (raise-error #t))
     (let* ((raw-socket (socket-accept (~ socket 'raw-socket)))
 	   (new-socket (make <tls-server-socket> :raw-socket raw-socket
 			     :version (~ socket 'version)
@@ -254,9 +255,12 @@
 			     :private-key (~ socket 'private-key)
 			     :certificates (~ socket 'certificates)
 			     :authorities (~ socket 'authorities))))
-      (when handshake
-	(tls-server-handshake new-socket))
-      new-socket))
+      (if handshake
+	  (guard (e (raise-error (socket-close new-socket) (raise e))
+		    (else (socket-close new-socket) new-socket))
+	    (tls-server-handshake new-socket)
+	    new-socket)
+	  new-socket)))
 
   (define (verify-mac socket finish label restore-message?)
     (let* ((session (~ socket 'session))
@@ -361,14 +365,24 @@
 	       (make-variable-vector 2 auth))))
 	 0 *handshake* #f)))
 
-    ;; assume the first certificate is the client certificate
-    ;; FIXME probably we need to check all chains as well
+    (define (process-certificate socket o)
+      (define (same-issuer? peer auth)
+	;; TODO check signature
+	(equal? (x509-certificate-get-issuer-dn peer)
+		(x509-certificate-get-subject-dn auth)))
+      ;; TODO verify the chain
+      (let1 peer-cert (car (~ o 'certificates))
+	;; check if the certificate is in server authorities
+	(or (exists (cut same-issuer? peer-cert <>)
+		    (~ socket 'authorities))
+	    (error 'process-certificate "No CA signer to verify with"))
+	(set! (~ socket 'session 'authority) peer-cert)))
+
     (define (process-verify socket o)
       (let* ((session (~ socket 'session))
 	     (message (~ session 'verify-message))
 	     (signature (~ o 'signature 'signature))
-	     (key (x509-certificate-get-public-key
-		   (car (~ socket 'authorities)))))
+	     (key (x509-certificate-get-public-key (~ session 'authority))))
 
 	(if (>= (~ session 'version) *tls-version-1.2*)
 	    (or (and-let* ((s (assv (~ o 'signature 'hash) *supported-hashes*))
@@ -461,7 +475,7 @@
 		     (set! (~ socket 'session 'session-encrypted?) #t)
 		     (loop #t))
 		    ((tls-certificate? o)
-		     (set! (~ socket 'session 'authority) (~ o 'certificates))
+		     (process-certificate socket o)
 		     (loop had-spec?))
 		    ((tls-client-veify? o)
 		     (process-verify socket o)
@@ -1326,12 +1340,10 @@
     (tls-socket-send o data flags))
   (define-method socket-recv ((o <tls-socket>) size :optional (flags 0))
     (tls-socket-recv o size flags))
-  (define-method socket-accept ((o <tls-socket>))
-    (tls-socket-accept o))
-  (define-method socket-accept ((o <tls-socket>) (handshake <boolean>))
-    (tls-socket-accept o handshake))
-  ;; To avoid
-  (define-method socket-accept ((o <socket>) (dummy <boolean>))
+  (define-method socket-accept ((o <tls-socket>) . opt)
+    (apply tls-socket-accept o opt))
+  ;; To avoid no-next-method error
+  (define-method socket-accept ((o <socket>) (key <keyword>) . dummy)
     (socket-accept o))
 
   (define-method call-with-socket ((o <tls-socket>) proc)

@@ -87,7 +87,9 @@
       ((_ socket tag data ...)
        (send-datum socket (pack-data tag data ...)))))
 
-  (define (connect-remote-repl node service :key (secure #f))
+  (define (connect-remote-repl node service
+			       :key (secure #f)
+			       (authority #f))
     (define (make-evaluator socket)
       (lambda (form env)
 	(send-packed-data socket :datum form)))
@@ -125,7 +127,11 @@
 	((:request-authenticate) (wait-response))
 	((:no-authenticate) #t)))
     (call-with-socket (if secure
-			  (make-client-tls-socket node service)
+			  (make-client-tls-socket node service
+						  :certificates
+						  (if authority
+						      (list authority)
+						      '()))
 			  (make-client-socket node service))
       (lambda (socket)
 	(let-values (((name ip port) (socket-info-values socket)))
@@ -176,6 +182,7 @@
 			    (authenticate #f)
 			    (certificates '())
 			    (private-key #f)
+			    (authority #f)
 			    (log (current-output-port)))
     (define-syntax logging
       (syntax-rules ()
@@ -226,6 +233,7 @@
 				(apply pack-data :values (length r)
 				       (data->string r)))))))
 		      ((:exit)
+		       (logging socket "disconnect")
 		       (send-packed-data socket :exit)
 		       (set! stop? #t))
 		      (else 
@@ -261,12 +269,13 @@
 		(main-loop in out err)))))))
     (let1 server (if secure
 		     (make-server-tls-socket service certificates
-					     :private-key private-key)
+					     :private-key private-key
+					     :authorities (list authority))
 		     (make-server-socket service))
       (format log "~%remote-repl: ~a~%" (socket-name server))
       (lambda ()
 	(let loop ()
-	  (let1 socket (socket-accept server #f)
+	  (let1 socket (socket-accept server :handshake #f)
 	    (logging socket "accept")
 	    (thread-start! (make-thread (detach socket)))
 	    (loop))))))

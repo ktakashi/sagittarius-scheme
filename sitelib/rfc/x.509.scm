@@ -74,6 +74,11 @@
   (define (rdn-get-first rdn)
     (let ((p (asn.1-set-get (~ rdn 'values) 0)))
       (cons (asn.1-sequence-get p 0) (asn.1-sequence-get p 1))))
+  (define-method object-equal? ((a <rdn>) (b <rdn>))
+    ;; unfortunately ASN.1 serise aren't implemented with object-equal?
+    ;; so we need to compare encoded bytevector
+    (bytevector=? (encode (~ a 'values)) (encode (~ b 'values))))
+
   (define *default-symbols*
     `((,(make-der-object-identifier "2.5.4.6") . C)
       (,(make-der-object-identifier "2.5.4.10") . O)
@@ -101,7 +106,7 @@
       (make <x500-name> :rdns rdns)))
   (define-method asn.1-encodable->asn.1-object ((o <x500-name>))
     (apply make-der-sequence (vector->list (~ o 'rdns))))
-  (define-method write-object ((o <x500-name>) (p <port>))
+  (define-method write-object ((o <x500-name>) p)
     (define (print-type-and-value p out)
       (let ((type (car p))
 	    (value (cdr p)))
@@ -136,6 +141,10 @@
 				(cdr rdns))))))))
       (display buf p)))
 
+  (define-method object-equal? ((a <x500-name>) (b <x500-name>))
+    (and (equal? (~ a 'style) (~ b 'style))
+	 (equal? (~ a 'rdns) (~ b 'rdns))))
+  
   ;; base on boucycasle's x509 package.
   (define-class <algorithm-identifier> (<asn.1-encodable>)
     ((object-id  :init-keyword :object-id)
