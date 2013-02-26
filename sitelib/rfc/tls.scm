@@ -1,8 +1,8 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; tls.scm - TLS 1.0 - 1.2 protocol library.
+;;; rfc/tls.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; Caution this library is not well tested and not secure yet.
+;; Caution this library is not well tested and not well secure yet.
 (library (rfc tls)
     (export :all)
     (import (rfc tls socket)

@@ -1,8 +1,8 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; tls.scm - TLS 1.0 - 1.2 protocol library.
+;;; rfc/tls/socket.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; Caution this library is not well tested and not secure yet.
+;; Caution this library is not well tested and not well secure yet.
 (library (rfc tls socket)
     (export make-client-tls-socket
 	    make-server-tls-socket
@@ -131,6 +131,10 @@
      ;; all handshake messages without record layer...
      (messages :init-form (open-output-bytevector))))
 
+  (define-class <tls-client-session> (<tls-session>)
+    ((signature-algorithm :init-value #f)
+     (hash-algorithm :init-value #f)))
+
   (define-class <tls-server-session> (<tls-session>)
     ;; for DHE
     ((a :init-value #f)
@@ -206,7 +210,7 @@
       (set! (~ session 'client-random) random)
       (make-tls-handshake *client-hello* hello)))
 
-  (define (make-initial-session prng :optional (class <tls-session>))
+  (define (make-initial-session prng class)
     (make class
       :session-id (read-random-bytes prng 28)
       :methods #vu8(0)))
@@ -411,7 +415,8 @@
 			 :private-key private-key
 			 :session (if session
 				      session
-				      (make-initial-session prng)))))
+				      (make-initial-session prng
+				       <tls-client-session>)))))
       (when handshake
 	(tls-client-handshake socket))
       socket))
@@ -523,17 +528,22 @@
 		    (bytevector-concat (hash MD5 message)
 				       (hash SHA-1 message)))))
 	(define (handle-1.2 rsa-cipher message)
-	  (define (encode-signature signature)
+	  (define (encode-signature signature oid)
 	    (asn.1:encode
 	     (make-der-sequence
 	      (make-der-sequence
-	       (make-der-object-identifier "1.3.14.3.2.26")
+	       (make-der-object-identifier oid)
 	       (make-der-null))
 	      (make-der-octet-string signature))))
 	  ;; For now only supports RSA and SHA-1
-	  (make-tls-signature-with-algorhtm
-	   2 1
-	   (encrypt rsa-cipher (encode-signature (hash SHA-1 message)))))
+	  (let* ((hash-algo (~ session 'hash-algorithm))
+		 (hash-name (cdr hash-algo))
+		 (sign (~ session 'signature-algorithm)))
+	    ;; We know we only support RSA so we don't check cipher.
+	    (make-tls-signature-with-algorhtm
+	     (car hash-algo) (car sign)
+	     (encrypt rsa-cipher (encode-signature (hash hash-name message)
+						   (hash-oid hash-name))))))
 	;; restore
 	(put-bytevector in message)
 	(make-tls-handshake *certificate-verify*
@@ -546,6 +556,27 @@
 	    (if (< (~ session 'version) *tls-version-1.2*)
 		(handle-1.1 rsa-cipher message)
 		(handle-1.2 rsa-cipher message)))))))
+
+    (define (process-certificate-request socket o)
+      (define-syntax u8-ref (identifier-syntax bytevector-u8-ref))
+      (let1 session (~ socket 'session)
+	(set! (~ session 'need-certificate?) #t)
+	;; FIXME the code trusts server, assuming proper message was sent.
+	(when (~ o 'supported-signature-algorithms)
+	  (let* ((algos (~ o 'supported-signature-algorithms 'value))
+		 (limit (bytevector-length algos)))
+	    (let loop ((i 0))
+	      (if (= i limit)
+		  (error 'process-certificate-request
+			 "hash or signature algorithm are not supported")
+		  (let ((hash (assv (u8-ref algos i) *supported-hashes*))
+			(sign (assv (u8-ref algos (+ i 1))
+				    *supported-signatures*)))
+		    (if (and hash sign)
+			(begin
+			  (set! (~ session 'signature-algorithm) sign)
+			  (set! (~ session 'hash-algorithm) hash))
+			(loop (+ i 2))))))))))
 
     (define (wait-and-process-server socket)
       (let1 session (~ socket 'session)
@@ -563,7 +594,7 @@
 			(process-server-key-exchange socket o))
 		       ;; TODO
 		       ((tls-certificate-request? o)
-			(set! (~ session 'need-certificate?) #t))
+			(process-certificate-request socket o))
 		       ((tls-change-cipher-spec? o)
 			(set! (~ session 'session-encrypted?) #t))
 		       (else
@@ -901,8 +932,12 @@
 
     (define (read-certificate-request in)
       (let ((types (read-variable-vector in 1))
-	    (name  (read-variable-vector in 2)))
-	(make-tls-certificate-request types name)))
+	    (name-or-algo  (read-variable-vector in 2))
+	    (maybe-name (and (not (eof-object? (lookahead-u8 in)))
+			     (read-variable-vector in 2))))
+	(if maybe-name
+	    (make-tls-certificate-request types name-or-algo maybe-name)
+	    (make-tls-certificate-request types name-or-algo))))
 
     (define (read-finished in) (make-tls-finished (get-bytevector-all in)))
 

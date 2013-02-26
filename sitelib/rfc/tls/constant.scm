@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; tls.scm - TLS 1.0 - 1.2 protocol library.
+;;; rfc/tls/constant.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -70,6 +70,9 @@
 	    ;; key exchange algorithm set
 	    ;;*rsa-key-exchange-algorithms*
 	    *dh-key-exchange-algorithms*
+	    ;; For TLS 1.2
+	    *supported-signatures*
+	    *supported-hashes*
 	    )
     (import (rnrs) (sagittarius)
 	    (math) (crypto))
@@ -155,4 +158,25 @@
   (define-constant *client-key-exchange*  16)
   (define-constant *finished*             20)
 
+  ;; RFC 5246 7.4.1.4.1
+  ;; we don't support no hash
+  ;;(define-constant *none*   0)
+  (define-constant *md5*    1)
+  (define-constant *sha1*   2)
+  (define-constant *sha224* 3)
+  (define-constant *sha256* 4)
+  (define-constant *sha384* 5)
+  (define-constant *sha512* 6)
+  ;; we only supports RSA as a signature algorithm
+  (define-constant *rsa* 1)
+
+  (define *supported-hashes*
+    `((,*md5*    . ,MD5)
+      (,*sha1*   . ,SHA-1)
+      (,*sha224* . ,SHA-224)
+      (,*sha256* . ,SHA-256)
+      (,*sha384* . ,SHA-384)
+      (,*sha512* . ,SHA-512)))
+
+  (define *supported-signatures* `((,*rsa* ,RSA)))
 )

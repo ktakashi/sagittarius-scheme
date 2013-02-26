@@ -1,8 +1,8 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; tls.scm - TLS 1.0 - 1.2 protocol library.
+;;; rfc/tls/types.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -421,16 +421,30 @@
   ;; CertificateRequest
   (define-class <tls-certificate-request> (<tls-packet-component>)
     ((certificate-types :init-keyword :certificate-types)
+     (supported-signature-algorithms 
+      :init-keyword :supported-signature-algorithms
+      :init-value #f)
      (certificate-authorities :init-keyword :certificate-authorities)))
   (define (tls-certificate-request? o) (is-a? o <tls-certificate-request>))
   (define-method write-tls-packet ((o <tls-certificate-request>) out)
     ;; I haven't decided how we should hold this
     (write-tls-packet (~ o 'certificate-types) out)
+    (when (~ o 'supported-signature-algorithms)
+      (write-tls-packet (~ o 'supported-signature-algorithms) out))
     (write-tls-packet (~ o 'certificate-authorities) out))
-  (define (make-tls-certificate-request type name)
-    (make <tls-certificate-request>
-      :certificate-types type
-      :certificate-authorities name))
+  (define make-tls-certificate-request
+    (case-lambda
+     ((type name)
+      ;; TLS 1.0 to 1.1
+      (make <tls-certificate-request>
+	:certificate-types type
+	:certificate-authorities name))
+     ((type algorithms name)
+      ;; TLS 1.2 or later (maybe)
+      (make <tls-certificate-request>
+	:certificate-types type
+	:supported-signature-algorithms algorithms
+	:certificate-authorities name))))
 
   ;; Finished
   (define-class <tls-finished> (<tls-packet-component>)
