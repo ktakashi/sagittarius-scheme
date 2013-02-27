@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; rfc/tls/constant.scm - TLS 1.0 - 1.2 protocol library.
-;;;  
+;;;
 ;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; Caution this library is not well tested and not secure yet.
 (library (rfc tls constant)
@@ -56,6 +56,30 @@
 	    *warning*
 	    *fatal*
 	    *close-notify*
+	    *unexpected-message*
+	    *bad-record-mac*
+	    ;;*decryption-failed-RESERVED*
+	    *record-overflow*
+	    *decompression-failure*
+	    *handshake-failure*
+	    ;;*no-certificate-RESERVED*
+	    *bad-certificate*
+	    *unsupported-certificate*
+	    *certificate-revoked*
+	    *certificate-expired*
+	    *certificate-unknown*
+	    *illegal-parameter*
+	    *unknown-ca*
+	    *access-denied*
+	    *decode-error*
+	    *decrypt-error*
+	    ;;*export-restriction-RESERVED*
+	    *protocol-version*
+	    *insufficient-security*
+	    *internal-error*
+	    *user-canceled*
+	    *no-renegotiation*
+	    *unsupported-extension*
 	    ;; handshake types
 	    *hello-request*
 	    *client-hello*
@@ -142,8 +166,32 @@
   (define-constant *warning* 1)
   (define-constant *fatal*   2)
 
-  (define-constant *close-notify* 0)
-  ;; TODO
+  (define-constant *close-notify*                0)
+  (define-constant *unexpected-message*          10)
+  (define-constant *bad-record-mac*              20)
+  ;;(define-constant *decryption-failed-RESERVED*  21)
+  (define-constant *record-overflow*             22)
+  (define-constant *decompression-failure*       30)
+  (define-constant *handshake-failure*           40)
+  ;;(define-constant *no-certificate-RESERVED*     41)
+  (define-constant *bad-certificate*             42)
+  (define-constant *unsupported-certificate*     43)
+  (define-constant *certificate-revoked*         44)
+  (define-constant *certificate-expired*         45)
+  (define-constant *certificate-unknown*         46)
+  (define-constant *illegal-parameter*           47)
+  (define-constant *unknown-ca*                  48)
+  (define-constant *access-denied*               49)
+  (define-constant *decode-error*                50)
+  (define-constant *decrypt-error*               51)
+  ;;(define-constant *export-restriction-RESERVED* 60)
+  (define-constant *protocol-version*            70)
+  (define-constant *insufficient-security*       71)
+  (define-constant *internal-error*              80)
+  (define-constant *user-canceled*               90)
+  (define-constant *no-renegotiation*            100)
+  (define-constant *unsupported-extension*       110)
+
 
   ;; 7.4 Handshake Protocol
   ;; handshake types

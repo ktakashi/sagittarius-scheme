@@ -183,6 +183,20 @@
   (define (tls-socket? o) (is-a? o <tls-socket>))
   (define (tls-socket-closed? socket) (~ socket 'session 'closed?))
 
+  (define-condition-type &tls-alert &condition %make-tls-alert tls-alert?
+    (level alert-level)
+    (message alert-message))
+
+  (define (tls-alert level message) (%make-tls-alert level message))
+  (define (tls-warning-alert message) (tls-alert *warning* message))
+  (define (tls-fatal-alert message) (tls-alert *fatal* message))
+
+  (define (tls-error who msg desc . irr)
+    (raise (condition (tls-fatal-alert desc)
+		      (and who (make-who-condition who))
+		      (make-message-condition msg)
+		      (make-irritants-condition irr))))
+
   (define (negotiated-version socket)
     (let1 session (~ socket 'session)
       (or (~ session 'version)
@@ -256,10 +270,7 @@
 			     :certificates (~ socket 'certificates)
 			     :authorities (~ socket 'authorities))))
       (if handshake
-	  (guard (e (raise-error (socket-close new-socket) (raise e))
-		    (else (socket-close new-socket) new-socket))
-	    (tls-server-handshake new-socket)
-	    new-socket)
+	  (tls-server-handshake new-socket :raise-error raise-error)
 	  new-socket)))
 
   (define (verify-mac socket finish label restore-message?)
@@ -271,13 +282,35 @@
       (when restore-message? 
 	(put-bytevector (~ session 'messages) messages))
       (or (bytevector=? session-verify verify)
-	  (error 'tls-handshake "MAC verification failed"))))
+	  (tls-error 'tls-handshake "MAC verification failed"
+		     *bad-record-mac*))))
 
-  (define (tls-server-handshake socket)
+  (define (handle-error socket e :key (raise-error #t))
+    (define (finish socket e)
+      (cond (raise-error (socket-close socket) (raise e))
+	    (else (socket-close socket) socket)))
+    (cond ((tls-alert? e)
+	   (tls-socket-send-inner socket
+	    (make-tls-alert (alert-level e) (alert-message e))
+	    0 *alert* #f)
+	   (finish socket e))
+	  (else
+	   (tls-socket-send-inner socket
+	    (make-tls-alert *fatal* *internal-error*)
+	    0 *alert* #f)
+	   (finish socket e))))
+
+  (define (tls-server-handshake socket :key (raise-error #t))
+    (guard (e (else (handle-error socket e :raise-error raise-error)))
+      (%tls-server-handshake socket)
+      socket))
+
+  (define (%tls-server-handshake socket)
     (define (process-client-hello! hello)
       (unless (<= *tls-version-1.0*  (~ hello 'version) *tls-version-1.2*)
-	(assertion-violation 'tls-server-handshake
-			     "non supported TLS version" (~ hello 'version)))
+	(tls-error 'tls-server-handshake
+		   "non supported TLS version" *protocol-version*
+		   (~ hello 'version)))
       (set! (~ socket 'session 'version) (~ hello 'version))
       (set! (~ socket 'session 'client-random) (~ hello 'random))
       (let* ((vv (~ hello 'cipher-suites))
@@ -286,7 +319,9 @@
 	     (have-key? (~ socket 'private-key))
 	     (suppoting-suites *cipher-suites*))
 	(let loop ((i 0))
-	  (cond ((>= i len) (error 'tls-server-handshake "no cipher"))
+	  (cond ((>= i len)
+		 (tls-error 'tls-server-handshake "no cipher"
+			    *handshake-failure*))
 		((and-let* ((spec (bytevector-u16-ref bv i 'big))
 			    ( (or have-key? 
 				  (memv spec *dh-key-exchange-algorithms*)) ))
@@ -347,6 +382,7 @@
 		(if (null? h)
 		    (lp1 (cdr s) r)
 		    (lp2 (cdr h) (cons* (caar s) (caar h) r)))))))
+      (set! (~ socket 'session 'need-certificate?) #t)
       (let ((types (u8-list->bytevector (map car *supported-signatures*)))
 	    (algos (if (>= (~ socket 'session 'version) *tls-version-1.2*)
 		       (make-supports)
@@ -371,11 +407,14 @@
 	(equal? (x509-certificate-get-issuer-dn peer)
 		(x509-certificate-get-subject-dn auth)))
       ;; TODO verify the chain
+      (when (null? (~ o 'certificates))
+	(tls-error 'process-certificate "no certificate" *bad-certificate*))
       (let1 peer-cert (car (~ o 'certificates))
 	;; check if the certificate is in server authorities
 	(or (exists (cut same-issuer? peer-cert <>)
 		    (~ socket 'authorities))
-	    (error 'process-certificate "No CA signer to verify with"))
+	    (tls-error 'process-certificate "No CA signer to verify with"
+		       *unknown-ca*))
 	(set! (~ socket 'session 'authority) peer-cert)))
 
     (define (process-verify socket o)
@@ -395,12 +434,14 @@
 				 (open-bytevector-input-port msg))))
 		  (bytevector=? (hash (cdr s) message)
 				(~ (asn.1-sequence-get obj 1) 'string)))
-		(error 'certificate-verify "verify failed"))
+		(tls-error 'certificate-verify "verify failed"
+			   *unsupported-certificate*))
 	    (let1 rsa-cipher (cipher RSA key :block-type PKCS-1-EMSA)
 	      (or (bytevector=? (bytevector-concat (hash MD5 message)
 						   (hash SHA-1 message))
 				(decrypt rsa-cipher signature))
-		  (error 'certificate-verify "verify failed"))))))
+		  (tls-error 'certificate-verify "verify failed"
+			     *unsupported-certificate*))))))
 
     (define (send-server-hello-done)
       (tls-socket-send-inner socket
@@ -452,8 +493,8 @@
 	 0 *handshake* #t)))
     (let ((hello (read-record socket 0)))
       (unless (tls-client-hello? hello)
-	(assertion-violation 'tls-server-handshake
-			     "unexpected packet was sent!" hello))
+	(tls-error 'tls-server-handshake
+		   "unexpected packet was sent!" *unexpected-message* hello))
       (process-client-hello! hello)
       (send-server-hello)
       (send-certificate)
@@ -465,27 +506,34 @@
       (send-server-hello-done)
       ;; wait for client
       ;; TODO verify certificate if the client sends.
-      (let loop ((had-spec? #f))
-	(let1 o (read-record socket 0)
-	  (if (tls-finished? o)
-	      (and (verify-mac socket o *client-finished-label* #t)
-		   (send-server-finished))
-	      (cond ((tls-change-cipher-spec? o)
-		     (calculate-session-key socket)
-		     (set! (~ socket 'session 'session-encrypted?) #t)
-		     (loop #t))
-		    ((tls-certificate? o)
-		     (process-certificate socket o)
-		     (loop had-spec?))
-		    ((tls-client-veify? o)
-		     (process-verify socket o)
-		     (loop had-spec?))
-		    ((tls-client-key-exchange? o)
-		     (process-client-key-exchange socket o) 
-		     (loop had-spec?))
-		    (else
-		     (assertion-violation 'tls-handshake
-					  "unexpected object" o))))))))
+      (let1 need-certificate? (~ socket 'session 'need-certificate?)
+	(let loop ((first #t) (after-key-exchange #f))
+	  (let1 o (read-record socket 0)
+	    (when (and first need-certificate? (not (tls-certificate? o)))
+	      (tls-error 'tls-server-handshake "certificates are required"
+			 *unexpected-message* o))
+	    (if (tls-finished? o)
+		(and (verify-mac socket o *client-finished-label* #t)
+		     (send-server-finished))
+		(cond ((tls-change-cipher-spec? o)
+		       (calculate-session-key socket)
+		       (set! (~ socket 'session 'session-encrypted?) #t)
+		       (loop #f after-key-exchange))
+		      ((tls-certificate? o)
+		       (process-certificate socket o)
+		       (loop #f after-key-exchange))
+		      ((tls-client-veify? o)
+		       (unless after-key-exchange
+			 (tls-error 'tls-server-socket "invalid packet"
+				    *unexpected-message* o))
+		       (process-verify socket o)
+		       (loop #f after-key-exchange))
+		      ((tls-client-key-exchange? o)
+		       (process-client-key-exchange socket o) 
+		       (loop #f #t))
+		      (else
+		       (tls-error 'tls-handshake "unexpected object"
+				  *unexpected-message* o)))))))))
 
   (define (make-client-tls-socket server service
 				  :key (prng (secure-random RC4))
@@ -523,14 +571,18 @@
 	       (hash algo handshake-messages)))))
 
   (define (tls-client-handshake socket)
+    (guard (e (else (handle-error socket e)))
+      (%tls-client-handshake socket)))
+
+  (define (%tls-client-handshake socket)
     (define (process-server-hello socket sh)
       (let1 session (~ socket 'session)
 	(set! (~ session 'session-id) (~ sh 'session-id))
 	(let1 version (~ sh 'version)
 	  (when (or (< version *tls-version-1.0*)
 		    (> version *tls-version-1.2*))
-	    (assertion-violation 'tls-handshake
-				 "non supported TLS version" version))
+	    (tls-error 'tls-handshake "non supported TLS version" 
+		       *protocol-version* version))
 	  (set! (~ session 'version) version))
 	(set! (~ session 'server-random) (~ sh 'random))
 	(set! (~ session 'cipher-suite) (~ sh 'cipher-suite))
@@ -656,8 +708,9 @@
 		 (limit (bytevector-length algos)))
 	    (let loop ((i 0))
 	      (if (= i limit)
-		  (error 'process-certificate-request
-			 "hash or signature algorithm are not supported")
+		  (tls-error 'process-certificate-request
+			     "hash or signature algorithm are not supported"
+			     *handshake-failure*)
 		  (let ((hash (assv (u8-ref algos i) *supported-hashes*))
 			(sign (assv (u8-ref algos (+ i 1))
 				    *supported-signatures*)))
@@ -687,8 +740,8 @@
 		       ((tls-change-cipher-spec? o)
 			(set! (~ session 'session-encrypted?) #t))
 		       (else
-			(assertion-violation 'tls-handshake
-					     "unexpected object" o)))
+			(tls-error 'tls-handshake "unexpected object"
+				   *unexpected-message* o)))
 		 (loop (read-record socket 0)))))))
     
     (let ((hello (make-client-hello socket))
@@ -723,8 +776,7 @@
 	     (handshake-messages (get-output-bytevector out)))
 	;; add message again
 	(put-bytevector out handshake-messages)
-	(tls-socket-send-inner 
-	 socket
+	(tls-socket-send-inner socket
 	 (make-tls-handshake *finished*
 	  (make-tls-finished (finish-message-hash session
 						  *client-finished-label*
@@ -755,9 +807,10 @@
 		    SHA-256
 		    algorithm)
 		algorithm))
-	  (assertion-violation 'session-signature-algorithm
-			       "non supported cipher suite detected"
-			       cipher-suite))))
+	  (tls-error 'session-signature-algorithm
+		     "non supported cipher suite detected"
+		     *handshake-failure*
+		     cipher-suite))))
 
   (define (bytevector-concat bv1 bv2)
     (let* ((len1 (bytevector-length bv1))
@@ -837,7 +890,7 @@
 				   socket type
 				   (~ session 'version) data))
 	  ;; TODO should we send alert to the server?
-	  (assertion-violation 'decrypt-data "MAC verification failed"))
+	  (tls-error 'decrypt-data "MAC verification failed" *bad-record-mac*))
 	;; TODO what should we do with iv?
 	data))
 
@@ -856,7 +909,8 @@
 	   ;; the first 5 octets must be record header
 	   (buf (socket-recv raw-socket 5 flags)))
       (unless (= (bytevector-length buf) 5)
-	(assertion-violation 'read-record "invalid record header" buf))
+	(tls-error 'read-record "invalid record header" *unexpected-message* 
+		   buf))
       (or
        (and-let* ((type (bytevector-u8-ref buf 0))
 		  (version (bytevector-u16-ref buf 1 'big))
@@ -865,9 +919,10 @@
 		  (message (recv-n size raw-socket))
 		  (session (~ socket 'session)))
 	 (unless (= size (bytevector-length message))
-	   (assertion-violation 'read-record
-				"given size and actual data size is different"
-				size (bytevector-length message)))
+	   (tls-error 'read-record
+		      "given size and actual data size is different"
+		      *unexpected-message*
+		      size (bytevector-length message)))
 	 (when (~ session 'session-encrypted?)
 	   ;; okey now we are in the secured session
 	   (set! message (decrypt-data session message type))
@@ -895,16 +950,15 @@
 			 (set! (~ session 'closed?) #t)
 			 ;; user wants application data
 			 #vu8())
-			(else
-			 alert))))
+			(else alert))))
 	       ((= type *change-cipher-spec*)
 		(read-change-cipher-spec (open-bytevector-input-port message)))
 	       ((= type *application-data*)
 		;; we can simply return the message
 		message)
 	       (else
-		(assertion-violation 'read-record
-				     "not supported yet" type))))
+		(tls-error 'read-record "not supported yet" 
+			   *unexpected-message* type))))
        #vu8())))
 
   (define (read-variable-vector in n)
@@ -915,8 +969,8 @@
   (define (read-change-cipher-spec in)
     (let1 type (get-u8 in)
       (unless (= type 1)
-	(assertion-violation 'read-change-cipher-spec
-			     "invalid change cipher spec"))
+	(tls-error 'read-change-cipher-spec
+		   "invalid change cipher spec" *unexpected-message*))
       (make-tls-change-cipher-spec type)))
 
   (define (read-alert in)
@@ -955,8 +1009,9 @@
 	     (compression-methods (read-variable-vector in 1))
 	     (extensions (read-extensions in)))
 	(unless (eof-object? (lookahead-u8 in))
-	  (assertion-violation 'read-client-hello
-			       "could not read client-hello properly."))
+	  (tls-error 'read-client-hello
+		     "could not read client-hello properly."
+		     *unexpected-message*))
 	(make-tls-client-hello :version version
 			       :random random
 			       :session-id session-id
@@ -993,8 +1048,9 @@
 	     (compression-method (get-u8 in))
 	     (extensions (read-extensions in)))
 	(unless (eof-object? (lookahead-u8 in))
-	  (assertion-violation 'read-server-hello
-			       "could not read server-hello properly."))
+	  (tls-error 'read-server-hello
+		     "could not read server-hello properly."
+		     *unexpected-message*))
 	(make-tls-server-hello :version version
 			       :random random
 			       :session-id session-id
@@ -1048,9 +1104,10 @@
 	       (size (bytevector->integer (get-bytevector-n in 3)))
 	       (body (get-bytevector-n in size)))
       (unless (or (zero? size) (= size (bytevector-length body)))
-	(assertion-violation 'read-handshake
-			     "given size and actual data size is different"
-			     size))
+	(tls-error 'read-handshake
+		   "given size and actual data size is different"
+		   *unexpected-message*
+		   size))
       (cond ((= type *hello-request*) (make-tls-hello-request))
 	    ((= type *client-hello*)
 	     (read-client-hello (open-bytevector-input-port body)))
@@ -1071,8 +1128,8 @@
 	    ((= type *finished*)
 	     (read-finished (open-bytevector-input-port body)))
 	    (else
-	     (assertion-violation 'read-handshake
-				  "not supported" type)))))
+	     (tls-error 'read-handshake
+			"not supported" *unexpected-message* type)))))
 
   (define (lookup-cipher&keysize session)
     (and-let* ((suite (assv (~ session 'cipher-suite) *cipher-suites*)))
@@ -1293,6 +1350,11 @@
   ;; this is only used from out side of the world, means the received message
   ;; is always application data.
   (define (tls-socket-recv socket size :optional (flags 0))
+    (with-exception-handler
+     (lambda (e) (handle-error socket e))
+     (lambda () (%tls-socket-recv socket size flags))))
+
+  (define (%tls-socket-recv socket size flags)
     (or (and-let* ((in (~ socket 'buffer))
 		   (buf (get-bytevector-n in size))
 		   ( (not (eof-object? buf)) ))
@@ -1307,7 +1369,7 @@
 	  (set! (~ socket 'buffer) in)
 	  (get-bytevector-n in size))
 	;; something is wrong
-	(assertion-violation 'tls-socket-recv "invalid socket state")))
+	(tls-error 'tls-socket-recv "invalid socket state" *internal-error*)))
 
   (define (send-alert socket level description)
     (let1 alert (make-tls-alert level description)
