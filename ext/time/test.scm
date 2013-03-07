@@ -7,7 +7,40 @@
 
 (import (srfi :64 testing)
 	(rnrs)
-	(sagittarius time))
+	(sagittarius time)
+	;; for slot access
+	(clos user))
+
+;; check slot access
+(let ()
+  (define time (current-time))
+  (define date (current-date))
+  (define-syntax slot-test
+    (syntax-rules ()
+      ((_ obj slot value e-value)
+       (begin
+	 (test-assert (format "~a ~a" 'obj 'slot)
+		      (slot-ref obj 'slot))
+	 (test-equal  (format "~a ~a set!" 'obj 'slot)
+		      value
+		      (begin (slot-set! obj 'slot value)
+			     (slot-ref obj 'slot)))
+	 (test-error (format "~a ~a error" 'obj 'slot)
+		     (lambda (e) e)
+		     (slot-set! obj 'slot e-value))))))
+  (slot-test time type time-tai 1)
+  (slot-test time nanosecond 1 1.0)
+  (slot-test time second 1 1.0)
+
+  (slot-test date nanosecond 1 1.0)
+  (slot-test date second 1 1.0)
+  (slot-test date minute 1 1.0)
+  (slot-test date hour 1 1.0)
+  (slot-test date day 1 1.0)
+  (slot-test date month 1 1.0)
+  (slot-test date year 1 1.0)
+  (slot-test date zone-offset 1 1.0)
+)
 
 (define (test-one-utc-tai-edge utc tai-diff tai-last-diff)
   (let* (;; right on the edge they should be the same

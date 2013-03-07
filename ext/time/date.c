@@ -44,7 +44,8 @@ static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DateClass, date_printer);
 
-SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, int mon, int year, int64_t zone)
+SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, 
+		     int mon, int year, int64_t zone)
 {
   SgDate *d = SG_NEW(SgDate);
   SG_SET_CLASS(d, SG_CLASS_DATE);
@@ -74,5 +75,6 @@ SgObject Sg_LocalTzOffset()
   l = mktime(&localTime);
   gmtime_r(&l, &utcTime);
 #endif
-  return Sg_MakeIntegerFromU64((uint64_t)mktime(&localTime) - (uint64_t)mktime(&utcTime));
+  return Sg_MakeIntegerFromU64((uint64_t)mktime(&localTime)
+			       - (uint64_t)mktime(&utcTime));
 }

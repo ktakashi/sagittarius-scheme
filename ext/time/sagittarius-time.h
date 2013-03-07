@@ -52,7 +52,6 @@ SG_CLASS_DECL(Sg_TimeClass);
 typedef struct SgDateRec
 {
   SG_HEADER;
-  unsigned long nsec;
   int     nanosecond;
   int     second;
   int     minute;

@@ -38,7 +38,8 @@
 static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgTime *t = SG_TIME(self);
-  Sg_Printf(port, UC("#<%S %S.%09lu>"), t->type, Sg_MakeIntegerFromS64(t->sec), t->nsec);
+  Sg_Printf(port, UC("#<%S %S.%09lu>"), t->type, 
+	    Sg_MakeIntegerFromS64(t->sec), t->nsec);
 }
 
 static int time_compare(SgObject x, SgObject y, int equalp)
@@ -58,7 +59,8 @@ static int time_compare(SgObject x, SgObject y, int equalp)
     }
   } else {
     if (!SG_EQ(tx->type, ty->type)) {
-      Sg_Error(UC("cannot compare different types of time objects: %S vs %S"), x, y);
+      Sg_Error(UC("cannot compare different types of time objects: %S vs %S"),
+	       x, y);
     }
     if (tx->sec < ty->sec) return -1;
     if (tx->sec == ty->sec) {
@@ -138,7 +140,8 @@ static unsigned long leap_second_delta(unsigned long utcsec)
     const int size = array_sizeof(leap_second_table);
     int i;
     for (i = 0; i < size; i++) {
-      if (utcsec >= leap_second_table[i].utc_second) return leap_second_table[i].second;
+      if (utcsec >= leap_second_table[i].utc_second)
+	return leap_second_table[i].second;
     }
   }
   return 0;			/* dummy */
@@ -186,7 +189,8 @@ SgObject Sg_TimeToSeconds(SgTime *t)
 SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
 {
   if (!SG_EQ(x->type, y->type)) {
-    Sg_Error(UC("TIME-ERROR time-differece: imcompatible-time-types %S vs %S"), x, y);
+    Sg_Error(UC("TIME-ERROR time-differece: imcompatible-time-types %S vs %S"), 
+	     x, y);
   }
   r->type = time_duration;
   if (SG_CLASS_OF(x)->compare(x, y, FALSE) == 0) {
@@ -249,6 +253,59 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 extern void Sg__Init_time_stub(SgLibrary *lib);
 extern void Sg__Init_date_stub(SgLibrary *lib);
 
+/* slot accessor for time and date */
+#define DEFINE_GETTER(type, slot, ctype, conv)				\
+  static SgObject type##_##slot (ctype *i) {				\
+    return conv(i -> slot);						\
+  }
+#define DEFINE_SETTER(type, slot, ctype, check, conv)			\
+  static void type##_##slot##_set (ctype *i, SgObject v) {		\
+    if (!check(v)) {							\
+      Sg_Error(UC("Type error: "#type" '"#slot " %S"), v);		\
+    }									\
+    (i -> slot) = conv(v);						\
+  }
+#define DEFINE_ACCESSOR(type, slot, ctype, getter_conv, check, setter_conv) \
+  DEFINE_GETTER(type, slot, ctype, getter_conv)				\
+  DEFINE_SETTER(type, slot, ctype, check, setter_conv)
+
+#define GET_INT64(x) Sg_GetIntegerS64Clamp(x, SG_CLAMP_BOTH, NULL)
+#define ID(x) x
+DEFINE_ACCESSOR(time, type, SgTime, ID, SG_SYMBOLP, ID);
+DEFINE_ACCESSOR(time, sec, SgTime, 
+		Sg_MakeIntegerFromS64, SG_EXACT_INTP, GET_INT64);
+DEFINE_ACCESSOR(time, nsec, SgTime, Sg_MakeIntegerU, SG_EXACT_INTP,
+		Sg_GetUInteger);
+
+static SgSlotAccessor time_slots[] = {
+  SG_CLASS_SLOT_SPEC("type",       0, time_type, time_type_set),
+  SG_CLASS_SLOT_SPEC("nanosecond", 1, time_nsec, time_nsec_set),
+  SG_CLASS_SLOT_SPEC("second",     2, time_sec,  time_sec_set),
+  { { NULL } }
+};
+
+DEFINE_ACCESSOR(date, nanosecond, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, second, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, minute, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, hour, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, day, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, month, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, year, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, zoneOffset, SgDate, 
+		Sg_MakeIntegerFromS64, SG_EXACT_INTP, GET_INT64);
+
+static SgSlotAccessor date_slots[] = {
+  SG_CLASS_SLOT_SPEC("nanosecond",  0, date_nanosecond, date_nanosecond_set),
+  SG_CLASS_SLOT_SPEC("second",      1, date_second,     date_second_set),
+  SG_CLASS_SLOT_SPEC("minute",      2, date_minute,     date_minute_set),
+  SG_CLASS_SLOT_SPEC("hour",        3, date_hour,       date_hour_set),
+  SG_CLASS_SLOT_SPEC("day",         4, date_day,        date_day_set),
+  SG_CLASS_SLOT_SPEC("month",       5, date_month,      date_month_set),
+  SG_CLASS_SLOT_SPEC("year",        6, date_year,       date_year_set),
+  SG_CLASS_SLOT_SPEC("zone-offset", 7, date_zoneOffset, date_zoneOffset_set),
+  { { NULL } }
+};
+
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 {
   SgLibrary *lib;
@@ -266,8 +323,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
   Sg__Init_date_stub(lib);
 
   Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
+			     SG_FALSE, time_slots, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_DATE, UC("<date>"), lib, NULL,
-			     SG_FALSE, NULL, 0); 
+			     SG_FALSE, date_slots, 0); 
 }
 
