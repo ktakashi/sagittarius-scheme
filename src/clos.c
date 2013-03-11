@@ -899,6 +899,7 @@ static SgObject slot_set_rec(SgObject obj, SgObject name,
     /* scheme accessor */
     if (SG_FALSEP(accessor->setterS)) {
       SG_INSTANCE(obj)->slots[accessor->index] = value;
+      return SG_UNDEF;
     } else {
       if (vmp) {
 	return Sg_VMApply2(accessor->setterS, obj, value);
