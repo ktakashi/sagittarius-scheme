@@ -128,8 +128,8 @@ This procedure is analogy with @code{call-with-port}.
 @define[Function]{@name{shutdown-output-port} @args{port}}
 @desc{@var{Port} must be associated with a socket.
 
-The @code{shutdown-output-port} shutdowns output connection of a socket associated
-with @var{port}.
+The @code{shutdown-output-port} shutdowns output connection of a socket
+associated with @var{port}.
 }
 
 @define[Function]{@name{socket-accept} @args{socket}}
@@ -171,3 +171,41 @@ The @code{socket-shutdown} shutdowns socket.
 
 @define[Function]{@name{socket-close} @args{socket}}
 @desc{@var{Socket} must be a socket object. Closes @var{socket}.}
+
+@subsubsection{Socket information}
+
+@define[Function]{@name{socket-peer} @args{socket}}
+@desc{@var{Socket} must be a socket object.
+
+Returns socket info object or #f. The socket info object contains hostname,
+IP address and port number. These information is retrieved from getpeername(2).
+}
+
+@define[Function]{@name{socket-name} @args{socket}}
+@desc{@var{Socket} must be a socket object.
+
+Returns the name string of socket or #f if the socket doesn't have name.
+}
+
+@define[Function]{@name{socket-info-values} @args{socket}}
+@desc{@var{Socket} must be a socket object.
+
+Returns 3 values; hostname, IP address and port number. This procedures is
+for convenience to handle socket info object.
+}
+
+@subsubsection{IP address operations}
+
+@define[Function]{@name{ip-address->string} @args{ip}}
+@desc{@var{ip} must be an IP address object returned from the second value 
+of @code{socket-info-values}.
+
+Converts given IP address object to human readable string.
+}
+
+@define[Function]{@name{ip-address->bytevector} @args{ip}}
+@desc{@var{ip} must be an IP address object returned from the second value 
+of @code{socket-info-values}.
+
+Converts given IP address object to bytevector.
+}

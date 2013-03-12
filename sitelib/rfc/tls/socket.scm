@@ -554,9 +554,9 @@
 				      session
 				      (make-initial-session prng
 				       <tls-client-session>)))))
-      (when handshake
-	(tls-client-handshake socket))
-      socket))
+      (if handshake
+	  (tls-client-handshake socket)
+	  socket)))
 
 
   (define (finish-message-hash session label handshake-messages)
@@ -572,7 +572,8 @@
 
   (define (tls-client-handshake socket)
     (guard (e (else (handle-error socket e)))
-      (%tls-client-handshake socket)))
+      (%tls-client-handshake socket)
+      socket))
 
   (define (%tls-client-handshake socket)
     (define (process-server-hello socket sh)
