@@ -187,6 +187,10 @@ static SgObject oprtr_expt(SgObject lhs, long n)
     return Sg_MakeRational(oprtr_expt(SG_RATIONAL(lhs)->numerator, n),
 			   oprtr_expt(SG_RATIONAL(lhs)->denominator, n));
   }
+  /* bignum */
+  if (SG_BIGNUMP(lhs)) {
+    return Sg_BignumExpt(SG_BIGNUM(lhs), n);
+  }
   r = SG_MAKE_INT(1);
   while (TRUE) {
     if (n & 1) {

@@ -1913,6 +1913,7 @@ static ulong primitive_left_shift(ulong *a, int len, ulong n)
   return carry;
 }
 
+#if 0
 static ulong primitive_right_shift(ulong *a, int len, ulong n)
 {
   ulong x, carry = 0;
@@ -1925,6 +1926,7 @@ static ulong primitive_right_shift(ulong *a, int len, ulong n)
   }
   return carry >> (WORD_BITS-n);
 }
+#endif
 
 static ulong* square_to_len(ulong *num, int len, ulong *prod)
 {
@@ -1932,17 +1934,22 @@ static ulong* square_to_len(ulong *num, int len, ulong *prod)
     /* special case of zero */
     return prod;
   } else {
-    ulong *prodx = prod, *numx = num;
+    ulong *prodx = prod + (len<<1), *numx = num + len;
+    /* ulong *prodx = prod, *numx = num; */
     int lenx = len;
-    /* TODO merge right shift, i have no idea how to detect carry with
-       little endian order.  */
+    ulong last_low = 0;
+    /* Store the squares, right shifted one bit */
     while (lenx--) {
-      dlong t = *numx++;
+      dlong t = *--numx;
+      /* dlong t = *numx++; */
       dlong p = t * t;
-      *prodx++ = (ulong)p;
-      *prodx++ = (ulong)(p >> WORD_BITS);
+      /* *prodx++ = (ulong)p; */
+      /* *prodx++ = (ulong)(p >> WORD_BITS); */
+      *--prodx = (last_low << (WORD_BITS-1))|(ulong)(p >> (WORD_BITS+1));
+      *--prodx = (ulong)(p >> 1);
+      last_low = p & 1;
     }
-    primitive_right_shift(prod, len*2, 1);
+    /* primitive_right_shift(prod, len*2, 1); */
 
     /* then add in the off diagonal sums */
     lenx = len;
@@ -2329,6 +2336,79 @@ SgObject Sg_BignumModExpt(SgBignum *bx, SgBignum *be, SgBignum *bm)
 SgObject Sg_BignumModInverse(SgBignum *bx, SgBignum *bm)
 {
   return Sg_NormalizeBignum(bignum_mod_inverse(bx, bm));
+}
+
+static void compute_buffer_size(int e, int *rr, int base_size, int *br)
+{
+  int result_size = 1;		/* it's always start with 1 */
+  while (e != 0) {
+    if (e & 1) {
+      result_size += base_size;
+    }
+    e >>= 1;
+    if (e) {
+      base_size <<= 1;
+    }
+  }
+  *rr = result_size;
+  *br = base_size;
+}
+
+static SgBignum * bignum_expt(SgBignum *b, int exponent)
+{
+  SgBignum *br;
+  ulong *base, *result, *base_prod, *result_prod;
+  int base_size, result_size, i, sign, b_size = SG_BIGNUM_GET_COUNT(b);
+
+  sign = (SG_BIGNUM_GET_SIGN(b) < 0 && (exponent & 1)) ? -1 : 1;
+  compute_buffer_size(exponent, &result_size, b_size, &base_size);
+  /* set up result */
+  br = make_bignum(result_size);
+  result_prod = br->elements;
+  ALLOC_TEMP_BUFFER(result, ulong, result_size);
+  result[0] = 1;
+  /* set up base */
+  ALLOC_TEMP_BUFFER(base, ulong, base_size);
+  ALLOC_TEMP_BUFFER(base_prod, ulong, base_size);
+  for (i = 0; i < b_size; i++) {
+    base[i] = b->elements[i];
+  }
+  /* reset computed size */
+  result_size = 1;
+  base_size = b_size;
+  while (exponent != 0) {
+    if ((exponent & 1)) {
+      multiply_to_len(result, result_size, base, base_size, result_prod);
+      result_size += base_size;
+      for (i = 0; i < result_size; i++) {
+	result[i] = result_prod[i];
+      }
+    }
+    exponent >>= 1;
+    if (exponent) {
+      ulong *tmp;
+      square_to_len(base, base_size, base_prod);
+      /* swich */
+      tmp = base;
+      base = base_prod;
+      base_prod = tmp;
+      base_size <<= 1;
+    }
+  }
+  SG_BIGNUM_SET_SIGN(br, sign);
+  return br;
+}
+
+SgObject Sg_BignumExpt(SgBignum *b, int exponent)
+{
+  /* let's try the easiest one */
+  ASSERT(exponent >= 0);
+  /* let's handle the rare case, this must be handled by Sg_Expt */
+  if (SG_BIGNUM_GET_SIGN(b) == 0) {
+    if (exponent) return Sg_NormalizeBignum(b); /* probably we don't need */
+    else return SG_MAKE_INT(1);
+  }
+  return Sg_NormalizeBignum(bignum_expt(b, exponent));
 }
 
 void Sg__InitBignum()
