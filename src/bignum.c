@@ -1889,21 +1889,20 @@ static ulong sub_n(ulong *num1, ulong *num2, int len)
 
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k)
 {
-  dlong p = 0;
+  int i;
+  dlong p = (dlong)*in * k + *out;
+  *out = (ulong)p;
 
-  p = (dlong)*in++ * k + *out;
-  *out++ = (ulong)p;
-  while (--len) {
-    p = (dlong)*in++ * k + (ulong)(p >> WORD_BITS) + *out;
-    *out++ = (ulong)p;
+  for (i = 1; i < len; i++) {
+    p = (dlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
+    out[i] = (ulong)p;
   }
   return (ulong)(p >> WORD_BITS);
 }
 
 static int add_one(ulong *num, int len, ulong carry)
 {
-  dlong t;
-  t = (dlong)*num + carry;
+  dlong t = (dlong)*num + carry;
   *num++ = (ulong)t;
   if ((t >> WORD_BITS) == 0) return 0;
   while (--len) {
@@ -1914,11 +1913,11 @@ static int add_one(ulong *num, int len, ulong carry)
 
 static ulong primitive_left_shift(ulong *a, int len, ulong n)
 {
+  int i;
   ulong x, carry = 0;
-  while (len--) {
-    x = *a;
-    *a = (x<<n) | carry;
-    a++;
+  for (i = 0; i < len; i++) {
+    x = a[i];
+    a[i] = (x<<n) | carry;
     carry = x >> (WORD_BITS-n);
   }
   return carry;
@@ -1945,34 +1944,24 @@ static ulong* square_to_len(ulong *num, int len, ulong *prod)
     /* special case of zero */
     return prod;
   } else {
-    ulong *prodx = prod + (len<<1), *numx = num + len;
-    /* ulong *prodx = prod, *numx = num; */
-    int lenx = len;
+    int lenx;
     ulong last_low = 0;
     /* Store the squares, right shifted one bit */
-    while (lenx--) {
-      dlong t = *--numx;
-      /* dlong t = *numx++; */
+    int i, j;
+
+    for (i = len, j = len << 1; i > 0;) {
+      dlong t = num[--i];
       dlong p = t * t;
-      /* *prodx++ = (ulong)p; */
-      /* *prodx++ = (ulong)(p >> WORD_BITS); */
-      *--prodx = (last_low << (WORD_BITS-1))|(ulong)(p >> (WORD_BITS+1));
-      *--prodx = (ulong)(p >> 1);
+      prod[--j] = (last_low << (WORD_BITS-1))|(ulong)(p >> (WORD_BITS+1));
+      prod[--j] = (ulong)(p >> 1);
       last_low = p & 1;
     }
-    /* primitive_right_shift(prod, len*2, 1); */
 
     /* then add in the off diagonal sums */
-    lenx = len;
-    numx = num;
-    prodx = prod;
-
-    while (--lenx) {
-      ulong t = *numx++;
-      prodx++;
-      t = mul_add(prodx, numx, lenx, t);
-      add_one(prodx+lenx, lenx+1, t);
-      prodx++;
+    for (i = 0, j = 1, lenx = len - 1; lenx; i++, j += 2, lenx--) {
+      ulong t = num[i];
+      t = mul_add(prod + j, num + i + 1, lenx, t);
+      add_one(prod + lenx + j, lenx + 1, t);
     }
     primitive_left_shift(prod, 2*len, 1);
     prod[0] |= num[0] & 1;
@@ -1999,6 +1988,7 @@ static ulong* mont_reduce(ulong *n, SgBignum *mod, int mlen, ulong inv)
   return n;
 }
 
+#if 0
 static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 {
   dlong p = (dlong)*in++ * k;
@@ -2009,17 +1999,26 @@ static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
   }
   *out = (ulong)(p >> WORD_BITS);
 }
+#endif
 
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
 {
   /* multiply first word */
-  mul_n1(z, x, xlen, *y++);
+  /* mul_n1(z, x, xlen, *y++); */
+  int i;
+  ulong k = *y++;
+  dlong p = (dlong)*x * k;
+  *z = (ulong)p;
+  for (i = 1; i < xlen; i++) {
+    p = (dlong)x[i] * k + (ulong)(p >> WORD_BITS);
+    z[i] = (ulong)p;
+  }
+  z[i] = (ulong)(p >> WORD_BITS);
 
   /* add in subsequent wors, storing the most significant word which is new
      each time */
-  while (--ylen) {
-    z++;
-    *(z+xlen) = mul_add(z, x, xlen, *y++);
+  for (i = 1; i < ylen; i++) {
+    z[xlen + i] = mul_add((z+i), x, xlen, y[i-1]);
   }
   return z;
 }
