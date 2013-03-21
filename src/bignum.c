@@ -2349,7 +2349,7 @@ SgObject Sg_BignumModInverse(SgBignum *bx, SgBignum *bm)
   return Sg_NormalizeBignum(bignum_mod_inverse(bx, bm));
 }
 
-#if 1
+#if 0
 static void compute_buffer_size(int e, int *rr, int base_size, int *br)
 {
   int result_size = 1;		/* it's always start with 1 */
@@ -2382,6 +2382,7 @@ static SgBignum * bignum_expt(SgBignum *b, int exponent)
   /* set up base */
   ALLOC_TEMP_BUFFER_REC(base, ulong, base_size);
   ALLOC_TEMP_BUFFER_REC(base_prod, ulong, base_size);
+
   for (i = 0; i < b_size; i++) {
     base[i] = b->elements[i];
   }
@@ -2411,6 +2412,7 @@ static SgBignum * bignum_expt(SgBignum *b, int exponent)
   return br;
 }
 #else
+/* using slide window algorithm. */
 static int bfffo(ulong x)
 {
   static int tabshi[16]={ 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -2425,21 +2427,56 @@ static int bfffo(ulong x)
   return value + tabshi[arg1];
 }
 
-static SgBignum * leftright_binray_expt(SgBignum *b, long e)
+/* helper to avoid memory allocation. */
+static int compute_lr_binary_size(long j, long m, int len)
 {
-  SgBignum *y = Sg_BignumCopy(b);
-  long m = e, j = 1 + bfffo(m);
-  m <<= j;
-  j = WORD_BITS-j;
-  Sg_Printf(Sg_StandardErrorPort(), UC("b = %S, e = %d\n"), b, e);
-  for (; j; m <<=1, j--) {
-    y = bn_sqrt(y);
-    Sg_Printf(Sg_StandardErrorPort(), UC("y = %S\n"), y);
+  int r = len;
+  for (; j; m <<= 1, j--) {
+    r <<= 1; 
     if (m < 0) {
-      y = bignum_normalize(bignum_mul(y, b));
+      r += len;
     }
   }
-  return Sg_NormalizeBignum(y);
+  return r;
+}
+
+#define copy_element(src, dst, size)			\
+  do {							\
+    int i;						\
+    for (i = 0; i < size; i++) (src)[i] = (dst)[i];	\
+  } while (0)
+
+static SgBignum * leftright_binray_expt(SgBignum *b, long e)
+{
+  SgBignum *y;
+  long m = e, j = 1 + bfffo(m);
+  int size;
+  int ylen = SG_BIGNUM_GET_COUNT(b);
+  ulong *ye, *prod;
+  m <<= j;
+  j = WORD_BITS-j;
+
+  /* setup buffer */
+  size = compute_lr_binary_size(j, m, SG_BIGNUM_GET_COUNT(b));
+  y = make_bignum(size);
+  bignum_copy(y, b);
+  ye = y->elements;
+  ALLOC_TEMP_BUFFER_REC(prod, ulong, size);
+  for (; j; m <<= 1, j--) {
+    /* y = bignum_mul(y, y); */
+    square_to_len(ye, ylen, prod);
+    ylen <<= 1;
+    /* copy prod */
+    copy_element(ye, prod, ylen);
+    if (m < 0) {
+      /* y = bignum_normalize(bignum_mul(y, b)); */
+      multiply_to_len(ye, ylen, b->elements, SG_BIGNUM_GET_COUNT(b), prod);
+      ylen += SG_BIGNUM_GET_COUNT(b);
+      copy_element(ye, prod, ylen);
+    }
+  }
+  SG_BIGNUM_SET_COUNT(y, ylen);
+  return y;
 }
 
 static long vals(ulong z)
@@ -2469,34 +2506,129 @@ static long vals(ulong z)
 #endif
 }
 
+static void setup_square(ulong *dst, ulong *src, int slen)
+{
+  int size = slen<<1;
+  ulong *prod;
+  ALLOC_TEMP_BUFFER_REC(prod, ulong, size);
+  square_to_len(src, slen, prod);
+  copy_element(dst, prod, size);
+}
+
+/* I'm not sure if I can write this as a static function since
+   it's using alloca to setup table. */
+#define setup_table(table, ltable, u, b)				\
+  do {									\
+    ulong *x2;								\
+    int i, x2len =SG_BIGNUM_GET_COUNT(b)<<1;				\
+    table[0] = b->elements;						\
+    ltable[0] = SG_BIGNUM_GET_COUNT(b);					\
+    ALLOC_TEMP_BUFFER_REC(x2, ulong, x2len);				\
+    /* x2 = bignum_mul(b, b) */						\
+    setup_square(x2, b->elements, SG_BIGNUM_GET_COUNT(b));		\
+    for (i = 1; i < u; i++) {						\
+      /* table[i] = bignum_mul(table[i-1], x2); */			\
+      int size = ltable[i-1] + x2len;					\
+      ALLOC_TEMP_BUFFER_REC(table[i], ulong, size);			\
+      multiply_to_len(table[i-1], ltable[i-1], x2, x2len, table[i]);	\
+      ltable[i] = size;							\
+    }									\
+  } while (0)
+
+/* compute result size of sliding window */
+static int compute_sw_size(long l, long e, long n, int *ltable)
+{
+  int z = 0;
+  int tw;
+  long w, v, i;
+  while (l >= 0) {
+    if (e > l+1) e = l + 1;
+    w = (n >>(l+1-e)) & ((1UL<<2)-1);
+    v = vals(w);
+    l -= e;
+    tw = ltable[w>>(v+1)];
+    if (z) {
+      for (i = 1; i <= e-v; i++) z <<= 1;
+      z += tw; 
+    } else {
+      z = tw;
+    }
+    while (l >= 0) {
+      if (n & (1UL<<l)) break;
+      z <<= 1;
+      l--;
+    }
+  }
+  return z;
+}
 
 static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
 {
-  SgObject table[1UL<<(3-1)];	/* max must be 4 */
+  /* max must be 4 */
+  ulong *table[1UL<<(3-1)], *tw, *z = NULL, *prod1, *prod2;
+  int    ltable[1UL<<(3-1)], zsize, zlen = 0, twlen;
   long i, l = (WORD_BITS-1) - (long)bfffo(n), u = 1UL<<(e-1);
   long w, v;
-  SgBignum *x2 = bn_sqrt(Sg_BignumCopy(b)), *z = NULL, *tw;
-  table[0] = b;
-  for (i = 1; i < u; i++) table[i] = bignum_mul(table[i-1], x2);
+  SgBignum *r;
+
+  setup_table(table, ltable, u, b);
+  zsize = compute_sw_size(l, e, n, ltable);
+  r = make_bignum(zsize);
+  SG_BIGNUM_SET_SIGN(r, 1);
+
+  /* ALLOC_TEMP_BUFFER_REC(prod1, ulong, zsize); */
+  prod1 = r->elements;
+  ALLOC_TEMP_BUFFER_REC(prod2, ulong, zsize);
+
   while (l >= 0) {
     if (e > l+1) e = l + 1;
     w = (n >>(l+1-e)) & ((1UL<<2)-1);
     v = vals(w);
     l -= e;
     tw = table[w>>(v+1)];
+    twlen = ltable[w>>(v+1)];
     if (z) {
-      for (i = 1; i <= e-v; i++) z = bn_sqrt(z);
-      z = bignum_mul(z, tw);
+      ulong *t;
+      for (i = 1; i <= e-v; i++) {
+	/* z = bignum_mul(z, z); */
+	square_to_len(z, zlen, prod1);
+	zlen <<= 1;
+	/* swap buffer */
+	t = z;
+	z = prod1;
+	prod1 = t;
+      }
+      /* z = bignum_mul(z, tw); */
+      multiply_to_len(z, zlen, tw, twlen, prod1);
+      zlen += twlen;
+      /* swap buffer */
+      t = z;
+      z = prod1;
+      prod1 = t;
     } else {
-      z = tw;
+      /* z = tw; */
+      /* setup buffer */
+      copy_element(prod1, tw, twlen);
+      z = prod1;
+      prod1 = prod2;
+      zlen = twlen;
     }
     while (l >= 0) {
+      ulong *t;
       if (n & (1UL<<l)) break;
-      z = bn_sqrt(z);
+      /* z = bignum_mul(z, z); */
+      square_to_len(z, zlen, prod1);
+      zlen <<= 1;
+      /* swap buffer */
+      t = z;
+      z = prod1;
+      prod1 = t;
       l--;
     }
   }
-  return Sg_NormalizeBignum(z);
+  /* i'm not sure which would the proper one so check */
+  copy_element(r->elements, z, zsize);
+  return r;
 }
 
 static SgBignum * bignum_expt(SgBignum *b, long exponent)
