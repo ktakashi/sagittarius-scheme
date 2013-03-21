@@ -2006,7 +2006,7 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   /* multiply first word */
   /* mul_n1(z, x, xlen, *y++); */
   int i;
-  ulong k = *y++;
+  ulong k = *y;
   dlong p = (dlong)*x * k;
   *z = (ulong)p;
   for (i = 1; i < xlen; i++) {
@@ -2018,7 +2018,7 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   /* add in subsequent wors, storing the most significant word which is new
      each time */
   for (i = 1; i < ylen; i++) {
-    z[xlen + i] = mul_add((z+i), x, xlen, y[i-1]);
+    z[xlen + i] = mul_add((z+i), x, xlen, y[i]);
   }
   return z;
 }
