@@ -2452,7 +2452,7 @@ static SgBignum * leftright_binray_expt(SgBignum *b, long e)
   long m = e, j = 1 + bfffo(m);
   int size;
   int ylen = SG_BIGNUM_GET_COUNT(b);
-  ulong *ye, *prod;
+  ulong *ye, *prod, *t;
   m <<= j;
   j = WORD_BITS-j;
 
@@ -2466,14 +2466,20 @@ static SgBignum * leftright_binray_expt(SgBignum *b, long e)
     /* y = bignum_mul(y, y); */
     square_to_len(ye, ylen, prod);
     ylen <<= 1;
-    /* copy prod */
-    copy_element(ye, prod, ylen);
+    t = ye;
+    ye = prod;
+    prod = t;
     if (m < 0) {
       /* y = bignum_normalize(bignum_mul(y, b)); */
       multiply_to_len(ye, ylen, b->elements, SG_BIGNUM_GET_COUNT(b), prod);
       ylen += SG_BIGNUM_GET_COUNT(b);
-      copy_element(ye, prod, ylen);
+      t = ye;
+      ye = prod;
+      prod = t;
     }
+  }
+  if (y->elements != ye) {
+    copy_element(y->elements, ye, ylen);
   }
   SG_BIGNUM_SET_COUNT(y, ylen);
   return y;
@@ -2627,7 +2633,8 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
     }
   }
   /* i'm not sure which would the proper one so check */
-  copy_element(r->elements, z, zsize);
+  if (r->elements != z)
+    copy_element(r->elements, z, zsize);
   return r;
 }
 
