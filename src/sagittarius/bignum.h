@@ -100,7 +100,7 @@ SG_EXTERN SgObject Sg_BignumAccMultAddUI(SgBignum *acc,
 SG_EXTERN SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by);
 SG_EXTERN SgObject Sg_BignumModInverse(SgBignum *bx, SgBignum *bm);
 SG_EXTERN SgObject Sg_BignumModExpt(SgBignum *bx, SgBignum *be, SgBignum *bm);
-SG_EXTERN SgObject Sg_BignumExpt(SgBignum *b, int n);
+SG_EXTERN SgObject Sg_BignumExpt(SgBignum *b, long n);
 
 SG_CDECL_END
 
