@@ -2621,15 +2621,18 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   ALLOC_TEMP_BUFFER_REC(prod2, ulong, zsize);
 
   while (l >= 0) {
+    int index;
     if (e > l+1) e = l + 1;
     w = (n >>(l+1-e)) & ((1UL<<2)-1);
     v = vals(w);
     l -= e;
-    tw = table[w>>(v+1)];
-    twlen = ltable[w>>(v+1)];
+    index = (int)(w>>(v+1));
+    tw = table[index];
+    twlen = ltable[index];
     if (z) {
       ulong *t;
-      for (i = 1; i <= e-v; i++) {
+      ulong len = e-v;
+      for (i = 1; i <= len; i++) {
 	/* z = bignum_mul(z, z); */
 	square_to_len(z, zlen, prod1);
 	zlen <<= 1;
@@ -2677,8 +2680,8 @@ static SgBignum * bignum_expt(SgBignum *b, long exponent)
   /* exponent > 0 */
   long l = (WORD_BITS-1) - (long)bfffo((ulong)exponent);
   if (l <= 8) return leftright_binray_expt(b, exponent);
-  if (l <= 24) return sliding_window_expt(b, exponent, 2);
-  return sliding_window_expt(b, exponent, 3);
+  else if (l <= 24) return sliding_window_expt(b, exponent, 2);
+  else return sliding_window_expt(b, exponent, 3);
 }
 #endif
 
