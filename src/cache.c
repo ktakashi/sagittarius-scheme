@@ -1584,14 +1584,14 @@ int Sg_ReadCache(SgString *id)
   }
 
   file = Sg_OpenFile(timestamp, SG_READ);
-  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE);
-  size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50);
+  /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
+  /* size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50); */
+  size = SG_FILE(file)->read(file, tagbuf, 50);
+  SG_FILE(file)->close(file);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
-    Sg_ClosePort(in);
     return RE_CACHE_NEEDED;
   }
-  Sg_ClosePort(in);
   /* end check timestamp */
 
   file = Sg_OpenFile(cache_path, SG_READ);
@@ -1599,6 +1599,7 @@ int Sg_ReadCache(SgString *id)
   size = SG_FILE(file)->size(file);
   alldata = Sg_MakeByteVector((int)size, 0);
   SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
+  SG_FILE(file)->close(file);
   in = Sg_MakeByteVectorInputPort(alldata, 0);
 
   /* buffer mode none can be a little bit better performance to read all. */

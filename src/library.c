@@ -52,6 +52,14 @@ char *alloca ();
 # endif
 #endif
 
+/* To secure the cache file between processes */
+#ifdef HAVE_SEMAPHORE_H
+/* if the platform have semaphore.h then it must have the rest 2 files. */
+# include <fcntl.h>
+# include <sys/stat.h>
+# include <semaphore.h>
+#endif
+
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/library.h"
@@ -187,8 +195,30 @@ static struct
 
 #define ALL_LIBRARIES      libraries.libraries
 #define MUTEX              libraries.mutex
-#define LOCK_LIBRARIES()   Sg_LockMutex(&MUTEX)
-#define UNLOCK_LIBRARIES() Sg_UnlockMutex(&MUTEX)
+/* #ifdef HAVE_SEMAPHORE_H */
+/* this actually doesn't solve the problem plus causes dead lock.  */
+#if 0
+static sem_t *process_lock = NULL;
+# define SEMAPHORE_NAME "/sagittarius-semaphore"
+# define LOCK_LIBRARIES()					\
+  do {								\
+    process_lock = sem_open(SEMAPHORE_NAME, O_CREAT,		\
+			    S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);	\
+    sem_wait(process_lock);					\
+    Sg_LockMutex(&MUTEX);					\
+  } while (0)
+# define UNLOCK_LIBRARIES()			\
+  do {						\
+    Sg_UnlockMutex(&MUTEX);			\
+    sem_close(process_lock);			\
+    sem_unlink(SEMAPHORE_NAME);			\
+  } while (0)
+#else
+/* Most definitely Windows and its mutex can lock process,
+   if I understand correctly. */
+# define LOCK_LIBRARIES()   Sg_LockMutex(&MUTEX)
+# define UNLOCK_LIBRARIES() Sg_UnlockMutex(&MUTEX)
+#endif
 
 
 static void add_library(SgLibrary *lib)
