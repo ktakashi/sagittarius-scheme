@@ -1059,7 +1059,32 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 {
   return Sg_NormalizeBignum(bignum_add_si(a, -b));
 }
+#define USE_FAST_MULTIPLY
+#ifdef USE_FAST_MULTIPLY
+/* forward declaration */
+static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
+static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
+static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+				 unsigned long y, int off)
+{
+  multiply_to_len(bx->elements, SG_BIGNUM_GET_COUNT(bx), &y, 1, 
+		  br->elements + off);
+  return br;
+}
+
+static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
+{
+  int xlen = SG_BIGNUM_GET_COUNT(bx);
+  int ylen = SG_BIGNUM_GET_COUNT(by);
+  SgBignum *br = make_bignum(xlen + ylen);
+  multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
+  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
+  return br;
+}
+
+#else
 static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 				 unsigned long y, int off)
 {
@@ -1073,16 +1098,16 @@ static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     
     r0 = br->elements[i + off];
     UADD(r1, c, r0, lo);
-    ASSERT(size > i+off);
+    /* ASSERT(size > i+off); */
     br->elements[i + off] = r1;
 
-    ASSERT(size > i+off+1);
+    /* ASSERT(size > i+off+1); */
     r0 = br->elements[i + off + 1];
     UADD(r1, c, r0, hi);
     br->elements[i + off + 1] = r1;
 
     for (j = i + off + 2; c && j < size; j++) {
-      ASSERT(size > j);
+      /* ASSERT(size > j); */
       r0 = br->elements[j];
       UADD(r1, c, r0, 0);
       br->elements[j] = r1;
@@ -1101,6 +1126,7 @@ static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
   SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
   return br;
 }
+#endif
 
 static SgBignum* bignum_mul_si(SgBignum *bx, long y)
 {
@@ -1110,7 +1136,7 @@ static SgBignum* bignum_mul_si(SgBignum *bx, long y)
   if (y == 1) return bx;
   if (y == 0) {
     br = make_bignum(1);
-    SG_BIGNUM_SET_SIGN(br, 1);
+    SG_BIGNUM_SET_SIGN(br, 0);
     br->elements[0] = 0;
     return br;
   }
@@ -1125,6 +1151,7 @@ static SgBignum* bignum_mul_si(SgBignum *bx, long y)
   if (y < 0) SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br));
   return br;
 }
+
 
 SgObject Sg_BignumMul(SgBignum *a, SgBignum *b)
 {
@@ -1400,9 +1427,17 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
 {
   SgBignum *r;
   unsigned int rsize = SG_BIGNUM_GET_COUNT(acc) + 1, i;
+#ifdef USE_FAST_MULTIPLY
+  unsigned long carry;
+#endif
   ALLOC_TEMP_BIGNUM(r, rsize);
   r->elements[0] = c;
+#ifdef USE_FAST_MULTIPLY
+  carry = mul_add(r->elements, acc->elements, SG_BIGNUM_GET_COUNT(acc), coef);
+  r->elements[SG_BIGNUM_GET_COUNT(acc)] = carry;
+#else
   bignum_mul_word(r, acc, coef, 0);
+#endif
   if (r->elements[rsize - 1] == 0) {
     for (i = 0; i < SG_BIGNUM_GET_COUNT(acc); i++) {
       acc->elements[i] = r->elements[i];
@@ -1864,11 +1899,10 @@ static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
 
 static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
 {
-  arg1 += len;
-  arg2 += len;
-  while (len--) {
-    if (*--arg1 != *--arg2) {
-      if (*arg1 < *arg2) return -1;
+  int i;
+  for (i = len-1; i >= 0; i--) {
+    if (arg1[i] != arg2[i]) {
+      if (arg1[i] < arg2[i]) return -1;
       else return 1;
     }
   }
@@ -1877,12 +1911,12 @@ static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
 
 static ulong sub_n(ulong *num1, ulong *num2, int len)
 {
-  dlong t = 0;
-  t = (dlong)*num1 - *num2++;
-  *num1++ = (ulong)t;
-  while (--len) {
-    t = (dlong)*num1 - (dlong)*num2++ - (ulong)-(t >> WORD_BITS);
-    *num1++ = (ulong)t;
+  dlong t = (dlong)*num1 - *num2;
+  int i;
+  *num1 = (ulong)t;
+  for (i = 1; i < len; i++) {
+    t = (dlong)num1[i] - (dlong)num2[i] - (ulong)-(t >> WORD_BITS);
+    num1[i] = (ulong)t;
   }
   return -(ulong)(t >> WORD_BITS);
 }
@@ -1903,10 +1937,11 @@ static ulong mul_add(ulong *out, ulong *in, int len, ulong k)
 static int add_one(ulong *num, int len, ulong carry)
 {
   dlong t = (dlong)*num + carry;
-  *num++ = (ulong)t;
+  int i;
+  *num = (ulong)t;
   if ((t >> WORD_BITS) == 0) return 0;
-  while (--len) {
-    if (++*num++ != 0) return 0;
+  for (i = 1; i < len; i++) {
+    if (++num[i] != 0) return 0;
   }
   return 1;
 }
