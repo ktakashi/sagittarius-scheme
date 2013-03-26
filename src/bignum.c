@@ -86,7 +86,7 @@ static SgBignum* bignum_clear(SgBignum *b)
   return b;
 }
 
-static SgBignum* make_bignum(int size)
+static SgBignum* make_bignum_rec(int size, int need_clear)
 {
   SgBignum *b;
   int real_size = size;
@@ -101,8 +101,13 @@ static SgBignum* make_bignum(int size)
     SG_BIGNUM_SET_COUNT(b, size);
     SG_BIGNUM_SET_SIGN(b, 1);
   }
-  return bignum_clear(b);
+  if (need_clear)
+    return bignum_clear(b);
+  else
+    return b;
 }
+
+#define make_bignum(size) make_bignum_rec(size, TRUE)
 
 #ifdef HAVE_ALLOCA
 #define ALLOC_TEMP_BIGNUM(var, size)		\
@@ -1984,8 +1989,8 @@ static ulong* square_to_len(ulong *num, int len, ulong *prod)
     /* Store the squares, right shifted one bit */
     int i, j;
 
-    for (i = len, j = len << 1; i > 0;) {
-      dlong t = num[--i];
+    for (i = len-1, j = len << 1; i >= 0; i--) {
+      dlong t = num[i];
       dlong p = t * t;
       prod[--j] = (last_low << (WORD_BITS-1))|(ulong)(p >> (WORD_BITS+1));
       prod[--j] = (ulong)(p >> 1);
@@ -2055,7 +2060,7 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   for (i = 1; i < ylen; i++) {
     z[xlen + i] = mul_add((z+i), x, xlen, y[i]);
   }
-  return z;
+  return z; 
 }
 
 
@@ -2613,7 +2618,9 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
 
   setup_table(table, ltable, u, b);
   zsize = compute_sw_size(l, e, n, ltable);
-  r = make_bignum(zsize);
+  /* we don't need to clear the buffer here. */
+  r = make_bignum_rec(zsize, FALSE);
+  /* ALLOC_TEMP_BIGNUM(r, zsize); */
   SG_BIGNUM_SET_SIGN(r, 1);
 
   /* ALLOC_TEMP_BUFFER_REC(prod1, ulong, zsize); */
