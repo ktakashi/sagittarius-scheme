@@ -1201,7 +1201,9 @@ static SgContFrame* save_a_cont(SgContFrame *c)
 {
   SgObject *s, *d;
   int i;
-  const size_t argsize = (c->size > 0) ? (c->size * sizeof(SgObject)) : 0;
+  const size_t argsize = (c->size > 0) 
+    ? ((c->size-1) * sizeof(SgObject))
+    : 0;
   const size_t size = sizeof(SgContFrame) + argsize;
   SgContFrame *csave = SG_NEW2(SgContFrame *, size);
 
@@ -1211,13 +1213,10 @@ static SgContFrame* save_a_cont(SgContFrame *c)
     if (c->size > 0) {
       /* copy the args */
       s = (SgObject*)c - c->size;
-      d = (SgObject*)csave + CONT_FRAME_SIZE;
-      csave->env = d;
+      d = csave->env;
       for (i = 0; i < c->size; i++) {
 	*d++ = *s++;
       }
-    } else {
-      csave->env = NULL;
     }
   } else {
     /* C continuation */
@@ -1227,7 +1226,6 @@ static SgContFrame* save_a_cont(SgContFrame *c)
       /* C continuation frame contains opaque pointer */
       *d++ = *s++;
     }
-    csave->env = NULL;
   }
   return csave;
 }

@@ -67,7 +67,7 @@ typedef struct SgContFrameRec
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
   SgObject      *fp;		/* fp register value */
-  SgObject      *env;		/* saved arguments */
+  SgObject       env[1];	/* saved arguments */
 } SgContFrame;
 
 #define CONT_FRAME_SIZE (sizeof(SgContFrame)/sizeof(SgObject))
