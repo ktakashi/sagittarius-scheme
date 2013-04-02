@@ -2021,6 +2021,9 @@ void Sg__InitClos()
   /* keyword */
   CINIT(SG_CLASS_KEYWORD,   "<keyword>");
 
+  /* library */
+  CINIT(SG_CLASS_LIBRARY,   "<library>");
+
   /* abstract collection */
   BINIT(SG_CLASS_COLLECTION, "<collection>", NULL);
   BINIT(SG_CLASS_SEQUENCE,   "<sequence>",   NULL);
