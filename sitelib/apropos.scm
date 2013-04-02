@@ -99,12 +99,12 @@
       (define (search-parents library store seen)
 	(unless (~ seen library)
 	  (set! (~ seen library) #t)
-	  (let1 parents (library-parents library)
-	    (unless (null? parents)
-	      (let1 flat (map car parents)
-		(for-each (cut search-library <> #f store seen) flat)
-		;; should we walk through all parents?
-		(for-each (cut search-parents <> store seen) flat))))))
+	  (and-let* ((parents (library-parents library))
+		     ( (not (null? parents)) )
+		     (flat (map car parents)))
+	    (for-each (cut search-library <> #f store seen) flat)
+	    ;; should we walk through all parents?
+	    (for-each (cut search-parents <> store seen) flat))))
 
       (let* ((keys (hashtable-keys-list (library-table (vm-current-library))))
 	     (library (library-name (vm-current-library)))
