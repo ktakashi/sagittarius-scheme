@@ -23,6 +23,13 @@
 (define-c-proc close-shared-library (handle::<pointer>) ::<void>
   (Sg_CloseSharedObject (cast void* (-> handle pointer))))
 
+;;; make my life easier, shared object suffix
+"static SgObject SH_SUFFIX = NULL;"
+(define-c-proc shared-object-suffix () 
+  (when (== SH_SUFFIX NULL)
+    (set! SH_SUFFIX (SG_MAKE_STRING SHLIB_SO_SUFFIX)))
+  (result SH_SUFFIX))
+
 (define-c-proc create-function-info 
   (handle::<pointer> rettype::<fixnum> sigs::<string> sret sparam)
   Sg_CreateCFunction)

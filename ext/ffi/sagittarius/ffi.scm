@@ -3,6 +3,7 @@
     (export open-shared-library
 	    lookup-shared-library
 	    close-shared-library
+	    shared-object-suffix
 	    c-function
 	    make-c-function ;; issue 83
 	    pointer->c-function

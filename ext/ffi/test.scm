@@ -15,6 +15,9 @@
 
   (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
 
+  (test-assert "suffix" shared-object-suffix)
+  (test-assert "suffix(1)" (string? (shared-object-suffix)))
+
   ;; for now, we do not support annonymous struct
   (cond-expand
    (x86_64
