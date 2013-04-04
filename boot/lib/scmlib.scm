@@ -879,12 +879,12 @@
                         #f
                         (car maybe-transcoder))))
     (let* ((port (open-output-bytevector transcoder))
-           (proc (lambda () (get-output-bytevector port))))
+           (proc (lambda () (extract-output-bytevector port))))
       (values port proc))))
 
 (define (open-string-output-port)
   (let* ((port (open-output-string))
-         (proc (lambda () (get-output-string port))))
+         (proc (lambda () (extract-output-string port))))
     (values port proc)))
 
 (define (call-with-bytevector-output-port proc . maybe-transcoder)

@@ -561,7 +561,23 @@
 	  (result bp)
 	  (result (Sg_MakeTranscodedOutputPort bp t)))))
 
-  (define-c-proc get-output-bytevector (p::<port>) ::<top>
+  ;; SRFI-6
+  (define-c-proc get-output-bytevector (p::<port>)
+    (check-port-open get-output-bytevector p)
+    (check-output-port get-output-bytevector p)
+    (cond ((SG_BINARY_PORTP p)
+	   (unless (== (-> (SG_BINARY_PORT p) type)
+		       SG_BYTE_ARRAY_BINARY_PORT_TYPE)
+	     (wrong-type-of-argument-violation 'get-output-bytevector
+					       "bytevector-output-port"
+					       p))
+	   (result (Sg_GetByteVectorFromBinaryPort p)))
+	  (else
+	   (result (Sg_GetByteVectorFromBinaryPort 
+		    (ref (pointer (SG_TEXTUAL_PORT p))
+			 src transcoded port))))))
+
+  (define-c-proc extract-output-bytevector (p::<port>)
     (check-port-open get-output-bytevector p)
     (check-output-port get-output-bytevector p)
     ;; I'm not quite sure if I should reset the port position
@@ -596,7 +612,17 @@
 			      SG_TEXTUAL_CUSTOM_PORT_TYPE)))
 	(wrong-type-of-argument-violation ',name "textual-port" ,p))))
 
+  ;; SRFI-6
   (define-c-proc get-output-string (p::<port>)
+    (check-port-open get-output-string p)
+    (check-output-port get-output-string p)
+    (check-textual-port get-output-string p)
+    (unless (SG_EQ (-> (SG_TEXTUAL_PORT p) type)
+		   SG_STRING_TEXTUAL_PORT_TYPE)
+      (wrong-type-of-argument-violation 'get-output-string "string port" p))
+    (result (Sg_GetStringFromStringPort p)))
+
+  (define-c-proc extract-output-string (p::<port>)
     (check-port-open get-output-string p)
     (check-output-port get-output-string p)
     (check-textual-port get-output-string p)
@@ -609,8 +635,7 @@
     (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)
 	  (SG_NEW char_buffer))
     (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr current)
-	  (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start))
-    )
+	  (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)))
 
   ;; we don't check the port type
   (define-c-proc port-ready? (:optional (p (Sg_CurrentInputPort))) ::<boolean>
