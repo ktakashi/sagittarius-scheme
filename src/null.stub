@@ -772,13 +772,9 @@
 
   (define-c-proc atan (n::<number> :optional n2::<number>) 
     (check-real-valued atan n)
-    (cond ((SG_UNBOUNDP n2)
-	   (when (Sg_ZeroP n)
-	     (assertion-violation 'atan "division by zero" n))
-	   (result (Sg_Atan n)))
-	  (else
-	   (check-real-valued atan n2)
-	   (result (Sg_Atan2 n n2)))))
+    (cond ((SG_UNBOUNDP n2) (result (Sg_Atan n)))
+	  (else (check-real-valued atan n2)
+		(result (Sg_Atan2 n n2)))))
 
   (define-c-proc sqrt (n::<number>) 
     (result (Sg_Sqrt n)))

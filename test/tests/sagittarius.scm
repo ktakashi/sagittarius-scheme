@@ -843,4 +843,13 @@
   (define (puts args) args)
   (test-equal "issue 94 (macro->def)" "abc" (print "abc")))
 
+;; issue 101
+(test-equal "(atan 0)" 0 (atan 0))
+(test-equal "(atan 0.0)" 0.0 (atan 0.0))
+(test-error "(atan 0+i)" values (atan 0+i))
+
+;; issue 102
+(test-equal "string-scan" '(#f #f) 
+	    (receive v (string-scan "abcd1234pqrs" "1ZZZ" 'both) v))
+
 (test-end)

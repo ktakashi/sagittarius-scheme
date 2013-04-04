@@ -443,7 +443,7 @@ static SgObject string_scan(SgString *s, const SgChar *ss2,
   if (size1 >= size2) {
     const SgChar *ssp = ss1;
     for (i = 0; i < size1 - size2; i++) {
-      if (memcmp(ssp, ss2, size2) == 0) {
+      if (memcmp(ssp, ss2, size2 * sizeof(SgChar)) == 0) {
 	switch (retmode) {
 	case SG_STRING_SCAN_INDEX: return Sg_MakeInteger(i);
 	case SG_STRING_SCAN_BEFORE: return Sg_Substring(s, 0, i);
@@ -465,7 +465,7 @@ static SgObject string_scan(SgString *s, const SgChar *ss2,
   if (size1 < size2) goto failed;
   if (size1 < 256 || size2 >= 256) {
     for (i = 0; i <= size1 - size2; i++) {
-      if (memcmp(ss2, ss1 + i, size2) == 0) break;
+      if (memcmp(ss2, ss1 + i, size2 * sizeof(SgChar)) == 0) break;
     }
     if (i == size1 - size2 + 1) goto failed;
   } else {
