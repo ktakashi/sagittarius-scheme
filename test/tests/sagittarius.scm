@@ -843,4 +843,44 @@
   (define (puts args) args)
   (test-equal "issue 94 (macro->def)" "abc" (print "abc")))
 
+;; issue 101
+(test-equal "(atan 0)" 0 (atan 0))
+(test-equal "(atan 0.0)" 0.0 (atan 0.0))
+(test-error "(atan 0+i)" values (atan 0+i))
+
+;; issue 102
+(test-equal "string-scan" '(#f #f) 
+	    (receive v (string-scan "abcd1234pqrs" "1ZZZ" 'both) v))
+
+;; issue 103
+;; bytevector
+(let ()
+  (define bv (open-output-bytevector))
+  (put-bytevector bv #vu8(1 2 3 4))
+  (test-equal "get-output-bytevector (before)"
+	      #vu8(1 2 3 4) (get-output-bytevector bv))
+  (test-equal "get-output-bytevector (after)" 
+	      #vu8(1 2 3 4) (get-output-bytevector bv)))
+
+;; related
+(let-values (((port getter) (open-bytevector-output-port)))
+  (put-bytevector port #vu8(1 2 3 4))
+  (test-equal "getter bv (before)" #vu8(1 2 3 4) (getter))
+  (test-equal "getter bv (after)"  #vu8() (getter)))
+
+
+;; string
+(let ()
+  (define str (open-output-string))
+  (write 1234 str)
+  (test-equal "get-output-string (before)" "1234" (get-output-string str))
+  (test-equal "get-output-string (after)"  "1234" (get-output-string str)))
+
+;; related
+(let-values (((port getter) (open-string-output-port)))
+  (write 1234 port)
+  (test-equal "getter (before)" "1234" (getter))
+  (test-equal "getter (after)" "" (getter)))
+
+
 (test-end)
