@@ -130,8 +130,17 @@
   (define-generic dbi-prepare)
   (define-generic dbi-execute!)
   (define-generic dbi-execute-using-connection!)
+  ;; fetch must return #f if no result available
   (define-generic dbi-fetch!)
   (define-generic dbi-fetch-all!)
+  ;; dbi-fetch-all! can be naive implementation like this
+  (define-method dbi-fetch-all! ((q <dbi-query>))
+    (let loop ((v (dbi-fetch! query))
+	       (r '()))
+      (if v
+	  (loop (dbi-fetch! query) (cons v r))
+	  (reverse! r))))
+
   (define-generic dbi-columns)
   (define-generic dbi-bind-parameter!)
   ;;(define-generic dbi-do)
@@ -147,9 +156,8 @@
 
   ;;--------------------------
   ;; Low level APIs
-  (define *dsn-regex* #/^dbi:([\w-]+)(?::(.*))?$/)
   (define (dbi-parse-dsn dsn)
-    (cond ((looking-at *dsn-regex* dsn)
+    (cond ((#/^dbi:([\w-]+)(?::(.*))?$/ dsn)
 	   => (lambda (m)
 		(let ((driver (m 1))
 		      (options (m 2)))
