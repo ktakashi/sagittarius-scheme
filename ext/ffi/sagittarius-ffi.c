@@ -55,6 +55,36 @@ static SgPointer* make_pointer(uintptr_t p)
   return z;
 }
 
+/* To reset pointer... This is really dangerous*/
+static SgObject pointer_value(SgPointer *p)
+{
+#if SIZEOF_VOIDP == 4
+  return Sg_MakeIntegerU(p->pointer);
+#else
+  return Sg_MakeIntegerFromU64(p->pointer);
+#endif
+}
+static void pointer_value_set(SgPointer *p, SgObject value)
+{
+  /* for now only exact integer */
+  if (SG_EXACT_INTP(value)) {
+    uintptr_t v;
+#if SIZEOF_VOIDP == 4
+    v = Sg_GetUIntegerClamp(value, SG_CLAMP_NONE, NULL);
+#else
+    v = Sg_GetIntegerU64Clamp(value, SG_CLAMP_NONE, NULL);
+#endif
+    p->pointer = v;
+  } else {
+    Sg_Error(UC("exact integer required but got %S"), value);
+  }
+}
+
+static SgSlotAccessor pointer_slots[] = {
+  SG_CLASS_SLOT_SPEC("value",  0, pointer_value, pointer_value_set),
+  { { NULL } }
+};
+
 SgObject Sg_MakePointer(void *p)
 {
   return make_pointer((uintptr_t)p);
@@ -1023,7 +1053,8 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args,
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
   SgObject lastError = SG_FALSE;
-  SgObject *funcargs;
+  /* SgObject *funcargs; */
+  SgObject funcargs, cp;
   int retType, i, size;
   SgObject signatures;
   SgFuncInfo *func;
@@ -1064,16 +1095,22 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   ffi_values = SG_NEW_ARRAY(void*, func->argc);
   params = SG_NEW_ARRAY(ffi_storage, func->argc);
 
-  funcargs = Sg_ListToArray(args[argc-1], FALSE);
-  for (i = 0; i < func->argc; i++) {
+  /* funcargs = Sg_ListToArray(args[argc-1], FALSE); */
+  funcargs = args[argc-1];
+  i = 0;
+  SG_FOR_EACH(cp, funcargs) {
+    /* for (i = 0; i < func->argc; i++) { */
     if (!push_ffi_type_value(func,
 			     SG_STRING_VALUE_AT(signatures, i),
-			     funcargs[i], params + i,
+			     /* funcargs[i],  */
+			     SG_CAR(cp),
+			     params + i,
 			     &lastError)) {
-      Sg_Error(UC("argument error on index %d: %S"), i, lastError);
+      Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
       return SG_UNDEF;
     }
     ffi_values[i] = (params + i);
+    i++;
   }
   /* sanity check */
   if (!func->code) {
@@ -1389,7 +1426,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
 
   Sg_InitStaticClassWithMeta(SG_CLASS_POINTER, UC("<pointer>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
+			     SG_FALSE, pointer_slots, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_FUNC_INFO, UC("<function-info>"),
 			     lib, NULL, SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_CALLBACK, UC("<callback>"),
