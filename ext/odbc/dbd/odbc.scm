@@ -67,7 +67,6 @@
       (let-keywords auth ((username username)
 			  (password password)
 			  (auto-commit? (->boolean auto-commit)))
-	(format #t "~a:~a~%" username password)
 	(make <dbi-odbc-connection>
 	  :hbc (connect! env server username password auto-commit?)))))
 
