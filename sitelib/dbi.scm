@@ -66,7 +66,8 @@
 	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius regex)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (sagittarius object))
 
   ;;--------------------------
   ;; DBI conditions
@@ -175,16 +176,26 @@
 
   ;; load driver library and execute driver constructor.
   ;; NB: driver library must be on load path.
+
+  ;; TODO make this thread safe
+  (define *driver-pool* (make-eq-hashtable))
+
   (define (dbi-make-driver driver-name)
-    (let ((lib `(dbd ,(string->symbol driver-name)))
-	  (ctr `(,(string->symbol (format "make-~a-driver" driver-name)))))
-      (guard (e (else
-		 (raise-dbi-error (make-dbi-driver-not-exist driver-name)
-				  'dbi-make-driver
-				  (if (message-condition? e)
-				      (condition-message e)
-				      (format "could not load driver ~a or it does not have procedure make-~a-driver"
-					      lib driver-name))
-				  e)))
-	(eval ctr (environment lib)))))
+    (let* ((driver-name (string->symbol driver-name))
+	   (lib `(dbd ,driver-name))
+	   (ctr `(,(string->symbol (format "make-~a-driver" driver-name)))))
+      (cond ((~ *driver-pool* driver-name))
+	    (else
+	     (guard (e (else
+			(raise-dbi-error 
+			 (make-dbi-driver-not-exist driver-name)
+			 'dbi-make-driver
+			 (if (message-condition? e)
+			     (condition-message e)
+			     (format "could not load driver ~a or it does not have procedure make-~a-driver"
+				     lib driver-name))
+			 e)))
+	       (let1 driver (eval ctr (environment lib))
+		 (set! (~ *driver-pool* driver-name) driver)
+		 driver))))))
   )
