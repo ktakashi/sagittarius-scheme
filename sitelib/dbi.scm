@@ -46,6 +46,7 @@
 	    dbi-prepare
 	    dbi-bind-parameter!
 	    dbi-execute!
+	    dbi-execute-using-connection!
 	    dbi-fetch!
 	    dbi-fetch-all!
 	    dbi-columns
@@ -131,6 +132,15 @@
   (define-generic dbi-prepare)
   (define-generic dbi-execute!)
   (define-generic dbi-execute-using-connection!)
+  ;; simple implementation
+  (define-method dbi-execute-using-connection! ((c <dbi-connection>) sql . args)
+    (let1 q (dbi-prepare c sql)
+      ;; assume dbi-bind-parameter! can handle the integer
+      (unless (null? args)
+	(do ((i 0 (+ i 1)) (args args (cdr args)))
+	    ((null? args))
+	  (dbi-bind-parameter! q i (car args))))
+      (dbi-execute! q)))
   ;; fetch must return #f if no result available
   (define-generic dbi-fetch!)
   (define-generic dbi-fetch-all!)
