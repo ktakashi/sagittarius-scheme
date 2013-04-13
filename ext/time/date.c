@@ -75,6 +75,6 @@ SgObject Sg_LocalTzOffset()
   l = mktime(&localTime);
   gmtime_r(&l, &utcTime);
 #endif
-  return Sg_MakeIntegerFromU64((uint64_t)mktime(&localTime)
-			       - (uint64_t)mktime(&utcTime));
+  return Sg_MakeIntegerFromS64((int64_t)mktime(&localTime)
+			       - (int64_t)mktime(&utcTime));
 }
