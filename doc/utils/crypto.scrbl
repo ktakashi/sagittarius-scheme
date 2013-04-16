@@ -240,6 +240,26 @@ Default RSA implementation @var{opt} can be these arguments.
 @define[Function]{@name{public-key?} @args{obj}}
 @desc{Returns #t if given @var{obj} is public key object, otherwise #f}
 
+@define[Function]{@name{split-key}
+ @args{key :optional (count 3) (prng (secure-random RC4))}}
+@desc{@var{key} must be a bytevector and plain key.
+
+Splits the given @var{key} to @var{count} components and returns @var{count}
+values as key components.
+
+The return values might be different each time.
+}
+
+@define[Function]{@name{combine-key-components}
+ @args{component1 components @dots{}}}
+@define[Function]{@name{combine-key-components!}
+ @args{result component1 components @dots{}}}
+@desc{Renaming export of @code{bytevector-xor} and @code{bytevector-xor!}
+respectively.
+
+For more detail, see @secref["util.bytevector"]{(util bytevector)}.
+}
+
 @subsubsection{PKCS operations}
 
 The procedures described in this section is implemented according to PKCS#1. I

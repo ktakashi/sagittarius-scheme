@@ -127,6 +127,11 @@ If the given pointer does not indicate proper shared library, the behaviour
 is platform dependent. It might cause SEGV.
 }
 
+@define[Function]{@name{shared-object-suffix}}
+@desc{Returns platform specific shared library extension as a string value.
+eg. @code{".dll"} in Windows, @code{".so"} in Linux or Unix.
+}
+
 @subsubsection{Creating C functions}
 
 This section describes more details to create a corresponding C functions.
@@ -380,6 +385,14 @@ Sets @var{value} to offset @var{offset} of @var{pointer}. Supporting @var{type}s
 are the same as @code{pointer-ref-c-@var{type}}
 
 The type conversion is the same as @code{c-function}'s @var{return-type}.
+}
+
+@define[Function]{@name{set-pointer-value!} @args{pointer value}}
+@desc{@var{value} must be exact integer up to @code{size-of-void*} bytes.
+
+Sets the pointer value. This is useful to reuse the existing pointer object.
+
+CAUTION: this operation is really dangerous so be aware of it!
 }
 
 @subsubsection{C struct operations}

@@ -3,6 +3,7 @@
 
 (import (srfi :64 testing)
 	(rnrs)
+	(sagittarius)
 	(crypto)
 	(math random)
 	(math prime)
@@ -335,5 +336,12 @@
     (test-equal "combine2(1)" key 
 		(combine-key-components! buf comp1 comp2))))
 
+(let ((key (generate-secret-key DES3 (integer->bytevector #x975158F83E3164388A6DC252B03EF2D6643E151FF2A1CDB3))))
+  (test-equal "KCV" #vu8(#x5B #x3A #x44) (key-check-value DES3 key))
+  ;; I don't think we need whole length of the value but in case
+  (test-equal "KCV" (integer->bytevector #x5B3A44A4D78ADE13)
+	      (key-check-value DES3 key 8))
+  (test-error "KCV (size 2)" values (key-check-value DES3 key 2))
+  (test-error "KCV (size 2)" values (key-check-value DES3 key 9)))
 
 (test-end)

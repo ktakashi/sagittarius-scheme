@@ -207,6 +207,11 @@
 	      (pointer->string null-pointer))
   (test-error "null-pointer 2" assertion-violation? 
 	      (deref null-pointer 0))
+
+  (let ((p (empty-pointer)))
+    (test-assert "set-pointer-value!" (set-pointer-value! p 1))
+    (test-equal "set-pointer-value!" 1 (pointer->integer p))
+    (test-error "set-pointer-value!" values (set-pointer-value! p 'a)))
   )
  (else
   #t))

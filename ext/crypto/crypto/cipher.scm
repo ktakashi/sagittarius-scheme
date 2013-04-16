@@ -12,6 +12,7 @@
 	    cipher?
 	    encrypt
 	    decrypt
+	    key-check-value
 	    ;; signing
 	    sign
 	    verify
@@ -116,4 +117,13 @@
 		      (assertion-violation 'cipher
 					   "unknown cipher type" type)))))
 	(make-cipher spi)))
+
+  (define-constant +check-value+ (make-bytevector 8 0))
+  (define (key-check-value type key :optional (size 3))
+    (unless (<= 3 size 8)
+      (assertion-violation 'key-check-value "size must be between 3 to 8"
+			   size))
+    (let ((c (cipher type key)))
+      (bytevector-copy (encrypt c +check-value+) 0 size)))
+
 )
