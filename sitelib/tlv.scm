@@ -39,6 +39,7 @@
 	    dump-tlv
 	    tlv->bytevector
 	    ->tlv
+	    read-tlv
 
 	    ;; for compatibility
 	    (rename (write-emv-tlv write-tlv))
@@ -280,6 +281,10 @@
 		   ((< i 0))
 		 (put-u8 out (bitwise-and #xFF (ashr len (* i 8)))))))))
     (apply generic-tlv-writer tlv write-tag write-length opts))
+
+  (define (read-tlv in :optional (parser (make-emv-tlv-parser)))
+    (do ((tlv (parser in) (parser in)) (r '() (cons tlv r)))
+	((not tlv) (reverse! r))))
   
   ;; returns list of TLV objects
   ;; the given list must be alist of TLV
