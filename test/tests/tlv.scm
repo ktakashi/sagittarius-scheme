@@ -39,7 +39,7 @@
   (let ((tlv (call-with-port (open-bytevector-input-port tlv-value)
 	       dgi-parser)))
     (test-equal "tlv-tag" #x0001 (tlv-tag tlv))
-    (test-equal "tlv-data" #vu8(1 2 3 4 5) (tlv-data tlv))
+    (test-equal "tlv-data (dgi)" #vu8(1 2 3 4 5) (tlv-data tlv))
     ;; so far we don't have DGI style writer...
     (test-equal "tlv->bytevector" tlv-value
 		(tlv->bytevector tlv :writer write-dgi-tlv))

@@ -37,7 +37,9 @@
 	    <tlv>
 	    ;; utilities
 	    dump-tlv
-	    tlv->bytevector 
+	    tlv->bytevector
+	    ->tlv
+
 	    ;; for compatibility
 	    (rename (write-emv-tlv write-tlv))
 	    write-emv-tlv write-dgi-tlv
@@ -91,23 +93,22 @@
 		    (get-u8 in))
 	       #f)
 	      (else
-	       (let ((tag (tag-reader in b))
-		     (not-constructed? (zero? (bitwise-and #x20 b)))
-		     (len (length-reader in)))
+	       (let-values (((tag constructed?) (tag-reader in b))
+			    ((len) (length-reader in)))
 		 (cond (len
 			(let1 data (get-bytevector-n in len)
 			  (when (< (bytevector-length data) len)
 			    (assertion-violation 'tlv-parser "corrupted data"))
-			  (if not-constructed?
-			      (object-builder b tag data #f)
+			  (if constructed?
 			      (object-builder 
 			       b
 			       tag 
 			       (call-with-port 
 				   (open-bytevector-input-port data)
 				 (cut parse-tlv-object-list <> in-indefinite?))
-			       #t))))
-		       (not-constructed?
+			       #t)
+			      (object-builder b tag data #f))))
+		       ((not constructed?)
 			(assertion-violation 'tlv-parser
 					     "indefinite length found" tag))
 		       (else
@@ -117,7 +118,7 @@
   ;; DGI style tag and length reader
   (define (read-dgi-tag in b)
     ;; it's always 2 bytes
-    (+ (bitwise-arithmetic-shift b 8) (get-u8 in)))
+    (values (+ (bitwise-arithmetic-shift b 8) (get-u8 in)) #f))
   (define (read-dgi-length in)
     ;; length can be 1 or 3 bytes
     (let1 b (get-u8 in)
@@ -131,18 +132,21 @@
 
   ;; EMV(ASN.1) style TLV tag and length reader.
   (define (read-tag in b)
-    (if (= (bitwise-and b #x1F) #x1F)
-	(let1 b2 (get-u8 in)
-	  (when (zero? (bitwise-and b2 #x7F))
-	    (assertion-violation 
-	     'read-tag "corrupted stream - invalid high tag number found" b2))
-	  (do ((b3 b2 (get-u8 in)) 
-	       (r b (bitwise-ior (bitwise-arithmetic-shift r 8) b3)))
-	      ((or (eof-object? b3) (zero? (bitwise-and b3 #x80)))
-	       (when (eof-object? b)
-		 (assertion-violation 'read-tag "EOF found inside tag value"))
-	       (bitwise-ior (bitwise-arithmetic-shift r 8) b3))))
-	b))
+    (define (rec)
+      (if (= (bitwise-and b #x1F) #x1F)
+	  (let1 b2 (get-u8 in)
+	    (when (zero? (bitwise-and b2 #x7F))
+	      (assertion-violation 
+	       'read-tag "corrupted stream - invalid high tag number found" b2))
+	    (do ((b3 b2 (get-u8 in)) 
+		 (r b (bitwise-ior (bitwise-arithmetic-shift r 8) b3)))
+		((or (eof-object? b3) (zero? (bitwise-and b3 #x80)))
+		 (when (eof-object? b)
+		   (assertion-violation 'read-tag "EOF found inside tag value"))
+		 (bitwise-ior (bitwise-arithmetic-shift r 8) b3))))
+	  b))
+    (let1 tag (rec)
+      (values tag (not (zero? (bitwise-and #x20 b))))))
 
   (define (read-length in)
     (let1 len (get-u8 in)
@@ -276,5 +280,29 @@
 		   ((< i 0))
 		 (put-u8 out (bitwise-and #xFF (ashr len (* i 8)))))))))
     (apply generic-tlv-writer tlv write-tag write-length opts))
-	      
+  
+  ;; returns list of TLV objects
+  ;; the given list must be alist of TLV
+  ;; ((tag . value))
+  ;; tag must be integer
+  ;; value can be list or bytevector
+  (define-method ->tlv ((o <list>))
+    (define (convert e)
+      (define (->valid-data data)
+	(cond ((bytevector? data)
+	       (values #f data))
+	      ((integer? data)
+	       (values #f (integer->bytevector data)))
+	      ((and (list? data) (for-all integer? data))
+	       (values #f (u8-list->bytevector data)))
+	      (else
+	       (values #t (->tlv data)))))
+      (unless (pair? e)
+	(assertion-violation '->tlv "invalid structured object is given" o))
+      (unless (integer? (car e))
+	(assertion-violation '->tlv "tag must be integer" o))
+      (let-values (((constructed? data) (->valid-data (cdr e))))
+	(tlv-builder -1 (car e) data constructed?)))
+    (fold-right (^(e seed) (cons (convert e) seed)) '() o))
+
 )

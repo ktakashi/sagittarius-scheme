@@ -40,6 +40,8 @@
 
   (define-syntax define-dispatch-macro
     (syntax-rules ()
+      ((_ c sc (name . args) body ...)
+       (define-dispatch-macro :define name c sc (lambda args body ...) #f))
       ((_ name c sc proc)
        (define-dispatch-macro :define name c sc proc #f))
       ((_ name c sc proc non-term?)
