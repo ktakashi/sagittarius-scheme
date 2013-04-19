@@ -1064,7 +1064,24 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 {
   return Sg_NormalizeBignum(bignum_add_si(a, -b));
 }
+
 #define USE_FAST_MULTIPLY
+
+/* MSVC doesn't allow us to typedef blow. Well, that's how it suppose to be
+   I think... */
+typedef unsigned long ulong;
+#if SIZEOF_LONG == 8
+#ifdef __GNUC__
+typedef unsigned int dlong __attribute__((__mode__(TI)));
+#else
+# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#endif
+#define SHIFT_MAGIC 6
+#else
+typedef uint64_t dlong;
+#define SHIFT_MAGIC 5
+#endif
+
 #ifdef USE_FAST_MULTIPLY
 /* forward declaration */
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
@@ -1622,19 +1639,6 @@ SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
 }
 
 /* from here, the code base on Java's BigInteger */
-typedef unsigned long ulong;
-#if SIZEOF_LONG == 8
-#ifdef __GNUC__
-typedef unsigned int dlong __attribute__((__mode__(TI)));
-#else
-# error "sizeof(long) == 8 but not GCC (not supported yet)"
-#endif
-#define SHIFT_MAGIC 6
-#else
-typedef uint64_t dlong;
-#define SHIFT_MAGIC 5
-#endif
-
 /* debug utility macro */
 #define dump_array_rec(flag, array, size)	\
   do {						\
