@@ -439,7 +439,7 @@ static void init_cond_features()
   /* it's useful for FFI */
 #if SIZEOF_VOIDP == 8
   Sg_AddCondFeature(UC("64bit"));
-#elseif
+#else
   Sg_AddCondFeature(UC("32bit"));
 #endif
 
