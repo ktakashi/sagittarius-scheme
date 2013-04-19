@@ -4,7 +4,11 @@
 	(math mt-random)
 	(srfi :64 testing))
 
+#;
 (define seed #vu8(69 35 1 0 0 0 0 0 86 52 2 0 0 0 0 0 103 69 3 0 0 0 0 0 120 86 4 0 0 0 0 0))
+(define seed (uint-list->bytevector '(#x12345 #x23456 #x34567 #x45678)
+				    (endianness native) 8)) 
+
 (define prng (pseudo-random MT :seed seed))
 
 (test-begin "MT random")
