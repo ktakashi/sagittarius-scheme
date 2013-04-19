@@ -101,9 +101,16 @@
        =>
        #vu8(1 2 3 4))
 
+(check (pack "!2s!*l" 1 2 3 4)
+       => #vu8(0 1 0 2 0 0 0 3 0 0 0 4))
+
 (check (pack "2s!*l" 1 2 3 4)
        =>
-       #vu8(1 0 2 0 0 0 0 3 0 0 0 4))
+       (cond-expand
+	(little-endian
+	 #vu8(1 0 2 0 0 0 0 3 0 0 0 4))
+	(big-endian
+	 #vu8(0 1 0 2 0 0 0 3 0 0 0 4))))
 
 (check-pack '#vu8() "")
 (check-pack '#vu8(0) "x")

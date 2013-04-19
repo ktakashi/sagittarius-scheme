@@ -132,7 +132,7 @@
     rest))
 
 (define (run-sitelib-tests :optional (multithread? #t))
-  (let ((files (find-files (or config path) :pattern ".scm")))
+  (let ((files (find-files (or config path) :pattern ".scm$")))
     (if multithread?
 	(do ((files (run-tests files) (run-tests files)))
 	    ((null? files)))

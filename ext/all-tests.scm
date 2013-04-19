@@ -25,7 +25,7 @@
 	      (add-load-path path))))))
     ;; to avoid to use installed time library. for ext/thread
     (add-load-path "./time"))
-(let* ((files (find-files (or search-path ".") :pattern "^test.scm"))
+(let* ((files (find-files (or search-path ".") :pattern "^test.scm$"))
        (thunks (map (lambda (file) (lambda () (load file))) files)))
   (for-each (lambda (file thunk)
 	      (parameterize ((test-runner-current (test-runner-create)))

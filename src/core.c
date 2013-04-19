@@ -436,6 +436,13 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("full-unicode"));
   Sg_AddCondFeature(UC(SAGITTARIUS_PLATFORM));
   Sg_AddCondFeature(UC(SAGITTARIUS_PROCESSOR));
+  /* it's useful for FFI */
+#if SIZEOF_VOIDP == 8
+  Sg_AddCondFeature(UC("64bit"));
+#elseif
+  Sg_AddCondFeature(UC("32bit"));
+#endif
+
 #ifdef WORDS_BIGENDIAN
   Sg_AddCondFeature(UC("big-endian"));
 #else

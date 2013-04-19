@@ -18,17 +18,19 @@
   (test-assert "suffix" shared-object-suffix)
   (test-assert "suffix(1)" (string? (shared-object-suffix)))
 
-  ;; for now, we do not support annonymous struct
+  ;; for now, we do not support anonymous struct
   (cond-expand
-   (x86_64
-    ;; on X86_64 environment, struct alignment was bit different
-    ;; than I expected.
+   ;; The patch is from Stephen Lewis.
+   (64bit
+    ;; on 64-bit architecture gcc aligns elements on 8 byte boundary
     (define-c-struct inner
-      (intptr_t value2)
+      (int value2)
+      (int pad2)
       (char* str))
     
     (define-c-struct data-to-store
-      (intptr_t value1)
+      (int value1)
+      (int pad1)
       (struct inner inner)))
    (else
     (define-c-struct inner
@@ -100,6 +102,7 @@
 			    (loop (+ i 1)
 				  (cons (ref p (* size i)) r))))))))))))))
 
+  (test-assert "open ffi-test-lib" (not (null-pointer? ffi-test-lib)))
   (test-equal "simple call"
 	      3
 	      (let ((add (c-function ffi-test-lib int add (int int))))
@@ -153,6 +156,7 @@
 			       (c-struct-ref st data-to-store 'inner.value2)
 			       (c-struct-ref st data-to-store 'inner.str))))
 		  r)))
+
   ;;(pointer-ref-test bool #t)
 
   (pointer-ref-test char #t)

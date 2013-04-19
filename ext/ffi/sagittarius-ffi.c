@@ -734,6 +734,7 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   }
 }
 
+/* TODO cleanup the code. use macro! */
 static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 {
   switch (type) {
@@ -741,30 +742,107 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     *((intptr_t *)result) = !SG_FALSEP(v);
     return TRUE;
   case FFI_RETURN_TYPE_SHORT   :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((short *)result) = SG_INT_VALUE(v);
+    } else {
+      *((short *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_INT     :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((int *)result) = SG_INT_VALUE(v);
+    } else {
+      *((int *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_LONG    :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((long *)result) = SG_INT_VALUE(v);
+    } else {
+      *((long *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_INT8_T  :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((int8_t *)result) = SG_INT_VALUE(v);
+    } else {
+      *((int8_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_INT16_T :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((int16_t *)result) = SG_INT_VALUE(v);
+    } else {
+      *((int16_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_INT32_T :
     if (!SG_EXACT_INTP(v)) goto ret0;
     if (SG_INTP(v)) {
-      *((intptr_t *)result) = SG_INT_VALUE(v);
+      *((int32_t *)result) = SG_INT_VALUE(v);
     } else {
-      *((intptr_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
+      *((int32_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
     }
     break;
   case FFI_RETURN_TYPE_USHORT  :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((unsigned short *)result) = SG_INT_VALUE(v);
+    } else {
+      *((unsigned short *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_UINT    :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((unsigned int *)result) = SG_INT_VALUE(v);
+    } else {
+      *((unsigned int *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_ULONG   :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((unsigned long *)result) = SG_INT_VALUE(v);
+    } else {
+      *((unsigned long *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_SIZE_T  :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((size_t *)result) = SG_INT_VALUE(v);
+    } else {
+      *((size_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_UINT8_T :
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((uint8_t *)result) = SG_INT_VALUE(v);
+    } else {
+      *((uint8_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_UINT16_T: 
+    if (!SG_EXACT_INTP(v)) goto ret0;
+    if (SG_INTP(v)) {
+      *((uint16_t *)result) = SG_INT_VALUE(v);
+    } else {
+      *((uint16_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+    }
+    break;
   case FFI_RETURN_TYPE_UINT32_T:
     if (!SG_EXACT_INTP(v)) goto ret0;
     if (SG_INTP(v)) {
-      *((uintptr_t *)result) = SG_INT_VALUE(v);
+      *((uint32_t *)result) = SG_INT_VALUE(v);
     } else {
-      *((uintptr_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
+      *((uint32_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
     }
     break;
 
