@@ -93,13 +93,18 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
 
   port->loadPath = vm->currentLoadPath;
   if (!SG_FALSEP(file)) {
+    /* This actually not so useful since reading cache file doesn't 
+       return proper load path but entry file path (eg. sash 'this-file'.scm).
+       Let's not use unnecessary memory for useless stuff. */
+    /* if (!Sg_AbsolutePathP(file)) file = Sg_AbsolutePath(file); */
     vm->currentLoadPath = Sg_DirectoryName(file);
   }
   port->vmFlags = vm->flags;
   port->previousPort = vm->currentLoadingPort;
   vm->currentLoadingPort = port;
   /* TODO put macro in vm.h */
-  vm->flags = vm->flags & SG_LOG_LEVEL_MASK; /* reset all flags except log*/
+  /* reset all flags except log and cache */
+  vm->flags = vm->flags & (SG_LOG_LEVEL_MASK | SG_CACHE_MASK); 
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }
 

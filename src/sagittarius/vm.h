@@ -299,6 +299,7 @@ typedef enum {
   /* cache mode */
   SG_DISABLE_CACHE    = 0x00000001,
   SG_NO_DEBUG_INFO    = 0x00000002,
+  SG_CACHE_MASK       = 0x000000FF,
   /* reader mode */
   SG_R6RS_MODE        = 0x00000100, /* 00000001 */
   SG_COMPATIBLE_MODE  = 0x00000200, /* 00000010 */
