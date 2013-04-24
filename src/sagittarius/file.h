@@ -74,6 +74,12 @@ enum SgGlobFlags {
   SG_PATHNAME = 1 << 3,
 };
 
+enum SgFileLockType {
+  SG_SHARED    = 1U << 0,
+  SG_EXCLUSIVE = 1U << 1,
+  SG_DONT_WAIT = 1U << 2
+};
+
 SG_CDECL_BEGIN
 
 /**
@@ -82,6 +88,9 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeFile();
 SG_EXTERN SgObject Sg_MakeFileFromFD(uintptr_t handle);
 SG_EXTERN SgObject Sg_OpenFile(SgString *file, int flags);
+SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
+SG_EXTERN int      Sg_UnlockFile(SgObject file);
+
 /* These methods are just creating wraps for stdout, stdin, stderr */
 SG_EXTERN SgObject Sg_StandardOut();
 SG_EXTERN SgObject Sg_StandardIn();

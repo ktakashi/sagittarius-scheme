@@ -262,6 +262,40 @@ SgObject Sg_OpenFile(SgString *file, int flags)
   return SG_OBJ(z);
 }
 
+int Sg_LockFile(SgObject file, enum SgFileLockType mode)
+{
+  struct flock fl;
+  int cmd = F_SETLKW;
+  /* we lock the whole file */
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+  fl.l_type = F_RDLCK;		/* default */
+  if (mode & SG_EXCLUSIVE) fl.l_type = F_WRLCK;
+  if (mode & SG_DONT_WAIT) cmd = F_SETLK;
+  if (fcntl(SG_FD(file)->fd, cmd, &fl)) {
+    setLastError(file);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+int Sg_UnlockFile(SgObject file)
+{
+  struct flock fl;
+  /* we lock the whole file */
+  fl.l_whence = SEEK_SET;
+  fl.l_start = 0;
+  fl.l_len = 0;
+  fl.l_type = F_UNLCK;
+  if (fcntl(SG_FD(file)->fd, F_SETLK, &fl)) {
+    setLastError(file);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+
 static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;

@@ -891,6 +891,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   }
 
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  /* lock file */
+  Sg_LockFile(file, SG_EXCLUSIVE);
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
 
   SG_FOR_EACH(cache, caches) {
@@ -911,6 +913,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   /* put validate tag */
   Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
   Sg_ClosePort(out);
+  Sg_UnlockFile(file);
   return TRUE;
 }
 /*
