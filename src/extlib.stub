@@ -401,8 +401,6 @@
 	  (flags::int 0 ))
       (get-file file port)
       (cond ((SG_EQ mode 'shared) (set! flags SG_SHARED))
-	    ((SG_EQ mode 'shared+no-wait) 
-	     (set! flags (logior SG_SHARED SG_DONT_WAIT)))
 	    ((SG_EQ mode 'exclusive) (set! flags SG_EXCLUSIVE))
 	    ((SG_EQ mode 'exclusive+no-wait) 
 	     (set! flags (logior SG_EXCLUSIVE SG_DONT_WAIT)))
