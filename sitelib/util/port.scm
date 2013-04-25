@@ -39,10 +39,12 @@
 	    port-for-each
 	    port-map
 	    copy-binary-port
+	    call-with-file-port-lock
 	    )
     (import (rnrs)
 	    (srfi :1)
-	    (srfi :38))
+	    (srfi :38)
+	    (sagittarius))
   (define (port->list reader port)
     (let loop ((s (reader port))
 	       (r '()))
@@ -93,4 +95,12 @@
 	    (unless (eof-object? n)
 	      (put-bytevector dst buf 0 n))))))
 
+  ;; lock file port
+  (define (call-with-file-port-lock port proc :key (lock-type 'shared))
+    ;; the lock must be unlocked after proc no matter what
+    (lock-file-port! port lock-type)
+    (dynamic-wind values
+	(lambda () (proc port))
+	(lambda () (unlock-file-port! port)))
+    )
 )
