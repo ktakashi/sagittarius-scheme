@@ -46,7 +46,9 @@
 	    dbi-prepare
 	    dbi-bind-parameter!
 	    dbi-execute!
+	    dbi-execute-query!
 	    dbi-execute-using-connection!
+	    dbi-execute-query-using-connection!
 	    dbi-fetch!
 	    dbi-fetch-all!
 	    dbi-columns
@@ -131,16 +133,33 @@
   ;; this will raise no method condition.
   (define-generic dbi-prepare)
   (define-generic dbi-execute!)
+  ;; make some room for DBD extension...
+  (define-generic dbi-execute-query!)
+  (define-method dbi-execute-query! ((stmt <dbi-query>) . option)
+    (apply dbi-execute! stmt option)
+    stmt)
+
   (define-generic dbi-execute-using-connection!)
-  ;; simple implementation
-  (define-method dbi-execute-using-connection! ((c <dbi-connection>) sql . args)
+  (define-generic dbi-execute-query-using-connection!)
+
+  (define (%execute-using-connection c sql . args)
     (let1 q (dbi-prepare c sql)
       ;; assume dbi-bind-parameter! can handle the integer
       (unless (null? args)
 	(do ((i 0 (+ i 1)) (args args (cdr args)))
 	    ((null? args))
 	  (dbi-bind-parameter! q i (car args))))
-      (dbi-execute! q)))
+      (values (dbi-execute! q) q)))
+  ;; simple implementation
+  (define-method dbi-execute-using-connection! ((c <dbi-connection>) sql . args)
+    (receive (count stmt) (apply %execute-using-connection c sql args)
+      count))
+
+  ;; simple implementation
+  (define-method dbi-execute-query-using-connection! 
+    ((c <dbi-connection>) sql . args)
+    (receive (count stmt) (apply %execute-using-connection c sql args)
+      stmt))
   ;; fetch must return #f if no result available
   (define-generic dbi-fetch!)
   (define-generic dbi-fetch-all!)

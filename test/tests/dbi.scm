@@ -69,6 +69,7 @@
 
 (import (rnrs)
 	(dbi)
+	(clos user)
 	(srfi :64 testing))
 
 (define conn (dbi-connect "dbi:test"))
@@ -85,7 +86,19 @@
   (test-assert (dbi-commit! query))
   (test-assert (dbi-rollback! query))
   (test-assert (dbi-bind-parameter! query 0 "value"))
+
+  ;; default implementation return the same statement
+  (test-equal "dbi-execute-query!" query (dbi-execute-query! query))
   )
+(let ((q (dbi-execute-query-using-connection! conn "select id from dummy")))
+  (test-assert "query?" (is-a? q <dbi-query>))
+  (test-equal '#(ID) (dbi-columns q))
+  (test-equal '#(1) (dbi-fetch! q))
+  ;; it's just a test
+  (test-equal '(#(1) #(2)) (dbi-fetch-all! q))
+  
+  )
+
 ;; connection level commit and rollback
 (test-assert (dbi-commit! conn))
 (test-assert (dbi-rollback! conn))
