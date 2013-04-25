@@ -880,7 +880,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
   SgString *cache_path = id_to_filename(id);
-  SgFile *file;
+  SgFile *file, *tagfile;
   SgPort *out;
   SgObject cache, timestamp;
   int index = 0;
@@ -896,7 +896,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
 
   SG_FOR_EACH(cache, caches) {
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
+    if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
       Sg_VMDumpCode(SG_CAR(cache));
     }
     if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
@@ -904,16 +904,19 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
       return FALSE;
     }
   }
-
+  Sg_UnlockFile(file);
   Sg_ClosePort(out);
+
   timestamp = Sg_FileModifyTime(cache_path);
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
-  out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
+  tagfile = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  Sg_LockFile(tagfile, SG_EXCLUSIVE);
+  out = Sg_MakeFileBinaryOutputPort(tagfile, SG_BUFMODE_BLOCK);
   /* put validate tag */
   Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_UnlockFile(tagfile);
   Sg_ClosePort(out);
-  Sg_UnlockFile(file);
+
   return TRUE;
 }
 /*
@@ -1587,9 +1590,11 @@ int Sg_ReadCache(SgString *id)
   }
 
   file = Sg_OpenFile(timestamp, SG_READ);
+  Sg_LockFile(file, SG_SHARED);
   /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
   /* size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50); */
-  size = SG_FILE(file)->read(file, tagbuf, 50);
+  size = SG_FILE(file)->read(file, (uint8_t *)tagbuf, 50);
+  Sg_UnlockFile(file);
   SG_FILE(file)->close(file);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
@@ -1598,10 +1603,12 @@ int Sg_ReadCache(SgString *id)
   /* end check timestamp */
 
   file = Sg_OpenFile(cache_path, SG_READ);
+  Sg_LockFile(file, SG_SHARED);
   /* to save some memory, use raw file operations */
   size = SG_FILE(file)->size(file);
   alldata = Sg_MakeByteVector((int)size, 0);
   SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
+  Sg_UnlockFile(file);
   SG_FILE(file)->close(file);
   in = Sg_MakeByteVectorInputPort(alldata, 0);
 
