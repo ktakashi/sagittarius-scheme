@@ -580,6 +580,18 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
   return result;
 }
 
+static int file_lock(SgObject self, SgPortLockType type)
+{
+  SgFile *file = SG_PORT_FILE(self);
+  return Sg_LockFile(file, (enum SgFileLockType)type);
+}
+
+static int file_unlock(SgObject self, SgPortLockType type)
+{
+  SgFile *file = SG_PORT_FILE(self);
+  return Sg_UnlockFile(file);
+}
+
 SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
 {
   /* TODO is buffer mode correct? */
@@ -592,6 +604,8 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   z->flush = NULL;
   z->close = file_close;
   z->ready = file_ready;
+  z->lockPort = file_lock;
+  z->unlockPort = file_unlock;
   /* set binary input port */
   z->impl.bport = b;
   /* initialize binary input port */
@@ -714,6 +728,8 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   z->flush = file_flush_internal; /* TODO rename. */
   z->close = file_close;
   z->ready = file_ready;
+  z->lockPort = file_lock;
+  z->unlockPort = file_unlock;
 
   b->src.file = file;
   b->open = file_open;
@@ -750,6 +766,8 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   z->flush = file_flush;
   z->close = file_close;
   z->ready = file_ready;
+  z->lockPort = file_lock;
+  z->unlockPort = file_unlock;
 
   z->impl.bport = b;
 
@@ -1077,6 +1095,18 @@ static int trans_ready(SgObject self)
   }
 }
 
+static int trans_lock(SgObject self, SgPortLockType type)
+{
+  SgPort *src = SG_TRANSCODED_PORT_SRC_PORT(self);
+  return Sg_LockPort(src, type);
+}
+
+static int trans_unlock(SgObject self)
+{
+  SgPort *src = SG_TRANSCODED_PORT_SRC_PORT(self);
+  return Sg_UnlockPort(src);
+}
+
 SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
@@ -1086,6 +1116,8 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
   z->flush = NULL;
   z->close = transClose;
   z->ready = trans_ready;
+  z->lockPort = trans_lock;
+  z->unlockPort = trans_unlock;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1128,6 +1160,8 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   z->flush = transFlush;
   z->close = transClose;
   z->ready = trans_ready;
+  z->lockPort = trans_lock;
+  z->unlockPort = trans_unlock;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1154,6 +1188,8 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
   z->flush = transFlush;
   z->close = transClose;
   z->ready = trans_ready;
+  z->lockPort = trans_lock;
+  z->unlockPort = trans_unlock;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -2573,6 +2609,26 @@ SgObject Sg_PortTranscoder(SgObject port)
   } else {
     /* TODO custom port */
     return SG_FALSE;
+  }
+}
+
+int Sg_LockPort(SgPort *port, SgPortLockType lockType)
+{
+  if (port->lockPort) {
+    return port->lockPort(port, lockType);
+  } else {
+    /* default TRUE */
+    return TRUE;
+  }
+}
+
+int Sg_UnlockPort(SgPort *port)
+{
+  if (port->unlockPort) {
+    return port->unlockPort(port);
+  } else {
+    /* default TRUE */
+    return TRUE;
   }
 }
 

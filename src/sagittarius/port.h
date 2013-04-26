@@ -35,7 +35,9 @@
 #include "sagittariusdefs.h"
 #include "thread.h"
 #include "clos.h"
+#include "file.h"
 
+typedef enum SgFileLockType SgPortLockType;
 typedef int64_t SgPortPositionFn(SgPort *);
 typedef void    SgSetPortPositionFn(SgPort *, int64_t);
 
@@ -187,6 +189,8 @@ struct SgPortRec
   void (*flush)(SgObject);
   int  (*close)(SgObject);
   int  (*ready)(SgObject);
+  int  (*lockPort)(SgObject, SgPortLockType);
+  int  (*unlockPort)(SgObject);
 
   union {
     SgBinaryPort  *bport;
@@ -285,6 +289,8 @@ enum SgCustomPortType {
     (port)->type = (t);				\
     (port)->bufferMode = (m);			\
     (port)->reader = SG_FALSE;			\
+    (port)->lockPort = NULL;			\
+    (port)->unlockPort = NULL;			\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 
@@ -346,6 +352,8 @@ SG_EXTERN SgObject Sg_StandardErrorPort();
 SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
 
 /* utility methods */
+SG_EXTERN int      Sg_LockPort(SgPort *port, SgPortLockType lockType);
+SG_EXTERN int      Sg_UnlockPort(SgPort *port);
 SG_EXTERN int      Sg_PortReady(SgPort *port);
 SG_EXTERN int      Sg_UTF16ConsolePortP(SgPort *port);
 SG_EXTERN void     Sg_FlushPort(SgPort *port);

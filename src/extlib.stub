@@ -365,65 +365,33 @@
   (define-c-proc copy-access-control (src::<string> dst::<string>) ::<boolean>
     Sg_CopyAccessControl)
 
-  ;; lock file (do we need this?)
-  (define-cise-expr binary-file-port?
-    ((_ p)
-     `(and (SG_BINARY_PORTP ,p)
-	   (== (-> (SG_BINARY_PORT ,p) type) 
-	       SG_FILE_BINARY_PORT_TYPE))))
-  (define-cise-stmt check-file-port
-    ((_ name p)
-     `(unless (or (binary-file-port? ,p)
-		 (and (SG_TEXTUAL_PORTP ,p)
-		      (== (-> (SG_TEXTUAL_PORT ,p) type) 
-			  SG_TRANSCODED_TEXTUAL_PORT_TYPE)
-		      (binary-file-port? (SG_TRANSCODED_PORT_SRC_PORT ,p))))
-       (wrong-type-of-argument-violation ',name "file-port" ,p))))
-
   (define-cise-stmt check-port-open
     ((_ name p)
      `(when (Sg_PortClosedP ,p)
 	(wrong-type-of-argument-violation ',name "opened port" ,p))))
 
-  (define-cise-stmt get-file
-    ((_ file port)
-     `(if (binary-file-port? ,port)
-	  (set! ,file (ref (pointer (SG_BINARY_PORT port)) src file))
-	  (set! ,file (ref (pointer (SG_BINARY_PORT 
-				     (SG_TRANSCODED_PORT_SRC_PORT ,port)))
-			   src file)))))
-  (define-c-proc lock-file-port!
-    (port::<port> :optional (mode::<symbol> 'shared))
-    (check-port-open lock-file-port! port)
-    ;; we only support file binary port or transcoded file binary port
-    (check-file-port lock-file-port! port)
-    (let ((file::SgFile* NULL)
-	  (flags::int 0 ))
-      (get-file file port)
-      (cond ((SG_EQ mode 'shared) (set! flags SG_SHARED))
-	    ((SG_EQ mode 'shared+no-wait) 
-	     (set! flags (logior SG_SHARED SG_DONT_WAIT)))
-	    ((SG_EQ mode 'exclusive) (set! flags SG_EXCLUSIVE))
-	    ((SG_EQ mode 'exclusive+no-wait) 
-	     (set! flags (logior SG_EXCLUSIVE SG_DONT_WAIT)))
+  (define-c-proc lock-port!
+    (port::<port> :key (lock-type::<symbol> shared) (wait::<boolean> #t)
+		  (raise::<boolean> #t))
+    (check-port-open lock-port! port)
+    (let ((flags::int 0))
+      (cond ((SG_EQ lock-type 'shared)    (set! flags SG_SHARED))
+	    ((SG_EQ lock-type 'exclusive) (set! flags SG_EXCLUSIVE))
 	    (else
-	     (assertion-violation 'lock-file-port! "unsupported mode" mode)))
-      (unless (Sg_LockFile file flags)
-	(Sg_IOError -1 'lock-file-port! (Sg_GetLastErrorMessage)
-		    file port))
-      (result port)))
+	     (assertion-violation 'lock-port!
+				  "unsupported lock-type" lock-type)))
+      (unless wait (set! flags (logior flags SG_DONT_WAIT)))
+      (result SG_FALSE)
+      (if (Sg_LockPort port flags)
+	  (result port)
+	  (when raise
+	    (Sg_IOError -1 'lock-port! (Sg_GetLastErrorMessage)
+			NULL port)))))
 
-  (define-c-proc unlock-file-port!
-    (port::<port> :optional (mode::<symbol> 'shared))
-    (check-port-open unlock-file-port! port)
-    ;; we only support file binary port or transcoded file binary port
-    (check-file-port unlock-file-port! port)
-    (let ((file::SgFile* NULL))
-      (get-file file port)
-      (unless (Sg_UnlockFile file)
-	(Sg_IOError -1 'unlock-file-port! (Sg_GetLastErrorMessage)
-		    file port))
-      (result port)))
+  (define-c-proc unlock-port! (port::<port>)
+    ;; should we raise an error?
+    (Sg_UnlockPort port)
+    (result port))
 
   ;; readonly current library access
   ;; it's nice to have this

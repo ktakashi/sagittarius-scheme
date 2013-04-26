@@ -88,6 +88,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeFile();
 SG_EXTERN SgObject Sg_MakeFileFromFD(uintptr_t handle);
 SG_EXTERN SgObject Sg_OpenFile(SgString *file, int flags);
+SG_EXTERN int      Sg_CloseFile(SgObject file);
 SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
 SG_EXTERN int      Sg_UnlockFile(SgObject file);
 

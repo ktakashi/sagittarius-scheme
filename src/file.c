@@ -49,6 +49,10 @@ static void file_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FileClass, file_print);
 
+int Sg_CloseFile(SgObject file)
+{
+  return SG_FILE(file)->close(file);
+}
 
 SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
 		     SgString *suffix, int quiet)

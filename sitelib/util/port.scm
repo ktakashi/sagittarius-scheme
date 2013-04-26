@@ -39,7 +39,10 @@
 	    port-for-each
 	    port-map
 	    copy-binary-port
-	    call-with-file-port-lock
+	    ;; lock port
+	    lock-port!
+	    unlock-port!
+	    call-with-port-lock
 	    )
     (import (rnrs)
 	    (srfi :1)
@@ -96,11 +99,11 @@
 	      (put-bytevector dst buf 0 n))))))
 
   ;; lock file port
-  (define (call-with-file-port-lock port proc :key (lock-type 'shared))
+  (define (call-with-port-lock port proc . opt)
     ;; the lock must be unlocked after proc no matter what
-    (lock-file-port! port lock-type)
+    (apply lock-port! port opt)
     (dynamic-wind values
 	(lambda () (proc port))
-	(lambda () (unlock-file-port! port)))
+	(lambda () (unlock-port! port)))
     )
 )

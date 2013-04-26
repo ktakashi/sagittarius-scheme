@@ -892,7 +892,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   /* lock file */
-  Sg_LockFile(file, SG_EXCLUSIVE);
+  if (!Sg_LockFile(file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
+    /* if locking file fails means there is a already process running to write
+       this cache file and there is no reason to re-do this since cache file
+       will be the same for the same cache. So just return. */
+    SG_FILE(file)->close(file);
+    return TRUE;
+  }
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
 
   SG_FOR_EACH(cache, caches) {
@@ -910,11 +916,11 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   timestamp = Sg_FileModifyTime(cache_path);
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   tagfile = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
-  Sg_LockFile(tagfile, SG_EXCLUSIVE);
+  /* Sg_LockFile(tagfile, SG_EXCLUSIVE); */
   out = Sg_MakeFileBinaryOutputPort(tagfile, SG_BUFMODE_BLOCK);
   /* put validate tag */
   Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
-  Sg_UnlockFile(tagfile);
+  /* Sg_UnlockFile(tagfile); */
   Sg_ClosePort(out);
 
   return TRUE;
