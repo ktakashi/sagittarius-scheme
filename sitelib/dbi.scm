@@ -146,7 +146,7 @@
     (let1 q (dbi-prepare c sql)
       ;; assume dbi-bind-parameter! can handle the integer
       (unless (null? args)
-	(do ((i 0 (+ i 1)) (args args (cdr args)))
+	(do ((i 1 (+ i 1)) (args args (cdr args)))
 	    ((null? args))
 	  (dbi-bind-parameter! q i (car args))))
       (values (dbi-execute! q) q)))
