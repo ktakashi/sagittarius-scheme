@@ -250,6 +250,23 @@ stored in broken state. In that case use @code{-c} option with @code{sash}, then
 it will wipe all cache files. If you don't want to use it, pass @code{-d} option
 then Sagittarius won't use it.
 
+@subsubsection{Precompiling cache file}
+
+Users can provide own library with precompile script. The script looks like
+this;
+
+@codeblock{
+(import (the-library-1) (the-library-2))
+}
+
+When this script is run, then the libraries will be cached in the cache
+directory.
+
+Note: The cache files are stored with the names converted from original library
+files' absolute path. So it is important that users' libraries are already
+installed before precompiling, otherwise Sagittarius won't use the precompiled
+cache files.
+
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
 @include-section["clos.scrbl"]
