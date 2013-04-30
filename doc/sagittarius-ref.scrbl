@@ -224,32 +224,31 @@ second most, so on.
 Note: This style can hide some private procedures however if you want to write
 portable codes some implementation do not allow you to write this style.
 
-@subsection{Macro expansion sequence}
+@subsection{Compiled cache}
 
-Users might need to know how Sagittarius' compilation works to write portable
-code. In R6RS, it specifies macro expansion phase however Sagittarius does not
-have explicit phase for it. The typical problem for this is the following code;
-@codeblock{
-(define-syntax define-inline
-  (syntax-rules ()
-    ((_ (?name ?args @dots{}) ?form0 ?forms @dots{})
-     (define-syntax ?name
-       (syntax-rules ()
-         ((_ ?args @dots{})
-          (begin ?form0 ?forms @dots{})))))))
-(define (macro-problem)
-  (define (inner) (inlined))
-  (define-inline (inlined) 'ok)
-  (inner))
-(macro-problem) ;; &assertion
-}
-The problem with this code is that compiler compiles first comes first, so when
-@code{(inner)} is compiled, compiler sees @code{(inlined)} as a global variable.
-Then when real definition of @code{inlined} is compiled, however the
-@code{inner} is already compiled to call global variable of @code{(inlined)}.
-The simple solution to avoid this is switch the order. It is better to keep
-macros first then internal define.
+For better starting time, Sagittarius caches compiled libraries. The cache files
+are stored in one of the following environment variables;
 
+For Unix like (POSIX) environment:
+@itemlist[
+  @item{@code{SAGITTARIUS_CACHE_DIR}}
+  @item{@code{HOME}}
+]
+
+For Windows environment:
+@itemlist[
+  @item{@code{SAGITTARIUS_CACHE_DIR}}
+  @item{@code{TEMP}}
+  @item{@code{TMP}}
+]
+
+Sagittarius will use the variables respectively, so if the
+@code{SAGITTARIUS_CACHE_DIR} is found then it will be used.
+
+The caching compiled file is carefully designed however the cache file might be
+stored in broken state. In that case use @code{-c} option with @code{sash}, then
+it will wipe all cache files. If you don't want to use it, pass @code{-d} option
+then Sagittarius won't use it.
 
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]
