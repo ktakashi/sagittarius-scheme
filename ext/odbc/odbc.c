@@ -90,9 +90,23 @@ static void odbc_ctx_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcCtxClass, odbc_ctx_printer);
 
+static int free_handle(SgObject obj, int unregister)
+{
+  SQLRETURN ret;
+  if (unregister) {
+    Sg_UnregisterFinalizer(obj);
+  }
+  return SQLFreeHandle(SG_ODBC_CTX(obj)->type, SG_ODBC_CTX(obj)->handle);
+}
+
+int Sg_FreeHandle(SgObject obj)
+{
+  return free_handle(obj, TRUE);
+}
+
 static void odbc_finalize(SgObject obj, void *data)
 {
-  SQLFreeHandle(SG_ODBC_CTX(obj)->type, SG_ODBC_CTX(obj)->handle);
+  free_handle(obj, FALSE);
 }
 
 static SgOdbcCtx* make_odbc_ctx(SQLSMALLINT type, SgOdbcCtx *parent)
@@ -164,7 +178,7 @@ int Sg_Disconnect(SgObject hdbc)
   return TRUE;
 }
 
-int Sg_OpenP(SgObject hdbc)
+int Sg_ConnectionOpenP(SgObject hdbc)
 {
   SQLRETURN ret;
   SQLUINTEGER b;
@@ -172,7 +186,7 @@ int Sg_OpenP(SgObject hdbc)
   ret = SQLGetConnectAttr(SG_ODBC_CTX(hdbc)->handle,
 			  SQL_ATTR_CONNECTION_DEAD,
 			  (SQLPOINTER)&b, SQL_IS_UINTEGER, NULL);
-  if (ret == SQL_ERROR) return FALSE;
+  if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE) return FALSE;
   return (b != SQL_CD_TRUE);
 }
 
@@ -195,6 +209,20 @@ SgObject Sg_Prepare(SgObject hdbc, SgString *text)
   ret = SQLPrepare(SG_ODBC_CTX(stmt)->handle, (SQLCHAR *)s, SQL_NTS);
   CHECK_ERROR(prepare, stmt, ret);
   return stmt;
+}
+
+int Sg_StatementOpenP(SgObject stmt)
+{
+  SQLRETURN ret;
+  SQLUINTEGER b;
+  ASSERT(SG_ODBC_STMT_P(stmt));
+  /* FIXME we just check if this doesn't return error or invalid handle
+     with just checking.*/
+  ret = SQLGetStmtAttr(SG_ODBC_CTX(stmt)->handle,
+		       SQL_ATTR_ASYNC_ENABLE ,
+		       (SQLPOINTER)&b, SQL_IS_UINTEGER, NULL);
+  if (ret == SQL_ERROR || ret == SQL_INVALID_HANDLE) return FALSE;
+  return TRUE;
 }
 
 int Sg_NumParams(SgObject stmt)
@@ -750,4 +778,11 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__odbc()
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_DATE, UC("<odbc-date>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
+
+#define CCONST(name)						\
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)
+  /* for free handle  */
+  CCONST(SQL_SUCCESS);
+  CCONST(SQL_ERROR);
+  CCONST(SQL_INVALID_HANDLE);
 }

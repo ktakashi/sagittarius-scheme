@@ -153,6 +153,7 @@
   ;; simple implementation
   (define-method dbi-execute-using-connection! ((c <dbi-connection>) sql . args)
     (receive (count stmt) (apply %execute-using-connection c sql args)
+      (dbi-close stmt)
       count))
 
   ;; simple implementation

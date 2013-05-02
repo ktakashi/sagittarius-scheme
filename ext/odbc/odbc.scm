@@ -34,8 +34,10 @@
 	    set-connect-attr!
 	    disconnect!
 	    connection-open?
+	    free-handle!
 	    statement
 	    prepare
+	    statement-open?
 	    num-params
 	    bind-parameter!
 	    execute!

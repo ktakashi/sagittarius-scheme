@@ -27,14 +27,19 @@
 (define-c-proc disconnect! (hdbc::<odbc-dbc>) ::<boolean>
   (result (Sg_Disconnect hdbc)))
 
+(define-c-proc free-handle! (ctx::<odbc-ctx>) ::<fixnum> Sg_FreeHandle)
+
 (define-c-proc connection-open? (hdbc::<odbc-dbc>) ::<boolean>
-  (result (Sg_OpenP hdbc)))
+  (result (Sg_ConnectionOpenP hdbc)))
 
 (define-c-proc statement (hdbc::<odbc-dbc>)
   (result (Sg_Statement hdbc)))
 
 (define-c-proc prepare (hdbc::<odbc-dbc> text::<string>)
   (result (Sg_Prepare hdbc text)))
+
+(define-c-proc statement-open? (stmt::<odbc-stmt>) ::<boolean>
+  Sg_StatementOpenP)
 
 (define-c-proc num-params (stmt::<odbc-stmt>) ::<fixnum>
   (result (Sg_NumParams stmt)))
