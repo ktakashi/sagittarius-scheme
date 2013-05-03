@@ -243,3 +243,21 @@ called on a connection or a query which has already been closed.
 @define[Method]{@name{dbi-fetch!} @args{(q <foo-query>)}}
 @define[Method]{@name{dbi-columns} @args{q <foo-query>}}
 @desc{Implementation must behave as described above section.}
+
+@sub*section{Data conversion guide}
+
+Database data type and Scheme type are usually not the same. However to keep
+DBI portable it is important to follow a guideline. Here I suggest the data
+conversion between a database and Scheme object.
+
+Following is database data type to Scheme type conversion guideline. The driver
+implementation should follow.
+
+@dl-list{
+@dl-item["Text (VARCHAR2 etc)"]{String}
+@dl-item["Binary (BINARY etc)"]{Bytevector}
+@dl-item["Date"]{Date from SRFI-19}
+@dl-item["Time and Timestamp"]{Time from SRFI-19}
+@dl-item["Blob"]{Binary port, preferably not retrieving all data at once.}
+@dl-item["Clob"]{Textual port, preferably not retrieving all data at once.}
+}

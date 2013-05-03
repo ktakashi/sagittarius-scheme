@@ -11,6 +11,7 @@
 @include-section["utils/list.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/net/oauth.scrbl"]
+@include-section["utils/odbc.scrbl"]
 @include-section["utils/pkcs/5.scrbl"]
 @include-section["utils/rfc/5322.scrbl"]
 @include-section["utils/rfc/base64.scrbl"]
