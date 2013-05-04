@@ -12,8 +12,12 @@
 (define-type <func-info> "SgFuncInfo*")
 (define-type <cstruct> "SgCStruct*")
 
-(define-c-proc open-shared-library (file::<string>) 
-  (result (Sg_MakePointer (Sg_OpenSharedObject file))))
+(define-c-proc open-shared-library (file::<string> :optional (raise::<boolean> #f)) 
+  (let ((p::void* (Sg_OpenSharedObject file)))
+    (when (and raise (== p NULL))
+      (Sg_Error (UC "%A") (Sg_GetSharedError)))
+    
+    (result (Sg_MakePointer p))))
 
 (define-c-proc lookup-shared-library (handle::<pointer> symbol::<string>) 
   (result (Sg_MakePointer (Sg_LookupSharedObject (cast void* 
