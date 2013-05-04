@@ -112,12 +112,18 @@ The document describes higher APIs to lower APIs.
 
 @subsubsection{Shared library  operations}
 
-@define[Function]{@name{open-shared-library} @args{path}}
-@desc{@var{path} must indicate existing shared library.
+@define[Function]{@name{open-shared-library} @args{file :optional (raise #f)}}
+@desc{@var{file} must be a string.
 
-Opens given @var{path} shared library and returns its pointer.
+Opens given @var{file} shared library and returns its pointer.
 
-If the given @var{path} does not exist, the it returns NULL pointer.
+The internal process of @code{open-shared-library} is depending on the
+platform, for example if your platform is POSIX envirionment then it will use
+@code{dlopen}. So the resolving the @var{file} depends on it. If you know the
+absolute path of the shared library, then it's always better to use it.
+
+If then internal process of the procedure failed and @var{raise} is #f then it
+returns NULL pointer, if @var{raise} is #t then it raises an error.
 }
 
 @define[Function]{@name{close-shared-library} @args{pointer}}
