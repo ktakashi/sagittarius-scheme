@@ -409,6 +409,7 @@ similar structure. This section describes how to define C structure in Scheme
 world.
 
 @define[Macro]{@name{define-c-struct} @args{name clauses @dots{}}}
+@define[Macro]{@name{define-c-struct} @args{name :packed clauses @dots{}}}
 @desc{Defines C structure.
 
 @var{clauses} must be following form;
@@ -470,6 +471,9 @@ struct st2
 }
 So far, we don't support direct internal structure so users always need to
 extract internal structures.
+
+If @var{:packed} keyword is given, then defined structure is packed (without
+padding).
 }
 
 @define[Function]{@name{size-of-c-struct} @args{struct}}
