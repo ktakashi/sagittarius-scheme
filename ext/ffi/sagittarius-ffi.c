@@ -268,13 +268,13 @@ static SgCStruct* make_cstruct(size_t size)
 static SgObject SYMBOL_STRUCT = SG_UNDEF;
 static SgLibrary *impl_lib = NULL;
 
-SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
+SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 {
   SgCStruct *st;
   SgObject cp;
   SgVM *vm = Sg_VM();
   int index = 0;
-  size_t size;
+  size_t size, max_type;
   if (!SG_LISTP(layouts)) {
     Sg_Error(UC("list required but got %S"), layouts);
   }
@@ -289,7 +289,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
       ;; array
       (name type . (size . type-symbol)) ...)
    */
-  size = 0;
+  max_type = size = 0;
   SG_FOR_EACH(cp, layouts) {
     SgObject layout = SG_CAR(cp);
     SgObject typename;
@@ -320,18 +320,15 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
 	st->layouts[index].cstruct = SG_CSTRUCT(st2);
 	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;
 	size += SG_CSTRUCT(st2)->size;
+	if (SG_CSTRUCT(st2)->largestType > max_type) 
+	  max_type = SG_CSTRUCT(st2)->largestType;
       } else if (SG_INTP(SG_CAR(SG_CDDR(layout)))) {
-	SgObject size_of, gloc;
-	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout)));
+	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout))), s;
 	type = SG_INT_VALUE(SG_CADR(layout));
 	ffi = lookup_ffi_return_type(type);
-	size_of = Sg_Sprintf(UC("size-of-%A"), SG_CDR(SG_CDDR(layout)));
-	gloc = Sg_FindBinding(impl_lib, Sg_Intern(size_of), SG_FALSE);
-	if (SG_FALSEP(gloc)) {
-	  Sg_Error(UC("struct layout contains invalid array type %S"), layouts);
-	}
-	asize = asize * SG_INT_VALUE(SG_GLOC_GET(SG_GLOC(gloc))) - SG_INT_VALUE(SG_GLOC_GET(SG_GLOC(gloc)));
-	size += asize;
+	s = asize * ffi->size;
+	size += s;
+	st->layouts[index].array = s;
 	goto primitive_type;
       } else {
 	Sg_Error(UC("invalid struct layout %S"), layouts);
@@ -339,15 +336,24 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts)
     } else {
       type = SG_INT_VALUE(SG_CADR(layout));
       ffi = lookup_ffi_return_type(type);
+      size += ffi->size;
     primitive_type:
+      if (ffi->size > max_type) max_type = ffi->size;
+
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
       st->layouts[index].tag = type;
-      size += ffi->alignment;
     }
     index++;
   }
+  st->largestType = max_type;
+  if (!packedp) {
+    /* until here the size is packed size, so we need to fixup */
+    max_type--;			/* make mask */
+    size = (size + max_type) & ~max_type;
+  }
+  st->packed = packedp;
   st->size = size;		/* alignment */
   return SG_OBJ(st);
 }
@@ -418,7 +424,8 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
 	}
       }
     } else {
-      align += layouts[i].type->alignment;
+      /* align += layouts[i].type->alignment; */
+      align = st->largestType;
       if (layouts[i].array != -1) {
 	align += layouts[i].array;
       }
@@ -737,137 +744,48 @@ static ffi_type* lookup_ffi_return_type(int rettype)
 /* TODO cleanup the code. use macro! */
 static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 {
+#define CONVERT(type, conv)					\
+  do {								\
+    if (SG_EXACT_INTP(v)) {					\
+      if (SG_INTP(v)) {						\
+	*((type *)result) = SG_INT_VALUE(v);			\
+      } else {							\
+	*((type *)result) = conv(v, SG_CLAMP_NONE, NULL);	\
+      }								\
+    } else {							\
+      *((type *)result) = (type)0;				\
+    }								\
+  } while (0)
+
+#define SCONVERT(type) CONVERT(type, Sg_GetIntegerClamp)
+#define UCONVERT(type) CONVERT(type, Sg_GetUIntegerClamp)
+
   switch (type) {
   case FFI_RETURN_TYPE_BOOL    :
     *((intptr_t *)result) = !SG_FALSEP(v);
     return TRUE;
-  case FFI_RETURN_TYPE_SHORT   :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((short *)result) = SG_INT_VALUE(v);
-    } else {
-      *((short *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_INT     :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((int *)result) = SG_INT_VALUE(v);
-    } else {
-      *((int *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_LONG    :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((long *)result) = SG_INT_VALUE(v);
-    } else {
-      *((long *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_INT8_T  :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((int8_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((int8_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_INT16_T :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((int16_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((int16_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_INT32_T :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((int32_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((int32_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_USHORT  :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((unsigned short *)result) = SG_INT_VALUE(v);
-    } else {
-      *((unsigned short *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_UINT    :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((unsigned int *)result) = SG_INT_VALUE(v);
-    } else {
-      *((unsigned int *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_ULONG   :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((unsigned long *)result) = SG_INT_VALUE(v);
-    } else {
-      *((unsigned long *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_SIZE_T  :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((size_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((size_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_UINT8_T :
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((uint8_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((uint8_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_UINT16_T: 
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((uint16_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((uint16_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
-  case FFI_RETURN_TYPE_UINT32_T:
-    if (!SG_EXACT_INTP(v)) goto ret0;
-    if (SG_INTP(v)) {
-      *((uint32_t *)result) = SG_INT_VALUE(v);
-    } else {
-      *((uint32_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-    }
-    break;
+  case FFI_RETURN_TYPE_SHORT   : SCONVERT(short); break;
+  case FFI_RETURN_TYPE_INT     : SCONVERT(int); break;
+  case FFI_RETURN_TYPE_LONG    : SCONVERT(long); break;
+  case FFI_RETURN_TYPE_INT8_T  : SCONVERT(int8_t); break;
+  case FFI_RETURN_TYPE_INT16_T : SCONVERT(int16_t); break;
+  case FFI_RETURN_TYPE_INT32_T : SCONVERT(int32_t); break;
+
+  case FFI_RETURN_TYPE_USHORT  : UCONVERT(unsigned short); break;
+  case FFI_RETURN_TYPE_UINT    : UCONVERT(unsigned int); break;
+  case FFI_RETURN_TYPE_ULONG   : UCONVERT(unsigned long); break;
+  case FFI_RETURN_TYPE_SIZE_T  : UCONVERT(size_t); break;
+  case FFI_RETURN_TYPE_UINT8_T : UCONVERT(uint8_t); break;
+  case FFI_RETURN_TYPE_UINT16_T: UCONVERT(uint16_t); break;
+  case FFI_RETURN_TYPE_UINT32_T: UCONVERT(uint32_t); break;
 
   case FFI_RETURN_TYPE_INT64_T :
-    if (SG_EXACT_INTP(v)) {
-      if (SG_INTP(v)) {
-	*((int64_t *)result) = SG_INT_VALUE(v);
-      } else {
-	*((int64_t *)result) = Sg_GetIntegerS64Clamp(v, SG_CLAMP_NONE, NULL);
-      }
-    } else {
-      *((int64_t *)result) = 0;
-    }
+    CONVERT(int64_t, Sg_GetIntegerS64Clamp);
     break;
   case FFI_RETURN_TYPE_UINT64_T:
-    if (SG_EXACT_INTP(v)) {
-      if (SG_INTP(v)) {
-	*((uint64_t *)result) = SG_INT_VALUE(v);
-      } else {
-	*((uint64_t *)result) = Sg_GetIntegerU64Clamp(v, SG_CLAMP_NONE, NULL);
-      }
-    } else {
-      *((uint64_t *)result) = 0;
-    }
+    CONVERT(uint64_t, Sg_GetIntegerU64Clamp);
     break;
+
   case FFI_RETURN_TYPE_FLOAT   :
     if (!SG_REALP(v)) *((float *)result) = 0.0;
     else *((float *)result) = (float)Sg_GetDouble(v);
@@ -912,7 +830,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     /* callback will be treated separately */
   case FFI_RETURN_TYPE_CALLBACK:
   case FFI_RETURN_TYPE_VOID    :
-    *((intptr_t *)result) = 0;
+    *((intptr_t *)result) = (intptr_t)0;
     return TRUE;
   default:
     Sg_Panic("unknown FFI return type: %d", type);

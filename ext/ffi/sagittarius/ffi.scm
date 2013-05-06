@@ -328,7 +328,7 @@
 				(list ret args proc)))))
 
   ;; c-struct
-  (define (make-c-struct name defs)
+  (define (make-c-struct name defs packed?)
     (let ((layouts
 	   (map (lambda (def)
 		  (cond 
@@ -358,15 +358,19 @@
 	 'make-c-struct
 	 "struct declaration contains duplicated member name"
 	 (list name defs)))
-      (create-c-struct name layouts)))
+      (create-c-struct name layouts packed?)))
 
   ;; (define-c-struct name (int x) (int y) (struct st s))
   (define-syntax define-c-struct
     (lambda (x)
       (syntax-case x ()
 	((_ name (type . rest) ...)
+	 #'(define-c-struct name #f (type . rest) ...))
+	((_ name packed? (type . rest) ...)
+	 (or (eq? #'packed? :packed) (not #'packed?))
 	 ;; black magic ...
 	 #'(begin
+	     ;; FIXME
 	     ;; if there are more than one struct in the same library,
 	     ;; and if one of them refere it, it cause unbound variable error.
 	     ;; to avoid it, we need to do this. ugly...
@@ -374,9 +378,11 @@
 			      'name
 			      (make-c-struct 
 			       'name 
-			       (map cons (list type ...) '(rest ...))))
+			       (map cons (list type ...) '(rest ...))
+			       (eq? packed? :packed)))
 	     (define name (make-c-struct 'name (map cons (list type ...)
-						    '(rest ...)))))))))
+						    '(rest ...))
+					 (eq? packed? :packed))))))))
 
   (define c-function-return-type-alist
     `((void               . ,FFI_RETURN_TYPE_VOID    )

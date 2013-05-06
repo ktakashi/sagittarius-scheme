@@ -76,7 +76,8 @@
     (result (Sg_MakePointer p))))
 
 ;; struct
-(define-c-proc create-c-struct (name::<symbol> layouts) Sg_CreateCStruct)
+(define-c-proc create-c-struct (name::<symbol> layouts packed?::<boolean>)
+  Sg_CreateCStruct)
 
 ;; allocates c-struct with GC
 (define-c-proc allocate-c-struct (st::<cstruct>) 

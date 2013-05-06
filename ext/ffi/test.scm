@@ -19,27 +19,12 @@
   (test-assert "suffix(1)" (string? (shared-object-suffix)))
 
   ;; for now, we do not support anonymous struct
-  (cond-expand
-   ;; The patch is from Stephen Lewis.
-   (64bit
-    ;; on 64-bit architecture gcc aligns elements on 8 byte boundary
-    (define-c-struct inner
-      (int value2)
-      (int pad2)
-      (char* str))
-    
-    (define-c-struct data-to-store
-      (int value1)
-      (int pad1)
-      (struct inner inner)))
-   (else
-    (define-c-struct inner
-      (int value2)
-      (char* str))
-    
-    (define-c-struct data-to-store
-      (int value1)
-      (struct inner inner))))
+  (define-c-struct inner
+    (int value2)
+    (char* str))
+  (define-c-struct data-to-store
+    (int value1)
+    (struct inner inner))
 
   ;; for test convenience
   (define pointer-ref-c-uint8_t   pointer-ref-c-uint8)
@@ -216,6 +201,12 @@
     (test-assert "set-pointer-value!" (set-pointer-value! p 1))
     (test-equal "set-pointer-value!" 1 (pointer->integer p))
     (test-error "set-pointer-value!" values (set-pointer-value! p 'a)))
+
+  ;; extra
+  (define-c-struct size-check
+    (char  c)
+    (short s))
+  (test-equal "size-check" 4 (size-of-c-struct size-check))
   )
  (else
   #t))
