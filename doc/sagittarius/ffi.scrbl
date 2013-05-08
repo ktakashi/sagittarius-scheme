@@ -474,6 +474,15 @@ extract internal structures.
 
 @; If @var{:packed} keyword is given, then defined structure is packed (without
 @; padding).
+
+The macro also defines accessors for the c-struct. Following naming rules are
+applied;
+
+@itemlist{
+@item{For getter: @var{name}-@var{member-name}-ref}
+@item{For setter: @var{name}-@var{member-name}-set!}
+}
+
 }
 
 @define[Function]{@name{size-of-c-struct} @args{struct}}
@@ -484,6 +493,37 @@ Returns the size of given @var{struct}.
 
 @define[Function]{@name{allocate-c-struct} @args{struct}}
 @desc{Allocates memory for @var{struct} and returns a pointer.}
+
+@define[Function]{@name{@var{struct-name}-@var{member-name}-ref}
+ @args{struct-pointer inner-member-names @dot{}}}
+@define[Function]{@name{@var{struct-name}-@var{member-name}-set!}
+ @args{struct-pointer value inner-member-names @dot{}}}
+@desc{A getter/setter of @var{struct-name} c-struct.
+
+This is automatically defined by @code{define-c-struct} macro.
+
+The optional argument @var{inner-member-names} can be passed to get inner
+struct values.
+
+Following describes how it works.
+@codeblock{
+(define-c-struct in
+  (int  i)
+  (char c))
+(define-c-struct out
+  (int  i)
+  (struct in in0))
+
+(define out (allocate-c-struct out))
+(out-i-set! out 100 'i)   ;; -> unspecified
+(out-in0-set! out 200 'i) ;; -> unspecified
+(out-i-ref out)           ;; -> 100
+(out-in0-ref out 'i)      ;; -> 200
+(out-in0-ref out)         ;; -> pointer object (indicating the inner struct address)
+}
+}
+
+@sub*section{Low level C struct accessors}
 
 @define[Function]{@name{c-struct-ref} @args{pointer struct name}}
 @desc{@var{struct} must be a C structure defined with @code{define-c-struct}.

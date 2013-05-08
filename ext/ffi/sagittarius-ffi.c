@@ -510,8 +510,9 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_UINT64_T:
     return Sg_MakeIntegerFromU64(POINTER_REF(uint64_t, p, align));
   case FFI_RETURN_TYPE_POINTER :
-  case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer(POINTER_REF(uintptr_t, p, align));
+  case FFI_RETURN_TYPE_STRUCT  :
+    return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_CALLBACK:
     return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
   default:
