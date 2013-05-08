@@ -127,6 +127,7 @@ typedef struct struct_layout_rec_t
   SgCStruct *cstruct;
   int        array;		/* -1 not array, otherwise array size */
   int        tag;		/* type tag */
+  size_t     offset;		/* offset of this member */
   ffi_type  *type;		/* native type */
 } struct_layout_t;
 
@@ -134,9 +135,7 @@ struct SgCStructRec
 {
   SG_HEADER;
   SgObject  name;
-  size_t    size;
   size_t    fieldCount;
-  size_t    largestType;
   ffi_type  type;
   int       packed;
   struct_layout_t layouts[1];
@@ -186,6 +185,7 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp);
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name);
 void     Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name,
 		       SgObject value);
+void     Sg_DescCStruct(SgCStruct *ct, SgObject port);
 
 void     Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v);
 

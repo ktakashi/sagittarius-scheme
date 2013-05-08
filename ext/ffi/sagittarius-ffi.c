@@ -245,7 +245,7 @@ void Sg_ReleaseCallback(SgCallback *callback)
 static void cstruct_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<c-struct %A %d>"), 
-	    SG_CSTRUCT(self)->name, SG_CSTRUCT(self)->size);
+	    SG_CSTRUCT(self)->name, SG_CSTRUCT(self)->type.size);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CStructClass, cstruct_printer);
@@ -268,13 +268,26 @@ static SgCStruct* make_cstruct(size_t size)
 static SgObject SYMBOL_STRUCT = SG_UNDEF;
 static SgLibrary *impl_lib = NULL;
 
+/* compute offset
+   from: http://en.wikipedia.org/wiki/Data_structure_alignment
+ */
+static inline size_t compute_offset(size_t offset, size_t align)
+{
+  return (offset + align - 1) & ~(align - 1);
+}
+
+static inline size_t compute_padding(size_t offset, size_t align)
+{
+  return (-offset) & (align - 1);
+}
+
 SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 {
   SgCStruct *st;
   SgObject cp;
   SgVM *vm = Sg_VM();
   int index = 0;
-  size_t size, max_type;
+  size_t size, max_type, offset, padding;
   if (!SG_LISTP(layouts)) {
     Sg_Error(UC("list required but got %S"), layouts);
   }
@@ -289,12 +302,13 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
       ;; array
       (name type . (size . type-symbol)) ...)
    */
-  max_type = size = 0;
+  padding = offset = max_type = size = 0;
   SG_FOR_EACH(cp, layouts) {
     SgObject layout = SG_CAR(cp);
     SgObject typename;
     int type;
     ffi_type *ffi;
+    size_t array_off = 0;
     ASSERT(SG_INTP(SG_CADR(layout)));
 
     st->layouts[index].name = SG_CAR(layout);
@@ -318,17 +332,26 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 	st->type.elements[index] = &SG_CSTRUCT(st2)->type;
 	st->layouts[index].type = &SG_CSTRUCT(st2)->type;
 	st->layouts[index].cstruct = SG_CSTRUCT(st2);
-	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;
-	size += SG_CSTRUCT(st2)->size;
-	if (SG_CSTRUCT(st2)->largestType > max_type) 
-	  max_type = SG_CSTRUCT(st2)->largestType;
+	st->layouts[index].tag = FFI_RETURN_TYPE_STRUCT;	
+	size += SG_CSTRUCT(st2)->type.size;
+	padding = compute_padding(size, SG_CSTRUCT(st2)->type.alignment);
+	size += padding;
+	/* increment offset so that new offset won't be the same as before... */
+	/* FIXME this is ugly! */
+	if (index) offset += 1;
+	offset = compute_offset(offset, SG_CSTRUCT(st2)->type.alignment);
+
+	st->layouts[index].offset = offset;
+	if (SG_CSTRUCT(st2)->type.alignment > max_type) 
+	  max_type = SG_CSTRUCT(st2)->type.alignment;
       } else if (SG_INTP(SG_CAR(SG_CDDR(layout)))) {
-	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout))), s;
+	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout)));
 	type = SG_INT_VALUE(SG_CADR(layout));
 	ffi = lookup_ffi_return_type(type);
-	s = asize * ffi->size;
-	size += s;
-	st->layouts[index].array = s;
+	array_off = asize * ffi->size;
+	size += array_off;
+	st->layouts[index].array = array_off;
+	array_off -= ffi->alignment;
 	goto primitive_type;
       } else {
 	Sg_Error(UC("invalid struct layout %S"), layouts);
@@ -339,22 +362,30 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
       size += ffi->size;
     primitive_type:
       if (ffi->size > max_type) max_type = ffi->size;
+      /* compute new offset */
+      padding = compute_padding(size, ffi->alignment);
+      size += padding;
+      /* padded size - alignment is offset ... */
+      /* offset = compute_offset(offset + 1, ffi->alignment); */
+      offset = size - ffi->alignment - array_off;
 
       st->type.elements[index] = ffi;
       st->layouts[index].type = ffi;
       st->layouts[index].cstruct = NULL;
       st->layouts[index].tag = type;
+      st->layouts[index].offset = offset;
+      /* FIXME ugly!!! */
+      offset += array_off;
     }
     index++;
   }
-  st->largestType = max_type;
-  if (!packedp) {
-    /* until here the size is packed size, so we need to fixup */
-    max_type--;			/* make mask */
-    size = (size + max_type) & ~max_type;
-  }
+
   st->packed = packedp;
-  st->size = size;		/* alignment */
+  st->type.alignment = max_type;
+  /* fixup size */
+  max_type--;
+  size = (size + max_type) & ~max_type;
+  st->type.size = size;
   return SG_OBJ(st);
 }
 
@@ -383,6 +414,7 @@ static SgObject parse_member_name(SgSymbol *name)
   return ret;
 }
 
+#if 0
 static size_t calculate_alignment(SgObject names, SgCStruct *st,
 				  int *foundP, int *type)
 {
@@ -407,7 +439,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
       } else if (layouts[i].cstruct) {
 	/* struct in struct */
 	if (SG_NULLP(SG_CDR(names))) {
-	  align += layouts[i].cstruct->size;
+	  align += layouts[i].cstruct->type.alignment;
 	} else {
 	  /* search from here */
 	  int foundP2 = FALSE, type2;
@@ -425,7 +457,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
       }
     } else {
       /* align += layouts[i].type->alignment; */
-      align = st->largestType;
+      align = st->type.alignment;
       if (layouts[i].array != -1) {
 	align += layouts[i].array;
       }
@@ -433,6 +465,49 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
   }
   return align;
 }
+#else
+static size_t calculate_alignment(SgObject names, SgCStruct *st,
+				  int *foundP, int *type)
+{
+  size_t align = 0;
+  SgObject name = SG_CAR(names);
+  size_t size = st->fieldCount, i;
+  struct_layout_t *layouts = st->layouts;
+
+  /* names are list of property name for struct.
+     name        => (name)
+     name1.name2 => (name1 name2)
+   */
+  for (i = 0; i < size; i++) {
+    /* property found */
+    if (SG_EQ(name, layouts[i].name)) {
+      /* it's this one */
+      align = layouts[i].offset;
+      if (SG_NULLP(SG_CDR(names))) {
+	*foundP = TRUE;
+	*type = layouts[i].tag;
+	return align;
+      /* property was struct */
+      } else if (layouts[i].cstruct) {
+	/* search from here */
+	int foundP2 = FALSE, type2;
+	align += calculate_alignment(SG_CDR(names),
+				     layouts[i].cstruct,
+				     &foundP2,
+				     &type2);
+	/* second name was a member of the struct */
+	if (foundP2) {
+	  *foundP = TRUE;
+	  *type = type2;
+	  return align;
+	}
+      }
+    }
+  }
+  /* not found! */
+  return 0;
+}
+#endif
 
 static SgHashTable *ref_table;
 
@@ -526,6 +601,45 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     return;		/* dummy */
   }
   Sg_PointerSet(p, (int)align, type, value);
+}
+
+static inline void put_indent(SgPort *port, int indent)
+{
+  int i;
+  for (i = 0; i < indent; i++) {
+    Sg_PutcUnsafe(SG_PORT(port), ' ');
+  }
+}
+
+static void desc_c_struct_rec(SgCStruct *ct, SgPort *port, int indent)
+{
+  size_t i;
+  put_indent(SG_PORT(port), indent);
+  Sg_Printf(SG_PORT(port), UC("%A (%d):\n"), ct->name, ct->type.size);
+  for (i = 0; i < ct->fieldCount; i++) {
+    put_indent(SG_PORT(port), indent + 2);
+    Sg_Printf(SG_PORT(port), UC("%2d %A"), ct->layouts[i].offset,
+	      ct->layouts[i].name);
+    if (ct->layouts[i].cstruct) {
+      Sg_PutcUnsafe(SG_PORT(port), '\n');
+      desc_c_struct_rec(ct->layouts[i].cstruct, port, indent + 4);
+    } else {
+      Sg_Printf(SG_PORT(port), UC("(%d"), ct->layouts[i].type->size);
+      if (ct->layouts[i].array > 0) {
+	Sg_Printf(SG_PORT(port), UC(" x %d"), 
+		  ct->layouts[i].array / ct->layouts[i].type->size);
+      }
+      Sg_PutcUnsafe(SG_PORT(port), ')');
+    }
+    Sg_PutcUnsafe(SG_PORT(port), '\n');
+  }
+}
+
+void Sg_DescCStruct(SgCStruct *ct, SgObject port)
+{
+  SG_PORT_LOCK(SG_PORT(port));
+  desc_c_struct_rec(ct, SG_PORT(port), 0);
+  SG_PORT_UNLOCK(SG_PORT(port));
 }
 
 /* from ruby-ffi module */

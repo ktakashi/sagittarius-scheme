@@ -30,6 +30,7 @@
 	    size-of-c-struct
 	    c-struct-ref
 	    c-struct-set!
+	    describe-c-struct
 
 	    ;; typedef
 	    define-c-typedef

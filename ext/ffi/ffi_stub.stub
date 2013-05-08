@@ -82,12 +82,16 @@
 ;; allocates c-struct with GC
 (define-c-proc allocate-c-struct (st::<cstruct>) 
   ;; allocates byte
-  (let ((p::char* (SG_NEW2 char_ptr (-> st size))))
-    (memset p 0 (-> st size))
+  (let ((p::char* (SG_NEW2 char_ptr (ref (-> st type) size))))
+    (memset p 0 (ref (-> st type) size))
     (result (Sg_MakePointer p))))
 
+(define-c-proc describe-c-struct
+  (st::<cstruct> :optional (p (Sg_CurrentOutputPort))) ::<void>
+  Sg_DescCStruct)
+
 (define-c-proc size-of-c-struct (st::<cstruct>) ::<fixnum>
-  (result (-> st size)))
+  (result (ref (-> st type) size)))
 
 (define-c-proc c-struct-ref (p::<pointer> st::<cstruct> name::<symbol>) 
   Sg_CStructRef)
