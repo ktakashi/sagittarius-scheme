@@ -495,9 +495,9 @@ Returns the size of given @var{struct}.
 @desc{Allocates memory for @var{struct} and returns a pointer.}
 
 @define[Function]{@name{@var{struct-name}-@var{member-name}-ref}
- @args{struct-pointer inner-member-names @dot{}}}
+ @args{struct-pointer inner-member-names @dots{}}}
 @define[Function]{@name{@var{struct-name}-@var{member-name}-set!}
- @args{struct-pointer value inner-member-names @dot{}}}
+ @args{struct-pointer value inner-member-names @dots{}}}
 @desc{A getter/setter of @var{struct-name} c-struct.
 
 This is automatically defined by @code{define-c-struct} macro.

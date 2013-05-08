@@ -34,6 +34,7 @@
     (import (rnrs)
 	    (pp)
 	    (sagittarius)
+	    (sagittarius control)
 	    (util list)
 	    (srfi :1 lists)
 	    (srfi :19 time)
@@ -99,7 +100,16 @@
 
   (define-scribble-plugin (name . body)
     ;; assume, or else VM raise error with ambiguous message ;)
-    (let* ((name (car body))
+    (define (body->name body)
+      (string-concatenate 
+       (map (^i (cond ((symbol? i) (symbol->string i))
+		      ((string? i) i)
+		      ((pair? i)   (car (sxml:content i)))
+		      (else (assertion-violation 'name
+						 "bogus data"
+						 i))))
+	    body)))
+    (let* ((name (body->name body))
 	   (tag (symbol->string (gensym name))))
       (names-for-index (acons name (cons tag (current-section))
 			      (names-for-index)))
