@@ -414,91 +414,36 @@ static SgObject parse_member_name(SgSymbol *name)
   return ret;
 }
 
-#if 0
 static size_t calculate_alignment(SgObject names, SgCStruct *st,
-				  int *foundP, int *type)
+				  int *foundP, int *type, int *array, int *size)
 {
-  size_t align = 0;
+  size_t i;
   SgObject name = SG_CAR(names);
-  size_t size = st->fieldCount, i;
   struct_layout_t *layouts = st->layouts;
 
   /* names are list of property name for struct.
      name        => (name)
      name1.name2 => (name1 name2)
    */
-  for (i = 0; i < size; i++) {
+  for (i = 0; i < st->fieldCount; i++) {
     /* property found */
     if (SG_EQ(name, layouts[i].name)) {
       /* it's this one */
-      if (!layouts[i].cstruct && SG_NULLP(SG_CDR(names))) {
-	*foundP = TRUE;
-	*type = layouts[i].tag;
-	return align;
-      /* property was struct */
-      } else if (layouts[i].cstruct) {
-	/* struct in struct */
-	if (SG_NULLP(SG_CDR(names))) {
-	  align += layouts[i].cstruct->type.alignment;
-	} else {
-	  /* search from here */
-	  int foundP2 = FALSE, type2;
-	  align += calculate_alignment(SG_CDR(names),
-				       layouts[i].cstruct,
-				       &foundP2,
-				       &type2);
-	  /* second name was a member of the struct */
-	  if (foundP2) {
-	    *foundP = TRUE;
-	    *type = type2;
-	    return align;
-	  }
-	}
-      }
-    } else {
-      /* align += layouts[i].type->alignment; */
-      align = st->type.alignment;
-      if (layouts[i].array != -1) {
-	align += layouts[i].array;
-      }
-    }
-  }
-  return align;
-}
-#else
-static size_t calculate_alignment(SgObject names, SgCStruct *st,
-				  int *foundP, int *type)
-{
-  size_t align = 0;
-  SgObject name = SG_CAR(names);
-  size_t size = st->fieldCount, i;
-  struct_layout_t *layouts = st->layouts;
-
-  /* names are list of property name for struct.
-     name        => (name)
-     name1.name2 => (name1 name2)
-   */
-  for (i = 0; i < size; i++) {
-    /* property found */
-    if (SG_EQ(name, layouts[i].name)) {
-      /* it's this one */
-      align = layouts[i].offset;
       if (SG_NULLP(SG_CDR(names))) {
 	*foundP = TRUE;
 	*type = layouts[i].tag;
-	return align;
+	*array = layouts[i].array;
+	*size = layouts[i].type->size;
+	return layouts[i].offset;
       /* property was struct */
       } else if (layouts[i].cstruct) {
+	size_t align = layouts[i].offset;
 	/* search from here */
-	int foundP2 = FALSE, type2;
 	align += calculate_alignment(SG_CDR(names),
 				     layouts[i].cstruct,
-				     &foundP2,
-				     &type2);
+				     foundP, type, array, size);
 	/* second name was a member of the struct */
-	if (foundP2) {
-	  *foundP = TRUE;
-	  *type = type2;
+	if (foundP) {
 	  return align;
 	}
       }
@@ -507,7 +452,6 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
   /* not found! */
   return 0;
 }
-#endif
 
 static SgHashTable *ref_table;
 
@@ -579,28 +523,54 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
 {
   SgObject names = parse_member_name(name);
-  int foundP = FALSE, type = 0;
-  size_t align = calculate_alignment(names, st, &foundP, &type);
+  int foundP = FALSE, type = 0, array, size;
+  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size);
 
   if (!foundP || type == 0) {
     Sg_Error(UC("c-struct %A does not have a member named %A"), st->name, name);
     return SG_UNDEF;		/* dummy */
   }
-
-  return convert_c_to_scheme(type, p, align);
+  if (array < 0) {
+    return convert_c_to_scheme(type, p, align);
+  } else {
+    /* TODO what should we return for array? so far vector.*/
+    SgObject vec;
+    int i;
+    array /= size;
+    vec = Sg_MakeVector(array, SG_UNDEF);
+    for (i = 0; i < array; i++) {
+      SG_VECTOR_ELEMENT(vec, i) = 
+	convert_c_to_scheme(type, p, align + (i * size));
+    }
+    return vec;
+  }
 }
 
 void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
 {
   SgObject names = parse_member_name(name);
-  int foundP = FALSE, type = 0;
-  size_t align = calculate_alignment(names, st, &foundP, &type);
+  int foundP = FALSE, type = 0, array, size;
+  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size);
 
   if (!foundP || type == 0) {
     Sg_Error(UC("c-struct %A does not have a member named %A"), st->name, name);
     return;		/* dummy */
   }
-  Sg_PointerSet(p, (int)align, type, value);
+  if (array < 0) {
+    Sg_PointerSet(p, (int)align, type, value);
+  } else {
+    int i;
+    /* TODO what should we return for array? so far vector.*/
+    if (!SG_VECTORP(value)) {
+      Sg_Error(UC("Array member %A requires a vector but got %S"), value);
+      return;
+    }
+    array /= size;
+    for (i = 0; i < array && i < SG_VECTOR_SIZE(value); i++) {
+      Sg_PointerSet(p, (int)(align + (i * size)), type, 
+		    SG_VECTOR_ELEMENT(value, i));
+    }
+  }
 }
 
 static inline void put_indent(SgPort *port, int indent)

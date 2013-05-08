@@ -158,6 +158,7 @@
 	    (core syntax)
 	    (core misc)
 	    (clos user)
+	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius dynamic-module)
 	    (sagittarius vm))
@@ -362,28 +363,78 @@
       (create-c-struct name layouts packed?)))
 
   ;; (define-c-struct name (int x) (int y) (struct st s))
+  (define (generate-member-name base lst)
+    (string->symbol
+     (string-append (format "~a." base)
+		    (string-join (map symbol->string lst) "."))))
+
   (define-syntax define-c-struct
     (lambda (x)
+      (define (generate-accessors name spec r)
+	;; the struct members should can't be created at runtime
+	;; so we can define the accessor here
+	(define (gen m suffix)
+	  (datum->syntax name (string->symbol 
+			       (format "~a-~a-~a" 
+				       (syntax->datum name)
+				       (syntax->datum m)
+				       suffix))))
+	;; TODO how to solve struct inner members?
+	(define (continue member rest struct?)
+	  (with-syntax ((name    name)
+			(member  member)
+			(struct? (datum->syntax name struct?))
+			(getter (gen member "ref"))
+			(setter (gen member "set!")))
+	    (generate-accessors #'name rest
+	     (cons #'(begin
+		       (define (getter st . opt)
+			 (if (and struct? (not (null? opt)))
+			     (let ((m (generate-member-name 'member opt)))
+			       (c-struct-ref st name m))
+			     (c-struct-ref st name 'member)))
+		       (define (setter st v . opt)
+			 ;; the same trick as above
+			 (if (and struct? (not (null? opt)))
+			     (let ((m (generate-member-name 'member opt)))
+			       (c-struct-set! st name m v))
+			     (c-struct-set! st name 'member v))))
+		   r))))
+	(syntax-case spec (struct array)
+	  (() (reverse! r))
+	  (((type member) rest ...)
+	   (continue #'member #'(rest ...) #f))
+	  (((struct type member) rest ...)
+	   (continue #'member #'(rest ...) #t))
+	  (((type array elements member) rest ...)
+	   (continue #'member #'(rest ...) #f))))
       (syntax-case x ()
 	((_ name (type . rest) ...)
 	 #'(define-c-struct name #f (type . rest) ...))
 	((_ name packed? (type . rest) ...)
-	 (or (eq? #'packed? :packed) (not #'packed?))
-	 ;; black magic ...
-	 #'(begin
-	     ;; FIXME
-	     ;; if there are more than one struct in the same library,
-	     ;; and if one of them refere it, it cause unbound variable error.
-	     ;; to avoid it, we need to do this. ugly...
-	     (%insert-binding (current-library)
-			      'name
-			      (make-c-struct 
-			       'name 
-			       (map cons (list type ...) '(rest ...))
-			       (eq? packed? :packed)))
-	     (define name (make-c-struct 'name (map cons (list type ...)
-						    '(rest ...))
-					 (eq? packed? :packed))))))))
+	 ;;(or (eq? #'packed? :packed) (not #'packed?))
+	 ;; disabled for now
+	 (not #'packed?)
+	 ;; with black magic ...
+	 (with-syntax (((accessors ...)
+			(generate-accessors #'name 
+					    #'((type . rest) ...)
+					    '())))
+	   #'(begin
+	       ;; FIXME
+	       ;; if there are more than one struct in the same library,
+	       ;; and if one of them refere it, it cause unbound variable error.
+	       ;; to avoid it, we need to do this. ugly...
+	       (%insert-binding (current-library)
+				'name
+				(make-c-struct 
+				 'name 
+				 (map cons (list type ...) '(rest ...))
+				 (eq? packed? :packed)))
+	       (define name (make-c-struct 'name (map cons (list type ...)
+						      '(rest ...))
+					   (eq? packed? :packed)))
+	       accessors ...))))))
 
   (define c-function-return-type-alist
     `((void               . ,FFI_RETURN_TYPE_VOID    )
