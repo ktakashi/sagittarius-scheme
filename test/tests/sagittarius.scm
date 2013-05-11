@@ -882,5 +882,8 @@
   (test-equal "getter (before)" "1234" (getter))
   (test-equal "getter (after)" "" (getter)))
 
+;; (/ 1 -0.0)
+(test-equal "(/ 1 -0.0)" -inf.0 (/ 1 -0.0))
+(test-equal "(/ -1 -0.0)" +inf.0 (/ -1 -0.0))
 
 (test-end)

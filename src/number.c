@@ -2272,8 +2272,21 @@ SgObject Sg_Div(SgObject x, SgObject y)
   {
     int s = Sg_Sign(x);
     if (s == 0) return SG_NAN;
-    if (s < 0)  return SG_NEGATIVE_INFINITY;
-    else        return SG_POSITIVE_INFINITY;
+    else {
+      if (SG_INTP(y)) {
+      only_x:
+	if (s < 0) return SG_NEGATIVE_INFINITY;
+	else       return SG_POSITIVE_INFINITY;
+      } else {
+	union { double f64; int64_t i64; } d;
+	d.f64 = SG_FLONUM_VALUE(y);
+	/* if pisitive 0 is given then i64 is 0. */
+	if (d.i64 < 0)
+ 	  if (s < 0) return SG_POSITIVE_INFINITY;
+	  else       return SG_NEGATIVE_INFINITY;
+	else goto only_x;
+      }
+    }
   }
  div_by_zero:
   Sg_AssertionViolation(SG_INTERN("/"), SG_MAKE_STRING("undefined for 0"),
