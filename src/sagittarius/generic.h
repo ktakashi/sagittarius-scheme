@@ -110,6 +110,18 @@ typedef struct SgNextMethodRec
 #define SG_NEXT_METHOD(obj)  ((SgNextMethod*)(obj))
 #define SG_NEXT_METHODP(obj) SG_XTYPEP(obj, SG_CLASS_NEXT_METHOD)
 
+SG_CLASS_DECL(Sg_EqlSpecializerClass);
+#define SG_CLASS_EQL_SPECIALIZER (&Sg_EqlSpecializerClass)
+
+typedef struct SgEqlSpecializerRec
+{
+  SG_HEADER;
+  SgObject object;
+} SgEqlSpecializer;
+
+#define SG_EQL_SPECIALIZER(obj)  ((SgEqlSpecializer *)obj)
+#define SG_EQL_SPECIALIZERP(obj) SG_XTYPEP(obj, SG_CLASS_EQL_SPECIALIZER)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeBaseGeneric(SgObject name,
@@ -130,6 +142,8 @@ SG_EXTERN SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc,
 				     int applyargs);
 SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 				     SgObject *argv, int argc, int copyargs);
+
+SG_EXTERN SgObject Sg_MakeEqlSpecializer(SgObject obj);
 
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */

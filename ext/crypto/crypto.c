@@ -425,8 +425,8 @@ SgObject Sg_LookupSpi(SgObject name)
   }
   Sg_UnlockMutex(&lock);
   /* now we need to check builtin */
-  if (SG_STRINGP(name)) {
-    const char *cname = Sg_Utf32sToUtf8s(SG_STRING(name));
+  if (SG_KEYWORDP(name)) {
+    const char *cname = Sg_Utf32sToUtf8s(SG_KEYWORD_NAME(name));
     if(find_cipher(cname) != -1) return SG_TRUE;
   }
   return SG_FALSE;

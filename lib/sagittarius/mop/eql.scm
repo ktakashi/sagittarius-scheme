@@ -31,13 +31,12 @@
 ;; The code is based on the following site:
 ;;  http://d.hatena.ne.jp/leque/20110105/p1
 #!compatible
-(library (sagittarius mop eql)
-    (export <eql-specializable-generic> eql)
-    (import (rnrs)
-	    (sagittarius)
-	    (clos user)
-	    (clos core))
 
+;; eql specializer is now builtin so this is for backward compatibility
+(library (sagittarius mop eql)
+    (export (rename <class> <eql-specializable-generic>) eql)
+    (import (only (clos user) <class> eql))
+#|
   (define-class <eql-specializer> (<class>)
     ((object :accessor eql-specializer-object
 	     :init-keyword :eql-specializer-object)))
@@ -92,4 +91,5 @@
 	  (specializer-more-specific? (car sp-a) (car sp-b) (car args))))))
     (list-sort more-specific?
 	       (filter method-applicable? (generic-methods gf))))
+|#
 )

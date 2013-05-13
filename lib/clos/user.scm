@@ -39,6 +39,7 @@
 	    define-generic
 
 	    call-next-method
+	    eql
 	    )
     (import (rnrs) 
 	    (sagittarius)

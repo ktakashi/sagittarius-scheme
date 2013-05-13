@@ -57,6 +57,8 @@
 
 	    ;; ugly solution for macro expansion
 	    call-next-method
+	    ;; eql specializer
+	    eql
 	    )
     (import (rnrs)
 	    (sagittarius)

@@ -25,7 +25,7 @@
 ;;    (result (Sg_GenerateSecretKey type key)))
 
 (define-c-proc make-builtin-cipher-spi
-  (name::<string> mode::<fixnum> key::<builtin-symmetric-key>
+  (name::<keyword> mode::<fixnum> key::<builtin-symmetric-key>
 		  iv rounds::<fixnum> padder ctr_mode::<fixnum>)
   
   (unless (or (SG_FALSEP iv)
@@ -38,7 +38,8 @@
     (Sg_WrongTypeOfArgumentViolation 'make-builtin-cipher-spi
 				     (SG_MAKE_STRING "procedure or #f")
 				     padder '()))
-  (result (Sg_MakeBuiltinCipherSpi name (cast SgCryptoMode mode)
+  (result (Sg_MakeBuiltinCipherSpi (SG_KEYWORD_NAME name) 
+				   (cast SgCryptoMode mode)
 				   key iv rounds padder ctr_mode)))
 
 (define-c-proc make-cipher (spi)

@@ -98,11 +98,11 @@ SG_DEFINE_GENERIC(Sg_GenericGenerateSecretKey, Sg_NoNextMethod, NULL);
 static SgObject gen_secret_impl(SgObject *args, int argc, void *data)
 {
   /* type must be check by here */
-  return Sg_GenerateSecretKey(SG_STRING(args[0]), SG_BVECTOR(args[1]));
+  return Sg_GenerateSecretKey(SG_KEYWORD_NAME(args[0]), SG_BVECTOR(args[1]));
 }
 SG_DEFINE_SUBR(gen_secret, 2, 0, gen_secret_impl, SG_FALSE, NULL);
 static SgClass *generate_secret_key_SPEC[] = {
-  SG_CLASS_STRING, SG_CLASS_BVECTOR
+  SG_CLASS_KEYWORD, SG_CLASS_BVECTOR
 };
 static SG_DEFINE_METHOD(generate_secret_key_rec,
 			&Sg_GenericGenerateSecretKey,

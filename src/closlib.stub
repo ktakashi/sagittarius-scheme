@@ -5,7 +5,7 @@
 	    slot-set-using-accessor!
 	    class-of
 	    is-a?
-
+	    eql
 	    %make-next-method
 	    )
     (import :none)
@@ -62,4 +62,5 @@
       (result (Sg_MakeNextMethod (SG_GENERIC gf) methods argv argc
 				 FALSE))))
 
+  (define-c-proc eql (o) Sg_MakeEqlSpecializer)
   )

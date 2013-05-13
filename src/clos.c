@@ -30,6 +30,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/clos.h"
+#include "sagittarius/compare.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/charset.h"
 #include "sagittarius/closure.h"
@@ -142,7 +143,13 @@ static SgObject class_list_to_names(SgClass **lst, int len)
   SgObject h = SG_NIL, t = SG_NIL;
   int i;
   for (i=0; i<len; i++, lst++) {
-    SG_APPEND1(h, t, (*lst)->name);
+    if (Sg_TypeP(*lst, SG_CLASS_EQL_SPECIALIZER)) {
+      SgObject name = SG_LIST2(SG_INTERN("eql"), 
+			       SG_EQL_SPECIALIZER(*lst)->object);
+      SG_APPEND1(h, t, name);
+    } else {
+      SG_APPEND1(h, t, (*lst)->name);
+    }
   }
   return h;
 }
@@ -507,6 +514,57 @@ int Sg_ApplicableP(SgObject c, SgObject arg)
 
 #define PREALLOC_SIZE 32
 
+static int specializer_match(SgObject sp, SgObject obj)
+{
+  return (SG_EQL_SPECIALIZERP(sp) 
+	  && Sg_EqvP(obj, SG_EQL_SPECIALIZER(sp)->object))
+    || Sg_TypeP(obj, sp);
+}
+#if 1
+static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
+					   int argc, int applyargs)
+{
+  SgObject methods = SG_GENERIC_METHODS(gf), mp;
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject *args = argv;
+  int nsel;
+  if (SG_NULLP(methods)) return SG_NIL;
+
+  nsel = SG_GENERIC_MAX_REQARGS(gf);
+  if (applyargs) argc--;
+  if (applyargs && nsel) {
+    int size = Sg_Length(argv[argc]) + argc, i;
+    SgObject ap;
+    args = SG_NEW_ARRAY(SgObject, size);
+    for (i = 0; i < argc; i++) {
+      args[i] = argv[i];
+    }
+    SG_FOR_EACH(ap, argv[argc]) {
+      if (--nsel >= 0) args[i++] = SG_CAR(ap);
+    }
+    argc = size;
+  }
+
+  SG_FOR_EACH(mp, methods) {
+    SgMethod *m = SG_METHOD(SG_CAR(mp));
+    SgClass **sp;
+    SgObject *ap;
+    int n;
+    /* argument count check */
+    if ((unsigned int)argc < SG_PROCEDURE_REQUIRED(m)) continue;
+    if (!SG_PROCEDURE_OPTIONAL(m) &&
+	(unsigned int)argc > SG_PROCEDURE_REQUIRED(m)) continue;
+    /* type check */
+    for (ap = args, sp = SG_METHOD_SPECIALIZERS(m), n = 0;
+	 (unsigned int)n < SG_PROCEDURE_REQUIRED(m);
+	 ap++, sp++, n++) {
+      if (!specializer_match(*sp, *ap)) break;
+    }
+    if (n == SG_PROCEDURE_REQUIRED(m)) SG_APPEND1(h, t, SG_OBJ(m));
+  }
+  return h;
+}
+#else
 static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
 					   int argc, int applyargs)
 {
@@ -535,9 +593,11 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
     SgMethod *m = SG_METHOD(SG_CAR(mp));
     SgClass **tp, **sp;
     int n;
+    /* argument count check */
     if ((unsigned int)argc < SG_PROCEDURE_REQUIRED(m)) continue;
     if (!SG_PROCEDURE_OPTIONAL(m) &&
 	(unsigned int)argc > SG_PROCEDURE_REQUIRED(m)) continue;
+    /* type check */
     for (tp = typev, sp = SG_METHOD_SPECIALIZERS(m), n = 0;
 	 (unsigned int)n < SG_PROCEDURE_REQUIRED(m);
 	 tp++, sp++, n++) {
@@ -547,7 +607,7 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
   }
   return h;
 }
-
+#endif
 /*
   These functions must be generic, however for now we just put here
   and ignore the others.
@@ -555,6 +615,11 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
 static int more_specific_p(SgClass *c1, SgClass *c2, SgClass *arg)
 {
   SgClass **cpl;
+  /* if we have eql specializer, then it's always more specific! */
+  if (Sg_TypeP(c2, SG_CLASS_EQL_SPECIALIZER)) return FALSE;
+  if (Sg_TypeP(c1, SG_CLASS_EQL_SPECIALIZER)) return TRUE;
+
+  /* ok, non eql case. */
   if (c1 == arg) return TRUE;
   if (c2 == arg) return FALSE;
   for (cpl = arg->cpa; *cpl; cpl++) {
@@ -572,8 +637,8 @@ static int method_more_specific(SgMethod *m1, SgMethod *m2,
   SgClass **spec2 = SG_METHOD_SPECIALIZERS(m2);
   int i, xreq = SG_PROCEDURE_REQUIRED(m1), yreq = SG_PROCEDURE_REQUIRED(m2);
   for (i = 0; i < argc; i++) {
-    if (!SG_EQ(spec1[i], spec2[i])) {
-      return more_specific_p(*spec1, *spec2, targv[i]);
+    if (!SG_EQ(spec1[i], spec2[i]) && spec1[i] && spec2[i]) {
+      return more_specific_p(spec1[i], spec2[i], targv[i]);
     }
   }
   if (xreq > yreq) return TRUE;
@@ -650,7 +715,6 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc,
       targv[i++] = Sg_ClassOf(SG_CAR(ap));
     }
   }
-
   for (step = len/2; step > 0; step /=2) {
     for (i = step; i<len; i++) {
       for (j = i-step; j>=0; j -= step) {
@@ -667,6 +731,7 @@ static SgObject sort_primary_methods(SgObject methods, SgObject *argv, int argc,
       }
     }
   }
+
   return Sg_ArrayToList(array, len);
 }
 
@@ -1965,6 +2030,32 @@ static SG_DEFINE_METHOD(compute_applicable_methods_rec,
 			compute_applicable_methods_SPEC,
 			&compute_applicable_methods_subr);
 
+
+static void eql_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<eql-specializer (eql %S)>"), 
+	    SG_EQL_SPECIALIZER(o)->object);
+}
+
+static SgClass *Sg_ClassCPL[] = {
+  SG_CLASS_CLASS,
+  SG_CLASS_OBJECT,
+  SG_CLASS_TOP,
+  NULL
+};
+
+SG_DEFINE_BUILTIN_CLASS(Sg_EqlSpecializerClass, eql_printer, NULL, NULL, NULL,
+			Sg_ClassCPL);
+
+/* eql specializer stuff */
+SgObject Sg_MakeEqlSpecializer(SgObject obj)
+{
+  SgEqlSpecializer *z = SG_NEW(SgEqlSpecializer);
+  SG_SET_CLASS(z, SG_CLASS_EQL_SPECIALIZER);
+  z->object = obj;
+  return SG_OBJ(z);
+}
+
 void Sg__InitClos()
 {
   /* TODO library name */
@@ -1984,6 +2075,7 @@ void Sg__InitClos()
   BINIT(SG_CLASS_GENERIC,     "<generic>", generic_slots);
   BINIT(SG_CLASS_METHOD,      "<method>",  method_slots);
   BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", NULL);
+  BINIT(SG_CLASS_EQL_SPECIALIZER, "<eql-specializer>", NULL);
   BINIT(SG_CLASS_SLOT_ACCESSOR, "<slot-accessor>", slot_accessor_slots);
   /* set flags for above to make them applicable(procedure? returns #t) */
   SG_CLASS_GENERIC->flags |= SG_CLASS_APPLICABLE;

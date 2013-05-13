@@ -37,4 +37,5 @@
 	    (math random)
 	    (crypto key pair)
 	    (crypto key rsa)
+	    (crypto key des)
 	    (crypto key component)))
