@@ -66,7 +66,7 @@ Slot specifiers:
 @var{opttions} can specify the metaclass of this class with keyword 
 @code{:metaclass}. 
 
-NOTE: Current implementation does not support @code{:allocation} keyword like
+NOTE: Current implementation does not support @code{:allocation} keyword
 by default. If you need it, see 
 @secref["sagittarius.mop.allocation"]{(sagittarius mop allocation)}.
 }

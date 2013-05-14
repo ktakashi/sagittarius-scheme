@@ -10,16 +10,16 @@
 	    (sagittarius)
 	    (sagittarius crypto))
 
-  ;; we can't refer DES3 here (i'm too lazy) so use raw keyword.
-  ;; To accept 16 bytes des key
+  ;; To accept 8 or 16 bytes des key
   ;; the triple des key structure is like this
   ;;   encrypt(8 bytes) | descrypt (8 bytes) | encrypt (8 bytes)
   ;; now 16 bytes key contains only first 16 bytes means we need to
-  ;; make it 26 bytes.
+  ;; make it 24 bytes.
   ;; it's simply needed to be appended the first 8 bytes to the last
-  (define-method generate-secret-key ((type (eql :3des)) (key <bytevector>))
-    (if (= (bytevector-length key) 16)
-	(call-next-method type
-	 (bytevector-append key (bytevector-copy key 0 8)))
-	(call-next-method)))
+  (define-method generate-secret-key ((type (eql DES3)) (key <bytevector>))
+    (case (bytevector-length key)
+      ((8) (call-next-method type (bytevector-append key key key)))
+      ((16) (call-next-method
+	     type (bytevector-append key (bytevector-copy key 0 8))))
+      (else (call-next-method))))
 )
