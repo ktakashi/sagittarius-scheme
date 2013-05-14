@@ -42,6 +42,29 @@
 	    raise-decrypt-error
 	    raise-encode-error
 	    raise-decode-error
+	    ;; supported algorithms
+	    Blowfish
+	    X-Tea
+	    RC2
+	    RC5-32/12/b
+	    RC6-32/20/b
+	    SAFER+
+	    SAFER-K64
+	    SAFER-SK64
+	    SAFER-K128
+	    SAFER-SK128
+	    AES
+	    Twofish
+	    DES
+	    DES3
+	    DESede
+	    CAST5
+	    CAST-128
+	    Noekeon
+	    Skipjack
+	    Khazad
+	    SEED
+	    KASUMI
 	    ;;
 	    <crypto>
 	    <cipher>
@@ -106,4 +129,29 @@
 			  (and who (make-who-condition who))
 			  (make-message-condition message)
 			  (make-irritants-condition irritants))))))
+
+  ;; symmetric types
+  (define-constant Blowfish    :blowfish)
+  (define-constant X-Tea       :xtea)
+  (define-constant RC2         :rc2)
+  (define-constant RC5-32/12/b :rc5)
+  (define-constant RC6-32/20/b :rc6)
+  (define-constant SAFER+      :safer+)
+  (define-constant SAFER-K64   :safer-k64)
+  (define-constant SAFER-SK64  :safer-sk64)
+  (define-constant SAFER-K128  :safer-k128)
+  (define-constant SAFER-SK128 :safer-sk128)
+  (define-constant AES         :aes)
+  (define-constant Twofish     :twofish)
+  (define-constant DES         :des)
+  (define-constant DES3        :3des)
+  (define-constant DESede      DES3)
+  (define-constant CAST5       :cast5)
+  (define-constant CAST-128    CAST5)
+  (define-constant Noekeon     :noekeon)
+  (define-constant Skipjack    :skipjack)
+  (define-constant Khazad      :khazad)
+  (define-constant SEED        :seed)
+  (define-constant KASUMI      :kasumi)
+
 )
