@@ -76,6 +76,9 @@ which value is set to the slot.
 
 @subsubsection{(sagittarius mop eql)}
 
+The eql specializer is now builtin so this library is only for backward
+compatibility.
+
 @define[Library]{@name{(sagittarius mop eql)}}
 @desc{Supporting eql specializer methods.
 

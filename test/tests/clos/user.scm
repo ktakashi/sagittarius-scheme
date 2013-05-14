@@ -74,4 +74,17 @@
 	      (lambda ()
 		(say-hi (make <singer>)))))
 
+;; eql specializer
+(define-method fact ((n (eql 0))) 1)
+(define-method fact ((n <integer>)) (* n (fact (- n 1))))
+(test-equal "generic fact (call)"  3628800 (fact 10))
+(test-equal "generic fact (apply)" 3628800 (apply fact '(10)))
+
+(define-method multi-eql ((m (eql 0)) (n (eql 1))) 'first)
+(define-method multi-eql ((m (eql 0)) (n (eql 2))) 'second)
+(define-method multi-eql (m n ) 'else)
+(test-equal "(multi-eql 0 1)" 'first  (multi-eql 0 1))
+(test-equal "(multi-eql 0 2)" 'second (multi-eql 0 2))
+(test-equal "(multi-eql 'a 'a)" 'else (multi-eql 'a 'a))
+
 (test-end)
