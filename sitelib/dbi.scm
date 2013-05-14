@@ -166,10 +166,10 @@
   (define-generic dbi-fetch-all!)
   ;; dbi-fetch-all! can be naive implementation like this
   (define-method dbi-fetch-all! ((q <dbi-query>))
-    (let loop ((v (dbi-fetch! query))
+    (let loop ((v (dbi-fetch! q))
 	       (r '()))
       (if v
-	  (loop (dbi-fetch! query) (cons v r))
+	  (loop (dbi-fetch! q) (cons v r))
 	  (reverse! r))))
 
   (define-generic dbi-columns)
