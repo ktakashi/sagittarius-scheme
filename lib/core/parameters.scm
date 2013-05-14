@@ -13,7 +13,7 @@
          (dynamic-wind
           (lambda () (set! save (param)) ... (param new) ...)
           (lambda () body ...)
-          (lambda () (param save) ...))))
+          (lambda () (%parameter-value-set! param save) ...))))
       ((_ ((e1 e2) . more) (stash ...) body ...)
        (parameterize-aux more (stash ... (tmp1 tmp2 e1 e2)) body ...))))
 

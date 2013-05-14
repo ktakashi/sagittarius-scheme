@@ -939,10 +939,14 @@
 ;; From Ypsilon
 
 (define (make-parameter init . maybe-filter)
-  (let ((parameter (if (null? maybe-filter)
-                       (parameter-proc-0 (gensym))
-                       (parameter-proc-1 (gensym) (car maybe-filter)))))
-    (begin (parameter init) parameter)))
+  (let* ((key (gensym))
+	 (parameter (if (null? maybe-filter)
+			(parameter-proc-0 key)
+			(parameter-proc-1 key (car maybe-filter))))
+	 (setter (parameter-set-proc key)))
+    (begin (parameter init)
+	   (hashtable-set! (current-dynamic-environment) parameter setter)
+	   parameter)))
 
 (define (parameter-proc-0 key)
   (lambda value
@@ -956,6 +960,17 @@
         (hashtable-ref  (current-dynamic-environment) key #f)
         (hashtable-set! (current-dynamic-environment)
                         key (proc (car value))))))
+
+(define (parameter-set-proc key)
+  (lambda (value) (hashtable-set! (current-dynamic-environment) key value)))
+
+(define (%parameter-value-set! param v)
+  ;; non parameter object may also use this, we need to handle it.
+  ;; ex) current-input-port
+  (let ((setter (hashtable-ref (current-dynamic-environment) param)))
+    (if setter
+	(setter v)
+	(param v))))
 
 ;;;; end of file
 ;; Local Variables:
