@@ -28,8 +28,6 @@
 ;;;  
 #!compatible
 (library (srfi :39 parameters)
-  (export
-    make-parameter 
-    parameterize)
-  (import (core parameters)))
+  (export make-parameter parameterize)
+  (import (sagittarius parameters)))
 

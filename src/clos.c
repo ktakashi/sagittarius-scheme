@@ -2143,8 +2143,10 @@ void Sg__InitClos()
      record with CLOS. */
   /* record */
   CINIT(SG_CLASS_RECORD_TYPE, "<record-type>");
-
-  /* we do not export values. this should not be first class object. */
+  CINIT(SG_CLASS_RTD, "<rtd>");
+  CINIT(SG_CLASS_RCD, "<rcd>");
+  /* tuple */
+  CINIT(SG_CLASS_TUPLE, "<tuple>");
 
   /* procedure */
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");

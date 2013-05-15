@@ -67,6 +67,7 @@
 #include <sagittarius/macro.h>
 #include <sagittarius/number.h>
 #include <sagittarius/pair.h>
+#include <sagittarius/parameter.h>
 #include <sagittarius/port.h>
 #include <sagittarius/profiler.h>
 #include <sagittarius/reader.h>

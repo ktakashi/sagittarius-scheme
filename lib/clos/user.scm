@@ -22,11 +22,11 @@
 	    ;; io
 	    <port> <codec> <transcoder>
 	    ;; record
-	    <record-type>
+	    <record-type> <tuple>
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier>
+	    <identifier> <parameter>
 
 	    slot-ref
 	    slot-set!

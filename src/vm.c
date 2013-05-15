@@ -176,10 +176,11 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     Sg_ImportLibrary(nl, proto->currentLibrary);
     SG_LIBRARY_DEFINEED(nl) = SG_FALSE;
     v->currentLibrary = nl;
-    v->parameters = Sg_HashTableCopy(proto->parameters, TRUE);
+    v->parameters = Sg_WeakHashTableCopy(proto->parameters);
   } else {
     v->currentLibrary = SG_UNDEF;
-    v->parameters = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
+    v->parameters = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY, 64, 
+					       SG_FALSE);
   }
   /* child thread should not affect parent load-path*/
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
@@ -616,7 +617,7 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   }
   SG_END_PROTECT;
 
-#undef restore_vm;
+#undef restore_vm
   return r;
 }
 

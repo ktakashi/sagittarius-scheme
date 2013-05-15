@@ -53,6 +53,13 @@
   (define-method (setter ref) ((ht <hashtable>) key value)
     (hashtable-set! ht key value))
 
+  (define-method ref ((ht <weak-hashtable>) key)
+    (weak-hashtable-ref ht key #f))
+  (define-method ref ((ht <weak-hashtable>) key fallback)
+    (weak-hashtable-ref ht key fallback))
+  (define-method (setter ref) ((ht <weak-hashtable>) key value)
+    (weak-hashtable-set! ht key value))
+
   ;; sequences
   (define-method ref ((obj <list>) (index <integer>))
     (list-ref obj index))

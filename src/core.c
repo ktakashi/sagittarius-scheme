@@ -71,6 +71,7 @@ extern void Sg__InitWrite();
 extern void Sg__InitRegex();
 extern void Sg__InitUnicode();
 extern void Sg__InitMacro();
+extern void Sg__InitParameter();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -131,7 +132,8 @@ void Sg_Init()
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();
-  
+  Sg__InitParameter();
+
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");
   compsym = SG_INTERN("(sagittarius compiler)");

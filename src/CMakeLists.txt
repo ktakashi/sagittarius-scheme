@@ -50,7 +50,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   weak.c           gloc.c 
   treemap.c        rbtree.c
   charset.c        macro.c
-  code.c
+  code.c           parameter.c
   cache.c
 
   writer.c         compiler.c  

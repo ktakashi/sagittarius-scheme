@@ -38,11 +38,12 @@
 	    ;; io
 	    <port> <codec> <transcoder>
 	    ;; record
-	    <record-type>
+	    <record-type> <tuple>
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier>
+	    <identifier> <parameter>
+
 
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
