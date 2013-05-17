@@ -32,7 +32,7 @@ IF (NOT ${ZLIB_FOUND})
       NAMES zlib.tar.gz
       PATHS ${CMAKE_CURRENT_BINARY_DIR})
     MESSAGE(STATUS "Looked for zlib.tar.gz: ${HAS_ZLIB_ARCHIVE}")
-    SET(USED_ZLIB_VERSION "zlib-1.2.7")
+    SET(USED_ZLIB_VERSION "zlib-1.2.8")
     IF (NOT EXISTS ${HAS_ZLIB_ARCHIVE})
       MESSAGE(STATUS "donwloading zlib")
       FILE(
