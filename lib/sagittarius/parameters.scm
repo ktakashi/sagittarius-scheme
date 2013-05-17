@@ -59,7 +59,7 @@
     (if (is-a? p <parameter>)
 	(set! (~ (current-dynamic-environment) p) v)
 	(p v)))
-
+#;
   (define-syntax parameterize-aux
     (syntax-rules ()
       ((_ () ((save new param value) ...) body ...)
@@ -71,9 +71,30 @@
       ((_ ((e1 e2) . more) (stash ...) body ...)
        (parameterize-aux more (stash ... (tmp1 tmp2 e1 e2)) body ...))))
 
+  (define-syntax parameterize-aux
+    (syntax-rules ()
+      ;; temporaries
+      ;;   P - keeps the parameter object, for the variable param may be
+      ;;       reassigned during execution of body.
+      ;;   L - keeps "local" value during dynamic enviornment of body.
+      ;;   S - keeps "saved" value outside of parameterize.
+      ((_ (param ...) (val ...) ((P L S) ...) () body)
+       (let ((P param) ... (L val) ... (S #f) ...)
+	 (dynamic-wind
+	     (lambda () (let ((t (P))) (P L) (set! S t)) ...)
+	     (lambda () . body)
+	     (lambda () 
+	       (let ((t (P)))
+		 (%parameter-value-set! P S)
+		 (set! L t))
+	       ...))))
+      ((_ (param ...) (val ...) (tmps ...) ((p v) . more) body)
+       (parameterize-aux (param ... p) (val ... v) (tmps ... (P L S))
+			 more body))))
+
   (define-syntax parameterize
     (syntax-rules ()
-      ((_ ((e1 e2) ...) body ...)
-       (parameterize-aux ((e1 e2) ...) () body ...))))
+      ((_ (binds ...) . body)
+       (parameterize-aux () () () (binds ...) body))))
 
 )

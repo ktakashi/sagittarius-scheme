@@ -11,8 +11,10 @@
 	    let-keywords*
 	    begin0
 	    let1
+	    rlet1
 	    dotimes
 	    dolist
+	    push!
 	    check-arg
 	    with-library
 	    unwind-protect
@@ -91,6 +93,11 @@
       ((let1 var exp . body)
        (let ((var exp)) . body))))
 
+  (define-syntax rlet1
+    (syntax-rules ()
+      ((_ var exp body ...)
+       (let ((var exp)) body ... var))))
+
   (define-syntax dolist
     (syntax-rules ()
       ((_ (var lis res) . body)
@@ -120,6 +127,21 @@
        (syntax-violation 'dotimes
 			 "malformed dotimes"
 			 '(dotimes . other)))))
+
+  (define-syntax push!
+    (syntax-rules ()
+      [(_ "vars" ((var arg) ...) () proc val)
+       (let ((getter proc)
+	     (var arg) ...)
+	 ((setter getter) var ... (cons val (getter var ...))))]
+      [(_ "vars" ((var arg) ...) (arg0 arg1 ...) proc val)
+       (push! "vars" ((var arg) ... (newvar arg0)) (arg1 ...) proc val)]
+      [(_ (proc arg ...) val)
+       (push! "vars" () (arg ...) proc val)]
+      [(_ loc val)
+       (set! loc (cons val loc))]
+      [(_ . other)
+       (syntax-error "malformed push!" (push! . other))]))
 
   (define-syntax check-arg
     (syntax-rules ()
