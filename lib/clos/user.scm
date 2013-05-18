@@ -40,6 +40,7 @@
 
 	    call-next-method
 	    eql
+	    eqv? ;; for prefix or rename import
 	    )
     (import (rnrs) 
 	    (sagittarius)
@@ -222,7 +223,7 @@
 		((not (pair? ss))    (values (reverse! rs) ss #f))
 		((keyword? (car ss)) (values (reverse! rs) (gensym) ss))
 		(else (loop (cdr ss) (cons (car ss) rs))))))
-      (define (build qualifier generic qargs rest opts body)
+      (define (build k qualifier generic qargs rest opts body)
 	;; ugly kludge
 	(define (rewrite body)
 	  (let loop ((body body))
@@ -237,8 +238,13 @@
 			(free-identifier=? body #'call-next-method))
 		   'call-next-method)
 		  (else body))))
-	(let* ((specializers (map (lambda (s)
-				    (if (pair? s) (cadr s) '<top>)) qargs))
+	(define (parse-specializer s)
+	  (syntax-case s (eqv?)
+	    ((_ class) (identifier? #'class) #'class)
+	    ((_ (eqv? v)) #'(eql v))
+	    ((_ v) #'v)
+	    (_ #'<top>)))
+	(let* ((specializers (map parse-specializer qargs))
 	       (reqargs      (map (lambda (s) 
 				    (if (pair? s) (car s) s)) qargs))
 	       (lambda-list  (if rest `(,@reqargs . ,rest) reqargs))
@@ -272,7 +278,8 @@
 			 (else
 			  (%ensure-generic-function (syntax->datum #'true-name)
 						    (current-library))
-			  `((define-generic ,(syntax->datum #'true-name)))))
+			  `((,(datum->syntax k 'define-generic)
+			     ,(syntax->datum #'true-name)))))
 		(let ((#,gf
 		       (or (and-let* ((g (find-binding (current-library)
 						       'true-name #f))
@@ -294,10 +301,10 @@
 			 '())
 		  #,gf)))))
       (syntax-case x ()
-	((_ ?qualifier ?generic ?args . ?body)
+	((k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
 	 (let-values (((qargs rest opt) (analyse #'?args)))
-	   (build #'?qualifier #'?generic qargs rest opt #'?body)))
+	   (build #'k #'?qualifier #'?generic qargs rest opt #'?body)))
 	((_ ?generic ?qualifier ?args . ?body)
 	 (keyword? #'?qualifier)
 	 #'(define-method ?qualifier ?generic ?args . ?body))
