@@ -318,9 +318,11 @@
       (syntax-case x (setter)
 	((k (setter name) . options)
 	 (let ((class (get-keyword :class (syntax->datum #'options)
-				   '<generic>)))
+				   #'<generic>)))
 	   (with-syntax ((true-name (generate-true-name #'k #'name))
-			 (class-name (datum->syntax #'k class)))
+			 (class-name (if (identifier? class)
+					 class
+					 (datum->syntax #'k class))))
 	     ;; to avoid duplicated definition...
 	     (%ensure-generic-function (syntax->datum #'true-name)
 				       (current-library))
@@ -330,11 +332,13 @@
 		 (set! (setter name) true-name)))))
 	((k name . options)
 	 (let ((class (get-keyword :class (syntax->datum #'options)
-				   '<generic>)))
+				   #'<generic>)))
 	   ;; to avoid duplicated definition...
 	   ;; FIXME this smells bugs
 	   (%ensure-generic-function (syntax->datum #'name) (current-library))
-	   (with-syntax ((class-name (datum->syntax #'k class)))
+	   (with-syntax ((class-name (if (identifier? class)
+					 class
+					 (datum->syntax #'k class))))
 	     #'(define name (make class-name :definition-name 'name))))))))
 
 )
