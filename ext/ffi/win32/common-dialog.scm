@@ -65,7 +65,7 @@
     (DWORD lCustData)
     (LPOFNHOOKPROC lpfnHook)
     (LPCSTR lpTemplateName)
-    (void * pvReserved)
+    (void* pvReserved)
     (DWORD dwReserved)
     (DWORD FlagsEx))
   (define LPOPENFILENAME void*)
