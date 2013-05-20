@@ -1,14 +1,16 @@
 #!@CMAKE_INSTALL_PREFIX@/bin/sash
 
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (import (rnrs)
 	(getopt)
 	(util file)
 	(shorten)
 	(srfi :13 strings)
+	(srfi :26 cut)
 	(srfi :39 parameters)
 	(sagittarius cgen stub)
 	(sagittarius control)
+	(sagittarius object)
 	(sagittarius regex))
 
 (define *script-name* (make-parameter #f))
@@ -26,7 +28,24 @@
 (define-constant uninstall-template
   "@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_SHARE@/cmake_uninstall.cmake.in")
 
-(define (genstub args)
+(define *commands* (make-eq-hashtable))
+(define *help*     (make-eq-hashtable))
+
+(define-syntax define-command 
+  (lambda (x)
+    (syntax-case x ()
+      ((_ (name . vars) body1 body ...)
+       (not (string? (syntax->datum #'body1)))
+       #'(define-command (name . vars) "" body1 body ...))
+      ((_ (name . vars) help body ...)
+       (string? (syntax->datum #'help))
+       #'(begin
+	   ;; to reuse command
+	   (define name (lambda vars body ...))
+	   (set! (~ *help* 'name) help)
+	   (set! (~ *commands* 'name) name))))))
+
+(define-command (genstub args)
   (let* ((files (cddr args))
 	 (indir (car args))
 	 (outdir (cadr args)))
@@ -45,47 +64,51 @@
 	      files)))
 
 (define (create-template-file template dest parameters)
+  (define (do-template template)
+    (regex-replace-all 
+     #/(\$[a-zA-Z0-9-_]+?\$)/ template
+     (lambda (m)
+       (or (and-let* ((mark (m 1))
+		      (slot (assoc mark parameters)))
+	     (cdr slot))
+	   (m 1)))))
+  (define (do-expression template)
+    (regex-replace-all #/\(%(\w+)\s+([^%]*)%\)/ template
+		       (^m (and-let* ((expr (m 1)) (body (m 2)))
+			     (cond ((assoc expr parameters) =>
+				    (^s (if (cdr s) body "")))
+				   (else ""))))))
+  (define (write-to-file out template)
+    (put-string out (do-expression (do-template template))))
   (let1 template (file->string template)
-    (if (file-exists? dest)
-	(delete-file dest))
-    (call-with-output-file dest
-      (lambda (out)
-	(put-string out (regex-replace-all 
-			 #/(\$[a-zA-Z0-9-_]+?\$)/ template
-			 (lambda (m)
-			   (or (and-let* ((mark (m 1))
-					  (slot (assoc mark parameters)))
-				 (cdr slot))
-			       (m 1)))))))
+    (when (file-exists? dest) (delete-file dest))
+    (call-with-output-file dest (cut write-to-file <> template))
     dest))
 
-(define (generate args)
+(define (%generate full? :optional (package-name #f) 
+		   (library-name package-name))
   (define (generate-usage)
     (print "Usage: " (*script-name*) " generate package-name [library-name]")
     (exit -1))
   (define (generate-scheme-file package-name library-name)
-    (if (eq? package-name library-name)
+    (if (equal? package-name library-name)
 	(create-template-file scheme-template 
 			      (string-append library-name ".scm")
 			      `(("$library-name$" . 
 				 ,(string-append "(" library-name ")"))
 				("$package-name$" . ,package-name)))
 	(let1 libname (read (open-string-input-port library-name))
-	  (unless (pair? libname)
-	    (generate-usage))
-	  (let loop ((dirs libname)
-		     (path ""))
-	    (if (null? (cdr dirs))
-		(create-template-file scheme-template
-				      (string-append path 
-						     (symbol->string (car dirs))
-						     ".scm")
-				      `(("$library-name$" . ,library-name)
-					("$package-name$" . ,package-name)))
-		(let1 dir (string-append path (symbol->string (car dirs)) "/")
-		  (unless (file-directory? dir)
-		    (create-directory dir))
-		  (loop (cdr dirs) dir)))))))
+	  (unless (pair? libname) (generate-usage))
+	  ;; FIXME use native path separator
+	  (let*-values (((dirs file) (split-at libname (- (length libname) 1)))
+			((path)  (string-join (map symbol->string dirs) "/")))
+	    (create-directory* path)
+	    (create-template-file scheme-template
+				  (string-append path "/"
+						 (symbol->string (car file))
+						 ".scm")
+				  `(("$library-name$" . ,library-name)
+				    ("$package-name$" . ,package-name)))))))
   (define (flat-package-name package-name)
     (list->string (map (^c (if (or (char-alphabetic? c)
 				   (char-numeric? c))
@@ -94,75 +117,74 @@
   (define (derive-library-directory library-path)
     (receive (dir base ext) (decompose-path library-path)
       (or dir "")))
-  (let-optionals* args
-      ((package-name #f)
-       (library-name package-name))
-    (unless package-name
-      (generate-usage))
-    (unless (file-directory? package-name)
-      (create-directory package-name))
-    (parameterize ((current-directory package-name))
-      ;; generate scheme file
-      (let1 library-path (generate-scheme-file package-name library-name)
-	;; cmake file
-	(create-template-file cmake-template
-			      "CMakeLists.txt"
-			      `(("$package-name$" . ,package-name)
-				("$library-name$" . ,library-path)
-				("$library-directory$" .
-				 ,(derive-library-directory library-path)))))
-      ;; generate c file
-      (let ((c-file (string-append package-name ".c"))
-	    (h-file (string-append package-name ".h"))
-	    (stub-file (string-append package-name "lib.stub"))
-	    (flat-name (flat-package-name package-name)))
-	(define (generate-stub-names library-name)
-	  (let1 lib (read (open-string-input-port library-name))
-	    (if (symbol? lib)
-		(values (string-append "(" library-name " stub)")
-			(string-append library-name "_stub"))
-		(values (format "~a" (append lib '(stub)))
-			(string-append
-			 (string-join (map symbol->string lib) "_")
-			 "_stub")))))
-	(let-values (((stub-library stub-func)
-		      (generate-stub-names library-name)))
-	  (create-template-file h-template h-file
-				`(("$include-guard$" .
-				   ,(string-append
-				     (string-upcase flat-name) "_H"))))
-	  (create-template-file c-template c-file 
-				`(("$header$" . ,h-file)
-				  ("$stub-init$" . ,stub-func)
-				  ("$package-name$" . ,package-name)
-				  ("$flat-name$" . ,flat-name)
-				  ("$library-name$" .
-				   ,(if (eq? package-name library-name)
-					(string-append "(" library-name ")")
-					library-name))))
-	  (create-template-file stub-template stub-file 
-				`(("$stub-library-name$" . ,stub-library)
-				  ("$header$" . ,h-file)))
-	  ;; we only need to copy it
-	  (create-template-file uninstall-template
-				"cmake_uninstall.cmake.in"
-				'()))))))
+  (define (create-c-files package-name)
+    (let ((c-file (string-append package-name ".c"))
+	  (h-file (string-append package-name ".h"))
+	  (stub-file (string-append package-name "lib.stub"))
+	  (flat-name (flat-package-name package-name)))
+      (define (generate-stub-names library-name)
+	(let1 lib (read (open-string-input-port library-name))
+	  (if (symbol? lib)
+	      (values (string-append "(" library-name " stub)")
+		      (string-append library-name "_stub"))
+	      (values (format "~a" (append lib '(stub)))
+		      (string-append
+		       (string-join (map symbol->string lib) "_")
+		       "_stub")))))
+      (let-values (((stub-library stub-func)
+		    (generate-stub-names library-name)))
+	(create-template-file h-template h-file
+			      `(("$include-guard$" .
+				 ,(string-append
+				   (string-upcase flat-name) "_H"))))
+	(create-template-file c-template c-file 
+			      `(("$header$" . ,h-file)
+				("$stub-init$" . ,stub-func)
+				("$package-name$" . ,package-name)
+				("$flat-name$" . ,flat-name)
+				("$library-name$" .
+				 ,(if (eq? package-name library-name)
+				      (string-append "(" library-name ")")
+				      library-name))))
+	(create-template-file stub-template stub-file 
+			      `(("$stub-library-name$" . ,stub-library)
+				("$header$" . ,h-file))))))
+
+  (unless package-name (generate-usage))
+  (unless (file-directory? package-name) (create-directory package-name))
+  (parameterize ((current-directory package-name))
+    ;; generate scheme file
+    (let1 library-path (generate-scheme-file package-name library-name)
+      ;; cmake file
+      (create-template-file cmake-template
+			    "CMakeLists.txt"
+			    `(("$package-name$" . ,package-name)
+			      ("$library-name$" . ,library-path)
+			      ("$library-directory$" .
+			       ,(derive-library-directory library-path))
+			      ("full" . ,full?))))
+    ;; we only need to copy it
+    (create-template-file uninstall-template "cmake_uninstall.cmake.in" '())
+    ;; generate c file
+    (when full? (create-c-files package-name))))
+
+(define-command (generate-full args) (apply %generate #t args))
+(define-command (generate args) (apply %generate #f args))
 
 (define (usage)
   (print "Usage: " (*script-name*) "<command> [options] <args> ...")
   (print "Commands:")
-  (print "  generate    - Generate template source tree for a new Sagittarius extension")
-  (print "  genstub     - Generate .c file from .stub files")
+  (print "  generate      - Generate template source tree for a new Sagittarius extension (only Scheme)")
+  (print "  generate-full - Generate template source tree for a new Sagittarius extension")
+  (print "  genstub       - Generate .c file from .stub files")
   (exit -1))
 
 (define (main args)
   (parameterize ((*script-name* (car args)))
-    (when (null? (cdr args))
-      (usage))
-    (case (string->symbol (cadr args))
-      ((genstub) (genstub (cddr args)))
-      ((generate) (generate (cddr args)))
-      (else (usage))))
+    (when (null? (cdr args))(usage))
+    (cond ((~ *commands* (string->symbol (cadr args))) =>
+	   (lambda (proc) (proc (cddr args))))
+	  (else (usage))))
   0)
 
 ;; Local Variables:
