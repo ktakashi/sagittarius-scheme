@@ -160,8 +160,7 @@
 	    (clos user)
 	    (srfi :13 strings)
 	    (sagittarius)
-	    (sagittarius dynamic-module)
-	    (sagittarius vm))
+	    (sagittarius dynamic-module))
   (load-dynamic-module "sagittarius--ffi")
 
   (define void               'void)
@@ -368,6 +367,21 @@
      (string-append (format "~a." base)
 		    (string-join (map symbol->string lst) "."))))
 
+  ;; handle struct keyword in the define-c-struct.
+  (define-syntax type-list
+    (lambda (x)
+      (define (build type* r)
+	(syntax-case type* (struct)
+	  (() (reverse! r))
+	  (((struct type member) rest ...)
+	   (build #'(rest ...) 
+		  (cons (cons* #'list 'struct #'type #'('member)) r)))
+	  (((type args ...) rest ...)
+	   (build #'(rest ...) (cons (cons* #'list #'type #'('args ...)) r)))))
+      (syntax-case x ()
+	((_ types ...)
+	 (build #'(types ...) (list #'list))))))
+  
   (define-syntax define-c-struct
     (lambda (x)
       (define (generate-accessors name spec r)
@@ -408,6 +422,7 @@
 	   (continue #'member #'(rest ...) #t))
 	  (((type array elements member) rest ...)
 	   (continue #'member #'(rest ...) #f))))
+
       (syntax-case x ()
 	((_ name (type . rest) ...)
 	 #'(define-c-struct name #f (type . rest) ...))
@@ -421,18 +436,8 @@
 					    #'((type . rest) ...)
 					    '())))
 	   #'(begin
-	       ;; FIXME
-	       ;; if there are more than one struct in the same library,
-	       ;; and if one of them refere it, it cause unbound variable error.
-	       ;; to avoid it, we need to do this. ugly...
-	       (%insert-binding (current-library)
-				'name
-				(make-c-struct 
-				 'name 
-				 (map cons (list type ...) '(rest ...))
-				 (eq? packed? :packed)))
-	       (define name (make-c-struct 'name (map cons (list type ...)
-						      '(rest ...))
+	       (define name (make-c-struct 'name 
+					   (type-list (type . rest) ...)
 					   (eq? packed? :packed)))
 	       accessors ...))))))
 

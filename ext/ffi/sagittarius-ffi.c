@@ -305,7 +305,6 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
   padding = offset = max_type = size = 0;
   SG_FOR_EACH(cp, layouts) {
     SgObject layout = SG_CAR(cp);
-    SgObject typename;
     int type;
     ffi_type *ffi;
     size_t array_off = 0;
@@ -315,16 +314,8 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
     st->layouts[index].array = -1;
     if (SG_PAIRP(SG_CDDR(layout))) {
       if (SG_EQ(SYMBOL_STRUCT, SG_CAR(SG_CDDR(layout)))) {
-	SgObject gloc;
 	SgObject st2;
-	typename = SG_CDR(SG_CDDR(layout));
-	/* FIXME: this should not be like this */
-	gloc = Sg_FindBinding(vm->currentLibrary, typename, SG_FALSE);
-	if (SG_FALSEP(gloc)) {
-	  Sg_Error(UC("undefined c-struct %S"), typename);
-	  return SG_UNDEF;
-	}
-	st2 = SG_GLOC_GET(SG_GLOC(gloc));
+	st2 = SG_CDR(SG_CDDR(layout));
 	if (!SG_CSTRUCTP(st2)) {
 	  Sg_Error(UC("c-struct required, but got %S"), st2);
 	  return SG_UNDEF;

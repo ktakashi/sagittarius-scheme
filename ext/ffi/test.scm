@@ -239,6 +239,13 @@
     (char  c)
     (short s))
   (test-equal "size-check" 4 (size-of-c-struct size-check))
+
+  ;; local struct
+  (let ()
+    (define-c-struct local-struct (int32_t v))
+    (test-equal "local-struct" 4 (size-of-c-struct local-struct)))
+  (test-error "local-struct(outside)" local-struct)
+
   )
  (else
   #t))
