@@ -2621,7 +2621,7 @@
 			  (imap (lambda (x) (pass1 x p1env)) body)))
 		(loop (cdr clauses) finish?))
 	       ((cond-expand)
-		(let ((r (pass1 (car clauses) p1env)))
+		(let ((r (pass1/cond-expand body (car clauses) p1env)))
 		  ;; if only one element in ($seq), it will elliminate it.
 		  (if ($seq? r)
 		      ($seq-body-set! seq
