@@ -82,6 +82,7 @@
     (put-string out (do-expression (do-template template))))
   (let1 template (file->string template)
     (when (file-exists? dest) (delete-file dest))
+    (format #t "Creating template file ~a~%" dest)
     (call-with-output-file dest (cut write-to-file <> template))
     dest))
 
@@ -102,9 +103,12 @@
 	  ;; FIXME use native path separator
 	  (let*-values (((dirs file) (split-at libname (- (length libname) 1)))
 			((path)  (string-join (map symbol->string dirs) "/")))
-	    (create-directory* path)
+	    (unless (null? dirs)
+	      (format #t "Creating directory ~a~%" path)
+	      (create-directory* path)
+	      (set! path (string-append path "/")))
 	    (create-template-file scheme-template
-				  (string-append path "/"
+				  (string-append path
 						 (symbol->string (car file))
 						 ".scm")
 				  `(("$library-name$" . ,library-name)
@@ -151,7 +155,9 @@
 				("$header$" . ,h-file))))))
 
   (unless package-name (generate-usage))
-  (unless (file-directory? package-name) (create-directory package-name))
+  (unless (file-directory? package-name)
+    (format #t "Creating package directory ~a~%" package-name)
+    (create-directory package-name))
   (parameterize ((current-directory package-name))
     ;; generate scheme file
     (let1 library-path (generate-scheme-file package-name library-name)
