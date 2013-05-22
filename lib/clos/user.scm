@@ -141,7 +141,7 @@
 	  (define (process-slot-definition sdef)
 	    (if (pair? sdef)
 		(let loop ((opts (cdr sdef)) (r '()))
-		  (cond ((null? opts) `(list ',(car sdef) ,@(reverse! r)))
+		  (cond ((null? opts) #`(list '#,(car sdef) #,@(reverse! r)))
 			((not (and (pair? opts) (pair? (cdr opts))))
 			 (syntax-violation 'define-class
 					   "bad slot specification" sdef))
@@ -149,13 +149,16 @@
 			 (case (car opts)
 			   ((:init-form)
 			    (loop (cddr opts)
-				  `((lambda () ,(cadr opts)) :init-thunk ,@r)))
+				  #`((lambda () #,(cadr opts))
+				     :init-thunk #,@r)))
 			   ((:accessor :reader :writer)
-			    (loop (cddr opts) `(',(cadr opts) ,(car opts) ,@r)))
+			    (loop (cddr opts)
+				  #`('#,(cadr opts) #,(car opts) #,@r)))
 			   (else 
 			    (loop (cddr opts)
 				  (cons* (cadr opts) (car opts) r)))))))
-		`'(,sdef)))
+		;; i think it will never reaches below though...
+		#`'(#,sdef)))
 	  ;; TODO check if given name is already exists as generic
 	  #`(begin
 	      (define #,name
