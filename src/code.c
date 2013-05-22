@@ -68,7 +68,7 @@
    for 64 bit environment.
  */
 #define SG_INT_FITS_INSN_VALUE(n)				\
-  (((n) <= (1 << ((31 - INSN_VALUE1_SHIFT)))) &&	\
+  (((n) <= (1 << ((31 - INSN_VALUE1_SHIFT)))-1) &&		\
    ((n) >= ~(1 << ((31 - INSN_VALUE1_SHIFT)))))
 
 

@@ -31,34 +31,16 @@
 ;; based on Cygwin's winuser.h
 (library (win32 user)
     (export WNDPROC
-	    WM_NULL WM_CREATE WM_DESTROY WM_SIZE
-	    WM_PAINT WM_CLOSE WM_COMMAND WM_SYSCOMMAND
-	    WM_LBUTTONDOWN
-	    EM_SETLIMITTEXT
-	    MF_ENABLED MF_GRAYED MF_DISABLED MF_BITMAP MF_CHECKED
-	    MF_POPUP MF_MENUBARBREAK MF_MENUBREAK MF_OWNERDRAW
-	    MF_STRING
-	    CS_VREDRAW CS_HREDRAW
-	    CW_USEDEFAULT
-	    WS_OVERLAPPEDWINDOW WS_VISIBLE WS_CHILD WS_VSCROLL
-	    WS_HSCROLL
-	    ES_AUTOHSCROLL ES_MULTILINE ES_WANTRETURN
-	    SW_SHOWNORMAL SW_SHOW
-	    MB_OK MB_OKCANCEL MB_YESNOCANCEL MB_YESNO MB_ICONQUESTION
-	    IDOK IDCANCEL IDABORT IDRETRY IDIGNORE IDYES IDNO
-	    IMAGE_BITMAP IMAGE_ICON IMAGE_CURSOR IMAGE_ENHMETAFILE
-	    LR_LOADFROMFILE
 	    IDI_APPLICATION IDI_HAND IDI_QUESTION IDI_EXCLAMATION
 	    IDI_ASTERISK IDI_WINLOGO
-	    MIIM_STATE MIIM_ID MIIM_SUBMENU MIIM_CHECKMARKS MIIM_TYPE
-	    MFT_STRING
+
 	    IDC_ARROW IDC_IBEAM IDC_WAIT IDC_CROSS IDC_UPARROW
 
-	    WNDCLASSEX LPWNDCLASSEX PWNDCLASSEX
-	    PAINTSTRUCT LPPAINTSTRUCT
-	    MSG LPMSG PMSG
-	    CREATESTRUCT LPCREATESTRUCT
-	    MENUITEMINFO LPMENUITEMINFO
+	    WNDCLASSEX
+	    PAINTSTRUCT
+	    MSG
+	    CREATESTRUCT
+	    MENUITEMINFO
 	    message-box
 	    create-window-ex
 	    create-window
@@ -93,66 +75,20 @@
 	    set-window-text
 	    get-window-text
 	    get-window-text-length
-	    BS_PUSHBUTTON
-	    BS_DEFPUSHBUTTON
-	    BS_CHECKBOX
-	    BS_AUTOCHECKBOX
-	    BS_RADIOBUTTON
-	    BS_3STATE
-	    BS_AUTO3STATE
-	    BS_GROUPBOX
-	    BS_USERBUTTON
-	    BS_AUTORADIOBUTTON
-	    BS_PUSHBOX
-	    BS_OWNERDRAW
-	    BS_TYPEMASK
-	    BS_LEFTTEXT
-	    BS_TEXT
-	    BS_ICON
-	    BS_BITMAP
-	    BS_LEFT
-	    BS_RIGHT
-	    BS_CENTER
-	    BS_TOP
-	    BS_BOTTOM
-	    BS_VCENTER
-	    BS_PUSHLIKE
-	    BS_MULTILINE
-	    BS_NOTIFY
-	    BS_FLAT
-	    BS_RIGHTBUTTON
-	    BN_CLICKED
-	    BN_PAINT
-	    BN_HILITE
-	    BN_UNHILITE
-	    BN_DISABLE
-	    BN_DOUBLECLICKED
-	    BN_PUSHED
-	    BN_UNPUSHED
-	    BN_DBLCLK
-	    BN_SETFOCUS
-	    BN_KILLFOCUS
-	    BM_GETCHECK
-	    BM_SETCHECK
-	    BM_GETSTATE
-	    BM_SETSTATE
-	    BM_SETSTYLE
-	    BM_CLICK
-	    BM_GETIMAGE
-	    BM_SETIMAGE
-	    BST_UNCHECKED
-	    BST_CHECKED
-	    BST_INDETERMINATE
-	    BST_PUSHED
-	    BST_FOCUS
 	    )
-    (import (core)
-	    (sagittarius)
+    (import (rnrs)
+	    (rename (sagittarius) (define-constant defconst))
 	    (sagittarius ffi)
 	    (win32 defs))
 
   (define user32 (open-shared-library "user32.dll"))
   (define WNDPROC callback)
+  (define-syntax define-constant
+    (syntax-rules ()
+      ((_ name value) 
+       (begin
+	 (export name)
+	 (defconst name value)))))
 
   ;; windows messages
   (define-constant WM_NULL 0)
@@ -184,15 +120,77 @@
 
   (define-constant CW_USEDEFAULT #x80000000)
 
+  (define-constant WS_OVERLAPPED #x00000000)
+  (define-constant WS_POPUP #x80000000)
   (define-constant WS_CHILD #x40000000)
-  (define-constant WS_HSCROLL #x100000)
-  (define-constant WS_OVERLAPPEDWINDOW #xcf0000)
+  (define-constant WS_MINIMIZE #x20000000)
   (define-constant WS_VISIBLE #x10000000)
-  (define-constant WS_VSCROLL #x200000)
+  (define-constant WS_DISABLED #x08000000)
+  (define-constant WS_CLIPSIBLINGS #x04000000)
+  (define-constant WS_CLIPCHILDREN #x02000000)
+  (define-constant WS_MAXIMIZE #x01000000)
+  (define-constant WS_CAPTION #x00C00000)
+  (define-constant WS_BORDER #x00800000)
+  (define-constant WS_DLGFRAME #x00400000)
+  (define-constant WS_VSCROLL #x00200000)
+  (define-constant WS_HSCROLL #x00100000)
+  (define-constant WS_SYSMENU #x00080000)
+  (define-constant WS_THICKFRAME #x00040000)
+  (define-constant WS_GROUP #x00020000)
+  (define-constant WS_TABSTOP #x00010000)
+  (define-constant WS_MINIMIZEBOX #x00020000)
+  (define-constant WS_MAXIMIZEBOX #x00010000)
+  (define-constant WS_TILED WS_OVERLAPPED)
+  (define-constant WS_ICONIC WS_MINIMIZE)
+  (define-constant WS_SIZEBOX WS_THICKFRAME)
+  (define-constant WS_OVERLAPPEDWINDOW 
+    (bitwise-ior WS_OVERLAPPED WS_CAPTION WS_SYSMENU
+		 WS_THICKFRAME WS_MINIMIZEBOX WS_MAXIMIZEBOX))
+  (define-constant WS_TILEDWINDOW WS_OVERLAPPEDWINDOW)
+  (define-constant WS_POPUPWINDOW (bitwise-ior WS_POPUP WS_BORDER WS_SYSMENU))
+  (define-constant WS_CHILDWINDOW WS_CHILD)
 
-  (define-constant ES_AUTOHSCROLL 64)
-  (define-constant ES_MULTILINE 4)
-  (define-constant ES_WANTRETURN 4096)
+  (define-constant WS_EX_DLGMODALFRAME #x00000001)
+  (define-constant WS_EX_NOPARENTNOTIFY #x00000004)
+  (define-constant WS_EX_TOPMOST #x00000008)
+  (define-constant WS_EX_ACCEPTFILES #x00000010)
+  (define-constant WS_EX_TRANSPARENT #x00000020)
+  (define-constant WS_EX_MDICHILD #x00000040)
+  (define-constant WS_EX_TOOLWINDOW #x00000080)
+  (define-constant WS_EX_WINDOWEDGE #x00000100)
+  (define-constant WS_EX_CLIENTEDGE #x00000200)
+  (define-constant WS_EX_CONTEXTHELP #x00000400)
+  (define-constant WS_EX_RIGHT #x00001000)
+  (define-constant WS_EX_LEFT #x00000000)
+  (define-constant WS_EX_RTLREADING #x00002000)
+  (define-constant WS_EX_LTRREADING #x00000000)
+  (define-constant WS_EX_LEFTSCROLLBAR #x00004000)
+  (define-constant WS_EX_RIGHTSCROLLBAR #x00000000)
+  (define-constant WS_EX_CONTROLPARENT #x00010000)
+  (define-constant WS_EX_STATICEDGE #x00020000)
+  (define-constant WS_EX_APPWINDOW #x00040000)
+  (define-constant WS_EX_OVERLAPPEDWINDOW (bitwise-ior WS_EX_WINDOWEDGE WS_EX_CLIENTEDGE))
+  (define-constant WS_EX_PALETTEWINDOW (bitwise-ior WS_EX_WINDOWEDGE WS_EX_TOOLWINDOW WS_EX_TOPMOST))
+  (define-constant WS_EX_LAYERED #x00080000)
+  (define-constant WS_EX_NOINHERITLAYOUT #x00100000)
+  (define-constant WS_EX_LAYOUTRTL #x00400000)
+  (define-constant WS_EX_COMPOSITED #x02000000)
+  (define-constant WS_EX_NOACTIVATE #x08000000)
+
+  (define-constant ES_LEFT   	  #x0000)
+  (define-constant ES_CENTER 	  #x0001)
+  (define-constant ES_RIGHT  	  #x0002)
+  (define-constant ES_MULTILINE   #x0004)
+  (define-constant ES_UPPERCASE   #x0008)
+  (define-constant ES_LOWERCASE   #x0010)
+  (define-constant ES_PASSWORD    #x0020)
+  (define-constant ES_AUTOVSCROLL #x0040)
+  (define-constant ES_AUTOHSCROLL #x0080)
+  (define-constant ES_NOHIDESEL   #x0100)
+  (define-constant ES_OEMCONVERT  #x0400)
+  (define-constant ES_READONLY    #x0800)
+  (define-constant ES_WANTRETURN  #x1000)
+  (define-constant ES_NUMBER      #x2000)
 
   (define-constant SW_SHOWNORMAL 1)
   (define-constant SW_SHOW 5)
@@ -220,12 +218,12 @@
 
   (define-constant LR_LOADFROMFILE 16)
 
-  (define-constant IDI_APPLICATION (integer->pointer 32512))
-  (define-constant IDI_HAND (integer->pointer 32513))
-  (define-constant IDI_QUESTION (integer->pointer 32514))
-  (define-constant IDI_EXCLAMATION (integer->pointer 32515))
-  (define-constant IDI_ASTERISK (integer->pointer 32516))
-  (define-constant IDI_WINLOGO (integer->pointer 32517))
+  (define IDI_APPLICATION (integer->pointer 32512))
+  (define IDI_HAND (integer->pointer 32513))
+  (define IDI_QUESTION (integer->pointer 32514))
+  (define IDI_EXCLAMATION (integer->pointer 32515))
+  (define IDI_ASTERISK (integer->pointer 32516))
+  (define IDI_WINLOGO (integer->pointer 32517))
 
   (define-constant MIIM_STATE 1)
   (define-constant MIIM_ID 2)
@@ -235,11 +233,11 @@
 
   (define-constant MFT_STRING 0)
 
-  (define-constant IDC_ARROW (integer->pointer 32512))
-  (define-constant IDC_IBEAM (integer->pointer 32513))
-  (define-constant IDC_WAIT (integer->pointer 32514))
-  (define-constant IDC_CROSS (integer->pointer 32515))
-  (define-constant IDC_UPARROW (integer->pointer 32516))
+  (define IDC_ARROW (integer->pointer 32512))
+  (define IDC_IBEAM (integer->pointer 32513))
+  (define IDC_WAIT (integer->pointer 32514))
+  (define IDC_CROSS (integer->pointer 32515))
+  (define IDC_UPARROW (integer->pointer 32516))
 
   (define-c-struct WNDCLASSEX
     (UINT         cbSize)
@@ -254,8 +252,9 @@
     (LPCSTR       lpszMenuName)
     (LPCSTR       lpszClassName)
     (HICON        hIconSm))
-  (define LPWNDCLASSEX void*)
-  (define PWNDCLASSEX void*)
+
+  (define-constant LPWNDCLASSEX void*)
+  (define-constant PWNDCLASSEX void*)
 
   (define-c-struct PAINTSTRUCT
     (HDC  hdc)
@@ -264,7 +263,7 @@
     (BOOL fRestore)
     (BOOL fIncUpdate)
     (BYTE array 32 rgbReserved))
-  (define LPPAINTSTRUCT void*)
+  (define-constant LPPAINTSTRUCT void*)
 
   (define-c-struct MSG
       (HWND   hwnd)
@@ -273,8 +272,8 @@
       (LPARAM lParam)
       (DWORD  time)
       (struct POINT pt))
-  (define LPMSG void*)
-  (define PMSG void*)
+  (define-constant LPMSG void*)
+  (define-constant PMSG void*)
 
   (define-c-struct CREATESTRUCT
     (LPVOID	lpCreateParams)
@@ -289,7 +288,7 @@
     (LPCSTR	lpszName)
     (LPCSTR	lpszClass)
     (DWORD	dwExStyle))
-  (define LPCREATESTRUCT void*)
+  (define-constant LPCREATESTRUCT void*)
 
   (define-c-struct MENUITEMINFO
     (UINT cbSize)
@@ -304,7 +303,7 @@
     (LPSTR dwTypeData)
     (UINT cch)
     (HBITMAP hbmpItem))
-  (define LPMENUITEMINFO void*)
+  (define-constant LPMENUITEMINFO void*)
 
   (define message-box
     (c-function user32

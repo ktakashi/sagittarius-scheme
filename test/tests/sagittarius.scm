@@ -886,4 +886,7 @@
 (test-equal "(/ 1 -0.0)" -inf.0 (/ 1 -0.0))
 (test-equal "(/ -1 -0.0)" +inf.0 (/ -1 -0.0))
 
+;; issue 112
+(test-assert "#x800000" (positive? #x800000))
+
 (test-end)
