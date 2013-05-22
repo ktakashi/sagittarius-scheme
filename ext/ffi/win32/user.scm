@@ -1,20 +1,20 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
 ;;; user.scm - Win32 API wrapper library
-;;;  
+;;;
 ;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; based on Cygwin's winuser.h
 (library (win32 user)
@@ -92,8 +92,62 @@
 	    insert-menu-item
 	    set-window-text
 	    get-window-text
-	    get-window-text-length)
+	    get-window-text-length
+	    BS_PUSHBUTTON
+	    BS_DEFPUSHBUTTON
+	    BS_CHECKBOX
+	    BS_AUTOCHECKBOX
+	    BS_RADIOBUTTON
+	    BS_3STATE
+	    BS_AUTO3STATE
+	    BS_GROUPBOX
+	    BS_USERBUTTON
+	    BS_AUTORADIOBUTTON
+	    BS_PUSHBOX
+	    BS_OWNERDRAW
+	    BS_TYPEMASK
+	    BS_LEFTTEXT
+	    BS_TEXT
+	    BS_ICON
+	    BS_BITMAP
+	    BS_LEFT
+	    BS_RIGHT
+	    BS_CENTER
+	    BS_TOP
+	    BS_BOTTOM
+	    BS_VCENTER
+	    BS_PUSHLIKE
+	    BS_MULTILINE
+	    BS_NOTIFY
+	    BS_FLAT
+	    BS_RIGHTBUTTON
+	    BN_CLICKED
+	    BN_PAINT
+	    BN_HILITE
+	    BN_UNHILITE
+	    BN_DISABLE
+	    BN_DOUBLECLICKED
+	    BN_PUSHED
+	    BN_UNPUSHED
+	    BN_DBLCLK
+	    BN_SETFOCUS
+	    BN_KILLFOCUS
+	    BM_GETCHECK
+	    BM_SETCHECK
+	    BM_GETSTATE
+	    BM_SETSTATE
+	    BM_SETSTYLE
+	    BM_CLICK
+	    BM_GETIMAGE
+	    BM_SETIMAGE
+	    BST_UNCHECKED
+	    BST_CHECKED
+	    BST_INDETERMINATE
+	    BST_PUSHED
+	    BST_FOCUS
+	    )
     (import (core)
+	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 defs))
 
@@ -101,91 +155,91 @@
   (define WNDPROC callback)
 
   ;; windows messages
-  (define WM_NULL 0)
-  (define WM_CREATE 1)
-  (define WM_DESTROY 2)
-  (define WM_SIZE 5)
-  (define WM_PAINT 15)
-  (define WM_CLOSE 16)
-  (define WM_COMMAND 273)
-  (define WM_SYSCOMMAND 273)
-  (define WM_LBUTTONDOWN 513)
+  (define-constant WM_NULL 0)
+  (define-constant WM_CREATE 1)
+  (define-constant WM_DESTROY 2)
+  (define-constant WM_SIZE 5)
+  (define-constant WM_PAINT 15)
+  (define-constant WM_CLOSE 16)
+  (define-constant WM_COMMAND 273)
+  (define-constant WM_SYSCOMMAND 273)
+  (define-constant WM_LBUTTONDOWN 513)
 
-  (define EM_SETLIMITTEXT 197)
+  (define-constant EM_SETLIMITTEXT 197)
 
-  (define MF_ENABLED 0)
-  (define MF_GRAYED 1)
-  (define MF_DISABLED 2)
-  (define MF_BITMAP 4)
-  (define MF_CHECKED 8)
-  (define MF_POPUP 16)
-  (define MF_MENUBARBREAK 32)
-  (define MF_MENUBREAK 64)
-  (define MF_OWNERDRAW 256)
-  (define MF_STRING 0)
-  
+  (define-constant MF_ENABLED 0)
+  (define-constant MF_GRAYED 1)
+  (define-constant MF_DISABLED 2)
+  (define-constant MF_BITMAP 4)
+  (define-constant MF_CHECKED 8)
+  (define-constant MF_POPUP 16)
+  (define-constant MF_MENUBARBREAK 32)
+  (define-constant MF_MENUBREAK 64)
+  (define-constant MF_OWNERDRAW 256)
+  (define-constant MF_STRING 0)
+
   ;; window style
-  (define CS_VREDRAW 1)
-  (define CS_HREDRAW 2)
+  (define-constant CS_VREDRAW 1)
+  (define-constant CS_HREDRAW 2)
 
-  (define CW_USEDEFAULT #x80000000)
-  
-  (define WS_CHILD #x40000000)
-  (define WS_HSCROLL #x100000)
-  (define WS_OVERLAPPEDWINDOW #xcf0000)
-  (define WS_VISIBLE #x10000000)
-  (define WS_VSCROLL #x200000)
+  (define-constant CW_USEDEFAULT #x80000000)
 
-  (define ES_AUTOHSCROLL 64)
-  (define ES_MULTILINE 4)
-  (define ES_WANTRETURN 4096)
+  (define-constant WS_CHILD #x40000000)
+  (define-constant WS_HSCROLL #x100000)
+  (define-constant WS_OVERLAPPEDWINDOW #xcf0000)
+  (define-constant WS_VISIBLE #x10000000)
+  (define-constant WS_VSCROLL #x200000)
 
-  (define SW_SHOWNORMAL 1)
-  (define SW_SHOW 5)
+  (define-constant ES_AUTOHSCROLL 64)
+  (define-constant ES_MULTILINE 4)
+  (define-constant ES_WANTRETURN 4096)
 
-  (define MB_ICONQUESTION 32)
-  (define MB_OK 0)
-  (define MB_OKCANCEL 1)
-  (define MB_YESNOCANCEL 3)
-  (define MB_YESNO 4)
+  (define-constant SW_SHOWNORMAL 1)
+  (define-constant SW_SHOW 5)
+
+  (define-constant MB_ICONQUESTION 32)
+  (define-constant MB_OK 0)
+  (define-constant MB_OKCANCEL 1)
+  (define-constant MB_YESNOCANCEL 3)
+  (define-constant MB_YESNO 4)
 
 
-  (define IDOK 1)
-  (define IDCANCEL 2)
-  (define IDABORT 3)
-  (define IDRETRY 4)
-  (define IDIGNORE 5)
-  (define IDYES 6)
-  (define IDNO 7)
+  (define-constant IDOK 1)
+  (define-constant IDCANCEL 2)
+  (define-constant IDABORT 3)
+  (define-constant IDRETRY 4)
+  (define-constant IDIGNORE 5)
+  (define-constant IDYES 6)
+  (define-constant IDNO 7)
 
   ;; load option
-  (define IMAGE_BITMAP 0)
-  (define IMAGE_ICON 1)
-  (define IMAGE_CURSOR 2)
-  (define IMAGE_ENHMETAFILE 3)
+  (define-constant IMAGE_BITMAP 0)
+  (define-constant IMAGE_ICON 1)
+  (define-constant IMAGE_CURSOR 2)
+  (define-constant IMAGE_ENHMETAFILE 3)
 
-  (define LR_LOADFROMFILE 16)
-  
-  (define IDI_APPLICATION (integer->pointer 32512))
-  (define IDI_HAND (integer->pointer 32513))
-  (define IDI_QUESTION (integer->pointer 32514))
-  (define IDI_EXCLAMATION (integer->pointer 32515))
-  (define IDI_ASTERISK (integer->pointer 32516))
-  (define IDI_WINLOGO (integer->pointer 32517))
+  (define-constant LR_LOADFROMFILE 16)
 
-  (define MIIM_STATE 1)
-  (define MIIM_ID 2)
-  (define MIIM_SUBMENU 4)
-  (define MIIM_CHECKMARKS 8)
-  (define MIIM_TYPE 16)
+  (define-constant IDI_APPLICATION (integer->pointer 32512))
+  (define-constant IDI_HAND (integer->pointer 32513))
+  (define-constant IDI_QUESTION (integer->pointer 32514))
+  (define-constant IDI_EXCLAMATION (integer->pointer 32515))
+  (define-constant IDI_ASTERISK (integer->pointer 32516))
+  (define-constant IDI_WINLOGO (integer->pointer 32517))
 
-  (define MFT_STRING 0)
+  (define-constant MIIM_STATE 1)
+  (define-constant MIIM_ID 2)
+  (define-constant MIIM_SUBMENU 4)
+  (define-constant MIIM_CHECKMARKS 8)
+  (define-constant MIIM_TYPE 16)
 
-  (define IDC_ARROW (integer->pointer 32512))
-  (define IDC_IBEAM (integer->pointer 32513))
-  (define IDC_WAIT (integer->pointer 32514))
-  (define IDC_CROSS (integer->pointer 32515))
-  (define IDC_UPARROW (integer->pointer 32516))
+  (define-constant MFT_STRING 0)
+
+  (define-constant IDC_ARROW (integer->pointer 32512))
+  (define-constant IDC_IBEAM (integer->pointer 32513))
+  (define-constant IDC_WAIT (integer->pointer 32514))
+  (define-constant IDC_CROSS (integer->pointer 32515))
+  (define-constant IDC_UPARROW (integer->pointer 32516))
 
   (define-c-struct WNDCLASSEX
     (UINT         cbSize)
@@ -264,11 +318,11 @@
   (define (create-window a b c d e f g h i j k)
     (create-window-ex 0 a b c d e f g h i j k))
 
-  (define load-icon 
+  (define load-icon
     (c-function user32
 		HICON LoadIconA (HINSTANCE LPCSTR)))
 
-  (define load-cursor 
+  (define load-cursor
     (c-function user32
 		HCURSOR LoadCursorA (HINSTANCE LPCSTR)))
 
@@ -280,7 +334,7 @@
     (c-function user32
 		ATOM RegisterClassExA (void*)))
 
-  (define post-quit-message 
+  (define post-quit-message
     (c-function user32
 		void PostQuitMessage (int)))
 
@@ -288,7 +342,7 @@
     (c-function user32
 		void* DefWindowProcA (HWND UINT WPARAM LPARAM)))
 
-  (define show-window 
+  (define show-window
     (c-function user32
 		BOOL ShowWindow (HWND int)))
 
@@ -387,4 +441,61 @@
   (define get-window-text-length
     (c-function user32
 		int GetWindowTextLengthA (HWND)))
+
+  ;; button style
+  (define-constant BS_PUSHBUTTON      #x00000000)
+  (define-constant BS_DEFPUSHBUTTON   #x00000001)
+  (define-constant BS_CHECKBOX        #x00000002)
+  (define-constant BS_AUTOCHECKBOX    #x00000003)
+  (define-constant BS_RADIOBUTTON     #x00000004)
+  (define-constant BS_3STATE          #x00000005)
+  (define-constant BS_AUTO3STATE      #x00000006)
+  (define-constant BS_GROUPBOX        #x00000007)
+  (define-constant BS_USERBUTTON      #x00000008)
+  (define-constant BS_AUTORADIOBUTTON #x00000009)
+  (define-constant BS_PUSHBOX         #x0000000A)
+  (define-constant BS_OWNERDRAW       #x0000000B)
+  (define-constant BS_TYPEMASK        #x0000000F)
+  (define-constant BS_LEFTTEXT        #x00000020)
+  (define-constant BS_TEXT            #x00000000)
+  (define-constant BS_ICON            #x00000040)
+  (define-constant BS_BITMAP   	      #x00000080)
+  (define-constant BS_LEFT     	      #x00000100)
+  (define-constant BS_RIGHT    	      #x00000200)
+  (define-constant BS_CENTER   	      #x00000300)
+  (define-constant BS_TOP      	      #x00000400)
+  (define-constant BS_BOTTOM   	      #x00000800)
+  (define-constant BS_VCENTER  	      #x00000C00)
+  (define-constant BS_PUSHLIKE 	      #x00001000)
+  (define-constant BS_MULTILINE       #x00002000)
+  (define-constant BS_NOTIFY          #x00004000)
+  (define-constant BS_FLAT            #x00008000)
+  (define-constant BS_RIGHTBUTTON     BS_LEFTTEXT)
+
+  (define-constant BN_CLICKED       0)
+  (define-constant BN_PAINT         1)
+  (define-constant BN_HILITE        2)
+  (define-constant BN_UNHILITE      3)
+  (define-constant BN_DISABLE       4)
+  (define-constant BN_DOUBLECLICKED 5)
+  (define-constant BN_PUSHED        BN_HILITE)
+  (define-constant BN_UNPUSHED      BN_UNHILITE)
+  (define-constant BN_DBLCLK        BN_DOUBLECLICKED)
+  (define-constant BN_SETFOCUS      6)
+  (define-constant BN_KILLFOCUS     7)
+
+  (define-constant BM_GETCHECK #x00F0)
+  (define-constant BM_SETCHECK #x00F1)
+  (define-constant BM_GETSTATE #x00F2)
+  (define-constant BM_SETSTATE #x00F3)
+  (define-constant BM_SETSTYLE #x00F4)
+  (define-constant BM_CLICK    #x00F5)
+  (define-constant BM_GETIMAGE #x00F6)
+  (define-constant BM_SETIMAGE #x00F7)
+
+  (define-constant BST_UNCHECKED     #x0000)
+  (define-constant BST_CHECKED       #x0001)
+  (define-constant BST_INDETERMINATE #x0002)
+  (define-constant BST_PUSHED        #x0004)
+  (define-constant BST_FOCUS         #x0008)
 )
