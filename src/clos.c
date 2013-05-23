@@ -104,8 +104,7 @@ static SgObject method_allocate(SgClass *klass, SgObject initargs);
 /* compare */
 static int object_compare(SgObject x, SgObject y, int equalp);
 
-static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
-					int raise);
+static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name);
 
 static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers, SgSlotAccessor *specs,
@@ -493,9 +492,9 @@ SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots)
     SG_FOR_EACH(cp, rcpl) {
       SgObject check = Sg_Assq(SG_CAAR(sp), ds);
       if (SG_FALSEP(check)) {
-	SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)),
-					       SG_CAAR(sp), FALSE);
-	if (SG_UNDEFP(sac)) continue;
+	SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)), 
+					       SG_CAAR(sp));
+	if (!sac) continue;
 	if (sac->getter) ac->getter = sac->getter;
 	if (sac->setter) ac->setter = sac->setter;
       }
@@ -897,8 +896,32 @@ SgObject Sg_ComputeMethods(SgGeneric *gf, SgObject *argv, int argc,
   return sort_method(applicable, argv, argc, applyargs);
 }
 
-static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
-					int raise)
+#define VMSLOT_UNBOUND(klass, obj, slot)		\
+  Sg_VMApply3(SG_OBJ(&Sg_GenericSlotUnbound),		\
+	      SG_OBJ(klass), obj, slot)
+
+#define VMSLOT_MISSING3(klass, obj, slot)                 \
+  Sg_VMApply3(SG_OBJ(&Sg_GenericSlotMissing),		  \
+	      SG_OBJ(klass), obj, slot)
+
+#define VMSLOT_MISSING4(klass, obj, slot, val)		\
+  Sg_VMApply4(SG_OBJ(&Sg_GenericSlotMissing),		\
+	      SG_OBJ(klass), obj, slot, val)
+
+#define SLOT_UNBOUND(klass, obj, slot)		\
+  Sg_Apply3(SG_OBJ(&Sg_GenericSlotUnbound),	\
+	    SG_OBJ(klass), obj, slot)
+
+#define SLOT_MISSING3(klass, obj, slot)			  \
+  Sg_Apply3(SG_OBJ(&Sg_GenericSlotMissing),		  \
+	    SG_OBJ(klass), obj, slot)
+
+#define SLOT_MISSING4(klass, obj, slot, val)		\
+  Sg_Apply4(SG_OBJ(&Sg_GenericSlotMissing),		\
+	    SG_OBJ(klass), obj, slot, val)
+
+
+static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
 {
   SgSlotAccessor **gNs = klass->gettersNSetters;
   SgObject cpl = klass->cpl;
@@ -918,61 +941,110 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name,
     gNs = tklass->gettersNSetters;
     goto entry;
   }
-  if (raise) {
-    Sg_Error(UC("object of class %S doesn't have such slot: %S"), klass, name);
-  }
-  return SG_UNDEF;		/* dummy */
+  return NULL;		/* dummy */
 }
 
-static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP)
+/* ugly naming */
+static SgObject slot_ref_cc_rec(SgObject obj, SgObject slot,
+				SgObject result, int boundp)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
-  if (accessor->getter) {
-    return accessor->getter(obj);
+  if (SG_UNBOUNDP(result) || SG_UNDEFP(result)) {
+    if (boundp) return SG_FALSE;
+    else return SLOT_UNBOUND(Sg_ClassOf(obj), obj, slot);
   } else {
-    /* scheme accessor, assume obj is instance */
-    if (SG_FALSEP(accessor->getterS)) {
-      return SG_INSTANCE(obj)->slots[accessor->index];
+    if (boundp) return SG_TRUE;
+    else        return result;
+  }
+}
+
+static SgObject slot_ref_cc(SgObject result, void **data)
+{
+  SgObject obj = data[0];
+  SgObject slot = data[1];
+  int boundp = (int)(intptr_t)data[2];
+  if (SG_UNBOUNDP(result) || SG_UNDEFP(result)) {
+    if (boundp) return SG_FALSE;
+    else return VMSLOT_UNBOUND(Sg_ClassOf(obj), obj, slot);
+  } else {
+    if (boundp) return SG_TRUE;
+    else        return result;
+  }
+}
+
+static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP, int boundp)
+{
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  if (accessor) {
+    if (accessor->getter) {
+      return slot_ref_cc_rec(obj, name, accessor->getter(obj), boundp);
     } else {
-      /* Hope this will be removed by compiler... */
-      if (vmP) {
-	return Sg_VMApply1(accessor->getterS, obj);
+      /* scheme accessor, assume obj is instance */
+      if (SG_FALSEP(accessor->getterS)) {
+	SgObject val = SG_INSTANCE(obj)->slots[accessor->index];
+	if (vmP) {
+	  void *data[3];
+	  data[0] = obj;
+	  data[1] = name;
+	  data[2] = (void*)(intptr_t)boundp;
+	  return slot_ref_cc(val, data);
+	} else {
+	  return slot_ref_cc_rec(obj, name, val, boundp);
+	}
       } else {
-	return Sg_Apply1(accessor->getterS, obj);
+	/* Hope this will be removed by compiler... */
+	if (vmP) {
+	  void *data[3];
+	  data[0] = obj;
+	  data[1] = name;
+	  data[2] = (void*)(intptr_t)boundp;
+	  Sg_VMPushCC(slot_ref_cc, data, 3);
+	  return Sg_VMApply1(accessor->getterS, obj);
+	} else {
+	  return slot_ref_cc_rec(obj, name, Sg_Apply1(accessor->getterS, obj),
+				 boundp);
+	}
       }
     }
+  } else {
+    if (vmP) return VMSLOT_MISSING3(Sg_ClassOf(obj), obj, name);
+    else     return SLOT_MISSING3(Sg_ClassOf(obj), obj, name);
   }
 }
 
 SgObject Sg_SlotRef(SgObject obj, SgObject name)
 {
-  return slot_ref_rec(obj, name, FALSE);
+  return slot_ref_rec(obj, name, FALSE, FALSE);
 }
 SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
 {
-  return slot_ref_rec(obj, name, TRUE);
+  return slot_ref_rec(obj, name, TRUE, FALSE);
 }
 
 static SgObject slot_set_rec(SgObject obj, SgObject name,
 			     SgObject value, int vmp)
 {
-  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name, TRUE);
-  if (accessor->setter) {
-    accessor->setter(obj, value);
-    return SG_UNDEF;
-  } else {
-    /* scheme accessor */
-    if (SG_FALSEP(accessor->setterS)) {
-      SG_INSTANCE(obj)->slots[accessor->index] = value;
+  SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
+  if (accessor) {
+    if (accessor->setter) {
+      accessor->setter(obj, value);
       return SG_UNDEF;
     } else {
-      if (vmp) {
-	return Sg_VMApply2(accessor->setterS, obj, value);
-      } else {
-	Sg_Apply2(accessor->setterS, obj, value);
+      /* scheme accessor */
+      if (SG_FALSEP(accessor->setterS)) {
+	SG_INSTANCE(obj)->slots[accessor->index] = value;
 	return SG_UNDEF;
+      } else {
+	if (vmp) {
+	  return Sg_VMApply2(accessor->setterS, obj, value);
+	} else {
+	  Sg_Apply2(accessor->setterS, obj, value);
+	  return SG_UNDEF;
+	}
       }
     }
+  } else {
+    if (vmp) return VMSLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
+    else     return SLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
   }
 }
 void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
@@ -1001,6 +1073,11 @@ void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
   } else {
     SG_INSTANCE(obj)->slots[ac->index] = value;
   }
+}
+
+SgObject Sg_VMSlotBoundP(SgObject obj, SgObject slot)
+{
+  return slot_ref_rec(obj, slot, TRUE, TRUE);
 }
 
 SgClass* Sg_ClassOf(SgObject obj)
@@ -1751,7 +1828,9 @@ SG_DEFINE_GENERIC(Sg_GenericObjectSetter, Sg_InvalidApply, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeApplyGeneric, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeMethodMoreSpecificP, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeApplyMethods, Sg_NoNextMethod, NULL);
-
+/* slot */
+SG_DEFINE_GENERIC(Sg_GenericSlotUnbound, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericSlotMissing, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -2056,6 +2135,40 @@ SgObject Sg_MakeEqlSpecializer(SgObject obj)
   return SG_OBJ(z);
 }
 
+/* default slot-unbound and slot-missing methods */
+static SgObject slot_unbound_subr(SgObject *argv, int argc, void *data)
+{
+  Sg_Error(UC("slot %S of object of class %S is unbound"),
+	   argv[2], argv[0]);
+  return SG_UNDEF;		/* dummy */
+}
+
+SG_DEFINE_SUBR(slot_unbound_subr_rec, 3, 0, slot_unbound_subr, SG_FALSE, NULL);
+static SgClass *slot_unbound_SPEC[] = {
+  SG_CLASS_CLASS,
+  SG_CLASS_TOP,
+  SG_CLASS_TOP
+};
+SG_DEFINE_METHOD(slot_unbound_rec, &Sg_GenericSlotUnbound,
+		 3, 0, slot_unbound_SPEC, &slot_unbound_subr_rec);
+
+/* slot-missing */
+static SgObject slot_missing_subr(SgObject *argv, int argc, void *data)
+{
+  Sg_Error(UC("object of class %S doesn't have such slot: %S"),
+	   argv[0], argv[2]);
+  return SG_UNDEF;		/* dummy */
+}
+
+SG_DEFINE_SUBR(slot_missing_subr_rec, 3, 1, slot_missing_subr, SG_FALSE, NULL);
+static SgClass *slot_missing_SPEC[] = {
+  SG_CLASS_CLASS,
+  SG_CLASS_TOP,
+  SG_CLASS_TOP
+};
+SG_DEFINE_METHOD(slot_missing_rec, &Sg_GenericSlotMissing,
+		 3, 1, slot_missing_SPEC, &slot_missing_subr_rec);
+
 void Sg__InitClos()
 {
   /* TODO library name */
@@ -2170,6 +2283,8 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeApplyGeneric, "compute-apply-generic");
   GINIT(&Sg_GenericComputeMethodMoreSpecificP, "compute-method-more-specific?");
   GINIT(&Sg_GenericComputeApplyMethods, "compute-apply-methods");
+  GINIT(&Sg_GenericSlotUnbound, "slot-unbound");
+  GINIT(&Sg_GenericSlotMissing, "slot-missing");
 
   Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
 	       SG_PROCEDURE(&Sg_GenericObjectSetter),
@@ -2186,4 +2301,6 @@ void Sg__InitClos()
   Sg_InitBuiltinMethod(&remove_method_rec);
   Sg_InitBuiltinMethod(&compute_applicable_methods_rec);
   Sg_InitBuiltinMethod(&object_equalp_rec);
+  Sg_InitBuiltinMethod(&slot_unbound_rec);
+  Sg_InitBuiltinMethod(&slot_missing_rec);
 }

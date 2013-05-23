@@ -29,8 +29,9 @@
 	    <identifier> <parameter>
 
 	    slot-ref
-	    slot-set!
+	    slot-set! slot-bound?
 	    slot-ref-using-accessor slot-set-using-accessor!
+	    slot-unbound slot-missing
 	    initialize-direct-slots
 	    is-a?
 

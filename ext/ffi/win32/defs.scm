@@ -79,14 +79,14 @@
   ;; short
   (define-c-typedef unsigned-short WORD (* PWORD) (* LPWORD))
   (define-c-typedef short SHORT (* PSHORT))
-  (define-c-typedef short HALF_PTR (* PHALF_PTR))
-  (define-c-typedef unsigned-short UHALF_PTR (* PUHALF_PTR))
+  (define-c-typedef void* HALF_PTR (* PHALF_PTR))
+  (define-c-typedef void* UHALF_PTR (* PUHALF_PTR))
   ;; float
   (define-c-typedef float FLOAT (* PFLOAT))
   ;; int
   (define-c-typedef int INT (* PINT) (* LPINT))
   (define-c-typedef unsigned-int UINT (* PUINT) (* LPUINT))
-  (define-c-typedef int INT_PTR (* PINT_PTR))
+  (define-c-typedef void* INT_PTR (* PINT_PTR))
   (define-c-typedef unsigned-int UINT_PTR (* PUINT_PTR))
   ;; dword
   (define-c-typedef unsigned-long DWORD (* PDWORD) (* LPDWORD))
@@ -94,7 +94,7 @@
   (define-c-typedef void* (* LPVOID) (* PCVOID) (LPCVOID))
   ;; long
   (define-c-typedef long LONG (* PLONG))
-  (define-c-typedef long LONG_PTR (* PLONG_PTR))
+  (define-c-typedef void* LONG_PTR (* PLONG_PTR))
   (define-c-typedef unsigned-long ULONG_PTR (* PULONG_PTR))
   (define-c-typedef unsigned-long HANDLE_PTR)
   (define-c-typedef ULONG_PTR SIZE_T (* PSIZE_T))

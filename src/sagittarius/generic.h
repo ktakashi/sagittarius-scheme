@@ -168,6 +168,10 @@ SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
 SG_EXTERN SgGeneric Sg_GenericObjectApply;
 SG_EXTERN SgGeneric Sg_GenericObjectSetter;
 
+/* slot stuff */
+SG_EXTERN SgGeneric Sg_GenericSlotUnbound;
+SG_EXTERN SgGeneric Sg_GenericSlotMissing;
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_GENERIC_H_ */

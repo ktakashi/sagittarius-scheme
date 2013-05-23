@@ -230,6 +230,7 @@ SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);
 /* for Scheme world */
 SG_EXTERN SgObject Sg_VMSlotRef(SgObject obj, SgObject name);
 SG_EXTERN SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value);
+SG_EXTERN SgObject Sg_VMSlotBoundP(SgObject obj, SgObject name);
 /* for MOP */
 SG_EXTERN SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
 SG_EXTERN void     Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,

@@ -1,5 +1,7 @@
 (library (clos core)
-    (export slot-ref slot-set! slot-ref-using-accessor slot-set-using-accessor!
+    (export slot-ref slot-set! slot-bound? 
+	    slot-ref-using-accessor slot-set-using-accessor!
+	    slot-unbound slot-missing
 	    make initialize add-method remove-method
 	    ;; <class>
 	    class-of

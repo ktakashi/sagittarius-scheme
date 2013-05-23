@@ -26,6 +26,8 @@
   (define-c-proc slot-set-using-accessor! (o sa::<slot-accessor> v) ::<void>
     Sg_SlotSetUsingAccessor)
 
+  (define-c-proc slot-bound? (o name::<symbol>) Sg_VMSlotBoundP)
+
   (define-c-proc class-of (o) Sg_ClassOf)
 
   (define-c-proc is-a? (o klass) ::<boolean> Sg_TypeP)
