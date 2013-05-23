@@ -33,7 +33,8 @@
 (library (win32 kernel)
     (export FILETIME PFILETIME LPFILETIME
 	    BY_HANDLE_FILE_INFORMATION LPBY_HANDLE_FILE_INFORMATION
-	    get-module-handle)
+	    get-module-handle
+	    get-last-error)
     (import (core)
 	    (sagittarius ffi)
 	    (win32 defs))
@@ -62,5 +63,8 @@
   (define get-module-handle
     (c-function kernel32
 		HMODULE GetModuleHandleA (LPCSTR)))
+
+  (define get-last-error
+    (c-function kernel32 DWORD GetLastError ()))
 
 )
