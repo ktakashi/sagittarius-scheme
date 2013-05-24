@@ -1984,12 +1984,7 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   SG_METHOD_QUALIFIER(m) = quoli;
   /* mostly true */
   if (SG_CLOSUREP(body)) {
-    h = t = SG_NIL;
-    for (i=0; i<speclen; i++) {
-      SG_APPEND1(h, t, specarray[i]->name);
-    }
-    SG_CODE_BUILDER(SG_CLOSURE(body)->code)->name
-      = Sg_Cons(SG_PROCEDURE_NAME(g), h);
+    SG_CODE_BUILDER(SG_CLOSURE(body)->code)->name = SG_PROCEDURE_NAME(m);
   }
   /* add direct methods? */
   return SG_OBJ(m);
