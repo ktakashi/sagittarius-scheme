@@ -40,7 +40,13 @@
 	    text-out
 	    get-stock-object
 	    get-text-metrics
-	    set-text-color)
+	    set-text-color
+
+	    set-bk-mode
+	    set-bk-color
+	    ;; mode
+	    OPAQUE TRANSPARENT
+	    )
     (import (core)
 	    (core syntax)
 	    (core errors)
@@ -115,7 +121,12 @@
 		      (bitwise-arithmetic-shift-left b 16))))))
 	 
 
-  (define set-text-color
-    (c-function gdi32
-		COLORREF SetTextColor (HDC COLORREF)))
+  (define set-text-color 
+    (c-function gdi32 COLORREF SetTextColor (HDC COLORREF)))
+
+  (define set-bk-mode (c-function gdi32 int SetBkMode (HDC int)))
+  (define set-bk-color (c-function gdi32 int SetBkColor (HDC COLORREF)))
+
+  (define-constant TRANSPARENT 1)
+  (define-constant OPAQUE 2)
 )

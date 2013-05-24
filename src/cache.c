@@ -680,8 +680,10 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     Sg_HashTableSet(ctx->sharedObjects, o, SG_UNDEF, 0);
   }
 #endif
-
-  if (!SG_PTRP(o)) {
+  /* how could this happen? */
+  if (!o) {
+    ESCAPE(ctx, "%S object\n", o);
+  } else if (!SG_PTRP(o)) {
     emit_immediate(out, o);
   } else if (SG_STRINGP(o)) {
     write_string_cache(out, SG_STRING(o), STRING_TAG);

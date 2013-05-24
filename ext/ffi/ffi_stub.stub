@@ -59,8 +59,8 @@
 ;; pointer
 (define-c-proc pointer? (o) ::<boolean> SG_POINTERP)
 
-(define-c-proc integer->pointer (n::<fixnum>) 
-  (result (Sg_MakePointer (cast void* n))))
+(define-c-proc integer->pointer (n::<integer>)
+  (result (Sg_MakePointer (cast void* (Sg_GetUInteger n)))))
 
 (define-c-proc pointer->integer (p::<pointer>)
   (.if "SIZEOF_VOIDP == 4"

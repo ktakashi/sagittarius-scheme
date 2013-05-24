@@ -61,6 +61,9 @@
 	    begin-paint
 	    end-paint
 	    get-client-rect
+	    get-update-rect
+	    is-rect-empty
+	    fill-rect
 	    move-window
 	    destroy-window
 	    send-message
@@ -224,6 +227,14 @@
   (define-constant WM_CHANGEUISTATE #x0127)
   (define-constant WM_UPDATEUISTATE #x0128)
   (define-constant WM_QUERYUISTATE #x0129)
+
+  (define-constant WM_CTLCOLORMSGBOX #x0132)
+  (define-constant WM_CTLCOLOREDIT #x0133)
+  (define-constant WM_CTLCOLORLISTBOX #x0134)
+  (define-constant WM_CTLCOLORBTN #x0135)
+  (define-constant WM_CTLCOLORDLG #x0136)
+  (define-constant WM_CTLCOLORSCROLLBAR #x0137)
+  (define-constant WM_CTLCOLORSTATIC #x0138)
 
   (define-constant EM_SETLIMITTEXT 197)
 
@@ -526,77 +537,56 @@
     (c-function user32
 		HDC GetDCEx (HWND HRGN DWORD)))
 
-  (define release-dc
-    (c-function user32
-		int ReleaseDC (HWND HDC)))
+  (define release-dc (c-function user32 int ReleaseDC (HWND HDC)))
 
-  (define begin-paint
-    (c-function user32
-		HDC BeginPaint (HWND LPPAINTSTRUCT)))
+  (define begin-paint (c-function user32 HDC BeginPaint (HWND LPPAINTSTRUCT)))
 
-  (define end-paint
-    (c-function user32
-		BOOL EndPaint (HWND void*)))
+  (define end-paint (c-function user32 BOOL EndPaint (HWND void*)))
 
   (define get-client-rect
-    (c-function user32
-		BOOL GetClientRect (HWND LPRECT)))
+    (c-function user32 BOOL GetClientRect (HWND LPRECT)))
+  (define get-update-rect
+    (c-function user32 BOOL GetUpdateRect (HWND LPRECT BOOL)))
+  (define is-rect-empty (c-function user32 BOOL IsRectEmpty (LPRECT)))
+
+  (define fill-rect (c-function user32 int FillRect (HDC LPRECT HBRUSH)))
 
   (define move-window
-    (c-function user32
-		BOOL MoveWindow (HWND int int int int BOOL)))
+    (c-function user32 BOOL MoveWindow (HWND int int int int BOOL)))
 
-  (define destroy-window
-    (c-function user32
-		BOOL DestroyWindow (HWND)))
+  (define destroy-window (c-function user32 BOOL DestroyWindow (HWND)))
 
   (define send-message
-    (c-function user32
-		LRESULT SendMessageA (HWND UINT WPARAM LPARAM)))
+    (c-function user32 LRESULT SendMessageA (HWND UINT WPARAM LPARAM)))
 
-  (define create-menu
-    (c-function user32
-		HMENU CreateMenu ()))
+  (define create-menu (c-function user32 HMENU CreateMenu ()))
 
-  (define create-popup-menu
-    (c-function user32
-		HMENU CreateMenu ()))
+  (define create-popup-menu (c-function user32 HMENU CreateMenu ()))
 
   (define append-menu
-    (c-function user32
-		BOOL AppendMenuA (HMENU UINT UINT_PTR LPCSTR)))
+    (c-function user32 BOOL AppendMenuA (HMENU UINT UINT_PTR LPCSTR)))
 
   (define delete-menu
-    (c-function user32
-		BOOL DeleteMenu (HMENU UINT UINT)))
+    (c-function user32 BOOL DeleteMenu (HMENU UINT UINT)))
 
   (define get-system-menu
-    (c-function user32
-		HMENU GetSystemMenu (HWND BOOL)))
+    (c-function user32 HMENU GetSystemMenu (HWND BOOL)))
 
-  (define set-menu
-    (c-function user32
-		BOOL SetMenu (HWND HMENU)))
+  (define set-menu (c-function user32 BOOL SetMenu (HWND HMENU)))
 
-  (define draw-menu-bar
-    (c-function user32
-		BOOL DrawMenuBar (HWND)))
+  (define draw-menu-bar (c-function user32 BOOL DrawMenuBar (HWND)))
 
   (define insert-menu-item
-    (c-function user32
-		BOOL InsertMenuItemA (HMENU UINT BOOL LPCSTR)))
+    (c-function user32 BOOL InsertMenuItemA (HMENU UINT BOOL LPCSTR)))
 
   (define set-window-text
-    (c-function user32
-		BOOL SetWindowTextA (HWND LPCSTR)))
+    (c-function user32 BOOL SetWindowTextA (HWND LPCSTR)))
 
   (define get-window-text
-    (c-function user32
-		int GetWindowTextA (HWND LPSTR int)))
+    (c-function user32 int GetWindowTextA (HWND LPSTR int)))
 
   (define get-window-text-length
-    (c-function user32
-		int GetWindowTextLengthA (HWND)))
+    (c-function user32 int GetWindowTextLengthA (HWND)))
 
   ;; button style
   (define-constant BS_PUSHBUTTON      #x00000000)

@@ -67,7 +67,7 @@
    (cut apply make-cgen-type <>)
    '(;; numeric
      (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT")
-     (<integer> "SgObject" "exact integer" "Sg_IntegerP" "")
+     (<integer> "SgObject" "exact integer" "SG_EXACT_INTP" "")
      (<number> "SgObject" "number" "SG_NUMBERP" "")
      ;; immediates
      (<boolean> "int" "boolean" "SG_BOOLP" "SG_BOOL_VALUE" "SG_MAKE_BOOL")
