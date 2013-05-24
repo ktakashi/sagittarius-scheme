@@ -21,6 +21,8 @@
 	    pointer?
 	    integer->pointer
 	    pointer->integer
+	    object->pointer
+	    pointer->object
 	    allocate-pointer
 	    set-pointer-value!
 

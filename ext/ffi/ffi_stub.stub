@@ -67,6 +67,11 @@
        (result (Sg_MakeIntegerU (-> p pointer)))
        (result (Sg_MakeIntegerFromU64 (-> p pointer)))))
 
+;; !!!dangerous operations!!!
+;; the usecase is for callback parameters or so
+(define-c-proc object->pointer (o) (result (Sg_MakePointer (cast void* o))))
+(define-c-proc pointer->object (p::<pointer>) (result (SG_OBJ (-> p pointer))))
+
 (decl-code
  (.typedef "char*" "char_ptr")
  (.typedef "void*" "void_ptr"))

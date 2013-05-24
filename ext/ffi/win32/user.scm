@@ -75,6 +75,9 @@
 	    set-window-text
 	    get-window-text
 	    get-window-text-length
+
+	    set-window-long-ptr
+	    get-window-long-ptr
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -651,4 +654,26 @@
   (define-constant BST_INDETERMINATE #x0002)
   (define-constant BST_PUSHED        #x0004)
   (define-constant BST_FOCUS         #x0008)
+
+  (cond-expand
+   (64bit
+    (define set-window-long-ptr
+      (c-function user32 LONG SetWindowLongPtrA (HWND int LONG_PTR)))
+    (define get-window-long-ptr
+      (c-function user32 LONG_PTR GetWindowLongPtrA (HWND int))))
+   (32bit
+    ;; I want the signature the same like we can pass the pointer object
+    (define set-window-long-ptr
+      (c-function user32 LONG SetWindowLongA (HWND int LONG_PTR)))
+    (define get-window-long-ptr
+      (c-function user32 LONG_PTR GetWindowLongA (HWND int)))))
+
+  (define-constant GWL_STYLE -16)
+  (define-constant GWL_EXSTYLE -20)
+  (define-constant GWLP_WNDPROC -4)
+  (define-constant GWLP_HINSTANCE -6)
+  (define-constant GWLP_HWNDPARENT -8)
+  (define-constant GWLP_USERDATA -21)
+  (define-constant GWLP_ID -12)
+
 )
