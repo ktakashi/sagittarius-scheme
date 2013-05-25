@@ -352,7 +352,7 @@ SgObject Sg_VMValues4(SgVM *vm, SgObject v1,
   vm->valuesCount = 4;
   vm->values[0] = v2;
   vm->values[1] = v3;
-  vm->values[2] = v3;
+  vm->values[2] = v4;
   vm->ac = v1;
   return v1;
 }
