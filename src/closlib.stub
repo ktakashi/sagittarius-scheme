@@ -66,6 +66,13 @@
 
   (define-c-proc eql (o) Sg_MakeEqlSpecializer)
 
-  (define-c-proc %method-more-specific? (m1::<method> m2::<method> args)
-    Sg_MethodMoreSpecificP)
+  (define-c-proc %compute-applicable-methods (gf args::<list>)
+    Sg_ComputeApplicableMethods)
+
+  (define-c-proc %sort-method-by-qualifier (methods::<list>)
+    Sg_VMSortMethodByQualifier)
+
+  (define-c-proc %compute-around-methods
+    (around::<list> before::<list> primary::<list> after::<list>)
+    Sg_VMComputeAroundMethods)
   )

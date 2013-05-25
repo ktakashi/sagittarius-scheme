@@ -341,6 +341,22 @@ SgObject Sg_VMValues3(SgVM *vm, SgObject v1, SgObject v2, SgObject v3)
   return v1;
 }
 
+SgObject Sg_Values4(SgObject v1, SgObject v2, SgObject v3, SgObject v4)
+{
+  return Sg_VMValues4(theVM, v1, v2, v3, v4);
+}
+
+SgObject Sg_VMValues4(SgVM *vm, SgObject v1,
+		      SgObject v2, SgObject v3, SgObject v4)
+{
+  vm->valuesCount = 4;
+  vm->values[0] = v2;
+  vm->values[1] = v3;
+  vm->values[2] = v3;
+  vm->ac = v1;
+  return v1;
+}
+
 
 /* some flags */
 /* bench mark said, it does not make that much difference.

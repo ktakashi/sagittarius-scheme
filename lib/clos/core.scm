@@ -50,7 +50,6 @@
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
 	    compute-apply-generic compute-method-more-specific?
-	    sort-applicable-methods ;; from Gauche
 	    object-equal? object-apply |setter of object-apply|
 	    ;; helper
 	    initialize-direct-slots is-a?
@@ -236,9 +235,6 @@
 			     (format p "#<class ~a>" (slot-ref c 'name)))))
 
   ;; generic invocation
-  (define sort-applicable-methods 
-    (make <generic> :definition-name 'sort-applicable-methods))
-
   (add-method compute-apply-generic
 	      (make <method>
 		:specializers (list <generic> <list>)
@@ -247,36 +243,36 @@
 		:procedure 
 		(lambda (call-next-method gf args)
 		  (let ((methods (compute-applicable-methods gf args)))
-		    (compute-apply-methods 
-		     gf
-		     (sort-applicable-methods gf methods args)
-		     args)))))
+		    (compute-apply-methods gf methods args)))))
 
-  (add-method sort-applicable-methods
-	      (make <method>
-		:specializers (list <generic> <top> <top>)
-		:lambda-list '(g m* a*)
-		:generic sort-applicable-methods
-		:procedure 
-		(lambda (call-next-method gf methods args)
-		  (let ((types (map class-of args))
-			(method-more-specific?
-			 (compute-method-more-specific? gf args)))
-		    (unless (procedure? method-more-specific?)
-		      (error 'sort-applicable-methods
-			     "compute-method-more-specific? returned non procedure object"
-			     method-more-specific?))
-		    (list-sort method-more-specific? methods)))))
+  (define compute-applicable-methods 
+    (make <generic> :definition-name 'compute-applicable-methods))
+  (define (compute-around-methods around before primary after more-specific?)
+    (let ((primary (list-sort more-specific? primary))
+	  (around  (list-sort more-specific? around))
+	  (before  (list-sort more-specific? before))
+	  (after   (list-sort more-specific? after)))
+      (%compute-around-methods around before primary after)))
 
-  (add-method compute-method-more-specific?
+  (add-method compute-applicable-methods
 	      (make <method>
-		:specializers (list <generic> <top>)
-		:lambda-list '(g a*)
-		:generic compute-method-more-specific?
+		:specializers (list <generic> <list>)
+		:lambda-list '(g l)
+		:generic compute-applicable-methods
 		:procedure 
 		(lambda (call-next-method gf args)
-		  (lambda (x y)
-		    (%method-more-specific? x y args)))))
+		  ;; To allow derived generic class have qualifiers
+		  ;; we do the same things done in C here as well.
+		  ;; FIXME duplicate code may introduce bugs!!
+		  (let ((applicable (%compute-applicable-methods gf args))
+			(more-specific?
+			 (compute-method-more-specific? gf args)))
+		    (let-values (((primary before after around)
+				  (%sort-method-by-qualifier applicable)))
+		      (if (and (null? before) (null?  after) (null? around))
+			  (list-sort more-specific? primary)
+			  (compute-around-methods around before primary after
+						  more-specific?)))))))
 
   (add-method compute-apply-methods
 	      (make <method>

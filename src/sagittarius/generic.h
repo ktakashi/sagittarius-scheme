@@ -145,8 +145,11 @@ SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 
 SG_EXTERN SgObject Sg_MakeEqlSpecializer(SgObject obj);
 
-SG_EXTERN int      Sg_MethodMoreSpecificP(SgObject m1, SgObject m2,
-					  SgObject args);
+/* internal use */
+SG_EXTERN SgObject Sg_ComputeApplicableMethods(SgObject gf, SgObject args);
+SG_EXTERN SgObject Sg_VMSortMethodByQualifier(SgObject methods);
+SG_EXTERN SgObject Sg_VMComputeAroundMethods(SgObject around, SgObject before,
+					     SgObject primary, SgObject after);
 
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */
@@ -161,7 +164,6 @@ SG_EXTERN SgGeneric Sg_GenericComputeSlots;
 SG_EXTERN SgGeneric Sg_GenericAddMethod;
 SG_EXTERN SgGeneric Sg_GenericRemoveMethod;
 
-SG_EXTERN SgGeneric Sg_GenericComputeApplicableMethods;
 /* The generic invocation protocol */
 SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric;
 SG_EXTERN SgGeneric Sg_GenericComputeMethodMoreSpecificP;
