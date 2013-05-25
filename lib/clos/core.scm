@@ -16,6 +16,7 @@
 	    method-procedure
 	    method-required
 	    method-optional
+	    method-qualifier
 	    ;; slots
 	    slot-definition-name
 	    slot-definition-options
@@ -188,6 +189,7 @@
   (define method-procedure (make <generic> :definition-name 'method-procedure))
   (define method-required (make <generic> :definition-name 'method-required))
   (define method-optional (make <generic> :definition-name 'method-optional))
+  (define method-qualifier (make <generic> :definition-name 'method-qualifier))
   (add-method method-specializers
 	      (make <method>
 		:specializers (list <method>)
@@ -216,6 +218,14 @@
 		:generic method-optional
 		:procedure (lambda (call-next-method m)
 			     (slot-ref m 'optional))))
+
+  (add-method method-qualifier
+	      (make <method>
+		:specializers (list <method>)
+		:lambda-list '(method)
+		:generic method-qualifier
+		:procedure (lambda (call-next-method m)
+			     (slot-ref m 'qualifier))))
 
   ;; low level slot APIs
   (define (slot-definition-name slot) (car slot))

@@ -794,6 +794,7 @@ static SgObject compute_around_methods_rec(SgObject around, SgObject before,
   m = method_allocate(SG_CLASS_METHOD, proc);
   SG_METHOD_PROCEDURE(m) = proc;
   SG_METHOD_SPECIALIZERS(m) = specs;
+  SG_METHOD_QUALIFIER(m) = SG_FALSE;
   SG_PROCEDURE_REQUIRED(m) = req;
   SG_PROCEDURE_OPTIONAL(m) = opt;
   SG_PROCEDURE_NAME(m) = name;
@@ -1504,6 +1505,11 @@ static SgObject method_optional(SgMethod *method)
   return SG_MAKE_BOOL(method->common.optional);
 }
 
+static SgObject method_qualifier(SgMethod *method)
+{
+  return SG_METHOD_QUALIFIER(method);
+}
+
 /* next method */
 static void next_method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -1589,6 +1595,7 @@ static SgSlotAccessor method_slots[] = {
   SG_CLASS_SLOT_SPEC("name", 2, method_name, method_name_set),
   SG_CLASS_SLOT_SPEC("required", 3, method_required, NULL),
   SG_CLASS_SLOT_SPEC("optional", 4, method_optional, NULL),
+  SG_CLASS_SLOT_SPEC("qualifier", 5, method_qualifier, NULL),
   { { NULL } }
 };
 
