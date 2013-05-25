@@ -145,6 +145,9 @@ SG_EXTERN SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 
 SG_EXTERN SgObject Sg_MakeEqlSpecializer(SgObject obj);
 
+SG_EXTERN int      Sg_MethodMoreSpecificP(SgObject m1, SgObject m2,
+					  SgObject args);
+
 /* I'm not sure if these should be usable from other shared object. */
 /* The initialization protocol */
 SG_EXTERN SgGeneric Sg_GenericMake;

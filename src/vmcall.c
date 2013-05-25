@@ -266,6 +266,8 @@
     if (use_saved_args) {
       goto DO_METHOD_CALL;
     }
+  } else if (proctype == SG_PROC_METHOD) {
+    Sg_Error(UC("%S returned non procedure"), SG_METHOD_GENERIC(AC(vm)));
   } else {
     Sg_Panic("something's wrong");
   }

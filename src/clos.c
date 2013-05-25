@@ -646,6 +646,19 @@ static int method_more_specific(SgMethod *m1, SgMethod *m2,
   else return FALSE;
 }
 
+int Sg_MethodMoreSpecificP(SgObject m1, SgObject m2, SgObject args)
+{
+  SgClass *targv_s[PREALLOC_SIZE], **targv = targv_s;
+  SgObject cp;
+  int tsize = Sg_Length(args), i;
+  if (tsize >= PREALLOC_SIZE) targv = SG_NEW_ARRAY(SgClass*, tsize);
+  i = 0;
+  SG_FOR_EACH(cp, args) {
+    targv[i++] = Sg_ClassOf(SG_CAR(args));
+  }
+  return method_more_specific(SG_METHOD(m1), SG_METHOD(m2), targv, tsize);
+}
+
 /* :around :before :after and :primary */
 enum {
   PRIMARY_INDEX = 0,

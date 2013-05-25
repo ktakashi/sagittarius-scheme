@@ -50,6 +50,7 @@
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
 	    compute-apply-generic compute-method-more-specific?
+	    sort-applicable-methods ;; from Gauche
 	    object-equal? object-apply |setter of object-apply|
 	    ;; helper
 	    initialize-direct-slots is-a?
@@ -235,6 +236,9 @@
 			     (format p "#<class ~a>" (slot-ref c 'name)))))
 
   ;; generic invocation
+  (define sort-applicable-methods 
+    (make <generic> :definition-name 'sort-applicable-methods))
+
   (add-method compute-apply-generic
 	      (make <method>
 		:specializers (list <generic> <list>)
@@ -243,7 +247,36 @@
 		:procedure 
 		(lambda (call-next-method gf args)
 		  (let ((methods (compute-applicable-methods gf args)))
-		    (compute-apply-methods gf methods args)))))
+		    (compute-apply-methods 
+		     gf
+		     (sort-applicable-methods gf methods args)
+		     args)))))
+
+  (add-method sort-applicable-methods
+	      (make <method>
+		:specializers (list <generic> <top> <top>)
+		:lambda-list '(g m* a*)
+		:generic sort-applicable-methods
+		:procedure 
+		(lambda (call-next-method gf methods args)
+		  (let ((types (map class-of args))
+			(method-more-specific?
+			 (compute-method-more-specific? gf args)))
+		    (unless (procedure? method-more-specific?)
+		      (error 'sort-applicable-methods
+			     "compute-method-more-specific? returned non procedure object"
+			     method-more-specific?))
+		    (list-sort method-more-specific? methods)))))
+
+  (add-method compute-method-more-specific?
+	      (make <method>
+		:specializers (list <generic> <top>)
+		:lambda-list '(g a*)
+		:generic compute-method-more-specific?
+		:procedure 
+		(lambda (call-next-method gf args)
+		  (lambda (x y)
+		    (%method-more-specific? x y args)))))
 
   (add-method compute-apply-methods
 	      (make <method>

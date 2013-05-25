@@ -65,4 +65,7 @@
 				 FALSE))))
 
   (define-c-proc eql (o) Sg_MakeEqlSpecializer)
+
+  (define-c-proc %method-more-specific? (m1::<method> m2::<method> args)
+    Sg_MethodMoreSpecificP)
   )
