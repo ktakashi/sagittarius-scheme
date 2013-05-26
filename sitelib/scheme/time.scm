@@ -5,15 +5,11 @@
     (import (rnrs)
 	    (srfi :19))
 
-  (define scale 1000000000)
+  (define scale 1000)
 
   (define (jiffies-per-second) scale)
-  (define (current-jiffy) (return-sec time-monotonic))
-  (define (current-second) (inexact (return-sec time-tai)))
-  
-  (define (return-sec sym)
-    (let ((t (current-time sym)))
-      (+ (/ (time-nanosecond t) scale)
-	 (time-second t))))
-
+  (define (current-jiffy) (exact (round (* (current-second) scale))))
+  (define (current-second) 
+    (let ((t (current-time time-tai))) 
+      (+ (/ (time-nanosecond t) (inexact scale)) (time-second t))))
 )
