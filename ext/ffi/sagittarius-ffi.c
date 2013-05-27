@@ -1130,7 +1130,6 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   int retType, i, size;
   SgObject signatures;
   SgFuncInfo *func;
-  intptr_t ret;
   ffi_storage *params;
   void **ffi_values;
 
@@ -1164,7 +1163,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     return SG_UNDEF;
   }
 
-  ffi_values = SG_NEW_ARRAY(void*, func->argc);
+  ffi_values = SG_NEW_ARRAY(void *, func->argc);
   params = SG_NEW_ARRAY(ffi_storage, func->argc);
 
   /* funcargs = Sg_ListToArray(args[argc-1], FALSE); */
@@ -1189,96 +1188,71 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     Sg_Error(UC("invalid c-function %S"), func);
     return SG_UNDEF;
   }
+#define UNDEF_CONV(type) SG_UNDEF
+#define BOOL_CONV(type)  SG_MAKE_BOOL(ret != FALSE)
+#define SINT_CONV(type)  SG_MAKE_INT((type)ret)
+#define INT_CONV(type)   Sg_MakeInteger((type)ret)
+#define UINT_CONV(type)  Sg_MakeIntegerU((type)ret)
+#if SIZEOF_VOIDP == 4
+#define INTPTR_CONV(type)  Sg_MakeInteger((type)ret)
+#define UINTPTR_CONV(type) Sg_MakeIntegerU((type)ret)
+#else
+#define INTPTR_CONV(type)  Sg_MakeIntegerFromS64((type)ret)
+#define UINTPTR_CONV(type) Sg_MakeIntegerFromU64((type)ret)
+#endif
+#define FLONUM_CONV(type)  Sg_MakeFlonum((type)ret)
+#define S64_CONV(type)     Sg_MakeIntegerFromS64((type)ret)
+#define U64_CONV(type)     Sg_MakeIntegerFromU64((type)ret)
+#define PTR_CONV(type)     make_pointer((type)ret)
+
+#define FFI_RET_CASE_REC(type, rettype, return_body)			\
+  case type: {								\
+    rettype ret;							\
+    ffi_call(&func->cif, FFI_FN(func->code), &ret, (void **)ffi_values); \
+    return_body;							\
+  } break
+
+#define FFI_RET_CASE4(type, conv, rettype, ctype)		\
+  FFI_RET_CASE_REC(type, rettype, return conv(ctype))
+
+#define FFI_RET_CASE(type, conv, ctype)		\
+  FFI_RET_CASE4(type, conv, intptr_t, ctype)
+
   switch (retType) {
-  case FFI_RETURN_TYPE_VOID:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_UNDEF;
-  case FFI_RETURN_TYPE_BOOL:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_BOOL(ret != FALSE);
-  case FFI_RETURN_TYPE_SHORT:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((short)ret);
-  case FFI_RETURN_TYPE_INT:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeInteger((int)ret);
-  case FFI_RETURN_TYPE_LONG:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeInteger((long)ret);
-  case FFI_RETURN_TYPE_INTPTR:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-#if SIZEOF_VOIDP == 4
-    return Sg_MakeInteger((intptr_t)ret);
-#else
-    return Sg_MakeIntegerFromS64((intptr_t)ret);
-#endif
-  case FFI_RETURN_TYPE_USHORT:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((unsigned short)ret);
-  case FFI_RETURN_TYPE_UINT:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeIntegerU((unsigned int)ret);
-  case FFI_RETURN_TYPE_ULONG:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeIntegerU((unsigned long)ret);
-  case FFI_RETURN_TYPE_UINTPTR:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-#if SIZEOF_VOIDP == 4
-    return Sg_MakeIntegerU((uintptr_t)ret);
-#else
-    return Sg_MakeIntegerFromU64((uintptr_t)ret);
-#endif
-  case FFI_RETURN_TYPE_FLOAT: {
-    float fret;
-    ffi_call(&func->cif, FFI_FN(func->code), &fret, ffi_values);
-    return Sg_MakeFlonum((double)fret);
-  }
-  case FFI_RETURN_TYPE_DOUBLE: {
-    double fret;
-    ffi_call(&func->cif, FFI_FN(func->code), &fret, ffi_values);
-    return Sg_MakeFlonum(fret);
-  }
-  case FFI_RETURN_TYPE_STRING:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    if (ret == 0) {
-      return make_pointer((uintptr_t)NULL);
-    } else {
-      return Sg_MakeStringC((char *)ret);
-    }
-  case FFI_RETURN_TYPE_SIZE_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeIntegerU((unsigned long)ret);
-  case FFI_RETURN_TYPE_INT8_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((int8_t)ret);
-  case FFI_RETURN_TYPE_UINT8_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((uint8_t)ret);
-  case FFI_RETURN_TYPE_INT16_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((int16_t)ret);
-  case FFI_RETURN_TYPE_UINT16_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return SG_MAKE_INT((uint16_t)ret);
-  case FFI_RETURN_TYPE_INT32_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeInteger((int)ret);
-  case FFI_RETURN_TYPE_UINT32_T:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return Sg_MakeIntegerU((unsigned int)ret);
-  case FFI_RETURN_TYPE_INT64_T: {
-    int64_t ret64;
-    ffi_call(&func->cif, FFI_FN(func->code), &ret64, ffi_values);
-    return Sg_MakeIntegerFromS64(ret64);
-  }
-  case FFI_RETURN_TYPE_UINT64_T: {
-    int64_t ret64;
-    ffi_call(&func->cif, FFI_FN(func->code), &ret64, ffi_values);
-    return Sg_MakeIntegerFromU64(ret64);
-  }
-  case FFI_RETURN_TYPE_POINTER:
-    ffi_call(&func->cif, FFI_FN(func->code), &ret, ffi_values);
-    return make_pointer(ret);
+    FFI_RET_CASE(FFI_RETURN_TYPE_VOID,   UNDEF_CONV, void);
+    FFI_RET_CASE(FFI_RETURN_TYPE_BOOL,   BOOL_CONV, bool);
+    FFI_RET_CASE(FFI_RETURN_TYPE_SHORT,  SINT_CONV, short);
+    FFI_RET_CASE(FFI_RETURN_TYPE_INT,    INT_CONV, int);
+    FFI_RET_CASE(FFI_RETURN_TYPE_LONG,   INT_CONV, long);
+    FFI_RET_CASE(FFI_RETURN_TYPE_INTPTR, INTPTR_CONV, intptr_t);
+
+    FFI_RET_CASE(FFI_RETURN_TYPE_USHORT,  SINT_CONV, unsigned short);
+    FFI_RET_CASE(FFI_RETURN_TYPE_UINT,    UINT_CONV, unsigned int);
+    FFI_RET_CASE(FFI_RETURN_TYPE_ULONG,   UINT_CONV, unsigned long);
+    FFI_RET_CASE(FFI_RETURN_TYPE_UINTPTR, UINTPTR_CONV, uintptr_t);
+
+    FFI_RET_CASE(FFI_RETURN_TYPE_SIZE_T,  UINT_CONV, size_t);
+
+    FFI_RET_CASE(FFI_RETURN_TYPE_INT8_T,   SINT_CONV, int8_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_UINT8_T,  SINT_CONV, uint8_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_INT16_T,  SINT_CONV, int16_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_UINT16_T, SINT_CONV, uint16_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_INT32_T,  INT_CONV,  int32_t);
+    FFI_RET_CASE(FFI_RETURN_TYPE_UINT32_T, UINT_CONV, uint32_t);
+
+    FFI_RET_CASE4(FFI_RETURN_TYPE_FLOAT,  FLONUM_CONV, float, double);
+    FFI_RET_CASE4(FFI_RETURN_TYPE_DOUBLE, FLONUM_CONV, double, double);
+
+    FFI_RET_CASE4(FFI_RETURN_TYPE_INT64_T,  S64_CONV, int64_t, int64_t);
+    FFI_RET_CASE4(FFI_RETURN_TYPE_UINT64_T, U64_CONV, uint64_t, uint64_t);
+
+    FFI_RET_CASE(FFI_RETURN_TYPE_POINTER, PTR_CONV, intptr_t);
+
+    FFI_RET_CASE_REC(FFI_RETURN_TYPE_STRING, intptr_t,
+		     if (ret == 0) {
+		       return make_pointer((uintptr_t)NULL);
+		     } else return Sg_MakeStringC((char *)ret));
+
   default:
     Sg_AssertionViolation(SG_INTERN("c-function"),
 			  SG_MAKE_STRING("invalid return type"),
