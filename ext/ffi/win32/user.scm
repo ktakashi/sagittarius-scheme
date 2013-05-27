@@ -35,6 +35,9 @@
 	    IDI_ASTERISK IDI_WINLOGO
 
 	    IDC_ARROW IDC_IBEAM IDC_WAIT IDC_CROSS IDC_UPARROW
+	    IDC_SIZE IDC_ICON IDC_SIZENWSE IDC_SIZENESW IDC_SIZEWE
+	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
+	    IDC_HELP
 
 	    WNDCLASSEX
 	    PAINTSTRUCT
@@ -78,6 +81,9 @@
 	    set-window-text
 	    get-window-text
 	    get-window-text-length
+	    set-cursor
+	    set-capture
+	    release-capture
 
 	    set-window-long-ptr
 	    get-window-long-ptr
@@ -91,7 +97,7 @@
   (define WNDPROC callback)
   (define-syntax define-constant
     (syntax-rules ()
-      ((_ name value) 
+      ((_ name value)
        (begin
 	 (export name)
 	 (defconst name value)))))
@@ -236,6 +242,23 @@
   (define-constant WM_CTLCOLORSCROLLBAR #x0137)
   (define-constant WM_CTLCOLORSTATIC #x0138)
 
+  (define-constant WM_MOUSEFIRST #x0200)
+  (define-constant WM_MOUSEMOVE #x0200)
+  (define-constant WM_LBUTTONDOWN #x0201)
+  (define-constant WM_LBUTTONUP #x0202)
+  (define-constant WM_LBUTTONDBLCLK #x0203)
+  (define-constant WM_RBUTTONDOWN #x0204)
+  (define-constant WM_RBUTTONUP #x0205)
+  (define-constant WM_RBUTTONDBLCLK #x0206)
+  (define-constant WM_MBUTTONDOWN #x0207)
+  (define-constant WM_MBUTTONUP #x0208)
+  (define-constant WM_MBUTTONDBLCLK #x0209)
+  (define-constant WM_MOUSEWHEEL #x020A)
+  (define-constant WM_XBUTTONDOWN #x020B)
+  (define-constant WM_XBUTTONUP #x020C)
+  (define-constant WM_XBUTTONDBLCLK #x020D)
+  (define-constant WM_MOUSELAST #x020D)
+
   (define-constant EM_SETLIMITTEXT 197)
 
   (define-constant MF_ENABLED 0)
@@ -278,7 +301,7 @@
   (define-constant WS_TILED WS_OVERLAPPED)
   (define-constant WS_ICONIC WS_MINIMIZE)
   (define-constant WS_SIZEBOX WS_THICKFRAME)
-  (define-constant WS_OVERLAPPEDWINDOW 
+  (define-constant WS_OVERLAPPEDWINDOW
     (bitwise-ior WS_OVERLAPPED WS_CAPTION WS_SYSMENU
 		 WS_THICKFRAME WS_MINIMIZEBOX WS_MAXIMIZEBOX))
   (define-constant WS_TILEDWINDOW WS_OVERLAPPEDWINDOW)
@@ -401,11 +424,22 @@
 
   (define-constant MFT_STRING 0)
 
-  (define IDC_ARROW (integer->pointer 32512))
-  (define IDC_IBEAM (integer->pointer 32513))
-  (define IDC_WAIT (integer->pointer 32514))
-  (define IDC_CROSS (integer->pointer 32515))
-  (define IDC_UPARROW (integer->pointer 32516))
+  (define IDC_ARROW    	  (integer->pointer 32512))
+  (define IDC_IBEAM    	  (integer->pointer 32513))
+  (define IDC_WAIT     	  (integer->pointer 32514))
+  (define IDC_CROSS    	  (integer->pointer 32515))
+  (define IDC_UPARROW  	  (integer->pointer 32516))
+  (define IDC_SIZE     	  (integer->pointer 32640))
+  (define IDC_ICON     	  (integer->pointer 32641))
+  (define IDC_SIZENWSE 	  (integer->pointer 32642))
+  (define IDC_SIZENESW 	  (integer->pointer 32643))
+  (define IDC_SIZEWE   	  (integer->pointer 32644))
+  (define IDC_SIZENS   	  (integer->pointer 32645))
+  (define IDC_SIZEALL  	  (integer->pointer 32646))
+  (define IDC_NO       	  (integer->pointer 32648))
+  (define IDC_HAND     	  (integer->pointer 32649))
+  (define IDC_APPSTARTING (integer->pointer 32650))
+  (define IDC_HELP        (integer->pointer 32651))
 
   (define-c-struct WNDCLASSEX
     (UINT         cbSize)
@@ -566,11 +600,9 @@
   (define append-menu
     (c-function user32 BOOL AppendMenuA (HMENU UINT UINT_PTR LPCSTR)))
 
-  (define delete-menu
-    (c-function user32 BOOL DeleteMenu (HMENU UINT UINT)))
+  (define delete-menu (c-function user32 BOOL DeleteMenu (HMENU UINT UINT)))
 
-  (define get-system-menu
-    (c-function user32 HMENU GetSystemMenu (HWND BOOL)))
+  (define get-system-menu (c-function user32 HMENU GetSystemMenu (HWND BOOL)))
 
   (define set-menu (c-function user32 BOOL SetMenu (HWND HMENU)))
 
@@ -588,6 +620,9 @@
   (define get-window-text-length
     (c-function user32 int GetWindowTextLengthA (HWND)))
 
+  (define set-cursor (c-function user32 HCURSOR SetCursor (HCURSOR)))
+  (define set-capture (c-function user32 HWND SetCapture (HWND)))
+  (define release-capture (c-function user32 BOOL ReleaseCapture ()))
   ;; button style
   (define-constant BS_PUSHBUTTON      #x00000000)
   (define-constant BS_DEFPUSHBUTTON   #x00000001)
@@ -683,7 +718,7 @@
   (define-constant LBS_NODATA #x2000)
   (define-constant LBS_NOSEL #x4000)
   (define-constant LBS_COMBOBOX #x8000)
-  (define-constant LBS_STANDARD (bitwise-ior LBS_NOTIFY 
+  (define-constant LBS_STANDARD (bitwise-ior LBS_NOTIFY
 					     LBS_SORT WS_VSCROLL
 					     WS_BORDER))
 
@@ -738,4 +773,19 @@
   (define-constant LBN_SETFOCUS 4)
   (define-constant LBN_KILLFOCUS 5)
 
+  ;; size
+  (define-constant SIZE_RESTORED 0)
+  (define-constant SIZE_MINIMIZED 1)
+  (define-constant SIZE_MAXIMIZED 2)
+  (define-constant SIZE_MAXSHOW 3)
+  (define-constant SIZE_MAXHIDE 4)
+
+  ;; key state
+  (define-constant MK_LBUTTON #x0001)
+  (define-constant MK_RBUTTON #x0002)
+  (define-constant MK_SHIFT #x0004)
+  (define-constant MK_CONTROL #x0008)
+  (define-constant MK_MBUTTON #x0010)
+  (define-constant MK_XBUTTON1 #x0020)
+  (define-constant MK_XBUTTON2 #x0040)
 )

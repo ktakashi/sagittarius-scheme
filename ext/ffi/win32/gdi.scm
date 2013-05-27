@@ -42,6 +42,8 @@
 	    get-text-metrics
 	    set-text-color
 
+	    create-solid-brush
+
 	    set-bk-mode
 	    set-bk-color
 	    ;; mode
@@ -129,4 +131,7 @@
 
   (define-constant TRANSPARENT 1)
   (define-constant OPAQUE 2)
+
+  (define create-solid-brush 
+    (c-function gdi32 HBRUSH CreateSolidBrush (COLORREF)))
 )
