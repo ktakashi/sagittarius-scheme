@@ -65,6 +65,7 @@ enum {
   FFI_SIGNATURE_CALLBACK = 'c',
   FFI_SIGNATURE_UINT     = 'u',
   FFI_SIGNATURE_UINT64   = 'U',
+  FFI_SIGNATURE_VARGS    = 'v',
 };
 
 typedef struct SgFuncInfoRec
@@ -73,12 +74,7 @@ typedef struct SgFuncInfoRec
   ffi_cif    cif;
   ffi_type  *returnType;
   ffi_type **parameterTypes;
-  /* maybe it's better to create a struct for closure */
-  int        closureCount;
-  /*
-    ffi_closure **closures;
-    void     **closurelocs;
-  */
+  int        initialized;
   uintptr_t  code;
   int        argc;
   SgObject   signatures;

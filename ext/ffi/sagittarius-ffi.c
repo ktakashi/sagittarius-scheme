@@ -102,20 +102,11 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FuncInfoClass, funcinfo_printer);
 
 static ffi_type* lookup_ffi_return_type(int rettype);
 
-#if 0
-static void funcinfo_finalize(SgObject obj, void *data)
-{
-  int i;
-  for (i = 0; i < SG_FUNC_INFO(obj)->closureCount; i++) {
-    ffi_closure_free(SG_FUNC_INFO(obj)->closures[i]);
-  }
-}
-#endif
-
-static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
+static int set_ffi_parameter_types_rec(SgObject signatures, ffi_type **types,
+				       int allowCallback)
 {
   const SgChar *sigs;
-  int i, callback = 0;
+  int i;
   sigs = SG_STRING_VALUE(signatures);
   for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
     switch (sigs[i]) {
@@ -134,51 +125,64 @@ static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
     case FFI_SIGNATURE_UINT64:
       types[i] = &ffi_type_uint64; break;
     case FFI_SIGNATURE_CALLBACK:
-      callback++;
+      if (!allowCallback) {
+	Sg_Error(UC("invalid signature %c"), sigs[i]);
+	break;
+      }
     case FFI_SIGNATURE_POINTER:
       types[i] = &ffi_type_pointer; break;
+    case FFI_SIGNATURE_VARGS:
+      /* this must be the last so just return */
+      return i;
     default:
       Sg_Error(UC("invalid signature %c"), sigs[i]);
       return -1;		/* dummy */
     }
   }
-  return callback;
+  return i;
 }
+
+#define set_ffi_parameter_types(sig, types)	\
+  set_ffi_parameter_types_rec(sig, types, TRUE)
+#define set_ffi_callback_parameter_types(sig, types) \
+  set_ffi_parameter_types_rec(sig, types, FALSE)
 
 static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, 
 				 SgObject signatures)
 {
   SgFuncInfo *fn = SG_NEW(SgFuncInfo);
-  int callback = 0;
+  int i;
   SG_SET_CLASS(fn, SG_CLASS_FUNC_INFO);
   /* signatures must be created in Scheme file */
-  ASSERT(SG_STRINGP(signatures));
-  fn->argc = SG_STRING_SIZE(signatures);
-  fn->parameterTypes = SG_NEW_ARRAY(ffi_type*, fn->argc);
+  /* ASSERT(SG_STRINGP(signatures)); */
   fn->signatures = signatures;
+  fn->initialized = TRUE;
   fn->code = proc;
-
-  callback = set_ffi_parameter_types(signatures, fn->parameterTypes);
-  /* initialize ffi_cif */
-  if (ffi_prep_cif(&fn->cif, FFI_DEFAULT_ABI, fn->argc,
-		   lookup_ffi_return_type(retType), 
-		   fn->parameterTypes) != FFI_OK) {
-    Sg_Error(UC("FFI initialization failed."));
-    return SG_FUNC_INFO(SG_UNDEF);
-  }
-
-  fn->closureCount = callback;
-#if 0
-  if (callback) {
-    fn->closures = SG_NEW_ARRAY(ffi_closure, callback);
-    fn->closurelocs = SG_NEW_ARRAY(void, callback);
-    for (i = 0; i < callback; i++) {
-      fn->closures[i] = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure),
-							&fn->closurelocs[i]);
-    }
-    Sg_RegisterFinalizer(SG_OBJ(fn), funcinfo_finalize, NULL);
-  }
+  fn->returnType = lookup_ffi_return_type(retType);
+  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
+    if (FFI_SIGNATURE_VARGS == SG_STRING_VALUE_AT(signatures, i)) {
+      fn->initialized = FALSE;
+#ifdef HAVE_FFI_PREP_CIF_VAR
+      Sg_Error(UC("This platform doesn't support variable length argument"));
 #endif
+      break;
+    }
+  }
+  /* usual case we can pre allocate and reuse it. */
+  if (fn->initialized) {
+    fn->argc = SG_STRING_SIZE(signatures);
+    fn->parameterTypes = SG_NEW_ARRAY(ffi_type*, fn->argc);
+    
+    set_ffi_parameter_types(signatures, fn->parameterTypes);
+    /* initialize ffi_cif */
+    if (ffi_prep_cif(&fn->cif, FFI_DEFAULT_ABI, fn->argc,
+		     fn->returnType, 
+		     fn->parameterTypes) != FFI_OK) {
+      Sg_Error(UC("FFI initialization failed."));
+      return SG_FUNC_INFO(SG_UNDEF);
+    }
+  }
+
   return fn;
 }
 
@@ -285,7 +289,6 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 {
   SgCStruct *st;
   SgObject cp;
-  SgVM *vm = Sg_VM();
   int index = 0;
   size_t size, max_type, offset, padding;
   if (!SG_LISTP(layouts)) {
@@ -630,24 +633,26 @@ static SgObject get_error_message(SgChar signature, SgObject obj)
 {
   switch (signature) {
   case FFI_SIGNATURE_BOOL:
-    return  Sg_Sprintf(UC("'bool' required but got %A"), obj);
+    return Sg_Sprintf(UC("'bool' required but got %A"), obj);
   case FFI_SIGNATURE_INT:
   case FFI_SIGNATURE_UINT:
-    return  Sg_Sprintf(UC("'int' required but got %A"), obj);
+    return Sg_Sprintf(UC("'int' required but got %A"), obj);
   case FFI_SIGNATURE_INT64:
   case FFI_SIGNATURE_UINT64:
-    return  Sg_Sprintf(UC("'int64' required but got %A"), obj);
+    return Sg_Sprintf(UC("'int64' required but got %A"), obj);
   case FFI_SIGNATURE_FLOAT:
-    return  Sg_Sprintf(UC("'float' required but got %A"), obj);
+    return Sg_Sprintf(UC("'float' required but got %A"), obj);
   case FFI_SIGNATURE_DOUBLE:
-    return  Sg_Sprintf(UC("'double' required but got %A"), obj);
+    return Sg_Sprintf(UC("'double' required but got %A"), obj);
   case FFI_SIGNATURE_CALLBACK:
-    return  Sg_Sprintf(UC("'callback' required but got %A"), obj);
+    return Sg_Sprintf(UC("'callback' required but got %A"), obj);
   case FFI_SIGNATURE_POINTER:
-    return  Sg_Sprintf(UC("'pointer' required but got %A"), obj);
+    return Sg_Sprintf(UC("'pointer' required but got %A"), obj);
+  case FFI_SIGNATURE_VARGS:
+    return Sg_Sprintf(UC("'size of pointer value' required but got %A"), obj);
   default:
-    ASSERT(FALSE);
-    return SG_FALSE;
+    return Sg_Sprintf(UC("'unknown signature type' %c with %A"), 
+		      signature, obj);
   }
 }
 
@@ -1121,16 +1126,159 @@ static void callback_invoker(ffi_cif *cif, void *result, void **args,
   set_callback_result(callback, ret, cif, result);
 }
 
+static void** get_fixed_size_ffi_values(SgFuncInfo *func, SgObject args)
+{
+  SgObject signatures = func->signatures, cp, lastError = SG_FALSE;
+  int i, size = Sg_Length(args);
+  ffi_storage *params;
+  void **ffi_values;
+  /* check if the argument count is correct */
+  if (size != func->argc) {
+    Sg_Error(UC("argument count is not correct. required %d, but got %d"),
+	     func->argc, size);
+    return NULL;
+  }
+    
+  ffi_values = SG_NEW_ARRAY(void *, func->argc);
+  params = SG_NEW_ARRAY(ffi_storage, func->argc);
+    
+  i = 0;
+  SG_FOR_EACH(cp, args) {
+    if (!push_ffi_type_value(func,
+			     SG_STRING_VALUE_AT(signatures, i),
+			     SG_CAR(cp),
+			     params + i,
+			     &lastError)) {
+      Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
+      return NULL;
+    }
+    ffi_values[i] = (params + i);
+    i++;
+  }
+  return ffi_values;
+}
+
+static void set_ffi_varargs_parameter_types(SgObject oargs, int startIndex,
+					    ffi_type **types)
+{
+  /* for now we only suppots upto pointer size arguments */
+  int i;
+  SgObject args = oargs;
+  /* we know it has at least until start index */
+  for (i = 0; i < startIndex; i++) args = SG_CDR(args);
+  SG_FOR_EACH(args, args) {
+    SgObject arg = SG_CAR(args);
+    if (SG_BOOLP(arg)) {
+      types[i++] = &ffi_type_sint;
+    } else if (SG_INTP(arg)) {
+      /* small it is long */
+      types[i++] = &ffi_type_slong;
+    } else if (SG_POINTERP(arg) || SG_BVECTORP(arg)
+	       || SG_STRINGP(arg) || SG_CALLBACKP(arg)) {
+      types[i] = &ffi_type_pointer;
+    } else if (SG_FLONUMP(arg)) {
+      /* should this be double or float? */
+      types[i] = &ffi_type_double;
+    } else {
+      Sg_Error(UC("non supported variable length arguments %S in %S"),
+	       arg, oargs);
+    }
+  }
+}
+
+static int push_varargs_ffi_type_value(SgFuncInfo *func, SgObject arg,
+				       ffi_storage *storage,
+				       SgObject *lastError)
+{
+  if (SG_BOOLP(arg)) {
+    storage->sl = SG_TRUEP(arg) ? 1 : 0;
+  } else if (SG_INTP(arg)) {
+    storage->sl = SG_INT_VALUE(arg);
+  } else if (SG_POINTERP(arg)) {
+    storage->ptr = (void*)SG_POINTER(arg)->pointer;
+  } else if (SG_BVECTORP(arg)) {
+    storage->ptr = (void*)(SG_BVECTOR_ELEMENTS(arg));
+  } else if (SG_STRINGP(arg)) {
+    storage->ptr = (void*)(Sg_Utf32sToUtf8s(SG_STRING(arg)));
+  } else if (SG_CALLBACKP(arg)) {
+    if (!prep_method_handler(SG_CALLBACK(arg))) {
+      *lastError = Sg_Sprintf(UC("failed to prepare the callback."));
+      return FALSE;
+    }
+    storage->ptr = SG_CALLBACK(arg)->code;
+  } else if (SG_FLONUMP(arg)) {
+#if defined(__cplusplus) && defined(USE_IMMEDIATE_FLONUM)
+      storage->f64 = Sg_FlonumValue(arg);
+#else
+      storage->f64 = SG_FLONUM_VALUE(arg);
+#endif
+  } else {
+    *lastError = Sg_Sprintf(UC("non supported variable length arguments %S"),
+			    arg);
+    return FALSE;
+  }
+  return TRUE;
+}
+
+static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
+{
+#if HAVE_FFI_PREP_CIF_VAR
+  SgObject signatures = func->signatures, cp, lastError = SG_FALSE;
+  int i, size = Sg_Length(args), index;
+  ffi_storage *params;
+  void **ffi_values;
+    
+  ffi_values = SG_NEW_ARRAY(void *, size);
+  params = SG_NEW_ARRAY(ffi_storage, size);
+    
+  func->argc = size;
+  func->parameterTypes = SG_NEW_ARRAY(ffi_type*, size);
+    
+  index = set_ffi_parameter_types(signatures, func->parameterTypes);
+  set_ffi_varargs_parameter_types(args, index, func->parameterTypes);
+  /* initialize ffi_cif */
+  if (ffi_prep_cif_var(&func->cif, FFI_DEFAULT_ABI, func->argc,
+		       func->returnType,
+		       func->parameterTypes) != FFI_OK) {
+    Sg_Error(UC("VARARGS FFI initialization failed."));
+    return NULL;
+  }
+  i = 0;
+  index = 0;
+  SG_FOR_EACH(cp, args) {
+    if (SG_STRING_VALUE_AT(signatures, index) == FFI_SIGNATURE_VARGS) {
+      if (!push_varargs_ffi_type_value(func,
+				       SG_CAR(cp),
+				       params + i,
+				       &lastError)) {
+	Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
+	return NULL;
+      }
+    } else {
+      if (!push_ffi_type_value(func,
+			       SG_STRING_VALUE_AT(signatures, index),
+			       SG_CAR(cp),
+			       params + i,
+			       &lastError)) {
+	Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
+	return NULL;
+      }
+      index++;
+    }
+    ffi_values[i] = (params + i);
+    i++;
+  }
+  return ffi_values;
+#else
+  Sg_Error(UC("This platform doesn't support variable length argument"));
+  return NULL;			/* dummy */
+#endif
+}
 
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 {
-  SgObject lastError = SG_FALSE;
-  /* SgObject *funcargs; */
-  SgObject funcargs, cp;
-  int retType, i, size;
-  SgObject signatures;
+  int retType;
   SgFuncInfo *func;
-  ffi_storage *params;
   void **ffi_values;
 
 #ifdef FFI_NOT_SUPPORTED
@@ -1154,35 +1302,13 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
   retType = SG_INT_VALUE(args[0]);
   func = SG_FUNC_INFO(args[1]);
 
-  signatures = func->signatures;
-  /* check if the argument count is correct */
-  size = Sg_Length(args[argc-1]);
-  if (size != func->argc) {
-    Sg_Error(UC("argument count is not correct. required %d, but got %d"),
-	     func->argc, size);
-    return SG_UNDEF;
+  if (func->initialized) {
+    ffi_values = get_fixed_size_ffi_values(func, args[argc-1]);
+  } else {
+    ffi_values = get_varargs_ffi_values(func, args[argc-1]);
   }
+  if (!ffi_values) return SG_UNDEF; /* in case */
 
-  ffi_values = SG_NEW_ARRAY(void *, func->argc);
-  params = SG_NEW_ARRAY(ffi_storage, func->argc);
-
-  /* funcargs = Sg_ListToArray(args[argc-1], FALSE); */
-  funcargs = args[argc-1];
-  i = 0;
-  SG_FOR_EACH(cp, funcargs) {
-    /* for (i = 0; i < func->argc; i++) { */
-    if (!push_ffi_type_value(func,
-			     SG_STRING_VALUE_AT(signatures, i),
-			     /* funcargs[i],  */
-			     SG_CAR(cp),
-			     params + i,
-			     &lastError)) {
-      Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
-      return SG_UNDEF;
-    }
-    ffi_values[i] = (params + i);
-    i++;
-  }
   /* sanity check */
   if (!func->code) {
     Sg_Error(UC("invalid c-function %S"), func);
@@ -1280,50 +1406,6 @@ static void attached_method_invoker(ffi_cif *cif, void *result,
   set_callback_result(callback, ret, cif, result);
 }
 #endif
-
-static void set_ffi_callback_parameter_types(SgObject signatures,
-					     ffi_type **types)
-{
-  int i;
-  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
-    SgChar c = SG_STRING_VALUE_AT(signatures, i); 
-    switch (c) {
-      /* bool */
-    case 'l':
-      types[i] = &ffi_type_sint; break;
-      /* byte */
-    case 'b':
-      types[i] = &ffi_type_sint8; break;
-    case 'B':
-      types[i] = &ffi_type_uint8; break;
-      /* word */
-    case 'h':
-      types[i] = &ffi_type_sint16; break;
-    case 'H':
-      types[i] = &ffi_type_uint16; break;
-      /* dword */
-    case 'w':
-      types[i] = &ffi_type_sint32; break;
-    case 'W':
-      types[i] = &ffi_type_uint32; break;
-      /* qword */
-    case 'q':
-      types[i] = &ffi_type_sint64; break;
-    case 'Q':
-      types[i] = &ffi_type_uint64; break;
-      /* float */
-    case 'f':
-      types[i] = &ffi_type_float; break;
-    case 'd':
-      types[i] = &ffi_type_double; break;
-    case 'p':
-      types[i] = &ffi_type_pointer; break;
-    default:
-      FATAL("invalid callback argument signature\n[[exit]\n]");
-      break;
-    }
-  }
-}
 
 static int prep_method_handler(SgCallback *callback)
 {

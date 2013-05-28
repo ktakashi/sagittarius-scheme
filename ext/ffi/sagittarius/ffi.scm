@@ -4,6 +4,7 @@
 	    lookup-shared-library
 	    close-shared-library
 	    shared-object-suffix
+	    support-variable-length?
 	    c-function
 	    make-c-function ;; issue 83
 	    pointer->c-function
@@ -143,7 +144,7 @@
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct array
-	    intptr_t uintptr_t
+	    intptr_t uintptr_t ___
 
 	    ;; utility
 	    null-pointer
@@ -194,6 +195,7 @@
   (define callback           'callback)
   (define struct             'struct)
   (define array              'array)
+  (define ___                '___)
 
   (define null-pointer (integer->pointer 0))
   (define (null-pointer? p)
@@ -249,46 +251,65 @@
       ((_ p) (list 'address p))))
 
   (define (pointer->c-function pointer ret-type name arg-types)
-    (let* ((stub-ret-type (assoc ret-type c-function-return-type-alist))
-	   (signatures (list->string (make-sigunatures arg-types)))
-	   (function (create-function-info pointer (cdr stub-ret-type)
-					   signatures
-					   (car stub-ret-type) arg-types)))
+    (let ((stub-ret-type (assoc ret-type c-function-return-type-alist)))
       (unless stub-ret-type
 	(assertion-violation 'c-function "wrong return type" ret-type))
-      (lambda args
-	(unless (= (length arg-types) (length args))
-	  (assertion-violation 
-	   name
-	   (format "wrong arguments number ~d required, but got ~d"
-		   (length arg-types)
-		   (length args)) args))
-	(apply %ffi-call
-	       (cdr stub-ret-type)
-	       function
-	       args))))
+      (let* ((ret-type (cdr stub-ret-type))
+	     (signatures (list->string (make-sigunatures arg-types)))
+	     (function (create-function-info pointer ret-type
+					    signatures
+					    (car stub-ret-type) arg-types)))
+	(lambda args
+	  (let ((args-length (length args)))
+	    (if (memq ___ arg-types)
+		(let-values (((rest required) 
+			      (partition (lambda (e) (eq? ___ e)) arg-types)))
+		  (unless (< (length required) args-length)
+		    (assertion-violation 
+		     name
+		     (format "wrong arguments number at least ~d required, but got ~d"
+			     (length required)
+			     args-length) args)))
+		(unless (= (length arg-types) (length args))
+		  (assertion-violation 
+		   name
+		   (format "wrong arguments number ~d required, but got ~d"
+			   (length arg-types)
+			   args-length) args))))
+	  (apply %ffi-call ret-type function args)))))
 
   (define (make-sigunatures arg-types)
-    (map (lambda (arg-type)
-	   (case arg-type
-	     ((char short int long unsigned-short int8_t
-		    int16_t int32_t uint8_t uint16_t)
-	      #\i)
-	     ((unsigned-int unsigned-long uint32_t size_t)
-	      #\u)
-	     ((int64_t long-long)
-	      #\x)
-	     ((uint64_t unsigned-long-long)
-	      #\U)
-	     ((bool) #\b)
-	     ((void* char*) #\p)
-	     ((float) #\f)
-	     ((double) #\d)
-	     ((callback) #\c)
-	     (else
-	      (assertion-violation 'make-sigunatures 
-				   "invalid argument type" arg-type))))
-	 arg-types))
+    (let loop ((arg-types arg-types) (r '()))
+      (if (null? arg-types)
+	  (reverse! r)
+	  (loop (cdr arg-types)
+		(cons (case (car arg-types)
+			((char short int long unsigned-short int8_t
+			       int16_t int32_t uint8_t uint16_t)
+			 #\i)
+			((unsigned-int unsigned-long uint32_t size_t)
+			 #\u)
+			((int64_t long-long)
+			 #\x)
+			((uint64_t unsigned-long-long)
+			 #\U)
+			((bool) #\b)
+			((void* char*) #\p)
+			((float) #\f)
+			((double) #\d)
+			((callback) #\c)
+			((___)
+			 ;; varargs must be the last
+			 (unless (null? (cdr arg-types))
+			   (assertion-violation 'make-sigunatures
+						"___ must be the last"
+						arg-types))
+			 #\v)
+			(else
+			 (assertion-violation 'make-sigunatures 
+					      "invalid argument type"
+					      arg-type)))
+		      r)))))
 
   (define-syntax c-function
     (lambda (x)

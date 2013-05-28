@@ -14,6 +14,7 @@ ELSE()
 ENDIF()
 
 IF (LIB_FFI_FOUND)
+  CHECK_FUNCTION_EXISTS(ffi_prep_cif_var HAVE_FFI_PREP_CIF_VAR)
   MESSAGE(STATUS "Sagittarius uses platform libffi")
 ELSEIF(WATCOM)
   MESSAGE(WARNING "Sagittarius does not support FFI on WATCOM")
@@ -30,6 +31,10 @@ IF (NO_LIB_FFI)
   ADD_LIBRARY(sagittarius--ffi MODULE ffi_dummy.c)
 ELSE()
   ADD_DEFINITIONS(-DHAVE_FFI_H)
+  # variable length argument support
+  IF (HAVE_FFI_PREP_CIF_VAR)
+    ADD_DEFINITIONS(-DHAVE_FFI_PREP_CIF_VAR)
+  ENDIF()
   ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
     ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)
 

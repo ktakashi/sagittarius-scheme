@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdarg.h>
 
 #ifdef _MSC_VER
 # define EXPORT __declspec(dllexport)
@@ -111,6 +112,18 @@ EXPORT void address_passing_string(char **s)
 EXPORT void address_passing_free(char **s)
 {
   free(*s);
+}
+
+EXPORT int va_fn(void **result, int n, ...)
+{
+  int i;
+  va_list ap;
+  va_start(ap, n);
+  for (i = 0; i < n; i++) {
+    result[i] = va_arg(ap, void *);
+  }
+  va_end(ap);
+  return i;
 }
 
 

@@ -38,6 +38,11 @@
   (handle::<pointer> rettype::<fixnum> sigs::<string> sret sparam)
   Sg_CreateCFunction)
 
+(define-c-proc support-variable-length? () ::<boolean>
+  (.if "defined(HAVE_FFI_PREP_CIF_VAR)"
+       (result TRUE)
+       (result FALSE)))
+
 (define-c-proc create-c-callback
   (rettype::<fixnum> sigs::<string> proc::<procedure>) 
   Sg_CreateCallback)
