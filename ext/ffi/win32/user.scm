@@ -56,6 +56,7 @@
 	    show-window
 	    update-window
 	    get-message
+	    peek-message
 	    translate-message
 	    dispatch-message
 	    get-dc
@@ -70,6 +71,7 @@
 	    move-window
 	    destroy-window
 	    send-message
+	    post-message
 	    create-menu
 	    create-popup-menu
 	    append-menu
@@ -546,7 +548,10 @@
   (define update-window (c-function user32 BOOL UpdateWindow (HWND)))
 
   (define get-message 
-    (c-function user32 BOOL GetMessageA (LPMSG HWND UINT UINT)))
+    (c-function user32 int GetMessageA (LPMSG HWND UINT UINT)))
+
+  (define peek-message 
+    (c-function user32 BOOL GetMessageA (LPMSG HWND UINT UINT UINT)))
 
   (define translate-message (c-function user32 BOOL TranslateMessage (void*)))
 
@@ -577,6 +582,9 @@
 
   (define send-message
     (c-function user32 LRESULT SendMessageW (HWND UINT WPARAM LPARAM)))
+
+  (define post-message
+    (c-function user32 LRESULT PostMessageW (HWND UINT WPARAM LPARAM)))
 
   (define create-menu (c-function user32 HMENU CreateMenu ()))
 
