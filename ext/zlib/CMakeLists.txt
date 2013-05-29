@@ -4,6 +4,8 @@
 
 ADD_LIBRARY(sagittarius--zlib MODULE
   sagittarius-zlib.c ${CMAKE_CURRENT_BINARY_DIR}/zlib_stub.c)
+# always support
+ADD_FEATURE(zlib)
 
 IF (MSVC OR CYGWIN)
   # ugly solution

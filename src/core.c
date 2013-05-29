@@ -92,6 +92,9 @@ extern void Sg__Init_core_arithmetic();
 extern void Sg__Init_core_enums();
 /* extern void Sg__Init_match_core(); */
 extern void Sg__Init_sagittarius_interactive();
+
+extern void Sg__InitExtFeatures();
+
 void Sg_Init()
 {
   SgObject nullsym, coreBase, compsym, sgsym;
@@ -453,6 +456,8 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("sagittarius-"SAGITTARIUS_VERSION));
   /* maybe it's useful */
   Sg_AddCondFeature(UC(SAGITTARIUS_TRIPLE));
+  /* extlib features */
+  Sg__InitExtFeatures();
 }
 
 /* somehow Visual Studio 2010 requires this to create dll.*/

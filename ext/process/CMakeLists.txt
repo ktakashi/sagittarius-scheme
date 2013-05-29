@@ -5,6 +5,8 @@
 ADD_LIBRARY(sagittarius--process MODULE
   sagittarius-process.c ${CMAKE_CURRENT_BINARY_DIR}/process_stub.c)
 
+ADD_FEATURE(process)
+
 IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-process.c

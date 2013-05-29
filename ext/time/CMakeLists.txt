@@ -7,6 +7,8 @@ ADD_LIBRARY(sagittarius--time MODULE
   ${CMAKE_CURRENT_BINARY_DIR}/time_stub.c
   ${CMAKE_CURRENT_BINARY_DIR}/date_stub.c)
 
+ADD_FEATURE(time)
+
 IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(sagittarius-time.c date.c 

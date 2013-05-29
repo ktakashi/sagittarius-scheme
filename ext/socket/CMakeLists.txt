@@ -5,6 +5,8 @@
 ADD_LIBRARY(sagittarius--socket MODULE
   socket.c ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c)
 
+ADD_FEATURE(socket)
+
 IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(socket.c ${CMAKE_CURRENT_BINARY_DIR}/socket_stub.c

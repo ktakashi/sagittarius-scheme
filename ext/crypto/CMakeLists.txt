@@ -5,6 +5,8 @@
 ADD_LIBRARY(sagittarius--crypto MODULE
   crypto.c key.c ${CMAKE_CURRENT_BINARY_DIR}/crypto_stub.c)
 
+ADD_FEATURE(crypto)
+
 IF (MSVC OR CYGWIN)
   # ugly solution
   SET_SOURCE_FILES_PROPERTIES(crypto.c 

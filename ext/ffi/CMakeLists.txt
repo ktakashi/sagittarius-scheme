@@ -35,10 +35,12 @@ ENDIF()
 IF (NO_LIB_FFI)
   ADD_LIBRARY(sagittarius--ffi MODULE ffi_dummy.c)
 ELSE()
+  ADD_FEATURE(ffi)
   ADD_DEFINITIONS(-DHAVE_FFI_H)
   # variable length argument support
   IF (HAVE_FFI_PREP_CIF_VAR)
     ADD_DEFINITIONS(-DHAVE_FFI_PREP_CIF_VAR)
+    ADD_FEATURE(ffi-vargs)
   ENDIF()
   ADD_LIBRARY(sagittarius--ffi MODULE sagittarius-ffi.c 
     ${CMAKE_CURRENT_BINARY_DIR}/ffi_stub.c)

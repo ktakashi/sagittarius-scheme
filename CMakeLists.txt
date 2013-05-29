@@ -366,8 +366,27 @@ SET(SAGITTARIUS_EXT_WORK_DIRECTORY
   ${SAGITTARIUS_EXT_WORK_DIRECTORY}
   ${PROJECT_BINARY_DIR}/build/ext)
 
+SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/build/src/ext-features.c)
+
+FILE(WRITE ${SAGITTARIUS_EXT_FEATURES}
+  "#define LIBSAGITTARIUS_BODY
+#include <sagittarius/core.h>
+void Sg__InitExtFeatures()
+{
+")
+
+MACRO(ADD_FEATURE name)
+  FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
+    "Sg_AddCondFeature(UC(\"${name}\"));\n")
+ENDMACRO()
+
 ADD_SUBDIRECTORY(src build/src)
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
+
+FILE(APPEND ${SAGITTARIUS_EXT_FEATURES}
+  "
+}")
+
 
 CONFIGURE_FILE(cmake/sagittarius-config.in 
   ${PROJECT_BINARY_DIR}/sagittarius-config)

@@ -20,6 +20,8 @@ IF (HAVE_SQL_H)
   ADD_LIBRARY(sagittarius--odbc MODULE
     odbc.c ${CMAKE_CURRENT_BINARY_DIR}/odbc_stub.c)
 
+  ADD_FEATURE(odbc)
+
   IF (MSVC OR CYGWIN)
     # ugly solution
     SET_SOURCE_FILES_PROPERTIES(odbc.c ${CMAKE_CURRENT_BINARY_DIR}/odbc_stub.c

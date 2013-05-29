@@ -73,7 +73,13 @@ SET(SAGITTARIUS_LIB_SOURCE
   lib_repl.c
   # now match is replaced to Alex Shin's match
   #lib_match_core.c
+  ${SAGITTARIUS_EXT_FEATURES}
 )
+
+# to add features in core
+SET_SOURCE_FILES_PROPERTIES(${SAGITTARIUS_EXT_FEATURES}
+  PROPERTIES
+  GENERATED TRUE)
 
 ADD_LIBRARY(sagittarius SHARED 
   ${SAGITTARIUS_LIB_SOURCE}
