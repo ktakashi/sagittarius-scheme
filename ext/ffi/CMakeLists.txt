@@ -22,10 +22,14 @@ ELSEIF(WATCOM)
   SET(NO_LIB_FFI TRUE)
 ELSE()
   MESSAGE(STATUS "Sagittarius uses bundled libffi")
-  ADD_SUBDIRECTORY(libffi-3.0.10 libffi)
-  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libffi-3.0.10/include)
+  SET(HAVE_FFI_PREP_CIF_VAR TRUE)
+  ADD_SUBDIRECTORY(libffi-3.0.13 libffi)
+  INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libffi-3.0.13/include)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/libffi)
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_BINARY_DIR}/libffi/include)
+  # since 3.0.13 it's doing proper __declspec for MCVC for DLL
+  # and we want to make it static for bundled one so defaine FFI_BUILDING
+  ADD_DEFINITIONS(-DFFI_BUILDING)
 ENDIF()
 
 IF (NO_LIB_FFI)
