@@ -102,8 +102,7 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FuncInfoClass, funcinfo_printer);
 
 static ffi_type* lookup_ffi_return_type(int rettype);
 
-static int set_ffi_parameter_types_rec(SgObject signatures, ffi_type **types,
-				       int allowCallback)
+static int set_ffi_parameter_types(SgObject signatures, ffi_type **types)
 {
   const SgChar *sigs;
   int i;
@@ -125,10 +124,6 @@ static int set_ffi_parameter_types_rec(SgObject signatures, ffi_type **types,
     case FFI_SIGNATURE_UINT64:
       types[i] = &ffi_type_uint64; break;
     case FFI_SIGNATURE_CALLBACK:
-      if (!allowCallback) {
-	Sg_Error(UC("invalid signature %c"), sigs[i]);
-	break;
-      }
     case FFI_SIGNATURE_POINTER:
     case FFI_SIGNATURE_WCHAR_STR:
       types[i] = &ffi_type_pointer; break;
@@ -142,11 +137,6 @@ static int set_ffi_parameter_types_rec(SgObject signatures, ffi_type **types,
   }
   return i;
 }
-
-#define set_ffi_parameter_types(sig, types)	\
-  set_ffi_parameter_types_rec(sig, types, TRUE)
-#define set_ffi_callback_parameter_types(sig, types) \
-  set_ffi_parameter_types_rec(sig, types, FALSE)
 
 static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType, 
 				 SgObject signatures)
@@ -627,6 +617,50 @@ typedef union
   float f32;
   double f64;
 } ffi_storage;
+
+static void set_ffi_callback_parameter_types(SgObject signatures,
+					     ffi_type **types)
+{
+  int i;
+  for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
+    SgChar c = SG_STRING_VALUE_AT(signatures, i); 
+    switch (c) {
+      /* bool */
+    case 'l':
+      types[i] = &ffi_type_sint; break;
+      /* byte */
+    case 'b':
+      types[i] = &ffi_type_sint8; break;
+    case 'B':
+      types[i] = &ffi_type_uint8; break;
+      /* word */
+    case 'h':
+      types[i] = &ffi_type_sint16; break;
+    case 'H':
+      types[i] = &ffi_type_uint16; break;
+      /* dword */
+    case 'w':
+      types[i] = &ffi_type_sint32; break;
+    case 'W':
+      types[i] = &ffi_type_uint32; break;
+      /* qword */
+    case 'q':
+      types[i] = &ffi_type_sint64; break;
+    case 'Q':
+      types[i] = &ffi_type_uint64; break;
+      /* float */
+    case 'f':
+      types[i] = &ffi_type_float; break;
+    case 'd':
+      types[i] = &ffi_type_double; break;
+    case 'p':
+      types[i] = &ffi_type_pointer; break;
+    default:
+      FATAL("invalid callback argument signature\n[[exit]\n]");
+      break;
+    }
+  }
+}
 
 static int prep_method_handler(SgCallback *callback);
 

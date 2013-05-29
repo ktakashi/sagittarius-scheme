@@ -524,6 +524,6 @@
       (double             . #\d)
       (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
       (void*              . #\p)
-      (wchar_t*           . #\S)))
+      (wchar_t*           . #\p)))
   
   )

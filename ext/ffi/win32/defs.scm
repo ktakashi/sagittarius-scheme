@@ -35,6 +35,7 @@
 	    BYTE PBYTE LPBYTE
 	    CHAR PCHAR LPCH PCH NPSTR LPSTR PSTR
 	    LPCCH PCSTR LPCSTR
+	    LPWSTR LPCWSTR
 	    WORD PWORD LPWORD
 	    SHORT PSHORT
 	    HALF_PTR PHALF_PTR UHALF_PTR PUHALF_PTR
@@ -76,6 +77,10 @@
     CHAR
     (s* PCHAR) (s* LPCH) (s* PCH) (s* NPSTR) (s* LPSTR)
     (s* PSTR) (s* LPCCH) (s* PCSTR) (s* LPCSTR))
+
+  ;; wchar_t
+  (define-c-typedef wchar_t* LPWSTR LPCWSTR)
+
   ;; short
   (define-c-typedef unsigned-short WORD (* PWORD) (* LPWORD))
   (define-c-typedef short SHORT (* PSHORT))

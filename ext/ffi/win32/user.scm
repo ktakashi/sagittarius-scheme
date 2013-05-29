@@ -509,12 +509,13 @@
 
   (define message-box
     (c-function user32
-		int MessageBoxA (HWND LPCSTR LPCSTR UINT)))
+		int MessageBoxW (HWND LPCWSTR LPCWSTR UINT)))
 
   (define create-window-ex
     (c-function user32
-		HWND CreateWindowExA
-		(DWORD LPCSTR LPCSTR DWORD UINT UINT UINT UINT HWND HMENU HINSTANCE LPVOID)))
+		HWND CreateWindowExW
+		(DWORD LPCWSTR LPCWSTR DWORD UINT UINT UINT
+		       UINT HWND HMENU HINSTANCE LPVOID)))
 
   (define (create-window a b c d e f g h i j k)
     (create-window-ex 0 a b c d e f g h i j k))
