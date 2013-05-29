@@ -773,6 +773,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
     /* bytevector -> char* */
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
+    case FFI_SIGNATURE_WCHAR_STR:
       storage->ptr = (void*)(SG_BVECTOR_ELEMENTS(obj));
       return TRUE;
     default:

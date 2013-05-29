@@ -509,12 +509,12 @@
 
   (define message-box
     (c-function user32
-		int MessageBoxW (HWND LPCWSTR LPCWSTR UINT)))
+		int MessageBoxA (HWND LPCSTR LPCSTR UINT)))
 
   (define create-window-ex
     (c-function user32
-		HWND CreateWindowExW
-		(DWORD LPCWSTR LPCWSTR DWORD UINT UINT UINT
+		HWND CreateWindowExA
+		(DWORD LPCSTR LPCSTR DWORD UINT UINT UINT
 		       UINT HWND HMENU HINSTANCE LPVOID)))
 
   (define (create-window a b c d e f g h i j k)
@@ -536,41 +536,25 @@
     (c-function user32
 		ATOM RegisterClassExA (void*)))
 
-  (define post-quit-message
-    (c-function user32
-		void PostQuitMessage (int)))
+  (define post-quit-message (c-function user32 void PostQuitMessage (int)))
 
   (define def-window-proc
-    (c-function user32
-		void* DefWindowProcA (HWND UINT WPARAM LPARAM)))
+    (c-function user32 void* DefWindowProcA (HWND UINT WPARAM LPARAM)))
 
-  (define show-window
-    (c-function user32
-		BOOL ShowWindow (HWND int)))
+  (define show-window (c-function user32 BOOL ShowWindow (HWND int)))
 
-  (define update-window
-    (c-function user32
-		BOOL UpdateWindow (HWND)))
+  (define update-window (c-function user32 BOOL UpdateWindow (HWND)))
 
-  (define get-message
-    (c-function user32
-		BOOL GetMessageA (LPMSG HWND UINT UINT)))
+  (define get-message 
+    (c-function user32 BOOL GetMessageA (LPMSG HWND UINT UINT)))
 
-  (define translate-message
-    (c-function user32
-		BOOL TranslateMessage (void*)))
+  (define translate-message (c-function user32 BOOL TranslateMessage (void*)))
 
-  (define dispatch-message
-    (c-function user32
-		LONG DispatchMessageA (void*)))
+  (define dispatch-message (c-function user32 LONG DispatchMessageA (void*)))
 
-  (define get-dc
-    (c-function user32
-		HDC GetDC (HWND)))
+  (define get-dc (c-function user32 HDC GetDC (HWND)))
 
-  (define get-dc-ex
-    (c-function user32
-		HDC GetDCEx (HWND HRGN DWORD)))
+  (define get-dc-ex (c-function user32 HDC GetDCEx (HWND HRGN DWORD)))
 
   (define release-dc (c-function user32 int ReleaseDC (HWND HDC)))
 
@@ -592,14 +576,14 @@
   (define destroy-window (c-function user32 BOOL DestroyWindow (HWND)))
 
   (define send-message
-    (c-function user32 LRESULT SendMessageA (HWND UINT WPARAM LPARAM)))
+    (c-function user32 LRESULT SendMessageW (HWND UINT WPARAM LPARAM)))
 
   (define create-menu (c-function user32 HMENU CreateMenu ()))
 
   (define create-popup-menu (c-function user32 HMENU CreateMenu ()))
 
   (define append-menu
-    (c-function user32 BOOL AppendMenuA (HMENU UINT UINT_PTR LPCSTR)))
+    (c-function user32 BOOL AppendMenuW (HMENU UINT UINT_PTR LPCWSTR)))
 
   (define delete-menu (c-function user32 BOOL DeleteMenu (HMENU UINT UINT)))
 
@@ -610,16 +594,16 @@
   (define draw-menu-bar (c-function user32 BOOL DrawMenuBar (HWND)))
 
   (define insert-menu-item
-    (c-function user32 BOOL InsertMenuItemA (HMENU UINT BOOL LPCSTR)))
+    (c-function user32 BOOL InsertMenuItemW (HMENU UINT BOOL LPCWSTR)))
 
   (define set-window-text
-    (c-function user32 BOOL SetWindowTextA (HWND LPCSTR)))
+    (c-function user32 BOOL SetWindowTextW (HWND LPCWSTR)))
 
   (define get-window-text
-    (c-function user32 int GetWindowTextA (HWND LPSTR int)))
+    (c-function user32 int GetWindowTextW (HWND LPWSTR int)))
 
   (define get-window-text-length
-    (c-function user32 int GetWindowTextLengthA (HWND)))
+    (c-function user32 int GetWindowTextLengthW (HWND)))
 
   (define set-cursor (c-function user32 HCURSOR SetCursor (HCURSOR)))
   (define set-capture (c-function user32 HWND SetCapture (HWND)))
