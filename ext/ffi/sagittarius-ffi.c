@@ -130,6 +130,7 @@ static int set_ffi_parameter_types_rec(SgObject signatures, ffi_type **types,
 	break;
       }
     case FFI_SIGNATURE_POINTER:
+    case FFI_SIGNATURE_WCHAR_STR:
       types[i] = &ffi_type_pointer; break;
     case FFI_SIGNATURE_VARGS:
       /* this must be the last so just return */
@@ -509,6 +510,8 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
     return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_CALLBACK:
     return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
+  case FFI_RETURN_TYPE_WCHAR_STR:
+    return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
   default:
     Sg_Panic("unknown FFI return type: %d", rettype);
     return NULL;
@@ -648,6 +651,8 @@ static SgObject get_error_message(SgChar signature, SgObject obj)
     return Sg_Sprintf(UC("'callback' required but got %A"), obj);
   case FFI_SIGNATURE_POINTER:
     return Sg_Sprintf(UC("'pointer' required but got %A"), obj);
+  case FFI_SIGNATURE_WCHAR_STR:
+    return Sg_Sprintf(UC("'wchar_t' required but got %A"), obj);
   case FFI_SIGNATURE_VARGS:
     return Sg_Sprintf(UC("'size of pointer value' required but got %A"), obj);
   default:
@@ -722,6 +727,9 @@ static int push_ffi_type_value(SgFuncInfo *info,
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
       storage->ptr = (void*)(Sg_Utf32sToUtf8s(SG_STRING(obj)));
+      return TRUE;
+    case FFI_SIGNATURE_WCHAR_STR:
+      storage->ptr = (void*)(Sg_StringToWCharTs(SG_STRING(obj)));
       return TRUE;
     default:
       *lastError = get_error_message(signature, obj);
@@ -816,6 +824,7 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   case FFI_RETURN_TYPE_UINT64_T: return &ffi_type_uint64;
   case FFI_RETURN_TYPE_POINTER : return &ffi_type_pointer;
   case FFI_RETURN_TYPE_CALLBACK: return &ffi_type_pointer;
+  case FFI_RETURN_TYPE_WCHAR_STR: return &ffi_type_pointer;
   default:
     Sg_Panic("unknown FFI return type: %d", rettype);
     return NULL;
@@ -937,6 +946,7 @@ static SgObject get_callback_arguments(SgCallback *callback, void **args)
        d double
        p void*
        l bool
+       S wchar_t*
      */
     SgChar c = SG_STRING_VALUE_AT(callback->signatures, i); 
     switch (c) {
@@ -998,6 +1008,12 @@ static SgObject get_callback_arguments(SgCallback *callback, void **args)
       {
 	void *arg = *(void **)args[i];
 	SG_APPEND1(h, t, Sg_MakePointer(arg));
+	break;
+      }
+    case 'S':
+      {
+	wchar_t *arg = *(wchar_t **)args[i];
+	SG_APPEND1(h, t, Sg_WCharTsToString(arg));
 	break;
       }
     default:
@@ -1339,6 +1355,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 #define S64_CONV(type)     Sg_MakeIntegerFromS64((type)ret)
 #define U64_CONV(type)     Sg_MakeIntegerFromU64((type)ret)
 #define PTR_CONV(type)     make_pointer((type)ret)
+#define WSTR_CONV(type)    Sg_WCharTsToString((type)ret)
 
 #define FFI_RET_CASE_REC(type, rettype, return_body)			\
   case type: {								\
@@ -1382,6 +1399,8 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     FFI_RET_CASE4(FFI_RETURN_TYPE_UINT64_T, U64_CONV, uint64_t, uint64_t);
 
     FFI_RET_CASE(FFI_RETURN_TYPE_POINTER, PTR_CONV, intptr_t);
+
+    FFI_RET_CASE(FFI_RETURN_TYPE_WCHAR_STR, WSTR_CONV, wchar_t*);
 
     FFI_RET_CASE_REC(FFI_RETURN_TYPE_STRING, intptr_t,
 		     if (ret == 0) {
@@ -1599,6 +1618,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   SIZE_VALUE(uint64_t);
   SIZE_VALUE(intptr_t);
   SIZE_VALUE(uintptr_t);
+  SIZE_VALUE(wchar_t);
 
 #define ALIGN_OF2(name, type)						\
   do {									\
@@ -1632,6 +1652,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   ALIGN_OF(uint64_t);
   ALIGN_OF(intptr_t);
   ALIGN_OF(uintptr_t);
+  ALIGN_OF(wchar_t);
 
 #define CONST_VALUE1(v) CONST_VALUE(v, v)
 
@@ -1660,6 +1681,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   CONST_VALUE1(FFI_RETURN_TYPE_POINTER);
   CONST_VALUE1(FFI_RETURN_TYPE_STRUCT);
   CONST_VALUE1(FFI_RETURN_TYPE_CALLBACK);
+  CONST_VALUE1(FFI_RETURN_TYPE_WCHAR_STR);
 
 #undef CONST_VALUE
 #undef SIZE_VALUE

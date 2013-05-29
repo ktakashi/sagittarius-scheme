@@ -101,6 +101,10 @@ SG_EXTERN SgObject Sg_Utf8sToUtf32s(const char *s, int len);
 SG_EXTERN SgObject Sg_Utf16sToUtf32s(const char *s, int len);
 SG_EXTERN char*    Sg_Utf32sToUtf8s(const SgString *s);
 
+/* might be convenient? */
+SG_EXTERN wchar_t* Sg_StringToWCharTs(SgObject s);
+SG_EXTERN SgObject Sg_WCharTsToString(wchar_t *s);
+
 /* char case */
 SG_EXTERN SgChar   Sg_CharUpCase(SgChar ch);
 SG_EXTERN SgChar   Sg_CharDownCase(SgChar ch);

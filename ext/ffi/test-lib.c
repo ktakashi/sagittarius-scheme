@@ -126,6 +126,11 @@ EXPORT int va_fn(void **result, int n, ...)
   return i;
 }
 
+EXPORT wchar_t* wide_fn(wchar_t *str)
+{
+  /* do nothing */
+  return str;
+}
 
 int main(void)
 {

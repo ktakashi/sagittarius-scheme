@@ -61,6 +61,7 @@
 	    size-of-uint64_t
 	    size-of-intptr_t
 	    size-of-uintptr_t
+	    size-of-wchar_t
 
 	    ;; address
 	    pointer-address
@@ -89,6 +90,7 @@
 	    pointer-ref-c-float
 	    pointer-ref-c-double
 	    pointer-ref-c-pointer
+	    pointer-ref-c-wchar
 	    ;; set!
 	    pointer-set-c-uint8!
 	    pointer-set-c-int8!
@@ -112,6 +114,7 @@
 	    pointer-set-c-uintptr!
 	    pointer-set-c-float!
 	    pointer-set-c-double!
+	    pointer-set-c-wchar!
 	    ;; alignment
 	    align-of-bool
 	    align-of-char
@@ -137,13 +140,14 @@
 	    align-of-uint64_t
 	    align-of-intptr_t
 	    align-of-uintptr_t
+	    align-of-wchar_t
 	    ;; c-primitives
 	    void
 	    char short int long unsigned-short unsigned-int unsigned-long
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct array
-	    intptr_t uintptr_t ___
+	    intptr_t uintptr_t wchar_t* ___
 
 	    ;; utility
 	    null-pointer
@@ -194,6 +198,7 @@
   (define callback           'callback)
   (define struct             'struct)
   (define array              'array)
+  (define wchar_t*           'wchar_t*)
   (define ___                '___)
 
   (define null-pointer (integer->pointer 0))
@@ -297,6 +302,7 @@
 			((float) #\f)
 			((double) #\d)
 			((callback) #\c)
+			((wchar_t*) #\w)
 			((___)
 			 ;; varargs must be the last
 			 (unless (null? (cdr arg-types))
@@ -489,7 +495,8 @@
       (int32_t            . ,FFI_RETURN_TYPE_INT32_T )
       (uint32_t           . ,FFI_RETURN_TYPE_UINT32_T)
       (int64_t            . ,FFI_RETURN_TYPE_INT64_T )
-      (uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)))
+      (uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)
+      (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)))
 
   (define callback-argument-type-class
     `((bool               . #\l)
@@ -516,6 +523,7 @@
       (float              . #\f)
       (double             . #\d)
       (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
-      (void*              . #\p)))
+      (void*              . #\p)
+      (wchar_t*           . #\S)))
   
   )

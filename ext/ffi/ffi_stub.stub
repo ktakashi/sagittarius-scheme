@@ -171,9 +171,14 @@
   (check-null-pointer pointer-ref-c-unsigned-char p)
   (result (POINTER_REF uchar p offset)))
 
+;; TODO should we return character or integer for char and wchar_t?
 (define-c-proc pointer-ref-c-char (p::<pointer> offset::<fixnum>) ::<fixnum>
   (check-null-pointer pointer-ref-c-char p)
   (result (POINTER_REF cchar p offset)))
+
+(define-c-proc pointer-ref-c-wchar (p::<pointer> offset::<fixnum>)
+  (check-null-pointer pointer-ref-c-pointer p)
+  (result (Sg_MakeIntegerU (POINTER_REF wchar_t p offset))))
 
 (define-c-proc pointer-ref-c-unsigned-short (p::<pointer> offset::<fixnum>) ::<fixnum>
   (check-null-pointer pointer-ref-c-unsigned-short p)
@@ -297,4 +302,9 @@
 
 (define-c-proc pointer-set-c-double! (p::<pointer> offset::<fixnum> value) ::<void>
   (Sg_PointerSet p offset FFI_RETURN_TYPE_DOUBLE value))
+
+(define-c-proc pointer-set-c-wchar! (p::<pointer> offset::<fixnum> value) ::<void>
+  (.if "SIZEOF_WCHAR_T == 2"
+       (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT16_T value)
+       (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT32_T value)))
 

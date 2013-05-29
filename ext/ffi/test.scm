@@ -35,6 +35,7 @@
   (define pointer-ref-c-int32_t   pointer-ref-c-int32)
   (define pointer-ref-c-uint64_t  pointer-ref-c-uint64)
   (define pointer-ref-c-int64_t   pointer-ref-c-int64)
+  (define pointer-ref-c-wchar_t   pointer-ref-c-wchar)
   (define pointer-set-c-uint8_t!  pointer-set-c-uint8!)
   (define pointer-set-c-int8_t!   pointer-set-c-int8!) 
   (define pointer-set-c-uint16_t! pointer-set-c-uint16!)
@@ -43,6 +44,7 @@
   (define pointer-set-c-int32_t!  pointer-set-c-int32!)
   (define pointer-set-c-uint64_t! pointer-set-c-uint64!)
   (define pointer-set-c-int64_t!  pointer-set-c-int64!)
+  (define pointer-set-c-wchar_t!  pointer-set-c-wchar!)
 
   (define-syntax pointer-ref-test
     (lambda (x)
@@ -175,8 +177,10 @@
 		(struct-with-array-int*-ref st)))
 
   ;;(pointer-ref-test bool #t)
-
+  ;; for now char and wchar_t returns integer
   (pointer-ref-test char #t)
+  (pointer-ref-test wchar_t #t)
+
   (pointer-ref-test short #t)
   (pointer-ref-test unsigned-short #t)
   (pointer-ref-test int #t)
@@ -185,6 +189,7 @@
   (pointer-ref-test unsigned-long #t)
   (pointer-ref-test long-long #t)
   (pointer-ref-test unsigned-long-long #t)
+
   ;; we don't test void*
   ;;(pointer-ref-test size_t #t)
     
@@ -264,6 +269,14 @@
 	(test-equal "result(3~)" 3 (pointer->integer (deref result 2)))
 	(test-equal "result(4~)" 4 (pointer->integer (deref result 3))))
       ))
+
+  ;; wchar_t*
+  (let ()
+    (define wide-fn (c-function ffi-test-lib wchar_t* wide_fn (wchar_t*)))
+    (define input "wide string")
+    (test-assert "size-of-wchar_t" size-of-wchar_t)
+    (test-assert "align-of-wchar_t" align-of-wchar_t)
+    (test-equal "wchar_t*" input (wide-fn input)))
 
   )
  (else

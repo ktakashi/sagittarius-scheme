@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <wchar.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/unicode.h"
 #include "sagittarius/error.h"
@@ -455,6 +456,68 @@ char* Sg_Utf32sToUtf8s(const SgString *s)
   SgPort *tp = Sg_MakeTranscodedOutputPort(p, t);
   Sg_TranscoderWrite(t, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
   return (char*)Sg_GetByteArrayFromBinaryPort(p);
+}
+
+wchar_t* Sg_StringToWCharTs(SgObject s)
+{
+  int size = SG_STRING_SIZE(s);
+  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
+#if SIZEOF_WCHAR_T == 2
+# if WORDS_BIGENDIAN
+  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16BE);
+# else
+  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
+# endif
+#else
+  SgCodec *codec = Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN);
+#endif
+  SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
+  SgPort *tp = Sg_MakeTranscodedOutputPort(out, tcoder);
+
+  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
+  Sg_TranscoderPutc(tcoder, tp, '\0');
+  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
+}
+
+SgObject Sg_WCharTsToString(wchar_t *s)
+{
+#define BUF_SIZ 256
+  /* TODO this is a bit inefficient */
+  size_t size = wcslen(s);
+#if SIZEOF_WCHAR_T == 2
+# if WORDS_BIGENDIAN
+  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16BE);
+# else
+  SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
+# endif
+#else
+  SgCodec *codec = Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN);
+#endif
+  SgTranscoder *transcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
+  SgObject bin = Sg_MakeByteArrayInputPort((const uint8_t *)s,
+					   size * sizeof(wchar_t));
+  SgObject tin = Sg_MakeTranscodedInputPort(bin, transcoder);
+  SgObject accum = Sg_MakeStringOutputPort(size);
+  int64_t total_size = 0;
+  int64_t len;
+  SgChar buf[BUF_SIZ];
+  int read_size = BUF_SIZ;
+
+  for (;;) {
+    int rest;
+    len = Sg_ReadsUnsafe(tin, buf, read_size);
+    if (len < read_size) break;
+    Sg_WritesUnsafe(accum, buf, len);
+    total_size += len;
+    rest = (int)(size - total_size);
+    len = 0;
+    if (rest <= 0) break;
+    if (rest < read_size) read_size = rest;
+  }
+  if (len != 0) {
+    Sg_WritesUnsafe(accum, buf, len);
+  }
+  return Sg_GetStringFromStringPort(accum);
 }
 
 size_t ustrcspn(const SgChar *s1, const char *s2)
