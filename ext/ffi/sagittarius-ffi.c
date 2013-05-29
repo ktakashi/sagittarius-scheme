@@ -161,10 +161,10 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType,
   fn->returnType = lookup_ffi_return_type(retType);
   for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
     if (FFI_SIGNATURE_VARGS == SG_STRING_VALUE_AT(signatures, i)) {
-      fn->initialized = FALSE;
-#ifdef HAVE_FFI_PREP_CIF_VAR
-      Sg_Error(UC("This platform doesn't support variable length argument"));
+#ifndef HAVE_FFI_PREP_CIF_VAR
+      Sg_Warn(UC("This build of FFI doesn't support variable length argument properly."));      
 #endif
+      fn->initialized = FALSE;
       break;
     }
   }
@@ -1175,10 +1175,10 @@ static void set_ffi_varargs_parameter_types(SgObject oargs, int startIndex,
       types[i++] = &ffi_type_slong;
     } else if (SG_POINTERP(arg) || SG_BVECTORP(arg)
 	       || SG_STRINGP(arg) || SG_CALLBACKP(arg)) {
-      types[i] = &ffi_type_pointer;
+      types[i++] = &ffi_type_pointer;
     } else if (SG_FLONUMP(arg)) {
       /* should this be double or float? */
-      types[i] = &ffi_type_double;
+      types[i++] = &ffi_type_double;
     } else {
       Sg_Error(UC("non supported variable length arguments %S in %S"),
 	       arg, oargs);
@@ -1222,7 +1222,7 @@ static int push_varargs_ffi_type_value(SgFuncInfo *func, SgObject arg,
 
 static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
 {
-#if HAVE_FFI_PREP_CIF_VAR
+
   SgObject signatures = func->signatures, cp, lastError = SG_FALSE;
   int i, size = Sg_Length(args), index;
   ffi_storage *params;
@@ -1237,12 +1237,25 @@ static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
   index = set_ffi_parameter_types(signatures, func->parameterTypes);
   set_ffi_varargs_parameter_types(args, index, func->parameterTypes);
   /* initialize ffi_cif */
-  if (ffi_prep_cif_var(&func->cif, FFI_DEFAULT_ABI, func->argc,
+#ifdef HAVE_FFI_PREP_CIF_VAR
+  if (ffi_prep_cif_var(&func->cif, FFI_DEFAULT_ABI, 
+		       index,	/* required argc */
+		       func->argc, /* total */
 		       func->returnType,
 		       func->parameterTypes) != FFI_OK) {
     Sg_Error(UC("VARARGS FFI initialization failed."));
     return NULL;
   }
+#else
+  /* is this ok? */
+  if (ffi_prep_cif(&func->cif, FFI_DEFAULT_ABI, 
+		   func->argc,
+		   func->returnType,
+		   func->parameterTypes) != FFI_OK) {
+    Sg_Error(UC("VARARGS FFI initialization failed."));
+    return NULL;
+  }
+#endif
   i = 0;
   index = 0;
   SG_FOR_EACH(cp, args) {
@@ -1269,10 +1282,6 @@ static void** get_varargs_ffi_values(SgFuncInfo *func, SgObject args)
     i++;
   }
   return ffi_values;
-#else
-  Sg_Error(UC("This platform doesn't support variable length argument"));
-  return NULL;			/* dummy */
-#endif
 }
 
 static SgObject internal_ffi_call(SgObject *args, int argc, void *data)

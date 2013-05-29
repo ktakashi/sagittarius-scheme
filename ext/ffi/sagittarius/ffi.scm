@@ -4,7 +4,6 @@
 	    lookup-shared-library
 	    close-shared-library
 	    shared-object-suffix
-	    support-variable-length?
 	    c-function
 	    make-c-function ;; issue 83
 	    pointer->c-function

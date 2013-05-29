@@ -6,6 +6,7 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckLibraryExists.cmake)
 
 if (WATCOM)
   message(STATUS "*CAUTION* open watcom is experimental")
@@ -99,6 +100,10 @@ CHECK_FUNCTION_EXISTS(sched_yield   HAVE_SCHED_YIELD)
 CHECK_FUNCTION_EXISTS(nanosleep     HAVE_NANOSLEEP)
 CHECK_FUNCTION_EXISTS(select        HAVE_SELECT)
 CHECK_FUNCTION_EXISTS(clock_gettime HAVE_CLOCK_GETTIME)
+# might be in librt
+IF (NOT HAVE_CLOCK_GETTIME)
+  CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
+ENDIF()
 CHECK_FUNCTION_EXISTS(gettimeofday  HAVE_GETTIMEOFDAY)
 CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
 
