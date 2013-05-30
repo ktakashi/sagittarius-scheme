@@ -260,7 +260,7 @@
 	(assertion-violation 'c-function "wrong return type" ret-type))
       (let* ((ret-type (cdr stub-ret-type))
 	     (signatures (list->string (make-sigunatures arg-types)))
-	     (function (create-function-info pointer ret-type
+	     (function (create-function-info pointer name ret-type
 					    signatures
 					    (car stub-ret-type) arg-types)))
 	(lambda args

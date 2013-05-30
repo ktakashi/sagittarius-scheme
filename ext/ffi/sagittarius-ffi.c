@@ -93,8 +93,9 @@ SgObject Sg_MakePointer(void *p)
 /* function info */
 static void funcinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<c-function %A (*)%A>"),
+  Sg_Printf(port, UC("#<c-function %A %A%A>"),
 	    SG_FUNC_INFO(self)->sReturnType, 
+	    SG_FUNC_INFO(self)->name, 
 	    SG_FUNC_INFO(self)->sParameterTypes);
 }
 
@@ -177,7 +178,7 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType,
   return fn;
 }
 
-SgObject Sg_CreateCFunction(SgPointer *handle, int rettype, 
+SgObject Sg_CreateCFunction(SgPointer *handle, SgObject name, int rettype, 
 			    SgObject sigs, SgObject sret, SgObject sparam)
 {
   SgFuncInfo *fn;
@@ -186,6 +187,7 @@ SgObject Sg_CreateCFunction(SgPointer *handle, int rettype,
     return SG_UNDEF;
   }
   fn = make_funcinfo(handle->pointer, rettype, sigs);
+  fn->name = name;
   fn->sReturnType = sret;
   fn->sParameterTypes = sparam;
   return SG_OBJ(fn);

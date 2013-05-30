@@ -80,6 +80,7 @@ typedef struct SgFuncInfoRec
   int        argc;
   SgObject   signatures;
   /* for print for now. */
+  SgObject   name;
   SgObject   sReturnType;
   SgObject   sParameterTypes;
 } SgFuncInfo;
@@ -175,7 +176,7 @@ FFI_RETURN_TYPE_WCHAR_STR=  0x0019,
 
 
 SgObject Sg_MakePointer(void *p);
-SgObject Sg_CreateCFunction(SgPointer *handle, int rettype,
+SgObject Sg_CreateCFunction(SgPointer *handle, SgObject name, int rettype,
 			    SgObject args, SgObject sret, SgObject sparam);
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc);
 void     Sg_ReleaseCallback(SgCallback *callback);

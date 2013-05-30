@@ -35,7 +35,7 @@
   (result SH_SUFFIX))
 
 (define-c-proc create-function-info 
-  (handle::<pointer> rettype::<fixnum> sigs::<string> sret sparam)
+  (handle::<pointer> name rettype::<fixnum> sigs::<string> sret sparam)
   Sg_CreateCFunction)
 
 (define-c-proc create-c-callback
