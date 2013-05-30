@@ -523,7 +523,6 @@
       (float              . #\f)
       (double             . #\d)
       (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
-      (void*              . #\p)
-      (wchar_t*           . #\p)))
+      (void*              . #\p)))
   
   )

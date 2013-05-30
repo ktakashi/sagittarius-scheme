@@ -156,7 +156,7 @@ This section describes more details to create a corresponding C functions.
   unsigned-short unsigned-int unsigned-long unsigned-long-long
   intptr_t uintptr_t
   float double
-  void* char*
+  void* char* wchar_t*
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
 }
@@ -164,7 +164,8 @@ The return value will be converted corresponding Scheme value. Following
 describes the conversion;
 @dl-list{
 @dl-item[@code{bool}]{Scheme boolean}
-@dl-item[@code{char*}]{Scheme string (only supports UTF-8)}
+@dl-item[@code{char*}]{Scheme string from UTF-8}
+@dl-item[@code{wchar_t*}]{Scheme string from UTF-16 (Windows) or UTF-32. }
 @dl-itemx[6
           @code{char}
           @code{short int long long-long}
@@ -185,11 +186,12 @@ NOTE: @code{char} returns a Scheme integer not Scheme character.
   char short int long long-long
   unsigned-short unsigned-int unsigned-long unsigned-long-long
   size_t
-  void* char*
+  void* char* wchar_t*
   float double
   int8_t  int16_t  int32_t  int64_t
   uint8_t uint16_t uint32_t uint64_t
   callback
+  ___
 }
 When the C function is called, given Scheme arguments will be converted to
 corresponding C types. Following describes the conversion;
@@ -206,16 +208,32 @@ corresponding C types. Following describes the conversion;
 @dl-item[@code{float}]{Scheme flonum to C float}
 @dl-item[@code{double}]{Scheme flonum to C double}
 @dl-item[@code{void* char*}]{
-  @code{void*} and @code{char*} are actually treated the same. The conversion
-  will be like this;
+  @code{void*} and @code{char*} are actually treated the same, internally.
+  The conversion will be like this;
   @dl-list{
    @dl-item["Scheme string"]{Converts to UTF-8 C char*}
    @dl-item["Scheme bytevector"]{Convert to C char*}
    @dl-item["Scheme FFI pointer"]{Convert to C void*}
   }
 }
+@dl-item[@code{wchar_t*}]{
+  Wide character string conversion only happens when the given argument was
+  Scheme string and depends on the platform. On Windows, more specifically 
+  size of wchar_t is 2 platform, it converts to UTF-16 string without BOM.
+  On other platform, size of wchar_t is 4 platform, it converts to UTF-32.
+  Both case detects endianness automatically.
+
+  If the given argument was bytevector, it won't convert. This case is useful
+  when users need to pass buffer to a C-function.
+}
 @dl-item[@code{callback}]{Scheme FFI callback to C void*}
 }
+Note: passing Scheme string needs to be careful when users want to use it
+as a buffer. It doesn't work like it. Use bytevector or FFI pointer object
+for that purpose.
+
+@code{___} is for variable length argument and it must be the last position
+of the argument type list, otherwise it raises an error.
 
 }
 
@@ -255,6 +273,10 @@ The conversion of C to Scheme is the same as @code{c-function}'s
 
 NOTE: if the content of @code{void*} won't be copied, thus if you modify it in
 the callback procedure, corresponding C function will get affected.
+
+NOTE: callback doesn't support @code{char*} nor @code{wchar_t*}. It is because
+the conversion loses original pointer address and you might not want it. So
+it is users responsibility to handle it.
 
 @var{proc} must be a procedure takes the same number of arguments as
 @var{argument-types} list.
@@ -298,6 +320,17 @@ If NULL pointer is given, it raises @code{&assertion}.
 Converts given @var{pointer} to Scheme bytevector.
 
 If NULL pointer is given, it raises @code{&assertion}.
+}
+
+@define[Function]{@name{object->pointer} @args{obj}}
+@define[Function]{@name{pointer->object} @args{pointer}}
+@desc{
+CAUTION: These operations are really dangerous especially
+@code{pointer->object}.
+
+Converts Scheme object to pointer and pointer to Scheme object respectively.
+The operations are useful to pass Scheme object to callbacks and restore
+it.
 }
 
 @define[Function]{@name{deref} @args{pointer offset}}
@@ -372,7 +405,7 @@ Following @var{type} are supported;
 @code{
   int8  int16  int32  int64
   uint8 uint16 uint32 uint64
-  char short  int long long-long
+  char wchar short  int long long-long
   unsigned-char unsigned-short unsigned-int unsigned-long unsigned-long-long
   intptr uintptr
   float double
