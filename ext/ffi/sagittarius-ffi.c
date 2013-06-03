@@ -1506,9 +1506,9 @@ static int prep_method_handler(SgCallback *callback)
   static void pointer_set_##ft(SgPointer *p, int offset,	\
 			      int type, SgObject v)		\
   {								\
-    t result[256];						\
-    convert_scheme_to_c_value(v, type, (void**)result);		\
-    POINTER_SET(t, p, offset, *(t *)result);			\
+    t result;							\
+    convert_scheme_to_c_value(v, type, (void**)&result);	\
+    POINTER_SET(t, p, offset, result);				\
   }
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_SHORT   , short);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_INT     , int);
