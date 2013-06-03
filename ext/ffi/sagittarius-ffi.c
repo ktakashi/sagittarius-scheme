@@ -886,73 +886,75 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 
 #define SCONVERT(type) CONVERT(type, Sg_GetIntegerClamp)
 #define UCONVERT(type) CONVERT(type, Sg_GetUIntegerClamp)
+#define BCONVERT(type) *((intptr_t *)result) = !SG_FALSEP(v)
+#define S64CONVERT(type) CONVERT(type, Sg_GetIntegerS64Clamp)
+#define U64CONVERT(type) CONVERT(type, Sg_GetIntegerU64Clamp)
+#define FCONVERT(type)					\
+  do {							\
+    if (!SG_REALP(v)) *((type *)result) = 0.0;		\
+    else *((type *)result) = (type)Sg_GetDouble(v);	\
+  } while (0)
+#define IPCONVERT(type)							\
+  do {									\
+    if (SG_EXACT_INTP(v)) {						\
+      if (SG_INTP(v)) {							\
+	*((type *)result) = SG_INT_VALUE(v);				\
+      } else {								\
+	*((type *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL); \
+      }									\
+    } else if (SG_POINTERP(v)) {					\
+      *((type *)result) = SG_POINTER(v)->pointer;			\
+    } else goto ret0;							\
+  } while (0)
+
+#define STRCONVERT_REC(type, stob)			\
+  do {							\
+    if (SG_STRINGP(v)) {				\
+      *((type *)result) = (type)stob(SG_STRING(v));	\
+    } else if (SG_BVECTORP(v)) {			\
+      *((type *)result) = (type)SG_BVECTOR_ELEMENTS(v);	\
+    } else if (SG_POINTERP(v)) {			\
+      *((type *)result) = (type)SG_POINTER(v)->pointer;	\
+    } else goto ret0;					\
+  } while (0)
+#define CSCONVERT(type) STRCONVERT_REC(type, Sg_Utf32sToUtf8s)
+#define WSCONVERT(type) STRCONVERT_REC(type, Sg_StringToWCharTs)
+
+#define case_type(type, ctype, conv) case type : conv(ctype); break;
+#define scase_type(type, ctype) case_type(type, ctype, SCONVERT)
+#define ucase_type(type, ctype) case_type(type, ctype, UCONVERT)
 
   switch (type) {
-  case FFI_RETURN_TYPE_BOOL    :
-    *((intptr_t *)result) = !SG_FALSEP(v);
-    return TRUE;
-  case FFI_RETURN_TYPE_SHORT   : SCONVERT(short); break;
-  case FFI_RETURN_TYPE_INT     : SCONVERT(int); break;
-  case FFI_RETURN_TYPE_LONG    : SCONVERT(long); break;
-  case FFI_RETURN_TYPE_INT8_T  : SCONVERT(int8_t); break;
-  case FFI_RETURN_TYPE_INT16_T : SCONVERT(int16_t); break;
-  case FFI_RETURN_TYPE_INT32_T : SCONVERT(int32_t); break;
+    case_type(FFI_RETURN_TYPE_BOOL, int, BCONVERT);
 
-  case FFI_RETURN_TYPE_USHORT  : UCONVERT(unsigned short); break;
-  case FFI_RETURN_TYPE_UINT    : UCONVERT(unsigned int); break;
-  case FFI_RETURN_TYPE_ULONG   : UCONVERT(unsigned long); break;
-  case FFI_RETURN_TYPE_SIZE_T  : UCONVERT(size_t); break;
-  case FFI_RETURN_TYPE_UINT8_T : UCONVERT(uint8_t); break;
-  case FFI_RETURN_TYPE_UINT16_T: UCONVERT(uint16_t); break;
-  case FFI_RETURN_TYPE_UINT32_T: UCONVERT(uint32_t); break;
+    scase_type(FFI_RETURN_TYPE_SHORT  , short);
+    scase_type(FFI_RETURN_TYPE_INT    , int);
+    scase_type(FFI_RETURN_TYPE_LONG   , long);
+    scase_type(FFI_RETURN_TYPE_INT8_T , int8_t);
+    scase_type(FFI_RETURN_TYPE_INT16_T, int16_t);
+    scase_type(FFI_RETURN_TYPE_INT32_T, int32_t);
+    
+    ucase_type(FFI_RETURN_TYPE_USHORT  , unsigned short);
+    ucase_type(FFI_RETURN_TYPE_UINT    , unsigned int);
+    ucase_type(FFI_RETURN_TYPE_ULONG   , unsigned long);
+    ucase_type(FFI_RETURN_TYPE_SIZE_T  , size_t);
+    ucase_type(FFI_RETURN_TYPE_UINT8_T , uint8_t);
+    ucase_type(FFI_RETURN_TYPE_UINT16_T, uint16_t);
+    ucase_type(FFI_RETURN_TYPE_UINT32_T, uint32_t);
 
-  case FFI_RETURN_TYPE_INT64_T :
-    CONVERT(int64_t, Sg_GetIntegerS64Clamp);
-    break;
-  case FFI_RETURN_TYPE_UINT64_T:
-    CONVERT(uint64_t, Sg_GetIntegerU64Clamp);
-    break;
+    case_type(FFI_RETURN_TYPE_INT64_T,  int64_t,  S64CONVERT);
+    case_type(FFI_RETURN_TYPE_UINT64_T, uint64_t, U64CONVERT);
 
-  case FFI_RETURN_TYPE_FLOAT   :
-    if (!SG_REALP(v)) *((float *)result) = 0.0;
-    else *((float *)result) = (float)Sg_GetDouble(v);
-    break;
-  case FFI_RETURN_TYPE_DOUBLE  :
-    if (!SG_REALP(v)) *((double *)result) = 0.0;;
-    *((double *)result) = (float)Sg_GetDouble(v);
-    break;
-  case FFI_RETURN_TYPE_INTPTR  :
-    if (SG_EXACT_INTP(v)) {
-      if (SG_INTP(v)) {
-	*((intptr_t *)result) = SG_INT_VALUE(v);
-      } else {
-	*((intptr_t *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL);
-      }      
-    } else if (SG_POINTERP(v)) {
-      *((intptr_t *)result) = SG_POINTER(v)->pointer;
-    } else goto ret0;
-    break;
-  case FFI_RETURN_TYPE_UINTPTR :
-    if (SG_EXACT_INTP(v)) {
-      if (SG_INTP(v)) {
-	*((uintptr_t *)result) = SG_INT_VALUE(v);
-      } else {
-	*((uintptr_t *)result) = Sg_GetUIntegerClamp(v, SG_CLAMP_NONE, NULL);
-      }      
-    } else if (SG_POINTERP(v)) {
-      *((uintptr_t *)result) = SG_POINTER(v)->pointer;
-    } else goto ret0;
-    break;
-  case FFI_RETURN_TYPE_STRING  :
-  case FFI_RETURN_TYPE_POINTER :
-    if (SG_STRINGP(v)) {
-      *((intptr_t *)result) = (intptr_t)Sg_Utf32sToUtf8s(SG_STRING(v));
-    } else if (SG_BVECTORP(v)) {
-      *((intptr_t *)result) = (intptr_t)SG_BVECTOR_ELEMENTS(v);
-    } else if (SG_POINTERP(v)) {
-      *((intptr_t *)result) = (intptr_t)SG_POINTER(v)->pointer;
-    } else goto ret0;
-    break;
+    case_type(FFI_RETURN_TYPE_FLOAT,  float,  FCONVERT);
+    case_type(FFI_RETURN_TYPE_DOUBLE, double, FCONVERT);
+
+    case_type(FFI_RETURN_TYPE_INTPTR,  intptr_t,  IPCONVERT);
+    case_type(FFI_RETURN_TYPE_UINTPTR, uintptr_t, IPCONVERT);
+
+    case_type(FFI_RETURN_TYPE_STRING,  intptr_t, CSCONVERT);
+    case_type(FFI_RETURN_TYPE_POINTER, intptr_t, CSCONVERT);
+
+    case_type(FFI_RETURN_TYPE_WCHAR_STR, intptr_t, WSCONVERT);
   ret0:
     /* callback will be treated separately */
   case FFI_RETURN_TYPE_CALLBACK:
@@ -964,6 +966,16 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     return FALSE;
   }
   return TRUE;
+
+#undef CONVERT
+#undef SCONVERT
+#undef UCONVERT
+#undef BCONVERT
+#undef FCONVERT
+#undef IPCONVERT
+#undef case_type
+#undef scase_type
+#undef ucase_type
 }
 
 static SgObject get_callback_arguments(SgCallback *callback, void **args)
@@ -1520,6 +1532,7 @@ DEFINE_POINTER_SET(FFI_RETURN_TYPE_UINT64_T, uint64_t);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRING  , intptr_t);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_POINTER , void*);
 DEFINE_POINTER_SET(FFI_RETURN_TYPE_STRUCT  , void*);
+DEFINE_POINTER_SET(FFI_RETURN_TYPE_WCHAR_STR, void*);
 
 void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 {
@@ -1528,30 +1541,31 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
 			  SG_MAKE_STRING("got null pointer"),
 			  SG_LIST2(p, v));
   }
-#define case_type(ft, t) case ft: pointer_set_##ft(p, offset, type, v); break;
+#define case_type(ft) case ft: pointer_set_##ft(p, offset, type, v); break;
   switch (type) {
-    case_type(FFI_RETURN_TYPE_SHORT   , short);
-    case_type(FFI_RETURN_TYPE_INT     , int);
-    case_type(FFI_RETURN_TYPE_LONG    , long);
-    case_type(FFI_RETURN_TYPE_INTPTR  , intptr_t);
-    case_type(FFI_RETURN_TYPE_USHORT  , unsigned short);
-    case_type(FFI_RETURN_TYPE_UINT    , unsigned int);
-    case_type(FFI_RETURN_TYPE_ULONG   , unsigned long);
-    case_type(FFI_RETURN_TYPE_UINTPTR , uintptr_t);
-    case_type(FFI_RETURN_TYPE_FLOAT   , float);
-    case_type(FFI_RETURN_TYPE_DOUBLE  , double);
-    case_type(FFI_RETURN_TYPE_SIZE_T  , size_t);
-    case_type(FFI_RETURN_TYPE_INT8_T  , int8_t);
-    case_type(FFI_RETURN_TYPE_UINT8_T , uint8_t);
-    case_type(FFI_RETURN_TYPE_INT16_T , int16_t);
-    case_type(FFI_RETURN_TYPE_UINT16_T, uint16_t);
-    case_type(FFI_RETURN_TYPE_INT32_T , int32_t);
-    case_type(FFI_RETURN_TYPE_UINT32_T, uint32_t);
-    case_type(FFI_RETURN_TYPE_INT64_T , int64_t);
-    case_type(FFI_RETURN_TYPE_UINT64_T, uint64_t);
-    case_type(FFI_RETURN_TYPE_STRING  , intptr_t);
-    case_type(FFI_RETURN_TYPE_POINTER , void*);
-    case_type(FFI_RETURN_TYPE_STRUCT  , void*);
+    case_type(FFI_RETURN_TYPE_SHORT    );
+    case_type(FFI_RETURN_TYPE_INT      );
+    case_type(FFI_RETURN_TYPE_LONG     );
+    case_type(FFI_RETURN_TYPE_INTPTR   );
+    case_type(FFI_RETURN_TYPE_USHORT   );
+    case_type(FFI_RETURN_TYPE_UINT     );
+    case_type(FFI_RETURN_TYPE_ULONG    );
+    case_type(FFI_RETURN_TYPE_UINTPTR  );
+    case_type(FFI_RETURN_TYPE_FLOAT    );
+    case_type(FFI_RETURN_TYPE_DOUBLE   );
+    case_type(FFI_RETURN_TYPE_SIZE_T   );
+    case_type(FFI_RETURN_TYPE_INT8_T   );
+    case_type(FFI_RETURN_TYPE_UINT8_T  );
+    case_type(FFI_RETURN_TYPE_INT16_T  );
+    case_type(FFI_RETURN_TYPE_UINT16_T );
+    case_type(FFI_RETURN_TYPE_INT32_T  );
+    case_type(FFI_RETURN_TYPE_UINT32_T );
+    case_type(FFI_RETURN_TYPE_INT64_T  );
+    case_type(FFI_RETURN_TYPE_UINT64_T );
+    case_type(FFI_RETURN_TYPE_STRING   );
+    case_type(FFI_RETURN_TYPE_POINTER  );
+    case_type(FFI_RETURN_TYPE_STRUCT   );
+    case_type(FFI_RETURN_TYPE_WCHAR_STR);
   case FFI_RETURN_TYPE_CALLBACK: {
     if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
