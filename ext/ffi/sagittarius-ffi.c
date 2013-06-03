@@ -201,14 +201,10 @@ static void callback_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CallbackClass, callback_printer);
 
-static uintptr_t global_uid = 0;
-static SgHashTable *ctable;
-
 static void callback_invoker(ffi_cif *cif, void *result, void **args,
 			     void *userdata);
 static void release_callback(SgCallback *callback)
 {
-  Sg_HashTableDelete(ctable, SG_MAKE_INT(callback->uid));
   ffi_closure_free(callback->closure);
 }
 static void callback_finalize(SgObject callback, void *data)
@@ -219,15 +215,13 @@ static void callback_finalize(SgObject callback, void *data)
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 {
   SgCallback *c = SG_NEW(SgCallback);
-  uintptr_t uid = global_uid++;
   SG_SET_CLASS(c, SG_CLASS_CALLBACK);
   c->returnType = rettype;
   c->signatures = signatures;
   c->proc = proc;
-  c->uid = uid;
   c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
+  c->parameterTypes = NULL;
   /* store callback to static area to avoid GC. */
-  Sg_HashTableSet(ctable, SG_MAKE_INT(uid), SG_OBJ(c), 0);
   Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL);
   return SG_OBJ(c);
 }
@@ -440,7 +434,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
   return 0;
 }
 
-static SgHashTable *ref_table;
+static SgWeakHashTable *ref_table;
 
 static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 {
@@ -501,7 +495,8 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_CALLBACK:
-    return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
+    return Sg_WeakHashTableRef(ref_table, (POINTER_REF(void*, p, align)),
+			       SG_FALSE);
   case FFI_RETURN_TYPE_WCHAR_STR:
     return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
   default:
@@ -1486,19 +1481,22 @@ static void attached_method_invoker(ffi_cif *cif, void *result,
 
 static int prep_method_handler(SgCallback *callback)
 {
-  ffi_status status;
-  ffi_type **params = SG_NEW_ARRAY(ffi_type *, SG_STRING_SIZE(callback->signatures));
-  ffi_type *ret = lookup_ffi_return_type(callback->returnType);
-  set_ffi_callback_parameter_types(callback->signatures, params);
-  ffi_prep_cif(&callback->cif, FFI_DEFAULT_ABI,
-	       SG_STRING_SIZE(callback->signatures),
-	       ret, params);
-  status = ffi_prep_closure_loc(callback->closure,
-				&callback->cif,
-				callback_invoker, callback,
-				callback->code);
-  callback->parameterTypes = params;
-  return status == FFI_OK;
+  if (callback->parameterTypes) return TRUE;
+  else {
+    ffi_status status;
+    SgString *sig = callback->signatures;
+    ffi_type **params = SG_NEW_ARRAY(ffi_type *, SG_STRING_SIZE(sig));
+    ffi_type *ret = lookup_ffi_return_type(callback->returnType);
+    set_ffi_callback_parameter_types(sig, params);
+    ffi_prep_cif(&callback->cif, FFI_DEFAULT_ABI, SG_STRING_SIZE(sig),
+		 ret, params);
+    status = ffi_prep_closure_loc(callback->closure,
+				  &callback->cif,
+				  callback_invoker, callback,
+				  callback->code);
+    callback->parameterTypes = params;
+    return status == FFI_OK;
+  }
 }
 
 /* utility */
@@ -1570,7 +1568,7 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
       POINTER_SET(void*, p, offset, SG_CALLBACK(v)->code);
-      Sg_HashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
+      Sg_WeakHashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
     }
     break;
   }
@@ -1629,8 +1627,9 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
   impl_lib = lib;
   /* callback storage */
-  ctable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
-  ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
+  ref_table = SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_EQ, 
+							   SG_WEAK_BOTH,
+							   0, SG_FALSE));
 
   Sg_InitStaticClassWithMeta(SG_CLASS_POINTER, UC("<pointer>"), lib, NULL,
 			     SG_FALSE, pointer_slots, 0);

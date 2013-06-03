@@ -93,7 +93,6 @@ SG_CLASS_DECL(Sg_FuncInfoClass);
 typedef struct SgCallbackRec
 {
   SG_HEADER;
-  uintptr_t uid;
   int returnType;
   SgString *signatures;
   SgObject  proc;
