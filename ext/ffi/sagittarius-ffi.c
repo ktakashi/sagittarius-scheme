@@ -153,7 +153,8 @@ static SgFuncInfo* make_funcinfo(uintptr_t proc, int retType,
   fn->returnType = lookup_ffi_return_type(retType);
   for (i = 0; i < SG_STRING_SIZE(signatures); i++) {
     if (FFI_SIGNATURE_VARGS == SG_STRING_VALUE_AT(signatures, i)) {
-#ifndef HAVE_FFI_PREP_CIF_VAR
+      /* if i grep libffi source i could only find ARM need special handling */
+#if !defined(HAVE_FFI_PREP_CIF_VAR) && defined(__arm__)
       Sg_Warn(UC("This build of FFI doesn't support variable length argument properly."));      
 #endif
       fn->initialized = FALSE;
@@ -235,7 +236,7 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
   c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   c->parameterTypes = NULL;
   /* store callback to static area to avoid GC. */
-  Sg_HashTableSet(callbacks, c, SG_TRUE, 0);
+  Sg_HashTableSet(callbacks, c->code, c, 0);
   Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL);
   return SG_OBJ(c);
 }
@@ -448,7 +449,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
   return 0;
 }
 
-static SgHashTable *ref_table;
+/* static SgHashTable *ref_table; */
 
 static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 {
@@ -509,7 +510,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_CALLBACK:
-    return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
+    return Sg_HashTableRef(callbacks, (POINTER_REF(void*, p, align)), SG_FALSE);
   case FFI_RETURN_TYPE_WCHAR_STR:
     return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
   default:
@@ -1464,6 +1465,8 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 		       return make_pointer((uintptr_t)NULL);
 		     } else return Sg_MakeStringC((char *)ret));
 
+    FFI_RET_CASE_REC(FFI_RETURN_TYPE_CALLBACK, intptr_t,
+		     return Sg_HashTableRef(callbacks, SG_OBJ(ret), SG_FALSE));
   default:
     Sg_AssertionViolation(SG_INTERN("c-function"),
 			  SG_MAKE_STRING("invalid return type"),
@@ -1581,7 +1584,7 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
       POINTER_SET(void*, p, offset, SG_CALLBACK(v)->code);
-      Sg_HashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
+      Sg_HashTableSet(callbacks, SG_CALLBACK(v)->code, v, 0);
     }
     break;
   }
@@ -1641,7 +1644,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   impl_lib = lib;
   /* callback storage */
   callbacks = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
-  ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
+  /* ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0)); */
 
   Sg_InitStaticClassWithMeta(SG_CLASS_POINTER, UC("<pointer>"), lib, NULL,
 			     SG_FALSE, pointer_slots, 0);

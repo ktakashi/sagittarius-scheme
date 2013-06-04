@@ -132,6 +132,7 @@
 		  (dctr (address p))
 		  r)))
 
+  (test-assert "c-struct?" (c-struct? data-to-store))
   (test-equal "c-struct"
 	      '(100 200 "message from C")
 	      (let* ((st (allocate-c-struct data-to-store))
@@ -278,6 +279,16 @@
     (test-assert "align-of-wchar_t" align-of-wchar_t)
     (test-equal "wchar_t*" input (wide-fn input)))
 
+  ;; callback return
+  (define set-compare! (c-function ffi-test-lib void set_compare (callback)))
+  (define get-compare (c-function ffi-test-lib callback get_compare ()))
+  (test-assert "get-compare (NULL)" (not (get-compare)))
+  (set-compare! (c-callback int (void* void*)
+			    (lambda (x y)
+			      (- (pointer-ref-c-uint8 y 0)
+				 (pointer-ref-c-uint8 x 0)))))
+  (test-assert "get-compare" (callback? (get-compare)))
+  
   )
  (else
   #t))

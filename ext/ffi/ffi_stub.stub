@@ -45,6 +45,8 @@
 (define-c-proc free-c-callback (callback::<callback>) ::<void>
   Sg_ReleaseCallback)
 
+(define-c-proc callback? (obj) ::<boolean> SG_CALLBACKP)
+
 ;; malloc
 (define-c-proc c-malloc (size::<fixnum>) Sg_CMalloc)
 
@@ -83,6 +85,8 @@
 ;; struct
 (define-c-proc create-c-struct (name::<symbol> layouts packed?::<boolean>)
   Sg_CreateCStruct)
+
+(define-c-proc c-struct? (obj) ::<boolean> SG_CSTRUCTP)
 
 ;; allocates c-struct with GC
 (define-c-proc allocate-c-struct (st::<cstruct>) 

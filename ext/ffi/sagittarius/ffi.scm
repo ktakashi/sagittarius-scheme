@@ -10,6 +10,7 @@
 
 	    c-callback
 	    free-c-callback
+	    callback?
 	    ;; malloc
 	    c-malloc
 	    c-free
@@ -28,6 +29,7 @@
 
 	    ;; c-struct
 	    define-c-struct
+	    c-struct?
 	    allocate-c-struct
 	    size-of-c-struct
 	    c-struct-ref
@@ -496,7 +498,8 @@
       (uint32_t           . ,FFI_RETURN_TYPE_UINT32_T)
       (int64_t            . ,FFI_RETURN_TYPE_INT64_T )
       (uint64_t           . ,FFI_RETURN_TYPE_UINT64_T)
-      (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)))
+      (wchar_t*           . ,FFI_RETURN_TYPE_WCHAR_STR)
+      (callback           . ,FFI_RETURN_TYPE_CALLBACK)))
 
   (define callback-argument-type-class
     `((bool               . #\l)

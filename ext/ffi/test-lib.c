@@ -75,6 +75,23 @@ EXPORT int quicksort(void *base, const size_t num, const size_t size,
   return 0;
 }
 
+static int (*callback)(const void *, const void *) = NULL;
+EXPORT void set_compare(int (*compare)(const void *, const void *))
+{
+  callback = compare;
+}
+
+EXPORT void * get_compare()
+{
+  return callback;
+}
+
+EXPORT int call_qsort(void *base, const size_t num, const size_t size)
+{
+  if (!callback) return -1;
+  return quicksort(base, num, size, callback);
+}
+
 
 static int compare_integer(const void *a,const void *b)
 {
