@@ -204,15 +204,6 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CallbackClass, callback_printer);
 
 static void callback_invoker(ffi_cif *cif, void *result, void **args,
 			     void *userdata);
-static void release_callback(SgCallback *callback)
-{
-  ffi_closure_free(callback->closure);
-}
-static void callback_finalize(SgObject callback, void *data)
-{
-  release_callback(SG_CALLBACK(callback));
-}
-
 /*
   Callbacks are sometimes stored in non managed storage 
   ex) RegisterClassEx
@@ -225,6 +216,17 @@ static void callback_finalize(SgObject callback, void *data)
   too much memory when it's created for nothing.
  */
 static SgHashTable *callbacks = NULL;
+
+static void release_callback(SgCallback *callback)
+{
+  Sg_HashTableDelete(callbacks, callback->code);
+  ffi_closure_free(callback->closure);
+}
+static void callback_finalize(SgObject callback, void *data)
+{
+  release_callback(SG_CALLBACK(callback));
+}
+
 
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 {
