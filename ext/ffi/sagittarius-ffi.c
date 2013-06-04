@@ -212,6 +212,19 @@ static void callback_finalize(SgObject callback, void *data)
   release_callback(SG_CALLBACK(callback));
 }
 
+/*
+  Callbacks are sometimes stored in non managed storage 
+  ex) RegisterClassEx
+  And in that case the only memory storing is actually allocated by
+  libffi then it will cause SEGV because it might be collected by GC.
+  To avoid it, we need to store it into static area so that GC won't
+  collect it.
+
+  FIXME: we need to somehow manage releasing callbacks otherwise it consumes
+  too much memory when it's created for nothing.
+ */
+static SgHashTable *callbacks = NULL;
+
 SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
 {
   SgCallback *c = SG_NEW(SgCallback);
@@ -222,6 +235,7 @@ SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
   c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   c->parameterTypes = NULL;
   /* store callback to static area to avoid GC. */
+  Sg_HashTableSet(callbacks, c, SG_TRUE, 0);
   Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL);
   return SG_OBJ(c);
 }
@@ -434,7 +448,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
   return 0;
 }
 
-static SgWeakHashTable *ref_table;
+static SgHashTable *ref_table;
 
 static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
 {
@@ -495,8 +509,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_CALLBACK:
-    return Sg_WeakHashTableRef(ref_table, (POINTER_REF(void*, p, align)),
-			       SG_FALSE);
+    return Sg_HashTableRef(ref_table, (POINTER_REF(void*, p, align)), SG_FALSE);
   case FFI_RETURN_TYPE_WCHAR_STR:
     return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
   default:
@@ -1568,7 +1581,7 @@ void Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v)
     if (!SG_CALLBACKP(v)) Sg_Error(UC("callback required, but got %S "), v);
     if (prep_method_handler(SG_CALLBACK(v))) {
       POINTER_SET(void*, p, offset, SG_CALLBACK(v)->code);
-      Sg_WeakHashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
+      Sg_HashTableSet(ref_table, SG_CALLBACK(v)->code, v, 0);
     }
     break;
   }
@@ -1627,9 +1640,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   Sg_InsertBinding(lib, name, &internal_ffi_call_stub);
   impl_lib = lib;
   /* callback storage */
-  ref_table = SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_EQ, 
-							   SG_WEAK_BOTH,
-							   0, SG_FALSE));
+  callbacks = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
+  ref_table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 0));
 
   Sg_InitStaticClassWithMeta(SG_CLASS_POINTER, UC("<pointer>"), lib, NULL,
 			     SG_FALSE, pointer_slots, 0);

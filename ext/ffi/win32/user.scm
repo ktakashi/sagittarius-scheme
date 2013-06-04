@@ -504,7 +504,7 @@
     (HBITMAP hbmpChecked)
     (HBITMAP hbmpUnchecked)
     (DWORD dwItemData)
-    (LPSTR dwTypeData)
+    (LPWSTR dwTypeData)
     (UINT cch)
     (HBITMAP hbmpItem))
   (define-constant LPMENUITEMINFO void*)
@@ -602,7 +602,7 @@
   (define draw-menu-bar (c-function user32 BOOL DrawMenuBar (HWND)))
 
   (define insert-menu-item
-    (c-function user32 BOOL InsertMenuItemW (HMENU UINT BOOL LPCWSTR)))
+    (c-function user32 BOOL InsertMenuItemW (HMENU UINT BOOL LPMENUITEMINFO)))
 
   (define set-window-text
     (c-function user32 BOOL SetWindowTextW (HWND LPCWSTR)))
