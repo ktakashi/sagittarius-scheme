@@ -44,7 +44,8 @@ do_stub()
     echo Generating library from stub
     cd src
     #Ypsilon --sitelib=../sitelib ./genstub
-    sash -L../lib -L../sitelib ./genstub $force
+    #sash -L../lib -L../sitelib ./genstub $force
+    sash ./genstub $force
     cd ../
 }
 

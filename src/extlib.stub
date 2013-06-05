@@ -982,8 +982,4 @@
     (result (not (SG_PTRP o))))
 
   (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) Sg_GetMacAddress)
-
-  ;; parameter
-  (define-c-proc make-parameter (init :optional (conv::<procedure> #f))
-    Sg_VMMakeParameter)
 )

@@ -17,7 +17,10 @@
 	    (core base)
 	    (core errors)
 	    (sagittarius)
-	    (sagittarius vm))
+	    (sagittarius vm)
+	    ;; This is not a builtin library
+	    ;; but REPL is not working without (rnrs) anyway
+	    (sagittarius parameters))
 
   (define-constant +resource-file+
     (let ((home (or (getenv "HOME") ;; this is the strongest

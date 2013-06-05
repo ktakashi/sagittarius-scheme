@@ -30,13 +30,13 @@
 
 ;; to make current-dynamic-environment weak-hashtable
 (library (sagittarius parameters)
-    (export make-parameter parameterize)
+    (export make-parameter parameterize <parameter>)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
 	    (only (sagittarius) current-dynamic-environment))
-#|
+
   (define-class <parameter> ()
     ((converter :init-keyword :converter)))
 
@@ -54,7 +54,7 @@
       ;; to keep parameter thread local
       (set! (~ (current-dynamic-environment) p) init)
       p))
-|#
+
   (define (%parameter-value-set! p v)
     (if (is-a? p <parameter>)
 	(set! (~ (current-dynamic-environment) p) v)

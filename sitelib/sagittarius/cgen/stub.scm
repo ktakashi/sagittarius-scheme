@@ -1,8 +1,8 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (sagittarius cgen stub)
     (export cgen-genstub)
-    (import (except (rnrs) define)
+    (import (rnrs)
 	    (rnrs eval)
 	    (core base) ;; for print
 	    (sagittarius cgen cise)
@@ -13,14 +13,13 @@
 	    (sagittarius)
 	    (sagittarius io)
 	    (sagittarius vm)
-	    (rename (sagittarius control) (define-with-key define))
+	    (sagittarius control)
 	    (sagittarius regex)
 	    (srfi :1  lists)
 	    (srfi :13 strings)
 	    (srfi :26 cut)
 	    (srfi :39 parameters)
 	    (match)
-	    (shorten)
 	    (util file)
 	    (util port)
 	    (clos user)

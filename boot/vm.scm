@@ -1617,6 +1617,9 @@
 (define *syntmp-lib* "lib/core/syntax/template.scm")
 (define *synrule-lib* "lib/core/syntax-rules.scm")
 
+;; dummy library
+(define *param-lib* "lib/parameters.scm")
+
 (define *builtin-libraries*
   `((,*ext-lib* (sagittarius) (null) #f #f)
     (,*base-lib* (core base) (null (sagittarius)) #f #t)
@@ -1676,7 +1679,7 @@
 		       (sagittarius vm instruction)) #f #f)
 
     (,*enum-lib* #f () #f #t)
-
+    (,*param-lib* #f () #f #t)
     ))
 
 (cond-expand

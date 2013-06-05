@@ -71,7 +71,6 @@ extern void Sg__InitWrite();
 extern void Sg__InitRegex();
 extern void Sg__InitUnicode();
 extern void Sg__InitMacro();
-extern void Sg__InitParameter();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -135,7 +134,6 @@ void Sg_Init()
   /* initialize default reader macro */
   Sg__InitReader();
   Sg__InitCache();
-  Sg__InitParameter();
 
   nullsym = SG_INTERN("null");
   coreBase = SG_INTERN("(core base)");
@@ -183,7 +181,6 @@ void Sg_Init()
   Sg__Init_core_arithmetic();
   Sg__Init_core_enums();
   /* Sg__Init_match_core(); */
-  Sg__Init_sagittarius_interactive();
 
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
@@ -210,6 +207,12 @@ void Sg_Init()
   }
   init_cond_features();
 }
+
+void Sg_InitREPL()
+{
+  Sg__Init_sagittarius_interactive();
+}
+
 /* GC related */
 void Sg_GC()
 {

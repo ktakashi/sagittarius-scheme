@@ -248,7 +248,7 @@
 	       (library-imported lib))
 	      (format out "  Sg_LibraryExportedSet(lib, ~a);~%"
 		      (code-make-pair (library-exported lib) #f)))
-	    lib-list))
+	    (reverse lib-list)))
 
 (define (resolve-collected-id out ids proc)
   (for-each (lambda (alist)

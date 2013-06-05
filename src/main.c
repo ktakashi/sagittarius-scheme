@@ -487,6 +487,7 @@ int main(int argc, char **argv)
     if (forceInteactiveP) goto repl;
   } else {
   repl:
+    Sg_InitREPL();
     repl = SG_UNDEF;
     lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
     if (SG_FALSEP(lib)) goto err;
