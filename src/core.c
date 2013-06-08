@@ -197,6 +197,10 @@ void Sg_Init()
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
     SgObject er_rename = SG_INTERN("er-rename");
+    /* create library but not initialise it */
+    SgLibrary *repl = Sg_MakeLibrary(SG_INTERN("(sagittarius interactive)"));
+    repl->init = Sg__Init_sagittarius_interactive;
+
     Sg_InsertBinding(core_base_lib,
 		     er_rename, Sg_FindBinding(compsym, er_rename, SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
@@ -206,11 +210,6 @@ void Sg_Init()
 				    SG_UNBOUND));
   }
   init_cond_features();
-}
-
-void Sg_InitREPL()
-{
-  Sg__Init_sagittarius_interactive();
 }
 
 /* GC related */

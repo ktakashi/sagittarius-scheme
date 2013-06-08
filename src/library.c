@@ -267,6 +267,7 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
+  z->init = NULL;		/* well in case */
   /* add_library(z); */
   return z;
 }
@@ -610,6 +611,10 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
       }
 #endif
     }
+  } else if (SG_LIBRARY(lib)->init) {
+    void (*init)() = SG_LIBRARY(lib)->init;
+    SG_LIBRARY(lib)->init = NULL;
+    init();
   }
   return lib;
 }

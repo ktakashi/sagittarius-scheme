@@ -40,7 +40,6 @@ typedef void (*SgFinalizerProc)(SgObject z, void *data);
 SG_CDECL_BEGIN
 
 SG_EXTERN void  Sg_Init();
-SG_EXTERN void  Sg_InitREPL();
 
 SG_EXTERN void 	Sg_Exit(int code);
 SG_EXTERN void 	Sg_EmergencyExit(int code);
