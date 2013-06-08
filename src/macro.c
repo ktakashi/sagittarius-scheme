@@ -361,6 +361,7 @@ void Sg__InitMacro()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   Sg_InitStaticClass(SG_CLASS_MACRO, UC("<macro>"), lib, macro_slots, 0);
+  Sg_InitStaticClass(SG_CLASS_SYNTAX, UC("<syntax>"), lib, NULL, 0);
 }
 
 /*
