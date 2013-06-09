@@ -881,31 +881,47 @@
 	  (expand-template tmpl 0 vars)))))
 
 ;; datum->syntax
-(define (datum->syntax template-id datum)
-  (define seen (make-eq-hashtable))
-  (define (rewrite expr frame library)
-    (let loop ((expr expr))
-      (cond ((pair? expr)
-	     (let ((a (loop (car expr)))
-		   (d (loop (cdr expr))))
-	       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		   expr
-		   (cons a d))))
-	    ((vector? expr)
-	     (list->vector (loop (vector->list expr))))
-	    ((symbol? expr)
-	     (cond ((hashtable-ref seen expr))
-		   (else 
-		    (let* ((dummy (make-identifier expr '() library))
-			   (id (make-identifier dummy frame library)))
-		      (hashtable-set! seen expr id)
-		      id))))
-	    (else expr))))
-  (or (identifier? template-id)
-      (assertion-violation 
-       'datum->syntax 
-       (format "expected identifier, but got ~s" template-id)))
-  (rewrite datum (id-envs template-id) (id-library template-id)))
+(define datum->syntax
+  (lambda (template-id datum)
+    (define seen (make-eq-hashtable))
+    ;; most of the case template-id has the same library as
+    ;; usage env but probably some case doesn't (i haven't confirm it)
+    ;; but we need the current usage env frame to lookup
+    ;; proper pending identifier.
+    ;; honestly i have no idea what i'm doing here...
+    (define dummy-env (vector (id-library template-id)
+			      (vector-ref (current-usage-env) 1)
+			      #f #f))
+    (define (rewrite expr frame library)
+      (let loop ((expr expr))
+	(cond ((pair? expr)
+	       (let ((a (loop (car expr)))
+		     (d (loop (cdr expr))))
+		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		     expr
+		     (cons a d))))
+	      ((vector? expr)
+	       (list->vector (loop (vector->list expr))))
+	      ((symbol? expr)
+	       (let ((id (p1env-lookup-name dummy-env expr LEXICAL BOUNDARY)))
+		 ;; if the returned name is already lexical scoped 
+		 ;; (env is not null), then it will be treated correctly
+		 ;; if the id is not lexical identifier but found something,
+		 ;; most definitely it needs to be the same pending
+		 ;; identifier. See issue 117
+		 (cond ((and id (or (null? (id-envs id))
+				    (eqv? (caar (id-envs id)) BOUNDARY))) id)
+		       ((hashtable-ref seen expr))
+		       (else 
+			(let ((id (make-pattern-identifier expr frame library)))
+			  (hashtable-set! seen expr id)
+			  id)))))
+	      (else expr))))
+    (or (identifier? template-id)
+	(assertion-violation 
+	 'datum->syntax 
+	 (format "expected identifier, but got ~s" template-id)))
+    (rewrite datum (id-envs template-id) (id-library template-id))))
 
 ;; syntax->datum
 (define (syntax->datum syntax)
