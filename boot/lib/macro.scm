@@ -889,9 +889,7 @@
     ;; but we need the current usage env frame to lookup
     ;; proper pending identifier.
     ;; honestly i have no idea what i'm doing here...
-    (define dummy-env (vector (id-library template-id)
-			      (vector-ref (current-usage-env) 1)
-			      #f #f))
+    (define use-env (current-usage-env))
     (define (rewrite expr frame library)
       (let loop ((expr expr))
 	(cond ((pair? expr)
@@ -903,14 +901,14 @@
 	      ((vector? expr)
 	       (list->vector (loop (vector->list expr))))
 	      ((symbol? expr)
-	       (let ((id (p1env-lookup-name dummy-env expr LEXICAL BOUNDARY)))
+	       (let ((id (p1env-lookup-name use-env expr LEXICAL BOUNDARY
+					    (id-library template-id))))
 		 ;; if the returned name is already lexical scoped 
 		 ;; (env is not null), then it will be treated correctly
 		 ;; if the id is not lexical identifier but found something,
 		 ;; most definitely it needs to be the same pending
 		 ;; identifier. See issue 117
-		 (cond ((and id (or (null? (id-envs id))
-				    (eqv? (caar (id-envs id)) BOUNDARY))) id)
+		 (cond (id)
 		       ((hashtable-ref seen expr))
 		       (else 
 			(let ((id (make-pattern-identifier expr frame library)))

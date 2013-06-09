@@ -306,7 +306,7 @@
 
   ;; NB: we skip some test, because we assume the frame is well-formed.
   (define-cfn p1env-lookup-inner 
-    (p1env::SgVector* name lookup_as frame?::int boundary::SgObject)
+    (p1env::SgVector* name lookup_as frame?::int boundary use-lib)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (same-env?::int FALSE)
@@ -329,20 +329,18 @@
 			     (and (not name_identp)
 				  (or 
 				   (p1env-lookup-aux fp (SG_CAR vp))
-				   (pending=? (SG_CAR vp) 
-					      (SG_VECTOR_ELEMENT p1env 0)
-					      boundary))))))
+				   (pending=? (SG_CAR vp) use-lib boundary))))))
 	    (if frame?
 		(return fp)
 		(return vp)))))
       (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
-    (return (p1env-lookup-inner p1env name lookup-as FALSE #f)))
+    (return (p1env-lookup-inner p1env name lookup-as FALSE #f #f)))
 
   (define-c-proc p1env-lookup 
     (p1env::<vector> name lookup_as :optional (boundary #f))
-    (let ((r (p1env-lookup-inner p1env name lookup_as FALSE boundary)))
+    (let ((r (p1env-lookup-inner p1env name lookup_as FALSE boundary #f)))
       (cond ((SG_PAIRP r) (result (SG_CDR r)))
 	    ((SG_SYMBOLP r)
 	     (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
@@ -350,14 +348,14 @@
 	    (else (result r)))))
 
   (define-c-proc p1env-lookup-frame (p1env::<vector> name lookup-as)
-    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE #f)))
+    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE #f #f)))
       (if (or (SG_SYMBOLP r) (SG_IDENTIFIERP r))
 	  (result SG_NIL)
 	  (result r))))
 
-  (define-c-proc p1env-lookup-name (p1env::<vector> name lookup-as boundary)
-    (let ((r (p1env-lookup-inner p1env name lookup-as FALSE boundary)))
-      (if (SG_PAIRP r)
+  (define-c-proc p1env-lookup-name (p1env::<vector> name lookup-as boundary lib)
+    (let ((r (p1env-lookup-inner p1env name lookup-as FALSE boundary lib)))
+      (if (and (SG_PAIRP r) (pending=? (SG_CAR r) lib boundary))
 	  (result (SG_CAR r))
 	  (result SG_FALSE))))
 
