@@ -809,8 +809,12 @@ static SgObject unrename_variable(SgObject key, SgObject specs)
     if (SG_EQ(SG_CAR(spec), SG_SYMBOL_ONLY)) {
       if (SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
     } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_RENAME)) {
-      SgObject rename = cadr_assq(key, SG_CDR(spec));
-      if (!SG_FALSEP(rename)) key = SG_CAR(rename);
+      if (SG_FALSEP(Sg_Assq(key, SG_CDR(spec)))) {
+	SgObject rename = cadr_assq(key, SG_CDR(spec));
+	if (!SG_FALSEP(rename)) key = SG_CAR(rename);
+      } else {
+	return SG_FALSE;
+      }
     } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_EXCEPT)) {
       if (!SG_FALSEP(Sg_Memq(key, SG_CDR(spec)))) return SG_FALSE;
     } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_PREFIX)) {
