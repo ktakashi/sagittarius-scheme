@@ -61,8 +61,6 @@ struct SgLibraryRec
 				 */
   readtable_t *readtable;
   SgObject     reader;		/* custom reader */
-  /* For builtin library (only REPL for now) */
-  void         (*init)();
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))

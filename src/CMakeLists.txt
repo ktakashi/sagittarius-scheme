@@ -70,7 +70,9 @@ SET(SAGITTARIUS_LIB_SOURCE
   extlib.c         lib_errors.c
   lib_arith.c      lib_macro.c
   lib_enums.c
-  lib_repl.c
+  # Since we use non builtin library in REPL
+  # I don't see the reason it need to be builtin
+  # lib_repl.c
   # now match is replaced to Alex Shin's match
   #lib_match_core.c
   ${SAGITTARIUS_EXT_FEATURES}

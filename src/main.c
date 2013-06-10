@@ -497,7 +497,8 @@ int main(int argc, char **argv)
     Sg_Apply0(SG_GLOC_GET(SG_GLOC(repl)));
 
   err:
-    fprintf(stderr, "no repl available.");
+    fprintf(stderr, "(sagittarius interactive) library is not located on the"
+	    " loadpath. Add -L option to indicate it.");
   }
   Sg_Exit(exit_code);
   return 0;			/* not reached */

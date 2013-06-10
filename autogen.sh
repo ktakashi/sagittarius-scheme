@@ -65,7 +65,7 @@ show_usage()
     echo "usage: $0 compiler|library|stub|all"
     echo "    compiler:   generate compiler.c"
     echo "    library:    generate compiled libraries"
-    echo "    builtin:    generate compiled builtin libraries"
+#    echo "    builtin:    generate compiled builtin libraries"
     echo "    stub:       generate stub files"
     echo "    stub_force: generate stub files (re-create all)"
     echo "    insn:       generate insn"
@@ -87,9 +87,9 @@ then
 	    library)
 		do_library
 		;;
-	    builtin)
-		do_builtin
-		;;
+#	    builtin)
+#		do_builtin
+#		;;
 	    stub)
 		force=""
 		do_stub

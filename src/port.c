@@ -586,7 +586,7 @@ static int file_lock(SgObject self, SgPortLockType type)
   return Sg_LockFile(file, (enum SgFileLockType)type);
 }
 
-static int file_unlock(SgObject self, SgPortLockType type)
+static int file_unlock(SgObject self)
 {
   SgFile *file = SG_PORT_FILE(self);
   return Sg_UnlockFile(file);

@@ -629,6 +629,7 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   }
   SG_WHEN_ERROR {
     restore_vm();
+    r = SG_UNDEF;
     SG_NEXT_HANDLER;
   }
   SG_END_PROTECT;

@@ -90,7 +90,7 @@ extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
 extern void Sg__Init_core_enums();
 /* extern void Sg__Init_match_core(); */
-extern void Sg__Init_sagittarius_interactive();
+/* extern void Sg__Init_sagittarius_interactive(); */
 
 extern void Sg__InitExtFeatures();
 
@@ -197,10 +197,6 @@ void Sg_Init()
     SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
     SgObject er_rename = SG_INTERN("er-rename");
-    /* create library but not initialise it */
-    SgLibrary *repl = Sg_MakeLibrary(SG_INTERN("(sagittarius interactive)"));
-    repl->init = Sg__Init_sagittarius_interactive;
-
     Sg_InsertBinding(core_base_lib,
 		     er_rename, Sg_FindBinding(compsym, er_rename, SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
