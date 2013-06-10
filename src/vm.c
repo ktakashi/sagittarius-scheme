@@ -1190,16 +1190,11 @@ static SgWord boundaryFrameMark = NOP;
 			   SG_IDENTIFIER_NAME(id),			\
 			   SG_UNBOUND);					\
     if (SG_UNBOUNDP(ret)) {						\
-      SgObject alt = Sg_Apply2(&Sg_GenericUnboundVariable,		\
-			       SG_IDENTIFIER_NAME(id),			\
-			       SG_IDENTIFIER_LIBRARY(id));		\
-      if (Sg_ConditionP(alt)) {						\
-	Sg_Raise(alt, FALSE);						\
-      }	else {								\
-	(ret) = Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(id),		\
-			       SG_IDENTIFIER_NAME(id),			\
-			       alt,					\
-			       0);					\
+      (ret) = Sg_Apply2(&Sg_GenericUnboundVariable,			\
+			SG_IDENTIFIER_NAME(id),				\
+			SG_IDENTIFIER_LIBRARY(id));			\
+      if (Sg_ConditionP(ret)) {						\
+	Sg_Raise(ret, FALSE);						\
       }									\
     }									\
   } while (0)
@@ -1213,8 +1208,10 @@ static SgWord boundaryFrameMark = NOP;
       ret = SG_GLOC_GET(SG_GLOC(id));		\
     } else {					\
       FIND_GLOBAL(vm, id, ret);			\
-      *(PC(vm)-1) = SG_WORD(ret);		\
-      (ret) = SG_GLOC_GET(SG_GLOC(ret));	\
+      if (SG_GLOCP(ret)) {			\
+	*(PC(vm)-1) = SG_WORD(ret);		\
+	(ret) = SG_GLOC_GET(SG_GLOC(ret));	\
+      }						\
     }						\
   } while (0)
 
