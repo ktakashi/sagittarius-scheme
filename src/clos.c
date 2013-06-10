@@ -39,6 +39,7 @@
 #include "sagittarius/collection.h"
 #include "sagittarius/core.h"
 #include "sagittarius/error.h"
+#include "sagittarius/exceptions.h"
 #include "sagittarius/generic.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/hashtable.h"
@@ -731,9 +732,12 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
 
   if (SG_EQ(SG_METHOD_QUALIFIER(proc), SG_KEYWORD_PRIMARY)) {
     /* compute next-method */
-    SgObject rest = SG_OBJ(dvec[1]);
-    SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
-				       args, argc, FALSE));
+    /* issue 119 check subr otherwise wrong number error will be raised */
+    if (!SG_SUBRP(SG_METHOD_PROCEDURE(proc))) {
+      SgObject rest = SG_OBJ(dvec[1]);
+      SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
+					 args, argc, FALSE));
+    }
     dvec[2] = (void*)TRUE;
   } else {
     /* dummy, :before and :after can not have next-method. */
@@ -1806,6 +1810,8 @@ SG_DEFINE_GENERIC(Sg_GenericComputeApplyMethods, Sg_NoNextMethod, NULL);
 /* slot */
 SG_DEFINE_GENERIC(Sg_GenericSlotUnbound, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericSlotMissing, Sg_NoNextMethod, NULL);
+/* unbound-variable */
+SG_DEFINE_GENERIC(Sg_GenericUnboundVariable, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -2192,6 +2198,29 @@ static SgClass *slot_missing_SPEC[] = {
 SG_DEFINE_METHOD(slot_missing_rec, &Sg_GenericSlotMissing,
 		 3, 1, slot_missing_SPEC, &slot_missing_subr_rec);
 
+static SgObject unbound_variable_subr(SgObject *argv, int argc, void *data)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject lib = argv[1], variable = argv[0];
+  SgObject message;
+  SG_APPEND1(h, t, Sg_MakeUndefinedViolation());
+  if (variable) {
+    SG_APPEND1(h, t, Sg_MakeWhoCondition(variable));
+  }
+  message = Sg_Sprintf(UC("unbound variable %S in library %A"),
+		       variable, SG_LIBRARY_NAME(lib));
+  SG_APPEND1(h, t, Sg_MakeMessageCondition(message));
+  return Sg_Condition(h);
+}
+SG_DEFINE_SUBR(unbound_variable_subr_rec, 2, 0, unbound_variable_subr,
+	       SG_FALSE, NULL);
+static SgClass *unbound_variable_SPEC[] = {
+  SG_CLASS_TOP,
+  SG_CLASS_TOP
+};
+SG_DEFINE_METHOD(unbound_variable_rec, &Sg_GenericUnboundVariable,
+		 2, 0, unbound_variable_SPEC, &unbound_variable_subr_rec);
+
 void Sg__InitClos()
 {
   /* TODO library name */
@@ -2307,6 +2336,7 @@ void Sg__InitClos()
   GINIT(&Sg_GenericComputeApplyMethods, "compute-apply-methods");
   GINIT(&Sg_GenericSlotUnbound, "slot-unbound");
   GINIT(&Sg_GenericSlotMissing, "slot-missing");
+  GINIT(&Sg_GenericUnboundVariable, "unbound-variable");
 
   Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
 	       SG_PROCEDURE(&Sg_GenericObjectSetter),
@@ -2326,4 +2356,6 @@ void Sg__InitClos()
   Sg_InitBuiltinMethod(&object_equalp_rec);
   Sg_InitBuiltinMethod(&slot_unbound_rec);
   Sg_InitBuiltinMethod(&slot_missing_rec);
+
+  Sg_InitBuiltinMethod(&unbound_variable_rec);
 }

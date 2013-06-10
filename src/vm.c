@@ -1184,28 +1184,38 @@ static SgWord boundaryFrameMark = NOP;
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
 #define PEEK_OPERAND(pc)   SG_OBJ((*(pc)))
 
-#define REFER_LOCAL(vm, n)   *(FP(vm) + n)
-#define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
-#define REFER_GLOBAL(vm, ret)						\
+#define FIND_GLOBAL(vm, id, ret)					\
   do {									\
-    ret = FETCH_OPERAND(PC(vm));					\
-    if (SG_GLOCP(ret)) {						\
-      ret = SG_GLOC_GET(SG_GLOC(ret));					\
-    } else {								\
-      SgObject lib = SG_IDENTIFIER_LIBRARY(ret);			\
-      SgObject value = Sg_FindBinding(SG_FALSEP(lib)			\
-				      ? vm->currentLibrary : lib,	\
-				      SG_IDENTIFIER_NAME(ret),		\
-				      SG_UNBOUND);			\
-      if (SG_GLOCP(value)) {						\
-	ret = SG_GLOC_GET(SG_GLOC(value));				\
-	*(PC(vm)-1) = SG_WORD(value);					\
-      } else {								\
-	Sg_UndefinedViolation((ret),					\
-			      Sg_Sprintf(UC("unbound variable %S"),	\
-					 SG_IDENTIFIER_NAME(ret)));	\
+    (ret) = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id),			\
+			   SG_IDENTIFIER_NAME(id),			\
+			   SG_UNBOUND);					\
+    if (SG_UNBOUNDP(ret)) {						\
+      SgObject alt = Sg_Apply2(&Sg_GenericUnboundVariable,		\
+			       SG_IDENTIFIER_NAME(id),			\
+			       SG_IDENTIFIER_LIBRARY(id));		\
+      if (Sg_ConditionP(alt)) {						\
+	Sg_Raise(alt, FALSE);						\
+      }	else {								\
+	(ret) = Sg_MakeBinding(SG_IDENTIFIER_LIBRARY(id),		\
+			       SG_IDENTIFIER_NAME(id),			\
+			       alt,					\
+			       0);					\
       }									\
     }									\
+  } while (0)
+
+#define REFER_LOCAL(vm, n)   *(FP(vm) + n)
+#define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
+#define REFER_GLOBAL(vm, ret)			\
+  do {						\
+    SgObject id = FETCH_OPERAND(PC(vm));	\
+    if (SG_GLOCP(id)) {				\
+      ret = SG_GLOC_GET(SG_GLOC(id));		\
+    } else {					\
+      FIND_GLOBAL(vm, id, ret);			\
+      *(PC(vm)-1) = SG_WORD(ret);		\
+      (ret) = SG_GLOC_GET(SG_GLOC(ret));	\
+    }						\
   } while (0)
 
 

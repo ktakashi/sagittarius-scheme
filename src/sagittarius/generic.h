@@ -177,6 +177,9 @@ SG_EXTERN SgGeneric Sg_GenericObjectSetter;
 SG_EXTERN SgGeneric Sg_GenericSlotUnbound;
 SG_EXTERN SgGeneric Sg_GenericSlotMissing;
 
+/* might be for debugger? */
+SG_EXTERN SgGeneric Sg_GenericUnboundVariable;
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_GENERIC_H_ */
