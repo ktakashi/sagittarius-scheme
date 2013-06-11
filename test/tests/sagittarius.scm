@@ -889,4 +889,8 @@
 ;; issue 112
 (test-assert "#x800000" (positive? #x800000))
 
+;; issue 120
+(test-error "list-sort" (list-sort #f '()))
+(test-error "list-sort" (list-sort #f '(a)))
+
 (test-end)
