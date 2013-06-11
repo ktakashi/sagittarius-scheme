@@ -4729,7 +4729,7 @@
 	     (cb-emit0! cb PUSH)
 	     (loop (cdr args)))))
     (pass5/make-boxes cb sets vars)
-    (cb-emit1! cb ENTER total)
+    ;;(cb-emit1! cb ENTER total)
     (let* ((new-renv (make-new-renv renv 
 				    (append (renv-locals renv) vars)
 				    (renv-frees renv) sets vars #f))
@@ -4772,7 +4772,7 @@
 							  #f)
 					   ctx)))
 	(pass5/make-boxes cb sets vars)
-	(cb-emit1! cb ENTER total)
+	;;(cb-emit1! cb ENTER total)
 	(let* ((new-renv (make-new-renv renv
 					(append (renv-locals renv) vars)
 					(renv-frees renv) sets vars #f))
@@ -4831,7 +4831,7 @@
 		    ($receive-option iform)
 		    ($*-src iform))
 	(pass5/make-boxes cb sets vars)
-	(cb-emit1! cb ENTER total)
+	;;(cb-emit1! cb ENTER total)
 	(let* ((new-renv (make-new-renv renv 
 					(append (renv-locals renv) vars)
 					(renv-frees renv)
@@ -4918,7 +4918,7 @@
 							'()
 							#f)
 					 ctx)))
-      (cb-emit1! cb ENTER (+ nargs (length (renv-locals renv))))
+      ;;(cb-emit1! cb ENTER (+ nargs (length (renv-locals renv))))
       ;; set mark
       (cb-label-set! cb (pass5/ensure-label cb label))
       (pass5/make-boxes cb sets vars)

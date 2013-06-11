@@ -550,15 +550,14 @@ static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
     SgMethod *m = SG_METHOD(SG_CAR(mp));
     SgClass **sp;
     SgObject *ap;
-    int n;
+    unsigned int n;
     /* argument count check */
     if ((unsigned int)argc < SG_PROCEDURE_REQUIRED(m)) continue;
     if (!SG_PROCEDURE_OPTIONAL(m) &&
 	(unsigned int)argc > SG_PROCEDURE_REQUIRED(m)) continue;
     /* type check */
     for (ap = args, sp = SG_METHOD_SPECIALIZERS(m), n = 0;
-	 (unsigned int)n < SG_PROCEDURE_REQUIRED(m);
-	 ap++, sp++, n++) {
+	 n < SG_PROCEDURE_REQUIRED(m); ap++, sp++, n++) {
       if (!specializer_match(*sp, *ap)) break;
     }
     if (n == SG_PROCEDURE_REQUIRED(m)) SG_APPEND1(h, t, SG_OBJ(m));
