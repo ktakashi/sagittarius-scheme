@@ -41,7 +41,7 @@
       SgObject p = SG_NIL, a;						\
       if (argc < required) {						\
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required, argc, SG_UNDEF);	\
+					   required, argc, SG_NIL);	\
       }									\
       /* fold rest args */						\
       while (argc > required+optargs-1) {				\
@@ -51,11 +51,9 @@
       }									\
       PUSH(SP(vm), p);							\
       argc++;								\
-    } else {								\
-      if (argc != required) {						\
-	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required, argc, SG_UNDEF);	\
-      }									\
+    } else if (argc != required) {					\
+      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
+					 required, argc, SG_NIL);	\
     }									\
     FP(vm) = SP(vm) - argc;						\
   } while (0)
@@ -70,7 +68,7 @@
       int __i, req_opt, oargc;						\
       if ((rargc+argc-1) < required) {					\
       	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   rargc+argc-1, argc, SG_UNDEF); \
+					   rargc+argc-1, argc, SG_NIL); \
       }									\
       req_opt = required+optargs;					\
       p = POP(SP(vm)); /* tail of arglist */				\
@@ -103,7 +101,7 @@
       /* not optargs */							\
       if ((rargc+argc-1) != required) {					\
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required, rargc, SG_UNDEF);	\
+					   required, rargc, SG_NIL);	\
       }									\
       p = POP(SP(vm));							\
       argc--;								\
@@ -158,7 +156,8 @@
   }
 
   proctype = SG_PROCEDURE_TYPE(AC(vm));
-  if (proctype == SG_PROC_SUBR) {
+  switch (proctype) {
+  case SG_PROC_SUBR: {
     CL(vm) = AC(vm);
     PC(vm) = PC_TO_RETURN;
     /* 
@@ -171,9 +170,9 @@
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
     if (TAIL_POS(vm)) RET_INSN();
     NEXT;
-  }
-
-  if (proctype == SG_PROC_CLOSURE) {
+  } break;
+    
+  case SG_PROC_CLOSURE: {
     SgClosure * cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     CHECK_STACK(cb->maxStack, vm);
@@ -183,9 +182,9 @@
     AC(vm) = SG_UNDEF;		/* make default return value #<unspecified> */
     SG_PROF_COUNT_CALL(vm, CL(vm));
     NEXT;
-  }
+  } break;
 
-  if (proctype == SG_PROC_GENERIC) {
+  case SG_PROC_GENERIC: {
     SgObject mm;
     if (!SG_GENERICP(AC(vm))) {
       /* Scheme defined MOP. we modify the stack frame so that it is converted
@@ -239,7 +238,9 @@
       AC(vm) = SG_CAR(mm);
       proctype = SG_PROC_METHOD;
     }
-  } else if (proctype == SG_PROC_NEXT_METHOD) {
+  } break;
+
+  case SG_PROC_NEXT_METHOD: {
     SgNextMethod *n = SG_NEXT_METHOD(AC(vm));
     int use_saved_args = FALSE;
 #if !defined(APPLY_CALL)
@@ -263,14 +264,18 @@
       AC(vm) = SG_CAR(n->methods);
       proctype = SG_PROC_METHOD;
     }
-    if (use_saved_args) {
-      goto DO_METHOD_CALL;
-    }
-  } else if (proctype == SG_PROC_METHOD) {
-    Sg_Error(UC("%S returned non procedure"), SG_METHOD_GENERIC(AC(vm)));
-  } else {
-    Sg_Panic("something's wrong");
+    /* if (use_saved_args) { */
+    /*   goto DO_METHOD_CALL; */
+    /* } */
+  } break;
+
+  /* case SG_PROC_METHOD: { */
+  /*   Sg_Error(UC("%S returned non procedure"), SG_METHOD_GENERIC(AC(vm))); */
+  /* } break; */
+
+  default: Sg_Panic("something's wrong");
   }
+
  DO_METHOD_CALL:
   if (proctype == SG_PROC_GENERIC) {
     /* we have no applicable methods */
@@ -291,8 +296,8 @@
     NEXT;
   }
 
-  ASSERT(proctype = SG_PROC_METHOD);
-  ASSERT(!SG_FALSEP(nm));
+  /* ASSERT(proctype = SG_PROC_METHOD); */
+  /* ASSERT(!SG_FALSEP(nm)); */
   if (SG_SUBRP(SG_METHOD_PROCEDURE(AC(vm)))) {
     /* C-defined method */
     SgObject subr = SG_METHOD_PROCEDURE(AC(vm));
@@ -305,7 +310,7 @@
   } else {
     /* closure */
     SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));
-    ASSERT(SG_CODE_BUILDERP(cls->code));
+    /* ASSERT(SG_CODE_BUILDERP(cls->code)); */
     /* shift one for call-next-method */
     SP(vm) = shift_one_args(SP(vm), argc);
     INDEX_SET(SP(vm), argc, nm);
@@ -314,6 +319,7 @@
     ADJUST_ARGUMENT_FRAME(cls, argc);
     CL(vm) = cls;
     PC(vm) = SG_CODE_BUILDER(cls->code)->code;
+    AC(vm) = SG_UNDEF;		/* default undef */
     SG_PROF_COUNT_CALL(vm, cls);
   }
   NEXT;

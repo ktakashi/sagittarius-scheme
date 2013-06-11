@@ -749,6 +749,9 @@
 	     (if (proc (car lst) (cadr lst))
 		 (loop (+ acc 1) (cdr lst))
 		 (values acc (cdr lst)))))))
+  (unless (procedure? proc)
+    (assertion-violation 'list-sort
+     (wrong-type-argument-message "procedure" proc 1)))
   (if (null? lst)
       lst
       (receive (n lst2) (divide lst)
