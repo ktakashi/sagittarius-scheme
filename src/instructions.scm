@@ -207,15 +207,13 @@
 
 (define-inst TEST (0 1 #t) :label
   (cond ((SG_FALSEP (AC vm))
-	 (let ((n (PEEK_OPERAND (PC vm))))
-	   (+= (PC vm) (cast intptr_t n))))
+	 (+= (PC vm) (PEEK_OPERAND (PC vm))))
 	(else
 	 (post++ (PC vm))))
   NEXT)
 
 (define-inst JUMP (0 1 #t) :label
-  (let ((n (PEEK_OPERAND (PC vm))))
-    (+= (PC vm) (cast intptr_t n)))
+  (+= (PC vm) (PEEK_OPERAND (PC vm)))
   NEXT)
 
 (define-inst SHIFTJ (2 0 #f)
@@ -226,9 +224,9 @@
 (define-cise-expr branch-number-test-helper
   ((_ p)
    (let ((n (gensym "cise__")))
-     `(let ((,n ,p))
+     `(begin
 	(set! (AC vm) SG_FALSE)
-	(+= (PC vm) (cast intptr_t ,n)))))
+	(+= (PC vm) ,p))))
   ((_)
    `(begin
       (set! (AC vm) SG_TRUE)
@@ -267,13 +265,13 @@
 
 (define-cise-stmt branch-test2
   ((_ proc)
-   `(let ((n (PEEK_OPERAND (PC vm))))
+   `(begin
       (if (,proc (POP (SP vm)) (AC vm))
 	  (begin
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
-	    (+= (PC vm) (cast intptr_t n))
+	    (+= (PC vm) (PEEK_OPERAND (PC vm)))
 	    (set! (AC vm) SG_FALSE)))
       NEXT)))
 
@@ -285,14 +283,14 @@
 
 (define-cise-stmt branch-test1
   ((_ proc)
-   `(let ((n (PEEK_OPERAND (PC vm))))
+   `(begin
       (if (,proc (AC vm))
 	  (begin
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
 	    (set! (AC vm) SG_FALSE)
-	    (+= (PC vm) (cast intptr_t n))))
+	    (+= (PC vm) (PEEK_OPERAND (PC vm)))))
       NEXT)))
 
 (define-inst BNNULL (0 1 #t) :label
@@ -455,8 +453,8 @@
   NEXT)
 
 (define-inst FRAME (0 1 #f) :label
-  (let ((n (FETCH_OPERAND (PC vm))))
-    (PUSH_CONT vm (+ (PC vm) (- (cast intptr_t n) 1))))
+  (let ((n::intptr_t (FETCH_OPERAND (PC vm))))
+    (PUSH_CONT vm (+ (PC vm) (- n 1))))
   NEXT)
 
 ;; TODO remove this instruction from compiler.

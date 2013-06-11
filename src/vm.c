@@ -1183,7 +1183,7 @@ static SgWord boundaryFrameMark = NOP;
 
 #define SKIP(vm, n)        (PC(vm) += (n))
 #define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
-#define PEEK_OPERAND(pc)   SG_OBJ((*(pc)))
+#define PEEK_OPERAND(pc)   ((intptr_t)(*(pc)))
 
 #define FIND_GLOBAL(vm, id, ret)					\
   do {									\
