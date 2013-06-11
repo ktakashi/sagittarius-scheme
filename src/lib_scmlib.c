@@ -477,17 +477,17 @@ static struct sg__wcRec {
   /*   338 */        0x0010022A           /* 2      (APPLY) */,
   /*   339 */        0x0000002F           /* 3      (RET) */,
   /*   340 */        0x00000030           /* 0      (FRAME) */,
-  /*   341 */        WORD(SG_MAKE_INT(4)),
+  /*   341 */        WORD(4),
   /*   342 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*   343 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   344 */        WORD(SG_UNDEF)  /* identifier#zero? */,
   /*   345 */        0x00000017           /* 5      (TEST) */,
-  /*   346 */        WORD(SG_MAKE_INT(3)),
+  /*   346 */        WORD(3),
   /*   347 */        0x00000061           /* 7      (CONST_RET) */,
   /*   348 */        WORD(SG_NIL),
   /*   349 */        0x0000005B           /* 9      (LREF_CAR_PUSH) */,
   /*   350 */        0x00000030           /* 10     (FRAME) */,
-  /*   351 */        WORD(SG_MAKE_INT(8)),
+  /*   351 */        WORD(8),
   /*   352 */        0x0000005C           /* 12     (LREF_CDR_PUSH) */,
   /*   353 */        0x00000105           /* 13     (LREF) */,
   /*   354 */        -0x000000F1          /* 14     (ADDI) */,
@@ -499,13 +499,13 @@ static struct sg__wcRec {
   /*   360 */        0x0000002F           /* 20     (RET) */,
   /*   361 */        0x00000005           /* 0      (LREF) */,
   /*   362 */        0x00000021           /* 1      (BNNULL) */,
-  /*   363 */        WORD(SG_MAKE_INT(3)),
+  /*   363 */        WORD(3),
   /*   364 */        0x00000061           /* 3      (CONST_RET) */,
   /*   365 */        WORD(SG_NIL),
   /*   366 */        0x00000005           /* 5      (LREF) */,
   /*   367 */        0x00000050           /* 6      (CDAR) */,
   /*   368 */        0x00000021           /* 7      (BNNULL) */,
-  /*   369 */        WORD(SG_MAKE_INT(6)),
+  /*   369 */        WORD(6),
   /*   370 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*   371 */        0x00000009           /* 10     (GREF) */,
   /*   372 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
@@ -515,7 +515,7 @@ static struct sg__wcRec {
   /*   376 */        0x00000050           /* 15     (CDAR) */,
   /*   377 */        0x0000000B           /* 16     (PUSH) */,
   /*   378 */        0x00000030           /* 17     (FRAME) */,
-  /*   379 */        WORD(SG_MAKE_INT(5)),
+  /*   379 */        WORD(5),
   /*   380 */        0x0000005C           /* 19     (LREF_CDR_PUSH) */,
   /*   381 */        0x00000009           /* 20     (GREF) */,
   /*   382 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
@@ -535,13 +535,13 @@ static struct sg__wcRec {
   /*   396 */        0x0000002F           /* 10     (RET) */,
   /*   397 */        0x00000005           /* 0      (LREF) */,
   /*   398 */        0x00000021           /* 1      (BNNULL) */,
-  /*   399 */        WORD(SG_MAKE_INT(3)),
+  /*   399 */        WORD(3),
   /*   400 */        0x00000061           /* 3      (CONST_RET) */,
   /*   401 */        WORD(SG_NIL),
   /*   402 */        0x00000005           /* 5      (LREF) */,
   /*   403 */        0x00000050           /* 6      (CDAR) */,
   /*   404 */        0x00000021           /* 7      (BNNULL) */,
-  /*   405 */        WORD(SG_MAKE_INT(6)),
+  /*   405 */        WORD(6),
   /*   406 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*   407 */        0x00000009           /* 10     (GREF) */,
   /*   408 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
@@ -551,7 +551,7 @@ static struct sg__wcRec {
   /*   412 */        0x00000050           /* 15     (CDAR) */,
   /*   413 */        0x0000000B           /* 16     (PUSH) */,
   /*   414 */        0x00000030           /* 17     (FRAME) */,
-  /*   415 */        WORD(SG_MAKE_INT(5)),
+  /*   415 */        WORD(5),
   /*   416 */        0x0000005C           /* 19     (LREF_CDR_PUSH) */,
   /*   417 */        0x00000009           /* 20     (GREF) */,
   /*   418 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
@@ -573,7 +573,7 @@ static struct sg__wcRec {
   /*   434 */        0x0000010C           /* 1      (BOX) */,
   /*   435 */        0x0000000C           /* 2      (BOX) */,
   /*   436 */        0x00000030           /* 3      (FRAME) */,
-  /*   437 */        WORD(SG_MAKE_INT(9)),
+  /*   437 */        WORD(9),
   /*   438 */        0x00000305           /* 5      (LREF) */,
   /*   439 */        0x0000000D           /* 6      (UNBOX) */,
   /*   440 */        0x00000052           /* 7      (CAR_PUSH) */,
@@ -583,7 +583,7 @@ static struct sg__wcRec {
   /*   444 */        0x00000005           /* 11     (LREF) */,
   /*   445 */        0x0000022B           /* 12     (CALL) */,
   /*   446 */        0x00000017           /* 13     (TEST) */,
-  /*   447 */        WORD(SG_MAKE_INT(30)),
+  /*   447 */        WORD(30),
   /*   448 */        0x00000405           /* 15     (LREF) */,
   /*   449 */        0x0000000D           /* 16     (UNBOX) */,
   /*   450 */        0x0000000B           /* 17     (PUSH) */,
@@ -598,7 +598,7 @@ static struct sg__wcRec {
   /*   459 */        0x00000053           /* 26     (CDR_PUSH) */,
   /*   460 */        0x00000505           /* 27     (LREF) */,
   /*   461 */        0x00000021           /* 28     (BNNULL) */,
-  /*   462 */        WORD(SG_MAKE_INT(9)),
+  /*   462 */        WORD(9),
   /*   463 */        0x00000305           /* 30     (LREF) */,
   /*   464 */        0x0000000D           /* 31     (UNBOX) */,
   /*   465 */        0x0000000B           /* 32     (PUSH) */,
@@ -611,7 +611,7 @@ static struct sg__wcRec {
   /*   472 */        0x00000306           /* 39     (LSET) */,
   /*   473 */        0x00500019           /* 40     (SHIFTJ) */,
   /*   474 */        0x00000018           /* 41     (JUMP) */,
-  /*   475 */        WORD(SG_MAKE_INT(-39)),
+  /*   475 */        WORD(-39),
   /*   476 */        0x0000002F           /* 43     (RET) */,
   /*   477 */        0x00000405           /* 44     (LREF) */,
   /*   478 */        0x0000000D           /* 45     (UNBOX) */,
@@ -627,7 +627,7 @@ static struct sg__wcRec {
   /*   488 */        0x00000053           /* 55     (CDR_PUSH) */,
   /*   489 */        0x00000505           /* 56     (LREF) */,
   /*   490 */        0x00000021           /* 57     (BNNULL) */,
-  /*   491 */        WORD(SG_MAKE_INT(9)),
+  /*   491 */        WORD(9),
   /*   492 */        0x00000205           /* 59     (LREF) */,
   /*   493 */        0x0000000D           /* 60     (UNBOX) */,
   /*   494 */        0x0000000B           /* 61     (PUSH) */,
@@ -640,17 +640,17 @@ static struct sg__wcRec {
   /*   501 */        0x00000206           /* 68     (LSET) */,
   /*   502 */        0x00500019           /* 69     (SHIFTJ) */,
   /*   503 */        0x00000018           /* 70     (JUMP) */,
-  /*   504 */        WORD(SG_MAKE_INT(-68)),
+  /*   504 */        WORD(-68),
   /*   505 */        0x0000002F           /* 72     (RET) */,
   /*   506 */        0x00000045           /* 0      (LREF_PUSH) */,
   /*   507 */        0x00000030           /* 1      (FRAME) */,
-  /*   508 */        WORD(SG_MAKE_INT(4)),
+  /*   508 */        WORD(4),
   /*   509 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*   510 */        0x0000014A           /* 4      (GREF_CALL) */,
   /*   511 */        WORD(SG_UNDEF)  /* identifier#hashtable-keys-list */,
   /*   512 */        0x0000000B           /* 6      (PUSH) */,
   /*   513 */        0x00000030           /* 7      (FRAME) */,
-  /*   514 */        WORD(SG_MAKE_INT(4)),
+  /*   514 */        WORD(4),
   /*   515 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   516 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   517 */        WORD(SG_UNDEF)  /* identifier#hashtable-values-list */,
@@ -660,13 +660,13 @@ static struct sg__wcRec {
   /*   521 */        0x0000002F           /* 15     (RET) */,
   /*   522 */        0x00000045           /* 0      (LREF_PUSH) */,
   /*   523 */        0x00000030           /* 1      (FRAME) */,
-  /*   524 */        WORD(SG_MAKE_INT(4)),
+  /*   524 */        WORD(4),
   /*   525 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*   526 */        0x0000014A           /* 4      (GREF_CALL) */,
   /*   527 */        WORD(SG_UNDEF)  /* identifier#hashtable-keys-list */,
   /*   528 */        0x0000000B           /* 6      (PUSH) */,
   /*   529 */        0x00000030           /* 7      (FRAME) */,
-  /*   530 */        WORD(SG_MAKE_INT(4)),
+  /*   530 */        WORD(4),
   /*   531 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   532 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   533 */        WORD(SG_UNDEF)  /* identifier#hashtable-values-list */,
@@ -681,46 +681,46 @@ static struct sg__wcRec {
   /*   542 */        WORD(SG_UNDEF)  /* identifier#hashtable-map */,
   /*   543 */        0x0000002F           /* 5      (RET) */,
   /*   544 */        0x00000030           /* 0      (FRAME) */,
-  /*   545 */        WORD(SG_MAKE_INT(4)),
+  /*   545 */        WORD(4),
   /*   546 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   547 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   548 */        WORD(SG_UNDEF)  /* identifier#list? */,
   /*   549 */        0x00000017           /* 5      (TEST) */,
-  /*   550 */        WORD(SG_MAKE_INT(32)),
+  /*   550 */        WORD(32),
   /*   551 */        0x00000045           /* 7      (LREF_PUSH) */,
   /*   552 */        0x00000105           /* 8      (LREF) */,
   /*   553 */        0x0000003E           /* 9      (PAIRP) */,
   /*   554 */        0x00000017           /* 10     (TEST) */,
-  /*   555 */        WORD(SG_MAKE_INT(25)),
+  /*   555 */        WORD(25),
   /*   556 */        0x00000030           /* 12     (FRAME) */,
-  /*   557 */        WORD(SG_MAKE_INT(4)),
+  /*   557 */        WORD(4),
   /*   558 */        0x0000015B           /* 14     (LREF_CAR_PUSH) */,
   /*   559 */        0x0000014A           /* 15     (GREF_CALL) */,
   /*   560 */        WORD(SG_UNDEF)  /* identifier#variable? */,
   /*   561 */        0x00000022           /* 17     (NOT) */,
   /*   562 */        0x00000017           /* 18     (TEST) */,
-  /*   563 */        WORD(SG_MAKE_INT(3)),
+  /*   563 */        WORD(3),
   /*   564 */        0x00000018           /* 20     (JUMP) */,
-  /*   565 */        WORD(SG_MAKE_INT(15)),
+  /*   565 */        WORD(15),
   /*   566 */        0x00000030           /* 22     (FRAME) */,
-  /*   567 */        WORD(SG_MAKE_INT(5)),
+  /*   567 */        WORD(5),
   /*   568 */        0x0000015B           /* 24     (LREF_CAR_PUSH) */,
   /*   569 */        0x0000015C           /* 25     (LREF_CDR_PUSH) */,
   /*   570 */        0x0000024A           /* 26     (GREF_CALL) */,
   /*   571 */        WORD(SG_UNDEF)  /* identifier#id-memq */,
   /*   572 */        0x00000017           /* 28     (TEST) */,
-  /*   573 */        WORD(SG_MAKE_INT(3)),
+  /*   573 */        WORD(3),
   /*   574 */        0x00000018           /* 30     (JUMP) */,
-  /*   575 */        WORD(SG_MAKE_INT(5)),
+  /*   575 */        WORD(5),
   /*   576 */        0x0000015C           /* 32     (LREF_CDR_PUSH) */,
   /*   577 */        0x00100119           /* 33     (SHIFTJ) */,
   /*   578 */        0x00000018           /* 34     (JUMP) */,
-  /*   579 */        WORD(SG_MAKE_INT(-27)),
+  /*   579 */        WORD(-27),
   /*   580 */        0x00000132           /* 36     (LEAVE) */,
   /*   581 */        0x00000022           /* 37     (NOT) */,
   /*   582 */        0x0000002F           /* 38     (RET) */,
   /*   583 */        0x00000030           /* 0      (FRAME) */,
-  /*   584 */        WORD(SG_MAKE_INT(3)),
+  /*   584 */        WORD(3),
   /*   585 */        0x00000005           /* 2      (LREF) */,
   /*   586 */        0x0000002B           /* 3      (CALL) */,
   /*   587 */        0x00100028           /* 4      (RECEIVE) */,
@@ -733,17 +733,17 @@ static struct sg__wcRec {
   /*   594 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   595 */        0x0000002F           /* 3      (RET) */,
   /*   596 */        0x00000030           /* 0      (FRAME) */,
-  /*   597 */        WORD(SG_MAKE_INT(3)),
+  /*   597 */        WORD(3),
   /*   598 */        0x0000004A           /* 2      (GREF_CALL) */,
   /*   599 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
   /*   600 */        0x0000000B           /* 4      (PUSH) */,
   /*   601 */        0x00000030           /* 5      (FRAME) */,
-  /*   602 */        WORD(SG_MAKE_INT(3)),
+  /*   602 */        WORD(3),
   /*   603 */        0x0000004A           /* 7      (GREF_CALL) */,
   /*   604 */        WORD(SG_UNDEF)  /* identifier#current-usage-env */,
   /*   605 */        0x0000000B           /* 9      (PUSH) */,
   /*   606 */        0x00000030           /* 10     (FRAME) */,
-  /*   607 */        WORD(SG_MAKE_INT(3)),
+  /*   607 */        WORD(3),
   /*   608 */        0x0000004A           /* 12     (GREF_CALL) */,
   /*   609 */        WORD(SG_UNDEF)  /* identifier#current-macro-env */,
   /*   610 */        0x0000000B           /* 14     (PUSH) */,
@@ -780,27 +780,27 @@ static struct sg__wcRec {
   /*   641 */        WORD(SG_UNDEF)  /* identifier#er-rename */,
   /*   642 */        0x0000002F           /* 5      (RET) */,
   /*   643 */        0x00000030           /* 0      (FRAME) */,
-  /*   644 */        WORD(SG_MAKE_INT(4)),
+  /*   644 */        WORD(4),
   /*   645 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   646 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   647 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
   /*   648 */        0x00000017           /* 5      (TEST) */,
-  /*   649 */        WORD(SG_MAKE_INT(27)),
+  /*   649 */        WORD(27),
   /*   650 */        0x00000030           /* 7      (FRAME) */,
-  /*   651 */        WORD(SG_MAKE_INT(4)),
+  /*   651 */        WORD(4),
   /*   652 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   653 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   654 */        WORD(SG_UNDEF)  /* identifier#identifier? */,
   /*   655 */        0x00000017           /* 12     (TEST) */,
-  /*   656 */        WORD(SG_MAKE_INT(17)),
+  /*   656 */        WORD(17),
   /*   657 */        0x00000030           /* 14     (FRAME) */,
-  /*   658 */        WORD(SG_MAKE_INT(5)),
+  /*   658 */        WORD(5),
   /*   659 */        0x00000045           /* 16     (LREF_PUSH) */,
   /*   660 */        0x00000145           /* 17     (LREF_PUSH) */,
   /*   661 */        0x0000024A           /* 18     (GREF_CALL) */,
   /*   662 */        WORD(SG_UNDEF)  /* identifier#free-identifier=? */,
   /*   663 */        0x00000017           /* 20     (TEST) */,
-  /*   664 */        WORD(SG_MAKE_INT(2)),
+  /*   664 */        WORD(2),
   /*   665 */        0x0000002F           /* 22     (RET) */,
   /*   666 */        0x00000146           /* 23     (FREF_PUSH) */,
   /*   667 */        0x00000045           /* 24     (LREF_PUSH) */,
@@ -810,38 +810,38 @@ static struct sg__wcRec {
   /*   671 */        WORD(SG_UNDEF)  /* identifier#identifier=? */,
   /*   672 */        0x0000002F           /* 29     (RET) */,
   /*   673 */        0x00000018           /* 30     (JUMP) */,
-  /*   674 */        WORD(SG_MAKE_INT(-8)),
+  /*   674 */        WORD(-8),
   /*   675 */        0x0000002F           /* 32     (RET) */,
   /*   676 */        0x00000018           /* 33     (JUMP) */,
-  /*   677 */        WORD(SG_MAKE_INT(-11)),
+  /*   677 */        WORD(-11),
   /*   678 */        0x0000002F           /* 35     (RET) */,
   /*   679 */        0x00000045           /* 0      (LREF_PUSH) */,
   /*   680 */        0x00000049           /* 1      (CONSTI_PUSH) */,
   /*   681 */        0x00000105           /* 2      (LREF) */,
   /*   682 */        0x0000003E           /* 3      (PAIRP) */,
   /*   683 */        0x00000017           /* 4      (TEST) */,
-  /*   684 */        WORD(SG_MAKE_INT(9)),
+  /*   684 */        WORD(9),
   /*   685 */        0x0000015C           /* 6      (LREF_CDR_PUSH) */,
   /*   686 */        0x00000205           /* 7      (LREF) */,
   /*   687 */        0x0000010F           /* 8      (ADDI) */,
   /*   688 */        0x0000000B           /* 9      (PUSH) */,
   /*   689 */        0x00100219           /* 10     (SHIFTJ) */,
   /*   690 */        0x00000018           /* 11     (JUMP) */,
-  /*   691 */        WORD(SG_MAKE_INT(-10)),
+  /*   691 */        WORD(-10),
   /*   692 */        0x0000002F           /* 13     (RET) */,
   /*   693 */        0x00000105           /* 14     (LREF) */,
   /*   694 */        0x00000021           /* 15     (BNNULL) */,
-  /*   695 */        WORD(SG_MAKE_INT(7)),
+  /*   695 */        WORD(7),
   /*   696 */        0x00000205           /* 17     (LREF) */,
   /*   697 */        0x00000017           /* 18     (TEST) */,
-  /*   698 */        WORD(SG_MAKE_INT(2)),
+  /*   698 */        WORD(2),
   /*   699 */        0x0000002F           /* 20     (RET) */,
   /*   700 */        -0x000000FC          /* 21     (CONSTI) */,
   /*   701 */        0x0000002F           /* 22     (RET) */,
   /*   702 */        -0x000000FC          /* 23     (CONSTI) */,
   /*   703 */        0x0000002F           /* 24     (RET) */,
   /*   704 */        0x00000030           /* 0      (FRAME) */,
-  /*   705 */        WORD(SG_MAKE_INT(6)),
+  /*   705 */        WORD(6),
   /*   706 */        0x00000047           /* 2      (GREF_PUSH) */,
   /*   707 */        WORD(SG_UNDEF)  /* identifier#display */,
   /*   708 */        0x00000045           /* 4      (LREF_PUSH) */,
@@ -852,17 +852,17 @@ static struct sg__wcRec {
   /*   713 */        0x0000002F           /* 9      (RET) */,
   /*   714 */        0x00000305           /* 0      (LREF) */,
   /*   715 */        0x00000021           /* 1      (BNNULL) */,
-  /*   716 */        WORD(SG_MAKE_INT(20)),
+  /*   716 */        WORD(20),
   /*   717 */        0x00000245           /* 3      (LREF_PUSH) */,
   /*   718 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*   719 */        0x00000405           /* 5      (LREF) */,
   /*   720 */        0x00000021           /* 6      (BNNULL) */,
-  /*   721 */        WORD(SG_MAKE_INT(3)),
+  /*   721 */        WORD(3),
   /*   722 */        0x00000505           /* 8      (LREF) */,
   /*   723 */        0x0000002F           /* 9      (RET) */,
   /*   724 */        0x0000045C           /* 10     (LREF_CDR_PUSH) */,
   /*   725 */        0x00000030           /* 11     (FRAME) */,
-  /*   726 */        WORD(SG_MAKE_INT(5)),
+  /*   726 */        WORD(5),
   /*   727 */        0x0000045B           /* 13     (LREF_CAR_PUSH) */,
   /*   728 */        0x00000545           /* 14     (LREF_PUSH) */,
   /*   729 */        0x00000005           /* 15     (LREF) */,
@@ -870,10 +870,10 @@ static struct sg__wcRec {
   /*   731 */        0x0000000B           /* 17     (PUSH) */,
   /*   732 */        0x00400219           /* 18     (SHIFTJ) */,
   /*   733 */        0x00000018           /* 19     (JUMP) */,
-  /*   734 */        WORD(SG_MAKE_INT(-15)),
+  /*   734 */        WORD(-15),
   /*   735 */        0x0000002F           /* 21     (RET) */,
   /*   736 */        0x00000030           /* 22     (FRAME) */,
-  /*   737 */        WORD(SG_MAKE_INT(6)),
+  /*   737 */        WORD(6),
   /*   738 */        0x00000047           /* 24     (GREF_PUSH) */,
   /*   739 */        WORD(SG_UNDEF)  /* identifier#list-transpose* */,
   /*   740 */        0x00000245           /* 26     (LREF_PUSH) */,
@@ -883,12 +883,12 @@ static struct sg__wcRec {
   /*   744 */        0x00000145           /* 30     (LREF_PUSH) */,
   /*   745 */        0x00000405           /* 31     (LREF) */,
   /*   746 */        0x00000021           /* 32     (BNNULL) */,
-  /*   747 */        WORD(SG_MAKE_INT(3)),
+  /*   747 */        WORD(3),
   /*   748 */        0x00000505           /* 34     (LREF) */,
   /*   749 */        0x0000002F           /* 35     (RET) */,
   /*   750 */        0x0000045C           /* 36     (LREF_CDR_PUSH) */,
   /*   751 */        0x00000030           /* 37     (FRAME) */,
-  /*   752 */        WORD(SG_MAKE_INT(7)),
+  /*   752 */        WORD(7),
   /*   753 */        0x00000045           /* 39     (LREF_PUSH) */,
   /*   754 */        0x0000045B           /* 40     (LREF_CAR_PUSH) */,
   /*   755 */        0x00000505           /* 41     (LREF) */,
@@ -898,11 +898,11 @@ static struct sg__wcRec {
   /*   759 */        0x0000000B           /* 45     (PUSH) */,
   /*   760 */        0x00400219           /* 46     (SHIFTJ) */,
   /*   761 */        0x00000018           /* 47     (JUMP) */,
-  /*   762 */        WORD(SG_MAKE_INT(-17)),
+  /*   762 */        WORD(-17),
   /*   763 */        0x0000002F           /* 49     (RET) */,
   /*   764 */        0x00000205           /* 0      (LREF) */,
   /*   765 */        0x00000021           /* 1      (BNNULL) */,
-  /*   766 */        WORD(SG_MAKE_INT(8)),
+  /*   766 */        WORD(8),
   /*   767 */        0x00000048           /* 3      (CONST_PUSH) */,
   /*   768 */        WORD(SG_UNDEF), /* "expected ~a, but got ~a" */
   /*   769 */        0x00000045           /* 5      (LREF_PUSH) */,
@@ -919,18 +919,18 @@ static struct sg__wcRec {
   /*   780 */        WORD(SG_UNDEF)  /* identifier#format */,
   /*   781 */        0x0000002F           /* 17     (RET) */,
   /*   782 */        0x00000030           /* 0      (FRAME) */,
-  /*   783 */        WORD(SG_MAKE_INT(18)),
+  /*   783 */        WORD(18),
   /*   784 */        0x00000047           /* 2      (GREF_PUSH) */,
   /*   785 */        WORD(SG_UNDEF)  /* identifier#map */,
   /*   786 */        0x00000045           /* 4      (LREF_PUSH) */,
   /*   787 */        0x00000030           /* 5      (FRAME) */,
-  /*   788 */        WORD(SG_MAKE_INT(4)),
+  /*   788 */        WORD(4),
   /*   789 */        0x00000145           /* 7      (LREF_PUSH) */,
   /*   790 */        0x0000014A           /* 8      (GREF_CALL) */,
   /*   791 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*   792 */        0x0000000B           /* 10     (PUSH) */,
   /*   793 */        0x00000030           /* 11     (FRAME) */,
-  /*   794 */        WORD(SG_MAKE_INT(6)),
+  /*   794 */        WORD(6),
   /*   795 */        0x00000047           /* 13     (GREF_PUSH) */,
   /*   796 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*   797 */        0x00000245           /* 15     (LREF_PUSH) */,
@@ -945,13 +945,13 @@ static struct sg__wcRec {
   /*   806 */        WORD(SG_UNDEF)  /* identifier#for-each */,
   /*   807 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   808 */        0x00000030           /* 3      (FRAME) */,
-  /*   809 */        WORD(SG_MAKE_INT(4)),
+  /*   809 */        WORD(4),
   /*   810 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*   811 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*   812 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*   813 */        0x0000000B           /* 8      (PUSH) */,
   /*   814 */        0x00000030           /* 9      (FRAME) */,
-  /*   815 */        WORD(SG_MAKE_INT(6)),
+  /*   815 */        WORD(6),
   /*   816 */        0x00000047           /* 11     (GREF_PUSH) */,
   /*   817 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*   818 */        0x00000245           /* 13     (LREF_PUSH) */,
@@ -963,13 +963,13 @@ static struct sg__wcRec {
   /*   824 */        WORD(SG_UNDEF)  /* identifier#for-each */,
   /*   825 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   826 */        0x00000030           /* 3      (FRAME) */,
-  /*   827 */        WORD(SG_MAKE_INT(4)),
+  /*   827 */        WORD(4),
   /*   828 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*   829 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*   830 */        WORD(SG_UNDEF)  /* identifier#string->list */,
   /*   831 */        0x0000000B           /* 8      (PUSH) */,
   /*   832 */        0x00000030           /* 9      (FRAME) */,
-  /*   833 */        WORD(SG_MAKE_INT(6)),
+  /*   833 */        WORD(6),
   /*   834 */        0x00000047           /* 11     (GREF_PUSH) */,
   /*   835 */        WORD(SG_UNDEF)  /* identifier#string->list */,
   /*   836 */        0x00000245           /* 13     (LREF_PUSH) */,
@@ -979,17 +979,17 @@ static struct sg__wcRec {
   /*   840 */        0x0000002F           /* 17     (RET) */,
   /*   841 */        0x00000105           /* 0      (LREF) */,
   /*   842 */        0x00000021           /* 1      (BNNULL) */,
-  /*   843 */        WORD(SG_MAKE_INT(7)),
+  /*   843 */        WORD(7),
   /*   844 */        0x00000030           /* 3      (FRAME) */,
-  /*   845 */        WORD(SG_MAKE_INT(3)),
+  /*   845 */        WORD(3),
   /*   846 */        0x0000004A           /* 5      (GREF_CALL) */,
   /*   847 */        WORD(SG_UNDEF)  /* identifier#current-output-port */,
   /*   848 */        0x00000018           /* 7      (JUMP) */,
-  /*   849 */        WORD(SG_MAKE_INT(2)),
+  /*   849 */        WORD(2),
   /*   850 */        0x00000155           /* 9      (LREF_CAR) */,
   /*   851 */        0x0000000B           /* 10     (PUSH) */,
   /*   852 */        0x00000030           /* 11     (FRAME) */,
-  /*   853 */        WORD(SG_MAKE_INT(5)),
+  /*   853 */        WORD(5),
   /*   854 */        0x00000045           /* 13     (LREF_PUSH) */,
   /*   855 */        0x00000049           /* 14     (CONSTI_PUSH) */,
   /*   856 */        0x0000024A           /* 15     (GREF_CALL) */,
@@ -999,41 +999,41 @@ static struct sg__wcRec {
   /*   860 */        0x00000048           /* 19     (CONST_PUSH) */,
   /*   861 */        WORD(SG_UNDEF), /* "#<record ~s ~a~a ~a>" */
   /*   862 */        0x00000030           /* 21     (FRAME) */,
-  /*   863 */        WORD(SG_MAKE_INT(4)),
+  /*   863 */        WORD(4),
   /*   864 */        0x00000345           /* 23     (LREF_PUSH) */,
   /*   865 */        0x0000014A           /* 24     (GREF_CALL) */,
   /*   866 */        WORD(SG_UNDEF)  /* identifier#record-type-name */,
   /*   867 */        0x0000000B           /* 26     (PUSH) */,
   /*   868 */        0x00000030           /* 27     (FRAME) */,
-  /*   869 */        WORD(SG_MAKE_INT(4)),
+  /*   869 */        WORD(4),
   /*   870 */        0x00000345           /* 29     (LREF_PUSH) */,
   /*   871 */        0x0000014A           /* 30     (GREF_CALL) */,
   /*   872 */        WORD(SG_UNDEF)  /* identifier#record-type-opaque? */,
   /*   873 */        0x00000017           /* 32     (TEST) */,
-  /*   874 */        WORD(SG_MAKE_INT(5)),
+  /*   874 */        WORD(5),
   /*   875 */        0x00000003           /* 34     (CONST) */,
   /*   876 */        WORD(SG_UNDEF), /* "opaque " */
   /*   877 */        0x00000018           /* 36     (JUMP) */,
-  /*   878 */        WORD(SG_MAKE_INT(3)),
+  /*   878 */        WORD(3),
   /*   879 */        0x00000003           /* 38     (CONST) */,
   /*   880 */        WORD(SG_UNDEF), /* "" */
   /*   881 */        0x0000000B           /* 40     (PUSH) */,
   /*   882 */        0x00000030           /* 41     (FRAME) */,
-  /*   883 */        WORD(SG_MAKE_INT(4)),
+  /*   883 */        WORD(4),
   /*   884 */        0x00000345           /* 43     (LREF_PUSH) */,
   /*   885 */        0x0000014A           /* 44     (GREF_CALL) */,
   /*   886 */        WORD(SG_UNDEF)  /* identifier#record-type-sealed? */,
   /*   887 */        0x00000017           /* 46     (TEST) */,
-  /*   888 */        WORD(SG_MAKE_INT(5)),
+  /*   888 */        WORD(5),
   /*   889 */        0x00000003           /* 48     (CONST) */,
   /*   890 */        WORD(SG_UNDEF), /* "sealed " */
   /*   891 */        0x00000018           /* 50     (JUMP) */,
-  /*   892 */        WORD(SG_MAKE_INT(3)),
+  /*   892 */        WORD(3),
   /*   893 */        0x00000003           /* 52     (CONST) */,
   /*   894 */        WORD(SG_UNDEF), /* "" */
   /*   895 */        0x0000000B           /* 54     (PUSH) */,
   /*   896 */        0x00000030           /* 55     (FRAME) */,
-  /*   897 */        WORD(SG_MAKE_INT(4)),
+  /*   897 */        WORD(4),
   /*   898 */        0x00000045           /* 57     (LREF_PUSH) */,
   /*   899 */        0x0000014A           /* 58     (GREF_CALL) */,
   /*   900 */        WORD(SG_UNDEF)  /* identifier#tuple-size */,
@@ -1044,19 +1044,19 @@ static struct sg__wcRec {
   /*   905 */        0x00000A45           /* 64     (LREF_PUSH) */,
   /*   906 */        0x00000905           /* 65     (LREF) */,
   /*   907 */        0x0000001A           /* 66     (BNNUME) */,
-  /*   908 */        WORD(SG_MAKE_INT(8)),
+  /*   908 */        WORD(8),
   /*   909 */        0x00000030           /* 68     (FRAME) */,
-  /*   910 */        WORD(SG_MAKE_INT(4)),
+  /*   910 */        WORD(4),
   /*   911 */        0x00000B45           /* 70     (LREF_PUSH) */,
   /*   912 */        0x0000014A           /* 71     (GREF_CALL) */,
   /*   913 */        WORD(SG_UNDEF)  /* identifier#reverse! */,
   /*   914 */        0x00000018           /* 73     (JUMP) */,
-  /*   915 */        WORD(SG_MAKE_INT(16)),
+  /*   915 */        WORD(16),
   /*   916 */        0x00000A05           /* 75     (LREF) */,
   /*   917 */        0x0000010F           /* 76     (ADDI) */,
   /*   918 */        0x0000000B           /* 77     (PUSH) */,
   /*   919 */        0x00000030           /* 78     (FRAME) */,
-  /*   920 */        WORD(SG_MAKE_INT(5)),
+  /*   920 */        WORD(5),
   /*   921 */        0x00000045           /* 80     (LREF_PUSH) */,
   /*   922 */        0x00000A45           /* 81     (LREF_PUSH) */,
   /*   923 */        0x0000024A           /* 82     (GREF_CALL) */,
@@ -1066,7 +1066,7 @@ static struct sg__wcRec {
   /*   927 */        0x00000054           /* 86     (CONS_PUSH) */,
   /*   928 */        0x00A00219           /* 87     (SHIFTJ) */,
   /*   929 */        0x00000018           /* 88     (JUMP) */,
-  /*   930 */        WORD(SG_MAKE_INT(-25)),
+  /*   930 */        WORD(-25),
   /*   931 */        0x00000232           /* 90     (LEAVE) */,
   /*   932 */        0x00000132           /* 91     (LEAVE) */,
   /*   933 */        0x0000000B           /* 92     (PUSH) */,
@@ -1083,9 +1083,9 @@ static struct sg__wcRec {
   /*   944 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   945 */        0x00000306           /* 8      (LSET) */,
   /*   946 */        0x00000030           /* 9      (FRAME) */,
-  /*   947 */        WORD(SG_MAKE_INT(8)),
+  /*   947 */        WORD(8),
   /*   948 */        0x00000030           /* 11     (FRAME) */,
-  /*   949 */        WORD(SG_MAKE_INT(5)),
+  /*   949 */        WORD(5),
   /*   950 */        0x00000045           /* 13     (LREF_PUSH) */,
   /*   951 */        0x00000305           /* 14     (LREF) */,
   /*   952 */        0x0000000D           /* 15     (UNBOX) */,
@@ -1094,21 +1094,21 @@ static struct sg__wcRec {
   /*   955 */        0x00000132           /* 18     (LEAVE) */,
   /*   956 */        0x0000000B           /* 19     (PUSH) */,
   /*   957 */        0x00000030           /* 20     (FRAME) */,
-  /*   958 */        WORD(SG_MAKE_INT(4)),
+  /*   958 */        WORD(4),
   /*   959 */        0x00000045           /* 22     (LREF_PUSH) */,
   /*   960 */        0x0000014A           /* 23     (GREF_CALL) */,
   /*   961 */        WORD(SG_UNDEF)  /* identifier#rcd-protocol */,
   /*   962 */        0x0000012D           /* 25     (TAIL_CALL) */,
   /*   963 */        0x0000002F           /* 26     (RET) */,
   /*   964 */        0x00000030           /* 0      (FRAME) */,
-  /*   965 */        WORD(SG_MAKE_INT(4)),
+  /*   965 */        WORD(4),
   /*   966 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   967 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   968 */        WORD(SG_UNDEF)  /* identifier#rcd-parent */,
   /*   969 */        0x0000000B           /* 5      (PUSH) */,
   /*   970 */        0x00000105           /* 6      (LREF) */,
   /*   971 */        0x00000017           /* 7      (TEST) */,
-  /*   972 */        WORD(SG_MAKE_INT(8)),
+  /*   972 */        WORD(8),
   /*   973 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   974 */        0x00000245           /* 10     (LREF_PUSH) */,
   /*   975 */        0x00000246           /* 11     (FREF_PUSH) */,
@@ -1137,11 +1137,11 @@ static struct sg__wcRec {
   /*   998 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   999 */        0x0000002F           /* 7      (RET) */,
   /*  1000 */        0x00000030           /* 0      (FRAME) */,
-  /*  1001 */        WORD(SG_MAKE_INT(21)),
+  /*  1001 */        WORD(21),
   /*  1002 */        0x00000030           /* 2      (FRAME) */,
-  /*  1003 */        WORD(SG_MAKE_INT(12)),
+  /*  1003 */        WORD(12),
   /*  1004 */        0x00000030           /* 4      (FRAME) */,
-  /*  1005 */        WORD(SG_MAKE_INT(5)),
+  /*  1005 */        WORD(5),
   /*  1006 */        0x00000446           /* 6      (FREF_PUSH) */,
   /*  1007 */        0x00000307           /* 7      (FREF) */,
   /*  1008 */        0x0000000D           /* 8      (UNBOX) */,
@@ -1153,7 +1153,7 @@ static struct sg__wcRec {
   /*  1014 */        0x0000022A           /* 14     (APPLY) */,
   /*  1015 */        0x0000000B           /* 15     (PUSH) */,
   /*  1016 */        0x00000030           /* 16     (FRAME) */,
-  /*  1017 */        WORD(SG_MAKE_INT(4)),
+  /*  1017 */        WORD(4),
   /*  1018 */        0x00000146           /* 18     (FREF_PUSH) */,
   /*  1019 */        0x0000014A           /* 19     (GREF_CALL) */,
   /*  1020 */        WORD(SG_UNDEF)  /* identifier#rcd-protocol */,
@@ -1173,18 +1173,18 @@ static struct sg__wcRec {
   /*  1034 */        0x00000239           /* 2      (APPEND) */,
   /*  1035 */        0x0000000B           /* 3      (PUSH) */,
   /*  1036 */        0x00000030           /* 4      (FRAME) */,
-  /*  1037 */        WORD(SG_MAKE_INT(4)),
+  /*  1037 */        WORD(4),
   /*  1038 */        0x00000145           /* 6      (LREF_PUSH) */,
   /*  1039 */        0x0000014A           /* 7      (GREF_CALL) */,
   /*  1040 */        WORD(SG_UNDEF)  /* identifier#length */,
   /*  1041 */        0x0000000B           /* 9      (PUSH) */,
   /*  1042 */        0x00000107           /* 10     (FREF) */,
   /*  1043 */        0x0000001A           /* 11     (BNNUME) */,
-  /*  1044 */        WORD(SG_MAKE_INT(29)),
+  /*  1044 */        WORD(29),
   /*  1045 */        0x00000030           /* 13     (FRAME) */,
-  /*  1046 */        WORD(SG_MAKE_INT(12)),
+  /*  1046 */        WORD(12),
   /*  1047 */        0x00000030           /* 15     (FRAME) */,
-  /*  1048 */        WORD(SG_MAKE_INT(4)),
+  /*  1048 */        WORD(4),
   /*  1049 */        0x00000145           /* 17     (LREF_PUSH) */,
   /*  1050 */        0x0000014A           /* 18     (GREF_CALL) */,
   /*  1051 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -1202,7 +1202,7 @@ static struct sg__wcRec {
   /*  1063 */        0x00000239           /* 31     (APPEND) */,
   /*  1064 */        0x0000000B           /* 32     (PUSH) */,
   /*  1065 */        0x00000030           /* 33     (FRAME) */,
-  /*  1066 */        WORD(SG_MAKE_INT(5)),
+  /*  1066 */        WORD(5),
   /*  1067 */        0x00000245           /* 35     (LREF_PUSH) */,
   /*  1068 */        0x00000345           /* 36     (LREF_PUSH) */,
   /*  1069 */        0x0000024A           /* 37     (GREF_CALL) */,
@@ -1223,25 +1223,25 @@ static struct sg__wcRec {
   /*  1084 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  1085 */        0x0000000B           /* 4      (PUSH) */,
   /*  1086 */        0x00000030           /* 5      (FRAME) */,
-  /*  1087 */        WORD(SG_MAKE_INT(4)),
+  /*  1087 */        WORD(4),
   /*  1088 */        0x00000045           /* 7      (LREF_PUSH) */,
   /*  1089 */        0x0000014A           /* 8      (GREF_CALL) */,
   /*  1090 */        WORD(SG_UNDEF)  /* identifier#rcd-protocol */,
   /*  1091 */        0x0000012D           /* 10     (TAIL_CALL) */,
   /*  1092 */        0x0000002F           /* 11     (RET) */,
   /*  1093 */        0x00000030           /* 0      (FRAME) */,
-  /*  1094 */        WORD(SG_MAKE_INT(4)),
+  /*  1094 */        WORD(4),
   /*  1095 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1096 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1097 */        WORD(SG_UNDEF)  /* identifier#length */,
   /*  1098 */        0x0000000B           /* 5      (PUSH) */,
   /*  1099 */        0x00000107           /* 6      (FREF) */,
   /*  1100 */        0x0000001A           /* 7      (BNNUME) */,
-  /*  1101 */        WORD(SG_MAKE_INT(29)),
+  /*  1101 */        WORD(29),
   /*  1102 */        0x00000030           /* 9      (FRAME) */,
-  /*  1103 */        WORD(SG_MAKE_INT(12)),
+  /*  1103 */        WORD(12),
   /*  1104 */        0x00000030           /* 11     (FRAME) */,
-  /*  1105 */        WORD(SG_MAKE_INT(4)),
+  /*  1105 */        WORD(4),
   /*  1106 */        0x00000045           /* 13     (LREF_PUSH) */,
   /*  1107 */        0x0000014A           /* 14     (GREF_CALL) */,
   /*  1108 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -1259,7 +1259,7 @@ static struct sg__wcRec {
   /*  1120 */        0x00000239           /* 27     (APPEND) */,
   /*  1121 */        0x0000000B           /* 28     (PUSH) */,
   /*  1122 */        0x00000030           /* 29     (FRAME) */,
-  /*  1123 */        WORD(SG_MAKE_INT(5)),
+  /*  1123 */        WORD(5),
   /*  1124 */        0x00000145           /* 31     (LREF_PUSH) */,
   /*  1125 */        0x00000245           /* 32     (LREF_PUSH) */,
   /*  1126 */        0x0000024A           /* 33     (GREF_CALL) */,
@@ -1275,16 +1275,16 @@ static struct sg__wcRec {
   /*  1136 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1137 */        0x0000002F           /* 44     (RET) */,
   /*  1138 */        0x00000030           /* 0      (FRAME) */,
-  /*  1139 */        WORD(SG_MAKE_INT(4)),
+  /*  1139 */        WORD(4),
   /*  1140 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1141 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1142 */        WORD(SG_UNDEF)  /* identifier#record-type-parent */,
   /*  1143 */        0x0000000B           /* 5      (PUSH) */,
   /*  1144 */        0x00000105           /* 6      (LREF) */,
   /*  1145 */        0x00000017           /* 7      (TEST) */,
-  /*  1146 */        WORD(SG_MAKE_INT(11)),
+  /*  1146 */        WORD(11),
   /*  1147 */        0x00000030           /* 9      (FRAME) */,
-  /*  1148 */        WORD(SG_MAKE_INT(4)),
+  /*  1148 */        WORD(4),
   /*  1149 */        0x00000145           /* 11     (LREF_PUSH) */,
   /*  1150 */        0x0000014A           /* 12     (GREF_CALL) */,
   /*  1151 */        WORD(SG_UNDEF)  /* identifier#rtd-total-field-count */,
@@ -1302,14 +1302,14 @@ static struct sg__wcRec {
   /*  1163 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  1164 */        0x0000002F           /* 4      (RET) */,
   /*  1165 */        0x00000030           /* 0      (FRAME) */,
-  /*  1166 */        WORD(SG_MAKE_INT(5)),
+  /*  1166 */        WORD(5),
   /*  1167 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1168 */        0x00000146           /* 3      (FREF_PUSH) */,
   /*  1169 */        0x0000024A           /* 4      (GREF_CALL) */,
   /*  1170 */        WORD(SG_UNDEF)  /* identifier#split-at */,
   /*  1171 */        0x00000228           /* 6      (RECEIVE) */,
   /*  1172 */        0x00000030           /* 7      (FRAME) */,
-  /*  1173 */        WORD(SG_MAKE_INT(4)),
+  /*  1173 */        WORD(4),
   /*  1174 */        0x00000046           /* 9      (FREF_PUSH) */,
   /*  1175 */        0x00000105           /* 10     (LREF) */,
   /*  1176 */        0x0000022A           /* 11     (APPLY) */,
@@ -1320,12 +1320,12 @@ static struct sg__wcRec {
   /*  1181 */        0x00000005           /* 0      (LREF) */,
   /*  1182 */        0x0000003E           /* 1      (PAIRP) */,
   /*  1183 */        0x00000017           /* 2      (TEST) */,
-  /*  1184 */        WORD(SG_MAKE_INT(3)),
+  /*  1184 */        WORD(3),
   /*  1185 */        0x00000061           /* 4      (CONST_RET) */,
   /*  1186 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  1187 */        0x00000005           /* 6      (LREF) */,
   /*  1188 */        0x00000021           /* 7      (BNNULL) */,
-  /*  1189 */        WORD(SG_MAKE_INT(3)),
+  /*  1189 */        WORD(3),
   /*  1190 */        0x00000061           /* 9      (CONST_RET) */,
   /*  1191 */        WORD(SG_MAKE_BOOL(TRUE)),
   /*  1192 */        0x00000048           /* 11     (CONST_PUSH) */,
@@ -1337,20 +1337,20 @@ static struct sg__wcRec {
   /*  1198 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1199 */        0x0000002F           /* 18     (RET) */,
   /*  1200 */        0x00000030           /* 0      (FRAME) */,
-  /*  1201 */        WORD(SG_MAKE_INT(4)),
+  /*  1201 */        WORD(4),
   /*  1202 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*  1203 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1204 */        WORD(SG_UNDEF)  /* identifier#integer? */,
   /*  1205 */        0x00000017           /* 5      (TEST) */,
-  /*  1206 */        WORD(SG_MAKE_INT(3)),
+  /*  1206 */        WORD(3),
   /*  1207 */        0x00000018           /* 7      (JUMP) */,
-  /*  1208 */        WORD(SG_MAKE_INT(16)),
+  /*  1208 */        WORD(16),
   /*  1209 */        0x00000030           /* 9      (FRAME) */,
-  /*  1210 */        WORD(SG_MAKE_INT(14)),
+  /*  1210 */        WORD(14),
   /*  1211 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1212 */        WORD(SG_UNDEF), /* split-at */
   /*  1213 */        0x00000030           /* 13     (FRAME) */,
-  /*  1214 */        WORD(SG_MAKE_INT(7)),
+  /*  1214 */        WORD(7),
   /*  1215 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1216 */        WORD(SG_UNDEF), /* "integer" */
   /*  1217 */        0x00000145           /* 17     (LREF_PUSH) */,
@@ -1365,14 +1365,14 @@ static struct sg__wcRec {
   /*  1226 */        0x00000048           /* 26     (CONST_PUSH) */,
   /*  1227 */        WORD(SG_NIL),
   /*  1228 */        0x00000030           /* 28     (FRAME) */,
-  /*  1229 */        WORD(SG_MAKE_INT(4)),
+  /*  1229 */        WORD(4),
   /*  1230 */        0x00000345           /* 30     (LREF_PUSH) */,
   /*  1231 */        0x0000014A           /* 31     (GREF_CALL) */,
   /*  1232 */        WORD(SG_UNDEF)  /* identifier#zero? */,
   /*  1233 */        0x00000017           /* 33     (TEST) */,
-  /*  1234 */        WORD(SG_MAKE_INT(10)),
+  /*  1234 */        WORD(10),
   /*  1235 */        0x00000030           /* 35     (FRAME) */,
-  /*  1236 */        WORD(SG_MAKE_INT(4)),
+  /*  1236 */        WORD(4),
   /*  1237 */        0x00000445           /* 37     (LREF_PUSH) */,
   /*  1238 */        0x0000014A           /* 38     (GREF_CALL) */,
   /*  1239 */        WORD(SG_UNDEF)  /* identifier#reverse! */,
@@ -1382,7 +1382,7 @@ static struct sg__wcRec {
   /*  1243 */        0x0000002F           /* 43     (RET) */,
   /*  1244 */        0x00000205           /* 44     (LREF) */,
   /*  1245 */        0x00000021           /* 45     (BNNULL) */,
-  /*  1246 */        WORD(SG_MAKE_INT(8)),
+  /*  1246 */        WORD(8),
   /*  1247 */        0x00000048           /* 47     (CONST_PUSH) */,
   /*  1248 */        WORD(SG_UNDEF), /* split-at */
   /*  1249 */        0x00000048           /* 49     (CONST_PUSH) */,
@@ -1399,10 +1399,10 @@ static struct sg__wcRec {
   /*  1260 */        0x00000054           /* 60     (CONS_PUSH) */,
   /*  1261 */        0x00200319           /* 61     (SHIFTJ) */,
   /*  1262 */        0x00000018           /* 62     (JUMP) */,
-  /*  1263 */        WORD(SG_MAKE_INT(-35)),
+  /*  1263 */        WORD(-35),
   /*  1264 */        0x0000002F           /* 64     (RET) */,
   /*  1265 */        0x00000030           /* 0      (FRAME) */,
-  /*  1266 */        WORD(SG_MAKE_INT(5)),
+  /*  1266 */        WORD(5),
   /*  1267 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1268 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*  1269 */        0x0000024A           /* 4      (GREF_CALL) */,
@@ -1410,24 +1410,24 @@ static struct sg__wcRec {
   /*  1271 */        0x0000000B           /* 6      (PUSH) */,
   /*  1272 */        0x00000205           /* 7      (LREF) */,
   /*  1273 */        0x00000017           /* 8      (TEST) */,
-  /*  1274 */        WORD(SG_MAKE_INT(2)),
+  /*  1274 */        WORD(2),
   /*  1275 */        0x00000255           /* 10     (LREF_CAR) */,
   /*  1276 */        0x0000002F           /* 11     (RET) */,
   /*  1277 */        0x00000030           /* 0      (FRAME) */,
-  /*  1278 */        WORD(SG_MAKE_INT(4)),
+  /*  1278 */        WORD(4),
   /*  1279 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1280 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1281 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  1282 */        0x00000017           /* 5      (TEST) */,
-  /*  1283 */        WORD(SG_MAKE_INT(3)),
+  /*  1283 */        WORD(3),
   /*  1284 */        0x00000018           /* 7      (JUMP) */,
-  /*  1285 */        WORD(SG_MAKE_INT(16)),
+  /*  1285 */        WORD(16),
   /*  1286 */        0x00000030           /* 9      (FRAME) */,
-  /*  1287 */        WORD(SG_MAKE_INT(14)),
+  /*  1287 */        WORD(14),
   /*  1288 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1289 */        WORD(SG_UNDEF), /* find-tail */
   /*  1290 */        0x00000030           /* 13     (FRAME) */,
-  /*  1291 */        WORD(SG_MAKE_INT(7)),
+  /*  1291 */        WORD(7),
   /*  1292 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1293 */        WORD(SG_UNDEF), /* "procedure" */
   /*  1294 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -1442,36 +1442,36 @@ static struct sg__wcRec {
   /*  1303 */        0x0000003D           /* 26     (NULLP) */,
   /*  1304 */        0x00000022           /* 27     (NOT) */,
   /*  1305 */        0x00000017           /* 28     (TEST) */,
-  /*  1306 */        WORD(SG_MAKE_INT(14)),
+  /*  1306 */        WORD(14),
   /*  1307 */        0x00000030           /* 30     (FRAME) */,
-  /*  1308 */        WORD(SG_MAKE_INT(4)),
+  /*  1308 */        WORD(4),
   /*  1309 */        0x0000025B           /* 32     (LREF_CAR_PUSH) */,
   /*  1310 */        0x00000005           /* 33     (LREF) */,
   /*  1311 */        0x0000012B           /* 34     (CALL) */,
   /*  1312 */        0x00000017           /* 35     (TEST) */,
-  /*  1313 */        WORD(SG_MAKE_INT(3)),
+  /*  1313 */        WORD(3),
   /*  1314 */        0x00000205           /* 37     (LREF) */,
   /*  1315 */        0x0000002F           /* 38     (RET) */,
   /*  1316 */        0x0000025C           /* 39     (LREF_CDR_PUSH) */,
   /*  1317 */        0x00200119           /* 40     (SHIFTJ) */,
   /*  1318 */        0x00000018           /* 41     (JUMP) */,
-  /*  1319 */        WORD(SG_MAKE_INT(-17)),
+  /*  1319 */        WORD(-17),
   /*  1320 */        0x0000002F           /* 43     (RET) */,
   /*  1321 */        0x00000030           /* 0      (FRAME) */,
-  /*  1322 */        WORD(SG_MAKE_INT(4)),
+  /*  1322 */        WORD(4),
   /*  1323 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*  1324 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1325 */        WORD(SG_UNDEF)  /* identifier#list? */,
   /*  1326 */        0x00000017           /* 5      (TEST) */,
-  /*  1327 */        WORD(SG_MAKE_INT(3)),
+  /*  1327 */        WORD(3),
   /*  1328 */        0x00000018           /* 7      (JUMP) */,
-  /*  1329 */        WORD(SG_MAKE_INT(16)),
+  /*  1329 */        WORD(16),
   /*  1330 */        0x00000030           /* 9      (FRAME) */,
-  /*  1331 */        WORD(SG_MAKE_INT(14)),
+  /*  1331 */        WORD(14),
   /*  1332 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1333 */        WORD(SG_UNDEF), /* assoc */
   /*  1334 */        0x00000030           /* 13     (FRAME) */,
-  /*  1335 */        WORD(SG_MAKE_INT(7)),
+  /*  1335 */        WORD(7),
   /*  1336 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1337 */        WORD(SG_UNDEF), /* "list" */
   /*  1338 */        0x00000145           /* 17     (LREF_PUSH) */,
@@ -1483,7 +1483,7 @@ static struct sg__wcRec {
   /*  1344 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1345 */        0x00000205           /* 24     (LREF) */,
   /*  1346 */        0x00000021           /* 25     (BNNULL) */,
-  /*  1347 */        WORD(SG_MAKE_INT(8)),
+  /*  1347 */        WORD(8),
   /*  1348 */        0x00000045           /* 27     (LREF_PUSH) */,
   /*  1349 */        0x00000145           /* 28     (LREF_PUSH) */,
   /*  1350 */        0x00000047           /* 29     (GREF_PUSH) */,
@@ -1507,7 +1507,7 @@ static struct sg__wcRec {
   /*  1368 */        0x0000002F           /* 4      (RET) */,
   /*  1369 */        0x00000205           /* 0      (LREF) */,
   /*  1370 */        0x00000021           /* 1      (BNNULL) */,
-  /*  1371 */        WORD(SG_MAKE_INT(8)),
+  /*  1371 */        WORD(8),
   /*  1372 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*  1373 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*  1374 */        0x00000047           /* 5      (GREF_PUSH) */,
@@ -1531,7 +1531,7 @@ static struct sg__wcRec {
   /*  1392 */        0x0000002F           /* 4      (RET) */,
   /*  1393 */        0x00000205           /* 0      (LREF) */,
   /*  1394 */        0x00000021           /* 1      (BNNULL) */,
-  /*  1395 */        WORD(SG_MAKE_INT(8)),
+  /*  1395 */        WORD(8),
   /*  1396 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*  1397 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*  1398 */        0x00000047           /* 5      (GREF_PUSH) */,
@@ -1549,7 +1549,7 @@ static struct sg__wcRec {
   /*  1410 */        WORD(SG_UNDEF)  /* identifier#filter */,
   /*  1411 */        0x0000002F           /* 18     (RET) */,
   /*  1412 */        0x00000030           /* 0      (FRAME) */,
-  /*  1413 */        WORD(SG_MAKE_INT(5)),
+  /*  1413 */        WORD(5),
   /*  1414 */        0x00000146           /* 2      (FREF_PUSH) */,
   /*  1415 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*  1416 */        0x00000057           /* 4      (FREF_CAR) */,
@@ -1557,20 +1557,20 @@ static struct sg__wcRec {
   /*  1418 */        0x00000022           /* 6      (NOT) */,
   /*  1419 */        0x0000002F           /* 7      (RET) */,
   /*  1420 */        0x00000030           /* 0      (FRAME) */,
-  /*  1421 */        WORD(SG_MAKE_INT(4)),
+  /*  1421 */        WORD(4),
   /*  1422 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1423 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1424 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  1425 */        0x00000017           /* 5      (TEST) */,
-  /*  1426 */        WORD(SG_MAKE_INT(3)),
+  /*  1426 */        WORD(3),
   /*  1427 */        0x00000018           /* 7      (JUMP) */,
-  /*  1428 */        WORD(SG_MAKE_INT(17)),
+  /*  1428 */        WORD(17),
   /*  1429 */        0x00000030           /* 9      (FRAME) */,
-  /*  1430 */        WORD(SG_MAKE_INT(15)),
+  /*  1430 */        WORD(15),
   /*  1431 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1432 */        WORD(SG_UNDEF), /* reduce */
   /*  1433 */        0x00000030           /* 13     (FRAME) */,
-  /*  1434 */        WORD(SG_MAKE_INT(8)),
+  /*  1434 */        WORD(8),
   /*  1435 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1436 */        WORD(SG_UNDEF), /* "procedure" */
   /*  1437 */        0x00000047           /* 17     (GREF_PUSH) */,
@@ -1583,7 +1583,7 @@ static struct sg__wcRec {
   /*  1444 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1445 */        0x00000205           /* 25     (LREF) */,
   /*  1446 */        0x00000021           /* 26     (BNNULL) */,
-  /*  1447 */        WORD(SG_MAKE_INT(3)),
+  /*  1447 */        WORD(3),
   /*  1448 */        0x00000105           /* 28     (LREF) */,
   /*  1449 */        0x0000002F           /* 29     (RET) */,
   /*  1450 */        0x00000045           /* 30     (LREF_PUSH) */,
@@ -1593,20 +1593,20 @@ static struct sg__wcRec {
   /*  1454 */        WORD(SG_UNDEF)  /* identifier#fold */,
   /*  1455 */        0x0000002F           /* 35     (RET) */,
   /*  1456 */        0x00000030           /* 0      (FRAME) */,
-  /*  1457 */        WORD(SG_MAKE_INT(4)),
+  /*  1457 */        WORD(4),
   /*  1458 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1459 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1460 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  1461 */        0x00000017           /* 5      (TEST) */,
-  /*  1462 */        WORD(SG_MAKE_INT(3)),
+  /*  1462 */        WORD(3),
   /*  1463 */        0x00000018           /* 7      (JUMP) */,
-  /*  1464 */        WORD(SG_MAKE_INT(16)),
+  /*  1464 */        WORD(16),
   /*  1465 */        0x00000030           /* 9      (FRAME) */,
-  /*  1466 */        WORD(SG_MAKE_INT(14)),
+  /*  1466 */        WORD(14),
   /*  1467 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1468 */        WORD(SG_UNDEF), /* lset-union */
   /*  1469 */        0x00000030           /* 13     (FRAME) */,
-  /*  1470 */        WORD(SG_MAKE_INT(7)),
+  /*  1470 */        WORD(7),
   /*  1471 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1472 */        WORD(SG_UNDEF), /* "procedure" */
   /*  1473 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -1628,18 +1628,18 @@ static struct sg__wcRec {
   /*  1489 */        0x0000002F           /* 33     (RET) */,
   /*  1490 */        0x00000005           /* 0      (LREF) */,
   /*  1491 */        0x00000021           /* 1      (BNNULL) */,
-  /*  1492 */        WORD(SG_MAKE_INT(3)),
+  /*  1492 */        WORD(3),
   /*  1493 */        0x00000105           /* 3      (LREF) */,
   /*  1494 */        0x0000002F           /* 4      (RET) */,
   /*  1495 */        0x00000105           /* 5      (LREF) */,
   /*  1496 */        0x00000021           /* 6      (BNNULL) */,
-  /*  1497 */        WORD(SG_MAKE_INT(3)),
+  /*  1497 */        WORD(3),
   /*  1498 */        0x00000005           /* 8      (LREF) */,
   /*  1499 */        0x0000002F           /* 9      (RET) */,
   /*  1500 */        0x00000045           /* 10     (LREF_PUSH) */,
   /*  1501 */        0x00000105           /* 11     (LREF) */,
   /*  1502 */        0x0000001F           /* 12     (BNEQ) */,
-  /*  1503 */        WORD(SG_MAKE_INT(3)),
+  /*  1503 */        WORD(3),
   /*  1504 */        0x00000105           /* 14     (LREF) */,
   /*  1505 */        0x0000002F           /* 15     (RET) */,
   /*  1506 */        0x00000046           /* 16     (FREF_PUSH) */,
@@ -1652,7 +1652,7 @@ static struct sg__wcRec {
   /*  1513 */        WORD(SG_UNDEF)  /* identifier#fold */,
   /*  1514 */        0x0000002F           /* 24     (RET) */,
   /*  1515 */        0x00000030           /* 0      (FRAME) */,
-  /*  1516 */        WORD(SG_MAKE_INT(9)),
+  /*  1516 */        WORD(9),
   /*  1517 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1518 */        0x00000046           /* 3      (FREF_PUSH) */,
   /*  1519 */        0x00000029           /* 4      (CLOSURE) */,
@@ -1662,7 +1662,7 @@ static struct sg__wcRec {
   /*  1523 */        0x0000024A           /* 8      (GREF_CALL) */,
   /*  1524 */        WORD(SG_UNDEF)  /* identifier#exists */,
   /*  1525 */        0x00000017           /* 10     (TEST) */,
-  /*  1526 */        WORD(SG_MAKE_INT(3)),
+  /*  1526 */        WORD(3),
   /*  1527 */        0x00000105           /* 12     (LREF) */,
   /*  1528 */        0x0000002F           /* 13     (RET) */,
   /*  1529 */        0x00000045           /* 14     (LREF_PUSH) */,
@@ -1675,20 +1675,20 @@ static struct sg__wcRec {
   /*  1536 */        0x0000022D           /* 3      (TAIL_CALL) */,
   /*  1537 */        0x0000002F           /* 4      (RET) */,
   /*  1538 */        0x00000030           /* 0      (FRAME) */,
-  /*  1539 */        WORD(SG_MAKE_INT(4)),
+  /*  1539 */        WORD(4),
   /*  1540 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1541 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1542 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  1543 */        0x00000017           /* 5      (TEST) */,
-  /*  1544 */        WORD(SG_MAKE_INT(3)),
+  /*  1544 */        WORD(3),
   /*  1545 */        0x00000018           /* 7      (JUMP) */,
-  /*  1546 */        WORD(SG_MAKE_INT(16)),
+  /*  1546 */        WORD(16),
   /*  1547 */        0x00000030           /* 9      (FRAME) */,
-  /*  1548 */        WORD(SG_MAKE_INT(14)),
+  /*  1548 */        WORD(14),
   /*  1549 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1550 */        WORD(SG_UNDEF), /* lset-intersection */
   /*  1551 */        0x00000030           /* 13     (FRAME) */,
-  /*  1552 */        WORD(SG_MAKE_INT(7)),
+  /*  1552 */        WORD(7),
   /*  1553 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1554 */        WORD(SG_UNDEF), /* "procedure" */
   /*  1555 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -1699,7 +1699,7 @@ static struct sg__wcRec {
   /*  1560 */        0x0000024A           /* 22     (GREF_CALL) */,
   /*  1561 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1562 */        0x00000030           /* 24     (FRAME) */,
-  /*  1563 */        WORD(SG_MAKE_INT(7)),
+  /*  1563 */        WORD(7),
   /*  1564 */        0x00000145           /* 26     (LREF_PUSH) */,
   /*  1565 */        0x00000245           /* 27     (LREF_PUSH) */,
   /*  1566 */        0x00000047           /* 28     (GREF_PUSH) */,
@@ -1708,19 +1708,19 @@ static struct sg__wcRec {
   /*  1569 */        WORD(SG_UNDEF)  /* identifier#delete */,
   /*  1570 */        0x0000000B           /* 32     (PUSH) */,
   /*  1571 */        0x00000030           /* 33     (FRAME) */,
-  /*  1572 */        WORD(SG_MAKE_INT(6)),
+  /*  1572 */        WORD(6),
   /*  1573 */        0x00000047           /* 35     (GREF_PUSH) */,
   /*  1574 */        WORD(SG_UNDEF)  /* identifier#null? */,
   /*  1575 */        0x00000345           /* 37     (LREF_PUSH) */,
   /*  1576 */        0x0000024A           /* 38     (GREF_CALL) */,
   /*  1577 */        WORD(SG_UNDEF)  /* identifier#exists */,
   /*  1578 */        0x00000017           /* 40     (TEST) */,
-  /*  1579 */        WORD(SG_MAKE_INT(3)),
+  /*  1579 */        WORD(3),
   /*  1580 */        0x00000061           /* 42     (CONST_RET) */,
   /*  1581 */        WORD(SG_NIL),
   /*  1582 */        0x00000305           /* 44     (LREF) */,
   /*  1583 */        0x00000021           /* 45     (BNNULL) */,
-  /*  1584 */        WORD(SG_MAKE_INT(3)),
+  /*  1584 */        WORD(3),
   /*  1585 */        0x00000105           /* 47     (LREF) */,
   /*  1586 */        0x0000002F           /* 48     (RET) */,
   /*  1587 */        0x00000045           /* 49     (LREF_PUSH) */,
@@ -1748,20 +1748,20 @@ static struct sg__wcRec {
   /*  1609 */        WORD(SG_UNDEF)  /* identifier#member */,
   /*  1610 */        0x0000002F           /* 5      (RET) */,
   /*  1611 */        0x00000030           /* 0      (FRAME) */,
-  /*  1612 */        WORD(SG_MAKE_INT(4)),
+  /*  1612 */        WORD(4),
   /*  1613 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  1614 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1615 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  1616 */        0x00000017           /* 5      (TEST) */,
-  /*  1617 */        WORD(SG_MAKE_INT(3)),
+  /*  1617 */        WORD(3),
   /*  1618 */        0x00000018           /* 7      (JUMP) */,
-  /*  1619 */        WORD(SG_MAKE_INT(16)),
+  /*  1619 */        WORD(16),
   /*  1620 */        0x00000030           /* 9      (FRAME) */,
-  /*  1621 */        WORD(SG_MAKE_INT(14)),
+  /*  1621 */        WORD(14),
   /*  1622 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1623 */        WORD(SG_UNDEF), /* lset-difference */
   /*  1624 */        0x00000030           /* 13     (FRAME) */,
-  /*  1625 */        WORD(SG_MAKE_INT(7)),
+  /*  1625 */        WORD(7),
   /*  1626 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1627 */        WORD(SG_UNDEF), /* "procedure" */
   /*  1628 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -1772,7 +1772,7 @@ static struct sg__wcRec {
   /*  1633 */        0x0000024A           /* 22     (GREF_CALL) */,
   /*  1634 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  1635 */        0x00000030           /* 24     (FRAME) */,
-  /*  1636 */        WORD(SG_MAKE_INT(6)),
+  /*  1636 */        WORD(6),
   /*  1637 */        0x00000047           /* 26     (GREF_PUSH) */,
   /*  1638 */        WORD(SG_UNDEF)  /* identifier#pair? */,
   /*  1639 */        0x00000245           /* 28     (LREF_PUSH) */,
@@ -1781,17 +1781,17 @@ static struct sg__wcRec {
   /*  1642 */        0x0000000B           /* 31     (PUSH) */,
   /*  1643 */        0x00000305           /* 32     (LREF) */,
   /*  1644 */        0x00000021           /* 33     (BNNULL) */,
-  /*  1645 */        WORD(SG_MAKE_INT(3)),
+  /*  1645 */        WORD(3),
   /*  1646 */        0x00000105           /* 35     (LREF) */,
   /*  1647 */        0x0000002F           /* 36     (RET) */,
   /*  1648 */        0x00000030           /* 37     (FRAME) */,
-  /*  1649 */        WORD(SG_MAKE_INT(5)),
+  /*  1649 */        WORD(5),
   /*  1650 */        0x00000145           /* 39     (LREF_PUSH) */,
   /*  1651 */        0x00000345           /* 40     (LREF_PUSH) */,
   /*  1652 */        0x0000024A           /* 41     (GREF_CALL) */,
   /*  1653 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*  1654 */        0x00000017           /* 43     (TEST) */,
-  /*  1655 */        WORD(SG_MAKE_INT(3)),
+  /*  1655 */        WORD(3),
   /*  1656 */        0x00000061           /* 45     (CONST_RET) */,
   /*  1657 */        WORD(SG_NIL),
   /*  1658 */        0x00000045           /* 47     (LREF_PUSH) */,
@@ -1813,7 +1813,7 @@ static struct sg__wcRec {
   /*  1674 */        WORD(SG_UNDEF)  /* identifier#for-all */,
   /*  1675 */        0x0000002F           /* 8      (RET) */,
   /*  1676 */        0x00000030           /* 0      (FRAME) */,
-  /*  1677 */        WORD(SG_MAKE_INT(6)),
+  /*  1677 */        WORD(6),
   /*  1678 */        0x00000146           /* 2      (FREF_PUSH) */,
   /*  1679 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*  1680 */        0x00000046           /* 4      (FREF_PUSH) */,
@@ -1822,20 +1822,20 @@ static struct sg__wcRec {
   /*  1683 */        0x00000022           /* 7      (NOT) */,
   /*  1684 */        0x0000002F           /* 8      (RET) */,
   /*  1685 */        0x00000030           /* 0      (FRAME) */,
-  /*  1686 */        WORD(SG_MAKE_INT(4)),
+  /*  1686 */        WORD(4),
   /*  1687 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*  1688 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1689 */        WORD(SG_UNDEF)  /* identifier#integer? */,
   /*  1690 */        0x00000017           /* 5      (TEST) */,
-  /*  1691 */        WORD(SG_MAKE_INT(3)),
+  /*  1691 */        WORD(3),
   /*  1692 */        0x00000018           /* 7      (JUMP) */,
-  /*  1693 */        WORD(SG_MAKE_INT(16)),
+  /*  1693 */        WORD(16),
   /*  1694 */        0x00000030           /* 9      (FRAME) */,
-  /*  1695 */        WORD(SG_MAKE_INT(14)),
+  /*  1695 */        WORD(14),
   /*  1696 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1697 */        WORD(SG_UNDEF), /* take */
   /*  1698 */        0x00000030           /* 13     (FRAME) */,
-  /*  1699 */        WORD(SG_MAKE_INT(7)),
+  /*  1699 */        WORD(7),
   /*  1700 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1701 */        WORD(SG_UNDEF), /* "integer" */
   /*  1702 */        0x00000145           /* 17     (LREF_PUSH) */,
@@ -1858,20 +1858,20 @@ static struct sg__wcRec {
   /*  1719 */        0x0000022E           /* 34     (LOCAL_TAIL_CALL) */,
   /*  1720 */        0x0000002F           /* 35     (RET) */,
   /*  1721 */        0x00000030           /* 0      (FRAME) */,
-  /*  1722 */        WORD(SG_MAKE_INT(4)),
+  /*  1722 */        WORD(4),
   /*  1723 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*  1724 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  1725 */        WORD(SG_UNDEF)  /* identifier#integer? */,
   /*  1726 */        0x00000017           /* 5      (TEST) */,
-  /*  1727 */        WORD(SG_MAKE_INT(3)),
+  /*  1727 */        WORD(3),
   /*  1728 */        0x00000018           /* 7      (JUMP) */,
-  /*  1729 */        WORD(SG_MAKE_INT(16)),
+  /*  1729 */        WORD(16),
   /*  1730 */        0x00000030           /* 9      (FRAME) */,
-  /*  1731 */        WORD(SG_MAKE_INT(14)),
+  /*  1731 */        WORD(14),
   /*  1732 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  1733 */        WORD(SG_UNDEF), /* drop */
   /*  1734 */        0x00000030           /* 13     (FRAME) */,
-  /*  1735 */        WORD(SG_MAKE_INT(7)),
+  /*  1735 */        WORD(7),
   /*  1736 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  1737 */        WORD(SG_UNDEF), /* "integer" */
   /*  1738 */        0x00000145           /* 17     (LREF_PUSH) */,
@@ -1884,12 +1884,12 @@ static struct sg__wcRec {
   /*  1745 */        0x00000045           /* 24     (LREF_PUSH) */,
   /*  1746 */        0x00000145           /* 25     (LREF_PUSH) */,
   /*  1747 */        0x00000030           /* 26     (FRAME) */,
-  /*  1748 */        WORD(SG_MAKE_INT(4)),
+  /*  1748 */        WORD(4),
   /*  1749 */        0x00000345           /* 28     (LREF_PUSH) */,
   /*  1750 */        0x0000014A           /* 29     (GREF_CALL) */,
   /*  1751 */        WORD(SG_UNDEF)  /* identifier#zero? */,
   /*  1752 */        0x00000017           /* 31     (TEST) */,
-  /*  1753 */        WORD(SG_MAKE_INT(3)),
+  /*  1753 */        WORD(3),
   /*  1754 */        0x00000205           /* 33     (LREF) */,
   /*  1755 */        0x0000002F           /* 34     (RET) */,
   /*  1756 */        0x0000025C           /* 35     (LREF_CDR_PUSH) */,
@@ -1898,12 +1898,12 @@ static struct sg__wcRec {
   /*  1759 */        0x0000000B           /* 38     (PUSH) */,
   /*  1760 */        0x00200219           /* 39     (SHIFTJ) */,
   /*  1761 */        0x00000018           /* 40     (JUMP) */,
-  /*  1762 */        WORD(SG_MAKE_INT(-15)),
+  /*  1762 */        WORD(-15),
   /*  1763 */        0x0000002F           /* 42     (RET) */,
   /*  1764 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1765 */        WORD(SG_UNDEF)  /* identifier#char=? */,
   /*  1766 */        0x00000030           /* 2      (FRAME) */,
-  /*  1767 */        WORD(SG_MAKE_INT(6)),
+  /*  1767 */        WORD(6),
   /*  1768 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1769 */        WORD(SG_UNDEF)  /* identifier#char-foldcase */,
   /*  1770 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1914,7 +1914,7 @@ static struct sg__wcRec {
   /*  1775 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1776 */        WORD(SG_UNDEF)  /* identifier#char<? */,
   /*  1777 */        0x00000030           /* 2      (FRAME) */,
-  /*  1778 */        WORD(SG_MAKE_INT(6)),
+  /*  1778 */        WORD(6),
   /*  1779 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1780 */        WORD(SG_UNDEF)  /* identifier#char-foldcase */,
   /*  1781 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1925,7 +1925,7 @@ static struct sg__wcRec {
   /*  1786 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1787 */        WORD(SG_UNDEF)  /* identifier#char>? */,
   /*  1788 */        0x00000030           /* 2      (FRAME) */,
-  /*  1789 */        WORD(SG_MAKE_INT(6)),
+  /*  1789 */        WORD(6),
   /*  1790 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1791 */        WORD(SG_UNDEF)  /* identifier#char-foldcase */,
   /*  1792 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1936,7 +1936,7 @@ static struct sg__wcRec {
   /*  1797 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1798 */        WORD(SG_UNDEF)  /* identifier#char<=? */,
   /*  1799 */        0x00000030           /* 2      (FRAME) */,
-  /*  1800 */        WORD(SG_MAKE_INT(6)),
+  /*  1800 */        WORD(6),
   /*  1801 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1802 */        WORD(SG_UNDEF)  /* identifier#char-foldcase */,
   /*  1803 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1947,7 +1947,7 @@ static struct sg__wcRec {
   /*  1808 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1809 */        WORD(SG_UNDEF)  /* identifier#char>=? */,
   /*  1810 */        0x00000030           /* 2      (FRAME) */,
-  /*  1811 */        WORD(SG_MAKE_INT(6)),
+  /*  1811 */        WORD(6),
   /*  1812 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1813 */        WORD(SG_UNDEF)  /* identifier#char-foldcase */,
   /*  1814 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1958,7 +1958,7 @@ static struct sg__wcRec {
   /*  1819 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1820 */        WORD(SG_UNDEF)  /* identifier#string=? */,
   /*  1821 */        0x00000030           /* 2      (FRAME) */,
-  /*  1822 */        WORD(SG_MAKE_INT(6)),
+  /*  1822 */        WORD(6),
   /*  1823 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1824 */        WORD(SG_UNDEF)  /* identifier#string-foldcase */,
   /*  1825 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1969,7 +1969,7 @@ static struct sg__wcRec {
   /*  1830 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1831 */        WORD(SG_UNDEF)  /* identifier#string<? */,
   /*  1832 */        0x00000030           /* 2      (FRAME) */,
-  /*  1833 */        WORD(SG_MAKE_INT(6)),
+  /*  1833 */        WORD(6),
   /*  1834 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1835 */        WORD(SG_UNDEF)  /* identifier#string-foldcase */,
   /*  1836 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1980,7 +1980,7 @@ static struct sg__wcRec {
   /*  1841 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1842 */        WORD(SG_UNDEF)  /* identifier#string>? */,
   /*  1843 */        0x00000030           /* 2      (FRAME) */,
-  /*  1844 */        WORD(SG_MAKE_INT(6)),
+  /*  1844 */        WORD(6),
   /*  1845 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1846 */        WORD(SG_UNDEF)  /* identifier#string-foldcase */,
   /*  1847 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -1991,7 +1991,7 @@ static struct sg__wcRec {
   /*  1852 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1853 */        WORD(SG_UNDEF)  /* identifier#string<=? */,
   /*  1854 */        0x00000030           /* 2      (FRAME) */,
-  /*  1855 */        WORD(SG_MAKE_INT(6)),
+  /*  1855 */        WORD(6),
   /*  1856 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1857 */        WORD(SG_UNDEF)  /* identifier#string-foldcase */,
   /*  1858 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -2002,7 +2002,7 @@ static struct sg__wcRec {
   /*  1863 */        0x00000047           /* 0      (GREF_PUSH) */,
   /*  1864 */        WORD(SG_UNDEF)  /* identifier#string>=? */,
   /*  1865 */        0x00000030           /* 2      (FRAME) */,
-  /*  1866 */        WORD(SG_MAKE_INT(6)),
+  /*  1866 */        WORD(6),
   /*  1867 */        0x00000047           /* 4      (GREF_PUSH) */,
   /*  1868 */        WORD(SG_UNDEF)  /* identifier#string-foldcase */,
   /*  1869 */        0x00000045           /* 6      (LREF_PUSH) */,
@@ -2014,7 +2014,7 @@ static struct sg__wcRec {
   /*  1875 */        0x00000003           /* 1      (CONST) */,
   /*  1876 */        WORD(SG_UNDEF), /* big */
   /*  1877 */        0x0000001F           /* 3      (BNEQ) */,
-  /*  1878 */        WORD(SG_MAKE_INT(32)),
+  /*  1878 */        WORD(32),
   /*  1879 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*  1880 */        0x00000305           /* 6      (LREF) */,
   /*  1881 */        0x0000000E           /* 7      (ADD) */,
@@ -2024,7 +2024,7 @@ static struct sg__wcRec {
   /*  1885 */        0x00000545           /* 11     (LREF_PUSH) */,
   /*  1886 */        0x00000405           /* 12     (LREF) */,
   /*  1887 */        0x0000001E           /* 13     (BNGE) */,
-  /*  1888 */        WORD(SG_MAKE_INT(3)),
+  /*  1888 */        WORD(3),
   /*  1889 */        0x00000605           /* 15     (LREF) */,
   /*  1890 */        0x0000002F           /* 16     (RET) */,
   /*  1891 */        0x00000505           /* 17     (LREF) */,
@@ -2035,7 +2035,7 @@ static struct sg__wcRec {
   /*  1896 */        0x00000012           /* 22     (MUL) */,
   /*  1897 */        0x0000000B           /* 23     (PUSH) */,
   /*  1898 */        0x00000030           /* 24     (FRAME) */,
-  /*  1899 */        WORD(SG_MAKE_INT(5)),
+  /*  1899 */        WORD(5),
   /*  1900 */        0x00000045           /* 26     (LREF_PUSH) */,
   /*  1901 */        0x00000545           /* 27     (LREF_PUSH) */,
   /*  1902 */        0x0000024A           /* 28     (GREF_CALL) */,
@@ -2044,13 +2044,13 @@ static struct sg__wcRec {
   /*  1905 */        0x0000000B           /* 31     (PUSH) */,
   /*  1906 */        0x00500219           /* 32     (SHIFTJ) */,
   /*  1907 */        0x00000018           /* 33     (JUMP) */,
-  /*  1908 */        WORD(SG_MAKE_INT(-23)),
+  /*  1908 */        WORD(-23),
   /*  1909 */        0x0000002F           /* 35     (RET) */,
   /*  1910 */        0x00000245           /* 36     (LREF_PUSH) */,
   /*  1911 */        0x00000003           /* 37     (CONST) */,
   /*  1912 */        WORD(SG_UNDEF), /* little */
   /*  1913 */        0x0000001F           /* 39     (BNEQ) */,
-  /*  1914 */        WORD(SG_MAKE_INT(32)),
+  /*  1914 */        WORD(32),
   /*  1915 */        0x00000145           /* 41     (LREF_PUSH) */,
   /*  1916 */        0x00000305           /* 42     (LREF) */,
   /*  1917 */        0x0000000E           /* 43     (ADD) */,
@@ -2060,7 +2060,7 @@ static struct sg__wcRec {
   /*  1921 */        0x00000445           /* 47     (LREF_PUSH) */,
   /*  1922 */        0x00000105           /* 48     (LREF) */,
   /*  1923 */        0x0000001B           /* 49     (BNLT) */,
-  /*  1924 */        WORD(SG_MAKE_INT(3)),
+  /*  1924 */        WORD(3),
   /*  1925 */        0x00000505           /* 51     (LREF) */,
   /*  1926 */        0x0000002F           /* 52     (RET) */,
   /*  1927 */        0x00000405           /* 53     (LREF) */,
@@ -2071,7 +2071,7 @@ static struct sg__wcRec {
   /*  1932 */        0x00000012           /* 58     (MUL) */,
   /*  1933 */        0x0000000B           /* 59     (PUSH) */,
   /*  1934 */        0x00000030           /* 60     (FRAME) */,
-  /*  1935 */        WORD(SG_MAKE_INT(5)),
+  /*  1935 */        WORD(5),
   /*  1936 */        0x00000045           /* 62     (LREF_PUSH) */,
   /*  1937 */        0x00000445           /* 63     (LREF_PUSH) */,
   /*  1938 */        0x0000024A           /* 64     (GREF_CALL) */,
@@ -2080,12 +2080,12 @@ static struct sg__wcRec {
   /*  1941 */        0x0000000B           /* 67     (PUSH) */,
   /*  1942 */        0x00400219           /* 68     (SHIFTJ) */,
   /*  1943 */        0x00000018           /* 69     (JUMP) */,
-  /*  1944 */        WORD(SG_MAKE_INT(-23)),
+  /*  1944 */        WORD(-23),
   /*  1945 */        0x0000002F           /* 71     (RET) */,
   /*  1946 */        0x00000048           /* 72     (CONST_PUSH) */,
   /*  1947 */        WORD(SG_UNDEF), /* bytevector-uint-ref */
   /*  1948 */        0x00000030           /* 74     (FRAME) */,
-  /*  1949 */        WORD(SG_MAKE_INT(6)),
+  /*  1949 */        WORD(6),
   /*  1950 */        0x00000048           /* 76     (CONST_PUSH) */,
   /*  1951 */        WORD(SG_UNDEF), /* "expected endianness, but got ~r, as argument 3" */
   /*  1952 */        0x00000245           /* 78     (LREF_PUSH) */,
@@ -2105,9 +2105,9 @@ static struct sg__wcRec {
   /*  1966 */        0x00000003           /* 1      (CONST) */,
   /*  1967 */        WORD(SG_UNDEF), /* big */
   /*  1968 */        0x0000001F           /* 3      (BNEQ) */,
-  /*  1969 */        WORD(SG_MAKE_INT(35)),
+  /*  1969 */        WORD(35),
   /*  1970 */        0x00000030           /* 5      (FRAME) */,
-  /*  1971 */        WORD(SG_MAKE_INT(5)),
+  /*  1971 */        WORD(5),
   /*  1972 */        0x00000045           /* 7      (LREF_PUSH) */,
   /*  1973 */        0x00000145           /* 8      (LREF_PUSH) */,
   /*  1974 */        0x0000024A           /* 9      (GREF_CALL) */,
@@ -2115,9 +2115,9 @@ static struct sg__wcRec {
   /*  1976 */        0x0000000B           /* 11     (PUSH) */,
   /*  1977 */        0x00007F04           /* 12     (CONSTI) */,
   /*  1978 */        0x0000001D           /* 13     (BNGT) */,
-  /*  1979 */        WORD(SG_MAKE_INT(18)),
+  /*  1979 */        WORD(18),
   /*  1980 */        0x00000030           /* 15     (FRAME) */,
-  /*  1981 */        WORD(SG_MAKE_INT(7)),
+  /*  1981 */        WORD(7),
   /*  1982 */        0x00000045           /* 17     (LREF_PUSH) */,
   /*  1983 */        0x00000145           /* 18     (LREF_PUSH) */,
   /*  1984 */        0x00000245           /* 19     (LREF_PUSH) */,
@@ -2126,7 +2126,7 @@ static struct sg__wcRec {
   /*  1987 */        WORD(SG_UNDEF)  /* identifier#bytevector-uint-ref */,
   /*  1988 */        0x0000000B           /* 23     (PUSH) */,
   /*  1989 */        0x00000030           /* 24     (FRAME) */,
-  /*  1990 */        WORD(SG_MAKE_INT(5)),
+  /*  1990 */        WORD(5),
   /*  1991 */        0x00010049           /* 26     (CONSTI_PUSH) */,
   /*  1992 */        0x00000345           /* 27     (LREF_PUSH) */,
   /*  1993 */        0x0000024A           /* 28     (GREF_CALL) */,
@@ -2144,9 +2144,9 @@ static struct sg__wcRec {
   /*  2005 */        0x00000003           /* 40     (CONST) */,
   /*  2006 */        WORD(SG_UNDEF), /* little */
   /*  2007 */        0x0000001F           /* 42     (BNEQ) */,
-  /*  2008 */        WORD(SG_MAKE_INT(39)),
+  /*  2008 */        WORD(39),
   /*  2009 */        0x00000030           /* 44     (FRAME) */,
-  /*  2010 */        WORD(SG_MAKE_INT(9)),
+  /*  2010 */        WORD(9),
   /*  2011 */        0x00000045           /* 46     (LREF_PUSH) */,
   /*  2012 */        0x00000145           /* 47     (LREF_PUSH) */,
   /*  2013 */        0x00000305           /* 48     (LREF) */,
@@ -2158,9 +2158,9 @@ static struct sg__wcRec {
   /*  2019 */        0x0000000B           /* 54     (PUSH) */,
   /*  2020 */        0x00007F04           /* 55     (CONSTI) */,
   /*  2021 */        0x0000001D           /* 56     (BNGT) */,
-  /*  2022 */        WORD(SG_MAKE_INT(18)),
+  /*  2022 */        WORD(18),
   /*  2023 */        0x00000030           /* 58     (FRAME) */,
-  /*  2024 */        WORD(SG_MAKE_INT(7)),
+  /*  2024 */        WORD(7),
   /*  2025 */        0x00000045           /* 60     (LREF_PUSH) */,
   /*  2026 */        0x00000145           /* 61     (LREF_PUSH) */,
   /*  2027 */        0x00000245           /* 62     (LREF_PUSH) */,
@@ -2169,7 +2169,7 @@ static struct sg__wcRec {
   /*  2030 */        WORD(SG_UNDEF)  /* identifier#bytevector-uint-ref */,
   /*  2031 */        0x0000000B           /* 66     (PUSH) */,
   /*  2032 */        0x00000030           /* 67     (FRAME) */,
-  /*  2033 */        WORD(SG_MAKE_INT(5)),
+  /*  2033 */        WORD(5),
   /*  2034 */        0x00010049           /* 69     (CONSTI_PUSH) */,
   /*  2035 */        0x00000345           /* 70     (LREF_PUSH) */,
   /*  2036 */        0x0000024A           /* 71     (GREF_CALL) */,
@@ -2186,7 +2186,7 @@ static struct sg__wcRec {
   /*  2047 */        0x00000048           /* 82     (CONST_PUSH) */,
   /*  2048 */        WORD(SG_UNDEF), /* bytevector-uint-ref */
   /*  2049 */        0x00000030           /* 84     (FRAME) */,
-  /*  2050 */        WORD(SG_MAKE_INT(6)),
+  /*  2050 */        WORD(6),
   /*  2051 */        0x00000048           /* 86     (CONST_PUSH) */,
   /*  2052 */        WORD(SG_UNDEF), /* "expected endianness, but got ~r, as argument 3" */
   /*  2053 */        0x00000245           /* 88     (LREF_PUSH) */,
@@ -2205,7 +2205,7 @@ static struct sg__wcRec {
   /*  2066 */        0x00000245           /* 0      (LREF_PUSH) */,
   /*  2067 */        0x00000004           /* 1      (CONSTI) */,
   /*  2068 */        0x0000001A           /* 2      (BNNUME) */,
-  /*  2069 */        WORD(SG_MAKE_INT(33)),
+  /*  2069 */        WORD(33),
   /*  2070 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*  2071 */        0x00000405           /* 5      (LREF) */,
   /*  2072 */        0x0000000E           /* 6      (ADD) */,
@@ -2214,15 +2214,15 @@ static struct sg__wcRec {
   /*  2075 */        0x00000645           /* 9      (LREF_PUSH) */,
   /*  2076 */        0x00000505           /* 10     (LREF) */,
   /*  2077 */        0x0000001E           /* 11     (BNGE) */,
-  /*  2078 */        WORD(SG_MAKE_INT(7)),
+  /*  2078 */        WORD(7),
   /*  2079 */        0x00000030           /* 13     (FRAME) */,
-  /*  2080 */        WORD(SG_MAKE_INT(3)),
+  /*  2080 */        WORD(3),
   /*  2081 */        0x0000004A           /* 15     (GREF_CALL) */,
   /*  2082 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  2083 */        0x00000018           /* 17     (JUMP) */,
-  /*  2084 */        WORD(SG_MAKE_INT(14)),
+  /*  2084 */        WORD(14),
   /*  2085 */        0x00000030           /* 19     (FRAME) */,
-  /*  2086 */        WORD(SG_MAKE_INT(6)),
+  /*  2086 */        WORD(6),
   /*  2087 */        0x00000045           /* 21     (LREF_PUSH) */,
   /*  2088 */        0x00000645           /* 22     (LREF_PUSH) */,
   /*  2089 */        0x00000049           /* 23     (CONSTI_PUSH) */,
@@ -2233,17 +2233,17 @@ static struct sg__wcRec {
   /*  2094 */        0x0000000B           /* 28     (PUSH) */,
   /*  2095 */        0x00600119           /* 29     (SHIFTJ) */,
   /*  2096 */        0x00000018           /* 30     (JUMP) */,
-  /*  2097 */        WORD(SG_MAKE_INT(-22)),
+  /*  2097 */        WORD(-22),
   /*  2098 */        0x00000132           /* 32     (LEAVE) */,
   /*  2099 */        0x00000132           /* 33     (LEAVE) */,
   /*  2100 */        0x00000018           /* 34     (JUMP) */,
-  /*  2101 */        WORD(SG_MAKE_INT(143)),
+  /*  2101 */        WORD(143),
   /*  2102 */        0x00000030           /* 36     (FRAME) */,
-  /*  2103 */        WORD(SG_MAKE_INT(12)),
+  /*  2103 */        WORD(12),
   /*  2104 */        0x00000049           /* 38     (CONSTI_PUSH) */,
   /*  2105 */        0x00000245           /* 39     (LREF_PUSH) */,
   /*  2106 */        0x00000030           /* 40     (FRAME) */,
-  /*  2107 */        WORD(SG_MAKE_INT(5)),
+  /*  2107 */        WORD(5),
   /*  2108 */        0x00010049           /* 42     (CONSTI_PUSH) */,
   /*  2109 */        0x00000445           /* 43     (LREF_PUSH) */,
   /*  2110 */        0x0000024A           /* 44     (GREF_CALL) */,
@@ -2252,12 +2252,12 @@ static struct sg__wcRec {
   /*  2113 */        0x0000034A           /* 47     (GREF_CALL) */,
   /*  2114 */        WORD(SG_UNDEF)  /* identifier#< */,
   /*  2115 */        0x00000017           /* 49     (TEST) */,
-  /*  2116 */        WORD(SG_MAKE_INT(107)),
+  /*  2116 */        WORD(107),
   /*  2117 */        0x00000345           /* 51     (LREF_PUSH) */,
   /*  2118 */        0x00000003           /* 52     (CONST) */,
   /*  2119 */        WORD(SG_UNDEF), /* big */
   /*  2120 */        0x0000001F           /* 54     (BNEQ) */,
-  /*  2121 */        WORD(SG_MAKE_INT(48)),
+  /*  2121 */        WORD(48),
   /*  2122 */        0x00000145           /* 56     (LREF_PUSH) */,
   /*  2123 */        0x00000405           /* 57     (LREF) */,
   /*  2124 */        0x0000000E           /* 58     (ADD) */,
@@ -2268,19 +2268,19 @@ static struct sg__wcRec {
   /*  2129 */        0x00000645           /* 63     (LREF_PUSH) */,
   /*  2130 */        0x00000105           /* 64     (LREF) */,
   /*  2131 */        0x0000001B           /* 65     (BNLT) */,
-  /*  2132 */        WORD(SG_MAKE_INT(7)),
+  /*  2132 */        WORD(7),
   /*  2133 */        0x00000030           /* 67     (FRAME) */,
-  /*  2134 */        WORD(SG_MAKE_INT(3)),
+  /*  2134 */        WORD(3),
   /*  2135 */        0x0000004A           /* 69     (GREF_CALL) */,
   /*  2136 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  2137 */        0x00000018           /* 71     (JUMP) */,
-  /*  2138 */        WORD(SG_MAKE_INT(27)),
+  /*  2138 */        WORD(27),
   /*  2139 */        0x00000030           /* 73     (FRAME) */,
-  /*  2140 */        WORD(SG_MAKE_INT(12)),
+  /*  2140 */        WORD(12),
   /*  2141 */        0x00000045           /* 75     (LREF_PUSH) */,
   /*  2142 */        0x00000645           /* 76     (LREF_PUSH) */,
   /*  2143 */        0x00000030           /* 77     (FRAME) */,
-  /*  2144 */        WORD(SG_MAKE_INT(5)),
+  /*  2144 */        WORD(5),
   /*  2145 */        0x00000745           /* 79     (LREF_PUSH) */,
   /*  2146 */        0x0000FF49           /* 80     (CONSTI_PUSH) */,
   /*  2147 */        0x0000024A           /* 81     (GREF_CALL) */,
@@ -2292,7 +2292,7 @@ static struct sg__wcRec {
   /*  2153 */        -0x000000F1          /* 87     (ADDI) */,
   /*  2154 */        0x0000000B           /* 88     (PUSH) */,
   /*  2155 */        0x00000030           /* 89     (FRAME) */,
-  /*  2156 */        WORD(SG_MAKE_INT(5)),
+  /*  2156 */        WORD(5),
   /*  2157 */        0x00000745           /* 91     (LREF_PUSH) */,
   /*  2158 */        -0x000007B7          /* 92     (CONSTI_PUSH) */,
   /*  2159 */        0x0000024A           /* 93     (GREF_CALL) */,
@@ -2300,16 +2300,16 @@ static struct sg__wcRec {
   /*  2161 */        0x0000000B           /* 95     (PUSH) */,
   /*  2162 */        0x00600219           /* 96     (SHIFTJ) */,
   /*  2163 */        0x00000018           /* 97     (JUMP) */,
-  /*  2164 */        WORD(SG_MAKE_INT(-35)),
+  /*  2164 */        WORD(-35),
   /*  2165 */        0x00000232           /* 99     (LEAVE) */,
   /*  2166 */        0x00000132           /* 100    (LEAVE) */,
   /*  2167 */        0x00000018           /* 101    (JUMP) */,
-  /*  2168 */        WORD(SG_MAKE_INT(53)),
+  /*  2168 */        WORD(53),
   /*  2169 */        0x00000345           /* 103    (LREF_PUSH) */,
   /*  2170 */        0x00000003           /* 104    (CONST) */,
   /*  2171 */        WORD(SG_UNDEF), /* little */
   /*  2172 */        0x0000001F           /* 106    (BNEQ) */,
-  /*  2173 */        WORD(SG_MAKE_INT(47)),
+  /*  2173 */        WORD(47),
   /*  2174 */        0x00000145           /* 108    (LREF_PUSH) */,
   /*  2175 */        0x00000405           /* 109    (LREF) */,
   /*  2176 */        0x0000000E           /* 110    (ADD) */,
@@ -2319,19 +2319,19 @@ static struct sg__wcRec {
   /*  2180 */        0x00000645           /* 114    (LREF_PUSH) */,
   /*  2181 */        0x00000505           /* 115    (LREF) */,
   /*  2182 */        0x0000001E           /* 116    (BNGE) */,
-  /*  2183 */        WORD(SG_MAKE_INT(7)),
+  /*  2183 */        WORD(7),
   /*  2184 */        0x00000030           /* 118    (FRAME) */,
-  /*  2185 */        WORD(SG_MAKE_INT(3)),
+  /*  2185 */        WORD(3),
   /*  2186 */        0x0000004A           /* 120    (GREF_CALL) */,
   /*  2187 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  2188 */        0x00000018           /* 122    (JUMP) */,
-  /*  2189 */        WORD(SG_MAKE_INT(27)),
+  /*  2189 */        WORD(27),
   /*  2190 */        0x00000030           /* 124    (FRAME) */,
-  /*  2191 */        WORD(SG_MAKE_INT(12)),
+  /*  2191 */        WORD(12),
   /*  2192 */        0x00000045           /* 126    (LREF_PUSH) */,
   /*  2193 */        0x00000645           /* 127    (LREF_PUSH) */,
   /*  2194 */        0x00000030           /* 128    (FRAME) */,
-  /*  2195 */        WORD(SG_MAKE_INT(5)),
+  /*  2195 */        WORD(5),
   /*  2196 */        0x00000745           /* 130    (LREF_PUSH) */,
   /*  2197 */        0x0000FF49           /* 131    (CONSTI_PUSH) */,
   /*  2198 */        0x0000024A           /* 132    (GREF_CALL) */,
@@ -2343,7 +2343,7 @@ static struct sg__wcRec {
   /*  2204 */        0x0000010F           /* 138    (ADDI) */,
   /*  2205 */        0x0000000B           /* 139    (PUSH) */,
   /*  2206 */        0x00000030           /* 140    (FRAME) */,
-  /*  2207 */        WORD(SG_MAKE_INT(5)),
+  /*  2207 */        WORD(5),
   /*  2208 */        0x00000745           /* 142    (LREF_PUSH) */,
   /*  2209 */        -0x000007B7          /* 143    (CONSTI_PUSH) */,
   /*  2210 */        0x0000024A           /* 144    (GREF_CALL) */,
@@ -2351,20 +2351,20 @@ static struct sg__wcRec {
   /*  2212 */        0x0000000B           /* 146    (PUSH) */,
   /*  2213 */        0x00600219           /* 147    (SHIFTJ) */,
   /*  2214 */        0x00000018           /* 148    (JUMP) */,
-  /*  2215 */        WORD(SG_MAKE_INT(-35)),
+  /*  2215 */        WORD(-35),
   /*  2216 */        0x00000232           /* 150    (LEAVE) */,
   /*  2217 */        0x00000132           /* 151    (LEAVE) */,
   /*  2218 */        0x00000018           /* 152    (JUMP) */,
-  /*  2219 */        WORD(SG_MAKE_INT(2)),
+  /*  2219 */        WORD(2),
   /*  2220 */        0x00000002           /* 154    (UNDEF) */,
   /*  2221 */        0x00000018           /* 155    (JUMP) */,
-  /*  2222 */        WORD(SG_MAKE_INT(22)),
+  /*  2222 */        WORD(22),
   /*  2223 */        0x00000030           /* 157    (FRAME) */,
-  /*  2224 */        WORD(SG_MAKE_INT(20)),
+  /*  2224 */        WORD(20),
   /*  2225 */        0x00000048           /* 159    (CONST_PUSH) */,
   /*  2226 */        WORD(SG_UNDEF), /* bytevector-uint-set! */
   /*  2227 */        0x00000030           /* 161    (FRAME) */,
-  /*  2228 */        WORD(SG_MAKE_INT(6)),
+  /*  2228 */        WORD(6),
   /*  2229 */        0x00000048           /* 163    (CONST_PUSH) */,
   /*  2230 */        WORD(SG_UNDEF), /* "value out of range, ~s as argument 3" */
   /*  2231 */        0x00000245           /* 165    (LREF_PUSH) */,
@@ -2384,7 +2384,7 @@ static struct sg__wcRec {
   /*  2245 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  2246 */        0x0000002F           /* 180    (RET) */,
   /*  2247 */        0x00000030           /* 0      (FRAME) */,
-  /*  2248 */        WORD(SG_MAKE_INT(9)),
+  /*  2248 */        WORD(9),
   /*  2249 */        0x00000249           /* 2      (CONSTI_PUSH) */,
   /*  2250 */        0x00000445           /* 3      (LREF_PUSH) */,
   /*  2251 */        0x00000804           /* 4      (CONSTI) */,
@@ -2399,20 +2399,20 @@ static struct sg__wcRec {
   /*  2260 */        0x00000016           /* 13     (NEG) */,
   /*  2261 */        0x0000000B           /* 14     (PUSH) */,
   /*  2262 */        0x00000030           /* 15     (FRAME) */,
-  /*  2263 */        WORD(SG_MAKE_INT(6)),
+  /*  2263 */        WORD(6),
   /*  2264 */        0x00000645           /* 17     (LREF_PUSH) */,
   /*  2265 */        0x00000245           /* 18     (LREF_PUSH) */,
   /*  2266 */        0x00000545           /* 19     (LREF_PUSH) */,
   /*  2267 */        0x0000034A           /* 20     (GREF_CALL) */,
   /*  2268 */        WORD(SG_UNDEF)  /* identifier#< */,
   /*  2269 */        0x00000017           /* 22     (TEST) */,
-  /*  2270 */        WORD(SG_MAKE_INT(35)),
+  /*  2270 */        WORD(35),
   /*  2271 */        0x00000245           /* 24     (LREF_PUSH) */,
   /*  2272 */        0x00000004           /* 25     (CONSTI) */,
   /*  2273 */        0x0000001D           /* 26     (BNGT) */,
-  /*  2274 */        WORD(SG_MAKE_INT(12)),
+  /*  2274 */        WORD(12),
   /*  2275 */        0x00000030           /* 28     (FRAME) */,
-  /*  2276 */        WORD(SG_MAKE_INT(8)),
+  /*  2276 */        WORD(8),
   /*  2277 */        0x00000045           /* 30     (LREF_PUSH) */,
   /*  2278 */        0x00000145           /* 31     (LREF_PUSH) */,
   /*  2279 */        0x00000245           /* 32     (LREF_PUSH) */,
@@ -2421,14 +2421,14 @@ static struct sg__wcRec {
   /*  2282 */        0x0000054A           /* 35     (GREF_CALL) */,
   /*  2283 */        WORD(SG_UNDEF)  /* identifier#bytevector-uint-set! */,
   /*  2284 */        0x00000018           /* 37     (JUMP) */,
-  /*  2285 */        WORD(SG_MAKE_INT(18)),
+  /*  2285 */        WORD(18),
   /*  2286 */        0x00000030           /* 39     (FRAME) */,
-  /*  2287 */        WORD(SG_MAKE_INT(16)),
+  /*  2287 */        WORD(16),
   /*  2288 */        0x00000045           /* 41     (LREF_PUSH) */,
   /*  2289 */        0x00000145           /* 42     (LREF_PUSH) */,
   /*  2290 */        0x00000245           /* 43     (LREF_PUSH) */,
   /*  2291 */        0x00000030           /* 44     (FRAME) */,
-  /*  2292 */        WORD(SG_MAKE_INT(5)),
+  /*  2292 */        WORD(5),
   /*  2293 */        0x00010049           /* 46     (CONSTI_PUSH) */,
   /*  2294 */        0x00000445           /* 47     (LREF_PUSH) */,
   /*  2295 */        0x0000024A           /* 48     (GREF_CALL) */,
@@ -2440,13 +2440,13 @@ static struct sg__wcRec {
   /*  2301 */        0x0000054A           /* 54     (GREF_CALL) */,
   /*  2302 */        WORD(SG_UNDEF)  /* identifier#bytevector-uint-set! */,
   /*  2303 */        0x00000018           /* 56     (JUMP) */,
-  /*  2304 */        WORD(SG_MAKE_INT(22)),
+  /*  2304 */        WORD(22),
   /*  2305 */        0x00000030           /* 58     (FRAME) */,
-  /*  2306 */        WORD(SG_MAKE_INT(20)),
+  /*  2306 */        WORD(20),
   /*  2307 */        0x00000048           /* 60     (CONST_PUSH) */,
   /*  2308 */        WORD(SG_UNDEF), /* bytevector-sint-set! */
   /*  2309 */        0x00000030           /* 62     (FRAME) */,
-  /*  2310 */        WORD(SG_MAKE_INT(6)),
+  /*  2310 */        WORD(6),
   /*  2311 */        0x00000048           /* 64     (CONST_PUSH) */,
   /*  2312 */        WORD(SG_UNDEF), /* "value out of range, ~s as argument 3" */
   /*  2313 */        0x00000245           /* 66     (LREF_PUSH) */,
@@ -2468,7 +2468,7 @@ static struct sg__wcRec {
   /*  2329 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  2330 */        0x0000002F           /* 83     (RET) */,
   /*  2331 */        0x00000030           /* 0      (FRAME) */,
-  /*  2332 */        WORD(SG_MAKE_INT(4)),
+  /*  2332 */        WORD(4),
   /*  2333 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  2334 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  2335 */        WORD(SG_UNDEF)  /* identifier#bytevector-length */,
@@ -2481,13 +2481,13 @@ static struct sg__wcRec {
   /*  2342 */        0x00000345           /* 11     (LREF_PUSH) */,
   /*  2343 */        -0x000000FC          /* 12     (CONSTI) */,
   /*  2344 */        0x0000001D           /* 13     (BNGT) */,
-  /*  2345 */        WORD(SG_MAKE_INT(20)),
+  /*  2345 */        WORD(20),
   /*  2346 */        0x00000345           /* 15     (LREF_PUSH) */,
   /*  2347 */        0x00000205           /* 16     (LREF) */,
   /*  2348 */        0x00000010           /* 17     (SUB) */,
   /*  2349 */        0x0000000B           /* 18     (PUSH) */,
   /*  2350 */        0x00000030           /* 19     (FRAME) */,
-  /*  2351 */        WORD(SG_MAKE_INT(7)),
+  /*  2351 */        WORD(7),
   /*  2352 */        0x00000045           /* 21     (LREF_PUSH) */,
   /*  2353 */        0x00000345           /* 22     (LREF_PUSH) */,
   /*  2354 */        0x00000145           /* 23     (LREF_PUSH) */,
@@ -2499,19 +2499,19 @@ static struct sg__wcRec {
   /*  2360 */        0x00000054           /* 29     (CONS_PUSH) */,
   /*  2361 */        0x00300219           /* 30     (SHIFTJ) */,
   /*  2362 */        0x00000018           /* 31     (JUMP) */,
-  /*  2363 */        WORD(SG_MAKE_INT(-21)),
+  /*  2363 */        WORD(-21),
   /*  2364 */        0x0000002F           /* 33     (RET) */,
   /*  2365 */        0x00000345           /* 34     (LREF_PUSH) */,
   /*  2366 */        0x00000205           /* 35     (LREF) */,
   /*  2367 */        0x00000016           /* 36     (NEG) */,
   /*  2368 */        0x0000001A           /* 37     (BNNUME) */,
-  /*  2369 */        WORD(SG_MAKE_INT(3)),
+  /*  2369 */        WORD(3),
   /*  2370 */        0x00000405           /* 39     (LREF) */,
   /*  2371 */        0x0000002F           /* 40     (RET) */,
   /*  2372 */        0x00000048           /* 41     (CONST_PUSH) */,
   /*  2373 */        WORD(SG_UNDEF), /* bytevector->uint-list */
   /*  2374 */        0x00000030           /* 43     (FRAME) */,
-  /*  2375 */        WORD(SG_MAKE_INT(6)),
+  /*  2375 */        WORD(6),
   /*  2376 */        0x00000048           /* 45     (CONST_PUSH) */,
   /*  2377 */        WORD(SG_UNDEF), /* "expected appropriate element size as argument 3, but got ~r" */
   /*  2378 */        0x00000245           /* 47     (LREF_PUSH) */,
@@ -2527,7 +2527,7 @@ static struct sg__wcRec {
   /*  2388 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2389 */        0x0000002F           /* 58     (RET) */,
   /*  2390 */        0x00000030           /* 0      (FRAME) */,
-  /*  2391 */        WORD(SG_MAKE_INT(4)),
+  /*  2391 */        WORD(4),
   /*  2392 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  2393 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  2394 */        WORD(SG_UNDEF)  /* identifier#bytevector-length */,
@@ -2540,13 +2540,13 @@ static struct sg__wcRec {
   /*  2401 */        0x00000345           /* 11     (LREF_PUSH) */,
   /*  2402 */        -0x000000FC          /* 12     (CONSTI) */,
   /*  2403 */        0x0000001D           /* 13     (BNGT) */,
-  /*  2404 */        WORD(SG_MAKE_INT(20)),
+  /*  2404 */        WORD(20),
   /*  2405 */        0x00000345           /* 15     (LREF_PUSH) */,
   /*  2406 */        0x00000205           /* 16     (LREF) */,
   /*  2407 */        0x00000010           /* 17     (SUB) */,
   /*  2408 */        0x0000000B           /* 18     (PUSH) */,
   /*  2409 */        0x00000030           /* 19     (FRAME) */,
-  /*  2410 */        WORD(SG_MAKE_INT(7)),
+  /*  2410 */        WORD(7),
   /*  2411 */        0x00000045           /* 21     (LREF_PUSH) */,
   /*  2412 */        0x00000345           /* 22     (LREF_PUSH) */,
   /*  2413 */        0x00000145           /* 23     (LREF_PUSH) */,
@@ -2558,19 +2558,19 @@ static struct sg__wcRec {
   /*  2419 */        0x00000054           /* 29     (CONS_PUSH) */,
   /*  2420 */        0x00300219           /* 30     (SHIFTJ) */,
   /*  2421 */        0x00000018           /* 31     (JUMP) */,
-  /*  2422 */        WORD(SG_MAKE_INT(-21)),
+  /*  2422 */        WORD(-21),
   /*  2423 */        0x0000002F           /* 33     (RET) */,
   /*  2424 */        0x00000345           /* 34     (LREF_PUSH) */,
   /*  2425 */        0x00000205           /* 35     (LREF) */,
   /*  2426 */        0x00000016           /* 36     (NEG) */,
   /*  2427 */        0x0000001A           /* 37     (BNNUME) */,
-  /*  2428 */        WORD(SG_MAKE_INT(3)),
+  /*  2428 */        WORD(3),
   /*  2429 */        0x00000405           /* 39     (LREF) */,
   /*  2430 */        0x0000002F           /* 40     (RET) */,
   /*  2431 */        0x00000048           /* 41     (CONST_PUSH) */,
   /*  2432 */        WORD(SG_UNDEF), /* bytevector->sint-list */
   /*  2433 */        0x00000030           /* 43     (FRAME) */,
-  /*  2434 */        WORD(SG_MAKE_INT(6)),
+  /*  2434 */        WORD(6),
   /*  2435 */        0x00000048           /* 45     (CONST_PUSH) */,
   /*  2436 */        WORD(SG_UNDEF), /* "expected appropriate element size as argument 3, but got ~r" */
   /*  2437 */        0x00000245           /* 47     (LREF_PUSH) */,
@@ -2586,10 +2586,10 @@ static struct sg__wcRec {
   /*  2447 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2448 */        0x0000002F           /* 58     (RET) */,
   /*  2449 */        0x00000030           /* 0      (FRAME) */,
-  /*  2450 */        WORD(SG_MAKE_INT(11)),
+  /*  2450 */        WORD(11),
   /*  2451 */        0x00000245           /* 2      (LREF_PUSH) */,
   /*  2452 */        0x00000030           /* 3      (FRAME) */,
-  /*  2453 */        WORD(SG_MAKE_INT(4)),
+  /*  2453 */        WORD(4),
   /*  2454 */        0x00000045           /* 5      (LREF_PUSH) */,
   /*  2455 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*  2456 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -2602,11 +2602,11 @@ static struct sg__wcRec {
   /*  2463 */        0x00000045           /* 14     (LREF_PUSH) */,
   /*  2464 */        0x00000505           /* 15     (LREF) */,
   /*  2465 */        0x00000021           /* 16     (BNNULL) */,
-  /*  2466 */        WORD(SG_MAKE_INT(3)),
+  /*  2466 */        WORD(3),
   /*  2467 */        0x00000305           /* 18     (LREF) */,
   /*  2468 */        0x0000002F           /* 19     (RET) */,
   /*  2469 */        0x00000030           /* 20     (FRAME) */,
-  /*  2470 */        WORD(SG_MAKE_INT(8)),
+  /*  2470 */        WORD(8),
   /*  2471 */        0x00000345           /* 22     (LREF_PUSH) */,
   /*  2472 */        0x00000445           /* 23     (LREF_PUSH) */,
   /*  2473 */        0x0000055B           /* 24     (LREF_CAR_PUSH) */,
@@ -2621,13 +2621,13 @@ static struct sg__wcRec {
   /*  2482 */        0x0000055C           /* 33     (LREF_CDR_PUSH) */,
   /*  2483 */        0x00400219           /* 34     (SHIFTJ) */,
   /*  2484 */        0x00000018           /* 35     (JUMP) */,
-  /*  2485 */        WORD(SG_MAKE_INT(-21)),
+  /*  2485 */        WORD(-21),
   /*  2486 */        0x0000002F           /* 37     (RET) */,
   /*  2487 */        0x00000030           /* 0      (FRAME) */,
-  /*  2488 */        WORD(SG_MAKE_INT(11)),
+  /*  2488 */        WORD(11),
   /*  2489 */        0x00000245           /* 2      (LREF_PUSH) */,
   /*  2490 */        0x00000030           /* 3      (FRAME) */,
-  /*  2491 */        WORD(SG_MAKE_INT(4)),
+  /*  2491 */        WORD(4),
   /*  2492 */        0x00000045           /* 5      (LREF_PUSH) */,
   /*  2493 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*  2494 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -2640,11 +2640,11 @@ static struct sg__wcRec {
   /*  2501 */        0x00000045           /* 14     (LREF_PUSH) */,
   /*  2502 */        0x00000505           /* 15     (LREF) */,
   /*  2503 */        0x00000021           /* 16     (BNNULL) */,
-  /*  2504 */        WORD(SG_MAKE_INT(3)),
+  /*  2504 */        WORD(3),
   /*  2505 */        0x00000305           /* 18     (LREF) */,
   /*  2506 */        0x0000002F           /* 19     (RET) */,
   /*  2507 */        0x00000030           /* 20     (FRAME) */,
-  /*  2508 */        WORD(SG_MAKE_INT(8)),
+  /*  2508 */        WORD(8),
   /*  2509 */        0x00000345           /* 22     (LREF_PUSH) */,
   /*  2510 */        0x00000445           /* 23     (LREF_PUSH) */,
   /*  2511 */        0x0000055B           /* 24     (LREF_CAR_PUSH) */,
@@ -2659,28 +2659,28 @@ static struct sg__wcRec {
   /*  2520 */        0x0000055C           /* 33     (LREF_CDR_PUSH) */,
   /*  2521 */        0x00400219           /* 34     (SHIFTJ) */,
   /*  2522 */        0x00000018           /* 35     (JUMP) */,
-  /*  2523 */        WORD(SG_MAKE_INT(-21)),
+  /*  2523 */        WORD(-21),
   /*  2524 */        0x0000002F           /* 37     (RET) */,
   /*  2525 */        0x00000002           /* 0      (UNDEF) */,
   /*  2526 */        0x00000205           /* 1      (LREF) */,
   /*  2527 */        0x00000021           /* 2      (BNNULL) */,
-  /*  2528 */        WORD(SG_MAKE_INT(79)),
+  /*  2528 */        WORD(79),
   /*  2529 */        0x00000045           /* 4      (LREF_PUSH) */,
   /*  2530 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*  2531 */        0x00000105           /* 6      (LREF) */,
   /*  2532 */        0x00000021           /* 7      (BNNULL) */,
-  /*  2533 */        WORD(SG_MAKE_INT(3)),
+  /*  2533 */        WORD(3),
   /*  2534 */        0x00000061           /* 9      (CONST_RET) */,
   /*  2535 */        WORD(SG_MAKE_BOOL(TRUE)),
   /*  2536 */        0x00000105           /* 11     (LREF) */,
   /*  2537 */        0x0000003E           /* 12     (PAIRP) */,
   /*  2538 */        0x00000017           /* 13     (TEST) */,
-  /*  2539 */        WORD(SG_MAKE_INT(51)),
+  /*  2539 */        WORD(51),
   /*  2540 */        0x0000045B           /* 15     (LREF_CAR_PUSH) */,
   /*  2541 */        0x0000045C           /* 16     (LREF_CDR_PUSH) */,
   /*  2542 */        0x00000605           /* 17     (LREF) */,
   /*  2543 */        0x00000021           /* 18     (BNNULL) */,
-  /*  2544 */        WORD(SG_MAKE_INT(5)),
+  /*  2544 */        WORD(5),
   /*  2545 */        0x00000545           /* 20     (LREF_PUSH) */,
   /*  2546 */        0x00000305           /* 21     (LREF) */,
   /*  2547 */        0x0000012D           /* 22     (TAIL_CALL) */,
@@ -2688,31 +2688,31 @@ static struct sg__wcRec {
   /*  2549 */        0x00000605           /* 24     (LREF) */,
   /*  2550 */        0x0000003E           /* 25     (PAIRP) */,
   /*  2551 */        0x00000017           /* 26     (TEST) */,
-  /*  2552 */        WORD(SG_MAKE_INT(14)),
+  /*  2552 */        WORD(14),
   /*  2553 */        0x00000030           /* 28     (FRAME) */,
-  /*  2554 */        WORD(SG_MAKE_INT(4)),
+  /*  2554 */        WORD(4),
   /*  2555 */        0x00000545           /* 30     (LREF_PUSH) */,
   /*  2556 */        0x00000305           /* 31     (LREF) */,
   /*  2557 */        0x0000012B           /* 32     (CALL) */,
   /*  2558 */        0x00000017           /* 33     (TEST) */,
-  /*  2559 */        WORD(SG_MAKE_INT(6)),
+  /*  2559 */        WORD(6),
   /*  2560 */        0x0000065B           /* 35     (LREF_CAR_PUSH) */,
   /*  2561 */        0x0000065C           /* 36     (LREF_CDR_PUSH) */,
   /*  2562 */        0x00500219           /* 37     (SHIFTJ) */,
   /*  2563 */        0x00000018           /* 38     (JUMP) */,
-  /*  2564 */        WORD(SG_MAKE_INT(-22)),
+  /*  2564 */        WORD(-22),
   /*  2565 */        0x0000002F           /* 40     (RET) */,
   /*  2566 */        0x00000030           /* 41     (FRAME) */,
-  /*  2567 */        WORD(SG_MAKE_INT(4)),
+  /*  2567 */        WORD(4),
   /*  2568 */        0x00000545           /* 43     (LREF_PUSH) */,
   /*  2569 */        0x00000305           /* 44     (LREF) */,
   /*  2570 */        0x0000012B           /* 45     (CALL) */,
   /*  2571 */        0x00000017           /* 46     (TEST) */,
-  /*  2572 */        WORD(SG_MAKE_INT(17)),
+  /*  2572 */        WORD(17),
   /*  2573 */        0x00000048           /* 48     (CONST_PUSH) */,
   /*  2574 */        WORD(SG_UNDEF), /* for-all */
   /*  2575 */        0x00000030           /* 50     (FRAME) */,
-  /*  2576 */        WORD(SG_MAKE_INT(6)),
+  /*  2576 */        WORD(6),
   /*  2577 */        0x00000048           /* 52     (CONST_PUSH) */,
   /*  2578 */        WORD(SG_UNDEF), /* "traversal reached to non-pair element ~s" */
   /*  2579 */        0x00000645           /* 54     (LREF_PUSH) */,
@@ -2729,7 +2729,7 @@ static struct sg__wcRec {
   /*  2590 */        0x00000048           /* 65     (CONST_PUSH) */,
   /*  2591 */        WORD(SG_UNDEF), /* for-all */
   /*  2592 */        0x00000030           /* 67     (FRAME) */,
-  /*  2593 */        WORD(SG_MAKE_INT(6)),
+  /*  2593 */        WORD(6),
   /*  2594 */        0x00000048           /* 69     (CONST_PUSH) */,
   /*  2595 */        WORD(SG_UNDEF), /* "expected chain of pairs, but got ~a, as argument 2" */
   /*  2596 */        0x00000145           /* 71     (LREF_PUSH) */,
@@ -2744,7 +2744,7 @@ static struct sg__wcRec {
   /*  2605 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2606 */        0x0000002F           /* 81     (RET) */,
   /*  2607 */        0x00000030           /* 82     (FRAME) */,
-  /*  2608 */        WORD(SG_MAKE_INT(6)),
+  /*  2608 */        WORD(6),
   /*  2609 */        0x00000047           /* 84     (GREF_PUSH) */,
   /*  2610 */        WORD(SG_UNDEF)  /* identifier#list-transpose+ */,
   /*  2611 */        0x00000145           /* 86     (LREF_PUSH) */,
@@ -2753,41 +2753,41 @@ static struct sg__wcRec {
   /*  2614 */        0x0000000B           /* 89     (PUSH) */,
   /*  2615 */        0x00000305           /* 90     (LREF) */,
   /*  2616 */        0x00000017           /* 91     (TEST) */,
-  /*  2617 */        WORD(SG_MAKE_INT(29)),
+  /*  2617 */        WORD(29),
   /*  2618 */        0x00000045           /* 93     (LREF_PUSH) */,
   /*  2619 */        0x00000345           /* 94     (LREF_PUSH) */,
   /*  2620 */        0x00000305           /* 95     (LREF) */,
   /*  2621 */        0x00000021           /* 96     (BNNULL) */,
-  /*  2622 */        WORD(SG_MAKE_INT(2)),
+  /*  2622 */        WORD(2),
   /*  2623 */        0x0000002F           /* 98     (RET) */,
   /*  2624 */        0x0000055B           /* 99     (LREF_CAR_PUSH) */,
   /*  2625 */        0x0000055C           /* 100    (LREF_CDR_PUSH) */,
   /*  2626 */        0x00000705           /* 101    (LREF) */,
   /*  2627 */        0x00000021           /* 102    (BNNULL) */,
-  /*  2628 */        WORD(SG_MAKE_INT(5)),
+  /*  2628 */        WORD(5),
   /*  2629 */        0x00000445           /* 104    (LREF_PUSH) */,
   /*  2630 */        0x00000605           /* 105    (LREF) */,
   /*  2631 */        0x0010022A           /* 106    (APPLY) */,
   /*  2632 */        0x0000002F           /* 107    (RET) */,
   /*  2633 */        0x00000030           /* 108    (FRAME) */,
-  /*  2634 */        WORD(SG_MAKE_INT(4)),
+  /*  2634 */        WORD(4),
   /*  2635 */        0x00000445           /* 110    (LREF_PUSH) */,
   /*  2636 */        0x00000605           /* 111    (LREF) */,
   /*  2637 */        0x0000022A           /* 112    (APPLY) */,
   /*  2638 */        0x00000017           /* 113    (TEST) */,
-  /*  2639 */        WORD(SG_MAKE_INT(6)),
+  /*  2639 */        WORD(6),
   /*  2640 */        0x0000075B           /* 115    (LREF_CAR_PUSH) */,
   /*  2641 */        0x0000075C           /* 116    (LREF_CDR_PUSH) */,
   /*  2642 */        0x00600219           /* 117    (SHIFTJ) */,
   /*  2643 */        0x00000018           /* 118    (JUMP) */,
-  /*  2644 */        WORD(SG_MAKE_INT(-18)),
+  /*  2644 */        WORD(-18),
   /*  2645 */        0x0000002F           /* 120    (RET) */,
   /*  2646 */        0x00000045           /* 121    (LREF_PUSH) */,
   /*  2647 */        0x00000145           /* 122    (LREF_PUSH) */,
   /*  2648 */        0x00000205           /* 123    (LREF) */,
   /*  2649 */        0x00000054           /* 124    (CONS_PUSH) */,
   /*  2650 */        0x00000030           /* 125    (FRAME) */,
-  /*  2651 */        WORD(SG_MAKE_INT(4)),
+  /*  2651 */        WORD(4),
   /*  2652 */        0x00000545           /* 127    (LREF_PUSH) */,
   /*  2653 */        0x0000014A           /* 128    (GREF_CALL) */,
   /*  2654 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -2806,32 +2806,32 @@ static struct sg__wcRec {
   /*  2667 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  2668 */        0x00000806           /* 143    (LSET) */,
   /*  2669 */        0x00000030           /* 144    (FRAME) */,
-  /*  2670 */        WORD(SG_MAKE_INT(5)),
+  /*  2670 */        WORD(5),
   /*  2671 */        0x00000545           /* 146    (LREF_PUSH) */,
   /*  2672 */        0x00000805           /* 147    (LREF) */,
   /*  2673 */        0x0000000D           /* 148    (UNBOX) */,
   /*  2674 */        0x0000012C           /* 149    (LOCAL_CALL) */,
   /*  2675 */        0x0000000B           /* 150    (PUSH) */,
   /*  2676 */        0x00000030           /* 151    (FRAME) */,
-  /*  2677 */        WORD(SG_MAKE_INT(5)),
+  /*  2677 */        WORD(5),
   /*  2678 */        0x00000545           /* 153    (LREF_PUSH) */,
   /*  2679 */        0x00000009           /* 154    (GREF) */,
   /*  2680 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
   /*  2681 */        0x0000012C           /* 156    (LOCAL_CALL) */,
   /*  2682 */        0x0000000B           /* 157    (PUSH) */,
   /*  2683 */        0x00000030           /* 158    (FRAME) */,
-  /*  2684 */        WORD(SG_MAKE_INT(4)),
+  /*  2684 */        WORD(4),
   /*  2685 */        0x00000945           /* 160    (LREF_PUSH) */,
   /*  2686 */        0x0000014A           /* 161    (GREF_CALL) */,
   /*  2687 */        WORD(SG_UNDEF)  /* identifier#length */,
   /*  2688 */        0x0000000B           /* 163    (PUSH) */,
   /*  2689 */        0x00000605           /* 164    (LREF) */,
   /*  2690 */        0x0000001A           /* 165    (BNNUME) */,
-  /*  2691 */        WORD(SG_MAKE_INT(3)),
+  /*  2691 */        WORD(3),
   /*  2692 */        0x00000018           /* 167    (JUMP) */,
-  /*  2693 */        WORD(SG_MAKE_INT(10)),
+  /*  2693 */        WORD(10),
   /*  2694 */        0x00000030           /* 169    (FRAME) */,
-  /*  2695 */        WORD(SG_MAKE_INT(8)),
+  /*  2695 */        WORD(8),
   /*  2696 */        0x00000048           /* 171    (CONST_PUSH) */,
   /*  2697 */        WORD(SG_UNDEF), /* for-all */
   /*  2698 */        0x00000048           /* 173    (CONST_PUSH) */,
@@ -2841,27 +2841,27 @@ static struct sg__wcRec {
   /*  2702 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2703 */        0x00000A05           /* 178    (LREF) */,
   /*  2704 */        0x00000021           /* 179    (BNNULL) */,
-  /*  2705 */        WORD(SG_MAKE_INT(5)),
+  /*  2705 */        WORD(5),
   /*  2706 */        0x00000445           /* 181    (LREF_PUSH) */,
   /*  2707 */        0x00000905           /* 182    (LREF) */,
   /*  2708 */        0x0010022A           /* 183    (APPLY) */,
   /*  2709 */        0x0000002F           /* 184    (RET) */,
   /*  2710 */        0x00000030           /* 185    (FRAME) */,
-  /*  2711 */        WORD(SG_MAKE_INT(4)),
+  /*  2711 */        WORD(4),
   /*  2712 */        0x00000445           /* 187    (LREF_PUSH) */,
   /*  2713 */        0x00000905           /* 188    (LREF) */,
   /*  2714 */        0x0000022A           /* 189    (APPLY) */,
   /*  2715 */        0x00000017           /* 190    (TEST) */,
-  /*  2716 */        WORD(SG_MAKE_INT(18)),
+  /*  2716 */        WORD(18),
   /*  2717 */        0x00000030           /* 192    (FRAME) */,
-  /*  2718 */        WORD(SG_MAKE_INT(5)),
+  /*  2718 */        WORD(5),
   /*  2719 */        0x00000A45           /* 194    (LREF_PUSH) */,
   /*  2720 */        0x00000805           /* 195    (LREF) */,
   /*  2721 */        0x0000000D           /* 196    (UNBOX) */,
   /*  2722 */        0x0000012C           /* 197    (LOCAL_CALL) */,
   /*  2723 */        0x0000000B           /* 198    (PUSH) */,
   /*  2724 */        0x00000030           /* 199    (FRAME) */,
-  /*  2725 */        WORD(SG_MAKE_INT(5)),
+  /*  2725 */        WORD(5),
   /*  2726 */        0x00000A45           /* 201    (LREF_PUSH) */,
   /*  2727 */        0x00000009           /* 202    (GREF) */,
   /*  2728 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
@@ -2869,7 +2869,7 @@ static struct sg__wcRec {
   /*  2730 */        0x0000000B           /* 205    (PUSH) */,
   /*  2731 */        0x00900219           /* 206    (SHIFTJ) */,
   /*  2732 */        0x00000018           /* 207    (JUMP) */,
-  /*  2733 */        WORD(SG_MAKE_INT(-50)),
+  /*  2733 */        WORD(-50),
   /*  2734 */        0x0000002F           /* 209    (RET) */,
   /*  2735 */        0x00000002           /* 0      (UNDEF) */,
   /*  2736 */        0x0000000B           /* 1      (PUSH) */,
@@ -2886,18 +2886,18 @@ static struct sg__wcRec {
   /*  2747 */        0x0000002F           /* 12     (RET) */,
   /*  2748 */        0x00000005           /* 0      (LREF) */,
   /*  2749 */        0x00000021           /* 1      (BNNULL) */,
-  /*  2750 */        WORD(SG_MAKE_INT(3)),
+  /*  2750 */        WORD(3),
   /*  2751 */        0x00000061           /* 3      (CONST_RET) */,
   /*  2752 */        WORD(SG_NIL),
   /*  2753 */        0x00000055           /* 5      (LREF_CAR) */,
   /*  2754 */        0x0000003E           /* 6      (PAIRP) */,
   /*  2755 */        0x00000017           /* 7      (TEST) */,
-  /*  2756 */        WORD(SG_MAKE_INT(12)),
+  /*  2756 */        WORD(12),
   /*  2757 */        0x00000005           /* 9      (LREF) */,
   /*  2758 */        0x0000004E           /* 10     (CAAR) */,
   /*  2759 */        0x0000000B           /* 11     (PUSH) */,
   /*  2760 */        0x00000030           /* 12     (FRAME) */,
-  /*  2761 */        WORD(SG_MAKE_INT(5)),
+  /*  2761 */        WORD(5),
   /*  2762 */        0x0000005C           /* 14     (LREF_CDR_PUSH) */,
   /*  2763 */        0x00000107           /* 15     (FREF) */,
   /*  2764 */        0x0000000D           /* 16     (UNBOX) */,
@@ -2907,7 +2907,7 @@ static struct sg__wcRec {
   /*  2768 */        0x00000048           /* 20     (CONST_PUSH) */,
   /*  2769 */        WORD(SG_UNDEF), /* for-all */
   /*  2770 */        0x00000030           /* 22     (FRAME) */,
-  /*  2771 */        WORD(SG_MAKE_INT(6)),
+  /*  2771 */        WORD(6),
   /*  2772 */        0x00000048           /* 24     (CONST_PUSH) */,
   /*  2773 */        WORD(SG_UNDEF), /* "traversal reached to non-pair element ~s" */
   /*  2774 */        0x0000005B           /* 26     (LREF_CAR_PUSH) */,
@@ -2921,49 +2921,49 @@ static struct sg__wcRec {
   /*  2782 */        0x00000002           /* 0      (UNDEF) */,
   /*  2783 */        0x00000205           /* 1      (LREF) */,
   /*  2784 */        0x00000021           /* 2      (BNNULL) */,
-  /*  2785 */        WORD(SG_MAKE_INT(73)),
+  /*  2785 */        WORD(73),
   /*  2786 */        0x00000045           /* 4      (LREF_PUSH) */,
   /*  2787 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*  2788 */        0x00000105           /* 6      (LREF) */,
   /*  2789 */        0x00000021           /* 7      (BNNULL) */,
-  /*  2790 */        WORD(SG_MAKE_INT(3)),
+  /*  2790 */        WORD(3),
   /*  2791 */        0x00000061           /* 9      (CONST_RET) */,
   /*  2792 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  2793 */        0x00000105           /* 11     (LREF) */,
   /*  2794 */        0x0000003E           /* 12     (PAIRP) */,
   /*  2795 */        0x00000017           /* 13     (TEST) */,
-  /*  2796 */        WORD(SG_MAKE_INT(45)),
+  /*  2796 */        WORD(45),
   /*  2797 */        0x0000045B           /* 15     (LREF_CAR_PUSH) */,
   /*  2798 */        0x0000045C           /* 16     (LREF_CDR_PUSH) */,
   /*  2799 */        0x00000605           /* 17     (LREF) */,
   /*  2800 */        0x00000021           /* 18     (BNNULL) */,
-  /*  2801 */        WORD(SG_MAKE_INT(5)),
+  /*  2801 */        WORD(5),
   /*  2802 */        0x00000545           /* 20     (LREF_PUSH) */,
   /*  2803 */        0x00000305           /* 21     (LREF) */,
   /*  2804 */        0x0000012D           /* 22     (TAIL_CALL) */,
   /*  2805 */        0x0000002F           /* 23     (RET) */,
   /*  2806 */        0x00000030           /* 24     (FRAME) */,
-  /*  2807 */        WORD(SG_MAKE_INT(4)),
+  /*  2807 */        WORD(4),
   /*  2808 */        0x00000545           /* 26     (LREF_PUSH) */,
   /*  2809 */        0x00000305           /* 27     (LREF) */,
   /*  2810 */        0x0000012B           /* 28     (CALL) */,
   /*  2811 */        0x00000017           /* 29     (TEST) */,
-  /*  2812 */        WORD(SG_MAKE_INT(2)),
+  /*  2812 */        WORD(2),
   /*  2813 */        0x0000002F           /* 31     (RET) */,
   /*  2814 */        0x00000605           /* 32     (LREF) */,
   /*  2815 */        0x0000003E           /* 33     (PAIRP) */,
   /*  2816 */        0x00000017           /* 34     (TEST) */,
-  /*  2817 */        WORD(SG_MAKE_INT(7)),
+  /*  2817 */        WORD(7),
   /*  2818 */        0x0000065B           /* 36     (LREF_CAR_PUSH) */,
   /*  2819 */        0x0000065C           /* 37     (LREF_CDR_PUSH) */,
   /*  2820 */        0x00500219           /* 38     (SHIFTJ) */,
   /*  2821 */        0x00000018           /* 39     (JUMP) */,
-  /*  2822 */        WORD(SG_MAKE_INT(-23)),
+  /*  2822 */        WORD(-23),
   /*  2823 */        0x0000002F           /* 41     (RET) */,
   /*  2824 */        0x00000048           /* 42     (CONST_PUSH) */,
   /*  2825 */        WORD(SG_UNDEF), /* exists */
   /*  2826 */        0x00000030           /* 44     (FRAME) */,
-  /*  2827 */        WORD(SG_MAKE_INT(6)),
+  /*  2827 */        WORD(6),
   /*  2828 */        0x00000048           /* 46     (CONST_PUSH) */,
   /*  2829 */        WORD(SG_UNDEF), /* "traversal reached to non-pair element ~s" */
   /*  2830 */        0x00000645           /* 48     (LREF_PUSH) */,
@@ -2980,7 +2980,7 @@ static struct sg__wcRec {
   /*  2841 */        0x00000048           /* 59     (CONST_PUSH) */,
   /*  2842 */        WORD(SG_UNDEF), /* exists */
   /*  2843 */        0x00000030           /* 61     (FRAME) */,
-  /*  2844 */        WORD(SG_MAKE_INT(6)),
+  /*  2844 */        WORD(6),
   /*  2845 */        0x00000048           /* 63     (CONST_PUSH) */,
   /*  2846 */        WORD(SG_UNDEF), /* "expected chain of pairs, but got ~a, as argument 2" */
   /*  2847 */        0x00000145           /* 65     (LREF_PUSH) */,
@@ -2995,7 +2995,7 @@ static struct sg__wcRec {
   /*  2856 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2857 */        0x0000002F           /* 75     (RET) */,
   /*  2858 */        0x00000030           /* 76     (FRAME) */,
-  /*  2859 */        WORD(SG_MAKE_INT(6)),
+  /*  2859 */        WORD(6),
   /*  2860 */        0x00000047           /* 78     (GREF_PUSH) */,
   /*  2861 */        WORD(SG_UNDEF)  /* identifier#list-transpose+ */,
   /*  2862 */        0x00000145           /* 80     (LREF_PUSH) */,
@@ -3004,42 +3004,42 @@ static struct sg__wcRec {
   /*  2865 */        0x0000000B           /* 83     (PUSH) */,
   /*  2866 */        0x00000305           /* 84     (LREF) */,
   /*  2867 */        0x00000017           /* 85     (TEST) */,
-  /*  2868 */        WORD(SG_MAKE_INT(30)),
+  /*  2868 */        WORD(30),
   /*  2869 */        0x00000045           /* 87     (LREF_PUSH) */,
   /*  2870 */        0x00000345           /* 88     (LREF_PUSH) */,
   /*  2871 */        0x00000305           /* 89     (LREF) */,
   /*  2872 */        0x0000003E           /* 90     (PAIRP) */,
   /*  2873 */        0x00000017           /* 91     (TEST) */,
-  /*  2874 */        WORD(SG_MAKE_INT(23)),
+  /*  2874 */        WORD(23),
   /*  2875 */        0x0000055B           /* 93     (LREF_CAR_PUSH) */,
   /*  2876 */        0x0000055C           /* 94     (LREF_CDR_PUSH) */,
   /*  2877 */        0x00000705           /* 95     (LREF) */,
   /*  2878 */        0x00000021           /* 96     (BNNULL) */,
-  /*  2879 */        WORD(SG_MAKE_INT(5)),
+  /*  2879 */        WORD(5),
   /*  2880 */        0x00000445           /* 98     (LREF_PUSH) */,
   /*  2881 */        0x00000605           /* 99     (LREF) */,
   /*  2882 */        0x0010022A           /* 100    (APPLY) */,
   /*  2883 */        0x0000002F           /* 101    (RET) */,
   /*  2884 */        0x00000030           /* 102    (FRAME) */,
-  /*  2885 */        WORD(SG_MAKE_INT(4)),
+  /*  2885 */        WORD(4),
   /*  2886 */        0x00000445           /* 104    (LREF_PUSH) */,
   /*  2887 */        0x00000605           /* 105    (LREF) */,
   /*  2888 */        0x0000022A           /* 106    (APPLY) */,
   /*  2889 */        0x00000017           /* 107    (TEST) */,
-  /*  2890 */        WORD(SG_MAKE_INT(2)),
+  /*  2890 */        WORD(2),
   /*  2891 */        0x0000002F           /* 109    (RET) */,
   /*  2892 */        0x0000075B           /* 110    (LREF_CAR_PUSH) */,
   /*  2893 */        0x0000075C           /* 111    (LREF_CDR_PUSH) */,
   /*  2894 */        0x00600219           /* 112    (SHIFTJ) */,
   /*  2895 */        0x00000018           /* 113    (JUMP) */,
-  /*  2896 */        WORD(SG_MAKE_INT(-19)),
+  /*  2896 */        WORD(-19),
   /*  2897 */        0x0000002F           /* 115    (RET) */,
   /*  2898 */        0x00000045           /* 116    (LREF_PUSH) */,
   /*  2899 */        0x00000145           /* 117    (LREF_PUSH) */,
   /*  2900 */        0x00000205           /* 118    (LREF) */,
   /*  2901 */        0x00000054           /* 119    (CONS_PUSH) */,
   /*  2902 */        0x00000030           /* 120    (FRAME) */,
-  /*  2903 */        WORD(SG_MAKE_INT(4)),
+  /*  2903 */        WORD(4),
   /*  2904 */        0x00000545           /* 122    (LREF_PUSH) */,
   /*  2905 */        0x0000014A           /* 123    (GREF_CALL) */,
   /*  2906 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -3058,32 +3058,32 @@ static struct sg__wcRec {
   /*  2919 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  2920 */        0x00000806           /* 138    (LSET) */,
   /*  2921 */        0x00000030           /* 139    (FRAME) */,
-  /*  2922 */        WORD(SG_MAKE_INT(5)),
+  /*  2922 */        WORD(5),
   /*  2923 */        0x00000545           /* 141    (LREF_PUSH) */,
   /*  2924 */        0x00000805           /* 142    (LREF) */,
   /*  2925 */        0x0000000D           /* 143    (UNBOX) */,
   /*  2926 */        0x0000012C           /* 144    (LOCAL_CALL) */,
   /*  2927 */        0x0000000B           /* 145    (PUSH) */,
   /*  2928 */        0x00000030           /* 146    (FRAME) */,
-  /*  2929 */        WORD(SG_MAKE_INT(5)),
+  /*  2929 */        WORD(5),
   /*  2930 */        0x00000545           /* 148    (LREF_PUSH) */,
   /*  2931 */        0x00000009           /* 149    (GREF) */,
   /*  2932 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
   /*  2933 */        0x0000012C           /* 151    (LOCAL_CALL) */,
   /*  2934 */        0x0000000B           /* 152    (PUSH) */,
   /*  2935 */        0x00000030           /* 153    (FRAME) */,
-  /*  2936 */        WORD(SG_MAKE_INT(4)),
+  /*  2936 */        WORD(4),
   /*  2937 */        0x00000945           /* 155    (LREF_PUSH) */,
   /*  2938 */        0x0000014A           /* 156    (GREF_CALL) */,
   /*  2939 */        WORD(SG_UNDEF)  /* identifier#length */,
   /*  2940 */        0x0000000B           /* 158    (PUSH) */,
   /*  2941 */        0x00000605           /* 159    (LREF) */,
   /*  2942 */        0x0000001A           /* 160    (BNNUME) */,
-  /*  2943 */        WORD(SG_MAKE_INT(3)),
+  /*  2943 */        WORD(3),
   /*  2944 */        0x00000018           /* 162    (JUMP) */,
-  /*  2945 */        WORD(SG_MAKE_INT(10)),
+  /*  2945 */        WORD(10),
   /*  2946 */        0x00000030           /* 164    (FRAME) */,
-  /*  2947 */        WORD(SG_MAKE_INT(8)),
+  /*  2947 */        WORD(8),
   /*  2948 */        0x00000048           /* 166    (CONST_PUSH) */,
   /*  2949 */        WORD(SG_UNDEF), /* exists */
   /*  2950 */        0x00000048           /* 168    (CONST_PUSH) */,
@@ -3093,28 +3093,28 @@ static struct sg__wcRec {
   /*  2954 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  2955 */        0x00000A05           /* 173    (LREF) */,
   /*  2956 */        0x00000021           /* 174    (BNNULL) */,
-  /*  2957 */        WORD(SG_MAKE_INT(5)),
+  /*  2957 */        WORD(5),
   /*  2958 */        0x00000445           /* 176    (LREF_PUSH) */,
   /*  2959 */        0x00000905           /* 177    (LREF) */,
   /*  2960 */        0x0010022A           /* 178    (APPLY) */,
   /*  2961 */        0x0000002F           /* 179    (RET) */,
   /*  2962 */        0x00000030           /* 180    (FRAME) */,
-  /*  2963 */        WORD(SG_MAKE_INT(4)),
+  /*  2963 */        WORD(4),
   /*  2964 */        0x00000445           /* 182    (LREF_PUSH) */,
   /*  2965 */        0x00000905           /* 183    (LREF) */,
   /*  2966 */        0x0000022A           /* 184    (APPLY) */,
   /*  2967 */        0x00000017           /* 185    (TEST) */,
-  /*  2968 */        WORD(SG_MAKE_INT(2)),
+  /*  2968 */        WORD(2),
   /*  2969 */        0x0000002F           /* 187    (RET) */,
   /*  2970 */        0x00000030           /* 188    (FRAME) */,
-  /*  2971 */        WORD(SG_MAKE_INT(5)),
+  /*  2971 */        WORD(5),
   /*  2972 */        0x00000A45           /* 190    (LREF_PUSH) */,
   /*  2973 */        0x00000805           /* 191    (LREF) */,
   /*  2974 */        0x0000000D           /* 192    (UNBOX) */,
   /*  2975 */        0x0000012C           /* 193    (LOCAL_CALL) */,
   /*  2976 */        0x0000000B           /* 194    (PUSH) */,
   /*  2977 */        0x00000030           /* 195    (FRAME) */,
-  /*  2978 */        WORD(SG_MAKE_INT(5)),
+  /*  2978 */        WORD(5),
   /*  2979 */        0x00000A45           /* 197    (LREF_PUSH) */,
   /*  2980 */        0x00000009           /* 198    (GREF) */,
   /*  2981 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
@@ -3122,7 +3122,7 @@ static struct sg__wcRec {
   /*  2983 */        0x0000000B           /* 201    (PUSH) */,
   /*  2984 */        0x00900219           /* 202    (SHIFTJ) */,
   /*  2985 */        0x00000018           /* 203    (JUMP) */,
-  /*  2986 */        WORD(SG_MAKE_INT(-51)),
+  /*  2986 */        WORD(-51),
   /*  2987 */        0x0000002F           /* 205    (RET) */,
   /*  2988 */        0x00000002           /* 0      (UNDEF) */,
   /*  2989 */        0x0000000B           /* 1      (PUSH) */,
@@ -3139,18 +3139,18 @@ static struct sg__wcRec {
   /*  3000 */        0x0000002F           /* 12     (RET) */,
   /*  3001 */        0x00000005           /* 0      (LREF) */,
   /*  3002 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3003 */        WORD(SG_MAKE_INT(3)),
+  /*  3003 */        WORD(3),
   /*  3004 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3005 */        WORD(SG_NIL),
   /*  3006 */        0x00000055           /* 5      (LREF_CAR) */,
   /*  3007 */        0x0000003E           /* 6      (PAIRP) */,
   /*  3008 */        0x00000017           /* 7      (TEST) */,
-  /*  3009 */        WORD(SG_MAKE_INT(12)),
+  /*  3009 */        WORD(12),
   /*  3010 */        0x00000005           /* 9      (LREF) */,
   /*  3011 */        0x0000004E           /* 10     (CAAR) */,
   /*  3012 */        0x0000000B           /* 11     (PUSH) */,
   /*  3013 */        0x00000030           /* 12     (FRAME) */,
-  /*  3014 */        WORD(SG_MAKE_INT(5)),
+  /*  3014 */        WORD(5),
   /*  3015 */        0x0000005C           /* 14     (LREF_CDR_PUSH) */,
   /*  3016 */        0x00000107           /* 15     (FREF) */,
   /*  3017 */        0x0000000D           /* 16     (UNBOX) */,
@@ -3160,7 +3160,7 @@ static struct sg__wcRec {
   /*  3021 */        0x00000048           /* 20     (CONST_PUSH) */,
   /*  3022 */        WORD(SG_UNDEF), /* exists */
   /*  3023 */        0x00000030           /* 22     (FRAME) */,
-  /*  3024 */        WORD(SG_MAKE_INT(6)),
+  /*  3024 */        WORD(6),
   /*  3025 */        0x00000048           /* 24     (CONST_PUSH) */,
   /*  3026 */        WORD(SG_UNDEF), /* "traversal reached to non-pair element ~s" */
   /*  3027 */        0x0000005B           /* 26     (LREF_CAR_PUSH) */,
@@ -3186,19 +3186,19 @@ static struct sg__wcRec {
   /*  3047 */        0x0000002F           /* 12     (RET) */,
   /*  3048 */        0x00000005           /* 0      (LREF) */,
   /*  3049 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3050 */        WORD(SG_MAKE_INT(3)),
+  /*  3050 */        WORD(3),
   /*  3051 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3052 */        WORD(SG_NIL),
   /*  3053 */        0x00000030           /* 5      (FRAME) */,
-  /*  3054 */        WORD(SG_MAKE_INT(4)),
+  /*  3054 */        WORD(4),
   /*  3055 */        0x0000005B           /* 7      (LREF_CAR_PUSH) */,
   /*  3056 */        0x00000107           /* 8      (FREF) */,
   /*  3057 */        0x0000012B           /* 9      (CALL) */,
   /*  3058 */        0x00000017           /* 10     (TEST) */,
-  /*  3059 */        WORD(SG_MAKE_INT(10)),
+  /*  3059 */        WORD(10),
   /*  3060 */        0x0000005B           /* 12     (LREF_CAR_PUSH) */,
   /*  3061 */        0x00000030           /* 13     (FRAME) */,
-  /*  3062 */        WORD(SG_MAKE_INT(5)),
+  /*  3062 */        WORD(5),
   /*  3063 */        0x0000005C           /* 15     (LREF_CDR_PUSH) */,
   /*  3064 */        0x00000007           /* 16     (FREF) */,
   /*  3065 */        0x0000000D           /* 17     (UNBOX) */,
@@ -3217,27 +3217,27 @@ static struct sg__wcRec {
   /*  3078 */        WORD(SG_NIL),
   /*  3079 */        0x00000205           /* 5      (LREF) */,
   /*  3080 */        0x00000021           /* 6      (BNNULL) */,
-  /*  3081 */        WORD(SG_MAKE_INT(14)),
+  /*  3081 */        WORD(14),
   /*  3082 */        0x00000030           /* 8      (FRAME) */,
-  /*  3083 */        WORD(SG_MAKE_INT(4)),
+  /*  3083 */        WORD(4),
   /*  3084 */        0x00000345           /* 10     (LREF_PUSH) */,
   /*  3085 */        0x0000014A           /* 11     (GREF_CALL) */,
   /*  3086 */        WORD(SG_UNDEF)  /* identifier#reverse */,
   /*  3087 */        0x0000000B           /* 13     (PUSH) */,
   /*  3088 */        0x00000030           /* 14     (FRAME) */,
-  /*  3089 */        WORD(SG_MAKE_INT(4)),
+  /*  3089 */        WORD(4),
   /*  3090 */        0x00000445           /* 16     (LREF_PUSH) */,
   /*  3091 */        0x0000014A           /* 17     (GREF_CALL) */,
   /*  3092 */        WORD(SG_UNDEF)  /* identifier#reverse */,
   /*  3093 */        0x0000023A           /* 19     (VALUES) */,
   /*  3094 */        0x0000002F           /* 20     (RET) */,
   /*  3095 */        0x00000030           /* 21     (FRAME) */,
-  /*  3096 */        WORD(SG_MAKE_INT(4)),
+  /*  3096 */        WORD(4),
   /*  3097 */        0x0000025B           /* 23     (LREF_CAR_PUSH) */,
   /*  3098 */        0x00000005           /* 24     (LREF) */,
   /*  3099 */        0x0000012B           /* 25     (CALL) */,
   /*  3100 */        0x00000017           /* 26     (TEST) */,
-  /*  3101 */        WORD(SG_MAKE_INT(10)),
+  /*  3101 */        WORD(10),
   /*  3102 */        0x0000025C           /* 28     (LREF_CDR_PUSH) */,
   /*  3103 */        0x0000025B           /* 29     (LREF_CAR_PUSH) */,
   /*  3104 */        0x00000305           /* 30     (LREF) */,
@@ -3245,7 +3245,7 @@ static struct sg__wcRec {
   /*  3106 */        0x00000445           /* 32     (LREF_PUSH) */,
   /*  3107 */        0x00200319           /* 33     (SHIFTJ) */,
   /*  3108 */        0x00000018           /* 34     (JUMP) */,
-  /*  3109 */        WORD(SG_MAKE_INT(-30)),
+  /*  3109 */        WORD(-30),
   /*  3110 */        0x0000002F           /* 36     (RET) */,
   /*  3111 */        0x0000025C           /* 37     (LREF_CDR_PUSH) */,
   /*  3112 */        0x00000345           /* 38     (LREF_PUSH) */,
@@ -3254,21 +3254,21 @@ static struct sg__wcRec {
   /*  3115 */        0x00000054           /* 41     (CONS_PUSH) */,
   /*  3116 */        0x00200319           /* 42     (SHIFTJ) */,
   /*  3117 */        0x00000018           /* 43     (JUMP) */,
-  /*  3118 */        WORD(SG_MAKE_INT(-39)),
+  /*  3118 */        WORD(-39),
   /*  3119 */        0x0000002F           /* 45     (RET) */,
   /*  3120 */        0x00000205           /* 0      (LREF) */,
   /*  3121 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3122 */        WORD(SG_MAKE_INT(47)),
+  /*  3122 */        WORD(47),
   /*  3123 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*  3124 */        0x00000048           /* 4      (CONST_PUSH) */,
   /*  3125 */        WORD(SG_NIL),
   /*  3126 */        0x00000305           /* 6      (LREF) */,
   /*  3127 */        0x0000003E           /* 7      (PAIRP) */,
   /*  3128 */        0x00000017           /* 8      (TEST) */,
-  /*  3129 */        WORD(SG_MAKE_INT(14)),
+  /*  3129 */        WORD(14),
   /*  3130 */        0x0000035C           /* 10     (LREF_CDR_PUSH) */,
   /*  3131 */        0x00000030           /* 11     (FRAME) */,
-  /*  3132 */        WORD(SG_MAKE_INT(4)),
+  /*  3132 */        WORD(4),
   /*  3133 */        0x0000035B           /* 13     (LREF_CAR_PUSH) */,
   /*  3134 */        0x00000005           /* 14     (LREF) */,
   /*  3135 */        0x0000012B           /* 15     (CALL) */,
@@ -3277,11 +3277,11 @@ static struct sg__wcRec {
   /*  3138 */        0x00000054           /* 18     (CONS_PUSH) */,
   /*  3139 */        0x00300219           /* 19     (SHIFTJ) */,
   /*  3140 */        0x00000018           /* 20     (JUMP) */,
-  /*  3141 */        WORD(SG_MAKE_INT(-15)),
+  /*  3141 */        WORD(-15),
   /*  3142 */        0x0000002F           /* 22     (RET) */,
   /*  3143 */        0x00000305           /* 23     (LREF) */,
   /*  3144 */        0x00000021           /* 24     (BNNULL) */,
-  /*  3145 */        WORD(SG_MAKE_INT(5)),
+  /*  3145 */        WORD(5),
   /*  3146 */        0x00000445           /* 26     (LREF_PUSH) */,
   /*  3147 */        0x0000014B           /* 27     (GREF_TAIL_CALL) */,
   /*  3148 */        WORD(SG_UNDEF)  /* identifier#reverse! */,
@@ -3289,7 +3289,7 @@ static struct sg__wcRec {
   /*  3150 */        0x00000048           /* 30     (CONST_PUSH) */,
   /*  3151 */        WORD(SG_UNDEF), /* map */
   /*  3152 */        0x00000030           /* 32     (FRAME) */,
-  /*  3153 */        WORD(SG_MAKE_INT(7)),
+  /*  3153 */        WORD(7),
   /*  3154 */        0x00000048           /* 34     (CONST_PUSH) */,
   /*  3155 */        WORD(SG_UNDEF), /* "proper list" */
   /*  3156 */        0x00000145           /* 36     (LREF_PUSH) */,
@@ -3306,7 +3306,7 @@ static struct sg__wcRec {
   /*  3167 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  3168 */        0x0000002F           /* 48     (RET) */,
   /*  3169 */        0x00000030           /* 49     (FRAME) */,
-  /*  3170 */        WORD(SG_MAKE_INT(6)),
+  /*  3170 */        WORD(6),
   /*  3171 */        0x00000047           /* 51     (GREF_PUSH) */,
   /*  3172 */        WORD(SG_UNDEF)  /* identifier#list-transpose* */,
   /*  3173 */        0x00000145           /* 53     (LREF_PUSH) */,
@@ -3318,10 +3318,10 @@ static struct sg__wcRec {
   /*  3179 */        0x00000305           /* 59     (LREF) */,
   /*  3180 */        0x0000003E           /* 60     (PAIRP) */,
   /*  3181 */        0x00000017           /* 61     (TEST) */,
-  /*  3182 */        WORD(SG_MAKE_INT(14)),
+  /*  3182 */        WORD(14),
   /*  3183 */        0x0000035C           /* 63     (LREF_CDR_PUSH) */,
   /*  3184 */        0x00000030           /* 64     (FRAME) */,
-  /*  3185 */        WORD(SG_MAKE_INT(4)),
+  /*  3185 */        WORD(4),
   /*  3186 */        0x00000045           /* 66     (LREF_PUSH) */,
   /*  3187 */        0x00000355           /* 67     (LREF_CAR) */,
   /*  3188 */        0x0000022A           /* 68     (APPLY) */,
@@ -3330,11 +3330,11 @@ static struct sg__wcRec {
   /*  3191 */        0x00000054           /* 71     (CONS_PUSH) */,
   /*  3192 */        0x00300219           /* 72     (SHIFTJ) */,
   /*  3193 */        0x00000018           /* 73     (JUMP) */,
-  /*  3194 */        WORD(SG_MAKE_INT(-15)),
+  /*  3194 */        WORD(-15),
   /*  3195 */        0x0000002F           /* 75     (RET) */,
   /*  3196 */        0x00000305           /* 76     (LREF) */,
   /*  3197 */        0x00000021           /* 77     (BNNULL) */,
-  /*  3198 */        WORD(SG_MAKE_INT(5)),
+  /*  3198 */        WORD(5),
   /*  3199 */        0x00000445           /* 79     (LREF_PUSH) */,
   /*  3200 */        0x0000014B           /* 80     (GREF_TAIL_CALL) */,
   /*  3201 */        WORD(SG_UNDEF)  /* identifier#reverse! */,
@@ -3342,7 +3342,7 @@ static struct sg__wcRec {
   /*  3203 */        0x00000048           /* 83     (CONST_PUSH) */,
   /*  3204 */        WORD(SG_UNDEF), /* map */
   /*  3205 */        0x00000030           /* 85     (FRAME) */,
-  /*  3206 */        WORD(SG_MAKE_INT(7)),
+  /*  3206 */        WORD(7),
   /*  3207 */        0x00000048           /* 87     (CONST_PUSH) */,
   /*  3208 */        WORD(SG_UNDEF), /* "proper list" */
   /*  3209 */        0x00000145           /* 89     (LREF_PUSH) */,
@@ -3360,32 +3360,32 @@ static struct sg__wcRec {
   /*  3221 */        0x0000002F           /* 101    (RET) */,
   /*  3222 */        0x00000205           /* 0      (LREF) */,
   /*  3223 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3224 */        WORD(SG_MAKE_INT(41)),
+  /*  3224 */        WORD(41),
   /*  3225 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*  3226 */        0x00000305           /* 4      (LREF) */,
   /*  3227 */        0x0000003E           /* 5      (PAIRP) */,
   /*  3228 */        0x00000017           /* 6      (TEST) */,
-  /*  3229 */        WORD(SG_MAKE_INT(11)),
+  /*  3229 */        WORD(11),
   /*  3230 */        0x00000030           /* 8      (FRAME) */,
-  /*  3231 */        WORD(SG_MAKE_INT(4)),
+  /*  3231 */        WORD(4),
   /*  3232 */        0x0000035B           /* 10     (LREF_CAR_PUSH) */,
   /*  3233 */        0x00000005           /* 11     (LREF) */,
   /*  3234 */        0x0000012B           /* 12     (CALL) */,
   /*  3235 */        0x0000035C           /* 13     (LREF_CDR_PUSH) */,
   /*  3236 */        0x00300119           /* 14     (SHIFTJ) */,
   /*  3237 */        0x00000018           /* 15     (JUMP) */,
-  /*  3238 */        WORD(SG_MAKE_INT(-12)),
+  /*  3238 */        WORD(-12),
   /*  3239 */        0x0000002F           /* 17     (RET) */,
   /*  3240 */        0x00000305           /* 18     (LREF) */,
   /*  3241 */        0x00000021           /* 19     (BNNULL) */,
-  /*  3242 */        WORD(SG_MAKE_INT(4)),
+  /*  3242 */        WORD(4),
   /*  3243 */        0x0000004B           /* 21     (GREF_TAIL_CALL) */,
   /*  3244 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  3245 */        0x0000002F           /* 23     (RET) */,
   /*  3246 */        0x00000048           /* 24     (CONST_PUSH) */,
   /*  3247 */        WORD(SG_UNDEF), /* for-each */
   /*  3248 */        0x00000030           /* 26     (FRAME) */,
-  /*  3249 */        WORD(SG_MAKE_INT(7)),
+  /*  3249 */        WORD(7),
   /*  3250 */        0x00000048           /* 28     (CONST_PUSH) */,
   /*  3251 */        WORD(SG_UNDEF), /* "proper list" */
   /*  3252 */        0x00000145           /* 30     (LREF_PUSH) */,
@@ -3402,7 +3402,7 @@ static struct sg__wcRec {
   /*  3263 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  3264 */        0x0000002F           /* 42     (RET) */,
   /*  3265 */        0x00000030           /* 43     (FRAME) */,
-  /*  3266 */        WORD(SG_MAKE_INT(6)),
+  /*  3266 */        WORD(6),
   /*  3267 */        0x00000047           /* 45     (GREF_PUSH) */,
   /*  3268 */        WORD(SG_UNDEF)  /* identifier#list-transpose* */,
   /*  3269 */        0x00000145           /* 47     (LREF_PUSH) */,
@@ -3412,27 +3412,27 @@ static struct sg__wcRec {
   /*  3273 */        0x00000305           /* 51     (LREF) */,
   /*  3274 */        0x0000003E           /* 52     (PAIRP) */,
   /*  3275 */        0x00000017           /* 53     (TEST) */,
-  /*  3276 */        WORD(SG_MAKE_INT(11)),
+  /*  3276 */        WORD(11),
   /*  3277 */        0x00000030           /* 55     (FRAME) */,
-  /*  3278 */        WORD(SG_MAKE_INT(4)),
+  /*  3278 */        WORD(4),
   /*  3279 */        0x00000045           /* 57     (LREF_PUSH) */,
   /*  3280 */        0x00000355           /* 58     (LREF_CAR) */,
   /*  3281 */        0x0000022A           /* 59     (APPLY) */,
   /*  3282 */        0x0000035C           /* 60     (LREF_CDR_PUSH) */,
   /*  3283 */        0x00300119           /* 61     (SHIFTJ) */,
   /*  3284 */        0x00000018           /* 62     (JUMP) */,
-  /*  3285 */        WORD(SG_MAKE_INT(-12)),
+  /*  3285 */        WORD(-12),
   /*  3286 */        0x0000002F           /* 64     (RET) */,
   /*  3287 */        0x00000305           /* 65     (LREF) */,
   /*  3288 */        0x00000021           /* 66     (BNNULL) */,
-  /*  3289 */        WORD(SG_MAKE_INT(4)),
+  /*  3289 */        WORD(4),
   /*  3290 */        0x0000004B           /* 68     (GREF_TAIL_CALL) */,
   /*  3291 */        WORD(SG_UNDEF)  /* identifier#undefined */,
   /*  3292 */        0x0000002F           /* 70     (RET) */,
   /*  3293 */        0x00000048           /* 71     (CONST_PUSH) */,
   /*  3294 */        WORD(SG_UNDEF), /* for-each */
   /*  3295 */        0x00000030           /* 73     (FRAME) */,
-  /*  3296 */        WORD(SG_MAKE_INT(7)),
+  /*  3296 */        WORD(7),
   /*  3297 */        0x00000048           /* 75     (CONST_PUSH) */,
   /*  3298 */        WORD(SG_UNDEF), /* "proper list" */
   /*  3299 */        0x00000145           /* 77     (LREF_PUSH) */,
@@ -3450,17 +3450,17 @@ static struct sg__wcRec {
   /*  3311 */        0x0000002F           /* 89     (RET) */,
   /*  3312 */        0x00000305           /* 0      (LREF) */,
   /*  3313 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3314 */        WORD(SG_MAKE_INT(20)),
+  /*  3314 */        WORD(20),
   /*  3315 */        0x00000245           /* 3      (LREF_PUSH) */,
   /*  3316 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*  3317 */        0x00000405           /* 5      (LREF) */,
   /*  3318 */        0x00000021           /* 6      (BNNULL) */,
-  /*  3319 */        WORD(SG_MAKE_INT(3)),
+  /*  3319 */        WORD(3),
   /*  3320 */        0x00000505           /* 8      (LREF) */,
   /*  3321 */        0x0000002F           /* 9      (RET) */,
   /*  3322 */        0x0000045C           /* 10     (LREF_CDR_PUSH) */,
   /*  3323 */        0x00000030           /* 11     (FRAME) */,
-  /*  3324 */        WORD(SG_MAKE_INT(5)),
+  /*  3324 */        WORD(5),
   /*  3325 */        0x00000545           /* 13     (LREF_PUSH) */,
   /*  3326 */        0x0000045B           /* 14     (LREF_CAR_PUSH) */,
   /*  3327 */        0x00000005           /* 15     (LREF) */,
@@ -3468,10 +3468,10 @@ static struct sg__wcRec {
   /*  3329 */        0x0000000B           /* 17     (PUSH) */,
   /*  3330 */        0x00400219           /* 18     (SHIFTJ) */,
   /*  3331 */        0x00000018           /* 19     (JUMP) */,
-  /*  3332 */        WORD(SG_MAKE_INT(-15)),
+  /*  3332 */        WORD(-15),
   /*  3333 */        0x0000002F           /* 21     (RET) */,
   /*  3334 */        0x00000030           /* 22     (FRAME) */,
-  /*  3335 */        WORD(SG_MAKE_INT(6)),
+  /*  3335 */        WORD(6),
   /*  3336 */        0x00000047           /* 24     (GREF_PUSH) */,
   /*  3337 */        WORD(SG_UNDEF)  /* identifier#list-transpose* */,
   /*  3338 */        0x00000245           /* 26     (LREF_PUSH) */,
@@ -3481,12 +3481,12 @@ static struct sg__wcRec {
   /*  3342 */        0x00000145           /* 30     (LREF_PUSH) */,
   /*  3343 */        0x00000405           /* 31     (LREF) */,
   /*  3344 */        0x00000021           /* 32     (BNNULL) */,
-  /*  3345 */        WORD(SG_MAKE_INT(3)),
+  /*  3345 */        WORD(3),
   /*  3346 */        0x00000505           /* 34     (LREF) */,
   /*  3347 */        0x0000002F           /* 35     (RET) */,
   /*  3348 */        0x0000045C           /* 36     (LREF_CDR_PUSH) */,
   /*  3349 */        0x00000030           /* 37     (FRAME) */,
-  /*  3350 */        WORD(SG_MAKE_INT(5)),
+  /*  3350 */        WORD(5),
   /*  3351 */        0x00000045           /* 39     (LREF_PUSH) */,
   /*  3352 */        0x00000545           /* 40     (LREF_PUSH) */,
   /*  3353 */        0x00000455           /* 41     (LREF_CAR) */,
@@ -3494,13 +3494,13 @@ static struct sg__wcRec {
   /*  3355 */        0x0000000B           /* 43     (PUSH) */,
   /*  3356 */        0x00400219           /* 44     (SHIFTJ) */,
   /*  3357 */        0x00000018           /* 45     (JUMP) */,
-  /*  3358 */        WORD(SG_MAKE_INT(-15)),
+  /*  3358 */        WORD(-15),
   /*  3359 */        0x0000002F           /* 47     (RET) */,
   /*  3360 */        0x00000305           /* 0      (LREF) */,
   /*  3361 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3362 */        WORD(SG_MAKE_INT(25)),
+  /*  3362 */        WORD(25),
   /*  3363 */        0x00000030           /* 3      (FRAME) */,
-  /*  3364 */        WORD(SG_MAKE_INT(4)),
+  /*  3364 */        WORD(4),
   /*  3365 */        0x00000245           /* 5      (LREF_PUSH) */,
   /*  3366 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*  3367 */        WORD(SG_UNDEF)  /* identifier#reverse */,
@@ -3508,12 +3508,12 @@ static struct sg__wcRec {
   /*  3369 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*  3370 */        0x00000405           /* 10     (LREF) */,
   /*  3371 */        0x00000021           /* 11     (BNNULL) */,
-  /*  3372 */        WORD(SG_MAKE_INT(3)),
+  /*  3372 */        WORD(3),
   /*  3373 */        0x00000505           /* 13     (LREF) */,
   /*  3374 */        0x0000002F           /* 14     (RET) */,
   /*  3375 */        0x0000045C           /* 15     (LREF_CDR_PUSH) */,
   /*  3376 */        0x00000030           /* 16     (FRAME) */,
-  /*  3377 */        WORD(SG_MAKE_INT(5)),
+  /*  3377 */        WORD(5),
   /*  3378 */        0x0000045B           /* 18     (LREF_CAR_PUSH) */,
   /*  3379 */        0x00000545           /* 19     (LREF_PUSH) */,
   /*  3380 */        0x00000005           /* 20     (LREF) */,
@@ -3521,12 +3521,12 @@ static struct sg__wcRec {
   /*  3382 */        0x0000000B           /* 22     (PUSH) */,
   /*  3383 */        0x00400219           /* 23     (SHIFTJ) */,
   /*  3384 */        0x00000018           /* 24     (JUMP) */,
-  /*  3385 */        WORD(SG_MAKE_INT(-15)),
+  /*  3385 */        WORD(-15),
   /*  3386 */        0x0000002F           /* 26     (RET) */,
   /*  3387 */        0x00000030           /* 27     (FRAME) */,
-  /*  3388 */        WORD(SG_MAKE_INT(11)),
+  /*  3388 */        WORD(11),
   /*  3389 */        0x00000030           /* 29     (FRAME) */,
-  /*  3390 */        WORD(SG_MAKE_INT(6)),
+  /*  3390 */        WORD(6),
   /*  3391 */        0x00000047           /* 31     (GREF_PUSH) */,
   /*  3392 */        WORD(SG_UNDEF)  /* identifier#list-transpose* */,
   /*  3393 */        0x00000245           /* 33     (LREF_PUSH) */,
@@ -3539,15 +3539,15 @@ static struct sg__wcRec {
   /*  3400 */        0x00000145           /* 40     (LREF_PUSH) */,
   /*  3401 */        0x00000405           /* 41     (LREF) */,
   /*  3402 */        0x00000021           /* 42     (BNNULL) */,
-  /*  3403 */        WORD(SG_MAKE_INT(3)),
+  /*  3403 */        WORD(3),
   /*  3404 */        0x00000505           /* 44     (LREF) */,
   /*  3405 */        0x0000002F           /* 45     (RET) */,
   /*  3406 */        0x0000045C           /* 46     (LREF_CDR_PUSH) */,
   /*  3407 */        0x00000030           /* 47     (FRAME) */,
-  /*  3408 */        WORD(SG_MAKE_INT(11)),
+  /*  3408 */        WORD(11),
   /*  3409 */        0x00000045           /* 49     (LREF_PUSH) */,
   /*  3410 */        0x00000030           /* 50     (FRAME) */,
-  /*  3411 */        WORD(SG_MAKE_INT(7)),
+  /*  3411 */        WORD(7),
   /*  3412 */        0x0000045B           /* 52     (LREF_CAR_PUSH) */,
   /*  3413 */        0x00000505           /* 53     (LREF) */,
   /*  3414 */        0x00000138           /* 54     (LIST) */,
@@ -3558,7 +3558,7 @@ static struct sg__wcRec {
   /*  3419 */        0x0000000B           /* 59     (PUSH) */,
   /*  3420 */        0x00400219           /* 60     (SHIFTJ) */,
   /*  3421 */        0x00000018           /* 61     (JUMP) */,
-  /*  3422 */        WORD(SG_MAKE_INT(-21)),
+  /*  3422 */        WORD(-21),
   /*  3423 */        0x0000002F           /* 63     (RET) */,
   /*  3424 */        0x00000002           /* 0      (UNDEF) */,
   /*  3425 */        0x0000000B           /* 1      (PUSH) */,
@@ -3575,16 +3575,16 @@ static struct sg__wcRec {
   /*  3436 */        0x0000002F           /* 12     (RET) */,
   /*  3437 */        0x00000005           /* 0      (LREF) */,
   /*  3438 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3439 */        WORD(SG_MAKE_INT(3)),
+  /*  3439 */        WORD(3),
   /*  3440 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3441 */        WORD(SG_NIL),
   /*  3442 */        0x00000030           /* 5      (FRAME) */,
-  /*  3443 */        WORD(SG_MAKE_INT(4)),
+  /*  3443 */        WORD(4),
   /*  3444 */        0x0000005B           /* 7      (LREF_CAR_PUSH) */,
   /*  3445 */        0x00000107           /* 8      (FREF) */,
   /*  3446 */        0x0000012B           /* 9      (CALL) */,
   /*  3447 */        0x00000017           /* 10     (TEST) */,
-  /*  3448 */        WORD(SG_MAKE_INT(6)),
+  /*  3448 */        WORD(6),
   /*  3449 */        0x0000005C           /* 12     (LREF_CDR_PUSH) */,
   /*  3450 */        0x00000007           /* 13     (FREF) */,
   /*  3451 */        0x0000000D           /* 14     (UNBOX) */,
@@ -3592,7 +3592,7 @@ static struct sg__wcRec {
   /*  3453 */        0x0000002F           /* 16     (RET) */,
   /*  3454 */        0x0000005B           /* 17     (LREF_CAR_PUSH) */,
   /*  3455 */        0x00000030           /* 18     (FRAME) */,
-  /*  3456 */        WORD(SG_MAKE_INT(5)),
+  /*  3456 */        WORD(5),
   /*  3457 */        0x0000005C           /* 20     (LREF_CDR_PUSH) */,
   /*  3458 */        0x00000007           /* 21     (FREF) */,
   /*  3459 */        0x0000000D           /* 22     (UNBOX) */,
@@ -3614,17 +3614,17 @@ static struct sg__wcRec {
   /*  3475 */        0x0000002F           /* 12     (RET) */,
   /*  3476 */        0x00000005           /* 0      (LREF) */,
   /*  3477 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3478 */        WORD(SG_MAKE_INT(3)),
+  /*  3478 */        WORD(3),
   /*  3479 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3480 */        WORD(SG_NIL),
   /*  3481 */        0x00000030           /* 5      (FRAME) */,
-  /*  3482 */        WORD(SG_MAKE_INT(5)),
+  /*  3482 */        WORD(5),
   /*  3483 */        0x0000005B           /* 7      (LREF_CAR_PUSH) */,
   /*  3484 */        0x00000146           /* 8      (FREF_PUSH) */,
   /*  3485 */        0x0000024A           /* 9      (GREF_CALL) */,
   /*  3486 */        WORD(SG_UNDEF)  /* identifier#equal? */,
   /*  3487 */        0x00000017           /* 11     (TEST) */,
-  /*  3488 */        WORD(SG_MAKE_INT(6)),
+  /*  3488 */        WORD(6),
   /*  3489 */        0x0000005C           /* 13     (LREF_CDR_PUSH) */,
   /*  3490 */        0x00000007           /* 14     (FREF) */,
   /*  3491 */        0x0000000D           /* 15     (UNBOX) */,
@@ -3632,7 +3632,7 @@ static struct sg__wcRec {
   /*  3493 */        0x0000002F           /* 17     (RET) */,
   /*  3494 */        0x0000005B           /* 18     (LREF_CAR_PUSH) */,
   /*  3495 */        0x00000030           /* 19     (FRAME) */,
-  /*  3496 */        WORD(SG_MAKE_INT(5)),
+  /*  3496 */        WORD(5),
   /*  3497 */        0x0000005C           /* 21     (LREF_CDR_PUSH) */,
   /*  3498 */        0x00000007           /* 22     (FREF) */,
   /*  3499 */        0x0000000D           /* 23     (UNBOX) */,
@@ -3654,13 +3654,13 @@ static struct sg__wcRec {
   /*  3515 */        0x0000002F           /* 12     (RET) */,
   /*  3516 */        0x00000005           /* 0      (LREF) */,
   /*  3517 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3518 */        WORD(SG_MAKE_INT(3)),
+  /*  3518 */        WORD(3),
   /*  3519 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3520 */        WORD(SG_NIL),
   /*  3521 */        0x0000005B           /* 5      (LREF_CAR_PUSH) */,
   /*  3522 */        0x00000107           /* 6      (FREF) */,
   /*  3523 */        0x00000020           /* 7      (BNEQV) */,
-  /*  3524 */        WORD(SG_MAKE_INT(6)),
+  /*  3524 */        WORD(6),
   /*  3525 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*  3526 */        0x00000007           /* 10     (FREF) */,
   /*  3527 */        0x0000000D           /* 11     (UNBOX) */,
@@ -3668,7 +3668,7 @@ static struct sg__wcRec {
   /*  3529 */        0x0000002F           /* 13     (RET) */,
   /*  3530 */        0x0000005B           /* 14     (LREF_CAR_PUSH) */,
   /*  3531 */        0x00000030           /* 15     (FRAME) */,
-  /*  3532 */        WORD(SG_MAKE_INT(5)),
+  /*  3532 */        WORD(5),
   /*  3533 */        0x0000005C           /* 17     (LREF_CDR_PUSH) */,
   /*  3534 */        0x00000007           /* 18     (FREF) */,
   /*  3535 */        0x0000000D           /* 19     (UNBOX) */,
@@ -3690,13 +3690,13 @@ static struct sg__wcRec {
   /*  3551 */        0x0000002F           /* 12     (RET) */,
   /*  3552 */        0x00000005           /* 0      (LREF) */,
   /*  3553 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3554 */        WORD(SG_MAKE_INT(3)),
+  /*  3554 */        WORD(3),
   /*  3555 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3556 */        WORD(SG_NIL),
   /*  3557 */        0x0000005B           /* 5      (LREF_CAR_PUSH) */,
   /*  3558 */        0x00000107           /* 6      (FREF) */,
   /*  3559 */        0x0000001F           /* 7      (BNEQ) */,
-  /*  3560 */        WORD(SG_MAKE_INT(6)),
+  /*  3560 */        WORD(6),
   /*  3561 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*  3562 */        0x00000007           /* 10     (FREF) */,
   /*  3563 */        0x0000000D           /* 11     (UNBOX) */,
@@ -3704,7 +3704,7 @@ static struct sg__wcRec {
   /*  3565 */        0x0000002F           /* 13     (RET) */,
   /*  3566 */        0x0000005B           /* 14     (LREF_CAR_PUSH) */,
   /*  3567 */        0x00000030           /* 15     (FRAME) */,
-  /*  3568 */        WORD(SG_MAKE_INT(5)),
+  /*  3568 */        WORD(5),
   /*  3569 */        0x0000005C           /* 17     (LREF_CDR_PUSH) */,
   /*  3570 */        0x00000007           /* 18     (FREF) */,
   /*  3571 */        0x0000000D           /* 19     (UNBOX) */,
@@ -3713,16 +3713,16 @@ static struct sg__wcRec {
   /*  3574 */        0x0000002F           /* 22     (RET) */,
   /*  3575 */        0x00000105           /* 0      (LREF) */,
   /*  3576 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3577 */        WORD(SG_MAKE_INT(3)),
+  /*  3577 */        WORD(3),
   /*  3578 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3579 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  3580 */        0x00000030           /* 5      (FRAME) */,
-  /*  3581 */        WORD(SG_MAKE_INT(4)),
+  /*  3581 */        WORD(4),
   /*  3582 */        0x0000015B           /* 7      (LREF_CAR_PUSH) */,
   /*  3583 */        0x00000005           /* 8      (LREF) */,
   /*  3584 */        0x0000012B           /* 9      (CALL) */,
   /*  3585 */        0x00000017           /* 10     (TEST) */,
-  /*  3586 */        WORD(SG_MAKE_INT(3)),
+  /*  3586 */        WORD(3),
   /*  3587 */        0x00000105           /* 12     (LREF) */,
   /*  3588 */        0x0000002F           /* 13     (RET) */,
   /*  3589 */        0x00000045           /* 14     (LREF_PUSH) */,
@@ -3732,18 +3732,18 @@ static struct sg__wcRec {
   /*  3593 */        0x0000002F           /* 18     (RET) */,
   /*  3594 */        0x00000105           /* 0      (LREF) */,
   /*  3595 */        0x00000021           /* 1      (BNNULL) */,
-  /*  3596 */        WORD(SG_MAKE_INT(3)),
+  /*  3596 */        WORD(3),
   /*  3597 */        0x00000061           /* 3      (CONST_RET) */,
   /*  3598 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  3599 */        0x00000030           /* 5      (FRAME) */,
-  /*  3600 */        WORD(SG_MAKE_INT(6)),
+  /*  3600 */        WORD(6),
   /*  3601 */        0x00000105           /* 7      (LREF) */,
   /*  3602 */        0x0000004E           /* 8      (CAAR) */,
   /*  3603 */        0x0000000B           /* 9      (PUSH) */,
   /*  3604 */        0x00000005           /* 10     (LREF) */,
   /*  3605 */        0x0000012B           /* 11     (CALL) */,
   /*  3606 */        0x00000017           /* 12     (TEST) */,
-  /*  3607 */        WORD(SG_MAKE_INT(3)),
+  /*  3607 */        WORD(3),
   /*  3608 */        0x00000155           /* 14     (LREF_CAR) */,
   /*  3609 */        0x0000002F           /* 15     (RET) */,
   /*  3610 */        0x00000045           /* 16     (LREF_PUSH) */,
@@ -3759,21 +3759,21 @@ static struct sg__wcRec {
   /*  3620 */        0x00000206           /* 5      (LSET) */,
   /*  3621 */        0x00000002           /* 6      (UNDEF) */,
   /*  3622 */        0x00000030           /* 7      (FRAME) */,
-  /*  3623 */        WORD(SG_MAKE_INT(4)),
+  /*  3623 */        WORD(4),
   /*  3624 */        0x00000045           /* 9      (LREF_PUSH) */,
   /*  3625 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*  3626 */        WORD(SG_UNDEF)  /* identifier#procedure? */,
   /*  3627 */        0x00000017           /* 12     (TEST) */,
-  /*  3628 */        WORD(SG_MAKE_INT(4)),
+  /*  3628 */        WORD(4),
   /*  3629 */        0x00000002           /* 14     (UNDEF) */,
   /*  3630 */        0x00000018           /* 15     (JUMP) */,
-  /*  3631 */        WORD(SG_MAKE_INT(16)),
+  /*  3631 */        WORD(16),
   /*  3632 */        0x00000030           /* 17     (FRAME) */,
-  /*  3633 */        WORD(SG_MAKE_INT(14)),
+  /*  3633 */        WORD(14),
   /*  3634 */        0x00000048           /* 19     (CONST_PUSH) */,
   /*  3635 */        WORD(SG_UNDEF), /* list-sort */
   /*  3636 */        0x00000030           /* 21     (FRAME) */,
-  /*  3637 */        WORD(SG_MAKE_INT(7)),
+  /*  3637 */        WORD(7),
   /*  3638 */        0x00000048           /* 23     (CONST_PUSH) */,
   /*  3639 */        WORD(SG_UNDEF), /* "procedure" */
   /*  3640 */        0x00000045           /* 25     (LREF_PUSH) */,
@@ -3785,7 +3785,7 @@ static struct sg__wcRec {
   /*  3646 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  3647 */        0x00000105           /* 32     (LREF) */,
   /*  3648 */        0x00000021           /* 33     (BNNULL) */,
-  /*  3649 */        WORD(SG_MAKE_INT(3)),
+  /*  3649 */        WORD(3),
   /*  3650 */        0x00000105           /* 35     (LREF) */,
   /*  3651 */        0x0000002F           /* 36     (RET) */,
   /*  3652 */        0x00000145           /* 37     (LREF_PUSH) */,
@@ -3793,15 +3793,15 @@ static struct sg__wcRec {
   /*  3654 */        0x00000345           /* 39     (LREF_PUSH) */,
   /*  3655 */        0x00000556           /* 40     (LREF_CDR) */,
   /*  3656 */        0x00000021           /* 41     (BNNULL) */,
-  /*  3657 */        WORD(SG_MAKE_INT(7)),
+  /*  3657 */        WORD(7),
   /*  3658 */        0x00000445           /* 43     (LREF_PUSH) */,
   /*  3659 */        0x00000003           /* 44     (CONST) */,
   /*  3660 */        WORD(SG_NIL),
   /*  3661 */        0x0000023A           /* 46     (VALUES) */,
   /*  3662 */        0x00000018           /* 47     (JUMP) */,
-  /*  3663 */        WORD(SG_MAKE_INT(23)),
+  /*  3663 */        WORD(23),
   /*  3664 */        0x00000030           /* 49     (FRAME) */,
-  /*  3665 */        WORD(SG_MAKE_INT(7)),
+  /*  3665 */        WORD(7),
   /*  3666 */        0x0000055B           /* 51     (LREF_CAR_PUSH) */,
   /*  3667 */        0x00000505           /* 52     (LREF) */,
   /*  3668 */        0x0000004F           /* 53     (CADR) */,
@@ -3809,16 +3809,16 @@ static struct sg__wcRec {
   /*  3670 */        0x00000005           /* 55     (LREF) */,
   /*  3671 */        0x0000022B           /* 56     (CALL) */,
   /*  3672 */        0x00000017           /* 57     (TEST) */,
-  /*  3673 */        WORD(SG_MAKE_INT(10)),
+  /*  3673 */        WORD(10),
   /*  3674 */        0x00000405           /* 59     (LREF) */,
   /*  3675 */        0x0000010F           /* 60     (ADDI) */,
   /*  3676 */        0x0000000B           /* 61     (PUSH) */,
   /*  3677 */        0x0000055C           /* 62     (LREF_CDR_PUSH) */,
   /*  3678 */        0x00400219           /* 63     (SHIFTJ) */,
   /*  3679 */        0x00000018           /* 64     (JUMP) */,
-  /*  3680 */        WORD(SG_MAKE_INT(-25)),
+  /*  3680 */        WORD(-25),
   /*  3681 */        0x00000018           /* 66     (JUMP) */,
-  /*  3682 */        WORD(SG_MAKE_INT(4)),
+  /*  3682 */        WORD(4),
   /*  3683 */        0x00000445           /* 68     (LREF_PUSH) */,
   /*  3684 */        0x00000556           /* 69     (LREF_CDR) */,
   /*  3685 */        0x0000023A           /* 70     (VALUES) */,
@@ -3827,7 +3827,7 @@ static struct sg__wcRec {
   /*  3688 */        0x00000228           /* 73     (RECEIVE) */,
   /*  3689 */        0x00000405           /* 74     (LREF) */,
   /*  3690 */        0x00000021           /* 75     (BNNULL) */,
-  /*  3691 */        WORD(SG_MAKE_INT(3)),
+  /*  3691 */        WORD(3),
   /*  3692 */        0x00000105           /* 77     (LREF) */,
   /*  3693 */        0x0000002F           /* 78     (RET) */,
   /*  3694 */        0x00000048           /* 79     (CONST_PUSH) */,
@@ -3837,7 +3837,7 @@ static struct sg__wcRec {
   /*  3698 */        0x00000054           /* 83     (CONS_PUSH) */,
   /*  3699 */        0x00000445           /* 84     (LREF_PUSH) */,
   /*  3700 */        0x00000030           /* 85     (FRAME) */,
-  /*  3701 */        WORD(SG_MAKE_INT(4)),
+  /*  3701 */        WORD(4),
   /*  3702 */        0x00000445           /* 87     (LREF_PUSH) */,
   /*  3703 */        0x0000014A           /* 88     (GREF_CALL) */,
   /*  3704 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -3852,7 +3852,7 @@ static struct sg__wcRec {
   /*  3713 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  3714 */        0x00000806           /* 99     (LSET) */,
   /*  3715 */        0x00000030           /* 100    (FRAME) */,
-  /*  3716 */        WORD(SG_MAKE_INT(6)),
+  /*  3716 */        WORD(6),
   /*  3717 */        0x00000645           /* 102    (LREF_PUSH) */,
   /*  3718 */        0x00000745           /* 103    (LREF_PUSH) */,
   /*  3719 */        0x00000805           /* 104    (LREF) */,
@@ -3867,7 +3867,7 @@ static struct sg__wcRec {
   /*  3728 */        0x00000045           /* 113    (LREF_PUSH) */,
   /*  3729 */        0x00000545           /* 114    (LREF_PUSH) */,
   /*  3730 */        0x00000030           /* 115    (FRAME) */,
-  /*  3731 */        WORD(SG_MAKE_INT(5)),
+  /*  3731 */        WORD(5),
   /*  3732 */        0x00000145           /* 117    (LREF_PUSH) */,
   /*  3733 */        0x00000345           /* 118    (LREF_PUSH) */,
   /*  3734 */        0x0000024A           /* 119    (GREF_CALL) */,
@@ -3882,7 +3882,7 @@ static struct sg__wcRec {
   /*  3743 */        0x00000145           /* 0      (LREF_PUSH) */,
   /*  3744 */        0x00000104           /* 1      (CONSTI) */,
   /*  3745 */        0x0000001A           /* 2      (BNNUME) */,
-  /*  3746 */        WORD(SG_MAKE_INT(9)),
+  /*  3746 */        WORD(9),
   /*  3747 */        0x00000055           /* 4      (LREF_CAR) */,
   /*  3748 */        0x00000138           /* 5      (LIST) */,
   /*  3749 */        0x0000000B           /* 6      (PUSH) */,
@@ -3894,24 +3894,24 @@ static struct sg__wcRec {
   /*  3755 */        0x00000145           /* 12     (LREF_PUSH) */,
   /*  3756 */        0x00000204           /* 13     (CONSTI) */,
   /*  3757 */        0x0000001A           /* 14     (BNNUME) */,
-  /*  3758 */        WORD(SG_MAKE_INT(28)),
+  /*  3758 */        WORD(28),
   /*  3759 */        0x0000005B           /* 16     (LREF_CAR_PUSH) */,
   /*  3760 */        0x00000005           /* 17     (LREF) */,
   /*  3761 */        0x0000004F           /* 18     (CADR) */,
   /*  3762 */        0x0000000B           /* 19     (PUSH) */,
   /*  3763 */        0x00000030           /* 20     (FRAME) */,
-  /*  3764 */        WORD(SG_MAKE_INT(5)),
+  /*  3764 */        WORD(5),
   /*  3765 */        0x00000345           /* 22     (LREF_PUSH) */,
   /*  3766 */        0x00000245           /* 23     (LREF_PUSH) */,
   /*  3767 */        0x00000207           /* 24     (FREF) */,
   /*  3768 */        0x0000022B           /* 25     (CALL) */,
   /*  3769 */        0x00000017           /* 26     (TEST) */,
-  /*  3770 */        WORD(SG_MAKE_INT(6)),
+  /*  3770 */        WORD(6),
   /*  3771 */        0x00000345           /* 28     (LREF_PUSH) */,
   /*  3772 */        0x00000205           /* 29     (LREF) */,
   /*  3773 */        0x00000238           /* 30     (LIST) */,
   /*  3774 */        0x00000018           /* 31     (JUMP) */,
-  /*  3775 */        WORD(SG_MAKE_INT(4)),
+  /*  3775 */        WORD(4),
   /*  3776 */        0x00000245           /* 33     (LREF_PUSH) */,
   /*  3777 */        0x00000305           /* 34     (LREF) */,
   /*  3778 */        0x00000238           /* 35     (LIST) */,
@@ -3923,14 +3923,14 @@ static struct sg__wcRec {
   /*  3784 */        0x0000033A           /* 41     (VALUES) */,
   /*  3785 */        0x0000002F           /* 42     (RET) */,
   /*  3786 */        0x00000030           /* 43     (FRAME) */,
-  /*  3787 */        WORD(SG_MAKE_INT(5)),
+  /*  3787 */        WORD(5),
   /*  3788 */        0x00000145           /* 45     (LREF_PUSH) */,
   /*  3789 */        0x00000249           /* 46     (CONSTI_PUSH) */,
   /*  3790 */        0x0000024A           /* 47     (GREF_CALL) */,
   /*  3791 */        WORD(SG_UNDEF)  /* identifier#div */,
   /*  3792 */        0x0000000B           /* 49     (PUSH) */,
   /*  3793 */        0x00000030           /* 50     (FRAME) */,
-  /*  3794 */        WORD(SG_MAKE_INT(6)),
+  /*  3794 */        WORD(6),
   /*  3795 */        0x00000045           /* 52     (LREF_PUSH) */,
   /*  3796 */        0x00000245           /* 53     (LREF_PUSH) */,
   /*  3797 */        0x00000107           /* 54     (FREF) */,
@@ -3938,7 +3938,7 @@ static struct sg__wcRec {
   /*  3799 */        0x0000022C           /* 56     (LOCAL_CALL) */,
   /*  3800 */        0x00000328           /* 57     (RECEIVE) */,
   /*  3801 */        0x00000030           /* 58     (FRAME) */,
-  /*  3802 */        WORD(SG_MAKE_INT(9)),
+  /*  3802 */        WORD(9),
   /*  3803 */        0x00000545           /* 60     (LREF_PUSH) */,
   /*  3804 */        0x00000145           /* 61     (LREF_PUSH) */,
   /*  3805 */        0x00000205           /* 62     (LREF) */,
@@ -3958,23 +3958,23 @@ static struct sg__wcRec {
   /*  3819 */        0x00000645           /* 76     (LREF_PUSH) */,
   /*  3820 */        0x00000A05           /* 77     (LREF) */,
   /*  3821 */        0x00000017           /* 78     (TEST) */,
-  /*  3822 */        WORD(SG_MAKE_INT(55)),
+  /*  3822 */        WORD(55),
   /*  3823 */        0x00000030           /* 80     (FRAME) */,
-  /*  3824 */        WORD(SG_MAKE_INT(5)),
+  /*  3824 */        WORD(5),
   /*  3825 */        0x0000065B           /* 82     (LREF_CAR_PUSH) */,
   /*  3826 */        0x0000045B           /* 83     (LREF_CAR_PUSH) */,
   /*  3827 */        0x00000207           /* 84     (FREF) */,
   /*  3828 */        0x0000022B           /* 85     (CALL) */,
   /*  3829 */        0x00000017           /* 86     (TEST) */,
-  /*  3830 */        WORD(SG_MAKE_INT(39)),
+  /*  3830 */        WORD(39),
   /*  3831 */        0x00000030           /* 88     (FRAME) */,
-  /*  3832 */        WORD(SG_MAKE_INT(5)),
+  /*  3832 */        WORD(5),
   /*  3833 */        0x0000075B           /* 90     (LREF_CAR_PUSH) */,
   /*  3834 */        0x0000035B           /* 91     (LREF_CAR_PUSH) */,
   /*  3835 */        0x00000207           /* 92     (FREF) */,
   /*  3836 */        0x0000022B           /* 93     (CALL) */,
   /*  3837 */        0x00000017           /* 94     (TEST) */,
-  /*  3838 */        WORD(SG_MAKE_INT(9)),
+  /*  3838 */        WORD(9),
   /*  3839 */        0x00000745           /* 96     (LREF_PUSH) */,
   /*  3840 */        0x00000305           /* 97     (LREF) */,
   /*  3841 */        0x0000004D           /* 98     (SET_CDR) */,
@@ -3984,7 +3984,7 @@ static struct sg__wcRec {
   /*  3845 */        0x0000033A           /* 102    (VALUES) */,
   /*  3846 */        0x0000002F           /* 103    (RET) */,
   /*  3847 */        0x00000030           /* 104    (FRAME) */,
-  /*  3848 */        WORD(SG_MAKE_INT(9)),
+  /*  3848 */        WORD(9),
   /*  3849 */        0x00000945           /* 106    (LREF_PUSH) */,
   /*  3850 */        0x00000B45           /* 107    (LREF_PUSH) */,
   /*  3851 */        0x00000C45           /* 108    (LREF_PUSH) */,
@@ -3996,10 +3996,10 @@ static struct sg__wcRec {
   /*  3857 */        0x0000000B           /* 114    (PUSH) */,
   /*  3858 */        0x00000456           /* 115    (LREF_CDR) */,
   /*  3859 */        0x00000021           /* 116    (BNNULL) */,
-  /*  3860 */        WORD(SG_MAKE_INT(4)),
+  /*  3860 */        WORD(4),
   /*  3861 */        0x00000405           /* 118    (LREF) */,
   /*  3862 */        0x00000018           /* 119    (JUMP) */,
-  /*  3863 */        WORD(SG_MAKE_INT(2)),
+  /*  3863 */        WORD(2),
   /*  3864 */        0x00000705           /* 121    (LREF) */,
   /*  3865 */        0x0000000B           /* 122    (PUSH) */,
   /*  3866 */        0x00000805           /* 123    (LREF) */,
@@ -4014,7 +4014,7 @@ static struct sg__wcRec {
   /*  3875 */        0x0000033A           /* 132    (VALUES) */,
   /*  3876 */        0x0000002F           /* 133    (RET) */,
   /*  3877 */        0x00000030           /* 134    (FRAME) */,
-  /*  3878 */        WORD(SG_MAKE_INT(9)),
+  /*  3878 */        WORD(9),
   /*  3879 */        0x00000945           /* 136    (LREF_PUSH) */,
   /*  3880 */        0x00000B45           /* 137    (LREF_PUSH) */,
   /*  3881 */        0x00000C45           /* 138    (LREF_PUSH) */,
@@ -4026,23 +4026,23 @@ static struct sg__wcRec {
   /*  3887 */        0x0000000B           /* 144    (PUSH) */,
   /*  3888 */        0x00000456           /* 145    (LREF_CDR) */,
   /*  3889 */        0x00000021           /* 146    (BNNULL) */,
-  /*  3890 */        WORD(SG_MAKE_INT(4)),
+  /*  3890 */        WORD(4),
   /*  3891 */        0x00000405           /* 148    (LREF) */,
   /*  3892 */        0x00000018           /* 149    (JUMP) */,
-  /*  3893 */        WORD(SG_MAKE_INT(2)),
+  /*  3893 */        WORD(2),
   /*  3894 */        0x00000705           /* 151    (LREF) */,
   /*  3895 */        0x0000000B           /* 152    (PUSH) */,
   /*  3896 */        0x00000805           /* 153    (LREF) */,
   /*  3897 */        0x0000033A           /* 154    (VALUES) */,
   /*  3898 */        0x0000002F           /* 155    (RET) */,
   /*  3899 */        0x00000030           /* 0      (FRAME) */,
-  /*  3900 */        WORD(SG_MAKE_INT(4)),
+  /*  3900 */        WORD(4),
   /*  3901 */        0x00000145           /* 2      (LREF_PUSH) */,
   /*  3902 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  3903 */        WORD(SG_UNDEF)  /* identifier#vector->list */,
   /*  3904 */        0x0000000B           /* 5      (PUSH) */,
   /*  3905 */        0x00000030           /* 6      (FRAME) */,
-  /*  3906 */        WORD(SG_MAKE_INT(5)),
+  /*  3906 */        WORD(5),
   /*  3907 */        0x00000045           /* 8      (LREF_PUSH) */,
   /*  3908 */        0x00000245           /* 9      (LREF_PUSH) */,
   /*  3909 */        0x0000024A           /* 10     (GREF_CALL) */,
@@ -4051,7 +4051,7 @@ static struct sg__wcRec {
   /*  3912 */        0x00000245           /* 13     (LREF_PUSH) */,
   /*  3913 */        0x00000305           /* 14     (LREF) */,
   /*  3914 */        0x0000001F           /* 15     (BNEQ) */,
-  /*  3915 */        WORD(SG_MAKE_INT(3)),
+  /*  3915 */        WORD(3),
   /*  3916 */        0x00000105           /* 17     (LREF) */,
   /*  3917 */        0x0000002F           /* 18     (RET) */,
   /*  3918 */        0x00000345           /* 19     (LREF_PUSH) */,
@@ -4062,9 +4062,9 @@ static struct sg__wcRec {
   /*  3923 */        0x00000042           /* 1      (VEC_LEN) */,
   /*  3924 */        0x0000000B           /* 2      (PUSH) */,
   /*  3925 */        0x00000030           /* 3      (FRAME) */,
-  /*  3926 */        WORD(SG_MAKE_INT(11)),
+  /*  3926 */        WORD(11),
   /*  3927 */        0x00000030           /* 5      (FRAME) */,
-  /*  3928 */        WORD(SG_MAKE_INT(5)),
+  /*  3928 */        WORD(5),
   /*  3929 */        0x00000245           /* 7      (LREF_PUSH) */,
   /*  3930 */        0x00000249           /* 8      (CONSTI_PUSH) */,
   /*  3931 */        0x0000024A           /* 9      (GREF_CALL) */,
@@ -4098,9 +4098,9 @@ static struct sg__wcRec {
   /*  3959 */        0x0000000B           /* 3      (PUSH) */,
   /*  3960 */        0x00000A04           /* 4      (CONSTI) */,
   /*  3961 */        0x0000001D           /* 5      (BNGT) */,
-  /*  3962 */        WORD(SG_MAKE_INT(137)),
+  /*  3962 */        WORD(137),
   /*  3963 */        0x00000030           /* 7      (FRAME) */,
-  /*  3964 */        WORD(SG_MAKE_INT(8)),
+  /*  3964 */        WORD(8),
   /*  3965 */        0x00000045           /* 9      (LREF_PUSH) */,
   /*  3966 */        0x00000105           /* 10     (LREF) */,
   /*  3967 */        0x0000000E           /* 11     (ADD) */,
@@ -4110,14 +4110,14 @@ static struct sg__wcRec {
   /*  3971 */        WORD(SG_UNDEF)  /* identifier#div */,
   /*  3972 */        0x0000000B           /* 16     (PUSH) */,
   /*  3973 */        0x00000030           /* 17     (FRAME) */,
-  /*  3974 */        WORD(SG_MAKE_INT(6)),
+  /*  3974 */        WORD(6),
   /*  3975 */        0x00000045           /* 19     (LREF_PUSH) */,
   /*  3976 */        0x00000245           /* 20     (LREF_PUSH) */,
   /*  3977 */        0x00000307           /* 21     (FREF) */,
   /*  3978 */        0x0000000D           /* 22     (UNBOX) */,
   /*  3979 */        0x0000022C           /* 23     (LOCAL_CALL) */,
   /*  3980 */        0x00000030           /* 24     (FRAME) */,
-  /*  3981 */        WORD(SG_MAKE_INT(8)),
+  /*  3981 */        WORD(8),
   /*  3982 */        0x00000205           /* 26     (LREF) */,
   /*  3983 */        0x0000010F           /* 27     (ADDI) */,
   /*  3984 */        0x0000000B           /* 28     (PUSH) */,
@@ -4130,7 +4130,7 @@ static struct sg__wcRec {
   /*  3991 */        0x00000345           /* 35     (LREF_PUSH) */,
   /*  3992 */        0x00000205           /* 36     (LREF) */,
   /*  3993 */        0x0000001D           /* 37     (BNGT) */,
-  /*  3994 */        WORD(SG_MAKE_INT(89)),
+  /*  3994 */        WORD(89),
   /*  3995 */        0x00000205           /* 39     (LREF) */,
   /*  3996 */        0x0000010F           /* 40     (ADDI) */,
   /*  3997 */        0x0000000B           /* 41     (PUSH) */,
@@ -4139,13 +4139,13 @@ static struct sg__wcRec {
   /*  4000 */        0x00000545           /* 44     (LREF_PUSH) */,
   /*  4001 */        0x00000105           /* 45     (LREF) */,
   /*  4002 */        0x0000001C           /* 46     (BNLE) */,
-  /*  4003 */        WORD(SG_MAKE_INT(77)),
+  /*  4003 */        WORD(77),
   /*  4004 */        0x00000645           /* 48     (LREF_PUSH) */,
   /*  4005 */        0x00000405           /* 49     (LREF) */,
   /*  4006 */        0x0000001B           /* 50     (BNLT) */,
-  /*  4007 */        WORD(SG_MAKE_INT(49)),
+  /*  4007 */        WORD(49),
   /*  4008 */        0x00000030           /* 52     (FRAME) */,
-  /*  4009 */        WORD(SG_MAKE_INT(11)),
+  /*  4009 */        WORD(11),
   /*  4010 */        0x00000246           /* 54     (FREF_PUSH) */,
   /*  4011 */        0x00000605           /* 55     (LREF) */,
   /*  4012 */        0x00000043           /* 56     (VEC_REF) */,
@@ -4157,7 +4157,7 @@ static struct sg__wcRec {
   /*  4018 */        0x00000007           /* 62     (FREF) */,
   /*  4019 */        0x0000022B           /* 63     (CALL) */,
   /*  4020 */        0x00000017           /* 64     (TEST) */,
-  /*  4021 */        WORD(SG_MAKE_INT(18)),
+  /*  4021 */        WORD(18),
   /*  4022 */        0x00000146           /* 66     (FREF_PUSH) */,
   /*  4023 */        0x00000745           /* 67     (LREF_PUSH) */,
   /*  4024 */        0x00000246           /* 68     (FREF_PUSH) */,
@@ -4173,7 +4173,7 @@ static struct sg__wcRec {
   /*  4034 */        0x0000000B           /* 78     (PUSH) */,
   /*  4035 */        0x00500319           /* 79     (SHIFTJ) */,
   /*  4036 */        0x00000018           /* 80     (JUMP) */,
-  /*  4037 */        WORD(SG_MAKE_INT(-37)),
+  /*  4037 */        WORD(-37),
   /*  4038 */        0x0000002F           /* 82     (RET) */,
   /*  4039 */        0x00000146           /* 83     (FREF_PUSH) */,
   /*  4040 */        0x00000745           /* 84     (LREF_PUSH) */,
@@ -4190,14 +4190,14 @@ static struct sg__wcRec {
   /*  4051 */        0x0000000B           /* 95     (PUSH) */,
   /*  4052 */        0x00500319           /* 96     (SHIFTJ) */,
   /*  4053 */        0x00000018           /* 97     (JUMP) */,
-  /*  4054 */        WORD(SG_MAKE_INT(-54)),
+  /*  4054 */        WORD(-54),
   /*  4055 */        0x0000002F           /* 99     (RET) */,
   /*  4056 */        0x00000645           /* 100    (LREF_PUSH) */,
   /*  4057 */        0x00000745           /* 101    (LREF_PUSH) */,
   /*  4058 */        0x00000845           /* 102    (LREF_PUSH) */,
   /*  4059 */        0x00000405           /* 103    (LREF) */,
   /*  4060 */        0x0000001B           /* 104    (BNLT) */,
-  /*  4061 */        WORD(SG_MAKE_INT(17)),
+  /*  4061 */        WORD(17),
   /*  4062 */        0x00000146           /* 106    (FREF_PUSH) */,
   /*  4063 */        0x00000945           /* 107    (LREF_PUSH) */,
   /*  4064 */        0x00000246           /* 108    (FREF_PUSH) */,
@@ -4212,12 +4212,12 @@ static struct sg__wcRec {
   /*  4073 */        0x0000000B           /* 117    (PUSH) */,
   /*  4074 */        0x00800219           /* 118    (SHIFTJ) */,
   /*  4075 */        0x00000018           /* 119    (JUMP) */,
-  /*  4076 */        WORD(SG_MAKE_INT(-18)),
+  /*  4076 */        WORD(-18),
   /*  4077 */        0x0000002F           /* 121    (RET) */,
   /*  4078 */        0x00000002           /* 122    (UNDEF) */,
   /*  4079 */        0x0000002F           /* 123    (RET) */,
   /*  4080 */        0x00000018           /* 124    (JUMP) */,
-  /*  4081 */        WORD(SG_MAKE_INT(-25)),
+  /*  4081 */        WORD(-25),
   /*  4082 */        0x0000002F           /* 126    (RET) */,
   /*  4083 */        0x00000246           /* 127    (FREF_PUSH) */,
   /*  4084 */        0x00000445           /* 128    (LREF_PUSH) */,
@@ -4233,7 +4233,7 @@ static struct sg__wcRec {
   /*  4094 */        0x0000000B           /* 138    (PUSH) */,
   /*  4095 */        0x00300219           /* 139    (SHIFTJ) */,
   /*  4096 */        0x00000018           /* 140    (JUMP) */,
-  /*  4097 */        WORD(SG_MAKE_INT(-106)),
+  /*  4097 */        WORD(-106),
   /*  4098 */        0x0000002F           /* 142    (RET) */,
   /*  4099 */        0x00000045           /* 143    (LREF_PUSH) */,
   /*  4100 */        0x00000145           /* 144    (LREF_PUSH) */,
@@ -4241,7 +4241,7 @@ static struct sg__wcRec {
   /*  4102 */        0x00000445           /* 146    (LREF_PUSH) */,
   /*  4103 */        0x00000305           /* 147    (LREF) */,
   /*  4104 */        0x0000001B           /* 148    (BNLT) */,
-  /*  4105 */        WORD(SG_MAKE_INT(64)),
+  /*  4105 */        WORD(64),
   /*  4106 */        0x00000146           /* 150    (FREF_PUSH) */,
   /*  4107 */        0x00000405           /* 151    (LREF) */,
   /*  4108 */        0x00000043           /* 152    (VEC_REF) */,
@@ -4255,9 +4255,9 @@ static struct sg__wcRec {
   /*  4116 */        0x00000745           /* 160    (LREF_PUSH) */,
   /*  4117 */        0x00000305           /* 161    (LREF) */,
   /*  4118 */        0x0000001C           /* 162    (BNLE) */,
-  /*  4119 */        WORD(SG_MAKE_INT(30)),
+  /*  4119 */        WORD(30),
   /*  4120 */        0x00000030           /* 164    (FRAME) */,
-  /*  4121 */        WORD(SG_MAKE_INT(10)),
+  /*  4121 */        WORD(10),
   /*  4122 */        0x00000146           /* 166    (FREF_PUSH) */,
   /*  4123 */        0x00000705           /* 167    (LREF) */,
   /*  4124 */        0x00000043           /* 168    (VEC_REF) */,
@@ -4268,7 +4268,7 @@ static struct sg__wcRec {
   /*  4129 */        0x00000007           /* 173    (FREF) */,
   /*  4130 */        0x0000022B           /* 174    (CALL) */,
   /*  4131 */        0x00000017           /* 175    (TEST) */,
-  /*  4132 */        WORD(SG_MAKE_INT(9)),
+  /*  4132 */        WORD(9),
   /*  4133 */        0x00000146           /* 177    (FREF_PUSH) */,
   /*  4134 */        0x00000705           /* 178    (LREF) */,
   /*  4135 */        0x00000043           /* 179    (VEC_REF) */,
@@ -4276,14 +4276,14 @@ static struct sg__wcRec {
   /*  4137 */        0x00000705           /* 181    (LREF) */,
   /*  4138 */        0x00000606           /* 182    (LSET) */,
   /*  4139 */        0x00000018           /* 183    (JUMP) */,
-  /*  4140 */        WORD(SG_MAKE_INT(2)),
+  /*  4140 */        WORD(2),
   /*  4141 */        0x00000002           /* 185    (UNDEF) */,
   /*  4142 */        0x00000705           /* 186    (LREF) */,
   /*  4143 */        0x0000010F           /* 187    (ADDI) */,
   /*  4144 */        0x0000000B           /* 188    (PUSH) */,
   /*  4145 */        0x00700119           /* 189    (SHIFTJ) */,
   /*  4146 */        0x00000018           /* 190    (JUMP) */,
-  /*  4147 */        WORD(SG_MAKE_INT(-31)),
+  /*  4147 */        WORD(-31),
   /*  4148 */        0x0000002F           /* 192    (RET) */,
   /*  4149 */        0x00000146           /* 193    (FREF_PUSH) */,
   /*  4150 */        0x00000605           /* 194    (LREF) */,
@@ -4303,18 +4303,18 @@ static struct sg__wcRec {
   /*  4164 */        0x0000000B           /* 208    (PUSH) */,
   /*  4165 */        0x00400119           /* 209    (SHIFTJ) */,
   /*  4166 */        0x00000018           /* 210    (JUMP) */,
-  /*  4167 */        WORD(SG_MAKE_INT(-65)),
+  /*  4167 */        WORD(-65),
   /*  4168 */        0x0000002F           /* 212    (RET) */,
   /*  4169 */        0x00000002           /* 213    (UNDEF) */,
   /*  4170 */        0x0000002F           /* 214    (RET) */,
   /*  4171 */        0x00000030           /* 0      (FRAME) */,
-  /*  4172 */        WORD(SG_MAKE_INT(4)),
+  /*  4172 */        WORD(4),
   /*  4173 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4174 */        0x00000105           /* 3      (LREF) */,
   /*  4175 */        0x0000012B           /* 4      (CALL) */,
   /*  4176 */        0x00100028           /* 5      (RECEIVE) */,
   /*  4177 */        0x00000030           /* 6      (FRAME) */,
-  /*  4178 */        WORD(SG_MAKE_INT(4)),
+  /*  4178 */        WORD(4),
   /*  4179 */        0x00000045           /* 8      (LREF_PUSH) */,
   /*  4180 */        0x0000014A           /* 9      (GREF_CALL) */,
   /*  4181 */        WORD(SG_UNDEF)  /* identifier#close-port */,
@@ -4324,24 +4324,24 @@ static struct sg__wcRec {
   /*  4185 */        0x0010022A           /* 14     (APPLY) */,
   /*  4186 */        0x0000002F           /* 15     (RET) */,
   /*  4187 */        0x00000030           /* 0      (FRAME) */,
-  /*  4188 */        WORD(SG_MAKE_INT(4)),
+  /*  4188 */        WORD(4),
   /*  4189 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4190 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  4191 */        WORD(SG_UNDEF)  /* identifier#length */,
   /*  4192 */        0x0000000B           /* 5      (PUSH) */,
   /*  4193 */        0x00000104           /* 6      (CONSTI) */,
   /*  4194 */        0x0000001D           /* 7      (BNGT) */,
-  /*  4195 */        WORD(SG_MAKE_INT(23)),
+  /*  4195 */        WORD(23),
   /*  4196 */        0x00000030           /* 9      (FRAME) */,
-  /*  4197 */        WORD(SG_MAKE_INT(19)),
+  /*  4197 */        WORD(19),
   /*  4198 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  4199 */        WORD(SG_UNDEF), /* open-bytevector-output-port */
   /*  4200 */        0x00000030           /* 13     (FRAME) */,
-  /*  4201 */        WORD(SG_MAKE_INT(11)),
+  /*  4201 */        WORD(11),
   /*  4202 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  4203 */        WORD(SG_UNDEF), /* "wrong number of argument: expected between 0 and 1, but got ~a" */
   /*  4204 */        0x00000030           /* 17     (FRAME) */,
-  /*  4205 */        WORD(SG_MAKE_INT(4)),
+  /*  4205 */        WORD(4),
   /*  4206 */        0x00000045           /* 19     (LREF_PUSH) */,
   /*  4207 */        0x0000014A           /* 20     (GREF_CALL) */,
   /*  4208 */        WORD(SG_UNDEF)  /* identifier#length */,
@@ -4353,19 +4353,19 @@ static struct sg__wcRec {
   /*  4214 */        0x0000034A           /* 27     (GREF_CALL) */,
   /*  4215 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  4216 */        0x00000018           /* 29     (JUMP) */,
-  /*  4217 */        WORD(SG_MAKE_INT(2)),
+  /*  4217 */        WORD(2),
   /*  4218 */        0x00000002           /* 31     (UNDEF) */,
   /*  4219 */        0x00000005           /* 32     (LREF) */,
   /*  4220 */        0x00000021           /* 33     (BNNULL) */,
-  /*  4221 */        WORD(SG_MAKE_INT(5)),
+  /*  4221 */        WORD(5),
   /*  4222 */        0x00000003           /* 35     (CONST) */,
   /*  4223 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  4224 */        0x00000018           /* 37     (JUMP) */,
-  /*  4225 */        WORD(SG_MAKE_INT(2)),
+  /*  4225 */        WORD(2),
   /*  4226 */        0x00000055           /* 39     (LREF_CAR) */,
   /*  4227 */        0x0000000B           /* 40     (PUSH) */,
   /*  4228 */        0x00000030           /* 41     (FRAME) */,
-  /*  4229 */        WORD(SG_MAKE_INT(4)),
+  /*  4229 */        WORD(4),
   /*  4230 */        0x00000145           /* 43     (LREF_PUSH) */,
   /*  4231 */        0x0000014A           /* 44     (GREF_CALL) */,
   /*  4232 */        WORD(SG_UNDEF)  /* identifier#open-output-bytevector */,
@@ -4383,7 +4383,7 @@ static struct sg__wcRec {
   /*  4244 */        WORD(SG_UNDEF)  /* identifier#extract-output-bytevector */,
   /*  4245 */        0x0000002F           /* 3      (RET) */,
   /*  4246 */        0x00000030           /* 0      (FRAME) */,
-  /*  4247 */        WORD(SG_MAKE_INT(3)),
+  /*  4247 */        WORD(3),
   /*  4248 */        0x0000004A           /* 2      (GREF_CALL) */,
   /*  4249 */        WORD(SG_UNDEF)  /* identifier#open-output-string */,
   /*  4250 */        0x0000000B           /* 4      (PUSH) */,
@@ -4400,14 +4400,14 @@ static struct sg__wcRec {
   /*  4261 */        WORD(SG_UNDEF)  /* identifier#extract-output-string */,
   /*  4262 */        0x0000002F           /* 3      (RET) */,
   /*  4263 */        0x00000030           /* 0      (FRAME) */,
-  /*  4264 */        WORD(SG_MAKE_INT(5)),
+  /*  4264 */        WORD(5),
   /*  4265 */        0x00000047           /* 2      (GREF_PUSH) */,
   /*  4266 */        WORD(SG_UNDEF)  /* identifier#open-bytevector-output-port */,
   /*  4267 */        0x00000105           /* 4      (LREF) */,
   /*  4268 */        0x0000022A           /* 5      (APPLY) */,
   /*  4269 */        0x00000228           /* 6      (RECEIVE) */,
   /*  4270 */        0x00000030           /* 7      (FRAME) */,
-  /*  4271 */        WORD(SG_MAKE_INT(4)),
+  /*  4271 */        WORD(4),
   /*  4272 */        0x00000245           /* 9      (LREF_PUSH) */,
   /*  4273 */        0x00000005           /* 10     (LREF) */,
   /*  4274 */        0x0000012B           /* 11     (CALL) */,
@@ -4415,12 +4415,12 @@ static struct sg__wcRec {
   /*  4276 */        0x0000002D           /* 13     (TAIL_CALL) */,
   /*  4277 */        0x0000002F           /* 14     (RET) */,
   /*  4278 */        0x00000030           /* 0      (FRAME) */,
-  /*  4279 */        WORD(SG_MAKE_INT(3)),
+  /*  4279 */        WORD(3),
   /*  4280 */        0x0000004A           /* 2      (GREF_CALL) */,
   /*  4281 */        WORD(SG_UNDEF)  /* identifier#open-string-output-port */,
   /*  4282 */        0x00000228           /* 4      (RECEIVE) */,
   /*  4283 */        0x00000030           /* 5      (FRAME) */,
-  /*  4284 */        WORD(SG_MAKE_INT(4)),
+  /*  4284 */        WORD(4),
   /*  4285 */        0x00000145           /* 7      (LREF_PUSH) */,
   /*  4286 */        0x00000005           /* 8      (LREF) */,
   /*  4287 */        0x0000012B           /* 9      (CALL) */,
@@ -4428,27 +4428,27 @@ static struct sg__wcRec {
   /*  4289 */        0x0000002D           /* 11     (TAIL_CALL) */,
   /*  4290 */        0x0000002F           /* 12     (RET) */,
   /*  4291 */        0x00000030           /* 0      (FRAME) */,
-  /*  4292 */        WORD(SG_MAKE_INT(4)),
+  /*  4292 */        WORD(4),
   /*  4293 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4294 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  4295 */        WORD(SG_UNDEF)  /* identifier#hashtable? */,
   /*  4296 */        0x00000017           /* 5      (TEST) */,
-  /*  4297 */        WORD(SG_MAKE_INT(27)),
+  /*  4297 */        WORD(27),
   /*  4298 */        0x00000030           /* 7      (FRAME) */,
-  /*  4299 */        WORD(SG_MAKE_INT(4)),
+  /*  4299 */        WORD(4),
   /*  4300 */        0x00000045           /* 9      (LREF_PUSH) */,
   /*  4301 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*  4302 */        WORD(SG_UNDEF)  /* identifier#hashtable-mutable? */,
   /*  4303 */        0x00000017           /* 12     (TEST) */,
-  /*  4304 */        WORD(SG_MAKE_INT(3)),
+  /*  4304 */        WORD(3),
   /*  4305 */        0x00000018           /* 14     (JUMP) */,
-  /*  4306 */        WORD(SG_MAKE_INT(16)),
+  /*  4306 */        WORD(16),
   /*  4307 */        0x00000030           /* 16     (FRAME) */,
-  /*  4308 */        WORD(SG_MAKE_INT(14)),
+  /*  4308 */        WORD(14),
   /*  4309 */        0x00000048           /* 18     (CONST_PUSH) */,
   /*  4310 */        WORD(SG_UNDEF), /* hashtable-update! */
   /*  4311 */        0x00000030           /* 20     (FRAME) */,
-  /*  4312 */        WORD(SG_MAKE_INT(7)),
+  /*  4312 */        WORD(7),
   /*  4313 */        0x00000048           /* 22     (CONST_PUSH) */,
   /*  4314 */        WORD(SG_UNDEF), /* "mutable hashtable" */
   /*  4315 */        0x00000045           /* 24     (LREF_PUSH) */,
@@ -4459,15 +4459,15 @@ static struct sg__wcRec {
   /*  4320 */        0x0000024A           /* 29     (GREF_CALL) */,
   /*  4321 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  4322 */        0x00000018           /* 31     (JUMP) */,
-  /*  4323 */        WORD(SG_MAKE_INT(3)),
+  /*  4323 */        WORD(3),
   /*  4324 */        0x00000018           /* 33     (JUMP) */,
-  /*  4325 */        WORD(SG_MAKE_INT(-18)),
+  /*  4325 */        WORD(-18),
   /*  4326 */        0x00000045           /* 35     (LREF_PUSH) */,
   /*  4327 */        0x00000145           /* 36     (LREF_PUSH) */,
   /*  4328 */        0x00000030           /* 37     (FRAME) */,
-  /*  4329 */        WORD(SG_MAKE_INT(11)),
+  /*  4329 */        WORD(11),
   /*  4330 */        0x00000030           /* 39     (FRAME) */,
-  /*  4331 */        WORD(SG_MAKE_INT(6)),
+  /*  4331 */        WORD(6),
   /*  4332 */        0x00000045           /* 41     (LREF_PUSH) */,
   /*  4333 */        0x00000145           /* 42     (LREF_PUSH) */,
   /*  4334 */        0x00000345           /* 43     (LREF_PUSH) */,
@@ -4481,20 +4481,20 @@ static struct sg__wcRec {
   /*  4342 */        WORD(SG_UNDEF)  /* identifier#hashtable-set! */,
   /*  4343 */        0x0000002F           /* 52     (RET) */,
   /*  4344 */        0x00000030           /* 0      (FRAME) */,
-  /*  4345 */        WORD(SG_MAKE_INT(4)),
+  /*  4345 */        WORD(4),
   /*  4346 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4347 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  4348 */        WORD(SG_UNDEF)  /* identifier#hashtable? */,
   /*  4349 */        0x00000017           /* 5      (TEST) */,
-  /*  4350 */        WORD(SG_MAKE_INT(3)),
+  /*  4350 */        WORD(3),
   /*  4351 */        0x00000018           /* 7      (JUMP) */,
-  /*  4352 */        WORD(SG_MAKE_INT(15)),
+  /*  4352 */        WORD(15),
   /*  4353 */        0x00000030           /* 9      (FRAME) */,
-  /*  4354 */        WORD(SG_MAKE_INT(13)),
+  /*  4354 */        WORD(13),
   /*  4355 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  4356 */        WORD(SG_UNDEF), /* hashtable-entries */
   /*  4357 */        0x00000030           /* 13     (FRAME) */,
-  /*  4358 */        WORD(SG_MAKE_INT(6)),
+  /*  4358 */        WORD(6),
   /*  4359 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  4360 */        WORD(SG_UNDEF), /* "hashtable" */
   /*  4361 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -4504,33 +4504,33 @@ static struct sg__wcRec {
   /*  4365 */        0x0000024A           /* 21     (GREF_CALL) */,
   /*  4366 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  4367 */        0x00000030           /* 23     (FRAME) */,
-  /*  4368 */        WORD(SG_MAKE_INT(4)),
+  /*  4368 */        WORD(4),
   /*  4369 */        0x00000045           /* 25     (LREF_PUSH) */,
   /*  4370 */        0x0000014A           /* 26     (GREF_CALL) */,
   /*  4371 */        WORD(SG_UNDEF)  /* identifier#hashtable-keys */,
   /*  4372 */        0x0000000B           /* 28     (PUSH) */,
   /*  4373 */        0x00000030           /* 29     (FRAME) */,
-  /*  4374 */        WORD(SG_MAKE_INT(4)),
+  /*  4374 */        WORD(4),
   /*  4375 */        0x00000045           /* 31     (LREF_PUSH) */,
   /*  4376 */        0x0000014A           /* 32     (GREF_CALL) */,
   /*  4377 */        WORD(SG_UNDEF)  /* identifier#hashtable-values */,
   /*  4378 */        0x0000023A           /* 34     (VALUES) */,
   /*  4379 */        0x0000002F           /* 35     (RET) */,
   /*  4380 */        0x00000030           /* 0      (FRAME) */,
-  /*  4381 */        WORD(SG_MAKE_INT(4)),
+  /*  4381 */        WORD(4),
   /*  4382 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4383 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  4384 */        WORD(SG_UNDEF)  /* identifier#hashtable? */,
   /*  4385 */        0x00000017           /* 5      (TEST) */,
-  /*  4386 */        WORD(SG_MAKE_INT(3)),
+  /*  4386 */        WORD(3),
   /*  4387 */        0x00000018           /* 7      (JUMP) */,
-  /*  4388 */        WORD(SG_MAKE_INT(15)),
+  /*  4388 */        WORD(15),
   /*  4389 */        0x00000030           /* 9      (FRAME) */,
-  /*  4390 */        WORD(SG_MAKE_INT(13)),
+  /*  4390 */        WORD(13),
   /*  4391 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  4392 */        WORD(SG_UNDEF), /* hashtable-equivalence-function */
   /*  4393 */        0x00000030           /* 13     (FRAME) */,
-  /*  4394 */        WORD(SG_MAKE_INT(6)),
+  /*  4394 */        WORD(6),
   /*  4395 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  4396 */        WORD(SG_UNDEF), /* "hashtable" */
   /*  4397 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -4540,7 +4540,7 @@ static struct sg__wcRec {
   /*  4401 */        0x0000024A           /* 21     (GREF_CALL) */,
   /*  4402 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  4403 */        0x00000030           /* 23     (FRAME) */,
-  /*  4404 */        WORD(SG_MAKE_INT(4)),
+  /*  4404 */        WORD(4),
   /*  4405 */        0x00000045           /* 25     (LREF_PUSH) */,
   /*  4406 */        0x0000014A           /* 26     (GREF_CALL) */,
   /*  4407 */        WORD(SG_UNDEF)  /* identifier#hashtable-type */,
@@ -4549,7 +4549,7 @@ static struct sg__wcRec {
   /*  4410 */        0x00000003           /* 30     (CONST) */,
   /*  4411 */        WORD(SG_UNDEF), /* eq */
   /*  4412 */        0x0000001F           /* 32     (BNEQ) */,
-  /*  4413 */        WORD(SG_MAKE_INT(4)),
+  /*  4413 */        WORD(4),
   /*  4414 */        0x00000009           /* 34     (GREF) */,
   /*  4415 */        WORD(SG_UNDEF)  /* identifier#eq? */,
   /*  4416 */        0x0000002F           /* 36     (RET) */,
@@ -4557,7 +4557,7 @@ static struct sg__wcRec {
   /*  4418 */        0x00000003           /* 38     (CONST) */,
   /*  4419 */        WORD(SG_UNDEF), /* eqv */
   /*  4420 */        0x0000001F           /* 40     (BNEQ) */,
-  /*  4421 */        WORD(SG_MAKE_INT(4)),
+  /*  4421 */        WORD(4),
   /*  4422 */        0x00000009           /* 42     (GREF) */,
   /*  4423 */        WORD(SG_UNDEF)  /* identifier#eqv? */,
   /*  4424 */        0x0000002F           /* 44     (RET) */,
@@ -4565,7 +4565,7 @@ static struct sg__wcRec {
   /*  4426 */        0x00000003           /* 46     (CONST) */,
   /*  4427 */        WORD(SG_UNDEF), /* equal */
   /*  4428 */        0x0000001F           /* 48     (BNEQ) */,
-  /*  4429 */        WORD(SG_MAKE_INT(4)),
+  /*  4429 */        WORD(4),
   /*  4430 */        0x00000009           /* 50     (GREF) */,
   /*  4431 */        WORD(SG_UNDEF)  /* identifier#equal? */,
   /*  4432 */        0x0000002F           /* 52     (RET) */,
@@ -4573,7 +4573,7 @@ static struct sg__wcRec {
   /*  4434 */        0x00000003           /* 54     (CONST) */,
   /*  4435 */        WORD(SG_UNDEF), /* string */
   /*  4436 */        0x0000001F           /* 56     (BNEQ) */,
-  /*  4437 */        WORD(SG_MAKE_INT(4)),
+  /*  4437 */        WORD(4),
   /*  4438 */        0x00000009           /* 58     (GREF) */,
   /*  4439 */        WORD(SG_UNDEF)  /* identifier#string=? */,
   /*  4440 */        0x0000002F           /* 60     (RET) */,
@@ -4581,7 +4581,7 @@ static struct sg__wcRec {
   /*  4442 */        0x00000003           /* 62     (CONST) */,
   /*  4443 */        WORD(SG_UNDEF), /* general */
   /*  4444 */        0x0000001F           /* 64     (BNEQ) */,
-  /*  4445 */        WORD(SG_MAKE_INT(5)),
+  /*  4445 */        WORD(5),
   /*  4446 */        0x00000045           /* 66     (LREF_PUSH) */,
   /*  4447 */        0x0000014B           /* 67     (GREF_TAIL_CALL) */,
   /*  4448 */        WORD(SG_UNDEF)  /* identifier#hashtable-compare */,
@@ -4589,20 +4589,20 @@ static struct sg__wcRec {
   /*  4450 */        0x00000061           /* 70     (CONST_RET) */,
   /*  4451 */        WORD(SG_UNDEF)  /* undef */,
   /*  4452 */        0x00000030           /* 0      (FRAME) */,
-  /*  4453 */        WORD(SG_MAKE_INT(4)),
+  /*  4453 */        WORD(4),
   /*  4454 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*  4455 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*  4456 */        WORD(SG_UNDEF)  /* identifier#hashtable? */,
   /*  4457 */        0x00000017           /* 5      (TEST) */,
-  /*  4458 */        WORD(SG_MAKE_INT(3)),
+  /*  4458 */        WORD(3),
   /*  4459 */        0x00000018           /* 7      (JUMP) */,
-  /*  4460 */        WORD(SG_MAKE_INT(15)),
+  /*  4460 */        WORD(15),
   /*  4461 */        0x00000030           /* 9      (FRAME) */,
-  /*  4462 */        WORD(SG_MAKE_INT(13)),
+  /*  4462 */        WORD(13),
   /*  4463 */        0x00000048           /* 11     (CONST_PUSH) */,
   /*  4464 */        WORD(SG_UNDEF), /* hashtable-hash-function */
   /*  4465 */        0x00000030           /* 13     (FRAME) */,
-  /*  4466 */        WORD(SG_MAKE_INT(6)),
+  /*  4466 */        WORD(6),
   /*  4467 */        0x00000048           /* 15     (CONST_PUSH) */,
   /*  4468 */        WORD(SG_UNDEF), /* "hashtable" */
   /*  4469 */        0x00000045           /* 17     (LREF_PUSH) */,
@@ -4612,7 +4612,7 @@ static struct sg__wcRec {
   /*  4473 */        0x0000024A           /* 21     (GREF_CALL) */,
   /*  4474 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*  4475 */        0x00000030           /* 23     (FRAME) */,
-  /*  4476 */        WORD(SG_MAKE_INT(4)),
+  /*  4476 */        WORD(4),
   /*  4477 */        0x00000045           /* 25     (LREF_PUSH) */,
   /*  4478 */        0x0000014A           /* 26     (GREF_CALL) */,
   /*  4479 */        WORD(SG_UNDEF)  /* identifier#hashtable-type */,
@@ -4621,21 +4621,21 @@ static struct sg__wcRec {
   /*  4482 */        0x00000003           /* 30     (CONST) */,
   /*  4483 */        WORD(SG_UNDEF), /* eq */
   /*  4484 */        0x0000001F           /* 32     (BNEQ) */,
-  /*  4485 */        WORD(SG_MAKE_INT(3)),
+  /*  4485 */        WORD(3),
   /*  4486 */        0x00000061           /* 34     (CONST_RET) */,
   /*  4487 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  4488 */        0x00000145           /* 36     (LREF_PUSH) */,
   /*  4489 */        0x00000003           /* 37     (CONST) */,
   /*  4490 */        WORD(SG_UNDEF), /* eqv */
   /*  4491 */        0x0000001F           /* 39     (BNEQ) */,
-  /*  4492 */        WORD(SG_MAKE_INT(3)),
+  /*  4492 */        WORD(3),
   /*  4493 */        0x00000061           /* 41     (CONST_RET) */,
   /*  4494 */        WORD(SG_MAKE_BOOL(FALSE)),
   /*  4495 */        0x00000145           /* 43     (LREF_PUSH) */,
   /*  4496 */        0x00000003           /* 44     (CONST) */,
   /*  4497 */        WORD(SG_UNDEF), /* equal */
   /*  4498 */        0x0000001F           /* 46     (BNEQ) */,
-  /*  4499 */        WORD(SG_MAKE_INT(4)),
+  /*  4499 */        WORD(4),
   /*  4500 */        0x00000009           /* 48     (GREF) */,
   /*  4501 */        WORD(SG_UNDEF)  /* identifier#equal-hash */,
   /*  4502 */        0x0000002F           /* 50     (RET) */,
@@ -4643,7 +4643,7 @@ static struct sg__wcRec {
   /*  4504 */        0x00000003           /* 52     (CONST) */,
   /*  4505 */        WORD(SG_UNDEF), /* string */
   /*  4506 */        0x0000001F           /* 54     (BNEQ) */,
-  /*  4507 */        WORD(SG_MAKE_INT(4)),
+  /*  4507 */        WORD(4),
   /*  4508 */        0x00000009           /* 56     (GREF) */,
   /*  4509 */        WORD(SG_UNDEF)  /* identifier#string-hash */,
   /*  4510 */        0x0000002F           /* 58     (RET) */,
@@ -4651,7 +4651,7 @@ static struct sg__wcRec {
   /*  4512 */        0x00000003           /* 60     (CONST) */,
   /*  4513 */        WORD(SG_UNDEF), /* general */
   /*  4514 */        0x0000001F           /* 62     (BNEQ) */,
-  /*  4515 */        WORD(SG_MAKE_INT(5)),
+  /*  4515 */        WORD(5),
   /*  4516 */        0x00000045           /* 64     (LREF_PUSH) */,
   /*  4517 */        0x0000014B           /* 65     (GREF_TAIL_CALL) */,
   /*  4518 */        WORD(SG_UNDEF)  /* identifier#hashtable-hasher */,
@@ -4666,155 +4666,151 @@ void Sg__Init_core_base()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core base)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[263] = WORD(&sg__wc.cb[93]);
-  sg__wc.cb[93].name = SYMBOL("remove");
-  sg__wc.w[275] = WORD(&sg__wc.cb[99]);
-  sg__wc.cb[99].name = SYMBOL("memp");
-  sg__wc.w[3946] = WORD(&sg__wc.cb[105]);
-  sg__wc.cb[105].name = SYMBOL("sort!");
-  sg__wc.w[299] = WORD(&sg__wc.cb[107]);
-  sg__wc.cb[107].name = SYMBOL("open-bytevector-output-port");
-  sg__wc.w[323] = WORD(&sg__wc.cb[115]);
-  sg__wc.cb[115].name = SYMBOL("hashtable-equivalence-function");
-  sg__wc.w[95] = WORD(&sg__wc.cb[34]);
-  sg__wc.cb[34].name = SYMBOL("default-protocol");
-  sg__wc.w[171] = WORD(&sg__wc.cb[64]);
-  sg__wc.cb[64].name = SYMBOL("char-ci>=?");
-  sg__wc.w[1163] = WORD(&sg__wc.cb[36]);
-  sg__wc.cb[36].name = SYMBOL("default-protocol");
-  sg__wc.w[1406] = WORD(&sg__wc.cb[46]);
-  sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[195] = WORD(&sg__wc.cb[70]);
-  sg__wc.cb[70].name = SYMBOL("bytevector-uint-ref");
-  sg__wc.w[1661] = WORD(&sg__wc.cb[56]);
-  sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1076] = STRINGW("wrong number of arguments");
-  sg__wc.w[1133] = STRINGW("wrong number of arguments");
   sg__wc.w[203] = WORD(&sg__wc.cb[72]);
   sg__wc.cb[72].name = SYMBOL("bytevector-uint-set!");
-  sg__wc.w[890] = STRINGW("sealed ");
+  sg__wc.w[978] = WORD(&sg__wc.cb[27]);
+  sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1030] = WORD(&sg__wc.cb[31]);
+  sg__wc.cb[31].name = SYMBOL("loop");
+  sg__wc.w[29] = SYMBOLW("(core base)");
+  sg__wc.w[295] = WORD(&sg__wc.cb[106]);
+  sg__wc.cb[106].name = SYMBOL("call-with-port");
+  sg__wc.w[291] = WORD(&sg__wc.cb[104]);
+  sg__wc.cb[104].name = SYMBOL("vector-sort!");
+  sg__wc.w[311] = WORD(&sg__wc.cb[112]);
+  sg__wc.cb[112].name = SYMBOL("call-with-string-output-port");
+  sg__wc.w[1076] = STRINGW("wrong number of arguments");
+  sg__wc.w[1133] = STRINGW("wrong number of arguments");
+  sg__wc.w[91] = WORD(&sg__wc.cb[32]);
+  sg__wc.cb[32].name = SYMBOL("make-simple-conser");
   sg__wc.w[211] = WORD(&sg__wc.cb[74]);
   sg__wc.cb[74].name = SYMBOL("bytevector->uint-list");
-  sg__wc.w[334] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("default-protocol");
-  sg__wc.w[25] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("(list-sort merge-list!)");
-  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SYMBOL("er-macro-transformer");
-  sg__wc.w[63] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SYMBOL("fold");
+  sg__wc.w[111] = WORD(&sg__wc.cb[40]);
+  sg__wc.cb[40].name = SYMBOL("find-tail");
+  sg__wc.w[890] = STRINGW("sealed ");
+  sg__wc.w[1358] = WORD(&sg__wc.cb[42]);
+  sg__wc.cb[42].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1508] = WORD(&sg__wc.cb[50]);
+  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1599] = WORD(&sg__wc.cb[54]);
+  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[143] = WORD(&sg__wc.cb[58]);
+  sg__wc.cb[58].name = SYMBOL("take");
+  sg__wc.w[155] = WORD(&sg__wc.cb[60]);
+  sg__wc.cb[60].name = SYMBOL("char-ci=?");
   sg__wc.w[3430] = WORD(&sg__wc.cb[92]);
   sg__wc.cb[92].name = SYMBOL("loop");
   sg__wc.w[3545] = WORD(&sg__wc.cb[98]);
   sg__wc.cb[98].name = SYMBOL("loop");
-  sg__wc.w[1337] = STRINGW("list");
-  sg__wc.w[3713] = WORD(&sg__wc.cb[102]);
-  sg__wc.cb[102].name = SYMBOL("recur");
-  sg__wc.w[4236] = WORD(&sg__wc.cb[108]);
-  sg__wc.cb[108].name = SYMBOL("proc");
-  sg__wc.w[4253] = WORD(&sg__wc.cb[110]);
-  sg__wc.cb[110].name = SYMBOL("proc");
-  sg__wc.w[319] = WORD(&sg__wc.cb[114]);
-  sg__wc.cb[114].name = SYMBOL("hashtable-entries");
-  sg__wc.w[327] = WORD(&sg__wc.cb[116]);
-  sg__wc.cb[116].name = SYMBOL("hashtable-hash-function");
-  sg__wc.w[1030] = WORD(&sg__wc.cb[31]);
-  sg__wc.cb[31].name = SYMBOL("loop");
   sg__wc.w[175] = WORD(&sg__wc.cb[65]);
   sg__wc.cb[65].name = SYMBOL("string-ci=?");
-  sg__wc.w[1155] = WORD(&sg__wc.cb[35]);
-  sg__wc.cb[35].name = SYMBOL("default-protocol");
-  sg__wc.w[115] = WORD(&sg__wc.cb[41]);
-  sg__wc.cb[41].name = SYMBOL("assoc");
-  sg__wc.w[123] = WORD(&sg__wc.cb[45]);
-  sg__wc.cb[45].name = SYMBOL("delete");
-  sg__wc.w[147] = WORD(&sg__wc.cb[59]);
-  sg__wc.cb[59].name = SYMBOL("drop");
+  sg__wc.w[3713] = WORD(&sg__wc.cb[102]);
+  sg__wc.cb[102].name = SYMBOL("recur");
+  sg__wc.w[5] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SYMBOL("(take recur)");
+  sg__wc.w[31] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SYMBOL("hashtable-for-each");
+  sg__wc.w[594] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("er-macro-transformer");
+  sg__wc.w[67] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SYMBOL("wrong-type-argument-message");
+  sg__wc.w[1337] = STRINGW("list");
+  sg__wc.w[207] = WORD(&sg__wc.cb[73]);
+  sg__wc.cb[73].name = SYMBOL("bytevector-sint-set!");
+  sg__wc.w[983] = WORD(&sg__wc.cb[30]);
+  sg__wc.cb[30].name = SYMBOL("loop");
+  sg__wc.w[287] = WORD(&sg__wc.cb[103]);
+  sg__wc.cb[103].name = SYMBOL("vector-sort");
+  sg__wc.w[303] = WORD(&sg__wc.cb[109]);
+  sg__wc.cb[109].name = SYMBOL("open-string-output-port");
+  sg__wc.w[307] = WORD(&sg__wc.cb[111]);
+  sg__wc.cb[111].name = SYMBOL("call-with-bytevector-output-port");
+  sg__wc.w[327] = WORD(&sg__wc.cb[116]);
+  sg__wc.cb[116].name = SYMBOL("hashtable-hash-function");
   sg__wc.w[4360] = STRINGW("hashtable");
   sg__wc.w[4396] = STRINGW("hashtable");
   sg__wc.w[4468] = STRINGW("hashtable");
+  sg__wc.w[99] = WORD(&sg__wc.cb[37]);
+  sg__wc.cb[37].name = SYMBOL("null-list?");
   sg__wc.w[2595] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
   sg__wc.w[2846] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
-  sg__wc.w[207] = WORD(&sg__wc.cb[73]);
-  sg__wc.cb[73].name = SYMBOL("bytevector-sint-set!");
   sg__wc.w[215] = WORD(&sg__wc.cb[75]);
   sg__wc.cb[75].name = SYMBOL("bytevector->sint-list");
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("(default-protocol default-protocol)");
-  sg__wc.w[21] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("(exists collect-cdr)");
-  sg__wc.w[59] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SYMBOL("print");
-  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SYMBOL("call-with-values");
+  sg__wc.w[107] = WORD(&sg__wc.cb[39]);
+  sg__wc.cb[39].name = SYMBOL("find");
+  sg__wc.w[127] = WORD(&sg__wc.cb[47]);
+  sg__wc.cb[47].name = SYMBOL("reduce");
+  sg__wc.w[1482] = WORD(&sg__wc.cb[49]);
+  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1590] = WORD(&sg__wc.cb[53]);
+  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[243] = WORD(&sg__wc.cb[87]);
   sg__wc.cb[87].name = SYMBOL("map");
+  sg__wc.w[1670] = WORD(&sg__wc.cb[57]);
+  sg__wc.cb[57].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[159] = WORD(&sg__wc.cb[61]);
+  sg__wc.cb[61].name = SYMBOL("char-ci<?");
   sg__wc.w[259] = WORD(&sg__wc.cb[91]);
   sg__wc.cb[91].name = SYMBOL("remp");
   sg__wc.w[271] = WORD(&sg__wc.cb[97]);
   sg__wc.cb[97].name = SYMBOL("remq");
+  sg__wc.w[179] = WORD(&sg__wc.cb[66]);
+  sg__wc.cb[66].name = SYMBOL("string-ci<?");
+  sg__wc.w[334] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("default-protocol");
+  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SYMBOL("er-macro-transformer");
+  sg__wc.w[25] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("(list-sort merge-list!)");
+  sg__wc.w[63] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SYMBOL("fold");
   sg__wc.w[2578] = STRINGW("traversal reached to non-pair element ~s");
   sg__wc.w[2773] = STRINGW("traversal reached to non-pair element ~s");
   sg__wc.w[2829] = STRINGW("traversal reached to non-pair element ~s");
   sg__wc.w[3026] = STRINGW("traversal reached to non-pair element ~s");
-  sg__wc.w[944] = WORD(&sg__wc.cb[26]);
-  sg__wc.cb[26].name = SYMBOL("loop");
-  sg__wc.w[315] = WORD(&sg__wc.cb[113]);
-  sg__wc.cb[113].name = SYMBOL("hashtable-update!");
   sg__wc.w[1951] = STRINGW("expected endianness, but got ~r, as argument 3");
   sg__wc.w[2052] = STRINGW("expected endianness, but got ~r, as argument 3");
-  sg__wc.w[983] = WORD(&sg__wc.cb[30]);
-  sg__wc.cb[30].name = SYMBOL("loop");
   sg__wc.w[1250] = STRINGW("given list it too short");
   sg__wc.w[1216] = STRINGW("integer");
   sg__wc.w[1701] = STRINGW("integer");
   sg__wc.w[1737] = STRINGW("integer");
   sg__wc.w[768] = STRINGW("expected ~a, but got ~a");
-  sg__wc.w[103] = WORD(&sg__wc.cb[38]);
-  sg__wc.cb[38].name = SYMBOL("split-at");
-  sg__wc.w[179] = WORD(&sg__wc.cb[66]);
-  sg__wc.cb[66].name = SYMBOL("string-ci<?");
-  sg__wc.w[1382] = WORD(&sg__wc.cb[44]);
-  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[131] = WORD(&sg__wc.cb[48]);
-  sg__wc.cb[48].name = SYMBOL("lset-union");
-  sg__wc.w[135] = WORD(&sg__wc.cb[52]);
-  sg__wc.cb[52].name = SYMBOL("lset-intersection");
-  sg__wc.w[219] = WORD(&sg__wc.cb[76]);
-  sg__wc.cb[76].name = SYMBOL("uint-list->bytevector");
+  sg__wc.w[95] = WORD(&sg__wc.cb[34]);
+  sg__wc.cb[34].name = SYMBOL("default-protocol");
+  sg__wc.w[1163] = WORD(&sg__wc.cb[36]);
+  sg__wc.cb[36].name = SYMBOL("default-protocol");
   sg__wc.w[227] = WORD(&sg__wc.cb[78]);
   sg__wc.cb[78].name = SYMBOL("for-all");
+  sg__wc.w[219] = WORD(&sg__wc.cb[76]);
+  sg__wc.cb[76].name = SYMBOL("uint-list->bytevector");
   sg__wc.w[2741] = WORD(&sg__wc.cb[80]);
   sg__wc.cb[80].name = SYMBOL("loop");
-  sg__wc.w[17] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("(exists loop)");
-  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("unique-id-list?");
+  sg__wc.w[1406] = WORD(&sg__wc.cb[46]);
+  sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1661] = WORD(&sg__wc.cb[56]);
+  sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[239] = WORD(&sg__wc.cb[86]);
   sg__wc.cb[86].name = SYMBOL("partition");
-  sg__wc.w[55] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("safe-length");
   sg__wc.w[247] = WORD(&sg__wc.cb[88]);
   sg__wc.cb[88].name = SYMBOL("for-each");
-  sg__wc.w[2699] = STRINGW("expected same length chains of pairs");
-  sg__wc.w[2951] = STRINGW("expected same length chains of pairs");
-  sg__wc.w[79] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("string-for-each");
   sg__wc.w[255] = WORD(&sg__wc.cb[90]);
   sg__wc.cb[90].name = SYMBOL("fold-right");
   sg__wc.w[3509] = WORD(&sg__wc.cb[96]);
   sg__wc.cb[96].name = SYMBOL("loop");
-  sg__wc.w[998] = WORD(&sg__wc.cb[29]);
-  sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[87] = WORD(&sg__wc.cb[25]);
-  sg__wc.cb[25].name = SYMBOL("make-nested-conser");
-  sg__wc.w[29] = SYMBOLW("(core base)");
-  sg__wc.w[291] = WORD(&sg__wc.cb[104]);
-  sg__wc.cb[104].name = SYMBOL("vector-sort!");
-  sg__wc.w[295] = WORD(&sg__wc.cb[106]);
-  sg__wc.cb[106].name = SYMBOL("call-with-port");
-  sg__wc.w[311] = WORD(&sg__wc.cb[112]);
-  sg__wc.cb[112].name = SYMBOL("call-with-string-output-port");
+  sg__wc.w[183] = WORD(&sg__wc.cb[67]);
+  sg__wc.cb[67].name = SYMBOL("string-ci>?");
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("(default-protocol default-protocol)");
+  sg__wc.w[21] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("(exists collect-cdr)");
+  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SYMBOL("call-with-values");
+  sg__wc.w[2699] = STRINGW("expected same length chains of pairs");
+  sg__wc.w[2951] = STRINGW("expected same length chains of pairs");
+  sg__wc.w[59] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SYMBOL("print");
+  sg__wc.w[944] = WORD(&sg__wc.cb[26]);
+  sg__wc.cb[26].name = SYMBOL("loop");
   sg__wc.w[775] = STRINGW("expected ~a, but got ~a, as argument ~a");
   sg__wc.w[2377] = STRINGW("expected appropriate element size as argument 3, but got ~r");
   sg__wc.w[2436] = STRINGW("expected appropriate element size as argument 3, but got ~r");
@@ -4823,301 +4819,305 @@ void Sg__Init_core_base()
   sg__wc.w[1131] = STRINGW("record constructor");
   sg__wc.w[880] = STRINGW("");
   sg__wc.w[894] = STRINGW("");
-  sg__wc.w[159] = WORD(&sg__wc.cb[61]);
-  sg__wc.cb[61].name = SYMBOL("char-ci<?");
-  sg__wc.w[1084] = WORD(&sg__wc.cb[33]);
-  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[183] = WORD(&sg__wc.cb[67]);
-  sg__wc.cb[67].name = SYMBOL("string-ci>?");
-  sg__wc.w[119] = WORD(&sg__wc.cb[43]);
-  sg__wc.cb[43].name = SYMBOL("member");
-  sg__wc.w[1520] = WORD(&sg__wc.cb[51]);
-  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[139] = WORD(&sg__wc.cb[55]);
-  sg__wc.cb[55].name = SYMBOL("lset-difference");
+  sg__wc.w[3946] = WORD(&sg__wc.cb[105]);
+  sg__wc.cb[105].name = SYMBOL("sort!");
+  sg__wc.w[299] = WORD(&sg__wc.cb[107]);
+  sg__wc.cb[107].name = SYMBOL("open-bytevector-output-port");
+  sg__wc.w[323] = WORD(&sg__wc.cb[115]);
+  sg__wc.cb[115].name = SYMBOL("hashtable-equivalence-function");
+  sg__wc.w[1155] = WORD(&sg__wc.cb[35]);
+  sg__wc.cb[35].name = SYMBOL("default-protocol");
+  sg__wc.w[115] = WORD(&sg__wc.cb[41]);
+  sg__wc.cb[41].name = SYMBOL("assoc");
   sg__wc.w[3155] = STRINGW("proper list");
   sg__wc.w[3208] = STRINGW("proper list");
   sg__wc.w[3251] = STRINGW("proper list");
   sg__wc.w[3298] = STRINGW("proper list");
+  sg__wc.w[123] = WORD(&sg__wc.cb[45]);
+  sg__wc.cb[45].name = SYMBOL("delete");
   sg__wc.w[2667] = WORD(&sg__wc.cb[79]);
   sg__wc.cb[79].name = SYMBOL("collect-car");
   sg__wc.w[231] = WORD(&sg__wc.cb[81]);
   sg__wc.cb[81].name = SYMBOL("exists");
-  sg__wc.w[13] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SYMBOL("(for-all collect-cdr)");
   sg__wc.w[2994] = WORD(&sg__wc.cb[83]);
   sg__wc.cb[83].name = SYMBOL("loop");
-  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("hashtable->alist");
   sg__wc.w[3041] = WORD(&sg__wc.cb[85]);
   sg__wc.cb[85].name = SYMBOL("loop");
-  sg__wc.w[75] = WORD(&sg__wc.cb[22]);
-  sg__wc.cb[22].name = SYMBOL("vector-for-each");
-  sg__wc.w[625] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SYMBOL("compare");
-  sg__wc.w[83] = WORD(&sg__wc.cb[24]);
-  sg__wc.cb[24].name = SYMBOL("record-printer");
+  sg__wc.w[163] = WORD(&sg__wc.cb[62]);
+  sg__wc.cb[62].name = SYMBOL("char-ci>?");
+  sg__wc.w[147] = WORD(&sg__wc.cb[59]);
+  sg__wc.cb[59].name = SYMBOL("drop");
   sg__wc.w[251] = WORD(&sg__wc.cb[89]);
   sg__wc.cb[89].name = SYMBOL("fold-left");
   sg__wc.w[267] = WORD(&sg__wc.cb[95]);
   sg__wc.cb[95].name = SYMBOL("remv");
-  sg__wc.w[990] = WORD(&sg__wc.cb[28]);
-  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[283] = WORD(&sg__wc.cb[101]);
   sg__wc.cb[101].name = SYMBOL("list-sort");
-  sg__wc.w[876] = STRINGW("opaque ");
-  sg__wc.w[287] = WORD(&sg__wc.cb[103]);
-  sg__wc.cb[103].name = SYMBOL("vector-sort");
-  sg__wc.w[2230] = STRINGW("value out of range, ~s as argument 3");
-  sg__wc.w[2312] = STRINGW("value out of range, ~s as argument 3");
-  sg__wc.w[307] = WORD(&sg__wc.cb[111]);
-  sg__wc.cb[111].name = SYMBOL("call-with-bytevector-output-port");
-  sg__wc.w[303] = WORD(&sg__wc.cb[109]);
-  sg__wc.cb[109].name = SYMBOL("open-string-output-port");
-  sg__wc.w[91] = WORD(&sg__wc.cb[32]);
-  sg__wc.cb[32].name = SYMBOL("make-simple-conser");
-  sg__wc.w[163] = WORD(&sg__wc.cb[62]);
-  sg__wc.cb[62].name = SYMBOL("char-ci>?");
-  sg__wc.w[111] = WORD(&sg__wc.cb[40]);
-  sg__wc.cb[40].name = SYMBOL("find-tail");
-  sg__wc.w[1358] = WORD(&sg__wc.cb[42]);
-  sg__wc.cb[42].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[187] = WORD(&sg__wc.cb[68]);
   sg__wc.cb[68].name = SYMBOL("string-ci<=?");
-  sg__wc.w[1599] = WORD(&sg__wc.cb[54]);
-  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1508] = WORD(&sg__wc.cb[50]);
-  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[143] = WORD(&sg__wc.cb[58]);
-  sg__wc.cb[58].name = SYMBOL("take");
-  sg__wc.w[155] = WORD(&sg__wc.cb[60]);
-  sg__wc.cb[60].name = SYMBOL("char-ci=?");
+  sg__wc.w[17] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("(exists loop)");
+  sg__wc.w[55] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("safe-length");
+  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("unique-id-list?");
+  sg__wc.w[79] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("string-for-each");
+  sg__wc.w[87] = WORD(&sg__wc.cb[25]);
+  sg__wc.cb[25].name = SYMBOL("make-nested-conser");
+  sg__wc.w[998] = WORD(&sg__wc.cb[29]);
+  sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[876] = STRINGW("opaque ");
+  sg__wc.w[2230] = STRINGW("value out of range, ~s as argument 3");
+  sg__wc.w[2312] = STRINGW("value out of range, ~s as argument 3");
+  sg__wc.w[4236] = WORD(&sg__wc.cb[108]);
+  sg__wc.cb[108].name = SYMBOL("proc");
+  sg__wc.w[4253] = WORD(&sg__wc.cb[110]);
+  sg__wc.cb[110].name = SYMBOL("proc");
+  sg__wc.w[319] = WORD(&sg__wc.cb[114]);
+  sg__wc.cb[114].name = SYMBOL("hashtable-entries");
+  sg__wc.w[103] = WORD(&sg__wc.cb[38]);
+  sg__wc.cb[38].name = SYMBOL("split-at");
+  sg__wc.w[131] = WORD(&sg__wc.cb[48]);
+  sg__wc.cb[48].name = SYMBOL("lset-union");
+  sg__wc.w[1382] = WORD(&sg__wc.cb[44]);
+  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[135] = WORD(&sg__wc.cb[52]);
+  sg__wc.cb[52].name = SYMBOL("lset-intersection");
+  sg__wc.w[2919] = WORD(&sg__wc.cb[82]);
+  sg__wc.cb[82].name = SYMBOL("collect-car");
+  sg__wc.w[235] = WORD(&sg__wc.cb[84]);
+  sg__wc.cb[84].name = SYMBOL("filter");
+  sg__wc.w[167] = WORD(&sg__wc.cb[63]);
+  sg__wc.cb[63].name = SYMBOL("char-ci<=?");
+  sg__wc.w[3469] = WORD(&sg__wc.cb[94]);
+  sg__wc.cb[94].name = SYMBOL("loop");
   sg__wc.w[1293] = STRINGW("procedure");
   sg__wc.w[1436] = STRINGW("procedure");
   sg__wc.w[1472] = STRINGW("procedure");
   sg__wc.w[1554] = STRINGW("procedure");
   sg__wc.w[1627] = STRINGW("procedure");
   sg__wc.w[3639] = STRINGW("procedure");
-  sg__wc.w[9] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("(for-all loop)");
-  sg__wc.w[35] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("hashtable-map");
-  sg__wc.w[2919] = WORD(&sg__wc.cb[82]);
-  sg__wc.cb[82].name = SYMBOL("collect-car");
-  sg__wc.w[620] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("rename");
-  sg__wc.w[235] = WORD(&sg__wc.cb[84]);
-  sg__wc.cb[84].name = SYMBOL("filter");
-  sg__wc.w[71] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SYMBOL("vector-map");
-  sg__wc.w[3469] = WORD(&sg__wc.cb[94]);
-  sg__wc.cb[94].name = SYMBOL("loop");
   sg__wc.w[279] = WORD(&sg__wc.cb[100]);
   sg__wc.cb[100].name = SYMBOL("assp");
-  sg__wc.w[978] = WORD(&sg__wc.cb[27]);
-  sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1195] = STRINGW("argument out of domain");
-  sg__wc.w[861] = STRINGW("#<record ~s ~a~a ~a>");
-  sg__wc.w[167] = WORD(&sg__wc.cb[63]);
-  sg__wc.cb[63].name = SYMBOL("char-ci<=?");
-  sg__wc.w[99] = WORD(&sg__wc.cb[37]);
-  sg__wc.cb[37].name = SYMBOL("null-list?");
-  sg__wc.w[107] = WORD(&sg__wc.cb[39]);
-  sg__wc.cb[39].name = SYMBOL("find");
-  sg__wc.w[127] = WORD(&sg__wc.cb[47]);
-  sg__wc.cb[47].name = SYMBOL("reduce");
   sg__wc.w[191] = WORD(&sg__wc.cb[69]);
   sg__wc.cb[69].name = SYMBOL("string-ci>=?");
-  sg__wc.w[1482] = WORD(&sg__wc.cb[49]);
-  sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1590] = WORD(&sg__wc.cb[53]);
-  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[13] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SYMBOL("(for-all collect-cdr)");
+  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("hashtable->alist");
   sg__wc.w[199] = WORD(&sg__wc.cb[71]);
   sg__wc.cb[71].name = SYMBOL("bytevector-sint-ref");
-  sg__wc.w[1670] = WORD(&sg__wc.cb[57]);
-  sg__wc.cb[57].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[625] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SYMBOL("compare");
+  sg__wc.w[75] = WORD(&sg__wc.cb[22]);
+  sg__wc.cb[22].name = SYMBOL("vector-for-each");
+  sg__wc.w[83] = WORD(&sg__wc.cb[24]);
+  sg__wc.cb[24].name = SYMBOL("record-printer");
+  sg__wc.w[990] = WORD(&sg__wc.cb[28]);
+  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1195] = STRINGW("argument out of domain");
+  sg__wc.w[861] = STRINGW("#<record ~s ~a~a ~a>");
+  sg__wc.w[315] = WORD(&sg__wc.cb[113]);
+  sg__wc.cb[113].name = SYMBOL("hashtable-update!");
+  sg__wc.w[1084] = WORD(&sg__wc.cb[33]);
+  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[4314] = STRINGW("mutable hashtable");
   sg__wc.w[223] = WORD(&sg__wc.cb[77]);
   sg__wc.cb[77].name = SYMBOL("sint-list->bytevector");
-  sg__wc.w[5] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SYMBOL("(take recur)");
-  sg__wc.w[31] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SYMBOL("hashtable-for-each");
-  sg__wc.w[67] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SYMBOL("wrong-type-argument-message");
-  sg__wc.w[594] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("er-macro-transformer");
-  sg__wc.w[193] = IDENT("string-ci>=?", lib);
-  sg__wc.w[253] = IDENT("fold-left", lib);
-  sg__wc.w[49] = IDENT("call-with-values", lib);
-  sg__wc.w[41] = IDENT("hashtable->alist", lib);
-  sg__wc.w[2610] = sg__wc.w[2861] = IDENT("list-transpose+", lib);
-  sg__wc.w[317] = IDENT("hashtable-update!", lib);
-  sg__wc.w[394] = sg__wc.w[390] = sg__wc.w[382] = sg__wc.w[372] = sg__wc.w[11] = UNSIDENT("G10820", lib);
-  sg__wc.w[707] = IDENT("display", lib);
-  sg__wc.w[129] = sg__wc.w[1488] = IDENT("reduce", lib);
-  sg__wc.w[141] = IDENT("lset-difference", lib);
-  sg__wc.w[101] = IDENT("null-list?", lib);
-  sg__wc.w[313] = IDENT("call-with-string-output-port", lib);
-  sg__wc.w[53] = IDENT("er-macro-transformer", lib);
-  sg__wc.w[3936] = IDENT("make-vector", lib);
-  sg__wc.w[4518] = IDENT("hashtable-hasher", lib);
-  sg__wc.w[4183] = IDENT("values", lib);
-  sg__wc.w[1090] = sg__wc.w[961] = sg__wc.w[1020] = IDENT("rcd-protocol", lib);
-  sg__wc.w[599] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[1158] = sg__wc.w[3] = UNSIDENT("G10824", lib);
-  sg__wc.w[73] = IDENT("vector-map", lib);
-  sg__wc.w[548] = sg__wc.w[1325] = IDENT("list?", lib);
-  sg__wc.w[712] = IDENT("newline", lib);
-  sg__wc.w[1831] = IDENT("string<?", lib);
-  sg__wc.w[4249] = IDENT("open-output-string", lib);
+  sg__wc.w[119] = WORD(&sg__wc.cb[43]);
+  sg__wc.cb[43].name = SYMBOL("member");
+  sg__wc.w[1520] = WORD(&sg__wc.cb[51]);
+  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[139] = WORD(&sg__wc.cb[55]);
+  sg__wc.cb[55].name = SYMBOL("lset-difference");
+  sg__wc.w[263] = WORD(&sg__wc.cb[93]);
+  sg__wc.cb[93].name = SYMBOL("remove");
+  sg__wc.w[171] = WORD(&sg__wc.cb[64]);
+  sg__wc.cb[64].name = SYMBOL("char-ci>=?");
+  sg__wc.w[275] = WORD(&sg__wc.cb[99]);
+  sg__wc.cb[99].name = SYMBOL("memp");
+  sg__wc.w[9] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("(for-all loop)");
+  sg__wc.w[195] = WORD(&sg__wc.cb[70]);
+  sg__wc.cb[70].name = SYMBOL("bytevector-uint-ref");
+  sg__wc.w[620] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("rename");
+  sg__wc.w[35] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("hashtable-map");
+  sg__wc.w[71] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SYMBOL("vector-map");
+  sg__wc.w[265] = IDENT("remove", lib);
   sg__wc.w[604] = IDENT("current-usage-env", lib);
+  sg__wc.w[57] = IDENT("safe-length", lib);
+  sg__wc.w[4342] = IDENT("hashtable-set!", lib);
+  sg__wc.w[261] = IDENT("remp", lib);
+  sg__wc.w[137] = IDENT("lset-intersection", lib);
+  sg__wc.w[4183] = IDENT("values", lib);
+  sg__wc.w[253] = IDENT("fold-left", lib);
+  sg__wc.w[968] = IDENT("rcd-parent", lib);
+  sg__wc.w[609] = IDENT("current-macro-env", lib);
+  sg__wc.w[866] = IDENT("record-type-name", lib);
+  sg__wc.w[4249] = IDENT("open-output-string", lib);
+  sg__wc.w[93] = IDENT("make-simple-conser", lib);
+  sg__wc.w[313] = IDENT("call-with-string-output-port", lib);
+  sg__wc.w[325] = IDENT("hashtable-equivalence-function", lib);
+  sg__wc.w[1454] = sg__wc.w[65] = sg__wc.w[1513] = IDENT("fold", lib);
+  sg__wc.w[81] = IDENT("string-for-each", lib);
+  sg__wc.w[1653] = IDENT("memq", lib);
+  sg__wc.w[539] = IDENT("cons", lib);
+  sg__wc.w[4501] = IDENT("equal-hash", lib);
+  sg__wc.w[273] = IDENT("remq", lib);
+  sg__wc.w[4302] = IDENT("hashtable-mutable?", lib);
+  sg__wc.w[847] = IDENT("current-output-port", lib);
+  sg__wc.w[89] = IDENT("make-nested-conser", lib);
+  sg__wc.w[257] = IDENT("fold-right", lib);
+  sg__wc.w[2981] = sg__wc.w[2932] = sg__wc.w[2915] = sg__wc.w[23] = UNSIDENT("G10814", lib);
+  sg__wc.w[560] = IDENT("variable?", lib);
+  sg__wc.w[269] = IDENT("remv", lib);
+  sg__wc.w[1142] = IDENT("record-type-parent", lib);
+  sg__wc.w[293] = IDENT("vector-sort!", lib);
+  sg__wc.w[213] = IDENT("bytevector->uint-list", lib);
+  sg__wc.w[900] = IDENT("tuple-size", lib);
+  sg__wc.w[173] = IDENT("char-ci>=?", lib);
+  sg__wc.w[217] = IDENT("bytevector->sint-list", lib);
+  sg__wc.w[177] = IDENT("string-ci=?", lib);
+  sg__wc.w[181] = IDENT("string-ci<?", lib);
+  sg__wc.w[185] = IDENT("string-ci>?", lib);
+  sg__wc.w[321] = IDENT("hashtable-entries", lib);
+  sg__wc.w[2728] = sg__wc.w[2680] = sg__wc.w[2663] = sg__wc.w[15] = UNSIDENT("G10818", lib);
+  sg__wc.w[872] = IDENT("record-type-opaque?", lib);
+  sg__wc.w[189] = IDENT("string-ci<=?", lib);
+  sg__wc.w[241] = IDENT("partition", lib);
+  sg__wc.w[193] = IDENT("string-ci>=?", lib);
+  sg__wc.w[1524] = sg__wc.w[1577] = sg__wc.w[233] = IDENT("exists", lib);
+  sg__wc.w[73] = IDENT("vector-map", lib);
+  sg__wc.w[281] = sg__wc.w[3613] = IDENT("assp", lib);
+  sg__wc.w[4448] = IDENT("hashtable-compare", lib);
+  sg__wc.w[2477] = sg__wc.w[205] = sg__wc.w[2283] = sg__wc.w[2302] = IDENT("bytevector-uint-set!", lib);
+  sg__wc.w[97] = IDENT("default-protocol", lib);
+  sg__wc.w[4181] = IDENT("close-port", lib);
+  sg__wc.w[1718] = sg__wc.w[1713] = sg__wc.w[357] = sg__wc.w[7] = UNSIDENT("G10822", lib);
+  sg__wc.w[1401] = sg__wc.w[1569] = sg__wc.w[125] = IDENT("delete", lib);
+  sg__wc.w[647] = sg__wc.w[654] = IDENT("identifier?", lib);
+  sg__wc.w[129] = sg__wc.w[1488] = IDENT("reduce", lib);
+  sg__wc.w[4371] = IDENT("hashtable-keys", lib);
+  sg__wc.w[707] = IDENT("display", lib);
+  sg__wc.w[2515] = sg__wc.w[209] = IDENT("bytevector-sint-set!", lib);
+  sg__wc.w[305] = sg__wc.w[4281] = IDENT("open-string-output-port", lib);
+  sg__wc.w[41] = IDENT("hashtable->alist", lib);
+  sg__wc.w[835] = sg__wc.w[830] = IDENT("string->list", lib);
+  sg__wc.w[1114] = sg__wc.w[1057] = IDENT("make-tuple", lib);
+  sg__wc.w[3417] = IDENT("append!", lib);
+  sg__wc.w[4423] = IDENT("eqv?", lib);
+  sg__wc.w[4518] = IDENT("hashtable-hasher", lib);
+  sg__wc.w[641] = IDENT("er-rename", lib);
+  sg__wc.w[145] = sg__wc.w[151] = IDENT("take", lib);
+  sg__wc.w[309] = IDENT("call-with-bytevector-output-port", lib);
+  sg__wc.w[662] = IDENT("free-identifier=?", lib);
+  sg__wc.w[886] = IDENT("record-type-sealed?", lib);
+  sg__wc.w[1798] = IDENT("char<=?", lib);
+  sg__wc.w[4377] = IDENT("hashtable-values", lib);
+  sg__wc.w[712] = IDENT("newline", lib);
+  sg__wc.w[2460] = sg__wc.w[2498] = IDENT("make-bytevector", lib);
+  sg__wc.w[1809] = IDENT("char>=?", lib);
+  sg__wc.w[3920] = sg__wc.w[803] = IDENT("list->vector", lib);
+  sg__wc.w[4232] = IDENT("open-output-bytevector", lib);
+  sg__wc.w[1325] = sg__wc.w[548] = IDENT("list?", lib);
+  sg__wc.w[1682] = sg__wc.w[1377] = sg__wc.w[121] = sg__wc.w[1609] = IDENT("member", lib);
+  sg__wc.w[1070] = sg__wc.w[1127] = IDENT("tuple-list-set!", lib);
+  sg__wc.w[1831] = IDENT("string<?", lib);
+  sg__wc.w[4261] = IDENT("extract-output-string", lib);
+  sg__wc.w[4336] = IDENT("hashtable-ref", lib);
   sg__wc.w[289] = IDENT("vector-sort", lib);
+  sg__wc.w[329] = IDENT("hashtable-hash-function", lib);
   sg__wc.w[157] = IDENT("char-ci=?", lib);
   sg__wc.w[1842] = IDENT("string>?", lib);
-  sg__wc.w[4342] = IDENT("hashtable-set!", lib);
+  sg__wc.w[671] = IDENT("identifier=?", lib);
+  sg__wc.w[77] = IDENT("vector-for-each", lib);
+  sg__wc.w[1638] = IDENT("pair?", lib);
   sg__wc.w[161] = IDENT("char-ci<?", lib);
   sg__wc.w[1853] = IDENT("string<=?", lib);
+  sg__wc.w[3936] = IDENT("make-vector", lib);
+  sg__wc.w[527] = sg__wc.w[511] = IDENT("hashtable-keys-list", lib);
   sg__wc.w[165] = IDENT("char-ci>?", lib);
   sg__wc.w[1864] = IDENT("string>=?", lib);
   sg__wc.w[169] = IDENT("char-ci<=?", lib);
-  sg__wc.w[173] = IDENT("char-ci>=?", lib);
+  sg__wc.w[2296] = sg__wc.w[2256] = sg__wc.w[2111] = sg__wc.w[2037] = sg__wc.w[1994] = IDENT("expt", lib);
   sg__wc.w[1975] = sg__wc.w[1939] = sg__wc.w[1903] = sg__wc.w[2018] = IDENT("bytevector-u8-ref", lib);
-  sg__wc.w[609] = IDENT("current-macro-env", lib);
+  sg__wc.w[3885] = sg__wc.w[3855] = sg__wc.w[3740] = sg__wc.w[3619] = sg__wc.w[27] = UNSIDENT("G10812", lib);
+  sg__wc.w[2160] = sg__wc.w[2211] = IDENT("bitwise-arithmetic-shift", lib);
+  sg__wc.w[2045] = sg__wc.w[2002] = sg__wc.w[197] = sg__wc.w[2030] = sg__wc.w[1987] = sg__wc.w[2357] = IDENT("bytevector-uint-ref", lib);
+  sg__wc.w[4266] = sg__wc.w[301] = IDENT("open-bytevector-output-port", lib);
   sg__wc.w[61] = IDENT("print", lib);
-  sg__wc.w[3920] = sg__wc.w[803] = IDENT("list->vector", lib);
-  sg__wc.w[177] = IDENT("string-ci=?", lib);
-  sg__wc.w[1603] = sg__wc.w[1674] = sg__wc.w[229] = IDENT("for-all", lib);
+  sg__wc.w[221] = IDENT("uint-list->bytevector", lib);
+  sg__wc.w[225] = IDENT("sint-list->bytevector", lib);
+  sg__wc.w[1151] = IDENT("rtd-total-field-count", lib);
   sg__wc.w[1252] = IDENT("error", lib);
-  sg__wc.w[265] = IDENT("remove", lib);
-  sg__wc.w[866] = IDENT("record-type-name", lib);
-  sg__wc.w[217] = IDENT("bytevector->sint-list", lib);
-  sg__wc.w[93] = IDENT("make-simple-conser", lib);
-  sg__wc.w[181] = IDENT("string-ci<?", lib);
   sg__wc.w[2416] = sg__wc.w[201] = IDENT("bytevector-sint-ref", lib);
-  sg__wc.w[81] = IDENT("string-for-each", lib);
-  sg__wc.w[1170] = sg__wc.w[105] = IDENT("split-at", lib);
-  sg__wc.w[325] = IDENT("hashtable-equivalence-function", lib);
-  sg__wc.w[4384] = sg__wc.w[4348] = sg__wc.w[4295] = sg__wc.w[4456] = IDENT("hashtable?", lib);
-  sg__wc.w[261] = IDENT("remp", lib);
-  sg__wc.w[1653] = IDENT("memq", lib);
-  sg__wc.w[45] = IDENT("unique-id-list?", lib);
-  sg__wc.w[4281] = sg__wc.w[305] = IDENT("open-string-output-port", lib);
-  sg__wc.w[2981] = sg__wc.w[2932] = sg__wc.w[2915] = sg__wc.w[23] = UNSIDENT("G10814", lib);
-  sg__wc.w[4302] = IDENT("hashtable-mutable?", lib);
-  sg__wc.w[847] = IDENT("current-output-port", lib);
-  sg__wc.w[571] = IDENT("id-memq", lib);
-  sg__wc.w[89] = IDENT("make-nested-conser", lib);
-  sg__wc.w[309] = IDENT("call-with-bytevector-output-port", lib);
-  sg__wc.w[1142] = IDENT("record-type-parent", lib);
-  sg__wc.w[285] = sg__wc.w[3910] = IDENT("list-sort", lib);
+  sg__wc.w[3086] = sg__wc.w[3092] = sg__wc.w[3367] = IDENT("reverse", lib);
+  sg__wc.w[4407] = sg__wc.w[4479] = IDENT("hashtable-type", lib);
+  sg__wc.w[533] = sg__wc.w[517] = IDENT("hashtable-values-list", lib);
+  sg__wc.w[1108] = sg__wc.w[2687] = sg__wc.w[1051] = sg__wc.w[2654] = sg__wc.w[4208] = sg__wc.w[2939] = sg__wc.w[3704] = sg__wc.w[4191] = sg__wc.w[2906] = sg__wc.w[2456] = sg__wc.w[2494] = sg__wc.w[1097] = sg__wc.w[1040] = IDENT("length", lib);
+  sg__wc.w[1824] = sg__wc.w[1835] = sg__wc.w[1846] = sg__wc.w[1857] = sg__wc.w[1868] = IDENT("string-foldcase", lib);
+  sg__wc.w[85] = sg__wc.w[1055] = sg__wc.w[1112] = IDENT("record-printer", lib);
+  sg__wc.w[3971] = sg__wc.w[3932] = sg__wc.w[3791] = IDENT("div", lib);
+  sg__wc.w[1820] = sg__wc.w[4439] = IDENT("string=?", lib);
+  sg__wc.w[430] = sg__wc.w[426] = sg__wc.w[418] = sg__wc.w[408] = sg__wc.w[19] = UNSIDENT("G10816", lib);
+  sg__wc.w[1424] = sg__wc.w[1281] = sg__wc.w[1460] = sg__wc.w[1615] = sg__wc.w[1542] = sg__wc.w[3626] = IDENT("procedure?", lib);
+  sg__wc.w[49] = IDENT("call-with-values", lib);
+  sg__wc.w[3244] = sg__wc.w[2187] = sg__wc.w[3291] = sg__wc.w[2329] = sg__wc.w[2136] = sg__wc.w[2245] = sg__wc.w[2082] = IDENT("undefined", lib);
+  sg__wc.w[2199] = sg__wc.w[2148] = IDENT("bitwise-and", lib);
   sg__wc.w[1574] = IDENT("null?", lib);
-  sg__wc.w[4448] = IDENT("hashtable-compare", lib);
-  sg__wc.w[900] = IDENT("tuple-size", lib);
+  sg__wc.w[2610] = sg__wc.w[2861] = IDENT("list-transpose+", lib);
+  sg__wc.w[317] = IDENT("hashtable-update!", lib);
+  sg__wc.w[45] = IDENT("unique-id-list?", lib);
+  sg__wc.w[1567] = sg__wc.w[4415] = IDENT("eq?", lib);
   sg__wc.w[4509] = IDENT("string-hash", lib);
   sg__wc.w[1438] = IDENT("=", lib);
-  sg__wc.w[149] = IDENT("drop", lib);
-  sg__wc.w[4181] = IDENT("close-port", lib);
-  sg__wc.w[133] = IDENT("lset-union", lib);
-  sg__wc.w[2728] = sg__wc.w[2680] = sg__wc.w[2663] = sg__wc.w[15] = UNSIDENT("G10818", lib);
-  sg__wc.w[3367] = sg__wc.w[3086] = sg__wc.w[3092] = IDENT("reverse", lib);
-  sg__wc.w[4261] = IDENT("extract-output-string", lib);
-  sg__wc.w[1751] = sg__wc.w[344] = sg__wc.w[1232] = IDENT("zero?", lib);
-  sg__wc.w[1765] = IDENT("char=?", lib);
-  sg__wc.w[321] = IDENT("hashtable-entries", lib);
-  sg__wc.w[4423] = IDENT("eqv?", lib);
-  sg__wc.w[872] = IDENT("record-type-opaque?", lib);
-  sg__wc.w[1776] = IDENT("char<?", lib);
-  sg__wc.w[1362] = sg__wc.w[109] = IDENT("find", lib);
-  sg__wc.w[241] = IDENT("partition", lib);
-  sg__wc.w[1787] = IDENT("char>?", lib);
-  sg__wc.w[2268] = sg__wc.w[2114] = IDENT("<", lib);
-  sg__wc.w[1798] = IDENT("char<=?", lib);
-  sg__wc.w[1718] = sg__wc.w[1713] = sg__wc.w[357] = sg__wc.w[7] = UNSIDENT("G10822", lib);
-  sg__wc.w[97] = IDENT("default-protocol", lib);
-  sg__wc.w[1809] = IDENT("char>=?", lib);
-  sg__wc.w[4479] = sg__wc.w[4407] = IDENT("hashtable-type", lib);
-  sg__wc.w[1204] = sg__wc.w[1725] = sg__wc.w[1689] = IDENT("integer?", lib);
-  sg__wc.w[2498] = sg__wc.w[2460] = IDENT("make-bytevector", lib);
-  sg__wc.w[117] = sg__wc.w[1353] = IDENT("assoc", lib);
-  sg__wc.w[647] = sg__wc.w[654] = IDENT("identifier?", lib);
-  sg__wc.w[4232] = IDENT("open-output-bytevector", lib);
-  sg__wc.w[4371] = IDENT("hashtable-keys", lib);
-  sg__wc.w[329] = IDENT("hashtable-hash-function", lib);
-  sg__wc.w[57] = IDENT("safe-length", lib);
-  sg__wc.w[835] = sg__wc.w[830] = IDENT("string->list", lib);
-  sg__wc.w[113] = sg__wc.w[1270] = sg__wc.w[1386] = IDENT("find-tail", lib);
-  sg__wc.w[137] = IDENT("lset-intersection", lib);
-  sg__wc.w[1114] = sg__wc.w[1057] = IDENT("make-tuple", lib);
-  sg__wc.w[1769] = sg__wc.w[1780] = sg__wc.w[1791] = sg__wc.w[1802] = sg__wc.w[1813] = IDENT("char-foldcase", lib);
-  sg__wc.w[641] = IDENT("er-rename", lib);
-  sg__wc.w[3244] = sg__wc.w[2329] = sg__wc.w[2136] = sg__wc.w[3291] = sg__wc.w[2245] = sg__wc.w[2082] = sg__wc.w[2187] = IDENT("undefined", lib);
-  sg__wc.w[1835] = sg__wc.w[1846] = sg__wc.w[1857] = sg__wc.w[1868] = sg__wc.w[1824] = IDENT("string-foldcase", lib);
-  sg__wc.w[662] = IDENT("free-identifier=?", lib);
-  sg__wc.w[1641] = sg__wc.w[1410] = sg__wc.w[1665] = sg__wc.w[237] = sg__wc.w[1594] = IDENT("filter", lib);
-  sg__wc.w[511] = sg__wc.w[527] = IDENT("hashtable-keys-list", lib);
-  sg__wc.w[886] = IDENT("record-type-sealed?", lib);
-  sg__wc.w[968] = IDENT("rcd-parent", lib);
-  sg__wc.w[4377] = IDENT("hashtable-values", lib);
-  sg__wc.w[293] = IDENT("vector-sort!", lib);
-  sg__wc.w[2211] = sg__wc.w[2160] = IDENT("bitwise-arithmetic-shift", lib);
-  sg__wc.w[4431] = sg__wc.w[1351] = sg__wc.w[1399] = sg__wc.w[1375] = sg__wc.w[3486] = IDENT("equal?", lib);
-  sg__wc.w[539] = IDENT("cons", lib);
-  sg__wc.w[3791] = sg__wc.w[3971] = sg__wc.w[3932] = IDENT("div", lib);
-  sg__wc.w[225] = IDENT("sint-list->bytevector", lib);
-  sg__wc.w[4266] = sg__wc.w[301] = IDENT("open-bytevector-output-port", lib);
-  sg__wc.w[209] = sg__wc.w[2515] = IDENT("bytevector-sint-set!", lib);
-  sg__wc.w[1239] = sg__wc.w[3148] = sg__wc.w[3398] = sg__wc.w[913] = sg__wc.w[3201] = IDENT("reverse!", lib);
-  sg__wc.w[1377] = sg__wc.w[121] = sg__wc.w[1682] = sg__wc.w[1609] = IDENT("member", lib);
-  sg__wc.w[221] = IDENT("uint-list->bytevector", lib);
-  sg__wc.w[560] = IDENT("variable?", lib);
-  sg__wc.w[1127] = sg__wc.w[1070] = IDENT("tuple-list-set!", lib);
-  sg__wc.w[4336] = IDENT("hashtable-ref", lib);
-  sg__wc.w[1281] = sg__wc.w[1460] = sg__wc.w[1542] = sg__wc.w[3626] = sg__wc.w[1424] = sg__wc.w[1615] = IDENT("procedure?", lib);
-  sg__wc.w[77] = IDENT("vector-for-each", lib);
-  sg__wc.w[1820] = sg__wc.w[4439] = IDENT("string=?", lib);
-  sg__wc.w[671] = IDENT("identifier=?", lib);
-  sg__wc.w[1454] = sg__wc.w[65] = sg__wc.w[1513] = IDENT("fold", lib);
-  sg__wc.w[3417] = IDENT("append!", lib);
-  sg__wc.w[1638] = IDENT("pair?", lib);
-  sg__wc.w[517] = sg__wc.w[533] = IDENT("hashtable-values-list", lib);
-  sg__wc.w[799] = sg__wc.w[1772] = sg__wc.w[1783] = sg__wc.w[1794] = sg__wc.w[1805] = sg__wc.w[1816] = sg__wc.w[1827] = sg__wc.w[820] = sg__wc.w[536] = sg__wc.w[785] = sg__wc.w[245] = sg__wc.w[838] = sg__wc.w[1838] = sg__wc.w[1849] = sg__wc.w[1860] = sg__wc.w[1871] = IDENT("map", lib);
-  sg__wc.w[4501] = IDENT("equal-hash", lib);
-  sg__wc.w[3172] = sg__wc.w[3392] = sg__wc.w[3337] = sg__wc.w[3268] = sg__wc.w[739] = IDENT("list-transpose*", lib);
-  sg__wc.w[153] = sg__wc.w[3735] = IDENT("list-head", lib);
-  sg__wc.w[3885] = sg__wc.w[3855] = sg__wc.w[3740] = sg__wc.w[3619] = sg__wc.w[27] = UNSIDENT("G10812", lib);
-  sg__wc.w[269] = IDENT("remv", lib);
-  sg__wc.w[125] = sg__wc.w[1401] = sg__wc.w[1569] = IDENT("delete", lib);
-  sg__wc.w[151] = sg__wc.w[145] = IDENT("take", lib);
-  sg__wc.w[1567] = sg__wc.w[4415] = IDENT("eq?", lib);
-  sg__wc.w[233] = sg__wc.w[1524] = sg__wc.w[1577] = IDENT("exists", lib);
-  sg__wc.w[2148] = sg__wc.w[2199] = IDENT("bitwise-and", lib);
-  sg__wc.w[213] = IDENT("bytevector->uint-list", lib);
-  sg__wc.w[1151] = IDENT("rtd-total-field-count", lib);
-  sg__wc.w[2091] = sg__wc.w[2202] = sg__wc.w[2151] = IDENT("bytevector-u8-set!", lib);
-  sg__wc.w[2111] = sg__wc.w[2037] = sg__wc.w[1994] = sg__wc.w[2296] = sg__wc.w[2256] = IDENT("expt", lib);
+  sg__wc.w[1674] = sg__wc.w[229] = sg__wc.w[1603] = IDENT("for-all", lib);
   sg__wc.w[4244] = IDENT("extract-output-bytevector", lib);
-  sg__wc.w[3592] = sg__wc.w[277] = IDENT("memp", lib);
-  sg__wc.w[3704] = sg__wc.w[1108] = sg__wc.w[1051] = sg__wc.w[4208] = sg__wc.w[2939] = sg__wc.w[4191] = sg__wc.w[2494] = sg__wc.w[2456] = sg__wc.w[2687] = sg__wc.w[2906] = sg__wc.w[2654] = sg__wc.w[1097] = sg__wc.w[1040] = IDENT("length", lib);
-  sg__wc.w[197] = sg__wc.w[2030] = sg__wc.w[1987] = sg__wc.w[2357] = sg__wc.w[2045] = sg__wc.w[2002] = IDENT("bytevector-uint-ref", lib);
-  sg__wc.w[430] = sg__wc.w[426] = sg__wc.w[418] = sg__wc.w[408] = sg__wc.w[19] = UNSIDENT("G10816", lib);
-  sg__wc.w[2302] = sg__wc.w[2477] = sg__wc.w[205] = sg__wc.w[2283] = IDENT("bytevector-uint-set!", lib);
+  sg__wc.w[1386] = sg__wc.w[113] = sg__wc.w[1270] = IDENT("find-tail", lib);
+  sg__wc.w[117] = sg__wc.w[1353] = IDENT("assoc", lib);
+  sg__wc.w[133] = IDENT("lset-union", lib);
+  sg__wc.w[141] = IDENT("lset-difference", lib);
+  sg__wc.w[2151] = sg__wc.w[2091] = sg__wc.w[2202] = IDENT("bytevector-u8-set!", lib);
+  sg__wc.w[924] = sg__wc.w[857] = IDENT("tuple-ref", lib);
+  sg__wc.w[1020] = sg__wc.w[1090] = sg__wc.w[961] = IDENT("rcd-protocol", lib);
+  sg__wc.w[101] = IDENT("null-list?", lib);
+  sg__wc.w[394] = sg__wc.w[390] = sg__wc.w[382] = sg__wc.w[372] = sg__wc.w[11] = UNSIDENT("G10820", lib);
+  sg__wc.w[571] = IDENT("id-memq", lib);
   sg__wc.w[2335] = sg__wc.w[2394] = IDENT("bytevector-length", lib);
-  sg__wc.w[857] = sg__wc.w[924] = IDENT("tuple-ref", lib);
-  sg__wc.w[85] = sg__wc.w[1112] = sg__wc.w[1055] = IDENT("record-printer", lib);
-  sg__wc.w[185] = IDENT("string-ci>?", lib);
-  sg__wc.w[273] = IDENT("remq", lib);
-  sg__wc.w[3903] = sg__wc.w[812] = sg__wc.w[796] = sg__wc.w[817] = sg__wc.w[791] = IDENT("vector->list", lib);
-  sg__wc.w[2380] = sg__wc.w[2233] = sg__wc.w[2598] = sg__wc.w[2832] = sg__wc.w[2849] = sg__wc.w[2581] = sg__wc.w[1954] = sg__wc.w[2055] = sg__wc.w[2439] = sg__wc.w[3029] = sg__wc.w[4211] = sg__wc.w[935] = sg__wc.w[2776] = sg__wc.w[772] = sg__wc.w[780] = sg__wc.w[2315] = IDENT("format", lib);
+  sg__wc.w[1765] = IDENT("char=?", lib);
+  sg__wc.w[1751] = sg__wc.w[344] = sg__wc.w[1232] = IDENT("zero?", lib);
+  sg__wc.w[1641] = sg__wc.w[1594] = sg__wc.w[1665] = sg__wc.w[237] = sg__wc.w[1410] = IDENT("filter", lib);
+  sg__wc.w[791] = sg__wc.w[3903] = sg__wc.w[796] = sg__wc.w[817] = sg__wc.w[812] = IDENT("vector->list", lib);
   sg__wc.w[33] = IDENT("hashtable-for-each", lib);
-  sg__wc.w[189] = IDENT("string-ci<=?", lib);
-  sg__wc.w[2388] = sg__wc.w[2243] = sg__wc.w[1198] = sg__wc.w[1223] = sg__wc.w[4402] = sg__wc.w[1344] = sg__wc.w[2605] = sg__wc.w[1300] = sg__wc.w[1479] = sg__wc.w[4366] = sg__wc.w[2839] = sg__wc.w[2856] = sg__wc.w[1136] = sg__wc.w[3220] = sg__wc.w[1079] = sg__wc.w[1744] = sg__wc.w[4474] = sg__wc.w[1561] = sg__wc.w[4321] = sg__wc.w[2588] = sg__wc.w[1963] = sg__wc.w[2064] = sg__wc.w[3646] = sg__wc.w[2954] = sg__wc.w[3263] = sg__wc.w[2447] = sg__wc.w[3033] = sg__wc.w[4215] = sg__wc.w[1708] = sg__wc.w[2780] = sg__wc.w[2702] = sg__wc.w[1444] = sg__wc.w[2325] = sg__wc.w[1634] = sg__wc.w[3167] = sg__wc.w[3310] = IDENT("assertion-violation", lib);
-  sg__wc.w[824] = sg__wc.w[520] = sg__wc.w[710] = sg__wc.w[806] = sg__wc.w[249] = IDENT("for-each", lib);
-  sg__wc.w[257] = IDENT("fold-right", lib);
+  sg__wc.w[1776] = IDENT("char<?", lib);
+  sg__wc.w[3337] = sg__wc.w[3172] = sg__wc.w[739] = sg__wc.w[3392] = sg__wc.w[3268] = IDENT("list-transpose*", lib);
+  sg__wc.w[1689] = sg__wc.w[1725] = sg__wc.w[1204] = IDENT("integer?", lib);
+  sg__wc.w[4348] = sg__wc.w[4295] = sg__wc.w[4456] = sg__wc.w[4384] = IDENT("hashtable?", lib);
+  sg__wc.w[53] = IDENT("er-macro-transformer", lib);
+  sg__wc.w[520] = sg__wc.w[806] = sg__wc.w[249] = sg__wc.w[710] = sg__wc.w[824] = IDENT("for-each", lib);
   sg__wc.w[542] = sg__wc.w[37] = IDENT("hashtable-map", lib);
-  sg__wc.w[3159] = sg__wc.w[69] = sg__wc.w[3302] = sg__wc.w[1220] = sg__wc.w[4399] = sg__wc.w[1341] = sg__wc.w[1297] = sg__wc.w[1476] = sg__wc.w[4363] = sg__wc.w[3212] = sg__wc.w[1741] = sg__wc.w[4471] = sg__wc.w[1558] = sg__wc.w[4318] = sg__wc.w[3643] = sg__wc.w[3255] = sg__wc.w[1705] = sg__wc.w[1441] = sg__wc.w[1631] = IDENT("wrong-type-argument-message", lib);
-  sg__wc.w[281] = sg__wc.w[3613] = IDENT("assp", lib);
+  sg__wc.w[1787] = IDENT("char>?", lib);
+  sg__wc.w[105] = sg__wc.w[1170] = IDENT("split-at", lib);
+  sg__wc.w[1362] = sg__wc.w[109] = IDENT("find", lib);
+  sg__wc.w[2268] = sg__wc.w[2114] = IDENT("<", lib);
+  sg__wc.w[599] = IDENT("make-eq-hashtable", lib);
   sg__wc.w[297] = IDENT("call-with-port", lib);
+  sg__wc.w[285] = sg__wc.w[3910] = IDENT("list-sort", lib);
+  sg__wc.w[4431] = sg__wc.w[3486] = sg__wc.w[1351] = sg__wc.w[1399] = sg__wc.w[1375] = IDENT("equal?", lib);
+  sg__wc.w[3735] = sg__wc.w[153] = IDENT("list-head", lib);
+  sg__wc.w[1158] = sg__wc.w[3] = UNSIDENT("G10824", lib);
+  sg__wc.w[277] = sg__wc.w[3592] = IDENT("memp", lib);
+  sg__wc.w[1223] = sg__wc.w[4402] = sg__wc.w[2588] = sg__wc.w[2605] = sg__wc.w[2388] = sg__wc.w[3310] = sg__wc.w[3167] = sg__wc.w[4366] = sg__wc.w[2702] = sg__wc.w[1444] = sg__wc.w[1708] = sg__wc.w[1079] = sg__wc.w[1136] = sg__wc.w[2325] = sg__wc.w[2780] = sg__wc.w[4321] = sg__wc.w[2839] = sg__wc.w[2856] = sg__wc.w[4474] = sg__wc.w[1344] = sg__wc.w[2447] = sg__wc.w[2954] = sg__wc.w[1300] = sg__wc.w[2243] = sg__wc.w[3033] = sg__wc.w[4215] = sg__wc.w[3220] = sg__wc.w[3263] = sg__wc.w[1479] = sg__wc.w[1634] = sg__wc.w[1744] = sg__wc.w[1561] = sg__wc.w[1963] = sg__wc.w[2064] = sg__wc.w[3646] = sg__wc.w[1198] = IDENT("assertion-violation", lib);
+  sg__wc.w[772] = sg__wc.w[2581] = sg__wc.w[2598] = sg__wc.w[2380] = sg__wc.w[780] = sg__wc.w[2315] = sg__wc.w[2776] = sg__wc.w[2832] = sg__wc.w[2849] = sg__wc.w[2055] = sg__wc.w[935] = sg__wc.w[2439] = sg__wc.w[2233] = sg__wc.w[3029] = sg__wc.w[4211] = sg__wc.w[1954] = IDENT("format", lib);
+  sg__wc.w[1220] = sg__wc.w[4399] = sg__wc.w[3302] = sg__wc.w[3159] = sg__wc.w[4363] = sg__wc.w[69] = sg__wc.w[1441] = sg__wc.w[1705] = sg__wc.w[3212] = sg__wc.w[4318] = sg__wc.w[4471] = sg__wc.w[1341] = sg__wc.w[1297] = sg__wc.w[3255] = sg__wc.w[1476] = sg__wc.w[1631] = sg__wc.w[1741] = sg__wc.w[1558] = sg__wc.w[3643] = IDENT("wrong-type-argument-message", lib);
+  sg__wc.w[1805] = sg__wc.w[1816] = sg__wc.w[1827] = sg__wc.w[1838] = sg__wc.w[1849] = sg__wc.w[1860] = sg__wc.w[1871] = sg__wc.w[799] = sg__wc.w[1772] = sg__wc.w[1783] = sg__wc.w[1794] = sg__wc.w[838] = sg__wc.w[536] = sg__wc.w[785] = sg__wc.w[245] = sg__wc.w[820] = IDENT("map", lib);
+  sg__wc.w[149] = IDENT("drop", lib);
+  sg__wc.w[1791] = sg__wc.w[1802] = sg__wc.w[1813] = sg__wc.w[1769] = sg__wc.w[1780] = IDENT("char-foldcase", lib);
+  sg__wc.w[3398] = sg__wc.w[913] = sg__wc.w[3148] = sg__wc.w[1239] = sg__wc.w[3201] = IDENT("reverse!", lib);
   sg__wc.w[1432] = SYMBOLW("reduce");
   sg__wc.w[4497] = sg__wc.w[4427] = SYMBOLW("equal");
   sg__wc.w[2119] = sg__wc.w[1967] = sg__wc.w[1876] = SYMBOLW("big");

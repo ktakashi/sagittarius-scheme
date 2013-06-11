@@ -523,25 +523,27 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
   int i, len = cb->size;
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
-    int j;
-    for (j = 1; j <= info->argc; j++) {
-      SgObject o = SG_OBJ(code[i+j]);
-      if (SG_CODE_BUILDERP(o)) {
-	r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
-	/* we need to check it recursively */
-	r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
+    if (!info->label) {
+      int j;
+      for (j = 1; j <= info->argc; j++) {
+	SgObject o = SG_OBJ(code[i+j]);
+	if (SG_CODE_BUILDERP(o)) {
+	  r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
+	  /* we need to check it recursively */
+	  r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
+	}
+	if (info->number == LIBRARY && lib != NULL) {
+	  /* LIBRARY instruction is a mark for this.
+	     FIXME: actually I don't like this, so remove it.
+	  */
+	  *lib = SG_LIBRARY(o);
+	  /* we know after this check we don't have any interest in
+	     this object. so go to next.
+	  */
+	  break;
+	}
+	r = write_cache_scan(o, r, ctx);
       }
-      if (info->number == LIBRARY && lib != NULL) {
-	/* LIBRARY instruction is a mark for this.
-	   FIXME: actually I don't like this, so remove it.
-	*/
-	*lib = SG_LIBRARY(o);
-	/* we know after this check we don't have any interest in
-	   this object. so go to next.
-	*/
-	break;
-      }
-      r = write_cache_scan(o, r, ctx);
     }
     i += 1 + info->argc;
   }
@@ -812,21 +814,25 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
     int j;
     /* *tag* *len* insn */
     put_word(out, code[i], INSTRUCTION_TAG);
-    for (j = 0; j < info->argc; j++) {
-      SgObject o = SG_OBJ(code[i+j+1]);
-      if (SG_CODE_BUILDERP(o)) {
-	SgObject slot = Sg_Assq(o, cbs);
-	/* never happen but just in case */
-	if (SG_FALSEP(slot))
-	  Sg_Panic("non collected compiled code appeared during writing cache");
-	/* set mark.
-	   maximum 0xffffffff index
-	   i think this is durable.
-	 */
-	put_word(out, SG_INT_VALUE(SG_CDR(slot)), MARK_TAG);
-	continue;
+    if (info->label) {
+      put_word(out, code[i + 1], INSTRUCTION_TAG);
+    } else {
+      for (j = 0; j < info->argc; j++) {
+	SgObject o = SG_OBJ(code[i+j+1]);
+	if (SG_CODE_BUILDERP(o)) {
+	  SgObject slot = Sg_Assq(o, cbs);
+	  /* never happen but just in case */
+	  if (SG_FALSEP(slot))
+	    Sg_Panic("non collected compiled code appeared during writing cache");
+	  /* set mark.
+	     maximum 0xffffffff index
+	     i think this is durable.
+	  */
+	  put_word(out, SG_INT_VALUE(SG_CDR(slot)), MARK_TAG);
+	  continue;
+	}
+	write_object_cache(out, o, cbs, ctx);
       }
-      write_object_cache(out, o, cbs, ctx);
     }
     i += 1 + info->argc;
   }
@@ -985,7 +991,7 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
   len = SG_CODE_BUILDER(cb)->size;
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
-    if (info->argc > 0) {
+    if (info->argc > 0 && !info->label) {
       for (j = 0; j < info->argc; j++) {
 	SgObject o = SG_OBJ(code[i+j+1]);
 	if (SG_SHAREDREF_P(o)) {

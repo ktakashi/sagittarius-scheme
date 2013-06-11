@@ -65,7 +65,7 @@
 	  (else
 	   (error "unknown scheme object" p)))))
 
-(define (write-object out o line)
+(define (write-object out o line label?)
   (format out "  /* ~5d */" line)
   (cond ((pair? o)
 	 (format out "        WORD(SG_UNDEF), /* ~s */~%" o))
@@ -73,7 +73,9 @@
 	 (format out "        WORD(SG_UNDEF), /* ~s */~%" (decode-start-comment o)))
 	((number? o)
 	 ;; assume there is no bignum, ratnum, flonum or complex.
-	 (format out "        WORD(SG_MAKE_INT(~a)),~%" o))
+	 (if label?
+	     (format out "        WORD(~a),~%" o)
+	     (format out "        WORD(SG_MAKE_INT(~a)),~%" o)))
 	((string? o)
 	 (format out "        WORD(SG_UNDEF), /* ~s */~%" o))
 	((boolean? o)
@@ -204,7 +206,8 @@
 			(if (eq? c 'mark)
 			    (hashtable-set! objects obj (list (+ i 1 j line))) ; fist one
 			    (hashtable-set! objects obj (append c (list (+ i 1 j line))))))) ; duplicated (such as symbol)
-		    (write-object out obj (+ i 1 j line))
+		    (write-object out obj (+ i 1 j line)
+				  (car (cddddr info)))
 		    (arg (+ j 1)))))
 	      (lp (+ i 1 (caddr info))))))))
   (let ((offset (write-cb root-cb 0)))

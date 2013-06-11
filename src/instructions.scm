@@ -208,14 +208,14 @@
 (define-inst TEST (0 1 #t) :label
   (cond ((SG_FALSEP (AC vm))
 	 (let ((n (PEEK_OPERAND (PC vm))))
-	   (+= (PC vm) (SG_INT_VALUE n))))
+	   (+= (PC vm) (cast intptr_t n))))
 	(else
 	 (post++ (PC vm))))
   NEXT)
 
 (define-inst JUMP (0 1 #t) :label
   (let ((n (PEEK_OPERAND (PC vm))))
-    (+= (PC vm) (SG_INT_VALUE n)))
+    (+= (PC vm) (cast intptr_t n)))
   NEXT)
 
 (define-inst SHIFTJ (2 0 #f)
@@ -228,7 +228,7 @@
    (let ((n (gensym "cise__")))
      `(let ((,n ,p))
 	(set! (AC vm) SG_FALSE)
-	(+= (PC vm) (SG_INT_VALUE ,n)))))
+	(+= (PC vm) (cast intptr_t ,n)))))
   ((_)
    `(begin
       (set! (AC vm) SG_TRUE)
@@ -273,7 +273,7 @@
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
-	    (+= (PC vm) (SG_INT_VALUE n))
+	    (+= (PC vm) (cast intptr_t n))
 	    (set! (AC vm) SG_FALSE)))
       NEXT)))
 
@@ -292,7 +292,7 @@
 	    (post++ (PC vm)))
 	  (begin
 	    (set! (AC vm) SG_FALSE)
-	    (+= (PC vm) (SG_INT_VALUE n))))
+	    (+= (PC vm) (cast intptr_t n))))
       NEXT)))
 
 (define-inst BNNULL (0 1 #t) :label
@@ -456,7 +456,7 @@
 
 (define-inst FRAME (0 1 #f) :label
   (let ((n (FETCH_OPERAND (PC vm))))
-    (PUSH_CONT vm (+ (PC vm) (- (SG_INT_VALUE n) 1))))
+    (PUSH_CONT vm (+ (PC vm) (- (cast intptr_t n) 1))))
   NEXT)
 
 ;; TODO remove this instruction from compiler.

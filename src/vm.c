@@ -528,14 +528,15 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
     if (info->argc != 0) {
       /* for now insn argument is only one */
       SgObject arg = SG_OBJ(code[i + 1]);
-      if (SG_CODE_BUILDERP(arg)) {
+      if (!info->label && SG_CODE_BUILDERP(arg)) {
 	s = Sg_GetStringFromStringPort(out);
 	Sg_Puts(vm->logPort, SG_STRING(s));
 	Sg_Printf(vm->logPort, UC(" %S\n"), arg);
 	vm_dump_code_rec(SG_CODE_BUILDER(arg), indent + 2);
 	need_line_break = FALSE;
       } else {
-	Sg_Printf(out, UC(" %#S"), arg);
+	if (info->label) Sg_Printf(out, UC(" %d"), arg);
+	else Sg_Printf(out, UC(" %#S"), arg);
 	s = Sg_GetStringFromStringPort(out);
 	Sg_Puts(vm->logPort, SG_STRING(s));
 	if (info->hasSrc) {

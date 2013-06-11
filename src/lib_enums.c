@@ -44,7 +44,7 @@ static struct sg__wcRec {
   /*     0 */        0x00000034           /* 0      (LIBRARY) */,
   /*     1 */        WORD(SG_UNDEF)  /* <library (core enums)> */,
   /*     2 */        0x00000030           /* 2      (FRAME) */,
-  /*     3 */        WORD(SG_MAKE_INT(19)),
+  /*     3 */        WORD(19),
   /*     4 */        0x00000048           /* 4      (CONST_PUSH) */,
   /*     5 */        WORD(SG_UNDEF), /* <enum-type> */
   /*     6 */        0x00000048           /* 6      (CONST_PUSH) */,
@@ -65,7 +65,7 @@ static struct sg__wcRec {
   /*    21 */        WORD(SG_UNDEF)  /* identifier#make-record-type-descriptor */,
   /*    22 */        0x0000000B           /* 22     (PUSH) */,
   /*    23 */        0x00000030           /* 23     (FRAME) */,
-  /*    24 */        WORD(SG_MAKE_INT(8)),
+  /*    24 */        WORD(8),
   /*    25 */        0x00000045           /* 25     (LREF_PUSH) */,
   /*    26 */        0x00000048           /* 26     (CONST_PUSH) */,
   /*    27 */        WORD(SG_MAKE_BOOL(FALSE)),
@@ -75,7 +75,7 @@ static struct sg__wcRec {
   /*    31 */        WORD(SG_UNDEF)  /* identifier#make-record-constructor-descriptor */,
   /*    32 */        0x0000000B           /* 32     (PUSH) */,
   /*    33 */        0x00000030           /* 33     (FRAME) */,
-  /*    34 */        WORD(SG_MAKE_INT(7)),
+  /*    34 */        WORD(7),
   /*    35 */        0x00000048           /* 35     (CONST_PUSH) */,
   /*    36 */        WORD(SG_UNDEF), /* <enum-type> */
   /*    37 */        0x00000045           /* 37     (LREF_PUSH) */,
@@ -87,9 +87,9 @@ static struct sg__wcRec {
   /*    43 */        0x00000033           /* 43     (DEFINE) */,
   /*    44 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
   /*    45 */        0x00000030           /* 45     (FRAME) */,
-  /*    46 */        WORD(SG_MAKE_INT(10)),
+  /*    46 */        WORD(10),
   /*    47 */        0x00000030           /* 47     (FRAME) */,
-  /*    48 */        WORD(SG_MAKE_INT(5)),
+  /*    48 */        WORD(5),
   /*    49 */        0x00000047           /* 49     (GREF_PUSH) */,
   /*    50 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
   /*    51 */        0x0000014A           /* 51     (GREF_CALL) */,
@@ -100,9 +100,9 @@ static struct sg__wcRec {
   /*    56 */        0x00000033           /* 56     (DEFINE) */,
   /*    57 */        WORD(SG_UNDEF)  /* identifier#make-enum-type */,
   /*    58 */        0x00000030           /* 58     (FRAME) */,
-  /*    59 */        WORD(SG_MAKE_INT(10)),
+  /*    59 */        WORD(10),
   /*    60 */        0x00000030           /* 60     (FRAME) */,
-  /*    61 */        WORD(SG_MAKE_INT(5)),
+  /*    61 */        WORD(5),
   /*    62 */        0x00000047           /* 62     (GREF_PUSH) */,
   /*    63 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
   /*    64 */        0x0000014A           /* 64     (GREF_CALL) */,
@@ -113,9 +113,9 @@ static struct sg__wcRec {
   /*    69 */        0x00000033           /* 69     (DEFINE) */,
   /*    70 */        WORD(SG_UNDEF)  /* identifier#enum-type? */,
   /*    71 */        0x00000030           /* 71     (FRAME) */,
-  /*    72 */        WORD(SG_MAKE_INT(11)),
+  /*    72 */        WORD(11),
   /*    73 */        0x00000030           /* 73     (FRAME) */,
-  /*    74 */        WORD(SG_MAKE_INT(5)),
+  /*    74 */        WORD(5),
   /*    75 */        0x00000047           /* 75     (GREF_PUSH) */,
   /*    76 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
   /*    77 */        0x0000014A           /* 77     (GREF_CALL) */,
@@ -127,9 +127,9 @@ static struct sg__wcRec {
   /*    83 */        0x00000033           /* 83     (DEFINE) */,
   /*    84 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
   /*    85 */        0x00000030           /* 85     (FRAME) */,
-  /*    86 */        WORD(SG_MAKE_INT(11)),
+  /*    86 */        WORD(11),
   /*    87 */        0x00000030           /* 87     (FRAME) */,
-  /*    88 */        WORD(SG_MAKE_INT(5)),
+  /*    88 */        WORD(5),
   /*    89 */        0x00000047           /* 89     (GREF_PUSH) */,
   /*    90 */        WORD(SG_UNDEF)  /* identifier#<enum-type> */,
   /*    91 */        0x0000014A           /* 91     (GREF_CALL) */,
@@ -141,7 +141,7 @@ static struct sg__wcRec {
   /*    97 */        0x00000033           /* 97     (DEFINE) */,
   /*    98 */        WORD(SG_UNDEF)  /* identifier#enum-type-indexer */,
   /*    99 */        0x00000030           /* 99     (FRAME) */,
-  /*   100 */        WORD(SG_MAKE_INT(19)),
+  /*   100 */        WORD(19),
   /*   101 */        0x00000048           /* 101    (CONST_PUSH) */,
   /*   102 */        WORD(SG_UNDEF), /* <enum-set> */
   /*   103 */        0x00000048           /* 103    (CONST_PUSH) */,
@@ -162,7 +162,7 @@ static struct sg__wcRec {
   /*   118 */        WORD(SG_UNDEF)  /* identifier#make-record-type-descriptor */,
   /*   119 */        0x0000000B           /* 119    (PUSH) */,
   /*   120 */        0x00000030           /* 120    (FRAME) */,
-  /*   121 */        WORD(SG_MAKE_INT(8)),
+  /*   121 */        WORD(8),
   /*   122 */        0x00000045           /* 122    (LREF_PUSH) */,
   /*   123 */        0x00000048           /* 123    (CONST_PUSH) */,
   /*   124 */        WORD(SG_MAKE_BOOL(FALSE)),
@@ -172,7 +172,7 @@ static struct sg__wcRec {
   /*   128 */        WORD(SG_UNDEF)  /* identifier#make-record-constructor-descriptor */,
   /*   129 */        0x0000000B           /* 129    (PUSH) */,
   /*   130 */        0x00000030           /* 130    (FRAME) */,
-  /*   131 */        WORD(SG_MAKE_INT(7)),
+  /*   131 */        WORD(7),
   /*   132 */        0x00000048           /* 132    (CONST_PUSH) */,
   /*   133 */        WORD(SG_UNDEF), /* <enum-set> */
   /*   134 */        0x00000045           /* 134    (LREF_PUSH) */,
@@ -184,9 +184,9 @@ static struct sg__wcRec {
   /*   140 */        0x00000033           /* 140    (DEFINE) */,
   /*   141 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
   /*   142 */        0x00000030           /* 142    (FRAME) */,
-  /*   143 */        WORD(SG_MAKE_INT(10)),
+  /*   143 */        WORD(10),
   /*   144 */        0x00000030           /* 144    (FRAME) */,
-  /*   145 */        WORD(SG_MAKE_INT(5)),
+  /*   145 */        WORD(5),
   /*   146 */        0x00000047           /* 146    (GREF_PUSH) */,
   /*   147 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
   /*   148 */        0x0000014A           /* 148    (GREF_CALL) */,
@@ -197,9 +197,9 @@ static struct sg__wcRec {
   /*   153 */        0x00000033           /* 153    (DEFINE) */,
   /*   154 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
   /*   155 */        0x00000030           /* 155    (FRAME) */,
-  /*   156 */        WORD(SG_MAKE_INT(10)),
+  /*   156 */        WORD(10),
   /*   157 */        0x00000030           /* 157    (FRAME) */,
-  /*   158 */        WORD(SG_MAKE_INT(5)),
+  /*   158 */        WORD(5),
   /*   159 */        0x00000047           /* 159    (GREF_PUSH) */,
   /*   160 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
   /*   161 */        0x0000014A           /* 161    (GREF_CALL) */,
@@ -210,9 +210,9 @@ static struct sg__wcRec {
   /*   166 */        0x00000033           /* 166    (DEFINE) */,
   /*   167 */        WORD(SG_UNDEF)  /* identifier#enum-set? */,
   /*   168 */        0x00000030           /* 168    (FRAME) */,
-  /*   169 */        WORD(SG_MAKE_INT(11)),
+  /*   169 */        WORD(11),
   /*   170 */        0x00000030           /* 170    (FRAME) */,
-  /*   171 */        WORD(SG_MAKE_INT(5)),
+  /*   171 */        WORD(5),
   /*   172 */        0x00000047           /* 172    (GREF_PUSH) */,
   /*   173 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
   /*   174 */        0x0000014A           /* 174    (GREF_CALL) */,
@@ -224,9 +224,9 @@ static struct sg__wcRec {
   /*   180 */        0x00000033           /* 180    (DEFINE) */,
   /*   181 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   182 */        0x00000030           /* 182    (FRAME) */,
-  /*   183 */        WORD(SG_MAKE_INT(11)),
+  /*   183 */        WORD(11),
   /*   184 */        0x00000030           /* 184    (FRAME) */,
-  /*   185 */        WORD(SG_MAKE_INT(5)),
+  /*   185 */        WORD(5),
   /*   186 */        0x00000047           /* 186    (GREF_PUSH) */,
   /*   187 */        WORD(SG_UNDEF)  /* identifier#<enum-set> */,
   /*   188 */        0x0000014A           /* 188    (GREF_CALL) */,
@@ -296,7 +296,7 @@ static struct sg__wcRec {
   /*   252 */        0x00000002           /* 252    (UNDEF) */,
   /*   253 */        0x0000002F           /* 253    (RET) */,
   /*   254 */        0x00000030           /* 0      (FRAME) */,
-  /*   255 */        WORD(SG_MAKE_INT(3)),
+  /*   255 */        WORD(3),
   /*   256 */        0x0000004A           /* 2      (GREF_CALL) */,
   /*   257 */        WORD(SG_UNDEF)  /* identifier#make-eq-hashtable */,
   /*   258 */        0x0000000B           /* 4      (PUSH) */,
@@ -304,11 +304,11 @@ static struct sg__wcRec {
   /*   260 */        0x00000049           /* 6      (CONSTI_PUSH) */,
   /*   261 */        0x00000205           /* 7      (LREF) */,
   /*   262 */        0x00000021           /* 8      (BNNULL) */,
-  /*   263 */        WORD(SG_MAKE_INT(3)),
+  /*   263 */        WORD(3),
   /*   264 */        0x00000018           /* 10     (JUMP) */,
-  /*   265 */        WORD(SG_MAKE_INT(15)),
+  /*   265 */        WORD(15),
   /*   266 */        0x00000030           /* 12     (FRAME) */,
-  /*   267 */        WORD(SG_MAKE_INT(6)),
+  /*   267 */        WORD(6),
   /*   268 */        0x00000145           /* 14     (LREF_PUSH) */,
   /*   269 */        0x0000025B           /* 15     (LREF_CAR_PUSH) */,
   /*   270 */        0x00000345           /* 16     (LREF_PUSH) */,
@@ -320,7 +320,7 @@ static struct sg__wcRec {
   /*   276 */        0x0000000B           /* 22     (PUSH) */,
   /*   277 */        0x00200219           /* 23     (SHIFTJ) */,
   /*   278 */        0x00000018           /* 24     (JUMP) */,
-  /*   279 */        WORD(SG_MAKE_INT(-18)),
+  /*   279 */        WORD(-18),
   /*   280 */        0x00000232           /* 26     (LEAVE) */,
   /*   281 */        0x00000045           /* 27     (LREF_PUSH) */,
   /*   282 */        0x00000145           /* 28     (LREF_PUSH) */,
@@ -338,23 +338,23 @@ static struct sg__wcRec {
   /*   294 */        WORD(SG_UNDEF)  /* identifier#hashtable-ref */,
   /*   295 */        0x0000002F           /* 6      (RET) */,
   /*   296 */        0x00000030           /* 0      (FRAME) */,
-  /*   297 */        WORD(SG_MAKE_INT(4)),
+  /*   297 */        WORD(4),
   /*   298 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   299 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   300 */        WORD(SG_UNDEF)  /* identifier#list? */,
   /*   301 */        0x00000017           /* 5      (TEST) */,
-  /*   302 */        WORD(SG_MAKE_INT(27)),
+  /*   302 */        WORD(27),
   /*   303 */        0x00000030           /* 7      (FRAME) */,
-  /*   304 */        WORD(SG_MAKE_INT(6)),
+  /*   304 */        WORD(6),
   /*   305 */        0x00000047           /* 9      (GREF_PUSH) */,
   /*   306 */        WORD(SG_UNDEF)  /* identifier#symbol? */,
   /*   307 */        0x00000045           /* 11     (LREF_PUSH) */,
   /*   308 */        0x0000024A           /* 12     (GREF_CALL) */,
   /*   309 */        WORD(SG_UNDEF)  /* identifier#for-all */,
   /*   310 */        0x00000017           /* 14     (TEST) */,
-  /*   311 */        WORD(SG_MAKE_INT(11)),
+  /*   311 */        WORD(11),
   /*   312 */        0x00000030           /* 16     (FRAME) */,
-  /*   313 */        WORD(SG_MAKE_INT(4)),
+  /*   313 */        WORD(4),
   /*   314 */        0x00000045           /* 18     (LREF_PUSH) */,
   /*   315 */        0x0000014A           /* 19     (GREF_CALL) */,
   /*   316 */        WORD(SG_UNDEF)  /* identifier#make-enumeration-type */,
@@ -371,18 +371,18 @@ static struct sg__wcRec {
   /*   327 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*   328 */        0x0000002F           /* 32     (RET) */,
   /*   329 */        0x00000018           /* 33     (JUMP) */,
-  /*   330 */        WORD(SG_MAKE_INT(-8)),
+  /*   330 */        WORD(-8),
   /*   331 */        0x0000002F           /* 35     (RET) */,
   /*   332 */        0x00000030           /* 0      (FRAME) */,
-  /*   333 */        WORD(SG_MAKE_INT(4)),
+  /*   333 */        WORD(4),
   /*   334 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   335 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   336 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   337 */        0x0000000B           /* 5      (PUSH) */,
   /*   338 */        0x00000030           /* 6      (FRAME) */,
-  /*   339 */        WORD(SG_MAKE_INT(9)),
+  /*   339 */        WORD(9),
   /*   340 */        0x00000030           /* 8      (FRAME) */,
-  /*   341 */        WORD(SG_MAKE_INT(4)),
+  /*   341 */        WORD(4),
   /*   342 */        0x00000045           /* 10     (LREF_PUSH) */,
   /*   343 */        0x0000014A           /* 11     (GREF_CALL) */,
   /*   344 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -394,7 +394,7 @@ static struct sg__wcRec {
   /*   350 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
   /*   351 */        0x0000002F           /* 19     (RET) */,
   /*   352 */        0x00000030           /* 0      (FRAME) */,
-  /*   353 */        WORD(SG_MAKE_INT(4)),
+  /*   353 */        WORD(4),
   /*   354 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   355 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   356 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -407,9 +407,9 @@ static struct sg__wcRec {
   /*   363 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   364 */        0x0000002F           /* 3      (RET) */,
   /*   365 */        0x00000030           /* 0      (FRAME) */,
-  /*   366 */        WORD(SG_MAKE_INT(9)),
+  /*   366 */        WORD(9),
   /*   367 */        0x00000030           /* 2      (FRAME) */,
-  /*   368 */        WORD(SG_MAKE_INT(4)),
+  /*   368 */        WORD(4),
   /*   369 */        0x00000046           /* 4      (FREF_PUSH) */,
   /*   370 */        0x0000014A           /* 5      (GREF_CALL) */,
   /*   371 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -418,7 +418,7 @@ static struct sg__wcRec {
   /*   374 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
   /*   375 */        0x0000000B           /* 10     (PUSH) */,
   /*   376 */        0x00000030           /* 11     (FRAME) */,
-  /*   377 */        WORD(SG_MAKE_INT(8)),
+  /*   377 */        WORD(8),
   /*   378 */        0x00000145           /* 13     (LREF_PUSH) */,
   /*   379 */        0x00000029           /* 14     (CLOSURE) */,
   /*   380 */        WORD(SG_UNDEF)  /* <code-builder> */,
@@ -427,9 +427,9 @@ static struct sg__wcRec {
   /*   383 */        0x0000024A           /* 18     (GREF_CALL) */,
   /*   384 */        WORD(SG_UNDEF)  /* identifier#for-all */,
   /*   385 */        0x00000017           /* 20     (TEST) */,
-  /*   386 */        WORD(SG_MAKE_INT(11)),
+  /*   386 */        WORD(11),
   /*   387 */        0x00000030           /* 22     (FRAME) */,
-  /*   388 */        WORD(SG_MAKE_INT(4)),
+  /*   388 */        WORD(4),
   /*   389 */        0x00000046           /* 24     (FREF_PUSH) */,
   /*   390 */        0x0000014A           /* 25     (GREF_CALL) */,
   /*   391 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -453,9 +453,9 @@ static struct sg__wcRec {
   /*   409 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   410 */        0x0000002F           /* 4      (RET) */,
   /*   411 */        0x00000030           /* 0      (FRAME) */,
-  /*   412 */        WORD(SG_MAKE_INT(9)),
+  /*   412 */        WORD(9),
   /*   413 */        0x00000030           /* 2      (FRAME) */,
-  /*   414 */        WORD(SG_MAKE_INT(4)),
+  /*   414 */        WORD(4),
   /*   415 */        0x00000045           /* 4      (LREF_PUSH) */,
   /*   416 */        0x0000014A           /* 5      (GREF_CALL) */,
   /*   417 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -464,7 +464,7 @@ static struct sg__wcRec {
   /*   420 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
   /*   421 */        0x0000000B           /* 10     (PUSH) */,
   /*   422 */        0x00000030           /* 11     (FRAME) */,
-  /*   423 */        WORD(SG_MAKE_INT(4)),
+  /*   423 */        WORD(4),
   /*   424 */        0x00000045           /* 13     (LREF_PUSH) */,
   /*   425 */        0x0000014A           /* 14     (GREF_CALL) */,
   /*   426 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -484,20 +484,20 @@ static struct sg__wcRec {
   /*   440 */        0x0000002F           /* 29     (RET) */,
   /*   441 */        0x00000005           /* 0      (LREF) */,
   /*   442 */        0x00000021           /* 1      (BNNULL) */,
-  /*   443 */        WORD(SG_MAKE_INT(3)),
+  /*   443 */        WORD(3),
   /*   444 */        0x00000061           /* 3      (CONST_RET) */,
   /*   445 */        WORD(SG_NIL),
   /*   446 */        0x00000030           /* 5      (FRAME) */,
-  /*   447 */        WORD(SG_MAKE_INT(5)),
+  /*   447 */        WORD(5),
   /*   448 */        0x0000005B           /* 7      (LREF_CAR_PUSH) */,
   /*   449 */        0x00000146           /* 8      (FREF_PUSH) */,
   /*   450 */        0x0000024A           /* 9      (GREF_CALL) */,
   /*   451 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   452 */        0x00000017           /* 11     (TEST) */,
-  /*   453 */        WORD(SG_MAKE_INT(10)),
+  /*   453 */        WORD(10),
   /*   454 */        0x0000005B           /* 13     (LREF_CAR_PUSH) */,
   /*   455 */        0x00000030           /* 14     (FRAME) */,
-  /*   456 */        WORD(SG_MAKE_INT(5)),
+  /*   456 */        WORD(5),
   /*   457 */        0x0000005C           /* 16     (LREF_CDR_PUSH) */,
   /*   458 */        0x00000007           /* 17     (FREF) */,
   /*   459 */        0x0000000D           /* 18     (UNBOX) */,
@@ -510,10 +510,10 @@ static struct sg__wcRec {
   /*   466 */        0x0000012E           /* 25     (LOCAL_TAIL_CALL) */,
   /*   467 */        0x0000002F           /* 26     (RET) */,
   /*   468 */        0x00000030           /* 0      (FRAME) */,
-  /*   469 */        WORD(SG_MAKE_INT(10)),
+  /*   469 */        WORD(10),
   /*   470 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   471 */        0x00000030           /* 3      (FRAME) */,
-  /*   472 */        WORD(SG_MAKE_INT(4)),
+  /*   472 */        WORD(4),
   /*   473 */        0x00000145           /* 5      (LREF_PUSH) */,
   /*   474 */        0x0000014A           /* 6      (GREF_CALL) */,
   /*   475 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -521,14 +521,14 @@ static struct sg__wcRec {
   /*   477 */        0x0000024A           /* 9      (GREF_CALL) */,
   /*   478 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   479 */        0x00000017           /* 11     (TEST) */,
-  /*   480 */        WORD(SG_MAKE_INT(3)),
+  /*   480 */        WORD(3),
   /*   481 */        0x00000003           /* 13     (CONST) */,
   /*   482 */        WORD(SG_MAKE_BOOL(TRUE)),
   /*   483 */        0x0000002F           /* 15     (RET) */,
   /*   484 */        0x00000030           /* 0      (FRAME) */,
-  /*   485 */        WORD(SG_MAKE_INT(9)),
+  /*   485 */        WORD(9),
   /*   486 */        0x00000030           /* 2      (FRAME) */,
-  /*   487 */        WORD(SG_MAKE_INT(4)),
+  /*   487 */        WORD(4),
   /*   488 */        0x00000145           /* 4      (LREF_PUSH) */,
   /*   489 */        0x0000014A           /* 5      (GREF_CALL) */,
   /*   490 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
@@ -537,15 +537,15 @@ static struct sg__wcRec {
   /*   493 */        WORD(SG_UNDEF)  /* identifier#enum-set->list */,
   /*   494 */        0x0000000B           /* 10     (PUSH) */,
   /*   495 */        0x00000030           /* 11     (FRAME) */,
-  /*   496 */        WORD(SG_MAKE_INT(18)),
+  /*   496 */        WORD(18),
   /*   497 */        0x00000245           /* 13     (LREF_PUSH) */,
   /*   498 */        0x00000029           /* 14     (CLOSURE) */,
   /*   499 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   500 */        0x0000000B           /* 16     (PUSH) */,
   /*   501 */        0x00000030           /* 17     (FRAME) */,
-  /*   502 */        WORD(SG_MAKE_INT(9)),
+  /*   502 */        WORD(9),
   /*   503 */        0x00000030           /* 19     (FRAME) */,
-  /*   504 */        WORD(SG_MAKE_INT(4)),
+  /*   504 */        WORD(4),
   /*   505 */        0x00000045           /* 21     (LREF_PUSH) */,
   /*   506 */        0x0000014A           /* 22     (GREF_CALL) */,
   /*   507 */        WORD(SG_UNDEF)  /* identifier#enum-set-universe */,
@@ -557,13 +557,13 @@ static struct sg__wcRec {
   /*   513 */        WORD(SG_UNDEF)  /* identifier#for-all */,
   /*   514 */        0x00000132           /* 30     (LEAVE) */,
   /*   515 */        0x00000017           /* 31     (TEST) */,
-  /*   516 */        WORD(SG_MAKE_INT(13)),
+  /*   516 */        WORD(13),
   /*   517 */        0x00000145           /* 33     (LREF_PUSH) */,
   /*   518 */        0x00000029           /* 34     (CLOSURE) */,
   /*   519 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   520 */        0x0000000B           /* 36     (PUSH) */,
   /*   521 */        0x00000030           /* 37     (FRAME) */,
-  /*   522 */        WORD(SG_MAKE_INT(4)),
+  /*   522 */        WORD(4),
   /*   523 */        0x00000045           /* 39     (LREF_PUSH) */,
   /*   524 */        0x0000014A           /* 40     (GREF_CALL) */,
   /*   525 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -582,13 +582,13 @@ static struct sg__wcRec {
   /*   538 */        WORD(SG_UNDEF)  /* identifier#enum-set-member? */,
   /*   539 */        0x0000002F           /* 4      (RET) */,
   /*   540 */        0x00000030           /* 0      (FRAME) */,
-  /*   541 */        WORD(SG_MAKE_INT(5)),
+  /*   541 */        WORD(5),
   /*   542 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   543 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*   544 */        0x0000024A           /* 4      (GREF_CALL) */,
   /*   545 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
   /*   546 */        0x00000017           /* 6      (TEST) */,
-  /*   547 */        WORD(SG_MAKE_INT(5)),
+  /*   547 */        WORD(5),
   /*   548 */        0x00000145           /* 8      (LREF_PUSH) */,
   /*   549 */        0x00000045           /* 9      (LREF_PUSH) */,
   /*   550 */        0x0000024B           /* 10     (GREF_TAIL_CALL) */,
@@ -596,32 +596,32 @@ static struct sg__wcRec {
   /*   552 */        0x0000002F           /* 12     (RET) */,
   /*   553 */        0x00000002           /* 0      (UNDEF) */,
   /*   554 */        0x00000030           /* 1      (FRAME) */,
-  /*   555 */        WORD(SG_MAKE_INT(4)),
+  /*   555 */        WORD(4),
   /*   556 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*   557 */        0x0000014A           /* 4      (GREF_CALL) */,
   /*   558 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   559 */        0x0000000B           /* 6      (PUSH) */,
   /*   560 */        0x00000030           /* 7      (FRAME) */,
-  /*   561 */        WORD(SG_MAKE_INT(4)),
+  /*   561 */        WORD(4),
   /*   562 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   563 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   564 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   565 */        0x0000001F           /* 12     (BNEQ) */,
-  /*   566 */        WORD(SG_MAKE_INT(55)),
+  /*   566 */        WORD(55),
   /*   567 */        0x00000030           /* 14     (FRAME) */,
-  /*   568 */        WORD(SG_MAKE_INT(4)),
+  /*   568 */        WORD(4),
   /*   569 */        0x00000045           /* 16     (LREF_PUSH) */,
   /*   570 */        0x0000014A           /* 17     (GREF_CALL) */,
   /*   571 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   572 */        0x0000000B           /* 19     (PUSH) */,
   /*   573 */        0x00000030           /* 20     (FRAME) */,
-  /*   574 */        WORD(SG_MAKE_INT(4)),
+  /*   574 */        WORD(4),
   /*   575 */        0x00000045           /* 22     (LREF_PUSH) */,
   /*   576 */        0x0000014A           /* 23     (GREF_CALL) */,
   /*   577 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   578 */        0x0000000B           /* 25     (PUSH) */,
   /*   579 */        0x00000030           /* 26     (FRAME) */,
-  /*   580 */        WORD(SG_MAKE_INT(4)),
+  /*   580 */        WORD(4),
   /*   581 */        0x00000145           /* 28     (LREF_PUSH) */,
   /*   582 */        0x0000014A           /* 29     (GREF_CALL) */,
   /*   583 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -630,32 +630,32 @@ static struct sg__wcRec {
   /*   586 */        0x00000445           /* 33     (LREF_PUSH) */,
   /*   587 */        0x00000605           /* 34     (LREF) */,
   /*   588 */        0x00000021           /* 35     (BNNULL) */,
-  /*   589 */        WORD(SG_MAKE_INT(4)),
+  /*   589 */        WORD(4),
   /*   590 */        0x00000505           /* 37     (LREF) */,
   /*   591 */        0x00000018           /* 38     (JUMP) */,
-  /*   592 */        WORD(SG_MAKE_INT(23)),
+  /*   592 */        WORD(23),
   /*   593 */        0x00000030           /* 40     (FRAME) */,
-  /*   594 */        WORD(SG_MAKE_INT(5)),
+  /*   594 */        WORD(5),
   /*   595 */        0x0000065B           /* 42     (LREF_CAR_PUSH) */,
   /*   596 */        0x00000545           /* 43     (LREF_PUSH) */,
   /*   597 */        0x0000024A           /* 44     (GREF_CALL) */,
   /*   598 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   599 */        0x00000017           /* 46     (TEST) */,
-  /*   600 */        WORD(SG_MAKE_INT(8)),
+  /*   600 */        WORD(8),
   /*   601 */        0x00000545           /* 48     (LREF_PUSH) */,
   /*   602 */        0x0000065C           /* 49     (LREF_CDR_PUSH) */,
   /*   603 */        0x00500219           /* 50     (SHIFTJ) */,
   /*   604 */        0x00000018           /* 51     (JUMP) */,
-  /*   605 */        WORD(SG_MAKE_INT(-18)),
+  /*   605 */        WORD(-18),
   /*   606 */        0x00000018           /* 53     (JUMP) */,
-  /*   607 */        WORD(SG_MAKE_INT(8)),
+  /*   607 */        WORD(8),
   /*   608 */        0x0000065B           /* 55     (LREF_CAR_PUSH) */,
   /*   609 */        0x00000505           /* 56     (LREF) */,
   /*   610 */        0x00000054           /* 57     (CONS_PUSH) */,
   /*   611 */        0x0000065C           /* 58     (LREF_CDR_PUSH) */,
   /*   612 */        0x00500219           /* 59     (SHIFTJ) */,
   /*   613 */        0x00000018           /* 60     (JUMP) */,
-  /*   614 */        WORD(SG_MAKE_INT(-27)),
+  /*   614 */        WORD(-27),
   /*   615 */        0x00000232           /* 62     (LEAVE) */,
   /*   616 */        0x00000232           /* 63     (LEAVE) */,
   /*   617 */        0x0000000B           /* 64     (PUSH) */,
@@ -671,32 +671,32 @@ static struct sg__wcRec {
   /*   627 */        0x0000002F           /* 74     (RET) */,
   /*   628 */        0x00000002           /* 0      (UNDEF) */,
   /*   629 */        0x00000030           /* 1      (FRAME) */,
-  /*   630 */        WORD(SG_MAKE_INT(4)),
+  /*   630 */        WORD(4),
   /*   631 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*   632 */        0x0000014A           /* 4      (GREF_CALL) */,
   /*   633 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   634 */        0x0000000B           /* 6      (PUSH) */,
   /*   635 */        0x00000030           /* 7      (FRAME) */,
-  /*   636 */        WORD(SG_MAKE_INT(4)),
+  /*   636 */        WORD(4),
   /*   637 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   638 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   639 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   640 */        0x0000001F           /* 12     (BNEQ) */,
-  /*   641 */        WORD(SG_MAKE_INT(56)),
+  /*   641 */        WORD(56),
   /*   642 */        0x00000030           /* 14     (FRAME) */,
-  /*   643 */        WORD(SG_MAKE_INT(4)),
+  /*   643 */        WORD(4),
   /*   644 */        0x00000045           /* 16     (LREF_PUSH) */,
   /*   645 */        0x0000014A           /* 17     (GREF_CALL) */,
   /*   646 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   647 */        0x0000000B           /* 19     (PUSH) */,
   /*   648 */        0x00000030           /* 20     (FRAME) */,
-  /*   649 */        WORD(SG_MAKE_INT(4)),
+  /*   649 */        WORD(4),
   /*   650 */        0x00000045           /* 22     (LREF_PUSH) */,
   /*   651 */        0x0000014A           /* 23     (GREF_CALL) */,
   /*   652 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   653 */        0x0000000B           /* 25     (PUSH) */,
   /*   654 */        0x00000030           /* 26     (FRAME) */,
-  /*   655 */        WORD(SG_MAKE_INT(4)),
+  /*   655 */        WORD(4),
   /*   656 */        0x00000145           /* 28     (LREF_PUSH) */,
   /*   657 */        0x0000014A           /* 29     (GREF_CALL) */,
   /*   658 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -706,32 +706,32 @@ static struct sg__wcRec {
   /*   662 */        0x00000345           /* 34     (LREF_PUSH) */,
   /*   663 */        0x00000605           /* 35     (LREF) */,
   /*   664 */        0x00000021           /* 36     (BNNULL) */,
-  /*   665 */        WORD(SG_MAKE_INT(4)),
+  /*   665 */        WORD(4),
   /*   666 */        0x00000505           /* 38     (LREF) */,
   /*   667 */        0x00000018           /* 39     (JUMP) */,
-  /*   668 */        WORD(SG_MAKE_INT(23)),
+  /*   668 */        WORD(23),
   /*   669 */        0x00000030           /* 41     (FRAME) */,
-  /*   670 */        WORD(SG_MAKE_INT(5)),
+  /*   670 */        WORD(5),
   /*   671 */        0x0000065B           /* 43     (LREF_CAR_PUSH) */,
   /*   672 */        0x00000445           /* 44     (LREF_PUSH) */,
   /*   673 */        0x0000024A           /* 45     (GREF_CALL) */,
   /*   674 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   675 */        0x00000017           /* 47     (TEST) */,
-  /*   676 */        WORD(SG_MAKE_INT(10)),
+  /*   676 */        WORD(10),
   /*   677 */        0x0000065B           /* 49     (LREF_CAR_PUSH) */,
   /*   678 */        0x00000505           /* 50     (LREF) */,
   /*   679 */        0x00000054           /* 51     (CONS_PUSH) */,
   /*   680 */        0x0000065C           /* 52     (LREF_CDR_PUSH) */,
   /*   681 */        0x00500219           /* 53     (SHIFTJ) */,
   /*   682 */        0x00000018           /* 54     (JUMP) */,
-  /*   683 */        WORD(SG_MAKE_INT(-20)),
+  /*   683 */        WORD(-20),
   /*   684 */        0x00000018           /* 56     (JUMP) */,
-  /*   685 */        WORD(SG_MAKE_INT(6)),
+  /*   685 */        WORD(6),
   /*   686 */        0x00000545           /* 58     (LREF_PUSH) */,
   /*   687 */        0x0000065C           /* 59     (LREF_CDR_PUSH) */,
   /*   688 */        0x00500219           /* 60     (SHIFTJ) */,
   /*   689 */        0x00000018           /* 61     (JUMP) */,
-  /*   690 */        WORD(SG_MAKE_INT(-27)),
+  /*   690 */        WORD(-27),
   /*   691 */        0x00000232           /* 63     (LEAVE) */,
   /*   692 */        0x00000232           /* 64     (LEAVE) */,
   /*   693 */        0x0000000B           /* 65     (PUSH) */,
@@ -747,32 +747,32 @@ static struct sg__wcRec {
   /*   703 */        0x0000002F           /* 75     (RET) */,
   /*   704 */        0x00000002           /* 0      (UNDEF) */,
   /*   705 */        0x00000030           /* 1      (FRAME) */,
-  /*   706 */        WORD(SG_MAKE_INT(4)),
+  /*   706 */        WORD(4),
   /*   707 */        0x00000045           /* 3      (LREF_PUSH) */,
   /*   708 */        0x0000014A           /* 4      (GREF_CALL) */,
   /*   709 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   710 */        0x0000000B           /* 6      (PUSH) */,
   /*   711 */        0x00000030           /* 7      (FRAME) */,
-  /*   712 */        WORD(SG_MAKE_INT(4)),
+  /*   712 */        WORD(4),
   /*   713 */        0x00000145           /* 9      (LREF_PUSH) */,
   /*   714 */        0x0000014A           /* 10     (GREF_CALL) */,
   /*   715 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   716 */        0x0000001F           /* 12     (BNEQ) */,
-  /*   717 */        WORD(SG_MAKE_INT(56)),
+  /*   717 */        WORD(56),
   /*   718 */        0x00000030           /* 14     (FRAME) */,
-  /*   719 */        WORD(SG_MAKE_INT(4)),
+  /*   719 */        WORD(4),
   /*   720 */        0x00000045           /* 16     (LREF_PUSH) */,
   /*   721 */        0x0000014A           /* 17     (GREF_CALL) */,
   /*   722 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   723 */        0x0000000B           /* 19     (PUSH) */,
   /*   724 */        0x00000030           /* 20     (FRAME) */,
-  /*   725 */        WORD(SG_MAKE_INT(4)),
+  /*   725 */        WORD(4),
   /*   726 */        0x00000045           /* 22     (LREF_PUSH) */,
   /*   727 */        0x0000014A           /* 23     (GREF_CALL) */,
   /*   728 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   729 */        0x0000000B           /* 25     (PUSH) */,
   /*   730 */        0x00000030           /* 26     (FRAME) */,
-  /*   731 */        WORD(SG_MAKE_INT(4)),
+  /*   731 */        WORD(4),
   /*   732 */        0x00000145           /* 28     (LREF_PUSH) */,
   /*   733 */        0x0000014A           /* 29     (GREF_CALL) */,
   /*   734 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
@@ -782,32 +782,32 @@ static struct sg__wcRec {
   /*   738 */        0x00000345           /* 34     (LREF_PUSH) */,
   /*   739 */        0x00000605           /* 35     (LREF) */,
   /*   740 */        0x00000021           /* 36     (BNNULL) */,
-  /*   741 */        WORD(SG_MAKE_INT(4)),
+  /*   741 */        WORD(4),
   /*   742 */        0x00000505           /* 38     (LREF) */,
   /*   743 */        0x00000018           /* 39     (JUMP) */,
-  /*   744 */        WORD(SG_MAKE_INT(23)),
+  /*   744 */        WORD(23),
   /*   745 */        0x00000030           /* 41     (FRAME) */,
-  /*   746 */        WORD(SG_MAKE_INT(5)),
+  /*   746 */        WORD(5),
   /*   747 */        0x0000065B           /* 43     (LREF_CAR_PUSH) */,
   /*   748 */        0x00000445           /* 44     (LREF_PUSH) */,
   /*   749 */        0x0000024A           /* 45     (GREF_CALL) */,
   /*   750 */        WORD(SG_UNDEF)  /* identifier#memq */,
   /*   751 */        0x00000017           /* 47     (TEST) */,
-  /*   752 */        WORD(SG_MAKE_INT(8)),
+  /*   752 */        WORD(8),
   /*   753 */        0x00000545           /* 49     (LREF_PUSH) */,
   /*   754 */        0x0000065C           /* 50     (LREF_CDR_PUSH) */,
   /*   755 */        0x00500219           /* 51     (SHIFTJ) */,
   /*   756 */        0x00000018           /* 52     (JUMP) */,
-  /*   757 */        WORD(SG_MAKE_INT(-18)),
+  /*   757 */        WORD(-18),
   /*   758 */        0x00000018           /* 54     (JUMP) */,
-  /*   759 */        WORD(SG_MAKE_INT(8)),
+  /*   759 */        WORD(8),
   /*   760 */        0x0000065B           /* 56     (LREF_CAR_PUSH) */,
   /*   761 */        0x00000505           /* 57     (LREF) */,
   /*   762 */        0x00000054           /* 58     (CONS_PUSH) */,
   /*   763 */        0x0000065C           /* 59     (LREF_CDR_PUSH) */,
   /*   764 */        0x00500219           /* 60     (SHIFTJ) */,
   /*   765 */        0x00000018           /* 61     (JUMP) */,
-  /*   766 */        WORD(SG_MAKE_INT(-27)),
+  /*   766 */        WORD(-27),
   /*   767 */        0x00000232           /* 63     (LEAVE) */,
   /*   768 */        0x00000232           /* 64     (LEAVE) */,
   /*   769 */        0x0000000B           /* 65     (PUSH) */,
@@ -822,27 +822,27 @@ static struct sg__wcRec {
   /*   778 */        WORD(SG_UNDEF)  /* identifier#assertion-violation */,
   /*   779 */        0x0000002F           /* 75     (RET) */,
   /*   780 */        0x00000030           /* 0      (FRAME) */,
-  /*   781 */        WORD(SG_MAKE_INT(4)),
+  /*   781 */        WORD(4),
   /*   782 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   783 */        0x0000014A           /* 3      (GREF_CALL) */,
   /*   784 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   785 */        0x0000000B           /* 5      (PUSH) */,
   /*   786 */        0x00000030           /* 6      (FRAME) */,
-  /*   787 */        WORD(SG_MAKE_INT(4)),
+  /*   787 */        WORD(4),
   /*   788 */        0x00000045           /* 8      (LREF_PUSH) */,
   /*   789 */        0x0000014A           /* 9      (GREF_CALL) */,
   /*   790 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   791 */        0x0000000B           /* 11     (PUSH) */,
   /*   792 */        0x00000030           /* 12     (FRAME) */,
-  /*   793 */        WORD(SG_MAKE_INT(18)),
+  /*   793 */        WORD(18),
   /*   794 */        0x00000145           /* 14     (LREF_PUSH) */,
   /*   795 */        0x00000029           /* 15     (CLOSURE) */,
   /*   796 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*   797 */        0x0000000B           /* 17     (PUSH) */,
   /*   798 */        0x00000030           /* 18     (FRAME) */,
-  /*   799 */        WORD(SG_MAKE_INT(9)),
+  /*   799 */        WORD(9),
   /*   800 */        0x00000030           /* 20     (FRAME) */,
-  /*   801 */        WORD(SG_MAKE_INT(4)),
+  /*   801 */        WORD(4),
   /*   802 */        0x00000045           /* 22     (LREF_PUSH) */,
   /*   803 */        0x0000014A           /* 23     (GREF_CALL) */,
   /*   804 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -857,7 +857,7 @@ static struct sg__wcRec {
   /*   813 */        WORD(SG_UNDEF)  /* identifier#make-enum-set */,
   /*   814 */        0x0000002F           /* 34     (RET) */,
   /*   815 */        0x00000030           /* 0      (FRAME) */,
-  /*   816 */        WORD(SG_MAKE_INT(5)),
+  /*   816 */        WORD(5),
   /*   817 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   818 */        0x00000046           /* 3      (FREF_PUSH) */,
   /*   819 */        0x0000024A           /* 4      (GREF_CALL) */,
@@ -865,19 +865,19 @@ static struct sg__wcRec {
   /*   821 */        0x00000022           /* 6      (NOT) */,
   /*   822 */        0x0000002F           /* 7      (RET) */,
   /*   823 */        0x00000030           /* 0      (FRAME) */,
-  /*   824 */        WORD(SG_MAKE_INT(5)),
+  /*   824 */        WORD(5),
   /*   825 */        0x00000045           /* 2      (LREF_PUSH) */,
   /*   826 */        0x00000145           /* 3      (LREF_PUSH) */,
   /*   827 */        0x0000024A           /* 4      (GREF_CALL) */,
   /*   828 */        WORD(SG_UNDEF)  /* identifier#enum-set-subset? */,
   /*   829 */        0x00000017           /* 6      (TEST) */,
-  /*   830 */        WORD(SG_MAKE_INT(3)),
+  /*   830 */        WORD(3),
   /*   831 */        0x00000005           /* 8      (LREF) */,
   /*   832 */        0x0000002F           /* 9      (RET) */,
   /*   833 */        0x00000030           /* 10     (FRAME) */,
-  /*   834 */        WORD(SG_MAKE_INT(9)),
+  /*   834 */        WORD(9),
   /*   835 */        0x00000030           /* 12     (FRAME) */,
-  /*   836 */        WORD(SG_MAKE_INT(4)),
+  /*   836 */        WORD(4),
   /*   837 */        0x00000145           /* 14     (LREF_PUSH) */,
   /*   838 */        0x0000014A           /* 15     (GREF_CALL) */,
   /*   839 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
@@ -886,19 +886,19 @@ static struct sg__wcRec {
   /*   842 */        WORD(SG_UNDEF)  /* identifier#enum-type-universe */,
   /*   843 */        0x0000000B           /* 20     (PUSH) */,
   /*   844 */        0x00000030           /* 21     (FRAME) */,
-  /*   845 */        WORD(SG_MAKE_INT(4)),
+  /*   845 */        WORD(4),
   /*   846 */        0x00000045           /* 23     (LREF_PUSH) */,
   /*   847 */        0x0000014A           /* 24     (GREF_CALL) */,
   /*   848 */        WORD(SG_UNDEF)  /* identifier#enum-set-members */,
   /*   849 */        0x0000000B           /* 26     (PUSH) */,
   /*   850 */        0x00000030           /* 27     (FRAME) */,
-  /*   851 */        WORD(SG_MAKE_INT(4)),
+  /*   851 */        WORD(4),
   /*   852 */        0x00000145           /* 29     (LREF_PUSH) */,
   /*   853 */        0x0000014A           /* 30     (GREF_CALL) */,
   /*   854 */        WORD(SG_UNDEF)  /* identifier#enum-set-type */,
   /*   855 */        0x0000000B           /* 32     (PUSH) */,
   /*   856 */        0x00000030           /* 33     (FRAME) */,
-  /*   857 */        WORD(SG_MAKE_INT(8)),
+  /*   857 */        WORD(8),
   /*   858 */        0x00000245           /* 35     (LREF_PUSH) */,
   /*   859 */        0x00000029           /* 36     (CLOSURE) */,
   /*   860 */        WORD(SG_UNDEF)  /* <code-builder> */,
@@ -923,101 +923,101 @@ void Sg__Init_core_enums()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core enums)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
+  sg__wc.w[205] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("enum-set-universe");
+  sg__wc.w[519] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[796] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1] = SYMBOLW("(core enums)");
+  sg__wc.w[499] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[245] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SYMBOL("enum-set-complement");
+  sg__wc.w[237] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SYMBOL("enum-set-intersection");
+  sg__wc.w[380] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[225] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("enum-set-subset?");
+  sg__wc.w[15] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("universe"), SG_NIL)));
+  sg__wc.w[114] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("members"), SG_NIL)));
+  sg__wc.w[201] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SYMBOL("make-enumeration");
+  sg__wc.w[363] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[221] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("enum-set-member?");
+  sg__wc.w[325] = STRINGW("argument 1 must be a list of symbols");
+  sg__wc.w[17] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("indexer"), SG_NIL)));
+  sg__wc.w[624] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[700] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[776] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
+  sg__wc.w[284] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[213] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("enum-set-constructor");
+  sg__wc.w[434] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("loop");
   sg__wc.w[233] = WORD(&sg__wc.cb[15]);
   sg__wc.cb[15].name = SYMBOL("enum-set-union");
-  sg__wc.w[249] = WORD(&sg__wc.cb[20]);
-  sg__wc.cb[20].name = SYMBOL("enum-set-projection");
+  sg__wc.w[241] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("enum-set-difference");
+  sg__wc.w[860] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[112] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("type"), SG_NIL)));
-  sg__wc.w[17] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("indexer"), SG_NIL)));
+  sg__wc.w[197] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("make-enumeration-type");
   sg__wc.w[209] = WORD(&sg__wc.cb[4]);
   sg__wc.cb[4].name = SYMBOL("enum-set-indexer");
   sg__wc.w[217] = WORD(&sg__wc.cb[8]);
   sg__wc.cb[8].name = SYMBOL("enum-set->list");
   sg__wc.w[229] = WORD(&sg__wc.cb[14]);
   sg__wc.cb[14].name = SYMBOL("enum-set=?");
-  sg__wc.w[796] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[201] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SYMBOL("make-enumeration");
-  sg__wc.w[519] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[237] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SYMBOL("enum-set-intersection");
-  sg__wc.w[245] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SYMBOL("enum-set-complement");
-  sg__wc.w[284] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[15] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("universe"), SG_NIL)));
-  sg__wc.w[499] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[197] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("make-enumeration-type");
-  sg__wc.w[325] = STRINGW("argument 1 must be a list of symbols");
-  sg__wc.w[380] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[225] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("enum-set-subset?");
-  sg__wc.w[624] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[700] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[776] = STRINGW("enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.");
-  sg__wc.w[205] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("enum-set-universe");
-  sg__wc.w[114] = WORD(Sg_Cons(SYMBOL("immutable"), Sg_Cons(SYMBOL("members"), SG_NIL)));
-  sg__wc.w[363] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[221] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("enum-set-member?");
-  sg__wc.w[241] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("enum-set-difference");
-  sg__wc.w[860] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[400] = STRINGW("the symbol list must all belong to the universe.");
-  sg__wc.w[213] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("enum-set-constructor");
-  sg__wc.w[434] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("loop");
-  sg__wc.w[1] = SYMBOLW("(core enums)");
-  sg__wc.w[243] = IDENT("enum-set-difference", lib);
-  sg__wc.w[300] = IDENT("list?", lib);
-  sg__wc.w[251] = IDENT("enum-set-projection", lib);
-  sg__wc.w[257] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[247] = IDENT("enum-set-complement", lib);
+  sg__wc.w[249] = WORD(&sg__wc.cb[20]);
+  sg__wc.cb[20].name = SYMBOL("enum-set-projection");
+  sg__wc.w[306] = IDENT("symbol?", lib);
+  sg__wc.w[215] = IDENT("enum-set-constructor", lib);
+  sg__wc.w[68] = sg__wc.w[165] = IDENT("record-predicate", lib);
   sg__wc.w[203] = IDENT("make-enumeration", lib);
-  sg__wc.w[199] = sg__wc.w[316] = IDENT("make-enumeration-type", lib);
-  sg__wc.w[227] = sg__wc.w[545] = sg__wc.w[551] = sg__wc.w[828] = IDENT("enum-set-subset?", lib);
-  sg__wc.w[231] = IDENT("enum-set=?", lib);
-  sg__wc.w[70] = IDENT("enum-type?", lib);
-  sg__wc.w[219] = sg__wc.w[510] = sg__wc.w[493] = IDENT("enum-set->list", lib);
+  sg__wc.w[211] = IDENT("enum-set-indexer", lib);
   sg__wc.w[272] = IDENT("hashtable-set!", lib);
-  sg__wc.w[810] = sg__wc.w[864] = IDENT("filter", lib);
+  sg__wc.w[235] = IDENT("enum-set-union", lib);
   sg__wc.w[55] = sg__wc.w[152] = IDENT("record-constructor", lib);
-  sg__wc.w[626] = sg__wc.w[702] = sg__wc.w[404] = sg__wc.w[778] = sg__wc.w[327] = IDENT("assertion-violation", lib);
-  sg__wc.w[538] = sg__wc.w[223] = IDENT("enum-set-member?", lib);
-  sg__wc.w[187] = sg__wc.w[173] = sg__wc.w[160] = sg__wc.w[141] = sg__wc.w[147] = IDENT("<enum-set>", lib);
+  sg__wc.w[98] = sg__wc.w[359] = IDENT("enum-type-indexer", lib);
+  sg__wc.w[207] = sg__wc.w[507] = sg__wc.w[490] = IDENT("enum-set-universe", lib);
+  sg__wc.w[239] = IDENT("enum-set-intersection", lib);
   sg__wc.w[294] = IDENT("hashtable-ref", lib);
-  sg__wc.w[359] = sg__wc.w[98] = IDENT("enum-type-indexer", lib);
-  sg__wc.w[149] = sg__wc.w[52] = IDENT("record-type-rcd", lib);
   sg__wc.w[21] = sg__wc.w[118] = IDENT("make-record-type-descriptor", lib);
   sg__wc.w[40] = sg__wc.w[137] = IDENT("make-record-type", lib);
-  sg__wc.w[306] = IDENT("symbol?", lib);
-  sg__wc.w[309] = sg__wc.w[513] = sg__wc.w[528] = sg__wc.w[384] = IDENT("for-all", lib);
-  sg__wc.w[193] = sg__wc.w[179] = sg__wc.w[96] = sg__wc.w[82] = IDENT("record-accessor", lib);
-  sg__wc.w[215] = IDENT("enum-set-constructor", lib);
+  sg__wc.w[251] = IDENT("enum-set-projection", lib);
+  sg__wc.w[70] = IDENT("enum-type?", lib);
+  sg__wc.w[223] = sg__wc.w[538] = IDENT("enum-set-member?", lib);
+  sg__wc.w[247] = IDENT("enum-set-complement", lib);
   sg__wc.w[167] = IDENT("enum-set?", lib);
-  sg__wc.w[239] = IDENT("enum-set-intersection", lib);
-  sg__wc.w[235] = IDENT("enum-set-union", lib);
-  sg__wc.w[63] = sg__wc.w[44] = sg__wc.w[50] = sg__wc.w[90] = sg__wc.w[76] = IDENT("<enum-type>", lib);
-  sg__wc.w[211] = IDENT("enum-set-indexer", lib);
-  sg__wc.w[842] = sg__wc.w[84] = sg__wc.w[347] = sg__wc.w[807] = sg__wc.w[374] = sg__wc.w[420] = IDENT("enum-type-universe", lib);
-  sg__wc.w[78] = sg__wc.w[65] = sg__wc.w[189] = sg__wc.w[175] = sg__wc.w[92] = sg__wc.w[162] = IDENT("record-type-rtd", lib);
+  sg__wc.w[243] = IDENT("enum-set-difference", lib);
+  sg__wc.w[300] = IDENT("list?", lib);
+  sg__wc.w[199] = sg__wc.w[316] = IDENT("make-enumeration-type", lib);
+  sg__wc.w[92] = sg__wc.w[189] = sg__wc.w[78] = sg__wc.w[175] = sg__wc.w[65] = sg__wc.w[162] = IDENT("record-type-rtd", lib);
   sg__wc.w[57] = sg__wc.w[287] = IDENT("make-enum-type", lib);
-  sg__wc.w[750] = sg__wc.w[533] = sg__wc.w[872] = sg__wc.w[598] = sg__wc.w[478] = sg__wc.w[409] = sg__wc.w[820] = sg__wc.w[674] = sg__wc.w[451] = IDENT("memq", lib);
-  sg__wc.w[558] = sg__wc.w[722] = sg__wc.w[564] = sg__wc.w[344] = sg__wc.w[633] = sg__wc.w[790] = sg__wc.w[804] = sg__wc.w[639] = sg__wc.w[709] = sg__wc.w[371] = sg__wc.w[715] = sg__wc.w[417] = sg__wc.w[336] = sg__wc.w[854] = sg__wc.w[356] = sg__wc.w[181] = sg__wc.w[391] = sg__wc.w[839] = sg__wc.w[571] = sg__wc.w[646] = IDENT("enum-set-type", lib);
-  sg__wc.w[165] = sg__wc.w[68] = IDENT("record-predicate", lib);
+  sg__wc.w[195] = sg__wc.w[475] = sg__wc.w[426] = sg__wc.w[784] = sg__wc.w[577] = sg__wc.w[583] = sg__wc.w[728] = sg__wc.w[652] = sg__wc.w[734] = sg__wc.w[525] = sg__wc.w[658] = sg__wc.w[848] = IDENT("enum-set-members", lib);
   sg__wc.w[31] = sg__wc.w[128] = IDENT("make-record-constructor-descriptor", lib);
-  sg__wc.w[507] = sg__wc.w[207] = sg__wc.w[490] = IDENT("enum-set-universe", lib);
-  sg__wc.w[652] = sg__wc.w[426] = sg__wc.w[658] = sg__wc.w[728] = sg__wc.w[525] = sg__wc.w[734] = sg__wc.w[848] = sg__wc.w[195] = sg__wc.w[577] = sg__wc.w[475] = sg__wc.w[583] = sg__wc.w[784] = IDENT("enum-set-members", lib);
-  sg__wc.w[867] = sg__wc.w[395] = sg__wc.w[619] = sg__wc.w[695] = sg__wc.w[771] = sg__wc.w[813] = sg__wc.w[320] = sg__wc.w[350] = sg__wc.w[154] = IDENT("make-enum-set", lib);
+  sg__wc.w[864] = sg__wc.w[810] = IDENT("filter", lib);
+  sg__wc.w[227] = sg__wc.w[545] = sg__wc.w[551] = sg__wc.w[828] = IDENT("enum-set-subset?", lib);
+  sg__wc.w[384] = sg__wc.w[309] = sg__wc.w[513] = sg__wc.w[528] = IDENT("for-all", lib);
+  sg__wc.w[231] = IDENT("enum-set=?", lib);
+  sg__wc.w[76] = sg__wc.w[63] = sg__wc.w[44] = sg__wc.w[50] = sg__wc.w[90] = IDENT("<enum-type>", lib);
+  sg__wc.w[820] = sg__wc.w[451] = sg__wc.w[750] = sg__wc.w[533] = sg__wc.w[674] = sg__wc.w[478] = sg__wc.w[409] = sg__wc.w[598] = sg__wc.w[872] = IDENT("memq", lib);
+  sg__wc.w[219] = sg__wc.w[510] = sg__wc.w[493] = IDENT("enum-set->list", lib);
+  sg__wc.w[52] = sg__wc.w[149] = IDENT("record-type-rcd", lib);
+  sg__wc.w[404] = sg__wc.w[626] = sg__wc.w[778] = sg__wc.w[327] = sg__wc.w[702] = IDENT("assertion-violation", lib);
+  sg__wc.w[374] = sg__wc.w[807] = sg__wc.w[420] = sg__wc.w[84] = sg__wc.w[842] = sg__wc.w[347] = IDENT("enum-type-universe", lib);
+  sg__wc.w[695] = sg__wc.w[813] = sg__wc.w[320] = sg__wc.w[350] = sg__wc.w[395] = sg__wc.w[867] = sg__wc.w[619] = sg__wc.w[154] = sg__wc.w[771] = IDENT("make-enum-set", lib);
+  sg__wc.w[179] = sg__wc.w[96] = sg__wc.w[193] = sg__wc.w[82] = IDENT("record-accessor", lib);
+  sg__wc.w[141] = sg__wc.w[173] = sg__wc.w[160] = sg__wc.w[147] = sg__wc.w[187] = IDENT("<enum-set>", lib);
+  sg__wc.w[391] = sg__wc.w[854] = sg__wc.w[839] = sg__wc.w[571] = sg__wc.w[181] = sg__wc.w[344] = sg__wc.w[722] = sg__wc.w[646] = sg__wc.w[558] = sg__wc.w[371] = sg__wc.w[564] = sg__wc.w[790] = sg__wc.w[804] = sg__wc.w[709] = sg__wc.w[417] = sg__wc.w[633] = sg__wc.w[336] = sg__wc.w[715] = sg__wc.w[639] = sg__wc.w[356] = IDENT("enum-set-type", lib);
+  sg__wc.w[257] = IDENT("make-eq-hashtable", lib);
   sg__wc.w[323] = SYMBOLW("make-enumeration");
   sg__wc.w[622] = SYMBOLW("enum-set-union");
   sg__wc.w[133] = sg__wc.w[102] = SYMBOLW("<enum-set>");

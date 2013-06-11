@@ -415,7 +415,8 @@ static void finish_builder_rec(SgCodeBuilder *cb)
     }
     d = SG_INT_VALUE(dest);
     o = SG_INT_VALUE(op);
-    code[o] = SG_WORD(SG_MAKE_INT(d - o));
+    /* code[o] = SG_WORD(SG_MAKE_INT(d - o)); */
+    code[o] = SG_WORD(d - o);
   }
   ret = SG_NEW_ARRAY(SgWord, size);
   for (i = 0; i < size; i++) {
@@ -424,7 +425,9 @@ static void finish_builder_rec(SgCodeBuilder *cb)
     info = Sg_LookupInsnName(INSN(o));
     /* copy insn to return code */
     ret[i] = o;
-    if (info->argc > 0) {
+    if (info->label) {
+      ret[i + 1] = code[i + 1];
+    } else if (info->argc > 0) {
       for (j = 1; j <= info->argc; j++) {
 	SgObject arg = SG_OBJ(code[i + j]);
 	ret[i + j] = SG_WORD(arg);
@@ -432,8 +435,8 @@ static void finish_builder_rec(SgCodeBuilder *cb)
 	  finish_builder_rec(SG_CODE_BUILDER(arg));
 	}
       }
-      i += info->argc;
     }
+    i += info->argc;
   }
   cb->code = ret;
   cb->size = size;
