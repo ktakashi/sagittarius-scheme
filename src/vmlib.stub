@@ -355,7 +355,9 @@
 
   (define-c-proc p1env-lookup-name (p1env::<vector> name lookup-as boundary lib)
     (let ((r (p1env-lookup-inner p1env name lookup-as FALSE boundary lib)))
-      (if (and (SG_PAIRP r) (pending=? (SG_CAR r) lib boundary))
+      (if (and (SG_PAIRP r) 
+	       (SG_IDENTIFIERP (SG_CAR r))
+	       (pending=? (SG_CAR r) lib boundary))
 	  (result (SG_CAR r))
 	  (result SG_FALSE))))
 
