@@ -893,4 +893,7 @@
 (test-error "list-sort" (list-sort #f '()))
 (test-error "list-sort" (list-sort #f '(a)))
 
+;; issue 121
+(test-error "make-bytevector" (make-bytevector -1))
+
 (test-end)

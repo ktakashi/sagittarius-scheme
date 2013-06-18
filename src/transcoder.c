@@ -145,7 +145,7 @@ static SgObject get_mode(int mode)
 static SgChar get_char_internal(SgObject self, SgPort *port)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
-  int64_t mark;
+  volatile int64_t mark;
   SgPort *src_port;
   /* we know here only binary or custom binary port can reach */
   PORT_MARK(mark, src_port, port);
@@ -156,7 +156,7 @@ static SgChar get_char_internal(SgObject self, SgPort *port)
 					       tran->mode, (mark == 0));
   } else {
     SgObject c = SG_UNDEF;
-    int prev = TRUE;
+    volatile int prev = TRUE;
     /* inside of custom codec, it needs to read bytes so port must be opened. */
     SAVE_CLOSED(src_port, prev);
     /* port must be re-closed no matter what happened */
@@ -273,7 +273,8 @@ static int resolve_eol(SgPort *port, SgTranscoder *tran, SgChar *dst,
 int64_t Sg_TranscoderRead(SgObject self, SgPort *port, 
 			  SgChar *buf, int64_t size)
 {
-  int64_t read = 0, mark;
+  volatile int64_t read = 0;
+  int64_t mark;
   int diff;
   SgTranscoder *trans = SG_TRANSCODER(self);
   SgChar c;
@@ -301,7 +302,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
     read += r - diff;
   } else {
     SgObject r = SG_UNDEF;
-    int prev = TRUE;
+    volatile int prev = TRUE;
     SAVE_CLOSED(src_port, prev);
     SG_UNWIND_PROTECT {
       r = Sg_Apply4(SG_CODEC_CUSTOM(trans->codec)->readc,
@@ -335,7 +336,7 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
     if ((codec)->type == SG_BUILTIN_CODEC) {				\
       SG_CODEC_BUILTIN(codec)->putc(codec, (p), (c), mode);		\
     } else {								\
-      int __prev = TRUE;						\
+      volatile int __prev = TRUE;					\
       SAVE_CLOSED(p, __prev);						\
       SG_UNWIND_PROTECT {						\
 	Sg_Apply4(SG_CODEC_CUSTOM(codec)->putc, (p), SG_MAKE_CHAR(c),	\
@@ -389,7 +390,7 @@ void Sg_TranscoderPutc(SgObject self, SgPort *tport, SgChar c)
       return SG_CODEC_BUILTIN(codec)->writec(codec, (p), (s), (c), mode); \
     } else {								\
       SgObject i = SG_MAKE_INT(0);					\
-      int __prev = TRUE;						\
+      volatile int __prev = TRUE;					\
       if (!(new_s)) {							\
 	(new_s) = Sg_MakeString(s, SG_LITERAL_STRING);			\
       }									\
@@ -410,7 +411,7 @@ int64_t Sg_TranscoderWrite(SgObject self, SgPort *tport,
 			   SgChar *s, int64_t count)
 {
   SgTranscoder *tran = SG_TRANSCODER(self);
-  SgObject new_s = NULL;
+  volatile SgObject new_s = NULL;
   int64_t dummy;
   SgPort *port;
   PORT_MARK(dummy, port, tport);

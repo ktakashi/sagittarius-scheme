@@ -371,8 +371,8 @@ SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags)
 {
   SgVM *vm = Sg_VM();  
   SgObject spath;
-  const char *initname;
-  dlobj *dlo;
+  const char * volatile initname;
+  dlobj * volatile dlo;
 
   spath = Sg_FindFile(filename, vm->dynamicLoadPath, 
 		      dynldinfo.dso_suffix, TRUE);

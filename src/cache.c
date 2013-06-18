@@ -1572,7 +1572,7 @@ int Sg_ReadCache(SgString *id)
   SgObject obj, vtime, otime;
   SgHashTable *seen;
   SgHashTable *shared;
-  SgLibrary *save = vm->currentLibrary;
+  SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50];
   int b;

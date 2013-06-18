@@ -456,7 +456,7 @@ static inline void report_error(SgObject exception, SgObject out)
   Sg_FlushAllPort(FALSE);
 }
 
-void Sg_ReportError(SgObject e, SgObject out)
+void Sg_ReportError(volatile SgObject e, SgObject out)
 {
   SgVM *vm = Sg_VM();
 
