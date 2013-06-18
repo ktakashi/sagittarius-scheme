@@ -7,6 +7,7 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckLibraryExists.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
 
 if (WATCOM)
   message(STATUS "*CAUTION* open watcom is experimental")
@@ -170,7 +171,7 @@ SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to i
 
 #SET(SAGITTARIUS_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}"
 #  CACHE STRING "Sagittarius release version string")
-SET(SAGITTARIUS_VERSION "0.4.6" CACHE STRING "Sagittarius release version string" FORCE)
+SET(SAGITTARIUS_VERSION "0.4.7" CACHE STRING "Sagittarius release version string" FORCE)
 
 SET(SAGITTARIUS_LIB_SUFFIX ${SAGITTARIUS_LIB_SUFFIX}
   "lib/${SAGITTARIUS_NAME}")
@@ -230,6 +231,13 @@ ENDIF()
 IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
+  # it didn't improve performance much and makes compilation time
+  # really long. so for now disable it
+#  CHECK_C_COMPILER_FLAG(-flto HAS_LTO_FLAG)
+#  IF (HAS_LTO_FLAG)
+#    SET(CMAKE_C_FLAGS "-flto ${CMAKE_C_FLAGS}")
+#    SET(CMAKE_CXX_FLAGS "-flto ${CMAKE_CXX_FLAGS}")
+#  ENDIF()
 ELSEIF(MSVC)
   # /MT to avoid C-runtime
   # the rest is the same as CMake default
