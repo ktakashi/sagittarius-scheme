@@ -62,12 +62,14 @@
 (define-c-proc pointer? (o) ::<boolean> SG_POINTERP)
 
 (define-c-proc integer->pointer (n::<integer>)
-  (result (Sg_MakePointer (cast void* (Sg_GetInteger n)))))
+  (.if "SIZEOF_VOIDP == 4"
+       (result (Sg_MakePointer (cast void* (Sg_GetInteger n))))
+       (result (Sg_MakePointer (cast void* (Sg_GetIntegerS64Clamp n))))))
 
 (define-c-proc pointer->integer (p::<pointer>)
   (.if "SIZEOF_VOIDP == 4"
-       (result (Sg_MakeIntegerU (-> p pointer)))
-       (result (Sg_MakeIntegerFromU64 (-> p pointer)))))
+       (result (Sg_MakeInteger (cast long (-> p pointer))))
+       (result (Sg_MakeIntegerFromS64 (cast intptr_t (-> p pointer))))))
 
 ;; !!!dangerous operations!!!
 ;; the usecase is for callback parameters or so
