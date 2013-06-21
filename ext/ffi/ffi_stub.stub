@@ -64,7 +64,8 @@
 (define-c-proc integer->pointer (n::<integer>)
   (.if "SIZEOF_VOIDP == 4"
        (result (Sg_MakePointer (cast void* (Sg_GetInteger n))))
-       (result (Sg_MakePointer (cast void* (Sg_GetIntegerS64Clamp n))))))
+       (result (Sg_MakePointer (cast void* (Sg_GetIntegerS64Clamp n 
+					    SG_CLAMP_BOTH NULL))))))
 
 (define-c-proc pointer->integer (p::<pointer>)
   (.if "SIZEOF_VOIDP == 4"
