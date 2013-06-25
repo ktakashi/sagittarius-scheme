@@ -81,6 +81,7 @@
 
 	    ;;  socket options
 	    SOL_SOCKET
+	    SOMAXCONN
 	    SO_ACCEPTCONN SO_BINDTODEVICE SO_BROADCAST
 	    SO_DEBUG SO_DONTROUTE SO_ERROR
 	    SO_KEEPALIVE SO_LINGER SO_OOBINLINE
@@ -108,6 +109,7 @@
 	    ;; socket-info
 	    socket-peer
 	    socket-name
+	    socket-info
 	    socket-info-values
 	    ;; ip-address
 	    ip-address->string
@@ -185,6 +187,7 @@
 	      (assertion-violation 'make-server-socket 
 				   "no next addrinfo" service))
 	    (loop (make-socket next) next)))
+
 	(or (and-let* (( socket )
 		       ( info )
 		       ( (socket-setsockopt! socket SOL_SOCKET SO_REUSEADDR 1) )
@@ -209,8 +212,11 @@
   (define (socket-error-select timeout . rest)
     (receive (r w e) (socket-select '() '() rest timeout) e))
 
-  (define (socket-info-values socket)
-    (let ((peer (socket-peer socket)))
+  ;; for backward compatibility
+  (define (socket-info-values socket :key (type 'peer))
+    (let ((peer (if (eq? type 'peer)
+		    (socket-peer socket)
+		    (socket-info socket))))
       (if peer
 	  (values (slot-ref peer 'hostname)
 		  (slot-ref peer 'ip-address)

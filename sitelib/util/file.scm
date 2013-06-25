@@ -38,6 +38,7 @@
 	    decompose-path
 	    path-extension
 	    path-sans-extension
+	    path-basename
 	    
 	    temporary-directory
 	    make-temporary-file
@@ -120,6 +121,10 @@
 		(substring path 0
 			   (- (string-length path) (string-length ext) 1))))
 	  (else path)))
+
+  (define (path-basename path)
+    (let-values (((dir file ext) (decompose-path path)))
+      (if ext (string-append file "." ext) file)))
 
   (define %tmp
     (cond ((getenv "TMP"))

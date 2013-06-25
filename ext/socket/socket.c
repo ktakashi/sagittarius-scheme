@@ -66,18 +66,27 @@ static SgString* get_address_string_rec(const struct sockaddr *addr,
 {
   int ret;
   char host[NI_MAXHOST];
+  char ip[NI_MAXHOST];
   char serv[NI_MAXSERV];
-  char name[NI_MAXSERV + NI_MAXHOST + 1];
+  char name[NI_MAXSERV + (NI_MAXHOST<<1) + 1];
   do {
     ret = getnameinfo(addr,
 		      addrlen,
 		      host, sizeof(host),
-		      serv, sizeof(serv), NI_NUMERICSERV);
+		      serv, sizeof(serv), 
+		      NI_NUMERICSERV);
+  } while (EAI_AGAIN == ret);
+  do {
+    ret = getnameinfo(addr,
+		      addrlen,
+		      ip, sizeof(ip),
+		      serv, sizeof(serv), 
+		      NI_NUMERICSERV | NI_NUMERICHOST);
   } while (EAI_AGAIN == ret);
   if (port_p) {
-    snprintf(name, sizeof(name), "%s:%s", host, serv);
+    snprintf(name, sizeof(name), "%s(%s):%s", host, ip, serv);
   } else {
-    snprintf(name, sizeof(name), "%s", host);
+    snprintf(name, sizeof(name), "%s", host, ip);
   }
   return SG_STRING(Sg_MakeStringC(name));
 }
@@ -695,6 +704,18 @@ SgObject Sg_SocketName(SgObject socket)
   SgObject address = SG_SOCKET(socket)->address;
   if (address) return address;
   else return SG_FALSE;
+}
+
+SgObject Sg_SocketInfo(SgObject socket)
+{
+  struct sockaddr_storage name;
+  int len = sizeof(name), ret;
+  ret = getsockname(SG_SOCKET(socket)->socket, (struct sockaddr *)&name, &len);
+  if (ret == 0) {
+    return make_socket_info(&name);
+  } else {
+    return SG_FALSE;
+  }
 }
 
 SgObject Sg_IpAddressToString(SgObject ip)

@@ -41,6 +41,7 @@
 	    tls-socket-accept
 	    tls-socket-peer
 	    tls-socket-name
+	    tls-socket-info
 	    tls-socket-info-values
 	    call-with-tls-socket
 	    <tls-socket>
@@ -57,6 +58,7 @@
 	    call-with-socket
 	    socket-peer
 	    socket-name
+	    socket-info
 	    socket-info-values
 	    ;; to send handshake explicitly
 	    tls-server-handshake
@@ -1425,8 +1427,10 @@
     (socket-peer (~ socket 'raw-socket)))
   (define (tls-socket-name socket)
     (socket-name (~ socket 'raw-socket)))
-  (define (tls-socket-info-values socket)
-    (socket-info-values (~ socket 'raw-socket)))
+  (define (tls-socket-info socket)
+    (socket-info (~ socket 'raw-socket)))
+  (define (tls-socket-info-values socket :key (type 'peer))
+    (socket-info-values (~ socket 'raw-socket) type))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
@@ -1448,6 +1452,8 @@
     (tls-socket-peer o))
   (define-method socket-name ((o <tls-socket>))
     (tls-socket-name o))
-  (define-method socket-info-values ((o <tls-socket>))
-    (tls-socket-info-values o))
+  (define-method socket-info ((o <tls-socket>))
+    (tls-socket-info o))
+  (define-method socket-info-values ((o <tls-socket>) . opt)
+    (apply tls-socket-info-values o opt))
   )

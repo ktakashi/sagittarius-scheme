@@ -157,6 +157,7 @@ SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,
 /* misc */
 SG_EXTERN SgObject  Sg_SocketPeer(SgObject socket);
 SG_EXTERN SgObject  Sg_SocketName(SgObject socket);
+SG_EXTERN SgObject  Sg_SocketInfo(SgObject socket);
 SG_EXTERN SgObject  Sg_IpAddressToString(SgObject ip);
 
 SG_CDECL_END

@@ -90,6 +90,7 @@
 
 (define-c-proc socket-peer (o::<socket>) Sg_SocketPeer)
 (define-c-proc socket-name (o::<socket>) Sg_SocketName)
+(define-c-proc socket-info (o::<socket>) Sg_SocketInfo)
 (define-c-proc ip-address->string (ip::<ip-address>) Sg_IpAddressToString)
 (define-c-proc ip-address->bytevector (ip::<ip-address>) 
   (result (-> ip ip)))
