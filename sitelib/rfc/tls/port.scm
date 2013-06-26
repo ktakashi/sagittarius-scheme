@@ -42,10 +42,12 @@
   ;; make custom port
   (define (tls-socket-port socket)
     (define (read! bv start count)
-      (let* ((buf (tls-socket-recv socket count 0))
-	     (len (bytevector-length buf)))
-	(bytevector-copy! buf 0 bv start len)
-	len))
+      (let1 buf (tls-socket-recv socket count 0)
+	(if (eof-object? buf)
+	    0
+	    (let1 len (bytevector-length buf)
+	      (bytevector-copy! buf 0 bv start len)
+	      len))))
     (define (write! bv start count)
       ;; for sagittarius implementation bv starts always 0, but just in case
       (let ((buf (bytevector-copy bv start (+ start count))))

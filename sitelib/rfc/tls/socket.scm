@@ -251,6 +251,7 @@
 				   (prng (secure-random RC4))
 				   (private-key #f)
 				   (version *tls-version-1.2*)
+				   (certificates '())
 				   (authorities '()))
     (make <tls-server-socket> :raw-socket raw-socket
 	  :version version :prng prng
@@ -267,7 +268,9 @@
 				  (authorities '())
 				  :allow-other-keys opt)
     (let1 raw-socket (apply make-server-socket port opt)
-      (%make-tls-server-socket raw-socket :prng prng :private-key private-key
+      (%make-tls-server-socket raw-socket
+			       :certificates certificates
+			       :prng prng :private-key private-key
 			       :version version :authorities authorities)))
 
   (define (tls-socket-accept socket :key (handshake #t) (raise-error #t))
