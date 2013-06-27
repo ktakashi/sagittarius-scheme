@@ -141,6 +141,10 @@
 
   (define (next-addrinfo info) (slot-ref info 'next))
 
+  (define (create-socket info)
+    (make-socket (slot-ref info 'family) (slot-ref info 'socktype)
+		 (slot-ref info 'protocol)))
+
   (define (make-client-socket node service
 			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
@@ -154,13 +158,13 @@
 				      :flags ai-flags
 				      :protocol ai-protocol))
 	   (info (get-addrinfo node service hints)))
-      (let loop ((socket (make-socket info)) (info info))
+      (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
 	    (unless next
 	      (assertion-violation 'make-client-socket "no next addrinfo"
 				   node service))
-	    (loop (make-socket next) next)))
+	    (loop (create-socket next) next)))
 	(or (and-let* (( socket )
 		       ( info ))
 	      (socket-connect! socket info))
@@ -180,13 +184,13 @@
 				      :flags AI_PASSIVE
 				      :protocol ai-protocol))
 	   (info (get-addrinfo #f service hints)))
-      (let loop ((socket (make-socket info)) (info info))
+      (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
 	    (unless next
 	      (assertion-violation 'make-server-socket 
 				   "no next addrinfo" service))
-	    (loop (make-socket next) next)))
+	    (loop (create-socket next) next)))
 
 	(or (and-let* (( socket )
 		       ( info )

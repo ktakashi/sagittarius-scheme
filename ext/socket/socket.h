@@ -121,7 +121,7 @@ SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
 SG_EXTERN SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service,
 				     SgAddrinfo *hints);
 
-SG_EXTERN SgObject  Sg_CreateSocket(SgAddrinfo *info);
+SG_EXTERN SgObject  Sg_CreateSocket(int family, int socktype, int protocol);
 
 SG_EXTERN SgObject  Sg_SocketSetopt(SgSocket *socket, int level,
 				    int opname, SgObject value);

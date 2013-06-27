@@ -27,7 +27,8 @@
   (check-string-or-false make-client-socket service)
   (result (Sg_GetAddrinfo node service hints)))
 
-(define-c-proc make-socket (info::<addrinfo>) Sg_CreateSocket)
+(define-c-proc make-socket (f::<fixnum> t::<fixnum> :optional (p::<fixnum> 0))
+  Sg_CreateSocket)
 (define-c-proc socket-setsockopt!
   (socket::<socket> level::<fixnum> name::<fixnum> value) Sg_SocketSetopt)
 (define-c-proc socket-getsockopt

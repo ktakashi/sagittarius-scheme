@@ -86,7 +86,7 @@ static SgString* get_address_string_rec(const struct sockaddr *addr,
   if (port_p) {
     snprintf(name, sizeof(name), "%s(%s):%s", host, ip, serv);
   } else {
-    snprintf(name, sizeof(name), "%s", host, ip);
+    snprintf(name, sizeof(name), "%s", host);
   }
   return SG_STRING(Sg_MakeStringC(name));
 }
@@ -368,10 +368,9 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   return result;
 }
 
-SgObject Sg_CreateSocket(SgAddrinfo *info)
+SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 {
-  struct addrinfo *p = info->ai;
-  const SOCKET fd = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+  const SOCKET fd = socket(family, socktype, protocol);
   if (-1 == fd) {
     return SG_FALSE;
   }
