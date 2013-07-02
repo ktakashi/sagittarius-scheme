@@ -1443,6 +1443,19 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   return Sg_MakeComplex(Sg_MakeFlonum(0.0), Sg_MakeFlonum(s));
 }
 
+SgObject Sg_BignumSqrtApprox(SgBignum *bn)
+{
+  int count;
+  SgBignum *workpad;
+  double s;
+
+  count = SG_BIGNUM_GET_COUNT(bn);
+  ALLOC_TEMP_BIGNUM(workpad, count);
+  memcpy(workpad->elements, bn->elements, sizeof(long) * count);
+  bn_sqrt(workpad);
+  if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(workpad);
+  else return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(workpad));
+}
 
 SgObject Sg_MakeBignumWithSize(int size, unsigned long init)
 {

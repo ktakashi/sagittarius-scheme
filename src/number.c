@@ -3267,7 +3267,9 @@ SgObject Sg_Angle(SgObject obj)
 static inline SgObject log_handle_inf(SgObject n)
 {
   /* passing argument must be always bignum */
-  SgObject r = Sg_BignumSqrt(n);
+  /* Sg_BignumSqrtApprox returns approximate 
+     sqrt and returns always exact number */
+  SgObject r = Sg_BignumSqrtApprox(n);
   return Sg_Add(Sg_Log(r), Sg_Log(r));  
 }
 

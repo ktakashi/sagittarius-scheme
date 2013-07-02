@@ -93,6 +93,7 @@ SG_EXTERN SgObject Sg_BignumDivSI(SgBignum *a, long b, long *rem);
 SG_EXTERN SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp);
 SG_EXTERN SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp);
 SG_EXTERN SgObject Sg_BignumSqrt(SgBignum *bn);
+SG_EXTERN SgObject Sg_BignumSqrtApprox(SgBignum *bn);
 SG_EXTERN SgObject Sg_BignumAccMultAddUI(SgBignum *acc,
 					 unsigned long coef,
 					 unsigned long c);
