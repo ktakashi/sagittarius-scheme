@@ -896,4 +896,9 @@
 ;; issue 121
 (test-error "make-bytevector" (make-bytevector -1))
 
+;; log handling bignum
+(test-equal "(log (expt 2 2048))" 1419.565425786768 (log (expt 2 2048)))
+(test-equal "(log (expt 2 2048))" 1419.565425786768+3.141592653589793i
+	    (log (- (expt 2 2048))))
+
 (test-end)

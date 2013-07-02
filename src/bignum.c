@@ -1425,6 +1425,9 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   bn_sqrt(workpad);
   if (bn->elements[0] == workpad->elements[0] * workpad->elements[0]) {
     SgBignum *s2 = Sg_BignumMul(workpad, workpad);
+    /* set the same sign for temp otherwise cmp returns non 0 even the
+       value is the same. */
+    SG_BIGNUM_SET_SIGN(s2, SG_BIGNUM_GET_SIGN(bn));
     if (Sg_BignumCmp(bn, s2) == 0) {
       if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(workpad);
       return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(workpad));
