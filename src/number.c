@@ -2124,8 +2124,10 @@ SgObject Sg_Mul(SgObject x, SgObject y)
 			    Sg_Mul(SG_COMPLEX(x)->imag, y));
     }
     else if (SG_COMPLEXP(y)) {
-      SgObject real = Sg_Sub(Sg_Mul(SG_COMPLEX(x)->real, SG_COMPLEX(y)->real), Sg_Mul(SG_COMPLEX(x)->imag, SG_COMPLEX(y)->imag));
-      SgObject imag = Sg_Add(Sg_Mul(SG_COMPLEX(x)->imag, SG_COMPLEX(y)->real), Sg_Mul(SG_COMPLEX(x)->real, SG_COMPLEX(y)->imag));
+      SgObject real = Sg_Sub(Sg_Mul(SG_COMPLEX(x)->real, SG_COMPLEX(y)->real),
+			     Sg_Mul(SG_COMPLEX(x)->imag, SG_COMPLEX(y)->imag));
+      SgObject imag = Sg_Add(Sg_Mul(SG_COMPLEX(x)->imag, SG_COMPLEX(y)->real),
+			     Sg_Mul(SG_COMPLEX(x)->real, SG_COMPLEX(y)->imag));
       return oprtr_norm_complex(real, imag);
     }
   }

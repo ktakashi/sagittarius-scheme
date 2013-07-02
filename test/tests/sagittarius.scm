@@ -901,4 +901,11 @@
 (test-equal "(log (expt 2 2048))" 1419.565425786768+3.141592653589793i
 	    (log (- (expt 2 2048))))
 
+;; issue 125
+(test-equal "(sqrt (- (expt 2 2048)))" (- (expt 2 2048))
+	    (* (sqrt (- (expt 2 2048))) (sqrt (- (expt 2 2048)))))
+
+;; issue 126
+(test-assert "(- 0 bignum)" (negative? (- 0 (expt 2 2048))))
+
 (test-end)

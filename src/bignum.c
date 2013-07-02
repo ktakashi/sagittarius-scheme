@@ -959,6 +959,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     for (i = 0; i < ysize; i++) {
       br->elements[i] = by->elements[i];
     }
+    /* 0 - n must be - */
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(by));
   } else if (ysize == 0) {
     for (i = 0; i < xsize; i++) {
@@ -1014,6 +1015,9 @@ static SgBignum* bignum_sub(SgBignum *bx, SgBignum *by)
     bignum_sub_int(br, bx, by);
   } else {
     bignum_add_int(br, bx, by);
+    if (SG_BIGNUM_GET_SIGN(bx) == 0) {
+      SG_BIGNUM_SET_SIGN(br, -1);
+    }
   }
   return br;
 }
