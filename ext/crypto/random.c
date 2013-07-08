@@ -112,7 +112,7 @@ SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed)
   return SG_UNDEF;
 }
 
-void Sg_SetSeed(SgObject prng, SgByteVector *seed)
+SgObject Sg_VMSetSeed(SgObject prng, SgByteVector *seed)
 {
   if (SG_BUILTIN_PRNG_P(prng)) {
     int err;
@@ -123,8 +123,9 @@ void Sg_SetSeed(SgObject prng, SgByteVector *seed)
     if (err != CRYPT_OK) {
       Sg_Error(UC("Failed to set seed. %A"), seed);
     }
+    return SG_UNDEF;
   } else {
-    Sg_Apply2(SG_USER_PRNG(prng)->setSeed, prng, seed);
+    return Sg_VMApply2(SG_USER_PRNG(prng)->setSeed, prng, seed);
   }
 }
 
@@ -164,7 +165,13 @@ SgObject Sg_ReadSysRandom(int bits)
   return buf;
 }
 
-SgObject Sg_ReadRandomBytesX(SgObject prng, SgObject buf, int size)
+static SgObject read_random_cc(SgObject result, void **data)
+{
+  /* ignore result and get stored data */
+  return SG_OBJ(data[0]);
+}
+
+SgObject Sg_VMReadRandomBytesX(SgObject prng, SgObject buf, int size)
 {
   if (SG_BVECTOR_SIZE(buf) < size) {
     Sg_AssertionViolation(SG_INTERN("read-random-bytes!"),
@@ -178,16 +185,20 @@ SgObject Sg_ReadRandomBytesX(SgObject prng, SgObject buf, int size)
       Sg_Error(UC("read random error"));
       return SG_UNDEF;
     }
+    return buf;
   } else {
-    Sg_Apply3(SG_USER_PRNG(prng)->readRandom, prng, buf, Sg_MakeInteger(size));
+    void *data[1];
+    data[0] = buf;
+    Sg_VMPushCC(read_random_cc, data, 1);
+    return Sg_VMApply3(SG_USER_PRNG(prng)->readRandom, prng, buf,
+		       Sg_MakeInteger(size));
   }
-  return buf;
 }
 
-SgObject Sg_ReadRandomBytes(SgObject prng, int size)
+SgObject Sg_VMReadRandomBytes(SgObject prng, int size)
 {
   SgObject buf = Sg_MakeByteVector(size, 0);
-  return Sg_ReadRandomBytesX(prng, buf, size);
+  return Sg_VMReadRandomBytesX(prng, buf, size);
 }
 
 /* FIXME this registration code is the same as the one in hash.c.

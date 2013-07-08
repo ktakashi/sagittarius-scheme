@@ -33,18 +33,16 @@
 				     (SG_MAKE_INT bits) '()))
   (result (Sg_MakeSecureRandom name bits)))
 
-(define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) ::<void>
-  (Sg_SetSeed prng seed))
+(define-c-proc %random-seed-set! (prng::<prng> seed::<bytevector>) Sg_VMSetSeed)
 
-(define-c-proc read-sys-random (bits::<fixnum>) 
-  (result (Sg_ReadSysRandom bits)))
+(define-c-proc read-sys-random (bits::<fixnum>) Sg_ReadSysRandom)
 
 (define-c-proc read-random-bytes (prng::<prng> size::<fixnum>) 
   (when (<= size 0)
     (Sg_WrongTypeOfArgumentViolation 'read-random-bytes
 				     (SG_MAKE_STRING "positive integer")
 				     (SG_MAKE_INT size) '()))
-  (result (Sg_ReadRandomBytes prng size)))
+  (result (Sg_VMReadRandomBytes prng size)))
 
 (define-c-proc read-random-bytes!
   (prng::<prng> bv::<bytevector> size::<fixnum>) 
@@ -52,7 +50,7 @@
     (Sg_WrongTypeOfArgumentViolation 'read-random-bytes
 				     (SG_MAKE_STRING "positive integer")
 				     (SG_MAKE_INT size) '()))
-  (result (Sg_ReadRandomBytesX prng bv size)))
+  (result (Sg_VMReadRandomBytesX prng bv size)))
 
 (define-c-proc register-prng (name clazz) ::<boolean>
   (result (Sg_RegisterPrng name clazz)))

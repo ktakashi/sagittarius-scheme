@@ -132,9 +132,9 @@ SG_CLASS_DECL(Sg_UserHashAlgoClass);
 /* random */
 SgObject Sg_MakePseudoRandom(SgString *name, SgObject seed);
 SgObject Sg_MakeSecureRandom(SgString *name, int bits);
-void     Sg_SetSeed(SgObject prng, SgByteVector *seed);
-SgObject Sg_ReadRandomBytes(SgObject prng, int size);
-SgObject Sg_ReadRandomBytesX(SgObject prng, SgObject buf, int size);
+SgObject Sg_VMSetSeed(SgObject prng, SgByteVector *seed);
+SgObject Sg_VMReadRandomBytes(SgObject prng, int size);
+SgObject Sg_VMReadRandomBytesX(SgObject prng, SgObject buf, int size);
 /* for Scheme secure random creation */
 SgObject Sg_ReadSysRandom(int bits);
 
