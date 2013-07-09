@@ -1092,10 +1092,17 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
 static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
-				 unsigned long y, int off)
+					unsigned long y, int off)
 {
-  multiply_to_len(bx->elements, SG_BIGNUM_GET_COUNT(bx), &y, 1, 
-		  br->elements + off);
+  dlong p;
+  int i;
+  p = (dlong)bx->elements[0] * y;
+  br->elements[0] = (ulong)p;
+  for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
+    p = (dlong)bx->elements[i] * y + (ulong)(p >> WORD_BITS);
+    br->elements[i] = (ulong)p;
+  }
+  br->elements[i] = (ulong)(p >> WORD_BITS);
   return br;
 }
 
@@ -1448,7 +1455,6 @@ SgObject Sg_BignumSqrtApprox(SgBignum *bn)
 {
   int count;
   SgBignum *workpad;
-  double s;
 
   count = SG_BIGNUM_GET_COUNT(bn);
   ALLOC_TEMP_BIGNUM(workpad, count);
