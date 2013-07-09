@@ -1091,7 +1091,7 @@ typedef uint64_t dlong;
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
-static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 				 unsigned long y, int off)
 {
   multiply_to_len(bx->elements, SG_BIGNUM_GET_COUNT(bx), &y, 1, 
@@ -1169,6 +1169,7 @@ static SgBignum* bignum_mul_si(SgBignum *bx, long y)
   if (y == -1) {
     br = SG_BIGNUM(Sg_BignumCopy(bx));
     SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(bx));
+    return br;
   }
   br = make_bignum(SG_BIGNUM_GET_COUNT(bx) + 1);
   yabs = (y < 0) ? -y : y;
@@ -2079,7 +2080,7 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   }
   z[i] = (ulong)(p >> WORD_BITS);
 
-  /* add in subsequent wors, storing the most significant word which is new
+  /* add in subsequent words, storing the most significant word which is new
      each time */
   for (i = 1; i < ylen; i++) {
     z[xlen + i] = mul_add((z+i), x, xlen, y[i]);
