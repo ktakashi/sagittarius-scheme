@@ -1069,8 +1069,6 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
   return Sg_NormalizeBignum(bignum_add_si(a, -b));
 }
 
-#define USE_FAST_MULTIPLY
-
 /* MSVC doesn't allow us to typedef blow. Well, that's how it suppose to be
    I think... */
 typedef unsigned long ulong;
@@ -1086,16 +1084,121 @@ typedef uint64_t dlong;
 #define SHIFT_MAGIC 5
 #endif
 
-#ifdef USE_FAST_MULTIPLY
 /* forward declaration */
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
-static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
-					unsigned long y, int off)
+#if defined(__SSE2__) && SIZEOF_LONG == 4 /* && 0 */
+#include <emmintrin.h>
+
+typedef struct
 {
-  dlong p;
+  ulong r0lo;			/* r0 low */
+  ulong r0hi;			/* r0 high */
+  ulong r1lo;			/* r1 low */
+  ulong r1hi;			/* r1 high */
+} r4;
+
+static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+					unsigned long y)
+{
+  int size = SG_BIGNUM_GET_COUNT(bx);
+  /* do trivial case first */
+  if (size == 1) {
+    /* only one element in bx */
+    dlong p;
+    p = (dlong)bx->elements[0] * y;
+    br->elements[0] = (ulong)p;
+    br->elements[1] = (ulong)(p >> WORD_BITS);
+    return br;
+  } else if (size == 2) {
+    /* only 2 elements in bx */
+    dlong p;
+    p = (dlong)bx->elements[0] * y;
+    br->elements[0] = (ulong)p;
+    p = (dlong)bx->elements[1] * y + (ulong)(p >> WORD_BITS);
+    br->elements[1] = (ulong)p;
+    br->elements[2] = (ulong)(p >> WORD_BITS);
+    return br;
+  } else {
+    /* more than 3 elements means at least one loop */
+    int volatile i;
+    __m128i p, xx, yy, c, m;
+    r4 pr __attribute__((aligned(16)));
+    r4 cr __attribute__((aligned(16)));
+
+    yy = _mm_set_epi64x(y, y);
+    m  = _mm_set_epi32(0, 0xffffffffUL, 0, 0xffffffffUL);
+
+    /* do first element */
+    xx = _mm_set_epi64x(bx->elements[0], 0);
+    p  = _mm_mul_epu32(xx, yy);
+    _mm_store_si128((__m128i *)&pr, p);
+    /* the first one is in r1 register */
+    br->elements[0]   = pr.r1lo;
+
+    for (i = 1; i < size-1; i += 2) {
+      /* compute carry from previous */
+      c  = _mm_srli_epi64(p, WORD_BITS); /* (p0, p1)  >> WORD_BITS */
+      /* mask carry, make carry only hi bits */
+      c  = _mm_and_si128(c, m);
+      /*
+      _mm_store_si128((__m128i *)&cr, c);
+      fprintf(stderr, "\n%08lx:%08lx:%08lx:%08lx\n", 
+	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
+      */
+      xx = _mm_set_epi64x(bx->elements[i+1], bx->elements[i]);
+      p  = _mm_mul_epu32(xx, yy);	 /* (x0 * y0) & (x1 * y1)  */
+      /*
+      _mm_store_si128((__m128i *)&cr, p);
+      fprintf(stderr, "%016llx\n", (dlong)bx->elements[i+1] * y);
+      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n", 
+	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
+      */
+      /* p1 = x*y + (ulong)(p0>>32) */
+      p  = _mm_add_epi64(p, c);	/* (p0, p1) + (ulong)((p0, p1) >> WORD_BITS)*/
+      _mm_store_si128((__m128i *)&pr, p);
+      _mm_store_si128((__m128i *)&cr, c);
+      /*
+      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n", 
+	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
+      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
+	      pr.r0hi, pr.r0lo, pr.r1hi, pr.r1lo);
+      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
+	      pr.r0hi, pr.r0lo + cr.r1lo - cr.r0lo,
+	      pr.r1hi, pr.r1lo + pr.r0hi - cr.r1lo);
+      */
+      br->elements[i]   = pr.r0lo + cr.r1lo - cr.r0lo;
+      br->elements[i+1] = pr.r1lo + pr.r0hi - cr.r1lo;
+    }
+    /* do the rest */
+    if (!(size & 1)) {
+      c  = _mm_srli_epi64(p, WORD_BITS);
+      c  = _mm_and_si128(c, m);
+      xx = _mm_set_epi64x(0, bx->elements[i]);
+      p  = _mm_mul_epu32(xx, yy);
+      p  = _mm_add_epi64(p, c);
+      _mm_store_si128((__m128i *)&pr, p);
+      _mm_store_si128((__m128i *)&cr, c);
+      br->elements[i] = pr.r0lo + cr.r1lo - cr.r0lo;
+      /*
+      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
+	      pr.r0hi, pr.r0lo + cr.r1lo - cr.r0lo,
+	      pr.r1hi, pr.r1lo + pr.r0hi - cr.r1lo);
+      */
+      pr.r1hi = pr.r1lo + pr.r0hi - cr.r1lo;
+      i++;
+    }
+    br->elements[i] = pr.r1hi;
+    return br;
+  }
+}
+#else
+static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+					unsigned long y)
+{
   int i;
+  dlong p;
   p = (dlong)bx->elements[0] * y;
   br->elements[0] = (ulong)p;
   for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
@@ -1105,6 +1208,7 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
   br->elements[i] = (ulong)(p >> WORD_BITS);
   return br;
 }
+#endif
 
 static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
 {
@@ -1117,73 +1221,29 @@ static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
   return br;
 }
 
-#else
-static SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
-				 unsigned long y, int off)
-{
-  unsigned long hi, lo, x, r0, r1, c;
-  unsigned int i, j;
-  unsigned int size = SG_BIGNUM_GET_COUNT(br);
-  for (i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-    x = bx->elements[i];
-    UMUL(hi, lo, x, y);
-    c = 0;
-    
-    r0 = br->elements[i + off];
-    UADD(r1, c, r0, lo);
-    /* ASSERT(size > i+off); */
-    br->elements[i + off] = r1;
-
-    /* ASSERT(size > i+off+1); */
-    r0 = br->elements[i + off + 1];
-    UADD(r1, c, r0, hi);
-    br->elements[i + off + 1] = r1;
-
-    for (j = i + off + 2; c && j < size; j++) {
-      /* ASSERT(size > j); */
-      r0 = br->elements[j];
-      UADD(r1, c, r0, 0);
-      br->elements[j] = r1;
-    }
-  }
-  return br;
-}
-
-static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
-{
-  unsigned int i;
-  SgBignum *br = make_bignum(SG_BIGNUM_GET_COUNT(bx) + SG_BIGNUM_GET_COUNT(by));
-  for (i = 0; i < SG_BIGNUM_GET_COUNT(by); i++) {
-    bignum_mul_word(br, bx, by->elements[i], i);
-  }
-  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-  return br;
-}
-#endif
-
 static SgBignum* bignum_mul_si(SgBignum *bx, long y)
 {
   SgBignum *br;
   unsigned long yabs;
 
   if (y == 1) return bx;
-  if (y == 0) {
+  else if (y == 0) {
     br = make_bignum(1);
     SG_BIGNUM_SET_SIGN(br, 0);
     br->elements[0] = 0;
     return br;
-  }
-  if (y == -1) {
+  } else if (y == -1) {
     br = SG_BIGNUM(Sg_BignumCopy(bx));
     SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(bx));
     return br;
+  } else {
+    br = make_bignum(SG_BIGNUM_GET_COUNT(bx) + 1);
+    yabs = (y < 0) ? -y : y;
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
+    bignum_mul_word(br, bx, yabs);
+    if (y < 0) SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br));
+    return br;
   }
-  br = make_bignum(SG_BIGNUM_GET_COUNT(bx) + 1);
-  yabs = (y < 0) ? -y : y;
-  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
-  bignum_mul_word(br, bx, yabs, 0);
-  if (y < 0) SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br));
-  return br;
 }
 
 
@@ -1476,17 +1536,12 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
 {
   SgBignum *r;
   unsigned int rsize = SG_BIGNUM_GET_COUNT(acc) + 1, i;
-#ifdef USE_FAST_MULTIPLY
   unsigned long carry;
-#endif
   ALLOC_TEMP_BIGNUM(r, rsize);
   r->elements[0] = c;
-#ifdef USE_FAST_MULTIPLY
   carry = mul_add(r->elements, acc->elements, SG_BIGNUM_GET_COUNT(acc), coef);
   r->elements[SG_BIGNUM_GET_COUNT(acc)] = carry;
-#else
-  bignum_mul_word(r, acc, coef, 0);
-#endif
+
   if (r->elements[rsize - 1] == 0) {
     for (i = 0; i < SG_BIGNUM_GET_COUNT(acc); i++) {
       acc->elements[i] = r->elements[i];
