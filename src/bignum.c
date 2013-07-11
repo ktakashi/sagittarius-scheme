@@ -1172,45 +1172,37 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     dump_m128(xx);							\
     /* now xx contains p1(h) in r1 so shuffle it */			\
     /* p1 = x*y + (ulong)(p0>>32) */					\
-    xx = _mm_shuffle_epi32(xx, _MM_SHUFFLE(1,0,3,2));			\
     xx = _mm_and_si128(xx, mx); /* clear r0,r1,r2 */			\
-    c1 = _mm_and_si128(c1, my);						\
+    xx = _mm_shuffle_epi32(xx, _MM_SHUFFLE(1,0,3,2));			\
+    c1 = _mm_and_si128(c1, mx);						\
     dump_m128(xx);							\
     c0 = _mm_or_si128(xx, c1);						\
     dump_m128(c0);							\
     p  = _mm_add_epi64(p, c0);						\
-    _mm_store_si128((__m128i *)&pr, p);					\
     dump_m128(p);							\
   } while (0)
 
     int i;
-    __m128i p, xx, yy, c0, c1, ml, mh, mx, my;
-    r4 pr __attribute__((aligned(16)));
+    __m128i p, xx, yy, c0, c1, ml, mx;
+    __attribute__((aligned(16))) r4 pr = {0, 0, 0, 0};
 
     yy = _mm_set_epi64x(y, y);
     ml = _mm_set_epi32(0, 0xffffffffUL, 0, 0xffffffffUL);
-    mh = _mm_set_epi32(0xffffffffUL, 0, 0xffffffffUL, 0);
-    mx = _mm_set_epi32(0, 0xffffffffUL, 0, 0);
-    my = _mm_set_epi32(0, 0, 0, 0xffffffffUL);
-
-    /* do first element */
-    xx = _mm_set_epi64x(bx->elements[0], 0);
-    p  = _mm_mul_epu32(xx, yy);
-    _mm_store_si128((__m128i *)&pr, p);
-    /* the first one is in r1 register */
-    br->elements[0] = pr.r1lo;
-
-    dump_m128(p);
-    for (i = 1; i < size-1; i += 2) {
+    mx = _mm_set_epi32(0, 0, 0, 0xffffffffUL);
+    /* set 0 */
+    p = _mm_setzero_si128();
+    for (i = 0; i < size - 1; i += 2) {
       compute_sse(bx->elements[i], bx->elements[i+1]);
+      _mm_store_si128((__m128i *)&pr, p);
       br->elements[i]   = pr.r0lo;
       br->elements[i+1] = pr.r1lo;
     }
     /* do the rest */
-    if (!(size & 1)) {
+    if (size & 1) {
       compute_sse(bx->elements[i], 0);
-      br->elements[i] = pr.r0lo;
-      br->elements[i+1] = pr.r0hi + pr.r1hi;
+      _mm_store_si128((__m128i *)&pr, p);
+      br->elements[i]   = pr.r0lo;
+      br->elements[i+1] = pr.r0hi;
     } else {
       br->elements[i] = pr.r1hi;
     }
