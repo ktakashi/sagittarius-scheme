@@ -1122,75 +1122,100 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     return br;
   } else {
     /* more than 3 elements means at least one loop */
-    int volatile i;
-    __m128i p, xx, yy, c, m;
+    /* debug */
+/* #define DEBUG_SSE2 */
+#ifdef DEBUG_SSE2
+#define dump_m128(m)					\
+  do {							\
+    r4 r_ __attribute__((aligned(16)));			\
+    _mm_store_si128((__m128i *)&r_, (m));		\
+    fprintf(stderr, "%08lx:%08lx:%08lx:%08lx:%s\n",	\
+	    r_.r0hi, r_.r0lo, r_.r1hi, r_.r1lo, #m);	\
+  } while (0)
+#else
+#define dump_m128(m)		/* dummy */
+#endif
+    /* 
+       p0(h,l) = x0 * y
+       p1(h,l) = x1 * y + p0(h)
+       p2(h,l) = x2 * y + p1(h)
+
+       i.e.)
+         p0    = 0x0000002e257a5000
+         p0(h) =         0x0000002e
+	 x1y   = 0x0000002478ce03be
+	 p1    = 0x0000002478ce03ec
+	 p1(h) =         0x00000024 = high(low(x1y) + p0(h)) + high(x1y)
+
+       pn(h) = high(low(xn * y) + pn-1(h)) + high(xn * y)
+
+       c0 register holds pn-1(h)
+       c1 register holds pn(h)
+     */
+#define compute_sse(x0, x1)						\
+  do {									\
+    /* compute carry from previous (r1 register) */			\
+    /* carry pi-1 and pi-2 */						\
+    c1 = _mm_shuffle_epi32(p, _MM_SHUFFLE(0,1,2,3));			\
+    c1 = _mm_and_si128(c1, ml); /* mask */				\
+    dump_m128(c1);							\
+    xx = _mm_set_epi64x((x1), (x0));					\
+    p  = _mm_mul_epu32(xx, yy); /* (x0 * y0) & (x1 * y1)  */		\
+    dump_m128(p);							\
+    c0 = _mm_and_si128(p, ml);  /* low(x1y) */				\
+    c0 = _mm_add_epi64(c0, c1); /* low(x1y) + p0(h) */			\
+    dump_m128(c0);							\
+    xx = _mm_srli_epi64(c0, WORD_BITS);	/* high(low(x1y) + p0(h)) */	\
+    c0 = _mm_srli_epi64(p, WORD_BITS);  /* high(x1y) */			\
+    dump_m128(xx);							\
+    xx = _mm_add_epi64(xx, c0);	/* high(low(x1y) +p0(h)) + high(x1y) */ \
+    dump_m128(xx);							\
+    /* now xx contains p1(h) in r1 so shuffle it */			\
+    /* p1 = x*y + (ulong)(p0>>32) */					\
+    xx = _mm_shuffle_epi32(xx, _MM_SHUFFLE(1,0,3,2));			\
+    xx = _mm_and_si128(xx, mx); /* clear r0,r1,r2 */			\
+    c1 = _mm_and_si128(c1, my);						\
+    dump_m128(xx);							\
+    c0 = _mm_or_si128(xx, c1);						\
+    dump_m128(c0);							\
+    p  = _mm_add_epi64(p, c0);						\
+    _mm_store_si128((__m128i *)&pr, p);					\
+    dump_m128(p);							\
+  } while (0)
+
+    int i;
+    __m128i p, xx, yy, c0, c1, ml, mh, mx, my;
     r4 pr __attribute__((aligned(16)));
-    r4 cr __attribute__((aligned(16)));
 
     yy = _mm_set_epi64x(y, y);
-    m  = _mm_set_epi32(0, 0xffffffffUL, 0, 0xffffffffUL);
+    ml = _mm_set_epi32(0, 0xffffffffUL, 0, 0xffffffffUL);
+    mh = _mm_set_epi32(0xffffffffUL, 0, 0xffffffffUL, 0);
+    mx = _mm_set_epi32(0, 0xffffffffUL, 0, 0);
+    my = _mm_set_epi32(0, 0, 0, 0xffffffffUL);
 
     /* do first element */
     xx = _mm_set_epi64x(bx->elements[0], 0);
     p  = _mm_mul_epu32(xx, yy);
     _mm_store_si128((__m128i *)&pr, p);
     /* the first one is in r1 register */
-    br->elements[0]   = pr.r1lo;
+    br->elements[0] = pr.r1lo;
 
+    dump_m128(p);
     for (i = 1; i < size-1; i += 2) {
-      /* compute carry from previous */
-      c  = _mm_srli_epi64(p, WORD_BITS); /* (p0, p1)  >> WORD_BITS */
-      /* mask carry, make carry only hi bits */
-      c  = _mm_and_si128(c, m);
-      /*
-      _mm_store_si128((__m128i *)&cr, c);
-      fprintf(stderr, "\n%08lx:%08lx:%08lx:%08lx\n", 
-	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
-      */
-      xx = _mm_set_epi64x(bx->elements[i+1], bx->elements[i]);
-      p  = _mm_mul_epu32(xx, yy);	 /* (x0 * y0) & (x1 * y1)  */
-      /*
-      _mm_store_si128((__m128i *)&cr, p);
-      fprintf(stderr, "%016llx\n", (dlong)bx->elements[i+1] * y);
-      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n", 
-	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
-      */
-      /* p1 = x*y + (ulong)(p0>>32) */
-      p  = _mm_add_epi64(p, c);	/* (p0, p1) + (ulong)((p0, p1) >> WORD_BITS)*/
-      _mm_store_si128((__m128i *)&pr, p);
-      _mm_store_si128((__m128i *)&cr, c);
-      /*
-      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n", 
-	      cr.r0hi, cr.r0lo, cr.r1hi, cr.r1lo);
-      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
-	      pr.r0hi, pr.r0lo, pr.r1hi, pr.r1lo);
-      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
-	      pr.r0hi, pr.r0lo + cr.r1lo - cr.r0lo,
-	      pr.r1hi, pr.r1lo + pr.r0hi - cr.r1lo);
-      */
-      br->elements[i]   = pr.r0lo + cr.r1lo - cr.r0lo;
-      br->elements[i+1] = pr.r1lo + pr.r0hi - cr.r1lo;
+      compute_sse(bx->elements[i], bx->elements[i+1]);
+      br->elements[i]   = pr.r0lo;
+      br->elements[i+1] = pr.r1lo;
     }
     /* do the rest */
     if (!(size & 1)) {
-      c  = _mm_srli_epi64(p, WORD_BITS);
-      c  = _mm_and_si128(c, m);
-      xx = _mm_set_epi64x(0, bx->elements[i]);
-      p  = _mm_mul_epu32(xx, yy);
-      p  = _mm_add_epi64(p, c);
-      _mm_store_si128((__m128i *)&pr, p);
-      _mm_store_si128((__m128i *)&cr, c);
-      br->elements[i] = pr.r0lo + cr.r1lo - cr.r0lo;
-      /*
-      fprintf(stderr, "%08lx:%08lx:%08lx:%08lx\n",
-	      pr.r0hi, pr.r0lo + cr.r1lo - cr.r0lo,
-	      pr.r1hi, pr.r1lo + pr.r0hi - cr.r1lo);
-      */
-      pr.r1hi = pr.r1lo + pr.r0hi - cr.r1lo;
-      i++;
+      compute_sse(bx->elements[i], 0);
+      br->elements[i] = pr.r0lo;
+      br->elements[i+1] = pr.r0hi + pr.r1hi;
+    } else {
+      br->elements[i] = pr.r1hi;
     }
-    br->elements[i] = pr.r1hi;
     return br;
+#undef compute_sse
   }
 }
 #else
