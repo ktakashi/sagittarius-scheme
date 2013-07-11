@@ -1122,6 +1122,24 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     return br;
   } else {
     /* more than 3 elements means at least one loop */
+#if 1
+    /* try use SSE as mere (64 bit) register */
+    int i;
+    __m128i p, x, yy, t;
+    yy = _mm_cvtsi32_si128(y);
+    x  = _mm_cvtsi32_si128(bx->elements[i]);
+    p  = _mm_mul_epu32(x, yy);
+    _mm_storel_epi64(&br->elements[0], p);
+    for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
+      x = _mm_cvtsi32_si128(bx->elements[i]);
+      t = _mm_cvtsi32_si128(br->elements[i]); /* carry is here */
+      p = _mm_add_epi64(_mm_mul_epu32(x, yy), t);
+      _mm_storel_epi64(&br->elements[i], p);
+    }
+    /* the last carry is already stored */
+    return br;
+#else
+    /* following was actually slow... */
     /* debug */
 /* #define DEBUG_SSE2 */
 #ifdef DEBUG_SSE2
@@ -1208,6 +1226,7 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
     }
     return br;
 #undef compute_sse
+#endif
   }
 }
 #else
