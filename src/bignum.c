@@ -1088,7 +1088,8 @@ typedef uint64_t dlong;
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
-#if defined(__SSE2__) && SIZEOF_LONG == 4 /* && 0 */
+/* whatever i did, it's slow. */
+#if 0
 #include <emmintrin.h>
 
 typedef struct
@@ -1123,14 +1124,12 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
   } else {
     /* more than 3 elements means at least one loop */
 #if 1
-    /* try use SSE as mere (64 bit) register */
+    /* try use SSE as mere (64 bit) register. 
+       why is there no 64x64 multiplication? */
     int i;
     __m128i p, x, yy, t;
     yy = _mm_cvtsi32_si128(y);
-    x  = _mm_cvtsi32_si128(bx->elements[i]);
-    p  = _mm_mul_epu32(x, yy);
-    _mm_storel_epi64(&br->elements[0], p);
-    for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
+    for (i = 0; i < size; i++) {
       x = _mm_cvtsi32_si128(bx->elements[i]);
       t = _mm_cvtsi32_si128(br->elements[i]); /* carry is here */
       p = _mm_add_epi64(_mm_mul_epu32(x, yy), t);
@@ -1234,7 +1233,7 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 					unsigned long y)
 {
   int i;
-  dlong p;
+  register dlong p;
   p = (dlong)bx->elements[0] * y;
   br->elements[0] = (ulong)p;
   for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {

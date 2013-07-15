@@ -46,9 +46,18 @@
 
 (define-c-proc socket? (o) ::<boolean> SG_SOCKETP)
 
-(define-c-proc socket-port (o::<socket>) Sg_MakeSocketPort)
+;; socket ports
+(define-c-proc socket-port (o::<socket> :optional (close?::<boolean> #t)) 
+  Sg_MakeSocketPort)
+(define-c-proc socket-input-port (o::<socket>)   Sg_MakeSocketInputPort)
+(define-c-proc socket-output-port (o::<socket>)  Sg_MakeSocketOutputPort)
 
-(define-c-proc shutdown-output-port (o::<port>) ::<void> Sg_ShutdownPort)
+(define-c-proc shutdown-port (o::<port> how::<fixnum>) ::<void> 
+  (Sg_ShutdownPort o how))
+(define-c-proc shutdown-output-port (o::<port>) ::<void> 
+  (Sg_ShutdownPort o SHUT_WR))
+(define-c-proc shutdown-input-port (o::<port>) ::<void> 
+  (Sg_ShutdownPort o SHUT_RD))
 
 (define-c-proc socket-accept (o::<socket>) Sg_SocketAccept)
 

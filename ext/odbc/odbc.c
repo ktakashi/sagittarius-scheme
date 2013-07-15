@@ -92,7 +92,6 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_OdbcCtxClass, odbc_ctx_printer);
 
 static int free_handle(SgObject obj, int unregister)
 {
-  SQLRETURN ret;
   if (unregister) {
     Sg_UnregisterFinalizer(obj);
   }

@@ -147,8 +147,10 @@ SG_EXTERN SgObject  Sg_SocketErrorMessage(SgSocket *socket);
 SG_EXTERN int       Sg_SocketNonblocking(SgSocket *socket);
 SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
 
-SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket);
-SG_EXTERN void      Sg_ShutdownPort(SgPort *port);
+SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket, int close);
+SG_EXTERN SgObject  Sg_MakeSocketInputPort(SgSocket *socket);
+SG_EXTERN SgObject  Sg_MakeSocketOutputPort(SgSocket *socket);
+SG_EXTERN void      Sg_ShutdownPort(SgPort *port, int how);
 
 /* select */
 SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,

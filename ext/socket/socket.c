@@ -820,6 +820,14 @@ static int socket_close(SgObject self)
   return SG_PORT(self)->closed;
 }
 
+static int socket_close_only_port(SgObject self)
+{
+  if (!SG_PORT(self)->closed) {
+    SG_PORT(self)->closed = TRUE;
+  }
+  return SG_PORT(self)->closed;
+}
+
 static int socket_get_u8(SgObject self)
 {
   if (SG_PORT_HAS_U8_AHEAD(self)) {
@@ -944,31 +952,61 @@ static int socket_ready(SgObject self)
   return (state != 0);
 }
 
-SgObject Sg_MakeSocketPort(SgSocket *socket)
+static inline SgObject make_socket_port(SgSocket *socket,
+					enum SgPortDirection d, 
+					int closeP)
 {
-  SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SgPort *z = make_port(d, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
   SgBinaryPort *b = make_binary_port(SG_CUSTOM_BINARY_PORT_TYPE, socket);
 
   z->closed = FALSE;
   z->flush = socket_flush;
-  z->close = socket_close;
+  if (closeP) {
+    z->close = socket_close;
+  } else {
+    z->close = socket_close_only_port;
+  }
   z->ready = socket_ready;
   z->impl.bport = b;
 
   b->open = socket_open;
-  b->getU8 = socket_get_u8;
-  b->lookAheadU8 = socket_look_ahead_u8;
-  b->readU8 = socket_read_u8;
-  b->readU8All = socket_read_u8_all;
-  b->putU8 = socket_put_u8;
-  b->putU8Array = socket_put_u8_array;
-
+  switch (d) {
+  case SG_INPUT_PORT: case SG_IN_OUT_PORT:
+    b->getU8 = socket_get_u8;
+    b->lookAheadU8 = socket_look_ahead_u8;
+    b->readU8 = socket_read_u8;
+    b->readU8All = socket_read_u8_all;
+    break;
+  default: break;
+  }
+  switch (d) {
+  case SG_OUTPUT_PORT: case SG_IN_OUT_PORT:
+    b->putU8 = socket_put_u8;
+    b->putU8Array = socket_put_u8_array;
+  default: break;
+  }
   b->bufferWriter = NULL;
   SG_PORT_U8_AHEAD(z) = EOF;
   return SG_OBJ(z);
 }
 
-void Sg_ShutdownPort(SgPort *port)
+SgObject Sg_MakeSocketPort(SgSocket *socket, int closeP)
+{
+  return make_socket_port(socket, SG_IN_OUT_PORT, closeP);
+}
+
+SgObject  Sg_MakeSocketInputPort(SgSocket *socket)
+{
+  /* I hope compiler is smart enough to remove if and switch. */
+  return make_socket_port(socket, SG_INPUT_PORT, FALSE);
+}
+SgObject  Sg_MakeSocketOutputPort(SgSocket *socket)
+{
+  /* I hope compiler is smart enough to remove if and switch. */
+  return make_socket_port(socket, SG_OUTPUT_PORT, FALSE);
+}
+
+void Sg_ShutdownPort(SgPort *port, int how)
 {
   if (SG_BINARY_PORT(port)->type != SG_BINARY_CUSTOM_PORT_TYPE ||
       !SG_SOCKETP(SG_PORT_SOCKET(port))) {
@@ -976,7 +1014,7 @@ void Sg_ShutdownPort(SgPort *port)
   }
   if (!Sg_PortClosedP(port)) {
     Sg_FlushPort(port);
-    Sg_SocketShutdown(SG_PORT_SOCKET(port), 1);
+    Sg_SocketShutdown(SG_PORT_SOCKET(port), how);
   }
 }
 
