@@ -112,9 +112,18 @@ are the same as the @code{make-client-socket}.
 @define[Function]{@name{socket?} @args{obj}}
 @desc{Returns #t if @var{obj} is socket object, otherwise #f.}
 
-@define[Function]{@name{socket-port} @args{socket}}
+@define[Function]{@name{socket-port} @args{socket :optional (close? #t)}}
 @desc{@var{Socket} must be a socket object. Returns a binary input/output port
 associated with @var{socket}.
+
+If optional argument @var{close?} is #f then the port won't close socket
+when port is closing or being GCed.
+}
+
+@define[Function]{@name{socket-input-port} @args{socket}}
+@define[Function]{@name{socket-output-port} @args{socket}}
+@desc{[SRFI-106] @var{Socket} must be a socket object. Returns a binary input
+and output port associated with @var{socket}, respectively.
 }
 
 @define[Function]{@name{call-with-socket} @args{socket proc}}
@@ -125,11 +134,18 @@ The @code{call-with-socket} calls a procedure with socket as an argument.
 This procedure is analogy with @code{call-with-port}.
 }
 
+@define[Function]{@name{shutdown-port} @args{port how}}
+@desc{@var{Port} must be associated with a socket.
+
+Shutdowns associated port according to @var{how}.
+}
+
+@define[Function]{@name{shutdown-input-port} @args{port}}
 @define[Function]{@name{shutdown-output-port} @args{port}}
 @desc{@var{Port} must be associated with a socket.
 
-The @code{shutdown-output-port} shutdowns output connection of a socket
-associated with @var{port}.
+The @code{shutdown-output-port} and @code{shutdown-input-port} shutdown
+output or input connection of a socket associated with @var{port} respectively.
 }
 
 @define[Function]{@name{socket-accept} @args{socket}}
