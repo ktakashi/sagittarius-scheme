@@ -1345,7 +1345,7 @@
 
   (define-cise-stmt bv-check-index
     ((_ name bv index)
-     `(unless (> (SG_BVECTOR_SIZE ,bv) ,index)
+     `(unless (and (> (SG_BVECTOR_SIZE ,bv) ,index) (>= ,index 0))
 	(assertion-violation ',name "index out of range"
 			     (SG_LIST2 ,bv (SG_MAKE_INT ,index)))))
     ((_ name bv index offset)
