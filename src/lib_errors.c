@@ -46,7 +46,7 @@ static struct sg__wcRec {
   /*     0 */        0x00000029           /* 0      (CLOSURE) */,
   /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     2 */        0x00000033           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#G11178 */,
+  /*     3 */        WORD(SG_UNDEF)  /* identifier#G11171 */,
   /*     4 */        0x00000034           /* 4      (LIBRARY) */,
   /*     5 */        WORD(SG_UNDEF)  /* <library (core errors)> */,
   /*     6 */        0x00000029           /* 6      (CLOSURE) */,
@@ -159,7 +159,7 @@ static struct sg__wcRec {
   /*   113 */        0x00000105           /* 17     (LREF) */,
   /*   114 */        0x00000054           /* 18     (CONS_PUSH) */,
   /*   115 */        0x00000009           /* 19     (GREF) */,
-  /*   116 */        WORD(SG_UNDEF)  /* identifier#G11178 */,
+  /*   116 */        WORD(SG_UNDEF)  /* identifier#G11171 */,
   /*   117 */        0x0000022E           /* 21     (LOCAL_TAIL_CALL) */,
   /*   118 */        0x0000002F           /* 22     (RET) */,
   /*   119 */        0x0000015C           /* 23     (LREF_CDR_PUSH) */,
@@ -242,7 +242,7 @@ static struct sg__wcRec {
   /*   196 */        0x0000000B           /* 14     (PUSH) */,
   /*   197 */        0x0000000C           /* 15     (BOX) */,
   /*   198 */        0x00000009           /* 16     (GREF) */,
-  /*   199 */        WORD(SG_UNDEF)  /* identifier#G11178 */,
+  /*   199 */        WORD(SG_UNDEF)  /* identifier#G11171 */,
   /*   200 */        0x00000406           /* 18     (LSET) */,
   /*   201 */        0x00000030           /* 19     (FRAME) */,
   /*   202 */        WORD(7),
@@ -250,7 +250,7 @@ static struct sg__wcRec {
   /*   204 */        0x00000048           /* 22     (CONST_PUSH) */,
   /*   205 */        WORD(SG_NIL),
   /*   206 */        0x00000009           /* 24     (GREF) */,
-  /*   207 */        WORD(SG_UNDEF)  /* identifier#G11178 */,
+  /*   207 */        WORD(SG_UNDEF)  /* identifier#G11171 */,
   /*   208 */        0x0000022C           /* 26     (LOCAL_CALL) */,
   /*   209 */        0x00000132           /* 27     (LEAVE) */,
   /*   210 */        0x00000132           /* 28     (LEAVE) */,
@@ -1078,57 +1078,9 @@ void Sg__Init_core_errors()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core errors)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("(describe-condition loop)");
-  sg__wc.w[11] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("assertion-violation");
-  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("raise-i/o-filename-error");
-  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SYMBOL("raise-misc-i/o-error-with-port");
-  sg__wc.w[167] = STRINGW("~a~%");
-  sg__wc.w[177] = STRINGW("~a~%");
-  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("describe-condition");
-  sg__wc.w[163] = STRINGW("~%   >");
+  sg__wc.w[263] = STRINGW(": ~a");
   sg__wc.w[153] = WORD(&sg__wc.cb[2]);
   sg__wc.cb[2].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[19] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("lexical-violation");
-  sg__wc.w[27] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("error");
-  sg__wc.w[35] = WORD(&sg__wc.cb[9]);
-  sg__wc.cb[9].name = SYMBOL("undefined/syntax-violation");
-  sg__wc.w[280] = STRINGW(": ~s");
-  sg__wc.w[59] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("raise-i/o-read-error");
-  sg__wc.w[67] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("raise-i/o-file-protection-error");
-  sg__wc.w[338] = STRINGW("~%     ~a: ~a");
-  sg__wc.w[75] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SYMBOL("raise-i/o-file-already-exists-error");
-  sg__wc.w[91] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("raise-i/o-encoding-error");
-  sg__wc.w[83] = WORD(&sg__wc.cb[21]);
-  sg__wc.cb[21].name = SYMBOL("raise-i/o-invalid-position-error");
-  sg__wc.w[223] = STRINGW("~%    ~a");
-  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SYMBOL("raise-i/o-error");
-  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("assertion/syntax-violation");
-  sg__wc.w[55] = WORD(&sg__wc.cb[14]);
-  sg__wc.cb[14].name = SYMBOL("raise-misc-i/o-error");
-  sg__wc.w[140] = STRINGW("  #<condition~%");
-  sg__wc.w[349] = STRINGW("~%     ~a: ~s");
-  sg__wc.w[235] = STRINGW(" ~a");
-  sg__wc.w[5] = SYMBOLW("(core errors)");
-  sg__wc.w[263] = STRINGW(": ~a");
-  sg__wc.w[15] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SYMBOL("undefined-violation");
-  sg__wc.w[23] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("syntax-violation");
-  sg__wc.w[31] = WORD(&sg__wc.cb[8]);
-  sg__wc.cb[8].name = SYMBOL("implementation-restriction-violation");
   sg__wc.w[63] = WORD(&sg__wc.cb[16]);
   sg__wc.cb[16].name = SYMBOL("raise-i/o-write-error");
   sg__wc.w[71] = WORD(&sg__wc.cb[18]);
@@ -1137,70 +1089,118 @@ void Sg__Init_core_errors()
   sg__wc.cb[20].name = SYMBOL("raise-i/o-file-does-not-exist-error");
   sg__wc.w[87] = WORD(&sg__wc.cb[22]);
   sg__wc.cb[22].name = SYMBOL("raise-i/o-decoding-error");
-  sg__wc.w[962] = IDENT("make-i/o-write-error", lib);
-  sg__wc.w[93] = IDENT("raise-i/o-encoding-error", lib);
-  sg__wc.w[813] = IDENT("make-i/o-error", lib);
-  sg__wc.w[77] = IDENT("raise-i/o-file-already-exists-error", lib);
-  sg__wc.w[954] = IDENT("make-i/o-read-error", lib);
-  sg__wc.w[21] = IDENT("lexical-violation", lib);
-  sg__wc.w[41] = IDENT("assertion/syntax-violation", lib);
-  sg__wc.w[37] = IDENT("undefined/syntax-violation", lib);
-  sg__wc.w[978] = IDENT("make-i/o-file-is-read-only-error", lib);
-  sg__wc.w[147] = IDENT("simple-conditions", lib);
-  sg__wc.w[17] = IDENT("undefined-violation", lib);
-  sg__wc.w[893] = IDENT("cons*", lib);
-  sg__wc.w[45] = IDENT("raise-i/o-filename-error", lib);
-  sg__wc.w[331] = sg__wc.w[258] = IDENT("string?", lib);
-  sg__wc.w[767] = IDENT("make-i/o-filename-error", lib);
-  sg__wc.w[85] = IDENT("raise-i/o-invalid-position-error", lib);
-  sg__wc.w[457] = IDENT("make-lexical-violation", lib);
-  sg__wc.w[1019] = IDENT("make-i/o-encoding-error", lib);
-  sg__wc.w[121] = IDENT("reverse", lib);
-  sg__wc.w[884] = IDENT("make-i/o-port-error", lib);
-  sg__wc.w[1011] = IDENT("make-i/o-decoding-error", lib);
-  sg__wc.w[13] = IDENT("assertion-violation", lib);
-  sg__wc.w[49] = IDENT("raise-i/o-error", lib);
-  sg__wc.w[207] = sg__wc.w[199] = sg__wc.w[116] = sg__wc.w[3] = UNSIDENT("G11178", lib);
-  sg__wc.w[725] = sg__wc.w[677] = sg__wc.w[504] = IDENT("make-syntax-violation", lib);
-  sg__wc.w[29] = IDENT("error", lib);
-  sg__wc.w[624] = IDENT("make-implementation-restriction-violation", lib);
+  sg__wc.w[19] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("lexical-violation");
+  sg__wc.w[27] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("error");
+  sg__wc.w[35] = WORD(&sg__wc.cb[9]);
+  sg__wc.cb[9].name = SYMBOL("undefined/syntax-violation");
+  sg__wc.w[163] = STRINGW("~%   >");
+  sg__wc.w[235] = STRINGW(" ~a");
+  sg__wc.w[223] = STRINGW("~%    ~a");
+  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("assertion/syntax-violation");
+  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SYMBOL("raise-i/o-error");
+  sg__wc.w[5] = SYMBOLW("(core errors)");
+  sg__wc.w[338] = STRINGW("~%     ~a: ~a");
+  sg__wc.w[280] = STRINGW(": ~s");
+  sg__wc.w[140] = STRINGW("  #<condition~%");
+  sg__wc.w[59] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("raise-i/o-read-error");
+  sg__wc.w[67] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("raise-i/o-file-protection-error");
+  sg__wc.w[75] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SYMBOL("raise-i/o-file-already-exists-error");
+  sg__wc.w[83] = WORD(&sg__wc.cb[21]);
+  sg__wc.cb[21].name = SYMBOL("raise-i/o-invalid-position-error");
+  sg__wc.w[91] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("raise-i/o-encoding-error");
+  sg__wc.w[349] = STRINGW("~%     ~a: ~s");
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("(describe-condition loop)");
+  sg__wc.w[15] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SYMBOL("undefined-violation");
+  sg__wc.w[23] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("syntax-violation");
+  sg__wc.w[31] = WORD(&sg__wc.cb[8]);
+  sg__wc.cb[8].name = SYMBOL("implementation-restriction-violation");
+  sg__wc.w[167] = STRINGW("~a~%");
+  sg__wc.w[177] = STRINGW("~a~%");
+  sg__wc.w[55] = WORD(&sg__wc.cb[14]);
+  sg__wc.cb[14].name = SYMBOL("raise-misc-i/o-error");
+  sg__wc.w[7] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("describe-condition");
+  sg__wc.w[11] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("assertion-violation");
+  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("raise-i/o-filename-error");
+  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SYMBOL("raise-misc-i/o-error-with-port");
+  sg__wc.w[89] = IDENT("raise-i/o-decoding-error", lib);
+  sg__wc.w[9] = IDENT("describe-condition", lib);
   sg__wc.w[128] = IDENT("condition?", lib);
-  sg__wc.w[186] = IDENT("record-rtd", lib);
+  sg__wc.w[85] = IDENT("raise-i/o-invalid-position-error", lib);
+  sg__wc.w[45] = IDENT("raise-i/o-filename-error", lib);
+  sg__wc.w[81] = IDENT("raise-i/o-file-does-not-exist-error", lib);
+  sg__wc.w[767] = IDENT("make-i/o-filename-error", lib);
+  sg__wc.w[1019] = IDENT("make-i/o-encoding-error", lib);
   sg__wc.w[111] = sg__wc.w[192] = IDENT("record-type-name", lib);
+  sg__wc.w[77] = IDENT("raise-i/o-file-already-exists-error", lib);
+  sg__wc.w[134] = IDENT("open-string-output-port", lib);
+  sg__wc.w[13] = IDENT("assertion-violation", lib);
+  sg__wc.w[1011] = IDENT("make-i/o-decoding-error", lib);
   sg__wc.w[73] = IDENT("raise-i/o-file-is-read-only-error", lib);
-  sg__wc.w[308] = IDENT("vector->list", lib);
-  sg__wc.w[986] = IDENT("make-i/o-file-already-exists-error", lib);
+  sg__wc.w[582] = IDENT("make-error", lib);
+  sg__wc.w[41] = IDENT("assertion/syntax-violation", lib);
+  sg__wc.w[1002] = IDENT("make-i/o-invalid-position-error", lib);
   sg__wc.w[69] = IDENT("raise-i/o-file-protection-error", lib);
   sg__wc.w[994] = IDENT("make-i/o-file-does-not-exist-error", lib);
-  sg__wc.w[100] = IDENT("record-type-parent", lib);
-  sg__wc.w[1002] = IDENT("make-i/o-invalid-position-error", lib);
-  sg__wc.w[25] = IDENT("syntax-violation", lib);
-  sg__wc.w[1008] = sg__wc.w[967] = sg__wc.w[959] = sg__wc.w[983] = sg__wc.w[53] = IDENT("raise-misc-i/o-error-with-port", lib);
-  sg__wc.w[289] = sg__wc.w[272] = sg__wc.w[324] = sg__wc.w[251] = IDENT("record-accessor", lib);
-  sg__wc.w[61] = IDENT("raise-i/o-read-error", lib);
   sg__wc.w[65] = IDENT("raise-i/o-write-error", lib);
-  sg__wc.w[527] = sg__wc.w[545] = IDENT("id-name", lib);
-  sg__wc.w[305] = sg__wc.w[216] = IDENT("record-type-field-names", lib);
-  sg__wc.w[991] = sg__wc.w[999] = sg__wc.w[975] = sg__wc.w[57] = sg__wc.w[1016] = sg__wc.w[1025] = IDENT("raise-misc-i/o-error", lib);
-  sg__wc.w[538] = sg__wc.w[520] = IDENT("identifier?", lib);
-  sg__wc.w[134] = IDENT("open-string-output-port", lib);
-  sg__wc.w[81] = IDENT("raise-i/o-file-does-not-exist-error", lib);
-  sg__wc.w[276] = sg__wc.w[353] = sg__wc.w[238] = sg__wc.w[226] = sg__wc.w[174] = sg__wc.w[342] = sg__wc.w[180] = sg__wc.w[293] = sg__wc.w[165] = sg__wc.w[142] = IDENT("format", lib);
-  sg__wc.w[375] = sg__wc.w[730] = IDENT("make-assertion-violation", lib);
-  sg__wc.w[900] = sg__wc.w[653] = sg__wc.w[400] = sg__wc.w[565] = sg__wc.w[842] = sg__wc.w[440] = sg__wc.w[749] = sg__wc.w[701] = sg__wc.w[796] = sg__wc.w[480] = sg__wc.w[607] = sg__wc.w[947] = IDENT("filter", lib);
-  sg__wc.w[417] = sg__wc.w[682] = IDENT("make-undefined-violation", lib);
-  sg__wc.w[800] = sg__wc.w[951] = sg__wc.w[404] = sg__wc.w[904] = sg__wc.w[657] = sg__wc.w[484] = sg__wc.w[444] = sg__wc.w[569] = sg__wc.w[846] = sg__wc.w[753] = sg__wc.w[705] = sg__wc.w[611] = IDENT("raise", lib);
-  sg__wc.w[970] = IDENT("make-i/o-file-protection-error", lib);
-  sg__wc.w[582] = IDENT("make-error", lib);
-  sg__wc.w[714] = sg__wc.w[666] = sg__wc.w[762] = sg__wc.w[453] = sg__wc.w[913] = sg__wc.w[855] = sg__wc.w[371] = sg__wc.w[493] = sg__wc.w[620] = sg__wc.w[578] = sg__wc.w[809] = sg__wc.w[413] = IDENT("values", lib);
-  sg__wc.w[89] = IDENT("raise-i/o-decoding-error", lib);
-  sg__wc.w[574] = sg__wc.w[758] = sg__wc.w[409] = sg__wc.w[909] = sg__wc.w[851] = sg__wc.w[616] = sg__wc.w[449] = sg__wc.w[367] = sg__wc.w[489] = sg__wc.w[805] = sg__wc.w[710] = sg__wc.w[662] = IDENT("condition", lib);
-  sg__wc.w[649] = sg__wc.w[603] = sg__wc.w[792] = sg__wc.w[896] = sg__wc.w[943] = sg__wc.w[396] = sg__wc.w[838] = IDENT("make-irritants-condition", lib);
-  sg__wc.w[776] = sg__wc.w[384] = sg__wc.w[513] = sg__wc.w[633] = sg__wc.w[739] = sg__wc.w[691] = sg__wc.w[927] = sg__wc.w[822] = sg__wc.w[591] = sg__wc.w[554] = sg__wc.w[869] = sg__wc.w[466] = sg__wc.w[426] = IDENT("make-who-condition", lib);
-  sg__wc.w[9] = IDENT("describe-condition", lib);
-  sg__wc.w[875] = sg__wc.w[390] = sg__wc.w[639] = sg__wc.w[782] = sg__wc.w[597] = sg__wc.w[933] = sg__wc.w[697] = sg__wc.w[476] = sg__wc.w[828] = sg__wc.w[745] = sg__wc.w[436] = sg__wc.w[561] = IDENT("make-message-condition", lib);
-  sg__wc.w[33] = IDENT("implementation-restriction-violation", lib);
   sg__wc.w[157] = IDENT("for-each", lib);
+  sg__wc.w[986] = IDENT("make-i/o-file-already-exists-error", lib);
+  sg__wc.w[61] = IDENT("raise-i/o-read-error", lib);
+  sg__wc.w[538] = sg__wc.w[520] = IDENT("identifier?", lib);
+  sg__wc.w[893] = IDENT("cons*", lib);
+  sg__wc.w[37] = IDENT("undefined/syntax-violation", lib);
+  sg__wc.w[17] = IDENT("undefined-violation", lib);
+  sg__wc.w[978] = IDENT("make-i/o-file-is-read-only-error", lib);
+  sg__wc.w[545] = sg__wc.w[527] = IDENT("id-name", lib);
+  sg__wc.w[970] = IDENT("make-i/o-file-protection-error", lib);
+  sg__wc.w[375] = sg__wc.w[730] = IDENT("make-assertion-violation", lib);
+  sg__wc.w[21] = IDENT("lexical-violation", lib);
+  sg__wc.w[457] = IDENT("make-lexical-violation", lib);
+  sg__wc.w[147] = IDENT("simple-conditions", lib);
+  sg__wc.w[962] = IDENT("make-i/o-write-error", lib);
+  sg__wc.w[29] = IDENT("error", lib);
+  sg__wc.w[855] = sg__wc.w[666] = sg__wc.w[762] = sg__wc.w[371] = sg__wc.w[578] = sg__wc.w[714] = sg__wc.w[413] = sg__wc.w[453] = sg__wc.w[809] = sg__wc.w[493] = sg__wc.w[913] = sg__wc.w[620] = IDENT("values", lib);
+  sg__wc.w[954] = IDENT("make-i/o-read-error", lib);
+  sg__wc.w[983] = sg__wc.w[967] = sg__wc.w[959] = sg__wc.w[53] = sg__wc.w[1008] = IDENT("raise-misc-i/o-error-with-port", lib);
+  sg__wc.w[896] = sg__wc.w[792] = sg__wc.w[603] = sg__wc.w[396] = sg__wc.w[838] = sg__wc.w[943] = sg__wc.w[649] = IDENT("make-irritants-condition", lib);
+  sg__wc.w[49] = IDENT("raise-i/o-error", lib);
+  sg__wc.w[25] = IDENT("syntax-violation", lib);
+  sg__wc.w[186] = IDENT("record-rtd", lib);
+  sg__wc.w[813] = IDENT("make-i/o-error", lib);
+  sg__wc.w[677] = sg__wc.w[725] = sg__wc.w[504] = IDENT("make-syntax-violation", lib);
+  sg__wc.w[417] = sg__wc.w[682] = IDENT("make-undefined-violation", lib);
+  sg__wc.w[33] = IDENT("implementation-restriction-violation", lib);
+  sg__wc.w[251] = sg__wc.w[272] = sg__wc.w[324] = sg__wc.w[289] = IDENT("record-accessor", lib);
+  sg__wc.w[404] = sg__wc.w[753] = sg__wc.w[444] = sg__wc.w[484] = sg__wc.w[611] = sg__wc.w[846] = sg__wc.w[951] = sg__wc.w[569] = sg__wc.w[657] = sg__wc.w[904] = sg__wc.w[705] = sg__wc.w[800] = IDENT("raise", lib);
+  sg__wc.w[624] = IDENT("make-implementation-restriction-violation", lib);
+  sg__wc.w[308] = IDENT("vector->list", lib);
+  sg__wc.w[561] = sg__wc.w[390] = sg__wc.w[597] = sg__wc.w[875] = sg__wc.w[745] = sg__wc.w[436] = sg__wc.w[476] = sg__wc.w[828] = sg__wc.w[697] = sg__wc.w[933] = sg__wc.w[639] = sg__wc.w[782] = IDENT("make-message-condition", lib);
+  sg__wc.w[884] = IDENT("make-i/o-port-error", lib);
+  sg__wc.w[93] = IDENT("raise-i/o-encoding-error", lib);
+  sg__wc.w[100] = IDENT("record-type-parent", lib);
+  sg__wc.w[758] = sg__wc.w[367] = sg__wc.w[710] = sg__wc.w[409] = sg__wc.w[449] = sg__wc.w[574] = sg__wc.w[805] = sg__wc.w[489] = sg__wc.w[909] = sg__wc.w[616] = sg__wc.w[851] = sg__wc.w[662] = IDENT("condition", lib);
+  sg__wc.w[480] = sg__wc.w[842] = sg__wc.w[565] = sg__wc.w[947] = sg__wc.w[653] = sg__wc.w[900] = sg__wc.w[701] = sg__wc.w[796] = sg__wc.w[400] = sg__wc.w[607] = sg__wc.w[749] = sg__wc.w[440] = IDENT("filter", lib);
+  sg__wc.w[207] = sg__wc.w[199] = sg__wc.w[116] = sg__wc.w[3] = UNSIDENT("G11171", lib);
+  sg__wc.w[121] = IDENT("reverse", lib);
+  sg__wc.w[869] = sg__wc.w[426] = sg__wc.w[739] = sg__wc.w[466] = sg__wc.w[822] = sg__wc.w[691] = sg__wc.w[927] = sg__wc.w[633] = sg__wc.w[513] = sg__wc.w[776] = sg__wc.w[554] = sg__wc.w[384] = sg__wc.w[591] = IDENT("make-who-condition", lib);
+  sg__wc.w[305] = sg__wc.w[216] = IDENT("record-type-field-names", lib);
+  sg__wc.w[331] = sg__wc.w[258] = IDENT("string?", lib);
+  sg__wc.w[142] = sg__wc.w[276] = sg__wc.w[180] = sg__wc.w[165] = sg__wc.w[342] = sg__wc.w[293] = sg__wc.w[174] = sg__wc.w[226] = sg__wc.w[238] = sg__wc.w[353] = IDENT("format", lib);
+  sg__wc.w[975] = sg__wc.w[1025] = sg__wc.w[1016] = sg__wc.w[57] = sg__wc.w[999] = sg__wc.w[991] = IDENT("raise-misc-i/o-error", lib);
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));

@@ -107,6 +107,7 @@
 (define .match-syntax-case (make-identifier 'match-syntax-case '()
 					    '(core syntax-case)))
 (define .list (make-identifier 'list '() '(core syntax-case)))
+(define .lambda (make-identifier 'lambda '() '(core syntax-case)))
 
 ;; exclude '...
 (define (collect-unique-ids expr)
@@ -227,15 +228,15 @@
 		      (receive (pattern env patvars) (parse-pattern p)
 			(cons `(,.list (,syntax-quote. ,pattern)
 				       #f
-				       (lambda (,.vars)
+				       (,.lambda (,.vars)
 					 ,(rewrite expr patvars #t)))
 			      env)))
 		     ((p fender expr)
 		      (receive (pattern env patvars) (parse-pattern p)
 			(cons `(,.list (,syntax-quote. ,pattern)
-				       (lambda (,.vars)
+				       (,.lambda (,.vars)
 					 ,(rewrite fender patvars #t))
-				       (lambda (,.vars)
+				       (,.lambda (,.vars)
 					 ,(rewrite expr patvars #t)))
 			      env)))))
 		 clauses))))

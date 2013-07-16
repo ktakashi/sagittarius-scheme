@@ -139,31 +139,31 @@ static struct sg__wcRec {
   /*     0 */        0x00000029           /* 0      (CLOSURE) */,
   /*     1 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     2 */        0x00000033           /* 2      (DEFINE) */,
-  /*     3 */        WORD(SG_UNDEF)  /* identifier#G10824 */,
+  /*     3 */        WORD(SG_UNDEF)  /* identifier#G10817 */,
   /*     4 */        0x00000029           /* 4      (CLOSURE) */,
   /*     5 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*     6 */        0x00000033           /* 6      (DEFINE) */,
-  /*     7 */        WORD(SG_UNDEF)  /* identifier#G10822 */,
+  /*     7 */        WORD(SG_UNDEF)  /* identifier#G10815 */,
   /*     8 */        0x00000029           /* 8      (CLOSURE) */,
   /*     9 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    10 */        0x00000033           /* 10     (DEFINE) */,
-  /*    11 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
+  /*    11 */        WORD(SG_UNDEF)  /* identifier#G10813 */,
   /*    12 */        0x00000029           /* 12     (CLOSURE) */,
   /*    13 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    14 */        0x00000033           /* 14     (DEFINE) */,
-  /*    15 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
+  /*    15 */        WORD(SG_UNDEF)  /* identifier#G10811 */,
   /*    16 */        0x00000029           /* 16     (CLOSURE) */,
   /*    17 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    18 */        0x00000033           /* 18     (DEFINE) */,
-  /*    19 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
+  /*    19 */        WORD(SG_UNDEF)  /* identifier#G10809 */,
   /*    20 */        0x00000029           /* 20     (CLOSURE) */,
   /*    21 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    22 */        0x00000033           /* 22     (DEFINE) */,
-  /*    23 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
+  /*    23 */        WORD(SG_UNDEF)  /* identifier#G10807 */,
   /*    24 */        0x00000029           /* 24     (CLOSURE) */,
   /*    25 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*    26 */        0x00000033           /* 26     (DEFINE) */,
-  /*    27 */        WORD(SG_UNDEF)  /* identifier#G10812 */,
+  /*    27 */        WORD(SG_UNDEF)  /* identifier#G10805 */,
   /*    28 */        0x00000034           /* 28     (LIBRARY) */,
   /*    29 */        WORD(SG_UNDEF)  /* <library (core base)> */,
   /*    30 */        0x00000029           /* 30     (CLOSURE) */,
@@ -493,7 +493,7 @@ static struct sg__wcRec {
   /*   354 */        -0x000000F1          /* 14     (ADDI) */,
   /*   355 */        0x0000000B           /* 15     (PUSH) */,
   /*   356 */        0x00000009           /* 16     (GREF) */,
-  /*   357 */        WORD(SG_UNDEF)  /* identifier#G10822 */,
+  /*   357 */        WORD(SG_UNDEF)  /* identifier#G10815 */,
   /*   358 */        0x0000022C           /* 18     (LOCAL_CALL) */,
   /*   359 */        0x00000037           /* 19     (CONS) */,
   /*   360 */        0x0000002F           /* 20     (RET) */,
@@ -508,7 +508,7 @@ static struct sg__wcRec {
   /*   369 */        WORD(6),
   /*   370 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*   371 */        0x00000009           /* 10     (GREF) */,
-  /*   372 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
+  /*   372 */        WORD(SG_UNDEF)  /* identifier#G10813 */,
   /*   373 */        0x0000012E           /* 12     (LOCAL_TAIL_CALL) */,
   /*   374 */        0x0000002F           /* 13     (RET) */,
   /*   375 */        0x00000005           /* 14     (LREF) */,
@@ -518,7 +518,7 @@ static struct sg__wcRec {
   /*   379 */        WORD(5),
   /*   380 */        0x0000005C           /* 19     (LREF_CDR_PUSH) */,
   /*   381 */        0x00000009           /* 20     (GREF) */,
-  /*   382 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
+  /*   382 */        WORD(SG_UNDEF)  /* identifier#G10813 */,
   /*   383 */        0x0000012C           /* 22     (LOCAL_CALL) */,
   /*   384 */        0x00000037           /* 23     (CONS) */,
   /*   385 */        0x0000002F           /* 24     (RET) */,
@@ -526,11 +526,11 @@ static struct sg__wcRec {
   /*   387 */        0x0000000B           /* 1      (PUSH) */,
   /*   388 */        0x0000000C           /* 2      (BOX) */,
   /*   389 */        0x00000009           /* 3      (GREF) */,
-  /*   390 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
+  /*   390 */        WORD(SG_UNDEF)  /* identifier#G10813 */,
   /*   391 */        0x00000106           /* 5      (LSET) */,
   /*   392 */        0x00000045           /* 6      (LREF_PUSH) */,
   /*   393 */        0x00000009           /* 7      (GREF) */,
-  /*   394 */        WORD(SG_UNDEF)  /* identifier#G10820 */,
+  /*   394 */        WORD(SG_UNDEF)  /* identifier#G10813 */,
   /*   395 */        0x0000012E           /* 9      (LOCAL_TAIL_CALL) */,
   /*   396 */        0x0000002F           /* 10     (RET) */,
   /*   397 */        0x00000005           /* 0      (LREF) */,
@@ -544,7 +544,7 @@ static struct sg__wcRec {
   /*   405 */        WORD(6),
   /*   406 */        0x0000005C           /* 9      (LREF_CDR_PUSH) */,
   /*   407 */        0x00000009           /* 10     (GREF) */,
-  /*   408 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
+  /*   408 */        WORD(SG_UNDEF)  /* identifier#G10809 */,
   /*   409 */        0x0000012E           /* 12     (LOCAL_TAIL_CALL) */,
   /*   410 */        0x0000002F           /* 13     (RET) */,
   /*   411 */        0x00000005           /* 14     (LREF) */,
@@ -554,7 +554,7 @@ static struct sg__wcRec {
   /*   415 */        WORD(5),
   /*   416 */        0x0000005C           /* 19     (LREF_CDR_PUSH) */,
   /*   417 */        0x00000009           /* 20     (GREF) */,
-  /*   418 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
+  /*   418 */        WORD(SG_UNDEF)  /* identifier#G10809 */,
   /*   419 */        0x0000012C           /* 22     (LOCAL_CALL) */,
   /*   420 */        0x00000037           /* 23     (CONS) */,
   /*   421 */        0x0000002F           /* 24     (RET) */,
@@ -562,11 +562,11 @@ static struct sg__wcRec {
   /*   423 */        0x0000000B           /* 1      (PUSH) */,
   /*   424 */        0x0000000C           /* 2      (BOX) */,
   /*   425 */        0x00000009           /* 3      (GREF) */,
-  /*   426 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
+  /*   426 */        WORD(SG_UNDEF)  /* identifier#G10809 */,
   /*   427 */        0x00000106           /* 5      (LSET) */,
   /*   428 */        0x00000045           /* 6      (LREF_PUSH) */,
   /*   429 */        0x00000009           /* 7      (GREF) */,
-  /*   430 */        WORD(SG_UNDEF)  /* identifier#G10816 */,
+  /*   430 */        WORD(SG_UNDEF)  /* identifier#G10809 */,
   /*   431 */        0x0000012E           /* 9      (LOCAL_TAIL_CALL) */,
   /*   432 */        0x0000002F           /* 10     (RET) */,
   /*   433 */        0x0000020C           /* 0      (BOX) */,
@@ -1294,7 +1294,7 @@ static struct sg__wcRec {
   /*  1155 */        WORD(SG_UNDEF)  /* <code-builder> */,
   /*  1156 */        0x0000002F           /* 18     (RET) */,
   /*  1157 */        0x00000009           /* 19     (GREF) */,
-  /*  1158 */        WORD(SG_UNDEF)  /* identifier#G10824 */,
+  /*  1158 */        WORD(SG_UNDEF)  /* identifier#G10817 */,
   /*  1159 */        0x0000002F           /* 21     (RET) */,
   /*  1160 */        0x00000046           /* 0      (FREF_PUSH) */,
   /*  1161 */        0x00000045           /* 1      (LREF_PUSH) */,
@@ -1849,12 +1849,12 @@ static struct sg__wcRec {
   /*  1710 */        0x0000000B           /* 25     (PUSH) */,
   /*  1711 */        0x0000000C           /* 26     (BOX) */,
   /*  1712 */        0x00000009           /* 27     (GREF) */,
-  /*  1713 */        WORD(SG_UNDEF)  /* identifier#G10822 */,
+  /*  1713 */        WORD(SG_UNDEF)  /* identifier#G10815 */,
   /*  1714 */        0x00000206           /* 29     (LSET) */,
   /*  1715 */        0x00000045           /* 30     (LREF_PUSH) */,
   /*  1716 */        0x00000145           /* 31     (LREF_PUSH) */,
   /*  1717 */        0x00000009           /* 32     (GREF) */,
-  /*  1718 */        WORD(SG_UNDEF)  /* identifier#G10822 */,
+  /*  1718 */        WORD(SG_UNDEF)  /* identifier#G10815 */,
   /*  1719 */        0x0000022E           /* 34     (LOCAL_TAIL_CALL) */,
   /*  1720 */        0x0000002F           /* 35     (RET) */,
   /*  1721 */        0x00000030           /* 0      (FRAME) */,
@@ -2799,7 +2799,7 @@ static struct sg__wcRec {
   /*  2660 */        0x0000010C           /* 135    (BOX) */,
   /*  2661 */        0x0000000C           /* 136    (BOX) */,
   /*  2662 */        0x00000009           /* 137    (GREF) */,
-  /*  2663 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
+  /*  2663 */        WORD(SG_UNDEF)  /* identifier#G10811 */,
   /*  2664 */        0x00000706           /* 139    (LSET) */,
   /*  2665 */        0x00000545           /* 140    (LREF_PUSH) */,
   /*  2666 */        0x00000029           /* 141    (CLOSURE) */,
@@ -2816,7 +2816,7 @@ static struct sg__wcRec {
   /*  2677 */        WORD(5),
   /*  2678 */        0x00000545           /* 153    (LREF_PUSH) */,
   /*  2679 */        0x00000009           /* 154    (GREF) */,
-  /*  2680 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
+  /*  2680 */        WORD(SG_UNDEF)  /* identifier#G10811 */,
   /*  2681 */        0x0000012C           /* 156    (LOCAL_CALL) */,
   /*  2682 */        0x0000000B           /* 157    (PUSH) */,
   /*  2683 */        0x00000030           /* 158    (FRAME) */,
@@ -2864,7 +2864,7 @@ static struct sg__wcRec {
   /*  2725 */        WORD(5),
   /*  2726 */        0x00000A45           /* 201    (LREF_PUSH) */,
   /*  2727 */        0x00000009           /* 202    (GREF) */,
-  /*  2728 */        WORD(SG_UNDEF)  /* identifier#G10818 */,
+  /*  2728 */        WORD(SG_UNDEF)  /* identifier#G10811 */,
   /*  2729 */        0x0000012C           /* 204    (LOCAL_CALL) */,
   /*  2730 */        0x0000000B           /* 205    (PUSH) */,
   /*  2731 */        0x00900219           /* 206    (SHIFTJ) */,
@@ -3051,7 +3051,7 @@ static struct sg__wcRec {
   /*  2912 */        0x0000010C           /* 130    (BOX) */,
   /*  2913 */        0x0000000C           /* 131    (BOX) */,
   /*  2914 */        0x00000009           /* 132    (GREF) */,
-  /*  2915 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
+  /*  2915 */        WORD(SG_UNDEF)  /* identifier#G10807 */,
   /*  2916 */        0x00000706           /* 134    (LSET) */,
   /*  2917 */        0x00000545           /* 135    (LREF_PUSH) */,
   /*  2918 */        0x00000029           /* 136    (CLOSURE) */,
@@ -3068,7 +3068,7 @@ static struct sg__wcRec {
   /*  2929 */        WORD(5),
   /*  2930 */        0x00000545           /* 148    (LREF_PUSH) */,
   /*  2931 */        0x00000009           /* 149    (GREF) */,
-  /*  2932 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
+  /*  2932 */        WORD(SG_UNDEF)  /* identifier#G10807 */,
   /*  2933 */        0x0000012C           /* 151    (LOCAL_CALL) */,
   /*  2934 */        0x0000000B           /* 152    (PUSH) */,
   /*  2935 */        0x00000030           /* 153    (FRAME) */,
@@ -3117,7 +3117,7 @@ static struct sg__wcRec {
   /*  2978 */        WORD(5),
   /*  2979 */        0x00000A45           /* 197    (LREF_PUSH) */,
   /*  2980 */        0x00000009           /* 198    (GREF) */,
-  /*  2981 */        WORD(SG_UNDEF)  /* identifier#G10814 */,
+  /*  2981 */        WORD(SG_UNDEF)  /* identifier#G10807 */,
   /*  2982 */        0x0000012C           /* 200    (LOCAL_CALL) */,
   /*  2983 */        0x0000000B           /* 201    (PUSH) */,
   /*  2984 */        0x00900219           /* 202    (SHIFTJ) */,
@@ -3755,7 +3755,7 @@ static struct sg__wcRec {
   /*  3616 */        0x0000000B           /* 1      (PUSH) */,
   /*  3617 */        0x0000000C           /* 2      (BOX) */,
   /*  3618 */        0x00000009           /* 3      (GREF) */,
-  /*  3619 */        WORD(SG_UNDEF)  /* identifier#G10812 */,
+  /*  3619 */        WORD(SG_UNDEF)  /* identifier#G10805 */,
   /*  3620 */        0x00000206           /* 5      (LSET) */,
   /*  3621 */        0x00000002           /* 6      (UNDEF) */,
   /*  3622 */        0x00000030           /* 7      (FRAME) */,
@@ -3876,7 +3876,7 @@ static struct sg__wcRec {
   /*  3737 */        0x00000645           /* 122    (LREF_PUSH) */,
   /*  3738 */        0x00000545           /* 123    (LREF_PUSH) */,
   /*  3739 */        0x00000009           /* 124    (GREF) */,
-  /*  3740 */        WORD(SG_UNDEF)  /* identifier#G10812 */,
+  /*  3740 */        WORD(SG_UNDEF)  /* identifier#G10805 */,
   /*  3741 */        0x0000052E           /* 126    (LOCAL_TAIL_CALL) */,
   /*  3742 */        0x0000002F           /* 127    (RET) */,
   /*  3743 */        0x00000145           /* 0      (LREF_PUSH) */,
@@ -3991,7 +3991,7 @@ static struct sg__wcRec {
   /*  3852 */        0x00000D45           /* 109    (LREF_PUSH) */,
   /*  3853 */        0x00000B45           /* 110    (LREF_PUSH) */,
   /*  3854 */        0x00000009           /* 111    (GREF) */,
-  /*  3855 */        WORD(SG_UNDEF)  /* identifier#G10812 */,
+  /*  3855 */        WORD(SG_UNDEF)  /* identifier#G10805 */,
   /*  3856 */        0x0000052C           /* 113    (LOCAL_CALL) */,
   /*  3857 */        0x0000000B           /* 114    (PUSH) */,
   /*  3858 */        0x00000456           /* 115    (LREF_CDR) */,
@@ -4021,7 +4021,7 @@ static struct sg__wcRec {
   /*  3882 */        0x00000D45           /* 139    (LREF_PUSH) */,
   /*  3883 */        0x00000B45           /* 140    (LREF_PUSH) */,
   /*  3884 */        0x00000009           /* 141    (GREF) */,
-  /*  3885 */        WORD(SG_UNDEF)  /* identifier#G10812 */,
+  /*  3885 */        WORD(SG_UNDEF)  /* identifier#G10805 */,
   /*  3886 */        0x0000052C           /* 143    (LOCAL_CALL) */,
   /*  3887 */        0x0000000B           /* 144    (PUSH) */,
   /*  3888 */        0x00000456           /* 145    (LREF_CDR) */,
@@ -4666,490 +4666,490 @@ void Sg__Init_core_base()
 {
   SgLibrary *lib = Sg_FindLibrary(SYMBOL("(core base)"), TRUE);
   SgLibrary *save = Sg_VM()->currentLibrary;
-  sg__wc.w[203] = WORD(&sg__wc.cb[72]);
-  sg__wc.cb[72].name = SYMBOL("bytevector-uint-set!");
-  sg__wc.w[978] = WORD(&sg__wc.cb[27]);
-  sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1030] = WORD(&sg__wc.cb[31]);
-  sg__wc.cb[31].name = SYMBOL("loop");
-  sg__wc.w[29] = SYMBOLW("(core base)");
-  sg__wc.w[295] = WORD(&sg__wc.cb[106]);
-  sg__wc.cb[106].name = SYMBOL("call-with-port");
-  sg__wc.w[291] = WORD(&sg__wc.cb[104]);
-  sg__wc.cb[104].name = SYMBOL("vector-sort!");
-  sg__wc.w[311] = WORD(&sg__wc.cb[112]);
-  sg__wc.cb[112].name = SYMBOL("call-with-string-output-port");
-  sg__wc.w[1076] = STRINGW("wrong number of arguments");
-  sg__wc.w[1133] = STRINGW("wrong number of arguments");
-  sg__wc.w[91] = WORD(&sg__wc.cb[32]);
-  sg__wc.cb[32].name = SYMBOL("make-simple-conser");
-  sg__wc.w[211] = WORD(&sg__wc.cb[74]);
-  sg__wc.cb[74].name = SYMBOL("bytevector->uint-list");
-  sg__wc.w[111] = WORD(&sg__wc.cb[40]);
-  sg__wc.cb[40].name = SYMBOL("find-tail");
-  sg__wc.w[890] = STRINGW("sealed ");
-  sg__wc.w[1358] = WORD(&sg__wc.cb[42]);
-  sg__wc.cb[42].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1508] = WORD(&sg__wc.cb[50]);
-  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1599] = WORD(&sg__wc.cb[54]);
-  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[143] = WORD(&sg__wc.cb[58]);
-  sg__wc.cb[58].name = SYMBOL("take");
-  sg__wc.w[155] = WORD(&sg__wc.cb[60]);
-  sg__wc.cb[60].name = SYMBOL("char-ci=?");
-  sg__wc.w[3430] = WORD(&sg__wc.cb[92]);
-  sg__wc.cb[92].name = SYMBOL("loop");
-  sg__wc.w[3545] = WORD(&sg__wc.cb[98]);
-  sg__wc.cb[98].name = SYMBOL("loop");
-  sg__wc.w[175] = WORD(&sg__wc.cb[65]);
-  sg__wc.cb[65].name = SYMBOL("string-ci=?");
+  sg__wc.w[223] = WORD(&sg__wc.cb[77]);
+  sg__wc.cb[77].name = SYMBOL("sint-list->bytevector");
   sg__wc.w[3713] = WORD(&sg__wc.cb[102]);
   sg__wc.cb[102].name = SYMBOL("recur");
-  sg__wc.w[5] = WORD(&sg__wc.cb[2]);
-  sg__wc.cb[2].name = SYMBOL("(take recur)");
+  sg__wc.w[239] = WORD(&sg__wc.cb[86]);
+  sg__wc.cb[86].name = SYMBOL("partition");
+  sg__wc.w[13] = WORD(&sg__wc.cb[4]);
+  sg__wc.cb[4].name = SYMBOL("(for-all collect-cdr)");
+  sg__wc.w[315] = WORD(&sg__wc.cb[113]);
+  sg__wc.cb[113].name = SYMBOL("hashtable-update!");
   sg__wc.w[31] = WORD(&sg__wc.cb[8]);
   sg__wc.cb[8].name = SYMBOL("hashtable-for-each");
+  sg__wc.w[111] = WORD(&sg__wc.cb[40]);
+  sg__wc.cb[40].name = SYMBOL("find-tail");
   sg__wc.w[594] = WORD(&sg__wc.cb[14]);
   sg__wc.cb[14].name = SYMBOL("er-macro-transformer");
+  sg__wc.w[1358] = WORD(&sg__wc.cb[42]);
+  sg__wc.cb[42].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[67] = WORD(&sg__wc.cb[20]);
   sg__wc.cb[20].name = SYMBOL("wrong-type-argument-message");
-  sg__wc.w[1337] = STRINGW("list");
-  sg__wc.w[207] = WORD(&sg__wc.cb[73]);
-  sg__wc.cb[73].name = SYMBOL("bytevector-sint-set!");
-  sg__wc.w[983] = WORD(&sg__wc.cb[30]);
-  sg__wc.cb[30].name = SYMBOL("loop");
-  sg__wc.w[287] = WORD(&sg__wc.cb[103]);
-  sg__wc.cb[103].name = SYMBOL("vector-sort");
-  sg__wc.w[303] = WORD(&sg__wc.cb[109]);
-  sg__wc.cb[109].name = SYMBOL("open-string-output-port");
-  sg__wc.w[307] = WORD(&sg__wc.cb[111]);
-  sg__wc.cb[111].name = SYMBOL("call-with-bytevector-output-port");
-  sg__wc.w[327] = WORD(&sg__wc.cb[116]);
-  sg__wc.cb[116].name = SYMBOL("hashtable-hash-function");
-  sg__wc.w[4360] = STRINGW("hashtable");
-  sg__wc.w[4396] = STRINGW("hashtable");
-  sg__wc.w[4468] = STRINGW("hashtable");
-  sg__wc.w[99] = WORD(&sg__wc.cb[37]);
-  sg__wc.cb[37].name = SYMBOL("null-list?");
-  sg__wc.w[2595] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
-  sg__wc.w[2846] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
-  sg__wc.w[215] = WORD(&sg__wc.cb[75]);
-  sg__wc.cb[75].name = SYMBOL("bytevector->sint-list");
-  sg__wc.w[107] = WORD(&sg__wc.cb[39]);
-  sg__wc.cb[39].name = SYMBOL("find");
-  sg__wc.w[127] = WORD(&sg__wc.cb[47]);
-  sg__wc.cb[47].name = SYMBOL("reduce");
   sg__wc.w[1482] = WORD(&sg__wc.cb[49]);
   sg__wc.cb[49].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1590] = WORD(&sg__wc.cb[53]);
-  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[243] = WORD(&sg__wc.cb[87]);
-  sg__wc.cb[87].name = SYMBOL("map");
+  sg__wc.w[861] = STRINGW("#<record ~s ~a~a ~a>");
   sg__wc.w[1670] = WORD(&sg__wc.cb[57]);
   sg__wc.cb[57].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1590] = WORD(&sg__wc.cb[53]);
+  sg__wc.cb[53].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[944] = WORD(&sg__wc.cb[26]);
+  sg__wc.cb[26].name = SYMBOL("loop");
+  sg__wc.w[998] = WORD(&sg__wc.cb[29]);
+  sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
   sg__wc.w[159] = WORD(&sg__wc.cb[61]);
   sg__wc.cb[61].name = SYMBOL("char-ci<?");
-  sg__wc.w[259] = WORD(&sg__wc.cb[91]);
-  sg__wc.cb[91].name = SYMBOL("remp");
-  sg__wc.w[271] = WORD(&sg__wc.cb[97]);
-  sg__wc.cb[97].name = SYMBOL("remq");
-  sg__wc.w[179] = WORD(&sg__wc.cb[66]);
-  sg__wc.cb[66].name = SYMBOL("string-ci<?");
-  sg__wc.w[334] = WORD(&sg__wc.cb[1]);
-  sg__wc.cb[1].name = SYMBOL("default-protocol");
-  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
-  sg__wc.cb[13].name = SYMBOL("er-macro-transformer");
-  sg__wc.w[25] = WORD(&sg__wc.cb[7]);
-  sg__wc.cb[7].name = SYMBOL("(list-sort merge-list!)");
-  sg__wc.w[63] = WORD(&sg__wc.cb[19]);
-  sg__wc.cb[19].name = SYMBOL("fold");
-  sg__wc.w[2578] = STRINGW("traversal reached to non-pair element ~s");
-  sg__wc.w[2773] = STRINGW("traversal reached to non-pair element ~s");
-  sg__wc.w[2829] = STRINGW("traversal reached to non-pair element ~s");
-  sg__wc.w[3026] = STRINGW("traversal reached to non-pair element ~s");
-  sg__wc.w[1951] = STRINGW("expected endianness, but got ~r, as argument 3");
-  sg__wc.w[2052] = STRINGW("expected endianness, but got ~r, as argument 3");
-  sg__wc.w[1250] = STRINGW("given list it too short");
+  sg__wc.w[163] = WORD(&sg__wc.cb[62]);
+  sg__wc.cb[62].name = SYMBOL("char-ci>?");
+  sg__wc.w[768] = STRINGW("expected ~a, but got ~a");
+  sg__wc.w[203] = WORD(&sg__wc.cb[72]);
+  sg__wc.cb[72].name = SYMBOL("bytevector-uint-set!");
+  sg__wc.w[1076] = STRINGW("wrong number of arguments");
+  sg__wc.w[1133] = STRINGW("wrong number of arguments");
   sg__wc.w[1216] = STRINGW("integer");
   sg__wc.w[1701] = STRINGW("integer");
   sg__wc.w[1737] = STRINGW("integer");
-  sg__wc.w[768] = STRINGW("expected ~a, but got ~a");
-  sg__wc.w[95] = WORD(&sg__wc.cb[34]);
-  sg__wc.cb[34].name = SYMBOL("default-protocol");
-  sg__wc.w[1163] = WORD(&sg__wc.cb[36]);
-  sg__wc.cb[36].name = SYMBOL("default-protocol");
-  sg__wc.w[227] = WORD(&sg__wc.cb[78]);
-  sg__wc.cb[78].name = SYMBOL("for-all");
-  sg__wc.w[219] = WORD(&sg__wc.cb[76]);
-  sg__wc.cb[76].name = SYMBOL("uint-list->bytevector");
-  sg__wc.w[2741] = WORD(&sg__wc.cb[80]);
-  sg__wc.cb[80].name = SYMBOL("loop");
-  sg__wc.w[1406] = WORD(&sg__wc.cb[46]);
-  sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1661] = WORD(&sg__wc.cb[56]);
-  sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[239] = WORD(&sg__wc.cb[86]);
-  sg__wc.cb[86].name = SYMBOL("partition");
-  sg__wc.w[247] = WORD(&sg__wc.cb[88]);
-  sg__wc.cb[88].name = SYMBOL("for-each");
-  sg__wc.w[255] = WORD(&sg__wc.cb[90]);
-  sg__wc.cb[90].name = SYMBOL("fold-right");
-  sg__wc.w[3509] = WORD(&sg__wc.cb[96]);
-  sg__wc.cb[96].name = SYMBOL("loop");
-  sg__wc.w[183] = WORD(&sg__wc.cb[67]);
-  sg__wc.cb[67].name = SYMBOL("string-ci>?");
-  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
-  sg__wc.cb[0].name = SYMBOL("(default-protocol default-protocol)");
-  sg__wc.w[21] = WORD(&sg__wc.cb[6]);
-  sg__wc.cb[6].name = SYMBOL("(exists collect-cdr)");
-  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
-  sg__wc.cb[12].name = SYMBOL("call-with-values");
-  sg__wc.w[2699] = STRINGW("expected same length chains of pairs");
-  sg__wc.w[2951] = STRINGW("expected same length chains of pairs");
-  sg__wc.w[59] = WORD(&sg__wc.cb[18]);
-  sg__wc.cb[18].name = SYMBOL("print");
-  sg__wc.w[944] = WORD(&sg__wc.cb[26]);
-  sg__wc.cb[26].name = SYMBOL("loop");
-  sg__wc.w[775] = STRINGW("expected ~a, but got ~a, as argument ~a");
-  sg__wc.w[2377] = STRINGW("expected appropriate element size as argument 3, but got ~r");
-  sg__wc.w[2436] = STRINGW("expected appropriate element size as argument 3, but got ~r");
-  sg__wc.w[4203] = STRINGW("wrong number of argument: expected between 0 and 1, but got ~a");
-  sg__wc.w[1074] = STRINGW("record constructor");
-  sg__wc.w[1131] = STRINGW("record constructor");
   sg__wc.w[880] = STRINGW("");
   sg__wc.w[894] = STRINGW("");
-  sg__wc.w[3946] = WORD(&sg__wc.cb[105]);
-  sg__wc.cb[105].name = SYMBOL("sort!");
-  sg__wc.w[299] = WORD(&sg__wc.cb[107]);
-  sg__wc.cb[107].name = SYMBOL("open-bytevector-output-port");
-  sg__wc.w[323] = WORD(&sg__wc.cb[115]);
-  sg__wc.cb[115].name = SYMBOL("hashtable-equivalence-function");
-  sg__wc.w[1155] = WORD(&sg__wc.cb[35]);
-  sg__wc.cb[35].name = SYMBOL("default-protocol");
-  sg__wc.w[115] = WORD(&sg__wc.cb[41]);
-  sg__wc.cb[41].name = SYMBOL("assoc");
+  sg__wc.w[1074] = STRINGW("record constructor");
+  sg__wc.w[1131] = STRINGW("record constructor");
+  sg__wc.w[3430] = WORD(&sg__wc.cb[92]);
+  sg__wc.cb[92].name = SYMBOL("loop");
+  sg__wc.w[267] = WORD(&sg__wc.cb[95]);
+  sg__wc.cb[95].name = SYMBOL("remv");
+  sg__wc.w[279] = WORD(&sg__wc.cb[100]);
+  sg__wc.cb[100].name = SYMBOL("assp");
+  sg__wc.w[1337] = STRINGW("list");
+  sg__wc.w[291] = WORD(&sg__wc.cb[104]);
+  sg__wc.cb[104].name = SYMBOL("vector-sort!");
+  sg__wc.w[295] = WORD(&sg__wc.cb[106]);
+  sg__wc.cb[106].name = SYMBOL("call-with-port");
+  sg__wc.w[3041] = WORD(&sg__wc.cb[85]);
+  sg__wc.cb[85].name = SYMBOL("loop");
+  sg__wc.w[9] = WORD(&sg__wc.cb[3]);
+  sg__wc.cb[3].name = SYMBOL("(for-all loop)");
+  sg__wc.w[25] = WORD(&sg__wc.cb[7]);
+  sg__wc.cb[7].name = SYMBOL("(list-sort merge-list!)");
+  sg__wc.w[311] = WORD(&sg__wc.cb[112]);
+  sg__wc.cb[112].name = SYMBOL("call-with-string-output-port");
+  sg__wc.w[107] = WORD(&sg__wc.cb[39]);
+  sg__wc.cb[39].name = SYMBOL("find");
+  sg__wc.w[99] = WORD(&sg__wc.cb[37]);
+  sg__wc.cb[37].name = SYMBOL("null-list?");
+  sg__wc.w[51] = WORD(&sg__wc.cb[13]);
+  sg__wc.cb[13].name = SYMBOL("er-macro-transformer");
+  sg__wc.w[63] = WORD(&sg__wc.cb[19]);
+  sg__wc.cb[19].name = SYMBOL("fold");
+  sg__wc.w[127] = WORD(&sg__wc.cb[47]);
+  sg__wc.cb[47].name = SYMBOL("reduce");
+  sg__wc.w[1661] = WORD(&sg__wc.cb[56]);
+  sg__wc.cb[56].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[87] = WORD(&sg__wc.cb[25]);
+  sg__wc.cb[25].name = SYMBOL("make-nested-conser");
+  sg__wc.w[990] = WORD(&sg__wc.cb[28]);
+  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[167] = WORD(&sg__wc.cb[63]);
+  sg__wc.cb[63].name = SYMBOL("char-ci<=?");
+  sg__wc.w[187] = WORD(&sg__wc.cb[68]);
+  sg__wc.cb[68].name = SYMBOL("string-ci<=?");
+  sg__wc.w[199] = WORD(&sg__wc.cb[71]);
+  sg__wc.cb[71].name = SYMBOL("bytevector-sint-ref");
+  sg__wc.w[2595] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
+  sg__wc.w[2846] = STRINGW("expected chain of pairs, but got ~a, as argument 2");
   sg__wc.w[3155] = STRINGW("proper list");
   sg__wc.w[3208] = STRINGW("proper list");
   sg__wc.w[3251] = STRINGW("proper list");
   sg__wc.w[3298] = STRINGW("proper list");
-  sg__wc.w[123] = WORD(&sg__wc.cb[45]);
-  sg__wc.cb[45].name = SYMBOL("delete");
-  sg__wc.w[2667] = WORD(&sg__wc.cb[79]);
-  sg__wc.cb[79].name = SYMBOL("collect-car");
-  sg__wc.w[231] = WORD(&sg__wc.cb[81]);
-  sg__wc.cb[81].name = SYMBOL("exists");
-  sg__wc.w[2994] = WORD(&sg__wc.cb[83]);
-  sg__wc.cb[83].name = SYMBOL("loop");
-  sg__wc.w[3041] = WORD(&sg__wc.cb[85]);
-  sg__wc.cb[85].name = SYMBOL("loop");
-  sg__wc.w[163] = WORD(&sg__wc.cb[62]);
-  sg__wc.cb[62].name = SYMBOL("char-ci>?");
-  sg__wc.w[147] = WORD(&sg__wc.cb[59]);
-  sg__wc.cb[59].name = SYMBOL("drop");
-  sg__wc.w[251] = WORD(&sg__wc.cb[89]);
-  sg__wc.cb[89].name = SYMBOL("fold-left");
-  sg__wc.w[267] = WORD(&sg__wc.cb[95]);
-  sg__wc.cb[95].name = SYMBOL("remv");
-  sg__wc.w[283] = WORD(&sg__wc.cb[101]);
-  sg__wc.cb[101].name = SYMBOL("list-sort");
-  sg__wc.w[187] = WORD(&sg__wc.cb[68]);
-  sg__wc.cb[68].name = SYMBOL("string-ci<=?");
-  sg__wc.w[17] = WORD(&sg__wc.cb[5]);
-  sg__wc.cb[5].name = SYMBOL("(exists loop)");
-  sg__wc.w[55] = WORD(&sg__wc.cb[17]);
-  sg__wc.cb[17].name = SYMBOL("safe-length");
-  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
-  sg__wc.cb[11].name = SYMBOL("unique-id-list?");
-  sg__wc.w[79] = WORD(&sg__wc.cb[23]);
-  sg__wc.cb[23].name = SYMBOL("string-for-each");
-  sg__wc.w[87] = WORD(&sg__wc.cb[25]);
-  sg__wc.cb[25].name = SYMBOL("make-nested-conser");
-  sg__wc.w[998] = WORD(&sg__wc.cb[29]);
-  sg__wc.cb[29].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[876] = STRINGW("opaque ");
+  sg__wc.w[4314] = STRINGW("mutable hashtable");
   sg__wc.w[2230] = STRINGW("value out of range, ~s as argument 3");
   sg__wc.w[2312] = STRINGW("value out of range, ~s as argument 3");
-  sg__wc.w[4236] = WORD(&sg__wc.cb[108]);
-  sg__wc.cb[108].name = SYMBOL("proc");
-  sg__wc.w[4253] = WORD(&sg__wc.cb[110]);
-  sg__wc.cb[110].name = SYMBOL("proc");
-  sg__wc.w[319] = WORD(&sg__wc.cb[114]);
-  sg__wc.cb[114].name = SYMBOL("hashtable-entries");
-  sg__wc.w[103] = WORD(&sg__wc.cb[38]);
-  sg__wc.cb[38].name = SYMBOL("split-at");
-  sg__wc.w[131] = WORD(&sg__wc.cb[48]);
-  sg__wc.cb[48].name = SYMBOL("lset-union");
-  sg__wc.w[1382] = WORD(&sg__wc.cb[44]);
-  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[135] = WORD(&sg__wc.cb[52]);
-  sg__wc.cb[52].name = SYMBOL("lset-intersection");
+  sg__wc.w[259] = WORD(&sg__wc.cb[91]);
+  sg__wc.cb[91].name = SYMBOL("remp");
+  sg__wc.w[3469] = WORD(&sg__wc.cb[94]);
+  sg__wc.cb[94].name = SYMBOL("loop");
+  sg__wc.w[275] = WORD(&sg__wc.cb[99]);
+  sg__wc.cb[99].name = SYMBOL("memp");
+  sg__wc.w[2741] = WORD(&sg__wc.cb[80]);
+  sg__wc.cb[80].name = SYMBOL("loop");
+  sg__wc.w[231] = WORD(&sg__wc.cb[81]);
+  sg__wc.cb[81].name = SYMBOL("exists");
+  sg__wc.w[2578] = STRINGW("traversal reached to non-pair element ~s");
+  sg__wc.w[2773] = STRINGW("traversal reached to non-pair element ~s");
+  sg__wc.w[2829] = STRINGW("traversal reached to non-pair element ~s");
+  sg__wc.w[3026] = STRINGW("traversal reached to non-pair element ~s");
+  sg__wc.w[287] = WORD(&sg__wc.cb[103]);
+  sg__wc.cb[103].name = SYMBOL("vector-sort");
+  sg__wc.w[2994] = WORD(&sg__wc.cb[83]);
+  sg__wc.cb[83].name = SYMBOL("loop");
+  sg__wc.w[303] = WORD(&sg__wc.cb[109]);
+  sg__wc.cb[109].name = SYMBOL("open-string-output-port");
+  sg__wc.w[5] = WORD(&sg__wc.cb[2]);
+  sg__wc.cb[2].name = SYMBOL("(take recur)");
+  sg__wc.w[307] = WORD(&sg__wc.cb[111]);
+  sg__wc.cb[111].name = SYMBOL("call-with-bytevector-output-port");
+  sg__wc.w[1163] = WORD(&sg__wc.cb[36]);
+  sg__wc.cb[36].name = SYMBOL("default-protocol");
+  sg__wc.w[21] = WORD(&sg__wc.cb[6]);
+  sg__wc.cb[6].name = SYMBOL("(exists collect-cdr)");
+  sg__wc.w[47] = WORD(&sg__wc.cb[12]);
+  sg__wc.cb[12].name = SYMBOL("call-with-values");
+  sg__wc.w[59] = WORD(&sg__wc.cb[18]);
+  sg__wc.cb[18].name = SYMBOL("print");
+  sg__wc.w[1406] = WORD(&sg__wc.cb[46]);
+  sg__wc.cb[46].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[29] = SYMBOLW("(core base)");
+  sg__wc.w[147] = WORD(&sg__wc.cb[59]);
+  sg__wc.cb[59].name = SYMBOL("drop");
+  sg__wc.w[978] = WORD(&sg__wc.cb[27]);
+  sg__wc.cb[27].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1951] = STRINGW("expected endianness, but got ~r, as argument 3");
+  sg__wc.w[2052] = STRINGW("expected endianness, but got ~r, as argument 3");
+  sg__wc.w[1030] = WORD(&sg__wc.cb[31]);
+  sg__wc.cb[31].name = SYMBOL("loop");
+  sg__wc.w[171] = WORD(&sg__wc.cb[64]);
+  sg__wc.cb[64].name = SYMBOL("char-ci>=?");
+  sg__wc.w[175] = WORD(&sg__wc.cb[65]);
+  sg__wc.cb[65].name = SYMBOL("string-ci=?");
+  sg__wc.w[1250] = STRINGW("given list it too short");
+  sg__wc.w[191] = WORD(&sg__wc.cb[69]);
+  sg__wc.cb[69].name = SYMBOL("string-ci>=?");
+  sg__wc.w[211] = WORD(&sg__wc.cb[74]);
+  sg__wc.cb[74].name = SYMBOL("bytevector->uint-list");
+  sg__wc.w[271] = WORD(&sg__wc.cb[97]);
+  sg__wc.cb[97].name = SYMBOL("remq");
+  sg__wc.w[2699] = STRINGW("expected same length chains of pairs");
+  sg__wc.w[2951] = STRINGW("expected same length chains of pairs");
+  sg__wc.w[3545] = WORD(&sg__wc.cb[98]);
+  sg__wc.cb[98].name = SYMBOL("loop");
+  sg__wc.w[227] = WORD(&sg__wc.cb[78]);
+  sg__wc.cb[78].name = SYMBOL("for-all");
+  sg__wc.w[2667] = WORD(&sg__wc.cb[79]);
+  sg__wc.cb[79].name = SYMBOL("collect-car");
   sg__wc.w[2919] = WORD(&sg__wc.cb[82]);
   sg__wc.cb[82].name = SYMBOL("collect-car");
   sg__wc.w[235] = WORD(&sg__wc.cb[84]);
   sg__wc.cb[84].name = SYMBOL("filter");
-  sg__wc.w[167] = WORD(&sg__wc.cb[63]);
-  sg__wc.cb[63].name = SYMBOL("char-ci<=?");
-  sg__wc.w[3469] = WORD(&sg__wc.cb[94]);
-  sg__wc.cb[94].name = SYMBOL("loop");
+  sg__wc.w[334] = WORD(&sg__wc.cb[1]);
+  sg__wc.cb[1].name = SYMBOL("default-protocol");
+  sg__wc.w[95] = WORD(&sg__wc.cb[34]);
+  sg__wc.cb[34].name = SYMBOL("default-protocol");
+  sg__wc.w[1155] = WORD(&sg__wc.cb[35]);
+  sg__wc.cb[35].name = SYMBOL("default-protocol");
+  sg__wc.w[43] = WORD(&sg__wc.cb[11]);
+  sg__wc.cb[11].name = SYMBOL("unique-id-list?");
+  sg__wc.w[115] = WORD(&sg__wc.cb[41]);
+  sg__wc.cb[41].name = SYMBOL("assoc");
+  sg__wc.w[55] = WORD(&sg__wc.cb[17]);
+  sg__wc.cb[17].name = SYMBOL("safe-length");
+  sg__wc.w[123] = WORD(&sg__wc.cb[45]);
+  sg__wc.cb[45].name = SYMBOL("delete");
+  sg__wc.w[79] = WORD(&sg__wc.cb[23]);
+  sg__wc.cb[23].name = SYMBOL("string-for-each");
+  sg__wc.w[876] = STRINGW("opaque ");
+  sg__wc.w[775] = STRINGW("expected ~a, but got ~a, as argument ~a");
+  sg__wc.w[135] = WORD(&sg__wc.cb[52]);
+  sg__wc.cb[52].name = SYMBOL("lset-intersection");
+  sg__wc.w[983] = WORD(&sg__wc.cb[30]);
+  sg__wc.cb[30].name = SYMBOL("loop");
+  sg__wc.w[179] = WORD(&sg__wc.cb[66]);
+  sg__wc.cb[66].name = SYMBOL("string-ci<?");
+  sg__wc.w[323] = WORD(&sg__wc.cb[115]);
+  sg__wc.cb[115].name = SYMBOL("hashtable-equivalence-function");
+  sg__wc.w[183] = WORD(&sg__wc.cb[67]);
+  sg__wc.cb[67].name = SYMBOL("string-ci>?");
+  sg__wc.w[195] = WORD(&sg__wc.cb[70]);
+  sg__wc.cb[70].name = SYMBOL("bytevector-uint-ref");
+  sg__wc.w[215] = WORD(&sg__wc.cb[75]);
+  sg__wc.cb[75].name = SYMBOL("bytevector->sint-list");
+  sg__wc.w[283] = WORD(&sg__wc.cb[101]);
+  sg__wc.cb[101].name = SYMBOL("list-sort");
+  sg__wc.w[3946] = WORD(&sg__wc.cb[105]);
+  sg__wc.cb[105].name = SYMBOL("sort!");
+  sg__wc.w[299] = WORD(&sg__wc.cb[107]);
+  sg__wc.cb[107].name = SYMBOL("open-bytevector-output-port");
+  sg__wc.w[1] = WORD(&sg__wc.cb[0]);
+  sg__wc.cb[0].name = SYMBOL("(default-protocol default-protocol)");
+  sg__wc.w[103] = WORD(&sg__wc.cb[38]);
+  sg__wc.cb[38].name = SYMBOL("split-at");
+  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
+  sg__wc.cb[10].name = SYMBOL("hashtable->alist");
+  sg__wc.w[625] = WORD(&sg__wc.cb[16]);
+  sg__wc.cb[16].name = SYMBOL("compare");
+  sg__wc.w[1382] = WORD(&sg__wc.cb[44]);
+  sg__wc.cb[44].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[83] = WORD(&sg__wc.cb[24]);
+  sg__wc.cb[24].name = SYMBOL("record-printer");
+  sg__wc.w[75] = WORD(&sg__wc.cb[22]);
+  sg__wc.cb[22].name = SYMBOL("vector-for-each");
+  sg__wc.w[131] = WORD(&sg__wc.cb[48]);
+  sg__wc.cb[48].name = SYMBOL("lset-union");
+  sg__wc.w[1520] = WORD(&sg__wc.cb[51]);
+  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[139] = WORD(&sg__wc.cb[55]);
+  sg__wc.cb[55].name = SYMBOL("lset-difference");
+  sg__wc.w[1084] = WORD(&sg__wc.cb[33]);
+  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[319] = WORD(&sg__wc.cb[114]);
+  sg__wc.cb[114].name = SYMBOL("hashtable-entries");
+  sg__wc.w[327] = WORD(&sg__wc.cb[116]);
+  sg__wc.cb[116].name = SYMBOL("hashtable-hash-function");
   sg__wc.w[1293] = STRINGW("procedure");
   sg__wc.w[1436] = STRINGW("procedure");
   sg__wc.w[1472] = STRINGW("procedure");
   sg__wc.w[1554] = STRINGW("procedure");
   sg__wc.w[1627] = STRINGW("procedure");
   sg__wc.w[3639] = STRINGW("procedure");
-  sg__wc.w[279] = WORD(&sg__wc.cb[100]);
-  sg__wc.cb[100].name = SYMBOL("assp");
-  sg__wc.w[191] = WORD(&sg__wc.cb[69]);
-  sg__wc.cb[69].name = SYMBOL("string-ci>=?");
-  sg__wc.w[13] = WORD(&sg__wc.cb[4]);
-  sg__wc.cb[4].name = SYMBOL("(for-all collect-cdr)");
-  sg__wc.w[39] = WORD(&sg__wc.cb[10]);
-  sg__wc.cb[10].name = SYMBOL("hashtable->alist");
-  sg__wc.w[199] = WORD(&sg__wc.cb[71]);
-  sg__wc.cb[71].name = SYMBOL("bytevector-sint-ref");
-  sg__wc.w[625] = WORD(&sg__wc.cb[16]);
-  sg__wc.cb[16].name = SYMBOL("compare");
-  sg__wc.w[75] = WORD(&sg__wc.cb[22]);
-  sg__wc.cb[22].name = SYMBOL("vector-for-each");
-  sg__wc.w[83] = WORD(&sg__wc.cb[24]);
-  sg__wc.cb[24].name = SYMBOL("record-printer");
-  sg__wc.w[990] = WORD(&sg__wc.cb[28]);
-  sg__wc.cb[28].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[1195] = STRINGW("argument out of domain");
-  sg__wc.w[861] = STRINGW("#<record ~s ~a~a ~a>");
-  sg__wc.w[315] = WORD(&sg__wc.cb[113]);
-  sg__wc.cb[113].name = SYMBOL("hashtable-update!");
-  sg__wc.w[1084] = WORD(&sg__wc.cb[33]);
-  sg__wc.cb[33].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[4314] = STRINGW("mutable hashtable");
-  sg__wc.w[223] = WORD(&sg__wc.cb[77]);
-  sg__wc.cb[77].name = SYMBOL("sint-list->bytevector");
-  sg__wc.w[119] = WORD(&sg__wc.cb[43]);
-  sg__wc.cb[43].name = SYMBOL("member");
-  sg__wc.w[1520] = WORD(&sg__wc.cb[51]);
-  sg__wc.cb[51].name = SG_MAKE_BOOL(FALSE);
-  sg__wc.w[139] = WORD(&sg__wc.cb[55]);
-  sg__wc.cb[55].name = SYMBOL("lset-difference");
-  sg__wc.w[263] = WORD(&sg__wc.cb[93]);
-  sg__wc.cb[93].name = SYMBOL("remove");
-  sg__wc.w[171] = WORD(&sg__wc.cb[64]);
-  sg__wc.cb[64].name = SYMBOL("char-ci>=?");
-  sg__wc.w[275] = WORD(&sg__wc.cb[99]);
-  sg__wc.cb[99].name = SYMBOL("memp");
-  sg__wc.w[9] = WORD(&sg__wc.cb[3]);
-  sg__wc.cb[3].name = SYMBOL("(for-all loop)");
-  sg__wc.w[195] = WORD(&sg__wc.cb[70]);
-  sg__wc.cb[70].name = SYMBOL("bytevector-uint-ref");
-  sg__wc.w[620] = WORD(&sg__wc.cb[15]);
-  sg__wc.cb[15].name = SYMBOL("rename");
+  sg__wc.w[207] = WORD(&sg__wc.cb[73]);
+  sg__wc.cb[73].name = SYMBOL("bytevector-sint-set!");
+  sg__wc.w[255] = WORD(&sg__wc.cb[90]);
+  sg__wc.cb[90].name = SYMBOL("fold-right");
+  sg__wc.w[219] = WORD(&sg__wc.cb[76]);
+  sg__wc.cb[76].name = SYMBOL("uint-list->bytevector");
+  sg__wc.w[243] = WORD(&sg__wc.cb[87]);
+  sg__wc.cb[87].name = SYMBOL("map");
+  sg__wc.w[4236] = WORD(&sg__wc.cb[108]);
+  sg__wc.cb[108].name = SYMBOL("proc");
+  sg__wc.w[247] = WORD(&sg__wc.cb[88]);
+  sg__wc.cb[88].name = SYMBOL("for-each");
+  sg__wc.w[17] = WORD(&sg__wc.cb[5]);
+  sg__wc.cb[5].name = SYMBOL("(exists loop)");
+  sg__wc.w[4253] = WORD(&sg__wc.cb[110]);
+  sg__wc.cb[110].name = SYMBOL("proc");
   sg__wc.w[35] = WORD(&sg__wc.cb[9]);
   sg__wc.cb[9].name = SYMBOL("hashtable-map");
+  sg__wc.w[620] = WORD(&sg__wc.cb[15]);
+  sg__wc.cb[15].name = SYMBOL("rename");
+  sg__wc.w[119] = WORD(&sg__wc.cb[43]);
+  sg__wc.cb[43].name = SYMBOL("member");
   sg__wc.w[71] = WORD(&sg__wc.cb[21]);
   sg__wc.cb[21].name = SYMBOL("vector-map");
-  sg__wc.w[265] = IDENT("remove", lib);
-  sg__wc.w[604] = IDENT("current-usage-env", lib);
-  sg__wc.w[57] = IDENT("safe-length", lib);
-  sg__wc.w[4342] = IDENT("hashtable-set!", lib);
-  sg__wc.w[261] = IDENT("remp", lib);
-  sg__wc.w[137] = IDENT("lset-intersection", lib);
-  sg__wc.w[4183] = IDENT("values", lib);
-  sg__wc.w[253] = IDENT("fold-left", lib);
-  sg__wc.w[968] = IDENT("rcd-parent", lib);
-  sg__wc.w[609] = IDENT("current-macro-env", lib);
-  sg__wc.w[866] = IDENT("record-type-name", lib);
-  sg__wc.w[4249] = IDENT("open-output-string", lib);
-  sg__wc.w[93] = IDENT("make-simple-conser", lib);
-  sg__wc.w[313] = IDENT("call-with-string-output-port", lib);
-  sg__wc.w[325] = IDENT("hashtable-equivalence-function", lib);
-  sg__wc.w[1454] = sg__wc.w[65] = sg__wc.w[1513] = IDENT("fold", lib);
-  sg__wc.w[81] = IDENT("string-for-each", lib);
-  sg__wc.w[1653] = IDENT("memq", lib);
-  sg__wc.w[539] = IDENT("cons", lib);
-  sg__wc.w[4501] = IDENT("equal-hash", lib);
-  sg__wc.w[273] = IDENT("remq", lib);
-  sg__wc.w[4302] = IDENT("hashtable-mutable?", lib);
-  sg__wc.w[847] = IDENT("current-output-port", lib);
-  sg__wc.w[89] = IDENT("make-nested-conser", lib);
-  sg__wc.w[257] = IDENT("fold-right", lib);
-  sg__wc.w[2981] = sg__wc.w[2932] = sg__wc.w[2915] = sg__wc.w[23] = UNSIDENT("G10814", lib);
-  sg__wc.w[560] = IDENT("variable?", lib);
-  sg__wc.w[269] = IDENT("remv", lib);
-  sg__wc.w[1142] = IDENT("record-type-parent", lib);
-  sg__wc.w[293] = IDENT("vector-sort!", lib);
-  sg__wc.w[213] = IDENT("bytevector->uint-list", lib);
-  sg__wc.w[900] = IDENT("tuple-size", lib);
-  sg__wc.w[173] = IDENT("char-ci>=?", lib);
-  sg__wc.w[217] = IDENT("bytevector->sint-list", lib);
-  sg__wc.w[177] = IDENT("string-ci=?", lib);
-  sg__wc.w[181] = IDENT("string-ci<?", lib);
-  sg__wc.w[185] = IDENT("string-ci>?", lib);
-  sg__wc.w[321] = IDENT("hashtable-entries", lib);
-  sg__wc.w[2728] = sg__wc.w[2680] = sg__wc.w[2663] = sg__wc.w[15] = UNSIDENT("G10818", lib);
-  sg__wc.w[872] = IDENT("record-type-opaque?", lib);
-  sg__wc.w[189] = IDENT("string-ci<=?", lib);
-  sg__wc.w[241] = IDENT("partition", lib);
-  sg__wc.w[193] = IDENT("string-ci>=?", lib);
-  sg__wc.w[1524] = sg__wc.w[1577] = sg__wc.w[233] = IDENT("exists", lib);
-  sg__wc.w[73] = IDENT("vector-map", lib);
-  sg__wc.w[281] = sg__wc.w[3613] = IDENT("assp", lib);
-  sg__wc.w[4448] = IDENT("hashtable-compare", lib);
-  sg__wc.w[2477] = sg__wc.w[205] = sg__wc.w[2283] = sg__wc.w[2302] = IDENT("bytevector-uint-set!", lib);
-  sg__wc.w[97] = IDENT("default-protocol", lib);
+  sg__wc.w[1508] = WORD(&sg__wc.cb[50]);
+  sg__wc.cb[50].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1599] = WORD(&sg__wc.cb[54]);
+  sg__wc.cb[54].name = SG_MAKE_BOOL(FALSE);
+  sg__wc.w[1195] = STRINGW("argument out of domain");
+  sg__wc.w[143] = WORD(&sg__wc.cb[58]);
+  sg__wc.cb[58].name = SYMBOL("take");
+  sg__wc.w[155] = WORD(&sg__wc.cb[60]);
+  sg__wc.cb[60].name = SYMBOL("char-ci=?");
+  sg__wc.w[91] = WORD(&sg__wc.cb[32]);
+  sg__wc.cb[32].name = SYMBOL("make-simple-conser");
+  sg__wc.w[4360] = STRINGW("hashtable");
+  sg__wc.w[4396] = STRINGW("hashtable");
+  sg__wc.w[4468] = STRINGW("hashtable");
+  sg__wc.w[890] = STRINGW("sealed ");
+  sg__wc.w[2377] = STRINGW("expected appropriate element size as argument 3, but got ~r");
+  sg__wc.w[2436] = STRINGW("expected appropriate element size as argument 3, but got ~r");
+  sg__wc.w[4203] = STRINGW("wrong number of argument: expected between 0 and 1, but got ~a");
+  sg__wc.w[251] = WORD(&sg__wc.cb[89]);
+  sg__wc.cb[89].name = SYMBOL("fold-left");
+  sg__wc.w[263] = WORD(&sg__wc.cb[93]);
+  sg__wc.cb[93].name = SYMBOL("remove");
+  sg__wc.w[3509] = WORD(&sg__wc.cb[96]);
+  sg__wc.cb[96].name = SYMBOL("loop");
+  sg__wc.w[289] = IDENT("vector-sort", lib);
   sg__wc.w[4181] = IDENT("close-port", lib);
-  sg__wc.w[1718] = sg__wc.w[1713] = sg__wc.w[357] = sg__wc.w[7] = UNSIDENT("G10822", lib);
-  sg__wc.w[1401] = sg__wc.w[1569] = sg__wc.w[125] = IDENT("delete", lib);
-  sg__wc.w[647] = sg__wc.w[654] = IDENT("identifier?", lib);
-  sg__wc.w[129] = sg__wc.w[1488] = IDENT("reduce", lib);
-  sg__wc.w[4371] = IDENT("hashtable-keys", lib);
-  sg__wc.w[707] = IDENT("display", lib);
-  sg__wc.w[2515] = sg__wc.w[209] = IDENT("bytevector-sint-set!", lib);
-  sg__wc.w[305] = sg__wc.w[4281] = IDENT("open-string-output-port", lib);
-  sg__wc.w[41] = IDENT("hashtable->alist", lib);
-  sg__wc.w[835] = sg__wc.w[830] = IDENT("string->list", lib);
-  sg__wc.w[1114] = sg__wc.w[1057] = IDENT("make-tuple", lib);
   sg__wc.w[3417] = IDENT("append!", lib);
+  sg__wc.w[872] = IDENT("record-type-opaque?", lib);
   sg__wc.w[4423] = IDENT("eqv?", lib);
+  sg__wc.w[2981] = sg__wc.w[2932] = sg__wc.w[2915] = sg__wc.w[23] = UNSIDENT("G10807", lib);
+  sg__wc.w[81] = IDENT("string-for-each", lib);
+  sg__wc.w[4232] = IDENT("open-output-bytevector", lib);
+  sg__wc.w[313] = IDENT("call-with-string-output-port", lib);
+  sg__wc.w[157] = IDENT("char-ci=?", lib);
+  sg__wc.w[213] = IDENT("bytevector->uint-list", lib);
+  sg__wc.w[137] = IDENT("lset-intersection", lib);
+  sg__wc.w[49] = IDENT("call-with-values", lib);
+  sg__wc.w[4302] = IDENT("hashtable-mutable?", lib);
+  sg__wc.w[161] = IDENT("char-ci<?", lib);
+  sg__wc.w[329] = IDENT("hashtable-hash-function", lib);
+  sg__wc.w[241] = IDENT("partition", lib);
+  sg__wc.w[2728] = sg__wc.w[2680] = sg__wc.w[2663] = sg__wc.w[15] = UNSIDENT("G10811", lib);
+  sg__wc.w[1798] = IDENT("char<=?", lib);
+  sg__wc.w[165] = IDENT("char-ci>?", lib);
+  sg__wc.w[1809] = IDENT("char>=?", lib);
+  sg__wc.w[109] = sg__wc.w[1362] = IDENT("find", lib);
+  sg__wc.w[4509] = IDENT("string-hash", lib);
+  sg__wc.w[4342] = IDENT("hashtable-set!", lib);
+  sg__wc.w[217] = IDENT("bytevector->sint-list", lib);
+  sg__wc.w[1831] = IDENT("string<?", lib);
+  sg__wc.w[571] = IDENT("id-memq", lib);
+  sg__wc.w[886] = IDENT("record-type-sealed?", lib);
+  sg__wc.w[968] = IDENT("rcd-parent", lib);
+  sg__wc.w[1842] = IDENT("string>?", lib);
+  sg__wc.w[257] = IDENT("fold-right", lib);
+  sg__wc.w[253] = IDENT("fold-left", lib);
+  sg__wc.w[1718] = sg__wc.w[1713] = sg__wc.w[357] = sg__wc.w[7] = UNSIDENT("G10815", lib);
+  sg__wc.w[53] = IDENT("er-macro-transformer", lib);
+  sg__wc.w[511] = sg__wc.w[527] = IDENT("hashtable-keys-list", lib);
+  sg__wc.w[1653] = IDENT("memq", lib);
+  sg__wc.w[3086] = sg__wc.w[3092] = sg__wc.w[3367] = IDENT("reverse", lib);
+  sg__wc.w[599] = IDENT("make-eq-hashtable", lib);
+  sg__wc.w[539] = IDENT("cons", lib);
+  sg__wc.w[707] = IDENT("display", lib);
+  sg__wc.w[4266] = sg__wc.w[301] = IDENT("open-bytevector-output-port", lib);
+  sg__wc.w[151] = sg__wc.w[145] = IDENT("take", lib);
+  sg__wc.w[1820] = sg__wc.w[4439] = IDENT("string=?", lib);
+  sg__wc.w[325] = IDENT("hashtable-equivalence-function", lib);
+  sg__wc.w[517] = sg__wc.w[533] = IDENT("hashtable-values-list", lib);
+  sg__wc.w[604] = IDENT("current-usage-env", lib);
+  sg__wc.w[1142] = IDENT("record-type-parent", lib);
+  sg__wc.w[712] = IDENT("newline", lib);
+  sg__wc.w[4244] = IDENT("extract-output-bytevector", lib);
+  sg__wc.w[1751] = sg__wc.w[1232] = sg__wc.w[344] = IDENT("zero?", lib);
+  sg__wc.w[261] = IDENT("remp", lib);
+  sg__wc.w[1765] = IDENT("char=?", lib);
+  sg__wc.w[57] = IDENT("safe-length", lib);
+  sg__wc.w[1776] = IDENT("char<?", lib);
+  sg__wc.w[1868] = sg__wc.w[1824] = sg__wc.w[1835] = sg__wc.w[1846] = sg__wc.w[1857] = IDENT("string-foldcase", lib);
+  sg__wc.w[309] = IDENT("call-with-bytevector-output-port", lib);
+  sg__wc.w[1488] = sg__wc.w[129] = IDENT("reduce", lib);
+  sg__wc.w[1787] = IDENT("char>?", lib);
+  sg__wc.w[3936] = IDENT("make-vector", lib);
+  sg__wc.w[609] = IDENT("current-macro-env", lib);
+  sg__wc.w[321] = IDENT("hashtable-entries", lib);
+  sg__wc.w[3910] = sg__wc.w[285] = IDENT("list-sort", lib);
+  sg__wc.w[671] = IDENT("identifier=?", lib);
+  sg__wc.w[1401] = sg__wc.w[1569] = sg__wc.w[125] = IDENT("delete", lib);
+  sg__wc.w[33] = IDENT("hashtable-for-each", lib);
+  sg__wc.w[3885] = sg__wc.w[3855] = sg__wc.w[3740] = sg__wc.w[3619] = sg__wc.w[27] = UNSIDENT("G10805", lib);
+  sg__wc.w[4261] = IDENT("extract-output-string", lib);
+  sg__wc.w[77] = IDENT("vector-for-each", lib);
+  sg__wc.w[149] = IDENT("drop", lib);
+  sg__wc.w[293] = IDENT("vector-sort!", lib);
+  sg__wc.w[4407] = sg__wc.w[4479] = IDENT("hashtable-type", lib);
+  sg__wc.w[41] = IDENT("hashtable->alist", lib);
+  sg__wc.w[97] = IDENT("default-protocol", lib);
+  sg__wc.w[1802] = sg__wc.w[1813] = sg__wc.w[1769] = sg__wc.w[1780] = sg__wc.w[1791] = IDENT("char-foldcase", lib);
+  sg__wc.w[297] = IDENT("call-with-port", lib);
+  sg__wc.w[4501] = IDENT("equal-hash", lib);
+  sg__wc.w[61] = IDENT("print", lib);
+  sg__wc.w[924] = sg__wc.w[857] = IDENT("tuple-ref", lib);
+  sg__wc.w[2498] = sg__wc.w[2460] = IDENT("make-bytevector", lib);
+  sg__wc.w[1438] = IDENT("=", lib);
+  sg__wc.w[2114] = sg__wc.w[2268] = IDENT("<", lib);
+  sg__wc.w[560] = IDENT("variable?", lib);
+  sg__wc.w[133] = IDENT("lset-union", lib);
+  sg__wc.w[2211] = sg__wc.w[2160] = IDENT("bitwise-arithmetic-shift", lib);
+  sg__wc.w[4371] = IDENT("hashtable-keys", lib);
+  sg__wc.w[93] = IDENT("make-simple-conser", lib);
+  sg__wc.w[430] = sg__wc.w[426] = sg__wc.w[418] = sg__wc.w[408] = sg__wc.w[19] = UNSIDENT("G10809", lib);
+  sg__wc.w[193] = IDENT("string-ci>=?", lib);
+  sg__wc.w[2416] = sg__wc.w[201] = IDENT("bytevector-sint-ref", lib);
+  sg__wc.w[2477] = sg__wc.w[2283] = sg__wc.w[2302] = sg__wc.w[205] = IDENT("bytevector-uint-set!", lib);
+  sg__wc.w[153] = sg__wc.w[3735] = IDENT("list-head", lib);
+  sg__wc.w[221] = IDENT("uint-list->bytevector", lib);
+  sg__wc.w[101] = IDENT("null-list?", lib);
+  sg__wc.w[2357] = sg__wc.w[2002] = sg__wc.w[2030] = sg__wc.w[1987] = sg__wc.w[2045] = sg__wc.w[197] = IDENT("bytevector-uint-ref", lib);
+  sg__wc.w[2136] = sg__wc.w[2245] = sg__wc.w[2082] = sg__wc.w[3244] = sg__wc.w[2329] = sg__wc.w[2187] = sg__wc.w[3291] = IDENT("undefined", lib);
+  sg__wc.w[1325] = sg__wc.w[548] = IDENT("list?", lib);
+  sg__wc.w[4183] = IDENT("values", lib);
+  sg__wc.w[121] = sg__wc.w[1682] = sg__wc.w[1377] = sg__wc.w[1609] = IDENT("member", lib);
+  sg__wc.w[1725] = sg__wc.w[1689] = sg__wc.w[1204] = IDENT("integer?", lib);
+  sg__wc.w[4249] = IDENT("open-output-string", lib);
+  sg__wc.w[2610] = sg__wc.w[2861] = IDENT("list-transpose+", lib);
+  sg__wc.w[4377] = IDENT("hashtable-values", lib);
+  sg__wc.w[1638] = IDENT("pair?", lib);
+  sg__wc.w[3592] = sg__wc.w[277] = IDENT("memp", lib);
+  sg__wc.w[394] = sg__wc.w[390] = sg__wc.w[382] = sg__wc.w[372] = sg__wc.w[11] = UNSIDENT("G10813", lib);
+  sg__wc.w[225] = IDENT("sint-list->bytevector", lib);
+  sg__wc.w[3932] = sg__wc.w[3791] = sg__wc.w[3971] = IDENT("div", lib);
+  sg__wc.w[233] = sg__wc.w[1577] = sg__wc.w[1524] = IDENT("exists", lib);
+  sg__wc.w[37] = sg__wc.w[542] = IDENT("hashtable-map", lib);
+  sg__wc.w[1055] = sg__wc.w[85] = sg__wc.w[1112] = IDENT("record-printer", lib);
+  sg__wc.w[824] = sg__wc.w[806] = sg__wc.w[249] = sg__wc.w[520] = sg__wc.w[710] = IDENT("for-each", lib);
+  sg__wc.w[4336] = IDENT("hashtable-ref", lib);
+  sg__wc.w[2148] = sg__wc.w[2199] = IDENT("bitwise-and", lib);
+  sg__wc.w[647] = sg__wc.w[654] = IDENT("identifier?", lib);
+  sg__wc.w[281] = sg__wc.w[3613] = IDENT("assp", lib);
+  sg__wc.w[317] = IDENT("hashtable-update!", lib);
+  sg__wc.w[1353] = sg__wc.w[117] = IDENT("assoc", lib);
+  sg__wc.w[803] = sg__wc.w[3920] = IDENT("list->vector", lib);
+  sg__wc.w[2515] = sg__wc.w[209] = IDENT("bytevector-sint-set!", lib);
+  sg__wc.w[1853] = IDENT("string<=?", lib);
+  sg__wc.w[1158] = sg__wc.w[3] = UNSIDENT("G10817", lib);
+  sg__wc.w[830] = sg__wc.w[835] = IDENT("string->list", lib);
+  sg__wc.w[2335] = sg__wc.w[2394] = IDENT("bytevector-length", lib);
+  sg__wc.w[913] = sg__wc.w[3201] = sg__wc.w[1239] = sg__wc.w[3398] = sg__wc.w[3148] = IDENT("reverse!", lib);
+  sg__wc.w[1270] = sg__wc.w[1386] = sg__wc.w[113] = IDENT("find-tail", lib);
+  sg__wc.w[1114] = sg__wc.w[1057] = IDENT("make-tuple", lib);
   sg__wc.w[4518] = IDENT("hashtable-hasher", lib);
   sg__wc.w[641] = IDENT("er-rename", lib);
-  sg__wc.w[145] = sg__wc.w[151] = IDENT("take", lib);
-  sg__wc.w[309] = IDENT("call-with-bytevector-output-port", lib);
-  sg__wc.w[662] = IDENT("free-identifier=?", lib);
-  sg__wc.w[886] = IDENT("record-type-sealed?", lib);
-  sg__wc.w[1798] = IDENT("char<=?", lib);
-  sg__wc.w[4377] = IDENT("hashtable-values", lib);
-  sg__wc.w[712] = IDENT("newline", lib);
-  sg__wc.w[2460] = sg__wc.w[2498] = IDENT("make-bytevector", lib);
-  sg__wc.w[1809] = IDENT("char>=?", lib);
-  sg__wc.w[3920] = sg__wc.w[803] = IDENT("list->vector", lib);
-  sg__wc.w[4232] = IDENT("open-output-bytevector", lib);
-  sg__wc.w[1325] = sg__wc.w[548] = IDENT("list?", lib);
-  sg__wc.w[1682] = sg__wc.w[1377] = sg__wc.w[121] = sg__wc.w[1609] = IDENT("member", lib);
-  sg__wc.w[1070] = sg__wc.w[1127] = IDENT("tuple-list-set!", lib);
-  sg__wc.w[1831] = IDENT("string<?", lib);
-  sg__wc.w[4261] = IDENT("extract-output-string", lib);
-  sg__wc.w[4336] = IDENT("hashtable-ref", lib);
-  sg__wc.w[289] = IDENT("vector-sort", lib);
-  sg__wc.w[329] = IDENT("hashtable-hash-function", lib);
-  sg__wc.w[157] = IDENT("char-ci=?", lib);
-  sg__wc.w[1842] = IDENT("string>?", lib);
-  sg__wc.w[671] = IDENT("identifier=?", lib);
-  sg__wc.w[77] = IDENT("vector-for-each", lib);
-  sg__wc.w[1638] = IDENT("pair?", lib);
-  sg__wc.w[161] = IDENT("char-ci<?", lib);
-  sg__wc.w[1853] = IDENT("string<=?", lib);
-  sg__wc.w[3936] = IDENT("make-vector", lib);
-  sg__wc.w[527] = sg__wc.w[511] = IDENT("hashtable-keys-list", lib);
-  sg__wc.w[165] = IDENT("char-ci>?", lib);
-  sg__wc.w[1864] = IDENT("string>=?", lib);
-  sg__wc.w[169] = IDENT("char-ci<=?", lib);
-  sg__wc.w[2296] = sg__wc.w[2256] = sg__wc.w[2111] = sg__wc.w[2037] = sg__wc.w[1994] = IDENT("expt", lib);
-  sg__wc.w[1975] = sg__wc.w[1939] = sg__wc.w[1903] = sg__wc.w[2018] = IDENT("bytevector-u8-ref", lib);
-  sg__wc.w[3885] = sg__wc.w[3855] = sg__wc.w[3740] = sg__wc.w[3619] = sg__wc.w[27] = UNSIDENT("G10812", lib);
-  sg__wc.w[2160] = sg__wc.w[2211] = IDENT("bitwise-arithmetic-shift", lib);
-  sg__wc.w[2045] = sg__wc.w[2002] = sg__wc.w[197] = sg__wc.w[2030] = sg__wc.w[1987] = sg__wc.w[2357] = IDENT("bytevector-uint-ref", lib);
-  sg__wc.w[4266] = sg__wc.w[301] = IDENT("open-bytevector-output-port", lib);
-  sg__wc.w[61] = IDENT("print", lib);
-  sg__wc.w[221] = IDENT("uint-list->bytevector", lib);
-  sg__wc.w[225] = IDENT("sint-list->bytevector", lib);
+  sg__wc.w[866] = IDENT("record-type-name", lib);
+  sg__wc.w[796] = sg__wc.w[817] = sg__wc.w[791] = sg__wc.w[812] = sg__wc.w[3903] = IDENT("vector->list", lib);
   sg__wc.w[1151] = IDENT("rtd-total-field-count", lib);
+  sg__wc.w[3337] = sg__wc.w[3268] = sg__wc.w[739] = sg__wc.w[3172] = sg__wc.w[3392] = IDENT("list-transpose*", lib);
+  sg__wc.w[4281] = sg__wc.w[305] = IDENT("open-string-output-port", lib);
+  sg__wc.w[662] = IDENT("free-identifier=?", lib);
+  sg__wc.w[73] = IDENT("vector-map", lib);
   sg__wc.w[1252] = IDENT("error", lib);
-  sg__wc.w[2416] = sg__wc.w[201] = IDENT("bytevector-sint-ref", lib);
-  sg__wc.w[3086] = sg__wc.w[3092] = sg__wc.w[3367] = IDENT("reverse", lib);
-  sg__wc.w[4407] = sg__wc.w[4479] = IDENT("hashtable-type", lib);
-  sg__wc.w[533] = sg__wc.w[517] = IDENT("hashtable-values-list", lib);
-  sg__wc.w[1108] = sg__wc.w[2687] = sg__wc.w[1051] = sg__wc.w[2654] = sg__wc.w[4208] = sg__wc.w[2939] = sg__wc.w[3704] = sg__wc.w[4191] = sg__wc.w[2906] = sg__wc.w[2456] = sg__wc.w[2494] = sg__wc.w[1097] = sg__wc.w[1040] = IDENT("length", lib);
-  sg__wc.w[1824] = sg__wc.w[1835] = sg__wc.w[1846] = sg__wc.w[1857] = sg__wc.w[1868] = IDENT("string-foldcase", lib);
-  sg__wc.w[85] = sg__wc.w[1055] = sg__wc.w[1112] = IDENT("record-printer", lib);
-  sg__wc.w[3971] = sg__wc.w[3932] = sg__wc.w[3791] = IDENT("div", lib);
-  sg__wc.w[1820] = sg__wc.w[4439] = IDENT("string=?", lib);
-  sg__wc.w[430] = sg__wc.w[426] = sg__wc.w[418] = sg__wc.w[408] = sg__wc.w[19] = UNSIDENT("G10816", lib);
-  sg__wc.w[1424] = sg__wc.w[1281] = sg__wc.w[1460] = sg__wc.w[1615] = sg__wc.w[1542] = sg__wc.w[3626] = IDENT("procedure?", lib);
-  sg__wc.w[49] = IDENT("call-with-values", lib);
-  sg__wc.w[3244] = sg__wc.w[2187] = sg__wc.w[3291] = sg__wc.w[2329] = sg__wc.w[2136] = sg__wc.w[2245] = sg__wc.w[2082] = IDENT("undefined", lib);
-  sg__wc.w[2199] = sg__wc.w[2148] = IDENT("bitwise-and", lib);
+  sg__wc.w[961] = sg__wc.w[1090] = sg__wc.w[1020] = IDENT("rcd-protocol", lib);
+  sg__wc.w[1460] = sg__wc.w[3626] = sg__wc.w[1281] = sg__wc.w[1615] = sg__wc.w[1424] = sg__wc.w[1542] = IDENT("procedure?", lib);
+  sg__wc.w[169] = IDENT("char-ci<=?", lib);
+  sg__wc.w[2202] = sg__wc.w[2151] = sg__wc.w[2091] = IDENT("bytevector-u8-set!", lib);
+  sg__wc.w[1375] = sg__wc.w[3486] = sg__wc.w[1351] = sg__wc.w[4431] = sg__wc.w[1399] = IDENT("equal?", lib);
+  sg__wc.w[4295] = sg__wc.w[4384] = sg__wc.w[4348] = sg__wc.w[4456] = IDENT("hashtable?", lib);
+  sg__wc.w[4415] = sg__wc.w[1567] = IDENT("eq?", lib);
+  sg__wc.w[173] = IDENT("char-ci>=?", lib);
+  sg__wc.w[2687] = sg__wc.w[4191] = sg__wc.w[1040] = sg__wc.w[1108] = sg__wc.w[2939] = sg__wc.w[3704] = sg__wc.w[1051] = sg__wc.w[2494] = sg__wc.w[2456] = sg__wc.w[2906] = sg__wc.w[1097] = sg__wc.w[4208] = sg__wc.w[2654] = IDENT("length", lib);
+  sg__wc.w[65] = sg__wc.w[1454] = sg__wc.w[1513] = IDENT("fold", lib);
   sg__wc.w[1574] = IDENT("null?", lib);
-  sg__wc.w[2610] = sg__wc.w[2861] = IDENT("list-transpose+", lib);
-  sg__wc.w[317] = IDENT("hashtable-update!", lib);
+  sg__wc.w[177] = IDENT("string-ci=?", lib);
+  sg__wc.w[1864] = IDENT("string>=?", lib);
+  sg__wc.w[1975] = sg__wc.w[1939] = sg__wc.w[2018] = sg__wc.w[1903] = IDENT("bytevector-u8-ref", lib);
+  sg__wc.w[847] = IDENT("current-output-port", lib);
+  sg__wc.w[89] = IDENT("make-nested-conser", lib);
+  sg__wc.w[265] = IDENT("remove", lib);
   sg__wc.w[45] = IDENT("unique-id-list?", lib);
-  sg__wc.w[1567] = sg__wc.w[4415] = IDENT("eq?", lib);
-  sg__wc.w[4509] = IDENT("string-hash", lib);
-  sg__wc.w[1438] = IDENT("=", lib);
   sg__wc.w[1674] = sg__wc.w[229] = sg__wc.w[1603] = IDENT("for-all", lib);
-  sg__wc.w[4244] = IDENT("extract-output-bytevector", lib);
-  sg__wc.w[1386] = sg__wc.w[113] = sg__wc.w[1270] = IDENT("find-tail", lib);
-  sg__wc.w[117] = sg__wc.w[1353] = IDENT("assoc", lib);
-  sg__wc.w[133] = IDENT("lset-union", lib);
+  sg__wc.w[181] = IDENT("string-ci<?", lib);
+  sg__wc.w[273] = IDENT("remq", lib);
+  sg__wc.w[1127] = sg__wc.w[1070] = IDENT("tuple-list-set!", lib);
+  sg__wc.w[1170] = sg__wc.w[105] = IDENT("split-at", lib);
   sg__wc.w[141] = IDENT("lset-difference", lib);
-  sg__wc.w[2151] = sg__wc.w[2091] = sg__wc.w[2202] = IDENT("bytevector-u8-set!", lib);
-  sg__wc.w[924] = sg__wc.w[857] = IDENT("tuple-ref", lib);
-  sg__wc.w[1020] = sg__wc.w[1090] = sg__wc.w[961] = IDENT("rcd-protocol", lib);
-  sg__wc.w[101] = IDENT("null-list?", lib);
-  sg__wc.w[394] = sg__wc.w[390] = sg__wc.w[382] = sg__wc.w[372] = sg__wc.w[11] = UNSIDENT("G10820", lib);
-  sg__wc.w[571] = IDENT("id-memq", lib);
-  sg__wc.w[2335] = sg__wc.w[2394] = IDENT("bytevector-length", lib);
-  sg__wc.w[1765] = IDENT("char=?", lib);
-  sg__wc.w[1751] = sg__wc.w[344] = sg__wc.w[1232] = IDENT("zero?", lib);
-  sg__wc.w[1641] = sg__wc.w[1594] = sg__wc.w[1665] = sg__wc.w[237] = sg__wc.w[1410] = IDENT("filter", lib);
-  sg__wc.w[791] = sg__wc.w[3903] = sg__wc.w[796] = sg__wc.w[817] = sg__wc.w[812] = IDENT("vector->list", lib);
-  sg__wc.w[33] = IDENT("hashtable-for-each", lib);
-  sg__wc.w[1776] = IDENT("char<?", lib);
-  sg__wc.w[3337] = sg__wc.w[3172] = sg__wc.w[739] = sg__wc.w[3392] = sg__wc.w[3268] = IDENT("list-transpose*", lib);
-  sg__wc.w[1689] = sg__wc.w[1725] = sg__wc.w[1204] = IDENT("integer?", lib);
-  sg__wc.w[4348] = sg__wc.w[4295] = sg__wc.w[4456] = sg__wc.w[4384] = IDENT("hashtable?", lib);
-  sg__wc.w[53] = IDENT("er-macro-transformer", lib);
-  sg__wc.w[520] = sg__wc.w[806] = sg__wc.w[249] = sg__wc.w[710] = sg__wc.w[824] = IDENT("for-each", lib);
-  sg__wc.w[542] = sg__wc.w[37] = IDENT("hashtable-map", lib);
-  sg__wc.w[1787] = IDENT("char>?", lib);
-  sg__wc.w[105] = sg__wc.w[1170] = IDENT("split-at", lib);
-  sg__wc.w[1362] = sg__wc.w[109] = IDENT("find", lib);
-  sg__wc.w[2268] = sg__wc.w[2114] = IDENT("<", lib);
-  sg__wc.w[599] = IDENT("make-eq-hashtable", lib);
-  sg__wc.w[297] = IDENT("call-with-port", lib);
-  sg__wc.w[285] = sg__wc.w[3910] = IDENT("list-sort", lib);
-  sg__wc.w[4431] = sg__wc.w[3486] = sg__wc.w[1351] = sg__wc.w[1399] = sg__wc.w[1375] = IDENT("equal?", lib);
-  sg__wc.w[3735] = sg__wc.w[153] = IDENT("list-head", lib);
-  sg__wc.w[1158] = sg__wc.w[3] = UNSIDENT("G10824", lib);
-  sg__wc.w[277] = sg__wc.w[3592] = IDENT("memp", lib);
-  sg__wc.w[1223] = sg__wc.w[4402] = sg__wc.w[2588] = sg__wc.w[2605] = sg__wc.w[2388] = sg__wc.w[3310] = sg__wc.w[3167] = sg__wc.w[4366] = sg__wc.w[2702] = sg__wc.w[1444] = sg__wc.w[1708] = sg__wc.w[1079] = sg__wc.w[1136] = sg__wc.w[2325] = sg__wc.w[2780] = sg__wc.w[4321] = sg__wc.w[2839] = sg__wc.w[2856] = sg__wc.w[4474] = sg__wc.w[1344] = sg__wc.w[2447] = sg__wc.w[2954] = sg__wc.w[1300] = sg__wc.w[2243] = sg__wc.w[3033] = sg__wc.w[4215] = sg__wc.w[3220] = sg__wc.w[3263] = sg__wc.w[1479] = sg__wc.w[1634] = sg__wc.w[1744] = sg__wc.w[1561] = sg__wc.w[1963] = sg__wc.w[2064] = sg__wc.w[3646] = sg__wc.w[1198] = IDENT("assertion-violation", lib);
-  sg__wc.w[772] = sg__wc.w[2581] = sg__wc.w[2598] = sg__wc.w[2380] = sg__wc.w[780] = sg__wc.w[2315] = sg__wc.w[2776] = sg__wc.w[2832] = sg__wc.w[2849] = sg__wc.w[2055] = sg__wc.w[935] = sg__wc.w[2439] = sg__wc.w[2233] = sg__wc.w[3029] = sg__wc.w[4211] = sg__wc.w[1954] = IDENT("format", lib);
-  sg__wc.w[1220] = sg__wc.w[4399] = sg__wc.w[3302] = sg__wc.w[3159] = sg__wc.w[4363] = sg__wc.w[69] = sg__wc.w[1441] = sg__wc.w[1705] = sg__wc.w[3212] = sg__wc.w[4318] = sg__wc.w[4471] = sg__wc.w[1341] = sg__wc.w[1297] = sg__wc.w[3255] = sg__wc.w[1476] = sg__wc.w[1631] = sg__wc.w[1741] = sg__wc.w[1558] = sg__wc.w[3643] = IDENT("wrong-type-argument-message", lib);
-  sg__wc.w[1805] = sg__wc.w[1816] = sg__wc.w[1827] = sg__wc.w[1838] = sg__wc.w[1849] = sg__wc.w[1860] = sg__wc.w[1871] = sg__wc.w[799] = sg__wc.w[1772] = sg__wc.w[1783] = sg__wc.w[1794] = sg__wc.w[838] = sg__wc.w[536] = sg__wc.w[785] = sg__wc.w[245] = sg__wc.w[820] = IDENT("map", lib);
-  sg__wc.w[149] = IDENT("drop", lib);
-  sg__wc.w[1791] = sg__wc.w[1802] = sg__wc.w[1813] = sg__wc.w[1769] = sg__wc.w[1780] = IDENT("char-foldcase", lib);
-  sg__wc.w[3398] = sg__wc.w[913] = sg__wc.w[3148] = sg__wc.w[1239] = sg__wc.w[3201] = IDENT("reverse!", lib);
-  sg__wc.w[1432] = SYMBOLW("reduce");
+  sg__wc.w[185] = IDENT("string-ci>?", lib);
+  sg__wc.w[900] = IDENT("tuple-size", lib);
+  sg__wc.w[4448] = IDENT("hashtable-compare", lib);
+  sg__wc.w[2296] = sg__wc.w[2256] = sg__wc.w[1994] = sg__wc.w[2111] = sg__wc.w[2037] = IDENT("expt", lib);
+  sg__wc.w[189] = IDENT("string-ci<=?", lib);
+  sg__wc.w[1641] = sg__wc.w[1594] = sg__wc.w[237] = sg__wc.w[1665] = sg__wc.w[1410] = IDENT("filter", lib);
+  sg__wc.w[3212] = sg__wc.w[1441] = sg__wc.w[1558] = sg__wc.w[4471] = sg__wc.w[4399] = sg__wc.w[4363] = sg__wc.w[1741] = sg__wc.w[1476] = sg__wc.w[3159] = sg__wc.w[4318] = sg__wc.w[3643] = sg__wc.w[1341] = sg__wc.w[69] = sg__wc.w[1297] = sg__wc.w[3302] = sg__wc.w[1705] = sg__wc.w[1220] = sg__wc.w[1631] = sg__wc.w[3255] = IDENT("wrong-type-argument-message", lib);
+  sg__wc.w[269] = IDENT("remv", lib);
+  sg__wc.w[1794] = sg__wc.w[245] = sg__wc.w[785] = sg__wc.w[838] = sg__wc.w[1871] = sg__wc.w[1805] = sg__wc.w[536] = sg__wc.w[1816] = sg__wc.w[1827] = sg__wc.w[1838] = sg__wc.w[1849] = sg__wc.w[799] = sg__wc.w[1860] = sg__wc.w[820] = sg__wc.w[1772] = sg__wc.w[1783] = IDENT("map", lib);
+  sg__wc.w[2388] = sg__wc.w[2325] = sg__wc.w[2702] = sg__wc.w[4215] = sg__wc.w[4402] = sg__wc.w[2064] = sg__wc.w[3310] = sg__wc.w[4366] = sg__wc.w[1744] = sg__wc.w[1136] = sg__wc.w[1444] = sg__wc.w[2954] = sg__wc.w[1479] = sg__wc.w[2447] = sg__wc.w[3167] = sg__wc.w[4321] = sg__wc.w[3646] = sg__wc.w[1079] = sg__wc.w[1344] = sg__wc.w[1300] = sg__wc.w[2780] = sg__wc.w[1708] = sg__wc.w[1198] = sg__wc.w[1223] = sg__wc.w[1634] = sg__wc.w[1963] = sg__wc.w[2588] = sg__wc.w[2605] = sg__wc.w[2243] = sg__wc.w[2839] = sg__wc.w[3033] = sg__wc.w[3263] = sg__wc.w[2856] = sg__wc.w[3220] = sg__wc.w[1561] = sg__wc.w[4474] = IDENT("assertion-violation", lib);
+  sg__wc.w[2380] = sg__wc.w[2315] = sg__wc.w[4211] = sg__wc.w[935] = sg__wc.w[2055] = sg__wc.w[2439] = sg__wc.w[772] = sg__wc.w[780] = sg__wc.w[2776] = sg__wc.w[1954] = sg__wc.w[2581] = sg__wc.w[2598] = sg__wc.w[2233] = sg__wc.w[2832] = sg__wc.w[3029] = sg__wc.w[2849] = IDENT("format", lib);
+  sg__wc.w[1733] = SYMBOLW("drop");
+  sg__wc.w[1697] = SYMBOLW("take");
+  sg__wc.w[1468] = SYMBOLW("lset-union");
+  sg__wc.w[2432] = SYMBOLW("bytevector->sint-list");
+  sg__wc.w[2226] = SYMBOLW("bytevector-uint-set!");
   sg__wc.w[4497] = sg__wc.w[4427] = SYMBOLW("equal");
   sg__wc.w[2119] = sg__wc.w[1967] = sg__wc.w[1876] = SYMBOLW("big");
-  sg__wc.w[4310] = SYMBOLW("hashtable-update!");
-  sg__wc.w[4356] = SYMBOLW("hashtable-entries");
-  sg__wc.w[1697] = SYMBOLW("take");
   sg__wc.w[4392] = SYMBOLW("hashtable-equivalence-function");
-  sg__wc.w[1733] = SYMBOLW("drop");
-  sg__wc.w[2769] = sg__wc.w[2697] = sg__wc.w[2591] = sg__wc.w[2574] = SYMBOLW("for-all");
+  sg__wc.w[1432] = SYMBOLW("reduce");
+  sg__wc.w[1623] = SYMBOLW("lset-difference");
+  sg__wc.w[2308] = SYMBOLW("bytevector-sint-set!");
   sg__wc.w[4483] = sg__wc.w[4411] = SYMBOLW("eq");
   sg__wc.w[1289] = SYMBOLW("find-tail");
-  sg__wc.w[1333] = SYMBOLW("assoc");
-  sg__wc.w[1550] = SYMBOLW("lset-intersection");
-  sg__wc.w[4513] = sg__wc.w[4443] = SYMBOLW("general");
-  sg__wc.w[1193] = SYMBOLW("null-list?");
-  sg__wc.w[2171] = sg__wc.w[2006] = sg__wc.w[1912] = SYMBOLW("little");
-  sg__wc.w[4464] = SYMBOLW("hashtable-hash-function");
-  sg__wc.w[2373] = SYMBOLW("bytevector->uint-list");
-  sg__wc.w[1468] = SYMBOLW("lset-union");
-  sg__wc.w[3635] = SYMBOLW("list-sort");
-  sg__wc.w[4199] = SYMBOLW("open-bytevector-output-port");
-  sg__wc.w[3294] = sg__wc.w[3247] = SYMBOLW("for-each");
-  sg__wc.w[1623] = SYMBOLW("lset-difference");
-  sg__wc.w[3022] = sg__wc.w[2949] = sg__wc.w[2842] = sg__wc.w[2825] = SYMBOLW("exists");
-  sg__wc.w[4505] = sg__wc.w[4435] = SYMBOLW("string");
-  sg__wc.w[2226] = SYMBOLW("bytevector-uint-set!");
-  sg__wc.w[2308] = SYMBOLW("bytevector-sint-set!");
-  sg__wc.w[4490] = sg__wc.w[4419] = SYMBOLW("eqv");
-  sg__wc.w[3204] = sg__wc.w[3151] = SYMBOLW("map");
-  sg__wc.w[1248] = sg__wc.w[1212] = SYMBOLW("split-at");
   sg__wc.w[2048] = sg__wc.w[1947] = SYMBOLW("bytevector-uint-ref");
-  sg__wc.w[2432] = SYMBOLW("bytevector->sint-list");
+  sg__wc.w[1248] = sg__wc.w[1212] = SYMBOLW("split-at");
+  sg__wc.w[1193] = SYMBOLW("null-list?");
+  sg__wc.w[4310] = SYMBOLW("hashtable-update!");
+  sg__wc.w[4513] = sg__wc.w[4443] = SYMBOLW("general");
+  sg__wc.w[2171] = sg__wc.w[2006] = sg__wc.w[1912] = SYMBOLW("little");
+  sg__wc.w[1550] = SYMBOLW("lset-intersection");
+  sg__wc.w[4199] = SYMBOLW("open-bytevector-output-port");
+  sg__wc.w[4505] = sg__wc.w[4435] = SYMBOLW("string");
+  sg__wc.w[3294] = sg__wc.w[3247] = SYMBOLW("for-each");
+  sg__wc.w[4490] = sg__wc.w[4419] = SYMBOLW("eqv");
+  sg__wc.w[3022] = sg__wc.w[2949] = sg__wc.w[2842] = sg__wc.w[2825] = SYMBOLW("exists");
+  sg__wc.w[2373] = SYMBOLW("bytevector->uint-list");
+  sg__wc.w[4356] = SYMBOLW("hashtable-entries");
+  sg__wc.w[4464] = SYMBOLW("hashtable-hash-function");
+  sg__wc.w[3635] = SYMBOLW("list-sort");
+  sg__wc.w[2769] = sg__wc.w[2697] = sg__wc.w[2591] = sg__wc.w[2574] = SYMBOLW("for-all");
+  sg__wc.w[1333] = SYMBOLW("assoc");
+  sg__wc.w[3204] = sg__wc.w[3151] = SYMBOLW("map");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("null")));
   Sg_LibraryExportedSet(lib, Sg_Cons(Sg_Cons(SYMBOL("hashtable-hash-function"), Sg_Cons(SYMBOL("hashtable-equivalence-function"), Sg_Cons(SYMBOL("hashtable-entries"), Sg_Cons(SYMBOL("hashtable-update!"), Sg_Cons(SYMBOL("call-with-string-output-port"), Sg_Cons(SYMBOL("call-with-bytevector-output-port"), Sg_Cons(SYMBOL("open-string-output-port"), Sg_Cons(SYMBOL("open-bytevector-output-port"), Sg_Cons(SYMBOL("call-with-port"), Sg_Cons(SYMBOL("vector-sort!"), Sg_Cons(SYMBOL("vector-sort"), Sg_Cons(SYMBOL("list-sort"), Sg_Cons(SYMBOL("assp"), Sg_Cons(SYMBOL("memp"), Sg_Cons(SYMBOL("remq"), Sg_Cons(SYMBOL("remv"), Sg_Cons(SYMBOL("remove"), Sg_Cons(SYMBOL("remp"), Sg_Cons(SYMBOL("fold-right"), Sg_Cons(SYMBOL("fold-left"), Sg_Cons(SYMBOL("for-each"), Sg_Cons(SYMBOL("map"), Sg_Cons(SYMBOL("partition"), Sg_Cons(SYMBOL("filter"), Sg_Cons(SYMBOL("exists"), Sg_Cons(SYMBOL("for-all"), Sg_Cons(SYMBOL("sint-list->bytevector"), Sg_Cons(SYMBOL("uint-list->bytevector"), Sg_Cons(SYMBOL("bytevector->sint-list"), Sg_Cons(SYMBOL("bytevector->uint-list"), Sg_Cons(SYMBOL("bytevector-sint-set!"), Sg_Cons(SYMBOL("bytevector-uint-set!"), Sg_Cons(SYMBOL("bytevector-sint-ref"), Sg_Cons(SYMBOL("bytevector-uint-ref"), Sg_Cons(SYMBOL("string-ci>=?"), Sg_Cons(SYMBOL("string-ci<=?"), Sg_Cons(SYMBOL("string-ci>?"), Sg_Cons(SYMBOL("string-ci<?"), Sg_Cons(SYMBOL("string-ci=?"), Sg_Cons(SYMBOL("char-ci>=?"), Sg_Cons(SYMBOL("char-ci<=?"), Sg_Cons(SYMBOL("char-ci>?"), Sg_Cons(SYMBOL("char-ci<?"), Sg_Cons(SYMBOL("char-ci=?"), Sg_Cons(SYMBOL("list-head"), Sg_Cons(SYMBOL("drop"), Sg_Cons(SYMBOL("take"), Sg_Cons(SYMBOL("lset-difference"), Sg_Cons(SYMBOL("lset-intersection"), Sg_Cons(SYMBOL("lset-union"), Sg_Cons(SYMBOL("reduce"), Sg_Cons(SYMBOL("delete"), Sg_Cons(SYMBOL("member"), Sg_Cons(SYMBOL("assoc"), Sg_Cons(SYMBOL("find-tail"), Sg_Cons(SYMBOL("find"), Sg_Cons(SYMBOL("split-at"), Sg_Cons(SYMBOL("null-list?"), Sg_Cons(SYMBOL("default-protocol"), Sg_Cons(SYMBOL("make-simple-conser"), Sg_Cons(SYMBOL("make-nested-conser"), Sg_Cons(SYMBOL("record-printer"), Sg_Cons(SYMBOL("string-for-each"), Sg_Cons(SYMBOL("vector-for-each"), Sg_Cons(SYMBOL("vector-map"), Sg_Cons(SYMBOL("wrong-type-argument-message"), Sg_Cons(SYMBOL("fold"), Sg_Cons(SYMBOL("print"), Sg_Cons(SYMBOL("safe-length"), Sg_Cons(SYMBOL("er-macro-transformer"), Sg_Cons(SYMBOL("call-with-values"), Sg_Cons(SYMBOL("unique-id-list?"), Sg_Cons(SYMBOL("hashtable->alist"), Sg_Cons(SYMBOL("hashtable-map"), Sg_Cons(SYMBOL("hashtable-for-each"), SG_NIL))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))), SG_NIL));
