@@ -106,6 +106,7 @@
 	      EM))))))
 
   ;; section 9.1.2
+  ;; TODO prevent oracle attack
   (define (pkcs1-emsa-pss-verify m em em-bits
 				 :key (algo :hash (hash-algorithm SHA-1))
 				      (mgf mgf-1)
@@ -116,7 +117,7 @@
       (when (or (< em-len (+ hash-len salt-length 2))
 		(not (= #xbc 
 			(bytevector-u8-ref em (- (bytevector-length em) 1)))))
-	(raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 1))
+	(raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent"))
       (let* ((m-hash (hash algo m))	; step 2
 	     (mask-len (- em-len hash-len 1))
 	     (masked-db (make-bytevector mask-len 0))
@@ -130,8 +131,7 @@
 	(do ((i 0 (+ i 1)))
 	    ((= i limit) #t)
 	  (unless (zero? (bytevector-u8-ref masked-db i))
-	    (raise-decode-error 'pkcs1-emsa-pss-verify
-			    "inconsistent" 2)))
+	    (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent")))
 	(let* ((db-mask (mgf H mask-len algo))
 	       (DB (bytevector-xor masked-db db-mask))
 	       (limit2 (- em-len hash-len salt-length 2)))
@@ -142,10 +142,10 @@
 	  (do ((i 0 (+ i 1)))
 	      ((= i limit2) #t)
 	    (unless (zero? (bytevector-u8-ref DB i))
-	      (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 3)))
+	      (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent")))
 	  ;; check if position emLen - hLen - sLen - 1 have 0x01
 	  (unless (= #x01 (bytevector-u8-ref DB limit2))
-	    (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent" 4))
+	    (raise-decode-error 'pkcs1-emsa-pss-verify "inconsistent"))
 	  (let ((salt (make-bytevector salt-length 0)))
 	    (bytevector-copy! DB (- (bytevector-length DB) salt-length)
 			      salt 0 salt-length)
@@ -155,8 +155,8 @@
 	      (let ((h-dash (hash algo m-dash)))
 		(if (bytevector=? H h-dash)
 		    #t
-		    (raise-decode-error 'pkcs1-emsa-pss-verify
-					"inconsistent" 5)))))))))
+		    (raise-decode-error 'pkcs1-emsa-pss-verify 
+					"inconsistent")))))))))
 
   ;; section 9.2
   (define (pkcs1-emsa-v1.5-encode m em-bits

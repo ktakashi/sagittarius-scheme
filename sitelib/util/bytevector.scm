@@ -35,11 +35,15 @@
 	    bytevector-ior!
 	    bytevector-and
 	    bytevector-and!
+	    bytevector-slices
+	    bytevector-split-at*
 	    ;; parity stuff
 	    ->odd-parity
 	    ->odd-parity!
 	    )
-    (import (rnrs) (sagittarius control) (shorten))
+    (import (rnrs)
+	    (sagittarius)
+	    (sagittarius control))
 (define (process-bytevector! op out . bvs)
   (let ((len (apply min (map bytevector-length bvs))))
     (dotimes (i len)
@@ -87,5 +91,22 @@
   (do ((i start (+ i 1)))
       ((= i end) bv)
     (bytevector-u8-set! bv i (fixup (bytevector-u8-ref bv i)))))
+
+;; analogy of slices and split-at* in (util list)
+(define (bytevector-slices bv k . args)
+  (let1 len (bytevector-length bv)
+    (let loop ((bv bv) (r '()) (i 0))
+      (if (< i len)
+	  (let-values (((h t) (apply bytevector-split-at* bv k args)))
+	    (loop t (cons h r) (+ i k)))
+	  (reverse! r)))))
+
+(define (bytevector-split-at* bv k :key (padding #f))
+  (let1 len (bytevector-length bv)
+    (if (< k len)
+	(let ((r1 (bytevector-copy bv 0 k))
+		 (r2 (bytevector-copy bv k)))
+	     (values r1 r2))
+	(values (if padding (padding bv) bv) #vu8()))))
 
 )
