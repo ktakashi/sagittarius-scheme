@@ -60,6 +60,8 @@ SG_EXTERN SgObject      Sg_GetTemporaryDirectory();
    TODO should this be in socket extra library?
  */
 SG_EXTERN SgObject      Sg_GetMacAddress(int pos);
+/* returns vector for SRFI-112 */
+SG_EXTERN SgObject      Sg_Uname();
 
 SG_CDECL_END
 

@@ -47,6 +47,8 @@
 #include "sagittarius/values.h"
 #include "sagittarius/number.h"
 #include "sagittarius/bytevector.h"
+#include "sagittarius/vector.h"
+#include "sagittarius/string.h"
 
 #include "win_util.c"
 
@@ -232,4 +234,56 @@ SgObject Sg_GetMacAddress(int pos)
   if (pos < 0) pos = 0;
   else if (pos > size) pos = (int)(size-1);
   return Sg_MakeByteVectorFromU8Array(adapterInfo[pos].Address, 6);
+}
+
+SgObject Sg_Uname()
+{
+  OSVERSIONINFOEX ver;
+  SYSTEM_INFO info;
+  wchar_t node[256];		/* enough? */
+  DWORD size = sizeof(node);
+
+  SgObject r = Sg_MakeVector(5, SG_FALSE);
+  SgObject sysname  = SG_MAKE_STRING("Microsoft Windows");
+  SgObject nodename = SG_FALSE;
+  SgObject version = SG_FALSE;
+  SgObject release = SG_FALSE;
+  SgObject machine = SG_FALSE;
+
+  if (GetComputerNameExW(ComputerNameDnsFullyQualified, node, &size)) {
+    nodename = utf16ToUtf32(node);
+  }
+
+  ver.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+  GetVersionEx((LPOSVERSIONINFO)&ver);
+  /* the same format as ver commend */
+  version = Sg_Sprintf(UC("%d.%d.%d"),
+		       ver.dwMajorVersion, ver.dwMinorVersion,
+		       ver.dwBuildNumber);
+  /* release = Sg_Sprintf(UC("%d"),); */
+  GetSystemInfo(&info);
+  switch (info.wProcessorArchitecture) {
+  case PROCESSOR_ARCHITECTURE_AMD64:
+    machine = SG_MAKE_STRING("x64");
+    break;
+  case PROCESSOR_ARCHITECTURE_ARM:
+    machine = SG_MAKE_STRING("ARM");
+    break;
+  case PROCESSOR_ARCHITECTURE_IA64:
+    machine = SG_MAKE_STRING("IA64");
+    break;
+  case PROCESSOR_ARCHITECTURE_INTEL:
+    machine = SG_MAKE_STRING("x86");
+    break;
+  default:
+    machine = SG_MAKE_STRING("unknown");
+    break;
+  }
+  SG_VECTOR_ELEMENT(r, 0) = sysname;
+  SG_VECTOR_ELEMENT(r, 1) = nodename;
+  SG_VECTOR_ELEMENT(r, 2) = release;
+  SG_VECTOR_ELEMENT(r, 3) = version;
+  SG_VECTOR_ELEMENT(r, 4) = machine;
+
+  return r;
 }

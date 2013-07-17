@@ -982,4 +982,6 @@
     (result (not (SG_PTRP o))))
 
   (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) Sg_GetMacAddress)
+
+  (define-c-proc uname () Sg_Uname)
 )

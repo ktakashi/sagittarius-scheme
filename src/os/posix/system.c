@@ -54,6 +54,11 @@
 #ifdef HAVE_SCHED_H
 # include <sched.h>
 #endif
+/*
+  assume POSIX conformed operating system has this
+  TODO it might be better to check in CMakeLists.txt
+ */
+#include <sys/utsname.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/system.h>
 #include <sagittarius/file.h>
@@ -64,6 +69,7 @@
 #include <sagittarius/values.h>
 #include <sagittarius/number.h>
 #include <sagittarius/bytevector.h>
+#include <sagittarius/vector.h>
 
 extern char** environ;
 
@@ -345,3 +351,17 @@ SgObject Sg_GetMacAddress(int pos)
   return empty_mac;
 }
 #endif
+
+SgObject Sg_Uname()
+{
+  SgObject r = Sg_MakeVector(5, SG_FALSE);
+  struct utsname buf;
+  if (!uname(&buf)) {
+    SG_VECTOR_ELEMENT(r, 0) = Sg_MakeStringC(buf.sysname);
+    SG_VECTOR_ELEMENT(r, 1) = Sg_MakeStringC(buf.nodename);
+    SG_VECTOR_ELEMENT(r, 2) = Sg_MakeStringC(buf.release);
+    SG_VECTOR_ELEMENT(r, 3) = Sg_MakeStringC(buf.version);
+    SG_VECTOR_ELEMENT(r, 4) = Sg_MakeStringC(buf.machine);
+  }
+  return r;
+}

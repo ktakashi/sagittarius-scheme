@@ -41,6 +41,10 @@
 # pragma comment(lib, "iphlpapi.lib")
 #endif
 # define snprintf _snprintf
+/* what a crap!! */
+# define SHUT_RD   SD_RECEIVE 
+# define SHUT_WR   SD_SEND 
+# define SHUT_RDWR SD_BOTH 
 #else
 # include <sys/socket.h>
 # include <netdb.h>
