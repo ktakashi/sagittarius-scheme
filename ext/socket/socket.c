@@ -579,6 +579,9 @@ void Sg_SocketClose(SgSocket *socket)
     return;
   }
 #ifdef _WIN32
+  /* FIXME socket-close should not shutdown socket but we don't have
+     any way to flush socket other than shutting down write side of
+     socket descriptor on Windows. */
   shutdown(socket->socket, SD_SEND);
   closesocket(socket->socket);
 #else

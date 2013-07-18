@@ -70,6 +70,10 @@ extension then the procedure returns #f.}
 @define[Function]{@name{path-sans-extension} @args{path}}
 @desc{Removes extension from given @var{path} and return it.}
 
+@define[Function]{@name{path-basename} @args{path}}
+@desc{Returns the basename of given @var{path}. If it does not contains
+basename then the procedure returns #f.}
+
 @define[Function]{@name{find-files}
  @args{target :key (pattern #f) (all #t) (sort string<=?) (recursive #t)}}
 @desc{@var{target} must be a string indicating existing file system path.
