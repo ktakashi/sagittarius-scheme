@@ -78,7 +78,7 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
     @td{(srfi :86 mu-and-nu)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-98/srfi-98.html"]{SRFI-98}}
-    @td{(srfi :98 os-environment-variables)}
+    @td{(srfi :98 os-environment-variables)}}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-105/srfi-105.html"]{SRFI-105}}
     @td{(srfi :105)
 
@@ -99,6 +99,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 #!curly-infix
 }
     The order doesn't matter, Sagittarius just ignores the latter style.
+    }}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-111/srfi-111.html"]{SRFI-111}}
+    @td{(srfi :111 boxes)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :111)}. So for the portability it's better to use the
+    @code{(srfi :111)}.
+
+    The name @code{boxes} is taken from R7RS-large library name.
     }}
 }
 
