@@ -149,6 +149,13 @@ EXPORT wchar_t* wide_fn(wchar_t *str)
   return str;
 }
 
+extern EXPORT int     var;
+extern EXPORT char    *c_var;
+extern EXPORT wchar_t *wc_var;
+int     var = 0;
+char    *c_var = "test char";
+wchar_t *wc_var = L"test wchar";
+
 int main(void)
 {
   char array[8] = {6,6,1,4,2,9,3,7};

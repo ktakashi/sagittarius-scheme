@@ -1,4 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
+#!read-macro=sagittarius/regex
 (library (sagittarius ffi)
     (export open-shared-library
 	    lookup-shared-library
@@ -158,16 +159,18 @@
 	    pointer->string
 	    pointer->bytevector
 	    deref
+
+	    ;; c-variable
+	    c-variable c-variable?
+
 	    ;; clos
 	    <pointer> <function-info> <callback> <c-struct>)
-    (import (core)
+    (import (rnrs)
 	    (core base)
-	    (core errors)
-	    (core syntax)
-	    (core misc)
 	    (clos user)
 	    (srfi :13 strings)
 	    (sagittarius)
+	    (sagittarius regex)
 	    (sagittarius dynamic-module))
   (load-dynamic-module "sagittarius--ffi")
 
@@ -219,6 +222,25 @@
 	      ((zero? (pointer-ref-c-uint8 pointer i))
 	       (bytevector->string (getter) transcoder))
 	    (put-u8 out (pointer-ref-c-uint8 pointer i))))))
+  
+  ;; if the size of whar_t is 4 then utf32 if it's 2 then utf16
+  ;; utf-32-codec is not defined yet and utf-16-codec doesn't accept
+  ;; endiannness which is bad for this purpose.
+  #;
+  (define (wchar-pointer->string pointer)
+    (if (null-pointer? pointer)
+	(assertion-violation 'pointer->string "NULL pointer is given")
+	(let-values (((out getter) (open-bytevector-output-port)))
+	  (do ((i 0 (+ i size-of-wchar_t)))
+	      ((zero? (pointer-ref-c-wchar pointer i))
+	       (bytevector->string (getter)
+				   (make-transcoder 
+				    (case size-of-wchar_t
+				      ((2) (utf-16-codec))
+				      ((4) (utf-32-codec (endianness native))))
+				    (native-eol-style))))
+	    (display (pointer-ref-c-wchar pointer i)) (newline)
+	    (put-u8 out (pointer-ref-c-wchar pointer i))))))
 
   (define (pointer->bytevector p size)
     (if (null-pointer? p)
@@ -527,5 +549,67 @@
       (double             . #\d)
       (size_t             . ,(if (= size-of-size_t 4) #\W #\Q))
       (void*              . #\p)))
+
+  ;; c-varibale
+  (define-class <c-variable> () 
+    ((pointer :init-keyword :pointer)
+     (getter  :init-keyword :getter)
+     (setter  :init-keyword :setter)))
+
+  ;; make this work like parameters :)
+  ;; TODO how should we treat with void*?
+  (define-method object-apply ((o <c-variable>))
+    ((slot-ref o 'getter) (slot-ref o 'pointer)))
+  (define-method object-apply ((o <c-variable>))
+    ((slot-ref o 'getter) (slot-ref o 'pointer)))
+
+  (define-method object-apply ((o <c-variable>) v)
+    ((slot-ref o 'setter) (slot-ref o 'pointer) v))
+
+  (define-method (setter object-apply) ((o <c-variable>) v)
+    ((slot-ref o 'setter) (slot-ref o 'pointer) v))
+
+  (define (make-c-variable lib name getter setter)
+    (let ((p (lookup-shared-library lib (symbol->string name))))
+      (make <c-variable> :pointer p
+	    :getter getter :setter setter)))
+
+  (define (c-variable? o) (is-a? o <c-variable>))
+  (define-syntax c-variable
+    (lambda (x)
+      (define (get-accessor type)
+	(let ((name (symbol->string (syntax->datum type))))
+	  (regex-match-cond 
+	    ((#/(.+?)_t$/ name) (#f name)
+	     (list (string->symbol (string-append "pointer-ref-c-" name))
+		   (string->symbol (string-append "pointer-set-c-" name "!"))))
+	    (else
+	     (list (string->symbol (string-append "pointer-ref-c-" name))
+		   (string->symbol (string-append "pointer-set-c-" name "!")))))
+	  ))
+      (syntax-case x (char* void* wchar_t*)
+	((_ lib char* name)
+	 #'(c-variable lib name 
+		       (lambda (p) (pointer->string (deref p 0)))
+		       (lambda (p n v) (pointer-set-c-char! (deref p 0) n v))))
+	((_ lib wchar_t* name)
+	 (syntax-violation 'c-variable
+			   "wchar_t* is not suppoted yet")
+	 #;
+	 #'(c-variable lib name
+		       (lambda (p) (wchar-pointer->string (deref p 0)))
+		       (lambda (p n v) (pointer-set-c-wchar! (deref p 0) n v))))
+	;; TODO how should we treat this? for now direct pointer access
+	((_ lib void* name)
+	 #'(c-variable lib name pointer-ref-c-uintptr pointer-set-c-uintptr!))
+	((_ lib type name)
+	 (with-syntax (((getter setter) 
+			(datum->syntax #'k (get-accessor #'type))))
+	   #'(c-variable lib name 
+			 (lambda (p) (getter p 0))
+			 (lambda (p v) (setter p 0 v)))))
+	((_ lib name getter setter)
+	 #'(make-c-variable lib 'name getter setter)))))
+
   
   )

@@ -288,7 +288,21 @@
 			      (- (pointer-ref-c-uint8 y 0)
 				 (pointer-ref-c-uint8 x 0)))))
   (test-assert "get-compare" (callback? (get-compare)))
-  
+
+  ;; c-variable
+  (let ()
+    (define var   (c-variable ffi-test-lib int var))
+    (define cvar  (c-variable ffi-test-lib char* c_var))
+    ;;(define wcvar (c-variable ffi-test-lib wchar_t* wc_var))
+   
+    (test-assert "c-variable?" (c-variable? var))
+    (test-equal "c variable 0" 0 (var))
+    (test-assert "(set! var 1)" (set! (var) 1))
+    (test-equal "c variable 1" 1 (var))
+
+    (test-equal "c variable char"  "test char"  (cvar))
+    ;;(test-equal "c variable wchar" "test wchar" (wcvar))
+    )
   )
  (else
   #t))
