@@ -152,9 +152,11 @@ EXPORT wchar_t* wide_fn(wchar_t *str)
 extern EXPORT int     var;
 extern EXPORT char    *c_var;
 extern EXPORT wchar_t *wc_var;
+extern EXPORT int     *pointer[10];
 int     var = 0;
 char    *c_var = "test char";
 wchar_t *wc_var = L"test wchar";
+int     *pointer[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9}; 
 
 int main(void)
 {

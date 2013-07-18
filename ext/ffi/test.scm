@@ -293,7 +293,8 @@
   (let ()
     (define var   (c-variable ffi-test-lib int var))
     (define cvar  (c-variable ffi-test-lib char* c_var))
-    ;;(define wcvar (c-variable ffi-test-lib wchar_t* wc_var))
+    (define pvar  (c-variable ffi-test-lib void* pointer))
+    (define wcvar (c-variable ffi-test-lib wchar_t* wc_var))
    
     (test-assert "c-variable?" (c-variable? var))
     (test-equal "c variable 0" 0 (var))
@@ -301,6 +302,7 @@
     (test-equal "c variable 1" 1 (var))
 
     (test-equal "c variable char"  "test char"  (cvar))
+    ;; this doesn't work yet
     ;;(test-equal "c variable wchar" "test wchar" (wcvar))
     )
   )

@@ -226,21 +226,25 @@
   ;; if the size of whar_t is 4 then utf32 if it's 2 then utf16
   ;; utf-32-codec is not defined yet and utf-16-codec doesn't accept
   ;; endiannness which is bad for this purpose.
-  #;
   (define (wchar-pointer->string pointer)
     (if (null-pointer? pointer)
 	(assertion-violation 'pointer->string "NULL pointer is given")
 	(let-values (((out getter) (open-bytevector-output-port)))
-	  (do ((i 0 (+ i size-of-wchar_t)))
+	  (do ((i 0 (+ i 1)))
 	      ((zero? (pointer-ref-c-wchar pointer i))
 	       (bytevector->string (getter)
 				   (make-transcoder 
 				    (case size-of-wchar_t
 				      ((2) (utf-16-codec))
-				      ((4) (utf-32-codec (endianness native))))
+				      ((4) (utf-32-codec (endianness little))))
 				    (native-eol-style))))
-	    (display (pointer-ref-c-wchar pointer i)) (newline)
-	    (put-u8 out (pointer-ref-c-wchar pointer i))))))
+	    (let ((wc (pointer-ref-c-wchar pointer i)))
+	      (case size-of-wchar_t
+		((2) 
+		 (put-u8 out (bitwise-and (bitwise-arithmetic-shift wc 8)
+					  #xFF))
+		 (put-u8 out (bitwise-and wc #xFF)))
+		))))))
 
   (define (pointer->bytevector p size)
     (if (null-pointer? p)
@@ -593,15 +597,17 @@
 		       (lambda (p) (pointer->string (deref p 0)))
 		       (lambda (p n v) (pointer-set-c-char! (deref p 0) n v))))
 	((_ lib wchar_t* name)
+	 #;
 	 (syntax-violation 'c-variable
 			   "wchar_t* is not suppoted yet")
-	 #;
 	 #'(c-variable lib name
 		       (lambda (p) (wchar-pointer->string (deref p 0)))
 		       (lambda (p n v) (pointer-set-c-wchar! (deref p 0) n v))))
 	;; TODO how should we treat this? for now direct pointer access
 	((_ lib void* name)
-	 #'(c-variable lib name pointer-ref-c-uintptr pointer-set-c-uintptr!))
+	 #'(c-variable lib name
+		       (lambda (p) p)
+		       (lambda (p n v) (pointer-set-c-uintptr! p n v))))
 	((_ lib type name)
 	 (with-syntax (((getter setter) 
 			(datum->syntax #'k (get-accessor #'type))))
