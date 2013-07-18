@@ -11,6 +11,7 @@
     (import (crypto cipher)
 	    (crypto key)
 	    (crypto pkcs)
+	    (crypto mac)
 	    ;; for conditions
 	    (sagittarius crypto))
 )

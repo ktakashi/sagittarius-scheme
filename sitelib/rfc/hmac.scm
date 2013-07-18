@@ -29,12 +29,12 @@
 ;;;  
 
 (library (rfc hmac)
-    (export HMAC
-	    <hmac>)
+    (export HMAC <hmac> verify-mac)
     (import (rnrs) (sagittarius)
 	    (math)
 	    (sagittarius control)
-	    (clos user))
+	    (clos user)
+	    (crypto mac))
 
   ;; hash functions
   (define (hmac-init algo)
@@ -87,7 +87,7 @@
       (bytevector-copy! buffer 0 out 0 (min hashsize (bytevector-length out)))
       out))
 
-  (define-class <hmac> (<user-hash-algorithm>)
+  (define-class <hmac> (<mac>)
     ((hash :init-keyword :hash)
      (i-key :init-keyword :i-key)
      (key   :init-keyword :key)))

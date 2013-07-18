@@ -33,7 +33,7 @@
 ;;  RFC 4494 - http://tools.ietf.org/html/rfc4494
 
 (library (rfc cmac)
-    (export CMAC <cmac> cmac-verify)
+    (export CMAC <cmac> verify-mac)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
@@ -108,15 +108,7 @@
       (set! (~ cmac 'last) #vu8())
       out))
 
-  (define (cipher-cmac-verify M T cipher)
-    (let1 T* (hash CMAC M :cipher cipher)
-      ;; TODO should we raise an error?
-      (bytevector= T T*)))
-
-  (define (cmac-verify cmac M T)
-    (cipher-cmac-verify M T (~ cmac 'cipher)))
-
-  (define-class <cmac> (<user-hash-algorithm>)
+  (define-class <cmac> (<mac>)
     ((cipher :init-keyword :cipher)
      ;; const zero
      (zero)
@@ -125,7 +117,7 @@
      ;; result buffer
      (buffer)
      ;; previous processed last message
-     (last :init-value #vu8())))
+     (last)))
   (define-method initialize ((o <cmac>) initargs)
     (call-next-method)
     (let1 cipher (~ o 'cipher)
@@ -143,16 +135,7 @@
 	  (set! (~ o 'process) cmac-process)
 	  (set! (~ o 'done) cmac-done)
 	  (set! (~ o 'block-size) len)
-	  (set! (~ o 'hash-size) size)
-	  ;; TODO so far we can't inherit cipher and hash-algorithm
-	  ;; so MAC must have own verifier...
-	  ;; ciphers
-	  ;; for verify
-	  ;;(set! (~ o 'name)     'CMAC)
-	  ;; use key slot as cipher
-	  ;;(set! (~ o 'key)      o)
-	  ;;(set! (~ o 'verifier) cipher-cmac-verify)
-	  )))
+	  (set! (~ o 'hash-size) size))))
     o)
 
   (define-method write-object ((o <cmac>) out)
