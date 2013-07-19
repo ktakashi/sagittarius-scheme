@@ -302,8 +302,25 @@
     (test-equal "c variable 1" 1 (var))
 
     (test-equal "c variable char"  "test char"  (cvar))
-    ;; this doesn't work yet
-    ;;(test-equal "c variable wchar" "test wchar" (wcvar))
+    (test-error "set! char*" (set! (cvar) "char* is immutable"))
+    (test-equal "c variable char"  "test char"  (cvar))
+
+    ;; pointer variable is simply the address of the variable.
+    (test-equal "c variable pointer" 1 (pointer->integer (deref (pvar) 0)))
+    (test-equal "c variable pointer" 2 (pointer->integer (deref (pvar) 1)))
+    ;; for pointer variable is not immutable but no setter is defined
+    ;; to mutate it user need to modify the pointer directory
+    (let ((p (pvar)))
+      (pointer-set-c-int! p 0 10)
+      (test-equal "c variable pointer" 10 (pointer->integer (deref (pvar) 0))))
+
+    ;; this test doesn't work on Cygwin because of wide-exec-chaset stuff.
+    (cond-expand
+     (cygwin #f)
+     (else 
+      (test-equal "c variable wchar" "test wchar" (wcvar))
+      (test-error "set! wchar_t*" (set! (wcvar) "wchar_t* is immutable"))
+      (test-equal "c variable wchar" "test wchar" (wcvar))))
     )
   )
  (else

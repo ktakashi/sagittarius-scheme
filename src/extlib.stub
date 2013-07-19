@@ -560,6 +560,18 @@
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
     (result (Sg_MakeCustomCodecSimple name g p data)))
 
+  (define-c-proc utf-32-codec 
+    (:optional (endian::<symbol> (Sg_NativeEndianness)))
+    (cond ((SG_EQ endian 'big)
+	   (result (Sg_MakeUtf32Codec UTF_32BE)))
+	  ((SG_EQ endian 'little)
+	   (result (Sg_MakeUtf32Codec UTF_32LE)))
+	  ((SG_EQ endian 'native)
+	   (result (Sg_MakeUtf32Codec UTF_32USE_NATIVE_ENDIAN)))
+	  (else
+	   (assertion-violation 'utf-32-codec "unsupported endianness" 
+				endian))))
+
   (define-c-proc port-info (p::<port>)
     (let ((file (Sg_FileName p))
 	  (line #f)

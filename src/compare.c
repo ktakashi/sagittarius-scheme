@@ -106,12 +106,13 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
   }
   if (SG_CODECP(x)) {
     if (SG_CODECP(y)) {
-      /* if these 2 are the same codec, it must use the same putChar and getChar
-	 method.
+      /* if these 2 are the same codec, it must use the same putc and getc
+	 method and the same endianness.
        */
       if ((SG_CODEC(x)->type == SG_BUILTIN_CODEC &&
 	   (SG_CODEC_BUILTIN(x)->getc == SG_CODEC_BUILTIN(y)->getc) &&
-	   (SG_CODEC_BUILTIN(x)->putc == SG_CODEC_BUILTIN(y)->putc)) ||
+	   (SG_CODEC_BUILTIN(x)->putc == SG_CODEC_BUILTIN(y)->putc) &&
+	   (SG_CODEC_ENDIAN(x) == SG_CODEC_ENDIAN(y))) ||
 	  (SG_CODEC(x)->type == SG_CUSTOM_CODEC &&
 	    /* we just compare the name */
 	   SG_EQ(SG_CODEC(x)->name, SG_CODEC(y)->name))) {

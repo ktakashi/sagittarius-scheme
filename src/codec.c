@@ -147,7 +147,7 @@ SgObject Sg_MakeUtf8Codec()
   SG_CODEC_BUILTIN(z)->getc = get_utf8_char;
   SG_CODEC_BUILTIN(z)->readc = read_utf8;
   SG_CODEC_BUILTIN(z)->writec = write_utf8;
-  SG_CODEC_NAME(z) = Sg_MakeString(UC("utf8-codec"), SG_LITERAL_STRING);
+  SG_CODEC_NAME(z) = SG_MAKE_STRING("utf8-codec");
   SG_CODEC_ENDIAN(z) = NO_BOM;
   return SG_OBJ(z);
 }
