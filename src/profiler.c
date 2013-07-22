@@ -38,7 +38,8 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
 
-#ifdef SAGITTARIUS_PROFILE
+/* for some reason BB10 doesn't have SA_RESTART */
+#if defined(SAGITTARIUS_PROFILE) && defined(SA_RESTART)
 #include <sys/time.h>
 #include <time.h>
 #include <signal.h>
