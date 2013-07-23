@@ -1,9 +1,15 @@
 # Sagittarius extensions -*- CMake -*-
 # 
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
+IF (CMAKE_HOST_SYTSTEM STREQUAL CMAKE_SYSTEM)
+  SET(HOST_SASH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash)
+ELSE()
+  # assume Sagittarius is installed
+  SET(HOST_SASH sash)
+ENDIF()
 SET(GENSTUB
   ${GENSTUB}
-  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash
+  ${HOST_SASH}
   -L${CMAKE_CURRENT_SOURCE_DIR}/../lib
   -L${CMAKE_CURRENT_SOURCE_DIR}/../sitelib
   ${CMAKE_CURRENT_SOURCE_DIR}/genstub)
@@ -33,7 +39,10 @@ ADD_SUBDIRECTORY(threads threads)
 ADD_SUBDIRECTORY(time time)
 ADD_SUBDIRECTORY(socket socket)
 #ADD_SUBDIRECTORY(regex regex)
-ADD_SUBDIRECTORY(ffi ffi)
+# for now we don't support ffi on BB10
+IF (NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
+  ADD_SUBDIRECTORY(ffi ffi)
+ENDIF()
 ADD_SUBDIRECTORY(process process)
 ADD_SUBDIRECTORY(crypto crypto)
 ADD_SUBDIRECTORY(odbc odbc)

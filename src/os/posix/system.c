@@ -316,6 +316,55 @@ SgObject Sg_GetMacAddress(int pos)
   /* something wrong but return empty MAC address */
   return empty_mac;
 }
+#elif defined(__QNX__)
+
+#if 1
+/* for now.
+   TODO check how to get MAC address*/
+SgObject Sg_GetMacAddress(int pos)
+{
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  return empty_mac;
+}
+#else
+#include <bps/netstatus.h>
+SgObject Sg_GetMacAddress(int pos)
+{
+  netstatus_interface_list_t list;
+  unsigned char *addr;
+  int i;
+  SgObject r;
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  if (netstatus_get_interfaces(&list) != BPS_SUCCSESS) {
+    return empty_mac;
+  }
+
+  for (i = 0; i < list.num_interfeces; i++) {
+    netstatus_interface_details_t *detail;
+    int rc = netstatus_get_interface_details(list.interfaces[i], &detail);
+    if (rc == BPS_SUCCSESS) {
+      switch (netstatus_interface_get_type(detail)) {
+	/* for now WiFi or wired network only */
+      case NETSTATUS_INTERFACE_TYPE_WIFI: case NETSTATUS_INTERFACE_TYPE_WIRED:
+	
+	break;
+      default: break;
+      }
+    }
+    netstatus_free_interface_details(&detail);
+  }
+
+ free_list:
+  netstatus_free_interfaces(&list);
+  
+  return r;
+}
+#endif
+
 #else
 /* assume BSD or OSX */
 SgObject Sg_GetMacAddress(int pos)

@@ -95,4 +95,8 @@ SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 # for Zlib and so
-SET(CMAKE_APPBUNDLE_PATH "${QNX_TARGET}/lib:${QNX_TARGET}/usr/lib:${QNX_TARGET}/../usr/include")
+SET(CMAKE_APPBUNDLE_PATH "${QNX_TARGET}/lib:${QNX_TARGET}/usr/lib:${QNX_TARGET}/usr/include")
+# for some reason FIND_PACKAGE doesn't find zlib properly so add this
+SET(ZLIB_LIBRARY "{QNX_TARGET}/usr/lib/zlib.a")
+# pthread is supported on QNX
+SET(CMAKE_USE_PTHREADS_INIT TRUE)

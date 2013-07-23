@@ -14,6 +14,10 @@ IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   IF( CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" )
     SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
     SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fPIC")
+  ELSEIF (SAGITTARIUS_PROCESSOR STREQUAL "armv7")
+    # https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
+    SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
   ENDIF()
 ELSEIF (WATCOM)
   # watcom does not allow to modify.
