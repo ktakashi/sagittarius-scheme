@@ -239,9 +239,6 @@
 	      (let ((wc (pointer-ref-c-wchar pointer i)))
 		(case size-of-wchar_t
 		  ((2) 
-		   ;; assume writing with utf-16-codec uses big endian
-		   ;; (at lease it's always true on Sagittarius currently)
-		   ;; but is this in R6RS? (who cares?)
 		   (bytevector-u16-set! buf 0 wc (endianness big))
 		   (put-bytevector out buf))
 		  ((4)
@@ -578,6 +575,9 @@
 	  (error 'c-variable "variable is immutable" o))))
 
   (define-method (setter object-apply) ((o <c-variable>) v) (o v))
+
+  (define-method write-object ((o <c-variable>) out)
+    (format out "#<c-varible ~a>" (slot-ref o 'pointer)))
 
   (define (make-c-variable lib name getter setter)
     (let ((p (lookup-shared-library lib (symbol->string name))))

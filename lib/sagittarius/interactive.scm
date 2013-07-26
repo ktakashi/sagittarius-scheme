@@ -115,24 +115,28 @@
 	      (unless (eof-object? form)
 		((current-evaluator) form interactive-environment)
 		(loop (read/ss p)))))))
-      (let loop ()
-	(call-with-current-continuation
-	 (lambda (continue)
-	   (with-error-handler
-	     (lambda (c)
-	       (flush-output-port (current-output-port))
-	       ((current-exception-printer) c (current-error-port))
-	       (and (serious-condition? c) (continue)))
-	     (lambda ()
-	       ((current-prompter))
-	       (flush-output-port (current-output-port))
-	       (let ((form ((current-reader) (current-input-port))))
-		 (cond ((eof-object? form) ((current-exit)))
-		       (else
-			(and plugged (flush-output-port (current-output-port)))
-			(receive ans ((current-evaluator) form
-				      interactive-environment)
-			  (apply (current-printer) ans)
-			  (flush-output-port (current-output-port))))))))))
-	(loop))))
+      (let ((exit? #f))
+	(let loop ()
+	  (call-with-current-continuation
+	   (lambda (continue)
+	     (with-error-handler
+	       (lambda (c)
+		 (flush-output-port (current-output-port))
+		 ((current-exception-printer) c (current-error-port))
+		 (and (serious-condition? c) (continue)))
+	       (lambda ()
+		 ((current-prompter))
+		 (flush-output-port (current-output-port))
+		 (let ((form ((current-reader) (current-input-port))))
+		   (cond ((eof-object? form)
+			  (set! exit? #t)
+			  ((current-exit)))
+			 (else
+			  (and plugged 
+			       (flush-output-port (current-output-port)))
+			  (receive ans ((current-evaluator) form
+					interactive-environment)
+			    (apply (current-printer) ans)
+			    (flush-output-port (current-output-port))))))))))
+	  (unless exit? (loop))))))
 )
