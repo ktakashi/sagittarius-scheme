@@ -148,7 +148,8 @@
   (define (make-client-socket node service
 			      :optional (ai-family AF_INET)
 					(ai-socktype SOCK_STREAM)
-					(ai-flags (+ AI_V4MAPPED AI_ADDRCONFIG))
+					(ai-flags (+ (or AI_V4MAPPED 0)
+						     (or AI_ADDRCONFIG 0)))
 					(ai-protocol 0))
     (unless (zero? (bitwise-and ai-flags AI_PASSIVE))
       (assertion-violation 'make-client-socket
