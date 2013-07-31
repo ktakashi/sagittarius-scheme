@@ -63,6 +63,25 @@
 		(hash-done! aes-mac out)
 		out)))
 
+(test-equal "splited non block size"
+	    (integer->bytevector #x51f0bebf7e3b9d92fc49741779363cfe)
+	    (begin
+	      (hash-init! aes-mac)
+	      (hash-process! aes-mac
+			     (uint-list->bytevector 
+			      '(#x6bc1bee2 #x2e409f96 #xe93d7e11 #x7393172a
+				#xae2d8a57 #x1e03ac9c #x9eb76fac)
+			      (endianness big) 4))
+	      (hash-process! aes-mac
+			     (uint-list->bytevector
+			      '(#x45af8e51 #x30c81c46 #xa35ce411 #xe5fbc119
+				#x1a0a52ef #xf69f2445 #xdf4f9b17 #xad2b417b
+				#xe66c3710)
+			      (endianness big) 4))
+	      (let ((out (make-bytevector 16 0)))
+		(hash-done! aes-mac out)
+		out)))
+
 ;; AES_CMAC_96
 (define aes-mac-96 (hash-algorithm CMAC :cipher aes-cipher :size (/ 96 8)))
 ;; from RFC 4494
