@@ -216,6 +216,7 @@ SgObject Sg_GetTemporaryDirectory()
   
   for (i = 0; i < array_sizeof(ENVS); i++) {
     home = getenv(ENVS[i]);
+    if (home == NULL) continue;
     if (stat(home, &st) == 0) {
       if (S_ISDIR(st.st_mode)) {
 	goto entry;
