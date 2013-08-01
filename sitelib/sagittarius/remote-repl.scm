@@ -213,7 +213,8 @@
 						  c))
 		  ;; socket connection
 		  (let1 msg (describe-condition c)
-		    (send-packed-data socket :error current-expression msg))
+		    (send-packed-data socket 
+		      :error (data->string current-expression) msg))
 		  (and (serious-condition? c) (continue)))
 		(lambda ()
 		  (let1 in (recv-datum socket)
