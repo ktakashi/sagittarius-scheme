@@ -196,10 +196,11 @@
 	  (current-input-port p)
 	  (current-output-port p)
 	  (current-error-port p))
-	(define (restor-ports!)
+	(define (restore-ports!)
 	  (current-input-port in)
 	  (current-output-port out)
 	  (current-error-port err))
+	(define (data->string r) (map (^e (format "~s" e)) r))
 	(let ((stop? #f) (current-expression #f))
 	  (logging socket "connect")
 	  (let loop ()
@@ -207,7 +208,7 @@
 	     (lambda (continue)
 	       (with-exception-handler
 		(lambda (c)
-		  (restor-ports!)
+		  (restore-ports!)
 		  (logging socket "error: ~a" (if (message-condition? c)
 						  (condition-message c)
 						  c))
@@ -218,7 +219,6 @@
 		  (and (serious-condition? c) (continue)))
 		(lambda ()
 		  (let1 in (recv-datum socket)
-		    (define (data->string r) (map (^e (format "~s" e)) r))
 		    (case (read/ss in)
 		      ((:datum)
 		       (let ((e (read/ss in))
@@ -242,7 +242,7 @@
 			   ;; invalid protocol
 			   (send-packed-data 
 			    socket :error (format "unknown tag ~s" t))))))))))
-	    (restor-ports!)
+	    (restore-ports!)
 	    (unless stop? (loop)))))
       (define (do-authenticate socket)
 	(if authenticate
