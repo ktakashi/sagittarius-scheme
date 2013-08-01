@@ -51,6 +51,8 @@
 # include <unistd.h>
 # include <errno.h>
 # include <fcntl.h>
+# include <arpa/inet.h>
+# include <sys/select.h>
 #endif
 #include <sagittarius.h>
 

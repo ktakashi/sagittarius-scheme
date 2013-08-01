@@ -51,6 +51,8 @@ CHECK_TYPE_SIZE(wchar_t SIZEOF_WCHAR_T)
 
 # functions
 # alloca needs special treatment
+SET(HAVE_ALLOCA_EXITCODE "Failed to run alloca"
+  CACHE STRING "Result from TRY_RUN" FORCE)
 IF (HAVE_ALLOCA_H)
   # for now it is simple as much as possible.
   CHECK_C_SOURCE_RUNS("
@@ -231,6 +233,12 @@ ENDIF()
 IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
+  
+  IF (SAGITTARIUS_PROCESSOR STREQUAL "armv7")
+    # https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
+    SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
+  ENDIF()
   # it didn't improve performance much and makes compilation time
   # really long. so for now disable it
 #  CHECK_C_COMPILER_FLAG(-flto HAS_LTO_FLAG)
@@ -295,7 +303,7 @@ IF(USE_BOEHM_GC)
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
       MESSAGE(STATUS "unpacked gc.tar.gz")
     ENDIF()
-    IF (NOT MSVC AND NOT WATCOM)
+    IF (NOT MSVC AND NOT WATCOM AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
@@ -312,6 +320,27 @@ IF(USE_BOEHM_GC)
     FILE(READ ${GC_DIR}/CMakeLists.txt.in GC_BUILD_LINES)
     STRING(REGEX REPLACE "ADD_SUBDIRECTORY(.+)" ""
       GC_BUILD_LINES "${GC_BUILD_LINES}")
+
+    IF (${SAGITTARIUS_OS} STREQUAL "qnx")
+      # Boehm doesn't support qnx by default
+      MESSAGE(STATUS "Ading QNX specific")
+      MESSAGE(STATUS ${CMAKE_USE_PTHREADS_INIT})
+      STRING(REGEX REPLACE "ENDIF\\(CMAKE_USE_PTHREADS_INIT\\)"
+	"
+        IF (HOST MATCHES .*-.*-qnx*)
+		MESSAGE(STATUS \"GC for QNX\")
+		SET(SRC \${SRC} gc_dlopen.c)
+		ADD_DEFINITIONS(\"-DGC_QNX_THREADS\")
+		ADD_DEFINITIONS(\"-D_REENTRANT\")
+		ADD_DEFINITIONS(\"-DPARALLEL_MARK\")
+                ADD_DEFINITIONS(\"-DTHREAD_LOCAL_ALLOC\")
+#                ADD_DEFINITIONS(\"-DDEBUG_THREADS\")
+	ENDIF()
+	MESSAGE(STATUS \${SRC})
+ENDIF(CMAKE_USE_PTHREADS_INIT)"
+	GC_BUILD_LINES "${GC_BUILD_LINES}")
+    ENDIF()
+
     FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINES}")
     FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
 

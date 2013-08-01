@@ -24,6 +24,10 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 SET_TARGET_PROPERTIES(sagittarius--socket PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--socket sagittarius)
 
+IF (${SAGITTARIUS_OS} STREQUAL "qnx")
+  TARGET_LINK_LIBRARIES(sagittarius--socket socket)
+ENDIF()
+
 INSTALL(TARGETS sagittarius--socket
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(FILES sagittarius/socket.scm
