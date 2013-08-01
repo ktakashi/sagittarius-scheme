@@ -55,7 +55,7 @@ SET(HAVE_ALLOCA_EXITCODE "Failed to run alloca"
   CACHE STRING "Result from TRY_RUN" FORCE)
 IF (HAVE_ALLOCA_H)
   # for now it is simple as much as possible.
-  CHECK_C_SOURCE_RUNS("
+  CHECK_C_SOURCE_COMPILES("
 #include <alloca.h>
 int main()
 {
