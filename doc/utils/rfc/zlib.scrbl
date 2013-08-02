@@ -110,3 +110,21 @@ If the input data is compressed with specified dictionary, the same dictionary
 must be given to @var{dictionary} argument. Otherwise &zlib-error condition is
 raised.
 }
+
+@define[Function]{@name{inflate-bytevector} @args{bv opts @dots{}}}
+@define[Function]{@name{deflate-bytevector} @args{bv opts @dots{}}}
+@desc{Inflate/deflate given bytevector @var{bv} respectively.
+
+These are convenient procedures. It uses @code{open-inflating-input-port} or
+@code{open-deflating-output-port} to inflate/deflate.
+
+The @var{opts} will be passed to underlying procedures.
+}
+
+@define[Function]{@name{crc32} @args{bv :optional (checksum 0)}}
+@define[Function]{@name{adler32} @args{bv :optional (checksum 0)}}
+@desc{Returns CSC32/Adler32 checksum of bytevector @var{bv}, respectively.
+
+If optional @var{checksum} is given, then returned checksum is an update of
+@var{checksum} by @var{bv}.
+}

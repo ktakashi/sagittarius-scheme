@@ -611,6 +611,15 @@ equivalent to:
 @desc{Disassembles the compiled body of @var{closure} and print it.
 }
 
+@define[Library]{@name{(time)}}
+@desc{Exports @code{time} macro}
+
+@define[Macro]{@name{time} @args{expr}}
+@desc{Evaluate @var{expr} and shows time usage.
+
+The macro return the result of @var{expr}.}
+
+
 @include-section["sagittarius/control.scrbl"]
 @include-section["sagittarius/ffi.scrbl"]
 @include-section["sagittarius/io.scrbl"]

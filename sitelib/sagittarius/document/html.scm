@@ -28,14 +28,19 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+
+;; FIXME getting uglier refactor it!
 (library (sagittarius document html)
     (export scribble-sxml->html
-	    scribble-file->html)
+	    scribble-sxml->shtml
+	    scribble-file->html
+	    scribble-file->shtml)
     (import (rnrs)
 	    (pp)
 	    (sagittarius)
 	    (sagittarius control)
 	    (util list)
+	    (util file)
 	    (srfi :1 lists)
 	    (srfi :19 time)
 	    (srfi :39 parameters)
@@ -220,6 +225,16 @@
     (author names)
     "")
 
+  (define (scribble-file->shtml file . opt)
+    (parameterize ((current-section #f)
+		   (names-for-index '())
+		   (current-section-number '(0))
+		   (table-of-contents '())
+		   (author (list "anonymous")))
+      (call-with-input-file file
+	(lambda (p)
+	  (apply scribble-sxml->shtml (scribble->sxml p) opt)))))
+
   (define (scribble-file->html file . opt)
     (parameterize ((current-section #f)
 		   (names-for-index '())
@@ -228,9 +243,8 @@
 		   (author (list "anonymous")))
       (call-with-input-file file
 	(lambda (p)
-	  (apply scribble-sxml->html (scribble->sxml p) opt))))
-    )
-
+	  (apply scribble-sxml->html (scribble->sxml p) opt)))))
+  
   (define (content-list-handler element)
     (define (process contents)
       (define (li-gen content class)
@@ -333,8 +347,7 @@
 		       (cons `(a (@ (class "index-letter")
 				    (href ,(string-append "#index-" letter)))
 				 ,(string-upcase letter))
-			   r))))))
-      )
+			   r)))))))
     (define (generate-index-table lst)
       (define (gen-table lst)
 	`((tr (td (@ (class "index-name"))
@@ -380,14 +393,15 @@
 		       (else "index-table"))))
       `(div (@ (id ,id))
 	    ,(generate-index-letters (map car lst))
-	    ,@(generate-index-table lst)))
-    )
+	    ,@(generate-index-table lst))))
 
+  ;; alist of tag handler need-reverse
+  ;; TODO add handler things
   (define *handlers*
-    `((table-of-contents . ,content-list-handler)
-      (included          . ,include-handler)
-      (index-table       . ,index-table-handler)
-      (title             . h1)))
+    `((table-of-contents  ,content-list-handler . #f)
+      (included           ,cdr                  . #t)
+      (index-table        ,index-table-handler  . #f)
+      (title              h1                    . #f)))
   ;; 
   ;; from here we just need to handle two elements,
   ;; table-of-contents and include. include might be used for creating separated
@@ -401,12 +415,15 @@
 	    ((and (pair? (car elements))
 		  (assq (caar elements) *handlers*))
 	     => (lambda (slot)
-		  (if (procedure? (cdr slot))
+		  (if (procedure? (cadr slot))
+		      (let ((dr (dispatch ((cadr slot) (car elements)))))
+			(if (pair? (car dr))
+			    (if (cddr slot)
+				(loop (cdr elements) `(,@(reverse dr) . ,r) #f)
+				(loop (cdr elements) `(,@dr . ,r) #f))
+			    (loop (cdr elements) (cons dr r) #f)))
 		      (loop (cdr elements)
-			    (cons (dispatch ((cdr slot) (car elements))) r)
-			    #f)
-		      (loop (cdr elements)
-			    (cons `(,(cdr slot) ,@(cdar elements)) r)
+			    (cons `(,(cadr slot) ,@(cdar elements)) r)
 			    #f))))
 	    ((pair? (car elements))
 	     (loop (cdr elements)
@@ -420,75 +437,89 @@
 	     (loop (cdr elements) (cons (car elements) r) #f)))))
 
   ;; let's do it only the section tag
-  (define (fixup doc separate?)
-    (define (lookup-next-section doc section)
-      (let loop ((doc doc) (r '()))
-	(cond ((and (pair? doc) (pair? (car doc)) (eq? (caar doc) section))
-	       (values doc (reverse! r)))
-	      ((pair? doc)
-	       (loop (cdr doc) (cons (car doc) r)))
-	      ((null? doc) (values '() (reverse! r)))
-	      (else doc)))) ;; should this happen?
-    (if separate?
-	(let loop ((doc doc))
-	  (cond ((and (pair? doc) (pair? (car doc)) (eq? (caar doc) 'h2))
-		 (receive (next section) (lookup-next-section (cdr doc) 'h2)
-		   (cons `(section (@ (class "section"))
-				   ,@(cons (car doc) section))
-			 (loop next))))
-		((pair? doc)
-		 (cons (car doc) (loop (cdr doc))))
-		(else doc)))
-	doc))
+  (define (fixup doc)
+    (define (fixup-persecion doc section parents)
+      (define (sibling? e) 
+	(and (pair? e) (eq? (sxml:element-name e) section)))
+      (define (parent? e)
+	(and (pair? e) (memq (sxml:element-name e) parents)))
 
+      (define (lookup-next-section doc)
+	(let loop ((doc doc) (r '()))
+	  (cond ((and (pair? doc)
+		      (or (sibling? (car doc)) (parent? (car doc))))
+		 (values doc (reverse! r)))
+		((pair? doc)
+		 (loop (cdr doc) (cons (car doc) r)))
+		((null? doc) (values '() (reverse! r)))
+		(else doc)))) ;; should this happen?
+      (let loop ((doc doc))
+	(cond ((and (pair? doc) (sibling? (car doc)))
+	       (receive (next section) (lookup-next-section (cdr doc))
+		 (let ((class (sxml:attr-u (car doc) 'class)))
+		   (cons `(section (@ (class ,class))
+				   ,@(cons (car doc) section))
+			 (loop next)))))
+	      ((pair? doc) (cons (car doc) (loop (cdr doc))))
+	      (else doc))))
+    (fold-left (lambda (doc sec parent) (fixup-persecion doc sec parent))
+	       doc '(h5 h4 h3 h2) '((h4 h3 h2) (h3 h2) (h2) ())))
+
+  (define (generate-html-metas title style javascript)
+    `(html
+      (head (meta (@ (http-eqiv "Content-Type")
+		     (content   "text/html; charset=utf-8")))
+	    ,@(filter values
+		      (list (and style
+				 `(link (@ (rel "stylesheet")
+					   (type "text/css")
+					   (href ,style))))
+			    (and javascript
+				 `(script (@ (type "text/javascript")
+					     (src ,javascript)) " "))))
+	    (title ,(or title
+			"Auto generated by html-generator")))))
+
+  (define (scribble-sxml->shtml sexp :key (style #f)
+					  (javascript #f))
+    (let* ((doc  (cdar ((sxpath '(scribble)) sexp)))
+	   (title ((sxpath '(scribble title)) sexp))
+	   (html-metas (generate-html-metas (and title (cadar title))
+					    style javascript)))
+      (append html-metas
+	      `((body 
+		 (div (@ (id "sagittarius-doc-wrapper"))
+		      ,@(fixup (dispatch doc))
+		      (hr)
+		      (div (@ (id "document-footer"))
+			   (div (@ (id "footer-message"))
+				"This document was generated by"
+				(i ,@(author))
+				" with Sagittarius gendoc. ")
+			   (div (@ (id "footer-date"))
+				"Generated date: " 
+				(i ,(date->string
+				     (current-date) "~4"))))))))))
 
   (define (scribble-sxml->html sexp :key (output (current-output-port))
 			                 (style #f)
 					 (javascript #f)
 					 (separate-file #f))
-    (let* ((doc  (cdar ((sxpath '(scribble)) sexp)))
-	   (title ((sxpath '(scribble title)) sexp))
-	   (html-metas 
-	    `(html
-	      (head (meta (@ (http-eqiv "Content-Type")
-			     (content   "text/html; charset=utf-8")))
-		    ,@(filter values
-			      (list (if style
-					`(link (@ (rel "stylesheet")
-						  (type "text/css")
-						  (href ,style)))
-					#f)
-				    (if javascript
-					`(script (@ (type "text/javascript")
-						    (src ,javascript)) " ")
-					#f)))
-		    (title ,(if title
-				(cadar title)
-				"Auto generated by html-generator"))))))
-      (let ((document (append html-metas
-			      `((body 
-				 (div (@ (id "sagittarius-doc-wrapper"))
-				      ,@(fixup (dispatch doc) separate-file)
-				      (hr)
-				      (div 
-				       "This document was generated by"
-				       (i ,@(author))
-				       " with Sagittarius gendoc. ")
-				      (div "Generated date: " 
-					   (i ,(date->string
-						(current-date) "~4"))))
-				 )))))
-	;; for some reason, SXML does not accept doctype so write it
-	;; manually
-	(define (write-doctype output)
-	  (display "<!DOCTYPE html>" output)
-	  (newline output)
-	  (srl:sxml->html document output))
+    (when (and separate-file (not (string? output)))
+      (assertion-violation 'scribble-file->html
+			   ":separate-file is set but output is not a path"))
+    (let ((document (scribble-sxml->shtml sexp :style style
+					  :javascript javascript)))
+      ;; for some reason, SXML does not accept doctype so write it
+      ;; manually
+      (define (write-doctype output)
+	(display "<!DOCTYPE html>" output)
+	(newline output)
+	(srl:sxml->html document output))
 
-	(cond ((port? output) (write-doctype output))
-	      (else
-	       (when (file-exists? output) (delete-file output))
-	       (call-with-output-file output write-doctype))))
-    ))
+      (cond ((port? output) (write-doctype output))
+	    (else
+	     (when (file-exists? output) (delete-file output))
+	     (call-with-output-file output write-doctype)))))
 
 )
