@@ -45,8 +45,8 @@
 	    socket-error-message
 
 	    socket-accept
-	    socket-send
-	    socket-recv
+	    socket-send socket-sendto
+	    socket-recv socket-recvfrom
 	    socket-shutdown
 	    socket-close
 	    socket-fd
@@ -105,7 +105,9 @@
 
 	    ;; addrinfo
 	    addrinfo? make-addrinfo make-hint-addrinfo get-addrinfo
-	    next-addrinfo
+	    next-addrinfo addrinfo-sockaddr
+	    ;; sockaddr
+	    sockaddr?
 	    ;; socket-info
 	    socket-peer
 	    socket-name
@@ -140,6 +142,7 @@
       info))
 
   (define (next-addrinfo info) (slot-ref info 'next))
+  (define (addrinfo-sockaddr info) (slot-ref info 'addr))
 
   (define (create-socket info)
     (make-socket (slot-ref info 'family) (slot-ref info 'socktype)

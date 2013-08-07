@@ -17,6 +17,7 @@
 
 (define-type <socket> "SgSocket*")
 (define-type <addrinfo> "SgAddrinfo*")
+(define-type <sockaddr> "SgSockaddr*")
 (define-type <ip-address> "SgIpAddress*")
 (define-type <socket-info> "SgSocketInfo*")
 
@@ -26,6 +27,8 @@
   (check-string-or-false make-client-socket node)
   (check-string-or-false make-client-socket service)
   (result (Sg_GetAddrinfo node service hints)))
+
+(define-c-proc sockaddr? (o) ::<boolean> SG_SOCKADDRP)
 
 (define-c-proc make-socket (f::<fixnum> t::<fixnum> :optional (p::<fixnum> 0))
   Sg_CreateSocket)
@@ -68,11 +71,36 @@
 			 (SG_BVECTOR_SIZE bv)
 			 flags)))
 
+(define-c-proc socket-sendto
+  (o::<socket> bv::<bytevector> addr::<sockaddr> :optional (flags::<fixnum> 0))
+  ::<fixnum>
+  (result (Sg_SocketSendTo (SG_SOCKET o)
+			   (SG_BVECTOR_ELEMENTS bv)
+			   (SG_BVECTOR_SIZE bv)
+			   flags
+			   addr)))
+
 (define-c-proc socket-recv (o::<socket> len::<fixnum>
 					:optional (flags::<fixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
 	(res::int (Sg_SocketReceive (SG_SOCKET o)
 				    (SG_BVECTOR_ELEMENTS data) len flags)))
+    (cond ((== len res) (result data))
+	  ((< res 0)
+	   ;; most probably socket is non-blocking
+	   (result #f))
+	  (else
+	   ;; shrink
+	   (let ((r (Sg_MakeByteVector res 0)))
+	     (Sg_ByteVectorCopyX (SG_BVECTOR data) 0 (SG_BVECTOR r) 0 res)
+	     (result r))))))
+
+(define-c-proc socket-recvfrom (o::<socket> len::<fixnum> addr::<sockaddr>
+					    :optional (flags::<fixnum> 0)) 
+  (let ((data (Sg_MakeByteVector len 0))
+	(res::int (Sg_SocketReceiveFrom (SG_SOCKET o)
+					(SG_BVECTOR_ELEMENTS data) len flags
+					addr)))
     (cond ((== len res) (result data))
 	  ((< res 0)
 	   ;; most probably socket is non-blocking

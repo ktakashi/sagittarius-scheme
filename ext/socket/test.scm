@@ -6,6 +6,7 @@
 	(srfi :13 strings)
 	(rnrs)
 	(srfi :0 cond-expand)
+	(clos user)
 	(sagittarius socket)
 	;; use thread for testing
 	(sagittarius threads))
@@ -85,6 +86,15 @@
   )
 
 (thread-join! server-thread)
+
+;; addr info slots
+(let ((info (get-addrinfo "localhost" "5000" (make-hint-addrinfo
+					      :family AF_INET
+					      :socktype SOCK_DGRAM))))
+  (test-assert "sockaddr?" (sockaddr? (addrinfo-sockaddr info)))
+  (let ((s (make-socket AF_INET SOCK_DGRAM)))
+    (test-equal "seocket-sendto" 4 
+		(socket-sendto s #vu8(1 2 3 4) (addrinfo-sockaddr info)))))
 
 
 (test-end)

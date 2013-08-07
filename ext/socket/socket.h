@@ -91,6 +91,20 @@ SG_CLASS_DECL(Sg_AddrinfoClass);
 #define SG_ADDRINFO(obj)  ((SgAddrinfo*)obj)
 #define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
 
+
+typedef struct SgSockaddrRec
+{
+  SG_HEADER;
+  size_t           addr_size;
+  struct sockaddr *addr;
+} SgSockaddr;
+
+SG_CLASS_DECL(Sg_SockaddrClass);
+#define SG_CLASS_SOCKADDR (&Sg_SockaddrClass)
+#define SG_SOCKADDR(obj)  ((SgSockaddr*)obj)
+#define SG_SOCKADDRP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKADDR)
+
+
 typedef enum {
   None,
   IPv4,
@@ -140,8 +154,12 @@ SG_EXTERN SgObject  Sg_SocketListen(SgSocket *socket, int backlog);
 
 SG_EXTERN int       Sg_SocketReceive(SgSocket *socket, uint8_t *data,
 				     int size, int flags);
+SG_EXTERN int       Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data,
+					 int size, int flags, SgSockaddr *addr);
 SG_EXTERN int       Sg_SocketSend(SgSocket *socket, uint8_t *data,
 				  int size, int flags);
+SG_EXTERN int       Sg_SocketSendTo(SgSocket *socket, uint8_t *data,
+				    int size, int flags, SgSockaddr *addr);
 SG_EXTERN SgSocket* Sg_SocketAccept(SgSocket *socket);
 SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
 SG_EXTERN void      Sg_SocketClose(SgSocket *socket);
