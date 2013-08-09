@@ -927,11 +927,13 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_SLICE_LET_SYNTAX);
 	Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "r7rs") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	SG_VM_SET_FLAG(Sg_VM(), SG_NO_SLICE_LET_SYNTAX);
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
@@ -941,6 +943,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_SLICE_LET_SYNTAX);
 	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
@@ -948,11 +951,16 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
 	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_SLICE_LET_SYNTAX);
 	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	return NULL;
       }
       if (ustrcmp(tag->value, "no-overwrite") == 0) {
 	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	return NULL;
+      }
+      if (ustrcmp(tag->value, "overwrite") == 0) {
+	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
 	return NULL;
       }
       if (ustrcmp(tag->value, "fold-case") == 0) {

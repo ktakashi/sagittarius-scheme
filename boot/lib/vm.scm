@@ -4,6 +4,8 @@
 (define *toplevel-variable* '())
 (define *expand-phase* 0)
 (define (vm-r6rs-mode?) #f)
+;; in case
+(define (vm-slice-let-syntax?) #f)
 (define (vm-noinline-locals?) #f)
 (define (vm-nolambda-lifting?) #f)
 (define (vm-nolibrary-inlining?) #f)

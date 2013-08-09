@@ -1318,7 +1318,7 @@
 			  name trans-spec))
 	    ;; macro must be lexical. see pass1
 	    (newenv (p1env-extend p1env ($map-cons-dup name trans) LEXICAL)))
-       (if (vm-r6rs-mode?)
+       (if (vm-slice-let-syntax?)
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
     (else
@@ -1336,7 +1336,7 @@
 			     x (p1env-add-name newenv (variable-name n))))
 			  name trans-spec)))
        (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) (append trans trans))
-       (if (vm-r6rs-mode?)
+       (if (vm-slice-let-syntax?)
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
     (-
@@ -2712,10 +2712,10 @@
 	    ((not (pair? req))
 	     (syntax-error "invalid cond-expand feature-id" req))
 	    (else
-	     (case (identifier->symbol (car req))
+	     (case (unwrap-syntax (car req))
 	       ((and) 	  (fulfill-and (cdr req)))
 	       ((or)  	  (fulfill-or (cdr req)))
-	       ((not) 	  (fulfill-not (cdr req)))
+	       ((not) 	  (fulfill-not (cadr req)))
 	       ((library) (fulfill-library (cdr req)))
 	       (else
 		(syntax-error "invalid cond-expand feature expression" req))))))
@@ -2730,7 +2730,7 @@
 	  #f
 	  (let ((c1 (fulfill? (car reqs))))
 	    (or c1 (fulfill-or (cdr reqs))))))
-    (define (fulfill-not reqs)
+    (define (fulfill-not req)
       (if (fulfill? req) #f #t))
     (define (fulfill-library reqs) (find-library (car reqs) #f))
 
@@ -2821,7 +2821,7 @@
 				 (else (acons 'rec def intmacros)))))
 		      (pass1/body-rec rest intdefs intmacros p1env))))
 		 ;; 11.18 binding constructs for syntactic keywords
-		 ((and (vm-r6rs-mode?)
+		 ((and (vm-slice-let-syntax?)
 		       (or (global-eq? head 'let-syntax p1env)
 			   (global-eq? head 'letrec-syntax p1env)))
 		  (receive (defs body)
