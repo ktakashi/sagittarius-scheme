@@ -16,7 +16,7 @@
      (define name (lambda formals body ...)))))
 (define-lambda f (t rest) `(t ,t))
 
-(test-begin "sagittarius specific")
+(test-begin "Sagittarius specific")
 (test-equal "bytevector->integer"
 	    #x12345678
 	    (bytevector->integer #vu8(#x12 #x34 #x56 #x78)))
@@ -907,5 +907,12 @@
 
 ;; issue 126
 (test-assert "(- 0 bignum)" (negative? (- 0 (expt 2 2048))))
+
+;; issue 129
+(test-assert "cond-expand" 
+	     (eval '(cond-expand ((and (library (rnrs)) 
+				       (or sagittarius something)) 
+				  #t))
+		   '(sagittarius)))
 
 (test-end)
