@@ -1734,7 +1734,8 @@ SgObject Sg_LogAnd(SgObject x, SgObject y)
 	return SG_MAKE_INT(0);
       }
     }
-    x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    /* x = Sg_MakeBignumFromSI(SG_INT_VALUE(x)); */
+    return Sg_BignumLogAndSI(SG_BIGNUM(y), SG_INT_VALUE(x));
   } else if (SG_INTP(y)) {
     if (SG_INT_VALUE(y) >= 0) {
       if (SG_BIGNUM_GET_SIGN(x) > 0) {
@@ -1743,7 +1744,8 @@ SgObject Sg_LogAnd(SgObject x, SgObject y)
 	return SG_MAKE_INT(0);
       }
     }
-    y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+    /* y = Sg_MakeBignumFromSI(SG_INT_VALUE(y)); */
+    return Sg_BignumLogAndSI(SG_BIGNUM(x), SG_INT_VALUE(y));
   }
   return Sg_BignumLogAnd(SG_BIGNUM(x), SG_BIGNUM(y));
 }
@@ -1756,10 +1758,14 @@ SgObject Sg_LogIor(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) | SG_INT_VALUE(y));
     } else {
-      x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+      /* x = Sg_MakeBignumFromSI(SG_INT_VALUE(x)); */
+      return Sg_BignumLogIorSI(SG_BIGNUM(y), SG_INT_VALUE(x));
     }
   } else {
-    if (SG_INTP(y)) y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+    if (SG_INTP(y)) {
+      /* y = Sg_MakeBignumFromSI(SG_INT_VALUE(y)); */
+      return Sg_BignumLogIorSI(SG_BIGNUM(x), SG_INT_VALUE(y));
+    }
   }
   return Sg_BignumLogIor(SG_BIGNUM(x), SG_BIGNUM(y));
 }
@@ -1772,10 +1778,14 @@ SgObject Sg_LogXor(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) ^ SG_INT_VALUE(y));
     } else {
-      x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+      /* x = Sg_MakeBignumFromSI(SG_INT_VALUE(x)); */
+      return Sg_BignumLogXorSI(y, SG_INT_VALUE(x));
     }
   } else {
-    if (SG_INTP(y)) y = Sg_MakeBignumFromSI(SG_INT_VALUE(y));
+    if (SG_INTP(y)) {
+      /* y = Sg_MakeBignumFromSI(SG_INT_VALUE(y)); */
+      return Sg_BignumLogXorSI(x, SG_INT_VALUE(y));
+    }
   }
   return Sg_BignumLogXor(SG_BIGNUM(x), SG_BIGNUM(y));
 }

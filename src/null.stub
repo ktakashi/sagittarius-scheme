@@ -1364,7 +1364,7 @@
   (define-c-proc bytevector-u8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
     (setter bytevector-u8-set!)
     (bv-check-index bytevector-u8-ref bv index)
-    (result (Sg_ByteVectorU8Ref bv index)))
+    (result (SG_BVECTOR_ELEMENT bv index)))
 
   (define-c-proc bytevector-u8-set! 
     (bv::<bytevector> index::<fixnum> value::<fixnum>) ::<void>
@@ -1374,12 +1374,12 @@
       (assertion-violation 'bytevector-u8-set!
 			   "value out of range. must be 0 <= value <= 255"
 			   (SG_MAKE_INT value)))
-    (Sg_ByteVectorU8Set bv index value))
+    (set! (SG_BVECTOR_ELEMENT bv index) (cast uint8_t value)))
 
   (define-c-proc bytevector-s8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
     (setter bytevector-s8-set!)
     (bv-check-index bytevector-s8-ref bv index)
-    (result (Sg_ByteVectorS8Ref bv index)))
+    (result (cast int8_t (SG_BVECTOR_ELEMENT bv index))))
 
   (define-c-proc bytevector-s8-set!
     (bv::<bytevector> index::<fixnum> value::<fixnum>) ::<void>
@@ -1389,7 +1389,7 @@
       (assertion-violation 'bytevector-s8-set! 
 			   "value out of range. must be -128 <= value <= 127"
 			   (SG_MAKE_INT value)))
-    (Sg_ByteVectorS8Set bv index value))
+    (set! (SG_BVECTOR_ELEMENT bv index) (cast uint8_t value)))
 
   (define-cise-stmt bv-check-align
     ((_ name index align)
@@ -3590,20 +3590,24 @@
 	(for-each (lambda (v) (set! r (,fn r v))) ,rest)
 	(result r))))
 
-  (define-c-proc bitwise-and (ei :rest rest) 
-    (if (SG_NULLP rest)
-	(result ei)
-	(logop Sg_LogAnd ei (SG_CAR rest) (SG_CDR rest))))
+  (define-c-proc bitwise-and (:optional ei::<integer> :rest rest) 
+    (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT -1)))
+	  ((SG_NULLP rest)
+	   (result ei))
+	  (else
+	   (logop Sg_LogAnd ei (SG_CAR rest) (SG_CDR rest)))))
 
-  (define-c-proc bitwise-ior (ei :rest rest) 
-    (if (SG_NULLP rest)
-	(result ei)
-	(logop Sg_LogIor ei (SG_CAR rest) (SG_CDR rest))))
+  (define-c-proc bitwise-ior (:optional ei::<integer> :rest rest) 
+    (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
+	  ((SG_NULLP rest) (result ei))
+	  (else
+	   (logop Sg_LogIor ei (SG_CAR rest) (SG_CDR rest)))))
 
-  (define-c-proc bitwise-xor (ei :rest rest) 
-    (if (SG_NULLP rest)
-	(result ei)
-	(logop Sg_LogXor ei (SG_CAR rest) (SG_CDR rest))))
+  (define-c-proc bitwise-xor (:optional ei::<integer> :rest rest) 
+    (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
+	  ((SG_NULLP rest) (result ei))
+	  (else
+	   (logop Sg_LogXor ei (SG_CAR rest) (SG_CDR rest)))))
 
   (define-cise-expr logif
     ((_ n1 n2 n3)
