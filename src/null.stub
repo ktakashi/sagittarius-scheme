@@ -3091,20 +3091,53 @@
        `("((" ,(render-rec a env) "&" ,(render-rec b env)
 	 ")|(~" ,(render-rec a env) "&" ,(render-rec c env) "))"))))
 
-  (define-c-proc fxand (:rest rest) ::<fixnum>
-    (let ((ret::long -1))
-      (fxlogop logand ret "&" rest)
-      (result ret)))
+  (define-c-proc fxand
+    (:optional fx1::<integer> fx2::<integer> :rest rest) ::<fixnum>
+    (cond ((SG_UNBOUNDP fx1) (result -1))
+	  ((SG_NULLP rest)
+	   (if (SG_UNBOUNDP fx2)
+	       (if (SG_INTP fx1)
+		   (result (SG_INT_VALUE fx1))
+		   (wrong-type-of-argument-violation 'fxand "fixnum" fx1))
+	       (if (and (SG_INTP fx1) (SG_INTP fx2))
+		   (result (logand (SG_INT_VALUE fx1) (SG_INT_VALUE fx2)))
+		   (wrong-type-of-argument-violation 'fxand "fixnum" fx1 fx2))))
+	  (else
+	   (let ((ret::long (logand (SG_INT_VALUE fx1) (SG_INT_VALUE fx2))))
+	     (fxlogop fxand ret "&" rest)
+	     (result ret)))))
 
-  (define-c-proc fxior (:rest rest) ::<fixnum>
-    (let ((ret::long 0))
-      (fxlogop fxior ret "|" rest)
-      (result ret)))
+  (define-c-proc fxior
+    (:optional fx1::<integer> fx2::<integer> :rest rest) ::<fixnum>
+    (cond ((SG_UNBOUNDP fx1) (result 0))
+	  ((SG_NULLP rest)
+	   (if (SG_UNBOUNDP fx2)
+	       (if (SG_INTP fx1)
+		   (result (SG_INT_VALUE fx1))
+		   (wrong-type-of-argument-violation 'fxior "fixnum" fx1))
+	       (if (and (SG_INTP fx1) (SG_INTP fx2))
+		   (result (logior (SG_INT_VALUE fx1) (SG_INT_VALUE fx2)))
+		   (wrong-type-of-argument-violation 'fxior "fixnum" fx1 fx2))))
+	  (else
+	   (let ((ret::long (logior (SG_INT_VALUE fx1) (SG_INT_VALUE fx2))))
+	     (fxlogop fxior ret "|" rest)
+	     (result ret)))))
 
-  (define-c-proc fxxor (:rest rest) ::<fixnum>
-    (let ((ret::long 0))
-      (fxlogop fxxor ret "^" rest)
-      (result ret)))
+  (define-c-proc fxxor 
+    (:optional fx1::<integer> fx2::<integer> :rest rest) ::<fixnum>
+    (cond ((SG_UNBOUNDP fx1) (result 0))
+	  ((SG_NULLP rest)
+	   (if (SG_UNBOUNDP fx2)
+	       (if (SG_INTP fx1)
+		   (result (SG_INT_VALUE fx1))
+		   (wrong-type-of-argument-violation 'fxxor "fixnum" fx1))
+	       (if (and (SG_INTP fx1) (SG_INTP fx2))
+		   (result (logxor (SG_INT_VALUE fx1) (SG_INT_VALUE fx2)))
+		   (wrong-type-of-argument-violation 'fxxor "fixnum" fx1 fx2))))
+	  (else
+	   (let ((ret::long (logxor (SG_INT_VALUE fx1) (SG_INT_VALUE fx2))))
+	     (fxlogop fxxor ret "^" rest)
+	     (result ret)))))
 
   (define-c-proc fxnot (fx::<fixnum>) ::<fixnum>
     (result (lognot fx)))
