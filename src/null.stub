@@ -3590,23 +3590,37 @@
 	(for-each (lambda (v) (set! r (,fn r v))) ,rest)
 	(result r))))
 
-  (define-c-proc bitwise-and (:optional ei::<integer> :rest rest) 
+  (define-c-proc bitwise-and 
+    (:optional ei::<integer> ei2::<integer> :rest rest) 
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT -1)))
-	  ((SG_NULLP rest)
-	   (result ei))
+	  ((SG_NULLP rest) 
+	   (if (SG_UNBOUNDP ei2)
+	       (result ei)
+	       (result (Sg_LogAnd ei ei2))))
 	  (else
+	   (set! ei (Sg_LogAnd ei ei2))
 	   (logop Sg_LogAnd ei (SG_CAR rest) (SG_CDR rest)))))
 
-  (define-c-proc bitwise-ior (:optional ei::<integer> :rest rest) 
+  (define-c-proc bitwise-ior 
+    (:optional ei::<integer> ei2::<integer> :rest rest) 
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
-	  ((SG_NULLP rest) (result ei))
+	  ((SG_NULLP rest) 
+	   (if (SG_UNBOUNDP ei2)
+	       (result ei)
+	       (result (Sg_LogIor ei ei2))))
 	  (else
+	   (set! ei (Sg_LogIor ei ei2))
 	   (logop Sg_LogIor ei (SG_CAR rest) (SG_CDR rest)))))
 
-  (define-c-proc bitwise-xor (:optional ei::<integer> :rest rest) 
+  (define-c-proc bitwise-xor 
+    (:optional ei::<integer> ei2::<integer> :rest rest) 
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
-	  ((SG_NULLP rest) (result ei))
+	  ((SG_NULLP rest) 
+	   (if (SG_UNBOUNDP ei2)
+	       (result ei)
+	       (result (Sg_LogXor ei ei2))))
 	  (else
+	   (set! ei (Sg_LogXor ei ei2))
 	   (logop Sg_LogXor ei (SG_CAR rest) (SG_CDR rest)))))
 
   (define-cise-expr logif
