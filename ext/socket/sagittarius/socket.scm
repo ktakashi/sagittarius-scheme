@@ -2,7 +2,7 @@
 ;;;
 ;;; socket.scm - socket library
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -35,7 +35,8 @@
 	    shutdown-output-port
 	    socket?
 	    make-socket
-	    socket-port
+	    socket-port socket-input-port socket-output-port
+	    shutdown-port shutdown-input-port shutdown-output-port
 	    
 	    socket-setsockopt!
 	    socket-getsockopt
