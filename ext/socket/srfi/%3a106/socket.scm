@@ -45,6 +45,7 @@
             address-family socket-domain address-info
             ip-protocol message-type shutdown-method)
     (import (rnrs) 
+	    (sagittarius)
 	    (rename (sagittarius socket) 
 		    (AF_UNSPEC *af-unspec*)
 		    (AF_INET   *af-inet*)
@@ -123,8 +124,30 @@
     (peek *msg-peek*)
     (oob  *msg-oob*)
     (wait-all *msg-waitall*))
-
+  #;
   (define-flag-operation shutdown-method
     (read  *shut-rd*)
     (write *shut-wr*))
+
+  (define-syntax shutdown-method
+    (lambda (x)
+      (define (resolve names)
+	(if (null? (cdr names))
+	    (case (car names)
+	      ((read)  #'*shut-rd*)
+	      ((write) #'*shut-wr*)
+	      (else =>
+		(lambda (name)
+		  (syntax-violation 'shutdown-method "unknown flag" name))))
+	    ;; needs to be read and write
+	    (or (and-let* (( (null? (cddr names)) )
+			   ( (memq 'read names)   )
+			   ( (memq 'write names)  ))
+		  #'*shut-rdwr*)
+		(syntax-violation 'shutdown-method "invalid shutdown-method"
+				  names))))
+      (syntax-case x ()
+	((_ names ...)
+	 (resolve (syntax->datum #'(names ...)))))))
+
 )
