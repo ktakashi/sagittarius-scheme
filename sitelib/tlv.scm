@@ -38,7 +38,7 @@
 	    ;; utilities
 	    dump-tlv
 	    tlv->bytevector
-	    ->tlv
+	    ->tlv make-tlv-unit
 	    read-tlv
 
 	    ;; for exptension
@@ -76,8 +76,7 @@
 	(format p "#<tlv :tag ~x :components ~a>"
 		(tlv-tag o) (tlv-components o))))
 
-  (define (make-tlv-unit tag data)
-    (make <tlv> :tag tag :length (bytevector-length data) :data data))
+  (define (make-tlv-unit tag data) (make <tlv> :tag tag :data data))
 
   (define (make-generic-tlv-parser tag-reader length-reader object-builder)
     (define (parse-tlv-object-list in in-indefinite?)
