@@ -41,6 +41,10 @@
 	    ->tlv
 	    read-tlv
 
+	    ;; for exptension
+	    ;; it's actually BER length reader
+	    (rename read-length read-ber-length)
+
 	    ;; for compatibility
 	    (rename (write-emv-tlv write-tlv))
 	    write-emv-tlv write-dgi-tlv

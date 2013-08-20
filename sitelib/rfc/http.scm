@@ -55,6 +55,7 @@
 	    http-string-sender
 	    ;; receiver
 	    http-string-receiver
+	    http-binary-receiver
 	    http-null-receiver
 	    http-oport-receiver
 	    http-file-receiver
@@ -393,6 +394,15 @@
 	  (cond ((eqv? size 0)
 		 (bytevector->string (get-output-bytevector sink)
 				     (make-transcoder (lookup-encoding hdrs))))
+		((or (not size) (> size 0))
+		 (copy-binary-port sink remote :size size)
+		 (loop sink)))))))
+
+  (define (http-binary-receiver)
+    (lambda (code hdrs total retr)
+      (let loop ((sink (open-output-bytevector)))
+	(receive (remote size) (retr)
+	  (cond ((eqv? size 0) (get-output-bytevector sink))
 		((or (not size) (> size 0))
 		 (copy-binary-port sink remote :size size)
 		 (loop sink)))))))
