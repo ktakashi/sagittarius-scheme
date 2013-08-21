@@ -278,11 +278,11 @@
 	    (else
 	     ;; NOTE: #xFFFF: length = 3
 	     ;; EMV tlv accepts maximum 4 bytes length but we don't check it
-	     (let1 length-bits (+ (div (bitwise-length len) 8) 1)
+	     (let1 length-bits (div (bitwise-length len) 8)
 	       (put-u8 out (+ #x80 length-bits))
 	       (do ((i length-bits (- i 1)))
-		   ((< i 0))
-		 (put-u8 out (bitwise-and #xFF (ashr len (* i 8)))))))))
+		   ((= i 0))
+		 (put-u8 out (bitwise-and #xFF (ashr len (* (- i 1) 8)))))))))
     (apply generic-tlv-writer tlv write-tag write-length opts))
 
   (define (read-tlv in :optional (parser (make-emv-tlv-parser)))

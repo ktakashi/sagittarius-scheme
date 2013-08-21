@@ -220,7 +220,8 @@ static void show_usage()
 #endif
 	  "  -t, --toplevel-only            Imports only toplevel syntax.\n"
 	  "     This option only imports 'import', 'library' and 'define-library'\n"
-	  "     to interaction environment by default."
+	  "     to interaction environment by default.\n"
+	  "  -n, --no-main                  Do not call main procedure.\n"
 	  "\n"
 	  "environment variables:\n"
 	  "  SAGITTARIUS_LOADPATH\n"
@@ -232,7 +233,7 @@ static void show_usage()
 	  "\n"
 	  "bug report:\n"
 	  "  http://code.google.com/p/sagittarius-scheme/issues\n"
-	  "  ktakashi@ymail.com"
+	  "  ktakashi@ymail.com\n"
 	  );
   exit(1);
 }
