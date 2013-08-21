@@ -184,7 +184,7 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hvicdt][-L<path>][-D<path>][-f<flag>][-I<library>]"
+	  "Usage: sash [-hvicdtn][-L<path>][-D<path>][-f<flag>][-I<library>]"
 	  "[-E<flags>][-p<file>][--] [file]\n"
 	  "options:\n"
 	  "  -v,--version                   Prints version and exits.\n"
@@ -218,10 +218,10 @@ static void show_usage()
 	  "     time        Sort by time\n"
 	  "     count       Sort by count\n"
 #endif
-	  "  -t, --toplevel-only            Imports only toplevel syntax.\n"
+	  "  -t,--toplevel-only             Imports only toplevel syntax.\n"
 	  "     This option only imports 'import', 'library' and 'define-library'\n"
 	  "     to interaction environment by default.\n"
-	  "  -n, --no-main                  Do not call main procedure.\n"
+	  "  -n,--no-main                   Do not call main procedure.\n"
 	  "\n"
 	  "environment variables:\n"
 	  "  SAGITTARIUS_LOADPATH\n"
