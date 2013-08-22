@@ -34,7 +34,7 @@
 	    socket-input-port socket-output-port
             call-with-socket
             (rename bitwise-ior socket-merge-flags)
-	    (rename bitwise-xor socket-purge-flags)
+	    socket-purge-flags
             socket-accept socket-send socket-recv socket-shutdown socket-close
             *af-unspec* *af-inet* *af-inet6*
             *sock-stream* *sock-dgram*
@@ -149,5 +149,9 @@
       (syntax-case x ()
 	((_ names ...)
 	 (resolve (syntax->datum #'(names ...)))))))
+
+  (define (socket-purge-flags base . rest) 
+    (let ((mask* (map (lambda (f) (bitwise-xor -1 f)) rest)))
+      (apply bitwise-and base mask*)))
 
 )
