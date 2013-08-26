@@ -15,7 +15,7 @@ if [ ${PWD} = ${SRC_DIR} ]; then
 fi
 
 if [ -e ./build/sash ]; then
-    version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version (\d+?\.\d+?\.\d+?)/) {print $1;}}'`
+    version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version ([\d\.]+)?/) {print $1;}}'`
 else
     echo ERROR: sash does not exist.
     exit -3
