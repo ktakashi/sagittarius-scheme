@@ -3253,9 +3253,22 @@
 ;;   need to run pass2 for all the call sites of the lvar to analyze
 ;;   its usage.
 (define (pass2/$LET iform penv tail?)
-  (let ((lvars ($let-lvars iform))
-	(inits (imap (lambda (init) (pass2/rec init penv #f))
-		     ($let-inits iform))))
+  ;; taken from Gauche's fix...
+  (define (process-inits lvars inits)
+    (let loop ((lvars lvars) (inits inits)
+	       (new-lvars '()) (new-inits '()))
+      (cond ((null? lvars) (values (reverse! new-lvars) (reverse! new-inits)))
+	    ((and-let* ((lv (car lvars))
+			( (zero? (lvar-ref-count lv)) )
+			( (zero? (lvar-set-count lv)) )
+			( (has-tag? (car inits) $LAMBDA) )
+			( (eq? ($lambda-flag (car inits)) 'used) ))
+	       (loop (cdr lvars) (cdr inits) new-lvars new-inits)))
+	    (else
+	     (loop (cdr lvars) (cdr inits)
+		   (cons (car lvars) new-lvars)
+		   (cons (pass2/rec (car inits) penv #f) new-inits))))))
+  (receive (lvars inits) (process-inits ($let-lvars iform) ($let-inits iform))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
     (let ((obody (pass2/rec ($let-body iform) penv tail?)))
       (ifor-each2 pass2/optimize-closure lvars inits)
@@ -3337,8 +3350,7 @@
 				SMALL_LAMBDA_SIZE)
 			     (pass2/local-call-inliner lvar lambda-node
 						       locals))))))
-	(pass2/local-call-optimizer lvar lambda-node)
-	)))
+	(pass2/local-call-optimizer lvar lambda-node))))
 
 ;; Classify the calls into categories. TAIL-REC call is classified as
 ;; REC if the call is across the closure boundary.
@@ -3502,7 +3514,8 @@
 	       (cond
 		((vector? result)
 		 ;; directory inlineable case.
-		 ($call-proc-set! iform result)
+		 ;;($call-proc-set! iform result)
+		 ($lambda-flag-set! result 'used)
 		 (pass2/rec (expand-inlined-procedure 
 			     ($*-src iform) result args) penv tail?))
 		(else
@@ -3590,7 +3603,8 @@
 	 ;; (let ((lref (lambda ...))) body)
 	 (cond ((pass2/self-recursing? initval penv)
 		(if tail? 'tail-rec 'rec))
-	       ((= (lvar-ref-count lvar) 1)
+	       ((and (= (lvar-ref-count lvar) 1)
+		     (= (lvar-set-count lvar) 0))
 		;; I can inline this lambda directly.
 		(lvar-ref--! lvar)
 		(lvar-initval-set! lvar ($undef))

@@ -915,4 +915,17 @@
 				  #t))
 		   '(sagittarius)))
 
+;; issue 132
+;; to avoid unbound variable on R6RS mode...
+#!compatible
+(test-assert "compiler error"
+	     (r6rs:eval '(define (parse-string input-string)
+			   (define (state0 c) (state13 (s1)))
+			   (define (state11 c) )
+			   (define (state12 c) (state11 (s2)))
+			   (define (state13 c) (case c ((#\\) (state12 (s3)))))
+			   (define (state29 c) (state0 (s4)) (state29 (s5)))
+			   'a)
+			(environment '(rnrs))))
+
 (test-end)
