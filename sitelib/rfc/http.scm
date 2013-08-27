@@ -64,7 +64,7 @@
 	    http-default-redirect-handler
 	    ;; for convenience
 	    http-lookup-auth-handler
-	    
+	    url-server&path
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -675,4 +675,10 @@
 
   ;;(define (http-default-auth-handler . _) #f)
 
+  ;; I needed to write this thing everywhere...
+  (define (url-server&path url)
+    (let*-values (((scheme specific) (uri-scheme&specific url))
+		  ((auth path query frag)
+		   (uri-decompose-hierarchical specific)))
+      (values auth (uri-compose :path path :query query :fragment frag))))
 )
