@@ -68,6 +68,10 @@
 	    *cipher-suites*
 	    ;; socket conversion
 	    socket->tls-socket
+
+	    ;; hello extension helper
+	    make-hello-extension
+	    make-server-name-indication
 	    )
     (import (rnrs)
 	    (core errors)
@@ -215,7 +219,7 @@
 	(bytevector-u16-set! bv i (caar ciphers) 'big))
       bv))
 
-  (define (make-client-hello socket :optional (extension #f) :rest ignore)
+  (define (make-client-hello socket :optional (extension '()) :rest ignore)
     (let* ((version (negotiated-version socket))
 	   (session (~ socket 'session))
 	   (random-bytes (read-random-bytes (~ socket 'prng) 28))
@@ -223,15 +227,14 @@
 	   (session-id (make-variable-vector 1 (~ session 'session-id)))
 	   (cipher-suite (make-variable-vector 2 (make-cipher-suites socket)))
 	   (compression-methods (make-variable-vector 1 (~ session 'methods)))
-	   (hello (apply make-tls-client-hello
-			 :version version
-			 :random random
-			 :session-id session-id
-			 :cipher-suites cipher-suite
-			 :compression-methods compression-methods
-			 (if extension
-			     (list :extensions extension)
-			     '()))))
+	   (hello (make-tls-client-hello
+		   :version version
+		   :random random
+		   :session-id session-id
+		   :cipher-suites cipher-suite
+		   :compression-methods compression-methods
+		   :extensions extension)))
+      ;;(display (tls-packet->bytevector hello)) (newline)
       (set! (~ session 'client-random) random)
       (make-tls-handshake *client-hello* hello)))
 
@@ -325,6 +328,7 @@
 
   (define (%tls-server-handshake socket)
     (define (process-client-hello! hello)
+      ;;(display (tls-packet->bytevector hello)) (newline)
       (unless (<= *tls-version-1.0*  (~ hello 'version) *tls-version-1.2*)
 	(tls-error 'tls-server-handshake
 		   "non supported TLS version" *protocol-version*
@@ -577,6 +581,7 @@
 				  (cipher-suites *cipher-suites*)
 				  (certificates '())
 				  (private-key #f)
+				  (hello-extensions '())
 				  :allow-other-keys opt)
     (let* ((raw-socket (apply make-client-socket server service opt))
 	   (socket (%make-tls-client-socket raw-socket
@@ -587,8 +592,20 @@
 					    :certificates certificates
 					    :private-key private-key)))
       (if handshake
-	  (tls-client-handshake socket)
+	  (tls-client-handshake socket 
+	   ;; user might want to use own SNI so do like this for now.
+	   :hello-extensions (if (null? hello-extensions)
+				 (list (make-server-name-indication 
+					(list server)))
+				 hello-extensions))
 	  socket)))
+
+  (define (make-hello-extension type data)
+    (make-tls-extension type (make-variable-vector 2 data)))
+
+  (define (make-server-name-indication names)
+    (let1 names (map (^n (make-tls-server-name *host-name* n)) names)
+      (make-tls-extension *server-name* (make-tls-server-name-list names))))
 
   (define (socket->tls-socket socket :key (client-socket #t)
 			      :allow-other-keys opt)
@@ -607,12 +624,12 @@
 	       ;; TODO I'm not sure this is correct or not
 	       (hash algo handshake-messages)))))
 
-  (define (tls-client-handshake socket)
+  (define (tls-client-handshake socket :key (hello-extensions '()))
     (guard (e (else (handle-error socket e)))
-      (%tls-client-handshake socket)
+      (%tls-client-handshake socket hello-extensions)
       socket))
 
-  (define (%tls-client-handshake socket)
+  (define (%tls-client-handshake socket hello-extensions)
     (define (process-server-hello socket sh)
       (let1 session (~ socket 'session)
 	(set! (~ session 'session-id) (~ sh 'session-id))
@@ -782,7 +799,7 @@
 				   *unexpected-message* o)))
 		 (loop (read-record socket 0)))))))
     
-    (let ((hello (make-client-hello socket))
+    (let ((hello (make-client-hello socket hello-extensions))
 	  (session (~ socket 'session)))
       (tls-socket-send-inner socket hello 0 *handshake* #f)
       (wait-and-process-server socket)
@@ -942,7 +959,6 @@
 		    (len (bytevector-length buf)))
 	       (put-bytevector p buf)
 	       (loop (+ read-length len) (- diff len))))))))
-
     (let* ((raw-socket (~ socket 'raw-socket))
 	   ;; the first 5 octets must be record header
 	   (buf (socket-recv raw-socket 5 flags)))
@@ -1035,9 +1051,14 @@
 	  (make-tls-extension type data)))
       (and-let* ((size (get-bytevector-n in 2))
 		 ( (bytevector? size) )
-		 (len (bytevector->integer size)))
-	(do ((i 0 (+ i 1)) (exts '() (cons (read-extension in) exts)))
-	    ((= i len)) (make-tls-extensions (reverse! exts)))))
+		 (len (bytevector->integer size))
+		 (bv  (get-bytevector-n in len)))
+	(call-with-port (open-bytevector-input-port bv)
+	  (lambda (in)
+	    (let loop ((exts '()))
+	      (if (eof-object? (lookahead-u8 in))
+		  exts
+		  (loop (cons (read-extension in) exts))))))))
 
     (define (read-client-hello in)
       (let* ((version (bytevector->integer (get-bytevector-n in 2)))
@@ -1433,7 +1454,7 @@
   (define (tls-socket-info socket)
     (socket-info (~ socket 'raw-socket)))
   (define (tls-socket-info-values socket :key (type 'peer))
-    (socket-info-values (~ socket 'raw-socket) type))
+    (socket-info-values (~ socket 'raw-socket) :type type))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))

@@ -59,6 +59,10 @@
 	    make-tls-certificate-request
 	    make-tls-finished
 	    make-tls-ciphered-data
+
+	    ;; extensions
+	    make-tls-server-name
+	    make-tls-server-name-list
 	    ;; predicate
 	    tls-handshake?
 	    tls-hello-request?
@@ -231,15 +235,18 @@
      (cipher-suites       :init-keyword :cipher-suites)
      ;; use null method
      (compression-methods :init-keyword :compression-methods)
-     (extensions          :init-keyword :extensions :init-value #f)))
+     (extensions          :init-keyword :extensions :init-value '())))
   (define-method write-tls-packet ((o <tls-client-hello>) out)
-    (put-u16 out (slot-ref o 'version))
-    (write-tls-packet (slot-ref o 'random) out)
-    (write-tls-packet (slot-ref o 'session-id) out)
-    (write-tls-packet (slot-ref o 'cipher-suites) out)
-    (write-tls-packet (slot-ref o 'compression-methods) out)
-    (and-let* ((ext (slot-ref o 'extensions)))
-      (write-tls-packet ext out)))
+    (put-u16 out (~ o 'version))
+    (write-tls-packet (~ o 'random) out)
+    (write-tls-packet (~ o 'session-id) out)
+    (write-tls-packet (~ o 'cipher-suites) out)
+    (write-tls-packet (~ o 'compression-methods) out)
+    (let1 ext (~ o 'extensions)
+      (unless (null? ext)
+	(let1 bv (call-with-bytevector-output-port
+		  (^o (for-each (^d (write-tls-packet d o)) ext)))
+	  (write-tls-packet (make-variable-vector 2 bv) out)))))
   (define (make-tls-client-hello . opt) (apply make <tls-client-hello> opt))
   (define (tls-client-hello? o) (is-a? o <tls-client-hello>))
 
@@ -250,7 +257,7 @@
      (session-id          :init-keyword :session-id)
      (cipher-suite        :init-keyword :cipher-suite)
      (compression-method  :init-keyword :compression-method)
-     (extensions          :init-keyword :extensions :init-value #f)))
+     (extensions          :init-keyword :extensions :init-value '())))
   (define-method write-tls-packet ((o <tls-server-hello>) out)
     (put-u16 out (slot-ref o 'version))
     (write-tls-packet (slot-ref o 'random) out)
@@ -258,8 +265,11 @@
     ;; cipher-suite is uint8[2]
     (put-u16 out (slot-ref o 'cipher-suite))
     (put-u8 out (slot-ref o 'compression-method))
-    (and-let* ((ext (slot-ref o 'extensions)))
-      (write-tls-packet ext out)))
+    (let1 ext (~ o 'extensions)
+      (unless (null? ext)
+	(let1 bv (call-with-bytevector-output-port
+		  (^o (for-each (^d (write-tls-packet d o)) ext)))
+	  (write-tls-packet (make-variable-vector 2 bv) out)))))
   (define (make-tls-server-hello . opt)
     (apply make <tls-server-hello> opt))
   (define-method write-object ((o <tls-server-hello>) out)
@@ -292,6 +302,34 @@
      (data :init-keyword :data)))
   (define (make-tls-extension type data)
     (make <tls-extension> :type type :data data))
+  (define-method write-tls-packet ((o <tls-extension>) out)
+    (put-u16 out (~ o 'type))
+    (write-tls-packet (~ o 'data) out))
+
+  ;; RFC6066 extensions
+  (define-class <server-name> (<tls-packet-component>)
+    ((name-type :init-keyword :name-type)
+     (name      :init-keyword :name)))
+  (define (make-tls-server-name type name)
+    (make <server-name>
+      :name-type type
+      :name (make-variable-vector 2 (string->utf8 name))))
+  (define-method write-tls-packet ((o <server-name>) out)
+    ;; we don't check type assume only host name for now.
+    (let1 bv (call-with-bytevector-output-port
+	      (lambda (out)
+		(put-u8 out (~ o 'name-type))
+		(write-tls-packet (~ o 'name) out)))
+      (put-u16 out (bytevector-length bv))
+      (put-bytevector out bv)))
+  (define-class <server-name-list> (<tls-packet-component>)
+    ((server-name-list :init-keyword :server-name-list :init-value '())))
+  (define (make-tls-server-name-list names)
+    (let1 bv (call-with-bytevector-output-port
+	      (^o (for-each (^n (write-tls-packet n o)) names)))
+      (make <server-name-list> :server-name-list (make-variable-vector 2 bv))))
+  (define-method write-tls-packet ((o <server-name-list>) out)
+    (write-tls-packet (~ o 'server-name-list) out))
 
   ;; Server Certificate
   (define-class <tls-certificate> (<tls-packet-component>)

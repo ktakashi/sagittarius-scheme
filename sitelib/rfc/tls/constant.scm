@@ -97,6 +97,18 @@
 	    ;; For TLS 1.2
 	    *supported-signatures*
 	    *supported-hashes*
+
+	    ;; extensions RFC6066
+	    *server-name*
+	    *max-fragment-lenght*
+	    *client-certificate-url*
+	    *trusted-ca-keys*
+	    *truncate-hmac*
+	    *status-request*
+	    ;; this is in RFC5246
+	    *signature-algorithms*
+	    ;; RFC6066 section 3 server name indication 
+	    *host-name*
 	    )
     (import (rnrs) (sagittarius)
 	    (math) (crypto))
@@ -227,4 +239,17 @@
       (,*sha512* . ,SHA-512)))
 
   (define *supported-signatures* `((,*rsa* . ,RSA)))
+
+  (define-constant *server-name* 0)
+  ;; for now followings are not supported 
+  (define-constant *max-fragment-lenght* 1)
+  (define-constant *client-certificate-url* 2)
+  (define-constant *trusted-ca-keys* 3)
+  (define-constant *truncate-hmac* 4)
+  (define-constant *status-request* 5)
+  ;; RFC5246 section 7.4.1.4
+  (define-constant *signature-algorithms* 13)
+
+  ;; server name indication
+  (define-constant *host-name* 0)
 )
