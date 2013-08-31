@@ -143,7 +143,11 @@ ENDIF()
 
 # On Windows, if CMake works properly, the value must be this.
 IF (SAGITTARIUS_PROCESSOR STREQUAL "amd64")
-  SET(SAGITTARIUS_PROCESSOR "x86_64")
+  IF (SIZEOF_VOIDP EQUAL 4)
+    SET(SAGITTARIUS_PROCESSOR "i686")
+  ELSE()
+    SET(SAGITTARIUS_PROCESSOR "x86_64")
+  ENDIF()
 ENDIF()
 
 # get vendor

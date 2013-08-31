@@ -87,7 +87,7 @@ set(VERSION "${PACKAGE_VERSION}")
 # long double? what's the hell is it!?
 set(HAVE_LONG_DOUBLE 0)
 
-set(arch ${CMAKE_SYSTEM_PROCESSOR} CACHE STRING "system architecture")
+set(arch ${SAGITTARIUS_PROCESSOR} CACHE STRING "system architecture")
 set(host ${CMAKE_SYSTEM_NAME} CACHE STRING "system name")
 
 # for now we do not support that much
