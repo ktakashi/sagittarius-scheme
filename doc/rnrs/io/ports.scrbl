@@ -485,26 +485,32 @@ are ready or not.}}
 
 @sub*section{Binary input}
 
-@define[Function]{@name{get-u8} @args{binary-input-port}}
+@define[Function]{@name{get-u8} @args{binary-input-port :optional reckless}}
 @desc{[R6RS] Reads from @var{binary-input-port}, blocking as necessary, until a
-byte is available from @var{binary-input-port} or until an end of file is reached.
+byte is available from @var{binary-input-port} or until an end of file is
+reached.
+
 If a byte becomes available, @code{get-u8} returns the byte as an octet and
 updates @var{binary-input-port} to point just past that byte. If no input byte
 is seen before an end of file is reached, the end-of-file object is returned.
 }
 
-@define[Function]{@name{lookahead-u8} @args{binary-input-port}}
-@desc{[R6RS] The @code{lookahead-u8} procedure is like @code{get-u8}, but it does
-not update @var{binary-input-port} to point past the byte.}
+@define[Function]{@name{lookahead-u8}
+ @args{binary-input-port :optional reckless}}
+@desc{[R6RS] The @code{lookahead-u8} procedure is like @code{get-u8}, but it
+does not update @var{binary-input-port} to point past the byte.}
 
-@define[Function]{@name{get-bytevector-n} @args{binary-input-port count :optional reckless}}
-@desc{[R6RS+] @var{Count} must be an exact, non-negative integer object representing
-the number of bytes to be read.
+@define[Function]{@name{get-bytevector-n}
+ @args{binary-input-port count :optional reckless}}
+@desc{[R6RS+] @var{Count} must be an exact, non-negative integer object
+ representing the number of bytes to be read.
 
-The @code{get-bytevector-n} procedure reads from @var{binary-input-port}, blocking
-as necessary, until @var{count} bytes are available from @var{binary-input-port}
-or until an end of file is reached. If @var{count} bytes are available before an
-end of file, @code{get-bytevector-n} returns a bytevector of size @var{count}.
+The @code{get-bytevector-n} procedure reads from @var{binary-input-port},
+blocking as necessary, until @var{count} bytes are available from 
+@var{binary-input-port} or until an end of file is reached. If @var{count}
+bytes are available before an end of file, @code{get-bytevector-n} returns a
+bytevector of size @var{count}.
+
 If fewer bytes are available before an end of file, @code{get-bytevector-n}
 returns a bytevector containing those bytes. In either case, the input port is
 updated to point just past the bytes read. If an end of file is reached before
