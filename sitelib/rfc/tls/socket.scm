@@ -85,7 +85,6 @@
 	    (rfc hmac)
 	    (rename (asn.1) (encode asn.1:encode))
 	    (util bytevector)
-	    (binary pack)
 	    (except (math) lookup-hash)
 	    (crypto)
 	    (clos user)
@@ -238,7 +237,6 @@
 		   :cipher-suites cipher-suite
 		   :compression-methods compression-methods
 		   :extensions extension)))
-      ;;(display (tls-packet->bytevector hello)) (newline)
       (set! (~ session 'client-random) random)
       (make-tls-handshake *client-hello* hello)))
 
@@ -303,6 +301,8 @@
 	   (session-verify (tls-finished-data finish))
 	   (verify (finish-message-hash session label messages)))
       ;; verify message again
+      ;;(display messages) (newline)
+      ;;(dump-all-handshake-messages messages (is-dh? session) (~ session 'version))
       #;
       (when restore-message? 
 	(put-bytevector (~ session 'messages) messages))
@@ -342,14 +342,14 @@
       (let* ((vv (~ hello 'cipher-suites))
 	     (bv (~ vv 'value))
 	     (len (bytevector-length bv))
-	     (have-key? (~ socket 'private-key))
+	     (has-key? (~ socket 'private-key))
 	     (suppoting-suites *cipher-suites*))
 	(let loop ((i 0))
 	  (cond ((>= i len)
 		 (tls-error 'tls-server-handshake "no cipher"
 			    *handshake-failure*))
 		((and-let* ((spec (bytevector-u16-ref bv i 'big))
-			    ( (or have-key? 
+			    ( (or has-key? 
 				  (memv spec *dh-key-exchange-algorithms*)) ))
 		   (assv spec suppoting-suites))
 		 => (^s
@@ -388,12 +388,16 @@
 			  (integer->bytevector (mod-expt +dh-g+ a prime)))
 			 (implementation-restriction-violation 
 			  'send-server-key-exchange 
-			  "DH_RSA is not supported yet"))
-		     )
+			  "DH_RSA is not supported yet")))
 	     (signature (hash (lookup-hash (~ socket 'session)) 
 			      (tls-packet->bytevector params))))
 	(set! (~ socket 'session 'params) params)
 	(set! (~ socket 'session 'a) a)
+#;
+	(display (tls-packet->bytevector 	 
+		  (make-tls-handshake *server-key-echange*
+		    (make-tls-server-key-exchange params signature))))
+;;	(newline)
 	(tls-socket-send-inner socket
 	 (make-tls-handshake *server-key-echange*
 	  (make-tls-server-key-exchange params signature))
@@ -833,6 +837,7 @@
       ;; finish
       (let* ((out (~ session 'messages))
 	     (handshake-messages (get-output-bytevector out)))
+	;;(display handshake-messages) (newline)
 	;; add message again
 	;;(put-bytevector out handshake-messages)
 	(tls-socket-send-inner socket
@@ -1189,8 +1194,7 @@
        (unless (or (zero? size) (= size (bytevector-length body)))
 	 (tls-error 'read-handshake
 		    "given size and actual data size is different"
-		    *unexpected-message*
-		    size))
+		    *unexpected-message* size))
        (let1 record
 	   (cond ((= type *hello-request*) (make-tls-hello-request))
 		 ((= type *client-hello*)
@@ -1214,7 +1218,10 @@
 		 (else
 		  (tls-error 'read-handshake
 			     "not supported" *unexpected-message* type)))
-	 (values (bytevector-append (pack "C!S" type size) body) record)))
+	 (let1 bv (make-bytevector 4)
+	   (bytevector-u32-set! bv 0 size (endianness big))
+	   (bytevector-u8-set! bv 0 type)
+	   (values (bytevector-append bv body) record))))
      (values #vu8() #f)))
 
   (define (lookup-cipher&keysize session)

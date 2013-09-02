@@ -812,7 +812,7 @@ static int byte_array_get_u8(SgObject self)
   int size =  SG_BVECTOR_SIZE(SG_BINARY_PORT(self)->src.buffer.bvec);
   if (index >= size) return EOF;
   SG_BINARY_PORT(self)->position++;
-  return Sg_ByteVectorU8Ref(SG_BINARY_PORT(self)->src.buffer.bvec,
+  return SG_BVECTOR_ELEMENT(SG_BINARY_PORT(self)->src.buffer.bvec,
 			    SG_BINARY_PORT(self)->src.buffer.index++);
 }
 
@@ -821,7 +821,7 @@ static int byte_array_look_ahead_u8(SgObject self)
   int index = SG_BINARY_PORT(self)->src.buffer.index;
   int size =  SG_BVECTOR_SIZE(SG_BINARY_PORT(self)->src.buffer.bvec);
   if (index >= size) return EOF;
-  return Sg_ByteVectorU8Ref(SG_BINARY_PORT(self)->src.buffer.bvec,
+  return SG_BVECTOR_ELEMENT(SG_BINARY_PORT(self)->src.buffer.bvec,
 			    SG_BINARY_PORT(self)->src.buffer.index);
 }
 
@@ -836,7 +836,7 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
   int i; 
 
   for (i = 0; i < read_size; i++) {
-    buf[i] = Sg_ByteVectorU8Ref(bvec, bindex + i);
+    buf[i] = SG_BVECTOR_ELEMENT(bvec, bindex + i);
   }
   SG_BINARY_PORT(self)->src.buffer.index += (int)read_size;
   SG_BINARY_PORT(self)->position += read_size;
@@ -851,7 +851,6 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
   int rest_size = bsize - bindex;
 
   *buf = SG_NEW_ATOMIC2(uint8_t *, rest_size);
-  *buf = SG_BVECTOR_ELEMENTS(bvec);
   
   return byte_array_read_u8(self, *buf, rest_size);
 }
@@ -1411,7 +1410,7 @@ static int custom_binary_get_u8(SgObject self)
   }
   /* make binary port's position as a mark */
   SG_CUSTOM_BINARY_PORT(self)->position += SG_INT_VALUE(result);
-  return Sg_ByteVectorU8Ref(bv, 0);
+  return SG_BVECTOR_ELEMENT(bv, 0);
 }
 
 static int custom_binary_lookahead_u8(SgObject self)
@@ -1433,7 +1432,7 @@ static int custom_binary_lookahead_u8(SgObject self)
   if (result == SG_MAKE_INT(0)) {
     return EOF;
   }
-  SG_CUSTOM_U8_AHEAD(self) = Sg_ByteVectorU8Ref(bv, 0);
+  SG_CUSTOM_U8_AHEAD(self) = SG_BVECTOR_ELEMENT(bv, 0);
   return SG_CUSTOM_U8_AHEAD(self);
 }
 

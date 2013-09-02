@@ -30,7 +30,9 @@
 
 ;; Caution this library is not well tested and not secure yet.
 (library (rfc tls port)
-    (export tls-socket-port socket-port)
+    (export tls-socket-port socket-port
+	    tls-socket-input-port socket-input-port
+	    tls-socket-output-port socket-output-port)
     (import (rnrs)
 	    (rfc tls socket)
 	    (sagittarius)
@@ -40,7 +42,7 @@
 	    (clos user))
 
   ;; make custom port
-  (define (tls-socket-port socket)
+  (define (%tls-socket-port socket ctr)
     (define (read! bv start count)
       (let1 buf (tls-socket-recv socket count 0)
 	(if (eof-object? buf)
@@ -53,16 +55,40 @@
       (let ((buf (bytevector-copy bv start (+ start count))))
 	(tls-socket-send socket bv 0))
       count)
-    (define (close)
-      (tls-socket-close socket))
+    (define (close) (tls-socket-close socket))
     (define (ready?) 
       (let1 raw-socket (~ socket 'raw-socket)
 	(receive (r w e) (socket-select (list raw-socket) '() '() 0)
 	  (not (null? r)))))
-    (make-custom-binary-input/output-port "tls-socket-port"
-					  read! write! #f #f close ready?)
-    )
+    (ctr read! write! close ready?))
 
-  (define-method socket-port ((sock <tls-socket>))
-    (tls-socket-port sock))
+  (define (tls-socket-port socket :optional (close? #f))
+    (%tls-socket-port socket
+		      (lambda (read! write! close ready?)
+			(make-custom-binary-input/output-port
+			 "tls-socket-port"
+			 read! write! #f #f (and close? close) ready?))))
+
+  (define (tls-socket-input-port socket)
+    (%tls-socket-port socket
+		      (lambda (read! write! close? ready?)
+			(make-custom-binary-input-port
+			 "tls-socket-input-port"
+			 read! #f #f #f ready?))))
+
+  (define (tls-socket-output-port socket)
+    (%tls-socket-port socket
+		      (lambda (read! write! close? ready?)
+			(make-custom-binary-output-port
+			 "tls-socket-output-port"
+			 write! #f #f #f))))
+
+  (define-method socket-port ((sock <tls-socket>) :optional (close? #f))
+    (tls-socket-port sock close?))
+
+  (define-method socket-input-port ((sock <tls-socket>))
+    (tls-socket-input-port sock))
+
+  (define-method socket-output-port ((sock <tls-socket>))
+    (tls-socket-output-port sock))
   )
