@@ -1044,12 +1044,13 @@
 (define-pass1-syntax (unquote-splicing form p1env) :null
   (syntax-error "invalid expression" (unwrap-syntax form) (car form)))
 
-(define .list  	(global-id 'list))
-(define .cons 	(global-id 'cons))
-(define .cons* 	(global-id 'cons*))
-(define .append (global-id 'append))
-(define .quote  (global-id 'quote))
-(define .vector (global-id 'vector))
+(define .list  	 (global-id 'list))
+(define .cons 	 (global-id 'cons))
+(define .cons* 	 (global-id 'cons*))
+(define .append  (global-id 'append))
+(define .append! (global-id 'append!))
+(define .quote   (global-id 'quote))
+(define .vector  (global-id 'vector))
 (define .list->vector (global-id 'list->vector))
 
 (define (pass1/quasiquote form nest p1env)
@@ -1732,7 +1733,11 @@
 				   vars tmps defaults)
 			    ,@body))
 		    ((,null?. (,cdr. ,argvar))
-		     (,error. 'let-keywords "keyword list not even" ,argvar))
+		     ,(if (and restvar (not (boolean? restvar)))
+			  `(,loop (,cdr. ,argvar)
+				  (,.append! ,restvar ,argvar)
+				  ,@tmps)
+			  `(,error. 'let-keywords "keyword list not even" ,argvar)))
 		    (,_else
 		     (,_case (,car. ,argvar)
 			     ,@(imap (lambda (key)

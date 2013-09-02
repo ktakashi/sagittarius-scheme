@@ -1,5 +1,5 @@
 ;; -*- Scheme -*-
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (import (sagittarius cgen stub)
 	(sagittarius regex)
 	(util file)

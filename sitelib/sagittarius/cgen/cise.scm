@@ -4,7 +4,7 @@
 ;; type and unit.
 
 #!compatible
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (sagittarius cgen cise)
     (export define-cise-macro define-cise-stmt define-cise-expr
 
