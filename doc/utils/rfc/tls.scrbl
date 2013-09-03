@@ -183,11 +183,23 @@ For more details, see @secref["lib.sagittarius.socket"]{(sagittarius socket)}.
 @define[Constant]{@name{*tls-version-1.0*}}
 @desc{Constant value of @code{#x0301} for TLS 1.0}
 
-@define[Function]{@name{tls-socket-port} @args{tls-socket}}
+@define[Function]{@name{tls-socket-port}
+ @args{tls-socket :optional (close? #t)}}
 @desc{@var{tls-socket} must be the socket created by the procedure
 @code{make-client-tls-socket}.
 
 Returns input/output-port of given @var{tls-socket}.
+
+If optional argument @var{close?} is #f then it won't close the socket when the
+port is closed or GCed.
+}
+
+@define[Function]{@name{tls-socket-input-port} @args{tls-socket}}
+@define[Function]{@name{tls-socket-output-port} @args{tls-socket}}
+@desc{Convert the given TLS socket to input and output port, respectively.
+
+The given socket won't be closed when the port is closed or GCed. So it is the
+users responsibility to close.
 }
 
 @subsubsection{Integration methods}
@@ -207,3 +219,7 @@ usual socket without changing code.
 @define[Method]{@name{socket-peer} @args{(socket <tls-socket>)}}
 @define[Method]{@name{socket-name} @args{(socket <tls-socket>)}}
 @define[Method]{@name{socket-info-values} @args{(socket <tls-socket>)}}
+@define[Method]{@name{socket-port}
+ @args{(socket <tls-socket>) :optional (close? #t)}}
+@define[Method]{@name{socket-input-port} @args{(socket <tls-socket>)}}
+@define[Method]{@name{socket-output-port} @args{(socket <tls-socket>)}}

@@ -1,8 +1,8 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; tls.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -62,7 +62,7 @@
 	  (not (null? r)))))
     (ctr read! write! close ready?))
 
-  (define (tls-socket-port socket :optional (close? #f))
+  (define (tls-socket-port socket :optional (close? #t))
     (%tls-socket-port socket
 		      (lambda (read! write! close ready?)
 			(make-custom-binary-input/output-port
@@ -83,7 +83,7 @@
 			 "tls-socket-output-port"
 			 write! #f #f #f))))
 
-  (define-method socket-port ((sock <tls-socket>) :optional (close? #f))
+  (define-method socket-port ((sock <tls-socket>) :optional (close? #t))
     (tls-socket-port sock close?))
 
   (define-method socket-input-port ((sock <tls-socket>))
