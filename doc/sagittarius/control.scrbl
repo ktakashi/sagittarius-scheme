@@ -134,6 +134,12 @@ See more detail
 @snipet{(let ((@var{var} @var{expr})) @var{body} @dots{})}
 }
 
+@define[Macro]{@name{rlet1} @args{var expr body @dots{}}}
+@desc{A convenient macro when you have only one variable and is the returning
+value. Expanded as follows:
+@snipet{(let ((@var{var} @var{expr})) @var{body} @dots{} @var{var})}
+}
+
 @define[Macro]{@name{dotimes} @args{(variable limit [result]) body @dots{}}}
 @define[Macro]{@name{dolist} @args{(variable lexpr [result]) body @dots{}}}
 @desc{Imported from Common List. These are equivalent to the following forms,
@@ -156,6 +162,24 @@ respectively.
   (let ((variable '())) result))
 }
 
+}
+
+@define[Macro]{@name{push!} @args{place item}}
+@desc{Conses @var{item} and the value of @var{place}. The @var{place} must be
+either a variable or a form @var{(proc arg @dots{})}, as the second argument of
+@code{set!}. The result will be the same as @code{set!}.
+}
+
+@define[Macro]{@name{pop!} @args{place}}
+@desc{Retrieves the value of @var{place}, sets its cde back to @var{place}.
+}
+
+@define[Macro]{@name{check-arg} @args{pred val proc}}
+@desc{Check the given @var{val} satisfies @var{pred}. If the @var{pred} returns
+#f then @code{&assertion} is raised.
+
+The @var{proc} should be the procedure name which uses this macro and is for
+ debugging purpose.
 }
 
 @define[Macro]{@name{with-library} @args{library exprs @dots{}}}

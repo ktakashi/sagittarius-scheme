@@ -15,6 +15,7 @@
 	    dotimes
 	    dolist
 	    push!
+	    pop!
 	    check-arg
 	    with-library
 	    unwind-protect
@@ -128,6 +129,7 @@
 			 "malformed dotimes"
 			 '(dotimes . other)))))
 
+  ;; from Gauche
   (define-syntax push!
     (syntax-rules ()
       [(_ "vars" ((var arg) ...) () proc val)
@@ -142,6 +144,26 @@
        (set! loc (cons val loc))]
       [(_ . other)
        (syntax-error "malformed push!" (push! . other))]))
+
+  (define-syntax pop!
+    (syntax-rules ()
+      [(_ "vars" ((var arg) ...) () proc)
+       (let ((getter proc)
+	     (var arg) ...)
+	 (let ((val (getter var ...)))
+	   ((setter getter) var ... (cdr val))
+	   (car val)))]
+      [(_ "vars" ((var arg) ...) (arg0 arg1 ...) proc)
+       (pop! "vars" ((var arg) ... (newvar arg0)) (arg1 ...) proc)]
+      [(_ (proc arg ...))
+       (pop! "vars" () (arg ...) proc)]
+      [(_ loc)
+       (let ((val loc))
+	 (set! loc (cdr val))
+	 (car val))]
+      [(_ . other)
+       (syntax-error "malformed pop!" (pop! . other))]))
+
 
   (define-syntax check-arg
     (syntax-rules ()

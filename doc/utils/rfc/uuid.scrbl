@@ -31,7 +31,7 @@ The returning object will be represented like this UUID;
 
 @define[Function]{@name{make-v1-uuid}}
 @define[Function]{@name{make-v3-uuid} @args{namespace name}}
-@define[Function]{@name{make-v4-uuid @args{:optional prng}}}
+@define[Function]{@name{make-v4-uuid} @args{:optional prng}}
 @define[Function]{@name{make-v5-uuid} @args{namespace name}}
 @desc{Creates version 1, 3, 4 and 5 UUIDs respectively.
 
