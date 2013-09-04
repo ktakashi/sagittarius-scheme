@@ -219,3 +219,47 @@ a.navigator {
     padding-left: 5px;
     padding-right: 5px;
 }
+
+/* online document */
+section {
+    clear: both;
+}
+div.prev-next {
+    witdh: 100%;
+    position: relative;
+    padding: 10px;
+    
+}
+a.prev {
+    float: left;
+    width: 33%;
+    display: block;
+    text-align: left;
+}
+/* prev has padding */
+span.prev {
+    float: left;
+    margin-left: 33%;
+    display: block;
+    border: 1px solid;
+}
+
+a.next {
+    float: right;
+    width: 33%;
+    display: block;
+    text-align: right;
+}
+a.top {
+    width: 33%;
+    float: left;
+    display: block;
+    text-align: center;
+}
+hr {
+    clear: both;
+}
+
+ul.child-content {
+    list-style-type: none;
+}

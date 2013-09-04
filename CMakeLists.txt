@@ -558,6 +558,14 @@ ADD_CUSTOM_TARGET(doc
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
+ADD_CUSTOM_TARGET(online-doc
+  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+  -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
+  -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
+  gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
+  --style=lib/style.css --separate=2 sagittarius-ref.scrbl
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
+
 INSTALL(FILES ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   DESTINATION ${SAGITTARIUS_CURRENT_SHARE}/doc)
 INSTALL(DIRECTORY ${PROJECT_BINARY_DIR}/doc/lib

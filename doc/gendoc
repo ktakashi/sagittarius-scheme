@@ -8,6 +8,7 @@
       ((output     (#\o "output") #t (current-output-port))
        (style  	   (#\s "style") #t #f)
        (javascript (#\j "javascript") #t #f)
+       (separate   (#\p "separate") #t #f)
        . files)
     (unless (file-exists? (cadr files))
       (usage)
@@ -15,4 +16,6 @@
     (scribble-file->html (cadr files)
 			 :output output
 			 :style style
-			 :javascript javascript)))
+			 :javascript javascript
+			 :separate-file (and separate
+					     (string->number separate)))))
