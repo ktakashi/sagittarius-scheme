@@ -342,7 +342,7 @@
 			(else
 			 (assertion-violation 'make-sigunatures 
 					      "invalid argument type"
-					      arg-type)))
+					      arg-types)))
 		      r)))))
 
   (define-syntax c-function

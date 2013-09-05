@@ -14,11 +14,11 @@
 #define UNSIDENT(x, lib) WORD(Sg_MakeIdentifier(UISYMBOL(x), SG_NIL, (lib)))
 static struct sg__wcRec {
   SgCodeBuilder cb[3];
-  SgWord        w[127];
+  SgWord        w[134];
 } sg__wc = {
   { /* code builder */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, 0, 0, 13, 29), /* ensure-library-name */
-    SG_STATIC_CODE_BUILDER(&sg__wc.w[100], NULL, 1, 0, 0, 14, 27), /* parse-args */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[71], NULL, 1, 0, 0, 14, 36), /* ensure-library-name */
+    SG_STATIC_CODE_BUILDER(&sg__wc.w[107], NULL, 1, 0, 0, 14, 27), /* parse-args */
   },
   { /* compiled code */
   /*     0 */        0x00000034           /* 0      (LIBRARY) */,
@@ -113,41 +113,48 @@ static struct sg__wcRec {
   /*    89 */        WORD(3),
   /*    90 */        0x00000061           /* 19     (CONST_RET) */,
   /*    91 */        WORD(SG_UNDEF), /* (core base) */
-  /*    92 */        0x00000048           /* 21     (CONST_PUSH) */,
-  /*    93 */        WORD(SG_UNDEF), /* ensure-library-name */
-  /*    94 */        0x00000048           /* 23     (CONST_PUSH) */,
-  /*    95 */        WORD(SG_UNDEF), /* "invalid library tag:" */
-  /*    96 */        0x00000045           /* 25     (LREF_PUSH) */,
-  /*    97 */        0x0000034B           /* 26     (GREF_TAIL_CALL) */,
-  /*    98 */        WORD(SG_UNDEF)  /* identifier#error */,
-  /*    99 */        0x0000002F           /* 28     (RET) */,
-  /*   100 */        0x00000045           /* 0      (LREF_PUSH) */,
-  /*   101 */        0x00000049           /* 1      (CONSTI_PUSH) */,
-  /*   102 */        0x00000105           /* 2      (LREF) */,
-  /*   103 */        0x00000021           /* 3      (BNNULL) */,
-  /*   104 */        WORD(6),
-  /*   105 */        0x00000245           /* 5      (LREF_PUSH) */,
-  /*   106 */        0x00000003           /* 6      (CONST) */,
-  /*   107 */        WORD(SG_MAKE_BOOL(FALSE)),
-  /*   108 */        0x0000023A           /* 8      (VALUES) */,
-  /*   109 */        0x0000002F           /* 9      (RET) */,
-  /*   110 */        0x00000105           /* 10     (LREF) */,
-  /*   111 */        0x0000003E           /* 11     (PAIRP) */,
-  /*   112 */        0x00000017           /* 12     (TEST) */,
-  /*   113 */        WORD(9),
-  /*   114 */        0x0000015C           /* 14     (LREF_CDR_PUSH) */,
-  /*   115 */        0x00000205           /* 15     (LREF) */,
-  /*   116 */        0x0000010F           /* 16     (ADDI) */,
-  /*   117 */        0x0000000B           /* 17     (PUSH) */,
-  /*   118 */        0x00100219           /* 18     (SHIFTJ) */,
-  /*   119 */        0x00000018           /* 19     (JUMP) */,
-  /*   120 */        WORD(-18),
-  /*   121 */        0x0000002F           /* 21     (RET) */,
-  /*   122 */        0x00000245           /* 22     (LREF_PUSH) */,
-  /*   123 */        0x00000003           /* 23     (CONST) */,
-  /*   124 */        WORD(SG_MAKE_BOOL(TRUE)),
-  /*   125 */        0x0000023A           /* 25     (VALUES) */,
-  /*   126 */        0x0000002F           /* 26     (RET) */,
+  /*    92 */        0x00000045           /* 21     (LREF_PUSH) */,
+  /*    93 */        0x00000003           /* 22     (CONST) */,
+  /*    94 */        WORD(SG_UNDEF)  /* <keyrowd :r7rs> */,
+  /*    95 */        0x00000020           /* 24     (BNEQV) */,
+  /*    96 */        WORD(3),
+  /*    97 */        0x00000061           /* 26     (CONST_RET) */,
+  /*    98 */        WORD(SG_UNDEF), /* (r7rs) */
+  /*    99 */        0x00000048           /* 28     (CONST_PUSH) */,
+  /*   100 */        WORD(SG_UNDEF), /* ensure-library-name */
+  /*   101 */        0x00000048           /* 30     (CONST_PUSH) */,
+  /*   102 */        WORD(SG_UNDEF), /* "invalid library tag:" */
+  /*   103 */        0x00000045           /* 32     (LREF_PUSH) */,
+  /*   104 */        0x0000034B           /* 33     (GREF_TAIL_CALL) */,
+  /*   105 */        WORD(SG_UNDEF)  /* identifier#error */,
+  /*   106 */        0x0000002F           /* 35     (RET) */,
+  /*   107 */        0x00000045           /* 0      (LREF_PUSH) */,
+  /*   108 */        0x00000049           /* 1      (CONSTI_PUSH) */,
+  /*   109 */        0x00000105           /* 2      (LREF) */,
+  /*   110 */        0x00000021           /* 3      (BNNULL) */,
+  /*   111 */        WORD(6),
+  /*   112 */        0x00000245           /* 5      (LREF_PUSH) */,
+  /*   113 */        0x00000003           /* 6      (CONST) */,
+  /*   114 */        WORD(SG_MAKE_BOOL(FALSE)),
+  /*   115 */        0x0000023A           /* 8      (VALUES) */,
+  /*   116 */        0x0000002F           /* 9      (RET) */,
+  /*   117 */        0x00000105           /* 10     (LREF) */,
+  /*   118 */        0x0000003E           /* 11     (PAIRP) */,
+  /*   119 */        0x00000017           /* 12     (TEST) */,
+  /*   120 */        WORD(9),
+  /*   121 */        0x0000015C           /* 14     (LREF_CDR_PUSH) */,
+  /*   122 */        0x00000205           /* 15     (LREF) */,
+  /*   123 */        0x0000010F           /* 16     (ADDI) */,
+  /*   124 */        0x0000000B           /* 17     (PUSH) */,
+  /*   125 */        0x00100219           /* 18     (SHIFTJ) */,
+  /*   126 */        0x00000018           /* 19     (JUMP) */,
+  /*   127 */        WORD(-18),
+  /*   128 */        0x0000002F           /* 21     (RET) */,
+  /*   129 */        0x00000245           /* 22     (LREF_PUSH) */,
+  /*   130 */        0x00000003           /* 23     (CONST) */,
+  /*   131 */        WORD(SG_MAKE_BOOL(TRUE)),
+  /*   132 */        0x0000023A           /* 25     (VALUES) */,
+  /*   133 */        0x0000002F           /* 26     (RET) */,
   }
 };
 
@@ -158,40 +165,42 @@ void Sg__Init_sagittarius_compiler_util()
   SgLibrary *save = Sg_VM()->currentLibrary;
   sg__wc.w[3] = WORD(&sg__wc.cb[0]);
   sg__wc.cb[0].name = SYMBOL("ensure-library-name");
-  sg__wc.w[73] = KEYWORDW("null");
-  sg__wc.w[80] = KEYWORDW("sagittarius");
-  sg__wc.w[1] = SYMBOLW("(sagittarius compiler util)");
-  sg__wc.w[91] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
-  sg__wc.w[87] = KEYWORDW("base");
-  sg__wc.w[84] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
-  sg__wc.w[95] = STRINGW("invalid library tag:");
   sg__wc.w[12] = WORD(Sg_Cons(Sg_Cons(SYMBOL("$UNDEF"), SG_MAKE_INT(0)), Sg_Cons(Sg_Cons(SYMBOL("$DEFINE"), SG_MAKE_INT(1)), Sg_Cons(Sg_Cons(SYMBOL("$LREF"), SG_MAKE_INT(2)), Sg_Cons(Sg_Cons(SYMBOL("$LSET"), SG_MAKE_INT(3)), Sg_Cons(Sg_Cons(SYMBOL("$GREF"), SG_MAKE_INT(4)), Sg_Cons(Sg_Cons(SYMBOL("$GSET"), SG_MAKE_INT(5)), Sg_Cons(Sg_Cons(SYMBOL("$CONST"), SG_MAKE_INT(6)), Sg_Cons(Sg_Cons(SYMBOL("$IF"), SG_MAKE_INT(7)), Sg_Cons(Sg_Cons(SYMBOL("$LET"), SG_MAKE_INT(8)), Sg_Cons(Sg_Cons(SYMBOL("$LAMBDA"), SG_MAKE_INT(9)), Sg_Cons(Sg_Cons(SYMBOL("$RECEIVE"), SG_MAKE_INT(10)), Sg_Cons(Sg_Cons(SYMBOL("$LABEL"), SG_MAKE_INT(11)), Sg_Cons(Sg_Cons(SYMBOL("$SEQ"), SG_MAKE_INT(12)), Sg_Cons(Sg_Cons(SYMBOL("$CALL"), SG_MAKE_INT(13)), Sg_Cons(Sg_Cons(SYMBOL("$ASM"), SG_MAKE_INT(14)), Sg_Cons(Sg_Cons(SYMBOL("$IT"), SG_MAKE_INT(15)), Sg_Cons(Sg_Cons(SYMBOL("$LIST"), SG_MAKE_INT(16)), Sg_Cons(Sg_Cons(SYMBOL("$LIBRARY"), SG_MAKE_INT(17)), SG_NIL)))))))))))))))))));
+  sg__wc.w[94] = KEYWORDW("r7rs");
+  sg__wc.w[87] = KEYWORDW("base");
+  sg__wc.w[91] = WORD(Sg_Cons(SYMBOL("core"), Sg_Cons(SYMBOL("base"), SG_NIL)));
+  sg__wc.w[73] = KEYWORDW("null");
+  sg__wc.w[102] = STRINGW("invalid library tag:");
+  sg__wc.w[1] = SYMBOLW("(sagittarius compiler util)");
+  sg__wc.w[98] = WORD(Sg_Cons(SYMBOL("r7rs"), SG_NIL));
+  sg__wc.w[80] = KEYWORDW("sagittarius");
+  sg__wc.w[84] = WORD(Sg_Cons(SYMBOL("sagittarius"), SG_NIL));
   sg__wc.w[7] = WORD(&sg__wc.cb[1]);
   sg__wc.cb[1].name = SYMBOL("parse-args");
+  sg__wc.w[14] = IDENT(".intermediate-tags.", lib);
+  sg__wc.w[29] = IDENT("$GREF", lib);
+  sg__wc.w[9] = IDENT("parse-args", lib);
+  sg__wc.w[62] = IDENT("$IT", lib);
+  sg__wc.w[32] = IDENT("$GSET", lib);
+  sg__wc.w[65] = IDENT("$LIST", lib);
+  sg__wc.w[35] = IDENT("$CONST", lib);
+  sg__wc.w[68] = IDENT("$LIBRARY", lib);
+  sg__wc.w[38] = IDENT("$IF", lib);
   sg__wc.w[41] = IDENT("$LET", lib);
+  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[44] = IDENT("$LAMBDA", lib);
   sg__wc.w[47] = IDENT("$RECEIVE", lib);
   sg__wc.w[17] = IDENT("$UNDEF", lib);
+  sg__wc.w[105] = IDENT("error", lib);
   sg__wc.w[50] = IDENT("$LABEL", lib);
   sg__wc.w[20] = IDENT("$DEFINE", lib);
   sg__wc.w[53] = IDENT("$SEQ", lib);
   sg__wc.w[23] = IDENT("$LREF", lib);
-  sg__wc.w[5] = IDENT("ensure-library-name", lib);
   sg__wc.w[56] = IDENT("$CALL", lib);
   sg__wc.w[26] = IDENT("$LSET", lib);
-  sg__wc.w[9] = IDENT("parse-args", lib);
   sg__wc.w[59] = IDENT("$ASM", lib);
-  sg__wc.w[14] = IDENT(".intermediate-tags.", lib);
-  sg__wc.w[29] = IDENT("$GREF", lib);
-  sg__wc.w[62] = IDENT("$IT", lib);
-  sg__wc.w[32] = IDENT("$GSET", lib);
-  sg__wc.w[65] = IDENT("$LIST", lib);
-  sg__wc.w[98] = IDENT("error", lib);
-  sg__wc.w[35] = IDENT("$CONST", lib);
-  sg__wc.w[68] = IDENT("$LIBRARY", lib);
-  sg__wc.w[38] = IDENT("$IF", lib);
-  sg__wc.w[93] = SYMBOLW("ensure-library-name");
   sg__wc.w[77] = SYMBOLW("null");
+  sg__wc.w[100] = SYMBOLW("ensure-library-name");
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core errors)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(sagittarius)")));
   Sg_ImportLibrary(lib, SG_OBJ(SYMBOL("(core base)")));

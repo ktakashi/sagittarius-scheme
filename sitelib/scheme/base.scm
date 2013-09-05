@@ -71,7 +71,8 @@
      write-string write-u8
 
      zero?)
-  (import (rename (except (rnrs) syntax-rules define-record-type)
+  (import (rename (except (rnrs) syntax-rules define-record-type
+			  let-syntax letrec-syntax)
 		  (error r6rs:error))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)

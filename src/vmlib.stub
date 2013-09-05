@@ -273,8 +273,6 @@
     (result (== (logand (ashr (-> (Sg_VM) flags) 8) #xFF) 0)))
   (define-c-proc vm-no-overwrite? () ::<boolean>
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_OVERWRITE)))
-  (define-c-proc vm-slice-let-syntax? () ::<boolean>
-    (result (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_SLICE_LET_SYNTAX))))
 
   ;; (%map-cons l1 l2) = (map cons l1 l2)
   (define-c-proc %map-cons (l1 l2)
@@ -372,14 +370,13 @@
 
   (define-c-proc p1env-toplevel? (p1env) ::<boolean>
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
-      (let ((no-slice?::int (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_SLICE_LET_SYNTAX)))
-	(when (and (== (SG_CAR fp) (SG_MAKE_INT 0))
-		   ;; if we slice let-syntax then however env contains
-		   ;; frame already so we need to check if the frame only
-		   ;; contains macro in that case it's toplevel let(rec)-syntax
-		   ;; TODO this might cause some problem...
-		   (or no-slice? (check-env-frame (SG_CDR fp))))
-	  (return SG_FALSE))))
+      (when (and (== (SG_CAR fp) (SG_MAKE_INT 0))
+		 ;; if we slice let-syntax then however env contains
+		 ;; frame already so we need to check if the frame only
+		 ;; contains macro in that case it's toplevel let(rec)-syntax
+		 ;; TODO this might cause some problem...
+		 (check-env-frame (SG_CDR fp)))
+	  (return SG_FALSE)))
     (result TRUE))
 
   ;; TODO it's almost the same process as p1env-lookup

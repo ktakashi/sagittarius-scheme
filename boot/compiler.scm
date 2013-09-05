@@ -901,16 +901,19 @@
       (make-p1env (car maybe-library) '())))
 
 ;; pass1 utilities
-(define (global-eq? var sym p1env)
+(define (global-eq? var sym p1env . maybe-library)
   (and (variable? var)
        (let ((v (p1env-lookup p1env var LEXICAL)))
 	 (and (identifier? v)
 	      (eq? (id-name v) sym)
-	      ;;(null? (id-envs v))
 	      (cond ((find-binding (id-library v) sym #f)
 		     => (lambda (gloc)
 			  (let ((s (gloc-ref gloc)))
 			    (and (syntax? s)
+				 (or (null? maybe-library)
+				     (and-let* ((lib (gloc-library gloc)))
+				       (eq? (library-name lib)
+					    (car maybe-library))))
 				 (eq? (syntax-name s) sym)))))
 		    (else #f))))))
 
@@ -1308,7 +1311,7 @@
        ($undef)))
     (- (syntax-error "malformed define-syntax" form))))
 
-(define-pass1-syntax (let-syntax form p1env) :null
+(define (pass1/let-syntax form p1env slice?)
   (smatch form
     ((- ((name trans-spec) ___) body ___)
      (let* ((trans (imap2 (lambda (n x)
@@ -1319,13 +1322,18 @@
 			  name trans-spec))
 	    ;; macro must be lexical. see pass1
 	    (newenv (p1env-extend p1env ($map-cons-dup name trans) LEXICAL)))
-       (if (vm-slice-let-syntax?)
+       (if slice?
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
     (else
      (syntax-error "malformed let-syntax" form))))
 
-(define-pass1-syntax (letrec-syntax form p1env) :null
+(define-pass1-syntax (let-syntax form p1env) :null
+  (pass1/let-syntax form p1env #t))
+(define-pass1-syntax (let-syntax form p1env) :r7rs
+  (pass1/let-syntax form p1env #f))
+
+(define (pass1/letrec-syntax form p1env slice?)
   (smatch form
     ((- ((name trans-spec) ___) body ___)
      (let* ((newenv (p1env-extend p1env
@@ -1337,11 +1345,16 @@
 			     x (p1env-add-name newenv (variable-name n))))
 			  name trans-spec)))
        (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) (append trans trans))
-       (if (vm-slice-let-syntax?)
+       (if slice?
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
     (-
      (syntax-error "malformed letrec-syntax" form))))
+
+(define-pass1-syntax (letrec-syntax form p1env) :null
+  (pass1/letrec-syntax form p1env #t))
+(define-pass1-syntax (letrec-syntax form p1env) :r7rs
+  (pass1/letrec-syntax form p1env #f))
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define (er-rename symid p1env dict)
@@ -2826,9 +2839,8 @@
 				 (else (acons 'rec def intmacros)))))
 		      (pass1/body-rec rest intdefs intmacros p1env))))
 		 ;; 11.18 binding constructs for syntactic keywords
-		 ((and (vm-slice-let-syntax?)
-		       (or (global-eq? head 'let-syntax p1env)
-			   (global-eq? head 'letrec-syntax p1env)))
+		 ((or (global-eq? head 'let-syntax p1env 'null)
+		      (global-eq? head 'letrec-syntax p1env 'null))
 		  (receive (defs body)
 		      (smatch (caar exprs)
 			((- ((name trans-spec) ___) body ___)
