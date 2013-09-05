@@ -23,5 +23,5 @@ The procedure does not support @code{u} escape.
 @define[Function]{@name{json-write}
  @args{json :optional (port (current-output-port))}}
 @desc{Writes the given S-expression JSON representing object to given
-@var{post}.
+@var{port}.
 }
