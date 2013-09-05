@@ -53,9 +53,9 @@
   (t "{\"x\":  false  }" #f)
   (t "{\"x\":true}" #t)
   (t "{\"x\":null}" 'null)
-;; we don't support 'u' escape
-;;(t "{\"x\": \"abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u0040abc\"}"
-;;     "abc\"\\/\u0008\u000c\u000a\u000d\u0009@abc")
+
+  (t "{\"x\": \"abc\\\"\\\\\\/\\b\\f\\n\\r\\t\\u0040abc\"}"
+     "abc\"\\/\x0008;\x000c;\x000a;\x000d;\x0009;@abc")
   )
 
 (let ()
