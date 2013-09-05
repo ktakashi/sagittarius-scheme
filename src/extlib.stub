@@ -913,17 +913,14 @@
 	       (shareP::<boolean> #t))
     (return (Sg_ReadDelimitedList p c shareP)))
 
-  (define-c-proc delimited-char? (c::<char>) ::<boolean>
-    (result (Sg_DelimitedCharP c)))
+  (define-c-proc delimited-char? (c::<char>) ::<boolean> Sg_DelimitedCharP)
 
-  (define-c-proc constant-literal? (o) ::<boolean>
-    (result (Sg_ConstantLiteralP o)))
+  (define-c-proc constant-literal? (o) ::<boolean> Sg_ConstantLiteralP)
 
-  (define-c-proc digit-value (c::<char>) ::<top>
-    (return (Sg_DigitValue c)))
+  (define-c-proc digit-value (c::<char>) Sg_DigitValue)
 
-  (define-c-proc make-weak-vector (size::<fixnum>) ::<top>
-    (result (Sg_MakeWeakVector size)))
+  (define-c-proc weak-vector? (o) ::<boolean> SG_WEAK_VECTORP)
+  (define-c-proc make-weak-vector (size::<fixnum>) Sg_MakeWeakVector)
 
   (define-c-proc weak-vector-length (o) ::<fixnum>
     (unless (SG_WEAK_VECTORP o)
@@ -955,15 +952,40 @@
 			   (SG_LIST2 wvec (SG_MAKE_INT k))))
     (Sg_WeakVectorSet wvec k value))
 
-  (define-c-proc make-weak-eq-hashtable (:optional (k::<fixnum> 200))
-    (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ SG_WEAK_BOTH
-					k SG_UNDEF)))
+  ;; for now until eqv
+  ;; TODO ugly copy paste with almost the same...
+  (define-c-proc make-weak-eq-hashtable 
+    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (let ((w::SgWeakness SG_WEAK_BOTH)
+	  (v SG_UNDEF))
+      (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
+	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
+	    ((SG_EQ weakness 'both) (set! w SG_WEAK_BOTH))
+	    (else (assertion-violation 
+		   'make-weak-eq-hashtable 
+		   "weakness must be one of 'key, 'value or 'both"
+		   (SG_LIST1 weakness))))
+      (unless (SG_UNBOUNDP default) (set! v default))
+      (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ w init-size v))))
 
-  (define-c-proc weak-hashtable? (o) ::<boolean>
-    (result (SG_WEAK_HASHTABLE_P o)))
+  (define-c-proc make-weak-eqv-hashtable 
+    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (let ((w::SgWeakness SG_WEAK_BOTH)
+	  (v SG_UNDEF))
+      (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
+	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
+	    ((SG_EQ weakness 'both) (set! w SG_WEAK_BOTH))
+	    (else (assertion-violation 
+		   'make-weak-eqv-hashtable 
+		   "weakness must be one of 'key, 'value or 'both"
+		   (SG_LIST1 weakness))))
+      (unless (SG_UNBOUNDP default) (set! v default))
+      (result (Sg_MakeWeakHashTableSimple SG_HASH_EQV w init-size v))))
 
-  (define-c-proc weak-hashtable-ref (wh::<weak-hashtable> key :optional
-							  (fallback #f))
+  (define-c-proc weak-hashtable? (o) ::<boolean> SG_WEAK_HASHTABLE_P)
+
+  (define-c-proc weak-hashtable-ref 
+    (wh::<weak-hashtable> key :optional (fallback #f))
     (setter weak-hashtable-set!)
     (result (Sg_WeakHashTableRef wh key fallback)))
 
@@ -971,16 +993,19 @@
     (Sg_WeakHashTableSet wh key value 0))
 
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
-    (Sg_WeakHashTableDelete wh key))
+    Sg_WeakHashTableDelete)
 
   (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>)
-    (result (Sg_WeakHashTableKeys wh)))
+    Sg_WeakHashTableKeys)
 
   (define-c-proc weak-hashtable-values-list (wh::<weak-hashtable>)
-    (result (Sg_WeakHashTableValues wh)))
+    Sg_WeakHashTableValues)
 
-  (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>)
-    (result (Sg_WeakHashTableCopy wh)))
+  (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>) 
+    Sg_WeakHashTableCopy)
+
+  (define-c-proc weak-hashtable-shrink (wh::<weak-hashtable>) ::<fixnum>
+    Sg_WeakHashTableShrink)
 
   (decl-code
    (.typedef "unsigned long" "ulong"))
@@ -996,4 +1021,7 @@
   (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) Sg_GetMacAddress)
 
   (define-c-proc uname () Sg_Uname)
+
+  ;; for convenience.
+  (define-c-proc gc () ::<void> Sg_GC)
 )

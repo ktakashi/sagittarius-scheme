@@ -2,7 +2,7 @@
 /*
  * weak.h
  *
- *   Copyright (c) 2010-2012  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions

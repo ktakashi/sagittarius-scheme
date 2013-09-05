@@ -100,7 +100,9 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 }
     The order doesn't matter, Sagittarius just ignores the latter style.
     }}
-@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-111/srfi-111.html"]{SRFI-111}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-106/srfi-106.html"]{SRFI-106}}
+    @td{(srfi :106 socket)}}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-111/srfi-111.html"]{SRFI-111}}
     @td{(srfi :111 boxes)
 
     The long name is Sagittarius specific and the specified library name 

@@ -442,9 +442,12 @@ from the @var{list}, the @var{fallback} will be return. Otherwise it raises
 @subsubsection{Weak Pointer}
 A weak pointer is a reference to an object that doesn’t prevent the object from
 being garbage-collected. Sagittarius provides weak pointers as a weak vector 
-bject. A weak vector is like a vector of objects, except each object can be
+object. A weak vector is like a vector of objects, except each object can be
 garbage collected if it is not referenced from objects other than weak vectors.
 If the object is collected, the entry of the weak vector is replaced for #f.
+
+@define[Function]{@name{weak-vector?} @args{obj}}
+@desc{Returns #t if @var{obj} is weak vector otherwise #f.}
 
 @define[Function]{@name{make-weak-vector} @args{size}}
 @desc{Creates and returns a weak vector of size @var{size}.}
@@ -468,6 +471,67 @@ if it is given, #f otherwise.
 raises an @code{&assertion} if @var{k} is negative or greater than or equal to
 the size of @var{wvec}. 
 }
+
+@subsubsection{Weak hashtable}
+A weak hashtable is a reference to an object that doesn’t prevent the object
+from being garbage-collected the same as weak vector. A weak hashtable is like
+a hashtable, except each entry can be garbage collected if it is not referenced
+from objects other than weak hashtable according to the constructed condition.
+
+@define[Function]{@name{weak-hashtable?} @args{obj}}
+@desc{Returns #t if @var{obj} is weak hashtable otherwise #f.}
+
+@define[Function]{@name{make-weak-eq-hashtable}
+ @args{:key (init-size 200) (weakness 'both) default}}
+@define[Function]{@name{make-weak-eqv-hashtable}
+ @args{:key (init-size 200) (weakness 'both) default}}
+@desc{Make a weak hashtable with the hash procedure @code{eq?} and @code{eqv?},
+respectively.
+
+The keyword argument @var{init-size} specifies the initial size of the
+weak hashtable.
+
+The kwyword argument @var{weakness} specifies the place where the weak pointer
+is. This must be one of the @code{key}, @code{value} and @code{both}. If the
+@code{key} is specified, then weak hashtable's weak pointer will be the key
+so is @code{value}. If the @code{both} is specified, then it will be both.
+
+The keyword argument @var{default} specifies the default value when the entry
+is garbage collected. If this is not spceified, then undefined value will be
+used.
+}
+
+@define[Function]{@name{weak-hashtable-ref}
+ @args{weak-hashtable key :optional (default #f)}}
+@desc{Returns the value in @var{weak-hashtable} associated with @var{key}. If
+@var{weak-hashtable} does not contain an association for @var{key}, 
+@var{default} is returned.
+}
+
+@define[Function]{@name{weak-hashtable-set!} @args{weak-hashtable key obj}}
+@desc{Changes @var{weak-hashtable} to associate @var{key} with @var{obj},
+adding a new association or replacing any existing association for @var{key},
+and returns unspecified values.
+}
+
+@define[Function]{@name{weak-hashtable-delete!} @args{weak-hashtable key}}
+@desc{Removes any association for @var{key} within @var{weak-hashtable} and
+returns unspecified values.
+}
+
+@define[Function]{@name{weak-hashtable-keys-list} @args{weak-hashtable}}
+@define[Function]{@name{weak-hashtable-values-list} @args{weak-hashtable}}
+@desc{Returns a list of keys and values in the given @var{weak-hashtable},
+respectively.
+}
+
+@define[Function]{@name{weak-hashtable-copy} @args{weak-hashtable}}
+@desc{Returns a copy of @var{weak-hashtable}.}
+
+@define[Function]{@name{weak-hashtable-shrink} @args{weak-hashtable}}
+@desc{Shrink the given @var{weak-hashtable} and returns the number of
+removed entry. This is only for GC friendliness.}
+
 
 @subsubsection{Bytevector operations}
 

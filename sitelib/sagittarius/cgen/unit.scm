@@ -281,28 +281,31 @@
 		       (else
 			(format out "_~2,'0x" b) (loop (read-char in))))))))))))
   
-
+  (define-constant +c-keywords+ '("default" "switch" "template" "case"))
   (define (cgen-safe-name-friendly str)
-    (call-with-string-output-port
-     (lambda (out)       
-       (call-with-input-string str
-	 (lambda (in)
-	   (let loop ((c (read-char in)))
-	     (unless (eof-object? c)
-	       (case c
-		 ((#\-) (let ((d (read-char in)))
-			  (cond ((eqv? d #\>)
-				 (display "_TO" out) (loop (read-char in)))
-				(else (display #\_ out) (loop d)))))
-		 ((#\?) (display #\P out) (loop (read-char in)))
-		 ((#\!) (display #\X out) (loop (read-char in)))
-		 ((#\<) (display "_LT" out) (loop (read-char in)))
-		 ((#\>) (display "_GT" out) (loop (read-char in)))
-		 ((#\* #\> #\@ #\$ #\% #\^ #\& #\* #\+ #\= #\: #\. #\/ #\~)
-		  (display #\_ out)
-		  (display (number->string (char->integer c) 16) out)
-		  (loop (read-char in)))
-		 (else (display c out) (loop (read-char in)))))))))))
+    ;; some c/c++ keyword handling...
+    (if (member str +c-keywords+ string=?)
+	(string-append str "_") ;; simple conversion should be enough
+	(call-with-string-output-port
+	 (lambda (out)       
+	   (call-with-input-string str
+	     (lambda (in)
+	       (let loop ((c (read-char in)))
+		 (unless (eof-object? c)
+		   (case c
+		     ((#\-) (let ((d (read-char in)))
+			      (cond ((eqv? d #\>)
+				     (display "_TO" out) (loop (read-char in)))
+				    (else (display #\_ out) (loop d)))))
+		     ((#\?) (display #\P out) (loop (read-char in)))
+		     ((#\!) (display #\X out) (loop (read-char in)))
+		     ((#\<) (display "_LT" out) (loop (read-char in)))
+		     ((#\>) (display "_GT" out) (loop (read-char in)))
+		     ((#\* #\> #\@ #\$ #\% #\^ #\& #\* #\+ #\= #\: #\. #\/ #\~)
+		      (display #\_ out)
+		      (display (number->string (char->integer c) 16) out)
+		      (loop (read-char in)))
+		     (else (display c out) (loop (read-char in))))))))))))
 
   (define (cgen-safe-comment str)
     (let* ((str (format "~a" str))
