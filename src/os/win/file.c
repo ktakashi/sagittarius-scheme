@@ -344,18 +344,19 @@ SgObject Sg_OpenFile(SgString *file, int flags)
   return SG_OBJ(z);
 }
 
-#define LOCK_SIZE 0xFFFFFFFF
-
 int Sg_LockFile(SgObject file, enum SgFileLockType mode)
 {
   DWORD flag = 0;
+  LARGE_INTEGER bsize = {0};
   OVERLAPPED overlapped;
   if (mode & SG_EXCLUSIVE) flag |= LOCKFILE_EXCLUSIVE_LOCK;
   if (mode & SG_DONT_WAIT) flag |= LOCKFILE_FAIL_IMMEDIATELY;
- 
+
+  GetFileSizeEx(SG_FD(file)->desc, &bsize);
+  
   overlapped.hEvent = NULL;
-  if (!LockFileEx(SG_FD(file)->desc, flag, (DWORD)0,
-		  LOCK_SIZE, LOCK_SIZE, &overlapped)) {
+  if (LockFileEx(SG_FD(file)->desc, flag, (DWORD)0,
+		 bsize.LowPart, bsize.HighPart, &overlapped) == 0) {
     setLastError(file);
     return FALSE;
   }
@@ -365,9 +366,13 @@ int Sg_LockFile(SgObject file, enum SgFileLockType mode)
 int Sg_UnlockFile(SgObject file)
 {
   OVERLAPPED overlapped;
+  LARGE_INTEGER bsize = {0};
+
+  GetFileSizeEx(SG_FD(file)->desc, &bsize);
+
   overlapped.hEvent = NULL;
   if (!UnlockFileEx(SG_FD(file)->desc, (DWORD)0, 
-		    LOCK_SIZE, LOCK_SIZE, &overlapped)) {
+		    bsize.LowPart, bsize.HighPart, &overlapped)) {
     setLastError(file);
     return FALSE;
   }
