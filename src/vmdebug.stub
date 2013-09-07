@@ -33,9 +33,7 @@
   ;; expansion-history is only debug purpose
   (define-c-proc lookup-expansion-history (o)
     (let ((r (Sg_Assq o (-> (Sg_VM) history))))
-      (if (SG_FALSEP r)
-	  (result r)
-	  (result (SG_CDR r)))))
+      (result r)))
 
   (define-c-proc save-expansion-history! (n o)
     (let ((vm::SgVM* (Sg_VM)))

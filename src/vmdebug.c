@@ -121,9 +121,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 
 #line 35 "./vmdebug.stub"
 {SgObject r=Sg_Assq(o,(Sg_VM())->history);
-if (SG_FALSEP(r)){
-SG_RESULT=(r);} else {
-SG_RESULT=(SG_CDR(r));}}
+SG_RESULT=(r);}
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
   }
@@ -148,19 +146,19 @@ static SgObject vmdebug_save_expansion_historyX(SgObject *SG_FP, int SG_ARGC, vo
 {
 SgObject SG_RESULT = (SgObject)NULL;
 SgObject cise__6;
-#line 41 "./vmdebug.stub"
+#line 39 "./vmdebug.stub"
 {SgVM* vm=Sg_VM();
-#line 43 "./vmdebug.stub"
+#line 41 "./vmdebug.stub"
 SG_FOR_EACH(cise__6,
-#line 46 "./vmdebug.stub"
-(vm)->history) {{SgObject slot=SG_CAR(cise__6);
 #line 44 "./vmdebug.stub"
+(vm)->history) {{SgObject slot=SG_CAR(cise__6);
+#line 42 "./vmdebug.stub"
 if (SG_EQ(o,SG_CAR(slot))){{
 o=(SG_CDR(slot));}}}}
-#line 47 "./vmdebug.stub"
+#line 45 "./vmdebug.stub"
 (vm)->history=(Sg_Acons(n,o,(vm)->history));}
 
-#line 48 "./vmdebug.stub"
+#line 46 "./vmdebug.stub"
 SG_RESULT=(n);
 SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
