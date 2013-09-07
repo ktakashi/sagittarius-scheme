@@ -379,7 +379,7 @@
 ;; instruction:
 ;;   apply argc tail?
 ;; if tail? is 1, then we need to shift args. like tail_call
-(define-inst APPLY (2 0 #f)
+(define-inst APPLY (2 0 #t)
   (INSN_VAL2 val1 val2 c)
   (let ((rargc::int (Sg_Length (AC vm)))
 	(nargc::int (- val1 2))
