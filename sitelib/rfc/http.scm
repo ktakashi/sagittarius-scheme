@@ -152,11 +152,11 @@
 			:key (host #f)
 			     (redirect-handler #t)
 			     (no-redirect #f)
-			     auth-handler
-			     auth-user
-			     auth-password
+			     (auth-handler #f)
+			     (auth-user #f)
+			     (auth-password #f)
 			     proxy
-			     extra-headers
+			     (extra-headers '())
 			     (user-agent (http-user-agent))
 			     (secure #f)
 			     (receiver (http-string-receiver))
@@ -171,7 +171,8 @@
 		 (request-uri (ensure-request-uri request-uri enc)))
 	(receive (code headers body)
 	    (request-response method conn host request-uri sender receiver
-			      `(:user-agent ,user-agent ,@opts) enc)
+			      `(:user-agent ,user-agent ,@opts)
+			      enc)
 	  (or (and-let* (( (not no-redirect) )
 			 ( (string-prefix? "3" code) )
 			 (h (case redirect-handler
@@ -198,15 +199,8 @@
 
   (define (server->socket server port make-socket)
     (cond ((matches #/([^:]+):(\d+)/ server)
-	   => (lambda (m) 
-		(make-socket (m 1) (m 2))))
+	   => (lambda (m) (make-socket (m 1) (m 2))))
 	  (else (make-socket server port))))
-
-  (define (invoke-auth-handler conn)
-    (and-let* ((handler  (http-connection-auth-handler conn)))
-      (let ((user     (http-connection-auth-user conn))
-	    (password (http-connection-auth-password conn)))
-	(handler user password conn))))
 
   (define (with-connection conn proc)
     (let* ((secure? (http-connection-secure conn))
@@ -214,32 +208,54 @@
 	   ;;(close-socket (if secure? tls-socket-close socket-close))
 	   ;;(port-convert (if secure? tls-socket-port socket-port))
 	   (port (if secure? "443" "80")))
-      (let ((s (server->socket (or (http-connection-proxy conn)
-				   (http-connection-server conn))
-			       port make-socket))
-	    (auth (invoke-auth-handler conn)))
+      (let1 s (server->socket (or (http-connection-proxy conn)
+				  (http-connection-server conn))
+			      port make-socket)
 	(unwind-protect
 	 (proc (transcoded-port (socket-port s)
 				(make-transcoder (utf-8-codec) 'lf))
-	       auth)
+	       (http-connection-extra-headers conn))
 	 (socket-close s)))))
 
   (define (request-response method conn host request-uri
-			    sender receiver options enc)
+			    sender receiver options enc
+			    :optional (auth-header '()))
     (define no-body-replies '("204" "304"))
     (receive (host uri)
 	(consider-proxy conn (or host (http-connection-server conn))
 			request-uri)
-      (with-connection 
-       conn
-       (lambda (in/out auth-header)
-	 (send-request in/out method host uri sender auth-header options enc)
-	 (receive (code headers) (receive-header in/out)
-	   (values code
-		   headers
-		   (and (not (eq? method 'HEAD))
-			(not (member code no-body-replies))
-			(receive-body in/out code headers receiver))))))))
+      (let ((auth-handler  (http-connection-auth-handler conn))
+	    (auth-user     (http-connection-auth-user conn))
+	    (auth-password (http-connection-auth-password conn)))
+	(with-connection conn
+	 (lambda (in/out ext-header)
+	   (send-request in/out method host uri sender ext-header options enc
+			 auth-header)
+	   (receive (code headers) (receive-header in/out)
+	     (or ;; authentication
+	      (and-let* (( (string=? code "401") )
+			 (auth-headers
+			  (cond (auth-handler
+				 ;; never use
+				 (http-connection-auth-handler conn #f)
+				 (auth-handler headers))
+				((and auth-user auth-password
+				      (http-lookup-auth-handler headers))
+				 => (lambda (handler)
+				      ;; reset
+				      (http-connection-auth-user conn #f)
+				      (http-connection-auth-password conn #f)
+				      (handler auth-user auth-password headers))
+				 )
+				(else #f))))
+		;; set extra-header
+		(request-response method conn host request-uri
+				  sender receiver options enc
+				  auth-headers))
+	      (values code headers
+		      (and (not (eq? method 'HEAD))
+			   (not (member code no-body-replies))
+			   (receive-body in/out code headers receiver))))))))))
 
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
@@ -262,7 +278,8 @@
 	(values host uri)))
 
   ;; send
-  (define (send-request out method host uri sender auth-headers options enc)
+  (define (send-request out method host uri sender ext-headers options enc
+			auth-headers)
     ;; this is actually not so portable. display requires textual-port but
     ;; socket-port is binary-port. but hey!
     ;;(display out (standard-error-port))(newline)
@@ -271,7 +288,7 @@
       ((POST PUT)
        (sender (options->request-headers `(:host ,host ,@options)) enc
 	       (lambda (hdrs)
-		 (send-headers hdrs out auth-headers)
+		 (send-headers hdrs out ext-headers auth-headers)
 		 (let ((chunked? (equal? (rfc5322-header-ref
 					  hdrs "transfer-encoding")
 					 "chunked"))
@@ -284,15 +301,16 @@
 		     out)))))
       (else
        (send-headers (options->request-headers `(:host ,host ,@options)) out
-		     auth-headers))))
+		     ext-headers auth-headers))))
 
-  (define (send-headers hdrs out :optional (auth-header #f))
+  (define (send-headers hdrs out ext-header auth-headers)
     (define (send hdrs)
       (for-each (lambda (hdr)
 		  (format out "~a: ~a\r\n" (car hdr) (cadr hdr)))
 		hdrs))
     (send hdrs)
-    (and auth-header (send auth-header))
+    (send auth-headers)
+    (send ext-header)
     (display "\r\n" out)
     (flush-output-port out))
 
@@ -664,10 +682,9 @@
 
   (define (http-digest-auth-handler-generator hdr)
     ;; need to get realm and so
-    (lambda (user password conn)
+    (lambda (user password headers)
       ;; TODO
-      #f
-      ))
+      (error 'http-digest-auth-handler "not supported yet!")))
 
   (define *supported-auth-handlers*
     `(("basic"  . ,http-basic-auth-handler-generator)

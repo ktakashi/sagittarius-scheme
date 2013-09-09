@@ -87,7 +87,7 @@
 				      path)
 		      :secure (string=? scheme "https")
 		      :sender sender
-		      :auth-handler (lambda _ headers)))))
+		      :extra-headers headers))))
 
   (define (generate-auth-parameters consumer signature-method timestamp version
 				    :optional (token #f))
