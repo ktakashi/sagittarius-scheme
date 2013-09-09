@@ -99,10 +99,10 @@
   (define (json-response->json-string response)
     (call-with-string-output-port 
      (lambda (out) 
-       (let ((sjosn `#((jsonrpc . ,(json-response-jsonrpc request))
-		       (method  . ,(json-response-method request))
-		       (id      . ,(json-response-id request))
-		       (result  . ,(json-response-result request)))))
+       (let ((sjosn `#((jsonrpc . ,(json-response-jsonrpc response))
+		       (method  . ,(json-response-method response))
+		       (id      . ,(json-response-id response))
+		       (result  . ,(json-response-result response)))))
 	 (json-write sjosn out)))))
 
   (define (json-string->json-response json)
