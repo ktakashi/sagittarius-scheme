@@ -100,7 +100,6 @@
     (call-with-string-output-port 
      (lambda (out) 
        (let ((sjosn `#((jsonrpc . ,(json-response-jsonrpc response))
-		       (method  . ,(json-response-method response))
 		       (id      . ,(json-response-id response))
 		       (result  . ,(json-response-result response)))))
 	 (json-write sjosn out)))))
@@ -121,7 +120,7 @@
 						   (else '()))))))))
 		  ((assoc "result" sjosn)
 		   => (lambda (slot)
-			(make <json-response> :result (cdr slot) :id id)))
+			(make <json-response> :result (cdr slot) :id (cdr id))))
 		  (else
 		   (error 'json-string->json-response
 			  "invalid JSON-RPC response" josn))))
