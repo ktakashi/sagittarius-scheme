@@ -166,10 +166,10 @@
       (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
-	    (unless next
-	      (assertion-violation 'make-client-socket "no next addrinfo"
-				   node service))
-	    (loop (create-socket next) next)))
+	    (if next
+		(loop (create-socket next) next)
+		(assertion-violation 'make-client-socket "no next addrinfo"
+				     node service))))
 	(or (and-let* (( socket )
 		       ( info ))
 	      (socket-connect! socket info))
@@ -192,10 +192,10 @@
       (let loop ((socket (create-socket info)) (info info))
 	(define (retry info)
 	  (let ((next (slot-ref info 'next)))
-	    (unless next
-	      (assertion-violation 'make-server-socket 
-				   "no next addrinfo" service))
-	    (loop (create-socket next) next)))
+	    (if next
+		(loop (create-socket next) next)
+		(assertion-violation 'make-server-socket 
+				     "no next addrinfo" service))))
 
 	(or (and-let* (( socket )
 		       ( info )

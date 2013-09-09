@@ -1586,19 +1586,20 @@ SgObject Sg_GetStackTrace()
 	  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(cl)->code);
 	  InsnInfo *info;
 	  SgObject src = SG_FALSE;
-	  intptr_t index = -1, i;
+	  intptr_t index = -1, j;
 	  if (SG_FALSEP(name)) {
 	    /* try codebuilder name */
 	    name = Sg_CodeBuilderFullName(cb);
 	  }
-	  /* search previous src, max 2 */
-	  for (i = 0; i < 3; i++) {
-	    info = Sg_LookupInsnName(INSN(*(pc-i)));
+	  /* before FRAME insn there must be a insn which has src info */
+	  for (j = 1;; j++) {
+	    if (Sg_GCBase(*(pc-j))) continue;
+	    info = Sg_LookupInsnName(INSN(*(pc-j)));
 	    if (info && info->hasSrc) break;
 	  }
 	  /* for sanity */
 	  if (info && info->hasSrc) {
-	    index = (pc - i) - cb->code;
+	    index = (pc-j) - cb->code;
 	  }
 	  if (index > 0) {
 	    if (SG_PAIRP(cb->src)) {
@@ -1616,7 +1617,7 @@ SgObject Sg_GetStackTrace()
 	  r = SG_LIST3(SG_INTERN("*proc*"), name, SG_NIL);
 	}
 	break;
-      default: break;		/* do nothing */
+      default: break;		/* never happen? */
       }
       i++;
     } else {
