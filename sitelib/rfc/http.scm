@@ -220,6 +220,8 @@
   (define (request-response method conn host request-uri
 			    sender receiver options enc
 			    :optional (auth-header '()))
+    (define (discard-body in/out code headers)
+      (receive-body in/out code headers (http-null-receiver)))
     (define no-body-replies '("204" "304"))
     (receive (host uri)
 	(consider-proxy conn (or host (http-connection-server conn))
@@ -248,6 +250,7 @@
 				      (handler auth-user auth-password headers))
 				 )
 				(else #f))))
+		(discard-body in/out code headers)
 		;; set extra-header
 		(request-response method conn host request-uri
 				  sender receiver options enc
@@ -430,8 +433,8 @@
       (let loop ((sink (open-file-output-port (null-device)
 					      (file-options no-fail))))
 	(receive (remote size) (retr)
-	  (cond ((and size (<= size)) (close-output-port sink))
-		(else (copy-binary-port remote sink :size size)
+	  (cond ((and size (<= size 0)) (close-output-port sink))
+		(else (copy-binary-port sink remote :size size)
 		      (loop sink)))))))
 
   ;; sink must be binary-port
