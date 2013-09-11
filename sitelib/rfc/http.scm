@@ -165,37 +165,10 @@
 			:allow-other-keys opts)
     (let1 conn (ensure-connection server auth-handler auth-user auth-password
 				  proxy secure extra-headers)
-      (let loop ((history '())
-		 (host host)
-		 (method method)
-		 (request-uri (ensure-request-uri request-uri enc)))
-	(receive (code headers body)
-	    (request-response method conn host request-uri sender receiver
-			      `(:user-agent ,user-agent ,@opts)
-			      enc)
-	  (or (and-let* (( (not no-redirect) )
-			 ( (string-prefix? "3" code) )
-			 (h (case redirect-handler
-			      ((#t) (http-default-redirect-handler))
-			      ((#f) #f)
-			      (else redirect-handler)))
-			 (r (h method code headers body))
-			 (method (car r))
-			 (loc (cdr r)))
-		(receive (uri proto new-server path*)
-		    (canonical-uri conn loc (http-connection-server conn))
-		  (when (or (member uri history)
-			    (> (length history) 20))
-		    (raise-http-error 'http-request
-				      (format "redirection is looping via ~a"
-					      uri)
-				      (http-connection-server conn)))
-		  (loop (cons uri history)
-			(http-connection-server
-			 (redirect conn proto new-server))
-			method
-			path*)))
-	      (values code headers body))))))
+      (request-response
+       method conn host (ensure-request-uri request-uri enc)
+       sender receiver `(:user-agent ,user-agent ,@opts)
+       '() no-redirect redirect-handler enc)))
 
   (define (server->socket server port make-socket)
     (cond ((matches #/([^:]+):(\d+)/ server)
@@ -218,10 +191,9 @@
 	 (socket-close s)))))
 
   (define (request-response method conn host request-uri
-			    sender receiver options enc
+			    sender receiver options 
+			    history no-redirect redirect-handler enc
 			    :optional (auth-header '()))
-    (define (discard-body in/out code headers)
-      (receive-body in/out code headers (http-null-receiver)))
     (define no-body-replies '("204" "304"))
     (receive (host uri)
 	(consider-proxy conn (or host (http-connection-server conn))
@@ -234,7 +206,33 @@
 	   (send-request in/out method host uri sender ext-header options enc
 			 auth-header)
 	   (receive (code headers) (receive-header in/out)
-	     (or ;; authentication
+	     (or
+	      ;; redirect
+	      (and-let* (( (not no-redirect) )
+			 ( (string-prefix? "3" code) )
+			 (h (case redirect-handler
+			      ((#t) (http-default-redirect-handler))
+			      ((#f) #f)
+			      (else redirect-handler)))
+			 (r (h method code headers
+			       (receive-body in/out code headers
+					     (http-string-receiver))))
+			 (method (car r))
+			 (loc (cdr r)))
+		(receive (uri proto new-server path*)
+		    (canonical-uri conn loc (http-connection-server conn))
+		  (when (or (member uri history)
+			    (> (length history) 20))
+		    (raise-http-error 'http-request
+				      (format "redirection is looping via ~a"
+					      uri)
+				      (http-connection-server conn)))
+		  (request-response
+		   method conn
+		   (http-connection-server (redirect conn proto new-server))
+		   path* sender receiver options
+		   (cons uri history) no-redirect redirect-handler enc)))
+	      ;; authentication
 	      (and-let* (( (string=? code "401") )
 			 (auth-headers
 			  (cond (auth-handler
@@ -250,10 +248,11 @@
 				      (handler auth-user auth-password headers))
 				 )
 				(else #f))))
-		(discard-body in/out code headers)
+		(receive-body in/out code headers (http-null-receiver))
 		;; set extra-header
 		(request-response method conn host request-uri
-				  sender receiver options enc
+				  sender receiver options
+				  history no-redirect redirect-handler enc
 				  auth-headers))
 	      (values code headers
 		      (and (not (eq? method 'HEAD))
