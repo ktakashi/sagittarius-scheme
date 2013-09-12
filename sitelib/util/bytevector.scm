@@ -2,7 +2,7 @@
 ;;;
 ;;; bytevector.scm - bytevector utility
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -40,6 +40,8 @@
 	    ;; parity stuff
 	    ->odd-parity
 	    ->odd-parity!
+
+	    bytevector->hex-string
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -108,5 +110,13 @@
 		 (r2 (bytevector-copy bv k)))
 	     (values r1 r2))
 	(values (if padding (padding bv) bv) #vu8()))))
+
+(define (bytevector->hex-string bv)
+  (define (fixup x)
+    (if (= (string-length x) 1)
+	(string-append "0" x)
+	x))
+  (string-concatenate (map (lambda (u8) (fixup (number->string u8 16)))
+			   (bytevector->u8-list bv))))
 
 )

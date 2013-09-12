@@ -77,10 +77,12 @@
 	    (srfi :13 strings)
 	    (srfi :39 parameters)
 	    (match)
+	    (math)
 	    (encoding decoder)
 	    (util list)
 	    (util port)
 	    (util file)
+	    (util bytevector)
 	    (rfc :5322)
 	    (rfc uri)
 	    (rfc mime)
@@ -194,10 +196,70 @@
 			    sender receiver options 
 			    history no-redirect redirect-handler enc
 			    :optional (auth-header '()))
+
     (define no-body-replies '("204" "304"))
     (receive (host uri)
 	(consider-proxy conn (or host (http-connection-server conn))
 			request-uri)
+      (define (connection-info)
+	`((host ,host)
+	  (method ,method)
+	  (uri  ,uri)
+	  (request-uri ,request-uri)))
+      ;; redirect
+      (define (handle-redirect in/out code headers)
+	(and-let* (( (not no-redirect) )
+		   ( (string-prefix? "3" code) )
+		   (h (case redirect-handler
+			((#t) (http-default-redirect-handler))
+			((#f) #f)
+			(else redirect-handler)))
+		   (r (h method code headers
+			 (receive-body in/out code headers
+				       (http-string-receiver))))
+		   (method (car r))
+		   (loc (cdr r)))
+	  (receive (uri proto new-server path*)
+	      (canonical-uri conn loc (http-connection-server conn))
+	    (when (or (member uri history)
+		      (> (length history) 20))
+	      (raise-http-error 'http-request
+				(format "redirection is looping via ~a"
+					uri)
+				(http-connection-server conn)))
+	    (request-response
+	     method conn
+	     (http-connection-server (redirect conn proto new-server))
+	     path* sender receiver options
+	     (cons uri history) no-redirect redirect-handler enc))))
+
+      ;; authentication
+      (define (handle-authentication in/out code headers 
+				     auth-handler auth-user auth-password)
+	(and-let* (( (string=? code "401") )
+		   ;; handler must call body thunk explicitly
+		   (body (lambda ()
+			   (receive-body in/out code headers 
+					 (http-binary-receiver))))
+		   (auth-headers
+		    (cond (auth-handler
+			   ;; never use
+			   (http-connection-auth-handler conn #f)
+			   (auth-handler (connection-info) headers body))
+			  ((and auth-user auth-password
+				(http-lookup-auth-handler headers))
+			   => (lambda (handler)
+				;; reset
+				(http-connection-auth-user conn #f)
+				(http-connection-auth-password conn #f)
+				(handler (connection-info) 
+					 auth-user auth-password headers body)))
+			  (else #f))))
+	  (request-response method conn host request-uri
+			    sender receiver options
+			    history no-redirect redirect-handler enc
+			    auth-headers)))
+
       (let ((auth-handler  (http-connection-auth-handler conn))
 	    (auth-user     (http-connection-auth-user conn))
 	    (auth-password (http-connection-auth-password conn)))
@@ -206,58 +268,14 @@
 	   (send-request in/out method host uri sender ext-header options enc
 			 auth-header)
 	   (receive (code headers) (receive-header in/out)
-	     (or
-	      ;; redirect
-	      (and-let* (( (not no-redirect) )
-			 ( (string-prefix? "3" code) )
-			 (h (case redirect-handler
-			      ((#t) (http-default-redirect-handler))
-			      ((#f) #f)
-			      (else redirect-handler)))
-			 (r (h method code headers
-			       (receive-body in/out code headers
-					     (http-string-receiver))))
-			 (method (car r))
-			 (loc (cdr r)))
-		(receive (uri proto new-server path*)
-		    (canonical-uri conn loc (http-connection-server conn))
-		  (when (or (member uri history)
-			    (> (length history) 20))
-		    (raise-http-error 'http-request
-				      (format "redirection is looping via ~a"
-					      uri)
-				      (http-connection-server conn)))
-		  (request-response
-		   method conn
-		   (http-connection-server (redirect conn proto new-server))
-		   path* sender receiver options
-		   (cons uri history) no-redirect redirect-handler enc)))
-	      ;; authentication
-	      (and-let* (( (string=? code "401") )
-			 (auth-headers
-			  (cond (auth-handler
-				 ;; never use
-				 (http-connection-auth-handler conn #f)
-				 (auth-handler headers))
-				((and auth-user auth-password
-				      (http-lookup-auth-handler headers))
-				 => (lambda (handler)
-				      ;; reset
-				      (http-connection-auth-user conn #f)
-				      (http-connection-auth-password conn #f)
-				      (handler auth-user auth-password headers))
-				 )
-				(else #f))))
-		(receive-body in/out code headers (http-null-receiver))
-		;; set extra-header
-		(request-response method conn host request-uri
-				  sender receiver options
-				  history no-redirect redirect-handler enc
-				  auth-headers))
-	      (values code headers
-		      (and (not (eq? method 'HEAD))
-			   (not (member code no-body-replies))
-			   (receive-body in/out code headers receiver))))))))))
+	     (or (handle-redirect in/out code headers)
+		 (handle-authentication in/out code headers 
+					auth-handler auth-user auth-password)
+		 (values code headers
+			 (and (not (eq? method 'HEAD))
+			      (not (member code no-body-replies))
+			      (receive-body in/out code 
+					    headers receiver))))))))))
 
   (define (canonical-uri conn uri host)
     (let*-values (((scheme specific) (uri-scheme&specific uri))
@@ -668,7 +686,7 @@
 
   (define (http-lookup-auth-handler headers)
     (and-let* ((hdr (rfc5322-header-ref headers "www-authenticate"))
-	       (m   (looking-at #/^(\w+?)\s/ hdr))
+	       (m   (#/^(\w+?)\s+/ hdr))
 	       (type (string-downcase (m 1))))
       (cond ((assoc type *supported-auth-handlers*) =>
 	     (lambda (slot)
@@ -676,17 +694,71 @@
 	    (else #f))))
 
   (define (http-basic-auth-handler-generator hdr)
-    (lambda (user password _)
+    (lambda (_ user password . not-used)
       (let ((msg (format "~a:~a" user password)))
 	`(("authorization" ,(format "Basic ~a" 
 				   (utf8->string
 				    (base64-encode (string->utf8 msg)))))))))
 
+  ;; handling Digest authentication
+  ;; RFC 2617
   (define (http-digest-auth-handler-generator hdr)
-    ;; need to get realm and so
-    (lambda (user password headers)
-      ;; TODO
-      (error 'http-digest-auth-handler "not supported yet!")))
+    (define (parse-digest-header hdr)
+      (or (and-let* ((m (#/^Digest\s+(.+)/ hdr))
+		     (info (m 1)))
+	    (apply values (string-split info #/\s*,\s*/)))
+	  (error 'http-digest-auth-handler-generator
+		 "Unknown header format" hdr)))
+    (define (parse-qop qop)
+      (and-let* ((m (#/^qop="(.+)?"/ qop))
+		 (auths (string-split (m 1) #\,)))
+	;; don't support auth-int for now...
+	(cond ((member "auth" auths) "auth")
+	      (else
+	       (error 'http-digest-auth-handler-generator
+		      "qop contains only auth-int (not supported)")))))
+    (define (parse-realm realm)
+      (and-let* ((m (#/^realm="(.+)?"/ realm)))
+	(m 1)))
+    (define (parse-nonce nonce)
+      (and-let* ((m (#/^nonce="(.+)?"/ nonce)))
+	(m 1)))
+    (define (parse-algorithm algo)
+      (rlet1 name (substring algo (string-length "algorithm=")
+			    (string-length algo))
+	(unless (string=? name "MD5")
+	  (error 'http-digest-auth-handler-generator
+		 "Non MD5 algorithm is not supported" name))))
+    ;; parse and get all information
+    (let-values (((realm nonce algorithm qop) (parse-digest-header hdr)))
+      (let ((qop-auth (parse-qop qop))
+	    (hash-name (parse-algorithm algorithm))
+	    (realm-value (parse-realm realm))
+	    (nonce-value (parse-nonce nonce))
+	    ;; TODO generate nonce by request count!!
+	    (nc 0)
+	    (cnonce (bytevector->hex-string
+		     (read-random-bytes (secure-random Yarrow) 8)))
+	    (digester (hash-algorithm MD5)))
+	(lambda (info user password headers body)
+	  (define (md5-hex s)
+	    (bytevector->hex-string (hash digester (string->utf8 s))))
+	  (set! nc (+ nc 1))
+	  (let* ((a1 (string-append user ":" realm-value ":" password))
+		 (ha1 (md5-hex a1))
+		 (a2 (format "~a:~a" (cadr (assq 'method info))
+			     (cadr (assq 'request-uri info))))
+		 (ha2 (md5-hex a2))
+		 (resp (format "~a:~a:~8,'0x:~a:~a:~a" 
+			       ha1 nonce-value nc cnonce qop-auth ha2))
+		 (hresp (md5-hex resp)))
+	    `(("authorization"
+	       ,(format "Digest username=~s, realm=~s, nonce=~s, uri=~s, \
+                         algorithm=MD5, response=~s, qop=auth, nc=~8,'0x, \
+                         cnonce=~s" 
+			user realm-value nonce-value 
+			(cadr (assq 'request-uri info))
+			hresp nc cnonce))))))))
 
   (define *supported-auth-handlers*
     `(("basic"  . ,http-basic-auth-handler-generator)
