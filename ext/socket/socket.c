@@ -2,7 +2,7 @@
 /*
  * socket.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -381,7 +381,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   result->ai = SG_NEW(struct addrinfo);
   cur = result->ai;
   for (next = ai, prev = NULL; next; 
-       next = ai->ai_next, cur = cur->ai_next, prev = cur) {
+       next = next->ai_next, cur = cur->ai_next, prev = cur) {
     memcpy(cur, next, sizeof(struct addrinfo));
     /* copy sockaddr */
     cur->ai_addr = SG_NEW2(struct sockaddr *, ai->ai_addrlen);
