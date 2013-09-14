@@ -38,10 +38,7 @@
   (define-c-proc save-expansion-history! (n o)
     (let ((vm::SgVM* (Sg_VM)))
       ;; if old form is already there then we need to update
-      (for-each (lambda (slot)
-		  (when (SG_EQ o (SG_CAR slot))
-		    (set! o (SG_CDR slot))))
-		(-> vm history))
+      (for-each (lambda (slot) (when (SG_EQ o (SG_CAR slot)) (set! o (SG_CDR slot))))(-> vm history))
       (set! (-> vm history) (Sg_Acons n o (-> vm history))))
     (result n))
   

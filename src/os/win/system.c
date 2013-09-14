@@ -2,7 +2,7 @@
 /*
  * system.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -261,6 +261,7 @@ SgObject Sg_Uname()
 		       ver.dwMajorVersion, ver.dwMinorVersion,
 		       ver.dwBuildNumber);
   /* release = Sg_Sprintf(UC("%d"),); */
+  release = utf16ToUtf32(ver.szCSDVersion);
   GetSystemInfo(&info);
   switch (info.wProcessorArchitecture) {
   case PROCESSOR_ARCHITECTURE_AMD64:
@@ -281,8 +282,8 @@ SgObject Sg_Uname()
   }
   SG_VECTOR_ELEMENT(r, 0) = sysname;
   SG_VECTOR_ELEMENT(r, 1) = nodename;
-  SG_VECTOR_ELEMENT(r, 2) = release;
-  SG_VECTOR_ELEMENT(r, 3) = version;
+  SG_VECTOR_ELEMENT(r, 2) = version;
+  SG_VECTOR_ELEMENT(r, 3) = release;
   SG_VECTOR_ELEMENT(r, 4) = machine;
 
   return r;

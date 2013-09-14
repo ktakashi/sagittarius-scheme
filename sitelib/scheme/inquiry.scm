@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; boxes.scm - R7RS large (scheme boxes)
+;;; inquiry.scm - R7RS large (scheme inquiry)
 ;;;  
 ;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -27,6 +27,7 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-(library (scheme boxes)
+
+(library (scheme inquiry)
     (export :all)
-    (import (srfi :111 boxes)))
+    (import (srfi :112 inquiry)))

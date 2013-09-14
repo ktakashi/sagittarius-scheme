@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; boxes.scm - R7RS large (scheme boxes)
+;;; inquiry.scm - SRFI-112
 ;;;  
 ;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -27,6 +27,37 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-(library (scheme boxes)
-    (export :all)
-    (import (srfi :111 boxes)))
+
+(library (srfi :112 inquiry)
+    (export implementation-name
+	    implementation-version
+	    cpu-architecture
+	    machine-name
+	    os-type
+	    os-version)
+    (import (rnrs) (sagittarius))
+  ;; it's always the same
+  (define (implementation-name) "Sagittarius Scheme")
+  (define implementation-version sagittarius-version)
+
+  (define %uname-vec (uname))
+
+  (define cpu-architecture
+    (let ((cpu (vector-ref %uname-vec 4)))
+      (lambda () cpu)))
+
+  (define machine-name
+    (let ((v (vector-ref %uname-vec 1)))
+      (lambda () v)))
+
+  (define os-type
+    (let ((v (vector-ref %uname-vec 0)))
+      (lambda () v)))
+
+  (define os-version
+    (let* ((v  (vector-ref %uname-vec 2))
+	   (v2 (vector-ref %uname-vec 2))
+	   (r  (string-append v " " v2)))
+      (lambda () r)))
+
+)
