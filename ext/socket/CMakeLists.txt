@@ -22,6 +22,9 @@ ADD_STUBS(sagittarius--socket
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 SET_TARGET_PROPERTIES(sagittarius--socket PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--socket PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--socket sagittarius)
 
 IF (${SAGITTARIUS_OS} STREQUAL "qnx")

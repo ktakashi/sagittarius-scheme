@@ -23,6 +23,9 @@ ADD_STUBS(sagittarius--threads
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--threads PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--threads sagittarius)
 
 INSTALL(TARGETS sagittarius--threads

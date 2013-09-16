@@ -29,6 +29,9 @@ ADD_STUBS(sagittarius--regex2
   COMMAND ${GENSTUB}
   FILES ${CMAKE_CURRENT_SOURCE_DIR}/regex2_stub.stub)
 SET_TARGET_PROPERTIES(sagittarius--regex2 PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--regex2 PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--regex2 sagittarius)
 
 

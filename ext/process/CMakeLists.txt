@@ -30,6 +30,9 @@ ADD_STUBS(sagittarius--process
   OUTTREE)
 
 SET_TARGET_PROPERTIES(sagittarius--process PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--process PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--process sagittarius)
 ADD_DEPENDENCIES(sagittarius--process copy-test-proc)
 

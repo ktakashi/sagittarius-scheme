@@ -28,6 +28,9 @@ ADD_STUBS(sagittarius--crypto
   OUTTREE)
 
 SET_TARGET_PROPERTIES(sagittarius--crypto PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--crypto PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--crypto sagittarius libtomcrypt)
 
 INSTALL(TARGETS sagittarius--crypto
@@ -56,6 +59,9 @@ ADD_STUBS(sagittarius--math
   FILES math_stub.stub
   OUTTREE)
 SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--math PROPERTIES SUFFIX ".dylib")
+ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--math sagittarius libtomcrypt)
 
 INSTALL(TARGETS sagittarius--math
