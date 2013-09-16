@@ -129,6 +129,12 @@ elseif (${arch} STREQUAL "x86_64")
   endif()
 endif()
 
+if (${TARGET} STREQUAL "X86_DARWIN")
+# It may be on all x86_64 architectures HAVE_LONG_DOUBLE must be 1, mustn't it?
+#if (${arch} STREQUAL "x86_64")
+  set(HAVE_LONG_DOUBLE 1)
+endif()
+
 if (${TARGETDIR} STREQUAL "unknown")
   message(STATUS "custom libffi has not been ported to ${host}")
 else ()

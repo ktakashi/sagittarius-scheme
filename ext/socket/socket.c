@@ -42,6 +42,11 @@
 #define MSG_NOSIGNAL 0		/* no support */
 #endif
 #endif
+#ifdef __APPLE__
+#ifndef MSG_NOSIGNAL
+#define MSG_NOSIGNAL SO_NOSIGPIPE /* OSX defines SO_NOSIGPIPE instead of MSG_NOSIGNAL */
+#endif
+#endif
 
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY

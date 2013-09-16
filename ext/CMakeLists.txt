@@ -1,12 +1,8 @@
 # Sagittarius extensions -*- CMake -*-
 # 
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
-IF (CMAKE_HOST_SYTSTEM STREQUAL CMAKE_SYSTEM)
-  SET(HOST_SASH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash)
-ELSE()
-  # assume Sagittarius is installed
-  SET(HOST_SASH sash)
-ENDIF()
+# It seems no problem (probably), always to use built sash binary whether there's installed sash
+SET(HOST_SASH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash)
 SET(GENSTUB
   ${GENSTUB}
   ${HOST_SASH}

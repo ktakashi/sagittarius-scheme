@@ -59,6 +59,14 @@
   TODO it might be better to check in CMakeLists.txt
  */
 #include <sys/utsname.h>
+
+#ifdef __APPLE__ 
+/*
+ * For OSX environemnt variable access
+ */
+#include <crt_externs.h>
+#endif
+
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/system.h>
 #include <sagittarius/file.h>
@@ -71,7 +79,9 @@
 #include <sagittarius/bytevector.h>
 #include <sagittarius/vector.h>
 
+#ifndef __APPLE__ 
 extern char** environ;
+#endif
 
 /* os dependent values */
 const SgChar* Sg_NativeFileSeparator()
@@ -189,10 +199,20 @@ void Sg_Setenv(const SgChar *key, const SgChar *value)
   }
 }
 
+static char** get_environ()
+{
+#ifdef __APPLE__ 
+  /* OSX disallows direct access to environ variable */
+  return *_NSGetEnviron();
+#else
+  return environ;
+#endif
+}
+
 SgObject Sg_GetenvAlist()
 {
   SgObject ret = SG_NIL;
-  char **env = environ;
+  char **env = get_environ();
   while (*env) {
     char *equ = strchr(*env, '=');
     SgString *key = Sg_Utf8sToUtf32s(*env, equ - *env);
