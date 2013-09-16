@@ -910,7 +910,7 @@
 
 ;; issue 129
 (test-assert "cond-expand" 
-	     (eval '(cond-expand ((and (library (rnrs)) 
+	     (r6rs:eval '(cond-expand ((and (library (rnrs)) 
 				       (or sagittarius something)) 
 				  #t))
 		   '(sagittarius)))
