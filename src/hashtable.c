@@ -522,13 +522,28 @@ static Entry* general_access(SgHashCore *table,
 
 static uint32_t general_hash(const SgHashCore *table, intptr_t key)
 {
-  SgObject hash = Sg_Apply1(table->generalHasher, SG_OBJ(key));
+  SgObject hash;
+  if (SG_SUBRP(table->generalHasher)) {
+    SgObject args[1];
+    args[0] = SG_OBJ(key);
+    hash = SG_SUBR_FUNC(table->generalHasher)(args, 1, SG_SUBR_DATA(table->generalHasher));
+  } else {
+    hash = Sg_Apply1(table->generalHasher, SG_OBJ(key));
+  }
   return Sg_GetIntegerClamp(hash, SG_CLAMP_NONE, NULL);
 }
 
 static int general_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
 {
-  SgObject ret = Sg_Apply2(table->generalCompare, SG_OBJ(key), SG_OBJ(k2));
+  SgObject ret;
+  if (SG_SUBRP(table->generalCompare)) {
+    SgObject args[2];
+    args[0] = SG_OBJ(key);
+    args[1] = SG_OBJ(k2);
+    ret = SG_SUBR_FUNC(table->generalCompare)(args, 2, SG_SUBR_DATA(table->generalCompare));
+  } else {
+    ret = Sg_Apply2(table->generalCompare, SG_OBJ(key), SG_OBJ(k2));
+  }
   return !SG_FALSEP(ret);
 }
 
