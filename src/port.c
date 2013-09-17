@@ -1618,7 +1618,7 @@ static SgChar custom_textual_get_char(SgObject self)
   SgChar c;
   if (SG_CUSTOM_PORT(self)->buffer == NULL || 
       SG_CUSTOM_PORT(self)->index == 0) {
-    SgObject s = Sg_MakeString(UC(" "), SG_HEAP_STRING);
+    SgObject s = Sg_ReserveString(1, ' ');
     SgObject result = Sg_Apply3(SG_CUSTOM_PORT(self)->read,
 			       s, start, count);
     if (!SG_INTP(result)) {
