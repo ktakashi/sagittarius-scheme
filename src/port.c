@@ -351,19 +351,19 @@ static void file_flush_internal(SgObject self)
   uint8_t *buf = SG_BINARY_PORT(self)->buffer;
   SgBinaryPort *bport = SG_BINARY_PORT(self);
   /* for shared buffered port such as stdout */
-  SG_PORT_LOCK(SG_PORT(self));
+  /* SG_PORT_LOCK(SG_PORT(self)); */
   while (SG_BINARY_PORT(self)->bufferIndex > 0) {
     int64_t written_size = SG_PORT_FILE(self)->write(SG_PORT_FILE(self),
 						     buf,
 						     bport->bufferIndex);
     buf += written_size;
     bport->bufferIndex -= written_size;
-    ASSERT(bport->bufferIndex >= 0);
+    /* ASSERT(bport->bufferIndex >= 0); */
   }
-  ASSERT(SG_BINARY_PORT(self)->bufferIndex == 0);
+  /* ASSERT(SG_BINARY_PORT(self)->bufferIndex == 0); */
   bport->bufferIndex = 0;
   bport->bufferSize = 0;
-  SG_PORT_UNLOCK(SG_PORT(self));
+  /* SG_PORT_UNLOCK(SG_PORT(self)); */
 }
 
 static void file_flush(SgObject self)
@@ -394,7 +394,7 @@ static void file_fill_buffer(SgObject self)
       read_size += result;
     }
   }
-  ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE);
+  /* ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE); */
   bp->bufferSize = read_size;
   bp->bufferIndex = 0;
 }
@@ -423,10 +423,6 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
   int need_unwind = FALSE;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
 
-  if (SG_PORT_FILE(self)->seek) {
-    opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
-  }
-
   while (read_size < req_size) {
     int64_t buf_diff = bp->bufferSize - bp->bufferIndex;
     int64_t size_diff = req_size - read_size;
@@ -437,6 +433,9 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
       read_size += size_diff;
       break;
     } else {
+      if (SG_PORT_FILE(self)->seek && opos == 0LL) {
+	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+      }
       memcpy64(dest + read_size, bp->buffer + bp->bufferIndex, buf_diff);
       read_size += buf_diff;
       file_fill_buffer(self);
@@ -460,7 +459,7 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
   return read_size;
 }
 
-static void file_forward_position(SgObject self, int64_t offset)
+static inline void file_forward_position(SgObject self, int64_t offset)
 {
   SG_BINARY_PORT(self)->position += offset;
 }
@@ -627,29 +626,30 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   return SG_OBJ(z);
 }
 
-static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v, int64_t req_size)
+static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v,
+					  int64_t req_size)
 {
   int64_t write_size = 0;
-  int64_t opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+  int64_t opos = 0;
   int need_unwind = FALSE;
-
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
   if (req_size > 0) {
     SG_BINARY_PORT(self)->dirty = TRUE;
   }
+
   while (write_size < req_size) {
-    int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - SG_BINARY_PORT(self)->bufferIndex;
+    int64_t buf_diff = PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
     int64_t size_diff = req_size - write_size;
-    ASSERT(buf_diff >= 0);
-    ASSERT(req_size > write_size);
     if (buf_diff >= size_diff) {
-      memcpy64(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	       v + write_size, size_diff);
-      SG_BINARY_PORT(self)->bufferIndex += size_diff;
+      memcpy64(bp->buffer + bp->bufferIndex, v + write_size, size_diff);
+      bp->bufferIndex += size_diff;
       write_size += size_diff;
     } else {
-      memcpy64(SG_BINARY_PORT(self)->buffer + SG_BINARY_PORT(self)->bufferIndex,
-	       v + write_size, buf_diff);
-      SG_BINARY_PORT(self)->bufferIndex += buf_diff;
+      if (opos == 0LL) {
+	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+      }
+      memcpy64(bp->buffer + bp->bufferIndex,v + write_size, buf_diff);
+      bp->bufferIndex += buf_diff;
       write_size += buf_diff;
       file_flush_internal(self);
       need_unwind = TRUE;
@@ -665,7 +665,7 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
 					 int64_t req_size)
 {
   int64_t write_size = 0;
-  int64_t opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+  int64_t opos = 0;
   int need_unwind = FALSE;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
 
@@ -675,6 +675,9 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
   while (write_size < req_size) {
     int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
     if (buf_diff == 0) {
+      if (opos == 0LL) {
+	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+      }
       file_flush_internal(self);
       need_unwind = TRUE;
     }
@@ -689,6 +692,9 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
 	*(bp->buffer + bp->bufferIndex) = *(v + write_size);
 	bp->bufferIndex++;
 	write_size++;
+      }
+      if (opos == 0LL) {
+	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
       }
       file_flush_internal(self);
       need_unwind = TRUE;

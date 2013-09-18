@@ -2499,11 +2499,8 @@
   ;; 8.2.10 output port
   (define-cise-stmt check-output-port
     ((_ name p)
-     `(unless (or (SG_OUTPORTP ,p)
-		  (SG_INOUTPORTP ,p))
-	(wrong-type-of-argument-violation ',name
-					  "output port"
-					  ,p))))
+     `(unless (or (SG_OUTPORTP ,p) (SG_INOUTPORTP ,p))
+	(wrong-type-of-argument-violation ',name "output port" ,p))))
 
   (define-c-proc output-port? (obj) ::<boolean>
     (result (or (SG_OUTPORTP obj)
