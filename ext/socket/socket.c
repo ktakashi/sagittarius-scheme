@@ -38,14 +38,10 @@
 #define EAGAIN WSATRY_AGAIN
 #define EWOULDBLOCK WSAEWOULDBLOCK
 #define EPIPE WSAEINVAL
+#endif
+
 #ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL 0		/* no support */
-#endif
-#endif
-#ifdef __APPLE__
-#ifndef MSG_NOSIGNAL
-#define MSG_NOSIGNAL SO_NOSIGPIPE /* OSX defines SO_NOSIGPIPE instead of MSG_NOSIGNAL */
-#endif
+#define MSG_NOSIGNAL 0		/* no support (incl. *BSD/OSX) */
 #endif
 
 #include <sagittarius.h>
@@ -408,6 +404,13 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
   if (-1 == fd) {
     return SG_FALSE;
   }
+
+#ifdef SO_NOSIGPIPE
+  const int option_value = 1;
+  if (-1 == setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &option_value, sizeof(option_value))) {
+    return SG_FALSE;
+  }
+#endif
   return make_socket_inner(fd);
 }
 
