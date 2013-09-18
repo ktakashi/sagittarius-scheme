@@ -13,6 +13,10 @@
  (else
   (add-dynamic-load-path "./build")))
 
+;; define build directory fullpath
+(define build-directory-path
+  (string-append (current-directory) "/build"))
+
 ;; load test resource
 (define (load-test-resource resource)
   (if (file-exists? resource)
@@ -90,4 +94,3 @@
 		       (error 'run-test
 			      "unknown test" test))))
 		  (reverse! test)))))
-	  
