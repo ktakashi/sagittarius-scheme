@@ -2,7 +2,7 @@
 /*
  * codec.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -142,13 +142,17 @@ static int64_t write_utf8(SgObject self, SgPort* port, SgChar *str,
 
 SgObject Sg_MakeUtf8Codec()
 {
-  SgCodec *z = make_codec();
-  SG_CODEC_BUILTIN(z)->putc = put_utf8_char;
-  SG_CODEC_BUILTIN(z)->getc = get_utf8_char;
-  SG_CODEC_BUILTIN(z)->readc = read_utf8;
-  SG_CODEC_BUILTIN(z)->writec = write_utf8;
-  SG_CODEC_NAME(z) = SG_MAKE_STRING("utf8-codec");
-  SG_CODEC_ENDIAN(z) = NO_BOM;
+  /* utf8 codec can be static */
+  static SgCodec *z = NULL;
+  if (z == NULL) {
+    z = make_codec();
+    SG_CODEC_BUILTIN(z)->putc = put_utf8_char;
+    SG_CODEC_BUILTIN(z)->getc = get_utf8_char;
+    SG_CODEC_BUILTIN(z)->readc = read_utf8;
+    SG_CODEC_BUILTIN(z)->writec = write_utf8;
+    SG_CODEC_NAME(z) = SG_MAKE_STRING("utf8-codec");
+    SG_CODEC_ENDIAN(z) = NO_BOM;
+  }
   return SG_OBJ(z);
 }
 

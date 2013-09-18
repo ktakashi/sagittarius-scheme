@@ -2,7 +2,7 @@
 /*
  * transcoder.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -467,7 +467,12 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
 /* compatible with ASCII */
 SgObject Sg_MakeNativeTranscoder()
 {
-  return Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), SG_RAISE_ERROR);
+  static SgObject trans = NULL;
+  if (trans == NULL) {
+    trans = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), 
+			      SG_RAISE_ERROR);
+  }
+  return trans;
 }
 
 
