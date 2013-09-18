@@ -87,6 +87,29 @@ Note: For some reason, you might want to build a 32-bit runtime on a
 
 Make sure you have all the required 32-bit executables and libraries.
 
+## Building on Mac OS X
+See the section above (Building on Unix-like environment), and read the following.
+
+Building on Mac OS X is slightly different from other Unix-like environments.
+
+Before you build, you should install libffi (Homebrew's one is recommended, MacPorts' is not tested.).
+
+Note1: If you install libffi from the source yourself, version 3.0.13 is recommended (tested).
+
+Note2: By default, libffi not install it's header files (this affects to Homebrew's and self source installation).
+So you need install header files yourself.
+Without this, cmake won't find the platform-installed libffi, and will try with bundled libffi.
+
+Note3: Currently, Sagittarius Scheme with bundled libffi will not work correctly on Mac OS X.
+
+Build difference is running cmake. You should run cmake as follows:
+
+    $ cmake . \
+        -DCMAKE_C_COMPILER=/usr/bin/gcc \
+        -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
+        -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin
+
+After cmake, run make same as other Unix environments.
 
 ## Build on Windows (non Cygwin environment)
 On Windows, you need to create an installer and Sagittarius is using

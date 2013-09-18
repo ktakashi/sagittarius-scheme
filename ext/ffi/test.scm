@@ -11,11 +11,11 @@
 (test-begin "(run-ffi-test)")
 (cond-expand
  (sagittarius.ffi
-  (define ffi-test-lib (open-shared-library 
-			(cond-expand
-			 (apple "test-lib.dylib")
-			 (else "test-lib.so"))))
-
+  (define ffi-test-lib
+    (open-shared-library
+        (cond-expand
+          (darwin (string-append build-directory-path "/test-lib.dylib"))
+          (else (string-append build-directory-path "/test-lib.so")))))
   (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
 
   (test-assert "suffix" shared-object-suffix)
