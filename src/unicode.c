@@ -1073,6 +1073,27 @@ SgObject Sg_StringFoldCase(SgString *str)
 #define NCount (VCount * TCount)
 #define SCount (LCount * NCount)
 
+/* helper, utf32 native is easy to implement without using transcoder */
+static SgByteVector* string2bytevector(SgObject s)
+{
+  SgByteVector* bv = Sg_MakeByteVector(SG_STRING_SIZE(s)*sizeof(SgChar), 0);
+  int i;
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    *(uint32_t *)(&SG_BVECTOR_ELEMENT(bv, i*4)) = SG_STRING_VALUE_AT(s, i);
+  }
+  return bv;
+}
+
+static SgObject bytevector2string(SgByteVector *bv)
+{
+  SgString *s = Sg_ReserveString(SG_BVECTOR_SIZE(bv)/sizeof(SgChar), ' ');
+  int i;
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    SG_STRING_VALUE_AT(s, i) = *(uint32_t*)(&SG_BVECTOR_ELEMENT(bv, i*4));
+  }
+  return SG_OBJ(s);
+}
+
 static void recursive_decomposition(int canonicalP, SgChar sv, SgPort *out)
 {
   int dindex = decompose(sv), sindex = sv - SBase, i;
@@ -1102,16 +1123,11 @@ static SgByteVector* decompose_rec(SgString *in, int canonicalP)
 {
   int i, size = SG_STRING_SIZE(in);
   SgPort *out = SG_PORT(Sg_MakeStringOutputPort(size));
-  /* TODO this could be non memmory allocate */
-  SgTranscoder *trans = 
-    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-		      E_NONE, SG_REPLACE_ERROR);
   for (i = 0; i < size; i++) {
     SgChar ch = SG_STRING_VALUE_AT(in, i);
     recursive_decomposition(canonicalP, ch, out);
   }
-  return SG_BVECTOR(Sg_StringToByteVector(Sg_GetStringFromStringPort(out),
-					  trans, 0, -1));
+  return string2bytevector(Sg_GetStringFromStringPort(out));
 }
 
 static SgByteVector* sort_combining_marks(SgByteVector *bv)
@@ -1141,22 +1157,16 @@ static SgByteVector* sort_combining_marks(SgByteVector *bv)
 
 SgObject Sg_StringNormalizeNfd(SgString *str)
 {
-  SgTranscoder *trans = 
-    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *bv = decompose_rec(str, TRUE);
   sort_combining_marks(bv);
-  return Sg_ByteVectorToString(bv, trans, 0, -1);
+  return bytevector2string(bv);
 }
 
 SgObject Sg_StringNormalizeNfkd(SgString *str)
 {
-  SgTranscoder *trans =
-    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *bv = decompose_rec(str, FALSE);
   sort_combining_marks(bv);
-  return Sg_ByteVectorToString(bv, trans, 0, -1);
+  return bytevector2string(bv);
 }
 
 static int32_t pair_wise_composition(uint32_t first, uint32_t second)
@@ -1188,9 +1198,6 @@ static int32_t pair_wise_composition(uint32_t first, uint32_t second)
 
 static SgObject compose_rec(SgByteVector *bv)
 {
-  SgTranscoder *trans =
-    Sg_MakeTranscoder(Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN),
-		      E_NONE, SG_REPLACE_ERROR);
   SgByteVector *out;
   int size = SG_BVECTOR_SIZE(bv);
   uint32_t first = Sg_ByteVectorU32NativeRef(bv, 0);
@@ -1204,7 +1211,7 @@ static SgObject compose_rec(SgByteVector *bv)
     if (i >= size) {
       out = Sg_MakeByteVector(comp_pos, 0);
       Sg_ByteVectorCopyX(bv, 0, out, 0, comp_pos);
-      return Sg_ByteVectorToString(out, trans, 0, -1);  
+      return bytevector2string(out);
     } else {
       uint32_t this = Sg_ByteVectorU32NativeRef(bv, i);
       int32_t this_cc = canonical_class(this), composit;
