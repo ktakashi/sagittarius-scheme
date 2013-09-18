@@ -2,7 +2,7 @@
 /*
  * unicode.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -455,6 +455,7 @@ char* Sg_Utf32sToUtf8s(const SgString *s)
   SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
   SgPort *tp = Sg_MakeTranscodedOutputPort(p, t);
   Sg_TranscoderWrite(t, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
+  Sg_PutbUnsafe(p, '\0');
   return (char*)Sg_GetByteArrayFromBinaryPort(p);
 }
 

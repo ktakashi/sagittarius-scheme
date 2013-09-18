@@ -2,7 +2,7 @@
 /*
  * port.h
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -41,15 +41,82 @@ typedef enum SgFileLockType SgPortLockType;
 typedef int64_t SgPortPositionFn(SgPort *);
 typedef void    SgSetPortPositionFn(SgPort *, int64_t);
 
+#define SG_STREAM_BUFFER_SIZE 32
+
 #define SG_MAKE_STREAM_BUFFER(type, data)		\
   typedef struct type##_rec				\
   {							\
-    data buf;						\
+    int position;					\
+    data buf[SG_STREAM_BUFFER_SIZE];			\
     struct type##_rec *next;				\
   } type;
 
 SG_MAKE_STREAM_BUFFER(byte_buffer, uint8_t);
 SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
+
+#define SG_STREAM_BUFFER_PUT_REC(type, r, _buf, c)	\
+  do {							\
+    type *__tmp = (_buf);				\
+    if (__tmp->position >= SG_STREAM_BUFFER_SIZE) {	\
+      __tmp->next = SG_NEW(type);			\
+      __tmp->next->position = 0;			\
+      (r) = __tmp = __tmp->next;			\
+    }							\
+    __tmp->buf[__tmp->position++] = (c);		\
+  } while(0)
+
+#define SG_STREAM_BUFFER_PUTB(r, buf, b)		\
+  SG_STREAM_BUFFER_PUT_REC(byte_buffer, r, buf, b)
+#define SG_STREAM_BUFFER_PUTC(r, buf, c)		\
+  SG_STREAM_BUFFER_PUT_REC(char_buffer, r, buf, c)
+
+
+#define SG_STREAM_BUFFER_COUNT_REC(type, r, start)			\
+  do {									\
+    type *__t = (start);						\
+    for ((r)=0;__t && __t->position>=SG_STREAM_BUFFER_SIZE;		\
+	 __t=__t->next,(r)++);						\
+    (r) *= SG_STREAM_BUFFER_SIZE;					\
+    if (__t) (r) += __t->position;					\
+  } while (0)
+#define SG_STREAM_BUFFER_COUNTC(r, start)	\
+  SG_STREAM_BUFFER_COUNT_REC(char_buffer, r, start)
+#define SG_STREAM_BUFFER_COUNTB(r, start)	\
+  SG_STREAM_BUFFER_COUNT_REC(byte_buffer, r, start)
+
+#define SG_STREAM_BUFFER_GET_BUFFER_REC(buftype, type, r, start)	\
+  do {									\
+    int __off;								\
+    type *__t = (start);						\
+    for (__off=0; __t && __t->position >= SG_STREAM_BUFFER_SIZE;	\
+	 __t=__t->next,__off+=SG_STREAM_BUFFER_SIZE) {			\
+      memcpy((r)+__off, __t->buf, sizeof(buftype)*SG_STREAM_BUFFER_SIZE); \
+    }									\
+    if (__t) memcpy((r)+__off, __t->buf,sizeof(buftype)*__t->position);	\
+  } while (0)
+
+#define SG_STREAM_BUFFER_GET_BUFFERB(r, start)		\
+  SG_STREAM_BUFFER_GET_BUFFER_REC(uint8_t, byte_buffer, r, start)
+
+#define SG_STREAM_BUFFER_GET_BUFFERC(r, start)		\
+  SG_STREAM_BUFFER_GET_BUFFER_REC(SgChar, char_buffer, r, start)
+
+#define SG_STREAM_BUFFER_SET_POSITION_REC(type, start, pos)	\
+  do {								\
+    type *__t = (start);					\
+    int __c = (int)(pos)/SG_STREAM_BUFFER_SIZE;			\
+    int __o = (int)(pos)%SG_STREAM_BUFFER_SIZE;			\
+    int __i;							\
+    for (__i=0; __i < __c && __t->next; __i++, __t=__t->next) {	\
+      __t->position = SG_STREAM_BUFFER_SIZE;			\
+    }								\
+    if (__i == __c && __t) __t->position = __o;			\
+  } while(0)							\
+
+#define SG_STREAM_BUFFER_SET_POSITIONB(start, pos)	\
+  SG_STREAM_BUFFER_SET_POSITION_REC(byte_buffer, start, pos)
+#define SG_STREAM_BUFFER_SET_POSITIONC(start, pos)	\
+  SG_STREAM_BUFFER_SET_POSITION_REC(char_buffer, start, pos)
 
 typedef struct SgBinaryPortRec
 {
