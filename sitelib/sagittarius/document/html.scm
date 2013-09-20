@@ -744,7 +744,8 @@
 		 (let-values (((top secs)
 			       (separate-document document output 
 						  (path-basename sections-dir)
-						  separate-file)))
+						  separate-file))
+			      ((real base ext) (decompose-path sections-dir)))
 		   (let ((s ((if-car-sxpath "//link[@rel='stylesheet']") 
 			     document))
 			 (j ((if-car-sxpath "//script[@type='text/javascript']")
@@ -759,7 +760,8 @@
 		     (when j
 		       (sxml:change-attr! 
 			j `(src ,(string-append "../" javascript))))
-		     (for-each (^p (call-with-output-file (cadr p)
+		     (for-each (^p (call-with-output-file 
+				       (build-path real (cadr p))
 				     (^o (write-doctype o (cddr p)))))
 			       secs))))))
 	    (else
