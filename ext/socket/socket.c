@@ -29,6 +29,13 @@
  *
  *  $Id: $
  */
+
+
+#include <sagittarius.h>
+#define LIBSAGITTARIUS_EXT_BODY
+#include <sagittarius/extend.h>
+#include "socket.h"
+
 #include <sys/types.h>
 #include <string.h>
 #include <signal.h>
@@ -43,11 +50,6 @@
 #ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0		/* no support (incl. *BSD/OSX) */
 #endif
-
-#include <sagittarius.h>
-#define LIBSAGITTARIUS_EXT_BODY
-#include <sagittarius/extend.h>
-#include "socket.h"
 
 static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
