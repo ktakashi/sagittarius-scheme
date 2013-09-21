@@ -51,6 +51,16 @@
 #define MSG_NOSIGNAL 0		/* no support (incl. *BSD/OSX) */
 #endif
 
+/* 
+   https://bugs.launchpad.net/libdrizzle/+bug/404662
+   Even though it said it's fixed HOWEVER h, on FreeBSD 9.1 it still
+   returns EAI_BADFLAGS! so we set this 0
+ */
+#ifdef __FreeBSD__
+#undef AI_V4MAPPED
+#define AI_V4MAPPED 0
+#endif
+
 static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgSocket *socket = SG_SOCKET(self);
