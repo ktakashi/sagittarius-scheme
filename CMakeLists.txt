@@ -285,9 +285,11 @@ IF(USE_BOEHM_GC)
     # download boehm gc
     # we need to use CMake conformed one, so the latest 7.2alpha6
     IF (MSVC OR WATCOM)
-      SET(USED_GC_VERSION "gc-7.2")
+      SET(USED_GC_VERSION "gc-7.2d")
+      SET(GC_VERSION "gc-7.2")
     ELSE()
-      SET(USED_GC_VERSION "gc-7.2")
+      SET(USED_GC_VERSION "gc-7.2d")
+      SET(GC_VERSION "gc-7.2")
     ENDIF()
     FIND_FILE(HAS_BOEHM_GC_TAR
       NAMES gc.tar.gz
@@ -311,7 +313,7 @@ IF(USE_BOEHM_GC)
     # be built because of the dependency problem. so we need to recreate the
     # CMakeLists.txt without ADD_SUBDIRECTORY.
     # NOTE: Be aware when GC fixed this problem or changed CMakeLists.txt.
-    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${USED_GC_VERSION})
+    SET(GC_DIR ${CMAKE_CURRENT_BINARY_DIR}/${GC_VERSION})
     MESSAGE(STATUS "Rebuilding ${GC_DIR}/CMakeLists.txt")
     IF (NOT EXISTS ${GC_DIR}/CMakeLists.txt.in)
       FILE(RENAME ${GC_DIR}/CMakeLists.txt ${GC_DIR}/CMakeLists.txt.in)

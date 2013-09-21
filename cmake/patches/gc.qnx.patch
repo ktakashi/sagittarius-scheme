@@ -1,6 +1,6 @@
 diff -ruN gc-7.2/dyn_load.c gc-7.2.qnx/dyn_load.c
---- gc-7.2/dyn_load.c	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/dyn_load.c	2013-07-31 13:49:42.274135800 +0200
+--- gc-7.2/dyn_load.c	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/dyn_load.c	2013-09-21 13:42:34.158631800 +0200
 @@ -63,7 +63,7 @@
      !(defined(FREEBSD) && defined(__ELF__)) && \
      !(defined(OPENBSD) && (defined(__ELF__) || defined(M68K))) && \
@@ -22,9 +22,9 @@ diff -ruN gc-7.2/dyn_load.c gc-7.2.qnx/dyn_load.c
 +#endif
 +
  #if defined(NETBSD)
- #   include <machine/elf_machdep.h>
- #   define ELFSIZE ARCH_ELFSIZE
-@@ -226,7 +233,8 @@
+ #   include <sys/param.h>
+ #   include <dlfcn.h>
+@@ -228,7 +235,8 @@
  
  #if defined(SCO_ELF) || defined(DGUX) || defined(HURD) \
      || (defined(__ELF__) && (defined(LINUX) || defined(FREEBSD) \
@@ -34,7 +34,7 @@ diff -ruN gc-7.2/dyn_load.c gc-7.2.qnx/dyn_load.c
  
  #ifdef USE_PROC_FOR_LIBRARIES
  
-@@ -619,11 +627,11 @@
+@@ -621,11 +629,11 @@
  #   ifndef PF_W
  #     define PF_W       2
  #   endif
@@ -49,8 +49,8 @@ diff -ruN gc-7.2/dyn_load.c gc-7.2.qnx/dyn_load.c
  # endif
  
 diff -ruN gc-7.2/include/gc_config_macros.h gc-7.2.qnx/include/gc_config_macros.h
---- gc-7.2/include/gc_config_macros.h	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/include/gc_config_macros.h	2013-07-30 16:46:30.308568100 +0200
+--- gc-7.2/include/gc_config_macros.h	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/include/gc_config_macros.h	2013-09-21 13:38:24.027325100 +0200
 @@ -68,7 +68,8 @@
      || defined(GC_IRIX_THREADS) || defined(GC_LINUX_THREADS) \
      || defined(GC_NETBSD_THREADS) || defined(GC_OPENBSD_THREADS) \
@@ -62,8 +62,8 @@ diff -ruN gc-7.2/include/gc_config_macros.h gc-7.2.qnx/include/gc_config_macros.
  #   define GC_THREADS
  # endif
 diff -ruN gc-7.2/include/private/gcconfig.h gc-7.2.qnx/include/private/gcconfig.h
---- gc-7.2/include/private/gcconfig.h	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/include/private/gcconfig.h	2013-07-31 13:05:02.719319400 +0200
+--- gc-7.2/include/private/gcconfig.h	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/include/private/gcconfig.h	2013-09-21 13:40:27.678397600 +0200
 @@ -43,6 +43,33 @@
  #   define LINUX
  # endif
@@ -122,8 +122,8 @@ diff -ruN gc-7.2/include/private/gcconfig.h gc-7.2.qnx/include/private/gcconfig.
  #if ((defined(UNIX_LIKE) && (defined(DARWIN) || defined(HURD) \
                               || defined(OPENBSD) || defined(ARM32) \
 -                             || defined(MIPS) || defined(AVR32))) \
-+                             || defined(MIPS) || defined(AVR32) \
-+			     || defined(QNX)))			\
++                             || defined(MIPS) || defined(AVR32)	   \
++			     || defined(QNX)))			   \
       || (defined(LINUX) && (defined(SPARC) || defined(M68K))) \
       || (defined(RTEMS) && defined(I386))) && !defined(NO_GETCONTEXT)
  # define NO_GETCONTEXT
@@ -138,30 +138,21 @@ diff -ruN gc-7.2/include/private/gcconfig.h gc-7.2.qnx/include/private/gcconfig.
  #if defined(PCR) || defined(GC_WIN32_THREADS) || defined(GC_PTHREADS) \
      || defined(SN_TARGET_PS3)
 diff -ruN gc-7.2/include/private/thread_local_alloc.h gc-7.2.qnx/include/private/thread_local_alloc.h
---- gc-7.2/include/private/thread_local_alloc.h	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/include/private/thread_local_alloc.h	2013-07-30 16:46:30.308568100 +0200
+--- gc-7.2/include/private/thread_local_alloc.h	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/include/private/thread_local_alloc.h	2013-09-21 13:38:24.128330900 +0200
 @@ -47,7 +47,8 @@
  #   define USE_COMPILER_TLS
  # elif defined(GC_DGUX386_THREADS) || defined(GC_OSF1_THREADS) \
         || defined(GC_DARWIN_THREADS) || defined(GC_AIX_THREADS) \
 -       || defined(GC_NETBSD_THREADS) || defined(GC_RTEMS_PTHREADS)
-+       || defined(GC_NETBSD_THREADS) || defined(GC_RTEMS_PTHREADS)\
++       || defined(GC_NETBSD_THREADS) || defined(GC_RTEMS_PTHREADS) \
 +       || defined(GC_QNX_THREADS)
  #   define USE_PTHREAD_SPECIFIC
  # elif defined(GC_HPUX_THREADS)
  #   ifdef __GNUC__
 diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
---- gc-7.2/os_dep.c	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/os_dep.c	2013-07-31 13:37:26.993207400 +0200
-@@ -61,7 +61,7 @@
- # include <signal.h>
- #endif
- 
--#if defined(UNIX_LIKE) || defined(CYGWIN32) || defined(NACL)
-+#if defined(UNIX_LIKE) || defined(CYGWIN32) || defined(NACL) || defined(QNX)
- # include <fcntl.h>
- #endif
- 
+--- gc-7.2/os_dep.c	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/os_dep.c	2013-09-21 13:38:24.184334100 +0200
 @@ -98,6 +98,7 @@
  #endif
  
@@ -170,7 +161,7 @@ diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
          || ((defined(USE_MMAP) || defined(USE_MUNMAP)) \
          && !defined(MSWIN32) && !defined(MSWINCE))
  # define MMAP_SUPPORTED
-@@ -830,10 +831,12 @@
+@@ -828,10 +829,12 @@
      typedef void (*GC_fault_handler_t)(int);
  
  #   if defined(SUNOS5SIGS) || defined(IRIX5) || defined(OSF1) \
@@ -180,23 +171,22 @@ diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
          static struct sigaction old_segv_act;
  #       if defined(_sigargs) /* !Irix6.x */ || defined(HPUX) \
 -           || defined(HURD) || defined(NETBSD) || defined(FREEBSD)
-+           || defined(HURD) || defined(NETBSD) || defined(FREEBSD) \
++           || defined(HURD) || defined(NETBSD) || defined(FREEBSD)\
 +           || defined(QNX)
              static struct sigaction old_bus_act;
  #       endif
  #   else
-@@ -843,7 +846,9 @@
+@@ -841,7 +844,8 @@
      GC_INNER void GC_set_and_save_fault_handler(GC_fault_handler_t h)
      {
  #       if defined(SUNOS5SIGS) || defined(IRIX5) \
 -           || defined(OSF1) || defined(HURD) || defined(NETBSD)
 +           || defined(OSF1) || defined(HURD) || defined(NETBSD) \
 +           || defined(QNX)
-+
            struct sigaction act;
  
            act.sa_handler = h;
-@@ -865,7 +870,7 @@
+@@ -863,7 +867,7 @@
              (void) sigaction(SIGSEGV, &act, &old_segv_act);
  #           if defined(IRIX5) && defined(_sigargs) /* Irix 5.x, not 6.x */ \
                 || defined(HPUX) || defined(HURD) || defined(NETBSD) \
@@ -205,7 +195,7 @@ diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
                /* Under Irix 5.x or HP/UX, we may get SIGBUS.    */
                /* Pthreads doesn't exist under Irix 5.x, so we   */
                /* don't have to worry in the threads case.       */
-@@ -903,11 +908,12 @@
+@@ -901,11 +905,12 @@
      GC_INNER void GC_reset_fault_handler(void)
      {
  #       if defined(SUNOS5SIGS) || defined(IRIX5) \
@@ -220,7 +210,7 @@ diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
                (void) sigaction(SIGBUS, &old_bus_act, 0);
  #         endif
  #       else
-@@ -1370,6 +1376,31 @@
+@@ -1371,6 +1376,31 @@
  # define HAVE_GET_STACK_BASE
  #endif /* GC_RTEMS_PTHREADS */
  
@@ -253,8 +243,8 @@ diff -ruN gc-7.2/os_dep.c gc-7.2.qnx/os_dep.c
    /* Retrieve stack base.                                               */
    /* Using the GC_find_limit version is risky.                          */
 diff -ruN gc-7.2/pthread_support.c gc-7.2.qnx/pthread_support.c
---- gc-7.2/pthread_support.c	2012-05-11 19:09:00.000000000 +0200
-+++ gc-7.2.qnx/pthread_support.c	2013-07-30 16:46:30.324168200 +0200
+--- gc-7.2/pthread_support.c	2012-08-09 22:25:13.000000000 +0200
++++ gc-7.2.qnx/pthread_support.c	2013-09-21 13:38:24.214335800 +0200
 @@ -935,6 +935,10 @@
                                          ptr_t *startp, ptr_t *endp);
  #endif
@@ -266,7 +256,7 @@ diff -ruN gc-7.2/pthread_support.c gc-7.2.qnx/pthread_support.c
  /* We hold the allocation lock. */
  GC_INNER void GC_thr_init(void)
  {
-@@ -1015,6 +1019,8 @@
+@@ -1012,6 +1016,8 @@
        GC_nprocs = GC_get_nprocs();
  #   elif defined(GC_RTEMS_PTHREADS)
        GC_nprocs = 1; /* not implemented */
