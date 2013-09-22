@@ -670,7 +670,12 @@
       (display
        (make-string (or (test-group-indent-width group) 0)
                     #\space))
-      (display (bold (string-append name ": ")))))
+      (let* ((msg (string-append name ": ")))
+       (display
+        (cond
+         ((test-ansi?) (bold msg))
+         (#t msg))))
+      ))
     (current-test-group group)))
 
 ;;> Ends testing group introduced with @scheme{(test-begin)}, and

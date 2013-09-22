@@ -24,8 +24,12 @@ ADD_STUBS(sagittarius--zlib
 #check if zlib is available
 #INCLUDE(${CMAKE_ROOT}/Modules/FindZLIB.cmake)
 FIND_PACKAGE(ZLIB)
+IF (ZLIB_FOUND)
+  CHECK_LIBRARY_EXISTS(${ZLIB_LIBRARIES} inflateReset2 "" HAVE_ZLIB_INFLATE_RESET2)
+  MESSAGE(STATUS "HAVE_ZLIB_INFLATE_RESET2 = ${HAVE_ZLIB_INFLATE_RESET2}")
+ENDIF()
 
-IF (NOT ${ZLIB_FOUND})
+IF (NOT ZLIB_FOUND OR NOT HAVE_ZLIB_INFLATE_RESET2)
 #  IF (MSVC)
 #    # use DLL which is provied by zlib.net
 #  ELSE()
@@ -38,13 +42,17 @@ IF (NOT ${ZLIB_FOUND})
     IF (NOT EXISTS ${HAS_ZLIB_ARCHIVE})
       MESSAGE(STATUS "donwloading zlib")
       FILE(
-  	DOWNLOAD "http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
-                 "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz"
-  	SHOW_PROGRESS)
+        DOWNLOAD "http://zlib.net/${USED_ZLIB_VERSION}.tar.gz"
+        "${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz"
+        SHOW_PROGRESS)
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
-	${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-	)
+        ${CMAKE_CURRENT_BINARY_DIR}/zlib.tar.gz
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+      IF(UNIX OR CYGWIN OR MINGW)
+        # Default generated CMakeLists.txt does not include correct source directory
+        EXECUTE_PROCESS(COMMAND patch -f -p3 -i ${PROJECT_SOURCE_DIR}/ext/zlib/zlib-CMakeLists.txt.patch
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+      ENDIF()
       FILE(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/${USED_ZLIB_VERSION}/zconf.h)
       MESSAGE(STATUS "unpacked zlib.tar.gz")
     ENDIF()
@@ -63,7 +71,11 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--zlib sagittarius)
 IF (UNIX)
-  TARGET_LINK_LIBRARIES(sagittarius--zlib z)
+  IF (NOT ZLIB_FOUND OR NOT HAVE_ZLIB_INFLATE_RESET2)
+    TARGET_LINK_LIBRARIES(sagittarius--zlib zlib)
+  ELSE()
+    TARGET_LINK_LIBRARIES(sagittarius--zlib z)
+  ENDIF()
 ELSE()
   TARGET_LINK_LIBRARIES(sagittarius--zlib zlib)
 ENDIF()
