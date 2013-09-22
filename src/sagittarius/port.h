@@ -258,6 +258,12 @@ struct SgPortRec
   int  (*ready)(SgObject);
   int  (*lockPort)(SgObject, SgPortLockType);
   int  (*unlockPort)(SgObject);
+  /* these 2 are needed for custom ports */
+  int  (*hasPortPosition)(SgObject);
+  int  (*hasSetPortPosition)(SgObject);
+  /* port position operators. it takes extra argument, whence */
+  int64_t  (*portPosition)(SgObject, Whence);
+  void     (*setPortPosition)(SgObject, int64_t, Whence);
 
   union {
     SgBinaryPort  *bport;
@@ -358,6 +364,10 @@ enum SgCustomPortType {
     (port)->reader = SG_FALSE;			\
     (port)->lockPort = NULL;			\
     (port)->unlockPort = NULL;			\
+    (port)->hasPortPosition = NULL;		\
+    (port)->hasSetPortPosition = NULL;		\
+    (port)->portPosition = NULL;		\
+    (port)->setPortPosition = NULL;		\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 

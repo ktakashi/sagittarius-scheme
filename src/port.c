@@ -591,6 +591,59 @@ static int file_unlock(SgObject self)
   return Sg_UnlockFile(file);
 }
 
+static int file_has_port_position(SgObject self)
+{
+  return SG_BINARY_PORT(self)->src.file->tell != NULL;
+}
+
+static int file_has_set_port_position(SgObject self)
+{
+  return SG_BINARY_PORT(self)->src.file->seek != NULL;
+}
+
+static int64_t file_port_position(SgObject self, Whence whence)
+{
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  if (bp->buffer) {
+    return bp->position;
+  } else {
+    if (bp->src.file->tell) {
+      return bp->src.file->tell(bp->src.file);
+    } else {
+      Sg_Error(UC("given file binary port does not support port-position"));
+      return 0;
+    }
+  }
+}
+
+#define INIT_FILE_PORT_COMMON(z)				\
+  do {								\
+    (z)->closed = FALSE;					\
+    (z)->close = file_close;					\
+    (z)->ready = file_ready;					\
+    (z)->lockPort = file_lock;					\
+    (z)->unlockPort = file_unlock;				\
+    (z)->hasPortPosition = file_has_port_position;		\
+    (z)->hasSetPortPosition = file_has_set_port_position;	\
+    (z)->portPosition = file_port_position;			\
+  } while (0)
+
+static void input_file_set_port_position(SgObject self, int64_t offset,
+					 Whence whence)
+{
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  if (bp->src.file->seek) {
+    bp->src.file->seek(bp->src.file, offset, whence);
+    bp->position = offset;
+    /* let buffer filled once position is changed... */
+    bp->bufferIndex = 0;
+    bp->bufferSize = 0;
+  } else {
+    Sg_Error(UC("given file binary port does not support"
+		" set-port-position!")); 
+  }
+}
+
 SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
 {
   /* TODO is buffer mode correct? */
@@ -599,12 +652,9 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   /* file must be opened before this method is called. */
   ASSERT(file->isOpen(file));
 
-  z->closed = FALSE;
+  INIT_FILE_PORT_COMMON(z);
+  z->setPortPosition = input_file_set_port_position;
   z->flush = NULL;
-  z->close = file_close;
-  z->ready = file_ready;
-  z->lockPort = file_lock;
-  z->unlockPort = file_unlock;
   /* set binary input port */
   z->impl.bport = b;
   /* initialize binary input port */
@@ -717,11 +767,18 @@ static int64_t file_put_u8_array(SgObject self, uint8_t *v, int64_t size)
   }
 }
 
-
 static int64_t file_put_u8(SgObject self, uint8_t v)
 {
   return file_put_u8_array(self, &v, 1);
 }
+
+static void output_file_set_port_position(SgObject self, int64_t offset,
+					  Whence whence)
+{
+  SG_PORT(self)->flush(self);
+  input_file_set_port_position(self, offset, whence);
+}
+
 
 SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
 {
@@ -730,13 +787,9 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   /* file must be opened before this method is called. */
   ASSERT(file->isOpen(file));
 
-  z->closed = FALSE;
+  INIT_FILE_PORT_COMMON(z);
+  z->setPortPosition = output_file_set_port_position;
   z->flush = file_flush_internal; /* TODO rename. */
-  z->close = file_close;
-  z->ready = file_ready;
-  z->lockPort = file_lock;
-  z->unlockPort = file_unlock;
-
   b->src.file = file;
   b->open = file_open;
   b->getU8 = NULL;
@@ -768,13 +821,9 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   /* file must be opened before this method is called. */
   ASSERT(file->isOpen(file));
 
-  z->closed = FALSE;
+  INIT_FILE_PORT_COMMON(z);
+  z->setPortPosition = output_file_set_port_position;
   z->flush = file_flush;
-  z->close = file_close;
-  z->ready = file_ready;
-  z->lockPort = file_lock;
-  z->unlockPort = file_unlock;
-
   z->impl.bport = b;
 
   b->src.file = file;
@@ -787,8 +836,9 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   b->putU8Array = file_put_u8_array;
   if (bufferMode != SG_BUFMODE_NONE) {
     b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
-    b->bufferWriter = (bufferMode == SG_BUFMODE_BLOCK) ? file_write_to_block_buffer
-                                                       : file_write_to_line_buffer;
+    b->bufferWriter = (bufferMode == SG_BUFMODE_BLOCK)
+      ? file_write_to_block_buffer
+      : file_write_to_line_buffer;
     register_buffered_port(z);
   } else {
     b->bufferWriter = NULL;
@@ -861,6 +911,39 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
   return byte_array_read_u8(self, *buf, rest_size);
 }
 
+static int byte_array_has_port_position(SgObject self)
+{
+  return TRUE;
+}
+
+static int byte_array_has_set_port_position(SgObject self)
+{
+  return TRUE;
+}
+
+#define INIT_BYTE_PORT_COMMON(z)				\
+  do {								\
+    (z)->closed = FALSE;					\
+    (z)->hasPortPosition = byte_array_has_port_position;	\
+    (z)->hasSetPortPosition = byte_array_has_set_port_position;	\
+  } while (0)							\
+
+static int64_t input_byte_array_port_position(SgObject self, Whence whence)
+{
+  /* todo check whence */
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  return (int64_t)bp->src.buffer.index;
+}
+
+static void input_byte_array_set_port_position(SgObject self, int64_t offset,
+					       Whence whence)
+{
+  /* todo check whence */
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  bp->src.buffer.index = (int)offset;
+  bp->position = offset;
+}
+
 SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 {
   /* TODO is buffer mode correct? */
@@ -868,7 +951,9 @@ SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
-  z->closed = FALSE;
+  INIT_BYTE_PORT_COMMON(z);
+  z->portPosition = input_byte_array_port_position;
+  z->setPortPosition = input_byte_array_set_port_position;
   z->flush = NULL;
   z->close = byte_array_close;
   z->ready = NULL;		/* it must be always ready */
@@ -894,7 +979,9 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
-  z->closed = FALSE;
+  INIT_BYTE_PORT_COMMON(z);
+  z->portPosition = input_byte_array_port_position;
+  z->setPortPosition = input_byte_array_set_port_position;
   z->flush = NULL;
   z->close = byte_array_close;
   z->ready = NULL;
@@ -946,13 +1033,35 @@ static void flush_byte_array(SgObject self)
   /* dummy */
 }
 
+static int64_t output_byte_array_port_position(SgObject self, Whence whence)
+{
+  /* todo check whence */
+  int64_t pos = 0;
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  SG_STREAM_BUFFER_COUNTB(pos, bp->src.obuf.start);
+  return pos;
+}
+
+static void output_byte_array_set_port_position(SgObject self, int64_t offset,
+						Whence whence)
+{
+  /* todo check whence */
+  SgBinaryPort *bp = SG_BINARY_PORT(self);
+  SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, offset);
+  bp->position = offset;
+}
+
+
 SgObject Sg_MakeByteArrayOutputPort(int size)
 {
   SgPort *z = make_port_rec(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE,
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
 
-  z->closed = FALSE;
+  INIT_BYTE_PORT_COMMON(z);
+  z->portPosition = output_byte_array_port_position;
+  z->setPortPosition = output_byte_array_set_port_position;
+
   z->flush = flush_byte_array;
   z->close = obyte_array_close;
   z->ready = NULL;
@@ -1093,17 +1202,27 @@ static int trans_unlock(SgObject self)
   return Sg_UnlockPort(src);
 }
 
+#define INIT_TRANS_PORT_COMMON(z)		\
+  do {						\
+    (z)->closed = FALSE;			\
+    (z)->hasPortPosition = NULL;		\
+    (z)->hasSetPortPosition = NULL;		\
+    (z)->portPosition = NULL;			\
+    (z)->setPortPosition = NULL;		\
+    (z)->close = transClose;			\
+    (z)->ready = trans_ready;			\
+    (z)->lockPort = trans_lock;			\
+    (z)->unlockPort = trans_unlock;		\
+  } while (0)
+
 SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  z->closed = FALSE;
+  INIT_TRANS_PORT_COMMON(z);
+
   z->flush = NULL;
-  z->close = transClose;
-  z->ready = trans_ready;
-  z->lockPort = trans_lock;
-  z->unlockPort = trans_unlock;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1142,12 +1261,8 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  z->closed = FALSE;
+  INIT_TRANS_PORT_COMMON(z);
   z->flush = transFlush;
-  z->close = transClose;
-  z->ready = trans_ready;
-  z->lockPort = trans_lock;
-  z->unlockPort = trans_unlock;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
@@ -1278,15 +1393,58 @@ static int string_iport_getlineno(SgObject self)
   return SG_TEXTUAL_PORT(self)->src.buffer.lineNo;
 }
 
+static int string_has_port_position(SgObject self)
+{
+  return TRUE;
+}
+
+static int string_has_set_port_position(SgObject self)
+{
+  return TRUE;
+}
+
+static int64_t input_string_port_position(SgObject self, Whence whence)
+{
+  return (int64_t)SG_TEXTUAL_PORT(self)->src.buffer.index;
+}
+
+static void input_string_set_port_position(SgObject self, int64_t offset,
+					   Whence whence)
+{
+  SG_TEXTUAL_PORT(self)->src.buffer.index = (int)offset;
+}
+
+static int64_t output_string_port_position(SgObject self, Whence whence)
+{
+  int64_t pos;
+  SG_STREAM_BUFFER_COUNTC(pos, SG_TEXTUAL_PORT(self)->src.ostr.start);
+  return pos;
+}
+
+static void output_string_set_port_position(SgObject self, int64_t offset,
+					   Whence whence)
+{
+  SG_STREAM_BUFFER_SET_POSITIONC(SG_TEXTUAL_PORT(self)->src.ostr.start, offset);
+}
+
+#define INIT_STRING_PORT_COMMON(z)				\
+  do {								\
+    (z)->closed = FALSE;					\
+    (z)->flush = string_port_flush;				\
+    (z)->hasPortPosition = string_has_port_position;		\
+    (z)->hasSetPortPosition = string_has_set_port_position;	\
+    (z)->ready = NULL;						\
+  } while (0)
+
 SgObject Sg_MakeStringOutputPort(int bufferSize)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
   SgTextualPort *t = make_textual_port(SG_STRING_TEXTUAL_PORT_TYPE);
 
-  z->closed = FALSE;
-  z->flush = string_port_flush;
+  INIT_STRING_PORT_COMMON(z);
   z->close = string_oport_close;
-  z->ready = NULL;		/* always ready */
+  z->portPosition = output_string_port_position;
+  z->setPortPosition = output_string_set_port_position;
 
   t->src.ostr.start = t->src.ostr.current = SG_NEW(char_buffer);
   t->src.ostr.start->position = 0;
@@ -1306,10 +1464,10 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
   SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
   SgTextualPort *t = make_textual_port(SG_STRING_TEXTUAL_PORT_TYPE);
 
-  z->closed = FALSE;
-  z->flush = string_port_flush;
+  INIT_STRING_PORT_COMMON(z);
   z->close = string_iport_close;
-  z->ready = NULL;		/* always ready */
+  z->portPosition = input_string_port_position;
+  z->setPortPosition = input_string_set_port_position;
 
   t->src.buffer.str = s;
   t->src.buffer.index = 0;
@@ -1538,6 +1696,71 @@ static int custom_ready(SgObject self)
   return TRUE;
 }
 
+static int custom_has_port_position(SgObject self)
+{
+  return !SG_FALSEP(SG_CUSTOM_PORT(self)->getPosition);
+}
+
+static int custom_has_set_port_position(SgObject self)
+{
+  return !SG_FALSEP(SG_CUSTOM_PORT(self)->setPosition);
+}
+
+static int64_t custom_port_position(SgObject self, Whence whence)
+{
+  SgObject ret;
+  int64_t pos;
+  if (SG_FALSEP(SG_CUSTOM_PORT(self)->getPosition)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
+				    SG_MAKE_STRING("positionable port"),
+				    self, SG_NIL);
+    return -1;
+  }
+  ret = Sg_Apply0(SG_CUSTOM_PORT(self)->getPosition);
+  if (!SG_EXACT_INTP(ret)) {
+    Sg_AssertionViolation(SG_INTERN("port-position"),
+			  Sg_Sprintf(UC("invalid result %S from %S"), 
+				     ret, self),
+			  self);
+    return -1;
+  }
+  pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
+  if (SG_CUSTOM_PORT(self)->type == SG_BINARY_CUSTOM_PORT_TYPE &&
+      SG_CUSTOM_HAS_U8_AHEAD(self)) {
+    return pos - 1;
+  } else {
+    return pos;
+  }
+}
+
+static void custom_binary_set_port_position(SgObject port, int64_t offset,
+					    Whence whence)
+{
+  if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
+				    SG_MAKE_STRING("positionable port"),
+				    port, SG_NIL);
+    return;
+  }
+  /* reset cache */
+  SG_CUSTOM_U8_AHEAD(port) = EOF;
+  Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
+  SG_CUSTOM_BINARY_PORT(port)->position = offset;
+}
+
+static void custom_textual_set_port_position(SgObject port, int64_t offset,
+					     Whence whence)
+{
+  if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
+				    SG_MAKE_STRING("positionable port"),
+				    port, SG_NIL);
+    return;
+  }
+  SG_CUSTOM_PORT(port)->index = 0;
+  Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
+}
+
 SgObject Sg_MakeCustomBinaryPort(SgString *id,
 				 int direction,
 				 SgObject read,
@@ -1562,6 +1785,10 @@ SgObject Sg_MakeCustomBinaryPort(SgString *id,
   z->close = custom_close;
   z->flush = custom_flush;
   z->ready = custom_ready;
+  z->hasPortPosition = custom_has_port_position;
+  z->hasSetPortPosition = custom_has_set_port_position;
+  z->portPosition = custom_port_position;
+  z->setPortPosition = custom_binary_set_port_position;
   z->impl.cport = c;
 
   SG_CUSTOM_U8_AHEAD(z) = EOF;
@@ -1756,6 +1983,10 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
   z->close = custom_close;
   z->flush = custom_flush;
   z->ready = custom_ready;
+  z->hasPortPosition = custom_has_port_position;
+  z->hasSetPortPosition = custom_has_set_port_position;
+  z->portPosition = custom_port_position;
+  z->setPortPosition = custom_textual_set_port_position;
   z->impl.cport = c;
 
   switch (direction) {
@@ -2251,265 +2482,28 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 
 int Sg_HasPortPosition(SgPort *port)
 {
-  if (SG_BINARY_PORTP(port)) {
-    SgBinaryPort *bp = SG_BINARY_PORT(port);
-    switch (bp->type) {
-    case SG_FILE_BINARY_PORT_TYPE:
-      return bp->src.file->tell != NULL;
-    case SG_CUSTOM_BINARY_PORT_TYPE:
-      return SG_BINARY_PORT(port)->src.custom.position != NULL;
-    default:
-      return TRUE;
-    }
-  } else if (SG_TEXTUAL_PORTP(port)) {
-    switch (SG_TEXTUAL_PORT(port)->type) {
-    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      return FALSE;
-    case SG_STRING_TEXTUAL_PORT_TYPE:
-      return TRUE;
-    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
-      return SG_TEXTUAL_PORT(port)->src.custom.position != NULL;
-    default:
-      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
-    }
-  } else if (SG_CUSTOM_PORTP(port)) {
-    return !SG_FALSEP(SG_CUSTOM_PORT(port)->getPosition);
-  }
-  Sg_Error(UC("port required, but got %S"), port);
-  return FALSE;			/* dummy */
+  return port->hasPortPosition && port->hasPortPosition(port);
 }
 
 int Sg_HasSetPortPosition(SgPort *port)
 {
-  if (SG_BINARY_PORTP(port)) {
-    switch (SG_BINARY_PORT(port)->type) {
-    case SG_FILE_BINARY_PORT_TYPE:
-      return SG_BINARY_PORT(port)->src.file->seek != NULL;
-    case SG_CUSTOM_BINARY_PORT_TYPE:
-      return SG_BINARY_PORT(port)->src.custom.setPosition != NULL;
-    default:
-       return TRUE;
-    }
-  } else if (SG_TEXTUAL_PORTP(port)) {
-    switch (SG_TEXTUAL_PORT(port)->type) {
-    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      return FALSE;
-    case SG_STRING_TEXTUAL_PORT_TYPE:
-      return TRUE;
-    case SG_CUSTOM_TEXTUAL_PORT_TYPE:
-      return SG_TEXTUAL_PORT(port)->src.custom.setPosition != NULL;
-    default:
-      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
-    }
-  } else if (SG_CUSTOM_PORTP(port)) {
-    return !SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition);
-  }
-  Sg_Error(UC("port required, but got %S"), port);
-  return FALSE;			/* dummy */
+  return port->hasSetPortPosition && port->hasSetPortPosition(port);
 }
 
 int64_t Sg_PortPosition(SgPort *port)
 {
-  if (SG_BINARY_PORTP(port)) {
-    int64_t pos;
-    SgBinaryPort *bp = SG_BINARY_PORT(port);
-    switch (bp->type) {
-    case SG_FILE_BINARY_PORT_TYPE:
-      if (SG_BINARY_PORT(port)->buffer) {
-	pos = SG_BINARY_PORT(port)->position;
-      } else {
-	if (bp->src.file->tell) {
-	  pos = bp->src.file->tell(bp->src.file);
-	} else {
-	  Sg_Error(UC("given file binary port does not support port-position"));
-	  return 0;
-	}
-      }
-      break;
-    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      if (SG_INPORTP(port)) {
-	pos = (int64_t)bp->src.buffer.index;
-      } else {
-	SG_STREAM_BUFFER_COUNTB(pos, bp->src.obuf.start);
-      }
-      break;
-    case SG_CUSTOM_BINARY_PORT_TYPE: {
-      SgPortPositionFn *fn = bp->src.custom.position;
-      if (fn) {
-	pos = fn(port);
-      } else {
-	Sg_Error(UC("given custom binary port does not support port-position"));
-	return -1;
-      }
-      break;
-    }
-    default:
-      Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
-      return -1;
-    }
-    return (int64_t)pos;
-  } else if (SG_TEXTUAL_PORTP(port)) {
-    int64_t pos;
-    switch (SG_TEXTUAL_PORT(port)->type) {
-    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      Sg_Error(UC("transcoded textual port does not support port-position")); 
-      return -1;
-    case SG_STRING_TEXTUAL_PORT_TYPE:
-      if (SG_INPORTP(port)) {
-	pos = (int64_t)SG_TEXTUAL_PORT(port)->src.buffer.index;
-      } else {
-	SG_STREAM_BUFFER_COUNTC(pos, SG_TEXTUAL_PORT(port)->src.ostr.start);
-      }
-      break;
-    case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
-      SgPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.position;
-      if (fn) {
-	pos = fn(port);
-      } else {
-	Sg_Error(UC("given custom textual port does not support "
-		    "port-position")); 
-	return -1;
-      }
-      break;
-    }
-    default:
-      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
-      return -1;
-    }
-    return (int64_t)pos;
-  } else if (SG_CUSTOM_PORTP(port)) {
-    SgObject ret;
-    int64_t pos;
-    if (SG_FALSEP(SG_CUSTOM_PORT(port)->getPosition)) {
-      Sg_AssertionViolation(SG_INTERN("port-position"),
-			    Sg_Sprintf(UC("expected positionable port, but got %S"), port),
-			    port);
-      return -1;
-    }
-    ret = Sg_Apply0(SG_CUSTOM_PORT(port)->getPosition);
-    if (!SG_EXACT_INTP(ret)) {
-      Sg_AssertionViolation(SG_INTERN("port-position"),
-			    Sg_Sprintf(UC("invalid result %S from %S"), ret, port),
-			    port);
-      return -1;
-    }
-    pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
-    if (SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE &&
-	SG_CUSTOM_HAS_U8_AHEAD(port)) {
-      return pos - 1;
-    } else {
-      return pos;
-    }
+  if (!port->portPosition) {
+    Sg_Error(UC("Given port does not support port-position: %S"), port);
   }
-  Sg_Error(UC("port required, but got %S"), port);
-  return (int64_t)-1;		/* dummy */
+  return port->portPosition(port, SG_BEGIN);
 }
 
 void Sg_SetPortPosition(SgPort *port, int64_t offset)
 {
-  if (SG_OUTPORTP(port) || SG_INOUTPORTP(port)) port->flush(port);
-  if (SG_BINARY_PORTP(port)) {
-    SgBinaryPort *bp = SG_BINARY_PORT(port);
-    switch (SG_BINARY_PORT(port)->type) {
-    case SG_FILE_BINARY_PORT_TYPE:
-      if (bp->src.file->seek) {
-	bp->src.file->seek(bp->src.file, offset, SG_BEGIN);
-	bp->position = offset;
-	/* let buffer filled once position is changed... */
-	bp->bufferIndex = 0;
-	bp->bufferSize = 0;
-      } else {
-	Sg_Error(UC("given file binary port does not support"
-		    " set-port-position!")); 
-      }
-      break;
-    case SG_BYTE_ARRAY_BINARY_PORT_TYPE:
-      if (SG_INPORTP(port)) {
-	bp->src.buffer.index = (int)offset;
-      } else {
-	SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, offset);
-      }
-      bp->position = offset;
-      break;
-    case SG_CUSTOM_BINARY_PORT_TYPE: {
-      SgSetPortPositionFn *fn = bp->src.custom.setPosition;
-      if (fn) {
-	fn(port, offset);
-      } else {
-	Sg_Error(UC("given custom binary port does not support"
-		    " set-port-position!")); 
-	return;
-      }
-      SG_BINARY_PORT(port)->position = offset;
-      break;
-    }
-    default:
-      Sg_Error(UC("unknown binary port type. may be bug? %S"), port);
-      return;
-    }
-    return;
-  } else if (SG_TEXTUAL_PORTP(port)) {
-    switch (SG_TEXTUAL_PORT(port)->type) {
-    case SG_TRANSCODED_TEXTUAL_PORT_TYPE:
-      Sg_Error(UC("transcoded textual port does not support"
-		  " set-port-position!")); 
-      break;
-    case SG_STRING_TEXTUAL_PORT_TYPE:
-      if (SG_INPORTP(port)) {
-	SG_TEXTUAL_PORT(port)->src.buffer.index = (int)offset;
-      } else {
-	SG_STREAM_BUFFER_SET_POSITIONC(SG_TEXTUAL_PORT(port)->src.ostr.start,
-				       offset);
-      }
-      break;
-    case SG_CUSTOM_TEXTUAL_PORT_TYPE: {
-      SgSetPortPositionFn *fn = SG_TEXTUAL_PORT(port)->src.custom.setPosition;
-      if (fn) {
-	fn(port, offset);
-      } else {
-	Sg_Error(UC("given custom textual port does not support "
-		    "set-port-position!")); 
-	return;
-      }
-      break;
-    }
-    default:
-      Sg_Error(UC("unknown textual port type. may be bug? %S"), port);
-      return;
-    }
-    return;
-  } else if (SG_CUSTOM_PORTP(port)) {
-    if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
-      Sg_AssertionViolation(SG_INTERN("set-port-position!"),
-			    Sg_Sprintf(UC("expected positionable port, "
-					  "but got %S"), port),
-			    port);
-      return;
-    }
-    /* reset cache */
-    switch (SG_CUSTOM_PORT(port)->type) {
-    case SG_BINARY_CUSTOM_PORT_TYPE:
-      SG_CUSTOM_U8_AHEAD(port) = EOF;
-      break;
-    case SG_TEXTUAL_CUSTOM_PORT_TYPE:
-      SG_CUSTOM_PORT(port)->index = 0;
-      break;
-    default:
-      Sg_Error(UC("invalid custom port type"));
-      return;
-    }
-    Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
-    switch (SG_CUSTOM_PORT(port)->type) {
-    case SG_BINARY_CUSTOM_PORT_TYPE:
-      /* must be after set position succeeded */
-      SG_CUSTOM_BINARY_PORT(port)->position = offset;
-      break;
-    default:
-      break;
-    }
-    return;
+  if (!port->setPortPosition) {
+    Sg_Error(UC("Given port does not support set-port-position! %S"), port);
   }
-  Sg_Error(UC("port required, but got %S"), port);
+  port->setPortPosition(port, offset, SG_BEGIN);
 }
 
 int Sg_LineNo(SgPort *port)
