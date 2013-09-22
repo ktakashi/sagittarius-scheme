@@ -928,4 +928,13 @@
 			   'a)
 			(environment '(rnrs))))
 
+;; issue 141
+(define binary-file (string-append (current-directory) "/test/data/5bytes"))
+(let ((in (open-file-input-port binary-file (file-options no-fail)
+				(buffer-mode block))))
+  (get-u8 in) ;; discard first byte
+  (set-port-position! in 0)
+  (test-equal "issue 141 set-port-position!" #vu8(1 2 3 4 5)
+	      (get-bytevector-all in)))
+
 (test-end)
