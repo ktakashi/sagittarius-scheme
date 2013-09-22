@@ -4,6 +4,10 @@
 This is a free Scheme implementation, mostly supporting the R6RS
 specification.
 
+The official site is hosted on [Google Code](http://code.google.com/p/sagittarius-scheme).
+
+The license is same as MIT license. See a Copyright file.
+
 # How to build and install?
 Sagittarius uses CMake for its building infrastructure.  If you do not
 have it on your platform, please install it.
