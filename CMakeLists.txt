@@ -533,6 +533,15 @@ FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
   "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads")
 
 ADD_CUSTOM_TARGET(test
+  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+          -D${PROJECT_BINARY_DIR}/build
+	  -D${PROJECT_BINARY_DIR}/build/modules
+	  -L${PROJECT_SOURCE_DIR}
+	  -L${PROJECT_SOURCE_DIR}/lib
+	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  ${PROJECT_SOURCE_DIR}/run-test.scm
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+ADD_CUSTOM_TARGET(test-clean
   COMMAND ${PROJECT_BINARY_DIR}/build/sash -c
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules

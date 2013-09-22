@@ -137,6 +137,10 @@ IF (MSVC OR WATCOM)
 ENDIF()
 
 INSTALL(TARGETS sagittarius DESTINATION lib)
+# For some reason cygwin doesn't pick up from lib.
+IF (CYGWIN)
+  INSTALL(TARGETS sagittarius DESTINATION bin)
+ENDIF()
 INSTALL(TARGETS sash DESTINATION bin)
 # for version control
 # default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}

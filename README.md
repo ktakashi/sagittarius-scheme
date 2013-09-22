@@ -4,10 +4,6 @@
 This is a free Scheme implementation, mostly supporting the R6RS
 specification.
 
-The official site is hosted on [Google Code](http://code.google.com/p/sagittarius-scheme).
-
-The license is same as MIT license. See a Copyright file.
-
 # How to build and install?
 Sagittarius uses CMake for its building infrastructure.  If you do not
 have it on your platform, please install it.
@@ -92,17 +88,20 @@ Note: For some reason, you might want to build a 32-bit runtime on a
 Make sure you have all the required 32-bit executables and libraries.
 
 ## Building on Mac OS X
-See the section above (Building on Unix-like environment), and read the following.
+See the section above (Building on Unix-like environment), and read the
+following.
 
 Building on Mac OS X is slightly different from other Unix-like environments.
 
-Only with Homebrew is tested, so the following instruction is based on Homebrew use.
+Only with Homebrew is tested, so the following instruction is based on
+Homebrew use.
 
 Firstly, Install libffi, CMake, and Boehm GC.
 
     $ brew install libffi cmake bdw-gc
 
-Sedondly, extract Sagittarius Scheme source code, and change current directory to there.
+Sedondly, extract Sagittarius Scheme source code, and change current directory
+to there.
 
     $ cd /path/to/sagittarius-x.y.z
 
