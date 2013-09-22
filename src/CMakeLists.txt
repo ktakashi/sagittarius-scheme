@@ -137,7 +137,7 @@ IF (MSVC OR WATCOM)
 ENDIF()
 
 INSTALL(TARGETS sagittarius DESTINATION lib)
-INSTALL(TARGETS sash sagittarius DESTINATION bin)
+INSTALL(TARGETS sash DESTINATION bin)
 # for version control
 # default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}
 # so let's put it there.
