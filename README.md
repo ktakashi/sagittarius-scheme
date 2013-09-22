@@ -92,24 +92,24 @@ See the section above (Building on Unix-like environment), and read the followin
 
 Building on Mac OS X is slightly different from other Unix-like environments.
 
-Before you build, you should install libffi (Homebrew's one is recommended, MacPorts' is not tested.).
+Only with Homebrew is tested, so the following instruction is based on Homebrew use.
 
-Note1: If you install libffi from the source yourself, version 3.0.13 is recommended (tested).
+Firstly, Install libffi, CMake, and Boehm GC.
+    $ brew install libffi cmake bdw-gc
 
-Note2: By default, libffi not install it's header files (this affects to Homebrew's and self source installation).
-So you need install header files yourself.
-Without this, cmake won't find the platform-installed libffi, and will try with bundled libffi.
+Sedondly, extract Sagittarius Scheme source code, and change current directory to there.
+    $ cd /path/to/sagittarius-x.y.z
 
-Note3: Currently, Sagittarius Scheme with bundled libffi will not work correctly on Mac OS X.
-
-Build difference is running cmake. You should run cmake as follows:
-
+Thirdly, run cmake as follows.
     $ cmake . \
-        -DCMAKE_C_COMPILER=/usr/bin/gcc \
-        -DCMAKE_CXX_COMPILER=/usr/bin/g++ \
-        -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin
+        -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin \
+        -DINSTALL_PREFIX=/path/to/install \
+        -DCMAKE_BUILD_TYPE=None \
+        -DCMAKE_FIND_FRAMEWORK=LAST \
+        -Wno-dev \
+        -DFFI_LIBRARY_DIR=/usr/local/Cellar/libffi/3.0.13/lib
 
-After cmake, run make same as other Unix environments.
+After running cmake, run make same as other Unix environments.
 
 ## Build on Windows (non Cygwin environment)
 On Windows, you need to create an installer and Sagittarius is using
