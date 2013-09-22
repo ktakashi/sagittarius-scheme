@@ -95,12 +95,15 @@ Building on Mac OS X is slightly different from other Unix-like environments.
 Only with Homebrew is tested, so the following instruction is based on Homebrew use.
 
 Firstly, Install libffi, CMake, and Boehm GC.
+
     $ brew install libffi cmake bdw-gc
 
 Sedondly, extract Sagittarius Scheme source code, and change current directory to there.
+
     $ cd /path/to/sagittarius-x.y.z
 
 Thirdly, run cmake as follows.
+
     $ cmake . \
         -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin \
         -DINSTALL_PREFIX=/path/to/install \
