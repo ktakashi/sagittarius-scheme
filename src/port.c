@@ -2415,6 +2415,9 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
       if (bp->src.file->seek) {
 	bp->src.file->seek(bp->src.file, offset, SG_BEGIN);
 	bp->position = offset;
+	/* let buffer filled once position is changed... */
+	bp->bufferIndex = 0;
+	bp->bufferSize = 0;
       } else {
 	Sg_Error(UC("given file binary port does not support"
 		    " set-port-position!")); 
