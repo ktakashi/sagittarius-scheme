@@ -118,7 +118,7 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
 #define SG_STREAM_BUFFER_SET_POSITIONC(start, pos)	\
   SG_STREAM_BUFFER_SET_POSITION_REC(char_buffer, start, pos)
 
-typedef struct SgBinaryPortRec
+typedef struct SgBinaryPortTableRec
 {
   /* only binary port has open */
   int     (*open)(SgObject);
@@ -131,6 +131,11 @@ typedef struct SgBinaryPortRec
   int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
   /* this is private method */
   int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
+} SgBinaryPortTable;
+
+typedef struct SgBinaryPortRec
+{
+  SgBinaryPortTable *vtbl;
   unsigned int     type:   2;
   unsigned int     closed: 2; /* it may have, closed pseudo_closed or open */
   unsigned int     reserved: 28;
@@ -329,6 +334,8 @@ enum SgCustomPortType {
 #define SG_BINARY_PORTP(obj)					\
   (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
 #define SG_BINARY_PORT(obj)   (SG_PORT(obj)->impl.bport)
+
+#define SG_BINARY_PORT_VTABLE(bp)  ((bp)->vtbl)
 /* for less confusing, we defined macro */
 #define SG_PORT_HAS_U8_AHEAD(port) (SG_BINARY_PORT(port)->dirty != EOF)
 #define SG_PORT_U8_AHEAD(port)     (SG_BINARY_PORT(port)->dirty)
@@ -381,6 +388,11 @@ SG_EXTERN SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file,
 SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
+
+SG_EXTERN SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
+				     SgPortTable *portTable,
+				     SgBinaryPortTable *binaryPortTable,
+				     void *data);
 
 SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port,
 					      SgTranscoder *transcoder);

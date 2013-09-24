@@ -901,28 +901,6 @@ SgObject Sg_SocketErrorMessage(SgSocket *socket)
   return Sg_GetLastErrorMessageWithErrorCode(socket->lastError);
 }
 
-static SgPort* make_port(enum SgPortDirection d, enum SgPortType t,
-			 enum SgBufferMode m)
-{
-  SgPort *z = SG_NEW(SgPort);
-  SG_INIT_PORT(z, d, t, m);
-  return z;
-}
-
-static SgBinaryPort* make_binary_port(enum SgBinaryPortType t, SgSocket *socket)
-{
-  SgBinaryPort *z = SG_NEW(SgBinaryPort);
-  z->type = t;
-  z->buffer = NULL;
-  z->bufferSize = 0;
-  z->bufferIndex = 0;
-  z->position = 0;
-  z->dirty = EOF;
-  z->closed = SG_BPORT_OPEN;
-  z->src.data = (void *)socket;
-  return z;
-}
-
 #define SG_PORT_SOCKET(p) SG_SOCKET(SG_BINARY_PORT(p)->src.data)
 
 static void socket_flush(SgObject self)
@@ -1098,41 +1076,28 @@ static SgPortTable socket_table = {
   NULL,
 };
 
+static SgBinaryPortTable socket_binary_table = {
+  socket_open,
+  socket_get_u8,
+  socket_look_ahead_u8,
+  socket_read_u8,
+  socket_read_u8_all,
+  socket_put_u8,
+  socket_put_u8_array,
+  NULL
+};
+
 static inline SgObject make_socket_port(SgSocket *socket,
 					enum SgPortDirection d, 
 					int closeP)
 {
-  SgPort *z = make_port(d, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
-  SgBinaryPort *b = make_binary_port(SG_CUSTOM_BINARY_PORT_TYPE, socket);
-
-  z->closed = FALSE;
   if (closeP) {
-    SG_PORT_VTABLE(z) = &socket_close_table;
+    return Sg_MakeBinaryPort(d, &socket_close_table, 
+			     &socket_binary_table, (void*)socket);
   } else {
-    SG_PORT_VTABLE(z) = &socket_table;
+    return Sg_MakeBinaryPort(d, &socket_table, 
+			     &socket_binary_table, (void*)socket);
   }
-
-  z->impl.bport = b;
-
-  b->open = socket_open;
-  switch (d) {
-  case SG_INPUT_PORT: case SG_IN_OUT_PORT:
-    b->getU8 = socket_get_u8;
-    b->lookAheadU8 = socket_look_ahead_u8;
-    b->readU8 = socket_read_u8;
-    b->readU8All = socket_read_u8_all;
-    break;
-  default: break;
-  }
-  switch (d) {
-  case SG_OUTPUT_PORT: case SG_IN_OUT_PORT:
-    b->putU8 = socket_put_u8;
-    b->putU8Array = socket_put_u8_array;
-  default: break;
-  }
-  b->bufferWriter = NULL;
-  SG_PORT_U8_AHEAD(z) = EOF;
-  return SG_OBJ(z);
 }
 
 SgObject Sg_MakeSocketPort(SgSocket *socket, int closeP)
