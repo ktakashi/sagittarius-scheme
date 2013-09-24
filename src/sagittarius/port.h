@@ -164,7 +164,7 @@ typedef struct SgBinaryPortRec
   int      dirty;		/* can be ahead ... */
 } SgBinaryPort;
 
-typedef struct SgTextualPortRec
+typedef struct SgTextualPortTableRec
 {
   int     (*getLineNo)(SgObject);
   SgChar  (*getChar)(SgObject);
@@ -173,6 +173,11 @@ typedef struct SgTextualPortRec
   void    (*putChar)(SgObject, SgChar);
   int64_t (*getString)(SgObject, SgChar *, int64_t);
   int64_t (*putString)(SgObject, SgChar *, int64_t);
+} SgTextualPortTable;
+
+typedef struct SgTextualPortRec
+{
+  SgTextualPortTable *vtbl;
   int     type;
   /* 
      for string port
@@ -198,11 +203,7 @@ typedef struct SgTextualPortRec
       int       index;
       int       lineNo; 	/* for input */
     } buffer;
-    struct {
-      void                *data;
-      SgPortPositionFn    *position;
-      SgSetPortPositionFn *setPosition;
-    } custom;
+    void        *data;		/* for custom */
   } src;
 } SgTextualPort;
 
@@ -343,6 +344,7 @@ enum SgCustomPortType {
 #define SG_TEXTUAL_PORTP(obj)					\
   (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
 #define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
+#define SG_TEXTUAL_PORT_VTABLE(tp)  ((tp)->vtbl)
 
 #define SG_TRANSCODED_PORT_TRANSCODER(obj)	\
   (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)

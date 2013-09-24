@@ -1154,11 +1154,11 @@ uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port)
  */
 
 /* look ahead char is common for all textual ports */
-static SgChar lookAheadChar(SgObject self)
+static SgChar look_ahead_char(SgObject self)
 {
-  SgChar c = SG_TEXTUAL_PORT(self)->getChar(self);
+  SgChar c = SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(self))->getChar(self);
   if (c != EOF) {
-    SG_TEXTUAL_PORT(self)->unGetChar(self, c);
+    SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(self))->unGetChar(self, c);
   }
   return c;
 }
@@ -1168,12 +1168,12 @@ static SgChar lookAheadChar(SgObject self)
   (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)
 #define SG_TPORT_PORT(obj) (SG_TEXTUAL_PORT(obj)->src.transcoded.port)
 
-static int transGetLineNo(SgObject self)
+static int trans_get_line_no(SgObject self)
 {
   return SG_TRANSCODED_PORT_LINE_NO(self);
 }
 
-static SgChar transGetChar(SgObject self)
+static SgChar trans_get_char(SgObject self)
 {
   if (SG_TRANSCODED_PORT_BUFFER(self) == EOF) {
     return Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
@@ -1250,43 +1250,7 @@ static int trans_unlock(SgObject self)
     (z)->closed = FALSE;			\
   } while (0)
 
-static SgPortTable trans_inputs = {
-  NULL,
-  trans_close,
-  trans_ready,
-  trans_lock,
-  trans_unlock,
-  NULL,
-  NULL,
-  NULL,
-  NULL
-};
-
-SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
-{
-  SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
-  SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
-
-  INIT_TRANS_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &trans_inputs;
-
-  t->src.transcoded.transcoder = transcoder;
-  t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = EOF;
-  t->src.transcoded.lineNo = 1;
-  t->getChar = transGetChar;
-  t->unGetChar = trans_un_get_char;
-  t->getLineNo = transGetLineNo;
-  t->lookAheadChar = lookAheadChar;
-  t->getString = trans_get_string;
-  t->putChar = NULL;
-  t->putString = NULL;
-
-  z->impl.tport = t;
-  return SG_OBJ(z);
-}
-
-static void transPutChar(SgObject self, SgChar c)
+static void trans_put_char(SgObject self, SgChar c)
 {
   Sg_TranscoderPutc(SG_TPORT_TRANSCODER(self), self, c);
 }
@@ -1299,6 +1263,46 @@ static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
 static void trans_flush(SgObject self)
 {
   SG_PORT_VTABLE(SG_TPORT_PORT(self))->flush(SG_TPORT_PORT(self));
+}
+
+static SgPortTable trans_inputs = {
+  NULL,
+  trans_close,
+  trans_ready,
+  trans_lock,
+  trans_unlock,
+  NULL,
+  NULL,
+  NULL,
+  NULL
+};
+
+static SgTextualPortTable trans_src_table = {
+  trans_get_line_no,
+  trans_get_char,
+  look_ahead_char,
+  trans_un_get_char,
+  trans_put_char,
+  trans_get_string,
+  trans_put_string
+};
+
+SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
+{
+  SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
+  SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
+
+  INIT_TRANS_PORT_COMMON(z);
+  SG_PORT_VTABLE(z) = &trans_inputs;
+  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
+
+  t->src.transcoded.transcoder = transcoder;
+  t->src.transcoded.port = port;
+  t->src.transcoded.ungetBuffer = EOF;
+  t->src.transcoded.lineNo = 1;
+
+  z->impl.tport = t;
+  return SG_OBJ(z);
 }
 
 static SgPortTable trans_outputs = {
@@ -1321,17 +1325,11 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
 
   INIT_TRANS_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &trans_outputs;
+  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
   t->src.transcoded.ungetBuffer = EOF;
-  t->getChar = NULL;
-  t->unGetChar = NULL;
-  t->getLineNo = NULL;
-  t->lookAheadChar = NULL;
-  t->getString = NULL;
-  t->putChar = transPutChar;
-  t->putString = trans_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z);
@@ -1345,18 +1343,12 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 
   z->closed = FALSE;
   SG_PORT_VTABLE(z) = &trans_outputs;
+  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
 
   t->src.transcoded.transcoder = transcoder;
   t->src.transcoded.port = port;
   t->src.transcoded.ungetBuffer = EOF;
   t->src.transcoded.lineNo = 1;
-  t->getChar = transGetChar;
-  t->unGetChar = trans_un_get_char;
-  t->getLineNo = transGetLineNo;
-  t->lookAheadChar = lookAheadChar;
-  t->getString = trans_get_string;
-  t->putChar = transPutChar;
-  t->putString = trans_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z);
@@ -1493,6 +1485,18 @@ static SgPortTable str_outputs = {
   output_string_set_port_position
 };
 
+/* i'm too lazy to separate... */
+/* TODO separate */
+static SgTextualPortTable string_src_table = {
+  string_iport_getlineno,
+  string_iport_getchar,
+  look_ahead_char,
+  string_iport_ungetchar,
+  string_oport_putchar,
+  string_iport_get_string,
+  string_oport_put_string
+};
+
 SgObject Sg_MakeStringOutputPort(int bufferSize)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
@@ -1500,15 +1504,10 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
 
   INIT_STRING_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &str_outputs;
+  SG_TEXTUAL_PORT_VTABLE(t) = &string_src_table;
 
   t->src.ostr.start = t->src.ostr.current = SG_NEW(char_buffer);
   t->src.ostr.start->position = 0;
-  t->getChar = NULL;
-  t->unGetChar = NULL;
-  t->getLineNo = NULL;
-  t->lookAheadChar = NULL;
-  t->putChar = string_oport_putchar;
-  t->putString = string_oport_put_string;
 
   z->impl.tport = t;
   return SG_OBJ(z); 
@@ -1533,17 +1532,11 @@ SgObject Sg_MakeStringInputPort(SgString *s, int private)
 
   INIT_STRING_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &str_inputs;
+  SG_TEXTUAL_PORT_VTABLE(t) = &string_src_table;
 
   t->src.buffer.str = s;
   t->src.buffer.index = 0;
   t->src.buffer.lineNo  = 1;
-
-  t->getChar = string_iport_getchar;
-  t->unGetChar = string_iport_ungetchar;
-  t->getLineNo = string_iport_getlineno;
-  t->lookAheadChar = lookAheadChar;
-  t->getString = string_iport_get_string;
-  t->putChar = NULL;
 
   z->impl.tport = t;
   return SG_OBJ(z); 
@@ -1909,9 +1902,10 @@ static SgChar custom_textual_get_char(SgObject self)
 
 static SgChar custom_textual_lookahead_char(SgObject self)
 {
-  SgChar c = SG_CUSTOM_TEXTUAL_PORT(self)->getChar(self);
+  SgTextualPort *tp = SG_CUSTOM_TEXTUAL_PORT(self);
+  SgChar c = SG_TEXTUAL_PORT_VTABLE(tp)->getChar(self);
   if (c != EOF) {
-    SG_CUSTOM_TEXTUAL_PORT(self)->unGetChar(self, c);
+    SG_TEXTUAL_PORT_VTABLE(tp)->unGetChar(self, c);
   }
   return c;
 }
@@ -2027,6 +2021,15 @@ static SgPortTable custom_textual_table = {
   custom_textual_set_port_position
 };
 
+static SgTextualPortTable custom_src_table = {
+  custom_textual_get_line_no,
+  custom_textual_get_char,
+  custom_textual_lookahead_char,
+  custom_textual_unget_char,
+  custom_textual_put_char,
+  custom_textual_get_string,
+  custom_textual_put_string
+};
 
 SgObject Sg_MakeCustomTextualPort(SgString *id,
 				  int direction,
@@ -2053,24 +2056,7 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
 
   SG_PORT_VTABLE(z) = &custom_textual_table;
   z->impl.cport = c;
-
-  switch (direction) {
-  case SG_IN_OUT_PORT:
-    SG_CUSTOM_TEXTUAL_PORT(z)->putChar = custom_textual_put_char;
-    SG_CUSTOM_TEXTUAL_PORT(z)->putString = custom_textual_put_string;
-    /* fall through for laziness */
-  case SG_INPUT_PORT:
-    SG_CUSTOM_TEXTUAL_PORT(z)->getLineNo = custom_textual_get_line_no;
-    SG_CUSTOM_TEXTUAL_PORT(z)->getChar = custom_textual_get_char;
-    SG_CUSTOM_TEXTUAL_PORT(z)->getString = custom_textual_get_string;
-    SG_CUSTOM_TEXTUAL_PORT(z)->lookAheadChar = custom_textual_lookahead_char;
-    SG_CUSTOM_TEXTUAL_PORT(z)->unGetChar = custom_textual_unget_char;
-    break;
-  case SG_OUTPUT_PORT:
-    SG_CUSTOM_TEXTUAL_PORT(z)->putChar = custom_textual_put_char;
-    SG_CUSTOM_TEXTUAL_PORT(z)->putString = custom_textual_put_string;
-    break;
-  }
+  SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(z)) = &custom_src_table;
 
   return SG_OBJ(z);
 }
@@ -2321,10 +2307,10 @@ void Sg_Writes(SgPort *port, SgChar *s, int64_t count)
 void Sg_WritesUnsafe(SgPort *port, SgChar *s, int64_t count)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->putString(port, s, count);
+    SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->putString(port, s, count);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port, s, count);
+    SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->putString(port, s, count);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2341,10 +2327,10 @@ int64_t Sg_Reads(SgPort *port, SgChar *s, int64_t count)
 int64_t Sg_ReadsUnsafe(SgPort *port, SgChar *s, int64_t count)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    return SG_TEXTUAL_PORT(port)->getString(port, s, count);
+    return SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->getString(port, s, count);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    return SG_CUSTOM_TEXTUAL_PORT(port)->getString(port, s, count);
+    return SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->getString(port, s, count);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2390,10 +2376,10 @@ void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int64_t start, int64_t count)
 void Sg_PutcUnsafe(SgPort *port, SgChar ch)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->putChar(port, ch);
+    SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->putChar(port, ch);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->putChar(port, ch);
+    SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->putChar(port, ch);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2412,14 +2398,17 @@ void Sg_PutuzUnsafe(SgPort *port, const SgChar *str)
 
 void Sg_PutsUnsafe(SgPort *port, SgString *str)
 {
+  SgTextualPort *tp;
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->putString(port, SG_STRING_VALUE(str),
-				     SG_STRING_SIZE(str));
+    tp = SG_TEXTUAL_PORT(port);
+    SG_TEXTUAL_PORT_VTABLE(tp)->putString(port, SG_STRING_VALUE(str),
+					  SG_STRING_SIZE(str));
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->putString(port,
-					    SG_STRING_VALUE(str),
-					    SG_STRING_SIZE(str));
+    tp = SG_CUSTOM_TEXTUAL_PORT(port);
+    SG_TEXTUAL_PORT_VTABLE(tp)->putString(port,
+					  SG_STRING_VALUE(str),
+					  SG_STRING_SIZE(str));
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2490,10 +2479,10 @@ int64_t Sg_ReadbAllUnsafe(SgPort *port, uint8_t **buf)
 SgChar Sg_GetcUnsafe(SgPort *port)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    return SG_TEXTUAL_PORT(port)->getChar(port);
+    return SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->getChar(port);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    return SG_CUSTOM_TEXTUAL_PORT(port)->getChar(port);
+    return SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->getChar(port);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2503,10 +2492,10 @@ SgChar Sg_GetcUnsafe(SgPort *port)
 void Sg_UngetcUnsafe(SgPort *port, SgChar ch)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    SG_TEXTUAL_PORT(port)->unGetChar(port, ch);
+    SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->unGetChar(port, ch);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    SG_CUSTOM_TEXTUAL_PORT(port)->unGetChar(port, ch);
+    SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->unGetChar(port, ch);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2536,10 +2525,10 @@ int Sg_PeekbUnsafe(SgPort *port)
 SgChar Sg_PeekcUnsafe(SgPort *port)
 {
   if (SG_TEXTUAL_PORTP(port)) {
-    return SG_TEXTUAL_PORT(port)->lookAheadChar(port);
+    return SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->lookAheadChar(port);
   } else if (SG_CUSTOM_PORTP(port)) {
     ASSERT(SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE);
-    return SG_CUSTOM_TEXTUAL_PORT(port)->lookAheadChar(port);
+    return SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->lookAheadChar(port);
   } else {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
@@ -2577,11 +2566,11 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset)
 int Sg_LineNo(SgPort *port)
 {
   if (SG_TEXTUAL_PORTP(port))
-    return SG_TEXTUAL_PORT(port)->getLineNo(port);
+    return SG_TEXTUAL_PORT_VTABLE(SG_TEXTUAL_PORT(port))->getLineNo(port);
   else if (SG_CUSTOM_PORTP(port)) {
     switch (SG_CUSTOM_PORT(port)->type) {
     case SG_TEXTUAL_CUSTOM_PORT_TYPE:
-      return SG_CUSTOM_TEXTUAL_PORT(port)->getLineNo(port);
+      return SG_TEXTUAL_PORT_VTABLE(SG_CUSTOM_TEXTUAL_PORT(port))->getLineNo(port);
     default:
       return -1;
     }
