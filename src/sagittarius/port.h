@@ -131,8 +131,9 @@ typedef struct SgBinaryPortRec
   int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
   /* this is private method */
   int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
-  int     type;
-  int     closed;		/* it may have, closed pseudo_closed or open */
+  unsigned int     type:   2;
+  unsigned int     closed: 2; /* it may have, closed pseudo_closed or open */
+  unsigned int     reserved: 28;
   union {
     SgFile        *file;   /* file port */
     struct {
@@ -144,11 +145,7 @@ typedef struct SgBinaryPortRec
       SgByteVector *bvec;
       int           index;
     } buffer;
-    struct {
-      void                *data;
-      SgPortPositionFn    *position;
-      SgSetPortPositionFn *setPosition;
-    } custom;
+    void          *data;	/* custom */
   } src;
   /*
     these properties are only used for file-binary in/out port.
@@ -159,7 +156,7 @@ typedef struct SgBinaryPortRec
   int64_t  bufferSize;		/* buffer size */
   int64_t  bufferIndex;		/* buffer index */
   int64_t  position;		/* current position */
-  int      dirty;		/* for output port, dirty flag */
+  int      dirty;		/* can be ahead ... */
 } SgBinaryPort;
 
 typedef struct SgTextualPortRec
@@ -234,6 +231,21 @@ typedef struct SgCustomPortRec
 SG_CLASS_DECL(Sg_PortClass);
 #define SG_CLASS_PORT (&Sg_PortClass)
 
+typedef struct SgPortTableRec 
+{
+  void (*flush)(SgObject);
+  int  (*close)(SgObject);
+  int  (*ready)(SgObject);
+  int  (*lockPort)(SgObject, SgPortLockType);
+  int  (*unlockPort)(SgObject);
+  /* these 2 are needed for custom ports */
+  int  (*hasPortPosition)(SgObject);
+  int  (*hasSetPortPosition)(SgObject);
+  /* port position operators. it takes extra argument, whence */
+  int64_t  (*portPosition)(SgObject, Whence);
+  void     (*setPortPosition)(SgObject, int64_t, Whence);
+} SgPortTable;
+
 struct SgPortRec
 {
   SG_HEADER;
@@ -253,17 +265,7 @@ struct SgPortRec
   SgInternalMutex lock;
 
   /* common methods */
-  void (*flush)(SgObject);
-  int  (*close)(SgObject);
-  int  (*ready)(SgObject);
-  int  (*lockPort)(SgObject, SgPortLockType);
-  int  (*unlockPort)(SgObject);
-  /* these 2 are needed for custom ports */
-  int  (*hasPortPosition)(SgObject);
-  int  (*hasSetPortPosition)(SgObject);
-  /* port position operators. it takes extra argument, whence */
-  int64_t  (*portPosition)(SgObject, Whence);
-  void     (*setPortPosition)(SgObject, int64_t, Whence);
+  SgPortTable *vtbl;
 
   union {
     SgBinaryPort  *bport;
@@ -291,15 +293,15 @@ enum SgBufferMode {
 };
 
 enum SgBinaryPortType {
-  SG_FILE_BINARY_PORT_TYPE,
-  SG_BYTE_ARRAY_BINARY_PORT_TYPE,
-  SG_CUSTOM_BINARY_PORT_TYPE,
+  SG_FILE_BINARY_PORT_TYPE       = 0,
+  SG_BYTE_ARRAY_BINARY_PORT_TYPE = 1,
+  SG_CUSTOM_BINARY_PORT_TYPE     = 2,
 };
 
 enum SgBinaryPortClosedType {
-  SG_BPORT_OPEN,
-  SG_BPORT_PSEUDO,
-  SG_BPORT_CLOSED
+  SG_BPORT_OPEN   = 0,
+  SG_BPORT_PSEUDO = 1,
+  SG_BPORT_CLOSED = 2
 };
 
 enum SgTextualPortType {
@@ -321,6 +323,8 @@ enum SgCustomPortType {
 
 #define SG_PORT_READTABLE(obj) (SG_PORT(obj)->readtable)
 #define SG_PORT_READER(obj)    (SG_PORT(obj)->reader)
+
+#define SG_PORT_VTABLE(obj)    (SG_PORT(obj)->vtbl)
 
 #define SG_BINARY_PORTP(obj)					\
   (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
@@ -362,12 +366,6 @@ enum SgCustomPortType {
     (port)->type = (t);				\
     (port)->bufferMode = (m);			\
     (port)->reader = SG_FALSE;			\
-    (port)->lockPort = NULL;			\
-    (port)->unlockPort = NULL;			\
-    (port)->hasPortPosition = NULL;		\
-    (port)->hasSetPortPosition = NULL;		\
-    (port)->portPosition = NULL;		\
-    (port)->setPortPosition = NULL;		\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 

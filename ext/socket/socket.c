@@ -919,13 +919,11 @@ static SgBinaryPort* make_binary_port(enum SgBinaryPortType t, SgSocket *socket)
   z->position = 0;
   z->dirty = EOF;
   z->closed = SG_BPORT_OPEN;
-  z->src.custom.data = (void *)socket;
-  z->src.custom.position = NULL;
-  z->src.custom.setPosition = NULL;
+  z->src.data = (void *)socket;
   return z;
 }
 
-#define SG_PORT_SOCKET(p) SG_SOCKET(SG_BINARY_PORT(p)->src.custom.data)
+#define SG_PORT_SOCKET(p) SG_SOCKET(SG_BINARY_PORT(p)->src.data)
 
 static void socket_flush(SgObject self)
 {
@@ -1077,6 +1075,29 @@ static int socket_ready(SgObject self)
   return (state != 0);
 }
 
+static SgPortTable socket_close_table = {
+  socket_flush,
+  socket_close,
+  socket_ready,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+static SgPortTable socket_table = {
+  socket_flush,
+  socket_close_only_port,
+  socket_ready,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
+};
+
 static inline SgObject make_socket_port(SgSocket *socket,
 					enum SgPortDirection d, 
 					int closeP)
@@ -1085,13 +1106,12 @@ static inline SgObject make_socket_port(SgSocket *socket,
   SgBinaryPort *b = make_binary_port(SG_CUSTOM_BINARY_PORT_TYPE, socket);
 
   z->closed = FALSE;
-  z->flush = socket_flush;
   if (closeP) {
-    z->close = socket_close;
+    SG_PORT_VTABLE(z) = &socket_close_table;
   } else {
-    z->close = socket_close_only_port;
+    SG_PORT_VTABLE(z) = &socket_table;
   }
-  z->ready = socket_ready;
+
   z->impl.bport = b;
 
   b->open = socket_open;
