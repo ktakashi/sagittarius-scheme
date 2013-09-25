@@ -118,6 +118,7 @@
 	    pointer-set-c-float!
 	    pointer-set-c-double!
 	    pointer-set-c-wchar!
+	    pointer-set-c-pointer!
 	    ;; alignment
 	    align-of-bool
 	    align-of-char

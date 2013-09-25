@@ -424,6 +424,34 @@ Sets @var{value} to offset @var{offset} of @var{pointer}. Supporting @var{type}s
 are the same as @code{pointer-ref-c-@var{type}}
 
 The type conversion is the same as @code{c-function}'s @var{return-type}.
+
+There is no direct procedures to handle C arrays. Following is an example
+of how to handle array of pointers;
+@codeblock{
+(import (rnrs) (sagittarius ffi))
+
+(define (string->c-string s)
+  (let* ((bv (string->utf8 s))
+         (p  (allocate-pointer (+ (bytevector-length bv) 1))))
+    (do ((i 0 (+ i 1)))
+        ((= i (bytevector-length bv)) p)
+      (pointer-set-c-uint8! p i (bytevector-u8-ref bv i)))))
+(define (string-vector->c-array sv)
+  (let ((c-array (allocate-pointer (* (vector-length sv) size-of-void*))))
+    (do ((i 0 (+ i 1)))
+        ((= i (vector-length sv)) c-array)
+      (let ((p (string->c-string (vector-ref sv i))))
+        (pointer-set-c-pointer! c-array (* i size-of-void*) p)))))
+
+;; how to use
+(let ((p (string-vector->c-array #("abc" "def" "ghijklmn"))))
+  (do ((i 0 (+ i 1)))
+      ((= i 3))
+    ;; deref handles pointer offset.
+    ;; it can be also (pointer-ref-c-pointer p (* i size-of-void*))
+    (print (pointer->string (deref p i)))))
+}
+
 }
 
 @define[Function]{@name{set-pointer-value!} @args{pointer value}}

@@ -315,3 +315,5 @@
        (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT16_T value)
        (Sg_PointerSet p offset FFI_RETURN_TYPE_UINT32_T value)))
 
+(define-c-proc pointer-set-c-pointer! (p::<pointer> offset::<fixnum> value) ::<void>
+  (Sg_PointerSet p offset FFI_RETURN_TYPE_POINTER value))
