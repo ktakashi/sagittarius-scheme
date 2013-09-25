@@ -430,18 +430,14 @@ of how to handle array of pointers;
 @codeblock{
 (import (rnrs) (sagittarius ffi))
 
-(define (string->c-string s)
-  (let* ((bv (string->utf8 s))
-         (p  (allocate-pointer (+ (bytevector-length bv) 1))))
-    (do ((i 0 (+ i 1)))
-        ((= i (bytevector-length bv)) p)
-      (pointer-set-c-uint8! p i (bytevector-u8-ref bv i)))))
 (define (string-vector->c-array sv)
   (let ((c-array (allocate-pointer (* (vector-length sv) size-of-void*))))
     (do ((i 0 (+ i 1)))
         ((= i (vector-length sv)) c-array)
-      (let ((p (string->c-string (vector-ref sv i))))
-        (pointer-set-c-pointer! c-array (* i size-of-void*) p)))))
+      ;; pointer-set-c-pointer! handles Scheme string (converts to UTF-8)
+      ;; If you need other encoding, then you need to write other conversion
+      ;; procedure.
+      (pointer-set-c-pointer! c-array (* i size-of-void*) (vector-ref sv i)))))
 
 ;; how to use
 (let ((p (string-vector->c-array #("abc" "def" "ghijklmn"))))
@@ -450,6 +446,22 @@ of how to handle array of pointers;
     ;; deref handles pointer offset.
     ;; it can be also (pointer-ref-c-pointer p (* i size-of-void*))
     (print (pointer->string (deref p i)))))
+}
+
+Following is an example for Scheme string to UTF-16 bytevector;
+@codeblock{
+(import (rnrs) (sagittarius ffi))
+;; Converts to UTF16 big endian (on little endian environment)
+(define (string->c-string s)
+  (let* ((bv (string->utf16 s (endianness big)))
+         ;; add extra 2 bytes for null terminated string
+         (p  (allocate-pointer (+ (bytevector-length bv) 2))))
+    (do ((i 0 (+ i 2)))
+        ((= i (bytevector-length bv)) p)
+      ;; pointer-set-c-uint16! uses native endianness to set the value
+      ;; so this is platform dependent code.
+      (pointer-set-c-uint16! p i 
+        (bytevector-u16-ref bv i (endianness little))))))
 }
 
 }
