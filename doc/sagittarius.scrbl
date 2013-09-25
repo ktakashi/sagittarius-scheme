@@ -251,7 +251,7 @@ a character sequence begins with tilda @code{'~'}, and ends with some specific
 characters. A format directive takes the corresponding arg and formats it. The
 rest of string is copied to the output as is.
 
-@snipet[=> "the anser is 48"]{(format #f “the answer is ~a” 48)}
+@snipet[=> "the anser is 48"]{(format #f "the answer is ~a" 48)}
 
 The format directive can take one or more parameters, separated by comma
 characters. A parameter may be an integer or a character; if it is a character, 
