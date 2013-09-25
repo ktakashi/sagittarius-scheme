@@ -193,16 +193,18 @@ else ()
       # generate target to generate asm file
       set(custom_target_name "gen_${asm_name}_asm")
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${asm_path}")
+      string(REPLACE "/" "\\" src_asm_full_path
+	${CMAKE_CURRENT_SOURCE_DIR}/${asm_file})
       execute_process(
 	COMMAND
 	  ${CMAKE_C_COMPILER} -nologo -EP
 	  -I${CMAKE_CURRENT_BINARY_DIR}
 	  -I${CMAKE_CURRENT_SOURCE_DIR}/include 
 	  -I${CMAKE_CURRENT_BINARY_DIR}/include 
-	  ${CMAKE_CURRENT_SOURCE_DIR}/${asm_file} 
+	  ${src_asm_full_path}
 	OUTPUT_FILE ${CMAKE_CURRENT_BINARY_DIR}/${msvc_asm_file})
       # add dependancy later
-      message(${CMAKE_CURRENT_BINARY_DIR}/${msvc_asm_file})
+      message(STATUS "ASM file - ${CMAKE_CURRENT_BINARY_DIR}/${msvc_asm_file}")
       set(libffi_platform_asm ${CMAKE_CURRENT_BINARY_DIR}/${msvc_asm_file})
       set(custom_targets "${custom_targets}${custom_target_name}")
     else()

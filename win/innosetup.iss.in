@@ -6,7 +6,7 @@
 #define MyAppPublisher "Takashi Kato"
 #define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"
-#define BoehmGCVersion "@USED_GC_VERSION@"
+#define BoehmGCVersion "@GC_VERSION@"
 #define BuiltDir "@CMAKE_RUNTIME_OUTPUT_DIRECTORY@"
 #define SrcDir   "@PROJECT_SOURCE_DIR@"
 #define BinDir   "@PROJECT_BINARY_DIR@"
