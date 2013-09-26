@@ -1096,7 +1096,8 @@ static SgBignum* bignum_sub(SgBignum *bx, SgBignum *by)
   } else {
     bignum_add_int(br, bx, by);
     if (SG_BIGNUM_GET_SIGN(bx) == 0) {
-      SG_BIGNUM_SET_SIGN(br, -1);
+      /*flip sign*/ 
+      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(by));
     }
   }
   return br;
