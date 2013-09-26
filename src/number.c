@@ -1322,8 +1322,8 @@ int Sg_ZeroP(SgObject obj)
   if (SG_INTP(obj)) return obj == SG_MAKE_INT(0);
   if (SG_FLONUMP(obj)) return SG_FLONUM_VALUE(obj) == 0.0;
   if (SG_BIGNUMP(obj)) {
-    ASSERT(SG_BIGNUM_GET_SIGN(obj) != 0);
-    return FALSE;
+    /* ASSERT(SG_BIGNUM_GET_SIGN(obj) != 0); */
+    return SG_BIGNUM_GET_SIGN(obj) == 0;
   }
   if (SG_RATIONALP(obj)) {
     ASSERT(Sg_ZeroP(SG_RATIONAL(obj)->numerator) == FALSE);
