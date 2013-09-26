@@ -76,9 +76,9 @@ SG_EXTERN uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor);
 
 /* bignum arithmatics */
 SG_EXTERN SgObject Sg_BignumComplement(SgBignum *bx);
-SG_EXTERN SgObject Sg_BignumAsh(SgBignum *b, int count);
-SG_EXTERN SgObject Sg_BignumShiftLeft(SgBignum *b, int count);
-SG_EXTERN SgObject Sg_BignumShiftRight(SgBignum *b, int count);
+SG_EXTERN SgObject Sg_BignumAsh(SgBignum *b, long count);
+SG_EXTERN SgObject Sg_BignumShiftLeft(SgBignum *b, long count);
+SG_EXTERN SgObject Sg_BignumShiftRight(SgBignum *b, long count);
 SG_EXTERN SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y);
 SG_EXTERN SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y);
 SG_EXTERN SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y);

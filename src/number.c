@@ -1671,7 +1671,7 @@ int Sg_IntegerLength(SgObject n)
   return integer_length_rec(n);
 }
 
-SgObject Sg_Ash(SgObject x, int count)
+SgObject Sg_Ash(SgObject x, long count)
 {
   if (SG_INTP(x)) {
     long ix = SG_INT_VALUE(x);

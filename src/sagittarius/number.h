@@ -207,7 +207,7 @@ SG_EXTERN int      Sg_IntegerValuedP(SgObject n);
 SG_EXTERN SgObject Sg_Inverse(SgObject obj);
 
 SG_EXTERN int      Sg_IntegerLength(SgObject n);
-SG_EXTERN SgObject Sg_Ash(SgObject x, int count);
+SG_EXTERN SgObject Sg_Ash(SgObject x, long count);
 SG_EXTERN SgObject Sg_LogNot(SgObject x);
 SG_EXTERN SgObject Sg_LogAnd(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_LogIor(SgObject x, SgObject y);

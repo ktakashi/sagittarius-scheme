@@ -678,16 +678,16 @@ int Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by)
   return 0;
 }
 
-SgObject Sg_BignumAsh(SgBignum *b, int count)
+SgObject Sg_BignumAsh(SgBignum *b, long count)
 {
   if (count == 0) return Sg_NormalizeBignum(b);
   else if (count > 0) return Sg_BignumShiftLeft(b, count);
   else return Sg_BignumShiftRight(b, -count);
 }
 
-static SgBignum* bignum_lshift(SgBignum *br, SgBignum const *bx, int amount)
+static SgBignum* bignum_lshift(SgBignum *br, SgBignum const *bx, long amount)
 {
-  int nwords, nbits, i;
+  long nwords, nbits, i;
   unsigned long x;
 
   nwords = amount / WORD_BITS;
@@ -719,23 +719,23 @@ static SgBignum* bignum_lshift(SgBignum *br, SgBignum const *bx, int amount)
   return br;
 }
 
-SgObject Sg_BignumShiftLeft(SgBignum *b, int shift)
+SgObject Sg_BignumShiftLeft(SgBignum *b, long shift)
 {
   int rsize = SG_BIGNUM_GET_COUNT(b) + (shift + WORD_BITS - 1) / WORD_BITS;
   SgBignum *r = make_bignum(rsize);
   return Sg_NormalizeBignum(bignum_lshift(r, b, shift));
 }
 
-static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, int amount)
+static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, long amount)
 {
-  unsigned int nwords = amount / WORD_BITS;
-  unsigned int nbits = amount % WORD_BITS;
-  int i;
+  unsigned long nwords = amount / WORD_BITS;
+  unsigned long nbits = amount % WORD_BITS;
+  unsigned long i;
   if (SG_BIGNUM_GET_COUNT(bx) <= nwords) {
     SG_BIGNUM_SET_COUNT(br, 0);
     br->elements[0] = 0;
   } else if (nbits == 0) {
-    for (i = (int)nwords; i < (int)SG_BIGNUM_GET_COUNT(bx); i++) {
+    for (i = nwords; (int)i < (int)SG_BIGNUM_GET_COUNT(bx); i++) {
       br->elements[i - nwords] = bx->elements[i];
     }
     SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
@@ -743,7 +743,7 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, int amount)
   } else {
     unsigned long x;
     int bxsize = SG_BIGNUM_GET_COUNT(bx);
-    for (i = (int)nwords; i < bxsize - 1; i++) {
+    for (i = nwords; (int)i < bxsize - 1; i++) {
       x = (bx->elements[i+1] << (WORD_BITS - nbits))|(bx->elements[i] >> nbits);
       br->elements[i - nwords] = x;
     }
@@ -755,7 +755,7 @@ static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, int amount)
   return br;
 }
 
-SgObject Sg_BignumShiftRight(SgBignum *b, int shift)
+SgObject Sg_BignumShiftRight(SgBignum *b, long shift)
 {
   int rsize = SG_BIGNUM_GET_COUNT(b) + (-shift)/WORD_BITS;
   if (rsize < 1) {
