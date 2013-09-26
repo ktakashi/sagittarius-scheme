@@ -937,4 +937,11 @@
   (test-equal "issue 141 set-port-position!" #vu8(1 2 3 4 5)
 	      (get-bytevector-all in)))
 
+;; issue 143
+(let ((s (number->string (least-fixnum))))
+  (test-assert "Issue 143 fixnum boundary" (fixnum? (read (open-string-input-port s)))))
+
+;; issue 144
+(test-assert "Issue 144 compiler error" (negative? -8388609))
+
 (test-end)
