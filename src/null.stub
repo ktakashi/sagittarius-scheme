@@ -2977,100 +2977,66 @@
 		 (SG_LIST2 (SG_MAKE_INT fx1)
 			   (SG_MAKE_INT fx2))))))))
   
-  (define-cise-stmt fixnum-div
-    ((_ ret x y)
-     `(cond ((== ,x 0)
-	     (set! ,ret 0))
-	    ((> ,x 0)
-	     (set! ,ret (/ ,x ,y)))
-	    ((> ,y 0)
-	     (set! ,ret (/ (+ (- ,x ,y) 1) ,y)))
-	    (else
-	     (set! ,ret (/ (+ ,x ,y 1) ,y))))))
+  (define-cfn fixnum-div (x::long y::long) ::long :static
+    (cond ((== x 0)(return 0))
+	  ((> x 0) (return (/ x y)))
+	  ((> y 0) (return (/ (+ (- x y) 1) y)))
+	  (else (return (/ (+ x y 1) y)))))
 
-  (define-cise-stmt fixnum-mod
-    ((_ ret x y)
-     `(begin
-	(fixnum-div ,ret ,x ,y)
-	(set! ,ret (- ,x (* ,ret ,y))))))
+  (define-cfn fixnum-mod (x::long y::long) ::long :static
+    (let ((ret::long (fixnum-div x y)))
+      (return (- x (* ret y)))))
 
   (define-c-proc fxdiv (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
-    (if (== fx2 0)
-	(assertion-violation 'fxdiv
-			     "dividing by zero"))
-    (let ((ret::long 0))
-      (fixnum-div ret fx1 fx2)
+    (when (== fx2 0)
+      (assertion-violation 'fxdiv "dividing by zero"))
+    (let ((ret::long (fixnum-div fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation
-	   'fxdiv
-	   "result is not a fixnum"
-	   (SG_LIST2 (SG_MAKE_INT fx1)
-		     (SG_MAKE_INT fx2))))))
+	   'fxdiv "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
 
   (define-c-proc fxmod (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
-    (if (== fx2 0)
-	(assertion-violation 'fxmod
-			     "dividing by zero"))
-    (let ((ret::long 0))
-      (fixnum-mod ret fx1 fx2)
+    (when (== fx2 0)
+      (assertion-violation 'fxmod "dividing by zero"))
+    (let ((ret::long (fixnum-mod fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation
-	   'fxmod
-	   "result is not a fixnum"
-	   (SG_LIST2 (SG_MAKE_INT fx1)
-		     (SG_MAKE_INT fx2))))))
+	   'fxmod "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
   
-  (define-cise-stmt fixnum-div0
-    ((_ ret x y)
-     (let ((d (gensym))
-	   (m (gensym)))
-       `(let ((,(string->symbol (format "~a::long" d)) 0)
-	      (,(string->symbol (format "~a::long" m)) 0))
-	  (fixnum-div ,d ,x ,y)
-	  (fixnum-mod ,m ,x ,y)
-	  (cond ((<= ,m (/ (abs ,y) 2))
-		 (set! ,ret ,d))
-		((> ,y 0)
-		 (set! ,ret (+ ,d 1)))
-		(else
-		 (set! ,ret (- ,d 1))))))))
+  (define-cfn fixnum-div0 (x::long y::long) ::long :static
+    (let* ((d::long (fixnum-div x y))
+	   (m::double (- x (* d y))))
+      (cond ((< m (fabs (/ (cast double y) 2))) (return d))
+	    ((> y 0) (return (+ d 1)))
+	    (else (return (- d 1))))))
 
-  (define-cise-stmt fixnum-mod0
-    ((_ ret x y)
-     (let ((tmp (gensym)))
-       `(let ((,(string->symbol (format "~a::long" tmp)) 0))
-	  (fixnum-div0 ,tmp ,x ,y)
-	  (set! ,ret (- ,x (* ,y ,tmp)))))))
+  (define-cfn fixnum-mod0 (x::long y::long) ::long :static
+    (let ((ret::long (fixnum-div0 x y)))
+      (return (- x (* y ret)))))
     
   (define-c-proc fxdiv0 (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
-    (if (== fx2 0)
-	(assertion-violation 'fxdiv0
-			     "dividing by zero"))
-    (let ((ret::long 0))
-      (fixnum-div0 ret fx1 fx2)
+    (when (== fx2 0)
+      (assertion-violation 'fxdiv0 "dividing by zero"))
+    (let ((ret::long (fixnum-div0 fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation
-	   'fxdiv0
-	   "result is not a fixnum"
-	   (SG_LIST2 (SG_MAKE_INT fx1)
-		     (SG_MAKE_INT fx2))))))
+	   'fxdiv0 "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
 
   (define-c-proc fxmod0 (fx1::<fixnum> fx2::<fixnum>) ::<fixnum>
-    (if (== fx2 0)
-	(assertion-violation 'fxmod0
-			     "dividing by zero"))
-    (let ((ret::long 0))
-      (fixnum-mod0 ret fx1 fx2)
+    (when (== fx2 0)
+      (assertion-violation 'fxmod0 "dividing by zero"))
+    (let ((ret::long (fixnum-mod0 fx1 fx2)))
       (if (fixnum-fits? ret)
 	  (result ret)
 	  (implementation-restriction-violation
-	   'fxmod0
-	   "result is not a fixnum"
-	   (SG_LIST2 (SG_MAKE_INT fx1)
-		     (SG_MAKE_INT fx2))))))
+	   'fxmod0 "result is not a fixnum"
+	   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))))
 
   (define-cise-stmt fxlogop
     ((_ name ret op args)

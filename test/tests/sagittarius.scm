@@ -957,6 +957,12 @@
 	     (fixnum? (bitwise-arithmetic-shift 0 65)))
 (test-assert "Issue 146 0<<65 is not 0" (zero? (bitwise-arithmetic-shift 0 65)))
 
+;; issue 147
+(test-equal "Issue 147 fixnum div0(1)" 18 (fxdiv0 -222 -12))
+(test-equal "Issue 147 fixnum div0(2)"(div0 28665 -6) (fxdiv0 28665 -6))
+(test-equal "Issue 147 fixnum mod0(1)" -6 (fxmod0 -222 -12))
+(test-equal "Issue 147 fixnum mod0(2)"(mod0 28665 -6) (fxmod0 28665 -6))
+
 ;; issue 149
 (test-assert "Issue 149 (fxbit-set? 1 64) returns #t"
 	     (not (fxbit-set? 1 64)))
