@@ -3152,7 +3152,9 @@
     (result (Sg_FirstBitSet (SG_MAKE_INT fx))))
 
   (define-c-proc fxbit-set? (fx1::<fixnum> fx2::<fixnum>) ::<boolean>
-    (result (logand (ashr fx1 fx2) 1)))
+    (if (or (>= fx2 SG_INT_SIZE) (< fx2 0))
+	(result FALSE)
+	(result (logand (ashr fx1 fx2) 1))))
 
   (define-c-proc fxcopy-bit (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum>) ::<fixnum>
     (check-fixnum-range fxcopy-bit fx2 0 SG_INT_SIZE <= <=)

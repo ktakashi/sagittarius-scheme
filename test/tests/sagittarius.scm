@@ -953,4 +953,8 @@
 	     (fixnum? (bitwise-arithmetic-shift 0 65)))
 (test-assert "Issue 146 0<<65 is not 0" (zero? (bitwise-arithmetic-shift 0 65)))
 
+;; issue 149
+(test-assert "Issue 149 (fxbit-set? 1 64) returns #t"
+	     (not (fxbit-set? 1 64)))
+
 (test-end)
