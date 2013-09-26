@@ -258,11 +258,9 @@ static SgObject bignum_normalize_rec(SgBignum *bn, int convertp)
     else break;
   }
   /* if given bignum was 0, i can be -1 */
+  SG_BIGNUM_SET_COUNT(bn, size);
   if (i <= 0) {
     if (convertp) {
-      int sign = SG_BIGNUM_GET_SIGN(bn);
-      SG_BIGNUM_SET_ZERO(bn);
-      SG_BIGNUM_SET_SIGN(bn, sign);
       if (SG_BIGNUM_GET_SIGN(bn) == 0) {
 	return SG_MAKE_INT(0);
       }
@@ -282,8 +280,6 @@ static SgObject bignum_normalize_rec(SgBignum *bn, int convertp)
       }
     }
   }
-
-  SG_BIGNUM_SET_COUNT(bn, size);
   return SG_OBJ(bn);
 }
 

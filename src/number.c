@@ -1462,7 +1462,7 @@ SgObject Sg_Negate(SgObject obj)
   if (SG_BIGNUMP(obj)) {
     SgBignum *b = Sg_BignumCopy(obj);
     SG_BIGNUM_SET_SIGN(b, -SG_BIGNUM_GET_SIGN(obj));
-    return oprtr_norm_integer(b);
+    return Sg_NormalizeBignum(b);
   }
   if (SG_RATIONALP(obj)) {
     SgRational *r = SG_RATIONAL(obj);
@@ -3934,7 +3934,8 @@ void Sg__InitNumber()
   unsigned long n;
 
   for (radix = RADIX_MIN; radix <= RADIX_MAX; radix++) {
-    longlimit[radix - RADIX_MIN] = (unsigned long)floor((double)LONG_MAX / radix - radix);
+    longlimit[radix - RADIX_MIN] = 
+      (unsigned long)floor((double)LONG_MAX / radix - radix);
     /* Find max D where R^(D+1)-1 <= LONG_MAX */
     for (i = 0, n = 1; ; i++, n *= radix) {
       if (n >= (unsigned long)(LONG_MAX / radix)) {
