@@ -779,16 +779,16 @@ SgObject Sg_BignumShiftRight(SgBignum *b, int shift)
 
 #define DEF_BIGNUM_LOG_OP(name, op)					\
   static inline SgBignum* name(SgBignum *z, SgBignum *x, SgBignum *y,	\
-			       int compsize, int xsize, int ysize)	\
+			       int x2sc, int y2sc)			\
   {									\
     int i;								\
-    for (i = 0; i < compsize; i++) {					\
-      z->elements[i] = x->elements[i] op y->elements[i];		\
-    }									\
-    if (i < xsize) {							\
-      for (; i < xsize; i++) z->elements[i] = x->elements[i];		\
-    } else if (i < ysize) {						\
-      for (; i < ysize; i++) z->elements[i] = y->elements[i];		\
+    int xs = SG_BIGNUM_GET_COUNT(x);					\
+    int ys = SG_BIGNUM_GET_COUNT(y);					\
+    int zs = SG_BIGNUM_GET_COUNT(z);					\
+    for (i = 0; i < zs; i++) {						\
+      ulong lx = (i < xs) ? x->elements[i] : (x2sc ? SG_ULONG_MAX : 0); \
+      ulong ly = (i < ys) ? y->elements[i] : (y2sc ? SG_ULONG_MAX : 0); \
+      z->elements[i] = lx op ly;					\
     }									\
     return z;								\
   }
@@ -806,24 +806,28 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
   if (xsign == 0 || ysign == 0) return SG_MAKE_INT(0);
 
   if (xsign > 0) {
-    if (ysign > 0) {
-      z = bignum_and(make_bignum(minsize), x, y, minsize, 0, 0);
+    if (ysign > 0) { 		
+      /* (+, +) */
+      z = bignum_and(make_bignum(minsize), x, y, FALSE, FALSE);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (+, -) */
       ALLOC_TEMP_BIGNUM(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
-      z = bignum_and(make_bignum(xsize), x, yy, minsize, xsize, 0);
+      z = bignum_and(make_bignum(xsize), x, yy, FALSE, TRUE);
       return Sg_NormalizeBignum(z);
     }
   } else {
     if (ysign > 0) {
+      /* (-, +) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      z = bignum_and(make_bignum(ysize), xx, y, minsize, 0, ysize);
+      z = bignum_and(make_bignum(ysize), xx, y, TRUE, FALSE);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (-, -) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
@@ -832,7 +836,7 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
       bignum_2scmpl(yy);
 
       zsize = max(xsize, ysize);
-      z = bignum_and(make_bignum(zsize), xx, yy, minsize, xsize, ysize);
+      z = bignum_and(make_bignum(zsize), xx, yy, TRUE, TRUE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
@@ -849,31 +853,41 @@ SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y)
   int zsize, minsize = min(xsize, ysize);
   SgBignum *xx, *yy, *z;
 
-  if (xsign >= 0) {
-    if (ysign >= 0) {
+  /* handle 0 case first */
+  if (xsign == 0 || ysign == 0) {
+    if (xsign) return Sg_NormalizeBignum(x);
+    if (ysign) return Sg_NormalizeBignum(y);
+    return SG_MAKE_INT(0);
+  }
+
+  if (xsign > 0) {
+    if (ysign > 0) {
+      /* (+, +) */
       zsize = max(xsize, ysize);
-      z = bignum_ior(make_bignum(zsize), x, y, minsize, xsize, ysize);
+      z = bignum_ior(make_bignum(zsize), x, y, FALSE, FALSE);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (+, -) */
       ALLOC_TEMP_BIGNUM(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
-
-      z = bignum_ior(make_bignum(ysize), x, yy, minsize, 0, ysize);
+      z = bignum_ior(make_bignum(ysize), x, yy, FALSE, TRUE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
     }
   } else {
-    if (ysign >= 0) {
+    if (ysign > 0) {
+      /* (-, +) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      z = bignum_ior(make_bignum(xsize), xx, y, minsize, xsize, 0);
+      z = bignum_ior(make_bignum(xsize), xx, y, TRUE, FALSE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (-, -) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
@@ -881,7 +895,7 @@ SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y)
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
 
-      z = bignum_ior(make_bignum(minsize), xx, yy, minsize, 0, 0);
+      z = bignum_ior(make_bignum(minsize), xx, yy, TRUE, TRUE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
@@ -895,34 +909,43 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
 {
   int xsize = SG_BIGNUM_GET_COUNT(x), xsign = SG_BIGNUM_GET_SIGN(x);
   int ysize = SG_BIGNUM_GET_COUNT(y), ysign = SG_BIGNUM_GET_SIGN(y);
-  int zsize, minsize = min(xsize, ysize);
+  int zsize = max(xsize, ysize);
   SgBignum *xx, *yy, *z;
 
-  if (xsign >= 0) {
-    if (ysign >= 0) {
-      zsize = max(xsize, ysize);
-      z = bignum_xor(make_bignum(zsize), x, y, minsize, xsize, ysize);
+  /* handle 0 case first */
+  if (xsign == 0 || ysign == 0) {
+    if (xsign) return Sg_NormalizeBignum(x);
+    if (ysign) return Sg_NormalizeBignum(y);
+    return SG_MAKE_INT(0);
+  }
+
+  if (xsign > 0) {
+    if (ysign > 0) {
+      /* (+,+) */
+      z = bignum_xor(make_bignum(zsize), x, y, FALSE, FALSE);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (+,-) */
       ALLOC_TEMP_BIGNUM(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
-
-      z = bignum_xor(make_bignum(ysize), x, yy, minsize, 0, ysize);
+      z = bignum_xor(make_bignum(zsize), x, yy, FALSE, TRUE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
     }
   } else {
-    if (ysign >= 0) {
+    if (ysign > 0) {
+      /* (-,+) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      z = bignum_xor(make_bignum(xsize), xx, y, minsize, xsize, 0);
+      z = bignum_xor(make_bignum(zsize), xx, y, TRUE, FALSE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
     } else {
+      /* (-,-) */
       ALLOC_TEMP_BIGNUM(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
@@ -930,7 +953,7 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
 
-      z = bignum_xor(make_bignum(minsize), xx, yy, minsize, 0, 0);
+      z = bignum_xor(make_bignum(zsize), xx, yy, TRUE, TRUE);
       SG_BIGNUM_SET_SIGN(z, -1);
       bignum_2scmpl(z);
       return Sg_NormalizeBignum(z);
@@ -1678,10 +1701,10 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
 
 static long calc_string_size(SgBignum *q, int radix)
 {
-  long count = 0, rem;
+  long count = 0;
   long size = SG_BIGNUM_GET_COUNT(q);
   for (; size > 0;) {
-    rem = bignum_sdiv(q, radix);
+    bignum_sdiv(q, radix);
     count++;
     for (; q->elements[size - 1] == 0 && size > 0; size--);
   }

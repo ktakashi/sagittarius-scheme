@@ -948,6 +948,10 @@
 ;; issue 144
 (test-assert "Issue 144 compiler error" (negative? -8388609))
 
+;; issue 145
+(test-equal "Issue 145 bitwise-xor with -1" -18446744073709551617
+	     (bitwise-xor (expt 2 64) -1))
+
 ;; issue 146
 (test-assert "Issue 146 0<<65 is not fixnum" 
 	     (fixnum? (bitwise-arithmetic-shift 0 65)))
