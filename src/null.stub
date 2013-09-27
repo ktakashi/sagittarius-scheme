@@ -3118,8 +3118,11 @@
     (result (Sg_FirstBitSet (SG_MAKE_INT fx))))
 
   (define-c-proc fxbit-set? (fx1::<fixnum> fx2::<fixnum>) ::<boolean>
-    (if (or (>= fx2 SG_INT_SIZE) (< fx2 0))
-	(result FALSE)
+    (when (< fx2 0)
+      (assertion-violation 'fxbit-set? "invalid bit index" 
+			   (SG_LIST1 (SG_MAKE_INT fx2))))
+    (if (>= fx2 SG_INT_SIZE)
+	(result (< fx1 0))
 	(result (logand (ashr fx1 fx2) 1))))
 
   (define-c-proc fxcopy-bit (fx1::<fixnum> fx2::<fixnum> fx3::<fixnum>) ::<fixnum>

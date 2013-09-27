@@ -966,5 +966,10 @@
 ;; issue 149
 (test-assert "Issue 149 (fxbit-set? 1 64) returns #t"
 	     (not (fxbit-set? 1 64)))
+(test-assert "Issue 149 -1 is all bits set"
+	     (fxbit-set? -1 100))
+(test-error "fxbit-set? second argument must be non negative" 
+	    assertion-violation?
+	    (fxbit-set? -1 -1))
 
 (test-end)
