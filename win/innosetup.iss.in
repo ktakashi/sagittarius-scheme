@@ -44,6 +44,7 @@ Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescrip
 [Files]
 Source: "{#BuiltDir}\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
 Source: "{#BuiltDir}\sagittarius.dll"; DestDir: "{app}"; DestName: "sagittarius.dll"; Flags: ignoreversion
+Source: "{#BuiltDir}\src\sagittarius.lib"; DestDir: "{app}"; DestName: "sagittarius.lib"; Flags: ignoreversion
 Source: "{#BuiltDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SrcDir}\src\*.h"; DestDir: "{app}\include"; Excludes: "os*"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Well Boehm GC header also need to be installed.

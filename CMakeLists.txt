@@ -253,6 +253,22 @@ IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
 ELSEIF(MSVC)
   # /MT to avoid C-runtime
   # the rest is the same as CMake default
+  IF(NOT (MSVC_VERSION LESS 1700))
+    ADD_DEFINITIONS("-D_USING_V110_SDK71_")
+    # For supporting Windows XP
+    # NOTE: We only support it until 2014 which is the expiration year of
+    # Windows XP.
+    # WARNING this might be changed by CMake itself
+    IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
+      SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.02")
+    ELSE()
+      # 32 bit
+      SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.01")
+    ENDIF()
+    SET(CMAKE_CREATE_CONSOLE_EXE "${VS2012_XP_FLAG}")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
+  ENDIF()
+
   FOREACH(flag_var
       CMAKE_CXX_FLAGS CMAKE_  CMAKE_CXX_FLAGS_DEBUG
       CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
@@ -267,23 +283,6 @@ ELSEIF(MSVC)
     ENDIF(${flag_var} MATCHES "/MDd")
   ENDFOREACH(flag_var)
   ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
-  #SET(CMAKE_C_FLAGS "/arch:AVX ${CMAKE_C_FLAGS}")
-  #SET(CMAKE_CXX_FLAGS "/arch:AVX ${CMAKE_CXX_FLAGS}")
-  IF(NOT (MSVC_VERSION LESS 1700))
-    SET(CMAKE_C_FLAGS "/D_USING_V110_SDK71_ ${CMAKE_C_FLAGS}")
-    SET(CMAKE_CXX_FLAGS "/D_USING_V110_SDK71_ ${CMAKE_CXX_FLAGS}")
-    # For supporting Windows XP
-    # NOTE: We only support it until 2014 which is the expiration year of
-    # Windows XP.
-    # WARNING this might be changed by CMake itself
-    IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
-      SET(CMAKE_CREATE_CONSOLE_EXE "/SUBSYSTEM:CONSOLE,5.02")
-    ELSE()
-      # 32 bit
-      SET(CMAKE_CREATE_CONSOLE_EXE "/SUBSYSTEM:CONSOLE,5.01")
-    ENDIF()
-  ENDIF()
-
 ELSEIF(WATCOM)
   # watcom's default alignment is 4, so we need to specify it.
   SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")

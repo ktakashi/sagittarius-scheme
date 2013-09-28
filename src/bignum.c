@@ -75,6 +75,23 @@ char *alloca ();
 #undef max
 #define max(x, y)   (((x) > (y))? (x) : (y))
 
+
+/* MSVC doesn't allow us to typedef blow. Well, that's how it suppose to be
+   I think... */
+typedef unsigned long ulong;
+#if SIZEOF_LONG == 8
+#ifdef __GNUC__
+typedef unsigned int dlong __attribute__((__mode__(TI)));
+#else
+# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#endif
+#define SHIFT_MAGIC 6
+#else
+typedef uint64_t dlong;
+#define SHIFT_MAGIC 5
+#endif
+
+
 static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 
@@ -1174,21 +1191,6 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 {
   return Sg_NormalizeBignum(bignum_add_si(a, -b));
 }
-
-/* MSVC doesn't allow us to typedef blow. Well, that's how it suppose to be
-   I think... */
-typedef unsigned long ulong;
-#if SIZEOF_LONG == 8
-#ifdef __GNUC__
-typedef unsigned int dlong __attribute__((__mode__(TI)));
-#else
-# error "sizeof(long) == 8 but not GCC (not supported yet)"
-#endif
-#define SHIFT_MAGIC 6
-#else
-typedef uint64_t dlong;
-#define SHIFT_MAGIC 5
-#endif
 
 /* forward declaration */
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
