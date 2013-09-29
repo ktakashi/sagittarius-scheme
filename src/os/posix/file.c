@@ -73,7 +73,7 @@ static SgObject get_last_error_message(SgObject file)
   return Sg_MakeStringC(msg);  
 }
 
-static int posix_open_ex(SgObject self, SgString *path, int flags)
+static int posix_open(SgObject self, SgString *path, int flags)
 {
   int mode = 0;
   SG_FILE(self)->name = path->value;
@@ -95,12 +95,7 @@ static int posix_open_ex(SgObject self, SgString *path, int flags)
   }
   SG_FD(self)->fd = open(Sg_Utf32sToUtf8s(path), mode, 0644);
   setLastError(self);
-  return SG_FILE(self)->isOpen(self);
-}
-
-static int posix_open(SgObject self, const SgChar* path, int flags)
-{
-  return posix_open_ex(self, Sg_HeapString(path), flags);
+  return SG_FILE_VTABLE(self)->isOpen(self);
 }
 
 static int posix_is_open(SgObject self)
@@ -116,7 +111,7 @@ static int posix_close(SgObject self)
     /* we never close standard fd */
     return TRUE;
   }
-  if (SG_FILE(self)->isOpen(self)) {
+  if (SG_FILE_VTABLE(self)->isOpen(self)) {
     const int isOK = close(SG_FD(self)->fd) != 0;
     setLastError(self);
     SG_FD(self)->fd = INVALID_HANDLE_VALUE;
@@ -226,40 +221,39 @@ static int posix_ready(SgObject self)
 #endif  
 }
 
+static SgFileTable vtable = {
+  posix_read,
+  posix_write,
+  posix_seek,
+  posix_tell,
+  posix_size,
+  posix_is_open,
+  posix_open,
+  posix_close,
+  posix_can_close,
+  posix_ready
+};
+
 static SgFile* make_file(int handle)
 {
   SgFile *file = SG_NEW(SgFile);
-  FD     *fd = SG_NEW(FD);
+  FD     *fd = SG_NEW_ATOMIC(FD);
   SG_SET_CLASS(file, SG_CLASS_FILE);
   fd->fd = handle;
   file->osdependance = (void*)fd;
-  file->read = posix_read;
-  file->write = posix_write;
-  file->seek = posix_seek;
-  file->tell = posix_tell;
-  file->size = posix_size;
-  file->isOpen = posix_is_open;
-  file->open = posix_open;
-  file->close = posix_close;
-  file->canClose = posix_can_close;
-  file->ready = posix_ready;
   return file;
 }
 
 SgObject Sg_MakeFile()
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
+  SG_FILE_VTABLE(z) = &vtable;
   return SG_OBJ(z);
 }
 
-SgObject Sg_OpenFile(SgString *file, int flags)
+SgObject Sg_FileErrorMessage(SgObject file)
 {
-  SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  if (!posix_open_ex(z, file, flags)) {
-    SgObject err = get_last_error_message(z);
-    return err;
-  }
-  return SG_OBJ(z);
+  return get_last_error_message(file);
 }
 
 int Sg_LockFile(SgObject file, enum SgFileLockType mode)
@@ -295,7 +289,6 @@ int Sg_UnlockFile(SgObject file)
   return TRUE;
 }
 
-
 static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;
@@ -303,7 +296,7 @@ static SgFile *stdError = NULL;
 SgObject Sg_StandardOut()
 {
   if (!stdOut) {
-    stdOut = make_file(1);
+    stdOut = SG_MAKE_FILE_FROM_FD(1);
     stdOut->name = UC("stdout");
   }
   return SG_OBJ(stdOut);
@@ -312,7 +305,7 @@ SgObject Sg_StandardOut()
 SgObject Sg_StandardIn()
 {
   if (!stdIn) {
-    stdIn = make_file(0);
+    stdIn = SG_MAKE_FILE_FROM_FD(0);
     stdIn->name = UC("stdin");
   }
   return SG_OBJ(stdIn);
@@ -321,7 +314,7 @@ SgObject Sg_StandardIn()
 SgObject Sg_StandardError()
 {
   if (!stdError) {
-    stdError = make_file(2);
+    stdError = SG_MAKE_FILE_FROM_FD(2);
     stdError->name = UC("stderr");
   }
   return SG_OBJ(stdError);
@@ -331,6 +324,7 @@ SgObject Sg_MakeFileFromFD(uintptr_t handle)
 {
   SgFile *f = make_file((int)handle);
   f->name = UC("fd");
+  SG_FILE_VTABLE(f) = &vtable;
   return SG_OBJ(f);
 }
 

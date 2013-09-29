@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * port.c
+/* port.c                                         -*- mode:c; coding:utf-8; -*- 
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -306,10 +304,11 @@ void Sg_UnregisterBufferedPort(SgPort *port)
  */
 
 #define SG_PORT_FILE(p) SG_BINARY_PORT(p)->src.file
+#define SG_PORT_FILE_VTABLE(p) SG_FILE_VTABLE(SG_BINARY_PORT(p)->src.file)
 
 static int file_open(SgObject self)
 {
-  return SG_PORT_FILE(self)->isOpen(SG_PORT_FILE(self));
+  return SG_PORT_FILE_VTABLE(self)->isOpen(SG_PORT_FILE(self));
 }
 
 static int file_close(SgObject self)
@@ -320,7 +319,7 @@ static int file_close(SgObject self)
 	/* again I have no idea, but this happens... */
 	SG_BINARY_PORT(self)->src.file &&
 #endif
-	SG_PORT_FILE(self)->canClose(SG_PORT_FILE(self))) {
+	SG_PORT_FILE_VTABLE(self)->canClose(SG_PORT_FILE(self))) {
       SG_PORT(self)->closed = TRUE;
       if (SG_PORT(self)->direction == SG_OUTPUT_PORT ||
 	  SG_PORT(self)->direction == SG_IN_OUT_PORT) {
@@ -328,7 +327,7 @@ static int file_close(SgObject self)
 	SG_PORT_VTABLE(self)->flush(self);
 	unregister_buffered_port(SG_PORT(self));
       }
-      SG_PORT_FILE(self)->close(SG_PORT_FILE(self));
+      SG_PORT_FILE_VTABLE(self)->close(SG_PORT_FILE(self));
       SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
       SG_BINARY_PORT(self)->src.file = NULL;
       Sg_UnregisterFinalizer(self);
@@ -339,8 +338,8 @@ static int file_close(SgObject self)
 
 static int file_ready(SgObject self)
 {
-  if (SG_PORT_FILE(self)->ready) {
-    return SG_PORT_FILE(self)->ready(SG_PORT_FILE(self));
+  if (SG_PORT_FILE_VTABLE(self)->ready) {
+    return SG_PORT_FILE_VTABLE(self)->ready(SG_PORT_FILE(self));
   } else {
     return TRUE;
   }
@@ -353,9 +352,9 @@ static void file_flush_internal(SgObject self)
   /* for shared buffered port such as stdout */
   /* SG_PORT_LOCK(SG_PORT(self)); */
   while (SG_BINARY_PORT(self)->bufferIndex > 0) {
-    int64_t written_size = SG_PORT_FILE(self)->write(SG_PORT_FILE(self),
-						     buf,
-						     bport->bufferIndex);
+    int64_t written_size = SG_PORT_FILE_VTABLE(self)->write(SG_PORT_FILE(self),
+							    buf,
+							    bport->bufferIndex);
     buf += written_size;
     bport->bufferIndex -= written_size;
     /* ASSERT(bport->bufferIndex >= 0); */
@@ -370,9 +369,9 @@ static void file_flush(SgObject self)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
   if (bp->buffer) {
-    SG_PORT_FILE(self)->seek(SG_PORT_FILE(self),
-			     bp->position - bp->bufferIndex,
-			     SG_BEGIN);
+    SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self),
+				    bp->position - bp->bufferIndex,
+				    SG_BEGIN);
     file_flush_internal(self);
   }
 }
@@ -385,9 +384,10 @@ static void file_fill_buffer(SgObject self)
     file_flush(self);
   }
   while (read_size < PORT_DEFAULT_BUF_SIZE) {
-    int64_t result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self),
-					      bp->buffer + read_size,
-					      PORT_DEFAULT_BUF_SIZE-read_size);
+    int64_t result =
+      SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self),
+				      bp->buffer + read_size,
+				      PORT_DEFAULT_BUF_SIZE-read_size);
     ASSERT(result >= 0);	/* file raises error */
     if (result == 0) {
       break;			/* EOF */
@@ -434,8 +434,9 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
       read_size += size_diff;
       break;
     } else {
-      if (SG_PORT_FILE(self)->seek && opos == 0LL) {
-	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+      if (SG_PORT_FILE_VTABLE(self)->seek && opos == 0LL) {
+	opos = SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), 0,
+					       SG_CURRENT);
       }
       memcpy64(dest + read_size, bp->buffer + bp->bufferIndex, buf_diff);
       read_size += buf_diff;
@@ -448,8 +449,8 @@ static int64_t file_read_from_buffer(SgObject self, uint8_t *dest,
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
-    if (SG_PORT_FILE(self)->seek) {
-      SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
+    if (SG_PORT_FILE_VTABLE(self)->seek) {
+      SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
     } else {
       Sg_IOError(-1, SG_INTERN("file read"),
 		 SG_MAKE_STRING("buffered input/output file binary port"
@@ -477,7 +478,7 @@ static int file_get_u8(SgObject self)
       SG_PORT_U8_AHEAD(self) = EOF;
       result = 1;
     } else {
-      result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), &buf, 1);
+      result = SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self), &buf, 1);
     }
   }
   if (result == 0) {
@@ -501,7 +502,7 @@ static int file_look_ahead_u8(SgObject self)
     if (SG_PORT_HAS_U8_AHEAD(self)) {
       return SG_PORT_U8_AHEAD(self);
     } else {
-      result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), &buf, 1);
+      result = SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self), &buf, 1);
       SG_PORT_U8_AHEAD(self) = (result == 0) ? EOF : buf;
     }
   }
@@ -523,7 +524,8 @@ static int64_t file_read_u8(SgObject self, uint8_t *buf, int64_t size)
       SG_PORT_U8_AHEAD(self) = EOF;
       offset++;
     }
-    result = SG_PORT_FILE(self)->read(SG_PORT_FILE(self), buf + offset, size - offset);
+    result = SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self),
+					     buf + offset, size - offset);
     /* we also need to add offset to forward position. */
     result += offset;
   }
@@ -556,7 +558,7 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
   SgBinaryPort *bport = SG_BINARY_PORT(self);
   SgFile *file = SG_PORT_FILE(self);
 
-  rest_size = file->size(file) - bport->position;
+  rest_size = SG_FILE_VTABLE(file)->size(file) - bport->position;
   if (rest_size < 0) return 0;
 
   /* if file is pipe or fd, file->size method returns 0, however we know,
@@ -573,7 +575,7 @@ static int64_t file_read_u8_all(SgObject self, uint8_t **buf)
       dest[offset++] = SG_PORT_U8_AHEAD(self);
       SG_PORT_U8_AHEAD(self) = EOF;
     }
-    result = file->read(file, dest + offset, rest_size - offset);
+    result = SG_FILE_VTABLE(file)->read(file, dest+offset, rest_size-offset);
     result += offset;
   }
   file_forward_position(self, result);
@@ -594,12 +596,12 @@ static int file_unlock(SgObject self)
 
 static int file_has_port_position(SgObject self)
 {
-  return SG_BINARY_PORT(self)->src.file->tell != NULL;
+  return SG_PORT_FILE_VTABLE(self)->tell != NULL;
 }
 
 static int file_has_set_port_position(SgObject self)
 {
-  return SG_BINARY_PORT(self)->src.file->seek != NULL;
+  return SG_PORT_FILE_VTABLE(self)->seek != NULL;
 }
 
 static int64_t file_port_position(SgObject self, Whence whence)
@@ -608,8 +610,8 @@ static int64_t file_port_position(SgObject self, Whence whence)
   if (bp->buffer) {
     return bp->position;
   } else {
-    if (bp->src.file->tell) {
-      return bp->src.file->tell(bp->src.file);
+    if (SG_FILE_VTABLE(bp->src.file)->tell) {
+      return SG_FILE_VTABLE(bp->src.file)->tell(bp->src.file);
     } else {
       Sg_Error(UC("given file binary port does not support port-position"));
       return 0;
@@ -626,8 +628,8 @@ static void input_file_set_port_position(SgObject self, int64_t offset,
 					 Whence whence)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  if (bp->src.file->seek) {
-    bp->src.file->seek(bp->src.file, offset, whence);
+  if (SG_FILE_VTABLE(bp->src.file)->seek) {
+    SG_FILE_VTABLE(bp->src.file)->seek(bp->src.file, offset, whence);
     bp->position = offset;
     /* let buffer filled once position is changed... */
     bp->bufferIndex = 0;
@@ -658,7 +660,8 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v,
       write_size += size_diff;
     } else {
       if (opos == 0LL) {
-	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+	opos = SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), 0,
+					       SG_CURRENT);
       }
       memcpy64(bp->buffer + bp->bufferIndex,v + write_size, buf_diff);
       bp->bufferIndex += buf_diff;
@@ -668,7 +671,7 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v,
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
-    SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
+    SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
   }
   return write_size;
 }
@@ -688,7 +691,8 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
     int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
     if (buf_diff == 0) {
       if (opos == 0LL) {
-	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+	opos = SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), 0,
+					       SG_CURRENT);
       }
       file_flush_internal(self);
       need_unwind = TRUE;
@@ -706,14 +710,15 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
 	write_size++;
       }
       if (opos == 0LL) {
-	opos = SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), 0, SG_CURRENT);
+	opos = SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), 0,
+					       SG_CURRENT);
       }
       file_flush_internal(self);
       need_unwind = TRUE;
     }
   }
   if (need_unwind && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
-    SG_PORT_FILE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
+    SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), opos, SG_BEGIN);
   }
   return write_size;
 }
@@ -722,11 +727,12 @@ static int64_t file_put_u8_array(SgObject self, uint8_t *v, int64_t size)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
   if (bp->buffer) {
-    int64_t written_size = SG_BINARY_PORT_VTABLE(bp)->bufferWriter(self, v, size);
+    int64_t written_size = 
+      SG_BINARY_PORT_VTABLE(bp)->bufferWriter(self, v, size);
     file_forward_position(self, written_size);
     return written_size;
   } else {
-    return SG_PORT_FILE(self)->write(SG_PORT_FILE(self), v, size);
+    return SG_PORT_FILE_VTABLE(self)->write(SG_PORT_FILE(self), v, size);
   }
 }
 
@@ -782,7 +788,7 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
   /* file must be opened before this method is called. */
-  ASSERT(file->isOpen(file));
+  ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
 
   INIT_FILE_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &fb_inputs;
@@ -820,7 +826,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
   /* file must be opened before this method is called. */
-  ASSERT(file->isOpen(file));
+  ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
 
   INIT_FILE_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &fb_outputs;
@@ -861,7 +867,7 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
   /* file must be opened before this method is called. */
-  ASSERT(file->isOpen(file));
+  ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
 
   INIT_FILE_PORT_COMMON(z);
   SG_PORT_VTABLE(z) = &fb_in_outputs;

@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * main.c
+/* main.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -393,8 +391,8 @@ int main(int argc, char **argv)
     }
     case 'p':
       {
-	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)),
-				   SG_CREATE | SG_WRITE | SG_TRUNCATE);
+	SgObject log = SG_OPEN_FILE(SG_STRING(Sg_MakeStringC(optarg)),
+				    SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {
 	  Sg_Warn(UC("given log file could not open. log port was not set!"));

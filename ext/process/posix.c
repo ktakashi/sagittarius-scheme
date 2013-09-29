@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * posix.c
+/* posix.c                                       -*- mode: c; coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -116,9 +114,9 @@ static int process_call(SgProcess *process, int waitP)
     close(pipe2[1]);
     process->handle = (uintptr_t)pid;
 
-    in = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
-    out = SG_FILE(Sg_MakeFileFromFD(pipe1[0]));
-    err = SG_FILE(Sg_MakeFileFromFD(pipe2[0]));
+    in = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe0[1]));
+    out = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe1[0]));
+    err = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe2[0]));
     in->name = UC("process-stdin");
     out->name = UC("process-stdout");
     err->name = UC("process-stderr");

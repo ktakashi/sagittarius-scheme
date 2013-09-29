@@ -10078,7 +10078,7 @@ if (SG_UNBOUNDP(mode)){{
 mode=(sg__rc.d5[372]);}}
 
 #line 2210 "./null.stub"
-{SgObject fo=Sg_OpenFile(file,SG_READ);int bufferMode=SG_BUFMODE_BLOCK;
+{SgObject fo=SG_OPEN_FILE(file,SG_READ);int bufferMode=SG_BUFMODE_BLOCK;
 #line 2212 "./null.stub"
 if ((!(SG_FILEP(fo)))){{
 Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,sg__rc.d5[424],fo,file,SG_UNDEF);}}
@@ -11182,7 +11182,7 @@ if (SG_FALSEP(option)){
 if (isFileExist){
 {Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR,sg__rc.d5[467],SG_MAKE_STRING("file already exists"),file,SG_UNDEF);return (SG_UNDEF);}}
 #line 2543 "./null.stub"
-fo=(Sg_OpenFile(file,openFlags));
+fo=(SG_OPEN_FILE(file,openFlags));
 if ((!(SG_FILEP(fo)))){{
 Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,sg__rc.d5[467],fo,file,SG_UNDEF);}}
 #line 2548 "./null.stub"
@@ -11219,7 +11219,7 @@ if (isFileExist){
 {Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR,sg__rc.d5[467],SG_MAKE_STRING("file-options no-truncate: file already exist"),file,SG_UNDEF);return (SG_UNDEF);}} else {
 #line 2581 "./null.stub"
 openFlags=((SG_TRUNCATE)|(openFlags));}}
-fo=(Sg_OpenFile(file,openFlags));
+fo=(SG_OPEN_FILE(file,openFlags));
 if ((!(SG_FILEP(fo)))){{
 Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,sg__rc.d5[467],fo,file,SG_UNDEF);}}
 #line 2586 "./null.stub"
@@ -11787,7 +11787,7 @@ if (SG_FALSEP(option)){
 if (isFileExist){
 {Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR,sg__rc.d5[495],SG_MAKE_STRING("file already exists"),file,SG_UNDEF);return (SG_UNDEF);}}
 #line 2704 "./null.stub"
-fo=(Sg_OpenFile(file,openFlags));
+fo=(SG_OPEN_FILE(file,openFlags));
 if ((!(SG_FILEP(fo)))){{
 Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,sg__rc.d5[495],fo,file,SG_UNDEF);}}
 #line 2708 "./null.stub"
@@ -11824,7 +11824,7 @@ if (isFileExist){
 {Sg_IOError(SG_IO_FILE_ALREADY_EXIST_ERROR,sg__rc.d5[495],SG_MAKE_STRING("file-options no-truncate: file already exist"),file,SG_UNDEF);return (SG_UNDEF);}} else {
 #line 2741 "./null.stub"
 openFlags=((SG_TRUNCATE)|(openFlags));}}
-fo=(Sg_OpenFile(file,openFlags));
+fo=(SG_OPEN_FILE(file,openFlags));
 if ((!(SG_FILEP(fo)))){{
 Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,sg__rc.d5[495],fo,file,SG_UNDEF);}}
 #line 2746 "./null.stub"

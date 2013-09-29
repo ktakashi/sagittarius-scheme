@@ -1,8 +1,6 @@
-/* -*- mode: c; coding: utf-8; -*- */
-/*
- * odbc.h
+/* odbc.h                                        -*- mode: c; coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -405,7 +403,7 @@ static int blob_is_open(SgObject self)
   return data->openP;
 }
 
-static int blob_open(SgObject self, const SgChar *path, int flags)
+static int blob_open(SgObject self, SgString *path, int flags)
 {
   return TRUE;
 }
@@ -426,23 +424,24 @@ static int blob_ready(SgObject self)
   return TRUE;
 }
 
+static SgFileTable vtable = {
+  blob_read,
+  NULL,
+  NULL,
+  NULL,
+  blob_size,
+  blob_is_open,
+  blob_open,
+  blob_close,
+  blob_can_close,
+  blob_ready
+};
+
+
 static SgFile * make_blob_file(blob_data_t *data)
 {
-  SgFile *z = SG_NEW(SgFile);
-  SG_SET_CLASS(z, SG_CLASS_FILE);
-  /* For now only supports input  */
-  z->osdependance = (void *)data;
-  z->name = UC("odbc-blob");
-  z->read = blob_read;
-  z->write = NULL;
-  z->seek = NULL;
-  z->tell = NULL;
-  z->size = blob_size;
-  z->isOpen = blob_is_open;
-  z->open = blob_open;
-  z->close = blob_close;
-  z->canClose = blob_can_close;
-  z->ready = blob_ready;
+  SgFile *z = SG_FILE(Sg_MakeCustomFile((void *)data, &vtable));
+  SG_FILE_NAME(z) = UC("odbc-blob");
   return z;
 }
 

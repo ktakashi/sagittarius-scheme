@@ -2207,7 +2207,7 @@
     ;; we can ignore option
     (when (SG_UNBOUNDP mode)
       (set! mode 'block))
-    (let ((fo (Sg_OpenFile file SG_READ))
+    (let ((fo (SG_OPEN_FILE file SG_READ))
 	  (bufferMode::int SG_BUFMODE_BLOCK))
       (unless (SG_FILEP fo)
 	(Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
@@ -2540,7 +2540,7 @@
 	     (if isFileExist
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				  'open-file-output-port "file already exists" file))
-	     (set! fo (Sg_OpenFile file openFlags))
+	     (set! fo (SG_OPEN_FILE file openFlags))
 	     (unless (SG_FILEP fo)
 	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			   'open-file-output-port
@@ -2579,7 +2579,7 @@
 			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 					   'open-file-output-port "file-options no-truncate: file already exist" file)
 			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
-	       (set! fo (Sg_OpenFile file openFlags))
+	       (set! fo (SG_OPEN_FILE file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-output-port fo file SG_UNDEF))
@@ -2701,7 +2701,7 @@
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				  'open-file-input/output-port
 				  "file already exists" file))
-	     (set! fo (Sg_OpenFile file openFlags))
+	     (set! fo (SG_OPEN_FILE file openFlags))
 	     (unless (SG_FILEP fo)
 	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			   'open-file-input/output-port fo file SG_UNDEF))
@@ -2739,7 +2739,7 @@
 			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 					   'open-file-input/output-port "file-options no-truncate: file already exist" file)
 			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
-	       (set! fo (Sg_OpenFile file openFlags))
+	       (set! fo (SG_OPEN_FILE file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-input/output-port fo file SG_UNDEF))

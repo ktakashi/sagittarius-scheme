@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * file.c
+/*  file.c                                         -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -184,11 +182,11 @@ static int win_is_open(SgObject self)
 
 #include "win_util.c"
 
-static int win_open_ex(SgObject self, SgString *path, int flags)
+static int win_open(SgObject self, SgString *path, int flags)
 {
   SgFile *file = SG_FILE(self);
   file->name = path->value;
-  if (file->isOpen(file)) {
+  if (SG_FILE_VTABLE(file)->isOpen(file)) {
     return FALSE;
   } else {
     DWORD access = 0, disposition = 0;
@@ -223,19 +221,14 @@ static int win_open_ex(SgObject self, SgString *path, int flags)
 				    disposition, FILE_ATTRIBUTE_NORMAL, NULL);
   }
   setLastError(file);
-  return file->isOpen(file);
-}
-
-static int win_open(SgObject self, const SgChar* path, int flags)
-{
-  return win_open_ex(self, Sg_String(path), flags);
+  return SG_FILE_VTABLE(file)->isOpen(file);
 }
 
 static int win_close(SgObject self)
 {
   SgFile *file = SG_FILE(self);
   FlushFileBuffers(SG_FD(file)->desc);
-  if (file->isOpen(file)
+  if (SG_FILE_VTABLE(file)->isOpen(file)
       && !(SG_FD(file)->desc == GetStdHandle(STD_OUTPUT_HANDLE)
 	   || SG_FD(file)->desc == GetStdHandle(STD_INPUT_HANDLE)
 	   || SG_FD(file)->desc == GetStdHandle(STD_ERROR_HANDLE))) {
@@ -250,7 +243,7 @@ static int win_close(SgObject self)
 static int win_can_close(SgObject self)
 {
   SgFile *file = SG_FILE(self);
-  return (file->isOpen(file)
+  return (SG_FILE_VTABLE(file)->isOpen(file)
 	  && !(SG_FD(file)->desc == GetStdHandle(STD_OUTPUT_HANDLE)
 	       || SG_FD(file)->desc == GetStdHandle(STD_INPUT_HANDLE)
 	       || SG_FD(file)->desc == GetStdHandle(STD_ERROR_HANDLE)));
@@ -306,6 +299,19 @@ static int win_ready(SgObject self)
   }
 }
 
+static SgFileTable vtable = {
+  win_read,
+  win_write,
+  win_seek,
+  win_tell,
+  win_size,
+  win_is_open,
+  win_open,
+  win_close,
+  win_can_close,
+  win_ready
+};
+
 static SgFile* make_file(HANDLE hd)
 {
   SgFile *z = SG_NEW(SgFile);
@@ -315,33 +321,19 @@ static SgFile* make_file(HANDLE hd)
   depend->lastError = 0;
   depend->prevChar = -1;
   z->osdependance = (void*)depend;
-  z->read = win_read;
-  z->write = win_write;
-  z->seek = win_seek;
-  z->tell = win_tell;
-  z->size = win_size;
-  z->isOpen = win_is_open;
-  z->open = win_open;
-  z->close = win_close;
-  z->canClose = win_can_close;
-  z->ready = win_ready;
   return z;
 }
 
 SgObject Sg_MakeFile()
 {
   SgFile *z = make_file(INVALID_HANDLE_VALUE);
+  SG_FILE_VTABLE(z) = &vtable;
   return SG_OBJ(z);
 }
 
-SgObject Sg_OpenFile(SgString *file, int flags)
+SgObject Sg_FileErrorMessage(SgObject file)
 {
-  SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  win_open_ex(z, file, flags);
-  if (!win_is_open(z)) {
-    return get_last_error(SG_FD(z)->lastError);
-  }
-  return SG_OBJ(z);
+  return get_last_error(SG_FD(file)->lastError);
 }
 
 int Sg_LockFile(SgObject file, enum SgFileLockType mode)
@@ -387,7 +379,7 @@ static SgFile *stdError = NULL;
 SgObject Sg_StandardOut()
 {
   if (!stdOut) {
-    stdOut = make_file(GetStdHandle(STD_OUTPUT_HANDLE));
+    stdOut = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_OUTPUT_HANDLE));
     stdOut->name = UC("stdout");
   }
   return SG_OBJ(stdOut);
@@ -396,7 +388,7 @@ SgObject Sg_StandardOut()
 SgObject Sg_StandardIn()
 {
   if (!stdIn) {
-    stdIn = make_file(GetStdHandle(STD_INPUT_HANDLE));
+    stdIn = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_INPUT_HANDLE));
     stdIn->name = UC("stdin");
   }
   return SG_OBJ(stdIn);
@@ -405,7 +397,7 @@ SgObject Sg_StandardIn()
 SgObject Sg_StandardError()
 {
   if (!stdError) {
-    stdError = make_file(GetStdHandle(STD_ERROR_HANDLE));
+    stdError = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_ERROR_HANDLE));
     stdError->name = UC("stderr");
   }
   return SG_OBJ(stdError);
@@ -415,6 +407,7 @@ SgObject Sg_MakeFileFromFD(uintptr_t handle)
 {
   SgFile * f = make_file((HANDLE)handle);
   f->name = UC("fd");
+  SG_FILE_VTABLE(f) = &vtable;
   return SG_OBJ(f);
 }
 

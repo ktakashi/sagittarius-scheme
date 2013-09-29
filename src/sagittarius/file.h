@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * file.h
+/* file.h                                         -*- mode:c; coding:utf-8; -*- 
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2012  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -45,11 +43,8 @@ enum OpenMode {
 SG_CLASS_DECL(Sg_FileClass);
 #define SG_CLASS_FILE (&Sg_FileClass)
 
-struct SgFileRec
+typedef struct SgFileTableRec
 {
-  SG_HEADER;
-  void         *osdependance; /* this will be defined in os depends file */
-  const SgChar *name;	    /* file name */
   /* read contents */
   int64_t (*read)(SgObject self, uint8_t *buf, int64_t size);
   /* write buffer to file */
@@ -58,14 +53,25 @@ struct SgFileRec
   int64_t (*tell)(SgObject self);
   int64_t (*size)(SgObject self);
   int     (*isOpen)(SgObject self);
-  int     (*open)(SgObject self, const SgChar* path, int flags);
+  int     (*open)(SgObject self, SgString *path, int flags);
   int     (*close)(SgObject self);
   int     (*canClose)(SgObject self); /* for port close */
   int     (*ready)(SgObject self);
+} SgFileTable;
+
+struct SgFileRec
+{
+  SG_HEADER;
+  void         *osdependance; /* this will be defined in os depends file */
+  const SgChar *name;	    /* file name */
+  SgFileTable  *vtbl;
 };
 
 #define SG_FILEP(obj) SG_XTYPEP(obj, SG_CLASS_FILE)
 #define SG_FILE(obj)  ((SgFile*)obj)
+
+#define SG_FILE_NAME(obj)   (SG_FILE(obj)->name)
+#define SG_FILE_VTABLE(obj) (SG_FILE(obj)->vtbl)
 
 enum SgGlobFlags {
   SG_DOTMATCH = 1 << 0,
@@ -80,15 +86,18 @@ enum SgFileLockType {
   SG_DONT_WAIT = 1U << 2
 };
 
+#define SG_MAKE_FILE()           Sg_MakeFile()
+#define SG_MAKE_FILE_FROM_FD(fd) Sg_MakeFileFromFD((uintptr_t)(fd))
+#define SG_OPEN_FILE(p, f)       Sg_OpenFile((p), (f))
+
 SG_CDECL_BEGIN
 
-/**
-   @deprecated use Sg_OpenFile
- */
 SG_EXTERN SgObject Sg_MakeFile();
 SG_EXTERN SgObject Sg_MakeFileFromFD(uintptr_t handle);
-SG_EXTERN SgObject Sg_OpenFile(SgString *file, int flags);
+SG_EXTERN SgObject Sg_MakeCustomFile(void *data, SgFileTable *vtbl);
+SG_EXTERN SgObject Sg_OpenFile(SgString *path, int flags);
 SG_EXTERN int      Sg_CloseFile(SgObject file);
+SG_EXTERN SgObject Sg_FileErrorMessage(SgObject file);
 SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
 SG_EXTERN int      Sg_UnlockFile(SgObject file);
 

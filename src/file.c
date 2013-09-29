@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * file.c
+/* file.c                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -49,9 +47,28 @@ static void file_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FileClass, file_print);
 
+SgObject Sg_OpenFile(SgString *file, int flags)
+{  
+  SgObject z = Sg_MakeFile();
+  if (!SG_FILE_VTABLE(z)->open(z, file, flags)){
+    SgObject err = Sg_FileErrorMessage(z);
+    return err;
+  }
+  return z;
+}
+
 int Sg_CloseFile(SgObject file)
 {
-  return SG_FILE(file)->close(file);
+  return SG_FILE_VTABLE(file)->close(file);
+}
+
+SgObject Sg_MakeCustomFile(void *data, SgFileTable *vtbl)
+{
+  SgFile *z = SG_NEW(SgFile);
+  SG_SET_CLASS(z, SG_CLASS_FILE);
+  z->osdependance = data;
+  SG_FILE_VTABLE(z) = vtbl;
+  return SG_OBJ(z);
 }
 
 SgObject Sg_FindFile(SgString *path, SgObject loadPaths,

@@ -124,14 +124,15 @@ SgObject Sg_VMLoad(SgString *path)
     path = realPath;
   }
 
-  file = Sg_OpenFile(path, SG_READ);
+  file = SG_OPEN_FILE(path, SG_READ);
   if (!SG_FILEP(file)) {
     /* file is error message */
     Sg_Error(UC("given file was not able to open. %S\n"
 		"%A"), path, file);
   }
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
-  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), SG_TRANSCODER(Sg_MakeNativeTranscoder()));
+  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport),
+				     SG_TRANSCODER(Sg_MakeNativeTranscoder()));
   
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; loading %S\n"), path);

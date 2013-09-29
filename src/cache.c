@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * cache.c
+/* cache.c                                        -*- mode:c; coding:utf-8; -*- 
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -898,13 +896,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 			      ";;         cache=%A\n"), id, cache_path);
   }
 
-  file = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  file = SG_OPEN_FILE(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   /* lock file */
   if (!Sg_LockFile(file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
     /* if locking file fails means there is a already process running to write
        this cache file and there is no reason to re-do this since cache file
        will be the same for the same cache. So just return. */
-    SG_FILE(file)->close(file);
+    Sg_CloseFile(file);
     return TRUE;
   }
   out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
@@ -923,7 +921,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   timestamp = Sg_FileModifyTime(cache_path);
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  tagfile = Sg_OpenFile(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  tagfile = SG_OPEN_FILE(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   /* Sg_LockFile(tagfile, SG_EXCLUSIVE); */
   out = Sg_MakeFileBinaryOutputPort(tagfile, SG_BUFMODE_BLOCK);
   /* put validate tag */
@@ -1603,27 +1601,27 @@ int Sg_ReadCache(SgString *id)
     return RE_CACHE_NEEDED;
   }
 
-  file = Sg_OpenFile(timestamp, SG_READ);
+  file = SG_OPEN_FILE(timestamp, SG_READ);
   Sg_LockFile(file, SG_SHARED);
   /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
   /* size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50); */
-  size = SG_FILE(file)->read(file, (uint8_t *)tagbuf, 50);
+  size = SG_FILE_VTABLE(file)->read(file, (uint8_t *)tagbuf, 50);
   Sg_UnlockFile(file);
-  SG_FILE(file)->close(file);
+  Sg_CloseFile(file);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     return RE_CACHE_NEEDED;
   }
   /* end check timestamp */
 
-  file = Sg_OpenFile(cache_path, SG_READ);
+  file = SG_OPEN_FILE(cache_path, SG_READ);
   Sg_LockFile(file, SG_SHARED);
   /* to save some memory, use raw file operations */
-  size = SG_FILE(file)->size(file);
+  size = SG_FILE_VTABLE(file)->size(file);
   alldata = Sg_MakeByteVector((int)size, 0);
-  SG_FILE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
+  SG_FILE_VTABLE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
   Sg_UnlockFile(file);
-  SG_FILE(file)->close(file);
+  Sg_CloseFile(file);
   in = Sg_MakeByteVectorInputPort(alldata, 0);
 
   /* buffer mode none can be a little bit better performance to read all. */
