@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}/bin
+libdir=@SAGITTARIUS_DYNLIB_PATH@
+includedir=${prefix}/@SAGITTARIUS_CURRENT_LIB@/include
+
+Name: Sagittarius Scheme
+Description: Sagittarius Scheme C extension library
+Version: @SAGITTARIUS_VERSION@
+Libs: -L${libdir} -lsagittarius
+Cflags: -I${includedir}

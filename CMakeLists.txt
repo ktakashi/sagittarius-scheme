@@ -477,6 +477,18 @@ INSTALL(FILES ${PROJECT_BINARY_DIR}/sagittarius/config.h
 INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/src/sagittarius
   DESTINATION "${SAGITTARIUS_CURRENT_LIB}/include")
 
+IF (NOT WIN32)
+  # create pc file
+  CONFIGURE_FILE(cmake/sagittarius.pc.in
+    ${PROJECT_BINARY_DIR}/sagittarius.pc @ONLY)
+  CONFIGURE_FILE(cmake/sagittarius.pc.in
+    ${PROJECT_BINARY_DIR}/sagittarius-${SAGITTARIUS_VERSION}.pc @ONLY)
+  INSTALL(FILES ${PROJECT_BINARY_DIR}/sagittarius.pc
+    DESTINATION lib/pkgconfig)
+  INSTALL(FILES ${PROJECT_BINARY_DIR}/sagittarius-${SAGITTARIUS_VERSION}.pc
+    DESTINATION lib/pkgconfig)
+ENDIF()
+
 # config, package so on
 INSTALL(FILES ${PROJECT_BINARY_DIR}/sagittarius-config
   DESTINATION bin
@@ -618,7 +630,7 @@ MESSAGE("!! command prompt, run \\cygwin\\bin\\ash (the actual path may differ  
 MESSAGE("!! depending on how you install cygwin), cd to your build directory,    !!")
 MESSAGE("!! then run the above command.)                                         !!")
 MESSAGE("!! See http://www.tishler.net/jason/software/rebase/rebase-2.4.2.README !!")
-MESSAGE("!! for more details.                                                    !!")
+message("!! for more details.                                                    !!")
 MESSAGE("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 ADD_CUSTOM_TARGET(rebase COMMAND /bin/sh rebase.sh)
