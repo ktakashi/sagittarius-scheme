@@ -2,7 +2,7 @@
 /*
  * symbol.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -87,8 +87,8 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
   if (SG_LITERAL_STRINGP(name)) {
     sname = name;
   } else {
-    sname = Sg_MakeStringEx(SG_STRING_VALUE(name),
-			    SG_LITERAL_STRING, SG_STRING_SIZE(name));
+    sname = Sg_MakeString(SG_STRING_VALUE(name),
+			  SG_LITERAL_STRING, SG_STRING_SIZE(name));
   }
   sym = make_symbol(sname, interned);
   if (!interned) return SG_OBJ(sym);
@@ -138,7 +138,7 @@ void Sg__InitSymbol()
 {
   Sg_InitMutex(&obtable_mutax, FALSE);
   obtable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 4096));
-  default_prefix = SG_STRING(Sg_MakeString(UC("G"), SG_LITERAL_STRING));
+  default_prefix = SG_MAKE_STRING("G");
   init_builtin_symbols();
 }
 

@@ -2,7 +2,7 @@
 /*
  * number.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -343,8 +343,8 @@ static SgObject number_read_error(const SgChar *msg,
 				  struct numread_packet *context)
 {
   if (context->strict) {
-    Sg_Error(UC("bad number format (%s): %A"), msg,
-	     Sg_MakeString(context->buffer, SG_HEAP_STRING));
+    Sg_Error(UC("bad number format (%s): %A"), msg, 
+	     Sg_HeapString(context->buffer));
   }
   return SG_FALSE;
 }

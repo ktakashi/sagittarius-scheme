@@ -1,6 +1,6 @@
 /* clos.c                                                 -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -1387,7 +1387,7 @@ SgObject Sg_MakeBaseGeneric(SgObject name,
 
 void Sg_InitBuiltinGeneric(SgGeneric *gf, const SgChar *name, SgLibrary *lib)
 {
-  SgObject s = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
+  SgObject s = Sg_Intern(Sg_String(name));
   SG_PROCEDURE_NAME(gf) = s;
   if (gf->fallback == NULL) {
     gf->fallback = Sg_NoNextMethod;
@@ -1657,7 +1657,7 @@ static void init_class(SgClass *klass, const SgChar *name,
   initialize_builtin_cpl(klass, supers);
 
   if (name && lib) {
-    klass->name = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
+    klass->name = Sg_Intern(Sg_String(name));
     Sg_InsertBinding(lib, SG_SYMBOL(klass->name), SG_OBJ(klass));
   }
 
@@ -1715,7 +1715,7 @@ static SgClass* make_implicit_meta(const SgChar *name, SgClass **cpa,
 				   SgLibrary *lib)
 {
   SgClass *meta = (SgClass*)class_allocate(SG_CLASS_CLASS, SG_NIL);
-  SgObject s = Sg_Intern(Sg_MakeString(name, SG_LITERAL_STRING));
+  SgObject s = Sg_Intern(Sg_String(name));
   static SgClass *metacpa[] = {
     SG_CLASS_CLASS,
     SG_CLASS_OBJECT,

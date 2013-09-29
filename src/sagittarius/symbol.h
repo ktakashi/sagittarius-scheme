@@ -2,7 +2,7 @@
 /*
  * symbol.h
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -74,7 +74,7 @@ SG_EXTERN SgObject Sg_MakeSymbol(SgString *name, int interned);
 SG_EXTERN SgObject Sg_Gensym(SgString *prefix);
 
 #define Sg_Intern(name) SG_SYMBOL(Sg_MakeSymbol(SG_STRING(name), TRUE))
-#define SG_INTERN(cstr) Sg_Intern(SG_STRING(Sg_MakeString(UC(cstr), SG_LITERAL_STRING)))
+#define SG_INTERN(cstr) Sg_Intern(SG_MAKE_STRING(cstr))
 
 SG_CDECL_END
 

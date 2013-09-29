@@ -88,7 +88,7 @@ SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 
 static int get_env(const SgChar *env, wchar_t *buf, int size)
 {
-  SgString *s = Sg_MakeString(env, SG_HEAP_STRING);
+  SgString *s = Sg_HeapString(env, SG_HEAP_STRING);
   int envsize = GetEnvironmentVariableW(utf32ToUtf16(s), buf, size);
   if (envsize == 0) return -1;
   else if (envsize > size) {
@@ -120,8 +120,8 @@ SgObject Sg_Getenv(const SgChar *env)
 
 void Sg_Setenv(const SgChar *env, const SgChar *value)
 {
-  SgString *s = Sg_MakeString(env, SG_HEAP_STRING);
-  SgString *v = Sg_MakeString(value, SG_HEAP_STRING);
+  SgString *s = Sg_HeapString(env);
+  SgString *v = Sg_HeapString(value);
   SetEnvironmentVariableW(utf32ToUtf16(s), 
 			  (value) ? utf32ToUtf16(v) : NULL);
 }

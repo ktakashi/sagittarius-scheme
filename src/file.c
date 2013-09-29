@@ -2,7 +2,7 @@
 /*
  * file.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -59,7 +59,7 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
 {
   SgObject dir;
   SgObject realPath;
-  const SgObject sep = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
+  const SgObject sep = Sg_String(Sg_NativeFileSeparator());
   SG_FOR_EACH(dir, loadPaths) {
     if (suffix) {
       realPath = Sg_StringAppend(SG_LIST4(SG_CAR(dir),
@@ -260,7 +260,7 @@ glob_make_pattern(const SgChar *p, const SgChar *e, int flags)
 	  m = m2;
 	}
       }
-      buf = Sg_MakeStringEx(p, SG_HEAP_STRING, m - p);
+      buf = Sg_MakeString(p, SG_HEAP_STRING, m - p);
       tmp->type = magic ? MAGICAL : PLAIN;
       tmp->str = SG_STRING(buf);
       if (*m) {

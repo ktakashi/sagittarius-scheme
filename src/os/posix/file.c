@@ -100,7 +100,7 @@ static int posix_open_ex(SgObject self, SgString *path, int flags)
 
 static int posix_open(SgObject self, const SgChar* path, int flags)
 {
-  return posix_open_ex(self, Sg_MakeString(path, SG_HEAP_STRING), flags);
+  return posix_open_ex(self, Sg_HeapString(path), flags);
 }
 
 static int posix_is_open(SgObject self)

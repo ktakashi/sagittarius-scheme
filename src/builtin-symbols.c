@@ -65,7 +65,7 @@ SgSymbol Sg_BuiltinSymbols[] = {
 };
 static void init_builtin_symbols()
 {
-#define STRING(s)    Sg_MakeString(UC(s), SG_LITERAL_STRING)
+#define STRING(s)    SG_MAKE_STRING(s)
 #define INTERN(s, i) \
   Sg_BuiltinSymbols[i].name = STRING(s); \
   Sg_HashTableSet(obtable, Sg_BuiltinSymbols[i].name, SG_OBJ(&Sg_BuiltinSymbols[i]), 0)

@@ -2,7 +2,7 @@
 /*
  * string.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -175,7 +175,7 @@ static SgHashTable *stable;
 #define ALLOC_TEMP_STRING(var, size) (var) = make_string(size);
 #endif
 
-SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, int length)
+static SgObject makestring(const SgChar *value, SgStringType flag, int length)
 {
   SgObject r;
   SgString *z;
@@ -210,10 +210,14 @@ SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag, int length)
   return r;
 }
 
-SgObject Sg_MakeString(const SgChar *value, SgStringType flag)
+SgObject Sg_MakeString(const SgChar *value, SgStringType flag, int length)
 {
-  int len = (int)ustrlen(value);
-  return Sg_MakeStringEx(value, flag, len);
+  if (length < 0) {
+    int len = (int)ustrlen(value);
+    return makestring(value, flag, len);
+  } else {
+    return makestring(value, flag, length);
+  }
 }
 
 /* This method assumes given value as ASCII for now */
@@ -423,7 +427,7 @@ static SgObject string_scan(SgString *s, const SgChar *ss2,
   int i;
   const SgChar *ss1 = SG_STRING_VALUE(s);
   int size1 = SG_STRING_SIZE(s);
-  const SgObject nullstr = Sg_MakeString(UC(""), SG_LITERAL_STRING);
+  const SgObject nullstr = SG_MAKE_STRING("");
 
   if (retmode < 0 || retmode > SG_STRING_SCAN_BOTH) {
     Sg_Error(UC("return mode out of range' %d"), retmode);

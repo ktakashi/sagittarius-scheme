@@ -2,7 +2,7 @@
 /*
  * system.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -180,7 +180,7 @@ void Sg_YieldCPU()
 
 SgObject Sg_Getenv(const SgChar *env)
 {
-  SgString *s = Sg_MakeString(env, SG_LITERAL_STRING);
+  SgString *s = Sg_String(env);
   char *key = Sg_Utf32sToUtf8s(s);
   const char *value = getenv(key);
   if (value == NULL) return SG_FALSE;
@@ -189,9 +189,9 @@ SgObject Sg_Getenv(const SgChar *env)
 
 void Sg_Setenv(const SgChar *key, const SgChar *value)
 {
-  SgString *keys = Sg_MakeString(key, SG_LITERAL_STRING);
+  SgString *keys = Sg_String(key);
   if (value) {
-    SgString *values = Sg_MakeString(value, SG_LITERAL_STRING);
+    SgString *values = Sg_String(value);
     setenv(Sg_Utf32sToUtf8s(keys), Sg_Utf32sToUtf8s(values), 1);
   } else {
     /* if value was NULL, remove it */

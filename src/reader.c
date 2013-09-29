@@ -453,7 +453,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
       } else {
 	SgObject s;
 	buf[i] = 0;
-	s = Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
+	s = Sg_MakeString(buf, SG_LITERAL_STRING, i);
 	if (table->insensitiveP) {
 	  s = Sg_StringFoldCase(SG_STRING(s));
 	}
@@ -712,7 +712,7 @@ SgObject read_double_quote(SgPort *port, SgChar c, SgReadContext *ctx)
 	return Sg_GetStringFromStringPort(out);
       } else {
 	buf[i] = 0;
-	return Sg_MakeStringEx(buf, SG_LITERAL_STRING, i);
+	return Sg_MakeString(buf, SG_LITERAL_STRING, i);
       }
     }
     if (c == '\\') {
@@ -810,7 +810,7 @@ static SgObject read_quoted_symbol(SgPort *port, SgReadContext *ctx,
       SgChar *real = SG_NEW_ATOMIC2(SgChar *, (i + 1) * sizeof(SgChar));
       buf[i] = 0;
       memcpy(real, buf, (i + 1) * sizeof(SgChar));
-      return Sg_MakeSymbol(Sg_MakeStringEx(real, SG_LITERAL_STRING, i),
+      return Sg_MakeSymbol(Sg_MakeString(real, SG_LITERAL_STRING, i),
 			   interned);
     }
     if (c == '\\') {
@@ -841,7 +841,7 @@ SgObject read_colon(SgPort *port, SgChar c, SgReadContext *ctx)
     Sg_UngetcUnsafe(port, c2);
     size = read_thing(port, ctx, buf, array_sizeof(buf), -1);
     buf[size] = 0;
-    return Sg_MakeKeyword(Sg_MakeStringEx(buf, SG_LITERAL_STRING, size));
+    return Sg_MakeKeyword(Sg_MakeString(buf, SG_LITERAL_STRING, size));
   }
 }
 
@@ -1212,7 +1212,7 @@ static SgObject read_prefixed_number(SgChar initial, SgPort *port,
     initial = Sg_GetcUnsafe(port);
   }
   read_thing(port, ctx, buf + offset, array_sizeof(buf) - offset, initial);
-  str = Sg_MakeString(buf, SG_HEAP_STRING);
+  str = Sg_HeapString(buf);
   num = Sg_StringToNumber(str, 10, TRUE);
   if (SG_FALSEP(num)) {
     lexical_error(port, ctx,

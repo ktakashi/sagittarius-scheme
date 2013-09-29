@@ -2,7 +2,7 @@
 /*
  * writer.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -304,8 +304,7 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
   if (nparams > 3 && SG_INTP(params[3])) commainterval = SG_INT_VALUE(params[3]);
   str = Sg_NumberToString(arg, radix, use_upper);
   if (alwayssign && SG_STRING_VALUE_AT(str, 0) != '-') {
-    str = Sg_StringAppend2(Sg_MakeString(UC("+"), SG_LITERAL_STRING),
-			   str);
+    str = Sg_StringAppend2(SG_MAKE_STRING("+"), str);
   }
   if (delimited && commainterval) {
     int i;
@@ -342,10 +341,10 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
   SgObject arg;
   SgPort *fmtstr = SG_PORT(Sg_MakeStringInputPort(fmt, FALSE));
   int backtracked = FALSE;
-  int arglen, argcount;
+  int /* arglen, */ argcount;
   SgWriteContext sctx, actx;	/* context for ~s and ~a */
 
-  arglen = Sg_Length(args);
+  /* arglen = Sg_Length(args); */
   argcount = 0;
 
   sctx.mode = SG_WRITE_WRITE;
@@ -1249,7 +1248,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
 	  SgChar *value = va_arg(sp, SgChar*);
 	  /* for safety */
 	  if (value != NULL) {
-	    SG_APPEND1(h, t, Sg_MakeString(value, SG_HEAP_STRING));
+	    SG_APPEND1(h, t, Sg_HeapString(value));
 	  } else {
 	    SG_APPEND1(h, t, SG_MAKE_STRING("(null)"));
 	  }

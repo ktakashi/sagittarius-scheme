@@ -390,7 +390,7 @@ void Sg_TranscoderPutc(SgObject self, SgPort *tport, SgChar c)
       SgObject i = SG_MAKE_INT(0);					\
       volatile int __prev = TRUE;					\
       if (!(new_s)) {							\
-	(new_s) = Sg_MakeString(s, SG_LITERAL_STRING);			\
+	(new_s) = Sg_String(s);						\
       }									\
       SAVE_CLOSED(p, __prev);						\
       SG_UNWIND_PROTECT {						\

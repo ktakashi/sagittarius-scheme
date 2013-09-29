@@ -1987,7 +1987,7 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
 {
   static const SgObject start = SG_MAKE_INT(0);
   static const SgObject count = SG_MAKE_INT(1);
-  SgObject s = Sg_MakeString(UC(" "), SG_HEAP_STRING);
+  SgObject s = Sg_HeapString(UC(" "));
   SgObject result;
   SG_STRING_VALUE_AT(s, 0) = ch;
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
@@ -2597,7 +2597,7 @@ SgObject Sg_FileName(SgPort *port)
     }
   }
   if (file != NULL) {
-    return Sg_MakeString(file->name, SG_LITERAL_STRING);
+    return Sg_String(file->name);
   }
 
   return SG_FALSE;

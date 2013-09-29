@@ -2,7 +2,7 @@
 /*
  * record.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -275,7 +275,7 @@ SgObject Sg_MakeRecordConstructorDescriptor(SgObject rtd, SgObject parent, SgObj
   if (!SG_FALSEP(parent) && RCD_CUSTOMP(parent) &&
       SG_FALSEP(protocol)) {
     Sg_AssertionViolation(SG_INTERN("make-record-constructor-descriptor"),
-			  Sg_MakeString(UC("expected procedure for protocol since parent constructor descriptor have custom one"), SG_LITERAL_STRING),
+			  SG_MAKE_STRING("expected procedure for protocol since parent constructor descriptor have custom one"),
 			  SG_LIST3(rtd, parent, protocol));
   }
   customP = !SG_FALSEP(protocol);
@@ -354,7 +354,7 @@ static SgObject make_predicate_rec(SgObject *args, int argc, void *data)
 SgObject Sg_RecordPredicate(SgObject rtd)
 {
   SgObject subr = Sg_MakeSubr(make_predicate_rec, rtd, 1, 0,
-			      Sg_MakeString(UC("record-predicate"), SG_LITERAL_STRING));
+			      SG_MAKE_STRING("record-predicate"));
   return SG_OBJ(subr);
 }
 
@@ -431,8 +431,9 @@ static SgObject make_mutator_rec(SgObject *args, int argc, void *data)
 SgObject Sg_RecordMutator(SgObject rtd, int k)
 {
   int index = flat_field_offset(rtd, k);
-  SgObject subr = Sg_MakeSubr(make_mutator_rec, Sg_Cons(rtd, SG_MAKE_INT(index)), 2, 0,
-			      Sg_MakeString(UC("record-mutator"), SG_LITERAL_STRING));
+  SgObject subr = Sg_MakeSubr(make_mutator_rec,
+			      Sg_Cons(rtd, SG_MAKE_INT(index)), 2, 0,
+			      SG_MAKE_STRING("record-mutator"));
   return SG_OBJ(subr);
 }
 
@@ -462,7 +463,7 @@ SgObject Sg_RecordRtd(SgObject record)
     return Sg_TupleRef(record, 0, SG_FALSE);
   }
   Sg_AssertionViolation(SG_INTERN("record-rtd"),
-			Sg_MakeString(UC("non-opaque record"), SG_LITERAL_STRING),
+			SG_MAKE_STRING("non-opaque record"),
 			SG_LIST1(record));
   return SG_UNDEF;		/* dummy */
 }

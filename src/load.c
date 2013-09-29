@@ -2,7 +2,7 @@
 /*
  * load.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -434,7 +434,7 @@ void Sg__InitLoad()
 {
   Sg_InitMutex(&load_lock, TRUE);
   Sg_InitMutex(&dso_lock, TRUE);
-  dynldinfo.dso_suffix = Sg_MakeString(UC(SHLIB_SO_SUFFIX), SG_LITERAL_STRING);
+  dynldinfo.dso_suffix = SG_MAKE_STRING(SHLIB_SO_SUFFIX);
   dynldinfo.dso_list = NULL;
 
   Sg_AddCleanupHandler(cleanup_shared_objects, NULL);

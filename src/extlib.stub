@@ -210,14 +210,13 @@
 	  (set! (-> (Sg_VM) parameters) other)
 	  (result SG_UNDEF))))
 
-  (define-c-proc add-dynamic-load-path (path::<string>) ::<top>
-    (result (Sg_AddDynamicLoadPath path)))
+  (define-c-proc add-dynamic-load-path (path::<string>) Sg_AddDynamicLoadPath)
 
-  (define-c-proc load-dynamic-library (name::<string> :optional init) ::<top>
+  (define-c-proc load-dynamic-library (name::<string> :optional init)
     (result (Sg_DynLoad name init 0)))
 
-  (define-c-proc sagittarius-version () ::<top>
-    (result (Sg_MakeString (UC SAGITTARIUS_VERSION) SG_LITERAL_STRING)))
+  (define-c-proc sagittarius-version ()
+    (result (SG_MAKE_STRING SAGITTARIUS_VERSION)))
 
   (define-c-proc report-error (e :optional (out (Sg_CurrentErrorPort))) ::<void>
     Sg_ReportError)

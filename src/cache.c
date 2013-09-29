@@ -2,7 +2,7 @@
 /*
  * cache.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -1067,7 +1067,7 @@ static SgString* read_string(SgPort *in, int length)
   SgChar *buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(length + 1));
   Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(SgChar)*length);
   buf[length] = 0;
-  return Sg_MakeStringEx(buf, SG_LITERAL_STRING, length);
+  return Sg_MakeString(buf, SG_LITERAL_STRING, length);
 }
 
 static SgObject read_symbol(SgPort *in, int internP)
@@ -1732,7 +1732,7 @@ void Sg__InitCache()
   BINIT(SG_CLASS_WRITE_CACHE_CTX, "<write-cache-ctx>");
   BINIT(SG_CLASS_READ_CACHE_CTX, "<read-cache-ctx>");
 
-  SEPARATOR = Sg_MakeString(Sg_NativeFileSeparator(), SG_LITERAL_STRING);
+  SEPARATOR = Sg_String(Sg_NativeFileSeparator());
   CACHE_EXT = SG_MAKE_STRING(".cache");
   TIMESTAMP_EXT = SG_MAKE_STRING(".timestamp");
 }

@@ -2,7 +2,7 @@
 /*
  * file.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -228,7 +228,7 @@ static int win_open_ex(SgObject self, SgString *path, int flags)
 
 static int win_open(SgObject self, const SgChar* path, int flags)
 {
-  return win_open_ex(self, Sg_MakeString(path, SG_LITERAL_STRING), flags);
+  return win_open_ex(self, Sg_String(path), flags);
 }
 
 static int win_close(SgObject self)

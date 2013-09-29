@@ -23,7 +23,7 @@ SgSymbol Sg_BuiltinKeywords[] = {
 };
 static void init_builtin_keywords()
 {
-#define STRING(s)    Sg_MakeString(UC(s), SG_LITERAL_STRING)
+#define STRING(s)    SG_MAKE_STRING(s)
 #define INTERN(s, i) \
   Sg_BuiltinKeywords[i].name = STRING(s); \
   Sg_HashTableSet(keywords.table, Sg_BuiltinKeywords[i].name, SG_OBJ(&Sg_BuiltinKeywords[i]), 0)

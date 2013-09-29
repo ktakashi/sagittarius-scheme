@@ -1,6 +1,6 @@
 /* regex2.c                                               -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -414,7 +414,7 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
        from builtin charset.
      */
     /* does not seem smart solution ... */
-    es = Sg_MakeString(UC("char-set:"), SG_LITERAL_STRING);
+    es = SG_MAKE_STRING("char-set:");
     es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos+2, pos);
     es = Sg_StringDownCase(SG_STRING(es));
     gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
@@ -3120,7 +3120,7 @@ SgObject Sg_RegexGroup(SgMatcher *m, int group)
   /* should matched string be literal? */
   retrive_group(m, group);
   if (!m->submatch[group]) return SG_FALSE;
-  s = SG_STRING(Sg_MakeString(m->submatch[group], SG_HEAP_STRING));
+  s = SG_STRING(Sg_HeapString(m->submatch[group]));
   return s;
 }
 

@@ -36,7 +36,7 @@
   (format out "};~%")
   (format out "static void init_builtin_keywords()~%")
   (format out "{~%")
-  (format out "#define STRING(s)    Sg_MakeString(UC(s), SG_LITERAL_STRING)~%")
+  (format out "#define STRING(s)    SG_MAKE_STRING(s)~%")
   (format out "#define INTERN(s, i) \\~%")
   (format out "  Sg_BuiltinKeywords[i].name = STRING(s); \\~%")
   (format out "  Sg_HashTableSet(keywords.table, Sg_BuiltinKeywords[i].name, SG_OBJ(&Sg_BuiltinKeywords[i]), 0)~%")

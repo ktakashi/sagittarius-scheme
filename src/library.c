@@ -2,7 +2,7 @@
 /*
  * library.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -342,8 +342,7 @@ static SgString* encode_string(SgString *s, int keywordP)
  */
 static SgString* library_name_to_path(SgObject name)
 {
-  const SgObject separator = Sg_MakeString(Sg_NativeFileSeparator(),
-					   SG_LITERAL_STRING);
+  const SgObject separator = Sg_String(Sg_NativeFileSeparator());
   SgObject item;
   /* i'm not sure which is better memory. 
      - create a list and string.

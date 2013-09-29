@@ -36,7 +36,7 @@
   (format out "};~%")
   (format out "static void init_builtin_symbols()~%")
   (format out "{~%")
-  (format out "#define STRING(s)    Sg_MakeString(UC(s), SG_LITERAL_STRING)~%")
+  (format out "#define STRING(s)    SG_MAKE_STRING(s)~%")
   (format out "#define INTERN(s, i) \\~%")
   (format out "  Sg_BuiltinSymbols[i].name = STRING(s); \\~%")
   (format out "  Sg_HashTableSet(obtable, Sg_BuiltinSymbols[i].name, SG_OBJ(&Sg_BuiltinSymbols[i]), 0)~%")

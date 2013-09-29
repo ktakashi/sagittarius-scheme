@@ -2,7 +2,7 @@
 /*
  * stub.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -414,8 +414,7 @@ void Sg_AddCondFeature(const SgChar *feature)
     Sg_Error(UC("child thread can not add cond-feature"));
   }
   Sg_LockMutex(&cond_features.mutex);
-  cond_features.list = Sg_Cons(Sg_Intern(Sg_MakeString(feature,
-						       SG_LITERAL_STRING)),
+  cond_features.list = Sg_Cons(Sg_Intern(Sg_String(feature)),
 			       cond_features.list);
   Sg_AddConstantLiteral(cond_features.list);
   Sg_UnlockMutex(&cond_features.mutex);

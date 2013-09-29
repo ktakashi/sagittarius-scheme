@@ -2,7 +2,7 @@
 /*
  * win_util.c
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -64,7 +64,7 @@ static SgString* utf16ToUtf32(wchar_t *s)
 	i++;
 	c0 = (c0 << 10) + c1 - offset;
       } else {
-	return Sg_MakeString(UC("bad char"), SG_LITERAL_STRING);
+	return SG_MAKE_STRING("bad char");
       }
     }
     Sg_PutcUnsafe(out, c0);
@@ -84,7 +84,7 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 	s++;
 	c0 = (c0 << 10) + c1 - offset;
       } else {
-	return Sg_MakeString(UC("bad char"), SG_LITERAL_STRING);
+	return SG_MAKE_STRING("bad char");
       }
     }
     Sg_PutcUnsafe(out, c0);

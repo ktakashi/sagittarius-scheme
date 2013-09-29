@@ -210,7 +210,7 @@ SgObject Sg_MakeUtf16Codec(Endianness endian)
   SG_CODEC_BUILTIN(z)->getc = get_utf16_char;
   SG_CODEC_BUILTIN(z)->readc = read_utf16;
   SG_CODEC_BUILTIN(z)->writec = write_utf16;
-  SG_CODEC_NAME(z) = Sg_MakeString(UC("utf16-codec"), SG_LITERAL_STRING);
+  SG_CODEC_NAME(z) = SG_MAKE_STRING("utf16-codec");
   SG_CODEC_ENDIAN(z) = endian;
   return SG_OBJ(z);
 }
@@ -507,7 +507,7 @@ SgObject Sg_MakeLatin1Codec()
   SG_CODEC_BUILTIN(z)->getc = get_latin1_char;
   SG_CODEC_BUILTIN(z)->readc = read_latin1;
   SG_CODEC_BUILTIN(z)->writec = write_latin1;
-  SG_CODEC_NAME(z) = Sg_MakeString(UC("latin1-codec"), SG_LITERAL_STRING);
+  SG_CODEC_NAME(z) = SG_MAKE_STRING("latin1-codec");
   return SG_OBJ(z);
 }
 

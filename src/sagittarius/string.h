@@ -2,7 +2,7 @@
 /*
  * string.h
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -69,14 +69,20 @@ typedef enum {
 #define SG_STRING_VALUE(obj)    (SG_STRING(obj)->value)
 #define SG_STRING_VALUE_AT(obj, index)    (SG_STRING(obj)->value[index])
 
-#define SG_MAKE_STRING(str) SG_STRING(Sg_MakeString(UC(str), SG_LITERAL_STRING))
+#define SG_MAKE_STRING(str)					\
+  SG_STRING(Sg_MakeString(UC(str), SG_LITERAL_STRING, -1))
+
+#define Sg_String(str)					\
+  SG_STRING(Sg_MakeString(str, SG_LITERAL_STRING, -1))
+
+#define Sg_HeapString(str)				\
+  SG_STRING(Sg_MakeString(str, SG_HEAP_STRING, -1))
 
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeStringC(const char *value);
-SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag);
-SG_EXTERN SgObject Sg_MakeStringEx(const SgChar *value, SgStringType flag,
-				   int length);
+SG_EXTERN SgObject Sg_MakeString(const SgChar *value, SgStringType flag,
+				 int length);
 
 SG_EXTERN SgObject Sg_ReserveString(int size, SgChar fill);
 /* this is for get-string-n related not for c use */
