@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * stub.c
+/* core.c                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -39,6 +37,8 @@
 #include "sagittarius/core.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/builtin-symbols.h"
+
+#include "gc-incl.inc"
 
 static void finalizable(void);
 
@@ -209,6 +209,42 @@ void Sg_Init()
 }
 
 /* GC related */
+void* Sg_malloc(size_t size)
+{
+#ifdef USE_BOEHM_GC
+  return GC_MALLOC(size);
+#else
+  /* for now do nothing */
+  return NULL;
+#endif
+}
+void* Sg_malloc_atomic(size_t size)
+{
+#ifdef USE_BOEHM_GC
+  return GC_MALLOC_ATOMIC(size);
+#else
+  /* for now do nothing */
+  return NULL;
+#endif
+}
+
+size_t Sg_GetHeapSize()
+{
+  return GC_get_heap_size();
+}
+size_t Sg_GetTotalBytes()
+{
+  return GC_get_total_bytes();
+}
+uintptr_t Sg_GcCount()
+{
+#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
+  return GC_get_gc_no();
+#else
+  return GC_gc_no;
+#endif
+}
+
 void Sg_GC()
 {
 #ifdef USE_BOEHM_GC

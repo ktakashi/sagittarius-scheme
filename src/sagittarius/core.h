@@ -1,8 +1,6 @@
-// -*- C -*-
-/*
- * stub.h
+/* core.h                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -50,13 +48,17 @@ SG_EXTERN void 	Sg_Panic(const char* msg, ...);
 SG_EXTERN void 	Sg_Abort(const char* msg);
 /* gc wrappers */
 SG_EXTERN void 	Sg_GC();
-SG_EXTERN void 	Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer, void *data);
+SG_EXTERN void 	Sg_RegisterFinalizer(SgObject z, SgFinalizerProc finalizer,
+				     void *data);
 SG_EXTERN void 	Sg_UnregisterFinalizer(SgObject z);
 SG_EXTERN void 	Sg_RegisterDL(void *data_start, void *data_end,
 			      void *bss_start, void *bss_end);
 SG_EXTERN void 	Sg_RegisterDisappearingLink(void **p, void *value);
 SG_EXTERN void 	Sg_UnregisterDisappearingLink(void **p);
 SG_EXTERN void* Sg_GCBase(void *value);
+SG_EXTERN size_t Sg_GetHeapSize();
+SG_EXTERN size_t Sg_GetTotalBytes();
+SG_EXTERN uintptr_t Sg_GcCount();
 
 /* experimental */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);

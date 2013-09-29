@@ -1,4 +1,4 @@
-/* extend.h                                        -*- mode:c; coding:utf-8; -*-
+/* gc-incl.inc                                      -*- mode:c; coding:utf-8 -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -27,65 +27,21 @@
  *
  *  $Id: $
  */
-#ifndef SAGITTARIUS_EXTEND_H_
-#define SAGITTARIUS_EXTEND_H_
 
-#ifndef SAGITTARIUS_H_
-#include <sagittarius.h>
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#if defined(__CYGWIN__)
-  extern int _data_start__[], _data_end__[], _bss_start__[], _bss_end__[];
-#define SG_INIT_EXTENSION(name)			\
-  do {						\
-    Sg_RegisterDL((void*)&_data_start__,	\
-		  (void*)&_data_end__,		\
-		  (void*)&_bss_start__,		\
-		  (void*)&_bss_end__);		\
-  } while (0)
-#else
-#define SG_INIT_EXTENSION(name)	/* nothing */
-#endif
-
-#ifdef __cplusplus
-#define SG_EXTENSION_ENTRY_QUAL extern "C"
-#else
-#define SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#ifdef __WATCOMC__
-# define CDECL __cdecl
-#else
-# define CDECL
-#endif
-
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL __declspec(dllexport)
-#else
-#define SG_EXTENSION_ENTRY SG_EXTENSION_ENTRY_QUAL
-#endif
-
-#undef SG_EXTERN
-#undef SG_EXPORT
-#if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
-# if defined(LIBSAGITTARIUS_BODY) || defined(LIBSAGITTARIUS_EXT_BODY)
-#  define SG_EXPORT __declspec(dllexport)
+/* GC selector */
+#if defined(USE_BOEHM_GC)
+/* for win32 multi thread. see boehm gc README.win */
+/* TODO 64 bits */
+# if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+#  define GC_WIN32_THREADS
 # else
-#  define SG_EXPORT __declspec(dllimport)
+#  define GC_THREADS
+# endif	 /* _MSC_VER */
+# if defined(HAVE_GC_H)
+#  include <gc.h>
+# elif defined(HAVE_GC_GC_H)
+#  include <gc/gc.h>
 # endif
-# define SG_EXTERN extern SG_EXPORT
 #else
-# define SG_EXPORT 
-# define SG_EXTERN extern
+# error "Sagittarius requires Boehm GC for now."
 #endif
-
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* SAGITTARIUS_EXTEND_H_ */

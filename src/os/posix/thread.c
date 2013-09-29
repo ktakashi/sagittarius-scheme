@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * thread.c
+/* thread.c                                         -*- mode:c; coding:utf-8 -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -37,6 +35,8 @@
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
+
+#include "../../gc-incl.inc"
 
 /* Thank you Debian, we need this stupid kludge */
 #ifndef HAVE_MUTEX_RECURSIVE

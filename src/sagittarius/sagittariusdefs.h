@@ -1,4 +1,4 @@
-/* sagittariusdefs.h                              -*- mode:c; coding:utf-8; -*- 
+/* sagittariusdefs.h                               -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -152,25 +152,8 @@
 # endif
 #endif
 
-/* GC selector */
-#if defined(USE_BOEHM_GC)
-/* for win32 multi thread. see boehm gc README.win */
-/* TODO 64 bits */
-# if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#  define GC_WIN32_THREADS
-# else
-#  define GC_THREADS
-# endif	 /* _MSC_VER */
-# if defined(HAVE_GC_H)
-#  include <gc.h>
-# elif defined(HAVE_GC_GC_H)
-#  include <gc/gc.h>
-# endif
-# define SG_MALLOC(size)        GC_MALLOC(size)
-# define SG_MALLOC_ATOMIC(size) GC_MALLOC_ATOMIC(size)
-#else
-# error "Sagittarius requires Boehm GC for now."
-#endif
+#define SG_MALLOC(size)        Sg_malloc(size)
+#define SG_MALLOC_ATOMIC(size) Sg_malloc_atomic(size)
 
 #define SG_NEW(type)                ((type*)SG_MALLOC(sizeof(type)))
 #define SG_NEW2(type, size)         ((type)SG_MALLOC(size))
@@ -417,6 +400,13 @@ do {									\
   }									\
  } while(0)
 
+/* for convenience */
+SG_CDECL_BEGIN
+
+SG_EXTERN void* Sg_malloc(size_t size);
+SG_EXTERN void* Sg_malloc_atomic(size_t size);
+
+SG_CDECL_END
 
 #endif /* SAGITTARIUS_DEFS_H_ */
 
