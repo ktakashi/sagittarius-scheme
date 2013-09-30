@@ -48,6 +48,7 @@ Source: "{#BuiltDir}\src\sagittarius.lib"; DestDir: "{app}"; DestName: "sagittar
 Source: "{#BuiltDir}\*.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SrcDir}\src\*.h"; DestDir: "{app}\include"; Excludes: "os*"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Well Boehm GC header also need to be installed.
+;; probably we don't need these 2 lines anymore
 Source: "{#BinDir}\{#BoehmGCVersion}\include\*.h"; DestDir: "{app}\include"; Excludes: "private,extra,cord.h,ec.h,javaxfc.h"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#BuiltDir}\gc\gcmt-dll.lib"; DestDir: "{app}"; Flags: ignoreversion
 

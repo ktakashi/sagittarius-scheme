@@ -1,4 +1,4 @@
-/* cache.c                                        -*- mode:c; coding:utf-8; -*- 
+/* cache.c                                         -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -1568,15 +1568,12 @@ int Sg_ReadCache(SgString *id)
   SgFile *file;
   SgPort *in;
   SgObject obj, vtime, otime;
-  SgHashTable *seen;
-  SgHashTable *shared;
+  SgHashTable *seen, *shared;
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50];
-  int b;
+  int b, ret;
   int64_t size;
-  /* char *alldata; */
-  SgObject alldata;
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
@@ -1603,8 +1600,7 @@ int Sg_ReadCache(SgString *id)
 
   file = SG_OPEN_FILE(timestamp, SG_READ);
   Sg_LockFile(file, SG_SHARED);
-  /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
-  /* size = Sg_ReadbUnsafe(in, (uint8_t *)tagbuf, 50); */
+  /* To use less memory we use file object directly */
   size = SG_FILE_VTABLE(file)->read(file, (uint8_t *)tagbuf, 50);
   Sg_UnlockFile(file);
   Sg_CloseFile(file);
@@ -1616,19 +1612,9 @@ int Sg_ReadCache(SgString *id)
 
   file = SG_OPEN_FILE(cache_path, SG_READ);
   Sg_LockFile(file, SG_SHARED);
-  /* to save some memory, use raw file operations */
-  size = SG_FILE_VTABLE(file)->size(file);
-  alldata = Sg_MakeByteVector((int)size, 0);
-  SG_FILE_VTABLE(file)->read(file, SG_BVECTOR_ELEMENTS(alldata), size);
-  Sg_UnlockFile(file);
-  Sg_CloseFile(file);
-  in = Sg_MakeByteVectorInputPort(alldata, 0);
-
-  /* buffer mode none can be a little bit better performance to read all. */
-  /* in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_NONE); */
-  /* size = Sg_ReadbAll(in, (uint8_t **)&alldata); */
-  /* Sg_ClosePort(in); */
-  /* in = Sg_MakeByteArrayInputPort((const uint8_t *)alldata, size); */
+  /* Now I/O is not so slow so we can use file input port.
+     This uses less memory :) */
+  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
 
   seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
   shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
@@ -1672,18 +1658,17 @@ int Sg_ReadCache(SgString *id)
       }
       Sg_VMExecute(obj);
     }
+    ret = CACHE_READ;
   } else {
     /* something wrong, well this happens so often in Windows somehow... */
     /* so return as invalid cache */
-    vm->currentLibrary = save;
-    return INVALID_CACHE;
+    ret = INVALID_CACHE;
   }
-  /* for no content library */
   vm->currentLibrary = save;
   SG_PORT_UNLOCK(in);
+  Sg_UnlockFile(file);
   Sg_ClosePort(in);
-  alldata = NULL;		/* gc friendliness */
-  return CACHE_READ;
+  return ret;
 }
 
 void Sg_CleanCache(SgObject target)
