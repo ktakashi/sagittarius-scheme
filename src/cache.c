@@ -350,11 +350,13 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   SgVM *vm = Sg_VM();
   SgLibrary *lib = NULL;		/* for macro */
   SgObject closures, closure;
-  SgHashTable *sharedObjects = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+  SgHashTable sharedObjects;
   cache_ctx ctx;
 
+  Sg_InitHashTableSimple(&sharedObjects, SG_HASH_EQ, 0);
+
   SG_SET_CLASS(&ctx, SG_CLASS_WRITE_CACHE_CTX);
-  ctx.sharedObjects = sharedObjects;
+  ctx.sharedObjects = &sharedObjects;
   ctx.uid = 0;
   ctx.index = index;
   ctx.macroPhaseP = FALSE;
@@ -886,8 +888,9 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
   SgString *cache_path = id_to_filename(id);
-  SgFile *file, *tagfile;
-  SgPort *out;
+  SgFile file, tagfile;
+  SgPort out;
+  SgBinaryPort bp;
   SgObject cache, timestamp;
   int index = 0;
 
@@ -895,39 +898,37 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
 			      ";;         cache=%A\n"), id, cache_path);
   }
-
-  file = SG_OPEN_FILE(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  SG_OPEN_FILE(&file, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   /* lock file */
-  if (!Sg_LockFile(file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
+  if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
     /* if locking file fails means there is a already process running to write
        this cache file and there is no reason to re-do this since cache file
        will be the same for the same cache. So just return. */
-    Sg_CloseFile(file);
+    Sg_CloseFile(&file);
     return TRUE;
   }
-  out = Sg_MakeFileBinaryOutputPort(file, SG_BUFMODE_BLOCK);
+  Sg_InitFileBinaryPort(&out, &bp, &file, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK);
 
   SG_FOR_EACH(cache, caches) {
     if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
       Sg_VMDumpCode(SG_CAR(cache));
     }
     if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
-			     out, index)) < 0) {
+			     &out, index)) < 0) {
       return FALSE;
     }
   }
-  Sg_UnlockFile(file);
-  Sg_ClosePort(out);
+  Sg_UnlockFile(&file);
+  Sg_ClosePort(&out);
 
   timestamp = Sg_FileModifyTime(cache_path);
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
-  tagfile = SG_OPEN_FILE(cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
-  /* Sg_LockFile(tagfile, SG_EXCLUSIVE); */
-  out = Sg_MakeFileBinaryOutputPort(tagfile, SG_BUFMODE_BLOCK);
+  SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+
+  Sg_InitFileBinaryPort(&out, &bp, &tagfile, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK);
   /* put validate tag */
-  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
-  /* Sg_UnlockFile(tagfile); */
-  Sg_ClosePort(out);
+  Sg_WritebUnsafe(&out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_ClosePort(&out);
 
   return TRUE;
 }
@@ -1429,7 +1430,9 @@ static SgObject read_object(SgPort *in, read_ctx *ctx)
      to avoid it, we need to see if the object was an instruction or not.
    */
   if (ctx->isLinkNeeded && !ctx->insnP) {
-    read_cache_link(obj, Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+    SgHashTable seen;
+    Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0);
+    read_cache_link(obj, &seen, ctx);
   }
 
   return obj;
@@ -1521,10 +1524,11 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     SgObject o = read_object(in, ctx);
     if (!ctx->insnP && SG_IDENTIFIERP(o)) {
       /* resolve shared object here for identifier*/
-      read_cache_link(SG_IDENTIFIER_ENVS(o),
-		      Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
-      read_cache_link(SG_IDENTIFIER_LIBRARY(o),
-		      Sg_MakeHashTableSimple(SG_HASH_EQ, 0), ctx);
+      SgHashTable envs, libs;
+      Sg_InitHashTableSimple(&envs, SG_HASH_EQ, 0);
+      Sg_InitHashTableSimple(&libs, SG_HASH_EQ, 0);
+      read_cache_link(SG_IDENTIFIER_ENVS(o), &envs, ctx);
+      read_cache_link(SG_IDENTIFIER_LIBRARY(o), &libs, ctx);
 
     }
     code[i] = SG_WORD(o);
@@ -1565,10 +1569,11 @@ int Sg_ReadCache(SgString *id)
 {
   SgVM *vm = Sg_VM();
   SgString *cache_path = id_to_filename(id), *timestamp;
-  SgFile *file;
-  SgPort *in;
+  SgFile file;
+  SgPort in;
+  SgBinaryPort bp;
   SgObject obj, vtime, otime;
-  SgHashTable *seen, *shared;
+  SgHashTable seen, shared;
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50];
@@ -1598,48 +1603,46 @@ int Sg_ReadCache(SgString *id)
     return RE_CACHE_NEEDED;
   }
 
-  file = SG_OPEN_FILE(timestamp, SG_READ);
-  Sg_LockFile(file, SG_SHARED);
+  SG_OPEN_FILE(&file, timestamp, SG_READ);
+  Sg_LockFile(&file, SG_SHARED);
   /* To use less memory we use file object directly */
-  size = SG_FILE_VTABLE(file)->read(file, (uint8_t *)tagbuf, 50);
-  Sg_UnlockFile(file);
-  Sg_CloseFile(file);
+  size = SG_FILE_VTABLE(&file)->read(&file, (uint8_t *)tagbuf, 50);
+  Sg_UnlockFile(&file);
+  Sg_CloseFile(&file);
   tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     return RE_CACHE_NEEDED;
   }
   /* end check timestamp */
 
-  file = SG_OPEN_FILE(cache_path, SG_READ);
-  Sg_LockFile(file, SG_SHARED);
+  SG_OPEN_FILE(&file, cache_path, SG_READ);
+  Sg_LockFile(&file, SG_SHARED);
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
-  in = Sg_MakeFileBinaryInputPort(file, SG_BUFMODE_BLOCK);
+  Sg_InitFileBinaryPort(&in, &bp, &file, SG_INPUT_PORT, SG_BUFMODE_BLOCK);
 
-  seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 128);
-  shared = Sg_MakeHashTableSimple(SG_HASH_EQ, 256);
+  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
+  Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
 
   SG_SET_CLASS(&ctx, SG_CLASS_READ_CACHE_CTX);
-  ctx.seen = seen;
-  ctx.sharedObjects = shared;
+  ctx.seen = &seen;
+  ctx.sharedObjects = &shared;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
   ctx.file = cache_path;
-  SG_PORT_LOCK(in);
+  SG_PORT_LOCK(&in);
   /* check if it's invalid cache or not */
-  b = Sg_PeekbUnsafe(in);
+  b = Sg_PeekbUnsafe(&in);
   if (b == INVALID_CACHE_TAG) {
     return INVALID_CACHE;
   }
 
   if (setjmp(ctx.escape) == 0) {
-    while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
+    while ((obj = read_toplevel(&in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
       /* toplevel cache never be #f */
       if (SG_FALSEP(obj)) {
-	SG_PORT_UNLOCK(in);
-	Sg_ClosePort(in);
-	vm->currentLibrary = save;
-	return RE_CACHE_NEEDED;
+	ret = RE_CACHE_NEEDED;
+	goto end;
       }
       if (SG_LIBRARYP(obj)) {
 	save = vm->currentLibrary;
@@ -1664,10 +1667,11 @@ int Sg_ReadCache(SgString *id)
     /* so return as invalid cache */
     ret = INVALID_CACHE;
   }
+ end:
   vm->currentLibrary = save;
-  SG_PORT_UNLOCK(in);
-  Sg_UnlockFile(file);
-  Sg_ClosePort(in);
+  SG_PORT_UNLOCK(&in);
+  Sg_UnlockFile(&file);
+  Sg_ClosePort(&in);
   return ret;
 }
 

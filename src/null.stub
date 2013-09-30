@@ -1816,15 +1816,15 @@
   ;; utf8 <-> string
   (define-c-proc utf8->string (bv::<bytevector> :optional (start::<fixnum> 0)
 						(end::<fixnum> -1))
-    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
-					 E_NONE SG_REPLACE_ERROR)))
-      (result (Sg_ByteVectorToString bv transcoder start end))))
+    (let ((trans::SgTranscoder))
+      (Sg_InitTranscoder (& trans) (Sg_MakeUtf8Codec) E_NONE SG_REPLACE_ERROR)
+      (result (Sg_ByteVectorToString bv (& trans) start end))))
 
   (define-c-proc string->utf8 (s::<string> :optional (start::<fixnum> 0)
 					   (end::<fixnum> -1))
-    (let ((transcoder (Sg_MakeTranscoder (Sg_MakeUtf8Codec)
-					 E_NONE SG_REPLACE_ERROR)))
-      (result (Sg_StringToByteVector s transcoder start end))))
+    (let ((trans::SgTranscoder))
+      (Sg_InitTranscoder (& trans) (Sg_MakeUtf8Codec) E_NONE SG_REPLACE_ERROR)
+      (result (Sg_StringToByteVector s (& trans) start end))))
 
   ;; utf16 <-> string
   (define-c-proc utf16->string (bv::<bytevector> endian::<symbol>
@@ -1833,8 +1833,7 @@
 	  (skipBOM::int FALSE))
       (when (SG_UNBOUNDP mandatory)
 	(set! endianness (Sg_Utf16CheckBOM bv))
-	(if (not (== endianness NO_BOM))
-	    (set! skipBOM TRUE)))
+	(when (not (== endianness NO_BOM)) (set! skipBOM TRUE)))
       (when (or (and (not (SG_UNBOUNDP mandatory))
 		     (not (SG_FALSEP mandatory)))
 		(== endianness  NO_BOM))
@@ -1847,17 +1846,16 @@
 		'utf16->string "endianness should be little or big" endian))))
       (let ((skipSize::int 0)
 	    (codec SG_UNDEF)
-	    (transcoder SG_UNDEF))
-	(if skipBOM
-	    (set! skipSize 2))
+	    (trans::SgTranscoder))
+	(when skipBOM (set! skipSize 2))
 	(set! codec (Sg_MakeUtf16Codec endianness))
-	(set! transcoder (Sg_MakeTranscoder codec E_NONE
-					    SG_REPLACE_ERROR))
+	(Sg_InitTranscoder (& trans) codec E_NONE SG_REPLACE_ERROR)
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize -1)))))
+	(result (Sg_ByteVectorToString bv (& trans) skipSize -1)))))
 
   (define-c-proc string->utf16 (s::<string> :optional endian::<symbol>)
-    (let ((endianness::Endianness UTF_16BE))
+    (let ((endianness::Endianness UTF_16BE)
+	  (trans::SgTranscoder))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
 		 (set! endianness UTF_16LE))
@@ -1866,16 +1864,14 @@
 		(else
 		 (assertion-violation
 		  'string->utf16 "endianness should be little or big" endian))))
-      (result (Sg_StringToByteVector 
-	       s 
-	       (Sg_MakeTranscoder (Sg_MakeUtf16Codec endianness)
-				  E_NONE
-				  SG_REPLACE_ERROR)
-	       0 -1))))
+      (Sg_InitTranscoder (& trans) (Sg_MakeUtf16Codec endianness)
+			 E_NONE SG_REPLACE_ERROR)
+      (result (Sg_StringToByteVector s (& trans) 0 -1))))
 
 
   (define-c-proc string->utf32 (s::<string> :optional endian::<symbol>)
-    (let ((endianness::Endianness UTF_32BE))
+    (let ((endianness::Endianness UTF_32BE)
+	  (trans::SgTranscoder))
       (if (not (SG_UNBOUNDP endian))
 	  (cond ((SG_EQ endian 'little)
 		 (set! endianness UTF_32LE))
@@ -1884,11 +1880,9 @@
 		(else
 		 (assertion-violation
 		  'string->utf32 "endianness should be little or big" endian))))
-      (result (Sg_StringToByteVector
-	       s (Sg_MakeTranscoder (Sg_MakeUtf32Codec endianness)
-				    E_NONE
-				    SG_REPLACE_ERROR)
-	       0 -1))))
+      (Sg_InitTranscoder (& trans) (Sg_MakeUtf32Codec endianness)
+			 E_NONE SG_REPLACE_ERROR)
+      (result (Sg_StringToByteVector s (& trans) 0 -1))))
 
   (define-c-proc utf32->string (bv::<bytevector> endian::<symbol> 
 						 :optional mandatory)
@@ -1910,13 +1904,13 @@
 		'utf32->string "endianness should be little or big" endian))))
       (let ((skipSize::int 0)
 	    (codec SG_UNDEF)
-	    (transcoder SG_UNDEF))
+	    (trans::SgTranscoder))
 	(if skipBOM
 	    (set! skipSize 4))
 	(set! codec (Sg_MakeUtf32Codec endianness))
-	(set! transcoder (Sg_MakeTranscoder codec E_NONE SG_REPLACE_ERROR))
+	(Sg_InitTranscoder (& trans) codec E_NONE SG_REPLACE_ERROR)
 	;; TODO guard
-	(result (Sg_ByteVectorToString bv transcoder skipSize -1)))))
+	(result (Sg_ByteVectorToString bv (& trans) skipSize -1)))))
   
   ;; 3 List utilities
   (define-c-proc memq (arg0 arg1) 
@@ -2035,11 +2029,9 @@
 				  mode)))
       (result (Sg_MakeTranscoder c style handling))))
 
-  (define-c-proc native-transcoder () 
-    (result (Sg_MakeNativeTranscoder)))
+  (define-c-proc native-transcoder () Sg_MakeNativeTranscoder)
 
-  (define-c-proc transcoder-codec (t::<transcoder>) 
-    (result (SG_TRANSCODER_CODEC t)))
+  (define-c-proc transcoder-codec (t::<transcoder>) SG_TRANSCODER_CODEC)
 
   (define-c-proc transcoder-eol-style (t::<transcoder>) 
     (let ((style::EolStyle (SG_TRANSCODER_EOL_STYLE t)))
@@ -2098,9 +2090,7 @@
   (define-cise-stmt check-port-open
     ((_ name p)
      `(when (Sg_PortClosedP ,p)
-	(wrong-type-of-argument-violation ',name
-					  "opened port"
-					  ,p))))
+	(wrong-type-of-argument-violation ',name "opened port" ,p))))
 
   (define-cise-stmt check-binary-port
     ((_ name p)
@@ -2108,9 +2098,7 @@
 		  (and (SG_CUSTOM_PORTP ,p)
 		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
 			      SG_BINARY_CUSTOM_PORT_TYPE)))
-	(wrong-type-of-argument-violation ',name
-					  "binary-port"
-					  ,p))))
+	(wrong-type-of-argument-violation ',name "binary-port" ,p))))
 
   (define-c-proc port? (obj) ::<boolean>
     (result (SG_PORTP obj)))
@@ -2178,13 +2166,10 @@
     ((_ name p)
      `(unless (or (SG_INPORTP ,p)
 		  (SG_INOUTPORTP ,p))
-	(wrong-type-of-argument-violation ',name
-					  "input port"
-					  ,p))))
+	(wrong-type-of-argument-violation ',name "input port" ,p))))
 
   (define-c-proc input-port? (obj) ::<boolean>
-    (result (or (SG_INPORTP obj)
-		(SG_INOUTPORTP obj))))
+    (result (or (SG_INPORTP obj) (SG_INOUTPORTP obj))))
 
   (define-c-proc port-eof? (p::<port>) ::<boolean>
     (cond ((SG_BINARY_PORTP p)
@@ -2207,7 +2192,7 @@
     ;; we can ignore option
     (when (SG_UNBOUNDP mode)
       (set! mode 'block))
-    (let ((fo (SG_OPEN_FILE file SG_READ))
+    (let ((fo (Sg_OpenFile file SG_READ))
 	  (bufferMode::int SG_BUFMODE_BLOCK))
       (unless (SG_FILEP fo)
 	(Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
@@ -2540,7 +2525,7 @@
 	     (if isFileExist
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				  'open-file-output-port "file already exists" file))
-	     (set! fo (SG_OPEN_FILE file openFlags))
+	     (set! fo (Sg_OpenFile file openFlags))
 	     (unless (SG_FILEP fo)
 	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			   'open-file-output-port
@@ -2579,7 +2564,7 @@
 			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 					   'open-file-output-port "file-options no-truncate: file already exist" file)
 			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
-	       (set! fo (SG_OPEN_FILE file openFlags))
+	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-output-port fo file SG_UNDEF))
@@ -2701,7 +2686,7 @@
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 				  'open-file-input/output-port
 				  "file already exists" file))
-	     (set! fo (SG_OPEN_FILE file openFlags))
+	     (set! fo (Sg_OpenFile file openFlags))
 	     (unless (SG_FILEP fo)
 	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			   'open-file-input/output-port fo file SG_UNDEF))
@@ -2739,7 +2724,7 @@
 			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
 					   'open-file-input/output-port "file-options no-truncate: file already exist" file)
 			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
-	       (set! fo (SG_OPEN_FILE file openFlags))
+	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-input/output-port fo file SG_UNDEF))

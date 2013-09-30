@@ -1,4 +1,4 @@
-/* file.h                                         -*- mode:c; coding:utf-8; -*- 
+/* file.h                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2012  Takashi Kato <ktakashi@ymail.com>
  *
@@ -71,6 +71,7 @@ struct SgFileRec
 #define SG_FILE(obj)  ((SgFile*)obj)
 
 #define SG_FILE_NAME(obj)   (SG_FILE(obj)->name)
+#define SG_FILE_DATA(obj)   (SG_FILE(obj)->osdependance)
 #define SG_FILE_VTABLE(obj) (SG_FILE(obj)->vtbl)
 
 enum SgGlobFlags {
@@ -86,13 +87,16 @@ enum SgFileLockType {
   SG_DONT_WAIT = 1U << 2
 };
 
-#define SG_MAKE_FILE()           Sg_MakeFile()
-#define SG_MAKE_FILE_FROM_FD(fd) Sg_MakeFileFromFD((uintptr_t)(fd))
-#define SG_OPEN_FILE(p, f)       Sg_OpenFile((p), (f))
+#define SG_OPEN_FILE(file, path, flags)				\
+  do {								\
+    Sg_InitFile(file);						\
+    SG_FILE_VTABLE(file)->open((file), (path), (flags));	\
+  } while (0)
 
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFile();
+SG_EXTERN SgObject Sg_InitFile(SgFile *file);
 SG_EXTERN SgObject Sg_MakeFileFromFD(uintptr_t handle);
 SG_EXTERN SgObject Sg_MakeCustomFile(void *data, SgFileTable *vtbl);
 SG_EXTERN SgObject Sg_OpenFile(SgString *path, int flags);

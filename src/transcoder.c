@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * transcoder.c
+/* transcoder.c                                    -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -453,12 +451,19 @@ SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
 			   ErrorHandlingMode mode)
 {
   SgTranscoder *z = SG_NEW(SgTranscoder);
-  SG_SET_CLASS(z, SG_CLASS_TRANSCODER);
-  z->codec = codec;
-  z->eolStyle = eolStyle;
-  z->mode = mode;
+  return Sg_InitTranscoder(z, codec, eolStyle, mode);
+}
 
-  return SG_OBJ(z);
+SgObject Sg_InitTranscoder(SgTranscoder *transcoder,
+			   SgCodec *codec, EolStyle eolStyle,
+			   ErrorHandlingMode mode)
+{
+  SG_SET_CLASS(transcoder, SG_CLASS_TRANSCODER);
+  transcoder->codec = codec;
+  transcoder->eolStyle = eolStyle;
+  transcoder->mode = mode;
+
+  return SG_OBJ(transcoder);
 }
 
 /* compatible with ASCII */

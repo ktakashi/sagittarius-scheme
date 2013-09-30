@@ -124,7 +124,7 @@ SgObject Sg_VMLoad(SgString *path)
     path = realPath;
   }
 
-  file = SG_OPEN_FILE(path, SG_READ);
+  file = Sg_OpenFile(path, SG_READ);
   if (!SG_FILEP(file)) {
     /* file is error message */
     Sg_Error(UC("given file was not able to open. %S\n"

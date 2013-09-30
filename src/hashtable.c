@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * hashtable.c
+/* hashtable.c                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -125,80 +123,6 @@ uint32_t Sg_EqvHash(SgObject obj)
   }
   return hashval & HASHMASK;
 }
-#if 0
-#define MAX_EQUAL_HASH_DEPTH 100
-static uint32_t equal_hash_rec(SgObject obj, int depth, SgHashTable *seen)
-{
-  uint32_t hashval;
-  if (depth == MAX_EQUAL_HASH_DEPTH) return 1;
-
-#define REGISTER(obj)						\
-  if (SG_UNBOUNDP(Sg_HashTableRef(seen, (obj), SG_UNBOUND))) {	\
-    Sg_HashTableSet(seen, (obj), SG_TRUE, 0);			\
-  }
-#define CHECK(obj)						\
-  if (!SG_FALSEP(Sg_HashTableRef(seen, (obj), SG_FALSE)))
-
-  CHECK(obj) {
-    ADDRESS_HASH(hashval, obj);
-    return hashval;
-  }
-
-  if (!SG_PTRP(obj)) {
-    SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
-    return hashval;
-  } else if (SG_NUMBERP(obj)) {
-    return Sg_EqvHash(obj);
-  } else if (SG_STRINGP(obj)) {
-    return Sg_StringHash(SG_STRING(obj), 0);
-  } else if (SG_PAIRP(obj)) {
-    unsigned long h = 0, h2;
-    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
-    h = equal_hash_rec(SG_CAR(obj), depth+1, seen);
-    REGISTER(SG_CAR(obj));
-    CHECK(SG_CDR(obj)) {
-      h2 = equal_hash_rec(SG_CDR(obj), depth+1, seen);
-    } else {
-      h2 = 1;
-    }
-    h = COMBINE(h, h2);
-    return h;
-  } else if (SG_VECTORP(obj)) {
-    int i, size = SG_VECTOR_SIZE(obj);
-    unsigned long h = 0, h2;
-    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
-    for (i = 0; i < size; i++) {
-      CHECK(SG_VECTOR_ELEMENT(obj, i)) continue;
-      h2 = equal_hash_rec(SG_VECTOR_ELEMENT(obj, i), depth+1, seen);
-      h = COMBINE(h, h2);
-      REGISTER(SG_VECTOR_ELEMENT(obj, i));
-    }
-    return h;
-  } else if (SG_SYMBOLP(obj)) {
-    return Sg_StringHash(SG_SYMBOL(obj)->name, 0);
-  } else if (SG_KEYWORDP(obj)) {
-    return Sg_StringHash(SG_KEYWORD_NAME(obj), 0);
-  } else if (SG_BVECTORP(obj)) {
-    /* TODO is this ok? */
-    unsigned long h = 0, h2;
-    int i, size = SG_BVECTOR_SIZE(obj);
-    for (i = 0; i < size; i++) {
-      SMALL_INT_HASH(h2, SG_BVECTOR_ELEMENT(obj, i));
-      h = COMBINE(h, h2);
-    }
-    return h;
-  } else {
-    ADDRESS_HASH(hashval, obj);
-    return hashval;
-  }
-}
-
-uint32_t Sg_EqualHash(SgObject obj)
-{
-  SgHashTable *ht = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
-  return equal_hash_rec(obj, 0, ht);
-}
-#endif
 
 static uint32_t pair_hash(SgObject o, int level);
 static uint32_t vector_hash(SgObject o, int level);
@@ -856,18 +780,25 @@ DEFINE_CLASS_WITH_CACHE(Sg_HashTableClass,
 
 SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
 {
-  SgHashTable *z;
+  SgHashTable *z = SG_NEW(SgHashTable);
+  return Sg_InitHashTableSimple(z, type, initSize);
+}
+
+SgObject Sg_InitHashTableSimple(SgHashTable *table, 
+				SgHashType type, int initSize)
+{
   if (type > SG_HASH_GENERAL) {
     Sg_Error(UC("Sg_MakeHashTableSimple: wrong type arg: %d"), type);
   }
-  z = SG_NEW(SgHashTable);
-  SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
-  Sg_HashCoreInitSimple(&z->core, type, initSize, NULL);
-  z->type = type;
-  return SG_OBJ(z);
+  SG_SET_CLASS(table, SG_CLASS_HASHTABLE);
+  Sg_HashCoreInitSimple(&table->core, type, initSize, NULL);
+  table->type = type;
+  table->immutablep = FALSE;
+  return SG_OBJ(table);
 }
 
-SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int initSize)
+SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre,
+			  int initSize)
 {
   SgHashTable *z = SG_NEW(SgHashTable);
   SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
@@ -876,9 +807,11 @@ SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int ini
   return SG_OBJ(z);
 }
 
-SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSize)
+SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare,
+				   int initSize)
 {
-  SgHashTable *z = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_GENERAL, initSize));
+  SgHashTable *z = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_GENERAL,
+						       initSize));
   z->core.generalHasher = hasher;
   z->core.generalCompare = compare;
   return SG_OBJ(z);
@@ -904,7 +837,8 @@ SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback)
   else return SG_HASH_ENTRY_VALUE(e);
 }
 
-SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int flags)
+SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value,
+			 int flags)
 {
   SgHashEntry *e;
 
@@ -913,9 +847,10 @@ SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int f
     return SG_UNDEF;
   }
 
-  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-			(intptr_t)key,
-			(flags & SG_HASH_NO_CREATE) ? SG_HASH_GET: SG_HASH_CREATE);
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
+			(flags & SG_HASH_NO_CREATE)
+			? SG_HASH_GET
+			: SG_HASH_CREATE);
   if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);

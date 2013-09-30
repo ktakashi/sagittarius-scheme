@@ -384,7 +384,7 @@ int main(int argc, char **argv)
     }
     case 'p':
       {
-	SgObject log = SG_OPEN_FILE(SG_STRING(Sg_MakeStringC(optarg)),
+	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)),
 				    SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {

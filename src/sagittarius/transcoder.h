@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * transcoder.h
+/* transcoder.h                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -58,6 +56,9 @@ struct SgTranscoderRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeTranscoder(SgCodec *codec, EolStyle eolStyle,
+				     ErrorHandlingMode mode);
+SG_EXTERN SgObject Sg_InitTranscoder(SgTranscoder *transcoder,
+				     SgCodec *codec, EolStyle eolStyle,
 				     ErrorHandlingMode mode);
 /* These two are OS dependent. see os/${os}/transcoder.c */
 SG_EXTERN SgObject Sg_MakeNativeConsoleTranscoder();

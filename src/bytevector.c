@@ -308,9 +308,9 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
 			       int start, int end)
 {
 #define BUF_SIZ 256
-  SgPort *accum;
-  SgPort *bin;
-  SgPort *tin;
+  SgPort accum, bin, tin;
+  SgBinaryPort bp;
+  SgTextualPort tp, ap;
   SgChar buf[BUF_SIZ];
   int size = SG_BVECTOR_SIZE(bv);
   int read_size = BUF_SIZ;
@@ -328,15 +328,15 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
     start = 0;
   }
 
-  bin = Sg_MakeByteVectorInputPort(bv, start);
-  tin = Sg_MakeTranscodedInputPort(bin, transcoder);
-  accum = Sg_MakeStringOutputPort(end);
+  Sg_InitByteVectorInputPort(&bin, &bp, bv, start);
+  Sg_InitTranscodedPort(&tin, &tp, &bin, transcoder, SG_INPUT_PORT);
+  Sg_InitStringOutputPort(&accum, &ap, end);
   
   for (;;) {
     int rest;
-    len = Sg_ReadsUnsafe(tin, buf, read_size);
+    len = Sg_ReadsUnsafe(&tin, buf, read_size);
     if (len < read_size) break;
-    Sg_WritesUnsafe(accum, buf, len);
+    Sg_WritesUnsafe(&accum, buf, len);
     total_size += len;
     rest = (int)(size - total_size);
     len = 0;
@@ -344,23 +344,24 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
     if (rest < read_size) read_size = rest;
   }
   if (len != 0) {
-    Sg_WritesUnsafe(accum, buf, len);
+    Sg_WritesUnsafe(&accum, buf, len);
   }
-  return Sg_GetStringFromStringPort(accum);
+  return Sg_GetStringFromStringPort(&accum);
 }
 
 SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
 			       int start, int end)
 {
-  SgPort* accum;
-  SgPort* out;
+  SgPort accum, out;
+  SgBinaryPort bp;
+  SgTextualPort tp;
   int len = SG_STRING_SIZE(s);
   SG_CHECK_START_END(start, end, len);
 
-  accum = Sg_MakeByteArrayOutputPort(end);
-  out = Sg_MakeTranscodedOutputPort(accum, transcoder);
-  Sg_WritesUnsafe(out, SG_STRING_VALUE(s) + start, end - start);
-  return Sg_GetByteVectorFromBinaryPort(accum);
+  Sg_InitByteArrayOutputPort(&accum, &bp, end);
+  Sg_InitTranscodedPort(&out, &tp, &accum, transcoder, SG_OUTPUT_PORT);
+  Sg_WritesUnsafe(&out, SG_STRING_VALUE(s) + start, end - start);
+  return Sg_GetByteVectorFromBinaryPort(&accum);
 }
 
 

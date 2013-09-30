@@ -1,6 +1,4 @@
-/*  -*- C -*- */
-/*
- * unicode.c
+/* unicode.c                                       -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -452,12 +450,18 @@ SgObject Sg_Utf16sToUtf32s(const char *s, int len)
 
 char* Sg_Utf32sToUtf8s(const SgString *s)
 {
-  SgPort *p = Sg_MakeByteArrayOutputPort(s->size + sizeof(SgChar));
-  SgTranscoder *t = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
-  SgPort *tp = Sg_MakeTranscodedOutputPort(p, t);
-  Sg_TranscoderWrite(t, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
-  Sg_PutbUnsafe(p, '\0');
-  return (char*)Sg_GetByteArrayFromBinaryPort(p);
+  SgPort p, tp;
+  SgBinaryPort bp;
+  SgTextualPort ttp;
+  SgTranscoder t;
+
+  Sg_InitByteArrayOutputPort(&p, &bp, s->size + sizeof(SgChar));
+
+  Sg_InitTranscoder(&t, Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
+  Sg_InitTranscodedPort(&tp, &ttp, &p, &t, SG_OUTPUT_PORT);
+  Sg_TranscoderWrite(&t, &tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
+  Sg_PutbUnsafe(&p, '\0');
+  return (char*)Sg_GetByteArrayFromBinaryPort(&p);
 }
 
 wchar_t* Sg_StringToWCharTs(SgObject s)

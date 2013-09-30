@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * hashtable.h
+/* hashtable.h                                     -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -145,14 +143,20 @@ SG_EXTERN uint32_t Sg_EqualHash(SgObject obj);
 SG_EXTERN uint32_t Sg_StringHash(SgString *str, uint32_t bound);
 
 SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize);
+SG_EXTERN SgObject Sg_InitHashTableSimple(SgHashTable *table, 
+					  SgHashType type, int initSize);
 /* for c-string. see string.c */
-SG_EXTERN SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre, int initSize);
-SG_EXTERN SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare, int initSize);
+SG_EXTERN SgObject Sg_MakeHashTable(SgHashProc *hasher, 
+				    SgHashCompareProc *compre, int initSize);
+SG_EXTERN SgObject Sg_MakeHashTableForScheme(SgObject hasher, 
+					     SgObject compare, int initSize);
 
 SG_EXTERN SgObject Sg_HashTableCopy(SgHashTable *table, int mutableP);
 
-SG_EXTERN SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback);
-SG_EXTERN SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value, int flags);
+SG_EXTERN SgObject Sg_HashTableRef(SgHashTable *table, SgObject key,
+				   SgObject fallback);
+SG_EXTERN SgObject Sg_HashTableSet(SgHashTable *table, SgObject key,
+				   SgObject value, int flags);
 SG_EXTERN SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key);
 
 SG_EXTERN SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src);

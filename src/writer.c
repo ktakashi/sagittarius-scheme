@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * writer.c
+/* writer.c                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -125,11 +123,13 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   SgWriteContext ctx;
   SgString *str;
   SgObject out;
+  SgHashTable seen;
   int nc, sharedp = FALSE;
 
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
+  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 8);
   ctx.mode = mode;
   ctx.flags = WRITE_CIRCULAR;
   if (width > 0) {
@@ -137,7 +137,7 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
     ctx.limit = width;
   }
   ctx.ncirc = 0;
-  ctx.table = Sg_MakeHashTableSimple(SG_HASH_EQ, 8);
+  ctx.table = &seen;
   ctx.sharedId = 0;
   SET_STACK_SIZE(&ctx);
 
@@ -936,7 +936,6 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
 
 void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  ctx->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
   if (ctx->flags & WRITE_CIRCULAR) {
     SgObject seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
     SgHashTable *save = ctx->table;
@@ -954,6 +953,7 @@ void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx)
       }
     }
   } else {
+    ctx->table = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
     write_walk(obj, ctx);
   }
 

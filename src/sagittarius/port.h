@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * port.h
+/* port.h                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -58,7 +56,9 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
   do {							\
     type *__tmp = (_buf);				\
     if (__tmp->position >= SG_STREAM_BUFFER_SIZE) {	\
-      __tmp->next = SG_NEW(type);			\
+      if (__tmp->next == NULL) {			\
+	__tmp->next = SG_NEW(type);			\
+      }							\
       __tmp->next->position = 0;			\
       (r) = __tmp = __tmp->next;			\
     }							\
@@ -365,8 +365,8 @@ enum SgCustomPortType {
 #define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
 #define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
 
-#define SG_PORT_LOCK(port)	Sg_LockMutex(&port->lock)
-#define SG_PORT_UNLOCK(port)	Sg_UnlockMutex(&port->lock)
+#define SG_PORT_LOCK(port)	Sg_LockMutex(&(port)->lock)
+#define SG_PORT_UNLOCK(port)	Sg_UnlockMutex(&(port)->lock)
 
 #define SG_INIT_PORT(port, d, t, m)		\
   do {						\
@@ -378,18 +378,44 @@ enum SgCustomPortType {
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 
+#define SG_INIT_BINARY_PORT(bp, t)		\
+  do {						\
+    (bp)->type = (t);				\
+    (bp)->buffer = NULL;			\
+    (bp)->bufferSize = 0;			\
+    (bp)->bufferIndex = 0;			\
+    (bp)->position = 0;				\
+    (bp)->dirty = FALSE;			\
+    (bp)->closed = SG_BPORT_OPEN;		\
+  } while (0)
+
+#define SG_INIT_TEXTUAL_PORT(tp, t)		\
+  do {						\
+    (tp)->type = (t);				\
+  } while (0)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file,
 						    int bufferMode);
+SG_EXTERN SgObject Sg_InitFileBinaryPort(SgPort *port,
+					 SgBinaryPort *bp,
+					 SgFile *file,
+					 enum SgPortDirection direction,
+					 int bufferMode);
 /* Sg_MakeByteVectorInputPort is just for bytevector->string to avoid an
    allocation. so we don't provide output and input/output port for it.
  */
 SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
+/* We can't make common byte array initialisation function... */
+SG_EXTERN SgObject Sg_InitByteVectorInputPort(SgPort *port, SgBinaryPort *bp,
+					      SgByteVector *bv, int offset);
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
+SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
+					      int bufferSize);
 
 SG_EXTERN SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
 				     SgPortTable *portTable,
@@ -402,7 +428,14 @@ SG_EXTERN SgObject Sg_MakeTranscodedOutputPort(SgPort *port,
 					       SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 						    SgTranscoder *transcoder);
+SG_EXTERN SgObject Sg_InitTranscodedPort(SgPort *port, SgTextualPort *tp,
+					 SgPort *src, SgTranscoder *transcoder,
+					 enum SgPortDirection direction);
+
+/* buffer size is not used yet */
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
+SG_EXTERN SgObject Sg_InitStringOutputPort(SgPort *port, SgTextualPort *tp,
+					   int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
 /* For convenience and future improvement */
 SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);

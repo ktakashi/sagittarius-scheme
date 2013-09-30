@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * reader.c
+/* reader.c                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -1583,7 +1581,9 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
   ASSERT(SG_TEXTUAL_PORTP(port));
   /* make read context for shared object */
   if (readSharedObject) {
-    ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
+    SgHashTable graph;
+    Sg_InitHashTableSimple(&graph, SG_HASH_EQ, 1);
+    ctx.graph = &graph;
   }  
   ctx.graphRef = FALSE;
   ctx.flags = SG_READ_SOURCE_INFO;
@@ -1599,7 +1599,9 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   /* extends_loading_table(port); */
   /* make read context for shared object */
   if (sharedP) {
-    ctx.graph = Sg_MakeHashTableSimple(SG_HASH_EQ, 1);
+    SgHashTable graph;
+    Sg_InitHashTableSimple(&graph, SG_HASH_EQ, 1);
+    ctx.graph = &graph;
   }
   ctx.graphRef = FALSE;
   ctx.firstLine = Sg_LineNo(port);

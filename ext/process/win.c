@@ -115,9 +115,9 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   handles[1] = process.hProcess;
   p->handle = (uintptr_t)handles;
   
-  in  = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe0[1]));
-  out = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe1[0]));
-  err = SG_FILE(SG_MAKE_FILE_FROM_FD(pipe2[0]));
+  in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
+  out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
+  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
   in->name = UC("process-stdin");
   out->name = UC("process-stdout");
   err->name = UC("process-stderr");

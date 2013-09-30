@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * vm.c
+/* instruction.c                                   -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -36,6 +34,9 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/library.h"
+
+#undef CONST
+
 InsnInfo* Sg_LookupInsnName(Instruction insn)
 {
   InsnInfo *info = NULL;

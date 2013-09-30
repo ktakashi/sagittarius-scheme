@@ -1,4 +1,4 @@
-/* port.c                                         -*- mode:c; coding:utf-8; -*- 
+/* port.c                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -205,20 +205,14 @@ static SgPort* make_port_rec(enum SgPortDirection d, enum SgPortType t,
 static SgBinaryPort* make_binary_port(enum SgBinaryPortType t)
 {
   SgBinaryPort *z = SG_NEW(SgBinaryPort);
-  z->type = t;
-  z->buffer = NULL;
-  z->bufferSize = 0;
-  z->bufferIndex = 0;
-  z->position = 0;
-  z->dirty = FALSE;
-  z->closed = SG_BPORT_OPEN;
+  SG_INIT_BINARY_PORT(z, t);
   return z;
 }
 
 static SgTextualPort* make_textual_port(enum SgTextualPortType t)
 {
   SgTextualPort *z = SG_NEW(SgTextualPort);
-  z->type = t;
+  SG_INIT_TEXTUAL_PORT(z, t);
   return z;
 }
 
@@ -538,12 +532,14 @@ static int64_t file_try_read_all(SgObject self, uint8_t **buf)
   int result = file_look_ahead_u8(self);
   if (result != EOF) {
     int count = 0;
-    SgObject bp = Sg_MakeByteArrayOutputPort(256);
+    SgPort bp;
+    SgBinaryPort b;
+    Sg_InitByteArrayOutputPort(&bp, &b, 256);
     while ((result = file_get_u8(self)) != EOF) {
-      Sg_PutbUnsafe(bp, (uint8_t)result);
+      Sg_PutbUnsafe(&bp, (uint8_t)result);
       count++;
     }
-    *buf = Sg_GetByteArrayFromBinaryPort(bp);
+    *buf = Sg_GetByteArrayFromBinaryPort(&bp);
     file_forward_position(self, count);
     return count;
   } else {
@@ -787,25 +783,7 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   /* TODO is buffer mode correct? */
   SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
-  /* file must be opened before this method is called. */
-  ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
-
-  INIT_FILE_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &fb_inputs;
-  /* always block for input port */
-  SG_BINARY_PORT_VTABLE(b) = &file_binary_block_table;
-  /* set binary input port */
-  z->impl.bport = b;
-  /* initialize binary input port */
-  b->src.file = file;
-
-  if (bufferMode != SG_BUFMODE_NONE) {
-    b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
-  } else {
-    /* reset ahead u8 */
-    SG_PORT_U8_AHEAD(z) = EOF;
-  }
-  return SG_OBJ(z);
+  return Sg_InitFileBinaryPort(z, b, file, SG_INPUT_PORT, bufferMode);
 }
 
 static SgPortTable fb_outputs = {
@@ -825,26 +803,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
-  /* file must be opened before this method is called. */
-  ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
-
-  INIT_FILE_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &fb_outputs;
-  z->impl.bport = b;
-  b->src.file = file;
-
-  if (bufferMode != SG_BUFMODE_NONE) {
-    b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
-    if (bufferMode == SG_BUFMODE_BLOCK) {
-      SG_BINARY_PORT_VTABLE(b) = &file_binary_block_table;
-    } else {
-      SG_BINARY_PORT_VTABLE(b) = &file_binary_line_table;
-    }
-    register_buffered_port(z);
-  } else {
-    SG_BINARY_PORT_VTABLE(b) = &file_binary_block_table;
-  }
-  return SG_OBJ(z);
+  return Sg_InitFileBinaryPort(z, b, file, SG_OUTPUT_PORT, bufferMode);
 }
 
 /* input/output port
@@ -867,28 +826,42 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
   /* file must be opened before this method is called. */
+  return Sg_InitFileBinaryPort(z, b, file, SG_IN_OUT_PORT, bufferMode);
+}
+
+SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
+			       SgFile *file, enum SgPortDirection d,
+			       int bufferMode)
+{
   ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
+  /* duplicated... */
+  SG_INIT_PORT(port, d, SG_BINARY_PORT_TYPE, bufferMode);
+  SG_INIT_BINARY_PORT(bp, SG_FILE_BINARY_PORT_TYPE);
 
-  INIT_FILE_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &fb_in_outputs;
-
-  z->impl.bport = b;
-  b->src.file = file;
-
-  if (bufferMode != SG_BUFMODE_NONE) {
-    b->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
-    if (bufferMode == SG_BUFMODE_BLOCK) {
-      SG_BINARY_PORT_VTABLE(b) = &file_binary_block_table;
-    } else {
-      SG_BINARY_PORT_VTABLE(b) = &file_binary_line_table;
-    }
-    register_buffered_port(z);
-  } else {
-    SG_BINARY_PORT_VTABLE(b) = &file_binary_block_table;
-    SG_PORT_U8_AHEAD(z) = EOF;
+  switch (d) {
+  case SG_INPUT_PORT:  SG_PORT_VTABLE(port) = &fb_inputs; break;
+  case SG_OUTPUT_PORT: SG_PORT_VTABLE(port) = &fb_outputs; break;
+  case SG_IN_OUT_PORT: SG_PORT_VTABLE(port) = &fb_in_outputs; break;
   }
 
-  return SG_OBJ(z);
+  port->impl.bport = bp;
+  bp->src.file = file;
+  
+  if (bufferMode != SG_BUFMODE_NONE) {
+    bp->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
+    if (bufferMode == SG_BUFMODE_BLOCK) {
+      SG_BINARY_PORT_VTABLE(bp) = &file_binary_block_table;
+    } else {
+      SG_BINARY_PORT_VTABLE(bp) = &file_binary_line_table;
+    }
+    if (d != SG_INPUT_PORT && Sg_GCBase(port) != NULL) {
+      register_buffered_port(port);
+    }
+  } else {
+    SG_BINARY_PORT_VTABLE(bp) = &file_binary_block_table;
+    SG_PORT_U8_AHEAD(port) = EOF;
+  }
+  return port;
 }
 
 /*****
@@ -1055,23 +1028,30 @@ static SgBinaryPortTable bt_binary_table = {
   NULL
 };
 
+SgObject Sg_InitByteVectorInputPort(SgPort *port, SgBinaryPort *bp,
+				    SgByteVector *bv, int offset)
+{
+  SG_INIT_PORT(port, SG_INPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SG_INIT_BINARY_PORT(bp, SG_BYTE_ARRAY_BINARY_PORT_TYPE);
+  INIT_BYTE_PORT_COMMON(port);
+  SG_PORT_VTABLE(port) = &bt_inputs;
+  SG_BINARY_PORT_VTABLE(bp) = &bt_binary_table;
+  /* initialize binary input port */
+  bp->src.buffer.bvec = bv;
+  bp->src.buffer.index = offset;
+
+  /* set binary input port */
+  port->impl.bport = bp;
+  return SG_OBJ(port);
+}
+
 SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset)
 {
   /* TODO is buffer mode correct? */
   SgPort *z = make_port_rec(SG_INPUT_PORT, SG_BINARY_PORT_TYPE,
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
-
-  INIT_BYTE_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &bt_inputs;
-  SG_BINARY_PORT_VTABLE(b) = &bt_binary_table;
-  /* initialize binary input port */
-  b->src.buffer.bvec = bv;
-  b->src.buffer.index = offset;
-
-  /* set binary input port */
-  z->impl.bport = b;
-  return SG_OBJ(z);
+  return Sg_InitByteVectorInputPort(z, b, bv, offset);
 }
 
 SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
@@ -1079,7 +1059,6 @@ SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size)
   SgByteVector *bv = SG_BVECTOR(Sg_MakeByteVectorFromU8Array(src, (int)size));
   return Sg_MakeByteVectorInputPort(bv, 0);
 }
-
 
 static SgPortTable bt_outputs = {
   NULL,
@@ -1098,18 +1077,26 @@ SgObject Sg_MakeByteArrayOutputPort(int size)
   SgPort *z = make_port_rec(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE,
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_BYTE_ARRAY_BINARY_PORT_TYPE);
+  return Sg_InitByteArrayOutputPort(z, b, size);
+}
 
-  INIT_BYTE_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &bt_outputs;
-  SG_BINARY_PORT_VTABLE(b) = &bt_binary_table;
+SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
+				    int bufferSize)
+{
+  SG_INIT_PORT(port, SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, SG_BUFMODE_NONE);
+  SG_INIT_BINARY_PORT(bp, SG_BYTE_ARRAY_BINARY_PORT_TYPE);
+
+  INIT_BYTE_PORT_COMMON(port);
+  SG_PORT_VTABLE(port) = &bt_outputs;
+  SG_BINARY_PORT_VTABLE(bp) = &bt_binary_table;
 
   /* initialize binary output port */
-  b->src.obuf.start = b->src.obuf.current = SG_NEW(byte_buffer);
-  b->src.obuf.start->position = 0;
+  bp->src.obuf.start = bp->src.obuf.current = SG_NEW(byte_buffer);
+  bp->src.obuf.start->position = 0;
 
   /* set binary input port */
-  z->impl.bport = b;
-  return SG_OBJ(z);
+  port->impl.bport = bp;
+  return SG_OBJ(port);
 }
 
 SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
@@ -1298,17 +1285,7 @@ SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
   SgPort *z = make_port(SG_INPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  INIT_TRANS_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &trans_inputs;
-  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
-
-  t->src.transcoded.transcoder = transcoder;
-  t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = EOF;
-  t->src.transcoded.lineNo = 1;
-
-  z->impl.tport = t;
-  return SG_OBJ(z);
+  return Sg_InitTranscodedPort(z, t, port, transcoder, SG_INPUT_PORT);
 }
 
 static SgPortTable trans_outputs = {
@@ -1329,16 +1306,7 @@ SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  INIT_TRANS_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &trans_outputs;
-  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
-
-  t->src.transcoded.transcoder = transcoder;
-  t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = EOF;
-
-  z->impl.tport = t;
-  return SG_OBJ(z);
+  return Sg_InitTranscodedPort(z, t, port, transcoder, SG_OUTPUT_PORT);
 }
 
 SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, 
@@ -1347,17 +1315,31 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  z->closed = FALSE;
-  SG_PORT_VTABLE(z) = &trans_outputs;
-  SG_TEXTUAL_PORT_VTABLE(t) = &trans_src_table;
+  return Sg_InitTranscodedPort(z, t, port, transcoder, SG_IN_OUT_PORT);
+}
 
-  t->src.transcoded.transcoder = transcoder;
-  t->src.transcoded.port = port;
-  t->src.transcoded.ungetBuffer = EOF;
-  t->src.transcoded.lineNo = 1;
+SgObject Sg_InitTranscodedPort(SgPort *port, SgTextualPort *tp,
+			       SgPort *src, SgTranscoder *transcoder,
+			       enum SgPortDirection direction)
+{
+  SG_INIT_PORT(port, direction, SG_TEXTUAL_PORT_TYPE, -1);
+  SG_INIT_TEXTUAL_PORT(tp, SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
-  z->impl.tport = t;
-  return SG_OBJ(z);
+  port->closed = FALSE;
+  if (direction == SG_INPUT_PORT) {
+    SG_PORT_VTABLE(port) = &trans_inputs;
+  } else {
+    SG_PORT_VTABLE(port) = &trans_outputs;
+  }
+  SG_TEXTUAL_PORT_VTABLE(tp) = &trans_src_table;
+
+  tp->src.transcoded.transcoder = transcoder;
+  tp->src.transcoded.port = src;
+  tp->src.transcoded.ungetBuffer = EOF;
+  tp->src.transcoded.lineNo = 1;
+
+  port->impl.tport = tp;
+  return SG_OBJ(port);
 }
 
 /*****
@@ -1507,16 +1489,25 @@ SgObject Sg_MakeStringOutputPort(int bufferSize)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
   SgTextualPort *t = make_textual_port(SG_STRING_TEXTUAL_PORT_TYPE);
+  return Sg_InitStringOutputPort(z, t, bufferSize);
+}
 
-  INIT_STRING_PORT_COMMON(z);
-  SG_PORT_VTABLE(z) = &str_outputs;
-  SG_TEXTUAL_PORT_VTABLE(t) = &string_src_table;
+SgObject Sg_InitStringOutputPort(SgPort *port, SgTextualPort *tp,
+				 int bufferSize)
+{
+  SG_INIT_PORT(port, SG_OUTPUT_PORT, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
+  SG_INIT_TEXTUAL_PORT(tp, SG_STRING_TEXTUAL_PORT_TYPE);
 
-  t->src.ostr.start = t->src.ostr.current = SG_NEW(char_buffer);
-  t->src.ostr.start->position = 0;
+  INIT_STRING_PORT_COMMON(port);
+  SG_PORT_VTABLE(port) = &str_outputs;
+  SG_TEXTUAL_PORT_VTABLE(tp) = &string_src_table;
 
-  z->impl.tport = t;
-  return SG_OBJ(z); 
+  /* TODO compute pre-allocated buffer using buffer size */
+  tp->src.ostr.start = tp->src.ostr.current = SG_NEW(char_buffer);
+  tp->src.ostr.start->position = 0;
+
+  port->impl.tport = tp;
+  return SG_OBJ(port);
 }
 
 static SgPortTable str_inputs = {

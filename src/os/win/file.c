@@ -312,23 +312,28 @@ static SgFileTable vtable = {
   win_ready
 };
 
-static SgFile* make_file(HANDLE hd)
+static SgFile* init_file(SgFile *file, HANDLE hd)
 {
-  SgFile *z = SG_NEW(SgFile);
   FD *depend = SG_NEW(FD);
-  SG_SET_CLASS(z, SG_CLASS_FILE);
+  SG_SET_CLASS(file, SG_CLASS_FILE);
   depend->desc = hd;
   depend->lastError = 0;
   depend->prevChar = -1;
-  z->osdependance = (void*)depend;
-  return z;
+  file->osdependance = (void*)depend;
+  return file;
 }
 
 SgObject Sg_MakeFile()
 {
-  SgFile *z = make_file(INVALID_HANDLE_VALUE);
-  SG_FILE_VTABLE(z) = &vtable;
-  return SG_OBJ(z);
+  SgFile *z = SG_NEW(SgFile);
+  return Sg_InitFile(z);
+}
+
+SgObject Sg_InitFile(SgFile *file)
+{
+  init_file(file, INVALID_HANDLE_VALUE);
+  SG_FILE_VTABLE(file) = &vtable;
+  return SG_OBJ(file);
 }
 
 SgObject Sg_FileErrorMessage(SgObject file)
@@ -379,7 +384,7 @@ static SgFile *stdError = NULL;
 SgObject Sg_StandardOut()
 {
   if (!stdOut) {
-    stdOut = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_OUTPUT_HANDLE));
+    stdOut = Sg_MakeFileFromFD(GetStdHandle(STD_OUTPUT_HANDLE));
     stdOut->name = UC("stdout");
   }
   return SG_OBJ(stdOut);
@@ -388,7 +393,7 @@ SgObject Sg_StandardOut()
 SgObject Sg_StandardIn()
 {
   if (!stdIn) {
-    stdIn = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_INPUT_HANDLE));
+    stdIn = Sg_MakeFileFromFD(GetStdHandle(STD_INPUT_HANDLE));
     stdIn->name = UC("stdin");
   }
   return SG_OBJ(stdIn);
@@ -397,7 +402,7 @@ SgObject Sg_StandardIn()
 SgObject Sg_StandardError()
 {
   if (!stdError) {
-    stdError = SG_MAKE_FILE_FROM_FD(GetStdHandle(STD_ERROR_HANDLE));
+    stdError = Sg_MakeFileFromFD(GetStdHandle(STD_ERROR_HANDLE));
     stdError->name = UC("stderr");
   }
   return SG_OBJ(stdError);
@@ -405,7 +410,8 @@ SgObject Sg_StandardError()
 
 SgObject Sg_MakeFileFromFD(uintptr_t handle)
 {
-  SgFile * f = make_file((HANDLE)handle);
+  SgFile *f = SG_NEW(SgFile);
+  init_file(f, (HANDLE)handle);
   f->name = UC("fd");
   SG_FILE_VTABLE(f) = &vtable;
   return SG_OBJ(f);

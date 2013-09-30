@@ -39,14 +39,17 @@
 static const wchar_t* utf32ToUtf16(SgString *path)
 {
   int size = SG_STRING_SIZE(path);
-  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
   SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  SgPort *tp = Sg_MakeTranscodedOutputPort(out, tcoder);
-
-  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(path), SG_STRING_SIZE(path));
-  Sg_TranscoderPutc(tcoder, tp, '\0');
-  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
+  SgPort out, tout;
+  SgBinaryPort bp;
+  SgTextualPort tp;
+  Sg_InitByteArrayOutputPort(&out, &bp, sizeof(wchar_t) * (size + 1));
+  Sg_InitTranscodedPort(&tout, &tp, &out, tcoder, SG_OUTPUT_PORT);
+  Sg_TranscoderWrite(tcoder, &tout, SG_STRING_VALUE(path),
+		     SG_STRING_SIZE(path));
+  Sg_TranscoderPutc(tcoder, &tout, '\0');
+  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(&out);
 }
 
 static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
@@ -55,7 +58,9 @@ static SgString* utf16ToUtf32(wchar_t *s)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
   size_t i = 0, n = wcslen(s);
-  SgObject out = Sg_MakeStringOutputPort((int)n);
+  SgPort out;
+  SgTextualPort tp;
+  Sg_InitStringOutputPort(&out, &tp, (int)n);
   while (i < n) {
     SgChar c0 = s[i++];
     if (isLead(c0)) {
@@ -67,15 +72,17 @@ static SgString* utf16ToUtf32(wchar_t *s)
 	return SG_MAKE_STRING("bad char");
       }
     }
-    Sg_PutcUnsafe(out, c0);
+    Sg_PutcUnsafe(&out, c0);
   }
-  return Sg_GetStringFromStringPort(out);
+  return Sg_GetStringFromStringPort(&out);
 }
 
 static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  SgObject out = Sg_MakeStringOutputPort((int)((e - s) * 2));
+  SgPort out;
+  SgTextualPort tp;
+  Sg_InitStringOutputPort(&out, &tp, (int)((e - s) * 2));
   while (s < e) {
     SgChar c0 = *s++;
     if (isLead(c0)) {
@@ -87,9 +94,9 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 	return SG_MAKE_STRING("bad char");
       }
     }
-    Sg_PutcUnsafe(out, c0);
+    Sg_PutcUnsafe(&out, c0);
   }
-  return Sg_GetStringFromStringPort(out);
+  return Sg_GetStringFromStringPort(&out);
 }
 
 static SgObject get_last_error(DWORD e)
