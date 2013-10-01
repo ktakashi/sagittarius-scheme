@@ -1311,9 +1311,15 @@ SgObject Sg_SprintfShared(const SgChar *fmt, ...)
 SgObject Sg_Vsprintf(const SgChar *fmt, va_list args, int sharedp)
 {
   /* use default size */
-  SgObject port = Sg_MakeStringOutputPort(0);
-  Sg_Vprintf(port, fmt, args, sharedp);
-  return Sg_GetStringFromStringPort(port);
+  SgPort port;
+  SgTextualPort tp;
+  SgObject r;
+
+  Sg_InitStringOutputPort(&port, &tp, 0);
+  Sg_Vprintf(&port, fmt, args, sharedp);
+  r = Sg_GetStringFromStringPort(&port);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return r;
 }
 
 void Sg_WriteSymbolName(SgString *snam, SgPort *port,
