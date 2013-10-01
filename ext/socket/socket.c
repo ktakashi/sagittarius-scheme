@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * socket.c
+/* socket.c                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -145,18 +143,23 @@ static SgObject bytevector_to_v4_string(SgObject bv)
 static SgObject bytevector_to_v6_string(SgObject bv)
 {
   static const char table[] = "0123456789abcdef";
-  SgObject sp = Sg_MakeStringOutputPort(39);
+  SgObject r;
+  SgPort sp;
+  SgTextualPort tp;
   int i;
+  Sg_InitStringOutputPort(&sp, &tp, 39);
   for (i = 0; i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE); i++) {
     int hi = SG_BVECTOR_ELEMENT(bv, (i<<1));
     int lo = SG_BVECTOR_ELEMENT(bv, ((i<<1)+1));
-    Sg_PutcUnsafe(SG_PORT(sp), table[hi]);
-    Sg_PutcUnsafe(SG_PORT(sp), table[lo]);
+    Sg_PutcUnsafe(&sp, table[hi]);
+    Sg_PutcUnsafe(&sp, table[lo]);
     if (i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE) - 1) {
-      Sg_PutcUnsafe(SG_PORT(sp), ':');
+      Sg_PutcUnsafe(&sp, ':');
     }
   }
-  return Sg_GetStringFromStringPort(SG_PORT(sp));
+  r = Sg_GetStringFromStringPort(&sp);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return r;
 }
 
 static SgObject ip_to_string(SgIpAddress *ip)
@@ -991,8 +994,10 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
 static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 {
   uint8_t read_buf[1024];
-  SgObject buffer = Sg_MakeByteArrayOutputPort(1024);
+  SgPort buffer;
+  SgBinaryPort bp;
   int mark = 0;
+  Sg_InitByteArrayOutputPort(&buffer, &bp, 1024);
   for (;;) {
     int read_size = Sg_SocketReceive(SG_PORT_SOCKET(self), read_buf, 1024, 0);
     if (-1 == read_size) {
@@ -1001,7 +1006,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 		     self);
       return -1;
     } else {
-      Sg_WritebUnsafe(SG_PORT(buffer), read_buf, 0, read_size);
+      Sg_WritebUnsafe(&buffer, read_buf, 0, read_size);
       if (1024 != read_size) {
 	mark += read_size;
 	break;
@@ -1011,7 +1016,8 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
     }
   }
   SG_BINARY_PORT(self)->position += mark;
-  *buf = Sg_GetByteArrayFromBinaryPort(SG_PORT(buffer));
+  *buf = Sg_GetByteArrayFromBinaryPort(&buffer);
+  SG_CLEAN_BINARY_PORT(&bp);
   return mark;
 }
 

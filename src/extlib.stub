@@ -510,6 +510,16 @@
       (set! (ref ctx graph)  (Sg_MakeHashTableSimple SG_HASH_EQ 1))
       (result (Sg_ReadWithContext p (& ctx)))))
 
+  (define-cfn string-format (fmt objs) :static
+    (let ((out::SgPort)
+	  (tp::SgTextualPort)
+	  (r))
+      (Sg_InitStringOutputPort (& out) (& tp) 16)
+      (Sg_Format (& out) fmt objs FALSE)
+      (set! r (Sg_GetStringFromStringPort (& out)))
+      (SG_CLEAN_TEXTUAL_PORT (& tp))
+      (return r)))
+
   (define-c-proc format (p :rest rest) ::<top>
     (cond ((SG_PORTP p)
 	   (check-port-open format p)
@@ -522,16 +532,12 @@
 	   (let ((fmt::SgString* (SG_CAR rest))
 		 (objs (SG_CDR rest)))
 	     (if (SG_FALSEP p)
-		 (let ((out (Sg_MakeStringOutputPort 16)))
-		   (Sg_Format out fmt objs FALSE)
-		   (result (Sg_GetStringFromStringPort out)))
+		 (result (string-format fmt objs))
 		 (let ((out (Sg_CurrentOutputPort)))
 		   (Sg_Format out fmt objs FALSE)
 		   (result SG_UNDEF)))))
 	  ((SG_STRINGP p)
-	   (let ((out (Sg_MakeStringOutputPort 16)))
-	     (Sg_Format out p rest FALSE)
-	     (result (Sg_GetStringFromStringPort out))))))
+	   (result (string-format p rest)))))
 
   (define-c-proc format/ss (p :rest rest) ::<top>
     (cond ((SG_PORTP p)

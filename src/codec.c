@@ -550,7 +550,9 @@ Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
 
 static SgObject readc_proc(SgObject *args, int argc, void *data)
 {
-  SgObject codec, port, size, mode, sdata, out;
+  SgObject codec, port, size, mode, sdata, r;
+  SgPort out;
+  SgTextualPort tp;
   int count, i;
   codec = SG_OBJ(data);
   if (argc != 4) {
@@ -562,13 +564,13 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
   mode = args[2];
   sdata = args[3];
   count = SG_INT_VALUE(size);
-  out = Sg_MakeStringOutputPort(-1);
+  Sg_InitStringOutputPort(&out, &tp, -1);
   /* transcoder must handle the first character */
   for (i = 0; i < count; i++) {
     SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(codec)->getc, port, mode, SG_FALSE,
 			   sdata);
     if (SG_CHARP(c)) {
-      Sg_PutcUnsafe(out, SG_CHAR_VALUE(c));
+      Sg_PutcUnsafe(&out, SG_CHAR_VALUE(c));
     } else if (SG_EOFP(c)) {
       break;
     } else {
@@ -576,7 +578,9 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
 			    SG_MAKE_STRING("getc procedure returned non character object"), c);
     }
   }
-  return Sg_GetStringFromStringPort(out);
+  r = Sg_GetStringFromStringPort(&out);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return r;
 }
 
 static SgObject writec_proc(SgObject *args, int argc, void *data)

@@ -169,13 +169,14 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
 {
   SgWriteContext ctx;
   SgString *str;
-  SgObject out;
+  SgPort out;
+  SgTextualPort tp;
   int nc, sharedp = FALSE;
 
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  out = Sg_MakeStringOutputPort(0);
+  Sg_InitStringOutputPort(&out, &tp, 0);
   ctx.mode = mode;
   ctx.flags = WRITE_LIMITED;
   ctx.limit = width;
@@ -184,8 +185,9 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   SET_STACK_SIZE(&ctx);
 
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
-  format_write(obj, SG_PORT(out), &ctx, sharedp);
-  str = SG_STRING(Sg_GetStringFromStringPort(out));
+  format_write(obj, &out, &ctx, sharedp);
+  str = SG_STRING(Sg_GetStringFromStringPort(&out));
+  SG_CLEAN_TEXTUAL_PORT(&tp);
   nc = str->size;
   if (nc > width) {
     SgObject sub = Sg_Substring(str, 0, width);
@@ -239,7 +241,8 @@ static void format_sexp(SgPort *out, SgObject arg,
 {
   int mincol = 0, colinc = 1, minpad = 0, maxcol = -1, nwritten = 0, i;
   SgChar padchar = ' ';
-  SgObject tmpout;
+  SgPort tmpout;
+  SgTextualPort tp;
   SgString *tmpstr;
   
   if (nparams > 0 && SG_INTP(params[0])) mincol = SG_INT_VALUE(params[0]);
@@ -248,21 +251,21 @@ static void format_sexp(SgPort *out, SgObject arg,
   if (nparams > 3 && SG_CHARP(params[3])) padchar = SG_CHAR_VALUE(params[3]);
   if (nparams > 4 && SG_INTP(params[4])) maxcol = SG_INT_VALUE(params[4]);
 
-  tmpout = Sg_MakeStringOutputPort((maxcol > 0) ? maxcol
-				   : (minpad > 0) ? minpad
-				   : 0);
+  Sg_InitStringOutputPort(&tmpout, &tp,
+			  (maxcol > 0) ? maxcol : (minpad > 0) ? minpad : 0);
   if (minpad > 0 && rightalign) {
-    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(&tmpout, padchar);
   }
   if (maxcol > 0) {
-    nwritten = Sg_WriteLimited(arg, tmpout, mode, maxcol);
+    nwritten = Sg_WriteLimited(arg, &tmpout, mode, maxcol);
   } else {
-    Sg_Write(arg, tmpout, mode);
+    Sg_Write(arg, &tmpout, mode);
   }
   if (minpad > 0 && !rightalign) {
-    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(&tmpout, padchar);
   }
-  tmpstr = SG_STRING(Sg_GetStringFromStringPort(tmpout));
+  tmpstr = SG_STRING(Sg_GetStringFromStringPort(&tmpout));
+  SG_CLEAN_TEXTUAL_PORT(&tp);
 
   if (maxcol > 0 && nwritten < 0) {
     const SgChar *s = SG_STRING_VALUE(tmpstr);
@@ -312,27 +315,31 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     int i;
     const SgChar *ptr = SG_STRING_VALUE(str);
     unsigned int num_digits = SG_STRING_SIZE(str), colcnt;
-    SgObject strout = Sg_MakeStringOutputPort(num_digits + (num_digits % commainterval));
+    SgPort strout;
+    SgTextualPort tp;
 
+    Sg_InitStringOutputPort(&strout, &tp,
+			    num_digits + (num_digits % commainterval));
     if (*ptr == '-' || *ptr == '+') {
-      Sg_PutcUnsafe(strout, *ptr);
+      Sg_PutcUnsafe(&strout, *ptr);
       ptr++;
       num_digits--;
     }
     colcnt = num_digits % commainterval;
     if (colcnt != 0) {
       for (i = 0; (unsigned int)i < colcnt; i++) {
-	Sg_Putc(strout, *(ptr + i));
+	Sg_Putc(&strout, *(ptr + i));
       }
     }
     while (colcnt < num_digits) {
-      if (colcnt != 0) Sg_PutcUnsafe(strout, commachar);
+      if (colcnt != 0) Sg_PutcUnsafe(&strout, commachar);
       for (i = 0; i < commainterval; i++) {
-	Sg_Putc(strout, *(ptr + colcnt + i));
+	Sg_Putc(&strout, *(ptr + colcnt + i));
       }
       colcnt += commainterval;
     }
-    str = Sg_GetStringFromStringPort(strout);
+    str = Sg_GetStringFromStringPort(&strout);
+    SG_CLEAN_TEXTUAL_PORT(&tp);
   }
   format_pad(out, SG_STRING(str), mincol, 1, padchar, TRUE);
 }
