@@ -122,7 +122,8 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
 {
   SgWriteContext ctx;
   SgString *str;
-  SgObject out;
+  SgPort out;
+  SgTextualPort tp;
   SgHashTable seen;
   int nc, sharedp = FALSE;
 
@@ -148,10 +149,11 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
     return 0;
   }
 
-  out = Sg_MakeStringOutputPort(0);
+  Sg_InitStringOutputPort(&out, &tp, 0);
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
-  format_write(obj, SG_PORT(out), &ctx, sharedp);
-  str = SG_STRING(Sg_GetStringFromStringPort(out));
+  format_write(obj, &out, &ctx, sharedp);
+  str = SG_STRING(Sg_GetStringFromStringPort(&out));
+  SG_CLEAN_TEXTUAL_PORT(&tp);
   nc = str->size;
   if (nc > width) {
     SgObject sub = Sg_Substring(str, 0, width);

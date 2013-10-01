@@ -60,6 +60,7 @@ static SgString* utf16ToUtf32(wchar_t *s)
   size_t i = 0, n = wcslen(s);
   SgPort out;
   SgTextualPort tp;
+  SgObject r;
   Sg_InitStringOutputPort(&out, &tp, (int)n);
   while (i < n) {
     SgChar c0 = s[i++];
@@ -74,7 +75,9 @@ static SgString* utf16ToUtf32(wchar_t *s)
     }
     Sg_PutcUnsafe(&out, c0);
   }
-  return Sg_GetStringFromStringPort(&out);
+  r = Sg_GetStringFromStringPort(&out);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return r;
 }
 
 static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
@@ -82,6 +85,7 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
   SgPort out;
   SgTextualPort tp;
+  SgObject r;
   Sg_InitStringOutputPort(&out, &tp, (int)((e - s) * 2));
   while (s < e) {
     SgChar c0 = *s++;
@@ -96,7 +100,9 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
     }
     Sg_PutcUnsafe(&out, c0);
   }
-  return Sg_GetStringFromStringPort(&out);
+  r = Sg_GetStringFromStringPort(&out);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return r;
 }
 
 static SgObject get_last_error(DWORD e)

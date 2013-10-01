@@ -3222,13 +3222,18 @@ SgString* Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement)
   result = Sg_RegexFind(m, -1);
   if (result) {
     /* hopefully this is enough, well it'll expand anyway */
-    SgPort *p = SG_PORT(Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 2));
+    SgPort p;
+    SgTextualPort tp;
+    SgString *r;
+    Sg_InitStringOutputPort(&p, &tp, SG_STRING_SIZE(m->text) * 2);
     do {
-      append_replacement(m, p, replacement);
+      append_replacement(m, &p, replacement);
       result = Sg_RegexFind(m, -1);
     } while (result);
-    append_tail(m, p);
-    return SG_STRING(Sg_GetStringFromStringPort(p));
+    append_tail(m, &p);
+    r = SG_STRING(Sg_GetStringFromStringPort(&p));
+    SG_CLEAN_TEXTUAL_PORT(&tp);
+    return r;
   }
   /* no replacement, we just return text */
   return m->text;
@@ -3240,10 +3245,15 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement)
   reset_matcher(m);
   result = Sg_RegexFind(m, -1);
   if (result) {
-    SgPort *p = SG_PORT(Sg_MakeStringOutputPort(SG_STRING_SIZE(m->text) * 2));
-    append_replacement(m, p, replacement);
-    append_tail(m, p);
-    return SG_STRING(Sg_GetStringFromStringPort(p));
+    SgPort p;
+    SgTextualPort tp;
+    SgString *r;
+    Sg_InitStringOutputPort(&p, &tp, SG_STRING_SIZE(m->text) * 2);
+    append_replacement(m, &p, replacement);
+    append_tail(m, &p);
+    r = SG_STRING(Sg_GetStringFromStringPort(&p));
+    SG_CLEAN_TEXTUAL_PORT(&tp);
+    return r;
   }
   /* we don't copy. */
   return m->text;
@@ -3252,7 +3262,9 @@ SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement)
 /* returns (compile-regex "str" flag) */
 static SgObject read_regex_string(SgPort *port)
 {
-  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  SgPort buf;
+  SgTextualPort tp;
+  Sg_InitStringOutputPort(&buf, &tp, -1);
   while(1) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF) {
@@ -3261,12 +3273,12 @@ static SgObject read_regex_string(SgPort *port)
     }
     if (c == '\\') {
       /* escape. */
-      Sg_PutcUnsafe(buf, c);
-      Sg_PutcUnsafe(buf, Sg_GetcUnsafe(port));
+      Sg_PutcUnsafe(&buf, c);
+      Sg_PutcUnsafe(&buf, Sg_GetcUnsafe(port));
     } else if (c == '/') {
       /* end mark */
       int flag = 0, add = 0;
-      
+      SgObject tmp;
     entry:
       c = Sg_PeekcUnsafe(port);
       switch (c) {
@@ -3286,17 +3298,16 @@ static SgObject read_regex_string(SgPort *port)
 	add = SG_UNICODE_CASE;
 	goto add_flag;
       default:
-	/* return SG_LIST3(SG_INTERN("compile-regex"), */
-	/* 		Sg_GetStringFromStringPort(buf), */
-	/* 		SG_MAKE_INT(flag)); */
-	return Sg_CompileRegex(Sg_GetStringFromStringPort(buf), flag, FALSE);
+	tmp = Sg_GetStringFromStringPort(&buf);
+	SG_CLEAN_TEXTUAL_PORT(&tp);
+	return Sg_CompileRegex(tmp, flag, FALSE);
       }
     add_flag:
       flag |= add;
       Sg_GetcUnsafe(port);
       goto entry;
     } else {
-      Sg_PutcUnsafe(buf, c);
+      Sg_PutcUnsafe(&buf, c);
     }
   }
 }

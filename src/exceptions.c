@@ -339,9 +339,13 @@ static SgObject retrieve_fields(SgObject rec, SgObject rtd)
 SgObject Sg_DescribeCondition(SgObject con)
 {
   if (Sg_ConditionP(con)) {
-    SgObject out = Sg_MakeStringOutputPort(512);
+    SgPort out;
+    SgTextualPort tp;
     SgObject lst = Sg_SimpleConditions(con), cp;
-    Sg_Printf(out, UC("  #<condition\n"));
+
+    Sg_InitStringOutputPort(&out, &tp, 512);
+
+    Sg_Printf(&out, UC("  #<condition\n"));
     SG_FOR_EACH(cp, lst) {
       SgObject rec = SG_CAR(cp);
       SgObject rtd, name, parents, fields;
@@ -351,32 +355,34 @@ SgObject Sg_DescribeCondition(SgObject con)
       parents = list_parents(rtd, TRUE);
       fields = retrieve_fields(rec, rtd);
       count = Sg_Length(fields);
-      Sg_Printf(out, UC("\n    %A"), name);
+      Sg_Printf(&out, UC("\n    %A"), name);
       if (SG_PAIRP(parents)) {
-	Sg_Printf(out, UC(" %A"), parents);
+	Sg_Printf(&out, UC(" %A"), parents);
       }
       if (count == 1) {
 	SgObject field = SG_CAR(fields);
 	if (SG_STRINGP(SG_CDR(field))) {
-	  Sg_Printf(out, UC(" %A"), SG_CDR(field));
+	  Sg_Printf(&out, UC(" %A"), SG_CDR(field));
 	} else {
-	  Sg_Printf(out, UC(" %S"), SG_CDR(field));
+	  Sg_Printf(&out, UC(" %S"), SG_CDR(field));
 	}
       } else if (count > 1) {
 	SgObject lst;
-	Sg_Printf(out, UC("\n"));
+	Sg_Printf(&out, UC("\n"));
 	SG_FOR_EACH(lst, fields) {
 	  SgObject field = SG_CAR(lst);
 	  if (SG_STRINGP(SG_CDR(field))) {
-	    Sg_Printf(out, UC("      %A: %A\n"), SG_CAR(field), SG_CDR(field));
+	    Sg_Printf(&out, UC("      %A: %A\n"), SG_CAR(field), SG_CDR(field));
 	  } else {
-	    Sg_Printf(out, UC("      %A: %S\n"), SG_CAR(field), SG_CDR(field));
+	    Sg_Printf(&out, UC("      %A: %S\n"), SG_CAR(field), SG_CDR(field));
 	  }
 	}
       }
     }
-    Sg_Printf(out, UC("\n  >\n"));
-    return Sg_GetStringFromStringPort(out);
+    Sg_Printf(&out, UC("\n  >\n"));
+    cp = Sg_GetStringFromStringPort(&out);
+    SG_CLEAN_TEXTUAL_PORT(&tp);
+    return cp;
   } else {
     return con;
   }

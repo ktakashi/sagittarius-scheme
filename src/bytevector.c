@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * bytevector.c
+/* bytevector.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -311,6 +309,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   SgPort accum, bin, tin;
   SgBinaryPort bp;
   SgTextualPort tp, ap;
+  SgObject r;
   SgChar buf[BUF_SIZ];
   int size = SG_BVECTOR_SIZE(bv);
   int read_size = BUF_SIZ;
@@ -346,7 +345,11 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   if (len != 0) {
     Sg_WritesUnsafe(&accum, buf, len);
   }
-  return Sg_GetStringFromStringPort(&accum);
+  r = Sg_GetStringFromStringPort(&accum);
+  SG_CLEAN_BINARY_PORT(&bp);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  SG_CLEAN_TEXTUAL_PORT(&ap);
+  return r;
 }
 
 SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
@@ -355,13 +358,19 @@ SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
   SgPort accum, out;
   SgBinaryPort bp;
   SgTextualPort tp;
+  SgObject r;
   int len = SG_STRING_SIZE(s);
   SG_CHECK_START_END(start, end, len);
 
   Sg_InitByteArrayOutputPort(&accum, &bp, end);
   Sg_InitTranscodedPort(&out, &tp, &accum, transcoder, SG_OUTPUT_PORT);
   Sg_WritesUnsafe(&out, SG_STRING_VALUE(s) + start, end - start);
-  return Sg_GetByteVectorFromBinaryPort(&accum);
+
+  r = Sg_GetByteVectorFromBinaryPort(&accum);
+  SG_CLEAN_BINARY_PORT(&bp);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+
+  return r;
 }
 
 

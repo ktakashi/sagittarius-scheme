@@ -415,31 +415,34 @@ int64_t Sg_TranscoderWrite(SgObject self, SgPort *tport,
    */
   if (tran->eolStyle != E_NONE) {
     int64_t i;
-    SgObject out = Sg_MakeStringOutputPort(-1);
+    SgPort out;
+    SgTextualPort tp;
+    Sg_InitStringOutputPort(&out, &tp, -1);
     for (i = 0; i < count; i++) {
       SgChar c = s[i];
       if (c == LF) {
 	switch (tran->eolStyle) {
 	case LF: case NEL: case LS: case CR:
-	  Sg_PutcUnsafe(out, tran->eolStyle);
+	  Sg_PutcUnsafe(&out, tran->eolStyle);
 	  break;
 	case E_NONE:
-	  Sg_PutcUnsafe(out, c);
+	  Sg_PutcUnsafe(&out, c);
 	  break;
 	case CRLF:
-	  Sg_PutcUnsafe(out, CR);
-	  Sg_PutcUnsafe(out, LF);
+	  Sg_PutcUnsafe(&out, CR);
+	  Sg_PutcUnsafe(&out, LF);
 	  break;
 	case CRNEL:
-	  Sg_PutcUnsafe(out, CR);
-	  Sg_PutcUnsafe(out, NEL);
+	  Sg_PutcUnsafe(&out, CR);
+	  Sg_PutcUnsafe(&out, NEL);
 	  break;
 	}
       } else {
-	Sg_PutcUnsafe(out, c);
+	Sg_PutcUnsafe(&out, c);
       }
     }
-    new_s = Sg_GetStringFromStringPort(out);
+    new_s = Sg_GetStringFromStringPort(&out);
+    SG_CLEAN_TEXTUAL_PORT(&tp);
     s = SG_STRING_VALUE(new_s);
     count = SG_STRING_SIZE(new_s);
   }

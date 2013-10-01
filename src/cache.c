@@ -893,6 +893,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgBinaryPort bp;
   SgObject cache, timestamp;
   int index = 0;
+  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
@@ -907,7 +908,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_CloseFile(&file);
     return TRUE;
   }
-  Sg_InitFileBinaryPort(&out, &bp, &file, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK);
+  Sg_InitFileBinaryPort(&out, &bp, &file, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK,
+			portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
   SG_FOR_EACH(cache, caches) {
     if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
@@ -925,10 +927,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
 
-  Sg_InitFileBinaryPort(&out, &bp, &tagfile, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK);
+  Sg_InitFileBinaryPort(&out, &bp, &tagfile, SG_OUTPUT_PORT, SG_BUFMODE_NONE,
+			NULL, 0);
   /* put validate tag */
   Sg_WritebUnsafe(&out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
   Sg_ClosePort(&out);
+
+  SG_CLEAN_BINARY_PORT(&bp);
 
   return TRUE;
 }
@@ -1577,6 +1582,7 @@ int Sg_ReadCache(SgString *id)
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50];
+  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int b, ret;
   int64_t size;
 
@@ -1619,7 +1625,8 @@ int Sg_ReadCache(SgString *id)
   Sg_LockFile(&file, SG_SHARED);
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
-  Sg_InitFileBinaryPort(&in, &bp, &file, SG_INPUT_PORT, SG_BUFMODE_BLOCK);
+  Sg_InitFileBinaryPort(&in, &bp, &file, SG_INPUT_PORT, SG_BUFMODE_BLOCK,
+			portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
@@ -1634,7 +1641,8 @@ int Sg_ReadCache(SgString *id)
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(&in);
   if (b == INVALID_CACHE_TAG) {
-    return INVALID_CACHE;
+    ret = INVALID_CACHE;
+    goto end;
   }
 
   if (setjmp(ctx.escape) == 0) {
@@ -1672,6 +1680,7 @@ int Sg_ReadCache(SgString *id)
   SG_PORT_UNLOCK(&in);
   Sg_UnlockFile(&file);
   Sg_ClosePort(&in);
+  SG_CLEAN_BINARY_PORT(&bp);
   return ret;
 }
 

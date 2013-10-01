@@ -142,7 +142,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SG_PORT_UNLOCK(port);
 }
 
-#define PORT_DEFAULT_BUF_SIZE 8196
+#define PORT_DEFAULT_BUF_SIZE SG_PORT_DEFAULT_BUFFER_SIZE
 
 static void port_cleanup(SgPort *port)
 {
@@ -374,14 +374,15 @@ static void file_fill_buffer(SgObject self)
 {
   int64_t read_size = 0;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
+  const size_t buffer_size = bp->size;
   if (bp->dirty && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
     file_flush(self);
   }
-  while (read_size < PORT_DEFAULT_BUF_SIZE) {
+  while (read_size < buffer_size) {
     int64_t result =
       SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self),
 				      bp->buffer + read_size,
-				      PORT_DEFAULT_BUF_SIZE-read_size);
+				      buffer_size - read_size);
     ASSERT(result >= 0);	/* file raises error */
     if (result == 0) {
       break;			/* EOF */
@@ -643,12 +644,13 @@ static int64_t file_write_to_block_buffer(SgObject self, uint8_t *v,
   int64_t opos = 0;
   int need_unwind = FALSE;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
+  const size_t buffer_size = bp->size;
   if (req_size > 0) {
     SG_BINARY_PORT(self)->dirty = TRUE;
   }
 
   while (write_size < req_size) {
-    int64_t buf_diff = PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
+    int64_t buf_diff = buffer_size - bp->bufferIndex;
     int64_t size_diff = req_size - write_size;
     if (buf_diff >= size_diff) {
       memcpy64(bp->buffer + bp->bufferIndex, v + write_size, size_diff);
@@ -679,12 +681,12 @@ static int64_t file_write_to_line_buffer(SgObject self, uint8_t *v,
   int64_t opos = 0;
   int need_unwind = FALSE;
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-
+  const size_t buffer_size = bp->size;
   if (req_size > 0) {
     bp->dirty = TRUE;
   }
   while (write_size < req_size) {
-    int64_t buf_diff =  PORT_DEFAULT_BUF_SIZE - bp->bufferIndex;
+    int64_t buf_diff =  buffer_size - bp->bufferIndex;
     if (buf_diff == 0) {
       if (opos == 0LL) {
 	opos = SG_PORT_FILE_VTABLE(self)->seek(SG_PORT_FILE(self), 0,
@@ -783,7 +785,7 @@ SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode)
   /* TODO is buffer mode correct? */
   SgPort *z = make_port(SG_INPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
-  return Sg_InitFileBinaryPort(z, b, file, SG_INPUT_PORT, bufferMode);
+  return Sg_InitFileBinaryPort(z, b, file, SG_INPUT_PORT, bufferMode, NULL, 0);
 }
 
 static SgPortTable fb_outputs = {
@@ -803,7 +805,7 @@ SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode)
 {
   SgPort *z = make_port(SG_OUTPUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
-  return Sg_InitFileBinaryPort(z, b, file, SG_OUTPUT_PORT, bufferMode);
+  return Sg_InitFileBinaryPort(z, b, file, SG_OUTPUT_PORT, bufferMode, NULL, 0);
 }
 
 /* input/output port
@@ -825,13 +827,15 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
+  uint8_t *buffer;
   /* file must be opened before this method is called. */
-  return Sg_InitFileBinaryPort(z, b, file, SG_IN_OUT_PORT, bufferMode);
+  return Sg_InitFileBinaryPort(z, b, file, SG_IN_OUT_PORT, bufferMode, NULL, 0);
 }
 
 SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
 			       SgFile *file, enum SgPortDirection d,
-			       int bufferMode)
+			       int bufferMode,
+			       uint8_t *buffer, size_t bufferSize)
 {
   ASSERT(SG_FILE_VTABLE(file)->isOpen(file));
   /* duplicated... */
@@ -848,7 +852,13 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
   bp->src.file = file;
   
   if (bufferMode != SG_BUFMODE_NONE) {
-    bp->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
+    if (buffer != NULL) {
+      bp->buffer = buffer;
+      bp->size = bufferSize;
+    } else {
+      bp->buffer = SG_NEW_ATOMIC2(uint8_t *, PORT_DEFAULT_BUF_SIZE);
+      bp->size = PORT_DEFAULT_BUF_SIZE;
+    }
     if (bufferMode == SG_BUFMODE_BLOCK) {
       SG_BINARY_PORT_VTABLE(bp) = &file_binary_block_table;
     } else {

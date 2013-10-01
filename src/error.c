@@ -60,29 +60,35 @@ void Sg_Warn(const SgChar* fmt, ...)
 void Sg_Error(const SgChar* fmt, ...)
 {
   va_list ap;
-  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
+  SgPort err;
+  SgTextualPort tp;
   SgObject errObj;
-  
+
+  Sg_InitStringOutputPort(&err, &tp, 0);
   va_start(ap, fmt);
-  Sg_Vprintf(err, fmt, ap, TRUE);
+  Sg_Vprintf(&err, fmt, ap, TRUE);
   va_end(ap);
-  errObj = Sg_MakeError(Sg_GetStringFromStringPort(err));
+  errObj = Sg_MakeError(Sg_GetStringFromStringPort(&err));
+  SG_CLEAN_TEXTUAL_PORT(&tp);
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
 {
   va_list ap;
-  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
+  SgPort err;
+  SgTextualPort tp;
   SgObject errObj;
 
+  Sg_InitStringOutputPort(&err, &tp, 0);
   va_start(ap, fmt);
-  Sg_Vprintf(err, fmt, ap, TRUE);
+  Sg_Vprintf(&err, fmt, ap, TRUE);
   va_end(ap);
 
   /* TODO I think we need an error type to catch */
-  errObj = Sg_GetStringFromStringPort(err);
+  errObj = Sg_GetStringFromStringPort(&err);
   errObj = Sg_MakeReaderCondition(errObj);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 

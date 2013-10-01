@@ -133,6 +133,8 @@ typedef struct SgBinaryPortTableRec
   int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
 } SgBinaryPortTable;
 
+#define SG_PORT_DEFAULT_BUFFER_SIZE 8196
+
 typedef struct SgBinaryPortRec
 {
   SgBinaryPortTable *vtbl;
@@ -158,7 +160,8 @@ typedef struct SgBinaryPortRec
     to do. for now I just put like this. 
    */
   uint8_t *buffer;		/* buffer */
-  int64_t  bufferSize;		/* buffer size */
+  size_t   size;		/* buffer size */
+  int64_t  bufferSize;		/* read size */
   int64_t  bufferIndex;		/* buffer index */
   int64_t  position;		/* current position */
   int      dirty;		/* can be ahead ... */
@@ -323,9 +326,12 @@ enum SgCustomPortType {
 
 #define SG_PORTP(obj) 	      SG_XTYPEP(obj, SG_CLASS_PORT)
 #define SG_PORT(obj)  	      ((SgPort*)obj)
-#define SG_INPORTP(obj)       (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
-#define SG_OUTPORTP(obj)      (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)
-#define SG_INOUTPORTP(obj)    (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_IN_OUT_PORT)
+#define SG_INPORTP(obj)						\
+  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
+#define SG_OUTPORTP(obj)					\
+  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)
+#define SG_INOUTPORTP(obj)					\
+  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_IN_OUT_PORT)
 
 #define SG_PORT_READTABLE(obj) (SG_PORT(obj)->readtable)
 #define SG_PORT_READER(obj)    (SG_PORT(obj)->reader)
@@ -394,6 +400,21 @@ enum SgCustomPortType {
     (tp)->type = (t);				\
   } while (0)
 
+
+/* for GC friendliness */
+/* The src is union so it is enough to make first 2 words NULL */
+#define SG_CLEAN_BINARY_PORT(bp)		\
+  do {						\
+    (bp)->src.obuf.start = NULL;		\
+    (bp)->src.obuf.current = NULL;		\
+    (bp)->buffer = NULL;			\
+  } while (0)
+#define SG_CLEAN_TEXTUAL_PORT(tp)		\
+  do {						\
+    (tp)->src.transcoded.transcoder = NULL;	\
+    (tp)->src.transcoded.port = NULL;		\
+  } while (0)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
@@ -404,7 +425,9 @@ SG_EXTERN SgObject Sg_InitFileBinaryPort(SgPort *port,
 					 SgBinaryPort *bp,
 					 SgFile *file,
 					 enum SgPortDirection direction,
-					 int bufferMode);
+					 int bufferMode,
+					 uint8_t *buffer,
+					 size_t bufferSize);
 /* Sg_MakeByteVectorInputPort is just for bytevector->string to avoid an
    allocation. so we don't provide output and input/output port for it.
  */
