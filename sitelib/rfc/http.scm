@@ -302,7 +302,7 @@
 			auth-headers)
     ;; this is actually not so portable. display requires textual-port but
     ;; socket-port is binary-port. but hey!
-    ;;(display out (standard-error-port))(newline)
+    ;;(display out (current-error-port))(newline)
     (format out "~a ~a HTTP/1.1\r\n" method uri)
     (case method
       ((POST PUT)

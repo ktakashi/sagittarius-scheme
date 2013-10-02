@@ -1265,7 +1265,9 @@ static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
 
 static void trans_flush(SgObject self)
 {
-  SG_PORT_VTABLE(SG_TPORT_PORT(self))->flush(SG_TPORT_PORT(self));
+  if (SG_PORT_VTABLE(SG_TPORT_PORT(self))->flush) {
+    SG_PORT_VTABLE(SG_TPORT_PORT(self))->flush(SG_TPORT_PORT(self));
+  }
 }
 
 static SgPortTable trans_inputs = {
