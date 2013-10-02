@@ -170,6 +170,14 @@
 	       (let* ((bin (make-test-binary-port out))
 		      (tin (transcoded-port bin (native-transcoder))))
 		 (display "test" tin)))))
+(test-assert "flush" 
+	     (call-with-bytevector-output-port
+	      (lambda (out)
+		(let* ((bin (make-test-binary-port out))
+		       (tin (transcoded-port bin (native-transcoder))))
+		  (flush-output-port tin)
+		  'ok))))
+
 
 ;; custom codec test
 ;; This must be run on UTF-8 file λ

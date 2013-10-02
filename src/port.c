@@ -827,7 +827,6 @@ SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file, int bufferMode)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_BINARY_PORT_TYPE, bufferMode);
   SgBinaryPort *b = make_binary_port(SG_FILE_BINARY_PORT_TYPE);
-  uint8_t *buffer;
   /* file must be opened before this method is called. */
   return Sg_InitFileBinaryPort(z, b, file, SG_IN_OUT_PORT, bufferMode, NULL, 0);
 }
