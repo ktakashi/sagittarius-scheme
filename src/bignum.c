@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * bignum.c
+/* bignum.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -29,34 +27,6 @@
  *
  *  $Id: $
  */
-
-#include <sagittarius/config.h>
-
-#ifndef __GNUC__
-# ifdef HAVE_ALLOCA_H
-#  include <alloca.h>
-# else
-#  ifdef _AIX
-#    pragma alloca
-#  elif defined(_MSC_VER)
-/* _alloca is in <malloc.h> */
-#    include <malloc.h>
-#    define alloca _alloca
-#  else
-#   ifndef alloca /* predefined by HP cc +Olibcalls */
-char *alloca ();
-#   endif
-#  endif
-# endif
-#else
-# ifdef HAVE_ALLOCA_H
-#  include <alloca.h>
-# endif
-# ifdef HAVE_MALLOC_H
-/* MinGW helds alloca() in "malloc.h" instead of "alloca.h" */
-#  include <malloc.h>
-# endif
-#endif
 
 #include <math.h>
 #include <string.h>
@@ -126,16 +96,23 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
 
 #define make_bignum(size) make_bignum_rec(size, TRUE)
 
+/* Should we expose this? */
 #ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_BIGNUM(var, size)		\
-  (var) = SG_BIGNUM(alloca(BIGNUM_SIZE(size)));	\
-	SG_SET_CLASS(var, SG_CLASS_INTEGER);	\
-	SG_BIGNUM_SET_COUNT(var, size);		\
-	SG_BIGNUM_SET_SIGN(var, 1);		\
-	bignum_clear(var);			
+#define ALLOC_TEMP_BIGNUM(var, size)			\
+  do {							\
+    (var) = SG_BIGNUM(alloca(BIGNUM_SIZE(size)));	\
+    SG_SET_CLASS(var, SG_CLASS_INTEGER);		\
+    SG_BIGNUM_SET_COUNT(var, size);			\
+    SG_BIGNUM_SET_SIGN(var, 1);				\
+    bignum_clear(var);					\
+  } while (0)
 #else
-#define ALLOC_TEMP_BIGNUM(var, size) (var) = make_bignum(size);
+#define ALLOC_TEMP_BIGNUM(var, size)		\
+  do {						\
+    (var) = make_bignum(size);			\
+  } while (0)
 #endif
+
 
 SgObject Sg_MakeBignumFromSI(long value)
 {

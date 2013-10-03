@@ -1604,7 +1604,8 @@ static int custom_binary_get_u8(SgObject self)
     SG_CUSTOM_U8_AHEAD(self) = EOF;
     return c;
   }
-  bv = Sg_MakeByteVector(1, 0);
+  /* bv = Sg_MakeByteVector(1, 0); */
+  SG_ALLOC_TEMP_BVECTOR(bv, 1);
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("get-u8"),
@@ -1628,7 +1629,8 @@ static int custom_binary_lookahead_u8(SgObject self)
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
     return SG_CUSTOM_U8_AHEAD(self);
   }
-  bv = Sg_MakeByteVector(1, 0);
+  /* bv = Sg_MakeByteVector(1, 0); */
+  SG_ALLOC_TEMP_BVECTOR(bv, 1);
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
   if (!SG_INTP(result)) {
     Sg_IOReadError(SG_INTERN("lookahead-u8"),
@@ -1648,9 +1650,10 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
   SgObject bv, result;
   int start = 0;
   int64_t read = 0;
-  bv = Sg_MakeByteVector((int)size, 0);
+  /* bv = Sg_MakeByteVector((int)size, 0); */
+  SG_ALLOC_TEMP_BVECTOR(bv, (int)size);
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
-    Sg_ByteVectorU8Set(bv, 0, SG_CUSTOM_U8_AHEAD(self));
+    SG_BVECTOR_ELEMENT(bv, 0) = SG_CUSTOM_U8_AHEAD(self);
     SG_CUSTOM_U8_AHEAD(self) = EOF;
     start++;
     size--;
@@ -1706,7 +1709,8 @@ static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
     return SG_CUSTOM_U8_AHEAD(self);
   }
-  bv = Sg_MakeByteVector(1, b);
+  /* bv = Sg_MakeByteVector(1, b); */
+  SG_ALLOC_TEMP_BVECTOR(bv, 1);
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
 		    bv, start, count);
   if (!SG_INTP(result)) {

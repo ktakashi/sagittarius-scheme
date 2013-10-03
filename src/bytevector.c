@@ -47,27 +47,26 @@ static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   size_t i, size = b->size;
   uint8_t *u8 = b->elements;
   char buf[32];
-  Sg_Putuz(port, UC("#vu8("));
+  Sg_PutuzUnsafe(port, UC("#vu8("));
   if (size != 0) {
     for (i = 0; i < size - 1; i++) {
       snprintf(buf, array_sizeof(buf), "%u", u8[i]);
-      Sg_Putz(port, buf);
-      Sg_Putc(port, ' ');
+      Sg_PutzUnsafe(port, buf);
+      Sg_PutcUnsafe(port, ' ');
     }
     snprintf(buf, array_sizeof(buf), "%u", u8[i]);
-    Sg_Putz(port, buf);
+    Sg_PutzUnsafe(port, buf);
   }
-  Sg_Putc(port, ')');
+  Sg_PutcUnsafe(port, ')');
 }
 
 SG_DEFINE_BUILTIN_CLASS(Sg_ByteVectorClass, bvector_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
 
-SgByteVector* make_bytevector(int size)
+static SgByteVector* make_bytevector(int size)
 {
-  SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, 
-			    sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1));
+  SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, SG_BVECTOR_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_BVECTOR);
   z->size = size;
   z->literalp = FALSE;

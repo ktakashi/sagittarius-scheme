@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * string.c
+/* string.c                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -29,31 +27,7 @@
  *
  *  $Id: $
  */
-#include <sagittarius/config.h>
 #include <string.h>
-
-#ifndef __GNUC__
-# ifdef HAVE_ALLOCA_H
-#  include <alloca.h>
-# else
-#  ifdef _AIX
-#pragma alloca
-#  else
-#   ifndef alloca /* predefined by HP cc +Olibcalls */
-char *alloca ();
-#   endif
-#  endif
-# endif
-#else
-# ifdef HAVE_ALLOCA_H
-#  include <alloca.h>
-# endif
-# ifdef HAVE_MALLOC_H
-/* MinGW helds alloca() in "malloc.h" instead of "alloca.h" */
-#  include <malloc.h>
-# endif
-#endif
-
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/string.h"
 #include "sagittarius/collection.h"
@@ -135,12 +109,11 @@ static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
-#define STRING_ALLOC_SIZE(size)			\
-  (sizeof(SgString)+sizeof(SgChar)*size)
+#define ALLOC_TEMP_STRING SG_ALLOC_TEMP_STRING
 
 static SgString* make_string(int size)
 {
-  SgString *z = SG_NEW_ATOMIC2(SgString *, STRING_ALLOC_SIZE(size));
+  SgString *z = SG_NEW_ATOMIC2(SgString *, SG_STRING_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_STRING);
   z->size = size;
   z->literalp = FALSE;
@@ -157,23 +130,6 @@ static SgString* make_string(int size)
 
 static SgInternalMutex smutex;
 static SgHashTable *stable;
-
-#ifdef _MSC_VER
-/* _alloca is in <malloc.h> */
-#include <malloc.h>
-#define alloca _alloca
-#endif
-
-#ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_STRING(var, size)					\
-  do {									\
-    (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
-    SG_SET_CLASS(var, SG_CLASS_STRING);					\
-    SG_STRING_SIZE(var) = size;						\
-  } while (0)
-#else
-#define ALLOC_TEMP_STRING(var, size) (var) = make_string(size);
-#endif
 
 static SgObject makestring(const SgChar *value, SgStringType flag, int length)
 {

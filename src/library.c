@@ -396,26 +396,7 @@ static SgObject userlib = NULL;
 #define MAXPATHLEN 1024
 #endif
 
-/* FIXME the same as in string.c */
-#ifdef _MSC_VER
-/* _alloca is in <malloc.h> */
-#include <malloc.h>
-#define alloca _alloca
-#endif
-
-#define STRING_ALLOC_SIZE(size)			\
-  (sizeof(SgString)+sizeof(SgChar)*size)
-
-#ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_STRING(var, size)					\
-  do {									\
-    (var) = SG_STRING(alloca(STRING_ALLOC_SIZE(size)));			\
-    SG_SET_CLASS(var, SG_CLASS_STRING);					\
-    SG_STRING_SIZE(var) = (size);					\
-  } while (0)
-#else
-#define ALLOC_TEMP_STRING(var, size) (var) = Sg_ReserveString(size, 0);
-#endif
+#define ALLOC_TEMP_STRING SG_ALLOC_TEMP_STRING
 
 #define copy_string(dst, offset, src, start)				\
   do {									\

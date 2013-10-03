@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * string.h
+/* string.h                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -77,6 +75,21 @@ typedef enum {
 
 #define Sg_HeapString(str)				\
   SG_STRING(Sg_MakeString(str, SG_HEAP_STRING, -1))
+
+
+#define SG_STRING_ALLOC_SIZE(size) (sizeof(SgString)+sizeof(SgChar)*size)
+
+#ifdef HAVE_ALLOCA
+#define SG_ALLOC_TEMP_STRING(var, size)					\
+  do {									\
+    (var) = SG_STRING(alloca(SG_STRING_ALLOC_SIZE(size)));		\
+    SG_SET_CLASS(var, SG_CLASS_STRING);					\
+    SG_STRING_SIZE(var) = size;						\
+  } while (0)
+#else
+#define SG_ALLOC_TEMP_STRING(var, size)		\
+  do { (var) = Sg_ReserveString(size, 0); } while (0)
+#endif
 
 SG_CDECL_BEGIN
 

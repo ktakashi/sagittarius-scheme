@@ -100,6 +100,34 @@
 /* we need to include config.h here */
 #include <sagittarius/config.h>
 
+/* alloca things */
+#ifndef __GNUC__
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# else
+#  ifdef _AIX
+#    pragma alloca
+#  elif defined(_MSC_VER)
+/* _alloca is in <malloc.h> */
+#    include <malloc.h>
+#    define alloca _alloca
+#  else
+#   ifndef alloca /* predefined by HP cc +Olibcalls */
+char *alloca ();
+#   endif
+#  endif
+# endif
+#else
+# ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
+# endif
+# ifdef HAVE_MALLOC_H
+/* MinGW helds alloca() in "malloc.h" instead of "alloca.h" */
+#  include <malloc.h>
+# endif
+#endif
+
+
 /* detect endianness(from boost/detail/endian.hpp) */
 #if defined (__GLIBC__)
 # include <endian.h>

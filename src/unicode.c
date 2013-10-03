@@ -1239,7 +1239,8 @@ static SgObject compose_rec(SgByteVector *bv)
 
   for (i = 4, comp_pos = 4, starter_pos = 0;; i += 4) {
     if (i >= size) {
-      out = Sg_MakeByteVector(comp_pos, 0);
+      /* out = Sg_MakeByteVector(comp_pos, 0); */
+      SG_ALLOC_TEMP_BVECTOR(out, comp_pos);
       Sg_ByteVectorCopyX(bv, 0, out, 0, comp_pos);
       return bytevector2string(out);
     } else {
