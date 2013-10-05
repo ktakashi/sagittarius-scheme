@@ -57,6 +57,20 @@
       :dQ (mod d (- q 1))
       :qP (mod-inverse q p)))
   (define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
+  (define-method object-equal? ((o1 <rsa-private-key>) (o2 <rsa-private-key>))
+    (and (eqv? (slot-ref o1 'modulus) (slot-ref o2 'modulus))
+	 (eqv? (slot-ref o1 'private-exponent) (slot-ref o2 'private-exponent))
+	 ))
+  (define-method object-equal? ((o1 <rsa-private-crt-key>)
+				(o2 <rsa-private-crt-key>))
+    (and (eqv? (slot-ref o1 'modulus) (slot-ref o2 'modulus))
+	 (eqv? (slot-ref o1 'private-exponent) (slot-ref o2 'private-exponent))
+	 (eqv? (slot-ref o1 'p) (slot-ref o2 'p))
+	 (eqv? (slot-ref o1 'q) (slot-ref o2 'q))
+	 (eqv? (slot-ref o1 'dP) (slot-ref o2 'dP))
+	 (eqv? (slot-ref o1 'dQ) (slot-ref o2 'dQ))
+	 (eqv? (slot-ref o1 'qP) (slot-ref o2 'qP))
+	 ))
   (define-method write-object ((o <rsa-private-crt-key>) (p <port>))
     (let ((buf (call-with-string-output-port
 		(lambda (out)
@@ -80,6 +94,9 @@
   (define (make-rsa-public-key m e)
     (make <rsa-public-key> :modulus m :exponent e))
   (define (rsa-public-key? o) (is-a? o <rsa-public-key>))
+  (define-method object-equal? ((o1 <rsa-public-key>) (o2 <rsa-public-key>))
+    (and (eqv? (slot-ref o1 'modulus) (slot-ref o2 'modulus))
+	 (eqv? (slot-ref o1 'exponent) (slot-ref o2 'exponent))))
   (define-method write-object ((o <rsa-public-key>) (p <port>))
     (let ((buf (call-with-string-output-port
 		(lambda (out)
@@ -351,26 +368,28 @@
   (define-method export-public-key ((marker <rsa>) (key <rsa-public-key>))
     (rsa-export-public-key key))
 
-  (define (rsa-import-public-key in)
-    (let ((public (read-asn.1-object in)))
-      ;; validate
-      (unless (is-a? public <asn.1-sequence>)
-	(assertion-violation 'rsa-import-public-key 
-			     "invalid der object" public))
-      (let ((objects (slot-ref public 'sequence)))
-	(unless (= 2 (length objects))
+  (define (rsa-import-public-key public)
+    ;; validate
+    (unless (is-a? public <asn.1-sequence>)
+      (assertion-violation 'rsa-import-public-key "invalid der object" public))
+    (let ((objects (slot-ref public 'sequence)))
+      (unless (= 2 (length objects))
+	(assertion-violation 'rsa-import-public-key
+			     "bad sequence size" public))
+      (or (for-all (lambda (o) (is-a? o <der-integer>)) objects)
 	  (assertion-violation 'rsa-import-public-key
-			       "bad sequence size" public))
-	(or (for-all (lambda (o) (is-a? o <der-integer>)) objects)
-	    (assertion-violation 'rsa-import-public-key
-				 "all sequence componenet must be <der-integer>"
-				 objects))
-	(generate-public-key RSA
-			     (bytevector->integer
-			      (slot-ref (car objects) 'bytes))
-			     (bytevector->integer
-			      (slot-ref (cadr objects) 'bytes))))))
+			       "all sequence componenet must be <der-integer>"
+			       objects))
+      (generate-public-key RSA
+			   (bytevector->integer
+			    (slot-ref (car objects) 'bytes))
+			   (bytevector->integer
+			    (slot-ref (cadr objects) 'bytes)))))
+  (define-method import-public-key ((marker <rsa>) (in <bytevector>))
+    (import-public-key marker (open-bytevector-input-port in)))
   (define-method import-public-key ((marker <rsa>) (in <port>))
+    (import-public-key marker (read-asn.1-object in)))
+  (define-method import-public-key ((marker <rsa>) (in <asn.1-sequence>))
     (rsa-import-public-key in))
 
   #|
@@ -442,8 +461,10 @@
 	 :p (bytevector->integer (slot-ref p 'bytes))
 	 :q (bytevector->integer (slot-ref q 'bytes))))))
 
+  (define-method import-private-key ((marker <rsa>) (in <bytevector>))
+    (import-private-key marker (open-bytevector-input-port in)))
   (define-method import-private-key ((marker <rsa>) (in <port>))
-    (import-private-key RSA (read-asn.1-object in)))
+    (import-private-key marker (read-asn.1-object in)))
   (define-method import-private-key ((marker <rsa>) (in <asn.1-sequence>))
     (rsa-import-private-key in))
 )

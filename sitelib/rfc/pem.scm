@@ -61,7 +61,8 @@
 				(make-message-condition msg)
 				(make-irritants-condition irr))))))
 
-  (define (parse-pem in :key (multiple #f) (asn1 #f))
+  (define (parse-pem in :key (multiple #f) (asn1 #f)
+		     (builder #f))
     (define (parse-header header-string)
       (rfc5322-read-headers (open-string-input-port header-string)))
     (define (read-content p type)
@@ -98,10 +99,11 @@
 		   (receive (params content) (read-content in (m 1))
 		     (let1 base64 (base64-decode-string content :transcoder #f)
 		       (values params
-			       (if asn1
-				   (read-asn.1-object 
-				    (open-bytevector-input-port base64))
-				   base64))))))
+			       (cond (builder (builder base64))
+				     (asn1
+				      (read-asn.1-object 
+				       (open-bytevector-input-port base64)))
+				     (else base64)))))))
 	      (else (loop (get-line in))))))
 
     (let loop ((r '()))

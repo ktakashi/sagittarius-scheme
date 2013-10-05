@@ -18,7 +18,8 @@ This library defines these conditions.
 
 @subsubsection{Operations}
 
-@define[Function]{@name{parse-pem} @args{in :key (multiple #f) (ans1 #f)}}
+@define[Function]{@name{parse-pem}
+ @args{in :key (multiple #f) (builder #f) (asn1 #f)}}
 @desc{@var{in} must be textual input port.
 
 Parses given input port @var{in} and returns 2 values, parameter alist and
@@ -32,7 +33,16 @@ Keyword arguments
 
     This parameter is useful for the PEM files which contains multiple contents.
   }
-  @dl-item[@code{ans1}]{
+  @dl-item[@code{builder}]{
+    This keyword argument must take a procedure which accept one argument or
+    #f. If @var{builder} is specified then the given procedure will be called
+    to build then contents of the PEM.
+
+    This argument is not correspond with @var{asn1} keyword argument and has
+    higher priority. So if both arguments are specified, then @var{builder}
+    will be used.
+  }
+  @dl-item[@code{asn1}]{
     When this keyword argument is #t, then the procedure converts BASE64
     bytevector to ASN.1 object defined in @code{(asn.1)} library.
   }

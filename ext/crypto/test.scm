@@ -344,4 +344,13 @@
   (test-error "KCV (size 2)" values (key-check-value DES3 key 2))
   (test-error "KCV (size 2)" values (key-check-value DES3 key 9)))
 
+;; import and export keys
+(let ((epub (export-public-key RSA (keypair-public key-pair)))
+      (epri (export-private-key RSA (keypair-private key-pair))))
+  (test-equal "import public key" (keypair-public key-pair)
+	      (import-public-key RSA epub))
+  (import-public-key RSA epub)
+  (test-equal "import private key" (keypair-private key-pair)
+	      (import-private-key RSA epri)))
+
 (test-end)

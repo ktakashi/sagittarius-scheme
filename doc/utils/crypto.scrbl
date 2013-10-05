@@ -489,7 +489,7 @@ These slots are optional.
   }
 }
 
-NOTE: Even required slots Sagittarius does not check if it's set or not.
+NOTE: Even required slots, Sagittarius does not check if it's set or not.
 }
 
 @define[Function]{@name{register-spi} @args{mark spi}}
