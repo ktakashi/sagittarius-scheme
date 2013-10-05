@@ -68,10 +68,6 @@ location with the command:
 
     % make install
 
-or to a temporary location with the command:
-
-    % make install DESTDIR=/path/to/tmpdir
-
 Note: `make doc` command must be run before `make install` command, otherwise
 installation process will fail
 
