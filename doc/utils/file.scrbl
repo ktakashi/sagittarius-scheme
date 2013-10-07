@@ -35,6 +35,10 @@ respectively.
 @define[Function]{@name{file->string} @args{path}}
 @desc{Reads all file contents indicated @var{path} as a string and return it.}
 
+@define[Function]{@name{file->bytevector} @args{path}}
+@desc{Reads all file contents indicated @var{path} as a bytevector and return
+ it.}
+
 @subsubsection{Temporary directory operations}
 
 @define[Function]{@name{temporary-directory} @args{:optional path}}
