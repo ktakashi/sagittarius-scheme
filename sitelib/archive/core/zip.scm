@@ -101,7 +101,8 @@
 	    (binary pack)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
-	    (srfi :19 time))
+	    (srfi :19 time)
+	    (util file))
 
   (define-constant compression-stored 0)
   (define-constant compression-shrunk 1)
@@ -565,14 +566,8 @@
           (else
            ;; Create the file's directory
            (when (string-contains inzip-filename "/")
-             (let ((parts (drop-right (string-split inzip-filename #\/) 1)))
-               (let lp ((parts (cdr parts))
-                        (dir (car parts)))
-                 (unless (file-exists? dir)
-                   (create-directory dir))
-                 (unless (null? parts)
-                   (lp (cdr parts)
-                       (string-append dir "/" (car parts)))))))
+	     (let-values (((dir base ext) (decompose-path inzip-filename)))
+	       (create-directory* dir)))
            (let ((ret
                   (call-with-port (open-file-input/output-port inzip-filename)
                     proc)))
