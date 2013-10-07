@@ -2,7 +2,7 @@
 ;;;
 ;;; file.scm - file utility
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 	    file->string
 	    file->sexp-list
 	    file->string-list
+	    file->bytevector
 	    decompose-path
 	    path-extension
 	    path-sans-extension
@@ -57,10 +58,11 @@
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius regex)
-	    (srfi :0)
-	    (srfi :1)
+	    (srfi :0 cond-expand)
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
+	    (srfi :26 cut)
 	    (srfi :38)
 	    (srfi :39 parameters)
 	    (util port))
@@ -80,6 +82,11 @@
 
   (define (file->string-list path)
     (file->list get-line path))
+
+  (define (file->bytevector path)
+    (call-with-input-file path
+      (cut get-bytevector-all <>)
+      :transcoder #f))
 
   (define *path-set* (string->char-set "\\/"))
   (define (path-filename path)
