@@ -1,8 +1,8 @@
-;;; -*- coding: utf-8 -*-
+;;; -*- mode:scheme; coding: utf-8 -*-
 ;;;
 ;;; zlib.scm - RFC1950 zlib library
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
