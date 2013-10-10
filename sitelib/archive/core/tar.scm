@@ -256,11 +256,15 @@
       (when (string-contains file "/")
 	(let-values (((dir base ext) (decompose-path file)))
 	  (create-directory* dir)))
-      (when (and overwrite (file-exists? file))
-	(delete-file file))
-      (call-with-output-file file
-	(lambda (out) (extract-to-port tarport header out))
-	:transcoder #f)))
+      ;; if it's directory skip
+      (cond ((eq? (header-typeflag header) 'directory)
+	     (skip-file tarport header))
+	    (else
+	     (when (and overwrite (file-exists? file))
+	       (delete-file file))
+	     (call-with-output-file file
+	       (lambda (out) (extract-to-port tarport header out))
+	       :transcoder #f)))))
 
   (define (extract-to-port tarport header destport)
     (define who 'extract-to-port)
