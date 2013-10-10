@@ -243,6 +243,7 @@ IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
     SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
   ENDIF()
+
   # it didn't improve performance much and makes compilation time
   # really long. so for now disable it
 #  CHECK_C_COMPILER_FLAG(-flto HAS_LTO_FLAG)
@@ -390,7 +391,11 @@ ELSEIF(CYGWIN)
   #ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
   SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-ELSE()
+  # Cygwin stack issue
+  SET(cygwin_ldflags "-Wl,--stack,8388608")
+  SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
+  SET(CMAKE_MODULE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
 ENDIF()
 
 SET(SHLIB_SO_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")

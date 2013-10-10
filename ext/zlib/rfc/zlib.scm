@@ -170,17 +170,18 @@
 	  (do ((r (deflate z-stream in-buffer. out-buffer Z_FINISH)
 		  (deflate z-stream in-buffer. out-buffer Z_FINISH)))
 	      ((= r Z_STREAM_END) r)
-	    (unless (and (= r Z_OK)
-			 (= r Z_STREAM_END))
+	    (unless (or (= r Z_OK) (= r Z_STREAM_END))
 	      (raise-z-stream-error z-stream 'close
-				    (zlib-error-message z-stream)))
+				    (zlib-error-message z-stream)
+				    r))
 	    (put-bytevector sink out-buffer 0
 			    (zstream-write-count z-stream out-buffer)))
 	  (put-bytevector sink out-buffer 0
 			  (zstream-write-count z-stream out-buffer))
 	  (unless (= (deflate-end z-stream) Z_OK)
 	    (raise-z-stream-error z-stream 'close
-				  (zlib-error-message z-stream)))
+				  (zlib-error-message z-stream)
+				  (deflate-end z-stream)))
 	  ;; flush sink
 	  (flush-output-port sink)
 	  ;; if the deflating port is owner, we need to close the port.

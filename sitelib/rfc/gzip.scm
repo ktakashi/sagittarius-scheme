@@ -39,6 +39,8 @@
 
 	    get-gzip-header
 	    (rename (make-gzip make-gzip-header))
+	    make-gzip-header-from-file
+
 	    ;; header accessor
 	    gzip-text? gzip-mtime gzip-extra-data gzip-filename gzip-comment
 	    gzip-method gzip-os
@@ -143,6 +145,15 @@
     (let ((len (- (format-size "<L") (bytevector-length bv*))))
       (unpack "<L" (bytevector-append bv* (get-bytevector-n in len)))))
 
+  ;; always treat as binary... 
+  ;; FIXME
+  (define (make-gzip-header-from-file file :key (comment ""))
+    (make-gzip #f 
+	       (time-monotonic->date
+		(make-time 'time-monotonic 0
+			   (div (file-stat-mtime file) 1000000000)))
+	       #vu8()
+	       file comment 'fastest unknown))
 
   (define (gzip-header->bytevector header)
     (unless (gzip? header)
@@ -162,7 +173,7 @@
 	     (set! f (fxior f #x10)))
 	   f))
        (define (date->mtime date)
-	 (let ((t (if (zero? date)
+	 (let ((t (if (eqv? date 0)
 		      date
 		      (time-nanosecond (date->time-monotonic date)))))
 	   (pack "<uL" t)))
@@ -216,4 +227,10 @@
 	  (make-wrapped-deflating-output-port))
 	;; make empty header
 	(open-deflating-output-port sink :window-bits 31 :owner? owner?)))
+
+;;; decompress
+  (define (open-gzip-input-port source :key (owner? #f))
+    ;; for now we don't care the header information...
+    (open-inflating-input-port source :owner? owner?
+			       :window-bits 31))
 )
