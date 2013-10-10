@@ -44,12 +44,13 @@
 	    extract-to-port skip-file
 
 	    ;; appender
-	    append-file #;append-port
+	    append-file append-port
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :13 strings)
 	    (srfi :19 time)
+	    (srfi :26 cut)
 	    (util file))
 
   ;; For now it's copy from industria
@@ -217,18 +218,18 @@
 
   (define (append-file tarport file)
     (let ((header (make-header-record-from-file file)))
-      (put-bytevector tarport header)
       (call-with-input-file file
-	(lambda (in)
-	  ;; block size is 512
-	  (let ((buf (make-bytevector 512 0)))
-	    (let loop ((r (get-bytevector-n! in buf 0 512)))
-	      (put-bytevector tarport buf)
-	      (when (and (not (eof-object? r))
-			 (= r 512))
-		(loop (get-bytevector-n! in buf 0 512))))))
+	(cut append-port tarport header <>)
 	:transcoder #f)))
   
+  (define (append-port tarport header source)
+    (put-bytevector tarport header)
+    (let ((buf (make-bytevector 512 0)))
+	(let loop ((r (get-bytevector-n! source buf 0 512)))
+	  (put-bytevector tarport buf)
+	  (when (and (not (eof-object? r)) (= r 512))
+	    (loop (get-bytevector-n! source buf 0 512))))))
+    
 ;;; Tarball reading
 
   ;; TODO: GNU's LongLink (type L) and POSIX's PaxHeaders (type x).
