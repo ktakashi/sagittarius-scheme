@@ -90,6 +90,7 @@
 	    central-directory->file-record
 	    extract-file
 	    extract-to-port
+	    extract-all-files
 	    append-file
 	    append-port
 	    append-central-directory
@@ -409,7 +410,7 @@
       crc))
 
   ;; Returns the CRC-32 of the extracted file
-  (define (extract-file port local central)
+  (define (extract-file port local central :key (overwrite #f))
     (assert (file-record? local))
     (assert (central-directory? central))
     (call-with-adorned-output-file
@@ -421,6 +422,7 @@
      (central-directory-internal-attributes central)
      (central-directory-external-attributes central)
      (central-directory-uncompressed-size central)
+     overwrite
       (lambda (o)
         (extract-to-port port local central o))))
 
@@ -435,6 +437,16 @@
             (else
 	     (unsupported-error 'extract-to-port
 				"unimplemented compression method" m)))))
+
+  (define (extract-all-files port :key (overwrite #f))
+    (let ((centrals (get-central-directory port)))
+      (let loop ((centrals centrals))
+	(cond ((null? centrals) #t) ;; never happens but just in case
+	      ((end-of-central-directory? (car centrals)) #t) ;; done
+	      (else
+	       (let ((local (central-directory->file-record port (car centrals))))
+		 (extract-file port local (car centrals) :overwrite overwrite)
+		 (loop (cdr centrals))))))))
 
   ;; This puts in a complete file record, including the file and
   ;; returns a central-directory record. The port is positioned to
@@ -544,6 +556,7 @@
                                          internal-attributes
                                          external-attributes
                                          uncompressed-size
+					 overwrite
                                          proc)
     (cond ((or (and (> (string-length inzip-filename) 1)
                     (char=? #\: (string-ref inzip-filename 1)))
@@ -568,6 +581,8 @@
            (when (string-contains inzip-filename "/")
 	     (let-values (((dir base ext) (decompose-path inzip-filename)))
 	       (create-directory* dir)))
+	   (when (and overwrite (file-exists? inzip-filename))
+	     (delete-file inzip-filename))
            (let ((ret
                   (call-with-port (open-file-input/output-port inzip-filename)
                     proc)))
