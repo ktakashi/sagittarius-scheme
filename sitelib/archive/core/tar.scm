@@ -37,6 +37,9 @@
 	    header-magic header-version header-uname
 	    header-gname header-devmajor header-devminor
 	    header-prefix
+
+	    ;; helper
+	    header-fulpath
 	    
 	    header-chksum-ok? header-chksum-calculate
 	    
@@ -139,6 +142,14 @@
   (define (header-chksum-ok? rec)
     (eqv? (header-chksum rec) 
           (header-chksum-calculate rec)))
+
+  ;; for convenient
+  (define (header-fulpath rec)
+    (let ((prefix (header-prefix rec))
+	  (name   (header-name rec)))
+      (if (zero? (string-length prefix))
+	  name
+	  (build-path prefix name))))
 
 ;;; Tarball writing
   (define (set-asciiz buf s start max)

@@ -91,6 +91,7 @@
 	    extract-file
 	    extract-to-port
 	    extract-all-files
+	    skip-file
 	    append-file
 	    append-port
 	    append-central-directory
@@ -437,6 +438,12 @@
             (else
 	     (unsupported-error 'extract-to-port
 				"unimplemented compression method" m)))))
+
+  (define (skip-file zip-port local central)
+    (set-port-position! zip-port (file-record-data-port-position local))
+    (let ((pos (port-position zip-port)))
+      (set-port-position! zip-port 
+			  (+ pos (file-record-compressed-size local)))))
 
   (define (extract-all-files port :key (overwrite #f))
     (let ((centrals (get-central-directory port)))
