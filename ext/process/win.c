@@ -29,27 +29,8 @@
  */
 #include <windows.h>
 
-static wchar_t* utf32ToUtf16(SgString *path)
-{
-  int size = SG_STRING_SIZE(path);
-  SgPort *out = SG_PORT(Sg_MakeByteArrayOutputPort(sizeof(wchar_t)*(size + 1)));
-  SgCodec *codec = SG_CODEC(Sg_MakeUtf16Codec(UTF_16LE));
-  SgTranscoder *tcoder = SG_TRANSCODER(Sg_MakeTranscoder(codec, LF,
-							 SG_REPLACE_ERROR));
-  SgPort *tp = SG_PORT(Sg_MakeTranscodedOutputPort(out, tcoder));
-
-  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(path), SG_STRING_SIZE(path));
-  Sg_TranscoderPutc(tcoder, tp, '\0');
-  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
-}
-
-#if 0
-static void pipe_finalize(SgObject obj, void *data)
-{
-  SgFile *file = SG_FILE(obj);
-  file->close(file);
-  /* CloseHandle((HANDLE)data); */
-}
+#ifdef __CYGWIN__
+#include <sys/cygwin.h>
 #endif
 
 static SgString *string_append(SgObject args)
@@ -81,6 +62,10 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   SgFile *in, *out, *err;
   HANDLE *handles;
 
+#ifdef __CYGWIN__
+  int ifd, ofd, efd;
+#endif
+
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
   sa.lpSecurityDescriptor = NULL;
   sa.bInheritHandle = TRUE;
@@ -99,7 +84,7 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   sysfunc = UC("CreateProcess");
 
   if (CreateProcessW(NULL,
-		     utf32ToUtf16(command),
+		     Sg_StringToWCharTs(command),
 		     NULL, NULL,
 		     TRUE,
 		     CREATE_SUSPENDED, /* process must be invoked manually */
@@ -114,19 +99,28 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   handles[0] = process.hThread;
   handles[1] = process.hProcess;
   p->handle = (uintptr_t)handles;
-  
+
+#ifdef __CYGWIN__
+/* #define PIPEIN "/dev/conin" */
+/* #define PIPEOUT "/dev/conin" */
+#define PIPEIN "/dev/piper"
+#define PIPEOUT "/dev/pipew"
+  ifd = cygwin_attach_handle_to_fd(PIPEIN, -1, pipe0[1], TRUE, GENERIC_READ);
+  ofd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe0[1], TRUE, GENERIC_WRITE);
+  efd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe0[1], TRUE, GENERIC_WRITE);
+  in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)ifd));
+  out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)ofd));
+  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)efd));
+#else  
   in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
   out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
   err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
+#endif
   in->name = UC("process-stdin");
   out->name = UC("process-stdout");
   err->name = UC("process-stderr");
   /* port closes the handle, so we don't need these */
-  /*
-  Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
-  Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
-  Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
-  */
+
   p->in = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
   p->out = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
   p->err = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
