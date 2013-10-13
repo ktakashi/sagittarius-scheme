@@ -837,6 +837,12 @@ int Sg_CopyAccessControl(SgString *src, SgString *dst)
   return TRUE;
 }
 
+SgObject Sg_SitelibPath()
+{
+  if (win_sitelib_path == NULL) initialize_path();
+  return win_sitelib_path;
+}
+
 /*
   end of file
   Local Variables:

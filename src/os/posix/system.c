@@ -106,7 +106,7 @@ SgObject Sg_GetDefaultLoadPath()
     SG_APPEND(h, t, Sg_StringSplitChar(SG_STRING(env), ':'));
   }
 
-  SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH));
+  SG_APPEND1(h, t, Sg_SitelibPath());
   SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SHARE_SITE_LIB_PATH));
   SG_APPEND1(h, t, SG_MAKE_STRING(SAGITTARIUS_SHARE_LIB_PATH));
 
@@ -432,4 +432,14 @@ SgObject Sg_Uname()
     SG_VECTOR_ELEMENT(r, 4) = Sg_MakeStringC(buf.machine);
   }
   return r;
+}
+
+static SgObject sitelibpath = NULL;
+
+SgObject Sg_SitelibPath()
+{
+  if (sitelibpath == NULL) {
+    sitelibpath = SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH);
+  }
+  return sitelibpath;
 }

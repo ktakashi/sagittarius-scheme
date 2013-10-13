@@ -2821,8 +2821,14 @@
 		  filename SG_UNDEF)))
 
   ;; 10 Command-line access and exit values
-  (define-c-proc command-line () 
-    (result (-> (Sg_VM) commandLineArgs)))
+  (define-c-proc command-line (:optional args)
+    (if (SG_UNBOUNDP args)
+	(result (-> (Sg_VM) commandLineArgs))
+	(begin 
+	  (unless (SG_LISTP args)
+	    (wrong-type-of-argument-violation 'command-line "list" args))
+	  (set! (-> (Sg_VM) commandLineArgs) args)
+	  (result SG_UNDEF))))
 
   (define-c-proc exit (:optional obj) ::<void>
     ;; TODO thread

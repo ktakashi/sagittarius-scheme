@@ -1027,6 +1027,8 @@
 
   (define-c-proc uname () Sg_Uname)
 
+  (define-c-proc sagittarius-sitelib-directory () Sg_SitelibPath)
+
   ;; for convenience.
   (define-c-proc gc () ::<void> Sg_GC)
 )

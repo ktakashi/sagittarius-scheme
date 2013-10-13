@@ -16,9 +16,10 @@
 typedef unsigned long ulong;
 
 static struct sg__rcRec {
-  SgObject d201[272];
+  SgObject d201[273];
 } sg__rc = {
   {  /* SgObject d201 */
+    SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -5590,6 +5591,22 @@ SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
 }
 static SG_DEFINE_SUBR(extlib_uname__STUB, 0, 0,extlib_uname, SG_FALSE, NULL);
 
+static SgObject extlib_sagittarius_sitelib_directory(SgObject *SG_FP, int SG_ARGC, void *data_)
+{
+  SG_ENTER_SUBR("sagittarius-sitelib-directory");
+  if (SG_ARGC != 0)
+    Sg_WrongNumberOfArgumentsViolation(
+     SG_INTERN("sagittarius-sitelib-directory"), 0, SG_ARGC, SG_NIL);
+  {
+{
+SgObject SG_RESULT = (SgObject)NULL;
+SG_RESULT=(Sg_SitelibPath());
+SG_RETURN(SG_OBJ_SAFE(SG_RESULT));
+}
+  }
+}
+static SG_DEFINE_SUBR(extlib_sagittarius_sitelib_directory__STUB, 0, 0,extlib_sagittarius_sitelib_directory, SG_FALSE, NULL);
+
 static SgObject extlib_gc(SgObject *SG_FP, int SG_ARGC, void *data_)
 {
   SG_ENTER_SUBR("gc");
@@ -6230,7 +6247,10 @@ void Sg__Init_sagittarius () {
   sg__rc.d201[270] = SG_MAKE_STRING("uname");
   Sg_InsertBinding(lib, Sg_Intern(sg__rc.d201[270]), &extlib_uname__STUB);
   SG_PROCEDURE_NAME(&extlib_uname__STUB) = sg__rc.d201[270];
-  sg__rc.d201[271] = SG_MAKE_STRING("gc");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d201[271]), &extlib_gc__STUB);
-  SG_PROCEDURE_NAME(&extlib_gc__STUB) = sg__rc.d201[271];
+  sg__rc.d201[271] = SG_MAKE_STRING("sagittarius-sitelib-directory");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d201[271]), &extlib_sagittarius_sitelib_directory__STUB);
+  SG_PROCEDURE_NAME(&extlib_sagittarius_sitelib_directory__STUB) = sg__rc.d201[271];
+  sg__rc.d201[272] = SG_MAKE_STRING("gc");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d201[272]), &extlib_gc__STUB);
+  SG_PROCEDURE_NAME(&extlib_gc__STUB) = sg__rc.d201[272];
 }
