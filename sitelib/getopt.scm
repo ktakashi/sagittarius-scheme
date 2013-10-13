@@ -59,7 +59,7 @@
 				     (,_values (,_acons (,_quote ,name)
 							(,_if ,req? arg #t)
 						    alist) vs))) acc)))
-	     ((? symbol? rest) (values (list (reverse! acc)) rest))
+	     ((? variable? rest) (values (list (reverse! acc)) rest))
 	     (() (values (list (reverse! acc)) #f))
 	     (_ (syntax-violation 'with-args
 				  "malformed option spec" options)))))
