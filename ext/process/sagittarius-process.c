@@ -51,7 +51,9 @@ static SgProcess* make_process(SgString *name, SgObject args)
   p->err = SG_UNDEF;
   return p;
 }
-
+/* win.c has some Cygwin handling code but didn't work and
+   there will be some problem to use like UNIX environment.
+   (e.g foo.sh won't be a process on Windows) */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 # include "win.c"
 #else

@@ -30,6 +30,7 @@
 #include <windows.h>
 
 #ifdef __CYGWIN__
+#include <unistd.h>
 #include <sys/cygwin.h>
 #endif
 
@@ -45,6 +46,27 @@ static SgString *string_append(SgObject args)
   return SG_STRING(ret);
 }
 
+#ifdef __CYGWIN__
+static SgObject convert_name(SgString *name)
+{
+  char buf[1024], *tmp;
+  char *path = Sg_Utf32sToUtf8s(name);
+  ssize_t len = cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_RELATIVE,
+				 path, NULL, 0);
+  if (len > sizeof(buf)) {
+    tmp = SG_NEW_ATOMIC2(char *, len);
+  } else {
+    tmp = buf;
+  }
+  cygwin_conv_path(CCP_POSIX_TO_WIN_A | CCP_RELATIVE, path, buf, len);
+  fprintf(stderr, "%s:%d\n", buf, len);
+  return Sg_Utf8sToUtf32s(buf, len);
+}
+#else
+#define convert_name(n) (n)
+#endif
+
+
 SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
 {
   SgProcess *p = make_process(name, commandLine);
@@ -53,7 +75,7 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
   HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   const SgChar *sysfunc = NULL;
   SgString *command
-    = SG_STRING(Sg_StringAppend(SG_LIST3(name,
+    = SG_STRING(Sg_StringAppend(SG_LIST3(convert_name(name),
 					 SG_MAKE_STRING(" "),
 					 string_append(commandLine))));
   SECURITY_ATTRIBUTES sa;
@@ -102,12 +124,14 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
 
 #ifdef __CYGWIN__
 /* #define PIPEIN "/dev/conin" */
-/* #define PIPEOUT "/dev/conin" */
-#define PIPEIN "/dev/piper"
-#define PIPEOUT "/dev/pipew"
+/* #define PIPEOUT "/dev/conout" */
+#define PIPEIN "/dev/pipe"
+#define PIPEOUT "/dev/pipe"
   ifd = cygwin_attach_handle_to_fd(PIPEIN, -1, pipe0[1], TRUE, GENERIC_READ);
-  ofd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe0[1], TRUE, GENERIC_WRITE);
-  efd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe0[1], TRUE, GENERIC_WRITE);
+  ofd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe1[0], TRUE, GENERIC_WRITE);
+  efd = cygwin_attach_handle_to_fd(PIPEOUT, -1, pipe2[0], TRUE, GENERIC_WRITE);
+  fprintf(stderr, "i:%d o:%d e:%d\n", ifd, ofd, efd);
+
   in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)ifd));
   out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)ofd));
   err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)efd));
@@ -135,7 +159,7 @@ SgObject Sg_MakeProcess(SgString *name, SgObject commandLine)
     if (pipe1[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[1]);
     if (pipe2[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[0]);
     if (pipe2[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[1]);
-    Sg_Error(UC("%s() failed. %A"), sysfunc, msg);
+    Sg_Error(UC("%s() failed. %A [%A]"), sysfunc, msg, command);
   }
   return SG_UNDEF;		/* dummy */
 }
