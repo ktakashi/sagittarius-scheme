@@ -93,19 +93,14 @@
 	   ((not e) r)
 	 body ...))))
 
-  (define (extract-all-entries in :key (directory #f) (overwrite #f))
-    (when (and directory (not (file-directory? directory)))
-      (create-directory* directory))
+  (define (extract-all-entries in :key (destinator archive-entry-name)
+			       (overwrite #f))
     (do-entry (e in)
-      (let ((dest (if directory 
-		      (build-path directory (archive-entry-name e))
-		      (archive-entry-name e))))
+      (let ((dest (destinator e)))
 	(if (eq? (archive-entry-type e) 'directory)
 	    (create-directory* dest)
 	    (begin
-	      (when (and overwrite (file-exists? dest))
-		(delete-file dest))
-	      (display dest) (newline)
+	      (when (and overwrite (file-exists? dest)) (delete-file dest))
 	      (call-with-output-file dest
 		(lambda (out) (extract-entry e out))
 		:transcoder #f))))))

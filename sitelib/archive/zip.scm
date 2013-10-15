@@ -63,7 +63,7 @@
 	(skip-file (~ in 'source) (~ c 'local) (~ c 'central))))
     (let1 centrals (~ in 'centrals)
       (if (or (null? centrals)
-	    (end-of-central-directory? (car centrals)))
+	      (end-of-central-directory? (car centrals)))
 	  #f
 	  (let1 central (car centrals)
 	    (set! (~ in 'centrals) (cdr centrals))

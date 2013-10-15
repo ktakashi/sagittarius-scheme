@@ -49,7 +49,8 @@
 	    finish!
 	    )
     (import (rnrs)
-	    (clos user))
+	    (clos user)
+	    (sagittarius))
 
   (define-class <archive-input> ()
     ((source :init-keyword :source)))
@@ -63,6 +64,10 @@
      (type   :init-keyword :type :reader archive-entry-type
 	     ;; output entry may not have to know
 	     :init-value #f)))
+
+  (define-method write-object ((e <archive-entry>) out)
+    (format out "#<archive-entry ~a ~a>" (archive-entry-name e)
+	    (archive-entry-type e)))
 
   ;; constructors
   (define-generic make-archive-input)
