@@ -22,11 +22,11 @@
 	    (loop (get-bytevector-n in 1024))))
 	(close-port dout))))))
 
-(define (do-inflate file)
+(define (do-inflate file :optional (buffer-size 4096))
   (call-with-port 
    (open-file-input-port file (file-options) 'block)
    (lambda (in)
-     (define din (open-inflating-input-port in))
+     (define din (open-inflating-input-port in :buffer-size buffer-size))
      (let ((bv (get-bytevector-all din)))
        (close-port din)
        bv))))
@@ -58,6 +58,18 @@
 		     (format (build-path (current-directory)
 					 "zlib/data/compressed-~a.bin")
 			     level))))
+		 '(1 2 3 4 5 6 7 8 9)))
+
+(test-equal "inflate (small buffer)"
+	    '(#t #t #t #t #t #t #t #t #t)
+	    (map (lambda (level)
+		   (compare-file-bytevector
+		    (build-path (current-directory) "zlib/data/data.txt")
+		    (do-inflate
+		     (format (build-path (current-directory)
+					 "zlib/data/compressed-~a.bin")
+			     level)
+		     64)))
 		 '(1 2 3 4 5 6 7 8 9)))
 
 (test-equal "inflate dictionary"
