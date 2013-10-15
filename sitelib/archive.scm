@@ -97,12 +97,13 @@
 			       (overwrite #f))
     (do-entry (e in)
       (let ((dest (destinator e)))
-	(if (eq? (archive-entry-type e) 'directory)
-	    (create-directory* dest)
-	    (begin
-	      (when (and overwrite (file-exists? dest)) (delete-file dest))
-	      (call-with-output-file dest
-		(lambda (out) (extract-entry e out))
-		:transcoder #f))))))
+	(cond ((not dest)) ;; ignore if destinator returned #f
+	      ((eq? (archive-entry-type e) 'directory)
+	       (create-directory* dest))
+	      (else
+	       (when (and overwrite (file-exists? dest)) (delete-file dest))
+	       (call-with-output-file dest
+		 (lambda (out) (extract-entry e out))
+		 :transcoder #f))))))
 
 )
