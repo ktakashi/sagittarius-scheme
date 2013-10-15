@@ -52,6 +52,8 @@
 	    ;; utilities
 	    call-with-archive-input
 	    call-with-archive-output
+	    do-entry
+
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -81,5 +83,14 @@
   (define (make-archive-output type source)
     (eval `(make-archive-output ',type ,source)
 	  (environment '(rnrs) '(archive interface) `(archive ,type))))
+
+  (define-syntax do-entry
+    (syntax-rules ()
+      ((_ (e in) body ...)
+       (do-entry (e in #t) body ...))
+      ((_ (e in r) body ...)
+       (do ((e (next-entry! in) (next-entry! in)))
+	   ((not e) r)
+	 body ...))))
 
 )
