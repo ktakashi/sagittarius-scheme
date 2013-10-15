@@ -36,7 +36,8 @@
 	    (archive core zip)
 	    (sagittarius)
 	    (sagittarius object)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (srfi :13 strings))
 
   (define-class <zip-archive-mixin> ()
     ((centrals :init-keyword :centrals :init-value '())))
@@ -66,11 +67,16 @@
 	  #f
 	  (let1 central (car centrals)
 	    (set! (~ in 'centrals) (cdr centrals))
-	    (rlet1 e (make <zip-archive-input-entry> :input in
-			   :name (central-directory-filename central)
-			   :local (central-directory->file-record 
-				   (~ in 'source) central)
-			   :central central)
+	    (rlet1 e (make <zip-archive-input-entry> 
+		       :name (central-directory-filename central)
+		       :type (if (string-suffix? 
+				  "/" (central-directory-filename central))
+				 'directory
+				 'file)
+		       :input in
+		       :local (central-directory->file-record 
+			       (~ in 'source) central)
+		       :central central)
 	      (set! (~ in 'current) e))))))
 
   (define-method extract-entry ((e <zip-archive-input-entry>) (out <port>))

@@ -53,14 +53,14 @@
 	    call-with-archive-input
 	    call-with-archive-output
 	    do-entry
-
+	    extract-all-entries
 	    )
     (import (rnrs)
 	    (rnrs eval)
-	    (rename (archive interface)
-		    (make-archive-input  inf:make-archive-input)
-		    (make-archive-output inf:make-archive-output))
-	    (sagittarius control))
+	    (except (archive interface) make-archive-input make-archive-output)
+	    (sagittarius)
+	    (sagittarius control)
+	    (util file))
 
   ;; utilities
   (define (call-with-archive-input type source proc)
@@ -92,5 +92,22 @@
        (do ((e (next-entry! in) (next-entry! in)))
 	   ((not e) r)
 	 body ...))))
+
+  (define (extract-all-entries in :key (directory #f) (overwrite #f))
+    (when (and directory (not (file-directory? directory)))
+      (create-directory* directory))
+    (do-entry (e in)
+      (let ((dest (if directory 
+		      (build-path directory (archive-entry-name e))
+		      (archive-entry-name e))))
+	(if (eq? (archive-entry-type e) 'directory)
+	    (create-directory* dest)
+	    (begin
+	      (when (and overwrite (file-exists? dest))
+		(delete-file dest))
+	      (display dest) (newline)
+	      (call-with-output-file dest
+		(lambda (out) (extract-entry e out))
+		:transcoder #f))))))
 
 )

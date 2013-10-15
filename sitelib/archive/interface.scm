@@ -44,6 +44,7 @@
 	    append-entry!
 
 	    archive-entry-name
+	    archive-entry-type
 	    ;; common
 	    finish!
 	    )
@@ -57,7 +58,11 @@
     ((sink   :init-keyword :sink)))
 
   (define-class <archive-entry> ()
-    ((name   :init-keyword :name :reader archive-entry-name)))
+    ((name   :init-keyword :name :reader archive-entry-name)
+     ;; 'file or 'directory
+     (type   :init-keyword :type :reader archive-entry-type
+	     ;; output entry may not have to know
+	     :init-value #f)))
 
   ;; constructors
   (define-generic make-archive-input)

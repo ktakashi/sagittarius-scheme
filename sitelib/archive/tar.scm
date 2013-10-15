@@ -57,7 +57,12 @@
     (let1 header (get-header-record (~ in 'source))
       (if (eof-object? header)
 	  #f
-	  (rlet1 e (make <tar-archive-entry> :name (header-fulpath header)
+	  (rlet1 e (make <tar-archive-entry>
+		     :name (header-fulpath header)
+		     :type (if (eq? (header-typeflag header) 'directory)
+			       'directory
+			       ;; might be symbolic link or so but ignore...
+			       'file)
 		     :input in :header header)
 	    (set! (~ in 'current) e)))))
 
