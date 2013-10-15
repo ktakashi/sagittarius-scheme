@@ -8,6 +8,7 @@
 @include-section["utils/crypto.scrbl"]
 @include-section["utils/dbi.scrbl"]
 @include-section["utils/file.scrbl"]
+@include-section["utils/getopt.scrbl"]
 @include-section["utils/list.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/net/oauth.scrbl"]
