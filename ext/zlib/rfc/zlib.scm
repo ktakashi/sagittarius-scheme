@@ -239,33 +239,27 @@
 		   (+ count diff))
 		  ((and (< current-pos out-buffer-size)
 			(>= (+ current-pos count) out-buffer-size))
-		   (let ((n (do ((i 0 (+ i 1))
-				 (index1 start (+ index1 1))
-				 (index2 current-pos (+ index2 1)))
-				((= index2 out-buffer-size) i)
-			      (bytevector-u8-set! bv index1
-						  (bytevector-u8-ref out-buffer
-								     index2))))
-			 (n2 (fill-buffer!)))
-		     (if (zero? n2)
-			 (begin
-			   (set! current-pos (+ current-pos n))
-			   n)
-			 (rec bv (+ start n) (- count n) n))))
+		   (let ((n (- out-buffer-size current-pos)))
+		     ;;(format #t "~a:~a~%" out-buffer-size current-pos)
+		     (bytevector-copy! out-buffer current-pos bv start n)
+		     (let ((n2 (fill-buffer!)))
+		       (if (zero? n2)
+			   (begin
+			     (set! current-pos (+ current-pos n))
+			     (+ diff n))
+			   (rec bv (+ start n) (- count n) (+ diff n))))))
 		  (else
-		   (assertion-violation 'read!
-					"what's the condition"
-					current-pos out-buffer-size
-					start count
-					stream-end?))
-		   )))
+		   (assertion-violation 'read! "what's the condition"
+					`((current-pos ,current-pos)
+					  (out-buffer-size ,out-buffer-size)
+					  (start ,start) (count ,count)
+					  (stream-end? ,stream-end?)))))))
 	(rec bv start count 0))
 
       (define (fill-buffer!)
-	(let ((n (get-bytevector-n! source in-buffer next-in
-				    (- buffer-size next-in))))
-	  (cond ((and (eof-object? n)
-		      (zero? next-in))
+	(let* ((len (- buffer-size next-in))
+	       (n (get-bytevector-n! source in-buffer next-in len)))
+	  (cond ((and (eof-object? n) (zero? next-in))
 		 (set! stream-end? #t)
 		 0)
 		(else
@@ -273,10 +267,7 @@
 		 (let loop ((in-buffer. 
 			     (if (= (+ n next-in) buffer-size)
 				 in-buffer
-				 (let ((bv (make-bytevector (+ next-in n) 0)))
-				   (bytevector-copy! in-buffer 0
-						     bv 0 (+ next-in n))
-				   bv))))
+				 (bytevector-copy in-buffer 0 (+ next-in n)))))
 		   (let* ((r (inflate z-stream in-buffer.
 				      out-buffer Z_SYNC_FLUSH))
 			  (avail-in (zstream-avail-in z-stream))
@@ -293,33 +284,34 @@
 			   (else
 			    (set! next-in 0)
 			    (bytevector-fill! in-buffer 0)))
-		     (if (= r Z_NEED_DICT)
-			 (let ((r (inflate-set-dictionary z-stream
-							  dictionary)))
-			   (unless (= r Z_OK)
-			     (raise-z-stream-error z-stream 'inflate
-						   (zlib-error-message
-						    z-stream)))
-			   (let ((avail-in (zstream-avail-in z-stream)))
-			     (bytevector-copy! in-buffer 0
-					       in-buffer. 0 avail-in)
-			     (cond ((> avail-in 0)
-				    (loop in-buffer.))
-				   (else
-				    (set! current-pos 0)
-				    (set! out-buffer-size nwrite)
-				    nwrite))))
-			 (begin
-			   (cond ((= r Z_STREAM_END)
-				  (set! stream-end? #t))
-				 ((and (= r Z_DATA_ERROR)
-				       (<= nwrite 0))
-				  (raise-z-stream-error
-				   z-stream 'inflate-data-error
-				   (zlib-error-message z-stream))))
-			   (set! current-pos 0)
-			   (set! out-buffer-size nwrite)
-			   nwrite))))))))
+		     (cond ((and (= r Z_OK) (zero? avail-in) (zero? nwrite))
+			    (fill-buffer!))
+			   ((= r Z_NEED_DICT)
+			    (let ((r (inflate-set-dictionary z-stream
+							     dictionary)))
+			      (unless (= r Z_OK)
+				(raise-z-stream-error z-stream 'inflate
+						      (zlib-error-message
+						       z-stream)))
+			      (let ((avail-in (zstream-avail-in z-stream)))
+				(bytevector-copy! in-buffer 0
+						  in-buffer. 0 avail-in)
+				(cond ((> avail-in 0)
+				       (loop in-buffer.))
+				      (else
+				       (set! current-pos 0)
+				       (set! out-buffer-size nwrite)
+				       nwrite)))))
+			   (else
+			    (cond ((= r Z_STREAM_END)
+				   (set! stream-end? #t))
+				  ((and (= r Z_DATA_ERROR) (<= nwrite 0))
+				   (raise-z-stream-error
+				    z-stream 'inflate-data-error
+				    (zlib-error-message z-stream))))
+			    (set! current-pos 0)
+			    (set! out-buffer-size nwrite)
+			    nwrite))))))))
 
       (when dictionary
 	(inflate-set-dictionary z-stream dictionary))
