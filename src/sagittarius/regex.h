@@ -1,6 +1,6 @@
-/* regex.h                                                -*- coding: utf-8; -*-
+/* regex.h                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -133,6 +133,7 @@ SG_CLASS_DECL(Sg_MatcherClass);
 SG_CDECL_BEGIN
 SG_EXTERN SgObject   Sg_CompileRegex(SgString *pattern, int flags,
 				     int parseOnly);
+SG_EXTERN SgObject   Sg_CompileRegexAST(SgObject ast, int flags);
 
 SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
 SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);

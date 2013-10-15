@@ -30,6 +30,7 @@
 
 (library (sagittarius regex)
     (export compile-regex
+	    compile-regex-ast
 	    regex-matcher
 	    regex-matches
 	    regex-find

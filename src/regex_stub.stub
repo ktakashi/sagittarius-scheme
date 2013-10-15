@@ -26,6 +26,9 @@
 					    (parse_only::<boolean> #f))
     (result (Sg_CompileRegex p flags parse_only)))
 
+  (define-c-proc compile-regex-ast (ast :optional (flags::<fixnum> 0))
+    (result (Sg_CompileRegexAST ast flags)))
+
   (define-c-proc dump-regex (p::<pattern> :optional
 					  (port::<port> (Sg_CurrentOutputPort)))
     ::<void>

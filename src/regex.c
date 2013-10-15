@@ -30,6 +30,7 @@
 #include <string.h>
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
+#include "sagittarius/pair.h"
 #include "sagittarius/regex.h"
 #include "sagittarius/error.h"
 #include "sagittarius/port.h"
@@ -1128,6 +1129,11 @@ static SgObject group(lexer_ctx_t *ctx)
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Opening paren has no matching closing paren"));
       }
+      if (!SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+	/* most definitely (?(1)aaa) pattern so make this
+	 (alternation $regexpr (sequence))*/
+	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
+      }
       ret = SG_LIST3(SYM_BRANCH, number, regexpr);
       goto end_group;
     } else {
@@ -1150,6 +1156,11 @@ static SgObject group(lexer_ctx_t *ctx)
 	     SG_EQ(SG_CAR(inner_reg_expr), SYM_LOOKAHEAD)))) {
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Branch test must be lookahead, look-behind or number"));
+      }
+      if (!SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+	/* most definitely (?(1)aaa) pattern so make this
+	 (alternation $regexpr (sequence))*/
+	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
       }
       ret = SG_LIST3(SYM_BRANCH, inner_reg_expr, regexpr);
       goto end_group;
@@ -2057,12 +2068,12 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
  */
 static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
 {
-  int n, is_start_anchor, modeless = FALSE, offset = 0;
+  int n, modeless = FALSE, offset = 0;
   prog_t *p;
   inst_t *match;
 
   ctx->pc = &null_inst;		/* put dummy */
-  is_start_anchor = check_start_anchor(ast, &modeless);
+  check_start_anchor(ast, &modeless);
   ctx->emitp = FALSE;
   compile_rec(ctx, ast, TRUE);
   n = ctx->codemax + 1;
@@ -2151,8 +2162,8 @@ DEFINE_CLASS_WITH_CACHE(Sg_PatternClass,
 			pattern_cache_writer,
 			pattern_printer);
 
-static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
-			       lexer_ctx_t *ctx, prog_t *prog,
+static SgPattern* make_pattern(SgObject p, SgObject ast, int flags,
+			       int reg_num, prog_t *prog,
 			       compile_ctx_t *cctx)
 {
   SgPattern *pt = SG_NEW(SgPattern);
@@ -2160,7 +2171,7 @@ static SgPattern* make_pattern(SgString *p, SgObject ast, int flags,
   pt->pattern = p;
   pt->ast = ast;
   pt->flags = flags;
-  pt->groupCount = ctx->reg_num;
+  pt->groupCount = reg_num;
   pt->prog = prog;
   pt->extendedp = cctx->extendedp;
   return pt;
@@ -2187,7 +2198,324 @@ SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
   cctx.flags = flags;
   prog = compile(&cctx, ast);
 
-  p = make_pattern(pattern, ast, flags, &ctx, prog, &cctx);
+  p = make_pattern(pattern, ast, flags, ctx.reg_num, prog, &cctx);
+  return SG_OBJ(p);
+}
+
+static void unparse(SgObject reg, SgPort *out);
+static void charset_print_ch(SgPort *out, SgChar ch, int firstp)
+{
+  if (ch == '[' || ch == ']' || ch == '-' || (ch == '^' && firstp)) {
+    Sg_Printf(out, UC("\\%c"), ch);
+  } else if (ch < 0x20 || ch == 0x7f) {
+    Sg_Printf(out, UC("\\x%02x"), ch);
+  } else {
+    Sg_PutcUnsafe(out, ch);
+  }
+}
+
+static void charset_to_regex(SgObject cs, int invertP, SgPort *out)
+{
+  SgObject ranges = Sg_CharSetRanges(cs), cp;
+  int firstp = TRUE;
+
+  Sg_PutcUnsafe(out, '[');
+  if (invertP) {
+    Sg_PutcUnsafe(out, '^');
+  }
+  SG_FOR_EACH(cp, ranges) {
+    SgObject cell = SG_CAR(cp);
+    SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
+    charset_print_ch(out, start, firstp);
+    firstp = FALSE;
+
+    Sg_PutcUnsafe(out, '-');
+
+    charset_print_ch(out, end, FALSE);
+  }
+  Sg_PutcUnsafe(out, ']');
+}
+
+static void unparse_seq(SgObject reg, SgPort *out)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, reg) {
+    unparse(SG_CAR(cp), out);
+  }
+}
+
+static void unparse_between(const char *a, SgObject n, const char *b, 
+			    SgPort *out)
+{
+  Sg_PutzUnsafe(out, a);
+  unparse_seq(n, out);
+  Sg_PutzUnsafe(out, b);
+}
+
+static void unparse_reg(SgObject reg, SgPort *out)
+{
+  SgObject n, name, rest;
+  if (SG_NULLP(SG_CDR(reg))) goto err;
+  n = SG_CADR(reg);
+  if (SG_NULLP(SG_CDDR(reg))) goto err;
+  name = SG_CAR(SG_CDDR(reg));
+  rest = SG_CDR(SG_CDDR(reg));
+
+  if (SG_EQ(n, SG_MAKE_INT(0))) {
+    if (!SG_FALSEP(name)) {
+      Sg_Error(UC("toplevel group can't have name"), name);
+    }
+    unparse_seq(rest, out);
+  } else if (!SG_FALSEP(name)) {
+    Sg_PutzUnsafe(out, "(?<");
+    Sg_Write(name, out, SG_WRITE_DISPLAY);
+    Sg_PutcUnsafe(out, '>');
+    unparse_seq(rest, out);
+    Sg_PutcUnsafe(out, ')');
+  } else {
+    Sg_PutcUnsafe(out, '(');
+    unparse_seq(rest, out);
+    Sg_PutcUnsafe(out, ')');
+  }
+  return;
+ err:
+  Sg_Error(UC("invalid AST node %S"), reg);
+}
+
+static void unparse_intersp(SgObject n, const char *sep, SgPort *out)
+{
+  SgObject cp;
+  if (SG_NULLP(n)) return;
+  Sg_PutzUnsafe(out, "(?:");
+  unparse(SG_CAR(n), out);
+  SG_FOR_EACH(cp, SG_CDR(n)) {
+    Sg_PutzUnsafe(out, sep);
+    unparse(SG_CAR(cp), out);
+  }
+  Sg_PutcUnsafe(out, ')');
+}
+
+static void unparse_rep(SgObject o, int greedyP, SgPort *out)
+{
+  /* must have 4 elements */
+  SgObject min, max, ns, n = o;
+  if (!SG_PAIRP(SG_CDR(n))) goto err;
+  n = SG_CDR(n);
+  min = SG_CAR(n);
+  if (!SG_INTP(min) && !SG_FALSEP(min)) goto err;
+  if (!SG_PAIRP(SG_CDR(n))) goto err;
+  n = SG_CDR(n);
+  max = SG_CAR(n);
+  if (!SG_INTP(max) && !SG_FALSEP(max)) goto err;
+  ns = SG_CDR(n);
+
+  unparse_between("(?:", ns, ")", out);
+  if (SG_FALSEP(max)) {
+    if (SG_EQ(min, SG_MAKE_INT(0)) || SG_FALSEP(min)) {
+      Sg_PutcUnsafe(out, '*');
+    } else if (SG_EQ(min, SG_MAKE_INT(1))) {
+      Sg_PutcUnsafe(out, '+');
+    } else {
+      Sg_Printf(out, UC("{%d,}"), SG_INT_VALUE(min));
+    }
+  } else if (SG_EQ(min, max)) {
+    /* who write this? */
+    if (SG_EQ(min, SG_MAKE_INT(0))) {
+      Sg_PutzUnsafe(out, "{0}");
+    } else if (!SG_EQ(min, SG_MAKE_INT(1))) {
+      Sg_Printf(out, UC("{%d}"), SG_INT_VALUE(min));
+    } /* if min == max == 1 then we don't have to write */
+  } else if (SG_EQ(SG_MAKE_INT(0), min) && SG_EQ(SG_MAKE_INT(1), max)) {
+    Sg_PutcUnsafe(out, '?');
+  } else {
+    if (SG_FALSEP(min)) {
+      Sg_Printf(out, UC("{0,%d}"), SG_INT_VALUE(max));
+    } else {
+      Sg_Printf(out, UC("{%d,%d}"), SG_INT_VALUE(min), SG_INT_VALUE(max));
+    }
+  }
+  if (!greedyP) {
+    Sg_PutcUnsafe(out, '?');
+  }
+  return;
+ err:
+  Sg_Error(UC("invalid AST node %S"), o);
+}
+
+static void unparse_look(SgObject o, const char *behind, SgPort *out)
+{
+  SgObject n = o, assert, ns;
+  if (!SG_PAIRP(SG_CDR(n))) goto err;
+  n = SG_CDR(n);
+  assert = SG_CAR(n);
+  ns = SG_CDR(n);
+
+  Sg_PutzUnsafe(out, "(?");
+  Sg_PutzUnsafe(out, behind);
+  unparse_between((SG_FALSEP(assert) ? "!" : "="), ns, ")", out);
+  return;
+ err:
+  Sg_Error(UC("invalid AST node %S"), o);
+}
+
+static void unparse(SgObject n, SgPort *out)
+{
+  if (SG_CHARP(n)) {
+    SgChar c = SG_CHAR_VALUE(n);
+    if (c == '.' || c == '^' || c == '$' || c == '(' || c == ')' ||
+	c == '{' || c == '}' || c == '[' || c == ']' || c == '\\' ||
+	c == '*' || c == '+' || c == '?' || c == '|') {
+      Sg_PutcUnsafe(out, '\\');
+    }
+    Sg_PutcUnsafe(out, c);
+  } else if (SG_CHAR_SET_P(n)) {
+    charset_to_regex(n, FALSE, out);
+  } else if (SG_EQ(n, SYM_EVERYTHING)) {
+    Sg_PutcUnsafe(out, '.');
+  } else if (SG_EQ(n, SYM_START_ANCHOR)) {
+    Sg_PutcUnsafe(out, '^');
+  } else if (SG_EQ(n, SYM_MODELESS_START_ANCHOR)) {
+    Sg_PutzUnsafe(out, "\\A");
+  } else if (SG_EQ(n, SYM_END_ANCHOR)) {
+    Sg_PutcUnsafe(out, '$');
+  } else if (SG_EQ(n, SYM_MODELESS_END_ANCHOR)) {
+    Sg_PutzUnsafe(out, "\\Z");
+  } else if (SG_EQ(n, SYM_MODELESS_END_ANCHOR_NO_NEWLINE)) {
+    Sg_PutzUnsafe(out, "\\z");
+  } else if (SG_EQ(n, SYM_WORD_BOUNDARY)) {
+    Sg_PutzUnsafe(out, "\\b");
+  } else if (SG_EQ(n, SYM_NON_WORD_BOUNDARY)) {
+    Sg_PutzUnsafe(out, "\\B");
+  } else if (SG_PAIRP(n)) {
+    SgObject f = SG_CAR(n);
+    if (SG_EQ(f, SYM_REGISTER)) {
+      /* capture */
+      unparse_reg(n, out);
+    } else if (SG_EQ(f, SYM_SEQUENCE)) {
+      unparse_seq(SG_CDR(n), out);
+    } else if (SG_EQ(f, SYM_FLAGED_SEQUENCE)) {
+      SgObject flags, flag;
+      if (SG_NULLP(SG_CDR(n))) goto err;
+      flags = SG_CADR(n);
+      if (!SG_PAIRP(flags)) goto err;
+      Sg_PutzUnsafe(out, "(?");
+      SG_FOR_EACH(flag, flags) {
+	if (!SG_PAIRP(flag)) goto err;
+	if (!SG_CHARP(SG_CAR(flag))) goto err;
+	if (SG_FALSEP(SG_CDR(flag))) {
+	  Sg_PutcUnsafe(out, '-');
+	}
+	Sg_PutcUnsafe(out, SG_CHAR_VALUE(SG_CAR(flag)));
+      }
+      unparse_between(":", SG_CDDR(n), ")", out);
+    } else if (SG_EQ(f, SYM_ALTER)) {
+      unparse_intersp(SG_CDR(n), "|", out);
+    } else if (SG_EQ(f, SYM_STANDALONE)) {
+      unparse_between("(?>", SG_CDR(n), ")", out);
+    } else if (SG_EQ(f, SYM_GREEDY_REP)) {
+      unparse_rep(n, TRUE, out);
+    } else if (SG_EQ(f, SYM_NON_GREEDY_REP)) {
+      unparse_rep(n, FALSE, out);
+    } else if (SG_EQ(f, SYM_LOOKAHEAD)) {
+      unparse_look(n, "", out);
+    } else if (SG_EQ(f, SYM_LOOKBHIND)) {
+      unparse_look(n, "<", out);
+    } else if (SG_EQ(f, SYM_BACKREF)) {
+      if (!SG_INTP(SG_CDR(n))) goto err;
+      Sg_Printf(out, UC("\\%d"), SG_INT_VALUE(SG_CDR(n)));
+    } else if (SG_EQ(f, SYM_BRANCH)) {
+      /* check alter */
+      SgObject name, ns, t = n, yes, no;
+      if (!SG_PAIRP(SG_CDR(t))) goto err;
+      name = SG_CADR(t);
+      ns = SG_CDDR(t);
+      if (!SG_PAIRP(ns) || !SG_PAIRP(SG_CAR(ns)) ||
+	  !SG_EQ(SG_CAAR(ns), SYM_ALTER)) {
+	Sg_Error(UC("branch must have alter. %S"), n);
+      }
+      /* (alternation (sequence ...) (sequence ...) */
+      ns = SG_CAR(ns);
+
+      Sg_PutzUnsafe(out, "(?");
+      if (SG_INTP(name)) {
+	Sg_Printf(out, UC("(%d)"), SG_INT_VALUE(name));
+      } else if (SG_PAIRP(name)) {
+	if (SG_EQ(SG_CAR(name), SYM_LOOKAHEAD)) {
+	  unparse_look(name, "", out);
+	} else if (SG_EQ(SG_CAR(name), SYM_LOOKBHIND)) {
+	  unparse_look(name, "<", out);
+	} else goto err;
+      } else goto err;
+      /* if the false condition contains (sequence) then
+	 we don't want to emit | */
+      if (!SG_PAIRP(SG_CDR(ns))) goto err;
+      yes = SG_CADR(ns);
+      ns = SG_CDR(ns);
+      if (!SG_PAIRP(SG_CDR(ns))) goto err;
+      no = SG_CADR(ns);
+
+      /* just emit yes */
+      unparse(yes, out);
+      if (SG_PAIRP(no) && !SG_NULLP(SG_CDR(no))) {
+	Sg_PutcUnsafe(out, '|');
+	unparse(no, out);
+      }
+
+    } else if (SG_EQ(f, SYM_INVERTED_CHAR_CLASS)) {
+      if (!SG_PAIRP(SG_CDR(n))) goto err;
+      if (!SG_CHAR_SET_P(SG_CADR(n))) goto err;
+      charset_to_regex(SG_CADR(n), TRUE, out);
+    } else goto err;
+
+  } else {
+  err:
+    /* never happen but raise an error */
+    Sg_Error(UC("invalid AST node %S"), n);
+  }
+}
+
+static SgObject unparse_ast(SgObject ast)
+{
+  SgPort out;
+  SgTextualPort tp;
+  SgObject str;
+  Sg_InitStringOutputPort(&out, &tp, 0);
+
+  unparse(ast, &out);
+
+  str = SG_STRING(Sg_GetStringFromStringPort(&out));
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return str;
+}
+
+static void count_register(SgObject ast, int *acc)
+{
+  if (SG_EQ(ast, SYM_REGISTER)) {
+    (*acc)++;
+    return;
+  }
+  if (SG_PAIRP(ast)) {
+    count_register(SG_CAR(ast), acc);
+    count_register(SG_CDR(ast), acc);
+  }
+  return;
+}
+
+SgObject Sg_CompileRegexAST(SgObject ast, int flags)
+{
+  SgPattern *p;
+  prog_t *prog;
+  compile_ctx_t cctx = {0};
+  int reg_num = 0;
+
+  ast = optimize(ast, SG_NIL);
+  /* count group number */
+  count_register(ast, &reg_num);
+  /* compile */
+  cctx.flags = flags;
+  prog = compile(&cctx, ast);
+
+  p = make_pattern(unparse_ast(ast), ast, flags, reg_num, prog, &cctx);
   return SG_OBJ(p);
 }
 
