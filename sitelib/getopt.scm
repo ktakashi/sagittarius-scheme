@@ -35,6 +35,59 @@
 	    (match)
 	    (srfi :37 args-fold))
 
+  (define-syntax with-args
+    (lambda (x)
+      (define (options opts acc)
+	(syntax-case opts ()
+	  (((name (short long) req? default) . rest)
+	   (options (cdr opts)
+		    (cons #'(option '(short long) req? #f
+				    (lambda (opt n arg alist vs)
+				      (values (acons 'name (if req? arg #t)
+						     alist) vs))) acc)))
+	  (rest (identifier? #'rest) 
+		(list (cons #'list (reverse! acc)) #'rest #t))
+	  (() (list (cons #'list (reverse! acc)) #'dummy #f))
+	  (_ (syntax-violation 'with-args "malformed option spec" 
+			       (syntax->datum #'opts)))))
+      (define (bindings opts rest args acc)
+	(syntax-case opts ()
+	  (((name (short long) req? default) . dummy)
+	   (with-syntax ((args (datum->syntax #'name args)))
+	     (bindings (cdr opts)
+		       rest #'args
+		       (cons #'(name (cond ((assq 'name args) => cdr)
+					   (else default))) acc))))
+	  (_ (with-syntax ((rest (datum->syntax rest rest)))
+	       (reverse! (cons (list #'rest #'(reverse! rest)) acc))))))
+      (syntax-case x ()
+	((_ args opts body ...)
+	 (with-syntax (((options rest allow?) (options #'opts '()))
+		       ((alist) (generate-temporaries '(alist))))
+	   (with-syntax (((bindings ...) (bindings #'opts #'rest #'alist '())))
+	     #'(let-values (((alist rest)
+			     (args-fold args options
+			      (lambda (opt name arg . argv)
+				(define (fixup-args n arg)
+				  (let ((n (if (char? n)
+					       (format "-~a" n)
+					       (string-append "--" n))))
+				    (if arg
+					(list n arg)
+					(list n))))
+				(if allow?
+				    (values (car argv)
+					    `(,@(fixup-args name arg)
+					      ,@(cadr argv)))
+				    (assertion-violation 'with-args
+				     "Unknown option" name)))
+			      (lambda (operand alist argv)
+				(values alist (cons operand argv)))
+			      '() '())))
+		 (let (bindings ...)
+		   body ...))))))))
+
+#|
 (define-syntax with-args
   (er-macro-transformer
    (lambda (form rename _)
@@ -94,4 +147,5 @@
 	 (_
 	  (syntax-violation 'with-args
 			    "malformed with-args" form)))))))
+|#
 )
