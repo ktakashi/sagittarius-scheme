@@ -395,7 +395,7 @@
     (define (inflate in out)
       (call-with-port (open-inflating-input-port in :window-bits -15)
 	(lambda (in)
-	  (define buffer-size (* 4096 4))
+	  (define buffer-size 4096)
 	  (let1 buf (make-bytevector buffer-size)
 	    (let lp ((crc 0) (len 0))
 	      (let1 n (get-bytevector-n! in buf 0 buffer-size)
