@@ -920,6 +920,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
       return FALSE;
     }
   }
+  Sg_FlushPort(&out);
   Sg_UnlockFile(&file);
   Sg_ClosePort(&out);
 
@@ -931,6 +932,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 			NULL, 0);
   /* put validate tag */
   Sg_WritebUnsafe(&out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_FlushPort(&out);
   Sg_ClosePort(&out);
 
   SG_CLEAN_BINARY_PORT(&bp);
@@ -1582,7 +1584,7 @@ int Sg_ReadCache(SgString *id)
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   char tagbuf[50];
-  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
+  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
   int b, ret;
   int64_t size;
 
