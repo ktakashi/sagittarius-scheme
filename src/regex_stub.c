@@ -12,9 +12,9 @@
 #include <sagittarius/regex.h>
 
 static struct sg__rcRec {
-  SgObject d200[18];
+  SgObject d164[18];
 } sg__rc = {
-  {  /* SgObject d200 */
+  {  /* SgObject d164 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -52,7 +52,7 @@ static SgObject regex_stub_compile_regex(SgObject *SG_FP, int SG_ARGC, void *dat
   p_scm = SG_ARGREF(0);
   if (!SG_STRINGP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[0], SG_MAKE_STRING("string"), p_scm, SG_NIL);
+       sg__rc.d164[0], SG_MAKE_STRING("string"), p_scm, SG_NIL);
   p = SG_STRING(p_scm);
   if (SG_ARGC > 1+1) {
     flags_scm = SG_ARGREF(1);
@@ -61,7 +61,7 @@ static SgObject regex_stub_compile_regex(SgObject *SG_FP, int SG_ARGC, void *dat
   }
   if (!SG_INTP(flags_scm) && !SG_INTP(flags_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[0], SG_MAKE_STRING("fixnum"), flags_scm, SG_NIL);
+       sg__rc.d164[0], SG_MAKE_STRING("fixnum"), flags_scm, SG_NIL);
   flags = SG_INT_VALUE(flags_scm);
   if (SG_ARGC > 2+1) {
     parse_only_scm = SG_ARGREF(2);
@@ -70,7 +70,7 @@ static SgObject regex_stub_compile_regex(SgObject *SG_FP, int SG_ARGC, void *dat
   }
   if (!SG_FALSEP(parse_only_scm) && !SG_BOOLP(parse_only_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[0], SG_MAKE_STRING("boolean"), parse_only_scm, SG_NIL);
+       sg__rc.d164[0], SG_MAKE_STRING("boolean"), parse_only_scm, SG_NIL);
   parse_only = SG_BOOL_VALUE(parse_only_scm);
   {
 {
@@ -105,7 +105,7 @@ static SgObject regex_stub_compile_regex_ast(SgObject *SG_FP, int SG_ARGC, void 
   }
   if (!SG_INTP(flags_scm) && !SG_INTP(flags_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[1], SG_MAKE_STRING("fixnum"), flags_scm, SG_NIL);
+       sg__rc.d164[1], SG_MAKE_STRING("fixnum"), flags_scm, SG_NIL);
   flags = SG_INT_VALUE(flags_scm);
   {
 {
@@ -134,7 +134,7 @@ static SgObject regex_stub_dump_regex(SgObject *SG_FP, int SG_ARGC, void *data_)
   p_scm = SG_ARGREF(0);
   if (!SG_PATTERNP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[2], SG_MAKE_STRING("pattern"), p_scm, SG_NIL);
+       sg__rc.d164[2], SG_MAKE_STRING("pattern"), p_scm, SG_NIL);
   p = SG_PATTERN(p_scm);
   if (SG_ARGC > 1+1) {
     port_scm = SG_ARGREF(1);
@@ -145,7 +145,7 @@ Sg_CurrentOutputPort();
   }
   if (!SG_PORTP(port_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[2], SG_MAKE_STRING("port"), port_scm, SG_NIL);
+       sg__rc.d164[2], SG_MAKE_STRING("port"), port_scm, SG_NIL);
   port = SG_PORT(port_scm);
   {
 
@@ -169,12 +169,12 @@ static SgObject regex_stub_regex_matcher(SgObject *SG_FP, int SG_ARGC, void *dat
   p_scm = SG_ARGREF(0);
   if (!SG_PATTERNP(p_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[3], SG_MAKE_STRING("pattern"), p_scm, SG_NIL);
+       sg__rc.d164[3], SG_MAKE_STRING("pattern"), p_scm, SG_NIL);
   p = SG_PATTERN(p_scm);
   text_scm = SG_ARGREF(1);
   if (!SG_STRINGP(text_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[3], SG_MAKE_STRING("string"), text_scm, SG_NIL);
+       sg__rc.d164[3], SG_MAKE_STRING("string"), text_scm, SG_NIL);
   text = SG_STRING(text_scm);
   {
 {
@@ -199,7 +199,7 @@ static SgObject regex_stub_regex_matches(SgObject *SG_FP, int SG_ARGC, void *dat
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[4], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[4], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -224,7 +224,7 @@ static SgObject regex_stub_regex_looking_at(SgObject *SG_FP, int SG_ARGC, void *
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[5], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[5], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -253,7 +253,7 @@ static SgObject regex_stub_regex_find(SgObject *SG_FP, int SG_ARGC, void *data_)
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[6], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[6], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   if (SG_ARGC > 1+1) {
     start_scm = SG_ARGREF(1);
@@ -262,7 +262,7 @@ static SgObject regex_stub_regex_find(SgObject *SG_FP, int SG_ARGC, void *data_)
   }
   if (!SG_INTP(start_scm) && !SG_INTP(start_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[6], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
+       sg__rc.d164[6], SG_MAKE_STRING("fixnum"), start_scm, SG_NIL);
   start = SG_INT_VALUE(start_scm);
   {
 {
@@ -291,7 +291,7 @@ static SgObject regex_stub_regex_group(SgObject *SG_FP, int SG_ARGC, void *data_
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[7], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[7], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   if (SG_ARGC > 1+1) {
     group_scm = SG_ARGREF(1);
@@ -300,7 +300,7 @@ static SgObject regex_stub_regex_group(SgObject *SG_FP, int SG_ARGC, void *data_
   }
   if (!SG_INTP(group_scm) && !SG_INTP(group_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[7], SG_MAKE_STRING("fixnum"), group_scm, SG_NIL);
+       sg__rc.d164[7], SG_MAKE_STRING("fixnum"), group_scm, SG_NIL);
   group = SG_INT_VALUE(group_scm);
   {
 {
@@ -325,7 +325,7 @@ static SgObject regex_stub_regex_after(SgObject *SG_FP, int SG_ARGC, void *data_
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[8], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[8], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -352,7 +352,7 @@ static SgObject regex_stub_regex_before(SgObject *SG_FP, int SG_ARGC, void *data
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[9], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[9], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -379,7 +379,7 @@ static SgObject regex_stub_regex_capture_count(SgObject *SG_FP, int SG_ARGC, voi
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[10], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[10], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -404,7 +404,7 @@ static SgObject regex_stub_regex_first(SgObject *SG_FP, int SG_ARGC, void *data_
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[11], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[11], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -429,7 +429,7 @@ static SgObject regex_stub_regex_last(SgObject *SG_FP, int SG_ARGC, void *data_)
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[12], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[12], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   {
 {
@@ -456,7 +456,7 @@ static SgObject regex_stub_regex_replace_all(SgObject *SG_FP, int SG_ARGC, void 
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[13], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[13], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   replacement_scm = SG_ARGREF(1);
   replacement = (replacement_scm);
@@ -467,7 +467,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 74 "./regex_stub.stub"
 if ((!((SG_STRINGP(replacement))||(
 SG_PROCEDUREP(replacement))))){{
-Sg_WrongTypeOfArgumentViolation(sg__rc.d200[14],
+Sg_WrongTypeOfArgumentViolation(sg__rc.d164[14],
 SG_MAKE_STRING("string or procedure"),replacement,SG_NIL);}}
 
 #line 79 "./regex_stub.stub"
@@ -491,7 +491,7 @@ static SgObject regex_stub_regex_replace_first(SgObject *SG_FP, int SG_ARGC, voi
   m_scm = SG_ARGREF(0);
   if (!SG_MATCHERP(m_scm))
     Sg_WrongTypeOfArgumentViolation(
-       sg__rc.d200[15], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
+       sg__rc.d164[15], SG_MAKE_STRING("matcher"), m_scm, SG_NIL);
   m = SG_MATCHER(m_scm);
   replacement_scm = SG_ARGREF(1);
   replacement = (replacement_scm);
@@ -502,7 +502,7 @@ SgObject SG_RESULT = (SgObject)NULL;
 #line 82 "./regex_stub.stub"
 if ((!((SG_STRINGP(replacement))||(
 SG_PROCEDUREP(replacement))))){{
-Sg_WrongTypeOfArgumentViolation(sg__rc.d200[14],
+Sg_WrongTypeOfArgumentViolation(sg__rc.d164[14],
 SG_MAKE_STRING("string or procedure"),replacement,SG_NIL);}}
 
 #line 87 "./regex_stub.stub"
@@ -559,56 +559,56 @@ static SG_DEFINE_SUBR(regex_stub_regex_matcherP__STUB, 1, 0,regex_stub_regex_mat
 
 void Sg__Init_sagittarius_regex_impl () {
   SgLibrary *lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius regex impl)"), TRUE));
-  sg__rc.d200[0] = SG_MAKE_STRING("compile-regex");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[0]), &regex_stub_compile_regex__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_compile_regex__STUB) = sg__rc.d200[0];
-  sg__rc.d200[1] = SG_MAKE_STRING("compile-regex-ast");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[1]), &regex_stub_compile_regex_ast__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_compile_regex_ast__STUB) = sg__rc.d200[1];
-  sg__rc.d200[2] = SG_MAKE_STRING("dump-regex");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[2]), &regex_stub_dump_regex__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_dump_regex__STUB) = sg__rc.d200[2];
-  sg__rc.d200[3] = SG_MAKE_STRING("regex-matcher");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[3]), &regex_stub_regex_matcher__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_matcher__STUB) = sg__rc.d200[3];
-  sg__rc.d200[4] = SG_MAKE_STRING("regex-matches");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[4]), &regex_stub_regex_matches__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_matches__STUB) = sg__rc.d200[4];
-  sg__rc.d200[5] = SG_MAKE_STRING("regex-looking-at");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[5]), &regex_stub_regex_looking_at__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_looking_at__STUB) = sg__rc.d200[5];
-  sg__rc.d200[6] = SG_MAKE_STRING("regex-find");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[6]), &regex_stub_regex_find__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_find__STUB) = sg__rc.d200[6];
-  sg__rc.d200[7] = SG_MAKE_STRING("regex-group");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[7]), &regex_stub_regex_group__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_group__STUB) = sg__rc.d200[7];
-  sg__rc.d200[8] = SG_MAKE_STRING("regex-after");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[8]), &regex_stub_regex_after__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_after__STUB) = sg__rc.d200[8];
-  sg__rc.d200[9] = SG_MAKE_STRING("regex-before");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[9]), &regex_stub_regex_before__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_before__STUB) = sg__rc.d200[9];
-  sg__rc.d200[10] = SG_MAKE_STRING("regex-capture-count");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[10]), &regex_stub_regex_capture_count__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_capture_count__STUB) = sg__rc.d200[10];
-  sg__rc.d200[11] = SG_MAKE_STRING("regex-first");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[11]), &regex_stub_regex_first__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_first__STUB) = sg__rc.d200[11];
-  sg__rc.d200[12] = SG_MAKE_STRING("regex-last");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[12]), &regex_stub_regex_last__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_last__STUB) = sg__rc.d200[12];
-  sg__rc.d200[13] = SG_MAKE_STRING("regex-replace-all");
-  sg__rc.d200[14] = Sg_Intern(sg__rc.d200[13]); /* regex-replace-all */
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[13]), &regex_stub_regex_replace_all__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_replace_all__STUB) = sg__rc.d200[13];
-  sg__rc.d200[15] = SG_MAKE_STRING("regex-replace-first");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[15]), &regex_stub_regex_replace_first__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_replace_first__STUB) = sg__rc.d200[15];
-  sg__rc.d200[16] = SG_MAKE_STRING("regex-pattern?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[16]), &regex_stub_regex_patternP__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_patternP__STUB) = sg__rc.d200[16];
-  sg__rc.d200[17] = SG_MAKE_STRING("regex-matcher?");
-  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d200[17]), &regex_stub_regex_matcherP__STUB);
-  SG_PROCEDURE_NAME(&regex_stub_regex_matcherP__STUB) = sg__rc.d200[17];
+  sg__rc.d164[0] = SG_MAKE_STRING("compile-regex");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[0]), &regex_stub_compile_regex__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_compile_regex__STUB) = sg__rc.d164[0];
+  sg__rc.d164[1] = SG_MAKE_STRING("compile-regex-ast");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[1]), &regex_stub_compile_regex_ast__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_compile_regex_ast__STUB) = sg__rc.d164[1];
+  sg__rc.d164[2] = SG_MAKE_STRING("dump-regex");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[2]), &regex_stub_dump_regex__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_dump_regex__STUB) = sg__rc.d164[2];
+  sg__rc.d164[3] = SG_MAKE_STRING("regex-matcher");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[3]), &regex_stub_regex_matcher__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_matcher__STUB) = sg__rc.d164[3];
+  sg__rc.d164[4] = SG_MAKE_STRING("regex-matches");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[4]), &regex_stub_regex_matches__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_matches__STUB) = sg__rc.d164[4];
+  sg__rc.d164[5] = SG_MAKE_STRING("regex-looking-at");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[5]), &regex_stub_regex_looking_at__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_looking_at__STUB) = sg__rc.d164[5];
+  sg__rc.d164[6] = SG_MAKE_STRING("regex-find");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[6]), &regex_stub_regex_find__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_find__STUB) = sg__rc.d164[6];
+  sg__rc.d164[7] = SG_MAKE_STRING("regex-group");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[7]), &regex_stub_regex_group__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_group__STUB) = sg__rc.d164[7];
+  sg__rc.d164[8] = SG_MAKE_STRING("regex-after");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[8]), &regex_stub_regex_after__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_after__STUB) = sg__rc.d164[8];
+  sg__rc.d164[9] = SG_MAKE_STRING("regex-before");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[9]), &regex_stub_regex_before__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_before__STUB) = sg__rc.d164[9];
+  sg__rc.d164[10] = SG_MAKE_STRING("regex-capture-count");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[10]), &regex_stub_regex_capture_count__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_capture_count__STUB) = sg__rc.d164[10];
+  sg__rc.d164[11] = SG_MAKE_STRING("regex-first");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[11]), &regex_stub_regex_first__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_first__STUB) = sg__rc.d164[11];
+  sg__rc.d164[12] = SG_MAKE_STRING("regex-last");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[12]), &regex_stub_regex_last__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_last__STUB) = sg__rc.d164[12];
+  sg__rc.d164[13] = SG_MAKE_STRING("regex-replace-all");
+  sg__rc.d164[14] = Sg_Intern(sg__rc.d164[13]); /* regex-replace-all */
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[13]), &regex_stub_regex_replace_all__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_replace_all__STUB) = sg__rc.d164[13];
+  sg__rc.d164[15] = SG_MAKE_STRING("regex-replace-first");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[15]), &regex_stub_regex_replace_first__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_replace_first__STUB) = sg__rc.d164[15];
+  sg__rc.d164[16] = SG_MAKE_STRING("regex-pattern?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[16]), &regex_stub_regex_patternP__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_patternP__STUB) = sg__rc.d164[16];
+  sg__rc.d164[17] = SG_MAKE_STRING("regex-matcher?");
+  Sg_InsertBinding(lib, Sg_Intern(sg__rc.d164[17]), &regex_stub_regex_matcherP__STUB);
+  SG_PROCEDURE_NAME(&regex_stub_regex_matcherP__STUB) = sg__rc.d164[17];
 }

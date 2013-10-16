@@ -1494,13 +1494,16 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 
   SG_FOR_EACH(key, keys) {
     /* keys are alist */
+    SgObject tmp;
     from = SG_CAAR(key);
     import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
     /* 
        import can be '() or resolved import spec.
      */
-    Sg_ImportLibraryFullSpec(lib, Sg_FindLibrary(from, FALSE), import);
+    tmp = Sg_FindLibrary(from, FALSE);
+    if (!SG_LIBRARYP(tmp)) Sg_Error(UC("Library %A not found"), from);
+    Sg_ImportLibraryFullSpec(lib, tmp, import);
   }
   return lib;
 }

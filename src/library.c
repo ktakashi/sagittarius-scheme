@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * library.c
+/* library.c                                       -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *

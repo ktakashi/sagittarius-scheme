@@ -173,29 +173,37 @@
   ;; returned pair is structured like this : (<required> . <optional>)
   ;; <required> : # of required arguments
   ;; <optional> : #t or #f
-  (define-c-proc arity (p::<procedure>) ::<top>
+  (define-c-proc arity (p::<procedure>)
     (let ((req::int (SG_PROCEDURE_REQUIRED p))
 	  (opt::int (SG_PROCEDURE_OPTIONAL p)))
       (if (> opt 0)
 	  (result (Sg_Cons (SG_MAKE_INT req) #t))
 	  (result (Sg_Cons (SG_MAKE_INT req) #f)))))
 
-  (define-c-proc unbound () ::<top>
-    (result SG_UNBOUND))
+  (define-c-proc unbound () (result SG_UNBOUND))
+  (define-c-proc unbound? (o) ::<boolean> SG_UNBOUNDP)
+  (define-c-proc undefined () (result SG_UNDEF))
+  (define-c-proc undefined? (o) ::<boolean> SG_UNDEFP)
 
-  (define-c-proc undefined () ::<top>
-    (result SG_UNDEF))
+  (define-c-proc add-load-path (path::<string>) Sg_AddLoadPath)
+  ;; very dangerous operation...
+  (define-c-proc load-path (:optional paths)
+    (if (SG_UNBOUNDP paths)
+	(result (-> (Sg_VM) loadPath))
+	(begin
+	  (unless (SG_PAIRP paths) 
+	    (wrong-type-of-argument-violation 'load-path "list" paths))
+	  (for-each (lambda (path)
+		      (unless (SG_STRINGP path) 
+			(wrong-type-of-argument-violation 
+			 'load-path "list of string" paths)))
+		    paths)
+	  (set! (-> (Sg_VM) loadPath) paths)
+	  (result SG_UNDEF))))
 
-  (define-c-proc undefined? (o) ::<boolean>
-    (result (SG_UNDEFP o)))
+  (define-c-proc load (path::<string>) Sg_VMLoad)
 
-  (define-c-proc add-load-path (path::<string>)
-    (result (Sg_AddLoadPath path)))
-
-  (define-c-proc load (path::<string>) ::<top>
-    (result (Sg_VMLoad path)))
-
-  (define-c-proc gensym (:optional prefix::<string>) ::<top>
+  (define-c-proc gensym (:optional prefix::<string>)
     (when (SG_UNBOUNDP prefix)
       (set! prefix NULL))
     (result (Sg_Gensym prefix)))
