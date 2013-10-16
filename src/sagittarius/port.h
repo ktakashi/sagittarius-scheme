@@ -381,6 +381,7 @@ enum SgCustomPortType {
     (port)->type = (t);				\
     (port)->bufferMode = (m);			\
     (port)->reader = SG_FALSE;			\
+    (port)->closed = FALSE;			\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 

@@ -1129,7 +1129,7 @@ static SgObject group(lexer_ctx_t *ctx)
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Opening paren has no matching closing paren"));
       }
-      if (!SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+      if (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
 	/* most definitely (?(1)aaa) pattern so make this
 	 (alternation $regexpr (sequence))*/
 	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
@@ -1157,7 +1157,7 @@ static SgObject group(lexer_ctx_t *ctx)
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Branch test must be lookahead, look-behind or number"));
       }
-      if (!SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+      if (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
 	/* most definitely (?(1)aaa) pattern so make this
 	 (alternation $regexpr (sequence))*/
 	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
