@@ -1711,6 +1711,7 @@ static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
   }
   /* bv = Sg_MakeByteVector(1, b); */
   SG_ALLOC_TEMP_BVECTOR(bv, 1);
+  SG_BVECTOR_ELEMENT(bv, 0) = b;
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
 		    bv, start, count);
   if (!SG_INTP(result)) {
@@ -1727,7 +1728,12 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
 {
   static const SgObject start = SG_MAKE_INT(0);
   SgObject bv, result, count;
-  bv = Sg_MakeByteVectorFromU8Array(v, (int)size);
+  int i;
+  /* bv = Sg_MakeByteVectorFromU8Array(v, (int)size); */
+  SG_ALLOC_TEMP_BVECTOR(bv, (size_t)size);
+  for (i = 0; i < (int)size; i++) {
+    SG_BVECTOR_ELEMENT(bv, i) = v[i];
+  }
 
   count = Sg_MakeIntegerFromS64(size);
   result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, start, count);
