@@ -771,5 +771,8 @@
     (let*-values (((scheme specific) (uri-scheme&specific url))
 		  ((auth path query frag)
 		   (uri-decompose-hierarchical specific)))
-      (values auth (uri-compose :path path :query query :fragment frag))))
+      (values auth
+	      ;; uri-compose always put // in front so remove it
+	      (string-copy
+	       (uri-compose :path path :query query :fragment frag) 2))))
 )
