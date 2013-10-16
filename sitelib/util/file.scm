@@ -307,12 +307,13 @@
 	   (lambda (opath type)
 	     (and-let* (( (not (member opath excludes string-contains)) )
 			(path (string-copy opath 
-					   (+ (string-length base-path) 1))))
+					   (+ (string-length base-path) 1)))
+			(dest (build-path dst path)))
 	       (if (eq? type 'directory)
-		   (create-directory* (build-path dst path))
+		   (create-directory* dest)
 		   (let-values (((dir base ext) (decompose-path path)))
-		     (create-directory* (build-path dst dir))
-		     (copy-file opath (build-path dst path) #t)))))
+		     (when dir (create-directory* (build-path dst dir)))
+		     (copy-file opath dest #t)))))
 	   opt))
 
   (define (build-path* . paths)
