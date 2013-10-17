@@ -75,7 +75,8 @@
 
   (define-method append-entry! ((out <tar-archive-output>) 
 				(e <tar-archive-entry>))
-    (append-file (~ out 'sink) (~ e 'file)))
+    (when (eq? (~ e 'type) 'file)
+      (append-file (~ out 'sink) (~ e 'file))))
 
   (define-method finish! ((out <tar-archive-output>))
     (set! (~ out 'sink) #f))
