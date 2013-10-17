@@ -553,62 +553,34 @@ int Sg_CreateDirectory(SgString *path)
   return CreateDirectoryW(utf32ToUtf16(path), NULL);
 }
 
-SgObject Sg_FileModifyTime(SgString *path)
-{
-  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
-			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
-			  NULL);
-  if (fd != INVALID_HANDLE_VALUE) {
-    BY_HANDLE_FILE_INFORMATION fileInfo;
-    if (GetFileInformationByHandle(fd, &fileInfo)) {
-      int64_t tm;
-      CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32)
-	+ fileInfo.ftLastWriteTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm * 10);
-    }
-    CloseHandle(fd);
+#define DEFINE_FILE_STAD(name, prop)					\
+  SgObject name(SgString *path)						\
+  {									\
+    DWORD flags = FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL;	\
+    HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING, \
+			    flags, NULL);				\
+    if (fd != INVALID_HANDLE_VALUE) {					\
+      BY_HANDLE_FILE_INFORMATION fileInfo;				\
+      if (GetFileInformationByHandle(fd, &fileInfo)) {			\
+	int64_t tm;							\
+	FILETIME *time;							\
+	ULARGE_INTEGER li, adjust;					\
+	CloseHandle(fd);						\
+	time = &(fileInfo. SG_CPP_CAT3(ft, prop, Time));		\
+	li.u.LowPart  = time->dwLowDateTime;				\
+	li.u.HighPart = time->dwHighDateTime;				\
+	adjust.QuadPart = 11644473600000 * 10000;			\
+	tm = li.QuadPart - adjust.QuadPart;				\
+	return Sg_MakeIntegerFromS64(tm * 100);				\
+      }									\
+      CloseHandle(fd);							\
+    }									\
+    return SG_UNDEF;							\
   }
-  return SG_UNDEF;
-}
 
-SgObject Sg_FileAccessTime(SgString *path)
-{
-  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
-			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
-			  NULL);
-  if (fd != INVALID_HANDLE_VALUE) {
-    BY_HANDLE_FILE_INFORMATION fileInfo;
-    if (GetFileInformationByHandle(fd, &fileInfo)) {
-      int64_t tm;
-      CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + 
-	fileInfo.ftLastAccessTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm * 10);
-    }
-    CloseHandle(fd);
-  }
-  return SG_UNDEF;
-}
-
-SgObject Sg_FileChangeTime(SgString *path)
-{
-  HANDLE fd = CreateFileW(utf32ToUtf16(path), 0, 0, NULL, OPEN_EXISTING,
-			  FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL,
-			  NULL);
-  if (fd != INVALID_HANDLE_VALUE) {
-    BY_HANDLE_FILE_INFORMATION fileInfo;
-    if (GetFileInformationByHandle(fd, &fileInfo)) {
-      int64_t tm;
-      CloseHandle(fd);
-      tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + 
-	fileInfo.ftCreationTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm * 10);
-    }
-    CloseHandle(fd);
-  }
-  return SG_UNDEF;
-}
+DEFINE_FILE_STAD(Sg_FileModifyTime, LastWrite)
+DEFINE_FILE_STAD(Sg_FileAccessTime, LastAccess)
+DEFINE_FILE_STAD(Sg_FileChangeTime, Creation)
 
 SgObject Sg_FileSize(SgString *path)
 {
