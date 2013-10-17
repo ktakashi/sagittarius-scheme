@@ -48,6 +48,7 @@
 	    finish!
 
 	    archive-entry-name
+	    archive-entry-type
 
 	    ;; utilities
 	    call-with-archive-input

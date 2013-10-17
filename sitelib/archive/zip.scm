@@ -85,8 +85,12 @@
       (set! (~ e 'input 'current) #f)))
 
   (define-method create-entry ((out <zip-archive-output>) file)
-    (make <zip-archive-output-entry> :file file))
-
+    (make <zip-archive-output-entry>
+      :file file
+      :type (if (and (file-exists? file) (file-directory? file))
+		'directory
+		'file)))
+  
   (define-method append-entry! ((out <zip-archive-output>) 
 				(e <zip-archive-output-entry>))
     (when (eq? (~ e 'type) 'file)

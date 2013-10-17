@@ -71,7 +71,11 @@
       (set! (~ e 'input 'current) #f)))
 
   (define-method create-entry ((out <tar-archive-output>) file)
-    (make <tar-archive-entry> :name file :file file))
+    (make <tar-archive-entry> :name file
+	  :file file
+	  :type (if (and (file-exists? file) (file-directory? file))
+		    'directory
+		    'type)))
 
   (define-method append-entry! ((out <tar-archive-output>) 
 				(e <tar-archive-entry>))
