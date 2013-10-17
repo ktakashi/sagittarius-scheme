@@ -217,7 +217,9 @@
     (make-header-record file (file-mode-from-file file)
 			;; FIXME these are dummy...
 			1000 1000
-			(file-size-in-bytes file)
+			(if (file-directory? file)
+			    0
+			    (file-size-in-bytes file))
 			(div (file-stat-mtime file) 1000000000)
 			(file-type-from-file file)
 			""
@@ -229,9 +231,11 @@
 
   (define (append-file tarport file)
     (let ((header (make-header-record-from-file file)))
-      (call-with-input-file file
-	(cut append-port tarport header <>)
-	:transcoder #f)))
+      (if (file-directory? file)
+	  (append-port tarport header (open-bytevector-input-port #vu8()))
+	  (call-with-input-file file
+	    (cut append-port tarport header <>)
+	    :transcoder #f))))
   
   (define (append-port tarport header source)
     (put-bytevector tarport header)

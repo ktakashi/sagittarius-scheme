@@ -93,8 +93,7 @@
   
   (define-method append-entry! ((out <zip-archive-output>) 
 				(e <zip-archive-output-entry>))
-    (when (eq? (~ e 'type) 'file)
-      (push! (~ out 'centrals) (append-file (~ out 'sink) (~ e 'file)))))
+    (push! (~ out 'centrals) (append-file (~ out 'sink) (~ e 'file))))
 
   (define-method finish! ((out <zip-archive-output>))
     (append-central-directory (~ out 'sink) (reverse! (~ out 'centrals)))

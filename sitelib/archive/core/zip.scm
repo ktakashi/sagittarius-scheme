@@ -468,13 +468,18 @@
                    date local-extra central-extra os-made-by
                    internal-attributes external-attributes)
                   (get-file-attributes filename)))
-      (call-with-port (open-file-input-port filename)
-        (lambda (p)
-          (append-port out p
-                       inzip-filename
-                       date local-extra central-extra os-made-by
-                       internal-attributes external-attributes
-		       :compression-method compression-method)))))
+      (if (file-directory? filename)
+	  (append-port out #f inzip-filename
+		       date local-extra central-extra os-made-by
+		       internal-attributes external-attributes
+		       :compression-method compression-method)
+	  (call-with-port (open-file-input-port filename)
+	    (lambda (p)
+	      (append-port out p
+			   inzip-filename
+			   date local-extra central-extra os-made-by
+			   internal-attributes external-attributes
+			   :compression-method compression-method))))))
 
 
   ;; Like append-file, except it takes a binary input port instead of
@@ -589,7 +594,8 @@
            0)
           (else
            ;; Create the file's directory
-           (when (string-contains inzip-filename "/")
+           (when (or (string-contains inzip-filename "/")
+		     (string-contains inzip-filename "\\"))
 	     (let-values (((dir base ext) (decompose-path inzip-filename)))
 	       (create-directory* dir)))
 	   (when (and overwrite (file-exists? inzip-filename))
