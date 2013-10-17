@@ -565,7 +565,7 @@ SgObject Sg_FileModifyTime(SgString *path)
       CloseHandle(fd);
       tm = ((int64_t)fileInfo.ftLastWriteTime.dwHighDateTime << 32)
 	+ fileInfo.ftLastWriteTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm);
+      return Sg_MakeIntegerFromS64(tm * 10);
     }
     CloseHandle(fd);
   }
@@ -584,7 +584,7 @@ SgObject Sg_FileAccessTime(SgString *path)
       CloseHandle(fd);
       tm = ((int64_t)fileInfo.ftLastAccessTime.dwHighDateTime << 32) + 
 	fileInfo.ftLastAccessTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm);
+      return Sg_MakeIntegerFromS64(tm * 10);
     }
     CloseHandle(fd);
   }
@@ -603,7 +603,7 @@ SgObject Sg_FileChangeTime(SgString *path)
       CloseHandle(fd);
       tm = ((int64_t)fileInfo.ftCreationTime.dwHighDateTime << 32) + 
 	fileInfo.ftCreationTime.dwLowDateTime;
-      return Sg_MakeIntegerFromS64(tm);
+      return Sg_MakeIntegerFromS64(tm * 10);
     }
     CloseHandle(fd);
   }
