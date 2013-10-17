@@ -477,10 +477,12 @@ static int end_with(const SgString *target, const char * key)
 {
   size_t size = SG_STRING_SIZE(target);
   size_t keysize = strlen(key);
-  SgChar *value = SG_STRING_VALUE(target);
-  SgChar *p;
-  p = value + size - keysize;
-  return ustrncmp(p, key, keysize) == 0;
+  size_t i, off = size - keysize;
+  int j;
+  for (i = off, j = 0; j < keysize; i++, j++) {
+    if (Sg_CharUpCase(SG_STRING_VALUE_AT(target, i)) != key[j]) return FALSE;
+  }
+  return TRUE;
 }
 
 int Sg_FileExecutableP(SgString *path)
@@ -489,7 +491,7 @@ int Sg_FileExecutableP(SgString *path)
       const char* pathext[] = { ".COM", ".EXE", ".BAT", ".VBS", ".VBE",
 				".JS",  ".JSE", ".WSF", ".WSH", ".MSC" };
       unsigned int i;
-      for (i = 0; i < sizeof(pathext); i++) {
+      for (i = 0; i < array_sizeof(pathext); i++) {
 	if (end_with(path, pathext[i])) return TRUE;
       }
     }
