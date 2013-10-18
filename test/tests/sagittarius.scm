@@ -980,4 +980,25 @@
 	    assertion-violation?
 	    (fxbit-set? -1 -1))
 
+;; issue 154
+(let ()
+  (define save #f)
+  (let* ([p (make-custom-binary-input/output-port
+	     "custom in"
+	     (lambda (bv start end)
+	       (bytevector-u8-set! bv start 7)
+	       (set! save bv)
+	       1)
+	     (lambda (bv start end)
+	       1)
+	     #f #f #f)])
+    (put-u8 p 10)
+    (flush-output-port p)
+    (get-u8 p)
+    (close-port p))
+  (test-assert "DO NOT PASS STACK ALLOCATED OBJECT TO SCHEME"
+	       (call-with-string-output-port
+		(lambda (out) (display save out) (newline))))
+  )
+
 (test-end)
