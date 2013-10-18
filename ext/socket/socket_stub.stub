@@ -4,7 +4,7 @@
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
  (.include <sagittarius/extend.h>
-	   "socket.h"))
+	   "sagittarius-socket.h"))
 
 (define-cise-stmt check-string-or-false
   ((_ name o)

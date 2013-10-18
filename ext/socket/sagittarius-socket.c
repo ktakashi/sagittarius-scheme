@@ -1,4 +1,4 @@
-/* socket.c                                        -*- mode:c; coding:utf-8; -*-
+/* sagittarius-socket.c                            -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -32,7 +32,7 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "socket.h"
+#include "sagittarius-socket.h"
 
 #include <sys/types.h>
 #include <string.h>
