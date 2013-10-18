@@ -482,4 +482,19 @@
       (when (SG_VM_LOG_LEVEL vm SG_WARN_LEVEL)
 	(Sg_Printf (-> vm logPort) (UC "WARNING: %A\n") msg))))
 
+  (define-c-proc code-builder->vector (cb::<code-builder>) 
+    Sg_CodeBuilderToVector)
+
+  (define-c-proc insn-info (insn::<integer>)
+    (let* ((i::int64_t     (Sg_GetIntegerS64Clamp insn SG_CLAMP_NONE NULL))
+	   (info::InsnInfo* (Sg_LookupInsnName i)))
+      (if info
+	  ;; Do we need hasSrc?
+	  (result (Sg_Values5 (Sg_Intern (Sg_MakeStringC (-> info name)))
+			      (SG_MAKE_INT (-> info number))
+			      (SG_MAKE_INT (-> info instValues))
+			      (SG_MAKE_INT (-> info argc))
+			      (SG_MAKE_BOOL (-> info label))))
+	  (result (Sg_Values5 SG_FALSE SG_FALSE SG_FALSE SG_FALSE SG_FALSE)))))
+
 )

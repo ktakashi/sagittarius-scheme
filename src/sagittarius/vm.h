@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * vm.h
+/* vm.h                                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -461,6 +459,9 @@ SG_EXTERN SgObject Sg_VMValues3(SgVM *vm, SgObject v1,
 				SgObject v2, SgObject v3);
 SG_EXTERN SgObject Sg_VMValues4(SgVM *vm, SgObject v1,
 				SgObject v2, SgObject v3, SgObject v4);
+SG_EXTERN SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
+				SgObject v2, SgObject v3, SgObject v4,
+				SgObject v5);
 
 SG_CDECL_END
 

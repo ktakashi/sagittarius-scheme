@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * code.h
+/* code.h                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -67,7 +65,7 @@ struct SgCodeBuilderRec
   SgObject   src;
   int        size;
   int        actualSize;	/* -1: vm initial closure */
-  /* for better performance to combine instruction */
+  /* combine instructions for better performance */
   SgCodePacket packet;
   SgObject   labelDefs;		/* alist of (name . offset) */
   SgObject   labelRefs;		/* alist of (name . offset-to-fill) */
@@ -132,6 +130,8 @@ SG_EXTERN void     Sg_VMExecute(SgObject toplevel);
 SG_EXTERN SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size,
 						     int argc, int optional, int freec,
 						     int maxStack);
+
+SG_EXTERN SgObject Sg_CodeBuilderToVector(SgCodeBuilder *cb);
 
 SG_CDECL_END
 

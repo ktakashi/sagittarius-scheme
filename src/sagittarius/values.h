@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * values.h
+/* values.h -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -41,6 +39,8 @@ SG_EXTERN SgObject Sg_Values2(SgObject v1, SgObject v2);
 SG_EXTERN SgObject Sg_Values3(SgObject v1, SgObject v2, SgObject v3);
 SG_EXTERN SgObject Sg_Values4(SgObject v1, SgObject v2, SgObject v3, 
 			      SgObject v4);
+SG_EXTERN SgObject Sg_Values5(SgObject v1, SgObject v2, SgObject v3, 
+			      SgObject v4, SgObject v5);
 
 SG_CDECL_END
 

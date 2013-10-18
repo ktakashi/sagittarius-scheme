@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * code.c
+/* code.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -120,7 +118,7 @@ static void flush(SgCodeBuilder *cb)
   }
   cb->packet = empty_packet;
 }
-
+/* TODO generate this from instructions.scm */
 static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
 {
   switch (packet->insn) {
@@ -464,6 +462,43 @@ SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb)
 {
   return cb->name;		/* TODO after I arranged src info */
 }
+
+static SgObject intptr_to_integer(intptr_t i)
+{
+#if SIZEOF_VOID == 8
+  return Sg_MakeIntegerFromS64(i);
+#else
+  return Sg_MakeInteger(i);
+#endif
+}
+
+SgObject Sg_CodeBuilderToVector(SgCodeBuilder *cb)
+{
+  SgWord *code = cb->code;
+  int size = cb->size, i;
+  SgObject v = Sg_MakeVector(size, SG_FALSE);
+  for (i = 0; i < size;) {
+    /* we don't convert code builder in the code. */
+    InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
+    /* put instruction as integer (there is a possibility surpass
+       the greatest fixnum. */
+    SG_VECTOR_ELEMENT(v, i) = intptr_to_integer((intptr_t)code[i]);
+    if (info->argc != 0) {
+      int j;
+      for (j = 1; j <= info->argc; j++) {
+	if (info->label) {
+	  intptr_t l = (intptr_t)code[i+j];
+	  SG_VECTOR_ELEMENT(v, i+j) = intptr_to_integer(l);
+	} else {
+	  SG_VECTOR_ELEMENT(v, i+j) = SG_OBJ(code[i+j]);
+	}
+      }
+    }
+    i += info->argc + 1;
+  }
+  return v;
+}
+
 
 /*
   end of file
