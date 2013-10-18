@@ -713,6 +713,33 @@ static SgObject invoke_cc(SgObject result, void **data)
   return procedure_invoker(args, argc, dvec);
 }
 
+static SgObject unpack_argument(SgObject proc, SgObject **oargs, int *oargc,
+				SgObject rest)
+{
+  int argc = *oargc;
+  SgObject *args = *oargs;
+  SgObject opts = args[--argc];
+  if (SG_NULLP(opts)) {
+    /* easy */
+    *oargc = argc;
+    return Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest, args, argc, FALSE);
+  } else {
+    int len = Sg_Length(opts), i;
+    int size = argc + len;
+    SgObject *newargs = SG_NEW_ARRAY(SgObject, size), cp;
+    for (i = 0; i < argc; i++) {
+      newargs[i] = args[i];
+    }
+    SG_FOR_EACH(cp, opts) {
+      newargs[argc++] = SG_CAR(cp);
+    }
+    *oargs = newargs;
+    *oargc = argc;
+    return Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest, args, argc, FALSE);
+  }
+  
+}
+
 static SgObject procedure_invoker(SgObject *args, int argc, void *data)
 {
   void **dvec = (void**)data;
@@ -734,15 +761,26 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
     /* issue 119 check subr otherwise wrong number error will be raised */
     if (!SG_SUBRP(SG_METHOD_PROCEDURE(proc))) {
       SgObject rest = SG_OBJ(dvec[1]);
-      SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
-					 args, argc, FALSE));
+      /* unpack optional argument if the procedure accepts it
+	 to avoid packing twice. */
+      if (SG_PROCEDURE_OPTIONAL(SG_METHOD_PROCEDURE(proc))) {
+	SgObject m = unpack_argument(proc, &args, &argc, rest);
+	SG_APPEND1(h, t, m);
+      } else {
+	SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest,
+					   args, argc, FALSE));
+      }
     }
     dvec[2] = (void*)TRUE;
   } else {
     /* dummy, :before and :after can not have next-method. */
-    SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc),
-				       SG_NIL,
-				       args, argc, FALSE));
+    if (SG_PROCEDURE_OPTIONAL(SG_METHOD_PROCEDURE(proc))) {
+      SgObject m = unpack_argument(proc, &args, &argc, SG_NIL);
+      SG_APPEND1(h, t, m);
+    } else {
+      SG_APPEND1(h, t, Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), SG_NIL,
+					 args, argc, FALSE));
+    }
     dvec[2] = (void*)FALSE;
   }
   Sg_VMPushCC(invoke_cc, next, 3);

@@ -72,7 +72,7 @@
   (define-method dbm-get ((self <dumb>) key :optional args)
     (cond ((hashtable-ref (slot-ref self 'kv) (%dbm-k2s self key) #f) =>
 	   (lambda (v) (%dbm-s2v self v)))
-	  ((not (undefined? args)) (car args)) ;; fallback
+	  ((not (undefined? args)) args) ;; fallback
 	  (else (error 'dbm-get "no data for given key"
 		       key (slot-ref self 'path)))))
 

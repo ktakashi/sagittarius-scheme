@@ -87,4 +87,11 @@
 (test-equal "(multi-eql 0 2)" 'second (multi-eql 0 2))
 (test-equal "(multi-eql 'a 'a)" 'else (multi-eql 'a 'a))
 
+;; issue 153
+(define-method unpack-args :before ((a <symbol>) . args)  args)
+(define-method unpack-args ((a <symbol>) . args) args)
+(test-equal "unpack-args(1)" '() (unpack-args 'a))
+(test-equal "unpack-args(2)" '(b) (unpack-args 'a 'b))
+(test-equal "unpack-args(3)" '(b c) (unpack-args 'a 'b 'c))
+
 (test-end)
