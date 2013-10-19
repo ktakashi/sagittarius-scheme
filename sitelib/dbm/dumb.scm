@@ -45,8 +45,24 @@
     ((kv :init-form (make-string-hashtable)))
     :metaclass <dumb-meta>)
 
+  ;; TODO these should be somewhere ...
+  (define (write-to-string sexp)
+    (call-with-string-output-port (cut write/ss sexp <>)))
+  (define (read-from-string str)
+    (read/ss (open-string-input-port str)))
+
   (define-method dbm-open ((self <dumb>))
     (call-next-method)
+    ;; if key-convert or value-convert is #f then set it
+    ;; otherwise string-hashtable would complain
+    (unless (slot-ref self 'key-convert)
+      ;; set k2s s2k
+      (slot-set! self 'k2s write-to-string)
+      (slot-set! self 's2k read-from-string))
+    (unless (slot-ref self 'value-convert)
+      ;; set v2s s2v
+      (slot-set! self 'v2s write-to-string)
+      (slot-set! self 's2v read-from-string))
     ;; it's so dumb so won't check rw-mode ...
     (let ((path (slot-ref self 'path)))
       (when (file-exists? path)
