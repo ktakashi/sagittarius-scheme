@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; ported from Python dumbdbm
+;; inspired from Python dumbdbm
 (library (dbm dumb)
     (export <dumb>)
     (import (rnrs)
@@ -98,14 +98,20 @@
   (define-method dbm-db-exists? ((class <dumb-meta>) name)
     (file-exists? name))
   (define-method dbm-db-remove ((class <dumb-meta>) name)
-    (file-delete name))
+    (delete-file name))
 
-  (define-method dbm-db-copy ((class <dumb-meta>) from to . ignore)
+  (define-method dbm-db-copy ((class <dumb-meta>) from to :key (overwrite #f)
+			      :rest ignore)
+    (when (and overwrite (file-exists? to))
+      (delete-file to))
     (copy-file from to))
 
-  (define-method dbm-db-move ((class <dumb-meta>) from to . ignore)
+  (define-method dbm-db-move ((class <dumb-meta>) from to :key (overwrite #f)
+			      :rest ignore)
+    (when (and overwrite (file-exists? to))
+      (delete-file to))
     (copy-file from to)
-    (file-delete from))
+    (delete-file from))
 
   ;; it's simple pair of length value records
   ;; NOTE

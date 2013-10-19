@@ -32,6 +32,28 @@
 
   (dbm-close dumb-dbm)
   (test-assert "close" (file-exists? +dumb-db-file+))
+
+  ;; meta
+  (test-assert "dbm-db-exists?" (dbm-db-exists? dumb-class +dumb-db-file+))
+  (test-assert "dbm-db-copy" 
+	       (dbm-db-copy dumb-class +dumb-db-file+ "copied.db"
+			    :overwrite #t))
+  (test-assert "dbm-db-exists? (copied.db) (1)"
+	       (dbm-db-exists? dumb-class "copied.db"))
+  (test-assert "dbm-db-move" (dbm-db-move dumb-class "copied.db" "moved.db"
+					  :overwrite #t))
+  (test-assert "dbm-db-exists? (copied.db) (2)" 
+	       (not (dbm-db-exists? dumb-class "copied.db")))
+  (test-assert "dbm-db-exists? (moved.db) (1)" 
+	       (dbm-db-exists? dumb-class "moved.db"))
+  (test-assert "dbm-db-remove (moved.db)" 
+	       (dbm-db-remove dumb-class "moved.db"))
+  (test-assert "dbm-db-exists? (moved.db) (2)" 
+	       (not (dbm-db-exists? dumb-class "moved.db")))
+
+  (test-assert "dbm-db-remove" (dbm-db-remove dumb-class +dumb-db-file+))
+  (test-assert "dbm-db-exists?" 
+	       (not (dbm-db-exists? dumb-class +dumb-db-file+)))
   ;; TODO more tests...
 )
 
