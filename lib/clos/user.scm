@@ -125,9 +125,8 @@
 			 (acons (syntax->datum #'name)
 				(syntax->datum (cadr sw)) rw)
 			 rw))))
-	    (((name) . rest)
-	     (identifier? #'name)
-	     (loop (cdr defs) ra rr rw))
+	    (((name) . rest) (identifier? #'name) (loop (cdr defs) ra rr rw))
+	    ((name . rest) (identifier? #'name) (loop (cdr defs) ra rr rw))
 	    (_ (syntax-violation 'define-class
 				 "malformed slot specifier"
 				 (unwrap-syntax x)
@@ -212,6 +211,7 @@
 	    "malformed define-class" (unwrap-syntax x))))))
 
   ;; never be symbol
+  ;; NOTE: these will be unbound variable warning but for my laziness
   (define (%make-setter-name name)
     (string->symbol (format "setter of ~a" (syntax->datum name))))
   (define (%check-setter-name generic)

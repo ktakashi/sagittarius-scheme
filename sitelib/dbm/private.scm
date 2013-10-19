@@ -43,7 +43,7 @@
      (key-convert   :init-keyword :key-convert :init-form #f)
      (value-convert :init-keyword :value-convert :init-form #f)
      ;; internal. set up by dbm-open
-     (k2s) (s2k) (v2s) (s2v))
+     k2s s2k v2s s2v)
     :metaclass <dbm-meta>)
 
   ;; Macros & procedures that can be used by implementation modules
