@@ -365,7 +365,7 @@ SgObject Sg_Values5(SgObject v1, SgObject v2, SgObject v3, SgObject v4,
 SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 		      SgObject v2, SgObject v3, SgObject v4, SgObject v5)
 {
-  vm->valuesCount = 4;
+  vm->valuesCount = 5;
   vm->values[0] = v2;
   vm->values[1] = v3;
   vm->values[2] = v4;

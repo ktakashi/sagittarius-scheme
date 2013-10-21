@@ -204,8 +204,9 @@
 
 
   ;; code-builder
-  (define-c-proc make-code-builder () ::<top>
+  (define-c-proc make-code-builder ()
     (result (Sg_MakeCodeBuilder 2)))
+  (define-c-proc code-builder? (o) ::<boolean> SG_CODE_BUILDERP)
 
   (define-c-proc cb-emit0! (cb::<code-builder> insn::<fixnum>) ::<void>
     (Sg_CodeBuilderEmit cb insn ARGUMENT0 0 0 SG_UNDEF))
@@ -484,16 +485,27 @@
 
   (define-c-proc code-builder->vector (cb::<code-builder>) 
     Sg_CodeBuilderToVector)
+  (define-c-proc code-builder-name (cb::<code-builder>) Sg_CodeBuilderFullName)
+  (define-c-proc code-builder-maxstack (cb::<code-builder>) ::<fixnum>
+    SG_CODE_BUILDER_MAX_STACK)
+  (define-c-proc code-builder-argc (cb::<code-builder>) ::<fixnum>
+    SG_CODE_BUILDER_ARGC)
+  (define-c-proc code-builder-freec (cb::<code-builder>) ::<fixnum>
+    SG_CODE_BUILDER_FREEC)
+  (define-c-proc code-builder-optional (cb::<code-builder>) ::<fixnum>
+    SG_CODE_BUILDER_OPTIONAL)
 
   (define-c-proc insn-info (insn::<integer>)
     (let* ((i::int64_t     (Sg_GetIntegerS64Clamp insn SG_CLAMP_NONE NULL))
-	   (info::InsnInfo* (Sg_LookupInsnName i)))
+	   (info::InsnInfo* (Sg_LookupInsnName (INSN i))))
       (if info
-	  ;; Do we need hasSrc?
-	  (result (Sg_Values5 (Sg_Intern (Sg_MakeStringC (-> info name)))
-			      (SG_MAKE_INT (-> info number))
+	  ;; it's better to use record or something?
+	  (result (Sg_Values5 (SG_LIST2
+			       (Sg_Intern (Sg_MakeStringC (-> info name)))
+			       (SG_MAKE_INT (-> info number)))
 			      (SG_MAKE_INT (-> info instValues))
 			      (SG_MAKE_INT (-> info argc))
+			      (SG_MAKE_BOOL (-> info hasSrc))
 			      (SG_MAKE_BOOL (-> info label))))
 	  (result (Sg_Values5 SG_FALSE SG_FALSE SG_FALSE SG_FALSE SG_FALSE)))))
 
