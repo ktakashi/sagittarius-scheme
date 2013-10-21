@@ -1,8 +1,14 @@
 # Sagittarius extensions -*- CMake -*-
 # 
 INCLUDE_DIRECTORIES(${SAGITTARIUS_INCLUDE_DIR})
-# It seems no problem (probably), always to use built sash binary whether there's installed sash
-SET(HOST_SASH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash)
+
+IF (CMAKE_HOST_SYSTEM_PROCESSOR EQUAL CMAKE_SYSTEM_PROCESSOR)
+  SET(HOST_SASH ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/sash)
+ELSE()
+  # USE the one on the path
+  SET(HOST_SASH sash)
+ENDIF()
+
 SET(GENSTUB
   ${GENSTUB}
   ${HOST_SASH}

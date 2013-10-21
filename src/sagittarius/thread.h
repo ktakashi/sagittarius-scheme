@@ -63,6 +63,7 @@ struct SgInternalCondRec
 typedef struct SgInternalCondRec SgInternalCond;
 
 #else
+#include <pthread.h>
 typedef struct SgInternalMutexRec
 {
   pthread_mutex_t mutex;
