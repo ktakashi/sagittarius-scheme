@@ -713,6 +713,21 @@ static SgObject invoke_cc(SgObject result, void **data)
   return procedure_invoker(args, argc, dvec);
 }
 
+/* unpack argument for :before and :after qualifier.
+   It's attempting to reuse the oargs' last position when the optional
+   argument has only one length however DO NOT DO IT! It's the VM's stack
+   so if you modify it, it causes invalid argument (not an error but
+   unexpected value will be passed).
+   e.g)
+     ;; args of *1 will be '() but that's not what we want!
+     (define-method hoge :before ((a <base>) b . args) args) ;; *1
+     (define-method hoge :before ((a <sub>) b . args) args)
+     (define-method hoge ((a <sub>) b . args) args)
+     (hoge (make <sub>) 'b 'c)
+   And we don't have to copy the args during the method creation since
+   we know it's a valid pointer during method chain (VM stack) and
+   we allocate when we unpack the argument :)
+ */
 static SgObject unpack_argument(SgObject proc, SgObject **oargs, int *oargc,
 				SgObject rest)
 {
