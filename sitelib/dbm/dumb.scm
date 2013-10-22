@@ -53,18 +53,10 @@
 
   (define-method dbm-open ((self <dumb>))
     (call-next-method)
-    ;; if key-convert or value-convert is #f then set it
-    ;; otherwise string-hashtable would complain
-    (unless (slot-ref self 'key-convert)
-      ;; set k2s s2k
-      (slot-set! self 'k2s write-to-string)
-      (slot-set! self 's2k read-from-string))
-    (unless (slot-ref self 'value-convert)
-      ;; set v2s s2v
-      (slot-set! self 'v2s write-to-string)
-      (slot-set! self 's2v read-from-string))
-    ;; it's so dumb so won't check rw-mode ...
     (let ((path (slot-ref self 'path)))
+      (when (eq? (slot-ref self 'rw-mode) :create)
+	;; we don't create but delete. creation will be done in dbm-close...
+	(when (file-exists? path) (delete-file path)))
       (when (file-exists? path)
 	(call-with-input-file path
 	  (cut read-dumbdbm! <> (slot-ref self 'kv))

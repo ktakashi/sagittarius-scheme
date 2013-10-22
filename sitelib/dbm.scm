@@ -32,7 +32,7 @@
 (library (dbm)
     (export <dbm> <dbm-meta>
 	    dbm-open dbm-close dbm-closed?
-	    dbm-get dbm-put! dbm-delete dbm-exists?
+	    dbm-get dbm-put! dbm-delete! dbm-exists?
 	    dbm-fold dbm-for-each dbm-map
 	    dbm-db-exists? dbm-db-remove dbm-db-copy dbm-db-move
 

@@ -10,7 +10,8 @@
 (test-assert "dbm meta class" (is-a? dumb-class <dbm-meta>))
 (test-assert "meta operation" (not (dbm-db-exists? dumb-class +dumb-db-file+)))
 
-(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+)))
+(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+
+			  :key-convert #t :value-convert #t)))
   (test-assert "dbm" (is-a? dumb-dbm <dbm>))
   (test-assert "open?" (not (dbm-closed? dumb-dbm)))
 
@@ -34,10 +35,23 @@
 )
 
 ;; read existing db test
-(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+)))
+(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+
+			  :key-convert #t :value-convert #t)))
   (test-assert "get" (dbm-get dumb-dbm 'key1))
   (test-assert "get" (boolean? (dbm-get dumb-dbm 'key1)))
   (test-assert "exists" (dbm-exists? dumb-dbm 'key1))
+  (dbm-delete! dumb-dbm 'key1)
+  (test-assert "delete" (dbm-delete! dumb-dbm 'key1)) 
+  (test-assert "exists" (not (dbm-exists? dumb-dbm 'key1)))
+)
+
+;; truncate
+(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+ :rw-mode :create)))
+  (test-assert "exists" (not (dbm-exists? dumb-dbm "key1")))
+  ;; put something for copy
+  (dbm-put! dumb-dbm "key1" "hogehoge")
+  ;; create the file...
+  (test-assert "close" (dbm-close dumb-dbm))
 )
 
 ;; meta
