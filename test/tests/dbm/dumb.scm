@@ -33,6 +33,13 @@
   (test-assert "check db file close" (file-exists? +dumb-db-file+))
 )
 
+;; read existing db test
+(let ((dumb-dbm (dbm-open dumb-class :path +dumb-db-file+)))
+  (test-assert "get" (dbm-get dumb-dbm 'key1))
+  (test-assert "get" (boolean? (dbm-get dumb-dbm 'key1)))
+  (test-assert "exists" (dbm-exists? dumb-dbm 'key1))
+)
+
 ;; meta
 (test-assert "dbm-db-exists?" (dbm-db-exists? dumb-class +dumb-db-file+))
 (test-assert "dbm-db-copy" 

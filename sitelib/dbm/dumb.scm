@@ -138,9 +138,9 @@
       (unless (eof-object? b)
 	;; if something happens then invalid format
 	(let* ((kl (get-unpack in "!uS"))
-	       (kv (get-bytevector-n kl))
+	       (kv (get-bytevector-n in kl))
 	       (vl (get-unpack in "!uL"))
-	       (vv (get-bytevector-n vl)))
+	       (vv (get-bytevector-n in vl)))
 	  (hashtable-set! store (utf8->string kv) (utf8->string vv))))))
 
   (define (write-dumbdbm out store)
