@@ -283,8 +283,11 @@
 		      ;; avoid to compile time error (for test cases)
 		      ;; we check if num is exact zero or not and if so
 		      ;; let vm raise an error.
-		      (if (and (number? num) (not (exact-zero? num)))
-			  ($const (,op num))
+		      (if (number? num)
+			  (if (exact-zero? num)
+			      ($call form ($gref (ensure-identifier ',op cenv))
+				     `(,(if tree tree (pass1 x cenv))))
+			      ($const (,op num)))
 			  ($call form ($gref (ensure-identifier ',op cenv))
 				 `(,tree)))))
 		   ((x y . more)
