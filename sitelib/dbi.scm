@@ -57,6 +57,9 @@
 	    dbi-commit!
 	    dbi-rollback!
 
+	    ;; utility
+	    dbi-do-fetch!
+
 	    ;; DBD level APIs
 	    dbi-make-connection
 
@@ -171,6 +174,17 @@
       (if v
 	  (loop (dbi-fetch! q) (cons v r))
 	  (reverse! r))))
+
+  ;; utility macro
+  (define-syntax dbi-do-fetch!
+    (syntax-rules ()
+      ((_ (t q) body ...)
+       (dbi-do-fetch! (t q #t) body ...))
+      ((_ (t query r) body ...)
+       (let ((q query))
+	 (do ((t (dbi-fetch! q) (dbi-fetch! q)))
+	     ((not t) r)
+	   body ...)))))
 
   (define-generic dbi-columns)
   (define-generic dbi-bind-parameter!)
