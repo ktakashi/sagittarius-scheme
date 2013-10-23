@@ -79,8 +79,7 @@
   (define-generic append-entry!)
   (define-generic finish!)
 
-  ;; default close port for input
-  (define-method finish! ((in <archive-input>))
-    (close-input-port (slot-ref in 'source)))
+  ;; default doesn't do anything
+  (define-method finish! ((in <archive-input>)) #t)
 
 )

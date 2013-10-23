@@ -2,6 +2,7 @@
 
 @section[:tag "utils"]{Utility libraries}
 
+@include-section["utils/archive.scrbl"]
 @include-section["utils/asn.1.scrbl"]
 @include-section["utils/binary/pack.scrbl"]
 @include-section["utils/bytevector.scrbl"]

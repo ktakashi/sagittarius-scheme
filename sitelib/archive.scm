@@ -53,6 +53,10 @@
 	    ;; utilities
 	    call-with-archive-input
 	    call-with-archive-output
+	    call-with-input-archive-port
+	    call-with-output-archive-port
+	    call-with-input-archive-file
+	    call-with-output-archive-file
 	    do-entry
 	    extract-all-entries
 	    )
@@ -61,20 +65,35 @@
 	    (except (archive interface) make-archive-input make-archive-output)
 	    (sagittarius)
 	    (sagittarius control)
-	    (util file))
+	    (util file)
+	    (srfi :26 cut))
 
   ;; utilities
-  (define (call-with-archive-input type source proc)
-    (let1 in (make-archive-input type source)
-      (let-values ((result (proc in)))
-	(finish! in)
-	(apply values result))))
+  (define (call-with-input-archive-file type file proc)
+    (call-with-input-file file
+      (cut call-with-input-archive-port type <> proc)
+      :transcoder #f))
 
-  (define (call-with-archive-output type sink proc)
-    (let1 in (make-archive-output type sink)
-      (let-values ((result (proc in)))
-	(finish! in)
-	(apply values result))))
+  (define (call-with-output-archive-file type file proc)
+    (call-with-output-file file
+      (cut call-with-output-archive-port type <> proc)
+      :transcoder #f))
+
+  (define (call-with-input-archive-port type source proc)
+    (call-with-archive-input (make-archive-input type source) proc))
+
+  (define (call-with-output-archive-port type sink proc)
+    (call-with-archive-output (make-archive-output type sink) proc))
+
+  (define (call-with-archive-input input proc)
+    (let-values ((result (proc input)))
+      (finish! input)
+      (apply values result)))
+
+  (define (call-with-archive-output output proc)
+    (let-values ((result (proc output)))
+      (finish! output)
+      (apply values result)))
 
   ;; generic constructors
   (define (make-archive-input type source)
