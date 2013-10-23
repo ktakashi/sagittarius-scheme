@@ -35,12 +35,16 @@
 	    <archive-entry>
 
 	    ;; for input
-	    make-archive-input
+	    make-input-archive
+	    ;; backward compatibility
+	    (rename (make-input-archive make-archive-input))
 	    next-entry!
 	    extract-entry
 
 	    ;; for output
-	    make-archive-output
+	    make-output-archive
+	    ;; backward compatibility
+	    (rename (make-output-archive make-archive-input))
 	    create-entry
 	    append-entry!
 
@@ -51,18 +55,22 @@
 	    archive-entry-type
 
 	    ;; utilities
-	    call-with-archive-input
-	    call-with-archive-output
+	    call-with-input-archive
+	    call-with-output-archive
 	    call-with-input-archive-port
 	    call-with-output-archive-port
 	    call-with-input-archive-file
 	    call-with-output-archive-file
+	    ;; backward compatibility
+	    (rename (call-with-input-archive-port call-with-archive-input)
+		    (call-with-output-archive-port call-with-archive-output))
+
 	    do-entry
 	    extract-all-entries
 	    )
     (import (rnrs)
 	    (rnrs eval)
-	    (except (archive interface) make-archive-input make-archive-output)
+	    (archive interface)
 	    (sagittarius)
 	    (sagittarius control)
 	    (util file)
@@ -80,27 +88,27 @@
       :transcoder #f))
 
   (define (call-with-input-archive-port type source proc)
-    (call-with-archive-input (make-archive-input type source) proc))
+    (call-with-input-archive (make-input-archive type source) proc))
 
   (define (call-with-output-archive-port type sink proc)
-    (call-with-archive-output (make-archive-output type sink) proc))
+    (call-with-output-archive (make-output-archive type sink) proc))
 
-  (define (call-with-archive-input input proc)
+  (define (call-with-input-archive input proc)
     (let-values ((result (proc input)))
       (finish! input)
       (apply values result)))
 
-  (define (call-with-archive-output output proc)
+  (define (call-with-output-archive output proc)
     (let-values ((result (proc output)))
       (finish! output)
       (apply values result)))
 
   ;; generic constructors
-  (define (make-archive-input type source)
+  (define (make-input-archive type source)
     (eval `(make-archive-input ',type ,source)
 	  (environment '(rnrs) '(archive interface) `(archive ,type))))
 
-  (define (make-archive-output type source)
+  (define (make-output-archive type source)
     (eval `(make-archive-output ',type ,source)
 	  (environment '(rnrs) '(archive interface) `(archive ,type))))
 
