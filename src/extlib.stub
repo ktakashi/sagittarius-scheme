@@ -1039,4 +1039,10 @@
 
   ;; for convenience.
   (define-c-proc gc () ::<void> Sg_GC)
+
+  ;; Do not use directly!!
+  (define-c-proc %port-data (p::<port>) (setter %set-port-data!) SG_PORT_DATA)
+  (define-c-proc %set-port-data! (p::<port> v) ::<void>
+    (set! (SG_PORT_DATA p) v))
+
 )

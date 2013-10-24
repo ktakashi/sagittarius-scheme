@@ -270,6 +270,7 @@ struct SgPortRec
   SgObject     reader;
   SgObject     loadPath;
   SgObject     previousPort;
+  SgObject     data;		/* alist of port data */
 
   SgInternalMutex lock;
 
@@ -335,6 +336,7 @@ enum SgCustomPortType {
 
 #define SG_PORT_READTABLE(obj) (SG_PORT(obj)->readtable)
 #define SG_PORT_READER(obj)    (SG_PORT(obj)->reader)
+#define SG_PORT_DATA(obj)      (SG_PORT(obj)->data)
 
 #define SG_PORT_VTABLE(obj)    (SG_PORT(obj)->vtbl)
 
@@ -382,6 +384,7 @@ enum SgCustomPortType {
     (port)->bufferMode = (m);			\
     (port)->reader = SG_FALSE;			\
     (port)->closed = FALSE;			\
+    (port)->data = SG_NIL;			\
     Sg_InitMutex(&(port)->lock, TRUE);		\
   } while (0)
 

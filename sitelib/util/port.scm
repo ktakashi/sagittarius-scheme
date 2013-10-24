@@ -43,6 +43,11 @@
 	    lock-port!
 	    unlock-port!
 	    call-with-port-lock
+
+	    ;; port data
+	    add-port-data!
+	    remove-port-data!
+	    get-port-data
 	    )
     (import (rnrs)
 	    (srfi :1)
@@ -106,4 +111,23 @@
 	(lambda () (proc port))
 	(lambda () (unlock-port! port)))
     )
+
+  ;; make all port data alist
+  (define (add-port-data! port key value :key (compare eq?))
+    ;; default data is '()
+    (let ((data (%port-data port)))
+      (cond ((assoc key data compare) =>
+	     (lambda (slot) (set! (cdr slot) value)))
+	    (else
+	     (set! (%port-data port) (acons key value data))))))
+
+  (define (remove-port-data! port key :key (compare eq?))
+    (let ((data (%port-data port)))
+      (set! (%port-data port) (remp (lambda (s) (compare key (car s))) data))))
+
+  (define (get-port-data port key :key (compare eq?))
+    (let ((data (%port-data port)))
+      (cond ((assoc key data compare) => cdr)
+	    (else #f))))
+
 )
