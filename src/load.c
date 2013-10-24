@@ -106,6 +106,8 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
   return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
 }
 
+static SgTranscoder *default_load_transcoder = SG_UNDEF;
+
 SgObject Sg_VMLoad(SgString *path)
 {
   SgObject file;
@@ -129,8 +131,7 @@ SgObject Sg_VMLoad(SgString *path)
 		"%A"), path, file);
   }
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
-  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport),
-				     SG_TRANSCODER(Sg_MakeNativeTranscoder()));
+  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
   
   if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; loading %S\n"), path);
@@ -437,4 +438,9 @@ void Sg__InitLoad()
   dynldinfo.dso_list = NULL;
 
   Sg_AddCleanupHandler(cleanup_shared_objects, NULL);
+  /* for loading transcoder we need error raising */
+  /* for ASCII compatibility, we use utf-8 */
+  default_load_transcoder = SG_TRANSCODER(Sg_MakeTranscoder(Sg_MakeUtf8Codec(),
+							    Sg_NativeEol(),
+							    SG_RAISE_ERROR));
 }

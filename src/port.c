@@ -1269,16 +1269,46 @@ static void trans_flush(SgObject self)
   }
 }
 
+static int trans_has_port_position(SgObject self)
+{
+  /* only if the underlying binary port supports */
+  SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
+  return Sg_HasPortPosition(p);
+}
+
+static int trans_has_set_port_position(SgObject self)
+{
+  /* only if the underlying binary port supports */
+  SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
+  return Sg_HasPortPosition(p);
+}
+
+static int64_t trans_port_position(SgObject self, Whence whence)
+{
+  SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
+  /* FIXME */
+  return Sg_PortPosition(p);
+}
+
+static void trans_set_port_position(SgObject self, int64_t offset, 
+				    Whence whence)
+{
+  SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
+  /* FIXME */
+  return Sg_SetPortPosition(p, offset);
+}
+
+
 static SgPortTable trans_inputs = {
   NULL,
   trans_close,
   trans_ready,
   trans_lock,
   trans_unlock,
-  NULL,
-  NULL,
-  NULL,
-  NULL
+  trans_has_port_position,
+  trans_has_set_port_position,
+  trans_port_position,
+  trans_set_port_position
 };
 
 static SgTextualPortTable trans_src_table = {
@@ -1305,10 +1335,10 @@ static SgPortTable trans_outputs = {
   trans_ready,
   trans_lock,
   trans_unlock,
-  NULL,
-  NULL,
-  NULL,
-  NULL
+  trans_has_port_position,
+  trans_has_set_port_position,
+  trans_port_position,
+  trans_set_port_position
 };
 
 

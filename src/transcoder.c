@@ -475,7 +475,7 @@ SgObject Sg_MakeNativeTranscoder()
   static SgObject trans = NULL;
   if (trans == NULL) {
     trans = Sg_MakeTranscoder(Sg_MakeUtf8Codec(), Sg_NativeEol(), 
-			      SG_RAISE_ERROR);
+			      SG_REPLACE_ERROR);
   }
   return trans;
 }

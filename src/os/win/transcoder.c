@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * transcoder.c
+/* transcoder.c                                    -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -38,7 +36,7 @@ SgObject Sg_MakeNativeConsoleTranscoder()
   static SgObject trans = NULL;
   if (trans == NULL) {
     trans = Sg_MakeTranscoder(Sg_MakeUtf16Codec(UTF_16LE), 
-			      Sg_NativeEol(), SG_RAISE_ERROR);
+			      Sg_NativeEol(), SG_REPLACE_ERROR);
   }
   return trans;
 }

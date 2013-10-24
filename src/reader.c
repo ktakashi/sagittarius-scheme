@@ -921,119 +921,138 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
     SgObject desc = read_symbol_or_number(port, c2, table, ctx);
     if (SG_SYMBOLP(desc)) {
       SgString *tag = SG_SYMBOL(desc)->name;
-      if (ustrcmp(tag->value, "r6rs") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "r7rs") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "compatible") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "core") == 0) {
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_COMPATIBLE_MODE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_R6RS_MODE);
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "no-overwrite") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "overwrite") == 0) {
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "fold-case") == 0) {
-	ENSURE_COPIED_TABLE(port);
-	SG_PORT_READTABLE(port)->insensitiveP = TRUE;
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "no-fold-case") == 0) {
-	ENSURE_COPIED_TABLE(port);
-	SG_PORT_READTABLE(port)->insensitiveP = FALSE;
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "nocache") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "cache") == 0) {
-	SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "deprecated") == 0) {
-	Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
-	return NULL;
-      }
-
-      if (ustrcmp(tag->value, "noinlineasm") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "noinlinelocal") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "nolambdalifting") == 0) {
-	SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "nooptimization") == 0) {
-	SgVM *vm = Sg_VM();
-	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
-	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
-	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
-	return NULL;
-      }
-      if (ustrcmp(tag->value, "nobacktrace") == 0) {
-	SgVM *vm = Sg_VM();
-	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
-	return NULL;
-      }
-      if (ustrncmp(tag->value, "reader=", 7) == 0) {
-	SgObject name = construct_lib_name(Sg_Substring(tag, 7, -1));
-	SgObject lib = Sg_FindLibrary(name, FALSE);
-	/* should we raise error or not? */
-	if (SG_FALSEP(lib)) {
-	  lexical_error(port, ctx, UC("no library named %S"), name);
+      /* a bit of optimisation... */
+      switch (SG_STRING_VALUE_AT(tag, 0)) {
+      case 'c':
+	if (ustrcmp(tag->value, "compatible") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
 	}
-	if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
-	  SG_PORT_READER(port) = SG_LIBRARY_READER(lib);
-	}
-	/* to let replaced reader read next expression, otherwise current
-	   reader keep reading the next one.
-	 */
-	return SG_UNDEF;
-      }
-      /* for portability with other implementation */
-      if (ustrncmp(tag->value, "read-macro=", 11) == 0) {
-	SgObject name = construct_lib_name(Sg_Substring(tag, 11, -1));
-	SgObject lib = Sg_FindLibrary(name, FALSE);
-	/* should we raise error or not? */
-	if (SG_FALSEP(lib)) {
-	  lexical_error(port, ctx, UC("no library named %S"), name);
+	if (ustrcmp(tag->value, "core") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
 	}
-	if (SG_LIBRARY_READTABLE(lib)) {
+	if (ustrcmp(tag->value, "cache") == 0) {
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  return NULL;
+	}
+	break;
+      case 'd':
+	if (ustrcmp(tag->value, "deprecated") == 0) {
+	  Sg_Warn(UC("deprecated file is being loaded %S"), Sg_FileName(port));
+	  return NULL;
+	}
+	break;
+      case 'f':
+	if (ustrcmp(tag->value, "fold-case") == 0) {
 	  ENSURE_COPIED_TABLE(port);
-	  add_read_table(SG_LIBRARY_READTABLE(lib), Sg_PortReadTable(port));
+	  SG_PORT_READTABLE(port)->insensitiveP = TRUE;
+	  return NULL;
 	}
-	return NULL;
+	break;
+      case 'n':
+	if (ustrcmp(tag->value, "no-overwrite") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "no-fold-case") == 0) {
+	  ENSURE_COPIED_TABLE(port);
+	  SG_PORT_READTABLE(port)->insensitiveP = FALSE;
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "nocache") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "noinlineasm") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "noinlinelocal") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "nolambdalifting") == 0) {
+	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "nooptimization") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
+	  SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
+	  SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "nobacktrace") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
+	  return NULL;
+	}
+	break;
+      case 'o':
+	if (ustrcmp(tag->value, "overwrite") == 0) {
+	  SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  return NULL;
+	}
+	break;
+      case 'r':
+	if (ustrcmp(tag->value, "r6rs") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
+	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
+	  return NULL;
+	}
+	if (ustrcmp(tag->value, "r7rs") == 0) {
+	  SgVM *vm = Sg_VM();
+	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
+	  return NULL;
+	}
+	if (ustrncmp(tag->value, "reader=", 7) == 0) {
+	  SgObject name = construct_lib_name(Sg_Substring(tag, 7, -1));
+	  SgObject lib = Sg_FindLibrary(name, FALSE);
+	  /* should we raise error or not? */
+	  if (SG_FALSEP(lib)) {
+	    lexical_error(port, ctx, UC("no library named %S"), name);
+	    return NULL;
+	  }
+	  if (!SG_FALSEP(SG_LIBRARY_READER(lib))) {
+	    SG_PORT_READER(port) = SG_LIBRARY_READER(lib);
+	  }
+	  /* to let replaced reader read next expression, otherwise current
+	     reader keep reading the next one.
+	  */
+	  return SG_UNDEF;
+	}
+	/* for portability with other implementation */
+	if (ustrncmp(tag->value, "read-macro=", 11) == 0) {
+	  SgObject name = construct_lib_name(Sg_Substring(tag, 11, -1));
+	  SgObject lib = Sg_FindLibrary(name, FALSE);
+	  /* should we raise error or not? */
+	  if (SG_FALSEP(lib)) {
+	    lexical_error(port, ctx, UC("no library named %S"), name);
+	    return NULL;
+	  }
+	  if (SG_LIBRARY_READTABLE(lib)) {
+	    ENSURE_COPIED_TABLE(port);
+	    add_read_table(SG_LIBRARY_READTABLE(lib), Sg_PortReadTable(port));
+	  }
+	  return NULL;
+	}
+	break;
+      default: break;
       }
     }
     return NULL;
