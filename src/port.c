@@ -626,8 +626,8 @@ static void input_file_set_port_position(SgObject self, int64_t offset,
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
   if (SG_FILE_VTABLE(bp->src.file)->seek) {
-    SG_FILE_VTABLE(bp->src.file)->seek(bp->src.file, offset, whence);
-    bp->position = offset;
+    bp->position = SG_FILE_VTABLE(bp->src.file)->seek(bp->src.file,
+						      offset, whence);
     /* let buffer filled once position is changed... */
     bp->bufferIndex = 0;
     bp->bufferSize = 0;
@@ -1286,14 +1286,33 @@ static int trans_has_set_port_position(SgObject self)
 static int64_t trans_port_position(SgObject self, Whence whence)
 {
   SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
-  /* FIXME */
-  return Sg_PortPosition(p);
+  /* FIXME consider the whence*/
+  int64_t pos = Sg_PortPosition(p);
+  /* count the peeked char bytes if exists */
+  if (SG_TRANSCODED_PORT_BUFFER(self) != EOF) {
+    SgPort bout, tout;
+    SgBinaryPort bp;
+    SgTextualPort tp;
+    SgObject buf;
+    Sg_InitByteArrayOutputPort(&bout, &bp, 10);
+    Sg_InitTranscodedPort(&tout, &tp, &bout, 
+			  SG_TRANSCODED_PORT_TRANSCODER(self),
+			  SG_OUTPUT_PORT);
+    Sg_TranscoderPutc(SG_TRANSCODED_PORT_TRANSCODER(self), &tout,
+		      SG_TRANSCODED_PORT_BUFFER(self));
+    buf = Sg_GetByteVectorFromBinaryPort(&bout);
+    SG_CLEAN_TEXTUAL_PORT(&tp);
+    SG_CLEAN_BINARY_PORT(&bp);
+    pos -= SG_BVECTOR_SIZE(buf);
+  }
+  return pos;
 }
 
 static void trans_set_port_position(SgObject self, int64_t offset, 
 				    Whence whence)
 {
   SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
+  SG_TRANSCODED_PORT_BUFFER(self) = EOF;
   /* FIXME */
   return Sg_SetPortPosition(p, offset);
 }
