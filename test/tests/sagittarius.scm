@@ -998,7 +998,22 @@
     (close-port p))
   (test-assert "DO NOT PASS STACK ALLOCATED OBJECT TO SCHEME"
 	       (call-with-string-output-port
-		(lambda (out) (display save out) (newline))))
+		(lambda (out) (display save out) (newline out))))
   )
+
+;; transcoded textual port also supports the port-position things
+(let* ((bv (string->utf8 "あいうえお"))
+       (in (transcoded-port (open-bytevector-input-port bv)
+			    (native-transcoder))))
+  (test-equal "peek-char" #\あ (peek-char in))
+  ;; must be the begging
+  (test-equal "port-position" 0 (port-position in))
+  ;; In UTF-8, Japanese hiragana is 3 bytes
+  ;; but put the position 2 byte
+  (test-assert "set-port-position!" (set-port-position! in 2))
+  (test-equal "get-char invalid" #\xFFFD (get-char in))
+  (test-equal "port-position (2)" 3 (port-position in))
+  (test-equal "get-char valid" #\い (get-char in))
+)
 
 (test-end)
