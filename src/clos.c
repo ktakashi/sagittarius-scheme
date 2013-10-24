@@ -2369,6 +2369,9 @@ void Sg__InitClos()
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");
   SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;
 
+  /* code builder */
+  CINIT(SG_CLASS_CODE_BUILDER, "<code-builder>");
+
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
 

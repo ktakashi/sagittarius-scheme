@@ -1,7 +1,8 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen stub)
-    (export cgen-genstub)
+    (export cgen-genstub
+	    <cgen-stub-unit>)
     (import (rnrs)
 	    (rnrs eval)
 	    (core base) ;; for print

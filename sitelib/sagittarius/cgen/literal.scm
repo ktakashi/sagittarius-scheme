@@ -5,7 +5,9 @@
     (export <cgen-literal> cgen-c-name cgen-cexpr cgen-make-literal
 	    cgen-cpred
 	    cgen-literal-static?
-	    define-cgen-literal cgen-literal)
+	    define-cgen-literal cgen-literal
+
+	    cgen-allocate-static-datum)
     (import (rnrs)
 	    (clos user)
 	    (clos core)

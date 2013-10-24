@@ -26,7 +26,7 @@
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier> <parameter>
+	    <identifier> <code-builder>
 
 	    slot-ref
 	    slot-set! slot-bound?

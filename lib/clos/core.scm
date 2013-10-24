@@ -45,7 +45,7 @@
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier> <parameter>
+	    <identifier> <code-builder>
 
 
 	    ;; builtin generic
