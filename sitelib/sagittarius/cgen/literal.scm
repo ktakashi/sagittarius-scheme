@@ -76,7 +76,7 @@
 		    (static-data-c-struct-name category)
 		    (slot-ref dl 'c-member-name)
 		    count)
-	    (format "SG_OBJ(&~a.~a[~a]"
+	    (format "SG_OBJ(&~a.~a[~a])"
 		    (static-data-c-struct-name category)
 		    (slot-ref dl 'c-member-name)
 		    count)))))
@@ -105,10 +105,10 @@
       (for-each (cut print "#if " <>) (slot-ref dl 'cpp-conditions))
       (print "  {  /* " (slot-ref dl'c-type)
 	     " " (slot-ref dl'c-member-name) " */")
-      (dolist (thunk (reverse (slot-ref dl'init-thunks)))
+      (dolist (thunk (slot-ref dl'init-thunks))
 	(if (string? thunk)
 	    (format #t "    ~a,~%" thunk)
-	    (print "    " (thunk) (print ","))))
+	    (begin (print "    ") (thunk) (print ","))))
       (print "  },")
       (for-each (cut print "#endif /* " <> " */") (slot-ref dl'cpp-conditions)))
     (let ((dls (slot-ref unit 'static-data-list)))
