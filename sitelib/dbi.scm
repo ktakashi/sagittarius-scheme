@@ -62,6 +62,9 @@
 
 	    ;; utility
 	    dbi-do-fetch!
+	    dbi-query-fold
+	    dbi-query-map
+	    dbi-query-for-each
 
 	    ;; DBD level APIs
 	    dbi-make-connection
@@ -127,12 +130,19 @@
      ;; table, view or synonym (DBD can extend but must be a symbol)
      (type   :init-keyword :type   :init-value #f)))
 
+  (define-method write-object ((t <dbi-table>) port)
+    (format port "#<dbi-table ~a ~a ~a>" (~ t 'schema) (~ t 'name) (~ t 'type)))
+
   ;; column information
   (define-class <dbi-column> ()
     ((name  :init-keyword :name)
      (table :init-keyword :table)
      (column-type :init-keyword :column-type :init-value #f)
      (nullable? :init-keyword :nullable? :init-value #t)))
+
+  (define-method write-object ((t <dbi-column>) port)
+    (format port "#<dbi-column ~a ~a ~a ~a>" (~ t 'table 'name) (~ t 'name) 
+	    (~ t 'column-type) (~ t 'nullable?)))
 
   ;;--------------------------
   ;; User level APIs
@@ -202,6 +212,19 @@
 	 (do ((t (dbi-fetch! q) (dbi-fetch! q)))
 	     ((not t) r)
 	   body ...)))))
+
+  ;; simply one, sub library can extend
+  (define-method dbi-query-fold ((q <dbi-query>) proc knil)
+    (let loop ((r (dbi-fetch! q)) (knil knil))
+      (if r
+	  (loop (dbi-fetch! q) (proc r knil))
+	  knil)))
+
+  (define-method dbi-query-map ((q <dbi-query>) proc)
+    (reverse!
+     (dbi-query-fold q (lambda (record seed) (cons (proc record) seed)) '())))
+  (define-method dbi-query-for-each ((q <dbi-query>) proc)
+    (dbi-query-fold q (lambda (record seed) (proc record)) '()))
 
   (define-generic dbi-columns)
   (define-generic dbi-bind-parameter!)
