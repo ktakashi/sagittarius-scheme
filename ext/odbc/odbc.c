@@ -1,4 +1,4 @@
-/* odbc.h                                        -*- mode: c; coding: utf-8; -*-
+/* odbc.c                                        -*- mode: c; coding: utf-8; -*-
  *
  *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
@@ -737,6 +737,177 @@ int Sg_Rollback(SgObject ctx)
     SQLEndTran(SG_ODBC_CTX(ctx)->type, SG_ODBC_CTX(ctx)->handle, SQL_ROLLBACK);
   CHECK_ERROR(rollback, ctx, ret);
   return TRUE;
+}
+
+#define COLUMN_BUFFER_SIZE 1024
+struct DataBinding
+{
+  SQLLEN      strLenOrInd;
+  char        value[COLUMN_BUFFER_SIZE];
+};
+
+/* add comma */
+static char * string_join(SgObject strings)
+{
+  SgObject cp, s;
+  int size = 0, off = 0;
+  SG_FOR_EACH(cp, strings) {
+    if (!SG_STRINGP(SG_CAR(cp))) {
+      Sg_Error(UC("string required but got %S in %S"), SG_CAR(cp), strings);
+    }
+    if (size) {
+      /* add comma */
+      size++;
+    }
+    size += SG_STRING_SIZE(SG_CAR(cp)) + 1;
+  }
+  SG_ALLOC_TEMP_STRING(s, size);
+  SG_FOR_EACH(cp, strings) {
+    int i;
+    if (off) {
+      SG_STRING_VALUE_AT(s, off++) = ',';
+    }
+    for (i = 0; i < SG_STRING_SIZE(SG_CAR(cp)); i++) {
+      SG_STRING_VALUE_AT(s, i + off) = SG_STRING_VALUE_AT(SG_CAR(cp), i);
+    }
+    off += i;
+  }
+  return Sg_Utf32sToUtf8s(SG_STRING(s));
+}
+
+static SgObject string_or_false(struct DataBinding *bind)
+{
+  if (bind->strLenOrInd > 0) {
+    return Sg_Utf8sToUtf32s(bind->value, bind->strLenOrInd);
+  }
+  return SG_FALSE;
+}
+
+#define meta_info_body(bind_, body_)		\
+  do {						\
+								\
+  } while (0)
+
+SgObject Sg_Tables(SgObject hdbc,  SgObject schema,
+		   SgObject table, SgObject types)
+{
+  /* SQLTables returns 5 columns */
+#define COLUMN_NUM 5
+  SQLRETURN ret;
+  SgObject stmt, h = SG_NIL, t = SG_NIL;
+  struct DataBinding bindings[COLUMN_NUM];
+  int i;
+  ASSERT(SG_ODBC_DBC_P(hdbc));
+  /* allocate statement handle */
+  stmt = Sg_Statement(hdbc);
+  /* allocate memory */
+  for (i = 0; i < COLUMN_NUM; i++) {
+    ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)i+1,
+		     SQL_C_CHAR, bindings[i].value, COLUMN_BUFFER_SIZE,
+		     &(bindings[i].strLenOrInd));
+    CHECK_ERROR(tables, stmt, ret);
+  }
+  /* query category */
+  ret = SQLTables(SG_ODBC_CTX(stmt)->handle,
+		  (SQLCHAR *)"", SQL_NTS,
+		  (SQLCHAR *)Sg_Utf32sToUtf8s(SG_STRING(schema)), SQL_NTS,
+		  (SQLCHAR *)Sg_Utf32sToUtf8s(SG_STRING(table)), SQL_NTS,
+		  (SQLCHAR *)string_join(types), SQL_NTS);
+
+  CHECK_ERROR(table, stmt, ret);
+  for (i = 0, ret = Sg_Fetch(stmt); ret; ret = Sg_Fetch(stmt), i++) {
+    /* list of (scheme name type remarks) */
+    /* ignore catalog */
+    int j;
+    SgObject th = SG_NIL, tt = SG_NIL;
+    for (j = 1; j < COLUMN_NUM; j++) {
+      SG_APPEND1(th, tt, string_or_false(&bindings[j]));
+    }
+    SG_APPEND1(h, t, th);
+  }
+  return h;
+#undef COLUMN_NUM
+}
+
+SgObject Sg_Columns(SgObject hdbc,  SgObject schema, SgObject table,
+		    SgObject column)
+{
+  /* the first 4 can be reusable */
+#define COLUMN_NUM 4
+  SQLRETURN ret;
+  SgObject stmt, h = SG_NIL, t = SG_NIL;
+  struct DataBinding bindings[COLUMN_NUM],
+    typeName, remarks, columnDefault;
+  /* other return values */
+  SQLINTEGER columnSize, bufferLength, decimalDigigs;
+  SQLINTEGER cbColumnSize, cbBufferLength, cbDecimalDigigs;
+  SQLSMALLINT precision, nullable;
+  SQLINTEGER cbPrecision, cbNullable;
+  int i;
+  ASSERT(SG_ODBC_DBC_P(hdbc));
+  /* allocate statement handle */
+  stmt = Sg_Statement(hdbc);
+  /* allocate memory */
+  for (i = 0; i < COLUMN_NUM; i++) {
+    ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)i+1,
+		     SQL_C_CHAR, bindings[i].value, COLUMN_BUFFER_SIZE,
+		     &(bindings[i].strLenOrInd));
+    CHECK_ERROR(columns, stmt, ret);
+  }
+  /* is it ok not to bind all of them? */
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)6,
+		   SQL_C_CHAR, typeName.value, COLUMN_BUFFER_SIZE,
+		   &(typeName.strLenOrInd));
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)7,
+		   SQL_C_SLONG, &columnSize, 0, &cbColumnSize);
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)8,
+		   SQL_C_SLONG, &bufferLength, 0, &cbBufferLength);
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)9,
+		   SQL_C_SLONG, &decimalDigigs, 0, &cbDecimalDigigs);
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)10,
+		   SQL_C_SSHORT, &precision, 0, &cbPrecision);
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)11,
+		   SQL_C_SSHORT, &nullable, 0, &cbNullable);
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)12,
+		   SQL_C_CHAR, remarks.value, COLUMN_BUFFER_SIZE,
+		   &(remarks.strLenOrInd));
+  CHECK_ERROR(columns, stmt, ret);
+  ret = SQLBindCol(SG_ODBC_CTX(stmt)->handle, (SQLUSMALLINT)13,
+		   SQL_C_CHAR, columnDefault.value, COLUMN_BUFFER_SIZE,
+		   &(columnDefault.strLenOrInd));
+  CHECK_ERROR(columns, stmt, ret);
+
+  /* query category */
+  ret = SQLColumns(SG_ODBC_CTX(stmt)->handle,
+		   (SQLCHAR *)NULL, 0,
+		   (SQLCHAR *)Sg_Utf32sToUtf8s(SG_STRING(schema)), SQL_NTS,
+		   (SQLCHAR *)Sg_Utf32sToUtf8s(SG_STRING(table)), SQL_NTS,
+		   (SQLCHAR *)Sg_Utf32sToUtf8s(SG_STRING(column)), SQL_NTS);
+
+  CHECK_ERROR(columns, stmt, ret);
+  for (i = 0, ret = Sg_Fetch(stmt); ret; ret = Sg_Fetch(stmt), i++) {
+    /* list of (scheme table-name column-name type-name size nullable?) */
+    /* ignore catalog */
+    int j;
+    SgObject th = SG_NIL, tt = SG_NIL;
+    for (j = 1; j < COLUMN_NUM; j++) {
+      SG_APPEND1(th, tt, string_or_false(&bindings[j]));
+    }
+    SG_APPEND1(th, tt, string_or_false(&typeName));
+    SG_APPEND1(th, tt, Sg_MakeInteger(columnSize));
+    /* unknown? then it's nullable ... */
+    SG_APPEND1(th, tt, SG_MAKE_BOOL(nullable != SQL_NO_NULLS));
+    SG_APPEND1(h, t, th);
+  }
+  return h;
+
+#undef COLUMN_NUM
 }
 
 extern void Sg__Init_odbc_stub(SgLibrary *lib);

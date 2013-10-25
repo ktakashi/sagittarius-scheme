@@ -1,8 +1,6 @@
-/* -*- mode: c; coding: utf-8; -*- */
-/*
- * odbc.h
+/* odbc.h                                        -*- mode: c; coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -119,7 +117,8 @@ SG_CLASS_DECL(Sg_OdbcDateClass);
 #define SG_ODBC_DATE_TIMESTAMP SG_ODBC_DATE
 
 SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
-SgObject Sg_Connect(SgObject env, SgString *server, SgString *user, SgString *auth, int autoCommitP);
+SgObject Sg_Connect(SgObject env, SgString *server, SgString *user,
+		    SgString *auth, int autoCommitP);
 int      Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value);
 int      Sg_Disconnect(SgObject hdbc);
 int      Sg_ConnectionOpenP(SgObject hdbc);
@@ -138,6 +137,13 @@ int      Sg_RowCount(SgObject stmt);
 int      Sg_ColumnCount(SgObject stmt);
 int      Sg_ColumnSize(SgObject stmt, int index);
 SgObject Sg_ResultColumns(SgObject stmt);
+
+/* meta information */
+/* we don't use catalog */
+SgObject Sg_Tables(SgObject hdbc,  SgObject schema,
+		   SgObject table, SgObject types);
+SgObject Sg_Columns(SgObject hdbc,  SgObject schema, SgObject table,
+		    SgObject column);
 
 int      Sg_Commit(SgObject ctx);
 int      Sg_Rollback(SgObject ctx);

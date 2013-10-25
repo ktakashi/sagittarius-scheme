@@ -78,6 +78,16 @@
 (define-c-proc rollback! (ctx::<odbc-ctx>) ::<boolean>
   (result (Sg_Rollback ctx)))
 
+(define-c-proc tables
+  (hdbc::<odbc-dbc> schema::<string> table::<string> types)
+  (unless (or (SG_NULLP types) (SG_PAIRP types))
+    (Sg_Error (UC "list of types required but got %S") types))
+  (result (Sg_Tables hdbc schema table types)))
+
+(define-c-proc columns
+  (hdbc::<odbc-dbc> schema::<string> table::<string> column::<string>)
+  Sg_Columns)
+
 (define-c-proc odbc-env? (obj) ::<boolean>
   (result (SG_ODBC_ENV_P obj)))
 (define-c-proc odbc-connection? (obj) ::<boolean>

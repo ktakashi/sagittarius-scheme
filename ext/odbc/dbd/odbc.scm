@@ -2,7 +2,7 @@
 ;;;
 ;;; odbc.scm - DBD for ODBC
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -47,6 +47,14 @@
   ;; to make method more specific
   (define-class <dbi-odbc-query> (<dbi-query>)
     ()) ;; no slot
+
+  (define-class <dbi-odbc-table> (<dbi-table>)
+    ((catalog :init-keyword :catalog :init-value #f)
+     (remarks :init-keyword :remarks :init-value "")
+     (dbc     :init-keyword :dbc)))
+
+  (define-class <dbi-odbc-column> (<dbi-column>)
+    ((column-size :init-keyword :column-size :init-value #f)))
 
   (define-method dbi-make-connection ((driver <dbi-odbc-driver>)
 				      (options <string>)
@@ -158,4 +166,45 @@
 
   (define (make-odbc-driver)
     (make <dbi-odbc-driver> :env (create-odbc-env)))
+
+  (define-method dbi-tables ((conn <dbi-odbc-connection>)
+			     :key (schema "") (table "") (types '()))
+    (let* ((dbc (odbc-connection-odbc-hbc conn))
+	   (v (tables dbc schema table types)))
+      (map (lambda (l)
+	     (let* ((schema (car l))
+		    (name   (cadr l))
+		    (type   (string->symbol 
+			     (string-downcase (caddr l)))))
+	       (make <dbi-odbc-table>
+		 :schema schema :name name :type type 
+		 :remarks (cadddr l) :dbc dbc)))
+	   v)))
+
+  (define-method dbi-table-columns ((table <dbi-odbc-table>)
+				    :key (column ""))
+    (let ((cs (columns (slot-ref table 'dbc)
+		       (slot-ref table 'schema)
+		       (slot-ref table 'name)
+		       column)))
+      (map (lambda (c)
+	     (make <dbi-odbc-column>
+	       :name (list-ref c 2)
+	       :table table
+	       :column-type (list-ref c 3)
+	       :column-size (list-ref c 4)
+	       :nullable? (list-ref c 5))) cs)))
+
+  (define-method write-object ((i <dbi-odbc-table>) port)
+    (format port "#<dbi-odbc-table ~a ~a ~a>"
+	    (slot-ref i 'schema)
+	    (slot-ref i 'name)
+	    (slot-ref i 'type)))
+
+  (define-method write-object ((c <dbi-odbc-column>) port)
+    (format port "#<dbi-odbc-column ~a ~a ~a ~a>"
+	    (slot-ref (slot-ref c 'table) 'name)
+	    (slot-ref c 'name)
+	    (slot-ref c 'column-type)
+	    (slot-ref c 'nullable?)))
 )

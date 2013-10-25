@@ -2,7 +2,7 @@
 ;;;
 ;;; odbc.scm - ODBC interface
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -50,6 +50,9 @@
 	    result-columns
 	    commit!
 	    rollback!
+	    ;; meta info
+	    tables
+	    columns
 	    ;; predication
 	    odbc-env?
 	    odbc-connection?
@@ -65,11 +68,30 @@
 	    odbc-timestamp->date
 	    ;; clos
 	    <odbc-ctx> <odbc-date>
+
+	    ;; constant variables
+	    ;; table type
+	    +table-type-table+
+	    +table-type-view+
+	    +table-type-system-table+
+	    +table-type-global-temporary+
+	    +table-type-local-temporary+
+	    +table-type-alias+
+	    +table-type-synonym+
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (srfi :19 time))
   (load-dynamic-library "sagittarius--odbc")
+
+  (define-constant +table-type-table+ "TABLE")
+  (define-constant +table-type-view+  "VIEW")
+  (define-constant +table-type-system-table+ "SYSTEM TABLE")
+  (define-constant +table-type-global-temporary+ "GLOBAL TEMPORARY")
+  (define-constant +table-type-local-temporary+ "LOCAL TEMPORARY")
+  (define-constant +table-type-alias+ "ALIAS")
+  (define-constant +table-type-synonym+ "SYNONYM")
+
   (define (odbc-date->date date)
     (or (odbc-date? date)
 	(assertion-violation 'odbc-date->date

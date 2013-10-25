@@ -2,7 +2,7 @@
 ;;;
 ;;; dbi.scm - Common database interface
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -56,6 +56,9 @@
 	    dbi-close
 	    dbi-commit!
 	    dbi-rollback!
+
+	    <dbi-table> dbi-tables
+	    <dbi-column> dbi-table-columns
 
 	    ;; utility
 	    dbi-do-fetch!
@@ -116,6 +119,20 @@
   (define-class <dbi-query> ()
     ((connection :init-keyword :connection :reader dbi-query-connection)
      (prepared   :init-keyword :prepared :reader dbi-query-prepared)))
+
+  ;; table information
+  (define-class <dbi-table> ()
+    ((schema :init-keyword :schema :init-value #f)
+     (name   :init-keyword :name   :init-value #f)
+     ;; table, view or synonym (DBD can extend but must be a symbol)
+     (type   :init-keyword :type   :init-value #f)))
+
+  ;; column information
+  (define-class <dbi-column> ()
+    ((name  :init-keyword :name)
+     (table :init-keyword :table)
+     (column-type :init-keyword :column-type :init-value #f)
+     (nullable? :init-keyword :nullable? :init-value #t)))
 
   ;;--------------------------
   ;; User level APIs
@@ -198,6 +215,9 @@
   (define-generic dbi-open?)
   (define-generic dbi-close)
 
+  ;; default just return empty list
+  (define-method dbi-tables ((conn <dbi-connection>) . args) '())
+  (define-method dbi-table-columns ((t <dbi-table>) . args) '())
 
   ;;--------------------------
   ;; Low level APIs
