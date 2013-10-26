@@ -32,6 +32,7 @@
 #include "sagittarius/code.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/error.h"
+#include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/instruction.h"
@@ -463,6 +464,15 @@ SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb)
   return cb->name;		/* TODO after I arranged src info */
 }
 
+static SgObject uintptr_to_integer(uintptr_t i)
+{
+#if SIZEOF_VOID == 8
+  return Sg_MakeIntegerFromU64(i);
+#else
+  return Sg_MakeIntegerU(i);
+#endif
+}
+
 static SgObject intptr_to_integer(intptr_t i)
 {
 #if SIZEOF_VOID == 8
@@ -482,7 +492,7 @@ SgObject Sg_CodeBuilderToVector(SgCodeBuilder *cb)
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     /* put instruction as integer (there is a possibility surpass
        the greatest fixnum. */
-    SG_VECTOR_ELEMENT(v, i) = intptr_to_integer((intptr_t)code[i]);
+    SG_VECTOR_ELEMENT(v, i) = uintptr_to_integer((uintptr_t)code[i]);
     if (info->argc != 0) {
       int j;
       for (j = 1; j <= info->argc; j++) {

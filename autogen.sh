@@ -26,6 +26,21 @@ do_library()
     $SCM vm.scm dummy.scm lc ../src
     rm dummy.scm
     cd ../
+#    cd src
+    # for now we add the library
+    # enable it after 0.4.11
+#    $SCM -L../sitelib genlib -f ../boot/lib/errors.scm ../boot/lib/arith.scm \
+#	../boot/lib/enums.scm 
+}
+
+do_precomp()
+{
+    echo Generating compiled library files
+    cd src
+    # for now we add the library
+    # enable it after 0.4.11
+    $SCM -L../sitelib genlib -f ../boot/lib/errors.scm ../boot/lib/arith.scm \
+	../boot/lib/enums.scm 
 }
 
 do_builtin()
@@ -100,6 +115,9 @@ then
 		;;
 	    insn)
 		do_insn
+		;;
+	    precomp)
+		do_precomp
 		;;
 	    all)
 		echo "generate all."

@@ -52,24 +52,38 @@
 	    (sagittarius cgen literal)
 	    (match)
 	    (core base) ;; for print
+	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :26 cut)
 	    (srfi :39 parameters)
 	    (util file)
 	    (util list))
 
-  (define (cgen-precompile form :key (out.c #f) (predef-syms '()))
-    (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
-    ;; for now we only support library form
-    ;; define-library is a bit too much to handle
-    (match form
-      (('library name ('export exports ...) ('import imports ...) toplevels ...)
-       (let1 safe-name (encode-library-name name)
-	 ;; before include ...
-	 (parameterize ((cgen-current-unit (get-unit name safe-name out.c
-						     predef-syms)))
-	   (do-it safe-name exports imports toplevels))))
-      (_ (error 'cgen-precompile "invalid form"  form))))
+  ;; for future though
+  (define (read-with-source in) (read in :source-info? #t))
+
+  (define (cgen-precompile file
+			   :key (out.c #f) (predef-syms '())
+				(out.prefix ""))
+    (define (out-file-name)
+      (let1 base (path-basename (path-sans-extension file))
+	(string-append out.prefix base ".c")))
+    (let1 form (call-with-input-file file read-with-source)
+      (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
+      ;; for now we only support library form
+      ;; define-library is a bit too much to handle
+      (match form
+	(('library name 
+	     ('export exports ...) 
+	     ('import imports ...)
+	   toplevels ...)
+	 (let ((safe-name (encode-library-name name))
+	       (out-file  (or out.c (out-file-name))))
+	   ;; before include ...
+	   (parameterize ((cgen-current-unit (get-unit file name safe-name
+						       out-file predef-syms)))
+	     (do-it safe-name exports imports toplevels))))
+	(_ (error 'cgen-precompile "invalid form"  form)))))
 
   (define (do-it safe-name exports imports toplevels)
     (emit-toplevel-executor safe-name imports exports
@@ -135,7 +149,7 @@
     (let1 cb (compile form (environment '(only (sagittarius) library)))
       (cgen-literal cb)))
 
-  (define (get-unit name safe-name out.c predef-syms)
+  (define (get-unit in-file name safe-name out.c predef-syms)
     (let* ((base (path-sans-extension (path-basename out.c)))
 	   (safe-name (regex-replace-all #/[-+]/ base "_")))
       (rlet1 u 
@@ -143,7 +157,7 @@
 	    :name base :c-name-prefix safe-name
 	    :preamble 
 	    `(,(format "/* Generated automatically from ~a. DO NOT EDIT! */"
-		       name))
+		       in-file))
 	    :init-prologue 
 	    (format "void Sg__Init_~a() {~%  \
                        SgObject save = Sg_VM()->currentLibrary;~%  \
@@ -221,7 +235,7 @@
 		      (alloc-word
 		       (if (> insn #x80000000)
 			   (format "~a-0x~8,'0x   /* ~3d ~a */"
-				   name-info (- #x100000000 insnval) count
+				   name-info (- #x100000000 insn) count
 				   (cgen-safe-comment insn-name))
 			   (format "~a0x~8,'0x    /* ~3d ~a */"
 				   name-info insn count
@@ -293,9 +307,32 @@
     (init (self)
       (let ((name (cgen-cexpr (~ self 'name)))
 	    (cname (~ self 'c-name)))
-	;; TODO
 	(format #t "  ~a = Sg_FindLibrary(SG_SYMBOL(~a), TRUE);~%"
 		cname name)))
+    (static (self) #f))
+
+  (define-cgen-literal <cgen-scheme-pair> <pair>
+    ((values-list :init-keyword :values-list))
+    (make (value)
+      (make <cgen-scheme-pair> :value value
+	    :c-name (cgen-allocate-static-datum)
+	    :values-list (map cgen-literal value)))
+    (init (self)
+      (let ((values (~ self 'values-list))
+	    (cname (~ self 'c-name))
+	    (h     (gensym))
+	    (t     (gensym)))
+	(print "  do {")
+	(format #t "    SgObject ~a = SG_NIL, ~a = SG_NIL;~%" h t)
+	(for-each (lambda (v o)
+		    (format #t "    SG_APPEND1(~a, ~a, ~a); /* ~a */ ~%"
+			    h t (cgen-cexpr v) (cgen-safe-comment o)) )
+		  values (~ self 'value))
+	(let1 l (cdr (last-pair values))
+	  (unless (null? l)
+	    (format #t "    SG_SET_CDR(~a, ~a);~%" t (cgen-cexpr l))))
+	(format #t "    ~a = ~a;~%" cname h)
+	(print "  } while (0);")))
     (static (self) #f))
 
 )
