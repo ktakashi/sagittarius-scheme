@@ -1,0 +1,29 @@
+;; -*- Scheme -*-
+#!read-macro=sagittarius/regex
+(import (sagittarius cgen precomp)
+	(sagittarius regex)
+	(util file)
+	(getopt)
+	(shorten))
+
+(define (gen files force?)
+  (print (if force? "force " "") "generating files:" files)
+  (for-each (^(f) (let* ((b (path-basename (path-sans-extension f)))
+			 (c (format "lib_~a.c" b))
+			 (exit? #f))
+		    (when (and (not force?) (file-exists? c))
+		      (let ((stub-mtime (file-stat-mtime f))
+			    (out-mtime  (file-stat-mtime c)))
+			(when (< stub-mtime out-mtime)
+			  (print "generated file is older than stub file. " c)
+			  (set! exit? #t))))
+		    (unless exit? 
+		      (cgen-precompile f 
+				       :out.prefix "lib_"
+				       :predef-syms '(LIBSAGITTARIUS_BODY)))))
+	    files))
+(define (main args)
+  (with-args (cdr args)
+      ((force? (#\f "force") #f #f)
+      . rest)
+    (gen rest force?)))
