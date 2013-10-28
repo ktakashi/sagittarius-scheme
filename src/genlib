@@ -21,8 +21,10 @@
     (let* ((dir (string-split (path-directory filename) #/[\/\\]/))
 	   ;; FIXME currently we are using ../boot/... but
 	   ;; for future we might move
-	   (targets (drop dir 2)))
-      (values (string-append (string-join targets "_") "_" out-file)
+	   (targets (drop dir 2))
+	   (base (string-join targets "_")))
+      (values (string-append base (if (zero? (string-length base))
+				      "" "_") out-file)
 	      initfun-name))))
 
 (define-syntax aif
@@ -32,6 +34,37 @@
        (with-syntax ((it (datum->syntax #'aif 'it)))
 	 #'(let ((it expr))
 	     (if it then else)))))))
+
+(define (resolve-cond-expand&include forms loadpaths)
+  (define marks '(sagittarius sagittarius.scheme.vm))
+  (define (find-file base loadpaths)
+    (car (filter-map (lambda (dir)
+		       (let1 f (build-path dir base)
+			 (and (file-exists? f) f))) loadpaths)))
+  (define (handle-cond-expand body form)
+    (aif (find (lambda (x) (memq (car x) marks)) body)
+	 (resolve-include (cdr it))
+	 (aif (find (lambda (x) (eq? (car x) 'else)) body)
+	      `(begin ,@(resolve-include (cdr it)))
+	      (error 'cond-expand "unfulfileld cond-expand" form))))
+  (define (resolve-include forms)
+    (map (lambda (form) 
+	   (match form
+	     (('include file)
+	      `(begin ,@(map (lambda (sexp)
+			       (match sexp
+				 (('cond-expand . body)
+				  (handle-cond-expand body sexp))
+				 (_ sexp)))
+			     (file->sexp-list (find-file file loadpaths)))))
+	     (_ form))) forms))
+  (map (lambda (form)
+	 (match form
+	   (('cond-expand . body)
+	    (handle-cond-expand body form))
+	   (('include . path)
+	    `(begin ,@(resolve-include (list form))))
+	   (_ form))) forms))
 
 (define (construct-library-form file options)
   (define (read-from-string s) (read (open-string-input-port s)))
@@ -61,8 +94,9 @@
       ((lib (#\l "library") #t (error 'genlib "library name is missing"))
        (imports (#\i "import") pack (error 'genlib "import library is missing"))
        (oexports (#\e "export") pack #f)
-       (additionals (#\a "additional") pack '()))
-
+       (additionals (#\a "additional") pack '())
+       (includes (#\I "include") pack '()))
+    ;; for now just add
     (let* ((sexp (file->sexp-list file))
 	   (enums '())
 	   (exports
@@ -84,7 +118,7 @@
 				      (map read-from-string oexports)
 				      (reverse (append exports enums))))
 			(import ,@(map (cut rename-if-needed <> libs) imports))
-		      ,@sexp)))
+		      ,@(resolve-cond-expand&include sexp includes))))
 	form))))
 
 (define (gen file force? library-options)

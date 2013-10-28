@@ -53,6 +53,20 @@ do_precomp()
 	-i "(for (core syntax-case) expand)" -i "(for (smatch) expand)" \
 	-i "(core errors)" \
 	-a ../boot/lib/smatch.scm
+# doesn't work yet
+#     $SCM -L../sitelib genlib -n -f ../boot/compiler.scm \
+# 	-l "(sagittarius compiler)" \
+#  	-i "null" -i "(core base)" -i "(sagittarius)" \
+# 	-i "(core syntax-case)" -i "(for (rnrs) expand)" \
+# 	-i "(core errors)" \
+# 	-i "(sagittarius vm)" -i "(sagittarius vm instruction)" \
+# 	-i "(sagittarius vm debug)" \
+# 	-i "(sagittarius compiler util)" \
+# 	-i "(sagittarius compiler procedure)" \
+# 	-I ../boot \
+# 	-e compile -e compile-p1 -e compile-p2 -e compile-p3 \
+# 	-e compile-p4 -e compile-p5
+    
     $SCM -L../sitelib genlib -f ../boot/lib/errors.scm
     $SCM -L../sitelib genlib -f ../boot/lib/arith.scm
     $SCM -L../sitelib genlib -f ../boot/lib/enums.scm

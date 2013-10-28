@@ -305,10 +305,10 @@
     (make (value)
       (unless (null? (id-envs value))
 	(format (current-error-port) 
-		"*WARNING* identifier '~a' contains environment~%    \
+		"*WARNING* identifier '~a' in ~a contains environment~%    \
                  assume the identifier can be resolved in the \
                  target library.~%"
-		(id-name value)))
+		(id-name value) (library-name (id-library value))))
       (make <cgen-scheme-identifier> :value value
 	    :c-name (cgen-allocate-static-datum)
 	    :id-name (cgen-literal (id-name value))
