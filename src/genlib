@@ -22,7 +22,7 @@
 	   ;; FIXME currently we are using ../boot/... but
 	   ;; for future we might move
 	   (targets (drop dir 2)))
-      (values (string-append (string-join targets "_") out-file)
+      (values (string-append (string-join targets "_") "_" out-file)
 	      initfun-name))))
 
 (define-syntax aif
