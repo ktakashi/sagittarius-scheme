@@ -120,63 +120,7 @@
    )
  ;; for sagittarius
  (sagittarius
-   (define-syntax define-simple-struct
-     (er-macro-transformer
-      (lambda (form rename compare)
-	(define (take l n)
-	  (if (zero? n)
-	      '()
-	      (cons (car l) (take (cdr l) (- n 1)))))
-	(define (make-constructor name tag constructor slot-defs)
-	  (let ((args (gensym))
-		(num-slots  (length slot-defs))
-		(slot-names (map (lambda (s) (if (symbol? s) s (car s))) slot-defs))
-		(init-vals  (map (lambda (s) (if (symbol? s) #f (cadr s))) slot-defs)))
-	    `(define-syntax ,constructor
-	       (syntax-rules ()
-		 ,@(let loop ((n 0)
-			      (r '()))
-		     (if (> n num-slots)
-			 r
-			 (let ((carg (take slot-names n)))
-			   (loop (+ n 1)
-				 (cons `((_ ,@carg)
-					 (vector
-					  ,@(if tag `(,tag) '())
-					  ,@carg
-					  ,@(map (lambda (x) x)
-						 (list-tail init-vals n))))
-				       r)))
-			 ))))
-	    ))
-	(let ()
-	  (smatch form
-	    ((_ name tag constructor . slot-defs)
-	     `(begin
-		,@(if constructor
-		      `(,(make-constructor name tag constructor slot-defs))
-		      '())
-		,@(let loop ((s slot-defs)
-			     (i (if tag 1 0))
-			     (r '()))
-		    (if (null? s)
-			(reverse r)
-			(let* ((slot-name (if (pair? (car s)) (caar s) (car s)))
-			       (acc (string->symbol (string-append (symbol->string name) "-" (symbol->string slot-name))))
-			       (mod (string->symbol (string-append (symbol->string name) "-" (symbol->string slot-name) "-set!"))))
-			  (loop (cdr s)
-				(+ i 1)
-				(cons
-				 `(define-syntax ,acc
-				    (syntax-rules ()
-				      ((_ obj)
-				       (vector-ref obj ,i))))
-				 (cons
-				  `(define-syntax ,mod
-				     (syntax-rules ()
-				       ((_ obj val)
-					(vector-set! obj ,i val))))
-				  r)))))))))))))
+
    (define-syntax define-enum
      (er-macro-transformer
       (lambda (form rename compare)
@@ -205,32 +149,6 @@
 	    ((_ name . vals)
 	     `(begin
 		,@(make-enum name vals))))))))
-
-   (define-syntax case/unquote
-     (er-macro-transformer
-      (lambda (form rename compare)
-	(smatch form
-	  ((- obj . clauses)
-	   (let ((tmp (gensym)))
-	     (define (expand-clause clause)
-	       (define else?
-		 (lambda (x)
-		   (eq? x 'else)))
-	       (let ()
-		 (smatch clause
-		   (((item) . body)
-		    `((eqv? ,tmp ,item) ,@body))
-		   (((item1 . more) . body)
-		    (let ((ilist (list 'quasiquote
-				       (append (list (list 'unquote item1))
-					       (map (lambda (x) (list 'unquote x)) more)))))
-		      `((memv ,tmp ,ilist) ,@body)))
-		   ((else . body)
-		    (or (else? else)
-			(syntax-error "invalid symbol test clause" clauses))
-		    `(else ,@body)))))
-	       `(let ((,tmp ,obj))
-		  (cond ,@(map expand-clause clauses)))))))))
 
    ) ; sagittarius
 )

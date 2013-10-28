@@ -54,14 +54,14 @@
 	      `(begin ,@(map (lambda (sexp)
 			       (match sexp
 				 (('cond-expand . body)
-				  (handle-cond-expand body sexp))
+				  `(begin ,@(handle-cond-expand body sexp)))
 				 (_ sexp)))
 			     (file->sexp-list (find-file file loadpaths)))))
 	     (_ form))) forms))
   (map (lambda (form)
 	 (match form
 	   (('cond-expand . body)
-	    (handle-cond-expand body form))
+	    `(begin ,@(handle-cond-expand body form)))
 	   (('include . path)
 	    `(begin ,@(resolve-include (list form))))
 	   (_ form))) forms))
@@ -83,9 +83,10 @@
       (let* ((base (path-sans-extension (path-basename add)))
 	     (name (list (string->symbol base)))
 	     (libname (string-append "(precomp " base ")"))
-	     (form (construct-library-form add (list "-l" libname
-						     ;; enough?
-						     "-i" "(rnrs)"))))
+	     (form (construct-library-form 
+		    add (list "-l" libname 
+			      "-i""(except (rnrs) syntax-rules)"
+			      "-i" "(only (compat r7rs) syntax-rules)"))))
 	(eval form (environment '(sagittarius)))
 	(cons name (read-from-string libname))))
     (map resolve-additional additionals))

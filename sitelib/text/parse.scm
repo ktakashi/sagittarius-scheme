@@ -177,6 +177,7 @@
     (let ((port (if (null? maybe-port)
 		    (current-input-port)
 		    (car maybe-port))))
+
       (cond ((procedure? skip-chars)
 	     (skip-while/common skip-chars port))
 	    (else

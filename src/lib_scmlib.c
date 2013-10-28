@@ -2,18 +2,18 @@
 #define LIBSAGITTARIUS_BODY 
 #include <sagittarius.h>
 static struct sg__rcRec {
-  SgWord d24[4513];
-  SgObject d25[582];
-  SgCodeBuilder d26[118];
+  SgWord d27[4513];
+  SgObject d28[582];
+  SgCodeBuilder d29[118];
 } sg__rc = {
-  {  /* SgWord d24 */
+  {  /* SgWord d27 */
     /* default-protocol */0x00000046    /*   0 FREF_PUSH */,
     0x00000005    /*   1 LREF */,
     0x0010022a    /*   2 APPLY */,
     0x0000002f    /*   3 RET */,
     /* (default-protocol default-protocol) */0x00000045    /*   0 LREF_PUSH */,
     0x00000029    /*   1 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[0])) /* #<code-builder default-protocol (0 1 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[0])) /* #<code-builder default-protocol (0 1 1)> */,
     0x0000002f    /*   3 RET */,
     /* (take recur) */0x00000145    /*   0 LREF_PUSH */,
     0x00000004    /*   1 CONSTI */,
@@ -29,7 +29,7 @@ static struct sg__rcRec {
     -0x000000f1   /*  11 ADDI */,
     0x0000000b    /*  12 PUSH */,
     0x00000009    /*  13 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G25#core.base> */,
     0x0000022c    /*  15 LOCAL_CALL */,
     0x00000037    /*  16 CONS */,
     0x0000002f    /*  17 RET */,
@@ -44,7 +44,7 @@ static struct sg__rcRec {
     SG_WORD(6),
     0x0000005c    /*   9 LREF_CDR_PUSH */,
     0x00000009    /*  10 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G24#core.base> */,
     0x0000012e    /*  12 LOCAL_TAIL_CALL */,
     0x0000002f    /*  13 RET */,
     0x00000005    /*  14 LREF */,
@@ -54,7 +54,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x0000005c    /*  19 LREF_CDR_PUSH */,
     0x00000009    /*  20 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G24#core.base> */,
     0x0000012c    /*  22 LOCAL_CALL */,
     0x00000037    /*  23 CONS */,
     0x0000002f    /*  24 RET */,
@@ -62,11 +62,11 @@ static struct sg__rcRec {
     0x0000000b    /*   1 PUSH */,
     0x0000000c    /*   2 BOX */,
     0x00000009    /*   3 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G24#core.base> */,
     0x00000106    /*   5 LSET */,
     0x00000045    /*   6 LREF_PUSH */,
     0x00000009    /*   7 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G24#core.base> */,
     0x0000012e    /*   9 LOCAL_TAIL_CALL */,
     0x0000002f    /*  10 RET */,
     /* (exists loop) */0x00000005    /*   0 LREF */,
@@ -80,7 +80,7 @@ static struct sg__rcRec {
     SG_WORD(6),
     0x0000005c    /*   9 LREF_CDR_PUSH */,
     0x00000009    /*  10 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G19#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
     0x0000012e    /*  12 LOCAL_TAIL_CALL */,
     0x0000002f    /*  13 RET */,
     0x00000005    /*  14 LREF */,
@@ -90,7 +90,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x0000005c    /*  19 LREF_CDR_PUSH */,
     0x00000009    /*  20 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G19#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
     0x0000012c    /*  22 LOCAL_CALL */,
     0x00000037    /*  23 CONS */,
     0x0000002f    /*  24 RET */,
@@ -98,11 +98,11 @@ static struct sg__rcRec {
     0x0000000b    /*   1 PUSH */,
     0x0000000c    /*   2 BOX */,
     0x00000009    /*   3 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G19#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
     0x00000106    /*   5 LSET */,
     0x00000045    /*   6 LREF_PUSH */,
     0x00000009    /*   7 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G19#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
     0x0000012e    /*   9 LOCAL_TAIL_CALL */,
     0x0000002f    /*  10 RET */,
     /* (list-sort merge-list!) */0x0000020c    /*   0 BOX */,
@@ -330,12 +330,12 @@ static struct sg__rcRec {
     0x00000345    /*  21 LREF_PUSH */,
     0x00000145    /*  22 LREF_PUSH */,
     0x00000029    /*  23 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[13])) /* #<code-builder rename (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[13])) /* #<code-builder rename (1 0 2)> */,
     0x00000406    /*  25 LSET */,
     0x00000245    /*  26 LREF_PUSH */,
     0x00000345    /*  27 LREF_PUSH */,
     0x00000029    /*  28 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[14])) /* #<code-builder compare (2 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[14])) /* #<code-builder compare (2 0 2)> */,
     0x00000506    /*  30 LSET */,
     0x00000045    /*  31 LREF_PUSH */,
     0x00000405    /*  32 LREF */,
@@ -349,7 +349,7 @@ static struct sg__rcRec {
     0x0000002f    /*  40 RET */,
     /* er-macro-transformer */0x00000045    /*   0 LREF_PUSH */,
     0x00000029    /*   1 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[15])) /* #<code-builder er-macro-transformer (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[15])) /* #<code-builder er-macro-transformer (1 0 1)> */,
     0x0000002f    /*   3 RET */,
     /* safe-length */0x00000045    /*   0 LREF_PUSH */,
     0x00000049    /*   1 CONSTI_PUSH */,
@@ -641,14 +641,14 @@ static struct sg__rcRec {
     0x00000046    /*   3 FREF_PUSH */,
     0x00000045    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[25])) /* #<code-builder #f (0 1 5)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[25])) /* #<code-builder #f (0 1 5)> */,
     0x0000002f    /*   7 RET */,
     /* #f */0x00000246    /*   0 FREF_PUSH */,
     0x00000146    /*   1 FREF_PUSH */,
     0x00000045    /*   2 LREF_PUSH */,
     0x00000046    /*   3 FREF_PUSH */,
     0x00000029    /*   4 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[26])) /* #<code-builder #f (0 1 4)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[26])) /* #<code-builder #f (0 1 4)> */,
     0x0000002f    /*   6 RET */,
     /* loop */0x00000045    /*   0 LREF_PUSH */,
     0x00000207    /*   1 FREF */,
@@ -703,7 +703,7 @@ static struct sg__rcRec {
     0x00000146    /*   1 FREF_PUSH */,
     0x00000046    /*   2 FREF_PUSH */,
     0x00000029    /*   3 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[28])) /* #<code-builder loop (0 1 3)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[28])) /* #<code-builder loop (0 1 3)> */,
     0x0000002f    /*   5 RET */,
     /* loop */0x00000030    /*   0 FRAME */,
     SG_WORD(4),
@@ -719,12 +719,12 @@ static struct sg__rcRec {
     0x00000246    /*  11 FREF_PUSH */,
     0x00000145    /*  12 LREF_PUSH */,
     0x00000029    /*  13 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[27])) /* #<code-builder #f (0 1 3)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[27])) /* #<code-builder #f (0 1 3)> */,
     0x0000002f    /*  15 RET */,
     0x00000146    /*  16 FREF_PUSH */,
     0x00000046    /*  17 FREF_PUSH */,
     0x00000029    /*  18 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[29])) /* #<code-builder loop (0 1 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[29])) /* #<code-builder loop (0 1 2)> */,
     0x0000002f    /*  20 RET */,
     /* make-nested-conser */0x00000002    /*   0 UNDEF */,
     0x0000000b    /*   1 PUSH */,
@@ -733,7 +733,7 @@ static struct sg__rcRec {
     0x00000245    /*   4 LREF_PUSH */,
     0x00000145    /*   5 LREF_PUSH */,
     0x00000029    /*   6 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[30])) /* #<code-builder loop (1 0 3)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[30])) /* #<code-builder loop (1 0 3)> */,
     0x00000306    /*   8 LSET */,
     0x00000030    /*   9 FRAME */,
     SG_WORD(8),
@@ -801,7 +801,7 @@ static struct sg__rcRec {
     /* make-simple-conser */0x00000245    /*   0 LREF_PUSH */,
     0x00000145    /*   1 LREF_PUSH */,
     0x00000029    /*   2 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[32])) /* #<code-builder #f (0 1 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[32])) /* #<code-builder #f (0 1 2)> */,
     0x0000000b    /*   4 PUSH */,
     0x00000030    /*   5 FRAME */,
     SG_WORD(4),
@@ -829,7 +829,7 @@ static struct sg__rcRec {
     /* default-protocol */0x00000046    /*   0 FREF_PUSH */,
     0x00000045    /*   1 LREF_PUSH */,
     0x00000029    /*   2 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[34])) /* #<code-builder default-protocol (0 1 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[34])) /* #<code-builder default-protocol (0 1 2)> */,
     0x0000002f    /*   4 RET */,
     /* default-protocol */0x00000030    /*   0 FRAME */,
     SG_WORD(4),
@@ -848,10 +848,10 @@ static struct sg__rcRec {
     0x0000000b    /*  14 PUSH */,
     0x00000245    /*  15 LREF_PUSH */,
     0x00000029    /*  16 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[35])) /* #<code-builder default-protocol (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[35])) /* #<code-builder default-protocol (1 0 1)> */,
     0x0000002f    /*  18 RET */,
     0x00000009    /*  19 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G26#core.base> */,
     0x0000002f    /*  21 RET */,
     /* null-list? */0x00000005    /*   0 LREF */,
     0x0000003e    /*   1 PAIRP */,
@@ -1032,7 +1032,7 @@ static struct sg__rcRec {
     0x00000045    /*  34 LREF_PUSH */,
     0x00000245    /*  35 LREF_PUSH */,
     0x00000029    /*  36 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[41])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[41])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*  38 PUSH */,
     0x00000145    /*  39 LREF_PUSH */,
     0x0000024b    /*  40 GREF_TAIL_CALL */,
@@ -1056,7 +1056,7 @@ static struct sg__rcRec {
     0x00000045    /*  10 LREF_PUSH */,
     0x00000245    /*  11 LREF_PUSH */,
     0x00000029    /*  12 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[43])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[43])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*  14 PUSH */,
     0x00000145    /*  15 LREF_PUSH */,
     0x0000024b    /*  16 GREF_TAIL_CALL */,
@@ -1083,7 +1083,7 @@ static struct sg__rcRec {
     0x00000045    /*  10 LREF_PUSH */,
     0x00000245    /*  11 LREF_PUSH */,
     0x00000029    /*  12 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[45])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[45])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*  14 PUSH */,
     0x00000145    /*  15 LREF_PUSH */,
     0x0000024b    /*  16 GREF_TAIL_CALL */,
@@ -1135,7 +1135,7 @@ static struct sg__rcRec {
     0x00000045    /*   2 LREF_PUSH */,
     0x00000046    /*   3 FREF_PUSH */,
     0x00000029    /*   4 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[48])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[48])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*   6 PUSH */,
     0x00000145    /*   7 LREF_PUSH */,
     0x0000024a    /*   8 GREF_CALL */,
@@ -1166,7 +1166,7 @@ static struct sg__rcRec {
     0x0000002f    /*  15 RET */,
     0x00000046    /*  16 FREF_PUSH */,
     0x00000029    /*  17 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[49])) /* #<code-builder #f (2 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[49])) /* #<code-builder #f (2 0 1)> */,
     0x0000000b    /*  19 PUSH */,
     0x00000145    /*  20 LREF_PUSH */,
     0x00000045    /*  21 LREF_PUSH */,
@@ -1199,7 +1199,7 @@ static struct sg__rcRec {
     SG_WORD(SG_UNDEF) /* #<identifier assertion-violation#core.base> */,
     0x00000045    /*  24 LREF_PUSH */,
     0x00000029    /*  25 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[50])) /* #<code-builder #f (2 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[50])) /* #<code-builder #f (2 0 1)> */,
     0x0000000b    /*  27 PUSH */,
     0x00000048    /*  28 CONST_PUSH */,
     SG_WORD(SG_NIL) /* () */,
@@ -1216,7 +1216,7 @@ static struct sg__rcRec {
     /* #f */0x00000045    /*   0 LREF_PUSH */,
     0x00000146    /*   1 FREF_PUSH */,
     0x00000029    /*   2 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[52])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[52])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*   4 PUSH */,
     0x00000046    /*   5 FREF_PUSH */,
     0x0000024b    /*   6 GREF_TAIL_CALL */,
@@ -1274,7 +1274,7 @@ static struct sg__rcRec {
     0x00000045    /*  49 LREF_PUSH */,
     0x00000345    /*  50 LREF_PUSH */,
     0x00000029    /*  51 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[53])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[53])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*  53 PUSH */,
     0x00000145    /*  54 LREF_PUSH */,
     0x0000024b    /*  55 GREF_TAIL_CALL */,
@@ -1292,7 +1292,7 @@ static struct sg__rcRec {
     /* #f */0x00000045    /*   0 LREF_PUSH */,
     0x00000146    /*   1 FREF_PUSH */,
     0x00000029    /*   2 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[55])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[55])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*   4 PUSH */,
     0x00000046    /*   5 FREF_PUSH */,
     0x0000024b    /*   6 GREF_TAIL_CALL */,
@@ -1348,7 +1348,7 @@ static struct sg__rcRec {
     0x00000045    /*  47 LREF_PUSH */,
     0x00000345    /*  48 LREF_PUSH */,
     0x00000029    /*  49 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[56])) /* #<code-builder #f (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[56])) /* #<code-builder #f (1 0 2)> */,
     0x0000000b    /*  51 PUSH */,
     0x00000145    /*  52 LREF_PUSH */,
     0x0000024b    /*  53 GREF_TAIL_CALL */,
@@ -1382,12 +1382,12 @@ static struct sg__rcRec {
     0x0000000b    /*  25 PUSH */,
     0x0000000c    /*  26 BOX */,
     0x00000009    /*  27 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G25#core.base> */,
     0x00000206    /*  29 LSET */,
     0x00000045    /*  30 LREF_PUSH */,
     0x00000145    /*  31 LREF_PUSH */,
     0x00000009    /*  32 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G25#core.base> */,
     0x0000022e    /*  34 LOCAL_TAIL_CALL */,
     0x0000002f    /*  35 RET */,
     /* drop */0x00000030    /*   0 FRAME */,
@@ -2231,7 +2231,7 @@ static struct sg__rcRec {
     0x00000145    /*   3 LREF_PUSH */,
     0x00000046    /*   4 FREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[78])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[78])) /* #<code-builder loop (1 0 2)> */,
     0x00000106    /*   7 LSET */,
     0x00000045    /*   8 LREF_PUSH */,
     0x00000105    /*   9 LREF */,
@@ -2376,11 +2376,11 @@ static struct sg__rcRec {
     0x0000010c    /* 135 BOX */,
     0x0000000c    /* 136 BOX */,
     0x00000009    /* 137 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
     0x00000706    /* 139 LSET */,
     0x00000545    /* 140 LREF_PUSH */,
     0x00000029    /* 141 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[79])) /* #<code-builder collect-car (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[79])) /* #<code-builder collect-car (1 0 1)> */,
     0x00000806    /* 143 LSET */,
     0x00000030    /* 144 FRAME */,
     SG_WORD(5),
@@ -2393,7 +2393,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x00000545    /* 153 LREF_PUSH */,
     0x00000009    /* 154 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
     0x0000012c    /* 156 LOCAL_CALL */,
     0x0000000b    /* 157 PUSH */,
     0x00000030    /* 158 FRAME */,
@@ -2441,7 +2441,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x00000a45    /* 201 LREF_PUSH */,
     0x00000009    /* 202 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
     0x0000012c    /* 204 LOCAL_CALL */,
     0x0000000b    /* 205 PUSH */,
     0x00900219    /* 206 SHIFTJ */,
@@ -2488,7 +2488,7 @@ static struct sg__rcRec {
     0x00000145    /*   3 LREF_PUSH */,
     0x00000046    /*   4 FREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[81])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[81])) /* #<code-builder loop (1 0 2)> */,
     0x00000106    /*   7 LSET */,
     0x00000045    /*   8 LREF_PUSH */,
     0x00000105    /*   9 LREF */,
@@ -2628,11 +2628,11 @@ static struct sg__rcRec {
     0x0000010c    /* 130 BOX */,
     0x0000000c    /* 131 BOX */,
     0x00000009    /* 132 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G18#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
     0x00000706    /* 134 LSET */,
     0x00000545    /* 135 LREF_PUSH */,
     0x00000029    /* 136 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[82])) /* #<code-builder collect-car (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[82])) /* #<code-builder collect-car (1 0 1)> */,
     0x00000806    /* 138 LSET */,
     0x00000030    /* 139 FRAME */,
     SG_WORD(5),
@@ -2645,7 +2645,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x00000545    /* 148 LREF_PUSH */,
     0x00000009    /* 149 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G18#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
     0x0000012c    /* 151 LOCAL_CALL */,
     0x0000000b    /* 152 PUSH */,
     0x00000030    /* 153 FRAME */,
@@ -2694,7 +2694,7 @@ static struct sg__rcRec {
     SG_WORD(5),
     0x00000a45    /* 197 LREF_PUSH */,
     0x00000009    /* 198 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G18#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
     0x0000012c    /* 200 LOCAL_CALL */,
     0x0000000b    /* 201 PUSH */,
     0x00900219    /* 202 SHIFTJ */,
@@ -2733,7 +2733,7 @@ static struct sg__rcRec {
     0x00000045    /*   3 LREF_PUSH */,
     0x00000245    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[84])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[84])) /* #<code-builder loop (1 0 2)> */,
     0x00000206    /*   7 LSET */,
     0x00000145    /*   8 LREF_PUSH */,
     0x00000205    /*   9 LREF */,
@@ -3122,7 +3122,7 @@ static struct sg__rcRec {
     0x00000045    /*   3 LREF_PUSH */,
     0x00000245    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[91])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[91])) /* #<code-builder loop (1 0 2)> */,
     0x00000206    /*   7 LSET */,
     0x00000145    /*   8 LREF_PUSH */,
     0x00000205    /*   9 LREF */,
@@ -3162,7 +3162,7 @@ static struct sg__rcRec {
     0x00000045    /*   3 LREF_PUSH */,
     0x00000245    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[93])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[93])) /* #<code-builder loop (1 0 2)> */,
     0x00000206    /*   7 LSET */,
     0x00000145    /*   8 LREF_PUSH */,
     0x00000205    /*   9 LREF */,
@@ -3198,7 +3198,7 @@ static struct sg__rcRec {
     0x00000045    /*   3 LREF_PUSH */,
     0x00000245    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[95])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[95])) /* #<code-builder loop (1 0 2)> */,
     0x00000206    /*   7 LSET */,
     0x00000145    /*   8 LREF_PUSH */,
     0x00000205    /*   9 LREF */,
@@ -3234,7 +3234,7 @@ static struct sg__rcRec {
     0x00000045    /*   3 LREF_PUSH */,
     0x00000245    /*   4 LREF_PUSH */,
     0x00000029    /*   5 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[97])) /* #<code-builder loop (1 0 2)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[97])) /* #<code-builder loop (1 0 2)> */,
     0x00000206    /*   7 LSET */,
     0x00000145    /*   8 LREF_PUSH */,
     0x00000205    /*   9 LREF */,
@@ -3393,7 +3393,7 @@ static struct sg__rcRec {
     0x00000d45    /* 109 LREF_PUSH */,
     0x00000b45    /* 110 LREF_PUSH */,
     0x00000009    /* 111 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G17#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
     0x0000052c    /* 113 LOCAL_CALL */,
     0x0000000b    /* 114 PUSH */,
     0x00000456    /* 115 LREF_CDR */,
@@ -3423,7 +3423,7 @@ static struct sg__rcRec {
     0x00000d45    /* 139 LREF_PUSH */,
     0x00000b45    /* 140 LREF_PUSH */,
     0x00000009    /* 141 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G17#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
     0x0000052c    /* 143 LOCAL_CALL */,
     0x0000000b    /* 144 PUSH */,
     0x00000456    /* 145 LREF_CDR */,
@@ -3441,7 +3441,7 @@ static struct sg__rcRec {
     0x0000000b    /*   1 PUSH */,
     0x0000000c    /*   2 BOX */,
     0x00000009    /*   3 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G17#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
     0x00000206    /*   5 LSET */,
     0x00000002    /*   6 UNDEF */,
     0x00000030    /*   7 FRAME */,
@@ -3535,7 +3535,7 @@ static struct sg__rcRec {
     0x00000845    /*  95 LREF_PUSH */,
     0x00000545    /*  96 LREF_PUSH */,
     0x00000029    /*  97 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[101])) /* #<code-builder recur (2 0 3)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[101])) /* #<code-builder recur (2 0 3)> */,
     0x00000806    /*  99 LSET */,
     0x00000030    /* 100 FRAME */,
     SG_WORD(6),
@@ -3562,7 +3562,7 @@ static struct sg__rcRec {
     0x00000645    /* 122 LREF_PUSH */,
     0x00000545    /* 123 LREF_PUSH */,
     0x00000009    /* 124 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G17#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
     0x0000052e    /* 126 LOCAL_TAIL_CALL */,
     0x0000002f    /* 127 RET */,
     /* vector-sort */0x00000030    /*   0 FRAME */,
@@ -3827,7 +3827,7 @@ static struct sg__rcRec {
     0x00000145    /*  21 LREF_PUSH */,
     0x00000045    /*  22 LREF_PUSH */,
     0x00000029    /*  23 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[104])) /* #<code-builder sort! (2 0 4)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[104])) /* #<code-builder sort! (2 0 4)> */,
     0x00000406    /*  25 LSET */,
     0x00000049    /*  26 CONSTI_PUSH */,
     0x00000205    /*  27 LREF */,
@@ -3906,7 +3906,7 @@ static struct sg__rcRec {
     0x0000000b    /*  46 PUSH */,
     0x00000245    /*  47 LREF_PUSH */,
     0x00000029    /*  48 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[107])) /* #<code-builder proc (0 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[107])) /* #<code-builder proc (0 0 1)> */,
     0x0000000b    /*  50 PUSH */,
     0x00000245    /*  51 LREF_PUSH */,
     0x00000305    /*  52 LREF */,
@@ -3923,7 +3923,7 @@ static struct sg__rcRec {
     0x0000000b    /*   4 PUSH */,
     0x00000045    /*   5 LREF_PUSH */,
     0x00000029    /*   6 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[109])) /* #<code-builder proc (0 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[109])) /* #<code-builder proc (0 0 1)> */,
     0x0000000b    /*   8 PUSH */,
     0x00000045    /*   9 LREF_PUSH */,
     0x00000105    /*  10 LREF */,
@@ -4189,153 +4189,153 @@ static struct sg__rcRec {
     0x00000061    /*  68 CONST_RET */,
     SG_WORD(SG_UNDEF) /* #<unspecified> */,
     /* #f */0x00000029    /*   0 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[1])) /* #<code-builder (default-protocol default-protocol) (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[1])) /* #<code-builder (default-protocol default-protocol) (1 0 0)> */,
     0x00000033    /*   2 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G26#core.base> */,
     0x00000029    /*   4 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[2])) /* #<code-builder (take recur) (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[2])) /* #<code-builder (take recur) (2 0 0)> */,
     0x00000033    /*   6 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G25#core.base> */,
     0x00000029    /*   8 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[3])) /* #<code-builder (for-all loop) (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[3])) /* #<code-builder (for-all loop) (1 0 0)> */,
     0x00000033    /*  10 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G24#core.base> */,
     0x00000029    /*  12 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[4])) /* #<code-builder (for-all collect-cdr) (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[4])) /* #<code-builder (for-all collect-cdr) (1 0 0)> */,
     0x00000033    /*  14 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G23#core.base> */,
     0x00000029    /*  16 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[5])) /* #<code-builder (exists loop) (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[5])) /* #<code-builder (exists loop) (1 0 0)> */,
     0x00000033    /*  18 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G19#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G22#core.base> */,
     0x00000029    /*  20 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[6])) /* #<code-builder (exists collect-cdr) (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[6])) /* #<code-builder (exists collect-cdr) (1 0 0)> */,
     0x00000033    /*  22 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G18#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G21#core.base> */,
     0x00000029    /*  24 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[7])) /* #<code-builder (list-sort merge-list!) (5 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[7])) /* #<code-builder (list-sort merge-list!) (5 0 0)> */,
     0x00000033    /*  26 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G17#core.base> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G20#core.base> */,
     0x00000034    /*  28 LIBRARY */,
     SG_WORD(SG_UNDEF) /* #<library core.base> */,
     0x00000029    /*  30 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[8])) /* #<code-builder hashtable-for-each (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[8])) /* #<code-builder hashtable-for-each (2 0 0)> */,
     0x00000033    /*  32 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-for-each#core.base> */,
     0x00000029    /*  34 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[9])) /* #<code-builder hashtable-map (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[9])) /* #<code-builder hashtable-map (2 0 0)> */,
     0x00000033    /*  36 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-map#core.base> */,
     0x00000029    /*  38 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[10])) /* #<code-builder hashtable->alist (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[10])) /* #<code-builder hashtable->alist (1 0 0)> */,
     0x00000033    /*  40 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable->alist#core.base> */,
     0x00000029    /*  42 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[11])) /* #<code-builder unique-id-list? (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[11])) /* #<code-builder unique-id-list? (1 0 0)> */,
     0x00000033    /*  44 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier unique-id-list?#core.base> */,
     0x00000029    /*  46 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[12])) /* #<code-builder call-with-values (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[12])) /* #<code-builder call-with-values (2 0 0)> */,
     0x00000033    /*  48 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier call-with-values#core.base> */,
     0x00000029    /*  50 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[16])) /* #<code-builder er-macro-transformer (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[16])) /* #<code-builder er-macro-transformer (1 0 0)> */,
     0x00000033    /*  52 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier er-macro-transformer#core.base> */,
     0x00000029    /*  54 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[17])) /* #<code-builder safe-length (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[17])) /* #<code-builder safe-length (1 0 0)> */,
     0x00000033    /*  56 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier safe-length#core.base> */,
     0x00000029    /*  58 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[18])) /* #<code-builder print (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[18])) /* #<code-builder print (0 1 0)> */,
     0x00000033    /*  60 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier print#core.base> */,
     0x00000029    /*  62 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[19])) /* #<code-builder fold (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[19])) /* #<code-builder fold (3 1 0)> */,
     0x00000033    /*  64 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fold#core.base> */,
     0x00000029    /*  66 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[20])) /* #<code-builder wrong-type-argument-message (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[20])) /* #<code-builder wrong-type-argument-message (2 1 0)> */,
     0x00000033    /*  68 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier wrong-type-argument-message#core.base> */,
     0x00000029    /*  70 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[21])) /* #<code-builder vector-map (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[21])) /* #<code-builder vector-map (2 1 0)> */,
     0x00000033    /*  72 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier vector-map#core.base> */,
     0x00000029    /*  74 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[22])) /* #<code-builder vector-for-each (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[22])) /* #<code-builder vector-for-each (2 1 0)> */,
     0x00000033    /*  76 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier vector-for-each#core.base> */,
     0x00000029    /*  78 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[23])) /* #<code-builder string-for-each (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[23])) /* #<code-builder string-for-each (2 1 0)> */,
     0x00000033    /*  80 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-for-each#core.base> */,
     0x00000029    /*  82 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[24])) /* #<code-builder record-printer (1 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[24])) /* #<code-builder record-printer (1 1 0)> */,
     0x00000033    /*  84 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier record-printer#core.base> */,
     0x00000029    /*  86 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[31])) /* #<code-builder make-nested-conser (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[31])) /* #<code-builder make-nested-conser (3 0 0)> */,
     0x00000033    /*  88 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier make-nested-conser#core.base> */,
     0x00000029    /*  90 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[33])) /* #<code-builder make-simple-conser (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[33])) /* #<code-builder make-simple-conser (3 0 0)> */,
     0x00000033    /*  92 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier make-simple-conser#core.base> */,
     0x00000029    /*  94 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[36])) /* #<code-builder default-protocol (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[36])) /* #<code-builder default-protocol (1 0 0)> */,
     0x00000033    /*  96 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier default-protocol#core.base> */,
     0x00000029    /*  98 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[37])) /* #<code-builder null-list? (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[37])) /* #<code-builder null-list? (1 0 0)> */,
     0x00000033    /* 100 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier null-list?#core.base> */,
     0x00000029    /* 102 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[38])) /* #<code-builder split-at (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[38])) /* #<code-builder split-at (2 0 0)> */,
     0x00000033    /* 104 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier split-at#core.base> */,
     0x00000029    /* 106 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[39])) /* #<code-builder find (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[39])) /* #<code-builder find (2 0 0)> */,
     0x00000033    /* 108 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier find#core.base> */,
     0x00000029    /* 110 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[40])) /* #<code-builder find-tail (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[40])) /* #<code-builder find-tail (2 0 0)> */,
     0x00000033    /* 112 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier find-tail#core.base> */,
     0x00000029    /* 114 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[42])) /* #<code-builder assoc (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[42])) /* #<code-builder assoc (2 1 0)> */,
     0x00000033    /* 116 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier assoc#core.base> */,
     0x00000029    /* 118 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[44])) /* #<code-builder member (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[44])) /* #<code-builder member (2 1 0)> */,
     0x00000033    /* 120 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier member#core.base> */,
     0x00000029    /* 122 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[46])) /* #<code-builder delete (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[46])) /* #<code-builder delete (2 1 0)> */,
     0x00000033    /* 124 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier delete#core.base> */,
     0x00000029    /* 126 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[47])) /* #<code-builder reduce (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[47])) /* #<code-builder reduce (3 0 0)> */,
     0x00000033    /* 128 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier reduce#core.base> */,
     0x00000029    /* 130 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[51])) /* #<code-builder lset-union (1 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[51])) /* #<code-builder lset-union (1 1 0)> */,
     0x00000033    /* 132 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier lset-union#core.base> */,
     0x00000029    /* 134 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[54])) /* #<code-builder lset-intersection (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[54])) /* #<code-builder lset-intersection (2 1 0)> */,
     0x00000033    /* 136 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier lset-intersection#core.base> */,
     0x00000029    /* 138 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[57])) /* #<code-builder lset-difference (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[57])) /* #<code-builder lset-difference (2 1 0)> */,
     0x00000033    /* 140 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier lset-difference#core.base> */,
     0x00000029    /* 142 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[58])) /* #<code-builder take (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[58])) /* #<code-builder take (2 0 0)> */,
     0x00000033    /* 144 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier take#core.base> */,
     0x00000029    /* 146 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[59])) /* #<code-builder drop (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[59])) /* #<code-builder drop (2 0 0)> */,
     0x00000033    /* 148 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier drop#core.base> */,
     0x00000009    /* 150 GREF */,
@@ -4343,185 +4343,185 @@ static struct sg__rcRec {
     0x00000033    /* 152 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier list-head#core.base> */,
     0x00000029    /* 154 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[60])) /* #<code-builder char-ci=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[60])) /* #<code-builder char-ci=? (0 1 0)> */,
     0x00000033    /* 156 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier char-ci=?#core.base> */,
     0x00000029    /* 158 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[61])) /* #<code-builder char-ci<? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[61])) /* #<code-builder char-ci<? (0 1 0)> */,
     0x00000033    /* 160 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier char-ci<?#core.base> */,
     0x00000029    /* 162 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[62])) /* #<code-builder char-ci>? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[62])) /* #<code-builder char-ci>? (0 1 0)> */,
     0x00000033    /* 164 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier char-ci>?#core.base> */,
     0x00000029    /* 166 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[63])) /* #<code-builder char-ci<=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[63])) /* #<code-builder char-ci<=? (0 1 0)> */,
     0x00000033    /* 168 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier char-ci<=?#core.base> */,
     0x00000029    /* 170 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[64])) /* #<code-builder char-ci>=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[64])) /* #<code-builder char-ci>=? (0 1 0)> */,
     0x00000033    /* 172 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier char-ci>=?#core.base> */,
     0x00000029    /* 174 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[65])) /* #<code-builder string-ci=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[65])) /* #<code-builder string-ci=? (0 1 0)> */,
     0x00000033    /* 176 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-ci=?#core.base> */,
     0x00000029    /* 178 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[66])) /* #<code-builder string-ci<? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[66])) /* #<code-builder string-ci<? (0 1 0)> */,
     0x00000033    /* 180 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-ci<?#core.base> */,
     0x00000029    /* 182 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[67])) /* #<code-builder string-ci>? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[67])) /* #<code-builder string-ci>? (0 1 0)> */,
     0x00000033    /* 184 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-ci>?#core.base> */,
     0x00000029    /* 186 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[68])) /* #<code-builder string-ci<=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[68])) /* #<code-builder string-ci<=? (0 1 0)> */,
     0x00000033    /* 188 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-ci<=?#core.base> */,
     0x00000029    /* 190 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[69])) /* #<code-builder string-ci>=? (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[69])) /* #<code-builder string-ci>=? (0 1 0)> */,
     0x00000033    /* 192 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier string-ci>=?#core.base> */,
     0x00000029    /* 194 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[70])) /* #<code-builder bytevector-uint-ref (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[70])) /* #<code-builder bytevector-uint-ref (4 0 0)> */,
     0x00000033    /* 196 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector-uint-ref#core.base> */,
     0x00000029    /* 198 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[71])) /* #<code-builder bytevector-sint-ref (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[71])) /* #<code-builder bytevector-sint-ref (4 0 0)> */,
     0x00000033    /* 200 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector-sint-ref#core.base> */,
     0x00000029    /* 202 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[72])) /* #<code-builder bytevector-uint-set! (5 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[72])) /* #<code-builder bytevector-uint-set! (5 0 0)> */,
     0x00000033    /* 204 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector-uint-set!#core.base> */,
     0x00000029    /* 206 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[73])) /* #<code-builder bytevector-sint-set! (5 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[73])) /* #<code-builder bytevector-sint-set! (5 0 0)> */,
     0x00000033    /* 208 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector-sint-set!#core.base> */,
     0x00000029    /* 210 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[74])) /* #<code-builder bytevector->uint-list (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[74])) /* #<code-builder bytevector->uint-list (3 0 0)> */,
     0x00000033    /* 212 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector->uint-list#core.base> */,
     0x00000029    /* 214 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[75])) /* #<code-builder bytevector->sint-list (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[75])) /* #<code-builder bytevector->sint-list (3 0 0)> */,
     0x00000033    /* 216 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bytevector->sint-list#core.base> */,
     0x00000029    /* 218 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[76])) /* #<code-builder uint-list->bytevector (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[76])) /* #<code-builder uint-list->bytevector (3 0 0)> */,
     0x00000033    /* 220 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier uint-list->bytevector#core.base> */,
     0x00000029    /* 222 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[77])) /* #<code-builder sint-list->bytevector (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[77])) /* #<code-builder sint-list->bytevector (3 0 0)> */,
     0x00000033    /* 224 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier sint-list->bytevector#core.base> */,
     0x00000029    /* 226 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[80])) /* #<code-builder for-all (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[80])) /* #<code-builder for-all (2 1 0)> */,
     0x00000033    /* 228 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier for-all#core.base> */,
     0x00000029    /* 230 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[83])) /* #<code-builder exists (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[83])) /* #<code-builder exists (2 1 0)> */,
     0x00000033    /* 232 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier exists#core.base> */,
     0x00000029    /* 234 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[85])) /* #<code-builder filter (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[85])) /* #<code-builder filter (2 0 0)> */,
     0x00000033    /* 236 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier filter#core.base> */,
     0x00000029    /* 238 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[86])) /* #<code-builder partition (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[86])) /* #<code-builder partition (2 0 0)> */,
     0x00000033    /* 240 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier partition#core.base> */,
     0x00000029    /* 242 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[87])) /* #<code-builder map (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[87])) /* #<code-builder map (2 1 0)> */,
     0x00000033    /* 244 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier map#core.base> */,
     0x00000029    /* 246 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[88])) /* #<code-builder for-each (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[88])) /* #<code-builder for-each (2 1 0)> */,
     0x00000033    /* 248 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier for-each#core.base> */,
     0x00000029    /* 250 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[89])) /* #<code-builder fold-left (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[89])) /* #<code-builder fold-left (3 1 0)> */,
     0x00000033    /* 252 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fold-left#core.base> */,
     0x00000029    /* 254 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[90])) /* #<code-builder fold-right (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[90])) /* #<code-builder fold-right (3 1 0)> */,
     0x00000033    /* 256 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fold-right#core.base> */,
     0x00000029    /* 258 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[92])) /* #<code-builder remp (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[92])) /* #<code-builder remp (2 0 0)> */,
     0x00000033    /* 260 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier remp#core.base> */,
     0x00000029    /* 262 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[94])) /* #<code-builder remove (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[94])) /* #<code-builder remove (2 0 0)> */,
     0x00000033    /* 264 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier remove#core.base> */,
     0x00000029    /* 266 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[96])) /* #<code-builder remv (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[96])) /* #<code-builder remv (2 0 0)> */,
     0x00000033    /* 268 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier remv#core.base> */,
     0x00000029    /* 270 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[98])) /* #<code-builder remq (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[98])) /* #<code-builder remq (2 0 0)> */,
     0x00000033    /* 272 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier remq#core.base> */,
     0x00000029    /* 274 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[99])) /* #<code-builder memp (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[99])) /* #<code-builder memp (2 0 0)> */,
     0x00000033    /* 276 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier memp#core.base> */,
     0x00000029    /* 278 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[100])) /* #<code-builder assp (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[100])) /* #<code-builder assp (2 0 0)> */,
     0x00000033    /* 280 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier assp#core.base> */,
     0x00000029    /* 282 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[102])) /* #<code-builder list-sort (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[102])) /* #<code-builder list-sort (2 0 0)> */,
     0x00000033    /* 284 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier list-sort#core.base> */,
     0x00000029    /* 286 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[103])) /* #<code-builder vector-sort (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[103])) /* #<code-builder vector-sort (2 0 0)> */,
     0x00000033    /* 288 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier vector-sort#core.base> */,
     0x00000029    /* 290 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[105])) /* #<code-builder vector-sort! (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[105])) /* #<code-builder vector-sort! (2 0 0)> */,
     0x00000033    /* 292 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier vector-sort!#core.base> */,
     0x00000029    /* 294 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[106])) /* #<code-builder call-with-port (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[106])) /* #<code-builder call-with-port (2 0 0)> */,
     0x00000033    /* 296 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier call-with-port#core.base> */,
     0x00000029    /* 298 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[108])) /* #<code-builder open-bytevector-output-port (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[108])) /* #<code-builder open-bytevector-output-port (0 1 0)> */,
     0x00000033    /* 300 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier open-bytevector-output-port#core.base> */,
     0x00000029    /* 302 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[110])) /* #<code-builder open-string-output-port (0 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[110])) /* #<code-builder open-string-output-port (0 0 0)> */,
     0x00000033    /* 304 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier open-string-output-port#core.base> */,
     0x00000029    /* 306 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[111])) /* #<code-builder call-with-bytevector-output-port (1 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[111])) /* #<code-builder call-with-bytevector-output-port (1 1 0)> */,
     0x00000033    /* 308 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier call-with-bytevector-output-port#core.base> */,
     0x00000029    /* 310 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[112])) /* #<code-builder call-with-string-output-port (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[112])) /* #<code-builder call-with-string-output-port (1 0 0)> */,
     0x00000033    /* 312 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier call-with-string-output-port#core.base> */,
     0x00000029    /* 314 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[113])) /* #<code-builder hashtable-update! (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[113])) /* #<code-builder hashtable-update! (4 0 0)> */,
     0x00000033    /* 316 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-update!#core.base> */,
     0x00000029    /* 318 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[114])) /* #<code-builder hashtable-entries (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[114])) /* #<code-builder hashtable-entries (1 0 0)> */,
     0x00000033    /* 320 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-entries#core.base> */,
     0x00000029    /* 322 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[115])) /* #<code-builder hashtable-equivalence-function (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[115])) /* #<code-builder hashtable-equivalence-function (1 0 0)> */,
     0x00000033    /* 324 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-equivalence-function#core.base> */,
     0x00000029    /* 326 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d26[116])) /* #<code-builder hashtable-hash-function (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d29[116])) /* #<code-builder hashtable-hash-function (1 0 0)> */,
     0x00000033    /* 328 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier hashtable-hash-function#core.base> */,
     0x00000002    /* 330 UNDEF */,
     0x0000002f    /* 331 RET */,
   },
-  {  /* SgObject d25 */
+  {  /* SgObject d28 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -5105,1639 +5105,1639 @@ static struct sg__rcRec {
     SG_UNBOUND,
     SG_UNBOUND,
   },
-  {  /* SgCodeBuilder d26 */
+  {  /* SgCodeBuilder d29 */
     
     SG_STATIC_CODE_BUILDER( /* default-protocol */
-      (SgWord *)SG_OBJ(&sg__rc.d24[0]), SG_FALSE, 0, 1, 1, 8, 4),
+      (SgWord *)SG_OBJ(&sg__rc.d27[0]), SG_FALSE, 0, 1, 1, 8, 4),
     
     SG_STATIC_CODE_BUILDER( /* (default-protocol default-protocol) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[4]), SG_FALSE, 1, 0, 0, 7, 4),
+      (SgWord *)SG_OBJ(&sg__rc.d27[4]), SG_FALSE, 1, 0, 0, 7, 4),
     
     SG_STATIC_CODE_BUILDER( /* (take recur) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[8]), SG_FALSE, 2, 0, 0, 12, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d27[8]), SG_FALSE, 2, 0, 0, 12, 18),
     
     SG_STATIC_CODE_BUILDER( /* (for-all loop) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[26]), SG_FALSE, 1, 0, 0, 12, 25),
+      (SgWord *)SG_OBJ(&sg__rc.d27[26]), SG_FALSE, 1, 0, 0, 12, 25),
     
     SG_STATIC_CODE_BUILDER( /* (for-all collect-cdr) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[51]), SG_FALSE, 1, 0, 0, 9, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[51]), SG_FALSE, 1, 0, 0, 9, 11),
     
     SG_STATIC_CODE_BUILDER( /* (exists loop) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[62]), SG_FALSE, 1, 0, 0, 12, 25),
+      (SgWord *)SG_OBJ(&sg__rc.d27[62]), SG_FALSE, 1, 0, 0, 12, 25),
     
     SG_STATIC_CODE_BUILDER( /* (exists collect-cdr) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[87]), SG_FALSE, 1, 0, 0, 9, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[87]), SG_FALSE, 1, 0, 0, 9, 11),
     
     SG_STATIC_CODE_BUILDER( /* (list-sort merge-list!) */
-      (SgWord *)SG_OBJ(&sg__rc.d24[98]), SG_FALSE, 5, 0, 0, 21, 73),
+      (SgWord *)SG_OBJ(&sg__rc.d27[98]), SG_FALSE, 5, 0, 0, 21, 73),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-for-each */
-      (SgWord *)SG_OBJ(&sg__rc.d24[171]), SG_FALSE, 2, 0, 0, 12, 16),
+      (SgWord *)SG_OBJ(&sg__rc.d27[171]), SG_FALSE, 2, 0, 0, 12, 16),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-map */
-      (SgWord *)SG_OBJ(&sg__rc.d24[187]), SG_FALSE, 2, 0, 0, 12, 16),
+      (SgWord *)SG_OBJ(&sg__rc.d27[187]), SG_FALSE, 2, 0, 0, 12, 16),
     
     SG_STATIC_CODE_BUILDER( /* hashtable->alist */
-      (SgWord *)SG_OBJ(&sg__rc.d24[203]), SG_FALSE, 1, 0, 0, 9, 6),
+      (SgWord *)SG_OBJ(&sg__rc.d27[203]), SG_FALSE, 1, 0, 0, 9, 6),
     
     SG_STATIC_CODE_BUILDER( /* unique-id-list? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[209]), SG_FALSE, 1, 0, 0, 13, 39),
+      (SgWord *)SG_OBJ(&sg__rc.d27[209]), SG_FALSE, 1, 0, 0, 13, 39),
     
     SG_STATIC_CODE_BUILDER( /* call-with-values */
-      (SgWord *)SG_OBJ(&sg__rc.d24[248]), SG_FALSE, 2, 0, 0, 10, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d27[248]), SG_FALSE, 2, 0, 0, 10, 9),
     
     SG_STATIC_CODE_BUILDER( /* rename */
-      (SgWord *)SG_OBJ(&sg__rc.d24[257]), SG_FALSE, 1, 0, 2, 10, 6),
+      (SgWord *)SG_OBJ(&sg__rc.d27[257]), SG_FALSE, 1, 0, 2, 10, 6),
     
     SG_STATIC_CODE_BUILDER( /* compare */
-      (SgWord *)SG_OBJ(&sg__rc.d24[263]), SG_FALSE, 2, 0, 2, 16, 36),
+      (SgWord *)SG_OBJ(&sg__rc.d27[263]), SG_FALSE, 2, 0, 2, 16, 36),
     
     SG_STATIC_CODE_BUILDER( /* er-macro-transformer */
-      (SgWord *)SG_OBJ(&sg__rc.d24[299]), SG_FALSE, 1, 0, 1, 18, 41),
+      (SgWord *)SG_OBJ(&sg__rc.d27[299]), SG_FALSE, 1, 0, 1, 18, 41),
     
     SG_STATIC_CODE_BUILDER( /* er-macro-transformer */
-      (SgWord *)SG_OBJ(&sg__rc.d24[340]), SG_FALSE, 1, 0, 0, 7, 4),
+      (SgWord *)SG_OBJ(&sg__rc.d27[340]), SG_FALSE, 1, 0, 0, 7, 4),
     
     SG_STATIC_CODE_BUILDER( /* safe-length */
-      (SgWord *)SG_OBJ(&sg__rc.d24[344]), SG_FALSE, 1, 0, 0, 12, 25),
+      (SgWord *)SG_OBJ(&sg__rc.d27[344]), SG_FALSE, 1, 0, 0, 12, 25),
     
     SG_STATIC_CODE_BUILDER( /* print */
-      (SgWord *)SG_OBJ(&sg__rc.d24[369]), SG_FALSE, 0, 1, 0, 9, 10),
+      (SgWord *)SG_OBJ(&sg__rc.d27[369]), SG_FALSE, 0, 1, 0, 9, 10),
     
     SG_STATIC_CODE_BUILDER( /* fold */
-      (SgWord *)SG_OBJ(&sg__rc.d24[379]), SG_FALSE, 3, 1, 0, 31, 50),
+      (SgWord *)SG_OBJ(&sg__rc.d27[379]), SG_FALSE, 3, 1, 0, 31, 50),
     
     SG_STATIC_CODE_BUILDER( /* wrong-type-argument-message */
-      (SgWord *)SG_OBJ(&sg__rc.d24[429]), SG_FALSE, 2, 1, 0, 17, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d27[429]), SG_FALSE, 2, 1, 0, 17, 18),
     
     SG_STATIC_CODE_BUILDER( /* vector-map */
-      (SgWord *)SG_OBJ(&sg__rc.d24[447]), SG_FALSE, 2, 1, 0, 21, 23),
+      (SgWord *)SG_OBJ(&sg__rc.d27[447]), SG_FALSE, 2, 1, 0, 21, 23),
     
     SG_STATIC_CODE_BUILDER( /* vector-for-each */
-      (SgWord *)SG_OBJ(&sg__rc.d24[470]), SG_FALSE, 2, 1, 0, 14, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d27[470]), SG_FALSE, 2, 1, 0, 14, 18),
     
     SG_STATIC_CODE_BUILDER( /* string-for-each */
-      (SgWord *)SG_OBJ(&sg__rc.d24[488]), SG_FALSE, 2, 1, 0, 14, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d27[488]), SG_FALSE, 2, 1, 0, 14, 18),
     
     SG_STATIC_CODE_BUILDER( /* record-printer */
-      (SgWord *)SG_OBJ(&sg__rc.d24[506]), SG_FALSE, 1, 1, 0, 31, 96),
+      (SgWord *)SG_OBJ(&sg__rc.d27[506]), SG_FALSE, 1, 1, 0, 31, 96),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[602]), SG_FALSE, 0, 1, 5, 17, 26),
+      (SgWord *)SG_OBJ(&sg__rc.d27[602]), SG_FALSE, 0, 1, 5, 17, 26),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[628]), SG_FALSE, 0, 1, 4, 7, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d27[628]), SG_FALSE, 0, 1, 4, 7, 8),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[636]), SG_FALSE, 0, 1, 3, 7, 7),
+      (SgWord *)SG_OBJ(&sg__rc.d27[636]), SG_FALSE, 0, 1, 3, 7, 7),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[643]), SG_FALSE, 0, 1, 3, 21, 49),
+      (SgWord *)SG_OBJ(&sg__rc.d27[643]), SG_FALSE, 0, 1, 3, 21, 49),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[692]), SG_FALSE, 0, 1, 2, 7, 6),
+      (SgWord *)SG_OBJ(&sg__rc.d27[692]), SG_FALSE, 0, 1, 2, 7, 6),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[698]), SG_FALSE, 1, 0, 3, 12, 21),
+      (SgWord *)SG_OBJ(&sg__rc.d27[698]), SG_FALSE, 1, 0, 3, 12, 21),
     
     SG_STATIC_CODE_BUILDER( /* make-nested-conser */
-      (SgWord *)SG_OBJ(&sg__rc.d24[719]), SG_FALSE, 3, 0, 0, 13, 27),
+      (SgWord *)SG_OBJ(&sg__rc.d27[719]), SG_FALSE, 3, 0, 0, 13, 27),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[746]), SG_FALSE, 0, 1, 2, 18, 45),
+      (SgWord *)SG_OBJ(&sg__rc.d27[746]), SG_FALSE, 0, 1, 2, 18, 45),
     
     SG_STATIC_CODE_BUILDER( /* make-simple-conser */
-      (SgWord *)SG_OBJ(&sg__rc.d24[791]), SG_FALSE, 3, 0, 0, 11, 12),
+      (SgWord *)SG_OBJ(&sg__rc.d27[791]), SG_FALSE, 3, 0, 0, 11, 12),
     
     SG_STATIC_CODE_BUILDER( /* default-protocol */
-      (SgWord *)SG_OBJ(&sg__rc.d24[803]), SG_FALSE, 0, 1, 2, 18, 16),
+      (SgWord *)SG_OBJ(&sg__rc.d27[803]), SG_FALSE, 0, 1, 2, 18, 16),
     
     SG_STATIC_CODE_BUILDER( /* default-protocol */
-      (SgWord *)SG_OBJ(&sg__rc.d24[819]), SG_FALSE, 1, 0, 1, 7, 5),
+      (SgWord *)SG_OBJ(&sg__rc.d27[819]), SG_FALSE, 1, 0, 1, 7, 5),
     
     SG_STATIC_CODE_BUILDER( /* default-protocol */
-      (SgWord *)SG_OBJ(&sg__rc.d24[824]), SG_FALSE, 1, 0, 0, 13, 22),
+      (SgWord *)SG_OBJ(&sg__rc.d27[824]), SG_FALSE, 1, 0, 0, 13, 22),
     
     SG_STATIC_CODE_BUILDER( /* null-list? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[846]), SG_FALSE, 1, 0, 0, 11, 19),
+      (SgWord *)SG_OBJ(&sg__rc.d27[846]), SG_FALSE, 1, 0, 0, 11, 19),
     
     SG_STATIC_CODE_BUILDER( /* split-at */
-      (SgWord *)SG_OBJ(&sg__rc.d24[865]), SG_FALSE, 2, 0, 0, 20, 62),
+      (SgWord *)SG_OBJ(&sg__rc.d27[865]), SG_FALSE, 2, 0, 0, 20, 62),
     
     SG_STATIC_CODE_BUILDER( /* find */
-      (SgWord *)SG_OBJ(&sg__rc.d24[927]), SG_FALSE, 2, 0, 0, 12, 12),
+      (SgWord *)SG_OBJ(&sg__rc.d27[927]), SG_FALSE, 2, 0, 0, 12, 12),
     
     SG_STATIC_CODE_BUILDER( /* find-tail */
-      (SgWord *)SG_OBJ(&sg__rc.d24[939]), SG_FALSE, 2, 0, 0, 14, 44),
+      (SgWord *)SG_OBJ(&sg__rc.d27[939]), SG_FALSE, 2, 0, 0, 14, 44),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[983]), SG_FALSE, 1, 0, 2, 9, 5),
+      (SgWord *)SG_OBJ(&sg__rc.d27[983]), SG_FALSE, 1, 0, 2, 9, 5),
     
     SG_STATIC_CODE_BUILDER( /* assoc */
-      (SgWord *)SG_OBJ(&sg__rc.d24[988]), SG_FALSE, 2, 1, 0, 15, 43),
+      (SgWord *)SG_OBJ(&sg__rc.d27[988]), SG_FALSE, 2, 1, 0, 15, 43),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1031]), SG_FALSE, 1, 0, 2, 9, 5),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1031]), SG_FALSE, 1, 0, 2, 9, 5),
     
     SG_STATIC_CODE_BUILDER( /* member */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1036]), SG_FALSE, 2, 1, 0, 15, 19),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1036]), SG_FALSE, 2, 1, 0, 15, 19),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1055]), SG_FALSE, 1, 0, 2, 9, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1055]), SG_FALSE, 1, 0, 2, 9, 8),
     
     SG_STATIC_CODE_BUILDER( /* delete */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1063]), SG_FALSE, 2, 1, 0, 15, 19),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1063]), SG_FALSE, 2, 1, 0, 15, 19),
     
     SG_STATIC_CODE_BUILDER( /* reduce */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1082]), SG_FALSE, 3, 0, 0, 15, 36),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1082]), SG_FALSE, 3, 0, 0, 15, 36),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1118]), SG_FALSE, 1, 0, 2, 9, 5),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1118]), SG_FALSE, 1, 0, 2, 9, 5),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1123]), SG_FALSE, 2, 0, 1, 11, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1123]), SG_FALSE, 2, 0, 1, 11, 18),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1141]), SG_FALSE, 2, 0, 1, 14, 25),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1141]), SG_FALSE, 2, 0, 1, 14, 25),
     
     SG_STATIC_CODE_BUILDER( /* lset-union */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1166]), SG_FALSE, 1, 1, 0, 14, 34),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1166]), SG_FALSE, 1, 1, 0, 14, 34),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1200]), SG_FALSE, 1, 0, 2, 10, 6),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1200]), SG_FALSE, 1, 0, 2, 10, 6),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1206]), SG_FALSE, 1, 0, 2, 9, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1206]), SG_FALSE, 1, 0, 2, 9, 9),
     
     SG_STATIC_CODE_BUILDER( /* lset-intersection */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1215]), SG_FALSE, 2, 1, 0, 19, 58),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1215]), SG_FALSE, 2, 1, 0, 19, 58),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1273]), SG_FALSE, 1, 0, 2, 10, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1273]), SG_FALSE, 1, 0, 2, 10, 9),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1282]), SG_FALSE, 1, 0, 2, 9, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1282]), SG_FALSE, 1, 0, 2, 9, 9),
     
     SG_STATIC_CODE_BUILDER( /* lset-difference */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1291]), SG_FALSE, 2, 1, 0, 18, 56),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1291]), SG_FALSE, 2, 1, 0, 18, 56),
     
     SG_STATIC_CODE_BUILDER( /* take */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1347]), SG_FALSE, 2, 0, 0, 14, 36),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1347]), SG_FALSE, 2, 0, 0, 14, 36),
     
     SG_STATIC_CODE_BUILDER( /* drop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1383]), SG_FALSE, 2, 0, 0, 14, 40),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1383]), SG_FALSE, 2, 0, 0, 14, 40),
     
     SG_STATIC_CODE_BUILDER( /* char-ci=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1423]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1423]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* char-ci<? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1434]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1434]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* char-ci>? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1445]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1445]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* char-ci<=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1456]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1456]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* char-ci>=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1467]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1467]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* string-ci=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1478]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1478]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* string-ci<? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1489]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1489]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* string-ci>? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1500]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1500]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* string-ci<=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1511]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1511]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* string-ci>=? */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1522]), SG_FALSE, 0, 1, 0, 10, 11),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1522]), SG_FALSE, 0, 1, 0, 10, 11),
     
     SG_STATIC_CODE_BUILDER( /* bytevector-uint-ref */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1533]), SG_FALSE, 4, 0, 0, 37, 91),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1533]), SG_FALSE, 4, 0, 0, 37, 91),
     
     SG_STATIC_CODE_BUILDER( /* bytevector-sint-ref */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1624]), SG_FALSE, 4, 0, 0, 39, 101),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1624]), SG_FALSE, 4, 0, 0, 39, 101),
     
     SG_STATIC_CODE_BUILDER( /* bytevector-uint-set! */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1725]), SG_FALSE, 5, 0, 0, 56, 181),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1725]), SG_FALSE, 5, 0, 0, 56, 181),
     
     SG_STATIC_CODE_BUILDER( /* bytevector-sint-set! */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1906]), SG_FALSE, 5, 0, 0, 40, 84),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1906]), SG_FALSE, 5, 0, 0, 40, 84),
     
     SG_STATIC_CODE_BUILDER( /* bytevector->uint-list */
-      (SgWord *)SG_OBJ(&sg__rc.d24[1990]), SG_FALSE, 3, 0, 0, 24, 59),
+      (SgWord *)SG_OBJ(&sg__rc.d27[1990]), SG_FALSE, 3, 0, 0, 24, 59),
     
     SG_STATIC_CODE_BUILDER( /* bytevector->sint-list */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2049]), SG_FALSE, 3, 0, 0, 24, 59),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2049]), SG_FALSE, 3, 0, 0, 24, 59),
     
     SG_STATIC_CODE_BUILDER( /* uint-list->bytevector */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2108]), SG_FALSE, 3, 0, 0, 22, 38),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2108]), SG_FALSE, 3, 0, 0, 22, 38),
     
     SG_STATIC_CODE_BUILDER( /* sint-list->bytevector */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2146]), SG_FALSE, 3, 0, 0, 22, 38),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2146]), SG_FALSE, 3, 0, 0, 22, 38),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2184]), SG_FALSE, 1, 0, 2, 14, 34),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2184]), SG_FALSE, 1, 0, 2, 14, 34),
     
     SG_STATIC_CODE_BUILDER( /* collect-car */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2218]), SG_FALSE, 1, 0, 1, 9, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2218]), SG_FALSE, 1, 0, 1, 9, 13),
     
     SG_STATIC_CODE_BUILDER( /* for-all */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2231]), SG_FALSE, 2, 1, 0, 83, 210),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2231]), SG_FALSE, 2, 1, 0, 83, 210),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2441]), SG_FALSE, 1, 0, 2, 14, 34),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2441]), SG_FALSE, 1, 0, 2, 14, 34),
     
     SG_STATIC_CODE_BUILDER( /* collect-car */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2475]), SG_FALSE, 1, 0, 1, 9, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2475]), SG_FALSE, 1, 0, 1, 9, 13),
     
     SG_STATIC_CODE_BUILDER( /* exists */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2488]), SG_FALSE, 2, 1, 0, 81, 206),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2488]), SG_FALSE, 2, 1, 0, 81, 206),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2694]), SG_FALSE, 1, 0, 2, 12, 26),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2694]), SG_FALSE, 1, 0, 2, 12, 26),
     
     SG_STATIC_CODE_BUILDER( /* filter */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2720]), SG_FALSE, 2, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2720]), SG_FALSE, 2, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* partition */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2733]), SG_FALSE, 2, 0, 0, 22, 46),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2733]), SG_FALSE, 2, 0, 0, 22, 46),
     
     SG_STATIC_CODE_BUILDER( /* map */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2779]), SG_FALSE, 2, 1, 0, 40, 102),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2779]), SG_FALSE, 2, 1, 0, 40, 102),
     
     SG_STATIC_CODE_BUILDER( /* for-each */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2881]), SG_FALSE, 2, 1, 0, 32, 90),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2881]), SG_FALSE, 2, 1, 0, 32, 90),
     
     SG_STATIC_CODE_BUILDER( /* fold-left */
-      (SgWord *)SG_OBJ(&sg__rc.d24[2971]), SG_FALSE, 3, 1, 0, 31, 48),
+      (SgWord *)SG_OBJ(&sg__rc.d27[2971]), SG_FALSE, 3, 1, 0, 31, 48),
     
     SG_STATIC_CODE_BUILDER( /* fold-right */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3019]), SG_FALSE, 3, 1, 0, 32, 64),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3019]), SG_FALSE, 3, 1, 0, 32, 64),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3083]), SG_FALSE, 1, 0, 2, 12, 26),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3083]), SG_FALSE, 1, 0, 2, 12, 26),
     
     SG_STATIC_CODE_BUILDER( /* remp */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3109]), SG_FALSE, 2, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3109]), SG_FALSE, 2, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3122]), SG_FALSE, 1, 0, 2, 13, 27),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3122]), SG_FALSE, 1, 0, 2, 13, 27),
     
     SG_STATIC_CODE_BUILDER( /* remove */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3149]), SG_FALSE, 2, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3149]), SG_FALSE, 2, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3162]), SG_FALSE, 1, 0, 2, 12, 23),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3162]), SG_FALSE, 1, 0, 2, 12, 23),
     
     SG_STATIC_CODE_BUILDER( /* remv */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3185]), SG_FALSE, 2, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3185]), SG_FALSE, 2, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* loop */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3198]), SG_FALSE, 1, 0, 2, 12, 23),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3198]), SG_FALSE, 1, 0, 2, 12, 23),
     
     SG_STATIC_CODE_BUILDER( /* remq */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3221]), SG_FALSE, 2, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3221]), SG_FALSE, 2, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* memp */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3234]), SG_FALSE, 2, 0, 0, 12, 19),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3234]), SG_FALSE, 2, 0, 0, 12, 19),
     
     SG_STATIC_CODE_BUILDER( /* assp */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3253]), SG_FALSE, 2, 0, 0, 12, 21),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3253]), SG_FALSE, 2, 0, 0, 12, 21),
     
     SG_STATIC_CODE_BUILDER( /* recur */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3274]), SG_FALSE, 2, 0, 3, 69, 156),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3274]), SG_FALSE, 2, 0, 3, 69, 156),
     
     SG_STATIC_CODE_BUILDER( /* list-sort */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3430]), SG_FALSE, 2, 0, 0, 45, 128),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3430]), SG_FALSE, 2, 0, 0, 45, 128),
     
     SG_STATIC_CODE_BUILDER( /* vector-sort */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3558]), SG_FALSE, 2, 0, 0, 17, 23),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3558]), SG_FALSE, 2, 0, 0, 17, 23),
     
     SG_STATIC_CODE_BUILDER( /* sort! */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3581]), SG_FALSE, 2, 0, 4, 57, 215),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3581]), SG_FALSE, 2, 0, 4, 57, 215),
     
     SG_STATIC_CODE_BUILDER( /* vector-sort! */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3796]), SG_FALSE, 2, 0, 0, 18, 34),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3796]), SG_FALSE, 2, 0, 0, 18, 34),
     
     SG_STATIC_CODE_BUILDER( /* call-with-port */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3830]), SG_FALSE, 2, 0, 0, 11, 16),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3830]), SG_FALSE, 2, 0, 0, 11, 16),
     
     SG_STATIC_CODE_BUILDER( /* proc */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3846]), SG_FALSE, 0, 0, 1, 7, 4),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3846]), SG_FALSE, 0, 0, 1, 7, 4),
     
     SG_STATIC_CODE_BUILDER( /* open-bytevector-output-port */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3850]), SG_FALSE, 0, 1, 0, 16, 55),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3850]), SG_FALSE, 0, 1, 0, 16, 55),
     
     SG_STATIC_CODE_BUILDER( /* proc */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3905]), SG_FALSE, 0, 0, 1, 7, 4),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3905]), SG_FALSE, 0, 0, 1, 7, 4),
     
     SG_STATIC_CODE_BUILDER( /* open-string-output-port */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3909]), SG_FALSE, 0, 0, 0, 11, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3909]), SG_FALSE, 0, 0, 0, 11, 13),
     
     SG_STATIC_CODE_BUILDER( /* call-with-bytevector-output-port */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3922]), SG_FALSE, 1, 1, 0, 18, 15),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3922]), SG_FALSE, 1, 1, 0, 18, 15),
     
     SG_STATIC_CODE_BUILDER( /* call-with-string-output-port */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3937]), SG_FALSE, 1, 0, 0, 10, 13),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3937]), SG_FALSE, 1, 0, 0, 10, 13),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-update! */
-      (SgWord *)SG_OBJ(&sg__rc.d24[3950]), SG_FALSE, 4, 0, 0, 17, 53),
+      (SgWord *)SG_OBJ(&sg__rc.d27[3950]), SG_FALSE, 4, 0, 0, 17, 53),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-entries */
-      (SgWord *)SG_OBJ(&sg__rc.d24[4003]), SG_FALSE, 1, 0, 0, 12, 36),
+      (SgWord *)SG_OBJ(&sg__rc.d27[4003]), SG_FALSE, 1, 0, 0, 12, 36),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-equivalence-function */
-      (SgWord *)SG_OBJ(&sg__rc.d24[4039]), SG_FALSE, 1, 0, 0, 16, 72),
+      (SgWord *)SG_OBJ(&sg__rc.d27[4039]), SG_FALSE, 1, 0, 0, 16, 72),
     
     SG_STATIC_CODE_BUILDER( /* hashtable-hash-function */
-      (SgWord *)SG_OBJ(&sg__rc.d24[4111]), SG_FALSE, 1, 0, 0, 16, 70),
+      (SgWord *)SG_OBJ(&sg__rc.d27[4111]), SG_FALSE, 1, 0, 0, 16, 70),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d24[4181]), SG_FALSE, 0, 0, 0, 0, 332),
+      (SgWord *)SG_OBJ(&sg__rc.d27[4181]), SG_FALSE, 0, 0, 0, 0, 332),
   },
 };
 static SgCodeBuilder *toplevel = 
-   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[117]));
+   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[117]));
 void Sg__Init_core_base() {
   SgObject save = Sg_VM()->currentLibrary;
   SgObject h = SG_NIL, t = SG_NIL; /* for exports */ 
 
-  sg__rc.d25[1] = SG_MAKE_STRING("default-protocol");
-  sg__rc.d25[0] = Sg_Intern(sg__rc.d25[1]); /* default-protocol */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[0]))->name = sg__rc.d25[0];/* default-protocol */
-  sg__rc.d25[3] = SG_MAKE_STRING("(default-protocol default-protocol)");
-  sg__rc.d25[2] = Sg_Intern(sg__rc.d25[3]); /* (default-protocol default-protocol) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[1]))->name = sg__rc.d25[2];/* (default-protocol default-protocol) */
-  sg__rc.d25[6] = SG_MAKE_STRING("G23");
-  sg__rc.d25[5] = Sg_Intern(sg__rc.d25[6]); /* G23 */
-  sg__rc.d25[9] = SG_MAKE_STRING("(core base)");
-  sg__rc.d25[8] = Sg_Intern(sg__rc.d25[9]); /* (core base) */
-  sg__rc.d25[7] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d25[8]), TRUE);
-  sg__rc.d25[4] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[5]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[12] = SG_MAKE_STRING("G22");
-  sg__rc.d25[11] = Sg_Intern(sg__rc.d25[12]); /* G22 */
-  sg__rc.d25[10] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[11]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[14] = SG_MAKE_STRING("(take recur)");
-  sg__rc.d25[13] = Sg_Intern(sg__rc.d25[14]); /* (take recur) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[2]))->name = sg__rc.d25[13];/* (take recur) */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[8]))[14] = SG_WORD(sg__rc.d25[10]);
-  sg__rc.d25[17] = SG_MAKE_STRING("G21");
-  sg__rc.d25[16] = Sg_Intern(sg__rc.d25[17]); /* G21 */
-  sg__rc.d25[15] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[16]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[19] = SG_MAKE_STRING("(for-all loop)");
-  sg__rc.d25[18] = Sg_Intern(sg__rc.d25[19]); /* (for-all loop) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[3]))->name = sg__rc.d25[18];/* (for-all loop) */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[26]))[11] = SG_WORD(sg__rc.d25[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[26]))[21] = SG_WORD(sg__rc.d25[15]);
-  sg__rc.d25[21] = SG_MAKE_STRING("(for-all collect-cdr)");
-  sg__rc.d25[20] = Sg_Intern(sg__rc.d25[21]); /* (for-all collect-cdr) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[4]))->name = sg__rc.d25[20];/* (for-all collect-cdr) */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[51]))[4] = SG_WORD(sg__rc.d25[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[51]))[8] = SG_WORD(sg__rc.d25[15]);
-  sg__rc.d25[24] = SG_MAKE_STRING("G20");
-  sg__rc.d25[23] = Sg_Intern(sg__rc.d25[24]); /* G20 */
-  sg__rc.d25[22] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[23]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[27] = SG_MAKE_STRING("G19");
-  sg__rc.d25[26] = Sg_Intern(sg__rc.d25[27]); /* G19 */
-  sg__rc.d25[25] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[26]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[29] = SG_MAKE_STRING("(exists loop)");
-  sg__rc.d25[28] = Sg_Intern(sg__rc.d25[29]); /* (exists loop) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[5]))->name = sg__rc.d25[28];/* (exists loop) */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[62]))[11] = SG_WORD(sg__rc.d25[25]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[62]))[21] = SG_WORD(sg__rc.d25[25]);
-  sg__rc.d25[31] = SG_MAKE_STRING("(exists collect-cdr)");
-  sg__rc.d25[30] = Sg_Intern(sg__rc.d25[31]); /* (exists collect-cdr) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[6]))->name = sg__rc.d25[30];/* (exists collect-cdr) */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[87]))[4] = SG_WORD(sg__rc.d25[25]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[87]))[8] = SG_WORD(sg__rc.d25[25]);
-  sg__rc.d25[34] = SG_MAKE_STRING("G18");
-  sg__rc.d25[33] = Sg_Intern(sg__rc.d25[34]); /* G18 */
-  sg__rc.d25[32] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[33]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[36] = SG_MAKE_STRING("(list-sort merge-list!)");
-  sg__rc.d25[35] = Sg_Intern(sg__rc.d25[36]); /* (list-sort merge-list!) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[7]))->name = sg__rc.d25[35];/* (list-sort merge-list!) */
-  sg__rc.d25[39] = SG_MAKE_STRING("G17");
-  sg__rc.d25[38] = Sg_Intern(sg__rc.d25[39]); /* G17 */
-  sg__rc.d25[37] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[38]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[42] = SG_MAKE_STRING("hashtable-keys-list");
-  sg__rc.d25[41] = Sg_Intern(sg__rc.d25[42]); /* hashtable-keys-list */
-  sg__rc.d25[40] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[41]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[45] = SG_MAKE_STRING("hashtable-values-list");
-  sg__rc.d25[44] = Sg_Intern(sg__rc.d25[45]); /* hashtable-values-list */
-  sg__rc.d25[43] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[44]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[48] = SG_MAKE_STRING("for-each");
-  sg__rc.d25[47] = Sg_Intern(sg__rc.d25[48]); /* for-each */
-  sg__rc.d25[46] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[47]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[50] = SG_MAKE_STRING("hashtable-for-each");
-  sg__rc.d25[49] = Sg_Intern(sg__rc.d25[50]); /* hashtable-for-each */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[8]))->name = sg__rc.d25[49];/* hashtable-for-each */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[171]))[5] = SG_WORD(sg__rc.d25[40]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[171]))[11] = SG_WORD(sg__rc.d25[43]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[171]))[14] = SG_WORD(sg__rc.d25[46]);
-  sg__rc.d25[51] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[49]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[54] = SG_MAKE_STRING("map");
-  sg__rc.d25[53] = Sg_Intern(sg__rc.d25[54]); /* map */
-  sg__rc.d25[52] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[53]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[56] = SG_MAKE_STRING("hashtable-map");
-  sg__rc.d25[55] = Sg_Intern(sg__rc.d25[56]); /* hashtable-map */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[9]))->name = sg__rc.d25[55];/* hashtable-map */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[187]))[5] = SG_WORD(sg__rc.d25[40]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[187]))[11] = SG_WORD(sg__rc.d25[43]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[187]))[14] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[57] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[55]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[60] = SG_MAKE_STRING("cons");
-  sg__rc.d25[59] = Sg_Intern(sg__rc.d25[60]); /* cons */
-  sg__rc.d25[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[59]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[62] = SG_MAKE_STRING("hashtable->alist");
-  sg__rc.d25[61] = Sg_Intern(sg__rc.d25[62]); /* hashtable->alist */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[10]))->name = sg__rc.d25[61];/* hashtable->alist */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[203]))[1] = SG_WORD(sg__rc.d25[58]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[203]))[4] = SG_WORD(sg__rc.d25[57]);
-  sg__rc.d25[63] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[61]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[66] = SG_MAKE_STRING("list?");
-  sg__rc.d25[65] = Sg_Intern(sg__rc.d25[66]); /* list? */
-  sg__rc.d25[64] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[65]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[69] = SG_MAKE_STRING("variable?");
-  sg__rc.d25[68] = Sg_Intern(sg__rc.d25[69]); /* variable? */
-  sg__rc.d25[67] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[68]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[72] = SG_MAKE_STRING("id-memq");
-  sg__rc.d25[71] = Sg_Intern(sg__rc.d25[72]); /* id-memq */
-  sg__rc.d25[70] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[71]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[74] = SG_MAKE_STRING("unique-id-list?");
-  sg__rc.d25[73] = Sg_Intern(sg__rc.d25[74]); /* unique-id-list? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[11]))->name = sg__rc.d25[73];/* unique-id-list? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[209]))[4] = SG_WORD(sg__rc.d25[64]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[209]))[16] = SG_WORD(sg__rc.d25[67]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[209]))[27] = SG_WORD(sg__rc.d25[70]);
-  sg__rc.d25[75] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[73]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[77] = SG_MAKE_STRING("call-with-values");
-  sg__rc.d25[76] = Sg_Intern(sg__rc.d25[77]); /* call-with-values */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[12]))->name = sg__rc.d25[76];/* call-with-values */
-  sg__rc.d25[78] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[76]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[81] = SG_MAKE_STRING("make-eq-hashtable");
-  sg__rc.d25[80] = Sg_Intern(sg__rc.d25[81]); /* make-eq-hashtable */
-  sg__rc.d25[79] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[80]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[84] = SG_MAKE_STRING("current-usage-env");
-  sg__rc.d25[83] = Sg_Intern(sg__rc.d25[84]); /* current-usage-env */
-  sg__rc.d25[82] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[83]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[87] = SG_MAKE_STRING("current-macro-env");
-  sg__rc.d25[86] = Sg_Intern(sg__rc.d25[87]); /* current-macro-env */
-  sg__rc.d25[85] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[86]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[90] = SG_MAKE_STRING("er-rename");
-  sg__rc.d25[89] = Sg_Intern(sg__rc.d25[90]); /* er-rename */
-  sg__rc.d25[88] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[89]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[92] = SG_MAKE_STRING("rename");
-  sg__rc.d25[91] = Sg_Intern(sg__rc.d25[92]); /* rename */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[13]))->name = sg__rc.d25[91];/* rename */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[257]))[4] = SG_WORD(sg__rc.d25[88]);
-  sg__rc.d25[95] = SG_MAKE_STRING("identifier?");
-  sg__rc.d25[94] = Sg_Intern(sg__rc.d25[95]); /* identifier? */
-  sg__rc.d25[93] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[94]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[98] = SG_MAKE_STRING("free-identifier=?");
-  sg__rc.d25[97] = Sg_Intern(sg__rc.d25[98]); /* free-identifier=? */
-  sg__rc.d25[96] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[97]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[101] = SG_MAKE_STRING("identifier=?");
-  sg__rc.d25[100] = Sg_Intern(sg__rc.d25[101]); /* identifier=? */
-  sg__rc.d25[99] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[100]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[103] = SG_MAKE_STRING("compare");
-  sg__rc.d25[102] = Sg_Intern(sg__rc.d25[103]); /* compare */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[14]))->name = sg__rc.d25[102];/* compare */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[263]))[4] = SG_WORD(sg__rc.d25[93]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[263]))[11] = SG_WORD(sg__rc.d25[93]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[263]))[19] = SG_WORD(sg__rc.d25[96]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[263]))[28] = SG_WORD(sg__rc.d25[99]);
-  sg__rc.d25[105] = SG_MAKE_STRING("er-macro-transformer");
-  sg__rc.d25[104] = Sg_Intern(sg__rc.d25[105]); /* er-macro-transformer */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[15]))->name = sg__rc.d25[104];/* er-macro-transformer */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[299]))[3] = SG_WORD(sg__rc.d25[79]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[299]))[8] = SG_WORD(sg__rc.d25[82]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[299]))[13] = SG_WORD(sg__rc.d25[85]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[16]))->name = sg__rc.d25[104];/* er-macro-transformer */
-  sg__rc.d25[106] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[104]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[108] = SG_MAKE_STRING("safe-length");
-  sg__rc.d25[107] = Sg_Intern(sg__rc.d25[108]); /* safe-length */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[17]))->name = sg__rc.d25[107];/* safe-length */
-  sg__rc.d25[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[107]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[112] = SG_MAKE_STRING("display");
-  sg__rc.d25[111] = Sg_Intern(sg__rc.d25[112]); /* display */
-  sg__rc.d25[110] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[111]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[115] = SG_MAKE_STRING("newline");
-  sg__rc.d25[114] = Sg_Intern(sg__rc.d25[115]); /* newline */
-  sg__rc.d25[113] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[114]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[117] = SG_MAKE_STRING("print");
-  sg__rc.d25[116] = Sg_Intern(sg__rc.d25[117]); /* print */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[18]))->name = sg__rc.d25[116];/* print */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[369]))[3] = SG_WORD(sg__rc.d25[110]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[369]))[6] = SG_WORD(sg__rc.d25[46]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[369]))[8] = SG_WORD(sg__rc.d25[113]);
-  sg__rc.d25[118] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[116]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[121] = SG_MAKE_STRING("list-transpose*");
-  sg__rc.d25[120] = Sg_Intern(sg__rc.d25[121]); /* list-transpose* */
-  sg__rc.d25[119] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[120]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[123] = SG_MAKE_STRING("fold");
-  sg__rc.d25[122] = Sg_Intern(sg__rc.d25[123]); /* fold */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[19]))->name = sg__rc.d25[122];/* fold */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[379]))[25] = SG_WORD(sg__rc.d25[119]);
-  sg__rc.d25[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[122]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[125] = SG_MAKE_STRING("expected ~a, but got ~a");
-  sg__rc.d25[128] = SG_MAKE_STRING("format");
-  sg__rc.d25[127] = Sg_Intern(sg__rc.d25[128]); /* format */
-  sg__rc.d25[126] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[127]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[129] = SG_MAKE_STRING("expected ~a, but got ~a, as argument ~a");
-  sg__rc.d25[131] = SG_MAKE_STRING("wrong-type-argument-message");
-  sg__rc.d25[130] = Sg_Intern(sg__rc.d25[131]); /* wrong-type-argument-message */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[20]))->name = sg__rc.d25[130];/* wrong-type-argument-message */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[429]))[4] = SG_WORD(sg__rc.d25[125]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[429]))[8] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[429]))[11] = SG_WORD(sg__rc.d25[129]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[429]))[16] = SG_WORD(sg__rc.d25[126]);
-  sg__rc.d25[132] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[130]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[135] = SG_MAKE_STRING("vector->list");
-  sg__rc.d25[134] = Sg_Intern(sg__rc.d25[135]); /* vector->list */
-  sg__rc.d25[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[134]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[138] = SG_MAKE_STRING("list->vector");
-  sg__rc.d25[137] = Sg_Intern(sg__rc.d25[138]); /* list->vector */
-  sg__rc.d25[136] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[137]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[140] = SG_MAKE_STRING("vector-map");
-  sg__rc.d25[139] = Sg_Intern(sg__rc.d25[140]); /* vector-map */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[21]))->name = sg__rc.d25[139];/* vector-map */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[447]))[3] = SG_WORD(sg__rc.d25[52]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[447]))[9] = SG_WORD(sg__rc.d25[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[447]))[14] = SG_WORD(sg__rc.d25[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[447]))[17] = SG_WORD(sg__rc.d25[52]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[447]))[21] = SG_WORD(sg__rc.d25[136]);
-  sg__rc.d25[141] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[139]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[143] = SG_MAKE_STRING("vector-for-each");
-  sg__rc.d25[142] = Sg_Intern(sg__rc.d25[143]); /* vector-for-each */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[22]))->name = sg__rc.d25[142];/* vector-for-each */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[470]))[1] = SG_WORD(sg__rc.d25[46]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[470]))[7] = SG_WORD(sg__rc.d25[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[470]))[12] = SG_WORD(sg__rc.d25[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[470]))[15] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[144] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[142]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[147] = SG_MAKE_STRING("string->list");
-  sg__rc.d25[146] = Sg_Intern(sg__rc.d25[147]); /* string->list */
-  sg__rc.d25[145] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[146]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[149] = SG_MAKE_STRING("string-for-each");
-  sg__rc.d25[148] = Sg_Intern(sg__rc.d25[149]); /* string-for-each */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[23]))->name = sg__rc.d25[148];/* string-for-each */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[488]))[1] = SG_WORD(sg__rc.d25[46]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[488]))[7] = SG_WORD(sg__rc.d25[145]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[488]))[12] = SG_WORD(sg__rc.d25[145]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[488]))[15] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[150] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[148]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[153] = SG_MAKE_STRING("current-output-port");
-  sg__rc.d25[152] = Sg_Intern(sg__rc.d25[153]); /* current-output-port */
-  sg__rc.d25[151] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[152]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[156] = SG_MAKE_STRING("tuple-ref");
-  sg__rc.d25[155] = Sg_Intern(sg__rc.d25[156]); /* tuple-ref */
-  sg__rc.d25[154] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[155]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[157] = SG_MAKE_STRING("#<record ~s ~a~a ~a>");
-  sg__rc.d25[160] = SG_MAKE_STRING("record-type-name");
-  sg__rc.d25[159] = Sg_Intern(sg__rc.d25[160]); /* record-type-name */
-  sg__rc.d25[158] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[159]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[163] = SG_MAKE_STRING("record-type-opaque?");
-  sg__rc.d25[162] = Sg_Intern(sg__rc.d25[163]); /* record-type-opaque? */
-  sg__rc.d25[161] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[162]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[164] = SG_MAKE_STRING("opaque ");
-  sg__rc.d25[165] = SG_MAKE_STRING("");
-  sg__rc.d25[168] = SG_MAKE_STRING("record-type-sealed?");
-  sg__rc.d25[167] = Sg_Intern(sg__rc.d25[168]); /* record-type-sealed? */
-  sg__rc.d25[166] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[167]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[169] = SG_MAKE_STRING("sealed ");
-  sg__rc.d25[172] = SG_MAKE_STRING("tuple-size");
-  sg__rc.d25[171] = Sg_Intern(sg__rc.d25[172]); /* tuple-size */
-  sg__rc.d25[170] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[171]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[175] = SG_MAKE_STRING("reverse!");
-  sg__rc.d25[174] = Sg_Intern(sg__rc.d25[175]); /* reverse! */
-  sg__rc.d25[173] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[174]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[177] = SG_MAKE_STRING("record-printer");
-  sg__rc.d25[176] = Sg_Intern(sg__rc.d25[177]); /* record-printer */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[24]))->name = sg__rc.d25[176];/* record-printer */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[6] = SG_WORD(sg__rc.d25[151]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[16] = SG_WORD(sg__rc.d25[154]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[20] = SG_WORD(sg__rc.d25[157]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[25] = SG_WORD(sg__rc.d25[158]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[31] = SG_WORD(sg__rc.d25[161]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[35] = SG_WORD(sg__rc.d25[164]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[39] = SG_WORD(sg__rc.d25[165]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[45] = SG_WORD(sg__rc.d25[166]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[49] = SG_WORD(sg__rc.d25[169]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[53] = SG_WORD(sg__rc.d25[165]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[59] = SG_WORD(sg__rc.d25[170]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[72] = SG_WORD(sg__rc.d25[173]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[83] = SG_WORD(sg__rc.d25[154]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[506]))[94] = SG_WORD(sg__rc.d25[126]);
-  sg__rc.d25[178] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[176]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[181] = SG_MAKE_STRING("rcd-parent");
-  sg__rc.d25[180] = Sg_Intern(sg__rc.d25[181]); /* rcd-parent */
-  sg__rc.d25[179] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[180]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[184] = SG_MAKE_STRING("rcd-protocol");
-  sg__rc.d25[183] = Sg_Intern(sg__rc.d25[184]); /* rcd-protocol */
-  sg__rc.d25[182] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[183]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[602]))[20] = SG_WORD(sg__rc.d25[182]);
-  sg__rc.d25[187] = SG_MAKE_STRING("length");
-  sg__rc.d25[186] = Sg_Intern(sg__rc.d25[187]); /* length */
-  sg__rc.d25[185] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[186]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[190] = SG_MAKE_STRING("make-tuple");
-  sg__rc.d25[189] = Sg_Intern(sg__rc.d25[190]); /* make-tuple */
-  sg__rc.d25[188] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[189]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[193] = SG_MAKE_STRING("tuple-list-set!");
-  sg__rc.d25[192] = Sg_Intern(sg__rc.d25[193]); /* tuple-list-set! */
-  sg__rc.d25[191] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[192]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[194] = SG_MAKE_STRING("record constructor");
-  sg__rc.d25[195] = SG_MAKE_STRING("wrong number of arguments");
-  sg__rc.d25[198] = SG_MAKE_STRING("assertion-violation");
-  sg__rc.d25[197] = Sg_Intern(sg__rc.d25[198]); /* assertion-violation */
-  sg__rc.d25[196] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[197]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[200] = SG_MAKE_STRING("loop");
-  sg__rc.d25[199] = Sg_Intern(sg__rc.d25[200]); /* loop */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[28]))->name = sg__rc.d25[199];/* loop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[8] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[19] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[23] = SG_WORD(sg__rc.d25[178]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[25] = SG_WORD(sg__rc.d25[188]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[38] = SG_WORD(sg__rc.d25[191]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[42] = SG_WORD(sg__rc.d25[194]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[44] = SG_WORD(sg__rc.d25[195]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[643]))[47] = SG_WORD(sg__rc.d25[196]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[29]))->name = sg__rc.d25[199];/* loop */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[30]))->name = sg__rc.d25[199];/* loop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[698]))[4] = SG_WORD(sg__rc.d25[179]);
-  sg__rc.d25[202] = SG_MAKE_STRING("make-nested-conser");
-  sg__rc.d25[201] = Sg_Intern(sg__rc.d25[202]); /* make-nested-conser */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[31]))->name = sg__rc.d25[201];/* make-nested-conser */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[719]))[24] = SG_WORD(sg__rc.d25[182]);
-  sg__rc.d25[203] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[201]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[4] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[15] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[19] = SG_WORD(sg__rc.d25[178]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[21] = SG_WORD(sg__rc.d25[188]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[34] = SG_WORD(sg__rc.d25[191]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[38] = SG_WORD(sg__rc.d25[194]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[40] = SG_WORD(sg__rc.d25[195]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[746]))[43] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[205] = SG_MAKE_STRING("make-simple-conser");
-  sg__rc.d25[204] = Sg_Intern(sg__rc.d25[205]); /* make-simple-conser */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[33]))->name = sg__rc.d25[204];/* make-simple-conser */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[791]))[9] = SG_WORD(sg__rc.d25[182]);
-  sg__rc.d25[206] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[204]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[209] = SG_MAKE_STRING("record-type-parent");
-  sg__rc.d25[208] = Sg_Intern(sg__rc.d25[209]); /* record-type-parent */
-  sg__rc.d25[207] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[208]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[212] = SG_MAKE_STRING("rtd-total-field-count");
-  sg__rc.d25[211] = Sg_Intern(sg__rc.d25[212]); /* rtd-total-field-count */
-  sg__rc.d25[210] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[211]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[215] = SG_MAKE_STRING("split-at");
-  sg__rc.d25[214] = Sg_Intern(sg__rc.d25[215]); /* split-at */
-  sg__rc.d25[213] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[214]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[34]))->name = sg__rc.d25[0];/* default-protocol */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[803]))[5] = SG_WORD(sg__rc.d25[213]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[35]))->name = sg__rc.d25[0];/* default-protocol */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[36]))->name = sg__rc.d25[0];/* default-protocol */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[824]))[4] = SG_WORD(sg__rc.d25[207]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[824]))[13] = SG_WORD(sg__rc.d25[210]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[824]))[20] = SG_WORD(sg__rc.d25[4]);
-  sg__rc.d25[216] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[0]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[218] = SG_MAKE_STRING("null-list?");
-  sg__rc.d25[217] = Sg_Intern(sg__rc.d25[218]); /* null-list? */
-  sg__rc.d25[219] = SG_MAKE_STRING("argument out of domain");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[37]))->name = sg__rc.d25[217];/* null-list? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[846]))[12] = SG_WORD(sg__rc.d25[217]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[846]))[14] = SG_WORD(sg__rc.d25[219]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[846]))[17] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[220] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[217]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[223] = SG_MAKE_STRING("integer?");
-  sg__rc.d25[222] = Sg_Intern(sg__rc.d25[223]); /* integer? */
-  sg__rc.d25[221] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[222]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[224] = SG_MAKE_STRING("integer");
-  sg__rc.d25[225] = SG_MAKE_STRING("given list it too short");
-  sg__rc.d25[228] = SG_MAKE_STRING("error");
-  sg__rc.d25[227] = Sg_Intern(sg__rc.d25[228]); /* error */
-  sg__rc.d25[226] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[227]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[38]))->name = sg__rc.d25[214];/* split-at */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[4] = SG_WORD(sg__rc.d25[221]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[12] = SG_WORD(sg__rc.d25[214]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[16] = SG_WORD(sg__rc.d25[224]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[36] = SG_WORD(sg__rc.d25[173]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[45] = SG_WORD(sg__rc.d25[214]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[47] = SG_WORD(sg__rc.d25[225]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[865]))[49] = SG_WORD(sg__rc.d25[226]);
-  sg__rc.d25[231] = SG_MAKE_STRING("find-tail");
-  sg__rc.d25[230] = Sg_Intern(sg__rc.d25[231]); /* find-tail */
-  sg__rc.d25[229] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[230]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[233] = SG_MAKE_STRING("find");
-  sg__rc.d25[232] = Sg_Intern(sg__rc.d25[233]); /* find */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[39]))->name = sg__rc.d25[232];/* find */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[927]))[5] = SG_WORD(sg__rc.d25[229]);
-  sg__rc.d25[234] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[232]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[237] = SG_MAKE_STRING("procedure?");
-  sg__rc.d25[236] = Sg_Intern(sg__rc.d25[237]); /* procedure? */
-  sg__rc.d25[235] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[236]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[238] = SG_MAKE_STRING("procedure");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[40]))->name = sg__rc.d25[230];/* find-tail */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[939]))[4] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[939]))[12] = SG_WORD(sg__rc.d25[230]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[939]))[16] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[939]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[939]))[23] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[240] = SG_MAKE_STRING("assoc");
-  sg__rc.d25[239] = Sg_Intern(sg__rc.d25[240]); /* assoc */
-  sg__rc.d25[241] = SG_MAKE_STRING("list");
-  sg__rc.d25[244] = SG_MAKE_STRING("equal?");
-  sg__rc.d25[243] = Sg_Intern(sg__rc.d25[244]); /* equal? */
-  sg__rc.d25[242] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[243]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[245] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[239]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[42]))->name = sg__rc.d25[239];/* assoc */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[4] = SG_WORD(sg__rc.d25[64]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[12] = SG_WORD(sg__rc.d25[239]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[16] = SG_WORD(sg__rc.d25[241]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[30] = SG_WORD(sg__rc.d25[242]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[32] = SG_WORD(sg__rc.d25[245]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[988]))[41] = SG_WORD(sg__rc.d25[234]);
-  sg__rc.d25[248] = SG_MAKE_STRING("member");
-  sg__rc.d25[247] = Sg_Intern(sg__rc.d25[248]); /* member */
-  sg__rc.d25[246] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[247]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[44]))->name = sg__rc.d25[247];/* member */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1036]))[6] = SG_WORD(sg__rc.d25[242]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1036]))[8] = SG_WORD(sg__rc.d25[246]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1036]))[17] = SG_WORD(sg__rc.d25[229]);
-  sg__rc.d25[251] = SG_MAKE_STRING("delete");
-  sg__rc.d25[250] = Sg_Intern(sg__rc.d25[251]); /* delete */
-  sg__rc.d25[249] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[250]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[254] = SG_MAKE_STRING("filter");
-  sg__rc.d25[253] = Sg_Intern(sg__rc.d25[254]); /* filter */
-  sg__rc.d25[252] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[253]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[46]))->name = sg__rc.d25[250];/* delete */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1063]))[6] = SG_WORD(sg__rc.d25[242]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1063]))[8] = SG_WORD(sg__rc.d25[249]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1063]))[17] = SG_WORD(sg__rc.d25[252]);
-  sg__rc.d25[256] = SG_MAKE_STRING("reduce");
-  sg__rc.d25[255] = Sg_Intern(sg__rc.d25[256]); /* reduce */
-  sg__rc.d25[259] = SG_MAKE_STRING("=");
-  sg__rc.d25[258] = Sg_Intern(sg__rc.d25[259]); /* = */
-  sg__rc.d25[257] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[258]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[47]))->name = sg__rc.d25[255];/* reduce */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[4] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[12] = SG_WORD(sg__rc.d25[255]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[16] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[18] = SG_WORD(sg__rc.d25[257]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[21] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[24] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1082]))[34] = SG_WORD(sg__rc.d25[124]);
-  sg__rc.d25[260] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[255]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[262] = SG_MAKE_STRING("lset-union");
-  sg__rc.d25[261] = Sg_Intern(sg__rc.d25[262]); /* lset-union */
-  sg__rc.d25[265] = SG_MAKE_STRING("exists");
-  sg__rc.d25[264] = Sg_Intern(sg__rc.d25[265]); /* exists */
-  sg__rc.d25[263] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[264]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1123]))[9] = SG_WORD(sg__rc.d25[263]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1141]))[23] = SG_WORD(sg__rc.d25[124]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[51]))->name = sg__rc.d25[261];/* lset-union */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[4] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[12] = SG_WORD(sg__rc.d25[261]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[16] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1166]))[32] = SG_WORD(sg__rc.d25[260]);
-  sg__rc.d25[266] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[261]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[268] = SG_MAKE_STRING("lset-intersection");
-  sg__rc.d25[267] = Sg_Intern(sg__rc.d25[268]); /* lset-intersection */
-  sg__rc.d25[271] = SG_MAKE_STRING("eq?");
-  sg__rc.d25[270] = Sg_Intern(sg__rc.d25[271]); /* eq? */
-  sg__rc.d25[269] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[270]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[274] = SG_MAKE_STRING("null?");
-  sg__rc.d25[273] = Sg_Intern(sg__rc.d25[274]); /* null? */
-  sg__rc.d25[272] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[273]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1200]))[4] = SG_WORD(sg__rc.d25[246]);
-  sg__rc.d25[277] = SG_MAKE_STRING("for-all");
-  sg__rc.d25[276] = Sg_Intern(sg__rc.d25[277]); /* for-all */
-  sg__rc.d25[275] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[276]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1206]))[7] = SG_WORD(sg__rc.d25[275]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[54]))->name = sg__rc.d25[267];/* lset-intersection */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[4] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[12] = SG_WORD(sg__rc.d25[267]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[16] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[29] = SG_WORD(sg__rc.d25[269]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[31] = SG_WORD(sg__rc.d25[249]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[36] = SG_WORD(sg__rc.d25[272]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[39] = SG_WORD(sg__rc.d25[263]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1215]))[56] = SG_WORD(sg__rc.d25[252]);
-  sg__rc.d25[278] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[267]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[280] = SG_MAKE_STRING("lset-difference");
-  sg__rc.d25[279] = Sg_Intern(sg__rc.d25[280]); /* lset-difference */
-  sg__rc.d25[283] = SG_MAKE_STRING("pair?");
-  sg__rc.d25[282] = Sg_Intern(sg__rc.d25[283]); /* pair? */
-  sg__rc.d25[281] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[282]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[286] = SG_MAKE_STRING("memq");
-  sg__rc.d25[285] = Sg_Intern(sg__rc.d25[286]); /* memq */
-  sg__rc.d25[284] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[285]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1273]))[6] = SG_WORD(sg__rc.d25[246]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1282]))[7] = SG_WORD(sg__rc.d25[275]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[57]))->name = sg__rc.d25[279];/* lset-difference */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[4] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[12] = SG_WORD(sg__rc.d25[279]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[16] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[27] = SG_WORD(sg__rc.d25[281]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[30] = SG_WORD(sg__rc.d25[252]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[42] = SG_WORD(sg__rc.d25[284]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1291]))[54] = SG_WORD(sg__rc.d25[252]);
-  sg__rc.d25[287] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[279]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[289] = SG_MAKE_STRING("take");
-  sg__rc.d25[288] = Sg_Intern(sg__rc.d25[289]); /* take */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[58]))->name = sg__rc.d25[288];/* take */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[4] = SG_WORD(sg__rc.d25[221]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[12] = SG_WORD(sg__rc.d25[288]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[16] = SG_WORD(sg__rc.d25[224]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[23] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[28] = SG_WORD(sg__rc.d25[10]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1347]))[33] = SG_WORD(sg__rc.d25[10]);
-  sg__rc.d25[290] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[288]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[292] = SG_MAKE_STRING("drop");
-  sg__rc.d25[291] = Sg_Intern(sg__rc.d25[292]); /* drop */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[59]))->name = sg__rc.d25[291];/* drop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1383]))[4] = SG_WORD(sg__rc.d25[221]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1383]))[12] = SG_WORD(sg__rc.d25[291]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1383]))[16] = SG_WORD(sg__rc.d25[224]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1383]))[20] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1383]))[23] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[293] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[291]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[296] = SG_MAKE_STRING("list-head");
-  sg__rc.d25[295] = Sg_Intern(sg__rc.d25[296]); /* list-head */
-  sg__rc.d25[294] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[295]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[299] = SG_MAKE_STRING("char=?");
-  sg__rc.d25[298] = Sg_Intern(sg__rc.d25[299]); /* char=? */
-  sg__rc.d25[297] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[298]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[302] = SG_MAKE_STRING("char-foldcase");
-  sg__rc.d25[301] = Sg_Intern(sg__rc.d25[302]); /* char-foldcase */
-  sg__rc.d25[300] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[301]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[304] = SG_MAKE_STRING("char-ci=?");
-  sg__rc.d25[303] = Sg_Intern(sg__rc.d25[304]); /* char-ci=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[60]))->name = sg__rc.d25[303];/* char-ci=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1423]))[1] = SG_WORD(sg__rc.d25[297]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1423]))[5] = SG_WORD(sg__rc.d25[300]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1423]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[305] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[303]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[308] = SG_MAKE_STRING("char<?");
-  sg__rc.d25[307] = Sg_Intern(sg__rc.d25[308]); /* char<? */
-  sg__rc.d25[306] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[307]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[310] = SG_MAKE_STRING("char-ci<?");
-  sg__rc.d25[309] = Sg_Intern(sg__rc.d25[310]); /* char-ci<? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[61]))->name = sg__rc.d25[309];/* char-ci<? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1434]))[1] = SG_WORD(sg__rc.d25[306]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1434]))[5] = SG_WORD(sg__rc.d25[300]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1434]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[311] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[309]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[314] = SG_MAKE_STRING("char>?");
-  sg__rc.d25[313] = Sg_Intern(sg__rc.d25[314]); /* char>? */
-  sg__rc.d25[312] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[313]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[316] = SG_MAKE_STRING("char-ci>?");
-  sg__rc.d25[315] = Sg_Intern(sg__rc.d25[316]); /* char-ci>? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[62]))->name = sg__rc.d25[315];/* char-ci>? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1445]))[1] = SG_WORD(sg__rc.d25[312]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1445]))[5] = SG_WORD(sg__rc.d25[300]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1445]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[317] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[315]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[320] = SG_MAKE_STRING("char<=?");
-  sg__rc.d25[319] = Sg_Intern(sg__rc.d25[320]); /* char<=? */
-  sg__rc.d25[318] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[319]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[322] = SG_MAKE_STRING("char-ci<=?");
-  sg__rc.d25[321] = Sg_Intern(sg__rc.d25[322]); /* char-ci<=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[63]))->name = sg__rc.d25[321];/* char-ci<=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1456]))[1] = SG_WORD(sg__rc.d25[318]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1456]))[5] = SG_WORD(sg__rc.d25[300]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1456]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[323] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[321]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[326] = SG_MAKE_STRING("char>=?");
-  sg__rc.d25[325] = Sg_Intern(sg__rc.d25[326]); /* char>=? */
-  sg__rc.d25[324] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[325]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[328] = SG_MAKE_STRING("char-ci>=?");
-  sg__rc.d25[327] = Sg_Intern(sg__rc.d25[328]); /* char-ci>=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[64]))->name = sg__rc.d25[327];/* char-ci>=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1467]))[1] = SG_WORD(sg__rc.d25[324]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1467]))[5] = SG_WORD(sg__rc.d25[300]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1467]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[329] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[327]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[332] = SG_MAKE_STRING("string=?");
-  sg__rc.d25[331] = Sg_Intern(sg__rc.d25[332]); /* string=? */
-  sg__rc.d25[330] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[331]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[335] = SG_MAKE_STRING("string-foldcase");
-  sg__rc.d25[334] = Sg_Intern(sg__rc.d25[335]); /* string-foldcase */
-  sg__rc.d25[333] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[334]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[337] = SG_MAKE_STRING("string-ci=?");
-  sg__rc.d25[336] = Sg_Intern(sg__rc.d25[337]); /* string-ci=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[65]))->name = sg__rc.d25[336];/* string-ci=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1478]))[1] = SG_WORD(sg__rc.d25[330]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1478]))[5] = SG_WORD(sg__rc.d25[333]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1478]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[338] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[336]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[341] = SG_MAKE_STRING("string<?");
-  sg__rc.d25[340] = Sg_Intern(sg__rc.d25[341]); /* string<? */
-  sg__rc.d25[339] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[340]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[343] = SG_MAKE_STRING("string-ci<?");
-  sg__rc.d25[342] = Sg_Intern(sg__rc.d25[343]); /* string-ci<? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[66]))->name = sg__rc.d25[342];/* string-ci<? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1489]))[1] = SG_WORD(sg__rc.d25[339]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1489]))[5] = SG_WORD(sg__rc.d25[333]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1489]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[344] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[342]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[347] = SG_MAKE_STRING("string>?");
-  sg__rc.d25[346] = Sg_Intern(sg__rc.d25[347]); /* string>? */
-  sg__rc.d25[345] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[346]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[349] = SG_MAKE_STRING("string-ci>?");
-  sg__rc.d25[348] = Sg_Intern(sg__rc.d25[349]); /* string-ci>? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[67]))->name = sg__rc.d25[348];/* string-ci>? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1500]))[1] = SG_WORD(sg__rc.d25[345]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1500]))[5] = SG_WORD(sg__rc.d25[333]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1500]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[350] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[348]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[353] = SG_MAKE_STRING("string<=?");
-  sg__rc.d25[352] = Sg_Intern(sg__rc.d25[353]); /* string<=? */
-  sg__rc.d25[351] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[352]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[355] = SG_MAKE_STRING("string-ci<=?");
-  sg__rc.d25[354] = Sg_Intern(sg__rc.d25[355]); /* string-ci<=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[68]))->name = sg__rc.d25[354];/* string-ci<=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1511]))[1] = SG_WORD(sg__rc.d25[351]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1511]))[5] = SG_WORD(sg__rc.d25[333]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1511]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[356] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[354]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[359] = SG_MAKE_STRING("string>=?");
-  sg__rc.d25[358] = Sg_Intern(sg__rc.d25[359]); /* string>=? */
-  sg__rc.d25[357] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[358]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[361] = SG_MAKE_STRING("string-ci>=?");
-  sg__rc.d25[360] = Sg_Intern(sg__rc.d25[361]); /* string-ci>=? */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[69]))->name = sg__rc.d25[360];/* string-ci>=? */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1522]))[1] = SG_WORD(sg__rc.d25[357]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1522]))[5] = SG_WORD(sg__rc.d25[333]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1522]))[8] = SG_WORD(sg__rc.d25[52]);
-  sg__rc.d25[362] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[360]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[364] = SG_MAKE_STRING("big");
-  sg__rc.d25[363] = Sg_Intern(sg__rc.d25[364]); /* big */
-  sg__rc.d25[367] = SG_MAKE_STRING("bytevector-u8-ref");
-  sg__rc.d25[366] = Sg_Intern(sg__rc.d25[367]); /* bytevector-u8-ref */
-  sg__rc.d25[365] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[366]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[369] = SG_MAKE_STRING("little");
-  sg__rc.d25[368] = Sg_Intern(sg__rc.d25[369]); /* little */
-  sg__rc.d25[371] = SG_MAKE_STRING("bytevector-uint-ref");
-  sg__rc.d25[370] = Sg_Intern(sg__rc.d25[371]); /* bytevector-uint-ref */
-  sg__rc.d25[372] = SG_MAKE_STRING("expected endianness, but got ~r, as argument 3");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[70]))->name = sg__rc.d25[370];/* bytevector-uint-ref */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[2] = SG_WORD(sg__rc.d25[363]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[29] = SG_WORD(sg__rc.d25[365]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[38] = SG_WORD(sg__rc.d25[368]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[65] = SG_WORD(sg__rc.d25[365]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[73] = SG_WORD(sg__rc.d25[370]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[77] = SG_WORD(sg__rc.d25[372]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[80] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1533]))[89] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[373] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[370]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[376] = SG_MAKE_STRING("expt");
-  sg__rc.d25[375] = Sg_Intern(sg__rc.d25[376]); /* expt */
-  sg__rc.d25[374] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[375]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[378] = SG_MAKE_STRING("bytevector-sint-ref");
-  sg__rc.d25[377] = Sg_Intern(sg__rc.d25[378]); /* bytevector-sint-ref */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[71]))->name = sg__rc.d25[377];/* bytevector-sint-ref */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[2] = SG_WORD(sg__rc.d25[363]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[10] = SG_WORD(sg__rc.d25[365]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[22] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[29] = SG_WORD(sg__rc.d25[374]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[37] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[41] = SG_WORD(sg__rc.d25[368]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[53] = SG_WORD(sg__rc.d25[365]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[65] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[72] = SG_WORD(sg__rc.d25[374]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[80] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[83] = SG_WORD(sg__rc.d25[370]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[87] = SG_WORD(sg__rc.d25[372]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[90] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1624]))[99] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[379] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[377]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[382] = SG_MAKE_STRING("undefined");
-  sg__rc.d25[381] = Sg_Intern(sg__rc.d25[382]); /* undefined */
-  sg__rc.d25[380] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[381]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[385] = SG_MAKE_STRING("bytevector-u8-set!");
-  sg__rc.d25[384] = Sg_Intern(sg__rc.d25[385]); /* bytevector-u8-set! */
-  sg__rc.d25[383] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[384]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[388] = SG_MAKE_STRING("<");
-  sg__rc.d25[387] = Sg_Intern(sg__rc.d25[388]); /* < */
-  sg__rc.d25[386] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[387]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[391] = SG_MAKE_STRING("bitwise-and");
-  sg__rc.d25[390] = Sg_Intern(sg__rc.d25[391]); /* bitwise-and */
-  sg__rc.d25[389] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[390]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[394] = SG_MAKE_STRING("bitwise-arithmetic-shift");
-  sg__rc.d25[393] = Sg_Intern(sg__rc.d25[394]); /* bitwise-arithmetic-shift */
-  sg__rc.d25[392] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[393]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[396] = SG_MAKE_STRING("bytevector-uint-set!");
-  sg__rc.d25[395] = Sg_Intern(sg__rc.d25[396]); /* bytevector-uint-set! */
-  sg__rc.d25[397] = SG_MAKE_STRING("value out of range, ~s as argument 3");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[72]))->name = sg__rc.d25[395];/* bytevector-uint-set! */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[16] = SG_WORD(sg__rc.d25[380]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[25] = SG_WORD(sg__rc.d25[383]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[45] = SG_WORD(sg__rc.d25[374]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[48] = SG_WORD(sg__rc.d25[386]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[53] = SG_WORD(sg__rc.d25[363]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[70] = SG_WORD(sg__rc.d25[380]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[82] = SG_WORD(sg__rc.d25[389]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[85] = SG_WORD(sg__rc.d25[383]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[94] = SG_WORD(sg__rc.d25[392]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[105] = SG_WORD(sg__rc.d25[368]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[121] = SG_WORD(sg__rc.d25[380]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[133] = SG_WORD(sg__rc.d25[389]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[136] = SG_WORD(sg__rc.d25[383]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[145] = SG_WORD(sg__rc.d25[392]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[160] = SG_WORD(sg__rc.d25[395]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[164] = SG_WORD(sg__rc.d25[397]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[167] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[177] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1725]))[179] = SG_WORD(sg__rc.d25[380]);
-  sg__rc.d25[398] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[395]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[400] = SG_MAKE_STRING("bytevector-sint-set!");
-  sg__rc.d25[399] = Sg_Intern(sg__rc.d25[400]); /* bytevector-sint-set! */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[73]))->name = sg__rc.d25[399];/* bytevector-sint-set! */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[9] = SG_WORD(sg__rc.d25[374]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[21] = SG_WORD(sg__rc.d25[386]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[36] = SG_WORD(sg__rc.d25[398]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[49] = SG_WORD(sg__rc.d25[374]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[55] = SG_WORD(sg__rc.d25[398]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[61] = SG_WORD(sg__rc.d25[399]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[65] = SG_WORD(sg__rc.d25[397]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[68] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[78] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1906]))[82] = SG_WORD(sg__rc.d25[380]);
-  sg__rc.d25[401] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[399]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[404] = SG_MAKE_STRING("bytevector-length");
-  sg__rc.d25[403] = Sg_Intern(sg__rc.d25[404]); /* bytevector-length */
-  sg__rc.d25[402] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[403]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[406] = SG_MAKE_STRING("bytevector->uint-list");
-  sg__rc.d25[405] = Sg_Intern(sg__rc.d25[406]); /* bytevector->uint-list */
-  sg__rc.d25[407] = SG_MAKE_STRING("expected appropriate element size as argument 3, but got ~r");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[74]))->name = sg__rc.d25[405];/* bytevector->uint-list */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[4] = SG_WORD(sg__rc.d25[402]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[26] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[42] = SG_WORD(sg__rc.d25[405]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[46] = SG_WORD(sg__rc.d25[407]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[49] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[1990]))[57] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[408] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[405]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[410] = SG_MAKE_STRING("bytevector->sint-list");
-  sg__rc.d25[409] = Sg_Intern(sg__rc.d25[410]); /* bytevector->sint-list */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[75]))->name = sg__rc.d25[409];/* bytevector->sint-list */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[4] = SG_WORD(sg__rc.d25[402]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[26] = SG_WORD(sg__rc.d25[379]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[42] = SG_WORD(sg__rc.d25[409]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[46] = SG_WORD(sg__rc.d25[407]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[49] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2049]))[57] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[411] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[409]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[414] = SG_MAKE_STRING("make-bytevector");
-  sg__rc.d25[413] = Sg_Intern(sg__rc.d25[414]); /* make-bytevector */
-  sg__rc.d25[412] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[413]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[416] = SG_MAKE_STRING("uint-list->bytevector");
-  sg__rc.d25[415] = Sg_Intern(sg__rc.d25[416]); /* uint-list->bytevector */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[76]))->name = sg__rc.d25[415];/* uint-list->bytevector */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2108]))[7] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2108]))[11] = SG_WORD(sg__rc.d25[412]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2108]))[28] = SG_WORD(sg__rc.d25[398]);
-  sg__rc.d25[417] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[415]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[419] = SG_MAKE_STRING("sint-list->bytevector");
-  sg__rc.d25[418] = Sg_Intern(sg__rc.d25[419]); /* sint-list->bytevector */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[77]))->name = sg__rc.d25[418];/* sint-list->bytevector */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2146]))[7] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2146]))[11] = SG_WORD(sg__rc.d25[412]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2146]))[28] = SG_WORD(sg__rc.d25[401]);
-  sg__rc.d25[420] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[418]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[421] = SG_MAKE_STRING("traversal reached to non-pair element ~s");
-  sg__rc.d25[422] = SG_MAKE_STRING("expected chain of pairs, but got ~a, as argument 2");
-  sg__rc.d25[425] = SG_MAKE_STRING("list-transpose+");
-  sg__rc.d25[424] = Sg_Intern(sg__rc.d25[425]); /* list-transpose+ */
-  sg__rc.d25[423] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[424]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[78]))->name = sg__rc.d25[199];/* loop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2184]))[21] = SG_WORD(sg__rc.d25[276]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2184]))[25] = SG_WORD(sg__rc.d25[421]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2184]))[28] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2184]))[32] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[427] = SG_MAKE_STRING("collect-car");
-  sg__rc.d25[426] = Sg_Intern(sg__rc.d25[427]); /* collect-car */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[79]))->name = sg__rc.d25[426];/* collect-car */
-  sg__rc.d25[428] = SG_MAKE_STRING("expected same length chains of pairs");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[80]))->name = sg__rc.d25[276];/* for-all */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[49] = SG_WORD(sg__rc.d25[276]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[53] = SG_WORD(sg__rc.d25[421]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[56] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[63] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[66] = SG_WORD(sg__rc.d25[276]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[70] = SG_WORD(sg__rc.d25[422]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[73] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[80] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[85] = SG_WORD(sg__rc.d25[423]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[129] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[138] = SG_WORD(sg__rc.d25[22]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[155] = SG_WORD(sg__rc.d25[22]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[162] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[172] = SG_WORD(sg__rc.d25[276]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[174] = SG_WORD(sg__rc.d25[428]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[177] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2231]))[203] = SG_WORD(sg__rc.d25[22]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[81]))->name = sg__rc.d25[199];/* loop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2441]))[21] = SG_WORD(sg__rc.d25[264]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2441]))[25] = SG_WORD(sg__rc.d25[421]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2441]))[28] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2441]))[32] = SG_WORD(sg__rc.d25[196]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[82]))->name = sg__rc.d25[426];/* collect-car */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[83]))->name = sg__rc.d25[264];/* exists */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[43] = SG_WORD(sg__rc.d25[264]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[47] = SG_WORD(sg__rc.d25[421]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[50] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[57] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[60] = SG_WORD(sg__rc.d25[264]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[64] = SG_WORD(sg__rc.d25[422]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[67] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[74] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[79] = SG_WORD(sg__rc.d25[423]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[124] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[133] = SG_WORD(sg__rc.d25[32]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[150] = SG_WORD(sg__rc.d25[32]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[157] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[167] = SG_WORD(sg__rc.d25[264]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[169] = SG_WORD(sg__rc.d25[428]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[172] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2488]))[199] = SG_WORD(sg__rc.d25[32]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[84]))->name = sg__rc.d25[199];/* loop */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[85]))->name = sg__rc.d25[253];/* filter */
-  sg__rc.d25[431] = SG_MAKE_STRING("reverse");
-  sg__rc.d25[430] = Sg_Intern(sg__rc.d25[431]); /* reverse */
-  sg__rc.d25[429] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[430]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[433] = SG_MAKE_STRING("partition");
-  sg__rc.d25[432] = Sg_Intern(sg__rc.d25[433]); /* partition */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[86]))->name = sg__rc.d25[432];/* partition */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2733]))[12] = SG_WORD(sg__rc.d25[429]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2733]))[18] = SG_WORD(sg__rc.d25[429]);
-  sg__rc.d25[434] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[432]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[435] = SG_MAKE_STRING("proper list");
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[87]))->name = sg__rc.d25[53];/* map */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[28] = SG_WORD(sg__rc.d25[173]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[31] = SG_WORD(sg__rc.d25[53]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[35] = SG_WORD(sg__rc.d25[435]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[39] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[47] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[52] = SG_WORD(sg__rc.d25[119]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[81] = SG_WORD(sg__rc.d25[173]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[84] = SG_WORD(sg__rc.d25[53]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[88] = SG_WORD(sg__rc.d25[435]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[92] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2779]))[100] = SG_WORD(sg__rc.d25[196]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[88]))->name = sg__rc.d25[47];/* for-each */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[22] = SG_WORD(sg__rc.d25[380]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[25] = SG_WORD(sg__rc.d25[47]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[29] = SG_WORD(sg__rc.d25[435]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[33] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[41] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[46] = SG_WORD(sg__rc.d25[119]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[69] = SG_WORD(sg__rc.d25[380]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[72] = SG_WORD(sg__rc.d25[47]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[76] = SG_WORD(sg__rc.d25[435]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[80] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2881]))[88] = SG_WORD(sg__rc.d25[196]);
-  sg__rc.d25[437] = SG_MAKE_STRING("fold-left");
-  sg__rc.d25[436] = Sg_Intern(sg__rc.d25[437]); /* fold-left */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[89]))->name = sg__rc.d25[436];/* fold-left */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[2971]))[25] = SG_WORD(sg__rc.d25[119]);
-  sg__rc.d25[438] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[436]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[441] = SG_MAKE_STRING("append!");
-  sg__rc.d25[440] = Sg_Intern(sg__rc.d25[441]); /* append! */
-  sg__rc.d25[439] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[440]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[443] = SG_MAKE_STRING("fold-right");
-  sg__rc.d25[442] = Sg_Intern(sg__rc.d25[443]); /* fold-right */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[90]))->name = sg__rc.d25[442];/* fold-right */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3019]))[7] = SG_WORD(sg__rc.d25[429]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3019]))[32] = SG_WORD(sg__rc.d25[119]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3019]))[38] = SG_WORD(sg__rc.d25[173]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3019]))[57] = SG_WORD(sg__rc.d25[439]);
-  sg__rc.d25[444] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[442]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[91]))->name = sg__rc.d25[199];/* loop */
-  sg__rc.d25[446] = SG_MAKE_STRING("remp");
-  sg__rc.d25[445] = Sg_Intern(sg__rc.d25[446]); /* remp */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[92]))->name = sg__rc.d25[445];/* remp */
-  sg__rc.d25[447] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[445]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[93]))->name = sg__rc.d25[199];/* loop */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3122]))[10] = SG_WORD(sg__rc.d25[242]);
-  sg__rc.d25[449] = SG_MAKE_STRING("remove");
-  sg__rc.d25[448] = Sg_Intern(sg__rc.d25[449]); /* remove */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[94]))->name = sg__rc.d25[448];/* remove */
-  sg__rc.d25[450] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[448]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[95]))->name = sg__rc.d25[199];/* loop */
-  sg__rc.d25[452] = SG_MAKE_STRING("remv");
-  sg__rc.d25[451] = Sg_Intern(sg__rc.d25[452]); /* remv */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[96]))->name = sg__rc.d25[451];/* remv */
-  sg__rc.d25[453] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[451]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[97]))->name = sg__rc.d25[199];/* loop */
-  sg__rc.d25[455] = SG_MAKE_STRING("remq");
-  sg__rc.d25[454] = Sg_Intern(sg__rc.d25[455]); /* remq */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[98]))->name = sg__rc.d25[454];/* remq */
-  sg__rc.d25[456] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[454]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[459] = SG_MAKE_STRING("memp");
-  sg__rc.d25[458] = Sg_Intern(sg__rc.d25[459]); /* memp */
-  sg__rc.d25[457] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[458]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[99]))->name = sg__rc.d25[458];/* memp */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3234]))[17] = SG_WORD(sg__rc.d25[457]);
-  sg__rc.d25[462] = SG_MAKE_STRING("assp");
-  sg__rc.d25[461] = Sg_Intern(sg__rc.d25[462]); /* assp */
-  sg__rc.d25[460] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[461]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[100]))->name = sg__rc.d25[461];/* assp */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3253]))[19] = SG_WORD(sg__rc.d25[460]);
-  sg__rc.d25[464] = SG_MAKE_STRING("list-sort");
-  sg__rc.d25[463] = Sg_Intern(sg__rc.d25[464]); /* list-sort */
-  sg__rc.d25[467] = SG_MAKE_STRING("div");
-  sg__rc.d25[466] = Sg_Intern(sg__rc.d25[467]); /* div */
-  sg__rc.d25[465] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[466]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[469] = SG_MAKE_STRING("recur");
-  sg__rc.d25[468] = Sg_Intern(sg__rc.d25[469]); /* recur */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[101]))->name = sg__rc.d25[468];/* recur */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3274]))[48] = SG_WORD(sg__rc.d25[465]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3274]))[112] = SG_WORD(sg__rc.d25[37]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3274]))[142] = SG_WORD(sg__rc.d25[37]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[102]))->name = sg__rc.d25[463];/* list-sort */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[4] = SG_WORD(sg__rc.d25[37]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[11] = SG_WORD(sg__rc.d25[235]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[20] = SG_WORD(sg__rc.d25[463]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[24] = SG_WORD(sg__rc.d25[238]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[28] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[31] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[89] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[120] = SG_WORD(sg__rc.d25[294]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3430]))[125] = SG_WORD(sg__rc.d25[37]);
-  sg__rc.d25[470] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[463]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[472] = SG_MAKE_STRING("vector-sort");
-  sg__rc.d25[471] = Sg_Intern(sg__rc.d25[472]); /* vector-sort */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[103]))->name = sg__rc.d25[471];/* vector-sort */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3558]))[4] = SG_WORD(sg__rc.d25[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3558]))[11] = SG_WORD(sg__rc.d25[470]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3558]))[21] = SG_WORD(sg__rc.d25[136]);
-  sg__rc.d25[473] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[471]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[476] = SG_MAKE_STRING("make-vector");
-  sg__rc.d25[475] = Sg_Intern(sg__rc.d25[476]); /* make-vector */
-  sg__rc.d25[474] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[475]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[478] = SG_MAKE_STRING("sort!");
-  sg__rc.d25[477] = Sg_Intern(sg__rc.d25[478]); /* sort! */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[104]))->name = sg__rc.d25[477];/* sort! */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3581]))[15] = SG_WORD(sg__rc.d25[465]);
-  sg__rc.d25[480] = SG_MAKE_STRING("vector-sort!");
-  sg__rc.d25[479] = Sg_Intern(sg__rc.d25[480]); /* vector-sort! */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[105]))->name = sg__rc.d25[479];/* vector-sort! */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3796]))[10] = SG_WORD(sg__rc.d25[465]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3796]))[14] = SG_WORD(sg__rc.d25[474]);
-  sg__rc.d25[481] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[479]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[484] = SG_MAKE_STRING("close-port");
-  sg__rc.d25[483] = Sg_Intern(sg__rc.d25[484]); /* close-port */
-  sg__rc.d25[482] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[483]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[487] = SG_MAKE_STRING("values");
-  sg__rc.d25[486] = Sg_Intern(sg__rc.d25[487]); /* values */
-  sg__rc.d25[485] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[486]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[489] = SG_MAKE_STRING("call-with-port");
-  sg__rc.d25[488] = Sg_Intern(sg__rc.d25[489]); /* call-with-port */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[106]))->name = sg__rc.d25[488];/* call-with-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3830]))[10] = SG_WORD(sg__rc.d25[482]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3830]))[12] = SG_WORD(sg__rc.d25[485]);
-  sg__rc.d25[490] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[488]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[492] = SG_MAKE_STRING("open-bytevector-output-port");
-  sg__rc.d25[491] = Sg_Intern(sg__rc.d25[492]); /* open-bytevector-output-port */
-  sg__rc.d25[493] = SG_MAKE_STRING("wrong number of argument: expected between 0 and 1, but got ~a");
-  sg__rc.d25[496] = SG_MAKE_STRING("open-output-bytevector");
-  sg__rc.d25[495] = Sg_Intern(sg__rc.d25[496]); /* open-output-bytevector */
-  sg__rc.d25[494] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[495]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[499] = SG_MAKE_STRING("extract-output-bytevector");
-  sg__rc.d25[498] = Sg_Intern(sg__rc.d25[499]); /* extract-output-bytevector */
-  sg__rc.d25[497] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[498]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[501] = SG_MAKE_STRING("proc");
-  sg__rc.d25[500] = Sg_Intern(sg__rc.d25[501]); /* proc */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[107]))->name = sg__rc.d25[500];/* proc */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3846]))[2] = SG_WORD(sg__rc.d25[497]);
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[108]))->name = sg__rc.d25[491];/* open-bytevector-output-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[4] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[12] = SG_WORD(sg__rc.d25[491]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[16] = SG_WORD(sg__rc.d25[493]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[21] = SG_WORD(sg__rc.d25[185]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[24] = SG_WORD(sg__rc.d25[126]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[28] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3850]))[45] = SG_WORD(sg__rc.d25[494]);
-  sg__rc.d25[502] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[491]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[505] = SG_MAKE_STRING("open-output-string");
-  sg__rc.d25[504] = Sg_Intern(sg__rc.d25[505]); /* open-output-string */
-  sg__rc.d25[503] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[504]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[508] = SG_MAKE_STRING("extract-output-string");
-  sg__rc.d25[507] = Sg_Intern(sg__rc.d25[508]); /* extract-output-string */
-  sg__rc.d25[506] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[507]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[109]))->name = sg__rc.d25[500];/* proc */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3905]))[2] = SG_WORD(sg__rc.d25[506]);
-  sg__rc.d25[510] = SG_MAKE_STRING("open-string-output-port");
-  sg__rc.d25[509] = Sg_Intern(sg__rc.d25[510]); /* open-string-output-port */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[110]))->name = sg__rc.d25[509];/* open-string-output-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3909]))[3] = SG_WORD(sg__rc.d25[503]);
-  sg__rc.d25[511] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[509]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[513] = SG_MAKE_STRING("call-with-bytevector-output-port");
-  sg__rc.d25[512] = Sg_Intern(sg__rc.d25[513]); /* call-with-bytevector-output-port */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[111]))->name = sg__rc.d25[512];/* call-with-bytevector-output-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3922]))[3] = SG_WORD(sg__rc.d25[502]);
-  sg__rc.d25[514] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[512]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[516] = SG_MAKE_STRING("call-with-string-output-port");
-  sg__rc.d25[515] = Sg_Intern(sg__rc.d25[516]); /* call-with-string-output-port */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[112]))->name = sg__rc.d25[515];/* call-with-string-output-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3937]))[3] = SG_WORD(sg__rc.d25[511]);
-  sg__rc.d25[517] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[515]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[520] = SG_MAKE_STRING("hashtable?");
-  sg__rc.d25[519] = Sg_Intern(sg__rc.d25[520]); /* hashtable? */
-  sg__rc.d25[518] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[519]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[523] = SG_MAKE_STRING("hashtable-mutable?");
-  sg__rc.d25[522] = Sg_Intern(sg__rc.d25[523]); /* hashtable-mutable? */
-  sg__rc.d25[521] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[522]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[525] = SG_MAKE_STRING("hashtable-update!");
-  sg__rc.d25[524] = Sg_Intern(sg__rc.d25[525]); /* hashtable-update! */
-  sg__rc.d25[526] = SG_MAKE_STRING("mutable hashtable");
-  sg__rc.d25[529] = SG_MAKE_STRING("hashtable-ref");
-  sg__rc.d25[528] = Sg_Intern(sg__rc.d25[529]); /* hashtable-ref */
-  sg__rc.d25[527] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[528]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[532] = SG_MAKE_STRING("hashtable-set!");
-  sg__rc.d25[531] = Sg_Intern(sg__rc.d25[532]); /* hashtable-set! */
-  sg__rc.d25[530] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[531]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[113]))->name = sg__rc.d25[524];/* hashtable-update! */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[4] = SG_WORD(sg__rc.d25[518]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[11] = SG_WORD(sg__rc.d25[521]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[19] = SG_WORD(sg__rc.d25[524]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[23] = SG_WORD(sg__rc.d25[526]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[27] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[30] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[45] = SG_WORD(sg__rc.d25[527]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[3950]))[51] = SG_WORD(sg__rc.d25[530]);
-  sg__rc.d25[533] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[524]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[535] = SG_MAKE_STRING("hashtable-entries");
-  sg__rc.d25[534] = Sg_Intern(sg__rc.d25[535]); /* hashtable-entries */
-  sg__rc.d25[536] = SG_MAKE_STRING("hashtable");
-  sg__rc.d25[539] = SG_MAKE_STRING("hashtable-keys");
-  sg__rc.d25[538] = Sg_Intern(sg__rc.d25[539]); /* hashtable-keys */
-  sg__rc.d25[537] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[538]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[542] = SG_MAKE_STRING("hashtable-values");
-  sg__rc.d25[541] = Sg_Intern(sg__rc.d25[542]); /* hashtable-values */
-  sg__rc.d25[540] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[541]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[114]))->name = sg__rc.d25[534];/* hashtable-entries */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[4] = SG_WORD(sg__rc.d25[518]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[12] = SG_WORD(sg__rc.d25[534]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[16] = SG_WORD(sg__rc.d25[536]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[19] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[22] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[27] = SG_WORD(sg__rc.d25[537]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4003]))[33] = SG_WORD(sg__rc.d25[540]);
-  sg__rc.d25[543] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[534]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[545] = SG_MAKE_STRING("hashtable-equivalence-function");
-  sg__rc.d25[544] = Sg_Intern(sg__rc.d25[545]); /* hashtable-equivalence-function */
-  sg__rc.d25[548] = SG_MAKE_STRING("hashtable-type");
-  sg__rc.d25[547] = Sg_Intern(sg__rc.d25[548]); /* hashtable-type */
-  sg__rc.d25[546] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[547]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[550] = SG_MAKE_STRING("eq");
-  sg__rc.d25[549] = Sg_Intern(sg__rc.d25[550]); /* eq */
-  sg__rc.d25[552] = SG_MAKE_STRING("eqv");
-  sg__rc.d25[551] = Sg_Intern(sg__rc.d25[552]); /* eqv */
-  sg__rc.d25[555] = SG_MAKE_STRING("eqv?");
-  sg__rc.d25[554] = Sg_Intern(sg__rc.d25[555]); /* eqv? */
-  sg__rc.d25[553] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[554]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[557] = SG_MAKE_STRING("equal");
-  sg__rc.d25[556] = Sg_Intern(sg__rc.d25[557]); /* equal */
-  sg__rc.d25[559] = SG_MAKE_STRING("string");
-  sg__rc.d25[558] = Sg_Intern(sg__rc.d25[559]); /* string */
-  sg__rc.d25[561] = SG_MAKE_STRING("general");
-  sg__rc.d25[560] = Sg_Intern(sg__rc.d25[561]); /* general */
-  sg__rc.d25[564] = SG_MAKE_STRING("hashtable-compare");
-  sg__rc.d25[563] = Sg_Intern(sg__rc.d25[564]); /* hashtable-compare */
-  sg__rc.d25[562] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[563]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[115]))->name = sg__rc.d25[544];/* hashtable-equivalence-function */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[4] = SG_WORD(sg__rc.d25[518]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[12] = SG_WORD(sg__rc.d25[544]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[16] = SG_WORD(sg__rc.d25[536]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[19] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[22] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[27] = SG_WORD(sg__rc.d25[546]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[31] = SG_WORD(sg__rc.d25[549]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[35] = SG_WORD(sg__rc.d25[269]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[39] = SG_WORD(sg__rc.d25[551]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[43] = SG_WORD(sg__rc.d25[553]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[47] = SG_WORD(sg__rc.d25[556]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[51] = SG_WORD(sg__rc.d25[242]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[55] = SG_WORD(sg__rc.d25[558]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[59] = SG_WORD(sg__rc.d25[330]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[63] = SG_WORD(sg__rc.d25[560]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4039]))[68] = SG_WORD(sg__rc.d25[562]);
-  sg__rc.d25[565] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[544]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[567] = SG_MAKE_STRING("hashtable-hash-function");
-  sg__rc.d25[566] = Sg_Intern(sg__rc.d25[567]); /* hashtable-hash-function */
-  sg__rc.d25[570] = SG_MAKE_STRING("equal-hash");
-  sg__rc.d25[569] = Sg_Intern(sg__rc.d25[570]); /* equal-hash */
-  sg__rc.d25[568] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[569]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[573] = SG_MAKE_STRING("string-hash");
-  sg__rc.d25[572] = Sg_Intern(sg__rc.d25[573]); /* string-hash */
-  sg__rc.d25[571] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[572]), SG_NIL, (sg__rc.d25[7]));
-  sg__rc.d25[576] = SG_MAKE_STRING("hashtable-hasher");
-  sg__rc.d25[575] = Sg_Intern(sg__rc.d25[576]); /* hashtable-hasher */
-  sg__rc.d25[574] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[575]), SG_NIL, (sg__rc.d25[7]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d26[116]))->name = sg__rc.d25[566];/* hashtable-hash-function */
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[4] = SG_WORD(sg__rc.d25[518]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[12] = SG_WORD(sg__rc.d25[566]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[16] = SG_WORD(sg__rc.d25[536]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[19] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[22] = SG_WORD(sg__rc.d25[196]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[27] = SG_WORD(sg__rc.d25[546]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[31] = SG_WORD(sg__rc.d25[549]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[38] = SG_WORD(sg__rc.d25[551]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[45] = SG_WORD(sg__rc.d25[556]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[49] = SG_WORD(sg__rc.d25[568]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[53] = SG_WORD(sg__rc.d25[558]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[57] = SG_WORD(sg__rc.d25[571]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[61] = SG_WORD(sg__rc.d25[560]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4111]))[66] = SG_WORD(sg__rc.d25[574]);
-  sg__rc.d25[577] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d25[566]), SG_NIL, (sg__rc.d25[7]));
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[3] = SG_WORD(sg__rc.d25[4]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[7] = SG_WORD(sg__rc.d25[10]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[11] = SG_WORD(sg__rc.d25[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[15] = SG_WORD(sg__rc.d25[22]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[19] = SG_WORD(sg__rc.d25[25]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[23] = SG_WORD(sg__rc.d25[32]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[27] = SG_WORD(sg__rc.d25[37]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[29] = SG_WORD(sg__rc.d25[7]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[33] = SG_WORD(sg__rc.d25[51]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[37] = SG_WORD(sg__rc.d25[57]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[41] = SG_WORD(sg__rc.d25[63]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[45] = SG_WORD(sg__rc.d25[75]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[49] = SG_WORD(sg__rc.d25[78]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[53] = SG_WORD(sg__rc.d25[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[57] = SG_WORD(sg__rc.d25[109]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[61] = SG_WORD(sg__rc.d25[118]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[65] = SG_WORD(sg__rc.d25[124]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[69] = SG_WORD(sg__rc.d25[132]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[73] = SG_WORD(sg__rc.d25[141]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[77] = SG_WORD(sg__rc.d25[144]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[81] = SG_WORD(sg__rc.d25[150]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[85] = SG_WORD(sg__rc.d25[178]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[89] = SG_WORD(sg__rc.d25[203]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[93] = SG_WORD(sg__rc.d25[206]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[97] = SG_WORD(sg__rc.d25[216]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[101] = SG_WORD(sg__rc.d25[220]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[105] = SG_WORD(sg__rc.d25[213]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[109] = SG_WORD(sg__rc.d25[234]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[113] = SG_WORD(sg__rc.d25[229]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[117] = SG_WORD(sg__rc.d25[245]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[121] = SG_WORD(sg__rc.d25[246]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[125] = SG_WORD(sg__rc.d25[249]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[129] = SG_WORD(sg__rc.d25[260]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[133] = SG_WORD(sg__rc.d25[266]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[137] = SG_WORD(sg__rc.d25[278]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[141] = SG_WORD(sg__rc.d25[287]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[145] = SG_WORD(sg__rc.d25[290]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[149] = SG_WORD(sg__rc.d25[293]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[151] = SG_WORD(sg__rc.d25[290]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[153] = SG_WORD(sg__rc.d25[294]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[157] = SG_WORD(sg__rc.d25[305]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[161] = SG_WORD(sg__rc.d25[311]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[165] = SG_WORD(sg__rc.d25[317]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[169] = SG_WORD(sg__rc.d25[323]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[173] = SG_WORD(sg__rc.d25[329]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[177] = SG_WORD(sg__rc.d25[338]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[181] = SG_WORD(sg__rc.d25[344]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[185] = SG_WORD(sg__rc.d25[350]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[189] = SG_WORD(sg__rc.d25[356]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[193] = SG_WORD(sg__rc.d25[362]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[197] = SG_WORD(sg__rc.d25[373]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[201] = SG_WORD(sg__rc.d25[379]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[205] = SG_WORD(sg__rc.d25[398]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[209] = SG_WORD(sg__rc.d25[401]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[213] = SG_WORD(sg__rc.d25[408]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[217] = SG_WORD(sg__rc.d25[411]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[221] = SG_WORD(sg__rc.d25[417]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[225] = SG_WORD(sg__rc.d25[420]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[229] = SG_WORD(sg__rc.d25[275]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[233] = SG_WORD(sg__rc.d25[263]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[237] = SG_WORD(sg__rc.d25[252]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[241] = SG_WORD(sg__rc.d25[434]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[245] = SG_WORD(sg__rc.d25[52]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[249] = SG_WORD(sg__rc.d25[46]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[253] = SG_WORD(sg__rc.d25[438]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[257] = SG_WORD(sg__rc.d25[444]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[261] = SG_WORD(sg__rc.d25[447]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[265] = SG_WORD(sg__rc.d25[450]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[269] = SG_WORD(sg__rc.d25[453]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[273] = SG_WORD(sg__rc.d25[456]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[277] = SG_WORD(sg__rc.d25[457]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[281] = SG_WORD(sg__rc.d25[460]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[285] = SG_WORD(sg__rc.d25[470]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[289] = SG_WORD(sg__rc.d25[473]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[293] = SG_WORD(sg__rc.d25[481]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[297] = SG_WORD(sg__rc.d25[490]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[301] = SG_WORD(sg__rc.d25[502]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[305] = SG_WORD(sg__rc.d25[511]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[309] = SG_WORD(sg__rc.d25[514]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[313] = SG_WORD(sg__rc.d25[517]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[317] = SG_WORD(sg__rc.d25[533]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[321] = SG_WORD(sg__rc.d25[543]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[325] = SG_WORD(sg__rc.d25[565]);
-  ((SgWord*)SG_OBJ(&sg__rc.d24[4181]))[329] = SG_WORD(sg__rc.d25[577]);
-  sg__rc.d25[579] = SG_MAKE_STRING("null");
-  sg__rc.d25[578] = Sg_Intern(sg__rc.d25[579]); /* null */
-  Sg_ImportLibrary(sg__rc.d25[7], sg__rc.d25[578]);
+  sg__rc.d28[1] = SG_MAKE_STRING("default-protocol");
+  sg__rc.d28[0] = Sg_Intern(sg__rc.d28[1]); /* default-protocol */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[0]))->name = sg__rc.d28[0];/* default-protocol */
+  sg__rc.d28[3] = SG_MAKE_STRING("(default-protocol default-protocol)");
+  sg__rc.d28[2] = Sg_Intern(sg__rc.d28[3]); /* (default-protocol default-protocol) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[1]))->name = sg__rc.d28[2];/* (default-protocol default-protocol) */
+  sg__rc.d28[6] = SG_MAKE_STRING("G26");
+  sg__rc.d28[5] = Sg_Intern(sg__rc.d28[6]); /* G26 */
+  sg__rc.d28[9] = SG_MAKE_STRING("(core base)");
+  sg__rc.d28[8] = Sg_Intern(sg__rc.d28[9]); /* (core base) */
+  sg__rc.d28[7] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d28[8]), TRUE);
+  sg__rc.d28[4] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[5]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[12] = SG_MAKE_STRING("G25");
+  sg__rc.d28[11] = Sg_Intern(sg__rc.d28[12]); /* G25 */
+  sg__rc.d28[10] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[11]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[14] = SG_MAKE_STRING("(take recur)");
+  sg__rc.d28[13] = Sg_Intern(sg__rc.d28[14]); /* (take recur) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[2]))->name = sg__rc.d28[13];/* (take recur) */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[8]))[14] = SG_WORD(sg__rc.d28[10]);
+  sg__rc.d28[17] = SG_MAKE_STRING("G24");
+  sg__rc.d28[16] = Sg_Intern(sg__rc.d28[17]); /* G24 */
+  sg__rc.d28[15] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[16]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[19] = SG_MAKE_STRING("(for-all loop)");
+  sg__rc.d28[18] = Sg_Intern(sg__rc.d28[19]); /* (for-all loop) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[3]))->name = sg__rc.d28[18];/* (for-all loop) */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[26]))[11] = SG_WORD(sg__rc.d28[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[26]))[21] = SG_WORD(sg__rc.d28[15]);
+  sg__rc.d28[21] = SG_MAKE_STRING("(for-all collect-cdr)");
+  sg__rc.d28[20] = Sg_Intern(sg__rc.d28[21]); /* (for-all collect-cdr) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[4]))->name = sg__rc.d28[20];/* (for-all collect-cdr) */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[51]))[4] = SG_WORD(sg__rc.d28[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[51]))[8] = SG_WORD(sg__rc.d28[15]);
+  sg__rc.d28[24] = SG_MAKE_STRING("G23");
+  sg__rc.d28[23] = Sg_Intern(sg__rc.d28[24]); /* G23 */
+  sg__rc.d28[22] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[23]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[27] = SG_MAKE_STRING("G22");
+  sg__rc.d28[26] = Sg_Intern(sg__rc.d28[27]); /* G22 */
+  sg__rc.d28[25] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[26]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[29] = SG_MAKE_STRING("(exists loop)");
+  sg__rc.d28[28] = Sg_Intern(sg__rc.d28[29]); /* (exists loop) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[5]))->name = sg__rc.d28[28];/* (exists loop) */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[62]))[11] = SG_WORD(sg__rc.d28[25]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[62]))[21] = SG_WORD(sg__rc.d28[25]);
+  sg__rc.d28[31] = SG_MAKE_STRING("(exists collect-cdr)");
+  sg__rc.d28[30] = Sg_Intern(sg__rc.d28[31]); /* (exists collect-cdr) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[6]))->name = sg__rc.d28[30];/* (exists collect-cdr) */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[87]))[4] = SG_WORD(sg__rc.d28[25]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[87]))[8] = SG_WORD(sg__rc.d28[25]);
+  sg__rc.d28[34] = SG_MAKE_STRING("G21");
+  sg__rc.d28[33] = Sg_Intern(sg__rc.d28[34]); /* G21 */
+  sg__rc.d28[32] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[33]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[36] = SG_MAKE_STRING("(list-sort merge-list!)");
+  sg__rc.d28[35] = Sg_Intern(sg__rc.d28[36]); /* (list-sort merge-list!) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[7]))->name = sg__rc.d28[35];/* (list-sort merge-list!) */
+  sg__rc.d28[39] = SG_MAKE_STRING("G20");
+  sg__rc.d28[38] = Sg_Intern(sg__rc.d28[39]); /* G20 */
+  sg__rc.d28[37] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[38]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[42] = SG_MAKE_STRING("hashtable-keys-list");
+  sg__rc.d28[41] = Sg_Intern(sg__rc.d28[42]); /* hashtable-keys-list */
+  sg__rc.d28[40] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[41]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[45] = SG_MAKE_STRING("hashtable-values-list");
+  sg__rc.d28[44] = Sg_Intern(sg__rc.d28[45]); /* hashtable-values-list */
+  sg__rc.d28[43] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[44]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[48] = SG_MAKE_STRING("for-each");
+  sg__rc.d28[47] = Sg_Intern(sg__rc.d28[48]); /* for-each */
+  sg__rc.d28[46] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[47]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[50] = SG_MAKE_STRING("hashtable-for-each");
+  sg__rc.d28[49] = Sg_Intern(sg__rc.d28[50]); /* hashtable-for-each */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[8]))->name = sg__rc.d28[49];/* hashtable-for-each */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[171]))[5] = SG_WORD(sg__rc.d28[40]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[171]))[11] = SG_WORD(sg__rc.d28[43]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[171]))[14] = SG_WORD(sg__rc.d28[46]);
+  sg__rc.d28[51] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[49]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[54] = SG_MAKE_STRING("map");
+  sg__rc.d28[53] = Sg_Intern(sg__rc.d28[54]); /* map */
+  sg__rc.d28[52] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[53]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[56] = SG_MAKE_STRING("hashtable-map");
+  sg__rc.d28[55] = Sg_Intern(sg__rc.d28[56]); /* hashtable-map */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[9]))->name = sg__rc.d28[55];/* hashtable-map */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[187]))[5] = SG_WORD(sg__rc.d28[40]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[187]))[11] = SG_WORD(sg__rc.d28[43]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[187]))[14] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[57] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[55]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[60] = SG_MAKE_STRING("cons");
+  sg__rc.d28[59] = Sg_Intern(sg__rc.d28[60]); /* cons */
+  sg__rc.d28[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[59]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[62] = SG_MAKE_STRING("hashtable->alist");
+  sg__rc.d28[61] = Sg_Intern(sg__rc.d28[62]); /* hashtable->alist */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[10]))->name = sg__rc.d28[61];/* hashtable->alist */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[203]))[1] = SG_WORD(sg__rc.d28[58]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[203]))[4] = SG_WORD(sg__rc.d28[57]);
+  sg__rc.d28[63] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[61]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[66] = SG_MAKE_STRING("list?");
+  sg__rc.d28[65] = Sg_Intern(sg__rc.d28[66]); /* list? */
+  sg__rc.d28[64] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[65]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[69] = SG_MAKE_STRING("variable?");
+  sg__rc.d28[68] = Sg_Intern(sg__rc.d28[69]); /* variable? */
+  sg__rc.d28[67] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[68]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[72] = SG_MAKE_STRING("id-memq");
+  sg__rc.d28[71] = Sg_Intern(sg__rc.d28[72]); /* id-memq */
+  sg__rc.d28[70] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[71]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[74] = SG_MAKE_STRING("unique-id-list?");
+  sg__rc.d28[73] = Sg_Intern(sg__rc.d28[74]); /* unique-id-list? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[11]))->name = sg__rc.d28[73];/* unique-id-list? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[209]))[4] = SG_WORD(sg__rc.d28[64]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[209]))[16] = SG_WORD(sg__rc.d28[67]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[209]))[27] = SG_WORD(sg__rc.d28[70]);
+  sg__rc.d28[75] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[73]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[77] = SG_MAKE_STRING("call-with-values");
+  sg__rc.d28[76] = Sg_Intern(sg__rc.d28[77]); /* call-with-values */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[12]))->name = sg__rc.d28[76];/* call-with-values */
+  sg__rc.d28[78] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[76]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[81] = SG_MAKE_STRING("make-eq-hashtable");
+  sg__rc.d28[80] = Sg_Intern(sg__rc.d28[81]); /* make-eq-hashtable */
+  sg__rc.d28[79] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[80]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[84] = SG_MAKE_STRING("current-usage-env");
+  sg__rc.d28[83] = Sg_Intern(sg__rc.d28[84]); /* current-usage-env */
+  sg__rc.d28[82] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[83]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[87] = SG_MAKE_STRING("current-macro-env");
+  sg__rc.d28[86] = Sg_Intern(sg__rc.d28[87]); /* current-macro-env */
+  sg__rc.d28[85] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[86]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[90] = SG_MAKE_STRING("er-rename");
+  sg__rc.d28[89] = Sg_Intern(sg__rc.d28[90]); /* er-rename */
+  sg__rc.d28[88] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[89]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[92] = SG_MAKE_STRING("rename");
+  sg__rc.d28[91] = Sg_Intern(sg__rc.d28[92]); /* rename */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[13]))->name = sg__rc.d28[91];/* rename */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[257]))[4] = SG_WORD(sg__rc.d28[88]);
+  sg__rc.d28[95] = SG_MAKE_STRING("identifier?");
+  sg__rc.d28[94] = Sg_Intern(sg__rc.d28[95]); /* identifier? */
+  sg__rc.d28[93] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[94]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[98] = SG_MAKE_STRING("free-identifier=?");
+  sg__rc.d28[97] = Sg_Intern(sg__rc.d28[98]); /* free-identifier=? */
+  sg__rc.d28[96] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[97]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[101] = SG_MAKE_STRING("identifier=?");
+  sg__rc.d28[100] = Sg_Intern(sg__rc.d28[101]); /* identifier=? */
+  sg__rc.d28[99] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[100]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[103] = SG_MAKE_STRING("compare");
+  sg__rc.d28[102] = Sg_Intern(sg__rc.d28[103]); /* compare */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[14]))->name = sg__rc.d28[102];/* compare */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[263]))[4] = SG_WORD(sg__rc.d28[93]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[263]))[11] = SG_WORD(sg__rc.d28[93]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[263]))[19] = SG_WORD(sg__rc.d28[96]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[263]))[28] = SG_WORD(sg__rc.d28[99]);
+  sg__rc.d28[105] = SG_MAKE_STRING("er-macro-transformer");
+  sg__rc.d28[104] = Sg_Intern(sg__rc.d28[105]); /* er-macro-transformer */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[15]))->name = sg__rc.d28[104];/* er-macro-transformer */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[299]))[3] = SG_WORD(sg__rc.d28[79]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[299]))[8] = SG_WORD(sg__rc.d28[82]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[299]))[13] = SG_WORD(sg__rc.d28[85]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[16]))->name = sg__rc.d28[104];/* er-macro-transformer */
+  sg__rc.d28[106] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[104]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[108] = SG_MAKE_STRING("safe-length");
+  sg__rc.d28[107] = Sg_Intern(sg__rc.d28[108]); /* safe-length */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[17]))->name = sg__rc.d28[107];/* safe-length */
+  sg__rc.d28[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[107]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[112] = SG_MAKE_STRING("display");
+  sg__rc.d28[111] = Sg_Intern(sg__rc.d28[112]); /* display */
+  sg__rc.d28[110] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[111]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[115] = SG_MAKE_STRING("newline");
+  sg__rc.d28[114] = Sg_Intern(sg__rc.d28[115]); /* newline */
+  sg__rc.d28[113] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[114]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[117] = SG_MAKE_STRING("print");
+  sg__rc.d28[116] = Sg_Intern(sg__rc.d28[117]); /* print */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[18]))->name = sg__rc.d28[116];/* print */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[369]))[3] = SG_WORD(sg__rc.d28[110]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[369]))[6] = SG_WORD(sg__rc.d28[46]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[369]))[8] = SG_WORD(sg__rc.d28[113]);
+  sg__rc.d28[118] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[116]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[121] = SG_MAKE_STRING("list-transpose*");
+  sg__rc.d28[120] = Sg_Intern(sg__rc.d28[121]); /* list-transpose* */
+  sg__rc.d28[119] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[120]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[123] = SG_MAKE_STRING("fold");
+  sg__rc.d28[122] = Sg_Intern(sg__rc.d28[123]); /* fold */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[19]))->name = sg__rc.d28[122];/* fold */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[379]))[25] = SG_WORD(sg__rc.d28[119]);
+  sg__rc.d28[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[122]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[125] = SG_MAKE_STRING("expected ~a, but got ~a");
+  sg__rc.d28[128] = SG_MAKE_STRING("format");
+  sg__rc.d28[127] = Sg_Intern(sg__rc.d28[128]); /* format */
+  sg__rc.d28[126] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[127]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[129] = SG_MAKE_STRING("expected ~a, but got ~a, as argument ~a");
+  sg__rc.d28[131] = SG_MAKE_STRING("wrong-type-argument-message");
+  sg__rc.d28[130] = Sg_Intern(sg__rc.d28[131]); /* wrong-type-argument-message */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[20]))->name = sg__rc.d28[130];/* wrong-type-argument-message */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[429]))[4] = SG_WORD(sg__rc.d28[125]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[429]))[8] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[429]))[11] = SG_WORD(sg__rc.d28[129]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[429]))[16] = SG_WORD(sg__rc.d28[126]);
+  sg__rc.d28[132] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[130]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[135] = SG_MAKE_STRING("vector->list");
+  sg__rc.d28[134] = Sg_Intern(sg__rc.d28[135]); /* vector->list */
+  sg__rc.d28[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[134]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[138] = SG_MAKE_STRING("list->vector");
+  sg__rc.d28[137] = Sg_Intern(sg__rc.d28[138]); /* list->vector */
+  sg__rc.d28[136] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[137]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[140] = SG_MAKE_STRING("vector-map");
+  sg__rc.d28[139] = Sg_Intern(sg__rc.d28[140]); /* vector-map */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[21]))->name = sg__rc.d28[139];/* vector-map */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[447]))[3] = SG_WORD(sg__rc.d28[52]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[447]))[9] = SG_WORD(sg__rc.d28[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[447]))[14] = SG_WORD(sg__rc.d28[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[447]))[17] = SG_WORD(sg__rc.d28[52]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[447]))[21] = SG_WORD(sg__rc.d28[136]);
+  sg__rc.d28[141] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[139]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[143] = SG_MAKE_STRING("vector-for-each");
+  sg__rc.d28[142] = Sg_Intern(sg__rc.d28[143]); /* vector-for-each */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[22]))->name = sg__rc.d28[142];/* vector-for-each */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[470]))[1] = SG_WORD(sg__rc.d28[46]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[470]))[7] = SG_WORD(sg__rc.d28[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[470]))[12] = SG_WORD(sg__rc.d28[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[470]))[15] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[144] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[142]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[147] = SG_MAKE_STRING("string->list");
+  sg__rc.d28[146] = Sg_Intern(sg__rc.d28[147]); /* string->list */
+  sg__rc.d28[145] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[146]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[149] = SG_MAKE_STRING("string-for-each");
+  sg__rc.d28[148] = Sg_Intern(sg__rc.d28[149]); /* string-for-each */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[23]))->name = sg__rc.d28[148];/* string-for-each */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[488]))[1] = SG_WORD(sg__rc.d28[46]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[488]))[7] = SG_WORD(sg__rc.d28[145]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[488]))[12] = SG_WORD(sg__rc.d28[145]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[488]))[15] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[150] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[148]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[153] = SG_MAKE_STRING("current-output-port");
+  sg__rc.d28[152] = Sg_Intern(sg__rc.d28[153]); /* current-output-port */
+  sg__rc.d28[151] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[152]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[156] = SG_MAKE_STRING("tuple-ref");
+  sg__rc.d28[155] = Sg_Intern(sg__rc.d28[156]); /* tuple-ref */
+  sg__rc.d28[154] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[155]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[157] = SG_MAKE_STRING("#<record ~s ~a~a ~a>");
+  sg__rc.d28[160] = SG_MAKE_STRING("record-type-name");
+  sg__rc.d28[159] = Sg_Intern(sg__rc.d28[160]); /* record-type-name */
+  sg__rc.d28[158] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[159]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[163] = SG_MAKE_STRING("record-type-opaque?");
+  sg__rc.d28[162] = Sg_Intern(sg__rc.d28[163]); /* record-type-opaque? */
+  sg__rc.d28[161] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[162]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[164] = SG_MAKE_STRING("opaque ");
+  sg__rc.d28[165] = SG_MAKE_STRING("");
+  sg__rc.d28[168] = SG_MAKE_STRING("record-type-sealed?");
+  sg__rc.d28[167] = Sg_Intern(sg__rc.d28[168]); /* record-type-sealed? */
+  sg__rc.d28[166] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[167]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[169] = SG_MAKE_STRING("sealed ");
+  sg__rc.d28[172] = SG_MAKE_STRING("tuple-size");
+  sg__rc.d28[171] = Sg_Intern(sg__rc.d28[172]); /* tuple-size */
+  sg__rc.d28[170] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[171]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[175] = SG_MAKE_STRING("reverse!");
+  sg__rc.d28[174] = Sg_Intern(sg__rc.d28[175]); /* reverse! */
+  sg__rc.d28[173] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[174]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[177] = SG_MAKE_STRING("record-printer");
+  sg__rc.d28[176] = Sg_Intern(sg__rc.d28[177]); /* record-printer */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[24]))->name = sg__rc.d28[176];/* record-printer */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[6] = SG_WORD(sg__rc.d28[151]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[16] = SG_WORD(sg__rc.d28[154]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[20] = SG_WORD(sg__rc.d28[157]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[25] = SG_WORD(sg__rc.d28[158]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[31] = SG_WORD(sg__rc.d28[161]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[35] = SG_WORD(sg__rc.d28[164]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[39] = SG_WORD(sg__rc.d28[165]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[45] = SG_WORD(sg__rc.d28[166]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[49] = SG_WORD(sg__rc.d28[169]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[53] = SG_WORD(sg__rc.d28[165]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[59] = SG_WORD(sg__rc.d28[170]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[72] = SG_WORD(sg__rc.d28[173]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[83] = SG_WORD(sg__rc.d28[154]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[506]))[94] = SG_WORD(sg__rc.d28[126]);
+  sg__rc.d28[178] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[176]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[181] = SG_MAKE_STRING("rcd-parent");
+  sg__rc.d28[180] = Sg_Intern(sg__rc.d28[181]); /* rcd-parent */
+  sg__rc.d28[179] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[180]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[184] = SG_MAKE_STRING("rcd-protocol");
+  sg__rc.d28[183] = Sg_Intern(sg__rc.d28[184]); /* rcd-protocol */
+  sg__rc.d28[182] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[183]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[602]))[20] = SG_WORD(sg__rc.d28[182]);
+  sg__rc.d28[187] = SG_MAKE_STRING("length");
+  sg__rc.d28[186] = Sg_Intern(sg__rc.d28[187]); /* length */
+  sg__rc.d28[185] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[186]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[190] = SG_MAKE_STRING("make-tuple");
+  sg__rc.d28[189] = Sg_Intern(sg__rc.d28[190]); /* make-tuple */
+  sg__rc.d28[188] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[189]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[193] = SG_MAKE_STRING("tuple-list-set!");
+  sg__rc.d28[192] = Sg_Intern(sg__rc.d28[193]); /* tuple-list-set! */
+  sg__rc.d28[191] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[192]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[194] = SG_MAKE_STRING("record constructor");
+  sg__rc.d28[195] = SG_MAKE_STRING("wrong number of arguments");
+  sg__rc.d28[198] = SG_MAKE_STRING("assertion-violation");
+  sg__rc.d28[197] = Sg_Intern(sg__rc.d28[198]); /* assertion-violation */
+  sg__rc.d28[196] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[197]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[200] = SG_MAKE_STRING("loop");
+  sg__rc.d28[199] = Sg_Intern(sg__rc.d28[200]); /* loop */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[28]))->name = sg__rc.d28[199];/* loop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[8] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[19] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[23] = SG_WORD(sg__rc.d28[178]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[25] = SG_WORD(sg__rc.d28[188]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[38] = SG_WORD(sg__rc.d28[191]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[42] = SG_WORD(sg__rc.d28[194]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[44] = SG_WORD(sg__rc.d28[195]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[643]))[47] = SG_WORD(sg__rc.d28[196]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[29]))->name = sg__rc.d28[199];/* loop */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[30]))->name = sg__rc.d28[199];/* loop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[698]))[4] = SG_WORD(sg__rc.d28[179]);
+  sg__rc.d28[202] = SG_MAKE_STRING("make-nested-conser");
+  sg__rc.d28[201] = Sg_Intern(sg__rc.d28[202]); /* make-nested-conser */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[31]))->name = sg__rc.d28[201];/* make-nested-conser */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[719]))[24] = SG_WORD(sg__rc.d28[182]);
+  sg__rc.d28[203] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[201]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[4] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[15] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[19] = SG_WORD(sg__rc.d28[178]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[21] = SG_WORD(sg__rc.d28[188]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[34] = SG_WORD(sg__rc.d28[191]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[38] = SG_WORD(sg__rc.d28[194]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[40] = SG_WORD(sg__rc.d28[195]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[746]))[43] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[205] = SG_MAKE_STRING("make-simple-conser");
+  sg__rc.d28[204] = Sg_Intern(sg__rc.d28[205]); /* make-simple-conser */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[33]))->name = sg__rc.d28[204];/* make-simple-conser */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[791]))[9] = SG_WORD(sg__rc.d28[182]);
+  sg__rc.d28[206] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[204]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[209] = SG_MAKE_STRING("record-type-parent");
+  sg__rc.d28[208] = Sg_Intern(sg__rc.d28[209]); /* record-type-parent */
+  sg__rc.d28[207] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[208]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[212] = SG_MAKE_STRING("rtd-total-field-count");
+  sg__rc.d28[211] = Sg_Intern(sg__rc.d28[212]); /* rtd-total-field-count */
+  sg__rc.d28[210] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[211]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[215] = SG_MAKE_STRING("split-at");
+  sg__rc.d28[214] = Sg_Intern(sg__rc.d28[215]); /* split-at */
+  sg__rc.d28[213] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[214]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[34]))->name = sg__rc.d28[0];/* default-protocol */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[803]))[5] = SG_WORD(sg__rc.d28[213]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[35]))->name = sg__rc.d28[0];/* default-protocol */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[36]))->name = sg__rc.d28[0];/* default-protocol */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[824]))[4] = SG_WORD(sg__rc.d28[207]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[824]))[13] = SG_WORD(sg__rc.d28[210]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[824]))[20] = SG_WORD(sg__rc.d28[4]);
+  sg__rc.d28[216] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[0]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[218] = SG_MAKE_STRING("null-list?");
+  sg__rc.d28[217] = Sg_Intern(sg__rc.d28[218]); /* null-list? */
+  sg__rc.d28[219] = SG_MAKE_STRING("argument out of domain");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[37]))->name = sg__rc.d28[217];/* null-list? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[846]))[12] = SG_WORD(sg__rc.d28[217]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[846]))[14] = SG_WORD(sg__rc.d28[219]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[846]))[17] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[220] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[217]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[223] = SG_MAKE_STRING("integer?");
+  sg__rc.d28[222] = Sg_Intern(sg__rc.d28[223]); /* integer? */
+  sg__rc.d28[221] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[222]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[224] = SG_MAKE_STRING("integer");
+  sg__rc.d28[225] = SG_MAKE_STRING("given list it too short");
+  sg__rc.d28[228] = SG_MAKE_STRING("error");
+  sg__rc.d28[227] = Sg_Intern(sg__rc.d28[228]); /* error */
+  sg__rc.d28[226] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[227]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[38]))->name = sg__rc.d28[214];/* split-at */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[4] = SG_WORD(sg__rc.d28[221]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[12] = SG_WORD(sg__rc.d28[214]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[16] = SG_WORD(sg__rc.d28[224]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[36] = SG_WORD(sg__rc.d28[173]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[45] = SG_WORD(sg__rc.d28[214]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[47] = SG_WORD(sg__rc.d28[225]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[865]))[49] = SG_WORD(sg__rc.d28[226]);
+  sg__rc.d28[231] = SG_MAKE_STRING("find-tail");
+  sg__rc.d28[230] = Sg_Intern(sg__rc.d28[231]); /* find-tail */
+  sg__rc.d28[229] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[230]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[233] = SG_MAKE_STRING("find");
+  sg__rc.d28[232] = Sg_Intern(sg__rc.d28[233]); /* find */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[39]))->name = sg__rc.d28[232];/* find */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[927]))[5] = SG_WORD(sg__rc.d28[229]);
+  sg__rc.d28[234] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[232]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[237] = SG_MAKE_STRING("procedure?");
+  sg__rc.d28[236] = Sg_Intern(sg__rc.d28[237]); /* procedure? */
+  sg__rc.d28[235] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[236]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[238] = SG_MAKE_STRING("procedure");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[40]))->name = sg__rc.d28[230];/* find-tail */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[939]))[4] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[939]))[12] = SG_WORD(sg__rc.d28[230]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[939]))[16] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[939]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[939]))[23] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[240] = SG_MAKE_STRING("assoc");
+  sg__rc.d28[239] = Sg_Intern(sg__rc.d28[240]); /* assoc */
+  sg__rc.d28[241] = SG_MAKE_STRING("list");
+  sg__rc.d28[244] = SG_MAKE_STRING("equal?");
+  sg__rc.d28[243] = Sg_Intern(sg__rc.d28[244]); /* equal? */
+  sg__rc.d28[242] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[243]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[245] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[239]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[42]))->name = sg__rc.d28[239];/* assoc */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[4] = SG_WORD(sg__rc.d28[64]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[12] = SG_WORD(sg__rc.d28[239]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[16] = SG_WORD(sg__rc.d28[241]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[30] = SG_WORD(sg__rc.d28[242]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[32] = SG_WORD(sg__rc.d28[245]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[988]))[41] = SG_WORD(sg__rc.d28[234]);
+  sg__rc.d28[248] = SG_MAKE_STRING("member");
+  sg__rc.d28[247] = Sg_Intern(sg__rc.d28[248]); /* member */
+  sg__rc.d28[246] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[247]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[44]))->name = sg__rc.d28[247];/* member */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1036]))[6] = SG_WORD(sg__rc.d28[242]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1036]))[8] = SG_WORD(sg__rc.d28[246]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1036]))[17] = SG_WORD(sg__rc.d28[229]);
+  sg__rc.d28[251] = SG_MAKE_STRING("delete");
+  sg__rc.d28[250] = Sg_Intern(sg__rc.d28[251]); /* delete */
+  sg__rc.d28[249] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[250]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[254] = SG_MAKE_STRING("filter");
+  sg__rc.d28[253] = Sg_Intern(sg__rc.d28[254]); /* filter */
+  sg__rc.d28[252] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[253]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[46]))->name = sg__rc.d28[250];/* delete */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1063]))[6] = SG_WORD(sg__rc.d28[242]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1063]))[8] = SG_WORD(sg__rc.d28[249]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1063]))[17] = SG_WORD(sg__rc.d28[252]);
+  sg__rc.d28[256] = SG_MAKE_STRING("reduce");
+  sg__rc.d28[255] = Sg_Intern(sg__rc.d28[256]); /* reduce */
+  sg__rc.d28[259] = SG_MAKE_STRING("=");
+  sg__rc.d28[258] = Sg_Intern(sg__rc.d28[259]); /* = */
+  sg__rc.d28[257] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[258]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[47]))->name = sg__rc.d28[255];/* reduce */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[4] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[12] = SG_WORD(sg__rc.d28[255]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[16] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[18] = SG_WORD(sg__rc.d28[257]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[21] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[24] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1082]))[34] = SG_WORD(sg__rc.d28[124]);
+  sg__rc.d28[260] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[255]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[262] = SG_MAKE_STRING("lset-union");
+  sg__rc.d28[261] = Sg_Intern(sg__rc.d28[262]); /* lset-union */
+  sg__rc.d28[265] = SG_MAKE_STRING("exists");
+  sg__rc.d28[264] = Sg_Intern(sg__rc.d28[265]); /* exists */
+  sg__rc.d28[263] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[264]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1123]))[9] = SG_WORD(sg__rc.d28[263]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1141]))[23] = SG_WORD(sg__rc.d28[124]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[51]))->name = sg__rc.d28[261];/* lset-union */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[4] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[12] = SG_WORD(sg__rc.d28[261]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[16] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1166]))[32] = SG_WORD(sg__rc.d28[260]);
+  sg__rc.d28[266] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[261]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[268] = SG_MAKE_STRING("lset-intersection");
+  sg__rc.d28[267] = Sg_Intern(sg__rc.d28[268]); /* lset-intersection */
+  sg__rc.d28[271] = SG_MAKE_STRING("eq?");
+  sg__rc.d28[270] = Sg_Intern(sg__rc.d28[271]); /* eq? */
+  sg__rc.d28[269] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[270]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[274] = SG_MAKE_STRING("null?");
+  sg__rc.d28[273] = Sg_Intern(sg__rc.d28[274]); /* null? */
+  sg__rc.d28[272] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[273]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1200]))[4] = SG_WORD(sg__rc.d28[246]);
+  sg__rc.d28[277] = SG_MAKE_STRING("for-all");
+  sg__rc.d28[276] = Sg_Intern(sg__rc.d28[277]); /* for-all */
+  sg__rc.d28[275] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[276]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1206]))[7] = SG_WORD(sg__rc.d28[275]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[54]))->name = sg__rc.d28[267];/* lset-intersection */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[4] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[12] = SG_WORD(sg__rc.d28[267]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[16] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[29] = SG_WORD(sg__rc.d28[269]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[31] = SG_WORD(sg__rc.d28[249]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[36] = SG_WORD(sg__rc.d28[272]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[39] = SG_WORD(sg__rc.d28[263]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1215]))[56] = SG_WORD(sg__rc.d28[252]);
+  sg__rc.d28[278] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[267]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[280] = SG_MAKE_STRING("lset-difference");
+  sg__rc.d28[279] = Sg_Intern(sg__rc.d28[280]); /* lset-difference */
+  sg__rc.d28[283] = SG_MAKE_STRING("pair?");
+  sg__rc.d28[282] = Sg_Intern(sg__rc.d28[283]); /* pair? */
+  sg__rc.d28[281] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[282]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[286] = SG_MAKE_STRING("memq");
+  sg__rc.d28[285] = Sg_Intern(sg__rc.d28[286]); /* memq */
+  sg__rc.d28[284] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[285]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1273]))[6] = SG_WORD(sg__rc.d28[246]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1282]))[7] = SG_WORD(sg__rc.d28[275]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[57]))->name = sg__rc.d28[279];/* lset-difference */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[4] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[12] = SG_WORD(sg__rc.d28[279]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[16] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[27] = SG_WORD(sg__rc.d28[281]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[30] = SG_WORD(sg__rc.d28[252]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[42] = SG_WORD(sg__rc.d28[284]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1291]))[54] = SG_WORD(sg__rc.d28[252]);
+  sg__rc.d28[287] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[279]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[289] = SG_MAKE_STRING("take");
+  sg__rc.d28[288] = Sg_Intern(sg__rc.d28[289]); /* take */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[58]))->name = sg__rc.d28[288];/* take */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[4] = SG_WORD(sg__rc.d28[221]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[12] = SG_WORD(sg__rc.d28[288]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[16] = SG_WORD(sg__rc.d28[224]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[23] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[28] = SG_WORD(sg__rc.d28[10]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1347]))[33] = SG_WORD(sg__rc.d28[10]);
+  sg__rc.d28[290] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[288]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[292] = SG_MAKE_STRING("drop");
+  sg__rc.d28[291] = Sg_Intern(sg__rc.d28[292]); /* drop */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[59]))->name = sg__rc.d28[291];/* drop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1383]))[4] = SG_WORD(sg__rc.d28[221]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1383]))[12] = SG_WORD(sg__rc.d28[291]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1383]))[16] = SG_WORD(sg__rc.d28[224]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1383]))[20] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1383]))[23] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[293] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[291]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[296] = SG_MAKE_STRING("list-head");
+  sg__rc.d28[295] = Sg_Intern(sg__rc.d28[296]); /* list-head */
+  sg__rc.d28[294] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[295]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[299] = SG_MAKE_STRING("char=?");
+  sg__rc.d28[298] = Sg_Intern(sg__rc.d28[299]); /* char=? */
+  sg__rc.d28[297] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[298]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[302] = SG_MAKE_STRING("char-foldcase");
+  sg__rc.d28[301] = Sg_Intern(sg__rc.d28[302]); /* char-foldcase */
+  sg__rc.d28[300] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[301]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[304] = SG_MAKE_STRING("char-ci=?");
+  sg__rc.d28[303] = Sg_Intern(sg__rc.d28[304]); /* char-ci=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[60]))->name = sg__rc.d28[303];/* char-ci=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1423]))[1] = SG_WORD(sg__rc.d28[297]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1423]))[5] = SG_WORD(sg__rc.d28[300]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1423]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[305] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[303]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[308] = SG_MAKE_STRING("char<?");
+  sg__rc.d28[307] = Sg_Intern(sg__rc.d28[308]); /* char<? */
+  sg__rc.d28[306] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[307]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[310] = SG_MAKE_STRING("char-ci<?");
+  sg__rc.d28[309] = Sg_Intern(sg__rc.d28[310]); /* char-ci<? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[61]))->name = sg__rc.d28[309];/* char-ci<? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1434]))[1] = SG_WORD(sg__rc.d28[306]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1434]))[5] = SG_WORD(sg__rc.d28[300]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1434]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[311] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[309]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[314] = SG_MAKE_STRING("char>?");
+  sg__rc.d28[313] = Sg_Intern(sg__rc.d28[314]); /* char>? */
+  sg__rc.d28[312] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[313]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[316] = SG_MAKE_STRING("char-ci>?");
+  sg__rc.d28[315] = Sg_Intern(sg__rc.d28[316]); /* char-ci>? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[62]))->name = sg__rc.d28[315];/* char-ci>? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1445]))[1] = SG_WORD(sg__rc.d28[312]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1445]))[5] = SG_WORD(sg__rc.d28[300]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1445]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[317] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[315]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[320] = SG_MAKE_STRING("char<=?");
+  sg__rc.d28[319] = Sg_Intern(sg__rc.d28[320]); /* char<=? */
+  sg__rc.d28[318] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[319]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[322] = SG_MAKE_STRING("char-ci<=?");
+  sg__rc.d28[321] = Sg_Intern(sg__rc.d28[322]); /* char-ci<=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[63]))->name = sg__rc.d28[321];/* char-ci<=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1456]))[1] = SG_WORD(sg__rc.d28[318]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1456]))[5] = SG_WORD(sg__rc.d28[300]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1456]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[323] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[321]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[326] = SG_MAKE_STRING("char>=?");
+  sg__rc.d28[325] = Sg_Intern(sg__rc.d28[326]); /* char>=? */
+  sg__rc.d28[324] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[325]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[328] = SG_MAKE_STRING("char-ci>=?");
+  sg__rc.d28[327] = Sg_Intern(sg__rc.d28[328]); /* char-ci>=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[64]))->name = sg__rc.d28[327];/* char-ci>=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1467]))[1] = SG_WORD(sg__rc.d28[324]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1467]))[5] = SG_WORD(sg__rc.d28[300]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1467]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[329] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[327]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[332] = SG_MAKE_STRING("string=?");
+  sg__rc.d28[331] = Sg_Intern(sg__rc.d28[332]); /* string=? */
+  sg__rc.d28[330] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[331]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[335] = SG_MAKE_STRING("string-foldcase");
+  sg__rc.d28[334] = Sg_Intern(sg__rc.d28[335]); /* string-foldcase */
+  sg__rc.d28[333] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[334]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[337] = SG_MAKE_STRING("string-ci=?");
+  sg__rc.d28[336] = Sg_Intern(sg__rc.d28[337]); /* string-ci=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[65]))->name = sg__rc.d28[336];/* string-ci=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1478]))[1] = SG_WORD(sg__rc.d28[330]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1478]))[5] = SG_WORD(sg__rc.d28[333]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1478]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[338] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[336]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[341] = SG_MAKE_STRING("string<?");
+  sg__rc.d28[340] = Sg_Intern(sg__rc.d28[341]); /* string<? */
+  sg__rc.d28[339] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[340]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[343] = SG_MAKE_STRING("string-ci<?");
+  sg__rc.d28[342] = Sg_Intern(sg__rc.d28[343]); /* string-ci<? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[66]))->name = sg__rc.d28[342];/* string-ci<? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1489]))[1] = SG_WORD(sg__rc.d28[339]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1489]))[5] = SG_WORD(sg__rc.d28[333]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1489]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[344] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[342]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[347] = SG_MAKE_STRING("string>?");
+  sg__rc.d28[346] = Sg_Intern(sg__rc.d28[347]); /* string>? */
+  sg__rc.d28[345] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[346]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[349] = SG_MAKE_STRING("string-ci>?");
+  sg__rc.d28[348] = Sg_Intern(sg__rc.d28[349]); /* string-ci>? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[67]))->name = sg__rc.d28[348];/* string-ci>? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1500]))[1] = SG_WORD(sg__rc.d28[345]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1500]))[5] = SG_WORD(sg__rc.d28[333]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1500]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[350] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[348]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[353] = SG_MAKE_STRING("string<=?");
+  sg__rc.d28[352] = Sg_Intern(sg__rc.d28[353]); /* string<=? */
+  sg__rc.d28[351] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[352]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[355] = SG_MAKE_STRING("string-ci<=?");
+  sg__rc.d28[354] = Sg_Intern(sg__rc.d28[355]); /* string-ci<=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[68]))->name = sg__rc.d28[354];/* string-ci<=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1511]))[1] = SG_WORD(sg__rc.d28[351]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1511]))[5] = SG_WORD(sg__rc.d28[333]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1511]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[356] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[354]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[359] = SG_MAKE_STRING("string>=?");
+  sg__rc.d28[358] = Sg_Intern(sg__rc.d28[359]); /* string>=? */
+  sg__rc.d28[357] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[358]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[361] = SG_MAKE_STRING("string-ci>=?");
+  sg__rc.d28[360] = Sg_Intern(sg__rc.d28[361]); /* string-ci>=? */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[69]))->name = sg__rc.d28[360];/* string-ci>=? */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1522]))[1] = SG_WORD(sg__rc.d28[357]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1522]))[5] = SG_WORD(sg__rc.d28[333]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1522]))[8] = SG_WORD(sg__rc.d28[52]);
+  sg__rc.d28[362] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[360]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[364] = SG_MAKE_STRING("big");
+  sg__rc.d28[363] = Sg_Intern(sg__rc.d28[364]); /* big */
+  sg__rc.d28[367] = SG_MAKE_STRING("bytevector-u8-ref");
+  sg__rc.d28[366] = Sg_Intern(sg__rc.d28[367]); /* bytevector-u8-ref */
+  sg__rc.d28[365] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[366]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[369] = SG_MAKE_STRING("little");
+  sg__rc.d28[368] = Sg_Intern(sg__rc.d28[369]); /* little */
+  sg__rc.d28[371] = SG_MAKE_STRING("bytevector-uint-ref");
+  sg__rc.d28[370] = Sg_Intern(sg__rc.d28[371]); /* bytevector-uint-ref */
+  sg__rc.d28[372] = SG_MAKE_STRING("expected endianness, but got ~r, as argument 3");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[70]))->name = sg__rc.d28[370];/* bytevector-uint-ref */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[2] = SG_WORD(sg__rc.d28[363]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[29] = SG_WORD(sg__rc.d28[365]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[38] = SG_WORD(sg__rc.d28[368]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[65] = SG_WORD(sg__rc.d28[365]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[73] = SG_WORD(sg__rc.d28[370]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[77] = SG_WORD(sg__rc.d28[372]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[80] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1533]))[89] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[373] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[370]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[376] = SG_MAKE_STRING("expt");
+  sg__rc.d28[375] = Sg_Intern(sg__rc.d28[376]); /* expt */
+  sg__rc.d28[374] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[375]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[378] = SG_MAKE_STRING("bytevector-sint-ref");
+  sg__rc.d28[377] = Sg_Intern(sg__rc.d28[378]); /* bytevector-sint-ref */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[71]))->name = sg__rc.d28[377];/* bytevector-sint-ref */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[2] = SG_WORD(sg__rc.d28[363]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[10] = SG_WORD(sg__rc.d28[365]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[22] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[29] = SG_WORD(sg__rc.d28[374]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[37] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[41] = SG_WORD(sg__rc.d28[368]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[53] = SG_WORD(sg__rc.d28[365]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[65] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[72] = SG_WORD(sg__rc.d28[374]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[80] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[83] = SG_WORD(sg__rc.d28[370]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[87] = SG_WORD(sg__rc.d28[372]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[90] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1624]))[99] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[379] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[377]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[382] = SG_MAKE_STRING("undefined");
+  sg__rc.d28[381] = Sg_Intern(sg__rc.d28[382]); /* undefined */
+  sg__rc.d28[380] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[381]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[385] = SG_MAKE_STRING("bytevector-u8-set!");
+  sg__rc.d28[384] = Sg_Intern(sg__rc.d28[385]); /* bytevector-u8-set! */
+  sg__rc.d28[383] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[384]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[388] = SG_MAKE_STRING("<");
+  sg__rc.d28[387] = Sg_Intern(sg__rc.d28[388]); /* < */
+  sg__rc.d28[386] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[387]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[391] = SG_MAKE_STRING("bitwise-and");
+  sg__rc.d28[390] = Sg_Intern(sg__rc.d28[391]); /* bitwise-and */
+  sg__rc.d28[389] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[390]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[394] = SG_MAKE_STRING("bitwise-arithmetic-shift");
+  sg__rc.d28[393] = Sg_Intern(sg__rc.d28[394]); /* bitwise-arithmetic-shift */
+  sg__rc.d28[392] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[393]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[396] = SG_MAKE_STRING("bytevector-uint-set!");
+  sg__rc.d28[395] = Sg_Intern(sg__rc.d28[396]); /* bytevector-uint-set! */
+  sg__rc.d28[397] = SG_MAKE_STRING("value out of range, ~s as argument 3");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[72]))->name = sg__rc.d28[395];/* bytevector-uint-set! */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[16] = SG_WORD(sg__rc.d28[380]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[25] = SG_WORD(sg__rc.d28[383]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[45] = SG_WORD(sg__rc.d28[374]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[48] = SG_WORD(sg__rc.d28[386]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[53] = SG_WORD(sg__rc.d28[363]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[70] = SG_WORD(sg__rc.d28[380]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[82] = SG_WORD(sg__rc.d28[389]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[85] = SG_WORD(sg__rc.d28[383]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[94] = SG_WORD(sg__rc.d28[392]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[105] = SG_WORD(sg__rc.d28[368]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[121] = SG_WORD(sg__rc.d28[380]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[133] = SG_WORD(sg__rc.d28[389]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[136] = SG_WORD(sg__rc.d28[383]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[145] = SG_WORD(sg__rc.d28[392]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[160] = SG_WORD(sg__rc.d28[395]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[164] = SG_WORD(sg__rc.d28[397]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[167] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[177] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1725]))[179] = SG_WORD(sg__rc.d28[380]);
+  sg__rc.d28[398] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[395]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[400] = SG_MAKE_STRING("bytevector-sint-set!");
+  sg__rc.d28[399] = Sg_Intern(sg__rc.d28[400]); /* bytevector-sint-set! */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[73]))->name = sg__rc.d28[399];/* bytevector-sint-set! */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[9] = SG_WORD(sg__rc.d28[374]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[21] = SG_WORD(sg__rc.d28[386]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[36] = SG_WORD(sg__rc.d28[398]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[49] = SG_WORD(sg__rc.d28[374]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[55] = SG_WORD(sg__rc.d28[398]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[61] = SG_WORD(sg__rc.d28[399]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[65] = SG_WORD(sg__rc.d28[397]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[68] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[78] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1906]))[82] = SG_WORD(sg__rc.d28[380]);
+  sg__rc.d28[401] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[399]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[404] = SG_MAKE_STRING("bytevector-length");
+  sg__rc.d28[403] = Sg_Intern(sg__rc.d28[404]); /* bytevector-length */
+  sg__rc.d28[402] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[403]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[406] = SG_MAKE_STRING("bytevector->uint-list");
+  sg__rc.d28[405] = Sg_Intern(sg__rc.d28[406]); /* bytevector->uint-list */
+  sg__rc.d28[407] = SG_MAKE_STRING("expected appropriate element size as argument 3, but got ~r");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[74]))->name = sg__rc.d28[405];/* bytevector->uint-list */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[4] = SG_WORD(sg__rc.d28[402]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[26] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[42] = SG_WORD(sg__rc.d28[405]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[46] = SG_WORD(sg__rc.d28[407]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[49] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[1990]))[57] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[408] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[405]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[410] = SG_MAKE_STRING("bytevector->sint-list");
+  sg__rc.d28[409] = Sg_Intern(sg__rc.d28[410]); /* bytevector->sint-list */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[75]))->name = sg__rc.d28[409];/* bytevector->sint-list */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[4] = SG_WORD(sg__rc.d28[402]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[26] = SG_WORD(sg__rc.d28[379]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[42] = SG_WORD(sg__rc.d28[409]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[46] = SG_WORD(sg__rc.d28[407]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[49] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2049]))[57] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[411] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[409]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[414] = SG_MAKE_STRING("make-bytevector");
+  sg__rc.d28[413] = Sg_Intern(sg__rc.d28[414]); /* make-bytevector */
+  sg__rc.d28[412] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[413]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[416] = SG_MAKE_STRING("uint-list->bytevector");
+  sg__rc.d28[415] = Sg_Intern(sg__rc.d28[416]); /* uint-list->bytevector */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[76]))->name = sg__rc.d28[415];/* uint-list->bytevector */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2108]))[7] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2108]))[11] = SG_WORD(sg__rc.d28[412]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2108]))[28] = SG_WORD(sg__rc.d28[398]);
+  sg__rc.d28[417] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[415]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[419] = SG_MAKE_STRING("sint-list->bytevector");
+  sg__rc.d28[418] = Sg_Intern(sg__rc.d28[419]); /* sint-list->bytevector */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[77]))->name = sg__rc.d28[418];/* sint-list->bytevector */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2146]))[7] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2146]))[11] = SG_WORD(sg__rc.d28[412]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2146]))[28] = SG_WORD(sg__rc.d28[401]);
+  sg__rc.d28[420] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[418]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[421] = SG_MAKE_STRING("traversal reached to non-pair element ~s");
+  sg__rc.d28[422] = SG_MAKE_STRING("expected chain of pairs, but got ~a, as argument 2");
+  sg__rc.d28[425] = SG_MAKE_STRING("list-transpose+");
+  sg__rc.d28[424] = Sg_Intern(sg__rc.d28[425]); /* list-transpose+ */
+  sg__rc.d28[423] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[424]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[78]))->name = sg__rc.d28[199];/* loop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2184]))[21] = SG_WORD(sg__rc.d28[276]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2184]))[25] = SG_WORD(sg__rc.d28[421]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2184]))[28] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2184]))[32] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[427] = SG_MAKE_STRING("collect-car");
+  sg__rc.d28[426] = Sg_Intern(sg__rc.d28[427]); /* collect-car */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[79]))->name = sg__rc.d28[426];/* collect-car */
+  sg__rc.d28[428] = SG_MAKE_STRING("expected same length chains of pairs");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[80]))->name = sg__rc.d28[276];/* for-all */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[49] = SG_WORD(sg__rc.d28[276]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[53] = SG_WORD(sg__rc.d28[421]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[56] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[63] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[66] = SG_WORD(sg__rc.d28[276]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[70] = SG_WORD(sg__rc.d28[422]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[73] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[80] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[85] = SG_WORD(sg__rc.d28[423]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[129] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[138] = SG_WORD(sg__rc.d28[22]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[155] = SG_WORD(sg__rc.d28[22]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[162] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[172] = SG_WORD(sg__rc.d28[276]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[174] = SG_WORD(sg__rc.d28[428]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[177] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2231]))[203] = SG_WORD(sg__rc.d28[22]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[81]))->name = sg__rc.d28[199];/* loop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2441]))[21] = SG_WORD(sg__rc.d28[264]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2441]))[25] = SG_WORD(sg__rc.d28[421]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2441]))[28] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2441]))[32] = SG_WORD(sg__rc.d28[196]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[82]))->name = sg__rc.d28[426];/* collect-car */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[83]))->name = sg__rc.d28[264];/* exists */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[43] = SG_WORD(sg__rc.d28[264]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[47] = SG_WORD(sg__rc.d28[421]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[50] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[57] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[60] = SG_WORD(sg__rc.d28[264]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[64] = SG_WORD(sg__rc.d28[422]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[67] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[74] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[79] = SG_WORD(sg__rc.d28[423]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[124] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[133] = SG_WORD(sg__rc.d28[32]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[150] = SG_WORD(sg__rc.d28[32]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[157] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[167] = SG_WORD(sg__rc.d28[264]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[169] = SG_WORD(sg__rc.d28[428]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[172] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2488]))[199] = SG_WORD(sg__rc.d28[32]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[84]))->name = sg__rc.d28[199];/* loop */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[85]))->name = sg__rc.d28[253];/* filter */
+  sg__rc.d28[431] = SG_MAKE_STRING("reverse");
+  sg__rc.d28[430] = Sg_Intern(sg__rc.d28[431]); /* reverse */
+  sg__rc.d28[429] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[430]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[433] = SG_MAKE_STRING("partition");
+  sg__rc.d28[432] = Sg_Intern(sg__rc.d28[433]); /* partition */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[86]))->name = sg__rc.d28[432];/* partition */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2733]))[12] = SG_WORD(sg__rc.d28[429]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2733]))[18] = SG_WORD(sg__rc.d28[429]);
+  sg__rc.d28[434] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[432]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[435] = SG_MAKE_STRING("proper list");
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[87]))->name = sg__rc.d28[53];/* map */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[28] = SG_WORD(sg__rc.d28[173]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[31] = SG_WORD(sg__rc.d28[53]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[35] = SG_WORD(sg__rc.d28[435]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[39] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[47] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[52] = SG_WORD(sg__rc.d28[119]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[81] = SG_WORD(sg__rc.d28[173]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[84] = SG_WORD(sg__rc.d28[53]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[88] = SG_WORD(sg__rc.d28[435]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[92] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2779]))[100] = SG_WORD(sg__rc.d28[196]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[88]))->name = sg__rc.d28[47];/* for-each */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[22] = SG_WORD(sg__rc.d28[380]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[25] = SG_WORD(sg__rc.d28[47]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[29] = SG_WORD(sg__rc.d28[435]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[33] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[41] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[46] = SG_WORD(sg__rc.d28[119]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[69] = SG_WORD(sg__rc.d28[380]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[72] = SG_WORD(sg__rc.d28[47]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[76] = SG_WORD(sg__rc.d28[435]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[80] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2881]))[88] = SG_WORD(sg__rc.d28[196]);
+  sg__rc.d28[437] = SG_MAKE_STRING("fold-left");
+  sg__rc.d28[436] = Sg_Intern(sg__rc.d28[437]); /* fold-left */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[89]))->name = sg__rc.d28[436];/* fold-left */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[2971]))[25] = SG_WORD(sg__rc.d28[119]);
+  sg__rc.d28[438] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[436]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[441] = SG_MAKE_STRING("append!");
+  sg__rc.d28[440] = Sg_Intern(sg__rc.d28[441]); /* append! */
+  sg__rc.d28[439] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[440]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[443] = SG_MAKE_STRING("fold-right");
+  sg__rc.d28[442] = Sg_Intern(sg__rc.d28[443]); /* fold-right */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[90]))->name = sg__rc.d28[442];/* fold-right */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3019]))[7] = SG_WORD(sg__rc.d28[429]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3019]))[32] = SG_WORD(sg__rc.d28[119]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3019]))[38] = SG_WORD(sg__rc.d28[173]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3019]))[57] = SG_WORD(sg__rc.d28[439]);
+  sg__rc.d28[444] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[442]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[91]))->name = sg__rc.d28[199];/* loop */
+  sg__rc.d28[446] = SG_MAKE_STRING("remp");
+  sg__rc.d28[445] = Sg_Intern(sg__rc.d28[446]); /* remp */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[92]))->name = sg__rc.d28[445];/* remp */
+  sg__rc.d28[447] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[445]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[93]))->name = sg__rc.d28[199];/* loop */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3122]))[10] = SG_WORD(sg__rc.d28[242]);
+  sg__rc.d28[449] = SG_MAKE_STRING("remove");
+  sg__rc.d28[448] = Sg_Intern(sg__rc.d28[449]); /* remove */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[94]))->name = sg__rc.d28[448];/* remove */
+  sg__rc.d28[450] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[448]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[95]))->name = sg__rc.d28[199];/* loop */
+  sg__rc.d28[452] = SG_MAKE_STRING("remv");
+  sg__rc.d28[451] = Sg_Intern(sg__rc.d28[452]); /* remv */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[96]))->name = sg__rc.d28[451];/* remv */
+  sg__rc.d28[453] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[451]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[97]))->name = sg__rc.d28[199];/* loop */
+  sg__rc.d28[455] = SG_MAKE_STRING("remq");
+  sg__rc.d28[454] = Sg_Intern(sg__rc.d28[455]); /* remq */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[98]))->name = sg__rc.d28[454];/* remq */
+  sg__rc.d28[456] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[454]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[459] = SG_MAKE_STRING("memp");
+  sg__rc.d28[458] = Sg_Intern(sg__rc.d28[459]); /* memp */
+  sg__rc.d28[457] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[458]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[99]))->name = sg__rc.d28[458];/* memp */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3234]))[17] = SG_WORD(sg__rc.d28[457]);
+  sg__rc.d28[462] = SG_MAKE_STRING("assp");
+  sg__rc.d28[461] = Sg_Intern(sg__rc.d28[462]); /* assp */
+  sg__rc.d28[460] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[461]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[100]))->name = sg__rc.d28[461];/* assp */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3253]))[19] = SG_WORD(sg__rc.d28[460]);
+  sg__rc.d28[464] = SG_MAKE_STRING("list-sort");
+  sg__rc.d28[463] = Sg_Intern(sg__rc.d28[464]); /* list-sort */
+  sg__rc.d28[467] = SG_MAKE_STRING("div");
+  sg__rc.d28[466] = Sg_Intern(sg__rc.d28[467]); /* div */
+  sg__rc.d28[465] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[466]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[469] = SG_MAKE_STRING("recur");
+  sg__rc.d28[468] = Sg_Intern(sg__rc.d28[469]); /* recur */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[101]))->name = sg__rc.d28[468];/* recur */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3274]))[48] = SG_WORD(sg__rc.d28[465]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3274]))[112] = SG_WORD(sg__rc.d28[37]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3274]))[142] = SG_WORD(sg__rc.d28[37]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[102]))->name = sg__rc.d28[463];/* list-sort */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[4] = SG_WORD(sg__rc.d28[37]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[11] = SG_WORD(sg__rc.d28[235]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[20] = SG_WORD(sg__rc.d28[463]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[24] = SG_WORD(sg__rc.d28[238]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[28] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[31] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[89] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[120] = SG_WORD(sg__rc.d28[294]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3430]))[125] = SG_WORD(sg__rc.d28[37]);
+  sg__rc.d28[470] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[463]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[472] = SG_MAKE_STRING("vector-sort");
+  sg__rc.d28[471] = Sg_Intern(sg__rc.d28[472]); /* vector-sort */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[103]))->name = sg__rc.d28[471];/* vector-sort */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3558]))[4] = SG_WORD(sg__rc.d28[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3558]))[11] = SG_WORD(sg__rc.d28[470]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3558]))[21] = SG_WORD(sg__rc.d28[136]);
+  sg__rc.d28[473] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[471]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[476] = SG_MAKE_STRING("make-vector");
+  sg__rc.d28[475] = Sg_Intern(sg__rc.d28[476]); /* make-vector */
+  sg__rc.d28[474] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[475]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[478] = SG_MAKE_STRING("sort!");
+  sg__rc.d28[477] = Sg_Intern(sg__rc.d28[478]); /* sort! */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[104]))->name = sg__rc.d28[477];/* sort! */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3581]))[15] = SG_WORD(sg__rc.d28[465]);
+  sg__rc.d28[480] = SG_MAKE_STRING("vector-sort!");
+  sg__rc.d28[479] = Sg_Intern(sg__rc.d28[480]); /* vector-sort! */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[105]))->name = sg__rc.d28[479];/* vector-sort! */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3796]))[10] = SG_WORD(sg__rc.d28[465]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3796]))[14] = SG_WORD(sg__rc.d28[474]);
+  sg__rc.d28[481] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[479]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[484] = SG_MAKE_STRING("close-port");
+  sg__rc.d28[483] = Sg_Intern(sg__rc.d28[484]); /* close-port */
+  sg__rc.d28[482] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[483]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[487] = SG_MAKE_STRING("values");
+  sg__rc.d28[486] = Sg_Intern(sg__rc.d28[487]); /* values */
+  sg__rc.d28[485] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[486]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[489] = SG_MAKE_STRING("call-with-port");
+  sg__rc.d28[488] = Sg_Intern(sg__rc.d28[489]); /* call-with-port */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[106]))->name = sg__rc.d28[488];/* call-with-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3830]))[10] = SG_WORD(sg__rc.d28[482]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3830]))[12] = SG_WORD(sg__rc.d28[485]);
+  sg__rc.d28[490] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[488]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[492] = SG_MAKE_STRING("open-bytevector-output-port");
+  sg__rc.d28[491] = Sg_Intern(sg__rc.d28[492]); /* open-bytevector-output-port */
+  sg__rc.d28[493] = SG_MAKE_STRING("wrong number of argument: expected between 0 and 1, but got ~a");
+  sg__rc.d28[496] = SG_MAKE_STRING("open-output-bytevector");
+  sg__rc.d28[495] = Sg_Intern(sg__rc.d28[496]); /* open-output-bytevector */
+  sg__rc.d28[494] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[495]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[499] = SG_MAKE_STRING("extract-output-bytevector");
+  sg__rc.d28[498] = Sg_Intern(sg__rc.d28[499]); /* extract-output-bytevector */
+  sg__rc.d28[497] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[498]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[501] = SG_MAKE_STRING("proc");
+  sg__rc.d28[500] = Sg_Intern(sg__rc.d28[501]); /* proc */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[107]))->name = sg__rc.d28[500];/* proc */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3846]))[2] = SG_WORD(sg__rc.d28[497]);
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[108]))->name = sg__rc.d28[491];/* open-bytevector-output-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[4] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[12] = SG_WORD(sg__rc.d28[491]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[16] = SG_WORD(sg__rc.d28[493]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[21] = SG_WORD(sg__rc.d28[185]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[24] = SG_WORD(sg__rc.d28[126]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[28] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3850]))[45] = SG_WORD(sg__rc.d28[494]);
+  sg__rc.d28[502] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[491]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[505] = SG_MAKE_STRING("open-output-string");
+  sg__rc.d28[504] = Sg_Intern(sg__rc.d28[505]); /* open-output-string */
+  sg__rc.d28[503] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[504]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[508] = SG_MAKE_STRING("extract-output-string");
+  sg__rc.d28[507] = Sg_Intern(sg__rc.d28[508]); /* extract-output-string */
+  sg__rc.d28[506] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[507]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[109]))->name = sg__rc.d28[500];/* proc */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3905]))[2] = SG_WORD(sg__rc.d28[506]);
+  sg__rc.d28[510] = SG_MAKE_STRING("open-string-output-port");
+  sg__rc.d28[509] = Sg_Intern(sg__rc.d28[510]); /* open-string-output-port */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[110]))->name = sg__rc.d28[509];/* open-string-output-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3909]))[3] = SG_WORD(sg__rc.d28[503]);
+  sg__rc.d28[511] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[509]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[513] = SG_MAKE_STRING("call-with-bytevector-output-port");
+  sg__rc.d28[512] = Sg_Intern(sg__rc.d28[513]); /* call-with-bytevector-output-port */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[111]))->name = sg__rc.d28[512];/* call-with-bytevector-output-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3922]))[3] = SG_WORD(sg__rc.d28[502]);
+  sg__rc.d28[514] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[512]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[516] = SG_MAKE_STRING("call-with-string-output-port");
+  sg__rc.d28[515] = Sg_Intern(sg__rc.d28[516]); /* call-with-string-output-port */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[112]))->name = sg__rc.d28[515];/* call-with-string-output-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3937]))[3] = SG_WORD(sg__rc.d28[511]);
+  sg__rc.d28[517] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[515]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[520] = SG_MAKE_STRING("hashtable?");
+  sg__rc.d28[519] = Sg_Intern(sg__rc.d28[520]); /* hashtable? */
+  sg__rc.d28[518] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[519]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[523] = SG_MAKE_STRING("hashtable-mutable?");
+  sg__rc.d28[522] = Sg_Intern(sg__rc.d28[523]); /* hashtable-mutable? */
+  sg__rc.d28[521] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[522]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[525] = SG_MAKE_STRING("hashtable-update!");
+  sg__rc.d28[524] = Sg_Intern(sg__rc.d28[525]); /* hashtable-update! */
+  sg__rc.d28[526] = SG_MAKE_STRING("mutable hashtable");
+  sg__rc.d28[529] = SG_MAKE_STRING("hashtable-ref");
+  sg__rc.d28[528] = Sg_Intern(sg__rc.d28[529]); /* hashtable-ref */
+  sg__rc.d28[527] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[528]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[532] = SG_MAKE_STRING("hashtable-set!");
+  sg__rc.d28[531] = Sg_Intern(sg__rc.d28[532]); /* hashtable-set! */
+  sg__rc.d28[530] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[531]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[113]))->name = sg__rc.d28[524];/* hashtable-update! */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[4] = SG_WORD(sg__rc.d28[518]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[11] = SG_WORD(sg__rc.d28[521]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[19] = SG_WORD(sg__rc.d28[524]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[23] = SG_WORD(sg__rc.d28[526]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[27] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[30] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[45] = SG_WORD(sg__rc.d28[527]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[3950]))[51] = SG_WORD(sg__rc.d28[530]);
+  sg__rc.d28[533] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[524]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[535] = SG_MAKE_STRING("hashtable-entries");
+  sg__rc.d28[534] = Sg_Intern(sg__rc.d28[535]); /* hashtable-entries */
+  sg__rc.d28[536] = SG_MAKE_STRING("hashtable");
+  sg__rc.d28[539] = SG_MAKE_STRING("hashtable-keys");
+  sg__rc.d28[538] = Sg_Intern(sg__rc.d28[539]); /* hashtable-keys */
+  sg__rc.d28[537] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[538]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[542] = SG_MAKE_STRING("hashtable-values");
+  sg__rc.d28[541] = Sg_Intern(sg__rc.d28[542]); /* hashtable-values */
+  sg__rc.d28[540] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[541]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[114]))->name = sg__rc.d28[534];/* hashtable-entries */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[4] = SG_WORD(sg__rc.d28[518]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[12] = SG_WORD(sg__rc.d28[534]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[16] = SG_WORD(sg__rc.d28[536]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[19] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[22] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[27] = SG_WORD(sg__rc.d28[537]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4003]))[33] = SG_WORD(sg__rc.d28[540]);
+  sg__rc.d28[543] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[534]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[545] = SG_MAKE_STRING("hashtable-equivalence-function");
+  sg__rc.d28[544] = Sg_Intern(sg__rc.d28[545]); /* hashtable-equivalence-function */
+  sg__rc.d28[548] = SG_MAKE_STRING("hashtable-type");
+  sg__rc.d28[547] = Sg_Intern(sg__rc.d28[548]); /* hashtable-type */
+  sg__rc.d28[546] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[547]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[550] = SG_MAKE_STRING("eq");
+  sg__rc.d28[549] = Sg_Intern(sg__rc.d28[550]); /* eq */
+  sg__rc.d28[552] = SG_MAKE_STRING("eqv");
+  sg__rc.d28[551] = Sg_Intern(sg__rc.d28[552]); /* eqv */
+  sg__rc.d28[555] = SG_MAKE_STRING("eqv?");
+  sg__rc.d28[554] = Sg_Intern(sg__rc.d28[555]); /* eqv? */
+  sg__rc.d28[553] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[554]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[557] = SG_MAKE_STRING("equal");
+  sg__rc.d28[556] = Sg_Intern(sg__rc.d28[557]); /* equal */
+  sg__rc.d28[559] = SG_MAKE_STRING("string");
+  sg__rc.d28[558] = Sg_Intern(sg__rc.d28[559]); /* string */
+  sg__rc.d28[561] = SG_MAKE_STRING("general");
+  sg__rc.d28[560] = Sg_Intern(sg__rc.d28[561]); /* general */
+  sg__rc.d28[564] = SG_MAKE_STRING("hashtable-compare");
+  sg__rc.d28[563] = Sg_Intern(sg__rc.d28[564]); /* hashtable-compare */
+  sg__rc.d28[562] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[563]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[115]))->name = sg__rc.d28[544];/* hashtable-equivalence-function */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[4] = SG_WORD(sg__rc.d28[518]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[12] = SG_WORD(sg__rc.d28[544]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[16] = SG_WORD(sg__rc.d28[536]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[19] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[22] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[27] = SG_WORD(sg__rc.d28[546]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[31] = SG_WORD(sg__rc.d28[549]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[35] = SG_WORD(sg__rc.d28[269]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[39] = SG_WORD(sg__rc.d28[551]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[43] = SG_WORD(sg__rc.d28[553]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[47] = SG_WORD(sg__rc.d28[556]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[51] = SG_WORD(sg__rc.d28[242]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[55] = SG_WORD(sg__rc.d28[558]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[59] = SG_WORD(sg__rc.d28[330]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[63] = SG_WORD(sg__rc.d28[560]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4039]))[68] = SG_WORD(sg__rc.d28[562]);
+  sg__rc.d28[565] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[544]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[567] = SG_MAKE_STRING("hashtable-hash-function");
+  sg__rc.d28[566] = Sg_Intern(sg__rc.d28[567]); /* hashtable-hash-function */
+  sg__rc.d28[570] = SG_MAKE_STRING("equal-hash");
+  sg__rc.d28[569] = Sg_Intern(sg__rc.d28[570]); /* equal-hash */
+  sg__rc.d28[568] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[569]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[573] = SG_MAKE_STRING("string-hash");
+  sg__rc.d28[572] = Sg_Intern(sg__rc.d28[573]); /* string-hash */
+  sg__rc.d28[571] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[572]), SG_NIL, (sg__rc.d28[7]));
+  sg__rc.d28[576] = SG_MAKE_STRING("hashtable-hasher");
+  sg__rc.d28[575] = Sg_Intern(sg__rc.d28[576]); /* hashtable-hasher */
+  sg__rc.d28[574] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[575]), SG_NIL, (sg__rc.d28[7]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d29[116]))->name = sg__rc.d28[566];/* hashtable-hash-function */
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[4] = SG_WORD(sg__rc.d28[518]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[12] = SG_WORD(sg__rc.d28[566]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[16] = SG_WORD(sg__rc.d28[536]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[19] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[22] = SG_WORD(sg__rc.d28[196]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[27] = SG_WORD(sg__rc.d28[546]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[31] = SG_WORD(sg__rc.d28[549]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[38] = SG_WORD(sg__rc.d28[551]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[45] = SG_WORD(sg__rc.d28[556]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[49] = SG_WORD(sg__rc.d28[568]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[53] = SG_WORD(sg__rc.d28[558]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[57] = SG_WORD(sg__rc.d28[571]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[61] = SG_WORD(sg__rc.d28[560]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4111]))[66] = SG_WORD(sg__rc.d28[574]);
+  sg__rc.d28[577] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d28[566]), SG_NIL, (sg__rc.d28[7]));
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[3] = SG_WORD(sg__rc.d28[4]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[7] = SG_WORD(sg__rc.d28[10]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[11] = SG_WORD(sg__rc.d28[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[15] = SG_WORD(sg__rc.d28[22]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[19] = SG_WORD(sg__rc.d28[25]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[23] = SG_WORD(sg__rc.d28[32]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[27] = SG_WORD(sg__rc.d28[37]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[29] = SG_WORD(sg__rc.d28[7]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[33] = SG_WORD(sg__rc.d28[51]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[37] = SG_WORD(sg__rc.d28[57]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[41] = SG_WORD(sg__rc.d28[63]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[45] = SG_WORD(sg__rc.d28[75]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[49] = SG_WORD(sg__rc.d28[78]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[53] = SG_WORD(sg__rc.d28[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[57] = SG_WORD(sg__rc.d28[109]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[61] = SG_WORD(sg__rc.d28[118]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[65] = SG_WORD(sg__rc.d28[124]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[69] = SG_WORD(sg__rc.d28[132]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[73] = SG_WORD(sg__rc.d28[141]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[77] = SG_WORD(sg__rc.d28[144]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[81] = SG_WORD(sg__rc.d28[150]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[85] = SG_WORD(sg__rc.d28[178]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[89] = SG_WORD(sg__rc.d28[203]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[93] = SG_WORD(sg__rc.d28[206]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[97] = SG_WORD(sg__rc.d28[216]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[101] = SG_WORD(sg__rc.d28[220]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[105] = SG_WORD(sg__rc.d28[213]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[109] = SG_WORD(sg__rc.d28[234]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[113] = SG_WORD(sg__rc.d28[229]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[117] = SG_WORD(sg__rc.d28[245]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[121] = SG_WORD(sg__rc.d28[246]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[125] = SG_WORD(sg__rc.d28[249]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[129] = SG_WORD(sg__rc.d28[260]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[133] = SG_WORD(sg__rc.d28[266]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[137] = SG_WORD(sg__rc.d28[278]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[141] = SG_WORD(sg__rc.d28[287]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[145] = SG_WORD(sg__rc.d28[290]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[149] = SG_WORD(sg__rc.d28[293]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[151] = SG_WORD(sg__rc.d28[290]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[153] = SG_WORD(sg__rc.d28[294]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[157] = SG_WORD(sg__rc.d28[305]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[161] = SG_WORD(sg__rc.d28[311]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[165] = SG_WORD(sg__rc.d28[317]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[169] = SG_WORD(sg__rc.d28[323]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[173] = SG_WORD(sg__rc.d28[329]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[177] = SG_WORD(sg__rc.d28[338]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[181] = SG_WORD(sg__rc.d28[344]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[185] = SG_WORD(sg__rc.d28[350]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[189] = SG_WORD(sg__rc.d28[356]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[193] = SG_WORD(sg__rc.d28[362]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[197] = SG_WORD(sg__rc.d28[373]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[201] = SG_WORD(sg__rc.d28[379]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[205] = SG_WORD(sg__rc.d28[398]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[209] = SG_WORD(sg__rc.d28[401]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[213] = SG_WORD(sg__rc.d28[408]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[217] = SG_WORD(sg__rc.d28[411]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[221] = SG_WORD(sg__rc.d28[417]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[225] = SG_WORD(sg__rc.d28[420]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[229] = SG_WORD(sg__rc.d28[275]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[233] = SG_WORD(sg__rc.d28[263]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[237] = SG_WORD(sg__rc.d28[252]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[241] = SG_WORD(sg__rc.d28[434]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[245] = SG_WORD(sg__rc.d28[52]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[249] = SG_WORD(sg__rc.d28[46]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[253] = SG_WORD(sg__rc.d28[438]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[257] = SG_WORD(sg__rc.d28[444]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[261] = SG_WORD(sg__rc.d28[447]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[265] = SG_WORD(sg__rc.d28[450]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[269] = SG_WORD(sg__rc.d28[453]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[273] = SG_WORD(sg__rc.d28[456]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[277] = SG_WORD(sg__rc.d28[457]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[281] = SG_WORD(sg__rc.d28[460]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[285] = SG_WORD(sg__rc.d28[470]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[289] = SG_WORD(sg__rc.d28[473]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[293] = SG_WORD(sg__rc.d28[481]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[297] = SG_WORD(sg__rc.d28[490]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[301] = SG_WORD(sg__rc.d28[502]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[305] = SG_WORD(sg__rc.d28[511]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[309] = SG_WORD(sg__rc.d28[514]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[313] = SG_WORD(sg__rc.d28[517]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[317] = SG_WORD(sg__rc.d28[533]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[321] = SG_WORD(sg__rc.d28[543]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[325] = SG_WORD(sg__rc.d28[565]);
+  ((SgWord*)SG_OBJ(&sg__rc.d27[4181]))[329] = SG_WORD(sg__rc.d28[577]);
+  sg__rc.d28[579] = SG_MAKE_STRING("null");
+  sg__rc.d28[578] = Sg_Intern(sg__rc.d28[579]); /* null */
+  Sg_ImportLibrary(sg__rc.d28[7], sg__rc.d28[578]);
 
-  sg__rc.d25[581] = SG_MAKE_STRING("(sagittarius)");
-  sg__rc.d25[580] = Sg_Intern(sg__rc.d25[581]); /* (sagittarius) */
-  Sg_ImportLibrary(sg__rc.d25[7], sg__rc.d25[580]);
+  sg__rc.d28[581] = SG_MAKE_STRING("(sagittarius)");
+  sg__rc.d28[580] = Sg_Intern(sg__rc.d28[581]); /* (sagittarius) */
+  Sg_ImportLibrary(sg__rc.d28[7], sg__rc.d28[580]);
 
-  SG_APPEND1(h, t, sg__rc.d25[566]); /* hashtable-hash-function */
-  SG_APPEND1(h, t, sg__rc.d25[544]); /* hashtable-equivalence-function */
-  SG_APPEND1(h, t, sg__rc.d25[534]); /* hashtable-entries */
-  SG_APPEND1(h, t, sg__rc.d25[524]); /* hashtable-update! */
-  SG_APPEND1(h, t, sg__rc.d25[515]); /* call-with-string-output-port */
-  SG_APPEND1(h, t, sg__rc.d25[512]); /* call-with-bytevector-output-port */
-  SG_APPEND1(h, t, sg__rc.d25[509]); /* open-string-output-port */
-  SG_APPEND1(h, t, sg__rc.d25[491]); /* open-bytevector-output-port */
-  SG_APPEND1(h, t, sg__rc.d25[488]); /* call-with-port */
-  SG_APPEND1(h, t, sg__rc.d25[479]); /* vector-sort! */
-  SG_APPEND1(h, t, sg__rc.d25[471]); /* vector-sort */
-  SG_APPEND1(h, t, sg__rc.d25[463]); /* list-sort */
-  SG_APPEND1(h, t, sg__rc.d25[461]); /* assp */
-  SG_APPEND1(h, t, sg__rc.d25[458]); /* memp */
-  SG_APPEND1(h, t, sg__rc.d25[454]); /* remq */
-  SG_APPEND1(h, t, sg__rc.d25[451]); /* remv */
-  SG_APPEND1(h, t, sg__rc.d25[448]); /* remove */
-  SG_APPEND1(h, t, sg__rc.d25[445]); /* remp */
-  SG_APPEND1(h, t, sg__rc.d25[442]); /* fold-right */
-  SG_APPEND1(h, t, sg__rc.d25[436]); /* fold-left */
-  SG_APPEND1(h, t, sg__rc.d25[47]); /* for-each */
-  SG_APPEND1(h, t, sg__rc.d25[53]); /* map */
-  SG_APPEND1(h, t, sg__rc.d25[432]); /* partition */
-  SG_APPEND1(h, t, sg__rc.d25[253]); /* filter */
-  SG_APPEND1(h, t, sg__rc.d25[264]); /* exists */
-  SG_APPEND1(h, t, sg__rc.d25[276]); /* for-all */
-  SG_APPEND1(h, t, sg__rc.d25[418]); /* sint-list->bytevector */
-  SG_APPEND1(h, t, sg__rc.d25[415]); /* uint-list->bytevector */
-  SG_APPEND1(h, t, sg__rc.d25[409]); /* bytevector->sint-list */
-  SG_APPEND1(h, t, sg__rc.d25[405]); /* bytevector->uint-list */
-  SG_APPEND1(h, t, sg__rc.d25[399]); /* bytevector-sint-set! */
-  SG_APPEND1(h, t, sg__rc.d25[395]); /* bytevector-uint-set! */
-  SG_APPEND1(h, t, sg__rc.d25[377]); /* bytevector-sint-ref */
-  SG_APPEND1(h, t, sg__rc.d25[370]); /* bytevector-uint-ref */
-  SG_APPEND1(h, t, sg__rc.d25[360]); /* string-ci>=? */
-  SG_APPEND1(h, t, sg__rc.d25[354]); /* string-ci<=? */
-  SG_APPEND1(h, t, sg__rc.d25[348]); /* string-ci>? */
-  SG_APPEND1(h, t, sg__rc.d25[342]); /* string-ci<? */
-  SG_APPEND1(h, t, sg__rc.d25[336]); /* string-ci=? */
-  SG_APPEND1(h, t, sg__rc.d25[327]); /* char-ci>=? */
-  SG_APPEND1(h, t, sg__rc.d25[321]); /* char-ci<=? */
-  SG_APPEND1(h, t, sg__rc.d25[315]); /* char-ci>? */
-  SG_APPEND1(h, t, sg__rc.d25[309]); /* char-ci<? */
-  SG_APPEND1(h, t, sg__rc.d25[303]); /* char-ci=? */
-  SG_APPEND1(h, t, sg__rc.d25[295]); /* list-head */
-  SG_APPEND1(h, t, sg__rc.d25[291]); /* drop */
-  SG_APPEND1(h, t, sg__rc.d25[288]); /* take */
-  SG_APPEND1(h, t, sg__rc.d25[279]); /* lset-difference */
-  SG_APPEND1(h, t, sg__rc.d25[267]); /* lset-intersection */
-  SG_APPEND1(h, t, sg__rc.d25[261]); /* lset-union */
-  SG_APPEND1(h, t, sg__rc.d25[255]); /* reduce */
-  SG_APPEND1(h, t, sg__rc.d25[250]); /* delete */
-  SG_APPEND1(h, t, sg__rc.d25[247]); /* member */
-  SG_APPEND1(h, t, sg__rc.d25[239]); /* assoc */
-  SG_APPEND1(h, t, sg__rc.d25[230]); /* find-tail */
-  SG_APPEND1(h, t, sg__rc.d25[232]); /* find */
-  SG_APPEND1(h, t, sg__rc.d25[214]); /* split-at */
-  SG_APPEND1(h, t, sg__rc.d25[217]); /* null-list? */
-  SG_APPEND1(h, t, sg__rc.d25[0]); /* default-protocol */
-  SG_APPEND1(h, t, sg__rc.d25[204]); /* make-simple-conser */
-  SG_APPEND1(h, t, sg__rc.d25[201]); /* make-nested-conser */
-  SG_APPEND1(h, t, sg__rc.d25[176]); /* record-printer */
-  SG_APPEND1(h, t, sg__rc.d25[148]); /* string-for-each */
-  SG_APPEND1(h, t, sg__rc.d25[142]); /* vector-for-each */
-  SG_APPEND1(h, t, sg__rc.d25[139]); /* vector-map */
-  SG_APPEND1(h, t, sg__rc.d25[130]); /* wrong-type-argument-message */
-  SG_APPEND1(h, t, sg__rc.d25[122]); /* fold */
-  SG_APPEND1(h, t, sg__rc.d25[116]); /* print */
-  SG_APPEND1(h, t, sg__rc.d25[107]); /* safe-length */
-  SG_APPEND1(h, t, sg__rc.d25[104]); /* er-macro-transformer */
-  SG_APPEND1(h, t, sg__rc.d25[76]); /* call-with-values */
-  SG_APPEND1(h, t, sg__rc.d25[73]); /* unique-id-list? */
-  SG_APPEND1(h, t, sg__rc.d25[61]); /* hashtable->alist */
-  SG_APPEND1(h, t, sg__rc.d25[55]); /* hashtable-map */
-  SG_APPEND1(h, t, sg__rc.d25[49]); /* hashtable-for-each */
-  Sg_LibraryExportedSet(sg__rc.d25[7], Sg_Cons(h, SG_NIL));
+  SG_APPEND1(h, t, sg__rc.d28[566]); /* hashtable-hash-function */
+  SG_APPEND1(h, t, sg__rc.d28[544]); /* hashtable-equivalence-function */
+  SG_APPEND1(h, t, sg__rc.d28[534]); /* hashtable-entries */
+  SG_APPEND1(h, t, sg__rc.d28[524]); /* hashtable-update! */
+  SG_APPEND1(h, t, sg__rc.d28[515]); /* call-with-string-output-port */
+  SG_APPEND1(h, t, sg__rc.d28[512]); /* call-with-bytevector-output-port */
+  SG_APPEND1(h, t, sg__rc.d28[509]); /* open-string-output-port */
+  SG_APPEND1(h, t, sg__rc.d28[491]); /* open-bytevector-output-port */
+  SG_APPEND1(h, t, sg__rc.d28[488]); /* call-with-port */
+  SG_APPEND1(h, t, sg__rc.d28[479]); /* vector-sort! */
+  SG_APPEND1(h, t, sg__rc.d28[471]); /* vector-sort */
+  SG_APPEND1(h, t, sg__rc.d28[463]); /* list-sort */
+  SG_APPEND1(h, t, sg__rc.d28[461]); /* assp */
+  SG_APPEND1(h, t, sg__rc.d28[458]); /* memp */
+  SG_APPEND1(h, t, sg__rc.d28[454]); /* remq */
+  SG_APPEND1(h, t, sg__rc.d28[451]); /* remv */
+  SG_APPEND1(h, t, sg__rc.d28[448]); /* remove */
+  SG_APPEND1(h, t, sg__rc.d28[445]); /* remp */
+  SG_APPEND1(h, t, sg__rc.d28[442]); /* fold-right */
+  SG_APPEND1(h, t, sg__rc.d28[436]); /* fold-left */
+  SG_APPEND1(h, t, sg__rc.d28[47]); /* for-each */
+  SG_APPEND1(h, t, sg__rc.d28[53]); /* map */
+  SG_APPEND1(h, t, sg__rc.d28[432]); /* partition */
+  SG_APPEND1(h, t, sg__rc.d28[253]); /* filter */
+  SG_APPEND1(h, t, sg__rc.d28[264]); /* exists */
+  SG_APPEND1(h, t, sg__rc.d28[276]); /* for-all */
+  SG_APPEND1(h, t, sg__rc.d28[418]); /* sint-list->bytevector */
+  SG_APPEND1(h, t, sg__rc.d28[415]); /* uint-list->bytevector */
+  SG_APPEND1(h, t, sg__rc.d28[409]); /* bytevector->sint-list */
+  SG_APPEND1(h, t, sg__rc.d28[405]); /* bytevector->uint-list */
+  SG_APPEND1(h, t, sg__rc.d28[399]); /* bytevector-sint-set! */
+  SG_APPEND1(h, t, sg__rc.d28[395]); /* bytevector-uint-set! */
+  SG_APPEND1(h, t, sg__rc.d28[377]); /* bytevector-sint-ref */
+  SG_APPEND1(h, t, sg__rc.d28[370]); /* bytevector-uint-ref */
+  SG_APPEND1(h, t, sg__rc.d28[360]); /* string-ci>=? */
+  SG_APPEND1(h, t, sg__rc.d28[354]); /* string-ci<=? */
+  SG_APPEND1(h, t, sg__rc.d28[348]); /* string-ci>? */
+  SG_APPEND1(h, t, sg__rc.d28[342]); /* string-ci<? */
+  SG_APPEND1(h, t, sg__rc.d28[336]); /* string-ci=? */
+  SG_APPEND1(h, t, sg__rc.d28[327]); /* char-ci>=? */
+  SG_APPEND1(h, t, sg__rc.d28[321]); /* char-ci<=? */
+  SG_APPEND1(h, t, sg__rc.d28[315]); /* char-ci>? */
+  SG_APPEND1(h, t, sg__rc.d28[309]); /* char-ci<? */
+  SG_APPEND1(h, t, sg__rc.d28[303]); /* char-ci=? */
+  SG_APPEND1(h, t, sg__rc.d28[295]); /* list-head */
+  SG_APPEND1(h, t, sg__rc.d28[291]); /* drop */
+  SG_APPEND1(h, t, sg__rc.d28[288]); /* take */
+  SG_APPEND1(h, t, sg__rc.d28[279]); /* lset-difference */
+  SG_APPEND1(h, t, sg__rc.d28[267]); /* lset-intersection */
+  SG_APPEND1(h, t, sg__rc.d28[261]); /* lset-union */
+  SG_APPEND1(h, t, sg__rc.d28[255]); /* reduce */
+  SG_APPEND1(h, t, sg__rc.d28[250]); /* delete */
+  SG_APPEND1(h, t, sg__rc.d28[247]); /* member */
+  SG_APPEND1(h, t, sg__rc.d28[239]); /* assoc */
+  SG_APPEND1(h, t, sg__rc.d28[230]); /* find-tail */
+  SG_APPEND1(h, t, sg__rc.d28[232]); /* find */
+  SG_APPEND1(h, t, sg__rc.d28[214]); /* split-at */
+  SG_APPEND1(h, t, sg__rc.d28[217]); /* null-list? */
+  SG_APPEND1(h, t, sg__rc.d28[0]); /* default-protocol */
+  SG_APPEND1(h, t, sg__rc.d28[204]); /* make-simple-conser */
+  SG_APPEND1(h, t, sg__rc.d28[201]); /* make-nested-conser */
+  SG_APPEND1(h, t, sg__rc.d28[176]); /* record-printer */
+  SG_APPEND1(h, t, sg__rc.d28[148]); /* string-for-each */
+  SG_APPEND1(h, t, sg__rc.d28[142]); /* vector-for-each */
+  SG_APPEND1(h, t, sg__rc.d28[139]); /* vector-map */
+  SG_APPEND1(h, t, sg__rc.d28[130]); /* wrong-type-argument-message */
+  SG_APPEND1(h, t, sg__rc.d28[122]); /* fold */
+  SG_APPEND1(h, t, sg__rc.d28[116]); /* print */
+  SG_APPEND1(h, t, sg__rc.d28[107]); /* safe-length */
+  SG_APPEND1(h, t, sg__rc.d28[104]); /* er-macro-transformer */
+  SG_APPEND1(h, t, sg__rc.d28[76]); /* call-with-values */
+  SG_APPEND1(h, t, sg__rc.d28[73]); /* unique-id-list? */
+  SG_APPEND1(h, t, sg__rc.d28[61]); /* hashtable->alist */
+  SG_APPEND1(h, t, sg__rc.d28[55]); /* hashtable-map */
+  SG_APPEND1(h, t, sg__rc.d28[49]); /* hashtable-for-each */
+  Sg_LibraryExportedSet(sg__rc.d28[7], Sg_Cons(h, SG_NIL));
 
-  Sg_VM()->currentLibrary = sg__rc.d25[7];
+  Sg_VM()->currentLibrary = sg__rc.d28[7];
   Sg_VMExecute(SG_OBJ(toplevel));
   Sg_VM()->currentLibrary = save;
 }

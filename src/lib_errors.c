@@ -2,11 +2,11 @@
 #define LIBSAGITTARIUS_BODY 
 #include <sagittarius.h>
 static struct sg__rcRec {
-  SgObject d16[212];
-  SgWord d17[1027];
-  SgCodeBuilder d18[25];
+  SgObject d19[212];
+  SgWord d20[1027];
+  SgCodeBuilder d21[25];
 } sg__rc = {
-  {  /* SgObject d16 */
+  {  /* SgObject d19 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -220,7 +220,7 @@ static struct sg__rcRec {
     SG_UNBOUND,
     SG_UNBOUND,
   },
-  {  /* SgWord d17 */
+  {  /* SgWord d20 */
     /* (describe-condition loop) */0x00000030    /*   0 FRAME */,
     SG_WORD(4),
     0x00000045    /*   2 LREF_PUSH */,
@@ -241,7 +241,7 @@ static struct sg__rcRec {
     0x00000105    /*  17 LREF */,
     0x00000054    /*  18 CONS_PUSH */,
     0x00000009    /*  19 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G15#core.errors> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G18#core.errors> */,
     0x0000022e    /*  21 LOCAL_TAIL_CALL */,
     0x0000002f    /*  22 RET */,
     0x0000015c    /*  23 LREF_CDR_PUSH */,
@@ -265,7 +265,7 @@ static struct sg__rcRec {
     0x0000000b    /*  14 PUSH */,
     0x0000000c    /*  15 BOX */,
     0x00000009    /*  16 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G15#core.errors> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G18#core.errors> */,
     0x00000406    /*  18 LSET */,
     0x00000030    /*  19 FRAME */,
     SG_WORD(7),
@@ -273,7 +273,7 @@ static struct sg__rcRec {
     0x00000048    /*  22 CONST_PUSH */,
     SG_WORD(SG_NIL) /* () */,
     0x00000009    /*  24 GREF */,
-    SG_WORD(SG_UNDEF) /* #<identifier G15#core.errors> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G18#core.errors> */,
     0x0000022c    /*  26 LOCAL_CALL */,
     0x00000132    /*  27 LEAVE */,
     0x00000132    /*  28 LEAVE */,
@@ -460,7 +460,7 @@ static struct sg__rcRec {
     SG_WORD(8),
     0x00000145    /*  28 LREF_PUSH */,
     0x00000029    /*  29 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[1])) /* #<code-builder #f (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[1])) /* #<code-builder #f (1 0 1)> */,
     0x0000000b    /*  31 PUSH */,
     0x00000345    /*  32 LREF_PUSH */,
     0x0000024a    /*  33 GREF_CALL */,
@@ -1153,633 +1153,633 @@ static struct sg__rcRec {
     SG_WORD(SG_UNDEF) /* #<identifier raise-misc-i/o-error#core.errors> */,
     0x0000002f    /*   8 RET */,
     /* #f */0x00000029    /*   0 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[0])) /* #<code-builder (describe-condition loop) (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[0])) /* #<code-builder (describe-condition loop) (2 0 0)> */,
     0x00000033    /*   2 DEFINE */,
-    SG_WORD(SG_UNDEF) /* #<identifier G15#core.errors> */,
+    SG_WORD(SG_UNDEF) /* #<identifier G18#core.errors> */,
     0x00000034    /*   4 LIBRARY */,
     SG_WORD(SG_UNDEF) /* #<library core.errors> */,
     0x00000029    /*   6 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[2])) /* #<code-builder describe-condition (1 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[2])) /* #<code-builder describe-condition (1 0 0)> */,
     0x00000033    /*   8 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier describe-condition#core.errors> */,
     0x00000029    /*  10 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[3])) /* #<code-builder assertion-violation (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[3])) /* #<code-builder assertion-violation (2 1 0)> */,
     0x00000033    /*  12 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier assertion-violation#core.errors> */,
     0x00000029    /*  14 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[4])) /* #<code-builder undefined-violation (1 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[4])) /* #<code-builder undefined-violation (1 1 0)> */,
     0x00000033    /*  16 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier undefined-violation#core.errors> */,
     0x00000029    /*  18 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[5])) /* #<code-builder lexical-violation (1 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[5])) /* #<code-builder lexical-violation (1 1 0)> */,
     0x00000033    /*  20 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier lexical-violation#core.errors> */,
     0x00000029    /*  22 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[6])) /* #<code-builder syntax-violation (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[6])) /* #<code-builder syntax-violation (3 1 0)> */,
     0x00000033    /*  24 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier syntax-violation#core.errors> */,
     0x00000029    /*  26 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[7])) /* #<code-builder error (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[7])) /* #<code-builder error (2 1 0)> */,
     0x00000033    /*  28 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier error#core.errors> */,
     0x00000029    /*  30 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[8])) /* #<code-builder implementation-restriction-violation (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[8])) /* #<code-builder implementation-restriction-violation (2 1 0)> */,
     0x00000033    /*  32 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier implementation-restriction-violation#core.errors> */,
     0x00000029    /*  34 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[9])) /* #<code-builder undefined/syntax-violation (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[9])) /* #<code-builder undefined/syntax-violation (3 1 0)> */,
     0x00000033    /*  36 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier undefined/syntax-violation#core.errors> */,
     0x00000029    /*  38 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[10])) /* #<code-builder assertion/syntax-violation (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[10])) /* #<code-builder assertion/syntax-violation (3 1 0)> */,
     0x00000033    /*  40 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier assertion/syntax-violation#core.errors> */,
     0x00000029    /*  42 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[11])) /* #<code-builder raise-i/o-filename-error (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[11])) /* #<code-builder raise-i/o-filename-error (3 1 0)> */,
     0x00000033    /*  44 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-filename-error#core.errors> */,
     0x00000029    /*  46 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[12])) /* #<code-builder raise-i/o-error (2 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[12])) /* #<code-builder raise-i/o-error (2 1 0)> */,
     0x00000033    /*  48 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-error#core.errors> */,
     0x00000029    /*  50 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[13])) /* #<code-builder raise-misc-i/o-error-with-port (4 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[13])) /* #<code-builder raise-misc-i/o-error-with-port (4 1 0)> */,
     0x00000033    /*  52 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-misc-i/o-error-with-port#core.errors> */,
     0x00000029    /*  54 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[14])) /* #<code-builder raise-misc-i/o-error (3 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[14])) /* #<code-builder raise-misc-i/o-error (3 1 0)> */,
     0x00000033    /*  56 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-misc-i/o-error#core.errors> */,
     0x00000029    /*  58 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[15])) /* #<code-builder raise-i/o-read-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[15])) /* #<code-builder raise-i/o-read-error (3 0 0)> */,
     0x00000033    /*  60 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-read-error#core.errors> */,
     0x00000029    /*  62 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[16])) /* #<code-builder raise-i/o-write-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[16])) /* #<code-builder raise-i/o-write-error (3 0 0)> */,
     0x00000033    /*  64 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-write-error#core.errors> */,
     0x00000029    /*  66 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[17])) /* #<code-builder raise-i/o-file-protection-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[17])) /* #<code-builder raise-i/o-file-protection-error (3 0 0)> */,
     0x00000033    /*  68 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-file-protection-error#core.errors> */,
     0x00000029    /*  70 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[18])) /* #<code-builder raise-i/o-file-is-read-only-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[18])) /* #<code-builder raise-i/o-file-is-read-only-error (3 0 0)> */,
     0x00000033    /*  72 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-file-is-read-only-error#core.errors> */,
     0x00000029    /*  74 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[19])) /* #<code-builder raise-i/o-file-already-exists-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[19])) /* #<code-builder raise-i/o-file-already-exists-error (3 0 0)> */,
     0x00000033    /*  76 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-file-already-exists-error#core.errors> */,
     0x00000029    /*  78 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[20])) /* #<code-builder raise-i/o-file-does-not-exist-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[20])) /* #<code-builder raise-i/o-file-does-not-exist-error (3 0 0)> */,
     0x00000033    /*  80 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-file-does-not-exist-error#core.errors> */,
     0x00000029    /*  82 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[21])) /* #<code-builder raise-i/o-invalid-position-error (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[21])) /* #<code-builder raise-i/o-invalid-position-error (4 0 0)> */,
     0x00000033    /*  84 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-invalid-position-error#core.errors> */,
     0x00000029    /*  86 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[22])) /* #<code-builder raise-i/o-decoding-error (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[22])) /* #<code-builder raise-i/o-decoding-error (3 0 0)> */,
     0x00000033    /*  88 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-decoding-error#core.errors> */,
     0x00000029    /*  90 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d18[23])) /* #<code-builder raise-i/o-encoding-error (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d21[23])) /* #<code-builder raise-i/o-encoding-error (4 0 0)> */,
     0x00000033    /*  92 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier raise-i/o-encoding-error#core.errors> */,
     0x00000002    /*  94 UNDEF */,
     0x0000002f    /*  95 RET */,
   },
-  {  /* SgCodeBuilder d18 */
+  {  /* SgCodeBuilder d21 */
     
     SG_STATIC_CODE_BUILDER( /* (describe-condition loop) */
-      (SgWord *)SG_OBJ(&sg__rc.d17[0]), SG_FALSE, 2, 0, 0, 17, 27),
+      (SgWord *)SG_OBJ(&sg__rc.d20[0]), SG_FALSE, 2, 0, 0, 17, 27),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d17[27]), SG_FALSE, 1, 0, 1, 60, 182),
+      (SgWord *)SG_OBJ(&sg__rc.d20[27]), SG_FALSE, 1, 0, 1, 60, 182),
     
     SG_STATIC_CODE_BUILDER( /* describe-condition */
-      (SgWord *)SG_OBJ(&sg__rc.d17[209]), SG_FALSE, 1, 0, 0, 17, 59),
+      (SgWord *)SG_OBJ(&sg__rc.d20[209]), SG_FALSE, 1, 0, 0, 17, 59),
     
     SG_STATIC_CODE_BUILDER( /* assertion-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[268]), SG_FALSE, 2, 1, 0, 23, 42),
+      (SgWord *)SG_OBJ(&sg__rc.d20[268]), SG_FALSE, 2, 1, 0, 23, 42),
     
     SG_STATIC_CODE_BUILDER( /* undefined-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[310]), SG_FALSE, 1, 1, 0, 21, 40),
+      (SgWord *)SG_OBJ(&sg__rc.d20[310]), SG_FALSE, 1, 1, 0, 21, 40),
     
     SG_STATIC_CODE_BUILDER( /* lexical-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[350]), SG_FALSE, 1, 1, 0, 21, 40),
+      (SgWord *)SG_OBJ(&sg__rc.d20[350]), SG_FALSE, 1, 1, 0, 21, 40),
     
     SG_STATIC_CODE_BUILDER( /* syntax-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[390]), SG_FALSE, 3, 1, 0, 29, 85),
+      (SgWord *)SG_OBJ(&sg__rc.d20[390]), SG_FALSE, 3, 1, 0, 29, 85),
     
     SG_STATIC_CODE_BUILDER( /* error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[475]), SG_FALSE, 2, 1, 0, 23, 42),
+      (SgWord *)SG_OBJ(&sg__rc.d20[475]), SG_FALSE, 2, 1, 0, 23, 42),
     
     SG_STATIC_CODE_BUILDER( /* implementation-restriction-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[517]), SG_FALSE, 2, 1, 0, 23, 46),
+      (SgWord *)SG_OBJ(&sg__rc.d20[517]), SG_FALSE, 2, 1, 0, 23, 46),
     
     SG_STATIC_CODE_BUILDER( /* undefined/syntax-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[563]), SG_FALSE, 3, 1, 0, 24, 48),
+      (SgWord *)SG_OBJ(&sg__rc.d20[563]), SG_FALSE, 3, 1, 0, 24, 48),
     
     SG_STATIC_CODE_BUILDER( /* assertion/syntax-violation */
-      (SgWord *)SG_OBJ(&sg__rc.d17[611]), SG_FALSE, 3, 1, 0, 24, 48),
+      (SgWord *)SG_OBJ(&sg__rc.d20[611]), SG_FALSE, 3, 1, 0, 24, 48),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-filename-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[659]), SG_FALSE, 3, 1, 0, 24, 47),
+      (SgWord *)SG_OBJ(&sg__rc.d20[659]), SG_FALSE, 3, 1, 0, 24, 47),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[706]), SG_FALSE, 2, 1, 0, 23, 46),
+      (SgWord *)SG_OBJ(&sg__rc.d20[706]), SG_FALSE, 2, 1, 0, 23, 46),
     
     SG_STATIC_CODE_BUILDER( /* raise-misc-i/o-error-with-port */
-      (SgWord *)SG_OBJ(&sg__rc.d17[752]), SG_FALSE, 4, 1, 0, 28, 58),
+      (SgWord *)SG_OBJ(&sg__rc.d20[752]), SG_FALSE, 4, 1, 0, 28, 58),
     
     SG_STATIC_CODE_BUILDER( /* raise-misc-i/o-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[810]), SG_FALSE, 3, 1, 0, 27, 47),
+      (SgWord *)SG_OBJ(&sg__rc.d20[810]), SG_FALSE, 3, 1, 0, 27, 47),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-read-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[857]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[857]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-write-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[865]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[865]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-file-protection-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[873]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[873]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-file-is-read-only-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[881]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[881]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-file-already-exists-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[889]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[889]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-file-does-not-exist-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[897]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[897]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-invalid-position-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[905]), SG_FALSE, 4, 0, 0, 15, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d20[905]), SG_FALSE, 4, 0, 0, 15, 9),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-decoding-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[914]), SG_FALSE, 3, 0, 0, 13, 8),
+      (SgWord *)SG_OBJ(&sg__rc.d20[914]), SG_FALSE, 3, 0, 0, 13, 8),
     
     SG_STATIC_CODE_BUILDER( /* raise-i/o-encoding-error */
-      (SgWord *)SG_OBJ(&sg__rc.d17[922]), SG_FALSE, 4, 0, 0, 15, 9),
+      (SgWord *)SG_OBJ(&sg__rc.d20[922]), SG_FALSE, 4, 0, 0, 15, 9),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d17[931]), SG_FALSE, 0, 0, 0, 0, 96),
+      (SgWord *)SG_OBJ(&sg__rc.d20[931]), SG_FALSE, 0, 0, 0, 0, 96),
   },
 };
 static SgCodeBuilder *toplevel = 
-   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[24]));
+   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[24]));
 void Sg__Init_core_errors() {
   SgObject save = Sg_VM()->currentLibrary;
   SgObject h = SG_NIL, t = SG_NIL; /* for exports */ 
 
-  sg__rc.d16[2] = SG_MAKE_STRING("record-type-parent");
-  sg__rc.d16[1] = Sg_Intern(sg__rc.d16[2]); /* record-type-parent */
-  sg__rc.d16[5] = SG_MAKE_STRING("(core errors)");
-  sg__rc.d16[4] = Sg_Intern(sg__rc.d16[5]); /* (core errors) */
-  sg__rc.d16[3] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d16[4]), TRUE);
-  sg__rc.d16[0] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[1]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[8] = SG_MAKE_STRING("record-type-name");
-  sg__rc.d16[7] = Sg_Intern(sg__rc.d16[8]); /* record-type-name */
-  sg__rc.d16[6] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[7]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[11] = SG_MAKE_STRING("G15");
-  sg__rc.d16[10] = Sg_Intern(sg__rc.d16[11]); /* G15 */
-  sg__rc.d16[9] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[10]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[14] = SG_MAKE_STRING("reverse");
-  sg__rc.d16[13] = Sg_Intern(sg__rc.d16[14]); /* reverse */
-  sg__rc.d16[12] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[13]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[16] = SG_MAKE_STRING("(describe-condition loop)");
-  sg__rc.d16[15] = Sg_Intern(sg__rc.d16[16]); /* (describe-condition loop) */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[0]))->name = sg__rc.d16[15];/* (describe-condition loop) */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[0]))[4] = SG_WORD(sg__rc.d16[0]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[0]))[15] = SG_WORD(sg__rc.d16[6]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[0]))[20] = SG_WORD(sg__rc.d16[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[0]))[25] = SG_WORD(sg__rc.d16[12]);
-  sg__rc.d16[19] = SG_MAKE_STRING("condition?");
-  sg__rc.d16[18] = Sg_Intern(sg__rc.d16[19]); /* condition? */
-  sg__rc.d16[17] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[18]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[22] = SG_MAKE_STRING("open-string-output-port");
-  sg__rc.d16[21] = Sg_Intern(sg__rc.d16[22]); /* open-string-output-port */
-  sg__rc.d16[20] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[21]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[23] = SG_MAKE_STRING("  #<condition~%");
-  sg__rc.d16[26] = SG_MAKE_STRING("format");
-  sg__rc.d16[25] = Sg_Intern(sg__rc.d16[26]); /* format */
-  sg__rc.d16[24] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[25]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[29] = SG_MAKE_STRING("simple-conditions");
-  sg__rc.d16[28] = Sg_Intern(sg__rc.d16[29]); /* simple-conditions */
-  sg__rc.d16[27] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[28]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[32] = SG_MAKE_STRING("record-rtd");
-  sg__rc.d16[31] = Sg_Intern(sg__rc.d16[32]); /* record-rtd */
-  sg__rc.d16[30] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[31]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[35] = SG_MAKE_STRING("record-type-field-names");
-  sg__rc.d16[34] = Sg_Intern(sg__rc.d16[35]); /* record-type-field-names */
-  sg__rc.d16[33] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[34]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[36] = SG_MAKE_STRING("~%    ~a");
-  sg__rc.d16[37] = SG_MAKE_STRING(" ~a");
-  sg__rc.d16[40] = SG_MAKE_STRING("record-accessor");
-  sg__rc.d16[39] = Sg_Intern(sg__rc.d16[40]); /* record-accessor */
-  sg__rc.d16[38] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[39]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[43] = SG_MAKE_STRING("string?");
-  sg__rc.d16[42] = Sg_Intern(sg__rc.d16[43]); /* string? */
-  sg__rc.d16[41] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[42]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[44] = SG_MAKE_STRING(": ~a");
-  sg__rc.d16[45] = SG_MAKE_STRING(": ~s");
-  sg__rc.d16[48] = SG_MAKE_STRING("vector->list");
-  sg__rc.d16[47] = Sg_Intern(sg__rc.d16[48]); /* vector->list */
-  sg__rc.d16[46] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[47]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[49] = SG_MAKE_STRING("~%     ~a: ~a");
-  sg__rc.d16[50] = SG_MAKE_STRING("~%     ~a: ~s");
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[4] = SG_WORD(sg__rc.d16[30]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[10] = SG_WORD(sg__rc.d16[6]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[17] = SG_WORD(sg__rc.d16[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[25] = SG_WORD(sg__rc.d16[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[34] = SG_WORD(sg__rc.d16[33]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[41] = SG_WORD(sg__rc.d16[36]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[44] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[53] = SG_WORD(sg__rc.d16[37]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[56] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[69] = SG_WORD(sg__rc.d16[38]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[76] = SG_WORD(sg__rc.d16[41]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[81] = SG_WORD(sg__rc.d16[44]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[90] = SG_WORD(sg__rc.d16[38]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[94] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[98] = SG_WORD(sg__rc.d16[45]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[107] = SG_WORD(sg__rc.d16[38]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[111] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[123] = SG_WORD(sg__rc.d16[33]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[126] = SG_WORD(sg__rc.d16[46]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[142] = SG_WORD(sg__rc.d16[38]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[149] = SG_WORD(sg__rc.d16[41]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[156] = SG_WORD(sg__rc.d16[49]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[160] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[167] = SG_WORD(sg__rc.d16[50]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[27]))[171] = SG_WORD(sg__rc.d16[24]);
-  sg__rc.d16[53] = SG_MAKE_STRING("for-each");
-  sg__rc.d16[52] = Sg_Intern(sg__rc.d16[53]); /* for-each */
-  sg__rc.d16[51] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[52]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[54] = SG_MAKE_STRING("~%   >");
-  sg__rc.d16[55] = SG_MAKE_STRING("~a~%");
-  sg__rc.d16[57] = SG_MAKE_STRING("describe-condition");
-  sg__rc.d16[56] = Sg_Intern(sg__rc.d16[57]); /* describe-condition */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[2]))->name = sg__rc.d16[56];/* describe-condition */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[5] = SG_WORD(sg__rc.d16[17]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[11] = SG_WORD(sg__rc.d16[20]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[17] = SG_WORD(sg__rc.d16[23]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[19] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[24] = SG_WORD(sg__rc.d16[27]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[34] = SG_WORD(sg__rc.d16[51]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[40] = SG_WORD(sg__rc.d16[54]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[42] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[44] = SG_WORD(sg__rc.d16[55]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[51] = SG_WORD(sg__rc.d16[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[54] = SG_WORD(sg__rc.d16[55]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[209]))[57] = SG_WORD(sg__rc.d16[24]);
-  sg__rc.d16[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[56]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[61] = SG_MAKE_STRING("condition");
-  sg__rc.d16[60] = Sg_Intern(sg__rc.d16[61]); /* condition */
-  sg__rc.d16[59] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[60]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[64] = SG_MAKE_STRING("values");
-  sg__rc.d16[63] = Sg_Intern(sg__rc.d16[64]); /* values */
-  sg__rc.d16[62] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[63]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[67] = SG_MAKE_STRING("make-assertion-violation");
-  sg__rc.d16[66] = Sg_Intern(sg__rc.d16[67]); /* make-assertion-violation */
-  sg__rc.d16[65] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[66]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[70] = SG_MAKE_STRING("make-who-condition");
-  sg__rc.d16[69] = Sg_Intern(sg__rc.d16[70]); /* make-who-condition */
-  sg__rc.d16[68] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[69]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[73] = SG_MAKE_STRING("make-message-condition");
-  sg__rc.d16[72] = Sg_Intern(sg__rc.d16[73]); /* make-message-condition */
-  sg__rc.d16[71] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[72]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[76] = SG_MAKE_STRING("make-irritants-condition");
-  sg__rc.d16[75] = Sg_Intern(sg__rc.d16[76]); /* make-irritants-condition */
-  sg__rc.d16[74] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[75]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[79] = SG_MAKE_STRING("filter");
-  sg__rc.d16[78] = Sg_Intern(sg__rc.d16[79]); /* filter */
-  sg__rc.d16[77] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[78]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[82] = SG_MAKE_STRING("raise");
-  sg__rc.d16[81] = Sg_Intern(sg__rc.d16[82]); /* raise */
-  sg__rc.d16[80] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[81]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[84] = SG_MAKE_STRING("assertion-violation");
-  sg__rc.d16[83] = Sg_Intern(sg__rc.d16[84]); /* assertion-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[3]))->name = sg__rc.d16[83];/* assertion-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[11] = SG_WORD(sg__rc.d16[65]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[26] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[32] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[36] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[268]))[40] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[85] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[83]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[88] = SG_MAKE_STRING("make-undefined-violation");
-  sg__rc.d16[87] = Sg_Intern(sg__rc.d16[88]); /* make-undefined-violation */
-  sg__rc.d16[86] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[87]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[90] = SG_MAKE_STRING("undefined-violation");
-  sg__rc.d16[89] = Sg_Intern(sg__rc.d16[90]); /* undefined-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[4]))->name = sg__rc.d16[89];/* undefined-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[11] = SG_WORD(sg__rc.d16[86]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[30] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[34] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[310]))[38] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[91] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[89]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[94] = SG_MAKE_STRING("make-lexical-violation");
-  sg__rc.d16[93] = Sg_Intern(sg__rc.d16[94]); /* make-lexical-violation */
-  sg__rc.d16[92] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[93]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[96] = SG_MAKE_STRING("lexical-violation");
-  sg__rc.d16[95] = Sg_Intern(sg__rc.d16[96]); /* lexical-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[5]))->name = sg__rc.d16[95];/* lexical-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[11] = SG_WORD(sg__rc.d16[92]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[30] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[34] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[350]))[38] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[97] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[95]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[100] = SG_MAKE_STRING("make-syntax-violation");
-  sg__rc.d16[99] = Sg_Intern(sg__rc.d16[100]); /* make-syntax-violation */
-  sg__rc.d16[98] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[99]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[103] = SG_MAKE_STRING("identifier?");
-  sg__rc.d16[102] = Sg_Intern(sg__rc.d16[103]); /* identifier? */
-  sg__rc.d16[101] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[102]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[106] = SG_MAKE_STRING("id-name");
-  sg__rc.d16[105] = Sg_Intern(sg__rc.d16[106]); /* id-name */
-  sg__rc.d16[104] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[105]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[108] = SG_MAKE_STRING("syntax-violation");
-  sg__rc.d16[107] = Sg_Intern(sg__rc.d16[108]); /* syntax-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[6]))->name = sg__rc.d16[107];/* syntax-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[18] = SG_WORD(sg__rc.d16[98]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[27] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[34] = SG_WORD(sg__rc.d16[101]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[41] = SG_WORD(sg__rc.d16[104]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[52] = SG_WORD(sg__rc.d16[101]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[59] = SG_WORD(sg__rc.d16[104]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[68] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[75] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[79] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[390]))[83] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[107]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[112] = SG_MAKE_STRING("make-error");
-  sg__rc.d16[111] = Sg_Intern(sg__rc.d16[112]); /* make-error */
-  sg__rc.d16[110] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[111]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[114] = SG_MAKE_STRING("error");
-  sg__rc.d16[113] = Sg_Intern(sg__rc.d16[114]); /* error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[7]))->name = sg__rc.d16[113];/* error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[11] = SG_WORD(sg__rc.d16[110]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[26] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[32] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[36] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[475]))[40] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[115] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[113]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[118] = SG_MAKE_STRING("make-implementation-restriction-violation");
-  sg__rc.d16[117] = Sg_Intern(sg__rc.d16[118]); /* make-implementation-restriction-violation */
-  sg__rc.d16[116] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[117]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[120] = SG_MAKE_STRING("implementation-restriction-violation");
-  sg__rc.d16[119] = Sg_Intern(sg__rc.d16[120]); /* implementation-restriction-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[8]))->name = sg__rc.d16[119];/* implementation-restriction-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[11] = SG_WORD(sg__rc.d16[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[26] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[36] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[40] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[517]))[44] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[121] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[119]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[123] = SG_MAKE_STRING("undefined/syntax-violation");
-  sg__rc.d16[122] = Sg_Intern(sg__rc.d16[123]); /* undefined/syntax-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[9]))->name = sg__rc.d16[122];/* undefined/syntax-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[18] = SG_WORD(sg__rc.d16[98]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[23] = SG_WORD(sg__rc.d16[86]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[32] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[38] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[42] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[563]))[46] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[122]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[126] = SG_MAKE_STRING("assertion/syntax-violation");
-  sg__rc.d16[125] = Sg_Intern(sg__rc.d16[126]); /* assertion/syntax-violation */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[10]))->name = sg__rc.d16[125];/* assertion/syntax-violation */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[18] = SG_WORD(sg__rc.d16[98]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[23] = SG_WORD(sg__rc.d16[65]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[32] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[38] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[42] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[611]))[46] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[127] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[125]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[130] = SG_MAKE_STRING("make-i/o-filename-error");
-  sg__rc.d16[129] = Sg_Intern(sg__rc.d16[130]); /* make-i/o-filename-error */
-  sg__rc.d16[128] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[129]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[132] = SG_MAKE_STRING("raise-i/o-filename-error");
-  sg__rc.d16[131] = Sg_Intern(sg__rc.d16[132]); /* raise-i/o-filename-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[11]))->name = sg__rc.d16[131];/* raise-i/o-filename-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[12] = SG_WORD(sg__rc.d16[128]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[21] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[27] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[37] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[41] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[659]))[45] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[131]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[136] = SG_MAKE_STRING("make-i/o-error");
-  sg__rc.d16[135] = Sg_Intern(sg__rc.d16[136]); /* make-i/o-error */
-  sg__rc.d16[134] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[135]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[138] = SG_MAKE_STRING("raise-i/o-error");
-  sg__rc.d16[137] = Sg_Intern(sg__rc.d16[138]); /* raise-i/o-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[12]))->name = sg__rc.d16[137];/* raise-i/o-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[11] = SG_WORD(sg__rc.d16[134]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[20] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[26] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[36] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[40] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[706]))[44] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[139] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[137]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[142] = SG_MAKE_STRING("make-i/o-port-error");
-  sg__rc.d16[141] = Sg_Intern(sg__rc.d16[142]); /* make-i/o-port-error */
-  sg__rc.d16[140] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[141]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[145] = SG_MAKE_STRING("cons*");
-  sg__rc.d16[144] = Sg_Intern(sg__rc.d16[145]); /* cons* */
-  sg__rc.d16[143] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[144]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[147] = SG_MAKE_STRING("raise-misc-i/o-error-with-port");
-  sg__rc.d16[146] = Sg_Intern(sg__rc.d16[147]); /* raise-misc-i/o-error-with-port */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[13]))->name = sg__rc.d16[146];/* raise-misc-i/o-error-with-port */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[21] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[27] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[36] = SG_WORD(sg__rc.d16[140]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[45] = SG_WORD(sg__rc.d16[143]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[48] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[52] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[752]))[56] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[148] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[146]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[150] = SG_MAKE_STRING("raise-misc-i/o-error");
-  sg__rc.d16[149] = Sg_Intern(sg__rc.d16[150]); /* raise-misc-i/o-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[14]))->name = sg__rc.d16[149];/* raise-misc-i/o-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[3] = SG_WORD(sg__rc.d16[59]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[7] = SG_WORD(sg__rc.d16[62]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[21] = SG_WORD(sg__rc.d16[68]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[27] = SG_WORD(sg__rc.d16[71]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[37] = SG_WORD(sg__rc.d16[74]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[41] = SG_WORD(sg__rc.d16[77]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[810]))[45] = SG_WORD(sg__rc.d16[80]);
-  sg__rc.d16[151] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[149]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[154] = SG_MAKE_STRING("make-i/o-read-error");
-  sg__rc.d16[153] = Sg_Intern(sg__rc.d16[154]); /* make-i/o-read-error */
-  sg__rc.d16[152] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[153]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[156] = SG_MAKE_STRING("raise-i/o-read-error");
-  sg__rc.d16[155] = Sg_Intern(sg__rc.d16[156]); /* raise-i/o-read-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[15]))->name = sg__rc.d16[155];/* raise-i/o-read-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[857]))[1] = SG_WORD(sg__rc.d16[152]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[857]))[6] = SG_WORD(sg__rc.d16[148]);
-  sg__rc.d16[157] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[155]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[160] = SG_MAKE_STRING("make-i/o-write-error");
-  sg__rc.d16[159] = Sg_Intern(sg__rc.d16[160]); /* make-i/o-write-error */
-  sg__rc.d16[158] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[159]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[162] = SG_MAKE_STRING("raise-i/o-write-error");
-  sg__rc.d16[161] = Sg_Intern(sg__rc.d16[162]); /* raise-i/o-write-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[16]))->name = sg__rc.d16[161];/* raise-i/o-write-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[865]))[1] = SG_WORD(sg__rc.d16[158]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[865]))[6] = SG_WORD(sg__rc.d16[148]);
-  sg__rc.d16[163] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[161]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[166] = SG_MAKE_STRING("make-i/o-file-protection-error");
-  sg__rc.d16[165] = Sg_Intern(sg__rc.d16[166]); /* make-i/o-file-protection-error */
-  sg__rc.d16[164] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[165]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[168] = SG_MAKE_STRING("raise-i/o-file-protection-error");
-  sg__rc.d16[167] = Sg_Intern(sg__rc.d16[168]); /* raise-i/o-file-protection-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[17]))->name = sg__rc.d16[167];/* raise-i/o-file-protection-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[873]))[1] = SG_WORD(sg__rc.d16[164]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[873]))[6] = SG_WORD(sg__rc.d16[151]);
-  sg__rc.d16[169] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[167]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[172] = SG_MAKE_STRING("make-i/o-file-is-read-only-error");
-  sg__rc.d16[171] = Sg_Intern(sg__rc.d16[172]); /* make-i/o-file-is-read-only-error */
-  sg__rc.d16[170] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[171]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[174] = SG_MAKE_STRING("raise-i/o-file-is-read-only-error");
-  sg__rc.d16[173] = Sg_Intern(sg__rc.d16[174]); /* raise-i/o-file-is-read-only-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[18]))->name = sg__rc.d16[173];/* raise-i/o-file-is-read-only-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[881]))[1] = SG_WORD(sg__rc.d16[170]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[881]))[6] = SG_WORD(sg__rc.d16[148]);
-  sg__rc.d16[175] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[173]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[178] = SG_MAKE_STRING("make-i/o-file-already-exists-error");
-  sg__rc.d16[177] = Sg_Intern(sg__rc.d16[178]); /* make-i/o-file-already-exists-error */
-  sg__rc.d16[176] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[177]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[180] = SG_MAKE_STRING("raise-i/o-file-already-exists-error");
-  sg__rc.d16[179] = Sg_Intern(sg__rc.d16[180]); /* raise-i/o-file-already-exists-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[19]))->name = sg__rc.d16[179];/* raise-i/o-file-already-exists-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[889]))[1] = SG_WORD(sg__rc.d16[176]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[889]))[6] = SG_WORD(sg__rc.d16[151]);
-  sg__rc.d16[181] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[179]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[184] = SG_MAKE_STRING("make-i/o-file-does-not-exist-error");
-  sg__rc.d16[183] = Sg_Intern(sg__rc.d16[184]); /* make-i/o-file-does-not-exist-error */
-  sg__rc.d16[182] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[183]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[186] = SG_MAKE_STRING("raise-i/o-file-does-not-exist-error");
-  sg__rc.d16[185] = Sg_Intern(sg__rc.d16[186]); /* raise-i/o-file-does-not-exist-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[20]))->name = sg__rc.d16[185];/* raise-i/o-file-does-not-exist-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[897]))[1] = SG_WORD(sg__rc.d16[182]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[897]))[6] = SG_WORD(sg__rc.d16[151]);
-  sg__rc.d16[187] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[185]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[190] = SG_MAKE_STRING("make-i/o-invalid-position-error");
-  sg__rc.d16[189] = Sg_Intern(sg__rc.d16[190]); /* make-i/o-invalid-position-error */
-  sg__rc.d16[188] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[189]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[192] = SG_MAKE_STRING("raise-i/o-invalid-position-error");
-  sg__rc.d16[191] = Sg_Intern(sg__rc.d16[192]); /* raise-i/o-invalid-position-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[21]))->name = sg__rc.d16[191];/* raise-i/o-invalid-position-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[905]))[1] = SG_WORD(sg__rc.d16[188]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[905]))[7] = SG_WORD(sg__rc.d16[148]);
-  sg__rc.d16[193] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[191]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[196] = SG_MAKE_STRING("make-i/o-decoding-error");
-  sg__rc.d16[195] = Sg_Intern(sg__rc.d16[196]); /* make-i/o-decoding-error */
-  sg__rc.d16[194] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[195]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[198] = SG_MAKE_STRING("raise-i/o-decoding-error");
-  sg__rc.d16[197] = Sg_Intern(sg__rc.d16[198]); /* raise-i/o-decoding-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[22]))->name = sg__rc.d16[197];/* raise-i/o-decoding-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[914]))[1] = SG_WORD(sg__rc.d16[194]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[914]))[6] = SG_WORD(sg__rc.d16[151]);
-  sg__rc.d16[199] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[197]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[202] = SG_MAKE_STRING("make-i/o-encoding-error");
-  sg__rc.d16[201] = Sg_Intern(sg__rc.d16[202]); /* make-i/o-encoding-error */
-  sg__rc.d16[200] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[201]), SG_NIL, (sg__rc.d16[3]));
-  sg__rc.d16[204] = SG_MAKE_STRING("raise-i/o-encoding-error");
-  sg__rc.d16[203] = Sg_Intern(sg__rc.d16[204]); /* raise-i/o-encoding-error */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d18[23]))->name = sg__rc.d16[203];/* raise-i/o-encoding-error */
-  ((SgWord*)SG_OBJ(&sg__rc.d17[922]))[1] = SG_WORD(sg__rc.d16[200]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[922]))[7] = SG_WORD(sg__rc.d16[151]);
-  sg__rc.d16[205] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d16[203]), SG_NIL, (sg__rc.d16[3]));
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[3] = SG_WORD(sg__rc.d16[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[5] = SG_WORD(sg__rc.d16[3]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[9] = SG_WORD(sg__rc.d16[58]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[13] = SG_WORD(sg__rc.d16[85]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[17] = SG_WORD(sg__rc.d16[91]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[21] = SG_WORD(sg__rc.d16[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[25] = SG_WORD(sg__rc.d16[109]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[29] = SG_WORD(sg__rc.d16[115]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[33] = SG_WORD(sg__rc.d16[121]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[37] = SG_WORD(sg__rc.d16[124]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[41] = SG_WORD(sg__rc.d16[127]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[45] = SG_WORD(sg__rc.d16[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[49] = SG_WORD(sg__rc.d16[139]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[53] = SG_WORD(sg__rc.d16[148]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[57] = SG_WORD(sg__rc.d16[151]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[61] = SG_WORD(sg__rc.d16[157]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[65] = SG_WORD(sg__rc.d16[163]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[69] = SG_WORD(sg__rc.d16[169]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[73] = SG_WORD(sg__rc.d16[175]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[77] = SG_WORD(sg__rc.d16[181]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[81] = SG_WORD(sg__rc.d16[187]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[85] = SG_WORD(sg__rc.d16[193]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[89] = SG_WORD(sg__rc.d16[199]);
-  ((SgWord*)SG_OBJ(&sg__rc.d17[931]))[93] = SG_WORD(sg__rc.d16[205]);
-  sg__rc.d16[207] = SG_MAKE_STRING("null");
-  sg__rc.d16[206] = Sg_Intern(sg__rc.d16[207]); /* null */
-  Sg_ImportLibrary(sg__rc.d16[3], sg__rc.d16[206]);
+  sg__rc.d19[2] = SG_MAKE_STRING("record-type-parent");
+  sg__rc.d19[1] = Sg_Intern(sg__rc.d19[2]); /* record-type-parent */
+  sg__rc.d19[5] = SG_MAKE_STRING("(core errors)");
+  sg__rc.d19[4] = Sg_Intern(sg__rc.d19[5]); /* (core errors) */
+  sg__rc.d19[3] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d19[4]), TRUE);
+  sg__rc.d19[0] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[1]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[8] = SG_MAKE_STRING("record-type-name");
+  sg__rc.d19[7] = Sg_Intern(sg__rc.d19[8]); /* record-type-name */
+  sg__rc.d19[6] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[7]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[11] = SG_MAKE_STRING("G18");
+  sg__rc.d19[10] = Sg_Intern(sg__rc.d19[11]); /* G18 */
+  sg__rc.d19[9] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[10]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[14] = SG_MAKE_STRING("reverse");
+  sg__rc.d19[13] = Sg_Intern(sg__rc.d19[14]); /* reverse */
+  sg__rc.d19[12] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[13]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[16] = SG_MAKE_STRING("(describe-condition loop)");
+  sg__rc.d19[15] = Sg_Intern(sg__rc.d19[16]); /* (describe-condition loop) */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[0]))->name = sg__rc.d19[15];/* (describe-condition loop) */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[0]))[4] = SG_WORD(sg__rc.d19[0]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[0]))[15] = SG_WORD(sg__rc.d19[6]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[0]))[20] = SG_WORD(sg__rc.d19[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[0]))[25] = SG_WORD(sg__rc.d19[12]);
+  sg__rc.d19[19] = SG_MAKE_STRING("condition?");
+  sg__rc.d19[18] = Sg_Intern(sg__rc.d19[19]); /* condition? */
+  sg__rc.d19[17] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[18]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[22] = SG_MAKE_STRING("open-string-output-port");
+  sg__rc.d19[21] = Sg_Intern(sg__rc.d19[22]); /* open-string-output-port */
+  sg__rc.d19[20] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[21]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[23] = SG_MAKE_STRING("  #<condition~%");
+  sg__rc.d19[26] = SG_MAKE_STRING("format");
+  sg__rc.d19[25] = Sg_Intern(sg__rc.d19[26]); /* format */
+  sg__rc.d19[24] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[25]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[29] = SG_MAKE_STRING("simple-conditions");
+  sg__rc.d19[28] = Sg_Intern(sg__rc.d19[29]); /* simple-conditions */
+  sg__rc.d19[27] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[28]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[32] = SG_MAKE_STRING("record-rtd");
+  sg__rc.d19[31] = Sg_Intern(sg__rc.d19[32]); /* record-rtd */
+  sg__rc.d19[30] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[31]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[35] = SG_MAKE_STRING("record-type-field-names");
+  sg__rc.d19[34] = Sg_Intern(sg__rc.d19[35]); /* record-type-field-names */
+  sg__rc.d19[33] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[34]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[36] = SG_MAKE_STRING("~%    ~a");
+  sg__rc.d19[37] = SG_MAKE_STRING(" ~a");
+  sg__rc.d19[40] = SG_MAKE_STRING("record-accessor");
+  sg__rc.d19[39] = Sg_Intern(sg__rc.d19[40]); /* record-accessor */
+  sg__rc.d19[38] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[39]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[43] = SG_MAKE_STRING("string?");
+  sg__rc.d19[42] = Sg_Intern(sg__rc.d19[43]); /* string? */
+  sg__rc.d19[41] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[42]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[44] = SG_MAKE_STRING(": ~a");
+  sg__rc.d19[45] = SG_MAKE_STRING(": ~s");
+  sg__rc.d19[48] = SG_MAKE_STRING("vector->list");
+  sg__rc.d19[47] = Sg_Intern(sg__rc.d19[48]); /* vector->list */
+  sg__rc.d19[46] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[47]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[49] = SG_MAKE_STRING("~%     ~a: ~a");
+  sg__rc.d19[50] = SG_MAKE_STRING("~%     ~a: ~s");
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[4] = SG_WORD(sg__rc.d19[30]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[10] = SG_WORD(sg__rc.d19[6]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[17] = SG_WORD(sg__rc.d19[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[25] = SG_WORD(sg__rc.d19[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[34] = SG_WORD(sg__rc.d19[33]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[41] = SG_WORD(sg__rc.d19[36]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[44] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[53] = SG_WORD(sg__rc.d19[37]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[56] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[69] = SG_WORD(sg__rc.d19[38]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[76] = SG_WORD(sg__rc.d19[41]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[81] = SG_WORD(sg__rc.d19[44]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[90] = SG_WORD(sg__rc.d19[38]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[94] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[98] = SG_WORD(sg__rc.d19[45]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[107] = SG_WORD(sg__rc.d19[38]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[111] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[123] = SG_WORD(sg__rc.d19[33]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[126] = SG_WORD(sg__rc.d19[46]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[142] = SG_WORD(sg__rc.d19[38]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[149] = SG_WORD(sg__rc.d19[41]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[156] = SG_WORD(sg__rc.d19[49]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[160] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[167] = SG_WORD(sg__rc.d19[50]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[27]))[171] = SG_WORD(sg__rc.d19[24]);
+  sg__rc.d19[53] = SG_MAKE_STRING("for-each");
+  sg__rc.d19[52] = Sg_Intern(sg__rc.d19[53]); /* for-each */
+  sg__rc.d19[51] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[52]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[54] = SG_MAKE_STRING("~%   >");
+  sg__rc.d19[55] = SG_MAKE_STRING("~a~%");
+  sg__rc.d19[57] = SG_MAKE_STRING("describe-condition");
+  sg__rc.d19[56] = Sg_Intern(sg__rc.d19[57]); /* describe-condition */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[2]))->name = sg__rc.d19[56];/* describe-condition */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[5] = SG_WORD(sg__rc.d19[17]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[11] = SG_WORD(sg__rc.d19[20]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[17] = SG_WORD(sg__rc.d19[23]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[19] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[24] = SG_WORD(sg__rc.d19[27]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[34] = SG_WORD(sg__rc.d19[51]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[40] = SG_WORD(sg__rc.d19[54]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[42] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[44] = SG_WORD(sg__rc.d19[55]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[51] = SG_WORD(sg__rc.d19[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[54] = SG_WORD(sg__rc.d19[55]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[209]))[57] = SG_WORD(sg__rc.d19[24]);
+  sg__rc.d19[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[56]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[61] = SG_MAKE_STRING("condition");
+  sg__rc.d19[60] = Sg_Intern(sg__rc.d19[61]); /* condition */
+  sg__rc.d19[59] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[60]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[64] = SG_MAKE_STRING("values");
+  sg__rc.d19[63] = Sg_Intern(sg__rc.d19[64]); /* values */
+  sg__rc.d19[62] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[63]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[67] = SG_MAKE_STRING("make-assertion-violation");
+  sg__rc.d19[66] = Sg_Intern(sg__rc.d19[67]); /* make-assertion-violation */
+  sg__rc.d19[65] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[66]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[70] = SG_MAKE_STRING("make-who-condition");
+  sg__rc.d19[69] = Sg_Intern(sg__rc.d19[70]); /* make-who-condition */
+  sg__rc.d19[68] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[69]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[73] = SG_MAKE_STRING("make-message-condition");
+  sg__rc.d19[72] = Sg_Intern(sg__rc.d19[73]); /* make-message-condition */
+  sg__rc.d19[71] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[72]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[76] = SG_MAKE_STRING("make-irritants-condition");
+  sg__rc.d19[75] = Sg_Intern(sg__rc.d19[76]); /* make-irritants-condition */
+  sg__rc.d19[74] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[75]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[79] = SG_MAKE_STRING("filter");
+  sg__rc.d19[78] = Sg_Intern(sg__rc.d19[79]); /* filter */
+  sg__rc.d19[77] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[78]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[82] = SG_MAKE_STRING("raise");
+  sg__rc.d19[81] = Sg_Intern(sg__rc.d19[82]); /* raise */
+  sg__rc.d19[80] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[81]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[84] = SG_MAKE_STRING("assertion-violation");
+  sg__rc.d19[83] = Sg_Intern(sg__rc.d19[84]); /* assertion-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[3]))->name = sg__rc.d19[83];/* assertion-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[11] = SG_WORD(sg__rc.d19[65]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[26] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[32] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[36] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[268]))[40] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[85] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[83]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[88] = SG_MAKE_STRING("make-undefined-violation");
+  sg__rc.d19[87] = Sg_Intern(sg__rc.d19[88]); /* make-undefined-violation */
+  sg__rc.d19[86] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[87]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[90] = SG_MAKE_STRING("undefined-violation");
+  sg__rc.d19[89] = Sg_Intern(sg__rc.d19[90]); /* undefined-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[4]))->name = sg__rc.d19[89];/* undefined-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[11] = SG_WORD(sg__rc.d19[86]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[30] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[34] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[310]))[38] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[91] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[89]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[94] = SG_MAKE_STRING("make-lexical-violation");
+  sg__rc.d19[93] = Sg_Intern(sg__rc.d19[94]); /* make-lexical-violation */
+  sg__rc.d19[92] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[93]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[96] = SG_MAKE_STRING("lexical-violation");
+  sg__rc.d19[95] = Sg_Intern(sg__rc.d19[96]); /* lexical-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[5]))->name = sg__rc.d19[95];/* lexical-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[11] = SG_WORD(sg__rc.d19[92]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[30] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[34] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[350]))[38] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[97] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[95]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[100] = SG_MAKE_STRING("make-syntax-violation");
+  sg__rc.d19[99] = Sg_Intern(sg__rc.d19[100]); /* make-syntax-violation */
+  sg__rc.d19[98] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[99]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[103] = SG_MAKE_STRING("identifier?");
+  sg__rc.d19[102] = Sg_Intern(sg__rc.d19[103]); /* identifier? */
+  sg__rc.d19[101] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[102]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[106] = SG_MAKE_STRING("id-name");
+  sg__rc.d19[105] = Sg_Intern(sg__rc.d19[106]); /* id-name */
+  sg__rc.d19[104] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[105]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[108] = SG_MAKE_STRING("syntax-violation");
+  sg__rc.d19[107] = Sg_Intern(sg__rc.d19[108]); /* syntax-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[6]))->name = sg__rc.d19[107];/* syntax-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[18] = SG_WORD(sg__rc.d19[98]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[27] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[34] = SG_WORD(sg__rc.d19[101]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[41] = SG_WORD(sg__rc.d19[104]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[52] = SG_WORD(sg__rc.d19[101]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[59] = SG_WORD(sg__rc.d19[104]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[68] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[75] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[79] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[390]))[83] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[107]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[112] = SG_MAKE_STRING("make-error");
+  sg__rc.d19[111] = Sg_Intern(sg__rc.d19[112]); /* make-error */
+  sg__rc.d19[110] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[111]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[114] = SG_MAKE_STRING("error");
+  sg__rc.d19[113] = Sg_Intern(sg__rc.d19[114]); /* error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[7]))->name = sg__rc.d19[113];/* error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[11] = SG_WORD(sg__rc.d19[110]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[26] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[32] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[36] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[475]))[40] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[115] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[113]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[118] = SG_MAKE_STRING("make-implementation-restriction-violation");
+  sg__rc.d19[117] = Sg_Intern(sg__rc.d19[118]); /* make-implementation-restriction-violation */
+  sg__rc.d19[116] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[117]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[120] = SG_MAKE_STRING("implementation-restriction-violation");
+  sg__rc.d19[119] = Sg_Intern(sg__rc.d19[120]); /* implementation-restriction-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[8]))->name = sg__rc.d19[119];/* implementation-restriction-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[11] = SG_WORD(sg__rc.d19[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[26] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[36] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[40] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[517]))[44] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[121] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[119]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[123] = SG_MAKE_STRING("undefined/syntax-violation");
+  sg__rc.d19[122] = Sg_Intern(sg__rc.d19[123]); /* undefined/syntax-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[9]))->name = sg__rc.d19[122];/* undefined/syntax-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[18] = SG_WORD(sg__rc.d19[98]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[23] = SG_WORD(sg__rc.d19[86]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[32] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[38] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[42] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[563]))[46] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[122]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[126] = SG_MAKE_STRING("assertion/syntax-violation");
+  sg__rc.d19[125] = Sg_Intern(sg__rc.d19[126]); /* assertion/syntax-violation */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[10]))->name = sg__rc.d19[125];/* assertion/syntax-violation */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[18] = SG_WORD(sg__rc.d19[98]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[23] = SG_WORD(sg__rc.d19[65]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[32] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[38] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[42] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[611]))[46] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[127] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[125]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[130] = SG_MAKE_STRING("make-i/o-filename-error");
+  sg__rc.d19[129] = Sg_Intern(sg__rc.d19[130]); /* make-i/o-filename-error */
+  sg__rc.d19[128] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[129]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[132] = SG_MAKE_STRING("raise-i/o-filename-error");
+  sg__rc.d19[131] = Sg_Intern(sg__rc.d19[132]); /* raise-i/o-filename-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[11]))->name = sg__rc.d19[131];/* raise-i/o-filename-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[12] = SG_WORD(sg__rc.d19[128]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[21] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[27] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[37] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[41] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[659]))[45] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[131]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[136] = SG_MAKE_STRING("make-i/o-error");
+  sg__rc.d19[135] = Sg_Intern(sg__rc.d19[136]); /* make-i/o-error */
+  sg__rc.d19[134] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[135]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[138] = SG_MAKE_STRING("raise-i/o-error");
+  sg__rc.d19[137] = Sg_Intern(sg__rc.d19[138]); /* raise-i/o-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[12]))->name = sg__rc.d19[137];/* raise-i/o-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[11] = SG_WORD(sg__rc.d19[134]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[20] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[26] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[36] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[40] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[706]))[44] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[139] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[137]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[142] = SG_MAKE_STRING("make-i/o-port-error");
+  sg__rc.d19[141] = Sg_Intern(sg__rc.d19[142]); /* make-i/o-port-error */
+  sg__rc.d19[140] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[141]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[145] = SG_MAKE_STRING("cons*");
+  sg__rc.d19[144] = Sg_Intern(sg__rc.d19[145]); /* cons* */
+  sg__rc.d19[143] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[144]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[147] = SG_MAKE_STRING("raise-misc-i/o-error-with-port");
+  sg__rc.d19[146] = Sg_Intern(sg__rc.d19[147]); /* raise-misc-i/o-error-with-port */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[13]))->name = sg__rc.d19[146];/* raise-misc-i/o-error-with-port */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[21] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[27] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[36] = SG_WORD(sg__rc.d19[140]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[45] = SG_WORD(sg__rc.d19[143]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[48] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[52] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[752]))[56] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[148] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[146]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[150] = SG_MAKE_STRING("raise-misc-i/o-error");
+  sg__rc.d19[149] = Sg_Intern(sg__rc.d19[150]); /* raise-misc-i/o-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[14]))->name = sg__rc.d19[149];/* raise-misc-i/o-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[3] = SG_WORD(sg__rc.d19[59]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[7] = SG_WORD(sg__rc.d19[62]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[21] = SG_WORD(sg__rc.d19[68]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[27] = SG_WORD(sg__rc.d19[71]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[37] = SG_WORD(sg__rc.d19[74]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[41] = SG_WORD(sg__rc.d19[77]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[810]))[45] = SG_WORD(sg__rc.d19[80]);
+  sg__rc.d19[151] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[149]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[154] = SG_MAKE_STRING("make-i/o-read-error");
+  sg__rc.d19[153] = Sg_Intern(sg__rc.d19[154]); /* make-i/o-read-error */
+  sg__rc.d19[152] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[153]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[156] = SG_MAKE_STRING("raise-i/o-read-error");
+  sg__rc.d19[155] = Sg_Intern(sg__rc.d19[156]); /* raise-i/o-read-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[15]))->name = sg__rc.d19[155];/* raise-i/o-read-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[857]))[1] = SG_WORD(sg__rc.d19[152]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[857]))[6] = SG_WORD(sg__rc.d19[148]);
+  sg__rc.d19[157] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[155]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[160] = SG_MAKE_STRING("make-i/o-write-error");
+  sg__rc.d19[159] = Sg_Intern(sg__rc.d19[160]); /* make-i/o-write-error */
+  sg__rc.d19[158] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[159]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[162] = SG_MAKE_STRING("raise-i/o-write-error");
+  sg__rc.d19[161] = Sg_Intern(sg__rc.d19[162]); /* raise-i/o-write-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[16]))->name = sg__rc.d19[161];/* raise-i/o-write-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[865]))[1] = SG_WORD(sg__rc.d19[158]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[865]))[6] = SG_WORD(sg__rc.d19[148]);
+  sg__rc.d19[163] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[161]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[166] = SG_MAKE_STRING("make-i/o-file-protection-error");
+  sg__rc.d19[165] = Sg_Intern(sg__rc.d19[166]); /* make-i/o-file-protection-error */
+  sg__rc.d19[164] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[165]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[168] = SG_MAKE_STRING("raise-i/o-file-protection-error");
+  sg__rc.d19[167] = Sg_Intern(sg__rc.d19[168]); /* raise-i/o-file-protection-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[17]))->name = sg__rc.d19[167];/* raise-i/o-file-protection-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[873]))[1] = SG_WORD(sg__rc.d19[164]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[873]))[6] = SG_WORD(sg__rc.d19[151]);
+  sg__rc.d19[169] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[167]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[172] = SG_MAKE_STRING("make-i/o-file-is-read-only-error");
+  sg__rc.d19[171] = Sg_Intern(sg__rc.d19[172]); /* make-i/o-file-is-read-only-error */
+  sg__rc.d19[170] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[171]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[174] = SG_MAKE_STRING("raise-i/o-file-is-read-only-error");
+  sg__rc.d19[173] = Sg_Intern(sg__rc.d19[174]); /* raise-i/o-file-is-read-only-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[18]))->name = sg__rc.d19[173];/* raise-i/o-file-is-read-only-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[881]))[1] = SG_WORD(sg__rc.d19[170]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[881]))[6] = SG_WORD(sg__rc.d19[148]);
+  sg__rc.d19[175] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[173]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[178] = SG_MAKE_STRING("make-i/o-file-already-exists-error");
+  sg__rc.d19[177] = Sg_Intern(sg__rc.d19[178]); /* make-i/o-file-already-exists-error */
+  sg__rc.d19[176] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[177]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[180] = SG_MAKE_STRING("raise-i/o-file-already-exists-error");
+  sg__rc.d19[179] = Sg_Intern(sg__rc.d19[180]); /* raise-i/o-file-already-exists-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[19]))->name = sg__rc.d19[179];/* raise-i/o-file-already-exists-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[889]))[1] = SG_WORD(sg__rc.d19[176]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[889]))[6] = SG_WORD(sg__rc.d19[151]);
+  sg__rc.d19[181] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[179]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[184] = SG_MAKE_STRING("make-i/o-file-does-not-exist-error");
+  sg__rc.d19[183] = Sg_Intern(sg__rc.d19[184]); /* make-i/o-file-does-not-exist-error */
+  sg__rc.d19[182] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[183]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[186] = SG_MAKE_STRING("raise-i/o-file-does-not-exist-error");
+  sg__rc.d19[185] = Sg_Intern(sg__rc.d19[186]); /* raise-i/o-file-does-not-exist-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[20]))->name = sg__rc.d19[185];/* raise-i/o-file-does-not-exist-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[897]))[1] = SG_WORD(sg__rc.d19[182]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[897]))[6] = SG_WORD(sg__rc.d19[151]);
+  sg__rc.d19[187] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[185]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[190] = SG_MAKE_STRING("make-i/o-invalid-position-error");
+  sg__rc.d19[189] = Sg_Intern(sg__rc.d19[190]); /* make-i/o-invalid-position-error */
+  sg__rc.d19[188] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[189]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[192] = SG_MAKE_STRING("raise-i/o-invalid-position-error");
+  sg__rc.d19[191] = Sg_Intern(sg__rc.d19[192]); /* raise-i/o-invalid-position-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[21]))->name = sg__rc.d19[191];/* raise-i/o-invalid-position-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[905]))[1] = SG_WORD(sg__rc.d19[188]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[905]))[7] = SG_WORD(sg__rc.d19[148]);
+  sg__rc.d19[193] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[191]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[196] = SG_MAKE_STRING("make-i/o-decoding-error");
+  sg__rc.d19[195] = Sg_Intern(sg__rc.d19[196]); /* make-i/o-decoding-error */
+  sg__rc.d19[194] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[195]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[198] = SG_MAKE_STRING("raise-i/o-decoding-error");
+  sg__rc.d19[197] = Sg_Intern(sg__rc.d19[198]); /* raise-i/o-decoding-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[22]))->name = sg__rc.d19[197];/* raise-i/o-decoding-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[914]))[1] = SG_WORD(sg__rc.d19[194]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[914]))[6] = SG_WORD(sg__rc.d19[151]);
+  sg__rc.d19[199] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[197]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[202] = SG_MAKE_STRING("make-i/o-encoding-error");
+  sg__rc.d19[201] = Sg_Intern(sg__rc.d19[202]); /* make-i/o-encoding-error */
+  sg__rc.d19[200] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[201]), SG_NIL, (sg__rc.d19[3]));
+  sg__rc.d19[204] = SG_MAKE_STRING("raise-i/o-encoding-error");
+  sg__rc.d19[203] = Sg_Intern(sg__rc.d19[204]); /* raise-i/o-encoding-error */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d21[23]))->name = sg__rc.d19[203];/* raise-i/o-encoding-error */
+  ((SgWord*)SG_OBJ(&sg__rc.d20[922]))[1] = SG_WORD(sg__rc.d19[200]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[922]))[7] = SG_WORD(sg__rc.d19[151]);
+  sg__rc.d19[205] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d19[203]), SG_NIL, (sg__rc.d19[3]));
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[3] = SG_WORD(sg__rc.d19[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[5] = SG_WORD(sg__rc.d19[3]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[9] = SG_WORD(sg__rc.d19[58]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[13] = SG_WORD(sg__rc.d19[85]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[17] = SG_WORD(sg__rc.d19[91]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[21] = SG_WORD(sg__rc.d19[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[25] = SG_WORD(sg__rc.d19[109]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[29] = SG_WORD(sg__rc.d19[115]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[33] = SG_WORD(sg__rc.d19[121]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[37] = SG_WORD(sg__rc.d19[124]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[41] = SG_WORD(sg__rc.d19[127]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[45] = SG_WORD(sg__rc.d19[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[49] = SG_WORD(sg__rc.d19[139]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[53] = SG_WORD(sg__rc.d19[148]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[57] = SG_WORD(sg__rc.d19[151]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[61] = SG_WORD(sg__rc.d19[157]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[65] = SG_WORD(sg__rc.d19[163]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[69] = SG_WORD(sg__rc.d19[169]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[73] = SG_WORD(sg__rc.d19[175]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[77] = SG_WORD(sg__rc.d19[181]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[81] = SG_WORD(sg__rc.d19[187]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[85] = SG_WORD(sg__rc.d19[193]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[89] = SG_WORD(sg__rc.d19[199]);
+  ((SgWord*)SG_OBJ(&sg__rc.d20[931]))[93] = SG_WORD(sg__rc.d19[205]);
+  sg__rc.d19[207] = SG_MAKE_STRING("null");
+  sg__rc.d19[206] = Sg_Intern(sg__rc.d19[207]); /* null */
+  Sg_ImportLibrary(sg__rc.d19[3], sg__rc.d19[206]);
 
-  sg__rc.d16[209] = SG_MAKE_STRING("(core base)");
-  sg__rc.d16[208] = Sg_Intern(sg__rc.d16[209]); /* (core base) */
-  Sg_ImportLibrary(sg__rc.d16[3], sg__rc.d16[208]);
+  sg__rc.d19[209] = SG_MAKE_STRING("(core base)");
+  sg__rc.d19[208] = Sg_Intern(sg__rc.d19[209]); /* (core base) */
+  Sg_ImportLibrary(sg__rc.d19[3], sg__rc.d19[208]);
 
-  sg__rc.d16[211] = SG_MAKE_STRING("(sagittarius)");
-  sg__rc.d16[210] = Sg_Intern(sg__rc.d16[211]); /* (sagittarius) */
-  Sg_ImportLibrary(sg__rc.d16[3], sg__rc.d16[210]);
+  sg__rc.d19[211] = SG_MAKE_STRING("(sagittarius)");
+  sg__rc.d19[210] = Sg_Intern(sg__rc.d19[211]); /* (sagittarius) */
+  Sg_ImportLibrary(sg__rc.d19[3], sg__rc.d19[210]);
 
-  SG_APPEND1(h, t, sg__rc.d16[56]); /* describe-condition */
-  SG_APPEND1(h, t, sg__rc.d16[83]); /* assertion-violation */
-  SG_APPEND1(h, t, sg__rc.d16[89]); /* undefined-violation */
-  SG_APPEND1(h, t, sg__rc.d16[95]); /* lexical-violation */
-  SG_APPEND1(h, t, sg__rc.d16[107]); /* syntax-violation */
-  SG_APPEND1(h, t, sg__rc.d16[113]); /* error */
-  SG_APPEND1(h, t, sg__rc.d16[119]); /* implementation-restriction-violation */
-  SG_APPEND1(h, t, sg__rc.d16[122]); /* undefined/syntax-violation */
-  SG_APPEND1(h, t, sg__rc.d16[125]); /* assertion/syntax-violation */
-  SG_APPEND1(h, t, sg__rc.d16[131]); /* raise-i/o-filename-error */
-  SG_APPEND1(h, t, sg__rc.d16[137]); /* raise-i/o-error */
-  SG_APPEND1(h, t, sg__rc.d16[146]); /* raise-misc-i/o-error-with-port */
-  SG_APPEND1(h, t, sg__rc.d16[149]); /* raise-misc-i/o-error */
-  SG_APPEND1(h, t, sg__rc.d16[155]); /* raise-i/o-read-error */
-  SG_APPEND1(h, t, sg__rc.d16[161]); /* raise-i/o-write-error */
-  SG_APPEND1(h, t, sg__rc.d16[167]); /* raise-i/o-file-protection-error */
-  SG_APPEND1(h, t, sg__rc.d16[173]); /* raise-i/o-file-is-read-only-error */
-  SG_APPEND1(h, t, sg__rc.d16[179]); /* raise-i/o-file-already-exists-error */
-  SG_APPEND1(h, t, sg__rc.d16[185]); /* raise-i/o-file-does-not-exist-error */
-  SG_APPEND1(h, t, sg__rc.d16[191]); /* raise-i/o-invalid-position-error */
-  SG_APPEND1(h, t, sg__rc.d16[197]); /* raise-i/o-decoding-error */
-  SG_APPEND1(h, t, sg__rc.d16[203]); /* raise-i/o-encoding-error */
-  Sg_LibraryExportedSet(sg__rc.d16[3], Sg_Cons(h, SG_NIL));
+  SG_APPEND1(h, t, sg__rc.d19[56]); /* describe-condition */
+  SG_APPEND1(h, t, sg__rc.d19[83]); /* assertion-violation */
+  SG_APPEND1(h, t, sg__rc.d19[89]); /* undefined-violation */
+  SG_APPEND1(h, t, sg__rc.d19[95]); /* lexical-violation */
+  SG_APPEND1(h, t, sg__rc.d19[107]); /* syntax-violation */
+  SG_APPEND1(h, t, sg__rc.d19[113]); /* error */
+  SG_APPEND1(h, t, sg__rc.d19[119]); /* implementation-restriction-violation */
+  SG_APPEND1(h, t, sg__rc.d19[122]); /* undefined/syntax-violation */
+  SG_APPEND1(h, t, sg__rc.d19[125]); /* assertion/syntax-violation */
+  SG_APPEND1(h, t, sg__rc.d19[131]); /* raise-i/o-filename-error */
+  SG_APPEND1(h, t, sg__rc.d19[137]); /* raise-i/o-error */
+  SG_APPEND1(h, t, sg__rc.d19[146]); /* raise-misc-i/o-error-with-port */
+  SG_APPEND1(h, t, sg__rc.d19[149]); /* raise-misc-i/o-error */
+  SG_APPEND1(h, t, sg__rc.d19[155]); /* raise-i/o-read-error */
+  SG_APPEND1(h, t, sg__rc.d19[161]); /* raise-i/o-write-error */
+  SG_APPEND1(h, t, sg__rc.d19[167]); /* raise-i/o-file-protection-error */
+  SG_APPEND1(h, t, sg__rc.d19[173]); /* raise-i/o-file-is-read-only-error */
+  SG_APPEND1(h, t, sg__rc.d19[179]); /* raise-i/o-file-already-exists-error */
+  SG_APPEND1(h, t, sg__rc.d19[185]); /* raise-i/o-file-does-not-exist-error */
+  SG_APPEND1(h, t, sg__rc.d19[191]); /* raise-i/o-invalid-position-error */
+  SG_APPEND1(h, t, sg__rc.d19[197]); /* raise-i/o-decoding-error */
+  SG_APPEND1(h, t, sg__rc.d19[203]); /* raise-i/o-encoding-error */
+  Sg_LibraryExportedSet(sg__rc.d19[3], Sg_Cons(h, SG_NIL));
 
-  Sg_VM()->currentLibrary = sg__rc.d16[3];
+  Sg_VM()->currentLibrary = sg__rc.d19[3];
   Sg_VMExecute(SG_OBJ(toplevel));
   Sg_VM()->currentLibrary = save;
 }
