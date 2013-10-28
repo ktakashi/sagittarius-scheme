@@ -270,6 +270,15 @@
   (define *cgen-scheme-false*
     (make <cgen-scheme-boolean> :c-name #f :value #f))
 
+  ;; primitive values
+  (define-cgen-literal <cgen-scheme-undef> <undefined-object>
+    ()
+    (make (value) *cgen-scheme-undef*)
+    (pred (self)  "SG_UNDEFP")
+    (cexpr (self) "SG_UNDEF"))
+  (define *cgen-scheme-undef* 
+    (make <cgen-scheme-undef> :c-name #f :value (undefined)))
+
   ;; character.
   (define-cgen-literal <cgen-scheme-char> <char>
     ()

@@ -1,29 +1,116 @@
 ;; -*- Scheme -*-
 #!read-macro=sagittarius/regex
-(import (sagittarius cgen precomp)
+(import (rnrs)
+	(rnrs eval)
+	(sagittarius cgen precomp)
 	(sagittarius regex)
+	(sagittarius control)
 	(util file)
+	(match)
 	(getopt)
-	(shorten))
+	(shorten)
+	(srfi :1)
+	(srfi :13)
+	(srfi :26))
 
-(define (gen files force?)
-  (print (if force? "force " "") "generating files:" files)
-  (for-each (^(f) (let* ((b (path-basename (path-sans-extension f)))
-			 (c (format "lib_~a.c" b))
-			 (exit? #f))
-		    (when (and (not force?) (file-exists? c))
-		      (let ((stub-mtime (file-stat-mtime f))
-			    (out-mtime  (file-stat-mtime c)))
-			(when (< stub-mtime out-mtime)
-			  (print "generated file is older than stub file. " c)
-			  (set! exit? #t))))
-		    (unless exit? 
-		      (cgen-precompile f 
-				       :out.prefix "lib_"
-				       :predef-syms '(LIBSAGITTARIUS_BODY)))))
-	    files))
+(define (name-generator filename libname)
+  (define (path-directory filename)
+    (let-values (((dir base ext) (decompose-path filename))) dir))
+  (let-values (((out-file initfun-name) 
+		(default-name-generator filename libname)))
+    (let* ((dir (string-split (path-directory filename) #/[\/\\]/))
+	   ;; FIXME currently we are using ../boot/... but
+	   ;; for future we might move
+	   (targets (drop dir 2)))
+      (values (string-append (string-join targets "_") out-file)
+	      initfun-name))))
+
+(define-syntax aif
+  (lambda (x)
+    (syntax-case x ()
+      ((aif expr then else)
+       (with-syntax ((it (datum->syntax #'aif 'it)))
+	 #'(let ((it expr))
+	     (if it then else)))))))
+
+(define (construct-library-form file options)
+  (define (read-from-string s) (read (open-string-input-port s)))
+  (define (rename-if-needed s libs)
+    (let ((n (read-from-string s)))
+      (match n
+	(('for name bogus ...)
+	 (cond ((assoc name libs) => (lambda (s)
+				       (cons* 'for (cdr s) bogus)))
+	       (else n)))
+	(else
+	 (cond ((assoc n libs) => cdr)
+	       (else n))))))
+  (define (resolve-additionals additionals)
+    (define (resolve-additional add)
+      (let* ((base (path-sans-extension (path-basename add)))
+	     (name (list (string->symbol base)))
+	     (libname (string-append "(precomp " base ")"))
+	     (form (construct-library-form add (list "-l" libname
+						     ;; enough?
+						     "-i" "(rnrs)"))))
+	(eval form (environment '(sagittarius)))
+	(cons name (read-from-string libname))))
+    (map resolve-additional additionals))
+
+  (with-args options
+      ((lib (#\l "library") #t (error 'genlib "library name is missing"))
+       (imports (#\i "import") pack (error 'genlib "import library is missing"))
+       (oexports (#\e "export") pack #f)
+       (additionals (#\a "additional") pack '()))
+
+    (let* ((sexp (file->sexp-list file))
+	   (enums '())
+	   (exports
+	    (filter-map (lambda (sexp)
+			  (match sexp
+			    (('define (name . args) expr ...) name)
+			    (('define (? symbol? name) expr) name)
+			    (('define-constant (? symbol? name) expr) name)
+			    (('define-syntax name expr) name)
+			    ;; fxxk!!!
+			    (('define-enum name . e*)
+			     (set! enums (append e* enums))
+			     name)
+			    (else #f))) sexp)))
+      ;; try not to contaminate the existing library.
+      (let* ((libs (resolve-additionals additionals))
+	     (form `(library ,(read-from-string lib) 
+			(export ,@(if oexports
+				      (map read-from-string oexports)
+				      (reverse (append exports enums))))
+			(import ,@(map (cut rename-if-needed <> libs) imports))
+		      ,@sexp)))
+	form))))
+
+(define (gen file force? library-options)
+  (print (if force? "force " "") "generating file:" file)
+  (let* ((b (path-basename (path-sans-extension file)))
+	 (c (format "lib_~a.c" b))
+	 (exit? #f))
+    (when (and (not force?) (file-exists? c))
+      (let ((stub-mtime (file-stat-mtime file))
+	    (out-mtime  (file-stat-mtime c)))
+	(when (< stub-mtime out-mtime)
+	  (print "generated file is older than stub file. " c)
+	  (set! exit? #t))))
+    (unless exit?
+      (if library-options
+	  (let1 form (construct-library-form file library-options)
+	    (cgen-precompile form
+	     :in-file file
+	     :name-generator name-generator
+	     :predef-syms '(LIBSAGITTARIUS_BODY)))
+	  (cgen-precompile-file file
+	   :name-generator name-generator
+	   :predef-syms '(LIBSAGITTARIUS_BODY))))))
 (define (main args)
   (with-args (cdr args)
-      ((force? (#\f "force") #f #f)
+      ((need-construct? (#\n "need-construct") #f #f)
+       (in-file (#\f "file") #t (error 'genlib "input file is missing"))
       . rest)
-    (gen rest force?)))
+    (gen in-file #t (and need-construct? rest))))

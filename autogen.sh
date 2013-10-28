@@ -39,8 +39,23 @@ do_precomp()
     cd src
     # for now we add the library
     # enable it after 0.4.11
-    $SCM -L../sitelib genlib -f ../boot/lib/errors.scm ../boot/lib/arith.scm \
-	../boot/lib/enums.scm 
+    $SCM -L../sitelib genlib -n -f ../boot/lib/scmlib.scm \
+  	-i "null" -i "(sagittarius)" -l "(core base)"
+    $SCM -L../sitelib genlib -n -f ../boot/lib/macro.scm \
+ 	-l "(core syntax-case)" \
+ 	-i "null" -i "(core base)" -i "(core errors)" -i "(sagittarius)" \
+ 	-i "(for (smatch) expand)" \
+ 	-i "(sagittarius vm)" \
+ 	-a ../boot/lib/smatch.scm
+    $SCM -L../sitelib genlib -n -f ../boot/compiler-aux.scm \
+	-l "(sagittarius compiler util)" \
+ 	-i "null" -i "(sagittarius)" \
+	-i "(for (core syntax-case) expand)" -i "(for (smatch) expand)" \
+	-i "(core errors)" \
+	-a ../boot/lib/smatch.scm
+    $SCM -L../sitelib genlib -f ../boot/lib/errors.scm
+    $SCM -L../sitelib genlib -f ../boot/lib/arith.scm
+    $SCM -L../sitelib genlib -f ../boot/lib/enums.scm
 }
 
 do_builtin()
