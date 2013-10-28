@@ -34,10 +34,27 @@
 	    (sagittarius)
 	    (srfi :37 args-fold))
 
+  (define (pack-args name args)
+    (define (finish r) (if (null? r) #f r))
+    (let loop ((args args) (r '()))
+      (cond ((null? args) (finish r))
+	    ((member name args 
+		     (lambda (name slot)
+		       (and (pair? slot) (eq? (car slot) name))))
+	     => (lambda (args)
+		  (loop (cdr args) (cons (cdar args) r))))
+	    (else (finish r)))))
+
   (define-syntax with-args
     (lambda (x)
       (define (options opts acc)
-	(syntax-case opts ()
+	(syntax-case opts (pack)
+	  (((name (short long) pack default) . rest)
+	   (options (cdr opts)
+		    (cons #'(option '(short long) #t #f
+				    (lambda (opt n arg alist vs)
+				      (values (acons 'name (if #t arg #t)
+						     alist) vs))) acc)))
 	  (((name (short long) req? default) . rest)
 	   (options (cdr opts)
 		    (cons #'(option '(short long) req? #f
@@ -50,7 +67,13 @@
 	  (_ (syntax-violation 'with-args "malformed option spec" 
 			       (syntax->datum #'opts)))))
       (define (bindings opts rest args acc)
-	(syntax-case opts ()
+	(syntax-case opts (pack)
+	  (((name (short long) pack default) . dummy)
+	   (with-syntax ((args (datum->syntax #'name args)))
+	     (bindings (cdr opts)
+		       rest #'args
+		       (cons #'(name (cond ((pack-args 'name args))
+					   (else default))) acc))))
 	  (((name (short long) req? default) . dummy)
 	   (with-syntax ((args (datum->syntax #'name args)))
 	     (bindings (cdr opts)
