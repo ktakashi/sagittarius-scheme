@@ -35,7 +35,7 @@
 	    (srfi :37 args-fold))
 
   (define (pack-args name args)
-    (define (finish r) (if (null? r) #f r))
+    (define (finish r) (if (null? r) #f (cons #f r)))
     (let loop ((args args) (r '()))
       (cond ((null? args) (finish r))
 	    ((member name args 
@@ -47,46 +47,36 @@
 
   (define-syntax with-args
     (lambda (x)
-      (define (options opts acc)
-	(syntax-case opts (pack)
-	  (((name (short long) pack default) . rest)
-	   (options (cdr opts)
-		    (cons #'(option '(short long) #t #f
-				    (lambda (opt n arg alist vs)
-				      (values (acons 'name (if #t arg #t)
-						     alist) vs))) acc)))
+      (define (bindings&options opts args ro rb)
+	(define (next name short long default assq req?)
+	  (bindings&options
+	   (cdr opts) args
+	   (cons #`(option '(#,short #,long) #,req? #f 
+			   (lambda (opt n arg alist vs)
+			     (values (acons '#,name (if #,req? arg #t) alist)
+				     vs)))
+		 ro)
+	   (cons #`(#,name (cond ((#,assq '#,name #,args) => cdr)
+			       (else #,default))) rb)))
+	(syntax-case opts (*)
+	  (((name (short long) * default) . rest)
+	   (next #'name #'short #'long #'default #'pack-args #'#t))
 	  (((name (short long) req? default) . rest)
-	   (options (cdr opts)
-		    (cons #'(option '(short long) req? #f
-				    (lambda (opt n arg alist vs)
-				      (values (acons 'name (if req? arg #t)
-						     alist) vs))) acc)))
-	  (rest (identifier? #'rest) 
-		(list (cons #'list (reverse! acc)) #'rest #t))
-	  (() (list (cons #'list (reverse! acc)) #'dummy #f))
-	  (_ (syntax-violation 'with-args "malformed option spec" 
-			       (syntax->datum #'opts)))))
-      (define (bindings opts rest args acc)
-	(syntax-case opts (pack)
-	  (((name (short long) pack default) . dummy)
-	   (with-syntax ((args (datum->syntax #'name args)))
-	     (bindings (cdr opts)
-		       rest #'args
-		       (cons #'(name (cond ((pack-args 'name args))
-					   (else default))) acc))))
-	  (((name (short long) req? default) . dummy)
-	   (with-syntax ((args (datum->syntax #'name args)))
-	     (bindings (cdr opts)
-		       rest #'args
-		       (cons #'(name (cond ((assq 'name args) => cdr)
-					   (else default))) acc))))
-	  (_ (with-syntax ((rest (datum->syntax rest rest)))
-	       (reverse! (cons (list #'rest #'(reverse! rest)) acc))))))
+	   (next #'name #'short #'long #'default #'assq #'req?))
+	  (rest (identifier? #'rest)
+		(list (cons (list #'rest #'(reverse! rest)) rb)
+		      (cons #'list (reverse! ro)) #'rest #t))
+	  (() 
+	   (with-syntax (((dummy) (generate-temporaries '(dummy))))
+	     (list (cons (list #'dummy #'(reverse! dummy)) rb)
+		   (cons #'list (reverse! ro)) #'dummy #f)))
+	  (_ (syntax-violation 'with-args "malformed option spec"
+			       (syntax->datum 'opts)))))
       (syntax-case x ()
 	((_ args opts body ...)
-	 (with-syntax (((options rest allow?) (options #'opts '()))
-		       ((alist) (generate-temporaries '(alist))))
-	   (with-syntax (((bindings ...) (bindings #'opts #'rest #'alist '())))
+	 (with-syntax (((alist) (generate-temporaries '(alist))))
+	   (with-syntax ((((bindings ...) options rest allow?)
+			  (bindings&options #'opts #'alist '() '())))
 	     #'(let-values (((alist rest)
 			     (args-fold args options
 			      (lambda (opt name arg . argv)

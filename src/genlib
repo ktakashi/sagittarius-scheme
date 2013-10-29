@@ -93,10 +93,10 @@
 
   (with-args options
       ((lib (#\l "library") #t (error 'genlib "library name is missing"))
-       (imports (#\i "import") pack (error 'genlib "import library is missing"))
-       (oexports (#\e "export") pack #f)
-       (additionals (#\a "additional") pack '())
-       (includes (#\I "include") pack '()))
+       (imports (#\i "import") * (error 'genlib "import library is missing"))
+       (oexports (#\e "export") * #f)
+       (additionals (#\a "additional") * '())
+       (includes (#\I "include") * '()))
     ;; for now just add
     (let* ((sexp (file->sexp-list file))
 	   (enums '())
