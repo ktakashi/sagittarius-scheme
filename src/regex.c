@@ -1129,7 +1129,8 @@ static SgObject group(lexer_ctx_t *ctx)
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Opening paren has no matching closing paren"));
       }
-      if (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+      if (!SG_PAIRP(regexpr) ||
+	  (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER))) {
 	/* most definitely (?(1)aaa) pattern so make this
 	 (alternation $regexpr (sequence))*/
 	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
@@ -1157,7 +1158,8 @@ static SgObject group(lexer_ctx_t *ctx)
 	raise_syntax_error(ctx, open_paren_pos,
 			   UC("Branch test must be lookahead, look-behind or number"));
       }
-      if (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER)) {
+      if (!SG_PAIRP(regexpr) ||
+	  (SG_PAIRP(regexpr) && !SG_EQ(SG_CAR(regexpr), SYM_ALTER))) {
 	/* most definitely (?(1)aaa) pattern so make this
 	 (alternation $regexpr (sequence))*/
 	regexpr = SG_LIST3(SYM_ALTER, regexpr, SG_LIST1(SYM_SEQUENCE));
@@ -2017,7 +2019,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
       if (!NULL_SEQP(rest) && SG_PAIRP(rest)) {
 	compile_rec(ctx, SG_CAR(SG_CDDR(rest)), lastp);
       } else {
-	emit(ctx, RX_FAIL, null_arg);
+	compile_rec(ctx, SG_NIL, lastp);
       }
       pc2->arg.pos.x = ctx->pc;
     } else {

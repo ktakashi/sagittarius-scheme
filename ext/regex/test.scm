@@ -325,9 +325,6 @@
 			  (list (m 0) (m 1) (m 2))))
 		    (else '()))))
 
-
-
-
 (define (generic-match&list match-func pat text flags)
   (let* ((rx (compile-regex pat (if (null? flags) 0 (car flags))))
 	 (m  (regex-matcher rx text)))
@@ -948,16 +945,22 @@
 	      (match&list "(a)?(?(1)b|c)" "xb"))
   (test-equal "(a)?(?(1)b|c)" '("c" #f)
 	      (match&list "(a)?(?(1)b|c)" "xc"))
-  (test-equal "(?(?<=a)b)" '("b")
+  (test-equal "(?(?<=a)b)" '("")
 	      (match&list "(?(?<=a)b)" "ab"))
-  (test-equal "(?(?<=a)b)" #f
+  (test-equal "(?(?<=a)b)" '("")
 	      (match&list "(?(?<=a)b)" "ac"))
-  (test-equal "(?(?<=a)b)" #f
+  (test-equal "(?(?<=a)b)" '("")
 	      (match&list "(?(?<=a)b)" "xb"))
   (test-equal "(?(?<=a)b|c)" '("b")
-	      (match&list "(?(?<=a)b)" "ab"))
-  (test-equal "(?(?<=a)b|c)" #f
-	      (match&list "(?(?<=a)b)" "ac"))
+	      (match&list "(?(?<=a)b|c)" "ab"))
+  ;; perl and gauche don't match but ruby (onigruma?) does. 
+  ;; I think ruby is right
+  (test-equal "(?(?<=a)b|c)" '("c")
+	      (match&list "(?(?<=a)b|c)" "ac"))
+  (test-equal "(<)?[^<>]+(?(1)>)" '("<foo>" "<")
+	      (match&list "(<)?[^<>]+(?(1)>)" "<foo>"))
+  (test-equal "(<)?[^<>]+(?(1)>)" '("foo" #f)
+	      (match&list "(<)?[^<>]+(?(1)>)" "foo"))
   (test-error "(?(?a)b|c)"
 	      (compile-regex "(?(?a)b|c)" 0))
   (test-equal "()(?(1))" '("" "")
