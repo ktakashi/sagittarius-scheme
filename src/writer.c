@@ -766,7 +766,10 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
   if (SG_PAIRP(obj)) {
     /* special case for quote etc */
-    if (SG_PAIRP(SG_CDR(obj)) && SG_NULLP(SG_CDDR(obj))) {
+    /* check if the cdr part is shared, otherwise get infinite recursion
+       like this case (cdr '#1='#1#) */
+    if (SG_PAIRP(SG_CDR(obj)) && SG_NULLP(SG_CDDR(obj))
+	&& (!ht || SG_FALSEP(Sg_HashTableRef(ht, SG_CDR(obj), SG_FALSE)))) {
       int special = TRUE;
       if (SG_CAR(obj) == SG_SYMBOL_QUOTE) {
 	Sg_PutcUnsafe(port, '\'');
@@ -912,7 +915,7 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
     if (SG_PAIRP(obj)) {
       REGISTER(obj);
       elt = SG_CAR(obj);
-      if (SG_PTRP(elt)) write_walk(SG_CAR(obj), ctx);
+      if (SG_PTRP(elt)) write_walk(elt, ctx);
       obj = SG_CDR(obj);
       continue;
     }
