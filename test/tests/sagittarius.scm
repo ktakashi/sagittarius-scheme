@@ -1016,4 +1016,19 @@
   (test-equal "get-char valid" #\い (get-char in))
 )
 
+;; issue 156
+(let ()
+  (define (open-test-port sink)
+    (define (write! str start count)
+      (put-string sink str start count)
+      count)
+    (make-custom-textual-output-port "test-runner-port" write! #f #f #f))
+  (test-equal "issue 156 (write to custom textual port)"
+	      "ok"
+	      (call-with-string-output-port
+	       (lambda (out)
+		 (let ((cp (open-test-port out)))
+		   ;; point is the auto convertion on display/write
+		   (display "ok" cp)))))
+)
 (test-end)

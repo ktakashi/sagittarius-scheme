@@ -93,7 +93,9 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   if (!SG_OUTPORTP(p) && !SG_INOUTPORTP(p)) {
     Sg_Error(UC("output port required, but got %S"), p);
   }
-  if (!SG_TEXTUAL_PORTP(p)) {
+  if (!(SG_TEXTUAL_PORTP(p) || 
+	(SG_CUSTOM_PORTP(p) && 
+	 SG_CUSTOM_PORT(p)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(p)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
