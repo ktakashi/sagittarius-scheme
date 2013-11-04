@@ -750,7 +750,8 @@ static SgObject unpack_argument(SgObject proc, SgObject **oargs, int *oargc,
     }
     *oargs = newargs;
     *oargc = argc;
-    return Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest, args, argc, FALSE);
+    return Sg_MakeNextMethod(SG_METHOD_GENERIC(proc), rest, newargs,
+			     argc, FALSE);
   }
   
 }
@@ -767,10 +768,10 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
   dvec[0] = SG_CDR(SG_OBJ(dvec[0]));
 
   ASSERT(SG_METHODP(proc));
+  /* prepare call frame */
   next[0] = dvec;
   next[1] = SG_OBJ(args);
   next[2] = SG_OBJ(argc);
-
   if (SG_EQ(SG_METHOD_QUALIFIER(proc), SG_KEYWORD_PRIMARY)) {
     /* compute next-method */
     /* issue 119 check subr otherwise wrong number error will be raised */
