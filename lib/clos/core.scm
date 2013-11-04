@@ -50,6 +50,7 @@
 
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
+	    compute-apply-methods
 	    compute-apply-generic compute-method-more-specific?
 	    object-equal? object-apply |setter of object-apply|
 	    ;; helper
