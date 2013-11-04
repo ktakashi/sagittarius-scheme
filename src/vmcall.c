@@ -266,10 +266,10 @@
     /*   goto DO_METHOD_CALL; */
     /* } */
   } break;
-
-  /* case SG_PROC_METHOD: { */
-  /*   Sg_Error(UC("%S returned non procedure"), SG_METHOD_GENERIC(AC(vm))); */
-  /* } break; */
+    /* MOP can return method directly so do not panic yet */
+  case SG_PROC_METHOD: {
+    Sg_Error(UC("%S appeared. Incorrect MOP is defined!"), AC(vm));
+  } break;
 
   default: Sg_Panic("something's wrong");
   }
