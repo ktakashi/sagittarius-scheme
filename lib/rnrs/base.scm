@@ -58,7 +58,25 @@
 	    (core errors)
 	    (core arithmetic)
 	    (core syntax)
+	    (core inline) ;; some of the procedures are inlined in here
 	    (sagittarius))
+
+  ;; we can make simple inliner here
+  ;; hope nobody use (core base) directly... well no promise though...
+
+  (define-inliner map (core base)
+    ((_ p arg)
+     (let loop ((l arg) (r '()))
+       (if (null? l)
+	   (reverse! r)
+	   (loop (cdr l) (cons (p (car l)) r))))))
+
+  (define-inliner for-each (core base)
+    ((_ p arg)
+     (let loop ((l arg))
+       (unless (null? l)
+	 (p (car l))
+	 (loop (cdr l))))))
 
   ;; from nmosh start
   (define-syntax identifier-syntax
