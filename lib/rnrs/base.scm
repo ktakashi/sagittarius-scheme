@@ -66,17 +66,19 @@
 
   (define-inliner map (core base)
     ((_ p arg)
-     (let loop ((l arg) (r '()))
-       (if (null? l)
+     (let ((proc p))
+       (let loop ((l arg) (r '()))
+	 (if (null? l)
 	   (reverse! r)
-	   (loop (cdr l) (cons (p (car l)) r))))))
+	   (loop (cdr l) (cons (proc (car l)) r)))))))
 
   (define-inliner for-each (core base)
     ((_ p arg)
-     (let loop ((l arg))
-       (unless (null? l)
-	 (p (car l))
-	 (loop (cdr l))))))
+     (let ((proc p))
+       (let loop ((l arg))
+	 (unless (null? l)
+	   (proc (car l))
+	   (loop (cdr l)))))))
 
   ;; from nmosh start
   (define-syntax identifier-syntax
