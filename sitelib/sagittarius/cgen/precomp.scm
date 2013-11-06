@@ -36,7 +36,9 @@
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen precomp)
     (export cgen-precompile cgen-precompile-file
-	    default-name-generator)
+	    default-name-generator
+	    +replace-prefix+
+	    )
     (import (rnrs)
 	    (rnrs eval)
 	    (clos user)
@@ -59,6 +61,13 @@
 	    (srfi :39 parameters)
 	    (util file)
 	    (util list))
+
+  ;; if library name starts this then the library will be replaced
+  ;; to current library.
+  ;; mostly for hygine macro so make sure the compiling library
+  ;; can refer it
+  (define-constant +replace-prefix+ "~precomp.")
+  (define-constant replace-pattern #/~precomp\./)
 
   (define-class <cgen-precomp-unit> (<cgen-stub-unit>)
     ((library :init-keyword :library)
@@ -309,13 +318,16 @@
                  assume the identifier can be resolved in the \
                  target library.~%"
 		(id-name value) (library-name (id-library value))))
-      (make <cgen-scheme-identifier> :value value
-	    :c-name (cgen-allocate-static-datum)
-	    :id-name (cgen-literal (id-name value))
-	    :library (cgen-literal 
-		      (if (null? (id-envs value))
-			  (id-library value)
-			  (find-library (~ (cgen-current-unit) 'library) #f)))))
+      (let1 libname (symbol->string (library-name (id-library value)))
+	(make <cgen-scheme-identifier> :value value
+	      :c-name (cgen-allocate-static-datum)
+	      :id-name (cgen-literal (id-name value))
+	      :library (cgen-literal 
+			(if (and (null? (id-envs value))
+				 (not (replace-pattern libname)))
+			    (id-library value)
+			    (find-library (~ (cgen-current-unit) 'library)
+					  #f))))))
     (init (self)
       (let ((name (cgen-cexpr (~ self 'id-name)))
 	    (cname (~ self 'c-name)))

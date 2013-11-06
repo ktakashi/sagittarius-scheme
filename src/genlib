@@ -82,7 +82,7 @@
     (define (resolve-additional add)
       (let* ((base (path-sans-extension (path-basename add)))
 	     (name (list (string->symbol base)))
-	     (libname (string-append "(precomp " base ")"))
+	     (libname (string-append +replace-prefix+ base))
 	     (form (construct-library-form 
 		    add (list "-l" libname 
 			      "-i""(except (rnrs) syntax-rules)"
