@@ -5,6 +5,7 @@
 	    ;;define-raw-inliner
 	    )
     (import (core)
+	    (core errors)
 	    (core base)
 	    (core syntax)
 	    (sagittarius)
@@ -43,7 +44,7 @@
 				       ;; must return iform
 				       (pass1 form2 p1env))))))
 	       (when (integer? orig)
-		 (error 'define-inliner "Can't overwrite insn inliner" 'name))
+		 (error 'name "Can't overwrite insn inliner"))
 	       (procedure-inliner-set! proc debug-name)))))))
 
   (define-syntax define-inliner
