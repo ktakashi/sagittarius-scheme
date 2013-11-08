@@ -20,26 +20,31 @@
   (define-syntax define-raw-inliner
     (lambda (x)
       (syntax-case x ()
-	((k name library proc)
+	((k name library inliner)
 	 (with-syntax ((debug-name (datum->syntax #'k
 				    (string->symbol (format "inliner/~a"
 							    (datum name))))))
-	   #'(let ((debug-name (lambda (form p1env)
+	   #'(let* ((proc (find-procedure 'name 'library))
+		    (orig (procedure-inliner proc))
+		    (debug-name (lambda (form p1env)
 				 (define (const-value expr)
 				   (let ((iform (pass1 expr p1env)))
 				     ;; $CONST = #($CONST value)
 				     (if (eqv? (vector-ref iform 0) $CONST)
 					 (vector-ref iform 1)
 					 (undefined))))
-				 (let ((form2 (proc form const-value)))
+				 (let ((form2 (inliner form const-value)))
 				   (if (undefined? form2)
-				       ;; return undefined so that compiler
-				       ;; just compiles to $call
-				       form2
+				       (if orig
+					   (orig form p1env)
+					   ;; return undefined so that compiler
+					   ;; just compiles to $call
+					   form2)
 				       ;; must return iform
 				       (pass1 form2 p1env))))))
-	       (procedure-inliner-set! (find-procedure 'name 'library)
-				       debug-name)))))))
+	       (when (integer? orig)
+		 (error 'define-inliner "Can't overwrite insn inliner" 'name))
+	       (procedure-inliner-set! proc debug-name)))))))
 
   (define-syntax define-inliner
     (lambda (x)
