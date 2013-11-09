@@ -114,14 +114,24 @@ SgObject Sg_InflateInit(int windowBits)
   return zs;
 }
 
+
+
+
+
+/* not used even though it's defined ... */
 int Sg_InflateReset(SgZStream *strm, int windowBits)
 {
   int r;
+#ifdef HAVE_ZLIB_INFLATE_RESET2
   if (windowBits < 0) {
     r = inflateReset(strm->strm);
   } else {
     r = inflateReset2(strm->strm, windowBits);
   }
+#else
+  /* to avoid not to use platform zlib */
+  r = inflateReset(strm->strm);
+#endif
   return r;
 }
 
