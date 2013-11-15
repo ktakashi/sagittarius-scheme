@@ -840,9 +840,9 @@ SgObject Sg_Columns(SgObject hdbc,  SgObject schema, SgObject table,
     typeName, remarks, columnDefault;
   /* other return values */
   SQLINTEGER columnSize, bufferLength, decimalDigigs;
-  SQLINTEGER cbColumnSize, cbBufferLength, cbDecimalDigigs;
+  SQLLEN     cbColumnSize, cbBufferLength, cbDecimalDigigs;
   SQLSMALLINT precision, nullable;
-  SQLINTEGER cbPrecision, cbNullable;
+  SQLLEN     cbPrecision, cbNullable;
   int i;
   ASSERT(SG_ODBC_DBC_P(hdbc));
   /* allocate statement handle */
