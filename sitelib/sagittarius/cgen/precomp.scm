@@ -94,7 +94,8 @@
   (define (cgen-precompile form
 			   :key (name-generator default-name-generator) 
 			   (in-file #f)
-			   (predef-syms '()))
+			   (predef-syms '())
+			   (compiler compile))
     (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
     ;; for now we only support library form
     ;; define-library is a bit too much to handle
@@ -111,13 +112,14 @@
 	     (set! (~ (cgen-current-unit) 'library) safe-name)
 	     (set! (~ (cgen-current-unit) 'imports) imports)
 	     (set! (~ (cgen-current-unit) 'exports) exports)
-	     (do-it safe-name exports imports toplevels)))))
+	     (do-it safe-name exports imports toplevels compiler)))))
       (_ (error 'cgen-precompile "invalid form"  form))))
 
-  (define (do-it safe-name exports imports toplevels)
+  (define (do-it safe-name exports imports toplevels compiler)
     (emit-toplevel-executor safe-name imports exports
      (compile-form
-      (construct-safe-library safe-name exports imports toplevels)))
+      (construct-safe-library safe-name exports imports toplevels)
+      compiler))
     (cgen-emit-c (cgen-current-unit)))
   
   (define (emit-toplevel-executor name imports exports topcb)
@@ -176,8 +178,8 @@
 	 (import ,@imports)
        ,@toplevels))
   
-  (define (compile-form form)
-    (let1 cb (compile form (environment '(only (sagittarius) library)))
+  (define (compile-form form compiler)
+    (let1 cb (compiler form (environment '(only (sagittarius) library)))
       (cgen-literal cb)))
 
   (define (get-unit in-file initfun-name out.c predef-syms)

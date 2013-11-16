@@ -5,13 +5,47 @@
 	(sagittarius cgen precomp)
 	(sagittarius regex)
 	(sagittarius control)
+	(sagittarius compiler procedure)
 	(util file)
 	(match)
 	(getopt)
 	(shorten)
+	(pp)
 	(srfi :1)
 	(srfi :13)
 	(srfi :26))
+
+(define-constant +default-compiler+ "../boot/compiler.scm")
+;; import specs for compiler 
+;; we can use (rnrs) here since it won't be pre-compiled
+(define-constant +default-imports+ '("(rnrs)"
+				     "(rnrs mutable-pairs)"
+				     "(core base)"
+				     "(core misc)"
+				     "(rename (match) (match smatch))"
+				     "(sagittarius)"
+				     "(sagittarius vm)"
+				     "(sagittarius vm debug)"
+				     "(sagittarius vm instruction)"
+				     "(sagittarius compiler util)"
+				     "(sagittarius compiler procedure)"))
+(define-constant +default-includes+ '("../boot"))
+
+(define (load-compiler options)
+  (with-args options
+      ((compiler (#\c "compiler") #t +default-compiler+)
+       (libs     (#\L "compiler-import") * +default-imports+)
+       (include  (#\I "include") * +default-includes+)
+       . ignore)
+    (let1 form (construct-library-form 
+		compiler `("-l" "(sagittarius host compiler)"
+			   "-e" "compile"
+			   ,@(append-map (lambda (l) (list "-i" l)) libs)
+			   ,@(append-map (lambda (i) (list "-I" i)) include)))
+      ;;(pp form)
+      (eval form (environment '(only (sagittarius) library)
+			      'user))
+      (find-procedure 'compile '(sagittarius host compiler)))))
 
 (define (name-generator filename libname)
   (define (path-directory filename)
@@ -122,7 +156,7 @@
 		      ,@(resolve-cond-expand&include sexp includes))))
 	form))))
 
-(define (gen file force? library-options)
+(define (gen file force? need-construct? library-options)
   (print (if force? "force " "") "generating file:" file)
   (let* ((b (path-basename (path-sans-extension file)))
 	 (c (format "lib_~a.c" b))
@@ -134,18 +168,21 @@
 	  (print "generated file is older than stub file. " c)
 	  (set! exit? #t))))
     (unless exit?
-      (if library-options
-	  (let1 form (construct-library-form file library-options)
-	    (cgen-precompile form
-	     :in-file file
-	     :name-generator name-generator
-	     :predef-syms '(LIBSAGITTARIUS_BODY)))
-	  (cgen-precompile-file file
-	   :name-generator name-generator
-	   :predef-syms '(LIBSAGITTARIUS_BODY))))))
+      (let1 compiler (load-compiler library-options)
+	(if need-construct?
+	    (let1 form (construct-library-form file library-options)
+	      (cgen-precompile form
+			       :in-file file
+			       :name-generator name-generator
+			       :predef-syms '(LIBSAGITTARIUS_BODY)
+			       :compiler compiler))
+	    (cgen-precompile-file file
+				  :name-generator name-generator
+				  :predef-syms '(LIBSAGITTARIUS_BODY)
+				  :compiler compiler))))))
 (define (main args)
   (with-args (cdr args)
       ((need-construct? (#\n "need-construct") #f #f)
        (in-file (#\f "file") #t (error 'genlib "input file is missing"))
       . rest)
-    (gen in-file #t (and need-construct? rest))))
+    (gen in-file #t need-construct? rest)))
