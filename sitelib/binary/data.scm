@@ -39,6 +39,7 @@
 	    put-f32 put-f64 get-f32 get-f64)
     (import (rnrs)
 	    (clos user)
+	    (sagittarius)
 	    (sagittarius regex))
 
   (define-syntax define-put&get
@@ -123,11 +124,14 @@
 				      
 	       (syntax-case xx ()
 		 ((k datum-class (parent-class (... ...))
-		     field default field-reader field-write)
-		  (with-syntax ((meta-class (gen-meta #'k #'datum-class)))
+		     field default field-reader field-write
+		     . options)
+		  (with-syntax ((meta-class (gen-meta #'k #'datum-class))
+				(parent-meta (get-keyword :parent-metaclass
+							  #'options #'<class>)))
 		    #'(begin
 			;; should we add parent meta-class?
-			(define-class meta-class (<class>) ())
+			(define-class meta-class (parent-meta) ())
 			(define-class datum-class (parent-class (... ...))
 			  ((field :init-form default))
 			  :metaclass meta-class)
