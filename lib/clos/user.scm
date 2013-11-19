@@ -271,8 +271,11 @@
 			     (syntax->datum id) lib)
 			    `((,(datum->syntax k 'define-generic) ,id)))))
 		(let ((#,gf
-		       (or (and-let* ((g (find-binding (current-library)
-						       'true-name #f))
+		       ;; for cache perspective, we can't use library
+		       ;; object directly...
+		       (or (and-let* ((lib-name '#,(library-name 
+						    (id-library #'true-name)))
+				      (g (find-binding lib-name 'true-name #f))
 				      (gf (gloc-ref g))
 				      ( (is-a? gf <generic>) ))
 			     gf)
