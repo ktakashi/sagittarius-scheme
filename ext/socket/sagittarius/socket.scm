@@ -47,7 +47,7 @@
 
 	    socket-accept
 	    socket-send socket-sendto
-	    socket-recv socket-recvfrom
+	    socket-recv socket-recv! socket-recvfrom
 	    socket-shutdown
 	    socket-close
 	    socket-fd

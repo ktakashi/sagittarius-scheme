@@ -95,6 +95,21 @@
 	     (Sg_ByteVectorCopyX (SG_BVECTOR data) 0 (SG_BVECTOR r) 0 res)
 	     (result r))))))
 
+;; destructive
+(define-c-proc socket-recv! 
+  (o::<socket> bv::<bytevector> start::<fixnum> len::<fixnum>
+	       :optional (flags::<fixnum> 0)) ::<fixnum>
+  ;; sanity check
+  (when (or (>= start (SG_BVECTOR_SIZE bv))
+	    (> len (- (SG_BVECTOR_SIZE bv) start)))
+    (Sg_AssertionViolation 'socket-recv! 
+			   (SG_MAKE_STRING "out of range")
+			   (SG_LIST4 o bv (SG_MAKE_INT start) 
+				     (SG_MAKE_INT len))))
+  (result (Sg_SocketReceive (SG_SOCKET o)
+			    (+ (SG_BVECTOR_ELEMENTS bv) start)
+			    len flags)))
+
 (define-c-proc socket-recvfrom (o::<socket> len::<fixnum> addr::<sockaddr>
 					    :optional (flags::<fixnum> 0)) 
   (let ((data (Sg_MakeByteVector len 0))
