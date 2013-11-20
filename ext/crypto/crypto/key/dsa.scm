@@ -121,7 +121,7 @@
 	       (make-der-integer r)
 	       (make-der-integer s)))))
 
-  (define (dsa-verify bv key))
+  (define (dsa-verify m s key))
 
   ;; cipher
   (define-class <dsa-cipher-spi> (<cipher-spi>) ())
@@ -204,7 +204,35 @@
 	    :q (bytevector->integer (slot-ref (cadr ber-pqg) 'bytes))
 	    :g (bytevector->integer (slot-ref (caddr ber-pqg) 'bytes))
 	    :Y (bytevector->integer (slot-ref Y 'bytes)))))))
-
+  #|
+      PrivateKeyInfo ::= SEQUENCE {
+        version Version,
+        algorithm AlgorithmIdentifier,
+        PrivateKey OCTETSTRING
+      }
+      AlgorithmIdentifier ::= SEQUENCE {
+        algorithm ALGORITHM.id,
+        parameters Dss-Parms
+      }
+      Dss-Parms ::= SEQUENCE {
+        p INTEGER,
+        q INTEGER,
+        g INTEGER
+      }
+      DSAPrivateKey ::= OCTETSTRING {
+        privateExponent INTEGER
+      }
+  |#
+  (define-method export-private-key ((m <dsa>) (key <dsa-private-key>))
+    (encode (make-der-sequence
+	     (make-der-sequence
+	      oid
+	      (make-der-sequence
+	       (make-der-integer (slot-ref key 'p))
+	       (make-der-integer (slot-ref key 'q))
+	       (make-der-integer (slot-ref key 'g))))
+	     (make-der-object-identifier 
+	      (encode (make-der-integer (slot-ref key 'X)))))))
 
 
 )
