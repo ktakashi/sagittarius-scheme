@@ -50,7 +50,10 @@
     (result (and (SG_IDENTIFIERP o) (SG_IDENTIFIER_PENDING o))))
 
   (define-c-proc rename-pending-identifier! (id::<identifier>)
-    (when (SG_IDENTIFIER_PENDING id)
+    (when (and (SG_IDENTIFIER_PENDING id)
+	       (SG_FALSEP (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id)
+					  (SG_IDENTIFIER_NAME id)
+					  SG_FALSE)))
       (set! (SG_IDENTIFIER_NAME id) 
 	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name)))
       ;; Issue 86

@@ -262,31 +262,20 @@
 	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
-;; 	    #`(let ((#,gf (%ensure-generic-function
-;; 			   'true-name (current-library))))
-;; 		(add-method #,gf
-;; 			    (make <method>
-;; 			      :specializers  (list #,@specializers)
-;; 			      :qualifier     #,qualifier
-;; 			      :generic       true-name
-;; 			      :lambda-list  '#,lambda-list
-;; 			      :procedure     #,real-body))
-;; 		#,@(if #'getter-name
-;; 		       `((unless (has-setter? ,#'getter-name)
-;; 			   (set! (setter ,#'getter-name) ,gf)))
-;; 		       '())
-;; 		#,gf)
 	    #`(begin
-		#,@(cond ((find-binding (current-library) 
-					(syntax->datum #'true-name) #f) '())
-			 (else
-			  (%ensure-generic-function (syntax->datum #'true-name)
-						    (current-library))
-			  `((,(datum->syntax k 'define-generic)
-			     ,(syntax->datum #'true-name)))))
+		#,@(let* ((id #'true-name)
+			  (lib (id-library id)))
+		     (cond ((find-binding lib (syntax->datum id) #f) '())
+			   (else
+			    (%ensure-generic-function 
+			     (syntax->datum id) lib)
+			    `((,(datum->syntax k 'define-generic) ,id)))))
 		(let ((#,gf
-		       (or (and-let* ((g (find-binding (current-library)
-						       'true-name #f))
+		       ;; for cache perspective, we can't use library
+		       ;; object directly...
+		       (or (and-let* ((lib-name '#,(library-name 
+						    (id-library #'true-name)))
+				      (g (find-binding lib-name 'true-name #f))
 				      (gf (gloc-ref g))
 				      ( (is-a? gf <generic>) ))
 			     gf)

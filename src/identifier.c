@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * identifier.c
+/* identifier.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -56,7 +54,7 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
-    snprintf(buf, sizeof(buf), " (%p)", id);
+    snprintf(buf, sizeof(buf), " (%p):%d", id, SG_IDENTIFIER_PENDING(id));
     Sg_Putz(port, buf);
   }
   /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */
