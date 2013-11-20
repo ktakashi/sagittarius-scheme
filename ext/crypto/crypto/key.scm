@@ -22,6 +22,10 @@
 	    PKCS-1-EME
 	    PKCS-1-EMSA
 
+	    ;; DSA
+	    DSA
+	    generate-dsa-parameter
+
 	    ;; external representive
 	    export-public-key
 	    export-private-key
@@ -37,5 +41,6 @@
 	    (math random)
 	    (crypto key pair)
 	    (crypto key rsa)
+	    (crypto key dsa)
 	    (crypto key des)
 	    (crypto key component)))

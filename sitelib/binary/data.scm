@@ -107,21 +107,23 @@
   ;;   names names-reader names-writer)
   ;; simple datum can't have multiple data so it must have only one
   ;; slot.
+
+  ;; helper
+  (define (gen-meta k name)
+    (define (->syntax k s) (datum->syntax k (string->symbol s)))
+    (let ((s (symbol->string (syntax->datum name))))
+      (cond ((#/<(.+?)>/ s) =>
+	     (lambda (m)
+	       (->syntax k (string-append "<" (m 1) "-meta>"))))
+	    (else
+	     (->syntax k (string-append "<" s "-meta>"))))))
+
   (define-syntax define-simple-datum-define
     (lambda (x)
       (syntax-case x ()
 	((_ define-name reader writer)
 	 #'(define-syntax define-name
-	     (lambda (xx)
-	       (define (->syntax k s) (datum->syntax k (string->symbol s)))
-	       (define (gen-meta k name)
-		 (let ((s (symbol->string (syntax->datum name))))
-		   (cond ((#/<(.+?)>/ s) =>
-			  (lambda (m)
-			    (->syntax k (string-append "<" (m 1) "-meta>"))))
-			 (else
-			  (->syntax k (string-append "<" s "-meta>"))))))
-				      
+	     (lambda (xx)				      
 	       (syntax-case xx ()
 		 ((k datum-class (parent-class (... ...))
 		     field default field-reader field-write
@@ -140,12 +142,86 @@
 			  (let ((o (make datum-class)))
 			    (slot-set! o 'field (fr in))
 			    o))
-			(define-method writer ((t datum-class) out)
+			(define-method writer ((t meta-class) (o datum-class)
+					       out . ignore)
 			  (define fw field-write)
-			  (fw out (slot-ref t 'field)))
+			  (fw out (slot-ref o 'field)))
 			(define-method write-object ((o datum-class) out)
 			  (format out "#<~a ~a:~s>" 
 				  (slot-ref datum-class 'name)
 				  'field (slot-ref o 'field)))))))))))))
+
+  (define-syntax define-composite-data-define
+    (lambda (x)
+      (syntax-case x ()
+	((_ defined-name reader writer)
+	 #'(define-syntax defined-name
+	     (lambda (xx)
+	       (define (parse-slots k slots r)
+		 (define (make-slot-def name default)
+		   (list name
+			 :init-keyword (make-keyword (syntax->datum name))
+			 :init-form default))
+		 (define (parse-type type)
+		   (syntax-case type ()
+		     ((name size) #'(cons name size))
+		     (k (or (identifier? #'k) (keyword? #'k)) #'(cons k #f))
+		     (_ (syntax-violation 'defined-name "invalid type spec" 
+					  type))))
+		 (syntax-case slots ()
+		   (((name type) . rest)
+		    (parse-slots k (cdr slots)
+				 (cons (list (make-slot-def #'name #f)
+					     (parse-type #'type)) r)))
+		   (((name type default) . rest)
+		    (parse-slots k (cdr slots)
+				 (cons (list (make-slot-def #'name #'default)
+					     (parse-type #'type))
+				       r)))
+		   (() (reverse! r))))
+	       (syntax-case xx ()
+		 ((k name (parent (... ...)) (slots (... ...))
+		     . options )
+		  (with-syntax ((((slot-def types) (... ...)) 
+				 (parse-slots #'k #'(slots (... ...)) '()))
+				(meta-class (gen-meta #'k #'name))
+				(parent-meta (get-keyword :parent-metaclass
+							  #'options #'<class>)))
+		    #'(begin
+			(define-class meta-class (parent-meta) ())
+			(define-class name (parent (... ...))
+			  (slot-def (... ...))
+			  :metaclass meta-class)
+			(define-method writer ((t meta-class) (m name) out)
+			  ;; the order is important
+			  (map (lambda (slot type)
+				 (let ((o (slot-ref m slot))
+				       (t (car type))
+				       (size? (cdr type)))
+				   ;; should we do sanity check for array?
+				   (if (and size? (vector? o))
+				       (vector-for-each (lambda (v)
+							  (writer t v out #f))
+							o)
+				       (writer t o out size?))))
+			       (map car '(slot-def (... ...)))
+			       (list types (... ...))))
+			(define-method reader ((t meta-class) in . ignore)
+			  (define (read-data type)
+			    (let ((meta  (car type))
+				  (size? (cdr type)))
+			      ;; not a good solution but for now
+			      (if (and size? (is-a? meta <class>))
+				  (let ((v (make-vector size?)))
+				    (do ((i 0 (+ i 1)))
+					((= i size?) v)
+				      (vector-set! v i (reader meta in #f))))
+				  (reader meta in size?))))
+			  (let ((o (make t)))
+			    (for-each (lambda (slot type)
+					(slot-set! o slot (read-data type)))
+				      (map car '(slot-def (... ...)))
+				      (list types (... ...)))
+			    o))))))))))))
 
 )
