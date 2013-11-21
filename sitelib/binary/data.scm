@@ -38,6 +38,7 @@
 	    put-u64 put-s64 get-u64 get-s64
 	    put-f32 put-f64 get-f32 get-f64)
     (import (rnrs)
+	    (clos core)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius regex))
@@ -123,33 +124,62 @@
       (syntax-case x ()
 	((_ define-name reader writer)
 	 #'(define-syntax define-name
-	     (lambda (xx)				      
+	     (lambda (xx)
+	       (define (parse k fields fs ds)
+		 (define (next name default)
+		   (parse k (cdr fields) (cons name fs)
+			  (cons (list name
+				      :init-keyword (make-keyword 
+						     (syntax->datum name))
+				      :init-form default)
+				ds)))
+		 (syntax-case fields ()
+		   (() (list (reverse! fs)  (reverse! ds)))
+		   (((name) . rest)         (next #'name #f))
+		   (((name default) . rest) (next #'name #'default))
+		   ((name . rest) (identifier? #'name) (next #'name #f))
+		   (_ (syntax-violation 'define-name "malformed fields" 
+					(syntax->datum fields)))))
 	       (syntax-case xx ()
 		 ((k datum-class (parent-class (... ...))
-		     field default field-reader field-write
+		     (fields (... ...))
+		     field-reader field-write
 		     . options)
 		  (with-syntax ((meta-class (gen-meta #'k #'datum-class))
 				(parent-meta (get-keyword :parent-metaclass
-							  #'options #'<class>)))
+							  #'options #'<class>))
+				(((field (... ...)) (defs (... ...)))
+				 (parse #'k #'(fields (... ...)) '() '())))
 		    #'(begin
 			;; should we add parent meta-class?
 			(define-class meta-class (parent-meta) ())
 			(define-class datum-class (parent-class (... ...))
-			  ((field :init-form default))
+			  (defs (... ...))
 			  :metaclass meta-class)
 			(define-method reader ((t meta-class) in . ignore)
 			  (define fr field-reader)
 			  (let ((o (make datum-class)))
-			    (slot-set! o 'field (fr in))
-			    o))
+			    (let-values ((params (fr in)))
+			      (for-each (lambda (f p)(slot-set! o f p))
+					'(field (... ...)) params)
+			      o)))
 			(define-method writer ((t meta-class) (o datum-class)
 					       out . ignore)
 			  (define fw field-write)
-			  (fw out (slot-ref o 'field)))
+			  (apply fw out 
+				 (map (lambda (s) (slot-ref o s))
+				      '(field (... ...)))))
 			(define-method write-object ((o datum-class) out)
-			  (format out "#<~a ~a:~s>" 
-				  (slot-ref datum-class 'name)
-				  'field (slot-ref o 'field)))))))))))))
+			  (display "#<" out)
+			  (display (slot-ref datum-class 'name) out)
+			  (let ((fs '(field (... ...))))
+			    (if (null? (cdr fs))
+				(format out "~a:~s" (car fs)
+					(slot-ref o (car fs)))
+				(for-each (lambda (f)
+					    (format out "~%  ~a:~s" f 
+						    (slot-ref o f))) fs)))
+			  (display ">" out))))))))))))
 
   (define-syntax define-composite-data-define
     (lambda (x)
@@ -180,19 +210,19 @@
 				       r)))
 		   (() (reverse! r))))
 	       (syntax-case xx ()
-		 ((k name (parent (... ...)) (slots (... ...))
+		 ((k data-name (parent (... ...)) (slots (... ...))
 		     . options )
 		  (with-syntax ((((slot-def types) (... ...)) 
 				 (parse-slots #'k #'(slots (... ...)) '()))
-				(meta-class (gen-meta #'k #'name))
+				(meta-class (gen-meta #'k #'data-name))
 				(parent-meta (get-keyword :parent-metaclass
 							  #'options #'<class>)))
 		    #'(begin
 			(define-class meta-class (parent-meta) ())
-			(define-class name (parent (... ...))
+			(define-class data-name (parent (... ...))
 			  (slot-def (... ...))
 			  :metaclass meta-class)
-			(define-method writer ((t meta-class) (m name) out)
+			(define-method writer ((t meta-class) (m data-name) out)
 			  ;; the order is important
 			  (map (lambda (slot type)
 				 (let ((o (slot-ref m slot))
@@ -222,6 +252,19 @@
 					(slot-set! o slot (read-data type)))
 				      (map car '(slot-def (... ...)))
 				      (list types (... ...)))
-			    o))))))))))))
-
+			    o))
+			(define-method write-object ((o data-name) out)
+			  (display "#<" out)
+			  (display (slot-ref data-name 'name) out)
+			  (newline out)
+			  (for-each (lambda (slot)
+				      (display "  " out)
+				      (display slot out)
+				      (display ":" out)
+				      (write (slot-ref o slot) out)
+				      (newline out))
+				    (map slot-definition-name
+					 (class-slots data-name)))
+			  (display ">" out))))))))))))
+  
 )
