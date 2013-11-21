@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #define LIBSAGITTARIUS_BODY
+#include "sagittarius/arith.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/bignum.h"
 #include "sagittarius/bits.h"
@@ -885,21 +886,51 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
 
 SgObject Sg_IntegerToByteVector(SgObject num, int size)
 {
-  int bitlen = Sg_BitSize(num), i;
-  int len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
+  int bitlen, len, fill = 0;
   SgByteVector *bv;
+
+  if (!SG_EXACT_INTP(num)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"),
+				    SG_MAKE_STRING("exact integer"),
+				    num, num);
+  }
+
+  /* calculate size without 2 complement */
+  bitlen = Sg_BitSize(num);
+  len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
+  /* check if it's negative */
+  if (SG_INTP(num)) {
+    fill = (SG_INT_VALUE(num) < 0) ? 0xFF : 0;
+  } else {
+    if (SG_BIGNUM_GET_SIGN(num) < 0) {
+      fill = 0xFF;
+    }
+  }
+
   /* accept zero */
   if (size >= 0) {
     len = size;
   }
-  bv = make_bytevector(len);
-  memset(SG_BVECTOR_ELEMENTS(bv), 0, len);
+#define ROUNDUP8(v) (((v)+7)&(~7))
   if (SG_BIGNUMP(num)) {
     /* the structure of bignum is commented above. this case we simply put
-       the value from the bottom.
-     */
-    int pos;
+       the value from the bottom. */
+    int pos, i;
     size_t bignum_size = SG_BIGNUM(num)->size;
+    if (fill) {
+      unsigned long left = SG_BIGNUM(num)->elements[bignum_size-1];
+      /* round up to 8 */
+      int lbit = ROUNDUP8(WORD_BITS - nlz(left));
+      left >>= (lbit - 8);
+      /* if the left most byte is more than 127 means after 2 comp it needs
+         leading bit. */
+      if (left > 0x7F) len++;
+      /* now 2 complement */
+      num = Sg_BignumComplement(SG_BIGNUM(num));
+      SG_BIGNUM_SET_SIGN(num, 1);
+    }
+    bv = make_bytevector(len);
+    memset(SG_BVECTOR_ELEMENTS(bv), fill, len);
     for (i = 0, pos = len-1; i < bignum_size; i++, pos -= SIZEOF_LONG) {
       unsigned long v = SG_BIGNUM(num)->elements[i];
       int j;
@@ -909,16 +940,19 @@ SgObject Sg_IntegerToByteVector(SgObject num, int size)
 	v >>= 8;
       }
     }    
-  } else if (SG_INTP(num)){
+  } else {
+    int i;
     long v = SG_INT_VALUE(num);
+    if (fill) {
+      unsigned long left = ((unsigned long)v >> (ROUNDUP8(bitlen) - 8)) & 0xFF;
+      if (left <= 0x7F) len++;
+    }
+    bv = make_bytevector(len);
+    memset(SG_BVECTOR_ELEMENTS(bv), fill, len);
     for (i = len - 1; 0 <= i; i--) {
       SG_BVECTOR_ELEMENT(bv, i) = (uint8_t)(v&0xFF);
       v >>= 8;
     }
-  } else {
-    Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"),
-				    SG_MAKE_STRING("exact integer"),
-				    num, num);
   }
 
   return bv;
