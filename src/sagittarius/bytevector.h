@@ -201,6 +201,7 @@ SG_EXTERN void      Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv,
 /* utility */
 SG_EXTERN SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end);
 SG_EXTERN SgObject Sg_IntegerToByteVector(SgObject num, int size);
+SG_EXTERN SgObject Sg_SIntegerToByteVector(SgObject num, int size);
 SG_EXTERN SgObject Sg_ByteVectorConcatenate(SgObject bvList);
 
 SG_CDECL_END

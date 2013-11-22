@@ -1033,16 +1033,18 @@
 )
 
 ;; integer->bytevector issue
+;; we introduced sinteger->bytevector for this
 (test-equal "#x-deadbeaf" #vu8(255 33 82 65 81)
-	     (integer->bytevector #x-deadbeaf))
-(test-equal "#x-80" #vu8(128) (integer->bytevector #x-80))
-(test-equal "#x-8080" #vu8(255 127 128) (integer->bytevector #x-8080))
-(test-equal "#x-7F80" #vu8(128 128) (integer->bytevector #x-7F80))
+	    (sinteger->bytevector #x-deadbeaf))
+(test-equal "#x-80" #vu8(128) (sinteger->bytevector #x-80))
+(test-equal "#x80" #vu8(00 128) (sinteger->bytevector #x80))
+(test-equal "#x-8080" #vu8(255 127 128) (sinteger->bytevector #x-8080))
+(test-equal "#x-7F80" #vu8(128 128) (sinteger->bytevector #x-7F80))
 ;; bignums (32 bit)
 (test-equal "#x-80808080" #vu8(255 127 127 127 128)
-	    (integer->bytevector #x-80808080))
+	    (sinteger->bytevector #x-80808080))
 (test-equal "#x-7F808080" #vu8(128 127 127 128)
-	    (integer->bytevector #x-7F808080))
+	    (sinteger->bytevector #x-7F808080))
 
 
 (test-end)
