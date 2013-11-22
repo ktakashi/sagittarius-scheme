@@ -1,8 +1,8 @@
-/* -*- C -*- */
-/*
- * mutex.c: multi thread extensions
+/* mutex.c                                         -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ * multi thread extensions
+ *
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -268,7 +268,7 @@ SG_CDECL_BEGIN
 void Sg__InitMutex(SgLibrary *lib)
 {
   SG_DECLARE_EXCEPTIONS("(sagittarius threads)", TRUE);
-  SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+  SgObject null_lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
   SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib), 
 				   SG_INTERN("&error"), SG_UNBOUND);
   /* field for super class of all thread exceptions. */

@@ -40,22 +40,22 @@ do_precomp()
     # for now we add the library
     # enable it after 0.4.11
     $SCM -L../sitelib genlib -n -f ../boot/lib/scmlib.scm \
-  	-i "null" -i "(sagittarius)" -l "(core base)"
+  	-i "(core)" -i "(sagittarius)" -l "(core base)"
     $SCM -L../sitelib genlib -n -f ../boot/lib/macro.scm \
  	-l "(core syntax-case)" \
- 	-i "null" -i "(core base)" -i "(core errors)" -i "(sagittarius)" \
+ 	-i "(core)" -i "(core base)" -i "(core errors)" -i "(sagittarius)" \
  	-i "(for (smatch) expand)" \
  	-i "(sagittarius vm)" \
  	-a ../boot/lib/smatch.scm
     $SCM -L../sitelib genlib -n -f ../boot/compiler-aux.scm \
 	-l "(sagittarius compiler util)" \
- 	-i "null" -i "(sagittarius)" \
+ 	-i "(core)" -i "(sagittarius)" \
 	-i "(for (core syntax-case) expand)" -i "(for (smatch) expand)" \
 	-i "(core errors)" \
 	-a ../boot/lib/smatch.scm
     $SCM -L../sitelib genlib -n -f ../boot/compiler.scm \
 	-l "(sagittarius compiler)" \
- 	-i "null" -i "(core base)" -i "(sagittarius)" \
+ 	-i "(core)" -i "(core base)" -i "(sagittarius)" \
 	-i "(core syntax-case)" -i "(for (except (rnrs) syntax-rules) expand)" \
 	-i "(core errors)" -i "(for (smatch) expand)" \
 	-i "(for (core misc) expand)" \
@@ -63,9 +63,11 @@ do_precomp()
 	-i "(sagittarius vm)" -i "(sagittarius vm instruction)" \
 	-i "(sagittarius vm debug)" \
 	-i "(sagittarius compiler util)" \
+	-i "(for (compiler-aux) expand)" \
 	-i "(sagittarius compiler procedure)" \
 	-I ../boot \
 	-a ../boot/lib/smatch.scm \
+	-a ../boot/compiler-aux.scm \
 	-e compile -e compile-p1 -e compile-p2 -e compile-p3 \
 	-e compile-p4 -e compile-p5    
     $SCM -L../sitelib genlib -f ../boot/lib/errors.scm

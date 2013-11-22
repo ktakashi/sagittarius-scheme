@@ -439,7 +439,7 @@ int main(int argc, char **argv)
   vm->commandLineArgs = argsToList(argc, optind, argv);
   /* import all necessary stuff first, otherwise profiler doesn't work. */
   if (load_base_library) {
-    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("null"));
+    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core)"));
     Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core base)"));
     Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(sagittarius)"));
   } else {

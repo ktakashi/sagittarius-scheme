@@ -920,7 +920,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__odbc()
   {
     /* conditions */
     SG_DECLARE_EXCEPTIONS("(odbc)", TRUE);
-    SgObject null_lib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+    SgObject null_lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
     SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib),
 				     SG_INTERN("&error"), SG_UNBOUND);
     SgObject nullfield = Sg_MakeVector(0, SG_UNDEF);

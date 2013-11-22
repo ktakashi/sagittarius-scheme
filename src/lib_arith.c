@@ -2,11 +2,11 @@
 #define LIBSAGITTARIUS_BODY 
 #include <sagittarius.h>
 static struct sg__rcRec {
-  SgObject d21[166];
-  SgWord d22[1142];
-  SgCodeBuilder d23[17];
+  SgObject d473[166];
+  SgWord d474[1142];
+  SgCodeBuilder d475[17];
 } sg__rc = {
-  {  /* SgObject d21 */
+  {  /* SgObject d473 */
     SG_UNBOUND,
     SG_UNBOUND,
     SG_UNBOUND,
@@ -174,7 +174,7 @@ static struct sg__rcRec {
     SG_UNBOUND,
     SG_UNBOUND,
   },
-  {  /* SgWord d22 */
+  {  /* SgWord d474 */
     /* #f */0x00000030    /*   0 FRAME */,
     SG_WORD(4),
     0x00000045    /*   2 LREF_PUSH */,
@@ -208,7 +208,7 @@ static struct sg__rcRec {
     SG_WORD(8),
     0x00000045    /*   2 LREF_PUSH */,
     0x00000029    /*   3 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[0])) /* #<code-builder #f (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[0])) /* #<code-builder #f (1 0 1)> */,
     0x0000000b    /*   5 PUSH */,
     0x00000045    /*   6 LREF_PUSH */,
     0x0000024a    /*   7 GREF_CALL */,
@@ -276,7 +276,7 @@ static struct sg__rcRec {
     SG_WORD(8),
     0x00000045    /*   2 LREF_PUSH */,
     0x00000029    /*   3 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[2])) /* #<code-builder #f (1 0 1)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[2])) /* #<code-builder #f (1 0 1)> */,
     0x0000000b    /*   5 PUSH */,
     0x00000045    /*   6 LREF_PUSH */,
     0x0000024a    /*   7 GREF_CALL */,
@@ -1260,499 +1260,499 @@ static struct sg__rcRec {
     /* #f */0x00000034    /*   0 LIBRARY */,
     SG_WORD(SG_UNDEF) /* #<library core.arithmetic> */,
     0x00000029    /*   2 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[1])) /* #<code-builder gcd (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[1])) /* #<code-builder gcd (0 1 0)> */,
     0x00000033    /*   4 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier gcd#core.arithmetic> */,
     0x00000029    /*   6 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[3])) /* #<code-builder lcm (0 1 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[3])) /* #<code-builder lcm (0 1 0)> */,
     0x00000033    /*   8 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier lcm#core.arithmetic> */,
     0x00000029    /*  10 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[4])) /* #<code-builder div-and-mod (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[4])) /* #<code-builder div-and-mod (2 0 0)> */,
     0x00000033    /*  12 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier div-and-mod#core.arithmetic> */,
     0x00000029    /*  14 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[5])) /* #<code-builder div0-and-mod0 (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[5])) /* #<code-builder div0-and-mod0 (2 0 0)> */,
     0x00000033    /*  16 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier div0-and-mod0#core.arithmetic> */,
     0x00000029    /*  18 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[6])) /* #<code-builder bitwise-rotate-bit-field (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[6])) /* #<code-builder bitwise-rotate-bit-field (4 0 0)> */,
     0x00000033    /*  20 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bitwise-rotate-bit-field#core.arithmetic> */,
     0x00000029    /*  22 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[7])) /* #<code-builder bitwise-reverse-bit-field (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[7])) /* #<code-builder bitwise-reverse-bit-field (3 0 0)> */,
     0x00000033    /*  24 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier bitwise-reverse-bit-field#core.arithmetic> */,
     0x00000029    /*  26 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[8])) /* #<code-builder fxdiv-and-mod (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[8])) /* #<code-builder fxdiv-and-mod (2 0 0)> */,
     0x00000033    /*  28 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fxdiv-and-mod#core.arithmetic> */,
     0x00000029    /*  30 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[9])) /* #<code-builder fxdiv0-and-mod0 (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[9])) /* #<code-builder fxdiv0-and-mod0 (2 0 0)> */,
     0x00000033    /*  32 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fxdiv0-and-mod0#core.arithmetic> */,
     0x00000029    /*  34 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[10])) /* #<code-builder fx+/carry (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[10])) /* #<code-builder fx+/carry (3 0 0)> */,
     0x00000033    /*  36 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fx+/carry#core.arithmetic> */,
     0x00000029    /*  38 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[11])) /* #<code-builder fx-/carry (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[11])) /* #<code-builder fx-/carry (3 0 0)> */,
     0x00000033    /*  40 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fx-/carry#core.arithmetic> */,
     0x00000029    /*  42 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[12])) /* #<code-builder fx* /carry (3 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[12])) /* #<code-builder fx* /carry (3 0 0)> */,
     0x00000033    /*  44 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fx* /carry#core.arithmetic> */,
     0x00000029    /*  46 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[13])) /* #<code-builder fxrotate-bit-field (4 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[13])) /* #<code-builder fxrotate-bit-field (4 0 0)> */,
     0x00000033    /*  48 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fxrotate-bit-field#core.arithmetic> */,
     0x00000029    /*  50 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[14])) /* #<code-builder fldiv-and-mod (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[14])) /* #<code-builder fldiv-and-mod (2 0 0)> */,
     0x00000033    /*  52 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fldiv-and-mod#core.arithmetic> */,
     0x00000029    /*  54 CLOSURE */,
-    SG_WORD(SG_OBJ(&sg__rc.d23[15])) /* #<code-builder fldiv0-and-mod0 (2 0 0)> */,
+    SG_WORD(SG_OBJ(&sg__rc.d475[15])) /* #<code-builder fldiv0-and-mod0 (2 0 0)> */,
     0x00000033    /*  56 DEFINE */,
     SG_WORD(SG_UNDEF) /* #<identifier fldiv0-and-mod0#core.arithmetic> */,
     0x00000002    /*  58 UNDEF */,
     0x0000002f    /*  59 RET */,
   },
-  {  /* SgCodeBuilder d23 */
+  {  /* SgCodeBuilder d475 */
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d22[0]), SG_FALSE, 1, 0, 1, 12, 29),
+      (SgWord *)SG_OBJ(&sg__rc.d474[0]), SG_FALSE, 1, 0, 1, 12, 29),
     
     SG_STATIC_CODE_BUILDER( /* gcd */
-      (SgWord *)SG_OBJ(&sg__rc.d22[29]), SG_FALSE, 0, 1, 0, 19, 39),
+      (SgWord *)SG_OBJ(&sg__rc.d474[29]), SG_FALSE, 0, 1, 0, 19, 39),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d22[68]), SG_FALSE, 1, 0, 1, 12, 29),
+      (SgWord *)SG_OBJ(&sg__rc.d474[68]), SG_FALSE, 1, 0, 1, 12, 29),
     
     SG_STATIC_CODE_BUILDER( /* lcm */
-      (SgWord *)SG_OBJ(&sg__rc.d22[97]), SG_FALSE, 0, 1, 0, 26, 59),
+      (SgWord *)SG_OBJ(&sg__rc.d474[97]), SG_FALSE, 0, 1, 0, 26, 59),
     
     SG_STATIC_CODE_BUILDER( /* div-and-mod */
-      (SgWord *)SG_OBJ(&sg__rc.d22[156]), SG_FALSE, 2, 0, 0, 15, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d474[156]), SG_FALSE, 2, 0, 0, 15, 18),
     
     SG_STATIC_CODE_BUILDER( /* div0-and-mod0 */
-      (SgWord *)SG_OBJ(&sg__rc.d22[174]), SG_FALSE, 2, 0, 0, 15, 18),
+      (SgWord *)SG_OBJ(&sg__rc.d474[174]), SG_FALSE, 2, 0, 0, 15, 18),
     
     SG_STATIC_CODE_BUILDER( /* bitwise-rotate-bit-field */
-      (SgWord *)SG_OBJ(&sg__rc.d22[192]), SG_FALSE, 4, 0, 0, 40, 59),
+      (SgWord *)SG_OBJ(&sg__rc.d474[192]), SG_FALSE, 4, 0, 0, 40, 59),
     
     SG_STATIC_CODE_BUILDER( /* bitwise-reverse-bit-field */
-      (SgWord *)SG_OBJ(&sg__rc.d22[251]), SG_FALSE, 3, 0, 0, 31, 92),
+      (SgWord *)SG_OBJ(&sg__rc.d474[251]), SG_FALSE, 3, 0, 0, 31, 92),
     
     SG_STATIC_CODE_BUILDER( /* fxdiv-and-mod */
-      (SgWord *)SG_OBJ(&sg__rc.d22[343]), SG_FALSE, 2, 0, 0, 11, 15),
+      (SgWord *)SG_OBJ(&sg__rc.d474[343]), SG_FALSE, 2, 0, 0, 11, 15),
     
     SG_STATIC_CODE_BUILDER( /* fxdiv0-and-mod0 */
-      (SgWord *)SG_OBJ(&sg__rc.d22[358]), SG_FALSE, 2, 0, 0, 11, 15),
+      (SgWord *)SG_OBJ(&sg__rc.d474[358]), SG_FALSE, 2, 0, 0, 11, 15),
     
     SG_STATIC_CODE_BUILDER( /* fx+/carry */
-      (SgWord *)SG_OBJ(&sg__rc.d22[373]), SG_FALSE, 3, 0, 0, 25, 133),
+      (SgWord *)SG_OBJ(&sg__rc.d474[373]), SG_FALSE, 3, 0, 0, 25, 133),
     
     SG_STATIC_CODE_BUILDER( /* fx-/carry */
-      (SgWord *)SG_OBJ(&sg__rc.d22[506]), SG_FALSE, 3, 0, 0, 25, 133),
+      (SgWord *)SG_OBJ(&sg__rc.d474[506]), SG_FALSE, 3, 0, 0, 25, 133),
     
     SG_STATIC_CODE_BUILDER( /* fx* /carry */
-      (SgWord *)SG_OBJ(&sg__rc.d22[639]), SG_FALSE, 3, 0, 0, 25, 133),
+      (SgWord *)SG_OBJ(&sg__rc.d474[639]), SG_FALSE, 3, 0, 0, 25, 133),
     
     SG_STATIC_CODE_BUILDER( /* fxrotate-bit-field */
-      (SgWord *)SG_OBJ(&sg__rc.d22[772]), SG_FALSE, 4, 0, 0, 40, 280),
+      (SgWord *)SG_OBJ(&sg__rc.d474[772]), SG_FALSE, 4, 0, 0, 40, 280),
     
     SG_STATIC_CODE_BUILDER( /* fldiv-and-mod */
-      (SgWord *)SG_OBJ(&sg__rc.d22[1052]), SG_FALSE, 2, 0, 0, 11, 15),
+      (SgWord *)SG_OBJ(&sg__rc.d474[1052]), SG_FALSE, 2, 0, 0, 11, 15),
     
     SG_STATIC_CODE_BUILDER( /* fldiv0-and-mod0 */
-      (SgWord *)SG_OBJ(&sg__rc.d22[1067]), SG_FALSE, 2, 0, 0, 11, 15),
+      (SgWord *)SG_OBJ(&sg__rc.d474[1067]), SG_FALSE, 2, 0, 0, 11, 15),
     
     SG_STATIC_CODE_BUILDER( /* #f */
-      (SgWord *)SG_OBJ(&sg__rc.d22[1082]), SG_FALSE, 0, 0, 0, 0, 60),
+      (SgWord *)SG_OBJ(&sg__rc.d474[1082]), SG_FALSE, 0, 0, 0, 0, 60),
   },
 };
 static SgCodeBuilder *toplevel = 
-   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[16]));
+   SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[16]));
 void Sg__Init_core_arithmetic() {
   SgObject save = Sg_VM()->currentLibrary;
   SgObject h = SG_NIL, t = SG_NIL; /* for exports */ 
 
-  sg__rc.d21[2] = SG_MAKE_STRING("(core arithmetic)");
-  sg__rc.d21[1] = Sg_Intern(sg__rc.d21[2]); /* (core arithmetic) */
-  sg__rc.d21[0] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d21[1]), TRUE);
-  sg__rc.d21[5] = SG_MAKE_STRING("integer?");
-  sg__rc.d21[4] = Sg_Intern(sg__rc.d21[5]); /* integer? */
-  sg__rc.d21[3] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[4]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[7] = SG_MAKE_STRING("gcd");
-  sg__rc.d21[6] = Sg_Intern(sg__rc.d21[7]); /* gcd */
-  sg__rc.d21[8] = SG_MAKE_STRING("integer");
-  sg__rc.d21[11] = SG_MAKE_STRING("wrong-type-argument-message");
-  sg__rc.d21[10] = Sg_Intern(sg__rc.d21[11]); /* wrong-type-argument-message */
-  sg__rc.d21[9] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[10]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[14] = SG_MAKE_STRING("assertion-violation");
-  sg__rc.d21[13] = Sg_Intern(sg__rc.d21[14]); /* assertion-violation */
-  sg__rc.d21[12] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[13]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[17] = SG_MAKE_STRING("abs");
-  sg__rc.d21[16] = Sg_Intern(sg__rc.d21[17]); /* abs */
-  sg__rc.d21[15] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[16]), SG_NIL, (sg__rc.d21[0]));
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[4] = SG_WORD(sg__rc.d21[3]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[13] = SG_WORD(sg__rc.d21[6]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[17] = SG_WORD(sg__rc.d21[8]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[20] = SG_WORD(sg__rc.d21[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[24] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[0]))[27] = SG_WORD(sg__rc.d21[15]);
-  sg__rc.d21[20] = SG_MAKE_STRING("map");
-  sg__rc.d21[19] = Sg_Intern(sg__rc.d21[20]); /* map */
-  sg__rc.d21[18] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[19]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[23] = SG_MAKE_STRING("%gcd");
-  sg__rc.d21[22] = Sg_Intern(sg__rc.d21[23]); /* %gcd */
-  sg__rc.d21[21] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[22]), SG_NIL, (sg__rc.d21[0]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[1]))->name = sg__rc.d21[6];/* gcd */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[29]))[8] = SG_WORD(sg__rc.d21[18]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[29]))[32] = SG_WORD(sg__rc.d21[21]);
-  sg__rc.d21[24] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[6]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[26] = SG_MAKE_STRING("lcm");
-  sg__rc.d21[25] = Sg_Intern(sg__rc.d21[26]); /* lcm */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[4] = SG_WORD(sg__rc.d21[3]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[13] = SG_WORD(sg__rc.d21[25]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[17] = SG_WORD(sg__rc.d21[8]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[20] = SG_WORD(sg__rc.d21[9]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[24] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[68]))[27] = SG_WORD(sg__rc.d21[15]);
-  sg__rc.d21[29] = SG_MAKE_STRING("quotient");
-  sg__rc.d21[28] = Sg_Intern(sg__rc.d21[29]); /* quotient */
-  sg__rc.d21[27] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[28]), SG_NIL, (sg__rc.d21[0]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[3]))->name = sg__rc.d21[25];/* lcm */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[97]))[8] = SG_WORD(sg__rc.d21[18]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[97]))[33] = SG_WORD(sg__rc.d21[21]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[97]))[47] = SG_WORD(sg__rc.d21[27]);
-  sg__rc.d21[30] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[25]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[33] = SG_MAKE_STRING("div");
-  sg__rc.d21[32] = Sg_Intern(sg__rc.d21[33]); /* div */
-  sg__rc.d21[31] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[32]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[36] = SG_MAKE_STRING("mod");
-  sg__rc.d21[35] = Sg_Intern(sg__rc.d21[36]); /* mod */
-  sg__rc.d21[34] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[35]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[38] = SG_MAKE_STRING("div-and-mod");
-  sg__rc.d21[37] = Sg_Intern(sg__rc.d21[38]); /* div-and-mod */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[4]))->name = sg__rc.d21[37];/* div-and-mod */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[156]))[5] = SG_WORD(sg__rc.d21[31]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[156]))[12] = SG_WORD(sg__rc.d21[34]);
-  sg__rc.d21[39] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[37]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[42] = SG_MAKE_STRING("div0");
-  sg__rc.d21[41] = Sg_Intern(sg__rc.d21[42]); /* div0 */
-  sg__rc.d21[40] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[41]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[45] = SG_MAKE_STRING("mod0");
-  sg__rc.d21[44] = Sg_Intern(sg__rc.d21[45]); /* mod0 */
-  sg__rc.d21[43] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[44]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[47] = SG_MAKE_STRING("div0-and-mod0");
-  sg__rc.d21[46] = Sg_Intern(sg__rc.d21[47]); /* div0-and-mod0 */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[5]))->name = sg__rc.d21[46];/* div0-and-mod0 */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[174]))[5] = SG_WORD(sg__rc.d21[40]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[174]))[12] = SG_WORD(sg__rc.d21[43]);
-  sg__rc.d21[48] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[46]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[51] = SG_MAKE_STRING("positive?");
-  sg__rc.d21[50] = Sg_Intern(sg__rc.d21[51]); /* positive? */
-  sg__rc.d21[49] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[50]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[54] = SG_MAKE_STRING("bitwise-bit-field");
-  sg__rc.d21[53] = Sg_Intern(sg__rc.d21[54]); /* bitwise-bit-field */
-  sg__rc.d21[52] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[53]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[57] = SG_MAKE_STRING("bitwise-arithmetic-shift-left");
-  sg__rc.d21[56] = Sg_Intern(sg__rc.d21[57]); /* bitwise-arithmetic-shift-left */
-  sg__rc.d21[55] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[56]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[60] = SG_MAKE_STRING("bitwise-arithmetic-shift-right");
-  sg__rc.d21[59] = Sg_Intern(sg__rc.d21[60]); /* bitwise-arithmetic-shift-right */
-  sg__rc.d21[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[59]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[63] = SG_MAKE_STRING("bitwise-ior");
-  sg__rc.d21[62] = Sg_Intern(sg__rc.d21[63]); /* bitwise-ior */
-  sg__rc.d21[61] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[62]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[66] = SG_MAKE_STRING("bitwise-copy-bit-field");
-  sg__rc.d21[65] = Sg_Intern(sg__rc.d21[66]); /* bitwise-copy-bit-field */
-  sg__rc.d21[64] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[65]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[68] = SG_MAKE_STRING("bitwise-rotate-bit-field");
-  sg__rc.d21[67] = Sg_Intern(sg__rc.d21[68]); /* bitwise-rotate-bit-field */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[6]))->name = sg__rc.d21[67];/* bitwise-rotate-bit-field */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[8] = SG_WORD(sg__rc.d21[49]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[16] = SG_WORD(sg__rc.d21[34]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[24] = SG_WORD(sg__rc.d21[52]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[31] = SG_WORD(sg__rc.d21[55]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[41] = SG_WORD(sg__rc.d21[58]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[48] = SG_WORD(sg__rc.d21[61]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[192]))[55] = SG_WORD(sg__rc.d21[64]);
-  sg__rc.d21[69] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[67]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[72] = SG_MAKE_STRING("bitwise-and");
-  sg__rc.d21[71] = Sg_Intern(sg__rc.d21[72]); /* bitwise-and */
-  sg__rc.d21[70] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[71]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[75] = SG_MAKE_STRING("bitwise-arithmetic-shift");
-  sg__rc.d21[74] = Sg_Intern(sg__rc.d21[75]); /* bitwise-arithmetic-shift */
-  sg__rc.d21[73] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[74]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[77] = SG_MAKE_STRING("bitwise-reverse-bit-field");
-  sg__rc.d21[76] = Sg_Intern(sg__rc.d21[77]); /* bitwise-reverse-bit-field */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[7]))->name = sg__rc.d21[76];/* bitwise-reverse-bit-field */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[8] = SG_WORD(sg__rc.d21[49]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[18] = SG_WORD(sg__rc.d21[52]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[30] = SG_WORD(sg__rc.d21[64]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[37] = SG_WORD(sg__rc.d21[70]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[47] = SG_WORD(sg__rc.d21[73]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[54] = SG_WORD(sg__rc.d21[58]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[70] = SG_WORD(sg__rc.d21[73]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[74] = SG_WORD(sg__rc.d21[61]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[251]))[81] = SG_WORD(sg__rc.d21[58]);
-  sg__rc.d21[78] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[76]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[81] = SG_MAKE_STRING("fxdiv");
-  sg__rc.d21[80] = Sg_Intern(sg__rc.d21[81]); /* fxdiv */
-  sg__rc.d21[79] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[80]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[84] = SG_MAKE_STRING("fxmod");
-  sg__rc.d21[83] = Sg_Intern(sg__rc.d21[84]); /* fxmod */
-  sg__rc.d21[82] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[83]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[86] = SG_MAKE_STRING("fxdiv-and-mod");
-  sg__rc.d21[85] = Sg_Intern(sg__rc.d21[86]); /* fxdiv-and-mod */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[8]))->name = sg__rc.d21[85];/* fxdiv-and-mod */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[343]))[5] = SG_WORD(sg__rc.d21[79]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[343]))[12] = SG_WORD(sg__rc.d21[82]);
-  sg__rc.d21[87] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[85]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[90] = SG_MAKE_STRING("fxdiv0");
-  sg__rc.d21[89] = Sg_Intern(sg__rc.d21[90]); /* fxdiv0 */
-  sg__rc.d21[88] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[89]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[93] = SG_MAKE_STRING("fxmod0");
-  sg__rc.d21[92] = Sg_Intern(sg__rc.d21[93]); /* fxmod0 */
-  sg__rc.d21[91] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[92]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[95] = SG_MAKE_STRING("fxdiv0-and-mod0");
-  sg__rc.d21[94] = Sg_Intern(sg__rc.d21[95]); /* fxdiv0-and-mod0 */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[9]))->name = sg__rc.d21[94];/* fxdiv0-and-mod0 */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[358]))[5] = SG_WORD(sg__rc.d21[88]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[358]))[12] = SG_WORD(sg__rc.d21[91]);
-  sg__rc.d21[96] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[94]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[99] = SG_MAKE_STRING("fixnum?");
-  sg__rc.d21[98] = Sg_Intern(sg__rc.d21[99]); /* fixnum? */
-  sg__rc.d21[97] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[98]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[101] = SG_MAKE_STRING("fx+/carry");
-  sg__rc.d21[100] = Sg_Intern(sg__rc.d21[101]); /* fx+/carry */
-  sg__rc.d21[102] = SG_MAKE_STRING("fixnum required, but got ~a");
-  sg__rc.d21[105] = SG_MAKE_STRING("format");
-  sg__rc.d21[104] = Sg_Intern(sg__rc.d21[105]); /* format */
-  sg__rc.d21[103] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[104]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[108] = SG_MAKE_STRING("least-fixnum");
-  sg__rc.d21[107] = Sg_Intern(sg__rc.d21[108]); /* least-fixnum */
-  sg__rc.d21[106] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[107]), SG_NIL, (sg__rc.d21[0]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[10]))->name = sg__rc.d21[100];/* fx+/carry */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[4] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[12] = SG_WORD(sg__rc.d21[100]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[16] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[19] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[25] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[30] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[38] = SG_WORD(sg__rc.d21[100]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[42] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[45] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[51] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[56] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[64] = SG_WORD(sg__rc.d21[100]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[68] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[71] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[77] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[93] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[98] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[102] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[105] = SG_WORD(sg__rc.d21[43]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[115] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[120] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[124] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[373]))[127] = SG_WORD(sg__rc.d21[40]);
-  sg__rc.d21[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[100]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[111] = SG_MAKE_STRING("fx-/carry");
-  sg__rc.d21[110] = Sg_Intern(sg__rc.d21[111]); /* fx-/carry */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[11]))->name = sg__rc.d21[110];/* fx-/carry */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[4] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[12] = SG_WORD(sg__rc.d21[110]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[16] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[19] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[25] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[30] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[38] = SG_WORD(sg__rc.d21[110]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[42] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[45] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[51] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[56] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[64] = SG_WORD(sg__rc.d21[110]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[68] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[71] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[77] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[93] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[98] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[102] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[105] = SG_WORD(sg__rc.d21[43]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[115] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[120] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[124] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[506]))[127] = SG_WORD(sg__rc.d21[40]);
-  sg__rc.d21[112] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[110]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[114] = SG_MAKE_STRING("fx*/carry");
-  sg__rc.d21[113] = Sg_Intern(sg__rc.d21[114]); /* fx* /carry */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[12]))->name = sg__rc.d21[113];/* fx* /carry */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[4] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[12] = SG_WORD(sg__rc.d21[113]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[16] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[19] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[25] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[30] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[38] = SG_WORD(sg__rc.d21[113]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[42] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[45] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[51] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[56] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[64] = SG_WORD(sg__rc.d21[113]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[68] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[71] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[77] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[93] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[98] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[102] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[105] = SG_WORD(sg__rc.d21[43]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[115] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[120] = SG_WORD(sg__rc.d21[106]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[124] = SG_WORD(sg__rc.d21[15]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[639]))[127] = SG_WORD(sg__rc.d21[40]);
-  sg__rc.d21[115] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[113]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[117] = SG_MAKE_STRING("fxrotate-bit-field");
-  sg__rc.d21[116] = Sg_Intern(sg__rc.d21[117]); /* fxrotate-bit-field */
-  sg__rc.d21[120] = SG_MAKE_STRING("fixnum-width");
-  sg__rc.d21[119] = Sg_Intern(sg__rc.d21[120]); /* fixnum-width */
-  sg__rc.d21[118] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[119]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[121] = SG_MAKE_STRING("out of range");
-  sg__rc.d21[123] = SG_MAKE_STRING("name");
-  sg__rc.d21[122] = Sg_Intern(sg__rc.d21[123]); /* name */
-  sg__rc.d21[126] = SG_MAKE_STRING("fxbit-field");
-  sg__rc.d21[125] = Sg_Intern(sg__rc.d21[126]); /* fxbit-field */
-  sg__rc.d21[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[125]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[129] = SG_MAKE_STRING("fxarithmetic-shift-left");
-  sg__rc.d21[128] = Sg_Intern(sg__rc.d21[129]); /* fxarithmetic-shift-left */
-  sg__rc.d21[127] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[128]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[132] = SG_MAKE_STRING("fxarithmetic-shift-right");
-  sg__rc.d21[131] = Sg_Intern(sg__rc.d21[132]); /* fxarithmetic-shift-right */
-  sg__rc.d21[130] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[131]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[135] = SG_MAKE_STRING("fxior");
-  sg__rc.d21[134] = Sg_Intern(sg__rc.d21[135]); /* fxior */
-  sg__rc.d21[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[134]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[138] = SG_MAKE_STRING("fxcopy-bit-field");
-  sg__rc.d21[137] = Sg_Intern(sg__rc.d21[138]); /* fxcopy-bit-field */
-  sg__rc.d21[136] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[137]), SG_NIL, (sg__rc.d21[0]));
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[13]))->name = sg__rc.d21[116];/* fxrotate-bit-field */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[4] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[12] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[16] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[19] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[26] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[31] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[39] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[43] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[46] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[53] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[58] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[66] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[70] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[73] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[80] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[85] = SG_WORD(sg__rc.d21[97]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[93] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[97] = SG_WORD(sg__rc.d21[102]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[100] = SG_WORD(sg__rc.d21[103]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[107] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[116] = SG_WORD(sg__rc.d21[118]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[124] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[126] = SG_WORD(sg__rc.d21[121]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[132] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[145] = SG_WORD(sg__rc.d21[118]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[153] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[155] = SG_WORD(sg__rc.d21[121]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[161] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[174] = SG_WORD(sg__rc.d21[118]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[182] = SG_WORD(sg__rc.d21[116]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[184] = SG_WORD(sg__rc.d21[121]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[190] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[202] = SG_WORD(sg__rc.d21[122]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[204] = SG_WORD(sg__rc.d21[121]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[210] = SG_WORD(sg__rc.d21[12]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[237] = SG_WORD(sg__rc.d21[82]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[245] = SG_WORD(sg__rc.d21[124]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[252] = SG_WORD(sg__rc.d21[127]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[262] = SG_WORD(sg__rc.d21[130]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[269] = SG_WORD(sg__rc.d21[133]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[772]))[276] = SG_WORD(sg__rc.d21[136]);
-  sg__rc.d21[139] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[116]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[142] = SG_MAKE_STRING("fldiv");
-  sg__rc.d21[141] = Sg_Intern(sg__rc.d21[142]); /* fldiv */
-  sg__rc.d21[140] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[141]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[145] = SG_MAKE_STRING("flmod");
-  sg__rc.d21[144] = Sg_Intern(sg__rc.d21[145]); /* flmod */
-  sg__rc.d21[143] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[144]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[147] = SG_MAKE_STRING("fldiv-and-mod");
-  sg__rc.d21[146] = Sg_Intern(sg__rc.d21[147]); /* fldiv-and-mod */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[14]))->name = sg__rc.d21[146];/* fldiv-and-mod */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1052]))[5] = SG_WORD(sg__rc.d21[140]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1052]))[12] = SG_WORD(sg__rc.d21[143]);
-  sg__rc.d21[148] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[146]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[151] = SG_MAKE_STRING("fldiv0");
-  sg__rc.d21[150] = Sg_Intern(sg__rc.d21[151]); /* fldiv0 */
-  sg__rc.d21[149] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[150]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[154] = SG_MAKE_STRING("flmod0");
-  sg__rc.d21[153] = Sg_Intern(sg__rc.d21[154]); /* flmod0 */
-  sg__rc.d21[152] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[153]), SG_NIL, (sg__rc.d21[0]));
-  sg__rc.d21[156] = SG_MAKE_STRING("fldiv0-and-mod0");
-  sg__rc.d21[155] = Sg_Intern(sg__rc.d21[156]); /* fldiv0-and-mod0 */
-  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d23[15]))->name = sg__rc.d21[155];/* fldiv0-and-mod0 */
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1067]))[5] = SG_WORD(sg__rc.d21[149]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1067]))[12] = SG_WORD(sg__rc.d21[152]);
-  sg__rc.d21[157] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d21[155]), SG_NIL, (sg__rc.d21[0]));
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[1] = SG_WORD(sg__rc.d21[0]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[5] = SG_WORD(sg__rc.d21[24]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[9] = SG_WORD(sg__rc.d21[30]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[13] = SG_WORD(sg__rc.d21[39]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[17] = SG_WORD(sg__rc.d21[48]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[21] = SG_WORD(sg__rc.d21[69]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[25] = SG_WORD(sg__rc.d21[78]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[29] = SG_WORD(sg__rc.d21[87]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[33] = SG_WORD(sg__rc.d21[96]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[37] = SG_WORD(sg__rc.d21[109]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[41] = SG_WORD(sg__rc.d21[112]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[45] = SG_WORD(sg__rc.d21[115]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[49] = SG_WORD(sg__rc.d21[139]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[53] = SG_WORD(sg__rc.d21[148]);
-  ((SgWord*)SG_OBJ(&sg__rc.d22[1082]))[57] = SG_WORD(sg__rc.d21[157]);
-  sg__rc.d21[159] = SG_MAKE_STRING("null");
-  sg__rc.d21[158] = Sg_Intern(sg__rc.d21[159]); /* null */
-  Sg_ImportLibrary(sg__rc.d21[0], sg__rc.d21[158]);
+  sg__rc.d473[2] = SG_MAKE_STRING("(core arithmetic)");
+  sg__rc.d473[1] = Sg_Intern(sg__rc.d473[2]); /* (core arithmetic) */
+  sg__rc.d473[0] = Sg_FindLibrary(SG_SYMBOL(sg__rc.d473[1]), TRUE);
+  sg__rc.d473[5] = SG_MAKE_STRING("integer?");
+  sg__rc.d473[4] = Sg_Intern(sg__rc.d473[5]); /* integer? */
+  sg__rc.d473[3] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[4]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[7] = SG_MAKE_STRING("gcd");
+  sg__rc.d473[6] = Sg_Intern(sg__rc.d473[7]); /* gcd */
+  sg__rc.d473[8] = SG_MAKE_STRING("integer");
+  sg__rc.d473[11] = SG_MAKE_STRING("wrong-type-argument-message");
+  sg__rc.d473[10] = Sg_Intern(sg__rc.d473[11]); /* wrong-type-argument-message */
+  sg__rc.d473[9] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[10]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[14] = SG_MAKE_STRING("assertion-violation");
+  sg__rc.d473[13] = Sg_Intern(sg__rc.d473[14]); /* assertion-violation */
+  sg__rc.d473[12] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[13]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[17] = SG_MAKE_STRING("abs");
+  sg__rc.d473[16] = Sg_Intern(sg__rc.d473[17]); /* abs */
+  sg__rc.d473[15] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[16]), SG_NIL, (sg__rc.d473[0]));
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[4] = SG_WORD(sg__rc.d473[3]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[13] = SG_WORD(sg__rc.d473[6]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[17] = SG_WORD(sg__rc.d473[8]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[20] = SG_WORD(sg__rc.d473[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[24] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[0]))[27] = SG_WORD(sg__rc.d473[15]);
+  sg__rc.d473[20] = SG_MAKE_STRING("map");
+  sg__rc.d473[19] = Sg_Intern(sg__rc.d473[20]); /* map */
+  sg__rc.d473[18] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[19]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[23] = SG_MAKE_STRING("%gcd");
+  sg__rc.d473[22] = Sg_Intern(sg__rc.d473[23]); /* %gcd */
+  sg__rc.d473[21] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[22]), SG_NIL, (sg__rc.d473[0]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[1]))->name = sg__rc.d473[6];/* gcd */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[29]))[8] = SG_WORD(sg__rc.d473[18]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[29]))[32] = SG_WORD(sg__rc.d473[21]);
+  sg__rc.d473[24] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[6]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[26] = SG_MAKE_STRING("lcm");
+  sg__rc.d473[25] = Sg_Intern(sg__rc.d473[26]); /* lcm */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[4] = SG_WORD(sg__rc.d473[3]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[13] = SG_WORD(sg__rc.d473[25]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[17] = SG_WORD(sg__rc.d473[8]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[20] = SG_WORD(sg__rc.d473[9]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[24] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[68]))[27] = SG_WORD(sg__rc.d473[15]);
+  sg__rc.d473[29] = SG_MAKE_STRING("quotient");
+  sg__rc.d473[28] = Sg_Intern(sg__rc.d473[29]); /* quotient */
+  sg__rc.d473[27] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[28]), SG_NIL, (sg__rc.d473[0]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[3]))->name = sg__rc.d473[25];/* lcm */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[97]))[8] = SG_WORD(sg__rc.d473[18]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[97]))[33] = SG_WORD(sg__rc.d473[21]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[97]))[47] = SG_WORD(sg__rc.d473[27]);
+  sg__rc.d473[30] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[25]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[33] = SG_MAKE_STRING("div");
+  sg__rc.d473[32] = Sg_Intern(sg__rc.d473[33]); /* div */
+  sg__rc.d473[31] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[32]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[36] = SG_MAKE_STRING("mod");
+  sg__rc.d473[35] = Sg_Intern(sg__rc.d473[36]); /* mod */
+  sg__rc.d473[34] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[35]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[38] = SG_MAKE_STRING("div-and-mod");
+  sg__rc.d473[37] = Sg_Intern(sg__rc.d473[38]); /* div-and-mod */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[4]))->name = sg__rc.d473[37];/* div-and-mod */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[156]))[5] = SG_WORD(sg__rc.d473[31]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[156]))[12] = SG_WORD(sg__rc.d473[34]);
+  sg__rc.d473[39] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[37]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[42] = SG_MAKE_STRING("div0");
+  sg__rc.d473[41] = Sg_Intern(sg__rc.d473[42]); /* div0 */
+  sg__rc.d473[40] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[41]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[45] = SG_MAKE_STRING("mod0");
+  sg__rc.d473[44] = Sg_Intern(sg__rc.d473[45]); /* mod0 */
+  sg__rc.d473[43] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[44]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[47] = SG_MAKE_STRING("div0-and-mod0");
+  sg__rc.d473[46] = Sg_Intern(sg__rc.d473[47]); /* div0-and-mod0 */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[5]))->name = sg__rc.d473[46];/* div0-and-mod0 */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[174]))[5] = SG_WORD(sg__rc.d473[40]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[174]))[12] = SG_WORD(sg__rc.d473[43]);
+  sg__rc.d473[48] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[46]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[51] = SG_MAKE_STRING("positive?");
+  sg__rc.d473[50] = Sg_Intern(sg__rc.d473[51]); /* positive? */
+  sg__rc.d473[49] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[50]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[54] = SG_MAKE_STRING("bitwise-bit-field");
+  sg__rc.d473[53] = Sg_Intern(sg__rc.d473[54]); /* bitwise-bit-field */
+  sg__rc.d473[52] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[53]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[57] = SG_MAKE_STRING("bitwise-arithmetic-shift-left");
+  sg__rc.d473[56] = Sg_Intern(sg__rc.d473[57]); /* bitwise-arithmetic-shift-left */
+  sg__rc.d473[55] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[56]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[60] = SG_MAKE_STRING("bitwise-arithmetic-shift-right");
+  sg__rc.d473[59] = Sg_Intern(sg__rc.d473[60]); /* bitwise-arithmetic-shift-right */
+  sg__rc.d473[58] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[59]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[63] = SG_MAKE_STRING("bitwise-ior");
+  sg__rc.d473[62] = Sg_Intern(sg__rc.d473[63]); /* bitwise-ior */
+  sg__rc.d473[61] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[62]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[66] = SG_MAKE_STRING("bitwise-copy-bit-field");
+  sg__rc.d473[65] = Sg_Intern(sg__rc.d473[66]); /* bitwise-copy-bit-field */
+  sg__rc.d473[64] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[65]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[68] = SG_MAKE_STRING("bitwise-rotate-bit-field");
+  sg__rc.d473[67] = Sg_Intern(sg__rc.d473[68]); /* bitwise-rotate-bit-field */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[6]))->name = sg__rc.d473[67];/* bitwise-rotate-bit-field */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[8] = SG_WORD(sg__rc.d473[49]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[16] = SG_WORD(sg__rc.d473[34]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[24] = SG_WORD(sg__rc.d473[52]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[31] = SG_WORD(sg__rc.d473[55]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[41] = SG_WORD(sg__rc.d473[58]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[48] = SG_WORD(sg__rc.d473[61]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[192]))[55] = SG_WORD(sg__rc.d473[64]);
+  sg__rc.d473[69] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[67]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[72] = SG_MAKE_STRING("bitwise-and");
+  sg__rc.d473[71] = Sg_Intern(sg__rc.d473[72]); /* bitwise-and */
+  sg__rc.d473[70] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[71]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[75] = SG_MAKE_STRING("bitwise-arithmetic-shift");
+  sg__rc.d473[74] = Sg_Intern(sg__rc.d473[75]); /* bitwise-arithmetic-shift */
+  sg__rc.d473[73] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[74]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[77] = SG_MAKE_STRING("bitwise-reverse-bit-field");
+  sg__rc.d473[76] = Sg_Intern(sg__rc.d473[77]); /* bitwise-reverse-bit-field */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[7]))->name = sg__rc.d473[76];/* bitwise-reverse-bit-field */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[8] = SG_WORD(sg__rc.d473[49]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[18] = SG_WORD(sg__rc.d473[52]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[30] = SG_WORD(sg__rc.d473[64]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[37] = SG_WORD(sg__rc.d473[70]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[47] = SG_WORD(sg__rc.d473[73]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[54] = SG_WORD(sg__rc.d473[58]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[70] = SG_WORD(sg__rc.d473[73]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[74] = SG_WORD(sg__rc.d473[61]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[251]))[81] = SG_WORD(sg__rc.d473[58]);
+  sg__rc.d473[78] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[76]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[81] = SG_MAKE_STRING("fxdiv");
+  sg__rc.d473[80] = Sg_Intern(sg__rc.d473[81]); /* fxdiv */
+  sg__rc.d473[79] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[80]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[84] = SG_MAKE_STRING("fxmod");
+  sg__rc.d473[83] = Sg_Intern(sg__rc.d473[84]); /* fxmod */
+  sg__rc.d473[82] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[83]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[86] = SG_MAKE_STRING("fxdiv-and-mod");
+  sg__rc.d473[85] = Sg_Intern(sg__rc.d473[86]); /* fxdiv-and-mod */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[8]))->name = sg__rc.d473[85];/* fxdiv-and-mod */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[343]))[5] = SG_WORD(sg__rc.d473[79]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[343]))[12] = SG_WORD(sg__rc.d473[82]);
+  sg__rc.d473[87] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[85]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[90] = SG_MAKE_STRING("fxdiv0");
+  sg__rc.d473[89] = Sg_Intern(sg__rc.d473[90]); /* fxdiv0 */
+  sg__rc.d473[88] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[89]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[93] = SG_MAKE_STRING("fxmod0");
+  sg__rc.d473[92] = Sg_Intern(sg__rc.d473[93]); /* fxmod0 */
+  sg__rc.d473[91] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[92]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[95] = SG_MAKE_STRING("fxdiv0-and-mod0");
+  sg__rc.d473[94] = Sg_Intern(sg__rc.d473[95]); /* fxdiv0-and-mod0 */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[9]))->name = sg__rc.d473[94];/* fxdiv0-and-mod0 */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[358]))[5] = SG_WORD(sg__rc.d473[88]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[358]))[12] = SG_WORD(sg__rc.d473[91]);
+  sg__rc.d473[96] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[94]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[99] = SG_MAKE_STRING("fixnum?");
+  sg__rc.d473[98] = Sg_Intern(sg__rc.d473[99]); /* fixnum? */
+  sg__rc.d473[97] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[98]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[101] = SG_MAKE_STRING("fx+/carry");
+  sg__rc.d473[100] = Sg_Intern(sg__rc.d473[101]); /* fx+/carry */
+  sg__rc.d473[102] = SG_MAKE_STRING("fixnum required, but got ~a");
+  sg__rc.d473[105] = SG_MAKE_STRING("format");
+  sg__rc.d473[104] = Sg_Intern(sg__rc.d473[105]); /* format */
+  sg__rc.d473[103] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[104]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[108] = SG_MAKE_STRING("least-fixnum");
+  sg__rc.d473[107] = Sg_Intern(sg__rc.d473[108]); /* least-fixnum */
+  sg__rc.d473[106] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[107]), SG_NIL, (sg__rc.d473[0]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[10]))->name = sg__rc.d473[100];/* fx+/carry */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[4] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[12] = SG_WORD(sg__rc.d473[100]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[16] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[19] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[25] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[30] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[38] = SG_WORD(sg__rc.d473[100]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[42] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[45] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[51] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[56] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[64] = SG_WORD(sg__rc.d473[100]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[68] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[71] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[77] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[93] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[98] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[102] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[105] = SG_WORD(sg__rc.d473[43]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[115] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[120] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[124] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[373]))[127] = SG_WORD(sg__rc.d473[40]);
+  sg__rc.d473[109] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[100]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[111] = SG_MAKE_STRING("fx-/carry");
+  sg__rc.d473[110] = Sg_Intern(sg__rc.d473[111]); /* fx-/carry */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[11]))->name = sg__rc.d473[110];/* fx-/carry */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[4] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[12] = SG_WORD(sg__rc.d473[110]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[16] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[19] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[25] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[30] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[38] = SG_WORD(sg__rc.d473[110]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[42] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[45] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[51] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[56] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[64] = SG_WORD(sg__rc.d473[110]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[68] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[71] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[77] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[93] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[98] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[102] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[105] = SG_WORD(sg__rc.d473[43]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[115] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[120] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[124] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[506]))[127] = SG_WORD(sg__rc.d473[40]);
+  sg__rc.d473[112] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[110]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[114] = SG_MAKE_STRING("fx*/carry");
+  sg__rc.d473[113] = Sg_Intern(sg__rc.d473[114]); /* fx* /carry */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[12]))->name = sg__rc.d473[113];/* fx* /carry */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[4] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[12] = SG_WORD(sg__rc.d473[113]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[16] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[19] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[25] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[30] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[38] = SG_WORD(sg__rc.d473[113]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[42] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[45] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[51] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[56] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[64] = SG_WORD(sg__rc.d473[113]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[68] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[71] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[77] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[93] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[98] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[102] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[105] = SG_WORD(sg__rc.d473[43]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[115] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[120] = SG_WORD(sg__rc.d473[106]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[124] = SG_WORD(sg__rc.d473[15]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[639]))[127] = SG_WORD(sg__rc.d473[40]);
+  sg__rc.d473[115] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[113]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[117] = SG_MAKE_STRING("fxrotate-bit-field");
+  sg__rc.d473[116] = Sg_Intern(sg__rc.d473[117]); /* fxrotate-bit-field */
+  sg__rc.d473[120] = SG_MAKE_STRING("fixnum-width");
+  sg__rc.d473[119] = Sg_Intern(sg__rc.d473[120]); /* fixnum-width */
+  sg__rc.d473[118] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[119]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[121] = SG_MAKE_STRING("out of range");
+  sg__rc.d473[123] = SG_MAKE_STRING("name");
+  sg__rc.d473[122] = Sg_Intern(sg__rc.d473[123]); /* name */
+  sg__rc.d473[126] = SG_MAKE_STRING("fxbit-field");
+  sg__rc.d473[125] = Sg_Intern(sg__rc.d473[126]); /* fxbit-field */
+  sg__rc.d473[124] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[125]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[129] = SG_MAKE_STRING("fxarithmetic-shift-left");
+  sg__rc.d473[128] = Sg_Intern(sg__rc.d473[129]); /* fxarithmetic-shift-left */
+  sg__rc.d473[127] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[128]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[132] = SG_MAKE_STRING("fxarithmetic-shift-right");
+  sg__rc.d473[131] = Sg_Intern(sg__rc.d473[132]); /* fxarithmetic-shift-right */
+  sg__rc.d473[130] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[131]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[135] = SG_MAKE_STRING("fxior");
+  sg__rc.d473[134] = Sg_Intern(sg__rc.d473[135]); /* fxior */
+  sg__rc.d473[133] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[134]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[138] = SG_MAKE_STRING("fxcopy-bit-field");
+  sg__rc.d473[137] = Sg_Intern(sg__rc.d473[138]); /* fxcopy-bit-field */
+  sg__rc.d473[136] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[137]), SG_NIL, (sg__rc.d473[0]));
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[13]))->name = sg__rc.d473[116];/* fxrotate-bit-field */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[4] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[12] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[16] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[19] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[26] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[31] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[39] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[43] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[46] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[53] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[58] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[66] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[70] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[73] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[80] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[85] = SG_WORD(sg__rc.d473[97]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[93] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[97] = SG_WORD(sg__rc.d473[102]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[100] = SG_WORD(sg__rc.d473[103]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[107] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[116] = SG_WORD(sg__rc.d473[118]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[124] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[126] = SG_WORD(sg__rc.d473[121]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[132] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[145] = SG_WORD(sg__rc.d473[118]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[153] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[155] = SG_WORD(sg__rc.d473[121]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[161] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[174] = SG_WORD(sg__rc.d473[118]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[182] = SG_WORD(sg__rc.d473[116]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[184] = SG_WORD(sg__rc.d473[121]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[190] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[202] = SG_WORD(sg__rc.d473[122]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[204] = SG_WORD(sg__rc.d473[121]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[210] = SG_WORD(sg__rc.d473[12]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[237] = SG_WORD(sg__rc.d473[82]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[245] = SG_WORD(sg__rc.d473[124]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[252] = SG_WORD(sg__rc.d473[127]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[262] = SG_WORD(sg__rc.d473[130]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[269] = SG_WORD(sg__rc.d473[133]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[772]))[276] = SG_WORD(sg__rc.d473[136]);
+  sg__rc.d473[139] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[116]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[142] = SG_MAKE_STRING("fldiv");
+  sg__rc.d473[141] = Sg_Intern(sg__rc.d473[142]); /* fldiv */
+  sg__rc.d473[140] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[141]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[145] = SG_MAKE_STRING("flmod");
+  sg__rc.d473[144] = Sg_Intern(sg__rc.d473[145]); /* flmod */
+  sg__rc.d473[143] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[144]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[147] = SG_MAKE_STRING("fldiv-and-mod");
+  sg__rc.d473[146] = Sg_Intern(sg__rc.d473[147]); /* fldiv-and-mod */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[14]))->name = sg__rc.d473[146];/* fldiv-and-mod */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1052]))[5] = SG_WORD(sg__rc.d473[140]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1052]))[12] = SG_WORD(sg__rc.d473[143]);
+  sg__rc.d473[148] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[146]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[151] = SG_MAKE_STRING("fldiv0");
+  sg__rc.d473[150] = Sg_Intern(sg__rc.d473[151]); /* fldiv0 */
+  sg__rc.d473[149] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[150]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[154] = SG_MAKE_STRING("flmod0");
+  sg__rc.d473[153] = Sg_Intern(sg__rc.d473[154]); /* flmod0 */
+  sg__rc.d473[152] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[153]), SG_NIL, (sg__rc.d473[0]));
+  sg__rc.d473[156] = SG_MAKE_STRING("fldiv0-and-mod0");
+  sg__rc.d473[155] = Sg_Intern(sg__rc.d473[156]); /* fldiv0-and-mod0 */
+  SG_CODE_BUILDER(SG_OBJ(&sg__rc.d475[15]))->name = sg__rc.d473[155];/* fldiv0-and-mod0 */
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1067]))[5] = SG_WORD(sg__rc.d473[149]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1067]))[12] = SG_WORD(sg__rc.d473[152]);
+  sg__rc.d473[157] = Sg_MakeIdentifier(SG_SYMBOL(sg__rc.d473[155]), SG_NIL, (sg__rc.d473[0]));
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[1] = SG_WORD(sg__rc.d473[0]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[5] = SG_WORD(sg__rc.d473[24]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[9] = SG_WORD(sg__rc.d473[30]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[13] = SG_WORD(sg__rc.d473[39]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[17] = SG_WORD(sg__rc.d473[48]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[21] = SG_WORD(sg__rc.d473[69]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[25] = SG_WORD(sg__rc.d473[78]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[29] = SG_WORD(sg__rc.d473[87]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[33] = SG_WORD(sg__rc.d473[96]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[37] = SG_WORD(sg__rc.d473[109]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[41] = SG_WORD(sg__rc.d473[112]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[45] = SG_WORD(sg__rc.d473[115]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[49] = SG_WORD(sg__rc.d473[139]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[53] = SG_WORD(sg__rc.d473[148]);
+  ((SgWord*)SG_OBJ(&sg__rc.d474[1082]))[57] = SG_WORD(sg__rc.d473[157]);
+  sg__rc.d473[159] = SG_MAKE_STRING("(core)");
+  sg__rc.d473[158] = Sg_Intern(sg__rc.d473[159]); /* (core) */
+  Sg_ImportLibrary(sg__rc.d473[0], sg__rc.d473[158]);
 
-  sg__rc.d21[161] = SG_MAKE_STRING("(core base)");
-  sg__rc.d21[160] = Sg_Intern(sg__rc.d21[161]); /* (core base) */
-  Sg_ImportLibrary(sg__rc.d21[0], sg__rc.d21[160]);
+  sg__rc.d473[161] = SG_MAKE_STRING("(core base)");
+  sg__rc.d473[160] = Sg_Intern(sg__rc.d473[161]); /* (core base) */
+  Sg_ImportLibrary(sg__rc.d473[0], sg__rc.d473[160]);
 
-  sg__rc.d21[163] = SG_MAKE_STRING("(core errors)");
-  sg__rc.d21[162] = Sg_Intern(sg__rc.d21[163]); /* (core errors) */
-  Sg_ImportLibrary(sg__rc.d21[0], sg__rc.d21[162]);
+  sg__rc.d473[163] = SG_MAKE_STRING("(core errors)");
+  sg__rc.d473[162] = Sg_Intern(sg__rc.d473[163]); /* (core errors) */
+  Sg_ImportLibrary(sg__rc.d473[0], sg__rc.d473[162]);
 
-  sg__rc.d21[165] = SG_MAKE_STRING("(sagittarius)");
-  sg__rc.d21[164] = Sg_Intern(sg__rc.d21[165]); /* (sagittarius) */
-  Sg_ImportLibrary(sg__rc.d21[0], sg__rc.d21[164]);
+  sg__rc.d473[165] = SG_MAKE_STRING("(sagittarius)");
+  sg__rc.d473[164] = Sg_Intern(sg__rc.d473[165]); /* (sagittarius) */
+  Sg_ImportLibrary(sg__rc.d473[0], sg__rc.d473[164]);
 
-  SG_APPEND1(h, t, sg__rc.d21[6]); /* gcd */
-  SG_APPEND1(h, t, sg__rc.d21[25]); /* lcm */
-  SG_APPEND1(h, t, sg__rc.d21[37]); /* div-and-mod */
-  SG_APPEND1(h, t, sg__rc.d21[46]); /* div0-and-mod0 */
-  SG_APPEND1(h, t, sg__rc.d21[67]); /* bitwise-rotate-bit-field */
-  SG_APPEND1(h, t, sg__rc.d21[76]); /* bitwise-reverse-bit-field */
-  SG_APPEND1(h, t, sg__rc.d21[85]); /* fxdiv-and-mod */
-  SG_APPEND1(h, t, sg__rc.d21[94]); /* fxdiv0-and-mod0 */
-  SG_APPEND1(h, t, sg__rc.d21[100]); /* fx+/carry */
-  SG_APPEND1(h, t, sg__rc.d21[110]); /* fx-/carry */
-  SG_APPEND1(h, t, sg__rc.d21[113]); /* fx* /carry */
-  SG_APPEND1(h, t, sg__rc.d21[116]); /* fxrotate-bit-field */
-  SG_APPEND1(h, t, sg__rc.d21[146]); /* fldiv-and-mod */
-  SG_APPEND1(h, t, sg__rc.d21[155]); /* fldiv0-and-mod0 */
-  Sg_LibraryExportedSet(sg__rc.d21[0], Sg_Cons(h, SG_NIL));
+  SG_APPEND1(h, t, sg__rc.d473[6]); /* gcd */
+  SG_APPEND1(h, t, sg__rc.d473[25]); /* lcm */
+  SG_APPEND1(h, t, sg__rc.d473[37]); /* div-and-mod */
+  SG_APPEND1(h, t, sg__rc.d473[46]); /* div0-and-mod0 */
+  SG_APPEND1(h, t, sg__rc.d473[67]); /* bitwise-rotate-bit-field */
+  SG_APPEND1(h, t, sg__rc.d473[76]); /* bitwise-reverse-bit-field */
+  SG_APPEND1(h, t, sg__rc.d473[85]); /* fxdiv-and-mod */
+  SG_APPEND1(h, t, sg__rc.d473[94]); /* fxdiv0-and-mod0 */
+  SG_APPEND1(h, t, sg__rc.d473[100]); /* fx+/carry */
+  SG_APPEND1(h, t, sg__rc.d473[110]); /* fx-/carry */
+  SG_APPEND1(h, t, sg__rc.d473[113]); /* fx* /carry */
+  SG_APPEND1(h, t, sg__rc.d473[116]); /* fxrotate-bit-field */
+  SG_APPEND1(h, t, sg__rc.d473[146]); /* fldiv-and-mod */
+  SG_APPEND1(h, t, sg__rc.d473[155]); /* fldiv0-and-mod0 */
+  Sg_LibraryExportedSet(sg__rc.d473[0], Sg_Cons(h, SG_NIL));
 
-  Sg_VM()->currentLibrary = sg__rc.d21[0];
+  Sg_VM()->currentLibrary = sg__rc.d473[0];
   Sg_VMExecute(SG_OBJ(toplevel));
   Sg_VM()->currentLibrary = save;
 }

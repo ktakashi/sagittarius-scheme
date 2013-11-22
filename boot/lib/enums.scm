@@ -15,7 +15,7 @@
 	    enum-set-complement
 	    enum-set-projection
 	    define-enumeration)
-    (import null
+    (import (core)
 	    (core base)
 	    ;;(for (core struct) expand)
 	    ;;(for (core syntax-rules) expand)

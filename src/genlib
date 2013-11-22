@@ -15,12 +15,21 @@
 	(srfi :13)
 	(srfi :26))
 
+;; cancel inliner
+(procedure-inliner-set! (find-procedure 'map '(core base)) #f)
+(procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
+
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled
-(define-constant +default-imports+ '("(rnrs)"
-				     "(rnrs mutable-pairs)"
+;; ****CAUTION****
+;; DO NOT USE INLINED PROCEDURES SUCH AS map AND for-each
+;; So basically we can't use (rnrs)
+(define-constant +default-imports+ '("(core)"
 				     "(core base)"
+				     "(core syntax)"
+				     "(core syntax-case)"
+				     "(core errors)"
 				     "(core misc)"
 				     "(rename (match) (match smatch))"
 				     "(sagittarius)"
@@ -119,7 +128,8 @@
 	     (libname (string-append +replace-prefix+ base))
 	     (form (construct-library-form 
 		    add (list "-l" libname 
-			      "-i""(except (rnrs) syntax-rules)"
+			      "-i" "(except (rnrs) syntax-rules)"
+			      "-i" "(sagittarius)"
 			      "-i" "(only (compat r7rs) syntax-rules)"))))
 	(eval form (environment '(sagittarius)))
 	(cons name (read-from-string libname))))

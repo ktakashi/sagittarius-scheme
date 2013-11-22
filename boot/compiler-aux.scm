@@ -1,22 +1,13 @@
 ;; -*- Scheme -*-
-
-;; not so smart solution...
 (define ensure-library-name
   (lambda (tag)
     (case tag
-      ((:null) 'null)
+      ((:null) '(core))
       ((:sagittarius) '(sagittarius))
       ((:base) '(core base))
       ((:r7rs) '(r7rs)) ;; for incompatibility between R6RS and R7RS, sucks!!
       (else
        (error 'ensure-library-name "invalid library tag:" tag)))))
-
-(define (parse-args vars)
-  (let loop ((vars vars)
-	     (n 0))
-    (cond ((null? vars) (values n #f))
-	  ((pair? vars) (loop (cdr vars) (+ n 1)))
-	  (else (values n #t)))))
 
 (cond-expand
  (gauche
