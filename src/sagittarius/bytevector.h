@@ -94,6 +94,7 @@ SG_EXTERN void     Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 				      int size);
 SG_EXTERN void     Sg_ByteVectorFill(SgByteVector *bv, int value,
 				     int start, int end);
+SG_EXTERN SgObject Sg_ByteVectorReverseX(SgByteVector *bv, int start, int end);
 
 /* converter */
 SG_EXTERN SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP);
@@ -199,10 +200,24 @@ SG_EXTERN void      Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv,
 						  size_t index, double value);
 
 /* utility */
-SG_EXTERN SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end);
-SG_EXTERN SgObject Sg_IntegerToByteVector(SgObject num, int size);
-SG_EXTERN SgObject Sg_SIntegerToByteVector(SgObject num, int size);
+SG_EXTERN SgObject Sg_ByteVectorToIntegerBig(SgByteVector *bv,
+					     int start, int end);
+SG_EXTERN SgObject Sg_ByteVectorToIntegerSBig(SgByteVector *bv,
+					   int start, int end);
+SG_EXTERN SgObject Sg_IntegerToByteVectorBig(SgObject num, int size);
+SG_EXTERN SgObject Sg_SIntegerToByteVectorBig(SgObject num, int size);
+SG_EXTERN SgObject Sg_ByteVectorToIntegerLittle(SgByteVector *bv,
+					     int start, int end);
+SG_EXTERN SgObject Sg_ByteVectorToIntegerSLittle(SgByteVector *bv,
+					   int start, int end);
+SG_EXTERN SgObject Sg_IntegerToByteVectorLittle(SgObject num, int size);
+SG_EXTERN SgObject Sg_SIntegerToByteVectorLittle(SgObject num, int size);
 SG_EXTERN SgObject Sg_ByteVectorConcatenate(SgObject bvList);
+
+#define Sg_ByteVectorToInteger Sg_ByteVectorToIntegerBig
+#define Sg_IntegerToByteVector Sg_IntegerToByteVectorBig
+#define Sg_ByteVectorToIntegerS Sg_ByteVectorToIntegerSBig
+#define Sg_SIntegerToByteVector Sg_SIntegerToByteVectorBig
 
 SG_CDECL_END
 

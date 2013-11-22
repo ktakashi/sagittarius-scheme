@@ -771,7 +771,10 @@
   ;; bytevector
   (define-c-proc bytevector->integer
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    (result (Sg_ByteVectorToInteger bv start end)))
+    Sg_ByteVectorToInteger)
+  (define-c-proc bytevector->sinteger
+    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_ByteVectorToIntegerS)
 
   (define-c-proc integer->bytevector 
     (n::<integer> :optional (size::<fixnum> -1))

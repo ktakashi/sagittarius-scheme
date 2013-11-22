@@ -1046,5 +1046,11 @@
 (test-equal "#x-7F808080" #vu8(128 127 127 128)
 	    (sinteger->bytevector #x-7F808080))
 
+(test-error "negative value for integer->bytevector" condition?
+	    (integer->bytevector -1))
+
+(test-equal "#x-80" #x-80 (bytevector->sinteger #vu8(128)))
+(test-equal "#x80" #x80 (bytevector->sinteger #vu8(0 128)))
+(test-equal "#x-80" #x-80 (bytevector->sinteger #vu8(#xFF #xFF #xFF 128)))
 
 (test-end)

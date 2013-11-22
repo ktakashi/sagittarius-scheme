@@ -140,6 +140,19 @@ void Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
   }
 }
 
+SgObject Sg_ByteVectorReverseX(SgByteVector *bv, int start, int end)
+{
+  int i, n = SG_BVECTOR_SIZE(bv), e;
+  SG_CHECK_START_END(start, end, n);
+
+  for (i = start, e = end-1; i < end/2; i++, e--) {
+    uint8_t t = SG_BVECTOR_ELEMENT(bv, i);
+    SG_BVECTOR_ELEMENT(bv, i) = SG_BVECTOR_ELEMENT(bv, e);
+    SG_BVECTOR_ELEMENT(bv, e) = t;
+  }
+  return bv;
+}
+
 SgObject Sg_NativeEndianness()
 {
 #if WORDS_BIGENDIAN
@@ -844,7 +857,8 @@ void Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, size_t index, double value)
 #endif
 }
 
-SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
+static SgObject bytevector2integer(SgByteVector *bv, int start, int end,
+				   int sign)
 {
   int len = SG_BVECTOR_SIZE(bv), i;
   SgObject ans = SG_MAKE_INT(0);
@@ -873,6 +887,16 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
       SG_BIGNUM(ans)->elements[i] = e;
     }
     ans = Sg_NormalizeBignum(SG_BIGNUM(ans));
+    /* if the sign flag is set and the very first byte's 8th bit is set
+       then it's negative.*/
+    if (sign && ((SG_BVECTOR_ELEMENT(bv, start) & 0x80) == 0x80)){
+      /* in this case the ans still remains as bignum so we don't need to
+	 check. */
+      ans = Sg_BignumComplement(ans);
+      SG_BIGNUM_SET_SIGN(ans, -1);
+      ans = Sg_NormalizeBignum(ans);
+    }
+
   } else {
     /* the result will be fixnum. */
     unsigned long lans = 0;
@@ -880,8 +904,21 @@ SgObject Sg_ByteVectorToInteger(SgByteVector *bv, int start, int end)
       lans += (unsigned long)SG_BVECTOR_ELEMENT(bv, i-1) << ((end-i)<<3);
     }
     ans = Sg_MakeIntegerU(lans);
+    if (sign && ((SG_BVECTOR_ELEMENT(bv, start) & 0x80) == 0x80)) {
+      ans = Sg_Negate(ans);
+    }
   }
   return ans;
+}
+
+SgObject Sg_ByteVectorToIntegerSBig(SgByteVector *bv, int start, int end)
+{
+  return bytevector2integer(bv, start, end, TRUE);
+}
+
+SgObject Sg_ByteVectorToIntegerBig(SgByteVector *bv, int start, int end)
+{
+  return bytevector2integer(bv, start, end, FALSE);
 }
 
 static SgObject integer2bytevector(SgObject num, int size, int sign)
@@ -957,7 +994,7 @@ static SgObject integer2bytevector(SgObject num, int size, int sign)
   return bv;
 }
 
-SgObject Sg_SIntegerToByteVector(SgObject num, int size)
+SgObject Sg_SIntegerToByteVectorBig(SgObject num, int size)
 {
   if (!SG_EXACT_INTP(num)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("sinteger->bytevector"),
@@ -967,14 +1004,47 @@ SgObject Sg_SIntegerToByteVector(SgObject num, int size)
   return integer2bytevector(num, size, TRUE);
 }
 
-SgObject Sg_IntegerToByteVector(SgObject num, int size)
+SgObject Sg_IntegerToByteVectorBig(SgObject num, int size)
 {
-  if (!SG_EXACT_INTP(num)) {
+  /* we don't allow negative value for this */
+  if (!SG_EXACT_INTP(num) || Sg_NegativeP(num)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("integer->bytevector"),
-				    SG_MAKE_STRING("exact integer"),
+				    SG_MAKE_STRING("exact non negative integer"),
 				    num, num);
   }
   return integer2bytevector(num, size, FALSE);
+}
+
+/* For now we just revert the given bv and pass to big */
+/* FIXME implement seriously*/
+/* FIXME at least reduce stack usage */
+#define copy_to_tmp(tmp, bv)						\
+  do {									\
+    SG_ALLOC_TEMP_BVECTOR((tmp), SG_BVECTOR_SIZE(bv));			\
+    Sg_ByteVectorCopyX(bv, 0, (tmp), 0, SG_BVECTOR_SIZE(bv));		\
+    Sg_ByteVectorReverseX((tmp), 0, SG_BVECTOR_SIZE(bv));		\
+  } while (0)
+SgObject Sg_ByteVectorToIntegerLittle(SgByteVector *bv, int start, int end)
+{
+  SgByteVector *tmp;
+  copy_to_tmp(tmp, bv);
+  return Sg_ByteVectorToIntegerBig(tmp, start, end);
+}
+SgObject Sg_ByteVectorToIntegerSLittle(SgByteVector *bv, int start, int end)
+{
+  SgByteVector *tmp;
+  copy_to_tmp(tmp, bv);
+  return Sg_ByteVectorToIntegerSBig(tmp, start, end);
+}
+SgObject Sg_IntegerToByteVectorLittle(SgObject num, int size)
+{
+  SgObject bv = Sg_IntegerToByteVectorBig(num, size);
+  return Sg_ByteVectorReverseX(bv, 0, SG_BVECTOR_SIZE(bv));
+}
+SgObject Sg_SIntegerToByteVectorLittle(SgObject num, int size)
+{
+  SgObject bv = Sg_SIntegerToByteVectorBig(num, size);
+  return Sg_ByteVectorReverseX(bv, 0, SG_BVECTOR_SIZE(bv));
 }
 
 SgObject Sg_ByteVectorConcatenate(SgObject bvList)
