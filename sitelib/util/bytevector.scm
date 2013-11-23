@@ -42,6 +42,8 @@
 	    ->odd-parity!
 
 	    bytevector->hex-string
+	    bytevector-reverse!
+	    bytevector-reverse
 	    )
     (import (rnrs)
 	    (sagittarius)

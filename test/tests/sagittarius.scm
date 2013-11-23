@@ -1048,9 +1048,16 @@
 
 (test-error "negative value for integer->bytevector" condition?
 	    (integer->bytevector -1))
+(test-error "#x-deadbeaf" condition? (uinteger->bytevector #x-deadbeaf))
+(test-error "#x-80" condition? (uinteger->bytevector #x-80))
 
 (test-equal "#x-80" #x-80 (bytevector->sinteger #vu8(128)))
 (test-equal "#x80" #x80 (bytevector->sinteger #vu8(0 128)))
 (test-equal "#x-80" #x-80 (bytevector->sinteger #vu8(#xFF #xFF #xFF 128)))
+
+(test-equal "#x80" #x80 (bytevector->uinteger #vu8(128)))
+(test-equal "#x80" #x80 (bytevector->uinteger #vu8(0 128)))
+(test-equal "#xFFFFFF80" #xFFFFFF80 
+	    (bytevector->uinteger #vu8(#xFF #xFF #xFF #x80)))
 
 (test-end)
