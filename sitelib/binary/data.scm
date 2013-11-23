@@ -222,7 +222,8 @@
 			(define-class data-name (parent (... ...))
 			  (slot-def (... ...))
 			  :metaclass meta-class)
-			(define-method writer ((t meta-class) (m data-name) out)
+			(define-method writer ((t meta-class) (m data-name) out
+					       . ignore)
 			  ;; the order is important
 			  (map (lambda (slot type)
 				 (let ((o (slot-ref m slot))
