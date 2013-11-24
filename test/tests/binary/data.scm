@@ -12,6 +12,13 @@
   (lambda (in)    (get-u8 in))
   (lambda (out a) (put-u8 out a)))
 
+;; TODO handling extended class
+#;
+(define-simple <simple2> (<simple1>)
+  (b)
+  (lambda (in)    (get-u8 in))
+  (lambda (out b) (put-u8 out b)))
+
 (define-simple <simple3> ()
   (a b (c 0))
   (lambda (in)

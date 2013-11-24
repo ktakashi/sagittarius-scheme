@@ -143,7 +143,7 @@
 	       (syntax-case xx ()
 		 ((k datum-class (parent-class (... ...))
 		     (fields (... ...))
-		     field-reader field-write
+		     field-reader field-writer
 		     . options)
 		  (with-syntax ((meta-class (gen-meta #'k #'datum-class))
 				(parent-meta (get-keyword :parent-metaclass
@@ -165,7 +165,7 @@
 			      o)))
 			(define-method writer ((t meta-class) (o datum-class)
 					       out . ignore)
-			  (define fw field-write)
+			  (define fw field-writer)
 			  (apply fw out 
 				 (map (lambda (s) (slot-ref o s))
 				      '(field (... ...)))))
