@@ -223,7 +223,7 @@
     (lambda (x)
       (define (analyse args)
 	(let loop ((ss args) (rs '()))
-	  (cond ((null? ss)          (values (reverse! rs) #f #f))
+	  (cond ((null? ss)          (values (reverse! rs) '() #f))
 		((not (pair? ss))    (values (reverse! rs) ss #f))
 		((keyword? (car ss)) (values (reverse! rs) (gensym) ss))
 		(else (loop (cdr ss) (cons (car ss) rs))))))
@@ -241,6 +241,9 @@
 		  ((and (identifier? body)
 			(free-identifier=? body #'call-next-method))
 		   'call-next-method)
+		  ((and (identifier? body)
+			(free-identifier=? body #'next-method?))
+		   'next-method?)
 		  (else body))))
 	(define (parse-specializer s)
 	  (syntax-case s (eqv?)
@@ -251,14 +254,17 @@
 	(let* ((specializers (map parse-specializer qargs))
 	       (reqargs      (map (lambda (s) 
 				    (if (pair? s) (car s) s)) qargs))
-	       (lambda-list  (if rest `(,@reqargs . ,rest) reqargs))
-	       (real-args    (if rest
-				 `(call-next-method ,@reqargs . ,rest)
-				 `(call-next-method ,@reqargs)))
+	       (lambda-list  `(,@reqargs . ,rest))
+	       (real-args    `(call-next-method ,@reqargs . ,rest))
 	       (real-body (if opts
-			      `(lambda ,real-args 
+			      `(lambda ,real-args
+				 (define (next-method?)
+				   (slot-ref call-next-method 'next-method?))
 				 (apply (lambda ,opts ,@(rewrite body)) ,rest))
-			      `(lambda ,real-args ,@(rewrite body))))
+			      `(lambda ,real-args
+				 (define (next-method?)
+				   (slot-ref call-next-method 'next-method?))
+				 ,@(rewrite body))))
 	       (gf        (gensym)))
 
 	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))

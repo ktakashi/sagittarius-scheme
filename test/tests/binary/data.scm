@@ -12,8 +12,6 @@
   (lambda (in)    (get-u8 in))
   (lambda (out a) (put-u8 out a)))
 
-;; TODO handling extended class
-#;
 (define-simple <simple2> (<simple1>)
   (b)
   (lambda (in)    (get-u8 in))
@@ -36,6 +34,16 @@
   (test-equal "simple1 write" #vu8(1)
 	      (call-with-bytevector-output-port
 	       (lambda (out) (simple-write <simple1> s1 out)))))
+
+(let* ((in (open-bytevector-input-port #vu8(1 2)))
+       (s2 (simple-read <simple2> in)))
+  (test-assert "read" (is-a? s2 <simple2>))
+  (test-equal "simple2 a" 1 (slot-ref s2 'a))
+  (test-equal "simple2 b" 2 (slot-ref s2 'b))
+  ;; write
+  (test-equal "simple1 write" #vu8(1 2)
+	      (call-with-bytevector-output-port
+	       (lambda (out) (simple-write <simple2> s2 out)))))
 
 (let* ((in (open-bytevector-input-port #vu8(1 2 3)))
        (s3 (simple-read <simple3> in)))
@@ -100,5 +108,29 @@
   (test-equal "composite2 write" #vu8(1 1 2 3 1 4)
 	      (call-with-bytevector-output-port
 	       (lambda (out) (simple-write <composite2> c2 out)))))
+
+(define-composite <composite3> (<composite1>)
+  ((d  <simple1>)))
+
+(let* ((in (open-bytevector-input-port #vu8(1 1 2 3 1 4)))
+       (c3 (simple-read <composite3> in)))
+  (test-assert "read" (is-a? c3 <composite3>))
+  (let ((c1 c3))
+    (test-assert "composite3 c1" (is-a? c1 <composite1>))
+    (test-assert "composite3 c1 a" (is-a? (~ c1 'a) <simple1>))
+    (test-equal "composite3 c1 a a" 1 (~ c1 'a 'a))
+    (test-assert "composite3 c1 b" (is-a? (~ c1 'b) <simple3>))
+    (test-equal "composite3 c1 b a" 1 (~ c1 'b 'a))
+    (test-equal "composite3 c1 b b" 2 (~ c1 'b 'b))
+    (test-equal "composite3 c1 b c" 3 (~ c1 'b 'c))
+    (test-assert "composite3 c1 c" (is-a? (~ c1 'c) <simple1>))
+    (test-equal "composite3 c1 c a" 1 (~ c1 'c 'a)))
+
+  (test-assert "composite3 a" (is-a? (~ c3 'd) <simple1>))
+  (test-equal "composite3 a a" 4 (~ c3 'd 'a))
+  ;; write
+  (test-equal "composite3 write" #vu8(1 1 2 3 1 4)
+	      (call-with-bytevector-output-port
+	       (lambda (out) (simple-write <composite3> c3 out)))))
 
 (test-end)

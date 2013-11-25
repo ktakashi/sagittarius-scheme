@@ -1575,6 +1575,11 @@ static void next_method_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC("#<next-method %S %S>"), nm->methods, args);
 }
 
+static SgObject next_method_has_nextP(SgNextMethod *nm)
+{
+  return SG_MAKE_BOOL(!SG_NULLP(nm->methods));
+}
+
 SgObject Sg_MakeNextMethod(SgGeneric *gf, SgObject methods,
 			   SgObject *argv, int argc, int copyargs)
 {
@@ -1659,6 +1664,11 @@ static SgSlotAccessor method_slots[] = {
 static SgSlotAccessor slot_accessor_slots[] = {
   SG_CLASS_SLOT_SPEC("getter",   0, sa_getter, sa_getter_set),
   SG_CLASS_SLOT_SPEC("setter",   1, sa_setter, sa_setter_set),
+  { { NULL } }
+};
+
+static SgSlotAccessor next_method_slots[] = {
+  SG_CLASS_SLOT_SPEC("next-method?",   0, next_method_has_nextP, NULL),
   { { NULL } }
 };
 
@@ -2292,7 +2302,7 @@ void Sg__InitClos()
   /* generic, method and next-method */
   BINIT(SG_CLASS_GENERIC,     "<generic>", generic_slots);
   BINIT(SG_CLASS_METHOD,      "<method>",  method_slots);
-  BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", NULL);
+  BINIT(SG_CLASS_NEXT_METHOD, "<next-method>", next_method_slots);
   BINIT(SG_CLASS_EQL_SPECIALIZER, "<eql-specializer>", NULL);
   BINIT(SG_CLASS_SLOT_ACCESSOR, "<slot-accessor>", slot_accessor_slots);
   /* set flags for above to make them applicable(procedure? returns #t) */
