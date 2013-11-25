@@ -69,10 +69,9 @@
 			   lis))
     (result (Sg_ReverseX lis)))
 
-  (define-c-proc acons (a b alist) ::<top>
-    (result (Sg_Acons a b alist)))
+  (define-c-proc acons (a b alist) Sg_Acons)
 
-  (define-c-proc append! (:rest lst) ::<top>
+  (define-c-proc append! (:rest lst)
     (let ((h '()) (t '()))
       (dopairs (cp lst)
 	(when (and (not (SG_PAIRP (SG_CAR cp)))
@@ -92,8 +91,8 @@
   ;; vector
   (define-c-proc vector-copy (vec::<vector> :optional (start::<fixnum> 0)
 					            (end::<fixnum> -1)
-						    fill) ::<top>
-    (result (Sg_VectorCopy vec start end fill)))
+						    fill)
+    Sg_VectorCopy)
 
   (define-c-proc vector-concatenate (vec-list::<list>) Sg_VectorConcatenate)
   (define-c-proc vector-append (:rest vec-list) Sg_VectorConcatenate)
@@ -109,14 +108,14 @@
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
 
-  (define-c-proc current-exception-handler (:optional handle) ::<top>
+  (define-c-proc current-exception-handler (:optional handle)
     (if (SG_UNBOUNDP handle)
 	(result (-> (Sg_VM) exceptionHandler))
 	(begin
 	  (set! (-> (Sg_VM) exceptionHandler) handle)
 	  (result SG_UNDEF))))
 
-  (define-c-proc parent-exception-handler (:optional handle) ::<top>
+  (define-c-proc parent-exception-handler (:optional handle)
     (if (SG_UNBOUNDP handle)
 	(result (-> (Sg_VM) parentExHandler))
 	(begin
@@ -256,24 +255,24 @@
       (result size)))
   
   (define-c-proc file-regular? (path::<string>) ::<boolean>
-    (result (Sg_FileRegularP path)))
+    Sg_FileRegularP)
 
   (define-c-proc file-directory? (path::<string>) ::<boolean>
-    (result (Sg_DirectoryP path)))
+    Sg_DirectoryP)
 
   (define-c-proc file-symbolic-link? (path::<string>) ::<boolean>
-    (result (Sg_FileSymbolicLinkP path)))
+    Sg_FileSymbolicLinkP)
 
   (define-c-proc file-readable? (path::<string>) ::<boolean>
-    (result (Sg_FileReadableP path)))
+    Sg_FileReadableP)
 
   (define-c-proc file-writable? (path::<string>) ::<boolean>
-    (result (Sg_FileWritableP path)))
+    Sg_FileWritableP)
 
   (define-c-proc file-executable? (path::<string>) ::<boolean>
-    (result (Sg_FileExecutableP path)))
+    Sg_FileExecutableP)
 
-  (define-c-proc file-stat-ctime (path::<string>) ::<top>
+  (define-c-proc file-stat-ctime (path::<string>)
     (let ((tm (Sg_FileChangeTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-ctime
@@ -281,7 +280,7 @@
 				 path))
       (result tm)))
 
-  (define-c-proc file-stat-mtime (path::<string>) ::<top>
+  (define-c-proc file-stat-mtime (path::<string>)
     (let ((tm (Sg_FileModifyTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-mtime
@@ -289,7 +288,7 @@
 				 path))
       (result tm)))
 
-  (define-c-proc file-stat-atime (path::<string>) ::<top>
+  (define-c-proc file-stat-atime (path::<string>)
     (let ((tm (Sg_FileAccessTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-atime
@@ -324,11 +323,10 @@
 			     (Sg_GetLastErrorMessage)
 			     path)))
 
-  (define-c-proc read-directory (path::<string>) ::<top>
-    (result (Sg_ReadDirectory path)))
+  (define-c-proc read-directory (path::<string>) Sg_ReadDirectory)
 
   ;; make this parameterizable
-  (define-c-proc current-directory (:optional path::<string>) ::<top>
+  (define-c-proc current-directory (:optional path::<string>)
     (cond ((SG_UNBOUNDP path)
 	   (result (Sg_CurrentDirectory)))
 	  (else
@@ -336,10 +334,9 @@
 	   (result SG_UNDEF))))
 
   (define-c-proc set-current-directory (path::<string>) ::<void>
-    (Sg_SetCurrentDirectory path))
+    Sg_SetCurrentDirectory)
 
-  (define-c-proc build-path (path::<string> file::<string>) ::<top>
-    (result (Sg_BuildPath path file)))
+  (define-c-proc build-path (path::<string> file::<string>) Sg_BuildPath)
 
   (define-c-proc absolute-path? (path::<string>) ::<boolean>
     (result (Sg_AbsolutePathP path)))
@@ -364,7 +361,7 @@
     ;; for now
     (result (Sg_Glob path (retrieve-flags flags))))
 
-  (define-c-proc current-load-path () ::<top>
+  (define-c-proc current-load-path ()
     (result (-> (Sg_VM) currentLoadPath)))
 
   (define-c-proc sagittarius-installed-directory () Sg_InstalledDirectory)
@@ -405,7 +402,7 @@
   (define-c-proc current-library () (result (-> (Sg_VM) currentLibrary)))
 
   ;; string
-  (define-c-proc string-scan (s1::<string> s2 :optional (mode 'index)) ::<top>
+  (define-c-proc string-scan (s1::<string> s2 :optional (mode 'index))
     (let ((rmode::int 0))
       (cond ((SG_EQ mode 'index)   (set! rmode SG_STRING_SCAN_INDEX))
 	    ((SG_EQ mode 'before)  (set! rmode SG_STRING_SCAN_BEFORE))
@@ -430,19 +427,17 @@
     (result (Sg_MaybeSubstring s start end)))
 
   ;; hashtable
-  (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200)) ::<top>
+  (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
     (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k)))
 
-  (define-c-proc make-string-hashtable (:optional (k::<fixnum> 200)) ::<top>
+  (define-c-proc make-string-hashtable (:optional (k::<fixnum> 200))
     (result (Sg_MakeHashTableSimple SG_HASH_STRING k)))
 
-  (define-c-proc hashtable-keys-list (ht::<hashtable>) ::<top>
-    (result (Sg_HashTableKeys ht)))
+  (define-c-proc hashtable-keys-list (ht::<hashtable>) Sg_HashTableKeys)
 
-  (define-c-proc  hashtable-values-list (ht::<hashtable>) ::<top>
-    (result (Sg_HashTableValues ht)))
+  (define-c-proc  hashtable-values-list (ht::<hashtable>) Sg_HashTableValues)
 
-  (define-c-proc hashtable-type (ht::<hashtable>) ::<top>
+  (define-c-proc hashtable-type (ht::<hashtable>)
     (cond ((== (-> ht type) SG_HASH_EQ)
 	   (result 'eq))
 	  ((== (-> ht type) SG_HASH_EQV)
@@ -458,17 +453,17 @@
 				"invalid hashtable type"
 				ht))))
 
-  (define-c-proc hashtable-compare (ht::<hashtable>) ::<top>
+  (define-c-proc hashtable-compare (ht::<hashtable>)
     (result (-> (SG_HASHTABLE_CORE ht) generalCompare)))
 
-  (define-c-proc hashtable-hasher (ht::<hashtable>) ::<top>
+  (define-c-proc hashtable-hasher (ht::<hashtable>)
     (result (-> (SG_HASHTABLE_CORE ht) generalHasher)))
 
   ;; just for consistancy
-  (define-c-proc hashtable-values (ht::<hashtable>) ::<top>
+  (define-c-proc hashtable-values (ht::<hashtable>)
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
-  (define-c-proc eqv-hash (o) ::<top>
+  (define-c-proc eqv-hash (o)
     (result (Sg_MakeIntegerU (Sg_EqvHash o))))
 
   ;; error
@@ -528,7 +523,7 @@
       (SG_CLEAN_TEXTUAL_PORT (& tp))
       (return r)))
 
-  (define-c-proc format (p :rest rest) ::<top>
+  (define-c-proc format (p :rest rest)
     (cond ((SG_PORTP p)
 	   (check-port-open format p)
 	   (check-output-port format p)
@@ -547,7 +542,7 @@
 	  ((SG_STRINGP p)
 	   (result (string-format p rest)))))
 
-  (define-c-proc format/ss (p :rest rest) ::<top>
+  (define-c-proc format/ss (p :rest rest)
     (cond ((SG_PORTP p)
 	   (check-port-open format p)
 	   (check-output-port format p)
@@ -689,37 +684,32 @@
     (result (Sg_PortReady p)))
 
   ;; profiler
-  (define-c-proc profiler-start () ::<void>
-    (Sg_ProfilerStart))
-  (define-c-proc profiler-stop () ::<fixnum>
-    (result (Sg_ProfilerStop)))
-  (define-c-proc profiler-reset () ::<void>
-    (Sg_ProfilerReset))
+  (define-c-proc profiler-start () ::<void> Sg_ProfilerStart)
+  (define-c-proc profiler-stop () ::<fixnum> Sg_ProfilerStop)
+  (define-c-proc profiler-reset () ::<void> Sg_ProfilerReset)
+  (define-c-proc profiler-raw-result () Sg_ProfilerRawResult)
 
-  (define-c-proc profiler-raw-result () ::<top>
-    (result (Sg_ProfilerRawResult)))
-
-  (define-c-proc disasm (c::<procedure>) ::<top>
+  (define-c-proc disasm (c::<procedure>)
     (if (SG_CLOSUREP c)
 	(Sg_VMDumpCode (-> (SG_CLOSURE c) code))
 	(Sg_Printf (-> (Sg_VM) logPort) (UC "subr %S") (SG_PROCEDURE_NAME c)))
     (result SG_UNDEF))
 
   ;; keyword
-  (define-c-proc make-keyword (key::<symbol>) ::<top>
+  (define-c-proc make-keyword (key::<symbol>)
     (result (Sg_MakeKeyword (-> (SG_SYMBOL key) name))))
 
   (define-c-proc keyword? (o) ::<boolean>
     (result (SG_KEYWORDP o)))
 
-  (define-c-proc keyword->symbol (key::<keyword>) ::<top>
+  (define-c-proc keyword->symbol (key::<keyword>)
     (result (Sg_Intern (-> key name))))
 
-  (define-c-proc keyword->string (key::<keyword>) ::<top>
+  (define-c-proc keyword->string (key::<keyword>)
     (result (-> key name)))
 
-  (define-c-proc get-keyword (key::<keyword> lst :optional fallback) ::<top>
-    (result (Sg_GetKeyword key lst fallback)))
+  (define-c-proc get-keyword (key::<keyword> lst :optional fallback)
+    Sg_GetKeyword)
 
   ;; cache
   (define-type <write-cache-ctx> "SgWriteCacheCtx*")
@@ -772,11 +762,19 @@
   (define-c-proc bytevector->integer
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     Sg_ByteVectorToInteger)
+  ;; explicit sign
+  (define-c-proc bytevector->uinteger
+    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_ByteVectorToInteger)
   (define-c-proc bytevector->sinteger
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     Sg_ByteVectorToIntegerS)
 
   (define-c-proc integer->bytevector 
+    (n::<integer> :optional (size::<fixnum> -1))
+    Sg_IntegerToByteVector)
+  ;; explicit sign
+  (define-c-proc uinteger->bytevector 
     (n::<integer> :optional (size::<fixnum> -1))
     Sg_IntegerToByteVector)
   (define-c-proc sinteger->bytevector 
@@ -786,36 +784,30 @@
   (define-c-proc bytevector-append (:rest bv-list) Sg_ByteVectorConcatenate)
   (define-c-proc bytevector-concatenate (bv-list::<list>)
     Sg_ByteVectorConcatenate)
+  (define-c-proc bytevector-reverse!
+    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_ByteVectorReverseX)
+  (define-c-proc bytevector-reverse
+    (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_ByteVectorReverseX (Sg_ByteVectorCopy bv 0 -1) start end)))
 
-  (define-c-proc current-usage-env () ::<top>
-    (result (-> (Sg_VM) usageEnv)))
+  (define-c-proc current-usage-env () (result (-> (Sg_VM) usageEnv)))
 
-  (define-c-proc current-macro-env () ::<top>
-    (result (-> (Sg_VM) macroEnv)))
+  (define-c-proc current-macro-env () (result (-> (Sg_VM) macroEnv)))
 
   ;; time
-  (define-c-proc time-usage () ::<top>
-    (result (Sg_TimeUsage)))
+  (define-c-proc time-usage () Sg_TimeUsage)
 
-  (define-c-proc cond-features () ::<top>
-    (result (Sg_CondFeatures)))
+  (define-c-proc cond-features () Sg_CondFeatures)
 
   ;; record
-  (define-c-proc make-record-type (name::<symbol> rtd rcd) ::<top>
-    (result (Sg_MakeRecordType name rtd rcd)))
-
-  (define-c-proc record-type? (obj) ::<boolean>
-    (result (SG_RECORD_TYPEP obj)))
-
-  (define-c-proc record-type-rtd (rt::<record-type>) ::<top>
-    (result (SG_RECORD_TYPE_RTD rt)))
-
-  (define-c-proc record-type-rcd (rt::<record-type>) ::<top>
-    (result (SG_RECORD_TYPE_RCD rt)))
+  (define-c-proc make-record-type (name::<symbol> rtd rcd) Sg_MakeRecordType)
+  (define-c-proc record-type? (obj) ::<boolean> SG_RECORD_TYPEP)
+  (define-c-proc record-type-rtd (rt::<record-type>) SG_RECORD_TYPE_RTD)
+  (define-c-proc record-type-rcd (rt::<record-type>) SG_RECORD_TYPE_RCD)
 
   ;; charset
-  (define-c-proc char-set? (obj) ::<boolean>
-    (result (SG_CHAR_SET_P obj)))
+  (define-c-proc char-set? (obj) ::<boolean> SG_CHAR_SET_P)
 
   (define-cise-stmt char-set-add
     ((_ name cs chars)
@@ -825,12 +817,12 @@
 					    "character" ch))
 	(Sg_CharSetAddRange ,cs (SG_CHAR_VALUE ch) (SG_CHAR_VALUE ch)))))
 
-  (define-c-proc char-set (:rest chars) ::<top>
+  (define-c-proc char-set (:rest chars)
     (let ((cs::SgCharSet* (SG_CHAR_SET (Sg_MakeEmptyCharSet))))
       (char-set-add char-set cs chars)
       (result cs)))
 
-  (define-c-proc char-set-copy (cs::<char-set>) ::<top>
+  (define-c-proc char-set-copy (cs::<char-set>)
     (result (Sg_CharSetCopy cs)))
 
   (define-c-proc char-set-contains? (cs::<char-set> ch::<char>) ::<boolean>
@@ -842,10 +834,10 @@
   (define-c-proc %char-set<=? (x::<char-set> y::<char-set>) ::<boolean>
     (result (Sg_CharSetLe x y)))
 
-  (define-c-proc %char-set-add-chars! (cs::<char-set> chars) ::<top>
+  (define-c-proc %char-set-add-chars! (cs::<char-set> chars)
     (char-set-add %char-set-add-chars! cs chars) (result cs))
 
-  (define-c-proc %char-set-add-range! (cs::<char-set> from to) ::<top>
+  (define-c-proc %char-set-add-range! (cs::<char-set> from to)
     (let ((f::long -1) (t::long -1))
       (cond ((SG_INTP from) (set! f (SG_INT_VALUE from)))
 	    ((SG_CHARP from) (set! f (SG_CHAR_VALUE from))))
@@ -867,39 +859,31 @@
 			     "'to' argument out of range" to))
       (result (Sg_CharSetAddRange cs (SG_CHAR f) (SG_CHAR t)))))
 
-  (define-c-proc %char-set-add! (dst::<char-set> src::<char-set>) ::<top>
-    (result (Sg_CharSetAdd dst src)))
+  (define-c-proc %char-set-add! (dst::<char-set> src::<char-set>) Sg_CharSetAdd)
+  (define-c-proc %char-set-complement! (cs::<char-set>) Sg_CharSetComplement)
+  (define-c-proc %char-set-ranges (cs::<char-set>) Sg_CharSetRanges)
 
-  (define-c-proc %char-set-complement! (cs::<char-set>) ::<top>
-    (result (Sg_CharSetComplement cs)))
-
-  (define-c-proc %char-set-ranges (cs::<char-set>) ::<top>
-    (result (Sg_CharSetRanges cs)))
-
-  (define-c-proc get-macro-character (c::<char>) ::<top>
+  (define-c-proc get-macro-character (c::<char>)
     (result (Sg_GetMacroCharacter 
 	     c (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
 
   (define-c-proc set-macro-character
-    (c::<char> proc::<procedure> :optional (non_termP::<boolean> #f))
-    ::<void>
+    (c::<char> proc::<procedure> :optional (non_termP::<boolean> #f)) ::<void>
     (Sg_SetMacroCharacter c proc non_termP 
 			  (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))
 
   (define-c-proc make-dispatch-macro-character
-    (c::<char> :optional (non_termP::<boolean> #f))
-    ::<boolean>
+    (c::<char> :optional (non_termP::<boolean> #f)) ::<boolean>
     (result (Sg_MakeDispatchMacroCharacter 
 	     c non_termP 
 	     (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort)))))
 
-  (define-c-proc get-dispatch-macro-character (c::<char> subc::<char>) ::<top>
+  (define-c-proc get-dispatch-macro-character (c::<char> subc::<char>)
     (result (Sg_GetDispatchMacroCharacter 
 	     c subc (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
 
-  (define-c-proc set-dispatch-macro-character (c::<char> subc::<char>
-							 proc::<procedure>)
-    ::<void>
+  (define-c-proc set-dispatch-macro-character 
+    (c::<char> subc::<char> proc::<procedure>) ::<void>
     (Sg_SetDispatchMacroCharacter 
      c subc proc
      (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))

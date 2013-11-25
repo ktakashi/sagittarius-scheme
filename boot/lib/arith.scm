@@ -13,7 +13,7 @@
 	    fxrotate-bit-field
 	    fldiv-and-mod
 	    fldiv0-and-mod0)
-    (import null
+    (import (core)
 	    (core base)
 	    (core errors)
 	    (sagittarius))

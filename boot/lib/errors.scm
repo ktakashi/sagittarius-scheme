@@ -21,7 +21,8 @@
 	    raise-i/o-invalid-position-error
 	    raise-i/o-decoding-error
 	    raise-i/o-encoding-error)
-    (import null (core base)
+    (import (core)
+	    (core base)
 	    (sagittarius))
 
 (define describe-condition

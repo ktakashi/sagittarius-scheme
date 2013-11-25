@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 #!compatible ;; for ypsilon
-(library null
+(library (core)
     (export ;; R6RS (rnrs base (6))
 	    ;; 11.1 base type
 	    boolean? pair? symbol?

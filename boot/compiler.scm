@@ -2922,8 +2922,8 @@
 				 (else (acons 'rec def intmacros)))))
 		      (pass1/body-rec rest intdefs intmacros p1env))))
 		 ;; 11.18 binding constructs for syntactic keywords
-		 ((or (global-eq? head 'let-syntax p1env 'null)
-		      (global-eq? head 'letrec-syntax p1env 'null))
+		 ((or (global-eq? head 'let-syntax p1env '|(core)|)
+		      (global-eq? head 'letrec-syntax p1env '|(core)|))
 		  (receive (defs body)
 		      (smatch (caar exprs)
 			((- ((name trans-spec) ___) body ___)

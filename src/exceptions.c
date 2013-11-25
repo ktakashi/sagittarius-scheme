@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * exceptions.c
+/* exceptions.c                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -431,7 +429,7 @@ static SgRecordType import_type;		 /* &import */
 void Sg__InitConsitions()
 {
   SgObject nullvec = Sg_MakeVector(0, SG_UNDEF);
-  SgObject nulllib = Sg_FindLibrary(SG_INTERN("null"), FALSE);
+  SgObject nulllib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
   SgObject rtd, rcd, ctr, pred;
 
   SgObject immutable = SG_INTERN("immutable");

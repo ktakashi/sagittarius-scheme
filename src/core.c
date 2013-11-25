@@ -80,7 +80,7 @@ extern void Sg__Init_sagittarius();
 extern void Sg__Init_sagittarius_clos();
 extern void Sg__InitInstruction();
 /* compiled libraries */
-extern void Sg__Initnull();
+extern void Sg__Init_core();
 extern void Sg__Init_core_base();
 extern void Sg__Init_core_syntax_case();
 extern void Sg__Init_sagittarius_compiler_util();
@@ -135,7 +135,7 @@ void Sg_Init()
   Sg__InitReader();
   Sg__InitCache();
 
-  nullsym = SG_INTERN("null");
+  nullsym = SG_INTERN("(core)");
   coreBase = SG_INTERN("(core base)");
   compsym = SG_INTERN("(sagittarius compiler)");
   sgsym = SG_INTERN("(sagittarius)");
@@ -147,7 +147,7 @@ void Sg_Init()
   Sg_FindLibrary(compsym, TRUE);
 
   Sg__InitInstruction();
-  Sg__Initnull();
+  Sg__Init_core();
   Sg__InitPair();
   Sg__InitCharSet();
 

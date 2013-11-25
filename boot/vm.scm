@@ -89,6 +89,12 @@
   (define rnrs:guard guard)
   )
  )
+(define (parse-args vars)
+  (let loop ((vars vars)
+	     (n 0))
+    (cond ((null? vars) (values n #f))
+	  ((pair? vars) (loop (cdr vars) (+ n 1)))
+	  (else (values n #t)))))
 
 (load "compiler.scm")
 
