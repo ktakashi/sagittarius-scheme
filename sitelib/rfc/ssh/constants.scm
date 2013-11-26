@@ -44,8 +44,13 @@
   (define-constant +ssh-msg-service-accept+                6) ;; [SSH-TRANS]
   (define-constant +ssh-msg-kexinit+                      20) ;; [SSH-TRANS]
   (define-constant +ssh-msg-newkeys+                      21) ;; [SSH-TRANS]
-  (define-constant +ssh-msg-kexdh-init+                   30)
+  (define-constant +ssh-msg-kexdh-init+                   30) ;; DH
   (define-constant +ssh-msg-kexdh-reply+                  31)
+  (define-constant +ssh-msg-kex-dh-gex-request-old+       30) ;; DH group
+  (define-constant +ssh-msg-kex-dh-gex-request+           34)
+  (define-constant +ssh-msg-kex-dh-gex-group+             31)
+  (define-constant +ssh-msg-kex-dh-gex-init+              32)
+  (define-constant +ssh-msg-kex-dh-gex-reply+             33)
   (define-constant +ssh-msg-userauth-request+             50) ;; [SSH-USERAUTH]
   (define-constant +ssh-msg-userauth-failure+             51) ;; [SSH-USERAUTH]
   (define-constant +ssh-msg-userauth-success+             52) ;; [SSH-USERAUTH]
@@ -176,4 +181,14 @@
 					;  bits per second.
   (define-constant +TTY-OP-OSPEED+ 129) ; Specifies the output baud rate in
 					;  bits per second.
+
+  (define-constant +dh-group1-p+
+    #xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE65381FFFFFFFFFFFFFFFF)
+
+  (define-constant +dh-group1-g+ 2)
+
+  (define-constant +dh-group14-p+
+    #xffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aacaa68ffffffffffffffff)
+
+  (define-constant +dh-group14-g+ 2)
 )

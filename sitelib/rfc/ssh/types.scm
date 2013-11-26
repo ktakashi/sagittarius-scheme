@@ -33,11 +33,20 @@
     (export <ssh-message>
 	    <name-list> name-list
 	    write-message
+
+	    define-ssh-message
+
 	    ssh-message->bytevector
 	    read-message
 	    <ssh-msg-keyinit>
 	    <ssh-msg-kexdh-init>
 	    <ssh-msg-kexdh-reply>
+
+	    ;; gex
+	    <ssh-msg-kex-dh-gex-request>
+	    <ssh-msg-kex-dh-gex-group>
+	    <ssh-msg-kex-dh-gex-init>
+	    <ssh-msg-kex-dh-gex-reply>
 
 	    <ssh-dss-certificate>
 	    <ssh-rsa-certificate>
@@ -62,8 +71,10 @@
   ;; base class for SSH message
   (define-class <ssh-type> () ()
     :metaclass <ssh-type-meta>)
+  #;
   (define-method write-message ((m <ssh-type>) . ignore)
     (error 'write-message "sub class must implement this"))
+  #;
   (define-method read-message ((t <ssh-type-meta>) . ignore)
     (error 'read-message "sub class meta class must implement this" t))
 
@@ -152,12 +163,23 @@
 
   ;; SSH context
   (define-class <ssh-socket> ()
-    ((socket   :init-keyword :socket)	; raw socket
+    ((socket   :init-keyword :socket)	; raw socket (in/out port)
      (target-version :init-value #f)	; version string from peer
      (prng     :init-keyword :prng :init-form (secure-random RC4))
      (sequence :init-value 0)		; unsigned 32 bit int
+     (session-id :init-value #f)
+     (kex      :init-value #f)	  ; key exchange algorithm (temporary)
+     ;; server private key (for sign?)
+     (private-key :init-keyword :private-key :init-value #f)
+     ;; ivs (should we hold these ivs and keys things as cipher?)
+     (server-iv :init-value #f)
+     (client-iv :init-value #f)
      ;; keys
-     (shared-key :init-value #f)
+     (server-key :init-value #f)
+     (client-key :init-value #f)
+     ;; mac key
+     (server-mkey :init-value #f)
+     (client-mkey :init-value #f)
      ;; mac algorithm
      (server-mac :init-value #f) ;; server -> client
      (client-mac :init-value #f) ;; client -> server
@@ -184,8 +206,12 @@
   ;; 7.1. Algorithm Negotiation
   ;; can be supported more but i'm lazy
   (define empty-list (name-list))
-  (define kex-list (name-list "diffie-hellman-group1-sha1" 
-			      "diffie-hellman-group14-sha1"))
+  ;; TODO order must be gex-sha256, gex-sha1, dh-group14, dh-group1
+  (define kex-list (name-list 
+		    "diffie-hellman-group-exchange-sha256"
+		    "diffie-hellman-group-exchange-sha1"
+		    "diffie-hellman-group14-sha1"
+		    "diffie-hellman-group1-sha1"))
   (define public-key-list (name-list "ssh-rsa" "ssh-dss"))
   (define encryption-list (name-list "aes128-cbc" "aes256-cbc"
 				     "3des-cbc" "blowfish-cbc"))
@@ -210,12 +236,36 @@
      (reserved :uint32 0))
     :parent-metaclass <ssh-type-meta>)
 
+  ;; RFC 4253 DH
   (define-ssh-message <ssh-msg-kexdh-init> (<ssh-message>)
     ((type :byte +ssh-msg-kexdh-init+)
      (e    :mpint)))
 
   (define-ssh-message <ssh-msg-kexdh-reply> (<ssh-message>)
     ((type :byte +ssh-msg-kexdh-reply+)
+     (K-S  :string)
+     (f    :mpint)
+     (H    :string)))
+
+  ;; RFC 4419 DH-GEX
+  (define-ssh-message <ssh-msg-kex-dh-gex-request> (<ssh-message>)
+    ((type :byte +ssh-msg-kex-dh-gex-request+)
+     ;; TODO this default should be parameter or so
+     (min  :uint32 1024)
+     (n    :uint32 1024)
+     (max  :uint32 2048)))
+
+  (define-ssh-message <ssh-msg-kex-dh-gex-group> (<ssh-message>)
+    ((type :byte +ssh-msg-kex-dh-gex-group+)
+     (p    :mpint)
+     (g    :mpint)))
+
+  (define-ssh-message <ssh-msg-kex-dh-gex-init> (<ssh-message>)
+    ((type :byte +ssh-msg-kex-dh-gex-init+)
+     (e    :mpint)))
+
+  (define-ssh-message <ssh-msg-kex-dh-gex-reply> (<ssh-message>)
+    ((type :byte +ssh-msg-kex-dh-gex-reply+)
      (K-S  :string)
      (f    :mpint)
      (H    :string)))
@@ -231,5 +281,6 @@
      (n :mpint)))
 
   (define-ssh-message <ssh-signature> (<ssh-type>)
-    ((signature :string)))
+    ((type      :string)
+     (signature :string)))
 )

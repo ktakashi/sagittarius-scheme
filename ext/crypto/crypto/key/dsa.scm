@@ -95,6 +95,9 @@
 	      (public (make <dsa-public-key> :p p :q q :g g :Y y)))
 	  (make-keypair private public)))))
 
+  (define-method generate-public-key ((marker <dsa>) p q g y)
+    (make <dsa-public-key> :p p :q q :g g :Y y))
+
   ;; According to OpenSSL
   ;; DSA signature data is packes like this;
   ;; DSASignature ::= SEQUENCE {
