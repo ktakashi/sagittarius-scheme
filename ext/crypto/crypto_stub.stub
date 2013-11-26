@@ -13,8 +13,7 @@
 (define-c-proc crypto-object? (o) ::<boolean>
   (result (Sg_TypeP o SG_CLASS_CRYPTO)))
 
-(define-c-proc cipher? (o) ::<boolean>
-  (result (SG_CIPHERP o)))
+(define-c-proc cipher? (o) ::<boolean> SG_CIPHERP)
 
 (define-c-proc key? (o) ::<boolean>
   (result (Sg_TypeP o SG_CLASS_KEY)))
@@ -49,17 +48,16 @@
 				     spi '()))
   (result (Sg_MakeCipher spi)))
 
-(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) 
-  (result (Sg_Encrypt crypto pt)))
+(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) Sg_Encrypt)
 
-(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) 
-  (result (Sg_Decrypt crypto ct)))
+(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) Sg_Decrypt)
 
 (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
-  (result (Sg_SuggestKeysize name size)))
+  Sg_SuggestKeysize)
 
-(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
-  (result (Sg_CipherBlockSize name)))
+;; now it's generic
+;;(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
+;;  (result (Sg_CipherBlockSize name)))
 
 (define-c-proc cipher-iv (cipher::<cipher> :optional iv::<bytevector>)
   (if (SG_UNBOUNDP iv)

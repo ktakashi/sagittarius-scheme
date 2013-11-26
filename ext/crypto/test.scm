@@ -122,6 +122,11 @@
 ;; block size
 (test-equal "DES block size" 8 (cipher-blocksize des/ecb-cipher))
 (test-equal "DES3 block size" 8 (cipher-blocksize des3/ecb-cipher))
+
+;; new interface
+(test-equal "DES block size" 8 (cipher-blocksize DES))
+(test-equal "DES3 block size" 8 (cipher-blocksize DESede))
+
 ;; encryption
 
 (test-equal "DES/ECB encrypt"
