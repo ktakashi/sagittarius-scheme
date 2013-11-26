@@ -172,11 +172,8 @@
      ;; server private key (for sign?)
      (private-key :init-keyword :private-key :init-value #f)
      ;; ivs (should we hold these ivs and keys things as cipher?)
-     (server-iv :init-value #f)
-     (client-iv :init-value #f)
-     ;; keys
-     (server-key :init-value #f)
-     (client-key :init-value #f)
+     (server-cipher :init-value #f)
+     (client-cipher :init-value #f)
      ;; mac key
      (server-mkey :init-value #f)
      (client-mkey :init-value #f)

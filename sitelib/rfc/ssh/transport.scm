@@ -131,13 +131,12 @@
 
   (define (read-packet context)
     ;; TODO get mac size
-    (parameterize ((*mac-length* (or (and-let* ((k (~ context 'client-key))
+    (parameterize ((*mac-length* (or (and-let* ((k (~ context 'client-cipher))
 						(h (~ context 'server-mac)))
 				       (hash-size h))
 				     0)))
       (packet-read <ssh-binary-packet> (~ context 'socket))))
   (define (write-packet context msg)
-    ;; TODO compute mac!
     (define (compute-mac socket payload) 
       (or (and-let* ((h (~ context 'client-mac))
 		     (key (~ context 'client-mkey))
@@ -234,13 +233,55 @@
     (define d (kex-digester socket))
     (define (digest mark)
       (hash d (bytevector-append k H mark (~ socket 'session-id))))
-    (set! (~ socket 'client-iv)   (digest #vu8(#x41))) ;; "A"
-    (set! (~ socket 'server-iv)   (digest #vu8(#x42))) ;; "B"
-    (set! (~ socket 'client-key)  (digest #vu8(#x43))) ;; "C"
-    (set! (~ socket 'server-key)  (digest #vu8(#x44))) ;; "D"
-    (set! (~ socket 'client-mkey) (digest #vu8(#x45))) ;; "E"
-    (set! (~ socket 'server-mkey) (digest #vu8(#x46))) ;; "F"
-    socket)
+    ;; returns cipher and key size (in bytes)
+    (define (cipher&keysize c)
+      (cond ((string-prefix? "aes128"   c) (values AES      16))
+	    ((string-prefix? "aes256"   c) (values AES      32))
+	    ((string-prefix? "3des"     c) (values DESede   24))
+	    ((string-prefix? "blowfish" c) (values Blowfish 16))
+	    (else (error 'compute-keys! "cipher not supported" c))))
+    (define (cipher-mode c)
+      (cond ((string-suffix? "cbc" c) MODE_CBC)
+	    ;; TODO counter mode
+	    (else (error 'compute-keys! "mode not supported" c))))
+    (define client-enc (~ socket 'client-enc))
+    (define server-enc (~ socket 'server-enc))
+
+    (define (make-cipher c mode key size iv)
+      (define (digest k*)
+	(hash d (apply bytevector-append k H (reverse k*))))
+      (define (adjust-keysize key) 
+	(let loop ((key key) (k* (list key)))
+	  (let1 s (bytevector-length key)
+	    (cond ((= s size) (generate-secret-key c key))
+		  ((> s size) 
+		   (generate-secret-key c (bytevector-copy key 0 size)))
+		  (else
+		   ;; compute and append
+		   (let1 k (digest k*)
+		     (loop (bytevector-append key k)
+			   (cons k k*))))))))
+
+      ;; TODO counter mode
+      (cipher c (adjust-keysize key) :mode mode :iv iv))
+
+    (let ((client-iv   (digest #vu8(#x41)))  ;; "A"
+	  (server-iv   (digest #vu8(#x42)))  ;; "B"
+	  (client-key  (digest #vu8(#x43)))  ;; "C"
+	  (server-key  (digest #vu8(#x44)))  ;; "D"
+	  (client-mkey (digest #vu8(#x45)))  ;; "E"
+	  (server-mkey (digest #vu8(#x46)))  ;; "F"
+	  (client-mode (cipher-mode client-enc))
+	  (server-mode (cipher-mode server-enc)))
+      (let-values (((client-cipher client-size) (cipher&keysize client-enc))
+		   ((server-cipher server-size) (cipher&keysize server-enc)))
+	(set! (~ socket 'client-cipher)
+	      (make-cipher client-cipher client-mode
+			   client-key client-size client-iv))
+	(set! (~ socket 'server-cipher)
+	      (make-cipher server-cipher server-mode
+			   server-key server-size server-iv)))
+      socket))
 
   (define (key-exchange socket)
     (define macs `((hmac-sha1 . ,SHA-1)))
