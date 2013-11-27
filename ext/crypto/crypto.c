@@ -239,8 +239,7 @@ static SgObject symmetric_encrypt(SgCipher *crypto, SgByteVector *d)
   ASSERT(SG_BUILTIN_CIPHER_SPI_P(spi));
 
   if (!SG_FALSEP(spi->padder)) {
-    struct ltc_cipher_descriptor *desc
-      = &cipher_descriptor[spi->cipher];
+    struct ltc_cipher_descriptor *desc = &cipher_descriptor[spi->cipher];
     int block_size = desc->block_length;
     data = Sg_Apply3(spi->padder, data, SG_MAKE_INT(block_size), SG_TRUE);
   }
@@ -281,26 +280,8 @@ static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
   int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(spi->key));
   int rounds = spi->rounds;
   SgObject pt;			/* plain text */
-  int len = SG_BVECTOR_SIZE(data), err, block_size = -1;
+  int len = SG_BVECTOR_SIZE(data), err;
 
-  switch (spi->mode) {
-  case MODE_ECB:
-    ecb_start(spi->cipher, key, keylen, rounds,
-	      &spi->skey.ecb_key);
-    goto entry;
-  case MODE_CBC:
-    cbc_start(spi->cipher,
-	      SG_BVECTOR_ELEMENTS(spi->iv),
-	      key, keylen, rounds,
-	      &spi->skey.cbc_key);
-  entry: {
-      struct ltc_cipher_descriptor *desc
-	= &cipher_descriptor[spi->cipher];
-      block_size = desc->block_length;
-    }
-    break;
-  default: break;
-  }
   pt = Sg_MakeByteVector(len, 0);
   err = spi->decrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(pt),
 		     len, &spi->skey);
@@ -310,9 +291,12 @@ static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
   }
 
   if (!SG_FALSEP(spi->padder)) {
+    struct ltc_cipher_descriptor *desc = &cipher_descriptor[spi->cipher];
+    int block_size = desc->block_length;
     /* drop padding */
     pt = Sg_Apply3(spi->padder, pt, SG_MAKE_INT(block_size), SG_FALSE);
   }
+
   return pt;
 }
 
