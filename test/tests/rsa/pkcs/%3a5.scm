@@ -7,10 +7,11 @@
 (define (test expected algorithm password salt count)
   (let* ((param (make-pbe-parameter (string->utf8 salt) count))
 	 (key (generate-secret-key algorithm password))
-	 (pbe-cipher (cipher algorithm key :parameter param))
-	 (ciphertext (encrypt pbe-cipher 
+	 (pbe-enc-cipher (cipher algorithm key :parameter param))
+	 (pbe-dec-cipher (cipher algorithm key :parameter param))
+	 (ciphertext (encrypt pbe-enc-cipher 
 			      (string->utf8 "This is an example.")))
-	 (decrypted (decrypt pbe-cipher expected)))
+	 (decrypted (decrypt pbe-dec-cipher expected)))
     (test-equal algorithm expected ciphertext)
     (test-equal algorithm (string->utf8 "This is an example.")
 		decrypted)))
@@ -131,12 +132,14 @@
 (let* ((c 1024)
        (param (make-pbe-parameter (string->utf8 "saltsalt") c))
        (key (generate-secret-key pbkdf2-with-hmac-sha1-des3 "password"))
-       (pbe-cipher (cipher pbkdf2-with-hmac-sha1-des3
+       (pbe-enc-cipher (cipher pbkdf2-with-hmac-sha1-des3
 			   key :parameter param))
-       (ciphertext (encrypt pbe-cipher 
+       (pbe-dec-cipher (cipher pbkdf2-with-hmac-sha1-des3
+			   key :parameter param))
+       (ciphertext (encrypt pbe-enc-cipher 
 			    (string->utf8 "This is an example."))))
   (test-equal "PBES2 test" 
 	      "This is an example."
-	      (utf8->string (decrypt pbe-cipher ciphertext))))
+	      (utf8->string (decrypt pbe-dec-cipher ciphertext))))
 
 (test-end)
