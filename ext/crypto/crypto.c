@@ -1,8 +1,6 @@
-/* -*- mode: c; coding: utf-8; -*- */
-/*
- * crypto.h
+/* crypto.c                                      -*- mode: c; coding: utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -591,7 +589,7 @@ static void bci_iv_set(SgBuiltinCipherSpi *spi, SgObject value)
     Sg_Error(UC("iv must be bytevector. %S"), value);
   }
   len = cipher_descriptor[spi->cipher].block_length;
-  if (SG_BVECTOR_SIZE(value) != len) {
+  if (SG_BVECTOR_SIZE(value) != (long)len) {
     Sg_Error(UC("invalid size of iv. %S"), value);
   }
   spi->setiv(SG_BVECTOR_ELEMENTS(value), &len, &spi->skey);
@@ -623,6 +621,44 @@ static SgSlotAccessor builtin_cipher_spi_slots[] = {
   { { NULL } }
 };
 
+SG_DEFINE_GENERIC(Sg_GenericCipherBlockSize, Sg_NoNextMethod, NULL);
+
+/* original one */
+static SgObject cipher_blocksize_c_impl(SgObject *args, int argc, void *data)
+{
+  /* type must be check by here */
+  return SG_MAKE_INT(Sg_CipherBlockSize(SG_CIPHER(args[0])));
+}
+SG_DEFINE_SUBR(cipher_blocksize_c, 1, 0, cipher_blocksize_c_impl,
+	       SG_FALSE, NULL);
+static SgClass *cipher_blocksize_c_SPEC[] = {
+  SG_CLASS_CIPHER
+};
+static SG_DEFINE_METHOD(cipher_blocksize_c_rec,
+			&Sg_GenericCipherBlockSize,
+			1, 0, cipher_blocksize_c_SPEC, &cipher_blocksize_c);
+
+/* keyword (name) one */
+static SgObject cipher_blocksize_k_impl(SgObject *args, int argc, void *data)
+{
+  SgString *name = SG_KEYWORD_NAME(args[0]);
+  const char *cname = Sg_Utf32sToUtf8s(name);
+  int cipher = find_cipher(cname);
+  if (cipher == -1) {
+    Sg_Error(UC("%A is not supported"), name);
+  }
+  return SG_MAKE_INT(cipher_descriptor[cipher].block_length);
+}
+SG_DEFINE_SUBR(cipher_blocksize_k, 1, 0, cipher_blocksize_k_impl,
+	       SG_FALSE, NULL);
+static SgClass *cipher_blocksize_k_SPEC[] = {
+  SG_CLASS_KEYWORD
+};
+static SG_DEFINE_METHOD(cipher_blocksize_k_rec,
+			&Sg_GenericCipherBlockSize,
+			1, 0, cipher_blocksize_k_SPEC, &cipher_blocksize_k);
+
+
 
 
 extern void Sg__Init_crypto_stub(SgLibrary *lib);
@@ -637,6 +673,11 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
 
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius crypto)"),
 				  FALSE));
+  Sg_InitBuiltinGeneric(&Sg_GenericCipherBlockSize, 
+			UC("cipher-blocksize"), lib);
+  Sg_InitBuiltinMethod(&cipher_blocksize_c_rec);
+  Sg_InitBuiltinMethod(&cipher_blocksize_k_rec);
+
   Sg__Init_crypto_stub(lib);
 
   Sg__InitKey(lib);
