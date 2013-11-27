@@ -52,6 +52,9 @@
 	    <ssh-rsa-certificate>
 	    <ssh-signature>
 
+	    ;; disconnection
+	    <ssh-msg-disconnect>
+
 	    ;; service request
 	    <ssh-msg-service-request>
 	    <ssh-msg-service-accept>
@@ -313,6 +316,13 @@
     ((type :byte +ssh-msg-service-accept+)
      (service-name :string)))
 
+  ;; disconnection
+  (define-ssh-message <ssh-msg-disconnect> (<ssh-message>)
+    ((type :byte +ssh-msg-disconnect+)
+     (code :uint32)
+     (description :string)
+     (laguage :string #vu8())))
+
   ;; RFC 4252 authentication
   ;; base class for userauth request
   (define-ssh-message <ssh-msg-userauth-request> (<ssh-message>)
@@ -342,10 +352,10 @@
   (define-ssh-message <ssh-msg-userauth-passwd-changereq> (<ssh-message>)
     ((type :byte +ssh-msg-userauth-passwd-changereq+)
      (prompt   :string)
-     (langauge :string)))
+     (langauge :string #vu8())))
 
  (define-ssh-message <ssh-msg-userauth-banner> (<ssh-message>)
     ((type :byte +ssh-msg-userauth-banner+)
      (message  :string)
-     (langauge :string)))
+     (langauge :string #vu8())))
 )

@@ -38,6 +38,7 @@
 	    key-exchange
 	    service-request
 	    authenticate-user
+	    ssh-disconnect
 
 	    write-packet
 	    read-packet)
@@ -129,7 +130,6 @@
     (define (read&decrypt mac-length)
       (let ((c (~ context 'server-cipher))
 	    (buf (get-bytevector-all (~ context 'socket))))
-	(display (bytevector->hex-string (cipher-iv c))) (newline)
 	(let*-values (((ct mac) (bytevector-split-at* 
 				   buf (- (bytevector-length buf) mac-length)))
 		      ((pt) (decrypt c ct)))
@@ -428,6 +428,13 @@
 	      (else
 	       (error 'key-exchange "unknown KEX"))))))
 
+  (define (ssh-disconnect socket :key (code +ssh-disconnect-by-application+)
+			  (description "finish"))
+    (write-packet socket (ssh-message->bytevector
+			  (make <ssh-msg-disconnect>
+			    :code code
+			    :description description))))
+
   (define (service-request socket name)
     (write-packet socket (ssh-message->bytevector 
 			  (make <ssh-msg-service-request>
@@ -444,8 +451,9 @@
     (error 'auth-pub-key "not supported yet")
     )
 
-  (define (auth-password socket service-name user-name old-password 
-			 :key (new-password #f))
+  (define (auth-password socket user-name old-password 
+			 :key (new-password #f)
+			 (service-name +ssh-connection+))
     (define-syntax u8 (identifier-syntax bytevector-u8-ref))
     (let1 m (make <ssh-msg-password-userauth-request>
 	      :user-name user-name
@@ -456,20 +464,23 @@
 	      :new-password new-password)
       (write-packet socket (ssh-message->bytevector m))
       (let1 rp (read-packet socket)
-	(display "received:")
-	(display (bytevector->hex-string rp)) (newline)
 	(cond ((= (u8 rp 0) +ssh-msg-userauth-banner+)
 	       (let1 bp (read-packet socket) ;; ignore success
-		 (read-message <ssh-msg-userauth-banner>
-			       (open-bytevector-input-port rp))))
+		 (values
+		  (= (u8 bv 0) +ssh-msg-userauth-success+)
+		  (read-message <ssh-msg-userauth-banner>
+				(open-bytevector-input-port rp)))))
+	      ((= (u8 rp 0) +ssh-msg-userauth-success+) (values #t #f))
 	      ((= (u8 rp 0) +ssh-msg-userauth-failure+)
-	       (read-message <ssh-msg-userauth-failure>
-			     (open-bytevector-input-port rp)))
+	       (values #f
+		(read-message <ssh-msg-userauth-failure>
+			      (open-bytevector-input-port rp))))
 	      ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
-	       (read-message <ssh-msg-userauth-passwd-changereq>
-			     (open-bytevector-input-port rp)))
+	       (values #f
+		(read-message <ssh-msg-userauth-passwd-changereq>
+			      (open-bytevector-input-port rp))))
 	      (else
-	       (error 'auth-password "unknown tag"))))))
+	       (error 'auth-password "unknown tag" rp))))))
 
   (define (authenticate-user socket method . options)
     (if (symbol? method)
