@@ -52,6 +52,18 @@
 	    <ssh-rsa-certificate>
 	    <ssh-signature>
 
+	    ;; service request
+	    <ssh-msg-service-request>
+	    <ssh-msg-service-accept>
+	    ;; authentication
+	    <ssh-msg-userauth-request> ;; abstract class for later extension
+	    <ssh-msg-public-key-userauth-request>
+	    <ssh-msg-password-userauth-request>
+
+	    <ssh-msg-userauth-passwd-changereq>
+	    <ssh-msg-userauth-failure>
+	    <ssh-msg-userauth-banner>
+
 	    <ssh-socket>)
     (import (rnrs)
 	    (clos user)
@@ -132,12 +144,24 @@
 
   ;; keep it as binary otherwise it's inconvenient
   (define-method write-message ((type (eql :string)) o out array-size?)
-    (let* ((s (bytevector-length o)))
+    (let* ((o (if (string? o) (string->utf8 o) o))
+	   (s (bytevector-length o)))
       (put-bytevector out (pack "!L" s))
       (put-bytevector out o)))
   (define-method read-message ((t (eql :string)) in array-size?)
     (let ((size (get-unpack in "!L")))
       (get-bytevector-n in size)))
+
+  ;; keep it as binary otherwise it's inconvenient
+  (define-method write-message ((type (eql :string-or-empty)) o out array-size?)
+    (when (string? o)
+      (let* ((s (bytevector-length o)))
+	(put-bytevector out (pack "!L" s))
+	(put-bytevector out o))))
+  (define-method read-message ((t (eql :string-or-empty)) in array-size?)
+    (or (eof-object? (lookahead-u8 in))
+	(let ((size (get-unpack in "!L")))
+	  (get-bytevector-n in size))))
 
   (define-simple-datum-define define-ssh-type read-message write-message)
   (define-ssh-type <name-list> (<ssh-type>)
@@ -280,4 +304,48 @@
   (define-ssh-message <ssh-signature> (<ssh-type>)
     ((type      :string)
      (signature :string)))
+
+  (define-ssh-message <ssh-msg-service-request> (<ssh-message>)
+    ((type :byte +ssh-msg-service-request+)
+     (service-name :string)))
+
+  (define-ssh-message <ssh-msg-service-accept> (<ssh-message>)
+    ((type :byte +ssh-msg-service-accept+)
+     (service-name :string)))
+
+  ;; RFC 4252 authentication
+  ;; base class for userauth request
+  (define-ssh-message <ssh-msg-userauth-request> (<ssh-message>)
+    ((type         :byte +ssh-msg-userauth-request+)
+     (user-name    :string)
+     (service-name :string)
+     (method       :string)))
+
+  (define-ssh-message <ssh-msg-public-key-userauth-request> 
+    (<ssh-msg-userauth-request>)
+    ((has-signature? :boolean #f)
+     (algorithm-name :string)
+     (blob           :string)
+     (signature      :string-or-empty)))
+
+  (define-ssh-message <ssh-msg-password-userauth-request> 
+    (<ssh-msg-userauth-request>)
+    ((change-password?  :boolean #f)
+     (old-password      :string)
+     (new-password      :string-or-empty)))
+
+  (define-ssh-message <ssh-msg-userauth-failure> (<ssh-message>)
+    ((type :byte +ssh-msg-userauth-failure+)
+     (list <name-list>)
+     (partial-success? :boolean #f)))
+
+  (define-ssh-message <ssh-msg-userauth-passwd-changereq> (<ssh-message>)
+    ((type :byte +ssh-msg-userauth-passwd-changereq+)
+     (prompt   :string)
+     (langauge :string)))
+
+ (define-ssh-message <ssh-msg-userauth-banner> (<ssh-message>)
+    ((type :byte +ssh-msg-userauth-banner+)
+     (message  :string)
+     (langauge :string)))
 )

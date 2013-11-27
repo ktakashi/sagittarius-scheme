@@ -35,7 +35,12 @@
 	    *ssh-version-string*
 	    ;; for testing
 	    version-exchange
-	    key-exchange)
+	    key-exchange
+	    service-request
+	    authenticate-user
+
+	    write-packet
+	    read-packet)
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius socket)
@@ -110,32 +115,40 @@
   ;; think about it...
   (define (ssh-socket-recv socket ))
 
-  ;; very *LISPY* isn't it? ... orz
-  (define *mac-length* (make-parameter 0))
-  (define-simple-datum-define define-packet packet-read packet-write)
-  (define-packet <ssh-binary-packet> ()
-    (payload padding mac)
-    (lambda (in)
+  ;; FIXME
+  ;;   currently it's really bad way to read and write a packet
+  ;;   (especially read).
+  ;;   try read maximum number of packet and encrypt/decrypt if needed.
+  ;; TODO
+  ;;   * make buffer in socket and read&decrypt per cipher block size
+  (define-constant +max-packet-size+ 35000)
+
+  (define (read-packet context)
+    ;; FIXME this is really bad implementation...
+    ;; not efficient at all
+    (define (read&decrypt mac-length)
+      (let ((c (~ context 'server-cipher))
+	    (buf (get-bytevector-all (~ context 'socket))))
+	(display (bytevector->hex-string (cipher-iv c))) (newline)
+	(let*-values (((ct mac) (bytevector-split-at* 
+				   buf (- (bytevector-length buf) mac-length)))
+		      ((pt) (decrypt c ct)))
+	  (open-bytevector-input-port (bytevector-append pt mac)))))
+
+    (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
+				     (h (~ context 'server-mac)))
+			    (hash-size h))
+			  0))
+	   (in (if (zero? mac-length)
+		   (~ context 'socket)
+		   (read&decrypt mac-length))))
       (let-values (((total-size pad-size) (get-unpack in "!LC")))
 	(let ((payload (get-bytevector-n in (- total-size pad-size 1)))
 	      (padding (get-bytevector-n in pad-size))
-	      (mac     (get-bytevector-n in (*mac-length*))))
-	  (values payload padding (if (eof-object? mac) #vu8() mac)))))
-    (lambda (out payload padding mac)
-      (let1 size (+ (bytevector-length payload) (bytevector-length padding) 1)
-	(put-u32 out size (endianness big))
-	(put-u8 out (bytevector-length padding))
-	(put-bytevector out payload)
-	(put-bytevector out padding)
-	(put-bytevector out mac))))
+	      (mac     (get-bytevector-n in mac-length)))
+	  ;; TODO verify mac
+	  payload))))
 
-  (define (read-packet context)
-    ;; TODO get mac size
-    (parameterize ((*mac-length* (or (and-let* ((k (~ context 'client-cipher))
-						(h (~ context 'server-mac)))
-				       (hash-size h))
-				     0)))
-      (packet-read <ssh-binary-packet> (~ context 'socket))))
   (define (write-packet context msg)
     (define (compute-mac socket payload) 
       (or (and-let* ((h (~ context 'client-mac))
@@ -148,21 +161,35 @@
 	  #vu8()))
     (define (construct-packet socket payload)
       (define (total-size data-len)
-	;; TODO cipher block size or 8
 	(define (round-up l)
-	  (bitwise-and (+ l 7) (bitwise-not 7)))
+	  (let* ((c (~ socket 'client-cipher))
+		 (size (if c (- (cipher-blocksize c) 1) 7)))
+	    (bitwise-and (+ l size) (bitwise-not size))))
 	(round-up (+ data-len 4 1 4)))
       (let* ((data-len (bytevector-length payload))
 	     (total-len (total-size data-len))
 	     (padding (read-random-bytes (~ socket 'prng)
 					 (- total-len 4 1 data-len)))
-	     (mac     (compute-mac socket payload)))
-	(make <ssh-binary-packet>
-	  :payload payload :padding padding :mac mac)))
+	     (content (call-with-bytevector-output-port
+			 (lambda (out)
+			   (put-u32 out (- total-len 4) (endianness big))
+			   (put-u8 out (bytevector-length padding))
+			   (put-bytevector out payload)
+			   (put-bytevector out padding))))
+	     (mac     (compute-mac socket content)))
+	(values payload content mac)))
+    (define (encrypt-packet payload)
+      (let1 c (~ context 'client-cipher)
+	(if c
+	    (encrypt c payload)
+	    payload)))
 
-    (let1 packet (construct-packet context msg)
-      (packet-write <ssh-binary-packet> packet (~ context 'socket))
-      packet))
+    (let-values (((payload content mac) (construct-packet context msg)))
+      (set! (~ context 'sequence) (+ (~ context 'sequence) 1))      
+      (let1 out (~ context 'socket)
+	(put-bytevector out (encrypt-packet content))
+	(put-bytevector out mac))
+      payload))
 
   ;; for my laziness
   (define-ssh-message <DH-H> ()
@@ -222,17 +249,16 @@
       (read-message <ssh-signature> (open-bytevector-input-port H)))
     (let*-values (((type key verify-options) (parse-k-s))
 		  ((sig) (parse-h))
-		  ((vc) (cipher type key)))
-      (apply verify vc 
-	     (hash (kex-digester socket) (ssh-message->bytevector m))
-	     (~ sig 'signature) 
-	     verify-options)))
+		  ((vc) (cipher type key))
+		  ((h) (hash (kex-digester socket) 
+			     (ssh-message->bytevector m))))
+      (unless (~ socket 'session-id) (set! (~ socket 'session-id) h))
+      (apply verify vc h (~ sig 'signature) verify-options)
+      h))
 
-  (define (compute-keys! socket K H)
-    (define k (integer->bytevector K))
+  (define (compute-keys! socket k H)
     (define d (kex-digester socket))
-    (define (digest mark)
-      (hash d (bytevector-append k H mark (~ socket 'session-id))))
+    (define (digest salt) (hash d (bytevector-append k H salt)))
     ;; returns cipher and key size (in bytes)
     (define (cipher&keysize c)
       (cond ((string-prefix? "aes128"   c) (values AES      16))
@@ -247,30 +273,26 @@
     (define client-enc (~ socket 'client-enc))
     (define server-enc (~ socket 'server-enc))
 
+    (define (adjust-keysize key size) 
+      (let loop ((key key))
+	(let1 s (bytevector-length key)
+	  (cond ((= s size) key)
+		((> s size) (bytevector-copy key 0 size))
+		(else
+		 ;; compute and append
+		 (let1 k (digest key)
+		   (loop (bytevector-append key k))))))))
     (define (make-cipher c mode key size iv)
-      (define (digest k*)
-	(hash d (apply bytevector-append k H (reverse k*))))
-      (define (adjust-keysize key) 
-	(let loop ((key key) (k* (list key)))
-	  (let1 s (bytevector-length key)
-	    (cond ((= s size) (generate-secret-key c key))
-		  ((> s size) 
-		   (generate-secret-key c (bytevector-copy key 0 size)))
-		  (else
-		   ;; compute and append
-		   (let1 k (digest k*)
-		     (loop (bytevector-append key k)
-			   (cons k k*))))))))
-
       ;; TODO counter mode
-      (cipher c (adjust-keysize key) :mode mode :iv iv))
-
-    (let ((client-iv   (digest #vu8(#x41)))  ;; "A"
-	  (server-iv   (digest #vu8(#x42)))  ;; "B"
-	  (client-key  (digest #vu8(#x43)))  ;; "C"
-	  (server-key  (digest #vu8(#x44)))  ;; "D"
-	  (client-mkey (digest #vu8(#x45)))  ;; "E"
-	  (server-mkey (digest #vu8(#x46)))  ;; "F"
+      (cipher c (generate-secret-key c (adjust-keysize key size))
+	      :mode mode :iv iv :padder #f))
+    (define sid (~ socket 'session-id))
+    (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
+	  (server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
+	  (client-key  (digest (bytevector-append #vu8(#x43) sid))) ;; "C"
+	  (server-key  (digest (bytevector-append #vu8(#x44) sid))) ;; "D"
+	  (client-mkey (digest (bytevector-append #vu8(#x45) sid))) ;; "E"
+	  (server-mkey (digest (bytevector-append #vu8(#x46) sid))) ;; "F"
 	  (client-mode (cipher-mode client-enc))
 	  (server-mode (cipher-mode server-enc)))
       (let-values (((client-cipher client-size) (cipher&keysize client-enc))
@@ -280,7 +302,11 @@
 			   client-key client-size client-iv))
 	(set! (~ socket 'server-cipher)
 	      (make-cipher server-cipher server-mode
-			   server-key server-size server-iv)))
+			   server-key server-size server-iv))
+	(set! (~ socket 'client-mkey)
+	      (adjust-keysize client-mkey (hash-size (~ socket 'client-mac))))
+	(set! (~ socket 'server-mkey)
+	      (adjust-keysize server-mkey (hash-size (~ socket 'server-mac)))))
       socket))
 
   (define (key-exchange socket)
@@ -309,8 +335,7 @@
 	    (write-packet socket (ssh-message->bytevector gex-req))
 	    (let* ((reply (read-packet socket))
 		   (gex-group (read-message <ssh-msg-kex-dh-gex-group>
-					(open-bytevector-input-port 
-					 (~ reply 'payload))))
+					(open-bytevector-input-port reply)))
 		   (p (~ gex-group 'p))
 		   (g (~ gex-group 'g)))
 	      (let1 x (gen-x (div (- p 1) 2))
@@ -331,20 +356,23 @@
 	(write-packet socket (ssh-message->bytevector dh-init))
 	(let* ((reply (read-packet socket))
 	       (dh-reply (read-message reply-class
-				       (open-bytevector-input-port 
-					(~ reply 'payload))))
+				       (open-bytevector-input-port reply)))
 	       (K-S (~ dh-reply 'K-S))
 	       (H   (~ dh-reply 'H))
 	       (f   (~ dh-reply 'f))
 	       (K   (mod-expt f x p)))
 	  ;; verify signature
-	  (verify-signature socket (make-verify-message K-S H f K) K-S H)
-	  (unless (~ socket 'session-id)
-	    (set! (~ socket 'session-id) K-S))
-	  ;; send newkeys
-	  (write-packet socket (make-bytevector 1 +ssh-msg-newkeys+))
-	  ;; compute keys
-	  (compute-keys! socket K H))))
+	  (let1 h (verify-signature socket (make-verify-message K-S H f K)
+				    K-S H)
+	    ;; send newkeys
+	    (write-packet socket (make-bytevector 1 +ssh-msg-newkeys+))
+	    ;; receive newkeys
+	    (read-packet socket)
+	    ;; compute keys
+	    (compute-keys! socket 
+			   (call-with-bytevector-output-port 
+			    (lambda (out) (write-message :mpint K out #f)))
+			   h)))))
 
     (define (do-dh socket client-packet packet)
       ;; exchange key!
@@ -354,8 +382,8 @@
 			(make <DH-H> 
 			  :V-C (string->utf8 (*ssh-version-string*))
 			  :V-S (string->utf8 (~ socket 'target-version))
-			  :I-C (~ client-packet 'payload)
-			  :I-S (~ packet 'payload)
+			  :I-C client-packet
+			  :I-S packet
 			  :K-S K-S
 			  :e e :f f :K K)))))
 
@@ -367,8 +395,8 @@
 			(make <GEX-H> 
 			  :V-C (string->utf8 (*ssh-version-string*))
 			  :V-S (string->utf8 (~ socket 'target-version))
-			  :I-C (~ client-packet 'payload)
-			  :I-S (~ packet 'payload)
+			  :I-C client-packet
+			  :I-S packet
 			  :K-S K-S
 			  ;; TODO get size
 			  :min 1024 :n 1024 :max 2048
@@ -380,8 +408,7 @@
 	      (write-packet socket (ssh-message->bytevector client-kex)))
 	     (packet (read-packet socket))
 	     (server-kex (read-message <ssh-msg-keyinit> 
-				       (open-bytevector-input-port 
-					(~ packet 'payload)))))
+				       (open-bytevector-input-port packet))))
 	;; ok do key exchange
 	;; first decide the algorithms
 	(fill-slot 'kex client-kex server-kex 'kex-algorithms)
@@ -400,4 +427,64 @@
 	       (do-dh socket client-packet packet))
 	      (else
 	       (error 'key-exchange "unknown KEX"))))))
+
+  (define (service-request socket name)
+    (write-packet socket (ssh-message->bytevector 
+			  (make <ssh-msg-service-request>
+			    :service-name (string->utf8 name))))
+    (let1 resp (read-message <ssh-msg-service-accept>
+			     (open-bytevector-input-port (read-packet socket)))
+      resp))
+
+  (define *auth-methods* (make-eq-hashtable))
+  (define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
+
+  (define (auth-pub-key socket service-name user-name algorithm-name blob
+			:key (signature #f))
+    (error 'auth-pub-key "not supported yet")
+    )
+
+  (define (auth-password socket service-name user-name old-password 
+			 :key (new-password #f))
+    (define-syntax u8 (identifier-syntax bytevector-u8-ref))
+    (let1 m (make <ssh-msg-password-userauth-request>
+	      :user-name user-name
+	      :method +ssh-auth-method-password+
+	      :service-name service-name
+	      :change-password? (and new-password #t)
+	      :old-password old-password
+	      :new-password new-password)
+      (write-packet socket (ssh-message->bytevector m))
+      (let1 rp (read-packet socket)
+	(display "received:")
+	(display (bytevector->hex-string rp)) (newline)
+	(cond ((= (u8 rp 0) +ssh-msg-userauth-banner+)
+	       (let1 bp (read-packet socket) ;; ignore success
+		 (read-message <ssh-msg-userauth-banner>
+			       (open-bytevector-input-port rp))))
+	      ((= (u8 rp 0) +ssh-msg-userauth-failure+)
+	       (read-message <ssh-msg-userauth-failure>
+			     (open-bytevector-input-port rp)))
+	      ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
+	       (read-message <ssh-msg-userauth-passwd-changereq>
+			     (open-bytevector-input-port rp)))
+	      (else
+	       (error 'auth-password "unknown tag"))))))
+
+  (define (authenticate-user socket method . options)
+    (if (symbol? method)
+	(cond ((~ *auth-methods* method)
+	       => (lambda (proc) 
+		    ;; request service (this must be supported so don't check
+		    ;; the response. or should we?
+		    (service-request socket +ssh-userauth+)
+		    (apply proc socket options)))
+	      (else (error 'authenticate-user "method not supported" method)))
+	(apply authenticate-user socket (string->symbol method) options)))
+
+  ;; register
+  (register-auth-method (string->symbol +ssh-auth-method-public-key+)
+			auth-pub-key)
+  (register-auth-method (string->symbol +ssh-auth-method-password+) 
+			auth-password)
 )
