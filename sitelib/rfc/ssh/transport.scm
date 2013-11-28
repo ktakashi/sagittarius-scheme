@@ -30,7 +30,7 @@
 
 #!read-macro=sagittarius/regex
 (library (rfc ssh transport)
-    (export make-client-ssh-socket
+    (export make-client-ssh-transport
 	    ;; parameter
 	    *ssh-version-string*
 	    ;; for testing
@@ -60,9 +60,9 @@
 	    (binary data))
 
   ;; must do until handshake but for now
-  (define (make-client-ssh-socket server port . options)
+  (define (make-client-ssh-transport server port . options)
     (let1 socket (make-client-socket server port)
-      (make <ssh-socket> :socket (socket-port socket))))
+      (make <ssh-transport> :socket (socket-port socket))))
 
   (define-constant cr #x0D)
   (define-constant lf #x0A)
@@ -93,29 +93,27 @@
     (put-bytevector out (string->utf8 str))
     (put-bytevector out #vu8(#x0D #x0A)))
 
-  (define (version-exchange socket)
-    (let1 in/out (~ socket 'socket)
+  (define (version-exchange transport)
+    (let1 in/out (~ transport 'socket)
       (let loop ()
 	(let1 vs (read-ascii-line in/out)
 	  (cond ((zero? (string-length vs))
-		 ;; shutdown raw socket
-		 (socket-shutdown raw-socket SHUT_RDWR)
-		 (socket-close raw-socket)
+		 (close-port in/out)
 		 (error 'version-exchange "no version string"))
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
-		   (set! (~ socket 'target-version) (m 1))
+		   (set! (~ transport 'target-version) (m 1))
 		   ;; send
 		   (write-line in/out (*ssh-version-string*))))
 		(else (loop)))))))
 
   ;; I don't think these are useful on SSH since payload must be
   ;; a message format
-  (define (ssh-socket-send socket payload . ignore)
-    (write-packet socket payload))
-  ;; TODO we need a buffer to store the message from peer.
-  (define (ssh-socket-recv socket size . ignore)
-    (error 'ssh-socket-recv "not supported yet"))
+;;  (define (ssh-socket-send socket payload . ignore)
+;;    (write-packet socket payload))
+;;  ;; TODO we need a buffer to store the message from peer.
+;;  (define (ssh-socket-recv socket size . ignore)
+;;    (error 'ssh-socket-recv "not supported yet"))
 
 
   ;; FIXME
@@ -123,11 +121,11 @@
   ;;   (especially read).
   ;;   try read maximum number of packet and encrypt/decrypt if needed.
   ;; TODO
-  ;;   * make buffer in socket and read&decrypt per cipher block size
+  ;;   * make buffer in transport and read&decrypt per cipher block size
   (define-constant +max-packet-size+ 35000)
 
   (define (read-packet context)
-    (define (verify-mac socket payload mac)
+    (define (verify-mac transport payload mac)
       (and-let* ((h (~ context 'server-mac))
 		 (key (~ context 'server-mkey))
 		 (c (~ context 'server-sequence))
@@ -161,7 +159,7 @@
 	  payload))))
 
   (define (write-packet context msg)
-    (define (compute-mac socket payload) 
+    (define (compute-mac transport payload) 
       (or (and-let* ((h (~ context 'client-mac))
 		     (key (~ context 'client-mkey))
 		     (c (~ context 'client-sequence))
@@ -170,16 +168,16 @@
 	    (bytevector-copy! payload 0 buf 4 (bytevector-length payload))
 	    (hash HMAC buf :hash h :key key))
 	  #vu8()))
-    (define (construct-packet socket payload)
+    (define (construct-packet transport payload)
       (define (total-size data-len)
 	(define (round-up l)
-	  (let* ((c (~ socket 'client-cipher))
+	  (let* ((c (~ transport 'client-cipher))
 		 (size (if c (- (cipher-blocksize c) 1) 7)))
 	    (bitwise-and (+ l size) (bitwise-not size))))
 	(round-up (+ data-len 4 1 4)))
       (let* ((data-len (bytevector-length payload))
 	     (total-len (total-size data-len))
-	     (padding (read-random-bytes (~ socket 'prng)
+	     (padding (read-random-bytes (~ transport 'prng)
 					 (- total-len 4 1 data-len)))
 	     (content (call-with-bytevector-output-port
 			 (lambda (out)
@@ -187,7 +185,7 @@
 			   (put-u8 out (bytevector-length padding))
 			   (put-bytevector out payload)
 			   (put-bytevector out padding))))
-	     (mac     (compute-mac socket content)))
+	     (mac     (compute-mac transport content)))
 	(values payload content mac)))
     (define (encrypt-packet payload)
       (let1 c (~ context 'client-cipher)
@@ -228,15 +226,15 @@
      (f   :mpint)
      (K   :mpint)))
 
-  (define (kex-digester socket) 
-    (cond ((#/sha(\d+)/ (~ socket 'kex))
+  (define (kex-digester transport) 
+    (cond ((#/sha(\d+)/ (~ transport 'kex))
 	   => (lambda (m) (case (string->number (m 1))
 			    ((1) SHA-1)
 			    ((256) SHA-256))))
 	  (else (error 'kex-digester "Hash algorighm not supported"
-		       (~ socket 'kex)))))
+		       (~ transport 'kex)))))
 
-  (define (verify-signature socket m K-S H)
+  (define (verify-signature transport m K-S H)
     ;; K-S is either RSA or DSA certificate structure
     ;; so parse it and get the key for verify
     (define (parse-k-s)
@@ -262,14 +260,14 @@
     (let*-values (((type key verify-options) (parse-k-s))
 		  ((sig) (parse-h))
 		  ((vc) (cipher type key))
-		  ((h) (hash (kex-digester socket) 
+		  ((h) (hash (kex-digester transport) 
 			     (ssh-message->bytevector m))))
-      (unless (~ socket 'session-id) (set! (~ socket 'session-id) h))
+      (unless (~ transport 'session-id) (set! (~ transport 'session-id) h))
       (apply verify vc h (~ sig 'signature) verify-options)
       h))
 
-  (define (compute-keys! socket k H)
-    (define d (kex-digester socket))
+  (define (compute-keys! transport k H)
+    (define d (kex-digester transport))
     (define (digest salt) (hash d (bytevector-append k H salt)))
     ;; returns cipher and key size (in bytes)
     (define (cipher&keysize c)
@@ -282,8 +280,8 @@
       (cond ((string-suffix? "cbc" c) MODE_CBC)
 	    ;; TODO counter mode
 	    (else (error 'compute-keys! "mode not supported" c))))
-    (define client-enc (~ socket 'client-enc))
-    (define server-enc (~ socket 'server-enc))
+    (define client-enc (~ transport 'client-enc))
+    (define server-enc (~ transport 'server-enc))
 
     (define (adjust-keysize key size) 
       (let loop ((key key))
@@ -298,7 +296,7 @@
       ;; TODO counter mode
       (cipher c (generate-secret-key c (adjust-keysize key size))
 	      :mode mode :iv iv :padder #f))
-    (define sid (~ socket 'session-id))
+    (define sid (~ transport 'session-id))
     (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
 	  (server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
 	  (client-key  (digest (bytevector-append #vu8(#x43) sid))) ;; "C"
@@ -309,21 +307,21 @@
 	  (server-mode (cipher-mode server-enc)))
       (let-values (((client-cipher client-size) (cipher&keysize client-enc))
 		   ((server-cipher server-size) (cipher&keysize server-enc)))
-	(set! (~ socket 'client-cipher)
+	(set! (~ transport 'client-cipher)
 	      (make-cipher client-cipher client-mode
 			   client-key client-size client-iv))
-	(set! (~ socket 'server-cipher)
+	(set! (~ transport 'server-cipher)
 	      (make-cipher server-cipher server-mode
 			   server-key server-size server-iv))
-	(set! (~ socket 'client-mkey)
-	      (adjust-keysize client-mkey (hash-size (~ socket 'client-mac))))
-	(set! (~ socket 'server-mkey)
-	      (adjust-keysize server-mkey (hash-size (~ socket 'server-mac)))))
-      socket))
+	(set! (~ transport 'client-mkey)
+	      (adjust-keysize client-mkey (hash-size (~ transport 'client-mac))))
+	(set! (~ transport 'server-mkey)
+	      (adjust-keysize server-mkey (hash-size (~ transport 'server-mac)))))
+      transport))
 
-  (define (key-exchange socket)
+  (define (key-exchange transport)
     (define macs `((hmac-sha1 . ,SHA-1)))
-    (define (fill-slot socket-slot req res kex-slot)
+    (define (fill-slot transport-slot req res kex-slot)
       (let ((cnl (~ req kex-slot 'names))
 	    (snl (~ res kex-slot 'names)))
 	(let loop ((lis cnl))
@@ -331,21 +329,21 @@
 		((member (car lis) snl) =>
 		 (lambda (l) 
 		   (rlet1 v (string->symbol (car l))
-		     (when socket-slot
-		       (set! (~ socket socket-slot) 
+		     (when transport-slot
+		       (set! (~ transport transport-slot) 
 			     (cond ((assq v macs) => cdr)
 				   (else (car l))))))))
 		(else (loop (cdr lis)))))))
-    (define (generate-e&x socket gex?)
+    (define (generate-e&x transport gex?)
       (define (gen-x r)
-	(bytevector->integer (read-random-bytes (~ socket 'prng) 
+	(bytevector->integer (read-random-bytes (~ transport 'prng) 
 						(div (bitwise-length r) 8))))
-      (define (group14? socket) (#/group14/ (~ socket 'kex)))
+      (define (group14? transport) (#/group14/ (~ transport 'kex)))
       (if gex?
 	  ;; TODO min n max range
 	  (let1 gex-req (make <ssh-msg-kex-dh-gex-request>)
-	    (write-packet socket (ssh-message->bytevector gex-req))
-	    (let* ((reply (read-packet socket))
+	    (write-packet transport (ssh-message->bytevector gex-req))
+	    (let* ((reply (read-packet transport))
 		   (gex-group (read-message <ssh-msg-kex-dh-gex-group>
 					(open-bytevector-input-port reply)))
 		   (p (~ gex-group 'p))
@@ -354,7 +352,7 @@
 		(values p g x (mod-expt g x p)))))
 	  ;; basically p's length is less than or equal to q's so shouldn't
 	  ;; matter, i think
-	  (let-values (((p g) (if (group14? socket)
+	  (let-values (((p g) (if (group14? transport)
 				  (values +dh-group14-p+ +dh-group14-g+)
 				  (values +dh-group1-p+ +dh-group1-g+))))
 	    (let1 x (gen-x p)
@@ -362,11 +360,11 @@
     ;; send init and receive reply
     ;; both DH and GEX have the same init/reply structure so
     ;; for laziness
-    (define (send/receive socket init-class reply-class p e x
+    (define (send/receive transport init-class reply-class p e x
 			  make-verify-message)
       (let1 dh-init (make init-class :e e)
-	(write-packet socket (ssh-message->bytevector dh-init))
-	(let* ((reply (read-packet socket))
+	(write-packet transport (ssh-message->bytevector dh-init))
+	(let* ((reply (read-packet transport))
 	       (dh-reply (read-message reply-class
 				       (open-bytevector-input-port reply)))
 	       (K-S (~ dh-reply 'K-S))
@@ -374,39 +372,39 @@
 	       (f   (~ dh-reply 'f))
 	       (K   (mod-expt f x p)))
 	  ;; verify signature
-	  (let1 h (verify-signature socket (make-verify-message K-S H f K)
+	  (let1 h (verify-signature transport (make-verify-message K-S H f K)
 				    K-S H)
 	    ;; send newkeys
-	    (write-packet socket (make-bytevector 1 +ssh-msg-newkeys+))
+	    (write-packet transport (make-bytevector 1 +ssh-msg-newkeys+))
 	    ;; receive newkeys
-	    (read-packet socket)
+	    (read-packet transport)
 	    ;; compute keys
-	    (compute-keys! socket 
+	    (compute-keys! transport 
 			   (call-with-bytevector-output-port 
 			    (lambda (out) (write-message :mpint K out #f)))
 			   h)))))
 
-    (define (do-dh socket client-packet packet)
+    (define (do-dh transport client-packet packet)
       ;; exchange key!
-      (let-values (((p g x e) (generate-e&x socket #f)))
-	(send/receive socket <ssh-msg-kexdh-init> <ssh-msg-kexdh-reply> p e x
+      (let-values (((p g x e) (generate-e&x transport #f)))
+	(send/receive transport <ssh-msg-kexdh-init> <ssh-msg-kexdh-reply> p e x
 		      (lambda (K-S H f K)
 			(make <DH-H> 
 			  :V-C (string->utf8 (*ssh-version-string*))
-			  :V-S (string->utf8 (~ socket 'target-version))
+			  :V-S (string->utf8 (~ transport 'target-version))
 			  :I-C client-packet
 			  :I-S packet
 			  :K-S K-S
 			  :e e :f f :K K)))))
 
-    (define (do-gex socket client-packet packet)
-      (let-values (((p g x e) (generate-e&x socket #t)))
-	(send/receive socket <ssh-msg-kex-dh-gex-init>
+    (define (do-gex transport client-packet packet)
+      (let-values (((p g x e) (generate-e&x transport #t)))
+	(send/receive transport <ssh-msg-kex-dh-gex-init>
 		      <ssh-msg-kex-dh-gex-reply> p e x
 		      (lambda (K-S H f K)
 			(make <GEX-H> 
 			  :V-C (string->utf8 (*ssh-version-string*))
-			  :V-S (string->utf8 (~ socket 'target-version))
+			  :V-S (string->utf8 (~ transport 'target-version))
 			  :I-C client-packet
 			  :I-S packet
 			  :K-S K-S
@@ -415,10 +413,10 @@
 			  :p p :g g :e e :f f :K K)))))
 
     (let1 client-kex (make <ssh-msg-keyinit> 
-		       :cookie (read-random-bytes (~ socket 'prng) 16))
+		       :cookie (read-random-bytes (~ transport 'prng) 16))
       (let* ((client-packet
-	      (write-packet socket (ssh-message->bytevector client-kex)))
-	     (packet (read-packet socket))
+	      (write-packet transport (ssh-message->bytevector client-kex)))
+	     (packet (read-packet transport))
 	     (server-kex (read-message <ssh-msg-keyinit> 
 				       (open-bytevector-input-port packet))))
 	;; ok do key exchange
@@ -433,25 +431,25 @@
 	(fill-slot 'server-mac client-kex server-kex
 		   'mac-algorithms-server-to-client)
 	;; dispatch
-	(cond ((#/group-exchange/ (~ socket 'kex))
-	       (do-gex socket client-packet packet))
-	      ((#/group\d+/ (~ socket 'kex))
-	       (do-dh socket client-packet packet))
+	(cond ((#/group-exchange/ (~ transport 'kex))
+	       (do-gex transport client-packet packet))
+	      ((#/group\d+/ (~ transport 'kex))
+	       (do-dh transport client-packet packet))
 	      (else
 	       (error 'key-exchange "unknown KEX"))))))
 
-  (define (ssh-disconnect socket :key (code +ssh-disconnect-by-application+)
+  (define (ssh-disconnect transport :key (code +ssh-disconnect-by-application+)
 			  (description "finish"))
-    (write-packet socket (ssh-message->bytevector
+    (write-packet transport (ssh-message->bytevector
 			  (make <ssh-msg-disconnect>
 			    :code code
 			    :description description))))
 
-  (define (service-request socket name)
-    (write-packet socket (ssh-message->bytevector 
+  (define (service-request transport name)
+    (write-packet transport (ssh-message->bytevector 
 			  (make <ssh-msg-service-request>
 			    :service-name (string->utf8 name))))
     (let1 resp (read-message <ssh-msg-service-accept>
-			     (open-bytevector-input-port (read-packet socket)))
+			     (open-bytevector-input-port (read-packet transport)))
       resp))
 )

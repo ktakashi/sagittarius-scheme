@@ -33,4 +33,5 @@
     (import (rfc ssh constants)
 	    (rfc ssh types)
 	    (rfc ssh transport)
-	    (rfc ssh auth)))
+	    (rfc ssh auth)
+	    (rfc ssh connection)))

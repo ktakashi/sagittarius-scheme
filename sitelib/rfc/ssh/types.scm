@@ -68,7 +68,8 @@
 	    <ssh-msg-userauth-banner>
 	    <ssh-msg-userauth-pk-ok>
 
-	    <ssh-socket>)
+	    <ssh-transport>
+	    <ssh-channel>)
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -191,7 +192,7 @@
      (cut write-message (class-of msg) msg <>)))
 
   ;; SSH context
-  (define-class <ssh-socket> ()
+  (define-class <ssh-transport> ()
     ((socket   :init-keyword :socket)	; raw socket (in/out port)
      (target-version :init-value #f)	; version string from peer
      (prng     :init-keyword :prng :init-form (secure-random RC4))
@@ -214,14 +215,26 @@
      (server-enc :init-value #f) ;; server -> client
      (client-enc :init-value #f) ;; client -> server
      ;; compression&language; I don't think we should support so ignore
-     ))
-  (define-method write-object ((o <ssh-socket>) out)
-    (format out "#<ssh-socket ~a ~a ~a ~a ~a>"
+     ;; keep the channels to allocate proper channel number
+     (channels   :init-value '())))
+  (define-method write-object ((o <ssh-transport>) out)
+    (format out "#<ssh-transport ~a ~a ~a ~a ~a>"
 	    (slot-ref o 'target-version)
 	    (slot-ref o 'client-enc)
 	    (slot-ref o 'server-enc)
 	    (slot-ref o 'client-mac)
 	    (slot-ref o 'server-mac)))
+
+  (define-class <ssh-channel> ()
+    ((transport         :init-keyword :transport)
+     (sender-channel    :init-keyword :sender-channel)
+     (recipient-channel :init-keyword :recipient-channel)
+     ;; window size
+     (client-window-size :init-keyword :client-window-size)
+     (server-window-size :init-keyword :server-window-size)
+     ;; max packet size
+     (client-packet-size :init-keyword :client-packet-size)
+     (server-packet-size :init-keyword :server-packet-size)))
 
   ;; base class for SSH message
   (define-class <ssh-message> (<ssh-type>) ())
@@ -233,7 +246,6 @@
   ;; 7.1. Algorithm Negotiation
   ;; can be supported more but i'm lazy
   (define empty-list (name-list))
-  ;; TODO order must be gex-sha256, gex-sha1, dh-group14, dh-group1
   (define kex-list (name-list 
 		    "diffie-hellman-group-exchange-sha256"
 		    "diffie-hellman-group-exchange-sha1"

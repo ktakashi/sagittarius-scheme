@@ -45,17 +45,16 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (binary pack)
-	    (crypto)
-	    (asn.1))
+	    (crypto))
 
   (define *auth-methods* (make-eq-hashtable))
   (define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
 
   (define-syntax u8 (identifier-syntax bytevector-u8-ref))
-  (define (read-auth-response socket callback)
-    (let1 payload (read-packet socket)
+  (define (read-auth-response transport callback)
+    (let1 payload (read-packet transport)
       (cond ((= (u8 payload 0) +ssh-msg-userauth-banner+)
-	     (let1 bp (read-packet socket) ;; ignore success
+	     (let1 bp (read-packet transport) ;; ignore success
 	       (values
 		(= (u8 bp 0) +ssh-msg-userauth-success+)
 		(read-message <ssh-msg-userauth-banner>
@@ -68,7 +67,7 @@
 	    (else (callback payload)))))
 
   ;; TODO required method so do it
-  (define (auth-pub-key socket user-name public-key
+  (define (auth-pub-key transport user-name public-key
 			:key (private-key #f)
 			(service-name +ssh-connection+))
     (define (make-signer mark name options)
@@ -112,13 +111,13 @@
 		:blob (ssh-message->bytevector blob))
 	;; signature
 	(set! (~ m 'signature)
-	      (let1 sid (~ socket 'session-id)
+	      (let1 sid (~ transport 'session-id)
 		(signer (bytevector-append (pack "!L" (bytevector-length sid))
 					   sid
 					   (ssh-message->bytevector m)))))
-	(write-packet socket (ssh-message->bytevector m))
+	(write-packet transport (ssh-message->bytevector m))
 	;; read the responce
-	(read-auth-response socket
+	(read-auth-response transport
 	 (lambda (rp)
 	   (cond ((= (u8 rp 0) +ssh-msg-userauth-pk-ok+)
 		  (values #f
@@ -126,7 +125,7 @@
 					(open-bytevector-input-port rp))))
 		 (else (error 'auth-password "unknown tag" rp))))))))
 
-  (define (auth-password socket user-name old-password 
+  (define (auth-password transport user-name old-password 
 			 :key (new-password #f)
 			 (service-name +ssh-connection+))
     (let1 m (make <ssh-msg-password-userauth-request>
@@ -136,9 +135,9 @@
 	      :change-password? (and new-password #t)
 	      :old-password old-password
 	      :new-password new-password)
-      (write-packet socket (ssh-message->bytevector m))
+      (write-packet transport (ssh-message->bytevector m))
       ;; TODO better dispatch
-      (read-auth-response socket
+      (read-auth-response transport
        (lambda (rp)
 	 (cond ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
 		(values #f
@@ -146,16 +145,16 @@
 				      (open-bytevector-input-port rp))))
 	       (else (error 'auth-password "unknown tag" rp)))))))
   
-  (define (authenticate-user socket method . options)
+  (define (authenticate-user transport method . options)
     (if (symbol? method)
 	(cond ((~ *auth-methods* method)
 	       => (lambda (proc) 
 		    ;; request service (this must be supported so don't check
 		    ;; the response. or should we?
-		    (service-request socket +ssh-userauth+)
-		    (apply proc socket options)))
+		    (service-request transport +ssh-userauth+)
+		    (apply proc transport options)))
 	      (else (error 'authenticate-user "method not supported" method)))
-	(apply authenticate-user socket (string->symbol method) options)))
+	(apply authenticate-user transport (string->symbol method) options)))
 
   ;; register
   (register-auth-method (string->symbol +ssh-auth-method-public-key+)
