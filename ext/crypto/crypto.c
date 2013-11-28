@@ -286,7 +286,7 @@ static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
   err = spi->decrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(pt),
 		     len, &spi->skey);
   if (err != CRYPT_OK) {
-    Sg_Error(UC("%A"), error_to_string(err));
+    Sg_Error(UC("%A"), Sg_MakeStringC(error_to_string(err)));
     return SG_UNDEF;
   }
 
