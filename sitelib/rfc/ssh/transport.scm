@@ -136,13 +136,20 @@
     ;; FIXME this is really bad implementation...
     ;; not efficient at all
     (define (read&decrypt mac-length)
-      (let ((c (~ context 'server-cipher))
-	    (buf (get-bytevector-all (~ context 'socket))))
-	(let*-values (((ct mac) (bytevector-split-at* 
-				   buf (- (bytevector-length buf) mac-length)))
-		      ((pt) (decrypt c ct)))
-	  (verify-mac context pt mac)
-	  (open-bytevector-input-port (bytevector-append pt mac)))))
+      ;; get first block and get the rest
+      (let* ((c (~ context 'server-cipher))
+	     (block-size (cipher-blocksize c))
+	     (in (~ context 'socket))
+	     (first (decrypt c (get-bytevector-n in block-size)))
+	     ;; i've never seen block cipher which has block size less than 8
+	     (total-size (bytevector-u32-ref first 0 (endianness big)))
+	     ;; hope the rest have multiple of block size...
+	     (rest-size (- (+ total-size 4) block-size))
+	     (rest (decrypt c (get-bytevector-n in rest-size)))
+	     (mac  (get-bytevector-n in mac-length))
+	     (pt   (bytevector-append first rest)))
+	(verify-mac context pt mac)
+	(open-bytevector-input-port (bytevector-append pt mac))))
 
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				     (h (~ context 'server-mac)))

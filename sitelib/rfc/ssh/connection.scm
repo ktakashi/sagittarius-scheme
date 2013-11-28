@@ -146,8 +146,10 @@
       (set! (~ transport 'channels) (remq channel channels))))
 
   (define (call-with-ssh-channel channel proc)
+    ;; close-ssh-channel might raise an error so catch it
+    ;; and ignore
     (unwind-protect (proc channel)
-      (close-ssh-channel channel)))
+     (guard (e (else #f)) (close-ssh-channel channel))))
 
   ;; base
   (define-ssh-message <ssh-msg-channel-request> (<ssh-message>)
@@ -162,7 +164,16 @@
      (height :uint32 24)
      (width-in-pixels  :uint32 640)
      (height-in-pixels :uint32 480)
-     (mode :string #vu8(53 54 0))))
+     (mode :string #vu8(0))))
+
+  ;; exit status
+  (define-ssh-message <ssh-msg-exit-status> (<ssh-message>)
+    ((exit-status :uint32)))
+  (define-ssh-message <ssh-msg-exit-signal> (<ssh-message>)
+    ((signal-name  :string)
+     (core-dumped? :boolean)
+     (message      :string)
+     (language     :string)))
 
   (define-ssh-message <ssh-msg-channel-success> (<ssh-message>)
     ((type :byte +ssh-msg-channel-success+)
@@ -175,16 +186,22 @@
      (recipient-channel :uint32)
      (data :string)))
 
+  (define-ssh-message <ssh-msg-channel-window-adjust> (<ssh-message>)
+    ((type :byte +ssh-msg-channel-window-adjust+)
+     (recipient-channel :uint32)
+     (size :uint32)))
+
   (define (handle-channel-request-response channel response data?)
     (define transport (~ channel 'transport))
-    (let loop ((response response) (r '()))
+    (let loop ((response response) (r '()) (status #f))
       (define (read-it class response)
 	(let1 m (read-message class (open-bytevector-input-port response))
 	  (if data?
 	      (loop (read-packet transport)
 		    (if (is-a? m <ssh-msg-channel-data>)
 			(cons (~ m 'data) r)
-			r))
+			r)
+		    status)
 	      m)))
       (let1 b (bytevector-u8-ref response 0)
 	(cond ((= b +ssh-msg-channel-success+)
@@ -196,9 +213,30 @@
 	      ((= b +ssh-msg-channel-eof+)
 	       ;; next will be close so discard
 	       (read-packet transport)
-	       (bytevector-concatenate r))
-	      ((= b +ssh-msg-channel-close++)
-	       (bytevector-concatenate r))
+	       (values status (bytevector-concatenate r)))
+	      ((= b +ssh-msg-channel-close+) 
+	       (values status (bytevector-concatenate r)))
+	      ((= b +ssh-msg-channel-window-adjust+)
+	       (read-it <ssh-msg-channel-window-adjust> response))
+	      ((= b +ssh-msg-channel-request+)
+	       ;; must be exit status but first get the head
+	       (let* ((in (open-bytevector-input-port response))
+		      (m  (read-message <ssh-msg-channel-request> in)))
+		 (case (string->symbol (utf8->string (~ m 'request-type)))
+		   ((exit-status)
+		    (let1 m (read-message <ssh-msg-exit-status> in)
+		      ;;(values (~ m 'exit-status) (bytevector-concatenate r))))
+		      (loop (read-packet transport) r (~ m 'exit-status))))
+		   ((exit-signal)
+		    ;; TODO should we return something instead of raising an
+		    ;; error?
+		    (let1 m (read-message <ssh-msg-exit-signal> in)
+		      (error (~ m 'signal-name) (~ m 'message)
+			     (~ m 'core-dumped?))))
+		   (else 
+		    => (lambda (n)
+			 (error 'handle-channel-request-response
+				"unknown exit status" n))))))
 	      (else
 	       (error 'handle-channel-request-response 
 		      "unknown response" response))))))
