@@ -35,6 +35,10 @@
 	    close-ssh-channel
 	    call-with-ssh-channel
 
+	    ssh-request-pseudo-terminal
+	    ssh-request-shell
+	    ssh-request-exec
+
 	    <ssh-msg-channel-open>
 	    <ssh-msg-channel-open-confirmation>)
     (import (rnrs)
@@ -144,5 +148,86 @@
   (define (call-with-ssh-channel channel proc)
     (unwind-protect (proc channel)
       (close-ssh-channel channel)))
+
+  ;; base
+  (define-ssh-message <ssh-msg-channel-request> (<ssh-message>)
+    ((type :byte +ssh-msg-channel-request+)
+     (recipient-channel :uint32)
+     (request-type      :string)
+     (want-reply        :boolean #t)))
+
+  (define-ssh-message <ssh-msg-channel-pty-request> (<ssh-msg-channel-request>)
+    ((term :string (or (getenv "TERM") "vt100"))
+     (width  :uint32 80)
+     (height :uint32 24)
+     (width-in-pixels  :uint32 640)
+     (height-in-pixels :uint32 480)
+     (mode :string #vu8(53 54 0))))
+
+  (define-ssh-message <ssh-msg-channel-success> (<ssh-message>)
+    ((type :byte +ssh-msg-channel-success+)
+     (recipient-channel :uint32)))
+  (define-ssh-message <ssh-msg-channel-failure> (<ssh-message>)
+    ((type :byte +ssh-msg-channel-failure+)
+     (recipient-channel :uint32)))
+  (define-ssh-message <ssh-msg-channel-data> (<ssh-message>)
+    ((type :byte +ssh-msg-channel-failure+)
+     (recipient-channel :uint32)
+     (data :string)))
+
+  (define (handle-channel-request-response channel response data?)
+    (define transport (~ channel 'transport))
+    (let loop ((response response) (r '()))
+      (define (read-it class response)
+	(let1 m (read-message class (open-bytevector-input-port response))
+	  (if data?
+	      (loop (read-packet transport)
+		    (if (is-a? m <ssh-msg-channel-data>)
+			(cons (~ m 'data) r)
+			r))
+	      m)))
+      (let1 b (bytevector-u8-ref response 0)
+	(cond ((= b +ssh-msg-channel-success+)
+	       (read-it <ssh-msg-channel-success> response))
+	      ((= b +ssh-msg-channel-failure+)
+	       (read-it <ssh-msg-channel-failure> response))
+	      ((= b +ssh-msg-channel-data+)
+	       (read-it <ssh-msg-channel-data> response))
+	      ((= b +ssh-msg-channel-eof+)
+	       ;; next will be close so discard
+	       (read-packet transport)
+	       (bytevector-concatenate r))
+	      ((= b +ssh-msg-channel-close++)
+	       (bytevector-concatenate r))
+	      (else
+	       (error 'handle-channel-request-response 
+		      "unknown response" response))))))
+
+  (define (ssh-request-pseudo-terminal channel)
+    (let1 m (make <ssh-msg-channel-pty-request>
+	      :recipient-channel (~ channel 'recipient-channel)
+	      :request-type "pty-req")
+      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
+      (let1 r (read-packet (~ channel 'transport))
+	(handle-channel-request-response channel r #f))))
+
+  (define (ssh-request-shell channel)
+    (let1 m (make <ssh-msg-channel-request>
+	      :recipient-channel (~ channel 'recipient-channel)
+	      :request-type "shell")
+      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
+      (let1 r (read-packet (~ channel 'transport))
+	(handle-channel-request-response channel r #f))))
+
+  (define-ssh-message <ssh-msg-channel-exec-request> (<ssh-msg-channel-request>)
+    ((command :string)))
+
+  (define (ssh-request-exec channel command)
+    (let1 m (make <ssh-msg-channel-exec-request>
+	      :recipient-channel (~ channel 'recipient-channel)
+	      :request-type "exec" :command command)
+      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
+      (let1 r (read-packet (~ channel 'transport))
+	(handle-channel-request-response channel r #t))))
 
 )
