@@ -66,6 +66,7 @@
 	    <ssh-msg-userauth-passwd-changereq>
 	    <ssh-msg-userauth-failure>
 	    <ssh-msg-userauth-banner>
+	    <ssh-msg-userauth-pk-ok>
 
 	    <ssh-socket>)
     (import (rnrs)
@@ -157,8 +158,9 @@
 
   ;; keep it as binary otherwise it's inconvenient
   (define-method write-message ((type (eql :string-or-empty)) o out array-size?)
-    (when (string? o)
-      (let* ((s (bytevector-length o)))
+    (when o
+      (let* ((o (if (string? o) (string->utf8 o) o))
+	     (s (bytevector-length o)))
 	(put-bytevector out (pack "!L" s))
 	(put-bytevector out o))))
   (define-method read-message ((t (eql :string-or-empty)) in array-size?)
@@ -193,7 +195,8 @@
     ((socket   :init-keyword :socket)	; raw socket (in/out port)
      (target-version :init-value #f)	; version string from peer
      (prng     :init-keyword :prng :init-form (secure-random RC4))
-     (sequence :init-value 0)		; unsigned 32 bit int
+     (client-sequence :init-value 0)	; unsigned 32 bit int
+     (server-sequence :init-value 0)
      (session-id :init-value #f)
      (kex      :init-value #f)	  ; key exchange algorithm (temporary)
      ;; server private key (for sign?)
@@ -295,12 +298,14 @@
      (H    :string)))
 
   ;; auxility data
-  (define-ssh-message <ssh-dss-certificate> (<ssh-type>)
+  (define-ssh-message <ssh-certificate> (<ssh-type>)
+    ((name :string)))
+  (define-ssh-message <ssh-dss-certificate> (<ssh-certificate>)
     ((p :mpint)
      (q :mpint)
      (g :mpint)
      (y :mpint)))
-  (define-ssh-message <ssh-rsa-certificate> (<ssh-type>)
+  (define-ssh-message <ssh-rsa-certificate> (<ssh-certificate>)
     ((e :mpint)
      (n :mpint)))
 
@@ -353,6 +358,11 @@
     ((type :byte +ssh-msg-userauth-passwd-changereq+)
      (prompt   :string)
      (langauge :string #vu8())))
+
+  (define-ssh-message <ssh-msg-userauth-pk-ok> (<ssh-message>)
+    ((type           :byte +ssh-msg-userauth-pk-ok+)
+     (algorithm-name :string)
+     (blob           :string #vu8())))
 
  (define-ssh-message <ssh-msg-userauth-banner> (<ssh-message>)
     ((type :byte +ssh-msg-userauth-banner+)

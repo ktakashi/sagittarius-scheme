@@ -37,7 +37,6 @@
 	    version-exchange
 	    key-exchange
 	    service-request
-	    authenticate-user
 	    ssh-disconnect
 
 	    write-packet
@@ -110,11 +109,14 @@
 		   (write-line in/out (*ssh-version-string*))))
 		(else (loop)))))))
 
-  (define (ssh-socket-send socket payload :optional (flags 0))
-    (put-bytevector (~ socket 'socket) (construct-packet socket payload) flags))
+  ;; I don't think these are useful on SSH since payload must be
+  ;; a message format
+  (define (ssh-socket-send socket payload . ignore)
+    (write-packet socket payload))
+  ;; TODO we need a buffer to store the message from peer.
+  (define (ssh-socket-recv socket size . ignore)
+    (error 'ssh-socket-recv "not supported yet"))
 
-  ;; think about it...
-  (define (ssh-socket-recv socket ))
 
   ;; FIXME
   ;;   currently it's really bad way to read and write a packet
@@ -125,6 +127,14 @@
   (define-constant +max-packet-size+ 35000)
 
   (define (read-packet context)
+    (define (verify-mac socket payload mac)
+      (and-let* ((h (~ context 'server-mac))
+		 (key (~ context 'server-mkey))
+		 (c (~ context 'server-sequence))
+		 (buf (make-bytevector (+ 4 (bytevector-length payload)))))
+	(bytevector-u32-set! buf 0 c (endianness big))
+	(bytevector-copy! payload 0 buf 4 (bytevector-length payload))
+	(bytevector=? mac (hash HMAC buf :hash h :key key))))
     ;; FIXME this is really bad implementation...
     ;; not efficient at all
     (define (read&decrypt mac-length)
@@ -133,6 +143,7 @@
 	(let*-values (((ct mac) (bytevector-split-at* 
 				   buf (- (bytevector-length buf) mac-length)))
 		      ((pt) (decrypt c ct)))
+	  (verify-mac context pt mac)
 	  (open-bytevector-input-port (bytevector-append pt mac)))))
 
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
@@ -142,18 +153,18 @@
 	   (in (if (zero? mac-length)
 		   (~ context 'socket)
 		   (read&decrypt mac-length))))
+      (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
       (let-values (((total-size pad-size) (get-unpack in "!LC")))
 	(let ((payload (get-bytevector-n in (- total-size pad-size 1)))
 	      (padding (get-bytevector-n in pad-size))
 	      (mac     (get-bytevector-n in mac-length)))
-	  ;; TODO verify mac
 	  payload))))
 
   (define (write-packet context msg)
     (define (compute-mac socket payload) 
       (or (and-let* ((h (~ context 'client-mac))
 		     (key (~ context 'client-mkey))
-		     (c (~ context 'sequence))
+		     (c (~ context 'client-sequence))
 		     (buf (make-bytevector (+ 4 (bytevector-length payload)))))
 	    (bytevector-u32-set! buf 0 c (endianness big))
 	    (bytevector-copy! payload 0 buf 4 (bytevector-length payload))
@@ -185,7 +196,7 @@
 	    payload)))
 
     (let-values (((payload content mac) (construct-packet context msg)))
-      (set! (~ context 'sequence) (+ (~ context 'sequence) 1))      
+      (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
       (let1 out (~ context 'socket)
 	(put-bytevector out (encrypt-packet content))
 	(put-bytevector out mac))
@@ -232,6 +243,7 @@
       (let* ((in (open-bytevector-input-port K-S))
 	     (size (get-unpack in "!L"))
 	     (name (utf8->string (get-bytevector-n in size))))
+	(set-port-position! in 0)
 	(case (string->symbol name)
 	  ((ssh-dss)
 	   (let1 c (read-message <ssh-dss-certificate> in)
@@ -442,60 +454,4 @@
     (let1 resp (read-message <ssh-msg-service-accept>
 			     (open-bytevector-input-port (read-packet socket)))
       resp))
-
-  (define *auth-methods* (make-eq-hashtable))
-  (define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
-
-  (define (auth-pub-key socket service-name user-name algorithm-name blob
-			:key (signature #f))
-    (error 'auth-pub-key "not supported yet")
-    )
-
-  (define (auth-password socket user-name old-password 
-			 :key (new-password #f)
-			 (service-name +ssh-connection+))
-    (define-syntax u8 (identifier-syntax bytevector-u8-ref))
-    (let1 m (make <ssh-msg-password-userauth-request>
-	      :user-name user-name
-	      :method +ssh-auth-method-password+
-	      :service-name service-name
-	      :change-password? (and new-password #t)
-	      :old-password old-password
-	      :new-password new-password)
-      (write-packet socket (ssh-message->bytevector m))
-      (let1 rp (read-packet socket)
-	(cond ((= (u8 rp 0) +ssh-msg-userauth-banner+)
-	       (let1 bp (read-packet socket) ;; ignore success
-		 (values
-		  (= (u8 bv 0) +ssh-msg-userauth-success+)
-		  (read-message <ssh-msg-userauth-banner>
-				(open-bytevector-input-port rp)))))
-	      ((= (u8 rp 0) +ssh-msg-userauth-success+) (values #t #f))
-	      ((= (u8 rp 0) +ssh-msg-userauth-failure+)
-	       (values #f
-		(read-message <ssh-msg-userauth-failure>
-			      (open-bytevector-input-port rp))))
-	      ((= (u8 rp 0) +ssh-msg-userauth-passwd-changereq+)
-	       (values #f
-		(read-message <ssh-msg-userauth-passwd-changereq>
-			      (open-bytevector-input-port rp))))
-	      (else
-	       (error 'auth-password "unknown tag" rp))))))
-
-  (define (authenticate-user socket method . options)
-    (if (symbol? method)
-	(cond ((~ *auth-methods* method)
-	       => (lambda (proc) 
-		    ;; request service (this must be supported so don't check
-		    ;; the response. or should we?
-		    (service-request socket +ssh-userauth+)
-		    (apply proc socket options)))
-	      (else (error 'authenticate-user "method not supported" method)))
-	(apply authenticate-user socket (string->symbol method) options)))
-
-  ;; register
-  (register-auth-method (string->symbol +ssh-auth-method-public-key+)
-			auth-pub-key)
-  (register-auth-method (string->symbol +ssh-auth-method-password+) 
-			auth-password)
 )

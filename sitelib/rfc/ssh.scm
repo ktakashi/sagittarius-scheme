@@ -31,5 +31,6 @@
 (library (rfc ssh)
     (export :all)
     (import (rfc ssh constants)
+	    (rfc ssh types)
 	    (rfc ssh transport)
-	    (rfc ssh types)))
+	    (rfc ssh auth)))
