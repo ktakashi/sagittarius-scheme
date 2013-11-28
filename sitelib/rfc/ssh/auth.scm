@@ -45,8 +45,8 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (binary pack)
-	    (crypto))
-
+	    (crypto)
+	    (asn.1))
 
   (define *auth-methods* (make-eq-hashtable))
   (define (register-auth-method name proc) (set! (~ *auth-methods* name) proc))
@@ -86,7 +86,7 @@
 	 :name "ssh-dss"
 	 :p (~ public-key 'p) :q (~ public-key 'q) :g (~ public-key 'g)
 	 :y (~ public-key 'Y))
-       (make-signer DSA "ssh-dss" '())))
+       (make-signer DSA "ssh-dss" '(:der-encode #f))))
     (define (rsa->blob)
       (values
        "ssh-rsa"

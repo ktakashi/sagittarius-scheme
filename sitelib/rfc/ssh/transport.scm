@@ -249,7 +249,7 @@
 	   (let1 c (read-message <ssh-dss-certificate> in)
 	     (values DSA
 	      (generate-public-key DSA (~ c 'p) (~ c 'q) (~ c 'g) (~ c 'y))
-	      '())))
+	      '(:der-encode #f))))
 	  ((ssh-rsa)
 	   (let1 c (read-message <ssh-rsa-certificate> in)
 	     (values RSA
