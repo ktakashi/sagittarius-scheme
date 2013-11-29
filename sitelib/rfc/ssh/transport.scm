@@ -62,7 +62,7 @@
   ;; must do until handshake but for now
   (define (make-client-ssh-transport server port . options)
     (let* ((socket (make-client-socket server port))
-	   (transport (make <ssh-transport> :socket (socket-port socket))))
+	   (transport (make <ssh-transport> :socket socket)))
       (version-exchange transport)
       (key-exchange transport)
       transport))
@@ -79,29 +79,30 @@
     (call-with-string-output-port
      (lambda (out)
        (let1 buf (make-bytevector 1)
-	 (let loop ((r (get-bytevector-n! in buf 0 1)))
+	 (let loop ((r (socket-recv! in buf 0 1)))
 	   (unless (zero? r)
 	     (let1 u8 (bytevector-u8-ref buf 0)
-	       (cond ((= u8 cr) (get-bytevector-n! in buf 0 1))
+	       (cond ((= u8 cr) (socket-recv! in buf 0 1))
 		     ;; version string must end CR LF however
 		     ;; OpenSSH 4.3 returns only LF...
 		     ((= u8 lf))
 		     (else
 		      (let1 ch (integer->char u8)
 			(put-char out ch)
-			(loop (get-bytevector-n! in buf 0 1))))))))))))
+			(loop (socket-recv! in buf 0 1))))))))))))
   
   ;; write line with CR LF
   (define (write-line out str)
-    (put-bytevector out (string->utf8 str))
-    (put-bytevector out #vu8(#x0D #x0A)))
+    (socket-send out (string->utf8 str))
+    (socket-send out #vu8(#x0D #x0A)))
 
   (define (version-exchange transport)
     (let1 in/out (~ transport 'socket)
       (let loop ()
 	(let1 vs (read-ascii-line in/out)
 	  (cond ((zero? (string-length vs))
-		 (close-port in/out)
+		 (socket-shutdown in/out SHUT_RDWR)
+		 (socket-close in/out)
 		 (error 'version-exchange "no version string"))
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
@@ -136,37 +137,40 @@
 	(bytevector-u32-set! buf 0 c (endianness big))
 	(bytevector-copy! payload 0 buf 4 (bytevector-length payload))
 	(bytevector=? mac (hash HMAC buf :hash h :key key))))
-    ;; FIXME this is really bad implementation...
-    ;; not efficient at all
+    ;; FIXME this is not a good implementation...
     (define (read&decrypt mac-length)
       ;; get first block and get the rest
       (let* ((c (~ context 'server-cipher))
 	     (block-size (cipher-blocksize c))
 	     (in (~ context 'socket))
-	     (first (decrypt c (get-bytevector-n in block-size)))
+	     (first (decrypt c (socket-recv in block-size)))
 	     ;; i've never seen block cipher which has block size less than 8
 	     (total-size (bytevector-u32-ref first 0 (endianness big)))
+	     (padding-size (bytevector-u8-ref first 4))
 	     ;; hope the rest have multiple of block size...
 	     (rest-size (- (+ total-size 4) block-size))
-	     (rest (decrypt c (get-bytevector-n in rest-size)))
-	     (mac  (get-bytevector-n in mac-length))
+	     (rest (decrypt c (socket-recv in rest-size)))
+	     (mac  (socket-recv in mac-length))
 	     (pt   (bytevector-append first rest)))
 	(verify-mac context pt mac)
-	(open-bytevector-input-port (bytevector-append pt mac))))
+	(bytevector-copy pt 5 (+ (- total-size padding-size 1) 5))))
+    (define (read-data in)
+      (let* ((sizes (socket-recv in 5))
+	     (total (bytevector-u32-ref sizes 0 (endianness big)))
+	     (pad   (bytevector-u8-ref sizes 4)))
+	(rlet1 payload (socket-recv in (- total pad 1))
+	  ;; discards padding
+	  (socket-recv in pad))))
 
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				     (h (~ context 'server-mac)))
 			    (hash-size h))
 			  0))
-	   (in (if (zero? mac-length)
-		   (~ context 'socket)
-		   (read&decrypt mac-length))))
+	   (payload (if (zero? mac-length)
+			(read-data (~ context 'socket))
+			(read&decrypt mac-length))))
       (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
-      (let-values (((total-size pad-size) (get-unpack in "!LC")))
-	(let ((payload (get-bytevector-n in (- total-size pad-size 1)))
-	      (padding (get-bytevector-n in pad-size))
-	      (mac     (get-bytevector-n in mac-length)))
-	  payload))))
+      payload))
 
   (define (write-packet context msg)
     (define (compute-mac transport payload) 
@@ -206,8 +210,8 @@
     (let-values (((payload content mac) (construct-packet context msg)))
       (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
       (let1 out (~ context 'socket)
-	(put-bytevector out (encrypt-packet content))
-	(put-bytevector out mac))
+	(socket-send out (encrypt-packet content))
+	(socket-send out mac))
       payload))
 
   ;; for my laziness
@@ -459,7 +463,6 @@
     (write-packet transport (ssh-message->bytevector 
 			  (make <ssh-msg-service-request>
 			    :service-name (string->utf8 name))))
-    (let1 resp (read-message <ssh-msg-service-accept>
-			     (open-bytevector-input-port (read-packet transport)))
-      resp))
+    (read-message <ssh-msg-service-accept>
+		  (open-bytevector-input-port (read-packet transport))))
 )
