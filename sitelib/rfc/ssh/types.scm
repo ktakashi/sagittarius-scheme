@@ -227,6 +227,7 @@
 
   (define-class <ssh-channel> ()
     ((transport         :init-keyword :transport)
+     (open?             :init-value #t)
      (sender-channel    :init-keyword :sender-channel)
      (recipient-channel :init-keyword :recipient-channel)
      ;; window size

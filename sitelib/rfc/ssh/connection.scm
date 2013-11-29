@@ -38,9 +38,27 @@
 	    ssh-request-pseudo-terminal
 	    ssh-request-shell
 	    ssh-request-exec
+	    ssh-send-channel-data
+	    ssh-recv-channel-data
 
 	    <ssh-msg-channel-open>
-	    <ssh-msg-channel-open-confirmation>)
+	    <ssh-msg-channel-open-confirmation>
+	    <ssh-msg-channel-open-failure>
+	    <ssh-msg-channel-eof>
+	    <ssh-msg-channel-close>
+	    <ssh-msg-channel-request>
+	    <ssh-msg-channel-pty-request>
+	    <ssh-msg-channel-success>
+	    <ssh-msg-channel-failure>
+	    <ssh-msg-channel-data>
+	    <ssh-msg-channel-window-adjust>
+	    ;; misc
+	    <ssh-msg-exit-status>
+	    <ssh-msg-exit-signal>
+
+	    ;; util
+	    ssh-execute-command
+	    )
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -52,6 +70,7 @@
 	    (rfc ssh types)
 	    (rfc ssh transport)
 	    (binary pack)
+	    (util bytevector)
 	    (crypto))
 
   ;; base classes (session can use this)
@@ -135,15 +154,23 @@
     ((type :byte +ssh-msg-channel-close+)
      (recipient-channel :uint32)))
 
-  (define (close-ssh-channel channel)
-    (ssh-channel-eof channel)
-    (let* ((e (make <ssh-msg-channel-close>
-		:recipient-channel (~ channel 'recipient-channel)))
-	   (transport (~ channel 'transport))
-	   (channels (~ transport 'channels)))
-      (write-packet transport (ssh-message->bytevector e))
-      ;; remove this from transport
-      (set! (~ transport 'channels) (remq channel channels))))
+  (define (close-ssh-channel channel :key (logical #f))
+    (define transport (~ channel 'transport))
+    (define channels (~ transport 'channels))
+    (unless (or (channel-closed? channel) logical)
+      (ssh-channel-eof channel)
+      (let1 e (make <ssh-msg-channel-close>
+		:recipient-channel (~ channel 'recipient-channel))
+	(write-packet transport (ssh-message->bytevector e))))
+    ;; remove this from transport
+    (set! (~ channel 'open?) #f)
+    (set! (~ transport 'channels) (remq channel channels)))
+
+  (define (channel-closed? c) (not (~ c 'open?)))
+  (define-syntax check-open
+    (syntax-rules ()
+      ((_ who c)
+       (when (channel-closed? c) (error 'who "channel is closed")))))
 
   (define (call-with-ssh-channel channel proc)
     ;; close-ssh-channel might raise an error so catch it
@@ -159,7 +186,7 @@
      (want-reply        :boolean #t)))
 
   (define-ssh-message <ssh-msg-channel-pty-request> (<ssh-msg-channel-request>)
-    ((term :string (or (getenv "TERM") "vt100"))
+    ((term   :string (or (getenv "TERM") "vt100"))
      (width  :uint32 80)
      (height :uint32 24)
      (width-in-pixels  :uint32 640)
@@ -182,7 +209,7 @@
     ((type :byte +ssh-msg-channel-failure+)
      (recipient-channel :uint32)))
   (define-ssh-message <ssh-msg-channel-data> (<ssh-message>)
-    ((type :byte +ssh-msg-channel-failure+)
+    ((type :byte +ssh-msg-channel-data+)
      (recipient-channel :uint32)
      (data :string)))
 
@@ -191,6 +218,7 @@
      (recipient-channel :uint32)
      (size :uint32)))
 
+  ;; FIXME this doesn't work quite well
   (define (handle-channel-request-response channel response data?)
     (define transport (~ channel 'transport))
     (let loop ((response response) (r '()) (status #f))
@@ -212,12 +240,17 @@
 	       (read-it <ssh-msg-channel-data> response))
 	      ((= b +ssh-msg-channel-eof+)
 	       ;; next will be close so discard
-	       (read-packet transport)
-	       (values status (bytevector-concatenate r)))
-	      ((= b +ssh-msg-channel-close+) 
-	       (values status (bytevector-concatenate r)))
+	       (loop (read-packet transport) r status))
+	      ((= b +ssh-msg-channel-close+)
+	       (close-ssh-channel channel :logical #t)
+	       (if data?
+		   (values status (bytevector-concatenate r))
+		   response))
 	      ((= b +ssh-msg-channel-window-adjust+)
-	       (read-it <ssh-msg-channel-window-adjust> response))
+	       (let1 m (read-message <ssh-msg-channel-window-adjust>
+				     (open-bytevector-input-port response))
+		 (set! (~ channel 'server-window-size) (~ m 'size))
+		 (loop (read-packet transport) r status)))
 	      ((= b +ssh-msg-channel-request+)
 	       ;; must be exit status but first get the head
 	       (let* ((in (open-bytevector-input-port response))
@@ -241,31 +274,80 @@
 	       (error 'handle-channel-request-response 
 		      "unknown response" response))))))
 
-  (define (ssh-request-pseudo-terminal channel)
+  (define (ssh-request-pseudo-terminal channel 
+				       :key
+				       (term (or (getenv "TERM") "vt100"))
+				       (width  80)
+				       (height 24)
+				       (width-in-pixels 640)
+				       (height-in-pixels 480)
+				       (mode #vu8(0)))
+    (check-open ssh-request-pseudo-terminal channel)
     (let1 m (make <ssh-msg-channel-pty-request>
 	      :recipient-channel (~ channel 'recipient-channel)
-	      :request-type "pty-req")
+	      :request-type "pty-req"
+	      :term term
+	      :width width
+	      :height height
+	      :width-in-pixels width-in-pixels
+	      :height-in-pixels height-in-pixels
+	      :mode mode)
       (write-packet (~ channel 'transport) (ssh-message->bytevector m))
       (let1 r (read-packet (~ channel 'transport))
 	(handle-channel-request-response channel r #f))))
 
   (define (ssh-request-shell channel)
+    (check-open ssh-request-shell channel)
     (let1 m (make <ssh-msg-channel-request>
 	      :recipient-channel (~ channel 'recipient-channel)
 	      :request-type "shell")
       (write-packet (~ channel 'transport) (ssh-message->bytevector m))
       (let1 r (read-packet (~ channel 'transport))
+	;; most of the case it will send success and data
+	;; (the command prompt message)
 	(handle-channel-request-response channel r #f))))
 
   (define-ssh-message <ssh-msg-channel-exec-request> (<ssh-msg-channel-request>)
     ((command :string)))
 
   (define (ssh-request-exec channel command)
+    (define transport (~ channel 'transport))
+    (check-open ssh-request-exec channel)
     (let1 m (make <ssh-msg-channel-exec-request>
 	      :recipient-channel (~ channel 'recipient-channel)
 	      :request-type "exec" :command command)
       (write-packet (~ channel 'transport) (ssh-message->bytevector m))
-      (let1 r (read-packet (~ channel 'transport))
+      (let1 r (read-packet transport)
 	(handle-channel-request-response channel r #t))))
+
+  (define (ssh-send-channel-data channel data)
+    (define transport (~ channel 'transport))
+    (check-open ssh-send-channel-data channel)
+    (let loop ((data data))
+      (let1 size (bytevector-length data)
+	(let-values (((sending rest)
+		      (if (> size (~ channel 'server-window-size))
+			  (bytevector-split-at* data size)
+			  (values data #vu8()))))
+	  (let1 m (make <ssh-msg-channel-data>
+		    :recipient-channel (~ channel 'recipient-channel)
+		    :data sending)
+	    (write-packet transport (ssh-message->bytevector m))
+	    (unless (zero? (bytevector-length rest)) (loop rest)))))))
+
+  (define (ssh-recv-channel-data channel)
+    (define transport (~ channel 'transport))
+    (check-open ssh-recv-channel-data channel)
+    (let1 m
+	(handle-channel-request-response channel (read-packet transport) #f)
+      (if (is-a? m <ssh-msg-channel-data>)
+	  (~ m 'data)
+	  (error 'ssh-recv-channel-data "unexpected message" m))))
+
+  (define (ssh-execute-command transport command . opts)
+    (call-with-ssh-channel (open-client-ssh-session-channel transport)
+      (lambda (c)
+	(apply ssh-request-pseudo-terminal c opts)
+	(ssh-request-exec c command))))
 
 )
