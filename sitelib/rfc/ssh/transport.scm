@@ -61,8 +61,11 @@
 
   ;; must do until handshake but for now
   (define (make-client-ssh-transport server port . options)
-    (let1 socket (make-client-socket server port)
-      (make <ssh-transport> :socket (socket-port socket))))
+    (let* ((socket (make-client-socket server port))
+	   (transport (make <ssh-transport> :socket (socket-port socket))))
+      (version-exchange transport)
+      (key-exchange transport)
+      transport))
 
   (define-constant cr #x0D)
   (define-constant lf #x0A)

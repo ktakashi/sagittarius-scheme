@@ -30,10 +30,10 @@
 
 #!read-macro=sagittarius/regex
 (library (rfc ssh auth)
-    (export authenticate-user
+    (export ssh-authenticate
 	    register-auth-method
 	    ;; for extension
-	    read-auth-response)
+	    (rename (read-auth-response ssh-read-auth-response)))
     (import (rnrs)
 	    (clos user)
 	    (clos core)
@@ -145,7 +145,7 @@
 				      (open-bytevector-input-port rp))))
 	       (else (error 'auth-password "unknown tag" rp)))))))
   
-  (define (authenticate-user transport method . options)
+  (define (ssh-authenticate transport method . options)
     (if (symbol? method)
 	(cond ((~ *auth-methods* method)
 	       => (lambda (proc) 
@@ -153,8 +153,9 @@
 		    ;; the response. or should we?
 		    (service-request transport +ssh-userauth+)
 		    (apply proc transport options)))
-	      (else (error 'authenticate-user "method not supported" method)))
-	(apply authenticate-user transport (string->symbol method) options)))
+	      (else (error 'ssh-authenticate "method not supported" method)))
+	(apply ssh-authenticate transport 
+	       (string->symbol method) options)))
 
   ;; register
   (register-auth-method (string->symbol +ssh-auth-method-public-key+)
