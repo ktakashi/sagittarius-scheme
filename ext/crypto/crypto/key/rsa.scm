@@ -452,14 +452,11 @@
 	  (assertion-violation 'rsa-import-private-key
 			       "wrong version for RSA private key" version))
 	(rsa-generate-private-key 
-	 (bytevector->integer
-	  (slot-ref modulus 'bytes))
-	 (bytevector->integer
-	  (slot-ref private-exponent 'bytes))
-	 :public-exponent (bytevector->integer
-			   (slot-ref public-exponent 'bytes))
-	 :p (bytevector->integer (slot-ref p 'bytes))
-	 :q (bytevector->integer (slot-ref q 'bytes))))))
+	 (der-integer->integer modulus)
+	 (der-integer->integer private-exponent)
+	 :public-exponent (der-integer->integer public-exponent)
+	 :p (der-integer->integer p)
+	 :q (der-integer->integer q)))))
 
   (define-method import-private-key ((marker <rsa>) (in <bytevector>))
     (import-private-key marker (open-bytevector-input-port in)))
