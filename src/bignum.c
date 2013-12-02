@@ -61,13 +61,35 @@ typedef uint64_t dlong;
 #define SHIFT_MAGIC 5
 #endif
 
+/* debug utility macro */
+#define dump_array_rec(flag, array, size)	\
+  do {						\
+    int __i, __size = (size);			\
+    fprintf(stderr, #array " = [ ");		\
+    for (__i = 0; __i < __size; __i++) {	\
+      fprintf(stderr, flag, (array)[__i]);	\
+    }						\
+    fprintf(stderr, "]\n");			\
+  } while (0)
+
+#define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
+#define dump_uarray(array, size) dump_array_rec("%lu ", array, size)
+#define dump_xarray(array, size) dump_array_rec("%lx ", array, size)
+
+#define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
+#define dump_s(v) dump_rec("%ld\n", v)
+#define dump_u(v) dump_rec("%lu\n", v)
+
+#define dump_bignum_s(b) dump_sarray((b)->elements, (b)->size)
+#define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
+#define dump_bignum_x(b) dump_xarray((b)->elements, (b)->size)
+
 
 static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 
-static SgBignum* bignum_clear(SgBignum *b)
+static SgBignum* bignum_clear(SgBignum *b, int size)
 {
-  int size = SG_BIGNUM_GET_COUNT(b);
   int i;
   for (i = 0; i < size; i++) b->elements[i] = 0;
   return b;
@@ -89,7 +111,7 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
     SG_BIGNUM_SET_SIGN(b, 1);
   }
   if (need_clear)
-    return bignum_clear(b);
+    return bignum_clear(b, size);
   else
     return b;
 }
@@ -104,7 +126,7 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
     SG_SET_CLASS(var, SG_CLASS_INTEGER);		\
     SG_BIGNUM_SET_COUNT(var, size);			\
     SG_BIGNUM_SET_SIGN(var, 1);				\
-    bignum_clear(var);					\
+    bignum_clear(var, size);				\
   } while (0)
 #else
 #define ALLOC_TEMP_BIGNUM(var, size)		\
@@ -1334,7 +1356,12 @@ static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
 {
   int xlen = SG_BIGNUM_GET_COUNT(bx);
   int ylen = SG_BIGNUM_GET_COUNT(by);
-  SgBignum *br = make_bignum(xlen + ylen);
+  SgBignum *br;
+
+  if (xlen == 0) return bx;
+  if (ylen == 0) return by;
+
+  br = make_bignum(xlen + ylen);
   multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
   SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
@@ -1840,30 +1867,6 @@ SgObject Sg_BignumGcd(SgBignum *bx, SgBignum *by)
   return bx;
 }
 
-/* from here, the code base on Java's BigInteger */
-/* debug utility macro */
-#define dump_array_rec(flag, array, size)	\
-  do {						\
-    int __i, __size = (size);			\
-    fprintf(stderr, #array " = [ ");		\
-    for (__i = 0; __i < __size; __i++) {	\
-      fprintf(stderr, flag, (array)[__i]);	\
-    }						\
-    fprintf(stderr, "]\n");			\
-  } while (0)
-
-#define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
-#define dump_uarray(array, size) dump_array_rec("%lu ", array, size)
-#define dump_xarray(array, size) dump_array_rec("%lx ", array, size)
-
-#define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
-#define dump_s(v) dump_rec("%ld\n", v)
-#define dump_u(v) dump_rec("%lu\n", v)
-
-#define dump_bignum_s(b) dump_sarray((b)->elements, (b)->size)
-#define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
-#define dump_bignum_x(b) dump_xarray((b)->elements, (b)->size)
-
 static long inverse_mod_long(ulong val)
 {
   long t = val;
@@ -2085,7 +2088,7 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
   ALLOC_TEMP_BIGNUM(q, size);
   while (!BIGNUM_ZEROP(v3)) {
     SgBignum *t3, *w, *t1;
-    t3 = bignum_normalize(bignum_mod(u3, v3, q));
+    t3 = bignum_mod(u3, v3, q);
     bignum_normalize(q);
     w = bignum_normalize(bignum_mul(q, v1));
     t1 = bignum_normalize(bignum_add(u1, w));
@@ -2095,6 +2098,10 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
     SG_BIGNUM_SET_COUNT(q, size);
     SG_BIGNUM_SET_SIGN(q, 1);
   }
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("x : %A\n"), x); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("m : %A\n"), m); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("u1: %A\n"), u1); */
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("v1: %A\n"), v1); */
   if (sign < 0) {
     return bignum_normalize(bignum_sub(m, u1));
   } else {
@@ -2255,6 +2262,7 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   ulong k = *y;
   dlong p = (dlong)*x * k;
   *z = (ulong)p;
+
   for (i = 1; i < xlen; i++) {
     p = (dlong)x[i] * k + (ulong)(p >> WORD_BITS);
     z[i] = (ulong)p;
