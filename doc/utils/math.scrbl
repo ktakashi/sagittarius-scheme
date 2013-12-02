@@ -290,6 +290,8 @@ if you need.
 @define[Library]{@name{(math prime)}}
 @desc{This library exports procedures for prime number operations.}
 
+@define[Function]{@name{prime?}
+ @args{q :optional (k 50) (rand (secure-random RC4))}}
 @define[Function]{@name{is-prime?}
  @args{q :optional (k 50) (rand (secure-random RC4))}}
 @desc{Tests if given @var{q} is a prime number or not.
@@ -300,6 +302,8 @@ to pass non prim number.
 The optional argument @var{k} is the test times. The default 50 makes failure
 ratio very low. And @var{rand} specifies whith pseudo random algorithm uses in
 the test.
+
+The latter form is for backward compatibility.
 }
 
 @define[Function]{@name{random-prime}

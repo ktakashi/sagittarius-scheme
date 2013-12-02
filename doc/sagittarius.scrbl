@@ -535,22 +535,38 @@ removed entry. This is only for GC friendliness.}
 
 @subsubsection{Bytevector operations}
 
+@define[Function]{@name{bytevector->sinteger}
+ @args{bytevector :optional start end}}
+@define[Function]{@name{bytevector->uinteger}
+ @args{bytevector :optional start end}}
 @define[Function]{@name{bytevector->integer}
  @args{bytevector :optional start end}}
 @desc{Converts given bytevector @var{bytevector} to exact integer. If optional
 argument @var{start} is given, conversion starts with index @var{start}. If
-optional argument @var{end} is given, convertion ends by index @var{end}.
+optional argument @var{end} is given, convertion ends by index @var{end}. The
+conversion only happens in big endian. 
+
+The first form converts to signed integer and the rest convert to unsigned
+integer.
 }
 
+@define[Function]{@name{sinteger->bytevector} @args{ei :optional size}}
+@define[Function]{@name{uinteger->bytevector} @args{ei :optional size}}
 @define[Function]{@name{integer->bytevector} @args{ei :optional size}}
 @desc{@var{Ei} must be exact integer. Converts exact integer @var{ei} to a
 bytevector.
+
+The first form can accept signed integer and converts with two's complement
+form. The rest forms only accept unsigned integer and simply convert to
+bytes.
 
 If optional argument @var{size} is given, then the procedure returns @var{size}
 size bytevector.
 
 NOTE: The conversion is processed from right most byte so if the @var{size} is
 smaller than given @var{ei} bytes, then the rest of left bytes will be dropped.
+
+NOTE: the endianness is always big integer.
 
 @snipet[=> "#vu8(#x00 #x12 #x34 #x56 #x78)"]{(integer->bytevector #x12345678 5)}
 @snipet[=> "#vu8(#x34 #x56 #x78)"]{(integer->bytevector #x12345678 3)}
