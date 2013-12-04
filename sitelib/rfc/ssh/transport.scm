@@ -42,7 +42,11 @@
 	    ;; so keep it and when i write the document use only above
 	    service-request
 	    write-packet
-	    read-packet)
+	    read-packet
+	    (rename (write-packet ssh-write-packet)
+		    (read-packet ssh-read-packet))
+	    ssh-data-ready?
+	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius socket)
@@ -169,7 +173,7 @@
 	(rlet1 payload (socket-recv in (- total pad 1))
 	  ;; discards padding
 	  (socket-recv in pad))))
-    
+
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				     (h (~ context 'server-mac)))
 			    (hash-size h))
@@ -221,6 +225,14 @@
 	(socket-send out (encrypt-packet content))
 	(socket-send out mac))
       payload))
+
+  ;; default 1000 usec
+  ;; there is very high possibility that this returns #f if
+  ;; timeout is too less or 0. that's because cryptographic
+  ;; operation takes some time so that it is very expensive.
+  (define (ssh-data-ready? transport :optional (timeout 1000))
+    (let1 reads (socket-read-select timeout (~ transport 'socket))
+      (not (null? reads))))
 
   ;; for my laziness
   (define-ssh-message <DH-H> ()
