@@ -33,12 +33,14 @@
     (export make-client-ssh-transport
 	    ;; parameter
 	    *ssh-version-string*
-	    ;; for testing
-	    version-exchange
-	    key-exchange
-	    service-request
 	    ssh-disconnect
 
+	    (rename (write-packet ssh-write-packet)
+		    (read-packet  ssh-read-packet)
+		    (service-request ssh-service-request))
+	    ;; these are actually private but i'm lazy to rename
+	    ;; so keep it and when i write the document use only above
+	    service-request
 	    write-packet
 	    read-packet)
     (import (rnrs)
@@ -139,21 +141,27 @@
 	(bytevector=? mac (hash HMAC buf :hash h :key key))))
     ;; FIXME this is not a good implementation...
     (define (read&decrypt mac-length)
-      ;; get first block and get the rest
-      (let* ((c (~ context 'server-cipher))
-	     (block-size (cipher-blocksize c))
-	     (in (~ context 'socket))
-	     (first (decrypt c (socket-recv in block-size)))
-	     ;; i've never seen block cipher which has block size less than 8
-	     (total-size (bytevector-u32-ref first 0 (endianness big)))
-	     (padding-size (bytevector-u8-ref first 4))
-	     ;; hope the rest have multiple of block size...
-	     (rest-size (- (+ total-size 4) block-size))
-	     (rest (decrypt c (socket-recv in rest-size)))
-	     (mac  (socket-recv in mac-length))
-	     (pt   (bytevector-append first rest)))
-	(verify-mac context pt mac)
-	(bytevector-copy pt 5 (+ (- total-size padding-size 1) 5))))
+      (define (read-block in size)
+	(let loop ((diff size) (r '()))
+	  (if (zero? diff)
+	      (bytevector-concatenate (reverse! r))
+	      (let1 buf (socket-recv in diff)
+		(loop (- diff (bytevector-length buf)) (cons buf r))))))
+      (let1 in (~ context 'socket)
+	;; get first block and get the rest
+	(let* ((c (~ context 'server-cipher))
+	       (block-size (cipher-blocksize c))
+	       (first (decrypt c (read-block in block-size)))
+	       ;; i've never seen block cipher which has block size less than 8
+	       (total-size (bytevector-u32-ref first 0 (endianness big)))
+	       (padding-size (bytevector-u8-ref first 4))
+	       ;; hope the rest have multiple of block size...
+	       (rest-size (- (+ total-size 4) block-size))
+	       (rest (decrypt c (read-block in rest-size)))
+	       (mac  (socket-recv in mac-length))
+	       (pt   (bytevector-append first rest)))
+	  (verify-mac context pt mac)
+	  (bytevector-copy pt 5 (+ (- total-size padding-size 1) 5)))))
     (define (read-data in)
       (let* ((sizes (socket-recv in 5))
 	     (total (bytevector-u32-ref sizes 0 (endianness big)))
@@ -161,7 +169,7 @@
 	(rlet1 payload (socket-recv in (- total pad 1))
 	  ;; discards padding
 	  (socket-recv in pad))))
-
+    
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				     (h (~ context 'server-mac)))
 			    (hash-size h))
