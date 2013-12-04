@@ -1644,7 +1644,8 @@ SgObject Sg_GetStackTrace()
 
     cur = Sg_Acons(SG_MAKE_INT(i), r, cur);
   next_cont:
-    if ((uintptr_t)cont > (uintptr_t)vm->stack) {
+    if (!IN_STACK_P((SgObject *)cont, vm) ||
+	(uintptr_t)cont > (uintptr_t)vm->stack) {
 
       SgContFrame *nextCont;
       cl = cont->cl;
@@ -1657,8 +1658,9 @@ SgObject Sg_GetStackTrace()
       if (!SG_PTRP(nextCont)) {
 	break;
       }
-      if ((uintptr_t)nextCont < (uintptr_t)vm->stack ||
-	  (uintptr_t)vm->stackEnd < (uintptr_t)nextCont) {
+      if (IN_STACK_P((SgObject *)nextCont, vm) && 
+	  ((uintptr_t)nextCont < (uintptr_t)vm->stack ||
+	   (uintptr_t)vm->stackEnd < (uintptr_t)nextCont)) {
 	break;
       }
       cont = nextCont;
