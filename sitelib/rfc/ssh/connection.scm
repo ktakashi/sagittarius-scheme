@@ -41,6 +41,9 @@
 	    ssh-send-channel-data
 	    ssh-recv-channel-data
 
+	    ssh-binary-data-receiver
+	    ssh-oport-receiver
+
 	    <ssh-msg-channel-open>
 	    <ssh-msg-channel-open-confirmation>
 	    <ssh-msg-channel-open-failure>
@@ -218,33 +221,45 @@
      (recipient-channel :uint32)
      (size :uint32)))
 
+  (define (ssh-binary-data-receiver)
+    (let ((r '()))
+      (lambda (data)
+	(if (eof-object? data)
+	    (bytevector-concatenate (reverse! r))
+	    (set! r (cons data r))))))
+
+  (define (ssh-oport-receiver oport)
+    (lambda (data)
+      (if (eof-object? data)
+	  #t
+	  (put-bytevector oport data))))
+
   ;; FIXME not sure if this handles data properly...
-  (define (handle-channel-request-response channel response data?)
+  (define (handle-channel-request-response channel response receiver)
     (define transport (~ channel 'transport))
-    (let loop ((response response) (r '()) (status #f))
+    (let loop ((response response) (status #f))
       (define (read-it class response)
 	(let1 m (read-message class (open-bytevector-input-port response))
-	  (if data?
-	      (let-values (((data size) 
-			    (if (is-a? m <ssh-msg-channel-data>)
-				(let1 data (~ m 'data)
-				  (values (cons data r)
-					  (bytevector-length data)))
-				(values r 0))))
-		(let1 client-size (+ (~ channel 'client-size) size)
-		  (set! (~ channel 'client-size) client-size)
-		  (when (> (+ client-size (~ channel 'client-packet-size))
-			   (~ channel 'client-window-size))
-		      ;; send window adjust requst
-		      ;; simply double it for now
-		      (let* ((new-size (* (~ channel 'client-window-size) 2))
-			     (m (make <ssh-msg-channel-window-adjust>
-				  :recipient-channel (~ channel
-							'recipient-channel)
-				  :size new-size)))
-			(set! (~ channel 'client-window-size) new-size)
-			(write-packet transport (ssh-message->bytevector m))))
-		  (loop (read-packet transport) data status)))
+	  (if receiver
+	      (let* ((size (if (is-a? m <ssh-msg-channel-data>)
+			       (let1 data (~ m 'data)
+				 (receiver data)
+				 (bytevector-length data))
+			       0))
+		     (client-size (+ (~ channel 'client-size) size)))
+		(set! (~ channel 'client-size) client-size)
+		(when (> (+ client-size (~ channel 'client-packet-size))
+			 (~ channel 'client-window-size))
+		  ;; send window adjust requst
+		  ;; simply double it for now
+		  (let* ((new-size (* (~ channel 'client-window-size) 2))
+			 (m (make <ssh-msg-channel-window-adjust>
+			      :recipient-channel (~ channel
+						    'recipient-channel)
+			      :size new-size)))
+		    (set! (~ channel 'client-window-size) new-size)
+		    (write-packet transport (ssh-message->bytevector m))))
+		(loop (read-packet transport) status))
 	      m)))
       (let1 b (bytevector-u8-ref response 0)
 	(cond ((= b +ssh-msg-channel-success+)
@@ -255,17 +270,17 @@
 	       (read-it <ssh-msg-channel-data> response))
 	      ((= b +ssh-msg-channel-eof+)
 	       ;; next will be close so discard
-	       (loop (read-packet transport) r status))
+	       (loop (read-packet transport) status))
 	      ((= b +ssh-msg-channel-close+)
 	       (close-ssh-channel channel :logical #t)
-	       (if data?
-		   (values status (bytevector-concatenate (reverse! r)))
+	       (if receiver
+		   (values status (receiver (eof-object)))
 		   response))
 	      ((= b +ssh-msg-channel-window-adjust+)
 	       (let1 m (read-message <ssh-msg-channel-window-adjust>
 				     (open-bytevector-input-port response))
 		 (set! (~ channel 'server-window-size) (~ m 'size))
-		 (loop (read-packet transport) r status)))
+		 (loop (read-packet transport) status)))
 	      ((= b +ssh-msg-channel-request+)
 	       ;; must be exit status but first get the head
 	       (let* ((in (open-bytevector-input-port response))
@@ -273,7 +288,7 @@
 		 (case (string->symbol (utf8->string (~ m 'request-type)))
 		   ((exit-status)
 		    (let1 m (read-message <ssh-msg-exit-status> in)
-		      (loop (read-packet transport) r (~ m 'exit-status))))
+		      (loop (read-packet transport) (~ m 'exit-status))))
 		   ((exit-signal)
 		    ;; TODO should we return something instead of raising
 		    ;; an error?
@@ -324,7 +339,8 @@
   (define-ssh-message <ssh-msg-channel-exec-request> (<ssh-msg-channel-request>)
     ((command :string)))
 
-  (define (ssh-request-exec channel command)
+  (define (ssh-request-exec channel command
+			    :key (receiver (ssh-binary-data-receiver)))
     (define transport (~ channel 'transport))
     (check-open ssh-request-exec channel)
     (let1 m (make <ssh-msg-channel-exec-request>
@@ -332,7 +348,7 @@
 	      :request-type "exec" :command command)
       (write-packet (~ channel 'transport) (ssh-message->bytevector m))
       (let1 r (read-packet transport)
-	(handle-channel-request-response channel r #t))))
+	(handle-channel-request-response channel r receiver))))
 
   (define (ssh-send-channel-data channel data)
     (define transport (~ channel 'transport))
@@ -358,10 +374,12 @@
 	  (~ m 'data)
 	  (error 'ssh-recv-channel-data "unexpected message" m))))
 
-  (define (ssh-execute-command transport command . opts)
+  (define (ssh-execute-command transport command
+			       :key (receiver (ssh-binary-data-receiver))
+			       :allow-other-keys opts)
     (call-with-ssh-channel (open-client-ssh-session-channel transport)
       (lambda (c)
 	(apply ssh-request-pseudo-terminal c opts)
-	(ssh-request-exec c command))))
+	(ssh-request-exec c command :receiver receiver))))
 
 )
