@@ -34,6 +34,7 @@
 	    ;; parameter
 	    *ssh-version-string*
 	    ssh-disconnect
+	    ssh-data-ready?
 
 	    (rename (write-packet ssh-write-packet)
 		    (read-packet  ssh-read-packet)
@@ -43,9 +44,6 @@
 	    service-request
 	    write-packet
 	    read-packet
-	    (rename (write-packet ssh-write-packet)
-		    (read-packet ssh-read-packet))
-	    ssh-data-ready?
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -151,21 +149,24 @@
 	      (bytevector-concatenate (reverse! r))
 	      (let1 buf (socket-recv in diff)
 		(loop (- diff (bytevector-length buf)) (cons buf r))))))
-      (let1 in (~ context 'socket)
-	;; get first block and get the rest
-	(let* ((c (~ context 'server-cipher))
-	       (block-size (cipher-blocksize c))
-	       (first (decrypt c (read-block in block-size)))
-	       ;; i've never seen block cipher which has block size less than 8
-	       (total-size (bytevector-u32-ref first 0 (endianness big)))
-	       (padding-size (bytevector-u8-ref first 4))
-	       ;; hope the rest have multiple of block size...
-	       (rest-size (- (+ total-size 4) block-size))
-	       (rest (decrypt c (read-block in rest-size)))
-	       (mac  (socket-recv in mac-length))
-	       (pt   (bytevector-append first rest)))
-	  (verify-mac context pt mac)
-	  (bytevector-copy pt 5 (+ (- total-size padding-size 1) 5)))))
+      (let* ((c (~ context 'server-cipher))
+	     (block-size (cipher-blocksize c))
+	     (in (~ context 'socket))
+	     (tf (read-block in block-size))
+	     (first (decrypt c tf))
+	     ;; i've never seen block cipher which has block size less
+	     ;; than 8
+	     (total-size (bytevector-u32-ref first 0 (endianness big)))
+	     (padding-size (bytevector-u8-ref first 4))
+	     (t (unless (fixnum? total-size)
+		  (format #t "~a~%~a~%" first tf)))
+	     ;; hope the rest have multiple of block size...
+	     (rest-size (- (+ total-size 4) block-size))
+	     (rest (decrypt c (read-block in rest-size)))
+	     (mac  (socket-recv in mac-length))
+	     (pt   (bytevector-append first rest)))
+	(verify-mac context pt mac)
+	(bytevector-copy pt 5 (+ (- total-size padding-size 1) 5))))
     (define (read-data in)
       (let* ((sizes (socket-recv in 5))
 	     (total (bytevector-u32-ref sizes 0 (endianness big)))

@@ -235,7 +235,11 @@
      (server-window-size :init-keyword :server-window-size)
      ;; max packet size
      (client-packet-size :init-keyword :client-packet-size)
-     (server-packet-size :init-keyword :server-packet-size)))
+     (server-packet-size :init-keyword :server-packet-size)
+     ;; total size
+     (client-size :init-value 0)
+     (server-size :init-value 0)
+     ))
 
   ;; base class for SSH message
   (define-class <ssh-message> (<ssh-type>) ())
