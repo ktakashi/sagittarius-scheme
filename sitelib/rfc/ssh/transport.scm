@@ -152,14 +152,11 @@
       (let* ((c (~ context 'server-cipher))
 	     (block-size (cipher-blocksize c))
 	     (in (~ context 'socket))
-	     (tf (read-block in block-size))
-	     (first (decrypt c tf))
+	     (first (decrypt c (read-block in block-size)))
 	     ;; i've never seen block cipher which has block size less
 	     ;; than 8
 	     (total-size (bytevector-u32-ref first 0 (endianness big)))
 	     (padding-size (bytevector-u8-ref first 4))
-	     (t (unless (fixnum? total-size)
-		  (format #t "~a~%~a~%" first tf)))
 	     ;; hope the rest have multiple of block size...
 	     (rest-size (- (+ total-size 4) block-size))
 	     (rest (decrypt c (read-block in rest-size)))
