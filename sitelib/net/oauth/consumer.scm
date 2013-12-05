@@ -68,25 +68,24 @@
   (define (oauth-http-request uri
 			      :key (auth-location :header)
 				   (method 'GET)
+				   (sender (http-null-sender))
+				   (receiver (http-string-receiver))
 				   (auth-parameters '())
 				   (parameters '())
 				   (additional-headers '()))
     (receive (scheme user-info host port path query frag) (uri-parse uri)
-      ;; TODO secure
-      (let* ((body (oauth-compose-query (if (eq? auth-location :parameters)
-					    (append parameters auth-parameters)
-					    parameters)))
-	     (sender (http-blob-sender body))
-	     (headers (if (eq? auth-location :header)
-			  (cons `("Authorization"
-				  ,(build-auth-string auth-parameters))
-				additional-headers)
-			  additional-headers)))
-	(http-request method host (if (eq? method 'GET)
-				      (string-append path "?" body)
-				      path)
+      (let ((q (oauth-compose-query (if (eq? auth-location :parameters)
+					(append parameters auth-parameters)
+					parameters)))
+	    (headers (if (eq? auth-location :header)
+			 (cons `("Authorization"
+				 ,(build-auth-string auth-parameters))
+			       additional-headers)
+			 additional-headers)))
+	(http-request method host (string-append path "?" q)
 		      :secure (string=? scheme "https")
 		      :sender sender
+		      :receiver receiver
 		      :extra-headers headers))))
 
   (define (generate-auth-parameters consumer signature-method timestamp version
@@ -300,6 +299,7 @@
 				     (auth-location :header)
 				     (request-method 'GET)
 				     (signature-method :hmac-sha1)
+				     (body #f)
 				     (error-translator 
 				      default-message-translator))
     (set! access-token (maybe-refresh-access-token access-token on-refresh))
@@ -316,7 +316,12 @@
 					  (append query-string-parameters
 						  user-parameters
 						  auth-parameters))))
-	     (signature (oauth-signature signature-method sbs
+	     (signature (oauth-signature signature-method 
+					 (if body 
+					     (string-append 
+					      sbs "%26" 
+					      (oauth-uri-encode body))
+					     sbs)
 					 (token-secret consumer-token)
 					 (token-secret access-token)))
 	     (signed-parameters (cons `("oauth_signature" ,signature)
@@ -327,6 +332,9 @@
 				:auth-location auth-location
 				:auth-parameters signed-parameters
 				:parameters user-parameters
+				:sender (if body 
+					    (http-blob-sender body)
+					    (http-null-sender))
 				:additional-headers additional-headers)
 	  (if (string=? status "200")
 	      (values body header #f #f)
