@@ -315,13 +315,9 @@
 					 (sort-parameters
 					  (append query-string-parameters
 						  user-parameters
-						  auth-parameters))))
-	     (signature (oauth-signature signature-method 
-					 (if body 
-					     (string-append 
-					      sbs "%26" 
-					      (oauth-uri-encode body))
-					     sbs)
+						  auth-parameters))
+					 :post-data body))
+	     (signature (oauth-signature signature-method sbs
 					 (token-secret consumer-token)
 					 (token-secret access-token)))
 	     (signed-parameters (cons `("oauth_signature" ,signature)

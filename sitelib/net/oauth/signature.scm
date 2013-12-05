@@ -43,12 +43,14 @@
   ;; for now we only support consumer so no default
   (define (signature-base-string :key (uri (request-uri))
 				      (request-method (request-method))
-				      (parameters (normalized-parameters)))
+				      (parameters (normalized-parameters))
+				      (post-data ""))
     ;; assume request-method is symbol
     (string-append (string-upcase (symbol->string request-method))
 		   "&" (oauth-uri-encode (normalize-uri uri))
 		   "&" (oauth-uri-encode
-			(oauth-compose-query parameters))))
+			(oauth-compose-query parameters))
+		   (oauth-uri-encode (string-append "&" post-data))))
 
   ;; hash
   (define (oauth-signature method sbs consumer-secret
