@@ -29,6 +29,7 @@
 ;;;  
 
 ;; based on industria
+;; reference: http://www.pkware.com/documents/casestudies/APPNOTE.TXT
 (library (archive core zip)
     (export compression-stored
 	    ;; For now only supports no compression and deflated
@@ -186,6 +187,15 @@
     (put-bytevector port (pack "<SS" (car x) (bytevector-length (cdr x))))
     (put-bytevector port (cdr x)))
 
+
+  (define-record-type data-descriptor
+    (fields crc-32 compressed-size uncompressed-size))
+
+  (define (get-data-descirptor port)
+    (let-values (((crc32 compressed-size uncompressed-size)
+		  (get-unpack port "<LLL")))
+      (make-data-descriptor crc32 compressed-size uncompressed-size)))
+
   ;; File records with filenames that end with / are directories.
   (define-record-type file-record
     (fields minimum-version flags compression-method
@@ -200,6 +210,19 @@
         (string-contains fn "//")))
 
   (define (get-file-record port)
+    (define (search-next! method)
+      (unless (= method compression-deflated)
+	(unsupported-error 'get-file-record "only DEFLATE is supported"))
+      (let ((opos (port-position port)))
+	(call-with-port (open-inflating-input-port port :window-bits -15)
+	  (lambda (din)
+	    (let ((buf (make-bytevector 1024)))
+	      (let loop ((n (get-bytevector-n! din buf 0 1024)) (r 0))
+		(cond ((eof-object? n) r)
+		      ((< n 1024) (+ n r))
+		      (else
+		       (loop (get-bytevector-n! din buf 0 1024) (+ r n))))))))))
+    
     (let*-values (((minimum-version
                     flags compression-method
                     last-mod-file-time last-mod-file-date
@@ -213,24 +236,25 @@
                   ((pos) (port-position port)))
       (when (bad-filename? filename)
         (error 'get-file-record "Bad filename" filename))
-      (when (fxbit-set? flags 3)
-        ;; To support this, I think it's necessary to first find the
-        ;; central directory and get the file sizes from there.
-        ;; Because if this flag is set, the compressed-size is zero
-        ;; here.
-	(unsupported-error 'get-file-record 
-			   "file record without CRC and size fields"))
       (when (> minimum-version 20)
 	(unsupported-error 'get-file-record "minimum version larger than 2.0"
 			   minimum-version))
-      ;; Seek past the file data
-      (set-port-position! port (+ (port-position port) compressed-size))
+      (if (fxbit-set? flags 3)
+	  ;; ok there is data descriptor *AFTER* the data
+	  ;; so first skip the data
+	  (let* ((size (search-next! compression-method))
+		 (dp (get-zip-record port)))
+	    (set! crc (data-descriptor-crc-32 dp))
+	    (set! uncompressed-size (data-descriptor-uncompressed-size dp))
+	    (set! compressed-size (data-descriptor-compressed-size dp)))
+	  ;; Seek past the file data
+	  (set-port-position! port (+ (port-position port) compressed-size)))
       (make-file-record minimum-version flags compression-method
                         (dos-time+date->date last-mod-file-time 
 					     last-mod-file-date)
-                        (and (not (fxbit-set? flags 3)) crc)
-                        (and (not (fxbit-set? flags 3)) compressed-size)
-                        (and (not (fxbit-set? flags 3)) uncompressed-size)
+			crc
+			compressed-size
+			uncompressed-size
                         filename extra
                         pos)))
 
@@ -344,6 +368,7 @@
 	((#x04034b50) (get-file-record port))
 	((#x02014b50) (get-central-directory-record port))
 	((#x06054b50) (get-end-of-central-directory-record port))
+	((#x08074b50) (get-data-descirptor port))
 	(else
 	 (unsupported-error 'get-zip-record "unknown header signature" sig)))))
 
