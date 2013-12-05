@@ -44,13 +44,15 @@
   (define (signature-base-string :key (uri (request-uri))
 				      (request-method (request-method))
 				      (parameters (normalized-parameters))
-				      (post-data ""))
+				      (post-data #f))
     ;; assume request-method is symbol
     (string-append (string-upcase (symbol->string request-method))
 		   "&" (oauth-uri-encode (normalize-uri uri))
 		   "&" (oauth-uri-encode
 			(oauth-compose-query parameters))
-		   (oauth-uri-encode (string-append "&" post-data))))
+		   (if post-data
+		       (oauth-uri-encode (string-append "&" post-data))
+		       "")))
 
   ;; hash
   (define (oauth-signature method sbs consumer-secret
