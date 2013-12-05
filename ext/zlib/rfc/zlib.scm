@@ -202,14 +202,14 @@
 					  (window-bits 15)
 					  (dictionary #f)
 					  (owner? #f))
-    (or (and (binary-port? source)
-	     (input-port? source))
-	(assertion-violation 'open-inflating-input-port
-			     "binary-input-port required"
-			     source))
+    (unless (and (binary-port? source) (input-port? source))
+      (assertion-violation 'open-inflating-input-port
+			   "binary-input-port required" source))
     (let ((in-buffer (make-bytevector buffer-size 0))
 	  (out-buffer (make-bytevector buffer-size 0))
 	  (current-pos 0)
+	  (start (and (port-has-port-position? source) (port-position source)))
+	  (offset 0)
 	  (out-buffer-size -1)
 	  (next-in 0)
 	  (stream-end? #f)
@@ -220,9 +220,11 @@
 	  (unless (= r Z_OK)
 	    (raise-z-stream-error z-stream 'inflate-end
 				  (zlib-error-message z-stream)))
+	  (when (and start (port-has-set-port-position!? source))
+	    ;; set the port position to proper offset
+	    (set-port-position! source (+ start offset)))
 	  ;; when the inflating port is owner, we need to close source port.
-	  (if owner?
-	      (close-input-port source))))
+	  (when owner? (close-input-port source))))
 
       (define (read! bv start count)
 	(define (rec bv start count diff)
@@ -275,6 +277,7 @@
 		     (when (= r Z_STREAM_ERROR)
 		       (raise-z-stream-error z-stream 'inflate
 					     (zlib-error-message z-stream)))
+		     (set! offset (+ offset (- buffer-size avail-in)))
 		     (cond ((> avail-in 0)
 			    (set! next-in avail-in)
 			    (bytevector-copy! in-buffer. 
