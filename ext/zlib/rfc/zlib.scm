@@ -2,7 +2,7 @@
 ;;;
 ;;; zlib.scm - RFC1950 zlib library
 ;;;  
-;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -277,7 +277,7 @@
 		     (when (= r Z_STREAM_ERROR)
 		       (raise-z-stream-error z-stream 'inflate
 					     (zlib-error-message z-stream)))
-		     (set! offset (+ offset (- buffer-size avail-in)))
+		     (set! offset (+ offset (- buffer-size (- len n) avail-in)))
 		     (cond ((> avail-in 0)
 			    (set! next-in avail-in)
 			    (bytevector-copy! in-buffer. 
