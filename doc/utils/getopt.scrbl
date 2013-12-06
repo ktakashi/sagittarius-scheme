@@ -29,15 +29,22 @@ Following is the example how to use;
     ...))
 }
 
-The @var{bind-spec} must be following form;
+The @var{bind-spec} must be one of the following forms;
 
-@var{(var (short long) value-required? default)}
+@itemlist[
+ @item{@var{(var (short long) value-required? default)}}
+ @item{@var{(var (short long) @code{*} default)}}
+]
 
 @var{var} is variable name. @var{short} must be a character represents the
 short argument name. @var{long} must be a string represents the long argument
 name. @var{value-required?} specifies whether or not the optional argument
 has the value. @var{default} is the default form of the variable so it will
 be evaluated when the input @var{args} didn't have the specified option.
+
+If the second form is used, the @code{*} is syntactic keyword and the
+passed value will be packed to list. Thus the script can take more than one
+the same options.
 
 If @var{rest} is not presented and @var{args} contains non listed argument,
 then it raises an @code{&assertion}. If it is, then it will pack the rest of

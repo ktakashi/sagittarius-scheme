@@ -97,7 +97,13 @@ port automatically closes the given output port @var{sink} when it is closed.
 
 The @code{open-inflating-input-port} creates a custom binary input port, which
 reads compressed binary data from the given port @var{source} and decompresses
-the read data.
+the read data. When @var{source} port supports both @code{port-position} and
+@code{set-port-position!} then the procedure will set @var{source} position
+to offset of used bytes length when the created custom port is being closed.
+Thus if the @var{source} port contains mixture of deflated data and non
+deflated data then the custom port will only read deflated data and won't
+forward the original port position beyond it no matter how big the
+@var{buffer-size} is specified.
 
 The meaning of @var{buffer-size} is the same as
  @code{open-deflating-output-port}.
