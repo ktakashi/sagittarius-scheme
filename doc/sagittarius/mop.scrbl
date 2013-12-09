@@ -30,28 +30,25 @@ The following code is the whole definition of this classes.
 
 @codeblock{
 (define-class <allocation-meta> (<class>) ())
-(define-method compute-getters-and-setters ((class <allocation-meta>) slots)
-  (let ((r (call-next-method)))
-    (for-each
-     (lambda (acc slot)
-	(cond ((slot-definition-option slot :allocation :instance)
-		=> (lambda (type)
-		     (case type
-		       ((:instance))
-		       ((:class)
-			(let* ((init-value (slot-definition-option
-					    slot :init-value #f))
-			       (init-thunk (slot-definition-option 
-					    slot :init-thunk #f))
-			       (def (if init-thunk (init-thunk) init-value)))
-			  (slot-set! acc 'setter (lambda (o v) (set! def v)))
-			  (slot-set! acc 'getter (lambda (o) def))))
-		       (else
-			(assertion-violation '<allocation-meta>
-					     "unknown :allocation type"
-					     type)))))))
-		r slots)
-    r))
+(define-method compute-getter-and-setter ((class <allocation-meta>) slot)
+  (cond ((slot-definition-option slot :allocation :instance)
+         => (lambda (type)
+              (case type
+                ((:instance) '())
+                ((:class)
+                 (let* ((init-value (slot-definition-option
+                                     slot :init-value #f))
+                        (init-thunk (slot-definition-option 
+                                     slot :init-thunk #f))
+                        (def (if init-thunk (init-thunk) init-value)))
+                   (list
+                    (lambda (o) def)
+                    (lambda (o v) (set! def v)))))
+                (else
+                 (assertion-violation '<allocation-meta>
+                                      "unknown :allocation type"
+                                      type)))))
+        (else (call-next-method))))
 
 (define-class <allocation-mixin> () () :metaclass <allocation-meta>)
 }

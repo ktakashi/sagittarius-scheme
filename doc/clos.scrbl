@@ -141,15 +141,25 @@ object.
 Adds @var{method} to @var{generic}.
 }
 
+@define[Generic]{@name{compute-getter-and-setter}
+ @args{class slot}}
+@desc{Returns a list of getter, setter and bound check for the given
+@var{class}'s slot @var{slot}.
+
+The returning list can have 0 to 3 elements, getter, setter and bound?
+respectively. If null list is returned then the target slot uses default
+slot accessors.
+
+For the example code, see @secref["sagittarius.mop"]{Sagittarius MOP}.
+}
+
 @define[Generic]{@name{compute-getters-and-setters}
  @args{class slots}}
 @desc{Returns all getters and setters for the given @var{class}'s slots.
 
-Unlikely the other MOP such as Gauche, this procedure returns all of the slot
-accessors. So user must modify the returned definitions and return the modified
-list.
+The upper layer of @code{compute-getter-and-setter}. This method should only
+be used if users really need to use accessor to access the target slots.
 
-For the example code, see @secref["sagittarius.mop"]{Sagittarius MOP}.
 }
 
 @define[Function]{@name{slot-definition-name} @args{slot}}

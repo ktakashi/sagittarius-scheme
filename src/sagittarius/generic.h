@@ -1,6 +1,6 @@
 /* generic.h                                             -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2011  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -157,12 +157,13 @@ SG_EXTERN SgGeneric Sg_GenericMake;
 SG_EXTERN SgGeneric Sg_GenericInitialize;
 /* the instance structure protocol */
 SG_EXTERN SgGeneric Sg_GenericAllocateInstance;
-SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
 /* The class initialization protocol */
 SG_EXTERN SgGeneric Sg_GenericComputeCPL;
 SG_EXTERN SgGeneric Sg_GenericComputeSlots;
 SG_EXTERN SgGeneric Sg_GenericAddMethod;
 SG_EXTERN SgGeneric Sg_GenericRemoveMethod;
+
+SG_EXTERN SgGeneric Sg_GenericComputeGetterAndSetter;
 
 /* The generic invocation protocol */
 SG_EXTERN SgGeneric Sg_GenericComputeApplyGeneric;

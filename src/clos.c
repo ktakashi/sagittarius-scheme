@@ -478,34 +478,18 @@ SgObject Sg_ComputeSlots(SgClass *klass)
       }
     }
   }
-  return Sg_Reverse(slots);
+  return Sg_ReverseX(slots);
 }
 
-SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots)
+SgObject Sg_MakeSlotAccessor(SgClass *klass, SgObject slot, int index,
+			     SgObject getter, SgObject setter, SgObject boundP)
 {
-  SgObject h = SG_NIL, t = SG_NIL;
-  /* direct-slots must be set before compute-getters-and-setters is called
-     see clos/core.scm */
-  SgObject sp, ds = klass->directSlots;
-  int index = 0;
-  SG_FOR_EACH(sp, slots) {
-    SgSlotAccessor *ac = make_slot_accessor(klass, SG_CAAR(sp), index);
-    SgObject rcpl = Sg_Reverse(SG_CDR(klass->cpl)), cp;
-    SG_FOR_EACH(cp, rcpl) {
-      SgObject check = Sg_Assq(SG_CAAR(sp), ds);
-      if (SG_FALSEP(check)) {
-	SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)), 
-					       SG_CAAR(sp));
-	if (!sac) continue;
-	if (sac->getter) ac->getter = sac->getter;
-	if (sac->setter) ac->setter = sac->setter;
-      }
-    }
+  SgSlotAccessor *sac = make_slot_accessor(klass, slot, index);
 
-    SG_APPEND1(h, t, SG_OBJ(ac));
-    index++;
-  }
-  return h;
+  if (!SG_FALSEP(getter)) sac->getterS = getter;
+  if (!SG_FALSEP(setter)) sac->setterS = setter;
+  if (!SG_FALSEP(boundP)) sac->boundP  = boundP;
+  return SG_OBJ(sac);
 }
 
 int Sg_ApplicableP(SgObject c, SgObject arg)
@@ -969,6 +953,46 @@ static SgSlotAccessor* lookup_slot_info(SgClass *klass, SgObject name)
     goto entry;
   }
   return NULL;		/* dummy */
+}
+
+/* FIXME this is really inefficient */
+static SgObject c_getter_wrapper(SgObject *argv, int argc, void *data)
+{
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("slot getter"), 1, argc,
+				       (argc > 0) ? argv[0] : SG_NIL);
+  }
+  return ((SgSlotGetterProc)data)(argv[0]);
+}
+
+static SgObject c_setter_wrapper(SgObject *argv, int argc, void *data)
+{
+  if (argc != 2) {
+    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("slot setter"), 2, argc,
+				       (argc > 0) ? argv[0] : SG_NIL);
+  }
+  ((SgSlotSetterProc)data)(argv[0], argv[1]);
+  return SG_UNDEF;
+}
+
+
+SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
+{
+  SgObject rcpl = SG_CDR(klass->cpl), cp, h = SG_NIL, t = SG_NIL;
+  SgObject ds = klass->directSlots, s = SG_CAR(slot);
+  SG_FOR_EACH(cp, rcpl) {
+    SgObject check = Sg_Assq(s, ds);
+    if (SG_FALSEP(check)) {
+      SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)), s);
+
+      if (!sac) continue;
+      if (!sac->getter || !sac->setter) continue;
+      SG_APPEND1(h, t, Sg_MakeSubr(c_getter_wrapper, sac->getter, 1, 0, s));
+      SG_APPEND1(h, t, Sg_MakeSubr(c_setter_wrapper, sac->setter, 2, 0, s));
+      break;
+    }
+  }
+  return h;
 }
 
 /* ugly naming */
@@ -1860,12 +1884,12 @@ SG_DEFINE_GENERIC(Sg_GenericAllocateInstance, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericInitialize, builtin_initialize, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeCPL, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
-SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectApply, Sg_InvalidApply, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectSetter, Sg_InvalidApply, NULL);
+SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
 /* generic invocation */
 SG_DEFINE_GENERIC(Sg_GenericComputeApplyGeneric, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeMethodMoreSpecificP, Sg_NoNextMethod, NULL);
@@ -2076,10 +2100,10 @@ static SG_DEFINE_METHOD(compute_slots_rec, &Sg_GenericComputeSlots,
 			1, 0,
 			compute_slots_SPEC, &compute_slots);
 
-/* compute-getters-and-setters */
+/* compute-getter-and-setter */
 static SgObject compute_gas_impl(SgObject *args, int argc, void *data)
 {
-  return Sg_ComputeGettersAndSetters(SG_CLASS(args[0]), args[1]);
+  return Sg_ComputeGetterAndSetter(SG_CLASS(args[0]), args[1]);
 }
 
 SG_DEFINE_SUBR(compute_gas, 2, 0, compute_gas_impl, SG_FALSE, NULL);
@@ -2091,6 +2115,8 @@ static SgClass *compute_gas_SPEC[] = {
 static SG_DEFINE_METHOD(compute_gas_rec, &Sg_GenericComputeGetterAndSetter,
 			2, 0,
 			compute_gas_SPEC, &compute_gas);
+
+
 
 /* add-method */
 static SgObject add_method_impl(SgObject *args, int argc, void *data)
@@ -2391,7 +2417,6 @@ void Sg__InitClos()
   GINIT(&Sg_GenericInitialize, "initialize");
   GINIT(&Sg_GenericComputeCPL, "compute-cpl");
   GINIT(&Sg_GenericComputeSlots, "compute-slots");
-  GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getters-and-setters");
   GINIT(&Sg_GenericAddMethod, "add-method");
   GINIT(&Sg_GenericRemoveMethod, "remove-method");
   GINIT(&Sg_GenericObjectEqualP, "object-equal?");
@@ -2403,6 +2428,8 @@ void Sg__InitClos()
   GINIT(&Sg_GenericSlotUnbound, "slot-unbound");
   GINIT(&Sg_GenericSlotMissing, "slot-missing");
   GINIT(&Sg_GenericUnboundVariable, "unbound-variable");
+  GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getter-and-setter");
+
 
   Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
 	       SG_PROCEDURE(&Sg_GenericObjectSetter),

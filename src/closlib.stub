@@ -7,6 +7,7 @@
 	    is-a?
 	    eql
 	    %make-next-method
+	    %make-slot-accessor
 	    )
     (import :none)
 
@@ -75,4 +76,16 @@
   (define-c-proc %compute-around-methods
     (around::<list> before::<list> primary::<list> after::<list>)
     Sg_VMComputeAroundMethods)
+
+  (define-c-proc %make-slot-accessor 
+    (klass slot::<symbol> index::<fixnum>
+     :optional (getter::<procedure> #f)
+	       (setter::<procedure> #f)
+	       (bound?::<procedure> #f))
+    (unless (Sg_TypeP klass SG_CLASS_CLASS )
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
+				       (SG_INTERN "sub type of <class>")
+				       klass (SG_LIST2 klass slot)))
+    (result (Sg_MakeSlotAccessor klass slot index getter setter bound?)))
+
   )

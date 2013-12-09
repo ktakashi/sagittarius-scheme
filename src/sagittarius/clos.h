@@ -57,8 +57,10 @@ struct SgSlotAccessorRec
   SgClass *klass;		/* slot class */
   SgSlotGetterProc getter;	/* C getter */
   SgSlotSetterProc setter;	/* C setter */
+  /* No bound? for c proc */
   SgObject getterS;
   SgObject setterS;
+  SgObject boundP;
 };
 #define SG_SLOT_ACCESSOR(obj)  ((SgSlotAccessor*)(obj))
 #define SG_SLOT_ACCESSORP(obj) SG_XTYPEP(obj, SG_CLASS_SLOT_ACCESSOR)
@@ -68,7 +70,7 @@ struct SgSlotAccessorRec
       (index), (name), SG_FALSE, NULL,				\
 	(SgSlotGetterProc)(getter),				\
 	(SgSlotSetterProc)(setter),				\
-	SG_FALSE, SG_FALSE }
+	SG_FALSE, SG_FALSE, SG_FALSE }
 
 
 /* based on tiny clos. most of tricks are from Gauche */
@@ -254,7 +256,11 @@ SG_EXTERN int      Sg_SubtypeP(SgClass *sub, SgClass *type);
 SG_EXTERN SgObject Sg_AllocateInstance(SgClass *klass);
 SG_EXTERN SgObject Sg_ComputeCPL(SgClass *klass);
 SG_EXTERN SgObject Sg_ComputeSlots(SgClass *klass);
-SG_EXTERN SgObject Sg_ComputeGettersAndSetters(SgClass *klass, SgObject slots);
+SG_EXTERN SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot);
+SG_EXTERN SgObject Sg_MakeSlotAccessor(SgClass *klass, SgObject slot,
+				       int index, 
+				       SgObject getter, SgObject setter,
+				       SgObject boundP);
 
 SG_EXTERN int      Sg_ApplicableP(SgObject spec, SgObject args);
 

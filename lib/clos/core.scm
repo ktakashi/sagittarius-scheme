@@ -59,6 +59,7 @@
 	    compute-cpl
 	    compute-slots
 	    compute-getters-and-setters
+	    compute-getter-and-setter
 
 	    ;; ugly solution for macro expansion
 	    call-next-method
@@ -302,5 +303,22 @@
 		:procedure
 		(lambda (call-next-method gf methods build-next args)
 		  (apply (build-next gf methods args) args))))
-  
+
+  ;; it's already documented so we can't remove this...
+  (define compute-getters-and-setters
+    (make <generic> :definition-name 'compute-getters-and-setters))
+  (add-method compute-getters-and-setters
+    (make <method>
+      :specializers (list <class> <list>)
+      :lambda-list '(class slots)
+      :generic compute-getters-and-setters
+      :procedure
+      (lambda (call-next-method class slots)
+	(let loop ((i 0) (slots slots) (r '()))
+	  (if (null? slots)
+	      (reverse! r)
+	      (let* ((slot (car slots))
+		     (accs (compute-getter-and-setter class slot))
+		     (sac (apply %make-slot-accessor class (car slot) i accs)))
+		(loop (+ i 1) (cdr slots) (cons sac r))))))))
 )

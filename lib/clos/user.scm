@@ -144,7 +144,8 @@
 		  (cond ((null? opts) #`(list '#,(car sdef) #,@(reverse! r)))
 			((not (and (pair? opts) (pair? (cdr opts))))
 			 (syntax-violation 'define-class
-					   "bad slot specification" sdef))
+					   "bad slot specification"
+					   (syntax->datum sdef)))
 			(else
 			 (case (car opts)
 			   ((:init-form)
