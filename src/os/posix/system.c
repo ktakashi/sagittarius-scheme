@@ -37,6 +37,7 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 /* for mac address */
 #include <sys/socket.h>
@@ -67,10 +68,12 @@
 
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/system.h>
+#include <sagittarius/core.h>
 #include <sagittarius/file.h>
 #include <sagittarius/unicode.h>
 #include <sagittarius/string.h>
 #include <sagittarius/pair.h>
+#include <sagittarius/port.h>
 #include <sagittarius/error.h>
 #include <sagittarius/values.h>
 #include <sagittarius/number.h>
@@ -442,4 +445,115 @@ SgObject Sg_SitelibPath()
     sitelibpath = SG_MAKE_STRING(SAGITTARIUS_SITE_LIB_PATH);
   }
   return sitelibpath;
+}
+
+static void pipe_finalize(SgObject obj, void *data)
+{
+  close((int)data);
+}
+
+uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
+			    SgObject *inp, SgObject *outp, SgObject *errp)
+{
+  pid_t pid;
+  int pipe0[2] = { -1, -1 };
+  int pipe1[2] = { -1, -1 };
+  int pipe2[2] = { -1, -1 };
+  int open_max;
+  const char *sysfunc = NULL;
+
+  sysfunc = "sysconf";
+  if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
+
+  sysfunc = "pipe";
+  if (pipe(pipe0)) goto pipe_fail;
+  if (pipe(pipe1)) goto pipe_fail;
+  if (pipe(pipe2)) goto pipe_fail;
+
+  sysfunc = "fork";
+  pid = fork();
+  if (pid == -1) goto fork_fail;
+  if (pid == 0) {
+    int i;
+    int count = Sg_Length(args);
+    char *name = Sg_Utf32sToUtf8s(sname);
+    SgObject cp;
+#ifdef HAVE_ALLOCA
+    char **args = (char**)alloca(sizeof(char*) * (count + 1));
+#else
+    char **args = SG_NEW_ARRAY(char*, count+2);
+#endif
+    if (close(pipe0[1])) goto close_fail;
+    if (close(pipe1[0])) goto close_fail;
+    if (close(pipe2[0])) goto close_fail;
+    if (dup2(0, pipe0[0]) == -1) goto dup_fail;
+    if (dup2(1, pipe1[1]) == -1) goto dup_fail;
+    if (dup2(2, pipe2[1]) == -1) goto dup_fail;
+
+    for (i = 3; i < open_max; i++) {
+      if (i == pipe0[0]) continue;
+      if (i == pipe1[1]) continue;
+      if (i == pipe2[1]) continue;
+      close(i);
+    }
+    i = 0;
+    args[i++] = name;
+    SG_FOR_EACH(cp, args) {
+      args[i++] = Sg_Utf32sToUtf8s(SG_STRING(SG_CAR(cp)));
+    }
+    args[i] = NULL;
+    execvp(name, args);
+    goto exec_fail;
+    /* never reached */
+  } else {
+    SgFile *in, *out, *err;
+    close(pipe0[0]);
+    close(pipe1[1]);
+    close(pipe2[1]);
+
+    in = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
+    out = SG_FILE(Sg_MakeFileFromFD(pipe1[0]));
+    err = SG_FILE(Sg_MakeFileFromFD(pipe2[0]));
+    in->name = UC("process-stdin");
+    out->name = UC("process-stdout");
+    err->name = UC("process-stderr");
+
+    *inp = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
+    *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
+    *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
+
+    Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
+    Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
+    Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
+
+  }
+  return (uintptr_t)pid;
+ sysconf_fail:
+ pipe_fail:
+ fork_fail:
+  {
+    char message[256];
+    SgObject msg = Sg_GetLastErrorMessage();
+    snprintf(message, sizeof(message), "%s failed.", sysfunc);
+    if (pipe0[0] != -1) close(pipe0[0]);
+    if (pipe0[1] != -1) close(pipe0[1]);
+    if (pipe1[0] != -1) close(pipe1[0]);
+    if (pipe1[1] != -1) close(pipe1[1]);
+    if (pipe2[0] != -1) close(pipe2[0]);
+    if (pipe2[1] != -1) close(pipe2[1]);
+    Sg_Error(UC("command: `%A %A`.\nmessage %A %A"),
+	     sname, args, Sg_MakeStringC(message), msg);
+    return -1;
+  }
+ close_fail:
+ dup_fail:
+ exec_fail:
+  exit(127);
+}
+
+int Sg_SysProcessWait(uintptr_t pid)
+{
+  int status = 0;
+  waitpid((pid_t)pid, &status, 0);
+  return status;
 }

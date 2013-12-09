@@ -10,6 +10,7 @@
  (.include <sagittarius/extend.h>
 	   <sagittarius-process.h>))
 
+#|
 (define-type <process> "SgProcess*")
 
 (define-c-proc process? (o) ::<boolean>
@@ -35,7 +36,7 @@
 
 (define-c-proc process-wait (p::<process>) ::<fixnum>
   (result (Sg_ProcessWait p)))
-
+|#
 (define-c-proc getpid () ::<fixnum>
   (.if "defined(_WIN32)"
        (result (GetCurrentProcessId()))

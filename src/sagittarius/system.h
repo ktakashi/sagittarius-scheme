@@ -63,6 +63,15 @@ SG_EXTERN SgObject      Sg_Uname();
 
 SG_EXTERN SgObject      Sg_SitelibPath();
 
+/* for Cygwin environment 
+   returns pid or handle
+ */
+SG_EXTERN uintptr_t Sg_SysProcessCall(SgObject name, SgObject args,
+				      /* output parameters */
+				      SgObject *inp, SgObject *outp,
+				      SgObject *errp);
+SG_EXTERN int       Sg_SysProcessWait(uintptr_t pid);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_SYSTEM_H_ */
