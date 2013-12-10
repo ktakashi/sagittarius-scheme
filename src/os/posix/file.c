@@ -237,6 +237,7 @@ static SgFile* init_file(SgFile *file, int handle)
   FD     *fd = SG_NEW_ATOMIC(FD);
   SG_SET_CLASS(file, SG_CLASS_FILE);
   fd->fd = handle;
+  fd->errorno = 0;
   file->osdependance = (void*)fd;
   return file;
 }

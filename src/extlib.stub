@@ -1036,4 +1036,19 @@
   (define-c-proc %set-port-data! (p::<port> v) ::<void>
     (set! (SG_PORT_DATA p) v))
 
+  ;; system call
+  (define-c-proc sys-process-call (name::<string> args::<list>)
+    (let ((in  NULL)
+	  (out NULL)
+	  (err NULL))
+      (let ((handle::uintptr_t (Sg_SysProcessCall name args 
+						  (& in) (& out) (& err))))
+	(.if "SIZEOF_VOIDP >= 8"
+	     (result (Sg_Values4 (Sg_MakeIntegerFromU64 handle) in out err))
+	     (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
+
+  (define-c-proc sys-process-wait (pid::<integer>) ::<fixnum>
+    (result (Sg_SysProcessWait 
+	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
+
 )

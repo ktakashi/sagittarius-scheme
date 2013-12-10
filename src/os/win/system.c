@@ -86,7 +86,7 @@ SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 
 static int get_env(const SgChar *env, wchar_t *buf, int size)
 {
-  SgString *s = Sg_HeapString(env, SG_HEAP_STRING);
+  SgString *s = Sg_HeapString(env);
   int envsize = GetEnvironmentVariableW(utf32ToUtf16(s), buf, size);
   if (envsize == 0) return -1;
   else if (envsize > size) {
@@ -285,4 +285,122 @@ SgObject Sg_Uname()
   SG_VECTOR_ELEMENT(r, 4) = machine;
 
   return r;
+}
+
+static SgString *string_append(SgObject args)
+{
+  SgObject cp;
+  SgObject ret = Sg_MakeEmptyString();
+  SgString *sep = SG_MAKE_STRING(" ");
+  SG_FOR_EACH(cp, args) {
+    ret = Sg_StringAppend2(SG_STRING(ret), SG_STRING(SG_CAR(cp)));
+    ret = Sg_StringAppend2(SG_STRING(ret), sep);
+  }
+  return SG_STRING(ret);
+}
+
+/* this is not a Scheme object */
+typedef struct SgWinProcessRec
+{
+  HANDLE process;
+} SgWinProcess;
+
+static void proc_finalize(SgObject obj, void *data)
+{
+  SgWinProcess *p = (SgWinProcess *)data;
+  if (p->process != -1) {
+    CloseHandle(p->process);
+  }
+}
+
+static SgWinProcess * make_win_process(HANDLE p)
+{
+  /* the p and t is not GC managed pointer :) */
+  SgWinProcess *proc = SG_NEW_ATOMIC(SgWinProcess);
+  proc->process = p;
+  return proc;
+}
+
+uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
+			    SgObject *inp, SgObject *outp, SgObject *errp)
+{
+  HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  HANDLE pipe2[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
+  const SgChar *sysfunc = NULL;
+  SgString *command
+    = SG_STRING(Sg_StringAppend(SG_LIST3(sname,
+					 SG_MAKE_STRING(" "),
+					 string_append(args))));
+  SECURITY_ATTRIBUTES sa;
+  STARTUPINFOW startup;
+  PROCESS_INFORMATION process;
+  SgFile *in, *out, *err;
+
+  sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+  sa.lpSecurityDescriptor = NULL;
+  sa.bInheritHandle = TRUE;
+  sysfunc = UC("CreatePipe");
+  if (CreatePipe(&pipe0[0], &pipe0[1], &sa, 0) == 0) goto pipe_fail;
+  if (CreatePipe(&pipe1[0], &pipe1[1], &sa, 0) == 0) goto pipe_fail;
+  if (CreatePipe(&pipe2[0], &pipe2[1], &sa, 0) == 0) goto pipe_fail;
+
+  memset(&startup, 0, sizeof(STARTUPINFO));
+  startup.cb = sizeof(STARTUPINFO);
+  startup.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
+  startup.wShowWindow = SW_HIDE;
+  startup.hStdInput = pipe0[0];
+  startup.hStdOutput = pipe1[1];
+  startup.hStdError = pipe2[1];
+  sysfunc = UC("CreateProcess");
+
+  if (CreateProcessW(NULL,
+		     Sg_StringToWCharTs(command),
+		     NULL, NULL,
+		     TRUE,
+		     0,		/* run the process */
+		     NULL, NULL,
+		     &startup,
+		     &process) == 0) goto create_fail;
+  CloseHandle(pipe0[0]);
+  CloseHandle(pipe1[1]);
+  CloseHandle(pipe2[1]);
+
+  in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
+  out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
+  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
+
+  in->name = UC("process-stdin");
+  out->name = UC("process-stdout");
+  err->name = UC("process-stderr");
+  /* port closes the handle, so we don't need these */
+
+  *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
+  *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
+  *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
+  CloseHandle(process.hThread);
+  return make_win_process(process.hProcess);
+ pipe_fail:
+ create_fail:
+  {
+    SgObject msg = Sg_GetLastErrorMessage();
+    if (pipe0[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[0]);
+    if (pipe0[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[1]);
+    if (pipe1[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[0]);
+    if (pipe1[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[1]);
+    if (pipe2[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[0]);
+    if (pipe2[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[1]);
+    Sg_Error(UC("%s() failed. %A [%A]"), sysfunc, msg, command);
+  }
+  return -1;			/* dummy */
+}
+
+int Sg_SysProcessWait(uintptr_t pid)
+{
+  SgWinProcess *p = (SgWinProcess *)pid;
+  HANDLE *handle;
+  WaitForSingleObject(p->process, INFINITE);
+  CloseHandle(p->process);
+  p->process = -1;
+  return 0;
 }

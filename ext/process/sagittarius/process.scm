@@ -56,11 +56,37 @@
 	    ;; extra
 	    getpid
 	    )
-    (import (core)
+    (import (rnrs)
+	    (clos user)
 	    (sagittarius)
 	    (sagittarius dynamic-module)
 	    (sagittarius threads))
   (load-dynamic-module "sagittarius--process")
+
+  (define-class <process> ()
+    ((name :init-keyword :name)
+     (args :init-keyword :args)
+     (input  :init-keyword :input  :reader process-input-port)
+     (output :init-keyword :output :reader process-output-port)
+     (error  :init-keyword :error  :reader process-error-port)
+     (pid    :init-keyword :pid)))
+
+  (define (process? o) (is-a? o <process>))
+  (define (make-process name args)
+    (make <process> :name name :args args))
+  (define (process-call p)
+    (let-values (((pid input output error)
+		  (sys-process-call (slot-ref p 'name) (slot-ref p 'args))))
+      (slot-set! p 'input  input)
+      (slot-set! p 'output output)
+      (slot-set! p 'error  error)
+      (slot-set! p 'pid pid)
+      pid))
+  (define (process-wait p)
+    (sys-process-wait (slot-ref p 'pid)))
+  (define (process-run p)
+    (process-call p)
+    (process-wait p))
 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)
@@ -72,29 +98,29 @@
        'create-process
        "keyword argument :stdout must be output port, when :call? is #f"
        stdout call?))
-    (let ((process (make-process name args)))
-      (cond ((and call? stdout)
-	     (process-call process)
-	     ;; well user might not want to create threads.
-	     (reader process stdout (if stderr stderr stdout) transcoder)
-	     process)
-	    (call?
-	     (process-call process)
-	     process)
-	    (else
-	     ;; on POSIX envirionment, pipe is not created yet, so we need to
-	     ;; emulate process-run like this.
-	     (process-call process)
-	     (reader process stdout (if stderr stderr stdout) transcoder)
-	     (process-wait process)))))
+    (let-values (((pid input output error) (sys-process-call name args)))
+      (let ((process (make <process> :name name :args args
+			   :input input :output output :error error
+			   :pid pid)))
+	(cond ((and call? stdout)
+	       (reader process stdout (if stderr stderr stdout) transcoder)
+	       process)
+	      (call? process)
+	      (else
+	       (reader process stdout (if stderr stderr stdout) transcoder)
+	       (sys-process-wait pid)
+	       (let loop ()
+		 (when (port-ready? output) (sys-nanosleep 1000) (loop))))))))
 
   ;; handle both stdout and stderr
   (define (async-process-read process stdout stderr transcoder)
     (define (pipe-read in out reader converter)
-      (let loop ((r (reader in)))
-	(unless (eof-object? r)
-	  (display (converter r) out)
-	  (loop (reader in)))))
+      (let loop ()
+	(let ((r (reader in)))
+	  (cond ((eof-object? r) (close-input-port in))
+		(else
+		 (display (converter r) out)
+		 (loop))))))
     (let ((out-thread (make-thread
 		       (lambda ()
 			 (let ((in (process-output-port process)))
