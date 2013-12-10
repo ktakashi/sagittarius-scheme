@@ -12,14 +12,6 @@
   (test-assert "process?" (process? proc))
   ;; some how this doesn't work, why?
   ;; on debugger it works... i don't get it.
-  #;
-  (cond-expand
-   (windows
-    ;; for windows, we need to invoke the process otherwise it will remain
-    ;; and become zonbie process.
-    (process-run proc)
-    )
-   (else #t))
   (test-assert "call" (integer? (process-call proc)))
   (let ((r (process-wait proc)))
     (test-assert "status" (integer? r))
@@ -27,5 +19,16 @@
     (let* ((out (process-output-port proc))
 	   (r (get-line (transcoded-port out (native-transcoder)))))
       (test-equal "output from process" "process" r))))
+
+;; error case
+(let ((proc (make-process *process-name* '())))
+  ;; some how this doesn't work, why?
+  ;; on debugger it works... i don't get it.
+  (test-assert "call" (integer? (process-call proc)))
+  (let ((r (process-wait proc)))
+    (test-equal "process-run" -1 r)
+    (let* ((out (process-error-port proc))
+	   (r (get-line (transcoded-port out (native-transcoder)))))
+      (test-equal "output from process" "error" r))))
 
 (test-end)

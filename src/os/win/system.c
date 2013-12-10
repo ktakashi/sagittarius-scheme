@@ -47,6 +47,8 @@
 #include "sagittarius/bytevector.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/string.h"
+#include "sagittarius/unicode.h"
+#include "sagittarius/writer.h"
 
 #include "win_util.c"
 
@@ -371,7 +373,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
   *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
   CloseHandle(process.hThread);
-  return make_win_process(process.hProcess);
+  return (uintptr_t)make_win_process(process.hProcess);
  pipe_fail:
  create_fail:
   {
@@ -390,10 +392,13 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
 int Sg_SysProcessWait(uintptr_t pid)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
-  HANDLE *handle;
-  if (p->process == -1) return -1;
+  DWORD status = 0;
+  if (p->process == (HANDLE)-1) return -1;
   WaitForSingleObject(p->process, INFINITE);
+  /* NOTE: this is from XP and I don't think anybody is compiling 
+     on Windows 2000. So must be OK. */
+  GetExitCodeProcess(p->process, &status);
   CloseHandle(p->process);
-  p->process = -1;
-  return 0;
+  p->process = (HANDLE)-1;
+  return status;
 }
