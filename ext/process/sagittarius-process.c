@@ -30,34 +30,37 @@
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
-#include "sagittarius-process.h"
 
-static void process_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
-{
-  Sg_Printf(port, UC("#<process %S>"), SG_PROCESS(self)->name);
-}
-
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcessClass, process_printer);
-
-static SgProcess* make_process(SgString *name, SgObject args)
-{
-  SgProcess *p = SG_NEW(SgProcess);
-  SG_SET_CLASS(p, SG_CLASS_PROCESS);
-  p->name = name;
-  p->args = args;
-  p->handle = 0;
-  p->in = SG_UNDEF;
-  p->out = SG_UNDEF;
-  p->err = SG_UNDEF;
-  return p;
-}
-/* win.c has some Cygwin handling code but didn't work and
-   there will be some problem to use like UNIX environment.
-   (e.g foo.sh won't be a process on Windows) */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-# include "win.c"
+/* Windows is so easy for child process */
+static void init_process()
+{
+  /* do nothing */
+}
+
 #else
-# include "posix.c"
+
+/* On POSIX, SIGCHLD must be handled so that it won't remain
+   the zombie process */
+#include <signal.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <ctype.h>
+
+static void sigchild_handler(int signo)
+{
+  int status = 0;
+  /* well, we need to wait for all child process.  */
+  wait(&status);
+}
+static void init_process()
+{
+  struct sigaction sa;
+  sa.sa_handler = sigchild_handler;
+  sa.sa_flags = 0;
+  sigaction(SIGCHLD, &sa, NULL);
+}
 #endif
 
 extern void Sg__Init_process_stub(SgLibrary *lib);
@@ -69,6 +72,4 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__process()
   init_process();
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius process)"), FALSE));
   Sg__Init_process_stub(lib);
-  Sg_InitStaticClassWithMeta(SG_CLASS_PROCESS, UC("<process>"), lib, NULL,
-			     SG_FALSE, NULL, 0);
 }

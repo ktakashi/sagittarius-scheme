@@ -7,36 +7,8 @@
 
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
- (.include <sagittarius/extend.h>
-	   <sagittarius-process.h>))
+ (.include <sagittarius/extend.h>))
 
-#|
-(define-type <process> "SgProcess*")
-
-(define-c-proc process? (o) ::<boolean>
-  (result (SG_PROCESSP o)))
-
-(define-c-proc make-process (name::<string> params::<list>) 
-  (result (Sg_MakeProcess name params)))
-
-(define-c-proc process-input-port (p::<process>) 
-  (result (-> p in)))
-
-(define-c-proc process-output-port (p::<process>) 
-  (result (-> p out)))
-
-(define-c-proc process-error-port (p::<process>)
-  (result (-> p err)))
-
-(define-c-proc process-run (p::<process>) ::<fixnum>
-  (result (Sg_ProcessRun p)))
-
-(define-c-proc process-call (p::<process>) ::<void>
-  (Sg_ProcessCall p))
-
-(define-c-proc process-wait (p::<process>) ::<fixnum>
-  (result (Sg_ProcessWait p)))
-|#
 (define-c-proc getpid () ::<fixnum>
   (.if "defined(_WIN32)"
        (result (GetCurrentProcessId()))
