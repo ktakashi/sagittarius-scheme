@@ -23,8 +23,7 @@ This section describe from top to down.
 @var{arg1} and the rest must be string which will be passed to process.
 
 The @code{run} procedure invokes @var{name} process and waits until it ends.
-Then returns process status if your environment is UNIX like. On Windows the
-return code can not be reliable.
+Then returns process' exit status.
 
 The @code{call} procedure invokes @var{name} process and continue the Scheme
 process, so it does not wait the called process. Then returns process object.
@@ -111,23 +110,6 @@ the procedure which specified @var{reader} keyword argument.
 This section describe low level APIs however some of these might be used even
 if you use @code{call} described above.
 
-Before you use this APIs, you might need to know the difference between
-platforms which this library supports.
-
-@sub*section{POSIX envionment}
-
-When a process object is created by @code{make-process} the real process is not
-created (it's not forked yet). So if you access input, output or error port of
-the process, it will return unspecified value. So you might emulate
-@code{process-run} with @code{process-call} and @code{process-wait}. And the
-created process can be re-used.
-
-@sub*section{Windows}
-
-When a process object is created by @code{make-process} the real process is
-created. So you can prepare the redirection of output before you call or run
-the process. However once the process is finished, you can not re-use it.
-
 @define[Function]{@name{process?} @args{obj}}
 @desc{Returns #f if @var{obj} is process object, otherwise #f.}
 
@@ -179,4 +161,9 @@ Invokes the @var{process} and continue the Scheme program.
 @define[Function]{@name{process-wait} @args{process}}
 @desc{@var{process} must be a process object.
 
-Wait the given process until it ends.}
+Wait the given process until it ends and returns the exit status of the given
+process.
+
+NOTE: The exit status are platform dependent. On Windows, the value will be
+32 bit integer. On POSIX, the value will be 8 bit unsigned integer.
+}

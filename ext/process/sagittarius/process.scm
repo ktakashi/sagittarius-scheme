@@ -108,9 +108,10 @@
 	      (call? process)
 	      (else
 	       (reader process stdout (if stderr stderr stdout) transcoder)
-	       (sys-process-wait pid)
-	       (let loop ()
-		 (when (port-ready? output) (sys-nanosleep 1000) (loop))))))))
+	       (let ((r (sys-process-wait pid)))
+		 (let loop ()
+		   (when (port-ready? output) (sys-nanosleep 1000) (loop)))
+		 r))))))
 
   ;; handle both stdout and stderr
   (define (async-process-read process stdout stderr transcoder)
