@@ -332,6 +332,7 @@ static int file_close(SgObject self)
 
 static int file_ready(SgObject self)
 {
+  if (!SG_PORT_FILE(self)) return FALSE;
   if (SG_PORT_FILE_VTABLE(self)->ready) {
     return SG_PORT_FILE_VTABLE(self)->ready(SG_PORT_FILE(self));
   } else {
@@ -2703,6 +2704,8 @@ int Sg_UnlockPort(SgPort *port)
 
 int Sg_PortReady(SgPort *port)
 {
+  /* this prevents transcoded port's underlying port (pseudo closed) */
+  /* if (Sg_PortClosedP(port)) return FALSE; */
   if (SG_PORT_VTABLE(port)->ready) {
     return SG_PORT_VTABLE(port)->ready(port);
   }

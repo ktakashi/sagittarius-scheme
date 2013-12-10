@@ -447,12 +447,7 @@ SgObject Sg_SitelibPath()
   return sitelibpath;
 }
 
-static void pipe_finalize(SgObject obj, void *data)
-{
-  close((int)data);
-}
-
-uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
+uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 			    SgObject *inp, SgObject *outp, SgObject *errp)
 {
   pid_t pid;
@@ -461,6 +456,25 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   int pipe2[2] = { -1, -1 };
   int open_max;
   const char *sysfunc = NULL;
+
+  int count, i;
+  char *name, **args;
+  SgObject cp;
+  /* this fails on Cygwin if I put it in the child process thing... */
+  name = Sg_Utf32sToUtf8s(sname);
+  count = Sg_Length(sargs);
+#ifdef HAVE_ALLOCA
+  args = alloca(sizeof(char *) * (count + 2));
+#else
+  args = SG_NEW_ARRAY(char *, count+2);
+#endif
+
+  i = 0;
+  args[i++] = name;
+  SG_FOR_EACH(cp, sargs) {
+    args[i++] = Sg_Utf32sToUtf8s(SG_STRING(SG_CAR(cp)));
+  }
+  args[i] = NULL;
 
   sysfunc = "sysconf";
   if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
@@ -474,15 +488,6 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   pid = fork();
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
-    int i;
-    int count = Sg_Length(args);
-    char *name = Sg_Utf32sToUtf8s(sname);
-    SgObject cp;
-#ifdef HAVE_ALLOCA
-    char **args = (char**)alloca(sizeof(char*) * (count + 1));
-#else
-    char **args = SG_NEW_ARRAY(char*, count+2);
-#endif
     if (close(pipe0[1])) goto close_fail;
     if (close(pipe1[0])) goto close_fail;
     if (close(pipe2[0])) goto close_fail;
@@ -496,13 +501,8 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
       if (i == pipe2[1]) continue;
       close(i);
     }
-    i = 0;
-    args[i++] = name;
-    SG_FOR_EACH(cp, args) {
-      args[i++] = Sg_Utf32sToUtf8s(SG_STRING(SG_CAR(cp)));
-    }
-    args[i] = NULL;
-    execvp(name, args);
+
+    execvp(name, (char * const *)args);
     goto exec_fail;
     /* never reached */
   } else {
@@ -511,21 +511,16 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
     close(pipe1[1]);
     close(pipe2[1]);
 
-    in = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
+    in  = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
     out = SG_FILE(Sg_MakeFileFromFD(pipe1[0]));
     err = SG_FILE(Sg_MakeFileFromFD(pipe2[0]));
-    in->name = UC("process-stdin");
+    in->name  = UC("process-stdin");
     out->name = UC("process-stdout");
     err->name = UC("process-stderr");
 
-    *inp = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
+    *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
     *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
     *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
-
-    Sg_RegisterFinalizer(SG_OBJ(in), pipe_finalize, (void*)pipe0[1]);
-    Sg_RegisterFinalizer(SG_OBJ(out), pipe_finalize, (void*)pipe1[0]);
-    Sg_RegisterFinalizer(SG_OBJ(err), pipe_finalize, (void*)pipe2[0]);
-
   }
   return (uintptr_t)pid;
  sysconf_fail:
@@ -542,7 +537,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
     if (pipe2[0] != -1) close(pipe2[0]);
     if (pipe2[1] != -1) close(pipe2[1]);
     Sg_Error(UC("command: `%A %A`.\nmessage %A %A"),
-	     sname, args, Sg_MakeStringC(message), msg);
+	     sname, sargs, Sg_MakeStringC(message), msg);
     return -1;
   }
  close_fail:

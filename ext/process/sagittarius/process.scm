@@ -108,31 +108,19 @@
 	      (call? process)
 	      (else
 	       (reader process stdout (if stderr stderr stdout) transcoder)
-	       (sys-process-wait pid)))))
-    #;
-    (let ((process (make-process name args)))
-      (cond ((and call? stdout)
-	     (process-call process)
-	     ;; well user might not want to create threads.
-	     (reader process stdout (if stderr stderr stdout) transcoder)
-	     process)
-	    (call?
-	     (process-call process)
-	     process)
-	    (else
-	     ;; on POSIX envirionment, pipe is not created yet, so we need to
-	     ;; emulate process-run like this.
-	     (process-call process)
-	     (reader process stdout (if stderr stderr stdout) transcoder)
-	     (process-wait process)))))
+	       (sys-process-wait pid)
+	       (let loop ()
+		 (when (port-ready? output) (sys-nanosleep 1000) (loop))))))))
 
   ;; handle both stdout and stderr
   (define (async-process-read process stdout stderr transcoder)
     (define (pipe-read in out reader converter)
-      (let loop ((r (reader in)))
-	(unless (eof-object? r)
-	  (display (converter r) out)
-	  (loop (reader in)))))
+      (let loop ()
+	(let ((r (reader in)))
+	  (cond ((eof-object? r) (close-input-port in))
+		(else
+		 (display (converter r) out)
+		 (loop))))))
     (let ((out-thread (make-thread
 		       (lambda ()
 			 (let ((in (process-output-port process)))
