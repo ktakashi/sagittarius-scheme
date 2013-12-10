@@ -305,14 +305,6 @@ typedef struct SgWinProcessRec
   HANDLE process;
 } SgWinProcess;
 
-static void proc_finalize(SgObject obj, void *data)
-{
-  SgWinProcess *p = (SgWinProcess *)data;
-  if (p->process != -1) {
-    CloseHandle(p->process);
-  }
-}
-
 static SgWinProcess * make_win_process(HANDLE p)
 {
   /* the p and t is not GC managed pointer :) */
@@ -399,6 +391,7 @@ int Sg_SysProcessWait(uintptr_t pid)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
   HANDLE *handle;
+  if (p->process == -1) return -1;
   WaitForSingleObject(p->process, INFINITE);
   CloseHandle(p->process);
   p->process = -1;

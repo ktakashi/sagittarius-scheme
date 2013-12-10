@@ -4,10 +4,11 @@
 int main(int argc, char **argv)
 {
   if (argc != 2) {
-    puts("error");
+    fputs("error", stderr);
     return -1;
   }
-  puts(argv[1]);
+  fputs(argv[1], stdout);
+  fflush(stdout);
   return 0;
 }
 

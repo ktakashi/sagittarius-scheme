@@ -152,8 +152,8 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
   return r;
 #else
   /* Last resort */
-  /* If the platform is POSIX, it must have either clock_gettime or gettimeofday.
-     Do we still need this? */
+  /* If the platform is POSIX, it must have either clock_gettime or
+     gettimeofday. Do we still need this? */
   *sec = (unsigned long)time(NULL);
   *usec = 0;
   return 0;
@@ -491,9 +491,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     if (close(pipe0[1])) goto close_fail;
     if (close(pipe1[0])) goto close_fail;
     if (close(pipe2[0])) goto close_fail;
-    if (dup2(0, pipe0[0]) == -1) goto dup_fail;
-    if (dup2(1, pipe1[1]) == -1) goto dup_fail;
-    if (dup2(2, pipe2[1]) == -1) goto dup_fail;
+    if (dup2(pipe0[0], 0) == -1) goto dup_fail;
+    if (dup2(pipe1[1], 1) == -1) goto dup_fail;
+    if (dup2(pipe2[1], 2) == -1) goto dup_fail;
 
     for (i = 3; i < open_max; i++) {
       if (i == pipe0[0]) continue;
