@@ -549,6 +549,17 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 int Sg_SysProcessWait(uintptr_t pid)
 {
   int status = 0;
+ retry:
   waitpid((pid_t)pid, &status, 0);
-  return status;
+  /* FIXME how should I treat signals... */
+  if (WIFEXITED(status)) {
+    return WEXITSTATUS(status);
+  } else if (WIFSIGNALED(status)) {
+    Sg_Error(UC("killed by signal %d\n"), WTERMSIG(status));
+  } else if (WIFSTOPPED(status)) {
+    Sg_Error(UC("stopped by signal %d\n"), WSTOPSIG(status));
+  } else if (WIFCONTINUED(status)) {
+    goto retry;
+  }
+  return WEXITSTATUS(status);
 }

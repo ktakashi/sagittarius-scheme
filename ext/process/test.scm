@@ -15,7 +15,7 @@
   (test-assert "call" (integer? (process-call proc)))
   (let ((r (process-wait proc)))
     (test-assert "status" (integer? r))
-    (test-equal "process-run" 0 r)
+    (test-equal "process-wait" 0 r)
     (let* ((out (process-output-port proc))
 	   (r (get-line (transcoded-port out (native-transcoder)))))
       (test-equal "output from process" "process" r))))
@@ -26,7 +26,11 @@
   ;; on debugger it works... i don't get it.
   (test-assert "call" (integer? (process-call proc)))
   (let ((r (process-wait proc)))
-    (test-equal "process-run" -1 r)
+    (cond-expand
+     (windows (test-equal "process-wait (error)" -1 r))
+     (else 
+      ;; -1 is 255 :)
+      (test-equal "process-wait (error)" 255 r)))
     (let* ((out (process-error-port proc))
 	   (r (get-line (transcoded-port out (native-transcoder)))))
       (test-equal "output from process" "error" r))))
