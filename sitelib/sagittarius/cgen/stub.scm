@@ -448,9 +448,10 @@
 			    (cise-render-to-string stmt))))
     (define (typed-result rettype stmts)
       (push-stmt! cproc "{")
-      (push-stmt! cproc (format "~a SG_RESULT = (~a)NULL;"
+      (push-stmt! cproc (format "~a SG_RESULT = (~a)~a;"
 				(slot-ref rettype 'c-type)
-				(slot-ref rettype 'c-type)))
+				(slot-ref rettype 'c-type)
+				(slot-ref rettype 'init)))
       (for-each expand-stmt stmts)
       (push-stmt! cproc (cgen-return-stmt (cgen-box-expr rettype "SG_RESULT")))
       (push-stmt! cproc "}"))

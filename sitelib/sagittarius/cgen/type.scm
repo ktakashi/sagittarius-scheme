@@ -23,14 +23,15 @@
      (c-predicate :init-keyword :c-predicate)
      (unboxer     :init-keyword :unboxer)
      (boxer       :init-keyword :boxer :init-value "SG_OBJ_SAFE")
-     (maybe       :init-keyword :maybe :init-value #f)))
+     (maybe       :init-keyword :maybe :init-value #f)
+     (init        :init-keyword :init  :init-value 'NULL)))
 
   (define *instance-pool* '())
 
   (define (cgen-type-from-name name)
     (or (find (lambda (type) (eq? (slot-ref type 'name) name))
 	      *instance-pool*)
-	(and-let* ((m (looking-at #/\?$/ (symbol->string name)))
+	(and-let* ((m (#/\?$/ (symbol->string name)))
 		   (basename (string->symbol (m 'before)))
 		   (basetype (cgen-type-from-name basename)))
 	  (make <cgen-type> :name name :c-type (slot-ref basetype 'c-type)
@@ -41,7 +42,7 @@
 		:maybe       basetype))))
 
   (define (make-cgen-type name c-type :optional (desc #f) (c-pred #f)
-			  (unbox #f) (box #f))
+			  (unbox #f) (box #f) (init 'NULL))
     (define (strip<> name) (string-trim-both name (string->char-set "<>")))
     (define (replace- name)
       (regex-replace-all #/-/ (string-upcase name) "_"))
@@ -59,19 +60,20 @@
 		   :description (or desc name-s)
 		   :c-predicate (or c-pred (default-cpred name-s))
 		   :unboxer     (or unbox (default-unbox name-s))
-		   :boxer       (or box "SG_OBJ_SAFE"))))
+		   :boxer       (or box "SG_OBJ_SAFE")
+		   :init        init)))
       ;; maybe we want an  instance pool
       (set! *instance-pool* (cons type *instance-pool*))))
 
   (for-each
    (cut apply make-cgen-type <>)
    '(;; numeric
-     (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT")
+     (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
      (<integer> "SgObject" "exact integer" "SG_EXACT_INTP" "")
      (<number> "SgObject" "number" "SG_NUMBERP" "")
      ;; immediates
-     (<boolean> "int" "boolean" "SG_BOOLP" "SG_BOOL_VALUE" "SG_MAKE_BOOL")
-     (<char>    "SgChar" "character" "SG_CHARP" "SG_CHAR_VALUE" "SG_MAKE_CHAR")
+     (<boolean> "int" "boolean" "SG_BOOLP" "SG_BOOL_VALUE" "SG_MAKE_BOOL" FALSE)
+     (<char>  "SgChar" "character" "SG_CHARP" "SG_CHAR_VALUE" "SG_MAKE_CHAR" 0)
      (<void>    "void" "void" "" "" "SG_VOID_RETURN_VALUE")
      (<top>     "SgObject" "scheme object" "" "")
      ;; scheme types
