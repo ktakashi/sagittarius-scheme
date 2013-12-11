@@ -857,6 +857,12 @@ void Sg_ByteVectorIEEEDoubleBigSet(SgByteVector *bv, size_t index, double value)
 #endif
 }
 
+static unsigned long fill_bits(unsigned long x, int bytes)
+{
+  unsigned long mask = ~((1UL << (bytes<<3))-1);
+  return x | mask;
+}
+
 static SgObject bytevector2integer(SgByteVector *bv, int start, int end,
 				   int sign)
 {
@@ -892,6 +898,12 @@ static SgObject bytevector2integer(SgByteVector *bv, int start, int end,
     if (sign && ((SG_BVECTOR_ELEMENT(bv, start) & 0x80) == 0x80)){
       /* in this case the ans still remains as bignum so we don't need to
 	 check. */
+      int bytes = end % SIZEOF_LONG;
+      if (bytes) {
+	unsigned long last = SG_BIGNUM(ans)->elements[bignum_size-1];
+	last = fill_bits(last, bytes);
+	SG_BIGNUM(ans)->elements[bignum_size-1] = last;
+      }
       ans = Sg_BignumComplement(ans);
       SG_BIGNUM_SET_SIGN(ans, -1);
       ans = Sg_NormalizeBignum(ans);
@@ -903,9 +915,11 @@ static SgObject bytevector2integer(SgByteVector *bv, int start, int end,
     for (i = end; start < i; i--) {
       lans += (unsigned long)SG_BVECTOR_ELEMENT(bv, i-1) << ((end-i)<<3);
     }
-    ans = Sg_MakeIntegerU(lans);
     if (sign && ((SG_BVECTOR_ELEMENT(bv, start) & 0x80) == 0x80)) {
-      ans = Sg_Negate(ans);
+      lans = fill_bits(lans, end);
+      ans = Sg_MakeInteger(lans);
+    } else {
+      ans = Sg_MakeIntegerU(lans);
     }
   }
   return ans;
