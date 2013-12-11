@@ -40,8 +40,12 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/system.h"
+#include "sagittarius/core.h"
+#include "sagittarius/clos.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/error.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/library.h"
 #include "sagittarius/values.h"
 #include "sagittarius/number.h"
 #include "sagittarius/bytevector.h"
@@ -49,6 +53,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/weak.h"
 
 #include "win_util.c"
 
@@ -301,17 +306,108 @@ static SgString *string_append(SgObject args)
   return SG_STRING(ret);
 }
 
-/* this is not a Scheme object */
+
+#define PROCESS_VECTOR_SIZE 256
+static struct {
+  int dummy;
+  SgWeakVector *procs;
+  SgInternalMutex lock;
+} active_win_procs = { 1, NULL };
+
+#define PROC_HASH(port)  \
+  ((((SG_WORD(port)>>3) * 2654435761UL)>>16) % PROCESS_VECTOR_SIZE)
+
+SG_CLASS_DECL(Sg_WinProcessClass);
+#define SG_CLASS_WIN_PROC (&Sg_WinProcessClass)
+
+/* this is not a Scheme object but to make this distinguish */
 typedef struct SgWinProcessRec
 {
+  SG_HEADER;
   HANDLE process;
 } SgWinProcess;
+
+#define SG_WIN_PROC(obj)  ((SgWinProcess *)obj)
+#define SG_WIN_PROCP(obj) SG_XTYPEP(obj, SG_CLASS_WIN_PROC)
+
+static void win_proc_print(SgObject proc, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<windows-process %p>"), SG_WIN_PROC(proc)->process);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_WinProcessClass, win_proc_print);
+
+static void register_win_proc(SgWinProcess *proc)
+{
+  int i, h, c;
+  int tried_gc = FALSE;
+  int need_gc = FALSE;
+
+ retry:
+  h = i = (int)PROC_HASH(proc);
+  c = 0;
+  Sg_LockMutex(&active_win_procs.lock);
+  while (!SG_FALSEP(Sg_WeakVectorRef(active_win_procs.procs,
+				     i, SG_FALSE))) {
+    i -= ++c; while (i < 0) i += PROCESS_VECTOR_SIZE;
+    if (i == h) {
+      /* Vector entry is full. We run global GC to try to collect
+	 unused entry. */
+      need_gc = TRUE;
+      break;
+    }
+  }
+  if (!need_gc) {
+    Sg_WeakVectorSet(active_win_procs.procs, i, SG_OBJ(proc));
+  }
+  Sg_UnlockMutex(&active_win_procs.lock);
+  if (need_gc) {
+    if (tried_gc) {
+      Sg_Panic("windows process table overflow.");
+    } else {
+      Sg_GC();
+      tried_gc = TRUE;
+      need_gc = FALSE;
+      goto retry;
+    }
+  }
+}
+
+static void unregister_win_proc(SgWinProcess *proc)
+{
+  int i, h, c;
+  SgObject p;
+
+  h = i = (int)PROC_HASH(proc);
+  c = 0;
+  Sg_LockMutex(&active_win_procs.lock);
+  do {
+    p = Sg_WeakVectorRef(active_win_procs.procs, i, SG_FALSE);
+    if (!SG_FALSEP(p) && SG_EQ(SG_OBJ(proc), p)) {
+      Sg_WeakVectorSet(active_win_procs.procs, i, SG_FALSE);
+      break;
+    }
+    i -= ++c; while (i < 0) i += PROCESS_VECTOR_SIZE;
+  } while (i != h);
+  Sg_UnlockMutex(&active_win_procs.lock);
+}
+
+static void proc_finalize(SgObject obj, void *data)
+{
+  SgWinProcess *proc = (SgWinProcess *)obj;
+  if (proc->process != (HANDLE)-1) {
+    CloseHandle(proc->process);
+  }
+}
 
 static SgWinProcess * make_win_process(HANDLE p)
 {
   /* the p and t is not GC managed pointer :) */
   SgWinProcess *proc = SG_NEW_ATOMIC(SgWinProcess);
+  SG_SET_CLASS(proc, SG_CLASS_WIN_PROC);
   proc->process = p;
+  register_win_proc(proc);
+  Sg_RegisterFinalizer(proc, proc_finalize, NULL);
   return proc;
 }
 
@@ -393,6 +489,7 @@ int Sg_SysProcessWait(uintptr_t pid)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
   DWORD status = 0;
+  if (!SG_WIN_PROCP(p)) Sg_Error(UC("invalid pid %S"), SG_OBJ(p));
   if (p->process == (HANDLE)-1) return -1;
   WaitForSingleObject(p->process, INFINITE);
   /* NOTE: this is from XP and I don't think anybody is compiling 
@@ -400,5 +497,28 @@ int Sg_SysProcessWait(uintptr_t pid)
   GetExitCodeProcess(p->process, &status);
   CloseHandle(p->process);
   p->process = (HANDLE)-1;
+  Sg_UnregisterFinalizer(p);
+  unregister_win_proc(p);
   return status;
+}
+
+static void cleanup_win_proc(void *data)
+{
+  int i;
+  for (i = 0; i < PROCESS_VECTOR_SIZE; i++) {
+    SgObject p = Sg_WeakVectorRef(active_win_procs.procs, i, SG_FALSE);
+    if (!SG_FALSEP(p) && SG_WIN_PROCP(p)) {
+      proc_finalize(p, NULL);
+    }
+  }
+}
+
+void Sg__InitSystem()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+  active_win_procs.procs = 
+    SG_WEAK_VECTOR(Sg_MakeWeakVector(PROCESS_VECTOR_SIZE));
+  Sg_InitStaticClassWithMeta(SG_CLASS_WIN_PROC, UC("<windows-process>"), 
+			     lib, NULL, SG_FALSE, NULL, 0);
+  Sg_AddCleanupHandler(cleanup_win_proc, NULL);
 }

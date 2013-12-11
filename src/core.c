@@ -71,6 +71,7 @@ extern void Sg__InitWrite();
 extern void Sg__InitRegex();
 extern void Sg__InitUnicode();
 extern void Sg__InitMacro();
+extern void Sg__InitSystem();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -153,6 +154,8 @@ void Sg_Init()
 
   /* regex */
   Sg__InitRegex();
+  /* for Windows but call it */
+  Sg__InitSystem();
 
   Sg__Init_sagittarius();
   Sg__Init_sagittarius_vm();

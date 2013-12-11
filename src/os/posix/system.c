@@ -563,3 +563,8 @@ int Sg_SysProcessWait(uintptr_t pid)
   }
   return WEXITSTATUS(status);
 }
+
+void Sg__InitSystem()
+{
+  /* do nothing */
+}

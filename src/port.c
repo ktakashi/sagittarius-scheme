@@ -272,7 +272,7 @@ static void unregister_buffered_port(SgPort *port)
 
   h = i = (int)PORT_HASH(port);
   c = 0;
-  /* TODO lock */
+  Sg_LockMutex(&active_buffered_ports.lock);
   do {
     p = Sg_WeakVectorRef(active_buffered_ports.ports, i, SG_FALSE);
     if (!SG_FALSEP(p) && SG_EQ(SG_OBJ(port), p)) {
@@ -281,6 +281,7 @@ static void unregister_buffered_port(SgPort *port)
     }
     i -= ++c; while (i < 0) i += PORT_VECTOR_SIZE;
   } while (i != h);
+  Sg_UnlockMutex(&active_buffered_ports.lock);
 }
 
 void Sg_RegisterBufferedPort(SgPort *port)
