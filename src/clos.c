@@ -223,6 +223,21 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
     SG_PROCEDURE_REQUIRED(m) = SG_PROCEDURE_REQUIRED(proc)-offset;	\
   } while (0)
 
+static void set_method_debug_name(SgMethod *m, SgGeneric *g)
+{
+  SgObject body = SG_METHOD_PROCEDURE(m);
+  SgClass **tmp, **specarray = SG_METHOD_SPECIALIZERS(m);
+  int speclen = 0;
+  for (tmp = specarray; *tmp; tmp++) speclen++;
+
+  SG_PROCEDURE_NAME(m) = Sg_Cons(SG_PROCEDURE_NAME(g),
+				 class_list_to_names(specarray, speclen));
+  /* mostly true */
+  if (SG_CLOSUREP(body)) {
+    SG_CODE_BUILDER(SG_CLOSURE(body)->code)->name = SG_PROCEDURE_NAME(m);
+  }
+}
+
 SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
   SgObject mp, pair;
@@ -236,6 +251,9 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 		"something wrong in MOP implementation?"),
 	     method, method->generic);
   }
+  /* ok set it here :) */
+  if (!method->generic) set_method_debug_name(method, generic);
+
   method->generic = generic;
   /* pre-allcate cons pair to avoid triggering GC */
   pair = Sg_Cons(SG_OBJ(method), SG_GENERIC_METHODS(generic));
@@ -978,21 +996,26 @@ static SgObject c_setter_wrapper(SgObject *argv, int argc, void *data)
 
 SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
 {
-  SgObject rcpl = SG_CDR(klass->cpl), cp, h = SG_NIL, t = SG_NIL;
+  SgObject rcpl = SG_CDR(klass->cpl), cp;
   SgObject ds = klass->directSlots, s = SG_CAR(slot);
+  SgObject getter = SG_FALSE, setter = SG_FALSE;
+
   SG_FOR_EACH(cp, rcpl) {
     SgObject check = Sg_Assq(s, ds);
     if (SG_FALSEP(check)) {
       SgSlotAccessor *sac = lookup_slot_info(SG_CLASS(SG_CAR(cp)), s);
 
       if (!sac) continue;
-      if (!sac->getter || !sac->setter) continue;
-      SG_APPEND1(h, t, Sg_MakeSubr(c_getter_wrapper, sac->getter, 1, 0, s));
-      SG_APPEND1(h, t, Sg_MakeSubr(c_setter_wrapper, sac->setter, 2, 0, s));
-      break;
+      if (sac->getter && SG_FALSEP(getter)) {
+	getter = Sg_MakeSubr(c_getter_wrapper, sac->getter, 1, 0, s);
+      }
+      if (sac->setter && SG_FALSEP(setter)) {
+	setter = Sg_MakeSubr(c_setter_wrapper, sac->setter, 2, 0, s);
+      }
+      if (!SG_FALSEP(getter) && !SG_FALSEP(setter)) break;
     }
   }
-  return h;
+  return SG_LIST2(getter, setter);
 }
 
 /* ugly naming */
@@ -2005,7 +2028,7 @@ static SG_DEFINE_METHOD(object_equalp_rec, &Sg_GenericObjectEqualP,
 static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
 {
   SgMethod *m = SG_METHOD(argv[0]);
-  SgGeneric *g;
+  SgGeneric *g = NULL;
   SgObject initargs = argv[1];
   SgObject llist, quoli, generic, specs, body;
   SgClass **specarray;
@@ -2020,11 +2043,9 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   specs   = Sg_GetKeyword(SG_KEYWORD_SPECIALIZERS, initargs, SG_FALSE);
   body    = Sg_GetKeyword(SG_KEYWORD_PROCEDURE, initargs, SG_FALSE);
 
-  if (!Sg_TypeP(generic, SG_CLASS_GENERIC)) {
-    Sg_Error(UC("generic function required for :generic argument: %S"), 
-	     generic);
+  if (!SG_FALSEP(generic)) {
+    g = SG_GENERIC(generic);
   }
-  g = SG_GENERIC(generic);
   if (!SG_CLOSUREP(body) && !SG_SUBRP(body)) {
     Sg_Error(UC("closure required for :body argument: %S"), body);
   }
@@ -2044,15 +2065,13 @@ static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
   }
   SG_PROCEDURE_REQUIRED(m) = req;
   SG_PROCEDURE_OPTIONAL(m) = opt;
-  SG_PROCEDURE_NAME(m) = Sg_Cons(SG_PROCEDURE_NAME(g),
-				 class_list_to_names(specarray, speclen));
+
   SG_METHOD_GENERIC(m) = g;
   SG_METHOD_SPECIALIZERS(m) = specarray;
   SG_METHOD_PROCEDURE(m) = body;
   SG_METHOD_QUALIFIER(m) = quoli;
-  /* mostly true */
-  if (SG_CLOSUREP(body)) {
-    SG_CODE_BUILDER(SG_CLOSURE(body)->code)->name = SG_PROCEDURE_NAME(m);
+  if (g) {
+    set_method_debug_name(m, g);
   }
   /* add direct methods? */
   return SG_OBJ(m);

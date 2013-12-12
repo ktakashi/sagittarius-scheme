@@ -2,7 +2,8 @@
     (export slot-ref slot-set! slot-bound? 
 	    slot-ref-using-accessor slot-set-using-accessor!
 	    slot-unbound slot-missing
-	    make initialize add-method remove-method
+	    make initialize 
+	    make-method add-method remove-method
 	    ;; <class>
 	    class-of
 	    class-direct-supers
@@ -98,6 +99,21 @@
 		       :specializers  (list <class>)
 		       :lambda-list  '(class . initargs)
 		       :procedure body)))
+
+  (define (make-method specializers procedure :key (qualifier :primary)
+		       (generic #f))
+    (define (gen-lambda-list specializers procedure)
+      (let ((rest (if (cdr (arity procedure)) (gensym) '()))
+	    (reqs (map (lambda (s) (gensym)) specializers)))
+	(if (null? reqs)
+	    rest
+	    (cons reqs rest))))
+    (make <method>
+      :specializers specializers
+      :lambda-list (gen-lambda-list specializers procedure)
+      :qualifier qualifier
+      :generic generic
+      :procedure procedure))
 
   (add-method initialize
 	      (make <method>
