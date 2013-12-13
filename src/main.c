@@ -365,10 +365,14 @@ int main(int argc, char **argv)
       break;
 #endif
     case 'L': {
-      SgObject paths = Sg_Glob(SG_STRING(Sg_MakeStringC(optarg)), 0);
-      SG_FOR_EACH(paths, paths) {
-	if (Sg_DirectoryP(SG_CAR(paths))) {
-	  Sg_AddLoadPath(SG_CAR(paths));
+      SgObject exp = Sg_MakeStringC(optarg);
+      if (Sg_DirectoryP(exp)) Sg_AddLoadPath(exp);
+      else {
+	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
+	SG_FOR_EACH(paths, paths) {
+	  if (Sg_DirectoryP(SG_CAR(paths))) {
+	    Sg_AddLoadPath(SG_CAR(paths));
+	  }
 	}
       }
       break;

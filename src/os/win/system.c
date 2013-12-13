@@ -114,8 +114,10 @@ SgObject Sg_Getenv(const SgChar *env)
     return utf16ToUtf32(buf);
   } else if (r > 0) {
     if (retried) return SG_FALSE; /* something is wrong */
-    buf = SG_NEW_ATOMIC2(wchar_t *, r);
+    buf = SG_NEW_ATOMIC2(wchar_t *, sizeof(wchar_t) * r);
     size = r;
+    /* in case ... */
+    memset(buf, 0, sizeof(wchar_t) * r);
     retried = TRUE;
     goto retry;
   } else {
