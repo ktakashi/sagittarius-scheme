@@ -1,5 +1,6 @@
 (import (rnrs)
 	(clos user)
+	(clos core)
 	(sagittarius mop allocation)
 	(srfi :64 testing))
 
@@ -23,5 +24,32 @@
   (test-assert "set" (slot-set! t 'foo 5))
   (test-equal "value t"  5 (slot-ref t 'foo))
   (test-equal "value t2" 0 (slot-ref t2 'foo)))
+
+(define-class <allocation-test3> ()
+  ((foo :allocation :class :init-value 0))
+  :metaclass <allocation-meta>)
+(let ((t (make <allocation-test3>))
+      (t2 (make <allocation-test3>)))
+  (test-equal "initial value" 0 (slot-ref t 'foo))
+  (test-assert "set" (slot-set! t 'foo 5))
+  (test-equal "value t"  5 (slot-ref t 'foo))
+  (test-equal "value t2" 5 (slot-ref t2 'foo)))
+
+;; some other test
+(define-class <test-meta> (<class>) ())
+(define-method compute-getter-and-setter ((class <test-meta>) slot)
+  (let ((r (call-next-method)))
+    `(,(car r) ,(cadr r) ,(lambda (o) #f))))
+
+(define-class <test> ()
+  ((test :init-keyword :test))
+  :metaclass <test-meta>)
+
+(let ((t1 (make <test>))
+      (t2 (make <test> :test #t)))
+  (test-assert "slot-bound? (t1)" (not (slot-bound? t1 'test)))
+  (test-assert "slot-bound? (t2)" (not (slot-bound? t2 'test)))
+  (test-error "slot-ref (t1)" condition? (slot-ref t1 'test))
+  (test-assert "slot-ref (t2)" (slot-ref t2 'test)))
 
 (test-end)

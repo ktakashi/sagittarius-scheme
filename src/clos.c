@@ -201,6 +201,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   ac->setter = NULL;
   ac->getterS = SG_FALSE;
   ac->setterS = SG_FALSE;
+  ac->boundP = SG_FALSE;
   return ac;
 }
 
@@ -996,6 +997,7 @@ static SgObject c_setter_wrapper(SgObject *argv, int argc, void *data)
 
 SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
 {
+  /* remove klass itself from cpl */
   SgObject rcpl = SG_CDR(klass->cpl), cp;
   SgObject ds = klass->directSlots, s = SG_CAR(slot);
   SgObject getter = SG_FALSE, setter = SG_FALSE;
@@ -1015,7 +1017,8 @@ SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
       if (!SG_FALSEP(getter) && !SG_FALSEP(setter)) break;
     }
   }
-  return SG_LIST2(getter, setter);
+  /* by default bound? is not defined */
+  return SG_LIST3(getter, setter, SG_FALSE);
 }
 
 /* ugly naming */
@@ -1029,6 +1032,11 @@ static SgObject slot_ref_cc_rec(SgObject obj, SgObject slot,
     if (boundp) return SG_TRUE;
     else        return result;
   }
+}
+
+static SgObject slot_boundp_cc(SgObject result, void **data)
+{
+  return SG_FALSEP(result) ? SG_FALSE: SG_TRUE;
 }
 
 static SgObject slot_ref_cc(SgObject result, void **data)
@@ -1053,7 +1061,19 @@ static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP, int boundp)
       return slot_ref_cc_rec(obj, name, accessor->getter(obj), boundp);
     } else {
       /* scheme accessor, assume obj is instance */
-      if (SG_FALSEP(accessor->getterS)) {
+      if (boundp && SG_PROCEDUREP(accessor->boundP)) {
+	if (vmP) {
+	  void *data[3];
+	  data[0] = obj;
+	  data[1] = name;
+	  data[2] = (void*)(intptr_t)boundp;
+	  Sg_VMPushCC(slot_boundp_cc, data, 3);
+	  return Sg_VMApply1(accessor->boundP, obj);
+	} else {
+	  SgObject r = Sg_Apply1(accessor->boundP, obj);
+	  return slot_boundp_cc(r, NULL);
+	}
+      } else if (!SG_PROCEDUREP(accessor->getterS)) {
 	SgObject val = SG_INSTANCE(obj)->slots[accessor->index];
 	if (vmP) {
 	  void *data[3];
@@ -1104,7 +1124,7 @@ static SgObject slot_set_rec(SgObject obj, SgObject name,
       return SG_UNDEF;
     } else {
       /* scheme accessor */
-      if (SG_FALSEP(accessor->setterS)) {
+      if (!SG_PROCEDUREP(accessor->setterS)) {
 	SG_INSTANCE(obj)->slots[accessor->index] = value;
 	return SG_UNDEF;
       } else {
