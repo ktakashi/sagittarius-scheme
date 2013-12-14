@@ -2,6 +2,7 @@
 	(clos user)
 	(clos core)
 	(sagittarius mop allocation)
+	(sagittarius mop validator)
 	(srfi :64 testing))
 
 (test-begin "Sagittarius MOP")
@@ -51,5 +52,20 @@
   (test-assert "slot-bound? (t2)" (not (slot-bound? t2 'test)))
   (test-error "slot-ref (t1)" condition? (slot-ref t1 'test))
   (test-assert "slot-ref (t2)" (slot-ref t2 'test)))
+
+;; validator test
+(define-class <test-validate> (<validator-mixin>)
+  ((number-only :validator (lambda (o v) (unless (number? v) (error 'ok)) v))
+   (observ      :observer  (lambda (o v) (unless (symbol? v) (error 'ok))))))
+(let ((tv (make <test-validate>)))
+  (test-assert "ok number" (slot-set! tv 'number-only 1))
+  (test-equal "check (1)" 1 (slot-ref tv 'number-only))
+  (test-error "ng number" condition? (slot-set! tv 'number-only #t))
+  (test-equal "check (2)" 1 (slot-ref tv 'number-only))
+  (test-assert "ok symbol" (slot-set! tv 'observ 'ok))
+  (test-equal "check (3)" 'ok (slot-ref tv 'observ))
+  (test-error "ng symbol" condition? (slot-set! tv 'observ #t))
+  (test-equal "check (4)" #t (slot-ref tv 'observ)))
+
 
 (test-end)

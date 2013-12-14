@@ -35,6 +35,7 @@
 	    (clos core))
 
   (define-class <validator-meta> (<class>) ())
+#|
   (define-method compute-getters-and-setters ((class <validator-meta>) slots)
     (let ((r (call-next-method)))
       (for-each
@@ -57,6 +58,40 @@
 	       (slot-set! acc 'setter setter)))))
        r slots)
       r))
-
+|#
+  ;; this way is actually a bit non efficient
+  (define-method compute-getter-and-setter ((class <validator-meta>) slot)
+    (let ((r    (call-next-method))
+	  (pre  (slot-definition-option slot :validator #f))
+	  (post (slot-definition-option slot :observer #f))
+	  (name (slot-definition-name slot)))
+      (if (or pre post)
+	  ;; retrieve/create getter and setter.
+	  ;; call-next-method may return #f if the class doesn't have getter
+	  ;; or setter.
+	  (let ((getter (or (car r)
+			    (lambda (o)
+			      (slot-ref-using-class class o name))))
+		(setter (or (cadr r) 
+			    (lambda (o v)
+			      (slot-set-using-class! class o name v)))))
+	    (cond ((and pre post)
+		   (list getter
+			 (lambda (o v)
+			   (setter o (pre o v))
+			   (post o (getter o)))
+			 (caddr r)))
+		  (pre
+		   (list getter
+			 (lambda (o v)
+			   (setter o (pre o v)))
+			 (caddr r)))
+		  (else
+		   (list getter
+			 (lambda (o v)
+			   (setter o v)
+			   (post o (getter o)))
+			 (caddr r)))))
+	  r)))
   (define-class <validator-mixin> () () :metaclass <validator-meta>)
 )

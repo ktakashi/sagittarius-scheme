@@ -65,16 +65,16 @@
     (cond ((slot-definition-option slot :allocation :instance)
 	   => (lambda (type)
 		(case type
-		  ((:instance) '())
+		  ((:instance) (call-next-method))
 		  ((:class)
 		   (let* ((init-value (slot-definition-option
 				       slot :init-value #f))
 			  (init-thunk (slot-definition-option 
 				       slot :init-thunk #f))
 			  (def (if init-thunk (init-thunk) init-value)))
-		     (list
-		      (lambda (o) def)
-		      (lambda (o v) (set! def v)))))
+		     (list (lambda (o) def)
+			   (lambda (o v) (set! def v))
+			   #f)))
 		  (else
 		   (assertion-violation '<allocation-meta>
 					"unknown :allocation type"

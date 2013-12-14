@@ -1058,7 +1058,15 @@ static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP, int boundp)
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
   if (accessor) {
     if (accessor->getter) {
-      return slot_ref_cc_rec(obj, name, accessor->getter(obj), boundp);
+      if (vmP) {
+	void *data[3];
+	data[0] = obj;
+	data[1] = name;
+	data[2] = (void*)(intptr_t)boundp;
+	return slot_ref_cc(accessor->getter(obj), data);
+      } else {
+	return slot_ref_cc_rec(obj, name, accessor->getter(obj), boundp);
+      }
     } else {
       /* scheme accessor, assume obj is instance */
       if (boundp && SG_PROCEDUREP(accessor->boundP)) {
@@ -1168,6 +1176,29 @@ void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
     SG_INSTANCE(obj)->slots[ac->index] = value;
   }
 }
+
+SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj, SgObject name)
+{
+  SgSlotAccessor *ac = lookup_slot_info(klass, name);
+  if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
+  return Sg_SlotRefUsingAccessor(obj, ac);
+}
+
+void Sg_SlotSetUsingClass(SgClass *klass, SgObject obj, SgObject name,
+			  SgObject value)
+{
+  SgSlotAccessor *ac = lookup_slot_info(klass, name);
+  if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
+  return Sg_SlotSetUsingAccessor(obj, ac, value);
+}
+
+int Sg_SlotBoundUsingClass(SgClass *klass, SgObject obj, SgObject name)
+{
+  SgSlotAccessor *ac = lookup_slot_info(klass, name);
+  if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
+  return !SG_UNBOUNDP(Sg_SlotRefUsingAccessor(obj, ac));
+}
+
 
 SgObject Sg_VMSlotBoundP(SgObject obj, SgObject slot)
 {

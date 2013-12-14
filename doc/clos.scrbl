@@ -98,6 +98,10 @@ will create a new generic function implicitly.
 @define[Function]{@name{slot-set!} @args{obj slot-name value}}
 @desc{Sets the slot value @var{value} with specified @var{slot-name}.}
 
+@define[Function]{@name{slot-bound?} @args{obj slot-name}}
+@desc{Returns #t if the slot value specified @var{slot-name} is bounded,
+otherwise #f.}
+
 @define[Generic]{@name{make} @args{class args @dots{}}}
 @desc{Creates a new instance of @var{class}}
 
@@ -115,6 +119,34 @@ Returns the slot value got by @var{accessor}.
 
 Sets the slot value @var{value} to @var{object} using @var{accessor}.
 }
+
+@define[Function]{@name{slot-ref-using-class} @args{class object slot-name}}
+@desc{This procedure is for MOP.
+
+Returns the slot value according to the given @var{class}.
+
+It is an error if the given @var{slot-name} doesn't exist in the @var{class}.
+}
+
+@define[Function]{@name{slot-set-using-accessor!}
+ @args{class object slot-name value}}
+@desc{This procedure is for MOP.
+
+Sets the slot value @var{value} to @var{object} accoring to the given 
+@var{class}.
+
+It is an error if the given @var{slot-name} doesn't exist in the @var{class}.
+}
+
+@define[Function]{@name{slot-bound-using-class?} @args{class object slot-name}}
+@desc{This procedure is for MOP.
+
+Returns #t if the slot is bounded according to the given @var{class},
+otherwise #f.
+
+It is an error if the given @var{slot-name} doesn't exist in the @var{class}.
+}
+
 
 @define[Generic]{@name{write-object} @args{object (out <port>)}}
 @desc{This method will be called when writing the given @var{object}.
@@ -146,9 +178,9 @@ Adds @var{method} to @var{generic}.
 @desc{Returns a list of getter, setter and bound check for the given
 @var{class}'s slot @var{slot}.
 
-The returning list can have 0 to 3 elements, getter, setter and bound?
-respectively. If null list is returned then the target slot uses default
-slot accessors.
+The returning list must have 3 elements, getter, setter and bound?
+respectively. Each element must be either #f or procedure. If #f is used then
+the default procedure will be used.
 
 For the example code, see @secref["sagittarius.mop"]{Sagittarius MOP}.
 }
@@ -158,7 +190,7 @@ For the example code, see @secref["sagittarius.mop"]{Sagittarius MOP}.
 @desc{Returns all getters and setters for the given @var{class}'s slots.
 
 The upper layer of @code{compute-getter-and-setter}. This method should only
-be used if users really need to use accessor to access the target slots.
+be used if users absolutely need to use accessor to access the target slots.
 
 }
 

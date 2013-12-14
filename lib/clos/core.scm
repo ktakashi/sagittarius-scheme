@@ -1,6 +1,7 @@
 (library (clos core)
     (export slot-ref slot-set! slot-bound? 
 	    slot-ref-using-accessor slot-set-using-accessor!
+	    slot-ref-using-class slot-set-using-class! slot-bound-using-class?
 	    slot-unbound slot-missing
 	    make initialize 
 	    make-method add-method remove-method
@@ -337,4 +338,5 @@
 		     (accs (compute-getter-and-setter class slot))
 		     (sac (apply %make-slot-accessor class (car slot) i accs)))
 		(loop (+ i 1) (cdr slots) (cons sac r))))))))
+
 )

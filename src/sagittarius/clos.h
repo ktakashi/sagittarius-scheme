@@ -237,7 +237,12 @@ SG_EXTERN SgObject Sg_VMSlotBoundP(SgObject obj, SgObject name);
 SG_EXTERN SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
 SG_EXTERN void     Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,
 					   SgObject value);
-
+SG_EXTERN SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj,
+					  SgObject name);
+SG_EXTERN void     Sg_SlotSetUsingClass(SgClass *klass, SgObject obj,
+					  SgObject name, SgObject value);
+SG_EXTERN int      Sg_SlotBoundUsingClass(SgClass *klass, SgObject obj,
+					  SgObject name);
 /* MOP looks like APIs */
 SG_EXTERN SgClass* Sg_ClassOf(SgObject obj);
 /* type check */

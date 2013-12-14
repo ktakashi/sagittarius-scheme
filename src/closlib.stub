@@ -27,6 +27,27 @@
   (define-c-proc slot-set-using-accessor! (o sa::<slot-accessor> v) ::<void>
     Sg_SlotSetUsingAccessor)
 
+  (define-c-proc slot-ref-using-class (cl o slot::<symbol>)
+    (unless (Sg_TypeP cl SG_CLASS_CLASS)
+      (Sg_WrongTypeOfArgumentViolation 'slot-ref-using-class
+				       (SG_MAKE_STRING "sub type of <class>")
+				       cl (SG_LIST3 cl o slot)))
+    (result (Sg_SlotRefUsingClass cl o slot)))
+
+  (define-c-proc slot-set-using-class! (cl o slot::<symbol> v) ::<void>
+    (unless (Sg_TypeP cl SG_CLASS_CLASS)
+      (Sg_WrongTypeOfArgumentViolation 'slot-set-using-class!
+				       (SG_MAKE_STRING "sub type of <class>")
+				       cl (SG_LIST4 cl o slot v)))
+    (Sg_SlotSetUsingClass cl o slot v))
+
+  (define-c-proc slot-bound-using-class? (cl o slot::<symbol>) ::<boolean>
+    (unless (Sg_TypeP cl SG_CLASS_CLASS)
+      (Sg_WrongTypeOfArgumentViolation 'slot-bound-using-class?
+				       (SG_MAKE_STRING "sub type of <class>")
+				       cl (SG_LIST3 cl o slot)))
+    (result (Sg_SlotBoundUsingClass cl o slot)))
+
   (define-c-proc slot-bound? (o name::<symbol>) Sg_VMSlotBoundP)
 
   (define-c-proc class-of (o) Sg_ClassOf)
@@ -78,14 +99,24 @@
     Sg_VMComputeAroundMethods)
 
   (define-c-proc %make-slot-accessor 
-    (klass slot::<symbol> index::<fixnum>
-     :optional (getter::<procedure> #f)
-	       (setter::<procedure> #f)
-	       (bound?::<procedure> #f))
-    (unless (Sg_TypeP klass SG_CLASS_CLASS )
+    (klass slot::<symbol> index::<fixnum> getter setter bound?)
+    (unless (Sg_TypeP klass SG_CLASS_CLASS)
       (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
 				       (SG_INTERN "sub type of <class>")
 				       klass (SG_LIST2 klass slot)))
+    (unless (or (SG_FALSEP getter) (SG_PROCEDUREP getter))
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
+				       (SG_INTERN "procedure or #f")
+				       klass (SG_LIST2 klass getter)))
+    (unless (or (SG_FALSEP setter) (SG_PROCEDUREP setter))
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
+				       (SG_INTERN "procedure or #f")
+				       klass (SG_LIST2 klass setter)))
+    (unless (or (SG_FALSEP bound?) (SG_PROCEDUREP bound?))
+      (Sg_WrongTypeOfArgumentViolation (SG_INTERN "%make-slot-accessor")
+				       (SG_INTERN "procedure or #f")
+				       klass (SG_LIST2 klass bound?)))
     (result (Sg_MakeSlotAccessor klass slot index getter setter bound?)))
+
 
   )
