@@ -294,6 +294,8 @@
 				     (on-refresh #f)
 				     (timestamp (time-second (current-time)))
 				     (user-parameters '())
+				     ;; fxxking Twitter API...
+				     (use-user-parameters-for-auth #t)
 				     (additional-headers '())
 				     (version :1.0)
 				     (auth-location :header)
@@ -313,12 +315,9 @@
 	     (sbs (signature-base-string :uri normalized-uri
 					 :request-method request-method
 					 :parameters 
-					 ;; OAuth 1.0 actually doesn't
-					 ;; specify how to handle multipart
-					 ;; so for now obey Twitter's rule
 					 (sort-parameters
 					  `(,@query-string-parameters
-					    ,@(if (not (list? body))
+					    ,@(if use-user-parameters-for-auth
 						  user-parameters
 						  '())
 					    ,@auth-parameters))
