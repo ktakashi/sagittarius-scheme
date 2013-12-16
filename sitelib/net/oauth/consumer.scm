@@ -300,6 +300,7 @@
 				     (request-method 'GET)
 				     (signature-method :hmac-sha1)
 				     (body #f)
+				     (receiver (http-string-receiver))
 				     (error-translator 
 				      default-message-translator))
     (set! access-token (maybe-refresh-access-token access-token on-refresh))
@@ -312,11 +313,17 @@
 	     (sbs (signature-base-string :uri normalized-uri
 					 :request-method request-method
 					 :parameters 
+					 ;; OAuth 1.0 actually doesn't
+					 ;; specify how to handle multipart
+					 ;; so for now obey Twitter's rule
 					 (sort-parameters
-					  (append query-string-parameters
+					  `(,@query-string-parameters
+					    ,@(if (not (list? body))
 						  user-parameters
-						  auth-parameters))
-					 :post-data body))
+						  '())
+					    ,@auth-parameters))
+					 :post-data (and (not (list? body)) 
+							 body)))
 	     (signature (oauth-signature signature-method sbs
 					 (token-secret consumer-token)
 					 (token-secret access-token)))
@@ -328,9 +335,11 @@
 				:auth-location auth-location
 				:auth-parameters signed-parameters
 				:parameters user-parameters
-				:sender (if body 
-					    (http-blob-sender body)
-					    (http-null-sender))
+				:sender (cond ((list? body)
+					       (http-multipart-sender body))
+					      (body (http-blob-sender body))
+					      (else (http-null-sender)))
+				:receiver receiver
 				:additional-headers additional-headers)
 	  (if (string=? status "200")
 	      (values body header #f #f)

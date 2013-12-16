@@ -639,8 +639,9 @@
 	(lambda ()
 	  (cond
 	   ((mime-part-source part) =>
-	    (cut with-input-from-file <> (cut mime-generate-part-header
-					      part cte)))
+	    (cut with-input-from-file <> (cut mime-generate-part-body 
+					      part cte)
+		 :transcoder #f))
 	   ((list? (mime-part-content part))
 	    (mime-compose-message
 	     (mime-part-content part) port
@@ -680,23 +681,38 @@
   ;; current-input-port -> current-output-port
   ;; we know current ports are textual
   (define (mime-generate-part-body part transfer-enc)
-    (cond ((or (not transfer-enc) (member transfer-enc '("binary" "7bit")
-					  string-ci=?))
-	   ;; danger
-	   (let ((s (get-string-all (current-input-port))))
-	     (unless (eof-object? s)
-	       (put-string (current-output-port) s))))
-	  ((string-ci=? transfer-enc "base64")
-	   (put-string (current-output-port)
-		       (base64-encode-string 
-			(get-string-all (current-input-port)))))
-	  ((string-ci=? transfer-enc "quoted-printable")
-	   (put-string (current-output-port)
-		       (quoted-printable-decode-string (get-string-all 
-							(current-input-port)))))
-	  (else 
-	   (assertion-violation 'mime-generate-part-body
-				"Unsupported transfer encoding encountered \
-                                 while composing mime message" transfer-enc))))
+    (let* ((port (current-input-port))
+	   (content (if (binary-port? port)
+			(get-bytevector-all port)
+			(get-string-all port))))
+      (cond ((or (not transfer-enc) (member transfer-enc '("binary" "7bit")
+					    string-ci=?))
+	     ;; danger
+	     (unless (eof-object? content)
+	       (if (string? content)
+		   (put-string (current-output-port) content)
+		   ;; hopefully the current-output-port supports
+		   ;; reckless (probably not, if this is called 
+		   ;; from http library...)
+		   (put-bytevector (current-output-port) content
+				   0 (bytevector-length content) #t))))
+	    ((string-ci=? transfer-enc "base64")
+	     (unless (eof-object? content)
+	       (put-string (current-output-port)
+			   (if (string? content)
+			       (base64-encode-string content)
+			       (utf8->string (base64-encode content))))))
+	    ((string-ci=? transfer-enc "quoted-printable")
+	     (unless (eof-object? content)
+	       (put-string (current-output-port)
+			   (if (string? content)
+			       (quoted-printable-decode-string content)
+			       ;; not sure if this is ok...
+			       (utf8->string 
+				(quoted-printable-decode content))))))
+	    (else 
+	     (assertion-violation 'mime-generate-part-body
+				  "Unsupported transfer encoding encountered \
+                                 while composing mime message" transfer-enc)))))
   )
 				   
