@@ -919,6 +919,7 @@ static int socket_close(SgObject self)
 {
   if (!SG_PORT(self)->closed) {
     SG_PORT(self)->closed = TRUE;
+    SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
     Sg_SocketClose(SG_PORT_SOCKET(self));
   }
   return SG_PORT(self)->closed;

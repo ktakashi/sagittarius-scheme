@@ -603,44 +603,51 @@
 	  (result (Sg_MakeTranscodedOutputPort bp t)))))
 
   ;; SRFI-6
+  ;; only if the given port is completely closed.
+  (define-cise-stmt check-port-closed?
+    ((_ name p)
+     `(when (and (Sg_PortClosedP ,p) (not (Sg_PseudoPortClosedP ,p)))
+	(wrong-type-of-argument-violation ',name "opened port" ,p))))
   (define-c-proc get-output-bytevector (p::<port>)
-    (check-port-open get-output-bytevector p)
+    (check-port-closed? get-output-bytevector p)
     (check-output-port get-output-bytevector p)
     (cond ((SG_BINARY_PORTP p)
-	   (unless (== (-> (SG_BINARY_PORT p) type)
-		       SG_BYTE_ARRAY_BINARY_PORT_TYPE)
-	     (wrong-type-of-argument-violation 'get-output-bytevector
-					       "bytevector-output-port"
-					       p))
 	   (result (Sg_GetByteVectorFromBinaryPort p)))
-	  (else
+	  ((and (SG_TEXTUAL_PORTP p)
+		(== (-> (SG_TEXTUAL_PORT p) type)
+		    SG_TRANSCODED_TEXTUAL_PORT_TYPE))
 	   (result (Sg_GetByteVectorFromBinaryPort 
 		    (ref (pointer (SG_TEXTUAL_PORT p))
-			 src transcoded port))))))
+			 src transcoded port))))
+	  (else
+	   (wrong-type-of-argument-violation 'get-output-bytevector
+					     "binary or transcoded texutal port"
+					     p))))
 
   (define-c-proc extract-output-bytevector (p::<port>)
-    (check-port-open get-output-bytevector p)
-    (check-output-port get-output-bytevector p)
+    (check-port-closed? extract-output-bytevector p)
+    (check-output-port extract-output-bytevector p)
     ;; I'm not quite sure if I should reset the port position
     ;; if it's textual port.
     (cond ((SG_BINARY_PORTP p)
-	   (unless (== (-> (SG_BINARY_PORT p) type)
-		       SG_BYTE_ARRAY_BINARY_PORT_TYPE)
-	     (wrong-type-of-argument-violation 'get-output-bytevector
-					       "bytevector-output-port"
-					       p))
 	   (result (Sg_GetByteVectorFromBinaryPort p))
 	   (Sg_SetPortPosition p 0)
 	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf start)
 		 (SG_NEW byte_buffer))
 	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf current)
 		 (ref (pointer (SG_BINARY_PORT p)) src obuf start)))
-	  (else
+	  ((and (SG_TEXTUAL_PORTP p)
+		(== (-> (SG_TEXTUAL_PORT p) type)
+		    SG_TRANSCODED_TEXTUAL_PORT_TYPE))
 	   (result (Sg_GetByteVectorFromBinaryPort 
 		    (ref (pointer (SG_TEXTUAL_PORT p))
 			 src transcoded port)))
 	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_SRC_PORT p) 0)
-	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))))
+	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))
+	  (else
+	   (wrong-type-of-argument-violation 'extract-output-bytevector
+					     "binary or transcoded texutal port"
+					     p))))
   
   ;; these functions are for open-string-output-port
   (define-c-proc open-output-string () (result (Sg_MakeStringOutputPort 32)))

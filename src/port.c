@@ -325,6 +325,7 @@ static int file_close(SgObject self)
       SG_PORT_FILE_VTABLE(self)->close(SG_PORT_FILE(self));
       SG_BINARY_PORT(self)->buffer = NULL; /* GC friendliness */
       SG_BINARY_PORT(self)->src.file = NULL;
+      SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
       Sg_UnregisterFinalizer(self);
     }
   }
@@ -881,6 +882,7 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
 static int byte_array_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
+  SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
   return TRUE;
 }
 
@@ -975,6 +977,7 @@ static void input_byte_array_set_port_position(SgObject self, int64_t offset,
 static int obyte_array_close(SgObject self)
 {
   SG_PORT(self)->closed = TRUE;
+  SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
   /* gc friendliness */
   SG_BINARY_PORT(self)->src.obuf.start = NULL;
   SG_BINARY_PORT(self)->src.obuf.current = NULL;
@@ -2135,7 +2138,10 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
 
   bp = SG_BINARY_PORT(port);
   if (bp->type == SG_FILE_BINARY_PORT_TYPE) {
-    /* TODO file size */
+    /* I couldn't think better way to retrieve the data from
+       file binary input/output port so for now raise an error.
+       this pass is not used anyway. */
+    Sg_Error(UC("file binary port is not supported %S"), port);
   } else if (bp->type == SG_BYTE_ARRAY_BINARY_PORT_TYPE) {
     if (SG_INPORTP(port)) {
       /* TODO should I re-create it? */
@@ -2151,6 +2157,7 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
       return ret;
     }
   }
+  Sg_Error(UC("unsupported port type %S"), port);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2217,6 +2224,19 @@ int Sg_PortClosedP(SgPort *port)
     Sg_Panic("unknown port type.");
   }
   return FALSE;			/* dummy */
+}
+
+int Sg_PseudoPortClosedP(SgPort *port)
+{
+  int closed = port->closed;
+  if (!closed) {
+    switch (port->type) {
+    case SG_BINARY_PORT_TYPE:
+      return SG_BINARY_PORT(port)->closed = SG_BPORT_PSEUDO;
+    default: return FALSE;
+    }
+  }
+  return FALSE;
 }
 
 void Sg_FlushPort(SgPort *port)

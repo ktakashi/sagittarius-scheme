@@ -492,6 +492,7 @@ SG_EXTERN SgObject Sg_GetStringFromStringPort(SgPort *port);
 SG_EXTERN void     Sg_ClosePort(SgPort *port);
 SG_EXTERN void     Sg_PseudoClosePort(SgPort *port);
 SG_EXTERN int      Sg_PortClosedP(SgPort *port);
+SG_EXTERN int      Sg_PseudoPortClosedP(SgPort *port);
 
 SG_EXTERN SgObject Sg_StandardOutputPort();
 SG_EXTERN SgObject Sg_StandardInputPort();

@@ -1062,4 +1062,25 @@
 (test-equal "#xFFFFFF80" #xFFFFFF80 
 	    (bytevector->uinteger #vu8(#xFF #xFF #xFF #x80)))
 
+;; issue 162
+(let*-values (((port extract) (open-bytevector-output-port))
+              ((out) (transcoded-port port (native-transcoder))))
+  (put-string out "hello")
+  (test-equal "extract it " #vu8(104 101 108 108 111) (extract)))
+
+;; issue 163 
+(test-error "get-output-bytevector with non transcoded port"
+	    condition?
+	    (call-with-string-output-port 
+	     (lambda (out) 
+	       (put-string out "hello")
+	       (get-output-bytevector out))))
+
+(test-error "extract-output-bytevector with non transcoded port"
+	    condition?
+	    (call-with-string-output-port 
+	     (lambda (out) 
+	       (put-string out "hello")
+	       (extract-output-bytevector out))))
+
 (test-end)
