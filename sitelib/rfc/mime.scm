@@ -594,9 +594,15 @@
 
   (define (mime-compose-message-string parts
 				       :key (boundary (mime-make-boundary)))
-    (values (call-with-string-output-port
-	     (cut mime-compose-message parts <> :boundary boundary))
-	    boundary))
+    (let-values (((port extract) (open-bytevector-output-port 
+				  ;; should we add keyword argument for this?
+				  (make-transcoder (utf-8-codec)))))
+      (mime-compose-message parts port :boundary boundary)
+      (values (utf8->string (extract))
+		#;
+		(call-with-string-output-port
+		(cut mime-compose-message parts <> :boundary boundary))
+		boundary)))
 
   (define (mime-make-boundary)
     (format "boundary-~a" (number->string (* (random-integer (expt 2 64))

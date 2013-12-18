@@ -160,7 +160,8 @@ typedef struct
 struct readtable_rec_t
 {
   int      insensitiveP;
-  SgObject (*symbol_reader)(SgPort *, SgChar, SgReadContext *);
+  SgObject (*symbol_reader)(SgPort *, SgChar, SgReadContext *,
+			    SgObject *errorp);
   readtab_t readtable[MAX_READTABLE_CHAR];
 };
 
@@ -272,9 +273,10 @@ static SgObject read_hash_colon(SgPort *port, SgChar c, dispmacro_param *param,
 				SgReadContext *ctx);
 
 /* mode  */
-static SgObject read_r6rs_symbol(SgPort *port, SgChar c, SgReadContext *ctx);
+static SgObject read_r6rs_symbol(SgPort *port, SgChar c, SgReadContext *ctx,
+				 SgObject *errorp);
 static SgObject read_compatible_symbol(SgPort *port, SgChar c,
-				       SgReadContext *ctx);
+				       SgReadContext *ctx, SgObject *errorp);
 /* utility */
 static SgObject read_symbol_or_number(SgPort *port, SgChar c,
 				      readtable_t *table, SgReadContext *ctx);
@@ -283,6 +285,29 @@ static SgObject macro_reader(SgPort *port, SgChar c, readtab_t *tab,
 static SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx);
 
 static void add_read_table(readtable_t *src, readtable_t *dst);
+/* TODO use this in lexical_error */
+static SgObject lexical_error_msg(SgPort * port, SgReadContext *ctx,
+				  const SgChar *fmt, ...)
+{
+  va_list ap;
+  SgObject msg, line, file;
+
+  va_start(ap, fmt);
+  msg = Sg_Vsprintf(fmt, ap, TRUE);
+  va_end(ap);
+
+  file = Sg_FileName(port);
+  if (ctx->parsingLineFrom == ctx->parsingLineTo) {
+    line = Sg_Sprintf(UC("file %S, line %d"),
+		      file,
+		      ctx->parsingLineFrom);
+  } else {
+    line = Sg_Sprintf(UC("file %S, line %d-%d"),
+		      file,
+		      ctx->parsingLineFrom, ctx->parsingLineTo);
+  }
+  return Sg_Sprintf(UC("%A (%A)"), msg, line);
+}
 
 static void lexical_error(SgPort * port, SgReadContext *ctx,
 			  const SgChar *fmt, ...)
@@ -399,7 +424,8 @@ static SgChar read_escape(SgPort *port, SgReadContext *ctx)
 }
 
 typedef int (*read_helper)(SgPort *, SgReadContext *, SgChar *, 
-			   int, SgChar, SgObject, readtable_t *table);
+			   int, SgChar, SgObject, readtable_t *table,
+			   SgObject *errorp);
 /* convenient macro, used both symbol and string reader*/
 #define append_char(buf, p, c, i)		\
   do {						\
@@ -414,7 +440,7 @@ typedef int (*read_helper)(SgPort *, SgReadContext *, SgChar *,
 
 static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 				    read_helper helper,
-				    SgReadContext *ctx)
+				    SgReadContext *ctx, SgObject *errorp)
 {
   SgChar buf[READ_SYMBOL_MAX_SIZE], c;
   int i = 0;
@@ -439,7 +465,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 		    UC("invalid character %U during reading identifier"),
 		    initial);
     } else {
-      i = helper(port, ctx, buf, i, initial, out, table);
+      i = helper(port, ctx, buf, i, initial, out, table, errorp);
     }
   }
  next:
@@ -486,7 +512,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
       lexical_error(port, ctx,
 		    UC("invalid character %U during reading identifier"), c);
     }
-    i = helper(port, ctx, buf, i, c, out, table);
+    i = helper(port, ctx, buf, i, c, out, table, errorp);
   }
   out = Sg_ConvertToStringOutputPort(buf, i);
   goto next;
@@ -499,7 +525,7 @@ static SgObject read_symbol_generic(SgPort *port, SgChar initial,
 static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				   SgChar *buf, int i, SgChar c,
 				   SgObject out,
-				   readtable_t *table)
+				   readtable_t *table, SgObject *errorp)
 {
   if (c > 127) {
     if (buf != NULL) append_char(buf, out, c, i);
@@ -516,46 +542,67 @@ static int read_r6rs_symbol_helper(SgPort *port, SgReadContext *ctx,
       return i;
     }
   }
-  lexical_error(port, ctx,
-		UC("invalid character %U while reading identifier"), c);
+  if (errorp) {
+    if (buf != NULL) append_char(buf, out, c, i);
+    *errorp = 
+      lexical_error_msg(port, ctx,
+			UC("invalid character %U while reading identifier"), c);
+    return i;
+  } else {
+    lexical_error(port, ctx,
+		  UC("invalid character %U while reading identifier"), c);
+  }
   return -1;			/* dummy */
 }
 
-SgObject read_r6rs_symbol(SgPort *port, SgChar initial, SgReadContext *ctx)
+SgObject read_r6rs_symbol(SgPort *port, SgChar initial, SgReadContext *ctx,
+			  SgObject *errorp)
 {
-  return read_symbol_generic(port, initial, read_r6rs_symbol_helper, ctx);
+  return read_symbol_generic(port, initial, read_r6rs_symbol_helper, ctx,
+			     errorp);
 }
 
 static int read_compat_symbol_helper(SgPort *port, SgReadContext *ctx, 
 				     SgChar *buf, int i, SgChar c,
 				     SgObject out,
-				     readtable_t *table)
+				     readtable_t *table, SgObject *errorp)
 {
   if (!delimited(port, c)) {
     append_char(buf, out, c, i);
     return i;
   }
-  lexical_error(port, ctx,
-		UC("invalid character %U while reading identifier"), c);
+  if (errorp) {
+    append_char(buf, out, c, i);
+    *errorp = 
+      lexical_error_msg(port, ctx,
+			UC("invalid character %U while reading identifier"), c);
+    return i;
+  } else {
+    lexical_error(port, ctx,
+		  UC("invalid character %U while reading identifier"), c);
+  }
   return -1;			/* dummy */
 }
 
 SgObject read_compatible_symbol(SgPort *port, SgChar initial, 
-				SgReadContext *ctx)
+				SgReadContext *ctx, SgObject *errorp)
 {
-  return read_symbol_generic(port, initial, read_compat_symbol_helper, ctx);
+  return read_symbol_generic(port, initial, read_compat_symbol_helper, ctx,
+			     errorp);
 }
 
 static SgObject read_escaped_symbol(SgPort *port, SgReadContext *ctx)
 {
-  SgObject str = read_compatible_symbol(port, -1, ctx);
+  SgObject str = read_compatible_symbol(port, -1, ctx, NULL);
   return Sg_Intern(str);
 }
 
 SgObject read_symbol_or_number(SgPort *port, SgChar c,
 			       readtable_t *table, SgReadContext *ctx)
 {
-  SgObject str = read_compatible_symbol(port, c, ctx), num, tmp;
+  SgObject str, num, tmp;
+  SgObject error = SG_FALSE;
+  str = table->symbol_reader(port, c, ctx, &error);
   if (table->symbol_reader == read_r6rs_symbol) {
     tmp = str;
   } else {
@@ -563,7 +610,9 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
     tmp = Sg_StringDownCase(str);
   }
   num  = Sg_StringToNumber(tmp, 10, TRUE);
-  if (!SG_FALSEP(num)) return num; 
+  if (!SG_FALSEP(num)) return num;
+
+  /* check special case first */
   if (SG_STRING_SIZE(str) == 1 && SG_STRING_VALUE_AT(str, 0) == '.')
     return SG_SYMBOL_DOT;
   /* well for now we do not check */
@@ -578,7 +627,6 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
     if (SG_STRING_SIZE(str) >= 2 &&
 	SG_STRING_VALUE_AT(str, 0) == '-'
 	&& SG_STRING_VALUE_AT(str, 1) == '>') {
-      int i;
       for (i = 2; i < SG_STRING_SIZE(str); i++) {
 	SgChar c = SG_STRING_VALUE_AT(str, i);
 	if (c > 127) continue;
@@ -587,13 +635,9 @@ SgObject read_symbol_or_number(SgPort *port, SgChar c,
       }
       return Sg_Intern(str);
     }
-    /* People, do not use R6RS mode on Sagittarius, this mode is slow. */
-    for (i = 0; i < SG_STRING_SIZE(str); i++) {
-      read_r6rs_symbol_helper(port, ctx, NULL, i,
-			      SG_STRING_VALUE_AT(str, i), NULL, table);
-    }
-    /* lexical_error(port, ctx, UC("invalid lexical syntax %A"), str); */
   }
+  /* if there is an lexical error after all checks, then raise it */
+  if (!SG_FALSEP(error)) Sg_ReadError(UC("%A"), error);
   return Sg_Intern(str);
 
 }
@@ -1179,7 +1223,7 @@ SgObject read_hash_t(SgPort *port, SgChar c, dispmacro_param *param,
   /* R7RS allow #true so we need to check */
   if ((c == 't' && c2 == 'r') ||
       (table->insensitiveP && (c2 == 'r' || c2 == 'R'))) {
-    SgObject rest = read_compatible_symbol(port, c2, ctx);
+    SgObject rest = read_compatible_symbol(port, c2, ctx, NULL);
     if (ustrcmp(SG_STRING_VALUE(rest), "rue") == 0) {
       return SG_TRUE;
     }    
@@ -1201,7 +1245,7 @@ SgObject read_hash_f(SgPort *port, SgChar c, dispmacro_param *param,
   /* R7RS allow #false so we need to check */
   if ((c == 'f' && c2 == 'a') ||
       (table->insensitiveP && (c2 == 'a' || c2 == 'A'))) {
-    SgObject rest = read_compatible_symbol(port, c2, ctx);
+    SgObject rest = read_compatible_symbol(port, c2, ctx, NULL);
     if (ustrcmp(SG_STRING_VALUE(rest), "alse") == 0) {
       return SG_FALSE;
     }    
@@ -1413,7 +1457,7 @@ SgObject read_hash_colon(SgPort *port, SgChar c, dispmacro_param *param,
 			 SgReadContext *ctx)
 {
   /* TODO how to handle |? */
-  SgString *s = read_compatible_symbol(port, -1, ctx);
+  SgString *s = read_compatible_symbol(port, -1, ctx, NULL);
   return Sg_MakeSymbol(s, FALSE);
 }
 
