@@ -596,7 +596,8 @@
 				       :key (boundary (mime-make-boundary)))
     (let-values (((port extract) (open-bytevector-output-port 
 				  ;; should we add keyword argument for this?
-				  (make-transcoder (utf-8-codec)))))
+				  (make-transcoder (utf-8-codec)
+						   (eol-style none)))))
       (mime-compose-message parts port :boundary boundary)
       (values (utf8->string (extract))
 		#;
