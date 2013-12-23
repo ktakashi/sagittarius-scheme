@@ -166,33 +166,35 @@
 		      ,@(resolve-cond-expand&include sexp includes))))
 	form))))
 
-(define (gen file force? need-construct? library-options)
-  (print (if force? "force " "") "generating file:" file)
+(define (gen file clean? need-construct? library-options)
+  (define (do-clean form)
+    ;; assume form is library form
+    (let* ((libname (cadr form))
+	   (filename (name-generator file libname)))
+      (when (file-exists? filename) (delete-file filename))))
+  (print "generating file:" file)
   (let* ((b (path-basename (path-sans-extension file)))
-	 (c (format "lib_~a.c" b))
-	 (exit? #f))
-    (when (and (not force?) (file-exists? c))
-      (let ((stub-mtime (file-stat-mtime file))
-	    (out-mtime  (file-stat-mtime c)))
-	(when (< stub-mtime out-mtime)
-	  (print "generated file is older than stub file. " c)
-	  (set! exit? #t))))
-    (unless exit?
-      (let1 compiler (load-compiler library-options)
-	(if need-construct?
-	    (let1 form (construct-library-form file library-options)
-	      (cgen-precompile form
-			       :in-file file
-			       :name-generator name-generator
-			       :predef-syms '(LIBSAGITTARIUS_BODY)
-			       :compiler compiler))
-	    (cgen-precompile-file file
-				  :name-generator name-generator
-				  :predef-syms '(LIBSAGITTARIUS_BODY)
-				  :compiler compiler))))))
+	 (c (format "lib_~a.c" b)))
+    (let1 compiler (load-compiler library-options)
+      (if need-construct?
+	  (let1 form (construct-library-form file library-options)
+	    (if clean?
+		(do-clean form)
+		(cgen-precompile form
+				 :in-file file
+				 :name-generator name-generator
+				 :predef-syms '(LIBSAGITTARIUS_BODY)
+				 :compiler compiler)))
+	  (if clean?
+	      (do-clean (call-with-input-file file read))
+	      (cgen-precompile-file file
+				    :name-generator name-generator
+				    :predef-syms '(LIBSAGITTARIUS_BODY)
+				    :compiler compiler))))))
 (define (main args)
   (with-args (cdr args)
       ((need-construct? (#\n "need-construct") #f #f)
        (in-file (#\f "file") #t (error 'genlib "input file is missing"))
+       (clean?  (#\c "clean") #f #f)
       . rest)
-    (gen in-file #t need-construct? rest)))
+    (gen in-file clean? need-construct? rest)))

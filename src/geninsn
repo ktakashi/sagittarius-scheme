@@ -9,7 +9,7 @@
 	(sagittarius cgen unit)
 	(sagittarius cgen syntax)
 	(match)
-	(shorten)
+	(getopt)
 	(pp)
 	(srfi :2 and-let*)
 	(srfi :13 strings)
@@ -28,7 +28,7 @@
     :name "vminsn"
     :preamble *preamble*
     :c-file   "vminsn.c"
-    ;;:h-file   "sagittarius/instruction.h"
+    :h-file   "sagittarius/instruction.h"
     :init-prologue ""
     :init-epilogue ""))
 
@@ -222,35 +222,45 @@ SG_CDECL_END
 ")
 
 (define (main args)
-  (parameterize ((cgen-current-unit *unit*))
-    (let1 insns (populate-insn-info (reverse (expand-toplevels *insn-file*)))
-      ;; Generate insn names and DEFINSN macros
-      ;; for header
-      (cgen-extern *header-prefix*)
-      (cgen-body "#ifdef DEFINSN")
-      (cgen-extern "typedef enum {")
-      (dolist (insn insns)
-	(cgen-extern (format "  ~a = 0x~2,'0x,"
-			     (slot-ref insn'name) (slot-ref insn'code)))
-	(cgen-body (format "DEFINSN(~a, ~a, ~a, ~a, ~a)"
-			   (~ insn 'name)
-			   (~ insn 'vals)
-			   (~ insn 'argc)
-			   (if (~ insn 'src?) 'TRUE 'FALSE)
-			   (if (~ insn 'label?) 'TRUE 'FALSE))))
-      (cgen-extern "} Instruction;")
-      (cgen-extern (format 
-		    "#define INSTRUCTION_COUNT ~a /** number of instructions */"
-		    (length insns)))
-      (cgen-body "#endif /* DEFINSN */")
-      ;; emit body
-      (cgen-body "#ifdef VM_LOOP")
-      (construct-vm-body insns)
-      (cgen-body "#endif /* VM_LOOP */")
+  (with-args (cdr args)
+      ((clean (#\c "clean") #f #f))
+    (if clean
+	(let ((c-file (~ *unit* 'c-file))
+	      (h-file (~ *unit* 'h-file)))
+	  (when (file-exists? c-file) (delete-file c-file))
+	  (when (file-exists? h-file) (delete-file h-file))
+	  0)
+	(parameterize ((cgen-current-unit *unit*))
+	  (let1 insns 
+	      (populate-insn-info (reverse (expand-toplevels *insn-file*)))
+	    ;; Generate insn names and DEFINSN macros
+	    ;; for header
+	    (cgen-extern *header-prefix*)
+	    (cgen-body "#ifdef DEFINSN")
+	    (cgen-extern "typedef enum {")
+	    (dolist (insn insns)
+	      (cgen-extern (format "  ~a = 0x~2,'0x,"
+				   (slot-ref insn'name) (slot-ref insn'code)))
+	      (cgen-body (format "DEFINSN(~a, ~a, ~a, ~a, ~a)"
+				 (~ insn 'name)
+				 (~ insn 'vals)
+				 (~ insn 'argc)
+				 (if (~ insn 'src?) 'TRUE 'FALSE)
+				 (if (~ insn 'label?) 'TRUE 'FALSE))))
+	    (cgen-extern "} Instruction;")
+	    (cgen-extern 
+	     (format 
+	      "#define INSTRUCTION_COUNT ~a /** number of instructions */"
+	      (length insns)))
+	    (cgen-body "#endif /* DEFINSN */")
+	    ;; emit body
+	    (cgen-body "#ifdef VM_LOOP")
+	    (construct-vm-body insns)
+	    (cgen-body "#endif /* VM_LOOP */")
 
-      ;; for header
-      (cgen-extern *header-suffix*)
-      (cgen-emit-h (cgen-current-unit))
-      (cgen-emit-c (cgen-current-unit))
-      ))
+	    ;; for header
+	    (cgen-extern *header-suffix*)
+	    (cgen-emit-h (cgen-current-unit))
+	    (cgen-emit-c (cgen-current-unit))
+	    ))))
   0)

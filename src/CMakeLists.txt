@@ -27,6 +27,12 @@ ELSE()
     ${PLATFORM_SOURCE_UCS4})
 ENDIF()
 
+# Just making future myself happy...
+SET(STUB_SOURCES null.c closlib.c proclib.c vmlib.c vmdebug.c extlib.c)
+SET(BUILTIN_SOURCES 
+  compiler.c   compiler-aux.c
+  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_enums.c)
+
 SET(SAGITTARIUS_LIB_SOURCE
   ${SAGITTARIUS_LIB_SOURCE}
   codec.c          port.c
@@ -52,10 +58,8 @@ SET(SAGITTARIUS_LIB_SOURCE
   charset.c        macro.c
   code.c
   cache.c
-
-  writer.c         compiler.c  
+  writer.c           
   vm.c             core.c
-  
   profiler.c       
   load.c
 
@@ -63,13 +67,9 @@ SET(SAGITTARIUS_LIB_SOURCE
   collection.c     compare.c
   regex.c          regex_stub.c
   # libraries
-  closlib.c
-  proclib.c        null.c
-  vmlib.c          vmdebug.c
-  compiler-aux.c   lib_scmlib.c
-  extlib.c         lib_errors.c
-  lib_arith.c      lib_macro.c
-  lib_enums.c
+  ${STUB_SOURCES}
+  ${BUILTIN_SOURCES}
+  
   # Since we use non builtin library in REPL
   # I don't see the reason it need to be builtin
   # lib_repl.c

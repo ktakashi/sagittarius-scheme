@@ -29,13 +29,27 @@ Note: `default` branch is git's `master`.
 
     % hg commit -m 'comment' -u ${user name}
 
-# Provided developer tool
+# How to build HEAD code
 
-We provide `autogen.sh` for developer and it generates boot code, VM
-instructions and generated code from stub file.  For more details, see
-the file.
+To build HEAD code, you need the latest release of Sagittarius Scheme. So
+first please install it.
 
-Note:
-If Sagittarius itself is so unstable to generate boot code, you can also
-use [Gauche](http://practical-scheme.net/gauche/index.html) for it.
+## Provided developer tool
+
+We provide `dist.sh` for developer and it generates boot code, VM
+instructions and generated code from stub file.
+
+## Generate code
+
+To generate code you need to execute following commands;
+
+    % ./dist.sh stub
+    % ./dist.sh precomp
+
+Those commands generate C files from stub files and Scheme files respectively.
+This must be run *before* CMake command otherwise CMake process will fail.
+
+To clean the generated code, you need to execute following command;
+
+    % ./dist.sh clean
 
