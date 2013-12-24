@@ -176,10 +176,16 @@
 				  (accessor  (cdr slot))
 				  (tmp  (gensym)))
 			      #`(begin
+				  ;; getter
 				  (define-method #,accessor ((#,tmp #,name))
 				    (slot-ref #,tmp (quote #,slot-name)))
-				  ;; getter
+				  ;; setter
 				  (define-method #,accessor ((#,tmp #,name) obj)
+				    (slot-set! #,tmp (quote #,slot-name)
+					       obj))
+				  ;; in case
+				  (define-method (setter #,accessor)
+				    ((#,tmp #,name) obj)
 				    (slot-set! #,tmp (quote #,slot-name)
 					       obj)))))
 			  accessors))
