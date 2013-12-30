@@ -19,6 +19,66 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
+;; to handle 64 bit error
+;; TODO remove this after 0.5.0
+(cond-expand
+ (64bit
+  (import (sagittarius aspect)
+	  (sagittarius cgen stub) (sagittarius cgen cise)
+	  (sagittarius cgen unit) (sagittarius cgen literal)
+	  (sagittarius vm))
+  (point-cut
+   (sagittarius vm)
+   insn-info
+   (lambda (insn)
+     (set! insn (bitwise-and insn #xFF))
+     (proceed)))
+  (point-cut
+   (sagittarius cgen precomp)
+   allocate-code-vector
+   (lambda (cv lv full-name)
+     (define (alloc-word initval)
+       (cgen-allocate-static-datum 'runtime 'SgWord initval))
+     (define (loop cv lv count first-cexpr)
+       (if (= count (vector-length cv))
+	   first-cexpr
+	   (let1 insn (vector-ref cv count)
+	     (set! insn (bitwise-and insn #x00000000FFFFFFFF))
+	     (let-values (((name&insn iv argc src? label?) (insn-info insn)))
+	       (let* ((insn-name (car name&insn))
+		      (name-info (if first-cexpr
+				     ""
+				     (format "/* ~a */"
+					     (cgen-safe-comment full-name))))
+		      (insn-cexpr
+		       (alloc-word
+			(if (> insn #x80000000)
+			    (format "~a-0x~8,'0x   /* ~3d ~a */"
+				    name-info (- #x100000000 insn) count
+				    (cgen-safe-comment insn-name))
+			    (format "~a0x~8,'0x    /* ~3d ~a */"
+				    name-info insn count
+				    (cgen-safe-comment insn-name)))))
+		      (first-cexpr (or first-cexpr insn-cexpr)))
+		 (cond (label? 
+			(alloc-word (format "SG_WORD(~a)" 
+					    (vector-ref cv (+ count 1))))
+			(loop cv lv (+ count 2) first-cexpr))
+		       ((not (zero? argc))
+			(let ((v (vector-ref lv (+ count 1)))
+			      (c (cgen-safe-comment 
+				  (format "~a" (vector-ref cv (+ count 1))))))
+			  (alloc-word
+			   (if (cgen-literal-static? v)
+			       (format "SG_WORD(~a) /* ~a */" (cgen-cexpr v) c)
+			       (format "SG_WORD(SG_UNDEF) /* ~a */" c)))
+			  (loop cv lv (+ count 2) first-cexpr)))
+		       (else 
+			(loop cv lv (+ count 1) first-cexpr))))))))
+     (loop cv lv 0 #f)))
+  )
+ (else #t))
+
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled

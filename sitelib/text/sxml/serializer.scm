@@ -8,8 +8,10 @@
 	    srl:sxml->html-noindent
 	    srl:parameterizable
 	    srl:sxml->string
-	    srl:display-sxml)
+	    srl:display-sxml
+	    srl:conventional-ns-prefixes)
     (import (rnrs)
+	    (sagittarius)
 	    (srfi :0 cond-expand)
 	    (srfi :1 lists))
 
@@ -237,7 +239,7 @@
 ; Conventional namespace prefix referred to in XML-related specifications
 ; These prefixes are used for serializing the corresponding namespace URIs by
 ; default, unless a different prefix is supplied
-(define srl:conventional-ns-prefixes
+(define-constant srl:conventional-ns-prefixes
   '((dc . "http://purl.org/dc/elements/1.1/")
     (fo . "http://www.w3.org/1999/XSL/Format")
     (rdf . "http://www.w3.org/1999/02/22-rdf-syntax-ns#")

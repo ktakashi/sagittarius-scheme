@@ -258,6 +258,7 @@
 	    ((_ (eqv? v)) #'(eql v))
 	    ((_ v) #'v)
 	    (_ #'<top>)))
+	(define (->s s) (datum->syntax k s))
 	(let* ((specializers (map parse-specializer qargs))
 	       (reqargs      (map (lambda (s) 
 				    (if (pair? s) (car s) s)) qargs))
@@ -282,7 +283,7 @@
 			   (else
 			    (%ensure-generic-function 
 			     (syntax->datum id) lib)
-			    `((,(datum->syntax k 'define-generic) ,id)))))
+			    `((,(->s 'define-generic) ,id)))))
 		(let ((#,gf
 		       ;; for cache perspective, we can't use library
 		       ;; object directly...
@@ -302,8 +303,8 @@
 				:lambda-list  '#,lambda-list
 				:procedure     #,real-body))
 		  #,@(if #'getter-name
-			 `((unless (has-setter? ,#'getter-name)
-			     (set! (setter ,#'getter-name) ,gf)))
+			 `((,(->s 'unless) (,(->s 'has-setter?) ,#'getter-name)
+			    (,(->s 'set!) (,(->s 'setter) ,#'getter-name) ,gf)))
 			 '())
 		  #,gf)))))
       (syntax-case x ()
