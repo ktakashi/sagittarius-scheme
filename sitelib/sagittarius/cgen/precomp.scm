@@ -245,6 +245,11 @@
       (do ((i 0 (+ i 1)))
 	  ((= i len) lits)
 	(let1 insn (vector-ref code i)
+	  ;; insn-info only needs one byte
+	  ;; To avoid 64 bit environment problem, this is needed...
+	  (cond-expand
+	   (64bit (set! insn (bitwise-and insn #xFF)))
+	   (else #t))
 	  (let-values (((name&insn iv argc src? label?) (insn-info insn)))
 	    (unless (zero? argc) ;; always 0 or 1
 	      (vector-set! lits (+ i 1)
@@ -258,6 +263,13 @@
       (if (= count (vector-length cv))
 	  first-cexpr
 	  (let1 insn (vector-ref cv count)
+	    ;; Raw insn can exceed 32 bit range on 64 bit environment
+	    ;; however instruction value can only be in range
+	    ;; #x-7ffff - #x7ffff (20 bits) (see compiler.scm)
+	    ;; So for 64 bit environment we mask it to 32 bits
+	    (cond-expand
+	     (64bit (set! insn (bitwise-and insn #xFFFFFFFF)))
+	     (else #t))
 	    (let-values (((name&insn iv argc src? label?) (insn-info insn)))
 	      (let* ((insn-name (car name&insn))
 		     (name-info (if first-cexpr
