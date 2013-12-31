@@ -2440,7 +2440,7 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   fixnum_again:
     if (SG_INTP(y)) {
       long r;
-      if (SG_INT_VALUE(y) == 0) goto div_by_zero;
+      if (SG_EQ((y), SG_MAKE_INT(0))) goto div_by_zero;
       r = SG_INT_VALUE(x) % SG_INT_VALUE(y);
       if (!remp && r) {
 	if ((SG_INT_VALUE(x) > 0 && SG_INT_VALUE(y) < 0)
@@ -2532,7 +2532,8 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   else goto bad_arg;
 
  div_by_zero:
-  Sg_Error(UC("attempt to calculate a quotient by zero"));
+  Sg_Error(UC("%S: attempt to calculate a quotient by zero"),
+	   (remp) ? SG_INTERN("remainder") : SG_INTERN("modulo"));
  bad_argy:
   x = y;
  bad_arg:
