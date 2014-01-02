@@ -1,6 +1,6 @@
 /* library.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -881,16 +881,30 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
   }
 }
 
+static SgInternalMutex suffix_mutex;
+SgObject Sg_AddLoadSuffix(SgString *suffix)
+{
+  /* check if this looks like a suffix */
+  if (SG_STRING_VALUE_AT(suffix, 0) != '.') {
+    return SG_FALSE;
+  }
+  Sg_LockMutex(&suffix_mutex);
+  extensions = Sg_AddConstantLiteral(Sg_Cons(suffix, extensions));
+  Sg_LockMutex(&suffix_mutex);
+  return extensions;
+}
+
 /* #define list6(a, b, c, d, e, f) Sg_Cons(a, SG_LIST5(b,c,d,e,f)) */
 void Sg__InitLibrary()
 {
   Sg_InitMutex(&MUTEX, TRUE);
+  Sg_InitMutex(&suffix_mutex, FALSE);
   ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   
   extensions = SG_LIST3(SG_MAKE_STRING(".ss"),
 			SG_MAKE_STRING(".sls"),
 			SG_MAKE_STRING(".scm"));
-
+  extensions = Sg_AddConstantLiteral(extensions);
 }
 
 /*

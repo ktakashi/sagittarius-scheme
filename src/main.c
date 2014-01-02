@@ -1,6 +1,6 @@
 /* main.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -201,6 +201,7 @@ static void show_usage()
 #endif
 	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
 	  "  -D<path>,--dynloadpath=<path>  Adds <path> to the head of the dynamic load\n"
+	  "  -S<suffix>,--loadsuffix=<suffix>  Adds <suffix> to the head of the suffix lists\n"
 	  "                                 path list.\n"
 	  "  -c,--clean-cache               Cleans compiled cache.\n"
 	  "  -d,--disable-cache             Disable compiled cache.\n"
@@ -293,6 +294,7 @@ int main(int argc, char **argv)
   static struct option long_options[] = {
     {"loadpath", optional_argument, 0, 'L'},
     {"dynloadpath", optional_argument, 0, 'D'},
+    {"loadsuffix", optional_argument, 0, 'S'},
     {"flag", optional_argument, 0, 'f'},
     {"help", 0, 0, 'h'},
     {"interactive", 0, 0, 'i'},
@@ -316,7 +318,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:f:I:hE:vicdp:P:snt", 
+  while ((opt = getopt_long(argc, argv, "L:D:S:f:I:hE:vicdp:P:snt", 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -378,11 +380,23 @@ int main(int argc, char **argv)
       break;
     }
     case 'D': {
-      SgObject paths = Sg_Glob(SG_STRING(Sg_MakeStringC(optarg)), 0);
-      SG_FOR_EACH(paths, paths) {
-	if (Sg_DirectoryP(SG_CAR(paths))) {
-	  Sg_AddDynamicLoadPath(SG_CAR(paths));
+      SgObject exp = Sg_MakeStringC(optarg);
+      if (Sg_DirectoryP(exp)) Sg_AddDynamicLoadPath(exp);
+      else {
+	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
+	SG_FOR_EACH(paths, paths) {
+	  if (Sg_DirectoryP(SG_CAR(paths))) {
+	    Sg_AddDynamicLoadPath(SG_CAR(paths));
+	  }
 	}
+      }
+      break;
+    }
+    case 'S': {
+      SgObject exp = Sg_MakeStringC(optarg);
+      SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp));
+      if (SG_FALSEP(suffixs)) {
+	Sg_Warn(UC("given suffix '%A' was not added."), exp);
       }
       break;
     }

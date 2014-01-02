@@ -1,6 +1,4 @@
-// -*- C -*-
-/*
- * compare.h
+/* compare.h                                       -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
  *

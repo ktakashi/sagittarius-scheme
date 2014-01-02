@@ -1,6 +1,6 @@
 /* core.c                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -119,6 +119,9 @@ void Sg_Init()
   Sg__InitSymbol();
   Sg__InitNumber();
   Sg__InitKeyword();
+  /* initialize default reader macro */
+  Sg__InitReader();
+
   Sg__InitLibrary();
   Sg__InitLoad();
   Sg__InitUnicode();
@@ -132,8 +135,6 @@ void Sg_Init()
   Sg__InitPort();
   Sg__InitWrite();
   Sg__InitIdentifier();
-  /* initialize default reader macro */
-  Sg__InitReader();
   Sg__InitCache();
 
   nullsym = SG_INTERN("(core)");

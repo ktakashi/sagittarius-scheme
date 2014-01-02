@@ -200,6 +200,8 @@
 	  (set! (-> (Sg_VM) loadPath) paths)
 	  (result SG_UNDEF))))
 
+  (define-c-proc add-load-suffix (suffix::<string>) Sg_AddLoadSuffix)
+
   (define-c-proc load (path::<string>) Sg_VMLoad)
 
   (define-c-proc gensym (:optional prefix::<string>)

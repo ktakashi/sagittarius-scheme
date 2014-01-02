@@ -1,8 +1,6 @@
-/* -*- C -*- */
-/*
- * library.h
+/* library.h                                       -*- mode:c; coding;utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -93,6 +91,7 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 				  SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
+SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix);
 
 #define Sg_ImportLibrary(t, f)  Sg_ImportLibraryFullSpec((t), (f), SG_NIL)
 
