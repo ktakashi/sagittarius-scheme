@@ -2700,7 +2700,7 @@
 	    ((((? variable? type) body ___) . rest)
 	     (case (identifier->symbol type)
 	       ((import)
-		(pass1/import (car clauses) current-lib) 
+		(pass1/import (car clauses) current-lib)
 		(loop (cdr clauses) finish?))
 	       ((export)
 		(pass1/export (car clauses) current-lib)
@@ -2734,13 +2734,14 @@
 		(syntax-error "define-library: invalid library declaration"
 			      type))))
 	    (- (syntax-error "define-library: malformed library declaration"
-			     form clauses))))))
-	)
+			     form clauses)))))))
   (check-toplevel form p1env)
   (smatch form
     ((- name body ___)
      (let* ((current-lib (ensure-library (unwrap-syntax name) 'library #t))
 	    (newenv      (make-bottom-p1env current-lib)))
+       ;; import 'import' syntax
+       (pass1/import '(import (only (sagittarius) import)) current-lib) 
        (process-declare body current-lib newenv)))
     (- (syntax-error "malformed define-library" form))))
 
