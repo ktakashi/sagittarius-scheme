@@ -3865,9 +3865,8 @@
           ((x) (proc x c))
           ((x . xs) (and (proc x c) (loop xs)))))))
 (define (transparent? iform) (transparent?/rec iform (make-label-dic #f)))
-(define (transparent?/rec iform labels)  
-  (case/unquote 
-   (iform-tag iform)
+(define (transparent?/rec iform labels)
+  (case/unquote (iform-tag iform)
    (($LREF   ) (zero? (lvar-set-count ($lref-lvar iform))))
    (($CONST $LAMBDA $IT) #t)
    (($IF     ) (and (transparent?/rec ($if-test iform) labels)
@@ -3879,10 +3878,54 @@
 		   (begin (label-push! labels iform)
 			  (transparent?/rec ($label-body iform) labels))))
    (($SEQ    ) (everyc transparent?/rec ($seq-body iform) labels))
-   (($CALL   ) #f) ;; if we can check $call-proc is transparent, but for now
-   (($ASM    ) #f) ;; ditto for insn.
+   (($CALL   ) (and (no-side-effect-call? ($call-proc iform) ($call-flag iform)
+					  labels)
+		    (everyc transparent?/rec ($call-args iform) labels)))
+   (($ASM    ) (and (no-side-effect-insn? ($asm-insn iform))
+		    (everyc transparent?/rec ($asm-args iform) labels)))
    (($LIST   ) (everyc transparent?/rec ($list-args iform) labels))
+   (($RECEIVE) (and (transparent?/rec ($receive-expr iform) labels)
+		    (transparent?/rec ($receive-body iform) labels)))
    (else #f)))
+
+;; For now
+(define (no-side-effect-call? proc type labels)
+  ;; Can we remove this (loop (cons b 2))?
+  ;; (let loop ((b (cons a 1))) (loop (cons b 2)) (list a b 3))
+  ;; The whole loop doesn't have any side effect but obviously it'll go into
+  ;; the infinite loop.
+
+;; This simply didn't work and not a good one.
+;; say this case;
+;; (define (foo) (define (rec) (case a ((?) (rec) (set! a 'ok)))) (rec))
+;; this actually have a side effect but rec will be marked no side effect
+;;  (if (eq? type 'local)
+;;      (case/unquote (iform-tag proc)
+;;       (($LREF)
+;;	(let ((lvar (lvar-initval ($lref-lvar proc))))
+;;	  ;; init must be $lambda
+;;	  (if ($lambda? lvar)
+;;	      (or (label-seen? labels lvar)
+;;		  (let ((copy (copy-label-dic labels)))
+;;		    (label-push! copy lvar)
+;;		    (transparent?/rec lvar copy)))
+;;	      #f)))
+;;       (else #f))
+;;      #f)
+  #f)
+
+(define (no-side-effect-insn? insn)
+  ;; Not sure if we can eliminate this
+  ;; say (vector-ref #() -1) raises an error but if we eliminate it may cause
+  ;; a problem...
+  (case/unquote (car insn)
+   ;; Predicates and constructors can be always #t
+   ((NOT NULLP PAIRP SYMBOLP VECTORP CONS VALUES EQ EQV LIST VECTOR) #t)
+   ;; If we ignore the type error or range error (for vector)
+   ;; this can be also activated. (Should we?)
+   ;;((VEC_REF VEC_LEN ADD SUB MUL DIV NEG CAR CDR CAAR CADR CDAR CDDR) #t)
+   (else #f))
+)
 
 (define (pass3/rec iform labels)
   ((vector-ref *pass3-dispatch-table* (iform-tag iform)) iform labels))
@@ -4037,7 +4080,8 @@
 (define *pass3-dispatch-table* (generate-dispatch-table pass3))
 
 ;; label dictionary
-(define (make-label-dic init) (list init))
+(define (make-label-dic init)  (list init))
+(define (copy-label-dic label) (cons (car label) (cdr label)))
 (define (label-seen? label-dic label-node)
   (memq label-node (cdr label-dic)))
 (define (label-push! label-dic label-node)

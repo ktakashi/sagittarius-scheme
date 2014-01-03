@@ -12,7 +12,7 @@
 (define-syntax assert-error 
   (syntax-rules ()
     ((_ name expr)
-     (test-error name (lambda (e) e) expr))))
+     (test-error name condition? (let ((t #f)) (set! t #t) expr)))))
 (define *extended-test* #t)
 ;; test cases are from
 ;; http://srfi.schemers.org/srfi-43/post-mail-archive/msg00010.html
