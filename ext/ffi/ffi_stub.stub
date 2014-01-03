@@ -45,7 +45,7 @@
 (define-c-proc free-c-callback (callback::<callback>) ::<void>
   Sg_ReleaseCallback)
 
-(define-c-proc callback? (obj) ::<boolean> SG_CALLBACKP)
+(define-c-proc callback? (obj) ::<boolean> :constant SG_CALLBACKP)
 
 ;; malloc
 (define-c-proc c-malloc (size::<fixnum>) Sg_CMalloc)
@@ -59,7 +59,7 @@
   Sg_UnregisterFFIFinalizer)
 
 ;; pointer
-(define-c-proc pointer? (o) ::<boolean> SG_POINTERP)
+(define-c-proc pointer? (o) ::<boolean> :constant SG_POINTERP)
 
 (define-c-proc integer->pointer (n::<integer>)
   (.if "SIZEOF_VOIDP == 4"
@@ -89,7 +89,7 @@
 (define-c-proc create-c-struct (name::<symbol> layouts packed?::<boolean>)
   Sg_CreateCStruct)
 
-(define-c-proc c-struct? (obj) ::<boolean> SG_CSTRUCTP)
+(define-c-proc c-struct? (obj) ::<boolean> :constant SG_CSTRUCTP)
 
 ;; allocates c-struct with GC
 (define-c-proc allocate-c-struct (st::<cstruct>) 

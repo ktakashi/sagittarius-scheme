@@ -388,7 +388,7 @@
 
   (define (extract-rettype forms)
     (define (type-symbol? s)
-      (and (keyword? s) (looking-at #/^:[^:]/ (keyword->string s))))
+      (and (keyword? s) (#/^:[^:]/ (keyword->string s))))
     (define (type-symbol-type s)
       (string->symbol (string-drop (keyword->string s) 1)))
 
@@ -506,20 +506,19 @@
     (p "  }")
     (p "}") ;; closing the function
     ;; emit stub record
-    (let1 flags (slot-ref cproc 'flags)
-      (f "static SG_DEFINE_SUBR(")
-      (f "~a, ~a, ~a,"
-	 (c-stub-name cproc)
-	 (slot-ref cproc 'num-reqargs)
-	 (cond ((zero? (slot-ref cproc 'num-optargs)) 0)
-	       ((slot-ref cproc 'have-rest-args?) (slot-ref cproc 'num-optargs))
-	       (else (+ (slot-ref cproc'num-optargs) 1))))
-      ;;(f "~a, " (cgen-c-name (slot-ref cproc'proc-name)))
-      (f "~a, ~a, NULL);~%"
-	 (slot-ref cproc 'c-name)
-	 (cond ((slot-ref cproc'inline-insn)
-		=> (lambda (i) (format "SG_MAKE_INT(~a)" i)))
-	       (else "SG_FALSE"))))
+    (f "static SG_DEFINE_SUBR(")
+    (f "~a, ~a, ~a,"
+       (c-stub-name cproc)
+       (slot-ref cproc 'num-reqargs)
+       (cond ((zero? (slot-ref cproc 'num-optargs)) 0)
+	     ((slot-ref cproc 'have-rest-args?) (slot-ref cproc 'num-optargs))
+	     (else (+ (slot-ref cproc'num-optargs) 1))))
+    ;;(f "~a, " (cgen-c-name (slot-ref cproc'proc-name)))
+    (f "~a, ~a, NULL);~%"
+       (slot-ref cproc 'c-name)
+       (cond ((slot-ref cproc'inline-insn)
+	      => (lambda (i) (format "SG_MAKE_INT(~a)" i)))
+	     (else "SG_FALSE")))
     (p))
 
   (define-method cgen-emit-init ((cproc <c-proc>))
@@ -528,7 +527,11 @@
 	 (cgen-c-name (slot-ref cproc'proc-name)) (c-stub-name cproc))
       (f "  SG_PROCEDURE_NAME(&~a) = ~a;~%"
 	 (c-stub-name cproc)
-	 (cgen-c-name (slot-ref cproc'proc-name))))
+	 (cgen-c-name (slot-ref cproc'proc-name)))
+      (let1 flags (slot-ref cproc 'flags)
+	(when (memv :constant flags)
+	  (f "  SG_PROCEDURE_TRANSPARENT(&~a) = TRUE;~%"
+	     (c-stub-name cproc)))))
     (call-next-method))
 
   (define-method cgen-emit-init ((cproc <setter-mixin>))

@@ -10,12 +10,12 @@
 (define-type <key> "SgKey*")
 (define-type <builtin-symmetric-key> "SgBuiltinSymmetricKey*")
 
-(define-c-proc crypto-object? (o) ::<boolean>
+(define-c-proc crypto-object? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_CRYPTO)))
 
-(define-c-proc cipher? (o) ::<boolean> SG_CIPHERP)
+(define-c-proc cipher? (o) ::<boolean> :constant SG_CIPHERP)
 
-(define-c-proc key? (o) ::<boolean>
+(define-c-proc key? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_KEY)))
 
 ;; key

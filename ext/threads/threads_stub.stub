@@ -27,7 +27,7 @@
 (define-type <condition-variable> "SgConditionVariable*")
 
 ;; thread is VM
-(define-c-proc thread? (obj) ::<boolean>
+(define-c-proc thread? (obj) ::<boolean> :constant
   (result (SG_VMP obj)))
 
 (define-c-proc make-thread (thunk::<procedure> 
@@ -82,7 +82,7 @@
 (define-c-proc thread-terminate! (vm::<thread>) ::<void>
   (Sg_ThreadTerminate vm))
 
-(define-c-proc mutex? (o) ::<boolean>
+(define-c-proc mutex? (o) ::<boolean> :constant
   (result (SG_MUTEXP o)))
 
 (define-c-proc make-mutex 
@@ -120,7 +120,7 @@
 					     cv)))
     (result (Sg_MutexUnlock (SG_MUTEX o) cond timeout))))
 
-(define-c-proc condition-variable? (o) ::<boolean>
+(define-c-proc condition-variable? (o) ::<boolean> :constant
   (result (SG_CONDITION_VARIABLE_P o)))
 
 

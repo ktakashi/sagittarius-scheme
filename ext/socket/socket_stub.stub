@@ -21,14 +21,14 @@
 (define-type <ip-address> "SgIpAddress*")
 (define-type <socket-info> "SgSocketInfo*")
 
-(define-c-proc addrinfo? (o) ::<boolean>  SG_ADDRINFOP)
+(define-c-proc addrinfo? (o) ::<boolean> :constant SG_ADDRINFOP)
 (define-c-proc make-addrinfo ()  Sg_MakeAddrinfo)
 (define-c-proc get-addrinfo (node service hints::<addrinfo>)
   (check-string-or-false make-client-socket node)
   (check-string-or-false make-client-socket service)
   (result (Sg_GetAddrinfo node service hints)))
 
-(define-c-proc sockaddr? (o) ::<boolean> SG_SOCKADDRP)
+(define-c-proc sockaddr? (o) ::<boolean> :constant SG_SOCKADDRP)
 
 (define-c-proc make-socket (f::<fixnum> t::<fixnum> :optional (p::<fixnum> 0))
   Sg_CreateSocket)
@@ -47,7 +47,7 @@
 ;;; error message
 (define-c-proc socket-error-message (socket::<socket>) Sg_SocketErrorMessage)
 
-(define-c-proc socket? (o) ::<boolean> SG_SOCKETP)
+(define-c-proc socket? (o) ::<boolean> :constant SG_SOCKETP)
 
 ;; socket ports
 (define-c-proc socket-port (o::<socket> :optional (close?::<boolean> #t)) 

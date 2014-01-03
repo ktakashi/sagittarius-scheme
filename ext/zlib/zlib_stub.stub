@@ -9,48 +9,44 @@
 
 (define-c-proc deflate-init
   (level::<fixnum> windowbits::<fixnum> memlevel::<fixnum> strategy::<fixnum>)
-  (result (Sg_DeflateInit level windowbits memlevel strategy)))
+  Sg_DeflateInit)
 
-(define-c-proc deflate-reset (strm::<z-stream>) ::<fixnum>
-  (result (Sg_DeflateReset strm)))
+(define-c-proc deflate-reset (strm::<z-stream>) ::<fixnum> Sg_DeflateReset)
 
 (define-c-proc deflate-set-dictionary (strm::<z-stream> dict::<bytevector>)
   ::<fixnum>
-  (result (Sg_DeflateSetDictionary strm dict)))
+  Sg_DeflateSetDictionary)
 
 (define-c-proc deflate
   (strm::<z-stream> data::<bytevector> dest::<bytevector> flush::<fixnum>)
   ::<fixnum>
-  (result (Sg_Deflate strm data dest flush)))
+  Sg_Deflate)
 
-(define-c-proc deflate-end (strm::<z-stream>) ::<fixnum>
-  (result (Sg_DeflateEnd strm)))
+(define-c-proc deflate-end (strm::<z-stream>) ::<fixnum> Sg_DeflateEnd)
 
-(define-c-proc inflate-init (windowbits::<fixnum>)
-  (result (Sg_InflateInit windowbits)))
+(define-c-proc inflate-init (windowbits::<fixnum>) Sg_InflateInit)
 
 (define-c-proc inflate-reset
   (strm::<z-stream> :optional (bits::<fixnum> -1)) ::<fixnum>
-  (result (Sg_InflateReset strm bits)))
+  Sg_InflateReset)
 
 (define-c-proc inflate-set-dictionary (strm::<z-stream> dict::<bytevector>)
   ::<fixnum>
-  (result (Sg_InflateSetDictionary strm dict)))
+  Sg_InflateSetDictionary)
 
 (define-c-proc inflate-sync (strm::<z-stream>) ::<fixnum>
-  (result (Sg_InflateSync strm)))
+  Sg_InflateSync)
 
 (define-c-proc inflate
   (strm::<z-stream> data::<bytevector> dest::<bytevector> flush::<fixnum>)
   ::<fixnum>
-  (result (Sg_Inflate strm data dest flush)))
+  Sg_Inflate)
 
 (define-c-proc inflate-end (strm::<z-stream> flush::<fixnum>) ::<fixnum>
-  (result (Sg_InflateEnd strm flush)))
+  Sg_InflateEnd)
 
 ;; accessor
-(define-c-proc zstream? (obj) ::<boolean>
-  (result (SG_ZSTREAM_P obj)))
+(define-c-proc zstream? (obj) ::<boolean> :constant SG_ZSTREAM_P)
 
 (define-c-proc zstream-total-in (strm::<z-stream>) ::<fixnum>
   (result (-> (-> strm strm) total_in)))
@@ -77,8 +73,7 @@
       (result (Sg_MakeStringC (-> (-> strm strm) msg)))
       (result (SG_MAKE_STRING "no z-stream error message available"))))
 
-(define-c-proc zlib-version ()
-  (result (Sg_ZlibVersion)))
+(define-c-proc zlib-version () Sg_ZlibVersion)
 
 ;; utilities
 (define-c-proc crc32 (data::<bytevector> :optional (crc::<integer> 0))

@@ -8,13 +8,13 @@
 (define-type <prng> "SgObject")
 (define-type <hash-algorithm> "SgObject")
 
-(define-c-proc prng? (o) ::<boolean>
+(define-c-proc prng? (o) ::<boolean> :constant
   (result (SG_PRNGP o)))
 
-(define-c-proc pseudo-random? (o) ::<boolean>
+(define-c-proc pseudo-random? (o) ::<boolean> :constant
   (result (SG_PRNGP o)))
 
-(define-c-proc secure-random? (o) ::<boolean>
+(define-c-proc secure-random? (o) ::<boolean> :constant
   (result (and (SG_PRNGP o) (SG_SECURE_RANDOM_P o))))
 
 ;; pseudo random
@@ -59,7 +59,7 @@
   (result (Sg_LookupPrng name)))
 
 ;; hash
-(define-c-proc hash-algorithm? (o) ::<boolean>
+(define-c-proc hash-algorithm? (o) ::<boolean> :constant
   (result (SG_HASH_P o)))
 
 (define-c-proc make-hash-algorithm (name::<string>) 

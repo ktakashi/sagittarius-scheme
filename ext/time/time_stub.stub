@@ -26,20 +26,21 @@
 				       ,irritants))))
 (define-type <time> "SgTime*")
 
-(define-c-proc make-time (type::<symbol> nsec::<number> sec::<number>) 
+;; as long as we don't have serializer, we can't make this constant
+;; say (define time-0 (make-time 'time-tai 0 0)) will be literal
+(define-c-proc make-time (type::<symbol> nsec::<number> sec::<number>)
   (result (Sg_MakeTime type (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)
 		       (Sg_GetIntegerClamp nsec SG_CLAMP_NONE NULL))))
 
-(define-c-proc time? (o) ::<boolean>
-  (result (SG_TIMEP o)))
+(define-c-proc time? (o) ::<boolean> :constant SG_TIMEP)
 
-(define-c-proc time-type (o::<time>) 
+(define-c-proc time-type (o::<time>) :constant
   (result (-> (SG_TIME o) type)))
 
-(define-c-proc time-nanosecond (o::<time>) 
+(define-c-proc time-nanosecond (o::<time>) :constant
   (result (Sg_MakeInteger (-> (SG_TIME o) nsec))))
 
-(define-c-proc time-second (o::<time>) 
+(define-c-proc time-second (o::<time>) :constant
   (result (Sg_MakeIntegerFromS64 (-> (SG_TIME o) sec))))
 
 (define-c-proc set-time-type! (o type::<symbol>) ::<void>
@@ -51,13 +52,13 @@
 (define-c-proc set-time-second! (o sec::<number>) 
   (set! (-> (SG_TIME o) sec) (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)))
 
-(define-c-proc copy-time (o::<time>) 
+(define-c-proc copy-time (o::<time>) :constant
   (result (Sg_MakeTime (-> (SG_TIME o) type)
 		       (-> (SG_TIME o) sec)
 		       (-> (SG_TIME o) nsec))))
 
 (define-c-proc time-resolution
-  (:optional (type::<symbol> 'time-utc)) ::<fixnum>
+  (:optional (type::<symbol> 'time-utc)) ::<fixnum> :constant
   (cond ((SG_EQ type 'time-tai) (result 10000))
 	((SG_EQ type 'time-utc) (result 10000))
 	((SG_EQ type 'time-monotonic) (result 10000))
@@ -68,49 +69,50 @@
 			      "invalid-clock-type"
 			      type))))
 
+;; This is not transparent since it returns different value each time
 (define-c-proc current-time (:optional (type::<symbol> 'time-utc)) 
-  (result (Sg_CurrentTime type)))
+  Sg_CurrentTime)
 
-(define-c-proc time->seconds (o::<time>) 
-  (result (Sg_TimeToSeconds (SG_TIME o))))
+(define-c-proc time->seconds (o::<time>) :constant
+  Sg_TimeToSeconds)
 
-(define-c-proc seconds->time (o::<number>) 
+(define-c-proc seconds->time (o::<number>) :constant
   (result (Sg_SecondsToTime (Sg_GetIntegerS64Clamp o SG_CLAMP_NONE NULL))))
 
-(define-c-proc time<=? (x::<time> y::<time>) ::<boolean>
+(define-c-proc time<=? (x::<time> y::<time>) ::<boolean> :constant
   (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
     (result (<= (compare x y FALSE) 0))))
 
-(define-c-proc time<? (x::<time> y::<time>) ::<boolean>
+(define-c-proc time<? (x::<time> y::<time>) ::<boolean> :constant
   (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
     (result (< (compare x y FALSE) 0))))
 
-(define-c-proc time=? (x::<time> y::<time>) ::<boolean>
+(define-c-proc time=? (x::<time> y::<time>) ::<boolean> :constant
   (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
     (result (== (compare x y FALSE) 0))))
 
-(define-c-proc time>=? (x::<time> y::<time>) ::<boolean>
+(define-c-proc time>=? (x::<time> y::<time>) ::<boolean> :constant
   (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
     (result (>= (compare x y FALSE) 0))))
 
-(define-c-proc time>? (x::<time> y::<time>) ::<boolean>
+(define-c-proc time>? (x::<time> y::<time>) ::<boolean> :constant
   (let ((compare::SgClassCompareProc (-> (SG_CLASS_OF x) compare)))
     (result (> (compare x y FALSE) 0))))
 
-(define-c-proc time-difference (x::<time> y::<time>) 
+(define-c-proc time-difference (x::<time> y::<time>) :constant
   (result (Sg_TimeDifference x y (SG_TIME (Sg_MakeTime #f 0 0)))))
 
-(define-c-proc time-difference! (x::<time> y::<time>) 
+(define-c-proc time-difference! (x::<time> y::<time>)
   (result (Sg_TimeDifference x y x)))
 
-(define-c-proc add-duration (x::<time> y::<time>) 
+(define-c-proc add-duration (x::<time> y::<time>) :constant
   (result (Sg_AddDuration x y 
 			  (SG_TIME (Sg_MakeTime (-> (SG_TIME x) type) 0 0)))))
 
 (define-c-proc add-duration! (x::<time> y::<time>) 
   (result (Sg_AddDuration x y x)))
 
-(define-c-proc subtract-duration (x::<time> y::<time>) 
+(define-c-proc subtract-duration (x::<time> y::<time>) :constant
   (result (Sg_SubDuration x y 
 			  (SG_TIME (Sg_MakeTime (-> (SG_TIME x) type) 0 0)))))
 

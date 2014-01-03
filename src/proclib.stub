@@ -2,7 +2,8 @@
 (library (sagittarius compiler procedure)
       (export procedure-name procedure-inliner
 	      procedure-inliner-set! procedure-reqargs
-	      procedure-optional procedure-body
+	      procedure-optional procedure-optional?
+	      procedure-transparent?
 	      inline?
 	      find-procedure)
       (import :none)
@@ -20,28 +21,31 @@
 	(Sg_AssertionViolation ,who (SG_MAKE_STRING ,msg) ,irritants)
 	 )))
 
-  (define-c-proc procedure-name (arg0::<procedure>) ::<top>
-    (result (SG_PROCEDURE_NAME arg0)))
-
-  (define-c-proc procedure-inliner (arg0::<procedure>) ::<top>
-    (result (SG_PROCEDURE_INLINER arg0)))
-
-  (define-c-proc procedure-inliner-set! (arg0::<procedure> arg1) ::<top>
-    (set! (SG_PROCEDURE_INLINER arg0) arg1)
-    (result SG_UNDEF))
+  (define-c-proc procedure-name (arg0::<procedure>) SG_PROCEDURE_NAME)
+  (define-c-proc procedure-inliner (arg0::<procedure>) SG_PROCEDURE_INLINER)
+  (define-c-proc procedure-inliner-set! (arg0::<procedure> arg1) ::<void>
+    (set! (SG_PROCEDURE_INLINER arg0) arg1))
 
   (define-c-proc procedure-reqargs (arg0::<procedure>) ::<fixnum>
-    (result (SG_PROCEDURE_REQUIRED arg0)))
+    SG_PROCEDURE_REQUIRED)
 
+  ;; TODO change return value to fixnum after 0.5.0
   (define-c-proc procedure-optional (arg0::<procedure>) ::<boolean>
-    (result (SG_PROCEDURE_OPTIONAL arg0)))
+    SG_PROCEDURE_OPTIONAL)
+  ;; TODO use this after 0.5.0 in compiler
+  (define-c-proc procedure-optional? (arg0::<procedure>) ::<boolean>
+    SG_PROCEDURE_OPTIONAL)
+  ;; TODO use this to determine if the procedure is transparent or not
+  ;; after 0.5.0
+  (define-c-proc procedure-transparent? (arg0::<procedure>) ::<boolean>
+    SG_PROCEDURE_TRANSPARENT)
 
   (define-c-proc inline? (arg0) ::<boolean>
     (result (and (SG_PROCEDUREP arg0)
 		 (not (SG_FALSEP (SG_PROCEDURE_INLINER arg0)))
 		 (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_INLINE_ASM)))))
 
-  (define-c-proc find-procedure (name::<symbol> lib) ::<top>
+  (define-c-proc find-procedure (name::<symbol> lib)
     (let ((g (Sg_FindBinding lib name SG_UNBOUND)))
       (if (SG_UNBOUNDP g)
 	  (result SG_FALSE)

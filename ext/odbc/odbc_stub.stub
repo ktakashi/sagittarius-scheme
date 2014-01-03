@@ -38,7 +38,7 @@
 (define-c-proc prepare (hdbc::<odbc-dbc> text::<string>)
   (result (Sg_Prepare hdbc text)))
 
-(define-c-proc statement-open? (stmt::<odbc-stmt>) ::<boolean>
+(define-c-proc statement-open? (stmt::<odbc-stmt>) ::<boolean> :constant
   Sg_StatementOpenP)
 
 (define-c-proc num-params (stmt::<odbc-stmt>) ::<fixnum>
@@ -88,22 +88,22 @@
   (hdbc::<odbc-dbc> schema::<string> table::<string> column::<string>)
   Sg_Columns)
 
-(define-c-proc odbc-env? (obj) ::<boolean>
+(define-c-proc odbc-env? (obj) ::<boolean> :constant
   (result (SG_ODBC_ENV_P obj)))
-(define-c-proc odbc-connection? (obj) ::<boolean>
+(define-c-proc odbc-connection? (obj) ::<boolean> :constant
   (result (SG_ODBC_DBC_P obj)))
-(define-c-proc odbc-statement? (obj) ::<boolean>
+(define-c-proc odbc-statement? (obj) ::<boolean> :constant
   (result (SG_ODBC_STMT_P obj)))
 
 (define-type <odbc-date-date> "SgOdbcDate*")
 (define-type <odbc-date-time> "SgOdbcDate*")
 (define-type <odbc-date-timestamp> "SgOdbcDate*")
 
-(define-c-proc odbc-date? (obj) ::<boolean>
+(define-c-proc odbc-date? (obj) ::<boolean> :constant
   (result (SG_ODBC_DATE_DATE_P obj)))
-(define-c-proc odbc-time? (obj) ::<boolean>
+(define-c-proc odbc-time? (obj) ::<boolean> :constant
   (result (SG_ODBC_DATE_TIME_P obj)))
-(define-c-proc odbc-timestamp? (obj) ::<boolean>
+(define-c-proc odbc-timestamp? (obj) ::<boolean> :constant
   (result (SG_ODBC_DATE_TIMESTAMP_P obj)))
 
 ;; accessors
