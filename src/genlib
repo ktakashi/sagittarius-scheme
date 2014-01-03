@@ -226,35 +226,50 @@
 		      ,@(resolve-cond-expand&include sexp includes))))
 	form))))
 
-(define (gen file clean? need-construct? library-options)
-  (define (do-clean form)
-    ;; assume form is library form
-    (let* ((libname (cadr form))
-	   (filename (name-generator file libname)))
+(define (check-timestamp scm-file out-file)
+  (when (file-exists? out-file)
+    ;; check the timestamp
+    (let ((target-mtime (file-stat-mtime scm-file))
+	  (precomp-mtime (file-stat-mtime out-file)))
+      (when (< target-mtime precomp-mtime)
+	(print "generated file id older than target file. " out-file)
+	(exit 0)))))
+
+(define (gen file clean? need-construct? force? library-options)
+  (define (do-clean libname)
+    (let ((filename (name-generator file libname)))
       (when (file-exists? filename) (delete-file filename))))
-  (print "generating file:" file)
-  (let* ((b (path-basename (path-sans-extension file)))
-	 (c (format "lib_~a.c" b)))
-    (let1 compiler (load-compiler library-options)
-      (if need-construct?
-	  (let1 form (construct-library-form file library-options)
-	    (if clean?
-		(do-clean form)
-		(cgen-precompile form
-				 :in-file file
-				 :name-generator name-generator
-				 :predef-syms '(LIBSAGITTARIUS_BODY)
-				 :compiler compiler)))
-	  (if clean?
-	      (do-clean (call-with-input-file file read))
-	      (cgen-precompile-file file
-				    :name-generator name-generator
-				    :predef-syms '(LIBSAGITTARIUS_BODY)
-				    :compiler compiler))))))
+  (define (get-form/libname)
+    (if need-construct?
+	(values #f (get-library-name library-options))
+	(let1 form (call-with-input-file file read)
+	  (values form (cadr form)))))
+  (define (get-library-name options)
+    (with-args options
+	((lib (#\l "library") #t (error 'genlib "library name is missing"))
+	 . rest)
+      (read (open-string-input-port lib))))
+  (if clean? 
+      (print "cleaning generated file from: " file)
+      (print "generating from file:" file))
+  (let ((compiler (load-compiler library-options)))
+    (let-values (((form libname) (get-form/libname)))
+      (if clean?
+	  (do-clean libname)
+	  (begin
+	    ;; clean needs to be done no matter what
+	    (unless force? (check-timestamp file (name-generator file libname)))
+	    (cgen-precompile (or form
+				 (construct-library-form file library-options))
+			     :in-file file
+			     :name-generator name-generator
+			     :predef-syms '(LIBSAGITTARIUS_BODY)
+			     :compiler compiler))))))
 (define (main args)
   (with-args (cdr args)
       ((need-construct? (#\n "need-construct") #f #f)
        (in-file (#\f "file") #t (error 'genlib "input file is missing"))
        (clean?  (#\c "clean") #f #f)
+       (force?  (#\F "force") #f #f)
       . rest)
-    (gen in-file clean? need-construct? rest)))
+    (gen in-file clean? need-construct? force? rest)))

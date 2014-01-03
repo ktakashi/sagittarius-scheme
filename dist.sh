@@ -52,7 +52,7 @@ stub()
 {
     echo Generating library from stub
     cd src
-    $SASH ./genstub -f $1
+    $SASH ./genstub $1
     cd ../
 }
 
@@ -103,6 +103,7 @@ usage()
 {
     echo "usage: $0 dist|precomp|stub|stub|clean"
     echo "    dist:       create distribution file"
+    echo "    gen:        generate all files"
     echo "    precomp:    generate precompiled files"
     echo "    stub:       generate stub files"
     echo "    clean:      clean generated files"
@@ -115,8 +116,9 @@ if [ $# -ge 1 ] ; then
     shift
     case $name in
 	dist)    dist $1;;
-	stub)    stub ;;
-	precomp) precomp ;;
+	stub)    stub $1;;
+	gen)     stub $1; precomp $1;;
+	precomp) precomp $1;;
 	clean)   stub "-c"; precomp "-c" ;;
 	*)       usage ;;
     esac

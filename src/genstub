@@ -16,8 +16,9 @@
 		(print "generated file is older than stub file. " c)
 		(cgen-genstub f)))
 	  (cgen-genstub f))))
-
-  (print (if force? "force " "") "generating files:" files)
+  (if clean?
+      (print "cleaning generated file from: " files)
+      (print (if force? "force " "") "generating files:" files))
   (for-each (^f (let* ((b (path-sans-extension f))
 		       (c (format "~a.c" b)))
 		  (if clean?
