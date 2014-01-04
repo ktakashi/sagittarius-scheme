@@ -890,7 +890,7 @@ SgObject Sg_AddLoadSuffix(SgString *suffix)
   }
   Sg_LockMutex(&suffix_mutex);
   extensions = Sg_AddConstantLiteral(Sg_Cons(suffix, extensions));
-  Sg_LockMutex(&suffix_mutex);
+  Sg_UnlockMutex(&suffix_mutex);
   return extensions;
 }
 
