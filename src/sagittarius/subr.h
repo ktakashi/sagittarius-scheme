@@ -49,15 +49,23 @@ typedef enum {
 struct SgProcedureRec
 {
   SG_INSTANCE_HEADER;
-  unsigned int required   : 16;
-  unsigned int optional   : 8;
-  unsigned int type       : 3;
-  unsigned int locked     : 1;
-  unsigned int transparent: 1;
-  unsigned int reserved   : 3;	/* padding, for future extension. */
-  SgObject     name;
-  SgObject     setter;		/* not supported yet. */
-  SgObject     inliner;		/* #f, or instruction */
+  unsigned int required   : 16;	/* # of required arguments */
+  unsigned int optional   : 8;	/* # of optional arguments.
+				   for subr optimisation. to check this number
+				   then we don't have to pack the argument to
+				   a list.
+				   for closure, this can be either 0 or 1
+				   for now. */
+  unsigned int type       : 3;	/* procedure type defined above */
+  unsigned int locked     : 1;	/* setter locked? */
+  unsigned int transparent: 1;	/* transparent procedure? */
+  unsigned int checked    : 1;	/* for closure we don't know if the insn
+				   checked or not by looking transparent flag.
+				   1 checked, 0 not yet. */
+  unsigned int reserved   : 2;	/* padding, for future extension. */
+  SgObject     name;		/* procedure name */
+  SgObject     setter;		/* setter procedure of this procedure. */
+  SgObject     inliner;		/* #f, procedure or instruction */
 };
 
 #define SG_PROCEDURE(obj)  ((SgProcedure*)(obj))
@@ -82,7 +90,7 @@ struct SgProcedureRec
   SG_PROCEDURE_SETTER(obj) = SG_FALSE
 
 #define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
-  { {(klass)},(req),(opt),(type),FALSE,FALSE, 0, (name), SG_FALSE, (inliner) }
+  { {(klass)},(req),(opt),(type),FALSE, FALSE, FALSE, 0, (name), SG_FALSE, (inliner) }
 
 /* This is just container for procedure */
 struct SgSubrRec

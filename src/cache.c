@@ -891,7 +891,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFile file, tagfile;
   SgPort out;
   SgBinaryPort bp;
-  SgObject cache, timestamp;
+  SgObject cache;
   int index = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
 
@@ -924,7 +924,6 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   Sg_UnlockFile(&file);
   Sg_ClosePort(&out);
 
-  timestamp = Sg_FileModifyTime(cache_path);
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
 
@@ -1365,7 +1364,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   switch (tag) {
   case INSTRUCTION_TAG:
     ctx->insnP = TRUE;
-    return SG_OBJ(read_word(in, INSTRUCTION_TAG));
+    return SG_OBJ((intptr_t)read_word(in, INSTRUCTION_TAG));
   case MARK_TAG: {
     int index;
     /* discards tag  */

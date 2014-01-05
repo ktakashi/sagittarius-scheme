@@ -53,7 +53,16 @@ SgObject Sg_MakeClosure(SgObject code,
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
+  /* for future */
+  /* cl->checked = FALSE; */
   return SG_OBJ(cl);
+}
+
+int Sg_ClosureTransparentP(SgObject closure)
+{
+  /* look thru the instruction and check if there is a side effect
+     instruction or procedure. */
+  return FALSE;			/* for now */
 }
 /*
   end of file

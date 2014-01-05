@@ -709,7 +709,7 @@ static SgObject invoke_cc(SgObject result, void **data)
   void **dvec = (void**)data[0];
   SgObject proc = SG_OBJ(dvec[0]);
   SgObject *args = (SgObject*)data[1];
-  int argc = (int)data[2];
+  int argc = (int)(intptr_t)data[2];
   /* store the result of :primary methods */
   if (dvec[2]) dvec[3] = result;
   if (SG_NULLP(proc)) return dvec[3]; /* no more methods */
@@ -774,7 +774,7 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
   /* prepare call frame */
   next[0] = dvec;
   next[1] = SG_OBJ(args);
-  next[2] = SG_OBJ(argc);
+  next[2] = SG_OBJ((intptr_t)argc);
   if (SG_EQ(SG_METHOD_QUALIFIER(proc), SG_KEYWORD_PRIMARY)) {
     /* compute next-method */
     /* issue 119 check subr otherwise wrong number error will be raised */

@@ -1610,7 +1610,7 @@ SgObject Sg_GetStackTrace()
 	  }
 	  /* before FRAME insn there must be a insn which has src info */
 	  for (j = 1;; j++) {
-	    if (Sg_GCBase(*(pc-j))) continue;
+	    if (Sg_GCBase(SG_OBJ(*(pc-j)))) continue;
 	    info = Sg_LookupInsnName(INSN(*(pc-j)));
 	    if (info && info->hasSrc) break;
 	  }

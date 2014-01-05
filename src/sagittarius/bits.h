@@ -36,6 +36,7 @@
   (((e) ? (1UL<<(e)) - 1 : -1) & ~((1UL<<(s)) - 1))
 
 
+#ifndef NO_NLZ
 /* should these be macro? */
 static inline int nlz32(uint32_t x)
 {
@@ -66,8 +67,9 @@ static inline int nlz(long x) {
   if (sizeof(long) == sizeof(uint32_t)) return nlz32((uint32_t)x);
   return nlz64((uint64_t)x);
 }
+#endif
 
-
+#if !defined(NO_NBITS) || !defined(NO_NTZ)
 static inline int nbits32(uint32_t x)
 {
   uint32_t t;
@@ -93,14 +95,9 @@ static inline int nbits64(uint64_t x)
   x = x * c4;
   return x >> 56;
 }
+#endif
 
-static inline int nbits(long x)
-{
-  if (sizeof(long) == sizeof(uint32_t)) return nbits32((uint32_t)x);
-  return nbits64((uint64_t)x);
-}
-
-
+#ifndef NO_NTZ
 static inline int ntz32(uint32_t x)
 {
     return nbits32(~x & (x - 1));
@@ -115,6 +112,15 @@ static inline int ntz(intptr_t x) {
   if (sizeof(intptr_t) == sizeof(uint32_t)) return ntz32((uint32_t)x);
   return ntz64((uint64_t)x);
 }
+#endif
+
+#ifndef NO_NBITS
+static inline int nbits(long x)
+{
+  if (sizeof(long) == sizeof(uint32_t)) return nbits32((uint32_t)x);
+  return nbits64((uint64_t)x);
+}
+#endif
 
 SG_CDECL_BEGIN
 

@@ -204,11 +204,12 @@ SgObject Sg_CharSetAddRange(SgCharSet *cs, SgChar from, SgChar to)
     from = SG_CHAR_SET_SMALL_CHARS;
   }
   /* Let e have the lower bound. */
-  e = Sg_TreeMapCoreRef(cs->large, SG_OBJ(from));
-  lo = Sg_TreeMapLowerEntry(cs->large, SG_OBJ(from));
+  e = Sg_TreeMapCoreRef(cs->large, SG_OBJ((intptr_t)from));
+  lo = Sg_TreeMapLowerEntry(cs->large, SG_OBJ((intptr_t)from));
   if (!e) {
     if (!lo || lo->value < from-1) {
-      e = Sg_TreeMapCoreSet(cs->large, SG_OBJ(from), SG_OBJ(0), 0);
+      e = Sg_TreeMapCoreSet(cs->large, SG_OBJ((intptr_t)from), 
+			    SG_OBJ((intptr_t)0), 0);
     } else {
       e = lo;
     }
@@ -266,7 +267,7 @@ SgObject Sg_CharSetAdd(SgCharSet *dest, SgCharSet *src)
 
 SgObject Sg_CharSetComplement(SgCharSet *cs)
 {
-  int last;
+  intptr_t last;
   SgTreeEntry *e;
   bit_operate1(cs->small, ~, cs->small, 0, SG_CHAR_SET_SMALL_CHARS);
   last = SG_CHAR_SET_SMALL_CHARS - 1;
@@ -335,10 +336,10 @@ int Sg_CharSetContains(SgCharSet *cs, SgChar c)
   else {
     SgTreeEntry *e, *l;
 
-    e = Sg_TreeMapCoreRef(cs->large, SG_OBJ(c));
+    e = Sg_TreeMapCoreRef(cs->large, SG_OBJ((intptr_t)c));
     if (e) return TRUE;
 
-    l = Sg_TreeMapLowerEntry(cs->large, SG_OBJ(c));
+    l = Sg_TreeMapLowerEntry(cs->large, SG_OBJ((intptr_t)c));
     if (l && l->value >= c) return TRUE;
 
     return FALSE;

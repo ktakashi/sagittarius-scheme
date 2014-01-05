@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/load.h"
 #include "sagittarius/core.h"
+#include "sagittarius/codec.h"
 #include "sagittarius/error.h"
 #include "sagittarius/file.h"
 #include "sagittarius/gloc.h"
@@ -277,7 +278,7 @@ static const char* derive_dynload_initfn(const char *filename)
   name = SG_NEW_ATOMIC2(char *, size);
   s_strcpy(name, DYNLOAD_PREFIX, size);
   for (s = head, d = name + sizeof(DYNLOAD_PREFIX) - 1; s < tail; s++, d++) {
-    if (isalnum(*s)) *d = tolower(*s);
+    if (isalnum((int)*s)) *d = tolower((int)*s);
     else *d = '_';
   }
   *d = '\0';

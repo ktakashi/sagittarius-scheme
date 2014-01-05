@@ -3025,7 +3025,7 @@
     ((_ name ret op args)
      `(dolist (v ,args)
 	(check-fixnum ,name v)
-	(set! ,ret (,op (cast intptr_t ,ret) (cast intptr_t v))))))
+	(set! ,ret (SG_OBJ (,op (cast intptr_t ,ret) (cast intptr_t v)))))))
 
   (define-cise-macro (fxlogif form env)
     (match form
@@ -3042,10 +3042,12 @@
 		   (result fx1)
 		   (wrong-type-of-argument-violation 'fxand "fixnum" fx1))
 	       (if (and (SG_INTP fx1) (SG_INTP fx2))
-		   (result (logand (cast intptr_t fx1) (cast intptr_t fx2)))
+		   (result (SG_OBJ (logand (cast intptr_t fx1)
+					   (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxand "fixnum" fx1 fx2))))
 	  (else
-	   (let ((ret (logand (cast intptr_t fx1) (cast intptr_t fx2))))
+	   (let ((ret (SG_OBJ (logand (cast intptr_t fx1)
+				      (cast intptr_t fx2)))))
 	     (fxlogop fxand ret logand rest)
 	     (result ret)))))
 
@@ -3058,10 +3060,12 @@
 		   (result fx1)
 		   (wrong-type-of-argument-violation 'fxior "fixnum" fx1))
 	       (if (and (SG_INTP fx1) (SG_INTP fx2))
-		   (result (logior (cast intptr_t fx1) (cast intptr_t fx2)))
+		   (result (SG_OBJ (logior (cast intptr_t fx1)
+					   (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxior "fixnum" fx1 fx2))))
 	  (else
-	   (let ((ret (logior (cast intptr_t fx1) (cast intptr_t fx2))))
+	   (let ((ret (SG_OBJ (logior (cast intptr_t fx1) 
+				      (cast intptr_t fx2)))))
 	     (fxlogop fxior ret logior rest)
 	     (result ret)))))
 
@@ -3078,7 +3082,8 @@
 			    (logxor (cast intptr_t fx1) (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxxor "fixnum" fx1 fx2))))
 	  (else
-	   (let ((ret (logxor (cast intptr_t fx1) (cast intptr_t fx2))))
+	   (let ((ret (SG_OBJ (logxor (cast intptr_t fx1) 
+				      (cast intptr_t fx2)))))
 	     (fxlogop fxxor ret logxor rest)
 	     (result (SG_ENSURE_INT ret))))))
 

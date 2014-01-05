@@ -32,6 +32,7 @@
 #include <string.h>
 
 #define LIBSAGITTARIUS_BODY
+#define NO_NBITS
 #include "sagittarius/bignum.h"
 #include "sagittarius/number.h"
 #include "sagittarius/error.h"

@@ -28,6 +28,8 @@
  *  $Id: $
  */
 #define LIBSAGITTARIUS_BODY
+#define NO_NLZ
+#define NO_NTZ
 #include "sagittarius/bits.h"
 #include "sagittarius/arith.h"
 
