@@ -96,7 +96,7 @@ Firstly, Install libffi, CMake, and Boehm GC.
 
     $ brew install libffi cmake bdw-gc
 
-Sedondly, extract Sagittarius Scheme source code, and change current directory
+Secondly, extract Sagittarius Scheme source code, and change current directory
 to there.
 
     $ cd /path/to/sagittarius-x.y.z
