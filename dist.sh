@@ -59,7 +59,8 @@ stub()
 srfi()
 {
     echo Generating R7RS style SRFI libraries
-    ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
+    # in case
+    $SASH ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
 }
 
 dist() {
