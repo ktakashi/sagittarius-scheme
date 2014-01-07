@@ -56,6 +56,12 @@ stub()
     cd ../
 }
 
+srfi()
+{
+    echo Generating R7RS style SRFI libraries
+    ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
+}
+
 dist() {
     if [ $# -ne 1 ]; then
 	echo Usage: $0 src-dir
@@ -106,6 +112,7 @@ usage()
     echo "    gen:        generate all files"
     echo "    precomp:    generate precompiled files"
     echo "    stub:       generate stub files"
+    echo "    srfi:       generate R7RS style SRFI libraries"
     echo "    clean:      clean generated files"
 }
 
@@ -117,7 +124,8 @@ if [ $# -ge 1 ] ; then
     case $name in
 	dist)    dist $1;;
 	stub)    stub $1;;
-	gen)     stub $1; precomp $1;;
+	gen)     stub $1; precomp $1; srfi;;
+	srfi)    srfi ;;
 	precomp) precomp $1;;
 	clean)   stub "-c"; precomp "-c" ;;
 	*)       usage ;;
