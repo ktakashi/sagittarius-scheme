@@ -23,4 +23,10 @@
 (run-r7rs-lazy-tests)
 (run-r7rs-process-context-tests)
 (run-r7rs-write-tests)
+
+;; extra for R7RS style srfi library
+(test-true (cond-expand 
+	    ((library (srfi 1)) #t)
+	    (else #f)))
+
 (test-end)
