@@ -1266,7 +1266,7 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   instance->directSlots = SG_NIL;
   instance->gettersNSetters = SG_NIL;
   instance->cpl = SG_NIL;
-  instance->fieldInitializers = SG_NIL;
+  instance->directSubclasses = SG_NIL;
   instance->creader = SG_FALSE;
   instance->cscanner = SG_FALSE;
   instance->cwriter = SG_FALSE;
@@ -1276,7 +1276,13 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   /* should we add finalizer for mutex? */
   return SG_OBJ(instance);
 }
+/*
+  <class> slot accessors
 
+  I think it's safer to copy the all list slots in case of
+  destructive operation such as set-car!. but for now I trust
+  the users.
+ */
 static SgObject class_name(SgClass *klass)
 {
   return klass->name;
@@ -1409,14 +1415,9 @@ static void class_nfields_set(SgClass *klass, SgObject nfields)
   klass->nfields = SG_INT_VALUE(nfields);
 }
 
-static SgObject class_field_initializers(SgClass *klass)
+static SgObject class_direct_subclasses(SgClass *klass)
 {
-  return klass->fieldInitializers;
-}
-
-static void class_field_initializers_set(SgClass *klass, SgObject initializers)
-{
-  klass->fieldInitializers = initializers;
+  return klass->directSubclasses;
 }
 
 static SgObject class_getters_n_setters(SgClass *klass)
@@ -1478,6 +1479,22 @@ static void class_cache_scanner_set(SgClass *klass, SgObject proc)
   klass->cscanner = proc;
 }
 
+void Sg_AddDirectSubclasses(SgClass *super, SgClass *sub)
+{
+  /* built in classes can't have subclass.
+     if we consider the base class, then <top> must have
+     all the sub classes and that's basically the same as
+     accepting builtin class. I think... so we only consider
+     Scheme defined class. */
+  if (SG_CLASS_CATEGORY(super) == SG_CLASS_SCHEME) {
+    /* lock the class */
+    Sg_LockMutex(&super->mutex);
+    if (SG_FALSEP(Sg_Memq(sub, super->directSubclasses))) {
+      super->directSubclasses = Sg_Cons(sub, super->directSubclasses);
+    }
+    Sg_UnlockMutex(&super->mutex);
+  }
+}
 
 /* <object> */
 SgObject Sg_ObjectAllocate(SgClass *klass, SgObject initargs)
@@ -1730,8 +1747,7 @@ static SgSlotAccessor class_slots[] = {
 		     class_slots_set),
   SG_CLASS_SLOT_SPEC("nfields",            5, class_nfields,
 		     class_nfields_set),
-  SG_CLASS_SLOT_SPEC("field-initializers", 6, class_field_initializers,
-		     class_field_initializers_set),
+  SG_CLASS_SLOT_SPEC("direct-subclasses",  6, class_direct_subclasses, NULL),
   SG_CLASS_SLOT_SPEC("getters-n-setters",  7, class_getters_n_setters,
 		     class_getters_n_setters_set),
   SG_CLASS_SLOT_SPEC("cache-reader",       8, class_cache_reader,
