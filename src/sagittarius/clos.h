@@ -281,7 +281,14 @@ SG_EXTERN void     Sg_InitStaticClassWithMeta(SgClass *klass,
 					      SgLibrary *lib, SgClass *meta,
 					      SgObject supers,
 					      SgSlotAccessor *specs, int flags);
+
+SG_EXTERN SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, 
+							  SgObject slot,
+							  SgObject initargs);
+SG_EXTERN SgClass* Sg_BaseClassOf(SgClass *klass);
 				      
+SG_EXTERN void     Sg_SwapClassAndSlots(SgObject newInstance, 
+					SgObject oldInstance);
 
 SG_CDECL_END
 

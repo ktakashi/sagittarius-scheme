@@ -118,5 +118,13 @@
 				       klass (SG_LIST2 klass bound?)))
     (result (Sg_MakeSlotAccessor klass slot index getter setter bound?)))
 
+  ;; for change-class
+  (define-c-proc %swap-class-and-slots! (new-instance old-instance) ::<void>
+    Sg_SwapClassAndSlots)
+
+  (define-c-proc slot-initialize-using-slot-definition!
+    (o slot initargs)
+    Sg_VMSlotInitializeUsingSlotDefinition)
+
 
   )

@@ -1942,6 +1942,75 @@ void Sg_InitStaticClassWithMeta(SgClass *klass, const SgChar *name,
   }
 }
 
+SgClass* Sg_BaseClassOf(SgClass *klass)
+{
+  SgClass **cpa = klass->cpa, *k;
+  while ((k = *cpa++) != NULL) {
+    if (SG_CLASS_CATEGORY(k) == SG_CLASS_BASE) return k;
+  }
+  return NULL;
+}
+
+/* %swap-class-and-slots
+   Swap the class and slots.
+   The instances must be either instance of scheme defined class or
+   inherit the same base class.
+ */
+void Sg_SwapClassAndSlots(SgObject newInstance, SgObject oldInstance)
+{
+  SgClass *newKlass = Sg_ClassOf(newInstance);
+  SgClass *oldKlass = Sg_ClassOf(oldInstance);
+  SgClass *base, *tmp;
+  SgObject *slots;
+  
+  if ((base = Sg_BaseClassOf(newKlass)) == NULL ||
+      !SG_EQ(base, Sg_BaseClassOf(oldKlass))) {
+    Sg_Error(UC("incompatible class swap: %S <-> %S"),
+	     newInstance, oldInstance);
+  }
+  /*
+    Now the instance memory structure is like this
+
+    | 00 | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 |
+    +----+----+----+----+----+----+----+----+----+
+    |               Tag                          |
+    +----+----+----+----+----+----+----+----+----+
+    |               Slots                        |
+    +----+----+----+----+----+----+----+----+----+
+    |  C defined slots ...                       |
+                      :
+    |                                            |
+    +----+----+----+----+----+----+----+----+----+
+
+    The coreSize has at least sizeof(SgInstance).
+    If the old class has some other C defined slot
+    then it also has the size. As long as the base
+    class is the same then coreSize is the same.
+    So swap 'Class, 'Slots' and the rest of memory.
+   */
+  /* swap class */
+  /* get the raw class, at this point it's safe (I believe) */
+  tmp = SG_CLASS_OF(oldInstance);
+  SG_SET_CLASS(oldInstance, SG_CLASS_OF(newInstance));
+  SG_SET_CLASS(newInstance, tmp);
+  /* swap slots */
+  slots = SG_INSTANCE(oldInstance)->slots;
+  SG_INSTANCE(oldInstance)->slots = SG_INSTANCE(newInstance)->slots;
+  SG_INSTANCE(newInstance)->slots = slots;
+  /* swap extra slots */
+  if (base->coreSize > (int)sizeof(SgInstance)) {
+    const intptr_t offset = sizeof(SgInstance);
+    uint8_t *src = (uint8_t *)((intptr_t)oldInstance + offset);
+    uint8_t *dst = (uint8_t *)((intptr_t)newInstance + offset);
+    int count = base->coreSize - (int)offset;
+    while (count--) {
+      uint8_t tmp = *src;
+      *dst++ = *src;
+      *src++ = tmp;
+    }
+  }
+}
+
 /* 
    builtin object initializer
    for now it the same as (lambda (call-next-method object . initargs) object)
@@ -1993,50 +2062,89 @@ static SgClass *class_allocate_SPEC[] = {
 static SG_DEFINE_METHOD(class_allocate_rec, &Sg_GenericAllocateInstance,
 			2, 0, class_allocate_SPEC, &allocate);
 
+
+static SgObject slot_initialize_cc(SgObject result, void **data)
+{
+  SgObject obj = data[0];
+  SgSlotAccessor *ac = SG_SLOT_ACCESSOR(data[1]);
+  Sg_SlotSetUsingAccessor(obj, ac, result);
+  return SG_UNDEF;
+}
+
+SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
+						SgObject initargs)
+{
+  SgObject key  = Sg_Memq(SG_KEYWORD_INIT_KEYWORD, slot);
+  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+
+  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
+
+  /* (1) use init-keyword */
+  if (!SG_FALSEP(key) && SG_PAIRP(SG_CDR(key)) &&
+      SG_KEYWORDP(SG_CADR(key))) {
+    SgObject v = Sg_GetKeyword(SG_CADR(key), initargs, SG_UNDEF);
+    if (!SG_UNDEFP(v)) {
+      Sg_SlotSetUsingAccessor(obj, ac, v);
+      return SG_UNDEF;
+    }
+    /* go through */
+  }
+  /* (2) use init-value */
+  key = Sg_Memq(SG_KEYWORD_INIT_VALUE, slot);
+  if (!SG_FALSEP(key)) {
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot), SG_UNDEF);
+    if (!SG_UNDEFP(v)) {
+      Sg_SlotSetUsingAccessor(obj, ac, v);
+      return SG_UNDEF;
+    }
+  }
+  /* (2) use init-thunk */
+  key = Sg_Memq(SG_KEYWORD_INIT_THUNK, slot);
+  if (!SG_FALSEP(key)) {
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot), SG_UNDEF);
+    if (!SG_UNDEFP(v)) {
+      void *data[2];
+      data[0] = obj;
+      data[1] = ac;
+      Sg_VMPushCC(slot_initialize_cc, data, 2);
+      return Sg_VMApply0(v);
+    }
+  }
+  return SG_UNDEF;
+}
+
 /* object-initialize */
+static SgObject object_initialize_cc(SgObject result, void **data);
+
+static SgObject object_initialize1(SgObject obj, SgObject slots,
+				   SgObject initargs)
+{
+  void *next[3];
+  if (SG_NULLP(slots)) return obj;
+  next[0] = obj;
+  next[1] = SG_CDR(slots);
+  next[2] = initargs;
+  Sg_VMPushCC(object_initialize_cc, next, 3);
+  return Sg_VMSlotInitializeUsingSlotDefinition(obj, SG_CAR(slots), initargs);
+}
+
+static SgObject object_initialize_cc(SgObject result, void **data)
+{
+  SgObject obj = data[0];
+  SgObject slots = data[1];
+  SgObject initargs = data[2];
+  return object_initialize1(obj, slots, initargs);
+}
+
 static SgObject object_initialize_impl(SgObject *argv, int argc, void *data)
 {
   SgObject obj = argv[0];
   SgObject initargs = argv[1];
   SgObject slots = Sg_ClassOf(obj)->slots;
-  SgObject cp;
   if (SG_NULLP(slots)) return obj;
-  SG_FOR_EACH(cp, slots) {
-    SgObject slot = SG_CAR(cp);
-    SgObject key  = Sg_Memq(SG_KEYWORD_INIT_KEYWORD, slot);
-
-    /* (1) use init-keyword */
-    if (!SG_FALSEP(key) && SG_PAIRP(SG_CDR(key)) &&
-	SG_KEYWORDP(SG_CADR(key))) {
-      SgObject v = Sg_GetKeyword(SG_CADR(key), initargs, SG_UNDEF);
-      if (!SG_UNDEFP(v)) {
-	Sg_SlotSet(obj, SG_CAR(slot), v);
-	continue;
-      }
-      /* go through */
-    }
-    /* (2) use init-value */
-    key = Sg_Memq(SG_KEYWORD_INIT_VALUE, slot);
-    if (!SG_FALSEP(key)) {
-      SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot), SG_UNDEF);
-      if (!SG_UNDEFP(v)) {
-	Sg_SlotSet(obj, SG_CAR(slot), v);
-	continue;
-      }
-    }
-    /* (2) use init-thunk */
-    key = Sg_Memq(SG_KEYWORD_INIT_THUNK, slot);
-    if (!SG_FALSEP(key)) {
-      SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot), SG_UNDEF);
-      if (!SG_UNDEFP(v)) {
-	Sg_SlotSet(obj, SG_CAR(slot), Sg_Apply0(v));
-	continue;
-      }
-    }
-    
-  }
-  return SG_UNDEF;
+  return object_initialize1(obj, slots, initargs);
 }
+
 SG_DEFINE_SUBR(object_initialize, 2, 0, object_initialize_impl, SG_FALSE, NULL);
 static SgClass *object_initialize_SPEC[] = {
   SG_CLASS_OBJECT, SG_CLASS_LIST

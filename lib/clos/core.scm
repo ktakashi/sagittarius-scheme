@@ -3,6 +3,7 @@
 	    slot-ref-using-accessor slot-set-using-accessor!
 	    slot-ref-using-class slot-set-using-class! slot-bound-using-class?
 	    slot-unbound slot-missing
+	    slot-exists-using-class? slot-exists?
 	    make initialize 
 	    make-method add-method remove-method
 	    ;; <class>
@@ -67,6 +68,10 @@
 	    call-next-method
 	    ;; eql specializer
 	    eql
+
+	    ;; change-class
+	    change-class
+	    update-instance!
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -338,5 +343,56 @@
 		     (accs (compute-getter-and-setter class slot))
 		     (sac (apply %make-slot-accessor class (car slot) i accs)))
 		(loop (+ i 1) (cdr slots) (cons sac r))))))))
+
+  ;; change-class stuff
+  (define change-class (make <generic> :definition-name 'change-class))
+  (define update-instance! (make <generic> :definition-name 'update-instance!))
+  (define slot-exists-using-class?
+    (make <generic> :definition-name 'slot-exists-using-class?))
+
+  (define (slot-exists? obj slot) 
+    (slot-exists-using-class? (class-of obj) obj slot))
+
+  (add-method slot-exists-using-class?
+    (make <method>
+      :specializers (list <class> <top> <top>)
+      :lambda-list '(class obj slot)
+      :generic slot-exists-using-class?
+      :procedure
+      (lambda (call-next-method class obj slot)
+	(not (not (assq slot (class-slots class)))))))
+
+  (add-method change-class
+    (make <method>
+      :specializers (list <object> <class>)
+      :lambda-list '(obj class . initargs)
+      :generic change-class
+      :procedure
+      (lambda (call-next-method old new-class . initargs)
+	(let ((new (allocate-instance new-class initargs)))
+	  (let loop ((slots (map slot-definition-name (class-slots new-class))))
+	    (unless (null? slots)
+	      (let ((slot (car slots)))
+		(when (and (slot-exists? old slot) (slot-bound? old slot))
+		  (slot-set! new slot (slot-ref old slot))))))
+	  (%swap-class-and-slots! new old)
+	  (apply update-instance! new old initargs)
+	  old))))
+
+  (add-method update-instance!
+    (make <method>
+      :specializers (list <object> <object>)
+      :lambda-list '(old new . rest)
+      :generic update-instance!
+      :procedure
+      (lambda (call-next-method old new . initargs)
+	(let ((added-slots (remove (lambda (name) 
+				     (slot-exists? old 
+						   (slot-definition-name name)))
+				   (class-slots (class-of new)))))
+	  (for-each 
+	   (lambda (slot)
+	     (slot-initialize-using-slot-definition! new slot initargs))
+	   added-slots)))))
 
 )
