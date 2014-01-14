@@ -439,9 +439,7 @@
     (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_NO_CONST_INLINING)))
   
   ;; call/pc
-  (define-c-proc %call/pc (p::<procedure>)
-    (result (Sg_VMCallPC p)))
-
+  (define-c-proc %call/pc (p::<procedure>) Sg_VMCallPC)
   (define-c-proc %apply0 (p) Sg_Apply0)
 
   ;; the env needs to be used both transcribe and wrap-symbol

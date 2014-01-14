@@ -45,8 +45,13 @@ To generate code you need to execute following commands;
 
     % ./dist.sh stub
     % ./dist.sh precomp
+    % ./dist.sh srfi
 
-Those commands generate C files from stub files and Scheme files respectively.
+Or this command does the same;
+
+    % ./dist.sh gen
+
+These commands generate C files from stub files and Scheme files respectively.
 This must be run *before* CMake command otherwise CMake process will fail.
 
 To clean the generated code, you need to execute following command;
