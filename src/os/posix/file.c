@@ -205,11 +205,18 @@ static int posix_ready(SgObject self)
   FD_SET(SG_FD(self)->fd, &fds);
   state = select(SG_FD(self)->fd + 1, &fds, NULL, NULL, &tm);
   if (state < 0) {
+    /* in this case it's basically bad file descriptor means
+       either it's closed or exceed the FD_SETSIZE. 
+       However, I don't think predicate should raise an error
+       so just return FALSE. */
+#if 0
     SgObject err;
     if (errno == EINTR) return FALSE;
     setLastError(self);
-    err = get_last_error_message(self);
+    err = Sg_Sprintf(UC("%A [FD %d]"), get_last_error_message(self),
+		     SG_FD(self)->fd);
     Sg_IOError(-1, SG_INTERN("file ready"), err, self, self);
+#endif
     return FALSE;
   }
   return (state != 0);
