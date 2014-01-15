@@ -1,4 +1,21 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
+(library (clos helper)
+    (export %make-setter-name %check-setter-name)
+    (import (rnrs) (sagittarius))
+  ;;(define-syntax setter (syntax-rules ()))
+
+  ;; never be symbol
+  ;; NOTE: these will be unbound variable warning but for my laziness
+  (define (%make-setter-name name)
+    (string->symbol (format "setter of ~a" (syntax->datum name))))
+  (define (%check-setter-name generic)
+    (syntax-case generic ()
+      ((?setter name)
+       (free-identifier=? #'setter #'?setter)
+       #`(#,(%make-setter-name #'name) name))
+      (n #'(n #f))))
+)
+
 (library (clos user)
     (export make
 	    initialize
@@ -42,12 +59,21 @@
 	    call-next-method
 	    eql
 	    eqv? ;; for prefix or rename import
+
+	    ;; class redefnition
+	    redefine-class!
 	    )
     (import (rnrs) 
 	    (sagittarius)
 	    (sagittarius vm)
 	    (clos core)
-	    (only (sagittarius clos) %ensure-generic-function))
+	    (clos helper)
+	    (only (sagittarius clos) %ensure-generic-function
+		  %start-class-redefinition!
+		  %end-class-redefinition!
+		  %remove-direct-subclass!
+		  %replace-class-binding!
+		  %add-direct-subclass!))
 
   ;; We provides CL like define-class
   ;; The syntax is (define-class ?name (?supers ...) ({slot-specifier}*))
@@ -163,11 +189,25 @@
 	  ;; TODO check if given name is already exists as generic
 	  #`(begin
 	      (define #,name
-		(make #,metaclass
-		  :definition-name (quote #,name)
-		  :direct-supers   (list #,@supers)
-		  :direct-slots    (list #,@(map process-slot-definition
-						 slot-defs))))
+		(let ((class 
+		       (make #,metaclass
+			 :definition-name (quote #,name)
+			 :direct-supers   (list #,@supers)
+			 :direct-slots    (list #,@(map process-slot-definition
+							slot-defs))
+			 :defined-library (current-library)))
+		      (c (find-binding (current-library) '#,name #f)))
+		  ;; what shall we do with the drunken sailer...
+		  ;; if the metaclass is not the same should we change the
+		  ;; metaclass of the class?
+		  ;; NB: PCL does
+		  (and-let* (( c )
+			     (cl (gloc-ref c))
+			     ( (is-a? cl <class>) )) 
+		    ;; (unless (eq? (class-of cl) #,metaclass) 
+		    ;;   (change-class cl class))
+		    (%redefine-class! cl class))
+		  class))
 	      #,@(if (null? accessors)
 		     #`((undefined))
 		     ;; build generic
@@ -216,15 +256,6 @@
 	(_ (syntax-violation
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
-
-  ;; never be symbol
-  ;; NOTE: these will be unbound variable warning but for my laziness
-  (define (%make-setter-name name)
-    (string->symbol (format "setter of ~a" (syntax->datum name))))
-  (define (%check-setter-name generic)
-    (syntax-case generic (setter)
-      ((setter name) #`(#,(%make-setter-name #'name) name))
-      (n #'(n #f))))
 
   (define-syntax define-method
     (lambda (x)
@@ -348,4 +379,63 @@
 					 (datum->syntax #'k class))))
 	     #'(define name (make class-name :definition-name 'name))))))))
 
+  ;; class re-definition
+  ;; basically the same as PCL's reinitialize-instance (I think..)
+  ;; this procedure just locks the world
+  (define (%redefine-class! old new)
+    (define (warn e)
+      (raise-continuable 
+       (condition
+	(make-warning)
+	(make-who-condition 'redefine-class!)
+	(make-message-condition 
+	 (if (message-condition? e)
+	     (condition-message e)
+	     "failed to redefine a class"))
+	(make-irritants-condition (list old new)))))
+    ;; world lock
+    (%start-class-redefinition! old)
+    (guard (e (else (%end-class-redefinition! old #f)
+		    (warn e)))
+      (redefine-class! old new)
+      (%end-class-redefinition! old new)))
+
+  ;; reinitialize the class
+  ;; remove old from new class's direct super's subclass
+  (define-generic redefine-class!)
+  (define-method redefine-class! ((old <class>) (new <class>))
+    (for-each (lambda (sup) (%remove-direct-subclass! sup old))
+	      (class-direct-supers old))
+    ;; now for PCL the direct subclass will be updated
+    ;; after this however the new class is already created
+    ;; so that we need to do it manually here...
+    (for-each (lambda (sub) (update-direct-subclass! sub old new))
+	      (class-direct-subclasses old))
+    )
+
+  (define-generic update-direct-subclass!)
+  (define-method update-direct-subclass! ((sub <class>)
+					  (old <class>)
+					  (new <class>))
+    (define (new-supers supers)
+      (map (lambda (s) (if (eq? s old) new s)) supers))
+    ;; I believe at this point sub is not redefined so we can use
+    ;; class-of to retrieve metaclass
+    (let* ((metaclass (class-of sub))
+	   (slots (class-direct-slots sub))
+	   (supers (new-supers (class-direct-supers sub)))
+	   (new-sub (make metaclass
+		      :definition-name (class-name sub)
+		      :direct-supers supers
+		      :direct-slots slots
+		      :defined-library (slot-ref sub 'defined-library))))
+      (%redefine-class! sub new-sub)
+      ;; keep the direct subclass of the sub's supers
+      (for-each (lambda (sup)
+		  (%add-direct-subclass! sup sub))
+		(class-direct-supers sub))
+      ;; replace binding...
+      (%replace-class-binding! sub new-sub)
+      )
+    )
 )

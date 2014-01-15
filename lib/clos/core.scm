@@ -8,6 +8,7 @@
 	    make-method add-method remove-method
 	    ;; <class>
 	    class-of
+	    class-name
 	    class-direct-supers
 	    class-direct-slots
 	    class-cpl
@@ -134,7 +135,11 @@
 			       (slot-set! class 'name
 					  (get-keyword :definition-name
 						       initargs #f))
+			       (slot-set! class 'defined-library
+					  (get-keyword :defined-library
+						       initargs #f))
 			       (slot-set! class 'direct-supers supers)
+
 			       (slot-set! class
 					  'direct-slots
 					  (map (lambda (s)
@@ -151,7 +156,7 @@
 					  (length (slot-ref class 'slots)))
 			       ;; sub classes
 			       (for-each (lambda (super)
-					   (%add-direct-subclasses super class))
+					   (%add-direct-subclass! super class))
 					 supers)))))
 
   (add-method initialize
@@ -167,6 +172,8 @@
 
   ;; make generic accessor for <class> <generic> and <method>
   ;; <class>
+  (define class-name
+    (make <generic> :definition-name 'class-name))
   (define class-direct-supers
     (make <generic> :definition-name 'class-direct-supers))
   (define class-direct-slots
@@ -175,6 +182,14 @@
   (define class-slots (make <generic> :definition-name 'class-slots))
   (define class-direct-subclasses 
     (make <generic> :definition-name 'class-direct-subclasses))
+
+  (add-method class-name
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-name
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'name))))
 
   (add-method class-direct-supers
 	      (make <method>
@@ -360,7 +375,8 @@
 		(loop (+ i 1) (cdr slots) (cons sac r))))))))
 
   ;; change-class stuff
-  (define change-class (make <generic> :definition-name 'change-class))
+  ;; it's defined in C
+  ;;(define change-class (make <generic> :definition-name 'change-class))
   (define update-instance! (make <generic> :definition-name 'update-instance!))
   (define slot-exists-using-class?
     (make <generic> :definition-name 'slot-exists-using-class?))
@@ -384,12 +400,16 @@
       :generic change-class
       :procedure
       (lambda (call-next-method old new-class . initargs)
-	(let ((new (allocate-instance new-class initargs)))
+	(let ((new (allocate-instance new-class initargs))
+	      (current-class (current-class-of old)))
 	  (let loop ((slots (map slot-definition-name (class-slots new-class))))
 	    (unless (null? slots)
 	      (let ((slot (car slots)))
-		(when (and (slot-exists? old slot) (slot-bound? old slot))
-		  (slot-set! new slot (slot-ref old slot))))))
+		(when (and (slot-exists-using-class? current-class old slot)
+			   (slot-bound-using-class? current-class old slot))
+		  (let ((v (slot-ref-using-class current-class old slot)))
+		    (slot-set-using-class! new-class new slot v))))
+	      (loop (cdr slots))))
 	  (%swap-class-and-slots! new old)
 	  (apply update-instance! new old initargs)
 	  old))))
@@ -407,7 +427,12 @@
 				   (class-slots (class-of new)))))
 	  (for-each 
 	   (lambda (slot)
-	     (slot-initialize-using-slot-definition! new slot initargs))
+	     ;; Initialise only unbound slot.
+	     ;; TODO why do we need to check this?
+	     ;; added-slots must have only added slot so all
+	     ;; the existing slots should not be initialised here
+	     (unless (slot-bound-using-slot-definition? new slot)
+	       (slot-initialize-using-slot-definition! new slot initargs)))
 	   added-slots)))))
 
 )

@@ -121,7 +121,9 @@ struct SgClassRec
   SgObject creader;
   SgObject cscanner;
   SgObject cwriter;
-  
+  SgObject redefined;		/* for change-class */
+  /* I don't think the same class in eve */
+  SgObject library;		/* defined library */
   /* mutex */
   SgInternalMutex mutex;
   SgInternalCond  cv;
@@ -199,6 +201,8 @@ extern SgClass *Sg_ObjectCPL[];
     SG_FALSE,			/* creader */				\
     SG_FALSE,			/* cscanner */				\
     SG_FALSE, 			/* cwriter */				\
+    SG_FALSE, 			/* redefined */				\
+    SG_FALSE, 			/* library */				\
   }
 
 #define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \
@@ -229,14 +233,13 @@ extern SgClass *Sg_ObjectCPL[];
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_SlotRef(SgObject obj, SgObject name);
-SG_EXTERN void     Sg_SlotSet(SgObject obj, SgObject name, SgObject value);
 /* for Scheme world */
 SG_EXTERN SgObject Sg_VMSlotRef(SgObject obj, SgObject name);
 SG_EXTERN SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value);
 SG_EXTERN SgObject Sg_VMSlotBoundP(SgObject obj, SgObject name);
 /* for MOP */
 SG_EXTERN SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac);
+SG_EXTERN int      Sg_SlotBoundUsingAccessor(SgObject obj, SgSlotAccessor *ac);
 SG_EXTERN void     Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac,
 					   SgObject value);
 SG_EXTERN SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj,
@@ -247,9 +250,16 @@ SG_EXTERN int      Sg_SlotBoundUsingClass(SgClass *klass, SgObject obj,
 					  SgObject name);
 /* MOP looks like APIs */
 SG_EXTERN SgClass* Sg_ClassOf(SgObject obj);
+SG_EXTERN SgObject Sg_VMClassOf(SgObject obj);
+SG_EXTERN SgObject Sg_VMIsA(SgObject obj, SgClass *klass);
 /* type check */
 SG_EXTERN int      Sg_TypeP(SgObject obj, SgClass *type);
 SG_EXTERN int      Sg_SubtypeP(SgClass *sub, SgClass *type);
+
+/* To mimic with-world-lock and wrapper class in PCL */
+SG_EXTERN void     Sg_StartClassRedefinition(SgClass *klass);
+SG_EXTERN void     Sg_EndClassRedefinition(SgClass *klass, SgObject newklass);
+SG_EXTERN void     Sg_ReplaceClassBinding(SgClass *oldklass, SgClass *newklass);
 
 /* just access to SgClass */
 #define SG_CLASS_DIRECT_SUPERS(klass)  (SG_CLASS(klass)->directSupers)
@@ -275,7 +285,8 @@ SG_EXTERN int      Sg_ApplicableP(SgObject spec, SgObject args);
 SG_EXTERN SgObject Sg_ObjectAllocate(SgClass *klass, SgObject initargs);
 
 /* MOP util */
-SG_EXTERN void     Sg_AddDirectSubclasses(SgClass *super, SgClass *sub);
+SG_EXTERN void     Sg_AddDirectSubclass(SgClass *super, SgClass *sub);
+SG_EXTERN void     Sg_RemoveDirectSubclass(SgClass *super, SgClass *sub);
 
 /* internal for C. */
 SG_EXTERN void     Sg_InitStaticClass(SgClass *klass, const SgChar *name,
@@ -290,6 +301,14 @@ SG_EXTERN void     Sg_InitStaticClassWithMeta(SgClass *klass,
 SG_EXTERN SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, 
 							  SgObject slot,
 							  SgObject initargs);
+SG_EXTERN SgObject Sg_VMSlotRefUsingSlotDefinition(SgObject obj, 
+						   SgObject slot);
+SG_EXTERN SgObject Sg_VMSlotSetUsingSlotDefinition(SgObject obj, 
+						   SgObject slot,
+						   SgObject value);
+SG_EXTERN SgObject Sg_VMSlotBoundUsingSlotDefinition(SgObject obj, 
+						     SgObject slot);
+
 SG_EXTERN SgClass* Sg_BaseClassOf(SgClass *klass);
 				      
 SG_EXTERN void     Sg_SwapClassAndSlots(SgObject newInstance, 

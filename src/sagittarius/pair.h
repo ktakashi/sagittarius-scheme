@@ -1,4 +1,4 @@
-/* pair.h                                          -*- mode:c; coding;utf-8; -*-
+/* pair.h                                          -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *

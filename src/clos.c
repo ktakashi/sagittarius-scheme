@@ -112,6 +112,8 @@ static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers, SgSlotAccessor *specs,
 		       int flags);
 
+static SgObject redefine_instance_class(SgObject obj, SgClass *old);
+
 /* helper */
 static SgObject class_array_to_names(SgClass **array, int len)
 {
@@ -1021,19 +1023,6 @@ SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
   return SG_LIST3(getter, setter, SG_FALSE);
 }
 
-/* ugly naming */
-static SgObject slot_ref_cc_rec(SgObject obj, SgObject slot,
-				SgObject result, int boundp)
-{
-  if (SG_UNBOUNDP(result) || SG_UNDEFP(result)) {
-    if (boundp) return SG_FALSE;
-    else return SLOT_UNBOUND(Sg_ClassOf(obj), obj, slot);
-  } else {
-    if (boundp) return SG_TRUE;
-    else        return result;
-  }
-}
-
 static SgObject slot_boundp_cc(SgObject result, void **data)
 {
   return SG_FALSEP(result) ? SG_FALSE: SG_TRUE;
@@ -1053,77 +1042,66 @@ static SgObject slot_ref_cc(SgObject result, void **data)
   }
 }
 
-static SgObject slot_ref_rec(SgObject obj, SgObject name, int vmP, int boundp)
+static SgObject slot_ref_rec(SgObject obj, SgObject name, int boundp)
 {
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
   if (accessor) {
     if (accessor->getter) {
-      if (vmP) {
+      void *data[3];
+      data[0] = obj;
+      data[1] = name;
+      data[2] = (void*)(intptr_t)boundp;
+      return slot_ref_cc(accessor->getter(obj), data);
+    } else {
+      /* scheme accessor, assume obj is instance */
+      if (boundp && SG_PROCEDUREP(accessor->boundP)) {
 	void *data[3];
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
-	return slot_ref_cc(accessor->getter(obj), data);
-      } else {
-	return slot_ref_cc_rec(obj, name, accessor->getter(obj), boundp);
-      }
-    } else {
-      /* scheme accessor, assume obj is instance */
-      if (boundp && SG_PROCEDUREP(accessor->boundP)) {
-	if (vmP) {
-	  void *data[3];
-	  data[0] = obj;
-	  data[1] = name;
-	  data[2] = (void*)(intptr_t)boundp;
-	  Sg_VMPushCC(slot_boundp_cc, data, 3);
-	  return Sg_VMApply1(accessor->boundP, obj);
-	} else {
-	  SgObject r = Sg_Apply1(accessor->boundP, obj);
-	  return slot_boundp_cc(r, NULL);
-	}
+	Sg_VMPushCC(slot_boundp_cc, data, 3);
+	return Sg_VMApply1(accessor->boundP, obj);
       } else if (!SG_PROCEDUREP(accessor->getterS)) {
 	SgObject val = SG_INSTANCE(obj)->slots[accessor->index];
-	if (vmP) {
-	  void *data[3];
-	  data[0] = obj;
-	  data[1] = name;
-	  data[2] = (void*)(intptr_t)boundp;
-	  return slot_ref_cc(val, data);
-	} else {
-	  return slot_ref_cc_rec(obj, name, val, boundp);
-	}
+	void *data[3];
+	data[0] = obj;
+	data[1] = name;
+	data[2] = (void*)(intptr_t)boundp;
+	return slot_ref_cc(val, data);
       } else {
 	/* Hope this will be removed by compiler... */
-	if (vmP) {
-	  void *data[3];
-	  data[0] = obj;
-	  data[1] = name;
-	  data[2] = (void*)(intptr_t)boundp;
-	  Sg_VMPushCC(slot_ref_cc, data, 3);
-	  return Sg_VMApply1(accessor->getterS, obj);
-	} else {
-	  return slot_ref_cc_rec(obj, name, Sg_Apply1(accessor->getterS, obj),
-				 boundp);
-	}
+	void *data[3];
+	data[0] = obj;
+	data[1] = name;
+	data[2] = (void*)(intptr_t)boundp;
+	Sg_VMPushCC(slot_ref_cc, data, 3);
+	return Sg_VMApply1(accessor->getterS, obj);
       }
     }
   } else {
-    if (vmP) return VMSLOT_MISSING3(Sg_ClassOf(obj), obj, name);
-    else     return SLOT_MISSING3(Sg_ClassOf(obj), obj, name);
+    return VMSLOT_MISSING3(Sg_ClassOf(obj), obj, name);
   }
 }
 
-SgObject Sg_SlotRef(SgObject obj, SgObject name)
+static SgObject vmslot_ref_cc(SgObject result, void **data)
 {
-  return slot_ref_rec(obj, name, FALSE, FALSE);
-}
-SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
-{
-  return slot_ref_rec(obj, name, TRUE, FALSE);
+  return Sg_VMSlotRef(SG_OBJ(data[0]), SG_OBJ(data[1]));
 }
 
-static SgObject slot_set_rec(SgObject obj, SgObject name,
-			     SgObject value, int vmp)
+SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
+{
+  SgClass *klass = Sg_ClassOf(obj);
+  if (!SG_FALSEP(klass->redefined)) {
+    void *data[2];
+    data[0] = obj;
+    data[1] = name;
+    Sg_VMPushCC(vmslot_ref_cc, data, 2);
+    return redefine_instance_class(obj, klass);
+  }
+  return slot_ref_rec(obj, name, FALSE);
+}
+
+static SgObject slot_set_rec(SgObject obj, SgObject name, SgObject value)
 {
   SgSlotAccessor *accessor = lookup_slot_info(Sg_ClassOf(obj), name);
   if (accessor) {
@@ -1136,28 +1114,33 @@ static SgObject slot_set_rec(SgObject obj, SgObject name,
 	SG_INSTANCE(obj)->slots[accessor->index] = value;
 	return SG_UNDEF;
       } else {
-	if (vmp) {
-	  return Sg_VMApply2(accessor->setterS, obj, value);
-	} else {
-	  Sg_Apply2(accessor->setterS, obj, value);
-	  return SG_UNDEF;
-	}
+	return Sg_VMApply2(accessor->setterS, obj, value);
       }
     }
   } else {
-    if (vmp) return VMSLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
-    else     return SLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
+    return VMSLOT_MISSING4(Sg_ClassOf(obj), obj, name, value);
   }
 }
-void Sg_SlotSet(SgObject obj, SgObject name, SgObject value)
+
+static SgObject vmslot_set_cc(SgObject result, void **data)
 {
-  slot_set_rec(obj, name, value, FALSE);
+  return Sg_VMSlotSet(SG_OBJ(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
 }
 
 SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value)
 {
-  return slot_set_rec(obj, name, value, TRUE);
+  SgClass *klass = Sg_ClassOf(obj);
+  if (!SG_FALSEP(klass->redefined)) {
+    void *data[3];
+    data[0] = obj;
+    data[1] = name;
+    data[2] = value;
+    Sg_VMPushCC(vmslot_set_cc, data, 3);
+    return redefine_instance_class(obj, klass);
+  }
+  return slot_set_rec(obj, name, value);
 }
+
 /* For now, these 2 are really simple */
 SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
 {
@@ -1166,6 +1149,12 @@ SgObject Sg_SlotRefUsingAccessor(SgObject obj, SgSlotAccessor *ac)
   } else {
     return SG_INSTANCE(obj)->slots[ac->index];
   }
+}
+
+int Sg_SlotBoundUsingAccessor(SgObject obj, SgSlotAccessor *ac)
+{
+  SgObject v = Sg_SlotRefUsingAccessor(obj, ac);
+  return !(SG_UNBOUNDP(v) || SG_UNDEFP(v));
 }
 
 void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
@@ -1199,10 +1188,22 @@ int Sg_SlotBoundUsingClass(SgClass *klass, SgObject obj, SgObject name)
   return !SG_UNBOUNDP(Sg_SlotRefUsingAccessor(obj, ac));
 }
 
+static SgObject vmslot_boundp_cc(SgObject result, void **data)
+{
+  return Sg_VMSlotBoundP(SG_OBJ(data[0]), SG_OBJ(data[1]));
+}
 
 SgObject Sg_VMSlotBoundP(SgObject obj, SgObject slot)
 {
-  return slot_ref_rec(obj, slot, TRUE, TRUE);
+  SgClass *klass = Sg_ClassOf(obj);
+  if (!SG_FALSEP(klass->redefined)) {
+    void *data[2];
+    data[0] = obj;
+    data[1] = slot;
+    Sg_VMPushCC(vmslot_boundp_cc, data, 2);
+    return redefine_instance_class(obj, klass);
+  }
+  return slot_ref_rec(obj, slot, TRUE);
 }
 
 SgClass* Sg_ClassOf(SgObject obj)
@@ -1222,6 +1223,41 @@ SgClass* Sg_ClassOf(SgObject obj)
   if (SG_FLONUMP(obj)) return SG_CLASS_REAL;
   if (SG_PAIRP(obj)) return SG_CLASS_PAIR;
   return SG_CLASS_OF(obj);
+}
+
+static SgObject vmclassof_cc(SgObject result, void **data)
+{
+  return Sg_VMClassOf(result);
+}
+
+SgObject Sg_VMClassOf(SgObject obj)
+{
+  /* for now */
+  SgClass *klass = Sg_ClassOf(obj);
+  if (!SG_FALSEP(klass->redefined)) {
+    Sg_VMPushCC(vmclassof_cc, NULL, 0);
+    return redefine_instance_class(obj, klass);
+  }
+  return SG_OBJ(Sg_ClassOf(obj));
+}
+
+static SgObject vmisa_cc(SgObject result, void **data)
+{
+  return Sg_VMIsA(SG_OBJ(data[0]), SG_CLASS(data[1]));
+}
+
+SgObject Sg_VMIsA(SgObject obj, SgClass *klass)
+{
+  /* for now */
+  SgClass *k = Sg_ClassOf(obj);
+  if (!SG_FALSEP(k->redefined)) {
+    void *data[2];
+    data[0] = obj;
+    data[1] = klass;
+    Sg_VMPushCC(vmisa_cc, data, 2);
+    return redefine_instance_class(obj, k);
+  }
+  return SG_MAKE_BOOL(Sg_TypeP(obj, klass));
 }
 
 int Sg_TypeP(SgObject obj, SgClass *type)
@@ -1249,6 +1285,12 @@ static void class_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 	    UC(""));
 }
 
+static void class_finalize(SgObject obj, void *data)
+{
+  Sg_DestroyMutex(&SG_CLASS(obj)->mutex);
+  Sg_DestroyCond(&SG_CLASS(obj)->cv);
+}
+
 static SgObject class_allocate(SgClass *klass, SgObject initargs)
 {
   SgClass *instance = SG_ALLOCATE(SgClass, klass);
@@ -1270,10 +1312,14 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   instance->creader = SG_FALSE;
   instance->cscanner = SG_FALSE;
   instance->cwriter = SG_FALSE;
+  instance->redefined = SG_FALSE;
+  instance->library = SG_FALSE;
 
   Sg_InitMutex(&instance->mutex, FALSE);
   Sg_InitCond(&instance->cv);
-  /* should we add finalizer for mutex? */
+  /* we may have redefinition and class may be GCed
+     so add finalizer to destroy mutex */
+  Sg_RegisterFinalizer(SG_OBJ(instance), class_finalize, NULL);
   return SG_OBJ(instance);
 }
 /*
@@ -1479,7 +1525,26 @@ static void class_cache_scanner_set(SgClass *klass, SgObject proc)
   klass->cscanner = proc;
 }
 
-void Sg_AddDirectSubclasses(SgClass *super, SgClass *sub)
+static SgObject class_redefined(SgClass *klass)
+{
+  return klass->redefined;
+}
+
+static SgObject class_library(SgClass *klass)
+{
+  return klass->library;
+}
+
+static void class_library_set(SgClass *klass, SgObject lib)
+{
+  if (!SG_FALSEP(lib) && !SG_LIBRARYP(lib)) {
+    Sg_Error(UC("library or #f required, but got %S"), lib);
+  }
+  klass->library = lib;
+}
+
+
+void Sg_AddDirectSubclass(SgClass *super, SgClass *sub)
 {
   /* built in classes can't have subclass.
      if we consider the base class, then <top> must have
@@ -1494,6 +1559,101 @@ void Sg_AddDirectSubclasses(SgClass *super, SgClass *sub)
     }
     Sg_UnlockMutex(&super->mutex);
   }
+}
+
+void Sg_RemoveDirectSubclass(SgClass *super, SgClass *sub)
+{
+  if (SG_CLASS_CATEGORY(super) == SG_CLASS_SCHEME) {
+    /* lock the class */
+    Sg_LockMutex(&super->mutex);
+    /* should we make Sg_Remq and Sg_RemqX? */
+    super->directSubclasses = deletel(sub, super->directSubclasses);
+    Sg_UnlockMutex(&super->mutex);
+  }
+}
+
+static SgObject redefine_instance_class(SgObject obj, SgClass *old)
+{
+  /* MT safe */
+  SgObject newc;
+  Sg_LockMutex(&old->mutex);
+  while (!SG_ISA(old->redefined, SG_CLASS_CLASS)) {
+    Sg_Wait(&old->cv, &old->mutex);
+  }
+  newc = old->redefined;
+  Sg_UnlockMutex(&old->mutex);
+  if (SG_CLASSP(newc)) {
+    return Sg_VMApply2(&Sg_GenericChangeClass, obj, newc);
+  } else {
+    return SG_OBJ(old);
+  }
+}
+
+/*
+  to redefine a class, we need world lock.
+  not sure how much trouble are there if i implement this lock very
+  naive way like this. but for now.
+ */
+static struct {
+  int dummy;
+  SgInternalMutex mutex;
+  SgInternalCond  cv;
+} class_world_lock = {-1, };
+
+static void lock_world()
+{
+  Sg_LockMutex(&class_world_lock.mutex);
+}
+
+static void unlock_world()
+{
+  Sg_UnlockMutex(&class_world_lock.mutex);
+}
+
+void Sg_StartClassRedefinition(SgClass *klass)
+{
+  SgVM *vm;
+  if (SG_CLASS_CATEGORY(klass) != SG_CLASS_SCHEME) {
+    Sg_Error(UC("builtin class can not redefined %S"), klass);
+  }
+
+  vm = Sg_VM();
+  lock_world();
+  Sg_LockMutex(&klass->mutex);
+  if (SG_FALSEP(klass->redefined)) {
+    klass->redefined = vm;
+  }
+  Sg_UnlockMutex(&klass->mutex);
+
+  /* done for now */
+}
+
+void Sg_EndClassRedefinition(SgClass *klass, SgObject newklass)
+{
+  SgVM *vm;
+  if (SG_CLASS_CATEGORY(klass) != SG_CLASS_SCHEME) return;
+  if (!SG_FALSEP(newklass) && !SG_CLASSP(newklass)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("%end-class-redefinition!"),
+				    SG_MAKE_STRING("class or #f"),
+				    newklass, SG_LIST2(klass, newklass));
+  }
+  vm = Sg_VM();
+  Sg_LockMutex(&klass->mutex);
+  if (SG_EQ(klass->redefined, vm)) {
+    klass->redefined = newklass;
+    Sg_NotifyAll(&klass->cv);
+  }
+  Sg_UnlockMutex(&klass->mutex);
+
+  unlock_world();
+}
+
+void Sg_ReplaceClassBinding(SgClass *oldklass, SgClass *newklass)
+{
+  if (!SG_LIBRARYP(oldklass->library)) return;
+  if (!SG_SYMBOLP(oldklass->name)) return;
+  Sg_InsertBinding(SG_LIBRARY(oldklass->library), oldklass->name,
+		   SG_OBJ(newklass));
 }
 
 /* <object> */
@@ -1756,6 +1916,9 @@ static SgSlotAccessor class_slots[] = {
 		     class_cache_scanner_set),
   SG_CLASS_SLOT_SPEC("cache-writer",      10, class_cache_writer,
 		     class_cache_writer_set),
+  SG_CLASS_SLOT_SPEC("redefined",         11, class_redefined, NULL),
+  SG_CLASS_SLOT_SPEC("defined-library",   12, class_library,
+		     class_library_set),
   { { NULL } }
 };
 
@@ -1878,6 +2041,9 @@ static void init_class(SgClass *klass, const SgChar *name,
 							    TRUE);
   klass->slots = slots;
   klass->nfields = Sg_Length(slots);
+  /* do we need this? */
+  Sg_InitMutex(&klass->mutex, FALSE);
+  Sg_InitCond(&klass->cv);
 }
 
 void Sg_InitStaticClass(SgClass *klass, const SgChar *name,
@@ -2058,6 +2224,8 @@ SG_DEFINE_GENERIC(Sg_GenericSlotUnbound, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericSlotMissing, Sg_NoNextMethod, NULL);
 /* unbound-variable */
 SG_DEFINE_GENERIC(Sg_GenericUnboundVariable, Sg_NoNextMethod, NULL);
+/* change-class */
+SG_DEFINE_GENERIC(Sg_GenericChangeClass, Sg_NoNextMethod, NULL);
 
 static SgObject allocate_impl(SgObject *args, int argc, void *data)
 {
@@ -2078,6 +2246,28 @@ static SgClass *class_allocate_SPEC[] = {
 static SG_DEFINE_METHOD(class_allocate_rec, &Sg_GenericAllocateInstance,
 			2, 0, class_allocate_SPEC, &allocate);
 
+
+
+SgObject Sg_VMSlotRefUsingSlotDefinition(SgObject obj, SgObject slot)
+{
+  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
+  return Sg_SlotRefUsingAccessor(obj, ac);
+}
+SgObject Sg_VMSlotSetUsingSlotDefinition(SgObject obj, SgObject slot,
+					 SgObject value)
+{
+  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
+  Sg_SlotSetUsingAccessor(obj, ac, value);
+  return SG_UNDEF;
+}
+SgObject Sg_VMSlotBoundUsingSlotDefinition(SgObject obj, SgObject slot)
+{
+  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
+  return SG_MAKE_BOOL(Sg_SlotBoundUsingAccessor(obj, ac));
+}
 
 static SgObject slot_initialize_cc(SgObject result, void **data)
 {
@@ -2510,6 +2700,10 @@ void Sg__InitClos()
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   static SgClass *nullcpa[1] = {NULL};
 
+  /* init lock */
+  Sg_InitMutex(&class_world_lock.mutex, TRUE);
+  Sg_InitCond(&class_world_lock.cv);
+
   SG_CLASS_TOP->cpa = nullcpa;
 #define CINIT(cl, nam)					\
   Sg_InitStaticClassWithMeta(cl, UC(nam), lib, NULL, SG_FALSE, NULL, 0)
@@ -2623,7 +2817,7 @@ void Sg__InitClos()
   GINIT(&Sg_GenericSlotMissing, "slot-missing");
   GINIT(&Sg_GenericUnboundVariable, "unbound-variable");
   GINIT(&Sg_GenericComputeGetterAndSetter, "compute-getter-and-setter");
-
+  GINIT(&Sg_GenericChangeClass, "change-class");
 
   Sg_SetterSet(SG_PROCEDURE(&Sg_GenericObjectApply),
 	       SG_PROCEDURE(&Sg_GenericObjectSetter),

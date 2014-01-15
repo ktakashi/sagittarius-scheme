@@ -181,6 +181,9 @@ SG_EXTERN SgGeneric Sg_GenericSlotMissing;
 /* might be for debugger? */
 SG_EXTERN SgGeneric Sg_GenericUnboundVariable;
 
+/* for mop */
+SG_EXTERN SgGeneric Sg_GenericChangeClass;
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_GENERIC_H_ */

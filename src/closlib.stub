@@ -15,8 +15,10 @@
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h> <sagittarius/generic.h>))
 
-  (define-c-proc %add-direct-subclasses (super::<class> sub::<class>) ::<void>
-    Sg_AddDirectSubclasses)
+  (define-c-proc %add-direct-subclass! (super::<class> sub::<class>) ::<void>
+    Sg_AddDirectSubclass)
+  (define-c-proc %remove-direct-subclass! (super::<class> sub::<class>) ::<void>
+    Sg_RemoveDirectSubclass)
 
   (define-c-proc slot-ref (o name::<symbol>)
     (setter slot-set!)
@@ -53,9 +55,11 @@
 
   (define-c-proc slot-bound? (o name::<symbol>) Sg_VMSlotBoundP)
 
-  (define-c-proc class-of (o) Sg_ClassOf)
+  (define-c-proc class-of (o) Sg_VMClassOf)
+  ;; for mop, to retrieve class before redefined
+  (define-c-proc current-class-of (o) Sg_ClassOf)
 
-  (define-c-proc is-a? (o klass) ::<boolean> Sg_TypeP)
+  (define-c-proc is-a? (o klass::<class>) Sg_VMIsA)
 
   (define-cfn call-fallback-proc (args::SgObject* nargs::int gf::SgGeneric*)
     :static
@@ -124,10 +128,21 @@
   ;; for change-class
   (define-c-proc %swap-class-and-slots! (new-instance old-instance) ::<void>
     Sg_SwapClassAndSlots)
+  (define-c-proc %start-class-redefinition! (klass::<class>) ::<void>
+    Sg_StartClassRedefinition)
+  (define-c-proc %end-class-redefinition! (klass::<class> newklass) ::<void>
+    Sg_EndClassRedefinition)
+  (define-c-proc %replace-class-binding! (oldc::<class> newc::<class>) ::<void>
+    Sg_ReplaceClassBinding)
 
   (define-c-proc slot-initialize-using-slot-definition!
     (o slot initargs)
     Sg_VMSlotInitializeUsingSlotDefinition)
-
+  (define-c-proc slot-ref-using-slot-definition (o slot)
+    Sg_VMSlotRefUsingSlotDefinition)
+  (define-c-proc slot-set-using-slot-definition! (o slot value)
+    Sg_VMSlotSetUsingSlotDefinition)
+  (define-c-proc slot-bound-using-slot-definition? (o slot)
+    Sg_VMSlotBoundUsingSlotDefinition)
 
   )
