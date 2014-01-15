@@ -447,7 +447,7 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 #undef BSIZE
 #endif
   Sg_ChangeFileMode(dst, st.st_mode);
-  chown(dest, st.st_uid, st.st_gid);
+  (void)chown(dest, st.st_uid, st.st_gid);
 
   close(fpd);
   close(fps);
@@ -684,8 +684,9 @@ int Sg_CopyAccessControl(SgString *src, SgString *dst)
   struct stat st;
   const char *source = Sg_Utf32sToUtf8s(src), *dest = Sg_Utf32sToUtf8s(dst);
   if (stat(source, &st) == 0) {
-    chmod(dest, st.st_mode);
-    chown(dest, st.st_uid, st.st_gid);
+    /* TODO check the return value... */
+    (void)chmod(dest, st.st_mode);
+    (void)chown(dest, st.st_uid, st.st_gid);
     return TRUE;
   }
   /* TODO should this be error? */
