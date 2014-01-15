@@ -3,10 +3,12 @@
 	    slot-ref-using-accessor slot-set-using-accessor!
 	    slot-ref-using-class slot-set-using-class! slot-bound-using-class?
 	    slot-unbound slot-missing
+	    slot-exists-using-class? slot-exists?
 	    make initialize 
 	    make-method add-method remove-method
 	    ;; <class>
 	    class-of
+	    class-name
 	    class-direct-supers
 	    class-direct-slots
 	    class-cpl
@@ -68,6 +70,10 @@
 	    call-next-method
 	    ;; eql specializer
 	    eql
+
+	    ;; change-class
+	    change-class
+	    update-instance!
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -129,7 +135,11 @@
 			       (slot-set! class 'name
 					  (get-keyword :definition-name
 						       initargs #f))
+			       (slot-set! class 'defined-library
+					  (get-keyword :defined-library
+						       initargs #f))
 			       (slot-set! class 'direct-supers supers)
+
 			       (slot-set! class
 					  'direct-slots
 					  (map (lambda (s)
@@ -146,7 +156,7 @@
 					  (length (slot-ref class 'slots)))
 			       ;; sub classes
 			       (for-each (lambda (super)
-					   (%add-direct-subclasses super class))
+					   (%add-direct-subclass! super class))
 					 supers)))))
 
   (add-method initialize
@@ -162,6 +172,8 @@
 
   ;; make generic accessor for <class> <generic> and <method>
   ;; <class>
+  (define class-name
+    (make <generic> :definition-name 'class-name))
   (define class-direct-supers
     (make <generic> :definition-name 'class-direct-supers))
   (define class-direct-slots
@@ -170,6 +182,14 @@
   (define class-slots (make <generic> :definition-name 'class-slots))
   (define class-direct-subclasses 
     (make <generic> :definition-name 'class-direct-subclasses))
+
+  (add-method class-name
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-name
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'name))))
 
   (add-method class-direct-supers
 	      (make <method>
@@ -353,5 +373,66 @@
 		     (accs (compute-getter-and-setter class slot))
 		     (sac (apply %make-slot-accessor class (car slot) i accs)))
 		(loop (+ i 1) (cdr slots) (cons sac r))))))))
+
+  ;; change-class stuff
+  ;; it's defined in C
+  ;;(define change-class (make <generic> :definition-name 'change-class))
+  (define update-instance! (make <generic> :definition-name 'update-instance!))
+  (define slot-exists-using-class?
+    (make <generic> :definition-name 'slot-exists-using-class?))
+
+  (define (slot-exists? obj slot) 
+    (slot-exists-using-class? (class-of obj) obj slot))
+
+  (add-method slot-exists-using-class?
+    (make <method>
+      :specializers (list <class> <top> <top>)
+      :lambda-list '(class obj slot)
+      :generic slot-exists-using-class?
+      :procedure
+      (lambda (call-next-method class obj slot)
+	(not (not (assq slot (class-slots class)))))))
+
+  (add-method change-class
+    (make <method>
+      :specializers (list <object> <class>)
+      :lambda-list '(obj class . initargs)
+      :generic change-class
+      :procedure
+      (lambda (call-next-method old new-class . initargs)
+	(let ((new (allocate-instance new-class initargs))
+	      (current-class (current-class-of old)))
+	  (let loop ((slots (map slot-definition-name (class-slots new-class))))
+	    (unless (null? slots)
+	      (let ((slot (car slots)))
+		(when (and (slot-exists-using-class? current-class old slot)
+			   (slot-bound-using-class? current-class old slot))
+		  (let ((v (slot-ref-using-class current-class old slot)))
+		    (slot-set-using-class! new-class new slot v))))
+	      (loop (cdr slots))))
+	  (%swap-class-and-slots! new old)
+	  (apply update-instance! new old initargs)
+	  old))))
+
+  (add-method update-instance!
+    (make <method>
+      :specializers (list <object> <object>)
+      :lambda-list '(old new . rest)
+      :generic update-instance!
+      :procedure
+      (lambda (call-next-method old new . initargs)
+	(let ((added-slots (remove (lambda (name) 
+				     (slot-exists? old 
+						   (slot-definition-name name)))
+				   (class-slots (class-of new)))))
+	  (for-each 
+	   (lambda (slot)
+	     ;; Initialise only unbound slot.
+	     ;; TODO why do we need to check this?
+	     ;; added-slots must have only added slot so all
+	     ;; the existing slots should not be initialised here
+	     (unless (slot-bound-using-slot-definition? new slot)
+	       (slot-initialize-using-slot-definition! new slot initargs)))
+	   added-slots)))))
 
 )
