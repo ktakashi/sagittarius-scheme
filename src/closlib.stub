@@ -15,6 +15,9 @@
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h> <sagittarius/generic.h>))
 
+  (define-c-proc %add-direct-subclasses (super::<class> sub::<class>) ::<void>
+    Sg_AddDirectSubclasses)
+
   (define-c-proc slot-ref (o name::<symbol>)
     (setter slot-set!)
     Sg_VMSlotRef)

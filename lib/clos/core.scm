@@ -12,6 +12,7 @@
 	    class-direct-slots
 	    class-cpl
 	    class-slots
+	    class-direct-subclasses
 	    ;; <generic>
 	    generic-methods
 	    ;; <methods>
@@ -128,26 +129,30 @@
 		:lambda-list '(class . initargs)
 		:procedure (lambda (call-next-method class initargs)
 			     (call-next-method)
-			     (slot-set! class 'name
-					(get-keyword :definition-name
-						     initargs #f))
-			     (slot-set! class 'direct-supers
-					(get-keyword :direct-supers
-						     initargs '()))
-			     (slot-set! class
-					'direct-slots
-					(map (lambda (s)
-					       (if (pair? s) s (list s)))
-					     (get-keyword :direct-slots
-							  initargs '())))
-			     (slot-set! class 'cpl   (compute-cpl class))
-			     (slot-set! class 'slots (compute-slots class))
-			     (slot-set! class 'getters-n-setters
-					(compute-getters-and-setters
-					 class
-					 (slot-ref class 'slots)))
-			     (slot-set! class 'nfields
-					(length (slot-ref class 'slots))))))
+			     (let ((supers (get-keyword :direct-supers
+							initargs '())))
+			       (slot-set! class 'name
+					  (get-keyword :definition-name
+						       initargs #f))
+			       (slot-set! class 'direct-supers supers)
+			       (slot-set! class
+					  'direct-slots
+					  (map (lambda (s)
+						 (if (pair? s) s (list s)))
+					       (get-keyword :direct-slots
+							    initargs '())))
+			       (slot-set! class 'cpl   (compute-cpl class))
+			       (slot-set! class 'slots (compute-slots class))
+			       (slot-set! class 'getters-n-setters
+					  (compute-getters-and-setters
+					   class
+					   (slot-ref class 'slots)))
+			       (slot-set! class 'nfields
+					  (length (slot-ref class 'slots)))
+			       ;; sub classes
+			       (for-each (lambda (super)
+					   (%add-direct-subclasses super class))
+					 supers)))))
 
   (add-method initialize
 	      (make <method>
@@ -168,6 +173,8 @@
     (make <generic> :definition-name 'class-direct-slots))
   (define class-cpl (make <generic> :definition-name 'class-cpl))
   (define class-slots (make <generic> :definition-name 'class-slots))
+  (define class-direct-subclasses 
+    (make <generic> :definition-name 'class-direct-subclasses))
 
   (add-method class-direct-supers
 	      (make <method>
@@ -197,6 +204,14 @@
 		:generic class-slots
 		:procedure (lambda (call-next-method class)
 			     (slot-ref class 'slots))))
+
+  (add-method class-direct-subclasses
+	      (make <method>
+		:specializers (list <class>)
+		:lambda-list '(class)
+		:generic class-direct-subclasses
+		:procedure (lambda (call-next-method class)
+			     (slot-ref class 'direct-subclasses))))
   ;; <generic>
   (define generic-methods (make <generic> :definition-name 'generic-methods))
   (add-method generic-methods

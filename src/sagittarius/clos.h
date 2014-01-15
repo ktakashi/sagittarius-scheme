@@ -114,7 +114,7 @@ struct SgClassRec
   SgObject cpl;			/* list of classes */
   SgObject directSlots;		/* alist of name and definition */
   SgObject slots;		/* alist of name and definition */
-  SgObject fieldInitializers;	/* list of initializers */
+  SgObject directSubclasses;	/* list of subclasses */
   SgSlotAccessor **gettersNSetters; /* array of accessors, NULL terminated */
 
   /* scheme cache */
@@ -127,8 +127,10 @@ struct SgClassRec
   SgInternalCond  cv;
 };
 
+#define SG_ISA(obj, clazz) (SG_XTYPEP(obj, clazz)||Sg_TypeP(SG_OBJ(obj), clazz))
+
 #define SG_CLASS(obj)  ((SgClass*)(obj))
-#define SG_CLASSP(obj) SG_XTYPEP(obj, SG_CLASS_CLASS)
+#define SG_CLASSP(obj) SG_ISA(obj, SG_CLASS_CLASS)
 
 #define SG_CLASS_FLAGS(obj)    (SG_CLASS(obj)->flags)
 #define SG_CLASS_CATEGORY(obj) (SG_CLASS_FLAGS(obj) & 3)
@@ -271,6 +273,9 @@ SG_EXTERN int      Sg_ApplicableP(SgObject spec, SgObject args);
 
 /* builtin class <object> */
 SG_EXTERN SgObject Sg_ObjectAllocate(SgClass *klass, SgObject initargs);
+
+/* MOP util */
+SG_EXTERN void     Sg_AddDirectSubclasses(SgClass *super, SgClass *sub);
 
 /* internal for C. */
 SG_EXTERN void     Sg_InitStaticClass(SgClass *klass, const SgChar *name,
