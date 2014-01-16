@@ -202,6 +202,11 @@ static int posix_ready(SgObject self)
   fd_set fds;
   int state;
   FD_ZERO(&fds);
+  /* what would be the best behaviour if the given FD is larger than
+     FD_SETSIZE? I don't like predicates raise an error, so for now
+     I only return #f. */
+  if (SG_FD(self)->fd >= FD_SETSIZE) return FALSE;
+
   FD_SET(SG_FD(self)->fd, &fds);
   state = select(SG_FD(self)->fd + 1, &fds, NULL, NULL, &tm);
   if (state < 0) {
