@@ -26,7 +26,7 @@
      `(begin
 	(Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got ,irritants))))
 
-  (define-c-proc insn-name (insn::<fixnum>) ::<top>
+  (define-c-proc insn-name (insn::<fixnum>)
     (let ((info::InsnInfo* (Sg_LookupInsnName insn)))
       (result (Sg_MakeStringC (-> info name)))))
 
@@ -72,10 +72,13 @@
       (set! (SG_IDENTIFIER_ENVS id) envs)
       (result id)))
 
-  (define-c-proc pattern-variable? (o) ::<boolean>
-    (result (and (SG_IDENTIFIERP o)
+
+  (define-cfn %pattern-variable? (o) ::int :static
+    (return (and (SG_IDENTIFIERP o)
 		 (not (SG_NULLP (SG_IDENTIFIER_ENVS o)))
 		 (SG_SYMBOLP (SG_CAR (SG_IDENTIFIER_ENVS o))))))
+  (define-c-proc pattern-variable? (o) ::<boolean>
+    (result (%pattern-variable? o)))
 
   (define-c-proc id-envs (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_ENVS id)))
@@ -308,32 +311,51 @@
 		     (SG_EQ (SG_CAAR (SG_IDENTIFIER_ENVS id)) boundary))
 		 (SG_EQ usage-lib (SG_IDENTIFIER_LIBRARY id)))))
 
+  ;; FIXME this is defined in macro.scm as well
+  (define-cfn psuedo-null? (env) ::int :static
+    (return (and (not (SG_NULLP env))
+		 (SG_NULLP (SG_CDR env))
+		 (SG_EQ (SG_CAAR env) (SG_MAKE_INT 3)))))
+
   ;; NB: we skip some test, because we assume the frame is well-formed.
   (define-cfn p1env-lookup-inner 
     (p1env::SgVector* name lookup_as frame?::int boundary use-lib)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
+	  ;;(name-pending?::int FALSE)
 	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+      ;; checks if the given name is template variable (pending id)
+      ;; disabled doesn't work properly
+      #;
+      (when (and name_identp (SG_IDENTIFIER_PENDING name)
+		 (psuedo-null? (SG_IDENTIFIER_ENVS name)))
+	(set! name-pending? TRUE)
+	(set! name (SG_IDENTIFIER_NAME name)))
       (dopairs (fp frames)
-	(when (and name_identp
-		   (== (SG_IDENTIFIER_ENVS name) fp))
+	(when (and name_identp (== (SG_IDENTIFIER_ENVS name) fp))
 	  (set! same-env? TRUE)
 	  ;; strip identifier if we're in the same env
 	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
-	(when (> (SG_CAAR fp) lookup_as)
-	  (continue))
+	(when (> (SG_CAAR fp) lookup_as) (continue))
+
 	(dolist (vp (SG_CDAR fp))
 	  (when (or (SG_EQ name (SG_CAR vp))
 		    (and (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))
 			 (or same-env?
 			     (and (not name_identp)
-				  (or 
-				   (p1env-lookup-aux fp (SG_CAR vp))
-				   (pending=? (SG_CAR vp) use-lib boundary))))))
+				  (or (p1env-lookup-aux fp (SG_CAR vp))
+				      (pending=? (SG_CAR vp) use-lib boundary)))
+			     ;; what should we check?
+			     #;
+			     (and name-pending?
+				  ;; if the target is converted by
+				  ;; datum->syntax then it must be
+				  ;; a pattern variable.
+				  (%pattern-variable? (SG_CAR vp))))))
 	    (if frame?
 		(return fp)
 		(return vp)))))
