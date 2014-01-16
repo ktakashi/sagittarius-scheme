@@ -1,4 +1,7 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
+
+;; helper library to be able to use define-generic and define-method
+;; in the (clos user) library.
 (library (clos helper)
     (export %make-setter-name %check-setter-name)
     (import (rnrs) (sagittarius))
@@ -11,6 +14,7 @@
   (define (%check-setter-name generic)
     (syntax-case generic ()
       ((?setter name)
+       ;; not sure why the keyword literal doesn't work, could be a bug...
        (free-identifier=? #'setter #'?setter)
        #`(#,(%make-setter-name #'name) name))
       (n #'(n #f))))
@@ -56,12 +60,12 @@
 	    define-method
 	    define-generic
 
-	    call-next-method
 	    eql
 	    eqv? ;; for prefix or rename import
 
 	    ;; class redefnition
 	    redefine-class!
+	    update-direct-subclass!
 	    )
     (import (rnrs) 
 	    (sagittarius)
