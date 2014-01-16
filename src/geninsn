@@ -231,6 +231,15 @@ SG_CDECL_END
 	  (when (file-exists? h-file) (delete-file h-file))
 	  0)
 	(parameterize ((cgen-current-unit *unit*))
+	  (let ((c-file (~ *unit* 'c-file))
+		(h-file (~ *unit* 'h-file)))
+	    (when (and (file-exists? c-file) (file-exists? h-file))
+	      (let ((omtime (file-stat-mtime *insn-file*))
+		    (cmtime (file-stat-mtime c-file))
+		    (hmtime (file-stat-mtime h-file)))
+		(when (and (> cmtime omtime) (> hmtime omtime))
+		  (print "generate file is older than " *insn-file* ".")
+		  (exit 0)))))
 	  (let1 insns 
 	      (populate-insn-info (reverse (expand-toplevels *insn-file*)))
 	    ;; Generate insn names and DEFINSN macros
