@@ -60,7 +60,7 @@ srfi()
 {
     echo Generating R7RS style SRFI libraries
     # in case
-    $SASH ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
+    $SASH ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
 }
 
 dist() {
@@ -126,9 +126,9 @@ if [ $# -ge 1 ] ; then
 	dist)    dist $1;;
 	stub)    stub $1;;
 	gen)     stub $1; precomp $1; srfi;;
-	srfi)    srfi ;;
+	srfi)    srfi $1;;
 	precomp) precomp $1;;
-	clean)   stub "-c"; precomp "-c" ;;
+	clean)   stub "-c"; precomp "-c"; srfi "-c" ;;
 	*)       usage ;;
     esac
 else
