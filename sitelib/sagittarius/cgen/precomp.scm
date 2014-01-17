@@ -398,4 +398,25 @@
 	(format #t "    ~a = ~a;~%" cname h)
 	(print "  } while (0);")))
     (static (self) #f))
+
+(define-cgen-literal <cgen-scheme-vector> <vector>
+  ((values-vec :init-keyword :values-vec))
+  (make (value)
+    (make <cgen-scheme-vector> :value value
+	  :c-name (cgen-allocate-static-datum)
+	  :values-vec (vector-map cgen-literal value)))
+  (init (self)
+	(let* ((values (~ self 'values-vec))
+	       (vec    (~ self 'value))
+	       (cname (~ self 'c-name))
+	       (s     (vector-length values)))
+	  (print "  do {")
+	  (format #t "     ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
+	  (do ((i 0 (+ i 1)) (l values (cdr values)))
+	      ((= i s))
+	    (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
+		    cname i (cgen-cexpr (vector-ref l i)) 
+		    (cgen-safe-comment (vector-ref vec i))))
+	  (print "  } while (0);")))
+  (static (self) #f))
 )

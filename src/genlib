@@ -9,11 +9,55 @@
 	(util file)
 	(match)
 	(getopt)
-	(shorten)
 	(pp)
 	(srfi :1)
 	(srfi :13)
 	(srfi :26))
+
+;; TODO remove this after 0.5.1
+(import (sagittarius aspect)
+	(clos user)
+	(sagittarius object)
+	(sagittarius vm)
+	(sagittarius cgen literal))
+
+(point-cut
+ (sagittarius cgen literal)
+ literal-value-hash
+ (lambda (literal)
+   (define mask #x0fffffff)
+   (define (rec val)
+     (cond
+      ((pair? val) (bitwise-and (+ (rec (car val)) (rec (cdr val))) mask))
+      ((vector? val) 
+	(fold (^(v r) (bitwise-and (+ (rec v) r) mask)) 0
+	      (vector->list val)))
+      ((string? val) (bitwise-and (string-hash val) mask))
+      ((identifier? val)
+       (bitwise-and (+ (rec (id-name val)) (rec (id-library val))) mask))
+      (else (eqv-hash val))))
+   (rec literal)))
+
+(define-cgen-literal <cgen-scheme-vector> <vector>
+  ((values-vec :init-keyword :values-vec))
+  (make (value)
+    (make <cgen-scheme-vector> :value value
+	  :c-name (cgen-allocate-static-datum)
+	  :values-vec (vector-map cgen-literal value)))
+  (init (self)
+	(let* ((values (~ self 'values-vec))
+	       (vec    (~ self 'value))
+	       (cname (~ self 'c-name))
+	       (s     (vector-length values)))
+	  (print "  do {")
+	  (format #t "     ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
+	  (do ((i 0 (+ i 1)) (l values (cdr values)))
+	      ((= i s))
+	    (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
+		    cname i (cgen-cexpr (vector-ref l i)) 
+		    (cgen-safe-comment (vector-ref vec i))))
+	  (print "  } while (0);")))
+  (static (self) #f))
 
 ;; cancel inliner
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)

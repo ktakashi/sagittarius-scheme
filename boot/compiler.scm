@@ -445,6 +445,10 @@
 (define-simple-struct $gref $GREF $gref
   id     ; identifier
 )
+(define-syntax $gref?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $GREF))))
 
 ;; $gset <id> <expr>
 ;; Global variable assignment.
@@ -560,6 +564,10 @@
   ;; Transient slots
   (renv '()) ; runtime env. used in embed calls to record depth of env
 )
+(define-syntax $call?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $CALL))))
 
 ;; $asm <src> <insn> <args>
 ;; Inlined assembly code.
@@ -568,6 +576,10 @@
   insn   ; instruction (<code> [<param> ...])
   args   ; list of IForms
 )
+(define-syntax $asm?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $ASM))))
 
 ;; $it
 ;; A special node.
@@ -580,6 +592,9 @@
     ((_ iform) (has-tag? iform $IT))))
 
 (define-simple-struct $list $LIST $list src args)
+(define-syntax $list?
+  (syntax-rules ()
+    ((_ iform) (has-tag? iform $LIST))))
 
 ;; $library <library>
 ;; This iform is only for compiled cache.
@@ -1139,94 +1154,94 @@
 (define .vector  (global-id 'vector))
 (define .list->vector (global-id 'list->vector))
 
+;; now it returns IForm
 (define (pass1/quasiquote form nest p1env)
-  (define (quote? tag)
-    (global-eq? tag 'quote p1env))
-  (define (unquote? tag)
-    (global-eq? tag 'unquote p1env))
-  (define (quasiquote? tag)
-    (global-eq? tag 'quasiquote p1env))
-  (define (unquote-splicing? tag)
-    (global-eq? tag 'unquote-splicing p1env))
-
-  (define (quoted? e)
-    (and (pair? e)
-	 (pair? (cdr e))
-	 (null? (cddr e))
-	 (quote? (car e))))
-
-  (define (constant? e)
-    (or (boolean? e)
-	(number? e)
-	(char? e)
-	(string? e)
-	(bytevector? e)
-	(quoted? e)))
-
-  (define (constant-value e)
-    (cond ((quoted? e) (cadr e))
-	  (else e)))
+  (define (quote? tag)            (global-eq? tag 'quote p1env))
+  (define (unquote? tag)          (global-eq? tag 'unquote p1env))
+  (define (quasiquote? tag)       (global-eq? tag 'quasiquote p1env))
+  (define (unquote-splicing? tag) (global-eq? tag 'unquote-splicing p1env))
 
   (define (null-constant? e)
-    (and (quoted? e)
-	 (null? (cadr e))))
+    (and ($const? e) (null? ($const-value e))))
+  (define (empty? e)
+    (and ($seq? e) (null? ($seq-body e))))
+  ;; helper
+  (define ($append? l)
+    (and-let* (( ($call? l) )
+	       (p ($call-proc l))
+	       ( ($gref? p)))
+      (eq? ($gref-id p) .append)))
+  (define ($append args) ($call #f ($gref .append) args))
+  (define ($cons*? l)
+    (and-let* (( ($call? l) )
+	       (p ($call-proc l))
+	       ( ($gref? p)))
+      (eq? ($gref-id p) .cons*)))
+  (define ($cons* args) ($call #f ($gref .cons*) args))
+
+  (define ($cons? l) (and ($asm? l) (eqv? ($asm-insn l) CONS)))
+  (define ($cons a d) ($asm #f `(,CONS 2) (list a d)))
+
+  ;; should be smarter but for now...
+  (define (fold-constant proc seq)
+    (let-values (((consts rest)
+		  (do ((seq seq (cdr seq))
+		       (r '() (cons ($const-value (car seq)) r)))
+		      ((or (null? seq) (not ($const? (car seq))))
+		       (values (reverse! r) seq)))))
+      (values (apply proc consts) rest)))
 
   (define (emit-append body tail)
     (cond ((null? body) tail)
-	  ((null-constant? tail)
-	   (if (= (length body) 1) (car body) `(,.append ,@body)))
-	  (else
-	   `(,.append ,@body ,tail))))
+	  ((null-constant? tail) 
+	   (if (= (length body) 1) (car body) ($append body)))
+	  (else ($append `(,@body ,tail)))))
 
   (define (emit-cons* body tail)
     (if (= (length body) 1)
 	(emit-cons (car body) tail)
 	(cond ((null? body) tail)
-	      ((null-constant? tail)
-	       `(,.list ,@body))
-	      ((and (pair? tail) (eq? (car tail) .list))
-	       `(,.list ,@body ,@(cdr tail)))
-	      ((and (pair? tail)
-		    (or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
-	       `(,.cons* ,@body ,@(cdr tail)))
-	      (else
-	       `(,.cons* ,@body ,tail)))))
+	      ((null-constant? tail) ($list #f body))
+	      (($list? tail)  ($list #f `(,@body ,@($list-args tail))))
+	      (($cons? tail)  ($cons* `(,@body ,@($asm-args tail))))
+	      (($cons*? tail) ($cons* `(,@body ,@($call-args tail))))
+	      (else ($cons* `(,@body ,tail))))))
 
   (define (emit-cons head tail)
-    (if (and (constant? head) (constant? tail))
-	(list .quote (cons (constant-value head) (constant-value tail)))
-	(cond ((null-constant? tail)
-	       `(,.list ,head))
-	      ((and (pair? tail) (eq? (car tail) .list))
-	       `(,.list ,head ,@(cdr tail)))
-	      ((and (pair? tail)
-		    (or (eq? (car tail) .cons) (eq? (car tail) .cons*)))
-	       `(,.cons* ,head ,@(cdr tail)))
+    (if (and ($const? head) ($const? tail))
+	($const (cons ($const-value head) ($const-value tail)))
+	(cond ((null-constant? tail) ($list #f (list head)))
+	      (($list? tail)
+	       ($list #f `(,head ,@($list-args tail))))
+	      ((or ($cons? tail) ($cons*? tail))
+	       ($cons* `(,head ,@($call-args tail))))
 	      (else
-	       `(,.cons ,head ,tail)))))
+	       ($cons head tail)))))
 
   (define (expand-vector expr nest)
     (let ((lst (expand (vector->list expr) nest)))
-      (cond ((null-constant? lst)
-	     `(,.vector)) ;; we can't use #() for code2c.scm
-	    ((constant? lst)
-	     `(,.quote ,(list->vector (constant-value lst))))
-	    ((and (pair? lst) (eq? (car lst) .list))
-	     `(,.vector ,@(cdr lst)))
+      ;; lst is IForm and must be a $seq
+      (cond ((null-constant? lst) ($const #()))
+	    (($const? lst)
+	     ($const (list->vector ($const-value lst))))
+	    (($list? lst)
+	     ($call #f ($gref .vector) `(,@($list-args lst))))
 	    (else
-	     `(,.list->vector ,lst)))))
+	     ($call #f ($gref .list->vector) (list lst))))))
+
   (define (expand expr nest)
     (cond ((pair? expr)
 	   (if (= nest 0)
 	       (smatch expr
 		 ((((? unquote? -) e1 ___) . e2)
-		  (emit-cons* e1 (expand e2 0)))
+		  (emit-cons* (imap (lambda (f) (pass1 f p1env)) e1)
+			      (expand e2 0)))
 		 ((((? unquote-splicing? -) e1 ___) . e2)
-		  (emit-append e1 (expand e2 0)))
+		  (emit-append (imap (lambda (f) (pass1 f p1env)) e1)
+			       (expand e2 0)))
 		 (((? quasiquote? -) - ___)
-		  (emit-cons (expand (car expr) 1)
-			     (expand (cdr expr) 1)))
-		 (((? unquote? -) e1) e1)
+		  (emit-cons (expand (car expr) 1) (expand (cdr expr) 1)))
+		 (((? unquote? -) e1) (pass1 e1 p1env))
 		 (((? unquote? -) . -)
 		  (syntax-error "unquote appear in bad context" form expr))
 		 (((? quasiquote? -) . -)
@@ -1237,14 +1252,15 @@
 		  (syntax-error 
 		   'quasiquote
 		   "unquote-splicing appear in bad context" form expr))
-		 (- (emit-cons (expand (car expr) 0)
-			       (expand (cdr expr) 0))))
+		 (- (emit-cons (expand (car expr) 0) (expand (cdr expr) 0))))
 	       (let ((tag (car expr)))
+		 ;; if it's unquote, unquote-splicing or quasiquote
+		 ;; we need to return raw symbol not identifier.
 		 (cond ((or (unquote? tag) (unquote-splicing? tag))
-			(emit-cons `(,.quote ,tag)
+			(emit-cons ($const (variable-name tag))
 				   (expand (cdr expr) (- nest 1))))
 		       ((quasiquote? tag)
-			(emit-cons `(,.quote ,tag)
+			(emit-cons ($const (variable-name tag))
 				   (expand (cdr expr) (+ nest 1))))
 		       (else
 			(emit-cons (expand (car expr) nest)
@@ -1252,18 +1268,17 @@
 	  ;; inside of quasiquote it must be an symbol
 	  ;; but we check if it's renamed by pass0 or not
 	  ;; just in case
-	  ((identifier? expr)
-	   `(,.quote ,(if (id-library expr) expr (id-name expr))))
-	  ((symbol? expr) `(,.quote ,expr))
 	  ((vector? expr) (expand-vector expr nest))
-	  ((null? expr) '())
-	  (else expr)))
+	  ((null? expr) ($const-nil))
+	  ((identifier? expr) ($const (id-name expr)))
+	  ;; not pair, not vector well must be constant variable :)
+	  (else ($const expr))))
   (expand form nest))
-;; base on Ypsilon end
+;; based on Ypsilon end
 
 (define-pass1-syntax (quasiquote form p1env) :null
   (smatch form
-    ((- obj) (pass1 ($src (pass1/quasiquote (cadr form) 0 p1env) form) p1env))
+    ((- obj) (pass1/quasiquote (cadr form) 0 p1env))
     (- (syntax-error "malformed quasiquote" form))))
 
 

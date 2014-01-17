@@ -216,7 +216,9 @@
     (define (rec val)
       (cond
        ((pair? val) (bitwise-and (+ (rec (car val)) (rec (cdr val))) mask))
-       ((vector? val) (fold (^(v r) (bitwise-and (+ (rec v) r) mask) 0 val)))
+       ((vector? val) 
+	(fold (^(v r) (bitwise-and (+ (rec v) r) mask)) 0
+	      (vector->list val)))
        ((string? val) (bitwise-and (string-hash val) mask))
        ((identifier? val)
 	(bitwise-and (+ (rec (id-name val)) (rec (id-library val))) mask))
