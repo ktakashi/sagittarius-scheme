@@ -607,8 +607,9 @@ size_t ustrlen(const SgChar *value)
 
 #include "../unicode/case-folding.inc"
 #include "../unicode/special-casing-lower.inc"
-#include "../unicode/special-casing-title.inc"
 #include "../unicode/special-casing-upper.inc"
+/* not used so for now make compiler shut */
+/* #include "../unicode/special-casing-title.inc" */
 #include "../unicode/decompose.inc"
 
 #define DECLARE_SIMPLE_CASE(name, how)				\
@@ -874,7 +875,8 @@ SgObject Sg_CategroyToSymbol(GeneralCategory cate)
 
 DECLARE_SPECIAL_CASING(special_casing_upper);
 DECLARE_SPECIAL_CASING(special_casing_lower);
-DECLARE_SPECIAL_CASING(special_casing_title);
+/* not used, so for now make compiler shut... */
+/* DECLARE_SPECIAL_CASING(special_casing_title); */
 DECLARE_SPECIAL_CASING(case_folding);
 DECLARE_SPECIAL_CASING(decompose);
 
@@ -1104,7 +1106,8 @@ static SgByteVector* string2bytevector(SgObject s)
   SgByteVector* bv = Sg_MakeByteVector(SG_STRING_SIZE(s)*sizeof(SgChar), 0);
   int i;
   for (i = 0; i < SG_STRING_SIZE(s); i++) {
-    *(uint32_t *)(&SG_BVECTOR_ELEMENT(bv, i*4)) = SG_STRING_VALUE_AT(s, i);
+    uint8_t *tmp = &SG_BVECTOR_ELEMENT(bv, i*4);
+    *(uint32_t *)tmp = SG_STRING_VALUE_AT(s, i);
   }
   return bv;
 }
@@ -1114,7 +1117,8 @@ static SgObject bytevector2string(SgByteVector *bv)
   SgString *s = Sg_ReserveString(SG_BVECTOR_SIZE(bv)/sizeof(SgChar), ' ');
   int i;
   for (i = 0; i < SG_STRING_SIZE(s); i++) {
-    SG_STRING_VALUE_AT(s, i) = *(uint32_t*)(&SG_BVECTOR_ELEMENT(bv, i*4));
+    uint8_t *tmp = &SG_BVECTOR_ELEMENT(bv, i*4);
+    SG_STRING_VALUE_AT(s, i) = *(uint32_t*)tmp;
   }
   return SG_OBJ(s);
 }

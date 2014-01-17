@@ -1,6 +1,4 @@
-/*  -*- C -*- */
-/*
- * symbol.h
+/* symbol.h                                        -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
@@ -62,6 +60,7 @@ enum {
 
 #define SG_SYMBOLP(obj) SG_XTYPEP(obj, SG_CLASS_SYMBOL)
 #define SG_SYMBOL(obj)  ((SgSymbol*)(obj))
+#define SG_SYMBOL_NAME(obj)  (SG_SYMBOL(obj)->name)
 
 #define SG_UNINTERNED_SYMBOL(obj)					\
   (SG_SYMBOLP(obj)&&!(SG_SYMBOL(obj)->flags&SG_SYMBOL_INTERNED))

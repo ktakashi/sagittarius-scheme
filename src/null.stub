@@ -1,385 +1,7 @@
 ;; -*- scheme -*-
 #!compatible ;; for ypsilon
 (library (core)
-    (export ;; R6RS (rnrs base (6))
-	    ;; 11.1 base type
-	    boolean? pair? symbol?
-	    number? char? string?
-	    vector? procedure? null?
-
-	    ;; 11.5 equivalence predicates
-	    eqv? eq? equal?
-	    
-	    ;; 11.7.4 numerical operations
-	    ;; 11.7.4.1 numerical type predicates
-	    complex? real? rational? integer?
-	    real-valued? rational-valued?
-	    integer-valued? exact? inexact?
-	    ;; 11.7.4.2 generic conversions
-	    inexact exact
-	    ;; 11.7.4.3 arithmetic operations
-	    = < > <= >=
-	    zero? positive? negative? odd?
-	    even? finite? infinite? nan?
-	    max min
-	    + +. - -. * *. / /. ;; added special operation from Gauche
-	    abs div-and-mod div mod
-	    div0 mod0
-	    ;;div0-and-mod0 this is in arith.scm
-	    
-	    %gcd ;; real r6rs implementation is in scmlib.scm
-	    numerator denominator 
-	    floor ceiling truncate round
-	    rationalize
-	    exp log sin cos tan asin acos atan
-	    sqrt exact-integer-sqrt expt
-	    make-rectangular make-polar
-	    real-part imag-part magnitude angle
-	    ;; for r5rs comaptibility
-	    quotient remainder modulo
-	    ;; misc
-	    integer-length
-	    ;; 11.7.4.4 numerical input and output
-	    number->string string->number
-
-	    ;; 11.8 booleans
-	    not boolean=?
-
-	    ;; 11.9 pairs and lists
-	    cons car cdr caar cadr cdar cddr
-	    list? list length append reverse
-	    list-tail list-ref
-	    ;; map for-each ;; these are in scmlib.scm
-	    list-transpose+ last-pair
-
-	    ;; 11.10 symbols
-	    symbol->string symbol=? string->symbol
-
-	    ;; 11.11 characters
-	    char->integer integer->char
-	    char=? char<? char>? char<=? char>=?
-	    
-	    ;; 11.12 strings
-	    make-string string string-length string-ref
-	    string=? string<? string>? string<=? string>=? 
-	    substring string-append string->list
-	    list->string string-copy
-	    ;; string-for-each ;; this is in scmlib.scm
-
-	    ;; 11.13 vectors
-	    make-vector vector vector-length
-	    vector-ref vector-set!
-	    vector->list list->vector
-	    vector-fill!
-	    ;; vector-map vector-for-each ;; these are in scmlib.scm
-
-	    ;; 11.14 errors and violations
-	    ;; error  ;; this in exception.c
-	    assertion-violation ;; it's kinda ugly to define twice
-	    syntax-error
-	    scheme-error
-
-	    ;; 11.15 control features
-	    apply call-with-current-continuation call/cc
-	    values
-	    ;; call-with-values ;; this is in scmlib.scm
-	    dynamic-wind
-
-	    ;; standard libraries
-	    ;; 1 Unicode
-	    ;; 1.1 characters
-	    char-upcase char-downcase char-titlecase char-foldcase
-	    ;; char-ci related are in scmlib.scm
-	    char-alphabetic? char-numeric? char-whitespace?
-	    char-upper-case? char-lower-case? char-title-case?
-	    char-general-category
-	    ;; 1.2 strings
-	    string-upcase string-downcase string-titlecase
-	    string-foldcase
-	    ;; string-ci related are in scmlib.scm(but not yet)
-	    string-normalize-nfd string-normalize-nfkd
-	    string-normalize-nfc string-normalize-nfkc
-
-	    ;; 2 Bytevectors
-	    ;; 2.2 general operations
-	    native-endianness
-	    bytevector? make-bytevector bytevector-length bytevector=?
-	    bytevector-fill! bytevector-copy! bytevector-copy
-	    ;; 2.3 operations on bytes and octets
-	    bytevector-u8-ref bytevector-s8-ref bytevector-u8-set! bytevector-s8-set!
-	    bytevector->u8-list u8-list->bytevector
-	    ;; 2.4 operations on integers of arbitrary size
-	    ;; these are in scmlib.scm
-	    ;;bytevector-uint-ref bytevector-sint-ref
-	    ;;bytevector-uint-set!  bytevector-sint-set!
-	    ;;bytevector->uint-list bytevector->sint-list
-	    ;;uint-list->bytevector sint-list->bytevector
-	    ;; 2.5 operations on 16-bit integers
-	    bytevector-u16-ref bytevector-s16-ref bytevector-u16-native-ref bytevector-s16-native-ref
-	    bytevector-u16-set! bytevector-s16-set! bytevector-u16-native-set! bytevector-s16-native-set!
-	    ;; 2.6 operations on 32-bit integers
-	    bytevector-u32-ref bytevector-s32-ref bytevector-u32-native-ref bytevector-s32-native-ref
-	    bytevector-u32-set! bytevector-s32-set! bytevector-u32-native-set! bytevector-s32-native-set!
-	    ;; 2.7 operations on 64-bit integers
-	    bytevector-u64-ref bytevector-s64-ref bytevector-u64-native-ref bytevector-s64-native-ref
-	    bytevector-u64-set! bytevector-s64-set! bytevector-u64-native-set! bytevector-s64-native-set!
-	    ;; 2.8 operations on ieee-754 representations
-	    bytevector-ieee-single-ref bytevector-ieee-single-native-ref
-	    bytevector-ieee-single-set! bytevector-ieee-single-native-set!
-	    bytevector-ieee-double-ref bytevector-ieee-double-native-ref
-	    bytevector-ieee-double-set! bytevector-ieee-double-native-set!
-	    ;; 2.9 operations on strings
-	    string->utf8 utf8->string
-	    string->utf16 utf16->string
-	    string->utf32 utf32->string
-
-	    ;; 3 List utilities
-	    memq memv ;;member ;; in scmlib.scm
-	    assq assv ;;assoc  ;; in scmlib.scm
-	    cons*
-
-	    ;; 7 Exceptions and conditions
-	    ;; 7.1 exceptions
-	    with-exception-handler
-	    raise raise-continuable
-	    ;;rest of chapter 7 are in exceptions.c
-
-	    ;; io
-	    write/ss
-	    ;; 8 I/O
-	    ;; 8.1 condition types
-	    ;; i/o condition types are in exception.c
-
-	    ;; 8.2 port i/o
-	    ;; 8.2.3 buffer modes
-	    buffer-mode?
-
-	    ;; 8.2.4 transcoders
-	    latin-1-codec
-	    utf-8-codec
-	    utf-16-codec
-	    native-eol-style
-	    ;;; conditions are in exception.c
-	    make-transcoder
-	    native-transcoder
-	    transcoder-codec
-	    transcoder-eol-style
-	    transcoder-error-handling-mode
-	    bytevector->string
-	    string->bytevector
-
-	    ;; 8.2.5 end-of-file object
-	    eof-object eof-object?
-
-	    ;; 8.2.6 input port and output port
-	    port?
-	    port-transcoder
-	    textual-port?
-	    binary-port?
-	    transcoded-port
-	    port-has-port-position?
-	    port-position
-	    port-has-set-port-position!?
-	    set-port-position
-	    close-port
-	    ;;call-with-port
-
-	    ;; 8.2.7 input port
-	    input-port?
-	    port-eof?
-	    open-file-input-port
-	    open-bytevector-input-port
-	    open-string-input-port
-	    standard-input-port
-	    current-input-port
-	    make-custom-binary-input-port
-	    make-custom-textual-input-port
-
-	    ;; 8.2.8 binary input
-	    get-u8
-	    lookahead-u8
-	    get-bytevector-n
-	    get-bytevector-n!
-	    get-bytevector-some
-	    get-bytevector-all
-
-	    ;; 8.2.9 textual port
-	    get-char
-	    lookahead-char
-	    get-string-n
-	    get-string-n!
-	    get-string-all
-	    get-line
-	    get-dutum
-
-	    ;; 8.2.10 output port
-	    output-port?
-	    flush-output-port
-	    output-port-buffer-mode
-	    open-file-output-port
-	    ;; these functions are in scmlib.scm
-	    ;; open-bytevector-output-port
-	    ;; call-with-bytevector-output-port
-	    ;; open-string-output-port
-	    ;; call-with-string-output-port
-	    ;; to implement above we provide these
-	    standard-output-port
-	    standard-error-port
-	    current-output-port
-	    current-error-port
-	    make-custom-binary-output-port
-
-	    ;; 8.2.11 binary output
-	    put-u8
-	    put-bytevector
-
-	    ;; 8.2.12 textual output port
-	    put-char
-	    put-string
-	    put-datum
-
-	    ;; 8.2.13 input/output port
-	    open-file-input/output-port
-	    make-custom-binary-input/output-port
-	    make-custom-textual-input/output-port
-
-	    ;; 8.3 simple i/o
-	    ;; these are in scmlib.scm
-	    ;; call-with-input-file
-	    ;; call-with-output-file
-	    ;; with-input-from-file
-	    ;; with-output-to-file
-	    ;; open-input-file
-	    ;; open-output-file
-	    close-input-port
-	    close-output-port
-	    read-char peek-char read
-	    write-char newline display write
-
-	    ;; 9 File system
-	    file-exists? delete-file
-
-	    ;; 10 Command-line access and exit values
-	    command-line exit
-
-	    ;; 11 Arithmetic
-	    ;; 11.2 fixnums
-	    fixnum? fixnum-width least-fixnum greatest-fixnum
-	    fx=? fx<? fx>? fx<=? fx>=?
-	    fxzero? fxpositive? fxnegative? fxodd? fxeven?
-	    fxmax fxmin
-	    fx+ fx* fx-
-	    fxdiv fxmod ;;fxdiv-and-mod
-	    fxdiv0 fxmod0 ;; fxdiv0-and-mod0
-	    ;;fx+/carry fx-/carry fx*/carry ;; these are in arith.scm
-	    fxnot fxand fxior fxxor fxif
-	    fxbit-count fxlength
-	    fxfirst-bit-set
-	    fxbit-set?
-	    fxcopy-bit fxbit-field
-	    fxcopy-bit-field
-	    fxarithmetic-shift
-	    fxarithmetic-shift-left
-	    fxarithmetic-shift-right
-	    ;; fxrotate-bit-field ;; this is in arith.scm
-	    fxreverse-bit-field
-
-	    ;; 11.3 flonums
-	    flonum? real->flonum
-	    fl=? fl<? fl>? fl<=? fl>=?
-	    flinteger? flzero?
-	    flpositive? flnegative?
-	    flodd? fleven?
-	    flfinite? flinfinite?
-	    flnan? flmax flmin
-	    fl+ fl* fl- fl/
-	    fldiv flmod fldiv0 flmod0
-	    ;; fldiv-and-mod fldiv0-and-mod0
-	    flnumerator fldenominator
-	    flfloor flceiling
-	    fltruncate flround
-	    flexp flexpt
-	    fllog flsin
-	    flcos fltan
-	    flasin flacos
-	    flatan flabs
-	    flsqrt fixnum->flonum
-
-	    ;; 11.4 exact bitwise arithmetic
-	    bitwise-not bitwise-and bitwise-ior
-	    bitwise-xor bitwise-if
-	    bitwise-bit-count bitwise-length
-	    bitwise-first-bit-set bitwise-bit-set?
-	    bitwise-copy-bit bitwise-bit-field
-	    bitwise-copy-bit-field
-	    bitwise-arithmetic-shift
-	    bitwise-arithmetic-shift-left
-	    bitwise-arithmetic-shift-right
-	    ;; in scmlib.scm
-	    ;;bitwise-rotate-bit-field
-	    ;;bitwise-reverse-bit-field
-
-
-	    ;; 12 Syntax-case
-	    ;; 12.5
-	    identifier? bound-identifier=? free-identifier=?
-	    
-	    ;; 13 Hashtables
-	    ;; 13.1 constructors
-	    make-eq-hashtable
-	    make-eqv-hashtable
-	    make-hashtable
-
-	    ;; 13.2 procedures
-	    hashtable? hashtable-size
-	    hashtable-ref hashtable-set! hashtable-delete!
-	    hashtable-contains? 
-	    #;hashtable-update! ;; in scmlib.scm
-	    hashtable-copy hashtable-clear! hashtable-keys
-
-	    ;; 13.3 inspection
-	    ;; these are in scmlib.scm
-	    ;;hashtable-equivalence-function hashtable-hash-function
-	    hashtable-mutable?
-
-	    ;; 13.4 hash functions
-	    equal-hash string-hash string-ci-hash symbol-hash
-
-	    ;; 15 composit library
-	    ;; 16 eval
-	    eval
-
-	    ;; 17 mutable pairs
-	    set-car! set-cdr!
-
-	    ;; 18 mutable strings
-	    string-set! string-fill!
-
-	    ;; conditions
-	    condition simple-conditions compound-condition-component
-	    compound-condition? simple-condition? condition?
-	    condition-predicate condition-accessor
-
-	    ;; record
-	    make-record-type-descriptor
-	    make-record-constructor-descriptor
-	    record? record-rtd
-	    record-type-descriptor?
-	    record-constructor-descriptor?
-	    record-constructor
-	    record-accessor record-predicate record-mutator
-	    record-type-name record-type-parent
-	    record-type-uid record-type-generative?
-	    record-type-opaque? record-type-sealed?
-	    record-type-field-names
-	    record-field-mutable?
-	    ;; record helpers
-	    rtd-fields
-	    rtd-inherited-field-count rtd-total-field-count
-	    rtd-ancestor?
-	    rcd-protocol rcd-parent
-	    ;; tuple for record helper
-	    make-tuple tuple-list-set! tuple-ref ruple-set!)
+    (export :all)
     (import :none)
 ;; for Ypsilon
   #!compatible
@@ -442,76 +64,35 @@
 		 (result TRUE)))))))
 
   ;; 11.1 base type
-  (define-c-proc boolean? (o) ::<boolean>
-    (result (SG_BOOLP o)))
-
-  (define-c-proc pair? (arg0) ::<boolean> (inline PAIRP)
-    (result (SG_PAIRP arg0)))
-
-  (define-c-proc symbol? (arg0) ::<boolean> (inline SYMBOLP)
-    (result (SG_SYMBOLP arg0)))
-
-  (define-c-proc number? (o) ::<boolean>
-    (result (SG_NUMBERP o)))
-
-  (define-c-proc char? (o) ::<boolean>
-    (result (SG_CHARP o)))
-
-  (define-c-proc string? (s) ::<boolean>
-    (result (SG_STRINGP s)))
-
-  (define-c-proc vector? (arg0) ::<boolean> (inline VECTORP)
-    (result (SG_VECTORP arg0)))
-
-  (define-c-proc procedure? (arg0) ::<boolean>
-    (result (SG_PROCEDUREP arg0)))
-
-  (define-c-proc null? (arg0) ::<boolean> (inline NULLP)
-    (result (SG_NULLP arg0)))
+  (define-c-proc boolean? (o) ::<boolean> :constant SG_BOOLP)
+  (define-c-proc pair? (o) ::<boolean> :constant (inline PAIRP) SG_PAIRP)
+  (define-c-proc symbol? (o) ::<boolean> :constant (inline SYMBOLP) SG_SYMBOLP)
+  (define-c-proc number? (o) ::<boolean> :constant SG_NUMBERP)
+  (define-c-proc char? (o) ::<boolean> :constant SG_CHARP)
+  (define-c-proc string? (o) ::<boolean> :constant SG_STRINGP)
+  (define-c-proc vector? (o) ::<boolean> :constant (inline VECTORP) SG_VECTORP)
+  (define-c-proc procedure? (o) ::<boolean> :constant SG_PROCEDUREP)
+  (define-c-proc null? (o) ::<boolean> :constant (inline NULLP) SG_NULLP)
 
   ;; 11.5 equivalence predicates
-  (define-c-proc eq? (a b) ::<boolean> (inline EQ)
-    (result (SG_EQ a b)))
-
-  (define-c-proc eqv? (a b) ::<boolean> (inline EQV)
-    (result (Sg_EqvP a b)))
-
-  (define-c-proc equal? (a b) ::<boolean>
-    (result (Sg_EqualP a b)))
-
+  (define-c-proc eq? (a b) ::<boolean> :constant (inline EQ) SG_EQ)
+  (define-c-proc eqv? (a b) ::<boolean> :constant (inline EQV) Sg_EqvP)
+  (define-c-proc equal? (a b) ::<boolean> :constant Sg_EqualP)
 
   ;; 11.7.4.1 numerical type predicates
-  (define-c-proc complex? (o) ::<boolean>
-    (result (SG_NUMBERP o)))
-
-  (define-c-proc real? (o) ::<boolean>
-    (result (SG_REALP o)))
-
-  (define-c-proc rational? (o) ::<boolean>
-    (result (Sg_RationalP o)))
-
-  (define-c-proc integer? (o) ::<boolean>
-    (result (Sg_IntegerP o)))
-
-  (define-c-proc real-valued? (o) ::<boolean>
-    (result (Sg_RealValuedP o)))
-
-  (define-c-proc rational-valued? (o) ::<boolean>
-    (result (Sg_RationalValuedP o)))
-
-  (define-c-proc integer-valued? (o) ::<boolean>
-    (result (Sg_IntegerValuedP o)))
-
-  (define-c-proc exact? (o) ::<boolean>
-    (result (Sg_ExactP o)))
-
-  (define-c-proc inexact? (o) ::<boolean>
-    (result (Sg_InexactP o)))
+  (define-c-proc complex? (o) ::<boolean> :constant SG_NUMBERP)
+  (define-c-proc real? (o) ::<boolean> :constant SG_REALP)
+  (define-c-proc rational? (o) ::<boolean> :constant Sg_RationalP)
+  (define-c-proc integer? (o) ::<boolean> :constant Sg_IntegerP)
+  (define-c-proc real-valued? (o) ::<boolean> :constant Sg_RealValuedP)
+  (define-c-proc rational-valued? (o) ::<boolean> :constant Sg_RationalValuedP)
+  (define-c-proc integer-valued? (o) ::<boolean> :constant Sg_IntegerValuedP)
+  (define-c-proc exact? (o) ::<boolean> :constant Sg_ExactP)
+  (define-c-proc inexact? (o) ::<boolean> :constant Sg_InexactP)
 
   ;; 11.7.4.2 generic conversions
-  (define-c-proc inexact (z::<number>) Sg_Inexact)
-
-  (define-c-proc exact (z::<number>) Sg_Exact)
+  (define-c-proc inexact (z::<number>) :constant Sg_Inexact)
+  (define-c-proc exact (z::<number>) :constant Sg_Exact)
 
   ;; 11.7.4.3 arithmetic operations
   (define-cise-stmt check-real
@@ -527,45 +108,36 @@
 			(set! arg1 (SG_CAR rest))
 			(set! rest (SG_CDR rest)))))))
   ;; = < > <= >=
-  (define-c-proc = (arg0 arg1 :rest rest) ::<boolean>
+  (define-c-proc = (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp == Sg_NumCmp))
-  (define-c-proc < (arg0 arg1 :rest rest) ::<boolean>
+  (define-c-proc < (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp < Sg_NumCmp))
-  (define-c-proc <= (arg0 arg1 :rest rest) ::<boolean>
+  (define-c-proc <= (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp <= Sg_NumCmp))
-  (define-c-proc > (arg0 arg1 :rest rest) ::<boolean>
+  (define-c-proc > (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp > Sg_NumCmp))
-  (define-c-proc >= (arg0 arg1 :rest rest) ::<boolean>
+  (define-c-proc >= (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp >= Sg_NumCmp))
 
-  (define-c-proc zero? (arg0::<number>) ::<boolean> Sg_ZeroP)
-
-  (define-c-proc positive? (x::<number>) ::<boolean> Sg_PositiveP)
-
-  (define-c-proc negative? (x::<number>) ::<boolean> Sg_NegativeP)
-
-  (define-c-proc odd? (x::<number>) ::<boolean> Sg_OddP)
-
-  (define-c-proc even? (x::<number>) ::<boolean>
+  (define-c-proc zero?     (n::<number>) ::<boolean> :constant Sg_ZeroP)
+  (define-c-proc positive? (x::<number>) ::<boolean> :constant Sg_PositiveP)
+  (define-c-proc negative? (x::<number>) ::<boolean> :constant Sg_NegativeP)
+  (define-c-proc odd?      (x::<number>) ::<boolean> :constant Sg_OddP)
+  (define-c-proc even?     (x::<number>) ::<boolean> :constant
     (result (not (Sg_OddP x))))
-
-  (define-c-proc finite? (x::<number>) ::<boolean> Sg_FiniteP)
-
+  (define-c-proc finite?   (x::<number>) ::<boolean> Sg_FiniteP)
   (define-c-proc infinite? (x::<number>) ::<boolean> Sg_InfiniteP)
-
-  (define-c-proc nan? (x::<number>) ::<boolean> Sg_NanP)
+  (define-c-proc nan?      (x::<number>) ::<boolean> Sg_NanP)
     
-  (define-c-proc max (arg0 :rest rest)
+  (define-c-proc max (arg0 :rest rest) :constant
     (Sg_MinMax arg0 rest NULL (& SG_RESULT)))
-
-  (define-c-proc min (arg0 :rest rest)
+  (define-c-proc min (arg0 :rest rest) :constant
     (Sg_MinMax arg0 rest (& SG_RESULT) NULL))
-
 
   ;; arithmetic
   (define-cise-stmt check-number
@@ -573,7 +145,8 @@
      `(unless (SG_NUMBERP ,v)
 	(wrong-type-of-argument-violation ',name "number" ,v))))
 
-  (define-c-proc + (:rest rest)
+  ;; are these arithmetic operation constant?
+  (define-c-proc + (:rest rest) :constant
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 0)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
 	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
@@ -585,7 +158,7 @@
 	       (set! r (Sg_Add r v)))
 	     (result r)))))
 
-  (define-c-proc * (:rest rest)
+  (define-c-proc * (:rest rest) :constant
     (cond ((not (SG_PAIRP rest)) (result (SG_MAKE_INT 1)))
 	  ((not (SG_NUMBERP (SG_CAR rest)))
 	   (wrong-type-of-argument-violation '+ "number" (SG_CAR rest) rest)
@@ -597,7 +170,7 @@
 	       (set! r (Sg_Mul r v)))
 	     (result r)))))
 
-  (define-c-proc - (arg1::<number> :rest rest) 
+  (define-c-proc - (arg1::<number> :rest rest) :constant
     (if (SG_NULLP rest)
 	(result (Sg_Negate arg1))
 	(begin 
@@ -606,7 +179,7 @@
 	    (set! arg1 (Sg_Sub arg1 v)))
 	  (result arg1))))
 
-  (define-c-proc / (arg1::<number> :rest rest) 
+  (define-c-proc / (arg1::<number> :rest rest) :constant
     (if (SG_NULLP rest)
 	(result (Sg_Inverse arg1))
 	(let ((exact::int (Sg_ExactP arg1)))
@@ -614,45 +187,35 @@
 	    (check-number / v)
 	    ;; if inexact numbers have already appeared, 
 	    ;; we can skip checking
-	    (when exact
-	      (set! exact (Sg_ExactP v)))
-	    (if (and exact
-		     (SG_VM_IS_SET_FLAG (Sg_VM) SG_R6RS_MODE)
-		     (Sg_ZeroP v))
-		(assertion-violation '/
-				     "undefined for 0"
-				     (Sg_Cons arg1 rest)))
+	    (when exact (set! exact (Sg_ExactP v)))
+	    (when (and exact (Sg_ZeroP v))
+	      (assertion-violation '/ "undefined for 0" (Sg_Cons arg1 rest)))
 	    (set! arg1 (Sg_Div arg1 v)))
 	  (result arg1))))
 
   ;; base arithmetic
-  (define-c-proc abs (x::<number>) 
-    (result (Sg_Abs x)))
-
-  (define-c-proc numerator (x::<number>) 
-    (result (Sg_Numerator x)))
-
-  (define-c-proc denominator (x::<number>) 
-    (result (Sg_Denominator x)))
+  (define-c-proc abs (x::<number>) :constant Sg_Abs)
+  (define-c-proc numerator (x::<number>) :constant Sg_Numerator)
+  (define-c-proc denominator (x::<number>) :constant Sg_Denominator)
 
   (define-cise-stmt check-real-valued
     ((_ name n)
      `(unless (Sg_RealValuedP ,n)
 	(wrong-type-of-argument-violation ',name "real number" ,n))))
 
-  (define-c-proc floor (x::<number>) 
+  (define-c-proc floor (x::<number>) :constant
     (check-real-valued floor x)
     (result (Sg_Round x SG_ROUND_FLOOR)))
 
-  (define-c-proc ceiling (x::<number>) 
+  (define-c-proc ceiling (x::<number>) :constant
     (check-real-valued ceiling x)
     (result (Sg_Round x SG_ROUND_CEIL)))
 
-  (define-c-proc truncate (x::<number>) 
+  (define-c-proc truncate (x::<number>) :constant
     (check-real-valued truncate x)
     (result (Sg_Round x SG_ROUND_TRUNC)))
 
-  (define-c-proc round (x::<number>) 
+  (define-c-proc round (x::<number>) :constant
     (check-real-valued round x)
     (result (Sg_Round x SG_ROUND_ROUND)))
 
@@ -678,56 +241,54 @@
 	(check-not-nan ,name ,x)
 	(check-not-zero ,name ,y))))
 
-  (define-c-proc div (x::<number> y::<number>) 
+  (define-c-proc div (x::<number> y::<number>) :constant
     (check-integer-arith-argument div x y)
     (result (Sg_IntegerDiv x y)))
 
-  (define-c-proc mod (x::<number> y::<number>) 
+  (define-c-proc mod (x::<number> y::<number>) :constant
     (check-integer-arith-argument mod x y)
     (result (Sg_IntegerMod x y)))
 
-  (define-c-proc div0 (x::<number> y::<number>) 
+  (define-c-proc div0 (x::<number> y::<number>) :constant
     (check-integer-arith-argument div0 x y)
     (result (Sg_IntegerDiv0 x y)))
 
-  (define-c-proc mod0 (x::<number> y::<number>) 
+  (define-c-proc mod0 (x::<number> y::<number>) :constant
     (check-integer-arith-argument mod0 x y)
     (result (Sg_IntegerMod0 x y)))
 
   ;; takes 2. r6rs implementation is in scmlib.scm
-  (define-c-proc %gcd (x::<number> y::<number>) 
-    (result (Sg_Gcd x y)))
+  (define-c-proc %gcd (x::<number> y::<number>) :constant Sg_Gcd)
 
-  (define-c-proc exp (x::<number>) 
-    (result (Sg_Exp x)))
+  (define-c-proc exp (x::<number>) :constant Sg_Exp)
+  (define-c-proc expt (x::<number> y::<number>) :constant Sg_Expt)
 
-  (define-c-proc expt (x::<number> y::<number>) 
-    (result (Sg_Expt x y)))
-
-  (define-c-proc log (x::<number> :optional base::<number>) 
+  (define-c-proc log (x::<number> :optional base::<number>) :constant
     (if (SG_UNBOUNDP base)
 	(if (== x (SG_MAKE_INT 0))
-	    (assertion-violation 'log
-				 "undefined for 0"
-				 x)
+	    (assertion-violation 'log "undefined for 0" x)
 	    (result (Sg_Log x)))
 	(result (Sg_Div (Sg_Log x) (Sg_Log base)))))
 
-  (define-c-proc make-rectangular (a::<number> b::<number>) 
+  (define-c-proc make-rectangular (a::<number> b::<number>) :constant
     (unless (SG_REALP a)
-      (wrong-type-of-argument-violation 'make-rectangular "real number required" a (SG_LIST2 a b)))
+      (wrong-type-of-argument-violation 'make-rectangular "real number required"
+					a (SG_LIST2 a b)))
     (unless (SG_REALP b)
-      (wrong-type-of-argument-violation 'make-rectangular "real number required" b (SG_LIST2 a b)))
+      (wrong-type-of-argument-violation 'make-rectangular "real number required"
+					b (SG_LIST2 a b)))
     (result (Sg_MakeComplex a b)))
 
-  (define-c-proc make-polar (r::<number> t::<number>) 
+  (define-c-proc make-polar (r::<number> t::<number>) :constant
     (unless (SG_REALP r)
-      (wrong-type-of-argument-violation 'make-polar "real number required" r (SG_LIST2 r t)))
+      (wrong-type-of-argument-violation 'make-polar "real number required"
+					r (SG_LIST2 r t)))
     (unless (SG_REALP t)
-      (wrong-type-of-argument-violation 'make-polar "real number required" t (SG_LIST2 r t)))
+      (wrong-type-of-argument-violation 'make-polar "real number required"
+					t (SG_LIST2 r t)))
     (result (Sg_MakeComplexPolar r t)))
 
-  (define-c-proc real-part (r::<number>) 
+  (define-c-proc real-part (r::<number>) :constant
     (cond ((SG_COMPLEXP r)
 	   (result (-> (SG_COMPLEX r) real)))
 	  ((SG_REALP r)
@@ -736,90 +297,85 @@
 	   ;; never happen
 	   (wrong-type-of-argument-violation 'real-part "number required" r))))
 
-  (define-c-proc imag-part (r::<number>) 
+  (define-c-proc imag-part (r::<number>) :constant
     (cond ((SG_COMPLEXP r)
 	   (result (-> (SG_COMPLEX r) imag)))
 	  ((SG_REALP r)
 	   (result (SG_MAKE_INT 0)))
 	  (else
-	   (wrong-type-of-argument-violation 'imag-part "number required" r))))  
+	   (wrong-type-of-argument-violation 'imag-part "number required" r))))
 
-  (define-c-proc magnitude (n::<number>) 
-    (result (Sg_Magnitude n)))
+  (define-c-proc magnitude (n::<number>) :constant Sg_Magnitude)
+  (define-c-proc angle (n::<number>) :constant Sg_Angle)
 
-  (define-c-proc angle (n::<number>) 
-    (result (Sg_Angle n)))
-
-  (define-c-proc sin (n::<number>) 
+  (define-c-proc sin (n::<number>) :constant
     (check-real-valued sin n)
     (result (Sg_Sin n)))
 
-  (define-c-proc cos (n::<number>) 
+  (define-c-proc cos (n::<number>) :constant
     (check-real-valued cos n)
     (result (Sg_Cos n)))
 
-  (define-c-proc tan (n::<number>) 
+  (define-c-proc tan (n::<number>) :constant
     (check-real-valued tan n)
     (result (Sg_Tan n)))
 
-  (define-c-proc asin (n::<number>) 
+  (define-c-proc asin (n::<number>) :constant
     (check-real-valued asin n)
     (result (Sg_Asin n)))
 
-  (define-c-proc acos (n::<number>) 
+  (define-c-proc acos (n::<number>) :constant
     (check-real-valued acos n)
     (result (Sg_Acos n)))
 
-  (define-c-proc atan (n::<number> :optional n2::<number>) 
+  (define-c-proc atan (n::<number> :optional n2::<number>) :constant
     (check-real-valued atan n)
     (cond ((SG_UNBOUNDP n2) (result (Sg_Atan n)))
 	  (else (check-real-valued atan n2)
 		(result (Sg_Atan2 n n2)))))
 
-  (define-c-proc sqrt (n::<number>) 
-    (result (Sg_Sqrt n)))
-
+  (define-c-proc sqrt (n::<number>) :constant Sg_Sqrt) :constant
   (define-c-proc exact-integer-sqrt (n::<number>) 
-    (when (or (Sg_NegativeP n)
-	      (not (SG_EXACT_INTP n)))
-      (wrong-type-of-argument-violation 'exact-integer-sqrt "non-negative exact integer required" n))
+    (when (or (Sg_NegativeP n) (not (SG_EXACT_INTP n)))
+      (wrong-type-of-argument-violation 'exact-integer-sqrt
+					"non-negative exact integer required"
+					n))
     (result (Sg_ExactIntegerSqrt n)))
 
-  (define-c-proc rationalize (x::<number> e::<number>) 
+  (define-c-proc rationalize (x::<number> e::<number>) :constant
     (check-real rationalize x)
     (check-real rationalize e)
     (result (Sg_Rationalize x e)))
 
   ;; r5rs compatible
-  (define-c-proc quotient (n1::<number> n2::<number>) 
+  (define-c-proc quotient (n1::<number> n2::<number>) :constant
     (when (SG_EQ n2 (SG_MAKE_INT 0))
-      (assertion-violation 'quotient
-			   "attempt to calculate a quotient by zero"
+      (assertion-violation 'quotient "attempt to calculate a quotient by zero"
 			   (SG_LIST2 n1 n2)))
     (result (Sg_Quotient n1 n2 NULL)))
 
-  (define-c-proc remainder (n1::<number> n2::<number>) 
+  (define-c-proc remainder (n1::<number> n2::<number>) :constant
     (result (Sg_Modulo n1 n2 TRUE)))
 
-  (define-c-proc modulo (n1::<number> n2::<number>) 
+  (define-c-proc modulo (n1::<number> n2::<number>) :constant
     (result (Sg_Modulo n1 n2 FALSE)))
 
-  (define-c-proc integer-length (n::<number>) ::<fixnum>
-    (result (Sg_IntegerLength n)))
+  (define-c-proc integer-length (n::<number>) ::<fixnum> :constant 
+    Sg_IntegerLength)
 
   ;; 11.7.4.4 numerical input and output
   (define-c-proc number->string (z::<number>
 				 :optional (radix::<fixnum> 10)
-				           (precision::<fixnum> 1)) 
+				           (precision::<fixnum> 1)) :constant
     ;; ignore precision
     (result (Sg_NumberToString z radix FALSE)))
 
   (define-c-proc string->number (s::<string> :optional (radix::<fixnum> 10)) 
+    :constant
     (result (Sg_StringToNumber s radix FALSE)))
 
   ;; 11.8 booleans
-  (define-c-proc not (arg0) ::<boolean> (inline NOT)
-    (result (SG_FALSEP arg0)))
+  (define-c-proc not (arg0) ::<boolean> :constant (inline NOT) SG_FALSEP)
 
   (define-cise-stmt check-boolean
     ((_ name b)
@@ -830,20 +386,12 @@
     (x=? check-boolean SG_EQ boolean=? b1 b2 rest))
 
   ;; 11.9 pairs and lists
-  (define-c-proc cons (o1 o2)  (inline CONS)
-    (result (Sg_Cons o1 o2)))
+  (define-c-proc cons (o1 o2) (inline CONS) Sg_Cons)
+  (define-c-proc car (o::<pair>) :constant
+    (inline CAR) (setter set-car!) SG_CAR)
 
-  (define-c-proc car (o)  (inline CAR)
-    (setter set-car!)
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'car "pair" o))
-    (result (SG_CAR o)))
-
-  (define-c-proc cdr (o)  (inline CDR)
-    (setter set-cdr!)
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cdr "pair" o))
-    (result (SG_CDR o)))
+  (define-c-proc cdr (o::<pair>) :constant
+    (inline CDR) (setter set-cdr!) SG_CDR)
 
   "#define CXR_SETTER(PRE, pre, tail)   \
     SgObject cell = Sg_C##tail##r(obj); \
@@ -851,145 +399,131 @@
      Sg_Error(UC(\"can't set c\" #pre #tail \"r of %S\"), obj); \
     SG_SET_C##PRE##R(cell, value);"
 
-  (define-c-proc caar (o) (inline CAAR)
-    (setter (obj value) ::<void> (CXR_SETTER A a a))
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'caar "pair" o))
-    (unless (SG_PAIRP (SG_CAR o))
-      (wrong-type-of-argument-violation 'caar "pair" o))
-    (result (SG_CAAR o)))
-
-  (define-c-proc cadr (o) (inline CADR)
-    (setter (obj value) ::<void> (CXR_SETTER A a d))
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (unless (SG_PAIRP (SG_CDR o))
-      (wrong-type-of-argument-violation 'cadr "pair" o))
-    (result (SG_CADR o)))
-
-  (define-c-proc cdar (o) (inline CDAR)
-    (setter (obj value) ::<void> (CXR_SETTER D d a))
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cdar "pair" o))
-    (unless (SG_PAIRP (SG_CAR o))
-      (wrong-type-of-argument-violation 'cdar "pair" o))
-    (result (SG_CDAR o)))
-
-  (define-c-proc cddr (o) (inline CDDR)
-    (setter (obj value) ::<void> (CXR_SETTER D d d))
-    (unless (SG_PAIRP o)
-      (wrong-type-of-argument-violation 'cddr "pair" o))
-    (unless (SG_PAIRP (SG_CDR o))
-      (wrong-type-of-argument-violation 'cddr "pair" o))
-    (result (SG_CDDR o)))
+  (define-c-proc caar (o::<pair>) :constant (inline CAAR)
+    (setter (obj value) ::<void> (CXR_SETTER A a a)) Sg_Caar)
+  (define-c-proc cadr (o::<pair>) :constant (inline CADR)
+    (setter (obj value) ::<void> (CXR_SETTER A a d)) Sg_Cadr)
+  (define-c-proc cdar (o::<pair>) :constant (inline CDAR)
+    (setter (obj value) ::<void> (CXR_SETTER D d a)) Sg_Cdar)
+  (define-c-proc cddr (o::<pair>) :constant (inline CDDR)
+    (setter (obj value) ::<void> (CXR_SETTER D d d)) Sg_Cddr)
 
   ;; moved from (core base)
+  ;; Why did I do this...
   "#define CXXR_SETTER(PRE, pre, tail)   \
     SgObject cell = Sg_C##pre##r(Sg_C##tail##r(obj)); \
     if (!SG_PAIRP(cell)) \
      Sg_Error(UC(\"can't set c\" #pre #tail \"r of %S\"), obj); \
     SG_SET_C##PRE##R(cell, value);"  
 
-  (define-c-proc caaar 	(o) 
+  (define-c-proc caaar 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a a))
     (result (Sg_Car  (Sg_Caar o))))
-  (define-c-proc caadr 	(o) 
+  (define-c-proc caadr 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a d))
     (result (Sg_Car  (Sg_Cadr o))))
-  (define-c-proc cadar 	(o) 
+  (define-c-proc cadar 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d a))
     (result (Sg_Car  (Sg_Cdar o))))
-  (define-c-proc caddr 	(o) 
+  (define-c-proc caddr 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d d))
     (result (Sg_Car  (Sg_Cddr o))))
-  (define-c-proc cdaar 	(o) 
+  (define-c-proc cdaar 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a a))
     (result (Sg_Cdr  (Sg_Caar o))))
-  (define-c-proc cdadr 	(o) 
+  (define-c-proc cdadr 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a d))
     (result (Sg_Cdr  (Sg_Cadr o))))
-  (define-c-proc cddar 	(o) 
+  (define-c-proc cddar 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d a))
     (result (Sg_Cdr  (Sg_Cdar o))))
-  (define-c-proc cdddr 	(o) 
+  (define-c-proc cdddr 	(o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d d))
     (result (Sg_Cdr  (Sg_Cddr o))))
-  (define-c-proc caaaar (o) 
+  (define-c-proc caaaar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a aa))
     (result (Sg_Caar (Sg_Caar o))))
-  (define-c-proc caaadr (o) 
+  (define-c-proc caaadr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a ad))
     (result (Sg_Caar (Sg_Cadr o))))
-  (define-c-proc caadar (o) 
+  (define-c-proc caadar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a da))
     (result (Sg_Caar (Sg_Cdar o))))
-  (define-c-proc caaddr (o) 
+  (define-c-proc caaddr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A a dd))
     (result (Sg_Caar (Sg_Cddr o))))
-  (define-c-proc cadaar (o) 
+  (define-c-proc cadaar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d aa))
     (result (Sg_Cadr (Sg_Caar o))))
-  (define-c-proc cadadr (o) 
+  (define-c-proc cadadr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d ad))
     (result (Sg_Cadr (Sg_Cadr o))))
-  (define-c-proc caddar (o) 
+  (define-c-proc caddar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d da))
     (result (Sg_Cadr (Sg_Cdar o))))
-  (define-c-proc cadddr (o) 
+  (define-c-proc cadddr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER A d dd))
     (result (Sg_Cadr (Sg_Cddr o))))
-  (define-c-proc cdaaar (o) 
+  (define-c-proc cdaaar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a aa))
     (result (Sg_Cdar (Sg_Caar o))))
-  (define-c-proc cdaadr (o) 
+  (define-c-proc cdaadr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a ad))
     (result (Sg_Cdar (Sg_Cadr o))))
-  (define-c-proc cdadar (o) 
+  (define-c-proc cdadar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a da))
     (result (Sg_Cdar (Sg_Cdar o))))
-  (define-c-proc cdaddr (o) 
+  (define-c-proc cdaddr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D a dd))
     (result (Sg_Cdar (Sg_Cddr o))))
-  (define-c-proc cddaar (o) 
+  (define-c-proc cddaar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d aa))
     (result (Sg_Cddr (Sg_Caar o))))
-  (define-c-proc cddadr (o) 
+  (define-c-proc cddadr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d ad))
     (result (Sg_Cddr (Sg_Cadr o))))
-  (define-c-proc cdddar (o) 
+  (define-c-proc cdddar (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d da))
     (result (Sg_Cddr (Sg_Cdar o))))
-  (define-c-proc cddddr (o) 
+  (define-c-proc cddddr (o) :constant
     (setter (obj value) ::<void> (CXXR_SETTER D d dd))
     (result (Sg_Cddr (Sg_Cddr o))))
 
 
-  (define-c-proc list? (arg0) ::<boolean> SG_PROPER_LISTP)
+  (define-c-proc list? (arg0) ::<boolean> :constant SG_PROPER_LISTP)
   (define-c-proc list (:rest rest) (inline LIST) (result rest))
-  (define-c-proc length (lst) ::<fixnum> Sg_Length)
+  (define-c-proc length (lst) ::<fixnum> :constant Sg_Length)
+  ;; are these transparent?
   (define-c-proc append (:rest lst) (inline APPEND) Sg_Append)
   (define-c-proc reverse (lst) Sg_Reverse)
 
-  (define-c-proc list-tail (lst k::<fixnum> :optional fallback) Sg_ListTail)
-  (define-c-proc list-ref (lst k::<fixnum> :optional fallback)
-    (setter (lst i::<fixnum> v) ::<void> 
-	    (SG_SET_CAR (Sg_ListTail lst i SG_UNBOUND) v))
+  (define-c-proc list-tail (lst k::<fixnum> :optional fallback) :constant
+    Sg_ListTail)
+  ;; from where should we expose this?
+  (define-c-proc list-set! (lst k::<fixnum> v)
+    (let ((p (Sg_ListTail lst k SG_FALSE)))
+      (if (SG_PAIRP p)
+	  (SG_SET_CAR p v)
+	  (assertion-violation 'list-set! "index out of bound"
+			       (SG_LIST2 lst (SG_MAKE_INT k))))))
+  (define-c-proc list-ref (lst k::<fixnum> :optional fallback) :constant
+    (setter list-set!)
     Sg_ListRef)
   ;; list miscs
-  (define-c-proc last-pair (lst) Sg_LastPair)
+  (define-c-proc last-pair (lst) :constant Sg_LastPair)
 
   ;; 11.10 symbols
-  (define-c-proc symbol->string (z::<symbol>) (result (-> z name)))
-
+  (define-c-proc symbol->string (z::<symbol>) :constant SG_SYMBOL_NAME)
   (define-cise-stmt check-symbol
     ((_ name s)
      `(unless (SG_SYMBOLP ,s)
 	(wrong-type-of-argument-violation ',name "symbol" ,s))))
 
-  (define-c-proc symbol=? (s1::<symbol> s2::<symbol> :rest rest) ::<boolean>
+  (define-c-proc symbol=? (s1::<symbol> s2::<symbol> :rest rest)
+    ::<boolean> :constant
     (x=? check-symbol SG_EQ symbol=? s1 s2 rest))
 
-  (define-c-proc string->symbol (z::<string>) Sg_Intern)
+  (define-c-proc string->symbol (z::<string>) :constant Sg_Intern)
 
   ;; 11.11 characters
   (define-cise-stmt check-char
@@ -997,19 +531,16 @@
      `(unless (SG_CHARP ,c)
 	(wrong-type-of-argument-violation ',name "char" ,c))))
 
-  (define-c-proc char->integer (c::<char>) 
-    (result (SG_MAKE_INT c)))
+  (define-c-proc char->integer (c::<char>) :constant SG_MAKE_INT)
 
-  (define-c-proc integer->char (ch::<fixnum>) 
-    (unless (or (and (<= 0 ch)
-		     (<= ch #xD7FF))
-		(and (<= #xE000 ch)
-		     (<= ch #x10FFFF)))
+  (define-c-proc integer->char (ch::<fixnum>) :constant
+    (unless (or (and (<= 0 ch) (<= ch #xD7FF))
+		(and (<= #xE000 ch) (<= ch #x10FFFF)))
       (assertion-violation 'integer->char "code point out of range"
 			   (SG_MAKE_INT ch)))
     (result (SG_MAKE_CHAR ch)))
 
-  (define-c-proc char=? (c1 c2 :rest rest) ::<boolean>
+  (define-c-proc char=? (c1 c2 :rest rest) ::<boolean> :constant
     (x=? check-char SG_EQ char=? c1 c2 rest))
 
   (define-cise-stmt char<>=?
@@ -1030,16 +561,16 @@
 		   (set! prev p))
 		 (result TRUE)))))))
 
-  (define-c-proc char<? (c1 c2 :rest rest) ::<boolean>
+  (define-c-proc char<? (c1 c2 :rest rest) ::<boolean> :constant
     (char<>=? < char<? c1 c2 rest))
 
-  (define-c-proc char>? (c1 c2 :rest rest) ::<boolean>
+  (define-c-proc char>? (c1 c2 :rest rest) ::<boolean> :constant
     (char<>=? > char>? c1 c2 rest))
 
-  (define-c-proc char<=? (c1 c2 :rest rest) ::<boolean>
+  (define-c-proc char<=? (c1 c2 :rest rest) ::<boolean> :constant
     (char<>=? <= char<=? c1 c2 rest))
 
-  (define-c-proc char>=? (c1 c2 :rest rest) ::<boolean>
+  (define-c-proc char>=? (c1 c2 :rest rest) ::<boolean> :constant
     (char<>=? >= char>=? c1 c2 rest))
 
   ;; 11.12 strings
@@ -1048,16 +579,15 @@
      `(unless (SG_STRINGP ,s)
 	(wrong-type-of-argument-violation ',name "string" ,s))))
 
-  (define-c-proc make-string (k::<fixnum> :optional (c::<char> #\space)) 
-    (result (Sg_ReserveString k c)))
-
+  (define-c-proc make-string (k::<fixnum> :optional (c::<char> #\space))
+    Sg_ReserveString)
   (define-c-proc string (:rest rest)
     (result (Sg_ListToString rest 0 -1)))
-
-  (define-c-proc string-length (s::<string>) ::<fixnum>
-    (result (-> s size)))
+  (define-c-proc string-length (s::<string>) ::<fixnum> :constant 
+    SG_STRING_SIZE)
 
   (define-c-proc string-ref (s::<string> k::<fixnum> :optional fallback)
+    :constant
     (setter string-set!)
     (cond ((and (>= k 0) (< k (SG_STRING_SIZE s)))
 	   (result (SG_MAKE_CHAR (SG_STRING_VALUE_AT s k))))
@@ -1068,7 +598,8 @@
 	   (result fallback))))
 
   ;; string compares
-  (define-c-proc string=? (s1::<string> s2::<string> :rest rest) ::<boolean>
+  (define-c-proc string=? (s1::<string> s2::<string> :rest rest)
+    ::<boolean> :constant
     (x=? check-string Sg_StringEqual string=? s1 s2 rest))
 
   (define-cise-stmt string-compare
@@ -1087,27 +618,30 @@
 		   (set! prev p))
 		 (result TRUE)))))))
 
-  (define-c-proc string<? (s1::<string> s2::<string> :rest rest) ::<boolean>
+  (define-c-proc string<? (s1::<string> s2::<string> :rest rest)
+    ::<boolean> :constant
     (string-compare == -1 string<? s1 s2 rest))
-
-  (define-c-proc string>? (s1::<string> s2::<string> :rest rest) ::<boolean>
+  (define-c-proc string>? (s1::<string> s2::<string> :rest rest)
+    ::<boolean> :constant
     (string-compare == 1 string>? s1 s2 rest))
-
-  (define-c-proc string<=? (s1::<string> s2::<string> :rest rest) ::<boolean>
+  (define-c-proc string<=? (s1::<string> s2::<string> :rest rest)
+    ::<boolean> :constant
     (string-compare <= 0 string<=? s1 s2 rest))
-
-  (define-c-proc string>=? (s1::<string> s2::<string> :rest rest) ::<boolean>
+  (define-c-proc string>=? (s1::<string> s2::<string> :rest rest)
+    ::<boolean> :constant
     (string-compare >= 0 string>=? s1 s2 rest))
 
   (define-c-proc substring (s::<string> start::<fixnum> end::<fixnum>) 
     (when (< start 0)
       (wrong-type-of-argument-violation 'substring "non negative exact integer"
 					(SG_MAKE_INT start)
-					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+					(SG_LIST3 s (SG_MAKE_INT start) 
+						  (SG_MAKE_INT end))))
     (when (< end 0)
       (wrong-type-of-argument-violation 'substring "non negative exact integer"
 					(SG_MAKE_INT end)
-					(SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
+					(SG_LIST3 s (SG_MAKE_INT start)
+						  (SG_MAKE_INT end))))
     (when (< end start)
       (assertion-violation 'substring "end index is smaller than start index"
 			   (SG_LIST3 s (SG_MAKE_INT start) (SG_MAKE_INT end))))
@@ -1121,8 +655,8 @@
   ;; we take start+end as optional arguments for srfi-13
   (define-c-proc string->list
     (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    (result (Sg_StringToList s start end)))
-
+    Sg_StringToList)
+  
   (define-c-proc list->string 
     (o::<list> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     Sg_ListToString)
@@ -1134,18 +668,18 @@
 
   ;; 11.13 vectors
   (define-c-proc make-vector (size::<fixnum> :optional fill)
-    (when (SG_UNBOUNDP fill)
-      (set! fill  SG_UNDEF))
+    (when (SG_UNBOUNDP fill) (set! fill  SG_UNDEF))
     (result (Sg_MakeVector size fill)))
 
   (define-c-proc vector (:rest rest)  (inline VECTOR)
     (result (Sg_ListToVector rest 0 -1)))
 
-  (define-c-proc vector-length (vec::<vector>) ::<fixnum> (inline VEC_LEN)
+  (define-c-proc vector-length (vec::<vector>) ::<fixnum> :constant
+    (inline VEC_LEN)
     (result (SG_VECTOR_SIZE vec)))
 
   (define-c-proc vector-ref (vec::<vector> i::<fixnum> :optional fallback)
-    (setter vector-set!)
+    :constant (setter vector-set!)
     (cond ((or (< i 0)
 	       (>= i (SG_VECTOR_SIZE vec)))
 	   (when (SG_UNBOUNDP fallback)
@@ -1158,9 +692,9 @@
     (when (SG_LITERAL_VECTORP vec)
       (assertion-violation 'vector-set "attempt to modify immutable vector"
 			   (SG_LIST1 vec)))
-    (cond ((or (< i 0)
-	       (>= i (SG_VECTOR_SIZE vec)))
-	   (assertion-violation 'vector-ref "index out of range" (SG_MAKE_INT i)))
+    (cond ((or (< i 0) (>= i (SG_VECTOR_SIZE vec)))
+	   (assertion-violation 'vector-ref "index out of range"
+				(SG_MAKE_INT i)))
 	  (else (set! (SG_VECTOR_ELEMENT vec i) obj))))
 
   (define-c-proc vector->list 
@@ -1180,16 +714,17 @@
 
   ;; 11.14 errors and violations
   (define-c-proc assertion-violation (who message :rest irritants) ::<void>
-    (Sg_AssertionViolation who message irritants))
+    Sg_AssertionViolation)
 
   ;; we might remove this
   (define-c-proc scheme-error (who msg :rest irritant) ::<void>
     (Sg_Error (UC "%S %A %S") who msg irritant))
 
   (define-c-proc syntax-error (form :rest irritant) ::<void>
-    (Sg_SyntaxError form irritant))
+    Sg_SyntaxError)
 
   ;; 11.15 control features
+  ;; is apply constant? I think it's depending on the given procedure...
   (define-c-proc apply (proc::<procedure> arg1 :rest rest)  (inline APPLY)
     (let ((head::SgObject '()) (tail::SgObject '()))
       (cond ((SG_NULLP rest) (result (Sg_VMApply proc arg1)))
@@ -1208,11 +743,9 @@
 
   ;; call/cc
   (define-c-proc call/cc (proc::<procedure>) Sg_VMCallCC)
-  
   (define-c-proc call-with-current-continuation (proc::<procedure>) Sg_VMCallCC)
 
-  (define-c-proc values (:rest rest) (inline VALUES) Sg_Values)
-
+  (define-c-proc values (:rest rest) :constant (inline VALUES) Sg_Values)
   (define-c-proc dynamic-wind (before thunk after) Sg_VMDynamicWind)
 
   ;; standard libraries
@@ -1223,41 +756,29 @@
      `(unless (SG_CHARP ,c)
 	(wrong-type-of-argument-violation ',name "character" ,c))))
 
-  (define-c-proc char-upcase (c::<char>) 
-    (result (SG_MAKE_CHAR (Sg_CharUpCase c))))
-
-  (define-c-proc char-downcase (c::<char>) 
-    (result (SG_MAKE_CHAR (Sg_CharDownCase c))))
-
-  (define-c-proc char-titlecase (c::<char>) 
-    (result (SG_MAKE_CHAR (Sg_CharTitleCase c))))
-
-  (define-c-proc char-foldcase (c::<char>) 
-    (result (SG_MAKE_CHAR (Sg_CharFoldCase c))))
+  ;; these can be constant since we always return the same value
+  ;; however no guarantee that unicode spec itself gets changed
+  ;; so just as it is for now.
+  ;; remember unicode 1.1 to unicode 2.0, this may happen in future...
+  (define-c-proc char-upcase (c::<char>) ::<char> Sg_CharUpCase)
+  (define-c-proc char-downcase (c::<char>) ::<char> Sg_CharDownCase)
+  (define-c-proc char-titlecase (c::<char>) ::<char> Sg_CharTitleCase)
+  (define-c-proc char-foldcase (c::<char>) ::<char> Sg_CharFoldCase)
 
   (define-c-proc char-general-category (c::<char>) 
     (result (Sg_CategroyToSymbol (Sg_CharGeneralCategory c))))
 
-  (define-c-proc char-alphabetic? (c::<char>) ::<boolean>
-    (result (Sg_CharAlphabeticP c)))
-
-  (define-c-proc char-numeric? (c::<char>) ::<boolean>
-    (result (Sg_CharNumericP c)))
-
-  (define-c-proc char-whitespace? (c::<char>) ::<boolean>
-    (result (Sg_Ucs4WhiteSpaceP c)))
-
-  (define-c-proc char-upper-case? (c::<char>) ::<boolean>
-    (result (Sg_CharUpperCaseP c)))
-
-  (define-c-proc char-lower-case? (c::<char>) ::<boolean>
-    (result (Sg_CharLowerCaseP c)))
-
-  (define-c-proc char-title-case? (c::<char>) ::<boolean>
-    (result (Sg_CharTitleCaseP c)))
+  (define-c-proc char-alphabetic? (c::<char>) ::<boolean> Sg_CharAlphabeticP)
+  (define-c-proc char-numeric? (c::<char>) ::<boolean> Sg_CharNumericP)
+  (define-c-proc char-whitespace? (c::<char>) ::<boolean> Sg_Ucs4WhiteSpaceP)
+  (define-c-proc char-upper-case? (c::<char>) ::<boolean> Sg_CharUpperCaseP)
+  (define-c-proc char-lower-case? (c::<char>) ::<boolean> Sg_CharLowerCaseP)
+  (define-c-proc char-title-case? (c::<char>) ::<boolean> Sg_CharTitleCaseP)
 
   ;; 1.2 strings
   ;; for SRFI-13
+
+  ;; these will allocate new string so not constant
   (define-c-proc string-upcase
     (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (result (Sg_StringUpCase (Sg_MaybeSubstring s start end))))
@@ -1274,30 +795,21 @@
     (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     (result (Sg_StringFoldCase (Sg_MaybeSubstring s start end))))
   ;; TODO Should we also add start end to these?
-  (define-c-proc string-normalize-nfd (s::<string>) 
-    (result (Sg_StringNormalizeNfd s)))
-
-  (define-c-proc string-normalize-nfkd (s::<string>) 
-    (result (Sg_StringNormalizeNfkd s)))
-
-  (define-c-proc string-normalize-nfc  (s::<string>) 
-    (result (Sg_StringNormalizeNfc s)))
-  
-  (define-c-proc string-normalize-nfkc (s::<string>) 
-    (result (Sg_StringNormalizeNfkc s)))
+  (define-c-proc string-normalize-nfd (s::<string>) Sg_StringNormalizeNfd)
+  (define-c-proc string-normalize-nfkd (s::<string>) Sg_StringNormalizeNfkd)
+  (define-c-proc string-normalize-nfc  (s::<string>) Sg_StringNormalizeNfc)
+  (define-c-proc string-normalize-nfkc (s::<string>) Sg_StringNormalizeNfkc)
 
   ;; 2 Bytevectors
   ;; 2.2 general operations
-  (define-c-proc native-endianness () 
-    (result (Sg_NativeEndianness)))
+  (define-c-proc native-endianness () Sg_NativeEndianness)
+  (define-c-proc bytevector=? (bv1::<bytevector> bv2::<bytevector>)
+    ::<boolean> :constant
+    Sg_ByteVectorEqP)
 
-  (define-c-proc bytevector=? (bv1::<bytevector> bv2::<bytevector>) ::<boolean>
-    (result (Sg_ByteVectorEqP bv1 bv2)))
-
-  (define-c-proc bytevector-copy (src::<bytevector> :optional 
-						    (start::<fixnum> 0)
-						    (end::<fixnum> -1))
-    (result (Sg_ByteVectorCopy src start end)))
+  (define-c-proc bytevector-copy 
+    (src::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_ByteVectorCopy)
 
   (define-cise-stmt check-non-negative-fixnum
     ((_ name n)
@@ -1318,10 +830,10 @@
     (check-non-negative-fixnum make-bytevector len)
     (result (Sg_MakeByteVector len fill)))
 
-  (define-c-proc bytevector? (o) ::<boolean> SG_BVECTORP)
+  (define-c-proc bytevector? (o) ::<boolean> :constant SG_BVECTORP)
 
-  (define-c-proc bytevector-length (bv::<bytevector>) ::<fixnum>
-    (result (SG_BVECTOR_SIZE bv)))
+  (define-c-proc bytevector-length (bv::<bytevector>) ::<fixnum> :constant
+    SG_BVECTOR_SIZE)
 
   (define-c-proc bytevector-fill! 
     (bv::<bytevector> fill::<fixnum>
@@ -1353,7 +865,8 @@
 	(assertion-violation ',name "attempt to modify literal bytevector"
 			     ,bv))))
 
-  (define-c-proc bytevector-u8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
+  (define-c-proc bytevector-u8-ref (bv::<bytevector> index::<fixnum>)
+    ::<fixnum> :constant
     (setter bytevector-u8-set!)
     (bv-check-index bytevector-u8-ref bv index)
     (result (SG_BVECTOR_ELEMENT bv index)))
@@ -1368,7 +881,8 @@
 			   (SG_MAKE_INT value)))
     (set! (SG_BVECTOR_ELEMENT bv index) (cast uint8_t value)))
 
-  (define-c-proc bytevector-s8-ref (bv::<bytevector> index::<fixnum>) ::<fixnum>
+  (define-c-proc bytevector-s8-ref (bv::<bytevector> index::<fixnum>)
+    ::<fixnum> :constant
     (setter bytevector-s8-set!)
     (bv-check-index bytevector-s8-ref bv index)
     (result (cast int8_t (SG_BVECTOR_ELEMENT bv index))))
@@ -1401,7 +915,7 @@
   ;; 2.5 operations on 16-bit integers
   ;; u16
   (define-c-proc bytevector-u16-native-ref
-    (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (bv::<bytevector> index::<fixnum>) ::<fixnum> :constant
     (setter bytevector-u16-native-set!)
     (bv-check-index bytevector-u16-native-ref bv index 1)
     (bv-check-align bytevector-u16-native-ref index 2)
@@ -1415,7 +929,7 @@
     (Sg_ByteVectorU16NativeSet bv index value))
 
   (define-c-proc bytevector-u16-ref
-    (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum>
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum> :constant
     ;;(setter bytevector-u16-set!)
     (bv-check-index bytevector-u16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
@@ -1441,7 +955,7 @@
 
   ;; s16
   (define-c-proc bytevector-s16-native-ref
-    (bv::<bytevector> index::<fixnum>) ::<fixnum>
+    (bv::<bytevector> index::<fixnum>) ::<fixnum> :constant
     (setter bytevector-s16-native-set!)
     (bv-check-index bytevector-s16-native-ref bv index 1)
     (bv-check-align bytevector-s16-native-ref index 2)
@@ -1455,7 +969,7 @@
     (Sg_ByteVectorS16NativeSet bv index value))
 
   (define-c-proc bytevector-s16-ref
-    (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum>
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) ::<fixnum> :constant
     ;;(setter bytevector-s16-set!)
     (bv-check-index bytevector-s16-ref bv index 1)
     (cond ((SG_EQ endian 'big)
@@ -1481,6 +995,7 @@
   ;; 2.6 operations on 32-bit integers
   ;; u32
   (define-c-proc bytevector-u32-native-ref (bv::<bytevector> index::<fixnum>)
+    :constant
     (setter bytevector-u32-native-set!)
     (bv-check-index bytevector-u32-native-ref bv index 3)
     (bv-check-align bytevector-u32-native-ref index 4)
@@ -1503,7 +1018,7 @@
       (Sg_ByteVectorU32NativeSet bv index value)))
 
   (define-c-proc bytevector-u32-ref 
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-u32-set!)
     (bv-check-index bytevector-u32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
@@ -1539,6 +1054,7 @@
 				  "unsupported endianness" endian)))))
   ;; s32
   (define-c-proc bytevector-s32-native-ref (bv::<bytevector> index::<fixnum>)
+    :constant
     (setter bytevector-s32-native-set!)
     (bv-check-index bytevector-s32-native-ref bv index 3)
     (bv-check-align bytevector-s32-native-ref index 4)
@@ -1561,7 +1077,7 @@
       (Sg_ByteVectorS32NativeSet bv index value)))
 
   (define-c-proc bytevector-s32-ref
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-s32-set!)
     (bv-check-index bytevector-s32-ref bv index 3)
     (cond ((SG_EQ endian 'big)
@@ -1597,6 +1113,7 @@
   ;; 2.7 operations on 64-bit integers
   ;; u64
   (define-c-proc bytevector-u64-native-ref (bv::<bytevector> index::<fixnum>)
+    :constant
     (setter bytevector-u64-native-set!)
     (bv-check-index bytevector-u64-native-ref bv index 7)
     (bv-check-align bytevector-u64-native-ref index 8)
@@ -1622,7 +1139,7 @@
       (Sg_ByteVectorU64NativeSet bv index value)))
 
   (define-c-proc bytevector-u64-ref
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-u64-set!)
     (bv-check-index bytevector-u64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
@@ -1659,6 +1176,7 @@
 				  "unsupported endianness" endian)))))
   ;; s64
   (define-c-proc bytevector-s64-native-ref (bv::<bytevector> index::<fixnum>)
+    :constant
     (setter bytevector-s64-native-set!)
     (bv-check-index bytevector-s64-native-ref bv index 7)
     (bv-check-align bytevector-s64-native-ref index 8)
@@ -1683,7 +1201,7 @@
       (Sg_ByteVectorS64NativeSet bv index value)))
 
   (define-c-proc bytevector-s64-ref 
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-s64-set!)
     (bv-check-index bytevector-s64-ref bv index 7)
     (cond ((SG_EQ endian 'big)
@@ -1721,14 +1239,14 @@
   ;; 2.8 operations on ieee-754 representations
   ;; ieee-single
   (define-c-proc bytevector-ieee-single-native-ref
-    (bv::<bytevector> index::<fixnum>)
+    (bv::<bytevector> index::<fixnum>) :constant
     (setter bytevector-ieee-single-native-set!)
     (bv-check-index bytevector-ieee-single-native-ref bv index 3)
     (bv-check-align bytevector-ieee-single-native-ref index 4)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEESingleNativeRef bv index))))
 
   (define-c-proc bytevector-ieee-single-ref
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-ieee-single-set!)
     (bv-check-index bytevector-ieee-single-ref bv index 3)
     (cond ((SG_EQ endian 'big)
@@ -1763,14 +1281,14 @@
 				  "unsupported endianness" endian)))))
   ;; ieee-double
   (define-c-proc bytevector-ieee-double-native-ref
-    (bv::<bytevector> index::<fixnum>)
+    (bv::<bytevector> index::<fixnum>) :constant
     (setter bytevector-ieee-double-native-set!)
     (bv-check-index bytevector-ieee-double-native-ref bv index 7)
     (bv-check-align bytevector-ieee-double-native-ref index 8)
     (result (Sg_MakeFlonum (Sg_ByteVectorIEEEDoubleNativeRef bv index))))
 
   (define-c-proc bytevector-ieee-double-ref 
-    (bv::<bytevector> index::<fixnum> endian::<symbol>)
+    (bv::<bytevector> index::<fixnum> endian::<symbol>) :constant
     ;;(setter bytevector-ieee-double-set!)
     (bv-check-index bytevector-ieee-double-ref bv index 7)
     (cond ((SG_EQ endian 'big)
@@ -1905,17 +1423,10 @@
 	(result (Sg_ByteVectorToString bv (& trans) skipSize -1)))))
   
   ;; 3 List utilities
-  (define-c-proc memq (arg0 arg1) 
-    (result (Sg_Memq arg0 arg1)))
-
-  (define-c-proc memv (arg0 arg1) 
-    (result (Sg_Memv arg0 arg1)))
-
-  (define-c-proc assq (obj alist) 
-    (result (Sg_Assq obj alist)))
-
-  (define-c-proc assv (obj alist) 
-    (result (Sg_Assv obj alist)))
+  (define-c-proc memq (arg0 arg1) :constant Sg_Memq)
+  (define-c-proc memv (arg0 arg1) :constant Sg_Memv)
+  (define-c-proc assq (obj alist) :constant Sg_Assq)
+  (define-c-proc assv (obj alist) :constant Sg_Assv)
 
   (define-c-proc cons* (:rest rest) 
     (let ((h '()) (t '()))
@@ -1932,7 +1443,7 @@
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
   (define-c-proc with-exception-handler (handler thunk) 
-    (result (Sg_VMWithExceptionHandler handler thunk)))
+    Sg_VMWithExceptionHandler)
 
   (define-c-proc raise (c) 
     (result (Sg_Raise c FALSE)))
@@ -1943,18 +1454,14 @@
   ;; 8 I/O
   ;; 8.2 port i/o
   ;; 8.2.3 buffer modes
-  (define-c-proc buffer-mode? (o) ::<boolean>
+  (define-c-proc buffer-mode? (o) ::<boolean> :constant
     (result (or (SG_EQ o 'none)
 		(SG_EQ o 'line)
 		(SG_EQ o 'block))))
   
   ;; 8.2.4 transcoders
-  (define-c-proc latin-1-codec () 
-    (result (Sg_MakeLatin1Codec)))
-
-  (define-c-proc utf-8-codec () 
-    (result (Sg_MakeUtf8Codec)))
-
+  (define-c-proc latin-1-codec () Sg_MakeLatin1Codec)
+  (define-c-proc utf-8-codec () Sg_MakeUtf8Codec)
   (define-c-proc utf-16-codec () 
     (result (Sg_MakeUtf16Codec UTF_16CHECK_BOM)))
 
@@ -1981,9 +1488,7 @@
 				  "platform native eol style not found"
 				  '())))))
 
-  (define-c-proc make-transcoder (c::<codec> :optional eol
-					     mode::<symbol>)
-    
+  (define-c-proc make-transcoder (c::<codec> :optional eol mode::<symbol>)
     (unless (or (SG_UNBOUNDP eol)
 		(SG_SYMBOLP eol))
       (wrong-type-of-argument-violation 'make-transcoder
@@ -2023,9 +1528,10 @@
 
   (define-c-proc native-transcoder () Sg_MakeNativeTranscoder)
 
-  (define-c-proc transcoder-codec (t::<transcoder>) SG_TRANSCODER_CODEC)
+  (define-c-proc transcoder-codec (t::<transcoder>) :constant
+    SG_TRANSCODER_CODEC)
 
-  (define-c-proc transcoder-eol-style (t::<transcoder>) 
+  (define-c-proc transcoder-eol-style (t::<transcoder>) :constant
     (let ((style::EolStyle (SG_TRANSCODER_EOL_STYLE t)))
       (cond ((== style LF)
 	     (result 'lf))
@@ -2047,7 +1553,7 @@
 				  "transcoder had unknown eol-style. this must be a bug, please report it"
 				  '())))))
 
-  (define-c-proc transcoder-error-handling-mode (t::<transcoder>) 
+  (define-c-proc transcoder-error-handling-mode (t::<transcoder>) :constant
     (let ((mode::ErrorHandlingMode (SG_TRANSCODER_MODE t)))
       (cond ((SG_EQ mode SG_REPLACE_ERROR)
 	     (result SG_SYMBOL_REPLACE))
@@ -2063,19 +1569,16 @@
   (define-c-proc bytevector->string
     (b::<bytevector> t::<transcoder>
 		     :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    (result (Sg_ByteVectorToString b t start end)))
+    Sg_ByteVectorToString)
 
   (define-c-proc string->bytevector
     (s::<string> t::<transcoder>
 		 :optional (start::<fixnum> 0) (end::<fixnum> -1))
-    (result (Sg_StringToByteVector s t start end)))
+    Sg_StringToByteVector)
 
   ;; 8.2.5 end-of-file object
-  (define-c-proc eof-object () 
-    (result SG_EOF))
-
-  (define-c-proc eof-object? (o) ::<boolean>
-    (result (SG_EOFP o)))
+  (define-c-proc eof-object () (result SG_EOF))
+  (define-c-proc eof-object? (o) ::<boolean> :constant SG_EOFP)
 
   ;; 8.2.6 input port and output port
   ;; check utility for opened port
@@ -2092,10 +1595,9 @@
 			      SG_BINARY_CUSTOM_PORT_TYPE)))
 	(wrong-type-of-argument-violation ',name "binary-port" ,p))))
 
-  (define-c-proc port? (obj) ::<boolean>
-    (result (SG_PORTP obj)))
+  (define-c-proc port? (obj) ::<boolean> :constant SG_PORTP)
 
-  (define-c-proc port-transcoder (p::<port>)
+  (define-c-proc port-transcoder (p::<port>) :constant
     (cond ((SG_BINARY_PORTP p)
 	   (result #f))
 	  ((SG_TEXTUAL_PORTP p)
@@ -2107,14 +1609,14 @@
 	   ;; TODO custom port
 	   (result #f))))
 
-  (define-c-proc textual-port? (p) ::<boolean>
+  (define-c-proc textual-port? (p) ::<boolean> :constant
     (result (and (SG_PORTP p) 
 		 (or (SG_TEXTUAL_PORTP p)
 		     (and (SG_CUSTOM_PORTP p)
 			  (== (-> (SG_CUSTOM_PORT p) type)
 			      SG_TEXTUAL_CUSTOM_PORT_TYPE))))))
 
-  (define-c-proc binary-port? (p) ::<boolean>
+  (define-c-proc binary-port? (p) ::<boolean> :constant
     (result (and (SG_PORTP p) 
 		 (or (SG_BINARY_PORTP p)
 		     (and (SG_CUSTOM_PORTP p)
@@ -2136,11 +1638,11 @@
 				"port had unknown direction. this must be a bug, please report it"
 				  '()))))
 
-  (define-c-proc port-has-port-position? (p::<port>) ::<boolean>
-    (result (Sg_HasPortPosition p)))
+  (define-c-proc port-has-port-position? (p::<port>) ::<boolean> :constant
+    Sg_HasPortPosition)
 
-  (define-c-proc port-has-set-port-position!? (p::<port>) ::<boolean>
-    (result (Sg_HasSetPortPosition p)))
+  (define-c-proc port-has-set-port-position!? (p::<port>) ::<boolean> :constant
+    Sg_HasSetPortPosition)
 
   (define-c-proc port-position (p::<port>) 
     (check-port-open port-position p)
@@ -2160,10 +1662,10 @@
 		  (SG_INOUTPORTP ,p))
 	(wrong-type-of-argument-violation ',name "input port" ,p))))
 
-  (define-c-proc input-port? (obj) ::<boolean>
+  (define-c-proc input-port? (obj) ::<boolean> :constant
     (result (or (SG_INPORTP obj) (SG_INOUTPORTP obj))))
 
-  (define-c-proc port-eof? (p::<port>) ::<boolean>
+  (define-c-proc port-eof? (p::<port>) ::<boolean> :constant
     (cond ((SG_BINARY_PORTP p)
 	   (let ((ch::int (Sg_Peekb p)))
 	     (result (== ch EOF))))
@@ -2747,13 +2249,13 @@
 
   ;; 8.3 simple i/o
   (define-c-proc close-input-port (p::<port>) ::<void>
-    (if (not (SG_INPORTP p))
-	(wrong-type-of-argument-violation 'close-input-port "input port" p))
+    (unless (SG_INPORTP p)
+      (wrong-type-of-argument-violation 'close-input-port "input port" p))
     (Sg_ClosePort p))
 
   (define-c-proc close-output-port (p::<port>) ::<void>
-    (if (not (SG_OUTPORTP p))
-	(wrong-type-of-argument-violation 'close-output-port "output port" p))
+    (unless (SG_OUTPORTP p)
+      (wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 
   (define-c-proc read-char (:optional (p::<port> (Sg_CurrentInputPort)))
@@ -2803,8 +2305,8 @@
     (Sg_Write o p SG_WRITE_WRITE))
 
   ;; 9 file system
-  (define-c-proc file-exists? (filename::<string>) ::<boolean>
-    (result (Sg_FileExistP filename)))
+  ;; the same string can return the different value...
+  (define-c-proc file-exists? (filename::<string>) ::<boolean> Sg_FileExistP)
 
   (define-c-proc delete-file (filename::<string>) ::<void>
     (unless (== (Sg_DeleteFile filename) 0)
@@ -2835,15 +2337,13 @@
 
   ;; 11 Arithmetic
   ;; 11.2 fixnum
-  (define-c-proc fixnum? (o) ::<boolean>
-    (result (SG_INTP o)))
-
+  ;; on 32 and 64 return different value
+  ;; so fx related are not constant
+  (define-c-proc fixnum? (o) ::<boolean> SG_INTP)
   (define-c-proc fixnum-width () ::<fixnum>
     (result (+ SG_INT_SIZE 1)))
-
   (define-c-proc least-fixnum () ::<fixnum>
     (result SG_INT_MIN))
-
   (define-c-proc greatest-fixnum () ::<fixnum>
     (result SG_INT_MAX))
 
@@ -2871,31 +2371,24 @@
 
   (define-c-proc fx=? (fx1::<fixnum> fx2::<fixnum> :rest rest) ::<boolean>
     (fixnum-compare fx=? == fx1 fx2 rest))
-
   (define-c-proc fx<? (fx1::<fixnum> fx2::<fixnum> :rest rest) ::<boolean>
     (fixnum-compare fx<? < fx1 fx2 rest))
-
   (define-c-proc fx>? (fx1::<fixnum> fx2::<fixnum> :rest rest) ::<boolean>
     (fixnum-compare fx>? > fx1 fx2 rest))
-
   (define-c-proc fx<=? (fx1::<fixnum> fx2::<fixnum> :rest rest) ::<boolean>
     (fixnum-compare fx<=? <= fx1 fx2 rest))
-
   (define-c-proc fx>=? (fx1::<fixnum> fx2::<fixnum> :rest rest) ::<boolean>
     (fixnum-compare fx>=? >= fx1 fx2 rest))
 
   (define-c-proc fxzero? (fx::<fixnum>) ::<boolean>
     (result (SG_EQ fx 0)))
-
   (define-c-proc fxpositive? (fx::<fixnum>) ::<boolean>
     (result (> fx  0)))
-
   (define-c-proc fxnegative? (fx::<fixnum>) ::<boolean>
     (result (< fx 0)))
 
   (define-c-proc fxodd? (fx::<fixnum>) ::<boolean>
     (result (== (logand fx 1) 1)))
-
   (define-c-proc fxeven? (fx::<fixnum>) ::<boolean>
     (result (== (logand fx 1) 0)))
 
@@ -3204,8 +2697,7 @@
    (.include <math.h>)
    (.include <float.h>)) ;; for VC
 
-  (define-c-proc flonum? (o) ::<boolean>
-    (result (SG_FLONUMP o)))
+  (define-c-proc flonum? (o) ::<boolean> :constant SG_FLONUMP)
 
   (define-c-proc real->flonum (n::<number>)
     (check-real-valued real->flonum n)
@@ -3232,7 +2724,6 @@
 	   ;; for other we skip, because it can handle properly.
 	   )))
 
-
   (define-cise-stmt flonum-compare
     ((_ name compare first second rest)
      `(begin
@@ -3250,46 +2741,46 @@
 	    (set! prev target))
 	  (return #t)))))
 
-  (define-c-proc fl=? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
+  (define-c-proc fl=? (fl1::<number> fl2::<number> :rest rest)
+    ::<boolean> :constant
     (flonum-compare fl=? == fl1 fl2 rest))
-
-  (define-c-proc fl<? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
+  (define-c-proc fl<? (fl1::<number> fl2::<number> :rest rest)
+    ::<boolean> :constant
     (flonum-compare fl<? < fl1 fl2 rest))
-
-  (define-c-proc fl>? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
+  (define-c-proc fl>? (fl1::<number> fl2::<number> :rest rest)
+    ::<boolean> :constant
     (flonum-compare fl>? > fl1 fl2 rest))
-
-  (define-c-proc fl<=? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
+  (define-c-proc fl<=? (fl1::<number> fl2::<number> :rest rest)
+    ::<boolean> :constant
     (flonum-compare fl<=? <= fl1 fl2 rest))
-
-  (define-c-proc fl>=? (fl1::<number> fl2::<number> :rest rest) ::<boolean>
+  (define-c-proc fl>=? (fl1::<number> fl2::<number> :rest rest)
+    ::<boolean> :constant
     (flonum-compare fl>=? >= fl1 fl2 rest))
 
   (define-cise-stmt flonum-integer?
     ((_ fl)
-     `(cond ((or (isinf (flonum-value ,fl))
-		 (isnan (flonum-value ,fl)))
+     `(cond ((or (isinf (flonum-value ,fl)) (isnan (flonum-value ,fl)))
 	     (result FALSE))
 	    (else
 	     (result (== (flonum-value ,fl) (floor (flonum-value ,fl))))))))
 
-  (define-c-proc flinteger? (fl::<number>) ::<boolean>
+  (define-c-proc flinteger? (fl::<number>) ::<boolean> :constant
     (check-flonum flinteger? fl)
     (flonum-integer? fl))
 
-  (define-c-proc flzero? (fl::<number>) ::<boolean>
+  (define-c-proc flzero? (fl::<number>) ::<boolean> :constant
     (check-flonum flzero? fl)
     (result (== (flonum-value fl) 0.0)))
   
-  (define-c-proc flpositive? (fl::<number>) ::<boolean>
+  (define-c-proc flpositive? (fl::<number>) ::<boolean> :constant
     (check-flonum flpositive? fl)
     (result (> (flonum-value fl) 0.0)))
 
-  (define-c-proc flnegative? (fl::<number>) ::<boolean>
+  (define-c-proc flnegative? (fl::<number>) ::<boolean> :constant
     (check-flonum flnegative? fl)
     (result (< (flonum-value fl) 0.0)))
 
-  (define-c-proc flodd? (fl::<number>) ::<boolean>
+  (define-c-proc flodd? (fl::<number>) ::<boolean> :constant
     (check-flonum flodd? fl)
     (flonum-integer? fl)
     (if SG_RESULT
@@ -3299,7 +2790,7 @@
 					  "integer flonum"
 					  (SG_LIST1 fl))))
 
-  (define-c-proc fleven? (fl::<number>) ::<boolean>
+  (define-c-proc fleven? (fl::<number>) ::<boolean> :constant
     (check-flonum fleven? fl)
     (flonum-integer? fl)
     (if SG_RESULT
@@ -3320,7 +2811,7 @@
     (check-flonum flnan? fl)
     (result (isnan (flonum-value fl))))
 
-  (define-c-proc flmax (fl::<number> :rest rest) 
+  (define-c-proc flmax (fl::<number> :rest rest) :constant
     (begin
       (check-flonum flmax fl)
       (if (isnan (flonum-value fl))
@@ -3334,7 +2825,7 @@
 		  (set! max (flonum-value v))))
 	    (result (Sg_MakeFlonum max))))))
 
-  (define-c-proc flmin (fl::<number> :rest rest)
+  (define-c-proc flmin (fl::<number> :rest rest) :constant
     (begin
       (check-flonum flmin fl)
       (if (isnan (flonum-value fl))
@@ -3355,6 +2846,7 @@
 	  (set! ,ret (,op ,ret (flonum-value v))))))
 
   (define-c-proc fl+ (:optional fl1::<number> fl2::<number> :rest rest)
+    :constant
     (cond ((SG_UNBOUNDP fl1) (result (Sg_MakeFlonum 0.0)))
 	  ((SG_UNBOUNDP fl2)
 	   (check-flonum fl+ fl1)
@@ -3367,6 +2859,7 @@
 	     (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl* (:optional fl1::<number> fl2::<number> :rest rest)
+    :constant
     (cond ((SG_UNBOUNDP fl1) (result (Sg_MakeFlonum 1.0)))
 	  ((SG_UNBOUNDP fl2)
 	   (check-flonum fl* fl1)
@@ -3379,6 +2872,7 @@
 	     (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl- (fl::<number> :optional fl2::<number> :rest rest)
+    :constant
     (begin
       (check-flonum fl- fl)
       (if (SG_UNBOUNDP fl2) 
@@ -3390,6 +2884,7 @@
 	    (result (Sg_MakeFlonum ret))))))
 
   (define-c-proc fl/ (fl::<number> :optional fl2::<number> :rest rest)
+    :constant
     (begin
       (check-flonum fl/ fl)
       (if (SG_UNBOUNDP fl2)
@@ -3415,7 +2910,7 @@
 	  (flonum-div ,tmp ,d1 ,d2)
 	  (set! ,ret (- ,d1 (* ,d2 ,tmp)))))))
 
-  (define-c-proc fldiv (fl1::<number> fl2::<number>)
+  (define-c-proc fldiv (fl1::<number> fl2::<number>) :constant
     (check-flonum fldiv fl1)
     (check-flonum fldiv fl2)
     (let ((d1::double (flonum-value fl1))
@@ -3424,7 +2919,7 @@
       (flonum-div ret d1 d2)
       (result (Sg_MakeFlonum ret))))
 
-  (define-c-proc flmod (fl1::<number> fl2::<number>)
+  (define-c-proc flmod (fl1::<number> fl2::<number>) :constant
     (check-flonum flmod fl1)
     (check-flonum flmod fl2)
     (let ((d1::double (flonum-value fl1))
@@ -3454,7 +2949,7 @@
 	  (flonum-div0 ,div ,d1 ,d2)
 	  (set! ,ret (- ,d1 (* ,d2 ,div)))))))
 
-  (define-c-proc fldiv0 (fl1::<number> fl2::<number>)
+  (define-c-proc fldiv0 (fl1::<number> fl2::<number>) :constant
     (check-flonum fldiv0 fl1)
     (check-flonum fldiv0 fl2)
     (let ((d1::double (flonum-value fl1))
@@ -3463,7 +2958,7 @@
       (flonum-div0 ret d1 d2)
       (result (Sg_MakeFlonum ret))))
 
-  (define-c-proc flmod0 (fl1::<number> fl2::<number>)
+  (define-c-proc flmod0 (fl1::<number> fl2::<number>) :constant
     (check-flonum flmod0 fl1)
     (check-flonum flmod0 fl2)
     (let ((d1::double (flonum-value fl1))
@@ -3472,35 +2967,35 @@
       (flonum-mod0 ret d1 d2)
       (result (Sg_MakeFlonum ret))))
 
-  (define-c-proc flnumerator (fl::<number>)
+  (define-c-proc flnumerator (fl::<number>) :constant
     (check-flonum flnumerator fl)
     (result (Sg_Numerator fl)))
 
-  (define-c-proc fldenominator (fl::<number>)
+  (define-c-proc fldenominator (fl::<number>) :constant
     (check-flonum fldenominator fl)
     (result (Sg_Denominator fl)))
 
-  (define-c-proc flfloor (fl::<number>)
+  (define-c-proc flfloor (fl::<number>) :constant
     (check-flonum flfloorr fl)
     (result (Sg_Round fl SG_ROUND_FLOOR)))
 
-  (define-c-proc flceiling (fl::<number>) 
+  (define-c-proc flceiling (fl::<number>) :constant
     (check-flonum flceiling fl)
     (result (Sg_Round fl SG_ROUND_CEIL)))
 
-  (define-c-proc fltruncate (fl::<number>) 
+  (define-c-proc fltruncate (fl::<number>) :constant
     (check-flonum fltruncate fl)
     (result (Sg_Round fl SG_ROUND_TRUNC)))
 
-  (define-c-proc flround (fl::<number>) 
+  (define-c-proc flround (fl::<number>) :constant
     (check-flonum flround fl)
     (result (Sg_Round fl SG_ROUND_ROUND)))
 
-  (define-c-proc flexp (fl::<number>) 
+  (define-c-proc flexp (fl::<number>) :constant
     (check-flonum flexp fl)
     (result (Sg_MakeFlonum (exp (flonum-value fl)))))
 
-  (define-c-proc flexpt (fl1::<number> fl2::<number>) 
+  (define-c-proc flexpt (fl1::<number> fl2::<number>) :constant
     (check-flonum flexpt fl1)
     (check-flonum flexpt fl2)
     (result (Sg_MakeFlonum (pow (flonum-value fl1) (flonum-value fl2)))))
@@ -3513,7 +3008,7 @@
 	     (return (log d)))
 	 (return (log d))))
 
-  (define-c-proc fllog (fl1::<number> :optional fl2) 
+  (define-c-proc fllog (fl1::<number> :optional fl2) :constant
     (check-flonum fllog fl1)
     (if (SG_UNBOUNDP fl2)
 	(result (Sg_MakeFlonum (log_impl (flonum-value fl1))))
@@ -3522,27 +3017,27 @@
 	  (result (Sg_MakeFlonum (/ (log_impl (flonum-value fl1))
 				    (log_impl (flonum-value fl2))))))))
   
-  (define-c-proc flsin (fl::<number>) 
+  (define-c-proc flsin (fl::<number>) :constant
     (check-flonum flsin fl)
     (result (Sg_MakeFlonum (sin (flonum-value fl)))))
 
-  (define-c-proc flcos (fl::<number>) 
+  (define-c-proc flcos (fl::<number>) :constant
     (check-flonum flcos fl)
     (result (Sg_MakeFlonum (cos (flonum-value fl)))))
 
-  (define-c-proc fltan (fl::<number>) 
+  (define-c-proc fltan (fl::<number>) :constant
     (check-flonum fltan fl)
     (result (Sg_MakeFlonum (tan (flonum-value fl)))))
 
-  (define-c-proc flasin (fl::<number>) 
+  (define-c-proc flasin (fl::<number>) :constant
     (check-flonum flasin fl)
     (result (Sg_MakeFlonum (asin (flonum-value fl)))))
 
-  (define-c-proc flacos (fl::<number>) 
+  (define-c-proc flacos (fl::<number>) :constant
     (check-flonum flacos fl)
     (result (Sg_MakeFlonum (acos (flonum-value fl)))))
 
-  (define-c-proc flatan (fl1::<number> :optional fl2) 
+  (define-c-proc flatan (fl1::<number> :optional fl2) :constant
     (check-flonum flatan fl1)
     (if (SG_UNBOUNDP fl2)
 	(result (Sg_MakeFlonum (atan (flonum-value fl1))))
@@ -3551,11 +3046,11 @@
 	  (result (Sg_MakeFlonum (atan2 (flonum-value fl1)
 					(flonum-value fl2)))))))
 
-  (define-c-proc flabs (fl::<number>) 
+  (define-c-proc flabs (fl::<number>) :constant
     (check-flonum flabs fl)
     (result (Sg_MakeFlonum (fabs (flonum-value fl)))))
 
-  (define-c-proc flsqrt (fl::<number>) 
+  (define-c-proc flsqrt (fl::<number>) :constant
     (check-flonum flsqrt fl)
     (let ((v::double (flonum-value fl)))
       (if (< v 0.0)
@@ -3563,11 +3058,10 @@
 				  (Sg_MakeFlonum (sqrt (fabs v)))))
 	  (result (Sg_MakeFlonum (sqrt v))))))
 
-  (define-c-proc fixnum->flonum (fx::<fixnum>) 
-    (result (Sg_MakeFlonum fx)))
+  (define-c-proc fixnum->flonum (fx::<fixnum>) :constant Sg_MakeFlonum)
 
   ;; 11.4 exact bitwise arithmetic
-  (define-c-proc bitwise-not (ei::<number>) 
+  (define-c-proc bitwise-not (ei::<number>)  :constant
     (unless (Sg_ExactP ei)
       (wrong-type-of-argument-violation 'bitwise-not "exact integer required" ei))
     (result (Sg_LogNot ei)))
@@ -3579,7 +3073,7 @@
 	(result r))))
 
   (define-c-proc bitwise-and 
-    (:optional ei::<integer> ei2::<integer> :rest rest) 
+    (:optional ei::<integer> ei2::<integer> :rest rest) :constant
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT -1)))
 	  ((SG_NULLP rest) 
 	   (if (SG_UNBOUNDP ei2)
@@ -3590,7 +3084,7 @@
 	   (logop Sg_LogAnd ei (SG_CAR rest) (SG_CDR rest)))))
 
   (define-c-proc bitwise-ior 
-    (:optional ei::<integer> ei2::<integer> :rest rest) 
+    (:optional ei::<integer> ei2::<integer> :rest rest) :constant
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
 	  ((SG_NULLP rest) 
 	   (if (SG_UNBOUNDP ei2)
@@ -3601,7 +3095,7 @@
 	   (logop Sg_LogIor ei (SG_CAR rest) (SG_CDR rest)))))
 
   (define-c-proc bitwise-xor 
-    (:optional ei::<integer> ei2::<integer> :rest rest) 
+    (:optional ei::<integer> ei2::<integer> :rest rest) :constant
     (cond ((SG_UNBOUNDP ei) (result (SG_MAKE_INT 0)))
 	  ((SG_NULLP rest) 
 	   (if (SG_UNBOUNDP ei2)
@@ -3616,26 +3110,30 @@
      `(Sg_LogIor (Sg_LogAnd ,n1 ,n2)
 		 (Sg_LogAnd (Sg_LogNot ,n1) ,n3))))
 
-  (define-c-proc bitwise-if (ei1::<number> ei2::<number> ei3::<number>) 
+  (define-c-proc bitwise-if (ei1::<number> ei2::<number> ei3::<number>)
+    :constant
     (result (logif ei1 ei2 ei3)))
 
-  (define-c-proc bitwise-bit-count (ei::<number>) ::<fixnum>
-    (result (Sg_BitCount ei)))
+  (define-c-proc bitwise-bit-count (ei::<number>) ::<fixnum> :constant
+    Sg_BitCount)
 
-  (define-c-proc bitwise-length (ei::<number>) ::<fixnum>
-    (result (Sg_BitSize ei)))
+  (define-c-proc bitwise-length (ei::<number>) ::<fixnum> :constant
+    Sg_BitSize)
 
-  (define-c-proc bitwise-first-bit-set (ei::<number>) ::<fixnum>
-    (result (Sg_FirstBitSet ei)))
+  (define-c-proc bitwise-first-bit-set (ei::<number>) ::<fixnum> :constant
+    Sg_FirstBitSet)
 
-  (define-c-proc bitwise-bit-set? (ei1::<number> ei2::<fixnum>) ::<boolean>
+  (define-c-proc bitwise-bit-set? (ei1::<number> ei2::<fixnum>)
+    ::<boolean> :constant
     (result (not (Sg_ZeroP (Sg_LogAnd (Sg_Ash (SG_MAKE_INT 1) ei2) ei1)))))
 
   (define-c-proc bitwise-copy-bit (ei1::<number> ei2::<fixnum> ei3::<number>) 
+    :constant
     (let ((mask (Sg_Ash (SG_MAKE_INT 1) ei2)))
       (result (logif mask (Sg_Ash ei3 ei2) ei1))))
 
   (define-c-proc bitwise-bit-field (ei1::<number> ei2::<fixnum> ei3::<fixnum>)
+    :constant
     (when (> ei2 ei3)
       (assertion-violation 'bitwise-bit-field "2nd parameter must be less than or equal to 3rd parameter"
 			   (SG_LIST3 ei1 (SG_MAKE_INT ei2) (SG_MAKE_INT ei3))))
@@ -3643,7 +3141,7 @@
       (result (Sg_Ash (Sg_LogAnd ei1 mask) (- 0 ei2)))))
 
   (define-c-proc bitwise-copy-bit-field 
-    (ei1::<number> ei2::<fixnum> ei3::<fixnum> ei4::<number>)
+    (ei1::<number> ei2::<fixnum> ei3::<fixnum> ei4::<number>) :constant
     (let ((to ei1)
 	  (start::long ei2)
 	  (end::long ei3)
@@ -3654,17 +3152,18 @@
       (result (logif mask (Sg_Ash from start) to))))
 
   (define-c-proc bitwise-arithmetic-shift (ei1::<number> ei2::<fixnum>)
-    (result (Sg_Ash ei1 ei2)))
+    :constant Sg_Ash)
 
   (define-c-proc bitwise-arithmetic-shift-left (ei1::<number> ei2::<fixnum>)
-    (result (Sg_Ash ei1 ei2)))
+    :constant Sg_Ash)
 
   (define-c-proc bitwise-arithmetic-shift-right (ei1::<number> ei2::<fixnum>)
+    :constant
     (result (Sg_Ash ei1 (- 0 ei2))))
 
   ;; 12 syntax-case
   ;; 12.5 identifier predicates
-  (define-c-proc identifier? (id) ::<boolean> SG_IDENTIFIERP)
+  (define-c-proc identifier? (id) ::<boolean> :constant SG_IDENTIFIERP)
 
   ;; p1env-lookup-rec is defined in vmlib.stub
   "extern SgObject p1env_lookup_rec(SgVector *, SgObject, SgObject);"
@@ -3736,12 +3235,12 @@
   (define-c-proc make-eqv-hashtable (:optional (k::<fixnum> 200)) 
     (result (Sg_MakeHashTableSimple SG_HASH_EQV k)))
 
-  (define-c-proc make-hashtable (hasher::<procedure> equiv::<procedure> :optional (k::<fixnum> 200)) 
+  (define-c-proc make-hashtable
+    (hasher::<procedure> equiv::<procedure> :optional (k::<fixnum> 200)) 
     (result (Sg_MakeHashTableForScheme hasher equiv k)))
 
   ;; 13.2 procedures
-  (define-c-proc hashtable? (o) ::<boolean>
-    (result (SG_HASHTABLE_P o)))
+  (define-c-proc hashtable? (o) ::<boolean> :constant SG_HASHTABLE_P)
 
   (define-c-proc hashtable-size (ht::<hashtable>) ::<fixnum>
     (result (-> (SG_HASHTABLE_CORE ht) entryCount)))
@@ -3753,7 +3252,8 @@
   (define-cise-stmt check-mutable-hashtable
     ((_ name t)
      `(when (SG_IMMUTABLE_HASHTABLE_P ,t)
-	(assertion-violation ',name "attemp to modify an immutable hashtable" ,t))))
+	(assertion-violation ',name
+			     "attemp to modify an immutable hashtable" ,t))))
 
   (define-c-proc hashtable-set! (ht::<hashtable> key value) ::<void>
     (check-mutable-hashtable hashtable-set! ht)
@@ -3767,10 +3267,12 @@
     (let ((r (Sg_HashTableRef ht key SG_UNBOUND)))
       (result (not (SG_UNBOUNDP r)))))
 
-  (define-c-proc hashtable-copy (ht::<hashtable> :optional (mutableP::<boolean> #f)) 
+  (define-c-proc hashtable-copy
+    (ht::<hashtable> :optional (mutableP::<boolean> #f)) 
     (result (Sg_HashTableCopy ht mutableP)))
 
-  (define-c-proc hashtable-clear! (ht::<hashtable> :optional (k::<fixnum> -1)) ::<void>
+  (define-c-proc hashtable-clear!
+    (ht::<hashtable> :optional (k::<fixnum> -1)) ::<void>
     (check-mutable-hashtable hashtable-clear! ht)
     (Sg_HashCoreClear (SG_HASHTABLE_CORE ht) k))
 
@@ -3778,12 +3280,11 @@
     (result (Sg_ListToVector (Sg_HashTableKeys ht) 0 -1)))
 
   ;; 13.3 inspection
-  (define-c-proc hashtable-mutable? (ht::<hashtable>) ::<boolean>
+  (define-c-proc hashtable-mutable? (ht::<hashtable>) ::<boolean> :constant
     (result (not (SG_IMMUTABLE_HASHTABLE_P ht))))
 
   ;; 13.4
-  (define-c-proc equal-hash (o) ::<fixnum>
-    (result (Sg_EqualHash o)))
+  (define-c-proc equal-hash (o) ::<fixnum> Sg_EqualHash)
 
   ;; for srfi-13 we need to take bound as an argument
   (define-c-proc string-hash
@@ -3815,8 +3316,7 @@
       (result (Sg_StringHash (Sg_StringFoldCase (Sg_MaybeSubstring o start end))
 			     modulo))))
 
-  (define-c-proc symbol-hash (o::<symbol>) ::<fixnum>
-    (result (Sg_EqHash o)))
+  (define-c-proc symbol-hash (o::<symbol>) ::<fixnum> Sg_EqHash)
 
   ;; 15 composit library
   ;; 16 eval
@@ -3826,18 +3326,12 @@
     (result (Sg_Environment (Sg_MakeEvalLibrary) spec)))
 
   ;; 17 mutable pairs
-  (define-cise-stmt check-pair
-    ((_ name c)
-     `(unless (SG_PAIRP ,c)
-	(wrong-type-of-argument-violation ',name "pair" ,c))))
-  (define-c-proc set-car! (o v) ::<void> (inline SET_CAR)
-    (check-pair set-car! o)
+  (define-c-proc set-car! (o::<pair> v) ::<void> (inline SET_CAR)
     (when (Sg_ConstantLiteralP o)
       (assertion-violation 'set-car "attempt to modify constant literal" o))
     (SG_SET_CAR o v))
 
-  (define-c-proc set-cdr! (o v) ::<void> (inline SET_CDR)
-    (check-pair set-cdr! o)
+  (define-c-proc set-cdr! (o::<pair> v) ::<void> (inline SET_CDR)
     (when (Sg_ConstantLiteralP o)
       (assertion-violation 'set-cdr "attempt to modify constant literal" o))
     (SG_SET_CDR o v))
@@ -3870,29 +3364,21 @@
     (Sg_StringFill s c start end))
 
   ;; conditions
-  (define-c-proc condition (:rest components) 
-    (result (Sg_Condition components)))
-
-  (define-c-proc simple-conditions (obj) 
-    (result (Sg_SimpleConditions obj)))
+  (define-c-proc condition (:rest components) Sg_Condition)
+  (define-c-proc simple-conditions (obj) Sg_SimpleConditions)
 
   (define-c-proc compound-condition-component (obj) 
-    (result (Sg_CompoundConditionComponent obj)))
+    Sg_CompoundConditionComponent)
 
-  (define-c-proc compound-condition? (obj) ::<boolean>
-    (result (Sg_CompoundConditionP obj)))
-
-  (define-c-proc simple-condition? (obj) ::<boolean>
-    (result (Sg_SimpleConditionP obj)))
+  (define-c-proc compound-condition? (obj) ::<boolean> :constant
+    Sg_CompoundConditionP)
+  (define-c-proc simple-condition? (obj) ::<boolean> :constant
+    Sg_SimpleConditionP)
   
-  (define-c-proc condition? (obj) ::<boolean>
-    (result (Sg_ConditionP obj)))
+  (define-c-proc condition? (obj) ::<boolean> :constant Sg_ConditionP)
 
-  (define-c-proc condition-predicate (rtd) 
-    (result (Sg_ConditionPredicate rtd)))
-
-  (define-c-proc condition-accessor (rtd proc) 
-    (result (Sg_ConditionAccessor rtd proc)))
+  (define-c-proc condition-predicate (rtd) :constant Sg_ConditionPredicate)
+  (define-c-proc condition-accessor (rtd proc) :constant Sg_ConditionAccessor)
 
   ;; record
   (define-c-proc make-record-type-descriptor
@@ -3902,31 +3388,26 @@
   (define-c-proc make-record-constructor-descriptor (rtd::<rtd> parent protocol)
     (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
 
-  (define-c-proc record? (o) ::<boolean>
-    (result (Sg_RecordP o)))
+  (define-c-proc record? (o) ::<boolean> :constant Sg_RecordP)
+  (define-c-proc record-rtd (o) :constant Sg_RecordRtd)
 
-  (define-c-proc record-rtd (o) 
-    (result (Sg_RecordRtd o)))
+  (define-c-proc record-type-descriptor? (o) ::<boolean> :constant
+    Sg_RecordTypeDescriptorP)
 
-  (define-c-proc record-type-descriptor? (o) ::<boolean>
-    (result (Sg_RecordTypeDescriptorP o)))
-
-  (define-c-proc record-constructor-descriptor? (o) ::<boolean>
-    (result (Sg_RecordConstructorDescriptorP o)))
+  (define-c-proc record-constructor-descriptor? (o) ::<boolean> :constant
+    Sg_RecordConstructorDescriptorP)
 
   (define-c-proc record-constructor (rcd::<rcd>) 
-    (result (Sg_RecordConstructor rcd)))
+    Sg_RecordConstructor)
 
   (define-c-proc record-accessor (rtd::<rtd> k::<fixnum>) 
-    (unless (and (< -1 k)
-		 (< k (Sg_Length (Sg_RtdFields rtd))))
+    (unless (and (< -1 k) (< k (Sg_Length (Sg_RtdFields rtd))))
       (assertion-violation 'record-accessor "field index out of range"))
     (result (Sg_RecordAccessor rtd k)))
 
-  (define-c-proc record-predicate (rtd::<rtd>) 
-    (result (Sg_RecordPredicate rtd)))
+  (define-c-proc record-predicate (rtd::<rtd>) :constant Sg_RecordPredicate)
 
-  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>)
+  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>) :constant
     (unless (and (< -1 k)
 		 (< k (Sg_Length (Sg_RtdFields rtd))))
       (assertion-violation 'record-mutator "field index out of range"
@@ -3936,21 +3417,22 @@
 			   (SG_LIST2 rtd (SG_MAKE_INT k))))
     (result (Sg_RecordMutator rtd k)))
 
-  (define-c-proc record-type-name (rtd::<rtd>) Sg_RtdName)
+  (define-c-proc record-type-name (rtd::<rtd>) :constant Sg_RtdName)
 
-  (define-c-proc record-type-parent (rtd::<rtd>) Sg_RtdParent)
+  (define-c-proc record-type-parent (rtd::<rtd>) :constant Sg_RtdParent)
 
-  (define-c-proc record-type-uid (rtd::<rtd>) Sg_RtdUid)
+  (define-c-proc record-type-uid (rtd::<rtd>) :constant Sg_RtdUid)
 
-  (define-c-proc record-type-generative? (rtd::<rtd>) ::<boolean>
+  (define-c-proc record-type-generative? (rtd::<rtd>) ::<boolean> :constant
     (result (SG_FALSEP (Sg_RtdUid rtd))))
 
-  (define-c-proc record-type-opaque? (rtd::<rtd>) ::<boolean> Sg_RtdOpaqueP)
+  (define-c-proc record-type-opaque? (rtd::<rtd>) ::<boolean> :constant
+    Sg_RtdOpaqueP)
 
-  (define-c-proc record-type-sealed? (rtd::<rtd>) ::<boolean> Sg_RtdSealedP)
+  (define-c-proc record-type-sealed? (rtd::<rtd>) ::<boolean> :constant
+    Sg_RtdSealedP)
   ;; for convenience, it returns list
-  (define-c-proc rtd-fields (rtd::<rtd>)
-    (result (Sg_RtdFields rtd)))
+  (define-c-proc rtd-fields (rtd::<rtd>) :constant Sg_RtdFields)
 
   (define-c-proc record-type-field-names (rtd::<rtd>)
     (let ((fields (Sg_RtdFields rtd))
@@ -3961,38 +3443,29 @@
 	(SG_APPEND1 h t (SG_CDR field)))
       (result (Sg_ListToVector h 0 -1))))
 
-  (define-c-proc record-field-mutable? (rtd::<rtd> k::<fixnum>)
+  (define-c-proc record-field-mutable? (rtd::<rtd> k::<fixnum>) :constant
     (result (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND))))
 
-  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum>
-    (result (Sg_RtdInheritedFieldCount rtd)))
+  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum> :constant
+    Sg_RtdInheritedFieldCount)
 
-  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum>
-    (result (Sg_RtdTotalFieldCount rtd)))
+  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum> :constant
+    Sg_RtdTotalFieldCount)
 
-  (define-c-proc rtd-ancestor? (parent::<rtd> rtd::<rtd>) ::<boolean>
-    (result (Sg_RtdAncestorP parent rtd)))
+  (define-c-proc rtd-ancestor? (parent::<rtd> rtd::<rtd>) ::<boolean> :constant
+    Sg_RtdAncestorP)
 
-  (define-c-proc rcd-protocol (rcd::<rcd>) 
-    (result (Sg_RcdProtocol rcd)))
-
-  (define-c-proc rcd-parent (rcd::<rcd>) 
-    (result (Sg_RcdParent rcd)))
+  (define-c-proc rcd-protocol (rcd::<rcd>) :constant Sg_RcdProtocol)
+  (define-c-proc rcd-parent (rcd::<rcd>) :constant Sg_RcdParent)
 
   ;; tuple of record helper
   (define-c-proc make-tuple (size::<fixnum> printer) 
     (result (Sg_MakeTuple size SG_UNDEF printer)))
-
-  (define-c-proc tuple-list-set! (tuple lst) ::<void>
-    (Sg_TupleListSet tuple lst))
-
+  (define-c-proc tuple-list-set! (tuple lst) ::<void> Sg_TupleListSet)
   (define-c-proc tuple-ref (tuple i::<fixnum>) 
     (result (Sg_TupleRef tuple i #f)))
-
   (define-c-proc tuple-set! (tuple i::<fixnum> value) ::<void>
     (Sg_TupleSet tuple i value))
-
-  (define-c-proc tuple-size (tuple) ::<fixnum>
-    (result (Sg_TupleSize tuple)))
+  (define-c-proc tuple-size (tuple) ::<fixnum> :constant Sg_TupleSize)
 
   )
