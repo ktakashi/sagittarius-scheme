@@ -1155,6 +1155,12 @@
 (define .list->vector (global-id 'list->vector))
 
 ;; now it returns IForm
+;; TODO the code still allocates unneccessary memory during compile time
+;; e.g) `(1 2 3) will be ($const (1 2 3)) but internally it allocates like
+;; (cons 1 (cons 2 (cons 2))). We can avoid this if we search the constant
+;; value seriously. However, not sure if this impacts alot for performance
+;; since we have cache and compile time is not always in consideration.
+;; I'll think if this become real issue.
 (define (pass1/quasiquote form nest p1env)
   (define (quote? tag)            (global-eq? tag 'quote p1env))
   (define (unquote? tag)          (global-eq? tag 'unquote p1env))
@@ -1165,13 +1171,20 @@
     (and ($const? e) (null? ($const-value e))))
   (define (empty? e)
     (and ($seq? e) (null? ($seq-body e))))
-  ;; helper
-  (define ($append? l)
-    (and-let* (( ($call? l) )
-	       (p ($call-proc l))
-	       ( ($gref? p)))
-      (eq? ($gref-id p) .append)))
-  (define ($append args) ($call #f ($gref .append) args))
+
+  ;; very simple one for now
+  ;; TODO not sure how much this will be used
+  ;; (probably args are always not $const, but $lref or something else)
+  ;; to make this efficient, we need to look up the actual value
+  ;; or at least if this is $lref we should check its set count and value
+  (define (fold-constants proc args)
+    (if (for-all $const? args)
+	($const (apply proc (imap $const-value args)))
+	args))
+
+  ;; helpers
+  ;; we don't need $append?
+  (define ($append args) ($asm #f `(,APPEND ,(length args)) args))
   (define ($cons*? l)
     (and-let* (( ($call? l) )
 	       (p ($call-proc l))
@@ -1181,15 +1194,10 @@
 
   (define ($cons? l) (and ($asm? l) (eqv? ($asm-insn l) CONS)))
   (define ($cons a d) ($asm #f `(,CONS 2) (list a d)))
-
-  ;; should be smarter but for now...
-  (define (fold-constant proc seq)
-    (let-values (((consts rest)
-		  (do ((seq seq (cdr seq))
-		       (r '() (cons ($const-value (car seq)) r)))
-		      ((or (null? seq) (not ($const? (car seq))))
-		       (values (reverse! r) seq)))))
-      (values (apply proc consts) rest)))
+  ;; to make things easier
+  (define ($$list args) 
+    (let ((v (fold-constants list args)))
+      (if (eq? v args) ($list #f args) v)))
 
   (define (emit-append body tail)
     (cond ((null? body) tail)
@@ -1198,29 +1206,26 @@
 	  (else ($append `(,@body ,tail)))))
 
   (define (emit-cons* body tail)
-    (if (= (length body) 1)
-	(emit-cons (car body) tail)
-	(cond ((null? body) tail)
-	      ((null-constant? tail) ($list #f body))
-	      (($list? tail)  ($list #f `(,@body ,@($list-args tail))))
-	      (($cons? tail)  ($cons* `(,@body ,@($asm-args tail))))
-	      (($cons*? tail) ($cons* `(,@body ,@($call-args tail))))
-	      (else ($cons* `(,@body ,tail))))))
+    (cond ((= (length body) 1) (emit-cons (car body) tail))
+	  ((null? body) tail)
+	  ((null-constant? tail) ($$list body))
+	  (($list? tail)  ($$list `(,@body ,@($list-args tail))))
+	  (($cons? tail)  ($cons* `(,@body ,@($asm-args tail))))
+	  (($cons*? tail) ($cons* `(,@body ,@($call-args tail))))
+	  (else ($cons* `(,@body ,tail)))))
 
   (define (emit-cons head tail)
-    (if (and ($const? head) ($const? tail))
-	($const (cons ($const-value head) ($const-value tail)))
-	(cond ((null-constant? tail) ($list #f (list head)))
-	      (($list? tail)
-	       ($list #f `(,head ,@($list-args tail))))
-	      ((or ($cons? tail) ($cons*? tail))
-	       ($cons* `(,head ,@($call-args tail))))
-	      (else
-	       ($cons head tail)))))
+    (cond ((and ($const? head) ($const? tail))
+	   ($const (cons ($const-value head) ($const-value tail))))
+	  ((null-constant? tail) ($$list (list head)))
+	  (($list? tail)
+	   ($$list `(,head ,@($list-args tail))))
+	  ((or ($cons? tail) ($cons*? tail))
+	   ($cons* `(,head ,@($call-args tail))))
+	  (else ($cons head tail))))
 
   (define (expand-vector expr nest)
     (let ((lst (expand (vector->list expr) nest)))
-      ;; lst is IForm and must be a $seq
       (cond ((null-constant? lst) ($const #()))
 	    (($const? lst)
 	     ($const (list->vector ($const-value lst))))
