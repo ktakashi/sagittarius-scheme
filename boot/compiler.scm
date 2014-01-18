@@ -3888,6 +3888,7 @@
 (define (transparent?/rec iform labels)
   (case/unquote (iform-tag iform)
    (($LREF   ) (zero? (lvar-set-count ($lref-lvar iform))))
+   (($GREF   ) (inlinable-binding? ($gref-id iform) #t))
    (($CONST $LAMBDA $IT) #t)
    (($IF     ) (and (transparent?/rec ($if-test iform) labels)
 		    (transparent?/rec ($if-then iform) labels)
@@ -3898,52 +3899,63 @@
 		   (begin (label-push! labels iform)
 			  (transparent?/rec ($label-body iform) labels))))
    (($SEQ    ) (everyc transparent?/rec ($seq-body iform) labels))
-   (($CALL   ) (and (no-side-effect-call? ($call-proc iform) ($call-flag iform)
-					  labels)
+   (($CALL   ) (and (no-side-effect-call? ($call-proc iform) ($call-args iform))
 		    (everyc transparent?/rec ($call-args iform) labels)))
-   (($ASM    ) (and (no-side-effect-insn? ($asm-insn iform))
+   (($ASM    ) (and (no-side-effect-insn? ($asm-insn iform) ($asm-args iform))
 		    (everyc transparent?/rec ($asm-args iform) labels)))
    (($LIST   ) (everyc transparent?/rec ($list-args iform) labels))
    (($RECEIVE) (and (transparent?/rec ($receive-expr iform) labels)
 		    (transparent?/rec ($receive-body iform) labels)))
    (else #f)))
 
+;; we only check the variable which defined outside of the current library.
+;; unbound variable is obvious error case so we can't eliminate.
+(define (inlinable-binding? id allow-variable?)
+  (let ((lib (id-library id))
+	(name (id-name id)))
+    (and-let* ((gloc (find-binding lib name #f)))
+      (let ((val (gloc-ref gloc)))
+	(if (procedure? val)
+	    (and (procedure-transparent? val) val)
+	    ;; ok this must be a variable so no harm to remove
+	    allow-variable?)))))
+
 ;; For now
-(define (no-side-effect-call? proc type labels)
-  ;; Can we remove this (loop (cons b 2))?
-  ;; (let loop ((b (cons a 1))) (loop (cons b 2)) (list a b 3))
-  ;; The whole loop doesn't have any side effect but obviously it'll go into
-  ;; the infinite loop.
+(define (no-side-effect-call? proc args)
+  (cond (($gref? proc)
+	 (let ((proc (inlinable-binding? ($gref-id proc) #f)))
+	   (and proc
+		(or (not (for-all $const? args)) ;; let the other do
+		    ;; ok check if it can be called...
+		    (guard (e (else #f))
+		      (apply proc (imap $const-value args)))))))
+	;; for now
+	(else #f)))
 
-;; This simply didn't work and not a good one.
-;; say this case;
-;; (define (foo) (define (rec) (case a ((?) (rec) (set! a 'ok)))) (rec))
-;; this actually have a side effect but rec will be marked no side effect
-;;  (if (eq? type 'local)
-;;      (case/unquote (iform-tag proc)
-;;       (($LREF)
-;;	(let ((lvar (lvar-initval ($lref-lvar proc))))
-;;	  ;; init must be $lambda
-;;	  (if ($lambda? lvar)
-;;	      (or (label-seen? labels lvar)
-;;		  (let ((copy (copy-label-dic labels)))
-;;		    (label-push! copy lvar)
-;;		    (transparent?/rec lvar copy)))
-;;	      #f)))
-;;       (else #f))
-;;      #f)
-  #f)
-
-(define (no-side-effect-insn? insn)
-  ;; Not sure if we can eliminate this
-  ;; say (vector-ref #() -1) raises an error but if we eliminate it may cause
-  ;; a problem...
+;; the args will be double checked...
+(define (no-side-effect-insn? insn args)
   (case/unquote (car insn)
    ;; Predicates and constructors can be always #t
    ((NOT NULLP PAIRP SYMBOLP VECTORP CONS VALUES EQ EQV LIST VECTOR) #t)
-   ;; If we ignore the type error or range error (for vector)
-   ;; this can be also activated. (Should we?)
-   ;;((VEC_REF VEC_LEN ADD SUB MUL DIV NEG CAR CDR CAAR CADR CDAR CDDR) #t)
+   ;; we do the same as SBCL does that is if the value obviously causes
+   ;; an error, then it won't eliminate. however there is a tricky part
+   ;; if the argument is literal then it's already either not foldable
+   ;; or folded. So if we see the $const in args, we can assume the 
+   ;; argument is something wrong.
+   ((VEC_LEN NEG CAR CDR CAAR CADR CDAR CDDR)
+    (for-all (lambda (arg) (not ($const? arg))) args))
+   ((VEC_REF)
+    (let ((vec (car args)) (index (cadr args)))
+      (cond ((and ($const vec) ($const index)) #f) ;; failed constant foliding
+	    (($const vec)   (vector? ($const-value vec)))
+	    (($const index) (and (fixnum? ($const-value index))
+				 (not (negative? ($const-value index)))))
+	    (else #t)))) ;; both non $const
+   ((ADD SUB MUL DIV) 
+    ;; check if there is non number constant
+    (not (exists (lambda (arg)
+		   (and ($const arg) (not (number? ($const-value arg)))))
+		 args)))
    (else #f))
 )
 
@@ -4770,7 +4782,7 @@
 (define (check-bound-identifier id)
   (let ((lib (id-library id))
 	(name (id-name id)))
-    (unless (or (find-binding (id-library id) (id-name id) #f)
+    (unless (or (find-binding lib name #f)
 		(not (library-defined lib)) ;; #f means topleve library
 		(memq name (library-defined lib)))
       (if (vm-r6rs-mode?)

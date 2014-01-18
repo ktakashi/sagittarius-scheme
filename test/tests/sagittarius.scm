@@ -1087,4 +1087,8 @@
 (test-equal "hex escape on R6RS mode" (string->symbol "foo bar")
 	    (read (open-string-input-port "#!r6rs foo\\x20;bar")))
 
+;; some of the compiler optimisation stuff
+(test-error "obvious error (1)" condition? ((lambda () (vector-length 'a) 'ng)))
+(test-error "obvious error (2)" condition? ((lambda () (car 'a) 'ng)))
+
 (test-end)
