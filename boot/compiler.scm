@@ -3131,7 +3131,7 @@
     (let ((inliner (procedure-inliner proc)))
       (cond ((integer? inliner)
 	     (let ((nargs (length (cdr form)))
-		   (opt?   (procedure-optional proc)))
+		   (opt?   (procedure-optional? proc)))
 	       (unless (argcount-ok? (cdr form)
 				     (procedure-reqargs proc) opt?)
 		 (error 'pass1/expand-inliner
@@ -3604,6 +3604,11 @@
 ;;
 ;;  2. If proc is $LREF which is statically bound to a $LAMBDA,
 ;;     call pass2/head-lref to see if we can safely inline it.
+;;
+;;  3. If proc is $GREF which is defined in current library and
+;;     marked inlinable, check the size if we can inline it.
+;;
+;;  4. If proc is $Gref which has inline insn then inline it.
 (define (pass2/$CALL iform penv tail?)
   ;; for (cond ((assq x y) => cdr)) case
   (define (inlinable-gref? gref)
@@ -3653,8 +3658,7 @@
 						args))
 		   iform)))))
 	 ;; expand library non exported procedure
-	 ;; for now disabled. there were too much stuff to avoid...
-	 ((and (has-tag? proc $GREF)
+	 ((and ($gref? proc)
 	       ($gref-inlinable? proc penv)
 	       (assq 'inlinable penv))
 	  ;; get inlinables
@@ -3690,7 +3694,7 @@
 	       (let* ((inliner (procedure-inliner procedure))
 		      (args    ($call-args iform))
 		      (nargs   (length args))
-		      (opt?    (procedure-optional procedure)))
+		      (opt?    (procedure-optional? procedure)))
 		 (unless (argcount-ok? args (procedure-reqargs procedure) opt?)
 		   (error 'pass2/$CALL
 			  (format 
@@ -3779,46 +3783,62 @@
 	    (else #f)))
       (begin ($asm-args-set! iform args) iform)))
 
+;; args must be a list of $const node.
+(define (constant-folding-warning who args)
+  (vm-warn (format "~s: gave up constant folding with given argument(s)."
+		   `(,(if (symbol? who)
+			  who
+			  (string->symbol (format "~a" who)))
+		     ,@(imap $const-value args))))
+  ;; for convenience
+  #f)
+
 (define (pass2/const-pred pred args)
   (if (pred ($const-value (car args))) ($const #t) ($const #f)))
 
 (define (pass2/const-cxr proc args)
   (let ((v ($const-value (car args))))
-    (and (pair? v) ($const (proc v)))))
+    (or (and (pair? v) ($const (proc v)))
+	(constant-folding-warning (procedure-name proc) args))))
 
 (define (pass2/const-cxxr proc0 proc args)
   (let ((v ($const-value (car args))))
-    (and (pair? v)
-	 (pair? (proc0 v))
-	 ($const (proc v)))))
+    (or (and (pair? v)
+	     (pair? (proc0 v))
+	     ($const (proc v)))
+	(constant-folding-warning (procedure-name proc) args))))
 
 (define (pass2/const-op2 proc args)
   ($const (proc ($const-value (car args)) ($const-value (cadr args)))))
 
 (define (pass2/const-numop1 proc args)
   (let ((x ($const-value (car args))))
-    (and (number? x) ($const (proc x)))))
+    (or (and (number? x) ($const (proc x)))
+	(constant-folding-warning (procedure-name proc) args))))
 
 (define (pass2/const-numop2 proc args . check-zero?)
   (let ((x ($const-value (car args)))
 	(y ($const-value (cadr args))))
-    (and (number? x) (number? y)
-	 (or (null? check-zero?)
-	     (inexact? x)
-	     (not (and (exact? y) (zero? y))))
-	 ($const (proc x y)))))
+    (or (and (number? x) (number? y)
+	     (or (null? check-zero?)
+		 (inexact? x)
+		 (not (and (exact? y) (zero? y))))
+	     ($const (proc x y)))
+	(constant-folding-warning (procedure-name proc) args))))
 
 (define (pass2/const-vecref args)
   (let ((v ($const-value (car args)))
 	(i ($const-value (cadr args))))
-    (and (vector? v) (fixnum? i)
-	 (< -1 i (vector-length v))
-	 ($const (vector-ref v i)))))
+    (or (and (vector? v) (fixnum? i)
+	     (< -1 i (vector-length v))
+	     ($const (vector-ref v i)))
+	(constant-folding-warning 'vector-ref args))))
 
 (define (pass2/const-veclen args)
   (let ((v ($const-value (car args))))
-    (and (vector? v)
-	 ($const (vector-length v)))))
+    (or (and (vector? v)
+	     ($const (vector-length v)))
+	(constant-folding-warning 'vector-length args))))
 
 ;; (define (pass2/const-xargs proc args)
 ;;   (let ((args-values (map (lambda (arg) ($const-value arg)) args)))
@@ -3924,11 +3944,9 @@
 (define (no-side-effect-call? proc args)
   (cond (($gref? proc)
 	 (let ((proc (inlinable-binding? ($gref-id proc) #f)))
-	   (and proc
-		(or (not (for-all $const? args)) ;; let the other do
-		    ;; ok check if it can be called...
-		    (guard (e (else #f))
-		      (apply proc (imap $const-value args)))))))
+	   ;; it's already folded and if there still $const means
+	   ;; sommething wrong with the procedure
+	   (and proc (not (for-all $const? args)))))
 	;; for now
 	(else #f)))
 
@@ -4074,6 +4092,7 @@
 	     iform)
     (else (pass3/optimize-call iform labels))))
 
+;; TODO should we move pass2's inline here since it's got messy there...
 (define (pass3/optimize-call iform labels)
   (let ((proc (pass3/rec ($call-proc iform) labels))
 	(args ($call-args iform)))
@@ -4086,12 +4105,26 @@
 		   (else ($call-proc-set! iform body)
 			 ($let-body-set! node iform)
 			 (pass3/$LET proc labels)))))
+	  ((and-let* (( ($gref? proc) )
+		      ( (for-all $const? args) )
+		      (p (inlinable-binding? ($gref-id proc) #f)))
+	     (pass3/precompute-procedure p args)))
 	  ((has-tag? proc $LAMBDA)
 	   ;; ($call ($lambda (...) body) args ...)
 	   ;; -> inline it
 	   (pass3/inline-call iform proc args labels))
 	  (else ($call-proc-set! iform proc) iform))))
-		       
+
+(define (pass3/precompute-procedure p args)
+  (guard (e (else (constant-folding-warning (procedure-name p) args)))
+    (let-values ((r (apply p (imap $const-value args))))
+      (smatch r
+	(()  ($const-undef))
+	((r) ($const r))
+	(_   ;; return as $ASM better than calling procedure
+	 ($asm #f `(,VALUES ,(length r))
+	       (imap (lambda (v) ($const v)) r)))))))
+
 (define (pass3/inline-call call-node proc args labels)
   (label-dic-info-set! labels #t)
   (expand-inlined-procedure ($call-src call-node) proc args))
