@@ -62,7 +62,9 @@ int Sg_ClosureTransparentP(SgObject closure)
 {
   /* look thru the instruction and check if there is a side effect
      instruction or procedure. */
-  return FALSE;			/* for now */
+  /* for now */
+  SG_PROCEDURE_TRANSPARENT(closure) = SG_CLOSURE_SIDE_EFFECT;
+  return SG_CLOSURE_SIDE_EFFECT;
 }
 /*
   end of file

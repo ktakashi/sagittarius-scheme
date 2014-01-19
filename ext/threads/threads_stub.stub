@@ -27,8 +27,7 @@
 (define-type <condition-variable> "SgConditionVariable*")
 
 ;; thread is VM
-(define-c-proc thread? (obj) ::<boolean> :constant
-  (result (SG_VMP obj)))
+(define-c-proc thread? (obj) ::<boolean> :constant SG_VMP)
 
 (define-c-proc make-thread (thunk::<procedure> 
 			    :optional (name (Sg_Gensym 
@@ -56,38 +55,29 @@
 		 (UC "[internal] thread state has invalid value: %d") state)
 		(result SG_UNDEF)))))
 
-(define-c-proc current-thread () 
-  (result (Sg_VM)))
+(define-c-proc current-thread () Sg_VM)
 
 ;;(define-c-proc thread-base-priority (vm::<thread>) 
 
-(define-c-proc thread-start! (vm::<thread>) 
-  (result (Sg_ThreadStart vm)))
-
+(define-c-proc thread-start! (vm::<thread>) Sg_ThreadStart)
 (define-c-proc thread-join! (vm::<thread> :optional (timeout #f) timeoutval) 
-  (result (Sg_ThreadJoin vm timeout timeoutval)))
-
-(define-c-proc thread-yield! () ::<void>
-  (Sg_YieldCPU))
-
+  Sg_ThreadJoin)
+(define-c-proc thread-yield! () ::<void> Sg_YieldCPU)
 (define-c-proc thread-sleep! (time::<integer>) ::<void>
-  (Sg_ThreadSleep time))
+  Sg_ThreadSleep)
 
 (define-c-proc thread-stop! (vm::<thread> :optional (timeout #f) timeoutval) 
-  (result (Sg_ThreadStop vm timeout timeoutval)))
+  Sg_ThreadStop)
 
-(define-c-proc thread-cont! (vm::<thread>) 
-  (result (Sg_ThreadCont vm)))
+(define-c-proc thread-cont! (vm::<thread>) Sg_ThreadCont)
 
-(define-c-proc thread-terminate! (vm::<thread>) ::<void>
-  (Sg_ThreadTerminate vm))
+(define-c-proc thread-terminate! (vm::<thread>) ::<void> Sg_ThreadTerminate)
 
-(define-c-proc mutex? (o) ::<boolean> :constant
-  (result (SG_MUTEXP o)))
+(define-c-proc mutex? (o) ::<boolean> :constant SG_MUTEXP)
 
 (define-c-proc make-mutex 
   (:optional (name (Sg_Gensym (SG_STRING (SG_MAKE_STRING "mutex-")))))
-  (result (Sg_MakeMutex name)))
+  Sg_MakeMutex)
 
 (define-c-proc mutex-name (o::<mutex>) 
   (result (-> (SG_MUTEX o) name)))
@@ -126,7 +116,7 @@
 
 (define-c-proc make-condition-variable
   (:optional (name (Sg_Gensym (SG_STRING (SG_MAKE_STRING "cv-")))))
-  (result (Sg_MakeConditionVariable name)))
+  Sg_MakeConditionVariable)
 
 (define-c-proc condition-variable-name (cv::<condition-variable>) 
   (result (-> (SG_CONDITION_VARIABLE cv) name)))

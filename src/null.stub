@@ -1528,10 +1528,10 @@
 
   (define-c-proc native-transcoder () Sg_MakeNativeTranscoder)
 
-  (define-c-proc transcoder-codec (t::<transcoder>) :constant
+  (define-c-proc transcoder-codec (t::<transcoder>)
     SG_TRANSCODER_CODEC)
 
-  (define-c-proc transcoder-eol-style (t::<transcoder>) :constant
+  (define-c-proc transcoder-eol-style (t::<transcoder>)
     (let ((style::EolStyle (SG_TRANSCODER_EOL_STYLE t)))
       (cond ((== style LF)
 	     (result 'lf))
@@ -1553,7 +1553,7 @@
 				  "transcoder had unknown eol-style. this must be a bug, please report it"
 				  '())))))
 
-  (define-c-proc transcoder-error-handling-mode (t::<transcoder>) :constant
+  (define-c-proc transcoder-error-handling-mode (t::<transcoder>)
     (let ((mode::ErrorHandlingMode (SG_TRANSCODER_MODE t)))
       (cond ((SG_EQ mode SG_REPLACE_ERROR)
 	     (result SG_SYMBOL_REPLACE))
@@ -1597,7 +1597,7 @@
 
   (define-c-proc port? (obj) ::<boolean> :constant SG_PORTP)
 
-  (define-c-proc port-transcoder (p::<port>) :constant
+  (define-c-proc port-transcoder (p::<port>)
     (cond ((SG_BINARY_PORTP p)
 	   (result #f))
 	  ((SG_TEXTUAL_PORTP p)
@@ -1638,10 +1638,10 @@
 				"port had unknown direction. this must be a bug, please report it"
 				  '()))))
 
-  (define-c-proc port-has-port-position? (p::<port>) ::<boolean> :constant
+  (define-c-proc port-has-port-position? (p::<port>) ::<boolean>
     Sg_HasPortPosition)
 
-  (define-c-proc port-has-set-port-position!? (p::<port>) ::<boolean> :constant
+  (define-c-proc port-has-set-port-position!? (p::<port>) ::<boolean>
     Sg_HasSetPortPosition)
 
   (define-c-proc port-position (p::<port>) 
@@ -1665,7 +1665,7 @@
   (define-c-proc input-port? (obj) ::<boolean> :constant
     (result (or (SG_INPORTP obj) (SG_INOUTPORTP obj))))
 
-  (define-c-proc port-eof? (p::<port>) ::<boolean> :constant
+  (define-c-proc port-eof? (p::<port>) ::<boolean>
     (cond ((SG_BINARY_PORTP p)
 	   (let ((ch::int (Sg_Peekb p)))
 	     (result (== ch EOF))))
@@ -3377,8 +3377,8 @@
   
   (define-c-proc condition? (obj) ::<boolean> :constant Sg_ConditionP)
 
-  (define-c-proc condition-predicate (rtd) :constant Sg_ConditionPredicate)
-  (define-c-proc condition-accessor (rtd proc) :constant Sg_ConditionAccessor)
+  (define-c-proc condition-predicate (rtd) Sg_ConditionPredicate)
+  (define-c-proc condition-accessor (rtd proc) Sg_ConditionAccessor)
 
   ;; record
   (define-c-proc make-record-type-descriptor
@@ -3389,7 +3389,7 @@
     (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
 
   (define-c-proc record? (o) ::<boolean> :constant Sg_RecordP)
-  (define-c-proc record-rtd (o) :constant Sg_RecordRtd)
+  (define-c-proc record-rtd (o) Sg_RecordRtd)
 
   (define-c-proc record-type-descriptor? (o) ::<boolean> :constant
     Sg_RecordTypeDescriptorP)
@@ -3405,9 +3405,9 @@
       (assertion-violation 'record-accessor "field index out of range"))
     (result (Sg_RecordAccessor rtd k)))
 
-  (define-c-proc record-predicate (rtd::<rtd>) :constant Sg_RecordPredicate)
+  (define-c-proc record-predicate (rtd::<rtd>) Sg_RecordPredicate)
 
-  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>) :constant
+  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>)
     (unless (and (< -1 k)
 		 (< k (Sg_Length (Sg_RtdFields rtd))))
       (assertion-violation 'record-mutator "field index out of range"
@@ -3417,11 +3417,11 @@
 			   (SG_LIST2 rtd (SG_MAKE_INT k))))
     (result (Sg_RecordMutator rtd k)))
 
-  (define-c-proc record-type-name (rtd::<rtd>) :constant Sg_RtdName)
+  (define-c-proc record-type-name (rtd::<rtd>) Sg_RtdName)
 
-  (define-c-proc record-type-parent (rtd::<rtd>) :constant Sg_RtdParent)
+  (define-c-proc record-type-parent (rtd::<rtd>) Sg_RtdParent)
 
-  (define-c-proc record-type-uid (rtd::<rtd>) :constant Sg_RtdUid)
+  (define-c-proc record-type-uid (rtd::<rtd>) Sg_RtdUid)
 
   (define-c-proc record-type-generative? (rtd::<rtd>) ::<boolean> :constant
     (result (SG_FALSEP (Sg_RtdUid rtd))))
@@ -3432,7 +3432,7 @@
   (define-c-proc record-type-sealed? (rtd::<rtd>) ::<boolean> :constant
     Sg_RtdSealedP)
   ;; for convenience, it returns list
-  (define-c-proc rtd-fields (rtd::<rtd>) :constant Sg_RtdFields)
+  (define-c-proc rtd-fields (rtd::<rtd>) Sg_RtdFields)
 
   (define-c-proc record-type-field-names (rtd::<rtd>)
     (let ((fields (Sg_RtdFields rtd))
@@ -3446,17 +3446,17 @@
   (define-c-proc record-field-mutable? (rtd::<rtd> k::<fixnum>) :constant
     (result (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND))))
 
-  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum> :constant
+  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum>
     Sg_RtdInheritedFieldCount)
 
-  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum> :constant
+  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum>
     Sg_RtdTotalFieldCount)
 
   (define-c-proc rtd-ancestor? (parent::<rtd> rtd::<rtd>) ::<boolean> :constant
     Sg_RtdAncestorP)
 
-  (define-c-proc rcd-protocol (rcd::<rcd>) :constant Sg_RcdProtocol)
-  (define-c-proc rcd-parent (rcd::<rcd>) :constant Sg_RcdParent)
+  (define-c-proc rcd-protocol (rcd::<rcd>) Sg_RcdProtocol)
+  (define-c-proc rcd-parent (rcd::<rcd>) Sg_RcdParent)
 
   ;; tuple of record helper
   (define-c-proc make-tuple (size::<fixnum> printer) 

@@ -29,7 +29,7 @@
 
 
   ;; for library dependency
-  (define-c-proc identifier=? (use_env x mac_env y) ::<boolean>
+  (define-c-proc identifier=? (use_env x mac_env y) ::<boolean> :constant
     Sg_IdentifierEqP)
 
   (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME)
@@ -53,14 +53,11 @@
     (result (SG_FALSEP (SG_IDENTIFIER_LIBRARY id))))
 
   ;; closure?
-  (define-c-proc closure? (cl) ::<boolean> SG_CLOSUREP)
+  (define-c-proc closure? (cl) ::<boolean> SG_CLOSUREP) :constant
 
   ;; list
-  (define-c-proc dotted-list? (lst) ::<boolean>
-    (result (SG_DOTTED_LISTP lst)))
-
-  (define-c-proc circular-list? (lst) ::<boolean>
-    (result (SG_CIRCULAR_LISTP lst)))
+  (define-c-proc dotted-list? (lst) ::<boolean> :constant SG_DOTTED_LISTP)
+  (define-c-proc circular-list? (lst) ::<boolean> :constant SG_CIRCULAR_LISTP)
 
   (define-c-proc reverse! (lis)
     (when (Sg_ConstantLiteralP lis)
@@ -124,29 +121,29 @@
 
   ;; misc
   (define-c-proc variable? (o) ::<boolean>
-    (result (or (SG_SYMBOLP o)
-		(SG_IDENTIFIERP o))))
+    (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))
   ;; inexact computation
   (define-cise-stmt check-number
     ((_ name v)
      `(unless (SG_NUMBERP ,v)
 	(wrong-type-of-argument-violation ',name "number" ,v))))
+
   ;; if we add IADD or something, these might have meaning to exists.
-  (define-c-proc +. (:rest rest)
+  (define-c-proc +. (:rest rest) :constant
     (let ((a (Sg_MakeFlonum 0.0)))
       (dolist (x rest)
 	(check-number +. x)
 	(set! a (Sg_Add a (Sg_Inexact x))))
       (result a)))
 
-  (define-c-proc *. (:rest rest)
+  (define-c-proc *. (:rest rest) :constant
     (let ((a (Sg_MakeFlonum 1.0)))
       (dolist (x rest)
 	(check-number *. x)
 	(set! a (Sg_Mul a (Sg_Inexact x))))
       (result a)))
 
-  (define-c-proc -. (arg1::<number> :rest rest)
+  (define-c-proc -. (arg1::<number> :rest rest) :constant
     (if (SG_NULLP rest)
 	(result (Sg_Negate (Sg_Inexact arg1)))
 	(let ((a arg1))
@@ -155,7 +152,7 @@
 	    (set! a (Sg_Sub a (Sg_Inexact x))))
 	  (result a))))
 
-  (define-c-proc /. (arg1::<number> :rest rest)
+  (define-c-proc /. (arg1::<number> :rest rest) :constant
     (if (SG_NULLP rest)
 	(result (Sg_Inverse (Sg_Inexact arg1)))
 	(let ((a arg1))
@@ -165,8 +162,10 @@
 	  (result a))))
 
   ;; for performance
-  (define-c-proc mod-inverse (x::<integer> y::<integer>) Sg_ModInverse)
-  (define-c-proc mod-expt (x::<integer> y::<integer> z::<integer>) Sg_ModExpt)
+  (define-c-proc mod-inverse (x::<integer> y::<integer>) :constant
+    Sg_ModInverse)
+  (define-c-proc mod-expt (x::<integer> y::<integer> z::<integer>) :constant
+    Sg_ModExpt)
 
   ;; arity returns pair of required and optional arguments count.
   ;; returned pair is structured like this : (<required> . <optional>)
@@ -179,10 +178,10 @@
 	  (result (Sg_Cons (SG_MAKE_INT req) #t))
 	  (result (Sg_Cons (SG_MAKE_INT req) #f)))))
 
-  (define-c-proc unbound () (result SG_UNBOUND))
-  (define-c-proc unbound? (o) ::<boolean> SG_UNBOUNDP)
-  (define-c-proc undefined () (result SG_UNDEF))
-  (define-c-proc undefined? (o) ::<boolean> SG_UNDEFP)
+  (define-c-proc unbound () :constant (result SG_UNBOUND))
+  (define-c-proc unbound? (o) ::<boolean> :constant SG_UNBOUNDP)
+  (define-c-proc undefined () :constant (result SG_UNDEF))
+  (define-c-proc undefined? (o) ::<boolean> :constant SG_UNDEFP)
 
   (define-c-proc add-load-path (path::<string>) Sg_AddLoadPath)
   ;; very dangerous operation...
@@ -232,8 +231,7 @@
 
   (define-c-proc describe-condition (e) Sg_DescribeCondition)
 
-  (define-c-proc interned-symbol? (s) ::<boolean>
-    (result (SG_INTERNED_SYMBOL s)))
+  (define-c-proc interned-symbol? (s) ::<boolean> SG_INTERNED_SYMBOL)
 
   ;; SRFI-17
   (define-c-proc setter (proc)
@@ -339,12 +337,9 @@
     Sg_SetCurrentDirectory)
 
   (define-c-proc build-path (path::<string> file::<string>) Sg_BuildPath)
-
   (define-c-proc absolute-path? (path::<string>) ::<boolean>
-    (result (Sg_AbsolutePathP path)))
-
-  (define-c-proc absolute-path (path::<string>)
-    (result (Sg_AbsolutePath path)))
+    Sg_AbsolutePathP)
+  (define-c-proc absolute-path (path::<string>) Sg_AbsolutePath)
 
   (define-cfn retrieve-flags (list) ::int :static
     (let ((flags::int 0))
@@ -425,8 +420,9 @@
 					       (SG_LIST3 s1 s2 mode))))))
   (define-c-proc string-concatenate (strings::<list>) Sg_StringAppend)
 
-  (define-c-proc %maybe-substring (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1)) ::<top>
-    (result (Sg_MaybeSubstring s start end)))
+  (define-c-proc %maybe-substring 
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    Sg_MaybeSubstring)
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
@@ -490,8 +486,7 @@
 					  "output port"
 					  ,p))))
   
-  (define-c-proc port-closed? (p::<port>) ::<boolean>
-    (result (Sg_PortClosedP p)))
+  (define-c-proc port-closed? (p::<port>) ::<boolean> Sg_PortClosedP)
 
   (define-c-proc write/ss (o :optional (p::<port> (Sg_CurrentOutputPort)))
     ::<void>
@@ -568,7 +563,7 @@
 	     (result (Sg_GetStringFromStringPort out))))))
 
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
-    (result (Sg_MakeCustomCodecSimple name g p data)))
+    Sg_MakeCustomCodecSimple)
 
   (define-c-proc utf-32-codec 
     (:optional (endian::<symbol> (Sg_NativeEndianness)))
@@ -707,40 +702,40 @@
   ;; keyword
   (define-c-proc make-keyword (key::<symbol>)
     (result (Sg_MakeKeyword (-> (SG_SYMBOL key) name))))
+  ;; for consistency
+  (define-c-proc symbol->keyword (name::<symbol>) :constant
+    (result (Sg_MakeKeyword (SG_SYMBOL_NAME name))))
+  (define-c-proc string->keyword (name::<string>) :constant Sg_MakeKeyword)
 
-  (define-c-proc keyword? (o) ::<boolean>
-    (result (SG_KEYWORDP o)))
+  (define-c-proc keyword? (o) ::<boolean> :constant SG_KEYWORDP)
 
-  (define-c-proc keyword->symbol (key::<keyword>)
+  (define-c-proc keyword->symbol (key::<keyword>) :constant
     (result (Sg_Intern (-> key name))))
-
-  (define-c-proc keyword->string (key::<keyword>)
+  (define-c-proc keyword->string (key::<keyword>) :constant
     (result (-> key name)))
 
-  (define-c-proc get-keyword (key::<keyword> lst :optional fallback)
+  (define-c-proc get-keyword (key::<keyword> lst :optional fallback) :constant
     Sg_GetKeyword)
 
   ;; cache
   (define-type <write-cache-ctx> "SgWriteCacheCtx*")
   (define-type <read-cache-ctx> "SgReadCacheCtx*")
 
-  (define-c-proc clean-cache (:optional (target #f)) ::<void>
-    (Sg_CleanCache target))
-
-  (define-c-proc cachable? (o) ::<boolean> (result (Sg_CachableP o)))
+  (define-c-proc clean-cache (:optional (target #f)) ::<void> Sg_CleanCache)
+  (define-c-proc cachable? (o) ::<boolean> Sg_CachableP)
 
   (define-c-proc scan-cache-object (o cbs ctx::<write-cache-ctx>)
-    (result (Sg_WriteCacheScanRec o cbs ctx)))
+    Sg_WriteCacheScanRec)
 
   (define-c-proc write-object-cache (o out::<port> ctx::<write-cache-ctx>)
     ::<void>
-    (Sg_WriteObjectCache o out ctx))
+    Sg_WriteObjectCache)
 
   (define-c-proc read-cache-object (in::<port> ctx::<read-cache-ctx>)
-    (result (Sg_ReadCacheObject in ctx)))
+    Sg_ReadCacheObject)
 
   ;; getenv
-  (define-c-proc getenv (path::<string>) ::<top>
+  (define-c-proc getenv (path::<string>)
     (result (Sg_Getenv (SG_STRING_VALUE path))))
 
   (define-c-proc setenv (key::<string> value) ::<void>
@@ -770,13 +765,16 @@
   ;; bytevector
   (define-c-proc bytevector->integer
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
     Sg_ByteVectorToInteger)
   ;; explicit sign
   (define-c-proc bytevector->uinteger
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
     Sg_ByteVectorToInteger)
   (define-c-proc bytevector->sinteger
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :constant
     Sg_ByteVectorToIntegerS)
 
   (define-c-proc integer->bytevector 
@@ -811,12 +809,12 @@
 
   ;; record
   (define-c-proc make-record-type (name::<symbol> rtd rcd) Sg_MakeRecordType)
-  (define-c-proc record-type? (obj) ::<boolean> SG_RECORD_TYPEP)
+  (define-c-proc record-type? (obj) ::<boolean> :constant SG_RECORD_TYPEP)
   (define-c-proc record-type-rtd (rt::<record-type>) SG_RECORD_TYPE_RTD)
   (define-c-proc record-type-rcd (rt::<record-type>) SG_RECORD_TYPE_RCD)
 
   ;; charset
-  (define-c-proc char-set? (obj) ::<boolean> SG_CHAR_SET_P)
+  (define-c-proc char-set? (obj) ::<boolean> :constant SG_CHAR_SET_P)
 
   (define-cise-stmt char-set-add
     ((_ name cs chars)
@@ -831,17 +829,16 @@
       (char-set-add char-set cs chars)
       (result cs)))
 
-  (define-c-proc char-set-copy (cs::<char-set>)
-    (result (Sg_CharSetCopy cs)))
+  (define-c-proc char-set-copy (cs::<char-set>) Sg_CharSetCopy)
 
   (define-c-proc char-set-contains? (cs::<char-set> ch::<char>) ::<boolean>
-    (result (Sg_CharSetContains cs ch)))
+    Sg_CharSetContains)
 
   (define-c-proc %char-set-equal? (x::<char-set> y::<char-set>) ::<boolean>
-    (result (Sg_CharSetEq x y)))
+    Sg_CharSetEq)
 
   (define-c-proc %char-set<=? (x::<char-set> y::<char-set>) ::<boolean>
-    (result (Sg_CharSetLe x y)))
+    Sg_CharSetLe)
 
   (define-c-proc %char-set-add-chars! (cs::<char-set> chars)
     (char-set-add %char-set-add-chars! cs chars) (result cs))
@@ -932,7 +929,7 @@
 
   (define-c-proc digit-value (c::<char>) Sg_DigitValue)
 
-  (define-c-proc weak-vector? (o) ::<boolean> SG_WEAK_VECTORP)
+  (define-c-proc weak-vector? (o) ::<boolean> :constant SG_WEAK_VECTORP)
   (define-c-proc make-weak-vector (size::<fixnum>) Sg_MakeWeakVector)
 
   (define-c-proc weak-vector-length (o) ::<fixnum>
@@ -942,7 +939,7 @@
     (result (-> (SG_WEAK_VECTOR o) size)))
 
   (define-c-proc weak-vector-ref (wvec k::<fixnum> :optional fallback)
-    (setter weak-vector-set!)
+    :constant (setter weak-vector-set!)
     (unless (SG_WEAK_VECTORP wvec)
       (wrong-type-of-argument-violation 'weak-vector-ref
 					"weak-vector" wvec))
@@ -995,10 +992,10 @@
       (unless (SG_UNBOUNDP default) (set! v default))
       (result (Sg_MakeWeakHashTableSimple SG_HASH_EQV w init-size v))))
 
-  (define-c-proc weak-hashtable? (o) ::<boolean> SG_WEAK_HASHTABLE_P)
+  (define-c-proc weak-hashtable? (o) ::<boolean> :constant SG_WEAK_HASHTABLE_P)
 
   (define-c-proc weak-hashtable-ref 
-    (wh::<weak-hashtable> key :optional (fallback #f))
+    (wh::<weak-hashtable> key :optional (fallback #f)) :constant
     (setter weak-hashtable-set!)
     (result (Sg_WeakHashTableRef wh key fallback)))
 

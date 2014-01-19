@@ -45,6 +45,15 @@ typedef enum {
   SG_PROC_NEXT_METHOD,
 } SgProcedureType;
 
+/* bit tricky... */
+enum {
+  SG_CLOSURE_UNCHECKED = 0,
+  SG_SUBR_SIDE_EFFECT  = 0,	/* not transparent nor no side effect */
+  SG_PROC_TRANSPARENT  = 1,
+  SG_PROC_NO_SIDE_EFFECT = 2,
+  SG_CLOSURE_SIDE_EFFECT = 3	/* only for closure */
+};
+
 /* TODO think about it...*/
 struct SgProcedureRec
 {
@@ -58,10 +67,12 @@ struct SgProcedureRec
 				   for now. */
   unsigned int type       : 3;	/* procedure type defined above */
   unsigned int locked     : 1;	/* setter locked? */
-  unsigned int transparent: 1;	/* transparent procedure? */
-  unsigned int checked    : 1;	/* for closure we don't know if the insn
-				   checked or not by looking transparent flag.
-				   1 checked, 0 not yet. */
+  unsigned int transparent: 2;	/* transparent flags;
+				   0: subr FALSE, closuer UNCHECKED
+				   1: transparent
+				   2: no side effect
+				   3: only closure FALSE */
+
   unsigned int reserved   : 2;	/* padding, for future extension. */
   SgObject     name;		/* procedure name */
   SgObject     setter;		/* setter procedure of this procedure. */
@@ -79,6 +90,11 @@ struct SgProcedureRec
 #define SG_PROCEDURE_INLINER(obj)  SG_PROCEDURE(obj)->inliner
 #define SG_PROCEDURE_SETTER(obj)   SG_PROCEDURE(obj)->setter
 
+#define SG_PROCEDURE_TRANSPARENTP(obj)				\
+  (SG_PROCEDURE(obj)->transparent == SG_PROC_TRANSPARENT)
+#define SG_PROCEDURE_NO_SIDE_EFFECTP(obj)			\
+  (SG_PROCEDURE(obj)->transparent == SG_PROC_NO_SIDE_EFFECT)
+
 #define SG_PROCEDURE_INIT(obj, req, opt, typ, name)	\
   SG_PROCEDURE_REQUIRED(obj) = (req),			\
   SG_PROCEDURE_OPTIONAL(obj) = (opt),			\
@@ -90,7 +106,7 @@ struct SgProcedureRec
   SG_PROCEDURE_SETTER(obj) = SG_FALSE
 
 #define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
-  { {(klass)},(req),(opt),(type),FALSE, FALSE, FALSE, 0, (name), SG_FALSE, (inliner) }
+  { {(klass)},(req),(opt),(type),FALSE, 0, 0, (name), SG_FALSE, (inliner) }
 
 /* This is just container for procedure */
 struct SgSubrRec

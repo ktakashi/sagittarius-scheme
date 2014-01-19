@@ -244,7 +244,7 @@
     ((inline-insn :init-value #f)
      (proc-name   :init-keyword :proc-name)))
   ;; not used
-  (define-constant c-proc-flags '(:constant))
+  (define-constant c-proc-flags '(:constant :no-side-effect))
 
   (define-form-parser define-c-proc (scheme-name argspec . body)
     (define (extract-flags body)
@@ -529,9 +529,12 @@
 	 (c-stub-name cproc)
 	 (cgen-c-name (slot-ref cproc'proc-name)))
       (let1 flags (slot-ref cproc 'flags)
-	(when (memv :constant flags)
-	  (f "  SG_PROCEDURE_TRANSPARENT(&~a) = TRUE;~%"
-	     (c-stub-name cproc)))))
+	(if (memv :constant flags)
+	    (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_TRANSPARENT;~%"
+	       (c-stub-name cproc))
+	    (when (memv :no-side-effect flags)
+	      (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_NO_SIDE_EFFECT;~%"
+		 (c-stub-name cproc))))))
     (call-next-method))
 
   (define-method cgen-emit-init ((cproc <setter-mixin>))

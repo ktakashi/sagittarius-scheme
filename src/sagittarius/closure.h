@@ -47,6 +47,7 @@ struct SgClosureRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeClosure(SgObject code, SgObject *frees);
+/* bad name it also checks no-side-effect */
 SG_EXTERN int      Sg_ClosureTransparentP(SgObject closure);
 
 SG_CDECL_END

@@ -28,17 +28,27 @@
 
   (define-c-proc procedure-reqargs (arg0::<procedure>) ::<fixnum>
     SG_PROCEDURE_REQUIRED)
-
-  ;; TODO change return value to fixnum after 0.5.0
+  ;; TODO change return type to <fixnum>
   (define-c-proc procedure-optional (arg0::<procedure>) ::<boolean>
     SG_PROCEDURE_OPTIONAL)
-  ;; TODO use this after 0.5.0 in compiler
   (define-c-proc procedure-optional? (arg0::<procedure>) ::<boolean>
     SG_PROCEDURE_OPTIONAL)
-  ;; TODO use this to determine if the procedure is transparent or not
-  ;; after 0.5.0
+
   (define-c-proc procedure-transparent? (arg0::<procedure>) ::<boolean>
-    SG_PROCEDURE_TRANSPARENT)
+    (if (SG_PROCEDURE_TRANSPARENTP arg0)
+	(result TRUE)
+	(result (and (SG_CLOSUREP arg0)
+		     (== (SG_PROCEDURE_TRANSPARENT arg0) SG_CLOSURE_UNCHECKED)
+		     (== (Sg_ClosureTransparentP arg0) SG_PROC_TRANSPARENT)))))
+
+  (define-c-proc procedure-no-side-effect? (arg0::<procedure>) ::<boolean>
+    (if (or (SG_PROCEDURE_TRANSPARENTP arg0)
+	    (SG_PROCEDURE_NO_SIDE_EFFECTP arg0))
+	(result TRUE)
+	(result (and (SG_CLOSUREP arg0)
+		     (== (SG_PROCEDURE_TRANSPARENT arg0) SG_CLOSURE_UNCHECKED)
+		     (not (== (Sg_ClosureTransparentP arg0)
+			      SG_CLOSURE_SIDE_EFFECT))))))
 
   (define-c-proc inline? (arg0) ::<boolean>
     (result (and (SG_PROCEDUREP arg0)
