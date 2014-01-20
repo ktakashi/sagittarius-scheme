@@ -1043,12 +1043,21 @@
     (set! (SG_PORT_DATA p) v))
 
   ;; system call
-  (define-c-proc sys-process-call (name::<string> args::<list>)
-    (let ((in  NULL)
-	  (out NULL)
-	  (err NULL))
-      (let ((handle::uintptr_t (Sg_SysProcessCall name args 
-						  (& in) (& out) (& err))))
+  (define-c-proc sys-process-call 
+    (name::<string> args::<list> :key (directory #f) (detach? #f))
+    (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
+      (wrong-type-of-argument-violation 'sys-process-call
+					"string or #f" directory))
+    (let ((in  NULL) (out NULL) (err NULL))
+      (let* ((flags::int 0)
+	     (d::SgString* NULL)
+	     (handle::uintptr_t 0))
+	(when (not (SG_FALSEP detach?)) 
+	  (set! flags (logior flags SG_PROCESS_DETACH)))
+	(when (SG_STRINGP directory) (set! d (SG_STRING directory)))
+	(set! handle (Sg_SysProcessCall name args 
+					(& in) (& out) (& err)
+					d flags))
 	(.if "SIZEOF_VOIDP >= 8"
 	     (result (Sg_Values4 (Sg_MakeIntegerFromU64 handle) in out err))
 	     (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))

@@ -23,28 +23,28 @@
 ;; accessor
 (define-c-proc date? (o) ::<boolean> :constant SG_DATEP)
 
-(define-c-proc date-nanosecond (o::<date>) ::<fixnum> :constant
+(define-c-proc date-nanosecond (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) nanosecond)))
 
-(define-c-proc date-second (o::<date>) ::<fixnum> :constant
+(define-c-proc date-second (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) second)))
 
-(define-c-proc date-minute (o::<date>) ::<fixnum> :constant
+(define-c-proc date-minute (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) minute)))
 
-(define-c-proc date-hour (o::<date>) ::<fixnum> :constant
+(define-c-proc date-hour (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) hour)))
 
-(define-c-proc date-day (o::<date>) ::<fixnum> :constant
+(define-c-proc date-day (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) day)))
 
-(define-c-proc date-month (o::<date>) ::<fixnum> :constant
+(define-c-proc date-month (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) month)))
 
-(define-c-proc date-year (o::<date>) ::<fixnum> :constant
+(define-c-proc date-year (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) year)))
 
-(define-c-proc date-zone-offset (o::<date>) ::<fixnum> :constant
+(define-c-proc date-zone-offset (o::<date>) ::<fixnum> :no-side-effect
   (result (-> (SG_DATE o) zoneOffset)))
 
 (define-c-proc set-date-nanosecond! (o::<date> val::<fixnum>) ::<void>
@@ -72,7 +72,7 @@
   (set! (-> (SG_DATE o) zoneOffset) val))
 
 ;; it's not transparent
-(define-c-proc local-tz-offset () Sg_LocalTzOffset)
+(define-c-proc local-tz-offset () :no-side-effect Sg_LocalTzOffset)
 
 
 					       

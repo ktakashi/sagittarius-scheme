@@ -48,40 +48,44 @@
 ;; accessor
 (define-c-proc zstream? (obj) ::<boolean> :constant SG_ZSTREAM_P)
 
-(define-c-proc zstream-total-in (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-total-in (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) total_in)))
-(define-c-proc zstream-total-out (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-total-out (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) total_out)))
-(define-c-proc zstream-avail-in (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-avail-in (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) avail_in)))
-(define-c-proc zstream-avail-out (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-avail-out (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) avail_out)))
-(define-c-proc zstream-data-type (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-data-type (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) data_type)))
-(define-c-proc zstream-adler32 (strm::<z-stream>) ::<fixnum>
+(define-c-proc zstream-adler32 (strm::<z-stream>) ::<fixnum> :no-side-effect
   (result (-> (-> strm strm) adler)))
 
-(define-c-proc zstream-read-count (strm::<z-stream> in::<bytevector>) ::<fixnum>
+(define-c-proc zstream-read-count (strm::<z-stream> in::<bytevector>)
+  ::<fixnum> :no-side-effect
   (result (- (-> (-> strm strm) next_in) (SG_BVECTOR_ELEMENTS in))))
 
-(define-c-proc zstream-write-count (strm::<z-stream> out::<bytevector>) ::<fixnum>
+(define-c-proc zstream-write-count (strm::<z-stream> out::<bytevector>)
+  ::<fixnum> :no-side-effect
   (result (- (-> (-> strm strm) next_out) (SG_BVECTOR_ELEMENTS out))))
 
 ;; misc
-(define-c-proc zlib-error-message (strm::<z-stream>)
+(define-c-proc zlib-error-message (strm::<z-stream>) :no-side-effect
   (if (-> (-> strm strm) msg)
       (result (Sg_MakeStringC (-> (-> strm strm) msg)))
       (result (SG_MAKE_STRING "no z-stream error message available"))))
 
-(define-c-proc zlib-version () Sg_ZlibVersion)
+(define-c-proc zlib-version () :no-side-effect Sg_ZlibVersion)
 
 ;; utilities
 (define-c-proc crc32 (data::<bytevector> :optional (crc::<integer> 0))
+  :constant
   (result (Sg_MakeIntegerU (crc32 (Sg_GetUInteger crc)
 				  (SG_BVECTOR_ELEMENTS data)
 				  (SG_BVECTOR_SIZE data)))))
 
 (define-c-proc adler32 (data::<bytevector> :optional (crc::<integer> 1))
+  :constant
   (result (Sg_MakeIntegerU (adler32 (Sg_GetUInteger crc)
 				    (SG_BVECTOR_ELEMENTS data)
 				    (SG_BVECTOR_SIZE data)))))

@@ -448,7 +448,9 @@ SgObject Sg_SitelibPath()
 }
 
 uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
-			    SgObject *inp, SgObject *outp, SgObject *errp)
+			    SgObject *inp, SgObject *outp, SgObject *errp,
+			    SgString *dir,
+			    int flags)
 {
   pid_t pid;
   int pipe0[2] = { -1, -1 };
@@ -456,6 +458,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   int pipe2[2] = { -1, -1 };
   int open_max;
   const char *sysfunc = NULL;
+  const char *cdir = NULL;
 
   int count, i;
   char *name, **args;
@@ -468,6 +471,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 #else
   args = SG_NEW_ARRAY(char *, count+2);
 #endif
+  if (dir != NULL) cdir = Sg_Utf32sToUtf8s(dir);
 
   i = 0;
   args[i++] = name;
@@ -488,6 +492,20 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   pid = fork();
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
+    if (flags & SG_PROCESS_DETACH) {
+      pid = fork();
+      if (pid < 0) goto fork_fail;
+      if (pid > 0) exit(0);
+
+      setsid();
+    }
+    if (cdir != NULL) {
+      if (chdir(cdir) < 0) {
+	Sg_Panic("chdir to %s failed before executing %s: %s",
+		 cdir, name, strerror(errno));
+      }
+    }
+
     if (close(pipe0[1])) goto close_fail;
     if (close(pipe1[0])) goto close_fail;
     if (close(pipe2[0])) goto close_fail;

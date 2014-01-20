@@ -45,7 +45,8 @@
   Sg_SocketListen)
 
 ;;; error message
-(define-c-proc socket-error-message (socket::<socket>) Sg_SocketErrorMessage)
+(define-c-proc socket-error-message (socket::<socket>) :no-side-effect
+  Sg_SocketErrorMessage)
 
 (define-c-proc socket? (o) ::<boolean> :constant SG_SOCKETP)
 
@@ -131,7 +132,7 @@
 
 (define-c-proc socket-close  (o::<socket>) ::<void> Sg_SocketClose)
 
-(define-c-proc socket-fd (o::<socket>) ::<fixnum>
+(define-c-proc socket-fd (o::<socket>) ::<fixnum> :no-side-effect
   (result (-> o socket)))
 
 (define-c-proc socket-nonblocking! (o::<socket>) ::<boolean>
@@ -141,9 +142,11 @@
 
 (define-c-proc socket-select (reads writes errors timeval) Sg_SocketSelect)
 
-(define-c-proc socket-peer (o::<socket>) Sg_SocketPeer)
-(define-c-proc socket-name (o::<socket>) Sg_SocketName)
-(define-c-proc socket-info (o::<socket>) Sg_SocketInfo)
-(define-c-proc ip-address->string (ip::<ip-address>) Sg_IpAddressToString)
-(define-c-proc ip-address->bytevector (ip::<ip-address>) 
+(define-c-proc socket-peer (o::<socket>) :no-side-effect Sg_SocketPeer)
+(define-c-proc socket-name (o::<socket>) :no-side-effect Sg_SocketName)
+(define-c-proc socket-info (o::<socket>) :no-side-effect Sg_SocketInfo)
+(define-c-proc ip-address->string (ip::<ip-address>) :no-side-effect
+  Sg_IpAddressToString)
+;; constant?
+(define-c-proc ip-address->bytevector (ip::<ip-address>) :no-side-effect
   (result (-> ip ip)))

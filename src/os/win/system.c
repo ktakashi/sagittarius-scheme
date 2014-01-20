@@ -414,7 +414,9 @@ static SgWinProcess * make_win_process(HANDLE p)
 }
 
 uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
-			    SgObject *inp, SgObject *outp, SgObject *errp)
+			    SgObject *inp, SgObject *outp, SgObject *errp,
+			    SgString *dir,
+			    int creationFlags)
 {
   HANDLE pipe0[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
   HANDLE pipe1[2] = { INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
@@ -428,6 +430,8 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   STARTUPINFOW startup;
   PROCESS_INFORMATION process;
   SgFile *in, *out, *err;
+  DWORD flags = 0;
+  wchar_t *wcdir = NULL;
 
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
   sa.lpSecurityDescriptor = NULL;
@@ -446,12 +450,17 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   startup.hStdError = pipe2[1];
   sysfunc = UC("CreateProcess");
 
+  if (creationFlags & SG_PROCESS_DETACH) flags |= DETACHED_PROCESS;
+
+  if (dir) wcdir = Sg_StringToWCharTs(dir);
+
   if (CreateProcessW(NULL,
 		     Sg_StringToWCharTs(command),
 		     NULL, NULL,
 		     TRUE,
-		     0,		/* run the process */
-		     NULL, NULL,
+		     flags,	/* run the process */
+		     NULL,
+		     wcdir,
 		     &startup,
 		     &process) == 0) goto create_fail;
   CloseHandle(pipe0[0]);

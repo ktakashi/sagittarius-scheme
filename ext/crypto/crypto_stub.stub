@@ -12,9 +12,7 @@
 
 (define-c-proc crypto-object? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_CRYPTO)))
-
 (define-c-proc cipher? (o) ::<boolean> :constant SG_CIPHERP)
-
 (define-c-proc key? (o) ::<boolean> :constant
   (result (Sg_TypeP o SG_CLASS_KEY)))
 
@@ -52,7 +50,8 @@
 
 (define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) Sg_Decrypt)
 
-(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) ::<fixnum>
+(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>)
+  ::<fixnum> :no-side-effect
   Sg_SuggestKeysize)
 
 ;; now it's generic
@@ -65,16 +64,13 @@
       (result (Sg_VMSlotSet (-> cipher spi) 'iv iv))))
 
 ;; sign
-(define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt) 
-  (result (Sg_Signature crypto data opt)))
+(define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt)
+  Sg_Signature)
 
 (define-c-proc verify 
   (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
-  (result (Sg_Verify crypto M S opt)))
+  Sg_Verify)
 
-(define-c-proc register-spi (name spi::<class>) ::<boolean>
-  (result (Sg_RegisterSpi name spi)))
-
-(define-c-proc lookup-spi (name)
-  (result (Sg_LookupSpi name)))
+(define-c-proc register-spi (name spi::<class>) ::<boolean> Sg_RegisterSpi)
+(define-c-proc lookup-spi (name) :no-side-effect Sg_LookupSpi)
 

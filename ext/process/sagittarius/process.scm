@@ -69,6 +69,7 @@
      (input  :init-keyword :input  :reader process-input-port)
      (output :init-keyword :output :reader process-output-port)
      (error  :init-keyword :error  :reader process-error-port)
+     (directory :init-keyword :directory)
      (pid    :init-keyword :pid)))
 
   (define (process? o) (is-a? o <process>))
@@ -92,16 +93,22 @@
 			                 (stderr #f)
 					 (call? #t)
 					 (reader async-process-read)
-					 (transcoder #f))
+					 (transcoder #f)
+					 (directory #f)
+					 (detach? #f))
     (when (and (not call?) (not (output-port? stdout)))
       (assertion-violation 
        'create-process
        "keyword argument :stdout must be output port, when :call? is #f"
        stdout call?))
-    (let-values (((pid input output error) (sys-process-call name args)))
+    (let-values (((pid input output error)
+		  (sys-process-call name args
+				    :directory directory
+				    :detach? detach?)))
       (let ((process (make <process> :name name :args args
 			   :input input :output output :error error
-			   :pid pid)))
+			   :pid pid :directory (or directory
+						   (current-directory)))))
 	(cond ((and call? stdout)
 	       (reader process stdout (if stderr stderr stdout) transcoder)
 	       process)

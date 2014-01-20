@@ -32,6 +32,13 @@
 
 #include "sagittariusdefs.h"
 
+/* for now only one
+   TODO for windows, should we add new console?
+ */
+enum {
+  SG_PROCESS_DETACH = 1L,
+};
+
 SG_CDECL_BEGIN
 
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
@@ -69,7 +76,11 @@ SG_EXTERN SgObject      Sg_SitelibPath();
 SG_EXTERN uintptr_t Sg_SysProcessCall(SgObject name, SgObject args,
 				      /* output parameters */
 				      SgObject *inp, SgObject *outp,
-				      SgObject *errp);
+				      SgObject *errp,
+				      /* work dir */
+				      SgString *dir,
+				      /* flags */
+				      int flags); 
 SG_EXTERN int       Sg_SysProcessWait(uintptr_t pid);
 
 SG_CDECL_END

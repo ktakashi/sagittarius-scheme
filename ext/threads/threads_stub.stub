@@ -34,15 +34,16 @@
 					     (SG_STRING
 					      (SG_MAKE_STRING "thread-")))))
   
-  (result (Sg_MakeThread thunk name)))
+  Sg_MakeThread)
 
-(define-c-proc thread-name (obj::<thread>) 
+(define-c-proc thread-name (obj::<thread>) :no-side-effect
   (result (-> obj name)))
 
-(define-c-proc thread-specific-set! (obj::<thread> value) ::<void>
+(define-c-proc thread-specific-set! (obj::<thread> value)
+  ::<void> :no-side-effect
   (set! (-> obj specific) value))
 
-(define-c-proc thread-specific (obj::<thread>) 
+(define-c-proc thread-specific (obj::<thread>) :no-side-effect
   (result (-> obj specific)))
 
 (define-c-proc thread-state (vm::<thread>) 
@@ -55,7 +56,7 @@
 		 (UC "[internal] thread state has invalid value: %d") state)
 		(result SG_UNDEF)))))
 
-(define-c-proc current-thread () Sg_VM)
+(define-c-proc current-thread () :no-side-effect Sg_VM)
 
 ;;(define-c-proc thread-base-priority (vm::<thread>) 
 
@@ -79,13 +80,13 @@
   (:optional (name (Sg_Gensym (SG_STRING (SG_MAKE_STRING "mutex-")))))
   Sg_MakeMutex)
 
-(define-c-proc mutex-name (o::<mutex>) 
+(define-c-proc mutex-name (o::<mutex>) :no-side-effect
   (result (-> (SG_MUTEX o) name)))
 
-(define-c-proc mutex-state (o::<mutex>) 
+(define-c-proc mutex-state (o::<mutex>) :no-side-effect
   (result (Sg_MutexState (SG_MUTEX o))))
 
-(define-c-proc mutex-specific (o::<mutex>) 
+(define-c-proc mutex-specific (o::<mutex>) :no-side-effect
   (result (-> (SG_MUTEX o) specific)))
 
 (define-c-proc mutex-specific-set! (o::<mutex> value) ::<void>
@@ -111,17 +112,19 @@
     (result (Sg_MutexUnlock (SG_MUTEX o) cond timeout))))
 
 (define-c-proc condition-variable? (o) ::<boolean> :constant
-  (result (SG_CONDITION_VARIABLE_P o)))
+  SG_CONDITION_VARIABLE_P)
 
 
 (define-c-proc make-condition-variable
   (:optional (name (Sg_Gensym (SG_STRING (SG_MAKE_STRING "cv-")))))
   Sg_MakeConditionVariable)
 
-(define-c-proc condition-variable-name (cv::<condition-variable>) 
+(define-c-proc condition-variable-name (cv::<condition-variable>)
+  :no-side-effect
   (result (-> (SG_CONDITION_VARIABLE cv) name)))
 
 (define-c-proc condition-variable-specific (cv::<condition-variable>) 
+  :no-side-effect
   (result (-> (SG_CONDITION_VARIABLE cv) specific)))
 
 (define-c-proc condition-variable-specific-set!
