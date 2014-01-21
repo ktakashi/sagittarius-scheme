@@ -59,5 +59,16 @@
 		 (lambda (out) (write-dgi-tlv tlv out)))))
 )
 
+;; some of the length related issue tests
+(let ()
+  (define (make-bogus-tlv-bytevector len)
+    (let ((tlv (make-tlv-unit #x80 (make-bytevector len #xFF))))
+      (open-bytevector-input-port (tlv->bytevector tlv))))
+  (test-assert "length #x7F" (read-tlv (make-bogus-tlv-bytevector #x7F)))
+  (test-assert "length #xFF" (read-tlv (make-bogus-tlv-bytevector #xFF)))
+  (test-assert "length #xFFFF" (read-tlv (make-bogus-tlv-bytevector #xFFFF)))
+  (test-assert "length #x1FFFF") (read-tlv (make-bogus-tlv-bytevector #x1FFFF))
+)
+
 
 (test-end)
