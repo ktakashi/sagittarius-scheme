@@ -4,7 +4,7 @@
 ;; in the (clos user) library.
 (library (clos helper)
     (export %make-setter-name %check-setter-name)
-    (import (rnrs) (sagittarius))
+    (import (core) (core syntax) (sagittarius))
   ;;(define-syntax setter (syntax-rules ()))
 
   ;; never be symbol
@@ -67,7 +67,10 @@
 	    redefine-class!
 	    update-direct-subclass!
 	    )
-    (import (rnrs) 
+    (import (core)
+	    (core base)
+	    (core syntax)
+	    (core exceptions)
 	    (sagittarius)
 	    (sagittarius vm)
 	    (clos core)
@@ -199,7 +202,8 @@
 			 :direct-supers   (list #,@supers)
 			 :direct-slots    (list #,@(map process-slot-definition
 							slot-defs))
-			 :defined-library (current-library)))
+			 :defined-library (current-library)
+			 #,@options))
 		      (c (find-binding (current-library) '#,name #f)))
 		  ;; what shall we do with the drunken sailer...
 		  ;; if the metaclass is not the same should we change the

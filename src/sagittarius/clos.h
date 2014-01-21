@@ -124,6 +124,7 @@ struct SgClassRec
   SgObject redefined;		/* for change-class */
   /* I don't think the same class in eve */
   SgObject library;		/* defined library */
+  SgObject initargs;		/* for book keeping */
   /* mutex */
   SgInternalMutex mutex;
   SgInternalCond  cv;
@@ -203,6 +204,7 @@ extern SgClass *Sg_ObjectCPL[];
     SG_FALSE, 			/* cwriter */				\
     SG_FALSE, 			/* redefined */				\
     SG_FALSE, 			/* library */				\
+    SG_NIL,			/* initargs */				\
   }
 
 #define SG_DEFINE_CLASS_COMMON(cname, coreSize, flag, printer, compare, serialize, allocate, cpa) \

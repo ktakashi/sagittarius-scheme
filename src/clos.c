@@ -1543,6 +1543,19 @@ static void class_library_set(SgClass *klass, SgObject lib)
   klass->library = lib;
 }
 
+static SgObject class_initargs(SgClass *klass)
+{
+  return klass->initargs;
+}
+
+static void class_initargs_set(SgClass *klass, SgObject initargs)
+{
+  if (!SG_LISTP(initargs)) {
+    Sg_Error(UC("list required, but got %S"), initargs);
+  }
+  klass->initargs = initargs;
+}
+
 
 void Sg_AddDirectSubclass(SgClass *super, SgClass *sub)
 {
@@ -1919,6 +1932,8 @@ static SgSlotAccessor class_slots[] = {
   SG_CLASS_SLOT_SPEC("redefined",         11, class_redefined, NULL),
   SG_CLASS_SLOT_SPEC("defined-library",   12, class_library,
 		     class_library_set),
+  SG_CLASS_SLOT_SPEC("initargs",          13, class_initargs, 
+		     class_initargs_set),
   { { NULL } }
 };
 

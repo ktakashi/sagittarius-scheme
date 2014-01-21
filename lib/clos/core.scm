@@ -73,7 +73,8 @@
 	    change-class
 	    update-instance!
 	    )
-    (import (rnrs)
+    (import (core)
+	    (core base)
 	    (sagittarius)
 	    (sagittarius clos))
 
@@ -152,7 +153,8 @@
 			       ;; sub classes
 			       (for-each (lambda (super)
 					   (%add-direct-subclass! super class))
-					 supers)))))
+					 supers)
+			       (slot-set! class 'initargs initargs)))))
 
   (add-method initialize
 	      (make <method>

@@ -122,7 +122,7 @@
     (error 'dbm-db-exists? "not supported" class))
 
   (define-method dbm-db-remove ((class <dbm-meta>) name)
-    (errorf 'dbm-db-remove "not supported" class))
+    (error 'dbm-db-remove "not supported" class))
 
   (define-method dbm-db-copy ((class <dbm-meta>) from to)
     ;; generic one - might be slow, and it may not copy meta info.

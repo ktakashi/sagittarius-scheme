@@ -299,7 +299,6 @@
 (define-class <xxx> ()
   (a b c)
   :metaclass <docu-meta>
-  ;; this is not supported ...
   :doc "Doc doc")
 
 (define-class <docu-meta-sub> (<docu-meta>)
