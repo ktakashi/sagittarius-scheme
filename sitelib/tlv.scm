@@ -273,12 +273,15 @@
     (define (write-tag out tag) (put-bytevector out (integer->bytevector tag)))
     (define (write-length out len)
       (define ashr bitwise-arithmetic-shift-right)
+      (define (get-length len)
+	(do ((r len (ashr r 8)) (i 0 (+ i 1)))
+	    ((zero? r) i)))
       (cond ((< len 0))
-	    ((< len #x7F) (put-u8 out len))
+	    ((<= len #x7F) (put-u8 out len))
 	    (else
-	     ;; NOTE: #xFFFF: length = 3
+	     ;; NOTE: #xFFFF: length = 4
 	     ;; EMV tlv accepts maximum 4 bytes length but we don't check it
-	     (let1 length-bits (div (bitwise-length len) 8)
+	     (let1 length-bits (get-length len)
 	       (put-u8 out (+ #x80 length-bits))
 	       (do ((i length-bits (- i 1)))
 		   ((= i 0))
