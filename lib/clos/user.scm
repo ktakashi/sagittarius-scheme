@@ -427,16 +427,17 @@
 					  (new <class>))
     (define (new-supers supers)
       (map (lambda (s) (if (eq? s old) new s)) supers))
+    (define (fixup-options supers initargs)
+      (let ((old (get-keyword :direct-supers initargs)))
+	(fold-right (lambda (e knil)
+		      (cons (if (eq? e old) supers e) knil)) '() initargs)))
+
     ;; I believe at this point sub is not redefined so we can use
     ;; class-of to retrieve metaclass
     (let* ((metaclass (class-of sub))
-	   (slots (class-direct-slots sub))
 	   (supers (new-supers (class-direct-supers sub)))
-	   (new-sub (make metaclass
-		      :definition-name (class-name sub)
-		      :direct-supers supers
-		      :direct-slots slots
-		      :defined-library (slot-ref sub 'defined-library))))
+	   (new-sub (apply make metaclass
+			   (fixup-options supers (slot-ref sub 'initargs)))))
       (%redefine-class! sub new-sub)
       ;; keep the direct subclass of the sub's supers
       (for-each (lambda (sup)
@@ -444,6 +445,5 @@
 		(class-direct-supers sub))
       ;; replace binding...
       (%replace-class-binding! sub new-sub)
-      )
-    )
+      ))
 )
