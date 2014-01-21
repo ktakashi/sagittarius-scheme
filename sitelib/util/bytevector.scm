@@ -114,11 +114,17 @@
 	(values (if padding (padding bv) bv) #vu8()))))
 
 (define (bytevector->hex-string bv)
-  (define (fixup x)
-    (if (= (string-length x) 1)
-	(string-append "0" x)
-	x))
-  (string-concatenate (map (lambda (u8) (fixup (number->string u8 16)))
-			   (bytevector->u8-list bv))))
+;; this is not efficient...
+;;   (define (fixup x)
+;;     (if (= (string-length x) 1)
+;; 	(string-append "0" x)
+;; 	x))
+;;   (string-concatenate (map (lambda (u8) (fixup (number->string u8 16)))
+;; 			   (bytevector->u8-list bv)))
+  (call-with-string-output-port
+   (lambda (out)
+     (dotimes (i (bytevector-length bv))
+       (format out "~2,'0X" (bytevector-u8-ref bv i)))))
+)
 
 )
