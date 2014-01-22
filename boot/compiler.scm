@@ -3150,9 +3150,8 @@
   (cond
    ((pair? form)
     (unless (list? form)
-      (error 'pass1
-	     "proper list required for function application or macro use"
-	     (unwrap-syntax form)))
+      (error 'pass1 "proper list required for function application or macro use"
+	     (if (circular-list? form) form (unwrap-syntax form))))
     (cond ((pass1/lookup-head (car form) p1env)
 	   => (lambda (obj)
 		(cond ((identifier? obj) (pass1/global-call obj))
@@ -5459,12 +5458,14 @@
     (define (raise-error e info program)
       (raise (condition (make-compile-error
 			 (format-source-info info)
-			 (format "~,,,,40:s" (unwrap-syntax program)))
+			 (format/ss "~,,,,40:s" 
+				    (if (circular-list? program)
+					program
+					(unwrap-syntax program))))
 			e)))
-    (guard (e (else (cond ((import-error? e) (raise e))
-			  (else 
-			   (let ((info (source-info program)))
-			     (raise-error e info program))))))
+    (guard (e ((import-error? e) (raise e))
+	      (else (let ((info (source-info program)))
+		      (raise-error e info program))))
       (let ((p1 (pass1 (pass0 program env) env)))
 	(pass5 (pass2-4 p1 (p1env-library env))
 	       (make-code-builder)

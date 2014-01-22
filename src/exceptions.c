@@ -360,9 +360,9 @@ SgObject Sg_DescribeCondition(SgObject con)
       if (count == 1) {
 	SgObject field = SG_CAR(fields);
 	if (SG_STRINGP(SG_CDR(field))) {
-	  Sg_Printf(&out, UC(" %A"), SG_CDR(field));
+	  Sg_PrintfShared(&out, UC(" %A"), SG_CDR(field));
 	} else {
-	  Sg_Printf(&out, UC(" %S"), SG_CDR(field));
+	  Sg_PrintfShared(&out, UC(" %S"), SG_CDR(field));
 	}
       } else if (count > 1) {
 	SgObject lst;
@@ -370,9 +370,11 @@ SgObject Sg_DescribeCondition(SgObject con)
 	SG_FOR_EACH(lst, fields) {
 	  SgObject field = SG_CAR(lst);
 	  if (SG_STRINGP(SG_CDR(field))) {
-	    Sg_Printf(&out, UC("      %A: %A\n"), SG_CAR(field), SG_CDR(field));
+	    Sg_PrintfShared(&out, UC("      %A: %A\n"), SG_CAR(field),
+			    SG_CDR(field));
 	  } else {
-	    Sg_Printf(&out, UC("      %A: %S\n"), SG_CAR(field), SG_CDR(field));
+	    Sg_PrintfShared(&out, UC("      %A: %S\n"), SG_CAR(field),
+			    SG_CDR(field));
 	  }
 	}
       }
