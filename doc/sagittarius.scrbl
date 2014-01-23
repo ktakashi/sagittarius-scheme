@@ -408,7 +408,11 @@ same feature as symbol, however it can not be bounded with any values. The
 keyword objects are self quoting so users don't have to put @code{'} explicitly.
 
 @define[Function]{@name{make-keyword} @args{symbol}}
+@define[Function]{@name{symbol->keyword} @args{symbol}}
 @desc{Creates a new keyword from @var{symbol}.}
+
+@define[Function]{@name{string->keyword} @args{string}}
+@desc{Creates a new keyword from @var{string}.}
 
 @define[Function]{@name{keyword?} @args{obj}}
 @desc{Returns #t if @var{obj} is keyword, otherwise #f.

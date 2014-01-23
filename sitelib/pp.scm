@@ -2,7 +2,9 @@
 #!compatible
 (library (pp)
     (export pretty-print pretty-print-to-string
-	    pp)
+	    pp
+	    pretty-print/ss
+	    pp/ss)
     (import (core)
 	    (core base)
 	    (sagittarius)
@@ -34,7 +36,7 @@
 ;   (display obj) = (generic-write obj #t #f display-string)
 ;
 ; where display-string = (lambda (s) (for-each write-char (string->list s)) #t)
-(define (generic-write obj display? width output)
+(define (generic-write obj display? width output :optional (shared #f))
   (define (read-macro? l)
     (define (length1? l) (and (pair? l) (null? (cdr l))))
     (let ((head (car l)) (tail (cdr l)))
@@ -56,6 +58,17 @@
   (define (out str col)
     (and col (output str) (+ col (string-length str))))
 
+  (define (handle-cycle obj col)
+    (not (and-let* (( shared )
+		    (e (hashtable-ref (cdr shared) obj #f)))
+	   (if (number? e)
+	       (out (format "#~d#" e) col)
+	       (let ((id (car shared)))
+		 (hashtable-set! (cdr shared) obj id)
+		 (out (format "#~d=" id) col)
+		 (set-car! shared (+ id 1))
+		 #f)))))
+
   (define (wr obj col)
 
     (define (wr-expr expr col)
@@ -72,9 +85,12 @@
                      (else      (out ")" (wr l (out " . " col)))))))
         (out "()" col)))
 
-    (cond ((pair? obj)        (wr-expr obj col))
+    (cond ((pair? obj)        (if (handle-cycle obj col) (wr-expr obj col) col))
           ((null? obj)        (wr-lst obj col))
-          ((vector? obj)      (wr-lst (vector->list obj) (out "#" col)))
+          ((vector? obj)
+	   (if (handle-cycle obj col)
+	       (wr-lst (vector->list obj) (out "#" col))
+	       col))
           ((boolean? obj)     (out (if obj "#t" "#f") col))
           ((number? obj)      (out (number->string obj) col))
           ((symbol? obj)
@@ -130,20 +146,23 @@
              (spaces (- to col) col))))
 
     (define (pr obj col extra pp-pair)
-      (if (or (pair? obj) (vector? obj)) ; may have to split on multiple lines
-        (let ((result '())
-              (left (min (+ (- (- width col) extra) 1) max-expr-width)))
-          (generic-write obj display? #f
-            (lambda (str)
-              (set! result (cons str result))
-              (set! left (- left (string-length str)))
-              (> left 0)))
-          (if (> left 0) ; all can be printed on one line
-            (out (reverse-string-append result) col)
-            (if (pair? obj)
-              (pp-pair obj col extra)
-              (pp-list (vector->list obj) (out "#" col) extra pp-expr))))
-        (wr obj col)))
+       ; may have to split on multiple lines
+      (cond ((or (pair? obj) (vector? obj))
+	     (let ((result '())
+		   (left (min (+ (- (- width col) extra) 1) max-expr-width)))
+	       (generic-write obj display? #f
+			      (lambda (str)
+				(set! result (cons str result))
+				(set! left (- left (string-length str)))
+				(> left 0))
+			      shared)
+	       (if (> left 0) ; all can be printed on one line
+		   (out (reverse-string-append result) col)
+		   (if (pair? obj)
+		       (pp-pair obj col extra)
+		       (pp-list (vector->list obj)
+				(out "#" col) extra pp-expr)))))
+	    (else (wr obj col))))
 
     (define (pp-expr expr col extra)
       (if (read-macro? expr)
@@ -271,9 +290,32 @@
         ((begin)                     pp-begin)
         ((do)                        pp-do)
         (else                        #f)))
+    (when (handle-cycle obj col)
+      (pr obj col 0 pp-expr)))
 
-    (pr obj col 0 pp-expr))
-
+  (define (walk! obj seen)
+    (define (register obj)
+      (let ((r (hashtable-ref seen obj #f)))
+	(if (number? r)
+	    (begin (hashtable-set! seen obj (+ r 1)) (= r 0))
+	    (begin (hashtable-set! seen obj 0) #t))))
+    (cond ((pair? obj)
+	   (when (register obj)
+	     (walk! (car obj) seen)
+	     (walk! (cdr obj) seen)))
+	  ((vector? obj)
+	   (when (register obj)
+	     (do ((len (vector-length obj))
+		  (i 0 (+ i 1)))
+		 ((= i len))
+	       (walk! (vector-ref obj i) seen))))))
+  (when shared
+    (let ((seen (make-eq-hashtable))
+	  (ht (cdr shared)))
+      (walk! obj seen)
+      ;; extract
+      (hashtable-for-each
+       (lambda (k v) (when (> v 1) (hashtable-set! ht k #t))) seen)))
   (if width
       (out (make-string 1 #\newline) (pp obj 0))
       (wr obj 0)))
@@ -328,4 +370,12 @@
     (reverse-string-append result)))
 
 (define pp pretty-print)
+
+(define (pretty-print/ss obj . opt)
+  (let ((port (if (pair? opt) (car opt) (current-output-port))))
+    (generic-write obj #f (output-port-width port)
+		   (lambda (s) (display s port) #t)
+		   (cons 0 (make-eq-hashtable)))))
+
+(define pp/ss pretty-print/ss)
 )
