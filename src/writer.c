@@ -531,7 +531,9 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  if (!SG_TEXTUAL_PORTP(port)) {
+  if (!(SG_TEXTUAL_PORTP(port) ||
+	(SG_CUSTOM_PORTP(port) && 
+	 SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
@@ -1218,7 +1220,9 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
   if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  if (!SG_TEXTUAL_PORTP(port)) {
+  if (!(SG_TEXTUAL_PORTP(port) ||
+	(SG_CUSTOM_PORTP(port) && 
+	 SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
