@@ -631,6 +631,32 @@
 			'(1 2 3)
 			(list (d1 x) (d2 x) x)))))))
 )
+
+;; similar but different, reported by Atsushi Saito
+(define-syntax let/scope
+  (lambda(x)
+    (syntax-case x ()
+      ((k scope-name body ...)
+       #'(let-syntax
+	     ((scope-name
+	       (lambda(x)
+		 (syntax-case x ()
+		   ((_ b (... ...))
+		    #`(begin
+			#,@(datum->syntax #'k
+			    (syntax->datum #'(b (... ...))))))))))
+	   body ...)))))
+
+(let ((x 1))
+  (let/scope d1
+    (let ((x 2))
+      (let/scope d2
+	(let ((x 3))
+	  (let/scope d1
+	    (test-equal "let/scope in global bindings" 
+			'(1 2 3) (list (d2 (d1 x)) (d2 x) x))))))))
+
+
 ;; issue 46
 (let ()
   (define (issue-46)

@@ -311,51 +311,84 @@
 		     (SG_EQ (SG_CAAR (SG_IDENTIFIER_ENVS id)) boundary))
 		 (SG_EQ usage-lib (SG_IDENTIFIER_LIBRARY id)))))
 
-  ;; FIXME this is defined in macro.scm as well
-  (define-cfn psuedo-null? (env) ::int :static
-    (return (and (not (SG_NULLP env))
-		 (SG_NULLP (SG_CDR env))
-		 (SG_EQ (SG_CAAR env) (SG_MAKE_INT 3)))))
-
+  ;; compile time environment lookup
+  ;; the given name can be either symbol or identifier
+  ;; if it's identifier, first check if its environment shares the
+  ;; given frame. if it is, use it to look up. however there are
+  ;; couple of cases we need to be careful
+  ;;  1. environment contains the symbol name and the given identifier
+  ;;     should indicate it
+  ;;  2. environment contains the identifier and given identifier should
+  ;;     indicate it.
+  ;; since we don't manage the history of renaming, these cases are
+  ;; very hard to determine which is which. 
+  ;; e.g. say macro-let generates identifier #<id a>
+  ;;  (let ((a 'a))
+  ;;    (macro-let (a 'b) a))
+  ;; this case returning a must be the second one and environment contains
+  ;; identifier.
   ;; NB: we skip some test, because we assume the frame is well-formed.
+  (define-cfn env-shared? (e1 frame) ::int :static
+    (dopairs (fp frame)
+      (when (== fp e1) (return TRUE)))
+    (return FALSE))
+  (define-cfn macro-env? (frame) ::int :static
+    ;; the frame must contain (3)
+    (dopairs (fp frame)
+      (when (SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)) (return TRUE)))
+    (return FALSE))
+
   (define-cfn p1env-lookup-inner 
     (p1env::SgVector* name lookup_as frame?::int boundary use-lib)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
-	  ;;(name-pending?::int FALSE)
 	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
-      ;; checks if the given name is template variable (pending id)
-      ;; disabled doesn't work properly
-      #;
-      (when (and name_identp (SG_IDENTIFIER_PENDING name)
-		 (psuedo-null? (SG_IDENTIFIER_ENVS name)))
-	(set! name-pending? TRUE)
-	(set! name (SG_IDENTIFIER_NAME name)))
       (dopairs (fp frames)
 	(when (and name_identp (== (SG_IDENTIFIER_ENVS name) fp))
 	  (set! same-env? TRUE)
 	  ;; strip identifier if we're in the same env
-	  (set! name (SG_OBJ (SG_IDENTIFIER_NAME name))))
+	  ;;(set! name (SG_OBJ (SG_IDENTIFIER_NAME name)))
+	  )
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
 	(when (> (SG_CAAR fp) lookup_as) (continue))
 
 	(dolist (vp (SG_CDAR fp))
-	  (when (or (SG_EQ name (SG_CAR vp))
-		    (and (SG_IDENTIFIERP (SG_CAR vp))
+	  (when (or (SG_EQ name (SG_CAR vp)) ;; simple case
+		    ;; name is symbol and target is identifier
+		    ;; in this case we need to check the target
+		    ;; identifier's name and it's environment
+		    ;; and if the env is shared by searching env
+		    (and (SG_SYMBOLP name)
+			 (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))
-			 (or same-env?
-			     (and (not name_identp)
-				  (or (p1env-lookup-aux fp (SG_CAR vp))
-				      (pending=? (SG_CAR vp) use-lib boundary)))
-			     ;; what should we check?
-			     #;
-			     (and name-pending?
-				  ;; if the target is converted by
-				  ;; datum->syntax then it must be
-				  ;; a pattern variable.
-				  (%pattern-variable? (SG_CAR vp))))))
+			 (env-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp)) fp))
+		    ;; name is identifier target can be id or symbol
+		    ;; correct? 
+		    (and same-env?
+			 (or (and (SG_IDENTIFIERP (SG_CAR vp))
+				  (SG_EQ (SG_IDENTIFIER_NAME name)
+					 (SG_IDENTIFIER_NAME (SG_CAR vp))))
+			     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_CAR vp))))
+		    ;; both identifier not in the same env but
+		    ;; share the env
+		    
+		    (and (SG_IDENTIFIERP name)
+			 (SG_IDENTIFIERP (SG_CAR vp))
+			 ;; is this always true?
+			 (SG_EQ (SG_IDENTIFIER_NAME name)
+				(SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 (SG_IDENTIFIER_PENDING (SG_CAR vp))
+			 (env-shared? (SG_IDENTIFIER_ENVS name) fp)
+			 ;; TODO make better way...
+			 ;; macro env must contain boundary mark
+			 ;; (3) if it doesn't then it's not the one
+			 ;; we are interested int
+			 (and (macro-env? (SG_IDENTIFIER_ENVS (SG_CAR vp)))
+			      (env-shared? (SG_IDENTIFIER_ENVS name)
+					   (SG_IDENTIFIER_ENVS (SG_CAR vp)))))
+		    )
 	    (if frame?
 		(return fp)
 		(return vp)))))

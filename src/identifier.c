@@ -90,9 +90,7 @@ SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
   id->name = (SG_IDENTIFIERP(id_or_sm))
     ? SG_IDENTIFIER_NAME(id_or_sm) : id_or_sm;
   id->library = library;
-  id->envs = (envs == SG_NIL)
-    ? SG_NIL : SG_IDENTIFIERP(id_or_sm)
-    ? envs   : get_binding_frame(SG_OBJ(id_or_sm), envs);
+  id->envs = envs;		/* not matter what */
   return SG_OBJ(id);
 }
 
@@ -129,6 +127,7 @@ int Sg_IdentifierEqP(SgObject e1, SgObject id1, SgObject e2, SgObject id2)
     id2 = SG_IDENTIFIER_NAME(id2);
     both++;
   }
+  /* not sure if this is correct or not */
   /* lam1 = Sg_Assq(id1, e1); */
   lam1 = get_binding_frame(id1, e1);
   if (!SG_NULLP(lam1)) {
