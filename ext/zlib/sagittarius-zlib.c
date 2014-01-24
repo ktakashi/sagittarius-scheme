@@ -182,7 +182,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__zlib()
 
 #define insert_binding_rec(n, v)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#n)), SG_MAKE_INT(v), TRUE)
-#define insert_binding(v)  insert_binding_rec(v, v)
+#define insert_binding(v)						\
+Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#v)), SG_MAKE_INT(v), TRUE)
 
 insert_binding(Z_NO_FLUSH     );
 insert_binding(Z_PARTIAL_FLUSH);
