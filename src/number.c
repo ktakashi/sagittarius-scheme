@@ -1509,7 +1509,7 @@ SgObject Sg_Exact(SgObject obj)
   if (SG_FLONUMP(obj)) {
     double d = SG_FLONUM_VALUE(obj);
     double f, i;
-#if defined(__WATCOMC__) || defined(__FreeBSD__)
+#if defined(__WATCOMC__) || defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Yes, on Watcom/FreeBSD if +inf.0 or +nan.0 is passed to modf,
        it returns +nan.0. Sucks!!! */
     if ((f = modf(d, &i)) == 0.0 ||

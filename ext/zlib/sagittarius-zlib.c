@@ -180,8 +180,9 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__zlib()
 				  FALSE));
   Sg__Init_zlib_stub(lib);
 
-#define insert_binding(v)				\
-  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#v)), SG_MAKE_INT(v), TRUE)
+#define insert_binding_rec(n, v)					\
+  Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#n)), SG_MAKE_INT(v), TRUE)
+#define insert_binding(v)  insert_binding_rec(v, v)
 
 insert_binding(Z_NO_FLUSH     );
 insert_binding(Z_PARTIAL_FLUSH);
@@ -189,7 +190,15 @@ insert_binding(Z_SYNC_FLUSH   );
 insert_binding(Z_FULL_FLUSH   );
 insert_binding(Z_FINISH       );
 insert_binding(Z_BLOCK        );
-insert_binding(Z_TREES        );
+/* as far as I know this is after 1.2.3
+   and some platform (say OpenBSD) is using 1.2.3
+   so check it.*/
+#ifdef Z_TREES
+ insert_binding(Z_TREES        );
+#else
+ /* ok not sure if this should be default... */
+ insert_binding_rec(Z_TREES,  Z_NO_FLUSH);
+#endif
 insert_binding(Z_OK           );
 insert_binding(Z_STREAM_END   );
 insert_binding(Z_NEED_DICT    );
