@@ -501,9 +501,10 @@
     (define (seen-or-gen id)
       (cond ((hashtable-ref seen id #f))
 	    (else
-	     (let ((new-id (make-identifier id
-					    (vector-ref mac-env 1)
-					    (vector-ref mac-env 0))))
+	     (let ((new-id (make-pending-identifier 
+			    id
+			    (vector-ref mac-env 1)
+			    (vector-ref mac-env 0))))
 	       (hashtable-set! seen id new-id)
 	       new-id))))
     (let loop ((expr expr))
