@@ -783,12 +783,7 @@
   (define (nl ind)
     (newline)
     (indent ind))
-  (define (id->string id)
-    (if (identifier? id)
-	(if (id-library id)
-	    (format "~s#~s" (id-name id) (library-name (id-library id)))
-	    (format "~s" (id-name id)))
-	(format "~s" id)))
+  (define (id->string id) (format "~s" id))
   (define (lvar->string lvar)
     (format "~a[~a.~a]"
 	    (if (identifier? (lvar-name lvar))

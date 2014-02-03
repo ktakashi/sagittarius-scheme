@@ -728,19 +728,6 @@
   (lambda (in-form ranks vars)
     (define use-env (current-usage-env))
     (define mac-env (current-macro-env))
-    (define (no-rename-needed? id)
-      (let ((lib (id-library id))
-	    (name (id-name id)))
-	(or (eq? use-env mac-env)    ; toplevel (should be)
-	    ;;(not (null? (id-envs id)))    ; obvious case
-	    ;;(find-binding lib name #f)
-	    ;; these things are not defined yet.
-	    (memq name (library-defined lib))
-	    ;; don't rename pattern variables
-	    ;; now pattern variable contains non null env
-	    ;;(not (number? (p1env-lookup mac-env id PATTERN)))
-	    ;; local binded variables must not be renamed either.
-	    (not (identifier? (p1env-lookup mac-env id LEXICAL))))))
 
     ;; bit ugly solution to resolve different compile unit of (syntax)
     (define (rename-or-copy-id id)
@@ -749,18 +736,13 @@
 		 ;; to bent scope
 		 ;; FIXME smells like a bug
 		 (macro? (p1env-lookup mac-env id LEXICAL)))
-	     (make-identifier id (vector-ref mac-env 1) (id-library id)))
-	    ((not (null? (id-envs id)))
+	     (make-pending-identifier (id-name id)
+				      (vector-ref mac-env 1)
+				      (id-library id)))
+	    (else
 	     ;; simply copy but mark as template variable
 	     (make-pending-identifier (id-name id) (id-envs id) 
-				      (id-library id)))
-	    ((no-rename-needed? id) id)
-	    (else
-	     ;; Issue 86
-	     ;; use mac-env instead of use-env so that identifier can hold
-	     ;; proper context.
-	     (make-pending-identifier (id-name id) '() 
-				      (vector-ref mac-env 0)))))
+				      (id-library id)))))
 
     ;; regenerate pattern variable
     (define (rewrite-template t vars)
