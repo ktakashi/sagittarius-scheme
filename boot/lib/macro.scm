@@ -7,25 +7,6 @@
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
-;; mac-env must be p1env
-(define (lookup-lexical-name id mac-env)
-  ;; the same as compiler.scm, but inlinable...
-  (define (lvar? obj)
-    (and (vector? obj) (eq? (vector-ref obj 0) 'lvar)))
-  ;; lookup env and bindings
-  ;; first env
-  ;; except '_ and '...
-  (if (or (bar? id) (ellipsis? id))
-      id
-      (let ((lvar (p1env-lookup mac-env id LEXICAL)))
-	(cond ((and (identifier? lvar)		; might be global
-		    ;; check current library's bindings
-		    ;; TODO correct? 
-		    (find-binding (id-library lvar) (id-name lvar) #f))
-	       lvar)
-	      ((lvar? lvar) id)
-	      (else id)))))
-
 (define (bar? expr)
   (and (variable? expr)
        (eq? (identifier->symbol expr) '_)))
@@ -756,18 +737,13 @@
 	    ((and (variable? t) (assq t vars)) => car)
 	    (else
 	     ;; rename template variable
-	     (or (and-let* (( (identifier? t) )
-			    (id (lookup-lexical-name t use-env))
-			    ;;( (identifier? id) )
-			    ;;( (null? (id-envs id)) )
-			    ( (eq? id t) )
-			    )
-		   (cond ((lookup-transformer-env id))
-			 ;; mark as template variable so that pattern variable
-			 ;; lookup won't make misjudge.
-			 ;; note: id-envs returns (#t)
-			 (else
-			  (add-to-transformer-env! t (rename-or-copy-id t)))))
+	     (or (cond ((not (identifier? t)) #f)
+		       ((lookup-transformer-env t))
+		       ;; mark as template variable so that pattern variable
+		       ;; lookup won't make misjudge.
+		       ;; note: id-envs returns (#t)
+		       (else
+			(add-to-transformer-env! t (rename-or-copy-id t))))
 		 t))))
 
     (let ((tmpl (rewrite-template in-form vars)))
