@@ -1117,4 +1117,17 @@
 (test-error "obvious error (1)" condition? ((lambda () (vector-length 'a) 'ng)))
 (test-error "obvious error (2)" condition? ((lambda () (car 'a) 'ng)))
 
+;; visibility check
+(let ()
+  (define-syntax renaming-test
+  (syntax-rules ()
+    ((_ var val)
+     (begin
+       (define dummy val)
+       (define (var) dummy)))))
+  (define dummy #f)
+  (renaming-test a 'a)
+  (test-equal "renaming-test" '(a #f) (list (a) dummy)))
+
+
 (test-end)

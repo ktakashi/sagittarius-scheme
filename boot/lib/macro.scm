@@ -249,15 +249,6 @@
            (match-ellipsis-n? (cdr expr) pat (- n 1) lites))))
 
 (define (match-pattern? expr pat lites)
-#;
-  (define (compare a b)
-    (or (identifier=? (current-usage-env) a
-                      (current-macro-env) b)
-        (and (identifier? a) (identifier? b)
-	     (free-identifier=? a b))
-        (and-let* ((v (find-binding (vm-current-library) 
-				    (identifier->symbol b) #f)))
-	  (eq? (identifier->symbol a) (gloc-name v)))))
   (define (compare pat expr)
     (define (ensure-id id env)
       (if (identifier? id)
@@ -501,8 +492,7 @@
     (define (seen-or-gen id)
       (cond ((hashtable-ref seen id #f))
 	    (else
-	     (let ((new-id (make-pending-identifier 
-			    id
+	     (let ((new-id (make-pending-identifier id
 			    (vector-ref mac-env 1)
 			    (vector-ref mac-env 0))))
 	       (hashtable-set! seen id new-id)

@@ -5,6 +5,11 @@
 
 (test-begin "Binary data read/write")
 
+;; not sure if R6RS requires the explicit definition
+;; if the macro defines macro defines variable with
+;; given name...
+(define-generic simple-read)
+(define-generic simple-write)
 (define-simple-datum-define define-simple simple-read simple-write)
 
 (define-simple <simple1> ()
