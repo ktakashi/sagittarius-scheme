@@ -833,12 +833,7 @@
 (define datum->syntax
   (lambda (template-id datum)
     (define seen (make-eq-hashtable))
-    ;; most of the case template-id has the same library as
-    ;; usage env but probably some case doesn't (i haven't confirm it)
-    ;; but we need the current usage env frame to lookup
-    ;; proper pending identifier.
-    ;; honestly i have no idea what i'm doing here...
-    (define use-env (current-usage-env))
+    ;; simply converts symbol to identifier.
     (define (rewrite expr frame library)
       (let loop ((expr expr))
 	(cond ((pair? expr)

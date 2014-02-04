@@ -287,27 +287,6 @@
 	(set! l2 (SG_CDR l2)))
       (result h)))
 
-  ;; for better performance.
-  ;; check if the given identifier shares the same environment
-  (define-cfn p1env-lookup-aux (frame id) ::int :static
-    (let ((env (SG_IDENTIFIER_ENVS id)))
-      (unless (SG_EQ (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary))
-	(return FALSE))
-      (dopairs (fp frame)
-	(when (SG_EQ env fp) (return TRUE)))
-      (return FALSE)))
-  ;; pending identifier check
-  ;; for issue 117, datum->syntax must return current usage-env's
-  ;; binding
-  (define-cfn pending=? (id usage-lib boundary) ::int :static
-    (unless (SG_IDENTIFIER_PENDING id) (return FALSE))
-    ;; if the env is not null, then it must be checked by
-    ;; p1env-lookup-aux
-    (return (and (or (SG_NULLP (SG_IDENTIFIER_ENVS id))
-		     ;; the first one must be boundary
-		     (SG_EQ (SG_CAAR (SG_IDENTIFIER_ENVS id)) boundary))
-		 (SG_EQ usage-lib (SG_IDENTIFIER_LIBRARY id)))))
-
   ;; compile time environment lookup
   ;; the given name can be either symbol or identifier
   ;; if it's identifier, first check if its environment shares the
@@ -335,18 +314,59 @@
       (when (SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)) (return TRUE)))
     (return FALSE))
 
+  ;; resolving identifier generated during macro expansion
+  (define-cfn shared-env-id=? (name vp fp) ::int :static
+    (when (and (SG_IDENTIFIERP name)
+	       (SG_IDENTIFIERP vp)
+	       (SG_EQ (SG_IDENTIFIER_NAME name) (SG_IDENTIFIER_NAME vp))
+	       ;; at least this contains (3)
+	       (not (SG_NULLP (SG_IDENTIFIER_ENVS name))))
+      ;; to make life easier...
+      (cond ((and (SG_IDENTIFIER_PENDING vp)
+		  (env-shared? (SG_IDENTIFIER_ENVS name) fp)
+		  ;; TODO make better way...
+		  ;; macro env must contain boundary mark
+		  ;; (3) if it doesn't then it's not the one
+		  ;; we are interested int
+		  (macro-env? (SG_IDENTIFIER_ENVS vp))
+		  (env-shared? (SG_IDENTIFIER_ENVS name)
+			       (SG_IDENTIFIER_ENVS vp)))
+	     (return TRUE))
+	    ;; wrapped it problem
+	    ;; syntax-rules always creates identifier with
+	    ;; null environment so currently it's impossible to
+	    ;; recognise the difference...
+	    #;
+	    ((and 
+	      ;; must look like template variable
+	      ;; it's in syntax template
+	      (SG_IDENTIFIER_PENDING name)
+	      (macro-env? (SG_IDENTIFIER_ENVS name))
+	      ;; datum->syntax never make template
+	      ;; variable (must be pattern variable)
+	      (not (SG_IDENTIFIER_PENDING vp))
+	      ;; renamed id must have the same usage env
+	      ;; if both identifier have shared env
+	      ;; then that's it
+	      (or (and (env-shared? (SG_IDENTIFIER_ENVS vp) 
+				    (SG_IDENTIFIER_ENVS name))
+		       (env-shared? (SG_IDENTIFIER_ENVS vp) fp))
+		  ;; or look like global bindings
+		  (and (SG_NULLP (SG_IDENTIFIER_ENVS vp))
+		       (SG_NULLP (SG_CDR (SG_IDENTIFIER_ENVS name))))))
+	     (return TRUE))
+	    (else (return FALSE))))
+    (return FALSE))
+
   (define-cfn p1env-lookup-inner 
-    (p1env::SgVector* name lookup_as frame?::int boundary use-lib)
+    (p1env::SgVector* name lookup_as frame?::int boundary)
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1)))
       (dopairs (fp frames)
 	(when (and name_identp (== (SG_IDENTIFIER_ENVS name) fp))
-	  (set! same-env? TRUE)
-	  ;; strip identifier if we're in the same env
-	  ;;(set! name (SG_OBJ (SG_IDENTIFIER_NAME name)))
-	  )
+	  (set! same-env? TRUE))
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
 	(when (> (SG_CAAR fp) lookup_as) (continue))
@@ -370,33 +390,18 @@
 			     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_CAR vp))))
 		    ;; both identifier not in the same env but
 		    ;; share the env
-		    
-		    (and (SG_IDENTIFIERP name)
-			 (SG_IDENTIFIERP (SG_CAR vp))
-			 ;; is this always true?
-			 (SG_EQ (SG_IDENTIFIER_NAME name)
-				(SG_IDENTIFIER_NAME (SG_CAR vp)))
-			 (SG_IDENTIFIER_PENDING (SG_CAR vp))
-			 (env-shared? (SG_IDENTIFIER_ENVS name) fp)
-			 ;; TODO make better way...
-			 ;; macro env must contain boundary mark
-			 ;; (3) if it doesn't then it's not the one
-			 ;; we are interested int
-			 (and (macro-env? (SG_IDENTIFIER_ENVS (SG_CAR vp)))
-			      (env-shared? (SG_IDENTIFIER_ENVS name)
-					   (SG_IDENTIFIER_ENVS (SG_CAR vp)))))
-		    )
+		    (shared-env-id=? name (SG_CAR vp) fp))
 	    (if frame?
 		(return fp)
 		(return vp)))))
       (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
-    (return (p1env-lookup-inner p1env name lookup-as FALSE #f #f)))
+    (return (p1env-lookup-inner p1env name lookup-as FALSE #f)))
 
   (define-c-proc p1env-lookup 
     (p1env::<vector> name lookup_as :optional (boundary #f))
-    (let ((r (p1env-lookup-inner p1env name lookup_as FALSE boundary #f)))
+    (let ((r (p1env-lookup-inner p1env name lookup_as FALSE boundary)))
       (cond ((SG_PAIRP r) (result (SG_CDR r)))
 	    ((SG_SYMBOLP r)
 	     (let ((lib (SG_VECTOR_ELEMENT p1env 0)))
@@ -404,18 +409,10 @@
 	    (else (result r)))))
 
   (define-c-proc p1env-lookup-frame (p1env::<vector> name lookup-as)
-    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE #f #f)))
+    (let ((r (p1env-lookup-inner p1env name lookup-as TRUE #f)))
       (if (or (SG_SYMBOLP r) (SG_IDENTIFIERP r))
 	  (result SG_NIL)
 	  (result r))))
-
-  (define-c-proc p1env-lookup-name (p1env::<vector> name lookup-as boundary lib)
-    (let ((r (p1env-lookup-inner p1env name lookup-as FALSE boundary lib)))
-      (if (and (SG_PAIRP r) 
-	       (SG_IDENTIFIERP (SG_CAR r))
-	       (pending=? (SG_CAR r) lib boundary))
-	  (result (SG_CAR r))
-	  (result SG_FALSE))))
 
   ;; check all env frames are macro
   (define-cfn check-env-frame (frames) ::int :static
