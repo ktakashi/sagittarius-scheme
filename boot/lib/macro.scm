@@ -850,19 +850,11 @@
 	      ((vector? expr)
 	       (list->vector (loop (vector->list expr))))
 	      ((symbol? expr)
-	       (let ((id (p1env-lookup-name use-env expr LEXICAL BOUNDARY
-					    (id-library template-id))))
-		 ;; if the returned name is already lexical scoped 
-		 ;; (env is not null), then it will be treated correctly
-		 ;; if the id is not lexical identifier but found something,
-		 ;; most definitely it needs to be the same pending
-		 ;; identifier. See issue 117
-		 (cond (id)
-		       ((hashtable-ref seen expr))
-		       (else 
-			(let ((id (make-pattern-identifier expr frame library)))
-			  (hashtable-set! seen expr id)
-			  id)))))
+	       (cond ((hashtable-ref seen expr))
+		     (else 
+		      (let ((id (make-pattern-identifier expr frame library)))
+			(hashtable-set! seen expr id)
+			id))))
 	      (else expr))))
     (or (identifier? template-id)
 	(assertion-violation 
