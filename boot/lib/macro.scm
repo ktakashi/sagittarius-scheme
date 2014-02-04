@@ -732,7 +732,6 @@
 		       ((lookup-transformer-env t))
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.
-		       ;; note: id-envs returns (#t)
 		       (else
 			(add-to-transformer-env! t (rename-or-copy-id t))))
 		 t))))
