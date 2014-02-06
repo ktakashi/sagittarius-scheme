@@ -69,14 +69,6 @@
       (set! (SG_IDENTIFIER_ENVS id) envs)
       (result id)))
 
-
-  (define-cfn %pattern-variable? (o) ::int :static
-    (return (and (SG_IDENTIFIERP o)
-		 (not (SG_NULLP (SG_IDENTIFIER_ENVS o)))
-		 (SG_SYMBOLP (SG_CAR (SG_IDENTIFIER_ENVS o))))))
-  (define-c-proc pattern-variable? (o) ::<boolean>
-    (result (%pattern-variable? o)))
-
   (define-c-proc id-envs (id::<identifier>) ::<top>
     (result (SG_IDENTIFIER_ENVS id)))
 
