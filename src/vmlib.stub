@@ -305,11 +305,13 @@
   ;; identifier.
   ;; NB: we skip some test, because we assume the frame is well-formed.
   (define-cfn env-shared? (e1 frame) ::int :static
+    (when (SG_NULLP frame) (return FALSE))
     (dopairs (fp frame)
       (when (== fp e1) (return TRUE)))
     (return FALSE))
   (define-cfn macro-env? (frame) ::int :static
     ;; the frame must contain (3)
+    (when (SG_NULLP frame) (return FALSE))
     (dopairs (fp frame)
       (when (SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)) (return TRUE)))
     (return FALSE))
@@ -350,16 +352,17 @@
 	     (SG_IDENTIFIERP name)
 	     (SG_IDENTIFIERP vp)
 	     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_IDENTIFIER_NAME vp))
-	     ;; at least this contains (3)
-	     (not (SG_NULLP (SG_IDENTIFIER_ENVS name)))
 	     ;; must look like template variable
 	     ;; it's in syntax template
 	     (SG_IDENTIFIER_PENDING name)
-	     (macro-env? (SG_IDENTIFIER_ENVS name))
+	     (or (macro-env? (SG_IDENTIFIER_ENVS name))
+		 (SG_NULLP (SG_IDENTIFIER_ENVS name)))
 	     ;; renamed id must have the same usage env
 	     ;; if both identifier have shared env
 	     ;; then that's it
-	     (or (env-shared? (SG_IDENTIFIER_ENVS vp)
+	         ;; obvious case
+	     (or (SG_EQ (SG_IDENTIFIER_ENVS vp) (SG_IDENTIFIER_ENVS name))
+		 (env-shared? (SG_IDENTIFIER_ENVS vp)
 			      (SG_IDENTIFIER_ENVS name))
 		 ;; sort of special case. if the name's env only contains
 		 ;; ((3)) means global and target contains null env

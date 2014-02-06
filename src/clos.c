@@ -2700,14 +2700,15 @@ static SgObject unbound_variable_subr(SgObject *argv, int argc, void *data)
   SG_APPEND1(h, t, Sg_MakeMessageCondition(message));
   return Sg_Condition(h);
 }
-SG_DEFINE_SUBR(unbound_variable_subr_rec, 2, 0, unbound_variable_subr,
+SG_DEFINE_SUBR(unbound_variable_subr_rec, 3, 0, unbound_variable_subr,
 	       SG_FALSE, NULL);
 static SgClass *unbound_variable_SPEC[] = {
+  SG_CLASS_TOP,
   SG_CLASS_TOP,
   SG_CLASS_TOP
 };
 SG_DEFINE_METHOD(unbound_variable_rec, &Sg_GenericUnboundVariable,
-		 2, 0, unbound_variable_SPEC, &unbound_variable_subr_rec);
+		 3, 0, unbound_variable_SPEC, &unbound_variable_subr_rec);
 
 void Sg__InitClos()
 {

@@ -601,8 +601,9 @@
 
     (define (partial-identifier olst)
       (define (check-binding name env library)
-	(and (identifier? (p1env-lookup env name LEXICAL))
-	     (find-binding library name #f)))
+	(and-let* ((id (p1env-lookup env name LEXICAL))
+		   ( (identifier? id)) )
+	  (find-binding library (id-name id) #f)))
       (let loop ((lst olst))
 	(cond ((contain-identifier? lst)
 	       (cond ((pair? lst)
@@ -610,8 +611,7 @@
 			(cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 			      (else (cons a d)))))
 		     ((identifier? lst)
-		      (cond ((check-binding (id-name lst) mac-env
-					    (id-library lst)) lst)
+		      (cond ((check-binding lst mac-env (id-library lst)) lst)
 			    ((lookup-pattern-variable p1env vars lst))
 			    (else lst)))
 		     (else lst)))

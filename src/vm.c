@@ -1208,9 +1208,9 @@ static SgWord boundaryFrameMark = NOP;
 			   SG_IDENTIFIER_NAME(id),			\
 			   SG_UNBOUND);					\
     if (SG_UNBOUNDP(ret)) {						\
-      (ret) = Sg_Apply2(&Sg_GenericUnboundVariable,			\
+      (ret) = Sg_Apply3(&Sg_GenericUnboundVariable,			\
 			SG_IDENTIFIER_NAME(id),				\
-			SG_IDENTIFIER_LIBRARY(id));			\
+			SG_IDENTIFIER_LIBRARY(id), (id));		\
       if (Sg_ConditionP(ret)) {						\
 	Sg_Raise(ret, FALSE);						\
       }									\

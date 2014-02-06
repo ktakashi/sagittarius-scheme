@@ -275,6 +275,7 @@
 		(else (loop (cdr ss) (cons (car ss) rs))))))
       (define (build k qualifier generic qargs rest opts body)
 	;; ugly kludge
+	#;
 	(define (rewrite body)
 	  (let loop ((body body))
 	    (cond ((null? body) '())
@@ -298,32 +299,34 @@
 	    ((_ v) #'v)
 	    (_ #'<top>)))
 	(define (->s s) (datum->syntax k s))
-	(let* ((specializers (map parse-specializer qargs))
-	       (reqargs      (map (lambda (s) 
-				    (if (pair? s) (car s) s)) qargs))
-	       (lambda-list  `(,@reqargs . ,rest))
-	       (real-args    `(call-next-method ,@reqargs . ,rest))
-	       (real-body (if opts
-			      `(lambda ,real-args
-				 (define (next-method?)
-				   (slot-ref call-next-method 'next-method?))
-				 (apply (lambda ,opts ,@(rewrite body)) ,rest))
-			      `(lambda ,real-args
-				 (define (next-method?)
-				   (slot-ref call-next-method 'next-method?))
-				 ,@(rewrite body))))
-	       (gf        (gensym)))
-
-	  (with-syntax (((true-name getter-name) (%check-setter-name generic)))
+	(define (smap1 p arg) (->s (map p arg)))
+	(with-syntax (((specializers ...) (smap1 parse-specializer qargs))
+		      ((reqargs ...) (smap1 (lambda (s) 
+					      (if (pair? s) (car s) s)) qargs))
+		      (rest      (->s rest))
+		      (cm        (->s 'call-next-method))
+		      (nm        (->s 'next-method?))
+		      ((body ...) (->s body))
+		      (?opts     (->s opts))
+		      (gf        (->s (gensym))))
+	  (with-syntax (((true-name getter-name) (%check-setter-name generic))
+			(real-body (if opts
+				       #'(lambda (cm reqargs ... . rest)
+					   (define (nm)
+					     (slot-ref cm 'next-method?))
+					   (apply (lambda ?opts body ...) rest))
+				       #'(lambda (cm reqargs ... . rest)
+					   (define (nm)
+					     (slot-ref cm 'next-method?))
+					   body ...))))
 	    #`(begin
 		#,@(let* ((id #'true-name)
 			  (lib (id-library id)))
 		     (cond ((find-binding lib (syntax->datum id) #f) '())
 			   (else
-			    (%ensure-generic-function 
-			     (syntax->datum id) lib)
-			    `((,(->s 'define-generic) ,id)))))
-		(let ((#,gf
+			    (%ensure-generic-function (syntax->datum id) lib)
+			    #`((define-generic #,id)))))
+		(let ((gf
 		       ;; for cache perspective, we can't use library
 		       ;; object directly...
 		       (or (and-let* ((lib-name '#,(library-name 
@@ -334,18 +337,18 @@
 			     gf)
 			   (%ensure-generic-function 'true-name 
 						     (current-library)))))
-		  (add-method #,gf
+		  (add-method gf
 			      (make <method>
-				:specializers  (list #,@specializers)
+				:specializers  (list specializers ...)
 				:qualifier     #,qualifier
 				:generic       true-name
-				:lambda-list  '#,lambda-list
-				:procedure     #,real-body))
+				:lambda-list   '(reqargs ... . rest)
+				:procedure     real-body))
 		  #,@(if #'getter-name
-			 `((,(->s 'unless) (,(->s 'has-setter?) ,#'getter-name)
-			    (,(->s 'set!) (,(->s 'setter) ,#'getter-name) ,gf)))
-			 '())
-		  #,gf)))))
+			 #'((unless (has-setter? getter-name)
+			      (set! (setter getter-name) gf)))
+			 #'())
+		  gf)))))
       (syntax-case x ()
 	((k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
