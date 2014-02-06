@@ -332,30 +332,43 @@
 		  (env-shared? (SG_IDENTIFIER_ENVS name)
 			       (SG_IDENTIFIER_ENVS vp)))
 	     (return TRUE))
-	    ;; wrapped it problem
-	    ;; syntax-rules always creates identifier with
-	    ;; null environment so currently it's impossible to
-	    ;; recognise the difference...
-	    #;
-	    ((and 
-	      ;; must look like template variable
-	      ;; it's in syntax template
-	      (SG_IDENTIFIER_PENDING name)
-	      (macro-env? (SG_IDENTIFIER_ENVS name))
-	      ;; datum->syntax never make template
-	      ;; variable (must be pattern variable)
-	      (not (SG_IDENTIFIER_PENDING vp))
-	      ;; renamed id must have the same usage env
-	      ;; if both identifier have shared env
-	      ;; then that's it
-	      (or (and (env-shared? (SG_IDENTIFIER_ENVS vp) 
-				    (SG_IDENTIFIER_ENVS name))
-		       (env-shared? (SG_IDENTIFIER_ENVS vp) fp))
-		  ;; or look like global bindings
-		  (and (SG_NULLP (SG_IDENTIFIER_ENVS vp))
-		       (SG_NULLP (SG_CDR (SG_IDENTIFIER_ENVS name))))))
-	     (return TRUE))
 	    (else (return FALSE))))
+    (return FALSE))
+
+  ;; FIXME...
+  ;; this is really bad
+  ;; wrapped it problem
+  ;; syntax-rules always creates identifier with
+  ;; null environment so currently it's impossible to
+  ;; recognise the difference... so we need to keep
+  ;; the target and if there is no more precise one
+  ;; return this...
+  (define-cfn suspicious? (name vfp fp frame?::int store::SgObject*)
+    ::int :static
+    (let ((vp (SG_CAR vfp)))
+      (when (and 
+	     (SG_IDENTIFIERP name)
+	     (SG_IDENTIFIERP vp)
+	     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_IDENTIFIER_NAME vp))
+	     ;; at least this contains (3)
+	     (not (SG_NULLP (SG_IDENTIFIER_ENVS name)))
+	     ;; must look like template variable
+	     ;; it's in syntax template
+	     (SG_IDENTIFIER_PENDING name)
+	     (macro-env? (SG_IDENTIFIER_ENVS name))
+	     ;; renamed id must have the same usage env
+	     ;; if both identifier have shared env
+	     ;; then that's it
+	     (or (env-shared? (SG_IDENTIFIER_ENVS vp)
+			      (SG_IDENTIFIER_ENVS name))
+		 ;; sort of special case. if the name's env only contains
+		 ;; ((3)) means global and target contains null env
+		 ;; then it's also global.
+		 (and (SG_NULLP (SG_CDR (SG_IDENTIFIER_ENVS name)))
+		      (SG_NULLP (SG_IDENTIFIER_ENVS vp)))))
+	(if frame?
+	    (set! (pointer store) fp)
+	    (set! (pointer store) vfp))))
     (return FALSE))
 
   (define-cfn p1env-lookup-inner 
@@ -363,7 +376,8 @@
     :static
     (let ((name_identp::int (SG_IDENTIFIERP name))
 	  (same-env?::int FALSE)
-	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+	  (frames (SG_VECTOR_ELEMENT p1env 1))
+	  (suspicious SG_FALSE))
       (dopairs (fp frames)
 	(when (and name_identp (== (SG_IDENTIFIER_ENVS name) fp))
 	  (set! same-env? TRUE))
@@ -390,11 +404,16 @@
 			     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_CAR vp))))
 		    ;; both identifier not in the same env but
 		    ;; share the env
-		    (shared-env-id=? name (SG_CAR vp) fp))
+		    (shared-env-id=? name (SG_CAR vp) fp)
+		    ;; always false
+		    (and (SG_FALSEP suspicious)
+			 (suspicious? name vp fp frame? (& suspicious))))
 	    (if frame?
 		(return fp)
 		(return vp)))))
-      (return name)))
+      (if (SG_FALSEP suspicious)
+	  (return name)
+	  (return suspicious))))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
     (return (p1env-lookup-inner p1env name lookup-as FALSE #f)))

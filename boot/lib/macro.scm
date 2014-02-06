@@ -129,7 +129,7 @@
 (define (compile-syntax-case exp-name expr literals clauses library env mac-env)
   ;; literal must be unwrapped, otherwise it will be too unique
   (let ((lites (unwrap-syntax literals)))
-    (define (rewrite expr patvars all?)
+    (define (rewrite expr patvars)
       (define seen (make-eq-hashtable))
       (define (seen-or-gen id env)
 	(cond ((hashtable-ref seen id #f))
@@ -173,7 +173,6 @@
 		 env) => (lambda (env) (seen-or-gen expr env)))
 	      ;; local check pattern variable as well
 	      ((and (variable? expr)
-		    all?
 		    (not (number? (p1env-lookup mac-env expr PATTERN))))
 	       (let ((env (p1env-lookup-frame mac-env expr LEXICAL)))
 		 (seen-or-gen expr (if (and (null? env) (identifier? expr))
@@ -188,8 +187,8 @@
       (check-pattern pattern lites)
       (let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	     (pvars (map gen-patvar ranks)))
-	(values (rewrite pattern pvars #t) 
-		(extend-env (rewrite ranks pvars #t) env) pvars)))
+	(values (rewrite pattern pvars) 
+		(extend-env (rewrite ranks pvars) env) pvars)))
 
     (or (and (list? lites) (for-all symbol? lites))
 	(syntax-violation 'syntax-case "invalid literals" expr lites))
@@ -210,15 +209,15 @@
 			(cons `(,.list (,syntax-quote. ,pattern)
 				       #f
 				       (,.lambda (,.vars)
-					 ,(rewrite expr patvars #t)))
+					 ,(rewrite expr patvars)))
 			      env)))
 		     ((p fender expr)
 		      (receive (pattern env patvars) (parse-pattern p)
 			(cons `(,.list (,syntax-quote. ,pattern)
 				       (,.lambda (,.vars)
-					 ,(rewrite fender patvars #t))
+					 ,(rewrite fender patvars))
 				       (,.lambda (,.vars)
-					 ,(rewrite expr patvars #t)))
+					 ,(rewrite expr patvars)))
 			      env)))))
 		 clauses))))
 

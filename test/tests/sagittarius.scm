@@ -272,6 +272,14 @@
 		   (cdr it)
 		   it)))
 
+;; call #6
+(let ()
+  (define-syntax wrap
+    (syntax-rules ()
+      ((_)
+       (aif 'ok it #f))))
+  (test-equal "wrapped it" 'ok (wrap)))
+
 ;; pattern variable resolution
 (define-syntax patvar-inner
   (syntax-rules ()
