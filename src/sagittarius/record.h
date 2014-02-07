@@ -35,133 +35,37 @@
 
 /*
   R6RS record
-  memo:
-  Record is a really huge library for R6RS (I think it's too huge, but anyway)
-  Record has roughly 3 parts to use.
-  1st one is record type.
-  2nd one is record constructor descriptor(rcd).
-  3rd one is record type descriptor(rtd).
-  Record type has both rcd and rtd, and rcd contains rtd, so basic information
-  for a record is rtd.
 
-  so basic use for record is like this:
-  ;; simple condition.
-  (define &warning
-    (let* ((rtd (make-record-type-descriptor '&warning #f #f #f '#()))
-           (rcd (make-record-constructor-descriptor rtd #f #f)))
-      (make-record type '&warning rtd rcd)))
-  
-  To represent these huge horrible thing we use our generic mechanism for rtd
-  and rcd.
+  Class hierarchy and structure;
+  <class>
+    +- <record-type-meta>
+         * rtd: <record-type-descriptor>
+         * rcd: <record-constructor-descriptor>
 
-  TODO: how to implements default-protocol?
+  On C code, it's just meta class so that we can define conditions in C.
+  The initialisation of the conditions and it's class are done in Scheme.
+  All other code are defined in Scheme.
  */
 
-SG_CLASS_DECL(Sg_RTDClass);
-SG_CLASS_DECL(Sg_RCDClass);
-SG_CLASS_DECL(Sg_RecordTypeClass);
-SG_CLASS_DECL(Sg_TupleClass);
+SG_CLASS_DECL(Sg_RecordTypeMetaClass);
 
-#define SG_CLASS_RTD         (&Sg_RTDClass)
-#define SG_CLASS_RCD         (&Sg_RCDClass)
-#define SG_CLASS_RECORD_TYPE (&Sg_RecordTypeClass)
-#define SG_CLASS_TUPLE       (&Sg_TupleClass)
+#define SG_CLASS_RECORD_TYPE_META (&Sg_RecordTypeMetaClass)
 
-typedef struct SgRTDRec
+typedef struct SgRecordTypeMetaRec
 {
   SG_HEADER;
-  SgObject name;
-  SgObject parent;
-  SgObject uid;
-  int      sealedp;
-  int      opaquep;
-  SgObject fields;
-} SgRTD;
-
-#define SG_RTD(obj)  ((SgRTD*)obj)
-#define SG_RTDP(obj) SG_XTYPEP(obj, SG_CLASS_RTD)
-
-typedef struct SgRCDRec
-{
-  SG_HEADER;
-  SgObject rtd;
-  SgObject protocol;
-  int      customProtocolP;
-  SgObject parent;
-} SgRCD;
-#define SG_RCD(obj)  ((SgRCD*)obj)
-#define SG_RCDP(obj) SG_XTYPEP(obj, SG_CLASS_RCD)
-
-struct SgRecordTypeRec
-{
-  SG_HEADER;
-  SgObject name;		/* record type name */
   SgObject rtd;			/* record type descriptor */
   SgObject rcd;			/* record constructor descriptor */
-};
+} SgRecordTypeMeta;
 
-#define SG_RECORD_TYPE(obj)    	((SgRecordType*)obj)
-#define SG_RECORD_TYPEP(obj)	SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE)
-#define SG_RECORD_TYPE_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
-#define SG_RECORD_TYPE_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
-
-#define SG_INIT_RECORD_TYPE(rt, name_, rtd_, rcd_)	\
-  do {							\
-    SG_SET_CLASS((rt), SG_CLASS_RECORD_TYPE);		\
-    (rt)->name = name_;					\
-    (rt)->rtd = rtd_;					\
-    (rt)->rcd = rcd_;					\
-  } while (0)
-
-/* for now. */
-typedef struct SgTupleRec
-{
-  SG_HEADER;
-  SgObject     values;
-  SgObject     printer;
-} SgTuple;
-#define SG_TUPLE(obj)  ((SgTuple*)obj)
-#define SG_TUPLEP(obj) SG_XTYPEP(obj, SG_CLASS_TUPLE)
-
+#define SG_RECORD_TYPE_META(obj)     ((SgRecordMetaType*)obj)
+#define SG_RECORD_TYPE_METAP(obj)    SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE_META)
+#define SG_RECORD_TYPE_META_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
+#define SG_RECORD_TYPE_META_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeRecordType(SgObject name, SgObject rtd, SgObject rcd);
-SG_EXTERN SgObject Sg_MakeRecordTypeDescriptor(SgSymbol *name, SgObject parent, SgObject uid,
-					       int sealedP, int opaqueP, SgVector *fields);
-SG_EXTERN SgObject Sg_MakeRecordConstructorDescriptor(SgObject rtd, SgObject parent, SgObject protocol);
-SG_EXTERN SgObject Sg_RecordConstructor(SgObject rcd);
-SG_EXTERN SgObject Sg_RecordPredicate(SgObject rtd);
-SG_EXTERN SgObject Sg_RecordAccessor(SgObject rtd, int k);
-SG_EXTERN SgObject Sg_RecordMutator(SgObject rtd, int k);
-
-/* predicates */
-SG_EXTERN int      Sg_RecordP(SgObject obj);
-SG_EXTERN int      Sg_RecordTypeDescriptorP(SgObject obj);
-SG_EXTERN int      Sg_RecordConstructorDescriptorP(SgObject obj);
-
-/* accessor */
-SG_EXTERN SgObject Sg_RecordRtd(SgObject record);
-SG_EXTERN SgObject Sg_RtdName(SgObject rtd);
-SG_EXTERN SgObject Sg_RtdParent(SgObject rtd);
-SG_EXTERN SgObject Sg_RtdUid(SgObject rtd);
-SG_EXTERN SgObject Sg_RtdFields(SgObject rtd);
-SG_EXTERN int      Sg_RtdOpaqueP(SgObject rtd);
-SG_EXTERN int      Sg_RtdSealedP(SgObject rtd);
-SG_EXTERN int      Sg_RtdAncestorP(SgObject parent, SgObject rtd);
-SG_EXTERN SgObject Sg_RcdParent(SgObject rcd);
-SG_EXTERN SgObject Sg_RcdProtocol(SgObject rcd);
-
-/* utilities */
-SG_EXTERN int      Sg_RtdTotalFieldCount(SgObject rtd);
-SG_EXTERN int      Sg_RtdInheritedFieldCount(SgObject rtd);
-
-/* record instance is tuple */
-SG_EXTERN SgObject Sg_MakeTuple(int size, SgObject fill, SgObject printer);
-SG_EXTERN void     Sg_TupleListSet(SgObject tuple, SgObject lst);
-SG_EXTERN void     Sg_TupleSet(SgObject tuple, int i, SgObject value);
-SG_EXTERN SgObject Sg_TupleRef(SgObject tuple, int i, SgObject fallback);
-SG_EXTERN int      Sg_TupleSize(SgObject tuple);
+SG_EXTERN int Sg_RecordP(SgObject o);
 
 SG_CDECL_END
 

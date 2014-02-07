@@ -2026,16 +2026,19 @@
 			   fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
-	     (unless (SG_TUPLEP option)
-	       (assertion-violation 'open-file-output-port "invalid file options" option))
-	     (let ((opt (Sg_TupleRef option 2 SG_NIL))
+	     (unless (Sg_RecordP option)
+	       (assertion-violation 'open-file-output-port 
+				    "invalid file options" option))
+	     (let ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option)
+					      option 'members))
 		   (isEmpty::int (SG_NULLP opt))
 		   (noCreate (Sg_Memq 'no-create opt))
 		   (noTruncate (Sg_Memq 'no-truncate opt))
 		   (noFail (Sg_Memq 'no-fail opt)))
 	       (cond ((and isFileExist isEmpty)
 		      (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-				       'open-file-output-port "file already exists" file))
+				       'open-file-output-port
+				       "file already exists" file))
 		     ((and (not (SG_FALSEP noCreate))
 			   (not (SG_FALSEP noTruncate)))
 		      (if (not isFileExist)
@@ -2186,9 +2189,10 @@
 			   'open-file-input/output-port fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 	    (else
-	     (unless (SG_TUPLEP option)
+	     (unless (Sg_RecordP option)
 	       (assertion-violation 'open-file-output-port "invalid file options" option))
-	     (let ((opt (Sg_TupleRef option 2 SG_NIL))
+	     (let ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option)
+					      option 'members))
 		   (isEmpty::int (SG_NULLP opt))
 		   (noCreate (Sg_Memq 'no-create opt))
 		   (noTruncate (Sg_Memq 'no-truncate opt))
@@ -3376,96 +3380,5 @@
     Sg_SimpleConditionP)
   
   (define-c-proc condition? (obj) ::<boolean> :constant Sg_ConditionP)
-
-  (define-c-proc condition-predicate (rtd) Sg_ConditionPredicate)
-  (define-c-proc condition-accessor (rtd proc) Sg_ConditionAccessor)
-
-  ;; record
-  (define-c-proc make-record-type-descriptor
-    (name::<symbol> parent uid sealedP::<boolean> opaqueP::<boolean> fields::<vector>)
-    (result (Sg_MakeRecordTypeDescriptor name parent uid sealedP opaqueP fields)))
-
-  (define-c-proc make-record-constructor-descriptor (rtd::<rtd> parent protocol)
-    (result (Sg_MakeRecordConstructorDescriptor rtd parent protocol)))
-
-  (define-c-proc record? (o) ::<boolean> :constant Sg_RecordP)
-  (define-c-proc record-rtd (o) Sg_RecordRtd)
-
-  (define-c-proc record-type-descriptor? (o) ::<boolean> :constant
-    Sg_RecordTypeDescriptorP)
-
-  (define-c-proc record-constructor-descriptor? (o) ::<boolean> :constant
-    Sg_RecordConstructorDescriptorP)
-
-  (define-c-proc record-constructor (rcd::<rcd>) 
-    Sg_RecordConstructor)
-
-  (define-c-proc record-accessor (rtd::<rtd> k::<fixnum>) 
-    (unless (and (< -1 k) (< k (Sg_Length (Sg_RtdFields rtd))))
-      (assertion-violation 'record-accessor "field index out of range"))
-    (result (Sg_RecordAccessor rtd k)))
-
-  (define-c-proc record-predicate (rtd::<rtd>) Sg_RecordPredicate)
-
-  (define-c-proc record-mutator (rtd::<rtd> k::<fixnum>)
-    (unless (and (< -1 k)
-		 (< k (Sg_Length (Sg_RtdFields rtd))))
-      (assertion-violation 'record-mutator "field index out of range"
-			   (SG_LIST2 rtd (SG_MAKE_INT k))))
-    (when (SG_FALSEP (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND)))
-      (assertion-violation 'record-mutator "specified field is immutable"
-			   (SG_LIST2 rtd (SG_MAKE_INT k))))
-    (result (Sg_RecordMutator rtd k)))
-
-  (define-c-proc record-type-name (rtd::<rtd>) Sg_RtdName)
-
-  (define-c-proc record-type-parent (rtd::<rtd>) Sg_RtdParent)
-
-  (define-c-proc record-type-uid (rtd::<rtd>) Sg_RtdUid)
-
-  (define-c-proc record-type-generative? (rtd::<rtd>) ::<boolean> :constant
-    (result (SG_FALSEP (Sg_RtdUid rtd))))
-
-  (define-c-proc record-type-opaque? (rtd::<rtd>) ::<boolean> :constant
-    Sg_RtdOpaqueP)
-
-  (define-c-proc record-type-sealed? (rtd::<rtd>) ::<boolean> :constant
-    Sg_RtdSealedP)
-  ;; for convenience, it returns list
-  (define-c-proc rtd-fields (rtd::<rtd>) Sg_RtdFields)
-
-  (define-c-proc record-type-field-names (rtd::<rtd>)
-    (let ((fields (Sg_RtdFields rtd))
-	  (h '())
-	  (t '()))
-      (dolist (field fields)
-	(ASSERT (SG_PAIRP field))
-	(SG_APPEND1 h t (SG_CDR field)))
-      (result (Sg_ListToVector h 0 -1))))
-
-  (define-c-proc record-field-mutable? (rtd::<rtd> k::<fixnum>) :constant
-    (result (SG_CAR (Sg_ListRef (Sg_RtdFields rtd) k SG_UNBOUND))))
-
-  (define-c-proc rtd-inherited-field-count (rtd::<rtd>) ::<fixnum>
-    Sg_RtdInheritedFieldCount)
-
-  (define-c-proc rtd-total-field-count (rtd::<rtd>) ::<fixnum>
-    Sg_RtdTotalFieldCount)
-
-  (define-c-proc rtd-ancestor? (parent::<rtd> rtd::<rtd>) ::<boolean> :constant
-    Sg_RtdAncestorP)
-
-  (define-c-proc rcd-protocol (rcd::<rcd>) Sg_RcdProtocol)
-  (define-c-proc rcd-parent (rcd::<rcd>) Sg_RcdParent)
-
-  ;; tuple of record helper
-  (define-c-proc make-tuple (size::<fixnum> printer) 
-    (result (Sg_MakeTuple size SG_UNDEF printer)))
-  (define-c-proc tuple-list-set! (tuple lst) ::<void> Sg_TupleListSet)
-  (define-c-proc tuple-ref (tuple i::<fixnum>) 
-    (result (Sg_TupleRef tuple i #f)))
-  (define-c-proc tuple-set! (tuple i::<fixnum> value) ::<void>
-    (Sg_TupleSet tuple i value))
-  (define-c-proc tuple-size (tuple) ::<fixnum> :constant Sg_TupleSize)
 
   )

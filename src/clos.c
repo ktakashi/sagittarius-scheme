@@ -2797,15 +2797,6 @@ void Sg__InitClos()
   CINIT(SG_CLASS_CODEC,       "<codec>");
   CINIT(SG_CLASS_TRANSCODER,  "<transcoder>");
 
-  /* Should we export this? this might be removed in future if I can rewrite
-     record with CLOS. */
-  /* record */
-  CINIT(SG_CLASS_RECORD_TYPE, "<record-type>");
-  CINIT(SG_CLASS_RTD, "<rtd>");
-  CINIT(SG_CLASS_RCD, "<rcd>");
-  /* tuple */
-  CINIT(SG_CLASS_TUPLE, "<tuple>");
-
   /* procedure */
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");
   SG_CLASS_PROCEDURE->flags |= SG_CLASS_APPLICABLE;

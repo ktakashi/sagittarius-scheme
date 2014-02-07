@@ -936,11 +936,6 @@ static void write_walk(SgObject obj, SgWriteContext *ctx)
       }
       return;
     }
-    if (SG_RECORD_TYPEP(obj)) {
-      REGISTER(SG_RECORD_TYPE_RTD(obj));
-      REGISTER(SG_RECORD_TYPE_RCD(obj));
-      return;
-    }
     if (SG_SYMBOLP(obj)) {
       ASSERT(!SG_INTERNED_SYMBOL(obj));
       REGISTER(obj);
