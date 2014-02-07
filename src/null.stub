@@ -2026,6 +2026,8 @@
 			   fo file SG_UNDEF))
 	     (result (Sg_MakeFileBinaryOutputPort fo bufferMode)))
 	    (else
+	     ;; this is basically depending on the non-compiled Scheme code
+	     ;; not so good...
 	     (unless (Sg_RecordP option)
 	       (assertion-violation 'open-file-output-port 
 				    "invalid file options" option))

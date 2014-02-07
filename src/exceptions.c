@@ -252,83 +252,161 @@ SG_DEFINE_BASE_CLASS(Sg_WhoConditionClass, SgWhoCondition,
 		     who_printer, NULL, NULL, who_allocate,
 		     Sg_ConditionCPL);
 
-
-/* for c use conditions */
-static SgObject make_non_continuable_violation;
-static SgObject make_assertion_violation;
-static SgObject make_undefined_violation;
-static SgObject make_implementation_restriction_violation;
-static SgObject make_who_condition;
-static SgObject make_message_condition;
-static SgObject make_irritants_condition;
-static SgObject make_warning;
-static SgObject make_lexical_violation;
-static SgObject make_read_error;
-static SgObject make_error;
-static SgObject make_syntax_error;
+/* i/o */
+static SgClass *error_cpl[] = {
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, condition_allocate,
+		     error_cpl);
+static SgClass *io_cpl[] = {
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOReadErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, condition_allocate,
+		     io_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IOWriteErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, condition_allocate,
+		     io_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IOPortErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, condition_allocate,
+		     io_cpl);
+/* position */
+static void pos_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_INVALID_POSITION(o)->position);
+}
+static SgObject pos_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOInvalidPosition *c = SG_ALLOCATE(SgIOInvalidPosition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+SG_DEFINE_BASE_CLASS(Sg_IOInvalidPositionClass, SgIOInvalidPosition,
+		     pos_printer, NULL, NULL, pos_allocate,
+		     io_cpl);
+/* filename */
+static void fn_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_FILENAME(o)->filename);
+}
+static SgObject fn_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOFilename *c = SG_ALLOCATE(SgIOFilename, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+SG_DEFINE_BASE_CLASS(Sg_IOFilenameClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     io_cpl);
+static SgClass *fn_cpl[] = {
+  SG_CLASS_IO_FILENAME,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOFileProtectionClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fn_cpl);
+static SgClass *fnp_cpl[] = {
+  SG_CLASS_IO_FILE_PROTECTION,
+  SG_CLASS_IO_FILENAME,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOFileIsReadOnlyClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fnp_cpl);
 
 SgObject Sg_MakeNonContinuableViolation()
 {
-  return Sg_Apply0(make_non_continuable_violation);
+  return condition_allocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
 }
 
 SgObject Sg_MakeAssertionViolation()
 {
-  return Sg_Apply0(make_assertion_violation);
+  return condition_allocate(SG_CLASS_ASSERTION, SG_NIL);
 }
 
 SgObject Sg_MakeUndefinedViolation()
 {
-  return Sg_Apply0(make_undefined_violation);
+  return condition_allocate(SG_CLASS_UNDEFINED_CONDITION, SG_NIL);
 }
 
 SgObject Sg_MakeImplementationRestrictionViolation()
 {
-  return Sg_Apply0(make_implementation_restriction_violation);
+  return condition_allocate(SG_CLASS_IMPLEMENTATION_RESTRICTION, SG_NIL);
 }
 
 SgObject Sg_MakeWhoCondition(SgObject who)
 {
-  return Sg_Apply1(make_who_condition, who);
+  SgObject c = who_allocate(SG_CLASS_WHO_CONDITION, SG_NIL);
+  SG_WHO_CONDITION(c)->who = who;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeMessageCondition(SgObject msg)
 {
-  return Sg_Apply1(make_message_condition, msg);
+  SgObject c = message_allocate(SG_CLASS_MESSAGE_CONDITION, SG_NIL);
+  SG_MESSAGE_CONDITION(c)->message = msg;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 {
-  return Sg_Apply1(make_irritants_condition, irritants);
+  SgObject c = message_allocate(SG_CLASS_IRRITANTS_CONDITION, SG_NIL);
+  SG_IRRITATNS_CONDITION(c)->irritants = irritants;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeWarning()
 {
-  return Sg_Apply0(make_warning);
+  return condition_allocate(SG_CLASS_WARNING, SG_NIL);
 }
 
 SgObject Sg_MakeReaderCondition(SgObject msg)
 {
-  return Sg_Condition(SG_LIST3(Sg_Apply0(make_lexical_violation),
-			       Sg_Apply0(make_read_error),
+  SgObject l = condition_allocate(SG_CLASS_LEXICAL_CONDITION, SG_NIL);
+  SgObject r = condition_allocate(SG_CLASS_IO_READ_ERROR, SG_NIL);
+  return Sg_Condition(SG_LIST3(l, r,
 			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_MakeError(SgObject msg)
 {
-  return Sg_Condition(SG_LIST2(Sg_Apply0(make_error),
+  return Sg_Condition(SG_LIST2(condition_allocate(SG_CLASS_ERROR, SG_NIL);,
 			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form)
 {
   SgObject subform = SG_FALSE;
+  SgObject s = syntax_allocate(SG_CLASS_SYNTAX_CONDITION, SG_NIL);
   if (SG_PAIRP(form) && SG_PAIRP(SG_CAR(form))) {
     subform = SG_CDR(form);
     form = SG_CAR(form);
   }
-  return Sg_Condition(SG_LIST2(Sg_Apply2(make_syntax_error, form, subform),
-			       Sg_MakeMessageCondition(msg)));
+  SG_SYNTAX_CONDITION(s)->form = form;
+  SG_SYNTAX_CONDITION(s)->subform = subform;
+  return Sg_Condition(SG_LIST2(s, Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_DescribeCondition(SgObject con)

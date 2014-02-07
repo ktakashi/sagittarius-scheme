@@ -40,7 +40,7 @@ precomp()
 	-e compile-p4 -e compile-p5    
     $SASH genlib $1 -f ../boot/lib/errors.scm
     $SASH genlib $1 -f ../boot/lib/arith.scm
-    $SASH genlib $1 -f ../boot/lib/enums.scm
+#    $SASH genlib $1 -f ../boot/lib/enums.scm
 
     echo generating instruction
     $SASH ./geninsn $1
