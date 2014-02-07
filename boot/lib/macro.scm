@@ -712,7 +712,8 @@
 				      (id-library id)))
 	    (else
 	     ;; simply copy but mark as template variable
-	     (make-pending-identifier (id-name id) (id-envs id) 
+	     (make-pending-identifier (id-name id)
+				      (id-envs id)
 				      (id-library id)))))
 
     ;; regenerate pattern variable

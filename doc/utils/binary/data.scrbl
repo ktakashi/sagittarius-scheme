@@ -15,8 +15,7 @@ way how to handle binary data.
 @var{reader} and write binary data by @var{writer}.
 
 To use defining macros effectively, both forms' @var{reader} and @var{writer}
-should be the same name. To avoid unbound variable error, both @var{reader}
-and @var{writer} need to be defined before one of the forms is used.
+should be the same name.
 
 The first form defines a macro which takes 5 required arguments and optional
 keyword arguments. Let's say the @var{name} is @code{define-simple}, the
@@ -98,9 +97,6 @@ Following is the simple example to show how to use the macros above.
 @codeblock{
 (import (clos user) (binary data))
 
-;; define generic method first
-(define-generic sample-read)
-(define-generic sample-write)
 ;; use the same name of reader and writer
 (define-simple-datum-define   define-simple    sample-read sample-write)
 (define-composite-data-define define-composite sample-read sample-write)

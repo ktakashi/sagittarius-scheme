@@ -122,7 +122,7 @@
   (define-syntax define-simple-datum-define
     (lambda (x)
       (syntax-case x ()
-	((_ define-name reader writer)
+	((_ define-name ?reader ?writer)
 	 #'(define-syntax define-name
 	     (lambda (xx)
 	       (define (parse k fields fs ds)
@@ -148,6 +148,8 @@
 		  (with-syntax ((meta-class (gen-meta #'k #'datum-class))
 				(parent-meta (get-keyword :parent-metaclass
 							  #'options #'<class>))
+				(reader (datum->syntax #'k '?reader))
+				(writer (datum->syntax #'k '?writer))
 				(((field (... ...)) (defs (... ...)))
 				 (parse #'k #'(fields (... ...)) '() '())))
 		    #'(begin
@@ -189,7 +191,7 @@
   (define-syntax define-composite-data-define
     (lambda (x)
       (syntax-case x ()
-	((_ defined-name reader writer)
+	((_ defined-name ?reader ?writer)
 	 #'(define-syntax defined-name
 	     (lambda (xx)
 	       (define (parse-slots k slots r)
@@ -220,6 +222,8 @@
 		  (with-syntax ((((slot-def types) (... ...)) 
 				 (parse-slots #'k #'(slots (... ...)) '()))
 				(meta-class (gen-meta #'k #'data-name))
+				(reader (datum->syntax #'k '?reader))
+				(writer (datum->syntax #'k '?writer))
 				(parent-meta (get-keyword :parent-metaclass
 							  #'options #'<class>)))
 		    #'(begin
