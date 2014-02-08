@@ -31,6 +31,7 @@
 #define SAGITTARIUS_EXCEPTIONS_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 /* 
    r6rs standard conditions
    hierarchy
@@ -48,7 +49,7 @@
      |    |    |    |    |    +- &i/o-file-is-read-only
      |    |    |    |    +- &i/o-file-already-exists
      |    |    |    |    +- &i/o-file-does-not-exist
-     |    |    |    +- &i/o-port
+     |    |    |    +- &i/o-port (port)
      |    |    +- &compile (source program) <-- non R6RS
      |    |    +- &import (library)         <-- ditto
      |	  +- &violation
@@ -130,7 +131,7 @@ SG_CLASS_DECL(Sg_ImportConditionClass);
 /* all condition structs... */
 typedef struct SgCompoundConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject components;
 } SgCompoundCondition;
 
@@ -139,7 +140,7 @@ typedef struct SgCompoundConditionRec
 /* for my sake... */
 typedef struct SgConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
 } SgCondition;
 #define SG_WARNINGP(o) 	 SG_ISA(o, SG_CLASS_WARNING)
 #define SG_SERIOUSP(o) 	 SG_ISA(o, SG_CLASS_SERIOUS)
@@ -154,14 +155,14 @@ typedef struct SgConditionRec
 /* from here condition has something */
 typedef struct SgMessageConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject message;
 } SgMessageCondition;
 #define SG_MESSAGE_CONDITION(o)    ((SgMessageCondition *)o)
 #define SG_MESSAGE_CONDITIONP(o)   SG_ISA(o, SG_CLASS_MESSAGE_CONDITION)
 typedef struct SgIrritantsConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject irritants;
 } SgIrritantsCondition;
 #define SG_IRRITATNS_CONDITION(o)  ((SgIrritantsCondition *)o)
@@ -169,18 +170,18 @@ typedef struct SgIrritantsConditionRec
 
 typedef struct SgWhoConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject who;
 } SgWhoCondition;
 #define SG_WHO_CONDITION(o)     ((SgWhoCondition *)o)
 #define SG_WHO_CONDITIONP(o)    SG_ISA(o, SG_CLASS_WHO_CONDITION)
 typedef struct SgSyntaxConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject form;
   SgObject subform;
 } SgSyntaxCondition;
-#define SG_SYNTAX_CONDITION(o)  ((SgSyntaxCondition *)0)
+#define SG_SYNTAX_CONDITION(o)  ((SgSyntaxCondition *)o)
 #define SG_SYNTAX_CONDITIONP(o) SG_ISA(o, SG_CLASS_SYNTAX_CONDITION)
 
 /* i/o */
@@ -189,34 +190,44 @@ typedef struct SgSyntaxConditionRec
 #define SG_IO_WRITE_ERRORP(o) SG_ISA(o, SG_CLASS_IO_WRITE_ERROR)
 typedef struct SgIOInvalidPositionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject position;
 } SgIOInvalidPosition;
+#define SG_IO_INVALID_POSITION(o)  ((SgIOInvalidPosition *)o)
 #define SG_IO_INVALID_POSITIONP(o) SG_ISA(o, SG_CLASS_IO_INVALID_POSITION)
 typedef struct SgIOFilenameRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject filename;
 } SgIOFilename;
+#define SG_IO_FILENAME(o)  ((SgIOFilename *)o)
 #define SG_IO_FILENAMEP(o) SG_ISA(o, SG_CLASS_IO_FILENAME)
-#define SG_IO_FILE_PROTECTION(o) SG_ISA(o, SG_CLASS_IO_FILE_PROTECTION)
-#define SG_IO_FILE_IS_READ_ONLY(o) SG_ISA(o, SG_CLASS_IO_FILE_IS_READ_ONLY)
-#define SG_IO_FILE_ALREADY_EXISTS(o) SG_ISA(o, SG_CLASS_IO_FILE_ALREADY_EXISTS)
-#define SG_IO_FILE_DOES_NOT_EXIST(o) SG_ISA(o, SG_CLASS_IO_FILE_DOES_NOT_EXIST)
-#define SG_IO_PORT_ERROR(o) SG_ISA(o, SG_CLASS_IO_PORT_ERROR)
+#define SG_IO_FILE_PROTECTIONP(o) SG_ISA(o, SG_CLASS_IO_FILE_PROTECTION)
+#define SG_IO_FILE_IS_READ_ONLYP(o) SG_ISA(o, SG_CLASS_IO_FILE_IS_READ_ONLY)
+#define SG_IO_FILE_ALREADY_EXISTSP(o) SG_ISA(o, SG_CLASS_IO_FILE_ALREADY_EXISTS)
+#define SG_IO_FILE_DOES_NOT_EXISTP(o) SG_ISA(o, SG_CLASS_IO_FILE_DOES_NOT_EXIST)
+typedef struct SgIOPortErrorRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject port;
+} SgIOPortError;
+#define SG_IO_PORT_ERROR(o)  ((SgIOPortError *)o)
+#define SG_IO_PORT_ERRORP(o) SG_ISA(o, SG_CLASS_IO_PORT_ERROR)
 
 typedef struct SgCompileConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject source;
   SgObject program;
 } SgCompileCondition;
+#define SG_COMPILE_CONDITION(o)  ((SgCompileCondition *)o)
 #define SG_COMPILE_CONDITIONP(o) SG_ISA(o, SG_CLASS_COMPILE_CONDITION)
 typedef struct SgImportConditionRec
 {
-  SG_HEADER;
+  SG_INSTANCE_HEADER;
   SgObject library;
 } SgImportCondition;
+#define SG_IMPORT_CONDITION(o)  ((SgImportCondition *)o)
 #define SG_IMPORT_CONDITIONP(o) SG_ISA(o, SG_CLASS_IMPORT_CONDITION)
 
 SG_CDECL_BEGIN

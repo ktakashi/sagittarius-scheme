@@ -10,6 +10,7 @@
     (import (core)
 	    (core base)
 	    (core syntax)
+	    (core record procedural)
 	    (sagittarius))
 
   (define-syntax mutable

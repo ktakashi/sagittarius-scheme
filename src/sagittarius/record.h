@@ -53,19 +53,20 @@ SG_CLASS_DECL(Sg_RecordTypeMetaClass);
 
 typedef struct SgRecordTypeMetaRec
 {
-  SG_HEADER;
+  SgClass  parent;
   SgObject rtd;			/* record type descriptor */
   SgObject rcd;			/* record constructor descriptor */
 } SgRecordTypeMeta;
 
-#define SG_RECORD_TYPE_META(obj)     ((SgRecordMetaType*)obj)
+#define SG_RECORD_TYPE_META(obj)     ((SgRecordTypeMeta*)obj)
 #define SG_RECORD_TYPE_METAP(obj)    SG_XTYPEP(obj, SG_CLASS_RECORD_TYPE_META)
 #define SG_RECORD_TYPE_META_RTD(obj) (SG_RECORD_TYPE(obj)->rtd)
 #define SG_RECORD_TYPE_META_RCD(obj) (SG_RECORD_TYPE(obj)->rcd)
 
 SG_CDECL_BEGIN
 
-SG_EXTERN int Sg_RecordP(SgObject o);
+SG_EXTERN int      Sg_RecordP(SgObject o);
+SG_EXTERN SgObject Sg_AllocateRecordTypeMeta(SgClass *klass, SgObject initargs);
 
 SG_CDECL_END
 

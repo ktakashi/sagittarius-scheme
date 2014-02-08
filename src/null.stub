@@ -3369,6 +3369,9 @@
 			   s))
     (Sg_StringFill s c start end))
 
+  ;; record
+  (define-c-proc record? (o) ::<boolean> Sg_RecordP)
+
   ;; conditions
   (define-c-proc condition (:rest components) Sg_Condition)
   (define-c-proc simple-conditions (obj) Sg_SimpleConditions)

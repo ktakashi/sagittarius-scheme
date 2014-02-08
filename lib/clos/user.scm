@@ -381,10 +381,7 @@
        (condition
 	(make-warning)
 	(make-who-condition 'redefine-class!)
-	(make-message-condition 
-	 (if (message-condition? e)
-	     (condition-message e)
-	     "failed to redefine a class"))
+	(make-message-condition "failed to redefine a class")
 	(make-irritants-condition (list old new)))))
     ;; world lock
     (%start-class-redefinition! old)

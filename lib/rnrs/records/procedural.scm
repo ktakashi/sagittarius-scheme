@@ -7,7 +7,7 @@
 	    record-predicate
 	    record-accessor
 	    record-mutator)
-    (import (core))
+    (import (core record procedural))
 
 ) ; [end]
 ;; end of file

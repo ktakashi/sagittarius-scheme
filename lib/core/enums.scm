@@ -17,15 +17,14 @@
 	    define-enumeration)
     (import (core)
 	    (core base)
-	    ;;(for (core struct) expand)
-	    ;;(for (core syntax-rules) expand)
+	    (core record procedural)
 	    (sagittarius))
 
   ;; use record api directory
   (define <enum-type>
     (let* ((rtd (make-record-type-descriptor '<enum-type> #f #f #f #f
-					     (vector '(immutable universe)
-						     '(immutable indexer))))
+					     '#((immutable universe)
+						(immutable indexer))))
 	   (rcd (make-record-constructor-descriptor rtd #f #f)))
       (make-record-type '<enum-type> rtd rcd)))
   (define make-enum-type (record-constructor (record-type-rcd <enum-type>)))
@@ -35,30 +34,14 @@
 
   (define <enum-set>
     (let* ((rtd (make-record-type-descriptor '<enum-set> #f #f #f #f
-					     (vector '(immutable type)
-						     '(immutable members))))
+					     #((immutable type)
+					       (immutable members))))
 	   (rcd (make-record-constructor-descriptor rtd #f #f)))
       (make-record-type '<enum-set> rtd rcd)))
   (define make-enum-set (record-constructor (record-type-rcd <enum-set>)))
   (define enum-set? (record-predicate (record-type-rtd <enum-set>)))
   (define enum-set-type (record-accessor (record-type-rtd <enum-set>) 0))
   (define enum-set-members (record-accessor (record-type-rtd <enum-set>) 1))
-
-  #;(define-struct <enum-type>
-    (make-enum-type universe indexer)
-    enum-type?
-    (lambda (i p)
-      (format p "#<enum-type ~a>" (enum-type-members i)))
-    (universe enum-type-universe)
-    (indexer enum-type-indexer))
-
-  #;(define-struct <enum-set>
-    (make-enum-set type members)
-    enum-set?
-    (lambda (i p)
-      (format p "#<enum-set ~a>" (enum-set-members i)))
-    (type enum-set-type)
-    (members enum-set-members))
 
   ;; from mosh
   (define (make-enumeration-type symbol-list)
@@ -79,7 +62,8 @@
      [(and (list? symbol-list) (for-all symbol? symbol-list))
       (make-enum-set (make-enumeration-type symbol-list) symbol-list)]
      [else
-      (assertion-violation 'make-enumeration "argument 1 must be a list of symbols")]))
+      (assertion-violation 'make-enumeration 
+			   "argument 1 must be a list of symbols")]))
 
 
   (define (enum-set-universe enum-set)
@@ -94,7 +78,10 @@
       (let ([universe (enum-type-universe (enum-set-type enum-set))])
 	(if (for-all (lambda (x) (memq x universe)) symbol-list)
 	    (make-enum-set (enum-set-type enum-set) symbol-list)
-	    (assertion-violation 'enum-set-constructor "the symbol list must all belong to the universe." universe symbol-list)))))
+	    (assertion-violation 
+	     'enum-set-constructor 
+	     "the symbol list must all belong to the universe."
+	     universe symbol-list)))))
 
   (define (enum-set->list enum-set)
     (let ([universe (enum-type-universe (enum-set-type enum-set))]
@@ -136,7 +123,8 @@
 	  (loop (cons (car lst) ret) (cdr lst))])))
     (if (eq? (enum-set-type enum-set1) (enum-set-type enum-set2))
 	(make-enum-set (enum-set-type enum-set1)
-		       (union (enum-set-members enum-set1) (enum-set-members enum-set2)))
+		       (union (enum-set-members enum-set1)
+			      (enum-set-members enum-set2)))
 	(assertion-violation 'enum-set-union "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.")))
 
   (define (enum-set-intersection enum-set1 enum-set2)
@@ -152,7 +140,8 @@
 	      (loop ret (cdr lst))]))))
     (if (eq? (enum-set-type enum-set1) (enum-set-type enum-set2))
 	(make-enum-set (enum-set-type enum-set1)
-		       (intersection (enum-set-members enum-set1) (enum-set-members enum-set2)))
+		       (intersection (enum-set-members enum-set1) 
+				     (enum-set-members enum-set2)))
 	(assertion-violation 'enum-set-intersection "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.")))
 
   (define (enum-set-difference enum-set1 enum-set2)
@@ -168,13 +157,15 @@
 	      (loop (cons (car lst) ret) (cdr lst))]))))
     (if (eq? (enum-set-type enum-set1) (enum-set-type enum-set2))
 	(make-enum-set (enum-set-type enum-set1)
-		       (difference (enum-set-members enum-set1) (enum-set-members enum-set2)))
+		       (difference (enum-set-members enum-set1) 
+				   (enum-set-members enum-set2)))
 	(assertion-violation 'enum-set-difference "enum-set1 and enum-set2 must be enumeration sets that have the same enumeration type.")))
 
   (define (enum-set-complement enum-set)
     (let ([members (enum-set-members enum-set)])
       (make-enum-set (enum-set-type enum-set)
-		     (filter (lambda (symbol) (not (memq symbol members))) (enum-type-universe (enum-set-type enum-set))))))
+		     (filter (lambda (symbol) (not (memq symbol members)))
+			     (enum-type-universe (enum-set-type enum-set))))))
 
   (define (enum-set-projection enum-set1 enum-set2)
     (if (enum-set-subset? enum-set1 enum-set2)
@@ -182,7 +173,8 @@
 	(let ([universe2 (enum-type-universe (enum-set-type enum-set2))]
 	      [members1 (enum-set-members enum-set1)])
 	  (make-enum-set (enum-set-type enum-set2)
-			 (filter (lambda (symbol) (memq symbol universe2)) members1)))))
+			 (filter (lambda (symbol) (memq symbol universe2))
+				 members1)))))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

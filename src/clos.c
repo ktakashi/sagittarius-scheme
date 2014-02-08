@@ -1322,6 +1322,13 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   Sg_RegisterFinalizer(SG_OBJ(instance), class_finalize, NULL);
   return SG_OBJ(instance);
 }
+
+/* not in the header for now */
+SgObject Sg_ClassAllocate(SgClass *klass, SgObject initargs)
+{
+  return class_allocate(klass, initargs);
+}
+
 /*
   <class> slot accessors
 
@@ -2039,7 +2046,7 @@ static void init_class(SgClass *klass, const SgChar *name,
     for (;dacc && *dacc; dacc++) {
       SgObject p = Sg_Assq((*dacc)->name, slots);
       if (SG_FALSEP(p)) {
-	acc = Sg_Cons(acc, SG_OBJ(*dacc));
+	acc = Sg_Cons(SG_OBJ(*dacc), acc);
       }
     }
     SG_FOR_EACH(sp, (*super)->directSlots) {

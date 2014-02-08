@@ -36,17 +36,20 @@
 
 static SgClass *Sg_RTMCPL[] = {
   SG_CLASS_CLASS,
+  SG_CLASS_OBJECT,
   SG_CLASS_TOP,
   NULL
 };
+
+extern SgObject Sg_ClassAllocate(SgClass *klass, SgObject initargs);
 
 static void rtm_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
   Sg_Putuz(p, UC("#<record-type-meta>"));
 }
 
-SG_DEFINE_BUILTIN_CLASS(Sg_RecordTypeMetaClass, rtm_printer, NULL, NULL, NULL,
-			Sg_RTMCPL);
+SG_DEFINE_BASE_CLASS(Sg_RecordTypeMetaClass, SgRecordTypeMeta,
+		     rtm_printer, NULL, NULL, Sg_ClassAllocate, Sg_RTMCPL);
 
 static SgObject rtm_rtd(SgRecordTypeMeta *rtm)
 {
@@ -75,6 +78,18 @@ int Sg_RecordP(SgObject o)
 {
   SgClass *c = Sg_ClassOf(o);
   return SG_ISA(c, SG_CLASS_RECORD_TYPE_META);
+}
+
+SgObject Sg_AllocateRecordTypeMeta(SgClass *klass, SgObject initargs)
+{
+  SgObject m = klass->allocate(klass, initargs);
+  SG_SET_CLASS(m, klass);
+  /* ok we need to initialise the metaclass by hand */
+  SG_CLASS(m)->cpa = Sg_RTMCPL;
+  Sg_InitStaticClass(SG_CLASS(m), NULL, NULL, rtm_slots, 0);
+  SG_RECORD_TYPE_META(m)->rtd = SG_FALSE;
+  SG_RECORD_TYPE_META(m)->rcd = SG_FALSE;
+  return m;
 }
 
 void Sg__InitRecord()

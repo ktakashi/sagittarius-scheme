@@ -21,9 +21,84 @@
           &undefined make-undefined-violation undefined-violation?)
 
   (import (core)
+	  (core base)
           (core syntax)
 	  (core record)
-	  (core errors))
+	  (core record procedural)
+	  (core errors)
+	  (clos core)
+	  (sagittarius))
+
+  ;; ok first initialise the conditions' meta class
+  (define-syntax initialize-builtin-condition
+    (syntax-rules ()
+      ((_ class parent fields)
+       (define dummy
+	 (begin
+	   (let* ((rtd (make <record-type-descriptor>
+			 :name (class-name class) 
+			 :parent (and parent (record-type-rtd parent))
+			 :uid #f
+			 :sealed? #f :opaque? #f
+			 :fields fields :class class))
+		  ;; we can use rcd :)
+		  (rcd (make-record-constructor-descriptor rtd parent #f)))
+	     (slot-set! class 'rtd rtd)
+	     (slot-set! class 'rcd rcd)))))))
+
+  (initialize-builtin-condition &condition #f #())
+  (initialize-builtin-condition &message &condition #((immutable message)))
+  (initialize-builtin-condition &who     &condition #((immutable who)))
+  (initialize-builtin-condition &irritants &condition #((immutable irritants)))
+  (initialize-builtin-condition &warning &condition #())
+  (initialize-builtin-condition &serious &condition #())
+  (initialize-builtin-condition &error   &serious #())
+  (initialize-builtin-condition &violation &serious #())
+  (initialize-builtin-condition &assertion &violation #())
+  (initialize-builtin-condition &non-continuable &violation #())
+  (initialize-builtin-condition &implementation-restriction &violation #())
+  (initialize-builtin-condition &lexical &violation #())
+  (initialize-builtin-condition &syntax  &violation #((immutable form) (immutable subform)))
+  (initialize-builtin-condition &undefined &violation #())
+
+  (define (condition-predicate rtd)
+    (let ((class (slot-ref rtd 'class)))
+      (lambda (o)
+	(cond ((simple-condition? o) (is-a? o class))
+	      ((compound-condition? o)
+	       (let loop ((cp (&compound-condition-components o)))
+		 (cond ((null? cp) #f)
+		       ((is-a? (car cp) class))
+		       (else (loop (cdr cp))))))
+	      (else #f)))))
+
+  (define (condition-accessor rtd proc)
+    (let ((class (slot-ref rtd 'class)))
+      (lambda (o)
+	(define (err)
+	  (assertion-violation 
+	   'condition-accessor
+	   (format "expected condition of a subtype ~s" (class-name class))
+	   o class))
+	(cond ((and (simple-condition? o) (is-a? o class))
+	       (proc o))
+	      ((compound-condition? o)
+	       (let loop ((cp (&compound-condition-components o)))
+		 (cond ((null? cp) (err))
+		       ((is-a? (car cp) class) (proc o))
+		       (else (loop (cdr cp))))))
+	      (else (err))))))
+
+  (define condition-message 
+    (condition-accessor (record-type-rtd &message) &message-message))
+  (define condition-who 
+    (condition-accessor (record-type-rtd &who) &who-who))
+  (define condition-irritants
+    (condition-accessor (record-type-rtd &irritants) &irritants-irritants))
+  (define syntax-violation-form 
+    (condition-accessor (record-type-rtd &syntax) &syntax-violation-form))
+  (define syntax-violation-subform
+    (condition-accessor (record-type-rtd &syntax) &syntax-violation-subform))
 
   (define-syntax define-condition-type
     (lambda (x)
