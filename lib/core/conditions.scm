@@ -18,8 +18,21 @@
           &implementation-restriction make-implementation-restriction-violation implementation-restriction-violation?
           &lexical make-lexical-violation lexical-violation?
           &syntax make-syntax-violation syntax-violation? syntax-violation-form syntax-violation-subform
-          &undefined make-undefined-violation undefined-violation?)
-
+          &undefined make-undefined-violation undefined-violation?
+	  ;; &i/o
+	  &i/o make-i/o-error i/o-error?
+	  &i/o-read make-i/o-read-error i/o-read-error?
+	  &i/o-write make-i/o-write-error i/o-write-error?
+	  &i/o-invalid-position make-i/o-invalid-position-error i/o-invalid-position-error? i/o-error-position
+	  &i/o-filename make-i/o-filename-error i/o-filename-error? i/o-error-filename
+	  &i/o-file-protection make-i/o-file-protection-error i/o-file-protection-error?
+	  &i/o-file-is-read-only make-i/o-file-is-read-only-error i/o-file-is-read-only-error?
+	  &i/o-file-already-exists make-i/o-file-already-exists-error i/o-file-already-exists-error?
+	  &i/o-file-does-not-exist make-i/o-file-does-not-exist-error i/o-file-does-not-exist-error?
+	  &i/o-port make-i/o-port-error i/o-port-error? i/o-error-port
+	  &i/o-decoding make-i/o-decoding-error i/o-decoding-error?
+	  &i/o-encoding make-i/o-encoding-error i/o-encoding-error? i/o-encoding-error-char
+	  )
   (import (core)
 	  (core base)
           (core syntax)
@@ -42,7 +55,7 @@
 			 :sealed? #f :opaque? #f
 			 :fields fields :class class))
 		  ;; we can use rcd :)
-		  (rcd (make-record-constructor-descriptor rtd parent #f)))
+		  (rcd (make-record-constructor-descriptor rtd #f #f)))
 	     (slot-set! class 'rtd rtd)
 	     (slot-set! class 'rcd rcd)))))))
 
@@ -60,6 +73,19 @@
   (initialize-builtin-condition &lexical &violation #())
   (initialize-builtin-condition &syntax  &violation #((immutable form) (immutable subform)))
   (initialize-builtin-condition &undefined &violation #())
+
+  (initialize-builtin-condition &i/o &error #())
+  (initialize-builtin-condition &i/o-read &i/o #())
+  (initialize-builtin-condition &i/o-write &i/o #())
+  (initialize-builtin-condition &i/o-invalid-position &i/o #((immutable position)))
+  (initialize-builtin-condition &i/o-filename &i/o #((immutable filename)))
+  (initialize-builtin-condition &i/o-file-protection &i/o-filename #())
+  (initialize-builtin-condition &i/o-file-is-read-only &i/o-file-protection #())
+  (initialize-builtin-condition &i/o-file-already-exists &i/o-filename #())
+  (initialize-builtin-condition &i/o-file-does-not-exist &i/o-filename #())
+  (initialize-builtin-condition &i/o-port &i/o #((immutable port)))
+  (initialize-builtin-condition &i/o-encoding &i/o-port #((immutable char)))
+  (initialize-builtin-condition &i/o-decoding &i/o-port #())
 
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
@@ -99,6 +125,15 @@
     (condition-accessor (record-type-rtd &syntax) &syntax-violation-form))
   (define syntax-violation-subform
     (condition-accessor (record-type-rtd &syntax) &syntax-violation-subform))
+  (define i/o-error-position
+    (condition-accessor (record-type-rtd &i/o-invalid-position)
+			&i/o-invalid-position-position))
+  (define i/o-error-filename
+    (condition-accessor (record-type-rtd &i/o-filename) &i/o-filename-filename))
+  (define i/o-error-port
+    (condition-accessor (record-type-rtd &i/o-port) &i/o-port-port))
+  (define i/o-encoding-error-char
+    (condition-accessor (record-type-rtd &i/o-encoding) &i/o-encoding-char))
 
   (define-syntax define-condition-type
     (lambda (x)

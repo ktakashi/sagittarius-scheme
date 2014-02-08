@@ -399,6 +399,50 @@ static SgSlotAccessor port_slots[] = {
 SG_DEFINE_BASE_CLASS(Sg_IOPortErrorClass, SgIOPortError,
 		     port_printer, NULL, NULL, port_allocate,
 		     io_cpl);
+
+static void enc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A:%S>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_ENCODING_ERROR(o)->port,
+	    SG_IO_ENCODING_ERROR(o)->char_);
+}
+static SgObject enc_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOEncodingError *c = SG_ALLOCATE(SgIOEncodingError, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject enc_char(SgIOEncodingError *port)
+{
+  if (!SG_IO_ENCODING_ERRORP(port)) {
+    Sg_Error(UC("&i/o-encoding required but got %S"), port);
+  }
+  return port->char_;
+}
+static void enc_char_set(SgIOEncodingError *port, SgObject src)
+{
+  port->port = src;
+}
+static SgSlotAccessor enc_slots[] = {
+  SG_CLASS_SLOT_SPEC("port", 0, port_port, port_port_set),
+  SG_CLASS_SLOT_SPEC("char", 1, enc_char, enc_char_set),
+  { { NULL } }
+};
+static SgClass *port_cpl[] = {
+  SG_CLASS_IO_PORT_ERROR,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOEncodingErrorClass, SgIOEncodingError,
+		     enc_printer, NULL, NULL, enc_allocate,
+		     port_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IODecodingErrorClass, SgIOPortError,
+		     port_printer, NULL, NULL, port_allocate,
+		     port_cpl);
 /* position */
 static void pos_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
@@ -774,6 +818,8 @@ void Sg__InitConsitions()
   INIT_CONDITION(SG_CLASS_IO_FILE_DOES_NOT_EXIST,
 		 "&i/o-file-does-not-exist", NULL);
   INIT_CONDITION(SG_CLASS_IO_PORT_ERROR, "&i/o-port", port_slots);
+  INIT_CONDITION(SG_CLASS_IO_ENCODING_ERROR, "&i/o-encoding", enc_slots);
+  INIT_CONDITION(SG_CLASS_IO_DECODING_ERROR, "&i/o-decoding", NULL);
   /* compile */
   INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
   INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", imp_slots);
@@ -844,7 +890,7 @@ void Sg__InitConsitions()
   /* i/o */
   INIT_CTR0(SG_CLASS_IO_ERROR, "make-i/o-error", "i/o-error?");
   INIT_CTR0(SG_CLASS_IO_READ_ERROR, "make-i/o-read-error", "i/o-read-error?");
-  INIT_CTR0(SG_CLASS_IO_WRITE_ERROR, "make-i/o-write-error", "i/o-write-error");
+  INIT_CTR0(SG_CLASS_IO_WRITE_ERROR, "make-i/o-write-error", "i/o-write-error?");
 
   INIT_CTR1(SG_CLASS_IO_INVALID_POSITION,
 	    "make-i/o-invalid-position-error", "i/o-invalid-position-error?",
@@ -852,10 +898,10 @@ void Sg__InitConsitions()
   INIT_CTR1(SG_CLASS_IO_FILENAME, 
 	    "make-i/o-filename-error", "i/o-filename-error?",
 	    fn_filename, "&i/o-filename-filename");
-  INIT_CTR0(SG_CLASS_IO_FILE_PROTECTION, "make-i/o-file-protection",
-	    "i/o-file-protection?");
+  INIT_CTR0(SG_CLASS_IO_FILE_PROTECTION, "make-i/o-file-protection-error",
+	    "i/o-file-protection-error?");
   INIT_CTR0(SG_CLASS_IO_FILE_IS_READ_ONLY, 
-	    "make-i/o-file-is-read-only", "i/o-file-is-read-only?");
+	    "make-i/o-file-is-read-only-error", "i/o-file-is-read-only-error?");
   INIT_CTR0(SG_CLASS_IO_FILE_ALREADY_EXISTS, 
 	    "make-i/o-file-already-exists-error", 
 	    "i/o-file-already-exists-error?");
@@ -864,6 +910,11 @@ void Sg__InitConsitions()
 	    "i/o-file-does-not-exist-error?");
   INIT_CTR1(SG_CLASS_IO_PORT_ERROR, "make-i/o-port-error", "i/o-port-error?",
 	    port_port, "&i/o-port-port");
+  INIT_CTR0(SG_CLASS_IO_PORT_ERROR, "make-i/o-decoding-error", 
+	    "i/o-decoding-error?");
+  INIT_CTR1(SG_CLASS_IO_PORT_ERROR,
+	    "make-i/o-encoding-error", "i/o-encoding-error?",
+	    enc_char, "&i/o-encoding-char");
   /* compile */
   INIT_CTR2(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
 	    comp_source, "&compile-error-source",

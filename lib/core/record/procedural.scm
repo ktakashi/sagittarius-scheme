@@ -48,11 +48,7 @@
     ((rtd :init-keyword :rtd :reader rcd-rtd)
      (protocol :init-keyword :protocol :reader rcd-protocol)
      (parent :init-keyword :parent :reader rcd-parent)))
-  #;
-  (define-class <record-type-meta> (<class>)
-    ((rtd :init-keyword :rtd)
-     (rcd :init-keyword :rcd)))
-  
+
   (define-method compute-getter-and-setter ((c <record-type-meta>) slot)
     (let ((mutability (slot-definition-option slot :mutable #f))
 	  (accessors (call-next-method)))
@@ -89,14 +85,67 @@
 		  :fields fields :class type)))
       (slot-set! type 'rtd rtd)
       rtd))
+  (define (record-type-descriptor? o) (is-a? o <record-type-descriptor>))
   
   (define (make-record-constructor-descriptor rtd parent protocol)
+    (unless (record-type-descriptor? rtd)
+      (assertion-violation 'make-record-constructor-descriptor
+       (wrong-type-argument-message "record-type-descriptor" rtd 1)
+       (list rtd parent protocol)))
+    (and parent
+         (or (record-constructor-descriptor? parent)
+             (assertion-violation 'make-record-constructor-descriptor
+	      (wrong-type-argument-message "record-constructor-descriptor or #f"
+					   parent 2)
+	      (list rtd parent protocol))))
+    (and protocol
+         (or (procedure? protocol)
+             (assertion-violation 
+	      'make-record-constructor-descriptor
+	      (wrong-type-argument-message "procedure or #f" protocol 3)
+	      (list rtd parent protocol))))
+    (and parent
+         (or (record-type-parent rtd)
+             (assertion-violation
+              'make-record-constructor-descriptor
+              "mismatch between rtd and parent constructor descriptor"
+              rtd parent protocol)))
+    (and parent
+	 (record-type-parent rtd)
+         (or (eq? (rcd-rtd parent) (record-type-parent rtd))
+             (assertion-violation
+              'make-record-constructor-descriptor
+              "mismatch between rtd and parent constructor descriptor"
+              rtd parent protocol)))
+    (and protocol
+	 (record-type-parent rtd)
+         (or parent
+             (assertion-violation
+              'make-record-constructor-descriptor
+              "expected #f for protocol since no parent constructor descriptor is provided"
+              rtd parent protocol)))
+    (and parent
+         (not (rcd-protocol parent))
+         (or protocol
+             (assertion-violation
+              'make-record-constructor-descriptor
+              "expected procedure for protocol since parent constructor descriptor have custom one"
+              rtd parent protocol)))
+
     (let ((rcd (make <record-constructor-descriptor>
-		 :rtd rtd :parent parent
+		 :rtd rtd 
+		 :parent (or parent
+			     (cond ((record-type-parent rtd)
+				    => (lambda (rtd)
+					 (make-record-constructor-descriptor
+					  rtd #f #f)))
+				   (else #f)))
 		 :protocol (or protocol (default-protocol rtd)))))
       (slot-set! (slot-ref rtd 'class) 'rcd rcd)
       rcd))
-  
+  (define (record-constructor-descriptor? o) 
+    (is-a? o <record-constructor-descriptor>))
+
   (define (make-record-type name rtd rcd) (slot-ref rtd 'class))
   
   (define (rtd-total-field-count rtd)
@@ -105,22 +154,39 @@
   (define (record-type-rtd type) (slot-ref type 'rtd))
   (define (record-type-rcd type) (slot-ref type 'rcd))
   
+  ;; well at least we need to list all slots
+  ;; to make my life easier, the returned list structure is like this.
+  ;; ((name . class) ...)
+  (define (compute-all-slots class)
+    ;; assume record only contains one super class
+    ;; so the CPL is direct ref
+    (let loop ((supers (class-cpl class)) (r '()))
+      (if (null? supers)
+	  r
+	  (let ((names (map slot-definition-name 
+			    (class-direct-slots (car supers)))))
+	    (loop (cdr supers)
+		  `(,@r ,@(map (lambda (n) (cons n (car supers))) names)))))))
+
   (define (record-constructor rcd)
-    (let ((parent (rcd-parent rcd))
-	  (rtd (rcd-rtd rcd)))
-      (if parent
+    (unless (record-constructor-descriptor? rcd)
+      (assertion-violation 'record-constructor
+       (format "record-constructor-descriptor required but got ~s" rcd)
+       rcd))
+    (let ((rtd (rcd-rtd rcd)))
+      (if (rcd-parent rcd)
 	  (let ((class (slot-ref rtd 'class)))
-	    (make-nested-conser rcd rtd (length (class-slots class))))
+	    (make-nested-conser rcd rtd (length (compute-all-slots class))))
 	  (make-simple-conser rcd rtd (vector-length (rtd-fields rtd))))))
   
   (define (%make-record rtd field-values)
     (let* ((class (slot-ref rtd 'class))
 	   ;; TODO create (kw v) list to make mutable/immutable thing
-	   (tuple (make class)))
+	   (tuple (make class))
+	   (slot&class (compute-all-slots class)))
       (for-each (lambda (slot value)
-		  (slot-set-using-class! class tuple
-					 (slot-definition-name slot) value))
-		(class-slots class) field-values)
+		  (slot-set-using-class! (cdr slot) tuple (car slot) value))
+		slot&class field-values)
       tuple))
   
   (define (make-nested-conser desc rtd argc)

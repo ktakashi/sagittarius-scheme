@@ -37,7 +37,8 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    (core io))
+	    (core io)
+	    (core conditions))
 
 ) ; [end]
 ;; end of file

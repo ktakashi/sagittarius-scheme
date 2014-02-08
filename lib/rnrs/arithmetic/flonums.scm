@@ -49,7 +49,17 @@
 	    &no-infinities make-no-infinities-violation no-infinities-violation?
 	    &no-nans make-no-nans-violation no-nans-violation?)
     (import (core)
-	    (core arithmetic))
+	    (core arithmetic)
+	    (core conditions))
+
+  (define-condition-type &no-infinities
+    &implementation-restriction
+    make-no-infinities-violation
+    no-infinities-violation?)
+
+  (define-condition-type &no-nans
+    &implementation-restriction
+    make-no-nans-violation no-nans-violation?)
 
 ) ; [end]
 ;; end of file

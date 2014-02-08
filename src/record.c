@@ -33,6 +33,7 @@
 #include "sagittarius/library.h"
 #include "sagittarius/port.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/writer.h"
 
 static SgClass *Sg_RTMCPL[] = {
   SG_CLASS_CLASS,
@@ -45,7 +46,7 @@ extern SgObject Sg_ClassAllocate(SgClass *klass, SgObject initargs);
 
 static void rtm_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  Sg_Putuz(p, UC("#<record-type-meta>"));
+  Sg_Printf(p, UC("#<%A>"), SG_CLASS(o)->name);
 }
 
 SG_DEFINE_BASE_CLASS(Sg_RecordTypeMetaClass, SgRecordTypeMeta,

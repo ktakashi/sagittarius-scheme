@@ -50,6 +50,8 @@
      |    |    |    |    +- &i/o-file-already-exists
      |    |    |    |    +- &i/o-file-does-not-exist
      |    |    |    +- &i/o-port (port)
+     |    |    |         +- &i/o-encoding (char)
+     |    |    |         +- &i/o-decoding
      |    |    +- &compile (source program) <-- non R6RS
      |    |    +- &import (library)         <-- ditto
      |	  +- &violation
@@ -92,6 +94,8 @@ SG_CLASS_DECL(Sg_IOFileIsReadOnlyClass);
 SG_CLASS_DECL(Sg_IOFileAlreadyExistsClass);
 SG_CLASS_DECL(Sg_IOFileDoesNotExistClass);
 SG_CLASS_DECL(Sg_IOPortErrorClass);
+SG_CLASS_DECL(Sg_IOEncodingErrorClass);
+SG_CLASS_DECL(Sg_IODecodingErrorClass);
 /* for compiler */
 SG_CLASS_DECL(Sg_CompileConditionClass);
 SG_CLASS_DECL(Sg_ImportConditionClass);
@@ -121,6 +125,8 @@ SG_CLASS_DECL(Sg_ImportConditionClass);
 #define SG_CLASS_IO_FILE_ALREADY_EXISTS (&Sg_IOFileAlreadyExistsClass)
 #define SG_CLASS_IO_FILE_DOES_NOT_EXIST (&Sg_IOFileDoesNotExistClass)
 #define SG_CLASS_IO_PORT_ERROR (&Sg_IOPortErrorClass)
+#define SG_CLASS_IO_ENCODING_ERROR (&Sg_IOEncodingErrorClass)
+#define SG_CLASS_IO_DECODING_ERROR (&Sg_IODecodingErrorClass)
 #define SG_CLASS_COMPILE_CONDITION (&Sg_CompileConditionClass)
 #define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
 
@@ -213,6 +219,16 @@ typedef struct SgIOPortErrorRec
 } SgIOPortError;
 #define SG_IO_PORT_ERROR(o)  ((SgIOPortError *)o)
 #define SG_IO_PORT_ERRORP(o) SG_ISA(o, SG_CLASS_IO_PORT_ERROR)
+
+#define SG_IO_DECODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_DECODING_ERROR)
+typedef struct SgIOEncodingErrorRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject port;
+  SgObject char_;
+} SgIOEncodingError;
+#define SG_IO_ENCODING_ERROR(o)  ((SgIOEncodingError *)o)
+#define SG_IO_ENCODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_ENCODING_ERROR)
 
 typedef struct SgCompileConditionRec
 {
