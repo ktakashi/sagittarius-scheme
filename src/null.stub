@@ -2259,6 +2259,7 @@
     (Sg_ClosePort p))
 
   (define-c-proc read-char (:optional (p::<port> (Sg_CurrentInputPort)))
+    (check-port-open read-char p)
     (check-input-port read-char p)
     (let ((c::SgChar (Sg_Getc p)))
       (if (== c EOF)
@@ -2266,6 +2267,7 @@
 	  (result (SG_MAKE_CHAR c)))))
 
   (define-c-proc peek-char (:optional (p::<port> (Sg_CurrentInputPort)))
+    (check-port-open peek-char p)
     (check-input-port peek-char p)
     (let ((c::SgChar (Sg_Peekc p)))
       (if (== c EOF)
@@ -2275,6 +2277,7 @@
   (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))
 		       :key (source-info?::<boolean> #f)
 			    (read-shared?::<boolean> #f))
+    (check-port-open read p)
     (check-input-port read p)
     (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
       (when source-info?
@@ -2286,6 +2289,7 @@
   (define-c-proc write-char (ch::<char> :optional
 					(p::<port> (Sg_CurrentOutputPort)))
     ::<void>
+    (check-port-open write-char p)
     (check-output-port write-char p)
     (Sg_Putc p ch))
   
