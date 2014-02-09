@@ -61,6 +61,9 @@
 	    ;; exceptions
 	    join-timeout-exception? abandoned-mutex-exception?
 	    terminated-thread-exception? uncaught-exception?
+	    thead-exception-thread
+	    abandoned-mutex-exception-mutex
+	    terminated-thread-exception-terminator
 	    uncaught-exception-reason
 
 	    ;; sagittarius threads specific
@@ -76,9 +79,27 @@
 	    )
     (import (core)
 	    (core syntax)
+	    (core conditions)
 	    (sagittarius)
 	    (sagittarius dynamic-module))
   (load-dynamic-module "sagittarius--threads")
+
+  ;; initialise condition
+  (initialize-builtin-condition &thread-exception &error thread)
+  (initialize-builtin-condition &join-timeout-exception &thread-exception)
+  (initialize-builtin-condition &abandoned-mutex-exception &thread-exception mutex)
+  (initialize-builtin-condition &terminated-thread-exception &thread-exception terminator)
+  (initialize-builtin-condition &uncaught-exception &thread-exception reason)
+  
+  (define-condition-accessor thead-exception-thread
+    &thread-exception &thread-exception-thread)
+  (define-condition-accessor abandoned-mutex-exception-mutex
+    &abandoned-mutex-exception &abandoned-mutex-exception-mutex)
+  (define-condition-accessor terminated-thread-exception-terminator
+    &terminated-thread-exception &terminated-thread-exception-terminator)
+  (define-condition-accessor uncaught-exception-reason
+    &uncaught-exception &uncaught-exception-reason)
+
   ;; NB: actually, we can make mutex recursively by default.
   ;;     I'm not sure if it's a good proposal or not, so for now,
   ;;     like this.

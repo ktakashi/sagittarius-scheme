@@ -32,6 +32,9 @@
 	  &i/o-port make-i/o-port-error i/o-port-error? i/o-error-port
 	  &i/o-decoding make-i/o-decoding-error i/o-decoding-error?
 	  &i/o-encoding make-i/o-encoding-error i/o-encoding-error? i/o-encoding-error-char
+
+	  initialize-builtin-condition
+	  define-condition-accessor
 	  )
   (import (core)
 	  (core base)
@@ -45,7 +48,7 @@
   ;; ok first initialise the conditions' meta class
   (define-syntax initialize-builtin-condition
     (syntax-rules ()
-      ((_ class parent fields)
+      ((_ class parent field ...)
        (define dummy
 	 (begin
 	   (let* ((rtd (make <record-type-descriptor>
@@ -53,39 +56,43 @@
 			 :parent (and parent (record-type-rtd parent))
 			 :uid #f
 			 :sealed? #f :opaque? #f
-			 :fields fields :class class))
+			 :fields '#((immutable field) ...) :class class))
 		  ;; we can use rcd :)
 		  (rcd (make-record-constructor-descriptor rtd #f #f)))
 	     (slot-set! class 'rtd rtd)
 	     (slot-set! class 'rcd rcd)))))))
+  (define-syntax define-condition-accessor
+    (syntax-rules ()
+      ((_ name type acc)
+       (define name (condition-accessor (record-type-rtd type) acc)))))
 
-  (initialize-builtin-condition &condition #f #())
-  (initialize-builtin-condition &message &condition #((immutable message)))
-  (initialize-builtin-condition &who     &condition #((immutable who)))
-  (initialize-builtin-condition &irritants &condition #((immutable irritants)))
-  (initialize-builtin-condition &warning &condition #())
-  (initialize-builtin-condition &serious &condition #())
-  (initialize-builtin-condition &error   &serious #())
-  (initialize-builtin-condition &violation &serious #())
-  (initialize-builtin-condition &assertion &violation #())
-  (initialize-builtin-condition &non-continuable &violation #())
-  (initialize-builtin-condition &implementation-restriction &violation #())
-  (initialize-builtin-condition &lexical &violation #())
-  (initialize-builtin-condition &syntax  &violation #((immutable form) (immutable subform)))
-  (initialize-builtin-condition &undefined &violation #())
+  (initialize-builtin-condition &condition #f)
+  (initialize-builtin-condition &message &condition message)
+  (initialize-builtin-condition &who     &condition who)
+  (initialize-builtin-condition &irritants &condition irritants)
+  (initialize-builtin-condition &warning &condition)
+  (initialize-builtin-condition &serious &condition)
+  (initialize-builtin-condition &error   &serious)
+  (initialize-builtin-condition &violation &serious)
+  (initialize-builtin-condition &assertion &violation)
+  (initialize-builtin-condition &non-continuable &violation)
+  (initialize-builtin-condition &implementation-restriction &violation)
+  (initialize-builtin-condition &lexical &violation)
+  (initialize-builtin-condition &syntax  &violation form immutable subform)
+  (initialize-builtin-condition &undefined &violation)
 
-  (initialize-builtin-condition &i/o &error #())
-  (initialize-builtin-condition &i/o-read &i/o #())
-  (initialize-builtin-condition &i/o-write &i/o #())
-  (initialize-builtin-condition &i/o-invalid-position &i/o #((immutable position)))
-  (initialize-builtin-condition &i/o-filename &i/o #((immutable filename)))
-  (initialize-builtin-condition &i/o-file-protection &i/o-filename #())
-  (initialize-builtin-condition &i/o-file-is-read-only &i/o-file-protection #())
-  (initialize-builtin-condition &i/o-file-already-exists &i/o-filename #())
-  (initialize-builtin-condition &i/o-file-does-not-exist &i/o-filename #())
-  (initialize-builtin-condition &i/o-port &i/o #((immutable port)))
-  (initialize-builtin-condition &i/o-encoding &i/o-port #((immutable char)))
-  (initialize-builtin-condition &i/o-decoding &i/o-port #())
+  (initialize-builtin-condition &i/o &error)
+  (initialize-builtin-condition &i/o-read &i/o)
+  (initialize-builtin-condition &i/o-write &i/o)
+  (initialize-builtin-condition &i/o-invalid-position &i/o position)
+  (initialize-builtin-condition &i/o-filename &i/o filename)
+  (initialize-builtin-condition &i/o-file-protection &i/o-filename)
+  (initialize-builtin-condition &i/o-file-is-read-only &i/o-file-protection)
+  (initialize-builtin-condition &i/o-file-already-exists &i/o-filename)
+  (initialize-builtin-condition &i/o-file-does-not-exist &i/o-filename)
+  (initialize-builtin-condition &i/o-port &i/o port)
+  (initialize-builtin-condition &i/o-encoding &i/o-port char)
+  (initialize-builtin-condition &i/o-decoding &i/o-port)
 
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))

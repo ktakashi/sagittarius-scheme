@@ -32,11 +32,20 @@
 #include <sagittarius/extend.h>
 #include "odbc.h"
 
-static SgObject odbc_error_ctr;
-static SgRecordType odbc_error;
+static SgClass *error_cpl[] = {
+  SG_ERROR_CONDITION_CPL
+};
+static void exc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A>"), SG_CLASS(Sg_ClassOf(o))->name);
+}
+SG_DEFINE_BASE_CLASS(Sg_OdbcErrorClass, SgCondition,
+		     exc_printer, NULL, NULL, Sg_ConditionAllocate,
+		     error_cpl);
+
 static SgObject make_odbc_error()
 {
-  return Sg_Apply0(odbc_error_ctr);
+  return Sg_ConditionAllocate(SG_CLASS_ODBC_ERROR, SG_NIL);
 }
 
 #define CHECK_ERROR(who, ctx, ret)					\
@@ -916,33 +925,13 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__odbc()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__odbc);
-
-  {
-    /* conditions */
-    SG_DECLARE_EXCEPTIONS("(odbc)", TRUE);
-    SgObject null_lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
-    SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib),
-				     SG_INTERN("&error"), SG_UNBOUND);
-    SgObject nullfield = Sg_MakeVector(0, SG_UNDEF);
-    SgObject parent_rtd = SG_FALSE, parent_rcd = SG_FALSE;
-    if (SG_UNBOUNDP(parent)) {
-      /* fail safe */
-      /* TODO should this be panic? */
-      parent = SG_FALSE;
-    } else {
-      parent = SG_GLOC_GET(SG_GLOC(parent));
-      parent_rtd = SG_RECORD_TYPE_RTD(parent);
-      parent_rcd = SG_RECORD_TYPE_RCD(parent);
-    }
-    SG_INTERN__CONDITION_SIMPLE(&odbc_error, &odbc-error,
-				parent_rtd, parent_rcd, nullfield);
-    SG_INTERN__CONDITION_CTR(&odbc_error, make-odbc-error);
-    SG_INTERN__CONDITION_PRED(&odbc_error, odbc-error?);
-    SG_SET_CONSTRUCTOR(odbc_error_ctr);
-  }
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(odbc)"), FALSE));
-  Sg__Init_odbc_stub(lib);
 
+  SG_INIT_CONDITION(SG_CLASS_ODBC_ERROR, lib, "&odbc-error", NULL);
+  SG_INIT_CONDITION_CTR(SG_CLASS_ODBC_ERROR, lib, "make-odbc-error", 0);
+  SG_INIT_CONDITION_PRED(SG_CLASS_ODBC_ERROR, lib, "odbc-error?");
+
+  Sg__Init_odbc_stub(lib);
   Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_CTX, UC("<odbc-ctx>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_ODBC_DATE, UC("<odbc-date>"), lib, NULL,

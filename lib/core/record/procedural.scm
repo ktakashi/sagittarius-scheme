@@ -21,6 +21,8 @@
 	    record-type-field-names
 	    record-field-mutable?
 
+	    ;; for convenient and compatibility
+	    search-kth-slot
 	    record-type-rcd
 	    record-type-rtd
 	    <record-type-descriptor>
@@ -263,18 +265,18 @@
 
   (define (record-predicate rtd) (lambda (o) (is-a? o (slot-ref rtd 'class))))
   ;; TODO better error handling
-  (define (searck-kth-slot class k)
+  (define (search-kth-slot class k)
     (let ((slots (class-direct-slots class)))
       (do ((i 0 (+ i 1)) (slots slots (cdr slots)))
 	  ((= i k) (slot-definition-name (car slots))))))
   (define (record-accessor rtd k)
     (let* ((class (slot-ref rtd 'class))
-	   (name (searck-kth-slot class k)))
+	   (name (search-kth-slot class k)))
       (lambda (o) (slot-ref-using-class class o name))))
       
   (define (record-mutator rtd k)
     (let* ((class (slot-ref rtd 'class))
-	   (name (searck-kth-slot class k)))
+	   (name (search-kth-slot class k)))
       (lambda (o v) (slot-set-using-class! class o name v))))
 
   (define (record? o)
@@ -286,7 +288,6 @@
       (assertion-violation 'record-rtd
 			   (format "record required but got ~s" o) o))
     (record-type-rtd (class-of o)))
-
 
   (define (record-type-generative? rtd) (not (record-type-uid rtd)))
   ;; TODO check type

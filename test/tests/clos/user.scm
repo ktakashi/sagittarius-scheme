@@ -174,7 +174,7 @@
              (not (memq <x>-orig (ref <y>-orig 'direct-supers)))))
 
 (test* "subclass redefinition <y> (slots)"
-       '((a b c) (a b c x) (c d e a b) (c d e a b x))
+       '((a b c) (a b c x) (a b c c d e) (a b c x c d e))
        (map (^c (map (lambda (s) (car s)) (class-slots c)))
             (list <x>-orig <x> <y>-orig <y>)))
 
@@ -187,7 +187,8 @@
              (not (memq <y>-orig (ref <w>-orig 'direct-supers)))))
 
 (test* "subclass redefinition <w> (slots)"
-       '((e f c d a b) (e f c d a b x) (e f c d a b) (e f c d a b x))
+       '((a b c c d e e f) (a b c x c d e e f) 
+	 (a b c c d e e f) (a b c x c d e e f))
        (map (^c (map (lambda (s) (car s)) (class-slots c)))
             (list <w>-orig <w> <w2>-orig <w2>)))
 
@@ -241,7 +242,7 @@
              (slot-ref x2 'c)
              (slot-ref x2 'x)))
 
-(test* "redefine <y>" '(a e c x)
+(test* "redefine <y>" '(a c x a e)
        (begin
          (eval '(define-class <y> (<x>)
                   ((a :accessor a-of)
@@ -269,7 +270,7 @@
 (test* "instance update (y1)" '(0 4)
        (map (^s (slot-ref y1 s)) '(a e)))
 
-(test* "subclass redefinition <w>" '(e f a)
+(test* "subclass redefinition <w>" '(a e e f)
        (map car (class-slots <w>)))
 
 (test* "instance update (w1)" '(#f #t #t 100 104 105)

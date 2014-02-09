@@ -246,6 +246,58 @@ typedef struct SgImportConditionRec
 #define SG_IMPORT_CONDITION(o)  ((SgImportCondition *)o)
 #define SG_IMPORT_CONDITIONP(o) SG_ISA(o, SG_CLASS_IMPORT_CONDITION)
 
+#define SG_INIT_CONDITION(cl, lib, name, slots)	\
+  do {									\
+    SgObject m = Sg_AllocateRecordTypeMeta(SG_CLASS_RECORD_TYPE_META,	\
+					   SG_NIL);			\
+    Sg_InitStaticClassWithMeta(cl, UC(name), (lib), SG_CLASS(m),	\
+			       SG_NIL,  slots, 0);			\
+    Sg__AppendImmutable(cl);						\
+  } while (0)
+
+#define SG_INIT_CONDITION_PRED(cl, lib, name)				\
+  do {									\
+    SgObject pred = Sg_MakeSubr(Sg__ConditionPredicate, (void *)cl,	\
+				1, 0, SG_MAKE_STRING(name));		\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), pred);		\
+  } while (0);
+#define SG_INIT_CONDITION_CTR(cl, lib, name, n)				\
+  do {									\
+    SgObject proc = Sg_MakeSubr(Sg__ConditionConstructorN, (void *)cl,	\
+				(n), 0,	SG_MAKE_STRING(name));		\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
+  } while (0)
+#define SG_INIT_CONDITION_ACC(fn, lib, name)				\
+  do {									\
+    SgObject acc = Sg_MakeSubr(Sg__ConditionAccessor, (void *)fn, 1, 0,	\
+			       SG_MAKE_STRING(name));			\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), acc);		\
+  } while (0)
+
+#define SG_ERROR_CONDITION_CPL			\
+  SG_CLASS_ERROR,				\
+    SG_CLASS_SERIOUS,				\
+    SG_CLASS_CONSITION,				\
+    SG_CLASS_TOP				\
+
+#define SG_DEFINE_CONDITION_ALLOCATOR(name, type)		\
+  static SgObject name(SgClass *klass, SgObject initargs) {	\
+    type *c = SG_ALLOCATE(type, klass);				\
+    SG_SET_CLASS(c, klass);					\
+    return SG_OBJ(c);						\
+  }
+
+#define SG_DEFINE_CONDITION_ACCESSOR(name, type, pred, prop)	\
+  static SgObject name(type *e) {				\
+    if (!pred(e)) {						\
+      Sg_Error(UC("unexpected condition type %S"), e);		\
+    }								\
+    return e->prop;						\
+  }								\
+  static void SG_CPP_CAT(name, _set)(type *e, SgObject v) {	\
+    e->prop = v;						\
+  }
+
 SG_CDECL_BEGIN
 
 /* constructor */
@@ -274,6 +326,14 @@ SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
+
+SG_EXTERN SgObject Sg_ConditionAllocate(SgClass *klass, SgObject initargs);
+/* internl use or only via macro */
+SG_EXTERN void     Sg__AppendImmutable(SgClass *klass);
+SG_EXTERN SgObject Sg__ConditionPredicate(SgObject *args, int argc, void *data);
+SG_EXTERN SgObject Sg__ConditionAccessor(SgObject *args, int argc, void *data);
+SG_EXTERN SgObject Sg__ConditionConstructorN(SgObject *args, int argc,
+					     void *data);
 
 SG_CDECL_END
 

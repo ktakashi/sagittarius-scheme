@@ -10,6 +10,8 @@
 	    match-let*
 	    match-letrec)
     (import (core) (core base) (core errors)
+	    (rename (clos core) (slot-ref clos:slot-ref))
+	    (core record procedural)
 	    ;;(except (rnrs) syntax-rules)
 	    ;;(rnrs mutable-pairs)
 	    (sagittarius record)
@@ -19,19 +21,9 @@
 
   ;; we don't want to export this confusing procedures.
   ;; so make it private here.
-  (define (is-a? record record-type)
-    (and (record? record)
-	 (record-type? record-type)
-	 (let* ((rtd (record-type-rtd record-type))
-		(pred (record-predicate rtd)))
-	   (pred record))))
-
   (define (slot-ref record-type record k)
-    (and (record? record)
-	 (record-type? record-type)
-	 (let* ((rtd (record-rtd record))
-		(pred (record-accessor rtd k)))
-	   (pred record))))
+    (let ((name (search-kth-slot record-type k)))
+      (clos:slot-ref record name)))
 
 ;;;; match.scm -- portable hygienic pattern matcher -*- coding: utf-8 -*-
 ;;

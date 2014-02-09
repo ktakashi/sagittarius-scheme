@@ -152,7 +152,7 @@ static SgClass *base_cpl[] = {
 };
 SG_DEFINE_ABSTRACT_CLASS(Sg_ConditionClass, base_cpl);
 
-static SgObject condition_allocate(SgClass *klass, SgObject initargs)
+SgObject Sg_ConditionAllocate(SgClass *klass, SgObject initargs)
 {
   SgCondition *c = SG_ALLOCATE(SgCondition, klass);
   SG_SET_CLASS(c, klass);
@@ -165,10 +165,10 @@ static void condition0_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 }
 
 SG_DEFINE_BASE_CLASS(Sg_WarningClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     Sg_ConditionCPL);
 SG_DEFINE_BASE_CLASS(Sg_SeriousClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     Sg_ConditionCPL);
 
 static SgClass *serious_cpl[] = {
@@ -178,10 +178,10 @@ static SgClass *serious_cpl[] = {
   NULL
 };
 SG_DEFINE_BASE_CLASS(Sg_ErrorClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     serious_cpl);
 SG_DEFINE_BASE_CLASS(Sg_ViolationClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     serious_cpl);
 static SgClass *violation_cpl[] = {
   SG_CLASS_VIOLATION,
@@ -191,16 +191,16 @@ static SgClass *violation_cpl[] = {
   NULL
 };
 SG_DEFINE_BASE_CLASS(Sg_AssertionClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     violation_cpl);
 SG_DEFINE_BASE_CLASS(Sg_NonContinuableClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     violation_cpl);
 SG_DEFINE_BASE_CLASS(Sg_ImplementationRestrictionClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     violation_cpl);
 SG_DEFINE_BASE_CLASS(Sg_LexicalConditionClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     violation_cpl);
 
 static void syntax_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
@@ -249,7 +249,7 @@ SG_DEFINE_BASE_CLASS(Sg_SyntaxConditionClass, SgSyntaxCondition,
 		     violation_cpl);
 
 SG_DEFINE_BASE_CLASS(Sg_UndefinedConditionClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     violation_cpl);
 
 static void message_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
@@ -345,16 +345,13 @@ SG_DEFINE_BASE_CLASS(Sg_WhoConditionClass, SgWhoCondition,
 		     Sg_ConditionCPL);
 
 /* i/o */
-static SgClass *error_cpl[] = {
-  SG_CLASS_ERROR,
-  SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
-  SG_CLASS_TOP,
+static SgClass *Sg_ErrorConditionCPL[] = {
+  SG_ERROR_CONDITION_CPL,
   NULL
 };
 SG_DEFINE_BASE_CLASS(Sg_IOErrorClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
-		     error_cpl);
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     Sg_ErrorConditionCPL);
 static SgClass *io_cpl[] = {
   SG_CLASS_IO_ERROR,
   SG_CLASS_ERROR,
@@ -364,10 +361,10 @@ static SgClass *io_cpl[] = {
   NULL
 };
 SG_DEFINE_BASE_CLASS(Sg_IOReadErrorClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     io_cpl);
 SG_DEFINE_BASE_CLASS(Sg_IOWriteErrorClass, SgCondition,
-		     condition0_printer, NULL, NULL, condition_allocate,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     io_cpl);
 
 static void port_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
@@ -576,7 +573,7 @@ static SgSlotAccessor cmp_slots[] = {
 };
 SG_DEFINE_BASE_CLASS(Sg_CompileConditionClass, SgCompileCondition,
 		     comp_printer, NULL, NULL, comp_allocate,
-		     error_cpl);
+		     Sg_ErrorConditionCPL);
 
 static void imp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
@@ -606,27 +603,27 @@ static SgSlotAccessor imp_slots[] = {
 };
 SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
 		     imp_printer, NULL, NULL, imp_allocate,
-		     error_cpl);
+		     Sg_ErrorConditionCPL);
 
 
 SgObject Sg_MakeNonContinuableViolation()
 {
-  return condition_allocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
+  return Sg_ConditionAllocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
 }
 
 SgObject Sg_MakeAssertionViolation()
 {
-  return condition_allocate(SG_CLASS_ASSERTION, SG_NIL);
+  return Sg_ConditionAllocate(SG_CLASS_ASSERTION, SG_NIL);
 }
 
 SgObject Sg_MakeUndefinedViolation()
 {
-  return condition_allocate(SG_CLASS_UNDEFINED_CONDITION, SG_NIL);
+  return Sg_ConditionAllocate(SG_CLASS_UNDEFINED_CONDITION, SG_NIL);
 }
 
 SgObject Sg_MakeImplementationRestrictionViolation()
 {
-  return condition_allocate(SG_CLASS_IMPLEMENTATION_RESTRICTION, SG_NIL);
+  return Sg_ConditionAllocate(SG_CLASS_IMPLEMENTATION_RESTRICTION, SG_NIL);
 }
 
 SgObject Sg_MakeWhoCondition(SgObject who)
@@ -652,20 +649,20 @@ SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 
 SgObject Sg_MakeWarning()
 {
-  return condition_allocate(SG_CLASS_WARNING, SG_NIL);
+  return Sg_ConditionAllocate(SG_CLASS_WARNING, SG_NIL);
 }
 
 SgObject Sg_MakeReaderCondition(SgObject msg)
 {
-  SgObject l = condition_allocate(SG_CLASS_LEXICAL_CONDITION, SG_NIL);
-  SgObject r = condition_allocate(SG_CLASS_IO_READ_ERROR, SG_NIL);
+  SgObject l = Sg_ConditionAllocate(SG_CLASS_LEXICAL_CONDITION, SG_NIL);
+  SgObject r = Sg_ConditionAllocate(SG_CLASS_IO_READ_ERROR, SG_NIL);
   return Sg_Condition(SG_LIST3(l, r,
 			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_MakeError(SgObject msg)
 {
-  return Sg_Condition(SG_LIST2(condition_allocate(SG_CLASS_ERROR, SG_NIL),
+  return Sg_Condition(SG_LIST2(Sg_ConditionAllocate(SG_CLASS_ERROR, SG_NIL),
 			       Sg_MakeMessageCondition(msg)));
 }
 
@@ -734,7 +731,7 @@ SgObject Sg_DescribeCondition(SgObject con)
   }
 }
 
-static void append_immutable(SgClass *klass)
+void Sg__AppendImmutable(SgClass *klass)
 {
   /* add :mutable #f, well it's useless but in case
      somebody make with (make &message) or so... */
@@ -763,7 +760,7 @@ static SgObject predicate_rec(SgObject c, SgClass *klass)
   }
   return SG_FALSE;
 }
-static SgObject predicate(SgObject *args, int argc, void *user_data)
+SgObject Sg__ConditionPredicate(SgObject *args, int argc, void *user_data)
 {
   return predicate_rec(args[0], SG_CLASS(user_data));
 }
@@ -781,19 +778,19 @@ static SgObject predicate_cc(SgObject result, void **data)
   }
 }
 
-static SgObject accessor(SgObject *args, int argc, void *user_data)
+SgObject Sg__ConditionAccessor(SgObject *args, int argc, void *user_data)
 {
   return ((SgObject(*)(SgObject))user_data)(args[0]);
 }
 /* 0 argument can be very easy :)  */
 static SgObject invoke0(SgObject *args, int argc, void *user_data)
 {
-  return condition_allocate((SgClass *)user_data, SG_NIL);
+  return Sg_ConditionAllocate((SgClass *)user_data, SG_NIL);
 }
 /* call allocator directly and use slot accessor directly...
    in C level condition there is no duplicate slot so we don't
    consider it for now. */
-static SgObject invoken(SgObject *args, int argc, void *user_data)
+SgObject Sg__ConditionConstructorN(SgObject *args, int argc, void *user_data)
 {
   SgClass *klass = SG_CLASS(user_data);
   SgObject c = klass->allocate(klass, SG_NIL);
@@ -811,16 +808,8 @@ void Sg__InitConsitions()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
 
-  /* TODO think about how to initialise... */
   /* need record metaclass */
-#define INIT_CONDITION(cl, nam, slots)					\
-  do {									\
-    SgObject m = Sg_AllocateRecordTypeMeta(SG_CLASS_RECORD_TYPE_META,	\
-					   SG_NIL);			\
-    Sg_InitStaticClassWithMeta(cl, UC(nam), lib, SG_CLASS(m),		\
-			       SG_NIL,  slots, 0);			\
-    append_immutable(cl);						\
-  } while (0)
+#define INIT_CONDITION(cl, nam, slots) SG_INIT_CONDITION(cl, lib, nam, slots)
 
   INIT_CONDITION(SG_CLASS_CONSITION, "&condition", NULL);
   INIT_CONDITION(SG_CLASS_WARNING, "&warning", NULL);
@@ -860,27 +849,17 @@ void Sg__InitConsitions()
   INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
   /* ctr&pred */
-#define INIT_PRED(cl, name)						\
-  do {									\
-    SgObject pred = Sg_MakeSubr(predicate, cl, 1, 0,			\
-				SG_MAKE_STRING(name));			\
-    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), pred);		\
-  } while (0);
+#define INIT_PRED(cl, name) SG_INIT_CONDITION_PRED(cl, lib, name)
 #define INIT_CTR0(cl, name, pred)					\
   do {									\
     SgObject proc = Sg_MakeSubr(invoke0, cl, 0, 0, SG_MAKE_STRING(name)); \
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
     INIT_PRED(cl, pred);						\
   } while (0)
-#define INIT_ACC(fn, name)						\
-  do {									\
-    SgObject acc = Sg_MakeSubr(accessor, fn, 1, 0, SG_MAKE_STRING(name)); \
-    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), acc);		\
-  } while (0)
+#define INIT_ACC(fn, name) SG_INIT_CONDITION_ACC(fn, lib, name)
 #define INIT_CTR1_REC(cl, name, pred)					\
   do {									\
-    SgObject proc = Sg_MakeSubr(invoken, cl, 1, 0, SG_MAKE_STRING(name)); \
-    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
+    SG_INIT_CONDITION_CTR(cl, lib, name, 1);				\
     INIT_PRED(cl, pred);						\
   } while (0)
 #define INIT_CTR1(cl, name, pred, acc, accnm)				\
@@ -890,8 +869,7 @@ void Sg__InitConsitions()
   } while (0)
 #define INIT_CTR2_REC(cl, name, pred)					\
   do {									\
-    SgObject proc = Sg_MakeSubr(invoken, cl, 2, 0, SG_MAKE_STRING(name)); \
-    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
+    SG_INIT_CONDITION_CTR(cl, lib, name, 2);				\
     INIT_PRED(cl, pred);						\
   } while (0)
 #define INIT_CTR2(cl, name, pred, acc, accnm, acc2, accnm2)		\

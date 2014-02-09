@@ -61,6 +61,7 @@ struct SgSlotAccessorRec
   SgObject getterS;
   SgObject setterS;
   SgObject boundP;
+  SgObject definition;		/* slot definition for book keeping */
 };
 #define SG_SLOT_ACCESSOR(obj)  ((SgSlotAccessor*)(obj))
 #define SG_SLOT_ACCESSORP(obj) SG_XTYPEP(obj, SG_CLASS_SLOT_ACCESSOR)
@@ -70,7 +71,7 @@ struct SgSlotAccessorRec
       (index), (name), SG_FALSE, NULL,				\
 	(SgSlotGetterProc)(getter),				\
 	(SgSlotSetterProc)(setter),				\
-	SG_FALSE, SG_FALSE, SG_FALSE }
+	SG_FALSE, SG_FALSE, SG_FALSE, SG_NIL }
 
 
 /* based on tiny clos. most of tricks are from Gauche */
@@ -300,9 +301,8 @@ SG_EXTERN void     Sg_InitStaticClassWithMeta(SgClass *klass,
 					      SgObject supers,
 					      SgSlotAccessor *specs, int flags);
 
-SG_EXTERN SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, 
-							  SgObject slot,
-							  SgObject initargs);
+SG_EXTERN SgObject Sg_VMSlotInitializeUsingAccessor(SgObject obj, SgObject acc,
+						    SgObject initargs);
 SG_EXTERN SgObject Sg_VMSlotRefUsingSlotDefinition(SgObject obj, 
 						   SgObject slot);
 SG_EXTERN SgObject Sg_VMSlotSetUsingSlotDefinition(SgObject obj, 

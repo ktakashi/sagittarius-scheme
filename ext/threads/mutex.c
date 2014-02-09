@@ -232,122 +232,146 @@ SgObject Sg_ConditionVariableBroadcast(SgConditionVariable *cond)
   return SG_UNDEF;
 }
 
-/* thread exceptions */
-static SgObject make_join_timeout_exception;
-static SgObject make_abandoned_mutex_exception;
-static SgObject make_terminated_thread_exception;
-static SgObject make_uncaught_exception;
+static SgClass *error_cpl[] = {
+  SG_ERROR_CONDITION_CPL
+};
+
+static void exc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A>"), SG_CLASS(Sg_ClassOf(o))->name);
+}
+
+SG_DEFINE_CONDITION_ALLOCATOR(parent_allocate, SgThreadException)
+SG_DEFINE_CONDITION_ACCESSOR(thread_thread, SgThreadException,
+			     SG_THREAD_EXCEPTIONP, thread)
+static SgSlotAccessor parent_slots[] = {
+  SG_CLASS_SLOT_SPEC("thread", 0, thread_thread, thread_thread_set),
+  { { NULL } }
+};
+/* conditions */
+SG_DEFINE_BASE_CLASS(Sg_ThreadExceptionClass, SgThreadException,
+		     exc_printer, NULL, NULL, parent_allocate,
+		     error_cpl);
+
+static SgClass *thread_exc_cpl[] = {
+  SG_CLASS_THREAD_EXCEPTION,
+  SG_ERROR_CONDITION_CPL,
+  NULL
+};
+
+SG_DEFINE_BASE_CLASS(Sg_JoinTimeoutExceptionClass, SgThreadException,
+		     exc_printer, NULL, NULL, parent_allocate,
+		     thread_exc_cpl);
+
+SG_DEFINE_CONDITION_ALLOCATOR(abn_allocate, SgAbondanedMutexException)
+SG_DEFINE_CONDITION_ACCESSOR(abondand_mutex, SgAbondanedMutexException,
+			     SG_ABONDANED_MUTEX_EXCEPTIONP, mutex)
+static SgSlotAccessor abn_slots[] = {
+  SG_CLASS_SLOT_SPEC("mutex", 0, abondand_mutex, abondand_mutex_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_AbondanedMutexExceptionClass, SgAbondanedMutexException,
+		     exc_printer, NULL, NULL, abn_allocate,
+		     thread_exc_cpl);
+
+SG_DEFINE_CONDITION_ALLOCATOR(term_allocate, SgTerminatedThreadException)
+SG_DEFINE_CONDITION_ACCESSOR(term_terminator, SgTerminatedThreadException,
+			     SG_TERMINATED_THREAD_EXCEPTIONP, terminator)
+static SgSlotAccessor term_slots[] = {
+  SG_CLASS_SLOT_SPEC("terminator", 0, term_terminator, term_terminator_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_TerminatedThreadExceptionClass,
+		     SgTerminatedThreadException,
+		     exc_printer, NULL, NULL, term_allocate,
+		     thread_exc_cpl);
+
+SG_DEFINE_CONDITION_ALLOCATOR(uncaught_allocate, SgUncaughtException)
+SG_DEFINE_CONDITION_ACCESSOR(uncaught_reason, SgUncaughtException,
+			     SG_UNCAUGHT_EXCEPTIONP, reason)
+static SgSlotAccessor uncaught_slots[] = {
+  SG_CLASS_SLOT_SPEC("reason", 0, uncaught_reason, uncaught_reason_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_UncaughtExceptionClass,
+		     SgUncaughtException,
+		     exc_printer, NULL, NULL, uncaught_allocate,
+		     thread_exc_cpl);
 
 SgObject Sg_MakeJoinTimeoutException(SgVM *vm)
 {
-  return Sg_Apply1(make_join_timeout_exception, vm);
+  SgObject c = parent_allocate(SG_CLASS_JOIN_TIMEOUT_EXCEPTION, SG_NIL);
+  SG_THREAD_EXCEPTION(c)->thread = vm;
+  return c;
 }
 
 SgObject Sg_MakeAbandonedMutexException(SgVM *vm, SgMutex *mutex)
 {
-  return Sg_Apply2(make_abandoned_mutex_exception, vm, mutex);
+  SgObject c = abn_allocate(SG_CLASS_ABONDANED_MUTEX_EXCEPTION, SG_NIL);
+  SG_THREAD_EXCEPTION(c)->thread = vm;
+  SG_ABONDANED_MUTEX_EXCEPTION(c)->mutex = mutex;
+  return c;
 }
 
 SgObject Sg_MakeTerminatedThreadException(SgVM *vm, SgVM *terminator)
 {
-  return Sg_Apply2(make_terminated_thread_exception, vm, terminator);
+  SgObject c = term_allocate(SG_CLASS_TERMINATED_THREAD_EXCEPTION, SG_NIL);
+  SG_THREAD_EXCEPTION(c)->thread = vm;
+  SG_TERMINATED_THREAD_EXCEPTION(c)->terminator = terminator;
+  return c;
 }
 
 SgObject Sg_MakeUncaughtException(SgVM *vm, SgObject reason)
 {
-  return Sg_Apply2(make_uncaught_exception, vm, reason);
+  SgObject c = uncaught_allocate(SG_CLASS_UNCAUGHT_EXCEPTION, SG_NIL);
+  SG_THREAD_EXCEPTION(c)->thread = vm;
+  SG_UNCAUGHT_EXCEPTION(c)->reason = reason;
+  return c;
 }
-
-static SgRecordType thread_exception;
-static SgRecordType join_timeout_exception;
-static SgRecordType abandoned_mutex_exception;
-static SgRecordType terminated_thread_exception;
-static SgRecordType uncaught_exception;
 
 SG_CDECL_BEGIN
 void Sg__InitMutex(SgLibrary *lib)
 {
-  SG_DECLARE_EXCEPTIONS("(sagittarius threads)", TRUE);
-  SgObject null_lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
-  SgObject parent = Sg_FindBinding(SG_LIBRARY(null_lib), 
-				   SG_INTERN("&error"), SG_UNBOUND);
-  /* field for super class of all thread exceptions. */
-  SgObject field = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-					     SG_INTERN("thread")));
-  SgObject nullfield = Sg_MakeVector(0, SG_UNDEF);
-  SgObject parent_rtd = SG_FALSE, parent_rcd = SG_FALSE;
-
-  if (SG_UNBOUNDP(parent)) {
-    /* fail safe */
-    /* TODO should this be panic? */
-    parent = SG_FALSE;
-  } else {
-    parent = SG_GLOC_GET(SG_GLOC(parent));
-    parent_rtd = SG_RECORD_TYPE_RTD(parent);
-    parent_rcd = SG_RECORD_TYPE_RCD(parent);
-  }
-  
+  SG_INIT_CONDITION(SG_CLASS_THREAD_EXCEPTION, lib, 
+		    "&thread-exception", parent_slots);
+  SG_INIT_CONDITION(SG_CLASS_JOIN_TIMEOUT_EXCEPTION, lib, 
+		    "&join-timeout-exception", NULL);
+  SG_INIT_CONDITION(SG_CLASS_ABONDANED_MUTEX_EXCEPTION, lib, 
+		    "&abandoned-mutex-exception", abn_slots);
+  SG_INIT_CONDITION(SG_CLASS_TERMINATED_THREAD_EXCEPTION, lib, 
+		    "&terminated-thread-exception", term_slots);
+  SG_INIT_CONDITION(SG_CLASS_UNCAUGHT_EXCEPTION, lib, 
+		    "&uncaught-exception", uncaught_slots);
   /* super class thread-exception */
-  SG_INTERN__CONDITION_SIMPLE(&thread_exception, &thread-exception,
-			      parent_rtd, parent_rcd, field);
-  SG_INTERN__CONDITION_CTR(&thread_exception, make-thread-exception);
-  SG_INTERN__CONDITION_PRED(&thread_exception, thread-exception?);
-  SG_INTERN__CONDITION_ACCESSOR(&thread_exception, &thread-exception-thread,
-				thread-exception-thread, 0);
-  /* join-timeout-exception */
-  SG_INTERN__CONDITION_SIMPLE(&join_timeout_exception, &join-timeout-exception,
-			      SG_RECORD_TYPE_RTD(&thread_exception),
-			      SG_RECORD_TYPE_RCD(&thread_exception), nullfield);
-  SG_INTERN__CONDITION_CTR(&join_timeout_exception, 
-			   make-join-timeout-exception);
-  SG_INTERN__CONDITION_PRED(&join_timeout_exception, join-timeout-exception?);
-  SG_SET_CONSTRUCTOR(make_join_timeout_exception);
+#define INIT_CTR_PRED(cl, name, n, pred)	\
+  SG_INIT_CONDITION_PRED(cl, lib, pred);	\
+  SG_INIT_CONDITION_CTR(cl, lib, name, n)
+#define INIT_ACC(fn, name) SG_INIT_CONDITION_ACC(fn, lib, name)
 
-  {
-    SgObject mfield = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("mutex")));
-    SG_INTERN__CONDITION_SIMPLE(&abandoned_mutex_exception,
-				&abandoned-mutex-exception,
-				SG_RECORD_TYPE_RTD(&thread_exception),
-				SG_RECORD_TYPE_RCD(&thread_exception), mfield);
-    SG_INTERN__CONDITION_CTR(&abandoned_mutex_exception,
-			     make-abandoned-mutex-exception);
-    SG_INTERN__CONDITION_PRED(&abandoned_mutex_exception,
-			      abandoned-mutex-exception?);
-    SG_INTERN__CONDITION_ACCESSOR(&abandoned_mutex_exception,
-				  &abandoned-mutex-exception-mutex,
-				  abandoned-mutex-exception-mutex, 0);
-    SG_SET_CONSTRUCTOR(make_abandoned_mutex_exception);
-  }
-  {
-    SgObject tfield = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("terminator")));
-    SG_INTERN__CONDITION_SIMPLE(&terminated_thread_exception,
-				&terminated-thread-exception,
-				SG_RECORD_TYPE_RTD(&thread_exception),
-				SG_RECORD_TYPE_RCD(&thread_exception), tfield);
-    SG_INTERN__CONDITION_CTR(&terminated_thread_exception,
-			     make-terminated-thread-exception);
-    SG_INTERN__CONDITION_PRED(&terminated_thread_exception,
-			      terminated-thread-exception?);
-    SG_INTERN__CONDITION_ACCESSOR(&terminated_thread_exception,
-				  &terminated-thread-exception-terminator,
-				  terminated-thread-exception-terminator, 0);
-    SG_SET_CONSTRUCTOR(make_terminated_thread_exception);
-  }
-  {
-    SgObject rfield = Sg_MakeVector(1, SG_LIST2(SG_INTERN("immutable"),
-						SG_INTERN("reason")));
-    SG_INTERN__CONDITION_SIMPLE(&uncaught_exception, &uncaught-exception,
-				SG_RECORD_TYPE_RTD(&thread_exception),
-				SG_RECORD_TYPE_RCD(&thread_exception), rfield);
-    SG_INTERN__CONDITION_CTR(&uncaught_exception, make-uncaught-exception);
-    SG_INTERN__CONDITION_PRED(&uncaught_exception, uncaught-exception?);
-    SG_INTERN__CONDITION_ACCESSOR(&uncaught_exception,
-				  &uncaught-exception-reason,
-				  uncaught-exception-reason, 0);
-    SG_SET_CONSTRUCTOR(make_uncaught_exception);
-  }
+  /* &thread-exception */
+  INIT_CTR_PRED(SG_CLASS_THREAD_EXCEPTION, "make-thread-exception", 1,
+		"thread-exception?");
+  INIT_ACC(thread_thread, "&thread-exception-thread");
+  /* &join-timeout-exception */
+  INIT_CTR_PRED(SG_CLASS_JOIN_TIMEOUT_EXCEPTION, 
+		"make-join-timeout-exception", 1, "join-timeout-exception?");
+
+  /* &abandoned-mutex-exception */
+  INIT_CTR_PRED(SG_CLASS_ABONDANED_MUTEX_EXCEPTION,
+		"make-abandoned-mutex-exception", 2, 
+		"abandoned-mutex-exception?");
+  INIT_ACC(abondand_mutex, "&abandoned-mutex-exception-mutex");
+
+  /* &terminated-thread-exception */
+  INIT_CTR_PRED(SG_CLASS_TERMINATED_THREAD_EXCEPTION,
+		"make-terminated-thread-exception", 2,
+		"terminated-thread-exception?");
+  INIT_ACC(term_terminator, "&terminated-thread-exception-terminator");
+
+  /* &uncaught-exception */
+  INIT_CTR_PRED(SG_CLASS_UNCAUGHT_EXCEPTION,
+		"make-uncaught-exception", 2, "uncaught-exception?");
+  INIT_ACC(uncaught_reason, "&uncaught-exception-reason");
 
   sym_not_owned      = SG_INTERN("not-owned");
   sym_abandoned      = SG_INTERN("abandoned");

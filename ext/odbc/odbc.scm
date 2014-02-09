@@ -81,8 +81,11 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
+	    (core conditions)
 	    (srfi :19 time))
   (load-dynamic-library "sagittarius--odbc")
+
+  (initialize-builtin-condition &odbc-error &error)
 
   (define-constant +table-type-table+ "TABLE")
   (define-constant +table-type-view+  "VIEW")

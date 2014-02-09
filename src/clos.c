@@ -196,7 +196,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
 {
   SgSlotAccessor *ac = SG_NEW(SgSlotAccessor);
   SG_SET_CLASS(ac, SG_CLASS_SLOT_ACCESSOR);
-  ac->name = name;
+  ac->name = SG_CAR(name);
   ac->klass = klass;
   ac->index = index;
   ac->getter = NULL;
@@ -204,6 +204,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   ac->getterS = SG_FALSE;
   ac->setterS = SG_FALSE;
   ac->boundP = SG_FALSE;
+  ac->definition = name;		/* book keeping for redefinition */
   return ac;
 }
 
@@ -1937,6 +1938,18 @@ static void sa_setter_set(SgSlotAccessor *sa, SgObject proc)
 {
   sa->setterS = proc;
 }
+static SgObject sa_name(SgSlotAccessor *sa)
+{
+  return sa->name;
+}
+static SgObject sa_class(SgSlotAccessor *sa)
+{
+  return sa->klass;
+}
+static SgObject sa_definition(SgSlotAccessor *sa)
+{
+  return sa->definition;
+}
 
 /* static initializer */
 
@@ -1990,6 +2003,9 @@ static SgSlotAccessor method_slots[] = {
 static SgSlotAccessor slot_accessor_slots[] = {
   SG_CLASS_SLOT_SPEC("getter",   0, sa_getter, sa_getter_set),
   SG_CLASS_SLOT_SPEC("setter",   1, sa_setter, sa_setter_set),
+  SG_CLASS_SLOT_SPEC("name",     2, sa_name,   NULL),
+  SG_CLASS_SLOT_SPEC("class",    3, sa_class,  NULL),
+  SG_CLASS_SLOT_SPEC("definition", 4, sa_definition,  NULL),
   { { NULL } }
 };
 
@@ -2074,13 +2090,14 @@ static void init_class(SgClass *klass, const SgChar *name,
   if (specs) {
     for (;specs->name; specs++) {
       SgObject snam = Sg_Intern(Sg_MakeStringC(specs->cname));
+      SgObject slot = SG_LIST3(snam,
+			       SG_KEYWORD_INIT_KEYWORD, 
+			       Sg_MakeKeyword(SG_SYMBOL(snam)->name));
       specs->klass = klass;
       specs->name = snam;
+      specs->definition = slot;
       acc = Sg_Cons(SG_OBJ(&*specs), acc);
-      SG_APPEND1(slots, t,
-		 SG_LIST3(snam,
-			  SG_KEYWORD_INIT_KEYWORD, 
-			  Sg_MakeKeyword(SG_SYMBOL(snam)->name)));
+      SG_APPEND1(slots, t, slot);
     }
   }
   klass->directSlots = slots;
@@ -2334,7 +2351,11 @@ SgObject Sg_VMSlotSetUsingSlotDefinition(SgObject obj, SgObject slot,
 }
 SgObject Sg_VMSlotBoundUsingSlotDefinition(SgObject obj, SgObject slot)
 {
-  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+  SgSlotAccessor *ac;
+  if (!SG_PAIRP(slot)) {
+    Sg_Error(UC("slot definition must be a list but got %S"), slot);
+  }
+  ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
   if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
   return SG_MAKE_BOOL(Sg_SlotBoundUsingAccessor(obj, ac));
 }
@@ -2347,13 +2368,12 @@ static SgObject slot_initialize_cc(SgObject result, void **data)
   return SG_UNDEF;
 }
 
-SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
-						SgObject initargs)
+SgObject Sg_VMSlotInitializeUsingAccessor(SgObject obj, SgObject acc, 
+					  SgObject initargs)
 {
+  SgSlotAccessor *ac = SG_SLOT_ACCESSOR(acc);
+  SgObject slot = ac->definition;
   SgObject key  = Sg_Memq(SG_KEYWORD_INIT_KEYWORD, slot);
-  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
-
-  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
 
   /* (1) use init-keyword */
   if (!SG_FALSEP(key) && SG_PAIRP(SG_CDR(key)) &&
@@ -2368,7 +2388,8 @@ SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
   /* (2) use init-value */
   key = Sg_Memq(SG_KEYWORD_INIT_VALUE, slot);
   if (!SG_FALSEP(key)) {
-    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot), SG_UNDEF);
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot),
+			       SG_UNDEF);
     if (!SG_UNDEFP(v)) {
       Sg_SlotSetUsingAccessor(obj, ac, v);
       return SG_UNDEF;
@@ -2377,7 +2398,8 @@ SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
   /* (2) use init-thunk */
   key = Sg_Memq(SG_KEYWORD_INIT_THUNK, slot);
   if (!SG_FALSEP(key)) {
-    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot), SG_UNDEF);
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot),
+			       SG_UNDEF);
     if (!SG_UNDEFP(v)) {
       void *data[2];
       data[0] = obj;
@@ -2401,7 +2423,7 @@ static SgObject object_initialize1(SgObject obj, SgObject slots,
   next[1] = SG_CDR(slots);
   next[2] = initargs;
   Sg_VMPushCC(object_initialize_cc, next, 3);
-  return Sg_VMSlotInitializeUsingSlotDefinition(obj, SG_CAR(slots), initargs);
+  return Sg_VMSlotInitializeUsingAccessor(obj, SG_CAR(slots), initargs);
 }
 
 static SgObject object_initialize_cc(SgObject result, void **data)
@@ -2416,7 +2438,9 @@ static SgObject object_initialize_impl(SgObject *argv, int argc, void *data)
 {
   SgObject obj = argv[0];
   SgObject initargs = argv[1];
-  SgObject slots = Sg_ClassOf(obj)->slots;
+  SgClass *klass = SG_CLASS(Sg_ClassOf(obj));
+  SgObject slots = Sg_ReverseX(Sg_ArrayToList((SgObject*)klass->gettersNSetters,
+					      klass->nfields));
   if (SG_NULLP(slots)) return obj;
   return object_initialize1(obj, slots, initargs);
 }

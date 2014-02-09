@@ -368,7 +368,7 @@
 	      (reverse! r)
 	      (let* ((slot (car slots))
 		     (accs (compute-getter-and-setter class slot))
-		     (sac (apply %make-slot-accessor class (car slot) i accs)))
+		     (sac (apply %make-slot-accessor class slot i accs)))
 		(loop (+ i 1) (cdr slots) (cons sac r))))))))
 
   ;; change-class stuff
@@ -418,18 +418,17 @@
       :generic update-instance!
       :procedure
       (lambda (call-next-method old new . initargs)
-	(let ((added-slots (remove (lambda (name) 
-				     (slot-exists? old 
-						   (slot-definition-name name)))
-				   (class-slots (class-of new)))))
+	(let* ((old-class (current-class-of old))
+	       (existing-slots (remp (lambda (acc) 
+				      (not (slot-exists-using-class?
+					    old-class 
+					    old (slot-ref acc 'name))))
+				     (slot-ref (class-of new)
+					       'getters-n-setters))))
 	  (for-each 
-	   (lambda (slot)
-	     ;; Initialise only unbound slot.
-	     ;; TODO why do we need to check this?
-	     ;; added-slots must have only added slot so all
-	     ;; the existing slots should not be initialised here
-	     (unless (slot-bound-using-slot-definition? new slot)
-	       (slot-initialize-using-slot-definition! new slot initargs)))
-	   added-slots)))))
+	   (lambda (acc)
+	     (unless (slot-bound-using-accessor? new acc)
+	       (slot-initialize-using-accessor! new acc initargs)))
+	   existing-slots)))))
 
 )
