@@ -35,6 +35,9 @@
 	    (clos core)
 	    (sagittarius clos)) ;; for <record-type-meta>
 
+  ;; TODO how should we make this thread safe?
+  (define nongenerative-record-types (make-eq-hashtable))
+
   (define-class <record-type-descriptor> ()
     ((name :init-keyword :name     :reader record-type-name)
      (parent :init-keyword :parent :reader record-type-parent)
@@ -61,6 +64,28 @@
 		(caddr accessors)))))
   
   (define (make-record-type-descriptor name parent uid sealed? opaque? fields)
+    (define (make-rtd name parent uid sealed? opaque? fields type)
+      (define (make-it)
+	(make <record-type-descriptor>
+	  :name name :parent parent :uid uid
+	  :sealed? sealed? :opaque? opaque?
+	  :fields fields :class type))
+      (cond ((not uid) (make-it))
+	    ((hashtable-ref nongenerative-record-types uid #f)
+	     => (lambda (current)
+		  (if (and (eqv? uid (record-type-uid current))
+			   (eqv? parent (record-type-parent current))
+			   (equal? fields (rtd-fields current)))
+		      current
+		      (assertion-violation 
+		       'make-record-type-descriptor
+		       "mismatched subsequent call for nongenerative record-type"
+		       (list name parent uid sealed? opaque? fields)))))
+	    (else 
+	     ;; TODO thread safety...
+	     (let ((new (make-it)))
+	       (hashtable-set! nongenerative-record-types uid new)
+	       new))))
     (define (process-fields fields)
       ;; -> slot form
       (map (lambda (field)
@@ -72,17 +97,32 @@
 			 :init-keyword (make-keyword name)))
 		 (error 'make-record-type-descriptor "invalid field")))
 	   (vector->list fields)))
+    (or (symbol? name)
+        (assertion-violation 'make-record-type-descriptor
+                             (wrong-type-argument-message "symbol" name 1)
+                             (list name parent uid sealed? opaque? fields)))
+    (or (vector? fields)
+        (assertion-violation 'make-record-type-descriptor
+                             (wrong-type-argument-message "vector" fields 6)
+                             (list name parent uid sealed? opaque? fields)))
+    (and parent
+         (or (record-type-descriptor? parent)
+             (assertion-violation 'make-record-type-descriptor
+	      (wrong-type-argument-message "record-type descriptor or #f"
+					   parent 2)
+	      (list name parent uid sealed? opaque? fields)))
+         (and (record-type-sealed? parent)
+              (assertion-violation 'make-record-type-descriptor 
+				   "attempt to extend a sealed record-type"
+				   parent)))
     (let* ((p (and parent (slot-ref parent 'class)))
+	   (opaque? (or opaque? (and parent (record-type-opaque? parent))))
 	   (type (make <record-type-meta>
 		   :definition-name name
-		   :direct-supers (or (and p (list p))
-				      '())
+		   :direct-supers (or (and p (list p)) '())
 		   :direct-slots (process-fields fields)
 		   :defined-library (current-library)))
-	   (rtd (make <record-type-descriptor>
-		  :name name :parent parent :uid uid
-		  :sealed? sealed? :opaque? opaque?
-		  :fields fields :class type)))
+	   (rtd (make-rtd name parent uid sealed? opaque? fields type)))
       (slot-set! type 'rtd rtd)
       rtd))
   (define (record-type-descriptor? o) (is-a? o <record-type-descriptor>))
@@ -154,20 +194,6 @@
   (define (record-type-rtd type) (slot-ref type 'rtd))
   (define (record-type-rcd type) (slot-ref type 'rcd))
   
-  ;; well at least we need to list all slots
-  ;; to make my life easier, the returned list structure is like this.
-  ;; ((name . class) ...)
-  (define (compute-all-slots class)
-    ;; assume record only contains one super class
-    ;; so the CPL is direct ref
-    (let loop ((supers (class-cpl class)) (r '()))
-      (if (null? supers)
-	  r
-	  (let ((names (map slot-definition-name 
-			    (class-direct-slots (car supers)))))
-	    (loop (cdr supers)
-		  `(,@r ,@(map (lambda (n) (cons n (car supers))) names)))))))
-
   (define (record-constructor rcd)
     (unless (record-constructor-descriptor? rcd)
       (assertion-violation 'record-constructor
@@ -176,17 +202,16 @@
     (let ((rtd (rcd-rtd rcd)))
       (if (rcd-parent rcd)
 	  (let ((class (slot-ref rtd 'class)))
-	    (make-nested-conser rcd rtd (length (compute-all-slots class))))
+	    (make-nested-conser rcd rtd (slot-ref class 'nfields)))
 	  (make-simple-conser rcd rtd (vector-length (rtd-fields rtd))))))
   
   (define (%make-record rtd field-values)
     (let* ((class (slot-ref rtd 'class))
 	   ;; TODO create (kw v) list to make mutable/immutable thing
-	   (tuple (make class))
-	   (slot&class (compute-all-slots class)))
-      (for-each (lambda (slot value)
-		  (slot-set-using-class! (cdr slot) tuple (car slot) value))
-		slot&class field-values)
+	   (tuple (make class)))
+      (for-each (lambda (acc value)
+		  (slot-set-using-accessor! tuple acc value))
+		(slot-ref class 'getters-n-setters) field-values)
       tuple))
   
   (define (make-nested-conser desc rtd argc)
@@ -243,13 +268,19 @@
       (do ((i 0 (+ i 1)) (slots slots (cdr slots)))
 	  ((= i k) (slot-definition-name (car slots))))))
   (define (record-accessor rtd k)
-    (let ((name (searck-kth-slot (slot-ref rtd 'class) k)))
-      (lambda (o) (slot-ref o name))))
+    (let* ((class (slot-ref rtd 'class))
+	   (name (searck-kth-slot class k)))
+      (lambda (o) (slot-ref-using-class class o name))))
       
   (define (record-mutator rtd k)
-    (let ((name (searck-kth-slot (slot-ref rtd 'class) k)))
-      (lambda (o v) (slot-set! o name v))))
+    (let* ((class (slot-ref rtd 'class))
+	   (name (searck-kth-slot class k)))
+      (lambda (o v) (slot-set-using-class! class o name v))))
 
+  (define (record? o)
+    (and-let* (( (%record? o) )
+	       (rtd (record-type-rtd (class-of o))))
+      (not (record-type-opaque? rtd))))
   (define (record-rtd o)
     (unless (record? o)
       (assertion-violation 'record-rtd
@@ -257,8 +288,7 @@
     (record-type-rtd (class-of o)))
 
 
-  (define (record-type-generative? rtd)
-    (assertion-violation 'record-type-generative? "not yet"))
+  (define (record-type-generative? rtd) (not (record-type-uid rtd)))
   ;; TODO check type
   (define (record-type-field-names rtd) (vector-map cadr (rtd-fields rtd)))
   (define (record-field-mutable? rtd k)

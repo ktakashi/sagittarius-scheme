@@ -111,7 +111,7 @@
 	      ((compound-condition? o)
 	       (let loop ((cp (&compound-condition-components o)))
 		 (cond ((null? cp) (err))
-		       ((is-a? (car cp) class) (proc o))
+		       ((is-a? (car cp) class) (proc (car cp)))
 		       (else (loop (cdr cp))))))
 	      (else (err))))))
 

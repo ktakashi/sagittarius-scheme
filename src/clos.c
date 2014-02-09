@@ -64,8 +64,8 @@
 static void slot_acc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgSlotAccessor *acc = SG_SLOT_ACCESSOR(obj);
-  Sg_Printf(port, UC("#<slot-accessor %A:%A>"),
-	    acc->klass?acc->klass->name:SG_UNDEF, acc->name);
+  Sg_Printf(port, UC("#<slot-accessor %A:%A,%d>"),
+	    acc->klass?acc->klass->name:SG_UNDEF, acc->name, acc->index);
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SlotAccessorClass, slot_acc_print);
 
@@ -483,23 +483,38 @@ SgObject Sg_ComputeCPL(SgClass *klass)
   return Sg_Cons(SG_OBJ(klass), result);
 }
 
+/*
+  compute-slots
+  
+  The computed slots' order is reversed order than before.
+  e.g)
+  (define-class <point> ()
+    (x y))
+  (define-class <point2> (<point>)
+    (x1 y1))
+  The <point2> of class-slots returns ((x) (y) (x1) (y1))
+  so that the accessor always indicates the same position
+  of instance slots. This makes slot accessing using class
+  consistent.
+ */
 SgObject Sg_ComputeSlots(SgClass *klass)
 {
   SgObject slots = SG_NIL;
   SgObject cp, sp;
   SG_FOR_EACH(cp, klass->cpl) {
     ASSERT(Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS));
+    SgObject acc = SG_NIL;
     SG_FOR_EACH(sp, SG_CLASS(SG_CAR(cp))->directSlots) {
-      SgObject slot = SG_CAR(sp), snam, p;
+      SgObject slot = SG_CAR(sp);
       ASSERT(SG_PAIRP(slot));
-      snam = SG_CAR(slot);
-      p = Sg_Assq(snam, slots);
-      if (SG_FALSEP(p)) {
-	slots = Sg_Cons(Sg_CopyList(slot), slots);
-      }
+      /* copy all slots */
+      acc = Sg_Cons(Sg_CopyList(slot), acc);
+    }
+    if (!SG_NULLP(acc)) {
+      slots = Sg_Append2X(Sg_ReverseX(acc), slots);
     }
   }
-  return Sg_ReverseX(slots);
+  return slots;
 }
 
 SgObject Sg_MakeSlotAccessor(SgClass *klass, SgObject slot, int index,
@@ -1473,11 +1488,23 @@ static SgObject class_direct_subclasses(SgClass *klass)
   return klass->directSubclasses;
 }
 
+/* 
+   Now it's stored in reverse order but to show it in Scheme
+   world we make it in proper order.
+ */
 static SgObject class_getters_n_setters(SgClass *klass)
 {
-  return Sg_ArrayToList((SgObject*)klass->gettersNSetters, klass->nfields);
+  SgObject r = Sg_ArrayToList((SgObject*)klass->gettersNSetters,
+			      klass->nfields);
+  return Sg_ReverseX(r);
 }
 
+/*
+  This is a bit confusing part.
+  Since the computed slots are ascendant, the slot accessor must be
+  set to reverse order so that the very bottom class's slot will be
+  refer first.
+ */
 static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
 {
   SgObject cp;
@@ -1489,7 +1516,7 @@ static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
       Sg_Error(UC("list of slot-accessor required, but got %S"), getters);
     }
   }
-
+  getters = Sg_Reverse(getters);
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(getters, TRUE);
 }
 
@@ -2007,6 +2034,25 @@ static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
   }
 }
 
+/* Fixup the index, the operation is done destructively for the list
+   but not for the accessor. */
+static void fixup_slot_accessor(SgObject accs)
+{
+  int index = Sg_Length(accs) - 1;
+  SgObject cp;
+  SG_FOR_EACH(cp, accs) {
+    SgSlotAccessor *acc = SG_SLOT_ACCESSOR(SG_CAR(cp));
+    if (acc->index != index) {
+      /* copy it. */
+      SgSlotAccessor *n = SG_NEW(SgSlotAccessor);
+      memcpy(n, acc, sizeof(SgSlotAccessor));
+      n->index = index;		/* update index */
+      SG_SET_CAR(cp, n);
+    }
+    index--;
+  }
+}
+
 static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers,
 		       SgSlotAccessor *specs, int flags)
@@ -2043,24 +2089,26 @@ static void init_class(SgClass *klass, const SgChar *name,
   for (super = klass->cpa; *super; super++) {
     SgSlotAccessor **dacc = (*super)->gettersNSetters;
     /* I think slot should have accessor info but for now */
+    SgObject tmp = SG_NIL;
     for (;dacc && *dacc; dacc++) {
-      SgObject p = Sg_Assq((*dacc)->name, slots);
-      if (SG_FALSEP(p)) {
-	acc = Sg_Cons(SG_OBJ(*dacc), acc);
-      }
+      tmp = Sg_Cons(SG_OBJ(*dacc), tmp);
+    }
+    /* A (a b) <- B (c d)
+
+       now acc is reverse order (d c) and super is (b a)
+       append super to acc */
+    if (!SG_NULLP(tmp)) {
+      acc = Sg_Append2X(acc, tmp);
     }
     SG_FOR_EACH(sp, (*super)->directSlots) {
-      SgObject slot = SG_CAR(sp), snam, p;
+      SgObject slot = SG_CAR(sp);
       ASSERT(SG_PAIRP(slot));
-      snam = SG_CAR(slot);
-      p = Sg_Assq(snam, slots);
-      if (SG_FALSEP(p)) {
-	slots = Sg_Cons(Sg_CopyList(slot), slots);
-      }
+      slots = Sg_Cons(Sg_CopyList(slot), slots);
     }
   }
-  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(Sg_ReverseX(acc),
-							    TRUE);
+  /* fixup slot index */
+  fixup_slot_accessor(acc);
+  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(acc, TRUE);
   klass->slots = slots;
   klass->nfields = Sg_Length(slots);
   /* do we need this? */

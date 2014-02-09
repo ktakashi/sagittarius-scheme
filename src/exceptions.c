@@ -421,11 +421,10 @@ static SgObject enc_char(SgIOEncodingError *port)
 }
 static void enc_char_set(SgIOEncodingError *port, SgObject src)
 {
-  port->port = src;
+  port->char_ = src;
 }
 static SgSlotAccessor enc_slots[] = {
-  SG_CLASS_SLOT_SPEC("port", 0, port_port, port_port_set),
-  SG_CLASS_SLOT_SPEC("char", 1, enc_char, enc_char_set),
+  SG_CLASS_SLOT_SPEC("char", 0, enc_char, enc_char_set),
   { { NULL } }
 };
 static SgClass *port_cpl[] = {
@@ -747,10 +746,41 @@ static void append_immutable(SgClass *klass)
   }
 }
 
+static SgObject predicate_cc(SgObject result, void **data);
+static SgObject predicate_rec(SgObject c, SgClass *klass)
+{
+  if (SG_SIMPLE_CONDITIONP(c)) {
+    return Sg_VMIsA(c, klass);
+  } else if (SG_COMPOUND_CONDITIONP(c)) {
+    SgObject cp = SG_COMPOUND_CONDITION(c)->components;
+    if (!SG_NULLP(cp)) {
+      void *data[2];
+      data[0] = klass;
+      data[1] = SG_CDR(cp);
+      Sg_VMPushCC(predicate_cc, data, 2);
+      return predicate_rec(SG_CAR(cp), klass);
+    }
+  }
+  return SG_FALSE;
+}
 static SgObject predicate(SgObject *args, int argc, void *user_data)
 {
-  return Sg_VMIsA(args[0], SG_CLASS(user_data));
+  return predicate_rec(args[0], SG_CLASS(user_data));
 }
+static SgObject predicate_cc(SgObject result, void **data)
+{
+  if (!SG_FALSEP(result)) return SG_TRUE;
+  else {
+    SgObject c = SG_OBJ(data[1]);
+    void *next_data[2];
+    if (SG_NULLP(c)) return SG_FALSE; /* no more */
+    next_data[0] = data[0];
+    next_data[1] = SG_CDR(c);
+    Sg_VMPushCC(predicate_cc, next_data, 2);
+    return predicate_rec(SG_CAR(c), SG_CLASS(data[0]));
+  }
+}
+
 static SgObject accessor(SgObject *args, int argc, void *user_data)
 {
   return ((SgObject(*)(SgObject))user_data)(args[0]);
@@ -760,15 +790,18 @@ static SgObject invoke0(SgObject *args, int argc, void *user_data)
 {
   return condition_allocate((SgClass *)user_data, SG_NIL);
 }
-/* call allocator directly and use slot accessor directly...*/
+/* call allocator directly and use slot accessor directly...
+   in C level condition there is no duplicate slot so we don't
+   consider it for now. */
 static SgObject invoken(SgObject *args, int argc, void *user_data)
 {
   SgClass *klass = SG_CLASS(user_data);
   SgObject c = klass->allocate(klass, SG_NIL);
   SgSlotAccessor **accs = klass->gettersNSetters;
   int i;
-  for (i = 0;accs && *accs; accs++, i++) {
-    if (i == argc) break;	/* in case */
+  /* raw accessors are reverse order */
+  for (i = argc-1;accs && *accs; accs++, i--) {
+    if (i < 0) break;	/* in case */
     Sg_SlotSetUsingAccessor(c, *accs, args[i]);
   }
   return SG_OBJ(c);
@@ -829,7 +862,8 @@ void Sg__InitConsitions()
   /* ctr&pred */
 #define INIT_PRED(cl, name)						\
   do {									\
-    SgObject pred = Sg_MakeSubr(predicate, cl, 1, 0, SG_MAKE_STRING(name)); \
+    SgObject pred = Sg_MakeSubr(predicate, cl, 1, 0,			\
+				SG_MAKE_STRING(name));			\
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), pred);		\
   } while (0);
 #define INIT_CTR0(cl, name, pred)					\
@@ -842,19 +876,27 @@ void Sg__InitConsitions()
   do {									\
     SgObject acc = Sg_MakeSubr(accessor, fn, 1, 0, SG_MAKE_STRING(name)); \
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), acc);		\
-  } while (0);
-#define INIT_CTR1(cl, name, pred, acc, accnm)				\
+  } while (0)
+#define INIT_CTR1_REC(cl, name, pred)					\
   do {									\
     SgObject proc = Sg_MakeSubr(invoken, cl, 1, 0, SG_MAKE_STRING(name)); \
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
     INIT_PRED(cl, pred);						\
+  } while (0)
+#define INIT_CTR1(cl, name, pred, acc, accnm)				\
+  do {									\
+    INIT_CTR1_REC(cl, name, pred);					\
     INIT_ACC(acc, accnm);						\
   } while (0)
-#define INIT_CTR2(cl, name, pred, acc, accnm, acc2, accnm2)		\
+#define INIT_CTR2_REC(cl, name, pred)					\
   do {									\
     SgObject proc = Sg_MakeSubr(invoken, cl, 2, 0, SG_MAKE_STRING(name)); \
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
     INIT_PRED(cl, pred);						\
+  } while (0)
+#define INIT_CTR2(cl, name, pred, acc, accnm, acc2, accnm2)		\
+  do {									\
+    INIT_CTR2_REC(cl, name, pred);					\
     INIT_ACC(acc, accnm);						\
     INIT_ACC(acc2, accnm2);						\
   } while (0)
@@ -898,23 +940,23 @@ void Sg__InitConsitions()
   INIT_CTR1(SG_CLASS_IO_FILENAME, 
 	    "make-i/o-filename-error", "i/o-filename-error?",
 	    fn_filename, "&i/o-filename-filename");
-  INIT_CTR0(SG_CLASS_IO_FILE_PROTECTION, "make-i/o-file-protection-error",
-	    "i/o-file-protection-error?");
-  INIT_CTR0(SG_CLASS_IO_FILE_IS_READ_ONLY, 
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_PROTECTION, "make-i/o-file-protection-error",
+		"i/o-file-protection-error?");
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_IS_READ_ONLY, 
 	    "make-i/o-file-is-read-only-error", "i/o-file-is-read-only-error?");
-  INIT_CTR0(SG_CLASS_IO_FILE_ALREADY_EXISTS, 
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_ALREADY_EXISTS, 
 	    "make-i/o-file-already-exists-error", 
 	    "i/o-file-already-exists-error?");
-  INIT_CTR0(SG_CLASS_IO_FILE_DOES_NOT_EXIST,
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_DOES_NOT_EXIST,
 	    "make-i/o-file-does-not-exist-error", 
 	    "i/o-file-does-not-exist-error?");
   INIT_CTR1(SG_CLASS_IO_PORT_ERROR, "make-i/o-port-error", "i/o-port-error?",
 	    port_port, "&i/o-port-port");
-  INIT_CTR0(SG_CLASS_IO_PORT_ERROR, "make-i/o-decoding-error", 
+  INIT_CTR1_REC(SG_CLASS_IO_DECODING_ERROR, "make-i/o-decoding-error", 
 	    "i/o-decoding-error?");
-  INIT_CTR1(SG_CLASS_IO_PORT_ERROR,
-	    "make-i/o-encoding-error", "i/o-encoding-error?",
-	    enc_char, "&i/o-encoding-char");
+  INIT_CTR2_REC(SG_CLASS_IO_ENCODING_ERROR,
+		"make-i/o-encoding-error", "i/o-encoding-error?");
+  INIT_ACC(enc_char, "&i/o-encoding-char");
   /* compile */
   INIT_CTR2(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
 	    comp_source, "&compile-error-source",
@@ -922,7 +964,6 @@ void Sg__InitConsitions()
   INIT_CTR1(SG_CLASS_IMPORT_CONDITION, "make-import-error", "import-error?",
 	    imp_lib, "&import-library");
   /* compound */
-  INIT_CTR1(SG_CLASS_COMPOUND_CONDITION,
-	    "make-compound-condition", "compound-condition?",
-	    cc_components, "&compound-condition-components");
+  /* compound condition don't need ctr nor pred. */
+  INIT_ACC(cc_components, "&compound-condition-components");
 }
