@@ -123,9 +123,11 @@ struct SgClassRec
   SgObject cscanner;
   SgObject cwriter;
   SgObject redefined;		/* for change-class */
-  /* I don't think the same class in eve */
   SgObject library;		/* defined library */
   SgObject initargs;		/* for book keeping */
+  /* For R6R integration */
+  SgObject rtd;
+  SgObject rcd;
   /* mutex */
   SgInternalMutex mutex;
   SgInternalCond  cv;
