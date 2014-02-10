@@ -265,7 +265,7 @@
 	    'define-class
 	    "malformed define-class" (unwrap-syntax x))))))
 
-  (define-syntax define-method
+  (define-syntax generate-add-method
     (lambda (x)
       (define (analyse args)
 	(let loop ((ss args) (rs '()))
@@ -302,35 +302,29 @@
 					     (slot-ref cm 'next-method?))
 					   body ...))))
 	    #`(begin
-		#,@(let* ((id #'true-name)
-			  (lib (id-library id)))
-		     (cond ((find-binding lib (syntax->datum id) #f) '())
-			   (else
-			    (%ensure-generic-function (syntax->datum id) lib)
-			    #`((define-generic #,id)))))
-		(let ((gf
-		       ;; for cache perspective, we can't use library
-		       ;; object directly...
-		       (or (and-let* ((lib-name '#,(library-name 
-						    (id-library #'true-name)))
-				      (g (find-binding lib-name 'true-name #f))
-				      (gf (gloc-ref g))
-				      ( (is-a? gf <generic>) ))
-			     gf)
-			   (%ensure-generic-function 'true-name 
-						     (current-library)))))
-		  (add-method gf
-			      (make <method>
-				:specializers  (list specializers ...)
-				:qualifier     #,qualifier
-				:generic       true-name
-				:lambda-list   '(reqargs ... . rest)
-				:procedure     real-body))
+		(let* ((gf
+			;; for cache perspective, we can't use library
+			;; object directly...
+			(or (and-let* ((lib-name '#,(library-name 
+						     (id-library #'true-name)))
+				       (g (find-binding lib-name 'true-name #f))
+				       (gf (gloc-ref g))
+				       ( (is-a? gf <generic>) ))
+			      gf)
+			    (%ensure-generic-function 'true-name 
+						      (current-library))))
+		       (m (make <method>
+			    :specializers  (list specializers ...)
+			    :qualifier     #,qualifier
+			    :generic       true-name
+			    :lambda-list   '(reqargs ... . rest)
+			    :procedure     real-body)))
+		  (add-method gf m)
 		  #,@(if #'getter-name
 			 #'((unless (has-setter? getter-name)
 			      (set! (setter getter-name) gf)))
 			 #'())
-		  gf)))))
+		  m)))))
       (syntax-case x ()
 	((k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
@@ -338,9 +332,34 @@
 	   (build #'k #'?qualifier #'?generic qargs rest opt #'?body)))
 	((_ ?generic ?qualifier ?args . ?body)
 	 (keyword? #'?qualifier)
+	 #'(generate-add-method ?qualifier ?generic ?args . ?body))
+	((_ ?generic ?args . ?body)
+	 #'(generate-add-method :primary ?generic ?args . ?body)))))
+
+  (define-syntax define-method
+    (lambda (x)
+      (define (define/empty id)
+	(let ((name (syntax->datum id))
+	      (lib (id-library id)))
+	  (cond ((find-binding lib name #f) #'())
+		(else
+		 (%ensure-generic-function name lib)
+		 #`((define-generic #,id))))))
+      (syntax-case x ()
+	((k ?qualifier ?generic ?args . ?body)
+	 (keyword? #'?qualifier)
+	 (with-syntax (((true-name getter-name) (%check-setter-name ?generic)))
+	   (with-syntax (((def ...) (define/empty #'true-name)))
+	     #'(begin
+		 def ...
+		 (define dummy
+		   (generate-add-method ?qualifier ?generic ?args . ?body))))))
+	((_ ?generic ?qualifier ?args . ?body)
+	 (keyword? #'?qualifier)
 	 #'(define-method ?qualifier ?generic ?args . ?body))
 	((_ ?generic ?args . ?body)
 	 #'(define-method :primary ?generic ?args . ?body)))))
+
 
   (define-syntax define-generic
     (lambda (x)

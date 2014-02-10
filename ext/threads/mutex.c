@@ -233,7 +233,8 @@ SgObject Sg_ConditionVariableBroadcast(SgConditionVariable *cond)
 }
 
 static SgClass *error_cpl[] = {
-  SG_ERROR_CONDITION_CPL
+  SG_ERROR_CONDITION_CPL,
+  NULL
 };
 
 static void exc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)

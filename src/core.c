@@ -58,7 +58,7 @@ extern void Sg__InitLibrary();
 extern void Sg__InitFile();
 extern void Sg__InitPair();
 extern void Sg__InitRecord();
-extern void Sg__InitConsitions();
+extern void Sg__InitConditions();
 extern void Sg__InitReader();
 extern void Sg__InitPort();
 extern void Sg__InitLoad();
@@ -170,7 +170,7 @@ void Sg_Init()
   /* each time when we put something in null, we need to add */
   /* this is even funny... orz */
   /* Sg_ImportLibrary(coreBase, nullsym); */
-  Sg__InitConsitions();
+  Sg__InitConditions();
   Sg_ImportLibrary(coreBase, nullsym);
 
   Sg__Init_core_errors();

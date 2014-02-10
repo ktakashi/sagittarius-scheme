@@ -100,7 +100,7 @@ SG_CLASS_DECL(Sg_IODecodingErrorClass);
 SG_CLASS_DECL(Sg_CompileConditionClass);
 SG_CLASS_DECL(Sg_ImportConditionClass);
 
-#define SG_CLASS_CONSITION (&Sg_ConditionClass)
+#define SG_CLASS_CONDITION (&Sg_ConditionClass)
 #define SG_CLASS_WARNING   (&Sg_WarningClass)
 #define SG_CLASS_SERIOUS   (&Sg_SeriousClass)
 #define SG_CLASS_ERROR     (&Sg_ErrorClass)
@@ -130,7 +130,7 @@ SG_CLASS_DECL(Sg_ImportConditionClass);
 #define SG_CLASS_COMPILE_CONDITION (&Sg_CompileConditionClass)
 #define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
 
-#define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONSITION)
+#define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONDITION)
 #define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
 #define SG_SIMPLE_CONDITIONP(o) (SG_CONDITIONP(o)&&!(SG_COMPOUND_CONDITIONP(o)))
 
@@ -277,7 +277,7 @@ typedef struct SgImportConditionRec
 #define SG_ERROR_CONDITION_CPL			\
   SG_CLASS_ERROR,				\
     SG_CLASS_SERIOUS,				\
-    SG_CLASS_CONSITION,				\
+    SG_CLASS_CONDITION,				\
     SG_CLASS_TOP				\
 
 #define SG_DEFINE_CONDITION_ALLOCATOR(name, type)		\
