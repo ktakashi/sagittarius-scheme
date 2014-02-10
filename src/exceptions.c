@@ -40,77 +40,76 @@
 #include "sagittarius/record.h"
 #include "sagittarius/error.h"
 #include "sagittarius/library.h"
-#include "sagittarius/gloc.h"
+#include "sagittarius/keyword.h"
+#include "sagittarius/string.h"
 
-/* 
-   it defines record type for condition.
-   for initialization, we need some naming rules. for avoiding human error,
-   we defined this macro.
- */
-#define C_COND_NAME(name)     SG_CPP_CAT(name, _type)
-#define DEF_RECORD_TYPE(name) static SgRecordType C_COND_NAME(name)
+static SgClass *Sg_ConditionCPL[] = {
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
 
-DEF_RECORD_TYPE(condition);
-
-static SgObject condition_printer_rec(SgObject *args, int argc, void *data)
+static void compound_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  SgObject conditions;
-  SgPort *p;
-  SgTuple *t;
-  int len;
-
-  if ((argc > 2 && !SG_NULLP(args[argc-1])) || argc < 1) {
-    Sg_WrongNumberOfArgumentsBetweenViolation(SG_INTERN("condition-printer"),
-					      1, 2, argc, SG_NIL);
-  }
-  if (argc >= 2) {
-    if (!SG_PORTP(args[1])) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-printer"),
-				      SG_MAKE_STRING("port"), args[1], SG_NIL);
-    }
-    p = SG_PORT(args[1]);
-  } else {
-    p = SG_PORT(Sg_CurrentOutputPort());
-  }
-  if (!SG_TUPLEP(args[0])) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-printer"),
-				      SG_MAKE_STRING("tuple"), args[0], SG_NIL);
-  }
-  t = SG_TUPLE(args[0]);
-  
-  len = Sg_TupleSize(t);
-  Sg_Putuz(p, UC("#<condition"));
-  if (len > 1) {
-    conditions = Sg_TupleRef(t, 1, SG_NIL);
+  SgObject components = SG_COMPOUND_CONDITION(o)->components, cp;
+  Sg_Putuz(p, UC("#<condition\n"));
+  SG_FOR_EACH(cp, components) {
     Sg_Putc(p, ' ');
-    Sg_Write(conditions, p, SG_WRITE_WRITE);
+    Sg_Write(SG_CAR(cp), p, SG_WRITE_WRITE);
+    Sg_Putc(p, '\n');
   }
   Sg_Putc(p, '>');
-  return SG_UNDEF;
 }
 
-static SG_DEFINE_SUBR(condition_printer_body, 1, 2, condition_printer_rec, SG_FALSE, NULL);
+
+static SgObject allocate_compound_condition(SgClass *klass, SgObject initargs)
+{
+  SgObject cond = SG_ALLOCATE(SgCompoundCondition, klass);
+  SG_SET_CLASS(cond, klass);
+  SG_COMPOUND_CONDITION(cond)->components = SG_NIL;
+  return cond;
+}
+
+static SgObject cc_components(SgCompoundCondition *c)
+{
+  if (!SG_COMPOUND_CONDITIONP(c)) {
+    Sg_Error(UC("&compound-condition required but got %S"), c);
+  }
+  return c->components;
+}
+static void cc_components_set(SgCompoundCondition *c, SgObject comps)
+{
+  c->components = comps;
+}
+static SgSlotAccessor cc_slots[] = {
+  SG_CLASS_SLOT_SPEC("components", 0, cc_components, cc_components_set),
+  { { NULL } }
+};
+
+SG_DEFINE_BASE_CLASS(Sg_CompoundConditionClass, SgCompoundCondition,
+		     compound_printer, NULL, NULL, allocate_compound_condition,
+		     Sg_ConditionCPL);
 
 SgObject Sg_Condition(SgObject components)
 {
   SgObject h = SG_NIL, t = SG_NIL, component;
-  SgObject hh = SG_NIL, tt = SG_NIL;
-  SgObject tuple;
-  int len;
-  SG_APPEND1(h, t, SG_INTERN("type:condition"));
+  SgObject cond;
   SG_FOR_EACH(component, components) {
-    if (!Sg_ConditionP(SG_CAR(component))) {
+    SgObject c = SG_CAR(component);
+    if (!Sg_ConditionP(c)) {
       Sg_AssertionViolation(SG_INTERN("condition"),
-			    Sg_Sprintf(UC("expected condition, but got %S"), component),
+			    Sg_Sprintf(UC("expected condition, but got %S"), c),
 			    components);
     }
-    SG_APPEND(hh, tt, Sg_SimpleConditions(SG_CAR(component)));
+    if (SG_COMPOUND_CONDITIONP(c)) {
+      SG_APPEND(h, t, SG_COMPOUND_CONDITION(c)->components);
+    } else {
+      SG_APPEND1(h, t, c);
+    }
   }
-  SG_APPEND1(h, t, hh);
-  len = Sg_Length(h);
-  tuple = Sg_MakeTuple(len, SG_UNDEF, &condition_printer_body);
-  Sg_TupleListSet(tuple, h);
-  return tuple;
+  cond = allocate_compound_condition(SG_CLASS_COMPOUND_CONDITION, SG_NIL);
+  SG_COMPOUND_CONDITION(cond)->components = h;
+  return cond;
 }
 
 SgObject Sg_SimpleConditions(SgObject obj)
@@ -125,213 +124,583 @@ SgObject Sg_SimpleConditions(SgObject obj)
 
 SgObject Sg_CompoundConditionComponent(SgObject obj)
 {
-  return Sg_TupleRef(obj, 1, SG_UNDEF);
+  if (!SG_COMPOUND_CONDITIONP(obj)) {
+    Sg_Error(UC("compound-condition required but got %S"), obj);
+  }
+  return SG_COMPOUND_CONDITION(obj)->components;
 }
 
 int Sg_CompoundConditionP(SgObject obj)
 {
-  return SG_TUPLEP(obj) && SG_EQ(SG_INTERN("type:condition"), Sg_TupleRef(obj, 0, SG_FALSE));
+  return SG_COMPOUND_CONDITIONP(obj);
 }
 
 int Sg_SimpleConditionP(SgObject obj)
 {
-  return Sg_RecordP(obj) && Sg_RtdAncestorP(SG_RECORD_TYPE_RTD(&condition_type), Sg_RecordRtd(obj));
+  return SG_SIMPLE_CONDITIONP(obj);
 }
 
 int Sg_ConditionP(SgObject obj)
 {
-  return Sg_CompoundConditionP(obj) || Sg_SimpleConditionP(obj);
+  return SG_CONDITIONP(obj);
 }
 
-/* predicate */
-static SgObject condition_predicate_rec(SgObject *args, int argc, void *data)
+/* classes */
+static SgClass *base_cpl[] = {
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_ABSTRACT_CLASS(Sg_ConditionClass, base_cpl);
+
+SgObject Sg_ConditionAllocate(SgClass *klass, SgObject initargs)
 {
-  SgObject obj, rtd;
-  if (argc != 1) {
-    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("condition-predicate"),
-				       1, argc, SG_NIL);
-  }
-  obj = args[0];
-  rtd = SG_OBJ(data);
-  if (Sg_SimpleConditionP(obj)) {
-    return SG_MAKE_BOOL(Sg_RtdAncestorP(rtd, Sg_RecordRtd(obj)));
-  } else if (Sg_CompoundConditionP(obj)) {
-    SgObject comp = Sg_CompoundConditionComponent(obj);
-    SgObject cp;
-    SG_FOR_EACH(cp, comp) {
-      if (Sg_RtdAncestorP(rtd, Sg_RecordRtd(SG_CAR(cp)))) {
-	return SG_TRUE;
-      }
-    }
-  }
-  return SG_FALSE;
+  SgCondition *c = SG_ALLOCATE(SgCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
 }
 
-SgObject Sg_ConditionPredicate(SgObject rtd)
+static void condition0_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  SgObject subr = Sg_MakeSubr(condition_predicate_rec, rtd, 1, 0,
-			      SG_MAKE_STRING("condition-predicate"));
-  return subr;
+  Sg_Printf(p, UC("#<%A>"), SG_CLASS(Sg_ClassOf(o))->name);
 }
 
-/* accessor */
-static SgObject condition_accessor_rec(SgObject *args, int argc, void *data)
+SG_DEFINE_BASE_CLASS(Sg_WarningClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     Sg_ConditionCPL);
+SG_DEFINE_BASE_CLASS(Sg_SeriousClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     Sg_ConditionCPL);
+
+static SgClass *serious_cpl[] = {
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_ErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     serious_cpl);
+SG_DEFINE_BASE_CLASS(Sg_ViolationClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     serious_cpl);
+static SgClass *violation_cpl[] = {
+  SG_CLASS_VIOLATION,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_AssertionClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     violation_cpl);
+SG_DEFINE_BASE_CLASS(Sg_NonContinuableClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     violation_cpl);
+SG_DEFINE_BASE_CLASS(Sg_ImplementationRestrictionClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     violation_cpl);
+SG_DEFINE_BASE_CLASS(Sg_LexicalConditionClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     violation_cpl);
+
+static void syntax_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  SgObject obj, rtd, proc;
-  if (argc != 1) {
-    Sg_WrongNumberOfArgumentsViolation(SG_INTERN("condition-accessor"),
-				       1, argc, SG_NIL);
-  }
-  obj = args[0];
-  rtd = SG_CAR(SG_OBJ(data));
-  proc = SG_CDR(SG_OBJ(data));
-
-  if (Sg_SimpleConditionP(obj)) {
-    if (!Sg_RtdAncestorP(rtd, Sg_RecordRtd(obj))) goto err;
-    return Sg_VMApply1(proc, obj);
-  } else if (Sg_CompoundConditionP(obj)) {
-    SgObject comp = Sg_CompoundConditionComponent(obj);
-    SgObject cp;
-    SG_FOR_EACH(cp, comp) {
-      if (Sg_RtdAncestorP(rtd, Sg_RecordRtd(SG_CAR(cp)))) {
-	return Sg_VMApply1(proc, SG_CAR(cp));
-      }
-    }
-    /* fall through */
-  }
- err:
-  Sg_WrongTypeOfArgumentViolation(SG_INTERN("condition-accessor"),
-				  Sg_Sprintf(UC("expected condition of a subtype of %S"), rtd),
-				  obj,
-				  SG_LIST2(rtd, obj));
-  return SG_UNDEF;
+  Sg_Printf(p, UC("#<%A %S %S>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_SYNTAX_CONDITION(o)->form,
+	    SG_SYNTAX_CONDITION(o)->subform);
 }
-
-SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc)
+static SgObject syntax_allocate(SgClass *klass, SgObject initargs)
 {
-  SgObject subr = Sg_MakeSubr(condition_accessor_rec, Sg_Cons(rtd, proc),
-			      1, 0,
-			      SG_MAKE_STRING("condition-accessor"));
-  return subr;
+  SgSyntaxCondition *c = SG_ALLOCATE(SgSyntaxCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject sc_form(SgSyntaxCondition *sc)
+{
+  if (!SG_SYNTAX_CONDITIONP(sc)) {
+    Sg_Error(UC("&syntax required but got %S"), sc);
+  }
+  return sc->form;
+}
+static void sc_form_set(SgSyntaxCondition *sc, SgObject form)
+{
+  sc->form = form;
+}
+static SgObject sc_subform(SgSyntaxCondition *sc)
+{
+  if (!SG_SYNTAX_CONDITIONP(sc)) {
+    Sg_Error(UC("&syntax required but got %S"), sc);
+  }
+  return sc->subform;
+}
+static void sc_subform_set(SgSyntaxCondition *sc, SgObject form)
+{
+  sc->subform = form;
 }
 
-/* for c use conditions */
-static SgObject make_non_continuable_violation;
-static SgObject make_assertion_violation;
-static SgObject make_undefined_violation;
-static SgObject make_implementation_restriction_violation;
-static SgObject make_who_condition;
-static SgObject make_message_condition;
-static SgObject make_irritants_condition;
-static SgObject make_warning;
-static SgObject make_lexical_violation;
-static SgObject make_read_error;
-static SgObject make_error;
-static SgObject make_syntax_error;
+static SgSlotAccessor sc_slots[] = {
+  SG_CLASS_SLOT_SPEC("form",    0, sc_form, sc_form_set),
+  SG_CLASS_SLOT_SPEC("subform", 1, sc_subform, sc_subform_set),
+  { { NULL } }
+};
+
+SG_DEFINE_BASE_CLASS(Sg_SyntaxConditionClass, SgSyntaxCondition,
+		     syntax_printer, NULL, NULL, syntax_allocate,
+		     violation_cpl);
+
+SG_DEFINE_BASE_CLASS(Sg_UndefinedConditionClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     violation_cpl);
+
+static void message_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_MESSAGE_CONDITION(o)->message);
+}
+static SgObject message_allocate(SgClass *klass, SgObject initargs)
+{
+  SgMessageCondition *c = SG_ALLOCATE(SgMessageCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject msg_message(SgMessageCondition *mc)
+{
+  if (!SG_MESSAGE_CONDITIONP(mc)) {
+    Sg_Error(UC("&message required but got %S"), mc);
+  }
+  return mc->message;
+}
+static void msg_message_set(SgMessageCondition *mc, SgObject msg)
+{
+  mc->message = msg;
+}
+
+static SgSlotAccessor msg_slots[] = {
+  SG_CLASS_SLOT_SPEC("message", 0, msg_message, msg_message_set),
+  { { NULL } }
+};
+
+SG_DEFINE_BASE_CLASS(Sg_MessageConditionClass, SgMessageCondition,
+		     message_printer, NULL, NULL, message_allocate,
+		     Sg_ConditionCPL);
+
+static void irr_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IRRITATNS_CONDITION(o)->irritants);
+}
+static SgObject irr_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIrritantsCondition *c = SG_ALLOCATE(SgIrritantsCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject irr_irritants(SgIrritantsCondition *ic)
+{
+  if (!SG_IRRITATNS_CONDITIONP(ic)) {
+    Sg_Error(UC("&irritants required but got %S"), ic);
+  }
+  return ic->irritants;
+}
+static void irr_irritants_set(SgIrritantsCondition *ic, SgObject irr)
+{
+  ic->irritants = irr;
+}
+static SgSlotAccessor irr_slots[] = {
+  SG_CLASS_SLOT_SPEC("irritants", 0, irr_irritants, irr_irritants_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_IrritantsConditionClass, SgIrritantsCondition,
+		     irr_printer, NULL, NULL, irr_allocate,
+		     Sg_ConditionCPL);
+
+static void who_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_WHO_CONDITION(o)->who);
+}
+static SgObject who_allocate(SgClass *klass, SgObject initargs)
+{
+  SgWhoCondition *c = SG_ALLOCATE(SgWhoCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject who_who(SgWhoCondition *wc)
+{
+  if (!SG_WHO_CONDITIONP(wc)) {
+    Sg_Error(UC("&who required but got %S"), wc);
+  }
+  return wc->who;
+}
+static void who_who_set(SgWhoCondition *wc, SgObject who)
+{
+  wc->who = who;
+}
+static SgSlotAccessor who_slots[] = {
+  SG_CLASS_SLOT_SPEC("who", 0, who_who, who_who_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_WhoConditionClass, SgWhoCondition,
+		     who_printer, NULL, NULL, who_allocate,
+		     Sg_ConditionCPL);
+
+/* i/o */
+static SgClass *Sg_ErrorConditionCPL[] = {
+  SG_ERROR_CONDITION_CPL,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     Sg_ErrorConditionCPL);
+static SgClass *io_cpl[] = {
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOReadErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     io_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IOWriteErrorClass, SgCondition,
+		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
+		     io_cpl);
+
+static void port_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_PORT_ERROR(o)->port);
+}
+static SgObject port_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOPortError *c = SG_ALLOCATE(SgIOPortError, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject port_port(SgIOPortError *port)
+{
+  if (!SG_IO_PORT_ERRORP(port)) {
+    Sg_Error(UC("&i/o-port required but got %S"), port);
+  }
+  return port->port;
+}
+static void port_port_set(SgIOPortError *port, SgObject src)
+{
+  port->port = src;
+}
+static SgSlotAccessor port_slots[] = {
+  SG_CLASS_SLOT_SPEC("port", 0, port_port, port_port_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_IOPortErrorClass, SgIOPortError,
+		     port_printer, NULL, NULL, port_allocate,
+		     io_cpl);
+
+static void enc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A:%S>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_ENCODING_ERROR(o)->port,
+	    SG_IO_ENCODING_ERROR(o)->char_);
+}
+static SgObject enc_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOEncodingError *c = SG_ALLOCATE(SgIOEncodingError, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject enc_char(SgIOEncodingError *port)
+{
+  if (!SG_IO_ENCODING_ERRORP(port)) {
+    Sg_Error(UC("&i/o-encoding required but got %S"), port);
+  }
+  return port->char_;
+}
+static void enc_char_set(SgIOEncodingError *port, SgObject src)
+{
+  port->char_ = src;
+}
+static SgSlotAccessor enc_slots[] = {
+  SG_CLASS_SLOT_SPEC("char", 0, enc_char, enc_char_set),
+  { { NULL } }
+};
+static SgClass *port_cpl[] = {
+  SG_CLASS_IO_PORT_ERROR,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOEncodingErrorClass, SgIOEncodingError,
+		     enc_printer, NULL, NULL, enc_allocate,
+		     port_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IODecodingErrorClass, SgIOPortError,
+		     port_printer, NULL, NULL, port_allocate,
+		     port_cpl);
+/* position */
+static void pos_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_INVALID_POSITION(o)->position);
+}
+static SgObject pos_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOInvalidPosition *c = SG_ALLOCATE(SgIOInvalidPosition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject pos_position(SgIOInvalidPosition *ip)
+{
+  if (!SG_IO_INVALID_POSITIONP(ip)) {
+    Sg_Error(UC("&i/o-invalid-position required but got %S"), ip);
+  }
+  return ip->position;
+}
+static void pos_position_set(SgIOInvalidPosition *ip, SgObject pos)
+{
+  ip->position = pos;
+}
+static SgSlotAccessor ip_slots[] = {
+  SG_CLASS_SLOT_SPEC("position", 0, pos_position, pos_position_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_IOInvalidPositionClass, SgIOInvalidPosition,
+		     pos_printer, NULL, NULL, pos_allocate,
+		     io_cpl);
+/* filename */
+static void fn_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IO_FILENAME(o)->filename);
+}
+static SgObject fn_allocate(SgClass *klass, SgObject initargs)
+{
+  SgIOFilename *c = SG_ALLOCATE(SgIOFilename, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject fn_filename(SgIOFilename *fn)
+{
+  if (!SG_IO_FILENAMEP(fn)) {
+    Sg_Error(UC("&i/o-filename required but got %S"), fn);
+  }
+  return fn->filename;
+}
+static void fn_filename_set(SgIOFilename *fn, SgObject name)
+{
+  fn->filename = name;
+}
+static SgSlotAccessor fn_slots[] = {
+  SG_CLASS_SLOT_SPEC("filename", 0, fn_filename, fn_filename_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_IOFilenameClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     io_cpl);
+static SgClass *fn_cpl[] = {
+  SG_CLASS_IO_FILENAME,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOFileProtectionClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fn_cpl);
+static SgClass *fnp_cpl[] = {
+  SG_CLASS_IO_FILE_PROTECTION,
+  SG_CLASS_IO_FILENAME,
+  SG_CLASS_IO_ERROR,
+  SG_CLASS_ERROR,
+  SG_CLASS_SERIOUS,
+  SG_CLASS_CONSITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_IOFileIsReadOnlyClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fnp_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IOFileAlreadyExistsClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fn_cpl);
+SG_DEFINE_BASE_CLASS(Sg_IOFileDoesNotExistClass, SgIOFilename,
+		     fn_printer, NULL, NULL, fn_allocate,
+		     fn_cpl);
+
+/* compile */
+static void comp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A %S>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_COMPILE_CONDITION(o)->source,
+	    SG_COMPILE_CONDITION(o)->program);
+}
+static SgObject comp_allocate(SgClass *klass, SgObject initargs)
+{
+  SgCompileCondition *c = SG_ALLOCATE(SgCompileCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject comp_source(SgCompileCondition *c)
+{
+  return c->source;
+}
+static void comp_source_set(SgCompileCondition *c, SgObject s)
+{
+  c->source = s;
+}
+static SgObject comp_prog(SgCompileCondition *c)
+{
+  if (!SG_COMPILE_CONDITIONP(c)) {
+    Sg_Error(UC("&compile required but got %S"), c);
+  }
+  return c->program;
+}
+static void comp_prog_set(SgCompileCondition *c, SgObject p)
+{
+  if (!SG_COMPILE_CONDITIONP(c)) {
+    Sg_Error(UC("&compile required but got %S"), c);
+  }
+  c->program = p;
+}
+static SgSlotAccessor cmp_slots[] = {
+  SG_CLASS_SLOT_SPEC("source",  0, comp_source, comp_source_set),
+  SG_CLASS_SLOT_SPEC("program", 1, comp_prog, comp_prog_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_CompileConditionClass, SgCompileCondition,
+		     comp_printer, NULL, NULL, comp_allocate,
+		     Sg_ErrorConditionCPL);
+
+static void imp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IMPORT_CONDITION(o)->library);
+}
+static SgObject imp_allocate(SgClass *klass, SgObject initargs)
+{
+  SgImportCondition *c = SG_ALLOCATE(SgImportCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+static SgObject imp_lib(SgImportCondition *c)
+{
+  if (!SG_IMPORT_CONDITIONP(c)) {
+    Sg_Error(UC("&import required but got %S"), c);
+  }
+  return c->library;
+}
+static void imp_lib_set(SgImportCondition *c, SgObject p)
+{
+  c->library = p;
+}
+static SgSlotAccessor imp_slots[] = {
+  SG_CLASS_SLOT_SPEC("library",  0, imp_lib, imp_lib_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
+		     imp_printer, NULL, NULL, imp_allocate,
+		     Sg_ErrorConditionCPL);
+
 
 SgObject Sg_MakeNonContinuableViolation()
 {
-  return Sg_Apply0(make_non_continuable_violation);
+  return Sg_ConditionAllocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
 }
 
 SgObject Sg_MakeAssertionViolation()
 {
-  return Sg_Apply0(make_assertion_violation);
+  return Sg_ConditionAllocate(SG_CLASS_ASSERTION, SG_NIL);
 }
 
 SgObject Sg_MakeUndefinedViolation()
 {
-  return Sg_Apply0(make_undefined_violation);
+  return Sg_ConditionAllocate(SG_CLASS_UNDEFINED_CONDITION, SG_NIL);
 }
 
 SgObject Sg_MakeImplementationRestrictionViolation()
 {
-  return Sg_Apply0(make_implementation_restriction_violation);
+  return Sg_ConditionAllocate(SG_CLASS_IMPLEMENTATION_RESTRICTION, SG_NIL);
 }
 
 SgObject Sg_MakeWhoCondition(SgObject who)
 {
-  return Sg_Apply1(make_who_condition, who);
+  SgObject c = who_allocate(SG_CLASS_WHO_CONDITION, SG_NIL);
+  SG_WHO_CONDITION(c)->who = who;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeMessageCondition(SgObject msg)
 {
-  return Sg_Apply1(make_message_condition, msg);
+  SgObject c = message_allocate(SG_CLASS_MESSAGE_CONDITION, SG_NIL);
+  SG_MESSAGE_CONDITION(c)->message = msg;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 {
-  return Sg_Apply1(make_irritants_condition, irritants);
+  SgObject c = message_allocate(SG_CLASS_IRRITANTS_CONDITION, SG_NIL);
+  SG_IRRITATNS_CONDITION(c)->irritants = irritants;
+  return SG_OBJ(c);
 }
 
 SgObject Sg_MakeWarning()
 {
-  return Sg_Apply0(make_warning);
+  return Sg_ConditionAllocate(SG_CLASS_WARNING, SG_NIL);
 }
 
 SgObject Sg_MakeReaderCondition(SgObject msg)
 {
-  return Sg_Condition(SG_LIST3(Sg_Apply0(make_lexical_violation),
-			       Sg_Apply0(make_read_error),
+  SgObject l = Sg_ConditionAllocate(SG_CLASS_LEXICAL_CONDITION, SG_NIL);
+  SgObject r = Sg_ConditionAllocate(SG_CLASS_IO_READ_ERROR, SG_NIL);
+  return Sg_Condition(SG_LIST3(l, r,
 			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_MakeError(SgObject msg)
 {
-  return Sg_Condition(SG_LIST2(Sg_Apply0(make_error),
+  return Sg_Condition(SG_LIST2(Sg_ConditionAllocate(SG_CLASS_ERROR, SG_NIL),
 			       Sg_MakeMessageCondition(msg)));
 }
 
 SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form)
 {
   SgObject subform = SG_FALSE;
+  SgObject s = syntax_allocate(SG_CLASS_SYNTAX_CONDITION, SG_NIL);
   if (SG_PAIRP(form) && SG_PAIRP(SG_CAR(form))) {
     subform = SG_CDR(form);
     form = SG_CAR(form);
   }
-  return Sg_Condition(SG_LIST2(Sg_Apply2(make_syntax_error, form, subform),
-			       Sg_MakeMessageCondition(msg)));
+  SG_SYNTAX_CONDITION(s)->form = form;
+  SG_SYNTAX_CONDITION(s)->subform = subform;
+  return Sg_Condition(SG_LIST2(s, Sg_MakeMessageCondition(msg)));
 }
 
-static SgObject list_parents(SgObject rtd, int namep)
+static void describe_simple(SgPort *out, SgObject con)
 {
-  SgObject lst = SG_NIL;
-  for (;;) {
-    SgObject p = Sg_RtdParent(rtd);
-    if (SG_FALSEP(p)) {
-      return Sg_ReverseX(SG_CDR(lst));
+  SgClass *klass = Sg_ClassOf(con);
+  SgSlotAccessor **acc = klass->gettersNSetters;
+  int count = klass->nfields;
+  Sg_Write(klass->name, out, SG_WRITE_WRITE);
+  for (; acc && *acc; acc++) {
+    SgObject v = Sg_SlotRefUsingAccessor(con, (*acc));
+    if (count == 1) {
+      if (SG_STRINGP(v)) {
+	Sg_Printf(out, UC(" %A"), v);
+      } else {
+	Sg_Printf(out, UC(" %S"), v);
+      }
     } else {
-      lst = Sg_Cons((namep)? Sg_RtdName(p) : p, lst);
-      rtd = p;
+      if (SG_STRINGP(v)) {
+	Sg_Printf(out, UC("\n    %A: %A"), (*acc)->name, v);
+      } else {
+	Sg_Printf(out, UC("\n    %A: %S"), (*acc)->name, v);
+      }
     }
   }
-}
-
-static SgObject retrieve_fields_rec(SgObject rec, SgObject rtd)
-{
-  SgObject h = SG_NIL, t = SG_NIL, fields, field;
-  int index = 0;
-  fields = Sg_RtdFields(rtd);
-  SG_FOR_EACH(field, fields) {
-    SgObject acc = Sg_RecordAccessor(rtd, index++);
-    SgObject obj, args[1];
-    args[0] = rec;
-    obj = SG_SUBR_FUNC(acc)(args, 1, SG_SUBR_DATA(acc));
-    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(field), obj));
-  }
-  return h;
-}
-
-static SgObject retrieve_fields(SgObject rec, SgObject rtd)
-{
-  SgObject h = SG_NIL, t = SG_NIL, p;
-  SgObject parents = list_parents(rtd, FALSE);
-  /* alist or '() */
-  SG_APPEND(h, t, retrieve_fields_rec(rec, rtd));
-  SG_FOR_EACH(p, parents) {
-    SG_APPEND(h, t, retrieve_fields_rec(rec, SG_CAR(p)));
-  }
-  return h;
 }
 
 SgObject Sg_DescribeCondition(SgObject con)
@@ -339,47 +708,21 @@ SgObject Sg_DescribeCondition(SgObject con)
   if (Sg_ConditionP(con)) {
     SgPort out;
     SgTextualPort tp;
-    SgObject lst = Sg_SimpleConditions(con), cp;
-
+    SgObject cp;
     Sg_InitStringOutputPort(&out, &tp, 512);
-
-    Sg_Printf(&out, UC("  #<condition\n"));
-    SG_FOR_EACH(cp, lst) {
-      SgObject rec = SG_CAR(cp);
-      SgObject rtd, name, parents, fields;
-      int count;
-      rtd = Sg_RecordRtd(rec);
-      name = Sg_RtdName(rtd);
-      parents = list_parents(rtd, TRUE);
-      fields = retrieve_fields(rec, rtd);
-      count = Sg_Length(fields);
-      Sg_Printf(&out, UC("\n    %A"), name);
-      if (SG_PAIRP(parents)) {
-	Sg_Printf(&out, UC(" %A"), parents);
-      }
-      if (count == 1) {
-	SgObject field = SG_CAR(fields);
-	if (SG_STRINGP(SG_CDR(field))) {
-	  Sg_PrintfShared(&out, UC(" %A"), SG_CDR(field));
-	} else {
-	  Sg_PrintfShared(&out, UC(" %S"), SG_CDR(field));
-	}
-      } else if (count > 1) {
-	SgObject lst;
-	Sg_Printf(&out, UC("\n"));
-	SG_FOR_EACH(lst, fields) {
-	  SgObject field = SG_CAR(lst);
-	  if (SG_STRINGP(SG_CDR(field))) {
-	    Sg_PrintfShared(&out, UC("      %A: %A\n"), SG_CAR(field),
-			    SG_CDR(field));
-	  } else {
-	    Sg_PrintfShared(&out, UC("      %A: %S\n"), SG_CAR(field),
-			    SG_CDR(field));
-	  }
-	}
+    Sg_PutzUnsafe(&out, "#<condition\n");
+    if (SG_SIMPLE_CONDITIONP(con)) {
+      Sg_PutzUnsafe(&out, "  ");
+      describe_simple(&out, con);
+    } else {
+      SgObject comp;
+      SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
+	Sg_PutzUnsafe(&out, "  ");
+	describe_simple(&out, SG_CAR(comp));
+	Sg_PutcUnsafe(&out, '\n');
       }
     }
-    Sg_Printf(&out, UC("\n  >\n"));
+    Sg_PutzUnsafe(&out, "\n>");
     cp = Sg_GetStringFromStringPort(&out);
     SG_CLEAN_TEXTUAL_PORT(&tp);
     return cp;
@@ -388,383 +731,217 @@ SgObject Sg_DescribeCondition(SgObject con)
   }
 }
 
+void Sg__AppendImmutable(SgClass *klass)
+{
+  /* add :mutable #f, well it's useless but in case
+     somebody make with (make &message) or so... */
+  SgObject cp;
+  SgObject immutable = SG_LIST2(Sg_MakeKeyword(SG_MAKE_STRING("mutable")),
+				SG_FALSE);
+  SG_FOR_EACH(cp, klass->directSlots) {
+    Sg_Append2X(SG_CAR(cp), immutable);
+  }
+}
 
-/* standard conditions */
-DEF_RECORD_TYPE(message);
-DEF_RECORD_TYPE(warning);
-DEF_RECORD_TYPE(serious);
-DEF_RECORD_TYPE(error);
-DEF_RECORD_TYPE(violation);
-DEF_RECORD_TYPE(assertion);
-DEF_RECORD_TYPE(irritants);
-DEF_RECORD_TYPE(who);
-DEF_RECORD_TYPE(lexical);
-DEF_RECORD_TYPE(syntax);
-DEF_RECORD_TYPE(undefined);
+static SgObject predicate_cc(SgObject result, void **data);
+static SgObject predicate_rec(SgObject c, SgClass *klass)
+{
+  if (SG_SIMPLE_CONDITIONP(c)) {
+    return Sg_VMIsA(c, klass);
+  } else if (SG_COMPOUND_CONDITIONP(c)) {
+    SgObject cp = SG_COMPOUND_CONDITION(c)->components;
+    if (!SG_NULLP(cp)) {
+      void *data[2];
+      data[0] = klass;
+      data[1] = SG_CDR(cp);
+      Sg_VMPushCC(predicate_cc, data, 2);
+      return predicate_rec(SG_CAR(cp), klass);
+    }
+  }
+  return SG_FALSE;
+}
+SgObject Sg__ConditionPredicate(SgObject *args, int argc, void *user_data)
+{
+  return predicate_rec(args[0], SG_CLASS(user_data));
+}
+static SgObject predicate_cc(SgObject result, void **data)
+{
+  if (!SG_FALSEP(result)) return SG_TRUE;
+  else {
+    SgObject c = SG_OBJ(data[1]);
+    void *next_data[2];
+    if (SG_NULLP(c)) return SG_FALSE; /* no more */
+    next_data[0] = data[0];
+    next_data[1] = SG_CDR(c);
+    Sg_VMPushCC(predicate_cc, next_data, 2);
+    return predicate_rec(SG_CAR(c), SG_CLASS(data[0]));
+  }
+}
 
-/* for illegal c name conditions */
-#define C_COND_NAME2(n1, n2) C_COND_NAME(SG_CPP_CAT3(n1, _, n2))
-#define DEF_RECORD_TYPE2(n1, n2)				\
-  static SgRecordType C_COND_NAME(SG_CPP_CAT3(n1, _, n2))
-
-DEF_RECORD_TYPE2(non, continuable);
-DEF_RECORD_TYPE2(implementation, restriction);
-DEF_RECORD_TYPE2(no, infinities);
-DEF_RECORD_TYPE2(no, nans);
-
-/* &i/o conditions */
-static SgRecordType io_type;			 /* &i/o */
-static SgRecordType io_read_type;		 /* &i/o-read */
-static SgRecordType io_write_type;		 /* &i/o-write */
-static SgRecordType io_invalid_position_type;    /* &i/o-invalid-position */
-static SgRecordType io_filename_type;		 /* &i/o-filename */
-static SgRecordType io_file_protection_type;	 /* &i/o-file-protection */
-static SgRecordType io_file_is_read_only_type;   /* &i/o-file-is-read-only */
-static SgRecordType io_file_already_exists_type; /* &i/o-file-already-exists */
-static SgRecordType io_file_does_not_exist_type; /* &i/o-file-does-not-exist */
-static SgRecordType io_port_type;		 /* &i/o-port */
-static SgRecordType io_decoding_type;		 /* &i/o-decoding */
-static SgRecordType io_encoding_type;		 /* &i/o-encoding */
-static SgRecordType compile_type;		 /* &compile */
-static SgRecordType import_type;		 /* &import */
+SgObject Sg__ConditionAccessor(SgObject *args, int argc, void *user_data)
+{
+  return ((SgObject(*)(SgObject))user_data)(args[0]);
+}
+/* 0 argument can be very easy :)  */
+static SgObject invoke0(SgObject *args, int argc, void *user_data)
+{
+  return Sg_ConditionAllocate((SgClass *)user_data, SG_NIL);
+}
+/* call allocator directly and use slot accessor directly...
+   in C level condition there is no duplicate slot so we don't
+   consider it for now. */
+SgObject Sg__ConditionConstructorN(SgObject *args, int argc, void *user_data)
+{
+  SgClass *klass = SG_CLASS(user_data);
+  SgObject c = klass->allocate(klass, SG_NIL);
+  SgSlotAccessor **accs = klass->gettersNSetters;
+  int i;
+  /* raw accessors are reverse order */
+  for (i = argc-1;accs && *accs; accs++, i--) {
+    if (i < 0) break;	/* in case */
+    Sg_SlotSetUsingAccessor(c, *accs, args[i]);
+  }
+  return SG_OBJ(c);
+}
 
 void Sg__InitConsitions()
 {
-  SgObject nullvec = Sg_MakeVector(0, SG_UNDEF);
-  SgObject nulllib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
-  SgObject rtd, rcd, ctr, pred;
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
 
-  SgObject immutable = SG_INTERN("immutable");
+  /* need record metaclass */
+#define INIT_CONDITION(cl, nam, slots) SG_INIT_CONDITION(cl, lib, nam, slots)
 
-  /* we know all conditions are non-sealed, non-opaque and without uid */
-#define INIT_RECORD_TYPE(iname, cname)				\
-  SG_INIT_RECORD_TYPE(cname, SG_INTERN(#iname), rtd, rcd)
-#define INSERT_BINDING(iname, cname)			\
-  Sg_InsertBinding(nulllib, SG_INTERN(#iname), cname)
+  INIT_CONDITION(SG_CLASS_CONSITION, "&condition", NULL);
+  INIT_CONDITION(SG_CLASS_WARNING, "&warning", NULL);
+  INIT_CONDITION(SG_CLASS_SERIOUS, "&serious", NULL);
+  INIT_CONDITION(SG_CLASS_ERROR,   "&error", NULL);
+  INIT_CONDITION(SG_CLASS_VIOLATION, "&violation", NULL);
+  INIT_CONDITION(SG_CLASS_ASSERTION, "&assertion", NULL);
+  INIT_CONDITION(SG_CLASS_NON_CONTINUABLE, "&non-continuable", NULL);
+  INIT_CONDITION(SG_CLASS_IMPLEMENTATION_RESTRICTION, 
+		 "&implementation-restriction", NULL);
+  INIT_CONDITION(SG_CLASS_LEXICAL_CONDITION, "&lexical", NULL);
+  INIT_CONDITION(SG_CLASS_SYNTAX_CONDITION, "&syntax", sc_slots);
+  INIT_CONDITION(SG_CLASS_UNDEFINED_CONDITION, "&undefined", NULL);
+  INIT_CONDITION(SG_CLASS_MESSAGE_CONDITION, "&message", msg_slots);
+  INIT_CONDITION(SG_CLASS_IRRITANTS_CONDITION, "&irritants", irr_slots);
+  INIT_CONDITION(SG_CLASS_WHO_CONDITION, "&who", who_slots);
+  /* i/o */
+  INIT_CONDITION(SG_CLASS_IO_ERROR, "&i/o", NULL);
+  INIT_CONDITION(SG_CLASS_IO_READ_ERROR, "&i/o-read", NULL);
+  INIT_CONDITION(SG_CLASS_IO_WRITE_ERROR, "&i/o-write", NULL);
+  INIT_CONDITION(SG_CLASS_IO_INVALID_POSITION, 
+		 "&i/o-invalid-position", ip_slots);
+  INIT_CONDITION(SG_CLASS_IO_FILENAME, "&i/o-filename", fn_slots);
+  INIT_CONDITION(SG_CLASS_IO_FILE_PROTECTION, "&i/o-file-protection", NULL);
+  INIT_CONDITION(SG_CLASS_IO_FILE_IS_READ_ONLY, "&i/o-file-is-read-only", NULL);
+  INIT_CONDITION(SG_CLASS_IO_FILE_ALREADY_EXISTS,
+		 "&i/o-file-already-exists", NULL);
+  INIT_CONDITION(SG_CLASS_IO_FILE_DOES_NOT_EXIST,
+		 "&i/o-file-does-not-exist", NULL);
+  INIT_CONDITION(SG_CLASS_IO_PORT_ERROR, "&i/o-port", port_slots);
+  INIT_CONDITION(SG_CLASS_IO_ENCODING_ERROR, "&i/o-encoding", enc_slots);
+  INIT_CONDITION(SG_CLASS_IO_DECODING_ERROR, "&i/o-decoding", NULL);
+  /* compile */
+  INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
+  INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", imp_slots);
+  /* compound */
+  INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
-#define INTERN__CONDITION(cname, sname, prtd, prcd, fvec)		\
-  rtd = Sg_MakeRecordTypeDescriptor(SG_INTERN(#sname),			\
-				    (prtd),				\
-				    SG_FALSE, FALSE, FALSE, (fvec));	\
-  rcd = Sg_MakeRecordConstructorDescriptor(rtd,				\
-					   (prcd),			\
-					   SG_FALSE);			\
-  INIT_RECORD_TYPE(sname, cname);					\
-  INSERT_BINDING(sname, cname)
+  /* ctr&pred */
+#define INIT_PRED(cl, name) SG_INIT_CONDITION_PRED(cl, lib, name)
+#define INIT_CTR0(cl, name, pred)					\
+  do {									\
+    SgObject proc = Sg_MakeSubr(invoke0, cl, 0, 0, SG_MAKE_STRING(name)); \
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
+    INIT_PRED(cl, pred);						\
+  } while (0)
+#define INIT_ACC(fn, name) SG_INIT_CONDITION_ACC(fn, lib, name)
+#define INIT_CTR1_REC(cl, name, pred)					\
+  do {									\
+    SG_INIT_CONDITION_CTR(cl, lib, name, 1);				\
+    INIT_PRED(cl, pred);						\
+  } while (0)
+#define INIT_CTR1(cl, name, pred, acc, accnm)				\
+  do {									\
+    INIT_CTR1_REC(cl, name, pred);					\
+    INIT_ACC(acc, accnm);						\
+  } while (0)
+#define INIT_CTR2_REC(cl, name, pred)					\
+  do {									\
+    SG_INIT_CONDITION_CTR(cl, lib, name, 2);				\
+    INIT_PRED(cl, pred);						\
+  } while (0)
+#define INIT_CTR2(cl, name, pred, acc, accnm, acc2, accnm2)		\
+  do {									\
+    INIT_CTR2_REC(cl, name, pred);					\
+    INIT_ACC(acc, accnm);						\
+    INIT_ACC(acc2, accnm2);						\
+  } while (0)
 
-#define INTERN_CONDITION(name_, fields_)				\
-  INTERN__CONDITION(C_COND_NAME(name_),  name_, SG_FALSE, SG_FALSE, fields_)
+  INIT_CTR0(SG_CLASS_WARNING, "make-warning", "warning?");
+  INIT_CTR0(SG_CLASS_SERIOUS, "make-serious-condition", "serious-condition?");
+  INIT_CTR0(SG_CLASS_ERROR,   "make-error", "error?");
+  INIT_CTR0(SG_CLASS_VIOLATION, "make-violation", "violation?");
+  INIT_CTR0(SG_CLASS_ASSERTION, "make-assertion-violation",
+	    "assertion-violation?");
+  INIT_CTR0(SG_CLASS_NON_CONTINUABLE, "make-non-continuable-violation",
+	    "non-continuable-violation?");
+  INIT_CTR0(SG_CLASS_IMPLEMENTATION_RESTRICTION, 
+	    "make-implementation-restriction-violation",
+	    "implementation-restriction-violation?");
+  INIT_CTR0(SG_CLASS_LEXICAL_CONDITION, "make-lexical-violation", 
+	    "lexical-violation?");
+  INIT_CTR0(SG_CLASS_UNDEFINED_CONDITION, "make-undefined-violation",
+	    "undefined-violation?");
 
-#define INTERN_CONDITION_WITH_CNAME(cname_, name_, cparent_, fields_)	\
-  INTERN__CONDITION(cname_, name_, SG_RECORD_TYPE_RTD(cparent_),	\
-		    SG_RECORD_TYPE_RCD(cparent_), fields_)
+  INIT_CTR2(SG_CLASS_SYNTAX_CONDITION,
+	    "make-syntax-violation", "syntax-violation?",
+	    sc_form, "&syntax-violation-form",
+	    sc_subform, "&syntax-violation-subform");
 
-#define INTERN_CONDITION_WITH_PARENT(name_, parent_, fields_)		\
-  INTERN_CONDITION_WITH_CNAME(C_COND_NAME(name_), name_,		\
-			      C_COND_NAME(parent_), fields_)
+  INIT_CTR1(SG_CLASS_MESSAGE_CONDITION, "make-message-condition",
+	    "message-condition?", msg_message, "&message-message");
+  INIT_CTR1(SG_CLASS_IRRITANTS_CONDITION, "make-irritants-condition",
+	    "irritants-condition?", irr_irritants, "&irritants-irritants");
+  INIT_CTR1(SG_CLASS_WHO_CONDITION, "make-who-condition", "who-condition?",
+	    who_who, "&who-who");
 
-#define INTERN_CTR(cname_, name_, method_)				\
-  ctr = Sg_RecordConstructor(SG_RECORD_TYPE_RCD(cname_));		\
-  Sg_InsertBinding(nulllib, SG_INTERN(#method_), ctr)
-#define INTERN_PRED(cname_, name_, method_)				\
-  pred = Sg_ConditionPredicate(SG_RECORD_TYPE_RTD(cname_));		\
-  Sg_InsertBinding(nulllib, SG_INTERN(#method_), pred)
+  /* i/o */
+  INIT_CTR0(SG_CLASS_IO_ERROR, "make-i/o-error", "i/o-error?");
+  INIT_CTR0(SG_CLASS_IO_READ_ERROR, "make-i/o-read-error", "i/o-read-error?");
+  INIT_CTR0(SG_CLASS_IO_WRITE_ERROR, "make-i/o-write-error", "i/o-write-error?");
 
-#define DeclareAccessor() SgObject accessor
-#define INTERN_ACCE(name_, method_, pos_)				\
-  accessor = Sg_RecordAccessor(SG_RECORD_TYPE_RTD(C_COND_NAME(name_)), pos_); \
-  Sg_InsertBinding(nulllib, SG_INTERN(#method_), accessor)
-  
-  /* all sub condition must have at lease ctr and pred*/
-#define INTERN_CTR_PRED_WITH_CNAME(cname_, name_, ctr_, pred_)	\
-  INTERN_CTR(cname_, name_, ctr_);				\
-  INTERN_PRED(cname_, name_, pred_)
-
-#define INTERN_CTR_PRED(name_, ctr_, pred_)				\
-  INTERN_CTR_PRED_WITH_CNAME(C_COND_NAME(name_), name_, ctr_, pred_)
-
-
-#define INTERN_COND_ACCE(name_, method_)				\
-  Sg_InsertBinding(nulllib, SG_INTERN(#method_),			\
-		   Sg_ConditionAccessor(SG_RECORD_TYPE_RTD(C_COND_NAME(name_)), accessor))
-
-
-  {
-    /* &condition */
-    INTERN_CONDITION(&condition, nullvec);
-  }
-  {
-    /* &message */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable,
-						SG_INTERN("message")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_PARENT(&message, &condition, fields);
-    INTERN_CTR_PRED(&message, make-message-condition, message-condition?);
-    INTERN_ACCE(&message, &message-message, 0);
-    INTERN_COND_ACCE(&message, condition-message);
-    make_message_condition = ctr;
-  }
-  {
-    /* warning */
-    INTERN_CONDITION_WITH_PARENT(&warning, &condition, nullvec);
-    INTERN_CTR_PRED(&warning, make-warning, warning?);
-    make_warning = ctr;
-  }
-  {
-    /* serious */
-    INTERN_CONDITION_WITH_PARENT(&serious, &condition, nullvec);
-    INTERN_CTR_PRED(&serious, make-serious-condition, serious-condition?);
-  }
-  {
-    /* error */
-    INTERN_CONDITION_WITH_PARENT(&error, &serious, nullvec);
-    INTERN_CTR_PRED(&error, make-error, error?);
-    make_error = ctr;
-  }
-  {
-    /* violation */
-    INTERN_CONDITION_WITH_PARENT(&violation, &serious, nullvec);
-    INTERN_CTR_PRED(&violation, make-violation, violation?);
-  }
-  {
-    /* assertion */
-    INTERN_CONDITION_WITH_PARENT(&assertion, &violation, nullvec);
-    INTERN_CTR_PRED(&assertion, make-assertion-violation, assertion-violation?);
-    make_assertion_violation = ctr;
-  }
-  {
-    /* irritants */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, 
-						SG_INTERN("irritants")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_PARENT(&irritants, &condition, fields);
-    INTERN_CTR_PRED(&irritants, make-irritants-condition, irritants-condition?);
-    INTERN_ACCE(&irritants, &irritants-irritants, 0);
-    INTERN_COND_ACCE(&irritants, condition-irritants);
-    make_irritants_condition = ctr;
-  }
-  {
-    /* who */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("who")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_PARENT(&who, &condition, fields);
-    INTERN_CTR_PRED(&who, make-who-condition, who-condition?);
-    INTERN_ACCE(&who, &who-who, 0);
-    INTERN_COND_ACCE(&who, condition-who);
-    make_who_condition = ctr;
-  }
-  {
-    /* lexical */
-    INTERN_CONDITION_WITH_PARENT(&lexical, &violation, nullvec);
-    INTERN_CTR_PRED(&lexical, make-lexical-violation, lexical-violation?);
-    make_lexical_violation = ctr;
-  }
-  {
-    /* syntax */
-    SgObject fields = Sg_MakeVector(2, SG_UNDEF);
-    DeclareAccessor();
-    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(immutable, SG_INTERN("form"));
-    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(immutable, SG_INTERN("subform"));
-    INTERN_CONDITION_WITH_PARENT(&syntax, &violation, fields);
-    INTERN_CTR_PRED(&syntax, make-syntax-violation, syntax-violation?);
-    /* this macro is not so smart, we need to manage like this */
-    INTERN_ACCE(&syntax, &syntax-form, 0);
-    INTERN_COND_ACCE(&syntax, syntax-violation-form);
-    INTERN_ACCE(&syntax, &syntax-subform, 1);
-    INTERN_COND_ACCE(&syntax, syntax-violation-subform);
-    make_syntax_error = ctr;
-  }
-  {
-    /* undefined */
-    INTERN_CONDITION_WITH_PARENT(&undefined, &violation, nullvec);
-    INTERN_CTR_PRED(&undefined, make-undefined-violation, undefined-violation?);
-    make_undefined_violation = ctr;
-  }
-  {
-    /* non-continuable */
-    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(non, continuable),
-				&non-continuable,
-				&C_COND_NAME(violation),
-				nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(non, continuable),
-			       &non-continuable,
-			       make-non-continuable-violation,
-			       non-continuable-violation?);
-    make_non_continuable_violation = ctr;
-  }
-  {
-    /* implementation-restriction */
-    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(implementation, restriction),
-				&implementation-restriction,
-				&C_COND_NAME(violation),
-				nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(implementation, restriction),
-			       &implementation-restriction,
-			       make-implementation-restriction-violation,
-			       implementation-restriction-violation?);
-    make_implementation_restriction_violation = ctr;
-  }
-  {
-    /* no-infinities */
-    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(no, infinities),
-				&no-infinities,
-				&C_COND_NAME2(implementation, restriction),
-				nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(no, infinities),
-			       &no-infinities,
-			       make-no-infinities-violation,
-			       no-infinities-violation?);
-  }
-  {
-    /* no-nans */
-    INTERN_CONDITION_WITH_CNAME(&C_COND_NAME2(no, nans),
-				&no-nans,
-				&C_COND_NAME2(implementation, restriction),
-				nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&C_COND_NAME2(no, nans),
-			       &no-nans,
-			       make-no-nans-violation,
-			       no-nans-violation?);
-  }
-  /* &i/o related */
-  {
-    /* &i/o */
-    INTERN_CONDITION_WITH_CNAME(&io_type, &i/o, &C_COND_NAME(error), nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_type, &i/o,
-			       make-i/o-error,
-			       i/o-error?);
-  }
-  {
-    /* &i/o-read */
-    INTERN_CONDITION_WITH_CNAME(&io_read_type, &i/o-read, &io_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_read_type, &i/o-read,
-			       make-i/o-read-error,
-			       i/o-read-error?);
-    make_read_error = ctr;
-  }
-  {
-    /* &i/o-write */
-    INTERN_CONDITION_WITH_CNAME(&io_write_type, &i/o-write, &io_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_write_type, &i/o-write,
-			       make-i/o-write-error,
-			       i/o-write-error?);
-  }
-  {
-    /* &i/o-invalid-position */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable,
-						SG_INTERN("position")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_CNAME(&io_invalid_position_type,
-				&i/o-invalid-position, &io_type, fields);
-    INTERN_CTR_PRED_WITH_CNAME(&io_invalid_position_type, &i/o-invalid-position,
-			       make-i/o-invalid-position-error,
-			       i/o-invalid-position-error?);
-    INTERN_ACCE(&io_invalid_position, &i/o-invalid-position-position, 0);
-    INTERN_COND_ACCE(&io_invalid_position, i/o-error-position);
-  }
-  {
-    /* &i/o-filename */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("filename")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_CNAME(&io_filename_type, &i/o-filename,
-				&io_type, fields);
-    INTERN_CTR_PRED_WITH_CNAME(&io_filename_type, &i/o-filename,
-			       make-i/o-filename-error,
-			       i/o-filename-error?);
-    INTERN_ACCE(&io_filename, &i/o-filename-filename, 0);
-    INTERN_COND_ACCE(&io_filename, i/o-error-filename);
-  }
-  {
-    /* &i/o-file-protection */
-    INTERN_CONDITION_WITH_CNAME(&io_file_protection_type, &i/o-file-protection,
-				&io_filename_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_file_protection_type, &i/o-file-protection,
-			       make-i/o-file-protection-error,
-			       i/o-file-protection-error?);
-  }
-  {
-    /* &i/o-file-is-read-only */
-    INTERN_CONDITION_WITH_CNAME(&io_file_is_read_only_type,
-				&i/o-file-is-read-only,
-				&io_file_protection_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_file_is_read_only_type,
-			       &i/o-file-is-read-only,
-			       make-i/o-file-is-read-only-error,
-			       i/o-file-is-read-only-error?);
-  }
-  {
-    /* &i/o-file-already-exists */
-    INTERN_CONDITION_WITH_CNAME(&io_file_already_exists_type,
-				&i/o-file-already-exists,
-				&io_filename_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_file_already_exists_type,
-			       &i/o-file-already-exists,
-			       make-i/o-file-already-exists-error,
-			       i/o-file-already-exists-error?);
-  }
-  {
-    /* &i/o-file-does-not-exist */
-    INTERN_CONDITION_WITH_CNAME(&io_file_does_not_exist_type,
-				&i/o-file-does-not-exist,
-				&io_filename_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_file_does_not_exist_type,
-			       &i/o-file-does-not-exist,
-			       make-i/o-file-does-not-exist-error,
-			       i/o-file-does-not-exist-error?);
-  }
-  {
-    /* &i/o-port */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("port")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_CNAME(&io_port_type, &i/o-port, &io_type, fields);
-    INTERN_CTR_PRED_WITH_CNAME(&io_port_type, &i/o-port,
-			       make-i/o-port-error,
-			       i/o-port-error?);
-    INTERN_ACCE(&io_port, &i/o-port-port, 0);
-    INTERN_COND_ACCE(&io_port, i/o-error-port);
-  }
-  {
-    /* &i/o-decoding */
-    INTERN_CONDITION_WITH_CNAME(&io_decoding_type, &i/o-decoding,
-				&io_port_type, nullvec);
-    INTERN_CTR_PRED_WITH_CNAME(&io_decoding_type, &i/o-decoding,
-			       make-i/o-decoding-error,
-			       i/o-decoding-error?);
-  }
-  {
-    /* &i/o-encoding */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, SG_INTERN("char")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_CNAME(&io_encoding_type, &i/o-encoding,
-				&io_port_type, fields);
-    INTERN_CTR_PRED_WITH_CNAME(&io_encoding_type, &i/o-encoding,
-			       make-i/o-encoding-error,
-			       i/o-encoding-error?);
-    INTERN_ACCE(&io_encoding, &i/o-encoding-char, 0);
-    INTERN_COND_ACCE(&io_encoding, i/o-encoding-error-char);
-  }
-  /* for compiler */
-  {
-    /* &compile */
-    SgObject fields = Sg_MakeVector(2, SG_UNDEF);
-    DeclareAccessor();
-    SG_VECTOR_ELEMENT(fields, 0) = SG_LIST2(immutable, SG_INTERN("source"));
-    SG_VECTOR_ELEMENT(fields, 1) = SG_LIST2(immutable, SG_INTERN("program"));
-    INTERN_CONDITION_WITH_PARENT(&compile, &error, fields);
-    INTERN_CTR_PRED(&compile, make-compile-error, compile-error?);
-    INTERN_ACCE(&compile, &compile-source, 0);
-    INTERN_COND_ACCE(&compile, &compile-error-source);
-    INTERN_ACCE(&compile, &compile-program, 1);
-    INTERN_COND_ACCE(&compile, &compile-error-program);
-  }
-  {
-    /* &import */
-    SgObject fields = Sg_MakeVector(1, SG_LIST2(immutable, 
-						SG_INTERN("library")));
-    DeclareAccessor();
-    INTERN_CONDITION_WITH_PARENT(&import, &compile, fields);
-    INTERN_CTR_PRED(&import, make-import-error, import-error?);
-    INTERN_ACCE(&import, &import-library, 0);
-    INTERN_COND_ACCE(&import, &import-error-library);
-  }
+  INIT_CTR1(SG_CLASS_IO_INVALID_POSITION,
+	    "make-i/o-invalid-position-error", "i/o-invalid-position-error?",
+	    pos_position, "&i/o-invalid-position-position");
+  INIT_CTR1(SG_CLASS_IO_FILENAME, 
+	    "make-i/o-filename-error", "i/o-filename-error?",
+	    fn_filename, "&i/o-filename-filename");
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_PROTECTION, "make-i/o-file-protection-error",
+		"i/o-file-protection-error?");
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_IS_READ_ONLY, 
+	    "make-i/o-file-is-read-only-error", "i/o-file-is-read-only-error?");
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_ALREADY_EXISTS, 
+	    "make-i/o-file-already-exists-error", 
+	    "i/o-file-already-exists-error?");
+  INIT_CTR1_REC(SG_CLASS_IO_FILE_DOES_NOT_EXIST,
+	    "make-i/o-file-does-not-exist-error", 
+	    "i/o-file-does-not-exist-error?");
+  INIT_CTR1(SG_CLASS_IO_PORT_ERROR, "make-i/o-port-error", "i/o-port-error?",
+	    port_port, "&i/o-port-port");
+  INIT_CTR1_REC(SG_CLASS_IO_DECODING_ERROR, "make-i/o-decoding-error", 
+	    "i/o-decoding-error?");
+  INIT_CTR2_REC(SG_CLASS_IO_ENCODING_ERROR,
+		"make-i/o-encoding-error", "i/o-encoding-error?");
+  INIT_ACC(enc_char, "&i/o-encoding-char");
+  /* compile */
+  INIT_CTR2(SG_CLASS_COMPILE_CONDITION, "make-compile-error", "compile-error?",
+	    comp_source, "&compile-error-source",
+	    comp_prog, "&compile-error-program");
+  INIT_CTR1(SG_CLASS_IMPORT_CONDITION, "make-import-error", "import-error?",
+	    imp_lib, "&import-library");
+  /* compound */
+  /* compound condition don't need ctr nor pred. */
+  INIT_ACC(cc_components, "&compound-condition-components");
 }

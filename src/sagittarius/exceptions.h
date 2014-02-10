@@ -31,6 +31,7 @@
 #define SAGITTARIUS_EXCEPTIONS_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
 /* 
    r6rs standard conditions
    hierarchy
@@ -39,60 +40,263 @@
      +- &warning
      +- &serious
      |	  +- &error
+     |    |    +- &i/o
+     |    |    |    +- &i/o-read
+     |    |    |    +- &i/o-write
+     |    |    |    +- &i/o-invalid-position (position)
+     |    |    |    +- &i/o-filename (filename)
+     |    |    |    |    +- &i/o-file-protection
+     |    |    |    |    |    +- &i/o-file-is-read-only
+     |    |    |    |    +- &i/o-file-already-exists
+     |    |    |    |    +- &i/o-file-does-not-exist
+     |    |    |    +- &i/o-port (port)
+     |    |    |         +- &i/o-encoding (char)
+     |    |    |         +- &i/o-decoding
+     |    |    +- &compile (source program) <-- non R6RS
+     |    |    +- &import (library)         <-- ditto
      |	  +- &violation
      |	       +- &assertion
      |	       +- &non-continuable
      |	       +- &implementation-restriction
      |	       +- &lexical
-     |	       +- &syntax
+     |	       +- &syntax (form subform)
      |	       +- &undefined
-     +- &message
-     +- &irritants
+     +- &message (message)
+     +- &irritants (irritants)
+     +- &who (who)
 
    we implement these standard conditions in C.
+   For convenience &compound-condition is defined
  */
+SG_CLASS_DECL(Sg_ConditionClass);
+SG_CLASS_DECL(Sg_WarningClass);
+SG_CLASS_DECL(Sg_SeriousClass);
+SG_CLASS_DECL(Sg_ErrorClass);
+SG_CLASS_DECL(Sg_ViolationClass);
+SG_CLASS_DECL(Sg_AssertionClass);
+SG_CLASS_DECL(Sg_NonContinuableClass);
+SG_CLASS_DECL(Sg_ImplementationRestrictionClass);
+SG_CLASS_DECL(Sg_LexicalConditionClass);
+SG_CLASS_DECL(Sg_SyntaxConditionClass);
+SG_CLASS_DECL(Sg_UndefinedConditionClass);
+SG_CLASS_DECL(Sg_MessageConditionClass);
+SG_CLASS_DECL(Sg_IrritantsConditionClass);
+SG_CLASS_DECL(Sg_WhoConditionClass);
+SG_CLASS_DECL(Sg_CompoundConditionClass);
+/* i/o */
+SG_CLASS_DECL(Sg_IOErrorClass);
+SG_CLASS_DECL(Sg_IOReadErrorClass);
+SG_CLASS_DECL(Sg_IOWriteErrorClass);
+SG_CLASS_DECL(Sg_IOInvalidPositionClass);
+SG_CLASS_DECL(Sg_IOFilenameClass);
+SG_CLASS_DECL(Sg_IOFileProtectionClass);
+SG_CLASS_DECL(Sg_IOFileIsReadOnlyClass);
+SG_CLASS_DECL(Sg_IOFileAlreadyExistsClass);
+SG_CLASS_DECL(Sg_IOFileDoesNotExistClass);
+SG_CLASS_DECL(Sg_IOPortErrorClass);
+SG_CLASS_DECL(Sg_IOEncodingErrorClass);
+SG_CLASS_DECL(Sg_IODecodingErrorClass);
+/* for compiler */
+SG_CLASS_DECL(Sg_CompileConditionClass);
+SG_CLASS_DECL(Sg_ImportConditionClass);
 
-/* macros to define C level exceptions */
+#define SG_CLASS_CONSITION (&Sg_ConditionClass)
+#define SG_CLASS_WARNING   (&Sg_WarningClass)
+#define SG_CLASS_SERIOUS   (&Sg_SeriousClass)
+#define SG_CLASS_ERROR     (&Sg_ErrorClass)
+#define SG_CLASS_VIOLATION (&Sg_ViolationClass)
+#define SG_CLASS_ASSERTION (&Sg_AssertionClass)
+#define SG_CLASS_NON_CONTINUABLE (&Sg_NonContinuableClass)
+#define SG_CLASS_IMPLEMENTATION_RESTRICTION (&Sg_ImplementationRestrictionClass)
+#define SG_CLASS_LEXICAL_CONDITION (&Sg_LexicalConditionClass)
+#define SG_CLASS_SYNTAX_CONDITION (&Sg_SyntaxConditionClass)
+#define SG_CLASS_UNDEFINED_CONDITION (&Sg_UndefinedConditionClass)
+#define SG_CLASS_MESSAGE_CONDITION (&Sg_MessageConditionClass)
+#define SG_CLASS_IRRITANTS_CONDITION (&Sg_IrritantsConditionClass)
+#define SG_CLASS_WHO_CONDITION (&Sg_WhoConditionClass)
+#define SG_CLASS_COMPOUND_CONDITION (&Sg_CompoundConditionClass)
+#define SG_CLASS_IO_ERROR (&Sg_IOErrorClass)
+#define SG_CLASS_IO_READ_ERROR (&Sg_IOReadErrorClass)
+#define SG_CLASS_IO_WRITE_ERROR (&Sg_IOWriteErrorClass)
+#define SG_CLASS_IO_INVALID_POSITION (&Sg_IOInvalidPositionClass)
+#define SG_CLASS_IO_FILENAME (&Sg_IOFilenameClass)
+#define SG_CLASS_IO_FILE_PROTECTION (&Sg_IOFileProtectionClass)
+#define SG_CLASS_IO_FILE_IS_READ_ONLY (&Sg_IOFileIsReadOnlyClass)
+#define SG_CLASS_IO_FILE_ALREADY_EXISTS (&Sg_IOFileAlreadyExistsClass)
+#define SG_CLASS_IO_FILE_DOES_NOT_EXIST (&Sg_IOFileDoesNotExistClass)
+#define SG_CLASS_IO_PORT_ERROR (&Sg_IOPortErrorClass)
+#define SG_CLASS_IO_ENCODING_ERROR (&Sg_IOEncodingErrorClass)
+#define SG_CLASS_IO_DECODING_ERROR (&Sg_IODecodingErrorClass)
+#define SG_CLASS_COMPILE_CONDITION (&Sg_CompileConditionClass)
+#define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
 
-#define SG_DECLARE_EXCEPTIONS(libname, create)				\
-  SgObject rtd__, rcd__, ctr__, pred__, accessor__;			\
-  SgLibrary *lib__ = SG_LIBRARY(Sg_FindLibrary(SG_SYMBOL(SG_INTERN(libname)), \
-					       (create)))
+#define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONSITION)
+#define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
+#define SG_SIMPLE_CONDITIONP(o) (SG_CONDITIONP(o)&&!(SG_COMPOUND_CONDITIONP(o)))
 
-#define SG_INTERN__CONDITION(cname, sname, prtd, prcd, uid, sealed, opaque, fvec, protocol) \
+/* all condition structs... */
+typedef struct SgCompoundConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject components;
+} SgCompoundCondition;
+
+#define SG_COMPOUND_CONDITION(o) ((SgCompoundCondition *)o)
+
+/* for my sake... */
+typedef struct SgConditionRec
+{
+  SG_INSTANCE_HEADER;
+} SgCondition;
+#define SG_WARNINGP(o) 	 SG_ISA(o, SG_CLASS_WARNING)
+#define SG_SERIOUSP(o) 	 SG_ISA(o, SG_CLASS_SERIOUS)
+#define SG_ERRORP(o)   	 SG_ISA(o, SG_CLASS_ERROR)
+#define SG_VIOLATIONP(o) SG_ISA(o, SG_CLASS_VIOLATION)
+#define SG_ASSERTIONP(o) SG_ISA(o, SG_CLASS_ASSERTION)
+#define SG_NON_CONTINUABLEP(o) SG_ISA(o, SG_CLASS_NON_CONTINUABLE)
+#define SG_IMPLEMENTATION_RESTRICTIONP(o) \
+  SG_ISA(o, SG_CLASS_IMPLEMENTATION_RESTRICTION)
+#define SG_LEXICAL_CONDITIONP(o)   SG_ISA(o, SG_CLASS_LEXICAL_CONDITION)
+#define SG_UNDEFINED_CONDITIONP(o) SG_ISA(o, SG_CLASS_UNDEFINED_CONDITION)
+/* from here condition has something */
+typedef struct SgMessageConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject message;
+} SgMessageCondition;
+#define SG_MESSAGE_CONDITION(o)    ((SgMessageCondition *)o)
+#define SG_MESSAGE_CONDITIONP(o)   SG_ISA(o, SG_CLASS_MESSAGE_CONDITION)
+typedef struct SgIrritantsConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject irritants;
+} SgIrritantsCondition;
+#define SG_IRRITATNS_CONDITION(o)  ((SgIrritantsCondition *)o)
+#define SG_IRRITATNS_CONDITIONP(o) SG_ISA(o, SG_CLASS_IRRITANTS_CONDITION)
+
+typedef struct SgWhoConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject who;
+} SgWhoCondition;
+#define SG_WHO_CONDITION(o)     ((SgWhoCondition *)o)
+#define SG_WHO_CONDITIONP(o)    SG_ISA(o, SG_CLASS_WHO_CONDITION)
+typedef struct SgSyntaxConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject form;
+  SgObject subform;
+} SgSyntaxCondition;
+#define SG_SYNTAX_CONDITION(o)  ((SgSyntaxCondition *)o)
+#define SG_SYNTAX_CONDITIONP(o) SG_ISA(o, SG_CLASS_SYNTAX_CONDITION)
+
+/* i/o */
+#define SG_IO_ERRORP(o)       SG_ISA(o, SG_CLASS_IO_ERROR)
+#define SG_IO_READ_ERRORP(o)  SG_ISA(o, SG_CLASS_IO_READ_ERROR)
+#define SG_IO_WRITE_ERRORP(o) SG_ISA(o, SG_CLASS_IO_WRITE_ERROR)
+typedef struct SgIOInvalidPositionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject position;
+} SgIOInvalidPosition;
+#define SG_IO_INVALID_POSITION(o)  ((SgIOInvalidPosition *)o)
+#define SG_IO_INVALID_POSITIONP(o) SG_ISA(o, SG_CLASS_IO_INVALID_POSITION)
+typedef struct SgIOFilenameRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject filename;
+} SgIOFilename;
+#define SG_IO_FILENAME(o)  ((SgIOFilename *)o)
+#define SG_IO_FILENAMEP(o) SG_ISA(o, SG_CLASS_IO_FILENAME)
+#define SG_IO_FILE_PROTECTIONP(o) SG_ISA(o, SG_CLASS_IO_FILE_PROTECTION)
+#define SG_IO_FILE_IS_READ_ONLYP(o) SG_ISA(o, SG_CLASS_IO_FILE_IS_READ_ONLY)
+#define SG_IO_FILE_ALREADY_EXISTSP(o) SG_ISA(o, SG_CLASS_IO_FILE_ALREADY_EXISTS)
+#define SG_IO_FILE_DOES_NOT_EXISTP(o) SG_ISA(o, SG_CLASS_IO_FILE_DOES_NOT_EXIST)
+typedef struct SgIOPortErrorRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject port;
+} SgIOPortError;
+#define SG_IO_PORT_ERROR(o)  ((SgIOPortError *)o)
+#define SG_IO_PORT_ERRORP(o) SG_ISA(o, SG_CLASS_IO_PORT_ERROR)
+
+#define SG_IO_DECODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_DECODING_ERROR)
+typedef struct SgIOEncodingErrorRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject port;
+  SgObject char_;
+} SgIOEncodingError;
+#define SG_IO_ENCODING_ERROR(o)  ((SgIOEncodingError *)o)
+#define SG_IO_ENCODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_ENCODING_ERROR)
+
+typedef struct SgCompileConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject source;
+  SgObject program;
+} SgCompileCondition;
+#define SG_COMPILE_CONDITION(o)  ((SgCompileCondition *)o)
+#define SG_COMPILE_CONDITIONP(o) SG_ISA(o, SG_CLASS_COMPILE_CONDITION)
+typedef struct SgImportConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject library;
+} SgImportCondition;
+#define SG_IMPORT_CONDITION(o)  ((SgImportCondition *)o)
+#define SG_IMPORT_CONDITIONP(o) SG_ISA(o, SG_CLASS_IMPORT_CONDITION)
+
+#define SG_INIT_CONDITION(cl, lib, name, slots)	\
   do {									\
-    rtd__ = Sg_MakeRecordTypeDescriptor(SG_SYMBOL(SG_INTERN(#sname)),	\
-					(prtd), (uid), (sealed),	\
-					(opaque), SG_VECTOR(fvec));	\
-    rcd__ = Sg_MakeRecordConstructorDescriptor(rtd__, (prcd), (protocol)); \
-    SG_INIT_RECORD_TYPE(cname, SG_INTERN(#sname), rtd__, rcd__);	\
-    Sg_InsertBinding(lib__, SG_SYMBOL(SG_INTERN(#sname)), cname); \
+    SgObject m = Sg_AllocateRecordTypeMeta(SG_CLASS_RECORD_TYPE_META,	\
+					   SG_NIL);			\
+    Sg_InitStaticClassWithMeta(cl, UC(name), (lib), SG_CLASS(m),	\
+			       SG_NIL,  slots, 0);			\
+    Sg__AppendImmutable(cl);						\
   } while (0)
 
-#define SG_INTERN__CONDITION_SIMPLE(cname, sname, prtd, prcd, fvec)	\
-  SG_INTERN__CONDITION(cname, sname, prtd, prcd, SG_FALSE, FALSE, FALSE, fvec, SG_FALSE)
-
-#define SG_INTERN__CONDITION_CTR(cname, method)			\
-  do {								\
-    ctr__ = Sg_RecordConstructor(SG_RECORD_TYPE_RCD(cname));	\
-    Sg_InsertBinding(lib__, SG_INTERN(#method), ctr__);		\
-  } while (0)
-
-#define SG_INTERN__CONDITION_PRED(cname, method)		\
-  do {								\
-    pred__ = Sg_RecordPredicate(SG_RECORD_TYPE_RTD(cname));	\
-    Sg_InsertBinding(lib__, SG_INTERN(#method), pred__);	\
-  } while (0)
-
-#define SG_INTERN__CONDITION_ACCESSOR(cname, rmethod, cmethod, pos)	\
+#define SG_INIT_CONDITION_PRED(cl, lib, name)				\
   do {									\
-    accessor__ = Sg_RecordAccessor(SG_RECORD_TYPE_RTD(cname), pos);	\
-    Sg_InsertBinding(lib__, SG_INTERN(#rmethod), accessor__);		\
-    Sg_InsertBinding(lib__, SG_INTERN(#cmethod),			\
-		     Sg_ConditionAccessor(SG_RECORD_TYPE_RTD(cname), accessor__)); \
+    SgObject pred = Sg_MakeSubr(Sg__ConditionPredicate, (void *)cl,	\
+				1, 0, SG_MAKE_STRING(name));		\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), pred);		\
+  } while (0);
+#define SG_INIT_CONDITION_CTR(cl, lib, name, n)				\
+  do {									\
+    SgObject proc = Sg_MakeSubr(Sg__ConditionConstructorN, (void *)cl,	\
+				(n), 0,	SG_MAKE_STRING(name));		\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
+  } while (0)
+#define SG_INIT_CONDITION_ACC(fn, lib, name)				\
+  do {									\
+    SgObject acc = Sg_MakeSubr(Sg__ConditionAccessor, (void *)fn, 1, 0,	\
+			       SG_MAKE_STRING(name));			\
+    Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), acc);		\
   } while (0)
 
-#define SG_SET_CONSTRUCTOR(t) (t) = ctr__;
+#define SG_ERROR_CONDITION_CPL			\
+  SG_CLASS_ERROR,				\
+    SG_CLASS_SERIOUS,				\
+    SG_CLASS_CONSITION,				\
+    SG_CLASS_TOP				\
+
+#define SG_DEFINE_CONDITION_ALLOCATOR(name, type)		\
+  static SgObject name(SgClass *klass, SgObject initargs) {	\
+    type *c = SG_ALLOCATE(type, klass);				\
+    SG_SET_CLASS(c, klass);					\
+    return SG_OBJ(c);						\
+  }
+
+#define SG_DEFINE_CONDITION_ACCESSOR(name, type, pred, prop)	\
+  static SgObject name(type *e) {				\
+    if (!pred(e)) {						\
+      Sg_Error(UC("unexpected condition type %S"), e);		\
+    }								\
+    return e->prop;						\
+  }								\
+  static void SG_CPP_CAT(name, _set)(type *e, SgObject v) {	\
+    e->prop = v;						\
+  }
 
 SG_CDECL_BEGIN
 
@@ -108,10 +312,6 @@ SG_EXTERN int      Sg_CompoundConditionP(SgObject obj);
 SG_EXTERN int      Sg_SimpleConditionP(SgObject obj);
 SG_EXTERN int      Sg_ConditionP(SgObject obj);
 
-/* generator */
-SG_EXTERN SgObject Sg_ConditionPredicate(SgObject rtd);
-SG_EXTERN SgObject Sg_ConditionAccessor(SgObject rtd, SgObject proc);
-
 /* for c use constructor */
 SG_EXTERN SgObject Sg_MakeNonContinuableViolation();
 SG_EXTERN SgObject Sg_MakeAssertionViolation();
@@ -126,6 +326,14 @@ SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
+
+SG_EXTERN SgObject Sg_ConditionAllocate(SgClass *klass, SgObject initargs);
+/* internl use or only via macro */
+SG_EXTERN void     Sg__AppendImmutable(SgClass *klass);
+SG_EXTERN SgObject Sg__ConditionPredicate(SgObject *args, int argc, void *data);
+SG_EXTERN SgObject Sg__ConditionAccessor(SgObject *args, int argc, void *data);
+SG_EXTERN SgObject Sg__ConditionConstructorN(SgObject *args, int argc,
+					     void *data);
 
 SG_CDECL_END
 

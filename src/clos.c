@@ -64,8 +64,8 @@
 static void slot_acc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgSlotAccessor *acc = SG_SLOT_ACCESSOR(obj);
-  Sg_Printf(port, UC("#<slot-accessor %A:%A>"),
-	    acc->klass?acc->klass->name:SG_UNDEF, acc->name);
+  Sg_Printf(port, UC("#<slot-accessor %A:%A,%d>"),
+	    acc->klass?acc->klass->name:SG_UNDEF, acc->name, acc->index);
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SlotAccessorClass, slot_acc_print);
 
@@ -196,7 +196,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
 {
   SgSlotAccessor *ac = SG_NEW(SgSlotAccessor);
   SG_SET_CLASS(ac, SG_CLASS_SLOT_ACCESSOR);
-  ac->name = name;
+  ac->name = SG_CAR(name);
   ac->klass = klass;
   ac->index = index;
   ac->getter = NULL;
@@ -204,6 +204,7 @@ static SgSlotAccessor *make_slot_accessor(SgClass *klass, SgObject name,
   ac->getterS = SG_FALSE;
   ac->setterS = SG_FALSE;
   ac->boundP = SG_FALSE;
+  ac->definition = name;		/* book keeping for redefinition */
   return ac;
 }
 
@@ -483,23 +484,38 @@ SgObject Sg_ComputeCPL(SgClass *klass)
   return Sg_Cons(SG_OBJ(klass), result);
 }
 
+/*
+  compute-slots
+  
+  The computed slots' order is reversed order than before.
+  e.g)
+  (define-class <point> ()
+    (x y))
+  (define-class <point2> (<point>)
+    (x1 y1))
+  The <point2> of class-slots returns ((x) (y) (x1) (y1))
+  so that the accessor always indicates the same position
+  of instance slots. This makes slot accessing using class
+  consistent.
+ */
 SgObject Sg_ComputeSlots(SgClass *klass)
 {
   SgObject slots = SG_NIL;
   SgObject cp, sp;
   SG_FOR_EACH(cp, klass->cpl) {
     ASSERT(Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS));
+    SgObject acc = SG_NIL;
     SG_FOR_EACH(sp, SG_CLASS(SG_CAR(cp))->directSlots) {
-      SgObject slot = SG_CAR(sp), snam, p;
+      SgObject slot = SG_CAR(sp);
       ASSERT(SG_PAIRP(slot));
-      snam = SG_CAR(slot);
-      p = Sg_Assq(snam, slots);
-      if (SG_FALSEP(p)) {
-	slots = Sg_Cons(Sg_CopyList(slot), slots);
-      }
+      /* copy all slots */
+      acc = Sg_Cons(Sg_CopyList(slot), acc);
+    }
+    if (!SG_NULLP(acc)) {
+      slots = Sg_Append2X(Sg_ReverseX(acc), slots);
     }
   }
-  return Sg_ReverseX(slots);
+  return slots;
 }
 
 SgObject Sg_MakeSlotAccessor(SgClass *klass, SgObject slot, int index,
@@ -1322,6 +1338,13 @@ static SgObject class_allocate(SgClass *klass, SgObject initargs)
   Sg_RegisterFinalizer(SG_OBJ(instance), class_finalize, NULL);
   return SG_OBJ(instance);
 }
+
+/* not in the header for now */
+SgObject Sg_ClassAllocate(SgClass *klass, SgObject initargs)
+{
+  return class_allocate(klass, initargs);
+}
+
 /*
   <class> slot accessors
 
@@ -1466,11 +1489,23 @@ static SgObject class_direct_subclasses(SgClass *klass)
   return klass->directSubclasses;
 }
 
+/* 
+   Now it's stored in reverse order but to show it in Scheme
+   world we make it in proper order.
+ */
 static SgObject class_getters_n_setters(SgClass *klass)
 {
-  return Sg_ArrayToList((SgObject*)klass->gettersNSetters, klass->nfields);
+  SgObject r = Sg_ArrayToList((SgObject*)klass->gettersNSetters,
+			      klass->nfields);
+  return Sg_ReverseX(r);
 }
 
+/*
+  This is a bit confusing part.
+  Since the computed slots are ascendant, the slot accessor must be
+  set to reverse order so that the very bottom class's slot will be
+  refer first.
+ */
 static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
 {
   SgObject cp;
@@ -1482,7 +1517,7 @@ static void class_getters_n_setters_set(SgClass *klass, SgObject getters)
       Sg_Error(UC("list of slot-accessor required, but got %S"), getters);
     }
   }
-
+  getters = Sg_Reverse(getters);
   klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(getters, TRUE);
 }
 
@@ -1903,6 +1938,18 @@ static void sa_setter_set(SgSlotAccessor *sa, SgObject proc)
 {
   sa->setterS = proc;
 }
+static SgObject sa_name(SgSlotAccessor *sa)
+{
+  return sa->name;
+}
+static SgObject sa_class(SgSlotAccessor *sa)
+{
+  return sa->klass;
+}
+static SgObject sa_definition(SgSlotAccessor *sa)
+{
+  return sa->definition;
+}
 
 /* static initializer */
 
@@ -1956,6 +2003,9 @@ static SgSlotAccessor method_slots[] = {
 static SgSlotAccessor slot_accessor_slots[] = {
   SG_CLASS_SLOT_SPEC("getter",   0, sa_getter, sa_getter_set),
   SG_CLASS_SLOT_SPEC("setter",   1, sa_setter, sa_setter_set),
+  SG_CLASS_SLOT_SPEC("name",     2, sa_name,   NULL),
+  SG_CLASS_SLOT_SPEC("class",    3, sa_class,  NULL),
+  SG_CLASS_SLOT_SPEC("definition", 4, sa_definition,  NULL),
   { { NULL } }
 };
 
@@ -2000,6 +2050,25 @@ static void initialize_builtin_cpl(SgClass *klass, SgObject supers)
   }
 }
 
+/* Fixup the index, the operation is done destructively for the list
+   but not for the accessor. */
+static void fixup_slot_accessor(SgObject accs)
+{
+  int index = Sg_Length(accs) - 1;
+  SgObject cp;
+  SG_FOR_EACH(cp, accs) {
+    SgSlotAccessor *acc = SG_SLOT_ACCESSOR(SG_CAR(cp));
+    if (acc->index != index) {
+      /* copy it. */
+      SgSlotAccessor *n = SG_NEW(SgSlotAccessor);
+      memcpy(n, acc, sizeof(SgSlotAccessor));
+      n->index = index;		/* update index */
+      SG_SET_CAR(cp, n);
+    }
+    index--;
+  }
+}
+
 static void init_class(SgClass *klass, const SgChar *name,
 		       SgLibrary *lib, SgObject supers,
 		       SgSlotAccessor *specs, int flags)
@@ -2021,13 +2090,14 @@ static void init_class(SgClass *klass, const SgChar *name,
   if (specs) {
     for (;specs->name; specs++) {
       SgObject snam = Sg_Intern(Sg_MakeStringC(specs->cname));
+      SgObject slot = SG_LIST3(snam,
+			       SG_KEYWORD_INIT_KEYWORD, 
+			       Sg_MakeKeyword(SG_SYMBOL(snam)->name));
       specs->klass = klass;
       specs->name = snam;
+      specs->definition = slot;
       acc = Sg_Cons(SG_OBJ(&*specs), acc);
-      SG_APPEND1(slots, t,
-		 SG_LIST3(snam,
-			  SG_KEYWORD_INIT_KEYWORD, 
-			  Sg_MakeKeyword(SG_SYMBOL(snam)->name)));
+      SG_APPEND1(slots, t, slot);
     }
   }
   klass->directSlots = slots;
@@ -2036,24 +2106,26 @@ static void init_class(SgClass *klass, const SgChar *name,
   for (super = klass->cpa; *super; super++) {
     SgSlotAccessor **dacc = (*super)->gettersNSetters;
     /* I think slot should have accessor info but for now */
+    SgObject tmp = SG_NIL;
     for (;dacc && *dacc; dacc++) {
-      SgObject p = Sg_Assq((*dacc)->name, slots);
-      if (SG_FALSEP(p)) {
-	acc = Sg_Cons(acc, SG_OBJ(*dacc));
-      }
+      tmp = Sg_Cons(SG_OBJ(*dacc), tmp);
+    }
+    /* A (a b) <- B (c d)
+
+       now acc is reverse order (d c) and super is (b a)
+       append super to acc */
+    if (!SG_NULLP(tmp)) {
+      acc = Sg_Append2X(acc, tmp);
     }
     SG_FOR_EACH(sp, (*super)->directSlots) {
-      SgObject slot = SG_CAR(sp), snam, p;
+      SgObject slot = SG_CAR(sp);
       ASSERT(SG_PAIRP(slot));
-      snam = SG_CAR(slot);
-      p = Sg_Assq(snam, slots);
-      if (SG_FALSEP(p)) {
-	slots = Sg_Cons(Sg_CopyList(slot), slots);
-      }
+      slots = Sg_Cons(Sg_CopyList(slot), slots);
     }
   }
-  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(Sg_ReverseX(acc),
-							    TRUE);
+  /* fixup slot index */
+  fixup_slot_accessor(acc);
+  klass->gettersNSetters = (SgSlotAccessor**)Sg_ListToArray(acc, TRUE);
   klass->slots = slots;
   klass->nfields = Sg_Length(slots);
   /* do we need this? */
@@ -2279,7 +2351,11 @@ SgObject Sg_VMSlotSetUsingSlotDefinition(SgObject obj, SgObject slot,
 }
 SgObject Sg_VMSlotBoundUsingSlotDefinition(SgObject obj, SgObject slot)
 {
-  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
+  SgSlotAccessor *ac;
+  if (!SG_PAIRP(slot)) {
+    Sg_Error(UC("slot definition must be a list but got %S"), slot);
+  }
+  ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
   if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
   return SG_MAKE_BOOL(Sg_SlotBoundUsingAccessor(obj, ac));
 }
@@ -2292,13 +2368,12 @@ static SgObject slot_initialize_cc(SgObject result, void **data)
   return SG_UNDEF;
 }
 
-SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
-						SgObject initargs)
+SgObject Sg_VMSlotInitializeUsingAccessor(SgObject obj, SgObject acc, 
+					  SgObject initargs)
 {
+  SgSlotAccessor *ac = SG_SLOT_ACCESSOR(acc);
+  SgObject slot = ac->definition;
   SgObject key  = Sg_Memq(SG_KEYWORD_INIT_KEYWORD, slot);
-  SgSlotAccessor *ac = lookup_slot_info(Sg_ClassOf(obj), SG_CAR(slot));
-
-  if (!ac) Sg_Error(UC("Unknown slot %S"), SG_CAR(slot));
 
   /* (1) use init-keyword */
   if (!SG_FALSEP(key) && SG_PAIRP(SG_CDR(key)) &&
@@ -2313,7 +2388,8 @@ SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
   /* (2) use init-value */
   key = Sg_Memq(SG_KEYWORD_INIT_VALUE, slot);
   if (!SG_FALSEP(key)) {
-    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot), SG_UNDEF);
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_VALUE, SG_CDR(slot),
+			       SG_UNDEF);
     if (!SG_UNDEFP(v)) {
       Sg_SlotSetUsingAccessor(obj, ac, v);
       return SG_UNDEF;
@@ -2322,7 +2398,8 @@ SgObject Sg_VMSlotInitializeUsingSlotDefinition(SgObject obj, SgObject slot,
   /* (2) use init-thunk */
   key = Sg_Memq(SG_KEYWORD_INIT_THUNK, slot);
   if (!SG_FALSEP(key)) {
-    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot), SG_UNDEF);
+    SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot),
+			       SG_UNDEF);
     if (!SG_UNDEFP(v)) {
       void *data[2];
       data[0] = obj;
@@ -2346,7 +2423,7 @@ static SgObject object_initialize1(SgObject obj, SgObject slots,
   next[1] = SG_CDR(slots);
   next[2] = initargs;
   Sg_VMPushCC(object_initialize_cc, next, 3);
-  return Sg_VMSlotInitializeUsingSlotDefinition(obj, SG_CAR(slots), initargs);
+  return Sg_VMSlotInitializeUsingAccessor(obj, SG_CAR(slots), initargs);
 }
 
 static SgObject object_initialize_cc(SgObject result, void **data)
@@ -2361,7 +2438,9 @@ static SgObject object_initialize_impl(SgObject *argv, int argc, void *data)
 {
   SgObject obj = argv[0];
   SgObject initargs = argv[1];
-  SgObject slots = Sg_ClassOf(obj)->slots;
+  SgClass *klass = SG_CLASS(Sg_ClassOf(obj));
+  SgObject slots = Sg_ReverseX(Sg_ArrayToList((SgObject*)klass->gettersNSetters,
+					      klass->nfields));
   if (SG_NULLP(slots)) return obj;
   return object_initialize1(obj, slots, initargs);
 }
@@ -2796,15 +2875,6 @@ void Sg__InitClos()
   /* codec and transcoders */
   CINIT(SG_CLASS_CODEC,       "<codec>");
   CINIT(SG_CLASS_TRANSCODER,  "<transcoder>");
-
-  /* Should we export this? this might be removed in future if I can rewrite
-     record with CLOS. */
-  /* record */
-  CINIT(SG_CLASS_RECORD_TYPE, "<record-type>");
-  CINIT(SG_CLASS_RTD, "<rtd>");
-  CINIT(SG_CLASS_RCD, "<rcd>");
-  /* tuple */
-  CINIT(SG_CLASS_TUPLE, "<tuple>");
 
   /* procedure */
   CINIT(SG_CLASS_PROCEDURE, "<procedure>");

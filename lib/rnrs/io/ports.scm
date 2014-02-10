@@ -87,7 +87,8 @@
 	    make-custom-textual-input/output-port)
     (import (core)
 	    (core base)
-	    (core io))
+	    (core io)
+	    (core conditions))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

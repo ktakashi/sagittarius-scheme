@@ -1,6 +1,6 @@
-/* -*- C -*- */
-/*
- * threads.h: multi thread extensions
+/* threads.h                                       -*- mode:c; coding:utf-8; -*-
+ *
+ * multi thread extensions
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
@@ -79,6 +79,53 @@ struct timespec {
     long   tv_nsec;
 };
 #endif
+
+/* conditions */
+SG_CLASS_DECL(Sg_ThreadExceptionClass);
+SG_CLASS_DECL(Sg_JoinTimeoutExceptionClass);
+SG_CLASS_DECL(Sg_AbondanedMutexExceptionClass);
+SG_CLASS_DECL(Sg_TerminatedThreadExceptionClass);
+SG_CLASS_DECL(Sg_UncaughtExceptionClass);
+
+#define SG_CLASS_THREAD_EXCEPTION            (&Sg_ThreadExceptionClass)
+#define SG_CLASS_JOIN_TIMEOUT_EXCEPTION      (&Sg_JoinTimeoutExceptionClass)
+#define SG_CLASS_ABONDANED_MUTEX_EXCEPTION   (&Sg_AbondanedMutexExceptionClass)
+#define SG_CLASS_TERMINATED_THREAD_EXCEPTION (&Sg_TerminatedThreadExceptionClass)
+#define SG_CLASS_UNCAUGHT_EXCEPTION          (&Sg_UncaughtExceptionClass)
+
+typedef struct SgThreadExceptionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject thread;
+} SgThreadException;
+#define SG_THREAD_EXCEPTION(o)  ((SgThreadException *)o)
+#define SG_THREAD_EXCEPTIONP(o) SG_ISA(o, SG_CLASS_THREAD_EXCEPTION)
+
+typedef struct SgAbondanedMutexExceptionRec
+{
+  SgThreadException parent;
+  SgObject mutex;
+} SgAbondanedMutexException;
+#define SG_ABONDANED_MUTEX_EXCEPTION(o)	((SgAbondanedMutexException *)o)
+#define SG_ABONDANED_MUTEX_EXCEPTIONP(o)	\
+  SG_ISA(o, SG_CLASS_ABONDANED_MUTEX_EXCEPTION)
+
+typedef struct SgTerminatedThreadExceptionRec
+{
+  SgThreadException parent;
+  SgObject terminator;
+} SgTerminatedThreadException;
+#define SG_TERMINATED_THREAD_EXCEPTION(o) ((SgTerminatedThreadException *)o)
+#define SG_TERMINATED_THREAD_EXCEPTIONP(o)		\
+  SG_ISA(o, SG_CLASS_TERMINATED_THREAD_EXCEPTION)
+
+typedef struct SgUncaughtExceptionRec
+{
+  SgThreadException parent;
+  SgObject reason;
+} SgUncaughtException;
+#define SG_UNCAUGHT_EXCEPTION(o)  ((SgUncaughtException *)o)
+#define SG_UNCAUGHT_EXCEPTIONP(o) SG_ISA(o, SG_CLASS_UNCAUGHT_EXCEPTION)
 
 SG_CDECL_BEGIN
 /*

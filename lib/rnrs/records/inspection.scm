@@ -10,7 +10,7 @@
 	    record-type-opaque?
 	    record-type-field-names
 	    record-field-mutable?)
-    (import (core))
+    (import (core record procedural))
 
 ) ; [end]
 ;; end of file

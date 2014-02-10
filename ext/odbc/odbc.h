@@ -116,6 +116,11 @@ SG_CLASS_DECL(Sg_OdbcDateClass);
 #define SG_ODBC_DATE_TIME      SG_ODBC_DATE
 #define SG_ODBC_DATE_TIMESTAMP SG_ODBC_DATE
 
+/* condition */
+SG_CLASS_DECL(Sg_OdbcErrorClass);
+#define SG_CLASS_ODBC_ERROR (&Sg_OdbcErrorClass)
+
+
 SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
 SgObject Sg_Connect(SgObject env, SgString *server, SgString *user,
 		    SgString *auth, int autoCommitP);

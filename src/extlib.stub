@@ -807,12 +807,6 @@
 
   (define-c-proc cond-features () Sg_CondFeatures)
 
-  ;; record
-  (define-c-proc make-record-type (name::<symbol> rtd rcd) Sg_MakeRecordType)
-  (define-c-proc record-type? (obj) ::<boolean> :constant SG_RECORD_TYPEP)
-  (define-c-proc record-type-rtd (rt::<record-type>) SG_RECORD_TYPE_RTD)
-  (define-c-proc record-type-rcd (rt::<record-type>) SG_RECORD_TYPE_RCD)
-
   ;; charset
   (define-c-proc char-set? (obj) ::<boolean> :constant SG_CHAR_SET_P)
 
