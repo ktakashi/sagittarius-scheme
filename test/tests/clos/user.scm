@@ -355,4 +355,19 @@
        (map (cut slot-ref *docu-sub* <>) '(a b c x y z)))
 
 
+;; let-method
+(define-generic local-method1)
+(define-generic local-method2)
+(let-method ((local-method1 ((a <symbol>)) a)
+	     (local-method1 ((a <string>)) a)
+	     (local-method2 (a d) (cons a d))
+	     (local-method2 ((a <symbol>) d) (cons (symbol->string a) d)))
+  (test-equal "local-method1 (<symbol>)" 'a  (local-method1 'a))
+  (test-equal "local-method1 (<string>)" "a" (local-method1 "a"))
+  (test-equal "local-method2 (a d)" '(1 . 2) (local-method2 1 2))
+  (test-equal "local-method2 ((a <symbol>) d)" '("a" . d)
+	      (local-method2 'a 'd)))
+(test-error "local-method1" condition? (local-method1 'a))
+(test-error "local-method2" condition? (local-method2 'a 2))
+
 (test-end)

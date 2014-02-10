@@ -45,8 +45,6 @@
 	    <symbol> <keyword> <gloc>
 	    ;; io
 	    <port> <codec> <transcoder>
-	    ;; record
-	    <record-type> <tuple>
 	    ;; procedure
 	    <procedure>
 	    ;; etc

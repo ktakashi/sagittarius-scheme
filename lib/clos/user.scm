@@ -42,8 +42,6 @@
 	    <symbol> <keyword> <gloc>
 	    ;; io
 	    <port> <codec> <transcoder>
-	    ;; record
-	    <record-type> <tuple>
 	    ;; procedure
 	    <procedure>
 	    ;; etc
@@ -59,6 +57,8 @@
 	    define-class
 	    define-method
 	    define-generic
+	    ;; for local method
+	    let-method
 
 	    eql
 	    eqv? ;; for prefix or rename import
@@ -348,7 +348,8 @@
       (syntax-case x ()
 	((k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
-	 (with-syntax (((true-name getter-name) (%check-setter-name ?generic)))
+	 (with-syntax (((true-name getter-name)
+			(%check-setter-name #'?generic)))
 	   (with-syntax (((def ...) (define/empty #'true-name)))
 	     #'(begin
 		 def ...
@@ -359,6 +360,30 @@
 	 #'(define-method ?qualifier ?generic ?args . ?body))
 	((_ ?generic ?args . ?body)
 	 #'(define-method :primary ?generic ?args . ?body)))))
+
+  #|
+  let-method ::= bindings body
+  bindings   ::= (binding ...)
+  binding    ::= (generic (specializers ...) body)
+  body       ::= expr ...
+  |#
+  (define-syntax let-method
+    (syntax-rules ()
+      ((_ "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+	  ((gf spec expr ...) next ...) body ...)
+       (let-method "bind" (t tmp ...) (gf gfs ...) (spec specs ...) 
+		   ((expr ...) exprs ...) (next ...)
+		   body ...))
+      ((_ "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+	  () body ...)
+       (let ((tmp #f) ...)
+	 (dynamic-wind
+	     (lambda () (set! tmp (generate-add-method gfs specs . exprs)) ...)
+	     (lambda () body ...)
+	     (lambda () (remove-method gfs tmp) ...))))
+      ;; entry point
+      ((_ (bindings ...) body ...)
+       (let-method "bind" () () () () (bindings ...) body ...))))
 
 
   (define-syntax define-generic
