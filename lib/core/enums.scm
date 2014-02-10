@@ -14,7 +14,9 @@
 	    enum-set-difference
 	    enum-set-complement
 	    enum-set-projection
-	    define-enumeration)
+	    define-enumeration
+	    <enum-type>
+	    <enum-set>)
     (import (core)
 	    (core base)
 	    (core record procedural)
