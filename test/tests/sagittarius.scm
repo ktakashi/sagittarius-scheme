@@ -1137,5 +1137,9 @@
   (renaming-test a 'a)
   (test-equal "renaming-test" '(a #f) (list (a) dummy)))
 
+;; invalid internal define
+(test-error "(define dummy (begin (define ok? #f) 'ok))"
+	    condition? (r6rs:eval '(define dummy (begin (define ok? #f) 'ok))
+				  (environment '(rnrs))))
 
 (test-end)

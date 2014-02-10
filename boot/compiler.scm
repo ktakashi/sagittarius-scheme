@@ -1311,15 +1311,17 @@
      (check-direct-variable name p1env oform)
      ;; this renames all the same identifier
      (when (identifier? name) (rename-pending-identifier! name))
-     (let* ((vname (variable-name name)) 
-	    (p1env (p1env-add-name p1env vname)))
+     (let ((vname (variable-name name))
+	   (dummy (gensym)))
        (library-defined-add! library vname)
-       ($define oform
-		flags
+       ($define oform flags
 		(make-identifier (unwrap-syntax name) '() library)
 		(if (null? expr)
 		    ($undef)
-		    (pass1 (caddr form) (p1env-add-name p1env vname))))))
+		    (pass1 (caddr form) 
+			   (p1env-extend/name p1env 
+					      `((,dummy . ,(make-lvar dummy)))
+					      LEXICAL vname))))))
     (- (syntax-error "malformed define" oform))))
 
 (define-pass1-syntax (define form p1env) :null
