@@ -44,7 +44,7 @@
 #include "sagittarius/string.h"
 
 static SgClass *Sg_ConditionCPL[] = {
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -173,7 +173,7 @@ SG_DEFINE_BASE_CLASS(Sg_SeriousClass, SgCondition,
 
 static SgClass *serious_cpl[] = {
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -186,7 +186,7 @@ SG_DEFINE_BASE_CLASS(Sg_ViolationClass, SgCondition,
 static SgClass *violation_cpl[] = {
   SG_CLASS_VIOLATION,
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -356,7 +356,7 @@ static SgClass *io_cpl[] = {
   SG_CLASS_IO_ERROR,
   SG_CLASS_ERROR,
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -429,7 +429,7 @@ static SgClass *port_cpl[] = {
   SG_CLASS_IO_ERROR,
   SG_CLASS_ERROR,
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -504,7 +504,7 @@ static SgClass *fn_cpl[] = {
   SG_CLASS_IO_ERROR,
   SG_CLASS_ERROR,
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -517,7 +517,7 @@ static SgClass *fnp_cpl[] = {
   SG_CLASS_IO_ERROR,
   SG_CLASS_ERROR,
   SG_CLASS_SERIOUS,
-  SG_CLASS_CONSITION,
+  SG_CLASS_CONDITION,
   SG_CLASS_TOP,
   NULL
 };
@@ -804,14 +804,14 @@ SgObject Sg__ConditionConstructorN(SgObject *args, int argc, void *user_data)
   return SG_OBJ(c);
 }
 
-void Sg__InitConsitions()
+void Sg__InitConditions()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
 
   /* need record metaclass */
 #define INIT_CONDITION(cl, nam, slots) SG_INIT_CONDITION(cl, lib, nam, slots)
 
-  INIT_CONDITION(SG_CLASS_CONSITION, "&condition", NULL);
+  INIT_CONDITION(SG_CLASS_CONDITION, "&condition", NULL);
   INIT_CONDITION(SG_CLASS_WARNING, "&warning", NULL);
   INIT_CONDITION(SG_CLASS_SERIOUS, "&serious", NULL);
   INIT_CONDITION(SG_CLASS_ERROR,   "&error", NULL);
