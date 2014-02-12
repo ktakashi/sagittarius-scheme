@@ -1184,7 +1184,11 @@ void Sg_SlotSetUsingAccessor(SgObject obj, SgSlotAccessor *ac, SgObject value)
 
 SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj, SgObject name)
 {
-  SgSlotAccessor *ac = lookup_slot_info(klass, name);
+  SgSlotAccessor *ac;
+  if (!SG_ISA(obj, klass)) {
+    Sg_Error(UC("object %S is not an instance of class %S"), obj, klass);
+  }
+  ac = lookup_slot_info(klass, name);
   if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
   return Sg_SlotRefUsingAccessor(obj, ac);
 }
@@ -1192,7 +1196,11 @@ SgObject Sg_SlotRefUsingClass(SgClass *klass, SgObject obj, SgObject name)
 void Sg_SlotSetUsingClass(SgClass *klass, SgObject obj, SgObject name,
 			  SgObject value)
 {
-  SgSlotAccessor *ac = lookup_slot_info(klass, name);
+  SgSlotAccessor *ac;
+  if (!SG_ISA(obj, klass)) {
+    Sg_Error(UC("object %S is not an instance of class %S"), obj, klass);
+  }
+  ac = lookup_slot_info(klass, name);
   if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
   return Sg_SlotSetUsingAccessor(obj, ac, value);
 }
