@@ -1747,7 +1747,7 @@
 			      (,error. 'let-optionals*
 				       "optional argument test failed"
 				       ,(cddar vars&inits&test)))
-		    ,@body)))
+		    (,let. () ,@body))))
 	  (else
 	   (let ((g (gensym))
 		 (v (caar vars&inits&test))

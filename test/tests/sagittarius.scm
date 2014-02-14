@@ -1142,4 +1142,14 @@
 	    condition? (r6rs:eval '(define dummy (begin (define ok? #f) 'ok))
 				  (environment '(rnrs))))
 
+;; let-optionals* doesn't allow internal define
+(test-assert "let-optionals* with internal define"
+	     (r6rs:eval '(begin
+			   (define (foo . opts) 
+			     (let-optionals* opts ((a #t))
+			       (define bar 'ok)
+			       a))
+			   (foo))
+			(environment '(rnrs) '(sagittarius))))
+
 (test-end)
