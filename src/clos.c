@@ -503,8 +503,8 @@ SgObject Sg_ComputeSlots(SgClass *klass)
   SgObject slots = SG_NIL;
   SgObject cp, sp;
   SG_FOR_EACH(cp, klass->cpl) {
-    ASSERT(Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS));
     SgObject acc = SG_NIL;
+    ASSERT(Sg_TypeP(SG_CAR(cp), SG_CLASS_CLASS));
     SG_FOR_EACH(sp, SG_CLASS(SG_CAR(cp))->directSlots) {
       SgObject slot = SG_CAR(sp);
       ASSERT(SG_PAIRP(slot));
