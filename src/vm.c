@@ -1878,11 +1878,36 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       vm->cont = cstack.cont;
       POP_CONT();
       PC(vm) = prev_pc;
+    } else {
+      /* FIXME
+	 if we don't handle this case properly, captured continuation
+	 within the custom port read/write procedure may causes infinite
+	 loop.
+	 Should we allow to do it?
+      */
+      /* check if the previous continuation is in the boundary.
+	 in that case, most likely the continuation is captured
+	 in Sg_Apply related functions and invoked the same way.
+	 Crossing more than 1 boundary is not allowed for now.
+ 
+	 NOTE: the root continuation doesn't have cl register.
+	 see Sg_NewVM. or should we use fp == sp == stack to
+	 detect it?
+       */
+      SgContFrame *prev;
+      POP_CONT();		/* top frame is boundary so pop it */
+      prev =  vm->cont;
+
+      /* Sg_VMPrintFrame(); */
+      while (prev->cl) {
+	if (BOUNDARY_FRAME_MARK_P(prev)) {
+	  Sg_Error(UC("attempt to return to a continuation captured inside "
+		      "of C continuation."));
+	}
+	prev = prev->prev;
+      }
     }
-    /* FIXME
-       We actually have ghost continuation problem. if we raise an error
-       here then SRFI-41 test can not pass. But I have no idea where.
-       so for now just ignore... */
+    
   } else {
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
@@ -2077,18 +2102,83 @@ static void process_queued_requests(SgVM *vm)
   to avoid segmentation fault, we need to be careful with let frame.
   so make sure if it's fp or not before touch an stack element.
  */
+static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
+{
+  SgObject *current = (SgObject *)cont;
+  int i;
+  int size = cont->size;
+  int c_func = FALSE;
+  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
+  Sg_Printf(vm->logPort,
+	    UC(";; 0x%x +---------------------------------------------+\n"),
+	    current);
+  Sg_Printf(vm->logPort, UC(";; 0x%x + size=%#38d +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, size), cont->size);
+  Sg_Printf(vm->logPort, UC(";; 0x%x +   pc=%#38x +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  Sg_Printf(vm->logPort, UC(";; 0x%x "),
+	    (uintptr_t)cont + offsetof(SgContFrame, cl));
+  if (cont->cl) {
+    Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
+  } else {
+    Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_FALSE), TRUE);
+  }
+  Sg_Printf(vm->logPort, UC(";; 0x%x +   fp=%#38x +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
+  Sg_Printf(vm->logPort, UC(";; 0x%x + prev=%#38x +\n"),
+	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
+  if (cont == CONT(vm)) {
+    Sg_Printf(vm->logPort, 
+      UC(";; 0x%x +---------------------------------------------+ < cont%s\n"), 
+      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+  } else if (cont->prev) {
+    Sg_Printf(vm->logPort, 
+      UC(";; 0x%x +---------------------------------------------+ < prev%s\n"),
+      cont, BOUNDARY_FRAME_MARK_P(cont) ? UC(" (boundary)") : UC(""));
+  }
+  if (cont->fp == C_CONT_MARK) c_func = TRUE;
+  else c_func = FALSE;
+  
+  size = cont->size;
+  /* cont's size is argc of previous cont frame */
+  /* dump arguments */
+  if (IN_STACK_P((SgObject*)cont, vm)) {
+    if (!c_func) {
+      for (i = 0; i < size; i++, current--) {
+	Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current,
+		  *(current));
+      }
+    }
+  } else {
+    if (!c_func) {
+      for (i = 0; i < size; i++) {
+	Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), cont->env+i,
+		  *(cont->env+i));
+      }
+    }
+  }
+  if (!cont->cl) return NULL;
+  return cont->prev;
+}
+
 static void print_frames(SgVM *vm)
 {
   SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
-  int size = cont->size, c_func = FALSE;
-  /* SgString *fmt   = SG_MAKE_STRING("+    o=~38,,,,39a +~%"); */
-  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,39s +~%");
+  int size = cont->size;
 
   Sg_Printf(vm->logPort, UC(";; stack: 0x%x, cont: 0x%x\n"), stack, cont);
+
+  /* first dump cont in heap */
+  while (!IN_STACK_P((SgObject *)cont, vm)) {
+    cont = print_cont1(cont, vm);
+    if (!cont) break;
+  }
+  if (!cont) goto end;
+
   Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < sp\n"), sp);
-  /* first we dump from top until cont frame. */
+  /* second we dump from top until cont frame. */
   while ((stack < current && current <= sp)) {
     if (current == (SgObject*)cont + CONT_FRAME_SIZE) {
       break;
@@ -2108,55 +2198,11 @@ static void print_frames(SgVM *vm)
     }
     Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);
 
-    /* todo, dump display closure. */
-    Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), current);
-    if (!BOUNDARY_FRAME_MARK_P(cont)) {
-      Sg_Printf(vm->logPort, UC(";; 0x%x + size=%#38d +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, size), cont->size);
-      Sg_Printf(vm->logPort, UC(";; 0x%x +   pc=%#38x +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
-      Sg_Printf(vm->logPort, UC(";; 0x%x "), (uintptr_t)cont + offsetof(SgContFrame, cl));
-      Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
-      Sg_Printf(vm->logPort, UC(";; 0x%x +   fp=%#38x +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
-      Sg_Printf(vm->logPort, UC(";; 0x%x + prev=%#38x +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
-      if (cont == CONT(vm)) {
-	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < cont\n"), cont);
-      } else if (cont->prev) {
-	Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+ < prev\n"), cont);
-      }
-      if (cont->fp == C_CONT_MARK) c_func = TRUE;
-      else c_func = FALSE;
-	
-      current = (SgObject*)cont;
-      size = cont->size;
-      /* cont's size is argc of previous cont frame */
-      /* dump arguments */
-      if (IN_STACK_P((SgObject*)cont, vm)) {
-	if (!c_func) {
-	  for (i = 0; i < size; i++, current--) {
-	    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *(current));
-	  }
-	}
-      } else {
-	if (!c_func) {
-	  for (i = 0; i < size; i++) {
-	    Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), cont->env+i, *(cont->env+i));
-	  }
-	}
-	break;
-      }
-      cont = cont->prev;
-      /* check if prev cont has arg or not. */
-      continue;
-    } else {
-      for (i = 0; i < CONT_FRAME_SIZE; i++) {
-	Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current-i, *(current-i));
-      }
-      break;
-    }
+    current = (SgObject *)cont;
+    cont = print_cont1(cont, vm);
+    if (!cont) break;
   }
+ end:
   Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), stack);
 }
 

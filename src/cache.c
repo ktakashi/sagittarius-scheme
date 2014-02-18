@@ -891,9 +891,10 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFile file, tagfile;
   SgPort out;
   SgBinaryPort bp;
-  SgObject cache;
+  SgObject cache, size;
   int index = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
+  int64_t cacheSize;
 
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
@@ -924,6 +925,13 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   Sg_UnlockFile(&file);
   Sg_ClosePort(&out);
 
+  size = Sg_FileSize(cache_path);
+  if (SG_EXACT_INTP(size)) {
+    cacheSize = Sg_GetIntegerS64Clamp(size, SG_CLAMP_NONE, NULL);
+  } else {
+    cacheSize = -1;		/* should never happen but just in case */
+  }
+
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
 
@@ -931,6 +939,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 			NULL, 0);
   /* put validate tag */
   Sg_WritebUnsafe(&out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_WritebUnsafe(&out, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
   Sg_FlushPort(&out);
   Sg_ClosePort(&out);
 
@@ -1616,12 +1625,23 @@ int Sg_ReadCache(SgString *id)
   SG_OPEN_FILE(&file, timestamp, SG_READ);
   Sg_LockFile(&file, SG_SHARED);
   /* To use less memory we use file object directly */
-  size = SG_FILE_VTABLE(&file)->read(&file, (uint8_t *)tagbuf, 50);
+  size = SG_FILE_VTABLE(&file)->read(&file, (uint8_t *)tagbuf, (int)TAG_LENGTH);
+  tagbuf[size] = 0;
+  SG_FILE_VTABLE(&file)->read(&file, (uint8_t *)&size, sizeof(int64_t));
   Sg_UnlockFile(&file);
   Sg_CloseFile(&file);
-  tagbuf[size] = 0;
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     return RE_CACHE_NEEDED;
+  }
+  obj = Sg_FileSize(cache_path);
+  if (SG_EXACT_INTP(obj)) {
+    int64_t cacheSize = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
+    /* this case never happen in single process */
+    if (cacheSize != size) {	/* most likely still on going*/
+      return INVALID_CACHE; 
+    }
+  } else {
+    return INVALID_CACHE;	/* which case? */
   }
   /* end check timestamp */
 
