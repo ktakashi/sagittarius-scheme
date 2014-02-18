@@ -2,6 +2,7 @@
 
 (import (rnrs)
 	(rnrs r5rs)
+	(sagittarius io)
 	(srfi :64 testing)
 	(srfi :41)
 	(srfi :1)
