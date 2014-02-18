@@ -34,6 +34,21 @@
 #include "sagittarius/port.h"
 #include "sagittarius/writer.h"
 
+/* I didn't see much difference... */
+/* #define USE_WEAK_SYMBOL */
+
+#ifdef USE_WEAK_SYMBOL
+# include "sagittarius/weak.h"
+# define Sg_HashTableRef Sg_WeakHashTableRef
+# define Sg_HashTableSet Sg_WeakHashTableSet
+static SgWeakHashTable *obtable = NULL;
+#else
+static SgHashTable *obtable = NULL;
+#endif
+
+static SgInternalMutex obtable_mutax;
+
+
 static void symbol_print(SgObject sym, SgPort *port, SgWriteContext *ctx)
 {
   SgSymbol *obj = SG_SYMBOL(sym);
@@ -62,9 +77,6 @@ static SgSymbol* make_symbol(SgObject name, int interned)
   }
   return z;
 }
-
-static SgInternalMutex obtable_mutax;
-static SgHashTable *obtable = NULL; /* initialized in Sg__InitSymbol() */
 
 SgObject Sg_MakeSymbol(SgString *name, int interned)
 {
@@ -135,7 +147,13 @@ SgObject Sg_Gensym(SgString *prefix)
 void Sg__InitSymbol()
 {
   Sg_InitMutex(&obtable_mutax, FALSE);
+#ifdef USE_WEAK_SYMBOL
+  obtable = SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_STRING,
+							 SG_WEAK_VALUE,
+							 4096, SG_FALSE));
+#else
   obtable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 4096));
+#endif
   default_prefix = SG_MAKE_STRING("G");
   init_builtin_symbols();
 }

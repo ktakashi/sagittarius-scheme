@@ -1,5 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (import (rnrs)
+	(rnrs eval)
 	(clos user)
 	(clos core)
 	(sagittarius object)
