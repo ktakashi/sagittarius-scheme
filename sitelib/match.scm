@@ -11,7 +11,7 @@
 	    match-letrec)
     (import (core) (core base) (core errors)
 	    (rename (clos core) (slot-ref clos:slot-ref))
-	    (core record procedural)
+	    ;;(core record procedural)
 	    ;;(except (rnrs) syntax-rules)
 	    ;;(rnrs mutable-pairs)
 	    (sagittarius record)
@@ -22,6 +22,10 @@
   ;; we don't want to export this confusing procedures.
   ;; so make it private here.
   (define (slot-ref record-type record k)
+    (define (search-kth-slot class k)
+      (let ((slots (class-direct-slots class)))
+	(do ((i 0 (+ i 1)) (slots slots (cdr slots)))
+	    ((= i k) (slot-definition-name (car slots))))))
     (let ((name (search-kth-slot record-type k)))
       (clos:slot-ref record name)))
 
