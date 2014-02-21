@@ -546,21 +546,12 @@
 
     (define (lookup-pattern-variable p1env vars id)
       (define (id=? id1 p)
-	(define (check? id p1env)
+	(define (check? id p)
 	  (if (identifier? id)
-	      (let ((frame (p1env-lookup-frame p1env id LEXICAL)))
-		;; check if env contains the frame
-		;; NOTE: let* can create null env in identifier
-		;; so the pure frame won't be the same
-		(let loop ((env (id-envs id)))
-		  (cond ((null? env))
-			((eq? env frame) #f)
-			(else (loop (cdr env))))))
-	      ;; non identifier
+	      (eq? (id-envs id) (id-envs p))
 	      #t))
-	(and (check? id1 use-env)
-	     (null? (p1env-lookup-frame use-env p LEXICAL))
-	     (eq? (syntax->datum id1) (syntax->datum p))))
+	(and (check? id1 p)
+	     (eq? (syntax->datum id1) (id-name p))))
 
       (cond ((assq id vars) #f)
 	    ((pending-identifier? id) #f)

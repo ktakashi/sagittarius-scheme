@@ -174,8 +174,9 @@
 	   (loop (- i 1) (cdr lst))))))
 
 ;; used by p1env-lookup
+;; TODO move this somewhere in C level
+;; so that both Scheme and C can share the value.
 (define-constant LEXICAL 0)
-(define-constant SYNTAX 1)
 ;;(define-constant PATTERN 2)
 ;; library defined variable need this for macro
 
@@ -1464,7 +1465,7 @@
      "rename procedure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
       (or (hashtable-ref dict symid #f)
-	  (let ((var (p1env-lookup p1env symid SYNTAX)))
+	  (let ((var (p1env-lookup p1env symid LEXICAL)))
 	    (let ((id (if (identifier? var)
 			  var
 			  (make-identifier symid
@@ -3101,7 +3102,7 @@
 
 (define (pass1/lookup-head head p1env)
   (and (variable? head)
-       (p1env-lookup p1env head SYNTAX)))
+       (p1env-lookup p1env head LEXICAL)))
 
 ;; Pass1: translate program to IForm.
 (define (pass1 form p1env)

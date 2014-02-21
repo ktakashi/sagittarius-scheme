@@ -379,7 +379,8 @@
 	  (set! same-env? TRUE))
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
-	(when (> (SG_CAAR fp) lookup_as) (continue))
+	;; not interesting
+	(unless (== (SG_CAAR fp) lookup_as) (continue))
 
 	(dolist (vp (SG_CDAR fp))
 	  (when (or (SG_EQ name (SG_CAR vp)) ;; simple case
