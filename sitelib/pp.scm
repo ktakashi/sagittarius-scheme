@@ -93,11 +93,7 @@
 	       col))
           ((boolean? obj)     (out (if obj "#t" "#f") col))
           ((number? obj)      (out (number->string obj) col))
-          ((symbol? obj)
-	   ;; for sagittarius
-	   (if (interned-symbol? obj)
-	       (out (symbol->string obj) col)
-	       (out (string-append "#:" (symbol->string obj)) col)))
+          ((symbol? obj)      (out (format "~s" obj) col))
 	  ((identifier? obj)  (out (format "~s" obj) col))
 	  ;; for Sagittarius
           ;;((procedure? obj)   (out "#<procedure>" col))
@@ -290,8 +286,7 @@
         ((begin)                     pp-begin)
         ((do)                        pp-do)
         (else                        #f)))
-    (when (handle-cycle obj col)
-      (pr obj col 0 pp-expr)))
+    (pr obj col 0 pp-expr))
 
   (define (walk! obj seen)
     (define (register obj)
