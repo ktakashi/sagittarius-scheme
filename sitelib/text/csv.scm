@@ -54,9 +54,12 @@
 	    (clos user))
 
   (define *text-set* 
-    (ucs-range->char-set! #x2d #x7e #f
-	(ucs-range->char-set! #x23 #x2b #f
-	    (ucs-range->char-set #x20 #x21))))
+    ;; range %x20-21 / %x23-2B / %x2D-7E
+    ;; but ucs-range->char-set! doesn't add the end range
+    ;; so increment 1
+    (ucs-range->char-set! #x2d #x7f #f
+	(ucs-range->char-set! #x23 #x2c #f
+	    (ucs-range->char-set #x20 #x22))))
 
   (define *any-set*
     (char-set-union *text-set*
