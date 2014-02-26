@@ -126,100 +126,85 @@
 (define syntax-quote. (make-identifier 'syntax-quote '()
 				       '(sagittarius compiler)))
 ;; syntax-case compiler
-(define (compile-syntax-case exp-name expr literals clauses library env mac-env)
-  ;; literal must be unwrapped, otherwise it will be too unique
-  (let ((lites (unwrap-syntax literals)))
-    (define (rewrite expr patvars)
-      (define seen (make-eq-hashtable))
-      (define (seen-or-gen id env)
-	(cond ((hashtable-ref seen id #f))
-	      (else
-	       ;; we need to use the original library if the given id has
-	       ;; to keep macro hygienic.
-	       ;; this could happen on macro generating macro.
-	       (let ((new-id (or (and (identifier? id)
-				      (make-identifier id env (id-library id)))
-				 ;; this doesn't work because of the 
-				 ;; with-syntax, it can introduce a new
-				 ;; pattern variable but we can't detect
-				 ;; in compile time. so let syntax expansion
-				 ;; rename.
-				 ;; (and (or (memq id (library-defined library))
-				 ;; 	   (find-binding library id #f))
-				 ;;       (make-identifier id env library))
+(define compile-syntax-case
+  (lambda (exp-name expr literals clauses library env mac-env)
+    ;; literal must be unwrapped, otherwise it will be too unique
+    (let ((lites (unwrap-syntax literals)))
+      (define (rewrite expr patvars)
+	(define seen (make-eq-hashtable))
+	(define (seen-or-gen id env library)
+	  (cond ((hashtable-ref seen id #f))
+		(else (let ((new-id (make-identifier id env library)))
+			(hashtable-set! seen id new-id)
+			new-id))))
+	(let loop ((expr expr))
+	  (cond ((pair? expr)
+		 (let ((a (loop (car expr)))
+		       (d (loop (cdr expr))))
+		   (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		       expr
+		       (cons a d))))
+		((vector? expr)
+		 (list->vector (loop (vector->list expr))))
+		((assq expr patvars) => cdr)
+		;; if it's an identifier then swap the environment
+		;; which the identifier is defined.
+		;; FIXME this isn't right, the env should be prepend
+		;; or at least the original environment should be
+		;; preserved somewhere can be refered.
+		((and-let* (( (identifier? expr) )
+			    (env (p1env-lookup-frame mac-env expr LEXICAL))
+			    ( (not (null? env)) ))
+		   env) => (lambda (env) 
+			     (seen-or-gen expr env (id-library expr))))
+		;; for symbol we preserve where it's defined
+		;; FIXME this isn't right, must be whole environment
+		;; and the lookup should handle it.
+		((symbol? expr)
+		 (let ((env (p1env-lookup-frame mac-env expr LEXICAL)))
+		   (seen-or-gen expr env library)))
+		(else expr))))
+      (define pattern-mark (list exp-name))
+      (define (parse-pattern pattern)
+	(define (gen-patvar p)
+	  (cons (car p)
+		(make-pattern-identifier (car p) pattern-mark library)))
+	(check-pattern pattern lites)
+	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
+	       (pvars (map gen-patvar ranks)))
+	  (values (rewrite pattern pvars) 
+		  (extend-env (rewrite ranks pvars) env) pvars)))
 
-				 ;;; 
-				 ;;(let ((t (make-identifier id env library)))
-				 ;;  (make-identifier t env library)
-				 ;; this do the same this as above but
-				 ;; bit more memory efficient
-				 (make-pattern-identifier id env library))))
-		 (hashtable-set! seen id new-id)
-		 new-id))))
-      (let loop ((expr expr))
-	(cond ((pair? expr)
-	       (let ((a (loop (car expr)))
-		     (d (loop (cdr expr))))
-		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		     expr
-		     (cons a d))))
-	      ((vector? expr)
-	       (list->vector (loop (vector->list expr))))
-	      ((assq expr patvars) => cdr)
-	      ;; handle local variables
-	      ((and-let* (( (variable? expr) )
-			  (env (p1env-lookup-frame mac-env expr LEXICAL))
-			  ( (not (null? env)) ))
-		 env) => (lambda (env) (seen-or-gen expr env)))
-	      ;; local check pattern variable as well
-	      ((and (variable? expr)
-		    (not (number? (p1env-lookup mac-env expr PATTERN))))
-	       (let ((env (p1env-lookup-frame mac-env expr LEXICAL)))
-		 (seen-or-gen expr (if (and (null? env) (identifier? expr))
-				       (id-envs expr)
-				       env))))
-	      (else expr))))
-    (define pattern-mark (list exp-name))
-    (define (parse-pattern pattern)
-      (define (gen-patvar p)
-	(cons (car p)
-	      (make-pattern-identifier (car p) pattern-mark library)))
-      (check-pattern pattern lites)
-      (let* ((ranks (collect-vars-ranks pattern lites 0 '()))
-	     (pvars (map gen-patvar ranks)))
-	(values (rewrite pattern pvars) 
-		(extend-env (rewrite ranks pvars) env) pvars)))
-
-    (or (and (list? lites) (for-all symbol? lites))
-	(syntax-violation 'syntax-case "invalid literals" expr lites))
-    (or (unique-id-list? lites)
-	(syntax-violation 'syntax-case "duplicate literals" expr lites))
-    (and (memq '_ lites)
-	 (syntax-violation 'syntax-case "_ in literals" expr lites))
-    (and (memq '... lites)
-	 (syntax-violation 'syntax-case "... in literals" expr lites))
-    
-    (values .match-syntax-case
-	    lites
-	    (p1env-lookup mac-env .vars LEXICAL BOUNDARY)
-	    (map (lambda (clause)
-		   (smatch clause
-		     ((p expr)
-		      (receive (pattern env patvars) (parse-pattern p)
-			(cons `(,.list (,syntax-quote. ,pattern)
-				       #f
-				       (,.lambda (,.vars)
-					 ,(rewrite expr patvars)))
-			      env)))
-		     ((p fender expr)
-		      (receive (pattern env patvars) (parse-pattern p)
-			(cons `(,.list (,syntax-quote. ,pattern)
-				       (,.lambda (,.vars)
-					 ,(rewrite fender patvars))
-				       (,.lambda (,.vars)
-					 ,(rewrite expr patvars)))
-			      env)))))
-		 clauses))))
+      (or (and (list? lites) (for-all symbol? lites))
+	  (syntax-violation 'syntax-case "invalid literals" expr lites))
+      (or (unique-id-list? lites)
+	  (syntax-violation 'syntax-case "duplicate literals" expr lites))
+      (and (memq '_ lites)
+	   (syntax-violation 'syntax-case "_ in literals" expr lites))
+      (and (memq '... lites)
+	   (syntax-violation 'syntax-case "... in literals" expr lites))
+      
+      (values .match-syntax-case
+	      lites
+	      (p1env-lookup mac-env .vars LEXICAL BOUNDARY)
+	      (map (lambda (clause)
+		     (smatch clause
+		       ((p expr)
+			(receive (pattern env patvars) (parse-pattern p)
+			  (cons `(,.list (,syntax-quote. ,pattern)
+					 #f
+					 (,.lambda (,.vars)
+						   ,(rewrite expr patvars)))
+				env)))
+		       ((p fender expr)
+			(receive (pattern env patvars) (parse-pattern p)
+			  (cons `(,.list (,syntax-quote. ,pattern)
+					 (,.lambda (,.vars)
+						   ,(rewrite fender patvars))
+					 (,.lambda (,.vars)
+						   ,(rewrite expr patvars)))
+				env)))))
+		   clauses)))))
 
 (cond-expand
  (gauche

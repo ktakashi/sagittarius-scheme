@@ -9,6 +9,19 @@
 	    (core base)
 	    (sagittarius)
 	    (sagittarius misc))
+
+  (define-syntax if-let1
+    (er-macro-transformer
+     (lambda (f r c)
+       (let ((var (cadr f)) (expr (caddr f))
+	     (then (cadddr f)) (els (if (not (null? (cddddr f)))
+					(list (car (cddddr f)))
+					'())))
+	 `(let ((,var ,expr))
+	    (if ,var ,then ,@els))))))
+
+	 
+
 ; File: "pp.scm"   (c) 1991, Marc Feeley
 
 ; 'generic-write' is a procedure that transforms a Scheme data value (or
@@ -58,19 +71,20 @@
   (define (out str col)
     (and col (output str) (+ col (string-length str))))
 
-  (define (handle-cycle obj col)
-    (not (and-let* (( shared )
-		    (e (hashtable-ref (cdr shared) obj #f)))
-	   (if (number? e)
-	       (out (format "#~d#" e) col)
-	       (let ((id (car shared)))
-		 (hashtable-set! (cdr shared) obj id)
-		 (out (format "#~d=" id) col)
-		 (set-car! shared (+ id 1))
-		 #f)))))
+  (define (cycle? obj col)
+    (and-let* (( shared )
+	       (e (hashtable-ref (cdr shared) obj #f)))
+      (cond ((not e) #f)
+	    ((number? e) (out (format "#~d#" e) col))
+	    (else
+	     (let ((id (car shared)))
+	       (hashtable-set! (cdr shared) obj id)
+	       (set-car! shared (+ id 1))
+	       (out (format "#~d=" id) col)
+	       #f)))))
 
   (define (wr obj col)
-
+    ;; TODO handle special case here
     (define (wr-expr expr col)
       (if (read-macro? expr)
         (wr (read-macro-body expr) (out (read-macro-prefix expr) col))
@@ -80,22 +94,28 @@
       (if (pair? l)
         (let loop ((l (cdr l)) (col (wr (car l) (out "(" col))))
           (and col
-               (cond ((pair? l) (loop (cdr l) (wr (car l) (out " " col))))
+               (cond ((and shared (hashtable-ref (cdr shared) l #f))
+		      => (lambda (e)
+			   (out ")" (wr e (out " . " col)))))
+		     ((pair? l) (loop (cdr l) (wr (car l) (out " " col))))
                      ((null? l) (out ")" col))
                      (else      (out ")" (wr l (out " . " col)))))))
         (out "()" col)))
 
-    (cond ((pair? obj)        (if (handle-cycle obj col) (wr-expr obj col) col))
+    (cond ((pair? obj)
+	   (if-let1 ncol (cycle? obj col)
+	      ncol
+	      (wr-expr obj col)))
           ((null? obj)        (wr-lst obj col))
           ((vector? obj)
-	   (if (handle-cycle obj col)
-	       (wr-lst (vector->list obj) (out "#" col))
-	       col))
+	   (if-let1 ncol (cycle? obj col)
+	      ncol
+	      (wr-lst (vector->list obj) (out "#" col))))
           ((boolean? obj)     (out (if obj "#t" "#f") col))
           ((number? obj)      (out (number->string obj) col))
-          ((symbol? obj)      (out (format "~s" obj) col))
-	  ((identifier? obj)  (out (format "~s" obj) col))
 	  ;; for Sagittarius
+          ;;((symbol? obj)      (out (format "~s" obj) col))
+	  ;;((identifier? obj)  (out (format "~s" obj) col))
           ;;((procedure? obj)   (out "#<procedure>" col))
           ((string? obj)      (if display?
 				  (out obj col)
@@ -123,9 +143,9 @@
           ;;((input-port? obj)  (out "#<input-port>" col))
 	  ;;((output-port? obj) (out "#<output-port>" col))
           ;;((eof-object? obj)  (out "#<eof-object>" col))
-          (else               (out (format "~s" obj) col)))) ; Sagittarius #<unknown> -> obj
+	  ;; Sagittarius #<unknown> -> obj
+          (else               (out (format "~s" obj) col))))
  
-
   (define (pp obj col)
 
     (define (spaces n col)
@@ -141,6 +161,7 @@
              (and (out (make-string 1 #\newline) col) (spaces to 0))
              (spaces (- to col) col))))
 
+    ;; TODO handle shared object here as well...
     (define (pr obj col extra pp-pair)
        ; may have to split on multiple lines
       (cond ((or (pair? obj) (vector? obj))
@@ -289,28 +310,27 @@
     (pr obj col 0 pp-expr))
 
   (define (walk! obj seen)
-    (define (register obj)
-      (let ((r (hashtable-ref seen obj #f)))
-	(if (number? r)
-	    (begin (hashtable-set! seen obj (+ r 1)) (= r 0))
-	    (begin (hashtable-set! seen obj 0) #t))))
+    (define mark (undefined))
+    (define (register!? obj)
+      (let ((r (hashtable-ref seen obj mark)))
+	(if (undefined? r)
+	    (begin (hashtable-set! seen obj #f) #f)
+	    (begin (hashtable-set! seen obj #t) #t))))
     (cond ((pair? obj)
-	   (when (register obj)
-	     (walk! (car obj) seen)
+	   (unless (register!? obj)
+	     (when (or (pair? (car obj)) (vector? (car obj)))
+	       (walk! (car obj)  seen))
 	     (walk! (cdr obj) seen)))
 	  ((vector? obj)
-	   (when (register obj)
+	   (unless (register!? obj)
 	     (do ((len (vector-length obj))
 		  (i 0 (+ i 1)))
 		 ((= i len))
-	       (walk! (vector-ref obj i) seen))))))
-  (when shared
-    (let ((seen (make-eq-hashtable))
-	  (ht (cdr shared)))
-      (walk! obj seen)
-      ;; extract
-      (hashtable-for-each
-       (lambda (k v) (when (> v 1) (hashtable-set! ht k #t))) seen)))
+	       (let ((e (vector-ref obj i)))
+		 (when (or (pair? e) (vector? e)) (walk! e seen))))))))
+  (when (and shared (not (car shared)))
+    (set-car! shared 0)
+    (walk! obj (cdr shared)))
   (if width
       (out (make-string 1 #\newline) (pp obj 0))
       (wr obj 0)))
@@ -370,7 +390,7 @@
   (let ((port (if (pair? opt) (car opt) (current-output-port))))
     (generic-write obj #f (output-port-width port)
 		   (lambda (s) (display s port) #t)
-		   (cons 0 (make-eq-hashtable)))))
+		   (cons #f (make-eq-hashtable)))))
 
 (define pp/ss pretty-print/ss)
 )
