@@ -1152,4 +1152,11 @@
 			   (foo))
 			(environment '(rnrs) '(sagittarius))))
 
+;; local macro refered in global macro
+(let ()
+  (let-syntax ((a (syntax-rules () ((a) 'foo))))
+    (define-syntax b (syntax-rules () ((_) (a)))))
+  (test-equal "local macro refered in global macro"
+	      'foo (b)))
+
 (test-end)

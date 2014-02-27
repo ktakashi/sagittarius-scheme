@@ -130,23 +130,33 @@
   (lambda (exp-name expr literals clauses library env mac-env)
     ;; literal must be unwrapped, otherwise it will be too unique
     (let ((lites (unwrap-syntax literals)))
-      (define (rewrite expr patvars)
+      (define (rewrite oexpr patvars)
+	(define (expand-local-macro expr)
+	  ;; smells a bug, but I don't know what's wrong with this...
+	  (and-let* ((t (if (pair? expr) (car expr) expr))
+		     ( (identifier? t) )
+		     (m (p1env-lookup mac-env t LEXICAL))
+		     ( (macro? m) )
+		     ( (assv BOUNDARY (id-envs t))) )
+	    (call-macro-expander m expr mac-env)))
 	(define seen (make-eq-hashtable))
 	(define (seen-or-gen id env library)
 	  (cond ((hashtable-ref seen id #f))
 		(else (let ((new-id (make-identifier id env library)))
 			(hashtable-set! seen id new-id)
 			new-id))))
-	(let loop ((expr expr))
+	(let loop ((expr oexpr))
 	  (cond ((pair? expr)
-		 (let ((a (loop (car expr)))
-		       (d (loop (cdr expr))))
-		   (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		       expr
-		       (cons a d))))
+		 (or (expand-local-macro expr)
+		     (let ((a (loop (car expr)))
+			   (d (loop (cdr expr))))
+		       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+			   expr
+			   (cons a d)))))
 		((vector? expr)
 		 (list->vector (loop (vector->list expr))))
 		((assq expr patvars) => cdr)
+		((and (variable? expr) (expand-local-macro expr)))
 		;; if it's an identifier then swap the environment
 		;; which the identifier is defined.
 		;; FIXME this isn't right, the env should be prepend
