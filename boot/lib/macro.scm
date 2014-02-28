@@ -134,10 +134,14 @@
 	(define (expand-local-macro expr)
 	  ;; smells a bug, but I don't know what's wrong with this...
 	  (and-let* ((t (if (pair? expr) (car expr) expr))
-		     ( (identifier? t) )
 		     (m (p1env-lookup mac-env t LEXICAL))
 		     ( (macro? m) )
-		     ( (assv BOUNDARY (id-envs t))) )
+		     ;; if the env frame doesn't contain BOUNDARY
+		     ;; means it's not passed macro binding syntax.
+		     ;; if the t is identifier, then check its env
+		     ;; if not then the current env is basically the
+		     ;; same as identifier env
+		     ( (assv BOUNDARY (if (identifier? t) (id-envs t) env)) ))
 	    (call-macro-expander m expr mac-env)))
 	(define seen (make-eq-hashtable))
 	(define (seen-or-gen id env library)
