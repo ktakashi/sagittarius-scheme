@@ -152,12 +152,6 @@
     ((_ f l)
      (apply append (imap f l)))))
 
-;; for macro
-(define-syntax $map-cons-dup
-  (syntax-rules ()
-    ((_ vars lvars)
-     (%map-cons vars lvars))))
-
 (define (uniq lst)
   (let loop ((lst lst) (ret '()))
     (cond ((null? lst) ret)
@@ -165,13 +159,6 @@
 	   (if (memq (car lst) ret)
 	       (loop (cdr lst) ret)
 	       (loop (cdr lst) (cons (car lst) ret)))))))
-
-(define ($for-each1-with-rindex proc lst)
-  (let loop ((i (- (length lst) 1)) (lst lst))
-    (cond ((null? lst) '())
-	  (else
-	   (proc i (car lst))
-	   (loop (- i 1) (cdr lst))))))
 
 ;; used by p1env-lookup
 ;; TODO move this somewhere in C level
@@ -1416,13 +1403,11 @@
   (smatch form
     ((- ((name trans-spec) ___) body ___)
      (let* ((trans (imap2 (lambda (n x)
-			    (pass1/eval-macro-rhs
-			     'let-syntax
-			     (variable-name n)
+			    (pass1/eval-macro-rhs 'let-syntax (variable-name n)
 			     x (p1env-add-name p1env (variable-name n))))
 			  name trans-spec))
 	    ;; macro must be lexical. see pass1
-	    (newenv (p1env-extend p1env ($map-cons-dup name trans) LEXICAL)))
+	    (newenv (p1env-extend p1env (%map-cons name trans) LEXICAL)))
        (if slice?
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
@@ -1438,14 +1423,13 @@
   (smatch form
     ((- ((name trans-spec) ___) body ___)
      (let* ((newenv (p1env-extend p1env
-				  ($map-cons-dup name trans-spec) LEXICAL))
+				  (%map-cons name trans-spec) LEXICAL))
 	    (trans (imap2 (lambda (n x)
 			    (pass1/eval-macro-rhs
-			     'letrec-syntax
-			     (variable-name n)
+			     'letrec-syntax (variable-name n)
 			     x (p1env-add-name newenv (variable-name n))))
 			  name trans-spec)))
-       (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) (append trans trans))
+       (ifor-each2 set-cdr! (cdar (p1env-frames newenv)) trans)
        (if slice?
 	   ($seq (imap (lambda (e) (pass1 e newenv)) body))
 	   (pass1/body body newenv))))
@@ -1517,7 +1501,7 @@
 				    reqargs opt this-lvars
 				    #f flag))
 		  (newenv (p1env-extend/proc p1env
-					     ($map-cons-dup vars this-lvars)
+					     (%map-cons vars this-lvars)
 					     LEXICAL intform)))
 	     ($lambda-body-set! intform (pass1/body body newenv))
 	     intform))
@@ -1622,7 +1606,7 @@
 	 (syntax-error "exptended lambda list isn't allowed in receive" form))
        (let* ((lvars (imap make-lvar+ args))
 	      (newenv (p1env-extend p1env
-				    ($map-cons-dup args lvars)
+				    (%map-cons args lvars)
 				    LEXICAL)))
 	 ($receive form reqargs opt lvars 
 		   (pass1 expr p1env)
@@ -1675,7 +1659,7 @@
 	       (syntax-error "exptended lambda list isn't allowed in let-values"
 			     form))
 	     (let* ((lvars (imap make-lvar+ args))
-		    (frame ($map-cons-dup args lvars))
+		    (frame (%map-cons args lvars))
 		    (next-frames
 		     (if ref? (acons LEXICAL frame next-frames) next-frames))
 		    (last-frames
@@ -1905,7 +1889,7 @@
      (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
-	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))
+	    (newenv (p1env-extend p1env (%map-cons var lvars) LEXICAL)))
        ($let form 'let lvars
 	     (imap2 (lambda (init lvar)
 		      (let ((iexpr (pass1
@@ -1920,7 +1904,7 @@
      (let* ((lvar (make-lvar name))
 	    (args (imap make-lvar+ var))
 	    (argenv (p1env-sans-name p1env)))
-       (let* ((env1 (p1env-extend p1env ($map-cons-dup var args) LEXICAL))
+       (let* ((env1 (p1env-extend p1env (%map-cons var args) LEXICAL))
 	      (env2 (p1env-extend/name
 		     env1 `((,name . ,lvar)) LEXICAL name))
 	      (lmda ($lambda form name (length args) 0 args
@@ -1965,7 +1949,7 @@
      (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
-	    (newenv (p1env-extend p1env ($map-cons-dup var lvars) LEXICAL)))
+	    (newenv (p1env-extend p1env (%map-cons var lvars) LEXICAL)))
        ($let form 'rec lvars
 	     (imap2 (lambda (lv init)
 		      (let ((iexpr (pass1 init
@@ -1982,7 +1966,7 @@
     ((- ((var init . update) ___) (test expr ___) body ___)
      (let* ((tmp (make-lvar 'do-proc))
 	    (args (imap make-lvar+ var))
-	    (newenv (p1env-extend/proc p1env ($map-cons-dup var args)
+	    (newenv (p1env-extend/proc p1env (%map-cons var args)
 				       LEXICAL 'do-proc))
 	    (clo ($lambda 
 		  form
@@ -4750,18 +4734,6 @@
     (cb-emit1i! cb FSET n (lvar-name lvar))
     0))
 
-#|
-(define pass5/return-refer-global
-  (lambda (cb var lvar)
-    (cb-emit1i! cb GREF var (lvar-name lvar))
-    0))
-
-(define pass5/return-assign-global
-  (lambda (cb var lvar)
-    (cb-emit1i! cb GSET var (lvar-name lvar))
-    0))
-|#
-
 (define pass5/compile-refer
   (lambda (lvar cb renv)
     (pass5/symbol-lookup lvar cb renv 
@@ -4775,10 +4747,11 @@
 			 pass5/return-assign-free)))
 
 (define (pass5/make-boxes cb sets vars)
-  ($for-each1-with-rindex (lambda (index var)
-			    (if (memq var sets)
-				(cb-emit1! cb BOX index)))
-			  vars))
+  (let loop ((i (- (length vars) 1)) (lst vars))
+    (cond ((null? lst) '())
+	  (else
+	   (when (memq (car lst) sets) (cb-emit1! cb BOX i))
+	   (loop (- i 1) (cdr lst))))))
 
 (define (pass5/ensure-label cb label-node)
   (or ($label-label label-node)
