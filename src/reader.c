@@ -167,6 +167,7 @@ struct readtable_rec_t
 
 /* template readtables */
 static readtable_t r6rs_read_table;
+static readtable_t r7rs_read_table;
 /* including r7rs #u8() */
 static readtable_t compat_read_table;
 
@@ -972,6 +973,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  SgVM *vm = Sg_VM();
 	  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -980,6 +982,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  SgVM *vm = Sg_VM();
 	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -1052,6 +1055,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  SgVM *vm = Sg_VM();
 	  SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
 	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
 	  return NULL;
@@ -1059,9 +1063,10 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (ustrcmp(tag->value, "r7rs") == 0) {
 	  SgVM *vm = Sg_VM();
 	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
-	  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  SG_VM_SET_FLAG(vm, SG_R7RS_MODE);
+	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
-	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
+	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r7rs_read_table));
 	  return NULL;
 	}
 	if (ustrncmp(tag->value, "reader=", 7) == 0) {
@@ -1745,6 +1750,8 @@ static readtable_t* default_readtable(int copyP)
   readtable_t* table;
   if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE)) {
     table = &r6rs_read_table;
+  } else if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R7RS_MODE)) {
+    table = &r7rs_read_table;
   } else {
     table = &compat_read_table;
   }
@@ -2143,7 +2150,11 @@ disptab_t* alloc_disptab()
   return d;
 }
 
-static void init_readtable(readtable_t *table, int r6rsP)
+#define INIT_COMPAT 0
+#define INIT_R6RS   1
+#define INIT_R7RS   2
+
+static void init_readtable(readtable_t *table, int type)
 {
   int i;
   readtab_t *r = table->readtable;
@@ -2168,7 +2179,7 @@ static void init_readtable(readtable_t *table, int r6rsP)
   r[' '].type = CT_WHITE_SPACE;
   r['\\'].type = CT_SINGLE_ESCAPE;
 
-  if (!r6rsP) {
+  if (type != INIT_R6RS) {
     /* Larceny bench mark doesn't like this. */
     SET_NONTERM_MACRO(r, '|', read_vertical_bar);
   }
@@ -2181,13 +2192,15 @@ static void init_readtable(readtable_t *table, int r6rsP)
   SET_TERM_MACRO(r, ';', read_semicolon);
   SET_TERM_MACRO(r, '`', read_quasiquote);
   SET_TERM_MACRO(r, ',', read_unquote); 
-  if (!r6rsP) {
-    SET_NONTERM_MACRO(r, ':', read_colon);
+  if (type != INIT_R6RS) {
+    if (type != INIT_R7RS) {
+      SET_NONTERM_MACRO(r, ':', read_colon);
+    }
     table->symbol_reader = read_compatible_symbol;
   } else {
     table->symbol_reader = read_r6rs_symbol;
   }
-  if (r6rsP) {
+  if (type == INIT_R6RS) {
     SET_TERM_MACRO(r, '#', dispmacro_reader);
   } else {
     SET_NONTERM_MACRO(r, '#', dispmacro_reader);
@@ -2199,9 +2212,12 @@ static void init_readtable(readtable_t *table, int r6rsP)
   SET_DISP_MACRO(d, ',', read_hash_unquote);
   SET_DISP_MACRO(d, '!', read_hash_bang);
   SET_DISP_MACRO(d, 'v', read_hash_v);
-  if (!r6rsP) {
+  if (type != INIT_R6RS) {
     SET_DISP_MACRO(d, 'u', read_hash_u);
-    SET_DISP_MACRO(d, ':', read_hash_colon);
+    if (type != INIT_R7RS) {
+      /* #:a is only for compat mode */
+      SET_DISP_MACRO(d, ':', read_hash_colon);
+    }
   }
   SET_DISP_MACRO(d, 't', read_hash_t);
   SET_DISP_MACRO(d, 'T', read_hash_t);
@@ -2230,8 +2246,9 @@ static void init_readtable(readtable_t *table, int r6rsP)
 
 void Sg__InitReader()
 {
-  init_readtable(&r6rs_read_table, TRUE);
-  init_readtable(&compat_read_table, FALSE);
+  init_readtable(&r6rs_read_table, INIT_R6RS);
+  init_readtable(&r7rs_read_table, INIT_R7RS);
+  init_readtable(&compat_read_table, INIT_COMPAT);
 
   Sg_InitMutex(&obtable_mutax, TRUE);
   obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
