@@ -44,7 +44,7 @@ static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DateClass, date_printer);
 
-SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, 
+SgObject Sg_MakeDate(SgObject nano, int sec, int min, int hour, int day, 
 		     int mon, int year, int64_t zone)
 {
   SgDate *d = SG_NEW(SgDate);

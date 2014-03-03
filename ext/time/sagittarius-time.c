@@ -284,7 +284,7 @@ static SgSlotAccessor time_slots[] = {
   { { NULL } }
 };
 
-DEFINE_ACCESSOR(date, nanosecond, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
+DEFINE_ACCESSOR(date, nanosecond, SgDate, SG_OBJ, SG_EXACT_INTP, SG_OBJ);
 DEFINE_ACCESSOR(date, second, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
 DEFINE_ACCESSOR(date, minute, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
 DEFINE_ACCESSOR(date, hour, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);

@@ -52,7 +52,7 @@ SG_CLASS_DECL(Sg_TimeClass);
 typedef struct SgDateRec
 {
   SG_HEADER;
-  int     nanosecond;
+  SgObject nanosecond;		/* could be bignum */
   int     second;
   int     minute;
   int     hour;
@@ -82,7 +82,8 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r);
 SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r);
 SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r);
 
-SgObject Sg_MakeDate(int nano, int sec, int min, int hour, int day, int mon, int year, int64_t zone);
+SgObject Sg_MakeDate(SgObject nano, int sec, int min, int hour,
+		     int day, int mon, int year, int64_t zone);
 SgObject Sg_LocalTzOffset();
 
 SG_CDECL_END
