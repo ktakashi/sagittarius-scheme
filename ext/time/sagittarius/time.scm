@@ -711,7 +711,7 @@
   (define (tm:locale-am/pm hr)
     (if (> hr 11) tm:locale-pm tm:locale-am))
 
-  (define (tm:tz-printer offset port)
+  (define (tm:tz-printer offset port :optional (sep #f))
     (cond
      ((= offset 0) (display "Z" port))
      ((negative? offset) (display "-" port))
@@ -720,6 +720,7 @@
         (let ( (hours   (abs (quotient offset (* 60 60))))
                (minutes (abs (quotient (remainder offset (* 60 60)) 60))) )
           (display (tm:padding hours #\0 2) port)
+	  (when sep (display sep port))
           (display (tm:padding minutes #\0 2) port))))
 
 ;; A table of output formatting directives.
@@ -876,6 +877,13 @@
                  (display (date->string date "~Y-~m-~dT~k:~M:~S~z") port)))
      (cons #\5 (lambda (date pad-with port)
                  (display (date->string date "~Y-~m-~dT~k:~M:~S") port)))
+     ;; extension for Sagittarius
+     ;; XSD dateTime
+     ;; I want something that can specify timezone offset printer
+     ;; other than #\z but almost all chars are occupied...
+     (cons #\6 (lambda (date pad-with port)
+                 (display (date->string date "~Y-~m-~dT~k:~M:~S") port)
+		 (tm:tz-printer (date-zone-offset date) port #\:)))
      ))
 
   (define (tm:get-formatter char)
@@ -1048,6 +1056,12 @@
                                    (list "Invalid time zone number" ch)))
                 (set! offset (+ offset (* (tm:char->int ch)
                                           60 60))))
+	      ;; accept colon as well (ISO8601 style HH:MM)
+	      (let ((ch (peek-char port)))
+                (if (eof-object? ch)
+                    (tm:time-error 'string->date 'bad-date-template-string
+                                   (list "Invalid time zone number" ch)))
+                (when (char=? ch #\:) (read-char port)))
               (let ((ch (read-char port)))
                 (if (eof-object? ch)
                     (tm:time-error 'string->date 'bad-date-template-string

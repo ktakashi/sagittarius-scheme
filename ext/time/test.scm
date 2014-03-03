@@ -207,11 +207,23 @@
 
 (test-assert "string->date"
 	     (date? (string->date "1981/12/2 00:00:00" "~Y/~m/~d ~H:~M:~S")))
+(test-assert "string->date(2)"
+	     (date? (string->date "1981/12/2 00:00:00+01:00" 
+				  "~Y/~m/~d ~H:~M:~S~z")))
 
 (test-equal "date->string"
 	    "1981/12/02 00:00:00"
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600)
 			  "~Y/~m/~d ~H:~M:~S")
+	    )
+;; XSD dateTime extension
+(test-equal "date->string ~6(1)"
+	    "1981-12-02T00:00:00Z"
+	    (date->string (make-date 0 0 0 0 2 12 1981 0) "~6")
+	    )
+(test-equal "date->string ~6(2)"
+	    "1981-12-02T00:00:00+01:00"
+	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
 (test-end)
   
