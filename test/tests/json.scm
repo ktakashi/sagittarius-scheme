@@ -88,4 +88,10 @@
 	    (call-with-input-file two-objects-data
 	      (cut json-read <>)))
 
+(test-equal "json null" "null" 
+	    (call-with-string-output-port
+	     (lambda (out) 
+	       (json-write (json-read (open-string-input-port "null"))
+			   out))))
+
 (test-end)

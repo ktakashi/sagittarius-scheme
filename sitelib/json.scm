@@ -81,11 +81,13 @@
 	 ((vector? x) (write-ht x p))
 	 ;;((pair? x) (write-array x p))
 	 ((list? x) (write-array x p))
+	 ;; this must be handled before symbol
+	 ;; otherwise it won't be null
+	 ((eq? x (void)) (display "null" p))
 	 ((symbol? x) (write (symbol->string x) p)) ;; for convenience
 	 ((or (string? x)
 	      (number? x)) (write x p))
 	 ((boolean? x) (display (if x "true" "false") p))
-	 ((eq? x (void)) (display "null" p))
 	 (else (error 'json-write "Invalid JSON object in json-write" x))))
 
       (lambda (x . maybe-port)
