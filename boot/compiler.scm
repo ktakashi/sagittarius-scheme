@@ -2952,7 +2952,7 @@
 	 (pass1/body-finish intdefs exprs p1env meta-env)))
     (- (pass1/body-finish intdefs exprs p1env meta-env))))
 
-(define (pass1/body-inner-rec exprs intdefs p1env meta-env)
+(define (pass1/body-finish exprs intdefs p1env meta-env)
   (define (finish exprs p1env)
     (pass1/body-rest exprs p1env))
   (define (collect-lvars frame) 
@@ -2968,10 +2968,6 @@
 			(ifold (lambda (v s) (cons (cdr v) s))
 			       '() intdefs))
 		 (finish exprs meta-env))))))
-
-(define (pass1/body-finish intdefs exprs p1env meta-env)
-  (pass1/body-inner-rec exprs intdefs p1env meta-env))
-
 
 (define (pass1/body-init lvar init&src newenv)
   (let ((e (p1env-add-name newenv (lvar-name lvar))))
@@ -3036,7 +3032,7 @@
 		   (opt?   (procedure-optional? proc)))
 	       (unless (argcount-ok? (cdr form)
 				     (procedure-reqargs proc) opt?)
-		 (error 'pass1/expand-inliner
+		 (error (variable-name name)
 			(format "wrong number of arguments: ~a requires ~a, but got ~a"
 				(variable-name name)
 				(procedure-reqargs proc) nargs)
