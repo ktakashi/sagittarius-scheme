@@ -127,10 +127,10 @@
 				       '(sagittarius compiler)))
 ;; syntax-case compiler
 (define compile-syntax-case
-  (lambda (exp-name expr literals clauses library env mac-env)
+  (lambda (exp-name expr literals clauses library env mac-env make-p1env)
     ;; literal must be unwrapped, otherwise it will be too unique
     (let ((lites (unwrap-syntax literals)))
-      (define (rewrite oexpr patvars)
+      (define (rewrite oexpr patvars newenv)
 	(define (expand-local-macro expr)
 	  ;; smells a bug, but I don't know what's wrong with this...
 	  (and-let* ((t (if (pair? expr) (car expr) expr))
@@ -142,7 +142,7 @@
 		     ;; if not then the current env is basically the
 		     ;; same as identifier env
 		     ( (assv BOUNDARY (if (identifier? t) (id-envs t) env)) ))
-	    (call-macro-expander m expr mac-env)))
+	    (call-macro-expander m expr newenv)))
 	(define seen (make-eq-hashtable))
 	(define (seen-or-gen id env library)
 	  (cond ((hashtable-ref seen id #f))
@@ -151,7 +151,7 @@
 			new-id))))
 	(let loop ((expr oexpr))
 	  (cond ((pair? expr)
-		 (or (expand-local-macro expr)
+		 (or (loop (expand-local-macro expr))
 		     (let ((a (loop (car expr)))
 			   (d (loop (cdr expr))))
 		       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
@@ -186,8 +186,10 @@
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
-	  (values (rewrite pattern pvars) 
-		  (extend-env (rewrite ranks pvars) env) pvars)))
+	  (values (rewrite pattern pvars mac-env)
+		  (make-p1env mac-env 
+			      (extend-env (rewrite ranks pvars mac-env) env))
+		  pvars)))
 
       (or (and (list? lites) (for-all symbol? lites))
 	  (syntax-violation 'syntax-case "invalid literals" expr lites))
@@ -208,15 +210,15 @@
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
 					 (,.lambda (,.vars)
-						   ,(rewrite expr patvars)))
+					   ,(rewrite expr patvars env)))
 				env)))
 		       ((p fender expr)
 			(receive (pattern env patvars) (parse-pattern p)
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 (,.lambda (,.vars)
-						   ,(rewrite fender patvars))
+					   ,(rewrite fender patvars env))
 					 (,.lambda (,.vars)
-						   ,(rewrite expr patvars)))
+					   ,(rewrite expr patvars env)))
 				env)))))
 		   clauses)))))
 
