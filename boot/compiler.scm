@@ -2952,7 +2952,7 @@
 	 (pass1/body-finish intdefs exprs p1env meta-env)))
     (- (pass1/body-finish intdefs exprs p1env meta-env))))
 
-(define (pass1/body-finish exprs intdefs p1env meta-env)
+(define (pass1/body-finish intdefs exprs p1env meta-env)
   (define (finish exprs p1env)
     (pass1/body-rest exprs p1env))
   (define (collect-lvars frame) 

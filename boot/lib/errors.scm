@@ -25,16 +25,6 @@
 	    (core base)
 	    (sagittarius))
 
-(define assertion-violation
-  (lambda (who message . irritants)
-    (raise
-     (apply condition
-            (filter values
-                    (list (make-assertion-violation)
-                          (and who (make-who-condition who))
-                          (make-message-condition message)
-                          (make-irritants-condition irritants)))))))
-
 (define undefined-violation
   (lambda (who . message)
     (raise
