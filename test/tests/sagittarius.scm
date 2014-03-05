@@ -1163,4 +1163,9 @@
   (letrec-syntax ((not-visible (syntax-rules () ((_) 'foo)))))
   (test-error "local macro invalid scope" condition? (not-visible)))
 
+(let ()
+  (letrec-syntax ((not-visible (syntax-rules () ((_) 'foo)))))
+  (define (b) (not-visible))
+  (test-error "local macro invalid scope(2)" condition? (b)))
+
 (test-end)

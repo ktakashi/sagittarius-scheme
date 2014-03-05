@@ -2856,7 +2856,7 @@
   ;; add dummy env so that we can just extend!
   (let ((newenv (p1env-extend p1env '() LEXICAL)))
     (pass1/body-rec (imap (lambda (e) (cons e newenv)) exprs) 
-		    '() '() newenv newenv)))
+		    '() '() newenv)))
 
 ;;; 
 ;; Memo
@@ -2864,19 +2864,17 @@
 ;;  internal definitions are always tricky. it needs to use
 ;;  proper environment to compile. now we are adding lvars
 ;;  to the environment frame so that internal define-syntax
-;;  can see proper environment frame. argument `p1env` is the
-;;  top most environment of this body handling, `meta-env`
-;;  contains local macro bound by let(rec)-syntax. the initial
-;;  value of these environments are the same and if we change
-;;  `p1env` destructively (p1env-extend!), `meta-env` can also
-;;  see the change.
+;;  can see proper environment frame. to make this happen
+;;  we wrap the given expression with proper context of
+;;  environment, then on finish process, it uses the wrapped
+;;  environment.
 ;;
 ;;  the structure of intdefs
 ;;  (((name (lambda formals body ...)) (name . lvar) . meta-env) ...)
 ;; 
 ;;  the structure of intmacros
 ;;  (((name expr) (name . #t) . meta-env) ...)
-(define (pass1/body-rec exprs intdefs intmacros p1env meta-env)
+(define (pass1/body-rec exprs intdefs intmacros p1env)
   (define (p1env-extend! p1env p)
     (let ((frame (car (p1env-frames p1env))))
       (set-cdr! frame (append! (cdr frame) (list p)))
@@ -2894,7 +2892,7 @@
 		 ((macro? head)
 		  (let ((e (call-macro-expander head (caar exprs) env)))
 		    (pass1/body-rec `((,e . ,env) . ,rest)
-				    intdefs intmacros p1env meta-env)))
+				    intdefs intmacros p1env)))
 		 ;; when (let-syntax ((xif if) (xif ...)) etc.
 		 ((syntax? head) (pass1/body-finish intdefs exprs))
 		 ((global-eq? head 'define p1env)
@@ -2911,21 +2909,20 @@
 						 (caar exprs)))))
 			 (frame (cons (car def) (make-lvar (car def)))))
 		    (pass1/body-rec rest 
-				    (cons (cons* def frame meta-env) intdefs)
+				    (cons (cons* def frame env) intdefs)
 				    intmacros
 				    ;; we initialise internal define later
-				    (p1env-extend! p1env frame)
-				    meta-env)))
+				    (p1env-extend! p1env frame))))
 		 ((global-eq? head 'begin p1env)
 		  (pass1/body-rec (append (imap (lambda (x) (cons x env)) args)
 					  rest)
-				  intdefs intmacros p1env meta-env))
+				  intdefs intmacros p1env))
 		 ((global-eq? head 'include p1env)
 		  (pass1/body-rec (cons (pass1/include args p1env #f) rest)
-				  intdefs intmacros p1env meta-env))
+				  intdefs intmacros p1env))
 		 ((global-eq? head 'include-ci p1env)
 		  (pass1/body-rec (cons (pass1/include args p1env #t) rest)
-				  intdefs intmacros p1env meta-env))
+				  intdefs intmacros p1env))
 		 ;; 11.2.2 syntax definition (R6RS)
 		 ;; 5.3 Syntax definition (R7RS)
 		 ((global-eq? head 'define-syntax p1env)
@@ -2936,16 +2933,15 @@
 			      ((name expr) 
 			       (pass1/eval-macro-rhs 'define-syntax 
 				(variable-name name) expr 
-				(p1env-add-name meta-env (variable-name name))))
+				(p1env-add-name env (variable-name name))))
 			      (- (syntax-error 
 				  "malformed internal define-syntax"
 				  (caar exprs)))))
 			 (frame (cons (car args) m)))
 		    (pass1/body-rec rest intdefs intmacros
-				    ;;(cons (cons* m frame meta-env) intmacros)
+				    ;;(cons (cons* m frame env) intmacros)
 				    ;; this can see from meta-env as well
-				    (p1env-extend! p1env frame)
-				    meta-env)))
+				    (p1env-extend! p1env frame))))
 		 ;; 11.18 binding constructs for syntactic keywords
 		 ((or (and (global-eq? head 'let-syntax p1env '|(core)|)
 			   pass1/compile-let-syntax)
@@ -2954,7 +2950,7 @@
 		  => (lambda (compile)
 		       (receive (new body) (compile (caar exprs) env)
 			 (pass1/body-rec `(((,begin. ,@body) . ,new) . ,rest)
-			  intdefs intmacros p1env new))))
+			  intdefs intmacros p1env))))
 		 ((identifier? head)
 		  (or (and-let* ((gloc (id->bound-gloc head))
 				 (gval (gloc-ref gloc))
@@ -2962,7 +2958,7 @@
 			(let ((expr (call-macro-expander gval (caar exprs) 
 							 env)))
 			  (pass1/body-rec `((,expr . ,env) . ,rest)
-					  intdefs intmacros p1env meta-env)))
+					  intdefs intmacros p1env)))
 		      (pass1/body-finish intdefs intmacros exprs)))
 		 (else
 		  (error 'pass1/body 
