@@ -2855,13 +2855,30 @@
 (define (pass1/body exprs p1env)
   ;; add dummy env so that we can just extend!
   (let ((newenv (p1env-extend p1env '() LEXICAL)))
-    (pass1/body-rec (imap list exprs) '() newenv newenv)))
+    (pass1/body-rec (imap list exprs) '() '() newenv newenv)))
 
-(define (pass1/body-rec exprs intdefs p1env meta-env)
-  (define (p1env-extend! p1env name v)
-    (let ((lvar (if v v (make-lvar name)))
-	  (frame (car (p1env-frames p1env))))
-      (set-cdr! frame (append! (cdr frame) (list (cons name lvar))))
+;;; 
+;; Memo
+;; Handling internal definitions
+;;  internal definitions are always tricky. it needs to use
+;;  proper environment to compile. now we are adding lvars
+;;  to the environment frame so that internal define-syntax
+;;  can see proper environment frame. argument `p1env` is the
+;;  top most environment of this body handling, `meta-env`
+;;  contains local macro bound by let(rec)-syntax. the initial
+;;  value of these environments are the same and if we change
+;;  `p1env` destructively (p1env-extend!), `meta-env` can also
+;;  see the change.
+;;
+;;  the structure of intdefs
+;;  (((name (lambda formals body ...) . src) (name . lvar) . meta-env) ...)
+;; 
+;;  the structure of intmacros
+;;  (((name expr) (name . #t) . meta-env) ...)
+(define (pass1/body-rec exprs intdefs intmacros p1env meta-env)
+  (define (p1env-extend! p1env p)
+    (let ((frame (car (p1env-frames p1env))))
+      (set-cdr! frame (append! (cdr frame) (list p)))
       p1env))
   (smatch exprs
     ((((op . args) . src) . rest)
@@ -2872,56 +2889,63 @@
 	      "proper list required for function application or macro use"
 	      (caar exprs)))
 	   (cond ((lvar? head)
-		  (pass1/body-finish intdefs exprs p1env meta-env))
+		  (pass1/body-finish intdefs intmacros exprs p1env meta-env))
 		 ((macro? head)
 		  (let ((e (call-macro-expander head (caar exprs) meta-env)))
 		    (pass1/body-rec `((,e . ,(caar exprs)) . ,rest)
-				    intdefs p1env meta-env)))
+				    intdefs intmacros p1env meta-env)))
 		 ;; when (let-syntax ((xif if) (xif ...)) etc.
 		 ((syntax? head) 
 		  (pass1/body-finish intdefs exprs p1env meta-env))
 		 ((global-eq? head 'define p1env)
-		  (let ((def (smatch args
-			       (((name . formals) . body)
-				($src `(,name (,lambda. ,formals ,@body)
-					      . ,src) (caar exprs)))
-			       ((var . init)
-				($src `(,var ,(if (null? init)
-						  (undefined)
-						  (car init))
-					     . ,src)
-				      (caar exprs)))
-			       (- (syntax-error "malformed internal define"
-						(caar exprs))))))
-		    (pass1/body-rec rest (cons def intdefs)
+		  (let* ((def (smatch args
+				(((name . formals) . body)
+				 ($src `(,name (,lambda. ,formals ,@body)
+					       . ,src) (caar exprs)))
+				((var . init)
+				 ($src `(,var ,(if (null? init)
+						   (undefined)
+						   (car init))
+					      . ,src)
+				       (caar exprs)))
+				(- (syntax-error "malformed internal define"
+						 (caar exprs)))))
+			 (frame (cons (car def) (make-lvar (car def)))))
+		    (pass1/body-rec rest 
+				    (cons (cons* def frame meta-env) intdefs)
+				    intmacros
 				    ;; we initialise internal define later
-				    (p1env-extend! p1env (car def) #f)
+				    (p1env-extend! p1env frame)
 				    meta-env)))
 		 ((global-eq? head 'begin p1env)
 		  (pass1/body-rec (append (imap (lambda (x) (cons x src)) args)
 					  rest)
-				  intdefs p1env meta-env))
+				  intdefs intmacros p1env meta-env))
 		 ((global-eq? head 'include p1env)
 		  (pass1/body-rec (cons (pass1/include args p1env #f) rest)
-				  intdefs p1env meta-env))
+				  intdefs intmacros p1env meta-env))
 		 ((global-eq? head 'include-ci p1env)
 		  (pass1/body-rec (cons (pass1/include args p1env #t) rest)
-				  intdefs p1env meta-env))
+				  intdefs intmacros p1env meta-env))
 		 ;; 11.2.2 syntax definition (R6RS)
 		 ;; 5.3 Syntax definition (R7RS)
 		 ((global-eq? head 'define-syntax p1env)
-		  (let ((m (smatch args
-			     ((name expr) 
-			      (pass1/eval-macro-rhs 
-			       'define-syntax (variable-name name)
-			       expr (p1env-add-name meta-env 
-						    (variable-name name))))
-			     (- (syntax-error 
-				 "malformed internal define-syntax"
-				 (caar exprs))))))
-		    (pass1/body-rec rest intdefs
+		  ;; for now we compile the macro immediately
+		  ;; however this is not a good solution.
+		  ;; to avoid lookup error
+		  (let* ((m (smatch args
+			      ((name expr) 
+			       (pass1/eval-macro-rhs 'define-syntax 
+				(variable-name name) expr 
+				(p1env-add-name meta-env (variable-name name))))
+			      (- (syntax-error 
+				  "malformed internal define-syntax"
+				  (caar exprs)))))
+			 (frame (cons (car args) m)))
+		    (pass1/body-rec rest intdefs intmacros
+				    ;;(cons (cons* m frame meta-env) intmacros)
 				    ;; this can see from meta-env as well
-				    (p1env-extend! p1env (car args) m)
+				    (p1env-extend! p1env frame)
 				    meta-env)))
 		 ;; 11.18 binding constructs for syntactic keywords
 		 ((global-eq? head 'let-syntax p1env '|(core)|)
@@ -2929,13 +2953,13 @@
 		      (pass1/compile-let-syntax (caar exprs) p1env)
 		    (pass1/body-rec 
 		     ($src `(((,begin. ,@body)) . ,rest) (caar exprs))
-		     intdefs p1env new)))
+		     intdefs intmacros p1env new)))
 		 ((global-eq? head 'letrec-syntax p1env '|(core)|)
 		  (receive (new body)
 		      (pass1/compile-letrec-syntax (caar exprs) p1env)
 		    (pass1/body-rec 
 		     ($src `(((,begin. ,@body)) . ,rest) (caar exprs))
-		     intdefs p1env new)))
+		     intdefs intmacros p1env new)))
 		 ((identifier? head)
 		  (or (and-let* ((gloc (id->bound-gloc head))
 				 (gval (gloc-ref gloc))
@@ -2943,30 +2967,45 @@
 			(let ((expr (call-macro-expander gval (caar exprs)
 							 meta-env)))
 			  (pass1/body-rec `((,expr . ,(caar exprs)) . ,rest)
-					  intdefs p1env meta-env)))
-		      (pass1/body-finish intdefs exprs p1env meta-env)))
+					  intdefs intmacros p1env meta-env)))
+		      (pass1/body-finish intdefs intmacros
+					 exprs p1env meta-env)))
 		 (else
 		  (error 'pass1/body 
 			 "[internal] p1env-lookup returned weird obj"
-			  head `(,op . ,args)))))
-	 (pass1/body-finish intdefs exprs p1env meta-env)))
-    (- (pass1/body-finish intdefs exprs p1env meta-env))))
+			 head `(,op . ,args)))))
+	 (pass1/body-finish intdefs intmacros exprs p1env meta-env)))
+    (- (pass1/body-finish intdefs intmacros exprs p1env meta-env))))
 
-(define (pass1/body-finish intdefs exprs p1env meta-env)
+(define (pass1/body-finish intdefs intmacros exprs p1env meta-env)
   (define (finish exprs p1env)
     (pass1/body-rest exprs p1env))
-  (define (collect-lvars frame) 
-    ;; exclude macro otherwise it will compilain
-    (filter (lambda (v) (and (not (macro? v)) v)) (map cdr (cdr frame))))
-
+  (define (collect-lvars intdefs) (imap cdadr intdefs))
+  #;
+  (unless (null? intmacros)
+    ;; resolve internal macro
+    ;; it's sharing the frame so just change it destructively
+    (ifor-each (lambda (m)
+		 (let* ((def (car m))
+			(name (car def))
+			(expr (cadr def))
+			(frame (cadr m))
+			(meta-env (cddr m))
+			(mac (pass1/eval-macro-rhs 'define-syntax 
+			      (variable-name name) expr 
+			      (p1env-add-name meta-env (variable-name name)))))
+		   (set-cdr! frame mac)))
+	       intmacros))
   (cond ((null? intdefs) (finish exprs meta-env))
 	(else
-	 (let ((lvars (collect-lvars (car (p1env-frames p1env)))))
-	   ($let #f 'rec lvars
-		 (imap2 (lambda (lv def) (pass1/body-init lv def meta-env))
-			lvars 
-			(ifold (lambda (v s) (cons (cdr v) s))
-			       '() intdefs))
+	 (let ((intdefs. (reverse! intdefs)))
+	   ($let #f 'rec (collect-lvars intdefs.)
+		 (imap (lambda (def) 
+			 (let ((expr (car def))
+			       (frame (cadr def))
+			       (meta-env (cddr def)))
+			   (pass1/body-init (cdr frame) (cdr expr) meta-env)))
+		       intdefs.)
 		 (finish exprs meta-env))))))
 
 (define (pass1/body-init lvar init&src newenv)
@@ -3064,7 +3103,7 @@
 		      (else
 		       (scheme-error 'pass1
 				     "[internal] unknown resolution of head:" 
-				     obj)))))
+				     obj (unwrap-syntax form))))))
 	  ;; TODO there must be top-level-subr, if i make them...
 	  (else 
 	   (pass1/call form (pass1 (car form) (p1env-sans-name p1env))
