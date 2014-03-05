@@ -1159,4 +1159,8 @@
   (test-equal "local macro refered in global macro"
 	      'foo (b)))
 
+(let ()
+  (letrec-syntax ((not-visible (syntax-rules () ((_) 'foo)))))
+  (test-error "local macro invalid scope" condition? (not-visible)))
+
 (test-end)

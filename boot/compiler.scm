@@ -2855,7 +2855,8 @@
 (define (pass1/body exprs p1env)
   ;; add dummy env so that we can just extend!
   (let ((newenv (p1env-extend p1env '() LEXICAL)))
-    (pass1/body-rec (imap list exprs) '() '() newenv newenv)))
+    (pass1/body-rec (imap (lambda (e) (cons e newenv)) exprs) 
+		    '() '() newenv newenv)))
 
 ;;; 
 ;; Memo
@@ -2871,7 +2872,7 @@
 ;;  see the change.
 ;;
 ;;  the structure of intdefs
-;;  (((name (lambda formals body ...) . src) (name . lvar) . meta-env) ...)
+;;  (((name (lambda formals body ...)) (name . lvar) . meta-env) ...)
 ;; 
 ;;  the structure of intmacros
 ;;  (((name expr) (name . #t) . meta-env) ...)
@@ -2881,32 +2882,30 @@
       (set-cdr! frame (append! (cdr frame) (list p)))
       p1env))
   (smatch exprs
-    ((((op . args) . src) . rest)
+    ((((op . args) . env) . rest)
      (or (and-let* (( (not (assq op intdefs)) )
-		    (head (pass1/lookup-head op meta-env)))
+		    (head (pass1/lookup-head op env)))
 	   (unless (list? args)
 	     (syntax-error 
 	      "proper list required for function application or macro use"
 	      (caar exprs)))
 	   (cond ((lvar? head)
-		  (pass1/body-finish intdefs intmacros exprs p1env meta-env))
+		  (pass1/body-finish intdefs intmacros exprs))
 		 ((macro? head)
-		  (let ((e (call-macro-expander head (caar exprs) meta-env)))
-		    (pass1/body-rec `((,e . ,(caar exprs)) . ,rest)
+		  (let ((e (call-macro-expander head (caar exprs) env)))
+		    (pass1/body-rec `((,e . ,env) . ,rest)
 				    intdefs intmacros p1env meta-env)))
 		 ;; when (let-syntax ((xif if) (xif ...)) etc.
-		 ((syntax? head) 
-		  (pass1/body-finish intdefs exprs p1env meta-env))
+		 ((syntax? head) (pass1/body-finish intdefs exprs))
 		 ((global-eq? head 'define p1env)
 		  (let* ((def (smatch args
 				(((name . formals) . body)
-				 ($src `(,name (,lambda. ,formals ,@body)
-					       . ,src) (caar exprs)))
+				 ($src `(,name (,lambda. ,formals ,@body))
+				       (caar exprs)))
 				((var . init)
 				 ($src `(,var ,(if (null? init)
 						   (undefined)
-						   (car init))
-					      . ,src)
+						   (car init)))
 				       (caar exprs)))
 				(- (syntax-error "malformed internal define"
 						 (caar exprs)))))
@@ -2918,7 +2917,7 @@
 				    (p1env-extend! p1env frame)
 				    meta-env)))
 		 ((global-eq? head 'begin p1env)
-		  (pass1/body-rec (append (imap (lambda (x) (cons x src)) args)
+		  (pass1/body-rec (append (imap (lambda (x) (cons x env)) args)
 					  rest)
 				  intdefs intmacros p1env meta-env))
 		 ((global-eq? head 'include p1env)
@@ -2948,38 +2947,32 @@
 				    (p1env-extend! p1env frame)
 				    meta-env)))
 		 ;; 11.18 binding constructs for syntactic keywords
-		 ((global-eq? head 'let-syntax p1env '|(core)|)
-		  (receive (new body)
-		      (pass1/compile-let-syntax (caar exprs) p1env)
-		    (pass1/body-rec 
-		     ($src `(((,begin. ,@body)) . ,rest) (caar exprs))
-		     intdefs intmacros p1env new)))
-		 ((global-eq? head 'letrec-syntax p1env '|(core)|)
-		  (receive (new body)
-		      (pass1/compile-letrec-syntax (caar exprs) p1env)
-		    (pass1/body-rec 
-		     ($src `(((,begin. ,@body)) . ,rest) (caar exprs))
-		     intdefs intmacros p1env new)))
+		 ((or (and (global-eq? head 'let-syntax p1env '|(core)|)
+			   pass1/compile-let-syntax)
+		      (and (global-eq? head 'letrec-syntax p1env '|(core)|)
+			   pass1/compile-letrec-syntax))
+		  => (lambda (compile)
+		       (receive (new body) (compile (caar exprs) env)
+			 (pass1/body-rec `(((,begin. ,@body) . ,new) . ,rest)
+			  intdefs intmacros p1env new))))
 		 ((identifier? head)
 		  (or (and-let* ((gloc (id->bound-gloc head))
 				 (gval (gloc-ref gloc))
 				 ( (macro? gval) ))
-			(let ((expr (call-macro-expander gval (caar exprs)
-							 meta-env)))
-			  (pass1/body-rec `((,expr . ,(caar exprs)) . ,rest)
+			(let ((expr (call-macro-expander gval (caar exprs) 
+							 env)))
+			  (pass1/body-rec `((,expr . ,env) . ,rest)
 					  intdefs intmacros p1env meta-env)))
-		      (pass1/body-finish intdefs intmacros
-					 exprs p1env meta-env)))
+		      (pass1/body-finish intdefs intmacros exprs)))
 		 (else
 		  (error 'pass1/body 
 			 "[internal] p1env-lookup returned weird obj"
 			 head `(,op . ,args)))))
-	 (pass1/body-finish intdefs intmacros exprs p1env meta-env)))
-    (- (pass1/body-finish intdefs intmacros exprs p1env meta-env))))
+	 (pass1/body-finish intdefs intmacros exprs)))
+    (- (pass1/body-finish intdefs intmacros exprs))))
 
-(define (pass1/body-finish intdefs intmacros exprs p1env meta-env)
-  (define (finish exprs p1env)
-    (pass1/body-rest exprs p1env))
+(define (pass1/body-finish intdefs intmacros exprs)
+  (define (finish exprs) (pass1/body-rest exprs))
   (define (collect-lvars intdefs) (imap cdadr intdefs))
   #;
   (unless (null? intmacros)
@@ -2996,7 +2989,7 @@
 			      (p1env-add-name meta-env (variable-name name)))))
 		   (set-cdr! frame mac)))
 	       intmacros))
-  (cond ((null? intdefs) (finish exprs meta-env))
+  (cond ((null? intdefs) (finish exprs))
 	(else
 	 (let ((intdefs. (reverse! intdefs)))
 	   ($let #f 'rec (collect-lvars intdefs.)
@@ -3006,7 +2999,7 @@
 			       (meta-env (cddr def)))
 			   (pass1/body-init (cdr frame) (cdr expr) meta-env)))
 		       intdefs.)
-		 (finish exprs meta-env))))))
+		 (finish exprs))))))
 
 (define (pass1/body-init lvar init&src newenv)
   (let ((e (p1env-add-name newenv (lvar-name lvar))))
@@ -3014,21 +3007,20 @@
       (lvar-initval-set! lvar iexpr)
       iexpr)))
 
-(define (pass1/body-rest exprs p1env)
+(define (pass1/body-rest exprs)
   (smatch exprs
     (() ($seq '()))
-    ((expr&src) (pass1/body-1 expr&src p1env))
-    (- (let ((stmtenv (p1env-sans-name p1env)))
-	 ($seq (let loop ((exprs exprs)
-			  (r '()))
-		 (if (null? (cdr exprs))
-		     (reverse (cons (pass1/body-1 (car exprs) p1env) r))
-		     (loop (cdr exprs)
-			   (cons (pass1/body-1 (car exprs) stmtenv) r)))))))))
+    ((expr&env) (pass1/body-1 expr&env #f))
+    (- ($seq (let loop ((exprs exprs)
+			(r '()))
+	       (if (null? (cdr exprs))
+		   (reverse (cons (pass1/body-1 (car exprs) #f) r))
+		   (loop (cdr exprs)
+			 (cons (pass1/body-1 (car exprs) #t) r))))))))
 
-(define (pass1/body-1 expr&src p1env)
-  (let ((src (cdr expr&src)))
-    (pass1 (car expr&src) p1env)))
+(define (pass1/body-1 expr&env sans?)
+  (let ((env (cdr expr&env)))
+    (pass1 (car expr&env) (if sans? (p1env-sans-name env) env))))
 
 
 (define (pass1/call form proc args p1env)
