@@ -9,55 +9,12 @@
 	(util file)
 	(match)
 	(getopt)
+	(util port)
 	(pp)
 	(srfi :1)
 	(srfi :13)
-	(srfi :26))
-
-;; TODO remove this after 0.5.1
-(import (sagittarius aspect)
-	(clos user)
-	(sagittarius object)
-	(sagittarius vm)
-	(sagittarius cgen literal))
-
-(point-cut
- (sagittarius cgen literal)
- literal-value-hash
- (lambda (literal)
-   (define mask #x0fffffff)
-   (define (rec val)
-     (cond
-      ((pair? val) (bitwise-and (+ (rec (car val)) (rec (cdr val))) mask))
-      ((vector? val) 
-	(fold (^(v r) (bitwise-and (+ (rec v) r) mask)) 0
-	      (vector->list val)))
-      ((string? val) (bitwise-and (string-hash val) mask))
-      ((identifier? val)
-       (bitwise-and (+ (rec (id-name val)) (rec (id-library val))) mask))
-      (else (eqv-hash val))))
-   (rec literal)))
-
-(define-cgen-literal <cgen-scheme-vector> <vector>
-  ((values-vec :init-keyword :values-vec))
-  (make (value)
-    (make <cgen-scheme-vector> :value value
-	  :c-name (cgen-allocate-static-datum)
-	  :values-vec (vector-map cgen-literal value)))
-  (init (self)
-	(let* ((values (~ self 'values-vec))
-	       (vec    (~ self 'value))
-	       (cname (~ self 'c-name))
-	       (s     (vector-length values)))
-	  (print "  do {")
-	  (format #t "     ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
-	  (do ((i 0 (+ i 1)) (l values (cdr values)))
-	      ((= i s))
-	    (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
-		    cname i (cgen-cexpr (vector-ref l i)) 
-		    (cgen-safe-comment (vector-ref vec i))))
-	  (print "  } while (0);")))
-  (static (self) #f))
+	(srfi :26)
+	(srfi :39))
 
 ;; cancel inliner
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
@@ -69,33 +26,40 @@
 ;; ****CAUTION****
 ;; DO NOT USE INLINED PROCEDURES SUCH AS map AND for-each
 ;; So basically we can't use (rnrs)
-(define-constant +default-imports+ '("(core)"
-				     "(core base)"
-				     "(core syntax)"
-				     "(core syntax-case)"
-				     "(core errors)"
-				     "(core misc)"
-				     "(rename (match) (match smatch))"
-				     "(sagittarius)"
-				     "(sagittarius vm)"
-				     "(sagittarius vm debug)"
-				     "(sagittarius vm instruction)"
-				     "(sagittarius compiler util)"
-				     "(sagittarius compiler procedure)"))
+(define-constant +default-imports+ '((core)
+				     (core base)
+				     (core syntax)
+				     (core syntax-case)
+				     (core errors)
+				     (core misc)
+				     (rename (match) (match smatch))
+				     (sagittarius)
+				     (sagittarius vm)
+				     (sagittarius vm debug)
+				     (sagittarius vm instruction)
+				     (sagittarius compiler util)
+				     (sagittarius compiler procedure)))
 (define-constant +default-includes+ '("../boot"))
 
+(define-constant +targets-file+ "genlib.targets")
+
+(define-syntax parse-options
+  (syntax-rules ()
+    ((_ options ((name mark default) ...) body ...)
+     (let ((name (cond ((assq 'mark options) => cdr) (else default)))
+	   ...)
+       body ...))))
+
 (define (load-compiler options)
-  (with-args options
-      ((compiler (#\c "compiler") #t +default-compiler+)
-       (libs     (#\L "compiler-import") * +default-imports+)
-       (include  (#\I "include") * +default-includes+)
-       . ignore)
+  (parse-options options
+      ((compiler compiler        +default-compiler+)
+       (libs     compiler-import +default-imports+)
+       (includes  includes       +default-includes+))
     (let1 form (construct-library-form 
-		compiler `("-l" "(sagittarius host compiler)"
-			   "-e" "compile"
-			   ,@(append-map (lambda (l) (list "-i" l)) libs)
-			   ,@(append-map (lambda (i) (list "-I" i)) include)))
-      ;;(pp form)
+		compiler `((library . (sagittarius host compiler))
+			   (exports compile)
+			   (imports . ,libs)
+			   (includes . ,includes)))
       (eval form (environment '(only (sagittarius) library)
 			      'user))
       (find-procedure 'compile '(sagittarius host compiler)))))
@@ -154,37 +118,34 @@
 	   (_ form))) forms))
 
 (define (construct-library-form file options)
-  (define (read-from-string s) (read (open-string-input-port s)))
-  (define (rename-if-needed s libs)
-    (let ((n (read-from-string s)))
-      (match n
-	(('for name bogus ...)
-	 (cond ((assoc name libs) => (lambda (s)
-				       (cons* 'for (cdr s) bogus)))
-	       (else n)))
-	(else
-	 (cond ((assoc n libs) => cdr)
-	       (else n))))))
+  (define (rename-if-needed n libs)
+    (match n
+      (('for name bogus ...)
+       (cond ((assoc name libs) => (lambda (s) (cons* 'for (cdr s) bogus)))
+	     (else n)))
+      (else
+       (cond ((assoc n libs) => cdr)
+	     (else n)))))
   (define (resolve-additionals additionals)
     (define (resolve-additional add)
       (let* ((base (path-sans-extension (path-basename add)))
 	     (name (list (string->symbol base)))
-	     (libname (string-append +replace-prefix+ base))
+	     (libname (string->symbol (string-append +replace-prefix+ base)))
 	     (form (construct-library-form 
-		    add (list "-l" libname 
-			      "-i" "(except (rnrs) syntax-rules)"
-			      "-i" "(sagittarius)"
-			      "-i" "(only (compat r7rs) syntax-rules)"))))
+		    add `((library . ,libname)
+			  (imports (except (rnrs) syntax-rules)
+				   (sagittarius)
+				   (only (compat r7rs) syntax-rules))))))
 	(eval form (environment '(sagittarius)))
-	(cons name (read-from-string libname))))
+	(cons name libname)))
     (map resolve-additional additionals))
 
-  (with-args options
-      ((lib (#\l "library") #t (error 'genlib "library name is missing"))
-       (imports (#\i "import") * (error 'genlib "import library is missing"))
-       (oexports (#\e "export") * #f)
-       (additionals (#\a "additional") * '())
-       (includes (#\I "include") * '()))
+  (parse-options options
+      ((lib library (error 'genlib "library name is missing"))
+       (imports imports (error 'genlib "import library is missing"))
+       (oexports exports #f)
+       (additionals additionals '())
+       (includes includes '()))
     ;; for now just add
     (let* ((sexp (file->sexp-list file))
 	   (enums '())
@@ -202,58 +163,67 @@
 			    (else #f))) sexp)))
       ;; try not to contaminate the existing library.
       (let* ((libs (resolve-additionals additionals))
-	     (form `(library ,(read-from-string lib) 
+	     (form `(library ,lib 
 			(export ,@(if oexports
-				      (map read-from-string oexports)
+				      oexports
 				      (reverse (append exports enums))))
 			(import ,@(map (cut rename-if-needed <> libs) imports))
 		      ,@(resolve-cond-expand&include sexp includes))))
 	form))))
 
 (define (check-timestamp scm-file out-file)
-  (when (file-exists? out-file)
-    ;; check the timestamp
-    (let ((target-mtime (file-stat-mtime scm-file))
-	  (precomp-mtime (file-stat-mtime out-file)))
-      (when (< target-mtime precomp-mtime)
-	(print "generated file id older than target file. " out-file)
-	(exit 0)))))
+  (not 
+   (and (file-exists? out-file)
+	;; check the timestamp
+	(let ((target-mtime (file-stat-mtime scm-file))
+	      (precomp-mtime (file-stat-mtime out-file)))
+	  (and (< target-mtime precomp-mtime)
+	       (print "generated file id older than target file. "
+		      out-file))))))
+      
 
-(define (gen file clean? need-construct? force? library-options)
-  (define (do-clean libname)
+(define (gen clean? force?)
+  (define compiler #f)
+  (define (do-clean file libname)
     (let ((filename (name-generator file libname)))
       (when (file-exists? filename) (delete-file filename))))
-  (define (get-form/libname)
-    (if need-construct?
-	(values #f (get-library-name library-options))
-	(let1 form (call-with-input-file file read)
+  (define (get-form/libname config)
+    (if (assq 'construct config)
+	(values #f (get-library-name config))
+	(let* ((file (cdr (assq 'file config)))
+	       (form (call-with-input-file file read)))
 	  (values form (cadr form)))))
   (define (get-library-name options)
-    (with-args options
-	((lib (#\l "library") #t (error 'genlib "library name is missing"))
-	 . rest)
-      (read (open-string-input-port lib))))
-  (if clean? 
-      (print "cleaning generated file from: " file)
-      (print "generating from file:" file))
-  (let ((compiler (load-compiler library-options)))
-    (let-values (((form libname) (get-form/libname)))
-      (if clean?
-	  (do-clean libname)
-	  (begin
-	    ;; clean needs to be done no matter what
-	    (unless force? (check-timestamp file (name-generator file libname)))
-	    (cgen-precompile (or form
-				 (construct-library-form file library-options))
-			     :in-file file
-			     :name-generator name-generator
-			     :predef-syms '(LIBSAGITTARIUS_BODY)
-			     :compiler compiler))))))
+    (parse-options options
+	((lib library (error 'genlib "library name is missing")))
+      lib))
+  (call-with-input-file +targets-file+
+    (lambda (in)
+      (port-for-each
+       (lambda (config)
+	 (let-values (((file) (cdr (assq 'file config)))
+		      ((form libname) (get-form/libname config)))
+	   (if clean? 
+	       (print "cleaning generated file from: " file)
+	       (print "generating from file:" file))
+	   (if clean?
+	       (do-clean file libname)
+	       (let ()
+		 ;; clean needs to be done no matter what
+		 (when (or force?
+			   (check-timestamp file (name-generator file libname)))
+		   (unless compiler
+		     (set! compiler (load-compiler config)))
+		   (cgen-precompile 
+		    (or form
+			(construct-library-form file config))
+		    :in-file file
+		    :name-generator name-generator
+		    :predef-syms '(LIBSAGITTARIUS_BODY)
+		    :compiler compiler))))))
+       (lambda () (read in))))))
 (define (main args)
   (with-args (cdr args)
-      ((need-construct? (#\n "need-construct") #f #f)
-       (in-file (#\f "file") #t (error 'genlib "input file is missing"))
-       (clean?  (#\c "clean") #f #f)
-       (force?  (#\F "force") #f #f)
-      . rest)
-    (gen in-file clean? need-construct? force? rest)))
+      ((clean?  (#\c "clean") #f #f)
+       (force?  (#\f "force") #f #f))
+    (gen clean? force?)))

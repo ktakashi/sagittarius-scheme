@@ -7,41 +7,7 @@ precomp()
 {
     echo Generating compiled library files
     cd src
-    $SASH genlib $1 -n -f ../boot/lib/scmlib.scm \
-  	-i "(core)" -i "(sagittarius)" -l "(core base)"
-    $SASH genlib $1 -n -f ../boot/lib/macro.scm \
- 	-l "(core syntax-case)" \
- 	-i "(core)" -i "(core base)" -i "(core errors)" -i "(sagittarius)" \
- 	-i "(for (smatch) expand)" \
- 	-i "(sagittarius vm)" \
- 	-a ../boot/lib/smatch.scm
-    $SASH genlib $1 -n -f ../boot/compiler-aux.scm \
-	-l "(sagittarius compiler util)" \
- 	-i "(core)" -i "(sagittarius)" \
-	-i "(for (core syntax-case) expand)" -i "(for (smatch) expand)" \
-	-i "(core errors)" \
-	-a ../boot/lib/smatch.scm
-    $SASH genlib $1 -n -f ../boot/compiler.scm \
-	-l "(sagittarius compiler)" \
- 	-i "(core)" -i "(core base)" -i "(sagittarius)" \
-	-i "(core syntax-case)" -i "(for (except (rnrs) syntax-rules) expand)" \
-	-i "(core errors)" -i "(for (smatch) expand)" \
-	-i "(for (core misc) expand)" \
-	-i "(for (compat r7rs) expand)" \
-	-i "(sagittarius vm)" -i "(sagittarius vm instruction)" \
-	-i "(sagittarius vm debug)" \
-	-i "(sagittarius compiler util)" \
-	-i "(for (compiler-aux) expand)" \
-	-i "(sagittarius compiler procedure)" \
-	-I ../boot \
-	-a ../boot/lib/smatch.scm \
-	-a ../boot/compiler-aux.scm \
-	-e compile -e compile-p1 -e compile-p2 -e compile-p3 \
-	-e compile-p4 -e compile-p5    
-    $SASH genlib $1 -f ../boot/lib/errors.scm
-    $SASH genlib $1 -f ../boot/lib/arith.scm
-#    $SASH genlib $1 -f ../boot/lib/enums.scm
-
+    $SASH genlib $1
     echo generating instruction
     $SASH ./geninsn $1
     # done :)
