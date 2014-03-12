@@ -36,6 +36,8 @@
 	    rpc-http-content-type
 	    rpc-http-sender
 	    rpc-http-receiver
+	    rpc-http-response-type
+	    rpc-http-unmarshall-message
 	    )
     (import (rnrs)
 	    (rfc http)
@@ -48,21 +50,28 @@
     (let*-values (((server path) (url-server&path url))
 		  ((status header body)
 		   (apply http-request (rpc-http-method message) server path
-			  :sender (rpc-http-sender
-				   (rpc-marshall-message message))
+			  :sender (rpc-http-sender message)
 			  :receiver (rpc-http-receiver message)
 			  :content-type (rpc-http-content-type message)
 			  opts)))
       (if (and (char=? (string-ref status 0) #\2) unmarshall?)
 	  ;; need header?
-	  (values status header (rpc-unmarshall-message message header body))
+	  (values status header 
+		  (rpc-http-unmarshall-message 
+		   (rpc-http-response-type message) header body))
 	  (values status header body))))
 
   ;; default configuration for message
   (define-method rpc-http-method (o) 'POST)
   (define-method rpc-http-content-type (o) "application/octet-stream")
   ;; default binary
-  (define-method rpc-http-sender (o) (http-blob-sender o))
+  (define-method rpc-http-sender (m) 
+    (http-blob-sender (rpc-marshall-message m)))
   (define-method rpc-http-receiver (o) (http-binary-receiver))
+  ;; by default the request
+  (define-method rpc-http-response-type (req) req)
+  ;; by default header will be ignored
+  (define-method rpc-http-unmarshall-message (type header body)
+    (rpc-unmarshall-message type body))
 
 )

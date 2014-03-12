@@ -40,6 +40,7 @@
 	    json-request->json-string
 	    json-string->json-request
 
+	    <json-response>
 	    json-response->json-string
 	    json-string->json-response
 	    json-response-id
@@ -130,13 +131,17 @@
   (define-method rpc-http-content-type ((m <json-request>))
     "application/json")
 
+  ;; response type is 'json
+  (define-method rpc-http-response-type ((m <json-request>)) 'json)
+
   ;; default rpc-http-sender is binary so make it bytevector
   (define-method rpc-marshall-message ((m <json-request>))
     (string->utf8 (json-request->json-string m)))
 
-  ;; http transport gives 3 argument request header and response
-  ;; default response is binary
-  (define-method rpc-unmarshall-message ((request <json-request>) header body)
-    ;; TODO lookup encoding and decide which transcoder
+  ;; TODO implement rpc-http-unmarshall-message to  lookup encoding
+  ;; and decide which transcoder but for now this is enough
+  ;;(define-method rpc-http-unmarshall-message ((type (eql 'json)) header body))
+  
+  (define-method rpc-unmarshall-message ((type (eql 'json)) body)
     (json-string->json-response (utf8->string body)))
 )

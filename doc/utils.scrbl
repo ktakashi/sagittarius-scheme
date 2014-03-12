@@ -28,6 +28,7 @@
 @include-section["utils/rfc/uuid.scrbl"]
 @include-section["utils/rfc/x.509.scrbl"]
 @include-section["utils/rfc/zlib.scrbl"]
+@include-section["utils/rpc.scrbl"]
 @include-section["utils/text/csv.scrbl"]
 @include-section["utils/text/html-lite.scrbl"]
 @include-section["utils/text/tree.scrbl"]
