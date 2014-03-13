@@ -27,16 +27,16 @@ function toggleAll(text) {
 	for (var i = 0; i < lis.length; i++) {
 	    var li = lis.item(i);
 	    var link = getFirstChildByTagName(li, "a");
-	    if (li.className == "child-content") {
+	    if (li.className.indexOf("child-content") != -1) {
 		var style = (isOpen) ? "block" : "none";
 		var className = (isOpen) ? "opened" : "closed";
 
 		li.style.display = style;
-		if (link.className != 'no-child') {
+		if (link.className.indexOf('no-child') == -1) {
 		    link.className = className;
 		}
-	    } else if (li.className == "top-content") {
-		if (link.className != "no-child") {
+	    } else if (li.className.indexOf("top-content") != -1) {
+		if (link.className.indexOf("no-child") == -1) {
 		    link.className = (isOpen) ? "opened" : "closed";
 		}
 	    }

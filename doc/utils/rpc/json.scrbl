@@ -5,6 +5,28 @@
 @define[Library]{@name{(rpc json)}}
 @desc{This library provides procedures handling 
 @hyperlink[:href "http://www.jsonrpc.org/specification"]{JSON RPC 2.0}.
+
+This library doesn't provide transport layer. To send request and receive
+response, use @secref["utils.rpc.transport.http"]{Http transport}.
+
+This library uses @secref["ported.json"]{JSON parser library} and its
+JSON representation.
+}
+
+Following piece of code describes how to use;
+@codeblock{
+
+(import (rnrs) (rpc json) (rpc transport http))
+
+(define (json-rpc-send&request url method param)
+  (let ((request (make-json-request method :param param)))
+    (let-values (((status header response) (rpc-http-request url request)))
+      ;; rpc-http-request unmarshalls only when HTTP status starts with "2"
+      ;; for this example we don't check it.
+      (json-response-result response))))
+
+(json-rpc-send&request "http://localhost/json-rpc" "sample" "parameter")
+;; -> result of method execution
 }
 
 @define[Class]{@name{<json-request>}}
@@ -29,7 +51,7 @@ should not create an instance directly using @code{make}.
 @define[Function]{@name{make-json-request} @args{method :key (params '()) id}}
 @desc{Creates a JSON RPC request.
 
-@var{method} must be a symbol represents method name to be invoked.
+@var{method} must be a symbol or string represents method name to be invoked.
 
 The keyword argument @var{params} is the @code{params} field of the JSON
 RPC protocol.
