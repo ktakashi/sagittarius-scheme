@@ -16,6 +16,14 @@ The class instance should be created by @code{make-json-request},
 should not create an instance directly using @code{make}.
 }
 
+@subsubsection{Predicates}
+
+@define[Function]{@name{json-request?} @args{object}}
+@define[Function]{@name{json-response?} @args{object}}
+@desc{Returns #t if the given @var{object} is an instance of 
+@code{<json-request>} and @code{<json-response>} respectively.
+}
+
 @subsubsection{Constructors}
 
 @define[Function]{@name{make-json-request} @args{method :key (params '()) id}}
