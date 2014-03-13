@@ -42,6 +42,7 @@
     (import (rnrs)
 	    (rfc http)
 	    (clos user)
+	    (srfi :13 strings)
 	    (rpc message))
 
   ;; TODO should we handle the response unmarshalling?
@@ -53,6 +54,7 @@
 			  :sender (rpc-http-sender message)
 			  :receiver (rpc-http-receiver message)
 			  :content-type (rpc-http-content-type message)
+			  :secure (string-prefix? "https" url)
 			  opts)))
       (if (and (char=? (string-ref status 0) #\2) unmarshall?)
 	  ;; need header?

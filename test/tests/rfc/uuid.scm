@@ -6,11 +6,11 @@
 (test-begin "RFC UUID tests")
 
 ;; uuid?
-(test-assert "uuid?" (uuid? (make-null-uuid)))
-(test-assert "uuid?" (uuid? (make-v1-uuid)))
-(test-assert "uuid?" (uuid? (make-v3-uuid +namespace-dns+ "name")))
-(test-assert "uuid?" (uuid? (make-v4-uuid)))
-(test-assert "uuid?" (uuid? (make-v5-uuid +namespace-dns+ "name")))
+(test-assert "uuid? (null)" (uuid? (make-null-uuid)))
+(test-assert "uuid? (v1)" (uuid? (make-v1-uuid)))
+(test-assert "uuid? (v3)" (uuid? (make-v3-uuid +namespace-dns+ "name")))
+(test-assert "uuid? (v4)" (uuid? (make-v4-uuid)))
+(test-assert "uuid? (v5)" (uuid? (make-v5-uuid +namespace-dns+ "name")))
 
 ;; uuid=?
 ;; v1 and v4 does not return the same uuid. well more like should not

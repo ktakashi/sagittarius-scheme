@@ -33,6 +33,7 @@
 
 (library (rpc json)
     (export <json-request>
+	    json-request?
 	    make-json-request
 	    json-request-method
 	    json-request-params
@@ -41,6 +42,8 @@
 	    json-string->json-request
 
 	    <json-response>
+	    json-response?
+	    make-json-response
 	    json-response->json-string
 	    json-string->json-response
 	    json-response-id
@@ -67,6 +70,9 @@
      (result  :init-keyword :result :reader json-response-result)
      (id      :init-keyword :id     :reader json-response-id)))
 
+  (define (json-request? o) (is-a? o <json-request>))
+  (define (json-response? o) (is-a? o <json-response>))
+
   (define (make-json-request method
 			     :key (params '())
 				  (id (uuid->string (make-v4-uuid))))
@@ -87,14 +93,18 @@
   (define (json-string->json-request json)
     (let ((sjosn (vector->list (json-read (open-string-input-port json)))))
       (or (and-let* ((id      (assoc "id" sjosn))
+		     ( (string? (cdr id)) )
 		     (jsonrpc (assoc "jsonrpc" sjosn))
 		     ( (string=? (cdr jsonrpc) "2.0") )
-		     (method  (assoc "method" sjosn)))
+		     (method  (assoc "method" sjosn))
+		     ( (string? (cdr method)) ))
 	    (let ((params (assoc "params" sjosn)))
-	      (apply make-json-request method :id id
+	      (apply make-json-request (cdr method) :id (cdr id)
 		     (if params `(:params ,(cdr params)) '()))))
 	  (error 'json-string->json-request "invalid JSON-RPC request" json))))
 
+  (define (make-json-response id result)
+    (make <json-response> :result result :id id))
   ;; response object doesn't have error means we don't create error
   ;; with the procedure.
   (define (json-response->json-string response)
@@ -121,7 +131,7 @@
 						   (else '()))))))))
 		  ((assoc "result" sjosn)
 		   => (lambda (slot)
-			(make <json-response> :result (cdr slot) :id (cdr id))))
+			(make-json-response (cdr id) (cdr slot))))
 		  (else
 		   (error 'json-string->json-response
 			  "invalid JSON-RPC response" josn))))

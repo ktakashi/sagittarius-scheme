@@ -30,6 +30,8 @@
 	;; child thread can not access to default parameter value,
 	;; so parent must import this.
 	(srfi :64 testing)
+	;; so is rfc uuid...
+	(rfc uuid)
 	(util file)
 	(sagittarius io)
 	(scheme load))
