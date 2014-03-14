@@ -29,14 +29,23 @@
 ;;;  
 
 (library (sagittarius debug)
-    (export :export-reader-macro)
+    (export unbound-variable
+	    macroexpand macroexpand-1
+	    :export-reader-macro)
     (import (rnrs)
 	    (core errors)
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius reader)
+	    (only (sagittarius clos) unbound-variable)
 	    (srfi :39 parameters)
 	    (util port))
+
+  (define (macroexpand expr :optional (library (current-library)))
+    (eval `(%macroexpand ,expr) library))
+  (define (macroexpand-1 expr :optional (library (current-library)))
+    (eval `(%macroexpand-1 ,expr) library))
+
   ;; save the original reader
   (define sh-bang-reader (get-dispatch-macro-character #\# #\!))
 
