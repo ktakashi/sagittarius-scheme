@@ -304,9 +304,10 @@ IF(USE_BOEHM_GC)
     # download boehm gc
     # we need to use CMake conformed one, so the latest 7.2alpha6
     IF (MSVC OR WATCOM)
-      SET(USED_GC_VERSION "gc-7.2d")
+      SET(USED_GC_VERSION "gc-7.2e")
       SET(GC_VERSION "gc-7.2")
     ELSE()
+      # for qnx we only support until 7.2d (as long as it doesn't support...)
       SET(USED_GC_VERSION "gc-7.2d")
       SET(GC_VERSION "gc-7.2")
     ENDIF()
@@ -316,7 +317,7 @@ IF(USE_BOEHM_GC)
     MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
     IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
       FILE(
-	DOWNLOAD "http://www.hpl.hp.com/personal/Hans_Boehm/gc/gc_source/${USED_GC_VERSION}.tar.gz"
+	DOWNLOAD "http://www.hboehm.info/gc/gc_source/${USED_GC_VERSION}.tar.gz"
 	"${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf

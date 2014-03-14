@@ -69,6 +69,7 @@ dist() {
 # clean up
     rm -rf ${DIST_NAME}
     
+    echo ${version} > latest-version.txt
     echo done!
 }
 
