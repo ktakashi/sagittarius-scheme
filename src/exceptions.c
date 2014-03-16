@@ -605,6 +605,27 @@ SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
 		     imp_printer, NULL, NULL, imp_allocate,
 		     Sg_ErrorConditionCPL);
 
+static void trace_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_IRRITATNS_CONDITION(o)->irritants);
+}
+static SgObject trace_allocate(SgClass *klass, SgObject initargs)
+{
+  SgTraceCondition *c = SG_ALLOCATE(SgTraceCondition, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+
+static SgClass *irr_cpl[] = {
+  SG_CLASS_IRRITANTS_CONDITION,
+  SG_CLASS_CONDITION,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BASE_CLASS(Sg_TraceConditionClass, SgTraceCondition,
+		     trace_printer, NULL, NULL, trace_allocate,
+		     irr_cpl);
 
 SgObject Sg_MakeNonContinuableViolation()
 {
@@ -845,6 +866,7 @@ void Sg__InitConditions()
   /* compile */
   INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
   INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", imp_slots);
+  INIT_CONDITION(SG_CLASS_TRACE_CONDITION, "&trace", NULL);
   /* compound */
   INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
@@ -941,6 +963,9 @@ void Sg__InitConditions()
 	    comp_prog, "&compile-error-program");
   INIT_CTR1(SG_CLASS_IMPORT_CONDITION, "make-import-error", "import-error?",
 	    imp_lib, "&import-library");
+
+  INIT_CTR1_REC(SG_CLASS_TRACE_CONDITION, "make-trace-condition", 
+		"trace-condition?");
   /* compound */
   /* compound condition don't need ctr nor pred. */
   INIT_ACC(cc_components, "&compound-condition-components");

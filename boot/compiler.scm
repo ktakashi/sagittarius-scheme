@@ -176,7 +176,8 @@
 	  (define (expand-clause clause)
 	    (define else?
 	      (lambda (x)
-		(eq? x 'else)))
+		(let ((name (if (identifier? x) (id-name x) x)))
+		  (eq? name 'else))))
 	    (let ()
 	      (smatch clause
 		(((item) . body)
@@ -189,7 +190,8 @@
 		   `((memv ,tmp ,ilist) ,@body)))
 		((else . body)
 		 (or (else? else)
-		     (syntax-error "invalid symbol test clause" clauses))
+		     (syntax-error "invalid symbol test clause"
+				   (unwrap-syntax clause)))
 		 `(else ,@body)))))
 	  `(let ((,tmp ,obj))
 	     (cond ,@(map expand-clause clauses)))))))))
@@ -2988,6 +2990,11 @@
   (cond ((null? intdefs) (finish exprs))
 	(else
 	 (let ((intdefs. (reverse! intdefs)))
+	   ;; rename internal define if needed
+	   (ifor-each (lambda (def)
+			(let ((name (caar def)))
+			  (when (identifier? name) 
+			    (rename-pending-identifier! name)))) intdefs.)
 	   ($let #f 'rec (collect-lvars intdefs.)
 		 (imap (lambda (def) 
 			 (let ((expr (car def))
@@ -4422,6 +4429,19 @@
   (can-free '())
   (display 0))
 
+(define (add-backtrace c src) (make-trace-condition (unwrap-syntax src)))
+
+(define-syntax define-backtacible
+  (syntax-rules ()
+    ((_ (name . formals) body ...)
+     (define-backtacible name (lambda formals body ...)))
+    ((_ name expr)
+     (define name
+       (lambda (iform cb renv ctx)
+	 (guard (e (else
+		    (raise (condition e (add-backtrace e ($*-src iform))))))
+	   (expr iform cb renv ctx)))))))
+
 (define make-new-renv
   (lambda (renv locals free sets can-free add-display?)
     (make-renv locals
@@ -4706,7 +4726,7 @@
   (cb-emit0! cb UNDEF)
   0)
 
-(define (pass5/$DEFINE iform cb renv ctx)
+(define-backtacible (pass5/$DEFINE iform cb renv ctx)
   (let ((d (pass5/rec ($define-expr iform) cb renv 'normal/bottom))
 	(f (if (memq 'const ($define-flags iform)) 1 0)))
     (cb-emit1oi! cb DEFINE f ($define-id iform) ($*-src iform))
@@ -4755,7 +4775,7 @@
     (cb-emit0o! cb CONST ($const-value iform)))
   0)
 
-(define (pass5/$IF iform cb renv ctx)
+(define-backtacible (pass5/$IF iform cb renv ctx)
   (cond ((and (not (has-tag? ($if-then iform) $IT))
 	      (not (has-tag? ($if-else iform) $IT))
 	      (has-tag? ($if-test iform) $ASM)
@@ -4851,7 +4871,7 @@
 		 (cb-label-set! cb end-of-else))
 	       (+ test-size then-size else-size)))))))
 
-(define (pass5/$LET iform cb renv ctx)
+(define-backtacible (pass5/$LET iform cb renv ctx)
   (if (eq? ($let-type iform) 'rec)
       (pass5/letrec iform cb renv ctx)
       (pass5/let iform cb renv ctx)))
@@ -4925,7 +4945,7 @@
 	    (cb-emit1! cb LEAVE nargs))
 	  (+ body-size args-size nargs))))))
 
-(define pass5/$LAMBDA
+(define-backtacible pass5/$LAMBDA
   (lambda (iform cb renv ctx)
     (let* ((vars ($lambda-lvars iform))
 	   (body ($lambda-body iform))
@@ -4957,7 +4977,7 @@
 			  ($lambda-src iform))
 	0))))
 
-(define pass5/$RECEIVE
+(define-backtacible pass5/$RECEIVE
   (lambda (iform cb renv ctx)
     (let* ((vars ($receive-lvars iform))
 	   (body ($receive-body iform))
@@ -4985,7 +5005,7 @@
 	    (cb-emit1! cb LEAVE nargs))
 	  (+ body-size expr-size nargs))))))
 
-(define (pass5/$LABEL iform cb renv ctx)
+(define-backtacible (pass5/$LABEL iform cb renv ctx)
   (let ((label ($label-label iform)))
     (cond (label
 	   (cb-emit0o! cb JUMP label)
@@ -5008,19 +5028,20 @@
 		       (max (pass5/rec (car exprs) cb renv
 				       (stmt-context ctx))
 			    depth))))))))
-(define pass5/$CALL
+
+(define-backtacible pass5/$CALL
   (lambda (iform cb renv ctx)
     (case ($call-flag iform)
-      ((local) (pass5/local-call iform cb renv ctx))
-      ((embed) (pass5/embed-call iform cb renv ctx))
-      ((jump) (pass5/jump-call iform cb renv ctx))
-      (else
-       (if (and (bottom-context? ctx)
-		(has-tag? ($call-proc iform) $LET)
-		(all-args-simple? ($call-args iform)))
-	   (pass5/head-heavy-call iform cb renv ctx)
-	   (pass5/normal-call iform cb renv ctx))
-       ))))
+	((local) (pass5/local-call iform cb renv ctx))
+	((embed) (pass5/embed-call iform cb renv ctx))
+	((jump) (pass5/jump-call iform cb renv ctx))
+	(else
+	 (if (and (bottom-context? ctx)
+		  (has-tag? ($call-proc iform) $LET)
+		  (all-args-simple? ($call-args iform)))
+	     (pass5/head-heavy-call iform cb renv ctx)
+	     (pass5/normal-call iform cb renv ctx))
+	 ))))
 
 ;; Local call
 ;;  PROC is always $LREF.
@@ -5132,8 +5153,7 @@
 	 (all-args-simple? (cdr args)))
 	(else #f)))
 
-;; TODO asm
-(define (pass5/$ASM iform cb renv ctx)
+(define-backtacible (pass5/$ASM iform cb renv ctx)
   (let ((info ($*-src iform))
 	(insn ($asm-insn iform))
 	(args ($asm-args iform)))

@@ -587,9 +587,8 @@
     ;; wrap the given symbol with current usage env frame.
     (define (wrap-symbol sym)
       (define (finish new) (add-to-transformer-env! sym new))
-      (let* ((use-lib (vector-ref use-env 0)))
-	(let ((t (make-identifier sym '() use-lib)))
-	  (finish (make-identifier t (vector-ref use-env 1) use-lib)))))
+      (let ((use-lib (vector-ref use-env 0)))
+	(finish (make-identifier sym (vector-ref use-env 1) use-lib))))
 
     (define (partial-identifier olst)
       (define (check-binding name env library)

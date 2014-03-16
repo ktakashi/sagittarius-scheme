@@ -63,6 +63,7 @@
      |	       +- &undefined
      +- &message (message)
      +- &irritants (irritants)
+          +- &trace <-- non R6RS, for compile time error trace
      +- &who (who)
 
    we implement these standard conditions in C.
@@ -99,6 +100,7 @@ SG_CLASS_DECL(Sg_IODecodingErrorClass);
 /* for compiler */
 SG_CLASS_DECL(Sg_CompileConditionClass);
 SG_CLASS_DECL(Sg_ImportConditionClass);
+SG_CLASS_DECL(Sg_TraceConditionClass);
 
 #define SG_CLASS_CONDITION (&Sg_ConditionClass)
 #define SG_CLASS_WARNING   (&Sg_WarningClass)
@@ -129,6 +131,7 @@ SG_CLASS_DECL(Sg_ImportConditionClass);
 #define SG_CLASS_IO_DECODING_ERROR (&Sg_IODecodingErrorClass)
 #define SG_CLASS_COMPILE_CONDITION (&Sg_CompileConditionClass)
 #define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
+#define SG_CLASS_TRACE_CONDITION  (&Sg_TraceConditionClass)
 
 #define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONDITION)
 #define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
@@ -245,6 +248,11 @@ typedef struct SgImportConditionRec
 } SgImportCondition;
 #define SG_IMPORT_CONDITION(o)  ((SgImportCondition *)o)
 #define SG_IMPORT_CONDITIONP(o) SG_ISA(o, SG_CLASS_IMPORT_CONDITION)
+
+typedef struct SgTraceConditionRec
+{
+  SgIrritantsCondition base;
+} SgTraceCondition;
 
 #define SG_INIT_CONDITION(cl, lib, name, slots)	\
   do {									\
