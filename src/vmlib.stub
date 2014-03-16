@@ -279,138 +279,210 @@
 	(set! l2 (SG_CDR l2)))
       (result h)))
 
-  ;; compile time environment lookup
-  ;; the given name can be either symbol or identifier
-  ;; if it's identifier, first check if its environment shares the
-  ;; given frame. if it is, use it to look up. however there are
-  ;; couple of cases we need to be careful
-  ;;  1. environment contains the symbol name and the given identifier
-  ;;     should indicate it
-  ;;  2. environment contains the identifier and given identifier should
-  ;;     indicate it.
-  ;; since we don't manage the history of renaming, these cases are
-  ;; very hard to determine which is which. 
-  ;; e.g. say macro-let generates identifier #<id a>
-  ;;  (let ((a 'a))
-  ;;    (macro-let (a 'b) a))
-  ;; this case returning a must be the second one and environment contains
-  ;; identifier.
-  ;; NB: we skip some test, because we assume the frame is well-formed.
-  (define-cfn env-shared? (e1 frame) ::int :static
-    (when (SG_NULLP frame) (return FALSE))
-    (dopairs (fp frame)
-      (when (== fp e1) (return TRUE)))
+  ;;
+  ;;lookup memo
+  ;;
+  ;; case 1
+  ;; (let ((a 1))
+  ;;   (let-syntax ((b (syntax-rules () ((_) a)))) ;; <- 1
+  ;;     (b)))
+  ;; b's frame 
+  ;; ((3) (0) (0 (a 1)))
+  ;;
+  ;; expanded a's envs
+  ;; ((0 (b #<macro>)) (0) (0 (a 1)))
+  ;;
+  ;; This case identifier 'a' must have its defined environment after the
+  ;; boundary. So to look it up, first get the id-envs and find the shared
+  ;; frame then look up by name. It is ok to have duplicated names, first
+  ;; comes first.
+
+  ;; case 2
+  ;; (let ((x 'outer))
+  ;;   (let-syntax ((m (syntax-rules () ((m) x)))) ;; <- 'outer
+  ;;     (let ((x 'inner))
+  ;;       (m))))
+  
+  ;; frame of lookup frame m and expanded x.
+  ;; ((0) (0 (x 'inner)) (0 (m #<macro>)) (0) (0 (x 'outer)))
+  ;; expanded x's envs
+  ;; ((3) (0 (m #<macro>)) (0) (0 (x 'outer)))
+  ;; can be resolved by the above way.
+  ;;
+  ;; case 3
+  ;; 
+  ;; (define-syntax aif
+  ;;   (lambda (x)
+  ;;     (syntax-case x ()
+  ;;       ((aif expr then else)
+  ;;        (with-syntax ((it (datum->syntax #'aif 'it)))
+  ;; 	 #'(let ((it expr))
+  ;; 	     (if it then else)))))))
+  ;; (aif (assq 'a '((a . 1) (b . -2)))
+  ;;      (cdr it)
+  ;;      it) ;; -> 1
+  ;; 
+  ;; (let ((it #f))
+  ;;   (aif (assq 'a '((a . 1) (b . -2)))
+  ;;        (cdr it)
+  ;;        it)) ;; ->
+  ;; 
+  ;; both cases envs of syntax it.
+  ;; () ;; #'aif doesn't contain any environment. so it's null
+  ;;
+  ;; id it (1)
+  ;; ((0) (0 (#<id it> '((a . 1) (b . -2)))))
+  ;; () ;; <- compiler env frame
+  ;;
+  ;; id it (2)
+  ;; ((0) (0 (#<id it> '((a . 1) (b . -2)))) (0) (0 (it #f)))
+  ;; ((0) (0 (it #f))) ;; <- compiler env frame
+  ;;
+  ;; in this case looking up #<id it> is the same id. so simple comparison
+  ;; is good enough. (thus we can't change the expand-syntax's lookup
+  ;; pattern variable yet.
+  ;;
+  ;; if an identifier envs' first frame is (3), this means the identifier
+  ;; is template variable/pattern variable. if it doesn't then it means
+  ;; it's expanded identifier. the difference between these 2 would be
+  ;; considering following case;
+  ;; suppose print is an macro
+  ;; (let ((a 1)) (print a))
+  ;; this case the expanded 'a' will be an identifier but the actual compiler
+  ;; frame contains raw symbol like this;
+  ;; ((0) (0 (a 1)))
+  ;; the way we can find this would be identifier 'a' contains the same
+  ;; frame as current compiler environment. 
+  ;; (let ((b 2)) (print (let ((a 1)) a)))
+  ;; a's env        ((0) (0 (b 2)))
+  ;; compiler frame ((0) (0 (#<id a> 1)) (0) (0 (b 2)))
+  ;; this case both a are the same identifier and contains non null envs.
+  ;; so we compare values with eq? and once identifier reached the same env
+  ;; then strip and re-compare again. 
+  ;; 
+  ;; in this case both 'f and 'g even inside of the compiler frame variable
+  ;; will be identifiers. however we still need to check.
+  ;; this only happens when symbol becomes an identifier during macro
+  ;; expansion. so all converted identifier will have the same env frame.
+  ;; in this case we need to add comparison using name and envs.
+  ;; (print
+  ;;    (let ((f (lambda (x) (+ x 1))))
+  ;;      (let-syntax ((f (syntax-rules () ((f x) x)))
+  ;;                   (g (syntax-rules () ((g x) (f x)))))
+  ;;        (list (f 1) (g 1))))
+  ;;    )
+
+  (define-cfn template-id? (name) ::int :static
+    (when (SG_IDENTIFIERP name)
+      ;; macro may have internal content so if there is no
+      ;; content after the boundary then it's not a template-id.
+      (dopairs (fp (SG_IDENTIFIER_ENVS name))
+	(when (and (SG_PAIRP (SG_CAR fp))
+		   (SG_EQ (SG_CAAR fp) (SG_MAKE_INT 3))
+		   (not (SG_NULLP (SG_CDR fp))))
+	  (return TRUE))))
     (return FALSE))
-  (define-cfn macro-env? (frame) ::int :static
-    ;; the frame must contain (3)
-    (when (SG_NULLP frame) (return FALSE))
-    (dopairs (fp frame)
-      (when (SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)) (return TRUE)))
+  (define-cfn template-id-frame (id) :static
+    (cond ((template-id? id)
+	   (dopairs (fp (SG_IDENTIFIER_ENVS id))
+	     (when (and (SG_PAIRP (SG_CAR fp))
+			(SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)))
+	       (return (SG_CDR fp)))))
+	  ((SG_IDENTIFIERP id) (return (SG_IDENTIFIER_ENVS id))))
+    (return SG_NIL))
+
+  (define-cfn name=? (name1 name2) ::int :static
+    (let ((s1 name1)
+	  (s2 name2))
+      (when (SG_IDENTIFIERP name1) 
+	(set! s1 (SG_IDENTIFIER_NAME name1)))
+      (when (SG_IDENTIFIERP name2) 
+	(set! s2 (SG_IDENTIFIER_NAME name2)))
+      (return (SG_EQ s1 s2))))
+
+  (define-cfn env-shared? (env frames) ::int :static
+    (dopairs (fp frames) (when (SG_EQ env fp) (return TRUE)))
     (return FALSE))
 
-  ;; resolving identifier generated during macro expansion
-  (define-cfn shared-env-id=? (name vp fp) ::int :static
-    (when (and (SG_IDENTIFIERP name)
-	       (SG_IDENTIFIERP vp)
-	       (SG_EQ (SG_IDENTIFIER_NAME name) (SG_IDENTIFIER_NAME vp))
-	       ;; at least this contains (3)
-	       (not (SG_NULLP (SG_IDENTIFIER_ENVS name))))
-      ;; to make life easier...
-      (cond ((and (SG_IDENTIFIER_PENDING vp)
-		  (env-shared? (SG_IDENTIFIER_ENVS name) fp)
-		  ;; TODO make better way...
-		  ;; macro env must contain boundary mark
-		  ;; (3) if it doesn't then it's not the one
-		  ;; we are interested int
-		  (macro-env? (SG_IDENTIFIER_ENVS vp))
-		  (env-shared? (SG_IDENTIFIER_ENVS name)
-			       (SG_IDENTIFIER_ENVS vp)))
-	     (return TRUE))
-	    (else (return FALSE))))
-    (return FALSE))
-
-  ;; FIXME...
-  ;; this is really bad
-  ;; wrapped it problem
-  ;; syntax-rules always creates identifier with
-  ;; null environment so currently it's impossible to
-  ;; recognise the difference... so we need to keep
-  ;; the target and if there is no more precise one
-  ;; return this...
-  (define-cfn suspicious? (name vfp fp frame?::int store::SgObject*)
-    ::int :static
-    (let ((vp (SG_CAR vfp)))
-      (when (and 
-	     (SG_IDENTIFIERP name)
-	     (SG_IDENTIFIERP vp)
-	     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_IDENTIFIER_NAME vp))
-	     ;; must look like template variable
-	     ;; it's in syntax template
-	     (SG_IDENTIFIER_PENDING name)
-	     (or (macro-env? (SG_IDENTIFIER_ENVS name))
-		 (SG_NULLP (SG_IDENTIFIER_ENVS name)))
-	     ;; renamed id must have the same usage env
-	     ;; if both identifier have shared env
-	     ;; then that's it
-	         ;; obvious case
-	     (or (SG_EQ (SG_IDENTIFIER_ENVS vp) (SG_IDENTIFIER_ENVS name))
-		 (env-shared? (SG_IDENTIFIER_ENVS vp)
-			      (SG_IDENTIFIER_ENVS name))
-		 ;; sort of special case. if the name's env only contains
-		 ;; ((3)) means global and target contains null env
-		 ;; then it's also global.
-		 (and (not (SG_NULLP (SG_IDENTIFIER_ENVS name)))
-		      (SG_NULLP (SG_CDR (SG_IDENTIFIER_ENVS name)))
-		      (SG_NULLP (SG_IDENTIFIER_ENVS vp)))))
-	(if frame?
-	    (set! (pointer store) fp)
-	    (set! (pointer store) vfp))))
+  ;; FIXME I have no idea why this works properly.
+  ;; the idea is that name-env is the one we are looking up
+  ;; and assume it starts with (3) which I believe proper
+  ;; template id. Then target-env is the one in the compier
+  ;; envs. All of these are sharing a frame the we can consider
+  ;; it's the same.
+  (define-cfn envs-shared? (name-env target-env frames) ::int :static
+    (when (SG_NULLP name-env) (return FALSE))
+    (when (SG_EQ (SG_CDR name-env) target-env)
+      (dopairs (fp frames) (when (SG_EQ fp target-env) (return TRUE))))
     (return FALSE))
 
   (define-cfn p1env-lookup-inner 
     (p1env::SgVector* name lookup_as frame?::int boundary)
     :static
-    (let ((name_identp::int (SG_IDENTIFIERP name))
+    (let ((tmpl-id?::int (template-id? name))
+	  (id-env (template-id-frame name))
 	  (same-env?::int FALSE)
-	  (frames (SG_VECTOR_ELEMENT p1env 1))
-	  (suspicious SG_FALSE))
+	  (frames (SG_VECTOR_ELEMENT p1env 1)))
       (dopairs (fp frames)
-	(when (and name_identp (== (SG_IDENTIFIER_ENVS name) fp))
+	(when (or (SG_EQ id-env fp) ;; for template variables
+		  ;; for mostly internal define in macro defintion.
+		  (and (SG_IDENTIFIERP name)
+		       (SG_EQ (SG_IDENTIFIER_ENVS name) fp)))
 	  (set! same-env? TRUE))
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
 	;; not interesting
 	(unless (== (SG_CAAR fp) lookup_as) (continue))
-
+	
 	(dolist (vp (SG_CDAR fp))
 	  (when (or (SG_EQ name (SG_CAR vp)) ;; simple case
-		    ;; name is symbol and target is identifier
-		    ;; in this case we need to check the target
-		    ;; identifier's name and it's environment
-		    ;; and if the env is shared by searching env
+		    ;; if the name is symbol and the target shares the
+		    ;; env with the frames, then the target is defined in
+		    ;; the same environment as the lookup symbol.
 		    (and (SG_SYMBOLP name)
 			 (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_EQ name (SG_IDENTIFIER_NAME (SG_CAR vp)))
-			 (env-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp)) fp))
-		    ;; name is identifier target can be id or symbol
-		    ;; correct? 
-		    (and same-env?
-			 (or (and (SG_IDENTIFIERP (SG_CAR vp))
-				  (SG_EQ (SG_IDENTIFIER_NAME name)
-					 (SG_IDENTIFIER_NAME (SG_CAR vp))))
-			     (SG_EQ (SG_IDENTIFIER_NAME name) (SG_CAR vp))))
-		    ;; both identifier not in the same env but
-		    ;; share the env
-		    (shared-env-id=? name (SG_CAR vp) fp)
-		    ;; always false
-		    (and (SG_FALSEP suspicious)
-			 (suspicious? name vp fp frame? (& suspicious))))
+			 (env-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp)) frames))
+		    ;; case 1
+		    ;;(and tmpl-id? (name=? name (SG_CAR vp)))
+		    ;; in the same-env
+		    (and same-env? (name=? name (SG_CAR vp)))
+		    ;; wrapped it thing
+		    ;; the wrapped it problem is that we need to
+		    ;; check if the given name is pure template id
+		    ;; (starts with (3)) and all 3 ids share env 
+		    ;; (name, vp and frame)
+		    (and (SG_IDENTIFIERP name)
+			 (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_EQ (SG_IDENTIFIER_NAME name)
+				(SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 (envs-shared? (SG_IDENTIFIER_ENVS name)
+				       (SG_IDENTIFIER_ENVS (SG_CAR vp))
+				       frames))
+		    ;; next-method? problem
+		    ;; again not sure if this is correct...
+		    ;; if the name is not a template-id? and the env is not
+		    ;; shared with frames nor the target identifier,
+		    ;; and the target identifier's env is not shared with
+		    ;; the current frame when it probably is the one we want.
+		    (and (SG_IDENTIFIERP name)
+			 (not tmpl-id?)
+			 (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_EQ (SG_IDENTIFIER_NAME name) 
+				(SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 ;; can we assume this is null?
+			 (SG_NULLP (SG_IDENTIFIER_ENVS (SG_CAR vp)))
+			 (not (SG_FALSEP (Sg_Assv (SG_MAKE_INT 3)
+						  (SG_IDENTIFIER_ENVS name))))
+			 ;; must not be a proper template id.
+			 (not (SG_EQ (SG_MAKE_INT 3)
+				     (SG_CAAR (SG_IDENTIFIER_ENVS name))))
+			 (not (env-shared? (SG_IDENTIFIER_ENVS name)
+					   frames))))
 	    (if frame?
 		(return fp)
 		(return vp)))))
-      (if (SG_FALSEP suspicious)
-	  (return name)
-	  (return suspicious))))
+      (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)
     (return (p1env-lookup-inner p1env name lookup-as FALSE #f)))

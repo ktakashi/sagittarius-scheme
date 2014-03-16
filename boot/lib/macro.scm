@@ -161,22 +161,14 @@
 		 (list->vector (loop (vector->list expr))))
 		((assq expr patvars) => cdr)
 		((and (variable? expr) (expand-local-macro expr)))
-		;; if it's an identifier then swap the environment
-		;; which the identifier is defined.
-		;; FIXME this isn't right, the env should be prepend
-		;; or at least the original environment should be
-		;; preserved somewhere can be refered.
-		((and-let* (( (identifier? expr) )
-			    (env (p1env-lookup-frame mac-env expr LEXICAL))
-			    ( (not (null? env)) ))
-		   env) => (lambda (env) 
-			     (seen-or-gen expr env (id-library expr))))
-		;; for symbol we preserve where it's defined
-		;; FIXME this isn't right, must be whole environment
-		;; and the lookup should handle it.
-		((symbol? expr)
-		 (let ((env (p1env-lookup-frame mac-env expr LEXICAL)))
-		   (seen-or-gen expr env library)))
+		((and (identifier? expr)
+		      (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
+		 ;; preserve local variable.
+		 ;; if we can find local variable at this point,
+		 ;; then if it needs to be found at any point with this
+		 ;; environment anyway.
+		 (seen-or-gen expr env (id-library expr)))
+		((symbol? expr) (seen-or-gen expr env library))
 		(else expr))))
       (define pattern-mark (list exp-name))
       (define (parse-pattern pattern)
