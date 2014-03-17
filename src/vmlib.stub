@@ -422,7 +422,9 @@
     (let ((tmpl-id?::int (template-id? name))
 	  (id-env (template-id-frame name))
 	  (same-env?::int FALSE)
-	  (frames (SG_VECTOR_ELEMENT p1env 1)))
+	  (frames (SG_VECTOR_ELEMENT p1env 1))
+	  (retried::int FALSE))
+      (label retry)
       (dopairs (fp frames)
 	(when (or (SG_EQ id-env fp) ;; for template variables
 		  ;; for mostly internal define in macro defintion.
@@ -456,9 +458,12 @@
 			 (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_EQ (SG_IDENTIFIER_NAME name)
 				(SG_IDENTIFIER_NAME (SG_CAR vp)))
-			 (envs-shared? (SG_IDENTIFIER_ENVS name)
-				       (SG_IDENTIFIER_ENVS (SG_CAR vp))
-				       frames))
+			 (or (envs-shared? (SG_IDENTIFIER_ENVS name)
+					   (SG_IDENTIFIER_ENVS (SG_CAR vp))
+					   frames)
+			     (envs-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp))
+					   (SG_IDENTIFIER_ENVS name)
+					   frames)))
 		    ;; next-method? problem
 		    ;; again not sure if this is correct...
 		    ;; if the name is not a template-id? and the env is not
@@ -482,6 +487,12 @@
 	    (if frame?
 		(return fp)
 		(return vp)))))
+      ;; for local macro thing
+      (when (and (not retried) (SG_IDENTIFIERP name)
+		 (SG_IDENTIFIER_PENDING name))
+	(set! retried TRUE)
+	(set! frames (SG_IDENTIFIER_ENVS name))
+	(goto retry))
       (return name)))
 
   (define-cfn p1env-lookup-rec (p1env::SgVector* name lookup-as)

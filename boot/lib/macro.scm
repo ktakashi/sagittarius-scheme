@@ -131,18 +131,6 @@
     ;; literal must be unwrapped, otherwise it will be too unique
     (let ((lites (unwrap-syntax literals)))
       (define (rewrite oexpr patvars newenv)
-	(define (expand-local-macro expr)
-	  ;; smells a bug, but I don't know what's wrong with this...
-	  (and-let* ((t (if (pair? expr) (car expr) expr))
-		     (m (p1env-lookup mac-env t LEXICAL))
-		     ( (macro? m) )
-		     ;; if the env frame doesn't contain BOUNDARY
-		     ;; means it's not passed macro binding syntax.
-		     ;; if the t is identifier, then check its env
-		     ;; if not then the current env is basically the
-		     ;; same as identifier env
-		     ( (assv BOUNDARY (if (identifier? t) (id-envs t) env)) ))
-	    (call-macro-expander m expr newenv)))
 	(define seen (make-eq-hashtable))
 	(define (seen-or-gen id env library)
 	  (cond ((hashtable-ref seen id #f))
@@ -157,16 +145,14 @@
 		 (assv BOUNDARY envs))))
 	(let loop ((expr oexpr))
 	  (cond ((pair? expr)
-		 (or (loop (expand-local-macro expr))
-		     (let ((a (loop (car expr)))
-			   (d (loop (cdr expr))))
-		       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-			   expr
-			   (cons a d)))))
+		 (let ((a (loop (car expr)))
+		       (d (loop (cdr expr))))
+		   (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		       expr
+		       (cons a d))))
 		((vector? expr)
 		 (list->vector (loop (vector->list expr))))
 		((assq expr patvars) => cdr)
-		((and (variable? expr) (expand-local-macro expr)))
 		((and (identifier? expr)
 		      (not (pure-template-variable? expr))
 		      (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
@@ -421,7 +407,8 @@
 	     (and (< 0 (rank-of lst ranks) depth)
 		  (syntax-violation "syntax template"
 				    "too few ellipsis following subtemplate"
-				    tmpl lst)))
+				    (unwrap-syntax tmpl)
+				    (unwrap-syntax lst))))
 	    ((pair? lst)
 	     (loop (car lst))
 	     (loop (cdr lst)))
@@ -438,7 +425,8 @@
 	       (and (> (rank-of lst ranks) depth)
 		    (syntax-violation "syntax template"
 				      "too few ellipsis following subtemplate"
-				      tmpl lst)))
+				      (unwrap-syntax tmpl)
+				      (unwrap-syntax lst))))
 	      ((ellipsis-quote? lst)
 	       (check-escaped (cadr lst) depth))
 	      ((ellipsis-splicing-pair? lst)

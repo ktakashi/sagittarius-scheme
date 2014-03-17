@@ -1177,4 +1177,18 @@
   (define-syntax zero (syntax-rules () ((_) 0)))
   (test-equal "zero after definition" 0 x))
 
+;; call #15
+(test-equal "local macro compilation" 'ok
+	    (let ()
+	      (define-syntax foo
+		(syntax-rules ()
+		  ((_ ?atom ?stx ...)
+		   (or (free-identifier=? ?atom ?stx) ...))))
+
+	      (define-syntax bar
+		(syntax-rules ()
+		  ((_ ?atom ((?s ...) ?e ...) ... )
+		   (cond ((foo ?atom (syntax ?s) ...) ?e ...) ... ))))
+	      'ok))
+
 (test-end)
