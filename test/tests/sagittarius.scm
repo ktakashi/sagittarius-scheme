@@ -1168,4 +1168,13 @@
   (define (b) (not-visible))
   (test-error "local macro invalid scope(2)" condition? (b)))
 
+;; call #14
+(let ()
+  (define-syntax bind-to-zero
+    (syntax-rules ()
+      ((bind-to-zero id) (define id (zero)))))
+  (bind-to-zero x)
+  (define-syntax zero (syntax-rules () ((_) 0)))
+  (test-equal "zero after definition" 0 x))
+
 (test-end)
