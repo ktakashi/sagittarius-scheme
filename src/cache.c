@@ -1372,6 +1372,17 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
     }
     return;
   }
+  if (SG_IDENTIFIERP(obj)) {
+    /* this can be shared object completely */
+    SgObject envs = SG_IDENTIFIER_ENVS(obj);
+    if (SG_SHAREDREF_P(envs)) {
+      SgObject index = SG_SHAREDREF(envs)->index;
+      SG_IDENTIFIER_ENVS(obj) = get_shared(index, ctx);
+      envs = SG_IDENTIFIER_ENVS(obj);
+    }
+    read_cache_link(envs, seen, ctx);
+    return;
+  }
 }
 
 static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
@@ -1449,14 +1460,12 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
 
 static SgObject read_object(SgPort *in, read_ctx *ctx)
 {
+  int tag = Sg_PeekbUnsafe(in);
   SgObject obj = read_object_rec(in, ctx);
   /* if read object was an instruction, linking process will blow up.
      to avoid it, we need to see if the object was an instruction or not.
    */
-  if (ctx->isLinkNeeded && !ctx->insnP) {
-    /* SgHashTable seen; */
-    /* Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0); */
-    /* read_cache_link(obj, &seen, ctx); */
+  if (ctx->isLinkNeeded && !ctx->insnP && tag != MARK_TAG) {
     ctx->links = Sg_Cons(obj, ctx->links);
   }
 
@@ -1552,11 +1561,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     SgObject o = read_object(in, ctx);
     if (!ctx->insnP && SG_IDENTIFIERP(o)) {
       /* resolve shared object here for identifier*/
-      SgHashTable seen;
-      Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0);
-      read_cache_link(SG_IDENTIFIER_ENVS(o), &seen, ctx);
-      Sg_HashCoreClear(SG_HASHTABLE_CORE(&seen), 0);
-      read_cache_link(SG_IDENTIFIER_LIBRARY(o), &seen, ctx);
+      ctx->links = Sg_Cons(o, ctx->links);
     }
     code[i] = SG_WORD(o);
   }
@@ -1709,7 +1714,6 @@ int Sg_ReadCache(SgString *id)
     SG_FOR_EACH(cp, ctx.links) {
       Sg_HashCoreClear(SG_HASHTABLE_CORE(&linkSeen), 0);
       read_cache_link(SG_CAR(cp), &linkSeen, &ctx);
-      
     }
     ret = CACHE_READ;
   } else {

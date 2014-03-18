@@ -134,7 +134,7 @@
 			(make-json-response (cdr id) (cdr slot))))
 		  (else
 		   (error 'json-string->json-response
-			  "invalid JSON-RPC response" josn))))
+			  "invalid JSON-RPC response" json))))
 	  (error 'json-string->json-response 
 		 "invalid JSON-RPC response" json))))
 
