@@ -76,6 +76,7 @@ struct read_ctx_rec
   int isLinkNeeded;
   int insnP;			/* for temporary flag */
   SgString    *file;
+  SgObject     links;		/* list of object will be linked */
   jmp_buf      escape;
 };
 typedef struct read_ctx_rec SgReadCacheCtx;

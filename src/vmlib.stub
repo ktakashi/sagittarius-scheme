@@ -94,6 +94,8 @@
     (name transformer data p1env :optional (maybe_library #f))
     Sg_MakeMacro)
 
+  (define-c-proc macro-env (m::<macro>) (result (-> m env)))
+
   (define-c-proc make-macro-transformer (name proc p1env library)
     Sg_MakeMacroTransformer)
 

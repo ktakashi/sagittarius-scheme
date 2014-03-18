@@ -298,6 +298,7 @@ static void     write_string_cache(SgPort *out, SgString *s, int tag);
 static void     write_symbol_cache(SgPort *out, SgSymbol *s);
 static void     write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 				   cache_ctx *ctx);
+static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx);
 
 #define ESCAPE(ctx, msg, ...)						\
   do {									\
@@ -369,9 +370,6 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
     /* if there is non cachable objects in compiled code, 
        we discard all cache.
     */
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("non-cachable object appeared. %S\n"), name);
-    }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
     return -1;
@@ -380,8 +378,9 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   /* before write cache, we need to write library info */
   /* when writing a cache, the library must be created. */
   if (lib != NULL && !write_dependancy(out, lib, &ctx)) {
-    if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-      Sg_Printf(vm->logPort, UC("failed to write library. %S\n"), lib);
+    if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+      Sg_Printf(vm->logPort, UC(";; ***CACHE WARNING***\n"
+				";; failed to write library. %S\n"), lib);
     }
     Sg_SetPortPosition(out, 0);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
@@ -458,14 +457,16 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 	cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
       }
     } else if (SG_CLOSUREP(obj)) {
-      cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+      if (SG_FALSEP(Sg_Assq(obj, cbs))) {
+	cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+      }
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
+      SgObject cp;
       cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);	
       if (ctx->macroPhaseP) {
 	/* compiler now share the frame so we need to check each frame
 	   separately here.*/
-	SgObject cp;
 	cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
 	SG_FOR_EACH(cp, SG_IDENTIFIER_ENVS(obj)) {
 	  cbs = write_cache_scan(SG_CAR(cp), cbs, ctx);
@@ -478,7 +479,9 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
     } else if (SG_LIBRARYP(obj)) {
       cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
     } else if (SG_MACROP(obj)) {
-      /* local macro in transformersEnv */
+      if (ctx->macroPhaseP) {
+	cbs = write_macro_scan(SG_MACRO(obj), cbs, ctx);
+      }
       /* do nothing */
     } else {
       SgClass *klass = Sg_ClassOf(obj);
@@ -497,13 +500,10 @@ static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
   cbs = write_cache_scan(m->name, cbs, ctx);
   cbs = write_cache_scan(m->env, cbs, ctx);
   if (SG_CLOSUREP(m->data)) {
-    cbs = Sg_Acons(SG_CLOSURE(m->data)->code, SG_MAKE_INT(ctx->index), cbs);
-    cbs = write_cache_pass1(SG_CLOSURE(m->data)->code, cbs, NULL, ctx);
+    cbs = write_cache_scan(m->data, cbs, ctx);
   }
   if (SG_CLOSUREP(m->transformer)) {
-    cbs = Sg_Acons(SG_CLOSURE(m->transformer)->code, 
-		   SG_MAKE_INT(ctx->index), cbs);
-    cbs = write_cache_pass1(SG_CLOSURE(m->transformer)->code,cbs, NULL, ctx);
+    cbs = write_cache_scan(m->transformer, cbs, ctx);
   }
   cbs = write_cache_scan(m->maybeLibrary, cbs, ctx);
   return cbs;
@@ -754,9 +754,13 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     /* gloc does not have any envs. */
     emit_immediate(out, SG_NIL);
   } else if (SG_MACROP(o)) {
-    /* this must be local macro, global macros are emitted in
-       write_macro_cache. So just put UNBOUND */
-    emit_immediate(out, SG_UNBOUND);
+    /* we need to write macro inside of the identifier if it's in
+       macro writing phase. */
+    if (ctx->macroPhaseP) {
+      write_macro(out, SG_MACRO(o), cbs, ctx);
+    } else {
+      emit_immediate(out, SG_UNBOUND);
+    }
   } else {
     SgClass *klass = Sg_ClassOf(o);
     if (SG_PROCEDUREP(klass->cwriter)) {
@@ -822,8 +826,9 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
 	if (SG_CODE_BUILDERP(o)) {
 	  SgObject slot = Sg_Assq(o, cbs);
 	  /* never happen but just in case */
-	  if (SG_FALSEP(slot))
-	    Sg_Panic("non collected compiled code appeared during writing cache");
+	  if (SG_FALSEP(slot)) {
+	    ESCAPE(ctx, "code builder %S is not collected.\n", o);
+	  }
 	  /* set mark.
 	     maximum 0xffffffff index
 	     i think this is durable.
@@ -1327,7 +1332,11 @@ static SgSharedRef* make_shared_ref(int mark)
 
 static SgObject get_shared(SgObject index, read_ctx *ctx)
 {
-  return Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
+  SgObject o = Sg_HashTableRef(ctx->sharedObjects, index, SG_UNBOUND);
+  if (SG_UNBOUNDP(o)) {
+    ESCAPE(ctx, "unknown shared object appeared %A\n", index);
+  }
+  return o;
 }
 
 static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
@@ -1445,9 +1454,10 @@ static SgObject read_object(SgPort *in, read_ctx *ctx)
      to avoid it, we need to see if the object was an instruction or not.
    */
   if (ctx->isLinkNeeded && !ctx->insnP) {
-    SgHashTable seen;
-    Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0);
-    read_cache_link(obj, &seen, ctx);
+    /* SgHashTable seen; */
+    /* Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0); */
+    /* read_cache_link(obj, &seen, ctx); */
+    ctx->links = Sg_Cons(obj, ctx->links);
   }
 
   return obj;
@@ -1542,12 +1552,11 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     SgObject o = read_object(in, ctx);
     if (!ctx->insnP && SG_IDENTIFIERP(o)) {
       /* resolve shared object here for identifier*/
-      SgHashTable envs, libs;
-      Sg_InitHashTableSimple(&envs, SG_HASH_EQ, 0);
-      Sg_InitHashTableSimple(&libs, SG_HASH_EQ, 0);
-      read_cache_link(SG_IDENTIFIER_ENVS(o), &envs, ctx);
-      read_cache_link(SG_IDENTIFIER_LIBRARY(o), &libs, ctx);
-
+      SgHashTable seen;
+      Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 0);
+      read_cache_link(SG_IDENTIFIER_ENVS(o), &seen, ctx);
+      Sg_HashCoreClear(SG_HASHTABLE_CORE(&seen), 0);
+      read_cache_link(SG_IDENTIFIER_LIBRARY(o), &seen, ctx);
     }
     code[i] = SG_WORD(o);
   }
@@ -1661,6 +1670,7 @@ int Sg_ReadCache(SgString *id)
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
   ctx.file = cache_path;
+  ctx.links = SG_NIL;
   SG_PORT_LOCK(&in);
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(&in);
@@ -1670,6 +1680,8 @@ int Sg_ReadCache(SgString *id)
   }
 
   if (setjmp(ctx.escape) == 0) {
+    SgObject cp;
+    SgHashTable linkSeen;
     while ((obj = read_toplevel(&in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
       /* toplevel cache never be #f */
       if (SG_FALSEP(obj)) {
@@ -1692,6 +1704,12 @@ int Sg_ReadCache(SgString *id)
 	Sg_VMDumpCode(obj);
       }
       Sg_VMExecute(obj);
+    }
+    Sg_InitHashTableSimple(&linkSeen, SG_HASH_EQ, 128);
+    SG_FOR_EACH(cp, ctx.links) {
+      Sg_HashCoreClear(SG_HASHTABLE_CORE(&linkSeen), 0);
+      read_cache_link(SG_CAR(cp), &linkSeen, &ctx);
+      
     }
     ret = CACHE_READ;
   } else {
