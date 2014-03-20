@@ -7,6 +7,17 @@
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
+(define (literal-match? pat lites)
+  (define (cmp pred pat lites)
+    (let loop ((lites lites))
+      (if (null? lites)
+	  #f
+	  (or (pred pat (car lites))
+	      (loop (cdr lites))))))
+  (if (identifier? pat)
+      (cmp free-identifier=? pat lites)
+      (cmp (lambda (pat lite) (eq? pat (id-name lite))) pat lites)))
+
 (define (bar? expr)
   (and (variable? expr)
        (eq? (identifier->symbol expr) '_)))
@@ -43,7 +54,7 @@
             ((ellipsis? lst) pool)
             ((bar? lst) pool)
             ((variable?  lst)
-             (if (id-memq lst lites)
+             (if (literal-match? lst lites)
                  pool
                  (if (memq lst pool)
                      (syntax-violation "syntax pattern"
@@ -62,7 +73,7 @@
 			       (unwrap-syntax pat)))
             ((ellipsis-pair? lst)
              (and (variable? (car lst))
-                  (id-memq (car lst) lites)
+                  (literal-match? (car lst) lites)
                   (syntax-violation "syntax pattern"
 				    "ellipsis following literal"
 				    (unwrap-syntax pat) (unwrap-syntax lst)))
@@ -106,7 +117,7 @@
 (define (collect-vars-ranks pat lites depth ranks)
   (cond ((bar? pat) ranks)
         ((variable? pat)
-         (if (id-memq pat lites)
+         (if (literal-match? pat lites)
              ranks
              (acons pat depth ranks)))
         ((ellipsis-pair? pat)
@@ -128,41 +139,42 @@
 ;; syntax-case compiler
 (define compile-syntax-case
   (lambda (exp-name expr literals clauses library env mac-env make-p1env)
-    ;; literal must be unwrapped, otherwise it will be too unique
-    (let ((lites (unwrap-syntax literals)))
-      (define (rewrite oexpr patvars newenv)
-	(define seen (make-eq-hashtable))
-	(define (seen-or-gen id env library)
-	  (cond ((hashtable-ref seen id #f))
-		(else (let ((new-id (make-identifier id env library)))
-			(hashtable-set! seen id new-id)
-			new-id))))
-	;; not a good name though...
-	(define (pure-template-variable? id)
-	  (let ((envs (id-envs id)))
-	    (and (not (null? envs))
-		 (null? (cdr envs))
-		 (assv BOUNDARY envs))))
-	(let loop ((expr oexpr))
-	  (cond ((pair? expr)
-		 (let ((a (loop (car expr)))
-		       (d (loop (cdr expr))))
-		   (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		       expr
-		       (cons a d))))
-		((vector? expr)
-		 (list->vector (loop (vector->list expr))))
-		((assq expr patvars) => cdr)
-		((and (identifier? expr)
-		      (not (pure-template-variable? expr))
-		      (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
-		 ;; preserve local variable.
-		 ;; if we can find local variable at this point,
-		 ;; then if it needs to be found at any point with this
-		 ;; environment anyway.
-		 (seen-or-gen expr env (id-library expr)))
-		((symbol? expr) (seen-or-gen expr env library))
-		(else expr))))
+    (define (rewrite oexpr patvars)
+      (define seen (make-eq-hashtable))
+      (define (seen-or-gen id env library)
+	(cond ((hashtable-ref seen id #f))
+	      (else (let ((new-id (make-identifier id env library)))
+		      (hashtable-set! seen id new-id)
+		      new-id))))
+      ;; not a good name though...
+      (define (pure-template-variable? id)
+	(let ((envs (id-envs id)))
+	  (and (not (null? envs))
+	       (null? (cdr envs))
+	       (assv BOUNDARY envs))))
+      (let loop ((expr oexpr))
+	(cond ((pair? expr)
+	       (let ((a (loop (car expr)))
+		     (d (loop (cdr expr))))
+		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		     expr
+		     (cons a d))))
+	      ((vector? expr)
+	       (list->vector (loop (vector->list expr))))
+	      ((assq expr patvars) => cdr)
+	      ((and (identifier? expr)
+		    (not (pure-template-variable? expr))
+		    (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
+	       ;; preserve local variable.
+	       ;; if we can find local variable at this point,
+	       ;; then if it needs to be found at any point with this
+	       ;; environment anyway.
+	       (seen-or-gen expr env (id-library expr)))
+	      ((symbol? expr) (seen-or-gen expr env library))
+	      (else expr))))
+
+    (let ((lites (rewrite literals '())))
+      
       (define pattern-mark (list exp-name))
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
@@ -171,18 +183,18 @@
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
-	  (values (rewrite pattern pvars mac-env)
+	  (values (rewrite pattern pvars)
 		  (make-p1env mac-env 
-			      (extend-env (rewrite ranks pvars mac-env) env))
+			      (extend-env (rewrite ranks pvars) env))
 		  pvars)))
 
-      (or (and (list? lites) (for-all symbol? lites))
+      (or (and (list? lites) (for-all identifier? lites))
 	  (syntax-violation 'syntax-case "invalid literals" expr lites))
       (or (unique-id-list? lites)
 	  (syntax-violation 'syntax-case "duplicate literals" expr lites))
-      (and (memq '_ lites)
+      (and (literal-match? '_ lites)
 	   (syntax-violation 'syntax-case "_ in literals" expr lites))
-      (and (memq '... lites)
+      (and (literal-match? '... lites)
 	   (syntax-violation 'syntax-case "... in literals" expr lites))
       
       (values .match-syntax-case
@@ -195,15 +207,15 @@
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 #f
 					 (,.lambda (,.vars)
-					   ,(rewrite expr patvars env)))
+					   ,(rewrite expr patvars)))
 				env)))
 		       ((p fender expr)
 			(receive (pattern env patvars) (parse-pattern p)
 			  (cons `(,.list (,syntax-quote. ,pattern)
 					 (,.lambda (,.vars)
-					   ,(rewrite fender patvars env))
+					   ,(rewrite fender patvars))
 					 (,.lambda (,.vars)
-					   ,(rewrite expr patvars env)))
+					   ,(rewrite expr patvars)))
 				env)))))
 		   clauses)))))
 
@@ -251,7 +263,7 @@
 	       (not (find-binding (id-library e-id) (id-name e-id) #f))))))
   (cond ((bar? pat) #t)
         ((variable? pat)
-         (cond ((id-memq pat lites)
+         (cond ((literal-match? pat lites)
                 (and (variable? expr)
                      (compare pat expr)))
                (else #t)))
@@ -316,7 +328,7 @@
 
 (define (bind-pattern expr pat lites vars)
   (cond ((variable? pat)
-         (if (id-memq pat lites)
+         (if (literal-match? pat lites)
              vars
              (bind-var! pat expr vars)))
         ((ellipsis-pair? pat)

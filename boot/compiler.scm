@@ -1125,6 +1125,7 @@
 (define .quote   (global-id 'quote))
 (define .vector  (global-id 'vector))
 (define .list->vector (global-id 'list->vector))
+(define .syntax-quote   (global-id 'syntax-quote))
 
 ;; now it returns IForm
 ;; TODO the code still allocates unneccessary memory during compile time
@@ -1340,7 +1341,7 @@
 			      p1env-swap-frame)
        ($call #f ($gref func)
 	      `(,(if (lvar? patvars) ($lref patvars) ($const-nil))
-		,(pass1 `(,.quote ,lites) p1env)
+		,(pass1 `(,.syntax-quote ,lites) p1env)
 		,(pass1 expr p1env)
 		,@(imap (lambda (expr&env)
 			  (pass1 (car expr&env) (cdr expr&env)))
