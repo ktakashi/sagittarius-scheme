@@ -742,9 +742,7 @@
 					      vars)))))))
       (define (expand-ellipsis-var tmpl vars)
 	(cond ((exists (lambda (slot)
-			 (if (free-identifier=? tmpl (car slot))
-			     slot
-			     #f))
+			 (and (free-identifier=? tmpl (car slot)) slot))
 		       vars)
 	       => (lambda (slot)
 		    (cond ((null? (cdr slot)) '())
