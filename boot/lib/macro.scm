@@ -7,6 +7,11 @@
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
+;; in case of (rename (rnrs) (_ __)) or so...
+;; _ and ... are defined in (core) library
+(define .bar      (make-identifier '_ '() '(core)))
+(define .ellipsis (make-identifier '... '() '(core)))
+
 (define (literal-match? pat lites)
   (define (cmp pred pat lites)
     (let loop ((lites lites))
@@ -19,12 +24,14 @@
       (cmp (lambda (pat lite) (eq? pat (id-name lite))) pat lites)))
 
 (define (bar? expr)
-  (and (variable? expr)
-       (eq? (identifier->symbol expr) '_)))
+  (or (and (identifier? expr)
+	   (free-identifier=? expr .bar))
+      (eq? expr '_)))
 
 (define (ellipsis? expr)
-  (and (variable? expr)
-       (eq? (identifier->symbol expr) '...)))
+  (or (and (identifier? expr)
+	   (free-identifier=? expr .ellipsis))
+      (eq? expr '...)))
 
 (define (ellipsis-pair? form)
   (and (pair? form)
@@ -636,17 +643,8 @@
 
 (define (rank-of name ranks)
   (define (id=? slot)
-    ;; if the target is an identifier, simple check with free-identifier=?
-    (or (and (identifier? name)
-	     (free-identifier=? name (car slot))
-	     slot)
-	;; if the target is a symbol, we need to lookup the current
-	;; lexical binding and compare it.
-	(and (eq? (id-name (car slot)) name)
-	     (eq? (p1env-lookup-frame (current-usage-env) name LEXICAL)
-		  (id-envs (car slot)))
-	     slot)))
-	
+    (and (free-identifier=? name (car slot))
+	 slot))
   (let ((slot (exists id=? ranks)))
     (if slot (cdr slot) -1)))
 
@@ -744,8 +742,7 @@
 					      vars)))))))
       (define (expand-ellipsis-var tmpl vars)
 	(cond ((exists (lambda (slot)
-			 (if (and (eq? (id-envs tmpl) (id-envs (car slot)))
-				  (eq? (id-name tmpl) (id-name (car slot))))
+			 (if (free-identifier=? tmpl (car slot))
 			     slot
 			     #f))
 		       vars)
