@@ -393,7 +393,18 @@
 	  ((SG_IDENTIFIERP id) (return (SG_IDENTIFIER_ENVS id))))
     (return SG_NIL))
 
+  (define-cfn env-shared? (env frames) ::int :static
+    (dopairs (fp frames) (when (SG_EQ env fp) (return TRUE)))
+    (return FALSE))
+
   (define-cfn name=? (name1 name2) ::int :static
+    (when (and (SG_IDENTIFIERP name1)
+	       (SG_IDENTIFIERP name2)
+	       (SG_IDENTIFIER_PENDING name1)
+	       (SG_IDENTIFIER_PENDING name2)
+	       (or (template-id? name1)
+		   (template-id? name2)))
+      (return FALSE))
     (let ((s1 name1)
 	  (s2 name2))
       (when (SG_IDENTIFIERP name1) 
@@ -401,10 +412,6 @@
       (when (SG_IDENTIFIERP name2) 
 	(set! s2 (SG_IDENTIFIER_NAME name2)))
       (return (SG_EQ s1 s2))))
-
-  (define-cfn env-shared? (env frames) ::int :static
-    (dopairs (fp frames) (when (SG_EQ env fp) (return TRUE)))
-    (return FALSE))
 
   ;; FIXME I have no idea why this works properly.
   ;; the idea is that name-env is the one we are looking up
