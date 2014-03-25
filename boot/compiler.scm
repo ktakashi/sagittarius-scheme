@@ -887,6 +887,122 @@
   (rec 0 iform)
   (newline))
 
+;; for macroexpansion
+(define (iform->sexp iform)
+  (define count 0)
+  (define labels '()) ; alist of labe node and count
+  (define seen (make-eq-hashtable)) ;; lvar names
+  (define (lvar->string lv)
+    (cond ((hashtable-ref seen lv #f))
+	  (else 
+	   (let* ((s/i (lvar-name lv))
+		  (n (string->symbol
+		      (format "~a.~a" 
+			      (if (identifier? s/i) (id-name s/i) s/i)
+			      count))))
+	     (set! count (+ count 1))
+	     (hashtable-set! seen lv n)
+	     n))))
+  (define (rec iform)
+    (cond
+     ((has-tag? iform $CONST) 
+      (let ((v ($const-value iform)))
+	(if (or (number? v) (string? v) (bytevector? v))
+	    v
+	    `(quote ,v))))
+     ((has-tag? iform $UNDEF) (undefined)) ;; what should we do?
+     ((has-tag? iform $LAMBDA) ;; construct formal
+      (let ((opt ($lambda-option iform))
+	    (lvs  (map lvar->string ($lambda-lvars iform))))
+	`(lambda ,(cond ((zero? opt) lvs)
+			 (else ;; need to be dotted pair
+			  (apply cons* lvs)))
+	 ,(rec ($lambda-body iform)))))
+     ((has-tag? iform $RECEIVE)
+      `(receive ,(map lvar->string ($receive-lvars iform))
+	   ,(rec ($receive-expr iform))
+	 ,(rec ($receive-body iform))))
+     ((has-tag? iform $LABEL)
+      ;; special form. it won't be used for macro expansion
+      (cond ((assq iform labels)
+	     => (lambda (p) (format #t "label#~a" (cdr p))))
+	    (else
+	     (let ((num (length labels)))
+	       ;;(push! labels (cons iform num))
+	       (set! labels (acons iform num labels))
+	       `(label ,num (rec ($label-body iform)))))))
+     ((has-tag? iform $SEQ)
+      `(begin
+	 ,@(map (lambda (node) (rec node)) ($seq-body iform))))
+     ((has-tag? iform $LREF) (lvar->string ($lref-lvar iform)))
+     ((has-tag? iform $GREF) (id-name ($gref-id iform)))
+     ((has-tag? iform $DEFINE)
+      `(define ,($define-id iform) ,(rec ($define-expr iform))))
+     ((has-tag? iform $CALL)
+      `(,(rec ($call-proc iform))
+	,@(map (lambda (node) (rec  node)) ($call-args iform))))
+     ((has-tag? iform $ASM)
+      ;; assemble asm to usual call
+      `(,(case (string->symbol (insn-name (car ($asm-insn iform))))
+	   ((NOT)     'not)
+	   ((NULLP)   'null?)
+	   ((PAIRP)   'pair?)
+	   ((SYMBOLP) 'symbol?)
+	   ((VECTORP) 'vector?)
+	   ((CAR)     'car)
+	   ((CDR)     'cdr)
+	   ((CAAR)    'caar)
+	   ((CADR)    'cadr)
+	   ((CDAR)    'cdar)
+	   ((CDDR)    'cddr)
+	   ((VEC_REF) 'vector-ref)
+	   ((VEC_LEN) 'vector-length)
+	   ((VEC_SET) 'vector-set!)
+	   ((EQ)      'eq?)
+	   ((EQV)     'eqv?)
+	   ((ADD)     '+)
+	   ((SUB)     '-)
+	   ((MUL)     '*)
+	   ((DIV)     '/)
+	   ((NEG)     '-)
+	   ((CONS)    'cons)
+	   ((LIST)    'list)
+	   ((VECTOR)  'vector)
+	   ((APPEND)  'append)
+	   ((VALUES)  'values)
+	   ((SET_CAR) 'set-car!)
+	   ((SET_CDR) 'set-cdr!)
+	   ((NUM_EQ)  '=)
+	   ((NUM_LT)  '<)
+	   ((NUM_LE)  '<=)
+	   ((NUM_GT)  '>)
+	   ((NUM_GE)  '>=)
+	   (else => values))
+	,@(map (lambda (node) (rec node)) ($asm-args iform))))
+     ((has-tag? iform $LET)
+      `(,(case ($let-type iform)
+	   ((let) 'let) ((rec) 'letrec))
+	,(map (lambda (var init)
+		(list (lvar->string var)
+		      (rec  init)))
+	      ($let-lvars iform) ($let-inits iform))
+	,(rec ($let-body iform))))
+     ((has-tag? iform $IF)
+      `(if ,(rec ($if-test iform))
+	   ,(rec ($if-then iform))
+	   ,(rec ($if-else iform))))
+     ((has-tag? iform $IT) (undefined))
+     ((has-tag? iform $LSET)
+      `(set! ,(lvar->string ($lset-lvar iform)) ,(rec ($lset-expr iform))))
+     ((has-tag? iform $GSET)
+      `(set! ,(id-name ($gset-id iform)) ,(rec ($lset-expr iform))))
+     ((has-tag? iform $LIST)
+      `(list ,@(map (lambda (elt) (rec elt)) ($list-args iform))))
+     ((has-tag? iform $LIBRARY) (undefined)) ;; for now ignore.
+     (else 
+      (scheme-error 'pp-iform "unknown tag:" (iform-tag iform)))))
+  (rec iform))
+
 
 (define (variable-name arg)
   (cond ((symbol? arg) arg)
@@ -1464,7 +1580,7 @@
 
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
   (smatch form
-    ((- expr) ($const (%internal-macro-expand expr p1env #f)))
+    ((- expr) ($const (iform->sexp (pass1 expr p1env))))
     (- (syntax-error "malformed %macroexpand" form))))
 
 (define-pass1-syntax (%macroexpand-1 form p1env) :sagittarius

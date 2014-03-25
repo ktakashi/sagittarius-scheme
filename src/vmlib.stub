@@ -634,4 +634,12 @@
 			      (SG_MAKE_BOOL (-> info label))))
 	  (result (Sg_Values5 SG_FALSE SG_FALSE SG_FALSE SG_FALSE SG_FALSE)))))
 
+  ;; for compile time free-identifier=?
+  ;; this must be only internal use so we don't check the structure
+  (define-c-proc %set-current-usage-env! (env::<vector>) ::<void>
+    (set! (-> (Sg_VM) usageEnv) env))
+  ;; may needed for future?
+  (define-c-proc %set-current-macro-env! (env::<vector>) ::<void>
+    (set! (-> (Sg_VM) macroEnv) env))
+
 )
