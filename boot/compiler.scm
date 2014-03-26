@@ -147,6 +147,16 @@
 	   knil
 	   (loop (cdr p1) (proc (car p1) knil)))))))
 
+(define-syntax ifilter-map
+  (syntax-rules ()
+    ((_ proc lis)
+     (let ((p proc))
+       (let loop ((l lis) (r '()))
+	 (if (null? l)
+	     (reverse! r)
+	     (cond ((p (car l)) => (lambda (x) (loop (cdr l) (cons x r))))
+		   (else (loop (cdr l) r)))))))))
+
 (define-syntax $append-map1
   (syntax-rules ()
     ((_ f l)
@@ -2628,26 +2638,25 @@
   (define (check-refers&gsets iforms seen gsets-table)
     (let ((keys (assoc-table-keys-list seen))
 	  (gsets (assoc-table-keys-list gsets-table)))
-      (filter 
-       values
-       (imap (lambda (iform)
-	       (let ((id ($define-id iform)))
-		 (and (not (member id gsets id=?))
-		      (let loop ((keys keys))
-			(if (null? keys)
-			    #t
-			    (let ((refs (assoc-table-ref seen (car keys) '())))
-			      (and (or (null? refs)
-				       (let ((tmp (member id refs id=?))) 
-					 (or (not tmp)
-					     (let ((self (assoc-table-ref 
-							  seen (car tmp) '())))
-					       (or (null? self)
-						   (not (member (car keys)
-								self id=?)))))))
-				   (loop (cdr keys))))))
-		      iform)))
-	     iforms))))
+      (ifilter-map
+       (lambda (iform)
+	 (let ((id ($define-id iform)))
+	   (and (not (member id gsets id=?))
+		(let loop ((keys keys))
+		  (if (null? keys)
+		      #t
+		      (let ((refs (assoc-table-ref seen (car keys) '())))
+			(and (or (null? refs)
+				 (let ((tmp (member id refs id=?))) 
+				   (or (not tmp)
+				       (let ((self (assoc-table-ref 
+						    seen (car tmp) '())))
+					 (or (null? self)
+					     (not (member (car keys)
+							  self id=?)))))))
+			     (loop (cdr keys))))))
+		iform)))
+       iforms)))
   (let* ((export-spec (library-exported library))
 	 (gsets       (make-assoc-table))
 	 (ids (let loop ((iforms iforms)
@@ -2664,15 +2673,15 @@
 	 (seen (make-assoc-table))
 	 (duplicates (collect-duplicate-ids ids)))
     (check-refers&gsets
-     (filter values
-	     (imap (lambda (iform)
-		     (let ((id (possibly-target? iform export-spec)))
-		       (if (and id
-				(not (member ($define-id id) duplicates id=?))
-				(rec iform ($define-id id) ids library seen))
-			   iform
-			   #f)))
-		   iforms))
+     (ifilter-map
+      (lambda (iform)
+	      (let ((id (possibly-target? iform export-spec)))
+		(if (and id
+			 (not (member ($define-id id) duplicates id=?))
+			 (rec iform ($define-id id) ids library seen))
+		    iform
+		    #f)))
+      iforms)
      seen gsets)))
 
 (define (pass1/collect-inlinable! iforms library)
@@ -3266,15 +3275,15 @@
   (define (collect-inlinables/constable iform type last)
     (cond ((and (not (vm-nolibrary-inlining?))
 		(has-tag? iform $SEQ))
-	   (let ((r (filter values
-			    (imap (lambda (iform)
-				    (and ($define? iform)
-					 (memq type ($define-flags iform))
-					 ;; (id proc . $define)
-					 (cons* (id-name ($define-id iform))
-						($define-expr iform)
-						iform)))
-				  ($seq-body iform)))))
+	   (let ((r (ifilter-map
+		     (lambda (iform)
+		       (and ($define? iform)
+			    (memq type ($define-flags iform))
+			    ;; (id proc . $define)
+			    (cons* (id-name ($define-id iform))
+				   ($define-expr iform)
+				   iform)))
+		     ($seq-body iform))))
 	     (if (null? r)
 		 last
 		 (acons type r last))))

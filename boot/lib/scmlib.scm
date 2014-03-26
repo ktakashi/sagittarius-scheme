@@ -466,7 +466,7 @@
 
 (define (partition pred lst)
   (let loop ((lst lst) (acc1 '()) (acc2 '()))
-    (cond ((null? lst) (values (reverse acc1) (reverse acc2)))
+    (cond ((null? lst) (values (reverse! acc1) (reverse! acc2)))
           ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc1) acc2))
           (else (loop (cdr lst) acc1 (cons (car lst) acc2))))))
 
@@ -476,16 +476,14 @@
 	(cond ((pair? xs) (loop (cdr xs) (cons (proc (car xs)) r)))
 	      ((null? xs) (reverse! r))
 	      (else
-	       (assertion-violation 
-		'map 
+	       (assertion-violation 'map 
 		(wrong-type-argument-message "proper list" lst1 2)
 		(list proc lst1 lst2)))))
       (let loop ((xs (apply list-transpose* lst1 lst2)) (r '()))
 	(cond ((pair? xs) (loop (cdr xs) (cons (apply proc (car xs)) r)))
 	      ((null? xs) (reverse! r))
 	      (else
-	       (assertion-violation 
-		'map 
+	       (assertion-violation 'map 
 		(wrong-type-argument-message "proper list" lst1 2)
 		(list proc lst1 lst2)))))))
 
@@ -495,18 +493,44 @@
 	(cond ((pair? xs) (proc (car xs)) (loop (cdr xs)))
 	      ((null? xs) (undefined))
 	      (else
-	       (assertion-violation 
-		'for-each 
+	       (assertion-violation 'for-each 
 		(wrong-type-argument-message "proper list" lst1 2)
 		(list proc lst1 lst2)))))
       (let loop ((xs (apply list-transpose* lst1 lst2)))
 	(cond ((pair? xs) (apply proc (car xs)) (loop (cdr xs)))
 	      ((null? xs) (undefined))
 	      (else
-	       (assertion-violation 
-		'for-each
+	       (assertion-violation 'for-each
 		(wrong-type-argument-message "proper list" lst1 2)
 		(list proc lst1 lst2)))))))
+
+;; it's used very often in the boot code so put it here
+(define (filter-map proc lst1 . lst2)
+  (unless (procedure? proc)
+    (assertion-violation 'filter-map 
+     (wrong-type-argument-message "procedure" proc 1) (list proc lst1 lst2)))
+  (if (null? lst2)
+      (let loop ((lst lst1) (r '()))
+	(cond ((null? lst) (reverse! r))
+	      ((pair? lst)
+	       (cond ((proc (car lst)) =>
+		      (lambda (x) (loop (cdr lst) (cons x r))))
+		     (else (loop (cdr lst) r))))
+	      (else
+	       (assertion-violation 'filter-map 
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))
+      (let loop ((xs (apply list-transpose* lst1 lst2)) (r '()))
+	(cond ((null? xs) (reverse! r))
+	      ((pair? xs) 
+	       (cond ((apply proc (car xs)) =>
+		      (lambda (x) (loop (cdr xs) (cons x r))))
+		     (else (loop (cdr xs) r))))
+	      (else
+	       (assertion-violation 'map 
+		(wrong-type-argument-message "proper list" lst1 2)
+		(list proc lst1 lst2)))))))
+
 
 (define (fold-left proc seed lst1 . lst2)
   (if (null? lst2)

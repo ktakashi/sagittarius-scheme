@@ -91,7 +91,8 @@
    (only (sagittarius control) check-arg)
    (only (core) last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold
-    lset-difference assoc member find find-tail lset-union reduce)
+    lset-difference assoc member find find-tail lset-union reduce
+    filter-map)
    (only (core inline) define-inliner)
     )
 
@@ -1087,24 +1088,24 @@
       (pair-for-each (lambda (pair) (set-car! pair (f (car pair)))) lis1))
   lis1)
 
-
+;; now it's builtin
 ;;; Map F across L, and save up all the non-false results.
-(define (filter-map f lis1 . lists)
-  (check-arg procedure? f filter-map)
-  (if (pair? lists)
-      (let recur ((lists (cons lis1 lists)))
-    (receive (cars cdrs) (%cars+cdrs lists)
-      (if (pair? cars)
-          (cond ((apply f cars) => (lambda (x) (cons x (recur cdrs))))
-            (else (recur cdrs))) ; Tail call in this arm.
-          '())))
-
-      ;; Fast path.
-      (let recur ((lis lis1))
-    (if (null-list? lis) lis
-        (let ((tail (recur (cdr lis))))
-          (cond ((f (car lis)) => (lambda (x) (cons x tail)))
-            (else tail)))))))
+;; (define (filter-map f lis1 . lists)
+;;   (check-arg procedure? f filter-map)
+;;   (if (pair? lists)
+;;       (let recur ((lists (cons lis1 lists)))
+;;     (receive (cars cdrs) (%cars+cdrs lists)
+;;       (if (pair? cars)
+;;           (cond ((apply f cars) => (lambda (x) (cons x (recur cdrs))))
+;;             (else (recur cdrs))) ; Tail call in this arm.
+;;           '())))
+;; 
+;;       ;; Fast path.
+;;       (let recur ((lis lis1))
+;;     (if (null-list? lis) lis
+;;         (let ((tail (recur (cdr lis))))
+;;           (cond ((f (car lis)) => (lambda (x) (cons x tail)))
+;;             (else tail)))))))
 
 
 ;;; Map F across lists, guaranteeing to go left-to-right.

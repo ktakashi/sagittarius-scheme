@@ -68,17 +68,23 @@
     ((_ p arg)
      (let ((proc p))
        (let loop ((l arg) (r '()))
-	 (if (null? l)
-	   (reverse! r)
-	   (loop (cdr l) (cons (proc (car l)) r)))))))
+	 (cond ((null? l) (reverse! r))
+	       ((pair? l) (loop (cdr l) (cons (proc (car l)) r)))
+	       (else
+		(assertion-violation 'map
+		 (wrong-type-argument-message "proper list" arg)
+		 (list proc arg))))))))
 
   (define-inliner for-each (core base)
     ((_ p arg)
      (let ((proc p))
        (let loop ((l arg))
-	 (unless (null? l)
-	   (proc (car l))
-	   (loop (cdr l)))))))
+	 (cond ((null? l) (undefined))
+	       ((pair? l) (proc (car l)) (loop (cdr l)))
+	       (else 
+		(assertion-violation 'for-each
+		 (wrong-type-argument-message "proper list" arg)
+		 (list proc arg))))))))
 
   ;; from nmosh start
   (define-syntax identifier-syntax
