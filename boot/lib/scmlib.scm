@@ -24,16 +24,15 @@
 ;; er-macro-transformer
 (define (er-macro-transformer f)
   (lambda (expr)
-    (let ((dict (make-eq-hashtable))
-	  (use-env (current-usage-env))
-	  (mac-env (current-macro-env)))
-      (define (rename s) (er-rename s mac-env dict))
+    (let ((dict (make-eq-hashtable)))
+      (define (rename s) (er-rename s (current-macro-env) dict))
       (define (compare a b)
 	;;(identifier=? use-env a mac-env b))
 	(or (and (identifier? a)
 		 (identifier? b)
 		 (free-identifier=? a b))
-	    (identifier=? use-env a mac-env b)))
+	    (identifier=? (current-usage-env) a
+			  (current-macro-env) b)))
       (f expr rename compare))))
 
 (define (safe-length lst)
@@ -77,72 +76,6 @@
 (define (string-for-each proc str1 . str2)
   (apply for-each proc (string->list str1)
 	 (map string->list str2)))
-
-;;;; record
-;; NB: this functions is because of my lazyness.
-;;     it's kinda hard to implement in C. so we just lookup this in C.
-(define (record-printer inst . port)
-  (let ((p (if (null? port)
-               (current-output-port)
-               (car port)))
-        (rtd (tuple-ref inst 0)))
-    (format p "#<record ~s ~a~a ~a>"
-            (record-type-name rtd)
-            (if (record-type-opaque? rtd) "opaque " "")
-            (if (record-type-sealed? rtd) "sealed " "")
-            (let ((len (tuple-size inst)))
-              (let loop ((i 1)
-                         (r '()))
-                (if (= i len)
-                    (reverse! r)
-                    (loop (+ i 1) (cons (tuple-ref inst i) r))))))))
-
-
-;; from Ypsilon
-(define (make-nested-conser desc rtd argc)
-  ((rcd-protocol desc)
-   ((let loop ((desc desc))
-      (cond ((rcd-parent desc)
-             => (lambda (parent)
-                  (lambda extra-field-values
-                    (lambda protocol-args
-                      (lambda this-field-values
-                        (apply ((rcd-protocol parent)
-                                (apply (loop parent)
-                                       (append this-field-values extra-field-values)))
-                               protocol-args))))))
-            (else
-             (lambda extra-field-values
-               (lambda this-field-values
-                 (let ((field-values (append this-field-values extra-field-values)))
-                   (if (= (length field-values) argc)
-                       (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
-                             (all-valeus (append (list rtd) field-values)))
-                         (tuple-list-set! tuple all-valeus)
-                         tuple)
-                       (assertion-violation "record constructor" "wrong number of arguments" field-values)))))))))))
-
-(define (make-simple-conser desc rtd argc)
-  ((rcd-protocol desc)
-   (lambda field-values
-     (if (= (length field-values) argc)
-         (let ((tuple (make-tuple (+ (length field-values) 1) record-printer))
-               (all-valeus (append (list rtd) field-values)))
-           (tuple-list-set! tuple all-valeus)
-           tuple)
-         (assertion-violation "record constructor" "wrong number of arguments" field-values)))))
-
-(define (default-protocol rtd)
-  (let ((parent (record-type-parent rtd)))
-    (if parent
-        (let ((parent-field-count (rtd-total-field-count parent)))
-          (lambda (p)
-            (lambda field-values
-              (receive (parent-field-values this-field-values) (split-at field-values parent-field-count)
-                (apply (apply p parent-field-values) this-field-values)))))
-        (lambda (p)
-          (lambda field-values
-            (apply p field-values))))))
 
 ;;;;
 ;; from Ypsilon
@@ -324,7 +257,7 @@
                (loop (- i 1) (+ (* 256 acc) (bytevector-u8-ref bv i))))))
         (else
          (assertion-violation 'bytevector-uint-ref
-                              (format "expected endianness, but got ~r, as argument 3" endien)
+                              (format "expected endianness, but got ~s, as argument 3" endien)
                               (list bv index endien size)))))
 
 (define (bytevector-sint-ref bv index endien size)
@@ -338,7 +271,7 @@
              (bytevector-uint-ref bv index endien size)))
         (else
          (assertion-violation 'bytevector-uint-ref
-                              (format "expected endianness, but got ~r, as argument 3" endien)
+                              (format "expected endianness, but got ~s, as argument 3" endien)
                               (list bv index endien size)))))
 
 (define (bytevector-uint-set! bv index val endien size)
@@ -393,7 +326,7 @@
         (if (= i (- size))
             acc
             (assertion-violation 'bytevector->uint-list
-                                 (format "expected appropriate element size as argument 3, but got ~r" size)
+                                 (format "expected appropriate element size as argument 3, but got ~s" size)
                                  (list bv endien size))))))
 
 (define (bytevector->sint-list bv endien size)
@@ -403,7 +336,7 @@
         (if (= i (- size))
             acc
             (assertion-violation 'bytevector->sint-list
-                                 (format "expected appropriate element size as argument 3, but got ~r" size)
+                                 (format "expected appropriate element size as argument 3, but got ~s" size)
                                  (list bv endien size))))))
 
 (define (uint-list->bytevector lst endien size)
@@ -423,20 +356,6 @@
              (loop (+ i size) (cdr lst)))))))
 
 ;; 3 list utilities
-;; from Ypsilon
-;; Using SRFI-1 implementation
-;;(define find
-;;  (lambda (pred lst)
-;;    (cond ((null? lst) #f)
-;;	  ((pair? lst)
-;;	   (let loop ((head (car lst)) (rest (cdr lst)))
-;;	     (cond ((pred head) head)
-;;		   ((null? rest) #f)
-;;		   ((pair? rest) (loop (car rest) (cdr rest)))
-;;		   (else
-;;		    (assertion-violation 'find (format "traversal reached to non-pair element ~s" rest) (list pred lst))))))
-;;	  (else
-;;	   (assertion-violation 'find (format "expected chain of pairs, but got ~s, as argument 2" lst) (list pred lst))))))
 
 (define (for-all pred lst1 . lst2)
   (define (for-all-n pred list-of-lists)
@@ -760,50 +679,6 @@
 	    (let* ((head (cons '() '()))
 		   (r (do-sort lst2 (length lst2) head)))
 	      (merge-list! proc head (list-head lst n) r head))))))
-#|
-;; from Ypsilon
-(define (list-sort proc lst)
-
-  (define (merge lst1 lst2)
-    (cond
-     ((null? lst1) lst2)
-     ((null? lst2) lst1)
-     (else
-      (let ((a1 (car lst1)) (a2 (car lst2)))
-	(if (proc a2 a1)
-	    (cons a2 (merge lst1 (cdr lst2)))
-	    (cons a1 (merge (cdr lst1) lst2)))))))
-
-  (define (sort lst n)
-    (cond ((= n 1)
-           (list (car lst)))
-          ((= n 2)
-	   (let ((ad (cadr lst)) (a (car lst)))
-	     (if (proc ad a)
-		 (list ad a)
-		 (list a ad))))
-          (else
-           (let ((n/2 (div n 2)))
-             (merge (sort lst n/2)
-                    (sort (list-tail lst n/2) (- n n/2)))))))
-
-  (define (divide lst)
-    (let loop ((acc 1) (lst lst))
-      (cond ((null? (cdr lst)) (values acc '()))
-            (else
-	     (if (proc (car lst) (cadr lst))
-		 (loop (+ acc 1) (cdr lst))
-		 (values acc (cdr lst)))))))
-
-  (cond ((null? lst) '())
-        (else
-         (let ((len (length lst)))
-           (receive (n rest) (divide lst)
-             (cond ((null? rest) lst)
-                   (else
-                    (merge (list-head lst n)
-                           (sort rest (- len n))))))))))
-|#
 
 (define (vector-sort proc vect)
   (let ((lst (vector->list vect)))
@@ -937,44 +812,6 @@
     ((equal)  equal-hash)
     ((string) string-hash)
     ((general) (hashtable-hasher ht))))
-
-;; parameter is implemented by CLOS now
-;; parameter
-;; From Ypsilon
-
-;; (define (make-parameter init . maybe-filter)
-;;   (let* ((key (gensym))
-;; 	 (parameter (if (null? maybe-filter)
-;; 			(parameter-proc-0 key)
-;; 			(parameter-proc-1 key (car maybe-filter))))
-;; 	 (setter (parameter-set-proc key)))
-;;     (begin (parameter init)
-;; 	   (hashtable-set! (current-dynamic-environment) parameter setter)
-;; 	   parameter)))
-;; 
-;; (define (parameter-proc-0 key)
-;;   (lambda value
-;;     (if (null? value)
-;;         (hashtable-ref  (current-dynamic-environment) key #f)
-;;         (hashtable-set! (current-dynamic-environment) key (car value)))))
-;; 
-;; (define (parameter-proc-1 key proc)
-;;   (lambda value
-;;     (if (null? value)
-;;         (hashtable-ref  (current-dynamic-environment) key #f)
-;;         (hashtable-set! (current-dynamic-environment)
-;;                         key (proc (car value))))))
-;; 
-;; (define (parameter-set-proc key)
-;;   (lambda (value) (hashtable-set! (current-dynamic-environment) key value)))
-;; 
-;; (define (%parameter-value-set! param v)
-;;   ;; non parameter object may also use this, we need to handle it.
-;;   ;; ex) current-input-port
-;;   (let ((setter (hashtable-ref (current-dynamic-environment) param)))
-;;     (if setter
-;; 	(setter v)
-;; 	(param v))))
 
 ;;;; end of file
 ;; Local Variables:
