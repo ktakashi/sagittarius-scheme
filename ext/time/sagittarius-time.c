@@ -284,28 +284,6 @@ static SgSlotAccessor time_slots[] = {
   { { NULL } }
 };
 
-DEFINE_ACCESSOR(date, nanosecond, SgDate, SG_OBJ, SG_EXACT_INTP, SG_OBJ);
-DEFINE_ACCESSOR(date, second, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, minute, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, hour, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, day, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, month, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, year, SgDate, SG_MAKE_INT, SG_INTP, SG_INT_VALUE);
-DEFINE_ACCESSOR(date, zoneOffset, SgDate, 
-		Sg_MakeIntegerFromS64, SG_EXACT_INTP, GET_INT64);
-
-static SgSlotAccessor date_slots[] = {
-  SG_CLASS_SLOT_SPEC("nanosecond",  0, date_nanosecond, date_nanosecond_set),
-  SG_CLASS_SLOT_SPEC("second",      1, date_second,     date_second_set),
-  SG_CLASS_SLOT_SPEC("minute",      2, date_minute,     date_minute_set),
-  SG_CLASS_SLOT_SPEC("hour",        3, date_hour,       date_hour_set),
-  SG_CLASS_SLOT_SPEC("day",         4, date_day,        date_day_set),
-  SG_CLASS_SLOT_SPEC("month",       5, date_month,      date_month_set),
-  SG_CLASS_SLOT_SPEC("year",        6, date_year,       date_year_set),
-  SG_CLASS_SLOT_SPEC("zone-offset", 7, date_zoneOffset, date_zoneOffset_set),
-  { { NULL } }
-};
-
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 {
   SgLibrary *lib;
@@ -324,7 +302,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 
   Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), lib, NULL,
 			     SG_FALSE, time_slots, 0);
-  Sg_InitStaticClassWithMeta(SG_CLASS_DATE, UC("<date>"), lib, NULL,
-			     SG_FALSE, date_slots, 0); 
 }
 

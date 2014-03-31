@@ -126,8 +126,45 @@
 	    (core errors)
 	    (sagittarius)
 	    (sagittarius dynamic-module)
+	    (clos user)
+	    (sagittarius mop validator)
 	    (srfi :6 basic-string-ports))
   (load-dynamic-module "sagittarius--time")
+
+  (define (check-integer o v)
+    (or (and (exact? v) (integer? v) v)
+	(error o "integer required" v)))
+  (define-class <date> (<validator-mixin>)
+    ((nanosecond :init-keyword :nanosecond :reader date-nanosecond
+		 :writer set-date-nanosecond!
+		 :validator check-integer)
+     (second     :init-keyword :second     :reader date-second
+		 :writer set-date-second!
+		 :validator check-integer)
+     (minute     :init-keyword :minute     :reader date-minute
+		 :writer set-date-minute!
+		 :validator check-integer)
+     (hour       :init-keyword :hour       :reader date-hour
+		 :writer set-date-hour!
+		 :validator check-integer)
+     (day        :init-keyword :day        :reader date-day
+		 :writer set-date-day!
+		 :validator check-integer)
+     (month      :init-keyword :month      :reader date-month
+		 :writer set-date-month!
+		 :validator check-integer)
+     (year       :init-keyword :year       :reader date-year
+		 :writer set-date-year!
+		 :validator check-integer)
+     (zone-offset :init-keyword :zone-offset :reader date-zone-offset
+		  :writer set-date-zone-offset!
+		  :validator check-integer)))
+
+  (define (date? o) (is-a? o <date>))
+  (define (make-date nano sec min hour day month year offset)
+    (make <date> :nanosecond nano :second sec :minute min
+	  :hour hour :day day :month month :year year :zone-offset offset))
+
   (define (tm:time-error caller type value)
     (if (member type tm:time-error-types)
         (if value

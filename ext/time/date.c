@@ -34,32 +34,6 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-time.h"
 
-static void date_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
-{
-  SgDate *d = SG_DATE(self);
-  Sg_Printf(port, UC("#<date %d/%d/%d %d:%d:%d.%d>"),
-	    d->day, d->month, d->year,
-	    d->hour, d->minute, d->second, d->nanosecond);
-}
-
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DateClass, date_printer);
-
-SgObject Sg_MakeDate(SgObject nano, int sec, int min, int hour, int day, 
-		     int mon, int year, int64_t zone)
-{
-  SgDate *d = SG_NEW(SgDate);
-  SG_SET_CLASS(d, SG_CLASS_DATE);
-  d->nanosecond = nano;
-  d->second = sec;
-  d->minute = min;
-  d->hour = hour;
-  d->day = day;
-  d->month = mon;
-  d->year = year;
-  d->zoneOffset = zone;
-  return SG_OBJ(d);
-}
-
 SgObject Sg_LocalTzOffset()
 {
   struct tm localTime;

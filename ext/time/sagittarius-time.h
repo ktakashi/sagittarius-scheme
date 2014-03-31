@@ -48,25 +48,6 @@ SG_CLASS_DECL(Sg_TimeClass);
 #define SG_TIME(obj)  ((SgTime *)obj)
 #define SG_TIMEP(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
 
-
-typedef struct SgDateRec
-{
-  SG_HEADER;
-  SgObject nanosecond;		/* could be bignum */
-  int     second;
-  int     minute;
-  int     hour;
-  int     day;
-  int     month;
-  int     year;
-  int64_t zoneOffset;
-} SgDate;
-
-SG_CLASS_DECL(Sg_DateClass);
-#define SG_CLASS_DATE   (&Sg_DateClass)
-#define SG_DATE(obj)   ((SgDate *)obj)
-#define SG_DATEP(obj) SG_XTYPEP(obj, SG_CLASS_DATE)
-
 #define TM_NANO  1.0e9
 #define TM_SID   86400
 #define TM_SIDH  43200
