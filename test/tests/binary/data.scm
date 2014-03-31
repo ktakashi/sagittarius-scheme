@@ -5,6 +5,46 @@
 
 (test-begin "Binary data read/write")
 
+;;  utilities
+(define-syntax test-set
+  (syntax-rules ()
+    ((_ set conv v)
+     (test-equal 'set (conv v) (call-with-bytevector-output-port 
+			 (lambda (out) (set out v)))))
+    ((_ set conv size v endian)
+     (test-equal 'set (conv v size) (call-with-bytevector-output-port 
+				     (lambda (out) (set out v endian)))))))
+
+(define-syntax test-get
+  (syntax-rules ()
+    ((_ get conv v)
+     (test-equal 'get v 
+		 (get (open-bytevector-input-port (conv v)))))
+    ((_ get conv size v endian)
+     (test-equal 'get v 
+		 (get (open-bytevector-input-port (conv v size)) endian)))))
+(define-syntax test-range-big
+  (syntax-rules ()
+    ((_ get set size conv min max)
+     (begin
+       (test-set set conv size min (endianness big))
+       (test-set set conv size max (endianness big))
+       (test-get get conv size min (endianness big))
+       (test-get get conv size max (endianness big))))))
+
+;; s8 doesn't take endiannness
+(test-set put-s8 sinteger->bytevector -128)
+(test-set put-s8 sinteger->bytevector 127)
+(test-get get-s8 sinteger->bytevector -128)
+(test-get get-s8 sinteger->bytevector 127)
+
+(test-range-big get-u16 put-u16 2 uinteger->bytevector 0       #xFFFF)
+(test-range-big get-s16 put-s16 2 sinteger->bytevector #x-8000 #x7FFF)
+(test-range-big get-u32 put-u32 4 uinteger->bytevector 0                   #xFFFFFFFF)
+(test-range-big get-s32 put-s32 4 sinteger->bytevector #x-80000000         #x7FFFFFFF)
+(test-range-big get-u64 put-u64 8 uinteger->bytevector 0                   #xFFFFFFFF)
+(test-range-big get-s64 put-s64 8 sinteger->bytevector #x-8000000000000000 #x7FFFFFFFFFFFFFFF)
+
 (define-simple-datum-define define-simple simple-read simple-write)
 
 (define-simple <simple1> ()

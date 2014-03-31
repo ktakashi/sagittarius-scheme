@@ -33,6 +33,7 @@
     (export define-simple-datum-define
 	    define-composite-data-define
 	    ;; utilities
+	    put-s8  get-s8 ;; this isn't in (rnrs)
 	    put-u16 put-s16 get-u16 get-s16
 	    put-u32 put-s32 get-u32 get-s32
 	    put-u64 put-s64 get-u64 get-s64
@@ -71,6 +72,18 @@
 	       (define (gname in endian)
 		 (let ((buf (get-bytevector-n in size)))
 		   (get buf 0 endian)))))))))
+
+  (define (put-s8 out s8)
+    (unless (<= -128 s8 127) (error 'put-s8 "out of range" s8))
+    (if (< s8 128)
+	(put-u8 out (bitwise-and s8 #xFF))
+	(put-u8 out s8)))
+  (define (get-s8 in)
+    (let ((r (get-u8 in)))
+      (if (< r 128)
+	  r
+	  ;; return two's complement
+	  (- (bitwise-and r #x7F) 128))))
 
   (define-put&get u16)
   (define-put&get s16)

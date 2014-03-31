@@ -902,15 +902,15 @@
   (define count 0)
   (define labels '()) ; alist of labe node and count
   (define seen (make-eq-hashtable)) ;; lvar names
+  (define (gen-name n)
+    (let* ((n (string->symbol (format "~a.~a" n count))))
+      (set! count (+ count 1))
+      n))
   (define (lvar->string lv)
     (cond ((hashtable-ref seen lv #f))
 	  (else 
 	   (let* ((s/i (lvar-name lv))
-		  (n (string->symbol
-		      (format "~a.~a" 
-			      (if (identifier? s/i) (id-name s/i) s/i)
-			      count))))
-	     (set! count (+ count 1))
+		  (n (gen-name (if (identifier? s/i) (id-name s/i) s/i))))
 	     (hashtable-set! seen lv n)
 	     n))))
   (define (rec iform)
@@ -1002,9 +1002,16 @@
 	      ($let-lvars iform) ($let-inits iform))
 	,(rec ($let-body iform))))
      ((has-tag? iform $IF)
-      `(if ,(rec ($if-test iform))
-	   ,(rec ($if-then iform))
-	   ,(rec ($if-else iform))))
+      (if (or ($it? ($if-then iform))
+	      ($it? ($if-else iform)))
+	  (let ((it (gen-name 'it)))
+	    `(let ((,it ,(rec ($if-test iform))))
+	       (if ,it
+		   ,(if ($it? ($if-then iform)) it (rec ($if-then iform)))
+		   ,(if ($it? ($if-else iform)) it (rec ($if-else iform))))))
+	  `(if ,(rec ($if-test iform))
+	       ,(rec ($if-then iform))
+	       ,(rec ($if-else iform)))))
      ((has-tag? iform $IT) (undefined))
      ((has-tag? iform $LSET)
       `(set! ,(lvar->string ($lset-lvar iform)) ,(rec ($lset-expr iform))))
