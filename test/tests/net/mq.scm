@@ -5,6 +5,7 @@
 	(rfc uuid)
 	(clos user)
 	(clos core)
+	(srfi :1)
 	(srfi :64))
 
 (test-begin "AMQP tests")
@@ -14,15 +15,16 @@
     ((_ type bv v)
      (test-primitive type bv v bv))
     ((_ type bv v expect)
-     (let ()
-       (test-equal (format "read(~a:~a:~a)" type bv v) v
-		   (read-amqp-data (open-bytevector-input-port bv)))
-       (test-equal (format "write(~a:~a:~a)" type bv v) expect
+     (let ((bvv bv) (vv v) (e expect))
+       (test-equal (format "read(~a:~a:~a)" type bvv vv) vv
+		   (scheme-value 
+		    (read-amqp-data (open-bytevector-input-port bvv))))
+       (test-equal (format "write(~a:~a:~a)" type bvv vv) e
 		   (call-with-bytevector-output-port
 		    (lambda (out)
-		      (write-primitive-amqp-data out type v))))))))
+		      (write-primitive-amqp-data out type vv))))))))
 
-(test-primitive :null    #vu8(#x40) '())
+(test-primitive :null    #vu8(#x40) +amqp-null+)
 (test-primitive :boolean #vu8(#x41) #t)
 (test-primitive :boolean #vu8(#x42) #f)
 (test-primitive :boolean #vu8(#x56 0) #f #vu8(#x42))
@@ -70,5 +72,45 @@
 
 (let ((uuid (bytevector->uuid #vu8(200 58 39 22 185 8 17 227 162 243 0 255 48 18 112 11))))
   (test-primitive :uuid #vu8(#x93 200 58 39 22 185 8 17 227 162 243 0 255 48 18 112 11) uuid))
+
+(test-primitive :binary #vu8(#xA0 #x05 1 2 3 4 5) #vu8(1 2 3 4 5))
+
+(let ((bin256 (make-bytevector 256 10)))
+  (test-primitive :binary (bytevector-append #vu8(#xB0 0 0 1 0) bin256)
+		  bin256))
+
+(test-primitive :string (bytevector-append #vu8(#xA1 5) (string->utf8 "hello"))
+		"hello")
+(let ((str256 (apply string (make-list 256 #\a))))
+  (test-primitive :string (bytevector-append #vu8(#xB1 0 0 1 0)
+					     (string->utf8 str256))
+		  str256))
+
+(test-primitive :symbol (bytevector-append #vu8(#xA3 5) (string->utf8 "hello"))
+		'hello)
+
+(let ((str256 (apply string (make-list 256 #\a))))
+  (test-primitive :symbol (bytevector-append #vu8(#xB3 0 0 1 0)
+					     (string->utf8 str256))
+		  (string->symbol str256)))
+
+;; well it's primitive but composite
+(define-syntax test-list
+  (syntax-rules ()
+    ((_ bv v)
+     (let ((bvv bv) (vv v))
+       (test-equal (format "read(~a)" :list) (map scheme-value vv)
+		   ;; unwrap it
+		   (map scheme-value
+			(scheme-value 
+			 (read-amqp-data (open-bytevector-input-port bvv)))))
+       (test-equal (format "write(~a)" :list) bvv
+		   (call-with-bytevector-output-port
+		    (lambda (out)
+		      (write-primitive-amqp-data out :list vv))))))))
+(test-list #vu8(#xC0 10 3 #x50 1 #xA1 1 #x61 #xA3 1 #x61) 
+	   (list (make <amqp-ubyte> :value 1)
+		 (make <amqp-string> :value "a")
+		 (make <amqp-symbol> :value 'a)))
 
 (test-end)

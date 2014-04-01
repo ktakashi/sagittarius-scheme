@@ -31,9 +31,19 @@
 (library (net mq amqp type)
     (export read-amqp-data
 	    write-amqp-data
+	    ;; null is the special value for now...
+	    +amqp-null+ amqp-null?
 	    ;; for testing
-	    write-primitive-amqp-data)
-    (import (rnrs) (sagittarius) (binary data) (srfi :19) (rfc uuid))
+	    write-primitive-amqp-data
+	    scheme-value)
+    (import (rnrs) 
+	    (sagittarius) 
+	    (clos core)
+	    (clos user)
+	    (binary data)
+	    (srfi :19)
+	    (srfi :26)
+	    (rfc uuid))
 
   (define (read-fixed-width-data n)
     (lambda (in subcategory) (get-bytevector-n in n)))
@@ -47,12 +57,14 @@
     (let ((fix-reader (read-fixed-width-data size)))
       (lambda (in subcategory)
 	(let ((len (fix-reader in subcategory)))
+	  ;; TODO is this actually correct?
 	  (get-bytevector-n in (- (bytevector->integer len) size))))))
 
   (define (read-array-data size)
     (let ((fix-reader (read-fixed-width-data size)))
       (lambda (in subcategory)
 	(let ((len (fix-reader in subcategory)))
+	  ;; TODO is this actually correct?
 	  (get-bytevector-n in (- (bytevector->integer len) size))))))
 
   ;; table for data reader
@@ -79,11 +91,18 @@
   (define *primitive-type-table* (make-eq-hashtable))  ;; Scheme -> binary table
   (define *primitive-code-table* (make-eqv-hashtable)) ;; binary -> Scheme table
 
+  (define *class/type-table* (make-eq-hashtable))
+  (define *code/class-table* (make-eq-hashtable))
+
   (define (register! name code reader writer write-pred?)
     (let ((slots (hashtable-ref *primitive-type-table* name '())))
       (hashtable-set! *primitive-type-table* 
 		      name (acons code (cons writer write-pred?) slots)))
     (hashtable-set! *primitive-code-table* code reader))
+
+  (define (add-class-entry! class name code)
+    (hashtable-set! *class/type-table* class name)
+    (hashtable-set! *code/class-table* code class))
 
   (define (read-amqp-data in)
     (define (rec code)
@@ -96,7 +115,8 @@
 			  code)))
 	      (reader (hashtable-ref *primitive-code-table* code)))
 	  (if (and data reader)
-	      (reader data)
+	      (make (hashtable-ref *code/class-table* code)
+		:value (reader data))
 	      (error 'read-amqp-data "unknown data" code)))))
 
     (let* ((first (get-u8 in))
@@ -124,17 +144,45 @@
 		  "given type is not supported" type v))))
 
   (define (write-amqp-data out v)
-    (error 'write-amqp-data "not supported yet"))
+    (let ((class (class-of v)))
+      (cond ((hashtable-ref *class/type-table* class #f)
+	     => (cut write-primitive-amqp-data out <> (scheme-value v)))
+	    (else
+	     (error 'write-amqp-data "unsupported value" v)))))
+
+  ;; do with inefficient way...
+  (define-class <amqp-type> ()
+    ((value :init-keyword :value :reader scheme-value)))
+  (define-syntax define-amqp-class
+    (syntax-rules ()
+      ((_ name) (define-class name (<amqp-type>) ()))))
+
+  (define-syntax %define-primitive-type
+    (syntax-rules ()
+      ((_ name class ((code reader writer)))
+       (begin
+	 (register! name code reader writer #f)
+	 (add-class-entry! class name code)))
+      ((_ name class ((code reader writer pred)))
+       (begin
+	 (register! name code reader writer pred)
+	 (add-class-entry! class name code)))
+      ((_ name class (pattern pattern* ...))
+       (begin
+	 (%define-primitive-type name class (pattern))
+	 (%define-primitive-type name class (pattern* ...))))))
 
   (define-syntax define-primitive-type
-    (syntax-rules ()
-      ((_ name ((code reader writer))) (register! name code reader writer #f))
-      ((_ name ((code reader writer pred)))
-       (register! name code reader writer pred))
-      ((_ name (pattern pattern* ...))
-       (begin
-	 (define-primitive-type name (pattern))
-	 (define-primitive-type name (pattern* ...))))))
+    (lambda (x)
+      (define (class-name name)
+	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (syntax-case x ()
+	((k name pattern)
+	 (with-syntax ((class (datum->syntax #'k (class-name #'name))))
+	   #'(begin
+	       (define-amqp-class class)
+	       (export class)
+	       (%define-primitive-type name class pattern)))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
@@ -145,8 +193,14 @@
   (define (u8? u8) (<= 0 u8 #xFF))
   (define (s8? s8) (<= -128 s8 127))
 
-  (define-primitive-type :null 
-    ((#x40 (lambda (data) '()) write-nothing)))
+  (define-class <amqp-null-value> () ())
+  (define +amqp-null+ (make <amqp-null-value>))
+  (define-method write-object ((o <amqp-null-value>) out)
+    (display "#<amqp-null>" out))
+  (define (amqp-null? o) (is-a? o <amqp-null>))
+
+  (define-primitive-type :null
+    ((#x40 (lambda (data) +amqp-null+) write-nothing)))
   (define-primitive-type :boolean
     ((#x56 (lambda (data) 
 	     (let ((v (bytevector-u8-ref data 0)))
@@ -231,20 +285,99 @@
   (define-syntax define-vpred
     (syntax-rules ()
       ((_ name pred sizer)
-       (define (name o) (and (pred o) (> (sizer o) 1))))))
+       (define (name o) (and (pred o) (> (sizer o) #xFF))))))
   (define-vpred vbin32? bytevector? bytevector-length)
   (define-primitive-type :binary
     ((#xA0 (lambda (data) data)
-	   (lambda (out bv) (put-bytevector out bv)))
+	   (lambda (out bv) 
+	     (put-u8 out (bytevector-length bv))
+	     (put-bytevector out bv)))
      (#xB0 (lambda (data) data)
-	   (lambda (out bv) (put-bytevector out bv))
+	   (lambda (out bv) 
+	     (put-u32 out (bytevector-length bv) (endianness big))
+	     (put-bytevector out bv))
 	   vbin32?)))
   ;; string
-  (define-vpred str32? string? string-length)
-  (define-primitive-type :binary
+  (define (utf8-length str) (bytevector-length (string->utf8 str)))
+  (define-vpred str32? string? utf8-length)
+  (define-primitive-type :string
     ((#xA1 (lambda (data) (utf8->string data))
-	   (lambda (out str) (put-bytevector out (string->utf8 str))))
+	   (lambda (out str) 
+	     (let ((bv (string->utf8 str)))
+	       (put-u8 out (bytevector-length bv))
+	       (put-bytevector out bv))))
      (#xB1 (lambda (data) (utf8->string data))
-	   (lambda (out str) (put-bytevector out (string->utf8 str)))
+	   (lambda (out str) 
+	     (let ((bv (string->utf8 str)))
+	       (put-u32 out (bytevector-length bv) (endianness big))
+	       (put-bytevector out bv)))
 	   str32?)))
+
+  (define (symbol-length sym) (utf8-length (symbol->string sym)))
+  (define-vpred sym32? symbol? symbol-length)
+  (define-primitive-type :symbol
+    ((#xA3 (lambda (data) (string->symbol (utf8->string data)))
+	   (lambda (out str) 
+	     (let ((bv (string->utf8 (symbol->string str))))
+	       (put-u8 out (bytevector-length bv))
+	       (put-bytevector out bv))))
+     (#xB3 (lambda (data) (string->symbol (utf8->string data)))
+	   (lambda (out str) 
+	     (let ((bv (string->utf8 (symbol->string str))))
+	       (put-u32 out (bytevector-length bv) (endianness big))
+	       (put-bytevector out bv)))
+	   sym32?)))
+
+  ;; list
+  (define (read-amqp-list size)
+    (lambda (data)
+      (let* ((in (open-bytevector-input-port data))
+	     (count (bytevector->integer (get-bytevector-n in size))))
+	(let loop ((r '()) (c 0))
+	  (if (or (eof-object? (lookahead-u8 in)) (> c count))
+	      (reverse! r)
+	      (loop (cons (read-amqp-data in) r) (+ c 1)))))))
+  (define (write-amqp-list out lst)
+    (define (write-list lst)
+      (call-with-bytevector-output-port
+       (lambda (out) 
+	 (for-each (cut write-amqp-data out <>) lst))))
+    (let ((bv (write-list lst))
+	  (len (length lst)))
+      ;; TODO are these length encoding correct?
+      (if (> (count-aprox lst) 255)
+	  (begin 
+	    (put-u32 out (+ (bytevector-length bv) 8) (endianness big))
+	    (put-u32 out len (endianness big)))
+	  (begin
+	    (put-u8 out (+ (bytevector-length bv) 2))
+	    (put-u8 out len)))
+      (put-bytevector out bv)))
+  (define (count-aprox lst)
+    (define (aprox e)
+      (cond ((undefined? e) 1)
+	    ((and (integer? e) (zero? e)) 1)
+	    ((and (integer? e) (< e 255)) 2)
+	    ((integer? e) (+ 5 (div (bitwise-lengt e) 8)))
+	    ((string? e) (+ (string-length e) 5))
+	    ((symbol? e) (+ (string-length (symbol->string e)) 5))
+	    ((bytevector? e) (+ (bytevector-length e) 5))
+	    ((flonum? e) 8)
+	    ((pair? e) (count-aprox e))
+	    ((vector? e) (count-aprox (vector->list e)))
+	    ((hashtable? e)
+	     (let-values (((keys values) (hashtable-entries e)))
+	       (+ (count-aprox (vector->list keys))
+		  (count-aprox (vector->list values)))))
+	    ;; should we raise an error?
+	    (else 0)))
+    (let loop ((count 0) (lst lst))
+      (if (null? lst)
+	  count
+	  (loop (+ count (aprox (car lst))) (cdr lst)))))
+  (define-primitive-type :list
+    ((#x45 (lambda (data) '()) write-nothing)
+     (#xC0 (read-amqp-list 1) write-amqp-list) 
+     (#xD0 (read-amqp-list 4) write-amqp-list
+	   (lambda (o) (> (count-aprox o) 255)))))
   )
