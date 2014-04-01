@@ -64,6 +64,7 @@
 	    make-tls-server-name
 	    make-tls-server-name-list
 	    ;; predicate
+	    tls-alert?
 	    tls-handshake?
 	    tls-hello-request?
 	    tls-client-hello?
@@ -200,6 +201,7 @@
     (format out "#<tls-alert ~d ~a>"
 	    (slot-ref o 'level)
 	    (slot-ref o 'description)))
+  (define (tls-alert? o) (is-a? o <tls-alert>))
 
   ;; Hello Request
   (define-class <tls-hello-request> (<tls-packet-component>) ())

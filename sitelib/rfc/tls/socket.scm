@@ -79,7 +79,7 @@
 	    (sagittarius socket)
 	    (sagittarius control)
 	    (sagittarius object)
-	    (rfc tls types)
+	    (rename (rfc tls types) (tls-alert? %tls-alert?))
 	    (rfc tls constant)
 	    (rfc x.509)
 	    (rfc hmac)
@@ -561,8 +561,12 @@
 		      ((tls-client-key-exchange? o)
 		       (process-client-key-exchange socket o) 
 		       (loop #f #t))
+		      ;; ignore?
+		      ((and (%tls-alert? o)
+			    (= (~ o 'level) *warning*))
+		       (loop #f after-key-exchange))
 		      (else
-		       (tls-error 'tls-handshake "unexpected object"
+		       (tls-error 'tls-server-handshake "unexpected object"
 				  *unexpected-message* o)))))))))
 
   (define (%make-tls-client-socket raw-socket :key
@@ -802,6 +806,8 @@
 			(process-certificate-request socket o))
 		       ((tls-change-cipher-spec? o)
 			(set! (~ session 'session-encrypted?) #t))
+		       ((and (%tls-alert? o)
+			     (= (~ o 'level) *warning*)))
 		       (else
 			(tls-error 'tls-handshake "unexpected object"
 				   *unexpected-message* o)))
