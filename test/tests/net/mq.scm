@@ -64,7 +64,7 @@
 (define-method object-equal? ((date1 <date>) (date2 <date>))
   (time=? (date->time-utc date1) (date->time-utc date2)))
 
-(let ((date (time-utc->date (make-time time-utc 521000000 1311704463))))
+(let ((date (time-utc->date (make-time time-utc 521000000 1311704463) 0)))
   (test-primitive :timestamp 
 		  (bytevector-append #vu8(#x83) 
 				     (integer->bytevector 1311704463521 8))
@@ -108,7 +108,7 @@
 		   (call-with-bytevector-output-port
 		    (lambda (out)
 		      (write-primitive-amqp-data out :list vv))))))))
-(test-list #vu8(#xC0 10 3 #x50 1 #xA1 1 #x61 #xA3 1 #x61) 
+(test-list #vu8(#xC0 9 3 #x50 1 #xA1 1 #x61 #xA3 1 #x61) 
 	   (list (make <amqp-ubyte> :value 1)
 		 (make <amqp-string> :value "a")
 		 (make <amqp-symbol> :value 'a)))

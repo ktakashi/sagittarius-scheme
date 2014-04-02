@@ -60,15 +60,13 @@
     (let ((fix-reader (read-fixed-width-data size)))
       (lambda (in subcategory)
 	(let ((len (fix-reader in subcategory)))
-	  ;; TODO is this actually correct?
-	  (get-bytevector-n in (- (bytevector->integer len) size))))))
+	  (get-bytevector-n in (bytevector->integer len))))))
 
   (define (read-array-data size)
     (let ((fix-reader (read-fixed-width-data size)))
       (lambda (in subcategory)
 	(let ((len (fix-reader in subcategory)))
-	  ;; TODO is this actually correct?
-	  (get-bytevector-n in (- (bytevector->integer len) size))))))
+	  (get-bytevector-n in (bytevector->integer len))))))
 
   ;; table for data reader
   (define +sub-categories+
@@ -347,13 +345,12 @@
 	 (for-each (cut write-amqp-data out <>) lst))))
     (let ((bv (write-list lst))
 	  (len (length lst)))
-      ;; TODO are these length encoding correct?
       (if (> (count-aprox lst) 255)
 	  (begin 
-	    (put-u32 out (+ (bytevector-length bv) 8) (endianness big))
+	    (put-u32 out (+ (bytevector-length bv) 4) (endianness big))
 	    (put-u32 out len (endianness big)))
 	  (begin
-	    (put-u8 out (+ (bytevector-length bv) 2))
+	    (put-u8 out (+ (bytevector-length bv) 1))
 	    (put-u8 out len)))
       (put-bytevector out bv)))
   (define (count-aprox lst)
@@ -383,4 +380,6 @@
      (#xC0 (read-amqp-list 1) write-amqp-list) 
      (#xD0 (read-amqp-list 4) write-amqp-list
 	   (lambda (o) (> (count-aprox o) 255)))))
+
+  ;; TODO map and array
   )
