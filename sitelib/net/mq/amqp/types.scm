@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; net/mq/amqp/type.scm - AMQP v1.0 type
+;;; net/mq/amqp/types.scm - AMQP v1.0 type
 ;;;  
 ;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,7 +28,10 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (net mq amqp type)
+;; reference:
+;;   http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-types-v1.0-os.html
+
+(library (net mq amqp types)
     (export read-amqp-data
 	    write-amqp-data
 	    ;; null is the special value for now...

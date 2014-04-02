@@ -1,5 +1,5 @@
 (import (rnrs)
-	(net mq amqp type)
+	(net mq amqp types)
 	(srfi :19)
 	(sagittarius time)
 	(rfc uuid)
