@@ -36,11 +36,13 @@
 	    write-amqp-data
 	    ;; null is the special value for now...
 	    +amqp-null+ amqp-null?
+	    ->amqp-value
 	    ;; for testing
 	    write-primitive-amqp-data
 	    scheme-value)
     (import (rnrs) 
 	    (sagittarius) 
+	    (sagittarius control) 
 	    (clos core)
 	    (clos user)
 	    (binary data)
@@ -105,26 +107,28 @@
     (hashtable-set! *class/type-table* class name)
     (hashtable-set! *code/class-table* code class))
 
-  (define (read-amqp-data in)
-    (define (rec code)
-      (let ((sub-cate (sub-category code))
-	    (sub-type (sub-type code))
-	    (ext-type (read-ext-type in code)))
-	(let ((data (and-let* ((slot (assv sub-cate +sub-categories+)))
-		      (if (cdr slot)
-			  ((cdr slot) in code)
-			  code)))
-	      (reader (hashtable-ref *primitive-code-table* code)))
-	  (if (and data reader)
-	      (make (hashtable-ref *code/class-table* code)
-		:value (reader data))
-	      (error 'read-amqp-data "unknown data" code)))))
-
+  (define (read-constructor in)
     (let* ((first (get-u8 in))
 	   (descriptor (and (zero? first) (read-amqp-data in))))
+      (values first descriptor)))
+  (define (read-data code in)
+    (let ((sub-cate (sub-category code))
+	  (sub-type (sub-type code))
+	  (ext-type (read-ext-type in code)))
+      (let ((data (and-let* ((slot (assv sub-cate +sub-categories+)))
+		    (if (cdr slot)
+			((cdr slot) in code)
+			code)))
+	    (reader (hashtable-ref *primitive-code-table* code)))
+	(if (and data reader)
+	    (make (hashtable-ref *code/class-table* code)
+	      :value (reader data))
+	    (error 'read-amqp-data "unknown data" code)))))
+  (define (read-amqp-data in)
+    (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
-	  (construct-composite descriptor (rec (get-u8)))
-	  (rec first))))
+	  (construct-composite descriptor (read-data (get-u8 in) in))
+	  (read-data first in))))
 
   (define (write-primitive-amqp-data out type v)
     (cond ((hashtable-ref *primitive-type-table* type #f)
@@ -173,6 +177,7 @@
 	 (%define-primitive-type name class (pattern))
 	 (%define-primitive-type name class (pattern* ...))))))
 
+  (define-generic ->amqp-value)
   (define-syntax define-primitive-type
     (lambda (x)
       (define (class-name name)
@@ -182,7 +187,8 @@
 	 (with-syntax ((class (datum->syntax #'k (class-name #'name))))
 	   #'(begin
 	       (define-amqp-class class)
-	       (export class)
+	       (define-method ->amqp-value ((type (eql name)) o)
+		 (make class :value o))
 	       (%define-primitive-type name class pattern)))))))
 
   (define (write-nothing out v))
@@ -208,7 +214,7 @@
 	       (cond ((zero? v) #f)
 		     ((= v 1) #t)
 		     (else (error 'boolean "invalid value for boolean" v)))))
-	   (lambda (out v) (put-u8 (if v 1 0))))
+	   (lambda (out v) (put-u8 out (if v 1 0))))
      (#x41 (lambda (data) #t)  write-nothing true?)
      (#x42 (lambda (data) #f)  write-nothing false?)))
   ;; unsigned integers
@@ -382,4 +388,74 @@
 	   (lambda (o) (> (count-aprox o) 255)))))
 
   ;; TODO map and array
+
+  (define (read-amqp-array size)
+    (lambda (data)
+      (let* ((in (open-bytevector-input-port data))
+	     (count (bytevector->integer (get-bytevector-n in size)))
+	     (r (make-vector count)))
+	(let-values (((first descriptor) (read-constructor in)))
+	  (if descriptor
+	      (let1 code (get-u8 in) ;; well must be #xC0 or #xD0 though
+		(dotimes (i count r)
+		  (vector-set! r i (construct-composite descriptor 
+							(read-data code in)))))
+	      (dotimes (i count r)
+		(vector-set! r i (read-data first in))))))))
+
+  (define (write-amqp-array out array)
+    (define (write-array array)
+      ;; array is homogeneous so only need to get first one
+      (let* ((v (vector-ref array 0))
+	     (class (class-of v))
+	     (type (hashtable-ref *class/type-table* class #f))
+	     (slots (hashtable-ref *primitive-type-table* type #f)))
+	(unless slots (error 'write-amqp-array "unsupported type" v))
+	(let loop ((slots slots))
+	  (if (null? slots)
+	      (error 'write-amqp-array "unsupported type" v)
+	      (let ((pred? (cddar slots)))
+		;; again must be homogeneous so no different code
+		(if (or (not pred?)
+			;; well this is sort of awkward ...
+			(and (not (boolean? (scheme-value v)))
+			     (pred? (scheme-value v))))
+		    (let ((writer (cadar slots))
+			  (code (caar slots)))
+		      (values code 
+			      (call-with-bytevector-output-port
+			       (lambda (out)
+				 (if (keyword? type)
+				     ;; ok primitive just code
+				     (put-u8 out code)
+				     ;; now constructor
+				     (begin
+				       (put-u8 out 0)
+				       (write-primitive-amqp-data
+					out :symbol type)))))
+			      (call-with-bytevector-output-port
+			       (lambda (out) 
+				 (vector-for-each 
+				  (lambda (v) (writer out (scheme-value v)))
+				  array)))))
+		    (loop (cdr slots))))))))
+    (let-values (((code type bv) (write-array array)))
+      (let1 len (vector-length array)
+	(if (> (count-aprox (vector->list array)) 255)
+	    (begin 
+	      (put-u32 out (+ (bytevector-length bv)
+			      (bytevector-length type) 
+			      4)
+		       (endianness big))
+	      (put-u32 out len (endianness big)))
+	    (begin
+	      (put-u8 out (+ (bytevector-length bv) (bytevector-length type) 1))
+	      (put-u8 out len)))
+	(put-bytevector out type)
+	(put-bytevector out bv))))
+
+  (define-primitive-type :array
+    ((#xE0 (read-amqp-array 1) write-amqp-array) 
+     (#xF0 (read-amqp-array 4) write-amqp-array
+	   (lambda (o) (> (count-aprox (vector->list o)) 255)))))
   )

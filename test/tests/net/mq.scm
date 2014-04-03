@@ -109,8 +109,27 @@
 		    (lambda (out)
 		      (write-primitive-amqp-data out :list vv))))))))
 (test-list #vu8(#xC0 9 3 #x50 1 #xA1 1 #x61 #xA3 1 #x61) 
-	   (list (make <amqp-ubyte> :value 1)
-		 (make <amqp-string> :value "a")
-		 (make <amqp-symbol> :value 'a)))
+	   (list (->amqp-value :ubyte 1)
+		 (->amqp-value :string "a")
+		 (->amqp-value :symbol 'a)))
+
+(test-equal ":array (read)"
+	    '#(aaa bbb ccc)
+	    (vector-map 
+	     scheme-value
+	     (scheme-value
+	      (read-amqp-data
+	       (open-bytevector-input-port
+		#vu8(224 14 3 163 3 97 97 97 3 98 98 98 3 99 99 99))))))
+(test-equal ":array (write)"
+	    #vu8(224 14 3 163 3 97 97 97 3 98 98 98 3 99 99 99)
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (write-amqp-data out
+				(->amqp-value :array
+				   (vector (->amqp-value :symbol 'aaa)
+					   (->amqp-value :symbol 'bbb)
+					   (->amqp-value :symbol 'ccc)))))))
+
 
 (test-end)
