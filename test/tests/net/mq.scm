@@ -132,4 +132,46 @@
 					   (->amqp-value :symbol 'ccc)))))))
 
 
+;; composite
+(define-compsite-type book example:book:list #x00000003 #x00000002
+  ((title   :type :string :mandatory #t)
+   (authors :type :string :multiple #t)
+   (isbn    :type :string)))
+
+(test-equal "descriptor (name)" 'example:book:list 
+	    (slot-ref <amqp-book> 'descriptor-name))
+(test-equal "descriptor (code)" #x0000000300000002 
+	    (slot-ref <amqp-book> 'descriptor-code))
+
+(test-assert "make-amqp-book" make-amqp-book)
+(define book-bv 
+  #vu8(#x00 ;; composite 
+       #xA3 #x11 ;; sym8 & size
+         101 120 97 109 112 108 101 58 98 111 111 107 58 108 105 115 116
+       #xC0 ;; list
+         #x40 ;; size
+	 #x03 ;; element
+       #xA1 #x15 ;; sym256 & size
+         65 77 81 80 32 102 111 114 32 38 32 98 121 32 68 117 109 109 105 101 115
+       #xE0 ;; array
+         #x25 ;; size
+	 #x02 ;; count
+	 #xA1 ;; constructor
+	 #x0E 82 111 98 32 74 46 32 71 111 100 102 114 101 121
+	 #x13 82 97 102 97 101 108 32 72 46 32 83 99 104 108 111 109 105 110 103
+       #x40))
+
+;; TODO read test
+(let ((book (make-amqp-book 
+	     :title "AMQP for & by Dummies"
+	     :authors '("Rob J. Godfrey" "Rafael H. Schloming"))))
+
+  (test-equal "title" "AMQP for & by Dummies" (slot-ref book 'title))
+  (test-equal "authors" '("Rob J. Godfrey" "Rafael H. Schloming")
+	      (slot-ref book 'authors))
+  (test-assert "isbn" (not (slot-bound? book 'isbn)))
+  (test-equal "write book" book-bv
+	      (call-with-bytevector-output-port 
+	       (lambda (out) (write-amqp-data out book)))))
+
 (test-end)

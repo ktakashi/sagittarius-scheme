@@ -1347,6 +1347,13 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
     return;
   }
   /* R6RS does not have '|' */
+  /* NOTE: this makes library name convertion ignore the difference
+     between (srfi 1) and (srfi |1|). it seems there is no problem
+     if it remove the check for SG_WRITE_LIBPATH here however then
+     question would be who wants to make such a file named like 
+     %7c1%7c.scm. at least I don't. so for now, we ignore the
+     difference. if there are a lot of request to distinguish such
+     library names, then we just need to simply remove the check. */
   if (mode != SG_WRITE_LIBPATH &&
       (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
     escape = symbol_need_bar(p, size);

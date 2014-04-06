@@ -37,18 +37,21 @@
 	    ;; null is the special value for now...
 	    +amqp-null+ amqp-null?
 	    ->amqp-value
+	    define-compsite-type
 	    ;; for testing
 	    write-primitive-amqp-data
 	    scheme-value)
     (import (rnrs) 
 	    (sagittarius) 
-	    (sagittarius control) 
+	    (sagittarius control)
+	    (sagittarius object)
 	    (clos core)
 	    (clos user)
 	    (binary data)
 	    (srfi :19)
 	    (srfi :26)
-	    (rfc uuid))
+	    (rfc uuid)
+	    (pp))
 
   (define (read-fixed-width-data n)
     (lambda (in subcategory) (get-bytevector-n in n)))
@@ -131,6 +134,26 @@
 	  (read-data first in))))
 
   (define (write-primitive-amqp-data out type v)
+    (define (get-type slot) (slot-definition-option slot :type))
+    (define (multiple? slot) (slot-definition-option slot :multiple #f))
+    (define (->list-value v slot)
+      (let1 name (slot-definition-name slot)
+	(if (slot-bound? v name)
+	    (let ((vv   (~ v name))
+		  (type (get-type slot))
+		  (mult? (multiple? slot)))
+	      (if mult?
+		  (let* ((len (length vv))
+			 (vec (make-vector len)))
+		    (let loop ((i 0) (vv vv))
+		      (if (null? vv)
+			  (->amqp-value :array vec)
+			  (let ((v (car vv)))
+			    (vector-set! vec i (->amqp-value type v))
+			    (loop (+ i 1) (cdr vv))))))
+		  (->amqp-value type vv)))
+	    +amqp-null+)))
+    
     (cond ((hashtable-ref *primitive-type-table* type #f)
 	   => (lambda (slots)
 		(let loop ((slots slots))
@@ -144,20 +167,38 @@
 				 (put-u8 out code)
 				 (or (writer out v) #t)) ;; in case
 			    (loop (cdr slots))))))))
+	  ((and-let* (( (is-a? v <amqp-type>) )
+		      (class (class-of v))
+		      ( (~ class 'descriptor-name) ))
+	     class)
+	   => (lambda (class)
+		;; there is no extended type... is there?
+		(let ((slots (class-direct-slots class))
+		      (descriptor-name (~ class 'descriptor-name)))
+		  (put-u8 out #x00) ;; mark for compoisite
+		  (write-primitive-amqp-data out :symbol descriptor-name)
+		  (write-primitive-amqp-data out :list 
+		    (map (cut ->list-value v <>) slots)))))
 	  (else
 	   (error 'write-primitive-amqp-data 
 		  "given type is not supported" type v))))
 
   (define (write-amqp-data out v)
-    (let ((class (class-of v)))
-      (cond ((hashtable-ref *class/type-table* class #f)
-	     => (cut write-primitive-amqp-data out <> (scheme-value v)))
-	    (else
-	     (error 'write-amqp-data "unsupported value" v)))))
+    (if (amqp-null? v) ;; a bit special case
+	(write-primitive-amqp-data out :null v)
+	(let ((class (class-of v)))
+	  (cond ((hashtable-ref *class/type-table* class #f)
+		 => (cut write-primitive-amqp-data out <> (scheme-value v)))
+		(else
+		 (error 'write-amqp-data "unsupported value" v))))))
 
   ;; do with inefficient way...
+  (define-class <amqp-meta> (<class>)
+    ((descriptor-name :init-keyword :descriptor-name :init-value #f)
+     (descriptor-code :init-keyword :descriptor-code :init-value 0)))
   (define-class <amqp-type> ()
-    ((value :init-keyword :value :reader scheme-value)))
+    ((value :init-keyword :value :reader scheme-value))
+    :metaclass <amqp-meta>)
   (define-syntax define-amqp-class
     (syntax-rules ()
       ((_ name) (define-class name (<amqp-type>) ()))))
@@ -178,6 +219,7 @@
 	 (%define-primitive-type name class (pattern* ...))))))
 
   (define-generic ->amqp-value)
+  
   (define-syntax define-primitive-type
     (lambda (x)
       (define (class-name name)
@@ -190,6 +232,61 @@
 	       (define-method ->amqp-value ((type (eql name)) o)
 		 (make class :value o))
 	       (%define-primitive-type name class pattern)))))))
+
+  (define-syntax define-compsite-type
+    (lambda (x)
+      ;; It's painful to separate library so just duplicate...
+      (define (class-name name)
+	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (define (ctr-name name)
+	(string->symbol (format "make-amqp-~a" (syntax->datum name))))
+      (define (key&name sym)
+	(list (make-keyword sym) sym))
+      (define (params slots)
+	(let loop ((slots slots) (r '()))
+	  (syntax-case slots ()
+	    (() (reverse! r))
+	    (((name defs ...) . rest)
+	     (loop (cdr slots) (cons (key&name (syntax->datum #'name)) r))))))
+      (define (make-slots slots)
+	(let loop ((slots slots) (r '()))
+	  (syntax-case slots ()
+	    (() (reverse! r))
+	    (((name defs ...) . rest)
+	     ;; find default
+	     (let ((default (cond ((memq :default #'(defs ...))
+				   => (lambda (l)
+					(list :init-value (cadr l))))
+				  (else '())))
+		   (n (syntax->datum #'name)))
+	       (loop (cdr slots) 
+		     (cons #`(#,n :init-keyword #,(make-keyword n)
+			      #,@default defs ...) r)))))))
+
+      (syntax-case x ()
+	((k name descriptor-name domain-id descriptor-id (slots ...))
+	 (with-syntax ((name (datum->syntax #'k (class-name #'name)))
+		       (ctr  (datum->syntax #'k (ctr-name #'name)))
+		       (((keys names) ...) (datum->syntax #'k
+					     (params #'(slots ...))))
+		       ((slot-defs ...) (make-slots #'(slots ...))))
+	   #'(begin
+	       (define this-code (bitwise-ior
+				  (bitwise-arithmetic-shift-left domain-id 32)
+				  descriptor-id))
+	       (define-class name (<amqp-type>)
+		 (slot-defs ...)
+		 :descriptor-name 'descriptor-name
+		 :descriptor-code this-code)
+	       ;; FIXME this doesn't work because of macro bug...
+	       ;; (define (ctr :key names ...)
+	       (define (ctr :key (names (undefined)) ...)
+		 ;; FIXME ...
+		 (rlet1 r (apply make name 
+				 (apply append! (list `(keys ,names) ...)))
+		   ;; to fake write-amqp-data
+		   (set! (~ r 'value) r)))
+	       (add-class-entry! name 'descriptor-name this-code)))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
@@ -204,7 +301,7 @@
   (define +amqp-null+ (make <amqp-null-value>))
   (define-method write-object ((o <amqp-null-value>) out)
     (display "#<amqp-null>" out))
-  (define (amqp-null? o) (is-a? o <amqp-null>))
+  (define (amqp-null? o) (is-a? o <amqp-null-value>))
 
   (define-primitive-type :null
     ((#x40 (lambda (data) +amqp-null+) write-nothing)))
@@ -335,6 +432,8 @@
 	       (put-bytevector out bv)))
 	   sym32?)))
 
+  ;; TODO following composite primitive types are implemented
+  ;; a bit awkward way. so need refactoring
   ;; list
   (define (read-amqp-list size)
     (lambda (data)
@@ -387,7 +486,7 @@
      (#xD0 (read-amqp-list 4) write-amqp-list
 	   (lambda (o) (> (count-aprox o) 255)))))
 
-  ;; TODO map and array
+  ;; TODO map
 
   (define (read-amqp-array size)
     (lambda (data)
