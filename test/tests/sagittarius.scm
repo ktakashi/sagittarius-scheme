@@ -1191,4 +1191,27 @@
 		   (cond ((foo ?atom (syntax ?s) ...) ?e ...) ... ))))
 	      'ok))
 
+;; call #16
+(test-equal "expanded keyword arguments"
+	    `(:a ,(undefined) :b ,(undefined) :c ,(undefined))
+	    (let ()
+	      (define-syntax define-key
+		(lambda (x)
+		  (define (key&name sym) (list (make-keyword sym) sym))
+		  (define (params slots)
+		    (let loop ((slots slots) (r '()))
+		      (syntax-case slots ()
+			(() (reverse! r))
+			((name . rest)
+			 (loop (cdr slots) 
+			       (cons (key&name (syntax->datum #'name)) r))))))
+		  (syntax-case x ()
+		    ((k name (p ...) body ...)
+		     (with-syntax ((((keys names) ...) 
+				    (datum->syntax #'k (params #'(p ...)))))
+		       #'(define (name :key names ...)
+			   (apply append! (list `(keys ,names) ...))))))))
+	      (define-key test (a b c) 'ignore)
+	      (test)))
+
 (test-end)
