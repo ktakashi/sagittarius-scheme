@@ -133,7 +133,7 @@
 
 
 ;; composite
-(define-compsite-type book example:book:list #x00000003 #x00000002
+(define-composite-type book example:book:list #x00000003 #x00000002
   ((title   :type :string :mandatory #t)
    (authors :type :string :multiple #t)
    (isbn    :type :string)))

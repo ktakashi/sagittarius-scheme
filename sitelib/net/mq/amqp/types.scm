@@ -37,7 +37,8 @@
 	    ;; null is the special value for now...
 	    +amqp-null+ amqp-null?
 	    ->amqp-value
-	    define-compsite-type
+	    define-composite-type
+	    define-restricted-type
 	    ;; for testing
 	    write-primitive-amqp-data
 	    scheme-value)
@@ -98,7 +99,8 @@
   (define *primitive-code-table* (make-eqv-hashtable)) ;; binary -> Scheme table
 
   (define *class/type-table* (make-eq-hashtable))
-  (define *code/class-table* (make-eq-hashtable))
+  (define *type/class-table* (make-eq-hashtable))
+  (define *code/class-table* (make-eqv-hashtable))
 
   (define (register! name code reader writer write-pred?)
     (let ((slots (hashtable-ref *primitive-type-table* name '())))
@@ -108,7 +110,8 @@
 
   (define (add-class-entry! class name code)
     (hashtable-set! *class/type-table* class name)
-    (hashtable-set! *code/class-table* code class))
+    (hashtable-set! *code/class-table* code class)
+    (hashtable-set! *type/class-table* name class))
 
   (define (read-constructor in)
     (let* ((first (get-u8 in))
@@ -128,6 +131,26 @@
 	      :value (reader data))
 	    (error 'read-amqp-data "unknown data" code)))))
   (define (read-amqp-data in)
+    (define (construct-composite descriptor compound)
+      (define (get-type slot) (slot-definition-option slot :type))
+      (let* ((code (scheme-value descriptor))
+	     ;; must be either symbol or ulong
+	     (class (hashtable-ref (if (symbol? code)
+				       *type/class-table*
+				       *code/class-table*)
+				   code #f)))
+	(unless class (error 'read-amqp-data "not supported" code compound))
+	(rlet1 o (make class)
+	  (for-each (lambda (slot value)
+		      (let ((name (slot-definition-name slot))
+			    (type (get-type slot)))
+			;; mandatory element can be in between
+			;; non mandatory elements, so check the type.
+			(when (eq? (hashtable-ref *type/class-table* type #f)
+				   (class-of value))
+			  (set! (~ o name) (scheme-value value)))))
+		    (class-direct-slots class)
+		    (scheme-value compound)))))
     (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
 	  (construct-composite descriptor (read-data (get-u8 in) in))
@@ -233,13 +256,15 @@
 		 (make class :value o))
 	       (%define-primitive-type name class pattern)))))))
 
-  (define-syntax define-compsite-type
+  (define-syntax define-composite-type
     (lambda (x)
       ;; It's painful to separate library so just duplicate...
       (define (class-name name)
 	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
       (define (ctr-name name)
 	(string->symbol (format "make-amqp-~a" (syntax->datum name))))
+      (define (pred-name name)
+	(string->symbol (format "amqp-~a?" (syntax->datum name))))
       (define (key&name sym)
 	(list (make-keyword sym) sym))
       (define (params slots)
@@ -267,6 +292,7 @@
 	((k name descriptor-name domain-id descriptor-id (slots ...))
 	 (with-syntax ((name (datum->syntax #'k (class-name #'name)))
 		       (ctr  (datum->syntax #'k (ctr-name #'name)))
+		       (pred (datum->syntax #'k (pred-name #'name)))
 		       (((keys names) ...) (datum->syntax #'k
 					     (params #'(slots ...))))
 		       ((slot-defs ...) (make-slots #'(slots ...))))
@@ -278,15 +304,18 @@
 		 (slot-defs ...)
 		 :descriptor-name 'descriptor-name
 		 :descriptor-code this-code)
-	       ;; FIXME this doesn't work because of macro bug...
-	       ;; (define (ctr :key names ...)
-	       (define (ctr :key (names (undefined)) ...)
+	       (define (pred o) (is-a? o name))
+	       (define (ctr :key names ...)
 		 ;; FIXME ...
 		 (rlet1 r (apply make name 
 				 (apply append! (list `(keys ,names) ...)))
 		   ;; to fake write-amqp-data
 		   (set! (~ r 'value) r)))
 	       (add-class-entry! name 'descriptor-name this-code)))))))
+  ;; for now
+  (define-syntax define-restricted-type
+    (syntax-rules ()
+      ((_ name value) (define name value))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
