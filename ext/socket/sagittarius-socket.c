@@ -1125,7 +1125,9 @@ SgObject  Sg_MakeSocketOutputPort(SgSocket *socket)
 
 void Sg_ShutdownPort(SgPort *port, int how)
 {
-  if (SG_BINARY_PORT(port)->type != SG_BINARY_CUSTOM_PORT_TYPE ||
+  /* TODO should we handle transcoded port? */
+  if (!(SG_PORT(port)->type == SG_BINARY_PORT_TYPE &&
+	SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) ||
       !SG_SOCKETP(SG_PORT_SOCKET(port))) {
     Sg_Error(UC("socket port required but got %S"), port);
   }
