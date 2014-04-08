@@ -174,7 +174,14 @@
 			  (let ((v (car vv)))
 			    (vector-set! vec i (->amqp-value type v))
 			    (loop (+ i 1) (cdr vv))))))
-		  (->amqp-value type vv)))
+		  ;; for now ignore :* ...
+		  (if (eq? type :*)
+		      ;; this must be already amqp-value
+		      (if (is-a? vv <amqp-type>)
+			  vv
+			  (error 'write-primitive-amqp-data
+				 ":* type value must be AMQP type value"))
+		      (->amqp-value type vv))))
 	    +amqp-null+)))
     
     (cond ((hashtable-ref *primitive-type-table* type #f)

@@ -35,8 +35,16 @@
     (export amqp-make-client-connection
 	    open-amqp-connection!
 	    close-amqp-connection!
+	    ;; session
 	    begin-amqp-session!
-	    end-amqp-session!)
+	    end-amqp-session!
+	    ;; link
+	    attach-amqp-link!
+
+	    ;; misc
+	    +amqp-sender+
+	    +amqp-receiver+
+	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
 	    (sagittarius control)
@@ -64,30 +72,32 @@
   (define-class <amqp-client> (<amqp-container>) ())
   (define-class <amqp-broker> (<amqp-container>) ())
 
+  (define-class <state-mixin> ()
+    ((state :init-keyword :state)))
   ;; connections
-  (define-class <amqp-connection> ()
+  (define-class <amqp-connection> (<state-mixin>)
     ;; should connection manage sessions?
     ((principal :init-keyword :principal :init-value #f)
-     ;; initial state is :start
-     (state     :init-value :start)
      ;; socket-port
      (socket    :init-keyword :socket)
      ;; for informations
      (hostname  :init-keyword :hostname)
      (port      :init-keyword :port)))
 
-  (define-class <amqp-session> ()
+  (define-class <amqp-session> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
      (remote-channel :init-keyword :remote-channel)
      (next-outgoint-id :init-keyword :next-outgoing-id)
      (incoming-window :init-keyword :incoming-window)
      (outgoing-window :init-keyword :outgoing-window)
      ;; need this?
-     ;;(handle-max :init-keyword :handle-max :init-value 1024)
+     (handle-max :init-keyword :handle-max :init-value 1024)
      ;; private
-     (connection :init-keyword :connection :init-value #f)))
+     (connection :init-keyword :connection :init-value #f)
+     ;; for creating a link we need to assing unused handle
+     (handles :init-value '())))
 
-  (define-class <amqp-link> ()
+  (define-class <amqp-link> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
      (source :init-keyword :source :init-value #f)
      (target :init-keyword :target :init-value #f)
@@ -110,6 +120,7 @@
     
     (let* ((socket (make-client-socket host service))
 	   (conn (make <amqp-connection> :socket (socket-port socket)
+		       :state :start
 		       :hostname host :port service)))
       (negotiate-header conn major minor revision)
       (apply open-amqp-connection! conn opts)))
@@ -134,6 +145,22 @@
   (define-restricted-type handle :uint)
   (define-restricted-type sequence-no :uint)
   (define-restricted-type transfer-number sequence-no)
+  (define-restricted-type role :boolean)
+  (define-restricted-type sender-settle-mode :ubyte)
+  (define-restricted-type receiver-settle-mode :ubyte)
+
+  (define-constant +amqp-sender+   #f)
+  (define-constant +amqp-receiver+ #t)
+
+  ;; sender settle mode
+  (define-constant +amqp-unsettled+ 0)
+  (define-constant +amqp-settled+   1)
+  (define-constant +amqp-mixed+     2)
+
+  ;; receiver settle mode
+  (define-constant +amqp-first+     0)
+  (define-constant +amqp-second+    1)
+
   ;; error
   (define-composite-type error amqp:error:list #x00000000 #x0000001d
     ((condition   :type :symbol :mandatory #f)
@@ -146,7 +173,7 @@
      (hostname         	   :type :string)
      (max-frame-size   	   :type :uint :default 4294967295)
      (channel-max      	   :type :ushort :default 65535)
-     (idel-type-out    	   :type milliseconds)
+     (idle-time-out    	   :type milliseconds)
      (outgoing-locales 	   :type ietf-language-tag :multiple #t)
      (incoming-locales 	   :type ietf-language-tag :multiple #t)
      (offered-capabilities :type :symbol :multiple #t)
@@ -194,8 +221,10 @@
   (define (send-open-frame conn :key (id (generate-container-id))
 			   :allow-other-keys opts)
     (let1 open (apply make-amqp-open :container-id id 
-		      :hostname (~ conn 'hostname) opts)
+		      ;;:hostname (~ conn 'hostname) 
+		      opts)
       (send-frame conn open)
+      ;;(set! (~ conn 'principal) id)
       (set! (~ conn 'state) :open-sent)))
 
   (define (recv-open-frame conn)
@@ -244,11 +273,13 @@
       (send-frame conn begin)
       (let-values (((ext begin) (recv-frame conn)))
 	(rlet1 session (make <amqp-session>
+			 :state :mapped
 			 :connection conn
 			 :remote-channel (if (slot-bound? begin 'remote-channel)
 					     (~ begin 'remote-channel)
 					     ;; ??
 					     0)
+			 :handle-max (~ begin 'handle-max)
 			 :next-outgoing-id (~ begin 'next-outgoing-id)
 			 :incoming-window (~ begin 'incoming-window)
 			 :outgoing-window (~ begin 'outgoing-window))
@@ -262,6 +293,54 @@
     (send-frame (~ session 'connection) (make-amqp-end :error error))
     (recv-frame (~ session 'connection))
     (set! (~ session 'connection) #f) ;; invalidate it
+    (set! (~ session 'state) :unmmapped)
     session)
+
+  (define-composite-type attach amqp:attach:list #x00000000 #x00000012
+    ((name   :type :string :mandatory #t)
+     (handle :type handle :mandatory #t)
+     (role   :type role   :mandatory #t)
+     (snd-settle-mode :type sender-settle-mode :default +amqp-mixed+)
+     (rcv-settle-mode :type receiver-settle-mode :default +amqp-first+)
+     (source :type :*) ;; TODO check type (must be source)
+     (target :type :*) ;; TODO check type (must be target)
+     (unsettled :type :map)
+     (incomplete-unsettled :type :boolean :default #f)
+     (initial-delivery-count :type sequence-no)
+     (max-message-size :type :ulong)
+     (offered-capabilities :type :symbol :multiple #t)
+     (desired-capabilities :type :symbol :multiple #t)
+     (properties :type fields)))
+
+  (define-composite-type detach amqp:detach:list #x00000000 #x00000016
+    ((handle :type handle :mandatory #t)
+     (closed :type :boolean :default #f)
+     (error  :type error)))
+
+  (define (attach-amqp-link! session name role source target . opts)
+    (define (compute-handle session) 1) ;; dummy
+    (define conn (~ session 'connection))
+    (define (finish source target)
+      (make <amqp-link> :name name :source source :target target
+			:timeout #f ;; TODO
+			:session session))
+    (let* ((handle (compute-handle session))
+	   (attach (apply make-amqp-attach :name name
+			  :handle handle
+			  :role role
+			  :source source
+			  :target target
+			  opts)))
+      (send-frame conn attach)
+      ;; TODO handle it properly
+      (let-values (((ext attach) (recv-frame conn)))
+	(if (slot-bound? attach 'target)
+	    (finish (~ attach 'source) (~ attach 'target))
+	    (let-values (((ext detach) (recv-frame conn)))
+	      (let1 detach (make-amqp-detach :handle handle :closed #t)
+		(send-frame conn detach)
+		(finish (if (slot-bound? attach 'source)
+			    (~ attach 'source)
+			    #f) #f)))))))
 
   )
