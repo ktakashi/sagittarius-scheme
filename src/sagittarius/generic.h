@@ -173,6 +173,8 @@ SG_EXTERN SgGeneric Sg_GenericComputeApplyMethods;
 SG_EXTERN SgGeneric Sg_GenericObjectEqualP;
 SG_EXTERN SgGeneric Sg_GenericObjectApply;
 SG_EXTERN SgGeneric Sg_GenericObjectSetter;
+SG_EXTERN SgGeneric Sg_GenericObjectCompare;
+SG_EXTERN SgGeneric Sg_GenericObjectHash;
 
 /* slot stuff */
 SG_EXTERN SgGeneric Sg_GenericSlotUnbound;

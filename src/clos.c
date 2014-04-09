@@ -48,6 +48,7 @@
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/record.h"
+#include "sagittarius/reader.h"	/* for shared-ref class */
 #include "sagittarius/string.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
@@ -2307,6 +2308,8 @@ SG_DEFINE_GENERIC(Sg_GenericComputeSlots, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericAddMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericRemoveMethod, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectEqualP, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericObjectCompare, Sg_NoNextMethod, NULL);
+SG_DEFINE_GENERIC(Sg_GenericObjectHash, Sg_NoNextMethod, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectApply, Sg_InvalidApply, NULL);
 SG_DEFINE_GENERIC(Sg_GenericObjectSetter, Sg_InvalidApply, NULL);
 SG_DEFINE_GENERIC(Sg_GenericComputeGetterAndSetter, Sg_NoNextMethod, NULL);
@@ -2471,6 +2474,13 @@ static int object_compare(SgObject x, SgObject y, int equalp)
     return (SG_FALSEP(r) ? -1: 0);
   } else {
     /* not supported yet */
+    r = Sg_Apply2(SG_OBJ(&Sg_GenericObjectCompare), x, y);
+    if (SG_INTP(r)) {
+      int v = SG_INT_VALUE(r);
+      if (v < 0) return -1;
+      if (v > 0) return 1;
+      return 0;
+    }
     Sg_Error(UC("object %S and %S can't be ordered"), x, y);
     return 0;			/* dummy */
   }
@@ -2490,7 +2500,30 @@ static SG_DEFINE_METHOD(object_equalp_rec, &Sg_GenericObjectEqualP,
 			2, 0,
 			object_equalp_SPEC,
 			&object_equalp_default);
+static SG_DEFINE_METHOD(object_compare_rec, &Sg_GenericObjectCompare,
+			2, 0,
+			object_equalp_SPEC,
+			&object_equalp_default);
 
+int Sg_ObjectCompare(SgObject x, SgObject y)
+{
+  return object_compare(x, y, FALSE);
+}
+
+static SgObject object_hash_impl(SgObject *argv, int argc, void *data)
+{
+  /* this will do address hash trick */
+  return SG_FALSE;
+}
+
+SG_DEFINE_SUBR(object_hash_default, 2, 0, object_hash_impl, SG_FALSE, NULL);
+static SgClass *object_hash_SPEC[] = {
+  SG_CLASS_TOP, SG_CLASS_TOP
+};
+static SG_DEFINE_METHOD(object_hash_rec, &Sg_GenericObjectHash,
+			2, 0,
+			object_hash_SPEC,
+			&object_hash_default);
 
 static SgObject method_initialize_impl(SgObject *argv, int argc, void *data)
 {
@@ -2860,6 +2893,8 @@ void Sg__InitClos()
 
   /* library */
   CINIT(SG_CLASS_LIBRARY,   "<library>");
+  /* shared-ref */
+  CINIT(SG_CLASS_SHARED_REF,   "<shared-ref>");
 
   /* abstract collection */
   BINIT(SG_CLASS_COLLECTION, "<collection>", NULL);
@@ -2902,6 +2937,8 @@ void Sg__InitClos()
   GINIT(&Sg_GenericAddMethod, "add-method");
   GINIT(&Sg_GenericRemoveMethod, "remove-method");
   GINIT(&Sg_GenericObjectEqualP, "object-equal?");
+  GINIT(&Sg_GenericObjectCompare, "object-compare");
+  GINIT(&Sg_GenericObjectHash, "object-hash");
   GINIT(&Sg_GenericObjectApply, "object-apply");
   GINIT(&Sg_GenericObjectSetter, "setter of object-apply");
   GINIT(&Sg_GenericComputeApplyGeneric, "compute-apply-generic");
@@ -2929,6 +2966,8 @@ void Sg__InitClos()
   /* Sg_InitBuiltinMethod(&compute_applicable_methods_rec); */
   Sg_InitBuiltinMethod(&compute_method_more_specific_p_rec);
   Sg_InitBuiltinMethod(&object_equalp_rec);
+  Sg_InitBuiltinMethod(&object_compare_rec);
+  Sg_InitBuiltinMethod(&object_hash_rec);
   Sg_InitBuiltinMethod(&slot_unbound_rec);
   Sg_InitBuiltinMethod(&slot_missing_rec);
 

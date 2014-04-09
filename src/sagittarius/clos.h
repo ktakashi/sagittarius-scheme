@@ -318,6 +318,9 @@ SG_EXTERN SgClass* Sg_BaseClassOf(SgClass *klass);
 SG_EXTERN void     Sg_SwapClassAndSlots(SgObject newInstance, 
 					SgObject oldInstance);
 
+/* compare */
+SG_EXTERN int      Sg_ObjectCompare(SgObject x, SgObject y);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_CLOS_H_ */

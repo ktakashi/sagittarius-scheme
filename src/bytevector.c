@@ -99,15 +99,22 @@ SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, int size)
   return SG_OBJ(z);
 }
 
-int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)
+int Sg_ByteVectorCmp(SgByteVector *bv1, SgByteVector *bv2)
 {
   if (SG_BVECTOR_SIZE(bv1) == SG_BVECTOR_SIZE(bv2)) {
     return memcmp(SG_BVECTOR_ELEMENTS(bv1),
 		  SG_BVECTOR_ELEMENTS(bv2),
-		  SG_BVECTOR_SIZE(bv1)) == 0;
+		  SG_BVECTOR_SIZE(bv1));
+  } else if (SG_BVECTOR_SIZE(bv1) < SG_BVECTOR_SIZE(bv2)) {
+    return -1;
   } else {
-    return FALSE;
+    return 1;
   }
+}
+
+int Sg_ByteVectorEqP(SgByteVector *bv1, SgByteVector *bv2)
+{
+  return Sg_ByteVectorCmp(bv1, bv2) == 0;
 }
 
 SgObject Sg_ByteVectorCopy(SgByteVector *src, int start, int end)

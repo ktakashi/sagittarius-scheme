@@ -2290,6 +2290,7 @@ void Sg__InitReader()
   SET_READER_NAME(read_hash_hash,       "##-reader");
   SET_READER_NAME(read_hash_less,       "#<-reader");
   SET_READER_NAME(read_hash_colon,      "#:-reader");
+
 }
 
 /*

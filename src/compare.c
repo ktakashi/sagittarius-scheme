@@ -42,6 +42,32 @@
 #include "sagittarius/hashtable.h"
 #include "sagittarius/vm.h"	/* for box */
 
+int Sg_Compare(SgObject x, SgObject y)
+{
+  SgClass *cx, *cy;
+  if (SG_NUMBERP(x) && SG_NUMBERP(y)) 
+    return Sg_NumCmp(x, y);
+  if (SG_STRINGP(x) && SG_STRINGP(y)) 
+    return Sg_StringCompare(SG_STRING(x), SG_STRING(y));
+  if (SG_CHARP(x) && SG_CHARP(y)) {
+    return SG_EQ(x, y) 
+      ? 0 
+      : (SG_CHAR_VALUE(x) < SG_CHAR_VALUE(y)) ? -1 : 1;
+  }
+  if (SG_BVECTORP(x) && SG_BVECTORP(y)) 
+    return Sg_ByteVectorCmp(SG_BVECTOR(x), SG_BVECTOR(y));
+  
+  cx = Sg_ClassOf(x);
+  cy = Sg_ClassOf(y);
+  if (Sg_SubtypeP(cx, cy)) {
+    if (cy->compare) return cy->compare(x, y, FALSE);
+  } else {
+    if (cx->compare) return cx->compare(x, y, FALSE);
+  }
+  /* for builtin class extension. e.g <symbol> ... */
+  return Sg_ObjectCompare(x, y);
+}
+
 int Sg_EqP(SgObject x, SgObject y)
 {
   return SG_EQ(x, y);
@@ -652,7 +678,7 @@ int Sg_EqualP(SgObject x, SgObject y)
 }
 
 
-int SG_EqualM(SgObject x, SgObject y, int mode)
+int Sg_EqualM(SgObject x, SgObject y, int mode)
 {
   switch (mode) {
   case SG_CMP_EQ:

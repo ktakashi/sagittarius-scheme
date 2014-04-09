@@ -24,6 +24,7 @@
     (export make
 	    initialize
 	    write-object object-equal? object-apply |setter of object-apply|
+	    object-compare
 
 	    <top> <object> <class> <generic> <method> <next-method>
 	    <slot-accessor>

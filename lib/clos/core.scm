@@ -56,6 +56,7 @@
 	    compute-apply-methods
 	    compute-apply-generic compute-method-more-specific?
 	    object-equal? object-apply |setter of object-apply|
+	    object-compare
 	    ;; helper
 	    initialize-direct-slots is-a?
 	    ;; helper generics

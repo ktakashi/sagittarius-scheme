@@ -45,7 +45,8 @@ SG_CDECL_BEGIN
 SG_EXTERN int Sg_EqP(SgObject x, SgObject y);
 SG_EXTERN int Sg_EqvP(SgObject x, SgObject y);
 SG_EXTERN int Sg_EqualP(SgObject x, SgObject y);
-SG_EXTERN int SG_EqualM(SgObject x, SgObject y, int mode);
+SG_EXTERN int Sg_EqualM(SgObject x, SgObject y, int mode);
+SG_EXTERN int Sg_Compare(SgObject x, SgObject y);
 
 SG_CDECL_END
 

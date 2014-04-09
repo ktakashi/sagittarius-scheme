@@ -31,7 +31,7 @@
 ;; Gauche like ref, ~, ->string, ->integer and ->number
 (library (sagittarius object)
     (export ref ~
-	    ->string ->integer ->number)
+	    ->string ->integer ->number object-compare)
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (rnrs mutable-strings)
@@ -113,4 +113,9 @@
   (define-method ->number ((obj <string>)) (string->number obj 10))
   (define-method ->number ((obj <char>))   (char->integer obj))
   (define-method ->number ((obj <top>))    0)
+
+  ;; for some non builtin support compare
+  (define-method object-compare ((x <symbol>) (y <symbol>))
+    (compare (symbol->string x) (symbol->string y)))
+
 )

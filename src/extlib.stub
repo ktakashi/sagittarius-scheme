@@ -461,6 +461,9 @@
   (define-c-proc hashtable-values (ht::<hashtable>)
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
+  ;; the same as symbol-hash but different procedure
+  ;; should we use Sg_MakeIntegerU as eqv-hash?
+  (define-c-proc eq-hash (o) ::<fixnum> Sg_EqHash)
   (define-c-proc eqv-hash (o)
     (result (Sg_MakeIntegerU (Sg_EqvHash o))))
 
@@ -1060,4 +1063,6 @@
     (result (Sg_SysProcessWait 
 	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
 
+  ;; compare
+  (define-c-proc compare (x y) ::<fixnum> Sg_Compare)
 )

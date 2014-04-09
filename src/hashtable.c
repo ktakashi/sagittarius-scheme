@@ -43,6 +43,7 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/cache.h"
+#include "sagittarius/generic.h"
 
 
 typedef struct EntryRec
@@ -126,12 +127,13 @@ uint32_t Sg_EqvHash(SgObject obj)
 
 static uint32_t pair_hash(SgObject o, int level);
 static uint32_t vector_hash(SgObject o, int level);
+static uint32_t equal_hash_rec(SgObject obj, int level);
 
 static uint32_t level_hash(SgObject o, int level)
 {
   if (SG_PAIRP(o)) return pair_hash(o, level);
   else if (SG_VECTORP(o)) return vector_hash(o, level);
-  else return Sg_EqualHash(o);
+  else return equal_hash_rec(o, level);
 }
 
 static uint32_t pair_hash(SgObject o, int level)
@@ -186,9 +188,27 @@ static uint32_t vector_hash(SgObject obj, int level)
   }
 }
 
-uint32_t Sg_EqualHash(SgObject obj)
+static uint32_t object_hash(SgObject obj, int level)
 {
-  static const int MAX_NESTING_LEVEL = 4;
+  SgObject l = SG_MAKE_INT(level);
+  SgObject r = Sg_Apply2(SG_OBJ(&Sg_GenericObjectHash), obj, l);
+  uint32_t hashval;  
+  if (SG_EXACT_INTP(r)) {
+    int oor;
+    hashval = (uint32_t)Sg_GetUIntegerClamp(r, SG_CLAMP_NONE, &oor);
+    if (!oor) {
+      return hashval;
+    }
+  }
+  /* don't want to raise an error with hashing unless user raises it
+     in Scheme world. */
+  ADDRESS_HASH(hashval, obj);
+  return hashval;
+}
+
+#define MAX_NESTING_LEVEL 4
+static uint32_t equal_hash_rec(SgObject obj, int level)
+{
   uint32_t hashval;
   if (!SG_PTRP(obj)) {
     SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
@@ -215,11 +235,14 @@ uint32_t Sg_EqualHash(SgObject obj)
     }
     return h;
   } else {
-    ADDRESS_HASH(hashval, obj);
-    return hashval;
+    return object_hash(obj, level);
   }
 }
 
+uint32_t Sg_EqualHash(SgObject obj)
+{
+  return equal_hash_rec(obj, MAX_NESTING_LEVEL);
+}
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)
 {

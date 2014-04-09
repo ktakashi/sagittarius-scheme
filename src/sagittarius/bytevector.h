@@ -219,6 +219,8 @@ SG_EXTERN SgObject Sg_ByteVectorConcatenate(SgObject bvList);
 #define Sg_ByteVectorToIntegerS Sg_ByteVectorToIntegerSBig
 #define Sg_SIntegerToByteVector Sg_SIntegerToByteVectorBig
 
+SG_EXTERN int      Sg_ByteVectorCmp(SgByteVector *x, SgByteVector *y);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_BYTEVECTOR_H_ */
