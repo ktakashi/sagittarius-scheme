@@ -276,9 +276,6 @@ SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data)
 static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
 {
   SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
-  uint8_t *key = SG_BVECTOR_ELEMENTS(SG_SECRET_KEY(spi->key));
-  int keylen = SG_BVECTOR_SIZE(SG_SECRET_KEY(spi->key));
-  int rounds = spi->rounds;
   SgObject pt;			/* plain text */
   int len = SG_BVECTOR_SIZE(data), err;
 
