@@ -1,8 +1,6 @@
-/* -*- C++ -*- */
-/*
- * ucs4.cpp
+/* ucs4.cpp                                      -*- mode:c++; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -33,8 +31,6 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/sagittariusdefs.h"
 
-//#if SIZEOF_WCHAR_T < 4
-#if defined (_MSC_VER) || defined(_SG_WIN_SUPPORT)
 // for now, it's really corner-cutting
 // from Mosh
 #undef min
@@ -64,7 +60,6 @@ const SgChar* UC(const char *str)
     return i->second;
   }
 }
-#endif
 
 /*
   end of file

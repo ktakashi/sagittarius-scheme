@@ -17,7 +17,7 @@ ELSE()
     os/posix/system.c os/posix/thread.c)
 ENDIF()
 
-IF(MSVC OR WATCOM)
+IF (USE_UCS4_CPP)
   SET(PLATFORM_SOURCE_UCS4
     ${PLATFORM_SOURCE_UCS4}
     ucs4.cpp)

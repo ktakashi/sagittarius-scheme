@@ -12,6 +12,7 @@
 
 #cmakedefine USE_BOEHM_GC
 #cmakedefine USE_IMMEDIATE_FLONUM
+#cmakedefine USE_UCS4_CPP
 
 #cmakedefine HAVE_GC_H
 #cmakedefine HAVE_GC_GC_H

@@ -208,17 +208,7 @@ typedef struct readtable_rec_t readtable_t;
 /* 
    The idea from Mosh
  */
-/*
-#if SIZEOF_WCHAT_T < 4
-SG_CDECL_BEGIN
-SG_EXTERN const SgChar* UC(const char *str);
-SG_CDECL_END
-#else
-# define UC_(x) L##x
-# define UC(x)  (const SgChar*)(UC_(x))
-#endif
-*/
-#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+#ifdef USE_UCS4_CPP
 SG_CDECL_BEGIN
 SG_EXTERN const SgChar* UC(const char *str);
 SG_CDECL_END

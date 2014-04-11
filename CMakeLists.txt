@@ -391,11 +391,31 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
   ELSE()
     MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
   ENDIF()
+  SET(USE_UCS4_CPP TRUE)
 ELSEIF(CYGWIN)
-  # compiler must be gcc
-  #ADD_DEFINITIONS(-fwide-exec-charset=ucs-4le)
+  # you don't know if -fwide-exec-charset=ucs-4le works
+  # or not untill compiler compiles...
+  # save it to restore in case compiler doesn't support
+  SET(SAVED_C_FLAGS "${CMAKE_C_FLAGS}")
+  SET(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
+  
+  CHECK_C_SOURCE_COMPILES("
+#include <wchar.h>
+int main() {
+  wchar_t *s = L\"wide char\";
+  return 0;
+}
+"
+    WIDE_EXEC_CHARSET)
+  IF (NOT WIDE_EXEC_CHARSET)
+    SET(USE_UCS4_CPP TRUE)
+    SET(CMAKE_C_FLAGS "${SAVED_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
+  ENDIF()
+
   # Cygwin stack issue
   SET(cygwin_ldflags "-Wl,--stack,8388608")
   SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
