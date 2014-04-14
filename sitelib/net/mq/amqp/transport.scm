@@ -40,10 +40,13 @@
 	    end-amqp-session!
 	    ;; link
 	    attach-amqp-link!
-
+	    detach-amqp-link!
 	    ;; misc
 	    +amqp-sender+
 	    +amqp-receiver+
+	    ;; these are used in other messaging or so
+	    seconds
+	    fields
 	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
@@ -99,11 +102,20 @@
 
   (define-class <amqp-link> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
+     (handle :init-keyword :handle)
      (source :init-keyword :source :init-value #f)
      (target :init-keyword :target :init-value #f)
      (timeout :init-keyword :timeout :init-value -1)
+     (delivery-count :init-value 0)
+     ;; will be set
+     link-credit
+     avaiable 
+     (drain    :init-value #f)
      ;; private
      (session :init-keyword :session :init-value #f)))
+
+  (define-class <amqp-sender-link> (<amqp-link>) ())
+  (define-class <amqp-receiver-link> (<amqp-link>) ())
 
   ;; will version be other than 1.0.0 for future?
   ;;(define-constant +version-prefix+ "AMQP\x0;")
@@ -135,10 +147,11 @@
       (put-bytevector (~ conn 'socket) header)
       (let1 res (get-bytevector-n (~ conn 'socket) (bytevector-length header))
 	(unless (bytevector=? header res)
-	  (error 'negotiate-header "unknown protocol" (utf8->string res)))
+	  (rnrs:error 'negotiate-header "unknown protocol" (utf8->string res)))
 	(set! (~ conn 'state) :hdr-exch))))
 
   ;; misc types
+  (define-restricted-type seconds      :uint)
   (define-restricted-type milliseconds :uint)
   (define-restricted-type ietf-language-tag :symbol)
   (define-restricted-type fields :map)
@@ -148,6 +161,9 @@
   (define-restricted-type role :boolean)
   (define-restricted-type sender-settle-mode :ubyte)
   (define-restricted-type receiver-settle-mode :ubyte)
+  (define-restricted-type delivery-number sequence-no)
+  (define-restricted-type delivery-tag :binary)
+  (define-restricted-type message-format :uint)
 
   (define-constant +amqp-sender+   #f)
   (define-constant +amqp-receiver+ #t)
@@ -165,7 +181,8 @@
   (define-composite-type error amqp:error:list #x00000000 #x0000001d
     ((condition   :type :symbol :mandatory #f)
      (description :type :string)
-     (info        :type fields)))
+     (info        :type fields))
+    :provides (error-condition))
 
   ;; define messages
   (define-composite-type open amqp:open:list #x00000000 #x00000010
@@ -178,7 +195,8 @@
      (incoming-locales 	   :type ietf-language-tag :multiple #t)
      (offered-capabilities :type :symbol :multiple #t)
      (desired-capabilities :type :symbol :multiple #t)
-     (properties           :type fields)))
+     (properties           :type fields))
+    :provides (frame))
 
   (define (open-amqp-connection! conn . opts)
     (apply send-open-frame conn opts)
@@ -204,11 +222,14 @@
       (put-u16 port 0 (endianness big))
       (put-bytevector port bv)))
 
-  (define (recv-frame conn)
+  (define (recv-frame conn :key (debug #f))
     (let1 port (~ conn 'socket)
       (let-values (((size dof type specific) (get-unpack port "!LCCS")))
 	(let* ((ext (get-bytevector-n port (- (* dof 4) 8)))
 	       (data (get-bytevector-n port (- size (* dof 4)))))
+	  (when debug 
+	    (display (pack "!LCCS" size dof type specific)) (newline)
+	    (display data) (newline))
 	  (values ext (read-amqp-data (open-bytevector-input-port data)))))))
   
   (define (generate-container-id)
@@ -233,7 +254,9 @@
       open))
 
   (define-composite-type close amqp:close:list #x00000000 #x00000018
-    ((error :type error)))
+    ;; error is composite type and not bounded so use keyword ...
+    ;; (sort of bad trick...)
+    ((error :type :error)))
 
   (define (close-amqp-connection! conn)
     (send-close-frame conn)
@@ -260,7 +283,8 @@
      (handle-max       :type handle :default 4294967295)
      (offered-capabilities :type :symbol :multiple #t)
      (desired-capabilities :type :symbol :multiple #t)
-     (properties       :type fields)))
+     (properties       :type fields))
+    :provides (frame))
 
   (define (begin-amqp-session! conn :key (id 0) 
 			     (incoming-window 512)
@@ -275,10 +299,7 @@
 	(rlet1 session (make <amqp-session>
 			 :state :mapped
 			 :connection conn
-			 :remote-channel (if (slot-bound? begin 'remote-channel)
-					     (~ begin 'remote-channel)
-					     ;; ??
-					     0)
+			 :remote-channel (~ begin 'remote-channel)
 			 :handle-max (~ begin 'handle-max)
 			 :next-outgoing-id (~ begin 'next-outgoing-id)
 			 :incoming-window (~ begin 'incoming-window)
@@ -287,7 +308,7 @@
 	  session))))
 
   (define-composite-type end amqp:end:list #x00000000 #x00000017
-    ((error :type error)))
+    ((error :type :error)))
 
   (define (end-amqp-session! session :key error)
     (send-frame (~ session 'connection) (make-amqp-end :error error))
@@ -302,45 +323,111 @@
      (role   :type role   :mandatory #t)
      (snd-settle-mode :type sender-settle-mode :default +amqp-mixed+)
      (rcv-settle-mode :type receiver-settle-mode :default +amqp-first+)
-     (source :type :*) ;; TODO check type (must be source)
-     (target :type :*) ;; TODO check type (must be target)
+     (source :type :* :requires 'source)
+     (target :type :* :requires 'target)
      (unsettled :type :map)
      (incomplete-unsettled :type :boolean :default #f)
      (initial-delivery-count :type sequence-no)
      (max-message-size :type :ulong)
      (offered-capabilities :type :symbol :multiple #t)
      (desired-capabilities :type :symbol :multiple #t)
-     (properties :type fields)))
+     (properties :type fields))
+    :provides (frame))
 
   (define-composite-type detach amqp:detach:list #x00000000 #x00000016
     ((handle :type handle :mandatory #t)
      (closed :type :boolean :default #f)
-     (error  :type error)))
+     (error  :type :error))
+    :provides (frame))
 
   (define (attach-amqp-link! session name role source target . opts)
-    (define (compute-handle session) 1) ;; dummy
+    ;; TODO dummy, compute handle properly
+    (define (compute-handle session) 1)
     (define conn (~ session 'connection))
-    (define (finish source target)
-      (make <amqp-link> :name name :source source :target target
-			:timeout #f ;; TODO
-			:session session))
+    (define (finish handle source target)
+      (let1 link (make (if role <amqp-receiver-link> <amqp-sender-link>)
+		   :name name :handle handle :role role
+		   :source source :target target
+		   :timeout #f ;; TODO
+		   :session session)
+	(flow-control link)))
     (let* ((handle (compute-handle session))
 	   (attach (apply make-amqp-attach :name name
 			  :handle handle
 			  :role role
 			  :source source
 			  :target target
+			  :initial-delivery-count 0
 			  opts)))
       (send-frame conn attach)
-      ;; TODO handle it properly
       (let-values (((ext attach) (recv-frame conn)))
 	(if (slot-bound? attach 'target)
-	    (finish (~ attach 'source) (~ attach 'target))
+	    (finish handle (~ attach 'source) (~ attach 'target))
 	    (let-values (((ext detach) (recv-frame conn)))
 	      (let1 detach (make-amqp-detach :handle handle :closed #t)
 		(send-frame conn detach)
-		(finish (if (slot-bound? attach 'source)
-			    (~ attach 'source)
-			    #f) #f)))))))
+		(finish handle (~ attach 'source) #f)))))))
 
+  (define-composite-type transfer amqp:transfer:list #x00000000 #x00000014
+    ((handle          :type handle :mandatory #t)
+     (delivery-id     :type delivery-number)
+     (delivery-tag    :type delivery-number)
+     (message-format  :type message-format)
+     (settled         :type :boolean)
+     (more            :type :boolean :default #f)
+     (rcv-settle-mode :type receiver-settle-mode)
+     (state           :type :* :requires 'delivery-state)
+     (resume          :type :boolean :default #f)
+     (aborted         :type :boolean :default #f)
+     (batchable       :type :boolean :default #f))
+    :provides (frame))
+
+  (define-composite-type flow amqp:flow:list #x00000000 #x00000013
+    ((next-incoming-id :type transfer-number)
+     (incoming-window  :type :uint :mandatory #t)
+     (next-outgoing-id :type transfer-number :mandatory #t)
+     (outgoing-window  :type :uint :mandatory #t)
+     (handle           :type handle)
+     (delivery-count   :type sequence-no)
+     (link-credit      :type :uint)
+     (available        :type :uint)
+     (drain            :type :boolean :default #f)
+     (echo             :type :boolean :default #f)
+     (properties       :type fields))
+    :provides (frame))
+
+
+  (define (recv-flow-frame conn)
+    (let-values (((ext flow) (recv-frame conn :debug #t))) flow))
+  ;; well for may laziness...
+  (define-method flow-control ((link <amqp-sender-link>))
+    (let* ((conn (~ link 'session 'connection))
+	   ;; only target is there
+	   (flow (and (~ link 'target) (recv-flow-frame conn))))
+      (when flow
+	;; TODO copy
+	(set! (~ link 'link-credit) (~ flow 'link-credit)))
+      (let1 flow (make-amqp-flow 
+		  ;; if the role is sender then this must be set
+		  :next-incoming-id 0
+		  :incoming-window #x7FFFFFFF
+		  :next-outgoing-id 1
+		  :outgoing-window 0
+		  :handle (~ link 'handle)
+		  :delivery-count 0
+		  :link-credit #x64)
+	(send-frame conn flow)
+	link)))
+  (define-method flow-control ((link <amqp-receiver-link>))
+    )
+
+  (define (detach-amqp-link! link :key error)
+    (let ((detach (make-amqp-detach :handle (~ link 'handle) :closed #t
+				    :error error))
+	  (conn (~ link 'session 'connection)))
+      (send-frame conn detach)
+      ;; receive detach
+      (recv-frame conn)
+      link))
+      
   )

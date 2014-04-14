@@ -133,6 +133,7 @@
   (define (read-amqp-data in)
     (define (construct-composite descriptor compound)
       (define (get-type slot) (slot-definition-option slot :type))
+      (define (get-requires slot) (slot-definition-option slot :requires #f))
       (let* ((code (scheme-value descriptor))
 	     ;; must be either symbol or ulong
 	     (class (hashtable-ref (if (symbol? code)
@@ -143,14 +144,19 @@
 	(rlet1 o (make class)
 	  (for-each (lambda (slot value)
 		      (let ((name (slot-definition-name slot))
-			    (type (get-type slot)))
+			    (type (get-type slot))
+			    (class (class-of value)))
 			;; mandatory element can be in between
 			;; non mandatory elements, so check the type.
-			(when (eq? (hashtable-ref *type/class-table* type #f)
-				   (class-of value))
-			  (set! (~ o name) (scheme-value value)))))
-		    (class-direct-slots class)
-		    (scheme-value compound)))))
+			(cond ((eq? (hashtable-ref *type/class-table* type #f) 
+				    class)
+			       (set! (~ o name) (scheme-value value)))
+			      ((and (eq? type :*)
+				    (memq (get-requires slot)
+					  (~ class 'provides)))
+			       (set! (~ o name) value)))))
+	   (class-direct-slots class)
+	   (scheme-value compound)))))
     (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
 	  (construct-composite descriptor (read-data (get-u8 in) in))
@@ -204,9 +210,11 @@
 	   => (lambda (class)
 		;; there is no extended type... is there?
 		(let ((slots (class-direct-slots class))
-		      (descriptor-name (~ class 'descriptor-name)))
+		      ;;(descriptor-name (~ class 'descriptor-name))
+		      (descriptor-code (~ class 'descriptor-code)))
 		  (put-u8 out #x00) ;; mark for compoisite
-		  (write-primitive-amqp-data out :symbol descriptor-name)
+		  ;;(write-primitive-amqp-data out :symbol descriptor-name)
+		  (write-primitive-amqp-data out :ulong descriptor-code)
 		  (write-primitive-amqp-data out :list 
 		    (map (cut ->list-value v <>) slots)))))
 	  (else
@@ -224,7 +232,8 @@
 
   ;; do with inefficient way...
   (define-class <amqp-meta> (<class>)
-    ((descriptor-name :init-keyword :descriptor-name :init-value #f)
+    ((provides        :init-keyword :provides       :init-value #f)
+     (descriptor-name :init-keyword :descriptor-name :init-value #f)
      (descriptor-code :init-keyword :descriptor-code :init-value 0)))
   (define-class <amqp-type> ()
     ((value :init-keyword :value :reader scheme-value))
@@ -296,19 +305,22 @@
 			      #,@default defs ...) r)))))))
 
       (syntax-case x ()
-	((k name descriptor-name domain-id descriptor-id (slots ...))
-	 (with-syntax ((name (datum->syntax #'k (class-name #'name)))
-		       (ctr  (datum->syntax #'k (ctr-name #'name)))
-		       (pred (datum->syntax #'k (pred-name #'name)))
+	((k n descriptor-name domain-id descriptor-id (slots ...) . opt)
+	 (with-syntax ((name (datum->syntax #'k (class-name #'n)))
+		       (ctr  (datum->syntax #'k (ctr-name #'n)))
+		       (pred (datum->syntax #'k (pred-name #'n)))
 		       (((keys names) ...) (datum->syntax #'k
 					     (params #'(slots ...))))
-		       ((slot-defs ...) (make-slots #'(slots ...))))
+		       ((slot-defs ...) (make-slots #'(slots ...)))
+		       ((provides ...) (datum->syntax #'k
+					(get-keyword :provides #'opt '()))))
 	   #'(begin
 	       (define this-code (bitwise-ior
 				  (bitwise-arithmetic-shift-left domain-id 32)
 				  descriptor-id))
 	       (define-class name (<amqp-type>)
 		 (slot-defs ...)
+		 :provides '(provides ...)
 		 :descriptor-name 'descriptor-name
 		 :descriptor-code this-code)
 	       (define (pred o) (is-a? o name))
@@ -321,8 +333,18 @@
 	       (add-class-entry! name 'descriptor-name this-code)))))))
   ;; for now
   (define-syntax define-restricted-type
-    (syntax-rules ()
-      ((_ name value) (define name value))))
+    (lambda (x)
+      (define (class-name name)
+	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (syntax-case x ()
+	((_ name value . opts)
+	 (with-syntax ((class (datum->syntax #'k (class-name #'name)))
+		       ((provides ...) (datum->syntax #'k
+					(get-keyword :provides #'opts '()))))
+	   #'(begin
+	       (define-class class (<amqp-type>) ()
+		 :provides '(provides ...))
+	       (define name value)))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
