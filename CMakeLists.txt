@@ -1,6 +1,14 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4)
 PROJECT(Sagittarius)
 
+### options
+# use boehm gc
+OPTION(USE_BOEHM_GC "use boehm gc" ON)
+OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
+OPTION(DEBUG_VERSION "debug version" ON)
+OPTION(SAGITTARIUS_PROFILE "profiler" ON)
+
+### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckFunctionExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckTypeSize.cmake)
@@ -98,7 +106,6 @@ int main() { return PTHREAD_MUTEX_RECURSIVE_NP; }
 
 ENDIF()
 
-#CHECK_FUNCTION_EXISTS(alloca HAVE_ALLOCA)
 CHECK_FUNCTION_EXISTS(sched_yield   HAVE_SCHED_YIELD)
 CHECK_FUNCTION_EXISTS(nanosleep     HAVE_NANOSLEEP)
 CHECK_FUNCTION_EXISTS(select        HAVE_SELECT)
@@ -109,12 +116,6 @@ IF (NOT HAVE_CLOCK_GETTIME)
 ENDIF()
 CHECK_FUNCTION_EXISTS(gettimeofday  HAVE_GETTIMEOFDAY)
 CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
-
-# use boehm gc
-OPTION(USE_BOEHM_GC "use boehm gc" ON)
-OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
-OPTION(DEBUG_VERSION "debug version" ON)
-OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 
 # platform name
 STRING(TOLOWER ${CMAKE_SYSTEM_NAME} SAGITTARIUS_PLATFORM)
@@ -171,13 +172,24 @@ SET(SAGITTARIUS_TRIPLE
   "${SAGITTARIUS_PROCESSOR}-${SAGITTARIUS_VENDOR}-${SAGITTARIUS_OS}")
 MESSAGE(STATUS "Architecture triple: ${SAGITTARIUS_TRIPLE}")
 
+### System 
 
-SET(INSTALL_PREFIX "/usr/local" CACHE PATH "Prefix prepended to install directories")
-SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE INTERNAL "Prefix prepended to install directories" FORCE)
+# sort of backward compatibility
+# before INSTALL_PREFIX overwrote CMAKE_INSTALL_PREFIX so
+# if this is set then we will overwrite CMAKE_INSTALL_PREFIX.
+IF (INSTALL_PREFIX)
+  SET(CMAKE_INSTALL_PREFIX ${INSTALL_PREFIX} CACHE 
+    INTERNAL "Prefix prepended to install directories" FORCE)
+ELSE()
+  SET(INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX} CACHE 
+    PATH "Prefix prepended to install directories")
+ENDIF()
+MESSAGE(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
-#SET(SAGITTARIUS_VERSION "${CPACK_PACKAGE_VERSION_MAJOR}.${CPACK_PACKAGE_VERSION_MINOR}.${CPACK_PACKAGE_VERSION_PATCH}"
-#  CACHE STRING "Sagittarius release version string")
-SET(SAGITTARIUS_VERSION "0.5.3" CACHE STRING "Sagittarius release version string" FORCE)
+
+# version string
+SET(SAGITTARIUS_VERSION "0.5.3" CACHE 
+  STRING "Sagittarius release version string" FORCE)
 
 SET(SAGITTARIUS_LIB_SUFFIX ${SAGITTARIUS_LIB_SUFFIX}
   "lib/${SAGITTARIUS_NAME}")
@@ -232,8 +244,8 @@ ELSE()
   SET(CMAKE_BUILD_TYPE Release)
 ENDIF()
 
-# TODO check if it's ok
-#SET(CMAKE_C_FLAGS "-W -Wall -O0 -g3 -gdwarf-2")
+
+### Compiler options
 IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
@@ -267,7 +279,8 @@ ELSEIF(MSVC)
       SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.01")
     ENDIF()
     SET(CMAKE_CREATE_CONSOLE_EXE "${VS2012_XP_FLAG}")
-    SET(CMAKE_SHARED_LINKER_FLAGS "${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS 
+      "${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
   ENDIF()
 
   FOREACH(flag_var
@@ -289,6 +302,46 @@ ELSEIF(WATCOM)
   SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
   SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
 ENDIF()
+
+# compiler option for global
+# TODO support MinGW
+IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
+  IF (MSVC OR WATCOM)
+    SET(USE_UCS4_CPP TRUE)
+  ELSE()
+    MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
+  ENDIF()
+ELSEIF(CYGWIN)
+  # you don't know if -fwide-exec-charset=ucs-4le works
+  # or not untill compiler compiles...
+  # save it to restore in case compiler doesn't support
+  SET(SAVED_C_FLAGS "${CMAKE_C_FLAGS}")
+  SET(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
+  
+  CHECK_C_SOURCE_COMPILES("
+#include <wchar.h>
+int main() {
+  wchar_t *s = L\"wide char\";
+  return 0;
+}
+"
+    WIDE_EXEC_CHARSET)
+  IF (NOT WIDE_EXEC_CHARSET)
+    SET(USE_UCS4_CPP TRUE)
+    SET(CMAKE_C_FLAGS "${SAVED_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
+  ENDIF()
+
+  # Cygwin stack issue
+  SET(cygwin_ldflags "-Wl,--stack,8388608")
+  SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
+  SET(CMAKE_MODULE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
+ENDIF()
+
 
 # set module path here
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -383,44 +436,6 @@ IF(SAGITTARIUS_PROFILE)
     MESSAGE(WARNING "profiler is not supported")
     SET(SAGITTARIUS_PROFILE OFF)
   ENDIF()
-ENDIF()
-
-# compiler option for global
-IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
-  IF (MSVC OR WATCOM)
-  ELSE()
-    MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
-  ENDIF()
-  SET(USE_UCS4_CPP TRUE)
-ELSEIF(CYGWIN)
-  # you don't know if -fwide-exec-charset=ucs-4le works
-  # or not untill compiler compiles...
-  # save it to restore in case compiler doesn't support
-  SET(SAVED_C_FLAGS "${CMAKE_C_FLAGS}")
-  SET(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
-  
-  CHECK_C_SOURCE_COMPILES("
-#include <wchar.h>
-int main() {
-  wchar_t *s = L\"wide char\";
-  return 0;
-}
-"
-    WIDE_EXEC_CHARSET)
-  IF (NOT WIDE_EXEC_CHARSET)
-    SET(USE_UCS4_CPP TRUE)
-    SET(CMAKE_C_FLAGS "${SAVED_C_FLAGS}")
-    SET(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
-  ENDIF()
-
-  # Cygwin stack issue
-  SET(cygwin_ldflags "-Wl,--stack,8388608")
-  SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
-  SET(CMAKE_MODULE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
 ENDIF()
 
 SET(SHLIB_SO_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")

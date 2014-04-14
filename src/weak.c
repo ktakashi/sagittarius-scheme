@@ -327,8 +327,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
     if (flags & SG_HASH_NO_OVERWRITE && e->value) {
       return SG_HASH_ENTRY_VALUE(e);
     }
-    SG_HASH_ENTRY_SET_VALUE(e, value);
-    return value;
+    return SG_HASH_ENTRY_SET_VALUE(e, value);
   }
 }
 

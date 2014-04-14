@@ -1205,10 +1205,7 @@ SgObject Sg_StringNormalizeNfkd(SgString *str)
 
 static int32_t pair_wise_composition(uint32_t first, uint32_t second)
 {
-  if (first < 0        ||		/* happen? */
-      first > 0x10FFFF ||
-      second < 0       ||		/* happen? */
-      second > 0x10FFFF) {
+  if (first > 0x10FFFF  || second > 0x10FFFF) {
     return -1;
   } else {
     int32_t lindex = first - LBase;

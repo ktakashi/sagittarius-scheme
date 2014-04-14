@@ -1039,6 +1039,8 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
       array[i] = SG_VALUES_REF(vm, i);
     }
     d[2] = array;
+  } else {
+    d[2] = NULL;
   }
   Sg_VMPushCC(dynamic_wind_after_cc, d, 3);
   return Sg_VMApply0(after);

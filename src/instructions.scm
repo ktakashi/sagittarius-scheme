@@ -453,7 +453,7 @@
   NEXT)
 
 (define-inst FRAME (0 1 #f) :label
-  (let ((n::intptr_t (FETCH_OPERAND (PC vm))))
+  (let ((n::intptr_t (cast intptr_t (FETCH_OPERAND (PC vm)))))
     (PUSH_CONT vm (+ (PC vm) (- n 1))))
   NEXT)
 

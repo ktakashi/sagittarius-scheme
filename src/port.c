@@ -1387,7 +1387,7 @@ SgObject Sg_InitTranscodedPort(SgPort *port, SgTextualPort *tp,
 			       SgPort *src, SgTranscoder *transcoder,
 			       enum SgPortDirection direction)
 {
-  SG_INIT_PORT(port, direction, SG_TEXTUAL_PORT_TYPE, -1);
+  SG_INIT_PORT(port, direction, SG_TEXTUAL_PORT_TYPE, SG_BUFMODE_NONE);
   SG_INIT_TEXTUAL_PORT(tp, SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
   port->closed = FALSE;
