@@ -146,8 +146,10 @@
 (test-assert "make-amqp-book" make-amqp-book)
 (define book-bv 
   #vu8(#x00 ;; composite 
-       #xA3 #x11 ;; sym8 & size
-         101 120 97 109 112 108 101 58 98 111 111 107 58 108 105 115 116
+       ;; the writer writes ulong
+       ;; #xA3 #x11 ;; sym8 & size
+       ;;  101 120 97 109 112 108 101 58 98 111 111 107 58 108 105 115 116
+       #x80 0 0 0 3 0 0 0 2
        #xC0 ;; list
          #x40 ;; size
 	 #x03 ;; element
