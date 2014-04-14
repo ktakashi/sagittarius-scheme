@@ -10,6 +10,21 @@ have it on your platform, please install it.
 
  - [CMake(must be higher than 2.8.4)](http://www.cmake.org/)
 
+## Quick build/install (for Unix like environment)
+
+If your environment already has required libraries and just want to install
+to default location, run the following commands in the directory contains
+Sagittarius source code;
+
+    % cmake .
+    % make
+    % make doc
+    % make install
+
+`make doc` is required to install Sagittarius.
+
+Following sections describes more details.
+
 ## Preparation for Unix-like environment
 
 Sagittarius depends on
@@ -50,6 +65,11 @@ for example:
     % cd build
     % cmake ${path to Sagittarius' source directory}
     % make
+
+To install Sagittarius non default location, you need to specify
+`CMAKE_INSTALL_PREFIX` variable.
+
+    % cmake . -DCMAKE_INSTALL_PREFIX=/path/to/install
 
 After installing Boehm GC yet, go to the directory `gc-7.2` and type
 commands below and re-run `cmake`.  Make sure you delete CMakeCache.txt
@@ -105,7 +125,7 @@ Thirdly, run cmake as follows.
 
     $ cmake . \
         -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin \
-        -DINSTALL_PREFIX=/path/to/install \
+        -DCMAKE_INSTALL_PREFIX=/path/to/install \
         -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_FIND_FRAMEWORK=LAST \
         -Wno-dev \

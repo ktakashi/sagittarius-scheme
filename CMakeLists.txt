@@ -25,7 +25,8 @@ message(STATUS "system  processor ${CMAKE_SYSTEM_PROCESSOR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
-SET(SAGITTARIUS_BUGREPORT "ktakashi@ymail.com" CACHE STRING "bugreport mail address")
+SET(SAGITTARIUS_BUGREPORT "ktakashi@ymail.com" CACHE 
+  STRING "bugreport mail address")
 
 # headers
 CHECK_INCLUDE_FILE(alloca.h    HAVE_ALLOCA_H)
