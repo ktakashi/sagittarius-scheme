@@ -63,7 +63,8 @@
 	    (rfc tls)
 	    (binary data)
 	    (binary pack)
-	    (math random))
+	    (math random)
+	    (util bytevector))
 
   ;; node
   (define-class <amqp-node> ()
@@ -496,9 +497,20 @@
     link)
 
   ;; transfer
-  (define (send-transfer link message-format message)
-    
-
-    )
-      
+  ;; state will be resolved by option
+  (define (send-transfer link message-format message . opt)
+    (let ((tag (bytevector->integer (read-sys-random 8)))
+	  (id  (bytevector->integer (read-sys-random 8)))
+	  (frame-size (~ link 'session 'connection 'frame-size)))
+      ;; can be sen in one go
+      (if (< (bytevector-length message) (- frame-size 512))
+	  (let1 transfer (apply make-amqp-transfer 
+				:handle (~ link 'handle)
+				:delivery-id id
+				:delivery-tag tag
+				:message-format message-format
+				opt)
+	    (send-frame (~ link 'session 'connection) transfer message))
+	  (error 'send-transfer "not supported yet"))))
+	
   )
