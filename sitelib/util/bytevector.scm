@@ -98,6 +98,8 @@
 
 ;; analogy of slices and split-at* in (util list)
 (define (bytevector-slices bv k . args)
+  (unless (and (integer? k) (positive? k))
+    (assertion-violation 'bytevector-slices "index must be positive integer" k))
   (let1 len (bytevector-length bv)
     (let loop ((bv bv) (r '()) (i 0))
       (if (< i len)
@@ -106,11 +108,14 @@
 	  (reverse! r)))))
 
 (define (bytevector-split-at* bv k :key (padding #f))
+  (unless (and (integer? k) (not (negative? k)))
+    (assertion-violation 'bytevector-split-at* 
+			 "index must be non-negative integer" k))
   (let1 len (bytevector-length bv)
     (if (< k len)
 	(let ((r1 (bytevector-copy bv 0 k))
-		 (r2 (bytevector-copy bv k)))
-	     (values r1 r2))
+	      (r2 (bytevector-copy bv k)))
+	  (values r1 r2))
 	(values (if padding (padding bv) bv) #vu8()))))
 
 (define (bytevector->hex-string bv)
