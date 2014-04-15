@@ -47,6 +47,11 @@
 	    ;; these are used in other messaging or so
 	    seconds
 	    fields
+
+	    ;; needs in upper layer
+	    send-frame
+	    (rename (recv-frame&payload recv-frame))
+	    send-transfer
 	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
@@ -78,6 +83,9 @@
   (define-class <state-mixin> ()
     ((state :init-keyword :state)))
   ;; connections
+  ;; TODO if we support sparse array, then we can make this default
+  ;; value 65535 (we can do this but it consume too much memory...
+  (define-constant +channel-max+ 1024)
   (define-class <amqp-connection> (<state-mixin>)
     ;; should connection manage sessions?
     ((principal :init-keyword :principal :init-value #f)
@@ -85,20 +93,33 @@
      (socket    :init-keyword :socket)
      ;; for informations
      (hostname  :init-keyword :hostname)
-     (port      :init-keyword :port)))
+     (port      :init-keyword :port)
+     ;; frame size
+     (frame-size :init-keyword :frame-size)
+     ;; channels
+     (remote-channels :init-form (make-vector +channel-max+ #f))))
 
+  ;; max hande count, should be sufficient
+  ;; TODO if we support sparse array, then we can make this default
+  ;; value 4294967295
+  (define-constant +handle-max+ 1024)
   (define-class <amqp-session> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
      (remote-channel :init-keyword :remote-channel)
-     (next-outgoint-id :init-keyword :next-outgoing-id)
-     (incoming-window :init-keyword :incoming-window)
-     (outgoing-window :init-keyword :outgoing-window)
-     ;; need this?
-     (handle-max :init-keyword :handle-max :init-value 1024)
+     (next-outgoing-id :init-keyword :next-outgoing-id :init-value 0)
+     (next-incoming-id :init-keyword :next-outgoing-id)
+     (incoming-window :init-keyword :incoming-window :init-value 0)
+     (outgoing-window :init-keyword :outgoing-window :init-value 0)
+     ;; remote
+     (remote-next-outgoint-id :init-keyword :next-outgoing-id :init-value 0)
+     (remote-next-incoming-id :init-keyword :next-outgoing-id)
+     (remote-incoming-window :init-keyword :remote-incoming-window)
+     (remote-outgoing-window :init-keyword :remote-outgoing-window)
      ;; private
      (connection :init-keyword :connection :init-value #f)
      ;; for creating a link we need to assing unused handle
-     (handles :init-value '())))
+     (remote-handles :init-form (make-vector +handle-max+ #f))
+     (local-handles  :init-form (make-vector +handle-max+ #f))))
 
   (define-class <amqp-link> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
@@ -107,8 +128,10 @@
      (target :init-keyword :target :init-value #f)
      (timeout :init-keyword :timeout :init-value -1)
      (delivery-count :init-value 0)
+     (link-creadit :init-value 0)
      ;; will be set
-     link-credit
+     remote-delivery-count
+     remote-link-credit
      avaiable 
      (drain    :init-value #f)
      ;; private
@@ -147,7 +170,7 @@
       (put-bytevector (~ conn 'socket) header)
       (let1 res (get-bytevector-n (~ conn 'socket) (bytevector-length header))
 	(unless (bytevector=? header res)
-	  (rnrs:error 'negotiate-header "unknown protocol" (utf8->string res)))
+	  (error 'negotiate-header "unknown protocol" (utf8->string res)))
 	(set! (~ conn 'state) :hdr-exch))))
 
   ;; misc types
@@ -185,11 +208,12 @@
     :provides (error-condition))
 
   ;; define messages
+  (define-constant +max-frame-size+ #x100000) ;; (* 1024 1024)
   (define-composite-type open amqp:open:list #x00000000 #x00000010
     ((container-id     	   :type :string :mandatory #t)
      (hostname         	   :type :string)
-     (max-frame-size   	   :type :uint :default 4294967295)
-     (channel-max      	   :type :ushort :default 65535)
+     (max-frame-size   	   :type :uint :default +max-frame-size+)
+     (channel-max      	   :type :ushort :default +channel-max+)
      (idle-time-out    	   :type milliseconds)
      (outgoing-locales 	   :type ietf-language-tag :multiple #t)
      (incoming-locales 	   :type ietf-language-tag :multiple #t)
@@ -200,7 +224,9 @@
 
   (define (open-amqp-connection! conn . opts)
     (apply send-open-frame conn opts)
-    (recv-open-frame conn)
+    (let1 open (recv-open-frame conn)
+      (when (slot-bound? open 'max-frame-size)
+	(set! (~ conn 'frame-size) (~ open 'max-frame-size))))
     (when (eq? (~ conn 'state) :open-rcvd)
       (set! (~ conn 'state) :opened))
     conn)
@@ -212,26 +238,32 @@
        (write-amqp-data out msg))))
 
   ;; wrap with frame
-  (define (send-frame conn msg)
-    (let ((bv (amqp-value->bytevector msg))
+  (define (send-frame conn performative :optional (payload #vu8()))
+    (let ((bv (amqp-value->bytevector performative))
 	  (port (~ conn 'socket)))
       ;; TODO extra header
-      (put-u32 port (+ (bytevector-length bv) 8) (endianness big))
+      (put-u32 port (+ (bytevector-length bv) (bytevector-length payload) 8)
+	       (endianness big))
       (put-u8 port 2) ;; TODO DOF
       (put-u8 port 0) ;; AMQP frame
       (put-u16 port 0 (endianness big))
-      (put-bytevector port bv)))
+      (put-bytevector port bv)
+      (put-bytevector port payload)))
 
-  (define (recv-frame conn :key (debug #f))
+  ;; this won't receive payload, internal use only.
+  (define (recv-frame conn)
+    (let-values (((ext performative payload) (recv-frame&payload conn)))
+      (values ext performative)))
+  
+  (define (recv-frame&payload conn)
     (let1 port (~ conn 'socket)
       (let-values (((size dof type specific) (get-unpack port "!LCCS")))
 	(let* ((ext (get-bytevector-n port (- (* dof 4) 8)))
-	       (data (get-bytevector-n port (- size (* dof 4)))))
-	  (when debug 
-	    (display (pack "!LCCS" size dof type specific)) (newline)
-	    (display data) (newline))
-	  (values ext (read-amqp-data (open-bytevector-input-port data)))))))
-  
+	       (data (get-bytevector-n port (- size (* dof 4))))
+	       (in (open-bytevector-input-port data))
+	       (perfom (read-amqp-data in)))
+	  (values ext perfom (get-bytevector-all in))))))
+
   (define (generate-container-id)
     (format "Sagittarius-~a-~a"
 	    (sagittarius-version) 
@@ -280,12 +312,13 @@
      (next-outgoing-id :type transfer-number :mandatory #t)
      (incoming-window  :type :uint :mandatory #t)
      (outgoing-window  :type :uint :mandatory #t)
-     (handle-max       :type handle :default 4294967295)
+     (handle-max       :type handle :default +handle-max+)
      (offered-capabilities :type :symbol :multiple #t)
      (desired-capabilities :type :symbol :multiple #t)
      (properties       :type fields))
     :provides (frame))
 
+  ;; TODO ID must be unique per session...
   (define (begin-amqp-session! conn :key (id 0) 
 			     (incoming-window 512)
 			     (outgoing-window 512)
@@ -300,12 +333,16 @@
 			 :state :mapped
 			 :connection conn
 			 :remote-channel (~ begin 'remote-channel)
-			 :handle-max (~ begin 'handle-max)
-			 :next-outgoing-id (~ begin 'next-outgoing-id)
-			 :incoming-window (~ begin 'incoming-window)
-			 :outgoing-window (~ begin 'outgoing-window))
-	  ;; TODO add session to connection
-	  session))))
+			 :handle-max +handle-max+
+			 :next-incoming-id (~ begin 'next-outgoing-id)
+			 :remote-incoming-window (~ begin 'incoming-window)
+			 :remote-outgoing-window (~ begin 'outgoing-window))
+	  (if (vector-ref (~ conn 'remote-channels) (~ begin 'remote-channel))
+	      ;; like this?
+	      (error 'begin-amqp-session! "the channel is already open")
+	      (vector-set! (~ conn 'remote-channels)
+			   (~ begin 'remote-channel)
+			   session))))))
 
   (define-composite-type end amqp:end:list #x00000000 #x00000017
     ((error :type :error)))
@@ -342,15 +379,25 @@
 
   (define (attach-amqp-link! session name role source target . opts)
     ;; TODO dummy, compute handle properly
-    (define (compute-handle session) 1)
+    (define (compute-handle session)
+      (define handles (~ session 'local-handles))
+      (let loop ((i 0))
+	(cond ((= i +handle-max+) (error 'attach-amqp-link! "handle overflow"))
+	      ((not (vector-ref handles i)) i)
+	      (else (+ i 1)))))
+    (define (add-handle map handle link)
+      (vector-set! map handle link))
     (define conn (~ session 'connection))
-    (define (finish handle source target)
-      (let1 link (make (if role <amqp-receiver-link> <amqp-sender-link>)
-		   :name name :handle handle :role role
-		   :source source :target target
-		   :timeout #f ;; TODO
-		   :session session)
-	(flow-control link)))
+    (define (make-link attach handle)
+      (define source (~ attach 'source)) ;; must be there
+      (define target (if (slot-bound? attach 'target) (~ attach 'target) #f))
+      (rlet1 link (make (if role <amqp-receiver-link> <amqp-sender-link>)
+		    :name name :handle handle :role role
+		    :source source :target target
+		    :timeout #f ;; TODO
+		    :session session
+		    :state :attached)
+	(add-handle (~ session 'remote-handles) handle link)))
     (let* ((handle (compute-handle session))
 	   (attach (apply make-amqp-attach :name name
 			  :handle handle
@@ -361,12 +408,11 @@
 			  opts)))
       (send-frame conn attach)
       (let-values (((ext attach) (recv-frame conn)))
-	(if (slot-bound? attach 'target)
-	    (finish handle (~ attach 'source) (~ attach 'target))
-	    (let-values (((ext detach) (recv-frame conn)))
-	      (let1 detach (make-amqp-detach :handle handle :closed #t)
-		(send-frame conn detach)
-		(finish handle (~ attach 'source) #f)))))))
+	(let1 link (make-link attach handle)
+	  (if (slot-bound? attach 'target)
+	      (let-values (((ext flow) (recv-frame conn)))
+		(flow-control link flow))
+	      (detach-amqp-link! link))))))
 
   (define-composite-type transfer amqp:transfer:list #x00000000 #x00000014
     ((handle          :type handle :mandatory #t)
@@ -398,15 +444,28 @@
 
 
   (define (recv-flow-frame conn)
-    (let-values (((ext flow) (recv-frame conn :debug #t))) flow))
+    (let-values (((ext flow) (recv-frame conn))) flow))
   ;; well for may laziness...
-  (define-method flow-control ((link <amqp-sender-link>))
-    (let* ((conn (~ link 'session 'connection))
-	   ;; only target is there
-	   (flow (and (~ link 'target) (recv-flow-frame conn))))
+  ;; TODO this is not correct
+  (define-method flow-control ((link <amqp-sender-link>) flow)
+    (let* ((session (~ link 'session))
+	   (conn (~ session 'connection)))
       (when flow
-	;; TODO copy
-	(set! (~ link 'link-credit) (~ flow 'link-credit)))
+	;; session info
+	(let ((inext (if (slot-bound? flow 'next-incoming-id)
+			 (~ flow 'next-incoming-id)
+			 #f))
+	      (iwin (~ flow 'incoming-window)))
+	  (if inext
+	      (let1 iwin2 (- (+ inext iwin) (~ session 'next-outgoing-id))
+		(set! (~ session 'remote-next-incoming-id) inext)
+		(set! (~ session 'remote-incoming-window) iwin2))
+	      (set! (~ session 'remote-incoming-window) iwin))
+	  (set! (~ session 'remote-next-outgoint-id) (~ flow 'next-outgoing-id))
+	  (set! (~ session 'remote-outgoing-window) (~ flow 'outgoing-window)))
+	;; link info
+	(set! (~ link 'remote-link-credit) (~ flow 'link-credit))
+	(set! (~ link 'remote-delivery-count) (~ flow 'delivery-count)))
       (let1 flow (make-amqp-flow 
 		  ;; if the role is sender then this must be set
 		  :next-incoming-id 0
@@ -418,16 +477,28 @@
 		  :link-credit #x64)
 	(send-frame conn flow)
 	link)))
-  (define-method flow-control ((link <amqp-receiver-link>))
+  (define-method flow-control ((link <amqp-receiver-link>) flow)
     )
 
   (define (detach-amqp-link! link :key error)
-    (let ((detach (make-amqp-detach :handle (~ link 'handle) :closed #t
-				    :error error))
-	  (conn (~ link 'session 'connection)))
-      (send-frame conn detach)
-      ;; receive detach
-      (recv-frame conn)
-      link))
+    (define (free-handle handle map) (vector-set! map handle #f))
+    ;; TODO should we raise an error if the link is already detached?
+    (unless (eq? (~ link 'state) :detached)
+      (let ((detach (make-amqp-detach :handle (~ link 'handle) :closed #t
+				      :error error))
+	    (conn (~ link 'session 'connection)))
+	(send-frame conn detach)
+	(free-handle (~ link 'handle) (~ link 'session 'local-handles))
+	;; receive detach
+	(let-values (((ext detach) (recv-frame conn)))
+	  (free-handle (~ detach 'handle) (~ link 'session 'remote-handles)))
+	(set! (~ link 'state) :detached)))
+    link)
+
+  ;; transfer
+  (define (send-transfer link message-format message)
+    
+
+    )
       
   )

@@ -32,8 +32,9 @@
 ;; http://docs.oasis-open.org/amqp/core/v1.0/os/amqp-core-messaging-v1.0-os.html
 
 (library (net mq amqp messaging)
-    (export source make-amqp-source amqp-source?
-	    target make-amqp-target amqp-target?)
+    (export make-amqp-source amqp-source?
+	    make-amqp-target amqp-target?
+	    address-string)
     (import (except (rnrs) fields)
 	    (sagittarius)
 	    (net mq amqp types)
