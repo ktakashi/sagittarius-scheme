@@ -1,4 +1,4 @@
-;; -*- scheme -*-
+;; -*- mode:scheme; coding:utf-8; -*-
 #!compatible
 
 (import (rnrs)
@@ -93,5 +93,17 @@
 	     (lambda (out) 
 	       (json-write (json-read (open-string-input-port "null"))
 			   out))))
+
+;; surrogate pair
+;; The character may not be shown on Emacs 
+(define-syntax test-surrogate
+  (syntax-rules ()
+    ((_ name e s)
+     (test-equal name e (json-read (open-string-input-port s))))))
+(test-surrogate "surrogate pairs(1)" "\x29e3d;" "\"\\ud867\\ude3d\"")
+(test-surrogate "surrogate pairs(2)" "\x10000;" "\"\\ud800\\udc00\"")
+(test-surrogate "surrogate pairs(3)" "\x1d11e;" "\"\\ud834\\udd1e\"")
+(test-surrogate "surrogate pairs(4)" "\x10fffd;" "\"\\udbff\\udffd\"")
+
 
 (test-end)
