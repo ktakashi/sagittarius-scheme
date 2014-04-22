@@ -45,6 +45,7 @@
   (define-restricted-type node-properties        fields)
   (define-restricted-type filter-set             :map)
   (define-restricted-type address-string  :string :provides (address))
+  (define-restricted-type annotations            :map)
 
   ;; terminus-durability
   (define-constant +amqp-none+            0)
@@ -100,5 +101,17 @@
      (message-annotations :type fields))
     :provides (delivery-state outcome))
   
-  
+  ;; 3.2.1 Header
+  (define-composite-type header amqp:header:list #x00000000 #x00000070
+    ((durable  :type :boolean :default #f)
+     (priority :type :ubyte   :default 4)
+     (ttl      :type milliseconds)
+     (first-aquirer :type :boolean :default #f)
+     (delivery-count :type :uint :default 0))
+    :provides (section))
+
+  (define-restricted-type delivery-annotations annotations
+    :provides (section)
+    :descriptor (amqp:footer:map #x00000000 #x00000078))
+
 )

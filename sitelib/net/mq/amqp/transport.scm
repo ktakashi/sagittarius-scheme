@@ -46,6 +46,7 @@
 	    +amqp-receiver+
 	    ;; these are used in other messaging or so
 	    seconds
+	    milliseconds
 	    fields
 
 	    ;; needs in upper layer
@@ -418,7 +419,7 @@
   (define-composite-type transfer amqp:transfer:list #x00000000 #x00000014
     ((handle          :type handle :mandatory #t)
      (delivery-id     :type delivery-number)
-     (delivery-tag    :type delivery-number)
+     (delivery-tag    :type delivery-tag)
      (message-format  :type message-format)
      (settled         :type :boolean)
      (more            :type :boolean :default #f)
@@ -428,6 +429,14 @@
      (aborted         :type :boolean :default #f)
      (batchable       :type :boolean :default #f))
     :provides (frame))
+
+  (define-composite-type disposition amqp:disposition:list #x00000000 #x00000015
+    ((role :type role :mandatory #t)
+     (first :type delivery-number :mandatory #t)
+     (last :type delivery-number)
+     (settled :type :boolean :default #f)
+     (state :type :* :requires 'delivery-state)
+     (batchable :type :boolean :default #f)))
 
   (define-composite-type flow amqp:flow:list #x00000000 #x00000013
     ((next-incoming-id :type transfer-number)
@@ -499,9 +508,10 @@
   ;; transfer
   ;; state will be resolved by option
   (define (send-transfer link message-format message . opt)
-    (let ((tag (bytevector->integer (read-sys-random 8)))
+    (let ((tag (read-sys-random 8))
 	  (id  (bytevector->integer (read-sys-random 8)))
-	  (frame-size (~ link 'session 'connection 'frame-size)))
+	  (frame-size (~ link 'session 'connection 'frame-size))
+	  (conn (~ link 'session 'connection)))
       ;; can be sen in one go
       (if (< (bytevector-length message) (- frame-size 512))
 	  (let1 transfer (apply make-amqp-transfer 
@@ -509,8 +519,13 @@
 				:delivery-id id
 				:delivery-tag tag
 				:message-format message-format
+				;; TODO I think this is not right.
+				:settled #t
+				:more #f
 				opt)
-	    (send-frame (~ link 'session 'connection) transfer message))
+	    (send-frame conn transfer message)
+	    (let-values (((ext flow) (recv-frame conn)))
+	      (flow-control link flow)))
 	  (error 'send-transfer "not supported yet"))))
 	
   )

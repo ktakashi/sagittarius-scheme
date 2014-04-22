@@ -336,15 +336,28 @@
     (lambda (x)
       (define (class-name name)
 	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (define (descriptor opts)
+	(or (and-let* ((d (get-keyword :descriptor opts #f)))
+	      (list (car d)
+		    (bitwise-ior
+		     (bitwise-arithmetic-shift-left (syntax->datum (cadr d)) 32)
+		     (syntax->datum (caddr d)))))
+	    '(#f #f)))
       (syntax-case x ()
-	((_ name value . opts)
+	((k name value . opts)
 	 (with-syntax ((class (datum->syntax #'k (class-name #'name)))
 		       ((provides ...) (datum->syntax #'k
-					(get-keyword :provides #'opts '()))))
+					(get-keyword :provides #'opts '())))
+		       ((dn dc) (datum->syntax #'k (descriptor #'opts))))
 	   #'(begin
 	       (define-class class (<amqp-type>) ()
-		 :provides '(provides ...))
-	       (define name value)))))))
+		 :provides '(provides ...)
+		 :descriptor-name 'dn
+		 :descriptor-code dc)
+	       (define name 
+		 (let ()
+		   (when dc (add-class-entry! class 'dn dc))
+		   value))))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
