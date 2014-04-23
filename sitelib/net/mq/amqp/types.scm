@@ -134,6 +134,14 @@
     (define (construct-composite descriptor compound)
       (define (get-type slot) (slot-definition-option slot :type))
       (define (get-requires slot) (slot-definition-option slot :requires #f))
+      (define (multiple? slot) (slot-definition-option slot :multiple #f))
+      (define (value-type? class array)
+	(let1 vals (scheme-value array)
+	  (eq? (class-of (vector-ref vals 0)) class)))
+      (define (safe-scheme-value v)
+	(if (slot-bound? v 'value)
+	    (scheme-value v)
+	    v))
       (let* ((code (scheme-value descriptor))
 	     ;; must be either symbol or ulong
 	     (class (hashtable-ref (if (symbol? code)
@@ -148,15 +156,26 @@
 			    (class (class-of value)))
 			;; mandatory element can be in between
 			;; non mandatory elements, so check the type.
-			(cond ((eq? (hashtable-ref *type/class-table* type #f) 
-				    class)
-			       (set! (~ o name) (scheme-value value)))
-			      ((and (eq? type :*)
-				    (memq (get-requires slot)
-					  (~ class 'provides)))
-			       (set! (~ o name) value)))))
-	   (class-direct-slots class)
-	   (scheme-value compound)))))
+			(let1 type-class 
+			    (hashtable-ref *type/class-table* type #f)
+			  (cond ((eq? type-class class)
+				 (set! (~ o name) (scheme-value value)))
+				((and (multiple? slot)
+				      (is-a? value <amqp-array>)
+				      (value-type? type-class value))
+				 ;; the composite value is Scheme class
+				 ;; so we only need to do with primitives
+				 ;; this is sort of awkward though...
+				 (set! (~ o name)
+				       (map safe-scheme-value
+					    (vector->list 
+					     (scheme-value value)))))
+				((and (eq? type :*)
+				      (memq (get-requires slot)
+					    (~ class 'provides)))
+				 (set! (~ o name) value))))))
+		    (class-direct-slots class)
+		    (scheme-value compound)))))
     (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
 	  (construct-composite descriptor (read-data (get-u8 in) in))

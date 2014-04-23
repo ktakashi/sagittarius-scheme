@@ -176,4 +176,11 @@
 	      (call-with-bytevector-output-port 
 	       (lambda (out) (write-amqp-data out book)))))
 
+(let ((book (read-amqp-data (open-bytevector-input-port book-bv))))
+  (test-assert "amqp-book?" (amqp-book? book))
+  (test-equal "title" "AMQP for & by Dummies" (slot-ref book 'title))
+  (test-equal "authors" '("Rob J. Godfrey" "Rafael H. Schloming")
+	      (slot-ref book 'authors))
+  (test-assert "isbn" (not (slot-bound? book 'isbn))))
+
 (test-end)
