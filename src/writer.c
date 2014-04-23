@@ -614,7 +614,7 @@ static int symbol_need_bar(const SgChar *s, int n)
       if (c & 0x80) continue;
 	  if (c >= 0xFF) return TRUE;
       if (isalnum(c)) continue;
-      if (strchr("|!$%&/:*<=>?^_~+-.@", (char)c)) continue;
+      if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
       return TRUE;
     }
     return FALSE;
@@ -1377,8 +1377,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
     }
     Sg_PutcUnsafe(port, '|');
     return;
-  } else {
-    if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
+  } else if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
       for (q = p; q < p + size; q++) {
 	SgChar ch = *q;
 	if ((q == p && Sg_Ucs4ConstituentP(ch)) ||
@@ -1406,10 +1405,10 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 	  Sg_PutzUnsafe(port, buf);
 	}
       }
-    } else {
-      Sg_PutsUnsafe(port, snam);
-    }
+  } else {
+    Sg_PutsUnsafe(port, snam);
   }
+  
   SG_PORT_UNLOCK(port);
 }
 

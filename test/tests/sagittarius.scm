@@ -1120,6 +1120,8 @@
 ;; issue 164
 (test-equal "hex escape on R6RS mode" (string->symbol "foo bar")
 	    (read (open-string-input-port "#!r6rs foo\\x20;bar")))
+;; reset VM mode
+#!compatible
 
 ;; some of the compiler optimisation stuff
 (test-error "obvious error (1)" condition? ((lambda () (vector-length 'a) 'ng)))
@@ -1213,5 +1215,10 @@
 			   (apply append! (list `(keys ,names) ...))))))))
 	      (define-key test (a b c) 'ignore)
 	      (test)))
+
+;; call #19
+(test-equal "escape vertical" "|\\||" 
+	    (call-with-string-output-port 
+	     (lambda (out) (write '|\|| out))))
 
 (test-end)
