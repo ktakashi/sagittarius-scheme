@@ -426,9 +426,17 @@
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
+    (when (< k 0) 
+      (wrong-type-of-argument-violation 'make-equal-hashtable 
+					"non negative exact integer"
+					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k)))
 
   (define-c-proc make-string-hashtable (:optional (k::<fixnum> 200))
+    (when (< k 0) 
+      (wrong-type-of-argument-violation 'make-string-hashtable 
+					"non negative exact integer"
+					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableSimple SG_HASH_STRING k)))
 
   (define-c-proc hashtable-keys-list (ht::<hashtable>) Sg_HashTableKeys)

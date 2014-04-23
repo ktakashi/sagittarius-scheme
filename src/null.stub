@@ -3244,13 +3244,25 @@
   ;; 13 Hashtables
   ;; 13.1 constructors
   (define-c-proc make-eq-hashtable (:optional (k::<fixnum> 200)) 
+    (when (< k 0) 
+      (wrong-type-of-argument-violation 'make-eq-hashtable 
+					"non negative exact integer"
+					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableSimple SG_HASH_EQ k)))
 
   (define-c-proc make-eqv-hashtable (:optional (k::<fixnum> 200)) 
+    (when (< k 0) 
+      (wrong-type-of-argument-violation 'make-eqv-hashtable 
+					"non negative exact integer"
+					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableSimple SG_HASH_EQV k)))
 
   (define-c-proc make-hashtable
     (hasher::<procedure> equiv::<procedure> :optional (k::<fixnum> 200)) 
+    (when (< k 0) 
+      (wrong-type-of-argument-violation 'make-hashtable 
+					"non negative exact integer"
+					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableForScheme hasher equiv k)))
 
   ;; 13.2 procedures
