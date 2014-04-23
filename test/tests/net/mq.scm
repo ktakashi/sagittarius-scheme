@@ -131,6 +131,41 @@
 					   (->amqp-value :symbol 'bbb)
 					   (->amqp-value :symbol 'ccc)))))))
 
+(let ((ht (make-eq-hashtable))
+      (bv #vu8(#xC1 37 6 
+		    #xA3 4 107 101 121 49
+		    #xA1 4 118 97 108 49
+		    #xA3 4 107 101 121 50
+		    #xA1 4 118 97 108 50
+		    #xA3 4 107 101 121 51
+		    #xA1 4 118 97 108 51)))
+  (define (read-map bv)
+    (list-sort
+     (lambda (al bl) (string<? (cdr al) (cdr bl)))
+     (map (lambda (p)
+	    (cons (scheme-value (car p))
+		  (scheme-value (cdr p))))
+	  (hashtable->alist 
+	   (scheme-value
+	    (read-amqp-data (open-bytevector-input-port bv)))))))
+  (hashtable-set! ht (->amqp-value :symbol 'key1)
+		  (->amqp-value :string "val1"))
+  (hashtable-set! ht (->amqp-value :symbol 'key2)
+		  (->amqp-value :string "val2"))
+  (hashtable-set! ht (->amqp-value :symbol 'key3)
+		  (->amqp-value :string "val3"))
+  
+  ;; map
+  (test-equal ":map (read)"
+	      '((key1 . "val1") (key2 . "val2") (key3 . "val3"))
+	      (read-map bv))
+  ;; comparing by bytevector won't be equal for current implementation
+  (test-equal ":map (write)"
+	      '((key1 . "val1") (key2 . "val2") (key3 . "val3"))
+	      (read-map 
+	       (call-with-bytevector-output-port
+		(lambda (out)
+		  (write-primitive-amqp-data out :map ht))))))
 
 ;; composite
 (define-composite-type book example:book:list #x00000003 #x00000002

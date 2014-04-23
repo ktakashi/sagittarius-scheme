@@ -540,7 +540,7 @@
 	 (for-each (cut write-amqp-data out <>) lst))))
     (let ((bv (write-list lst))
 	  (len (length lst)))
-      (if (> (count-aprox lst) 255)
+      (if (> (bytevector-length bv) 255)
 	  (begin 
 	    (put-u32 out (+ (bytevector-length bv) 4) (endianness big))
 	    (put-u32 out len (endianness big)))
@@ -576,7 +576,30 @@
      (#xD0 (read-amqp-list 4) write-amqp-list
 	   (lambda (o) (> (count-aprox o) 255)))))
 
-  ;; TODO map
+  (define (read-amqp-map size)
+    (lambda (data)
+      (let* ((ls ((read-amqp-list size) data))
+	     (len (length ls))
+	     (ht (make-eq-hashtable len)))
+	(unless (even? len) (error 'read-amqp-map "uneven list" ls))
+	(let loop ((ls ls))
+	  (if (null? ls)
+	      ht
+	      (let ((key (car ls)) (val (cadr ls)))
+		(hashtable-set! ht key val)
+		(loop (cddr ls))))))))
+
+  (define (write-amqp-map out m)
+    (write-amqp-list out (fold-right cons* '()
+				     (hashtable-keys-list m)
+				     (hashtable-values-list m))))
+
+  (define-primitive-type :map
+    ((#xC1 (read-amqp-map 1) write-amqp-map) 
+     (#xD1 (read-amqp-map 4) write-amqp-map
+	   (lambda (o) (> (+ (count-aprox (hashtable-keys-list o))
+			     (count-aprox (hashtable-values-list o)))
+			  255)))))
 
   (define (read-amqp-array size)
     (lambda (data)
@@ -630,7 +653,7 @@
 		    (loop (cdr slots))))))))
     (let-values (((code type bv) (write-array array)))
       (let1 len (vector-length array)
-	(if (> (count-aprox (vector->list array)) 255)
+	(if (> (bytevector-length bv) 255)
 	    (begin 
 	      (put-u32 out (+ (bytevector-length bv)
 			      (bytevector-length type) 
