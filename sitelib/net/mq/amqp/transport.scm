@@ -233,12 +233,6 @@
       (set! (~ conn 'state) :opened))
     conn)
 
-  ;; should this be in type?
-  (define (amqp-value->bytevector msg)
-    (call-with-bytevector-output-port
-     (lambda (out)
-       (write-amqp-data out msg))))
-
   ;; wrap with frame
   (define (send-frame conn performative :optional (payload #vu8()))
     (let ((bv (amqp-value->bytevector performative))

@@ -198,7 +198,7 @@
 	 #x13 82 97 102 97 101 108 32 72 46 32 83 99 104 108 111 109 105 110 103
        #x40))
 
-;; TODO read test
+;; TODO more tests
 (let ((book (make-amqp-book 
 	     :title "AMQP for & by Dummies"
 	     :authors '("Rob J. Godfrey" "Rafael H. Schloming"))))
@@ -217,5 +217,24 @@
   (test-equal "authors" '("Rob J. Godfrey" "Rafael H. Schloming")
 	      (slot-ref book 'authors))
   (test-assert "isbn" (not (slot-bound? book 'isbn))))
+
+;; restricted with descriptor
+(define-restricted-type ext-list :list
+  :descriptor (ext:list #x00 #xF1))
+
+(let ((bv (bytevector-append #vu8(#x00 #x53 #xF1)
+			     (amqp-primitive-value->bytevector
+			      :list
+			      (list (->amqp-value :ubyte 1)
+				    (->amqp-value :string "a")
+				    (->amqp-value :symbol 'a))))))
+  (test-assert "read (ext-list)" (bytevector->amqp-value bv))
+  (let ((el (bytevector->amqp-value bv)))
+    (test-assert "amqp-list" (amqp-list? (scheme-value el)))
+    (test-equal "write (ext-list)" bv (amqp-value->bytevector el)))
+  (let ((bv2 (bytevector-append #vu8(#x00 #x53 #xF1)
+				(amqp-primitive-value->bytevector :symbol 'a))))
+    (test-error "read error (ext-list)" condition? 
+		(bytevector->amqp-value bv2))))
 
 (test-end)

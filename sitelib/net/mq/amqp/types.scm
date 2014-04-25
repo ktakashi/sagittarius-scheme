@@ -36,9 +36,35 @@
 	    write-amqp-data
 	    ;; null is the special value for now...
 	    +amqp-null+ amqp-null?
+	    ;; primitive predicates
+	    amqp-boolean?
+	    amqp-ubyte?
+	    amqp-ushort?
+	    amqp-uint?
+	    amqp-ulong?
+	    amqp-byte?
+	    amqp-short?
+	    amqp-int?
+	    amqp-long?
+	    amqp-float?
+	    amqp-double?
+	    amqp-char?
+	    amqp-timestamp?
+	    amqp-uuid?
+	    amqp-binary?
+	    amqp-string?
+	    amqp-symbol?
+	    amqp-list?
+	    amqp-map?
+	    amqp-array?
 	    ->amqp-value
 	    define-composite-type
 	    define-restricted-type
+	    ;; utilities
+	    amqp-value->bytevector
+	    amqp-primitive-value->bytevector
+	    ;; we don't need read-amqp-primitive-data :)
+	    bytevector->amqp-value
 	    ;; for testing
 	    write-primitive-amqp-data
 	    scheme-value)
@@ -135,9 +161,9 @@
       (define (get-type slot) (slot-definition-option slot :type))
       (define (get-requires slot) (slot-definition-option slot :requires #f))
       (define (multiple? slot) (slot-definition-option slot :multiple #f))
-      (define (value-type? class array)
+      (define (values-type? class array)
 	(let1 vals (scheme-value array)
-	  (eq? (class-of (vector-ref vals 0)) class)))
+	  (is-a? (vector-ref vals 0) class)))
       (define (safe-scheme-value v)
 	(if (slot-bound? v 'value)
 	    (scheme-value v)
@@ -150,32 +176,46 @@
 				   code #f)))
 	(unless class (error 'read-amqp-data "not supported" code compound))
 	(rlet1 o (make class)
-	  (for-each (lambda (slot value)
-		      (let ((name (slot-definition-name slot))
-			    (type (get-type slot))
-			    (class (class-of value)))
-			;; mandatory element can be in between
-			;; non mandatory elements, so check the type.
-			(let1 type-class 
-			    (hashtable-ref *type/class-table* type #f)
-			  (cond ((eq? type-class class)
-				 (set! (~ o name) (scheme-value value)))
-				((and (multiple? slot)
-				      (is-a? value <amqp-array>)
-				      (value-type? type-class value))
-				 ;; the composite value is Scheme class
-				 ;; so we only need to do with primitives
-				 ;; this is sort of awkward though...
-				 (set! (~ o name)
-				       (map safe-scheme-value
-					    (vector->list 
-					     (scheme-value value)))))
-				((and (eq? type :*)
-				      (memq (get-requires slot)
-					    (~ class 'provides)))
-				 (set! (~ o name) value))))))
-		    (class-direct-slots class)
-		    (scheme-value compound)))))
+	  ;; if the class is restricted? means this type has a descriptor.
+	  ;; a simple redefinition of type doesn't have it so that
+	  ;; it won't reach here
+	  ;; e.g.) second
+	  (if (~ class 'restricted)
+	      ;; check type
+	      (let1 type (~ class 'restricted)
+		(if (or (eq? type :*) ;; anything is ok
+			(is-a? compound (hashtable-ref *type/class-table* type)))
+		    (set! (~ o 'value) compound)
+		    (error 'read-amqp-data 
+			   (format "restricted type ~a requires ~a value"
+				   (~ class 'descriptor-name) type)
+			   compound)))
+	      (for-each (lambda (slot value)
+			  (let ((name (slot-definition-name slot))
+				(type (get-type slot))
+				(class (class-of value)))
+			    ;; mandatory element can be in between
+			    ;; non mandatory elements, so check the type.
+			    (let1 type-class 
+				(hashtable-ref *type/class-table* type #f)
+			      (cond ((eq? type-class class)
+				     (set! (~ o name) (scheme-value value)))
+				    ((and (multiple? slot)
+					  (is-a? value <amqp-array>)
+					  (values-type? type-class value))
+				     ;; the composite value is Scheme class
+				     ;; so we only need to do with primitives
+				     ;; this is sort of awkward though...
+				     (set! (~ o name)
+					   (map safe-scheme-value
+						(vector->list 
+						 (scheme-value value)))))
+				    ((and (eq? type :*)
+					  (memq (get-requires slot)
+						(~ class 'provides)))
+				     (set! (~ o name) value))))))
+			(class-direct-slots class)
+			(scheme-value compound))))))
     (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
 	  (construct-composite descriptor (read-data (get-u8 in) in))
@@ -208,7 +248,6 @@
 				 ":* type value must be AMQP type value"))
 		      (->amqp-value type vv))))
 	    +amqp-null+)))
-    
     (cond ((hashtable-ref *primitive-type-table* type #f)
 	   => (lambda (slots)
 		(let loop ((slots slots))
@@ -234,8 +273,10 @@
 		  (put-u8 out #x00) ;; mark for compoisite
 		  ;;(write-primitive-amqp-data out :symbol descriptor-name)
 		  (write-primitive-amqp-data out :ulong descriptor-code)
-		  (write-primitive-amqp-data out :list 
-		    (map (cut ->list-value v <>) slots)))))
+		  (if (~ class 'restricted) ;; need special treatment
+		      (write-amqp-data out (scheme-value v))
+		      (write-primitive-amqp-data out :list 
+			 (map (cut ->list-value v <>) slots))))))
 	  (else
 	   (error 'write-primitive-amqp-data 
 		  "given type is not supported" type v))))
@@ -244,16 +285,19 @@
     (if (amqp-null? v) ;; a bit special case
 	(write-primitive-amqp-data out :null v)
 	(let ((class (class-of v)))
-	  (cond ((hashtable-ref *class/type-table* class #f)
+	  (cond ((~ class 'restricted) ;; need special treatment
+		 (write-primitive-amqp-data out class v))
+		((hashtable-ref *class/type-table* class #f)
 		 => (cut write-primitive-amqp-data out <> (scheme-value v)))
 		(else
 		 (error 'write-amqp-data "unsupported value" v))))))
 
   ;; do with inefficient way...
   (define-class <amqp-meta> (<class>)
-    ((provides        :init-keyword :provides       :init-value #f)
+    ((provides        :init-keyword :provides        :init-value #f)
      (descriptor-name :init-keyword :descriptor-name :init-value #f)
-     (descriptor-code :init-keyword :descriptor-code :init-value 0)))
+     (descriptor-code :init-keyword :descriptor-code :init-value 0)
+     (restricted      :init-keyword :restricted      :init-value #f)))
   (define-class <amqp-type> ()
     ((value :init-keyword :value :reader scheme-value))
     :metaclass <amqp-meta>)
@@ -282,8 +326,20 @@
     (lambda (x)
       (define (class-name name)
 	(string->symbol (format "<amqp-~a>" (syntax->datum name))))
+      (define (pred-name name)
+	(string->symbol (format "amqp-~a?" (syntax->datum name))))
       (syntax-case x ()
 	((k name pattern)
+	 (with-syntax ((class (datum->syntax #'k (class-name #'name)))
+		       (pred (datum->syntax #'k (pred-name #'name))))
+	   #'(begin
+	       (define-amqp-class class)
+	       (define (pred o) (is-a? o class))
+	       (define-method ->amqp-value ((type (eql name)) o)
+		 (make class :value o))
+	       (%define-primitive-type name class pattern))))
+	;; FIXME merge it...
+	((k name pattern :no-predicate)
 	 (with-syntax ((class (datum->syntax #'k (class-name #'name))))
 	   #'(begin
 	       (define-amqp-class class)
@@ -363,7 +419,7 @@
 		     (syntax->datum (caddr d)))))
 	    '(#f #f)))
       (syntax-case x ()
-	((k name value . opts)
+	((k name v . opts)
 	 (with-syntax ((class (datum->syntax #'k (class-name #'name)))
 		       ((provides ...) (datum->syntax #'k
 					(get-keyword :provides #'opts '())))
@@ -372,11 +428,12 @@
 	       (define-class class (<amqp-type>) ()
 		 :provides '(provides ...)
 		 :descriptor-name 'dn
-		 :descriptor-code dc)
+		 :descriptor-code dc
+		 :restricted v)
 	       (define name 
 		 (let ()
 		   (when dc (add-class-entry! class 'dn dc))
-		   value))))))))
+		   v))))))))
 
   (define (write-nothing out v))
   (define (write/condition pred writer)
@@ -393,8 +450,20 @@
     (display "#<amqp-null>" out))
   (define (amqp-null? o) (is-a? o <amqp-null-value>))
 
+  (define (amqp-value->bytevector msg)
+    (call-with-bytevector-output-port
+     (lambda (out)
+       (write-amqp-data out msg))))
+  (define (amqp-primitive-value->bytevector type msg)
+    (call-with-bytevector-output-port
+     (lambda (out)
+       (write-primitive-amqp-data out type msg))))
+  (define (bytevector->amqp-value bv)
+    (read-amqp-data (open-bytevector-input-port bv)))
+
   (define-primitive-type :null
-    ((#x40 (lambda (data) +amqp-null+) write-nothing)))
+    ((#x40 (lambda (data) +amqp-null+) write-nothing))
+    :no-predicate)
   (define-primitive-type :boolean
     ((#x56 (lambda (data) 
 	     (let ((v (bytevector-u8-ref data 0)))
