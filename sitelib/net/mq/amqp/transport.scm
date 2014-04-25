@@ -48,7 +48,7 @@
 	    seconds
 	    milliseconds
 	    fields
-
+	    sequence-no
 	    ;; needs in upper layer
 	    send-frame
 	    (rename (recv-frame&payload recv-frame))

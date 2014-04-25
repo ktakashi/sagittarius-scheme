@@ -22,7 +22,10 @@
        (test-equal (format "write(~a:~a:~a)" type bvv vv) e
 		   (call-with-bytevector-output-port
 		    (lambda (out)
-		      (write-primitive-amqp-data out type vv))))))))
+		      (write-primitive-amqp-data out type vv))))
+       (test-assert (format "compare(~a)" type)
+		    (equal? (->amqp-value type vv)
+			    (->amqp-value type vv)))))))
 
 (test-primitive :null    #vu8(#x40) +amqp-null+)
 (test-primitive :boolean #vu8(#x41) #t)

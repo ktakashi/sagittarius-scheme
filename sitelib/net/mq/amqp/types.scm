@@ -305,6 +305,30 @@
     (syntax-rules ()
       ((_ name) (define-class name (<amqp-type>) ()))))
 
+  ;; this is for map type
+  (define-method object-equal? ((a <amqp-type>) (b <amqp-type>))
+    (define (safe-ref a slot)
+      (let ((name (slot-definition-name slot)))
+	(if (slot-bound? a name)
+	    (~ a name)
+	    +amqp-null+)))
+    (or (eq? a b) ;; easy case
+	(let ((class-a (class-of a))
+	      (class-b (class-of b)))
+	  (and (eq? class-a class-b)
+	       (if (or (~ class-a 'restricted)
+		       (not (~ class-a 'descriptor-name)))
+		   (equal? (scheme-value a) (scheme-value b))
+		   ;; ok this must be composite then compare the slots
+		   (let loop ((a-slots (class-direct-slots class-a))
+			      (b-slots (class-direct-slots class-b)))
+		     (or (null? a-slots)
+			 (let ((va (safe-ref a (car a-slots)))
+			       (vb (safe-ref b (car b-slots))))
+			   (and (or (eq? va vb)
+				    (equal? va vb))
+				(loop (cdr a-slots) (cdr b-slots)))))))))))
+  
   (define-syntax %define-primitive-type
     (syntax-rules ()
       ((_ name class ((code reader writer)))
@@ -649,7 +673,7 @@
     (lambda (data)
       (let* ((ls ((read-amqp-list size) data))
 	     (len (length ls))
-	     (ht (make-eq-hashtable len)))
+	     (ht (make-equal-hashtable len)))
 	(unless (even? len) (error 'read-amqp-map "uneven list" ls))
 	(let loop ((ls ls))
 	  (if (null? ls)

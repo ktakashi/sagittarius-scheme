@@ -34,9 +34,27 @@
 (library (net mq amqp messaging)
     (export make-amqp-source amqp-source?
 	    make-amqp-target amqp-target?
-	    address-string)
+	    address-string
+	    ;; utility
+	    annotation-set!
+	    annotation-ref
+	    annotation-delete!
+	    ;; for testing
+	    make-amqp-header
+	    <amqp-delivery-annotations>
+	    <amqp-message-annotations>
+	    make-amqp-properties
+	    make-amqp-application-properties
+	    <amqp-data>
+	    <amqp-amqp-sequence>
+	    make-amqp-amqp-value
+	    <amqp-footer>
+	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
+	    (sagittarius object)
+	    (clos user)
+	    (clos core)
 	    (net mq amqp types)
 	    (net mq amqp transport))
 
@@ -110,8 +128,82 @@
      (delivery-count :type :uint :default 0))
     :provides (section))
 
+  ;; 3.2.2 Delivery Annotations
   (define-restricted-type delivery-annotations annotations
+    :provides (section)
+    :descriptor (amqp:delivery-annotations:map #x00000000 #x00000071))
+
+  ;; 3.2.3 Message Annotations
+  (define-restricted-type message-annotations annotations
+    :provides (section)
+    :descriptor (amqp:message-annotations:map #x00000000 #x00000072))
+
+  ;; 3.2.4 Properties
+  (define-composite-type properties amqp:properties:list #x00000000 #x00000073
+    ((message-id :type :* :requires 'message-id)
+     (user-id :type :binary)
+     (to :type :* :requires 'address)
+     (subject :type :string)
+     (reply-to :type :* :requires 'address)
+     (correlation-id :type :* :requires 'address)
+     (content-type :type :symbol)
+     (content-encoding :type :symbol)
+     (absolute-expiry-time :type :timestamp)
+     (creation-time :type :timestamp)
+     (group-id :type :string)
+     (group-sequence :type sequence-no)
+     (reply-to-group-id :type :string)))
+
+  ;; 3.2.5 Application Properties
+  (define-restricted-type application-properties :map
+    :provides (section)
+    :descriptor (amqp:application-properties:map #x00000000 #x00000074))
+
+  (define (make-amqp-application-properties)
+    (make <amqp-application-properties> 
+      :value (->amqp-value :map (make-equal-hashtable))))
+
+  ;; 3.2.6 Data
+  (define-restricted-type data :binary
+    :provides (section)
+    :descriptor (amqp:data:binary #x00000000 #x00000075))
+
+  ;; 3.2.7 Amqp Sequence
+  (define-restricted-type amqp-sequence :list
+    :provides (section)
+    :descriptor (amqp:amqp-sequence:list #x00000000 #x00000076))
+
+  ;; 3.2.8 Amqp Value
+  (define-restricted-type amqp-value :*
+    :provides (section)
+    :descriptor (amqp:amqp-value:* #x00000000 #x00000077))
+  (define (make-amqp-amqp-value value)
+    (make <amqp-amqp-value> :value value))
+
+  ;; 3.2.9 Footer
+  (define-restricted-type footer annotations
     :provides (section)
     :descriptor (amqp:footer:map #x00000000 #x00000078))
 
+  ;; utilities
+  (define (annotation-set! annot key value)
+    (let* ((class (class-of annot))
+	   (type (~ class 'restricted)))
+      (unless (eq? type :map)
+	(error 'annotation-set! "amqp-annotation required" annot))
+      (hashtable-set! (scheme-value (scheme-value annot)) key value)))
+
+  (define (annotation-ref annot key)
+    (let* ((class (class-of annot))
+	   (type (~ class 'restricted)))
+      (unless (eq? type :map)
+	(error 'annotation-ref "amqp-annotation required" annot))
+      (hashtable-ref (scheme-value (scheme-value annot)) key)))
+
+  (define (annotation-delete! annot key)
+    (let* ((class (class-of annot))
+	   (type (~ class 'restricted)))
+      (unless (eq? type :map)
+	(error 'annotation-delete! "amqp-annotation required" annot))
+      (hashtable-delete! (scheme-value (scheme-value annot)) key)))
 )
