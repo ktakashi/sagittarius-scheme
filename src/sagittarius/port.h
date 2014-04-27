@@ -265,11 +265,8 @@ struct SgPortRec
   unsigned int error  	   : 1;
 
   /* for saved flags */
-  unsigned int vmFlags;
   readtable_t *readtable;
   SgObject     reader;
-  SgObject     loadPath;
-  SgObject     previousPort;
   SgObject     data;		/* alist of port data */
 
   SgInternalMutex lock;

@@ -72,6 +72,7 @@ extern void Sg__InitRegex();
 extern void Sg__InitUnicode();
 extern void Sg__InitMacro();
 extern void Sg__InitSystem();
+extern void Sg__InitReaderClass();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -129,6 +130,7 @@ void Sg_Init()
   Sg__InitVM();
   /* init clos uses findlibrary. so after VM */
   Sg__InitClos();
+  Sg__InitReaderClass();
   Sg__InitMacro();
   /* port must be after VM to replace std ports. */
   Sg__InitPort();

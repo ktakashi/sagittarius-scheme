@@ -100,6 +100,33 @@ static void sref_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SharedRefClass, sref_print);
 
+/* TODO, we probably want to have slot access */
+static void rctx_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_PutuzUnsafe(port, UC("#<read-context>"));
+}
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ReadContextClass, rctx_print);
+
+static SgReadContext * make_read_context()
+{
+  SgReadContext *ctx = SG_NEW(SgReadContext);
+  SG_SET_CLASS(ctx, SG_CLASS_READ_CONTEXT);
+  return ctx;
+}
+
+SgObject Sg_MakeDefaultReadContext()
+{
+  return SG_OBJ(make_read_context);
+}
+
+SgObject Sg_MakeReadContextForLoad()
+{
+  SgReadContext *ctx = make_read_context();
+  ctx->flags = SG_READ_SOURCE_INFO | SG_CHANGE_VM_MODE;
+  ctx->graph = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_EQ, 1));
+  return SG_OBJ(ctx);
+}
+
 static SgSharedRef* make_shared_ref(int mark)
 {
   SgSharedRef *z = SG_NEW(SgSharedRef);
@@ -971,24 +998,30 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
       case 'c':
 	if (ustrcmp(tag->value, "compatible") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "core") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "cache") == 0) {
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  }
 	  return NULL;
 	}
 	break;
@@ -1007,7 +1040,9 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	break;
       case 'n':
 	if (ustrcmp(tag->value, "no-overwrite") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "no-fold-case") == 0) {
@@ -1016,56 +1051,74 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "nocache") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "noinlineasm") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_ASM);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "noinlinelocal") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_INLINE_LOCAL);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "nolambdalifting") == 0) {
-	  SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_LAMBDA_LIFT);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "nooptimization") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
-	  SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
-	  SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
+	    SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
+	    SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	  }
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "nobacktrace") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
+	  }
 	  return NULL;
 	}
 	break;
       case 'o':
 	if (ustrcmp(tag->value, "overwrite") == 0) {
-	  SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	  }
 	  return NULL;
 	}
 	break;
       case 'r':
 	if (ustrcmp(tag->value, "r6rs") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
-	  SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
+	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "r7rs") == 0) {
 	  SgVM *vm = Sg_VM();
-	  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
-	  SG_VM_SET_FLAG(vm, SG_R7RS_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
-	  SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	    SG_VM_SET_FLAG(vm, SG_R7RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r7rs_read_table));
 	  return NULL;
 	}
@@ -1644,7 +1697,7 @@ SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 
 SgObject Sg_Read(SgObject port, int readSharedObject)
 {
-  SgReadContext ctx = {0};
+  SgReadContext ctx = SG_STATIC_READ_CONTEXT;
   ASSERT(SG_PORTP(port));
   ASSERT(SG_TEXTUAL_PORTP(port));
   /* make read context for shared object */
@@ -1661,7 +1714,7 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
 SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
 {
   SgObject obj;
-  SgReadContext ctx = {0};
+  SgReadContext ctx = SG_STATIC_READ_CONTEXT;
   ASSERT(SG_PORTP(port));
 
   /* extends_loading_table(port); */
@@ -1862,7 +1915,7 @@ int Sg_DelimitedCharP(SgChar c)
 #define DEFINE_MACRO_STUB(FN, NAME)					\
   static SgObject STUB_NAME(FN) (SgObject *args, int argc, void *data_)	\
   {									\
-    SgReadContext ctx = {0};						\
+    SgReadContext ctx = SG_STATIC_READ_CONTEXT;				\
     SgPort *p;								\
     SgChar c;								\
     SgObject r;								\
@@ -1892,7 +1945,7 @@ int Sg_DelimitedCharP(SgChar c)
   static SgObject STUB_NAME(FN)					\
   (SgObject *args, int argc, void *data_)			\
   {								\
-    SgReadContext ctx = {0};					\
+    SgReadContext ctx = SG_STATIC_READ_CONTEXT;			\
     SgObject param_scm, r;					\
     SgPort *p;							\
     SgChar c;							\
@@ -2291,6 +2344,18 @@ void Sg__InitReader()
   SET_READER_NAME(read_hash_less,       "#<-reader");
   SET_READER_NAME(read_hash_colon,      "#:-reader");
 
+}
+
+void Sg__InitReaderClass()
+{
+  SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+#define CINIT(cl, nam)					\
+  Sg_InitStaticClassWithMeta(cl, UC(nam), lib, NULL, SG_FALSE, NULL, 0)
+
+  /* shared-ref */
+  CINIT(SG_CLASS_SHARED_REF,   "<shared-ref>");
+  /* for now no slot def */
+  CINIT(SG_CLASS_READ_CONTEXT, "<read-context>");
 }
 
 /*

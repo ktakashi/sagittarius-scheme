@@ -48,7 +48,6 @@
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/record.h"
-#include "sagittarius/reader.h"	/* for shared-ref class */
 #include "sagittarius/string.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
@@ -2893,8 +2892,6 @@ void Sg__InitClos()
 
   /* library */
   CINIT(SG_CLASS_LIBRARY,   "<library>");
-  /* shared-ref */
-  CINIT(SG_CLASS_SHARED_REF,   "<shared-ref>");
 
   /* abstract collection */
   BINIT(SG_CLASS_COLLECTION, "<collection>", NULL);

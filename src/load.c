@@ -49,27 +49,39 @@
 #include "sagittarius/thread.h"
 #include "sagittarius/unicode.h"
 
+/* load context to keep load info */
+struct load_ctx
+{
+  unsigned int  vm_flags;	/* VM flags */
+  SgPort   *port;		/* loading port */
+  SgObject load_path;		/* saved load path */
+  SgObject previous_port;
+  SgReadContext *read_context;
+};
+#define LOAD_CTX(o) ((struct load_ctx *)o)
+
 static SgObject load_after(SgObject *args, int argc, void *data)
 {
-  SgPort *port = SG_PORT(data);
+  struct load_ctx *ctx = LOAD_CTX(data);
   SgVM *vm = Sg_VM();
-  vm->currentLoadPath = port->loadPath;
+  vm->currentLoadPath = ctx->load_path;
   /* restore flags */
-  vm->flags = port->vmFlags;
+  vm->flags = ctx->vm_flags;
   /* restore readtable template */
-  vm->currentLoadingPort = port->previousPort;
-  Sg_ClosePort(port);
+  vm->currentLoadingPort = ctx->previous_port;
+  Sg_ClosePort(ctx->port);
   return SG_UNDEF;
 }
 
 static SgObject load_cc(SgObject result, void **data)
 {
-  SgPort *port = SG_PORT(data[0]);
-  SgObject expr, reader = SG_PORT_READER(port);
+  struct load_ctx *ctx = LOAD_CTX(data[0]);
+  SgObject expr, reader = SG_PORT_READER(ctx->port);
   if (SG_FALSEP(reader)) {
-    expr = Sg_Read(port, TRUE);
+    expr = Sg_ReadWithContext(ctx->port, ctx->read_context);
   } else {
-    expr = Sg_Apply1(reader, port);
+    /* in this case, reader can refer own context it needed */
+    expr = Sg_Apply1(reader, ctx->port);
   }
   if (!SG_EOFP(expr)) {
     Sg_VMPushCC(load_cc, data, 1);
@@ -89,8 +101,14 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
   /* save vm flags */
   SgVM *vm = Sg_VM();
   SgObject file = Sg_FileName(port);
+  struct load_ctx *lc = SG_NEW(struct load_ctx);
 
-  port->loadPath = vm->currentLoadPath;
+  lc->load_path = vm->currentLoadPath;
+  lc->vm_flags = vm->flags;
+  lc->previous_port = vm->currentLoadingPort;
+  lc->port = port;
+  lc->read_context = SG_READ_CONTEXT(Sg_MakeReadContextForLoad());
+
   if (!SG_FALSEP(file)) {
     /* This actually not so useful since reading cache file doesn't 
        return proper load path but entry file path (eg. sash 'this-file'.scm).
@@ -98,13 +116,11 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
     /* if (!Sg_AbsolutePathP(file)) file = Sg_AbsolutePath(file); */
     vm->currentLoadPath = Sg_DirectoryName(file);
   }
-  port->vmFlags = vm->flags;
-  port->previousPort = vm->currentLoadingPort;
   vm->currentLoadingPort = port;
   /* TODO put macro in vm.h */
   /* reset all flags except log and cache */
   vm->flags = vm->flags & (SG_LOG_LEVEL_MASK | SG_CACHE_MASK); 
-  return Sg_VMDynamicWindC(NULL, load_body, load_after, port);
+  return Sg_VMDynamicWindC(NULL, load_body, load_after, lc);
 }
 
 static SgTranscoder *default_load_transcoder = SG_UNDEF;

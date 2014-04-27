@@ -1120,8 +1120,8 @@
 ;; issue 164
 (test-equal "hex escape on R6RS mode" (string->symbol "foo bar")
 	    (read (open-string-input-port "#!r6rs foo\\x20;bar")))
-;; reset VM mode
-#!compatible
+;; reset VM mode (not needed anymore, call #20)
+;; #!compatible
 
 ;; some of the compiler optimisation stuff
 (test-error "obvious error (1)" condition? ((lambda () (vector-length 'a) 'ng)))

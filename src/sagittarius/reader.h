@@ -34,7 +34,9 @@
 #include "clos.h"
 
 SG_CLASS_DECL(Sg_SharedRefClass);
-#define SG_CLASS_SHARED_REF (&Sg_SharedRefClass)
+SG_CLASS_DECL(Sg_ReadContextClass);
+#define SG_CLASS_SHARED_REF   (&Sg_SharedRefClass)
+#define SG_CLASS_READ_CONTEXT (&Sg_ReadContextClass)
 
 typedef struct SgSharedRefRec
 {
@@ -44,11 +46,13 @@ typedef struct SgSharedRefRec
 
 enum {
   SG_READ_SOURCE_INFO = 1L,
+  SG_CHANGE_VM_MODE   = 1L<<1,
 };
 
-/* reader context this is not a Scheme object*/
+/* <read-context> for custom load */
 typedef struct SgReadContextRec
 {
+  SG_HEADER;
   SgHashTable *graph; /* for shared object*/
   int          graphRef;
   int          firstLine;
@@ -57,10 +61,14 @@ typedef struct SgReadContextRec
   int          escapedp;	/* for |.|, ugly */
   int          flags;
 } SgReadContext;
-#define SG_STATIC_READ_CONTEXT {NULL, FALSE, 0, 0, 0, 0}
+#define SG_STATIC_READ_CONTEXT			\
+  {{ SG_CLASS2TAG(SG_CLASS_READ_CONTEXT) }, NULL, FALSE, 0, 0, 0, 0}
 
 #define SG_SHAREDREF_P(obj) SG_XTYPEP(obj, SG_CLASS_SHARED_REF)
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
+
+#define SG_READ_CONTEXT_P(obj) SG_XTYPEP(obj, SG_CLASS_READ_CONTEXT)
+#define SG_READ_CONTEXT(obj)   ((SgReadContext*)(obj))
 
 SG_CDECL_BEGIN
 
@@ -94,6 +102,10 @@ SG_EXTERN SgObject Sg_AddConstantLiteral(SgObject o);
 SG_EXTERN SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared);
 
 SG_EXTERN int      Sg_DelimitedCharP(SgChar c);
+
+/* misc */
+SG_EXTERN SgObject Sg_MakeDefaultReadContext();
+SG_EXTERN SgObject Sg_MakeReadContextForLoad();
 
 SG_CDECL_END
 
