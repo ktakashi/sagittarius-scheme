@@ -75,7 +75,7 @@ typedef uint64_t dlong;
 
 #define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
 #define dump_uarray(array, size) dump_array_rec("%lu ", array, size)
-#define dump_xarray(array, size) dump_array_rec("%lx ", array, size)
+#define dump_xarray(array, size) dump_array_rec("%08lx ", array, size)
 
 #define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
 #define dump_s(v) dump_rec("%ld\n", v)
@@ -1353,6 +1353,147 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 }
 #endif
 
+static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
+
+/* #define USE_KARATSUBA */
+#ifdef USE_KARATSUBA
+/* if the bignum length is less than this then we do 
+   usual computation. */
+/* according to Wikipedia karatsuba is faster when the numbers are
+   bigger than 320-640 bits. we take 320 bits (40 octets). 
+   
+   if SIZEOF_LONG == 4 then 10 words
+   if SIZEOF_LONG == 8 then 5  words
+*/
+#define KARATSUBA_LOW_LIMIT ((320>>3)/SIZEOF_LONG)
+/* If the 2 numbers are too far then splitting would be too complicated.
+   FIXME, how should we handle this? */
+#define KARATSUBA_DIFF      2
+
+/*
+  basic algorithm
+  compute x*y 
+  
+  x = a*B^(n/2) + b
+  y = c*B^(n/2) + d
+  B = 16 (hex)
+  n = max(xlen, ylen), if diff is small enough then we can always split :)
+  x*y = (a*B^(n/2) + b) * (c*B^(n/2) + d)
+      = B^n*ac + B^(n/2)*(ad + bc) + bd
+      = 16^n*ac + 16^(n/2)*(ad + bc) + bd
+ 
+  recursive computation
+  1 ac
+  2 bd
+  3 (a + b)(c + d) = ac + ad + bc + bd
+  now 3 - 1 - 2 = ad + bc
+
+  Implemented with Scheme
+(define x #x123456789)
+(define y #x908765432)
+(define B 16)
+(define n 9)
+(define a #x12345)
+(define b #x6789)
+(define c #x90876)
+(define d #x5432)
+(define (square x) (+ x x))
+(let ((ac (* a c))
+      (bd (* b d))
+      (xx (+ (* a d) (* b c))))
+  ;; 16^n * ac where n = length of b and d 
+  (+ (* (expt B (* (div n 2) 2)) ac) 
+     (* (expt B (div n 2)) xx)
+     bd))
+
+ */
+#define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
+  do {									\
+    int i, off = (start), end = (len);					\
+    for (i = 0; i < end; i++) {						\
+      (dst)->elements[i] = (src)->elements[off+i];			\
+    }									\
+  } while (0)
+
+static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
+{
+  int xlen = SG_BIGNUM_GET_COUNT(bx);
+  int ylen = SG_BIGNUM_GET_COUNT(by);
+  int n = max(xlen, ylen)/2, apblen, cpdlen, adbclen;
+  int n2 = n<<1;
+  SgBignum *a, *b, *c, *d, *ac, *bd, *apb, *cpd, *adbc;
+  /* prepare temporary buffers */
+  ALLOC_TEMP_BIGNUM(a, xlen-n);
+  ALLOC_TEMP_BIGNUM(b, n);
+  ALLOC_TEMP_BIGNUM(c, ylen-n);
+  ALLOC_TEMP_BIGNUM(d, n);
+  ALLOC_TEMP_BIGNUM(ac, (xlen-n)+(ylen-n));
+  ALLOC_TEMP_BIGNUM(bd, n2);
+  /* it's little endian so the last is the most significant */
+  BIGNUM_SPLIT_COPY(a, bx, n, xlen-n);
+  BIGNUM_SPLIT_COPY(b, bx, 0, n);
+  BIGNUM_SPLIT_COPY(c, by, n, ylen-n);
+  BIGNUM_SPLIT_COPY(d, by, 0, n);
+
+  apblen = bignum_safe_size_for_add(a, b);
+  cpdlen = bignum_safe_size_for_add(c, d);
+  ALLOC_TEMP_BIGNUM(apb, apblen);
+  ALLOC_TEMP_BIGNUM(cpd, cpdlen);
+  apb = bignum_normalize(bignum_add_int(apb, a, b)); /* prepare for 3 (a + b) */
+  cpd = bignum_normalize(bignum_add_int(cpd, c, d)); /* prepare for 3 (c + d) */
+
+  adbclen = apblen + cpdlen;
+  ALLOC_TEMP_BIGNUM(adbc, adbclen);
+
+  ac = bignum_normalize(bignum_mul_int(ac, a, c)); /* recursive 1 */
+  bd = bignum_normalize(bignum_mul_int(bd, b, d)); /* recursive 2 */
+  adbc = bignum_normalize(bignum_mul_int(adbc, apb, cpd)); /* recursive 3 */
+  /* 3 - 1 - 2 */
+  adbc = bignum_normalize(bignum_sub_int(adbc, adbc, ac));
+  adbc = bignum_normalize(bignum_sub_int(adbc, adbc, bd));
+
+  /* I hate C89 */
+  {
+    /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
+    /* shift n words */
+    SgBignum *lac, *ladbc;
+    long times_ac = n2 * WORD_BITS;
+    long times_adbc = n * WORD_BITS;
+    int laclen = SG_BIGNUM_GET_COUNT(ac)+(times_ac+WORD_BITS-1)/WORD_BITS;
+    int ladbclen = SG_BIGNUM_GET_COUNT(adbc)+(times_adbc+WORD_BITS-1)/WORD_BITS;
+    ALLOC_TEMP_BIGNUM(lac, laclen);
+    ALLOC_TEMP_BIGNUM(ladbc, ladbclen);
+    lac = bignum_normalize(bignum_lshift(lac, ac, times_ac));
+    ladbc = bignum_normalize(bignum_lshift(ladbc, adbc, times_adbc));
+
+    /* now br must have sufficient size to put */
+    br = bignum_normalize(bignum_add_int(br, lac, ladbc));
+    return bignum_add_int(br, br, bd);
+  }
+}
+#endif
+
+static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
+{
+  int xlen = SG_BIGNUM_GET_COUNT(bx);
+  int ylen = SG_BIGNUM_GET_COUNT(by);
+  /* early check */
+#if USE_KARATSUBA
+  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT ||
+      abs(xlen - ylen) > KARATSUBA_DIFF) {
+#endif
+    multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
+    return br;
+#if USE_KARATSUBA
+  } else {
+    /* ok do it */
+    return karatsuba(br, bx, by);
+  }
+#endif
+}
+
 static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
 {
   int xlen = SG_BIGNUM_GET_COUNT(bx);
@@ -1363,10 +1504,7 @@ static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
   if (ylen == 0) return by;
 
   br = make_bignum(xlen + ylen);
-  multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
-  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-  /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
-  return br;
+  return bignum_mul_int(br, bx, by);
 }
 
 static SgBignum* bignum_mul_si(SgBignum *bx, long y)
