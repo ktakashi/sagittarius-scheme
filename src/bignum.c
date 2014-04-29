@@ -1355,20 +1355,14 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 
 static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 
+/* for some reason karatsuba was slow... maybe bad implementation */
 /* #define USE_KARATSUBA */
 #ifdef USE_KARATSUBA
 /* if the bignum length is less than this then we do 
    usual computation. */
 /* according to Wikipedia karatsuba is faster when the numbers are
-   bigger than 320-640 bits. we take 320 bits (40 octets). 
-   
-   if SIZEOF_LONG == 4 then 10 words
-   if SIZEOF_LONG == 8 then 5  words
-*/
-#define KARATSUBA_LOW_LIMIT ((320>>3)/SIZEOF_LONG)
-/* If the 2 numbers are too far then splitting would be too complicated.
-   FIXME, how should we handle this? */
-#define KARATSUBA_DIFF      2
+   bigger than 320-640 bits. */
+#define KARATSUBA_LOW_LIMIT ((640>>3)/SIZEOF_LONG)
 
 /*
   basic algorithm
@@ -1407,6 +1401,8 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
      bd))
 
  */
+#if 1
+
 #define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
   do {									\
     int i, off = (start), end = (len);					\
@@ -1414,6 +1410,55 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
       (dst)->elements[i] = (src)->elements[off+i];			\
     }									\
   } while (0)
+#define ALLOC_TEMP_RE_BIGNUM ALLOC_TEMP_BIGNUM
+
+#else
+  /* ok didn't make any performance better... */
+#define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
+  do {									\
+    SG_REBIGNUM(dst)->elements = (src)->elements + start;		\
+  } while (0)
+
+typedef struct SgReusableBignumRec
+{
+  SG_HEADER;
+  int sign : 2;
+  unsigned int size: (SIZEOF_INT*CHAR_BIT-2);
+  unsigned long *elements;
+} SgReusableBignum;
+#define SG_REBIGNUM(o) ((SgReusableBignum *)o)
+
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_RE_BIGNUM(var, size)				\
+  do {								\
+    (var) = SG_BIGNUM(alloca(sizeof(SgReusableBignum)));	\
+    SG_SET_CLASS(var, SG_CLASS_INTEGER);			\
+    SG_BIGNUM_SET_COUNT(var, size);				\
+    SG_BIGNUM_SET_SIGN(var, 1);					\
+  } while (0)
+#else
+#define ALLOC_TEMP_RE_BIGNUM(var, size)		\
+  do {						\
+    (var) = SG_NEW_ATOMIC(SgReusableBignum);	\
+    SG_SET_CLASS(var, SG_CLASS_INTEGER);	\
+    SG_BIGNUM_SET_COUNT(var, size);		\
+    SG_BIGNUM_SET_SIGN(var, 1);			\
+  } while (0)
+#endif
+
+#endif
+
+static int can_karatsuba(SgBignum *bx, SgBignum *by)
+{
+  int xlen = SG_BIGNUM_GET_COUNT(bx);
+  int ylen = SG_BIGNUM_GET_COUNT(by);
+  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT) {
+    return FALSE;
+  } else {
+    int n = max(xlen, ylen)/2;
+    return n < xlen && n < ylen;
+  }
+}
 
 static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
 {
@@ -1423,12 +1468,10 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
   int n2 = n<<1;
   SgBignum *a, *b, *c, *d, *ac, *bd, *apb, *cpd, *adbc;
   /* prepare temporary buffers */
-  ALLOC_TEMP_BIGNUM(a, xlen-n);
-  ALLOC_TEMP_BIGNUM(b, n);
-  ALLOC_TEMP_BIGNUM(c, ylen-n);
-  ALLOC_TEMP_BIGNUM(d, n);
-  ALLOC_TEMP_BIGNUM(ac, (xlen-n)+(ylen-n));
-  ALLOC_TEMP_BIGNUM(bd, n2);
+  ALLOC_TEMP_RE_BIGNUM(a, xlen-n);
+  ALLOC_TEMP_RE_BIGNUM(b, n);
+  ALLOC_TEMP_RE_BIGNUM(c, ylen-n);
+  ALLOC_TEMP_RE_BIGNUM(d, n);
   /* it's little endian so the last is the most significant */
   BIGNUM_SPLIT_COPY(a, bx, n, xlen-n);
   BIGNUM_SPLIT_COPY(b, bx, 0, n);
@@ -1445,6 +1488,8 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
   adbclen = apblen + cpdlen;
   ALLOC_TEMP_BIGNUM(adbc, adbclen);
 
+  ALLOC_TEMP_BIGNUM(ac, SG_BIGNUM_GET_COUNT(a) + SG_BIGNUM_GET_COUNT(c));
+  ALLOC_TEMP_BIGNUM(bd, n2);
   ac = bignum_normalize(bignum_mul_int(ac, a, c)); /* recursive 1 */
   bd = bignum_normalize(bignum_mul_int(bd, b, d)); /* recursive 2 */
   adbc = bignum_normalize(bignum_mul_int(adbc, apb, cpd)); /* recursive 3 */
@@ -1478,18 +1523,20 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int xlen = SG_BIGNUM_GET_COUNT(bx);
   int ylen = SG_BIGNUM_GET_COUNT(by);
   /* early check */
-#if USE_KARATSUBA
-  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT ||
-      abs(xlen - ylen) > KARATSUBA_DIFF) {
+#ifdef USE_KARATSUBA
+  if (can_karatsuba(bx, by)) {
+    /* ok do it */
+    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
+    return karatsuba(br, bx, by);
+  } else {
 #endif
+
     multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
     /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
     return br;
-#if USE_KARATSUBA
-  } else {
-    /* ok do it */
-    return karatsuba(br, bx, by);
+
+#ifdef USE_KARATSUBA
   }
 #endif
 }
