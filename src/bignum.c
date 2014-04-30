@@ -47,7 +47,7 @@
 #define max(x, y)   (((x) > (y))? (x) : (y))
 
 
-/* MSVC doesn't allow us to typedef blow. Well, that's how it suppose to be
+/* MSVC doesn't allow us to typedef in bottom. Well, that's how it suppose to be
    I think... */
 typedef unsigned long ulong;
 #if SIZEOF_LONG == 8
@@ -121,12 +121,17 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
 
 /* Should we expose this? */
 #ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_BIGNUM(var, size)			\
+#define ALLOC_TEMP_BIGNUM_REC(var, size)		\
   do {							\
     (var) = SG_BIGNUM(alloca(BIGNUM_SIZE(size)));	\
     SG_SET_CLASS(var, SG_CLASS_INTEGER);		\
     SG_BIGNUM_SET_COUNT(var, size);			\
     SG_BIGNUM_SET_SIGN(var, 1);				\
+  } while(0)
+
+#define ALLOC_TEMP_BIGNUM(var, size)			\
+  do {							\
+    ALLOC_TEMP_BIGNUM_REC(var, size);			\
     bignum_clear(var, size);				\
   } while (0)
 #else
@@ -261,7 +266,7 @@ static inline void bignum_copy(SgBignum *dst, SgBignum *src)
 
 SgObject Sg_BignumCopy(SgBignum *b)
 {
-  SgBignum *c = make_bignum(SG_BIGNUM_GET_COUNT(b));
+  SgBignum *c = make_bignum_rec(SG_BIGNUM_GET_COUNT(b), FALSE);
   bignum_copy(c, b);
   return SG_OBJ(c);  
 }
@@ -663,7 +668,7 @@ int Sg_BignumFirstBitSet(SgBignum *b)
     z = b;
     goto calc_bit_set;
   }
-  ALLOC_TEMP_BIGNUM(z, SG_BIGNUM_GET_COUNT(b));
+  ALLOC_TEMP_BIGNUM_REC(z, SG_BIGNUM_GET_COUNT(b));
   bignum_copy(z, b);
   bignum_2scmpl(z);
 
@@ -829,7 +834,7 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
       return Sg_NormalizeBignum(z);
     } else {
       /* (+, -) */
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
       z = bignum_and(make_bignum(xsize), x, yy, FALSE, TRUE);
@@ -838,17 +843,17 @@ SgObject Sg_BignumLogAnd(SgBignum *x, SgBignum *y)
   } else {
     if (ysign > 0) {
       /* (-, +) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
       z = bignum_and(make_bignum(ysize), xx, y, TRUE, FALSE);
       return Sg_NormalizeBignum(z);
     } else {
       /* (-, -) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
 
@@ -885,7 +890,7 @@ SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y)
       return Sg_NormalizeBignum(z);
     } else {
       /* (+, -) */
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
       z = bignum_ior(make_bignum(ysize), x, yy, FALSE, TRUE);
@@ -896,7 +901,7 @@ SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y)
   } else {
     if (ysign > 0) {
       /* (-, +) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
       z = bignum_ior(make_bignum(xsize), xx, y, TRUE, FALSE);
@@ -905,10 +910,10 @@ SgObject Sg_BignumLogIor(SgBignum *x, SgBignum *y)
       return Sg_NormalizeBignum(z);
     } else {
       /* (-, -) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
 
@@ -943,7 +948,7 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
       return Sg_NormalizeBignum(z);
     } else {
       /* (+,-) */
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
       z = bignum_xor(make_bignum(zsize), x, yy, FALSE, TRUE);
@@ -954,7 +959,7 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
   } else {
     if (ysign > 0) {
       /* (-,+) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
       z = bignum_xor(make_bignum(zsize), xx, y, TRUE, FALSE);
@@ -963,10 +968,10 @@ SgObject Sg_BignumLogXor(SgBignum *x, SgBignum *y)
       return Sg_NormalizeBignum(z);
     } else {
       /* (-,-) */
-      ALLOC_TEMP_BIGNUM(xx, xsize);
+      ALLOC_TEMP_BIGNUM_REC(xx, xsize);
       bignum_copy(xx, x);
       bignum_2scmpl(xx);
-      ALLOC_TEMP_BIGNUM(yy, ysize);
+      ALLOC_TEMP_BIGNUM_REC(yy, ysize);
       bignum_copy(yy, y);
       bignum_2scmpl(yy);
 
@@ -1023,7 +1028,6 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
   int i, c;
-  unsigned long x, y;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1041,6 +1045,37 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
+#if 1
+    /* this is faster */
+    dlong sum = 0L;
+    int xindex, yindex;
+    /* if x is shorter, swap it */
+    if (xsize < ysize) {
+      SgBignum *t = bx;
+      int tsize = xsize;
+      bx = by; by = t;
+      xsize = ysize; ysize = tsize;
+    }
+    for (xindex = 0, yindex = 0; yindex < ysize; xindex++, yindex++) {
+      c = (int)(sum >> WORD_BITS);
+      sum = (dlong)bx->elements[xindex] + by->elements[yindex] + c;
+      br->elements[xindex] = (ulong)sum;
+    }
+    /* copy remainder of longer number while carry propagation is required */
+    c = (int)(sum >> WORD_BITS);
+    for (; xindex < xsize && c; xindex++) {
+      br->elements[xindex] = bx->elements[xindex] + 1;
+      c = (br->elements[xindex] == 0);
+    }
+    /* copy remainder of longer number */
+    for (; xindex < xsize; xindex++) {
+      br->elements[xindex] = bx->elements[xindex];
+    }
+    if (c) {
+      br->elements[rsize-1] = 1;
+    }
+#else
+    unsigned long x, y;
     for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
       if (xsize <= 0) {
 	if (ysize <= 0) {
@@ -1060,6 +1095,7 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
       y = by->elements[i];
       UADD(br->elements[i], c, x, y);
     }
+#endif
   }
   return br;
 }
@@ -1070,7 +1106,6 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
   int i, c = 0;
-  unsigned long x, y;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1089,6 +1124,42 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
+#if 1
+    /* this is bit faster */
+    /* FIXME: looks weird, so could be something is wrong. */
+    dlong diff = 0L;
+    int xindex, yindex, flip = FALSE;
+    /* if x is shorter, swap it */
+    if (xsize < ysize) {
+      SgBignum *t = bx;
+      int tsize = xsize;
+      bx = by; by = t;
+      xsize = ysize; ysize = tsize;
+      flip = TRUE;
+    }
+    for (yindex = 0, xindex = 0; yindex < ysize; xindex++, yindex++) {
+      c = (int)(diff >> WORD_BITS);
+      diff = (dlong)bx->elements[xindex] - by->elements[yindex] + c;
+      br->elements[xindex] = (ulong)diff;
+    }
+    c = (int)(diff >> WORD_BITS);
+    for (;xindex < xsize && c; xindex++) {
+      br->elements[xindex] = bx->elements[xindex] - 1;
+      c = (bx->elements[xindex] == (ulong)-1L) ? -1 : 0;
+    }
+    for (;xindex < xsize; xindex++) {
+      br->elements[xindex] = bx->elements[xindex];
+    }
+    /* padding carry */
+    for (;xindex < rsize; xindex++) {
+      br->elements[xindex] = c;
+    }
+    if (flip || c) {
+      if (c) bignum_2scmpl(br);
+      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
+    }
+#else
+    unsigned long x, y;
     for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
       if (xsize <= 0) {
 	if (ysize <= 0) {
@@ -1108,10 +1179,11 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
       y = by->elements[i];
       USUB(br->elements[i], c, x, y);
     }
-  }
-  if (c != 0) {
-    bignum_2scmpl(br);
-    SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
+    if (c != 0) {
+      bignum_2scmpl(br);
+      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
+    }
+#endif
   }
   return br;
 }
@@ -1382,30 +1454,51 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
   now 3 - 1 - 2 = ad + bc
 
   Image in Scheme
-(define x #x123456789)
-(define y #x908765432)
-(define B 16)
-(define n 9)
-(define a #x12345)
-(define b #x6789)
-(define c #x90876)
-(define d #x5432)
-
-(let ((ac (* a c))
-      (bd (* b d))
-      (xx (+ (* a d) (* b c))))
-  ;; 16^n * ac where n = length of b and d 
-  (+ (* (expt B (* (div n 2) 2)) ac) 
-     (* (expt B (div n 2)) xx)
-     bd))
-
+  (define x #x123456789)
+  (define y #x908765432)
+  (define B 16)
+  (define n 9)
+  (define a #x12345)
+  (define b #x6789)
+  (define c #x90876)
+  (define d #x5432)
+  (let ((ac (* a c))
+        (bd (* b d))
+        (xx (+ (* a d) (* b c))))
+    ;; 16^n * ac where n = length of b and d 
+    (+ (* (expt B (* (div n 2) 2)) ac) 
+       (* (expt B (div n 2)) xx)
+       bd))
  */
+
 #define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
   do {									\
     int i, off = (start), end = (len);					\
+    /* copy doesn't need clear */					\
+    ALLOC_TEMP_BIGNUM_REC(dst, len);					\
     for (i = 0; i < end; i++) {						\
       (dst)->elements[i] = (src)->elements[off+i];			\
     }									\
+  } while (0)
+
+#define BIGNUM_WORD_SHIFT(dst, src, words)				\
+  do {									\
+    int i, nwords = (words);						\
+    for (i=SG_BIGNUM_GET_COUNT(src)-1; i>=0; i--) {			\
+      (dst)->elements[i+nwords] = (src)->elements[i];			\
+    }									\
+  } while (0)
+  
+#define BIGNUM_CLEAR_LEFT(bn, size)				\
+  do {								\
+    int i, len = (size);					\
+    int off = SG_BIGNUM_GET_COUNT(bn)-1;			\
+    for (i = 0; i < len; i++) (bn)->elements[off-i] = 0;	\
+  } while (0)
+#define BIGNUM_CLEAR_RIGHT(bn, size)				\
+  do {								\
+    int i, len = (size);					\
+    for (i = 0; i < len; i++) (bn)->elements[i] = 0;		\
   } while (0)
 
 /* probably around this size */
@@ -1431,10 +1524,6 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
   int n2 = n<<1;
   SgBignum *a, *b, *c, *d, *ac, *bd, *apb, *cpd, *adbc;
   /* prepare temporary buffers */
-  ALLOC_TEMP_BIGNUM(a, xlen-n);
-  ALLOC_TEMP_BIGNUM(b, n);
-  ALLOC_TEMP_BIGNUM(c, ylen-n);
-  ALLOC_TEMP_BIGNUM(d, n);
   /* it's little endian so the last is the most significant */
   BIGNUM_SPLIT_COPY(a, bx, n, xlen-n);
   BIGNUM_SPLIT_COPY(b, bx, 0, n);
@@ -1443,16 +1532,21 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
 
   apblen = bignum_safe_size_for_add(a, b);
   cpdlen = bignum_safe_size_for_add(c, d);
-  ALLOC_TEMP_BIGNUM(apb, apblen);
-  ALLOC_TEMP_BIGNUM(cpd, cpdlen);
+  ALLOC_TEMP_BIGNUM_REC(apb, apblen);
+  ALLOC_TEMP_BIGNUM_REC(cpd, cpdlen);
+  /* we just need to clear most significant byte */
+  BIGNUM_CLEAR_LEFT(apb, 1);
+  BIGNUM_CLEAR_LEFT(cpd, 1);
   apb = bignum_add_int(apb, a, b); /* prepare for 3 (a + b) */
   cpd = bignum_add_int(cpd, c, d); /* prepare for 3 (c + d) */
 
   adbclen = apblen + cpdlen;
-  ALLOC_TEMP_BIGNUM(adbc, adbclen);
+  ALLOC_TEMP_BIGNUM_REC(adbc, adbclen);
 
-  ALLOC_TEMP_BIGNUM(ac, SG_BIGNUM_GET_COUNT(a) + SG_BIGNUM_GET_COUNT(c));
-  ALLOC_TEMP_BIGNUM(bd, n2);
+  ALLOC_TEMP_BIGNUM_REC(ac, SG_BIGNUM_GET_COUNT(a) + SG_BIGNUM_GET_COUNT(c));
+  ALLOC_TEMP_BIGNUM_REC(bd, n2);
+  BIGNUM_CLEAR_LEFT(ac, 4);	/* more than enough? */
+  BIGNUM_CLEAR_LEFT(bd, 4);
   ac = bignum_mul_int(ac, a, c); /* recursive 1 */
   bd = bignum_mul_int(bd, b, d); /* recursive 2 */
   adbc = bignum_mul_int(adbc, apb, cpd); /* recursive 3 */
@@ -1465,14 +1559,15 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
     /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
     /* shift n words */
     SgBignum *lac, *ladbc;
-    long times_ac = n2 * WORD_BITS;
-    long times_adbc = n * WORD_BITS;
-    int laclen = SG_BIGNUM_GET_COUNT(ac)+(times_ac+WORD_BITS-1)/WORD_BITS;
-    int ladbclen = SG_BIGNUM_GET_COUNT(adbc)+(times_adbc+WORD_BITS-1)/WORD_BITS;
-    ALLOC_TEMP_BIGNUM(lac, laclen);
-    ALLOC_TEMP_BIGNUM(ladbc, ladbclen);
-    lac = bignum_lshift(lac, ac, times_ac);
-    ladbc = bignum_lshift(ladbc, adbc, times_adbc);
+    int laclen = SG_BIGNUM_GET_COUNT(ac) + n2;
+    int ladbclen = SG_BIGNUM_GET_COUNT(adbc) + n;
+    ALLOC_TEMP_BIGNUM_REC(lac, laclen);
+    ALLOC_TEMP_BIGNUM_REC(ladbc, ladbclen);
+    BIGNUM_CLEAR_RIGHT(lac, n2);
+    BIGNUM_CLEAR_RIGHT(ladbc, n);
+    /* to reduce unnecessary calculation */
+    BIGNUM_WORD_SHIFT(lac, ac, n2);
+    BIGNUM_WORD_SHIFT(ladbc, adbc, n);
 
     /* now br must have sufficient size to put */
     br = bignum_add_int(br, lac, ladbc);
@@ -1706,7 +1801,7 @@ SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp)
 {
   SgBignum *bb;
   ASSERT(b != 0);
-  ALLOC_TEMP_BIGNUM(bb, 1);
+  ALLOC_TEMP_BIGNUM_REC(bb, 1);
   SG_BIGNUM_SET_SIGN(bb, (b < 0) ? -1 : 1);
   bb->elements[0] = (b < 0) ? -b : b;
   return Sg_BignumModulo(a, bb, remp);
@@ -1743,7 +1838,7 @@ static SgBignum * bn_sqrt(SgBignum *bn)
 
   if (SG_BIGNUM_GET_SIGN(bn) == 0) return bn;
   count = SG_BIGNUM_GET_COUNT(bn);
-  ALLOC_TEMP_BIGNUM(s, count);
+  ALLOC_TEMP_BIGNUM_REC(s, count);
   bignum_copy(s, bn);
   SG_BIGNUM_SET_SIGN(s, 1);
 
@@ -1788,8 +1883,8 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   double s;
 
   count = SG_BIGNUM_GET_COUNT(bn);
-  ALLOC_TEMP_BIGNUM(workpad, count);
-  memcpy(workpad->elements, bn->elements, sizeof(long) * count);
+  ALLOC_TEMP_BIGNUM_REC(workpad, count);
+  bignum_copy(workpad, bn);
   bn_sqrt(workpad);
   if (bn->elements[0] == workpad->elements[0] * workpad->elements[0]) {
     SgBignum *s2 = Sg_BignumMul(workpad, workpad);
@@ -1813,8 +1908,8 @@ SgObject Sg_BignumSqrtApprox(SgBignum *bn)
   SgBignum *workpad;
 
   count = SG_BIGNUM_GET_COUNT(bn);
-  ALLOC_TEMP_BIGNUM(workpad, count);
-  memcpy(workpad->elements, bn->elements, sizeof(long) * count);
+  ALLOC_TEMP_BIGNUM_REC(workpad, count);
+  bignum_copy(workpad, bn);
   bn_sqrt(workpad);
   if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(workpad);
   else return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(workpad));
