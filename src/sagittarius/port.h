@@ -263,8 +263,9 @@ struct SgPortRec
   unsigned int bufferMode  : 3; /* none, line, or block*/
   unsigned int closed 	   : 1;
   unsigned int error  	   : 1;
-
-  /* for saved flags */
+  unsigned int reserved    : 21;
+  /* for some reason if we remove this then problem occurs... but why? */
+  unsigned int dummy;		/* remove this! */
   readtable_t *readtable;
   SgObject     reader;
   SgObject     data;		/* alist of port data */

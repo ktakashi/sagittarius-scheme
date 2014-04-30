@@ -62,7 +62,7 @@ typedef struct SgReadContextRec
   int          flags;
 } SgReadContext;
 #define SG_STATIC_READ_CONTEXT			\
-  {{ SG_CLASS2TAG(SG_CLASS_READ_CONTEXT) }, NULL, FALSE, 0, 0, 0, 0}
+  {{ SG_CLASS2TAG(SG_CLASS_READ_CONTEXT) }, NULL, FALSE, 0, 0, 0, 0, 0}
 
 #define SG_SHAREDREF_P(obj) SG_XTYPEP(obj, SG_CLASS_SHARED_REF)
 #define SG_SHAREDREF(obj)   ((SgSharedRef*)(obj))
