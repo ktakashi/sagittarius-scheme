@@ -1501,14 +1501,11 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
     for (i = 0; i < len; i++) (bn)->elements[i] = 0;		\
   } while (0)
 
-/* probably around this size */
-#define MAX_KARATSUBA_DIFF 10
 static int can_karatsuba(SgBignum *bx, SgBignum *by)
 {
   int xlen = SG_BIGNUM_GET_COUNT(bx);
   int ylen = SG_BIGNUM_GET_COUNT(by);
-  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT ||
-      abs(xlen-ylen) > MAX_KARATSUBA_DIFF) {
+  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT) {
     return FALSE;
   } else {
     int n = max(xlen, ylen)/2;
