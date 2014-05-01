@@ -2974,7 +2974,7 @@ static SgBignum * leftright_binray_expt(SgBignum *b, long e)
       prod = t;
     }
   }
-  if (y->elements != ye->elements) {
+  if (y != ye) {
     copy_element(y->elements, ye->elements, ylen);
   }
   SG_BIGNUM_SET_COUNT(y, ylen);
@@ -3019,26 +3019,24 @@ static void setup_square(ulong *dst, ulong *src, int slen)
 
 /* I'm not sure if I can write this as a static function since
    it's using alloca to setup table. */
-#define setup_table(table, ltable, u, b)				\
+#define setup_table(table, u, b)					\
   do {									\
-    ulong *x2;								\
-    int i, x2len =SG_BIGNUM_GET_COUNT(b)<<1;				\
-    table[0] = b->elements;						\
-    ltable[0] = SG_BIGNUM_GET_COUNT(b);					\
-    ALLOC_TEMP_BUFFER_REC(x2, ulong, x2len);				\
-    /* x2 = bignum_mul(b, b) */						\
-    setup_square(x2, b->elements, SG_BIGNUM_GET_COUNT(b));		\
-    for (i = 1; i < u; i++) {						\
-      /* table[i] = bignum_mul(table[i-1], x2); */			\
-      int size = ltable[i-1] + x2len;					\
-      ALLOC_TEMP_BUFFER_REC(table[i], ulong, size);			\
-      multiply_to_len(table[i-1], ltable[i-1], x2, x2len, table[i]);	\
-      ltable[i] = size;							\
+    SgBignum *x2;							\
+    int i_, x2len =SG_BIGNUM_GET_COUNT(b)<<1;				\
+    table[0] = b;							\
+    ALLOC_TEMP_BIGNUM_REC(x2, x2len);					\
+    BIGNUM_CLEAR_LEFT(x2, 2);						\
+    setup_square(x2->elements, b->elements, SG_BIGNUM_GET_COUNT(b));	\
+    for (i_ = 1; i_ < (u); i_++) {					\
+      int size = SG_BIGNUM_GET_COUNT(table[i_-1]) + x2len;		\
+      ALLOC_TEMP_BIGNUM_REC(table[i_], size);				\
+      BIGNUM_CLEAR_LEFT(table[i_], 2);					\
+      bignum_mul_int(table[i_], table[i_-1], x2);			\
     }									\
   } while (0)
 
 /* compute result size of sliding window */
-static int compute_sw_size(long l, long e, long n, int *ltable)
+static int compute_sw_size(long l, long e, long n, SgBignum **table)
 {
   int z = 0;
   int tw;
@@ -3048,7 +3046,7 @@ static int compute_sw_size(long l, long e, long n, int *ltable)
     w = (n >>(l+1-e)) & ((1UL<<2)-1);
     v = vals(w);
     l -= e;
-    tw = ltable[w>>(v+1)];
+    tw = SG_BIGNUM_GET_COUNT(table[w>>(v+1)]);
     if (z) {
       for (i = 1; i <= e-v; i++) z <<= 1;
       z += tw; 
@@ -3064,23 +3062,24 @@ static int compute_sw_size(long l, long e, long n, int *ltable)
   return z;
 }
 
+/* unfortunately, this wasn't rgith from the begining
+   but didn't come up so that never reached here... */
 static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
 {
   /* max must be 4 */
-  ulong *table[1UL<<(3-1)], *tw, *z = NULL, *prod1, *prod2;
-  int    ltable[1UL<<(3-1)], zsize, zlen = 0, twlen;
+  int zsize, zlen = 0;
   long i, l = (WORD_BITS-1) - (long)bfffo(n), u = 1UL<<(e-1);
   long w, v;
-  SgBignum *r;
+  SgBignum *r, *table[1UL<<(3-1)], *tw, *z = NULL, *prod1, *prod2;
 
-  setup_table(table, ltable, u, b);
-  zsize = compute_sw_size(l, e, n, ltable);
+  setup_table(table, u, b);
+  zsize = compute_sw_size(l, e, n, table);
   /* we don't need to clear the buffer here. */
   r = make_bignum_rec(zsize, FALSE);
   SG_BIGNUM_SET_SIGN(r, 1);
 
-  prod1 = r->elements;
-  ALLOC_TEMP_BUFFER_REC(prod2, ulong, zsize);
+  prod1 = r;
+  ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
 
   while (l >= 0) {
     int index;
@@ -3090,50 +3089,53 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
     l -= e;
     index = (int)(w>>(v+1));
     tw = table[index];
-    twlen = ltable[index];
     if (z) {
-      ulong *t;
+      SgBignum *t;
       ulong len = e-v;
       for (i = 1; i <= len; i++) {
 	/* z = bignum_mul(z, z); */
-	square_to_len(z, zlen, prod1);
+	square_to_len(z->elements, zlen, prod1->elements);
 	zlen <<= 1;
 	/* swap buffer */
 	t = z;
 	z = prod1;
 	prod1 = t;
+	SG_BIGNUM_SET_COUNT(z, zlen);
       }
       /* z = bignum_mul(z, tw); */
-      multiply_to_len(z, zlen, tw, twlen, prod1);
-      zlen += twlen;
+      bignum_mul_int(prod1, z, tw);
+      zlen += SG_BIGNUM_GET_COUNT(tw);
       /* swap buffer */
       t = z;
       z = prod1;
       prod1 = t;
+      SG_BIGNUM_SET_COUNT(z, zlen);
     } else {
       /* z = tw; */
       /* setup buffer */
-      copy_element(prod1, tw, twlen);
+      copy_element(prod1->elements, tw->elements, SG_BIGNUM_GET_COUNT(tw));
       z = prod1;
       prod1 = prod2;
-      zlen = twlen;
+      zlen = SG_BIGNUM_GET_COUNT(tw);
+      SG_BIGNUM_SET_COUNT(z, zlen);
     }
     while (l >= 0) {
-      ulong *t;
+      SgBignum *t;
       if (n & (1UL<<l)) break;
       /* z = bignum_mul(z, z); */
-      square_to_len(z, zlen, prod1);
+      square_to_len(z->elements, zlen, prod1->elements);
       zlen <<= 1;
       /* swap buffer */
       t = z;
       z = prod1;
       prod1 = t;
+      SG_BIGNUM_SET_COUNT(z, zlen);
       l--;
     }
   }
   /* i'm not sure which would the proper one so check */
-  if (r->elements != z)
-    copy_element(r->elements, z, zsize);
+  if (r != z)
+    copy_element(r->elements, z->elements, zsize);
   return r;
 }
 
