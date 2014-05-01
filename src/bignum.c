@@ -2562,6 +2562,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   tblmask = 1u << wbits;
   /* convert x to montgomery form */
   ALLOC_TEMP_BIGNUM(tb, SG_BIGNUM_GET_COUNT(x) + modlen);
+  /* BIGNUM_CLEAR_LEFT(tb, modlen); */
   for (i = 0; i < (int)SG_BIGNUM_GET_COUNT(x); i++) {
     tb->elements[i+modlen] = x->elements[i];
   }
@@ -2942,11 +2943,10 @@ static int compute_lr_binary_size(long j, long m, int len)
 
 static SgBignum * leftright_binray_expt(SgBignum *b, long e)
 {
-  SgBignum *y;
+  SgBignum *y, *ye, *prod, *t;
   long m = e, j = 1 + bfffo(m);
   int size;
   int ylen = SG_BIGNUM_GET_COUNT(b);
-  ulong *ye, *prod, *t;
   m <<= j;
   j = WORD_BITS-j;
 
@@ -2954,26 +2954,28 @@ static SgBignum * leftright_binray_expt(SgBignum *b, long e)
   size = compute_lr_binary_size(j, m, SG_BIGNUM_GET_COUNT(b));
   y = make_bignum(size);
   bignum_copy(y, b);
-  ye = y->elements;
-  ALLOC_TEMP_BUFFER_REC(prod, ulong, size);
+  ye = y;
+  ALLOC_TEMP_BIGNUM_REC(prod, size);
   for (; j; m <<= 1, j--) {
     /* y = bignum_mul(y, y); */
-    square_to_len(ye, ylen, prod);
+    /* TODO make this for bignum */
+    square_to_len(ye->elements, ylen, prod->elements);
     ylen <<= 1;
     t = ye;
     ye = prod;
     prod = t;
+    /* set ylen to ye */
+    SG_BIGNUM_SET_COUNT(ye, ylen);
     if (m < 0) {
-      /* y = bignum_normalize(bignum_mul(y, b)); */
-      multiply_to_len(ye, ylen, b->elements, SG_BIGNUM_GET_COUNT(b), prod);
+      bignum_mul_int(prod, ye, b);
       ylen += SG_BIGNUM_GET_COUNT(b);
       t = ye;
       ye = prod;
       prod = t;
     }
   }
-  if (y->elements != ye) {
-    copy_element(y->elements, ye, ylen);
+  if (y->elements != ye->elements) {
+    copy_element(y->elements, ye->elements, ylen);
   }
   SG_BIGNUM_SET_COUNT(y, ylen);
   return y;
@@ -3075,10 +3077,8 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   zsize = compute_sw_size(l, e, n, ltable);
   /* we don't need to clear the buffer here. */
   r = make_bignum_rec(zsize, FALSE);
-  /* ALLOC_TEMP_BIGNUM(r, zsize); */
   SG_BIGNUM_SET_SIGN(r, 1);
 
-  /* ALLOC_TEMP_BUFFER_REC(prod1, ulong, zsize); */
   prod1 = r->elements;
   ALLOC_TEMP_BUFFER_REC(prod2, ulong, zsize);
 
