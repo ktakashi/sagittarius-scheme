@@ -61,15 +61,32 @@
 (define-c-proc pointer? (o) ::<boolean> :constant SG_POINTERP)
 
 (define-c-proc integer->pointer (n::<integer>) :no-side-effect
-  (.if "SIZEOF_VOIDP == 4"
-       (result (Sg_MakePointer (cast void* (Sg_GetInteger n))))
-       (result (Sg_MakePointer (cast void* (Sg_GetIntegerS64Clamp n 
-					    SG_CLAMP_BOTH NULL))))))
+  (let ((r (Sg_MakePointer NULL)))
+    (.if "SIZEOF_VOIDP == 4"
+	 (set! (-> (SG_POINTER r) pointer) (cast uintptr_t (Sg_GetInteger n)))
+	 (set! (-> (SG_POINTER r) pointer) 
+	       (cast uintptr_t (Sg_GetIntegerS64Clamp n SG_CLAMP_BOTH NULL))))
+    (result r)))
+(define-c-proc uinteger->pointer (n::<integer>) :no-side-effect
+  (when (Sg_NegativeP n)
+    (Sg_AssertionViolation 'uinteger->pointer
+			   (SG_MAKE_STRING "non negative integer")
+			   (SG_LIST1 n)))
+  (let ((r (Sg_MakePointer NULL)))
+    (.if "SIZEOF_VOIDP == 4"
+	 (set! (-> (SG_POINTER r) pointer) (cast uintptr_t (Sg_GetInteger n)))
+	 (set! (-> (SG_POINTER r) pointer) 
+	       (cast uintptr_t (Sg_GetIntegerU64Clamp n SG_CLAMP_BOTH NULL))))
+    (result r)))
 
 (define-c-proc pointer->integer (p::<pointer>) :no-side-effect
-  (.if "SIZEOF_VOIDP == 4"
-       (result (Sg_MakeInteger (cast long (-> p pointer))))
-       (result (Sg_MakeIntegerFromS64 (cast intptr_t (-> p pointer))))))
+  Sg_PointerToInteger)
+(define-c-proc pointer->uinteger (p::<pointer>) :no-side-effect
+  Sg_PointerToUInteger)
+(define-c-proc pointer->long (p::<pointer>) :no-side-effect
+  Sg_PointerToLong)
+(define-c-proc pointer->ulong (p::<pointer>) :no-side-effect
+  Sg_PointerToULong)
 
 ;; !!!dangerous operations!!!
 ;; the usecase is for callback parameters or so

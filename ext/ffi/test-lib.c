@@ -131,6 +131,11 @@ EXPORT void address_passing_free(char **s)
   free(*s);
 }
 
+EXPORT void set_int(int *c)
+{
+  *c = 0xF5;
+}
+
 EXPORT int va_fn(void **result, int n, ...)
 {
   int i;

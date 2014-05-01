@@ -187,6 +187,12 @@ void     Sg_DescCStruct(SgCStruct *ct, SgObject port);
 
 void     Sg_PointerSet(SgPointer *p, int offset, int type, SgObject v);
 
+/* converter */
+SgObject Sg_PointerToInteger(SgPointer *p);
+SgObject Sg_PointerToUInteger(SgPointer *p);
+SgObject Sg_PointerToLong(SgPointer *p);
+SgObject Sg_PointerToULong(SgPointer *p);
+
 /* malloc */
 SgObject Sg_CMalloc(size_t size);
 void     Sg_CFree(SgPointer *p);

@@ -90,6 +90,28 @@ SgObject Sg_MakePointer(void *p)
   return make_pointer((uintptr_t)p);
 }
 
+SgObject Sg_PointerToInteger(SgPointer *p)
+{
+#if SIZEOF_VOIDP == 4
+  return Sg_MakeInteger((long)p->pointer);
+#else
+  return Sg_MakeIntegerFromS64((int64_t)p->pointer);
+#endif
+}
+SgObject Sg_PointerToUInteger(SgPointer *p)
+{
+  return pointer_value(p);
+}
+SgObject Sg_PointerToLong(SgPointer *p)
+{
+  return Sg_MakeInteger((long)p->pointer);
+}
+SgObject Sg_PointerToULong(SgPointer *p)
+{
+  return Sg_MakeIntegerU((unsigned long)p->pointer);
+}
+
+
 /* function info */
 static void funcinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
