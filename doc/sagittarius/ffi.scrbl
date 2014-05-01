@@ -300,8 +300,26 @@ To represents NULL pointer, you can write like this;
 @snipet[=> "#<pointer 0x0>"]{(integer->pointer 0)}
 }
 
-@define[Function]{@name{pointer->integer} @args{pointer}}
-@desc{Converts given @var{pointer} to integer.}
+@define[Function]{@name{pointer->integer} @args{pointer :optional bits}}
+@define[Function]{@name{pointer->uinteger} @args{pointer :optional bits}}
+@desc{Converts given @var{pointer} to integer/uinteger, respectively.
+
+The optional argument @var{bits} must be an exact integer range of fixnum.
+
+If the optional argument @var{bits} is specified, then the procedure mask
+the pointer value. If the @var{bits} is negative or more than pointer size
+bits then it returns non masked value.
+
+This is useful when C procedure sets the pointer value however it only sets
+a half of bits and returning value is needed only a half of bits. 
+For example, a C procedure takes 2 arguments, one is buffer pointer the
+other one is buffer size pointer. When buffer size is -1 then it allocates 
+sufficient buffer and sets buffer size pointer the allocated size. In this
+case. In this case, if you are using 64 bit environment and buffer size
+pointer is 32 bit value's pointer returning value's upper 32 bit would be
+0xFFFFFFFF. If the optional argument is specified to 32 then the procedure
+only returns lower 32 bit value.
+}
 
 @define[Function]{@name{pointer->string}
  @args{pointer :optional (transcoder (native-transcoder))}}

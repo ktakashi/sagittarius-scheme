@@ -22,7 +22,10 @@
 	    ;; pointer
 	    pointer?
 	    integer->pointer
+	    uinteger->pointer
 	    pointer->integer
+	    pointer->uinteger
+	    
 	    object->pointer
 	    pointer->object
 	    allocate-pointer
