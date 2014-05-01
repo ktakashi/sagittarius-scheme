@@ -145,7 +145,19 @@
 	      (let ((p (integer->pointer -1))
 		    (set (c-function ffi-test-lib void set_int (void*))))
 		(set (address p))
-		(pointer->long p)))
+		(pointer->integer p 32)))
+
+  (test-equal "set int(-1)" #xF5
+	      (let ((p (integer->pointer -1))
+		    (set (c-function ffi-test-lib void set_int (void*))))
+		(set (address p))
+		(pointer->integer p 8)))
+
+  (test-equal "set int(-1)" #x5
+	      (let ((p (integer->pointer -1))
+		    (set (c-function ffi-test-lib void set_int (void*))))
+		(set (address p))
+		(pointer->integer p 4)))
 
   (test-assert "c-struct?" (c-struct? data-to-store))
   (test-equal "c-struct"

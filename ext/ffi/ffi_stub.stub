@@ -79,14 +79,10 @@
 	       (cast uintptr_t (Sg_GetIntegerU64Clamp n SG_CLAMP_BOTH NULL))))
     (result r)))
 
-(define-c-proc pointer->integer (p::<pointer>) :no-side-effect
-  Sg_PointerToInteger)
-(define-c-proc pointer->uinteger (p::<pointer>) :no-side-effect
-  Sg_PointerToUInteger)
-(define-c-proc pointer->long (p::<pointer>) :no-side-effect
-  Sg_PointerToLong)
-(define-c-proc pointer->ulong (p::<pointer>) :no-side-effect
-  Sg_PointerToULong)
+(define-c-proc pointer->integer (p::<pointer> :optional (bits::<fixnum> -1))
+  :no-side-effect Sg_PointerToInteger)
+(define-c-proc pointer->uinteger (p::<pointer> :optional (bits::<fixnum> -1))
+  :no-side-effect Sg_PointerToUInteger)
 
 ;; !!!dangerous operations!!!
 ;; the usecase is for callback parameters or so

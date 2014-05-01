@@ -90,27 +90,34 @@ SgObject Sg_MakePointer(void *p)
   return make_pointer((uintptr_t)p);
 }
 
-SgObject Sg_PointerToInteger(SgPointer *p)
+static uintptr_t mask_pointer(SgPointer *p, int bits)
 {
+  uintptr_t v = p->pointer, mask = 1;
+  if (bits < 0) return v;	/* should we do <= ? */
+  if (bits >= SIZEOF_VOIDP<<3) return v; /* return all */
+  /* create mask */
+  mask <<= bits;
+  mask--;
+  return v & mask;
+}
+SgObject Sg_PointerToInteger(SgPointer *p, int bits)
+{
+  intptr_t v = (intptr_t)mask_pointer(p, bits);
 #if SIZEOF_VOIDP == 4
-  return Sg_MakeInteger((long)p->pointer);
+  return Sg_MakeInteger((long)v);
 #else
-  return Sg_MakeIntegerFromS64((int64_t)p->pointer);
+  return Sg_MakeIntegerFromS64((int64_t)v);
 #endif
 }
-SgObject Sg_PointerToUInteger(SgPointer *p)
+SgObject Sg_PointerToUInteger(SgPointer *p, int bits)
 {
-  return pointer_value(p);
+  uintptr_t v = mask_pointer(p, bits);
+#if SIZEOF_VOIDP == 4
+  return Sg_MakeIntegerU(v);
+#else
+  return Sg_MakeIntegerFromU64(v);
+#endif
 }
-SgObject Sg_PointerToLong(SgPointer *p)
-{
-  return Sg_MakeInteger((long)p->pointer);
-}
-SgObject Sg_PointerToULong(SgPointer *p)
-{
-  return Sg_MakeIntegerU((unsigned long)p->pointer);
-}
-
 
 /* function info */
 static void funcinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
