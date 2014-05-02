@@ -435,14 +435,27 @@
 	    (mod-expt 123456789012345678901234567890
 		      987654321098765432109876543210987654
 		      147258369014725836901472583690))
+(let ()
+  ;; naive expt
+  (define (expt-ref b e)
+    (do ((i 1 (+ i 1)) (r b (* r b)))
+	((= i e) r)))
+  ;; testing number must be bignum for both 32 and 64 bit environment
+  (test-equal "bignum expt (8)"
+	      (expt-ref #x123456789ABCDEF12 8)
+	      (expt #x123456789ABCDEF12 8))
+  (test-equal "bignum expt (511)"
+	      (expt-ref #x123456789ABCDEF12 511)
+	      (expt #x123456789ABCDEF12 511))
+  ;; starting exponent 512, using sliding window internally
+  (test-equal "bignum expt (512)"
+	      (expt-ref #x123456789ABCDEF12 512)
+	      (expt #x123456789ABCDEF12 512))
+  (test-equal "bignum expt (1000)"
+	      (expt-ref #x123456789ABCDEF12 1000)
+	      (expt #x123456789ABCDEF12 1000))
 
-(test-equal "bignum expt (8)"
-	    325190962239183205198164466347057325383638846849096493808680951279824937890625
-	    (expt #x123456789 8))
-
-(test-equal "bignum expt (9)"
-	    1589116640802418846657769658025300168718862115752125282970060124871171752378602791015625
-	    (expt #x123456789 9))
+)
 
 ;; macro problems
 (library (settable-variable)

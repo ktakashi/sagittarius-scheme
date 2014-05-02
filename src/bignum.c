@@ -3035,7 +3035,8 @@ static void setup_square(ulong *dst, ulong *src, int slen)
     }									\
   } while (0)
 
-/* compute result size of sliding window */
+/* compute result size of sliding window.
+   this is actually the same algorithm without computing */
 static int compute_sw_size(long l, long e, long n, SgBignum **table)
 {
   int z = 0;
@@ -3048,14 +3049,15 @@ static int compute_sw_size(long l, long e, long n, SgBignum **table)
     l -= e;
     tw = SG_BIGNUM_GET_COUNT(table[w>>(v+1)]);
     if (z) {
-      for (i = 1; i <= e-v; i++) z <<= 1;
-      z += tw; 
+      for (i = 1; i <= e-v; i++) z <<= 1; /* square z */
+      z += tw;				  /* mul */
     } else {
       z = tw;
     }
+    for (i = 1; i <= v; i++) z <<= 1; /* square z */
     while (l >= 0) {
       if (n & (1UL<<l)) break;
-      z <<= 1;
+      z <<= 1;			/* square z */
       l--;
     }
   }
@@ -3119,6 +3121,15 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
       zlen = SG_BIGNUM_GET_COUNT(tw);
       SG_BIGNUM_SET_COUNT(z, zlen);
     }
+    for (i = 1; i <= v; i++) {
+      SgBignum *t;
+      square_to_len(z->elements, zlen, prod1->elements);
+      zlen <<= 1;
+      t = z;
+      z = prod1;
+      prod1 = t;
+      SG_BIGNUM_SET_COUNT(z, zlen);
+    }
     while (l >= 0) {
       SgBignum *t;
       if (n & (1UL<<l)) break;
@@ -3136,6 +3147,7 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   /* i'm not sure which would the proper one so check */
   if (r != z)
     copy_element(r->elements, z->elements, zsize);
+  SG_BIGNUM_SET_COUNT(r, zsize);
   return r;
 }
 
