@@ -32,7 +32,6 @@
 #include <string.h>
 
 #define LIBSAGITTARIUS_BODY
-#define NO_NBITS
 #include "sagittarius/bignum.h"
 #include "sagittarius/number.h"
 #include "sagittarius/error.h"
@@ -1798,6 +1797,19 @@ SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp)
 {
   SgBignum *bb;
   ASSERT(b != 0);
+  /* a bit of optimisation 
+     TODO consider negative b as well */
+  if (b > 0 && nbits(b) == 1) {
+    /* now it's 2^n, so we only need the first element of a
+       and mod it. assume a != 0*/
+    long ea = a->elements[0];
+    long r = (b-1)&ea;		/* mask it */
+    /*  b is positive */
+    if (!remp && r && SG_BIGNUM_GET_SIGN(a) < 0) {
+      return Sg_MakeIntegerFromS64((int64_t)(b + r));
+    }
+    return Sg_MakeInteger(r);
+  }
   ALLOC_TEMP_BIGNUM_REC(bb, 1);
   SG_BIGNUM_SET_SIGN(bb, (b < 0) ? -1 : 1);
   bb->elements[0] = (b < 0) ? -b : b;
