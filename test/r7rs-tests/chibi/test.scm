@@ -1,7 +1,7 @@
-;; Copyright (c) 2010-2012 Alex Shinn. All rights reserved.
+;; Copyright (c) 2010-2013 Alex Shinn. All rights reserved.
 ;; BSD-style license: http://synthcode.com/license.txt
 
-;;> Simple testing framework adapted from the Chicken @scheme{test}
+;;> Simple testing framework adapted from the Chicken \scheme{test}
 ;;> module.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -44,18 +44,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; test interface
 
-;;> @subsubsubsection{@scheme{(test [name] expect expr)}}
+;;> \macro{(test [name] expect expr)}
 
-;;> Evaluate @var{expr} and check that it is @scheme{equal?}
-;;> to @var{expect}.  @var{name} is used in reporting, and
-;;> defaults to a printed summary of @var{expr}.
+;;> Evaluate \var{expr} and check that it is \scheme{equal?}
+;;> to \var{expect}.  \var{name} is used in reporting, and
+;;> defaults to a printed summary of \var{expr}.
 
 (define-syntax test
-  (syntax-rules ()
+  (syntax-rules (quote)
     ((test expect expr)
      (test #f expect expr))
     ((test name expect (expr ...))
      (test-propagate-info name expect (expr ...) ()))
+    ((test name 'expect expr)
+     (test-propagate-info name 'expect expr ()))
     ((test name (expect ...) expr)
      (test-syntax-error
       'test
@@ -66,10 +68,10 @@
     ((test a ...)
      (test-syntax-error 'test "test requires 2 or 3 arguments" (test a ...)))))
 
-;;> @subsubsubsection{@scheme{(test-equal equal [name] expect expr)}}
+;;> \macro{(test-equal equal [name] expect expr)}
 
-;;> Equivalent to test, using @var{equal} for comparison instead of
-;;> @scheme{equal?}.
+;;> Equivalent to test, using \var{equal} for comparison instead of
+;;> \scheme{equal?}.
 
 (define-syntax test-equal
   (syntax-rules ()
@@ -77,9 +79,9 @@
      (parameterize ((current-test-comparator equal))
        (test . args)))))
 
-;;> @subsubsubsection{@scheme{(test-assert [name] expr)}}
+;;> \macro{(test-assert [name] expr)}
 
-;;> Like @scheme{test} but evaluates @var{expr} and checks that it's true.
+;;> Like \scheme{test} but evaluates \var{expr} and checks that it's true.
 
 (define-syntax test-assert
   (syntax-rules ()
@@ -91,18 +93,18 @@
      (test-syntax-error 'test-assert "1 or 2 arguments required"
                         (test a ...)))))
 
-;;> @subsubsubsection{@scheme{(test-not [name] expr)}}
+;;> \macro{(test-not [name] expr)}
 
-;;> Like @scheme{test} but evaluates @var{expr} and checks that it's false.
+;;> Like \scheme{test} but evaluates \var{expr} and checks that it's false.
 
 (define-syntax test-not
   (syntax-rules ()
     ((_ expr) (test-assert (not expr)))
     ((_ name expr) (test-assert name (not expr)))))
 
-;;> @subsubsubsection{@scheme{(test-values [name] expect expr)}}
+;;> \macro{(test-values [name] expect expr)}
 
-;;> Like @scheme{test} but @var{expect} and @var{expr} can both
+;;> Like \scheme{test} but \var{expect} and \var{expr} can both
 ;;> return multiple values.
 
 (define-syntax test-values
@@ -113,9 +115,9 @@
      (test name (call-with-values (lambda () expect) (lambda results results))
        (call-with-values (lambda () expr) (lambda results results))))))
 
-;;> @subsubsubsection{@scheme{(test-error [name] expr)}}
+;;> \macro{(test-error [name] expr)}
 
-;;> Like @scheme{test} but evaluates @var{expr} and checks that it
+;;> Like \scheme{test} but evaluates \var{expr} and checks that it
 ;;> raises an error.
 
 (define-syntax test-error
@@ -140,13 +142,13 @@
     ((_ (vars ...) n expect expr ((key . val) ...))
      (test-run (lambda () expect)
                (lambda () expr)
-               (cons (cons 'name n)
-                     '((source . expr)
-                       ;;(var-names . (vars ...))
-                       ;;(var-values . ,(list vars))
-                       (key . val) ...))))))
+               `((name . ,n)
+                 (source . expr)
+                 (var-names . (vars ...))
+                 (var-values . ,(list vars ...))
+                 (key . val) ...)))))
 
-;;> @subsubsubsection{@scheme{(test-exit)}}
+;;> \macro{(test-exit)}
 
 ;;> Exits with a failure status if any tests have failed,
 ;;> and a successful status otherwise.
@@ -157,7 +159,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; group interface
 
-;;> Wraps @var{body} as a single test group, which can be filtered
+;;> Wraps \var{body} as a single test group, which can be filtered
 ;;> and summarized separately.
 
 (define-syntax test-group
@@ -172,7 +174,7 @@
         (exn
          (else
            (warning "error in group outside of tests")
-           (print-exception e (current-error-port))
+           (print-exception exn (current-error-port))
            (test-group-inc! (current-test-group) 'count)
            (test-group-inc! (current-test-group) 'ERROR)))
         body ...)
@@ -222,11 +224,12 @@
     => (lambda (x) (set-cdr! x value)))
    (else (set-cdr! group (cons (cons field value) (cdr group))))))
 
-(define (test-group-inc! group field)
-  (cond
-   ((assq field (cdr group))
-    => (lambda (x) (set-cdr! x (+ 1 (cdr x)))))
-   (else (set-cdr! group (cons (cons field 1) (cdr group))))))
+(define (test-group-inc! group field . o)
+  (let ((amount (if (pair? o) (car o) 1)))
+    (cond
+     ((assq field (cdr group))
+      => (lambda (x) (set-cdr! x (+ amount (cdr x)))))
+     (else (set-cdr! group (cons (cons field amount) (cdr group)))))))
 
 (define (test-group-push! group field value)
   (cond
@@ -243,8 +246,13 @@
         (else #f)))
 
 (define (approx-equal? a b epsilon)
-  (< (abs (- 1 (abs (if (zero? b) (+ 1 a) (/ a b)))))
-     epsilon))
+  (cond
+   ((> (abs a) (abs b))
+    (approx-equal? b a epsilon))
+   ((zero? b)
+    (< (abs a) epsilon))
+   (else
+    (< (abs (/ (- a b) b)) epsilon))))
 
 (define (call-with-output-string proc)
   (let ((out (open-output-string)))
@@ -455,7 +463,22 @@
    ((eq? status 'FAIL)
     (display indent)
     (display "expected ") (write (assq-ref info 'expected))
-    (display " but got ") (write (assq-ref info 'result)) (newline))))
+    (display " but got ") (write (assq-ref info 'result)) (newline)))
+  ;; print variables
+  (cond
+   ((and (memq status '(FAIL ERROR)) (assq-ref info 'var-names))
+    => (lambda (names)
+         (let ((values (assq-ref info 'var-values)))
+           (if (and (pair? names)
+                    (pair? values)
+                    (= (length names) (length values)))
+               (let ((indent2
+                      (string-append indent (make-string 2 #\space))))
+                 (for-each
+                  (lambda (name value)
+                    (display indent2) (write name) (display ": ")
+                    (write value) (newline))
+                  names values))))))))
 
 (define (test-print-source indent status info)
   (case status
@@ -509,19 +532,23 @@
                 (else 0)))
      #\space))
   ;; update group info
-  (cond ((current-test-group)
-         => (lambda (group)
-              (if (not (eq? 'SKIP status))
-                  (test-group-inc! group 'count))
-              (test-group-inc! group status))))
-  (if (and (current-test-group)
-           (zero?
-            (modulo
-             (+ (string-length (test-group-name (current-test-group)))
-                (or (test-group-ref (current-test-group) 'count) 0)
-                1)
-             (current-column-width))))
-      (display (string-append "\n" (string-copy indent 4))))
+  (cond
+   ((current-test-group)
+    => (lambda (group)
+         (if (not (eq? 'SKIP status))
+             (test-group-inc! group 'count))
+         (test-group-inc! group status)
+         ;; maybe wrap long status lines
+         (let ((width (max (- (current-column-width)
+                              (or (test-group-indent-width group) 0))
+                           4))
+               (column
+                (+ (string-length (or (test-group-name group) ""))
+                   (or (test-group-ref group 'count) 0)
+                   1)))
+           (if (and (zero? (modulo column width))
+                    (not (test-group-ref group 'verbose)))
+               (display (string-append "\n" (string-copy indent 4))))))))
   ;; update global failure count for exit status
   (cond
    ((or (eq? status 'FAIL) (eq? status 'ERROR))
@@ -541,7 +568,9 @@
     (cond
      ((and (memq status '(FAIL ERROR)) (current-test-group))
       => (lambda (group)
-           (test-group-push! group 'failures (list indent status info)))))))
+           (test-group-push! group 'failures (list indent status info)))))
+    (cond ((current-test-group)
+           => (lambda (group) (test-group-set! group 'trailing #t))))))
   (flush-output-port)
   status)
 
@@ -549,56 +578,62 @@
   (define (plural word n)
     (if (= n 1) word (string-append word "s")))
   (define (percent n d)
-    (string-append " (" (number->string (/ (round (* 1000.0 (/ n d))) 10)) "%)"))
+    (string-append " (" (number->string (/ (round (* 1000.0 (/ n d))) 10))
+                   "%)"))
   (let* ((end-time (current-second))
          (start-time (test-group-ref group 'start-time))
          (duration (- end-time start-time))
-         (count (or (test-group-ref group 'count) 0))
-         (pass (or (test-group-ref group 'PASS) 0))
-         (fail (or (test-group-ref group 'FAIL) 0))
-         (err (or (test-group-ref group 'ERROR) 0))
+         (base-count (or (test-group-ref group 'count) 0))
+         (base-pass (or (test-group-ref group 'PASS) 0))
+         (base-fail (or (test-group-ref group 'FAIL) 0))
+         (base-err (or (test-group-ref group 'ERROR) 0))
          (skip (or (test-group-ref group 'SKIP) 0))
+         (pass (+ base-pass (or (test-group-ref group 'total-pass) 0)))
+         (fail (+ base-fail (or (test-group-ref group 'total-fail) 0)))
+         (err (+ base-err (or (test-group-ref group 'total-error) 0)))
+         (count (+ pass fail err))
          (subgroups-count (or (test-group-ref group 'subgroups-count) 0))
          (subgroups-pass (or (test-group-ref group 'subgroups-pass) 0))
          (indent (make-string (or (test-group-indent-width group) 0) #\space)))
-    (if (not (test-group-ref group 'verbose))
+    (if (and (not (test-group-ref group 'verbose))
+             (test-group-ref group 'trailing))
         (newline))
     (cond
      ((or (positive? count) (positive? subgroups-count))
-      (if (not (= count (+ pass fail err)))
-          (warning "inconsistent count:" count pass fail err))
-      (display indent)
+      (if (not (= base-count (+ base-pass base-fail base-err)))
+          (warning "inconsistent count:"
+                   base-count base-pass base-fail base-err))
       (cond
        ((positive? count)
-        (write count) (display (plural " test" count))))
-      (if (and (positive? count) (positive? subgroups-count))
-          (display " and "))
-      (cond
-       ((positive? subgroups-count)
-        (write subgroups-count)
-        (display (plural " subgroup" subgroups-count))))
-      (display " completed in ") (write duration) (display " seconds")
-      (cond
-       ((not (zero? skip))
-        (display " (") (write skip) (display (plural " test" skip))
-        (display " skipped)")))
-      (display ".") (newline)
+        (display indent)
+        (display
+         ((if (and (test-ansi?) (= pass count)) green (lambda (x) x))
+          (string-append
+           (number->string pass) " out of " (number->string count)
+           (percent pass count))))
+        (display
+         (string-append
+          (plural " test" pass) " passed in "
+          (number->string duration) " seconds"
+          (cond
+           ((zero? skip) "")
+           (else (string-append " (" (number->string skip)
+                                (plural " test" skip) " skipped)")))
+          ".\n"))))
       (cond ((positive? fail)
              (display indent)
              (display
               ((if (test-ansi?) red (lambda (x) x))
                (string-append
                 (number->string fail) (plural " failure" fail)
-                (percent fail count) ".")))
-             (newline)))
+                (percent fail count) ".\n")))))
       (cond ((positive? err)
              (display indent)
              (display
               ((if (test-ansi?) (lambda (x) (underline (red x))) (lambda (x) x))
                (string-append
                 (number->string err) (plural " error" err)
-                (percent err count) ".")))
-             (newline)))
+                (percent err count) ".\n")))))
       (cond
        ((not (test-group-ref group 'verbose))
         (for-each
@@ -611,15 +646,6 @@
            (apply test-print-failure failure))
          (reverse (or (test-group-ref group 'failures) '())))))
       (cond
-       ((positive? count)
-        (display indent)
-        (display
-         ((if (and (test-ansi?) (= pass count)) green (lambda (x) x))
-          (string-append
-           (number->string pass) " out of " (number->string count)
-           (percent pass count) (plural " test" pass) " passed.")))
-        (newline)))
-      (cond
        ((positive? subgroups-count)
         (display indent)
         (display
@@ -628,15 +654,22 @@
           (string-append
            (number->string subgroups-pass) " out of "
            (number->string subgroups-count)
-           (percent subgroups-pass subgroups-count)
-           (plural " subgroup" subgroups-pass) " passed.")))
-        (newline)))))
+           (percent subgroups-pass subgroups-count))))
+        (display (plural " subgroup" subgroups-pass))
+        (display " passed.\n")))))
     (cond
      ((test-group-ref group 'verbose)
       (test-print-header-line
        (string-append "done testing " (or (test-group-name group) ""))
        (or (test-group-indent-width group) 0))
-      (newline)))))
+      (newline)))
+    (cond
+     ((test-group-ref group 'parent)
+      => (lambda (parent)
+           (test-group-set! parent 'trailing #f)
+           (test-group-inc! parent 'total-pass pass)
+           (test-group-inc! parent 'total-fail fail)
+           (test-group-inc! parent 'total-error err))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -645,12 +678,14 @@
       (if (real? expect)
           (and (inexact? expect)
                (real? res)
+               (inexact? res)
                (approx-equal? expect res (current-test-epsilon)))
           (and (complex? res)
+               (complex? expect)
                (test-equal? (real-part expect) (real-part res))
                (test-equal? (imag-part expect) (imag-part res))))))
 
-;;> Begin testing a new group until the closing @scheme{(test-end)}.
+;;> Begin testing a new group until the closing \scheme{(test-end)}.
 
 (define (test-begin . o)
   (let* ((name (if (pair? o) (car o) ""))
@@ -670,15 +705,13 @@
       (display
        (make-string (or (test-group-indent-width group) 0)
                     #\space))
-      (let* ((msg (string-append name ": ")))
-       (display
-        (cond
-         ((test-ansi?) (bold msg))
-         (#t msg))))
-      ))
+      ;;(display (bold (string-append name ": ")))
+      (let ((msg (string-append name ": ")))
+	(display (cond ((test-ansi?) (bold msg))
+		       (else msg))))))
     (current-test-group group)))
 
-;;> Ends testing group introduced with @scheme{(test-begin)}, and
+;;> Ends testing group introduced with \scheme{(test-begin)}, and
 ;;> summarizes the results.
 
 (define (test-end . o)
