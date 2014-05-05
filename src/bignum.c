@@ -1265,6 +1265,7 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 
 /* forward declaration */
 static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
+static ulong* square_to_len(ulong *num, int len, ulong *prod);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
 /* whatever i did, it's slow. */
@@ -1644,6 +1645,15 @@ SgObject Sg_BignumMulSI(SgBignum *a, long b)
   return Sg_NormalizeBignum(bignum_mul_si(a, b));
 }
 
+SgObject Sg_BignumSquare(SgBignum *bx)
+{
+  int len = SG_BIGNUM_GET_COUNT(bx);  
+  SgBignum *br = make_bignum(len<<1);
+  square_to_len(bx->elements, len, br->elements);
+  SG_BIGNUM_SET_SIGN(br, 1);
+  return Sg_NormalizeBignum(br);
+}
+
 static inline int div_normalization_factor(unsigned long w)
 {
   unsigned long b = (1L << (WORD_BITS - 1)), c = 0;
@@ -1888,21 +1898,23 @@ static SgBignum * bn_sqrt(SgBignum *bn)
 SgObject Sg_BignumSqrt(SgBignum *bn)
 {
   int count;
-  SgBignum *workpad;
+  SgBignum *pad;
   double s;
 
   count = SG_BIGNUM_GET_COUNT(bn);
-  ALLOC_TEMP_BIGNUM_REC(workpad, count);
-  bignum_copy(workpad, bn);
-  bn_sqrt(workpad);
-  if (bn->elements[0] == workpad->elements[0] * workpad->elements[0]) {
-    SgBignum *s2 = Sg_BignumMul(workpad, workpad);
+  ALLOC_TEMP_BIGNUM_REC(pad, count);
+  bignum_copy(pad, bn);
+  bn_sqrt(pad);
+  if (bn->elements[0] == pad->elements[0] * pad->elements[0]) {
+    SgBignum *s2;
+    ALLOC_TEMP_BIGNUM_REC(s2, count);
+    square_to_len(pad->elements, SG_BIGNUM_GET_COUNT(pad), s2->elements);
     /* set the same sign for temp otherwise cmp returns non 0 even the
        value is the same. */
     SG_BIGNUM_SET_SIGN(s2, SG_BIGNUM_GET_SIGN(bn));
     if (Sg_BignumCmp(bn, s2) == 0) {
-      if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(workpad);
-      return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(workpad));
+      if (SG_BIGNUM_GET_SIGN(bn) > 0) return Sg_BignumToInteger(pad);
+      return Sg_MakeComplex(SG_MAKE_INT(0), Sg_BignumToInteger(pad));
     }
   }
   s = Sg_BignumToDouble(bn);

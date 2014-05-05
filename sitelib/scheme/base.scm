@@ -85,7 +85,7 @@
 	  (srfi :23)
 	  (srfi :39)
 	  (only (scheme private) define-values)
-	  ;; for undefined
+	  ;; for undefined and square
 	  (sagittarius))
 
   (define-syntax syntax-error
@@ -246,7 +246,8 @@
   (define u8-ready? port-ready?)
 
   ;; misc
-  (define (square z) (* z z))
+  ;; it's builtin (for better performance with bignum)
+  ;;(define (square z) (* z z))
   (define (boolean=? x y . rest)
     (unless (and (boolean? x) (boolean? y))
       (assertion-violation 'boolean=? "boolean required" x y))
@@ -265,7 +266,7 @@
   ;; moved from divisions (it's no longer supported)
   ;; From chibi-scheme
 
-  ;; The builtin quotient and remainder implement truncation - the
+  ;; The Builtin quotient and remainder implement truncation - the
   ;; fractional part is always discarded.
 
   (define truncate-quotient quotient)

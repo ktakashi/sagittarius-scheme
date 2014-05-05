@@ -3600,6 +3600,16 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
   return Sg_BignumModExpt(SG_BIGNUM(x), SG_BIGNUM(e), SG_BIGNUM(m));
 }
 
+SgObject Sg_Square(SgObject x)
+{
+  if (SG_BIGNUMP(x)) {
+    /* a bit of optimisation */
+    return Sg_BignumSquare(SG_BIGNUM(x));
+  }
+  /* TODO rational and complex but it's rare i think...*/
+  return Sg_Mul(x, x);
+}
+
 static inline double roundeven(double v)
 {
   double r;

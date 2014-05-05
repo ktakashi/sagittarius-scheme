@@ -104,6 +104,8 @@ SG_EXTERN SgObject Sg_BignumModInverse(SgBignum *bx, SgBignum *bm);
 SG_EXTERN SgObject Sg_BignumModExpt(SgBignum *bx, SgBignum *be, SgBignum *bm);
 SG_EXTERN SgObject Sg_BignumExpt(SgBignum *b, long n);
 
+SG_EXTERN SgObject Sg_BignumSquare(SgBignum *bx);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_BIGNUM_H_ */
