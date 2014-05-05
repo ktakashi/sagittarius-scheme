@@ -2554,8 +2554,10 @@ static SgObject expt_body(SgObject x, SgObject y)
   }
   if (Sg_ExactP(y)) {
     if (SG_INTP(y)) {
-      if (SG_INT_VALUE(y) == 0) return SG_MAKE_INT(1);
-      else if (SG_FLONUMP(x))
+      if (SG_INT_VALUE(y) == 0) {
+	if (Sg_ExactP(x)) return SG_MAKE_INT(1);
+	else return Sg_MakeFlonum(1.0);
+      } else if (SG_FLONUMP(x))
 	return Sg_MakeFlonum(pow(SG_FLONUM_VALUE(x),
 				 (double)SG_INT_VALUE(y)));
       else return oprtr_expt(x, SG_INT_VALUE(y));
@@ -2589,8 +2591,9 @@ static SgObject expt_body(SgObject x, SgObject y)
 	return Sg_MakeFlonum(pow(Sg_GetDouble(x), n));
       }
       else return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
+    } else {
+      return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
     }
-    else return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
   }
  bad_arg:
   /* Sg_Error(UC("real number required, but got %S"), y); */
