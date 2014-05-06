@@ -1194,8 +1194,7 @@
 (test "γλώσσα" (string-foldcase "ΓΛΏΣΣΑ"))
 (test "ΜΈΛΟΣ" (string-upcase "μέλος"))
 (test "μέλος" (string-downcase "ΜΈΛΟΣ"))
-;; this is not compatible with R6RS so ignore it
-;;(test "μέλος" (string-foldcase "ΜΈΛΟΣ"))
+(test "μέλοσ" (string-foldcase "ΜΈΛΟΣ"))
 (test "μέλος ενός" (string-downcase "ΜΈΛΟΣ ΕΝΌΣ"))
 
 (test "" (substring "" 0 0))
