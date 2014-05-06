@@ -35,6 +35,9 @@
     (export make-amqp-source amqp-source?
 	    make-amqp-target amqp-target?
 	    address-string
+	    ;; handling disposition message
+	    disposition-handler
+
 	    ;; utility
 	    annotation-set!
 	    annotation-ref
@@ -206,4 +209,10 @@
       (unless (eq? type :map)
 	(error 'annotation-delete! "amqp-annotation required" annot))
       (hashtable-delete! (scheme-value (scheme-value annot)) key)))
+
+  (define (disposition-handler disposition make-disposition)
+    (let ((state (~ disposition 'state)))
+      (if (amqp-accepted? state)
+	  (make-disposition #t (make-amqp-accepted))
+	  (make-disposition #f (make-amqp-received)))))
 )

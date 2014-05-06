@@ -121,18 +121,20 @@
   (define (sub-type u8) (bitwise-and #x0F u8))
   (define (read-ext-type in u8) (and (= (sub-type u8) #xF) (get-u8 in)))
 
-  (define *primitive-type-table* (make-eq-hashtable))  ;; Scheme -> binary table
-  (define *primitive-code-table* (make-eqv-hashtable)) ;; binary -> Scheme table
+  (define *primitive-type-table*  (make-eq-hashtable)) ;; Scheme -> binary table
+  (define *primitive-code-table*  (make-eqv-hashtable));; binary -> Scheme table
+  (define *primitive-class-table* (make-eqv-hashtable));; primitive code/class
 
   (define *class/type-table* (make-eq-hashtable))
   (define *type/class-table* (make-eq-hashtable))
   (define *code/class-table* (make-eqv-hashtable))
 
-  (define (register! name code reader writer write-pred?)
+  (define (register! name code class reader writer write-pred?)
     (let ((slots (hashtable-ref *primitive-type-table* name '())))
       (hashtable-set! *primitive-type-table* 
 		      name (acons code (cons writer write-pred?) slots)))
-    (hashtable-set! *primitive-code-table* code reader))
+    (hashtable-set! *primitive-code-table* code reader)
+    (hashtable-set! *primitive-class-table* code class))
 
   (define (add-class-entry! class name code)
     (hashtable-set! *class/type-table* class name)
@@ -153,7 +155,7 @@
 			code)))
 	    (reader (hashtable-ref *primitive-code-table* code)))
 	(if (and data reader)
-	    (make (hashtable-ref *code/class-table* code)
+	    (make (hashtable-ref *primitive-class-table* code)
 	      :value (reader data))
 	    (error 'read-amqp-data "unknown data" code)))))
   (define (read-amqp-data in)
@@ -333,11 +335,11 @@
     (syntax-rules ()
       ((_ name class ((code reader writer)))
        (begin
-	 (register! name code reader writer #f)
+	 (register! name code class reader writer #f)
 	 (add-class-entry! class name code)))
       ((_ name class ((code reader writer pred)))
        (begin
-	 (register! name code reader writer pred)
+	 (register! name code class reader writer pred)
 	 (add-class-entry! class name code)))
       ((_ name class (pattern pattern* ...))
        (begin

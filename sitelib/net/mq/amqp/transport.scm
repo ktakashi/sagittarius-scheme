@@ -407,7 +407,7 @@
 	(let1 link (make-link attach handle)
 	  (if (slot-bound? attach 'target)
 	      (let-values (((ext flow) (recv-frame conn)))
-		(flow-control link flow))
+		(flow-control link flow values))
 	      (detach-amqp-link! link))))))
 
   (define-composite-type transfer amqp:transfer:list #x00000000 #x00000014
@@ -451,7 +451,7 @@
     (let-values (((ext flow) (recv-frame conn))) flow))
   ;; well for may laziness...
   ;; TODO this is not correct
-  (define-method flow-control ((link <amqp-sender-link>) flow)
+  (define-method flow-control ((link <amqp-sender-link>) flow k)
     (let* ((session (~ link 'session))
 	   (conn (~ session 'connection)))
       (when flow
@@ -480,8 +480,8 @@
 		  :delivery-count 0
 		  :link-credit #x64)
 	(send-frame conn flow)
-	link)))
-  (define-method flow-control ((link <amqp-receiver-link>) flow)
+	(k link))))
+  (define-method flow-control ((link <amqp-receiver-link>) flow k)
     )
 
   (define (detach-amqp-link! link :key error)
@@ -501,25 +501,47 @@
 
   ;; transfer
   ;; state will be resolved by option
-  (define (send-transfer link message-format message . opt)
-    (let ((tag (read-sys-random 8))
-	  (id  (bytevector->integer (read-sys-random 8)))
-	  (frame-size (~ link 'session 'connection 'frame-size))
-	  (conn (~ link 'session 'connection)))
+  (define (send-transfer link message-format message 
+			 disposition-handler . opt)
+    (define session (~ link 'session))
+    (define connection (~ session 'connection))
+    (define delivery-tag (read-sys-random 8))
+    (define first-delivery-id (bytevector->integer (read-sys-random 8)))
+    (define offset 0)
+    (define (make-transfer message . opt)
+      ;; id must be unique per message
+      (let1 id (+ first-delivery-id offset)
+	(set! offset (+ offset 1))
+	(apply make-amqp-transfer :handle (~ link 'handle)
+	       :delivery-id id
+	       :delivery-tag delivery-tag
+	       :message-format message-format
+	       :settled #f
+	       opt)))
+    (define (make-disposition settled? state)
+      (make-amqp-disposition 
+       :role (is-a? link <amqp-receiver-link>)
+       :first first-delivery-id
+       :last first-delivery-id ;; for now we don't support this yet
+       :settled settled?
+       :state state))
+    (define (handle-disposition link)
+      (let-values (((ext disp) (recv-frame connection)))
+	;; TODO disposition contains first and last
+	;; I think we should check it...
+	(let1 sender-disp (disposition-handler disp make-disposition)
+	  (send-frame connection sender-disp)
+	  (if (~ sender-disp 'settled)
+	      link
+	      ;; TODO send the rest message
+	      (handle-disposition link)))))
+    (let ((frame-size (~ connection 'frame-size)))
       ;; can be sen in one go
       (if (< (bytevector-length message) (- frame-size 512))
-	  (let1 transfer (apply make-amqp-transfer 
-				:handle (~ link 'handle)
-				:delivery-id id
-				:delivery-tag tag
-				:message-format message-format
-				;; TODO I think this is not right.
-				:settled #t
-				:more #f
-				opt)
-	    (send-frame conn transfer message)
-	    (let-values (((ext flow) (recv-frame conn)))
-	      (flow-control link flow)))
+	  (let1 transfer (apply make-transfer message :more #f opt)
+	    (send-frame connection transfer message)
+	    (let-values (((ext flow) (recv-frame connection)))
+	      (flow-control link flow handle-disposition)))
 	  (error 'send-transfer "not supported yet"))))
 	
   )
