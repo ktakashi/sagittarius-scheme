@@ -38,6 +38,7 @@
 	    ;; handling disposition message
 	    disposition-handler
 
+	    +message-format+
 	    ;; utility
 	    annotation-set!
 	    annotation-ref
@@ -67,6 +68,8 @@
   (define-restricted-type filter-set             :map)
   (define-restricted-type address-string  :string :provides (address))
   (define-restricted-type annotations            :map)
+
+  (define-constant +message-format+ 0)
 
   ;; terminus-durability
   (define-constant +amqp-none+            0)
