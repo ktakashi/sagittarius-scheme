@@ -1907,8 +1907,9 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   bn_sqrt(pad);
   if (bn->elements[0] == pad->elements[0] * pad->elements[0]) {
     SgBignum *s2;
-    ALLOC_TEMP_BIGNUM_REC(s2, count);
+    ALLOC_TEMP_BIGNUM_REC(s2, SG_BIGNUM_GET_COUNT(pad)<<1);
     square_to_len(pad->elements, SG_BIGNUM_GET_COUNT(pad), s2->elements);
+    bignum_normalize(s2);
     /* set the same sign for temp otherwise cmp returns non 0 even the
        value is the same. */
     SG_BIGNUM_SET_SIGN(s2, SG_BIGNUM_GET_SIGN(bn));
