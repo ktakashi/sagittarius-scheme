@@ -31,13 +31,38 @@
 #include "sagittarius.h"
 #include "sagittarius/cache.h"	/* this is not included in sagittarius.h */
 
+
+/* should we use _WIN32? */
+#if defined(_MSC_VER)
+#define tchar wchar_t
+#define tstrcspn wcscspn
+#define tstrlen  wcslen
+#define tstrncmp wcsncmp
+#define tstrcmp  wcscmp
+#define tstrchr  wcschr
+#define tfprintf fwprintf
+#define t(s) L##s
+#define make_scheme_string Sg_WCharTsToString
+#define PRIdPTR     "Id"
+#else
+#define tchar char
+#define tstrcspn strcspn
+#define tstrlen  strlen
+#define tstrncmp strncmp
+#define tstrcmp  strcmp
+#define tfprintf fprintf
+#define tstrchr  strchr
+#define t(s) s
+#define make_scheme_string(s) Sg_Utf8sToUtf32s(s, strlen(s))
+#endif
+
 /* getopt from mosh */
 struct option
 {
-  const char *name;
-  int         has_arg;
-  int        *flag;
-  int         value;
+  const tchar *name;
+  int          has_arg;
+  int         *flag;
+  int          value;
 };
 
 #define no_argument       0
@@ -46,20 +71,21 @@ struct option
 
 int optreset;
 
-char *optarg;
-int   opterr;
-int   optind = 1;
-int   optopt;
+tchar *optarg;
+int    opterr;
+int    optind = 1;
+int    optopt;
 
-#define BADCH  '?'
-#define BADARG ':'
-#define EMSG   ""
+#define BADCH  t('?')
+#define BADARG t(':')
+#define EMSG   t("")
 
-static int getopt_long(int argc, char **argv, const char *optstring,
+
+static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 		   const struct option *longopts, int *longindex)
 {
-  static char *place = EMSG; /* option letter processing */
-  const char *oli; /* option letter list index */
+  static tchar *place = EMSG; /* option letter processing */
+  const tchar *oli; /* option letter list index */
 
   if (optreset || !*place) {
     /* update scanning pointer */
@@ -70,41 +96,41 @@ static int getopt_long(int argc, char **argv, const char *optstring,
       return -1;
     }
     place = argv[optind];
-    if (place[0] != '-') {
+    if (place[0] != t('-')) {
       place = EMSG;
       return -1;
     }
     
     place++;
-    if (place[0] && place[0] == '-' && place[1] == '\0') {
+    if (place[0] && place[0] == t('-') && place[1] == t('\0')) {
       /* found "--" */
       ++optind;
       place = EMSG;
       return -1;
     }
-    if (place[0] && place[0] == '-' && place[1]) {
+    if (place[0] && place[0] == t('-') && place[1]) {
       /* long option */
       size_t namelen;
       int i;
       
       place++;
-      namelen = strcspn(place, "=");
+      namelen = tstrcspn(place, t("="));
       for (i = 0; longopts[i].name != NULL; i++) {
-	if (strlen(longopts[i].name) == namelen
-	    && strncmp(place, longopts[i].name, namelen) == 0) {
+	if (tstrlen(longopts[i].name) == namelen
+	    && tstrncmp(place, longopts[i].name, namelen) == 0) {
 	  if (longopts[i].has_arg) {
-	    if (place[namelen] == '=')
+	    if (place[namelen] == t('='))
 	      optarg = place + namelen + 1;
 	    else if (optind < argc - 1) {
 	      optind++;
 	      optarg = argv[optind];
 	    } else {
-	      if (optstring[0] == ':')
+	      if (optstring[0] == t(':'))
 		return BADARG;
 	      if (opterr) 
-		fprintf(stderr,
-			"%s: option requires an argument -- %s\n",
-			argv[0], place);
+		tfprintf(stderr,
+			 t("%s: option requires an argument -- %s\n"),
+			 argv[0], place);
 		place = EMSG;
 		optind++;
 		return BADCH;
@@ -131,9 +157,9 @@ static int getopt_long(int argc, char **argv, const char *optstring,
 	}
       }
       
-      if (opterr && optstring[0] != ':')
-	fprintf(stderr,
-		"%s: illegal option -- %s %d\n", argv[0], place, __LINE__);
+      if (opterr && optstring[0] != t(':'))
+	tfprintf(stderr,
+		 t("%s: illegal option -- %s %d\n"), argv[0], place, __LINE__);
       place = EMSG;
       optind++;
       return BADCH;
@@ -143,17 +169,17 @@ static int getopt_long(int argc, char **argv, const char *optstring,
   /* short option */
   optopt = (int) *place++;
 
-  oli = strchr(optstring, optopt);
+  oli = tstrchr(optstring, optopt);
   if (!oli) {
     if (!*place)
       ++optind;
-    if (opterr && *optstring != ':') {
-      fprintf(stderr,
-	      "%s: illegal option -- %C %d\n", argv[0], optopt, __LINE__);
+    if (opterr && *optstring != t(':')) {
+      tfprintf(stderr,
+	       t("%s: illegal option -- %C %d\n"), argv[0], optopt, __LINE__);
     }
     return BADCH;
   }
-  if (oli[1] != ':') {
+  if (oli[1] != t(':')) {
     /* don't need argument */
     optarg = NULL;
     if (!*place)
@@ -163,11 +189,11 @@ static int getopt_long(int argc, char **argv, const char *optstring,
       optarg = place;
     else if (argc <= ++optind) { /* no arg */
       place = EMSG;
-      if (*optstring == ':')
+      if (*optstring == t(':'))
 	return BADARG;
       if (opterr)
-	fprintf(stderr,
-		"%s: option requires an argument -- %C\n",
+	tfprintf(stderr,
+		 t("%s: option requires an argument -- %C\n"),
 		argv[0], optopt);
       return BADCH;
     } else
@@ -231,7 +257,7 @@ static void show_usage()
 	  "    (use ';' for Windows) separated paths.\n"
 	  "\n"
 	  "bug report:\n"
-	  "  http://code.google.com/p/sagittarius-scheme/issues\n"
+	  "  https://bitbucket.org/ktakashi/sagittarius-scheme/issues\n"
 	  "  ktakashi@ymail.com\n"
 	  );
   exit(1);
@@ -244,12 +270,12 @@ static void version()
   exit(0);
 }
 
-static SgObject argsToList(int argc, int optind, char** argv)
+static SgObject argsToList(int argc, int optind, tchar** argv)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   int i;
   for (i = optind; i < argc; i++) {
-    SG_APPEND1(h, t, Sg_MakeStringC(argv[i]));
+    SG_APPEND1(h, t, make_scheme_string(argv[i]));
   }
   return h;
 }
@@ -277,13 +303,17 @@ static void cleanup_main(void *data)
 
   if (stat) {
     fprintf(stderr, "\n;; Statistics (*: main thread only):\n");
-    fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, %ld gc occurred\n",
+    fprintf(stderr, ";;  GC: %zubytes heap, %zubytes allocated, "
+		    "%" PRIdPTR " gc occurred\n",
 	    Sg_GetHeapSize(), Sg_GetTotalBytes(), Sg_GcCount());
   }
 }
 
-
+#if defined(_MSC_VER)
+int wmain(int argc, tchar **argv)
+#else
 int main(int argc, char **argv)
+#endif
 {
   int opt, optionIndex = 0;
   int forceInteactiveP = FALSE, noMainP = FALSE;
@@ -292,24 +322,24 @@ int main(int argc, char **argv)
   SgObject repl, lib, preimport = SG_NIL;
 
   static struct option long_options[] = {
-    {"loadpath", optional_argument, 0, 'L'},
-    {"dynloadpath", optional_argument, 0, 'D'},
-    {"loadsuffix", optional_argument, 0, 'S'},
-    {"flag", optional_argument, 0, 'f'},
-    {"help", 0, 0, 'h'},
-    {"interactive", 0, 0, 'i'},
-    {"import", 0, 0, 'I'},
-    /* {"r6rs", 0, 0, '6'}, */
-    {"version", 0, 0, 'v'},
-    {"clean-cache", 0, 0, 'c'},
-    {"disable-cache", 0, 0, 'd'},
-    {"debug-exec", optional_argument, 0, 'E'},
-    {"logport", optional_argument, 0, 'p'},
-    {"stat", 0, 0, 's'},
-    {"no-main", 0, 0, 'n'},
-    {"toplevel-only", 0, 0, 't'},
+    {t("loadpath"), optional_argument, 0, 'L'},
+    {t("dynloadpath"), optional_argument, 0, 'D'},
+    {t("loadsuffix"), optional_argument, 0, 'S'},
+    {t("flag"), optional_argument, 0, 'f'},
+    {t("help"), 0, 0, 'h'},
+    {t("interactive"), 0, 0, 'i'},
+    {t("import"), 0, 0, 'I'},
+    /* {t("r6rs"), 0, 0, '6'}, */
+    {t("version"), 0, 0, 'v'},
+    {t("clean-cache"), 0, 0, 'c'},
+    {t("disable-cache"), 0, 0, 'd'},
+    {t("debug-exec"), optional_argument, 0, 'E'},
+    {t("logport"), optional_argument, 0, 'p'},
+    {t("stat"), 0, 0, 's'},
+    {t("no-main"), 0, 0, 'n'},
+    {t("toplevel-only"), 0, 0, 't'},
 #ifdef SAGITTARIUS_PROFILE
-    {"profile", optional_argument, 0, 'P'},
+     {t("profile"), optional_argument, 0, 'P'},
 #endif
     {0, 0, 0, 0}
    };
@@ -318,47 +348,47 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, "L:D:S:f:I:hE:vicdp:P:snt", 
+  while ((opt = getopt_long(argc, argv, t("L:D:S:f:I:hE:vicdp:P:snt"), 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
     case 'E':
-      if (strcmp("trace", optarg) == 0) {
+      if (tstrcmp(t("trace"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_TRACE_LEVEL);
-      } else if (strcmp("debug", optarg) == 0) {
+      } else if (tstrcmp(t("debug"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_DEBUG_LEVEL);
-      } else if (strcmp("info", optarg) == 0) {
+      } else if (tstrcmp(t("info"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_INFO_LEVEL);
-      } else if (strcmp("warn", optarg) == 0) {
+      } else if (tstrcmp(t("warn"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
       } else {
-	Sg_Warn(UC("unknown log level option %A"), Sg_MakeStringC(optarg));
+	Sg_Warn(UC("unknown log level option %A"), make_scheme_string(optarg));
       }
       break;
     case 'f':
-      if (strcmp("no-inline", optarg) == 0) {
+      if (tstrcmp(t("no-inline"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
-      } else if (strcmp("no-inline-local", optarg) == 0) {
+      } else if (tstrcmp(t("no-inline-local"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
-      } else if (strcmp("no-lambda-lifting", optarg) == 0) {
+      } else if (tstrcmp(t("no-lambda-lifting"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
-      } else if (strcmp("no-library-inline", optarg) == 0) {
+      } else if (tstrcmp(t("no-library-inline"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_LIBRARY_INLINING);
-      } else if (strcmp("no-optimization", optarg) == 0) {
+      } else if (tstrcmp(t("no-optimization"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
-      } else if (strcmp("no-backtrace", optarg) == 0) {
+      } else if (tstrcmp(t("no-backtrace"), optarg) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
       } else {
-	Sg_Warn(UC("unknown optimize option %A"), Sg_MakeStringC(optarg));
+	Sg_Warn(UC("unknown optimize option %A"), make_scheme_string(optarg));
       }
       break;
     case 'I':
       /* at this point the current library doesn't have anything do it later.
       Sg_ImportLibrary(vm->currentLibrary, Sg_Intern(Sg_MakeStringC(optarg)));
       */
-      preimport = Sg_Cons(Sg_Intern(Sg_MakeStringC(optarg)), preimport);
+      preimport = Sg_Cons(Sg_Intern(make_scheme_string(optarg)), preimport);
       break;
 #if 0
     case '6':
@@ -367,7 +397,7 @@ int main(int argc, char **argv)
       break;
 #endif
     case 'L': {
-      SgObject exp = Sg_MakeStringC(optarg);
+      SgObject exp = make_scheme_string(optarg);
       if (Sg_DirectoryP(exp)) Sg_AddLoadPath(exp);
       else {
 	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
@@ -380,7 +410,7 @@ int main(int argc, char **argv)
       break;
     }
     case 'D': {
-      SgObject exp = Sg_MakeStringC(optarg);
+      SgObject exp = make_scheme_string(optarg);
       if (Sg_DirectoryP(exp)) Sg_AddDynamicLoadPath(exp);
       else {
 	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
@@ -393,7 +423,7 @@ int main(int argc, char **argv)
       break;
     }
     case 'S': {
-      SgObject exp = Sg_MakeStringC(optarg);
+      SgObject exp = make_scheme_string(optarg);
       SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp));
       if (SG_FALSEP(suffixs)) {
 	Sg_Warn(UC("given suffix '%A' was not added."), exp);
@@ -402,7 +432,7 @@ int main(int argc, char **argv)
     }
     case 'p':
       {
-	SgObject log = Sg_OpenFile(SG_STRING(Sg_MakeStringC(optarg)),
+	SgObject log = Sg_OpenFile(SG_STRING(make_scheme_string(optarg)),
 				    SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {
@@ -432,9 +462,9 @@ int main(int argc, char **argv)
 #ifdef SAGITTARIUS_PROFILE
     case 'P':
       profiler_mode = TRUE;
-      if (strcmp("time", optarg) == 0) {
+      if (tstrcmp(t("time"), optarg) == 0) {
 	profiler_option = SG_INTERN("time");
-      } else if (strcmp("count", optarg) == 0) {
+      } else if (tstrcmp(t("count"), optarg) == 0) {
 	profiler_option = SG_INTERN("count");
       } else {
 	goto usage;
@@ -449,7 +479,7 @@ int main(int argc, char **argv)
       break;
     default:
   usage:
-      fprintf(stderr, "invalid option -- %c\n", opt);
+      tfprintf(stderr, t("invalid option -- %c\n"), opt);
       show_usage();
       break;
     }
@@ -483,7 +513,7 @@ int main(int argc, char **argv)
 
   if (optind < argc) {
     SgObject proc;
-    exit_code = Sg_Load(SG_STRING(Sg_MakeStringC(argv[optind])));
+    exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind])));
     /* to run R6RS bench ... */
     if (!noMainP) {
       /* SRFI-22 */
