@@ -38,6 +38,7 @@
 	    ssh-request-pseudo-terminal
 	    ssh-request-shell
 	    ssh-request-exec
+	    ssh-request-subsystem
 	    ssh-send-channel-data
 	    ssh-recv-channel-data
 
@@ -275,7 +276,7 @@
 	       (close-ssh-channel channel :logical #t)
 	       (if receiver
 		   (values status (receiver (eof-object)))
-		   response))
+		   (read-it <ssh-msg-channel-close> response)))
 	      ((= b +ssh-msg-channel-window-adjust+)
 	       (let1 m (read-message <ssh-msg-channel-window-adjust>
 				     (open-bytevector-input-port response))
@@ -325,30 +326,38 @@
       (let1 r (read-packet (~ channel 'transport))
 	(handle-channel-request-response channel r #f))))
 
-  (define (ssh-request-shell channel)
+  (define (%ssh-request msg channel receiver)
+    (define transport (~ channel 'transport))
     (check-open ssh-request-shell channel)
-    (let1 m (make <ssh-msg-channel-request>
-	      :recipient-channel (~ channel 'recipient-channel)
-	      :request-type "shell")
-      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
-      (let1 r (read-packet (~ channel 'transport))
-	;; most of the case it will send success and data
-	;; (the command prompt message)
-	(handle-channel-request-response channel r #f))))
+    (write-packet transport (ssh-message->bytevector msg))
+    (let1 r (read-packet transport)
+      (handle-channel-request-response channel r receiver)))
+
+  (define (ssh-request-shell channel)
+    (%ssh-request (make <ssh-msg-channel-request>
+		    :recipient-channel (~ channel 'recipient-channel)
+		    :request-type "shell")
+		  channel #f))
 
   (define-ssh-message <ssh-msg-channel-exec-request> (<ssh-msg-channel-request>)
     ((command :string)))
-
   (define (ssh-request-exec channel command
 			    :key (receiver (ssh-binary-data-receiver)))
-    (define transport (~ channel 'transport))
-    (check-open ssh-request-exec channel)
-    (let1 m (make <ssh-msg-channel-exec-request>
-	      :recipient-channel (~ channel 'recipient-channel)
-	      :request-type "exec" :command command)
-      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
-      (let1 r (read-packet transport)
-	(handle-channel-request-response channel r receiver))))
+    (%ssh-request (make <ssh-msg-channel-exec-request>
+		    :recipient-channel (~ channel 'recipient-channel)
+		    :request-type "exec" :command command)
+		  channel
+		  receiver))
+
+  (define-ssh-message <ssh-msg-channel-subsystem-request> 
+    (<ssh-msg-channel-request>)
+    ((subsystem-name :string)))
+  (define (ssh-request-subsystem channel subsystem-name)
+    (%ssh-request (make <ssh-msg-channel-subsystem-request>
+		    :recipient-channel (~ channel 'recipient-channel)
+		    :request-type "subsystem"
+		    :subsystem-name subsystem-name)
+		  channel #f))
 
   (define (ssh-send-channel-data channel data)
     (define transport (~ channel 'transport))

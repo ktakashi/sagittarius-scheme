@@ -30,14 +30,18 @@
 
 #!read-macro=sagittarius/regex
 (library (rfc ssh types)
-    (export <ssh-message>
+    (export <ssh-type> <ssh-message>
 	    <name-list> name-list
 	    write-message
 
+	    define-ssh-type
 	    define-ssh-message
 
 	    ssh-message->bytevector
 	    read-message
+	    (rename (write-message ssh-write-message)
+		    (read-message ssh-read-message))
+
 	    <ssh-msg-keyinit>
 	    <ssh-msg-kexdh-init>
 	    <ssh-msg-kexdh-reply>
