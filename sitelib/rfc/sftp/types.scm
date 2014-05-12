@@ -176,7 +176,7 @@
 				 (get-u32 in (endianness big))))
 		    ((atime mtime) (if (check +ssh-filexfer-attr-acmodtime+)
 				       (get-unpack in "!LL")
-				       (value #f #f)))
+				       (values #f #f)))
 		    ((extended) (and (check +ssh-filexfer-attr-extended+)
 				     (read-extended in))))
 	(values size uid gid perm atime mtime extended))))

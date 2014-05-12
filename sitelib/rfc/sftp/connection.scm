@@ -36,10 +36,23 @@
 	    call-with-sftp-connection
 	    
 	    ;; operations
+	    sftp-open
+	    sftp-read
+	    sftp-write!
+	    sftp-remove!
+	    sftp-rename!
+	    sftp-mkdir!
+	    sftp-rmdir!
 	    sftp-opendir
 	    sftp-readdir
-	    sftp-open
-	    sftp-read!
+	    sftp-stat
+	    sftp-lstat
+	    sftp-fstat
+	    sftp-setstat!
+	    sftp-fsetstat!
+	    sftp-readlink
+	    sftp-symlink!
+	    sftp-realpath
 
 	    ;; helper
 	    sftp-binary-sink
@@ -55,7 +68,8 @@
 	    (sagittarius object)
 	    (sagittarius control)
 	    (rfc ssh) 
-	    (rfc sftp types) 
+	    (rfc sftp types)
+	    (rfc sftp constants)
 	    (binary data)
 	    (binary pack))
 
@@ -124,27 +138,18 @@
 (define-syntax check-status
   (syntax-rules ()
     ((_ v)
-     (when (is-a? v <sftp-fxp-status>)
+     (when (and (is-a? v <sftp-fxp-status>)
+		(not (= (~ v 'code) +ssh-fx-ok+)))
        ;; todo condition?
-       (error 'who (format "~a code[~a]" (utf8->string (~ v 'message))
-			   (~ v 'code)))))))
+       (error #f (format "~a, code[~a]" (utf8->string (~ v 'message))
+			 (~ v 'code)))))))
 (define (recv-sftp-packet1 conn)
   (let-values (((r rest) (recv-sftp-packet conn)))
     (check-status r)
     r))
 
-(define (sftp-opendir conn path)
-  (let1 id (sftp-message-id! conn)
-    (send-sftp-packet conn (make <sftp-fxp-opendir> :id id :path path))
-    (recv-sftp-packet1 conn)))
-(define (sftp-readdir conn handle/path)
-  (let1 handle (if (is-a? handle/path <sftp-fxp-handle>) 
-		   handle/path
-		   (sftp-opendir conn handle/path))
-    (send-sftp-packet conn (make <sftp-fxp-readdir>
-			     :id (sftp-message-id! conn)
-			     :handle (~ handle 'handle)))
-    (recv-sftp-packet1 conn)))
+;;; high level APIs
+;; 6.3 Opening, Creating, and Closing Files
 
 (define (sftp-open conn filename pflags)
   (let1 id (sftp-message-id! conn)
@@ -152,8 +157,20 @@
     (send-sftp-packet conn (make <sftp-fxp-open> :id id :filename filename
 				 :pflags pflags))
     (recv-sftp-packet1 conn)))
+
+;; we don't check if the handle is closed or not but
+;; as long as server allow us we don't raise any error.
+(define (sftp-close conn handle)
+  (send-sftp-packet conn (make <sftp-fxp-close> :id (sftp-message-id! conn)
+			       :handle (~ handle 'handle)))
+  ;; may fail so we don't check
+  (recv-sftp-packet conn)
+  #t)
+
+;; 6.4 Reading and Writing
+
 (define-constant +sftp-default-buffer-size+ 4096)
-(define (sftp-read! conn handle/filename sink)
+(define (sftp-read conn handle/filename sink)
   (let1 handle (~ (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
 		      (sftp-open conn handle/filename +ssh-fxf-read+))
@@ -170,7 +187,10 @@
 			       :len +sftp-default-buffer-size+))
       (let-values (((r ignore) (recv-sftp-packet conn)))
 	(if (is-a? r <sftp-fxp-status>)
-	    (sink -1 (eof-object))
+	    (begin 
+	      (unless (is-a? handle/filename <sftp-fxp-handle>)
+		(sftp-close conn handle))
+	      (sink -1 (eof-object)))
 	    (begin
 	      ;; must be <sftp-fxp-data>
 	      (sink offset (~ r 'data))
@@ -187,4 +207,112 @@
       (if (eof-object? data)
 	  (close-port out)
 	  (put-bytevector out data)))))
+
+(define (sftp-write! conn handle inport)
+  (unless (is-a? handle <sftp-fxp-handle>)
+    (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
+  (let ((hndl (~ handle 'handle))
+	(buf  (make-bytevector +sftp-default-buffer-size+)))
+    ;; ok now read it
+    ;; read may be multiple part so we need to read it until
+    ;; server respond <sftp-fxp-status>
+    ;; the buffer size is 4096 fixed for now.
+    (let loop ((offset 0))
+      (let ((r (get-bytevector-n! inport buf 0 +sftp-default-buffer-size+)))
+	(unless (eof-object? r)
+	  (send-sftp-packet conn (make <sftp-fxp-write>
+				   :id (sftp-message-id! conn)
+				   :handle hndl
+				   :offset offset
+				   :data (if (= r +sftp-default-buffer-size+)
+					     buf
+					     (bytevector-copy buf 0 r))))
+	  (recv-sftp-packet1 conn)
+	  (loop (+ offset r)))))))
+
+;; 6.5 Removing and Renaming Files
+
+(define (sftp-remove! conn filename)
+  (send-sftp-packet conn (make <sftp-fxp-remove> :id (sftp-message-id! conn)
+			       :filename filename))
+  (recv-sftp-packet1 conn))
+
+(define (sftp-rename! conn oldpath newpath)
+  (send-sftp-packet conn (make <sftp-fxp-rename> :id (sftp-message-id! conn)
+			       :oldpath oldpath :newpath newpath))
+  (recv-sftp-packet1 conn))
+
+;; 6.6 Creating and Deleting Directories
+(define (sftp-mkdir! conn path . opts)
+  (let1 attrs (apply make <sftp-attrs> opts)
+    (send-sftp-packet conn (make <sftp-fxp-mkdir> :id (sftp-message-id! conn)
+				 :path path :attrs attrs))
+    (recv-sftp-packet1 conn)))
+
+(define (sftp-rmdir! conn path . opts)
+  (send-sftp-packet conn (make <sftp-fxp-rmdir> :id (sftp-message-id! conn)
+				 :path path))
+  (recv-sftp-packet1 conn))
+
+
+;; 6.7 Scanning Directories
+(define (sftp-opendir conn path)
+  (let1 id (sftp-message-id! conn)
+    (send-sftp-packet conn (make <sftp-fxp-opendir> :id id :path path))
+    (recv-sftp-packet1 conn)))
+(define (sftp-readdir conn handle/path)
+  (let1 handle (if (is-a? handle/path <sftp-fxp-handle>) 
+		   handle/path
+		   (sftp-opendir conn handle/path))
+    (send-sftp-packet conn (make <sftp-fxp-readdir>
+			     :id (sftp-message-id! conn)
+			     :handle (~ handle 'handle)))
+    (rlet1 r (recv-sftp-packet1 conn)
+      (unless (is-a? handle/path <sftp-fxp-handle>)
+	(sftp-close conn handle)))))
+
+;; 6.8 Retrieving File Attributes
+(define (sftp-stat conn path)
+  (send-sftp-packet conn (make <sftp-fxp-stat> :id (sftp-message-id! conn)
+			       :path path))
+  (recv-sftp-packet1 conn))
+(define (sftp-lstat conn path)
+  (send-sftp-packet conn (make <sftp-fxp-lstat> :id (sftp-message-id! conn)
+			       :path path))
+  (recv-sftp-packet1 conn))
+;; it's users responsibility to make sure it's a handle
+(define (sftp-fstat conn handle)
+  (send-sftp-packet conn (make <sftp-fxp-fstat> :id (sftp-message-id! conn)
+			       :handle (~ handle 'handle)))
+  (recv-sftp-packet1 conn))
+
+;; 6.9 Setting File Attributes
+(define (sftp-setstat! conn path . opts)
+  (send-sftp-packet conn (make <sftp-fxp-setstat> :id (sftp-message-id! conn)
+			       :path path :attrs (apply make <sftp-attrs> opts)))
+  (recv-sftp-packet1 conn))
+(define (sftp-fsetstat! conn handle . opts)
+  (send-sftp-packet conn (make <sftp-fxp-fsetstat> :id (sftp-message-id! conn)
+			       :handle (~ handle 'handle)
+			       :attrs (apply make <sftp-attrs> opts)))
+  (recv-sftp-packet1 conn))
+
+;; 6.10 Dealing with Symbolic links
+(define (sftp-readlink conn path)
+  (send-sftp-packet conn (make <sftp-fxp-readlink> :id (sftp-message-id! conn)
+			       :path path))
+  (let1 r (recv-sftp-packet1 conn)
+    (~ (car (~ r 'names 'names)) 'filename)))
+(define (sftp-symlink! conn linkpath targetpath)
+  (send-sftp-packet conn (make <sftp-fxp-symlink> :id (sftp-message-id! conn)
+			       :linkpath linkpath :targetpath targetpath))
+  (recv-sftp-packet1 conn))
+
+;; 6.11 Canonicalizing the Server-Side Path Name
+(define (sftp-realpath conn path)
+  (send-sftp-packet conn (make <sftp-fxp-realpath> :id (sftp-message-id! conn)
+			       :path path))
+  (let1 r (recv-sftp-packet1 conn)
+    (~ (car (~ r 'names 'names)) 'filename)))
+
 )
