@@ -175,10 +175,10 @@
 
 (define-constant +sftp-default-buffer-size+ 4096)
 (define (sftp-read conn handle/filename receiver)
-  (let1 handle (~ (if (is-a? handle/filename <sftp-fxp-handle>) 
+  (let* ((ohandle (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
-		      (sftp-open conn handle/filename +ssh-fxf-read+))
-		  'handle)
+		      (sftp-open conn handle/filename +ssh-fxf-read+)))
+	 (handle (~ ohandle 'handle)))
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
@@ -193,7 +193,7 @@
 	(if (is-a? r <sftp-fxp-status>)
 	    (begin 
 	      (unless (is-a? handle/filename <sftp-fxp-handle>)
-		(sftp-close conn handle))
+		(sftp-close conn ohandle))
 	      (receiver -1 (eof-object)))
 	    (begin
 	      ;; must be <sftp-fxp-data>
