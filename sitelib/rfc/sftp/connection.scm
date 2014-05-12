@@ -54,6 +54,10 @@
 	    sftp-symlink!
 	    sftp-realpath
 
+	    ;; utility
+	    sftp-readdir-as-filenames
+	    sftp-readdir-as-longnames
+
 	    ;; helper
 	    sftp-binary-sink
 	    sftp-file-sink
@@ -71,7 +75,8 @@
 	    (rfc sftp types)
 	    (rfc sftp constants)
 	    (binary data)
-	    (binary pack))
+	    (binary pack)
+	    (srfi :26))
 
 (define-class <sftp-connection> ()
   ((message-id :init-value 0)
@@ -267,9 +272,18 @@
     (send-sftp-packet conn (make <sftp-fxp-readdir>
 			     :id (sftp-message-id! conn)
 			     :handle (~ handle 'handle)))
-    (rlet1 r (recv-sftp-packet1 conn)
+    (let1 r (recv-sftp-packet1 conn)
       (unless (is-a? handle/path <sftp-fxp-handle>)
-	(sftp-close conn handle)))))
+	(sftp-close conn handle))
+      ;; no reason to return sftp-fxp-name anyway
+      (~ r 'names 'names))))
+;; strip off to mere string
+(define (sftp-readdir-as-filenames conn handle/path)
+  (let1 r (sftp-readdir conn handle/path)
+    (map (cut ~ <> 'filename) r)))
+(define (sftp-readdir-as-longnames conn handle/path)
+  (let1 r (sftp-readdir conn handle/path)
+    (map (cut ~ <> 'longname) r)))
 
 ;; 6.8 Retrieving File Attributes
 (define (sftp-stat conn path)
