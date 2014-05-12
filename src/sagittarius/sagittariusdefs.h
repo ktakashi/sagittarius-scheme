@@ -407,11 +407,13 @@ typedef enum  {
 #define SG_CHECK_START_END(start, end, len)				\
 do {									\
   if ((start) < 0 || (start) > (len)) {					\
-    Sg_Error(UC("start argument out of range: %d\n"), (start));		\
+    Sg_Error(UC("start argument out of range: start=%d, length=%d\n"),	\
+	     (start), (len));						\
   }									\
   if ((end) <0) (end) = (len);						\
   else if ((end) > (len)) {						\
-    Sg_Error(UC("end argument out of range: %d\n"), (end));		\
+    Sg_Error(UC("end argument out of range: end=%d, length=%d\n"),	\
+	     (end), (len));						\
   } else if ((end) < (start)) {						\
     Sg_Error(UC("end argument (%d) must be greater then or "		\
 		"equal to the start argument (%d)"), (end), (start));	\

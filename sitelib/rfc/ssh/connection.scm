@@ -241,26 +241,26 @@
     (let loop ((response response) (status #f))
       (define (read-it class response)
 	(let1 m (read-message class (open-bytevector-input-port response))
+	  (let* ((size (if (is-a? m <ssh-msg-channel-data>)
+			   (let1 data (~ m 'data)
+			     (and receiver (receiver data))
+			     (bytevector-length data))
+			   0))
+		 (client-size (+ (~ channel 'client-size) size)))
+	    (set! (~ channel 'client-size) client-size)
+	    (when (> (+ client-size (~ channel 'client-packet-size))
+		     (~ channel 'client-window-size))
+	      ;; send window adjust requst
+	      ;; simply double it for now
+	      (let* ((new-size (* (~ channel 'client-window-size) 2))
+		     (m (make <ssh-msg-channel-window-adjust>
+			  :recipient-channel (~ channel
+						'recipient-channel)
+			  :size new-size)))
+		(set! (~ channel 'client-window-size) new-size)
+		(write-packet transport (ssh-message->bytevector m)))))
 	  (if receiver
-	      (let* ((size (if (is-a? m <ssh-msg-channel-data>)
-			       (let1 data (~ m 'data)
-				 (receiver data)
-				 (bytevector-length data))
-			       0))
-		     (client-size (+ (~ channel 'client-size) size)))
-		(set! (~ channel 'client-size) client-size)
-		(when (> (+ client-size (~ channel 'client-packet-size))
-			 (~ channel 'client-window-size))
-		  ;; send window adjust requst
-		  ;; simply double it for now
-		  (let* ((new-size (* (~ channel 'client-window-size) 2))
-			 (m (make <ssh-msg-channel-window-adjust>
-			      :recipient-channel (~ channel
-						    'recipient-channel)
-			      :size new-size)))
-		    (set! (~ channel 'client-window-size) new-size)
-		    (write-packet transport (ssh-message->bytevector m))))
-		(loop (read-packet transport) status))
+	      (loop (read-packet transport) status)
 	      m)))
       (let1 b (bytevector-u8-ref response 0)
 	(cond ((= b +ssh-msg-channel-success+)
@@ -377,8 +377,7 @@
   (define (ssh-recv-channel-data channel)
     (define transport (~ channel 'transport))
     (check-open ssh-recv-channel-data channel)
-    (let1 m
-	(handle-channel-request-response channel (read-packet transport) #f)
+    (let1 m (handle-channel-request-response channel (read-packet transport) #f)
       (if (is-a? m <ssh-msg-channel-data>)
 	  (~ m 'data)
 	  (error 'ssh-recv-channel-data "unexpected message" m))))
