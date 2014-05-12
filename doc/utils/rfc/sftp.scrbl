@@ -42,11 +42,11 @@ Following example code describes how to use in high level.
     (sftp-rmdir! conn "boo")
 
     ;; create a symbolic link
-    (print (sftp-symlink! conn "/tmp" "tmp"))
+    (pp (sftp-symlink! conn "/tmp" "tmp"))
     ;; get a actual path of symbolic link
-    (print (sftp-readlink conn "tmp"))
+    (pp (sftp-readlink conn "tmp"))
     ;; get a real path. (usually an absolute path)
-    (print (sftp-realpath conn "../")))
+    (pp (sftp-realpath conn "../")))
   :username "username" :password "password")
 }
 
