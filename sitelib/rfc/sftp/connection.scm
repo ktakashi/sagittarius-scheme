@@ -59,8 +59,8 @@
 	    sftp-readdir-as-longnames
 
 	    ;; helper
-	    sftp-binary-sink
-	    sftp-file-sink
+	    sftp-binary-receiver
+	    sftp-file-receiver
 
 	    ;; low level
 	    send-sftp-packet
@@ -133,9 +133,8 @@
 
 (define (call-with-sftp-connection server port proc . opts)
   (let ((conn (apply make-client-sftp-connection server port opts)))
-    (receive r (proc conn)
-      (sftp-close-connection conn)
-      (apply values r))))
+    (unwind-protect (proc conn)
+      (sftp-close-connection conn))))
 
 (define (sftp-message-id! conn)
   (rlet1 id (~ conn 'message-id)
@@ -175,7 +174,7 @@
 ;; 6.4 Reading and Writing
 
 (define-constant +sftp-default-buffer-size+ 4096)
-(define (sftp-read conn handle/filename sink)
+(define (sftp-read conn handle/filename receiver)
   (let1 handle (~ (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
 		      (sftp-open conn handle/filename +ssh-fxf-read+))
@@ -195,18 +194,18 @@
 	    (begin 
 	      (unless (is-a? handle/filename <sftp-fxp-handle>)
 		(sftp-close conn handle))
-	      (sink -1 (eof-object)))
+	      (receiver -1 (eof-object)))
 	    (begin
 	      ;; must be <sftp-fxp-data>
-	      (sink offset (~ r 'data))
+	      (receiver offset (~ r 'data))
 	      (loop (+ offset +sftp-default-buffer-size+))))))))
-(define (sftp-binary-sink)
+(define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
       (if (eof-object? data)
 	  (extract)
 	  (put-bytevector out data)))))
-(define (sftp-file-sink filename :key (options (file-options)))
+(define (sftp-file-receiver filename :key (options (file-options)))
   (let1 out (open-file-output-port filename options 'block #f)
     (lambda (offset data)
       (if (eof-object? data)
