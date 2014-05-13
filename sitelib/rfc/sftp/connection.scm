@@ -87,15 +87,24 @@
 (define (read-sftp-packet-data type in)
   (ssh-read-message (sftp-class-lookup type) in))
 (define (recv-sftp-packet connection)
-  (let*-values (((bv) (ssh-recv-channel-data (~ connection 'channel)))
-		((len type) (unpack "!LC" bv)))
-    (let ((r (read-sftp-packet-data type 
-	      (open-bytevector-input-port bv #f 5 (+ len 4)))))  ;; len-1+5
-      (if (= (bytevector-length bv) (+ len 4))
-	  ;; only one packet
-	  (values r (eof-object))
-	  ;; more packets
-	  (values r (open-bytevector-input-port bv #f (+ len 4)))))))
+  (define channel (~ connection 'channel))
+  (define (receive-rest first len)
+    (let1 size (+ len 4)
+      (let loop ((bv first))
+	(if (>= (bytevector-length bv) size)
+	    bv
+	    (let1 next (ssh-recv-channel-data channel)
+	      (loop (bytevector-append first next)))))))
+  (let*-values (((first) (ssh-recv-channel-data channel))
+		((len type) (unpack "!LC" first)))
+    (let1 bv (receive-rest first len)
+      (let ((r (read-sftp-packet-data type 
+		(open-bytevector-input-port bv #f 5 (+ len 4)))))  ;; len-1+5
+	(if (= (bytevector-length bv) (+ len 4))
+	    ;; only one packet
+	    (values r (eof-object))
+	    ;; more packets
+	    (values r (open-bytevector-input-port bv #f (+ len 4))))))))
 
 (define (send-sftp-packet connection data)
   (let ((bv (ssh-message->bytevector data))
@@ -176,8 +185,11 @@
 
 ;; 6.4 Reading and Writing
 
-(define-constant +sftp-default-buffer-size+ 4096)
-(define (sftp-read conn handle/filename receiver)
+;; the same size as internal port buffer size.
+(define-constant +sftp-default-buffer-size+ 8192)
+(define (sftp-read conn handle/filename receiver
+		   ;; may not work propery if the value got changed
+		   :key (buffer-size +sftp-default-buffer-size+))
   (let* ((ohandle (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
 		      (sftp-open conn handle/filename +ssh-fxf-read+)))
@@ -191,7 +203,7 @@
 			       :id (sftp-message-id! conn)
 			       :handle handle
 			       :offset offset
-			       :len +sftp-default-buffer-size+))
+			       :len buffer-size))
       (let-values (((r ignore) (recv-sftp-packet conn)))
 	(if (is-a? r <sftp-fxp-status>)
 	    (begin 
@@ -201,7 +213,7 @@
 	    (begin
 	      ;; must be <sftp-fxp-data>
 	      (receiver offset (~ r 'data))
-	      (loop (+ offset +sftp-default-buffer-size+))))))))
+	      (loop (+ offset buffer-size))))))))
 (define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
@@ -221,23 +233,25 @@
     (unless (eof-object? data)
       (put-bytevector out data))))
 
-(define (sftp-write! conn handle inport)
+(define (sftp-write! conn handle inport 
+		     ;; may not work propery if the value got changed
+		     :key (buffer-size +sftp-default-buffer-size+))
   (unless (is-a? handle <sftp-fxp-handle>)
     (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
   (let ((hndl (~ handle 'handle))
-	(buf  (make-bytevector +sftp-default-buffer-size+)))
+	(buf  (make-bytevector buffer-size)))
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
     ;; the buffer size is 4096 fixed for now.
     (let loop ((offset 0))
-      (let ((r (get-bytevector-n! inport buf 0 +sftp-default-buffer-size+)))
+      (let ((r (get-bytevector-n! inport buf 0 buffer-size)))
 	(unless (eof-object? r)
 	  (send-sftp-packet conn (make <sftp-fxp-write>
 				   :id (sftp-message-id! conn)
 				   :handle hndl
 				   :offset offset
-				   :data (if (= r +sftp-default-buffer-size+)
+				   :data (if (= r buffer-size)
 					     buf
 					     (bytevector-copy buf 0 r))))
 	  (recv-sftp-packet1 conn)
