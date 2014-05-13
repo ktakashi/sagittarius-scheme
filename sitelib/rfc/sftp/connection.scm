@@ -212,7 +212,7 @@
 	    (begin
 	      ;; must be <sftp-fxp-data>
 	      (receiver offset (~ r 'data))
-	      (loop (+ offset buffer-size))))))))
+	      (loop (+ offset (bytevector-length (~ r 'data))))))))))
 (define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
