@@ -343,13 +343,7 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   size = end - start;
   if (size < read_size) read_size = size;
 
-  if (size != SG_BVECTOR_SIZE(bv)) {
-    /* must be smaller, copy it */
-    bv = Sg_ByteVectorCopy(bv, start, end);
-    start = 0;
-  }
-
-  Sg_InitByteVectorInputPort(&bin, &bp, bv, start);
+  Sg_InitByteArrayInputPort(&bin, &bp, SG_BVECTOR_ELEMENTS(bv), start, end);
   Sg_InitTranscodedPort(&tin, &tp, &bin, transcoder, SG_INPUT_PORT);
   Sg_InitStringOutputPort(&accum, &ap, end);
   

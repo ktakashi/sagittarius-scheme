@@ -2172,7 +2172,6 @@ static void print_frames(SgVM *vm)
   SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
-  int size = cont->size;
 
   Sg_Printf(vm->logPort, UC(";; stack: 0x%x, cont: 0x%x\n"), stack, cont);
 
@@ -2196,7 +2195,6 @@ static void print_frames(SgVM *vm)
      memo: if cont has let frame, we just dump it as pointer.
    */
   while (stack < current && current <= sp) {
-    int i;
     /* the very first arguments are ignored */
     while (current > (SgObject *)cont + CONT_FRAME_SIZE) {
       Sg_Printf(vm->logPort, UC(";; 0x%x +   p=%#39x +\n"), current, *current);

@@ -351,7 +351,7 @@ static SgString* library_name_to_path(SgObject name)
 
   if (!SG_PAIRP(name)) {
     /* for cache */
-    SgObject in = Sg_MakeStringInputPort(SG_SYMBOL(name)->name, TRUE);
+    SgObject in = Sg_MakeStringInputPort(SG_SYMBOL(name)->name, 0, -1);
     name = Sg_Read(in, TRUE);
   }
 

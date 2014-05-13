@@ -1700,14 +1700,16 @@
 	    (result (Sg_MakeTranscodedInputPort in transcoder))))))
 
   (define-c-proc open-bytevector-input-port
-    (bv::<bytevector> :optional (t::<transcoder> #f))
-    (let ((bp (Sg_MakeByteVectorInputPort bv 0)))
+    (bv::<bytevector> :optional (t::<transcoder> #f) 
+		      (start::<fixnum> 0) (end::<fixnum> -1))
+    (let ((bp (Sg_MakeByteVectorInputPort bv start end)))
       (if (SG_FALSEP t)
 	  (result bp)
 	  (result (Sg_MakeTranscodedInputPort bp t)))))
 
-  (define-c-proc open-string-input-port (s::<string>)
-    (result (Sg_MakeStringInputPort s FALSE)))
+  (define-c-proc open-string-input-port 
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    (result (Sg_MakeStringInputPort s start end)))
 
   (define-c-proc standard-input-port () Sg_StandardInputPort)
 

@@ -488,7 +488,7 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
 
 #if 0
   if (asPortP) {
-    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0);
+    return Sg_MakeByteVectorInputPort(SG_BVECTOR(bv), 0, -1);
   }
 #endif
 

@@ -350,7 +350,7 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 {
   SgChar ch = 0;
   SgObject arg;
-  SgPort *fmtstr = SG_PORT(Sg_MakeStringInputPort(fmt, FALSE));
+  SgPort *fmtstr = SG_PORT(Sg_MakeStringInputPort(fmt, 0, -1));
   int backtracked = FALSE;
   int /* arglen, */ argcount;
   SgWriteContext sctx, actx;	/* context for ~s and ~a */

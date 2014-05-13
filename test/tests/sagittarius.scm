@@ -1242,4 +1242,41 @@
 	    (call-with-string-output-port 
 	     (lambda (out) (write '|\|| out))))
 
+;; extra arguments for open-bytevector-input-port
+(test-equal "open-bytevector-input-port(start 1)" "ello world!"
+	    (get-string-all
+	     (open-bytevector-input-port (string->utf8 "hello world!")
+					 (native-transcoder)
+					 1)))
+(test-equal "open-bytevector-input-port(start 1, end 4)" "ell"
+	    (get-string-all
+	     (open-bytevector-input-port (string->utf8 "hello world!")
+					 (native-transcoder)
+					 1 4)))
+(test-error "open-bytevector-input-port(error)" condition?
+	    (open-bytevector-input-port (string->utf8 "hello world!")
+					 (native-transcoder)
+					 -1))
+(test-error "open-bytevector-input-port(error)" condition?
+	    (open-bytevector-input-port (string->utf8 "hello world!")
+					 (native-transcoder)
+					 13))
+(test-error "open-bytevector-input-port(error)" condition?
+	    (open-bytevector-input-port (string->utf8 "hello world!")
+					 (native-transcoder)
+					 0 13))
+
+;; extra arguments for open-string-input-port
+(test-equal "open-string-input-port(start 1)" "ello world!"
+	    (get-string-all (open-string-input-port "hello world!" 1)))
+(test-equal "open-string-input-port(start 1, end 4)" "ell"
+	    (get-string-all (open-string-input-port "hello world!" 1 4)))
+(test-error "open-string-input-port(error)" condition?
+	    (open-string-input-port "hello world!" -1))
+(test-error "open-string-input-port(error)" condition?
+	    (open-string-input-port "hello world!" 13))
+(test-error "open-string-input-port(error)" condition?
+	    (open-string-input-port "hello world!" 0 13))
+
+
 (test-end)

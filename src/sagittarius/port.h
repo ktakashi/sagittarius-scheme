@@ -149,8 +149,9 @@ typedef struct SgBinaryPortRec
     } obuf;
     /* use bytevector for input port buffer */
     struct {
-      SgByteVector *bvec;
-      int           index;
+      uint8_t *start;
+      uint8_t *end;
+      size_t   index;
     } buffer;
     void          *data;	/* custom */
   } src;
@@ -202,9 +203,10 @@ typedef struct SgTextualPortRec
     } ostr;
     /* string iport uses string as src */
     struct {
-      SgString *str;
-      int       index;
-      int       lineNo; 	/* for input */
+      SgChar  *start;
+      SgChar  *end;
+      size_t   index;
+      int      lineNo;		/* for input */
     } buffer;
     void        *data;		/* for custom */
   } src;
@@ -433,11 +435,13 @@ SG_EXTERN SgObject Sg_InitFileBinaryPort(SgPort *port,
 /* Sg_MakeByteVectorInputPort is just for bytevector->string to avoid an
    allocation. so we don't provide output and input/output port for it.
  */
-SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int offset);
-SG_EXTERN SgObject Sg_MakeByteArrayInputPort(const uint8_t *src, int64_t size);
+SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv,
+					      int64_t start, int64_t end);
+SG_EXTERN SgObject Sg_MakeByteArrayInputPort(uint8_t *src, int64_t size);
 /* We can't make common byte array initialisation function... */
-SG_EXTERN SgObject Sg_InitByteVectorInputPort(SgPort *port, SgBinaryPort *bp,
-					      SgByteVector *bv, int offset);
+SG_EXTERN SgObject Sg_InitByteArrayInputPort(SgPort *port, SgBinaryPort *bp,
+					     uint8_t *src, 
+					     size_t start, size_t end);
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
 					      int bufferSize);
@@ -461,7 +465,8 @@ SG_EXTERN SgObject Sg_InitTranscodedPort(SgPort *port, SgTextualPort *tp,
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_InitStringOutputPort(SgPort *port, SgTextualPort *tp,
 					   int bufferSize);
-SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, int privatep);
+SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, 
+					  int64_t start, int64_t end);
 /* For convenience and future improvement */
 SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);
 

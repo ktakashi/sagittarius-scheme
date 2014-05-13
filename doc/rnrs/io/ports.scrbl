@@ -378,19 +378,33 @@ If @var{maybe-transcoder} is #f or absent, the port will be a binary port,
 otherwise the port will be textual port.
 }
 
-@define[Function]{@name{open-bytevector-input-port} @args{bytevector maybe-transcoder}}
-@desc{[R6RS] @var{Maybe-transcoder} must be either a transcoder or #f.
-The @code{open-bytevector-input-port} procedure returns an input port whose bytes
-are drawn from @var{bytevector}. If @var{transcoder} is specified, it becomes the
-transcoder associated with the returned port.
+@define[Function]{@name{open-bytevector-input-port}
+ @args{bytevector :optional (transcoder #f) 
+                            (start 0) (end (bytevector-length bytevector))}}
+@desc{[R6RS+] @var{transcoder} must be either a transcoder or #f.
+The @code{open-bytevector-input-port} procedure returns an input port whose
+bytes are drawn from @var{bytevector}. If @var{transcoder} is specified, it
+becomes the transcoder associated with the returned port.
 
-If @var{maybe-transcoder} is #f or absent, the port will be a binary port,
+If @var{transcoder} is #f or absent, the port will be a binary port,
 otherwise the port will be textual port.
+
+Optional arguments @var{start} and @var{end} restricts the range of
+input bytevector. It is almost the same as following code but doesn't
+allocate extra memory;
+@snipet{(open-bytevector-input-port (bytevector-copy bytevector start end))}
 }
 
-@define[Function]{@name{open-string-input-port} @args{string}}
-@desc{[R6RS] Returns a textual input port whose characters are drawn from
+@define[Function]{@name{open-string-input-port}
+ @args{string :optional (start 0) (end (string-length string))}}
+@desc{[R6RS+] Returns a textual input port whose characters are drawn from
 @var{string}.
+
+Optional arguments @var{start} and @var{end} restricts the range of
+input string. It is almost the same as following code but doesn't
+allocate extra memory;
+@snipet{(open-string-input-port (substring string start end))}
+
 
 These procedures reuse the given arguments, thus if @var{bytevector} is modified
 after @code{open-bytevector-input-port} has been called, it affects the result

@@ -506,8 +506,7 @@ SgObject Sg_WCharTsToString(wchar_t *s)
   SgCodec *codec = Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN);
 #endif
   SgTranscoder *transcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  SgObject bin = Sg_MakeByteArrayInputPort((const uint8_t *)s,
-					   size * sizeof(wchar_t));
+  SgObject bin = Sg_MakeByteArrayInputPort((uint8_t *)s, size*sizeof(wchar_t));
   SgObject tin = Sg_MakeTranscodedInputPort(bin, transcoder);
   SgObject accum = Sg_MakeStringOutputPort(size);
   int64_t total_size = 0;
