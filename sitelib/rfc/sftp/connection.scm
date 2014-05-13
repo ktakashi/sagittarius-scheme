@@ -94,7 +94,7 @@
 	(if (>= (bytevector-length bv) size)
 	    bv
 	    (let1 next (ssh-recv-channel-data channel)
-	      (loop (bytevector-append first next)))))))
+	      (loop (bytevector-append bv next)))))))
   (let*-values (((first) (ssh-recv-channel-data channel))
 		((len type) (unpack "!LC" first)))
     (let1 bv (receive-rest first len)
