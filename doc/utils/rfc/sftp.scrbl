@@ -125,13 +125,17 @@ By default no option.
 Creates a output port receiver for @code{sftp-read}.
 }
 
-@define[Function]{@name{sftp-write!} @args{conn handle input-port}}
+@define[Function]{@name{sftp-write!} 
+ @args{conn handle input-port :key (offset 0)}}
 @desc{@var{conn} must be a SFTP connection.
 @var{handle} must be a handle.
 @var{input-port} must be a binary input port.
 
 Reads the content from given @var{input-port} and writes it to given
 @var{handle}.
+
+The keyword argument @var{offset} specifies where to write. This is useful
+to write a file separately or simply append.
 }
 
 @define[Function]{@name{sftp-remove!} @args{conn filename}}

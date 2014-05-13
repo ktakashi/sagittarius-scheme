@@ -242,7 +242,8 @@
 		     ;; changing buffer size may cause failure
 		     ;; allocates 1MB (i don't know why it failed with 10MB,
 		     ;; but it failed)
-		     :key (buffer-size (* 1024 128)))
+		     :key (buffer-size (* 1024 128))
+			  (offset 0))
   (unless (is-a? handle <sftp-fxp-handle>)
     (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
   (let ((hndl (~ handle 'handle))
@@ -250,8 +251,7 @@
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    ;; the buffer size is 4096 fixed for now.
-    (let loop ((offset 0))
+    (let loop ((offset offset))
       (let ((r (get-bytevector-n! inport buf 0 buffer-size)))
 	(unless (eof-object? r)
 	  (send-sftp-packet conn (make <sftp-fxp-write>
