@@ -185,10 +185,9 @@
 
 ;; 6.4 Reading and Writing
 
-;; the same size as internal port buffer size.
-(define-constant +sftp-default-buffer-size+ 8192)
+;; 10MB is enough?
+(define-constant +sftp-default-buffer-size+ 1048576) ;; (* 1024 1024)
 (define (sftp-read conn handle/filename receiver
-		   ;; may not work propery if the value got changed
 		   :key (buffer-size +sftp-default-buffer-size+))
   (let* ((ohandle (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
@@ -221,7 +220,9 @@
 	  (extract)
 	  (put-bytevector out data)))))
 (define (sftp-file-receiver filename :key (options (file-options)))
-  (let1 out (open-file-output-port filename options 'block #f)
+  ;; by default we allocate 10MB buffer so it's more than internal
+  ;; port buffer size. in this case without buffer is faster.
+  (let1 out (open-file-output-port filename options 'none #f)
     (lambda (offset data)
       (if (eof-object? data)
 	  (close-port out)
@@ -234,7 +235,6 @@
       (put-bytevector out data))))
 
 (define (sftp-write! conn handle inport 
-		     ;; may not work propery if the value got changed
 		     :key (buffer-size +sftp-default-buffer-size+))
   (unless (is-a? handle <sftp-fxp-handle>)
     (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
