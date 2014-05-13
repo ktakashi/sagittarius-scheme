@@ -1337,5 +1337,21 @@
 	       (put-bytevector out (string->utf8 "hehe"))
 	       (extract)))
 
+(let ()
+  (define file "example.txt")
+  (when (file-exists? file) (delete-file file))
+  (call-with-output-file file (lambda (out) (put-string out "hello world!")))
+  (test-equal "set-port-position! (file end)" "world!"
+	      (call-with-input-file file
+		(lambda (in)
+		  (set-port-position! in -6 'end)
+		  (get-string-all in))))
+  (test-equal "set-port-position! (file current)" "hello world!"
+	      (call-with-input-file file
+		(lambda (in)
+		  (get-string-n in 5)
+		  (set-port-position! in -5 'current)
+		  (get-string-all in)))))
+
 
 (test-end)

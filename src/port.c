@@ -629,8 +629,17 @@ static void input_file_set_port_position(SgObject self, int64_t offset,
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
   if (SG_FILE_VTABLE(bp->src.file)->seek) {
+    int64_t realoff = offset;
+    /* if the port is buffered port then the actual position is
+       bp->position. now we need to do sort of the same trick as
+       bytevector ports do. */
+    switch (whence) {
+    case SG_CURRENT: realoff += bp->position; whence = SG_BEGIN; break;
+    default: break;
+    }
     bp->position = SG_FILE_VTABLE(bp->src.file)->seek(bp->src.file,
-						      offset, whence);
+						      realoff, whence);
+
     /* let buffer filled once position is changed... */
     bp->bufferIndex = 0;
     bp->bufferSize = 0;
