@@ -40,9 +40,11 @@
 
   (define-cise-stmt throw-i/o-error
     ((_ type who msg file)
+     `(throw-i/o-error ,type ,who ,msg ,file SG_UNDEF))
+    ((_ type who msg file ret)
      `(begin
 	(Sg_IOError ,type ,who (SG_MAKE_STRING ,msg) ,file SG_UNDEF)
-	(return SG_UNDEF))))
+	(return ,ret))))
 
   ;; x=? macro
   (define-cise-stmt x=?
@@ -2003,12 +2005,56 @@
 				"port has invalid buffer mode. may be bug?"
 				p))))
 
+  (define-cfn get-open-flags 
+    (option oflags::int file exists?::int rappend::int*)
+    ::int :static
+    (let ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option) option 'members)))
+      (if (and exists? (SG_NULLP opt))
+	  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
+			   'open-file-output-port
+			   "file already exists" file 0)
+	  (let ((no-create?::int (not (SG_FALSEP (Sg_Memq 'no-create opt))))
+		(no-truncate?::int (not (SG_FALSEP (Sg_Memq 'no-truncate opt))))
+		(no-fail?::int (not (SG_FALSEP (Sg_Memq 'no-fail opt))))
+		(append?::int (not (SG_FALSEP (Sg_Memq 'append opt))))
+		(open-flags::int oflags))
+	    (cond ((and no-create? no-truncate?)
+		   (when (not exists?)
+		     (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
+				      'open-file-output-port
+				      "file-options no-create: file not exist" 
+				      file 0)))
+		  (no-create?
+		   (if exists?
+		       (set! open-flags (logior SG_TRUNCATE open-flags))
+		       (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
+					'open-file-output-port 
+					"file-options no-create: file not exist"
+					file 0)))
+		  ((and no-fail? no-truncate?)
+		   (when (not exists?)
+		     (set! open-flags (logior SG_TRUNCATE open-flags))))
+		  (no-fail?
+		   ;; no-truncate
+		   (set! open-flags (logior SG_TRUNCATE open-flags)))
+		  (no-truncate?
+		   (cond ((and exists? (not append?))
+			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
+			    'open-file-output-port 
+			    "file-options no-truncate: file already exist"
+			    file 0))
+			 ((not append?)
+			  (set! open-flags (logior SG_TRUNCATE open-flags))))))
+	    (when append? (set! (pointer rappend) append?))
+	    (return open-flags)))
+      ;; dummy
+      (return 0)))
+
   (define-c-proc open-file-output-port (file::<string> 
 					:optional (option #f)
 					          mode::<symbol>
 						  (transcoder::<transcoder> #f))
-    (when (SG_UNBOUNDP mode)
-      (set! mode 'block))
+    (when (SG_UNBOUNDP mode) (set! mode 'block))
     (let ((fo SG_UNDEF)
 	  (isFileExist::int (Sg_FileExistP file))
 	  (openFlags::int (logior SG_WRITE SG_CREATE))
@@ -2020,7 +2066,8 @@
       (cond ((SG_FALSEP option)
 	     (if isFileExist
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-				  'open-file-output-port "file already exists" file))
+				  'open-file-output-port "file already exists"
+				  file))
 	     (set! fo (Sg_OpenFile file openFlags))
 	     (unless (SG_FILEP fo)
 	       (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
@@ -2033,42 +2080,14 @@
 	     (unless (Sg_RecordP option)
 	       (assertion-violation 'open-file-output-port 
 				    "invalid file options" option))
-	     (let ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option)
-					      option 'members))
-		   (isEmpty::int (SG_NULLP opt))
-		   (noCreate (Sg_Memq 'no-create opt))
-		   (noTruncate (Sg_Memq 'no-truncate opt))
-		   (noFail (Sg_Memq 'no-fail opt)))
-	       (cond ((and isFileExist isEmpty)
-		      (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-				       'open-file-output-port
-				       "file already exists" file))
-		     ((and (not (SG_FALSEP noCreate))
-			   (not (SG_FALSEP noTruncate)))
-		      (if (not isFileExist)
-			  (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-					   'open-file-output-port
-					   "file-options no-create: file not exist" file)))
-		     ((not (SG_FALSEP noCreate))
-		      (if isFileExist
-			  (set! openFlags (logior SG_TRUNCATE openFlags))
-			  (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-					   'open-file-output-port "file-options no-create: file not exist" file)))
-		     ((and (not (SG_FALSEP noFail))
-			   (not (SG_FALSEP noTruncate)))
-		      (if (not isFileExist)
-			  (set! openFlags (logior SG_TRUNCATE openFlags))))
-		     ((not (SG_FALSEP noFail))
-		      (set! openFlags (logior SG_TRUNCATE openFlags)))
-		     ((not (SG_FALSEP noTruncate))
-		      (if isFileExist
-			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-					   'open-file-output-port "file-options no-truncate: file already exist" file)
-			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
+	     (let ((append?::int 0))
+	       (set! openFlags (get-open-flags option openFlags 
+					       file isFileExist (& append?)))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-output-port fo file SG_UNDEF))
+	       (when append? (Sg_FileSeek fo 0 SG_END))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryOutputPort fo bufferMode)))
@@ -2194,42 +2213,16 @@
 	     (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))
 	    (else
 	     (unless (Sg_RecordP option)
-	       (assertion-violation 'open-file-output-port "invalid file options" option))
-	     (let ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option)
-					      option 'members))
-		   (isEmpty::int (SG_NULLP opt))
-		   (noCreate (Sg_Memq 'no-create opt))
-		   (noTruncate (Sg_Memq 'no-truncate opt))
-		   (noFail (Sg_Memq 'no-fail opt)))
-	       (cond ((and isFileExist isEmpty)
-		      (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-				       'open-file-input/output-port
-				       "file already exists" file))
-		     ((and (not (SG_FALSEP noCreate))
-			   (not (SG_FALSEP noTruncate)))
-		      (if (not isFileExist)
-			  (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-					   'open-file-input/output-port "file-options no-create: file not exist" file)))
-		     ((not (SG_FALSEP noCreate))
-		      (if isFileExist
-			  (set! openFlags (logior SG_TRUNCATE openFlags))
-			  (throw-i/o-error SG_IO_FILE_NOT_EXIST_ERROR
-					   'open-file-input/output-port "file-options no-create: file not exist" file)))
-		     ((and (not (SG_FALSEP noFail))
-			   (not (SG_FALSEP noTruncate)))
-		      (if (not isFileExist)
-			  (set! openFlags (logior SG_TRUNCATE openFlags))))
-		     ((not (SG_FALSEP noFail))
-		      (set! openFlags (logior SG_TRUNCATE openFlags)))
-		     ((not (SG_FALSEP noTruncate))
-		      (if isFileExist
-			  (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
-					   'open-file-input/output-port "file-options no-truncate: file already exist" file)
-			  (set! openFlags (logior SG_TRUNCATE openFlags)))))
+	       (assertion-violation 'open-file-output-port 
+				    "invalid file options" option))
+	     (let ((append?::int 0))
+	       (set! openFlags (get-open-flags option openFlags 
+					       file isFileExist (& append?)))
 	       (set! fo (Sg_OpenFile file openFlags))
 	       (unless (SG_FILEP fo)
 		 (Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 			     'open-file-input/output-port fo file SG_UNDEF))
+	       (when append? (Sg_FileSeek fo 0 SG_END))
 	       (if (SG_FALSEP transcoder)
 		   (result (Sg_MakeFileBinaryInputOutputPort fo bufferMode))
 		   (let ((out (Sg_MakeFileBinaryInputOutputPort fo bufferMode)))

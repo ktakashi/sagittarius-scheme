@@ -104,6 +104,8 @@ SG_EXTERN int      Sg_CloseFile(SgObject file);
 SG_EXTERN SgObject Sg_FileErrorMessage(SgObject file);
 SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
 SG_EXTERN int      Sg_UnlockFile(SgObject file);
+/* wrappers */
+SG_EXTERN int64_t  Sg_FileSeek(SgObject file, int64_t off, Whence whence);
 
 /* These methods are just creating wraps for stdout, stdin, stderr */
 SG_EXTERN SgObject Sg_StandardOut();

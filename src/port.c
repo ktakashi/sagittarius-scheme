@@ -852,7 +852,9 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
 
   port->impl.bport = bp;
   bp->src.file = file;
-  
+  /* this is important for buffer mode */
+  bp->position = SG_FILE_VTABLE(file)->tell(file);
+
   if (bufferMode != SG_BUFMODE_NONE) {
     if (buffer != NULL) {
       bp->buffer = buffer;

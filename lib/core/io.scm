@@ -1,10 +1,13 @@
 ;; -*- scheme -*-
 #!core
 (library (core io helper)
-    (export make-file-options)
+    (export make-file-options %file-options)
     (import (core)
-	    (core enums))
-  (define make-file-options (enum-set-constructor (make-enumeration '(no-create no-fail no-truncate))))
+	    (core enums)
+	    (sagittarius))
+  (define-constant %file-options '(no-create no-fail no-truncate append))
+  (define make-file-options 
+    (enum-set-constructor (make-enumeration %file-options)))
 )
 
 (library (core io)
@@ -34,7 +37,6 @@
   (define-syntax file-options
     (er-macro-transformer
      (lambda (form rename compare)
-       (define options '(no-create no-fail no-truncate))
        (define (unique-id-list? lst)
 	 (and (list? lst)
 	      (not (let loop ((lst lst))
@@ -49,7 +51,7 @@
 				"given arguments contain duplicate options"
 				form))
 	 (for-each (lambda (arg)
-		     (unless (id-memq arg options)
+		     (unless (id-memq arg %file-options)
 		       (assertion-violation 'file-options
 					    "invalid option"
 					    form)))

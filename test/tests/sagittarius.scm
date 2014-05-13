@@ -1278,5 +1278,25 @@
 (test-error "open-string-input-port(error)" condition?
 	    (open-string-input-port "hello world!" 0 13))
 
+;; file option append
+(let ()
+  (define file "example.txt")
+  (when (file-exists? file) (delete-file file))
+  (call-with-output-file file (lambda (out) (put-string out "hello")))
+  ;; bit awkward though
+  (call-with-port (open-file-output-port file (file-options no-truncate append))
+    (lambda (out) (put-bytevector out (string->utf8 " world!"))))
+  (test-equal "file-options append" "hello world!"
+	      (call-with-input-file file get-string-all)))
+(let ()
+  (define file "example.txt")
+  (when (file-exists? file) (delete-file file))
+  (call-with-output-file file (lambda (out) (put-string out "hello")))
+  ;; bit awkward though
+  (call-with-port (open-file-input/output-port file 
+					       (file-options no-truncate append))
+    (lambda (out) (put-bytevector out (string->utf8 " world!"))))
+  (test-equal "file-options append(in/out)" "hello world!"
+	      (call-with-input-file file get-string-all)))
 
 (test-end)
