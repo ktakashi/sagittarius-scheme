@@ -87,12 +87,14 @@
   (ssh-read-message (sftp-class-lookup type) in))
 (define (recv-sftp-packet connection)
   (let*-values (((bv) (ssh-recv-channel-data (~ connection 'channel)))
-		((len type) (unpack "!LC" bv))
-		((tmp) (bytevector-copy bv 5 (+ len 4)))) ;; len-1+5
-    (let ((r (read-sftp-packet-data type (open-bytevector-input-port tmp))))
+		((len type) (unpack "!LC" bv)))
+    (let ((r (read-sftp-packet-data type 
+	      (open-bytevector-input-port bv #f 5 (+ len 4)))))  ;; len-1+5
       (if (= (bytevector-length bv) (+ len 4))
-	  (values r #vu8()) ;; only one packet
-	  (values r (bytevector-copy bv (+ 4 len)))))))
+	  ;; only one packet
+	  (values r (eof-object))
+	  ;; more packets
+	  (values r (open-bytevector-input-port bv #f (+ len 4)))))))
 
 (define (send-sftp-packet connection data)
   (let ((bv (ssh-message->bytevector data))
