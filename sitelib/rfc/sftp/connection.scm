@@ -188,7 +188,8 @@
 ;; 10MB is enough?
 (define-constant +sftp-default-buffer-size+ 1048576) ;; (* 1024 1024)
 (define (sftp-read conn handle/filename receiver
-		   :key (buffer-size +sftp-default-buffer-size+))
+		   :key (buffer-size +sftp-default-buffer-size+)
+			(offset 0))
   (let* ((ohandle (if (is-a? handle/filename <sftp-fxp-handle>) 
 		      handle/filename
 		      (sftp-open conn handle/filename +ssh-fxf-read+)))
@@ -196,8 +197,7 @@
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    ;; the buffer size is 4096 fixed for now.
-    (let loop ((offset 0))
+    (let loop ((offset offset))
       (send-sftp-packet conn (make <sftp-fxp-read>
 			       :id (sftp-message-id! conn)
 			       :handle handle
