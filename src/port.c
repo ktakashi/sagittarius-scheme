@@ -1932,7 +1932,7 @@ static int64_t custom_port_position(SgObject self, Whence whence)
 static void custom_binary_set_port_position(SgObject port, int64_t offset,
 					    Whence whence)
 {
-  SgObject proc;
+  SgObject sym;
   if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
@@ -1944,16 +1944,14 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
   /* now we have a problem to keep compatibility and comform R6RS
      procedure can accept both 2 arguments or only one argument. 
      if it's only one argument when we consider it's only 'begin */
-  proc = SG_CUSTOM_PORT(port)->setPosition;
-  if (SG_PROCEDURE_REQUIRED(proc) > 1) {
-    SgObject sym = SG_FALSE;
-    switch (whence) {
+  sym = SG_FALSE;
+  switch (whence) {
     case SG_BEGIN:
       sym = SG_INTERN("begin"); 
       SG_CUSTOM_BINARY_PORT(port)->position = offset;
       break;
     case SG_CURRENT:
-      sym = SG_INTERN("current"); 
+      sym = SG_INTERN("current");
       SG_CUSTOM_BINARY_PORT(port)->position += offset;
       break;
     case SG_END:
@@ -1965,18 +1963,15 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
       SG_CUSTOM_BINARY_PORT(port)->position += offset;
       break;
     }
-    Sg_Apply2(proc, Sg_MakeIntegerFromS64(offset), sym);
-  } else {
-    /* if procedure doesn't accept any argument then let it fail */
-    Sg_Apply1(proc, Sg_MakeIntegerFromS64(offset));
-    SG_CUSTOM_BINARY_PORT(port)->position = offset;
-  }
+  Sg_Apply2(SG_CUSTOM_PORT(port)->setPosition, 
+	    Sg_MakeIntegerFromS64(offset), sym);
 }
 
 static void custom_textual_set_port_position(SgObject port, int64_t offset,
 					     Whence whence)
 {
   SgObject proc;
+  SgObject sym = SG_FALSE;
   if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
@@ -1985,29 +1980,23 @@ static void custom_textual_set_port_position(SgObject port, int64_t offset,
   }
   proc = SG_CUSTOM_PORT(port)->setPosition;
   SG_CUSTOM_PORT(port)->index = 0;
-  if (SG_PROCEDURE_REQUIRED(proc) > 1) {
-    SgObject sym = SG_FALSE;
-    switch (whence) {
-    case SG_BEGIN:
-      sym = SG_INTERN("begin"); 
-      break;
-    case SG_CURRENT:
-      sym = SG_INTERN("current"); 
-      break;
-    case SG_END:
-      if (offset > 0) {
-	Sg_Error(UC("end whence requires zero or negative offset %d"),
-		 (int)offset);
-      }
-      sym = SG_INTERN("end");
-      break;
-    }
-    Sg_Apply2(proc, Sg_MakeIntegerFromS64(offset), sym);
-  } else {
-    /* if procedure doesn't accept any argument then let it fail */
-    Sg_Apply1(proc, Sg_MakeIntegerFromS64(offset));
-  }
 
+  switch (whence) {
+  case SG_BEGIN:
+    sym = SG_INTERN("begin"); 
+    break;
+  case SG_CURRENT:
+    sym = SG_INTERN("current"); 
+    break;
+  case SG_END:
+    if (offset > 0) {
+      Sg_Error(UC("end whence requires zero or negative offset %d"),
+	       (int)offset);
+    }
+    sym = SG_INTERN("end");
+    break;
+  }
+  Sg_Apply2(proc, Sg_MakeIntegerFromS64(offset), sym);
 }
 
 static SgPortTable custom_binary_table = {
@@ -2033,6 +2022,29 @@ static SgBinaryPortTable custom_binary_src_table = {
   NULL
 };
 
+/*
+  For future we may provide non R6RS custom port generator which
+  requires setPosition procedure accepts whence argument as second
+  unlike R6RS procedure.
+  To make my life easier we create closure to wrap it.
+  This may consume a bit more memory but better than handling things
+  complicated way
+ */
+static SgObject wrapped_custom_set_position(SgObject *args, int argc,
+					    void *data)
+{
+  return Sg_VMApply1(SG_OBJ(data), args[0]);
+}
+
+static SgObject wrap_custom_set_procedure(SgObject proc)
+{
+  if (SG_PROCEDUREP(proc)) {
+    return Sg_MakeSubr(wrapped_custom_set_position, proc, 2, 0, 
+		       SG_PROCEDURE_NAME(proc));
+  }
+  return SG_FALSE;
+}
+
 SgObject Sg_MakeCustomBinaryPort(SgString *id,
 				 int direction,
 				 SgObject read,
@@ -2044,12 +2056,13 @@ SgObject Sg_MakeCustomBinaryPort(SgString *id,
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_BINARY_CUSTOM_PORT_TYPE);
+  SgObject wrapSetPosition = wrap_custom_set_procedure(setPosition);;
 
   c->id = id;
   c->read = read;
   c->write = write;
   c->getPosition = getPosition;
-  c->setPosition = setPosition;
+  c->setPosition = wrapSetPosition;
   c->close = close;
   c->ready = ready;
   c->buffer = SG_UNDEF;
@@ -2238,13 +2251,13 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_TEXTUAL_CUSTOM_PORT_TYPE);
-  
+  SgObject wrapSetPosition = wrap_custom_set_procedure(setPosition);;
 
   c->id = id;
   c->read = read;
   c->write = write;
   c->getPosition = getPosition;
-  c->setPosition = setPosition;
+  c->setPosition = wrapSetPosition;
   c->close = close;
   c->ready = ready;
   c->buffer = NULL;
