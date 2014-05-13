@@ -1941,9 +1941,6 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
   }
   /* reset cache */
   SG_CUSTOM_U8_AHEAD(port) = EOF;
-  /* now we have a problem to keep compatibility and comform R6RS
-     procedure can accept both 2 arguments or only one argument. 
-     if it's only one argument when we consider it's only 'begin */
   sym = SG_FALSE;
   switch (whence) {
     case SG_BEGIN:
@@ -2024,22 +2021,28 @@ static SgBinaryPortTable custom_binary_src_table = {
 
 /*
   For future we may provide non R6RS custom port generator which
-  requires setPosition procedure accepts whence argument as second
-  unlike R6RS procedure.
-  To make my life easier we create closure to wrap it.
+  requires setPosition procedure accepts whence argument as the second
+  argument unlike R6RS procedure.
+  To make my life easier, we create closure to wrap it.
   This may consume a bit more memory but better than handling things
   complicated way
  */
 static SgObject wrapped_custom_set_position(SgObject *args, int argc,
 					    void *data)
 {
-  return Sg_VMApply1(SG_OBJ(data), args[0]);
+  /* a bit pain in the ass but to make this call safe*/
+  if (SG_CUSTOM_PORT(SG_CAR(data))->type == SG_BINARY_CUSTOM_PORT_TYPE) {
+    int64_t offset = Sg_GetIntegerS64Clamp(args[0], SG_CLAMP_NONE, NULL);
+    SG_CUSTOM_BINARY_PORT(SG_CAR(data))->position = offset;
+  }
+  return Sg_VMApply1(SG_CDR(SG_OBJ(data)), args[0]);
 }
 
-static SgObject wrap_custom_set_procedure(SgObject proc)
+static SgObject wrap_custom_set_procedure(SgPort *p, SgObject proc)
 {
   if (SG_PROCEDUREP(proc)) {
-    return Sg_MakeSubr(wrapped_custom_set_position, proc, 2, 0, 
+    SgObject data = Sg_Cons(p, proc);
+    return Sg_MakeSubr(wrapped_custom_set_position, data, 2, 0, 
 		       SG_PROCEDURE_NAME(proc));
   }
   return SG_FALSE;
@@ -2056,7 +2059,7 @@ SgObject Sg_MakeCustomBinaryPort(SgString *id,
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_BINARY_CUSTOM_PORT_TYPE);
-  SgObject wrapSetPosition = wrap_custom_set_procedure(setPosition);;
+  SgObject wrapSetPosition = wrap_custom_set_procedure(z, setPosition);;
 
   c->id = id;
   c->read = read;
@@ -2251,7 +2254,7 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
 {
   SgPort *z = make_port(direction, SG_CUSTOM_PORT_TYPE, SG_BUFMODE_NONE);
   SgCustomPort *c = make_custom_port(SG_TEXTUAL_CUSTOM_PORT_TYPE);
-  SgObject wrapSetPosition = wrap_custom_set_procedure(setPosition);;
+  SgObject wrapSetPosition = wrap_custom_set_procedure(z, setPosition);;
 
   c->id = id;
   c->read = read;
