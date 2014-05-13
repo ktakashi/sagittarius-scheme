@@ -234,8 +234,15 @@
     (unless (eof-object? data)
       (put-bytevector out data))))
 
+;; FIXME sending is not sharing memory so that it stress GC too much
+;; thus sending huge file fail. We need to change SSH side to reuse
+;; buffer when sending channel data and implement SSH_FXP_WRITE message
+;; on top of it.
 (define (sftp-write! conn handle inport 
-		     :key (buffer-size +sftp-default-buffer-size+))
+		     ;; changing buffer size may cause failure
+		     ;; allocates 1MB (i don't know why it failed with 10MB,
+		     ;; but it failed)
+		     :key (buffer-size (* 1024 128)))
   (unless (is-a? handle <sftp-fxp-handle>)
     (error 'sftp-write! "need <sftp-fxp-handle>, call sftp-open first!"))
   (let ((hndl (~ handle 'handle))
