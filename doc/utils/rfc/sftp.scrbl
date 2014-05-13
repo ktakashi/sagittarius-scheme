@@ -94,7 +94,8 @@ If @var{filename} opened successfully, the procedure will return a handle.
 Closes given @var{handle} created by @code{sftp-open}.
 }
 
-@define[Function]{@name{sftp-read} @args{conn handle/filename receiver}}
+@define[Function]{@name{sftp-read}
+ @args{conn handle/filename receiver :key (offset 0)}}
 @desc{@var{conn} must be a SFTP connection.
 @var{handle/filename} must be either a handle or string.
 @var{receiver} must be a procedure accepts 2 arguments, offset and data,
@@ -103,6 +104,9 @@ respectively.
 Reads the given @var{handle/filename} content from the server and
 call @var{receiver} with the returned value. When it reaches the end of file,
 then it will pass -1 as offset and eof value as data.
+
+The keyword argument @var{offset} specifies starting where to read. It
+is useful to read only diff.
 }
 
 @define[Function]{@name{sftp-binary-receiver}}
