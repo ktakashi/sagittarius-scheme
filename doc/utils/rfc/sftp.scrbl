@@ -107,11 +107,18 @@ then it will pass -1 as offset and eof value as data.
 
 @define[Function]{@name{sftp-binary-receiver}}
 @desc{Creates a in memory receiver for @code{sftp-read}.}
+
 @define[Function]{@name{sftp-file-receiver} @args{filename :key options}}
 @desc{Creates a file receiver for @code{sftp-read}.
 
 The keyword argument @var{option} must be created by @code{file-options}.
 By default no option.
+}
+
+@define[Function]{@name{sftp-oport-receiver} @args{output-port}}
+@desc{@var{output-port} must be a binary output port.
+
+Creates a output port receiver for @code{sftp-read}.
 }
 
 @define[Function]{@name{sftp-write!} @args{conn handle input-port}}

@@ -61,6 +61,7 @@
 	    ;; helper
 	    sftp-binary-receiver
 	    sftp-file-receiver
+	    sftp-oport-receiver
 
 	    ;; low level
 	    send-sftp-packet
@@ -213,6 +214,12 @@
       (if (eof-object? data)
 	  (close-port out)
 	  (put-bytevector out data)))))
+(define (sftp-oport-receiver out)
+  (unless (binary-port? out)
+    (assertion-violation 'sftp-oport-receiver "binary port required" out))
+  (lambda (offset data)
+    (unless (eof-object? data)
+      (put-bytevector out data))))
 
 (define (sftp-write! conn handle inport)
   (unless (is-a? handle <sftp-fxp-handle>)
