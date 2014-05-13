@@ -1299,4 +1299,43 @@
   (test-equal "file-options append(in/out)" "hello world!"
 	      (call-with-input-file file get-string-all)))
 
+;; extended set-port-position!
+;; TODO must be tested all port type not only bytevector output port
+(test-equal "set-port-position! (end)"
+	    "hehehe"
+	    (utf8->string
+	     (let-values (((out extract) (open-bytevector-output-port)))
+	       (put-bytevector out (string->utf8 "hello"))
+	       (set-port-position! out -3 'end)
+	       (put-bytevector out (string->utf8 "hehe"))
+	       (extract))))
+(test-equal "set-port-position! (current)"
+	    "hehehe"
+	    (utf8->string
+	     (let-values (((out extract) (open-bytevector-output-port)))
+	       (put-bytevector out (string->utf8 "hello"))
+	       (set-port-position! out -3 'current)
+	       (put-bytevector out (string->utf8 "hehe"))
+	       (extract))))
+
+(test-error "set-port-position! error (begin)"
+	    (let-values (((out extract) (open-bytevector-output-port)))
+	       (put-bytevector out (string->utf8 "hello"))
+	       (set-port-position! out -3 'begin)
+	       (put-bytevector out (string->utf8 "hehe"))
+	       (extract)))
+(test-error "set-port-position! error (end)"
+	    (let-values (((out extract) (open-bytevector-output-port)))
+	       (put-bytevector out (string->utf8 "hello"))
+	       (set-port-position! out 3 'end)
+	       (put-bytevector out (string->utf8 "hehe"))
+	       (extract)))
+(test-error "set-port-position! error (current)"
+	    (let-values (((out extract) (open-bytevector-output-port)))
+	       (put-bytevector out (string->utf8 "hello"))
+	       (set-port-position! out 3 'current)
+	       (put-bytevector out (string->utf8 "hehe"))
+	       (extract)))
+
+
 (test-end)

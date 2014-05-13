@@ -36,8 +36,6 @@
 #include "file.h"
 
 typedef enum SgFileLockType SgPortLockType;
-typedef int64_t SgPortPositionFn(SgPort *);
-typedef void    SgSetPortPositionFn(SgPort *, int64_t);
 
 #define SG_STREAM_BUFFER_SIZE 32
 
@@ -551,7 +549,8 @@ SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 SG_EXTERN int      Sg_HasPortPosition(SgPort *port);
 SG_EXTERN int      Sg_HasSetPortPosition(SgPort *port);
 SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
-SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset);
+SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
+				      Whence whence);
 
 SG_EXTERN int      Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);

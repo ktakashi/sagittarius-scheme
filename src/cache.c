@@ -370,7 +370,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
     /* if there is non cachable objects in compiled code, 
        we discard all cache.
     */
-    Sg_SetPortPosition(out, 0);
+    Sg_SetPortPosition(out, 0, SG_BEGIN);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
     return -1;
   }
@@ -382,7 +382,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
       Sg_Printf(vm->logPort, UC(";; ***CACHE WARNING***\n"
 				";; failed to write library. %S\n"), lib);
     }
-    Sg_SetPortPosition(out, 0);
+    Sg_SetPortPosition(out, 0, SG_BEGIN);
     Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
     return -1;
   }
@@ -405,7 +405,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
       write_macro_cache(out, lib, closures, &ctx);
     } else {
       /* macro has something weird objects */
-      Sg_SetPortPosition(out, 0);
+      Sg_SetPortPosition(out, 0, SG_BEGIN);
       Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
       return -1;
     }

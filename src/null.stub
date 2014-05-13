@@ -1650,9 +1650,23 @@
     (check-port-open port-position p)
     (result (Sg_MakeIntegerFromS64 (Sg_PortPosition p))))
 
-  (define-c-proc set-port-position! (p::<port> off::<number>) ::<void>
+  (define-c-proc set-port-position! 
+    (p::<port> off::<number> :optional (whence::<symbol> 'begin))
+    ::<void>
     (check-port-open set-port-position! p)
-    (Sg_SetPortPosition p (Sg_GetIntegerU64Clamp off SG_CLAMP_NONE NULL)))
+    (let ((w::Whence SG_BEGIN))
+      (cond ((SG_EQ whence 'begin)
+	     (when (Sg_NegativeP off)
+	       (wrong-type-of-argument-violation 'set-port-position!
+						 "non negative number"
+						 off
+						 (SG_LIST3 p off whence)))
+	     (set! w SG_BEGIN))
+	    ((SG_EQ whence 'current) (set! w SG_CURRENT))
+	    ((SG_EQ whence 'end)     (set! w SG_END))
+	    (else (assertion-violation 'set-port-position!
+				       "unknown whence" (SG_LIST1 whence))))
+      (Sg_SetPortPosition p (Sg_GetIntegerS64Clamp off SG_CLAMP_NONE NULL) w)))
 
   (define-c-proc close-port (p::<port>) ::<void>
     (Sg_ClosePort p))

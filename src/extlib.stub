@@ -640,7 +640,7 @@
     ;; if it's textual port.
     (cond ((SG_BINARY_PORTP p)
 	   (result (Sg_GetByteVectorFromBinaryPort p))
-	   (Sg_SetPortPosition p 0)
+	   (Sg_SetPortPosition p 0 SG_BEGIN)
 	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf start)
 		 (SG_NEW byte_buffer))
 	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf current)
@@ -651,7 +651,7 @@
 	   (result (Sg_GetByteVectorFromBinaryPort 
 		    (ref (pointer (SG_TEXTUAL_PORT p))
 			 src transcoded port)))
-	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_SRC_PORT p) 0)
+	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_SRC_PORT p) 0 SG_BEGIN)
 	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))
 	  (else
 	   (wrong-type-of-argument-violation 'extract-output-bytevector
@@ -687,7 +687,7 @@
 		   SG_STRING_TEXTUAL_PORT_TYPE)
       (wrong-type-of-argument-violation 'get-output-string "string port" p))
     (result (Sg_GetStringFromStringPort p))
-    (Sg_SetPortPosition p 0)
+    (Sg_SetPortPosition p 0 SG_BEGIN)
     ;; reset
     (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)
 	  (SG_NEW char_buffer))

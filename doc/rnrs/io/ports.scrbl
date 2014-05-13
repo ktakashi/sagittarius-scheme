@@ -49,7 +49,7 @@ valid file options. A @var{file-options} parameter name means that the
 corresponding argument must be a @var{file-options} object.
 
 @define[Macro]{@name{file-options} @args{file-options-symbol @dots{}}}
-@desc{[R6RS] Each @var{file-option-symbol} must be a symbol. The
+@desc{[R6RS+] Each @var{file-option-symbol} must be a symbol. The
 @var{file-options} macro returns a @var{file-options} object that encapsulates
 the specified options.
 
@@ -72,6 +72,8 @@ not included, and the file is truncated to zero length.}}
 condition type @code{&i/o-file-already-exists} has been inhibited by inclusion
 of @code{no-create} or @code{no-fail}, the file is not truncated, but the port's
 current position is still set to the beginning of the file.}}
+@item{@code{append} @p{Among with @code{no-truncate}, set the opened port's 
+position the end of the file. This is not a part of R6RS specification.}}
 ]
 }
 

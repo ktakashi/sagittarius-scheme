@@ -973,10 +973,25 @@ static int64_t input_byte_array_port_position(SgObject self, Whence whence)
 static void input_byte_array_set_port_position(SgObject self, int64_t offset,
 					       Whence whence)
 {
-  /* todo check whence */
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  bp->src.buffer.index = (int)offset;
-  bp->position = offset;
+  switch (whence) {
+  case SG_BEGIN:
+    bp->src.buffer.index = (size_t)offset;
+    bp->position = offset;
+    break;
+  case SG_CURRENT: 
+    bp->src.buffer.index += (size_t)offset; 
+    bp->position += offset;
+    break;
+  case SG_END: 
+    if (offset > 0) {
+      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
+	       (int)offset);
+    }
+    bp->src.buffer.index += offset;
+    bp->position -= offset;
+    break;
+  }
 }
 
 #define DEFAULT_BUFFER_SIZE        256
@@ -1022,8 +1037,28 @@ static void output_byte_array_set_port_position(SgObject self, int64_t offset,
 {
   /* todo check whence */
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, offset);
-  bp->position = offset;
+  int64_t realoff;
+  switch (whence) {
+  case SG_BEGIN:
+    SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, offset);
+    bp->position = offset;
+    break;
+    /* bit tricky... 
+       if the current is specified then means it's the end of buffer
+       for now we don't consider going back so just make my life easy
+     */
+  case SG_CURRENT:
+  case SG_END: 
+    if (offset > 0) {
+      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
+	       (int)offset);
+    }
+    /* compute current position and real offset */
+    realoff = output_byte_array_port_position(self, SG_CURRENT) + offset;
+    SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, realoff);
+    bp->position = realoff;
+    break;
+  }
 }
 
 static SgPortTable bt_inputs = {
@@ -1328,7 +1363,7 @@ static void trans_set_port_position(SgObject self, int64_t offset,
   SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
   SG_TRANSCODED_PORT_BUFFER(self) = EOF;
   /* FIXME */
-  return Sg_SetPortPosition(p, offset);
+  return Sg_SetPortPosition(p, offset, whence);
 }
 
 
@@ -1515,7 +1550,21 @@ static int64_t input_string_port_position(SgObject self, Whence whence)
 static void input_string_set_port_position(SgObject self, int64_t offset,
 					   Whence whence)
 {
-  SG_TEXTUAL_PORT(self)->src.buffer.index = (int)offset;
+  switch (whence) {
+  case SG_BEGIN:
+    SG_TEXTUAL_PORT(self)->src.buffer.index = (size_t)offset;
+    break;
+  case SG_CURRENT: 
+    SG_TEXTUAL_PORT(self)->src.buffer.index += (size_t)offset;
+    break;
+  case SG_END: 
+    if (offset > 0) {
+      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
+	       (int)offset);
+    }
+    SG_TEXTUAL_PORT(self)->src.buffer.index += offset;
+    break;
+  }
 }
 
 static int64_t output_string_port_position(SgObject self, Whence whence)
@@ -1528,7 +1577,21 @@ static int64_t output_string_port_position(SgObject self, Whence whence)
 static void output_string_set_port_position(SgObject self, int64_t offset,
 					   Whence whence)
 {
-  SG_STREAM_BUFFER_SET_POSITIONC(SG_TEXTUAL_PORT(self)->src.ostr.start, offset);
+  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
+  int64_t pos = output_string_port_position(self, SG_CURRENT);
+  switch (whence) {
+  case SG_BEGIN:
+    SG_STREAM_BUFFER_SET_POSITIONC(tp->src.ostr.start, offset);
+    break;
+    /* same goes bytevector output-port */
+  default:
+    if (offset > 0) {
+      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
+	       (int)offset);
+    }
+    SG_STREAM_BUFFER_SET_POSITIONC(tp->src.ostr.start, pos+offset);
+    break;
+  }
 }
 
 #define INIT_STRING_PORT_COMMON(z)				\
@@ -1869,6 +1932,7 @@ static int64_t custom_port_position(SgObject self, Whence whence)
 static void custom_binary_set_port_position(SgObject port, int64_t offset,
 					    Whence whence)
 {
+  SgObject proc;
   if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
@@ -1877,21 +1941,73 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
   }
   /* reset cache */
   SG_CUSTOM_U8_AHEAD(port) = EOF;
-  Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
-  SG_CUSTOM_BINARY_PORT(port)->position = offset;
+  /* now we have a problem to keep compatibility and comform R6RS
+     procedure can accept both 2 arguments or only one argument. 
+     if it's only one argument when we consider it's only 'begin */
+  proc = SG_CUSTOM_PORT(port)->setPosition;
+  if (SG_PROCEDURE_REQUIRED(proc) > 1) {
+    SgObject sym = SG_FALSE;
+    switch (whence) {
+    case SG_BEGIN:
+      sym = SG_INTERN("begin"); 
+      SG_CUSTOM_BINARY_PORT(port)->position = offset;
+      break;
+    case SG_CURRENT:
+      sym = SG_INTERN("current"); 
+      SG_CUSTOM_BINARY_PORT(port)->position += offset;
+      break;
+    case SG_END:
+      if (offset > 0) {
+	Sg_Error(UC("end whence requires zero or negative offset %d"),
+		 (int)offset);
+      }
+      sym = SG_INTERN("end");
+      SG_CUSTOM_BINARY_PORT(port)->position += offset;
+      break;
+    }
+    Sg_Apply2(proc, Sg_MakeIntegerFromS64(offset), sym);
+  } else {
+    /* if procedure doesn't accept any argument then let it fail */
+    Sg_Apply1(proc, Sg_MakeIntegerFromS64(offset));
+    SG_CUSTOM_BINARY_PORT(port)->position = offset;
+  }
 }
 
 static void custom_textual_set_port_position(SgObject port, int64_t offset,
 					     Whence whence)
 {
+  SgObject proc;
   if (SG_FALSEP(SG_CUSTOM_PORT(port)->setPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
 				    SG_MAKE_STRING("positionable port"),
 				    port, SG_NIL);
     return;
   }
+  proc = SG_CUSTOM_PORT(port)->setPosition;
   SG_CUSTOM_PORT(port)->index = 0;
-  Sg_Apply1(SG_CUSTOM_PORT(port)->setPosition, Sg_MakeIntegerFromS64(offset));
+  if (SG_PROCEDURE_REQUIRED(proc) > 1) {
+    SgObject sym = SG_FALSE;
+    switch (whence) {
+    case SG_BEGIN:
+      sym = SG_INTERN("begin"); 
+      break;
+    case SG_CURRENT:
+      sym = SG_INTERN("current"); 
+      break;
+    case SG_END:
+      if (offset > 0) {
+	Sg_Error(UC("end whence requires zero or negative offset %d"),
+		 (int)offset);
+      }
+      sym = SG_INTERN("end");
+      break;
+    }
+    Sg_Apply2(proc, Sg_MakeIntegerFromS64(offset), sym);
+  } else {
+    /* if procedure doesn't accept any argument then let it fail */
+    Sg_Apply1(proc, Sg_MakeIntegerFromS64(offset));
+  }
+
 }
 
 static SgPortTable custom_binary_table = {
@@ -2654,12 +2770,12 @@ int64_t Sg_PortPosition(SgPort *port)
   return SG_PORT_VTABLE(port)->portPosition(port, SG_BEGIN);
 }
 
-void Sg_SetPortPosition(SgPort *port, int64_t offset)
+void Sg_SetPortPosition(SgPort *port, int64_t offset, Whence whence)
 {
   if (!SG_PORT_VTABLE(port)->setPortPosition) {
     Sg_Error(UC("Given port does not support set-port-position! %S"), port);
   }
-  SG_PORT_VTABLE(port)->setPortPosition(port, offset, SG_BEGIN);
+  SG_PORT_VTABLE(port)->setPortPosition(port, offset, whence);
 }
 
 int Sg_LineNo(SgPort *port)
