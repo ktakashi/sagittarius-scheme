@@ -158,66 +158,66 @@
 	    (make (hashtable-ref *primitive-class-table* code)
 	      :value (reader data))
 	    (error 'read-amqp-data "unknown data" code)))))
+  (define (construct-composite descriptor compound)
+    (define (get-type slot) (slot-definition-option slot :type))
+    (define (get-requires slot) (slot-definition-option slot :requires #f))
+    (define (multiple? slot) (slot-definition-option slot :multiple #f))
+    (define (values-type? class array)
+      (let1 vals (scheme-value array)
+	(is-a? (vector-ref vals 0) class)))
+    (define (safe-scheme-value v)
+      (if (slot-bound? v 'value)
+	  (scheme-value v)
+	  v))
+    (let* ((code (scheme-value descriptor))
+	   ;; must be either symbol or ulong
+	   (class (hashtable-ref (if (symbol? code)
+				     *type/class-table*
+				     *code/class-table*)
+				 code #f)))
+      (unless class (error 'read-amqp-data "not supported" code compound))
+      (rlet1 o (make class)
+	;; if the class is restricted? means this type has a descriptor.
+	;; a simple redefinition of type doesn't have it so that
+	;; it won't reach here
+	;; e.g.) second
+	(if (~ class 'restricted)
+	    ;; check type
+	    (let1 type (~ class 'restricted)
+	      (if (or (eq? type :*) ;; anything is ok
+		      (is-a? compound (hashtable-ref *type/class-table* type)))
+		  (set! (~ o 'value) compound)
+		  (error 'read-amqp-data 
+			 (format "restricted type ~a requires ~a value"
+				 (~ class 'descriptor-name) type)
+			 compound)))
+	    (for-each (lambda (slot value)
+			(let ((name (slot-definition-name slot))
+			      (type (get-type slot))
+			      (class (class-of value)))
+			  ;; mandatory element can be in between
+			  ;; non mandatory elements, so check the type.
+			  (let1 type-class 
+			      (hashtable-ref *type/class-table* type #f)
+			    (cond ((eq? type-class class)
+				   (set! (~ o name) (scheme-value value)))
+				  ((and (multiple? slot)
+					(is-a? value <amqp-array>)
+					(values-type? type-class value))
+				   ;; the composite value is Scheme class
+				   ;; so we only need to do with primitives
+				   ;; this is sort of awkward though...
+				   (set! (~ o name)
+					 (map safe-scheme-value
+					      (vector->list 
+					       (scheme-value value)))))
+				  ((and (eq? type :*)
+					(memq (get-requires slot)
+					      (~ class 'provides)))
+				   (set! (~ o name) value))))))
+		      (class-direct-slots class)
+		      (scheme-value compound))))))
   (define (read-amqp-data in)
-    (define (construct-composite descriptor compound)
-      (define (get-type slot) (slot-definition-option slot :type))
-      (define (get-requires slot) (slot-definition-option slot :requires #f))
-      (define (multiple? slot) (slot-definition-option slot :multiple #f))
-      (define (values-type? class array)
-	(let1 vals (scheme-value array)
-	  (is-a? (vector-ref vals 0) class)))
-      (define (safe-scheme-value v)
-	(if (slot-bound? v 'value)
-	    (scheme-value v)
-	    v))
-      (let* ((code (scheme-value descriptor))
-	     ;; must be either symbol or ulong
-	     (class (hashtable-ref (if (symbol? code)
-				       *type/class-table*
-				       *code/class-table*)
-				   code #f)))
-	(unless class (error 'read-amqp-data "not supported" code compound))
-	(rlet1 o (make class)
-	  ;; if the class is restricted? means this type has a descriptor.
-	  ;; a simple redefinition of type doesn't have it so that
-	  ;; it won't reach here
-	  ;; e.g.) second
-	  (if (~ class 'restricted)
-	      ;; check type
-	      (let1 type (~ class 'restricted)
-		(if (or (eq? type :*) ;; anything is ok
-			(is-a? compound (hashtable-ref *type/class-table* type)))
-		    (set! (~ o 'value) compound)
-		    (error 'read-amqp-data 
-			   (format "restricted type ~a requires ~a value"
-				   (~ class 'descriptor-name) type)
-			   compound)))
-	      (for-each (lambda (slot value)
-			  (let ((name (slot-definition-name slot))
-				(type (get-type slot))
-				(class (class-of value)))
-			    ;; mandatory element can be in between
-			    ;; non mandatory elements, so check the type.
-			    (let1 type-class 
-				(hashtable-ref *type/class-table* type #f)
-			      (cond ((eq? type-class class)
-				     (set! (~ o name) (scheme-value value)))
-				    ((and (multiple? slot)
-					  (is-a? value <amqp-array>)
-					  (values-type? type-class value))
-				     ;; the composite value is Scheme class
-				     ;; so we only need to do with primitives
-				     ;; this is sort of awkward though...
-				     (set! (~ o name)
-					   (map safe-scheme-value
-						(vector->list 
-						 (scheme-value value)))))
-				    ((and (eq? type :*)
-					  (memq (get-requires slot)
-						(~ class 'provides)))
-				     (set! (~ o name) value))))))
-			(class-direct-slots class)
-			(scheme-value compound))))))
     (let-values (((first descriptor) (read-constructor in)))
       (if descriptor
 	  (construct-composite descriptor (read-data (get-u8 in) in))
@@ -648,7 +648,7 @@
       (cond ((undefined? e) 1)
 	    ((and (integer? e) (zero? e)) 1)
 	    ((and (integer? e) (< e 255)) 2)
-	    ((integer? e) (+ 5 (div (bitwise-lengt e) 8)))
+	    ((integer? e) (+ 5 (div (bitwise-length e) 8)))
 	    ((string? e) (+ (string-length e) 5))
 	    ((symbol? e) (+ (string-length (symbol->string e)) 5))
 	    ((bytevector? e) (+ (bytevector-length e) 5))
