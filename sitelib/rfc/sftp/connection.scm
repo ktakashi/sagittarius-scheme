@@ -234,14 +234,11 @@
     (unless (eof-object? data)
       (put-bytevector out data))))
 
-;; FIXME sending is not sharing memory so that it stress GC too much
-;; thus sending huge file fail. We need to change SSH side to reuse
-;; buffer when sending channel data and implement SSH_FXP_WRITE message
-;; on top of it.
+;; FIXME We should not use explicit gc calling however
+;; on some environment (only tested on Cygwin), implicit
+;; gc would be too late for huge file. current buffer size
+;; 10MB should be good enough.
 (define (sftp-write! conn handle inport 
-		     ;; changing buffer size may cause failure
-		     ;; allocates 1MB (i don't know why it failed with 10MB,
-		     ;; but it failed)
 		     :key (buffer-size (* 1024 128))
 			  (offset 0))
   (unless (is-a? handle <sftp-fxp-handle>)
@@ -262,6 +259,9 @@
 					     buf
 					     (bytevector-copy buf 0 r))))
 	  (recv-sftp-packet1 conn)
+	  ;; bit awkward to call gc explicitly but
+	  ;; on some environment implicit gc would be too late.
+	  (gc)
 	  (loop (+ offset r)))))))
 
 ;; 6.5 Removing and Renaming Files
