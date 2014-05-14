@@ -72,8 +72,7 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
 #define SG_STREAM_BUFFER_COUNT_REC(type, r, start)			\
   do {									\
     type *__t = (start);						\
-    for ((r)=0;__t && __t->position>=SG_STREAM_BUFFER_SIZE;		\
-	 __t=__t->next,(r)++);						\
+    for ((r)=0;__t && __t &&__t->next; __t=__t->next,(r)++);		\
     (r) *= SG_STREAM_BUFFER_SIZE;					\
     if (__t) (r) += __t->position;					\
   } while (0)
@@ -81,6 +80,20 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
   SG_STREAM_BUFFER_COUNT_REC(char_buffer, r, start)
 #define SG_STREAM_BUFFER_COUNTB(r, start)	\
   SG_STREAM_BUFFER_COUNT_REC(byte_buffer, r, start)
+
+#define SG_STREAM_BUFFER_POSITION_REC(type, r, start, current)		\
+  do {									\
+    type *__t = (start);						\
+    for ((r)=0LL;__t && __t == (current); __t=__t->next,(r)++);		\
+    (r) *= SG_STREAM_BUFFER_SIZE;					\
+    if (__t) (r) += __t->position;					\
+  } while (0)
+#define SG_STREAM_BUFFER_POSITIONC(r, start, current)			\
+  SG_STREAM_BUFFER_POSITION_REC(char_buffer, r, start, current)
+#define SG_STREAM_BUFFER_POSITIONB(r, start)				\
+  SG_STREAM_BUFFER_POSITION_REC(byte_buffer, r, start, current)
+
+
 
 #define SG_STREAM_BUFFER_GET_BUFFER_REC(buftype, type, r, start)	\
   do {									\
@@ -99,22 +112,24 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
 #define SG_STREAM_BUFFER_GET_BUFFERC(r, start)		\
   SG_STREAM_BUFFER_GET_BUFFER_REC(SgChar, char_buffer, r, start)
 
-#define SG_STREAM_BUFFER_SET_POSITION_REC(type, start, pos)	\
+#define SG_STREAM_BUFFER_SET_POSITION_REC(type, start, cur, pos)	\
   do {								\
     type *__t = (start);					\
     int __c = (int)(pos)/SG_STREAM_BUFFER_SIZE;			\
     int __o = (int)(pos)%SG_STREAM_BUFFER_SIZE;			\
     int __i;							\
-    for (__i=0; __i < __c && __t->next; __i++, __t=__t->next) {	\
+    for (__i = 0; __i < __c; __i++, __t =__t->next) {		\
       __t->position = SG_STREAM_BUFFER_SIZE;			\
+      if (!__t->next) __t->next = SG_NEW(type);			\
     }								\
-    if (__i == __c && __t) __t->position = __o;			\
+    __t->position = __o;					\
+    (cur) = __t;						\
   } while(0)							\
 
-#define SG_STREAM_BUFFER_SET_POSITIONB(start, pos)	\
-  SG_STREAM_BUFFER_SET_POSITION_REC(byte_buffer, start, pos)
-#define SG_STREAM_BUFFER_SET_POSITIONC(start, pos)	\
-  SG_STREAM_BUFFER_SET_POSITION_REC(char_buffer, start, pos)
+#define SG_STREAM_BUFFER_SET_POSITIONB(start, cur, pos)		\
+  SG_STREAM_BUFFER_SET_POSITION_REC(byte_buffer, start, cur, pos)
+#define SG_STREAM_BUFFER_SET_POSITIONC(start, cur, pos)		\
+  SG_STREAM_BUFFER_SET_POSITION_REC(char_buffer, start, cur, pos)
 
 typedef struct SgBinaryPortTableRec
 {
@@ -198,6 +213,8 @@ typedef struct SgTextualPortRec
     struct {
       char_buffer *start;
       char_buffer *current;
+      /* oh crap... */
+      int64_t  position;		/* current position */
     } ostr;
     /* string iport uses string as src */
     struct {

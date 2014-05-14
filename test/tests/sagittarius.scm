@@ -217,10 +217,10 @@
   )
 
 ;; some illegal character reading
-(test-error "ascii 0 read" (read (open-string-input-port "\x0;")))
-(test-error "ascii 1 read" (read (open-string-input-port "\x1;")))
-(test-error "ascii 2 read" (read (open-string-input-port "\x2;")))
-(test-error "ascii 3 read" (read (open-string-input-port "\x3;")))
+(test-error "ascii 0 read" condition? (read (open-string-input-port "\x0;")))
+(test-error "ascii 1 read" condition? (read (open-string-input-port "\x1;")))
+(test-error "ascii 2 read" condition? (read (open-string-input-port "\x2;")))
+(test-error "ascii 3 read" condition? (read (open-string-input-port "\x3;")))
 
 ;; Textual port buffer problem
 (define tr (make-transcoder (utf-8-codec)))
@@ -1319,23 +1319,28 @@
 	       (extract))))
 
 (test-error "set-port-position! error (begin)"
+	    condition?
 	    (let-values (((out extract) (open-bytevector-output-port)))
 	       (put-bytevector out (string->utf8 "hello"))
 	       (set-port-position! out -3 'begin)
 	       (put-bytevector out (string->utf8 "hehe"))
 	       (extract)))
-(test-error "set-port-position! error (end)"
-	    (let-values (((out extract) (open-bytevector-output-port)))
+(test-equal "set-port-position! overvlow (end)"
+	    "hello\x0;\x0;\x0;hehe"
+	    (utf8->string
+	     (let-values (((out extract) (open-bytevector-output-port)))
 	       (put-bytevector out (string->utf8 "hello"))
 	       (set-port-position! out 3 'end)
 	       (put-bytevector out (string->utf8 "hehe"))
-	       (extract)))
-(test-error "set-port-position! error (current)"
-	    (let-values (((out extract) (open-bytevector-output-port)))
+	       (extract))))
+(test-equal "set-port-position! overflow (current)"
+	    "hello\x0;\x0;\x0;hehe"
+	    (utf8->string
+	     (let-values (((out extract) (open-bytevector-output-port)))
 	       (put-bytevector out (string->utf8 "hello"))
 	       (set-port-position! out 3 'current)
 	       (put-bytevector out (string->utf8 "hehe"))
-	       (extract)))
+	       (extract))))
 
 (let ()
   (define file "example.txt")
@@ -1361,5 +1366,27 @@
 	      (lambda (in)
 		(set-port-position! in 100)
 		(get-bytevector-all in))))
+
+;; call #28
+(let ((bv (call-with-bytevector-output-port
+	   (lambda (out)
+	     (set-port-position! out 100)
+	     (set-port-position! out 0)
+	     (put-bytevector out (string->utf8 "hello")))))
+      (exptected (make-bytevector 100 0)))
+  (bytevector-copy! (string->utf8 "hello") 0 exptected 0 5)
+  (test-equal "length" 100 (bytevector-length bv))
+  (test-equal "result" exptected bv))
+
+(let ((bv (string->utf8 (call-with-string-output-port
+			 (lambda (out)
+			   (set-port-position! out 100)
+			   (set-port-position! out 0)
+			   (put-string out "hello")))))
+      ;; well 32 is space...
+      (exptected (make-bytevector 100 32)))
+  (bytevector-copy! (string->utf8 "hello") 0 exptected 0 5)
+  (test-equal "length" 100 (bytevector-length bv))
+  (test-equal "result" exptected bv))
 
 (test-end)

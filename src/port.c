@@ -997,6 +997,10 @@ static void input_byte_array_set_port_position(SgObject self, int64_t offset,
   }
   /* don't overflow! */
   if (realoff > size) realoff = size;
+  /* underflow is an error! */
+  if (realoff < 0) {
+    Sg_Error(UC("given offset is out of range %d"), (int)offset);
+  }
 
   bp->src.buffer.index = (size_t)realoff;
   bp->position = realoff;
@@ -1023,6 +1027,7 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *ba,
   for (i = 0; i < size; i++) {
     SG_STREAM_BUFFER_PUTB(bp->src.obuf.current, bp->src.obuf.current, ba[i]);
   }
+  bp->position += size;
   return size;
 }
 
@@ -1034,10 +1039,7 @@ static int64_t put_byte_array_u8(SgObject self, uint8_t b)
 static int64_t output_byte_array_port_position(SgObject self, Whence whence)
 {
   /* todo check whence */
-  int64_t pos = 0;
-  SgBinaryPort *bp = SG_BINARY_PORT(self);
-  SG_STREAM_BUFFER_COUNTB(pos, bp->src.obuf.start);
-  return pos;
+  return SG_BINARY_PORT(self)->position;
 }
 
 static void output_byte_array_set_port_position(SgObject self, int64_t offset,
@@ -1045,28 +1047,22 @@ static void output_byte_array_set_port_position(SgObject self, int64_t offset,
 {
   /* todo check whence */
   SgBinaryPort *bp = SG_BINARY_PORT(self);
-  int64_t realoff;
+  int64_t realoff = 0LL;
   switch (whence) {
-  case SG_BEGIN:
-    SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, offset);
-    bp->position = offset;
-    break;
-    /* bit tricky... 
-       if the current is specified then means it's the end of buffer
-       for now we don't consider going back so just make my life easy
-     */
-  case SG_CURRENT:
+  case SG_BEGIN:   realoff = offset; break;
+  case SG_CURRENT: realoff = bp->position + offset; break;
   case SG_END: 
-    if (offset > 0) {
-      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
-	       (int)offset);
-    }
-    /* compute current position and real offset */
-    realoff = output_byte_array_port_position(self, SG_CURRENT) + offset;
-    SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, realoff);
-    bp->position = realoff;
+    SG_STREAM_BUFFER_COUNTB(realoff, bp->src.obuf.start);
+    realoff += offset;
     break;
   }
+  /* underflow is an error! */
+  if (realoff < 0) {
+    Sg_Error(UC("given offset is out of range %d"), (int)offset);
+  }
+  SG_STREAM_BUFFER_SET_POSITIONB(bp->src.obuf.start, bp->src.obuf.current, 
+				 realoff);
+  bp->position = realoff;
 }
 
 static SgPortTable bt_inputs = {
@@ -1105,7 +1101,7 @@ SgObject Sg_InitByteArrayInputPort(SgPort *port, SgBinaryPort *bp,
   bp->src.buffer.start = src;
   bp->src.buffer.end = src + end;
   bp->src.buffer.index = offset;
-
+  bp->position = 0;
   /* set binary input port */
   port->impl.bport = bp;
   return SG_OBJ(port);
@@ -1483,6 +1479,7 @@ static void string_oport_putchar(SgObject self, SgChar c)
 {
   SgTextualPort *tp = SG_TEXTUAL_PORT(self);
   SG_STREAM_BUFFER_PUTC(tp->src.ostr.current, tp->src.ostr.current, c);
+  tp->src.ostr.position++;
 }
 
 static int64_t string_oport_put_string(SgObject self, SgChar *str,
@@ -1493,6 +1490,8 @@ static int64_t string_oport_put_string(SgObject self, SgChar *str,
   for (i = 0; i < count; i++) {
     string_oport_putchar(self, str[i]);
   }
+  /* don't double this */
+  /* tp->src.buffer.position += count; */
   return i;
 }
 
@@ -1558,48 +1557,52 @@ static int64_t input_string_port_position(SgObject self, Whence whence)
 static void input_string_set_port_position(SgObject self, int64_t offset,
 					   Whence whence)
 {
+  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
+  int64_t realoff = 0LL;
+  int64_t size = (int64_t)(tp->src.buffer.end - tp->src.buffer.start);
   switch (whence) {
-  case SG_BEGIN:
-    SG_TEXTUAL_PORT(self)->src.buffer.index = (size_t)offset;
-    break;
-  case SG_CURRENT: 
-    SG_TEXTUAL_PORT(self)->src.buffer.index += (size_t)offset;
-    break;
-  case SG_END: 
-    if (offset > 0) {
-      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
-	       (int)offset);
-    }
-    SG_TEXTUAL_PORT(self)->src.buffer.index += offset;
-    break;
+  case SG_BEGIN:   realoff = offset; break;
+  case SG_CURRENT: realoff = tp->src.buffer.index + offset; break;
+  case SG_END:     realoff = size + offset; break;
   }
+  /* don't overflow! */
+  if (realoff > size) realoff = size;
+  /* underflow is an error! */
+  if (realoff < 0) {
+    Sg_Error(UC("given offset is out of range %d"), (int)offset);
+  }
+  tp->src.buffer.index = (size_t)realoff;
 }
 
 static int64_t output_string_port_position(SgObject self, Whence whence)
 {
-  int64_t pos;
-  SG_STREAM_BUFFER_COUNTC(pos, SG_TEXTUAL_PORT(self)->src.ostr.start);
-  return pos;
+  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
+  /* TODO whence */
+  return tp->src.ostr.position;
 }
 
 static void output_string_set_port_position(SgObject self, int64_t offset,
 					   Whence whence)
 {
   SgTextualPort *tp = SG_TEXTUAL_PORT(self);
-  int64_t pos = output_string_port_position(self, SG_CURRENT);
+  int64_t realoff = 0LL;
   switch (whence) {
-  case SG_BEGIN:
-    SG_STREAM_BUFFER_SET_POSITIONC(tp->src.ostr.start, offset);
+  case SG_BEGIN:   realoff = offset; break;
+  case SG_CURRENT: 
+    realoff = output_string_port_position(self, SG_CURRENT) + offset;
     break;
-    /* same goes bytevector output-port */
-  default:
-    if (offset > 0) {
-      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
-	       (int)offset);
-    }
-    SG_STREAM_BUFFER_SET_POSITIONC(tp->src.ostr.start, pos+offset);
+  case SG_END: 
+    SG_STREAM_BUFFER_COUNTC(realoff, tp->src.ostr.start);
+    realoff += offset;
     break;
   }
+  /* underflow is an error! */
+  if (realoff < 0) {
+    Sg_Error(UC("given offset is out of range %d"), (int)offset);
+  }
+  SG_STREAM_BUFFER_SET_POSITIONC(tp->src.ostr.start, tp->src.ostr.current, 
+				 realoff);
+  tp->src.ostr.position = realoff;
 }
 
 #define INIT_STRING_PORT_COMMON(z)				\
