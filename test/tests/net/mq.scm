@@ -6,7 +6,8 @@
 	(clos user)
 	(clos core)
 	(srfi :1)
-	(srfi :64))
+	(srfi :64)
+	(util hashtables))
 
 (test-begin "AMQP tests")
 
@@ -157,7 +158,7 @@
 		  (->amqp-value :string "val2"))
   (hashtable-set! ht (->amqp-value :symbol 'key3)
 		  (->amqp-value :string "val3"))
-  
+
   ;; map
   (test-equal ":map (read)"
 	      '((key1 . "val1") (key2 . "val2") (key3 . "val3"))
