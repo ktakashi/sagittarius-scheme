@@ -634,9 +634,14 @@ static void input_file_set_port_position(SgObject self, int64_t offset,
        bp->position. now we need to do sort of the same trick as
        bytevector ports do. */
     switch (whence) {
-    case SG_CURRENT: realoff += bp->position; whence = SG_BEGIN; break;
+    case SG_CURRENT: realoff += bp->position; whence = SG_BEGIN;
+      if (realoff < 0) {
+	Sg_Error(UC("offset out of range %d"), (int)realoff);
+      }
+      break;
     default: break;
     }
+    /* how should we handle SG_END with underflow/overflow? */
     bp->position = SG_FILE_VTABLE(bp->src.file)->seek(bp->src.file,
 						      realoff, whence);
 
@@ -983,24 +988,18 @@ static void input_byte_array_set_port_position(SgObject self, int64_t offset,
 					       Whence whence)
 {
   SgBinaryPort *bp = SG_BINARY_PORT(self);
+  int64_t realoff = 0LL;
+  int64_t size = (int64_t)(bp->src.buffer.end - bp->src.buffer.start);
   switch (whence) {
-  case SG_BEGIN:
-    bp->src.buffer.index = (size_t)offset;
-    bp->position = offset;
-    break;
-  case SG_CURRENT: 
-    bp->src.buffer.index += (size_t)offset; 
-    bp->position += offset;
-    break;
-  case SG_END: 
-    if (offset > 0) {
-      Sg_Error(UC("end whence requires zero or negative offset but got %d"),
-	       (int)offset);
-    }
-    bp->src.buffer.index += offset;
-    bp->position -= offset;
-    break;
+  case SG_BEGIN:   realoff = offset; break;
+  case SG_CURRENT: realoff = bp->position + offset; break;
+  case SG_END:     realoff = size + offset; break;
   }
+  /* don't overflow! */
+  if (realoff > size) realoff = size;
+
+  bp->src.buffer.index = (size_t)realoff;
+  bp->position = realoff;
 }
 
 #define DEFAULT_BUFFER_SIZE        256

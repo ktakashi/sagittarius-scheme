@@ -1353,5 +1353,13 @@
 		  (set-port-position! in -5 'current)
 		  (get-string-all in)))))
 
+;; call #27 bytevector-input-port with set-port-position! overflowed
+(test-equal "set-port-position! overflow"
+	    (eof-object)
+	    (call-with-port (open-bytevector-input-port 
+			     (string->utf8 "hello world"))
+	      (lambda (in)
+		(set-port-position! in 100)
+		(get-bytevector-all in))))
 
 (test-end)
