@@ -1475,24 +1475,23 @@ static int string_oport_close(SgObject self)
   return TRUE;
 }
 
-static void string_oport_putchar(SgObject self, SgChar c)
-{
-  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
-  SG_STREAM_BUFFER_PUTC(tp->src.ostr.current, tp->src.ostr.current, c);
-  tp->src.ostr.position++;
-}
 
 static int64_t string_oport_put_string(SgObject self, SgChar *str,
 				       int64_t count)
 {
+  SgTextualPort *tp = SG_TEXTUAL_PORT(self);
   int64_t i;
   /* TODO: we might want to improve this */
   for (i = 0; i < count; i++) {
-    string_oport_putchar(self, str[i]);
+      SG_STREAM_BUFFER_PUTC(tp->src.ostr.current, tp->src.ostr.current, str[i]);
   }
-  /* don't double this */
-  /* tp->src.buffer.position += count; */
+  tp->src.ostr.position += count;
   return i;
+}
+
+static void string_oport_putchar(SgObject self, SgChar c)
+{
+  string_oport_put_string(self, &c, 1);
 }
 
 static SgChar string_iport_getchar(SgObject self)
