@@ -306,8 +306,9 @@ integer object.
 }
 
 @define[Function]{@name{port-has-set-port-position!?} @args{port}}
-@define[Function]{@name{set-port-position!} @args{port pos}}
-@desc{[R6RS] The @code{port-has-set-port-position!?} procedure returns #t if the
+@define[Function]{@name{set-port-position!}
+ @args{port pos :optional (whence 'begin)}}
+@desc{[R6RS+] The @code{port-has-set-port-position!?} procedure returns #t if the
 @var{port} supports the @code{set-port-position!} operation, and #f otherwise.
 
 The @code{set-port-position!} procedure raises an exception with condition type
@@ -317,9 +318,21 @@ valid positions of @var{port}. Otherwise, it sets the current position of the
 @var{port} to @var{pos}. If @var{port} is an output port,
 @var{set-port-position!} first flushes @var{port}.
 
-On Sagittarius Scheme, binary port and string port have @code{port-position} but
-transcoded file port does not support the @code{port-position} and
-@code{set-port-position!}.
+The optional argument @var{whence} must be one of the following symbols;
+@dl-list[]{
+  @dl-item[@code{begin}]{
+  Set position from the beginning of the given @var{port}.
+  }
+  @dl-item[@code{current}]{
+  Set position from the current position of the given @var{port}.
+  }
+  @dl-item[@code{end}]{
+  Set position from the end of the given @var{port}.
+  }
+}
+NOTE: for R6RS custom port, the procedure doesn't accept the optional argument,
+so it will be always considered @code{begin} even though user specified it
+as @code{current} or @code{end}.
 }
 
 @define[Function]{@name{close-port} @args{port}}
