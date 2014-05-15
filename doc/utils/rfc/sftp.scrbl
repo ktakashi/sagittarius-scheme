@@ -138,6 +138,14 @@ The keyword argument @var{offset} specifies where to write. This is useful
 to write a file separately or simply append.
 }
 
+@define[Function]{@name{sftp-exists?} @args{conn filename}}
+@desc{@var{conn} must be a SFTP connection.
+@var{filename} must be a string indicating existing filename.
+
+Checks if the given @var{filename} exists.
+}
+
+
 @define[Function]{@name{sftp-remove!} @args{conn filename}}
 @desc{@var{conn} must be a SFTP connection.
 @var{filename} must be a string indicating existing filename.

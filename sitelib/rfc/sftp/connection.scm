@@ -53,6 +53,8 @@
 	    sftp-readlink
 	    sftp-symlink!
 	    sftp-realpath
+	    ;; for convenience
+	    sftp-exists?
 
 	    ;; utility
 	    sftp-readdir-as-filenames
@@ -100,11 +102,7 @@
     (let1 bv (receive-rest first len)
       (let ((r (read-sftp-packet-data type 
 		(open-bytevector-input-port bv #f 5 (+ len 4)))))  ;; len-1+5
-	(if (= (bytevector-length bv) (+ len 4))
-	    ;; only one packet
-	    (values r (eof-object))
-	    ;; more packets
-	    (values r (open-bytevector-input-port bv #f (+ len 4))))))))
+	r))))
 
 (define (send-sftp-packet connection data)
   (let ((bv (ssh-message->bytevector data))
@@ -132,7 +130,7 @@
       ;; no extension data for now
       (send-sftp-packet connection 
 			(make <sftp-fxp-init> :version +sftp-version3+))
-      (let-values (((r rest) (recv-sftp-packet connection)))
+      (let1 r (recv-sftp-packet connection)
 	;; assume rest is empty
 	(unless (and (is-a? r <sftp-fxp-version>)
 		     (= (~ r 'version) +sftp-version3+))
@@ -159,8 +157,9 @@
        ;; todo condition?
        (error #f (format "~a, code[~a]" (utf8->string (~ v 'message))
 			 (~ v 'code)))))))
+;; with check
 (define (recv-sftp-packet1 conn)
-  (let-values (((r rest) (recv-sftp-packet conn)))
+  (let1 r (recv-sftp-packet conn)
     (check-status r)
     r))
 
@@ -205,7 +204,7 @@
 			       :handle handle
 			       :offset offset
 			       :len buffer-size))
-      (let-values (((r ignore) (recv-sftp-packet conn)))
+      (let1 r (recv-sftp-packet conn)
 	(if (is-a? r <sftp-fxp-status>)
 	    (begin 
 	      (unless (is-a? handle/filename <sftp-fxp-handle>)
@@ -366,5 +365,14 @@
 			       :path path))
   (let1 r (recv-sftp-packet1 conn)
     (~ (car (~ r 'names 'names)) 'filename)))
+
+;; for convenience
+(define (sftp-exists? conn path)
+  (send-sftp-packet conn (make <sftp-fxp-stat> :id (sftp-message-id! conn)
+			       :path path))
+  ;; must return status
+  (let1 r (recv-sftp-packet conn)
+    ;; simple isn't it?
+    (is-a? r <sftp-attrs>)))
 
 )
