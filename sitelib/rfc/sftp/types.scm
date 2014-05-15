@@ -69,6 +69,7 @@
 	    <sftp-fxp-handle>
 	    <sftp-fxp-data>
 	    <sftp-fxp-name>
+	    <sftp-fxp-attrs>
 	    ;; misc
 	    ;; may need this?
 	    <sftp-attrs>

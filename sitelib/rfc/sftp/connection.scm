@@ -374,6 +374,6 @@
   ;; must return status
   (let1 r (recv-sftp-packet conn)
     ;; simple isn't it?
-    (is-a? r <sftp-attrs>)))
+    (is-a? r <sftp-fxp-attrs>)))
 
 )
