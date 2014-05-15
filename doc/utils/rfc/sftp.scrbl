@@ -95,7 +95,7 @@ Closes given @var{handle} created by @code{sftp-open}.
 }
 
 @define[Function]{@name{sftp-read}
- @args{conn handle/filename receiver :key (offset 0)}}
+ @args{conn handle/filename receiver :key (offset 0) buffer-size}}
 @desc{@var{conn} must be a SFTP connection.
 @var{handle/filename} must be either a handle or string.
 @var{receiver} must be a procedure accepts 2 arguments, offset and data,
@@ -107,6 +107,10 @@ then it will pass -1 as offset and eof value as data.
 
 The keyword argument @var{offset} specifies starting where to read. It
 is useful to read only diff.
+
+The keyword argument @var{buffer-size} specifies how many bytes it tries to
+read in one read call. The default value is 1048576 (1MB). This value is only
+an indication so that server can decide actual data length to sent.
 }
 
 @define[Function]{@name{sftp-binary-receiver}}
@@ -126,7 +130,7 @@ Creates a output port receiver for @code{sftp-read}.
 }
 
 @define[Function]{@name{sftp-write!} 
- @args{conn handle input-port :key (offset 0)}}
+ @args{conn handle input-port :key (offset 0) buffer-size}}
 @desc{@var{conn} must be a SFTP connection.
 @var{handle} must be a handle.
 @var{input-port} must be a binary input port.
@@ -136,6 +140,13 @@ Reads the content from given @var{input-port} and writes it to given
 
 The keyword argument @var{offset} specifies where to write. This is useful
 to write a file separately or simply append.
+
+The keyword argument @var{buffer-size} specifies how many bytes of data
+the procedure sends in one packet. The default value is 131072 (128KB).
+The RFC defines the minimum value 32768 (3KB) so it is safe to use the
+value. However too small buffer size makes writing extremely slow so
+we use a bit larger value to make performance better. If you meet a
+problem with writing a file, consider to change this size.
 }
 
 @define[Function]{@name{sftp-exists?} @args{conn filename}}
