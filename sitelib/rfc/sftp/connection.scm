@@ -185,7 +185,9 @@
 
 ;; 6.4 Reading and Writing
 
-;; 10MB is enough?
+;; Reading is not a problem to specify big buffer size server
+;; can send back its maximum if the specified size is more than
+;; server maximum size. so we use 1MB
 (define-constant +sftp-default-buffer-size+ 1048576) ;; (* 1024 1024)
 (define (sftp-read conn handle/filename receiver
 		   :key (buffer-size +sftp-default-buffer-size+)
@@ -234,10 +236,17 @@
     (unless (eof-object? data)
       (put-bytevector out data))))
 
+;; Writing size on the other hand, we can't control and there is
+;; no way to know how much server can actually handle. So we use
+;; a bit less than the reading buffer size. To make it safer, we
+;; should use 32768 (3KB) buffer which is specified on RFC as a
+;; SFTP packet's minimum size. As far as I tested (for now only
+;; 2 server implementations though), none of server couldn't handle
+;; 100KB packet. so for performance perspective we use this as the
+;; default size.
 ;; FIXME We should not use explicit gc calling however
 ;; on some environment (only tested on Cygwin), implicit
 ;; gc would be too late for huge file. current buffer size
-;; 10MB should be good enough.
 (define (sftp-write! conn handle inport 
 		     :key (buffer-size (* 1024 128))
 			  (offset 0))

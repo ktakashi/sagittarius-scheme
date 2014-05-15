@@ -33,6 +33,7 @@
     (export make-client-ssh-transport
 	    ;; parameter
 	    *ssh-version-string*
+	    *ssh-strict-version-exchange*
 	    ssh-disconnect
 	    ssh-data-ready?
 
@@ -78,6 +79,16 @@
     (string-append "SSH-2.0-Sagittarius_" (sagittarius-version)))
   (define *ssh-version-string* (make-parameter +default-version-string+))
 
+  ;; RFC 4253 says software version MUST consist of printable
+  ;; US-ASCII character, with the exception of whitespace characters
+  ;; and the minus sign (-). (from 4.2. Protocol Version Exchange)
+  ;; *HOWEVER* some of the SSH server implementation send the
+  ;; software version string *WITH* space and *EXPECT* to be used
+  ;; for mac calculation. In that case, I think we can ignore
+  ;; the comment part since there is no way to determine if it's
+  ;; the starting of comment or a part of software version string.
+  (define *ssh-strict-version-exchange* (make-parameter #t))
+
   ;; utility
   (define (read-ascii-line in)
     (call-with-string-output-port
@@ -110,7 +121,9 @@
 		 (error 'version-exchange "no version string"))
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
-		   (set! (~ transport 'target-version) (m 1))
+		   (if (*ssh-strict-version-exchange*)
+		       (set! (~ transport 'target-version) (m 1))
+		       (set! (~ transport 'target-version) vs))
 		   ;; send
 		   (write-line in/out (*ssh-version-string*))))
 		(else (loop)))))))
