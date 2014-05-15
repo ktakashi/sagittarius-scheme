@@ -37,6 +37,7 @@
 	    
 	    ;; operations
 	    sftp-open
+	    sftp-close
 	    sftp-read
 	    sftp-write!
 	    sftp-remove!
