@@ -215,14 +215,23 @@
   (define-method prng-state ((prng <mersenne-twister>)
 			     (state <bytevector>))
     ;; assume state is proper state
-    (unless (= (*8 (+ NN 1)) (bytevector-length state))
-      (assertion-violation 
-       'prng-state
-       (format 
-	"64 bit aligned bytevector of length ~a is required, but got length %d"
-	(*8 (+ NN 1)) (bytevector-length state))))
-    (slot-set! prng 'state state)
-    (slot-set! prng 'mti (mt-ref state NN)))
+    (if (= (*8 (+ NN 1)) (bytevector-length state))
+	(slot-set! prng 'state state)
+	;; we multiply the state until it'll be (* (+ NN 1) 8)
+	(let* ((size (bytevector-length state))
+	       (count (div (*8 (+ NN 1)) size))
+	       (rest  (mod (*8 (+ NN 1)) size)))
+	  (when (zero? count)
+	    (assertion-violation 'prng-state "state must not be empty"))
+	  (slot-set! prng 'state 
+		     (call-with-bytevector-output-port
+		      (lambda (out)
+			(do ((i 0 (+ i 1)))
+			    ((= i count))
+			  (put-bytevector out state))
+			(unless (zero? rest)
+			  (put-bytevector out state 0 rest)))))))
+    (slot-set! prng 'mti (mt-ref (slot-ref prng 'state) NN)))
 
   ;; register
   (define-class <mt> () ())
