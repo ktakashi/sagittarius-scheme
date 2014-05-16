@@ -109,7 +109,7 @@
     ;; to avoid useless calculation, we check if given source supports
     ;; prng-state
     (if (prng-state s)
-	(prng-state 
+	(random-seed-set! 
 	 s (u64-list->bytevector (interleave-i i j '(#xFFFFFFFFFFFFFFFF))))
 	;; well, i don't know if this is correct or not...
 	#f))
