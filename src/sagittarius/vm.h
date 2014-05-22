@@ -409,8 +409,8 @@ SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
 SG_EXTERN void     Sg_VMDumpCode(SgCodeBuilder *cb);
 
-SG_EXTERN SgObject Sg_AddLoadPath(SgString *path);
-SG_EXTERN SgObject Sg_AddDynamicLoadPath(SgString *path);
+SG_EXTERN SgObject Sg_AddLoadPath(SgString *path, int appendP);
+SG_EXTERN SgObject Sg_AddDynamicLoadPath(SgString *path, int appendP);
 
 /* eval */
 SG_EXTERN SgObject Sg_Eval(SgObject sexp, SgObject env);

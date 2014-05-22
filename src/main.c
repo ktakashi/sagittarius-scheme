@@ -323,7 +323,9 @@ int main(int argc, char **argv)
 
   static struct option long_options[] = {
     {t("loadpath"), optional_argument, 0, 'L'},
+    {t("append-loadpath"), optional_argument, 0, 'A'},
     {t("dynloadpath"), optional_argument, 0, 'D'},
+    {t("append-dynloadpath"), optional_argument, 0, 'Y'},
     {t("loadsuffix"), optional_argument, 0, 'S'},
     {t("flag"), optional_argument, 0, 'f'},
     {t("help"), 0, 0, 'h'},
@@ -348,7 +350,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:D:S:f:I:hE:vicdp:P:snt"), 
+  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:f:I:hE:vicdp:P:snt"), 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -396,27 +398,29 @@ int main(int argc, char **argv)
       SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
       break;
 #endif
-    case 'L': {
+    case 'L': case 'A': {
       SgObject exp = make_scheme_string(optarg);
-      if (Sg_DirectoryP(exp)) Sg_AddLoadPath(exp);
+      int appendP = (opt == 'A');
+      if (Sg_DirectoryP(exp)) Sg_AddLoadPath(exp, appendP);
       else {
 	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
 	SG_FOR_EACH(paths, paths) {
 	  if (Sg_DirectoryP(SG_CAR(paths))) {
-	    Sg_AddLoadPath(SG_CAR(paths));
+	    Sg_AddLoadPath(SG_CAR(paths), appendP);
 	  }
 	}
       }
       break;
     }
-    case 'D': {
+    case 'D': case 'Y': {
       SgObject exp = make_scheme_string(optarg);
-      if (Sg_DirectoryP(exp)) Sg_AddDynamicLoadPath(exp);
+      int appendP = (opt == 'Y');
+      if (Sg_DirectoryP(exp)) Sg_AddDynamicLoadPath(exp, appendP);
       else {
 	SgObject paths = Sg_Glob(SG_STRING(exp), 0);
 	SG_FOR_EACH(paths, paths) {
 	  if (Sg_DirectoryP(SG_CAR(paths))) {
-	    Sg_AddDynamicLoadPath(SG_CAR(paths));
+	    Sg_AddDynamicLoadPath(SG_CAR(paths), appendP);
 	  }
 	}
       }

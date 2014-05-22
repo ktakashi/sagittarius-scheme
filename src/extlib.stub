@@ -184,7 +184,9 @@
   (define-c-proc undefined () :constant (result SG_UNDEF))
   (define-c-proc undefined? (o) ::<boolean> :constant SG_UNDEFP)
 
-  (define-c-proc add-load-path (path::<string>) Sg_AddLoadPath)
+  (define-c-proc add-load-path 
+    (path::<string> :key (append::<boolean> #f))
+    (result (Sg_AddLoadPath path append)))
   ;; very dangerous operation...
   (define-c-proc load-path (:optional paths)
     (if (SG_UNBOUNDP paths)
@@ -219,7 +221,9 @@
 	  (set! (-> (Sg_VM) parameters) other)
 	  (result SG_UNDEF))))
 
-  (define-c-proc add-dynamic-load-path (path::<string>) Sg_AddDynamicLoadPath)
+  (define-c-proc add-dynamic-load-path
+    (path::<string> :key (append::<boolean> #f))
+    (result (Sg_AddDynamicLoadPath path append)))
 
   (define-c-proc load-dynamic-library (name::<string> :optional init)
     (result (Sg_DynLoad name init 0)))
