@@ -1557,21 +1557,32 @@ static SgString* replace_file_separator(SgString *path)
   return SG_STRING(Sg_GetStringFromStringPort(ret));
 }
 
-SgObject Sg_AddLoadPath(SgString *path)
+SgObject Sg_AddLoadPath(SgString *path, int appendP)
 {
   SgVM *vm = Sg_VM();
   if (SG_STRING_SIZE(path) != 0) {
-    vm->loadPath = Sg_Cons(replace_file_separator(path), vm->loadPath);
+    path = replace_file_separator(path);
+    if (appendP && !SG_NULLP(vm->loadPath)) {
+      SgObject last = Sg_LastPair(vm->loadPath);
+      SG_SET_CDR(last, SG_LIST1(path));
+    } else {
+      vm->loadPath = Sg_Cons(path, vm->loadPath);
+    }
   }
   return vm->loadPath;
 }
 
-SgObject Sg_AddDynamicLoadPath(SgString *path)
+SgObject Sg_AddDynamicLoadPath(SgString *path, int appendP)
 {
   SgVM *vm = Sg_VM();
   if (SG_STRING_SIZE(path) != 0) {
-    vm->dynamicLoadPath = Sg_Cons(replace_file_separator(path),
-				  vm->dynamicLoadPath);
+    path = replace_file_separator(path);
+    if (appendP && !SG_NULLP(vm->dynamicLoadPath)) {
+      SgObject last = Sg_LastPair(vm->dynamicLoadPath);
+      SG_SET_CDR(last, SG_LIST1(path));
+    } else {
+      vm->dynamicLoadPath = Sg_Cons(path, vm->dynamicLoadPath);
+    }
   }
   return vm->dynamicLoadPath;
 }
