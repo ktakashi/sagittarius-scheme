@@ -882,14 +882,19 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
 }
 
 static SgInternalMutex suffix_mutex;
-SgObject Sg_AddLoadSuffix(SgString *suffix)
+SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP)
 {
   /* check if this looks like a suffix */
   if (SG_STRING_VALUE_AT(suffix, 0) != '.') {
     return SG_FALSE;
   }
   Sg_LockMutex(&suffix_mutex);
-  extensions = Sg_AddConstantLiteral(Sg_Cons(suffix, extensions));
+  if (appendP && !SG_NULLP(extensions)) {
+    extensions = Sg_AddConstantLiteral(Sg_Append2X(extensions,
+						   SG_LIST1(suffix)));
+  } else {
+    extensions = Sg_AddConstantLiteral(Sg_Cons(suffix, extensions));
+  }
   Sg_UnlockMutex(&suffix_mutex);
   return extensions;
 }

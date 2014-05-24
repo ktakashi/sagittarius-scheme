@@ -233,7 +233,8 @@ static void show_usage()
 	  "  -Y<path>,--append-dynloadpath=<path>  Adds <path> to the last of the dynamic\n"
 	  "                                        load path list\n"
 	  "  -S<suffix>,--loadsuffix=<suffix>  Adds <suffix> to the head of the suffix list\n"
-	  "                                 path list.\n"
+	  "  -F<suffix>,--append-loadsuffix=<suffix>  Adds <suffix> to the last of the suffix\n"
+	  "                                           list"
 	  "  -c,--clean-cache               Cleans compiled cache.\n"
 	  "  -d,--disable-cache             Disable compiled cache.\n"
 	  "  -E,--debug-exec=<flags>        Sets <flags> for VM debugging.\n"
@@ -332,6 +333,7 @@ int main(int argc, char **argv)
     {t("dynloadpath"), optional_argument, 0, 'D'},
     {t("append-dynloadpath"), optional_argument, 0, 'Y'},
     {t("loadsuffix"), optional_argument, 0, 'S'},
+    {t("append-loadsuffix"), optional_argument, 0, 'F'},
     {t("flag"), optional_argument, 0, 'f'},
     {t("help"), 0, 0, 'h'},
     {t("interactive"), 0, 0, 'i'},
@@ -355,7 +357,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:f:I:hE:vicdp:P:snt"), 
+  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:snt"), 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -431,9 +433,10 @@ int main(int argc, char **argv)
       }
       break;
     }
-    case 'S': {
+    case 'S': case 'F': {
       SgObject exp = make_scheme_string(optarg);
-      SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp));
+      int appendP = (opt == 'F');
+      SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp), appendP);
       if (SG_FALSEP(suffixs)) {
 	Sg_Warn(UC("given suffix '%A' was not added."), exp);
       }

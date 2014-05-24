@@ -91,7 +91,7 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 				  SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
-SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix);
+SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP);
 
 #define Sg_ImportLibrary(t, f)  Sg_ImportLibraryFullSpec((t), (f), SG_NIL)
 
