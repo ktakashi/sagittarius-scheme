@@ -178,10 +178,9 @@
 				      #xFFF7EEE000000000)))
 		(set! x (bitwise-xor x (bitwise-arithmetic-shift-right x 43)))
 		;; copy to result buffer
-		;; src can be less than 8 bytes, so we need to calculate
-		;; proper offset here.
-		(let* ((src (integer->bytevector x))
-		       (off (+ offset (- 8 (bytevector-length src)))))
+		;; ensure src has 8 bytes
+		(let* ((src (integer->bytevector x 8))
+		       (off offset))
 		  (if (>= (- len off) 8)
 		      (bytevector-copy! src 0 bv off (bytevector-length src))
 		      (bytevector-copy! src 0 bv off (- len off)))
