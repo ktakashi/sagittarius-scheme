@@ -206,7 +206,11 @@
 	(mt-set-seed o seed))))
 
   (define-method prng-state ((prng <mersenne-twister>))
-    (slot-ref prng 'state))
+    (let ((bv (make-bytevector (*8 (+ NN 1))))
+	  (state (slot-ref prng 'state)))
+      (bytevector-copy! state 0 bv 0 (bytevector-length state))
+      (bytevector-u64-native-set! bv (* 8 NN) (slot-ref prng 'mti))
+      bv))
 
   (define-method prng-state ((prng <mersenne-twister>) state)
     (assertion-violation 'prng-state "state must be bytevector"
@@ -220,7 +224,7 @@
        (format 
 	"64 bit aligned bytevector of length ~a is required, but got length ~d"
 	(*8 (+ NN 1)) (bytevector-length state))))
-    (slot-set! prng 'state state)
+    (slot-set! prng 'state (bytevector-copy state 0 (*8 NN)))
     (slot-set! prng 'mti (mt-ref state NN)))
 
   ;; register
