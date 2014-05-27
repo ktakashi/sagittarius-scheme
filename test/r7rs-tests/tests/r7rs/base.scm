@@ -918,6 +918,20 @@
 	      (read-bytevector! bv (open-input-bytevector #u8(6 7 8 9 10)))
 	      bv))
 
+      ;; \n, \r and \r\n should be handled as an end of line
+      (let* ((p (open-input-string "okokok\r\nblerg\r\n"))
+	     (line0 (read-line p))
+	     (line1 (read-line p)))
+	(test "okokok" line0)
+	(test "blerg" line1))
+      (let* ((p (open-input-string "linefeed\ncarriage\rnewline\r\n"))
+	     (line0 (read-line p))
+	     (line1 (read-line p))
+	     (line2 (read-line p)))
+	(test "linefeed" line0)
+	(test "carriage" line1)
+	(test "newline"  line2))
+
       )
     )
 )
