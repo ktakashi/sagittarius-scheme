@@ -218,7 +218,7 @@
       (assertion-violation 
        'prng-state
        (format 
-	"64 bit aligned bytevector of length ~a is required, but got length %d"
+	"64 bit aligned bytevector of length ~a is required, but got length ~d"
 	(*8 (+ NN 1)) (bytevector-length state))))
     (slot-set! prng 'state state)
     (slot-set! prng 'mti (mt-ref state NN)))
