@@ -34,8 +34,10 @@
 	    treemap-set!
 	    treemap-delete!
 	    treemap-update!
+	    treemap-clear!
 	    treemap-copy
 	    treemap-contains?
+	    treemap-size
 	    treemap-entries treemap-entries-list
 	    treemap-keys    treemap-keys-list
 	    treemap-values  treemap-values-list

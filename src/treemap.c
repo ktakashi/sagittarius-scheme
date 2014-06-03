@@ -168,6 +168,13 @@ SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key)
   }
 }
 
+void Sg_TreeMapClear(SgTreeMap *tm)
+{
+  /* very simple :) */
+  tm->root = (SG_SCHEME_TREEMAP_P(tm)) ? (intptr_t)SG_FALSE : (intptr_t)NULL;
+  tm->entryCount = 0;
+}
+
 /* iterator */
 void Sg_TreeIterInit(SgTreeIter *iter,
 		     SgTreeMap *tm, SgTreeEntry *start)

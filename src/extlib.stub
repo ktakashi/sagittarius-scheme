@@ -1088,6 +1088,8 @@
     (Sg_TreeMapSet tm key value 0))
   (define-c-proc treemap-delete! (tm::<tree-map> key) ::<void>
     Sg_TreeMapDelete)
+  (define-c-proc treemap-clear! (tm::<tree-map>) ::<void>
+    Sg_TreeMapClear)
   (define-c-proc treemap-copy (tm::<tree-map>) Sg_TreeMapCopy)
   (define-c-proc treemap-contains? (tm::<tree-map> key) ::<boolean>
     ;; TODO this may expose unbound variable to scheme world
@@ -1100,6 +1102,7 @@
   (define-c-proc treemap-values-list (tm::<tree-map>) Sg_TreeMapValues)
   (define-c-proc treemap-entries-list (tm::<tree-map>) Sg_TreeMapEntries)
 
-  ;; TODO getter of keys and values and add all
+  (define-c-proc treemap-size (tm::<tree-map>) ::<fixnum>
+    (result (-> tm entryCount)))
 
 )

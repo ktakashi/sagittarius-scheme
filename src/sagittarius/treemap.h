@@ -140,6 +140,7 @@ SG_EXTERN SgObject Sg_TreeMapRef(SgTreeMap *tm, SgObject key,
 SG_EXTERN SgObject Sg_TreeMapSet(SgTreeMap *tm, SgObject key, SgObject value,
 				 int flags);
 SG_EXTERN SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key);
+SG_EXTERN void     Sg_TreeMapClear(SgTreeMap *tm);
 
 /* generic constructors */
 SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,

@@ -15,7 +15,9 @@
     (syntax-case generic ()
       ((?setter name)
        ;; not sure why the keyword literal doesn't work, could be a bug...
-       (free-identifier=? #'setter #'?setter)
+       ;;(free-identifier=? #'setter #'?setter)
+       ;; FIXME even above didn't work in some case... 
+       (eq? (id-name #'?setter) 'setter)
        #`(#,(%make-setter-name #'name) name))
       (n #'(n #f))))
 )
