@@ -3299,8 +3299,9 @@
     (Sg_HashTableDelete ht key))
 
   (define-c-proc hashtable-contains? (ht::<hashtable> key) ::<boolean>
-    (let ((r (Sg_HashTableRef ht key SG_UNBOUND)))
-      (result (not (SG_UNBOUNDP r)))))
+    (let ((r (Sg_HashTableRef ht key NULL)))
+      ;; bit awkward...
+      (result (not (not r)))))
 
   (define-c-proc hashtable-copy
     (ht::<hashtable> :optional (mutableP::<boolean> #f)) 

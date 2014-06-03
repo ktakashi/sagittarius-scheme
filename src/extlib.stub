@@ -1089,6 +1089,12 @@
   (define-c-proc treemap-delete! (tm::<tree-map> key) ::<void>
     Sg_TreeMapDelete)
   (define-c-proc treemap-copy (tm::<tree-map>) Sg_TreeMapCopy)
+  (define-c-proc treemap-contains? (tm::<tree-map> key) ::<boolean>
+    ;; TODO this may expose unbound variable to scheme world
+    ;; so need something better...
+    (let* ((mark (?: (SG_SCHEME_TREEMAP_P tm) SG_UNBOUND NULL))
+	   (r (Sg_TreeMapRef tm key mark)))
+      (result (not (== r mark)))))
   ;; TODO getter of keys and values and add all
 
 )
