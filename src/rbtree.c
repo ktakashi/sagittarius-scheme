@@ -60,7 +60,7 @@ static node_t* new_node(intptr_t key, node_t *parent)
 }
 
 #define NODE(n) 	((node_t*)n)
-#if 1
+#if 0
 #define SET_COLOR(n, c) if (n) {NODE(n)->color = (c);}
 #define PARENT_OF(p)    ((p) ? NODE(p)->parent : NULL)
 #define LEFT_OF(p)      ((p) ? NODE(p)->left : NULL)
@@ -118,7 +118,7 @@ static void rotate_left(SgTreeMap *tm, node_t *p)
   if (p != NULL) {
     node_t *r = p->right;
     p->right = r->left;
-    if (r->left != NULL) p->left->parent = p;
+    if (r->left != NULL) r->left->parent = p;
     r->parent = p->parent;
     if (p->parent == NULL) tm->root = (intptr_t)r;
     else if (p->parent->left == p) p->parent->left = r;
@@ -133,7 +133,7 @@ static void rotate_right(SgTreeMap *tm, node_t *p)
   if (p != NULL) {
     node_t *l = p->left;
     p->left = l->right;
-    if (l->right != NULL) p->right->parent = p;
+    if (l->right != NULL) l->right->parent = p;
     l->parent = p->parent;
     if (p->parent == NULL) tm->root = (intptr_t)l;
     else if (p->parent->right == p) p->parent->right = l;
@@ -145,7 +145,7 @@ static void rotate_right(SgTreeMap *tm, node_t *p)
 
 static void fix_after_insertion(SgTreeMap *tm, node_t *x)
 {
-  SET_COLOR(x, RED);
+  x->color = RED;
   while (x != NULL && NODE(tm->root) != x && x->parent->color == RED) {
     if (PARENT_OF(x) == LEFT_OF(PARENT_OF(PARENT_OF(x)))) {
       node_t *y = RIGHT_OF(PARENT_OF(PARENT_OF(x)));
@@ -181,7 +181,7 @@ static void fix_after_insertion(SgTreeMap *tm, node_t *x)
       }
     }
   }
-  SET_COLOR(tm->root, BLACK);
+  NODE(tm->root)->color = BLACK;
 }
 
 static node_t* get_entry(SgTreeMap *tm, intptr_t key)
@@ -308,6 +308,7 @@ static SgTreeEntry* rb_set(SgTreeMap *tm, SgObject key, SgObject value, int flag
       } else {
 	parent->right = e;
       }
+      /* fprintf(stderr, "cmp %d, key: %ld\n", cmp, SG_INT_VALUE(key)); */
       fix_after_insertion(tm, e);
       tm->entryCount++;
       return (SgTreeEntry*)e;
