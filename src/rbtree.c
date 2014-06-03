@@ -60,11 +60,40 @@ static node_t* new_node(intptr_t key, node_t *parent)
 }
 
 #define NODE(n) 	((node_t*)n)
+#if 1
 #define SET_COLOR(n, c) if (n) {NODE(n)->color = (c);}
 #define PARENT_OF(p)    ((p) ? NODE(p)->parent : NULL)
 #define LEFT_OF(p)      ((p) ? NODE(p)->left : NULL)
 #define RIGHT_OF(p)     ((p) ? NODE(p)->right : NULL)
 #define COLOR_OF(p)     ((p) ? NODE(p)->color : BLACK)
+#else
+static void set_color(node_t *n, char color)
+{
+  if (n) n->color = color;
+}
+static node_t* parent_of(node_t *p) 
+{
+  return (p) ? NODE(p)->parent : NULL;
+}
+static node_t* left_of(node_t *p) 
+{
+  return (p) ? NODE(p)->left : NULL;
+}
+static node_t* right_of(node_t *p) 
+{
+  return (p) ? NODE(p)->right : NULL;
+}
+static char color_of(node_t *p) 
+{
+  return (p) ? NODE(p)->color : BLACK;
+}
+
+#define SET_COLOR(n, c) set_color(NODE(n), c)
+#define PARENT_OF(p)    parent_of(NODE(p))
+#define LEFT_OF(p)      left_of(NODE(p))
+#define RIGHT_OF(p)     right_of(NODE(p))
+#define COLOR_OF(p)     color_of(NODE(p))
+#endif
 
 static node_t* successor(node_t *t)
 {
@@ -103,11 +132,11 @@ static void rotate_right(SgTreeMap *tm, node_t *p)
 {
   if (p != NULL) {
     node_t *l = p->left;
-    p->right = l->right;
+    p->left = l->right;
     if (l->right != NULL) p->right->parent = p;
     l->parent = p->parent;
     if (p->parent == NULL) tm->root = (intptr_t)l;
-    else if (p->parent->right == p) p->parent->left = l;
+    else if (p->parent->right == p) p->parent->right = l;
     else p->parent->left = l;
     l->right = p;
     p->parent = l;
