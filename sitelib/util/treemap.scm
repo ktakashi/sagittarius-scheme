@@ -33,17 +33,24 @@
 	    treemap-ref
 	    treemap-set!
 	    treemap-delete!
+	    treemap-update!
 	    treemap-copy
 	    treemap-contains?
 	    treemap-entries treemap-entries-list
 	    treemap-keys    treemap-keys-list
 	    treemap-values  treemap-values-list
-	    ;; TODO for-each, map etc.
+
+	    treemap-for-each treemap-map
+	    treemap->alist
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object))
+
+  ;; TODO don't traverse twice
+  (define (treemap-update! tm key proc default)
+    (treemap-set! tm key (proc (treemap-ref tm key default))))
 
   ;; sort of consistency for hashtable
   (define (treemap-entries tm) 
@@ -52,6 +59,12 @@
   (define (treemap-keys tm) (list->vector (treemap-keys-list tm)))
   (define (treemap-values tm) (list->vector (treemap-values-list tm)))
   
+  (define (treemap-for-each proc tm)
+    (for-each proc (treemap-keys-list tm) (treemap-values-list tm)))
+  (define (treemap-map proc tm)
+    (map proc (treemap-keys-list tm) (treemap-values-list tm)))
+  (define (treemap->alist tm) (treemap-map cons tm))
+
   ;; for generic ref
   (define-method ref ((tm <tree-map>) key)
     (treemap-ref tm key #f))

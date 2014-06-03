@@ -26,6 +26,9 @@
   (treemap-delete! tm "b")
   (test-assert "contains" (not (treemap-contains? tm "b")))
   (test-equal "deleted" #f (treemap-ref tm "b"))
+
+  (test-equal "update" 4 (begin (treemap-update! tm "c" (lambda (v) (+ v 1)) #f)
+				(treemap-ref tm "c")))
   )
 
 (test-end)
