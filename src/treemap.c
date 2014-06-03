@@ -63,7 +63,8 @@ SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 				SgTreeCopyProc *copy,
 				SgTreeIterInitProc *iter,
 				SgTreeRefProc *higher,
-				SgTreeRefProc *lower)
+				SgTreeRefProc *lower,
+				void *data)
 {
   SgTreeMap *tc = make_treemap(FALSE);
   ASSERT(cmp && ref && set && remove && copy && iter);
@@ -75,6 +76,7 @@ SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
   SG_TREEMAP_C_PROC(tc, iter) = iter;
   SG_TREEMAP_C_PROC(tc, higher) = higher;
   SG_TREEMAP_C_PROC(tc, lower) = lower;
+  tc->data = data;
   tc->root = (intptr_t)NULL;
   return SG_OBJ(tc);
 }

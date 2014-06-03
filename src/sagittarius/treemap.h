@@ -79,6 +79,7 @@ struct SgTreeMapRec
       SgObject lower;
     } scm;
   } procs;
+  void *data;
 };
 
 SG_CLASS_DECL(Sg_TreeMapClass);
@@ -148,7 +149,8 @@ SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 					  SgTreeCopyProc *copy,
 					  SgTreeIterInitProc *iter,
 					  SgTreeRefProc *higher,
-					  SgTreeRefProc *lower);
+					  SgTreeRefProc *lower,
+					  void *data);
 SG_EXTERN SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 					       SgObject	ref,
 					       SgObject	set,
@@ -167,6 +169,7 @@ SG_EXTERN SgTreeEntry* Sg_TreeMapLowerEntry(SgTreeMap *tm, SgObject key);
 
 /* Supported implementation tree constructors */
 SG_EXTERN SgObject Sg_MakeRBTreeMap(SgTreeCompareProc *cmp);
+SG_EXTERN SgObject Sg_MakeSchemeRBTreeMap(SgObject cmp);
 
 /* common procedures(only C) */
 SG_EXTERN int      Sg_TreeMapEq(SgTreeMap *a, SgTreeMap *b);

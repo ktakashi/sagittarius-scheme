@@ -1079,4 +1079,16 @@
 
   ;; compare
   (define-c-proc compare (x y) ::<fixnum> Sg_Compare)
+
+  ;; tree-map, only expose default implementation for now (rb-tree)
+  (define-c-proc make-rb-treemap (cmp::<procedure>) Sg_MakeSchemeRBTreeMap)
+  (define-c-proc treemap-ref (tm::<tree-map> key :optional (fallback #f))
+    Sg_TreeMapRef)
+  (define-c-proc treemap-set! (tm::<tree-map> key value) ::<void>
+    (Sg_TreeMapSet tm key value 0))
+  (define-c-proc treemap-delete! (tm::<tree-map> key) ::<void>
+    Sg_TreeMapDelete)
+  (define-c-proc treemap-copy (tm::<tree-map>) Sg_TreeMapCopy)
+  ;; TODO getter of keys and values and add all
+
 )

@@ -30,6 +30,7 @@
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/treemap.h"
 #include "sagittarius/error.h"
+#include "sagittarius/vm.h"
 
 /* 
    Based on Java's implementation
@@ -410,7 +411,8 @@ static SgObject rb_copy(const SgTreeMap *tm)
 					  rb_copy,
 					  rb_iter,
 					  rb_higher,
-					  rb_lower);
+					  rb_lower,
+					  tm->data);
   if (tm->root) {
     dst->root = (intptr_t)copy_tree(NULL, NODE(tm->root));
   } else {
@@ -462,6 +464,27 @@ SgObject Sg_MakeRBTreeMap(SgTreeCompareProc *cmp)
 				rb_copy,
 				rb_iter,
 				rb_higher,
-				rb_lower);
+				rb_lower,
+				NULL);
 }
 
+static int wrapped_compare(SgTreeMap *tm, intptr_t a, intptr_t b)
+{
+  SgObject r = Sg_Apply2(SG_OBJ(tm->data), SG_OBJ(a), SG_OBJ(b));
+  if (SG_INTP(r)) return SG_INT_VALUE(r);
+  Sg_Error(UC("compare returned non exact integer value %S"), r);
+  return 0; 			/* dummy */
+}
+
+SgObject Sg_MakeSchemeRBTreeMap(SgObject cmp)
+{
+  return Sg_MakeGenericCTreeMap(wrapped_compare,
+				rb_ref,
+				rb_set,
+				rb_delete,
+				rb_copy,
+				rb_iter,
+				rb_higher,
+				rb_lower,
+				cmp);
+}
