@@ -162,6 +162,9 @@ SG_EXTERN void         Sg_TreeIterInit(SgTreeIter *iter,
 				       SgTreeMap *tm, SgTreeEntry *start);
 SG_EXTERN SgTreeEntry* Sg_TreeIterNext(SgTreeIter *iter);
 SG_EXTERN int          Sg_TreeIterHasNext(SgTreeIter *iter);
+SG_EXTERN SgObject     Sg_TreeMapEntries(SgTreeMap *tm);
+SG_EXTERN SgObject     Sg_TreeMapKeys(SgTreeMap *tm);
+SG_EXTERN SgObject     Sg_TreeMapValues(SgTreeMap *tm);
 
 /* NavigationMap APIs are only for C */
 SG_EXTERN SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key);

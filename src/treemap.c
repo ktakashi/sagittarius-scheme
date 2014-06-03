@@ -31,8 +31,10 @@
 #include "sagittarius/treemap.h"
 #include "sagittarius/collection.h"
 #include "sagittarius/error.h"
+#include "sagittarius/pair.h"
 #include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/values.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
 
@@ -181,6 +183,39 @@ SgTreeEntry* Sg_TreeIterNext(SgTreeIter *iter)
 int Sg_TreeIterHasNext(SgTreeIter *iter)
 {
   return !iter->end;
+}
+
+static void keys_values(SgTreeMap *tm, SgObject *keys, SgObject *values)
+{
+  SgTreeIter itr;
+  SgTreeEntry *e;
+  SgObject kt = SG_NIL, vt = SG_NIL;
+  Sg_TreeIterInit(&itr, tm, NULL);
+  while ((e = Sg_TreeIterNext(&itr)) != NULL) {
+    if (keys) SG_APPEND1(*keys, kt, SG_OBJ(e->key));
+    if (values) SG_APPEND1(*values, vt, SG_OBJ(e->value));
+  }
+}
+
+SgObject Sg_TreeMapEntries(SgTreeMap *tm)
+{
+  SgObject keys = SG_NIL, values = SG_NIL;
+  keys_values(tm, &keys, &values);
+  return Sg_Values2(keys, values);
+}
+
+SgObject Sg_TreeMapKeys(SgTreeMap *tm)
+{
+  SgObject keys = SG_NIL;
+  keys_values(tm, &keys, NULL);
+  return keys;
+}
+
+SgObject Sg_TreeMapValues(SgTreeMap *tm)
+{
+  SgObject values = SG_NIL;
+  keys_values(tm, NULL, &values);
+  return values;
 }
 
 SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key)

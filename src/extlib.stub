@@ -1095,6 +1095,11 @@
     (let* ((mark (?: (SG_SCHEME_TREEMAP_P tm) SG_UNBOUND NULL))
 	   (r (Sg_TreeMapRef tm key mark)))
       (result (not (== r mark)))))
+
+  (define-c-proc treemap-keys-list (tm::<tree-map>) Sg_TreeMapKeys)
+  (define-c-proc treemap-values-list (tm::<tree-map>) Sg_TreeMapValues)
+  (define-c-proc treemap-entries-list (tm::<tree-map>) Sg_TreeMapEntries)
+
   ;; TODO getter of keys and values and add all
 
 )

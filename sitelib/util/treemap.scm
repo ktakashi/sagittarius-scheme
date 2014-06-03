@@ -1,8 +1,8 @@
 ;;; -*- mode: scheme; coding: utf-8 -*-
 ;;;
-;;; hashtables.scm - hashtable utilities
+;;; treemap.scm - treemap utilities
 ;;;  
-;;;   Copyright (c) 2010-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,32 +28,36 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (util hashtables)
-    (export hashtable-for-each
-	    hashtable-map
-	    hashtable->alist
-	    alist->hashtable
-	    hashtable-keys-list
-	    hashtable-values-list)
+(library (util treemap)
+    (export make-rb-treemap
+	    treemap-ref
+	    treemap-set!
+	    treemap-delete!
+	    treemap-copy
+	    treemap-contains?
+	    treemap-entries treemap-entries-list
+	    treemap-keys    treemap-keys-list
+	    treemap-values  treemap-values-list
+	    ;; TODO for-each, map etc.
+	    )
     (import (rnrs)
-	    (sagittarius control)
-	    (only (core base) hashtable-for-each hashtable-map
-		  hashtable->alist)
-	    (only (sagittarius) hashtable-keys-list hashtable-values-list))
+	    (clos user)
+	    (sagittarius)
+	    (sagittarius object))
 
-  (define (create-hashtable compare hasher)
-    (cond ((eq? compare eq?)
-	   (make-eq-hashtable))
-	  ((eq? compare eqv?)
-	   (make-eqv-hashtable))
-	  (else
-	   (make-hashtable hasher compare))))
+  ;; sort of consistency for hashtable
+  (define (treemap-entries tm) 
+    (let-values (((ks vs) (treemap-entries-list tm)))
+      (values (list->vector ks) (list->vector vs))))
+  (define (treemap-keys tm) (list->vector (treemap-keys-list tm)))
+  (define (treemap-values tm) (list->vector (treemap-values-list tm)))
+  
+  ;; for generic ref
+  (define-method ref ((tm <tree-map>) key)
+    (treemap-ref tm key #f))
+  (define-method ref ((tm <tree-map>) key fallback)
+    (treemap-ref tm key fallback))
+  (define-method (setter ref) ((tm <tree-map>) key value)
+    (treemap-set! tm key value))
 
-  (define (alist->hashtable alist
-			    :key (compare eq?)
-			    (hasher symbol-hash))
-    (let ((ht (create-hashtable compare hasher)))
-      (for-each (lambda (k/v)
-		  (hashtable-set! ht (car k/v) (cdr k/v))) alist)
-      ht))
 )
