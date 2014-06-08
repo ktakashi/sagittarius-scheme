@@ -43,14 +43,16 @@
 	    treemap-values  treemap-values-list
 
 	    treemap-for-each treemap-map
-	    treemap->alist
+	    treemap->alist alist->treemap
 	    )
     (import (rnrs)
+	    (only (core base) wrong-type-argument-message)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object))
 
   ;; TODO don't traverse twice
+  #;
   (define (treemap-update! tm key proc default)
     (treemap-set! tm key (proc (treemap-ref tm key default))))
 
@@ -61,11 +63,32 @@
   (define (treemap-keys tm) (list->vector (treemap-keys-list tm)))
   (define (treemap-values tm) (list->vector (treemap-values-list tm)))
   
+  (define (treemap-fold kons tm knil)
+    (unless (procedure? kons)
+      (assertion-violation 'treemap-map
+			   (wrong-type-argument-message "procedure" proc 1)))
+    (unless (treemap? tm)
+      (assertion-violation 'treemap-map
+			   (wrong-type-argument-message "treemap" tm 2)))
+    (let ((itr (%treemap-iter tm))
+	  (eof (cons #t #t)))
+      (let loop ((r knil))
+	(let-values (((k v) (itr eof)))
+	  (if (eq? k eof)
+	      r
+	      (loop (kons k v r)))))))
+
   (define (treemap-for-each proc tm)
-    (for-each proc (treemap-keys-list tm) (treemap-values-list tm)))
+    (treemap-fold (lambda (k v r) (proc k v) r) tm (undefined)))
+
   (define (treemap-map proc tm)
-    (map proc (treemap-keys-list tm) (treemap-values-list tm)))
+    (reverse! (treemap-fold (lambda (k v r) (cons (proc k v) r)) tm '())))
+
   (define (treemap->alist tm) (treemap-map cons tm))
+  (define (alist->treemap comp alist)
+    (let ((tm (make-rb-treemap comp)))
+      (for-each (lambda (p) (treemap-set! tm (car p) (cdr p))) alist)
+      tm))
 
   ;; for generic ref
   (define-method ref ((tm <tree-map>) key)

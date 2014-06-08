@@ -62,7 +62,7 @@ typedef struct EntryRec
 /* hash value must be 32 bit */
 #define HASHMASK 0xffffffffUL
 
-typedef Entry* SearchProc(SgHashCore *core, intptr_t key, SgHashOp op);
+typedef Entry* SearchProc(SgHashCore *core, intptr_t key, SgDictOp op);
 
 static unsigned int round2up(unsigned int val);
 static void hash_iter_init(SgHashCore *core, SgHashIter *itr);
@@ -310,17 +310,17 @@ static Entry *delete_entry(SgHashCore *table,
 #define FOUND(table, op, e, p, index)			\
   do {							\
     switch (op) {					\
-    case SG_HASH_GET:;					\
-    case SG_HASH_CREATE:;				\
+    case SG_DICT_GET:;					\
+    case SG_DICT_CREATE:;				\
       return e;						\
-    case SG_HASH_DELETE:;				\
+    case SG_DICT_DELETE:;				\
       return delete_entry(table, e, p, index);		\
     }							\
   } while(0)
 
 #define NOTFOUND(table, op, key, hashval, index)	\
   do {							\
-    if (op == SG_HASH_CREATE) {				\
+    if (op == SG_DICT_CREATE) {				\
       return insert_entry(table, key, hashval, index);	\
     } else {						\
       return NULL;					\
@@ -363,7 +363,7 @@ static void hash_core_init(SgHashCore *table,
 /* eq? */
 static Entry *address_access(SgHashCore *table,
 			     intptr_t key,
-			     SgHashOp op)
+			     SgDictOp op)
 {
   uint32_t hashval, index;
   Entry *e, *p, **buckets = BUCKETS(table);
@@ -413,7 +413,7 @@ static int equal_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
 /* string */
 static Entry *string_access(SgHashCore *table,
 			    intptr_t k,
-			    SgHashOp op)
+			    SgDictOp op)
 {
   uint32_t hashval, index;
   int size;
@@ -452,7 +452,7 @@ static int string_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
 /* general access */
 static Entry* general_access(SgHashCore *table,
 			     intptr_t key,
-			     SgHashOp op)
+			     SgDictOp op)
 {
   uint32_t hashval, index;
   Entry *e, *p, **buckets;
@@ -562,7 +562,7 @@ int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
 }
 
 SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
-			       SgHashOp op)
+			       SgDictOp op)
 {
   SearchProc *p = (SearchProc*)table->access;
   return (SgHashEntry*)p(table, key, op);
@@ -855,7 +855,7 @@ SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback)
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_HASH_GET);
+				     (intptr_t)key, SG_DICT_GET);
   if (!e) return fallback;
   else return SG_HASH_ENTRY_VALUE(e);
 }
@@ -872,8 +872,8 @@ SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value,
 
   e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
 			(flags & SG_HASH_NO_CREATE)
-			? SG_HASH_GET
-			: SG_HASH_CREATE);
+			? SG_DICT_GET
+			: SG_DICT_CREATE);
   if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
@@ -896,7 +896,7 @@ SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key)
 
   e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
 			(intptr_t)key,
-			SG_HASH_DELETE);
+			SG_DICT_DELETE);
   if (e && e->value) return SG_HASH_ENTRY_VALUE(e);
   else return SG_UNBOUND;
 }

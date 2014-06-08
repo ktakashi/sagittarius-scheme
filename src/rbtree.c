@@ -202,9 +202,9 @@ static node_t* get_entry(SgTreeMap *tm, intptr_t key)
   return NULL;
 }
 
-static SgTreeEntry* rb_ref(SgTreeMap *tm, SgObject key)
+static SgTreeEntry* rb_ref(SgTreeMap *tm, intptr_t key)
 {
-  return (SgTreeEntry*)get_entry(tm, (intptr_t)key);
+  return (SgTreeEntry*)get_entry(tm, key);
 }
 
 static node_t* get_higher_entry(SgTreeMap *tm, intptr_t key)
@@ -231,9 +231,9 @@ static node_t* get_higher_entry(SgTreeMap *tm, intptr_t key)
   return NULL;
 }
 
-static SgTreeEntry* rb_higher(SgTreeMap *tm, SgObject key)
+static SgTreeEntry* rb_higher(SgTreeMap *tm, intptr_t key)
 {
-  return (SgTreeEntry*)get_higher_entry(tm, (intptr_t)key);
+  return (SgTreeEntry*)get_higher_entry(tm, key);
 }
 
 static node_t* get_lower_entry(SgTreeMap *tm, intptr_t key)
@@ -260,24 +260,20 @@ static node_t* get_lower_entry(SgTreeMap *tm, intptr_t key)
   return NULL;
 }
 
-static SgTreeEntry* rb_lower(SgTreeMap *tm, SgObject key)
+static SgTreeEntry* rb_lower(SgTreeMap *tm, intptr_t key)
 {
-  return (SgTreeEntry*)get_lower_entry(tm, (intptr_t)key);
+  return (SgTreeEntry*)get_lower_entry(tm, key);
 }
 
-static SgTreeEntry* rb_set(SgTreeMap *tm, SgObject key, SgObject value, int flags)
+/* only creates an entry and return it */
+static SgTreeEntry* rb_set(SgTreeMap *tm, intptr_t key)
 {
   node_t *t = (node_t*)tm->root;
   if (t == NULL) {
-    if (flags & SG_TREE_NO_CREATE) {
-      return SG_UNBOUND;
-    } else {
-      node_t *nn = new_node((intptr_t)key, NULL);
-      nn->value = (intptr_t)value;
-      tm->root = (intptr_t)nn;
-      tm->entryCount++;
-      return (SgTreeEntry*)nn;
-    }
+    node_t *nn = new_node(key, NULL);
+    tm->root = (intptr_t)nn;
+    tm->entryCount++;
+    return (SgTreeEntry*)nn;
   } else {
     int cmp;
     node_t *parent;
@@ -290,29 +286,19 @@ static SgTreeEntry* rb_set(SgTreeMap *tm, SgObject key, SgObject value, int flag
       } else if (cmp > 0) {
 	t = t->right;
       } else {
-	if (flags & SG_TREE_NO_OVERWRITE) {
-	  return (SgTreeEntry*)t;
-	} else {
-	  t->value = (intptr_t)value;
-	  return (SgTreeEntry*)t;
-	}
+	return (SgTreeEntry*)t;
       }
     } while (t != NULL);
-    if (flags & SG_TREE_NO_CREATE) {
-      return SG_UNBOUND;
+    node_t *e = new_node(key, parent);
+    if (cmp < 0) {
+      parent->left = e;
     } else {
-      node_t *e = new_node((intptr_t)key, parent);
-      e->value = (intptr_t)value;
-      if (cmp < 0) {
-	parent->left = e;
-      } else {
-	parent->right = e;
-      }
-      /* fprintf(stderr, "cmp %d, key: %ld\n", cmp, SG_INT_VALUE(key)); */
-      fix_after_insertion(tm, e);
-      tm->entryCount++;
-      return (SgTreeEntry*)e;
+      parent->right = e;
     }
+    /* fprintf(stderr, "cmp %d, key: %ld\n", cmp, SG_INT_VALUE(key)); */
+    fix_after_insertion(tm, e);
+    tm->entryCount++;
+    return (SgTreeEntry*)e;
   }
 }
 
@@ -408,14 +394,12 @@ static void delete_entry(SgTreeMap *tm, node_t *p)
   }
 }
 
-static SgObject rb_delete(SgTreeMap *tm, SgObject key)
+static SgTreeEntry* rb_delete(SgTreeMap *tm, intptr_t key)
 {
-  node_t *p = get_entry(tm, (intptr_t)key);
-  intptr_t old;
-  if (p == NULL) return SG_UNBOUND;
-  old = p->value;
+  node_t *p = get_entry(tm, key);
+  if (p == NULL) return NULL;
   delete_entry(tm, p);
-  return SG_OBJ(old);
+  return (SgTreeEntry *)p;
 }
 
 static node_t* copy_tree(node_t *parent, node_t *self)
@@ -432,12 +416,19 @@ static SgObject rb_copy(const SgTreeMap *tm);
 static SgTreeIter* rb_iter(SgTreeIter *iter, SgTreeMap *tm,
 			   SgTreeEntry *start);
 
+static SgTreeEntry* rb_search(SgTreeMap *tm, intptr_t key, SgDictOp op)
+{
+  switch (op) {
+  case SG_DICT_GET: return rb_ref(tm, key);
+  case SG_DICT_CREATE: return rb_set(tm, key);
+  case SG_DICT_DELETE: return rb_delete(tm, key);
+  }
+} 
+
 static SgObject rb_copy(const SgTreeMap *tm)
 {
   SgTreeMap *dst = Sg_MakeGenericCTreeMap(SG_TREEMAP_C_PROC(tm, cmp),
-					  rb_ref,
-					  rb_set,
-					  rb_delete,
+					  rb_search,
 					  rb_copy,
 					  rb_iter,
 					  rb_higher,
@@ -488,9 +479,7 @@ static SgTreeIter* rb_iter(SgTreeIter *iter, SgTreeMap *tm,
 SgObject Sg_MakeRBTreeMap(SgTreeCompareProc *cmp)
 {
   return Sg_MakeGenericCTreeMap(cmp,
-				rb_ref,
-				rb_set,
-				rb_delete,
+				rb_search,
 				rb_copy,
 				rb_iter,
 				rb_higher,
@@ -509,9 +498,7 @@ static int wrapped_compare(SgTreeMap *tm, intptr_t a, intptr_t b)
 SgObject Sg_MakeSchemeRBTreeMap(SgObject cmp)
 {
   return Sg_MakeGenericCTreeMap(wrapped_compare,
-				rb_ref,
-				rb_set,
-				rb_delete,
+				rb_search,
 				rb_copy,
 				rb_iter,
 				rb_higher,

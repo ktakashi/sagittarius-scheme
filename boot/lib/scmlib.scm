@@ -1,8 +1,47 @@
+;; for a bit of better performance
 (define (hashtable-for-each proc ht)
-  (for-each proc (hashtable-keys-list ht) (hashtable-values-list ht)))
+  (unless (procedure? proc)
+    (assertion-violation 'hashtable-for-each
+			 (wrong-type-argument-message "procedure" proc 1)))
+  (unless (hashtable? ht)
+    (assertion-violation 'hashtable-for-each
+			 (wrong-type-argument-message "hashtable" ht 2)))
+  (let ((itr (%hashtable-iter ht))
+	(eof (cons #t #t)))
+    (let loop ()
+      (let-values (((k v) (itr eof)))
+	(unless (eq? k eof)
+	  (proc k v) (loop))))))
 
 (define (hashtable-map proc ht)
-  (map proc (hashtable-keys-list ht) (hashtable-values-list ht)))
+  (unless (procedure? proc)
+    (assertion-violation 'hashtable-map
+			 (wrong-type-argument-message "procedure" proc 1)))
+  (unless (hashtable? ht)
+    (assertion-violation 'hashtable-map
+			 (wrong-type-argument-message "hashtable" ht 2)))
+  (let ((itr (%hashtable-iter ht))
+	(eof (cons #t #t)))
+    (let loop ((r '()))
+      (let-values (((k v) (itr eof)))
+	(if (eq? k eof)
+	    r
+	    (loop (cons (proc k v) r)))))))
+
+(define (hashtable-fold kons ht knil)
+  (unless (procedure? kons)
+    (assertion-violation 'hashtable-fold
+			 (wrong-type-argument-message "procedure" proc 1)))
+  (unless (hashtable? ht)
+    (assertion-violation 'hashtable-fold
+			 (wrong-type-argument-message "hashtable" ht 2)))
+  (let ((itr (%hashtable-iter ht))
+	(eof (cons #t #t)))
+    (let loop ((r knil))
+      (let-values (((k v) (itr eof)))
+	(if (eq? k eof)
+	    r
+	    (loop (kons k v r)))))))
 
 (define (hashtable->alist ht)
   (hashtable-map cons ht))

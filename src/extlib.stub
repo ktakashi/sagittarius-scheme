@@ -214,7 +214,7 @@
 
   (define-c-proc unwrap-syntax (form) Sg_UnwrapSyntax)
 
-  (define-c-proc current-dynamic-environment (:optional other::<hashtable>)
+  (define-c-proc current-dynamic-environment (:optional other::<weak-hashtable>)
     ::<top>
     (if (SG_UNBOUNDP other)
 	(result (-> (Sg_VM) parameters))
@@ -474,6 +474,45 @@
   ;; just for consistancy
   (define-c-proc hashtable-values (ht::<hashtable>)
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
+
+  (define-cise-stmt dict-update!
+    ((_ dict searcher xtractor cc)
+     `(let ((e::SgDictEntry*)
+	    (data::(.array void* (1))))
+	(set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
+			   SG_DICT_CREATE))
+	;; FIXME shut up the compiler with case...
+	(unless (-> e value) (SG_DICT_ENTRY_SET_VALUE e default))
+	(set! (aref data 0) (cast void* e))
+	(Sg_VMPushCC ,cc data 1)
+	(result (Sg_VMApply1 proc (SG_DICT_ENTRY_VALUE e))))))
+  
+  ;; update!
+  (define-cfn hashtable-update-cc (result data::void**) :static
+    (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0))))
+      (SG_DICT_ENTRY_SET_VALUE e result)
+      (return result)))
+  (define-c-proc hashtable-update! 
+    (ht::<hashtable> key proc::<procedure> default)
+    (when (SG_IMMUTABLE_HASHTABLE_P ht)
+      (assertion-violation 'hashtable-update!
+			   "attemp to modify an immutable hashtable" ht))
+    (dict-update! ht Sg_HashCoreSearch SG_HASHTABLE_CORE
+		  hashtable-update-cc))
+
+  ;; from Gauche
+  (define-cfn hashtable-itr (args::SgObject* argc::int data::void*) :static
+    (let* ((itr::SgHashIter* (cast SgHashIter* data))
+	   (e::SgHashEntry* (Sg_HashIterNext itr))
+	   (eofval (aref args 0)))
+      (if (== e NULL)
+	  (return (Sg_Values2 eofval eofval))
+	  (return (Sg_Values2 (SG_HASH_ENTRY_KEY e) (SG_HASH_ENTRY_VALUE e))))))
+  (define-c-proc %hashtable-iter (ht::<hashtable>)
+    (let ((itr::SgHashIter* (SG_NEW SgHashIter)))
+      (Sg_HashIterInit (SG_HASHTABLE_CORE ht) itr)
+      (result (Sg_MakeSubr hashtable-itr itr 1 0 
+			   (SG_MAKE_STRING "hashtable-iterator")))))
 
   ;; the same as symbol-hash but different procedure
   ;; should we use Sg_MakeIntegerU as eqv-hash?
@@ -1082,6 +1121,8 @@
 
   ;; tree-map, only expose default implementation for now (rb-tree)
   (define-c-proc make-rb-treemap (cmp::<procedure>) Sg_MakeSchemeRBTreeMap)
+  (define-c-proc treemap? (o) ::<boolean> SG_TREEMAP_P)
+
   (define-c-proc treemap-ref (tm::<tree-map> key :optional (fallback #f))
     Sg_TreeMapRef)
   (define-c-proc treemap-set! (tm::<tree-map> key value) ::<void>
@@ -1104,5 +1145,26 @@
 
   (define-c-proc treemap-size (tm::<tree-map>) ::<fixnum>
     (result (-> tm entryCount)))
+
+  (define-cfn treemap-update-cc (result data::void**) :static
+    (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0))))
+      (SG_DICT_ENTRY_SET_VALUE e result)
+      (return result)))
+  (define-c-proc treemap-update! (tm::<tree-map> key proc::<procedure> default)
+    (dict-update! tm Sg_TreeMapCoreSearch SG_TREEMAP treemap-update-cc))
+
+  (define-cfn treemap-itr (args::SgObject* argc::int data::void*) :static
+    (let* ((itr::SgTreeIter* (cast SgTreeIter* data))
+	   (e::SgTreeEntry* (Sg_TreeIterNext itr))
+	   (eofval (aref args 0)))
+      (if (== e NULL)
+	  (return (Sg_Values2 eofval eofval))
+	  (return (Sg_Values2 (SG_DICT_ENTRY_KEY e) (SG_DICT_ENTRY_VALUE e))))))
+  (define-c-proc %treemap-iter (tm::<tree-map>)
+    (let ((itr::SgTreeIter* (SG_NEW SgTreeIter)))
+      (Sg_TreeIterInit itr tm NULL)
+      (result (Sg_MakeSubr treemap-itr itr 1 0 
+			   (SG_MAKE_STRING "treemap-iterator")))))
+
 
 )

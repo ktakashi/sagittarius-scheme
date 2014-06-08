@@ -31,6 +31,7 @@
 #define SAGITTARIUS_HASHTABLE_H_
 
 #include "sagittariusdefs.h"
+#include "collection.h"
 #include "clos.h"
 
 typedef enum {
@@ -82,30 +83,19 @@ struct SgHashTableRec
   SgHashCore core;
 };
 
-typedef struct SgHashEntryRec
-{
-  void *key;
-  void *value;
-} SgHashEntry;
+typedef SgDictEntry SgHashEntry;
 
-typedef enum {
-  SG_HASH_GET,
-  SG_HASH_CREATE,
-  SG_HASH_DELETE
-} SgHashOp;
 
-typedef enum {
-  SG_HASH_NO_OVERWRITE = (1L<<0), /* do not overwrite the existing entry */
-  SG_HASH_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
-} SgHashSetFlags;
+#define SG_HASH_NO_OVERWRITE SG_DICT_NO_OVERWRITE
+#define SG_HASH_NO_CREATE    SG_DICT_NO_CREATE
 
 #define SG_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_HASHTABLE)
 #define SG_HASHTABLE(obj)      ((SgHashTable*)(obj))
 #define SG_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
-#define SG_HASH_ENTRY_KEY(e)   SG_OBJ((e)->key)
-#define SG_HASH_ENTRY_VALUE(e) SG_OBJ((e)->value)
-#define SG_HASH_ENTRY_SET_VALUE(e, v)		\
-  SG_OBJ((e)->value = (void *)v)
+#define SG_HASH_ENTRY_KEY      SG_DICT_ENTRY_KEY
+#define SG_HASH_ENTRY_VALUE    SG_DICT_ENTRY_VALUE
+#define SG_HASH_ENTRY_SET_VALUE SG_DICT_ENTRY_SET_VALUE
+
 
 #define SG_IMMUTABLE_HASHTABLE_P(obj)					\
   (SG_HASHTABLE_P(obj) && SG_HASHTABLE(obj)->immutablep)
@@ -125,7 +115,7 @@ SG_EXTERN void Sg_HashCoreInitGeneral(SgHashCore *core,
 SG_EXTERN int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
 				     SgHashCompareProc **compare);
 SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
-					 SgHashOp op);
+					 SgDictOp op);
 SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
 			       const SgHashCore *src);
 

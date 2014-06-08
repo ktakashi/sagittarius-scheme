@@ -274,7 +274,7 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 			     SgObject key, SgObject fallback)
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_HASH_GET);
+				     (intptr_t)key, SG_DICT_GET);
   if (!e) return fallback;
   if (table->weakness & SG_WEAK_VALUE) {
     void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
@@ -312,7 +312,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 
   e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), proxy,
 			(flags & SG_HASH_NO_CREATE)
-			   ? SG_HASH_GET: SG_HASH_CREATE);
+			   ? SG_DICT_GET: SG_DICT_CREATE);
   if (!e) return SG_UNBOUND;
   if (table->weakness & SG_WEAK_VALUE) {
     if (flags & SG_HASH_NO_OVERWRITE && e->value) {
@@ -335,7 +335,7 @@ SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,
 				SgObject key)
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_HASH_DELETE);
+				     (intptr_t)key, SG_DICT_DELETE);
   if (e && e->value) {
     if (table->weakness & SG_WEAK_VALUE) {
       void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);

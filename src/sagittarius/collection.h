@@ -52,5 +52,28 @@ extern SgClass *Sg__SequenceCPL[];
 #define SG_CLASS_DICTIONARY_CPL 	(Sg__OrderedDictionaryCPL+2)
 #define SG_CLASS_ORDERED_DICTIONARY_CPL (Sg__OrderedDictionaryCPL)
 
+typedef struct SgDictEntryRec
+{
+  intptr_t key;
+  intptr_t value;
+} SgDictEntry;
+
+typedef enum SgDictOpRec {
+  SG_DICT_GET,
+  SG_DICT_CREATE,
+  SG_DICT_DELETE
+} SgDictOp;
+
+typedef enum {
+  SG_DICT_NO_OVERWRITE = (1L<<0), /* do not overwrite the existing entry */
+  SG_DICT_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
+} SgDictSetFlags;
+
+#define SG_DICT_ENTRY_KEY(e)   SG_OBJ((e)->key)
+#define SG_DICT_ENTRY_VALUE(e) SG_OBJ((e)->value)
+#define SG_DICT_ENTRY_SET_VALUE(e, v)		\
+  SG_OBJ((e)->value = (intptr_t)v)
+
+
 
 #endif /* SAGITTARIUS_COLLECTION_H_ */

@@ -31,13 +31,13 @@
 #define SAGITTARIUS_TREEMAP_H_
 
 #include "sagittariusdefs.h"
+#include "collection.h"
 
 /* For C use compare function */
-typedef struct SgTreeEntryRec SgTreeEntry;
+typedef SgDictEntry SgTreeEntry;
 typedef int SgTreeCompareProc(SgTreeMap *, intptr_t, intptr_t);
-typedef SgTreeEntry* SgTreeRefProc(SgTreeMap *, SgObject);
-typedef SgTreeEntry* SgTreeSetProc(SgTreeMap *, SgObject, SgObject, int);
-typedef SgObject SgTreeDeleteProc(SgTreeMap *, SgObject);
+typedef SgTreeEntry* SgTreeRefProc(SgTreeMap *, intptr_t);
+typedef SgTreeEntry* SgTreeSearchProc(SgTreeMap *, intptr_t, SgDictOp);
 typedef SgObject SgTreeCopyProc(const SgTreeMap *);
 
 /* only for c */
@@ -59,25 +59,24 @@ struct SgTreeMapRec
   union {
     struct {
       SgTreeCompareProc  *cmp;
-      SgTreeRefProc      *ref;
-      SgTreeSetProc      *set;
-      SgTreeDeleteProc   *remove;
+      SgTreeSearchProc   *search;
       SgTreeCopyProc     *copy;
       SgTreeIterInitProc *iter;
       /* NavigationMap (optional)*/
       SgTreeRefProc      *higher;
       SgTreeRefProc      *lower;
     } c;
+    /* for now we don't support this */
+#if 0
     struct {
       SgObject cmp;
-      SgObject ref;
-      SgObject set;
-      SgObject remove;
+      SgObject search;
       SgObject copy;
       /* NavigationMap (optional)*/
       SgObject higher;
       SgObject lower;
     } scm;
+#endif
   } procs;
   void *data;
 };
@@ -94,13 +93,6 @@ SG_CLASS_DECL(Sg_TreeMapClass);
 #define SG_TREEMAP_SCM_PROC(__tc, __proc)	\
   SG_TREEMAP_PROC(__tc, scm, __proc)
 
-/* TODO: merge SgHashEntry */
-struct SgTreeEntryRec
-{
-  intptr_t key;
-  intptr_t value;
-};
-
 /* this is not Scheme object */
 struct SgTreeIterRec
 {
@@ -109,12 +101,6 @@ struct SgTreeIterRec
   int          end;	       /* if this iterator is at end or not */
   /* for scalabilty */
   SgTreeEntry* (*next)(SgTreeIter *);
-};
-/* TODO: merge with hashtable's one */
-enum SgTreeOp {
-  SG_TREE_GET,
-  SG_TREE_CREATE,
-  SG_TREE_DELETE
 };
 
 enum SgTreeFlags{
@@ -130,9 +116,8 @@ enum SgTreeFlags{
 SG_CDECL_BEGIN
 
 /* C APIs */
-SG_EXTERN SgTreeEntry* Sg_TreeMapCoreRef(SgTreeMap *tm, SgObject key);
-SG_EXTERN SgTreeEntry* Sg_TreeMapCoreSet(SgTreeMap *tm, SgObject key,
-					 SgObject value, int flags);
+SG_EXTERN SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key,
+					    SgDictOp op);
 SG_EXTERN SgObject Sg_MakeDefaultTreeMap(SgTreeCompareProc *cmp);
 SG_EXTERN SgObject Sg_TreeMapCopy(const SgTreeMap *src);
 SG_EXTERN SgObject Sg_TreeMapRef(SgTreeMap *tm, SgObject key,
@@ -144,19 +129,18 @@ SG_EXTERN void     Sg_TreeMapClear(SgTreeMap *tm);
 
 /* generic constructors */
 SG_EXTERN SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
-					  SgTreeRefProc *ref,
-					  SgTreeSetProc *set,
-					  SgTreeDeleteProc *remove,
+					  SgTreeSearchProc *search,
 					  SgTreeCopyProc *copy,
 					  SgTreeIterInitProc *iter,
 					  SgTreeRefProc *higher,
 					  SgTreeRefProc *lower,
 					  void *data);
+/* for now not supported */
+/*
 SG_EXTERN SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
-					       SgObject	ref,
-					       SgObject	set,
-					       SgObject remove,
+					       SgObject search,
 					       SgObject copy);
+*/
 
 /* iterator these APIs are only for C */
 SG_EXTERN void         Sg_TreeIterInit(SgTreeIter *iter,

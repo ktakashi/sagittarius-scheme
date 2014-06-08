@@ -59,9 +59,7 @@ static SgTreeMap* make_treemap(int scm)
 }
 
 SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
-				SgTreeRefProc *ref,
-				SgTreeSetProc *set,
-				SgTreeDeleteProc *remove,
+				SgTreeSearchProc *search,
 				SgTreeCopyProc *copy,
 				SgTreeIterInitProc *iter,
 				SgTreeRefProc *higher,
@@ -69,11 +67,9 @@ SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
 				void *data)
 {
   SgTreeMap *tc = make_treemap(FALSE);
-  ASSERT(cmp && ref && set && remove && copy && iter);
+  ASSERT(cmp && search && copy && iter);
   SG_TREEMAP_C_PROC(tc, cmp) = cmp;
-  SG_TREEMAP_C_PROC(tc, ref) = ref;
-  SG_TREEMAP_C_PROC(tc, set) = set;
-  SG_TREEMAP_C_PROC(tc, remove) = remove;
+  SG_TREEMAP_C_PROC(tc, search) = search;
   SG_TREEMAP_C_PROC(tc, copy) = copy;
   SG_TREEMAP_C_PROC(tc, iter) = iter;
   SG_TREEMAP_C_PROC(tc, higher) = higher;
@@ -83,6 +79,7 @@ SgObject Sg_MakeGenericCTreeMap(SgTreeCompareProc *cmp,
   return SG_OBJ(tc);
 }
 
+/*
 SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
 				     SgObject ref,
 				     SgObject set,
@@ -98,6 +95,7 @@ SgObject Sg_MakeGenericSchemeTreeMap(SgObject cmp,
   tc->root = (intptr_t)SG_FALSE;
   return SG_OBJ(tc);
 }
+*/
 
 SgObject Sg_MakeDefaultTreeMap(SgTreeCompareProc *cmp)
 {
@@ -106,66 +104,40 @@ SgObject Sg_MakeDefaultTreeMap(SgTreeCompareProc *cmp)
 
 SgObject Sg_TreeMapCopy(const SgTreeMap *src)
 {
-  if (SG_SCHEME_TREEMAP_P(src)) {
-    SgTreeMap *tc = make_treemap(TRUE);
-    SgObject root = Sg_Apply1(src->procs.scm.copy, SG_OBJ(src->root));
-    /* for Scheme, we do not provide the interface to access
-       internal procedures, so it needs to be copied here.
-     */
-    SG_TREEMAP_SCM_PROC(tc, cmp)    = SG_TREEMAP_SCM_PROC(src, cmp);
-    SG_TREEMAP_SCM_PROC(tc, ref)    = SG_TREEMAP_SCM_PROC(src, ref);
-    SG_TREEMAP_SCM_PROC(tc, set)    = SG_TREEMAP_SCM_PROC(src, set);
-    SG_TREEMAP_SCM_PROC(tc, remove) = SG_TREEMAP_SCM_PROC(src, remove);
-    SG_TREEMAP_SCM_PROC(tc, copy)   = SG_TREEMAP_SCM_PROC(src, copy);
-    tc->root = (intptr_t)root;
-    tc->entryCount = src->entryCount;
-    return SG_OBJ(tc);
-  } else {
-    return SG_TREEMAP_C_PROC(src, copy)(src);
-  }
+  return SG_TREEMAP_C_PROC(src, copy)(src);
 }
 
-SgTreeEntry* Sg_TreeMapCoreRef(SgTreeMap *tm, SgObject key)
+SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key, SgDictOp op)
 {
-  return SG_TREEMAP_C_PROC(tm, ref)(tm, key);
-}
-
-SgTreeEntry* Sg_TreeMapCoreSet(SgTreeMap *tm, SgObject key, SgObject value,
-			   int flags)
-{
-  return SG_TREEMAP_C_PROC(tm, set)(tm, key, value, flags);
+  return SG_TREEMAP_C_PROC(tm, search)(tm, key, op);
 }
 
 /* These APIs are mere dispatchers. */
 SgObject Sg_TreeMapRef(SgTreeMap *tm, SgObject key,
 		       SgObject fallback)
 {
-  if (SG_SCHEME_TREEMAP_P(tm)) {
-    return Sg_Apply2(SG_TREEMAP_SCM_PROC(tm, ref), key, fallback);
-  } else {
-    SgTreeEntry *e = SG_TREEMAP_C_PROC(tm, ref)(tm, key);
-    return (e) ? SG_OBJ(e->value) : fallback;
-  }
+  SgTreeEntry *e =  Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_GET);
+  if (!e) return fallback;
+  return SG_DICT_ENTRY_VALUE(e);
 }
 
 SgObject Sg_TreeMapSet(SgTreeMap *tm, SgObject key, SgObject value,
 		       int flags)
 {
-  if (SG_SCHEME_TREEMAP_P(tm)) {
-    return Sg_Apply2(SG_TREEMAP_SCM_PROC(tm, set), key, value);
+  SgDictOp op = (flags & SG_DICT_NO_CREATE) ? SG_DICT_GET : SG_DICT_CREATE;
+  SgTreeEntry *e = Sg_TreeMapCoreSearch(tm, (intptr_t)key, op);
+  if (!e) return SG_UNBOUND;
+  if (e->value) {
+    if (flags & SG_DICT_NO_OVERWRITE) return SG_DICT_ENTRY_VALUE(e);
+    else return SG_DICT_ENTRY_SET_VALUE(e, value);
   } else {
-    SgTreeEntry *e = SG_TREEMAP_C_PROC(tm, set)(tm, key, value, flags);
-    return SG_OBJ(e->value);
+    return SG_DICT_ENTRY_SET_VALUE(e, value);
   }
 }
 
 SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key)
 {
-  if (SG_SCHEME_TREEMAP_P(tm)) {
-    return Sg_Apply1(SG_TREEMAP_SCM_PROC(tm, remove), key);
-  } else {
-    return SG_TREEMAP_C_PROC(tm, remove)(tm, key);
-  }
+  return Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_DELETE);
 }
 
 void Sg_TreeMapClear(SgTreeMap *tm)
@@ -229,7 +201,7 @@ SgTreeEntry* Sg_TreeMapHigherEntry(SgTreeMap *tm, SgObject key)
 {
   if (!SG_SCHEME_TREEMAP_P(tm) &&
       SG_TREEMAP_C_PROC(tm, higher)) {
-    return SG_TREEMAP_C_PROC(tm, higher)(tm, key);
+    return SG_TREEMAP_C_PROC(tm, higher)(tm, (intptr_t)key);
   }
   Sg_ImplementationRestrictionViolation(SG_INTERN("treemap-higher"),
 					SG_MAKE_STRING("given treemap does not "
@@ -243,7 +215,7 @@ SgTreeEntry* Sg_TreeMapLowerEntry(SgTreeMap *tm, SgObject key)
 {
   if (!SG_SCHEME_TREEMAP_P(tm) &&
       SG_TREEMAP_C_PROC(tm, lower)) {
-    return SG_TREEMAP_C_PROC(tm, lower)(tm, key);
+    return SG_TREEMAP_C_PROC(tm, lower)(tm, (intptr_t)key);
   }
   Sg_ImplementationRestrictionViolation(SG_INTERN("treemap-lower"),
 					SG_MAKE_STRING("given treemap does not "
