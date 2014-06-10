@@ -39,7 +39,7 @@
     (import (rnrs)
 	    (sagittarius control)
 	    (only (core base) hashtable-for-each hashtable-map
-		  hashtable->alist)
+		  hashtable->alist hashtable-fold)
 	    (only (sagittarius) hashtable-keys-list hashtable-values-list))
 
   (define (create-hashtable compare hasher)
