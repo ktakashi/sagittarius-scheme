@@ -31,7 +31,7 @@
 				(treemap-ref tm "c")))
   )
 
-(let ((tm (alist->treemap compare '((1 . a) (3 . c) (2 . b)))))
+(let ((tm (alist->treemap '((1 . a) (3 . c) (2 . b)) compare)))
   (test-equal "treemap-map" '(1 2 3) (treemap-map (lambda (k v) k) tm))
   (test-equal "treemap-map" '(a b c) (treemap-map (lambda (k v) v) tm))
   (test-equal "treemap->alist" '((1 . a) (2 . b) (3 . c)) (treemap->alist tm)))

@@ -30,6 +30,7 @@
 
 (library (util treemap)
     (export make-rb-treemap
+	    treemap?
 	    treemap-ref
 	    treemap-set!
 	    treemap-delete!
@@ -42,7 +43,7 @@
 	    treemap-keys    treemap-keys-list
 	    treemap-values  treemap-values-list
 
-	    treemap-for-each treemap-map
+	    treemap-for-each treemap-map treemap-fold
 	    treemap->alist alist->treemap
 	    )
     (import (rnrs)
@@ -80,7 +81,7 @@
     (reverse! (treemap-fold (lambda (k v r) (cons (proc k v) r)) tm '())))
 
   (define (treemap->alist tm) (treemap-map cons tm))
-  (define (alist->treemap comp alist)
+  (define (alist->treemap alist comp)
     (let ((tm (make-rb-treemap comp)))
       (for-each (lambda (p) (treemap-set! tm (car p) (cdr p))) alist)
       tm))
