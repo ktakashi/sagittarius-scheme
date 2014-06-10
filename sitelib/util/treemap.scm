@@ -51,11 +51,6 @@
 	    (sagittarius)
 	    (sagittarius object))
 
-  ;; TODO don't traverse twice
-  #;
-  (define (treemap-update! tm key proc default)
-    (treemap-set! tm key (proc (treemap-ref tm key default))))
-
   ;; sort of consistency for hashtable
   (define (treemap-entries tm) 
     (let-values (((ks vs) (treemap-entries-list tm)))

@@ -31,6 +31,7 @@
 (library (util hashtables)
     (export hashtable-for-each
 	    hashtable-map
+	    hashtable-fold
 	    hashtable->alist
 	    alist->hashtable
 	    hashtable-keys-list
