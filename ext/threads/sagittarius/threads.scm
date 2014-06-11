@@ -111,10 +111,10 @@
 	  (mutex-lock! mutex)
 	  (mutex-specific-set! mutex 0))))
   
-  (define (mutex-unlock-recursively! mutex)
+  (define (mutex-unlock-recursively! mutex :optional (cv #f) (timeout #f))
     (let ((n (mutex-specific mutex)))
       (if (= n 0)
-	  (mutex-unlock! mutex)
+	  (mutex-unlock! mutex cv timeout)
 	  (mutex-specific-set! mutex (- n 1)))))
 
   (define (with-locking-mutex mutex thunk)

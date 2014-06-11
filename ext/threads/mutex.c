@@ -79,7 +79,7 @@ static void mutex_finalize(SgObject obj, void *data)
   Sg_DestroyCond(&mutex->cv);
 }
 
-SgObject Sg_MakeMutex(SgObject name)
+static SgMutex * make_mutex(SgObject name, int recursiveP)
 {
   SgMutex *m = SG_NEW(SgMutex);
   SG_SET_CLASS(m, SG_CLASS_MUTEX);
@@ -87,10 +87,15 @@ SgObject Sg_MakeMutex(SgObject name)
   m->specific = SG_UNDEF;
   m->locked = FALSE;
   m->owner = NULL;
-  Sg_InitMutex(&m->mutex, FALSE);
+  Sg_InitMutex(&m->mutex, recursiveP);
   Sg_InitCond(&m->cv);
   Sg_RegisterFinalizer(SG_OBJ(m), mutex_finalize, NULL);
-  return SG_OBJ(m);
+  return m;
+}
+
+SgObject Sg_MakeMutex(SgObject name)
+{
+  return SG_OBJ(make_mutex(name, FALSE));
 }
 
 static SgObject sym_not_owned;
