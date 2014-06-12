@@ -70,7 +70,7 @@
 	    ;; from srfi-18
 	    mutex-lock-recursively! mutex-unlock-recursively!
 	    ;; from Gauche
-	    with-locking-mutex
+	    with-locking-mutex with-recursive-locking-mutex
 
 	    sys-nanosleep
 	    thread-guard
@@ -122,6 +122,12 @@
 	(lambda () (mutex-lock! mutex))
 	thunk
 	(lambda () (mutex-unlock! mutex))))
+  ;; hmmm...
+  (define (with-recursive-locking-mutex mutex thunk)
+    (dynamic-wind
+	(lambda () (mutex-lock-recursively! mutex))
+	thunk
+	(lambda () (mutex-unlock-recursively! mutex))))
 
   (define-syntax thread-guard
     (syntax-rules ()
