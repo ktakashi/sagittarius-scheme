@@ -58,7 +58,7 @@
 	    object-equal? object-apply |setter of object-apply|
 	    object-compare
 	    ;; helper
-	    initialize-direct-slots is-a?
+	    initialize-direct-slots is-a? subtype?
 	    ;; helper generics
 	    compute-cpl
 	    compute-slots

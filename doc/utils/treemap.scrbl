@@ -1,6 +1,5 @@
 @; -*- coding: utf-8 -*-
-@subsection[:tag "util.treemap"]{(util treemap) - Treemap utilities}
-
+@subsection[:tag "util.treemap"]{(util treemap) - Treemap}
 
 @define[Library]{@name{(util treemap)}}
 @desc{This library provides treemap data structure and operations.

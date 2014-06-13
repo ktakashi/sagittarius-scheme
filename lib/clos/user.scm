@@ -55,7 +55,7 @@
 	    slot-ref-using-accessor slot-set-using-accessor!
 	    slot-unbound slot-missing
 	    initialize-direct-slots
-	    is-a?
+	    is-a? subtype?
 
 	    define-class
 	    define-method

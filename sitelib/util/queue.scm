@@ -76,13 +76,13 @@
     (rlet1 q (make class)
       (set! (~ q 'deque) (apply list->deque lst 
 				;; a bit tricky...
-				(if (memq <mtqueue> (class-cpl class))
+				(if (subtype? class <mtqueue>)
 				    <mtdeque>
 				    <deque>)
 				initargs))))
   (define-method copy-queue ((q <queue>))
     (list->queue (deque->list (~ q 'deque)) (class-of q)))
-  (define-method copy-queue ((q <queue>))
+  (define-method copy-queue ((q <mtqueue>))
     (list->queue (deque->list (~ q 'deque)) (class-of q)
 		 :max-length (mtqueue-max-length q)))
 
