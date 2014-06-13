@@ -108,6 +108,9 @@ otherwise #f.}
 @define[Function]{@name{is-a?} @args{object class}}
 @desc{Returns #t if @var{object} is an instance of @var{class}, otherwise #f.}
 
+@define[Function]{@name{subtype?} @args{class1 class2}}
+@desc{Returns #t if @var{class1} is a subclass of @var{class2}, otherwise #f.}
+
 @define[Function]{@name{slot-ref-using-accessor} @args{object accessor}}
 @desc{This procedure is for MOP.
 
