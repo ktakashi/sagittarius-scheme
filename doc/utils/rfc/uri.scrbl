@@ -80,7 +80,7 @@ If the keyword argument @var{cgi-decode} is #t, the procedure decodes
 @desc{Decodes given @var{string} and returns decoded string.}
 
 @define[Function]{@name{uri-encode}
- @args{in out :key (noescape *rfc3986-unreserved-char-set*)}}
+ @args{in out :key (noescape *rfc3986-unreserved-char-set*) (upper-case #t)}}
 @desc{@var{in} must be binary input port.
 
 @var{out} must binary output port.
@@ -88,6 +88,10 @@ If the keyword argument @var{cgi-decode} is #t, the procedure decodes
 Reads and encodes given @var{in} and put the result into @var{out}.
 
 The keyword argument @var{noescape} specifies which character must be escaped.
+
+The keyword argument @var{upper-case} specifies the result case of encoded
+value. If the value is true value then it encodes to upper case (default),
+otherwise lower case.
 }
 
 @define[Function]{@name{uri-encode-string}

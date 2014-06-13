@@ -6,10 +6,16 @@
 (test-begin "RFC URI tests")
 
 ;; Test cases are from Gauche
-(test-equal "encode" "abc%3c%20%3e%20%22%20%23%25%7b%7c%7d%5c%5e"
+(test-equal "encode" "abc%3C%20%3E%20%22%20%23%25%7B%7C%7D%5C%5E"
 	    (uri-encode-string "abc< > \" #%{|}\\^"))
-(test-equal "encode (noescape)" ".a%21%2ap"
+(test-equal "encode (noescape)" ".a%21%2Ap"
 	    (uri-encode-string ".a!*p" :noescape *rfc3986-unreserved-char-set*))
+(test-equal "encode" "abc%3c%20%3e%20%22%20%23%25%7b%7c%7d%5c%5e"
+	    (uri-encode-string "abc< > \" #%{|}\\^" :upper-case #f))
+(test-equal "encode (noescape)" ".a%21%2ap"
+	    (uri-encode-string ".a!*p" :noescape *rfc3986-unreserved-char-set*
+			       :upper-case #f))
+
 (test-equal "decode" "abc< > \" #%?{|}\\^"
 	    (uri-decode-string "abc%3c%20%3e%20%22%20%23%25%3f%7b%7c%7d%5c%5e"))
 (test-equal "decode" "abc<+>+\"+#%?{|}\\^"

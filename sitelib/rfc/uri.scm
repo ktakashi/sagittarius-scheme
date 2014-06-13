@@ -256,11 +256,12 @@
     (char-set-union (string->char-set "-_.~")
 		    char-set:letter+digit))
 
-  (define (uri-encode in out :key ((:noescape echars)
-				   *rfc3986-unreserved-char-set*))
+  (define (uri-encode in out
+		      :key ((:noescape echars) *rfc3986-unreserved-char-set*)
+			   (upper-case #t))
     (define (hex->char-integer h)
       (cond ((<= 0 h 9) (+ h #x30))
-	    ((<= #xa h #xf) (+ h (- #x61 10)))
+	    ((<= #xa h #xf) (+ h (- (if upper-case #x41 #x61) 10)))
 	    (else (assertion-violation 'hex->char-integer
 				       "invalid hex number" h))))
     (let loop ((b (get-u8 in)))
