@@ -29,8 +29,6 @@
 ;;;  
 
 ;; API names are taken from Gauche and slib
-;; Most of the implementation details are from Gauche
-;; it's just ported for Sagittarius written in Scheme
 (library (util queue)
     (export <queue> <mtqueue>
 	    make-queue make-mtqueue
@@ -49,347 +47,78 @@
 	    enqueue/wait! queue-push/wait!
 	    dequeue/wait! queue-pop/wait!)
     (import (rnrs)
-	    (rnrs mutable-pairs)
 	    (clos user)
-	    (sagittarius)
-	    (srfi :1)
-	    (core base)
-	    (sagittarius threads)
+	    (clos core)
+	    (util deque)
 	    (sagittarius object)
 	    (sagittarius control))
 
   (define-class <queue> (<sequence>)
-    ((length :init-value 0)
-     (head   :init-value '())
-     (tail   :init-value '())))
+    ((deque :init-keyword :deque)))
   (define (queue? o) (is-a? o <queue>))
 
-  (define-class <mtqueue> (<queue>)
-    ((max-length :init-keyword :max-length :init-value -1)
-     (mutex      :init-form (make-mutex))
-     (locker     :init-value #f)
-     (lock-wait  :init-form (make-condition-variable))
-     (reader-wait :init-form (make-condition-variable))
-     (writer-wait :init-form (make-condition-variable))
-     (reader-sem  :init-value 0)))
+  ;; only for marking
+  (define-class <mtqueue> (<queue>) ())
   (define (mtqueue? o) (is-a? o <mtqueue>))
 
-  (define (make-queue) (make <queue>))
+  (define (make-queue) (make <queue> :deque (make-deque)))
   (define (make-mtqueue :key (max-length -1)) 
-    (make <mtqueue> :max-length max-length))
+    (make <mtqueue> :deque (make-mtdeque :max-length max-length)))
 
-  ;; atomic related macro and procedures
-  (define-syntax with-mtq-lock
-    (syntax-rules ()
-      ((_ q body ...)
-       (with-locking-mutex (~ q 'mutex) (lambda () body ...)))))
+  (define (queue-length q) (deque-length (~ q 'deque)))
+  (define (mtqueue-max-length q) (mtdeque-max-length (~ q 'deque)))
+  (define (mtqueue-room q) (mtdeque-room (~ q 'deque)))
 
-  (define-syntax big-locked?
-    (syntax-rules ()
-      ((_ q)
-       (and (thread? (~ q 'locker))
-	    (not (eq? (thread-state (~ q 'locker)) 'terminated))))))
+  (define (queue-empty? q) (deque-empty? (~ q 'deque)))
 
-  (define-syntax wait-mtq-big-lock
-    (syntax-rules ()
-      ((_ q)
-       (let loop ()
-	 (when (big-locked? q)
-	   ;; correct?
-	   (mutex-lock! (~ q 'mutex))
-	   (mutex-unlock! (~ q 'mutex) (~ q 'lock-wait))
-	   (loop))))))
-
-  (define-syntax with-mtq-light-lock
-    (syntax-rules ()
-      ((_ q body ...)
-       (with-mtq-lock q (wait-mtq-big-lock q) body ...))))
-
-  ;; notify
-  (define-syntax notify-lockers
-    (syntax-rules ()
-      ((_ q) (condition-variable-broadcast! (~ q 'lock-wait)))))
-  (define-syntax notify-writers
-    (syntax-rules ()
-      ((_ q) (condition-variable-broadcast! (~ q 'writer-wait)))))
-  (define-syntax notify-readers
-    (syntax-rules ()
-      ((_ q) (condition-variable-broadcast! (~ q 'reader-wait)))))
-
-  (define-syntax grap-mtq-big-lock
-    (syntax-rules ()
-      ((_ q)
-       (with-mtq-light-lock q (set! (~ q 'locker) (current-thread))))))
-  (define-syntax release-mtq-big-lock
-    (syntax-rules ()
-      ((_ q)
-       (with-mtq-lock q (set! (~ q 'locker) #f) (notify-lockers q)))))
-
-  ;; we can't detect the cause...
-  (define-syntax wait-cv
-    (syntax-rules ()
-      ((_ q slot time)
-       (begin
-	 ;; again is this correct?
-	 (mutex-lock! (~ q 'mutex))
-	 (mutex-unlock! (~ q 'mutex) (~ q slot) time)))))
-
-  (define (%lock-mtq q) (grap-mtq-big-lock q))
-  (define (%unlock-mtq q) (release-mtq-big-lock q))
-
-  (define (queue-empty? q)
-    (define (rec) (null? (~ q 'head)))
-    (if (mtqueue? q)
-	(with-mtq-light-lock q (rec))
-	(rec)))
-
-  (define (mtqueue-overflows? q count)
-    (and (>= (~ q 'max-length) 0)
-	 (> (+ count (~ q 'length)) (~ q 'max-length))))
-
-  (define (queue-length q) (~ q 'length))
-
-  (define (mtqueue-max-length q)
-    (let1 l (~ q 'max-length)
-      (and (>= l 0) l)))
-  (define (mtqueue-room q)
-    (with-mtq-light-lock q
-     (or (and-let* ((mx (~ q 'max-length))
-		    ( (>= mx 0) )
-		    (r (- mx (~ q 'length)))
-		    ( (>= r 0)))
-	   r)
-	 +inf.0)))
-
-  (define (%queue-set-content! q lst)
-    (let ((l (length lst)))
-      (when (negative? l)
-	(assertion-violation 'list->queue
-			     (wrong-type-argument-message "proper list" lst 2)
-			     lst))
-      (set! (~ q 'length) l)
-      (set! (~ q 'head) lst)
-      (set! (~ q 'tail) (if (zero? l) '() (last-pair lst)))))
-
+  (define (queue->list q) (deque->list (~ q 'deque)))
   (define (list->queue lst :optional (class <queue>) :rest initargs)
-    (rlet1 q (apply make class initargs)
-      (%queue-set-content! q lst)))
+    (rlet1 q (make class)
+      (set! (~ q 'deque) (apply list->deque lst 
+				;; a bit tricky...
+				(if (subtype? class <mtqueue>)
+				    <mtdeque>
+				    <deque>)
+				initargs))))
   (define-method copy-queue ((q <queue>))
-    (list->queue (queue->list q) (class-of q)))
+    (list->queue (deque->list (~ q 'deque)) (class-of q)))
   (define-method copy-queue ((q <mtqueue>))
-    (list->queue (queue->list q) (class-of q) 
+    (list->queue (deque->list (~ q 'deque)) (class-of q)
 		 :max-length (mtqueue-max-length q)))
-
-  (define (%queue-peek q head? :optional fallback)
-    (define (rec)
-      (or (and (not (null? (~ q 'head)))
-	       (car (~ q (if head? 'head 'tail))))
-	  #f))
-    (let1 r (if (mtqueue? q)
-		(with-mtq-light-lock q (rec))
-		(rec))
-      (cond (r)
-	    ((undefined? fallback)
-	     (error 'queue-peek "queue is empty" q))
-	    (else fallback))))
 
   (define queue-front
     (case-lambda
-     ((q) (%queue-peek q #t))
-     ((q default) (%queue-peek q #t default))))
+     ((q) (deque-front (~ q 'deque)))
+     ((q default) (deque-front (~ q 'deque) default))))
   (define queue-rear
     (case-lambda
-     ((q) (%queue-peek q #f))
-     ((q default) (%queue-peek q #f default))))
+     ((q) (deque-rear (~ q 'deque)))
+     ((q default) (deque-rear (~ q 'deque) default))))
 
-  (define-syntax queue-op
-    (syntax-rules ()
-      ((_ who q proc)
-       (cond ((mtqueue? q)
-	      (%lock-mtq q) (unwind-protect (proc #t) (%unlock-mtq q)))
-	     ((queue? q) (proc #f))
-	     (else
-	      (assertion-violation who 
-				   (wrong-type-argument-message "queue" q)
-				   q))))))
+  (define (find-in-queue pred q) (find-in-deque pred (~ q 'deque)))
+  (define (any-in-queue pred q) (any-in-deque pred (~ q 'deque)))
+  (define (every-in-queue pred q) (every-in-deque pred (~ q 'deque)))
 
-  (define (queue->list q) 
-    (queue-op 'queue->list q (lambda (_) (list-copy (~ q 'head)))))
-  (define (find-in-queue pred q)
-    (queue-op 'find-in-queue q (lambda (_) (find pred (~ q 'head)))))
-  (define (any-in-queue pred q)
-    (queue-op 'any-in-queue q (lambda (_) (any pred (~ q 'head)))))
-  (define (every-in-queue pred q)
-    (queue-op 'every-in-queue q (lambda (_) (every pred (~ q 'head)))))
+  (define (enqueue! q obj . more) (apply deque-push! (~ q 'deque) obj more) q)
+  (define (enqueue-unique! q cmp obj . more)
+    (apply deque-push-unique! (~ q 'deque) cmp obj more) q)
+  (define (enqueue/wait! q obj . opts)
+    (apply deque-push/wait! (~ q 'deque) obj opts))
 
-  (define-syntax q-write-op
-    (syntax-rules ()
-      ((_ who op q count head tail)
-       (if (mtqueue? q)
-	   (with-mtq-light-lock q
-	    (cond ((mtqueue-overflows? q count)
-		   (error who "queue is full" q))
-		  (else (op q count head tail) (notify-readers q))))
-	   (op q count head tail)))))
-  (define (%enqueue! q count head tail)
-    (set! (~ q 'length) (+ (~ q 'length) count))
-    (cond ((null? (~ q 'head))
-	   (set! (~ q 'head) head)
-	   (set! (~ q 'tail) tail))
-	  (else
-	   (set! (cdr (~ q 'tail)) head)
-	   (set! (~ q 'tail) tail))))
-  (define (enqueue! q obj . more)
-    (let ((head (cons obj more)))
-      (let-values (((tail count) (if (null? more) 
-				     (values head 1)
-				     (values (last-pair more) (length head)))))
-	(q-write-op 'enqueue! %enqueue! q count head tail)
-	q)))
+  (define (queue-push! q obj . more) 
+    (apply deque-unshift! (~ q 'deque) obj more) q)
+  (define (queue-push-unique! q cmp obj . more) 
+    (apply deque-unshift-unique! (~ q 'deque) cmp obj more) q)
+  (define (queue-push/wait! q obj . opts) 
+    (apply deque-unshift/wait! (~ q 'deque) obj opts))
 
-  (define-syntax do-with-timeout
-    (syntax-rules ()
-      ((_ q timeout timeout-val slot init wait-check do-ok)
-       (with-mtq-lock q
-	 init ;; we can't handle intr signal...
-	 (let loop ()
-	   (wait-mtq-big-lock q)
-	   (cond (wait-check 
-		  (if (wait-cv q slot timeout) 
-		      (loop)
-		      timeout-val))
-		 (else do-ok
-		       (set! (~ q 'locker) #f)
-		       (notify-lockers q))))))))
-  (define (enqueue/wait! q obj :optional (timeout #f) (timeout-val #f))
-    (let ((cell (list obj)))
-      (do-with-timeout q timeout timeout-val 'writer-wait
-		       (begin)
-		       (if (not (zero? (~ q 'max-length)))
-			   (mtqueue-overflows? q 1)
-			   (zero? (~ q 'reader-sem)))
-		       (begin
-			 (%enqueue! q 1 cell cell)
-			 (notify-readers q)
-			 #t))))
-
-  (define (enqueue-unique! q cmp obj . more-obj)
-    (define (pick lst xs ins)
-      (cond ((null? ins) xs)
-	    ((or (member (car ins) lst cmp)
-		 (member (car ins) xs cmp))
-	     (pick lst xs (cdr ins)))
-	    (else (pick lst (cons (car ins) xs) (cdr ins)))))
-    (queue-op 'enqueue-unique! q
-	      (lambda (mt?)
-		(let1 xs (pick (~ q 'head) '() (cons obj more-obj))
-		  (unless (null? xs)
-		    (when (and mt? (mtqueue-overflows? q (length xs)))
-		      (error 'enqueue-unique! "queue is full" q))
-		    (let1 xs_ (reverse xs)
-		      (%enqueue! q (length xs) xs_ (last-pair xs_))
-		      (when mt? (notify-readers q)))))))
-    q)
-
-  (define (%queue-push! q count head tail)
-    (set-cdr! tail (~ q 'head))
-    (set! (~ q 'head) head)
-    (set! (~ q 'tail) (last-pair tail))
-    (set! (~ q 'length) (+ (~ q 'length) count)))
-
-  (define (queue-push! q obj . more)
-    (let ((objs (cons obj more)))
-      (let-values (((h t c) 
-		    (if (null? more)
-			(values objs objs 1)
-			(let ((h (reverse! objs)))
-			  (values h (last-pair h) (length h))))))
-	(q-write-op 'queue-push! %queue-push! q c h t))
-      q))
-  (define (queue-push/wait! q obj :optional (timeout #f) (timeout-val #f))
-    (let ((cell (list obj)))
-      (do-with-timeout q timeout timeout-val 'writer-wait
-		       (begin)
-		       (if (not (zero? (~ q 'max-length)))
-			   (mtqueue-overflows? q 1)
-			   (zero? (~ q 'reader-sem)))
-		       (begin
-			 (%queue-push! q 1 cell cell)
-			 (notify-readers q)
-			 #t))))
-  (define (queue-push-unique! q cmp obj . more-obj)
-    (define (pick lst ins)
-      (cond ((null? ins) lst)
-	    ((member (car ins) lst cmp) (pick lst (cdr ins)))
-	    (else (pick (cons (car ins) lst) (cdr ins)))))
-    (queue-op 'enqueue-unique! q
-	      (lambda (mt?)
-		(let* ((h (~ q 'head))
-		       (xs (pick h (cons obj more-obj))))
-		  (unless (eq? xs h)
-		    (when (and mt? 
-			       (mtqueue-overflows? q (- (length xs) (length h))))
-		      (error 'enqueue-unique! "queue is full" q))
-		    (%queue-set-content! q xs)
-		    (when mt? (notify-readers q))))))
-    q)
-
-  (define (%dequeue q)
-    (cond ((null? (~ q 'head)) (values #t #f))
-	  (else
-	   (let1 r (car (~ q 'head))
-	     (set! (~ q 'head) (cdr (~ q 'head)))
-	     (set! (~ q 'length) (- (~ q 'length) 1))
-	     (values #f r)))))
-  (define (dequeue! q :optional fallback)
-    (let-values (((empty? head)
-		  (if (mtqueue? q)
-		      (with-mtq-light-lock q (%dequeue q))
-		      (%dequeue q))))
-      (if empty?
-	  (if (undefined? fallback)
-	      (error 'dequeue! "queue is empty" q)
-	      fallback)
-	  (begin
-	    (when (mtqueue? q) (notify-writers q))
-	    head))))
-  (define (dequeue/wait! q :optional (timeout #f) (timeout-val #f))
-    (do-with-timeout q timeout timeout-val 'reader-wait
-		       (begin
-			 (set! (~ q 'reader-sem) (+ (~ q 'reader-sem) 1))
-			 (notify-writers q))
-		       (queue-empty? q)
-		       (begin
-			 (set! (~ q 'reader-sem) (- (~ q 'reader-sem) 1))
-			 (let-values (((empty? r) (%dequeue q 1 cell cell)))
-			   (notify-writers q)
-			   r))))
-  
-  (define (dequeue-all! q)
-    (define (int)
-      (rlet1 h (~ q 'head)
-	(set! (~ q 'length) 0)
-	(set! (~ q 'head) '())
-	(set! (~ q 'tail) '())))
-    (if (mtqueue? q)
-	(with-mtq-light-lock q (rlet1 r (int) (notify-writers q)))
-	(int)))
+  (define (dequeue! q . opts) (apply deque-shift! (~ q 'deque) opts))
+  (define (dequeue-all! q) (deque-shift-all! (~ q 'deque)))
+  (define (dequeue/wait! q . opts) (apply deque-shift/wait! (~ q 'deque) opts))
 
   (define queue-pop! dequeue!)
-  (define queue-pop/wait! dequeue/wait!)
+  (define queue-pop/wait! dequeue/wait!)  
 
-  (define (remove-from-queue! pred q)
-    (rlet1 removed? #f
-      (queue-op 'remove-from-queue! q
-		(lambda (mt?)
-		  (let loop ((rs '()) (xs (~ q 'head)) (hit #f))
-		    (cond ((null? xs)
-			   (when hit
-			     (set! removed? #t)
-			     (when mt? (notify-writers q))
-			     (%queue-set-content! q (reverse! rs))))
-			  ((pred (car xs)) (loop rs (cdr xs) #t))
-			  (else (loop (cons (car xs) rs) (cdr xs) hit))))))))
+  (define (remove-from-queue! pred q) (remove-from-deque! pred (~ q 'deque)))
 
-  ;; TODO deque
   )

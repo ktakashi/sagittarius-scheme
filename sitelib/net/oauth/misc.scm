@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!read-macro=sagittarius/regex
 (library (net oauth misc)
     (export oauth-compose-query
 	    oauth-uri-encode
@@ -41,7 +40,7 @@
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (sagittarius regex)
+	    (sagittarius regex) ;; for string-split
 	    (rfc http)
 	    (rfc uri)
 	    (srfi :13 strings)
@@ -53,25 +52,19 @@
 	     (string-split kv-pair "="))
 	   kv-pairs)))
 
-  ;; OAuth expects upper case somehow...
-  (define (%-fix str)
-    (regex-replace-all #/%[\da-fA-F][\da-fA-F]/ str
-		       (lambda (m p) 
-			 (put-string p (string-upcase (regex-group m 0))))))
 
-  (define (oauth-uri-encode str)
-    (%-fix (uri-encode-string str)))
-  (define (oauth-compose-query params)
-    (%-fix (http-compose-query #f params)))
+  ;; (rfc uri) encodes to upper case by default.
+  (define (oauth-uri-encode str) (uri-encode-string str))
+  ;; http-compose-query is using uri-encode to compose so it's upper case
+  (define (oauth-compose-query params) (http-compose-query #f params))
 
   (define (build-auth-string parameters)
     (format "OAuth ~a"
-	    (%-fix
-	     (string-join (map (lambda (p)
-				 (string-append (oauth-uri-encode (car p))
-						"="
-						(oauth-uri-encode (cadr p))))
-			       parameters) ", "))))
+	    (string-join (map (lambda (p)
+				(string-append (oauth-uri-encode (car p))
+					       "="
+					       (oauth-uri-encode (cadr p))))
+			      parameters) ", ")))
 
   ;; 9.1.2
   (define (normalize-uri uri :optional (need-query? #f))

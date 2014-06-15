@@ -61,6 +61,7 @@
   (define-c-proc current-class-of (o) Sg_ClassOf)
 
   (define-c-proc is-a? (o klass::<class>) Sg_VMIsA)
+  (define-c-proc subtype? (c1::<class> c2::<class>) ::<boolean> Sg_SubtypeP)
 
   (define-cfn call-fallback-proc (args::SgObject* nargs::int gf::SgGeneric*)
     :static
