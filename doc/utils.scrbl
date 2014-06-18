@@ -10,6 +10,7 @@
 @include-section["utils/crypto.scrbl"]
 @include-section["utils/dbi.scrbl"]
 @include-section["utils/dbm.scrbl"]
+@include-section["utils/deque.scrbl"]
 @include-section["utils/file.scrbl"]
 @include-section["utils/getopt.scrbl"]
 @include-section["utils/hashtables.scrbl"]
