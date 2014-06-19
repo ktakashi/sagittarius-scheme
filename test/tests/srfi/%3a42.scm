@@ -564,4 +564,15 @@
      (close-output-port f))
    (read-lines "tmp1") )
  => (list-ec (:char-range c #\0 #\9) (string c #\newline)) )
+
+;; Bug #1
+(my-check (list-ec (:while (:list x '(1 2)) (= x 1)) x) => '(1))
+;; Bug #2
+(my-check (list-ec (:while (:list x '(1)) #t) x) => '(1))
+;; original bug report
+(my-check
+ (list-ec (:while (:vector x (index i) '#(1 2 3 4 5)) (< x 10)) x)
+ => '(1 2 3 4 5))
+
+
 (test-end)
