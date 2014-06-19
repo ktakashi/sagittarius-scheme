@@ -487,7 +487,9 @@
           (let ((var (car t))))
           #t
           ((cdr t)) ))
-    ((_ x ...) #t)))
+    ;; the latest reference doesn't have this
+    #;((_ x ...) #t)
+    ))
 
 
 (define-syntax srfi-42-string
