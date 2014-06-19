@@ -6,7 +6,7 @@
 @define[Library]{@name{(util queue)}}
 @desc{This library provides queue (FIFO) data structure and its operations.
 
-You can create a simple queue, which is not thread-safe, or an TM queue, a
+You can create a simple queue, which is not thread-safe, or an MT queue, a
 thread-safe queue. Basic queue operations work on both type of queues. When
 a mtqueue is passed to the procedures listed in this section, each operation
 is done in atomic way, unless otherwise noted.
@@ -18,6 +18,8 @@ the mtqueue reaches a specified limit. Using these procedures allows the
 program to use an mtqueue as a @var{channel}.
 
 The simple queue API is a super set of SLIB's queue implementation.
+
+NOTE: @secref["util.deque"]{(util deque)} is used as underlying library.
 }
 
 @define[Class]{@name{<queue>}}
@@ -40,7 +42,7 @@ number is zero then the queue cannot hold any item.
 @define[Function]{@name{queue?} @args{obj}}
 @desc{Returns #t if @var{obj} is a queue (either a simple queue or an mtqueue).}
 
-@define[Function]{@name{queue?} @args{obj}}
+@define[Function]{@name{mtqueue?} @args{obj}}
 @desc{Returns #t if @var{obj} is an mtqueue.}
 
 @define[Function]{@name{queue-empty?} @args{queue}}
@@ -81,6 +83,18 @@ one object, and each of them are pushed in order.
 Like @code{enqueue!}, when @var{queue} is an mtqueue, all objects are added
 atomically, and the value of max length is checked. See @code{enqueue!} above
 for more detail.
+}
+
+@define[Function]{@name{enqueue-unique!}
+ @args{queue eq-proc obj more-objs @dots{}}}
+@define[Function]{@name{queue-push-unique!}
+ @args{queue eq-proc obj more-objs @dots{}}}
+@desc{Like @code{enqueue!} and @code{queue-push!}, respectively, except that
+these don't modify @var{queue} if it already contains @var{objs} (elements are
+compared by two-argument procedure @var{eq-proc}).
+
+When @var{queue} is an mtqueue, all objects are added atomically, and the max
+length is checked. See @code{enqueue!} above for the detail.
 }
 
 @define[Function]{@name{dequeue!} @args{queue :optional fallback}}
@@ -136,7 +150,7 @@ affect @var{queue}.
 
 @define[Function]{@name{any-in-queue} @args{pred queue}}
 @desc{Apply @var{pred} on each item in @var{queue} until it evaluates true,
-and returns that true value. If no item satisfies @var{pred}, @f is returned.
+and returns that true value. If no item satisfies @var{pred}, #f is returned.
 }
 
 @define[Function]{@name{every-in-queue} @args{pred queue}}
