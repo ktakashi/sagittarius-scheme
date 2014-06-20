@@ -276,7 +276,7 @@ static SgTreeEntry* rb_set(SgTreeMap *tm, intptr_t key)
     return (SgTreeEntry*)nn;
   } else {
     int cmp;
-    node_t *parent;
+    node_t *parent, *e;
     SgTreeCompareProc *cpr = SG_TREEMAP_C_PROC(tm, cmp);
     do {
       parent = t;
@@ -289,7 +289,7 @@ static SgTreeEntry* rb_set(SgTreeMap *tm, intptr_t key)
 	return (SgTreeEntry*)t;
       }
     } while (t != NULL);
-    node_t *e = new_node(key, parent);
+    e = new_node(key, parent);
     if (cmp < 0) {
       parent->left = e;
     } else {
