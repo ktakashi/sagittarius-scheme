@@ -356,9 +356,12 @@ IF(USE_BOEHM_GC)
     INCLUDE_DIRECTORIES(${BOEHM_GC_INCLUDE_DIR})
   ELSE()
     # download boehm gc
-    # we need to use CMake conformed one, so the latest 7.2alpha6
+    # where did below URL go?
+    SET(GC_URL "http://www.hboehm.info/gc/gc_source")
+    # for now get it from github...
+    # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
     IF (MSVC OR WATCOM)
-      SET(USED_GC_VERSION "gc-7.2e")
+      SET(USED_GC_VERSION "gc-7.2f")
       SET(GC_VERSION "gc-7.2")
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
@@ -370,8 +373,9 @@ IF(USE_BOEHM_GC)
       PATHS ${CMAKE_CURRENT_BINARY_DIR})
     MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
     IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
+      MESSAGE(STATUS "Downloading ${GC_URL}/${USED_GC_VERSION}.tar.gz")
       FILE(
-	DOWNLOAD "http://www.hboehm.info/gc/gc_source/${USED_GC_VERSION}.tar.gz"
+	DOWNLOAD "${GC_URL}/${USED_GC_VERSION}.tar.gz"
 	"${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
