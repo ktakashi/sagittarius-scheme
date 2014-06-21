@@ -8,7 +8,7 @@ STRING(REPLACE "\n" ";" files "${files}")
 FOREACH (file ${files})
     MESSAGE(STATUS "Uninstalling \"$ENV{DESTDIR}${file}\"")
     IF (EXISTS "$ENV{DESTDIR}${file}")
-        EXECUTE_PROCESS(
+      EXECUTE_PROCESS(
             COMMAND @CMAKE_COMMAND@ -E remove "$ENV{DESTDIR}${file}"
             OUTPUT_VARIABLE rm_out
             RESULT_VARIABLE rm_retval
@@ -20,9 +20,18 @@ FOREACH (file ${files})
         MESSAGE(STATUS "File \"$ENV{DESTDIR}${file}\" does not exist.")
     ENDIF (EXISTS "$ENV{DESTDIR}${file}")
 ENDFOREACH(file)
+# uninstall symlink
+EXECUTE_PROCESS(
+  COMMAND @CMAKE_COMMAND@ -E remove "@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@"
+  OUTPUT_VARIABLE rm_out
+  RESULT_VARIABLE rm_retval
+  )
+IF(NOT ${rm_retval} EQUAL 0)
+  MESSAGE(FATAL_ERROR "Problem when removing \"@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@\"")
+ENDIF()  
 
 MESSAGE(STATUS "Deleting Installed directries")
-SET(dirs "@SAGITTARIUS_SHARE_SITE_LIB_PATH@;@SAGITTARIUS_DYNLIB_PATH@;@CMAKE_INSTALL_PREFIX@/share/@SAGITTARIUS_NAME@/@SAGITTARIUS_VERSION@")
+SET(dirs "@SAGITTARIUS_SHARE_SITE_LIB_PATH@;@CMAKE_INSTALL_PREFIX@/@SAGITTARIUS_CURRENT_LIB@;@CMAKE_INSTALL_PREFIX@/share/@SAGITTARIUS_NAME@/@SAGITTARIUS_VERSION@")
 FOREACH(dir ${dirs})
   MESSAGE(STATUS "Uninstalling \"$ENV{DESTDIR}${dir}\"")
   IF (EXISTS "$ENV{DESTDIR}${dir}")

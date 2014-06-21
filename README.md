@@ -71,7 +71,13 @@ To install Sagittarius non default location, you need to specify
 
     % cmake . -DCMAKE_INSTALL_PREFIX=/path/to/install
 
-After installing Boehm GC yet, go to the directory `gc-7.2` and type
+Since 0.5.6, Sagittarius's REPL is renamed to `sagittarius` and legacy
+`sash` is kept as a symbolic link. If you don't need the symbolic link
+then you can put the `INSTALL_SYMLINK` option off as following;
+
+    % cmake . -DINSTALL_SYMLINK=0
+
+After installing Boehm GC, go to the directory `gc-7.2` and type
 commands below and re-run `cmake`.  Make sure you delete CMakeCache.txt
 to re-run `cmake` command.
 

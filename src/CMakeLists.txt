@@ -123,6 +123,11 @@ ELSE()
 ENDIF()
 
 ADD_EXECUTABLE(sash ${PLATFORM_SOURCE_FOR_SASH} main.c)
+# Issue #37
+# There is the project using same name 'sash' and it seems older than
+# Sagittarius. On ArchLinux this causes name confliction and make impossible
+# to create a package for Sagittarius. So rename target name.
+SET_TARGET_PROPERTIES(sash PROPERTIES OUTPUT_NAME ${REAL_SASH_NAME})
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
 # copy gcmt-dll.dll to build
@@ -142,8 +147,21 @@ IF (CYGWIN)
   INSTALL(TARGETS sagittarius DESTINATION bin)
 ENDIF()
 INSTALL(TARGETS sash DESTINATION bin)
+
 # for version control
 # default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}
 # so let's put it there.
 INSTALL(TARGETS sagittarius DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
-INSTALL(TARGETS sash sagittarius DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sash DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+IF (NOT WIN32 AND INSTALL_SYMLINK)
+  MESSAGE(STATUS
+    "Adding symbolic link ${REAL_SASH_NAME} -> ${LEGACY_SASH_NAME}")
+  INSTALL(CODE 
+    "EXECUTE_PROCESS (
+       COMMAND ln -sf ${REAL_SASH_NAME} ${LEGACY_SASH_NAME}
+       WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/bin )")
+  INSTALL(CODE 
+    "EXECUTE_PROCESS (
+       COMMAND ln -sf ${REAL_SASH_NAME} ${LEGACY_SASH_NAME}
+       WORKING_DIRECTORY ${SAGITTARIUS_DYNLIB_PATH} )")
+ENDIF()

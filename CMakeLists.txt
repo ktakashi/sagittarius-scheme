@@ -7,6 +7,7 @@ OPTION(USE_BOEHM_GC "use boehm gc" ON)
 OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
 OPTION(DEBUG_VERSION "debug version" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
+OPTION(INSTALL_SYMLINK "installing symlink" ON)
 
 ### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
@@ -189,7 +190,7 @@ MESSAGE(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 
 # version string
-SET(SAGITTARIUS_VERSION "0.5.5" CACHE 
+SET(SAGITTARIUS_VERSION "0.5.6" CACHE 
   STRING "Sagittarius release version string" FORCE)
 
 SET(SAGITTARIUS_LIB_SUFFIX ${SAGITTARIUS_LIB_SUFFIX}
@@ -489,6 +490,17 @@ MACRO(ADD_FEATURE name)
     "Sg_AddCondFeature(UC(\"${name}\"));\n")
 ENDMACRO()
 
+# Issue #37: Name conflictin with other 'sash'.
+# Set target name here so that all CMakeLists.txt can refer it.
+# It'll be pain in the ass to change Windows name so keep it
+# as it is if the target platform is Windows
+IF (WIN32)
+  SET(REAL_SASH_NAME "sash")
+  SET(LEGACY_SASH_NAME "sash") # won't be used :)
+ELSE()
+  SET(REAL_SASH_NAME "sagittarius")
+  SET(LEGACY_SASH_NAME "sash")
+ENDIF()
 ADD_SUBDIRECTORY(src build/src)
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
 
@@ -604,7 +616,7 @@ FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
   "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads")
 
 ADD_CUSTOM_TARGET(test
-  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
@@ -613,7 +625,7 @@ ADD_CUSTOM_TARGET(test
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-clean
-  COMMAND ${PROJECT_BINARY_DIR}/build/sash -c
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
@@ -622,7 +634,7 @@ ADD_CUSTOM_TARGET(test-clean
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-ext
-  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
@@ -638,7 +650,7 @@ IF (NOT EXISTS ${PROJECT_BINARY_DIR}/doc)
 ENDIF()
 
 ADD_CUSTOM_TARGET(doc
-  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
   gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
@@ -646,7 +658,7 @@ ADD_CUSTOM_TARGET(doc
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
 ADD_CUSTOM_TARGET(online-doc
-  COMMAND ${PROJECT_BINARY_DIR}/build/sash
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
   gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
