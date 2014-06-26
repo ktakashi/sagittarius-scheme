@@ -1389,4 +1389,19 @@
   (test-equal "length" 100 (bytevector-length bv))
   (test-equal "result" exptected bv))
 
+;; call #38
+(test-equal "letrec* evaluation order"
+	    "one-1one-2one-3two-1two-2two-3"
+	    (call-with-string-output-port
+	     (lambda (out)
+	       (let ()
+		 (letrec* ((one1 (begin (display "one-1" out) '11))
+			   (one2 (begin (display "one-2" out) '12))
+			   (one3 (begin (display "one-3" out) '13))
+			   (two1 (begin (display "two-1" out) '11))
+			   (two2 (begin (display "two-2" out) '12))
+			   (two3 (begin (display "two-3" out) '13)))
+		  (test-equal "don't optimise this" 
+			      '(11 11) (list one1 two1)))))))
+
 (test-end)

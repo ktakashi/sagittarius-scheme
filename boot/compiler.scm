@@ -705,7 +705,7 @@
 		 newlvs
 		 (let ((al (case ($let-type iform)
 			     ((let) lv-alist)
-			     ((rec) newalist))))
+			     ((rec rec*) newalist))))
 		   (imap (lambda (init)
 			   (iform-copy init al))
 			 ($let-inits iform)))
@@ -854,7 +854,7 @@
       (display ")"))
      ((has-tag? iform $LET)
       (let* ((hdr (format "($let~a (" (case ($let-type iform)
-					((let) "") ((rec) "rec"))))
+					((let) "") (else => (lambda (x) x)))))
 	     (xind (+ ind (string-length hdr)))
 	     (first #t))
 	(display hdr)
@@ -995,7 +995,8 @@
 	,@(map (lambda (node) (rec node)) ($asm-args iform))))
      ((has-tag? iform $LET)
       `(,(case ($let-type iform)
-	   ((let) 'let) ((rec) 'letrec))
+	   ((let) 'let) 
+	   (else => (lambda (x) (string->symbol (format "let~a" x)))))
 	,(map (lambda (var init)
 		(list (lvar->string var)
 		      (rec  init)))
@@ -2070,9 +2071,9 @@
     (- (syntax-error "malformed let*" form))))
 
 (define-pass1-syntax (letrec form p1env) :null
-  (pass1/letrec form p1env 'letrec))
+  (pass1/letrec form p1env 'rec))
 (define-pass1-syntax (letrec* form p1env) :null
-  (pass1/letrec form p1env 'letrec*))
+  (pass1/letrec form p1env 'rec*))
 
 (define (pass1/letrec form p1env name)
   (smatch form
@@ -2082,7 +2083,7 @@
     ((- ((var expr) ___) body ___)
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env (%map-cons var lvars) LEXICAL)))
-       ($let form 'rec lvars
+       ($let form name lvars
 	     (imap2 (lambda (lv init)
 		      (let ((iexpr (pass1 init
 					  (p1env-add-name newenv 
@@ -2091,7 +2092,7 @@
 			iexpr))
 		    lvars expr)
 	     (pass1/body body newenv))))
-    (else (syntax-error (format "malformed ~a: ~s" name form)))))
+    (else (syntax-error (format "malformed let~a: ~s" name form)))))
 
 (define-pass1-syntax (do form p1env) :null
   (smatch form
@@ -3463,26 +3464,40 @@
       (ifor-each2 pass2/optimize-closure lvars inits)
       (pass2/shrink-let-frame iform lvars obody))))
 
+;; To make less stack consumpition, we remove unused variable
+;; the conversion is like this;
+;; (let ((a 'a) (b 'b) (c 'c)) (list a c))
+;;   -> (let ((a 'a) (c 'c)) 'b (list a c))
+;; However this optimisation violates letrec* requirements so
+;; for now if the given IFORM is letrec* then we don't optimise
+;; it. This may cause less performance. For example, in above
+;; case, if the expression was letrec then it can be evaluated to
+;; ($asm (LIST 2) ($const a) ($const c)) 
+;; however if it's the letrec* then it would consume stack space
+;; TODO letrec* optimisation
 (define (pass2/shrink-let-frame iform lvars obody)
-  (receive (new-lvars new-inits removed-inits)
-      (pass2/remove-unused-lvars lvars)
-    (cond ((null? new-lvars)
-	   ;; if initial variables were removed, but still we need to
-	   ;; evaluate it. so put it in front of body
-	   (if (null? removed-inits)
-	       obody
-	       ($seq (append! removed-inits (list obody)))))
-	  (else
-	   ($let-lvars-set! iform new-lvars)
-	   ($let-inits-set! iform new-inits)
-	   ($let-body-set! iform obody)
-	   (unless (null? removed-inits)
-	     (if (has-tag? obody $SEQ)
-		 ($seq-body-set! obody
-				 (append! removed-inits ($seq-body obody)))
-		 ($let-body-set! iform
-				 ($seq (append removed-inits (list obody))))))
-	   iform))))
+  ;; for now, we don't do this optimisation for letrec*
+  (if (eq? ($let-type iform) 'rec*)
+      iform
+      (receive (new-lvars new-inits removed-inits)
+	  (pass2/remove-unused-lvars lvars)
+	(cond ((null? new-lvars)
+	       ;; if initial variables were removed, but still we need to
+	       ;; evaluate it. so put it in front of body
+	       (if (null? removed-inits)
+		   obody
+		   ($seq (append! removed-inits (list obody)))))
+	      (else
+	       ($let-lvars-set! iform new-lvars)
+	       ($let-inits-set! iform new-inits)
+	       ($let-body-set! iform obody)
+	       (unless (null? removed-inits)
+		 (if (has-tag? obody $SEQ)
+		     ($seq-body-set! obody
+			(append! removed-inits ($seq-body obody)))
+		     ($let-body-set! iform
+			($seq (append removed-inits (list obody))))))
+	       iform)))))
 
 (define (pass2/remove-unused-lvars lvars)
   (let loop ((lvars lvars)
@@ -4374,7 +4389,7 @@
     (pass4/scan ($if-else iform) bs fs t? labels)))
 (define (pass4-scan/$LET iform bs fs t? labels)
   (let* ((new-bs (append ($let-lvars iform) bs))
-	 (bs (if (eq? ($let-type iform) 'rec) new-bs bs))
+	 (bs (if (memv ($let-type iform) '(rec rec*)) new-bs bs))
 	 (fs (pass4/scan* ($let-inits iform) bs fs t? labels)))
     (pass4/scan ($let-body iform) new-bs fs #f labels)))
 (define (pass4-scan/$RECEIVE iform bs fs t? labels)
@@ -5009,7 +5024,7 @@
 	       (+ test-size then-size else-size)))))))
 
 (define-backtacible (pass5/$LET iform cb renv ctx)
-  (if (eq? ($let-type iform) 'rec)
+  (if (memv ($let-type iform) '(rec rec*))
       (pass5/letrec iform cb renv ctx)
       (pass5/let iform cb renv ctx)))
 
