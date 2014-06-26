@@ -628,9 +628,14 @@
 	   (test-result-set! (test-runner-get) 'expected-error t))
 	 (guard (ex (else
 		     (test-result-set! (test-runner-get) 'actual-error ex)
-		     (if (procedure? t) (t ex) #T)))
-	   expr
-	   #F)))))
+		     (if (procedure? t) (t ex) #t)))
+	   ;; on Sagittarius, error is not a side effect so
+	   ;; we need to decieve compiler not to eliminate expr.
+	   ;; for now our compiler is not so smart so we just
+	   ;; need to do like this
+	   (let ((r expr))
+	     (set! r #f)
+	     r))))))
 
   (define-syntax test-error
     (syntax-rules ()

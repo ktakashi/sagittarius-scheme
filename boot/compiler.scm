@@ -4025,11 +4025,28 @@
 
 ;; For now
 (define (no-side-effect-call? proc args)
+  (define (no-side-effect-procedure? id)
+    (let ((lib (id-library id))
+	  (name (id-name id)))
+      (and-let* ((gloc (find-binding lib name #f))
+		 (val  (gloc-ref gloc))
+		 ( (procedure? val) )
+		 ( (procedure-no-side-effect? val) ))
+	val)))
+  (define (callable? p consts)
+    ;; we only need to know if it can be called without an error.
+    (guard (e (else #f))
+      (apply p (imap $const-value args))
+      #t))
   (cond (($gref? proc)
-	 (let ((proc (inlinable-binding? ($gref-id proc) #f)))
+	 (and-let* ((proc (no-side-effect-procedure? ($gref-id proc))))
 	   ;; it's already folded and if there still $const means
 	   ;; sommething wrong with the procedure
-	   (and proc (not (for-all $const? args)))))
+	   (if (for-all $const? args)
+	       ;; in case of (car 'a) check it
+	       ;; FIXME slow...
+	       (callable? proc args)
+	       #t)))
 	;; for now
 	(else #f)))
 

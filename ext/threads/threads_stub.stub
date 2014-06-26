@@ -40,7 +40,7 @@
   (result (-> obj name)))
 
 (define-c-proc thread-specific-set! (obj::<thread> value)
-  ::<void> :no-side-effect
+  ::<void>
   (set! (-> obj specific) value))
 
 (define-c-proc thread-specific (obj::<thread>) :no-side-effect
