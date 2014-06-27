@@ -22,7 +22,8 @@
 	    string-ci-hash
 	    symbol-hash)
     (import (core)
-	    (core base))
+	    (core base)
+	    (sagittarius))
 ) ; [end]
 ;; end of file
 ;; Local Variables:

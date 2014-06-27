@@ -823,6 +823,8 @@
 ;;;;;
 ;; 13 hashtable
 ;; 13.2 procedures
+;; it's defined in extlib.stub now.
+#;
 (define (hashtable-update! ht key proc default)
   (or (and (hashtable? ht)
 	   (hashtable-mutable? ht))
