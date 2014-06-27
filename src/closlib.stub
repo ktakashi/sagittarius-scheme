@@ -20,20 +20,21 @@
   (define-c-proc %remove-direct-subclass! (super::<class> sub::<class>) ::<void>
     Sg_RemoveDirectSubclass)
 
-  (define-c-proc slot-ref (o name::<symbol>)
+  (define-c-proc slot-ref (o name::<symbol>) :no-side-effect
     (setter slot-set!)
     Sg_VMSlotRef)
 
   (define-c-proc slot-set! (o name::<symbol> v) Sg_VMSlotSet)
 
-  (define-c-proc slot-ref-using-accessor (o sa::<slot-accessor>)
+  (define-c-proc slot-ref-using-accessor (o sa::<slot-accessor>) :no-side-effect
     Sg_SlotRefUsingAccessor)
   (define-c-proc slot-set-using-accessor! (o sa::<slot-accessor> v) ::<void>
     Sg_SlotSetUsingAccessor)
-  (define-c-proc slot-bound-using-accessor? (o sa::<slot-accessor>) ::<boolean>
+  (define-c-proc slot-bound-using-accessor? (o sa::<slot-accessor>)
+    ::<boolean> :no-side-effect
     Sg_SlotBoundUsingAccessor)
 
-  (define-c-proc slot-ref-using-class (cl o slot::<symbol>)
+  (define-c-proc slot-ref-using-class (cl o slot::<symbol>) :no-side-effect
     (unless (Sg_TypeP cl SG_CLASS_CLASS)
       (Sg_WrongTypeOfArgumentViolation 'slot-ref-using-class
 				       (SG_MAKE_STRING "sub type of <class>")
@@ -47,21 +48,24 @@
 				       cl (SG_LIST4 cl o slot v)))
     (Sg_SlotSetUsingClass cl o slot v))
 
-  (define-c-proc slot-bound-using-class? (cl o slot::<symbol>) ::<boolean>
+  (define-c-proc slot-bound-using-class? (cl o slot::<symbol>) 
+    ::<boolean> :no-side-effect
     (unless (Sg_TypeP cl SG_CLASS_CLASS)
       (Sg_WrongTypeOfArgumentViolation 'slot-bound-using-class?
 				       (SG_MAKE_STRING "sub type of <class>")
 				       cl (SG_LIST3 cl o slot)))
     (result (Sg_SlotBoundUsingClass cl o slot)))
 
-  (define-c-proc slot-bound? (o name::<symbol>) Sg_VMSlotBoundP)
+  (define-c-proc slot-bound? (o name::<symbol>) :no-side-effect Sg_VMSlotBoundP)
 
-  (define-c-proc class-of (o) Sg_VMClassOf)
+  (define-c-proc class-of (o) :no-side-effect Sg_VMClassOf)
   ;; for mop, to retrieve class before redefined
-  (define-c-proc current-class-of (o) Sg_ClassOf)
+  (define-c-proc current-class-of (o) :no-side-effect Sg_ClassOf)
 
-  (define-c-proc is-a? (o klass::<class>) Sg_VMIsA)
-  (define-c-proc subtype? (c1::<class> c2::<class>) ::<boolean> Sg_SubtypeP)
+  (define-c-proc is-a? (o klass::<class>) :no-side-effect Sg_VMIsA)
+  (define-c-proc subtype? (c1::<class> c2::<class>)
+    ::<boolean> :no-side-effect
+    Sg_SubtypeP)
 
   (define-cfn call-fallback-proc (args::SgObject* nargs::int gf::SgGeneric*)
     :static

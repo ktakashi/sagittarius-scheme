@@ -32,25 +32,20 @@
   (define-c-proc identifier=? (use_env x mac_env y) ::<boolean> :constant
     Sg_IdentifierEqP)
 
-  (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME)
+  (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME) :no-side-effect
 
-  (define-c-proc identifier->symbol (id)
-    (unless (or (SG_SYMBOLP id)
-		(SG_IDENTIFIERP id))
+  (define-c-proc identifier->symbol (id) :no-side-effect
+    (unless (or (SG_SYMBOLP id) (SG_IDENTIFIERP id))
       (wrong-type-of-argument-violation 'identifier->symbol
-					"symbol or identifier"
-					id))
+					"symbol or identifier" id))
     (if (SG_SYMBOLP id)
 	(result id)
 	(result (SG_IDENTIFIER_NAME id))))
 
-  (define-c-proc id-memq (id lst)
+  (define-c-proc id-memq (id lst) :constant
     (if (SG_IDENTIFIERP id)
 	(result (Sg_Memq (SG_IDENTIFIER_NAME id) lst))
 	(result (Sg_Memq id lst))))
-
-  (define-c-proc toplevel-id? (id::<identifier>) ::<boolean>
-    (result (SG_FALSEP (SG_IDENTIFIER_LIBRARY id))))
 
   ;; closure?
   (define-c-proc closure? (cl) ::<boolean> SG_CLOSUREP) :constant
@@ -66,7 +61,7 @@
 			   lis))
     (result (Sg_ReverseX lis)))
 
-  (define-c-proc acons (a b alist) Sg_Acons)
+  (define-c-proc acons (a b alist) :no-side-effect Sg_Acons)
 
   (define-c-proc append! (:rest lst)
     (let ((h '()) (t '()))
@@ -88,11 +83,13 @@
   ;; vector
   (define-c-proc vector-copy (vec::<vector> :optional (start::<fixnum> 0)
 					            (end::<fixnum> -1)
-						    fill)
+						    fill) :no-side-effect
     Sg_VectorCopy)
 
-  (define-c-proc vector-concatenate (vec-list::<list>) Sg_VectorConcatenate)
-  (define-c-proc vector-append (:rest vec-list) Sg_VectorConcatenate)
+  (define-c-proc vector-concatenate (vec-list::<list>) :no-side-effect
+    Sg_VectorConcatenate)
+  (define-c-proc vector-append (:rest vec-list) :no-side-effect
+    Sg_VectorConcatenate)
   
   (define-c-proc vector-reverse!
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
@@ -103,6 +100,7 @@
 
   (define-c-proc vector-reverse
     (vec::<vector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
     (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
 
   (define-c-proc current-exception-handler (:optional handle)
@@ -120,7 +118,7 @@
 	  (result SG_UNDEF))))
 
   ;; misc
-  (define-c-proc variable? (o) ::<boolean>
+  (define-c-proc variable? (o) ::<boolean> :constant
     (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))
   ;; inexact computation
   (define-cise-stmt check-number
@@ -207,12 +205,11 @@
 
   (define-c-proc load (path::<string>) Sg_VMLoad)
 
-  (define-c-proc gensym (:optional prefix::<string>)
-    (when (SG_UNBOUNDP prefix)
-      (set! prefix NULL))
+  (define-c-proc gensym (:optional prefix::<string>) :no-side-effect
+    (when (SG_UNBOUNDP prefix) (set! prefix NULL))
     (result (Sg_Gensym prefix)))
 
-  (define-c-proc unwrap-syntax (form) Sg_UnwrapSyntax)
+  (define-c-proc unwrap-syntax (form) :no-side-effect Sg_UnwrapSyntax)
 
   (define-c-proc current-dynamic-environment (:optional other::<weak-hashtable>)
     ::<top>
@@ -229,7 +226,8 @@
   (define-c-proc load-dynamic-library (name::<string> :optional init)
     (result (Sg_DynLoad name init 0)))
 
-  (define-c-proc sagittarius-version ()
+  ;; this will never be constant :)
+  (define-c-proc sagittarius-version () :no-side-effect
     (result (SG_MAKE_STRING SAGITTARIUS_VERSION)))
 
   (define-c-proc report-error (e :optional (out (Sg_CurrentErrorPort))) ::<void>
@@ -237,22 +235,24 @@
 
   (define-c-proc describe-condition (e) Sg_DescribeCondition)
 
-  (define-c-proc interned-symbol? (s) ::<boolean> SG_INTERNED_SYMBOL)
+  (define-c-proc interned-symbol? (s) ::<boolean> :no-side-effect
+    SG_INTERNED_SYMBOL)
 
   ;; SRFI-17
-  (define-c-proc setter (proc)
+  (define-c-proc setter (proc) :no-side-effect
     (setter (proc::<procedure> setter::<procedure>) ::<void>
 	    (Sg_SetterSet proc setter FALSE))
     Sg_Setter)
 
-  (define-c-proc has-setter? (proc) ::<boolean> Sg_HasSetter)
+  (define-c-proc has-setter? (proc) ::<boolean> :no-side-effect Sg_HasSetter)
 
   ;; filesystem
   (define-c-proc copy-file
-    (srd::<string> dst::<string> :optional (overwrite?::<boolean> #f)) ::<boolean>
+    (srd::<string> dst::<string> :optional (overwrite?::<boolean> #f)) 
+    ::<boolean>
     Sg_CopyFile)
 
-  (define-c-proc file-size-in-bytes (path::<string>)
+  (define-c-proc file-size-in-bytes (path::<string>) :no-side-effect
     (let ((size (Sg_FileSize path)))
       (if (SG_UNDEFP size)
 	  (Sg_AssertionViolation 'file-size-in-bytes
@@ -260,25 +260,25 @@
 				 path))
       (result size)))
   
-  (define-c-proc file-regular? (path::<string>) ::<boolean>
+  (define-c-proc file-regular? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileRegularP)
 
-  (define-c-proc file-directory? (path::<string>) ::<boolean>
+  (define-c-proc file-directory? (path::<string>) ::<boolean> :no-side-effect
     Sg_DirectoryP)
 
-  (define-c-proc file-symbolic-link? (path::<string>) ::<boolean>
+  (define-c-proc file-symbolic-link? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileSymbolicLinkP)
 
-  (define-c-proc file-readable? (path::<string>) ::<boolean>
+  (define-c-proc file-readable? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileReadableP)
 
-  (define-c-proc file-writable? (path::<string>) ::<boolean>
+  (define-c-proc file-writable? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileWritableP)
 
-  (define-c-proc file-executable? (path::<string>) ::<boolean>
+  (define-c-proc file-executable? (path::<string>) ::<boolean> :no-side-effect
     Sg_FileExecutableP)
 
-  (define-c-proc file-stat-ctime (path::<string>)
+  (define-c-proc file-stat-ctime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileChangeTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-ctime
@@ -286,7 +286,7 @@
 				 path))
       (result tm)))
 
-  (define-c-proc file-stat-mtime (path::<string>)
+  (define-c-proc file-stat-mtime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileModifyTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-mtime
@@ -294,7 +294,7 @@
 				 path))
       (result tm)))
 
-  (define-c-proc file-stat-atime (path::<string>)
+  (define-c-proc file-stat-atime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileAccessTime path)))
       (if (SG_UNDEFP tm)
 	  (Sg_AssertionViolation 'file-stat-atime
@@ -302,7 +302,8 @@
 				 path))
       (result tm)))
 
-  (define-c-proc create-symbolic-link (oldpath::<string> newpath::<string>) ::<void>
+  (define-c-proc create-symbolic-link (oldpath::<string> newpath::<string>)
+    ::<void>
     (unless (Sg_CreateSymbolicLink oldpath newpath)
       (Sg_AssertionViolation 'create-symbolic-link
 			     (Sg_GetLastErrorMessage)
@@ -329,7 +330,8 @@
 			     (Sg_GetLastErrorMessage)
 			     path)))
 
-  (define-c-proc read-directory (path::<string>) Sg_ReadDirectory)
+  (define-c-proc read-directory (path::<string>) :no-side-effect
+    Sg_ReadDirectory)
 
   ;; make this parameterizable
   (define-c-proc current-directory (:optional path::<string>)
@@ -342,10 +344,12 @@
   (define-c-proc set-current-directory (path::<string>) ::<void>
     Sg_SetCurrentDirectory)
 
-  (define-c-proc build-path (path::<string> file::<string>) Sg_BuildPath)
-  (define-c-proc absolute-path? (path::<string>) ::<boolean>
+  (define-c-proc build-path (path::<string> file::<string>) :no-side-effect
+    Sg_BuildPath)
+  (define-c-proc absolute-path? (path::<string>) ::<boolean> :no-side-effect
     Sg_AbsolutePathP)
-  (define-c-proc absolute-path (path::<string>) Sg_AbsolutePath)
+  (define-c-proc absolute-path (path::<string>) :no-side-effect
+    Sg_AbsolutePath)
 
   (define-cfn retrieve-flags (list) ::int :static
     (let ((flags::int 0))
@@ -360,14 +364,15 @@
 				    (SG_LIST2 flag list)))))
       (return flags)))
 
-  (define-c-proc glob (path::<string> :rest flags)
+  (define-c-proc glob (path::<string> :rest flags) :no-side-effect
     ;; for now
     (result (Sg_Glob path (retrieve-flags flags))))
 
-  (define-c-proc current-load-path ()
+  (define-c-proc current-load-path () :no-side-effect
     (result (-> (Sg_VM) currentLoadPath)))
 
-  (define-c-proc sagittarius-installed-directory () Sg_InstalledDirectory)
+  (define-c-proc sagittarius-installed-directory () :no-side-effect
+    Sg_InstalledDirectory)
 
   (define-c-proc copy-access-control (src::<string> dst::<string>) ::<boolean>
     Sg_CopyAccessControl)
@@ -402,10 +407,12 @@
 
   ;; readonly current library access
   ;; it's nice to have this
-  (define-c-proc current-library () (result (-> (Sg_VM) currentLibrary)))
+  (define-c-proc current-library () :no-side-effect
+    (result (-> (Sg_VM) currentLibrary)))
 
   ;; string
   (define-c-proc string-scan (s1::<string> s2 :optional (mode 'index))
+    :no-side-effect
     (let ((rmode::int 0))
       (cond ((SG_EQ mode 'index)   (set! rmode SG_STRING_SCAN_INDEX))
 	    ((SG_EQ mode 'before)  (set! rmode SG_STRING_SCAN_BEFORE))
@@ -424,14 +431,17 @@
 					       "string or char"
 					       s2
 					       (SG_LIST3 s1 s2 mode))))))
-  (define-c-proc string-concatenate (strings::<list>) Sg_StringAppend)
+  (define-c-proc string-concatenate (strings::<list>) :no-side-effect
+    Sg_StringAppend)
 
   (define-c-proc %maybe-substring 
     (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
     Sg_MaybeSubstring)
 
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
+    :no-side-effect
     (when (< k 0) 
       (wrong-type-of-argument-violation 'make-equal-hashtable 
 					"non negative exact integer"
@@ -439,17 +449,20 @@
     (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k)))
 
   (define-c-proc make-string-hashtable (:optional (k::<fixnum> 200))
+    :no-side-effect
     (when (< k 0) 
       (wrong-type-of-argument-violation 'make-string-hashtable 
 					"non negative exact integer"
 					(SG_MAKE_INT k)))
     (result (Sg_MakeHashTableSimple SG_HASH_STRING k)))
 
-  (define-c-proc hashtable-keys-list (ht::<hashtable>) Sg_HashTableKeys)
+  (define-c-proc hashtable-keys-list (ht::<hashtable>) :no-side-effect
+    Sg_HashTableKeys)
 
-  (define-c-proc  hashtable-values-list (ht::<hashtable>) Sg_HashTableValues)
+  (define-c-proc  hashtable-values-list (ht::<hashtable>) :no-side-effect
+    Sg_HashTableValues)
 
-  (define-c-proc hashtable-type (ht::<hashtable>)
+  (define-c-proc hashtable-type (ht::<hashtable>) :no-side-effect
     (cond ((== (-> ht type) SG_HASH_EQ)
 	   (result 'eq))
 	  ((== (-> ht type) SG_HASH_EQV)
@@ -465,14 +478,14 @@
 				"invalid hashtable type"
 				ht))))
 
-  (define-c-proc hashtable-compare (ht::<hashtable>)
+  (define-c-proc hashtable-compare (ht::<hashtable>) :no-side-effect
     (result (-> (SG_HASHTABLE_CORE ht) generalCompare)))
 
-  (define-c-proc hashtable-hasher (ht::<hashtable>)
+  (define-c-proc hashtable-hasher (ht::<hashtable>) :no-side-effect
     (result (-> (SG_HASHTABLE_CORE ht) generalHasher)))
 
   ;; just for consistancy
-  (define-c-proc hashtable-values (ht::<hashtable>)
+  (define-c-proc hashtable-values (ht::<hashtable>) :no-side-effect
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
   (define-cise-stmt dict-update!
@@ -516,8 +529,8 @@
 
   ;; the same as symbol-hash but different procedure
   ;; should we use Sg_MakeIntegerU as eqv-hash?
-  (define-c-proc eq-hash (o) ::<fixnum> Sg_EqHash)
-  (define-c-proc eqv-hash (o)
+  (define-c-proc eq-hash (o) ::<fixnum> :no-side-effect Sg_EqHash)
+  (define-c-proc eqv-hash (o) :no-side-effect
     (result (Sg_MakeIntegerU (Sg_EqvHash o))))
 
   ;; error
@@ -542,7 +555,8 @@
 					  "output port"
 					  ,p))))
   
-  (define-c-proc port-closed? (p::<port>) ::<boolean> Sg_PortClosedP)
+  (define-c-proc port-closed? (p::<port>) ::<boolean>  :no-side-effect
+    Sg_PortClosedP)
 
   (define-c-proc write/ss (o :optional (p::<port> (Sg_CurrentOutputPort)))
     ::<void>
@@ -619,10 +633,11 @@
 	     (result (Sg_GetStringFromStringPort out))))))
 
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
+    :no-side-effect
     Sg_MakeCustomCodecSimple)
 
   (define-c-proc utf-32-codec 
-    (:optional (endian::<symbol> (Sg_NativeEndianness)))
+    (:optional (endian::<symbol> (Sg_NativeEndianness))) :no-side-effect
     (cond ((SG_EQ endian 'big)
 	   (result (Sg_MakeUtf32Codec UTF_32BE)))
 	  ((SG_EQ endian 'little)
@@ -633,7 +648,7 @@
 	   (assertion-violation 'utf-32-codec "unsupported endianness" 
 				endian))))
 
-  (define-c-proc port-info (p::<port>)
+  (define-c-proc port-info (p::<port>) :no-side-effect
     (let ((file (Sg_FileName p))
 	  (line #f)
 	  (pos #f))
@@ -791,7 +806,7 @@
     Sg_ReadCacheObject)
 
   ;; getenv
-  (define-c-proc getenv (path::<string>)
+  (define-c-proc getenv (path::<string>) :no-side-effect
     (result (Sg_Getenv (SG_STRING_VALUE path))))
 
   (define-c-proc setenv (key::<string> value) ::<void>
@@ -805,7 +820,7 @@
 					       value)))
       (Sg_Setenv (SG_STRING_VALUE key) v)))
   
-  (define-c-proc getenv-alist () Sg_GetenvAlist)
+  (define-c-proc getenv-alist () :no-side-effect Sg_GetenvAlist)
 
   (define-c-proc emergency-exit (:optional obj) ::<void>
     ;; TODO thread
@@ -834,24 +849,26 @@
     Sg_ByteVectorToIntegerS)
 
   (define-c-proc integer->bytevector 
-    (n::<integer> :optional (size::<fixnum> -1))
+    (n::<integer> :optional (size::<fixnum> -1)) :no-side-effect
     Sg_IntegerToByteVector)
   ;; explicit sign
   (define-c-proc uinteger->bytevector 
-    (n::<integer> :optional (size::<fixnum> -1))
+    (n::<integer> :optional (size::<fixnum> -1)) :no-side-effect
     Sg_IntegerToByteVector)
   (define-c-proc sinteger->bytevector 
-    (n::<integer> :optional (size::<fixnum> -1))
+    (n::<integer> :optional (size::<fixnum> -1)) :no-side-effect
     Sg_SIntegerToByteVector)
 
-  (define-c-proc bytevector-append (:rest bv-list) Sg_ByteVectorConcatenate)
-  (define-c-proc bytevector-concatenate (bv-list::<list>)
+  (define-c-proc bytevector-append (:rest bv-list) :no-side-effect
+    Sg_ByteVectorConcatenate)
+  (define-c-proc bytevector-concatenate (bv-list::<list>) :no-side-effect
     Sg_ByteVectorConcatenate)
   (define-c-proc bytevector-reverse!
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     Sg_ByteVectorReverseX)
   (define-c-proc bytevector-reverse
     (bv::<bytevector> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
     (result (Sg_ByteVectorReverseX (Sg_ByteVectorCopy bv 0 -1) start end)))
 
   (define-c-proc current-usage-env () (result (-> (Sg_VM) usageEnv)))
@@ -859,9 +876,9 @@
   (define-c-proc current-macro-env () (result (-> (Sg_VM) macroEnv)))
 
   ;; time
-  (define-c-proc time-usage () Sg_TimeUsage)
+  (define-c-proc time-usage () :no-side-effect Sg_TimeUsage)
 
-  (define-c-proc cond-features () Sg_CondFeatures)
+  (define-c-proc cond-features () :no-side-effect Sg_CondFeatures)
 
   ;; charset
   (define-c-proc char-set? (obj) ::<boolean> :constant SG_CHAR_SET_P)
@@ -874,20 +891,23 @@
 					    "character" ch))
 	(Sg_CharSetAddRange ,cs (SG_CHAR_VALUE ch) (SG_CHAR_VALUE ch)))))
 
-  (define-c-proc char-set (:rest chars)
+  (define-c-proc char-set (:rest chars) :no-side-effect
     (let ((cs::SgCharSet* (SG_CHAR_SET (Sg_MakeEmptyCharSet))))
       (char-set-add char-set cs chars)
       (result cs)))
 
-  (define-c-proc char-set-copy (cs::<char-set>) Sg_CharSetCopy)
+  (define-c-proc char-set-copy (cs::<char-set>) :no-side-effect Sg_CharSetCopy)
 
   (define-c-proc char-set-contains? (cs::<char-set> ch::<char>) ::<boolean>
+    :no-side-effect
     Sg_CharSetContains)
 
   (define-c-proc %char-set-equal? (x::<char-set> y::<char-set>) ::<boolean>
+    :no-side-effect
     Sg_CharSetEq)
 
   (define-c-proc %char-set<=? (x::<char-set> y::<char-set>) ::<boolean>
+    :no-side-effect
     Sg_CharSetLe)
 
   (define-c-proc %char-set-add-chars! (cs::<char-set> chars)
@@ -973,23 +993,25 @@
 	       (shareP::<boolean> #t))
     (return (Sg_ReadDelimitedList p c shareP)))
 
-  (define-c-proc delimited-char? (c::<char>) ::<boolean> Sg_DelimitedCharP)
+  (define-c-proc delimited-char? (c::<char>) ::<boolean> :no-side-effect
+    Sg_DelimitedCharP)
 
-  (define-c-proc constant-literal? (o) ::<boolean> Sg_ConstantLiteralP)
+  (define-c-proc constant-literal? (o) ::<boolean> :constant
+    Sg_ConstantLiteralP)
 
   (define-c-proc digit-value (c::<char>) Sg_DigitValue)
 
   (define-c-proc weak-vector? (o) ::<boolean> :constant SG_WEAK_VECTORP)
   (define-c-proc make-weak-vector (size::<fixnum>) Sg_MakeWeakVector)
 
-  (define-c-proc weak-vector-length (o) ::<fixnum>
+  (define-c-proc weak-vector-length (o) ::<fixnum> :no-side-effect
     (unless (SG_WEAK_VECTORP o)
       (wrong-type-of-argument-violation 'weak-vector-length
 					"weak-vector" o))
     (result (-> (SG_WEAK_VECTOR o) size)))
 
   (define-c-proc weak-vector-ref (wvec k::<fixnum> :optional fallback)
-    :constant (setter weak-vector-set!)
+    :no-side-effect (setter weak-vector-set!)
     (unless (SG_WEAK_VECTORP wvec)
       (wrong-type-of-argument-violation 'weak-vector-ref
 					"weak-vector" wvec))
@@ -1016,6 +1038,7 @@
   ;; TODO ugly copy paste with almost the same...
   (define-c-proc make-weak-eq-hashtable 
     (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    :no-side-effect
     (let ((w::SgWeakness SG_WEAK_BOTH)
 	  (v SG_UNDEF))
       (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
@@ -1030,6 +1053,7 @@
 
   (define-c-proc make-weak-eqv-hashtable 
     (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    :no-side-effect
     (let ((w::SgWeakness SG_WEAK_BOTH)
 	  (v SG_UNDEF))
       (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
@@ -1045,7 +1069,7 @@
   (define-c-proc weak-hashtable? (o) ::<boolean> :constant SG_WEAK_HASHTABLE_P)
 
   (define-c-proc weak-hashtable-ref 
-    (wh::<weak-hashtable> key :optional (fallback #f)) :constant
+    (wh::<weak-hashtable> key :optional (fallback #f)) :no-side-effect
     (setter weak-hashtable-set!)
     (result (Sg_WeakHashTableRef wh key fallback)))
 
@@ -1055,13 +1079,14 @@
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
     Sg_WeakHashTableDelete)
 
-  (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>)
+  (define-c-proc weak-hashtable-keys-list (wh::<weak-hashtable>) :no-side-effect
     Sg_WeakHashTableKeys)
 
   (define-c-proc weak-hashtable-values-list (wh::<weak-hashtable>)
+    :no-side-effect
     Sg_WeakHashTableValues)
 
-  (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>) 
+  (define-c-proc weak-hashtable-copy (wh::<weak-hashtable>) :no-side-effect
     Sg_WeakHashTableCopy)
 
   (define-c-proc weak-hashtable-shrink (wh::<weak-hashtable>) ::<fixnum>
@@ -1075,14 +1100,16 @@
       (Sg_GetTimeOfDay (& sec) (& usec))
       (result (Sg_MakeIntegerFromS64 (+ (* (cast int64_t sec) 1000000) usec)))))
 
-  (define-c-proc immediate? (o) ::<boolean>
+  ;; fixnum may return different result (32bit/64bit thing)
+  (define-c-proc immediate? (o) ::<boolean> :no-side-effect
     (result (not (SG_PTRP o))))
 
-  (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) Sg_GetMacAddress)
+  (define-c-proc get-mac-address (:optional (pos::<fixnum> 0)) :no-side-effect
+    Sg_GetMacAddress)
 
-  (define-c-proc uname () Sg_Uname)
+  (define-c-proc uname () :no-side-effect Sg_Uname)
 
-  (define-c-proc sagittarius-sitelib-directory () Sg_SitelibPath)
+  (define-c-proc sagittarius-sitelib-directory () :no-side-effect Sg_SitelibPath)
 
   ;; for convenience.
   (define-c-proc gc () ::<void> Sg_GC)
@@ -1117,13 +1144,15 @@
 	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
 
   ;; compare
-  (define-c-proc compare (x y) ::<fixnum> Sg_Compare)
+  (define-c-proc compare (x y) ::<fixnum> :no-side-effect Sg_Compare)
 
   ;; tree-map, only expose default implementation for now (rb-tree)
-  (define-c-proc make-rb-treemap (cmp::<procedure>) Sg_MakeSchemeRBTreeMap)
-  (define-c-proc treemap? (o) ::<boolean> SG_TREEMAP_P)
+  (define-c-proc make-rb-treemap (cmp::<procedure>) :no-side-effect
+    Sg_MakeSchemeRBTreeMap)
+  (define-c-proc treemap? (o) ::<boolean> :constant SG_TREEMAP_P)
 
   (define-c-proc treemap-ref (tm::<tree-map> key :optional (fallback #f))
+    :no-side-effect
     Sg_TreeMapRef)
   (define-c-proc treemap-set! (tm::<tree-map> key value) ::<void>
     (Sg_TreeMapSet tm key value 0))
@@ -1131,19 +1160,23 @@
     Sg_TreeMapDelete)
   (define-c-proc treemap-clear! (tm::<tree-map>) ::<void>
     Sg_TreeMapClear)
-  (define-c-proc treemap-copy (tm::<tree-map>) Sg_TreeMapCopy)
-  (define-c-proc treemap-contains? (tm::<tree-map> key) ::<boolean>
+  (define-c-proc treemap-copy (tm::<tree-map>) :no-side-effect Sg_TreeMapCopy)
+  (define-c-proc treemap-contains? (tm::<tree-map> key)
+    ::<boolean> :no-side-effect
     ;; TODO this may expose unbound variable to scheme world
     ;; so need something better...
     (let* ((mark (?: (SG_SCHEME_TREEMAP_P tm) SG_UNBOUND NULL))
 	   (r (Sg_TreeMapRef tm key mark)))
       (result (not (== r mark)))))
 
-  (define-c-proc treemap-keys-list (tm::<tree-map>) Sg_TreeMapKeys)
-  (define-c-proc treemap-values-list (tm::<tree-map>) Sg_TreeMapValues)
-  (define-c-proc treemap-entries-list (tm::<tree-map>) Sg_TreeMapEntries)
+  (define-c-proc treemap-keys-list (tm::<tree-map>) :no-side-effect
+    Sg_TreeMapKeys)
+  (define-c-proc treemap-values-list (tm::<tree-map>) :no-side-effect
+    Sg_TreeMapValues)
+  (define-c-proc treemap-entries-list (tm::<tree-map>) :no-side-effect
+    Sg_TreeMapEntries)
 
-  (define-c-proc treemap-size (tm::<tree-map>) ::<fixnum>
+  (define-c-proc treemap-size (tm::<tree-map>) ::<fixnum> :no-side-effect
     (result (-> tm entryCount)))
 
   (define-cfn treemap-update-cc (result data::void**) :static
