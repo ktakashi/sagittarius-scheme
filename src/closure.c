@@ -34,6 +34,8 @@
 #include "sagittarius/library.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/pair.h"
+/* for debug */
+/* #include "sagittarius/vm.h" */
 
 SgObject Sg_MakeClosure(SgObject code,
 			SgObject *frees)
@@ -57,6 +59,7 @@ SgObject Sg_MakeClosure(SgObject code,
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
+  SG_PROCEDURE_TRANSPARENT(cl) = SG_CLOSURE_UNCHECKED;
   /* for future */
   /* cl->checked = FALSE; */
   return SG_OBJ(cl);
@@ -64,25 +67,21 @@ SgObject Sg_MakeClosure(SgObject code,
 
 static int check_gref_call(SgObject id_or_gloc, SgObject seen, int* skippedP);
 
-static int closure_transparent(SgObject closure, SgObject seen)
+static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
 {
-  int flag = SG_PROC_TRANSPARENT;
-  SgCodeBuilder *cb;
-  SgWord *code;
-  int size, i;
-  /* it's already checked, so just return the previous result. */
-  if (SG_PROCEDURE_TRANSPARENT(closure) != SG_CLOSURE_UNCHECKED)
-    return SG_PROCEDURE_TRANSPARENT(closure);
-
-  cb = SG_CODE_BUILDER(SG_CLOSURE(closure)->code);
-  code = cb->code;
-  size = cb->size;
+  SgWord *code = cb->code;
+  int size = cb->size, flag = SG_PROC_TRANSPARENT, i;
   /* for now we only checks very simple case... */
   for (i = 0; i < size; i++) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
+#if 0
+    if (Sg_VM()->state == RUNNING) {
+      fprintf(stderr, "insn: %s\n", info->name);
+    }
+#endif
     switch (info->number) {
       /* constant */
-    case UNDEF: case CONST: case CONSTI:
+    case UNDEF: case CONST: case CONSTI: case CONST_RET:
     case EQ: case EQV: case NULLP: case PAIRP: case SYMBOLP:
     case VECTORP:
       /* well error is not a side effect... */
@@ -99,6 +98,7 @@ static int closure_transparent(SgObject closure, SgObject seen)
     case LREF_PUSH: case CONST_PUSH: case CONSTI_PUSH: 
     case CAR_PUSH: case CDR_PUSH:
     case LREF_CAR: case LREF_CDR: case LREF_CAR_PUSH: case LREF_CDR_PUSH:
+    case LSET:			/* it affects only local so should be fine */
       /* keep default */
       break;
       /* no-side-effect */
@@ -120,16 +120,28 @@ static int closure_transparent(SgObject closure, SgObject seen)
       if (!skippedP) flag = flag2;
       break;
     }
-      /* CLOSURE, APPLY, CALL, TAIL_CALL  */
+    case CLOSURE:
+      flag = closure_transparent_rec(SG_CODE_BUILDER(SG_OBJ(code[i+1])), seen);
+      break;
+      /* APPLY, CALL, TAIL_CALL  */
     default: flag = SG_CLOSURE_SIDE_EFFECT; break;
     }
     /* no need to check anymore */
     if (flag == SG_CLOSURE_SIDE_EFFECT) break;
     i += info->argc;
   }
-
-  SG_PROCEDURE_TRANSPARENT(closure) = flag;
   return flag;
+}
+
+static int closure_transparent(SgObject closure, SgObject seen)
+{
+  /* it's already checked, so just return the previous result. */
+  if (SG_PROCEDURE_TRANSPARENT(closure) != SG_CLOSURE_UNCHECKED)
+    return SG_PROCEDURE_TRANSPARENT(closure);
+
+  SG_PROCEDURE_TRANSPARENT(closure) = 
+    closure_transparent_rec(SG_CODE_BUILDER(SG_CLOSURE(closure)->code), seen);
+  return SG_PROCEDURE_TRANSPARENT(closure);
 }
 
 static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)

@@ -498,10 +498,10 @@
          (exists-n pred (cons lst1 lst2)))))
 
 (define (filter pred lst)
-  (let loop ((lst lst))
-    (cond ((null? lst) '())
-          ((pred (car lst)) (cons (car lst) (loop (cdr lst))))
-          (else (loop (cdr lst))))))
+  (let loop ((lst lst) (acc '()))
+    (cond ((null? lst) (reverse! acc))
+	  ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc)))
+	  (else (loop (cdr lst) acc)))))
 
 (define (partition pred lst)
   (let loop ((lst lst) (acc1 '()) (acc2 '()))
@@ -607,54 +607,38 @@
 ;;	    (apply proc (append! (car lis) (list (loop (cdr lis) knil))))))))
 
 (define (remp pred lst)
-  (let loop ((lst lst))
-    (cond ((null? lst) '())
-          ((pred (car lst))
-           (loop (cdr lst)))
-          (else
-           (cons (car lst)
-                 (loop (cdr lst)))))))
+  (let loop ((lst lst) (r '()))
+    (cond ((null? lst) (reverse! r))
+          ((pred (car lst)) (loop (cdr lst) r))
+          (else (loop (cdr lst) (cons (car lst) r))))))
 
 (define (remove obj lst)
-  (let loop ((lst lst))
-    (cond ((null? lst) '())
-          ((equal? (car lst) obj)
-           (loop (cdr lst)))
-          (else
-           (cons (car lst)
-                 (loop (cdr lst)))))))
+  (let loop ((lst lst) (r '()))
+    (cond ((null? lst) (reverse! r))
+          ((equal? (car lst) obj) (loop (cdr lst) r))
+          (else (loop (cdr lst) (cons (car lst) r))))))
 
 (define (remv obj lst)
-  (let loop ((lst lst))
-    (cond ((null? lst) '())
-          ((eqv? (car lst) obj)
-           (loop (cdr lst)))
-          (else
-           (cons (car lst)
-                 (loop (cdr lst)))))))
+  (let loop ((lst lst) (r '()))
+    (cond ((null? lst) (reverse! r))
+          ((eqv? (car lst) obj) (loop (cdr lst) r))
+          (else (loop (cdr lst) (cons (car lst) r))))))
 
 (define (remq obj lst)
-  (let loop ((lst lst))
-    (cond ((null? lst) '())
-          ((eq? (car lst) obj)
-           (loop (cdr lst)))
-          (else
-           (cons (car lst)
-                 (loop (cdr lst)))))))
+  (let loop ((lst lst) (r '()))
+    (cond ((null? lst) (reverse! r))
+          ((eq? (car lst) obj) (loop (cdr lst) r))
+          (else (loop (cdr lst) (cons (car lst) r))))))
 
 (define (memp proc lst)
-  (cond
-   ((null? lst) #f)
-   ((proc (car lst)) lst)
-   (else
-    (memp proc (cdr lst)))))
+  (cond ((null? lst) #f)
+	((proc (car lst)) lst)
+	(else (memp proc (cdr lst)))))
 
 (define (assp proc lst)
-  (cond
-   ((null? lst) #f)
-   ((proc (caar lst)) (car lst))
-   (else
-    (assp proc (cdr lst)))))
+  (cond ((null? lst) #f)
+	((proc (caar lst)) (car lst))
+	(else (assp proc (cdr lst)))))
 
 ;;;;
 ;; 4 Sorting
