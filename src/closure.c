@@ -115,7 +115,7 @@ static int closure_transparent(SgObject closure, SgObject seen)
       break;
       /* conditional no-side-effect*/
     case GREF_CALL: case GREF_TAIL_CALL: {
-      int skippedP = FALSE;
+      int skippedP = FALSE;      
       int flag2 = check_gref_call(SG_OBJ(code[i+1]), seen, &skippedP);
       if (!skippedP) flag = flag2;
       break;
@@ -136,12 +136,11 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
 {
   SgObject proc;
   if (SG_IDENTIFIERP(id_or_gloc)) {
-    proc = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id_or_gloc),
-			  SG_IDENTIFIER_NAME(id_or_gloc),
-			  SG_UNBOUND);
-  } else {
-    proc = SG_GLOC_GET(SG_GLOC(id_or_gloc));
+    id_or_gloc = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id_or_gloc),
+				SG_IDENTIFIER_NAME(id_or_gloc),
+				SG_UNBOUND);
   }
+  proc = SG_GLOC_GET(SG_GLOC(id_or_gloc));
   if (!SG_FALSEP(Sg_Memq(proc, seen))) {
     *skippedP = TRUE;
     return SG_CLOSURE_SIDE_EFFECT;
