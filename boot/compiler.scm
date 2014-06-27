@@ -4069,7 +4069,7 @@
 	    (($const index) (and (fixnum? ($const-value index))
 				 (not (negative? ($const-value index)))))
 	    (else #t)))) ;; both non $const
-   ((ADD SUB MUL DIV) 
+   ((ADD SUB MUL DIV NUM_EQ NUM_LT NUM_LE NUM_GT NUM_GE) 
     ;; check if there is non number constant
     (not (exists (lambda (arg)
 		   (and ($const arg) (not (number? ($const-value arg)))))

@@ -39,7 +39,7 @@
 	(result TRUE)
 	(result (and (SG_CLOSUREP arg0)
 		     (== (SG_PROCEDURE_TRANSPARENT arg0) SG_CLOSURE_UNCHECKED)
-		     (== (Sg_ClosureTransparentP arg0) SG_PROC_TRANSPARENT)))))
+		     (== (Sg_ClosureTransparent arg0) SG_PROC_TRANSPARENT)))))
 
   (define-c-proc procedure-no-side-effect? (arg0::<procedure>) ::<boolean>
     (if (or (SG_PROCEDURE_TRANSPARENTP arg0)
@@ -47,7 +47,7 @@
 	(result TRUE)
 	(result (and (SG_CLOSUREP arg0)
 		     (== (SG_PROCEDURE_TRANSPARENT arg0) SG_CLOSURE_UNCHECKED)
-		     (not (== (Sg_ClosureTransparentP arg0)
+		     (not (== (Sg_ClosureTransparent arg0)
 			      SG_CLOSURE_SIDE_EFFECT))))))
 
   (define-c-proc inline? (arg0) ::<boolean>
