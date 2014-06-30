@@ -4600,10 +4600,10 @@
 
 (define (add-backtrace c src) (make-trace-condition (unwrap-syntax src)))
 
-(define-syntax define-backtacible
+(define-syntax define-backtracible
   (syntax-rules ()
     ((_ (name . formals) body ...)
-     (define-backtacible name (lambda formals body ...)))
+     (define-backtracible name (lambda formals body ...)))
     ((_ name expr)
      (define name
        (lambda (iform cb renv ctx)
@@ -4895,7 +4895,7 @@
   (cb-emit0! cb UNDEF)
   0)
 
-(define-backtacible (pass5/$DEFINE iform cb renv ctx)
+(define-backtracible (pass5/$DEFINE iform cb renv ctx)
   (let ((d (pass5/rec ($define-expr iform) cb renv 'normal/bottom))
 	(f (if (memq 'const ($define-flags iform)) 1 0)))
     (cb-emit1oi! cb DEFINE f ($define-id iform) ($*-src iform))
@@ -4944,7 +4944,7 @@
     (cb-emit0o! cb CONST ($const-value iform)))
   0)
 
-(define-backtacible (pass5/$IF iform cb renv ctx)
+(define-backtracible (pass5/$IF iform cb renv ctx)
   (cond ((and (not (has-tag? ($if-then iform) $IT))
 	      (not (has-tag? ($if-else iform) $IT))
 	      (has-tag? ($if-test iform) $ASM)
@@ -5040,7 +5040,7 @@
 		 (cb-label-set! cb end-of-else))
 	       (+ test-size then-size else-size)))))))
 
-(define-backtacible (pass5/$LET iform cb renv ctx)
+(define-backtracible (pass5/$LET iform cb renv ctx)
   (if (memv ($let-type iform) '(rec rec*))
       (pass5/letrec iform cb renv ctx)
       (pass5/let iform cb renv ctx)))
@@ -5114,7 +5114,7 @@
 	    (cb-emit1! cb LEAVE nargs))
 	  (+ body-size args-size nargs))))))
 
-(define-backtacible pass5/$LAMBDA
+(define-backtracible pass5/$LAMBDA
   (lambda (iform cb renv ctx)
     (let* ((vars ($lambda-lvars iform))
 	   (body ($lambda-body iform))
@@ -5146,7 +5146,7 @@
 			  ($lambda-src iform))
 	0))))
 
-(define-backtacible pass5/$RECEIVE
+(define-backtracible pass5/$RECEIVE
   (lambda (iform cb renv ctx)
     (let* ((vars ($receive-lvars iform))
 	   (body ($receive-body iform))
@@ -5174,7 +5174,7 @@
 	    (cb-emit1! cb LEAVE nargs))
 	  (+ body-size expr-size nargs))))))
 
-(define-backtacible (pass5/$LABEL iform cb renv ctx)
+(define-backtracible (pass5/$LABEL iform cb renv ctx)
   (let ((label ($label-label iform)))
     (cond (label
 	   (cb-emit0o! cb JUMP label)
@@ -5198,7 +5198,7 @@
 				       (stmt-context ctx))
 			    depth))))))))
 
-(define-backtacible pass5/$CALL
+(define-backtracible pass5/$CALL
   (lambda (iform cb renv ctx)
     (case ($call-flag iform)
 	((local) (pass5/local-call iform cb renv ctx))
@@ -5322,7 +5322,7 @@
 	 (all-args-simple? (cdr args)))
 	(else #f)))
 
-(define-backtacible (pass5/$ASM iform cb renv ctx)
+(define-backtracible (pass5/$ASM iform cb renv ctx)
   (let ((info ($*-src iform))
 	(insn ($asm-insn iform))
 	(args ($asm-args iform)))
