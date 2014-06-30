@@ -244,7 +244,7 @@
 			(i (if tag 1 0))
 			(r '()))
 	       (if (null? s)
-		   (reverse r)
+		   (reverse! r)
 		   (let* ((slot-name (if (pair? (car s)) (caar s) (car s)))
 			  (acc (string->symbol (string-append (symbol->string name) "-" (symbol->string slot-name))))
 			  (mod (string->symbol (string-append (symbol->string name) "-" (symbol->string slot-name) "-set!"))))
@@ -3477,29 +3477,27 @@
 ;; TODO letrec* optimisation
 (define (pass2/shrink-let-frame iform lvars obody)
   ;; for now, we don't do this optimisation for letrec*
-  (if (eq? ($let-type iform) 'rec*)
-      iform
-      (receive (new-lvars new-inits removed-inits)
-	  (pass2/remove-unused-lvars lvars)
-	(cond ((null? new-lvars)
-	       ;; if initial variables were removed, but still we need to
-	       ;; evaluate it. so put it in front of body
-	       (if (null? removed-inits)
-		   obody
-		   ($seq (append! removed-inits (list obody)))))
-	      (else
-	       ($let-lvars-set! iform new-lvars)
-	       ($let-inits-set! iform new-inits)
-	       ($let-body-set! iform obody)
-	       (unless (null? removed-inits)
-		 (if (has-tag? obody $SEQ)
-		     ($seq-body-set! obody
-			(append! removed-inits ($seq-body obody)))
-		     ($let-body-set! iform
-			($seq (append removed-inits (list obody))))))
-	       iform)))))
+  (receive (new-lvars new-inits removed-inits)
+      (pass2/remove-unused-lvars lvars ($let-type iform))
+    (cond ((null? new-lvars)
+	   ;; if initial variables were removed, but still we need to
+	   ;; evaluate it. so put it in front of body
+	   (if (null? removed-inits)
+	       obody
+	       ($seq (append! removed-inits (list obody)))))
+	  (else
+	   ($let-lvars-set! iform new-lvars)
+	   ($let-inits-set! iform new-inits)
+	   ($let-body-set! iform obody)
+	   (unless (null? removed-inits)
+	     (if (has-tag? obody $SEQ)
+		 ($seq-body-set! obody
+		   (append! removed-inits ($seq-body obody)))
+		 ($let-body-set! iform
+		   ($seq (append removed-inits (list obody))))))
+	   iform))))
 
-(define (pass2/remove-unused-lvars lvars)
+(define (pass2/remove-unused-lvars lvars type)
   (let loop ((lvars lvars)
 	     (rl '())  ;; result lvars
 	     (ri '())  ;; result inits
@@ -3512,15 +3510,19 @@
 	   (loop (cdr lvars) rl ri rr))
 	  ((and (zero? (lvar-ref-count (car lvars)))
 		(zero? (lvar-set-count (car lvars))))
-	   ;; TODO: if I remove $LREF from inits, do I need to decrement
-	   ;; refcount?
-	   (loop (cdr lvars) rl ri
-		 (let ((init (lvar-initval (car lvars))))
-		   (cond (($lref? init)
-			  (lvar-ref--! ($lref-lvar init))
-			  rr)
-			 ((transparent? init) rr)
-			 (else (cons init rr))))))
+	   (let ((init (lvar-initval (car lvars))))
+	     (if (and (eq? type 'rec*)
+		      (not (transparent? init)))
+		 (loop (cdr lvars) (cons (car lvars) rl)
+		       (cons init ri) rr)
+		 ;; TODO: if I remove $LREF from inits, do I need to decrement
+		 ;; refcount?
+		 (loop (cdr lvars) rl ri
+		       (cond (($lref? init)
+			      (lvar-ref--! ($lref-lvar init))
+			      rr)
+			     ((transparent? init) rr)
+			     (else (cons init rr)))))))
 	  (else
 	   (loop (cdr lvars)
 		 (cons (car lvars) rl)
