@@ -66,14 +66,14 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
   }
 
   if (self_pos) {
-    cl->frees[self_pos-1] = cl;
 #if 0
-    Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), cl);
+    Sg_Printf(Sg_StandardErrorPort(), UC("\n%S:%d\n"), cl, self_pos-1);
     for (i = 0; i < freec; i++) {
-      Sg_Printf(Sg_StandardErrorPort(), UC("%d:%S:%p\n"), i, cl->frees[i], cl->frees[i]);
+      Sg_Printf(Sg_StandardErrorPort(), UC("%d:%p\n"), i, cl->frees[i]);
     }
-    Sg_VMPrintFrame();
+    /* Sg_VMPrintFrame(); */
 #endif
+    cl->frees[self_pos-1] = cl;
   }
 
   SG_PROCEDURE_TRANSPARENT(cl) = SG_CLOSURE_UNCHECKED;

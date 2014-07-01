@@ -5051,10 +5051,8 @@
   (let* ((vars ($lambda-lvars iform))
 	 (body ($lambda-body iform))
 	 (free (pass5/find-free body vars 
-				(renv-add-can-free2 renv
-						    (renv-locals renv)
-						    (renv-frees renv))
-				cb))
+		(renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+		cb))
 	 (sets (pass5/find-sets body vars))
 	 (lambda-cb (make-code-builder))
 	 (frsiz (if (null? free)
@@ -5070,14 +5068,66 @@
       ;; closure to trunk cb.
       (values lambda-cb free (+ body-size frsiz nargs (vm-frame-size))))))
 
+;; enable it after 0.5.6
+;;;;
+;; Basically this doesn't work for some case
+;; e.g)
+;; (let ()
+;;    (define x 5)
+;;    (define count 0)
+;;    (define p
+;;      (delay (begin (set! count (+ count 1))
+;; 		   (if (> count x)
+;; 		       count
+;; 		       (force p)))))
+;;    (print (force p))
+;;    (print (begin (set! x 10) (force p))))
+;; This case can't handle `p` properly. `delay` creates a thunk however
+;; in the thunk `p` is closure and outside `p` is promise. I don't have
+;; any better way to resolve this other than implicit boxing. So for now
+;; we only optimise it if the initial value is `lambda`
 #;
 (define (pass5/letrec iform cb renv ctx)
+  ;; if the letrec has cross reference then it needs to have implicit boxing
+  ;; otherwiese one of the procedure can't resolve the other one.
+  ;; e.g)
+  ;;  (letrec ((a (lambda () (b)))
+  ;;           (b (lambda () (a))))
+  ;;    (b))
+  ;; the 'b' won't be resolved without implicit boxing. however 'a' can still
+  ;; be resolved without boxing. so we try to minimise the allocation.
+  (define (collect-cross-reference ovars renv)
+    (let ((all-frees (ifilter-map 
+		      (lambda (var)
+			(pass5/find-free (lvar-initval var) ovars renv cb))
+		      ovars))
+	  (non-lambdas (ifilter-map
+			(lambda (var) 
+			  (and (not ($lambda? (lvar-initval var)))
+			       var))
+			ovars)))
+      ;; debug prints
+      ;;(ifor-each (lambda (frees) (print (imap lvar-name frees))) all-frees)
+      ;;(print (imap lvar-name ovars))
+      (let loop ((all-frees all-frees)
+		 (vars ovars)
+		 (acc '()))
+	(if (or (null? vars) (null? all-frees))
+	    ;; merge non-lambda
+	    (lset-union eq? non-lambdas acc)
+	    ;; we don't need self
+	    (let ((frees (lset-intersection eq? (cdr vars) (car all-frees))))
+	      ;; if one or more vars are in the frees then it needs
+	      ;; to be boxed
+	      (loop (cdr all-frees)
+		    (cdr vars)
+		    (lset-union eq? frees acc)))))))
   (define (compile-inits renv args vars sets locals)
     (define (handle-lambda lm cb renv sets var)
       (if ($lambda? lm)
 	  (let-values (((lambda-cb frees stack-size)
 			(pass5/compile-lambda lm cb renv 'normal/bottom)))
-	    	       ;; emit local closure here
+	    ;; emit local closure here
 	    (cb-emit-local-closure!
 	     cb
 	     ;; self call must be done via free variable/global variable
@@ -5123,16 +5173,18 @@
 		(cb-emit1i! cb LSET index (lvar-name var))
 		(cb-emit1! cb INST_STACK index))
 	    (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1))))))
-  
   (let* ((vars ($let-lvars iform))
 	 (body ($let-body iform))
 	 (args ($let-inits iform))
-	 (sets (append vars
+	 (cross-vars (collect-cross-reference 
+		      vars (renv-add-can-free2 renv vars (renv-frees renv))))
+	 (sets (append cross-vars
 		       (pass5/find-sets body vars)
 		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
 				     args)))
 	 (nargs (length vars))
 	 (total (+ nargs (length (renv-locals renv)))))
+    ;;(print "cross vars " (imap lvar-name cross-vars))
     (cb-emit1! cb RESV_STACK (length vars))
     (pass5/make-boxes cb sets vars)
     (let* ((new-renv (make-new-renv renv 
