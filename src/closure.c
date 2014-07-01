@@ -34,8 +34,14 @@
 #include "sagittarius/library.h"
 #include "sagittarius/identifier.h"
 #include "sagittarius/pair.h"
-/* for debug */
-/* #include "sagittarius/vm.h" */
+
+/* #define DEBUG_CHECK 1 */
+/* #define CHECK_CLOSURE_TRANSPARENCY */
+
+#ifdef DEBUG_CHECK
+#include "sagittarius/vm.h"
+#endif
+
 SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
 {
   SgClosure *cl;
@@ -81,6 +87,7 @@ SgObject Sg_MakeClosure(SgObject code, SgObject *frees)
   return Sg_VMMakeClosure(code, 0, frees);
 }
 
+#ifdef CHECK_CLOSURE_TRANSPARENCY
 static int check_gref_call(SgObject id_or_gloc, SgObject seen, int* skippedP);
 
 static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
@@ -91,39 +98,43 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
   for (i = 0; i < size; i++) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
 #if 0
-    if (Sg_VM()->state == RUNNING) {
-      fprintf(stderr, "insn: %s\n", info->name);
-    }
+    fprintf(stderr, "insn: %s: %d\n", info->name, flag);
 #endif
     switch (info->number) {
       /* constant */
     case UNDEF: case CONST: case CONSTI: case CONST_RET:
     case EQ: case EQV: case NULLP: case PAIRP: case SYMBOLP:
     case VECTORP:
+      /* constant operations */
+    case NOP: case LREF: case PUSH: case JUMP: case SHIFTJ:
+      /* branch */
+    case TEST:
+    case BNNUME: case BNLT: case BNLE: case BNGT: case BNGE:
+    case BNEQ: case BNEQV: case BNNULL:
+      /* others */
+    case RECEIVE: case FRAME: case LEAVE: case RET:
+    case LREF_PUSH: case CONST_PUSH: case CONSTI_PUSH: 
       /* well error is not a side effect... */
     case ADD: case ADDI: case SUB: case SUBI: case MUL: case MULI:
     case DIV: case DIVI: case NEG: case NOT:
     case NUM_EQ: case NUM_LT: case NUM_LE: case NUM_GT: case NUM_GE:
-    case CAR: case CDR: case VALUES: case VEC_LEN: case VEC_REF:
+    case CAR: case CDR: 
     case CAAR: case CADR: case CDAR: case CDDR:
-      /* constant operations */
-    case NOP: case LREF: case PUSH: case TEST: case JUMP: case SHIFTJ:
-    case BNNUME: case BNLT: case BNLE: case BNGT: case BNGE:
-    case BNEQ: case BNEQV: case BNNULL:
-    case RECEIVE: case FRAME: case LEAVE: case RET:
-    case LREF_PUSH: case CONST_PUSH: case CONSTI_PUSH: 
     case CAR_PUSH: case CDR_PUSH:
     case LREF_CAR: case LREF_CDR: case LREF_CAR_PUSH: case LREF_CDR_PUSH:
+    case VALUES: case VEC_LEN: case VEC_REF:
     case LSET:			/* it affects only local so should be fine */
       /* keep default */
       break;
       /* no-side-effect */
       /* FREF and GREF is a bit tricky but they have a chance to get
 	 changed so it won't be constant */
-    case FREF: case GREF: case BOX: case UNBOX: case CONS: case LIST:
-    case APPEND: case FREF_PUSH: case GREF_PUSH: case CONS_PUSH:
-    case FREF_CAR: case FREF_CDR: case GREF_CAR: case GREF_CDR:
+    case FREF: case BOX: case UNBOX: case CONS: case LIST:
+    case APPEND: case FREF_PUSH: case CONS_PUSH:
+    case FREF_CAR: case FREF_CDR:
     case FREF_CAR_PUSH: case FREF_CDR_PUSH:
+    case GREF_CAR: case GREF_CDR:
+    case GREF: case GREF_PUSH: 
     case GREF_CAR_PUSH: case GREF_CDR_PUSH:
       if (flag == SG_PROC_TRANSPARENT) {
 	flag = SG_PROC_NO_SIDE_EFFECT;
@@ -131,7 +142,7 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
       break;
       /* conditional no-side-effect*/
     case GREF_CALL: case GREF_TAIL_CALL: {
-      int skippedP = FALSE;      
+      int skippedP = FALSE;
       int flag2 = check_gref_call(SG_OBJ(code[i+1]), seen, &skippedP);
       if (!skippedP) flag = flag2;
       break;
@@ -157,6 +168,12 @@ static int closure_transparent(SgObject closure, SgObject seen)
 
   SG_PROCEDURE_TRANSPARENT(closure) = 
     closure_transparent_rec(SG_CODE_BUILDER(SG_CLOSURE(closure)->code), seen);
+
+#ifdef DEBUG_CHECK
+  if (SG_PROCEDURE_TRANSPARENT(closure) != SG_CLOSURE_SIDE_EFFECT) 
+    Sg_Printf(Sg_StandardErrorPort(), UC("result: %S:%d\n\n"), 
+	      closure, SG_PROCEDURE_TRANSPARENT(closure));
+#endif
   return SG_PROCEDURE_TRANSPARENT(closure);
 }
 
@@ -169,7 +186,7 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
 				SG_UNBOUND);
   }
   if (SG_UNBOUNDP(id_or_gloc)) {
-    /* unbound */
+    /* unbound (error?) */
     return SG_CLOSURE_SIDE_EFFECT;
   }
   proc = SG_GLOC_GET(SG_GLOC(id_or_gloc));
@@ -189,11 +206,17 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
   return SG_CLOSURE_SIDE_EFFECT;
 
 }
+#endif
 /* look thru the instruction and check if there is a side effect
    instruction or procedure. */
 int Sg_ClosureTransparent(SgObject closure)
 {
+#if CHECK_CLOSURE_TRANSPARENCY
   return closure_transparent(closure, SG_NIL);
+#else
+  SG_PROCEDURE_TRANSPARENT(closure) = SG_CLOSURE_SIDE_EFFECT;
+  return SG_PROCEDURE_TRANSPARENT(closure);
+#endif
 }
 /*
   end of file
