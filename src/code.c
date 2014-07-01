@@ -251,6 +251,13 @@ static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
       goto flush;
     }
     break;
+  case LEAVE:
+    switch (cb->packet.insn) {
+      /* merge it */
+    case LEAVE: cb->packet.arg0 += packet->arg0; break;
+    default: goto flush;
+    }
+    break;
   default:
   flush:
     flush(cb);

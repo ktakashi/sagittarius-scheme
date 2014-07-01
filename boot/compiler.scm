@@ -4820,8 +4820,7 @@
   (uniq (rec iform '())))
 
 (define (pass5/collect-free cb frees renv)
-  (let loop ((size 0)
-	     (reversed-frees (reverse frees)))
+  (let loop ((size 0) (reversed-frees (reverse frees)))
     (cond ((null? reversed-frees) size)
 	  (else
 	   (let ((stack-size (pass5/compile-refer (car reversed-frees)
@@ -5047,6 +5046,104 @@
       (pass5/letrec iform cb renv ctx)
       (pass5/let iform cb renv ctx)))
 
+;; compile $LAMBDA node but don't emit CLOSURE instruction
+(define (pass5/compile-lambda iform cb renv ctx)
+  (let* ((vars ($lambda-lvars iform))
+	 (body ($lambda-body iform))
+	 (free (pass5/find-free body vars 
+				(renv-add-can-free2 renv
+						    (renv-locals renv)
+						    (renv-frees renv))
+				cb))
+	 (sets (pass5/find-sets body vars))
+	 (lambda-cb (make-code-builder))
+	 (frsiz (if (null? free)
+		    0
+		    (pass5/collect-free cb free renv)))
+	 (nargs (length vars)))
+    ;; creating closure in lmabda-cb
+    (pass5/make-boxes lambda-cb sets vars)
+    (let* ((new-renv (make-new-renv renv vars free sets vars #f))
+	   (body-size (pass5/rec body lambda-cb new-renv 'tail)))
+      (cb-emit0! lambda-cb RET)
+      ;; closure is in lambda-cb so we just need to emit
+      ;; closure to trunk cb.
+      (values lambda-cb free (+ body-size frsiz nargs (vm-frame-size))))))
+
+#;
+(define (pass5/letrec iform cb renv ctx)
+  (define (compile-inits renv args vars sets locals)
+    (define (handle-lambda lm cb renv sets var)
+      (if ($lambda? lm)
+	  (let-values (((lambda-cb frees stack-size)
+			(pass5/compile-lambda lm cb renv 'normal/bottom)))
+	    	       ;; emit local closure here
+	    (cb-emit-local-closure!
+	     cb
+	     ;; self call must be done via free variable/global variable
+	     ;; we only need to check free variable to make performance
+	     ;; a bit better
+	     ;; we need to check both sets and frees
+	     ;;  * if the target var is set! variable then it's already
+	     ;;    a box so we can't overwrite it in creating a closure
+	     ;;  * if it's not in frees then it's not a self recursive
+	     ;;    call so just ignore it
+	     ;;  * we need to specify the target closure's position so
+	     ;;    that closure creation can put it in proper free
+	     ;;    variable position.
+	     ;; NOTE: since we are using 0 as non self recursive call
+	     ;;       we need to do 1-origin. a bit awkward though.
+	     (or (and (not (memq var sets))
+		      (let loop ((frees frees) (index 1))
+			(cond ((null? frees) 0)
+			      ((eq? var (car frees)) index)
+			      (else (loop (cdr frees) (+ index 1))))))
+		 0)
+	     lambda-cb
+	     ($lambda-name lm)
+	     ($lambda-args lm)
+	     (> ($lambda-option lm) 0)
+	     (length frees)
+	     stack-size
+	     ($lambda-src lm))
+	    0)
+	  (pass5/rec lm cb renv 'normal/bottom)))
+    (let loop ((args args)
+	       (vars vars)
+	       (size 0)
+	       (index (length locals)))
+      (if (null? args)
+	  size
+	  (let* ((var (car vars))
+		 (stack-size (handle-lambda (car args) cb renv sets var)))
+	    ;; this closure is what we need
+	    ;; if the var is set! variable then reserved place is
+	    ;; already a box so we need to use LSET
+	    (if (memq var sets)
+		(cb-emit1i! cb LSET index (lvar-name var))
+		(cb-emit1! cb INST_STACK index))
+	    (loop (cdr args) (cdr vars) (+ stack-size size) (+ index 1))))))
+  
+  (let* ((vars ($let-lvars iform))
+	 (body ($let-body iform))
+	 (args ($let-inits iform))
+	 (sets (append vars
+		       (pass5/find-sets body vars)
+		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
+				     args)))
+	 (nargs (length vars))
+	 (total (+ nargs (length (renv-locals renv)))))
+    (cb-emit1! cb RESV_STACK (length vars))
+    (pass5/make-boxes cb sets vars)
+    (let* ((new-renv (make-new-renv renv 
+				    (append (renv-locals renv) vars)
+				    (renv-frees renv) sets vars #f))
+	   (assign-size (compile-inits new-renv args vars sets 
+				       (renv-locals renv)))
+	   (body-size (pass5/rec body cb new-renv ctx)))
+      (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
+      (+ body-size assign-size nargs))))
+
 (define (pass5/letrec iform cb renv ctx)
   (let* ((vars ($let-lvars iform))
 	 (body ($let-body iform))
@@ -5118,35 +5215,16 @@
 
 (define-backtracible pass5/$LAMBDA
   (lambda (iform cb renv ctx)
-    (let* ((vars ($lambda-lvars iform))
-	   (body ($lambda-body iform))
-	   (free (pass5/find-free body vars 
-				  (renv-add-can-free2 renv
-						     (renv-locals renv)
-						     (renv-frees renv))
-				  cb))
-	   (sets (pass5/find-sets body vars))
-	   (lambda-cb (make-code-builder))
-	   (frlen (length free))
-	   (frsiz (if (> frlen 0)
-		      (pass5/collect-free cb free renv)
-		      0))
-	   (nargs (length vars)))
-      ;; creating closure in lmabda-cb
-      (pass5/make-boxes lambda-cb sets vars)
-      (let* ((new-renv (make-new-renv renv vars free sets vars #f))
-	     (body-size (pass5/rec body lambda-cb new-renv 'tail)))
-	(cb-emit0! lambda-cb RET)
-	;; closure is in lambda-cb so we just need to emit
-	;; closure to trunk cb.
-	(cb-emit-closure! cb CLOSURE lambda-cb
-			  ($lambda-name iform)
-			  ($lambda-args iform)
-			  (> ($lambda-option iform) 0)
-			  frlen
-			  (+ body-size frsiz nargs (vm-frame-size))
-			  ($lambda-src iform))
-	0))))
+    (let-values (((lambda-cb frees max-stack)
+		  (pass5/compile-lambda iform cb renv ctx)))
+      (cb-emit-closure! cb CLOSURE lambda-cb
+			($lambda-name iform)
+			($lambda-args iform)
+			(> ($lambda-option iform) 0)
+			(length frees)
+			max-stack
+			($lambda-src iform))
+      0)))
 
 (define-backtracible pass5/$RECEIVE
   (lambda (iform cb renv ctx)

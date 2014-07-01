@@ -36,9 +36,7 @@
 #include "sagittarius/pair.h"
 /* for debug */
 /* #include "sagittarius/vm.h" */
-
-SgObject Sg_MakeClosure(SgObject code,
-			SgObject *frees)
+SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
 {
   SgClosure *cl;
   int req, opt, i, freec;
@@ -55,14 +53,32 @@ SgObject Sg_MakeClosure(SgObject code,
   SG_PROCEDURE_INIT(cl, req, opt, SG_PROC_CLOSURE, info);
 
   freec = SG_CODE_BUILDER_FREEC(code);
+
   cl->code = code;
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
+
+  if (self_pos) {
+    cl->frees[self_pos-1] = cl;
+#if 0
+    Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), cl);
+    for (i = 0; i < freec; i++) {
+      Sg_Printf(Sg_StandardErrorPort(), UC("%d:%S:%p\n"), i, cl->frees[i], cl->frees[i]);
+    }
+    Sg_VMPrintFrame();
+#endif
+  }
+
   SG_PROCEDURE_TRANSPARENT(cl) = SG_CLOSURE_UNCHECKED;
   /* for future */
   /* cl->checked = FALSE; */
   return SG_OBJ(cl);
+}
+
+SgObject Sg_MakeClosure(SgObject code, SgObject *frees)
+{
+  return Sg_VMMakeClosure(code, 0, frees);
 }
 
 static int check_gref_call(SgObject id_or_gloc, SgObject seen, int* skippedP);
@@ -94,7 +110,7 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
     case NOP: case LREF: case PUSH: case TEST: case JUMP: case SHIFTJ:
     case BNNUME: case BNLT: case BNLE: case BNGT: case BNGE:
     case BNEQ: case BNEQV: case BNNULL:
-    case RECEIVE: case FRAME: case ENTER: case LEAVE: case RET:
+    case RECEIVE: case FRAME: case LEAVE: case RET:
     case LREF_PUSH: case CONST_PUSH: case CONSTI_PUSH: 
     case CAR_PUSH: case CDR_PUSH:
     case LREF_CAR: case LREF_CDR: case LREF_CAR_PUSH: case LREF_CDR_PUSH:
@@ -151,6 +167,10 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
     id_or_gloc = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id_or_gloc),
 				SG_IDENTIFIER_NAME(id_or_gloc),
 				SG_UNBOUND);
+  }
+  if (SG_UNBOUNDP(id_or_gloc)) {
+    /* unbound */
+    return SG_CLOSURE_SIDE_EFFECT;
   }
   proc = SG_GLOC_GET(SG_GLOC(id_or_gloc));
   if (!SG_FALSEP(Sg_Memq(proc, seen))) {

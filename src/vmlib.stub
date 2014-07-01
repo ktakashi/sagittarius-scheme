@@ -258,6 +258,25 @@
     (Sg_CodeBuilderEmit cb insn ARGUMENT1 0 0 lambda_cb)
     (Sg_CodeBuilderAddSrc lambda_cb insn src))
 
+  ;; for local closure
+  (define-c-proc cb-emit-local-closure! (cb::<code-builder> 
+					 self-pos::<fixnum>
+					 lambda_cb::<code-builder>
+					 name 
+					 req_argc::<fixnum>
+					 opt::<boolean>
+					 freec::<fixnum>
+					 max_stack::<fixnum>
+					 src) ::<void>
+    (set! (SG_CODE_BUILDER_NAME lambda_cb) name)
+    (set! (SG_CODE_BUILDER_ARGC lambda_cb) req_argc)
+    (set! (SG_CODE_BUILDER_OPTIONAL lambda_cb) opt)
+    (set! (SG_CODE_BUILDER_FREEC lambda_cb) freec)
+    (set! (SG_CODE_BUILDER_MAX_STACK lambda_cb) max_stack)
+    (Sg_CodeBuilderFlush lambda_cb)
+    (Sg_CodeBuilderEmit cb CLOSURE ARGUMENT1 self-pos 0 lambda_cb)
+    (Sg_CodeBuilderAddSrc lambda_cb CLOSURE src))
+
   (define-c-proc code-builder-label-defs (cb::<code-builder>) ::<top>
     (result (-> cb labelDefs)))
 

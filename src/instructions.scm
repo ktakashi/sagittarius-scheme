@@ -356,13 +356,18 @@
 	     (PUSH (SP vm) h)))))
   NEXT1)
 
-(define-inst CLOSURE (0 1 #f)
+;; CLOSURE(n) cb
+;;  * if n is non zero value then created closure will have self reference
+;;    in its free variable list at n-1th position
+;;  * cb must be a code builder object.
+(define-inst CLOSURE (1 1 #f)
+  (INSN_VAL1 val1 c)
   (let ((cb (FETCH_OPERAND (PC vm))))
     ;; If this happend this must be panic.
     ;; (when (SG_CODE_BUILDERP cb)
     ;;   (wrong-type-of-argument-violation "closure" "code-builder" cb))
     (-= (SP vm) (SG_CODE_BUILDER_FREEC cb))
-    ($result (Sg_MakeClosure cb (SP vm)))))
+    ($result (Sg_VMMakeClosure cb val1 (SP vm)))))
 
 ;; apply stack frame
 ;; sp >|      |
@@ -457,11 +462,11 @@
     (PUSH_CONT vm (+ (PC vm) (- n 1))))
   NEXT)
 
-;; TODO remove this instruction from compiler.
-;; this was only for sanity and now it doesn't do anything.
-(define-inst ENTER (1 0 #f)
-  ;;(INSN_VAL1 val1 c)
-  ;;(set! (FP vm) (- (SP vm) val1))
+;; INST_STACK(n)
+;;   insert AC to nth place of stack
+(define-inst INST_STACK (1 0 #f)
+  (INSN_VAL1 val1 c)
+  (set! (REFER_LOCAL vm val1) (AC vm))
   NEXT)
 
 (define-inst LEAVE (1 0 #f)
@@ -728,6 +733,18 @@
     (dolist (v rest)
       (PUSH (SP vm) v))
     ($goto-insn TAIL_CALL)))
+
+;; for non implicit boxing letrec
+;; RESV_STACK(n)
+;;  reserve n stack space. the same as UNDEF PUSH (times n) but faster
+(define-inst RESV_STACK (1 0 #f)
+  (INSN_VAL1 val1 c)
+  ;;(CHECK_STACK val1 vm)
+  ;; the compiler should emit this properly
+  (+= (SP vm) val1)
+  ;;(dotimes (i val1) (PUSH (SP vm) SG_UNDEF))
+  ;;(set! (AC vm) SG_UNDEF)
+  NEXT)
 
 
 ;;;; end of file

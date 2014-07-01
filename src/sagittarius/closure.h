@@ -47,6 +47,7 @@ struct SgClosureRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeClosure(SgObject code, SgObject *frees);
+SG_EXTERN SgObject Sg_VMMakeClosure(SgObject code, int self, SgObject *frees);
 SG_EXTERN int      Sg_ClosureTransparent(SgObject closure);
 
 SG_CDECL_END
