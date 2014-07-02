@@ -120,7 +120,7 @@
 	    (srfi :114 comparators comparisons)
 	    (only (scheme base) exact-integer?))
 
-  (define %undef undefined)
+  (define %undef (undefined))
 
   (define-syntax if3
     (syntax-rules ()
@@ -378,20 +378,38 @@
 	  ((min) (if (eq? which 'a-nan) -1 1))
 	  ((max) (if (eq? which 'a-nan) 1 -1))
 	  (else (error "Invalid nan-handling specification" handling))))
+      ;; Return an appropriately rounded number
+      (define (rounded x symbol)
+	(cond
+	 ((procedure? symbol) (symbol x))
+	 ((eq? symbol 'round) (round x))
+	 ((eq? symbol 'ceiling) (ceiling x))
+	 ((eq? symbol 'floor) (floor x))
+	 ((eq? symbol 'truncate) (truncate x))
+	 (else (error "invalid rounding specification" symbol))))
+
+      ;; Return a number appropriately rounded to epsilon
+      (define (rounded-to x epsilon symbol)
+	(rounded (/ x epsilon) symbol))
+
       (let ((a-nan? (nan? a)) (b-nan? (nan? b)))
 	(cond ((and a-nan? b-nan?) 0)
 	      (a-nan? (nan-comparison nan-handling 'a-nan))
 	      (b-nan? (nan-comparison nan-handling 'b-nan))
 	      (else (real-comparison
-		     (rounding (/ a epsilon))
-		     (rounding (/ b epsilon))))))))
+		     (rounded-to a epsilon rounding)
+		     (rounded-to b epsilon rounding)))))))
 
   (define (make-inexact-real-comparator epsilon rounding nan-handlin)
     (make-comparator inexact-real? #t
 		     (make-inexact-real-comparison epsilon rounding nan-handlin)
 		     eqv-hash))
 
-  (define-constant +limit+ (expt 2 20))
+  ;; the least fixnum is 32 bit environment's 2^30
+  ;; we may use gretest-fixnum for this however if we want to make sure
+  ;; the internal hash size which uses uint32_t then it's better to
+  ;; stuck with lowest value.
+  (define-constant +limit+ (expt 2 30))
   (define (make-listwise-comparison comparison nil? kar kdr)
     (lambda (a b)
       (define (rec a b)
