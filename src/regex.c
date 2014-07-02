@@ -2191,46 +2191,6 @@ DEFINE_CLASS_WITH_CACHE(Sg_PatternClass,
 			pattern_cache_writer,
 			pattern_printer);
 
-static SgPattern* make_pattern(SgObject p, SgObject ast, int flags,
-			       int reg_num, prog_t *prog,
-			       compile_ctx_t *cctx)
-{
-  SgPattern *pt = SG_NEW(SgPattern);
-  SG_SET_CLASS(pt, SG_CLASS_PATTERN);
-  pt->pattern = p;
-  pt->ast = ast;
-  pt->flags = flags;
-  pt->groupCount = reg_num;
-  pt->prog = prog;
-  pt->extendedp = cctx->extendedp;
-  return pt;
-}
-
-SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
-{
-  SgObject ast;
-  lexer_ctx_t ctx;
-  SgPattern *p;
-  prog_t *prog;
-  compile_ctx_t cctx = {0};
-
-  init_lexer(&ctx, pattern, flags);
-  ast = parse_string(&ctx);
-  if (!END_OF_STRING_P(&ctx)) {
-    raise_syntax_error(&ctx, ctx.pos,
-		       UC("Expected end of string."));
-  }
-  if (parseOnly) return ast;
-  /* optimize */
-  ast = optimize(ast, SG_NIL);
-  /* compile */
-  cctx.flags = flags;
-  prog = compile(&cctx, ast);
-
-  p = make_pattern(pattern, ast, flags, ctx.reg_num, prog, &cctx);
-  return SG_OBJ(p);
-}
-
 static void unparse(SgObject reg, SgPort *out);
 static void charset_print_ch(SgPort *out, SgChar ch, int firstp)
 {
@@ -2518,35 +2478,84 @@ static SgObject unparse_ast(SgObject ast)
   return str;
 }
 
-static void count_register(SgObject ast, int *acc)
+static SgPattern* make_pattern(SgObject p, SgObject ast, int flags,
+			       int reg_num, SgObject names, prog_t *prog,
+			       compile_ctx_t *cctx)
+{
+  SgPattern *pt = SG_NEW(SgPattern);
+  SG_SET_CLASS(pt, SG_CLASS_PATTERN);
+  pt->pattern = p;
+  pt->ast = ast;
+  pt->flags = flags;
+  pt->groupCount = reg_num;
+  pt->prog = prog;
+  pt->extendedp = cctx->extendedp;
+  pt->groupNames = names;
+  return pt;
+}
+
+static void count_register(SgObject ast, int *acc, SgObject *regs)
 {
   if (SG_EQ(ast, SYM_REGISTER)) {
     (*acc)++;
     return;
   }
   if (SG_PAIRP(ast)) {
-    count_register(SG_CAR(ast), acc);
-    count_register(SG_CDR(ast), acc);
+    if (SG_EQ(SG_CAR(ast), SYM_REGISTER)) {
+      /* get name and capture number */
+      SgObject n = SG_CADR(ast);
+      SgObject name = SG_CAR(SG_CDDR(ast));
+      SgObject slot = Sg_Assq(name, *regs);
+      if (SG_FALSEP(slot)) {
+	PUSH(SG_LIST2(name, n), *regs);
+      } else {
+	SG_SET_CDR(*regs, Sg_Cons(n, SG_CDR(slot)));
+      }
+    }
+    count_register(SG_CAR(ast), acc, regs);
+    count_register(SG_CDR(ast), acc, regs);
   }
   return;
 }
 
-SgObject Sg_CompileRegexAST(SgObject ast, int flags)
+static SgObject compile_regex_ast(SgString *pattern, SgObject ast, int flags)
 {
   SgPattern *p;
   prog_t *prog;
   compile_ctx_t cctx = {0};
   int reg_num = 0;
-
+  SgObject regs = SG_NIL;
+  /* optimize */
   ast = optimize(ast, SG_NIL);
   /* count group number */
-  count_register(ast, &reg_num);
+  count_register(ast, &reg_num, &regs);
   /* compile */
   cctx.flags = flags;
   prog = compile(&cctx, ast);
 
-  p = make_pattern(unparse_ast(ast), ast, flags, reg_num, prog, &cctx);
+  p = make_pattern(pattern ? pattern : unparse_ast(ast),
+		   ast, flags, reg_num, regs, prog, &cctx);
   return SG_OBJ(p);
+}
+
+SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
+{
+  SgObject ast;
+  lexer_ctx_t ctx;
+
+  init_lexer(&ctx, pattern, flags);
+  ast = parse_string(&ctx);
+  if (!END_OF_STRING_P(&ctx)) {
+    raise_syntax_error(&ctx, ctx.pos,
+		       UC("Expected end of string."));
+  }
+  if (parseOnly) return ast;
+  return compile_regex_ast(pattern, ast, flags);
+}
+
+SgObject Sg_CompileRegexAST(SgObject ast, int flags)
+{
+  return compile_regex_ast(NULL, ast, flags);
 }
 
 void Sg_DumpRegex(SgPattern *pattern, SgObject port)
@@ -3391,7 +3400,7 @@ static SgMatcher* make_matcher(SgPattern *p, SgString *text,
 			       int start, int end)
 {
   SgMatcher *m = SG_NEW2(SgMatcher*, sizeof(SgMatcher) + 
-			 sizeof(SgChar*) * (p->groupCount-1));
+			 sizeof(SgString *) * (p->groupCount-1));
   SG_SET_CLASS(m, SG_CLASS_MATCHER);
   m->pattern = p;
   m->text = text;
@@ -3451,8 +3460,8 @@ static void retrive_group(SgMatcher *m, int submatch)
     int i = submatch*2;
     match_ctx_t *ctx = m->match_ctx;
     const SgChar *sp = ctx->match[i], *ep = ctx->match[i+1];
-    size_t size;
-    SgChar *str;
+    size_t size, j;
+    SgString *str;
     if (!sp || !ep) return;
     /* lookbehind? */
     if (sp > ep) {
@@ -3460,21 +3469,45 @@ static void retrive_group(SgMatcher *m, int submatch)
       ep = ctx->match[i];
     }
     size = ep - sp;
-    str  = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(size+1));
+    str  = SG_STRING(Sg_ReserveString(size, 0));
     m->submatch[i/2] = str;
-    str[size] = 0;
-    for (;sp < ep;) {
-      *str++ = *sp++;
+    /* str[size] = 0; */
+    for (j = 0; j < size; j++) {
+      SG_STRING_VALUE_AT(str, j) = sp[j];
     }
   }
 }
 
-SgObject Sg_RegexGroup(SgMatcher *m, int group)
+static int get_group(SgMatcher *m, SgObject groupOrName)
 {
-  SgString *s;
+  if (SG_INTP(groupOrName)) {
+    return SG_INT_VALUE(groupOrName);
+  } else {
+    SgObject names = m->pattern->groupNames;
+    SgObject slot = Sg_Assq(groupOrName, names), cp;
+    if (SG_FALSEP(slot)) {
+      Sg_Error(UC("no such name %S"), groupOrName);
+    }
+    /* bit inefficient but hey */
+    SG_FOR_EACH(cp, SG_CDR(slot)) {
+      int group = SG_INT_VALUE(SG_CAR(cp));
+      retrive_group(m, group);
+      if (m->submatch[group]) return group;
+    }
+    return -1;
+  }
+}
+
+SgObject Sg_RegexGroup(SgMatcher *m, SgObject groupOrName)
+{
+  int group;
   if (!m->match_ctx->matched) {
     Sg_Error(UC("no matched text"));
   }
+  group = get_group(m, groupOrName);
+  /* check */
+  if (group < 0) return SG_FALSE;
+
   if (m->pattern->groupCount <= group) {
     /* TODO regexp error */
     Sg_Error(UC("group number is too big %d"), group);
@@ -3482,8 +3515,7 @@ SgObject Sg_RegexGroup(SgMatcher *m, int group)
   /* should matched string be literal? */
   retrive_group(m, group);
   if (!m->submatch[group]) return SG_FALSE;
-  s = SG_STRING(Sg_HeapString(m->submatch[group]));
-  return s;
+  return m->submatch[group];
 }
 
 static void append_string_replacement(SgMatcher *m, SgPort *p,
@@ -3525,7 +3557,7 @@ static void append_string_replacement(SgMatcher *m, SgPort *p,
 	  cursor++;
 	}
       }
-      v = SG_STRING(Sg_RegexGroup(m, refNum));
+      v = SG_STRING(Sg_RegexGroup(m, SG_MAKE_INT(refNum)));
       if (!SG_FALSEP(v)) {
 	Sg_PutsUnsafe(p, v);
       }
@@ -3603,9 +3635,15 @@ SgString* Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement)
 
 SgString* Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement)
 {
+  return Sg_RegexReplace(m, replacement, 0);
+}
+
+SgString* Sg_RegexReplace(SgMatcher *m, SgObject replacement, int count)
+{
   int result;
   reset_matcher(m);
   result = Sg_RegexFind(m, -1);
+  for (; count; count--) result = Sg_RegexFind(m, -1);
   if (result) {
     SgPort p;
     SgTextualPort tp;

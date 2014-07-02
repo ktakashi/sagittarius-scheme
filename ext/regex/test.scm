@@ -226,6 +226,15 @@
 		  (regex-group m 0)
 		  '())))
 
+;; name ref
+(test-equal "group name"
+	    "hello"
+	    (let* ((p (compile-regex "(?<name>hello)\\s+world"))
+		   (m (regex-matcher p "hello world")))
+	      (if (regex-matches m)
+		  (regex-group m 'name)
+		  '())))
+
 (test-equal "replace-first"
 	    "hello beautiful world"
 	    (let ((p (regex "fxxking")))

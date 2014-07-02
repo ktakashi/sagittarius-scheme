@@ -34,6 +34,7 @@
     (export &sre-parse-error sre-parse-error?
 	    sre->regex
 	    sre-parse
+	    regex->sre
 	    rx)
     (import (rnrs)
 	    (srfi :1 lists)
@@ -372,4 +373,7 @@
        (loop rest (cons (char-range-spec->char-set c1 c2) result)))
       (_ (sre-parse-error 'sre-range->char-set "Invalid charset range" 
 			  ss range-spec)))))
+
+(define (regex->sre rx)
+  (error 'regex->sre "not supported yet" rx))
 )

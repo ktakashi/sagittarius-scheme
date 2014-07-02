@@ -65,6 +65,7 @@
 	    ;; modify
 	    regex-replace-all
 	    regex-replace-first
+	    regex-replace
 
 	    ;; utility
 	    string-split
@@ -85,7 +86,8 @@
 	    )
     (import (rename (sagittarius regex impl)
 		    (regex-replace-first impl:regex-replace-first)
-		    (regex-replace-all   impl:regex-replace-all))
+		    (regex-replace-all   impl:regex-replace-all)
+		    (regex-replace       impl:regex-replace))
 	    (rnrs)
 	    (sagittarius)
 	    (clos user))
@@ -113,15 +115,9 @@
     (regex-group self group))
   (define-method object-apply ((self <matcher>) (group <symbol>))
     (case group
-      ((before)
-       (regex-before self))
-      ((after)
-       (regex-after self))
-      (else
-       (assertion-violation 
-		    'matcher
-		    (format "'after or 'before required but got ~a" group)
-		    group))))
+      ((before) (regex-before self))
+      ((after)  (regex-after self))
+      (else     (regex-group group))))
   
   ;; we can use case-lambda
   (define regex-replace-all
@@ -138,7 +134,14 @@
      ((matcher replacement)
       (impl:regex-replace-first matcher replacement))))
 
-  (define (string-split text str/pattern)
+  (define regex-replace
+    (case-lambda
+     ((pattern text replacement count)
+      (regex-replace (regex-matcher pattern text) replacement count))
+     ((matcher replacement count)
+      (impl:regex-replace matcher replacement count))))
+
+  (define (string-split text str/pattern :optional (start 0) (end -1))
     (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
 		    ((string? str/pattern) (regex str/pattern))
 		    ((char? str/pattern) (regex (list->string  
@@ -146,14 +149,13 @@
 		    (else (assertion-violation
 			   'string-split
 			   "string or regex-pattern required" str/pattern))))
-	   (m (regex-matcher p text)))
+	   (m (regex-matcher p text start end)))
       (let loop ((r '())
 		 (pos 0))
 	(cond ((regex-find m)
 	       (let ((first (regex-first m))
 		     (last  (regex-last m)))
-		 (loop (cons (substring text pos first) r)
-		       last)))
+		 (loop (cons (substring text pos first) r) last)))
 	      (else (reverse! (cons (substring text pos (string-length text))
 				    r)))))
       ))

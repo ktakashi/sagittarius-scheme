@@ -100,6 +100,8 @@ typedef struct SgPatternRec
   int      extendedp;		/* if the compiled code is used possesive match,
 				   backreference, lookahead or lookbehind or
 				   not*/
+  SgObject groupNames;		/* alist of captured register name and groups,
+				   could be '() */
   prog_t  *prog;		/* compiled regex */
 } SgPattern;
 
@@ -141,10 +143,12 @@ SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);
 SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
 SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
 
-SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, int group);
+SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, SgObject groupOrName);
 
 SG_EXTERN SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement);
 SG_EXTERN SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement);
+SG_EXTERN SgString*  Sg_RegexReplace(SgMatcher *m, SgObject replacement,
+				     int count);
 
 SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */

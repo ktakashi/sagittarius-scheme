@@ -53,8 +53,13 @@
     ::<boolean>
     Sg_RegexFind)
 
-  (define-c-proc regex-group (m::<matcher> :optional (group::<fixnum> 0))
-    Sg_RegexGroup)
+  (define-c-proc regex-group (m::<matcher> :optional group)
+    (when (SG_UNBOUNDP group) (set! group (SG_MAKE_INT 0)))
+    (unless (or (SG_INTP group) (SG_SYMBOLP group))
+      (Sg_WrongTypeOfArgumentViolation 'regex-group
+				       (SG_MAKE_STRING "integer or symbol")
+				       group SG_NIL))
+    (result (Sg_RegexGroup m group)))
 
   (define-c-proc regex-after (m::<matcher>)
     (result (Sg_Substring (-> m text)
@@ -90,6 +95,14 @@
 				       (SG_MAKE_STRING "string or procedure")
 				       replacement SG_NIL))
     (result (Sg_RegexReplaceFirst m replacement)))
+
+  (define-c-proc regex-replace (m::<matcher> replacement count::<fixnum>)
+    (unless (or (SG_STRINGP replacement)
+		(SG_PROCEDUREP replacement))
+      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
+				       (SG_MAKE_STRING "string or procedure")
+				       replacement SG_NIL))
+    (result (Sg_RegexReplace m replacement count)))
 
   ;; pred
   (define-c-proc regex-pattern? (o) ::<boolean> :constant SG_PATTERNP)
