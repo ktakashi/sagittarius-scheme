@@ -47,10 +47,16 @@
 		    (m (regex-matcher p "abcABC123")))
 	       (regex-matches m)))
 
-;; TODO currently \\u only accepts 2 bytes. If Sagittarius Scheme
 ;; can handle UCS4(4bytes) should this also be able to handle 4 bytes?
 (test-assert "regex \\u"
 	     (let* ((p (compile-regex "[\\u3041-\\u3096]+"))
+		    ;; somehow emacs convert \u3096 -> \u30f6
+		    ;; so we can not test unicode boundary with small KE.
+		    (m (regex-matcher p "ぁぃぅぇぉあいうえおわをん")))
+	       (regex-matches m)))
+
+(test-assert "regex \\U"
+	     (let* ((p (compile-regex "[\\U00003041-\\U00003096]+"))
 		    ;; somehow emacs convert \u3096 -> \u30f6
 		    ;; so we can not test unicode boundary with small KE.
 		    (m (regex-matcher p "ぁぃぅぇぉあいうえおわをん")))
@@ -202,6 +208,22 @@
 	      (if (regex-matches m)
 		  (list (regex-group m 0)
 			(regex-group m 1))
+		  '())))
+
+;; matcher range
+(test-equal "matcher range (5-"
+	    " world"
+	    (let* ((p (compile-regex ".+"))
+		   (m (regex-matcher p "hello world" 5)))
+	      (if (regex-matches m)
+		  (regex-group m 0)
+		  '())))
+(test-equal "matcher range (1-5)"
+	    "ello"
+	    (let* ((p (compile-regex ".+"))
+		   (m (regex-matcher p "hello world" 1 5)))
+	      (if (regex-matches m)
+		  (regex-group m 0)
 		  '())))
 
 (test-equal "replace-first"

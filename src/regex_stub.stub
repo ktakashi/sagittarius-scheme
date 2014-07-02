@@ -37,7 +37,10 @@
     Sg_DumpRegex)
 
 
-  (define-c-proc regex-matcher (p::<pattern> text::<string>) :no-side-effect
+  (define-c-proc regex-matcher 
+    (p::<pattern> text::<string> 
+		  :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
     Sg_RegexMatcher)
 
   (define-c-proc regex-matches (m::<matcher>) ::<boolean>

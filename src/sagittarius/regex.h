@@ -135,7 +135,8 @@ SG_EXTERN SgObject   Sg_CompileRegex(SgString *pattern, int flags,
 				     int parseOnly);
 SG_EXTERN SgObject   Sg_CompileRegexAST(SgObject ast, int flags);
 
-SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text);
+SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text,
+				     int start, int end);
 SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);
 SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
 SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);

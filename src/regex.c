@@ -3381,15 +3381,14 @@ static SgMatcher* reset_matcher(SgMatcher *m)
 {
   m->match_ctx->lastp = SG_STRING_VALUE(m->text);
   m->match_ctx->matched = FALSE;
-  m->from = 0;
-  m->to   = SG_STRING_SIZE(m->text);
   m->first = -1;
   m->last = 0;
   m->lastAppendPosition = 0;
   return m;
 }
 
-static SgMatcher* make_matcher(SgPattern *p, SgString *text)
+static SgMatcher* make_matcher(SgPattern *p, SgString *text,
+			       int start, int end)
 {
   SgMatcher *m = SG_NEW2(SgMatcher*, sizeof(SgMatcher) + 
 			 sizeof(SgChar*) * (p->groupCount-1));
@@ -3399,13 +3398,18 @@ static SgMatcher* make_matcher(SgPattern *p, SgString *text)
   m->match_ctx = SG_NEW(match_ctx_t);
   /* we use root, not rootMatch for looking-at */
   init_match_ctx(m->match_ctx, m, m->pattern->prog->rootLength);
+  m->from = start;
+  m->to   = end;
   return reset_matcher(m);
 }
 
 
-SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text)
+SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text,
+			   int start, int end)
 {
-  SgMatcher *m = make_matcher(pattern, text);
+  SgMatcher *m;
+  SG_CHECK_START_END(start, end, SG_STRING_SIZE(text));
+  m = make_matcher(pattern, text, start, end);
   return m;
 }
 
