@@ -463,7 +463,7 @@
   NEXT)
 
 ;; INST_STACK(n)
-;;   insert AC to nth place of stack
+;;   insert AC to nth place of stack from FP
 (define-inst INST_STACK (1 0 #f)
   (INSN_VAL1 val1 c)
   (set! (REFER_LOCAL vm val1) (AC vm))
