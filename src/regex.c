@@ -75,7 +75,7 @@ static SgSymbol *constant_symbol_table[33] = {NULL};
 #define SYM_OPEN_PAREN_LESS_EQUAL 	   (constant_symbol_table[29])
 #define SYM_SEQUENCE  	    	 	   (constant_symbol_table[30])
 #define SYM_LOOKBHIND 	    	 	   (constant_symbol_table[31])
-#define SYM_FLAGED_SEQUENCE 	 	   (constant_symbol_table[32])
+#define SYM_FLAGGED_SEQUENCE 	 	   (constant_symbol_table[32])
 
 /* convenient macros */
 #define has(p, f) (((p)->flags & (f)) != 0)
@@ -857,7 +857,7 @@ static SgObject parse_register_name_aux(lexer_ctx_t *ctx)
   }
   /* advance lexer beyond "<name>" part */
   ctx->pos += i + 1;
-  return s;
+  return Sg_Intern(s);
 }
 
 
@@ -941,25 +941,28 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
       case 'B': return SYM_NON_WORD_BOUNDARY;
       case 'k': 
 	if (LOOKING_AT_P(ctx, '<')) {
-	  SgObject name, names, cp, num = SG_FALSE;
+	  SgObject name, num = SG_FALSE;
 	  int pos = ctx->pos - 2;
 	  ctx->pos++;
 	  name = parse_register_name_aux(ctx);
 	  /* search backref name from context */
-	  names = ctx->reg_names;
-	  SG_FOR_EACH(cp, names) {
-	    /* slot: ("name" . num) */
-	    SgObject slot = SG_CAR(cp);
-	    if (Sg_StringEqual(SG_STRING(SG_CAR(slot)), SG_STRING(name))) {
-	      num = SG_CDR(slot);
-	      break;
-	    }
-	  }
+	  /* (slot n1 n2 ...) */
+	  num = Sg_Assq(name, ctx->reg_names);
 	  if (SG_FALSEP(num)) {
 	    raise_syntax_error(ctx, pos,
 			       UC("Non defined named register is refered."));
 	  }
-	  return Sg_Cons(SYM_BACKREF, num);	
+	  num = SG_CDR(num);
+	  if (SG_NULLP(SG_CDR(num))) {
+	    return Sg_Cons(SYM_BACKREF, SG_CAR(num));
+	  } else {
+	    SgObject cp, h = SG_NIL, t = SG_NIL;
+	    SG_FOR_EACH(cp, num) {
+	      SG_APPEND1(h, t, Sg_Cons(SYM_BACKREF, SG_CAR(cp)));
+	    }
+	    /* (alternation (back-reference . n1) ...) */
+	    return Sg_Cons(SYM_ALTER, h);
+	  }
 	} else{
 	  return SG_MAKE_CHAR('k');
 	}
@@ -1201,13 +1204,20 @@ static SgObject group(lexer_ctx_t *ctx)
       /* if the lexer has returned a list of flags this must have been the
 	 "(?:" <regex> ")" production
        */
-      ret = SG_LIST3(SYM_FLAGED_SEQUENCE, flags, regexpr);
+      ret = SG_LIST3(SYM_FLAGGED_SEQUENCE, flags, regexpr);
       goto end_group;
     } else {
       if (SG_EQ(open_token, SYM_OPEN_PAREN_LESS_LETTER)) {
 	/* make alist */
-	PUSH(Sg_Cons(register_name, SG_MAKE_INT(saved_reg_num)),
-	     ctx->reg_names);
+	SgObject names = Sg_Assq(register_name, ctx->reg_names);
+	if (SG_FALSEP(names)) {
+	  PUSH(Sg_Cons(register_name, SG_LIST1(SG_MAKE_INT(saved_reg_num))),
+	       ctx->reg_names);
+	} else {
+	  /* push it */
+	  SG_SET_CDR(names, Sg_Cons(SG_MAKE_INT(saved_reg_num), 
+				    SG_CDR(names)));
+	}
 	ret = SG_LIST4(SYM_REGISTER,
 		       SG_MAKE_INT(saved_reg_num),
 		       register_name,
@@ -1457,10 +1467,10 @@ static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
     if (minimum == 1 && maximum == 1) return ast;
   }
   if (minimum > 0) {
-    SgObject in;
-    if (SG_PAIRP(regex) && SG_EQ(SG_CAR(regex), SYM_REGISTER))
-      in = SG_CADR(SG_CDDR(regex));
-    else in = regex;
+    SgObject in = regex;
+    /* if (SG_PAIRP(regex) && SG_EQ(SG_CAR(regex), SYM_REGISTER)) */
+    /*   in = SG_CADR(SG_CDDR(regex)); */
+    /* else in = regex; */
     constant = SG_LIST4(SG_CAR(ast), SG_CADR(ast), SG_CADR(ast), in);
   }
   if (!SG_FALSEP(max) &&
@@ -1498,7 +1508,6 @@ static SgObject optimize_seq(SgObject seq, SgObject rest)
   if (SG_EQ(etype, SYM_SEQUENCE)) {
     return Sg_Append2(optimize_seq(SG_CDR(elt), rest), tail);
   }
-
   opted = optimize(elt, rest);
   if (SG_EQ(elt, opted) && SG_EQ(tail, SG_CDR(seq))) return seq;
   else return Sg_Cons(opted, tail);
@@ -1553,6 +1562,8 @@ static SgObject optimize(SgObject ast, SgObject rest)
     name = SG_CAR(SG_CDDR(ast));
     seq = SG_CADR(SG_CDDR(ast));
     seqo = optimize(seq, rest);
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("ast: %S\n"), seq); */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("seq: %S\n"), seqo); */
     if (SG_EQ(seq, seqo)) return ast;
     return SG_LIST4(SYM_REGISTER, n, name, seqo);
   }
@@ -1852,7 +1863,7 @@ static void compile_rec(compile_ctx_t *ctx, SgObject ast, int lastp)
     return;
   }
 
-  if (SG_EQ(type, SYM_FLAGED_SEQUENCE)) {
+  if (SG_EQ(type, SYM_FLAGGED_SEQUENCE)) {
     SgObject flags = SG_CADR(ast);
     SgObject seq = SG_CAR(SG_CDDR(ast));
     int flag = calculate_flags(ctx->flags, flags), save = ctx->flags;
@@ -2297,7 +2308,7 @@ static void unparse_reg(SgObject reg, SgPort *out)
   }
   return;
  err:
-  Sg_Error(UC("invalid AST node %S"), reg);
+  Sg_Error(UC("invalid AST node %S [reg]"), reg);
 }
 
 static void unparse_intersp(SgObject n, const char *sep, SgPort *out)
@@ -2357,7 +2368,7 @@ static void unparse_rep(SgObject o, int greedyP, SgPort *out)
   }
   return;
  err:
-  Sg_Error(UC("invalid AST node %S"), o);
+  Sg_Error(UC("invalid AST node %S [rep]"), o);
 }
 
 static void unparse_look(SgObject o, const char *behind, SgPort *out)
@@ -2373,7 +2384,7 @@ static void unparse_look(SgObject o, const char *behind, SgPort *out)
   unparse_between((SG_FALSEP(assert) ? "!" : "="), ns, ")", out);
   return;
  err:
-  Sg_Error(UC("invalid AST node %S"), o);
+  Sg_Error(UC("invalid AST node %S [look]"), o);
 }
 
 static void unparse(SgObject n, SgPort *out)
@@ -2411,13 +2422,14 @@ static void unparse(SgObject n, SgPort *out)
       unparse_reg(n, out);
     } else if (SG_EQ(f, SYM_SEQUENCE)) {
       unparse_seq(SG_CDR(n), out);
-    } else if (SG_EQ(f, SYM_FLAGED_SEQUENCE)) {
-      SgObject flags, flag;
+    } else if (SG_EQ(f, SYM_FLAGGED_SEQUENCE)) {
+      SgObject flags, cp;
       if (SG_NULLP(SG_CDR(n))) goto err;
       flags = SG_CADR(n);
       if (!SG_PAIRP(flags)) goto err;
       Sg_PutzUnsafe(out, "(?");
-      SG_FOR_EACH(flag, flags) {
+      SG_FOR_EACH(cp, flags) {
+	SgObject flag = SG_CAR(cp);
 	if (!SG_PAIRP(flag)) goto err;
 	if (!SG_CHARP(SG_CAR(flag))) goto err;
 	if (SG_FALSEP(SG_CDR(flag))) {
@@ -2488,7 +2500,7 @@ static void unparse(SgObject n, SgPort *out)
   } else {
   err:
     /* never happen but raise an error */
-    Sg_Error(UC("invalid AST node %S"), n);
+    Sg_Error(UC("invalid AST node %S [unparse]"), n);
   }
 }
 
@@ -3739,5 +3751,5 @@ void Sg__InitRegex()
   SYM_OPEN_PAREN_LESS_EQUAL = SG_INTERN("open-paren-less-equal");
   SYM_SEQUENCE = SG_INTERN("sequence");
   SYM_LOOKBHIND = SG_INTERN("lookbehind");
-  SYM_FLAGED_SEQUENCE = SG_INTERN("flaged-sequence");
+  SYM_FLAGGED_SEQUENCE = SG_INTERN("flagged-sequence");
 }
