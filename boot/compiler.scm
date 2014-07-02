@@ -4018,7 +4018,12 @@
 (define (inlinable-binding? id allow-variable?)
   (let ((lib (id-library id))
 	(name (id-name id)))
-    (and-let* ((gloc (find-binding lib name #f)))
+    (and-let* ((gloc (find-binding lib name #f))
+	       ;; check if the bound library is *NOT* current library
+	       ;; this prevents global variable re-asignment in the
+	       ;; same library, typically in script.
+	       ;; e.g.) Gambit benchmark's compiler
+	       ( (not (eq? (gloc-library gloc) (vm-current-library))) ))
       (let ((val (gloc-ref gloc)))
 	(if (procedure? val)
 	    (and (procedure-transparent? val) val)

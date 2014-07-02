@@ -36,7 +36,7 @@
 #include "sagittarius/pair.h"
 
 /* #define DEBUG_CHECK 1 */
-/* #define CHECK_CLOSURE_TRANSPARENCY */
+#define CHECK_CLOSURE_TRANSPARENCY
 
 #ifdef DEBUG_CHECK
 #include "sagittarius/vm.h"
@@ -106,7 +106,8 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
     case EQ: case EQV: case NULLP: case PAIRP: case SYMBOLP:
     case VECTORP:
       /* constant operations */
-    case NOP: case LREF: case PUSH: case JUMP: case SHIFTJ:
+    case NOP: case LREF: case PUSH: case JUMP: case SHIFTJ: case INST_STACK:
+    case RESV_STACK:
       /* branch */
     case TEST:
     case BNNUME: case BNLT: case BNLE: case BNGT: case BNGE:
@@ -211,7 +212,7 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
    instruction or procedure. */
 int Sg_ClosureTransparent(SgObject closure)
 {
-#if CHECK_CLOSURE_TRANSPARENCY
+#ifdef CHECK_CLOSURE_TRANSPARENCY
   return closure_transparent(closure, SG_NIL);
 #else
   SG_PROCEDURE_TRANSPARENT(closure) = SG_CLOSURE_SIDE_EFFECT;
