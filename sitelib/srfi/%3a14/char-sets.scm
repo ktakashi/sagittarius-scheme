@@ -139,7 +139,7 @@
   ;; iteration
   (define (char-set-cursor cs)
     (let ((ranges (%char-set-ranges cs)))
-      (if (null? ranges) #f) (cons (caar ranges) ranges)))
+      (if (null? ranges) #f (cons (caar ranges) ranges))))
 
   (define (char-set-ref cs cursor)
     (if (and (pair? cursor) (integer? (car cursor)))

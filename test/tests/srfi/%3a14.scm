@@ -74,6 +74,9 @@
 			   (string->char-set "02468"))
 	(char-set= cs (string->char-set "7531"))))
 
+ (char-set= (char-set-map char-upcase char-set:empty)
+	    char-set:empty)
+
  (char-set= (char-set-map char-upcase (string->char-set "aeiou"))
 	    (string->char-set "IOUAEEEE"))
 
