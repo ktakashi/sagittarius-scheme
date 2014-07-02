@@ -76,6 +76,10 @@
 
 	    ;; clos
 	    <pattern> <matcher>
+	    ;; accessor
+	    regex-ast
+	    regex-pattern
+	    regex-flags
 	    ;; enable #/regex/
 	    :export-reader-macro
 	    )
