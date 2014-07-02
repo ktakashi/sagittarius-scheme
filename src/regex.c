@@ -3042,7 +3042,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
   THREADQ_T *runq = ctx->q0, *nextq = ctx->q1, *tmp;
   const SgChar *otext = SG_STRING_VALUE(ctx->m->text);
   const SgChar *bp = otext + from;
-  const SgChar *ep = otext + SG_STRING_SIZE(ctx->m->text);
+  const SgChar *ep = otext + ctx->m->to;
   const SgChar *p;
   SgChar c = -1;
   int wasword = FALSE;
@@ -3177,7 +3177,7 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
 		      const SgChar *bp, int i)
 {
   const SgChar *otext = SG_STRING_VALUE(ctx->m->text);
-  const SgChar *ep = otext + SG_STRING_SIZE(ctx->m->text);
+  const SgChar *ep = otext + ctx->m->to;
   int flag = 0, isword = FALSE, count, offset=0, saved = flags;
   /* detect underflow */
   if (i < -1) return FALSE;
@@ -3308,7 +3308,7 @@ static int matcher_match1(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
   ctx->wasword = FALSE;
   matched = match_step1(ctx, inst, 0, bp, from);
   if (!matched && anchor == UNANCHORED) {
-    int i, size = SG_STRING_SIZE(ctx->m->text);
+    int i, size = ctx->m->to;
     for (i = from+1; i <= size; i++) {
       debug_printf("%c", '\n');
       matched = match_step1(ctx, inst, 0, bp, i);
@@ -3426,7 +3426,7 @@ int Sg_RegexFind(SgMatcher *m, int start)
   if (start < 0) {
     int index = m->last;
     return matcher_match(m, index, UNANCHORED);
-  } else if (start <= SG_STRING_SIZE(m->text)) {
+  } else if (start <= m->to) {
     reset_matcher(m);
     return matcher_match(m, start, UNANCHORED);
   } else {
@@ -3569,8 +3569,8 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
 static void append_tail(SgMatcher *m, SgPort *p)
 {
   /* append the rest */
-  Sg_WritesUnsafe(p, SG_STRING_VALUE(m->text)+m->lastAppendPosition,
-		  SG_STRING_SIZE(m->text) - m->lastAppendPosition);
+  Sg_WritesUnsafe(p, SG_STRING_VALUE(m->text) + m->lastAppendPosition,
+		  m->to - m->lastAppendPosition);
 }
 
 SgString* Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement)
