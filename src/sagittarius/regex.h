@@ -124,7 +124,7 @@ typedef struct SgMatcherRec
   int        last;
   int        lastAppendPosition;
   match_ctx_t *match_ctx;
-  SgChar    *submatch[1];
+  SgString   *submatch[1];
 } SgMatcher;
 
 SG_CLASS_DECL(Sg_MatcherClass);
