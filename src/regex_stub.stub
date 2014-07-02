@@ -91,4 +91,9 @@
   ;; pred
   (define-c-proc regex-pattern? (o) ::<boolean> :constant SG_PATTERNP)
   (define-c-proc regex-matcher? (o) ::<boolean> :constant SG_MATCHERP)
+
+  ;; accessor
+  (define-c-proc regex-pattern (p::<pattern>) (result (-> p pattern)))
+  (define-c-proc regex-flags (p::<pattern>) ::<fixnum> (result (-> p flags)))
+  (define-c-proc regex-ast (p::<pattern>) (result (-> p ast)))
 )

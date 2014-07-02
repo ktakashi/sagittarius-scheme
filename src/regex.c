@@ -1498,6 +1498,7 @@ static SgObject optimize_seq(SgObject seq, SgObject rest)
   if (SG_EQ(etype, SYM_SEQUENCE)) {
     return Sg_Append2(optimize_seq(SG_CDR(elt), rest), tail);
   }
+
   opted = optimize(elt, rest);
   if (SG_EQ(elt, opted) && SG_EQ(tail, SG_CDR(seq))) return seq;
   else return Sg_Cons(opted, tail);
@@ -1541,6 +1542,21 @@ static SgObject optimize(SgObject ast, SgObject rest)
     if (SG_EQ(seq, seqo)) return ast;
     return Sg_Cons(type, seqo);
   }
+
+  if (SG_EQ(type, SYM_REGISTER)) {
+    /* (register n name ast) */
+    SgObject n, name;
+    if (Sg_Length(ast) != 4) {
+      Sg_Error(UC("Invalid AST register: %S"), ast);
+    }
+    n = SG_CADR(ast);
+    name = SG_CAR(SG_CDDR(ast));
+    seq = SG_CADR(SG_CDDR(ast));
+    seqo = optimize(seq, rest);
+    if (SG_EQ(seq, seqo)) return ast;
+    return SG_LIST4(SYM_REGISTER, n, name, seqo);
+  }
+
   seq = SG_CDR(ast);
   seqo = optimize(seq, rest);
   if (SG_EQ(seq, seqo)) return ast;
