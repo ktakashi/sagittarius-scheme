@@ -125,7 +125,8 @@
 				      null-pointer
 				      hinstance
 				      null-pointer))
-			 (send-message hedit EM_SETLIMITTEXT (* 1024 64) 0)
+			 (send-message hedit EM_SETLIMITTEXT (* 1024 64)
+				       null-pointer)
 			 0))
 		      ((= imsg WM_SIZE)
 		       (let ((rc (allocate-c-struct RECT)))
@@ -140,7 +141,7 @@
 		      ((= imsg WM_COMMAND)
 		       (let ((low (bitwise-and wparam #xFFFF)))
 			 (cond ((= low id-close)
-				(send-message hwnd WM_CLOSE 0 0))
+				(send-message hwnd WM_CLOSE 0 null-pointer))
 			       ((= low id-about)
 				(message-box hwnd
 					     (format "Sagittarius Scheme version~a" (sagittarius-version))
