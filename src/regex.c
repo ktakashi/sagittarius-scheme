@@ -486,18 +486,17 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   SgObject es;
   SgGloc *gloc;
   int pos;
-  /* first check the property has 'Is' or 'In. */
+  /* [[:name:]] thing */
   if (ctx->len-ctx->pos < 2 ||
       ctx->str[ctx->pos] != ':') {
-    raise_syntax_error(ctx, ctx->pos,
-		       UC("Invalid character set name."));
+    raise_syntax_error(ctx, ctx->pos, UC("Invalid character set name."));
   }
-  /* skip first ':' */
-  pos = ustrchr(ctx->str+ctx->pos+1, ':', ctx->len - ctx->pos-1);
+  /* skip first ']' */
+  pos = ustrchr(ctx->str+ctx->pos, ']', ctx->len - ctx->pos);
   if (pos == -1) {
     /* no closing ':' */
     raise_syntax_error(ctx, ctx->pos,
-		       UC("Invalid charset name. You forgot ':'"));
+		       UC("Invalid charset name. ']' is missing"));
   }
   /* we convert property name with prefix 'char-set:' then we can look up
      from builtin charset.
@@ -505,13 +504,18 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   /* does not seem smart solution ... */
   es = Sg_MakeEmptyString();
   /* including ':' */
-  es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos+2);
+  es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos);
   gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
   if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
     raise_syntax_error(ctx, ctx->pos,
 		       UC("Given character set is not supported"));
   }
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("%A\n"), es); */
   ctx->pos += pos;
+  if (ctx->len <= ctx->pos || ctx->str[++ctx->pos] != ']') {
+    raise_syntax_error(ctx, ctx->pos,
+		       UC("charset name is not closed by 2 ']'s"));
+  }
   return SG_GLOC_GET(gloc);
 }
 

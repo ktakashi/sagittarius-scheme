@@ -446,7 +446,7 @@ void Sg__InitCharSet()
   /* srfi-14 standard charsets */
   insert_binding(char-set:lower-case  , CS(SG_CHAR_SET_LOWER));
   insert_binding(char-set:upper-case  , CS(SG_CHAR_SET_UPPER));
-  insert_binding(char-set:title-case  , Sg_MakeEmptyCharSet());
+  insert_binding(char-set:title-case  , Sg_CharSetCopy(CS(SG_CHAR_SET_UPPER)));
   insert_binding(char-set:letter      , CS(SG_CHAR_SET_ALPHA));
   insert_binding(char-set:digit       , CS(SG_CHAR_SET_DIGIT));
   insert_binding(char-set:letter+digit, CS(SG_CHAR_SET_ALNUM));

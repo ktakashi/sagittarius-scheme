@@ -36,7 +36,7 @@
 (define-syntax test-sre*
   (syntax-rules ()
    ((_ sre re)
-    (test-sre* (write-to-string sre) (re-equal? re (sre->regex sre))))))
+    (test-assert (write-to-string sre) (re-equal? re (sre->regex sre))))))
 
 (define-syntax test-sre-empty
   (syntax-rules ()
@@ -149,13 +149,11 @@
 (test-sre ("abc") #/[a-c]/)
 
 (test-sre (/"az") #/[a-z]/)
-#;
+
 (for-each
   (lambda (x)
     (let1 re (car x)
-      (for-each (lambda (sre)
-                  (test-sre* sre re))
-		(cdr x))))
+      (for-each (lambda (sre) (test-sre* sre re)) (cdr x))))
   '((#/[[:alpha:]]/ alphabetic alpha)
     (#/[[:lower:]]/ lower-case lower)
     (#/[[:upper:]]/ upper-case upper)
