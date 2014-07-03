@@ -486,6 +486,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   SgObject es;
   SgGloc *gloc;
   int pos;
+  SgObject lib, default_lib = SG_FALSE;
   /* [[:name:]] thing */
   if (ctx->len-ctx->pos < 2 ||
       ctx->str[ctx->pos] != ':') {
@@ -505,8 +506,14 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
   es = Sg_MakeEmptyString();
   /* including ':' */
   es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos, pos);
-  gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
+  lib = Sg_VM()->currentLibrary;
+ retry:
+  gloc = Sg_FindBinding(lib, Sg_Intern(es), SG_FALSE);
   if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
+    if (SG_FALSEP(default_lib)) {
+      lib = default_lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+      goto retry;
+    }
     raise_syntax_error(ctx, ctx->pos,
 		       UC("Given character set is not supported"));
   }
