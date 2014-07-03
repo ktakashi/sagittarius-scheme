@@ -195,8 +195,10 @@
 	   (seq* (sp ast))))
 	(('w/unicode ast ...) `(flagged-sequence ((#\u . #t)) ,(seq* (sp ast))))
 	(('w/ascii ast ...)   `(flagged-sequence ((#\u . #f)) ,(seq* (sp ast))))
-	;; TODO
-	;; (('w/nocapture ast ...))
+	;; does this mean we need to eliminate submatches?
+	;; or just emit like (?:ast)?
+	;; for now we do latter case (simpler)
+	(('w/nocapture ast ...) (seq* (sp ast)))
 	(('* ast ..1)         `(greedy-repetition 0 #f ,(seq* (sp ast))))
 	(('+ ast ..1)         `(greedy-repetition 1 #f ,(seq* (sp ast))))
 	(('? ast ..1)         `(greedy-repetition 0 1  ,(seq* (sp ast))))
@@ -206,8 +208,22 @@
 	 (rep-b 'greedy-repetition n m ast))
 	(('?? ast ..1)        `(non-greedy-repetition 0 1  ,(seq* (sp ast))))
 	(('*? ast ..1)        `(non-greedy-repetition 0 #f ,(seq* (sp ast))))
+	(('+? ast ..1)        `(non-greedy-repetition 1 #f ,(seq* (sp ast))))
+	(('>=? (? number? n) ast ..1)
+	 `(non-greedy-repetition ,n #f ,(seq* (sp ast))))
 	(('**? (? number? n) (? number? m) ast ..1) 
 	 (rep-b 'non-greedy-repetition n m ast))
+	;; extra
+	(('++ ast ..1) (parse `(?> (+ ,@ast))))
+	(('*+ ast ..1) (parse `(?> (* ,@ast))))
+	(('?+ ast ..1) (parse `(?> (? ,@ast))))
+	(('?> ast ...) `(standalone ,(seq* (sp ast))))
+	;; condition
+	(('cond c y n) `(branch ,(if (number? c) c (parse c))
+				(alternation ,(parse y)
+					     ,(if n (parse n) '(sequence)))))
+	(('cond c y)   (parse `(cond ,c ,y #f)))
+
 	(('look-ahead ast ...)  `(lookahead  #t ,(seq* (sp ast))))
 	(('look-behind ast ...) `(lookbehind #t ,(seq* (sp ast))))
 	(('neg-look-ahead ast ...)  `(lookahead  #f ,(seq* (sp ast))))
@@ -387,6 +403,7 @@
 ;;   | (lookahead <boolean> <AST>)
 ;;   | (lookbehind <boolean> <AST>)
 ;;   | (back-reference . <n>)
+;;   | (standalone <AST>)
 ;;   | everything
 ;;   | start-anchor
 ;;   | end-anchor
@@ -448,7 +465,8 @@
 	    (u    `(,(name-of u) ,@(seq-finish (map parse ast*))))
 	    (else `(: ,@(seq-finish (map parse ast*)))))))
   (define (rep greedy? n m ast)
-    ;; should we wrap with w/nocapture?
+    ;; I don't think we need wrap with w/nocapture?
+    ;; since SRE requires to $ to make submatch
     (let ((base (parse ast)))
       (cond ((not m)
 	     (cond ((or (not n) (zero? n)) `(* ,base))
@@ -476,9 +494,14 @@
       (('alternation ast ...)            `(or ,@(map parse ast)))
       (('greedy-repetition n m ast)       (rep #t n m ast))
       (('non-greedy-repetition n m ast)   (rep #f n m ast))
-      (('lookahead  assert ast)           (assert #t assert ast))
-      (('lookbehind assert ast)           (assert #f assert ast))
+      (('lookahead  pos? ast)             (assert #t pos? ast))
+      (('lookbehind pos? ast)             (assert #f pos? ast))
       (('back-reference . n)              `(backref ,n))
+      ;; it might be better to emit *+, ++ or ?+ for certain case
+      ;; but i'm too lazy for that
+      (('standalone ast)                  `(?> ,(parse ast)))
+      (('branch c ('alternation pats ...))
+       `(cond ,(if (number? c) c (parse c)) ,@(map parse pats)))
       ;; never happend unless i forgot something
       (_ (error 'regex->sre "unknown ast" ast))))
   ;; the first one must be 'register so strip

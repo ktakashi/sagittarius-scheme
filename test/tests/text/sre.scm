@@ -1,7 +1,10 @@
 #!read-macro=sagittarius/regex
 #!read-macro=sagittarius/debug
 #!debug
-(import (rnrs) (text sre) (srfi :14) (srfi :64) (sagittarius regex))
+(import (rnrs) (text sre) (srfi :14) (srfi :64)
+	(sagittarius control)
+	(sagittarius debug)
+	(sagittarius regex))
 (define (write-to-string o)
   (call-with-string-output-port
    (lambda (out) (write o out))))
@@ -77,25 +80,24 @@
 
 (test-sre (*? "a") #/a*?/)
 
-;; not exists in SRFI
-;; (test-sre (+? "a") #/a+?/)
+(test-sre (+? "a") #/a+?/)
 
 (test-sre (?? "abc") #/(?:abc)??/)
 
-;;(test-sre (>=? 3 "abc") #/(?:abc){3,}?/)
+(test-sre (>=? 3 "abc") #/(?:abc){3,}?/)
 
 (test-sre (**? 2 5 "abc") #/(?:abc){2,5}?/)
 
 
 (test-group "atomic clustering & repetion")
 
-;;(test-sre (?> "a") #/(?>a)/)
+(test-sre (?> "a") #/(?>a)/)
 
-;;(test-sre (*+ "a") #/a*+/)
+(test-sre (*+ "a") #/a*+/)
 
-;;(test-sre (++ "a") #/a++/)
+(test-sre (++ "a") #/a++/)
 
-;;(test-sre (?+ "a") #/a?+/)
+(test-sre (?+ "a") #/a?+/)
 
 
 (test-group "submatch")
@@ -250,17 +252,17 @@
 
 (test-group "conditional pattern")
 
-;;(test-sre (cond (?=) #\y) #/(?(?=)y)/)
+(test-sre (cond (?=) #\y) #/(?(?=)y)/)
 
-;;(test-sre (cond (?=) #\y #\n) #/(?(?=)y|n)/)
+(test-sre (cond (?=) #\y #\n) #/(?(?=)y|n)/)              ;; |
 
-;;(test-sre (cond (?<=) #\y) #/(?(?<=)y)/)
+(test-sre (cond (?<=) #\y) #/(?(?<=)y)/)
 
-;;(test-sre (cond (?<=) #\y #\n) #/(?(?<=)y|n)/)
+(test-sre (cond (?<=) #\y #\n) #/(?(?<=)y|n)/)            ;; |
 
-;;(test-sre (: (submatch) (cond 1 #\y)) #/()(?(1)y)/)
+(test-sre (: (submatch) (cond 1 #\y)) #/()(?(1)y)/)
 
-;;(test-sre (: (submatch) (cond 1 #\y #\n)) #/()(?(1)y|n)/)
+(test-sre (: (submatch) (cond 1 #\y #\n)) #/()(?(1)y|n)/) ;; | 
 
 
 (test-group "boundary case")
@@ -322,5 +324,36 @@
 (test-invalid-sre (/"abc"))
 
 (test-invalid-sre (/ #\a))
+
+
+(test-group "Regex to SRE")
+
+(define-syntax test-rx
+  (syntax-rules ()
+   ((_ sre re)
+    (test-equal (write-to-string 'sre) 
+		(regex->sre (sre->regex 'sre)) (regex->sre re)))))
+
+(test-rx (?<= #\a #\b) #/(?<=ab)/)
+(test-rx (look-behind #\a #\b) #/(?<=ab)/)
+
+(test-rx (?<! #\a #\b) #/(?<!ab)/)
+(test-rx (neg-look-behind #\a #\b) #/(?<!ab)/)
+
+(test-rx (cond (?=) #\y) #/(?(?=)y)/)
+(test-rx (cond (?=) #\y #\n) #/(?(?=)y|n)/)              ;; |
+(test-rx (cond (?<=) #\y) #/(?(?<=)y)/)
+(test-rx (cond (?<=) #\y #\n) #/(?(?<=)y|n)/)            ;; |
+(test-rx (: (submatch) (cond 1 #\y)) #/()(?(1)y)/)
+(test-rx (: (submatch) (cond 1 #\y #\n)) #/()(?(1)y|n)/) ;; | 
+
+(test-rx (w/nocase ("abc")) #/[a-cA-C]/)
+(test-rx (w/nocase (/ "az")) #/[a-zA-Z]/)
+(test-rx (w/nocase (/ "acDZ")) #/[a-zA-Z]/)
+(test-rx (w/nocase (/ "az") (w/case "abc")) #/[a-zA-Z]abc/)
+(test-rx (w/nocase (/"az") (w/case #\a)) #/[a-zA-Z]a/)
+(test-rx (- alpha (w/nocase lower)) #/[A-Z]/)
+(test-rx (- lower (uncase "a")) #/[b-z]/)
+(test-rx (- lower (uncase ("abc"))) #/[d-z]/)
 
 (test-end)

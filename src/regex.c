@@ -1464,7 +1464,10 @@ static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
     /* trivial case: don't repeat at all */
     if (maximum == 0) return null_seq();
     /* another trivial case "repeat" exactly once */
-    if (minimum == 1 && maximum == 1) return ast;
+    if (minimum == 1 && maximum == 1) return SG_CADR(SG_CDDR(ast));
+    /* well result would be exactly the same but make AST a bit shorter
+       and hope this makes a bit of better memory usage. */
+    /* if (minimum == 1 && maximum == 1) return ast; */
   }
   if (minimum > 0) {
     SgObject in = regex;
@@ -1473,8 +1476,7 @@ static SgObject maybe_split_repetition(SgObject ast, SgObject regex)
     /* else in = regex; */
     constant = SG_LIST4(SG_CAR(ast), SG_CADR(ast), SG_CADR(ast), in);
   }
-  if (!SG_FALSEP(max) &&
-      maximum == minimum) {
+  if (!SG_FALSEP(max) && maximum == minimum) {
     /* no varying part needed bacuause min = max */
     return constant;
   } else {
