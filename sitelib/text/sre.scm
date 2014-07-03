@@ -318,7 +318,7 @@
     (char-set-union d (char-set-map char-downcase i))))
 
 (define (sre-uncase-string str)
-  `(seq ,@(map sre-uncase-char-set (string->list str))))
+  `(sequence ,@(map sre-uncase-char-set (string->list str))))
 
 (define (sre-uncase sre)
   (%sre-uncase (sre-normalize sre)))
@@ -374,6 +374,113 @@
       (_ (sre-parse-error 'sre-range->char-set "Invalid charset range" 
 			  ss range-spec)))))
 
+;; memo:
+;;  <AST> ::= 
+;;   | <char>
+;;   | <char-set>
+;;   | (register <n> <name> <AST>) 
+;;   | (sequence <AST> ...)
+;;   | (flagged-sequence (<flag> ...) <AST> ...)
+;;   | (alternation <AST> ...)
+;;   | (greedy-repetition <n> <m> <AST>)
+;;   | (non-greedy-repetition <n> <m> <AST>)
+;;   | (lookahead <boolean> <AST>)
+;;   | (lookbehind <boolean> <AST>)
+;;   | (back-reference . <n>)
+;;   | everything
+;;   | start-anchor
+;;   | end-anchor
+;;   | modeless-start-anchor
+;;   | modeless-end-anchor
+;;   | modeless-end-anchor-no-newline
+;;   | word-boundary
+;;   | non-word-boundary
+;;
+;; <flag> ::=
+;;   | (#\i . <boolean>)
+;;   | (#\s . <boolean>)
+;;   | (#\u . <boolean>)
+;; <char> ::= char
+;; <char-set> ::= char-set
+;; <name> ::= symbol | #f
+;; <n> ::= non-negative integer
+;; <m> ::= non-negative integer | #f
+;;
+;; Try to use short name, but for now zero-width assertion is
+;; not using short name, this may change in future discussion
+;; of SRFI-115. (I hope)
 (define (regex->sre rx)
-  (error 'regex->sre "not supported yet" rx))
+  (define (literal? x) (or (char? x) (string? x) (char-set? x)))
+  (define (symbol-name sym)
+    (case sym
+      ((everything)            'any)
+      ((start-anchor)          'bol)
+      ((modeless-start-anchor) 'bos)
+      ((end-anchor)            'eos)
+      ((modeless-end-anchor)   'eol)
+      ((modeless-end-anchor-no-newline)   'eos)
+      ((word-boundary)         'bow) ;; sorry but we don't emit eow...
+      ((non-word-boundary)     'nwb)))
+  ;; merge continuous chars to string
+  (define (seq-finish ast*)
+    (let loop ((ast* ast*) (r '()))
+      (if (null? ast*)
+	  (reverse! r)
+	  (let-values (((chars rest) (span char? ast*)))
+	    (if (null? chars)
+		(loop (cdr ast*) (cons (car ast*) r))
+		(loop rest (cons (list->string chars) r)))))))
+  (define (flagged flags ast*)
+    (define (name-of flag)
+      (case (car flag)
+	((#\i) (if (cdr flag) 'w/nocase  'w/case))
+	((#\u) (if (cdr flag) 'w/unicode 'w/ascii))))
+    (let ((i (assv #\i flags))
+	  ;; (s (assv #\s flags))
+	  (u (assv #\u flags)))
+      ;; hmm, how should we treat #\s dotall flag?
+      ;; ast needs to be in the nest of SRE
+      ;; e.g) if i is set then (w/case <ast>)
+      ;;      if i&u is set then (w/case (w/unicode <ast>))
+      (cond ((and i u)
+	     `(,(name-of i) (,(name-of u) ,@(seq-finish (map parse ast*)))))
+	    (i    `(,(name-of i) ,@(seq-finish (map parse ast*))))
+	    (u    `(,(name-of u) ,@(seq-finish (map parse ast*))))
+	    (else `(: ,@(seq-finish (map parse ast*)))))))
+  (define (rep greedy? n m ast)
+    ;; should we wrap with w/nocapture?
+    (let ((base (parse ast)))
+      (cond ((not m)
+	     (cond ((or (not n) (zero? n)) `(* ,base))
+		   ((= n 1)                `(+ ,base))
+		   (else                   `(>= ,n ,base))))
+	    ((and n (= n m)) (if (= n 1) base `(= ,n ,base)))
+	    ((and n (zero? n) (= m 1)) `(? ,base))
+	    (else (if n `(** ,n ,m ,base) `(** 0 ,m ,base))))))
+  (define (assert direction positive? ast)
+    ;; TODO i want to use short name here
+    (let1 name (if direction
+		   (if positive? 'look-ahead 'neg-look-ahead)
+		   (if positive? 'look-behind 'neg-look-behind))
+      `(,name ,(parse ast))))
+  (define (parse ast)
+    (match ast
+      ((? literal?) (if (char-set? ast) (list (char-set->string ast)) ast))
+      ((? symbol?)  (symbol-name ast))
+      (('register n name ast)
+       (if (symbol? name)
+	   `(-> ,name ,@(parse ast))
+	   `($ ,@(parse ast))))
+      (('sequence ast ...)               `(: ,@(seq-finish (map parse ast))))
+      (('flagged-sequence flags ast ...)  (flagged flags ast))
+      (('alternation ast ...)            `(or ,@(map parse ast)))
+      (('greedy-repetition n m ast)       (rep #t n m ast))
+      (('non-greedy-repetition n m ast)   (rep #f n m ast))
+      (('lookahead  assert ast)           (assert #t assert ast))
+      (('lookbehind assert ast)           (assert #f assert ast))
+      (('back-reference . n)              `(backref ,n))
+      ;; never happend unless i forgot something
+      (_ (error 'regex->sre "unknown ast" ast))))
+  ;; the first one must be 'register so strip
+  (parse (cadddr (regex-ast rx))))
 )

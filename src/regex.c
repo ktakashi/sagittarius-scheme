@@ -1540,7 +1540,7 @@ static SgObject optimize(SgObject ast, SgObject rest)
       if (SG_EQ(sp, sp2)) { SG_APPEND1(h, t, e); break; }
       SG_APPEND1(h, t, SG_CAR(sp2));
     }
-    SG_FOR_EACH(sp2, SG_CDR(ast)) {
+    SG_FOR_EACH(sp2, SG_CDR(sp2)) {
       SG_APPEND1(h, t, optimize(SG_CAR(sp2), rest));
     }
     return Sg_Cons(SYM_ALTER, h);
