@@ -38,6 +38,8 @@
 # endif
 #endif
 
+#include <time.h>
+
 /* thread function and some macros */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 typedef struct SgInternalMutexRec
@@ -141,7 +143,8 @@ SG_EXTERN void Sg_DestroyCond(SgInternalCond *cond);
 SG_EXTERN int  Sg_Notify(SgInternalCond *cond);
 SG_EXTERN int  Sg_NotifyAll(SgInternalCond *cond);
 SG_EXTERN int  Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex);
-SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs);
+SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
+				  struct timespec *pts);
 
 SG_EXTERN void Sg_ExitThread(SgInternalThread *thread, void *ret);
 SG_EXTERN void Sg_TerminateThread(SgInternalThread *thread);

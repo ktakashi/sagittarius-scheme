@@ -6,6 +6,7 @@
 (add-load-path "./threads")
 (add-load-path "./time/")
 (import (srfi :64 testing)
+	(srfi :39)
 	(rnrs)
 	(sagittarius)
 	(sagittarius threads)
@@ -163,18 +164,22 @@
 		(reverse log))))
 
 (test-equal "lock with timeout"
-	    '(#t #f #f #t #t)
+	    '(#t #f #f #f #f #t #t)
 	    (let ((m (make-mutex)))
 	      (let* ((r0 (mutex-lock! m))
 		     (r1 (mutex-lock! m 0))
 		     (r2 (mutex-lock! m 0.05))
 		     ;; we do not support time object for mutex-lock
-		     ;;(r3 (mutex-lock! m (seconds->time (+ (time->seconds (current-time)) 0.05))))
-		     ;;(r4 (mutex-lock! m (seconds->time (- (time->seconds (current-time)) 0.05))))
+		     (r3 (mutex-lock! 
+			  m (seconds->time (+ (time->seconds (current-time))
+					      0.05))))
+		     (r4 (mutex-lock!
+			  m (seconds->time (- (time->seconds (current-time))
+					      0.05))))
 		     (r5 (mutex-unlock! m))
 		     (r6 (mutex-lock! m 0)))
 		(mutex-unlock! m)
-		(list r0 r1 r2 #;r3 #;r4 r5 r6))))
+		(list r0 r1 r2 r3 r4 r5 r6))))
 
 (test-equal "recursive mutex" (list (current-thread) 0 'not-abandoned)
 	    (let ((m (make-mutex)))
@@ -263,4 +268,7 @@
 		(thread-join! th1)
 		(thread-join! th2)
 		(list (p) *thr1-val* *thr2-val*))))
+
+;; #41
+(test-assert "real number timeout value" (thread-sleep! 0.001))
 (test-end)

@@ -66,6 +66,8 @@ SET(SAGITTARIUS_LIB_SOURCE
   clos.c
   collection.c     compare.c
   regex.c          regex_stub.c
+
+  system.c
   # libraries
   ${STUB_SOURCES}
   ${BUILTIN_SOURCES}

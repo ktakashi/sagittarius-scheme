@@ -31,6 +31,22 @@
 #define SAGITTARIUS_SYSTEM_H_
 
 #include "sagittariusdefs.h"
+#include <time.h>
+
+/* moved from ext/time */
+typedef struct SgTimeRec
+{
+  SG_HEADER;
+  SgObject type;
+  int64_t  sec;
+  unsigned long nsec;
+} SgTime;
+
+SG_CLASS_DECL(Sg_TimeClass);
+#define SG_CLASS_TIME  (&Sg_TimeClass)
+#define SG_TIME(obj)  ((SgTime *)obj)
+#define SG_TIMEP(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
+
 
 /* for now only one
    TODO for windows, should we add new console?
@@ -52,6 +68,7 @@ SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
 
 /* time */
 SG_EXTERN int           Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec);
+SG_EXTERN struct timespec* Sg_GetTimeSpec(SgObject t, struct timespec *spec);
 SG_EXTERN SgObject      Sg_TimeUsage();
 
 /* for threading */

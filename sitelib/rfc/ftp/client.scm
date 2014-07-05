@@ -97,7 +97,7 @@
 	  ;; well 120 is predefined so it's ok
 	  (when (string=? res "120")
 	    ;; FIXME the message must indicate how long it needs to wait
-	    (thread-sleep! 1) (retry))))
+	    (thread-sleep! 0.001) (retry))))
       (when authenticate (do-authenticate conn))
       (let1 r1 (send-command conn "USER" username)
 	(if (positive-intermediate? r1)

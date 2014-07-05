@@ -163,9 +163,29 @@ int Sg_NotifyAll(SgInternalCond *cond)
 }
 
 static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
-			 int msecs)
+			 struct timespec *pts)
 {
   int last_waiter;
+  int msecs;
+  if (pts) {
+    unsigned long now_sec, now_usec;
+    unsigned long target_sec, target_usec;
+    Sg_GetTimeOfDay(&now_sec, &now_usec);
+    target_sec = pts->tv_sec;
+    target_usec = pts->tv_nsec / 1000;
+    if (target_sec < now_sec
+	|| (target_sec == now_sec && target_usec <= now_usec)) {
+      timeout_msec = 0;
+    } else if (target_usec >= now_usec) {
+      timeout_msec = ceil((target_sec - now_sec) * 1000
+			  + (target_usec - now_usec)/1000.0);
+    } else {
+      timeout_msec = ceil((target_sec - now_sec - 1) * 1000
+			  + (1.0e6 + target_usec - now_usec)/1000.0);
+    }
+  } else {
+    msecs = INFINITE;
+  }
   EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count++;
   LeaveCriticalSection(&cond->waiters_count_lock);
@@ -187,12 +207,13 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 
 int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
 {
-  return wait_internal(cond, mutex, INFINITE);
+  return wait_internal(cond, mutex, NULL);
 }
 
-int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
+int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
+		       struct timespec *pts)
 {
-  return wait_internal(cond, mutex, msecs);
+  return wait_internal(cond, mutex, pts);
 }
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)

@@ -35,47 +35,6 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-time.h"
 
-static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
-{
-  SgTime *t = SG_TIME(self);
-  Sg_Printf(port, UC("#<%S %S.%09lu>"), t->type, 
-	    Sg_MakeIntegerFromS64(t->sec), t->nsec);
-}
-
-static int time_compare(SgObject x, SgObject y, int equalp)
-{
-  SgTime *tx, *ty;
-  /* it could be not the save meta object. see compare.c */
-  if (!SG_TIMEP(x) || !SG_TIMEP(y)) return FALSE;
-  tx = SG_TIME(x);
-  ty = SG_TIME(y);
-  if (equalp) {
-    if (SG_EQ(tx->type, ty->type) &&
-	tx->sec == ty->sec &&
-	tx->nsec == ty->nsec) {
-      return 0;
-    } else {
-      return -1;
-    }
-  } else {
-    if (!SG_EQ(tx->type, ty->type)) {
-      Sg_Error(UC("cannot compare different types of time objects: %S vs %S"),
-	       x, y);
-    }
-    if (tx->sec < ty->sec) return -1;
-    if (tx->sec == ty->sec) {
-      if (tx->nsec < ty->nsec) return -1;
-      if (tx->nsec == ty->nsec) return 0;
-      return 1;
-    } else {
-      return 1;
-    }
-  }
-}
-
-SG_DEFINE_BUILTIN_CLASS(Sg_TimeClass, time_printer, time_compare,
-			NULL, NULL, NULL);
-
 static SgObject time_utc = SG_UNDEF;
 static SgObject time_tai = SG_UNDEF;
 static SgObject time_monotonic = SG_UNDEF;
@@ -253,37 +212,6 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 extern void Sg__Init_time_stub(SgLibrary *lib);
 extern void Sg__Init_date_stub(SgLibrary *lib);
 
-/* slot accessor for time and date */
-#define DEFINE_GETTER(type, slot, ctype, conv)				\
-  static SgObject type##_##slot (ctype *i) {				\
-    return conv(i -> slot);						\
-  }
-#define DEFINE_SETTER(type, slot, ctype, check, conv)			\
-  static void type##_##slot##_set (ctype *i, SgObject v) {		\
-    if (!check(v)) {							\
-      Sg_Error(UC("Type error: "#type" '"#slot " %S"), v);		\
-    }									\
-    (i -> slot) = conv(v);						\
-  }
-#define DEFINE_ACCESSOR(type, slot, ctype, getter_conv, check, setter_conv) \
-  DEFINE_GETTER(type, slot, ctype, getter_conv)				\
-  DEFINE_SETTER(type, slot, ctype, check, setter_conv)
-
-#define GET_INT64(x) Sg_GetIntegerS64Clamp(x, SG_CLAMP_BOTH, NULL)
-#define ID(x) x
-DEFINE_ACCESSOR(time, type, SgTime, ID, SG_SYMBOLP, ID);
-DEFINE_ACCESSOR(time, sec, SgTime, 
-		Sg_MakeIntegerFromS64, SG_EXACT_INTP, GET_INT64);
-DEFINE_ACCESSOR(time, nsec, SgTime, Sg_MakeIntegerU, SG_EXACT_INTP,
-		Sg_GetUInteger);
-
-static SgSlotAccessor time_slots[] = {
-  SG_CLASS_SLOT_SPEC("type",       0, time_type, time_type_set),
-  SG_CLASS_SLOT_SPEC("nanosecond", 1, time_nsec, time_nsec_set),
-  SG_CLASS_SLOT_SPEC("second",     2, time_sec,  time_sec_set),
-  { { NULL } }
-};
-
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 {
   SgLibrary *lib;
@@ -299,8 +227,5 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
 				  FALSE));
   Sg__Init_time_stub(lib);
   Sg__Init_date_stub(lib);
-
-  Sg_InitStaticClassWithMeta(SG_CLASS_TIME, UC("<time>"), lib, NULL,
-			     SG_FALSE, time_slots, 0);
 }
 

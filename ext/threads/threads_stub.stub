@@ -64,8 +64,7 @@
 (define-c-proc thread-join! (vm::<thread> :optional (timeout #f) timeoutval) 
   Sg_ThreadJoin)
 (define-c-proc thread-yield! () ::<void> Sg_YieldCPU)
-(define-c-proc thread-sleep! (time::<integer>) ::<void>
-  Sg_ThreadSleep)
+(define-c-proc thread-sleep! (time) ::<void> Sg_ThreadSleep)
 
 (define-c-proc thread-stop! (vm::<thread> :optional (timeout #f) timeoutval) 
   Sg_ThreadStop)

@@ -115,7 +115,7 @@
 ;; needs to be improved.
 (let loop ()
   (unless server-up?
-    (thread-sleep! 1000)
+    (thread-sleep! 1)
     (loop)))
 
 (let ([expected `(("method" "GET")

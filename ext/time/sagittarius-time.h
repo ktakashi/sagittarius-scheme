@@ -1,5 +1,5 @@
-/* -*- C -*- */
-/*
+/* -*- mode:c; coding:utf-8 -*-
+ *
  * time.h: srfi-19 time library
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
@@ -34,19 +34,6 @@
 
 #include <sagittarius.h>
 #include <time.h>
-
-typedef struct SgTimeRec
-{
-  SG_HEADER;
-  SgObject type;
-  int64_t  sec;
-  unsigned long nsec;
-} SgTime;
-
-SG_CLASS_DECL(Sg_TimeClass);
-#define SG_CLASS_TIME  (&Sg_TimeClass)
-#define SG_TIME(obj)  ((SgTime *)obj)
-#define SG_TIMEP(obj) SG_XTYPEP(obj, SG_CLASS_TIME)
 
 #define TM_NANO  1.0e9
 #define TM_SID   86400

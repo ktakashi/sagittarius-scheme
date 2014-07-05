@@ -30,7 +30,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <time.h>
 #include <errno.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
@@ -128,11 +127,13 @@ int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
   return ret == 0;
 }
 
-int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
+int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
+		       struct timespec *pts)
 {
+  int ret = 0;
+#if 0
   struct timeval  now;
   struct timespec timeout;
-  int ret = 0;
   if (gettimeofday(&now, NULL) != 0) {
     Sg_Panic("Fail to get current time");
   }
@@ -147,9 +148,9 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex, int msecs)
     timeout.tv_sec++;
     timeout.tv_nsec -= 1000000000;
   }
-
+#endif
   do {
-    ret = pthread_cond_timedwait(&cond->cond, &mutex->mutex, &timeout);
+    ret = pthread_cond_timedwait(&cond->cond, &mutex->mutex, pts);
   } while (ret == EINTR);
   ASSERT(ret != EINVAL);
   return ETIMEDOUT != ret;

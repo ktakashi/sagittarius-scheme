@@ -24,7 +24,6 @@
    `(begin
       (Sg_WrongTypeOfArgumentViolation ,who (SG_MAKE_STRING ,msg) ,got
 				       ,irritants))))
-(define-type <time> "SgTime*")
 
 ;; as long as we don't have serializer, we can't make this constant
 ;; say (define time-0 (make-time 'time-tai 0 0)) will be literal

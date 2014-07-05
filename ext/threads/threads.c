@@ -61,14 +61,9 @@ SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
   return SG_OBJ(vm);
 }
 
-static void thread_cleanup(void *data)
+static void thread_cleanup_inner(SgVM *vm)
 {
-  SgVM *vm = SG_VM(data);
   SgObject exc;
-
-  /* change this VM state to TERMINATED, and signals the change
-     to the waiting threads. */
-  Sg_LockMutex(&vm->vmlock);
   vm->threadState = SG_VM_TERMINATED;
   if (vm->canceller) {
     /* this thread is cancelled */
@@ -76,6 +71,15 @@ static void thread_cleanup(void *data)
     vm->resultException = exc;
   }
   Sg_NotifyAll(&vm->cond);
+}
+
+static void thread_cleanup(void *data)
+{
+  SgVM *vm = SG_VM(data);
+  /* change this VM state to TERMINATED, and signals the change
+     to the waiting threads. */
+  Sg_LockMutex(&vm->vmlock);
+  thread_cleanup_inner(vm);
   Sg_UnlockMutex(&vm->vmlock);
 }
 
@@ -135,16 +139,16 @@ SgObject Sg_ThreadStart(SgVM *vm)
 
 SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
 {
-  int msec = -1;
   int success = TRUE;
   SgObject result = SG_FALSE, resultx = SG_FALSE;
-  if (SG_REALP(timeout)) {
-    msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
-  }
+
+  struct timespec ts, *pts;
+  pts = Sg_GetTimeSpec(timeout, &ts);
+
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
   while (vm->threadState != SG_VM_TERMINATED) {
-    if (SG_REALP(timeout)) {
-      success = Sg_WaitWithTimeout(&vm->cond, &vm->vmlock, msec);
+    if (pts) {
+      success = Sg_WaitWithTimeout(&vm->cond, &vm->vmlock, pts);
       break;
     } else {
       success = Sg_Wait(&vm->cond, &vm->vmlock);
@@ -174,11 +178,10 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
   int invalid_state = FALSE;
   SgVM *taker = NULL;
   SgVM *vm = Sg_VM();
-  int msec = 0;
   int success = TRUE;
-  if (SG_REALP(timeout)) {
-    msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
-  }
+
+  struct timespec ts, *pts;
+  pts = Sg_GetTimeSpec(timeout, &ts);
 
   Sg_LockMutex(&target->vmlock);
   if (target->threadState != SG_VM_RUNNABLE &&
@@ -195,8 +198,8 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
       target->attentionRequest = TRUE;
     }
     while (target->threadState != SG_VM_STOPPED) {
-      if (SG_REALP(timeout)) {
-	success = Sg_WaitWithTimeout(&target->cond, &target->vmlock, msec);
+      if (pts) {
+	success = Sg_WaitWithTimeout(&target->cond, &target->vmlock, pts);
       } else {
 	success = Sg_Wait(&target->cond, &target->vmlock);
       }
@@ -242,15 +245,31 @@ SgObject Sg_ThreadSleep(SgObject timeout)
   SgInternalCond dummyc;
   SgInternalMutex dummym;
   int intr = FALSE;
-  int msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
+
+  struct timespec ts, *pts;
+  pts = Sg_GetTimeSpec(timeout, &ts);
+
+  if (!pts) {
+    Sg_Error(UC("thread-sleep! can't take #f as timeout value: %S"), timeout);
+  }
+
   Sg_InitMutex(&dummym, FALSE);
   Sg_InitCond(&dummyc);
   Sg_LockMutex(&dummym);
-  intr = Sg_WaitWithTimeout(&dummyc, &dummym, msec);
+  /* sleep should sleep second not milli second */
+  intr = Sg_WaitWithTimeout(&dummyc, &dummym, pts);
   Sg_UnlockMutex(&dummym);
   Sg_DestroyMutex(&dummym);
   Sg_DestroyCond(&dummyc);
   return SG_UNDEF;
+}
+
+static int wait_for_termination(SgVM *target)
+{
+  struct timespec ts;
+  SgObject t = Sg_MakeFlonum(0.001); /* 1ms */
+  Sg_GetTimeSpec(t, &ts);
+  return Sg_WaitWithTimeout(&target->cond, &target->vmlock, &ts);
 }
 
 SgObject Sg_ThreadTerminate(SgVM *target)
@@ -264,14 +283,22 @@ SgObject Sg_ThreadTerminate(SgVM *target)
     }
     Sg_UnlockMutex(&target->vmlock);
     Sg_ExitThread(&target->thread, NULL);
-  } else {
-    Sg_LockMutex(&target->vmlock);
+  } 
+  Sg_LockMutex(&target->vmlock);
+  do {
     if (target->canceller == NULL) {
       target->canceller = vm;
+      target->stopRequest = TRUE;
+      target->attentionRequest = TRUE;
+
+      if (wait_for_termination(target)) break;
+      thread_cleanup_inner(target);
+
       Sg_TerminateThread(&target->thread);
     }
-    Sg_UnlockMutex(&target->vmlock);
-  }
+  } while (0);
+  Sg_UnlockMutex(&target->vmlock);
+
   return SG_UNDEF;
 }
 

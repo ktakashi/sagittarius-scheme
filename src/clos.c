@@ -51,6 +51,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/subr.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/system.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/treemap.h"
 #include "sagittarius/unicode.h"

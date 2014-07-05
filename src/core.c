@@ -72,6 +72,7 @@ extern void Sg__InitRegex();
 extern void Sg__InitUnicode();
 extern void Sg__InitMacro();
 extern void Sg__InitSystem();
+extern void Sg__InitBaseSystem(); /* for <time>, maybe I should make time.c */
 extern void Sg__InitReaderClass();
 
 /* stub files */
@@ -130,6 +131,7 @@ void Sg_Init()
   Sg__InitVM();
   /* init clos uses findlibrary. so after VM */
   Sg__InitClos();
+  Sg__InitBaseSystem();		/* <time> */
   Sg__InitReaderClass();
   Sg__InitMacro();
   /* port must be after VM to replace std ports. */

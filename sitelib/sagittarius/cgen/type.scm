@@ -70,6 +70,7 @@
    '(;; numeric
      (<fixnum>  "long" "fixnum" "SG_INTP" "SG_INT_VALUE" "SG_MAKE_INT" 0)
      (<integer> "SgObject" "exact integer" "SG_EXACT_INTP" "")
+     (<real>    "SgObject" "real number" "SG_REALP" "")
      (<number> "SgObject" "number" "SG_NUMBERP" "")
      ;; immediates
      (<boolean> "int" "boolean" "SG_BOOLP" "SG_BOOL_VALUE" "SG_MAKE_BOOL" FALSE)
@@ -127,6 +128,8 @@
      ;; for compiler
      (<code-builder> "SgCodeBuilder*" "code-builder" "SG_CODE_BUILDERP"
 		     "SG_CODE_BUILDER")
+     ;; time
+     (<time> "SgTime*" "time object" "SG_TIMEP" "SG_TIME")
      ))
 
   (define (cgen-box-expr type c-expr)

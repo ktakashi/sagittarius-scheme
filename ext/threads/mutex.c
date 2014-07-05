@@ -124,10 +124,9 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
 {
   SgObject r = SG_TRUE;
   SgVM *abandoned = NULL;
-  int msec = -1;
-  if (SG_REALP(timeout)) {
-    msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
-  }
+
+  struct timespec ts, *pts;
+  pts = Sg_GetTimeSpec(timeout, &ts);
 
   thread_cleanup_push((void (*)(void*))Sg_UnlockMutex,
 		      (void *)&mutex->mutex);
@@ -138,8 +137,8 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
       mutex->locked = FALSE;
       break;
     }
-    if (SG_REALP(timeout)) {
-      int success = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, msec);
+    if (pts) {
+      int success = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, pts);
       if (!success) {
 	r = SG_FALSE;
 	break;
@@ -167,6 +166,9 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeou
 {
   SgObject r = SG_TRUE;
 
+  struct timespec ts, *pts;
+  pts = Sg_GetTimeSpec(timeout, &ts);
+
   thread_cleanup_push((void (*)(void*))Sg_UnlockMutex,
 		      (void *)&mutex->mutex);
 
@@ -175,9 +177,9 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeou
   mutex->owner = NULL;
   Sg_Notify(&mutex->cv);
   if (cv) {
-    if (SG_REALP(timeout)) {
+    if (pts) {
       int msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
-      int success = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, msec);
+      int success = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, pts);
       if (!success) {
 	r = SG_FALSE;
       }      
