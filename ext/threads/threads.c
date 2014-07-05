@@ -194,7 +194,7 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
   } else {
     if (target->inspector != vm) {
       target->inspector = vm;
-      target->stopRequest = TRUE;
+      target->stopRequest = SG_VM_REQUEST_SUSPEND;
       target->attentionRequest = TRUE;
     }
     while (target->threadState != SG_VM_STOPPED) {
@@ -288,7 +288,7 @@ SgObject Sg_ThreadTerminate(SgVM *target)
   do {
     if (target->canceller == NULL) {
       target->canceller = vm;
-      target->stopRequest = TRUE;
+      target->stopRequest = SG_VM_REQUEST_TERMINATE;
       target->attentionRequest = TRUE;
 
       if (wait_for_termination(target)) break;

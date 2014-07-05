@@ -2050,15 +2050,23 @@ static void process_queued_requests(SgVM *vm)
 
   if (vm->stopRequest) {
     SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
-    if (vm->stopRequest) {
+    switch (vm->stopRequest) {
+    case SG_VM_REQUEST_SUSPEND:
       vm->stopRequest = FALSE;
       vm->threadState = SG_VM_STOPPED;
       Sg_NotifyAll(&vm->cond);
       while (vm->threadState == SG_VM_STOPPED) {
 	Sg_Wait(&vm->cond, &vm->vmlock);
       }
+      break;
+    case SG_VM_REQUEST_TERMINATE:
+      vm->state = SG_VM_TERMINATED;
+      break;
     }
     SG_INTERNAL_MUTEX_SAFE_LOCK_END();
+    if (vm->state = SG_VM_TERMINATED) {
+      Sg_ExitThread(vm, NULL);
+    }
   }
 }
 

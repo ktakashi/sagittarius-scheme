@@ -138,6 +138,11 @@ enum {
 };
 
 enum {
+  SG_VM_REQUEST_SUSPEND = 1L,
+  SG_VM_REQUEST_TERMINATE = 2L,
+};
+
+enum {
   SG_ERROR_BEING_HANDLED  = (1L << 0),
   SG_ERROR_BEING_REPORTED = (1L << 1)
 };
