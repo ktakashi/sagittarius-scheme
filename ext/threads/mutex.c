@@ -178,7 +178,6 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeou
   Sg_Notify(&mutex->cv);
   if (cv) {
     if (pts) {
-      int msec = Sg_GetIntegerClamp(timeout, SG_CLAMP_NONE, NULL);
       int success = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, pts);
       if (!success) {
 	r = SG_FALSE;
