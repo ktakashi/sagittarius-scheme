@@ -55,27 +55,36 @@
   (test-assert "decreased" (member (heap-ref h "key0") '("updated!" "value2")))
   )
 
-;;  merge is brokwn for now...
-#;
-(let ((h1 (alist->heap compare '(("k0" . "v0") ("k2" . "v2") ("k4" . "v4"))))
-      (h2 (alist->heap compare '(("k1" . "v1") ("k3" . "v3") ("k5" . "v5")))))
+(define (extract-ref h) (heap-entry-key (heap-extract-min! h)))
+(define (check-merge h expects)
+  (let loop ((e expects) (i 0))
+    (if (heap-empty? h)
+	(test-equal "count" i (length expects))
+	(begin
+	  (test-equal (format "merge ~a" (car e)) (car e) (extract-ref h))
+	  (loop (cdr e) (+ i 1))))))
+(define alist1 '(("k0" . "v0") ("k2" . "v2") ("k4" . "v4")))
+(define alist2 '(("k1" . "v1") ("k3" . "v3") ("k5" . "v5")))
+(define alist3 '(("k6" . "v6") ("k8" . "v8") ("kA" . "vA")))
+(define alist4 '(("k7" . "v7") ("k9" . "v9") ("k9" . "v9")))
 
-  (define (extract-ref h) (heap-entry-key (heap-extract-min! h)))
-  (define (check-merge h expects)
-    (let loop ((e expects) (i 0))
-      (if (heap-empty? h)
-	  (test-equal "count" i (length expects))
-	  (begin
-	    (test-equal (format "merge ~a" (car e)) (car e) (extract-ref h))
-	    (loop (cdr e) (+ i 1))))))
+(let ((h1 (alist->heap compare alist1))
+      (h2 (alist->heap compare alist2)))
+  (test-assert "merge!" (heap? (heap-merge! h1 h2)))
+  (check-merge h1 '("k0" "k1" "k2" "k3" "k4" "k5"))
+  (test-assert "merged heap" (heap-empty? h2)))
 
-  (test-assert "merge" (heap? (heap-merge compare h1 h2)))
-  (test-assert "merge!" (heap? (heap-merge! (make-heap compare) h1 h2)))
-  (let ((h3 (heap-merge compare h1 h2)))
-    (check-merge h3 '("k0" "k1" "k2" "k3" "k4" "k5")))
-  (let ((h3 (heap-merge! (make-heap compare) h1 h2)))
-    (check-merge h3 '("k0" "k1" "k2" "k3" "k4" "k5")))
-  
-)
+(let ((h1 (alist->heap compare alist1))
+      (h2 (alist->heap compare alist2))
+      (h3 (alist->heap compare alist3)))
+  (let ((mh (merge-heaps compare h1 h2 h3)))
+    (test-assert "merge-heaps" (heap? mh))
+    (test-assert "not empty" (not (heap-empty? mh)))
+    (check-merge mh '("k0" "k1" "k2" "k3" "k4" "k5" "k6" "k8" "kA"))
+    (test-assert "intact check" (not (heap-empty? h2)))
+    (test-assert "intact check" (not (heap-empty? h3))))
+  ;; destructive
+  (test-assert "merge-heaps" (heap? (merge-heaps! h1 h2 h3)))
+  (check-merge h1 '("k0" "k1" "k2" "k3" "k4" "k5" "k6" "k8" "kA")))
 
 (test-end)

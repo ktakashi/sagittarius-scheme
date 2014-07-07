@@ -46,7 +46,7 @@
 	    ;; slow
 	    heap-search heap-update! heap-ref
 
-	    heap-merge heap-merge!
+	    heap-merge! merge-heaps! merge-heaps
 	    copy-heap
 
 	    ;; to access value
@@ -102,8 +102,10 @@
 	  (two -1)))
 
   (define-class <heap> (<ordered-dictionary>)
-    ((min :init-value #f :reader heap-min) ;; pointer to the minimum entry
-     (size :init-value 0 :reader heap-size)
+    ;; pointer to the minimum entry
+    ;; keyword argument is only for internal
+    ((min :init-value #f :init-keyword :min :reader heap-min)
+     (size :init-value 0 :init-keyword :size :reader heap-size)
      (compare :init-keyword :compare :reader heap-compare)))
 
   ;; todo from alist?
@@ -115,68 +117,127 @@
 
   (define (heap-empty? heap) (not (~ heap 'min)))
 
-  (define (heap-merge! dest heap1 heap2 . heaps)
-    (define (merge-entries compare heap1 heap2 heaps)
+  (define (heap-merge! heap1 heap2)
+    (define (merge-entries compare heap1 heap2)
       (define (merge1 compare heap1 heap2)
 	(let1 size (+ (~ heap1 'size) (~ heap2 'size))
-	  (values (merge-min-entry compare (~ heap1 'min) (~ heap2 'min))
+	  (values (merge-entry! compare (~ heap1 'min) (~ heap2 'min))
 		  size)))
-      ;; simple case first
-      (if (null? heaps)
-	  (merge1 compare heap1 heap2)
-	  (let-values (((min size) (merge1 compare heap1 heap2)))
-	    (let loop ((heaps heaps) (min min) (size size))
-	      (if (null? heaps)
-		  (values min size)
-		  (loop (cdr heaps) 
-			(merge-min-entry min (~ (car heap) 'min))
-			(+ size (~ (car heap) 'size))))))))
-    (let-values (((min size) 
-		  (merge-entries (~ dest 'compare) heap1 heap2 heaps)))
-      (set! (~ dest 'min) min)
-      (set! (~ dest 'size) size)
-      dest))
+      (merge1 compare heap1 heap2))
+    (let-values (((min size) (merge-entries (~ heap1 'compare) heap1 heap2)))
+      (set! (~ heap1 'min) min)
+      (set! (~ heap1 'size) size)
+      ;; reset heap2
+      (set! (~ heap2 'min) #f)
+      (set! (~ heap2 'size) 0)
+      heap1))
 
-  (define (heap-merge compare heap1 heap2 . heaps)
-    (apply heap-merge! (make-heap compare) heap1 heap2 heaps))
-
-  (define (merge-entry! compare one two)
-    (define (merge-them one two)
+  ;; E = min
+  ;; O = new
+  ;; pital creation:
+  ;; prev = entry = next
+  ;; 
+  ;; fore:
+  ;; +-----+      +-----+      +-----+
+  ;; |     | <-P- |     | <-P- |     |
+  ;; |     |      | ONE |      |     |
+  ;; |     | -N-> |     | -N-> |     |
+  ;; +-----+      +-----+      +-----+
+  ;; 
+  ;; +-----+      +-----+      +-----+
+  ;; |     | <-P- |     | <-P- |     |
+  ;; |     |      | TWO |      |     |
+  ;; |     | -N-> |     | -N-> |     |
+  ;; +-----+      +-----+      +-----+
+  ;; 
+  ;; ter:
+  ;; +-----+      +-----+      +-----+
+  ;; |     | <-P- |     | \    |     | ----+  
+  ;; |     |      | ONE |  \   |     |     |
+  ;; |     | -N-> |     | \ P  |     | -+  |
+  ;; +-----+      +-----+  N \ +-----+  |  |
+  ;;                        \ \         |  |
+  ;; +-----+      +-----+      +-----+  |  |
+  ;; |     | <-P- |     |      |     |  |  |
+  ;; |     |      | TWO |      |     |  |  |
+  ;; |     | -N-> |     |      |     |  |  |
+  ;; +-----+      +-----+      +-----+  |  |
+  ;;                | |                 |  |
+  ;;                | +-------N---------+  |
+  ;;                |                      |
+  ;;                +---------P------------+
+  ;; 
+  ;; us (for initial one):
+  ;; +-----+        +-----+       
+  ;; |     | <--P-- |     | <--P----+
+  ;; | ONE |        | TWO |         |
+  ;; |     | --N--> |     | --N--+  |
+  ;; +-----+        +-----+      |  |
+  ;;   |  ^                      |  |
+  ;;   |  |                      |  |
+  ;;   |  +----------------------+  |
+  ;;   +----------------------------+
+  (define (%merge-entry! one two)
+    (define (merge-them one two)      
       (let1 next (~ one 'next)
 	(set! (~ one 'next) (~ two 'next))
 	(set! (~ one 'next 'prev) one)
 	(set! (~ two 'next) next)
 	(set! (~ two 'next 'prev) two)
-	;; key will never be unbound
-	(if (negative? (entry-compare compare one two))
-	    one
-	    two)))
+	(values one two)))
+    (merge-them one two))
+
+  (define (merge-entry! compare one two)
+    (define (merge-them one two)
+      (let-values (((one two) (%merge-entry! one two)))
+	(if (negative? (entry-compare compare one two)) one two)))
     (cond ((and one two) (merge-them one two))
 	  (one one)
 	  (two two)
 	  (else #f)))
+  
+  ;; to make heap intact we need to copy whole structure
+  ;; of entry. this costs O(n) running time...
+  ;; assume given entry is min entry means we don't have to
+  ;; care about parent entry.
+  (define (%copy-entry e)
+    (define (m e) (make-entry (~ e 'key) (~ e 'value)))
+    (define (do-child r e)
+      (let1 c (~ e 'child)
+	(when c
+	  (let1 ne (m c)
+	    (do-copy ne c (~ c 'next))
+	    (set! (~ r 'child) ne)
+	    (set! (~ ne 'parent) r)))))
+    (define (do-copy r root e)
+      (unless (eq? root e)
+	(let1 ne (m e)
+	  (%merge-entry! r ne)
+	  (do-child ne e)
+	  (do-copy r root (~ e 'next)))))
+    (rlet1 r (m e)
+      ;; in case
+      (do-child r e)
+      (do-copy r e (~ e 'next))))
+  
+  (define (copy-heap heap) 
+    (make <heap> :min (%copy-entry (~ heap 'min)) :size (~ heap 'size)
+	  :compare (~ heap 'compare)))
 
-  (define (merge-min-entry compare one two)
-    (define (copy-entry e)
-      (define (do-child r e)
-	(when (~ e 'child)
-	  (let1 c (copy-entry (~ e 'child))
-	    (set! (~ r 'child) e)
-	    (set! (~ e 'parent) r))))
-      (define (do-next r e) 
-	(let loop ((cur e) (n r) (first #t))
-	  (unless (or (not first) cur (not (eq? cur e)))
-	    (display 'here) (newline)
-	    (do-child n cur)
-	    (let1 ne (make-entry (~ cur slot 'key) (~ cur slot 'value))
-	      (set! (~ n 'next) ne)
-	      (set! (~ ne 'prev) n)
-	      (loop (~ cur slot) ne #f)))))
-      ;; for min entry we don't have to care parent
-      (rlet1 r (make-entry (~ e 'key) (~ e 'value))
-	(do-next r e)
-	(do-child r e)))
-    (merge-entry! compare (copy-entry one) (copy-entry two)))
+  (define (merge-heaps! dst heap1 . heaps)
+    (define (merge-entries dst heap1 heaps)
+      ;; TODO no copying
+      (define (merge1 dst heap)
+	(let1 copy (copy-heap heap)
+	  (heap-merge! dst copy)))
+      (let loop ((heaps heaps) (dst (merge1 dst heap1)))
+	(if (null? heaps)
+	    dst
+	    (loop (cdr heaps) (merge1 dst (car heaps))))))
+    (merge-entries dst heap1 heaps))
+
+  (define (merge-heaps compare heap1 heap2 . heaps)
+    (apply merge-heaps! (make-heap compare) heap1 heap2 heaps))
 
   (define (heap-extract-min! heap)
     (define comp (~ heap 'compare))
