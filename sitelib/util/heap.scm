@@ -132,12 +132,12 @@
       (set! (~ heap2 'size) 0)
       heap1))
 
-  ;; E = min
-  ;; O = new
-  ;; pital creation:
-  ;; prev = entry = next
+  ;; ONE = min
+  ;; TWO = new
+  ;; Initial creation:
+  ;;   prev = entry = next
   ;; 
-  ;; fore:
+  ;; before:
   ;; +-----+      +-----+      +-----+
   ;; |     | <-P- |     | <-P- |     |
   ;; |     |      | ONE |      |     |
@@ -150,7 +150,7 @@
   ;; |     | -N-> |     | -N-> |     |
   ;; +-----+      +-----+      +-----+
   ;; 
-  ;; ter:
+  ;; after:
   ;; +-----+      +-----+      +-----+
   ;; |     | <-P- |     | \    |     | ----+  
   ;; |     |      | ONE |  \   |     |     |
@@ -167,7 +167,7 @@
   ;;                |                      |
   ;;                +---------P------------+
   ;; 
-  ;; us (for initial one):
+  ;; thus (for initial one):
   ;; +-----+        +-----+       
   ;; |     | <--P-- |     | <--P----+
   ;; | ONE |        | TWO |         |
