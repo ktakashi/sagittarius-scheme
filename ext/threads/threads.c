@@ -200,6 +200,7 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
     while (target->threadState != SG_VM_STOPPED) {
       if (pts) {
 	success = Sg_WaitWithTimeout(&target->cond, &target->vmlock, pts);
+	break;
       } else {
 	success = Sg_Wait(&target->cond, &target->vmlock);
       }

@@ -27,10 +27,12 @@
  *
  *  $Id: $
  */
+#include <math.h>
 #include <windows.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/system.h>
+#include <sagittarius/error.h>
 #include <sagittarius/vm.h>
 
 #include "../../gc-incl.inc"
@@ -153,15 +155,13 @@ int Sg_Notify(SgInternalCond *cond)
 
 int Sg_NotifyAll(SgInternalCond *cond)
 {
-  int have_waiters;
+  int have_waiters = 0;
 
   if (!cond->mutex) return TRUE; /* nobody ever waited on this cond var */
 
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
 
   EnterCriticalSection(&cond->waiters_count_lock);
-  have_waiters = 0;
-
   cond->was_broadcast = have_waiters = (cond->waiters_count > 0);
 
   if (have_waiters) {
@@ -181,7 +181,7 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 			 struct timespec *pts)
 {
   int last_waiter, bad_mutex = FALSE;
-  DWORD msecs;
+  DWORD msecs, r0;
   if (pts) {
     unsigned long now_sec, target_sec;
     unsigned long target_usec, now_usec;
@@ -192,11 +192,11 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 	|| (target_sec == now_sec && target_usec <= now_usec)) {
       msecs = 1;
     } else if (target_usec >= now_usec) {
-      msecs = ceil((target_sec - now_sec) * 1000
-		   + (target_usec - now_usec)/1000.0);
+      msecs = (DWORD)ceil((target_sec - now_sec) * 1000
+			  + (target_usec - now_usec)/1000.0);
     } else {
-      msecs = ceil((target_sec - now_sec - 1) * 1000
-		   + (1.0e6 + target_usec - now_usec)/1000.0);
+      msecs = (DWORD)ceil((target_sec - now_sec - 1) * 1000
+			  + (1.0e6 + target_usec - now_usec)/1000.0);
     }
     if (msecs == 0) msecs++;
   } else {
@@ -216,11 +216,8 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 		" mutex %p"), cond, mutex);
   }
 
-  if (WAIT_TIMEOUT == SignalObjectAndWait(mutex->mutex, cond->semaphore,
-					  msecs, FALSE)) {
-    return FALSE;
-  }
-
+  r0 = SignalObjectAndWait(mutex->mutex, cond->semaphore, msecs, FALSE);
+  /* always unlock it */
   EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count--;
   last_waiter = cond->was_broadcast && cond->waiters_count == 0;
@@ -230,6 +227,7 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
   } else {
     Sg_LockMutex(mutex);
   }
+  if (r0 == WAIT_TIMEOUT) return FALSE;
   return TRUE;
 }
 
