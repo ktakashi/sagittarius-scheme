@@ -2064,8 +2064,8 @@ static void process_queued_requests(SgVM *vm)
       break;
     }
     SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-    if (vm->state = SG_VM_TERMINATED) {
-      Sg_ExitThread(vm, NULL);
+    if (vm->state == SG_VM_TERMINATED) {
+      Sg_ExitThread(&vm->thread, NULL);
     }
   }
 }

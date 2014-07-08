@@ -285,18 +285,22 @@ SgObject Sg_ThreadTerminate(SgVM *target)
     Sg_ExitThread(&target->thread, NULL);
   } 
   Sg_LockMutex(&target->vmlock);
-  do {
-    if (target->canceller == NULL) {
-      target->canceller = vm;
-      target->stopRequest = SG_VM_REQUEST_TERMINATE;
-      target->attentionRequest = TRUE;
+  if (target->threadState == SG_VM_RUNNABLE ||
+      target->threadState == SG_VM_STOPPED) {
+    do {
+      if (target->canceller == NULL) {
+	target->canceller = vm;
+	target->stopRequest = SG_VM_REQUEST_TERMINATE;
+	target->attentionRequest = TRUE;
+	if (wait_for_termination(target)) break;
 
-      if (wait_for_termination(target)) break;
-      thread_cleanup_inner(target);
-
-      Sg_TerminateThread(&target->thread);
-    }
-  } while (0);
+	thread_cleanup_inner(target);
+	
+	Sg_TerminateThread(&target->thread);
+      }
+    } while (0);
+  }
+  target->threadState = SG_VM_TERMINATED;
   Sg_UnlockMutex(&target->vmlock);
 
   return SG_UNDEF;

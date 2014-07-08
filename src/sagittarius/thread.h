@@ -60,6 +60,7 @@ struct SgInternalCondRec
   CRITICAL_SECTION waiters_count_lock;
   HANDLE semaphore;
   HANDLE waiters_done;
+  SgInternalMutex *mutex;
   size_t was_broadcast;
 };
 typedef struct SgInternalCondRec SgInternalCond;
