@@ -102,19 +102,85 @@
       (format "expected ~a, but got ~a" expect got)
       (format "expected ~a, but got ~a, as argument ~a" expect got (car nth))))
 
+;; From Gauche
+;; we don't define SRFI-43 vector-map/vector-for-each here
+;; so make those tabulate/update! internal define for better performance.
+(define (vector-map proc vec . more)
+  (define (vector-tabulate len proc)
+    (let ((vec (make-vector len)))
+      (let loop ((i 0))
+	(if (= i len)
+	    vec
+	    (begin
+	      (vector-set! vec i (proc i))
+	      (loop (+ i 1)))))))
+  (if (null? more)
+      (vector-tabulate (vector-length vec)
+		       (lambda (i) (proc (vector-ref vec i))))
+      (let ((vecs (cons vec more)))
+	(vector-tabulate (apply min (map vector-length vecs))
+			 (lambda (i)
+			   (apply proc (map (lambda (v) (vector-ref v i))
+					    vecs)))))))
+(define (vector-map! proc vec . more)
+  (define (vector-update! vec len proc)
+    (let loop ((i 0))
+      (if (= i len)
+	  vec
+	  (begin
+	    (vector-set! vec i (proc i))
+	    (loop (+ i 1))))))
+  (if (null? more)
+      (vector-update! vec (vector-length vec)
+		      (lambda (i) (proc (vector-ref vec i))))
+      (let ((vecs (cons vec more)))
+	(vector-update! vec (apply min (map vector-length vecs))
+			(lambda (i)
+			  (apply proc (map (lambda (v) (vector-ref v i))
+					   vecs)))))))
 
-(define (vector-map proc vec1 . vec2)
-  (list->vector
-   (apply map proc (vector->list vec1)
-	  (map vector->list vec2))))
+(define (vector-for-each proc vec . more)
+  (if (null? more)
+      (let ((len (vector-length vec)))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (proc (vector-ref vec i))
+	    (loop (+ i 1)))))
+      (let* ((vecs (cons vec more))
+	     (len  (apply min (map vector-length vecs))))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (apply proc (map (lambda (v) (vector-ref v i)) vecs))
+	    (loop (+ i 1)))))))
 
-(define (vector-for-each proc vec1 . vec2)
-  (apply for-each proc (vector->list vec1)
-	 (map vector->list vec2)))
+;; TOO inefficient
+;; (define (vector-map proc vec1 . vec2)
+;;   (list->vector
+;;    (apply map proc (vector->list vec1)
+;; 	  (map vector->list vec2))))
+;; 
+;; (define (vector-for-each proc vec1 . vec2)
+;;   (apply for-each proc (vector->list vec1)
+;; 	 (map vector->list vec2)))
 
-(define (string-for-each proc str1 . str2)
-  (apply for-each proc (string->list str1)
-	 (map string->list str2)))
+;; same as vector-for-each
+(define (string-for-each proc str . more)
+  (if (null? more)
+      (let ((len (string-length str)))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (proc (string-ref str i))
+	    (loop (+ i 1)))))
+      (let* ((strs (cons str more))
+	     (len  (apply min (map string-length strs))))
+	(let loop ((i 0))
+	  (unless (= i len)
+	    (apply proc (map (lambda (s) (string-ref s i)) strs))
+	    (loop (+ i 1)))))))
+
+;; (define (string-for-each proc str1 . str2)
+;;   (apply for-each proc (string->list str1)
+;; 	 (map string->list str2)))
 
 ;;;;
 ;; from Ypsilon
