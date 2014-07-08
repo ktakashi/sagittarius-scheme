@@ -1046,7 +1046,8 @@
 	    (string-split "abcxdefxghi" "x"))
 (test-equal "string-split (regex)" '("abc" "def" "ghi")
 	    (string-split "abc*123*def*456*ghi" (regex "\\*\\d+\\*")))
-
+(test-error "string-split (null match)" error?
+	    (string-split "abc123def456" (regex "\\d*")))
 
 
 

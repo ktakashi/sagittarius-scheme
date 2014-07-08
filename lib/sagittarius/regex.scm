@@ -149,13 +149,16 @@
 		    (else (assertion-violation
 			   'string-split
 			   "string or regex-pattern required" str/pattern))))
-	   (m (regex-matcher p text start end)))
-      (let loop ((r '())
-		 (pos 0))
-	(cond ((regex-find m)
+	   (m (regex-matcher p text)))
+      (let loop ((r '()) (pos 0))
+	(cond ((regex-find m pos)
 	       (let ((first (regex-first m))
 		     (last  (regex-last m)))
-		 (loop (cons (substring text pos first) r) last)))
+		 (if (= first last) ;; \d* vs abc
+		     ;; how should we treat? for now follow Gauche (error)
+		     (error 'string-split 
+			    "splitter must not match a null string" p)
+		     (loop (cons (substring text pos first) r) last))))
 	      (else (reverse! (cons (substring text pos (string-length text))
 				    r)))))
       ))
