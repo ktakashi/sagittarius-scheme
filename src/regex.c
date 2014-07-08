@@ -2518,11 +2518,13 @@ static void count_register(SgObject ast, int *acc, SgObject *regs)
       /* get name and capture number */
       SgObject n = SG_CADR(ast);
       SgObject name = SG_CAR(SG_CDDR(ast));
-      SgObject slot = Sg_Assq(name, *regs);
-      if (SG_FALSEP(slot)) {
-	PUSH(SG_LIST2(name, n), *regs);
-      } else {
-	SG_SET_CDR(*regs, Sg_Cons(n, SG_CDR(slot)));
+      if (!SG_FALSEP(name)) {
+	SgObject slot = Sg_Assq(name, *regs);
+	if (SG_FALSEP(slot)) {
+	  PUSH(SG_LIST2(name, n), *regs);
+	} else {
+	  SG_SET_CDR(slot, Sg_Cons(n, SG_CDR(slot)));
+	}
       }
     }
     count_register(SG_CAR(ast), acc, regs);
