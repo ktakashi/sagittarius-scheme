@@ -37,6 +37,10 @@
 #define SAGITTARIUS_WINDOWS 1
 #endif
 
+#ifdef SAGITTARIUS_WINDOWS
+#include "win-compat.h"
+#endif
+
 #undef SG_EXTERN
 #if defined(__CYGWIN__) || defined(SAGITTARIUS_WINDOWS)
 # if defined(LIBSAGITTARIUS_BODY)

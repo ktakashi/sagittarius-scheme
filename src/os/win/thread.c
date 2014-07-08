@@ -30,6 +30,7 @@
 #include <windows.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
+#include <sagittarius/system.h>
 #include <sagittarius/vm.h>
 
 #include "../../gc-incl.inc"
@@ -168,20 +169,20 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
   int last_waiter;
   int msecs;
   if (pts) {
-    unsigned long now_sec, now_usec;
-    unsigned long target_sec, target_usec;
+    unsigned long now_sec, target_sec;
+    unsigned long target_usec, now_usec;
     Sg_GetTimeOfDay(&now_sec, &now_usec);
     target_sec = pts->tv_sec;
     target_usec = pts->tv_nsec / 1000;
     if (target_sec < now_sec
 	|| (target_sec == now_sec && target_usec <= now_usec)) {
-      timeout_msec = 0;
+      msecs = 0;
     } else if (target_usec >= now_usec) {
-      timeout_msec = ceil((target_sec - now_sec) * 1000
-			  + (target_usec - now_usec)/1000.0);
+      msecs = ceil((target_sec - now_sec) * 1000
+		   + (target_usec - now_usec)/1000.0);
     } else {
-      timeout_msec = ceil((target_sec - now_sec - 1) * 1000
-			  + (1.0e6 + target_usec - now_usec)/1000.0);
+      msecs = ceil((target_sec - now_sec - 1) * 1000
+		   + (1.0e6 + target_usec - now_usec)/1000.0);
     }
   } else {
     msecs = INFINITE;
