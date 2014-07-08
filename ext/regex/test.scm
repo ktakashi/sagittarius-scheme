@@ -1025,6 +1025,9 @@
 
 (test-equal "regex-replace-first" "abc|def|ghi"
 	    (regex-replace-first (regex "def|DEF") "abcdefghi" "|$0|"))
+;; pre/post ($p/$P)
+(test-equal "regex-replace-first" "abc|abcdefghi|ghi"
+	    (regex-replace-first (regex "def|DEF") "abcdefghi" "|$p$0$P|"))
 
 (test-equal "regex-replace-first" "abc|$0|ghi"
 	    (regex-replace-first (regex "def|DEF") "abcdefghi" "|\\$0|"))

@@ -3572,13 +3572,24 @@ static void append_string_replacement(SgMatcher *m, SgPort *p,
       cursor++;
     } else if (nextChar == '$') {
       int refNum, done = FALSE;
+      SgChar c;
       SgString *v;
       /* Skip past $ */
       cursor++;
       /* The first number is always a group */
-      refNum = SG_STRING_VALUE_AT(replacement, cursor) - '0';
+      c = SG_STRING_VALUE_AT(replacement, cursor);
+      refNum = c - '0';
       if ((refNum < 0) || (refNum > 9)) {
-	Sg_Error(UC("Illegal group reference: %A"), SG_MAKE_CHAR(refNum));
+	/* try p/P (pre/post) */
+	if (c == 'p' || c == 'P') {
+	  /* get value */
+	  v = (c == 'p') 
+	    ? Sg_Substring(m->text, m->from, m->first)
+	    : Sg_Substring(m->text, m->last, m->to);
+	  cursor++;
+	  goto write;
+	}
+	Sg_Error(UC("Illegal group reference: %A"), SG_MAKE_CHAR(c));
       }
       cursor++;
       /* Capture the largest legal group string */
@@ -3599,6 +3610,7 @@ static void append_string_replacement(SgMatcher *m, SgPort *p,
 	}
       }
       v = SG_STRING(Sg_RegexGroup(m, SG_MAKE_INT(refNum)));
+    write:
       if (!SG_FALSEP(v)) {
 	Sg_PutsUnsafe(p, v);
       }

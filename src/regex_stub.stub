@@ -89,7 +89,7 @@
 
   (define-c-proc regex-before (m::<matcher>)
     (result (Sg_Substring (-> m text)
-			  0
+			  (-> m from)
 			  (-> m first))))
 
   (define-c-proc regex-capture-count (m::<matcher>) ::<fixnum> :no-side-effect
