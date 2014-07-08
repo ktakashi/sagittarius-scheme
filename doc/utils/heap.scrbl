@@ -108,6 +108,9 @@ However the procedure won't check so it is user's responsibility to
 make sure.
 }
 
+@define[Function]{@name{heap-clear!} @args{heap}}
+@desc{Clears all entry of @var{heap} and returns @var{heap}.}
+
 @define[Function]{@name{heap-merge!} @args{heap1 heap2}}
 @desc{Merge @var{heap2} into @var{heap1} and empty it. Then returns @var{heap1}.
 
