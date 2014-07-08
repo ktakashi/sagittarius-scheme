@@ -61,6 +61,27 @@
 				       group SG_NIL))
     (result (Sg_RegexGroup m group)))
 
+  (define-c-proc regex-group-start (m::<matcher> :optional group)
+    (when (SG_UNBOUNDP group) (set! group (SG_MAKE_INT 0)))
+    (unless (or (SG_INTP group) (SG_SYMBOLP group))
+      (Sg_WrongTypeOfArgumentViolation 'regex-group
+				       (SG_MAKE_STRING "integer or symbol")
+				       group SG_NIL))
+    (let ((p::int (Sg_RegexGroupPosition m group TRUE)))
+      (if (< p 0)
+	  (result SG_FALSE)
+	  (result (SG_MAKE_INT p)))))
+  (define-c-proc regex-group-end (m::<matcher> :optional group)
+    (when (SG_UNBOUNDP group) (set! group (SG_MAKE_INT 0)))
+    (unless (or (SG_INTP group) (SG_SYMBOLP group))
+      (Sg_WrongTypeOfArgumentViolation 'regex-group
+				       (SG_MAKE_STRING "integer or symbol")
+				       group SG_NIL))
+    (let ((p::int (Sg_RegexGroupPosition m group FALSE)))
+      (if (< p 0)
+	  (result SG_FALSE)
+	  (result (SG_MAKE_INT p)))))
+
   (define-c-proc regex-after (m::<matcher>)
     (result (Sg_Substring (-> m text)
 			  (-> m last)

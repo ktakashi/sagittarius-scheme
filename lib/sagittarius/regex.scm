@@ -45,6 +45,8 @@
 	    regex-after
 	    regex-first
 	    regex-last
+	    regex-group-start
+	    regex-group-end
 
 	    ;; flags
 	    CASE-INSENSITIVE

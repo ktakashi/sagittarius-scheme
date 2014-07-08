@@ -3496,19 +3496,28 @@ static void retrive_group(SgMatcher *m, int submatch)
 static int get_group(SgMatcher *m, SgObject groupOrName)
 {
   if (SG_INTP(groupOrName)) {
-    return SG_INT_VALUE(groupOrName);
+    int group = SG_INT_VALUE(groupOrName);
+    if (m->pattern->groupCount <= group) {
+      /* TODO regexp error */
+      Sg_Error(UC("group number is too big %d"), group);
+    }
+    return group;
   } else {
     SgObject names = m->pattern->groupNames;
     SgObject slot = Sg_Assq(groupOrName, names), cp;
     if (SG_FALSEP(slot)) {
+      /* TODO regexp error */
       Sg_Error(UC("no such name %S"), groupOrName);
     }
     /* bit inefficient but hey */
     SG_FOR_EACH(cp, SG_CDR(slot)) {
       int group = SG_INT_VALUE(SG_CAR(cp));
-      retrive_group(m, group);
-      if (m->submatch[group]) return group;
+      int i = group*2;
+      const SgChar *sp = m->match_ctx->match[i];
+      const SgChar *ep = m->match_ctx->match[i+1];
+      if (sp && ep) return group;
     }
+    /* didn't match */
     return -1;
   }
 }
@@ -3523,14 +3532,31 @@ SgObject Sg_RegexGroup(SgMatcher *m, SgObject groupOrName)
   /* check */
   if (group < 0) return SG_FALSE;
 
-  if (m->pattern->groupCount <= group) {
-    /* TODO regexp error */
-    Sg_Error(UC("group number is too big %d"), group);
-  }
   /* should matched string be literal? */
   retrive_group(m, group);
   if (!m->submatch[group]) return SG_FALSE;
   return m->submatch[group];
+}
+
+int Sg_RegexGroupPosition(SgMatcher *m, SgObject groupOrName, int startP)
+{
+  int group, i;
+  const SgChar *sp, *ep;
+  if (!m->match_ctx->matched) {
+    Sg_Error(UC("no matched text"));
+  }
+  group = get_group(m, groupOrName);
+  if (group < 0) return -1;
+  i = group*2;
+  sp = m->match_ctx->match[i];
+  ep = m->match_ctx->match[i+1];
+  if (sp > ep) {
+    sp = m->match_ctx->match[i+1];
+    ep = m->match_ctx->match[i];
+  }
+  return (startP)
+    ? (int)(sp - SG_STRING_VALUE(m->text)) 
+    : (int)(ep - SG_STRING_VALUE(m->text));
 }
 
 static void append_string_replacement(SgMatcher *m, SgPort *p,

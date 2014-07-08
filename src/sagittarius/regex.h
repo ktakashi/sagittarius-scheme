@@ -144,6 +144,8 @@ SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
 SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
 
 SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, SgObject groupOrName);
+SG_EXTERN int        Sg_RegexGroupPosition(SgMatcher *m, SgObject groupOrName,
+					   int startP);
 
 SG_EXTERN SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement);
 SG_EXTERN SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement);
