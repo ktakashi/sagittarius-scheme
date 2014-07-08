@@ -77,7 +77,7 @@
 (let ((h1 (alist->heap compare alist1))
       (h2 (alist->heap compare alist2))
       (h3 (alist->heap compare alist3)))
-  (let ((mh (merge-heaps compare h1 h2 h3)))
+  (let ((mh (merge-heaps h1 h2 h3)))
     (test-assert "merge-heaps" (heap? mh))
     (test-assert "not empty" (not (heap-empty? mh)))
     (check-merge mh '("k0" "k1" "k2" "k3" "k4" "k5" "k6" "k8" "kA"))

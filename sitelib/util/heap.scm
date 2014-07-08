@@ -117,6 +117,11 @@
 
   (define (heap-empty? heap) (not (~ heap 'min)))
 
+  (define (heap-clear! heap)
+    (set! (~ heap 'min) #f)
+    (set! (~ heap 'size) 0)
+    heap)
+
   (define (heap-merge! heap1 heap2)
     (define (merge-entries compare heap1 heap2)
       (define (merge1 compare heap1 heap2)
@@ -236,8 +241,8 @@
 	    (loop (cdr heaps) (merge1 dst (car heaps))))))
     (merge-entries dst heap1 heaps))
 
-  (define (merge-heaps compare heap1 heap2 . heaps)
-    (apply merge-heaps! (make-heap compare) heap1 heap2 heaps))
+  (define (merge-heaps heap1 heap2 . heaps)
+    (apply merge-heaps! (copy-heap heap1) heap2 heaps))
 
   (define (heap-extract-min! heap)
     (define comp (~ heap 'compare))
