@@ -5,11 +5,9 @@
         lexeme.inc
 
 |#
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (anonymous)
-
   (export)
-
   (import (rnrs)
 	  (sagittarius)
 	  (sagittarius regex)

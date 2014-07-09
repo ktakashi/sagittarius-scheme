@@ -38,7 +38,11 @@
 	    rx)
     (import (rnrs)
 	    (srfi :1 lists)
-	    (srfi :14 char-sets)
+	    (except (srfi :14 char-sets)
+		    char-set:lower-case char-set:upper-case char-set:title-case
+		    char-set:letter char-set:digit char-set:letter+digit
+		    char-set:graphic char-set:printing char-set:whitespace
+		    char-set:iso-control char-set:punctuation char-set:symbol)
 	    (srfi :26 cut)
 	    (srfi :39 parameters)
 	    (util list) ;; for slices
@@ -62,6 +66,7 @@
 ;; based on 
 ;;  http://www.katch.ne.jp/~leque/software/repos/gauche-sre/util/
 (define case-sensitive? (make-parameter #t))
+(define ascii?          (make-parameter #f))
 
 (define (sre->regex sre) (compile-regex-ast (sre-parse sre)))
 
@@ -133,33 +138,43 @@
              (err "Invalid dynamic SRE:" obj))))
     (define (parse sre)
       (define (parse-symbol sre)
-	(case sre
-	  ((any) 'everything)
-	  ((bos) 'modeless-start-anchor)
-	  ((eos) 'modeless-end-anchor)
-	  ((bol) 'start-anchor)
-	  ((eol) 'end-anchor)
-	  ((bow eow) 'word-boundary)
-	  ((nwb) 'non-word-boundary)
-	  ;; hmmm how should we treat them?
-	  ;; ((bog) ...)
-	  ;; ((eog) ...)
-	  ;; ((grapheme) ...)
-          ((ascii)	char-set:ascii)
-          ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
-          ((blank)	char-set:blank)
-          ((control cntrl)	char-set:iso-control)
-          ((graphic graph)	char-set:graphic)
-          ((printing print)	char-set:printing)
-          ((alphabetic alpha)	char-set:letter)
-          ((lower-case lower)	char-set:lower-case)
-          ((upper-case upper)	char-set:upper-case)
-          ((numeric num digit)	char-set:digit)
-          ((punctuation punct)	char-set:punctuation)
-          ((hex-digit xdigit hex)	char-set:hex-digit)
-          ((whitespace white space)	char-set:whitespace)
-          ((alphanumeric alnum alphanum)	char-set:letter+digit)
-          ((word) (parse '(word (+ (& (or alphanumeric #\_))))))))
+	(define (finish cset)
+	  (if (ascii?)
+	      (char-set-intersection cset char-set:ascii)
+	      cset))
+	(finish
+	 (case sre
+	   ((any) 'everything)
+	   ((bos) 'modeless-start-anchor)
+	   ((eos) 'modeless-end-anchor)
+	   ((bol) 'start-anchor)
+	   ((eol) 'end-anchor)
+	   ((bow eow) 'word-boundary)
+	   ((nwb) 'non-word-boundary)
+	   ;; hmmm how should we treat them?
+	   ;; ((bog) ...)
+	   ;; ((eog) ...)
+	   ;; ((grapheme) ...)
+	   ((ascii)	char-set:ascii)
+	   ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
+	   ((blank)	char-set:blank)
+	   ((control cntrl)	char-set:iso-control)
+	   ((graphic graph)	char-set:graphic)
+	   ((printing print)	char-set:printing)
+	   ((alphabetic alpha)	char-set:letter)
+	   ((lower-case lower)	char-set:lower-case)
+	   ((upper-case upper)	char-set:upper-case)
+	   ((numeric num digit)	char-set:digit)
+	   ((punctuation punct)	char-set:punctuation)
+	   ((hex-digit xdigit hex)	char-set:hex-digit)
+	   ((whitespace white space)	char-set:whitespace)
+	   ((alphanumeric alnum alphanum)	char-set:letter+digit)
+	   ((word) (parse '(word (+ (& (or alphanumeric #\_)))))))))
+      (define (fseq flags ast)
+	(let1 seq (seq* (sp ast))
+	  (cond ((equal? seq '(sequence)) seq)
+		((char-set? seq) seq)
+		(else `(flagged-sequence ,flags ,seq)))))
 
       (match sre
 	((? sre-literal?) (parse-literal sre))
@@ -193,8 +208,9 @@
 	(('w/nocase ast ...)
 	 (parameterize ((case-sensitive? #f))
 	   (seq* (sp ast))))
-	(('w/unicode ast ...) `(flagged-sequence ((#\u . #t)) ,(seq* (sp ast))))
-	(('w/ascii ast ...)   `(flagged-sequence ((#\u . #f)) ,(seq* (sp ast))))
+	(('w/unicode ast ...) (fseq '((#\u . #t)) ast))
+	(('w/ascii ast ...)
+	 (parameterize ((ascii? #t)) (fseq '((#\u . #f)) ast)))
 	;; does this mean we need to eliminate submatches?
 	;; or just emit like (?:ast)?
 	;; for now we do latter case (simpler)

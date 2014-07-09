@@ -387,6 +387,20 @@ SgObject Sg_CharSetRanges(SgCharSet *cs)
 
 static SgCharSet *predef_charsets[SG_CHAR_SET_NUM_PREDEFINED_SETS] = {NULL};
 
+/*
+  defines
+    s_lower_set
+    s_upper_set
+    s_title_set
+    s_alpha_set
+    s_numeric_set
+    s_punct_set
+    s_symbl_set
+    s_space_set
+    s_cntrl_set
+  above structure also contains ASCII
+ */
+#include "../unicode/charset.inc"
 #define CS(n) predef_charsets[n]
 static void install_charsets()
 {
@@ -398,7 +412,7 @@ static void install_charsets()
    (c) == '>' || (c) == '^' || (c) == '`' || (c) == '|' || (c) == '~')
 
   for (i = 0; i < SG_CHAR_SET_NUM_PREDEFINED_SETS; i++) {
-    CS(i) = SG_CHAR_SET(make_charset());
+    CS(i) = make_charset();
   }
   for (code = 0; code < SG_CHAR_SET_SMALL_CHARS; code++) {
     if (isalnum(code)) MASK_SET(CS(SG_CHAR_SET_ALNUM), code);
@@ -417,8 +431,72 @@ static void install_charsets()
     if (isalnum(code) || code == '_')
       MASK_SET(CS(SG_CHAR_SET_WORD), code);
     if (code == ' ' || code == '\t')
-      MASK_SET(CS(SG_CHAR_SET_BLANK), code);
-    
+      MASK_SET(CS(SG_CHAR_SET_BLANK), code);    
+  }
+  /* Supporting Unicode (From SRFI-115)
+     lower:   Ll, Other_Lowercase
+     upper:   Lu, Other_Uppercase
+     title:   Lt
+     alpha:   L, Nl, Other_Alphabetic
+     numeric: Nd
+     punct:   P
+     symbl:   Sm, Sc, Sk, So
+     space:   Zs, Zl, Zp
+     cntrl:   Cc, Cf, Co, Cs, Cn
+  */
+#define ADD_UNICODE_SET(name, ...)					\
+  do {									\
+    const int size_ = array_sizeof(SG_CPP_CAT(s_, name));		\
+    int pos_[] = { __VA_ARGS__ };					\
+    int i_, j_, psize_ = array_sizeof(pos_);				\
+    for (i_ = 0; i_ < size_; i_++) {					\
+      int32_t start = SG_CPP_CAT(s_, name)[i_].start;			\
+      int32_t end = SG_CPP_CAT(s_, name)[i_].end;			\
+      /* in range of ASCII skip */					\
+      if (end - (SG_CHAR_SET_SMALL_CHARS-1) < 0) continue;		\
+      /* start may have duplicated range (e.g cntrl) */			\
+      if (start - (SG_CHAR_SET_SMALL_CHARS-1) <= 0)			\
+	start = SG_CHAR_SET_SMALL_CHARS;				\
+      /* fprintf(stderr, "%d:%d-%d\n", pos_[0], start, end); */		\
+      for (j_ = 0; j_ < psize_; j_++) {					\
+	Sg_CharSetAddRange(CS(pos_[j_]), start, end);			\
+      }									\
+    }									\
+  } while(0)
+
+  ADD_UNICODE_SET(lower_set, SG_CHAR_SET_LOWER);
+  ADD_UNICODE_SET(upper_set, SG_CHAR_SET_UPPER);
+  ADD_UNICODE_SET(title_set, SG_CHAR_SET_TITLE);
+
+  ADD_UNICODE_SET(alpha_set, 
+		  SG_CHAR_SET_ALPHA,
+		  SG_CHAR_SET_ALNUM,
+		  SG_CHAR_SET_WORD,
+		  SG_CHAR_SET_GRAPH,
+		  SG_CHAR_SET_PRINT);
+
+  ADD_UNICODE_SET(numeric_set, 
+		  SG_CHAR_SET_ALNUM,
+		  SG_CHAR_SET_DIGIT,
+		  SG_CHAR_SET_WORD,
+		  SG_CHAR_SET_GRAPH,
+		  SG_CHAR_SET_PRINT);
+  
+  ADD_UNICODE_SET(punct_set, 
+		  SG_CHAR_SET_PUNCT,
+		  SG_CHAR_SET_GRAPH,
+		  SG_CHAR_SET_PRINT);
+
+  ADD_UNICODE_SET(symbl_set,
+		  SG_CHAR_SET_SYMBL,
+		  SG_CHAR_SET_GRAPH,
+		  SG_CHAR_SET_PRINT);
+
+  ADD_UNICODE_SET(space_set, SG_CHAR_SET_SPACE, SG_CHAR_SET_PRINT);
+  ADD_UNICODE_SET(cntrl_set, SG_CHAR_SET_CNTRL);
+  /* remove duplicate range */
+  for (i = 0; i < SG_CHAR_SET_NUM_PREDEFINED_SETS; i++) {
+    CS(i) = Sg_CharSetAdd(make_charset(), CS(i));
   }
 }
 
@@ -446,7 +524,7 @@ void Sg__InitCharSet()
   /* srfi-14 standard charsets */
   insert_binding(char-set:lower-case  , CS(SG_CHAR_SET_LOWER));
   insert_binding(char-set:upper-case  , CS(SG_CHAR_SET_UPPER));
-  insert_binding(char-set:title-case  , Sg_CharSetCopy(CS(SG_CHAR_SET_UPPER)));
+  insert_binding(char-set:title-case  , CS(SG_CHAR_SET_TITLE));
   insert_binding(char-set:letter      , CS(SG_CHAR_SET_ALPHA));
   insert_binding(char-set:digit       , CS(SG_CHAR_SET_DIGIT));
   insert_binding(char-set:letter+digit, CS(SG_CHAR_SET_ALNUM));
@@ -475,7 +553,7 @@ void Sg__InitCharSet()
   insert_binding(:punct:  , CS(SG_CHAR_SET_PUNCT));
   insert_binding(:space:  , CS(SG_CHAR_SET_SPACE));
   insert_binding(:upper:  , CS(SG_CHAR_SET_UPPER));
-  insert_binding(:xdigit:  , CS(SG_CHAR_SET_XDIGIT));
+  insert_binding(:xdigit: , CS(SG_CHAR_SET_XDIGIT));
 
   insert_binding(*char-code-max*      , SG_MAKE_INT(SG_CHAR_MAX));
 }

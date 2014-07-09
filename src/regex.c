@@ -383,6 +383,9 @@ static int start_of_subexpr_p(lexer_ctx_t *ctx)
   return !(nc == ')' || nc == '|');
 }
 
+/*
+  TODO separate context of unicode, but how?
+ */
 static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
 {
   if (next_char_non_extended(ctx) != '{') {
@@ -479,6 +482,87 @@ static SgChar read_charset_xdigits(lexer_ctx_t *ctx, int ndigs, int key)
   return r;
 }
 
+/* 
+   char-set-difference and char-set-intersection,
+
+   ugh, this is defined in Scheme as well
+   TODO implement this properly in C and expose it to Scheme world. */
+static SgObject sub_range(SgObject ranges, int from, int to)
+{
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+  SG_FOR_EACH(cp, ranges) {
+    int lo = SG_INT_VALUE(SG_CAAR(cp));
+    int hi = SG_INT_VALUE(SG_CDAR(cp));
+    if (lo <= from && from <= hi) {
+      if (lo <= to && to <= hi) {
+	if (lo == from) {
+	  if (to != hi) {
+	    SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(to + 1), SG_MAKE_INT(hi)));
+	  }
+	} else {
+	  if (to == hi) {
+	    SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(lo), SG_MAKE_INT(from - 1)));
+	  } else {
+	    SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(to + 1), SG_MAKE_INT(hi)));
+	    SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(lo), SG_MAKE_INT(from - 1)));
+	  }
+	}
+      } else {
+	if (lo != from) {
+	  SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(lo), SG_MAKE_INT(from - 1)));
+	}
+      }
+    } else {
+      if (lo <= to && to <= hi) {
+	if (to != hi) {
+	  SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(to + 1), SG_MAKE_INT(hi)));
+	}
+      } else {
+	if (!(from < lo && hi < to)) {
+	  SG_APPEND1(h, t, Sg_Cons(SG_MAKE_INT(lo), SG_MAKE_INT(hi)));
+	}
+      }
+    }
+  }
+  return h;
+}
+
+static SgObject cset_diff(SgObject base, SgObject cset)
+{
+  SgObject ranges = Sg_CharSetRanges(base), sub = Sg_CharSetRanges(cset), cp;
+  SG_FOR_EACH(cp, sub) {
+    ranges = sub_range(ranges, SG_INT_VALUE(SG_CAAR(cp)), 
+		       SG_INT_VALUE(SG_CDAR(cp)));
+  }
+  base = Sg_MakeEmptyCharSet();
+  SG_FOR_EACH(cp, ranges) {
+    SgChar from = SG_INT_VALUE(SG_CAAR(cp));
+    SgChar to = SG_INT_VALUE(SG_CDAR(cp));
+    Sg_CharSetAddRange(SG_CHAR_SET(base), from, to);
+  }
+  return base;
+}
+
+static SgObject cset_intersect(SgObject x, SgObject y)
+{
+  return cset_diff(x, Sg_CharSetComplement(Sg_CharSetCopy(y)));
+}
+
+static SgObject asciinise(lexer_ctx_t *ctx, SgObject cset)
+{
+  if ((ctx->flags & SG_UNICODE_CASE) == 0) {
+    return cset_intersect(cset, Sg_GetStandardCharSet(SG_CHAR_SET_ASCII));
+  }
+  /* unicode char */
+  return cset;
+}
+
+static SgObject get_defined_cset(lexer_ctx_t *ctx, int i) 
+{
+  return asciinise(ctx, Sg_GetStandardCharSet(i));
+}
+
+
 static SgObject read_defined_charset(lexer_ctx_t *ctx)
 {
   /* almost the same as read_char_property.
@@ -523,7 +607,7 @@ static SgObject read_defined_charset(lexer_ctx_t *ctx)
     raise_syntax_error(ctx, ctx->pos,
 		       UC("charset name is not closed by 2 ']'s"));
   }
-  return SG_GLOC_GET(gloc);
+  return asciinise(ctx, SG_GLOC_GET(gloc));
 }
 
 static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
@@ -588,27 +672,27 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
 	ch = read_charset_xdigits(ctx, 8, 'u'); goto ordchar;
       case 'd':
 	moreset_complement = FALSE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_DIGIT);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_DIGIT);
 	break;
       case 'D':
 	moreset_complement = TRUE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_DIGIT);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_DIGIT);
 	break;
       case 's':
 	moreset_complement = FALSE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_SPACE);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_SPACE);
 	break;
       case 'S':
 	moreset_complement = TRUE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_SPACE);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_SPACE);
 	break;
       case 'w':
 	moreset_complement = FALSE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_WORD);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_WORD);
 	break;
       case 'W':
 	moreset_complement = TRUE;
-	moreset = Sg_GetStandardCharSet(SG_CHAR_SET_WORD);
+	moreset = get_defined_cset(ctx, SG_CHAR_SET_WORD);
 	break;
       case 'p':
 	moreset_complement = FALSE;
@@ -871,7 +955,6 @@ static SgObject parse_register_name_aux(lexer_ctx_t *ctx)
   return Sg_Intern(s);
 }
 
-
 /* 
    Returns and consumes the next token from the regex string or '#f
  */
@@ -977,15 +1060,15 @@ static SgObject get_token(lexer_ctx_t *ctx, SgObject *ret)
 	} else{
 	  return SG_MAKE_CHAR('k');
 	}
-      case 'd': return Sg_GetStandardCharSet(SG_CHAR_SET_DIGIT);
+      case 'd': return get_defined_cset(ctx, SG_CHAR_SET_DIGIT);
       case 'D': return SG_LIST2(SYM_INVERTED_CHAR_CLASS,
-				Sg_GetStandardCharSet(SG_CHAR_SET_DIGIT));
-      case 'w': return Sg_GetStandardCharSet(SG_CHAR_SET_WORD);
+				get_defined_cset(ctx, SG_CHAR_SET_DIGIT));
+      case 'w': return get_defined_cset(ctx, SG_CHAR_SET_WORD);
       case 'W': return SG_LIST2(SYM_INVERTED_CHAR_CLASS,
-				Sg_GetStandardCharSet(SG_CHAR_SET_WORD));
-      case 's': return Sg_GetStandardCharSet(SG_CHAR_SET_SPACE);
+				get_defined_cset(ctx, SG_CHAR_SET_WORD));
+      case 's': return get_defined_cset(ctx, SG_CHAR_SET_SPACE);
       case 'S': return SG_LIST2(SYM_INVERTED_CHAR_CLASS,
-				Sg_GetStandardCharSet(SG_CHAR_SET_SPACE));
+				get_defined_cset(ctx, SG_CHAR_SET_SPACE));
       case '1': case '2': case '3': case '4': case '5': 
       case '6': case '7': case '8': case '9': 
 	{
@@ -3810,7 +3893,9 @@ void Sg__InitRegex()
   insert_binding(MULTILINE, SG_MULTILINE);
   insert_binding(LITERAL, SG_LITERAL);
   insert_binding(DOTALL, SG_DOTALL);
-  insert_binding(UNICODE-CASE, SG_UNICODE_CASE);
+  /* deprecated rename exported on Scheme */
+  /* insert_binding(UNICODE-CASE, SG_UNICODE_CASE); */
+  insert_binding(UNICODE,      SG_UNICODE_CASE);
 #undef insert_binding
 
   SYM_ALTER = SG_INTERN("alternation");

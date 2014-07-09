@@ -17,7 +17,7 @@
         special-casing-upper.datum
 
 |#
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (anonymous)
 
   (export)

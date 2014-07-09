@@ -65,7 +65,21 @@
    char-set:empty char-set:full)
   (import (rnrs)
 	  (rnrs r5rs)
-	  (sagittarius)
+	  ;; To keep backward compatibility...
+	  ;; FIXME remove rename
+	  (rename (sagittarius)
+		  (char-set:lower-case   %char-set:lower-case  ) 
+		  (char-set:upper-case   %char-set:upper-case  ) 
+		  (char-set:title-case   %char-set:title-case  ) 
+		  (char-set:letter       %char-set:letter      )
+		  (char-set:digit        %char-set:digit       )
+		  (char-set:letter+digit %char-set:letter+digit)
+		  (char-set:graphic      %char-set:graphic     )
+		  (char-set:printing     %char-set:printing    )
+		  (char-set:whitespace   %char-set:whitespace  )
+		  (char-set:iso-control  %char-set:iso-control )
+		  (char-set:punctuation  %char-set:punctuation )
+		  (char-set:symbol       %char-set:symbol      ))
 	  (sagittarius control))
 
 ;;; Exports:
@@ -426,5 +440,32 @@
     (values (apply char-set-difference! cs1 cs2 charsets)
 	    (char-set-intersection! cs1 (apply char-set-union! cs2 charsets))))
   ;; from Gauche end.
+
+  ;; intersection with rich charset
+  ;; FIXME remvoe them
+  (define char-set:lower-case
+    (char-set-intersection char-set:ascii %char-set:lower-case  )) 
+  (define char-set:upper-case
+    (char-set-intersection char-set:ascii %char-set:upper-case  )) 
+  (define char-set:title-case
+    (char-set-intersection char-set:ascii %char-set:title-case  )) 
+  (define char-set:letter    
+    (char-set-intersection char-set:ascii %char-set:letter      ))
+  (define char-set:digit     
+    (char-set-intersection char-set:ascii %char-set:digit       ))
+  (define char-set:letter+digit
+    (char-set-intersection char-set:ascii %char-set:letter+digit))
+  (define char-set:graphic   
+    (char-set-intersection char-set:ascii %char-set:graphic     ))
+  (define char-set:printing  
+    (char-set-intersection char-set:ascii %char-set:printing    ))
+  (define char-set:whitespace
+    (char-set-intersection char-set:ascii %char-set:whitespace  ))
+  (define char-set:iso-control
+    (char-set-intersection char-set:ascii %char-set:iso-control ))
+  (define char-set:punctuation
+    (char-set-intersection char-set:ascii %char-set:punctuation ))
+  (define char-set:symbol    
+    (char-set-intersection char-set:ascii %char-set:symbol      ))
 
 ) ;; [end]

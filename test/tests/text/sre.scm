@@ -1,7 +1,10 @@
 #!read-macro=sagittarius/regex
 #!read-macro=sagittarius/debug
-#!debug
-(import (rnrs) (text sre) (srfi :14) (srfi :64)
+;; #!debug
+(import (rnrs) (text sre)
+	(srfi :14)
+	(srfi :64)
+	(sagittarius)
 	(sagittarius control)
 	(sagittarius debug)
 	(sagittarius regex))
@@ -154,43 +157,43 @@
   (lambda (x)
     (let1 re (car x)
       (for-each (lambda (sre) (test-sre* sre re)) (cdr x))))
-  '((#/[[:alpha:]]/ alphabetic alpha)
-    (#/[[:lower:]]/ lower-case lower)
-    (#/[[:upper:]]/ upper-case upper)
-    (#/[[:digit:]]/ numeric digit num)
-    (#/[[:alnum:]]/ alphanumeric alnum alphanum)
-    (#/[[:punct:]]/ punctuation punct)
-    (#/[[:graph:]]/ graphic graph)
-    (#/[[:blank:]]/ blank)
-    (#/[[:space:]]/ whitespace space white)
-    (#/[[:print:]]/ printing print)
-    (#/[[:cntrl:]]/ control cntrl)
-    (#/[[:xdigit:]]/ hex-digit xdigit hex)
+  '((#/[[:alpha:]]/u alphabetic alpha)
+    (#/[[:lower:]]/u lower-case lower)
+    (#/[[:upper:]]/u upper-case upper)
+    (#/[[:digit:]]/u numeric digit num)
+    (#/[[:alnum:]]/u alphanumeric alnum alphanum)
+    (#/[[:punct:]]/u punctuation punct)
+    (#/[[:graph:]]/u graphic graph)
+    (#/[[:blank:]]/u blank)
+    (#/[[:space:]]/u whitespace space white)
+    (#/[[:print:]]/u printing print)
+    (#/[[:cntrl:]]/u control cntrl)
+    (#/[[:xdigit:]]/u hex-digit xdigit hex)
     (#/[\x00-\x7f]/ ascii)
     ))
 
-(test-sre digit #/\d/)
+(test-sre digit #/\d/u)
 
-(test-sre space #/\s/)
+(test-sre space #/\s/u)
 
-(test-sre (or alnum #\_) #/\w/)
+(test-sre (or alnum #\_) #/\w/u)
 
 (test-sre nonl #/[^\n]/)
 
-(test-sre word #/\b\w+\b/)
+(test-sre word #/\b\w+\b/u)
 
 
 (test-group "character class operation")
 
-(test-sre (~ digit) #/\D/)
+(test-sre (~ digit) #/\D/u)
 
-(test-sre (~ space) #/\S/)
+(test-sre (~ space) #/\S/u)
 
-(test-sre (~ (or alnum #\_)) #/\W/)
+(test-sre (~ (or alnum #\_)) #/\W/u)
 
-(test-sre (& alpha (/"az")) #/[a-z]/)
+(test-sre (w/ascii (& alpha (/"az"))) #/[a-z]/)
 
-(test-sre (- alpha (/"AZ")) #/[a-z]/)
+(test-sre (w/ascii (- alpha (/"AZ"))) #/[a-z]/)
 
 (test-sre (- ("abc") #\a) #/[bc]/)
 
@@ -219,13 +222,13 @@
 
 (test-sre-empty '(- (/"azAZ") (w/nocase (/"az"))))
 
-(test-sre-empty '(- alpha (uncase lower)))
+(test-sre-empty '(w/ascii (- alpha (uncase lower))))
 
-(test-sre (- alpha (w/nocase lower)) #/[A-Z]/)
+(test-sre (w/ascii (- alpha (w/nocase lower))) #/[A-Z]/)
 
-(test-sre (- lower (uncase "a")) #/[b-z]/)
+(test-sre (w/ascii (- lower (uncase "a"))) #/[b-z]/)
 
-(test-sre (- lower (uncase ("abc"))) #/[d-z]/)
+(test-sre (w/ascii (- lower (uncase ("abc")))) #/[d-z]/)
 
 
 (test-group "lookahead assertion")
@@ -300,7 +303,7 @@
 ;;   date))
 
 (test-assert "lexical case folding does not affect embeded SRE"
-	     (re-equal? #/[a-z]/ (rx (w/nocase ,char-set:lower-case))))
+	     (re-equal? #/[[:lower:]]/u (rx (w/nocase ,char-set:lower-case))))
 
 
 (let1 p (rx (submatch "b" (submatch "a")))
@@ -350,8 +353,8 @@
 (test-rx (w/nocase (/ "acDZ")) #/[a-zA-Z]/)
 (test-rx (w/nocase (/ "az") (w/case "abc")) #/[a-zA-Z]abc/)
 (test-rx (w/nocase (/"az") (w/case #\a)) #/[a-zA-Z]a/)
-(test-rx (- alpha (w/nocase lower)) #/[A-Z]/)
-(test-rx (- lower (uncase "a")) #/[b-z]/)
-(test-rx (- lower (uncase ("abc"))) #/[d-z]/)
+(test-rx (w/ascii (- alpha (w/nocase lower))) #/[A-Z]/)
+(test-rx (w/ascii (- lower (uncase "a"))) #/[b-z]/)
+(test-rx (w/ascii (- lower (uncase ("abc")))) #/[d-z]/)
 
 (test-end)

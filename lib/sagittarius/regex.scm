@@ -54,7 +54,9 @@
 	    MULTILINE
 	    LITERAL
 	    DOTALL
-	    UNICODE-CASE
+	    ;; deprecated but for backward compatibility...
+	    (rename (UNICODE UNICODE-CASE))
+	    UNICODE
 
 	    
 	    ;; syntax-sugar
