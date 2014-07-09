@@ -66,41 +66,41 @@
 
 (test-group "repetion")
 
-(test-sre (* "a") #/a*/)
+(test-sre (* "a") #/(?u:a*)/)
 
-(test-sre (+ "a") #/a+/)
+(test-sre (+ "a") #/(?u:a+)/
+)
+(test-sre (? "abc") #/(?u:(?:abc)?)/)
 
-(test-sre (? "abc") #/(?:abc)?/)
+(test-sre (= 3 "abc") #/(?u:(?:abc){3})/)
 
-(test-sre (= 3 "abc") #/(?:abc){3}/)
+(test-sre (>= 3 "abc") #/(?u:(?:abc){3,})/)
 
-(test-sre (>= 3 "abc") #/(?:abc){3,}/)
-
-(test-sre (** 2 5 "abc") #/(?:abc){2,5}/)
+(test-sre (** 2 5 "abc") #/(?u:(?:abc){2,5})/)
 
 
 (test-group "non-greedy repetion") 
 
-(test-sre (*? "a") #/a*?/)
+(test-sre (*? "a") #/(?u:a*?)/)
 
-(test-sre (+? "a") #/a+?/)
+(test-sre (+? "a") #/(?u:a+?)/)
 
-(test-sre (?? "abc") #/(?:abc)??/)
+(test-sre (?? "abc") #/(?u:(?:abc)??)/)
 
-(test-sre (>=? 3 "abc") #/(?:abc){3,}?/)
+(test-sre (>=? 3 "abc") #/(?u:(?:abc){3,}?)/)
 
-(test-sre (**? 2 5 "abc") #/(?:abc){2,5}?/)
+(test-sre (**? 2 5 "abc") #/(?u:(?:abc){2,5}?)/)
 
 
 (test-group "atomic clustering & repetion")
 
 (test-sre (?> "a") #/(?>a)/)
+;; a bit awkward...
+(test-sre (*+ "a") #/(?>(?u:a*))/)
 
-(test-sre (*+ "a") #/a*+/)
+(test-sre (++ "a") #/(?>(?u:a+))/)
 
-(test-sre (++ "a") #/a++/)
-
-(test-sre (?+ "a") #/a?+/)
+(test-sre (?+ "a") #/(?>(?u:a?))/)
 
 
 (test-group "submatch")
@@ -180,7 +180,7 @@
 
 (test-sre nonl #/[^\n]/)
 
-(test-sre word #/\b\w+\b/u)
+(test-sre word #/\b(?u:\w+)\b/u)
 
 
 (test-group "character class operation")

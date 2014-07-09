@@ -1879,6 +1879,12 @@ static int calculate_flags(int flag, SgObject flags)
       else
 	flag |= SG_DOTALL;
       break;
+    case 'u':
+      if (SG_FALSEP(SG_CDR(slot)))
+	flag &= ~SG_UNICODE_CASE;
+      else
+	flag |= SG_UNICODE_CASE;
+      break;
     }
   }
   return flag;
