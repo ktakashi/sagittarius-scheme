@@ -54,7 +54,11 @@
 
  (char-set= (string->char-set "eiaou2468013579999")
 	    (char-set-unfold null? car cdr '(#\a #\e #\i #\o #\u #\u #\u)
-			     char-set:digit))
+			     ;; digit contains unicode values
+			     ;; thus this needs to be narrowed
+			     ;; char-set:digit
+			     (char-set-intersection char-set:digit
+						    char-set:ascii)))
 
  (char-set= (string->char-set "eiaou246801357999")
 	    (char-set-unfold! null? car cdr '(#\a #\e #\i #\o #\u)

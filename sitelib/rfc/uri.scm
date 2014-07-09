@@ -248,13 +248,13 @@
 	  string)))
 
   ;; 2396 -_.!~*'() + [0-9a-zA-Z]
+  (define letter+digit 
+    (char-set-intersection char-set:ascii char-set:letter+digit))
   (define *rfc2396-unreserved-char-set*
-    (char-set-union (string->char-set "-_.!~*'()")
-		    char-set:letter+digit))
+    (char-set-union (string->char-set "-_.!~*'()") letter+digit))
   ;; 3986 -_.~ + [0-9a-zA-Z]
   (define *rfc3986-unreserved-char-set*
-    (char-set-union (string->char-set "-_.~")
-		    char-set:letter+digit))
+    (char-set-union (string->char-set "-_.~") letter+digit))
 
   (define (uri-encode in out
 		      :key ((:noescape echars) *rfc3986-unreserved-char-set*)
