@@ -3094,7 +3094,18 @@ static int match_step(match_ctx_t *ctx, THREADQ_T *runq, THREADQ_T *nextq,
   return 0;
 }
 
-#define iswordchar(c) (c <= 0xFF && (isalnum(c) || (c) == '_'))
+/* #define iswordchar(c) (c <= 0xFF && (isalnum(c) || (c) == '_')) */
+static int iswordchar(SgChar c, inst_t *ip)
+{
+  /* should be fine like this */
+  if (FLAG_SET(INST_FLAG(ip), SG_UNICODE_CASE)) {
+    return (c == '_') || 
+      Sg_CharSetContains(Sg_GetStandardCharSet(SG_CHAR_SET_ALNUM), c);
+  } else {
+    /* ascii context*/
+    return (c <= 0xFF && (isalnum(c) || (c) == '_'));
+  }
+}
 
 static int finish_match(match_ctx_t *ctx, int anchor);
 
@@ -3182,7 +3193,7 @@ static int matcher_match0(match_ctx_t *ctx, int from, int anchor, inst_t *inst)
     /* \b and \B */
     /* we only check ASCII. */
     if (p < ep)
-      isword = iswordchar(*p);
+      isword = iswordchar(*p, inst);
     if (isword != wasword)
       flag |= EmptyWordBoundary;
     else
@@ -3308,7 +3319,7 @@ static int match_step1(match_ctx_t *ctx, inst_t *inst, int flags,
   /* \b and \B */
   /* we only check ASCII. */
   if ((bp+i) >= otext && (bp+i) < ep)
-    isword = iswordchar(*(bp + i));
+    isword = iswordchar(*(bp + i), inst);
   if (isword != ctx->wasword)
     flag |= EmptyWordBoundary;
   else
