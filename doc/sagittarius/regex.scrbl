@@ -259,5 +259,43 @@ flag}
 @dl-item["MULTILINE"]{Enables multiline mode. @code{m} as a flag}
 @dl-item["LITERAL"]{Enables literal parsing of the pattern.}
 @dl-item["DOTAIL"]{Enables dotall mode. @code{s} as a flag}
-@dl-item["UNICODE-CASE"]{Enables Unicode-aware case folding. @code{u} as a flag}
+@dl-item["UNICODE"]{
+  Enables Unicode-aware case folding and pre defined charset.
+  @code{u} as a flag.
+  
+  NOTE: when this flag is set then pre defined charset, such as @code{\d} or
+  @code{\w}, expand it's content to Unicode characters. Following properties
+  are applied to charsets.
+  @dl-list[
+   @dl-item["[[:lower:]]"]{
+     The lower case charset contains @code{Ll} and @code{Other_Lowercase}.
+   }
+   @dl-item["[[:upper:]]"]{
+     The upper case charset contains @code{Lu} and @code{Other_Uppercase}.
+   }
+   @dl-item["[[:title:]]"]{
+     The upper case charset contains @code{Lt}.
+   }
+   @dl-item["[[:alpha:]]"]{
+     The upper case charset contains @code{L}, @code{Nl} and
+     @code{Other_Alphabetic}.
+   }
+   @dl-item["[[:numeric:]]"]{
+     The upper case charset contains @code{Nd}.
+   }
+   @dl-item["[[:punct:]]"]{
+     The upper case charset contains @code{P}.
+   }
+   @dl-item["symbol"]{
+     The upper case charset contains @code{Sm}, @code{Sc}, @code{Sk} and
+     @code{So}.
+   }
+   @dl-item["[[:space:]]"]{
+     The upper case charset contains @code{Zs}, @code{Zl} and @code{Zp}.
+   }
+   @dl-item["[[:cntrl:]]"]{
+     The upper case charset contains @code{Cc}, @code{Cf}, @code{Co}, @cod{Cs},
+     and @code{Cn}.
+   }
+  ]}
 ]

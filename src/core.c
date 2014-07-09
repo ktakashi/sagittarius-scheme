@@ -495,6 +495,14 @@ static void init_cond_features()
   Sg_AddCondFeature(UC("sagittarius-"SAGITTARIUS_VERSION));
   /* maybe it's useful */
   Sg_AddCondFeature(UC(SAGITTARIUS_TRIPLE));
+  /* regexp (SRFI-115) 
+     I don't like the name regexp but that's how it is on the SRFI.
+   */
+  Sg_AddCondFeature(UC("regexp-non-greedy"));
+  Sg_AddCondFeature(UC("regexp-look-around"));
+  Sg_AddCondFeature(UC("regexp-backrefs"));
+  Sg_AddCondFeature(UC("regexp-unicode"));
+
   /* extlib features */
   Sg__InitExtFeatures();
 }
