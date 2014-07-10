@@ -3552,7 +3552,7 @@ int Sg_RegexLookingAt(SgMatcher *m)
 int Sg_RegexFind(SgMatcher *m, int start)
 {
   if (start < 0) {
-    int index = m->last;
+    int index = m->last + ((m->last == m->first) ? 1 : 0);
     return matcher_match(m, index, UNANCHORED);
   } else if (start <= m->to) {
     reset_matcher(m);
@@ -3727,6 +3727,12 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
   if (m->first < 0) {
     Sg_Error(UC("No match available"));
   }
+#if 0
+  if (m->first == m->last) {
+    Sg_Error(UC("null match is not allowed. ((pattern: %S) (text: %S))"),
+	     m->pattern, m->text);
+  }
+#endif
   /* To avoid memory allocation */
   for (i = m->lastAppendPosition; i < m->first; i++) {
     Sg_PutcUnsafe(p, SG_STRING_VALUE_AT(m->text, i));
