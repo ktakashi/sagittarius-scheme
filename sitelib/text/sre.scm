@@ -49,6 +49,7 @@
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius control)
+	    (sagittarius char-set boundary)
 	    (core misc) ;; for define-macro
 	    (match))
 
@@ -168,9 +169,22 @@
 	   ((bow eow) 'word-boundary)
 	   ((nwb) 'non-word-boundary)
 	   ;; hmmm how should we treat them?
-	   ;; ((bog) ...)
-	   ;; ((eog) ...)
-	   ;; ((grapheme) ...)
+	   ((bog) (parse `(look-ahead grapheme)))
+	   ((eog) (parse `(or (neg-look-ahead grapheme) bos)))
+	   ((grapheme) 
+	    (parse `(or (seq (* ,char-set:hangul-l) (+ ,char-set:hangul-v)
+			     (* ,char-set:hangul-t))
+			(seq (* ,char-set:hangul-l) ,char-set:hangul-v
+			     (* ,char-set:hangul-v) (* ,char-set:hangul-t))
+			(seq (* ,char-set:hangul-l) ,char-set:hangul-lvt
+			     (* ,char-set:hangul-t))
+			(+ ,char-set:hangul-l)
+			(+ ,char-set:hangul-t)
+			(+ ,char-set:regional-indicator)
+			(seq "\r\n")
+			(seq (~ control ("\r\n"))
+			     (+ ,char-set:extend-or-spacing-mark))
+			control)))
 	   ((ascii)	char-set:ascii)
 	   ((nonl)	`(inverted-char-class ,(string->char-set "\n")))
 	   ((blank)	char-set:blank)
@@ -188,9 +202,12 @@
 	   ((alphanumeric alnum alphanum)	char-set:letter+digit)
 	   ((word) (parse '(word (+ (& (or alphanumeric #\_))))))
 	   (else (err "unknown literal" sre)))))
+
       (match sre
 	((? sre-literal?) (parse-literal sre))
 	((? symbol?)      (parse-symbol sre))
+	;; ("abc") pattern
+	(((? string? cset)) (string->char-set cset))
 	;; SRFI-115 doesn't have this?
 	(('~) (parse 'any))
 	(('~ cset ..1)
