@@ -72,6 +72,7 @@
 	    regex-replace
 
 	    ;; utility
+	    regex-fold
 	    string-split
 	    regex-match-let
 	    regex-match-if
@@ -145,28 +146,45 @@
      ((matcher replacement count)
       (impl:regex-replace matcher replacement count))))
 
-  (define (string-split text str/pattern :optional (start 0) (end -1))
-    (let* ((p (cond ((regex-pattern? str/pattern) str/pattern)
-		    ((string? str/pattern) (regex str/pattern))
-		    ((char? str/pattern) (regex (list->string  
-						 (list str/pattern))))
-		    (else (assertion-violation
-			   'string-split
-			   "string or regex-pattern required" str/pattern))))
-	   (m (regex-matcher p text start end))
-	   (end (if (negative? end) (string-length text) end)))
-      (let loop ((r '()) (pos 0))
-	(cond ((>= pos end) (reverse! r))
-	      ((regex-find m pos)
+
+  (define (default-finish from md str acc) acc)
+  ;; SRFI-115 thing
+  (define (regex-fold rx kons knil str 
+		      :optional (finish default-finish)
+		      (start 0) (end (string-length str)))
+    (let ((m (regex-matcher rx str start end)))
+      (let loop ((acc knil) (from start))
+	(cond ((>= from end) (finish from #f str acc))
+	      ((regex-find m)
 	       (let ((first (regex-first m))
 		     (last  (regex-last m)))
 		 (let* ((off (if (= first last) 1 0))
-			(s   (substring text pos (+ first off))))
-		   (if (string=? s "")
-		       (loop r (+ last off))
-		       (loop (cons s r) (+ last off))))))
-	      (else (reverse! (cons (substring text pos end) r)))))
-      ))
+			(s   (substring str from (+ first off))))
+		   (loop (kons from m s acc) (+ last off)))))
+	      (else (finish from #f str acc))))))
+  ;; now this is a bit inefficient...
+  (define (string-split text str/pattern 
+			:optional (start 0) (end (string-length text)))
+    (let ((p (cond ((regex-pattern? str/pattern) str/pattern)
+		   ((string? str/pattern) (regex str/pattern))
+		   ((char? str/pattern) (regex (list->string  
+						(list str/pattern))))
+		   (else (assertion-violation
+			  'string-split
+			  "string or regex-pattern required" str/pattern)))))
+      (regex-fold 
+       p
+       (lambda (from md str a) 
+	 (let* ((i (regex-first md))
+		(e (regex-last md))
+		(off (if (= i e) 1 0)))
+	   (if (< from (+ i off)) (cons str a) a)))
+       '()
+       text
+       (lambda (from md str a)
+	 (reverse! (if (< from end) (cons (substring str from end) a) a)))
+       start
+       end)))
 
   ;; from Gauche, modified to use syntax-case
   (define-syntax regex-match-bind*

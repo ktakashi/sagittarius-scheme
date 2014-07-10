@@ -32,6 +32,8 @@
 	(srfi :64 testing)
 	;; so is rfc uuid...
 	(rfc uuid)
+	;; so is text sre
+	(text sre)
 	(util file)
 	(sagittarius io)
 	(scheme load))
