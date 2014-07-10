@@ -9,7 +9,7 @@
   (guard (e (else (print (condition-message e)
 			 (condition-irritants e)))) (regexp rx))
   (let ((res (apply regexp-matches rx str o)))
-    (and res (regexp-match->sexp res))))
+    (and res (regexp-match->list res))))
 
 (define-syntax test-re
   (syntax-rules ()
@@ -22,7 +22,7 @@
 
 (define (maybe-search->sexp rx str . o)
   (let ((res (apply regexp-search rx str o)))
-    (and res (regexp-match->sexp res))))
+    (and res (regexp-match->list res))))
 
 (define-syntax test-re-search
   (syntax-rules ()

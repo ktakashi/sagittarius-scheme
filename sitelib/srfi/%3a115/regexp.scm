@@ -35,7 +35,7 @@
 	    regexp-fold regexp-extract regexp-split
 	    regexp-match? regexp-match-count
 	    regexp-match-submatch regexp-match-submatch/list
-	    regexp-match->list regexp-match->sexp
+	    regexp-match->list
 	    regexp-match-submatch-start regexp-match-submatch-end)
     (import (rnrs)
 	    (sagittarius)
@@ -145,7 +145,5 @@
 	(if (= i count)
 	    (reverse! r)
 	    (loop (+ i 1) (cons (regex-group m i) r))))))
-  ;; ??? what is this?
-  (define regexp-match->sexp regexp-match->list)
 
 )
