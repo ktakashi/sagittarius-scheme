@@ -5,7 +5,7 @@
 static struct {
   int32_t in;
   int32_t out;
-} s_other_lowercase[18] = {
+} s_other_lowercase[20] = {
   { 170L, 170L },
   { 186L, 186L },
   { 688L, 696L },
@@ -22,6 +22,8 @@ static struct {
   { 8560L, 8575L },
   { 9424L, 9449L },
   { 11388L, 11389L },
+  { 42652L, 42653L },
   { 42864L, 42864L },
   { 43000L, 43001L },
+  { 43868L, 43871L },
 };

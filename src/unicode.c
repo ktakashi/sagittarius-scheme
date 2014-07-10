@@ -688,8 +688,15 @@ SgObject Sg_DigitValue(SgChar ch)
     const int size = array_sizeof(s_numeric_property);
     int i;
     for (i = 0; i < size; i++) {
-      if (s_numeric_property[i].in == (int32_t)ch)
-	return Sg_MakeInteger(s_numeric_property[i].out);
+      if (s_numeric_property[i].in == (int32_t)ch) {
+	SgObject nume = Sg_MakeIntegerFromS64(s_numeric_property[i].nume);
+	int64_t deno = s_numeric_property[i].deno;
+	if (deno == 1LL) {
+	  return nume;
+	} else {
+	  return Sg_MakeRational(nume, Sg_MakeIntegerFromS64(deno));
+	}
+      }
     }
     return SG_FALSE;;
   }

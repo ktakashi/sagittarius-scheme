@@ -1404,4 +1404,8 @@
 		  (test-equal "don't optimise this" 
 			      '(11 11) (list one1 two1)))))))
 
+;; call #44
+(test-equal "half value digit-value"
+	    15/2 (digit-value (integer->char #x0F31)))
+
 (test-end)

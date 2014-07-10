@@ -9,7 +9,7 @@
 
 |#
 
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (library (anonymous)
 
   (export)
@@ -23,7 +23,7 @@
 	  (match))
 
   (define (ucd-file filename)
-    (string-append (current-directory) "/unicode-6.1.0/" filename))
+    (string-append (current-directory) "/data/" filename))
 
   (define (datum-file filename)
     (string-append (current-directory) "/ucd/" filename))

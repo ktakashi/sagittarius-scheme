@@ -5,7 +5,10 @@
 static struct {
   int32_t in;
   int32_t out;
-} s_other_uppercase[2] = {
+} s_other_uppercase[5] = {
   { 8544L, 8559L },
   { 9398L, 9423L },
+  { 127280L, 127305L },
+  { 127312L, 127337L },
+  { 127344L, 127369L },
 };

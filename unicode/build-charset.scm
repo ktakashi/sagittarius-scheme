@@ -53,6 +53,7 @@ creates:
 
 (define (main args)
   (when (file-exists? "charset.inc") (delete-file "charset.inc"))
+  (format #t "~%generating charset.inc...~!")
   (with-output-to-file "charset.inc"
     (lambda ()
       (print "/* charset.inc                                   -*- mode:c; coding:utf-8 -*- */")
@@ -65,4 +66,5 @@ creates:
       (emit-range "punct_set" punct?)
       (emit-range "symbl_set" symbl?)
       (emit-range "space_set" space?)
-      (emit-range "cntrl_set" cntrl?))))
+      (emit-range "cntrl_set" cntrl?)))
+  (print "done"))
