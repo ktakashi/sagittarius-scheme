@@ -123,8 +123,11 @@
   (define-c-proc library-exported (arg0::<library>) SG_LIBRARY_EXPORTED)
 
   (define-c-proc library-exported-set! (arg0::<library> arg1) ::<void>
+    (set! (SG_LIBRARY_EXPORTED arg0) arg1))
+
+  (define-c-proc library-exported-add! (arg0::<library> arg1) ::<void>
     (if (SG_FALSEP (SG_LIBRARY_EXPORTED arg0)) ;; not set yet
-	(set! (SG_LIBRARY_EXPORTED arg0)  arg1)
+	(set! (SG_LIBRARY_EXPORTED arg0) arg1)
 	(let* ((exports (SG_CAR (SG_LIBRARY_EXPORTED arg0)))
 	       (renames (SG_CDR (SG_LIBRARY_EXPORTED arg0))))
 	  (set! (SG_LIBRARY_EXPORTED arg0)

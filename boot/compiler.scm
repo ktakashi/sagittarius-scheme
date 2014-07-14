@@ -2503,9 +2503,8 @@
 	     (syntax-error 
 	      "unknown object appeared in export spec" (car spec))))))
   (receive (exports renames) (parse-export (unwrap-syntax (cdr export)))
-      (library-exported-set! lib
-			     (cons exports renames))
-      ($undef)))
+    (library-exported-add! lib (cons exports renames))
+    ($undef)))
 
 ;; Collect library inlinable define.
 ;; Inlinable condition:
@@ -2762,6 +2761,10 @@
  (else
   (define (expand-form form p1env) form)))
 
+(define (pass1/init-library lib)
+  ;; this means all but it is an error without export clause
+  (library-exported-set! lib #f)
+  (library-imported-set! lib '()))
 
 (define (pass1/library form lib p1env)
   (define (finish iform save)
@@ -2796,6 +2799,7 @@
      ;; create a new p1env for this library.
      (let* ((current-lib (ensure-library (unwrap-syntax name) 'library #t))
 	    (newenv      (make-bottom-p1env current-lib)))
+       (pass1/init-library current-lib)
        (pass1/import import current-lib)
        (pass1/export export current-lib)
        (pass1/library body current-lib newenv)))
@@ -2874,6 +2878,7 @@
     ((- name body ___)
      (let* ((current-lib (ensure-library (unwrap-syntax name) 'library #t))
 	    (newenv      (make-bottom-p1env current-lib)))
+       (pass1/init-library current-lib)
        ;; import 'import' syntax
        (pass1/import '(import (only (sagittarius) import)) current-lib) 
        (process-declare body current-lib newenv)))
