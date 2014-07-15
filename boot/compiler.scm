@@ -2763,7 +2763,8 @@
 
 (define (pass1/init-library lib)
   ;; this means all but it is an error without export clause
-  (library-exported-set! lib #f)
+  ;; enable it after 0.5.6 (causes SEGV)
+  ;; (library-exported-set! lib #f)
   (library-imported-set! lib '()))
 
 (define (pass1/library form lib p1env)
