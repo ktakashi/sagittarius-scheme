@@ -262,21 +262,6 @@
   ;; misc
   ;; it's builtin (for better performance with bignum)
   ;;(define (square z) (* z z))
-  (define (boolean=? x y . rest)
-    (unless (and (boolean? x) (boolean? y))
-      (assertion-violation 'boolean=? "boolean required" x y))
-    (if (null? rest)
-	(eq? x y)
-	(and (eq? x y)
-	     (apply boolean=? y (car rest) (cdr rest)))))
-  (define (symbol=? x y . rest)
-    (unless (and (symbol? x) (symbol? y))
-      (assertion-violation 'symbol=? "symbol required" x y))
-    (if (null? rest)
-	(eq? x y)
-	(and (eq? x y)
-	     (apply symbol=? y (car rest) (cdr rest)))))
-
   ;; moved from divisions (it's no longer supported)
   ;; From chibi-scheme
 
