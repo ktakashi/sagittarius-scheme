@@ -1,7 +1,7 @@
 @; -*- mode:scribble; coding: utf-8 -*-
 @title{Sagittarius Users' Reference}
 
-This document is a manual for Sagittarius, an R6RS Scheme implementation.
+This document is a manual for Sagittarius, an R6RS/R7RS Scheme implementation.
 This is for version @eval{(sagittarius-version)}.
 
 @table-of-contents[:id "table-of-contents"]
@@ -14,24 +14,25 @@ I tried to describe the points which are not conformed to R6RS.
 The target readers are those who already know Scheme and want to write useful
 programs in Sagittarius.
 
-This manual only deals with Scheme side of things. Sagittarius has another face,
-a C interface. Details of it will be discussed in a separate document yet to be
-written. Those who wants to use Sagittarius as an embedded language, or wants to
-write an extension, need that volume.
+@; -- for now, forget this.
+@; This manual only deals with Scheme side of things. Sagittarius has another
+@; face, a C interface. Details of it will be discussed in a separate document
+@; yet to be written. Those who wants to use Sagittarius as an embedded language,
+@; or wants to write an extension, need that volume.
 
 @subsection{Overview of Sagittarius}
 
 Sagittarius is a Scheme script engine; it reads Scheme programs, compiles it
-on-the-fly and executes it on a virtual machine. Sagittarius @b{Mostly}
-conforms the language standard "Revised^6 Report on the Algorithmic Language
-Scheme" (R6RS), and supports various common libraries defined in 
-"Scheme Requests for Implementation" (SRFI)s.
+on-the-fly and executes it on a virtual machine. Sagittarius Mostly conforms
+the language standard "Revised^6 Report on the Algorithmic Language Scheme"
+(R6RS), and supports various common libraries defined in "Scheme Requests for
+Implementation" (SRFI)s.
 
 There are a lot of Scheme implementations and it has different strong and weak
 point. Sagittarius focuses on "Flexibility" and "Easy to Use". R6RS specifies
 strict requirements, but sometimes you may think this is too much. For that
 purpose, Sagittarius has less strictness but it makes not to conform the
-requirements. That's why it is Mostly R6RS.
+requirements.
 
 To avoid to lose portability or write miss-working code, you may want to know
 what are the non conformed points.
@@ -222,7 +223,7 @@ libraries are important. Top most dependency must be the first and next is
 second most, so on.
 
 Note: This style can hide some private procedures however if you want to write
-portable codes some implementation do not allow you to write this style.
+portable code, some implementations do not allow you to write this style.
 
 @subsection{Compiled cache}
 
