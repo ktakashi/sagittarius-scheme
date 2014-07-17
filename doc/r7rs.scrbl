@@ -345,6 +345,12 @@ exported procedure of @code{consition?}.
 @define[Function]{@name{read-error?} @args{obj}}
 @desc{Renaming export of @code{i/o-read-error?}.}
 
+@define[Function]{@name{input-port-open?} @args{input-port}}
+@define[Function]{@name{output-port-open?} @args{output-port}}
+@desc{Return #t if given @var{input-port} or @var{output-port} is open,
+respectively. Otherwise #f.
+}
+
 @define[Function]{@name{u8-ready?} @args{input-port}}
 @define[Function]{@name{char-ready? @args{input-port}}}
 @desc{Renaming export of @code{port-ready?}.
@@ -359,9 +365,21 @@ exported procedure of @code{consition?}.
 Peeks or reads a byte from given @var{input-port}.
 }
 
-@define[Function]{@name{read-bytevector}}
-@define[Function]{@name{read-bytevector!}}
+@define[Function]{@name{read-bytevector}
+ @args{len :optional (input-port (current-input-port))}}
+@desc{@var{input-port} must be a binary input port.
 
+Reads @var{len} from @var{input-port} and returns a bytevector.
+}
+
+@define[Function]{@name{read-bytevector!}
+ @args{bv :optional (input-port (current-input-port))
+		    (start 0) (end (bytevector-length bv))}}
+@desc{@var{input-port} must be a binary input port.
+
+Reads @var{end} - @var{start} size of data from @var{input-port} and put it
+into @var{bv} from @var{start} index.
+}
 
 @define[Function]{@name{write-u8}
  @args{u8 :optional (output-port (current-output-port))}}
@@ -369,22 +387,53 @@ Peeks or reads a byte from given @var{input-port}.
 
 Writes @var{u8} to @var{output-port}.
 }
-@define[Function]{@name{write-bytevector}}
 
-@define[Function]{@name{read-line}}
-@define[Function]{@name{read-string}}
-@define[Function]{@name{write-string}}
+@define[Function]{@name{write-bytevector}
+ @args{bv :optional (output-port (current-output-port))
+		    (start 0) (end (bytevector-length bv))}}
+@desc{@var{output-port} must be a binary output port.
 
+Writes @var{bv} from @var{start} to @var{end} (exclusive) to @var{output-port}.
+}
 
-@define[Function]{@name{get-output-bytevector}}
-@define[Function]{@name{get-output-string}}
+@define[Function]{@name{read-line}
+ @args{:optional (input-port (current-input-port))}}
+@desc{@var{input-port} must be a textual input port.
 
-@define[Function]{@name{open-input-bytevector}}
-@define[Function]{@name{open-input-string}}
+Reads line from @var{input-port}. For convenience, @code{\n}, @code{\r}
+and @code{\r\n} are considered end of line.
+}
+
+@define[Function]{@name{read-string}
+ @args{k :optional (input-port (current-input-port))}}
+@desc{@var{input-port} must be a textual input port.
+
+Reads @var{k} length of string from @var{input-port}.
+}
+
+@define[Function]{@name{write-string}
+ @args{str :optional (output-port (current-output-port))
+		     (start 0) (end (string-length str))}}
+@desc{@var{output-port} must be a binary output port.
+
+Writes @var{bv} from @var{start} to @var{end} (exclusive) to @var{output-port}.
+}
+
+@define[Function]{@name{open-input-bytevector} @args{bv}}
+@define[Function]{@name{open-input-string} @args{string}}
+@desc{Returns binary or textual input port whose source is @var{bv}
+or @var{string}, respectively.
+}
+
 @define[Function]{@name{open-output-bytevector}}
 @define[Function]{@name{open-output-string}}
-@define[Function]{@name{input-port-open?}}
-@define[Function]{@name{output-port-open?}}
+@desc{Returns binary or textual output port. The port is opened on memory.}
+
+@define[Function]{@name{get-output-bytevector} @args{output-port}}
+@define[Function]{@name{get-output-string} @args{output-port}}
+@desc{Retrieves buffered bytevector or string from given @var{output-ports},
+respectively.
+}
 
 @sub*section{System interface}
 
@@ -471,11 +520,18 @@ These procedures are the same as R6RS;
 
 These procedures are the same as R6RS;
 
-@code{call-with-input-file call-with-output-file delete-file file-exists?
- open-binary-input-file open-binary-output-file open-input-file open-output-file
+@codeblock{
+ call-with-input-file call-with-output-file
+ delete-file file-exists?
+ open-input-file open-output-file
  with-input-from-file with-output-to-file}
 }
 
+@define[Function]{@name{open-binary-input-file} @args{file}}
+@define[Function]{@name{open-binary-output-file} @args{file}}
+@desc{Returns file binary input or output port associated with given
+@var{file}, respectively.
+}
 @subsubsection{Inexact library}
 
 @define[Library]{@name{(scheme inexact)}}
@@ -497,7 +553,13 @@ These procedures/macros are the same as R6RS;
 @code{delay force make-promise promise?}
 }
 
-@define[Macro]{@name{delay-force}}
+@define[Macro]{@name{delay-force} @args{expression}}
+@desc{The expression @code{(delay-force @var{expression})} is conceptually
+similar to @code{(delay (force @var{expression}))}, with the difference that
+forcing the result of @code{delay-force} will in effect result in a tail call
+to @code{(force @var{expression})}, while forcing the result of
+@code{(delay (force @var{expression}))} might not.
+}
 
 @subsubsection{Load library}
 
@@ -507,6 +569,10 @@ from files.
 }
 
 @define[Function]{@name{load} @args{file :optional environment}}
+@desc{Reads expression in @var{file} and evaluates it until it gets to
+end of file. If @var{environment} is passed, then the evaluation is done
+in that environment. Otherwise it is done in current environment.
+}
 
 @subsubsection{Process-Context library}
 
@@ -518,9 +584,19 @@ These procedures are the same as R6RS;
 @code{command-line exit}
 }
 
-@define[Function]{@name{emergency-exit}}
-@define[Function]{@name{get-enviromnent-variable}}
+@define[Function]{@name{emergency-exit} @args{:optional obj}}
+@desc{Exist process without any cleanup. The optional argument @var{obj}
+is given then it's translated to proper return value of the process.
+}
+
+@define[Function]{@name{get-enviromnent-variable} @args{name}}
+@desc{@var{name} must be a string.
+
+Retrieves environment variable associated to @var{name}.
+}
+
 @define[Function]{@name{get-enviromnent-variables}}
+@desc{Returns alist of environment variables.}
 
 @subsubsection{Read library}
 
@@ -547,8 +623,15 @@ These procedures are the same as R6RS;
 }
 
 @define[Function]{@name{current-jiffy}}
-@define[Function]{@name{current-second}}
+@desc{Returns the number of jiffies as an exact integer.}
 @define[Function]{@name{jiffies-per-second}}
+@desc{Returns an exact integer representing the number of jiffies per SI
+second.}
+
+@define[Function]{@name{current-second}}
+@desc{Returns an inexact number representing the current time on
+International Atomic Time (TAI) scale.}
+
 
 @subsubsection{Write library}
 
@@ -559,9 +642,19 @@ This procedures is the same as R6RS
 @code{display}
 }
 
-@define[Function]{@name{write}}
-@define[Function]{@name{write-shared}}
-@define[Function]{@name{write-simple}}
+@define[Function]{@name{write}
+ @args{obj :optional (output-port (current-output-port))}}
+@desc{Writes a representation of @var{obj} to @var{output-port}.
+
+If the @var{obj} contains cyclic, the procedure writes with datum label.
+}
+
+@define[Function]{@name{write-shared}
+ @args{obj :optional (output-port (current-output-port))}}
+@define[Function]{@name{write-simple}
+ @args{obj :optional (output-port (current-output-port))}}
+@desc{Renaming export of @code{write/ss} and @code{write}, respectively.
+}
 
 @subsubsection{R5RS library}
 
