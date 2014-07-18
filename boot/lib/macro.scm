@@ -4,6 +4,7 @@
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
+(define-constant ENV-BOTTOM 4)
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
@@ -157,8 +158,9 @@
       (define (pure-template-variable? id)
 	(let ((envs (id-envs id)))
 	  (and (not (null? envs))
-	       (null? (cdr envs))
-	       (assv BOUNDARY envs))))
+	       (not (null? (cdr envs)))
+	       (eqv? BOUNDARY (caar envs))
+	       (eqv? ENV-BOTTOM (caadr envs)))))
       (let loop ((expr oexpr))
 	(cond ((pair? expr)
 	       (let ((a (loop (car expr)))
@@ -555,7 +557,16 @@
       (define (id=? id1 p)
 	(define (check? id p)
 	  (if (identifier? id)
-	      (eq? (id-envs id) (id-envs p))
+	      (let ((i-env (id-envs id))
+		    (p-env (id-envs p)))
+		(or (eq? i-env p-env)
+		    (and (not (null? i-env))
+			 (not (null? p-env))
+			 (pair? (car i-env))
+			 (pair? (car p-env))
+			 (eq? ENV-BOTTOM (caar i-env))
+			 (eq? ENV-BOTTOM (caar p-env)))
+		    ))
 	      #t))
 	(and (check? id1 p)
 	     (eq? (syntax->datum id1) (id-name p))))

@@ -399,6 +399,10 @@
   ;;        (list (f 1) (g 1))))
   ;;    )
 
+  (define-cfn bottom-env? (env) ::int :static
+    (return (or (SG_NULLP env)
+		(SG_EQ ENV-BOTTOM (SG_CAAR env)))))
+
   (define-cfn template-id? (name) ::int :static
     (when (SG_IDENTIFIERP name)
       ;; macro may have internal content so if there is no
@@ -406,7 +410,7 @@
       (dopairs (fp (SG_IDENTIFIER_ENVS name))
 	(when (and (SG_PAIRP (SG_CAR fp))
 		   (SG_EQ (SG_CAAR fp) BOUNDARY)
-		   (not (SG_NULLP (SG_CDR fp))))
+		   (not (bottom-env? (SG_CDR fp))))
 	  (return TRUE))))
     (return FALSE))
   (define-cfn template-id-frame (id) :static
@@ -445,7 +449,7 @@
   ;; envs. All of these are sharing a frame the we can consider
   ;; it's the same.
   (define-cfn envs-shared? (name-env target-env frames) ::int :static
-    (when (SG_NULLP name-env) (return FALSE))
+    (when (bottom-env? name-env) (return FALSE))
     (when (SG_EQ (SG_CDR name-env) target-env)
       (dopairs (fp frames) (when (SG_EQ fp target-env) (return TRUE))))
     (return FALSE))
@@ -510,7 +514,7 @@
 			 (SG_EQ (SG_IDENTIFIER_NAME name) 
 				(SG_IDENTIFIER_NAME (SG_CAR vp)))
 			 ;; can we assume this is null?
-			 (SG_NULLP (SG_IDENTIFIER_ENVS (SG_CAR vp)))
+			 (bottom-env? (SG_IDENTIFIER_ENVS (SG_CAR vp)))
 			 (not (SG_FALSEP (Sg_Assv BOUNDARY
 						  (SG_IDENTIFIER_ENVS name))))
 			 ;; must not be a proper template id.

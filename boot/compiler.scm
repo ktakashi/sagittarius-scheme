@@ -173,7 +173,8 @@
 ;; used by p1env-lookup
 ;; TODO move this somewhere in C level
 ;; so that both Scheme and C can share the value.
-(define-constant LEXICAL 0)
+(define-constant LEXICAL    0)
+(define-constant ENV-BOTTOM 4)
 ;;(define-constant PATTERN 2)
 ;; library defined variable need this for macro
 
@@ -1103,10 +1104,12 @@
 	      (p1env-exp-name p1env)
 	      (p1env-current-proc p1env)))
 
-(define (make-bottom-p1env .  maybe-library)
-  (if (null? maybe-library)
-      (make-p1env (vm-current-library) '())
-      (make-p1env (car maybe-library) '())))
+(define (make-bottom-p1env . maybe-library)
+  (let ((bottom-frame (list (list ENV-BOTTOM)))
+	(lib (if (null? maybe-library)
+		 (vm-current-library)
+		 (car maybe-library))))
+    (make-p1env lib bottom-frame)))
 
 ;; pass1 utilities
 (define (global-eq? var sym p1env . maybe-library)

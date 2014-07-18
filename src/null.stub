@@ -3246,6 +3246,11 @@
   (define-cfn variable? (o) ::int :static
     (return (or (SG_IDENTIFIERP o) (SG_SYMBOLP o))))
 
+  (decl-code (.define "ENV_BOTTOM" "SG_MAKE_INT(4)"))
+  (define-cfn bottom-env? (env) ::int :static
+    (return (or (SG_NULLP env)
+		(SG_EQ ENV-BOTTOM (SG_CAAR env)))))
+
   (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
     ::int :static
     (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
@@ -3266,8 +3271,8 @@
 		       (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
 					   (SG_IDENTIFIER_NAME id2) #f)))
 		   (if (and (or (SG_FALSEP g1) (SG_FALSEP g2))
-			    (and (not (SG_NULLP (SG_IDENTIFIER_ENVS id1)))
-				 (not (SG_NULLP (SG_IDENTIFIER_ENVS id2)))
+			    (and (not (bottom-env? (SG_IDENTIFIER_ENVS id1)))
+				 (not (bottom-env? (SG_IDENTIFIER_ENVS id2)))
 				 (not (SG_EQ (SG_IDENTIFIER_LIBRARY id1)
 					     (SG_IDENTIFIER_LIBRARY id2)))))
 		       ;; if libraries are not equal and #f returned
