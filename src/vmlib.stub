@@ -9,6 +9,11 @@
    (.include <sagittarius.h>
 	     <sagittarius/instruction.h>))
 
+  ;; TODO duplicated definition in Scheme
+  (decl-code
+   (.define "BOUNDARY"   "SG_MAKE_INT(3)")
+   (.define "ENV_BOTTOM" "SG_MAKE_INT(4)"))
+
   (define-cise-stmt assertion-violation
     ((_ who msg)
      `(begin
@@ -69,11 +74,9 @@
       (set! (SG_IDENTIFIER_ENVS id) envs)
       (result id)))
 
-  (define-c-proc id-envs (id::<identifier>) ::<top>
-    (result (SG_IDENTIFIER_ENVS id)))
+  (define-c-proc id-envs (id::<identifier>) SG_IDENTIFIER_ENVS)
 
-  (define-c-proc id-library (id::<identifier>) ::<top>
-    (result (SG_IDENTIFIER_LIBRARY id)))
+  (define-c-proc id-library (id::<identifier>) SG_IDENTIFIER_LIBRARY)
 
   ;; syntax
   (define-c-proc make-syntax (name::<symbol> proc) Sg_MakeSyntax)
@@ -402,7 +405,7 @@
       ;; content after the boundary then it's not a template-id.
       (dopairs (fp (SG_IDENTIFIER_ENVS name))
 	(when (and (SG_PAIRP (SG_CAR fp))
-		   (SG_EQ (SG_CAAR fp) (SG_MAKE_INT 3))
+		   (SG_EQ (SG_CAAR fp) BOUNDARY)
 		   (not (SG_NULLP (SG_CDR fp))))
 	  (return TRUE))))
     (return FALSE))
@@ -410,7 +413,7 @@
     (cond ((template-id? id)
 	   (dopairs (fp (SG_IDENTIFIER_ENVS id))
 	     (when (and (SG_PAIRP (SG_CAR fp))
-			(SG_EQ (SG_MAKE_INT 3) (SG_CAAR fp)))
+			(SG_EQ BOUNDARY (SG_CAAR fp)))
 	       (return (SG_CDR fp)))))
 	  ((SG_IDENTIFIERP id) (return (SG_IDENTIFIER_ENVS id))))
     (return SG_NIL))
@@ -508,10 +511,10 @@
 				(SG_IDENTIFIER_NAME (SG_CAR vp)))
 			 ;; can we assume this is null?
 			 (SG_NULLP (SG_IDENTIFIER_ENVS (SG_CAR vp)))
-			 (not (SG_FALSEP (Sg_Assv (SG_MAKE_INT 3)
+			 (not (SG_FALSEP (Sg_Assv BOUNDARY
 						  (SG_IDENTIFIER_ENVS name))))
 			 ;; must not be a proper template id.
-			 (not (SG_EQ (SG_MAKE_INT 3)
+			 (not (SG_EQ BOUNDARY
 				     (SG_CAAR (SG_IDENTIFIER_ENVS name))))
 			 (not (env-shared? (SG_IDENTIFIER_ENVS name)
 					   frames))))
