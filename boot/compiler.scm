@@ -2763,8 +2763,7 @@
 
 (define (pass1/init-library lib)
   ;; this means all but it is an error without export clause
-  ;; enable it after 0.5.6 (causes SEGV)
-  ;; (library-exported-set! lib #f)
+  (library-exported-set! lib #f)
   (library-imported-set! lib '()))
 
 (define (pass1/library form lib p1env)
@@ -5079,7 +5078,6 @@
       ;; closure to trunk cb.
       (values lambda-cb free (+ body-size frsiz nargs (vm-frame-size))))))
 
-;; enable it after 0.5.6
 ;;;;
 ;; Basically this doesn't work for some case
 ;; e.g)
@@ -5097,7 +5095,6 @@
 ;; in the thunk `p` is closure and outside `p` is promise. I don't have
 ;; any better way to resolve this other than implicit boxing. So for now
 ;; we only optimise it if the initial value is `lambda`
-#;
 (define (pass5/letrec iform cb renv ctx)
   ;; if the letrec has cross reference then it needs to have implicit boxing
   ;; otherwiese one of the procedure can't resolve the other one.
@@ -5207,49 +5204,50 @@
       (unless (tail-context? ctx) (cb-emit1! cb LEAVE nargs))
       (+ body-size assign-size nargs))))
 
-(define (pass5/letrec iform cb renv ctx)
-  (let* ((vars ($let-lvars iform))
-	 (body ($let-body iform))
-	 (args ($let-inits iform))
-	 (sets (append vars
-		       (pass5/find-sets body vars)
-		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
-				     args)))
-	 (nargs (length vars))
-	 (total (+ nargs (length (renv-locals renv)))))
-    (let loop ((args args))
-      (cond ((null? args) '())
-	    (else
-	     (cb-emit0! cb UNDEF)
-	     (cb-emit0! cb PUSH)
-	     (loop (cdr args)))))
-    (pass5/make-boxes cb sets vars)
-    ;;(cb-emit1! cb ENTER total)
-    (let* ((new-renv (make-new-renv renv 
-				    (append (renv-locals renv) vars)
-				    (renv-frees renv) sets vars #f))
-	   (assign-size (let loop ((args args)
-				   (vars vars) ;; for debug info
-				   (size 0)
-				   (index (length (renv-locals renv))))
-			  (cond ((null? args) size)
-				(else
-				 (let ((stack-size (pass5/rec 
-						    (car args)
-						    cb
-						    new-renv
-						    'normal/bottom)))
-				   (cb-emit1i! cb LSET index
-					       (lvar-name (car vars)))
-				   (loop (cdr args) (cdr vars)
-					 (+ stack-size size)
-					 (+ index 1)))))))
-	   (body-size (pass5/rec body cb
-				 new-renv
-				 ctx)))
-      (unless (tail-context? ctx)
-	(cb-emit1! cb LEAVE nargs))
-      (+ body-size assign-size nargs))))
+;;;
+;; (define (pass5/letrec iform cb renv ctx)
+;;   (let* ((vars ($let-lvars iform))
+;; 	 (body ($let-body iform))
+;; 	 (args ($let-inits iform))
+;; 	 (sets (append vars
+;; 		       (pass5/find-sets body vars)
+;; 		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
+;; 				     args)))
+;; 	 (nargs (length vars))
+;; 	 (total (+ nargs (length (renv-locals renv)))))
+;;     (let loop ((args args))
+;;       (cond ((null? args) '())
+;; 	    (else
+;; 	     (cb-emit0! cb UNDEF)
+;; 	     (cb-emit0! cb PUSH)
+;; 	     (loop (cdr args)))))
+;;     (pass5/make-boxes cb sets vars)
+;;     ;;(cb-emit1! cb ENTER total)
+;;     (let* ((new-renv (make-new-renv renv 
+;; 				    (append (renv-locals renv) vars)
+;; 				    (renv-frees renv) sets vars #f))
+;; 	   (assign-size (let loop ((args args)
+;; 				   (vars vars) ;; for debug info
+;; 				   (size 0)
+;; 				   (index (length (renv-locals renv))))
+;; 			  (cond ((null? args) size)
+;; 				(else
+;; 				 (let ((stack-size (pass5/rec 
+;; 						    (car args)
+;; 						    cb
+;; 						    new-renv
+;; 						    'normal/bottom)))
+;; 				   (cb-emit1i! cb LSET index
+;; 					       (lvar-name (car vars)))
+;; 				   (loop (cdr args) (cdr vars)
+;; 					 (+ stack-size size)
+;; 					 (+ index 1)))))))
+;; 	   (body-size (pass5/rec body cb
+;; 				 new-renv
+;; 				 ctx)))
+;;       (unless (tail-context? ctx)
+;; 	(cb-emit1! cb LEAVE nargs))
+;;       (+ body-size assign-size nargs))))
 
 (define pass5/let
   (lambda (iform cb renv ctx)
