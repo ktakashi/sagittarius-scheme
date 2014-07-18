@@ -44,10 +44,10 @@ dist() {
 	exit -2
     fi
     
-    if [ -e ./build/sash ]; then
-	version=`./build/sash -v | perl -e 'while (<>) {if ($_ =~ /version ([\d\.]+)?/) {print $1;}}'`
+    if [ -e ./build/sagittarius ]; then
+	version=`./build/sagittarius -v | perl -e 'while (<>) {if ($_ =~ /version ([\d\.]+)?/) {print $1;}}'`
     else
-	echo ERROR: sash does not exist.
+	echo ERROR: sagittarius does not exist.
 	exit -3
     fi
     
