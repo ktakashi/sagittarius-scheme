@@ -55,6 +55,7 @@
 	    packrat-check
 	    packrat-or
 	    packrat-unless
+	    packrat-many
 
 	    packrat-parser)
     (import (rnrs)
@@ -284,15 +285,15 @@
 	  (p2 results)))))
 
 ;; want *, + and ?
-(define (packrat-count-base token-kind n m k)
+(define (packrat-many-base token-kind n m k)
   (lambda (results)
-    (define (>=? count max) (and max (>= count max)))
+    (define (>=? many max) (and max (>= many max)))
     (define (return-results vs results)
       ;; for some reason we step on the bug...
       (let ((vals (map cdr vs)))
 	((k vals) (parse-results-next results))))
     (when (and (zero? n) (eqv? n m))
-      (error 'packrat-count "both min and max are zero" n m))
+      (error 'packrat-many "both min and max are zero" n m))
     (let loop ((i 0) (vs '()) (results results))
       (if (>=? i m)
 	  (return-results (reverse! vs) results)
@@ -306,9 +307,9 @@
 					      (if (not token-kind)
 						  "end-of-file"
 						  token-kind)))))))))
-(define (packrat-count parser n m k)
+(define (packrat-many parser n m k)
   (lambda (results)
-    (define (>=? count max) (and max (>= count max)))
+    (define (>=? many max) (and max (>= many max)))
     (define (return-results vs result)
       ;; if we inline map then for some reason step on a bug...
       (let ((vals (map parse-result-semantic-value vs)))
@@ -316,7 +317,7 @@
 			      (parse-result-next result))
 			     (parse-result-error result))))
     (when (and (zero? n) (eqv? n m))
-      (error 'packrat-count "both min and max are zero" n m))
+      (error 'packrat-many "both min and max are zero" n m))
     (let loop ((i 0) (vs '()) (s #f) (results results))
       (if (>=? i m)
 	  (return-results (reverse! vs) s)
@@ -374,22 +375,11 @@
 		    (lambda (result) (packrat-parser #f "alt" nt body (rest ...)))))
 
     ;; extra
-    ((_ #f "alt" nt body ((= 'val n m) rest ...))
-     (packrat-count-base 'val n m
-			 (lambda (dummy)
-			   (packrat-parser #f "alt" nt body (rest ...)))))
     ((_ #f "alt" nt body ((= val n m) rest ...))
-     (packrat-count val n m
-		    (lambda (dummy)
-		      (packrat-parser #f "alt" nt body (rest ...)))))
-    ;; first quote
-    ((_ #f "alt" nt body ((+ 'val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 'val 1 #f) rest ...)))
-    ((_ #f "alt" nt body ((* 'val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 'val 0 #f) rest ...)))
-    ((_ #f "alt" nt body ((? 'val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 'val 0 1) rest ...)))
-    ;; then expr
+     (packrat-many (packrat-parser #f "alt" val ())
+		   n m
+		   (lambda (dummy)
+		     (packrat-parser #f "alt" nt body (rest ...)))))
     ((_ #f "alt" nt body ((+ val) rest ...))
      (packrat-parser #f "alt" nt body ((= val 1 #f) rest ...)))
     ((_ #f "alt" nt body ((* val) rest ...))
@@ -397,21 +387,11 @@
     ((_ #f "alt" nt body ((? val) rest ...))
      (packrat-parser #f "alt" nt body ((= val 0 1) rest ...)))
     ;; a bit awkward but don't want to change the structure
-    ((_ #f "alt" nt body (var <- (= 'val n m) rest ...))
-     (packrat-count-base 'val n m
-			 (lambda (var)
-			   (packrat-parser #f "alt" nt body (rest ...)))))
     ((_ #f "alt" nt body (var <- (= val n m) rest ...))
-     (packrat-count val n m
-		    (lambda (var)
-		      (packrat-parser #f "alt" nt body (rest ...)))))
-
-    ((_ #f "alt" nt body (var <- (+ 'val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 'val 1 #f) rest ...)))
-    ((_ #f "alt" nt body (var <- (* 'val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 'val 0 #f) rest ...)))
-    ((_ #f "alt" nt body (var <- (? 'val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 'val 0 1) rest ...)))
+     (packrat-many (packrat-parser #f "expr" nt val)
+		   n m
+		   (lambda (var)
+		     (packrat-parser #f "alt" nt body (rest ...)))))
 
     ((_ #f "alt" nt body (var <- (+ val) rest ...))
      (packrat-parser #f "alt" nt body (var <- (= val 1 #f) rest ...)))
@@ -420,7 +400,9 @@
     ((_ #f "alt" nt body (var <- (? val) rest ...))
      (packrat-parser #f "alt" nt body (var <- (= val 0 1) rest ...)))
     
-
+    ;; TODO this should be merged with "expr" entry
+    ;; so that (var <- (/ alter0 alter1 ...)) would work fine.
+    ;; but for now i don't want to break existing code.
     ((_ #f "alt" nt body (var <- 'val rest ...))
      (packrat-check-base 'val
 			 (lambda (var)
@@ -445,6 +427,24 @@
      (packrat-check val
 		    (lambda (dummy)
 		      (packrat-parser #f "alt" nt body (rest ...)))))
+    ;; extra
+    ;; it's a bit ugly but works fine.
+    ((_ #f "expr" nt 'expr) 
+     (lambda (results) 
+       (let ((base (parse-results-base results)))
+	 (if (and base (eqv? (car base) 'expr))
+	     (make-result (cdr base) (parse-results-next results))
+	     (make-expected-result (parse-results-position results)
+				   "dummy")))))
+    ((_ #f "expr" nt (/ e1 e2 ...))
+     (packrat-or (packrat-parser #f "expr" nt e1)
+		   (packrat-parser #f "expr" nt (/ e2 ...))))
+    ((_ #f "expr" nt (/))
+     (lambda (results)
+       (make-expected-result (parse-results-position results)
+			     "no match")))
+    ((_ #f "expr" nt (e1 e2 ...)) (packrat-parser #f "alt" nt e1 (e2 ...)))
+    ((_ #f "expr" nt expr) expr)
     ))
 
 '(define (x)

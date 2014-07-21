@@ -43,18 +43,11 @@
 		top
 		(top (('! vs <- (+ item+)) vs)
 		     (('% vs <- (* '*)) vs)
-		     (('$ vs <- (? '?)) vs))
+		     (('$ vs <- (? '?)) vs)
+		     (('^ vs <- (+ (/ item* item?))) vs))
 		(item+ (('+) '+))
 		(item* (('*) '*))
 		(item? (('?) '?))))
-
-(let ((g-ok (generator '((!) (+) (+) (+))))
-      (g-ng (generator '((!) (*)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ng (greedy (base-generator->results g-ng))))
-    (test-assert "success?" (parse-result-successful? ok))
-    (test-equal "result" '(+ + +) (parse-result-semantic-value ok))
-    (test-assert "failed" (not (parse-result-successful? ng)))))
 
 (let ((g-ok (generator '((!) (+) (+) (+))))
       (g-ng (generator '((!) (*)))))
@@ -83,5 +76,13 @@
     (test-equal "result" '(1) (parse-result-semantic-value ok))
     (test-assert "null match" (parse-result-successful? ok2))
     (test-equal "result null" '() (parse-result-semantic-value ok2))))
+
+(let ((g-ok (generator '((^) (*) (?) (+))))
+      (g-ng (generator '((^) (+) (?) (*)))))
+  (let ((ok (greedy (base-generator->results g-ok)))
+	(ng (greedy (base-generator->results g-ng))))
+    (test-assert "success?" (parse-result-successful? ok))
+    (test-equal "result" '(* ?) (parse-result-semantic-value ok))
+    (test-assert "failed" (not (parse-result-successful? ng)))))
 
 (test-end)
