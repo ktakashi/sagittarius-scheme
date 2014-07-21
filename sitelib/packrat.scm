@@ -285,28 +285,6 @@
 	  (p2 results)))))
 
 ;; want *, + and ?
-(define (packrat-many-base token-kind n m k)
-  (lambda (results)
-    (define (>=? many max) (and max (>= many max)))
-    (define (return-results vs results)
-      ;; for some reason we step on the bug...
-      (let ((vals (map cdr vs)))
-	((k vals) (parse-results-next results))))
-    (when (and (zero? n) (eqv? n m))
-      (error 'packrat-many "both min and max are zero" n m))
-    (let loop ((i 0) (vs '()) (results results))
-      (if (>=? i m)
-	  (return-results (reverse! vs) results)
-	  (let ((base (parse-results-base results)))
-	    (cond ((eqv? (and base (car base)) token-kind)
-		   (loop (+ i 1) (cons base vs)
-			 (parse-results-next results)))
-		  ((<= n i)
-		   (return-results (reverse! vs) results))
-		  (else (make-expected-result (parse-results-position results)
-					      (if (not token-kind)
-						  "end-of-file"
-						  token-kind)))))))))
 (define (packrat-many parser n m k)
   (lambda (results)
     (define (>=? many max) (and max (>= many max)))
@@ -375,30 +353,31 @@
 		    (lambda (result) (packrat-parser #f "alt" nt body (rest ...)))))
 
     ;; extra
-    ((_ #f "alt" nt body ((= val n m) rest ...))
+    ;; TODO sequence values, this is still inconvenient.
+    ((_ #f "alt" nt body ((= n m val) rest ...))
      (packrat-many (packrat-parser #f "alt" val ())
 		   n m
 		   (lambda (dummy)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
     ((_ #f "alt" nt body ((+ val) rest ...))
-     (packrat-parser #f "alt" nt body ((= val 1 #f) rest ...)))
+     (packrat-parser #f "alt" nt body ((= 1 #f val) rest ...)))
     ((_ #f "alt" nt body ((* val) rest ...))
-     (packrat-parser #f "alt" nt body ((= val 0 #f) rest ...)))
+     (packrat-parser #f "alt" nt body ((= 0 #f val) rest ...)))
     ((_ #f "alt" nt body ((? val) rest ...))
-     (packrat-parser #f "alt" nt body ((= val 0 1) rest ...)))
+     (packrat-parser #f "alt" nt body ((= 0 1 val) rest ...)))
     ;; a bit awkward but don't want to change the structure
-    ((_ #f "alt" nt body (var <- (= val n m) rest ...))
+    ((_ #f "alt" nt body (var <- (= n m val) rest ...))
      (packrat-many (packrat-parser #f "expr" nt val)
 		   n m
 		   (lambda (var)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
 
     ((_ #f "alt" nt body (var <- (+ val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= val 1 #f) rest ...)))
+     (packrat-parser #f "alt" nt body (var <- (= 1 #f val) rest ...)))
     ((_ #f "alt" nt body (var <- (* val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= val 0 #f) rest ...)))
+     (packrat-parser #f "alt" nt body (var <- (= 0 #f val) rest ...)))
     ((_ #f "alt" nt body (var <- (? val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= val 0 1) rest ...)))
+     (packrat-parser #f "alt" nt body (var <- (= 0 1 val) rest ...)))
     
     ;; TODO this should be merged with "expr" entry
     ;; so that (var <- (/ alter0 alter1 ...)) would work fine.
@@ -428,7 +407,8 @@
 		    (lambda (dummy)
 		      (packrat-parser #f "alt" nt body (rest ...)))))
     ;; extra
-    ;; it's a bit ugly but works fine.
+    ;; it's a bit ugly and duplicated code but works fine.
+    ;; TODO refactor it
     ((_ #f "expr" nt 'expr) 
      (lambda (results) 
        (let ((base (parse-results-base results)))
@@ -438,11 +418,24 @@
 				   "dummy")))))
     ((_ #f "expr" nt (/ e1 e2 ...))
      (packrat-or (packrat-parser #f "expr" nt e1)
-		   (packrat-parser #f "expr" nt (/ e2 ...))))
+		 (packrat-parser #f "expr" nt (/ e2 ...))))
     ((_ #f "expr" nt (/))
      (lambda (results)
        (make-expected-result (parse-results-position results)
 			     "no match")))
+    ;; TODO sequence as above.
+    ((_ #f "expr" nt (= n m val)) 
+     (packrat-many (packrat-parser #f "expr" nt val)
+		   n m
+		   (lambda (value)
+		     (lambda (results) 
+		       (make-result value
+				    (if results
+					(parse-results-next results)
+					(empty-results #f)))))))
+    ((_ #f "expr" nt (+ val)) (packrat-parser #f "expr" nt (= 1 #f val)))
+    ((_ #f "expr" nt (* val)) (packrat-parser #f "expr" nt (= 0 #f val)))
+    ((_ #f "expr" nt (? val)) (packrat-parser #f "expr" nt (= 0 1  val)))
     ((_ #f "expr" nt (e1 e2 ...)) (packrat-parser #f "alt" nt e1 (e2 ...)))
     ((_ #f "expr" nt expr) expr)
     ))
