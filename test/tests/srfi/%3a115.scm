@@ -229,4 +229,20 @@
 
 (test " abc d ef " (regexp-replace-all '(+ space) "  abc \t\n d ef  " " "))
 
+(let* ((elapsed '(: (** 1 2 num) ":" num num (? ":" num num))))
+  (test-equal "dynamic SRE problem"
+	      "1:45:02-2:06:13"
+	      (let ((span (rx ,elapsed (: "-") ,elapsed)))
+		(regexp-match-submatch (regexp-search span " 1:45:02-2:06:13 ")
+				       0))))
+;; this causes macro expansion error.
+;; FIXME
+#;
+(test-equal "dynamic SRE problem"
+	    "1:45:02-2:06:13"
+	    (let* ((elapsed '(: (** 1 2 num) ":" num num (? ":" num num)))
+		   (span (rx ,elapsed "-" ,elapsed)))
+	      (regexp-match-submatch (regexp-search span " 1:45:02-2:06:13 ")
+				     0)))
+
 (test-end)
