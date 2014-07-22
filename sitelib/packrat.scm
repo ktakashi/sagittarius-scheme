@@ -430,8 +430,7 @@
      (packrat-many (packrat-parser #f "expr" nt var (val val* ...))
 		   n m
 		   (lambda (value)
-		     (lambda (results) 
-		       (make-result value (or results (empty-results #f)))))))
+		     (lambda (results) (make-result value results)))))
     ((_ #f "expr" nt var (+ val val* ...))
      (packrat-parser #f "expr" nt var (= 1 #f val val* ...)))
     ((_ #f "expr" nt var (* val val* ...))
