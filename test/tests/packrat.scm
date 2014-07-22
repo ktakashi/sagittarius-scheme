@@ -38,22 +38,21 @@
   (test-assert (parse-result-successful? r))
   (test-equal 9 (parse-result-semantic-value r)))
 
-(define greedy (packrat-parser
-		top
-		(top (('~ vs <- (+ item+)) vs)
-		     (('% vs <- (* '*)) vs)
-		     (('$ vs <- (? '?)) vs)
-		     (('^ vs <- (+ (/ item* item?))) vs)
-		     (('|#| vs <- (+ item+ item*)) vs))
-		;;(item++ ((vs <- (+ item+)) vs))
-		(item+ (('+) '+))
-		(item* (('*) '*))
-		(item? (('?) '?))))
+(define quantifier (packrat-parser
+		    top
+		    (top (('~ vs <- (+ item+)) vs)
+			 (('% vs <- (* '*)) vs)
+			 (('$ vs <- (? '?)) vs)
+			 (('^ vs <- (+ (/ item* item?))) vs)
+			 (('|#| vs <- (+ item+ item*)) vs))
+		    (item+ (('+) '+))
+		    (item* (('*) '*))
+		    (item? (('?) '?))))
 
 (let ((g-ok (generator '((~) (+) (+) (+))))
       (g-ng (generator '((~) (*)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ng (greedy (base-generator->results g-ng))))
+  (let ((ok (quantifier (base-generator->results g-ok)))
+	(ng (quantifier (base-generator->results g-ng))))
     (test-assert "success?" (parse-result-successful? ok))
     (test-equal "result(1)" '(+ + +) (parse-result-semantic-value ok))
     (test-assert "failed" (not (parse-result-successful? ng)))))
@@ -61,8 +60,8 @@
 ;; semantic value is cdr part otherwise it would fail
 (let ((g-ok (generator '((%) (* . *) (* . *) (* . *))))
       (g-ok-2 (generator '((%)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ok2 (greedy (base-generator->results g-ok-2))))
+  (let ((ok (quantifier (base-generator->results g-ok)))
+	(ok2 (quantifier (base-generator->results g-ok-2))))
     (test-assert "success?" (parse-result-successful? ok))
     (test-equal "result(2)" '(* * *) (parse-result-semantic-value ok))
     (test-assert "null match" (parse-result-successful? ok2))
@@ -71,8 +70,8 @@
 ;; semantic value is cdr part otherwise it would fail
 (let ((g-ok (generator '(($) (? . 1) (? . 2) (? . 3))))
       (g-ok-2 (generator '(($)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ok2 (greedy (base-generator->results g-ok-2))))
+  (let ((ok (quantifier (base-generator->results g-ok)))
+	(ok2 (quantifier (base-generator->results g-ok-2))))
     (test-assert "success?" (parse-result-successful? ok))
     (test-equal "result(3)" '(1) (parse-result-semantic-value ok))
     (test-assert "null match" (parse-result-successful? ok2))
@@ -80,8 +79,8 @@
 
 (let ((g-ok (generator '((^) (*) (?) (+))))
       (g-ng (generator '((^) (+) (?) (*)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ng (greedy (base-generator->results g-ng))))
+  (let ((ok (quantifier (base-generator->results g-ok)))
+	(ng (quantifier (base-generator->results g-ng))))
     (test-assert "success?" (parse-result-successful? ok))
     (test-equal "result(4)" '(* ?) (parse-result-semantic-value ok))
     (test-assert "failed" (not (parse-result-successful? ng)))))
@@ -89,10 +88,32 @@
 ;; sequence
 (let ((g-ok (generator '((|#|) (+) (*) (+) (*))))
       (g-ng (generator '((|#|) (+) (?) (*)))))
-  (let ((ok (greedy (base-generator->results g-ok)))
-	(ng (greedy (base-generator->results g-ng))))
+  (let ((ok (quantifier (base-generator->results g-ok)))
+	(ng (quantifier (base-generator->results g-ng))))
     (test-assert "success?" (parse-result-successful? ok))
     (test-equal "result(5)" '((+ *) (+ *)) (parse-result-semantic-value ok))
     (test-assert "failed" (not (parse-result-successful? ng)))))
+
+;; more extensive tests
+(define quantifier2 (packrat-parser
+		     top
+		     (top (('~ vs <- (+ (+ item+) (* item*))) vs)
+			  (('$ vs <- (+ item++ item*)) vs))
+		     (item++ ((vs <- (+ item+)) vs))
+		     (item+ (('+) '+))
+		     (item* (('*) '*))
+		     (item? (('?) '?))))
+
+(let* ((g-ok (generator '((~) (+) (*) (+) (*))))
+       (ok (quantifier2 (base-generator->results g-ok))))
+  (test-assert "success?" (parse-result-successful? ok))
+  (test-equal "result(6)" '(((+) (*)) ((+) (*)))
+	      (parse-result-semantic-value ok)))
+
+(let* ((g-ok (generator '(($) (+) (*) (+) (*))))
+       (ok (quantifier2 (base-generator->results g-ok))))
+  (test-assert "success?" (parse-result-successful? ok))
+  (test-equal "result(7)" '(((+) *) ((+) *))
+	      (parse-result-semantic-value ok)))
 
 (test-end)

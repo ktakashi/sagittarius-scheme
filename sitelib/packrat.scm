@@ -305,7 +305,8 @@
 		   (loop (+ i 1) (cons result vs) result
 			 (parse-result-next result)))
 		  ((<= n i)
-		   (return-results (reverse! vs) result))
+		   ;; is this correct???
+		   (return-results (reverse! vs) (or s result)))
 		  (else result)))))))
 
 ;---------------------------------------------------------------------------
@@ -430,10 +431,7 @@
 		   n m
 		   (lambda (value)
 		     (lambda (results) 
-		       (make-result value
-				    (if results
-					(parse-results-next results)
-					(empty-results #f)))))))
+		       (make-result value (or results (empty-results #f)))))))
     ((_ #f "expr" nt var (+ val val* ...))
      (packrat-parser #f "expr" nt var (= 1 #f val val* ...)))
     ((_ #f "expr" nt var (* val val* ...))
