@@ -356,7 +356,7 @@
 
     ;; extra
     ((_ #f "alt" nt body ((= n m val val* ...) rest ...))
-     (packrat-many (packrat-parser #f "expr" nt (tmp) (val val* ...))
+     (packrat-many (packrat-parser #f "expr" nt () (val val* ...))
 		   n m
 		   (lambda (dummy)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
@@ -368,7 +368,7 @@
      (packrat-parser #f "alt" nt body ((= 0 1 val val* ...) rest ...)))
     ;; a bit awkward but don't want to change the structure
     ((_ #f "alt" nt body (var <- (= n m val val* ...) rest ...))
-     (packrat-many (packrat-parser #f "expr" nt (tmp) (val val* ...))
+     (packrat-many (packrat-parser #f "expr" nt () (val val* ...))
 		   n m
 		   (lambda (var)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
@@ -441,18 +441,17 @@
      (packrat-parser #f "expr" nt var (= 0 #f val val* ...)))
     ((_ #f "expr" nt var (? val val* ...))
      (packrat-parser #f "expr" nt var (= 0 1  val val* ...)))    
-    ((_ #f "expr" nt (var var* ...) (e1 e2 ...))
+    ((_ #f "expr" nt (var ...) (e1 e2 ...))
      ;; new expression doesn't need to inherit the temporary variables.
-     (packrat-check (packrat-parser #f "expr" nt (tmp) e1)
-		    (lambda (var)
+     (packrat-check (packrat-parser #f "expr" nt () e1)
+		    (lambda (tmp)
 		      ;; add temporary variable (may not be used in the end)
 		      (packrat-parser #f "expr" nt 
-				      (tmp var var* ...) (e2 ...)))))
+				      (tmp var ...) (e2 ...)))))
     ;; handling special case for convenience.
-    ((_ #f "expr" nt (tmp var) ()) 
+    ((_ #f "expr" nt (var) ()) 
      (lambda (results) (make-result var results)))
-    ;; the very first one we don't need
-    ((_ #f "expr" nt (tmp var ...) ())
+    ((_ #f "expr" nt (var ...) ())
      ;; the veriable is reverse order
      (lambda (results) (make-result (reverse! (list var ...)) results)))
     ((_ #f "expr" nt var expr) expr)
