@@ -62,7 +62,8 @@
 	    (rnrs r5rs)
 	    (srfi :1)
 	    ;; for format
-	    (sagittarius))
+	    (sagittarius)
+	    (pp))
 ;; Packrat Parser Library
 ;;
 ;; Copyright (c) 2004, 2005 Tony Garnock-Jones <tonyg@kcbbs.gen.nz>
@@ -353,31 +354,30 @@
 		    (lambda (result) (packrat-parser #f "alt" nt body (rest ...)))))
 
     ;; extra
-    ;; TODO sequence values, this is still inconvenient.
-    ((_ #f "alt" nt body ((= n m val) rest ...))
-     (packrat-many (packrat-parser #f "alt" val ())
+    ((_ #f "alt" nt body ((= n m val val* ...) rest ...))
+     (packrat-many (packrat-parser #f "expr" nt (tmp) (val val* ...))
 		   n m
 		   (lambda (dummy)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
-    ((_ #f "alt" nt body ((+ val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 1 #f val) rest ...)))
-    ((_ #f "alt" nt body ((* val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 0 #f val) rest ...)))
-    ((_ #f "alt" nt body ((? val) rest ...))
-     (packrat-parser #f "alt" nt body ((= 0 1 val) rest ...)))
+    ((_ #f "alt" nt body ((+ val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body ((= 1 #f val val* ...) rest ...)))
+    ((_ #f "alt" nt body ((* val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body ((= 0 #f val val* ...) rest ...)))
+    ((_ #f "alt" nt body ((? val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body ((= 0 1 val val* ...) rest ...)))
     ;; a bit awkward but don't want to change the structure
-    ((_ #f "alt" nt body (var <- (= n m val) rest ...))
-     (packrat-many (packrat-parser #f "expr" nt val)
+    ((_ #f "alt" nt body (var <- (= n m val val* ...) rest ...))
+     (packrat-many (packrat-parser #f "expr" nt (tmp) (val val* ...))
 		   n m
 		   (lambda (var)
 		     (packrat-parser #f "alt" nt body (rest ...)))))
 
-    ((_ #f "alt" nt body (var <- (+ val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 1 #f val) rest ...)))
-    ((_ #f "alt" nt body (var <- (* val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 0 #f val) rest ...)))
-    ((_ #f "alt" nt body (var <- (? val) rest ...))
-     (packrat-parser #f "alt" nt body (var <- (= 0 1 val) rest ...)))
+    ((_ #f "alt" nt body (var <- (+ val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body (var <- (= 1 #f val val* ...) rest ...)))
+    ((_ #f "alt" nt body (var <- (* val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body (var <- (= 0 #f val val* ...) rest ...)))
+    ((_ #f "alt" nt body (var <- (? val val* ...) rest ...))
+     (packrat-parser #f "alt" nt body (var <- (= 0 1 val val* ...) rest ...)))
     
     ;; TODO this should be merged with "expr" entry
     ;; so that (var <- (/ alter0 alter1 ...)) would work fine.
@@ -409,23 +409,24 @@
     ;; extra
     ;; it's a bit ugly and duplicated code but works fine.
     ;; TODO refactor it
-    ((_ #f "expr" nt 'expr) 
+    ((_ #f "expr" nt var 'expr)
      (lambda (results) 
        (let ((base (parse-results-base results)))
 	 (if (and base (eqv? (car base) 'expr))
 	     (make-result (cdr base) (parse-results-next results))
 	     (make-expected-result (parse-results-position results)
 				   "dummy")))))
-    ((_ #f "expr" nt (/ e1 e2 ...))
-     (packrat-or (packrat-parser #f "expr" nt e1)
-		 (packrat-parser #f "expr" nt (/ e2 ...))))
-    ((_ #f "expr" nt (/))
+    ((_ #f "expr" nt var (/ e1 e2 ...))
+     (packrat-or (packrat-parser #f "expr" nt var e1)
+		 (packrat-parser #f "expr" nt var (/ e2 ...))))
+    ((_ #f "expr" nt var (/))
      (lambda (results)
        (make-expected-result (parse-results-position results)
-			     "no match")))
+			     (string-append "no match for "
+					    (symbol->string 'nt)))))
     ;; TODO sequence as above.
-    ((_ #f "expr" nt (= n m val)) 
-     (packrat-many (packrat-parser #f "expr" nt val)
+    ((_ #f "expr" nt var (= n m val val* ...)) 
+     (packrat-many (packrat-parser #f "expr" nt var (val val* ...))
 		   n m
 		   (lambda (value)
 		     (lambda (results) 
@@ -433,11 +434,27 @@
 				    (if results
 					(parse-results-next results)
 					(empty-results #f)))))))
-    ((_ #f "expr" nt (+ val)) (packrat-parser #f "expr" nt (= 1 #f val)))
-    ((_ #f "expr" nt (* val)) (packrat-parser #f "expr" nt (= 0 #f val)))
-    ((_ #f "expr" nt (? val)) (packrat-parser #f "expr" nt (= 0 1  val)))
-    ((_ #f "expr" nt (e1 e2 ...)) (packrat-parser #f "alt" nt e1 (e2 ...)))
-    ((_ #f "expr" nt expr) expr)
+    ((_ #f "expr" nt var (+ val val* ...))
+     (packrat-parser #f "expr" nt var (= 1 #f val val* ...)))
+    ((_ #f "expr" nt var (* val val* ...))
+     (packrat-parser #f "expr" nt var (= 0 #f val val* ...)))
+    ((_ #f "expr" nt var (? val val* ...))
+     (packrat-parser #f "expr" nt var (= 0 1  val val* ...)))    
+    ((_ #f "expr" nt (var var* ...) (e1 e2 ...))
+     ;; new expression doesn't need to inherit the temporary variables.
+     (packrat-check (packrat-parser #f "expr" nt (tmp) e1)
+		    (lambda (var)
+		      ;; add temporary variable (may not be used in the end)
+		      (packrat-parser #f "expr" nt 
+				      (tmp var var* ...) (e2 ...)))))
+    ;; handling special case for convenience.
+    ((_ #f "expr" nt (tmp var) ()) 
+     (lambda (results) (make-result var results)))
+    ;; the very first one we don't need
+    ((_ #f "expr" nt (tmp var ...) ())
+     ;; the veriable is reverse order
+     (lambda (results) (make-result (reverse! (list var ...)) results)))
+    ((_ #f "expr" nt var expr) expr)
     ))
 
 '(define (x)

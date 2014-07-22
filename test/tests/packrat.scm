@@ -38,23 +38,24 @@
   (test-assert (parse-result-successful? r))
   (test-equal 9 (parse-result-semantic-value r)))
 
-
 (define greedy (packrat-parser
 		top
-		(top (('! vs <- (+ item+)) vs)
+		(top (('~ vs <- (+ item+)) vs)
 		     (('% vs <- (* '*)) vs)
 		     (('$ vs <- (? '?)) vs)
-		     (('^ vs <- (+ (/ item* item?))) vs))
+		     (('^ vs <- (+ (/ item* item?))) vs)
+		     (('|#| vs <- (+ item+ item*)) vs))
+		;;(item++ ((vs <- (+ item+)) vs))
 		(item+ (('+) '+))
 		(item* (('*) '*))
 		(item? (('?) '?))))
 
-(let ((g-ok (generator '((!) (+) (+) (+))))
-      (g-ng (generator '((!) (*)))))
+(let ((g-ok (generator '((~) (+) (+) (+))))
+      (g-ng (generator '((~) (*)))))
   (let ((ok (greedy (base-generator->results g-ok)))
 	(ng (greedy (base-generator->results g-ng))))
     (test-assert "success?" (parse-result-successful? ok))
-    (test-equal "result" '(+ + +) (parse-result-semantic-value ok))
+    (test-equal "result(1)" '(+ + +) (parse-result-semantic-value ok))
     (test-assert "failed" (not (parse-result-successful? ng)))))
 
 ;; semantic value is cdr part otherwise it would fail
@@ -63,7 +64,7 @@
   (let ((ok (greedy (base-generator->results g-ok)))
 	(ok2 (greedy (base-generator->results g-ok-2))))
     (test-assert "success?" (parse-result-successful? ok))
-    (test-equal "result" '(* * *) (parse-result-semantic-value ok))
+    (test-equal "result(2)" '(* * *) (parse-result-semantic-value ok))
     (test-assert "null match" (parse-result-successful? ok2))
     (test-equal "result null" '() (parse-result-semantic-value ok2))))
 
@@ -73,7 +74,7 @@
   (let ((ok (greedy (base-generator->results g-ok)))
 	(ok2 (greedy (base-generator->results g-ok-2))))
     (test-assert "success?" (parse-result-successful? ok))
-    (test-equal "result" '(1) (parse-result-semantic-value ok))
+    (test-equal "result(3)" '(1) (parse-result-semantic-value ok))
     (test-assert "null match" (parse-result-successful? ok2))
     (test-equal "result null" '() (parse-result-semantic-value ok2))))
 
@@ -82,7 +83,16 @@
   (let ((ok (greedy (base-generator->results g-ok)))
 	(ng (greedy (base-generator->results g-ng))))
     (test-assert "success?" (parse-result-successful? ok))
-    (test-equal "result" '(* ?) (parse-result-semantic-value ok))
+    (test-equal "result(4)" '(* ?) (parse-result-semantic-value ok))
+    (test-assert "failed" (not (parse-result-successful? ng)))))
+
+;; sequence
+(let ((g-ok (generator '((|#|) (+) (*) (+) (*))))
+      (g-ng (generator '((|#|) (+) (?) (*)))))
+  (let ((ok (greedy (base-generator->results g-ok)))
+	(ng (greedy (base-generator->results g-ng))))
+    (test-assert "success?" (parse-result-successful? ok))
+    (test-equal "result(5)" '((+ *) (+ *)) (parse-result-semantic-value ok))
     (test-assert "failed" (not (parse-result-successful? ng)))))
 
 (test-end)
