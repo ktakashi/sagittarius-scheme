@@ -409,6 +409,11 @@
 		      (packrat-parser #f "alt" nt body (rest ...)))))
     ;; extra
     ;; it's a bit ugly and duplicated code but works fine.
+    ;; the expression rule won't have bindings (sort of impossible
+    ;; with this macro model). so following is invalid;
+    ;;   (+ i+ <- item+ i* <- item*)
+    ;; instead of using above use this;
+    ;;   (vs <- (+ item+ item*)) ;; -> vs ((+ *) (+ *))
     ;; TODO refactor it
     ((_ #f "expr" nt var 'expr)
      (lambda (results) 
@@ -425,7 +430,6 @@
        (make-expected-result (parse-results-position results)
 			     (string-append "no match for "
 					    (symbol->string 'nt)))))
-    ;; TODO sequence as above.
     ((_ #f "expr" nt var (= n m val val* ...)) 
      (packrat-many (packrat-parser #f "expr" nt var (val val* ...))
 		   n m
