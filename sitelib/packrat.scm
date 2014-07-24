@@ -286,27 +286,26 @@
 	  (p2 results)))))
 
 ;; want *, + and ?
+
 (define (packrat-many parser n m k)
   (lambda (results)
     (define (>=? many max) (and max (>= many max)))
-    (define (return-results vs result)
-      ;; if we inline map then for some reason step on a bug...
-      (let ((vals (map parse-result-semantic-value vs)))
-	(merge-result-errors ((k vals)
-			      (parse-result-next result))
-			     (parse-result-error result))))
+    (define (return-results vs result k)
+      (merge-result-errors ((k (map parse-result-semantic-value vs))
+			    (parse-result-next result))
+			   (parse-result-error result)))
     (when (and (zero? n) (eqv? n m))
       (error 'packrat-many "both min and max are zero" n m))
     (let loop ((i 0) (vs '()) (s #f) (results results))
       (if (>=? i m)
-	  (return-results (reverse! vs) s)
+	  (return-results (reverse! vs) s k)
 	  (let ((result (parser results)))
 	    (cond ((parse-result-successful? result)
 		   (loop (+ i 1) (cons result vs) result
 			 (parse-result-next result)))
 		  ((<= n i)
 		   ;; is this correct???
-		   (return-results (reverse! vs) (or s result)))
+		   (return-results (reverse! vs) (or s result) k))
 		  (else result)))))))
 
 ;---------------------------------------------------------------------------

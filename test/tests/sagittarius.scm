@@ -1408,4 +1408,16 @@
 (test-equal "half value digit-value"
 	    15/2 (digit-value (integer->char #x0F31)))
 
+;; call #46
+;; this needs to be defined *outside* of let,
+;; otherwise compiler would optimise...
+(define (normal-call k l)
+  ((k (let loop ((l l) (r '())) 
+	(if (null? l) r (loop (cdr l) (cons (car l) r)))))
+   'ok))
+
+(test-equal "normal-call"
+	    '(ok 3 2 1)
+	    (normal-call (lambda (l) (lambda (v) (cons v l))) '(1 2 3)))
+
 (test-end)

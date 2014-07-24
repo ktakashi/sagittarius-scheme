@@ -4672,16 +4672,18 @@
     (renv-locals-set! r (append (renv-locals renv) (list (make-lvar 'dummy))))
     r))
 
-(define (renv-add-frame-dummy renv)
-  (let ((r (renv-copy renv)))
-    (renv-locals-set! r (append (renv-locals renv)
-				(let loop ((i 0)
-					   (r '()))
-				  (if (= i (vm-frame-size))
-				      r
-				      (loop (+ i 1)
-					    (cons (make-lvar 'dummy) r))))))
+(define (renv-add-dummy-n renv size)
+  (let ((r (renv-copy renv))
+	(lvars (let loop ((i 0) (r '()))
+		 (if (= i size)
+		     r
+		     (loop (+ i 1)
+			   (cons (make-lvar 'dummy) r))))))
+    (renv-locals-set! r (append (renv-locals renv) lvars))
     r))
+
+(define (renv-add-frame-dummy renv)
+  (renv-add-dummy-n renv (vm-frame-size)))
 
 ;; (define eq-hashtable-copy 
 ;;   (lambda (ht)
@@ -5362,8 +5364,8 @@
 (define (pass5/local-call iform cb renv ctx)
   (let ((end-of-frame (make-new-label))
 	(tail? (tail-context? ctx)))
-    (unless tail?
-      (cb-emit0o! cb FRAME end-of-frame))
+    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
+    ;; should pushed-size be 0?
     (let* ((renv (if tail? renv (renv-add-frame-dummy renv)))
 	   (args-size (pass5/compile-args ($call-args iform) cb renv ctx))
 	   (proc-size (pass5/rec ($call-proc iform) cb renv 'normal/top))
@@ -5427,37 +5429,47 @@
 ;; Head-heavy call
 (define (pass5/head-heavy-call iform cb renv ctx)
   (let ((end-of-frame (make-new-label))
-	(tail? (tail-context? ctx)))
-    (unless tail?
-      (cb-emit0o! cb FRAME end-of-frame))
+	(tail? (tail-context? ctx))
+	(nargs (length ($call-args iform))))
+    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
     (let* ((renv (if tail? renv (renv-add-frame-dummy renv)))
 	   (proc-size (pass5/rec ($call-proc iform) cb renv
 				 (normal-context ctx)))
 	   (args-size (pass5/compile-args ($call-args iform) cb renv
-					  'normal/top))
-	   (nargs (length ($call-args iform))))
+					  'normal/top)))
       (if tail?
 	  (cb-emit1i! cb TAIL_CALL nargs ($*-src iform))
 	  (cb-emit1i! cb CALL nargs ($*-src iform)))
-      (unless tail?
-	(cb-label-set! cb end-of-frame))
+      (unless tail? (cb-label-set! cb end-of-frame))
       (+ args-size proc-size))))
 
+;; Becuase of pre calculation of frame size to avoid
+;; unnecessary closure creation (previous DISPLAY no longer exists),
+;; we need to consider how many 'PUSH'ed value is there
+;; e.g.) ((k (let loop () ...)) this)
+;; above `this` must be considered. in this case, the IForm should
+;; look like this;
+;; ($call ($call ($lref k) ($...)) this)
+;; NOTE: if the calling procedure is $gref then we actually don't have
+;;       to add dummy lvars (it's caused only by VM instructions)
+;;       however i'm lazy to detect it...
 ;; Normal call
 (define (pass5/normal-call iform cb renv ctx)
   (let ((end-of-frame (make-new-label))
-	(tail? (tail-context? ctx)))
-    (unless tail?
-      (cb-emit0o! cb FRAME end-of-frame))
+	(tail? (tail-context? ctx))
+	(nargs (length ($call-args iform))))
+    (unless tail? (cb-emit0o! cb FRAME end-of-frame))
     (let* ((renv (if tail? renv (renv-add-frame-dummy renv)))
 	   (args-size (pass5/compile-args ($call-args iform) cb renv ctx))
-	   (proc-size (pass5/rec ($call-proc iform) cb renv 'normal/top))
-	   (nargs (length ($call-args iform))))
+	   (proc-size (pass5/rec ($call-proc iform) cb
+				 ;; proc needs to be compiled
+				 ;; pushed lvars
+				 (renv-add-dummy-n renv nargs)
+				 'normal/top)))
       (if tail?
 	  (cb-emit1i! cb TAIL_CALL nargs ($*-src iform))
 	  (cb-emit1i! cb CALL nargs ($*-src iform)))
-      (unless tail?
-	(cb-label-set! cb end-of-frame))
+      (unless tail? (cb-label-set! cb end-of-frame))
       (+ args-size proc-size))))
 
 (define (all-args-simple? args)
