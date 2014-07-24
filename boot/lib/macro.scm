@@ -154,13 +154,6 @@
 	      (else (let ((new-id (make-identifier id env library)))
 		      (hashtable-set! seen id new-id)
 		      new-id))))
-      ;; not a good name though...
-      (define (pure-template-variable? id)
-	(let ((envs (id-envs id)))
-	  (and (not (null? envs))
-	       (not (null? (cdr envs)))
-	       (eqv? BOUNDARY (caar envs))
-	       (eqv? ENV-BOTTOM (caadr envs)))))
       (let loop ((expr oexpr))
 	(cond ((pair? expr)
 	       (let ((a (loop (car expr)))
@@ -172,7 +165,6 @@
 	       (list->vector (loop (vector->list expr))))
 	      ((assq expr patvars) => cdr)
 	      ((and (identifier? expr)
-		    (not (pure-template-variable? expr))
 		    (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
 	       ;; preserve local variable.
 	       ;; if we can find local variable at this point,
