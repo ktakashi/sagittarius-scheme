@@ -4,7 +4,6 @@
 (define-constant LEXICAL 0)		; the same as compiler.scm
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
-(define-constant ENV-BOTTOM 4)
 
 (define .vars (make-identifier '.vars '() '(core syntax-case)))
 
@@ -165,6 +164,8 @@
 	       (list->vector (loop (vector->list expr))))
 	      ((assq expr patvars) => cdr)
 	      ((and (identifier? expr)
+		    ;; this is a template variable so don't rename
+		    (not (pending-identifier? expr))
 		    (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
 	       ;; preserve local variable.
 	       ;; if we can find local variable at this point,
@@ -549,16 +550,7 @@
       (define (id=? id1 p)
 	(define (check? id p)
 	  (if (identifier? id)
-	      (let ((i-env (id-envs id))
-		    (p-env (id-envs p)))
-		(or (eq? i-env p-env)
-		    (and (not (null? i-env))
-			 (not (null? p-env))
-			 (pair? (car i-env))
-			 (pair? (car p-env))
-			 (eq? ENV-BOTTOM (caar i-env))
-			 (eq? ENV-BOTTOM (caar p-env)))
-		    ))
+	      (id-env=? id p)
 	      #t))
 	(and (check? id1 p)
 	     (eq? (syntax->datum id1) (id-name p))))
@@ -720,6 +712,9 @@
 	    (else
 	     ;; rename template variable
 	     (or (cond ((not (identifier? t)) #f)
+		       ;; this resolve call #7 however breaks a lot of
+		       ;; macros. so need a bit of tweak.
+		       ;; ((pending-identifier? t) #f)
 		       ((lookup-transformer-env t))
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.

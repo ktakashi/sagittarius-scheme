@@ -403,6 +403,37 @@
     (return (or (SG_NULLP env)
 		(SG_EQ ENV-BOTTOM (SG_CAAR env)))))
 
+  ;; it's basically equal? but we don't want to use it because it's heavy
+  ;; so simplified version
+  (define-cfn %id-env=? (id1 id2)::int :static
+    (let ((env1 (SG_IDENTIFIER_ENVS id1))
+	  (env2 (SG_IDENTIFIER_ENVS id2)))
+      (when (SG_EQ env1 env2) (return TRUE))
+      (loop 
+       (when (and (SG_NULLP env1) (SG_NULLP env2)) (return TRUE))
+       (when (or  (SG_NULLP env1) (SG_NULLP env2)) (return FALSE))
+       (let ((p1 (SG_CAR env1))
+	     (p2 (SG_CAR env2)))
+	 (unless (and (SG_PAIRP p1) (SG_PAIRP p2)) (return FALSE))
+	 ;; frame ::= (type . alist-of-lvars)
+	 ;; alist-of-lvars ::= (var . lvar)
+	 (unless (SG_EQ (SG_CAR p1) (SG_CAR p2)) (return FALSE))
+	 (let ((f1 (SG_CDR p1))
+	       (f2 (SG_CDR p2)))
+	   (loop 
+	    (when (and (SG_NULLP f1) (SG_NULLP f2)) (break))
+	    (when (or  (SG_NULLP f1) (SG_NULLP f2)) (return FALSE))
+	    (unless (and (SG_EQ (SG_CAR f1) (SG_CAR f2))
+			 (SG_EQ (SG_CDR f1) (SG_CDR f2)))
+	      (return FALSE))
+	    (set! f1 (SG_CDR f1))
+	    (set! f2 (SG_CDR f2))))
+	 (set! env1 (SG_CDR env1))
+	 (set! env2 (SG_CDR env2))))))
+  
+  (define-c-proc id-env=? (id1::<identifier> id2::<identifier>) ::<boolean>
+    (result (%id-env=? id1 id2)))
+
   (define-cfn template-id? (name) ::int :static
     (when (SG_IDENTIFIERP name)
       ;; macro may have internal content so if there is no
@@ -496,6 +527,7 @@
 			 (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_EQ (SG_IDENTIFIER_NAME name)
 				(SG_IDENTIFIER_NAME (SG_CAR vp)))
+			 ;;(%id-env=? name (SG_CAR vp))
 			 (or (envs-shared? (SG_IDENTIFIER_ENVS name)
 					   (SG_IDENTIFIER_ENVS (SG_CAR vp))
 					   frames)
