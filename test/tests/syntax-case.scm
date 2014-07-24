@@ -195,4 +195,22 @@
 (import (B))
 (test-equal "issue 128" 1 (foo 1))
 
+(let ()
+  (define-syntax wrap-let
+    (lambda (x)
+      (syntax-case x ()
+	((_ expr)
+	 #'(let-syntax ((foo (lambda (x) (syntax-case x () ((_) #'expr)))))
+	     (foo))))))
+  
+  (define-syntax wrap
+    (lambda (x)
+      (syntax-case x ()
+	((_ expr)
+	 #'(let ((temp expr))
+	     (wrap-let (car temp)))))))
+  
+  ;; Call #7
+  (test-equal "let-syntax wrap" 'a (wrap '(a b c))))
+
 (test-end)

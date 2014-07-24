@@ -712,9 +712,17 @@
 	    (else
 	     ;; rename template variable
 	     (or (cond ((not (identifier? t)) #f)
-		       ;; this resolve call #7 however breaks a lot of
-		       ;; macros. so need a bit of tweak.
-		       ;; ((pending-identifier? t) #f)
+		       ;; if the identifier is template variable and
+		       ;; mac-env contains this as a local binding
+		       ;; then the variable is bound in macro and
+		       ;; passed to let-syntax template.
+		       ;; in this case we can't rewrite it otherwise
+		       ;; env lookup can't find proper binding.
+		       ;; Call #7
+		       ((and (pending-identifier? t)
+			     (not (identifier? 
+				   (p1env-lookup mac-env t LEXICAL))))
+			#f)
 		       ((lookup-transformer-env t))
 		       ;; mark as template variable so that pattern variable
 		       ;; lookup won't make misjudge.
