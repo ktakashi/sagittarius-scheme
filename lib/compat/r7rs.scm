@@ -3,15 +3,23 @@
 #!compatible
 (library (compat r7rs)
     (export syntax-rules let-syntax letrec-syntax)
-    (import (except (core) identifier?)
+    (import (rename (except (core) identifier?)
+		    (length length*)
+		    (number->string %number->string))
 	    (r7rs) ;; builtin compatibility library
 	    (rename (core base) (for-all every) (exists any))
-	    (core errors)
+	    (rename (core errors) (error core:error))
 	    (rename (sagittarius)
 		    (unwrap-syntax strip-syntactic-closures)
 		    ;; on chibi-scheme, identifier is either symbol or syntax
 		    ;; object. so we need to provide this.
-		    (variable? identifier?)))
+		    (variable? identifier?))
+	    (only (sagittarius vm debug) source-info-set!))
+
+(define (cons-source kar kdr source)
+  (source-info-set! (cons kar kdr) source))
+(define (error msg . irr)
+  (apply core:error 'syntax-rules msg irr))
 
 ;; from chibi-scheme
 (define-syntax syntax-rules
@@ -31,18 +39,19 @@
            (_quote (rename 'syntax-quote)) (_apply (rename 'apply))
            (_append (rename 'append))      (_map (rename 'map))
            (_vector? (rename 'vector?))    (_list? (rename 'list?))
-           (_len (rename 'len))            (_length (rename 'length))
+           (_len (rename'len))             (_length (rename 'length*))
            (_- (rename '-))   (_>= (rename '>=))   (_error (rename 'error))
            (_ls (rename 'ls)) (_res (rename 'res)) (_i (rename 'i))
            (_reverse (rename 'reverse))
            (_vector->list (rename 'vector->list))
-           (_list->vector (rename 'list->vector)))
+           (_list->vector (rename 'list->vector))
+           (_cons3 (rename 'cons-source)))
        (define ellipsis (rename (if ellipsis-specified? (cadr expr) '...)))
-       (define lits (if ellipsis-specified? (caddr expr) (cadr expr)))
-       (define forms (if ellipsis-specified? (cdddr expr) (cddr expr)))
+       (define lits (if ellipsis-specified? (car (cddr expr)) (cadr expr)))
+       (define forms (if ellipsis-specified? (cdr (cddr expr)) (cddr expr)))
        (define (next-symbol s)
          (set! count (+ count 1))
-         (rename (string->symbol (string-append s (number->string count)))))
+         (rename (string->symbol (string-append s (%number->string count)))))
        (define (expand-pattern pat tmpl)
          (let lp ((p (cdr pat))
                   (x (list _cdr _expr))
@@ -56,9 +65,9 @@
               (cond
                ((identifier? p)
                 (if (any (lambda (l) (compare p l)) lits)
-		    (list _and
-			  (list _compare v (list _rename (list _quote p)))
-			  (k vars))
+                    (list _and
+                          (list _compare v (list _rename (list _quote p)))
+                          (k vars))
                     (list _let (list (list p v)) (k (cons (cons p dim) vars)))))
                ((ellipsis? p)
                 (cond
@@ -66,9 +75,9 @@
                   (cond
                    ((any (lambda (x) (and (identifier? x) (compare x ellipsis)))
                          (cddr p))
-                    (error 'syntax-rules "multiple ellipses" p))
+                    (error "multiple ellipses" p))
                    (else
-                    (let ((len (length (cdr (cdr p))))
+                    (let ((len (length* (cdr (cdr p))))
                           (_lp (next-symbol "lp.")))
                       `(,_let ((,_len (,_length ,v)))
                          (,_and (,_>= ,_len ,len)
@@ -86,7 +95,9 @@
                                            k)
                                       (,_lp (,_cdr ,_ls)
                                             (,_- ,_i 1)
-                                            (,_cons (,_car ,_ls) ,_res))))))))))
+                                            (,_cons3 (,_car ,_ls)
+                                                     ,_res
+                                                     ,_ls))))))))))
                  ((identifier? (car p))
                   (list _and (list _list? v)
                         (list _let (list (list (car p) v))
@@ -180,7 +191,7 @@
                => (lambda (cell)
                     (if (<= (cdr cell) dim)
                         t
-                        (error 'syntax-rules "too few ...'s" tmpl))))
+                        (error "too few ...'s"))))
               (else
                (list _rename (list _quote t)))))
             ((pair? t)
@@ -194,24 +205,29 @@
                (let* ((depth (ellipsis-depth t))
                       (ell-dim (+ dim depth))
                       (ell-vars (free-vars (car t) vars ell-dim)))
-                 (if (null? ell-vars)
-                     (error 'syntax-rules "too many ...'s" tmpl)
-                     (let* ((once (lp (car t) ell-dim))
-                            (nest (if (and (null? (cdr ell-vars))
-                                           (identifier? once)
-                                           (eq? once (car vars)))
-                                      once ;; shortcut
-                                      (cons _map
-                                            (cons (list _lambda ell-vars once)
-                                                  ell-vars))))
-                            (many (do ((d depth (- d 1))
-                                       (many nest
-                                             (list _apply _append many)))
-                                      ((= d 1) many))))
-                       (if (null? (ellipsis-tail t))
-                           many ;; shortcut
-                           (list _append many (lp (ellipsis-tail t) dim)))))))
-              (else (list _cons (lp (car t) dim) (lp (cdr t) dim)))))
+                 (cond
+                  ((null? ell-vars)
+                   (error "too many ...'s"))
+                  ((and (null? (cdr (cdr t))) (identifier? (car t)))
+                   ;; shortcut for (var ...)
+                   (lp (car t) ell-dim))
+                  (else
+                   (let* ((once (lp (car t) ell-dim))
+                          (nest (if (and (null? (cdr ell-vars))
+                                         (identifier? once)
+                                         (eq? once (car vars)))
+                                    once ;; shortcut
+                                    (cons _map
+                                          (cons (list _lambda ell-vars once)
+                                                ell-vars))))
+                          (many (do ((d depth (- d 1))
+                                     (many nest
+                                           (list _apply _append many)))
+                                    ((= d 1) many))))
+                     (if (null? (ellipsis-tail t))
+                         many ;; shortcut
+                         (list _append many (lp (ellipsis-tail t) dim))))))))
+              (else (list _cons3 (lp (car t) dim) (lp (cdr t) dim) (list _quote t)))))
             ((vector? t) (list _list->vector (lp (vector->list t) dim)))
             ((null? t) (list _quote '()))
             (else t))))
@@ -226,9 +242,10 @@
                  (map
                   (lambda (clause) (expand-pattern (car clause) (cadr clause)))
                   forms)
-                 (list _cons
-                       (list _error "no expansion for"
-                             (list (rename 'strip-syntactic-closures) _expr))
-                       #f))))))))))
+                 (list
+                  (list _cons
+                        (list _error "no expansion for"
+                              (list (rename 'strip-syntactic-closures) _expr))
+                        #f)))))))))))
   
 )
