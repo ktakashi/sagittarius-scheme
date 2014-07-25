@@ -143,12 +143,17 @@ IF (MSVC OR WATCOM)
   ADD_DEPENDENCIES(sash copy-gc-dll)
 ENDIF()
 
-INSTALL(TARGETS sagittarius DESTINATION lib)
-# For some reason cygwin doesn't pick up from lib.
-IF (CYGWIN)
-  INSTALL(TARGETS sagittarius DESTINATION bin)
+IF(MSVC OR WATCOM)
+  INSTALL(TARGETS sagittarius DESTINATION .)
+  INSTALL(TARGETS sash DESTINATION .)
+ELSE()
+  INSTALL(TARGETS sagittarius DESTINATION lib)
+  # For some reason cygwin doesn't pick up from lib.
+  IF (CYGWIN)
+    INSTALL(TARGETS sagittarius DESTINATION bin)
+  ENDIF()
+  INSTALL(TARGETS sash DESTINATION bin)
 ENDIF()
-INSTALL(TARGETS sash DESTINATION bin)
 
 # for version control
 # default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}
