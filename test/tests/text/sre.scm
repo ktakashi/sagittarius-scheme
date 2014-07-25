@@ -67,29 +67,40 @@
 (test-group "repetion")
 
 (test-sre (* "a") #/(?u:a*)/)
+(test-sre (zero-or-more "a") #/(?u:a*)/)
 
-(test-sre (+ "a") #/(?u:a+)/
-)
+(test-sre (+ "a") #/(?u:a+)/)
+(test-sre (one-or-more "a") #/(?u:a+)/)
+
 (test-sre (? "abc") #/(?u:(?:abc)?)/)
+(test-sre (optional "abc") #/(?u:(?:abc)?)/)
 
 (test-sre (= 3 "abc") #/(?u:(?:abc){3})/)
+(test-sre (exactly 3 "abc") #/(?u:(?:abc){3})/)
 
 (test-sre (>= 3 "abc") #/(?u:(?:abc){3,})/)
+(test-sre (at-least 3 "abc") #/(?u:(?:abc){3,})/)
 
 (test-sre (** 2 5 "abc") #/(?u:(?:abc){2,5})/)
+(test-sre (repeated 2 5 "abc") #/(?u:(?:abc){2,5})/)
 
 
 (test-group "non-greedy repetion") 
 
 (test-sre (*? "a") #/(?u:a*?)/)
+(test-sre (non-greedy-zero-or-more "a") #/(?u:a*?)/)
 
 (test-sre (+? "a") #/(?u:a+?)/)
+(test-sre (non-greedy-one-or-more "a") #/(?u:a+?)/)
 
 (test-sre (?? "abc") #/(?u:(?:abc)??)/)
+(test-sre (non-greedy-optional "abc") #/(?u:(?:abc)??)/)
 
 (test-sre (>=? 3 "abc") #/(?u:(?:abc){3,}?)/)
+(test-sre (non-greedy-at-least 3 "abc") #/(?u:(?:abc){3,}?)/)
 
 (test-sre (**? 2 5 "abc") #/(?u:(?:abc){2,5}?)/)
+(test-sre (non-greedy-repeated 2 5 "abc") #/(?u:(?:abc){2,5}?)/)
 
 
 (test-group "atomic clustering & repetion")

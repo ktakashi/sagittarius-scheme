@@ -335,34 +335,46 @@
 ;; (?! ...) -> (neg-look-ahead ...)
 ;; (?<= ...) -> (look-behind ...)
 ;; (?<! ...) -> (neg-look-behind ...)
+;; some other convension (SRFI-115)
+;; zero-or-more -> *
+;; one-or-more  -> +
+;; optional     -> ?
+;; exactly      -> =
+;; at-least     -> >=
+;; repeated     -> **
+;; non-greedy-optional     -> ??
+;; non-greedy-zero-or-more -> *?
+;; non-greedy-one-or-more  -> +?  (this isn't in SRFI)
+;; non-greedy-at-least     -> >=? (this isn't in SRFI)
+;; non-greedy-repeated     -> **?
 (define (sre-normalize sre)
   (match sre
-    ((? string?)
-     (if (= (string-length sre) 1)
-	 (string-ref sre 0)
-	 sre))
-    (((? string? s))
-     (string->char-set s))
-    (((or ': '|:|) tail ...)
-     `(seq ,@(map sre-normalize tail)))
-    (('|\|| tail ...)
-     `(or ,@(map sre-normalize tail)))
-    (('/ (or (? string?) (? char?)) ...)
-     (sre-range->char-set (cdr sre)))
-    (('$ tail ...)
-     `(submatch ,@(map sre-normalize tail)))
-    (('-> name tail ...)
-     `(submatch-named ,name ,@(map sre-normalize tail)))
-    (('?= tail ...)
-     `(look-ahead ,@(map sre-normalize tail)))
-    (('?! tail ...)
-     `(neg-look-ahead ,@(map sre-normalize tail)))
-    (('?<= tail ...)
-     `(look-behind ,@(map sre-normalize tail)))
-    (('?<! tail ...)
-     `(neg-look-behind ,@(map sre-normalize tail)))
-    ((? list?)
-     (map sre-normalize sre))
+    ((? string?) (if (= (string-length sre) 1) (string-ref sre 0) sre))
+    (((? string? s))         (string->char-set s))
+    (((or ': '|:|) tail ...) `(seq ,@(map sre-normalize tail)))
+    (('|\|| tail ...)        `(or ,@(map sre-normalize tail)))
+    (('/ (or (? string?) (? char?)) ...) (sre-range->char-set (cdr sre)))
+    (('$ tail ...)       `(submatch ,@(map sre-normalize tail)))
+    (('-> name tail ...) `(submatch-named ,name ,@(map sre-normalize tail)))
+    (('?= tail ...)  `(look-ahead ,@(map sre-normalize tail)))
+    (('?! tail ...)  `(neg-look-ahead ,@(map sre-normalize tail)))
+    (('?<= tail ...) `(look-behind ,@(map sre-normalize tail)))
+    (('?<! tail ...) `(neg-look-behind ,@(map sre-normalize tail)))
+    ;; SRFI-115 long names
+    (('zero-or-more tail ...) `(* ,@(map sre-normalize tail)))
+    (('one-or-more tail ...)  `(+ ,@(map sre-normalize tail)))
+    (('optional tail ...)     `(? ,@(map sre-normalize tail)))
+    (('exactly n tail ...)    `(= ,n ,@(map sre-normalize tail)))
+    (('at-least n tail ...)   `(>= ,n ,@(map sre-normalize tail)))
+    (('repeated n m tail ...) `(** ,n ,m ,@(map sre-normalize tail)))
+    (('non-greedy-optional tail ...)     `(?? ,@(map sre-normalize tail)))
+    (('non-greedy-zero-or-more tail ...) `(*? ,@(map sre-normalize tail)))
+    (('non-greedy-one-or-more tail ...)  `(+? ,@(map sre-normalize tail)))
+    (('non-greedy-at-least n tail ...)   `(>=? ,n ,@(map sre-normalize tail)))
+    (('non-greedy-repeated n m tail ...)
+     `(**? ,n ,m ,@(map sre-normalize tail)))
+
+    ((? list?) (map sre-normalize sre))
     (else sre)))
 
 (define (parse-literal sre)
