@@ -56,6 +56,15 @@
 #define make_scheme_string(s) Sg_Utf8sToUtf32s(s, strlen(s))
 #endif
 
+/* not sure if this can handle all but anyway */
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#else
+/* assume it's Windows */
+#include <io.h>
+#define isatty _isatty
+#endif
+
 /* getopt from mosh */
 struct option
 {
@@ -539,19 +548,25 @@ int main(int argc, char **argv)
     if (forceInteactiveP) goto repl;
   } else {
   repl:
-    repl = SG_UNDEF;
-    lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
-    if (SG_FALSEP(lib)) goto err;
-    repl = Sg_FindBinding(lib, SG_INTERN("read-eval-print-loop"), SG_UNBOUND);
-    if (SG_UNBOUNDP(repl)) goto err;
-    /* change current library */
-    vm->currentLibrary = lib;
-    Sg_Apply0(SG_GLOC_GET(SG_GLOC(repl)));
-
-  err:
-    fprintf(stderr, "(sagittarius interactive) library is not located on the"
-	    " loadpath. Add -L option to indicate it.");
+    if (!isatty(0) && !forceInteactiveP) {
+      exit_code = Sg_LoadFromPort(SG_PORT(Sg_CurrentInputPort()));
+    } else {
+      repl = SG_UNDEF;
+      lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
+      if (SG_FALSEP(lib)) goto err;
+      repl = Sg_FindBinding(lib, SG_INTERN("read-eval-print-loop"), SG_UNBOUND);
+      if (SG_UNBOUNDP(repl)) goto err;
+      /* change current library */
+      vm->currentLibrary = lib;
+      Sg_Apply0(SG_GLOC_GET(SG_GLOC(repl)));
+      /* never reaches */
+      goto exit;
+    err:
+      fprintf(stderr, "(sagittarius interactive) library is not located on the"
+	      " loadpath. Add -L option to indicate it.");
+    }
   }
+ exit:
   Sg_Exit(exit_code);
   return 0;			/* not reached */
 }

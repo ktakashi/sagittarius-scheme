@@ -204,6 +204,7 @@
     (result (Sg_AddLoadSuffix suffix append)))
 
   (define-c-proc load (path::<string>) Sg_VMLoad)
+  (define-c-proc load-from-port (port::<port>) Sg_VMLoadFromPort)
 
   (define-c-proc gensym (:optional prefix::<string>) :no-side-effect
     (when (SG_UNBOUNDP prefix) (set! prefix NULL))

@@ -186,6 +186,33 @@ int Sg_Load(SgString *path)
   return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
 }
 
+int Sg_LoadFromPort(SgPort *port)
+{
+  static SgObject load_stub = SG_UNDEF;
+  SgObject r = SG_FALSE;
+  SgVM *vm = Sg_VM();
+  /* flags(#!** etc) are only per file.
+     so we need to save/restore.
+     TODO: do we need to lock?
+   */
+  int save = vm->flags;
+  if (SG_UNDEFP(load_stub)) {
+    SgObject gloc;
+    Sg_LockMutex(&load_lock);
+    gloc = Sg_FindBinding(SG_INTERN("(sagittarius)"),
+			  SG_INTERN("load-from-port"),
+			  SG_UNBOUND);
+    if (SG_UNBOUNDP(gloc)) {
+      Sg_Panic("load was not found.");
+    }
+    load_stub = SG_GLOC_GET(SG_GLOC(gloc));
+    Sg_UnlockMutex(&load_lock);
+  }
+  r = Sg_Apply1(load_stub, port);
+  vm->flags = save;
+  return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
+}
+
 /*
   DynLoad
 
