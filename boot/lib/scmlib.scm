@@ -66,12 +66,17 @@
     (let ((dict (make-eq-hashtable)))
       (define (rename s) (er-rename s (current-macro-env) dict))
       (define (compare a b)
-	;;(identifier=? use-env a mac-env b))
-	(or (and (identifier? a)
-		 (identifier? b)
-		 (free-identifier=? a b))
-	    (identifier=? (current-usage-env) a
-			  (current-macro-env) b)))
+	(define (ensure-id id env)
+	  (if (identifier? id)
+	      id
+	      (make-identifier id (vector-ref env 1) (vector-ref env 0))))
+	(cond ((and (pair? a) (pair? b))
+	       (and (compare (car a) (car b))
+		    (compare (cdr a) (cdr b))))
+	      ((and (variable? a) (variable? b))
+	       (free-identifier=? (ensure-id a (current-macro-env))
+				  (ensure-id b (current-macro-env))))
+	      (else (eq? a b))))
       (f expr rename compare))))
 
 (define (safe-length lst)
