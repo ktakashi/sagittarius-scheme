@@ -2,7 +2,7 @@
 #!compatible
 (library (scheme base)
     (export
-     * + - ... / < <= = => > >=
+     * + - ... / < <= = => > >= _
 
      abs and append apply assoc assq assv
 

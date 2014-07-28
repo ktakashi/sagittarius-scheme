@@ -194,9 +194,9 @@
 	  (syntax-violation 'syntax-case "invalid literals" expr lites))
       (or (unique-id-list? lites)
 	  (syntax-violation 'syntax-case "duplicate literals" expr lites))
-      (and (literal-match? '_ lites)
+      (and (literal-match? .bar lites)
 	   (syntax-violation 'syntax-case "_ in literals" expr lites))
-      (and (literal-match? '... lites)
+      (and (literal-match? .ellipsis lites)
 	   (syntax-violation 'syntax-case "... in literals" expr lites))
       
       (values .match-syntax-case
