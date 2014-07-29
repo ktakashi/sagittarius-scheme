@@ -1123,9 +1123,8 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 1
-    /* this is bit faster */
-    /* FIXME: looks weird, so could be something is wrong. */
+#if 0
+    /* FIXME: this was actually wrong... */
     dlong diff = 0L;
     int xindex, yindex, flip = FALSE;
     /* if x is shorter, swap it */

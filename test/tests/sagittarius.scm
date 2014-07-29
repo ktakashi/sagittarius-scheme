@@ -1420,4 +1420,9 @@
 	    '(ok 3 2 1)
 	    (normal-call (lambda (l) (lambda (v) (cons v l))) '(1 2 3)))
 
+;; call #49
+(test-equal "bignum subtraction"
+	    #xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
+	    (- (expt 2 384) (expt 2 128)))
+
 (test-end)
