@@ -1597,6 +1597,12 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   return SG_UNDEF;
 }
 
+/* if it's more than 1MB we don't read the cache file but
+   compile the library.
+   TODO actual benchmark is needed.
+ */
+#define CACHE_THRESHOLD 1024*1024
+
 int Sg_ReadCache(SgString *id)
 {
   SgVM *vm = Sg_VM();
@@ -1647,6 +1653,10 @@ int Sg_ReadCache(SgString *id)
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     return RE_CACHE_NEEDED;
   }
+  /* call #35, if the cache size is too big then it's better not to
+     read it. (linking object takes too much time.) */
+  if (size > CACHE_THRESHOLD) return INVALID_CACHE;
+
   obj = Sg_FileSize(cache_path);
   if (SG_EXACT_INTP(obj)) {
     int64_t cacheSize = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
@@ -1685,8 +1695,6 @@ int Sg_ReadCache(SgString *id)
   }
 
   if (setjmp(ctx.escape) == 0) {
-    SgObject cp;
-    SgHashTable linkSeen;
     while ((obj = read_toplevel(&in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
       /* toplevel cache never be #f */
       if (SG_FALSEP(obj)) {
@@ -1710,10 +1718,19 @@ int Sg_ReadCache(SgString *id)
       }
       Sg_VMExecute(obj);
     }
-    Sg_InitHashTableSimple(&linkSeen, SG_HASH_EQ, 128);
-    SG_FOR_EACH(cp, ctx.links) {
-      Sg_HashCoreClear(SG_HASHTABLE_CORE(&linkSeen), 0);
-      read_cache_link(SG_CAR(cp), &linkSeen, &ctx);
+    if (!SG_NULLP(ctx.links)) {
+      SgObject cp;
+      SgHashTable linkSeen;
+      /* int i = 1; */
+      Sg_InitHashTableSimple(&linkSeen, SG_HASH_EQ, 128);
+      read_cache_link(SG_CAR(ctx.links), &linkSeen, &ctx);
+      /* fprintf(stderr, "count: %d\n", Sg_Length(ctx.links)); */
+      SG_FOR_EACH(cp, SG_CDR(ctx.links)) {
+	Sg_HashCoreClear(SG_HASHTABLE_CORE(&linkSeen), 128);
+	read_cache_link(SG_CAR(cp), &linkSeen, &ctx);
+	/* fprintf(stderr, "current %d\r", ++i); */
+      }
+      /* fprintf(stderr, "\n"); */
     }
     ret = CACHE_READ;
   } else {
