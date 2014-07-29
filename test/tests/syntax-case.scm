@@ -213,4 +213,15 @@
   ;; Call #7
   (test-equal "let-syntax wrap" 'a (wrap '(a b c))))
 
+(test-equal "pattern variable locally bounded(1)" 'bar
+	    (let-syntax ((_ (syntax-rules ())))
+	      (let-syntax ((foo (syntax-rules () ((_ _) _))))
+		(foo 'bar))))
+
+(let-syntax ((_ (syntax-rules ())))
+  (let-syntax ((foo (syntax-rules () ((_ _) _))))
+    (test-equal "pattern variable locally bounded(2)" 'bar
+		(foo 'bar))))
+
+
 (test-end)

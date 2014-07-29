@@ -26,12 +26,16 @@
 (define (bar? expr)
   (or (and (identifier? expr)
 	   (free-identifier=? expr .bar))
-      (eq? expr '_)))
+      (and (variable? expr)
+	   (identifier? (p1env-lookup (current-macro-env) expr LEXICAL))
+	   (eq? expr '_))))
 
 (define (ellipsis? expr)
   (or (and (identifier? expr)
 	   (free-identifier=? expr .ellipsis))
-      (eq? expr '...)))
+      (and (variable? expr)
+	   (identifier? (p1env-lookup (current-macro-env) expr LEXICAL))
+	   (eq? expr '...))))
 
 (define (ellipsis-pair? form)
   (and (pair? form)
@@ -174,14 +178,40 @@
 	       (seen-or-gen expr env (id-library expr)))
 	      ((symbol? expr) (seen-or-gen expr env library))
 	      (else expr))))
-
+    (define mac-save (current-macro-env))
+    (define use-save (current-usage-env))
+    ;; set both macro and usage env so that free-identifier=? can
+    ;; use this env for compilation
+    (%set-current-macro-env! mac-env)
+    (%set-current-usage-env! mac-env)
     (let ((lites (rewrite literals '())))
       
       (define pattern-mark (list exp-name))
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
-	  (cons (car p)
-		(make-pattern-identifier (car p) pattern-mark library)))
+	  (let ((p (car p)))
+	    (cons p
+		  ;; issue of
+		  ;; (let-syntax ((_ (syntax-rules ())))
+		  ;;   (let-syntax ((foo (syntax-rules () ((_ _) _))))
+		  ;;     (foo 'bar)))
+		  ;; if the '_' is wrapped as above then
+		  ;; the identifier contains BOUNDARY tag in the
+		  ;; very beginning of its env. However if it's
+		  ;; wrapped before, e.g. wrapped by other macro
+		  ;; then the identifier doesn't contain BOUNDARY
+		  ;; tag. in that case we simpley check if the
+		  ;; identifier is bound in macro env.
+		  ;; TODO can we assume this?
+		  ;; if the pattern is bound then don't convert it
+		  (cond ((or (symbol? p)
+			     (and-let* ((e (id-envs p)))
+			       (or (null? e)
+				   (and (not (memq BOUNDARY (car e)))
+					(assq BOUNDARY e))))
+			     (identifier? (p1env-lookup mac-env p LEXICAL)))
+			 (make-pattern-identifier p pattern-mark library))
+			(else p)))))
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
@@ -199,27 +229,31 @@
       (and (literal-match? .ellipsis lites)
 	   (syntax-violation 'syntax-case "... in literals" expr lites))
       
-      (values .match-syntax-case
-	      lites
-	      (p1env-lookup mac-env .vars LEXICAL BOUNDARY)
-	      (map (lambda (clause)
-		     (smatch clause
-		       ((p expr)
-			(receive (pattern env patvars) (parse-pattern p)
-			  (cons `(,.list (,syntax-quote. ,pattern)
-					 #f
-					 (,.lambda (,.vars)
-					   ,(rewrite expr patvars)))
-				env)))
-		       ((p fender expr)
-			(receive (pattern env patvars) (parse-pattern p)
-			  (cons `(,.list (,syntax-quote. ,pattern)
-					 (,.lambda (,.vars)
-					   ,(rewrite fender patvars))
-					 (,.lambda (,.vars)
-					   ,(rewrite expr patvars)))
-				env)))))
-		   clauses)))))
+      (let ((r (map (lambda (clause)
+		      (smatch clause
+			((p expr)
+			 (receive (pattern env patvars) (parse-pattern p)
+			   (cons `(,.list (,syntax-quote. ,pattern)
+					  #f
+					  (,.lambda (,.vars)
+						    ,(rewrite expr patvars)))
+				 env)))
+			((p fender expr)
+			 (receive (pattern env patvars) (parse-pattern p)
+			   (cons `(,.list (,syntax-quote. ,pattern)
+					  (,.lambda (,.vars)
+						    ,(rewrite fender patvars))
+					  (,.lambda (,.vars)
+						    ,(rewrite expr patvars)))
+				 env)))))
+		    clauses)))
+	;; restore it
+	(%set-current-macro-env! mac-save)
+	(%set-current-usage-env! use-save)
+	(values .match-syntax-case
+		lites
+		(p1env-lookup mac-env .vars LEXICAL BOUNDARY)
+		r)))))
 
 (cond-expand
  (gauche
