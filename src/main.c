@@ -78,17 +78,16 @@ struct option
 #define required_argument 1
 #define optional_argument 2
 
-int optreset;
+static int optreset_s;
 
-tchar *optarg;
-int    opterr;
-int    optind = 1;
-int    optopt;
+static tchar *optarg_s;
+static int    opterr_s;
+static int    optind_s = 1;
+static int    optopt_s;
 
 #define BADCH  t('?')
 #define BADARG t(':')
 #define EMSG   t("")
-
 
 static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 		   const struct option *longopts, int *longindex)
@@ -96,15 +95,15 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
   static tchar *place = EMSG; /* option letter processing */
   const tchar *oli; /* option letter list index */
 
-  if (optreset || !*place) {
+  if (optreset_s || !*place) {
     /* update scanning pointer */
-    optreset = 0;
+    optreset_s = 0;
     
-    if (optind >= argc) {
+    if (optind_s >= argc) {
       place = EMSG;
       return -1;
     }
-    place = argv[optind];
+    place = argv[optind_s];
     if (place[0] != t('-')) {
       place = EMSG;
       return -1;
@@ -113,7 +112,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
     place++;
     if (place[0] && place[0] == t('-') && place[1] == t('\0')) {
       /* found "--" */
-      ++optind;
+      ++optind_s;
       place = EMSG;
       return -1;
     }
@@ -129,28 +128,28 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	    && tstrncmp(place, longopts[i].name, namelen) == 0) {
 	  if (longopts[i].has_arg) {
 	    if (place[namelen] == t('='))
-	      optarg = place + namelen + 1;
-	    else if (optind < argc - 1) {
-	      optind++;
-	      optarg = argv[optind];
+	      optarg_s = place + namelen + 1;
+	    else if (optind_s < argc - 1) {
+	      optind_s++;
+	      optarg_s = argv[optind_s];
 	    } else {
 	      if (optstring[0] == t(':'))
 		return BADARG;
-	      if (opterr) 
+	      if (opterr_s) 
 		tfprintf(stderr,
 			 t("%s: option requires an argument -- %s\n"),
 			 argv[0], place);
 		place = EMSG;
-		optind++;
+		optind_s++;
 		return BADCH;
 	    }
 	  } else {
-	    optarg = NULL;
+	    optarg_s = NULL;
 	    if (place[namelen] != 0) {
 	      /* XXX error? */
 	    }
 	  }
-	  optind++;
+	  optind_s++;
 	  
 	  if (longindex)
 	    *longindex = i;
@@ -166,52 +165,52 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	}
       }
       
-      if (opterr && optstring[0] != t(':'))
+      if (opterr_s && optstring[0] != t(':'))
 	tfprintf(stderr,
 		 t("%s: illegal option -- %s %d\n"), argv[0], place, __LINE__);
       place = EMSG;
-      optind++;
+      optind_s++;
       return BADCH;
     }
   }
 
   /* short option */
-  optopt = (int) *place++;
+  optopt_s = (int) *place++;
 
-  oli = tstrchr(optstring, optopt);
+  oli = tstrchr(optstring, optopt_s);
   if (!oli) {
     if (!*place)
-      ++optind;
-    if (opterr && *optstring != t(':')) {
+      ++optind_s;
+    if (opterr_s && *optstring != t(':')) {
       tfprintf(stderr,
-	       t("%s: illegal option -- %C %d\n"), argv[0], optopt, __LINE__);
+	       t("%s: illegal option -- %C %d\n"), argv[0], optopt_s, __LINE__);
     }
     return BADCH;
   }
   if (oli[1] != t(':')) {
     /* don't need argument */
-    optarg = NULL;
+    optarg_s = NULL;
     if (!*place)
-      ++optind;
+      ++optind_s;
   } else { /* need an argument */
     if (*place) /* no white space */
-      optarg = place;
-    else if (argc <= ++optind) { /* no arg */
+      optarg_s = place;
+    else if (argc <= ++optind_s) { /* no arg */
       place = EMSG;
       if (*optstring == t(':'))
 	return BADARG;
-      if (opterr)
+      if (opterr_s)
 	tfprintf(stderr,
 		 t("%s: option requires an argument -- %C\n"),
-		argv[0], optopt);
+		argv[0], optopt_s);
       return BADCH;
     } else
       /* white space */
-      optarg = argv[optind];
+      optarg_s = argv[optind_s];
     place = EMSG;
-    ++optind;
+    ++optind_s;
   }
-  return optopt;
+  return optopt_s;
 }
 
 static void show_usage()
@@ -285,11 +284,11 @@ static void version()
   exit(0);
 }
 
-static SgObject argsToList(int argc, int optind, tchar** argv)
+static SgObject argsToList(int argc, int optind_s, tchar** argv)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   int i;
-  for (i = optind; i < argc; i++) {
+  for (i = optind_s; i < argc; i++) {
     SG_APPEND1(h, t, make_scheme_string(argv[i]));
   }
   return h;
@@ -300,6 +299,7 @@ static SgObject profiler_option = SG_UNDEF;
 
 static int stat = FALSE;
 static int load_base_library = TRUE;
+static int standard_given = FALSE;
 
 static void cleanup_main(void *data)
 {
@@ -346,8 +346,8 @@ int main(int argc, char **argv)
     {t("flag"), optional_argument, 0, 'f'},
     {t("help"), 0, 0, 'h'},
     {t("interactive"), 0, 0, 'i'},
-    {t("import"), 0, 0, 'I'},
-    /* {t("r6rs"), 0, 0, '6'}, */
+    {t("import"), optional_argument, 0, 'I'},
+    /* {t("standard"), optional_argument, 0, 'r'}, */
     {t("version"), 0, 0, 'v'},
     {t("clean-cache"), 0, 0, 'c'},
     {t("disable-cache"), 0, 0, 'd'},
@@ -371,51 +371,60 @@ int main(int argc, char **argv)
     switch (opt) {
     case 't': load_base_library = FALSE; break;
     case 'E':
-      if (tstrcmp(t("trace"), optarg) == 0) {
+      if (tstrcmp(t("trace"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_TRACE_LEVEL);
-      } else if (tstrcmp(t("debug"), optarg) == 0) {
+      } else if (tstrcmp(t("debug"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_DEBUG_LEVEL);
-      } else if (tstrcmp(t("info"), optarg) == 0) {
+      } else if (tstrcmp(t("info"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_INFO_LEVEL);
-      } else if (tstrcmp(t("warn"), optarg) == 0) {
+      } else if (tstrcmp(t("warn"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
       } else {
-	Sg_Warn(UC("unknown log level option %A"), make_scheme_string(optarg));
+	Sg_Warn(UC("unknown log level option %A"), make_scheme_string(optarg_s));
       }
       break;
     case 'f':
-      if (tstrcmp(t("no-inline"), optarg) == 0) {
+      if (tstrcmp(t("no-inline"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
-      } else if (tstrcmp(t("no-inline-local"), optarg) == 0) {
+      } else if (tstrcmp(t("no-inline-local"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
-      } else if (tstrcmp(t("no-lambda-lifting"), optarg) == 0) {
+      } else if (tstrcmp(t("no-lambda-lifting"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
-      } else if (tstrcmp(t("no-library-inline"), optarg) == 0) {
+      } else if (tstrcmp(t("no-library-inline"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_LIBRARY_INLINING);
-      } else if (tstrcmp(t("no-optimization"), optarg) == 0) {
+      } else if (tstrcmp(t("no-optimization"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
-      } else if (tstrcmp(t("no-backtrace"), optarg) == 0) {
+      } else if (tstrcmp(t("no-backtrace"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
       } else {
-	Sg_Warn(UC("unknown optimize option %A"), make_scheme_string(optarg));
+	Sg_Warn(UC("unknown optimize option %A"), make_scheme_string(optarg_s));
       }
       break;
     case 'I':
       /* at this point the current library doesn't have anything do it later.
-      Sg_ImportLibrary(vm->currentLibrary, Sg_Intern(Sg_MakeStringC(optarg)));
+      Sg_ImportLibrary(vm->currentLibrary, Sg_Intern(Sg_MakeStringC(optarg_s)));
       */
-      preimport = Sg_Cons(Sg_Intern(make_scheme_string(optarg)), preimport);
+      preimport = Sg_Cons(Sg_Intern(make_scheme_string(optarg_s)), preimport);
       break;
 #if 0
-    case '6':
-      SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-      SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+    case 'r':
+      if (standard_given) {
+	Sg_Error(UC("Multiple -r option is specified."));
+      }
+      if (tstrcmp(t("6"), optarg_s) == 0) {
+	Sg_VMSetMode(vm, SG_VM_R6RS_MODE, 1);
+      } else if (tstrcmp(t("7"), optarg_s) == 0) {
+	Sg_VMSetMode(vm, SG_VM_R7RS_MODE, 1);
+      } else {
+	Sg_Error(UC("Unsupported standard for -r option: %A"),
+		 make_scheme_string(optarg_s));
+      }
       break;
 #endif
     case 'L': case 'A': {
-      SgObject exp = make_scheme_string(optarg);
+      SgObject exp = make_scheme_string(optarg_s);
       int appendP = (opt == 'A');
       if (Sg_DirectoryP(exp)) Sg_AddLoadPath(exp, appendP);
       else {
@@ -429,7 +438,7 @@ int main(int argc, char **argv)
       break;
     }
     case 'D': case 'Y': {
-      SgObject exp = make_scheme_string(optarg);
+      SgObject exp = make_scheme_string(optarg_s);
       int appendP = (opt == 'Y');
       if (Sg_DirectoryP(exp)) Sg_AddDynamicLoadPath(exp, appendP);
       else {
@@ -443,7 +452,7 @@ int main(int argc, char **argv)
       break;
     }
     case 'S': case 'F': {
-      SgObject exp = make_scheme_string(optarg);
+      SgObject exp = make_scheme_string(optarg_s);
       int appendP = (opt == 'F');
       SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp), appendP);
       if (SG_FALSEP(suffixs)) {
@@ -453,7 +462,7 @@ int main(int argc, char **argv)
     }
     case 'p':
       {
-	SgObject log = Sg_OpenFile(SG_STRING(make_scheme_string(optarg)),
+	SgObject log = Sg_OpenFile(SG_STRING(make_scheme_string(optarg_s)),
 				    SG_CREATE | SG_WRITE | SG_TRUNCATE);
 	SgObject bp;
 	if (!SG_FILEP(log)) {
@@ -483,9 +492,9 @@ int main(int argc, char **argv)
 #ifdef SAGITTARIUS_PROFILE
     case 'P':
       profiler_mode = TRUE;
-      if (tstrcmp(t("time"), optarg) == 0) {
+      if (tstrcmp(t("time"), optarg_s) == 0) {
 	profiler_option = SG_INTERN("time");
-      } else if (tstrcmp(t("count"), optarg) == 0) {
+      } else if (tstrcmp(t("count"), optarg_s) == 0) {
 	profiler_option = SG_INTERN("count");
       } else {
 	goto usage;
@@ -505,7 +514,7 @@ int main(int argc, char **argv)
       break;
     }
   }
-  vm->commandLineArgs = argsToList(argc, optind, argv);
+  vm->commandLineArgs = argsToList(argc, optind_s, argv);
   /* import all necessary stuff first, otherwise profiler doesn't work. */
   if (load_base_library) {
     Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core)"));
@@ -532,9 +541,9 @@ int main(int argc, char **argv)
   }
   Sg_AddCleanupHandler(cleanup_main, NULL);
 
-  if (optind < argc) {
+  if (optind_s < argc) {
     SgObject proc;
-    exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind])));
+    exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind_s])));
     /* to run R6RS bench ... */
     if (!noMainP) {
       /* SRFI-22 */
