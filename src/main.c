@@ -299,7 +299,7 @@ static SgObject profiler_option = SG_UNDEF;
 
 static int stat = FALSE;
 static int load_base_library = TRUE;
-static int standard_given = FALSE;
+/* static int standard_given = FALSE; */
 
 static void cleanup_main(void *data)
 {

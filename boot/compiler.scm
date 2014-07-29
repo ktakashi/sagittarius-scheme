@@ -1540,11 +1540,16 @@
     (else
      (syntax-error "malformed let-syntax" form))))
 
-(define (pass1/let-syntax form p1env slice?)
-  (let-values (((newenv body) (pass1/compile-let-syntax form p1env)))
-    (if slice?
-	($seq (imap (lambda (e) (pass1 e newenv)) body))
-	(pass1/body body newenv))))
+(define-syntax define-pass1/let-syntax
+  (syntax-rules ()
+    ((_ name proc)
+     (define (name form p1env slice?)
+       (let-values (((newenv body) (proc form p1env)))
+	 (if slice?
+	     ($seq (imap (lambda (e) (pass1 e newenv)) body))
+	     (pass1/body body newenv)))))))
+
+(define-pass1/let-syntax pass1/let-syntax pass1/compile-let-syntax)
 
 (define-pass1-syntax (let-syntax form p1env) :null
   (pass1/let-syntax form p1env #t))
@@ -1566,11 +1571,7 @@
     (-
      (syntax-error "malformed letrec-syntax" form))))
 
-(define (pass1/letrec-syntax form p1env slice?)
-  (let-values (((newenv body) (pass1/compile-letrec-syntax form p1env)))
-    (if slice?
-	($seq (imap (lambda (e) (pass1 e newenv)) body))
-	(pass1/body body newenv))))
+(define-pass1/let-syntax pass1/letrec-syntax pass1/compile-letrec-syntax)
 
 (define-pass1-syntax (letrec-syntax form p1env) :null
   (pass1/letrec-syntax form p1env #t))
