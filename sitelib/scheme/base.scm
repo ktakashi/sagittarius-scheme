@@ -89,9 +89,10 @@
 	  (sagittarius))
 
   (define-syntax syntax-error
-    (syntax-rules ()
-      ((_ msg args ...)
-       (syntax-violation 'syntax-error msg (quote args ...)))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ msg args ...)
+	 (syntax-violation 'syntax-error #'msg (syntax->datum #'(args ...)))))))
 
   (define (bytevector . bytes) (u8-list->bytevector bytes))
 
