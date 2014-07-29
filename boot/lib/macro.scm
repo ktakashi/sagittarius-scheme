@@ -677,6 +677,8 @@
   (let ((slot (exists id=? ranks)))
     (if slot (cdr slot) -1)))
 
+(define (subform-of name vars) (cdr (assq name vars)))
+
 (define (collect-ellipsis-vars tmpl ranks depth vars)
   (let ((ids (collect-unique-ids tmpl)))
     (filter values
@@ -687,6 +689,160 @@
                                 ((null? (cdr slot)) slot)
                                 (else (cons (car slot) (cadr slot)))))))
                  vars))))
+
+(define contain-rank-moved-var?
+  (lambda (tmpl ranks vars)
+
+    (define (traverse-escaped lst depth)
+      (let loop ((lst lst) (depth depth))
+	(cond ((variable? lst)
+	       (< 0 (rank-of lst ranks) depth))
+	      ((pair? lst)
+	       (or (loop (car lst) depth)
+		   (loop (cdr lst) depth)))
+	      ((vector? lst)
+	       (loop (vector->list lst) depth))
+	      (else #f))))
+
+    (let loop ((lst tmpl) (depth 0))
+      (cond ((variable? lst)
+             (< 0 (rank-of lst ranks) depth))
+            ((ellipsis-quote? lst)
+             (traverse-escaped (cadr lst) depth))
+            ((ellipsis-splicing-pair? lst)
+             (let-values (((body tail len) (parse-ellipsis-splicing lst)))
+               (or (loop body (+ depth 1))
+                   (loop tail depth))))
+            ((ellipsis-pair? lst)
+             (or (loop (car lst) (+ depth 1))
+                 (loop (cddr lst) depth)))
+            ((pair? lst)
+             (or (loop (car lst) depth)
+                 (loop (cdr lst) depth)))
+            ((vector? lst)
+             (loop (vector->list lst) depth))
+            (else #f)))))
+
+(define adapt-to-rank-moved-vars
+  (lambda (form ranks vars)
+    (define mac-env (current-macro-env))
+
+    ;; bit ugly solution to resolve different compile unit of (syntax)
+    (define (rename-or-copy-id id)
+      (cond ((or (find-binding (id-library id) (id-name id) #f)
+		 ;; macro identifier need to have it's syntax information
+		 ;; to bent scope
+		 ;; FIXME smells like a bug
+		 (macro? (p1env-lookup mac-env id LEXICAL)))
+	     (make-pending-identifier (id-name id)
+				      (vector-ref mac-env 1)
+				      (id-library id)))
+	    (else
+	     ;; simply copy but mark as template variable
+	     (make-pending-identifier (id-name id)
+				      (id-envs id)
+				      (id-library id)))))
+
+    (define (rename t)
+      (or (cond ((not (identifier? t)) #f)
+		;; if the identifier is template variable and
+		;; mac-env contains this as a local binding
+		;; then the variable is bound in macro and
+		;; passed to let-syntax template.
+		;; in this case we can't rewrite it otherwise
+		;; env lookup can't find proper binding.
+		;; Call #7
+		((and (pending-identifier? t)
+		      (not (identifier? 
+			    (p1env-lookup mac-env t LEXICAL))))
+		 #f)
+		((lookup-transformer-env t))
+		;; mark as template variable so that pattern variable
+		;; lookup won't make misjudge.
+		(else
+		 (add-to-transformer-env! t (rename-or-copy-id t))))
+	  t))
+    ;; regenerate pattern variable
+    (define (rewrite-template t vars)
+      (cond ((null? t) t)
+	    ((pair? t)
+	     (cons (rewrite-template (car t) vars)
+		   (rewrite-template (cdr t) vars)))
+	    ((vector? t)
+	     (list->vector (rewrite-template (vector->list t) vars)))
+	    ;; could be a pattern variable, so keep it
+	    ((and (variable? t) (assq t vars)) t)
+	    ;; rename template variable
+	    (else (rename t))))
+
+    (define (rewrite-template-ranks-vars tmpl ranks vars)
+      (define moved-ranks (make-eq-hashtable))
+      (define moved-vars (make-eq-hashtable))
+
+      (define (make-infinite-list e)
+	(let ((lst (list e)))
+	  (set-cdr! lst lst)
+	  lst))
+
+      (define (revealed name depth)
+	(cond ((< 0 (rank-of name ranks) depth)
+	       (let ((renamed (make-identifier (gensym)
+					       (id-envs name)
+					       (id-library name))))
+		 (or (hashtable-ref moved-ranks renamed #f)
+		     (let loop ((i (- depth (rank-of name ranks)))
+				(var (subform-of name vars)))
+		       (cond ((> i 0)
+			      (loop (- i 1) 
+				    (list (make-infinite-list (car var)))))
+			     (else
+			      (hashtable-set! moved-ranks renamed depth)
+			      (hashtable-set! moved-vars renamed var)))))
+		 renamed))
+	      ((assq name vars) name)
+	      (else (rename name))))
+
+      (define (traverse-escaped lst depth)
+	(let loop ((lst lst) (depth depth))
+	  (cond ((variable? lst)
+		 (revealed lst depth))
+		((pair? lst)
+		 (cons (loop (car lst) depth)
+		       (loop (cdr lst) depth)))
+		((vector? lst)
+		 (list->vector (loop (vector->list lst) depth)))
+		(else lst))))
+
+      (define (rewrite tmpl)
+	(let loop ((lst tmpl) (depth 0))
+	  (cond ((variable? lst)
+		 (revealed lst depth))
+		((ellipsis-quote? lst)
+		 (cons (car lst)
+		       (traverse-escaped (cdr lst) depth)))
+		((ellipsis-splicing-pair? lst)
+		 (let-values (((body tail len) 
+			       (parse-ellipsis-splicing lst)))
+		   (append (loop body (+ depth 1))
+			   (cons .ellipsis (loop tail depth)))))
+		((ellipsis-pair? lst)
+		 (cons (loop (car lst) (+ depth 1))
+		       (cons .ellipsis (loop (cddr lst) depth))))
+		((pair? lst)
+		 (cons (loop (car lst) depth)
+		       (loop (cdr lst) depth)))
+		((vector? lst)
+		 (list->vector (loop (vector->list lst) depth)))
+		(else lst))))
+
+      (let ((rewrited (rewrite tmpl)))
+	(values rewrited
+		(append ranks (hashtable->alist moved-ranks))
+		(append vars (hashtable->alist moved-vars)))))
+
+    (if (contain-rank-moved-var? form ranks vars)
+        (rewrite-template-ranks-vars form ranks vars)
+        (values (rewrite-template form vars) ranks vars))))
 
 (define (consume-ellipsis-vars ranks depth vars)
   (let ((exhausted #f) (consumed #f))
@@ -713,58 +869,9 @@
           (or exhausted '())))))
 
 (define transcribe-template
-  (lambda (in-form ranks vars)
-    (define use-env (current-usage-env))
-    (define mac-env (current-macro-env))
-
-    ;; bit ugly solution to resolve different compile unit of (syntax)
-    (define (rename-or-copy-id id)
-      (cond ((or (find-binding (id-library id) (id-name id) #f)
-		 ;; macro identifier need to have it's syntax information
-		 ;; to bent scope
-		 ;; FIXME smells like a bug
-		 (macro? (p1env-lookup mac-env id LEXICAL)))
-	     (make-pending-identifier (id-name id)
-				      (vector-ref mac-env 1)
-				      (id-library id)))
-	    (else
-	     ;; simply copy but mark as template variable
-	     (make-pending-identifier (id-name id)
-				      (id-envs id)
-				      (id-library id)))))
-
-    ;; regenerate pattern variable
-    (define (rewrite-template t vars)
-      (cond ((null? t) t)
-	    ((pair? t)
-	     (cons (rewrite-template (car t) vars)
-		   (rewrite-template (cdr t) vars)))
-	    ((vector? t)
-	     (list->vector (rewrite-template (vector->list t) vars)))
-	    ;; could be a pattern variable, so keep it
-	    ((and (variable? t) (assq t vars)) => car)
-	    (else
-	     ;; rename template variable
-	     (or (cond ((not (identifier? t)) #f)
-		       ;; if the identifier is template variable and
-		       ;; mac-env contains this as a local binding
-		       ;; then the variable is bound in macro and
-		       ;; passed to let-syntax template.
-		       ;; in this case we can't rewrite it otherwise
-		       ;; env lookup can't find proper binding.
-		       ;; Call #7
-		       ((and (pending-identifier? t)
-			     (not (identifier? 
-				   (p1env-lookup mac-env t LEXICAL))))
-			#f)
-		       ((lookup-transformer-env t))
-		       ;; mark as template variable so that pattern variable
-		       ;; lookup won't make misjudge.
-		       (else
-			(add-to-transformer-env! t (rename-or-copy-id t))))
-		 t))))
-
-    (let ((tmpl (rewrite-template in-form vars)))
+  (lambda (in-form in-ranks in-vars)
+    (let-values (((tmpl ranks vars)
+		  (adapt-to-rank-moved-vars in-form in-ranks in-vars)))
 
       (define (expand-var tmpl vars)
 	(cond ((assq tmpl vars)
@@ -850,6 +957,7 @@
 	      ((vector? tmpl)
 	       (list->vector (expand-template (vector->list tmpl) depth vars)))
 	      (else tmpl)))
+
       (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
 	  (expand-escaped-template (cadr tmpl) 0 vars)
 	  (expand-template tmpl 0 vars)))))

@@ -223,5 +223,14 @@
     (test-equal "pattern variable locally bounded(2)" 'bar
 		(foo 'bar))))
 
-
+;; Call #48
+(let ()
+  (define-syntax move-vars
+    (lambda (x)
+      (syntax-case x ()
+	((_ (ids ...) (vs ...))
+	 #''((vs ids ...) ...)))))
+  (test-equal "ellipsis adjustment"
+	      '((v1 id1 id2) (v2 id1 id2))
+	      (move-vars (id1 id2) (v1 v2))))
 (test-end)
