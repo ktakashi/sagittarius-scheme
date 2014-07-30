@@ -477,7 +477,13 @@ static uint32_t general_hash(const SgHashCore *table, intptr_t key)
   } else {
     hash = Sg_Apply1(table->generalHasher, SG_OBJ(key));
   }
-  return Sg_GetIntegerClamp(hash, SG_CLAMP_NONE, NULL);
+  if (!SG_EXACT_INTP(hash)) {
+    Sg_Error(UC("%S is not an exact integer"), hash);
+  }
+  /* well the value must be either fixnum or bignum.
+     To avoid overflow we use eqv-hash.
+   */
+  return Sg_EqvHash(hash);
 }
 
 static int general_compare(const SgHashCore *table, intptr_t key, intptr_t k2)

@@ -1425,4 +1425,15 @@
 	    #xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff00000000000000000000000000000000
 	    (- (expt 2 384) (expt 2 128)))
 
+;; call #50
+(let ()
+  (define key #vu8(79 191 14 146 23 193 17 228 162 104 37 249 166 72 46 205))
+
+(let ((ht (make-hashtable (lambda (bv)
+                            (bytevector-uint-ref bv 0 (endianness big) 16))
+                          equal?)))
+  (test-assert "overflowing value set" (hashtable-set! ht key #t))
+  (test-assert "overflowed value ref" (hashtable-ref ht key #f)))
+)
+
 (test-end)
