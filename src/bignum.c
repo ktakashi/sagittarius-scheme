@@ -1123,16 +1123,15 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 0
-    /* FIXME: this was actually wrong... */
+#if 1
     dlong diff = 0L;
     int xindex, yindex, flip = FALSE;
     /* if x is shorter, swap it */
     if (xsize < ysize) {
       SgBignum *t = bx;
-      int tsize = xsize;
       bx = by; by = t;
-      xsize = ysize; ysize = tsize;
+      xsize = SG_BIGNUM_GET_COUNT(bx);
+      ysize = SG_BIGNUM_GET_COUNT(by);
       flip = TRUE;
     }
     for (yindex = 0, xindex = 0; yindex < ysize; xindex++, yindex++) {
@@ -1143,7 +1142,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     c = (int)(diff >> WORD_BITS);
     for (;xindex < xsize && c; xindex++) {
       br->elements[xindex] = bx->elements[xindex] - 1;
-      c = (bx->elements[xindex] == (ulong)-1L) ? -1 : 0;
+      c = (br->elements[xindex] == (ulong)-1L) ? -1 : 0;
     }
     for (;xindex < xsize; xindex++) {
       br->elements[xindex] = bx->elements[xindex];
