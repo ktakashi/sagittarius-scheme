@@ -5,9 +5,9 @@ PROJECT(Sagittarius)
 # use boehm gc
 OPTION(USE_BOEHM_GC "use boehm gc" ON)
 OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
-OPTION(DEBUG_VERSION "debug version" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 OPTION(INSTALL_SYMLINK "installing symlink" ON)
+OPTION(DEBUG_VERSION "build type" ON)
 
 ### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
@@ -17,12 +17,16 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceRuns.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckLibraryExists.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCCompilerFlag.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckAlloca.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CheckPthreadFlag.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/Triple.cmake)
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/FixupCompilerFlags.cmake)
 
 if (WATCOM)
   message(STATUS "*CAUTION* open watcom is experimental")
 endif()
 
-message(STATUS "system  processor ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "system processor ${CMAKE_SYSTEM_PROCESSOR}")
 
 # basic info for project
 SET(SAGITTARIUS_NAME "sagittarius" CACHE STRING "Sagittarius PACKAGE_NAME")
@@ -30,7 +34,6 @@ SET(SAGITTARIUS_BUGREPORT "ktakashi@ymail.com" CACHE
   STRING "bugreport mail address")
 
 # headers
-CHECK_INCLUDE_FILE(alloca.h    HAVE_ALLOCA_H)
 CHECK_INCLUDE_FILE(stdint.h    HAVE_STDINT_H)
 CHECK_INCLUDE_FILE(stdlib.h    HAVE_STDLIB_H)
 CHECK_INCLUDE_FILE(string.h    HAVE_STRING_H)
@@ -59,53 +62,11 @@ CHECK_TYPE_SIZE(float SIZEOF_FLOAT)
 CHECK_TYPE_SIZE(double SIZEOF_DOUBLE)
 CHECK_TYPE_SIZE(wchar_t SIZEOF_WCHAR_T)
 
-# functions
-# alloca needs special treatment
-SET(HAVE_ALLOCA_EXITCODE "Failed to run alloca"
-  CACHE STRING "Result from TRY_RUN" FORCE)
-IF (HAVE_ALLOCA_H)
-  # for now it is simple as much as possible.
-  CHECK_C_SOURCE_COMPILES("
-#include <alloca.h>
-int main()
-{
-  alloca(1);
-  return 0;
-}
-" HAVE_ALLOCA)
-ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
-  # FreeBSD has alloca in stdlib
-  CHECK_C_SOURCE_RUNS("
-#include <stdlib.h>
-int main()
-{
-  alloca(1);
-  return 0;
-}
-" HAVE_ALLOCA)
-ELSEIF (MSVC)
-  CHECK_C_SOURCE_RUNS("
-#include <malloc.h>
-int main()
-{
-  _alloca(1);
-  return 0;
-}
-" HAVE_ALLOCA)
-ENDIF()
+CHECK_ALLOCA()
 
 IF(NOT WIN32)
-  # _NP suffix problem
-  CHECK_C_SOURCE_COMPILES(
-"#include <pthread.h>
-int main() { return PTHREAD_MUTEX_RECURSIVE; }
-" HAVE_MUTEX_RECURSIVE)
-
-  CHECK_C_SOURCE_COMPILES(
-"#include <pthread.h>
-int main() { return PTHREAD_MUTEX_RECURSIVE_NP; }
-" HAVE_MUTEX_RECURSIVE_NP)
-
+  CHECK_PTHREAD_FLAG(PTHREAD_MUTEX_RECURSIVE    HAVE_MUTEX_RECURSIVE)
+  CHECK_PTHREAD_FLAG(PTHREAD_MUTEX_RECURSIVE_NP HAVE_MUTEX_RECURSIVE_NP)
 ENDIF()
 
 CHECK_FUNCTION_EXISTS(sched_yield   HAVE_SCHED_YIELD)
@@ -123,56 +84,8 @@ CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
 STRING(TOLOWER ${CMAKE_SYSTEM_NAME} SAGITTARIUS_PLATFORM)
 STRING(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SAGITTARIUS_PROCESSOR)
 
-# make above triple
-# the code based on clang GetTriple.cmake
-IF (SAGITTARIUS_PROCESSOR STREQUAL "x86")
-  # CMake somehow does not detect proper processor on win64
-  IF (SIZEOF_VOIDP EQUAL 4)
-    SET(SAGITTARIUS_PROCESSOR "i686")
-  ELSE()
-    # assume it's x86_64
-    SET(SAGITTARIUS_PROCESSOR "x86_64")
-  ENDIF()
-ENDIF()
-
-# on 64 bit Linux but trying to compile with 32 bit
-# CMake does not pretend to be 32 bit archtecture.
-# We need to modify it manually
-IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
-  IF (SIZEOF_VOIDP EQUAL 4)
-    SET(SAGITTARIUS_PROCESSOR "i686")
-  ENDIF()
-ENDIF()
-
-# On Windows, if CMake works properly, the value must be this.
-IF (SAGITTARIUS_PROCESSOR STREQUAL "amd64")
-  IF (SIZEOF_VOIDP EQUAL 4)
-    SET(SAGITTARIUS_PROCESSOR "i686")
-  ELSE()
-    SET(SAGITTARIUS_PROCESSOR "x86_64")
-  ENDIF()
-ENDIF()
-
-# get vendor
-IF (SAGITTARIUS_PLATFORM STREQUAL "Darwin")
-  SET(SAGITTARIUS_VENDOR "apple")
-ELSE()
-  SET(SAGITTARIUS_VENDOR "pc")
-ENDIF()
-# get os
-# TODO check win64
-IF (WIN32)
-  IF (SIZEOF_VOIDP EQUAL 4)
-    SET(SAGITTARIUS_OS "win32")
-  ELSE()
-    SET(SAGITTARIUS_OS "win64")
-  ENDIF()
-ELSE()
-  SET(SAGITTARIUS_OS ${SAGITTARIUS_PLATFORM})
-ENDIF()
-SET(SAGITTARIUS_TRIPLE
-  "${SAGITTARIUS_PROCESSOR}-${SAGITTARIUS_VENDOR}-${SAGITTARIUS_OS}")
-MESSAGE(STATUS "Architecture triple: ${SAGITTARIUS_TRIPLE}")
+TRIPLE(SAGITTARIUS_PROCESSOR SAGITTARIUS_PLATFORM
+  SAGITTARIUS_OS SAGITTARIUS_VENDOR SAGITTARIUS_TRIPLE)
 
 ### System 
 
@@ -239,7 +152,7 @@ ENDIF()
 MARK_AS_ADVANCED(SAGITTARIUS_VERSION SAGITTARIUS_BUGREPORT
   SAGITTARIUS_NAME SAGITTARIUS_SHARE_LIB_PATH SAGITTARIUS_LIB_PATH)
 
-IF(DEBUG_VERSION)
+IF (DEBUG_VERSION)
   ADD_DEFINITIONS(-DDEBUG_VERSION)
   SET(CMAKE_BUILD_TYPE Debug)
 ELSE()
@@ -248,62 +161,7 @@ ENDIF()
 
 
 ### Compiler options
-IF (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
-  SET(CMAKE_C_FLAGS "-Wall -O3 ${CMAKE_C_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "-Wall -O3 ${CMAKE_CXX_FLAGS}")
-  
-  IF (SAGITTARIUS_PROCESSOR STREQUAL "armv7")
-    # https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
-    SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
-    SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
-  ENDIF()
-
-  # it didn't improve performance much and makes compilation time
-  # really long. so for now disable it
-#  CHECK_C_COMPILER_FLAG(-flto HAS_LTO_FLAG)
-#  IF (HAS_LTO_FLAG)
-#    SET(CMAKE_C_FLAGS "-flto ${CMAKE_C_FLAGS}")
-#    SET(CMAKE_CXX_FLAGS "-flto ${CMAKE_CXX_FLAGS}")
-#  ENDIF()
-ELSEIF(MSVC)
-  # /MT to avoid C-runtime
-  # the rest is the same as CMake default
-  IF(NOT (MSVC_VERSION LESS 1700))
-    ADD_DEFINITIONS("-D_USING_V110_SDK71_")
-    # For supporting Windows XP
-    # NOTE: We only support it until 2014 which is the expiration year of
-    # Windows XP.
-    # WARNING this might be changed by CMake itself
-    IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
-      SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.02")
-    ELSE()
-      # 32 bit
-      SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.01")
-    ENDIF()
-    SET(CMAKE_CREATE_CONSOLE_EXE "${VS2012_XP_FLAG}")
-    SET(CMAKE_SHARED_LINKER_FLAGS 
-      "${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
-  ENDIF()
-
-  FOREACH(flag_var
-      CMAKE_CXX_FLAGS CMAKE_  CMAKE_CXX_FLAGS_DEBUG
-      CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
-      CMAKE_CXX_FLAGS_RELWITHDEBINFO
-      CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-      CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-    IF(${flag_var} MATCHES "/MD")
-      STRING(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-    ENDIF(${flag_var} MATCHES "/MD")
-    IF(${flag_var} MATCHES "/MDd")
-      STRING(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
-    ENDIF(${flag_var} MATCHES "/MDd")
-  ENDFOREACH(flag_var)
-  ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
-ELSEIF(WATCOM)
-  # watcom's default alignment is 4, so we need to specify it.
-  SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
-  SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
-ENDIF()
+FIXUP_COMPILER_FLAGS(SAGITTARIUS_PROCESSOR)
 
 # compiler option for global
 # TODO support MinGW
@@ -314,36 +172,20 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
     MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
   ENDIF()
 ELSEIF(CYGWIN)
-  # you don't know if -fwide-exec-charset=ucs-4le works
-  # or not untill compiler compiles...
-  # save it to restore in case compiler doesn't support
-  SET(SAVED_C_FLAGS "${CMAKE_C_FLAGS}")
-  SET(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
-  
-  CHECK_C_SOURCE_COMPILES("
-#include <wchar.h>
-int main() {
-  wchar_t *s = L\"wide char\";
-  return 0;
-}
-"
-    WIDE_EXEC_CHARSET)
-  IF (NOT WIDE_EXEC_CHARSET)
-    SET(USE_UCS4_CPP TRUE)
-    SET(CMAKE_C_FLAGS "${SAVED_C_FLAGS}")
-    SET(CMAKE_CXX_FLAGS "${SAVED_CXX_FLAGS}")
+  CHECK_C_COMPILER_FLAG("-fwide-exec-charset=ucs-4le" WIDE_EXEC_CHARSET)
+  IF (WIDE_EXEC_CHARSET)
+    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
   ENDIF()
 
   # Cygwin stack issue
   SET(cygwin_ldflags "-Wl,--stack,8388608")
   SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
-  SET(CMAKE_MODULE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
-  SET(CMAKE_SHARED_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
+  SET(CMAKE_MODULE_LINKER_FLAGS
+    "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
+  SET(CMAKE_SHARED_LINKER_FLAGS
+    "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
 ENDIF()
-
 
 # set module path here
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
@@ -425,7 +267,7 @@ IF(USE_BOEHM_GC)
 ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	GC_BUILD_LINES "${GC_BUILD_LINES}")
     ENDIF()
-    IF (MSVC OR WATCOM)
+    IF (WIN32)
       MESSAGE(STATUS "Adding install command")
       STRING(REGEX REPLACE "ENDIF\\(WIN32\\)" "
   INSTALL(TARGETS gcmt-dll DESTINATION .)
@@ -485,16 +327,17 @@ SET(SAGITTARIUS_EXT_WORK_DIRECTORY
 
 SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/build/src/ext-features.c)
 
+# sub directory can add features
+# FIXME this is ugly
 FILE(WRITE ${SAGITTARIUS_EXT_FEATURES}
   "#define LIBSAGITTARIUS_BODY
 #include <sagittarius/core.h>
 void Sg__InitExtFeatures()
 {
 ")
-
-MACRO(ADD_FEATURE name)
+MACRO(ADD_FEATURE feature)
   FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
-    "Sg_AddCondFeature(UC(\"${name}\"));\n")
+    "Sg_AddCondFeature(UC(\"${feature}\"));\n")
 ENDMACRO()
 
 # Issue #37: Name conflictin with other 'sash'.
@@ -508,13 +351,13 @@ ELSE()
   SET(REAL_SASH_NAME "sagittarius")
   SET(LEGACY_SASH_NAME "sash")
 ENDIF()
+
 ADD_SUBDIRECTORY(src build/src)
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
 
 FILE(APPEND ${SAGITTARIUS_EXT_FEATURES}
   "
 }")
-
 
 CONFIGURE_FILE(cmake/sagittarius-config.in 
   ${PROJECT_BINARY_DIR}/sagittarius-config)
@@ -535,7 +378,7 @@ IF (MSVC)
     ${PROJECT_BINARY_DIR}/win/innosetup.iss)
 ENDIF()
 
-IF(MSVC OR WATCOM)
+IF(WIN32)
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/lib DESTINATION .)
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/sitelib DESTINATION .)
   INSTALL(FILES ${PROJECT_SOURCE_DIR}/src/sagittarius.h DESTINATION include)
@@ -552,9 +395,6 @@ ELSE()
     DESTINATION "${SAGITTARIUS_CURRENT_LIB}/include/sagittarius")
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/src/sagittarius
     DESTINATION "${SAGITTARIUS_CURRENT_LIB}/include")
-ENDIF()
-
-IF (NOT WIN32)
   # create pc file
   CONFIGURE_FILE(cmake/sagittarius.pc.in
     ${PROJECT_BINARY_DIR}/sagittarius.pc @ONLY)

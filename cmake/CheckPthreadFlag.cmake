@@ -1,7 +1,7 @@
 # 
-# FindLibFFI.cmake
+# CheckPthreadFlag.cmake
 # 
-#   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
+#   Copyright (c) 2014  Takashi Kato <ktakashi@ymail.com>
 # 
 #   Redistribution and use in source and binary forms, with or without
 #   modification, are permitted provided that the following conditions
@@ -27,22 +27,13 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
-# CMake module to find libffi
-# use pkg-config if available
-FIND_PACKAGE(PkgConfig)
-PKG_CHECK_MODULES(PC_LIBFFI QUIET libffi)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 
-FIND_PATH(LIB_FFI_INCLUDE_DIR ffi.h
-  HINTS ${PC_LIBFFI_INCLUDEDIR} ${PC_LIBFFI_INCLUDE_DIRS})
+MACRO (CHECK_PTHREAD_FLAG _FLAG _VAR)
+  # _NP suffix problem
+  CHECK_C_SOURCE_COMPILES(
+"#include <pthread.h>
+int main() { return ${_FLAG}; }
+" ${_VAR})
 
-IF (LIB_FFI_INCLUDE_DIR)
-  FIND_LIBRARY(LIB_FFI_LIBRARIES NAMES ffi
-    HINTS ${PC_LIBFFI_LIBDIR} ${PC_LIBFFI_LIBRARY_DIRS})
-ENDIF()
-
-INCLUDE(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(Lib_FFI DEFAULT_MSG
-                                  LIB_FFI_LIBRARIES LIB_FFI_INCLUDE_DIR)
-
-MARK_AS_ADVANCED(LIB_FFI_INCLUDE_DIR LIB_FFI_LIBRARIES)
-
+ENDMACRO (CHECK_PTHREAD_FLAG)
