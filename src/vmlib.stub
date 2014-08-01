@@ -467,9 +467,13 @@
       (return FALSE))
     (let ((s1 name1)
 	  (s2 name2))
-      (when (SG_IDENTIFIERP name1) 
+      ;; env == () means wrapped by p1env-lookup or global
+      ;; thus it's the same as global simbol.
+      (when (and (SG_IDENTIFIERP name1) 
+		 (not (SG_NULLP (SG_IDENTIFIER_ENVS name1)))) 
 	(set! s1 (SG_IDENTIFIER_NAME name1)))
-      (when (SG_IDENTIFIERP name2) 
+      (when (and (SG_IDENTIFIERP name2) 
+		 (not (SG_NULLP (SG_IDENTIFIER_ENVS name2)))) 
 	(set! s2 (SG_IDENTIFIER_NAME name2)))
       (return (SG_EQ s1 s2))))
 

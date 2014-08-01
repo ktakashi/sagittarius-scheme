@@ -2210,4 +2210,27 @@
 
 (test-end)
 
+;; http://saito.hatenablog.jp/entry/2014/03/24/070839
+(test-begin "Contrib tests")
+(let ()
+  (define-syntax bar
+    (syntax-rules ()
+      ((_ m body)
+       (let ((m 1))
+	 (body)))))
+
+  (define-syntax foo
+    (syntax-rules ()
+      ((_ m body)
+       (let ((n 2))
+	 (let-syntax ((%body
+		       (syntax-rules ()
+			 ((_) body))))
+	   (bar m %body))))))
+
+  (let ((n 3))
+    (test 3 (foo n (values n)))))
+
+(test-end)
+
 (test-end)
