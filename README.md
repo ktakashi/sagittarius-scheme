@@ -132,12 +132,17 @@ Thirdly, run cmake as follows.
     $ cmake . \
         -DCMAKE_SYSTEM_PROCESSOR=x86_64 -DCMAKE_SYSTEM_NAME=darwin \
         -DCMAKE_INSTALL_PREFIX=/path/to/install \
-        -DCMAKE_BUILD_TYPE=None \
         -DCMAKE_FIND_FRAMEWORK=LAST \
         -Wno-dev \
         -DFFI_LIBRARY_DIR=/usr/local/Cellar/libffi/3.0.13/lib
 
-After running cmake, run make same as other Unix environments.
+After running cmake, run make same as other Unix environments. If `pkg-config`
+can find `libffi` then `FFI_LIBRARY_DIR` won't be needed.
+
+NOTE: some Mac OS X environment may not be able to find `ar` command
+because `/usr/bin/gcc` is identical as `/usr/bin/clang`. In that case,
+export `CC` and `CXX` environment variable with proper GCC and G++
+command path respectively so that CMake can find the command.
 
 ## Build on Windows (non Cygwin environment)
 On Windows, you need to create an installer and Sagittarius is using
