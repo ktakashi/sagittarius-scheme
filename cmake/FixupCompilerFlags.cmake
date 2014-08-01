@@ -32,25 +32,31 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR)
   IF (CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
       CMAKE_COMPILER_IS_GNUCC OR
       CMAKE_COMPILER_IS_GNUCXX)
+
+    # compiler warning is important to find a bug
+    SET(CMAKE_C_FLAGS "-Wall ${CMAKE_C_FLAGS}")
+    SET(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
+
+    # for GCC or Clang, we want both maximum performance and debug info.
     IF (${CMAKE_BUILD_TYPE} STREQUAL Debug)
-      # we just wan to compile it with -O3 option even it's
-      # debug version
-      SET(CMAKE_C_FLAGS_DEBUG "-Wall -O3 ${CMAKE_C_FLAGS_DEBUG}")
-      SET(CMAKE_CXX_FLAGS_DEBUG "-Wall -O3 ${CMAKE_CXX_FLAGS_DEBUG}")
+      SET(CMAKE_C_FLAGS_DEBUG "-O3 ${CMAKE_C_FLAGS_DEBUG}")
+      SET(CMAKE_CXX_FLAGS_DEBUG "-O3 ${CMAKE_CXX_FLAGS_DEBUG}")
     ELSE()
-      SET(CMAKE_C_FLAGS_RELASE "-Wall -g ${CMAKE_C_FLAGS_RELASE}")
-      SET(CMAKE_CXX_FLAGS_RELEASE "-Wall -g ${CMAKE_CXX_FLAGS_RELEASE}")
+      SET(CMAKE_C_FLAGS_RELASE "-g ${CMAKE_C_FLAGS_RELASE}")
+      SET(CMAKE_CXX_FLAGS_RELEASE "-g ${CMAKE_CXX_FLAGS_RELEASE}")
+    ENDIF()
+
+    # for some reason static library doesn't have this
+    # on x86_64 and is required.
+    IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
+      SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
+      SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
     ENDIF()
 
     IF (SAGITTARIUS_PROCESSOR STREQUAL "armv7")
-      IF (${CMAKE_BUILD_TYPE} STREQUAL Debug)
 	# https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
-	SET(CMAKE_C_FLAGS_DEBUG "-march=armv6 ${CMAKE_C_FLAGS_DEBUG}")
-	SET(CMAKE_CXX_FLAGS_DEBUG "-march=armv6 ${CMAKE_CXX_FLAGS_DEBUG}")
-      ELSE()
-	SET(CMAKE_C_FLAGS_RELASE "-march=armv6 ${CMAKE_C_FLAGS_RELASE}")
-	SET(CMAKE_CXX_FLAGS_RELEASE "-march=armv6 ${CMAKE_CXX_FLAGS_RELEASE}")
-      ENDIF()
+	SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
     ENDIF()
 
     # it didn't improve performance much and makes compilation time
