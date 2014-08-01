@@ -48,12 +48,12 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR)
 
     # for some reason static library doesn't have this
     # on x86_64 and is required.
-    IF (SAGITTARIUS_PROCESSOR STREQUAL "x86_64")
+    IF (${${_PROCESSOR}} STREQUAL "x86_64")
       SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
       SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
     ENDIF()
 
-    IF (SAGITTARIUS_PROCESSOR STREQUAL "armv7")
+    IF (${${_PROCESSOR}} STREQUAL "armv7")
 	# https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
 	SET(CMAKE_C_FLAGS "-march=armv6 ${CMAKE_C_FLAGS}")
 	SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
