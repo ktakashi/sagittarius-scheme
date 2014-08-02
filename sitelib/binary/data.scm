@@ -32,6 +32,8 @@
 (library (binary data)
     (export define-simple-datum-define
 	    define-composite-data-define
+	    ;; for backward compatibility
+	    ;; we re export them
 	    ;; utilities
 	    put-s8  get-s8 ;; this isn't in (rnrs)
 	    put-u16 put-s16 get-u16 get-s16
@@ -42,70 +44,8 @@
 	    (clos core)
 	    (clos user)
 	    (sagittarius)
-	    (sagittarius regex))
-
-  (define-syntax define-put&get
-    (lambda (x)
-      (define (->syntax k s)
-	(datum->syntax k (string->symbol s)))
-      (define (make-put&get k type)
-	(let ((s (symbol->string (syntax->datum type))))
-	  (list (->syntax k (string-append "bytevector-" s "-set!"))
-		(->syntax k (string-append "bytevector-" s "-ref")))))
-      (define (make-names k type)
-	(let ((s (symbol->string (syntax->datum type))))
-	  (list (->syntax k (string-append "put-" s))
-		(->syntax k (string-append "get-" s)))))
-      (define (get-size type)
-	(let ((s (symbol->string (syntax->datum type))))
-	  (div (string->number (string-copy s 1)) 8)))
-      (syntax-case x ()
-	((k type)
-	 (with-syntax (((put get) (make-put&get #'k #'type))
-		       ((pname gname) (make-names #'k #'type))
-		       (size (get-size #'type)))
-	   #'(begin
-	       (define (pname out v endian)
-		 (let ((buf (make-bytevector size)))
-		   (put buf 0 v endian)
-		   (put-bytevector out buf)))
-	       (define (gname in endian)
-		 (let ((buf (get-bytevector-n in size)))
-		   (get buf 0 endian)))))))))
-
-  (define (put-s8 out s8)
-    (unless (<= -128 s8 127) (error 'put-s8 "out of range" s8))
-    (if (< s8 128)
-	(put-u8 out (bitwise-and s8 #xFF))
-	(put-u8 out s8)))
-  (define (get-s8 in)
-    (let ((r (get-u8 in)))
-      (if (< r 128)
-	  r
-	  ;; return two's complement
-	  (- (bitwise-and r #x7F) 128))))
-
-  (define-put&get u16)
-  (define-put&get s16)
-  (define-put&get u32)
-  (define-put&get s32)
-  (define-put&get u64)
-  (define-put&get s64)
-  ;; flonum needs to be treated differently ... 
-  (define (put-f32 out v endian)
-    (let ((buf (make-bytevector 4)))
-      (bytevector-ieee-single-set! buf 0 v endian)
-      (put-bytevector out buf)))
-  (define (get-f32 in endian)
-    (let ((buf (get-bytevector-n in 4)))
-      (bytevector-ieee-single-ref buf 0 endian)))
-  (define (put-f64 out v endian)
-    (let ((buf (make-bytevector 8)))
-      (bytevector-ieee-double-set! buf 0 v endian)
-      (put-bytevector out buf)))
-  (define (get-f64 in endian)
-    (let ((buf (get-bytevector-n in 8)))
-      (bytevector-ieee-double-ref buf 0 endian)))
+	    (sagittarius regex)
+	    (binary io))
 
   ;; structured data must be read/write invariance
   ;; thus we can define how it's read and written simultaneously.
