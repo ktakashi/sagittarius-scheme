@@ -59,7 +59,7 @@
 		  ;; FIXME this discards the mark
 		  (let loop2 ((i 0) (b2 b))
 		    (cond ((= i buf-len)) ;; we are done
-			  ((= (bytevector-u8-ref bv-mark i) b2)
+			  ((eqv? (bytevector-u8-ref bv-mark i) b2)
 			   (bytevector-u8-set! buf i b2)
 			   (loop2 (+ i 1) (lookahead-next-u8 bin)))
 			  (else
