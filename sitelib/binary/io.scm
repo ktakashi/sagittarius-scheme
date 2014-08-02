@@ -48,30 +48,29 @@
   (define (lookahead-next-u8 in) (get-u8 in) (lookahead-u8 in))
 
   (define (get-until bin bv-mark)
-    (call-with-bytevector-output-port
-     (lambda (out)
-       (let* ((buf-len (bytevector-length bv-mark))
-	      (buf     (make-bytevector buf-len)))
-	 (let loop ((b (lookahead-u8 bin)))
-	   (cond ((eof-object? b))
-		 ((= b (bytevector-u8-ref bv-mark 0))
-		  ;; check
-		  ;; FIXME this discards the mark
-		  (let loop2 ((i 0) (b2 b))
-		    (cond ((= i buf-len)) ;; we are done
-			  ((eqv? (bytevector-u8-ref bv-mark i) b2)
-			   (bytevector-u8-set! buf i b2)
-			   (loop2 (+ i 1) (lookahead-next-u8 bin)))
-			  (else
-			   (put-bytevector out buf 0 i)
-			   (loop b2)))))
-		 (else
-		  (put-u8 out b)
-		  (loop (lookahead-next-u8 bin)))))))))
+    (let-values (((out extract) (open-bytevector-output-port)))
+      (define (finish bv/false) (values (extract) bv/false))
+      (let* ((buf-len (bytevector-length bv-mark))
+	     (buf     (make-bytevector buf-len)))
+	(let loop ((b (lookahead-u8 bin)))
+	  (cond ((eof-object? b) (finish #f))
+		((= b (bytevector-u8-ref bv-mark 0))
+		 ;; check
+		 (let loop2 ((i 0) (b2 b))
+		   (cond ((= i buf-len) (finish buf)) ;; we are done
+			 ((eqv? (bytevector-u8-ref bv-mark i) b2)
+			  (bytevector-u8-set! buf i b2)
+			  (loop2 (+ i 1) (lookahead-next-u8 bin)))
+			 (else
+			  (put-bytevector out buf 0 i)
+			  (loop b2)))))
+		(else
+		 (put-u8 out b)
+		 (loop (lookahead-next-u8 bin))))))))
 
   ;; default \n = #x0a
   (define (get-line bin :key (eol #vu8(#x0a)) (transcoder #f))
-    (let ((r (get-until bin eol)))
+    (let-values (((r _) (get-until bin eol)))
       (if transcoder
 	  (bytevector->string r transcoder)
 	  r)))
