@@ -44,10 +44,29 @@
 	    bytevector->hex-string
 	    bytevector-reverse!
 	    bytevector-reverse
+	    ;; inspired by srfi 13
+	    ;; cutting & pasting bytevectors
+	    bytevector-take bytevector-take-right
+	    bytevector-drop bytevector-drop-right
+	    bytevector-trim bytevector-trim-right bytevector-trim-both
+	    bytevector-pad bytevector-pad-right
+
+	    ;; prefixes & suffixes
+	    bytevector-prefix-length bytevector-suffix-length
+	    bytevector-prefix? bytevector-suffix?
+	    ;; searching
+	    bytevector-index bytevector-index-right
+	    bytevector-skip  bytevector-skip-right
+	    ;; bytevector-contains
+	    ;; miscellaneous: insertion, parsing
+	    bytevector-replace bytevector-tokenize
+	    ;; filtering & deleting
+	    ;; bytevector-filter bytevector-delete
 	    )
     (import (rnrs)
 	    (sagittarius)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (srfi :26 cut))
 (define (process-bytevector! op out . bvs)
   (let ((len (apply min (map bytevector-length bvs))))
     (dotimes (i len)
@@ -132,4 +151,232 @@
        (format out "~2,'0X" (bytevector-u8-ref bv i)))))
 )
 
+;; srfi 13 things
+;; helper
+(define (u8? n) (and (integer? n) (<= 0 n #xFF)))
+(define (u8-list? o) (and (pair? o) (for-all u8? o)))
+(define (string->u8-set s) (map char->integer (string->list s)))
+
+(define (bytevector-take bv n) (bytevector-copy bv 0 n))
+(define (bytevector-take-right bv n)
+  (let ((len (bytevector-length bv)))
+    (bytevector-copy bv (- len n) len)))
+(define (bytevector-drop bv n)
+  (let ((len (bytevector-length bv)))
+    (bytevector-copy bv n len)))
+(define (bytevector-drop-right bv n)
+  (let ((len (bytevector-length bv)))
+    (bytevector-copy bv 0 (- len n))))
+
+(define u8-set:whitespace (string->u8-set " \r\f\v\n\t"))
+(define (bytevector-trim bv
+	 :optional (criterion u8-set:whitespace)
+		   (start 0) (end (bytevector-length bv)))
+  (cond ((bytevector-skip bv criterion start end) =>
+	 (lambda (i) (bytevector-copy bv i end)))
+	(else #vu8())))
+(define (bytevector-trim-right bv
+	 :optional (criterion u8-set:whitespace)
+		   (start 0) (end (bytevector-length bv)))
+  (cond ((bytevector-skip-right bv criterion start end) =>
+	 (lambda (i) (bytevector-copy bv start (+ i 1))))
+	(else #vu8())))
+(define (bytevector-trim-both bv
+	 :optional (criterion u8-set:whitespace)
+		   (start 0) (end (bytevector-length bv)))
+  (cond ((bytevector-skip bv criterion start end) => 
+	 (lambda (i) 
+	   (bytevector-copy bv i 
+			    (+ (bytevector-skip-right bv criterion i end) 1))))
+	(else #vu8())))
+
+(define (bytevector-pad bv n
+	  :optional (u8 0) (start 0) (end (bytevector-length bv)))
+  (let ((len (- end start)))
+    (if (<= n len)
+	(bytevector-copy bv (- end n) end)
+	(let ((ans (make-bytevector n u8)))
+	  (bytevector-copy! bv start ans (- n len) len)
+	  ans))))
+(define (bytevector-pad-right bv n
+	  :optional (u8 0) (start 0) (end (bytevector-length bv)))
+  (let ((len (- end start)))
+    (if (<= n len)
+	(bytevector-copy bv start (+ start n))
+	(let ((ans (make-bytevector n u8)))
+	  (bytevector-copy! bv start ans 0 len)
+	  ans))))
+
+(define (bytevector-prefix-length bv1 bv2
+	   :optional (start1 0) (end1 (bytevector-length bv1))
+		     (start2 0) (end2 (bytevector-length bv2)))
+  (let* ((delta (min (- end1 start1) (- end2 start2)))
+	 (end1 (+ start1 delta)))
+    (if (and (eq? bv1 bv2) (= start1 start2))	; EQ fast path
+	delta
+	(let lp ((i start1) (j start2))		; Regular path
+	  (if (or (>= i end1)
+		  (not (= (bytevector-u8-ref bv1 i)
+			  (bytevector-u8-ref bv2 j))))
+	      (- i start1)
+	      (lp (+ i 1) (+ j 1)))))))
+
+(define (bytevector-prefix? bv1 bv2
+	   :optional (start1 0) (end1 (bytevector-length bv1))
+		     (start2 0) (end2 (bytevector-length bv2)))
+  (let ((len1 (- end1 start1)))
+    (and (<= len1 (- end2 start2))
+	 (= (bytevector-prefix-length bv1 bv2 start1 end1 start2 end2) len1))))
+
+(define (bytevector-suffix-length bv1 bv2
+	   :optional (start1 0) (end1 (bytevector-length bv1))
+		     (start2 0) (end2 (bytevector-length bv2)))
+  (let* ((delta (min (- end1 start1) (- end2 start2)))
+	 (end1 (+ start1 delta)))
+    (if (and (eq? bv1 bv2) (= start1 start2))	; EQ fast path
+	delta
+	(let lp ((i (- end1 1)) (j (- end2 1)))	; Regular path
+	  (if (or (< i start1)
+		  (not (= (bytevector-u8-ref bv1 i)
+			  (bytevector-u8-ref bv2 j))))
+	      (- (- end1 i) 1)
+	      (lp (- i 1) (- j 1)))))))
+
+(define (bytevector-suffix? bv1 bv2
+	   :optional (start1 0) (end1 (bytevector-length bv1))
+		     (start2 0) (end2 (bytevector-length bv2)))
+  (let ((len1 (- end1 start1)))
+    (and (<= len1 (- end2 start2))
+	 (= (bytevector-suffix-length bv1 bv2 start1 end1 start2 end2) len1))))
+
+;; search
+
+;; sort of set operation
+(define (u8-list-contains? set u8) (exists (cut eqv? <> u8) set))
+
+(define (bytevector-index bv criterion
+	  :optional (start 0) (end (bytevector-length bv)))
+  (cond ((u8? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (= criterion (bytevector-u8-ref bv i)) i
+		    (lp (+ i 1))))))
+	((u8-list? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) i
+		    (lp (+ i 1))))))
+	((procedure? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (criterion (bytevector-u8-ref bv i)) i
+		    (lp (+ i 1))))))
+	(else 
+	 (error 'bytevector-index
+		"Second param is neither u8, u8-list or predicate procedure."
+		criterion))))
+
+(define (bytevector-index-right bv criterion
+	  :optional (start 0) (end (bytevector-length bv)))
+  (cond ((u8? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (= criterion (bytevector-u8-ref bv i)) i
+		    (lp (- i 1))))))
+	((u8-list? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) i
+		    (lp (- i 1))))))
+	((procedure? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (criterion (bytevector-u8-ref bv i)) i
+		    (lp (- i 1))))))
+	(else 
+	 (error 'bytevector-index-right
+		"Second param is neither u8, u8-list or predicate procedure."
+		criterion))))
+
+(define (bytevector-skip bv criterion
+	  :optional (start 0) (end (bytevector-length bv)))
+  (cond ((u8? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (= criterion (bytevector-u8-ref bv i))
+		    (lp (+ i 1))
+		    i))))
+	((u8-list? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (u8-list-contains? criterion (bytevector-u8-ref bv i))
+		    (lp (+ i 1))
+		    i))))
+	((procedure? criterion)
+	 (let lp ((i start))
+	   (and (< i end)
+		(if (criterion (bytevector-u8-ref bv i))
+		    (lp (+ i 1))
+		    i))))
+	(else 
+	 (error 'bytevector-index
+		"Second param is neither u8, u8-list or predicate procedure."
+		criterion))))
+
+(define (bytevector-skip-right bv criterion
+	  :optional (start 0) (end (bytevector-length bv)))
+  (cond ((u8? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (= criterion (bytevector-u8-ref bv i))
+		    (lp (- i 1))
+		    i))))
+	((u8-list? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) 
+		    (lp (- i 1))
+		    i))))
+	((procedure? criterion)
+	 (let lp ((i (- end 1)))
+	   (and (>= i start)
+		(if (criterion (bytevector-u8-ref bv i)) 
+		    (lp (- i 1))
+		    i))))
+	(else 
+	 (error 'bytevector-index-right
+		"Second param is neither u8, u8-list or predicate procedure."
+		criterion))))
+
+;; TODO contains
+
+;; replace
+(define (bytevector-replace bv1 bv2 start1 end1
+	  :optional (start2 0) (end2 (bytevector-length bv2)))
+  (let* ((bv-len1 (bytevector-length bv1))
+	 (sublen (- end2 start2))
+	 (alen (+ (- bv-len1 (- end1 start1)) sublen))
+	 (ans  (make-bytevector alen)))
+    (bytevector-copy! bv1 0 ans 0 start1)
+    (bytevector-copy! bv2 start2 ans start1 sublen)
+    (bytevector-copy! bv1 end1 ans (+ start1 sublen) (- bv-len1 end1))
+    ans))
+
+;; tokenize
+(define u8-set:graphics
+  (string->u8-set "~}|{zyxwvutsrqponmlkjihgfedcba`_^]\\[ZYXWVUTSRQPONMLKJIHGFEDCBA@?>=<;:9876543210/.-,+*)('&%$#\"!"))
+(define (bytevector-tokenize bv
+	  :optional (token-set u8-set:graphics)
+		    (start 0) (end (bytevector-length bv)))
+  (let lp ((i end) (ans '()))
+    (cond ((and (< start i) (bytevector-index-right bv token-set start i)) =>
+	   (lambda (tend-1)
+	     (let ((tend (+ 1 tend-1)))
+	       (cond ((bytevector-skip-right bv token-set start tend-1) =>
+		      (lambda (tstart-1)
+			(lp tstart-1
+			    (cons (bytevector-copy bv (+ 1 tstart-1) tend)
+				  ans))))
+		     (else (cons (bytevector-copy bv start tend) ans))))))
+	  (else ans))))
 )
