@@ -38,7 +38,7 @@
     (import (rnrs)
 	    (sagittarius reader)
 	    ;; we don't want to export regex reader macro with this
-	    (only (sagittarius regex impl) parse-char-set-string))
+	    (only (sagittarius regex) parse-char-set-string))
 
   ;; Gauche compatible charset
   (define-dispatch-macro #\# #\[ (char-set-reader port subchar param)

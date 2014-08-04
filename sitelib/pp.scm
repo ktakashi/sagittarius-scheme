@@ -8,6 +8,8 @@
     (import (core)
 	    (core base)
 	    (sagittarius)
+	    ;; don't want to load rnrs or syntax layer libraries
+	    (sagittarius regex impl)
 	    (sagittarius misc))
 
   (define-syntax if-let1
@@ -139,6 +141,7 @@
 					 ((#\newline) "newline")
 					 (else        (make-string 1 obj)))
 				       (out "#\\" col))))
+	  ((char-set? obj)    (out (char-set->regex-string obj) col))
 	  ;; Sagittarius we don't need this
           ;;((input-port? obj)  (out "#<input-port>" col))
 	  ;;((output-port? obj) (out "#<output-port>" col))

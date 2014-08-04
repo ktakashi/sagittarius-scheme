@@ -632,11 +632,37 @@ static SgObject import_parents(SgLibrary *fromlib, SgObject spec)
   return exported;
 }
 
-static void import_reader_macro(SgLibrary *to, SgLibrary *from)
+static int export_read_macro_p(SgObject specs)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, specs) {
+    SgObject spec = SG_CAR(cp);
+    if (SG_EQ(SG_CAR(spec), SG_SYMBOL_ONLY)) {
+      if (SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO, SG_CDR(spec)))) {
+	return FALSE;
+      }
+    } else if (SG_EQ(SG_CAR(spec), SG_SYMBOL_EXCEPT)) {
+      if (!SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO, SG_CDR(spec)))) {
+	return FALSE;
+      }
+    }
+  }
+  return TRUE;
+}
+
+static void import_reader_macro(SgLibrary *to, SgLibrary *from, SgObject spec)
 {
   /* try */
   if (SG_LIBRARY_READTABLE(from)) {
-    SG_LIBRARY_READTABLE(to) = Sg_CopyReadTable(SG_LIBRARY_READTABLE(from));
+    /* now we don't want to import reader macro when explicitly excluded
+       or spec has only so that the hierarchy of read macro chain would be
+       cut.
+       Some users are very neat so in that case if :export-reader-macro
+       is specified in only clause then we allow it.
+    */
+    if (export_read_macro_p(spec)) {
+      SG_LIBRARY_READTABLE(to) = Sg_CopyReadTable(SG_LIBRARY_READTABLE(from));
+    }
   }
 }
 
@@ -691,13 +717,13 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   if (!SG_FALSEP(exportSpec)) {
     if (!SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER_MACRO,
 			   SG_CAR(exportSpec)))) {
-      import_reader_macro(tolib, fromlib);
+      import_reader_macro(tolib, fromlib, spec);
     }
     if (!SG_FALSEP(Sg_Memq(SG_KEYWORD_EXPORT_READER, SG_CAR(exportSpec)))) {
       SG_LIBRARY_READER(tolib) = SG_LIBRARY_READER(fromlib);
     }
   } else {
-    import_reader_macro(tolib, fromlib);
+    import_reader_macro(tolib, fromlib, spec);
     SG_LIBRARY_READER(tolib) = SG_LIBRARY_READER(fromlib);
   }
 
