@@ -1,8 +1,8 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; binary/data.aux.scm - Binary data framework
+;;; binary/io.scm - Binary IO.
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions

@@ -53,9 +53,10 @@
   (define (char-list-predicate char-list)
     (cond ((char-set? char-list) char-list-contains?/char-set)
 	  ((not (list? char-list))
-	   (assertion-violation 'char-list-predicate
-				"CHAR-LIST must be a list of characters and/or symbol '*eof*"
-				char-list))
+	   (assertion-violation
+	    'char-list-predicate
+	    "CHAR-LIST must be a list of characters and/or symbol '*eof*"
+	    char-list))
 	  ((and (pair? char-list)
 		(char-set? (car char-list))
 		(pair? (cdr char-list))
@@ -67,8 +68,7 @@
 	       char-list-contains?/chars/eof
 	       char-list-contains?/eof))
 	  ((for-all char? char-list) char-list-contains?/chars)
-	  (else
-	   char-list-contains?)))
+	  (else char-list-contains?)))
 
   (define (character-or-eof? char)
     (or (char? char)
@@ -79,7 +79,7 @@
 
   (define (char-list-contains?/char-set/eof char-list char)
     (or (eof-object? char)
-	(and (char? char) (char-set-contains? char-list char))))
+	(and (char? char) (char-set-contains? (car char-list) char))))
 
   (define (char-list-contains?/chars char-list char)
     (memv char char-list))
@@ -104,69 +104,68 @@
 
   ;; from Gauche
   (define (find-string-from-port? str in-port . max-no-char)
-    (set! max-no-char (if (null? max-no-char) #f (car max-no-char)))
-    (if (string-null? str)
-	0
-	(let ((restart (make-kmp-restart-vector str))
-	      (pattern (list->vector (string->list str)))
-	      (patlen  (string-length str)))
-	  (define (scan patpos count char)
-	    (cond ((eof-object? char) #f)
-		  ((char=? char (vector-ref pattern patpos))
-		   (if (= patpos (- patlen 1))
-		       count
-		       (scan (+ patpos 1) (+ count 1) (read-char in-port))))
-		  ((and max-no-char (>= count max-no-char)) #f)
-		  ((= patpos 0)
-		   (scan 0 (+ count 1) (read-char in-port)))
-		  (else
-		   (let ((pi (vector-ref restart patpos)))
-		     (if (= pi -1)
-			 (scan 0 0 (read-char in-port))
-			 (scan pi count char))))))
-	  (scan 0 1 (read-char in-port))
-	  )))
+    (let ((max-no-char (if (null? max-no-char) #f (car max-no-char))))
+      (if (string-null? str)
+	  0
+	  (let ((restart (make-kmp-restart-vector str))
+		(pattern (list->vector (string->list str)))
+		(patlen  (string-length str)))
+	    (define (scan patpos count char)
+	      (cond ((eof-object? char) #f)
+		    ((char=? char (vector-ref pattern patpos))
+		     (if (= patpos (- patlen 1))
+			 count
+			 (scan (+ patpos 1) (+ count 1) (read-char in-port))))
+		    ((and max-no-char (>= count max-no-char)) #f)
+		    ((= patpos 0)
+		     (scan 0 (+ count 1) (read-char in-port)))
+		    (else
+		     (let ((pi (vector-ref restart patpos)))
+		       (if (= pi -1)
+			   (scan 0 0 (read-char in-port))
+			   (scan pi count char))))))
+	    (scan 0 1 (read-char in-port))
+	    ))))
 
-  (define (assert-curr-char expected-chars comment . maybe-port)
-    (let ((port (if (null? maybe-port)
-		    (current-input-port)
-		    (car maybe-port))))
-      (let ((c (read-char port)))
-	(if (memv c expected-chars) c
-	    (error 'assert-curr-char
-		   (format "Wrong character ~a (0x~a) ~a. ~a expexted"
-			   c
-			   (if (eof-object? c) "*eof*"
-			       (number->string (char->integer c) 16))
-			   comment 
-			   expected-chars))))))
+  (define (assert-curr-char expected-chars comment
+			    :optional (port (current-input-port)))
+    (define pred (char-list-predicate expected-chars))
+    (let ((c (read-char port)))
+      (if (pred expected-chars c)
+	  c
+	  (error 'assert-curr-char
+		 (format "Wrong character ~a (0x~a) ~a. ~a expexted"
+			 c
+			 (if (eof-object? c) "*eof*"
+			     (number->string (char->integer c) 16))
+			 comment 
+			 expected-chars)))))
 
-  (define (skip-until arg . maybe-port)
-    (let ((port (if (null? maybe-port)
-		    (current-input-port)
-		    (car maybe-port))))
-      (define (skip-until/common pred port)
-	(let loop ((c (read-char port)))
-	  (cond ((pred c) c)
-		((eof-object? c)
-		 (assertion-violation 'skip-until
-				      "Unexpected EOF while skipping characters"))
-		(else
-		 (loop (read-char port))))))
+  (define (skip-until arg :optional (port (current-input-port)))
+    (define (skip-until/common pred port)
+      (let loop ((c (read-char port)))
+	(cond ((pred c) c)
+	      ((eof-object? c)
+	       (assertion-violation 
+		'skip-until
+		"Unexpected EOF while skipping characters"))
+	      (else
+	       (loop (read-char port))))))
 
-      (cond ((number? arg)
-	     (and (<= 1 arg)
-		  (let loop ((i 1) (c (read-char port)))
-		    (cond ((eof-object? c)
-			   (assertion-violation 'skip-until
-						(format "Unexpected EOF while skipping ~s characters" arg)))
-			  ((>= i arg) #f)
-			  (else (loop (+ i 1) (read-char port)))))))
-	    ((procedure? arg)
-	     (skip-until/common arg port))
-	    (else			; skip until break-chars (=arg)
-	     (skip-until/common (cut (char-list-predicate arg)
-				     arg <>) port)))))
+    (cond ((number? arg)
+	   (and (<= 1 arg)
+		(let loop ((i 1) (c (read-char port)))
+		  (cond ((eof-object? c)
+			 (assertion-violation 
+			  'skip-until
+			  (format "Unexpected EOF while skipping ~s characters"
+				  arg)))
+			((>= i arg) #f)
+			(else (loop (+ i 1) (read-char port)))))))
+	  ((procedure? arg)
+	   (skip-until/common arg port))
+	  (else			; skip until break-chars (=arg)
+	   (skip-until/common (cut (char-list-predicate arg) arg <>) port))))
 
   (define (skip-while skip-chars . maybe-port)
     (define (skip-while/common pred port)
@@ -241,5 +240,9 @@
       ))
 
   (define (read-string num p)
-    (get-string-n p num))
+    (if (negative? num) ""
+	(let ((r (get-string-n p num)))
+	  (if (eof-object? r)
+	      ""
+	      r))))
 )
