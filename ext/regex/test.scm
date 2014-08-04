@@ -4,6 +4,7 @@
 
 (import (srfi :64 testing)
 	(srfi :13 strings)
+	(srfi :14 char-sets)
 	(srfi :1 lists)
 	(srfi :26 cut)
 	(rnrs)
@@ -1207,6 +1208,16 @@
     (else => (cut format "bogus: ~a" <>))))
 (test-equal "regex-match-case (else)" "bogus: 100/2/3"
        (test-parse-date3 "100/2/3"))
+
+;;; char-set string parsing
+(test-error "parse-char-set-string error(1)" condition?
+	    (parse-char-set-string "[a-z" #t))
+(test-error "parse-char-set-string error(2)" condition?
+	    (parse-char-set-string "" #t))
+(test-error "parse-char-set-string error(3)" condition? 
+	     (char-set? (parse-char-set-string "[]" #t)))
+(test-assert "parse-char-set-string(1)" 
+	     (char-set? (parse-char-set-string "[a-z]" #t)))
 
 
 (test-end)

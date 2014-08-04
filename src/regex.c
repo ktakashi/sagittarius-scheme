@@ -620,6 +620,7 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
   SgObject moreset;
   SgObject chars = SG_NIL;
   SgChar ch = 0;
+  int start_pos = ctx->pos;
 
   for (;;) {
     ch = next_char_non_extended(ctx);
@@ -743,6 +744,8 @@ static SgObject read_char_set(lexer_ctx_t *ctx, int *complement_p)
   }
 
  err:
+  raise_syntax_error(ctx, start_pos -1,
+		     UC("bad char-set spec in pattern"));
   return SG_FALSE;
 }
 
@@ -2640,6 +2643,24 @@ static SgObject compile_regex_ast(SgString *pattern, SgObject ast, int flags)
   p = make_pattern(pattern ? pattern : unparse_ast(ast),
 		   ast, flags, reg_num, regs, prog, &cctx);
   return SG_OBJ(p);
+}
+
+SgObject Sg_ParseCharSetString(SgString *s, int asciiP)
+{
+  /* sanity check */
+  lexer_ctx_t ctx;
+  int size = SG_STRING_SIZE(s);
+  if (size < 2) {
+    Sg_Error(UC("invalid regex char-set string. %S"), s);
+  }
+  if (SG_STRING_VALUE_AT(s, 0) != '[') {
+    Sg_Error(UC("regex char-set must start with '['. %S"), s);
+  }
+  if (SG_STRING_VALUE_AT(s, size-1) != ']') {
+    Sg_Error(UC("regex char-set must end with ']'. %S"), s);
+  }
+  init_lexer(&ctx, s, (asciiP) ? 0 : SG_UNICODE_CASE);
+  return reg_expr(&ctx);
 }
 
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)

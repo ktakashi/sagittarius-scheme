@@ -1,44 +1,5 @@
 ;; for #[...] read
-(library (tmp-reader)
-    (export :export-reader-macro)
-    (import (rnrs)
-	    (sagittarius reader)
-	    (srfi :14 char-sets))
-
-  (define-dispatch-macro #\# #\[ (char-set-reader port subc param)
-    (let loop ((cs (char-set)))
-      (let ((c (get-char port)))
-	(if (char=? c #\])
-	    cs
-	    (let ((nc (lookahead-char port)))
-	      (cond ((char=? c #\\)
-		     (let ((c2 (get-char port)))
-		       ;; support minimal chars s and w
-		       (cond ((char=? c2 #\s)
-			      (loop (char-set-union! cs char-set:whitespace)))
-			     ((char=? c2 #\S)
-			      (loop (char-set-union! 
-				     cs 
-				     (char-set-complement char-set:whitespace))))
-			     ((char=? c2 #\w)
-			      (loop (char-set-union! cs char-set:letter)))
-			     (else
-			      (loop (char-set-adjoin! cs c2))))))
-		    ((char=? nc #\-)
-		     (get-char port)
-		     (let ((c2 (get-char port)))
-		       (if (char=? c2 #\])
-			   (char-set-adjoin! cs c nc)
-			   (loop (ucs-range->char-set!
-				  (char->integer c)
-				  (+ (char->integer c2) 1)
-				  #f
-				  cs)))))
-		    
-		    (else (loop (char-set-adjoin! cs c)))))))))
-)
-
-#!read-macro=tmp-reader
+#!read-macro=char-set
 (import (rnrs)
 	(srfi :64)
 	(text parse) 

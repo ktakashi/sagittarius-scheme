@@ -88,6 +88,9 @@
 	    regex-flags
 	    ;; enable #/regex/
 	    :export-reader-macro
+
+	    ;; misc
+	    parse-char-set-string
 	    )
     (import (rename (sagittarius regex impl)
 		    (regex-replace-first impl:regex-replace-first)

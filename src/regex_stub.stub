@@ -133,4 +133,9 @@
   (define-c-proc regex-pattern (p::<pattern>) (result (-> p pattern)))
   (define-c-proc regex-flags (p::<pattern>) ::<fixnum> (result (-> p flags)))
   (define-c-proc regex-ast (p::<pattern>) (result (-> p ast)))
+
+  ;; misc
+  (define-c-proc parse-char-set-string
+    (s::<string> :optional (ascii::<boolean> #f))
+    Sg_ParseCharSetString)
 )

@@ -156,6 +156,9 @@ SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */
 SG_EXTERN void       Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
+/* misc */
+SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_REGEX_H_ */
