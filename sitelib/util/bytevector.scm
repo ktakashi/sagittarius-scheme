@@ -45,6 +45,14 @@
 	    bytevector-reverse!
 	    bytevector-reverse
 	    ;; inspired by srfi 13
+	    ;; utility
+	    ;; should we export this?
+	    ;; u8? u8-set? u8-set-contains?
+	    string->u8-set char-set->u8-set
+
+	    ;; do you want map and for-each as well?
+	    bytevector-fold bytevector-fold-right
+
 	    ;; cutting & pasting bytevectors
 	    bytevector-take bytevector-take-right
 	    bytevector-drop bytevector-drop-right
@@ -57,15 +65,17 @@
 	    ;; searching
 	    bytevector-index bytevector-index-right
 	    bytevector-skip  bytevector-skip-right
-	    ;; bytevector-contains
+	    bytevector-contains
 	    ;; miscellaneous: insertion, parsing
 	    bytevector-replace bytevector-tokenize
 	    ;; filtering & deleting
-	    ;; bytevector-filter bytevector-delete
+	    bytevector-filter bytevector-delete
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
+	    (only (srfi :13 strings) make-kmp-restart-vector)
+	    (srfi :14 char-sets)
 	    (srfi :26 cut))
 (define (process-bytevector! op out . bvs)
   (let ((len (apply min (map bytevector-length bvs))))
@@ -154,8 +164,11 @@
 ;; srfi 13 things
 ;; helper
 (define (u8? n) (and (integer? n) (<= 0 n #xFF)))
-(define (u8-list? o) (and (pair? o) (for-all u8? o)))
+(define (u8-set? o) (and (pair? o) (for-all u8? o)))
 (define (string->u8-set s) (map char->integer (string->list s)))
+(define (char-set->u8-set cset)
+  (map char->integer
+       (char-set->list (char-set-intersection cset char-set:ascii))))
 
 (define (bytevector-take bv n) (bytevector-copy bv 0 n))
 (define (bytevector-take-right bv n)
@@ -252,7 +265,7 @@
 ;; search
 
 ;; sort of set operation
-(define (u8-list-contains? set u8) (exists (cut eqv? <> u8) set))
+(define (u8-set-contains? set u8) (exists (cut eqv? <> u8) set))
 
 (define (bytevector-index bv criterion
 	  :optional (start 0) (end (bytevector-length bv)))
@@ -261,10 +274,10 @@
 	   (and (< i end)
 		(if (= criterion (bytevector-u8-ref bv i)) i
 		    (lp (+ i 1))))))
-	((u8-list? criterion)
+	((u8-set? criterion)
 	 (let lp ((i start))
 	   (and (< i end)
-		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) i
+		(if (u8-set-contains? criterion (bytevector-u8-ref bv i)) i
 		    (lp (+ i 1))))))
 	((procedure? criterion)
 	 (let lp ((i start))
@@ -273,7 +286,7 @@
 		    (lp (+ i 1))))))
 	(else 
 	 (error 'bytevector-index
-		"Second param is neither u8, u8-list or predicate procedure."
+		"Second param is neither u8, u8-set or predicate procedure."
 		criterion))))
 
 (define (bytevector-index-right bv criterion
@@ -283,10 +296,10 @@
 	   (and (>= i start)
 		(if (= criterion (bytevector-u8-ref bv i)) i
 		    (lp (- i 1))))))
-	((u8-list? criterion)
+	((u8-set? criterion)
 	 (let lp ((i (- end 1)))
 	   (and (>= i start)
-		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) i
+		(if (u8-set-contains? criterion (bytevector-u8-ref bv i)) i
 		    (lp (- i 1))))))
 	((procedure? criterion)
 	 (let lp ((i (- end 1)))
@@ -295,7 +308,7 @@
 		    (lp (- i 1))))))
 	(else 
 	 (error 'bytevector-index-right
-		"Second param is neither u8, u8-list or predicate procedure."
+		"Second param is neither u8, u8-set or predicate procedure."
 		criterion))))
 
 (define (bytevector-skip bv criterion
@@ -306,10 +319,10 @@
 		(if (= criterion (bytevector-u8-ref bv i))
 		    (lp (+ i 1))
 		    i))))
-	((u8-list? criterion)
+	((u8-set? criterion)
 	 (let lp ((i start))
 	   (and (< i end)
-		(if (u8-list-contains? criterion (bytevector-u8-ref bv i))
+		(if (u8-set-contains? criterion (bytevector-u8-ref bv i))
 		    (lp (+ i 1))
 		    i))))
 	((procedure? criterion)
@@ -320,7 +333,7 @@
 		    i))))
 	(else 
 	 (error 'bytevector-index
-		"Second param is neither u8, u8-list or predicate procedure."
+		"Second param is neither u8, u8-set or predicate procedure."
 		criterion))))
 
 (define (bytevector-skip-right bv criterion
@@ -331,10 +344,10 @@
 		(if (= criterion (bytevector-u8-ref bv i))
 		    (lp (- i 1))
 		    i))))
-	((u8-list? criterion)
+	((u8-set? criterion)
 	 (let lp ((i (- end 1)))
 	   (and (>= i start)
-		(if (u8-list-contains? criterion (bytevector-u8-ref bv i)) 
+		(if (u8-set-contains? criterion (bytevector-u8-ref bv i)) 
 		    (lp (- i 1))
 		    i))))
 	((procedure? criterion)
@@ -345,10 +358,33 @@
 		    i))))
 	(else 
 	 (error 'bytevector-index-right
-		"Second param is neither u8, u8-list or predicate procedure."
+		"Second param is neither u8, u8-set or predicate procedure."
 		criterion))))
 
-;; TODO contains
+;; contains
+(define (bytevector-contains bv pattern
+	  :optional (b-start 0) (b-end (bytevector-length bv))
+		    (p-start 0) (p-end (bytevector-length pattern)))
+  (let ((plen (- p-end p-start))
+	(rv   (make-kmp-restart-vector pattern = 
+				       p-start p-end bytevector-u8-ref)))
+
+    ;; The search loop. TJ & PJ are redundant state.
+    (let lp ((ti b-start) (pi 0)
+	     (tj (- b-end b-start)) ; (- tlen ti) -- how many chars left.
+	     (pj plen))		 ; (- plen pi) -- how many chars left.
+
+      (if (= pi plen)
+	  (- ti plen)			; Win.
+	  (and (<= pj tj)		; Lose.
+	       (if (= (bytevector-u8-ref bv ti) ; Search.
+		      (bytevector-u8-ref pattern (+ p-start pi)))
+		   (lp (+ 1 ti) (+ 1 pi) (- tj 1) (- pj 1)) ; Advance.
+		   
+		   (let ((pi (vector-ref rv pi))) ; Retreat.
+		     (if (= pi -1)
+			 (lp (+ ti 1) 0  (- tj 1) plen) ; Punt.
+			 (lp ti       pi tj       (- plen pi))))))))))
 
 ;; replace
 (define (bytevector-replace bv1 bv2 start1 end1
@@ -379,4 +415,84 @@
 				  ans))))
 		     (else (cons (bytevector-copy bv start tend) ans))))))
 	  (else ans))))
+
+;; fold... for what!
+(define (bytevector-fold kons knil bv
+	  :optional (start 0) (end (bytevector-length bv)))
+  (let lp ((v knil) (i start))
+    (if (< i end)
+	(lp (kons (bytevector-u8-ref bv i) v) (+ i 1))
+	v)))
+(define (bytevector-fold-right kons knil bv
+	  :optional (start 0) (end (bytevector-length bv)))
+  (let lp ((v knil) (i (- end 1)))
+    (if (>= i start)
+	(lp (kons (bytevector-u8-ref bv i) v) (- i 1))
+	v)))
+
+;; filter & delete
+(define (bytevector-filter criterion bv
+	  :optional (start 0) (end (bytevector-length bv)))
+  (if (procedure? criterion)
+      (let* ((slen (- end start))
+	     (temp (make-bytevector slen))
+	     (ans-len (bytevector-fold (lambda (c i)
+					 (if (criterion c)
+					     (begin (bytevector-u8-set! temp i c)
+						    (+ i 1))
+					     i))
+				       0 bv start end)))
+	(if (= ans-len slen) temp (bytevector-copy temp 0 ans-len)))
+
+      (let* ((cset (cond ((u8-set? criterion) criterion)
+			 ((u8? criterion) (list criterion))
+			 (else 
+			  (error 'bytevector-filter
+				 "criterion not predicate, char or char-set"
+				 criterion))))
+	     
+	     (len (bytevector-fold (lambda (c i) (if (u8-set-contains? cset c)
+						     (+ i 1)
+						     i))
+				   0 bv start end))
+	     (ans (make-bytevector len)))
+	(bytevector-fold (lambda (c i) (if (u8-set-contains? cset c)
+					   (begin (bytevector-u8-set! ans i c)
+						  (+ i 1))
+					   i))
+			 0 bv start end)
+	ans)))
+
+(define (bytevector-delete criterion bv
+	  :optional (start 0) (end (bytevector-length bv)))
+  (if (procedure? criterion)
+      (let* ((slen (- end start))
+	     (temp (make-bytevector slen))
+	     (ans-len (bytevector-fold (lambda (c i)
+					 (if (criterion c)
+					     i
+					     (begin (bytevector-u8-set! temp i c)
+						    (+ i 1))))
+				       0 bv start end)))
+	(if (= ans-len slen) temp (bytevector-copy temp 0 ans-len)))
+
+      (let* ((cset (cond ((u8-set? criterion) criterion)
+			 ((u8? criterion) (list criterion))
+			 (else 
+			  (error 'bytevector-delete
+				 "criterion not predicate, char or char-set"
+				 criterion))))
+	     
+	     (len (bytevector-fold (lambda (c i) (if (u8-set-contains? cset c)
+						     i
+						     (+ i 1)))
+				   0 bv start end))
+	     (ans (make-bytevector len)))
+	(bytevector-fold (lambda (c i) (if (u8-set-contains? cset c)
+					   i
+					   (begin (bytevector-u8-set! ans i c)
+						  (+ i 1))))
+			 0 bv start end)
+	ans)))
+
 )

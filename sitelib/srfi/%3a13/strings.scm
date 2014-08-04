@@ -1102,7 +1102,10 @@
 
 	(let* ((cset (cond ((char-set? criterion) criterion)
 			   ((char? criterion) (char-set criterion))
-			   (else (error "string-delete criterion not predicate, char or char-set" criterion))))
+			   (else 
+			    (error 'string-delete
+				   "criterion not predicate, char or char-set"
+				   criterion))))
 	       (len (string-fold (lambda (c i) (if (char-set-contains? cset c)
 						   i
 						   (+ i 1)))
@@ -1130,7 +1133,10 @@
 
 	(let* ((cset (cond ((char-set? criterion) criterion)
 			   ((char? criterion) (char-set criterion))
-			   (else (error "string-delete criterion not predicate, char or char-set" criterion))))
+			   (else 
+			    (error 'string-filter
+				   "criterion not predicate, char or char-set"
+				   criterion))))
 
 	       (len (string-fold (lambda (c i) (if (char-set-contains? cset c)
 						   (+ i 1)
@@ -1399,14 +1405,15 @@
 ;;; #(-1 0 0 -1 1 2)
 
 ;; modified by Takashi Kato
-(define-with-key (make-kmp-restart-vector pattern :optional
+(define (make-kmp-restart-vector pattern :optional
 					  (c= char=?) (start 0)
-					  (end (string-length pattern)))
+					  (end (string-length pattern))
+					  (ref string-ref))
     (let* ((rvlen (- end start))
 	   (rv (make-vector rvlen -1)))
       (if (> rvlen 0)
 	  (let ((rvlen-1 (- rvlen 1))
-		(c0 (string-ref pattern start)))
+		(c0 (ref pattern start)))
 
 	    ;; Here's the main loop. We have set rv[0] ... rv[i].
 	    ;; K = I + START -- it is the corresponding index into PATTERN.
@@ -1418,11 +1425,11 @@
 		  (let lp2 ((j j))
 		    (cond ((= j -1)
 			   (let ((i1 (+ 1 i)))
-			     (if (not (c= (string-ref pattern (+ k 1)) c0))
+			     (if (not (c= (ref pattern (+ k 1)) c0))
 				 (vector-set! rv i1 0))
 			     (lp1 i1 0 (+ k 1))))
 			  ;; pat[(k-j) .. k] matches pat[start..start+j].
-			  ((c= (string-ref pattern k) (string-ref pattern (+ j start)))
+			  ((c= (ref pattern k) (ref pattern (+ j start)))
 			   (let* ((i1 (+ 1 i))
 				  (j1 (+ 1 j)))
 			     (vector-set! rv i1 j1)
@@ -1444,13 +1451,13 @@
 ;;; defaulting of arguments. This is a low-level, inner-loop procedure
 ;;; that we want integrated/inlined into the point of call.
 
-(define (kmp-step pat rv c i c= p-start)
+(define (kmp-step pat rv c i c= p-start :optional (ref string-ref))
   (let lp ((i i))
-    (if (c= c (string-ref pat (+ i p-start)))	; Match =>
-	(+ i 1)					;   Done.
-	(let ((i (vector-ref rv i)))		; Back up in PAT.
-	  (if (= i -1) 0			; Can't back up further.
-	      (lp i))))))			; Keep trying for match.
+    (if (c= c (ref pat (+ i p-start)))	; Match =>
+	(+ i 1)				;   Done.
+	(let ((i (vector-ref rv i)))	; Back up in PAT.
+	  (if (= i -1) 0		; Can't back up further.
+	      (lp i))))))		; Keep trying for match.
 
 ;;; Zip through S[start,end), looking for a match of PAT. Assume we've
 ;;; already matched the first I chars of PAT when we commence at S[start].
@@ -1468,7 +1475,8 @@
 				   (p-start 0)
 				   s-start
 				   s-end
-				   c=+p-start+s-start+s-end)
+				   c=+p-start+s-start+s-end
+				   (ref string-ref))
   (check-arg vector? rv string-kmp-partial-search)
   (let ((patlen (vector-length rv)))
     ;; Enough prelude. Here's the actual code.
@@ -1477,10 +1485,10 @@
       (cond ((= vi patlen) (- si))	; Win.
 	    ((= si s-end) vi)		; Ran off the end.
 	    (else			; Match s[si] & loop.
-	     (let ((c (string-ref s si)))
+	     (let ((c (ref s si)))
 	       (lp (+ si 1)	
 		   (let lp2 ((vi vi))	; This is just KMP-STEP.
-		     (if (c= c (string-ref pat (+ vi p-start)))
+		     (if (c= c (ref pat (+ vi p-start)))
 			 (+ vi 1)
 			 (let ((vi (vector-ref rv vi)))
 			   (if (= vi -1) 0

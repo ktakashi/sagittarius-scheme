@@ -2021,4 +2021,17 @@
       foo)
     (string=? foo bar)))
 
+(test-assert "string-contains"
+	     (string-contains "The brown fox jumped..." "e b"))
+(test-assert "string-contains index start"
+	     (string-contains "The brown fox jumped..." "e b" 2))
+(test-assert "string-contains index start end"
+	     (not (string-contains "The brown fox jumped..." "e b" 2 3)))
+(test-assert "string-contains index start end (2)"
+	     (string-contains "The brown fox jumped..." "e b" 2 5))
+(test-assert "string-contains index start end start"
+	     (string-contains "The brown fox jumped..." "e b" 2 5 0))
+(test-assert "string-contains index start end start end"
+	     (string-contains "The brown fox jumped..." "e b" 2 5 0 2))
+
 (test-end)

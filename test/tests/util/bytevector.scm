@@ -53,18 +53,15 @@
 				   (bytevector-append bv #vu8(0 0)))) r))
 
 (define ->bv string->utf8)
-(define u8-set:whitespace 
-  (map char->integer 
-       (char-set->list (char-set-intersection char-set:whitespace char-set:ascii))))
-(define u8-set:letter 
-  (map char->integer 
-       (char-set->list (char-set-intersection char-set:letter char-set:ascii))))
-(define u8-set:digit
-  (map char->integer 
-       (char-set->list (char-set-intersection char-set:digit char-set:ascii))))
+(define u8-set:whitespace  (char-set->u8-set char-set:whitespace))
+(define u8-set:letter      (char-set->u8-set char-set:letter))
+(define u8-set:digit       (char-set->u8-set char-set:digit))
+(define u8-set:graphic     (char-set->u8-set char-set:graphic))
+(define u8-set:punctuation (char-set->u8-set char-set:punctuation))
+
 (define (u8-whitespace? u8) (char-whitespace? (integer->char u8)))
 (define (u8-alphabetic? u8) (char-alphabetic? (integer->char u8)))
-(define (u8-numeric? u8) (char-numeric? (integer->char u8)))
+(define (u8-numeric? u8)    (char-numeric? (integer->char u8)))
  
 (test-assert
   "bytevector-take empty bytevector"
@@ -802,14 +799,6 @@
     (->bv "fuar")
     (bytevector-replace (->bv "foo bar") (->bv "uu") 1 5 1 2)))
 
-(define u8-set:graphic
-  (map char->integer
-       (char-set->list 
-	(char-set-intersection char-set:graphic char-set:ascii))))
-(define u8-set:punctuation
-  (map char->integer
-       (char-set->list 
-	(char-set-intersection char-set:punctuation char-set:ascii))))
 
 (test-assert
   "bytevector-tokenize empty bytevector, no char/pred"
@@ -846,5 +835,359 @@
 	  u8-set:graphic
 	  1
 	  9))))
+
+;; filter & delete
+(test-error
+  "bytevector-filter bad char_pred integer"
+  condition?
+  (bytevector-filter #\c (->bv "abcde")))
+(test-assert
+  "bytevector-filter empty bytevector, char"
+  (bytevector=? #vu8() (bytevector-filter (char->integer #\.) #vu8())))
+(test-assert
+  "bytevector-filter empty bytevector, charset"
+  (bytevector=?
+    #vu8()
+    (bytevector-filter u8-set:punctuation #vu8())))
+(test-assert
+  "bytevector-filter empty bytevector, pred"
+  (bytevector=? #vu8() (bytevector-filter u8-alphabetic? #vu8())))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "...") (bytevector-filter (char->integer #\.) (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "...")
+    (bytevector-filter u8-set:punctuation (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-filter pred"
+  (bytevector=?
+    (->bv "foobar")
+    (bytevector-filter u8-alphabetic? (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-filter char, start index"
+  (bytevector=? (->bv "..") (bytevector-filter (char->integer #\.) (->bv ".foo.bar.") 2)))
+(test-assert
+  "bytevector-filter charset, start index"
+  (bytevector=?
+    (->bv "..")
+    (bytevector-filter
+      u8-set:punctuation
+      (->bv ".foo.bar.")
+      2)))
+(test-assert
+  "bytevector-filter pred, start index"
+  (bytevector=?
+    (->bv "oobar")
+    (bytevector-filter u8-alphabetic? (->bv ".foo.bar.") 2)))
+(test-assert
+  "bytevector-filter char, start and end index"
+  (bytevector=? #vu8() (bytevector-filter (char->integer #\.) (->bv ".foo.bar.") 2 4)))
+(test-assert
+  "bytevector-filter charset, start and end index"
+  (bytevector=?
+    #vu8()
+    (bytevector-filter
+      u8-set:punctuation
+      (->bv ".foo.bar.")
+      2
+      4)))
+(test-assert
+  "bytevector-filter pred, start and end index"
+  (bytevector=?
+    (->bv "oo")
+    (bytevector-filter u8-alphabetic? (->bv ".foo.bar.") 2 4)))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "x"))))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "xx") (bytevector-filter (char->integer #\x) (->bv "xx"))))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "xx") (bytevector-filter (char->integer #\x) (->bv "xyx"))))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "xyyy"))))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "yyyx"))))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "xx") (bytevector-filter (char->integer #\x) (->bv "xxx") 1)))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "xx") (bytevector-filter (char->integer #\x) (->bv "xxx") 0 2)))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "xyx") 1)))
+(test-assert
+  "bytevector-filter char"
+  (equal? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "yxx") 0 2)))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? #vu8() (bytevector-filter (char->integer #\x) (->bv "."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? #vu8() (bytevector-filter (char->integer #\x) (->bv ".."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? #vu8() (bytevector-filter (char->integer #\x) (->bv "..."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv ".x"))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "..x"))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "...x"))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "x."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "x.."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "x..."))))
+(test-assert
+  "bytevector-filter char"
+  (bytevector=? (->bv "x") (bytevector-filter (char->integer #\x) (->bv "...x..."))))
+(let ((charset (list (char->integer #\x) (char->integer #\y))))
+  (test-assert
+    (equal? (->bv "x") (bytevector-filter charset (->bv "x"))))
+  (test-assert
+    (equal? (->bv "xx") (bytevector-filter charset (->bv "xx"))))
+  (test-assert
+    (equal? (->bv "xy") (bytevector-filter charset (->bv "xy"))))
+  (test-assert
+    (equal? (->bv "x") (bytevector-filter charset (->bv "xaaa"))))
+  (test-assert
+    (equal? (->bv "y") (bytevector-filter charset (->bv "aaay"))))
+  (test-assert
+    (equal? (->bv "yx") (bytevector-filter charset (->bv "xyx") 1)))
+  (test-assert
+    (equal? (->bv "xy") (bytevector-filter charset (->bv "xyx") 0 2)))
+  (test-assert
+    (equal? (->bv "x") (bytevector-filter charset (->bv "xax") 1)))
+  (test-assert
+    (equal? (->bv "x") (bytevector-filter charset (->bv "axx") 0 2))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=? #vu8() (bytevector-filter u8-set:letter (->bv "."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    #vu8()
+    (bytevector-filter u8-set:letter (->bv ".."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    #vu8()
+    (bytevector-filter u8-set:letter (->bv "..."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv ".x"))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "..x"))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "...x"))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "x."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "x.."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "x..."))))
+(test-assert
+  "bytevector-filter charset"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-filter u8-set:letter (->bv "...x..."))))
+(test-error
+  "bytevector-delete bad char_pred integer"
+  condition?
+  (bytevector-delete #\c (->bv "abcde")))
+(test-assert
+  "bytevector-delete empty bytevector, char"
+  (bytevector=? #vu8() (bytevector-delete (char->integer #\.) #vu8())))
+(test-assert
+  "bytevector-delete empty bytevector, charset"
+  (bytevector=?
+    #vu8()
+    (bytevector-delete u8-set:punctuation #vu8())))
+(test-assert
+  "bytevector-delete empty bytevector, pred"
+  (bytevector=? #vu8() (bytevector-delete u8-alphabetic? #vu8())))
+(test-assert
+  "bytevector-delete char"
+  (bytevector=?
+    (->bv "foobar")
+    (bytevector-delete (char->integer #\.) (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-delete charset"
+  (bytevector=?
+    (->bv "foobar")
+    (bytevector-delete u8-set:punctuation (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-delete pred"
+  (bytevector=?
+    (->bv "...")
+    (bytevector-delete u8-alphabetic? (->bv ".foo.bar."))))
+(test-assert
+  "bytevector-delete char, start index"
+  (bytevector=?
+    (->bv "oobar")
+    (bytevector-delete (char->integer #\.) (->bv ".foo.bar.") 2)))
+(test-assert
+  "bytevector-delete charset, start index"
+  (bytevector=?
+    (->bv "oobar")
+    (bytevector-delete
+      u8-set:punctuation
+      (->bv ".foo.bar.")
+      2)))
+(test-assert
+  "bytevector-delete pred, start index"
+  (bytevector=?
+    (->bv "..")
+    (bytevector-delete u8-alphabetic? (->bv ".foo.bar.") 2)))
+(test-assert
+  "bytevector-delete char, start and end index"
+  (bytevector=?
+    (->bv "oo")
+    (bytevector-delete (char->integer #\.) (->bv ".foo.bar.") 2 4)))
+(test-assert
+  "bytevector-delete charset, start and end index"
+  (bytevector=?
+    (->bv "oo")
+    (bytevector-delete
+      u8-set:punctuation
+      (->bv ".foo.bar.")
+      2
+      4)))
+(test-assert
+  "bytevector-delete pred, start and end index"
+  (bytevector=?
+    #vu8()
+    (bytevector-delete u8-alphabetic? (->bv ".foo.bar.") 2 4)))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? #vu8() (bytevector-delete (char->integer #\.) (->bv "."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? #vu8() (bytevector-delete (char->integer #\.) (->bv ".."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? #vu8() (bytevector-delete (char->integer #\.) (->bv "..."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv ".x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "..x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "...x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "x."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "x.."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "x..."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=? (->bv "x") (bytevector-delete (char->integer #\.) (->bv "...x..."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    #vu8()
+    (bytevector-delete u8-set:punctuation (->bv "."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    #vu8()
+    (bytevector-delete u8-set:punctuation (->bv ".."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    #vu8()
+    (bytevector-delete u8-set:punctuation (->bv "..."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv ".x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "..x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "...x"))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "x."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "x.."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "x..."))))
+(test-assert
+  "bytevector-delete"
+  (bytevector=?
+    (->bv "x")
+    (bytevector-delete u8-set:punctuation (->bv "...x..."))))
+
+;; contains
+(test-assert "bytevector-contains"
+	     (bytevector-contains (->bv "The brown fox jumped...") 
+				  (->bv "e b")))
+(test-assert "bytevector-contains index start"
+	     (bytevector-contains (->bv "The brown fox jumped...") 
+				  (->bv "e b") 2))
+(test-assert "bytevector-contains index start end"
+	     (not (bytevector-contains (->bv "The brown fox jumped...") 
+				       (->bv "e b") 2 3)))
+(test-assert "bytevector-contains index start end (2)"
+	     (bytevector-contains (->bv "The brown fox jumped...") 
+				  (->bv "e b") 2 5))
+(test-assert "bytevector-contains index start end start"
+	     (bytevector-contains (->bv "The brown fox jumped...") 
+				  (->bv "e b") 2 5 0))
+(test-assert "bytevector-contains index start end start end"
+	     (bytevector-contains (->bv "The brown fox jumped...") 
+				  (->bv "e b") 2 5 0 2))
 
 (test-end)
