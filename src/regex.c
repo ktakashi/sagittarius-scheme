@@ -2650,6 +2650,7 @@ SgObject Sg_ParseCharSetString(SgString *s, int asciiP)
   /* sanity check */
   lexer_ctx_t ctx;
   int size = SG_STRING_SIZE(s);
+  SgObject r;
   if (size < 2) {
     Sg_Error(UC("invalid regex char-set string. %S"), s);
   }
@@ -2660,7 +2661,13 @@ SgObject Sg_ParseCharSetString(SgString *s, int asciiP)
     Sg_Error(UC("regex char-set must end with ']'. %S"), s);
   }
   init_lexer(&ctx, s, (asciiP) ? 0 : SG_UNICODE_CASE);
-  return reg_expr(&ctx);
+  r = reg_expr(&ctx);
+  if (SG_PAIRP(r)) {
+    /* (inverted-char-class cset) */
+    return Sg_CharSetComplement(SG_CADR(r));
+  } else {
+    return r;
+  }
 }
 
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)
