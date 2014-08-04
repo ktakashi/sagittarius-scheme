@@ -2302,9 +2302,17 @@ static void charset_print_ch(SgPort *out, SgChar ch, int firstp)
   if (ch == '[' || ch == ']' || ch == '-' || (ch == '^' && firstp)) {
     Sg_Printf(out, UC("\\%c"), ch);
   } else if (ch < 0x20 || ch == 0x7f) {
+    /* \xXX is enough for range of ascii */
     Sg_Printf(out, UC("\\x%02x"), ch);
   } else {
-    Sg_PutcUnsafe(out, ch);
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Mn: case Mc: case Me: case Cc: case Cf: case Cs: case Co: case Cn:
+      if (ch < 0x10000) Sg_Printf(out, UC("\\u%04x"), ch);
+      else              Sg_Printf(out, UC("\\U%08x"), ch);
+      break;
+    default:
+      Sg_PutcUnsafe(out, ch);
+    }
   }
 }
 
@@ -2322,10 +2330,10 @@ static void charset_to_regex(SgObject cs, int invertP, SgPort *out)
     SgChar start = SG_INT_VALUE(SG_CAR(cell)), end = SG_INT_VALUE(SG_CDR(cell));
     charset_print_ch(out, start, firstp);
     firstp = FALSE;
-
-    Sg_PutcUnsafe(out, '-');
-
-    charset_print_ch(out, end, FALSE);
+    if (start != end) {
+      Sg_PutcUnsafe(out, '-');
+      charset_print_ch(out, end, FALSE);
+    }
   }
   Sg_PutcUnsafe(out, ']');
 }
@@ -2668,6 +2676,19 @@ SgObject Sg_ParseCharSetString(SgString *s, int asciiP)
   } else {
     return r;
   }
+}
+
+SgObject Sg_CharSetToRegexString(SgObject cset, int invertP)
+{
+  SgPort out;
+  SgTextualPort tp;
+  SgObject str;
+
+  Sg_InitStringOutputPort(&out, &tp, 0);
+  charset_to_regex(cset, invertP, &out);
+  str = Sg_GetStringFromStringPort(&out);
+  SG_CLEAN_TEXTUAL_PORT(&tp);
+  return str;
 }
 
 SgObject Sg_CompileRegex(SgString *pattern, int flags, int parseOnly)

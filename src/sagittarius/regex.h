@@ -158,6 +158,7 @@ SG_EXTERN void       Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
 /* misc */
 SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP);
+SG_EXTERN SgObject   Sg_CharSetToRegexString(SgObject cset, int invertP);
 
 SG_CDECL_END
 

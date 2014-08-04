@@ -91,6 +91,7 @@
 
 	    ;; misc
 	    parse-char-set-string
+	    char-set->regex-string
 	    )
     (import (rename (sagittarius regex impl)
 		    (regex-replace-first impl:regex-replace-first)
