@@ -46,8 +46,7 @@
 	    bytevector-reverse
 	    ;; inspired by srfi 13
 	    ;; utility
-	    ;; should we export this?
-	    ;; u8? u8-set? u8-set-contains?
+	    u8? u8-set? u8-set-contains?
 	    string->u8-set char-set->u8-set
 
 	    ;; do you want map and for-each as well?
