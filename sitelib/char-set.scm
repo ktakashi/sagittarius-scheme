@@ -31,6 +31,8 @@
 ;; marker library for reader macro
 ;; #!reader-macro=char-set would be easier than
 ;; #!reader-macro=sagittarius/char-set
+
+;; this library doesn't make read/write invariance
 (library (char-set)
     (export :export-reader-macro)
     (import (rnrs)
@@ -44,7 +46,8 @@
       (let loop ((depth 0))
 	(let ((c (get-char in)))
 	  ;; we just need to put all chars until we got #\]
-	  (put-char out c)
+	  ;; c could be eof so check
+	  (when (char? c) (put-char out c))
 	  (cond ((eof-object? c) 
 		 (raise (condition
 			 (make-lexical-violation)
