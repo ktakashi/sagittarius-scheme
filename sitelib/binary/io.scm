@@ -60,7 +60,10 @@
 		   (cond ((= i buf-len) (finish buf)) ;; we are done
 			 ((eqv? (bytevector-u8-ref bv-mark i) b2)
 			  (bytevector-u8-set! buf i b2)
-			  (loop2 (+ i 1) (lookahead-next-u8 bin)))
+			  (get-u8 bin)
+			  (if (= (+ i 1) buf-len)
+			      (finish buf)
+			      (loop2 (+ i 1) (lookahead-u8 bin))))
 			 (else
 			  (put-bytevector out buf 0 i)
 			  (loop b2)))))
