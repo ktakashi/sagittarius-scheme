@@ -65,7 +65,11 @@ struct SgInternalCondRec
 };
 typedef struct SgInternalCondRec SgInternalCond;
 
+#define SG_INTERNAL_COND_TIMEDOUT 1
+#define SG_INTERNAL_COND_INTR     2
+
 #else
+#include <errno.h>
 #include <pthread.h>
 typedef struct SgInternalMutexRec
 {
@@ -84,6 +88,10 @@ typedef struct  SgInternalCondRec
 
 #define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (pthread_t)NULL)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (pthread_t)NULL)
+
+#define SG_INTERNAL_COND_TIMEDOUT ETIMEDOUT
+#define SG_INTERNAL_COND_INTR     EINTR
+
 #endif
 
 /* emulate pthread_cleanup_push/pop*/

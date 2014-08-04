@@ -124,13 +124,12 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
 {
   SgObject r = SG_TRUE;
   SgVM *abandoned = NULL;
-
   struct timespec ts, *pts;
+  int intr = FALSE;
+
   pts = Sg_GetTimeSpec(timeout, &ts);
 
-  thread_cleanup_push((void (*)(void*))Sg_UnlockMutex,
-		      (void *)&mutex->mutex);
-  Sg_LockMutex(&mutex->mutex);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(mutex->mutex);
   while (mutex->locked) {
     if (mutex->owner && mutex->owner->threadState == SG_VM_TERMINATED) {
       abandoned = mutex->owner;
@@ -138,11 +137,12 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
       break;
     }
     if (pts) {
-      int success = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, pts);
-      if (!success) {
+      int tr = Sg_WaitWithTimeout(&mutex->cv, &mutex->mutex, pts);
+      if (tr == SG_INTERNAL_COND_TIMEDOUT) {
 	r = SG_FALSE;
 	break;
-      } else {
+      } else if (tr == SG_INTERNAL_COND_INTR) {
+	intr = TRUE;
 	break;
       }
     } else {
@@ -153,8 +153,10 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
     mutex->locked = TRUE;
     mutex->owner = owner;
   }
-  Sg_UnlockMutex(&mutex->mutex);
-  thread_cleanup_pop(0);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_END();
+
+  /* intr? */
+  /* if (intr) ...  */
   if (abandoned) {
     SgObject exc = Sg_MakeAbandonedMutexException(abandoned, mutex);
     r = Sg_Raise(exc, FALSE);
@@ -162,32 +164,35 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
   return r;
 }
 
-SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, SgObject timeout)
+SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv, 
+			SgObject timeout)
 {
   SgObject r = SG_TRUE;
-
   struct timespec ts, *pts;
+  int intr = FALSE;
+
   pts = Sg_GetTimeSpec(timeout, &ts);
 
-  thread_cleanup_push((void (*)(void*))Sg_UnlockMutex,
-		      (void *)&mutex->mutex);
-
-  Sg_LockMutex(&mutex->mutex);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(mutex->mutex);
   mutex->locked = FALSE;
   mutex->owner = NULL;
   Sg_Notify(&mutex->cv);
   if (cv) {
     if (pts) {
-      int success = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, pts);
-      if (!success) {
+      int tr = Sg_WaitWithTimeout(&cv->cv, &mutex->mutex, pts);
+      if (tr == SG_INTERNAL_COND_TIMEDOUT) {
 	r = SG_FALSE;
-      }      
+      } else if (tr == SG_INTERNAL_COND_INTR) {
+	intr = TRUE;
+      }
     } else {
       Sg_Wait(&cv->cv, &mutex->mutex);
     }
   }
-  Sg_UnlockMutex(&mutex->mutex);
-  thread_cleanup_pop(0);
+  SG_INTERNAL_MUTEX_SAFE_LOCK_END();
+
+  /* intr? */
+  /* if (intr) ... */
   return r;
 }
 

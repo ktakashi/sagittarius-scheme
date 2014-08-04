@@ -30,7 +30,6 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
-#include <errno.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
@@ -111,26 +110,22 @@ void Sg_DestroyCond(SgInternalCond *cond)
 
 int Sg_Notify(SgInternalCond *cond)
 {
-  int ret = pthread_cond_signal(&cond->cond);
-  return ret == 0;
+  return pthread_cond_signal(&cond->cond);
 }
 
 int Sg_NotifyAll(SgInternalCond *cond)
 {
-  int ret = pthread_cond_broadcast(&cond->cond);
-  return ret == 0;
+  return pthread_cond_broadcast(&cond->cond);
 }
 
 int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
 {
-  int ret = pthread_cond_wait(&cond->cond, &mutex->mutex);
-  return ret == 0;
+  return pthread_cond_wait(&cond->cond, &mutex->mutex);
 }
 
 int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 		       struct timespec *pts)
 {
-  int ret = 0;
 #if 0
   struct timeval  now;
   struct timespec timeout;
@@ -149,11 +144,7 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
     timeout.tv_nsec -= 1000000000;
   }
 #endif
-  do {
-    ret = pthread_cond_timedwait(&cond->cond, &mutex->mutex, pts);
-  } while (ret == EINTR);
-  ASSERT(ret != EINVAL);
-  return ETIMEDOUT != ret;
+  return pthread_cond_timedwait(&cond->cond, &mutex->mutex, pts);
 }
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)

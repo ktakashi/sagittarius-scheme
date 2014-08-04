@@ -137,8 +137,8 @@ void Sg_DestroyCond(SgInternalCond *cond)
 
 int Sg_Notify(SgInternalCond *cond)
 {
-  int have_waiters;
-  if (!cond->mutex) return TRUE; /* nobody ever waited on this cond var */
+  int have_waiters, BOOL r = TRUE;
+  if (!cond->mutex) return 0; /* nobody ever waited on this cond var */
   
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
 
@@ -146,18 +146,21 @@ int Sg_Notify(SgInternalCond *cond)
   have_waiters = cond->waiters_count > 0;
   LeaveCriticalSection(&cond->waiters_count_lock);
   if (have_waiters) {
-    ReleaseSemaphore(cond->semaphore, 1, 0);
+    r = ReleaseSemaphore(cond->semaphore, 1, 0);
   }
 
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-  return TRUE;
+  if (!r) return -1;
+  return 0;
 }
 
 int Sg_NotifyAll(SgInternalCond *cond)
 {
   int have_waiters = 0;
+  BOOL r0 = TRUE;
+  DWORD r1 = WAIT_OBJECT_0, err = 0;
 
-  if (!cond->mutex) return TRUE; /* nobody ever waited on this cond var */
+  if (!cond->mutex) return 0; /* nobody ever waited on this cond var */
 
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
 
@@ -165,23 +168,28 @@ int Sg_NotifyAll(SgInternalCond *cond)
   cond->was_broadcast = have_waiters = (cond->waiters_count > 0);
 
   if (have_waiters) {
-    DWORD r = ReleaseSemaphore(cond->semaphore, cond->waiters_count, 0);
+    r0 = ReleaseSemaphore(cond->semaphore, cond->waiters_count, 0);
+    if (!r0) err = GetLastError();
     LeaveCriticalSection(&cond->waiters_count_lock);
-    WaitForSingleObject(cond->waiters_done, INFINITE);
-    cond->was_broadcast = FALSE;
+    if (r0) {
+      r1 = WaitForSingleObject(cond->waiters_done, INFINITE);
+      cond->was_broadcast = FALSE;
+    }
   } else {
     LeaveCriticalSection(&cond->waiters_count_lock);
   }
-
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-  return TRUE;
+
+  if (!r0) { SetLastError(err); return -1; }
+  if (r1 != WAIT_OBJECT_0) return -1;
+  return 0;
 }
 
 static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 			 struct timespec *pts)
 {
   int last_waiter, bad_mutex = FALSE;
-  DWORD msecs, r0;
+  DWORD msecs, r0, r1;
   if (pts) {
     unsigned long now_sec, target_sec;
     unsigned long target_usec, now_usec;
@@ -223,12 +231,13 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
   last_waiter = cond->was_broadcast && cond->waiters_count == 0;
   LeaveCriticalSection(&cond->waiters_count_lock);
   if (last_waiter) {
-    SignalObjectAndWait(cond->waiters_done, mutex->mutex, INFINITE, FALSE);
+    r1 = SignalObjectAndWait(cond->waiters_done, mutex->mutex, INFINITE, FALSE);
   } else {
-    Sg_LockMutex(mutex);
+    r1 = Sg_LockMutex(mutex);
   }
-  if (r0 == WAIT_TIMEOUT) return FALSE;
-  return TRUE;
+  if (r0 == WAIT_TIMEOUT) return SG_INTERNAL_COND_TIMEDOUT;
+  if (r0 != WAIT_OBJECT_0 || r1 != WAIT_OBJECT_0) return -1;
+  return 0;
 }
 
 int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)

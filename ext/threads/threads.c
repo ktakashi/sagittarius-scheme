@@ -67,8 +67,7 @@ static void thread_cleanup_inner(SgVM *vm)
   vm->threadState = SG_VM_TERMINATED;
   if (vm->canceller) {
     /* this thread is cancelled */
-    exc = Sg_MakeTerminatedThreadException(vm, vm->canceller);
-    vm->resultException = exc;
+    vm->resultException = Sg_MakeTerminatedThreadException(vm, vm->canceller);
   }
   Sg_NotifyAll(&vm->cond);
 }
@@ -139,28 +138,35 @@ SgObject Sg_ThreadStart(SgVM *vm)
 
 SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
 {
-  int success = TRUE;
+  struct timespec ts;
+  int intr = FALSE, tout = FALSE;
   SgObject result = SG_FALSE, resultx = SG_FALSE;
 
-  struct timespec ts, *pts;
-  pts = Sg_GetTimeSpec(timeout, &ts);
-
+  struct timespec *pts = Sg_GetTimeSpec(timeout, &ts);
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
   while (vm->threadState != SG_VM_TERMINATED) {
     if (pts) {
-      success = Sg_WaitWithTimeout(&vm->cond, &vm->vmlock, pts);
-      break;
+      int tr  = Sg_WaitWithTimeout(&vm->cond, &vm->vmlock, pts);
+      if (tr == SG_INTERNAL_COND_TIMEDOUT) {
+	tout = TRUE;
+	break;
+      } else if (tr == SG_INTERNAL_COND_INTR) {
+	intr = TRUE;
+	break;
+      }
     } else {
-      success = Sg_Wait(&vm->cond, &vm->vmlock);
+      Sg_Wait(&vm->cond, &vm->vmlock);
     }
   }
-  if (success) {
+  if (!tout) {
     result = vm->result;
     resultx = vm->resultException;
     vm->resultException = SG_FALSE;
   }
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-  if (!success) {
+  /* intr? */
+  /* if (intr) ... ? */
+  if (tout) {
     if (SG_UNBOUNDP(timeoutval)) {
       SgObject e = Sg_MakeJoinTimeoutException(vm);
       result = Sg_Raise(e, FALSE);
@@ -268,9 +274,15 @@ SgObject Sg_ThreadSleep(SgObject timeout)
 static int wait_for_termination(SgVM *target)
 {
   struct timespec ts;
+  int r;
   SgObject t = Sg_MakeFlonum(0.001); /* 1ms */
+
   Sg_GetTimeSpec(t, &ts);
-  return Sg_WaitWithTimeout(&target->cond, &target->vmlock, &ts);
+  do {
+    r = Sg_WaitWithTimeout(&target->cond, &target->vmlock, &ts);
+  } while (r != SG_INTERNAL_COND_TIMEDOUT &&
+	   target->state != SG_VM_TERMINATED);
+  return r == 0;
 }
 
 SgObject Sg_ThreadTerminate(SgVM *target)
@@ -293,6 +305,7 @@ SgObject Sg_ThreadTerminate(SgVM *target)
 	target->canceller = vm;
 	target->stopRequest = SG_VM_REQUEST_TERMINATE;
 	target->attentionRequest = TRUE;
+
 	if (wait_for_termination(target)) break;
 
 	thread_cleanup_inner(target);

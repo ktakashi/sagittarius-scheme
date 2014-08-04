@@ -62,23 +62,22 @@
 			 (let loop ()
 			   (sys-nanosleep #e5e8)
 			   (loop))))))
-  (test-equal "thread-state" 'new (thread-state t1))
+  (test-equal "thread-state(1)" 'new (thread-state t1))
   (thread-start! t1)
-  (test-equal "thread-state" 'runnable (thread-state t1))
+  (test-equal "thread-state(2)" 'runnable (thread-state t1))
   (thread-stop! t1)
-  (test-equal "thread-state" 'stopped (thread-state t1))
+  (test-equal "thread-state(3)" 'stopped (thread-state t1))
   (thread-stop! t1) ;; duplicate stop test
-  (test-equal "thread-state" 'stopped (thread-state t1))
+  (test-equal "thread-state(4)" 'stopped (thread-state t1))
   (thread-cont! t1)
-  (test-equal "thread-state" 'runnable (thread-state t1))
+  (test-equal "thread-state(5)" 'runnable (thread-state t1))
   (thread-terminate! t1)
-  (test-equal "thread-state" 'terminated
-	      (thread-guard (e 
-			     ((terminated-thread-exception? e)
-			      (thread-state t1))
-			     (else
-			      (print e)))
-			    (thread-join! t1))))
+  (test-equal "thread-state(6)" 'terminated
+	      (guard (e ((terminated-thread-exception? e)
+			 (thread-state t1))
+			(else
+			 (print e)))
+		(thread-join! t1))))
 
 ;; thread and error
 (test-assert "uncaught-exception"
