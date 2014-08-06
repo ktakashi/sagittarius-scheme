@@ -589,6 +589,10 @@
 
   ;; check all env frames are macro
   (define-cfn check-env-frame (frames) ::int :static
+    ;; if the frame is null then it's definitely
+    ;; (let () ...) thing. let(rec)-syntax's bindings are
+    ;; merged to the environment
+    (when (SG_NULLP frames) (return TRUE))
     (dolist (frame frames)
       (unless (and (SG_PAIRP frame) (SG_MACROP (SG_CDR frame)))
 	(return TRUE)))

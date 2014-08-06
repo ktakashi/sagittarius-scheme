@@ -1436,4 +1436,18 @@
   (test-assert "overflowed value ref" (hashtable-ref ht key #f)))
 )
 
+;; call #52
+;; eval can accept bindings in Sagittarius (not R6RS compliant)
+(test-error "let-syntax scope" condition?
+	    (eval '(begin
+		     (define-syntax let-syntax
+		       (syntax-rules ()
+			 ((_ ((var trans) ...) expr ...)
+			  (let ()
+			    (rnrs:let-syntax ((var trans) ...) expr ...)))))
+		     (let-syntax ((var (syntax-rules ())))
+		       (define bar 'bar)
+		       'ok)
+		     bar)
+		  (environment '(rename (rnrs) (let-syntax rnrs:let-syntax)))))
 (test-end)
