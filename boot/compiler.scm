@@ -1544,18 +1544,14 @@
 (define-syntax define-pass1/let-syntax
   (syntax-rules ()
     ((_ name proc)
-     (define (name form p1env slice?)
+     (define (name form p1env)
        (let-values (((newenv body) (proc form p1env)))
-	 (if slice?
-	     ($seq (imap (lambda (e) (pass1 e newenv)) body))
-	     (pass1/body body newenv)))))))
+	 ($seq (imap (lambda (e) (pass1 e newenv)) body)))))))
 
 (define-pass1/let-syntax pass1/let-syntax pass1/compile-let-syntax)
 
 (define-pass1-syntax (let-syntax form p1env) :null
-  (pass1/let-syntax form p1env #t))
-(define-pass1-syntax (let-syntax form p1env) :r7rs
-  (pass1/let-syntax form p1env #f))
+  (pass1/let-syntax form p1env))
 
 (define (pass1/compile-letrec-syntax form p1env)
   (smatch form
@@ -1575,9 +1571,7 @@
 (define-pass1/let-syntax pass1/letrec-syntax pass1/compile-letrec-syntax)
 
 (define-pass1-syntax (letrec-syntax form p1env) :null
-  (pass1/letrec-syntax form p1env #t))
-(define-pass1-syntax (letrec-syntax form p1env) :r7rs
-  (pass1/letrec-syntax form p1env #f))
+  (pass1/letrec-syntax form p1env))
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define (er-rename symid p1env dict)

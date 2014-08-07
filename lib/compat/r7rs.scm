@@ -6,7 +6,6 @@
     (import (rename (except (core) identifier?)
 		    (length length*)
 		    (number->string %number->string))
-	    (r7rs) ;; builtin compatibility library
 	    (rename (core base) (for-all every) (exists any))
 	    (rename (core errors) (error core:error))
 	    (rename (sagittarius)
@@ -237,7 +236,7 @@
               (list
                _car
                (cons
-                _or
+                _or 
                 (append
                  (map
                   (lambda (clause) (expand-pattern (car clause) (cadr clause)))

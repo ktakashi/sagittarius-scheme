@@ -71,9 +71,10 @@
      write-string write-u8
 
      zero?)
-  (import (rename (except (rnrs) syntax-rules define-record-type
-			  let-syntax letrec-syntax)
-		  (error r6rs:error))
+  (import (rename (except (rnrs) syntax-rules define-record-type)
+		  (error r6rs:error)
+		  (let-syntax r6rs:let-syntax)
+		  (letrec-syntax r6rs:letrec-syntax))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
 	  (rnrs r5rs)
@@ -87,6 +88,16 @@
 	  (only (scheme private) define-values)
 	  ;; for undefined and square
 	  (sagittarius))
+
+  (define-syntax let-syntax
+    (syntax-rules ()
+      ((_ ((var trans ...)) expr ...)
+       (r6rs:let-syntax ((var trans) ...) (let () expr ...)))))
+
+  (define-syntax letrec-syntax
+    (syntax-rules ()
+      ((_ ((var trans ...)) expr ...)
+       (r6rs:letrec-syntax ((var trans) ...) (let () expr ...)))))
 
   (define-syntax syntax-error
     (lambda (x)
