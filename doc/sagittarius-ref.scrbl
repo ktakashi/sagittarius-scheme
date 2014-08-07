@@ -113,16 +113,22 @@ it is marked as "[SRFI-n+]", the entry has additional functionality.}
 
 @section{Programming in Sagittarius}
 
-@subsection{Invoking sash}
+@subsection{Invoking Sagittarius}
 
 Sagittarius can be used either as an independent Schame interpreter or an
 embedded Scheme library. The interpreter which comes with Sagittarius
-destribution is a program named sash.
+distribution is a program named @code{sagittarius} on Unix like environment
+and @code{sash} on Windows environment. 
 
-@define[Program]{@name{sash} @args{[options] scheme-file arg @dots{}}}
-@desc{Invoking sash. If @var{scheme-file} is not given, it runs with interactive
-mode.
+@define[Program]{@name{sagittarius} @args{[options] scheme-file arg @dots{}}}
+@desc{Invoking sagittarius. If @var{scheme-file} is not given, it runs with
+interactive mode.
+
 Detail options are given with option @code{"-h"}.}
+
+For backward compatibility, symbolic link @code{sash} is also provided
+on Unix like environment. However this may not exist if Sagittarius is built
+with disabling symbolic link option.
 
 @subsection{Writing Scheme scripts}
 
@@ -135,11 +141,11 @@ unix-like systems.
 
 Typical Sagittarius script has the first line like this:
 
-@code{#!/usr/local/bin/sash}
+@code{#!/usr/local/bin/sagittarius}
 
 or
 
-@code{#!/bin/env sash}
+@code{#!/bin/env sagittarius}
 
 The second form uses "shell trampoline" technique so that the script works as
 far as sash is in the PATH.
@@ -151,7 +157,7 @@ Now I show a simple example below. This script works like @code{cat(1)}, without
 any command-line option processing and error handling.
 
 @codeblock{
-#!/usr/local/bin/sash
+#!/usr/local/bin/sagittarius
 (import (rnrs))
 (let ((args (command-line)))
   (unless (null? (cdr args))
@@ -164,9 +170,9 @@ any command-line option processing and error handling.
 }
 @subsection{Working on REPL}
 
-If @code{sash} does not get any script file to process, then it will go in to
-REPL (read-eval-print-loop). For developers' convenience, REPL imports some
-libraries by default such as @code{(rnrs)}.
+If @code{sagittarius} does not get any script file to process, then it will
+go in to REPL (read-eval-print-loop). For developers' convenience, REPL
+imports some libraries by default such as @code{(rnrs)}.
 
 If @code{.sashrc} file is located in the directory indicated @code{HOME} or
 @code{USERPROFILE} environment variable, then REPL reads it before evaluating
@@ -247,9 +253,9 @@ Sagittarius will use the variables respectively, so if the
 @code{SAGITTARIUS_CACHE_DIR} is found then it will be used.
 
 The caching compiled file is carefully designed however the cache file might be
-stored in broken state. In that case use @code{-c} option with @code{sash}, then
-it will wipe all cache files. If you don't want to use it, pass @code{-d} option
-then Sagittarius won't use it.
+stored in broken state. In that case use @code{-c} option with
+@code{sagittarius}, then it will wipe all cache files. If you don't want to use
+it, pass @code{-d} option then Sagittarius won't use it.
 
 @subsubsection{Precompiling cache file}
 
