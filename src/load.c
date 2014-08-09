@@ -73,21 +73,28 @@ static SgObject load_after(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
+static SgObject load_cc(SgObject result, void **data);
+
+static SgObject eval_cc(SgObject result, void **data)
+{
+  if (!SG_EOFP(result)) {
+    Sg_VMPushCC(load_cc, data, 1);
+    return Sg_VMEval(result, SG_FALSE);
+  } else {
+    return SG_TRUE;
+  }
+}
+
 static SgObject load_cc(SgObject result, void **data)
 {
   struct load_ctx *ctx = LOAD_CTX(data[0]);
-  SgObject expr, reader = SG_PORT_READER(ctx->port);
+  SgObject reader = SG_PORT_READER(ctx->port);
+  Sg_VMPushCC(eval_cc, data, 1);
   if (SG_FALSEP(reader)) {
-    expr = Sg_ReadWithContext(ctx->port, ctx->read_context);
+    return Sg_ReadWithContext(ctx->port, ctx->read_context);
   } else {
     /* in this case, reader can refer own context it needed */
-    expr = Sg_Apply1(reader, ctx->port);
-  }
-  if (!SG_EOFP(expr)) {
-    Sg_VMPushCC(load_cc, data, 1);
-    return Sg_VMEval(expr, SG_FALSE);
-  } else {
-    return SG_TRUE;
+    return Sg_VMApply1(reader, ctx->port);
   }
 }
 
