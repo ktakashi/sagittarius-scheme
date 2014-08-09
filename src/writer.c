@@ -609,10 +609,10 @@ static int symbol_need_bar(const SgChar *s, int n)
   } else {
     SgChar c;
     while ((c = *s++) != 0 && n--) {
-      if (c < 32) continue;
-      if (c == 127) continue;
-      if (c & 0x80) continue;
-	  if (c >= 0xFF) return TRUE;
+      /* if (c < 32) return TRUE; */
+      /* if (c == 127) continue; */
+      if (c >= 0x80) continue;
+      /* if (c >= 0xFF) continue; */
       if (isalnum(c)) continue;
       if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
       return TRUE;
@@ -1367,7 +1367,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 	  Sg_PutcUnsafe(port, '\\');
 	  Sg_PutcUnsafe(port, ch);
 	} else if (special[ch] & 4) {
-	  Sg_Printf(port, UC("\\x%02x"), ch);
+	  Sg_Printf(port, UC("\\x%02x;"), ch);
 	} else {
 	  Sg_PutcUnsafe(port, ch);
 	}

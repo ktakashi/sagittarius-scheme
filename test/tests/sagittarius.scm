@@ -1450,4 +1450,16 @@
 		       'ok)
 		     bar)
 		  (environment '(rename (rnrs) (let-syntax rnrs:let-syntax)))))
+;; call #53
+(test-equal "escaped symbol"
+	    "|'\\x0a;|"
+	    (call-with-string-output-port
+	     (lambda (out)
+	       (write
+		(read (open-string-input-port
+		       (call-with-string-output-port
+			(lambda (out)
+			  (display "|'\n|" out)))))
+		out))))
+
 (test-end)
