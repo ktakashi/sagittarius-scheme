@@ -583,6 +583,11 @@ static char special[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 11,3, 0, 7
 };
 
+/*
+  Check if the symbol needs bar escaped.
+  The bar needs only for symbols start with number or
+  contains control characters or white space.
+ */
 static int symbol_need_bar(const SgChar *s, int n)
 {
   /* R7RS allows these without escape. */
@@ -609,10 +614,14 @@ static int symbol_need_bar(const SgChar *s, int n)
   } else {
     SgChar c;
     while ((c = *s++) != 0 && n--) {
-      /* if (c < 32) return TRUE; */
-      /* if (c == 127) continue; */
-      if (c >= 0x80) continue;
-      /* if (c >= 0xFF) continue; */
+      if (c >= 0x80) {
+	switch (Sg_CharGeneralCategory(c)) {
+	case Cc: case Cf: case Cs: case Co: case Cn:
+	  return TRUE;
+	default:
+	  return Sg_Ucs4WhiteSpaceP(c);
+	}
+      }
       if (isalnum(c)) continue;
       if (strchr("!$%&/:*<=>?^_~+-.@", (char)c)) continue;
       return TRUE;
@@ -1358,6 +1367,8 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
       (!(flags & SG_SYMBOL_WRITER_NOESCAPE_INITIAL))) {
     escape = symbol_need_bar(p, size);
   }
+  /* FIXME symbol_need_bar and following piece of code does almost
+     the same checking... */
   if (escape && !r6rsMode) {
     Sg_PutcUnsafe(port, '|');
     for (q = p; q < p + size; q++) {
@@ -1372,7 +1383,22 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 	  Sg_PutcUnsafe(port, ch);
 	}
       } else {
-	Sg_PutcUnsafe(port, ch);
+	/* handling control characters which is not printable. */
+	switch (Sg_CharGeneralCategory(ch)) {
+	case Cc: case Cf: case Cs: case Co: case Cn:
+	  Sg_Printf(port, UC("\\x%02x;"), ch);
+	  break;
+	default:
+	  if (Sg_Ucs4WhiteSpaceP(ch)) {
+	    /* well this looks exactly the same as 0x20 so we 
+	       distinguish them
+	       TODO should we? */
+	    Sg_Printf(port, UC("\\x%02x;"), ch);
+	  } else {
+	    Sg_PutcUnsafe(port, ch);
+	  }
+	  break;
+	}
       }
     }
     Sg_PutcUnsafe(port, '|');
