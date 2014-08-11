@@ -1346,14 +1346,18 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 
   SG_PORT_LOCK(port);
   if (size == 0) {
+    /* if the mode is R6RS then (string->symbol "") should not
+       print anything. however, some of the R6RS implementations
+       does print '|| or equivalent. (Chez and guile).
+     */
     if (!(flags & SG_SYMBOL_WRITER_NOESCAPE_EMPTY)) {
       Sg_PutuzUnsafe(port, UC("||"));
     }
-    return;
+    goto end;
   }
   if (size == 1 && (*p == '+' || *p == '-')) {
     Sg_PutcUnsafe(port, *p);
-    return;
+    goto end;
   }
   /* R6RS does not have '|' */
   /* NOTE: this makes library name convertion ignore the difference
@@ -1402,7 +1406,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
       }
     }
     Sg_PutcUnsafe(port, '|');
-    return;
+    goto end;
   } else if (r6rsMode && (mode != SG_WRITE_LIBPATH)) {
       for (q = p; q < p + size; q++) {
 	SgChar ch = *q;
@@ -1416,7 +1420,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 	    if (size == 3) {
 	      if (q[0] == '.' && q[1] == '.' && q[2] == '.') {
 		Sg_PutuzUnsafe(port, UC("..."));
-		return;
+		goto end;
 	      }
 	    }
 	    if (size > 2) {
@@ -1434,7 +1438,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
   } else {
     Sg_PutsUnsafe(port, snam);
   }
-  
+ end:  
   SG_PORT_UNLOCK(port);
 }
 
