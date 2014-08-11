@@ -34,7 +34,7 @@
 ;; (especially read-eval-print-loop) names.
 
 ;; not to create scope with let-syntax ...
-#!r6rs
+;;#!r6rs
 (library (sagittarius interactive)
     (export read-eval-print-loop
 	    current-printer
@@ -61,6 +61,7 @@
 		    )))
       (build-path home ".sashrc")))
 
+  (define *read-context* (make-read-context :change-mode #t :shared #t))
   (letrec-syntax
       ((make-parameter* (syntax-rules ()
 			  ((_ name default)
@@ -94,7 +95,7 @@
     (define-parameter (evaluator form env) (eval form env))
     (define-parameter (printer . args)
       (for-each (lambda (o) (write/ss o) (newline)) args))
-    (define-parameter (reader in) (read/ss in))
+    (define-parameter (reader in) (read-with-context in *read-context*))
     (define-parameter (prompter) (display "sash> "))
     (define-parameter (exit) (exit 0)))
 

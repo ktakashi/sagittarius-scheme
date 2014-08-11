@@ -116,7 +116,7 @@ static SgReadContext * make_read_context()
 
 SgObject Sg_MakeDefaultReadContext()
 {
-  return SG_OBJ(make_read_context);
+  return SG_OBJ(make_read_context());
 }
 
 SgObject Sg_MakeReadContextForLoad()
@@ -1635,7 +1635,7 @@ static SgObject lookup_graph(SgPort *port, SgReadContext *ctx,
   SgObject obj = Sg_HashTableRef(ctx->graph, ref->index, SG_UNDEF);
   if (SG_SHAREDREF_P(obj)) return lookup_graph(port, ctx, SG_SHAREDREF(obj));
   if (obj != SG_UNDEF) return obj;
-  lexical_error(port, ctx, UC("attempt to reference undefined tag #%d#"),
+  lexical_error(port, ctx, UC("attempt to reference undefined tag #%A#"),
 		ref->index);
   return SG_UNDEF; /* dummy */
 }
@@ -1684,7 +1684,10 @@ SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
   /* extends_loading_table(port); */
-
+  if (ctx->graph) {
+    /* clear it */
+    Sg_HashCoreClear(SG_HASHTABLE_CORE(ctx->graph), 0);
+  }
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
   if (!ctx->escapedp && SG_EQ(obj, SG_SYMBOL_DOT)) {

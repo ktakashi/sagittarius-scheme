@@ -46,7 +46,7 @@ typedef struct SgSharedRefRec
 
 enum {
   SG_READ_SOURCE_INFO = 1L,
-  SG_CHANGE_VM_MODE   = 1L<<1,
+  SG_CHANGE_VM_MODE   = 1L<<1,	/* change VM mode */
 };
 
 /* <read-context> for custom load */
