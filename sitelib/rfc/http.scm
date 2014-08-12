@@ -571,14 +571,13 @@
 	     `(,type ,subtype ("charset" . 
 			       ,(format "~a" encoding)) ,@options)))))
     (define (make-content-disposition name file)
-      (utf8->string
-       (call-with-bytevector-output-port
-	(lambda (out)
-	  (put-string out "form-data")
-	  (mime-compose-parameters `(("name" . ,name)
-				     ,@(cond-list 
-					(file `("filename" . ,file))))
-				   out)))))
+      (call-with-string-output-port
+       (lambda (out)
+	 (display "form-data" out)
+	 (mime-compose-parameters `(("name" . ,name)
+				    ,@(cond-list 
+				       (file `("filename" . ,file))))
+				  out))))
     (if (not port)
 	(mime-compose-message-string (map translate-param params))
 	(mime-compose-message (map translate-param params) port)))
