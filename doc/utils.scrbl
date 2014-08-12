@@ -26,6 +26,7 @@
 @include-section["utils/rfc/base64.scrbl"]
 @include-section["utils/rfc/cmac.scrbl"]
 @include-section["utils/rfc/hmac.scrbl"]
+@include-section["utils/rfc/http.scrbl"]
 @include-section["utils/rfc/pem.scrbl"]
 @include-section["utils/rfc/quoted-printable.scrbl"]
 @include-section["utils/rfc/sftp.scrbl"]
