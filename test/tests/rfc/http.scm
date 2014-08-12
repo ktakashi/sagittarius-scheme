@@ -27,7 +27,7 @@
 
 (test-equal "http-user-agent"
 	    (format "sagittarius.http/~a" (sagittarius-version))
-	    (http-user-agent))
+	    (*http-user-agent*))
 (test-equal "http-compose-query" "/search?q=foo%20bar&n=20"
 	    (http-compose-query "/search" '((q "foo bar") (n 20))))
 
