@@ -61,7 +61,7 @@
 	    http-file-receiver
 	    http-cond-receiver
 
-	    http-default-redirect-handler
+	    *http-default-redirect-handler*
 	    ;; for convenience
 	    http-lookup-auth-handler
 	    url-server&path
@@ -137,7 +137,7 @@
 	(http-connection-secure conn (equal? proto "https"))))
     conn)
 
-  (define http-default-redirect-handler
+  (define *http-default-redirect-handler*
     (make-parameter
      (lambda (method code headers body)
        (and-let* ((loc (rfc5322-header-ref headers "location")))
@@ -211,7 +211,7 @@
 	(and-let* (( (not no-redirect) )
 		   ( (string-prefix? "3" code) )
 		   (h (case redirect-handler
-			((#t) (http-default-redirect-handler))
+			((#t) (*http-default-redirect-handler*))
 			((#f) #f)
 			(else redirect-handler)))
 		   (r (h method code headers
