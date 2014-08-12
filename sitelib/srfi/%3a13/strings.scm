@@ -220,7 +220,8 @@
 ;;; Returns three values: rest start end
 
 (define (string-parse-start+end proc s args)
-  (if (not (string? s)) (error "Non-string value" proc s))
+  (if (not (string? s)) (error 'string-parse-start+end 
+			       "Non-string value" proc s))
   (let ((slen (string-length s)))
     (if (pair? args)
 

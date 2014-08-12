@@ -143,12 +143,13 @@
 	       (alist-equal?
 		expected
 		(req-body 'GET host "/get"
-			  :receiver (lambda (code hdrs total retr)
-				      (let loop ((result '()))
-					(receive (port size) (retr)
-					  (if (and size (= size 0))
-					      result
-					      (loop (append result (read port)))))))
+			  :receiver 
+			  (lambda (code hdrs total retr)
+			    (let loop ((result '()))
+			      (receive (port size) (retr)
+				(if (and size (= size 0))
+				    result
+				    (loop (append result (read (transcoded-port port (native-transcoder)))))))))
 			  :my-header "foo"))
 	       )
 
@@ -193,7 +194,8 @@
                   (receive (port size) (retr)
                     (if (and size (= size 0))
                       result
-                      (loop (append result (read port)))))))]
+                      (loop (append result 
+				    (read (transcoded-port port (native-transcoder)))))))))]
        ))
 
     (test-equal "http-get, cond-receiver" expected

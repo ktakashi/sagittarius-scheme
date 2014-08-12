@@ -658,6 +658,10 @@
 	   ((string? (mime-part-content part))
 	    (with-input-from-string (mime-part-content part)
 	      (cut mime-generate-part-body part cte)))
+	   ((bytevector? (mime-part-content part))
+	    (with-input-from-port 
+		(open-bytevector-input-port (mime-part-content part))
+	      (cut mime-generate-part-body part cte)))
 	   (else (assertion-violation 'mime-generate-one-part
 				      "unsupported MIME part content")))))))
 

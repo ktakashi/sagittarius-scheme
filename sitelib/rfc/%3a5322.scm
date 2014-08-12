@@ -50,7 +50,7 @@
 	    *rfc5322-atext-chars*
 	    date->rfc5322-date
 	    )
-    (import (rnrs)
+    (import (rename (rnrs) (get-line text:get-line))
 	    (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius io)
@@ -64,7 +64,9 @@
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :19 time)
-	    (srfi :26 cut))
+	    (srfi :26 cut)
+	    (prefix (binary io) binary:)
+	    (util bytevector))
 
   (define-condition-type &rfc5322-parse-error &assertion
     make-rfc5322-parse-error
@@ -87,6 +89,10 @@
     (char-set-difference char-set:printing (string->char-set ":")))
 
   (define (rfc5322-line-reader port)
+    (define (get-line port)
+      (if (textual-port? port)
+	  (text:get-line port)
+	  (utf8->string (bytevector-trim-right (binary:get-line port) '(#x0d)))))
     (let1 r (get-line port)
       (if (eof-object? r)
 	  r

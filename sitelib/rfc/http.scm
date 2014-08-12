@@ -66,7 +66,7 @@
 	    http-lookup-auth-handler
 	    url-server&path
 	    )
-    (import (rnrs)
+    (import (except (rnrs) put-string get-line)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius socket)
@@ -87,7 +87,18 @@
 	    (rfc uri)
 	    (rfc mime)
 	    (rfc base64)
-	    (rfc tls))
+	    (rfc tls)
+	    (prefix (binary io) binary:)
+	    (util bytevector))
+
+  ;; for my sake
+  (define (put-string out m)
+    (put-bytevector out (string->utf8 m)))
+  (define (binary:format out . rest)
+    (put-bytevector out (string->utf8 (apply format rest))))
+  (define (get-line in)
+    ;; \r\n would be \r for binary:get-line so trim it
+    (bytevector-trim-right (binary:get-line in) '(#x0d)))
 
   (define-condition-type &http-error &error
     make-http-error http-error?)
@@ -187,10 +198,8 @@
 				  (http-connection-server conn))
 			      port make-socket)
 	(unwind-protect
-	 (proc (transcoded-port (socket-port s)
-				(make-transcoder (utf-8-codec) 'lf))
-	       (http-connection-extra-headers conn))
-	 (socket-close s)))))
+	    (proc (socket-port s) (http-connection-extra-headers conn))
+	  (socket-close s)))))
 
   (define (request-response method conn host request-uri
 			    sender receiver options 
@@ -245,7 +254,8 @@
 		    (cond (auth-handler
 			   ;; never use
 			   (http-connection-auth-handler conn #f)
-			   (auth-handler (connection-info) headers body))
+			   (auth-handler (connection-info) 
+					 auth-user auth-password headers body))
 			  ((and auth-user auth-password
 				(http-lookup-auth-handler headers))
 			   => (lambda (handler)
@@ -303,7 +313,7 @@
     ;; this is actually not so portable. display requires textual-port but
     ;; socket-port is binary-port. but hey!
     ;;(display out (current-error-port))(newline)
-    (format out "~a ~a HTTP/1.1\r\n" method uri)
+    (binary:format out "~a ~a HTTP/1.1\r\n" method uri)
     (case method
       ((POST PUT)
        (sender (options->request-headers `(:host ,host ,@options)) enc
@@ -315,8 +325,8 @@
 		       (first-time #t))
 		   (lambda (size)
 		     (when chunked?
-		       (unless first-time (display "\r\n" out))
-		       (format out "~x\r\n" size))
+		       (unless first-time (put-string out "\r\n"))
+		       (binary:format out "~x\r\n" size))
 		     (flush-output-port out)
 		     out)))))
       (else
@@ -326,12 +336,12 @@
   (define (send-headers hdrs out ext-header auth-headers)
     (define (send hdrs)
       (for-each (lambda (hdr)
-		  (format out "~a: ~a\r\n" (car hdr) (cadr hdr)))
+		  (binary:format out "~a: ~a\r\n" (car hdr) (cadr hdr)))
 		hdrs))
     (send hdrs)
     (send auth-headers)
     (send ext-header)
-    (display "\r\n" out)
+    (put-string out "\r\n")
     (flush-output-port out))
 
   (define (options->request-headers options)
@@ -345,7 +355,7 @@
 
   ;; receive
   (define (receive-header remote)
-    (receive (code reason) (parse-status-line (get-line remote))
+    (receive (code reason) (parse-status-line (utf8->string (get-line remote)))
       (values code (rfc5322-read-headers remote))))
 
   (define (parse-status-line line)
@@ -391,7 +401,7 @@
 	    ;; If we've already handled some chunks, we need to skip
 	    ;; the tailing CRLF of the previous chunk
 	    (when chunk-size (get-line remote))
-	    (let1 line (get-line remote)
+	    (let1 line (utf8->string (get-line remote))
 	      (when (eof-object? line)
 		(raise-http-error 'receive-body-chunked
 				  "chunked body ended prematurely"))
@@ -401,7 +411,8 @@
 			    (set! chunk-size (string->number digits 16))
 			    (if (zero? chunk-size)
 				(do ((line (get-line remote) (get-line remote)))
-				    ((or (eof-object? line) (string-null? line))
+				    ((or (eof-object? line)
+					 (zero? (bytevector-length line)))
 				     (values remote 0)))
 				(values remote chunk-size)))))
 		    (else
@@ -546,7 +557,9 @@
 	       ,(or content-transfer-encoding "binary"))
 	      ("content-disposition" ,(make-content-disposition name file))
 	      ,@(map (lambda (x) (format "~a" x)) (slices other-keys 2)))
-	     ,(if file `(file ,file) (format "~a" value)))))))
+	     ,(cond (file `(file ,file))
+		    ((bytevector? value) value)
+		    (else (format "~a" value))))))))
     (define (canonical-content-type ct value file)
       (match ct
 	(#f (if (or file (bytevector? value))
@@ -558,13 +571,14 @@
 	     `(,type ,subtype ("charset" . 
 			       ,(format "~a" encoding)) ,@options)))))
     (define (make-content-disposition name file)
-      (call-with-string-output-port
+      (utf8->string
+       (call-with-bytevector-output-port
 	(lambda (out)
-	  (display "form-data" out)
+	  (put-string out "form-data")
 	  (mime-compose-parameters `(("name" . ,name)
 				     ,@(cond-list 
 					(file `("filename" . ,file))))
-				   out))))
+				   out)))))
     (if (not port)
 	(mime-compose-message-string (map translate-param params))
 	(mime-compose-message (map translate-param params) port)))
@@ -649,7 +663,7 @@
 	     (body-sink (header-sink `(("content-length" ,(number->string size))
 				       ,@hdrs)))
 	     (port (body-sink size)))
-	(put-bytevector port body 0 size #t)
+	(put-bytevector port body 0 size)
 	(body-sink 0))))
 
   (define (http-blob-sender blob)
@@ -661,7 +675,7 @@
 	     (body-sink (header-sink `(("content-length" ,(number->string size))
 				       ,@hdrs)))
 	     (port (body-sink size)))
-	(put-bytevector port data 0 size #t)
+	(put-bytevector port data 0 size)
 	(body-sink 0))))
 
   (define (http-multipart-sender params)
@@ -678,12 +692,10 @@
 		       ,@(alist-delete "content-type" hdrs equal?)))
 	       (body-sink (header-sink hdrs))
 	       (port (body-sink size)))
-	  (display body port)
+	  (put-string port body)
 	  (body-sink 0)))))
 
   ;; authentication handling
-  ;; dummy
-
   (define (http-lookup-auth-handler headers)
     (and-let* ((hdr (rfc5322-header-ref headers "www-authenticate"))
 	       (m   (#/^(\w+?)\s+/ hdr))
