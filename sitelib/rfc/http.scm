@@ -37,7 +37,7 @@
 	    http-connection?
 	    make-http-connection
 
-	    http-user-agent
+	    *http-user-agent*
 	    http-compose-query
 	    http-compose-form-data
 
@@ -126,7 +126,7 @@
   (define (http-connection? o) (is-a? o <http-connection>))
 
 
-  (define http-user-agent (make-parameter (format "sagittarius.http/~a"
+  (define *http-user-agent* (make-parameter (format "sagittarius.http/~a"
 						  (sagittarius-version))))
   ;; redirect
   (define (redirect conn proto new-server)
@@ -159,7 +159,7 @@
 			     (auth-password #f)
 			     proxy
 			     (extra-headers '())
-			     (user-agent (http-user-agent))
+			     (user-agent (*http-user-agent*))
 			     (secure #f)
 			     (receiver (http-string-receiver))
 			     (sender #f)
