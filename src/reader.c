@@ -1739,21 +1739,6 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   return obj;
 }
 
-/* FIXME this is ugly so remove it */
-SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared)
-{
-  SgReadContext ctx = SG_STATIC_READ_CONTEXT;
-
-  if (shared) {
-    SgHashTable graph;
-    Sg_InitHashTableSimple(&graph, SG_HASH_EQ, 1);
-    ctx.graph = &graph;
-  }
-  ctx.graphRef = FALSE;
-  ctx.flags = SG_READ_SOURCE_INFO | ((insensitiveP)? SG_READ_NO_CASE: 0);
-  return Sg_ReadWithContext(p, &ctx);
-}
-
 static disptab_t* alloc_disptab();
 
 static readtable_t* make_readtable(int init)

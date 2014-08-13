@@ -2915,20 +2915,19 @@
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
     (syntax-error "include requires string" file))
-  (let ((path (current-load-path)))
+  (let ((path (current-load-path))
+	(ctx  (make-read-context :source-info #t :no-case case-insensitive?
+				 :shared #t)))
     (let loop ((files files)
 	       (forms '()))
       (if (null? files)
 	  (reverse! forms)
 	  (let-values (((p dir) (pass1/open-include-file (car files) path)))
 	    (unwind-protect
-		(let loop2 ((r (read-with-case p case-insensitive? #t))
-			    (form '()))
+		(let loop2 ((r (read-with-context p ctx)) (form '()))
 		  (if (eof-object? r)
-		      (loop (cdr files)
-			    (cons `(,(reverse! form) . ,dir) forms))
-		      (loop2 (read-with-case p case-insensitive? #t)
-			     (cons r form))))
+		      (loop (cdr files) (cons `(,(reverse! form) . ,dir) forms))
+		      (loop2 (read-with-context p ctx) (cons r form))))
 	      (close-input-port p)))))))
 
 ;; sigh... if we let p1env have source path then

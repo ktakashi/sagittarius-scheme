@@ -664,12 +664,6 @@
 	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
       (result (SG_LIST3 file line pos))))
 
-  (define-c-proc read-with-case (p::<port> insensitiveP::<boolean>
-					 :optional (sharedP #f))
-    (check-port-open read-with-case p)
-    (check-input-port read-with-case p)
-    (result (Sg_ReadWithCase p insensitiveP (not (SG_FALSEP sharedP)))))
-
   (define-c-proc read-with-context (p::<port> ctx::<read-context>)
     (check-port-open read-with-context p)
     (check-input-port read-with-context p)

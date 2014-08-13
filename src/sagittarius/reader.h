@@ -100,8 +100,6 @@ SG_EXTERN void     Sg_EnsureLibraryReadTable(SgLibrary *library);
 SG_EXTERN int      Sg_ConstantLiteralP(SgObject o);
 SG_EXTERN SgObject Sg_AddConstantLiteral(SgObject o);
 
-SG_EXTERN SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared);
-
 SG_EXTERN int      Sg_DelimitedCharP(SgChar c);
 
 /* misc */
