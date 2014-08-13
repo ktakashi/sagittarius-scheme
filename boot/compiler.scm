@@ -2858,10 +2858,9 @@
 			    (pass1/include-rec expr&path p1env)))
 		  (loop (cdr clauses) finish?)))
 	       ((include-library-declarations)
-		;; returned expression is (((exprs ...) . file) ...)
-		;; and exprs ::= (expr ...)
+		;; returned expression is (((begin expr ...) . file) ...)
 		(let ((exprs (pass1/include body p1env #f)))
-		  (ifor-each (lambda (expr) (loop (car expr) #f)) exprs)
+		  (ifor-each (lambda (expr) (loop (cdar expr) #f)) exprs)
 		  (loop (cdr clauses) finish?)))
 	       ((begin)
 		($seq-body-set! seq 
@@ -2926,30 +2925,34 @@
 	    (unwind-protect
 		(let loop2 ((r (read-with-context p ctx)) (form '()))
 		  (if (eof-object? r)
-		      (loop (cdr files) (cons `(,(reverse! form) . ,dir) forms))
+		      (loop (cdr files) 
+			    (cons `((,begin. ,@(reverse! form)) . ,dir) forms))
 		      (loop2 (read-with-context p ctx) (cons r form))))
 	      (close-input-port p)))))))
 
 ;; sigh... if we let p1env have source path then
 ;; we don't have to do this crap but for now.
+;; FIXME after 0.5.7 we should be able to have 5th element of p1env source-path
+;; replace here to only swap the source-path with the contained path
+;; instead of calling %set-current-load-path!
 (define (pass1/include-rec1 form&path p1env)
   (let ((save (current-load-path)))
     (unwind-protect
 	(let ((expr (car form&path))
 	      (path (cdr form&path)))
-	  (%set-current-load-path (directory-name path))
-	  ($seq (imap (lambda (e) (pass1 e p1env)) expr)))
-      (%set-current-load-path save))))
+	  (%set-current-load-path! (directory-name path))
+	  (pass1 e p1env))
+      (%set-current-load-path! save))))
 (define (pass1/include-rec form&path p1env)
   (let ((save (current-load-path)))
     (unwind-protect
-	($append-map1 (lambda (form&path)
-			(let ((expr (car form&path))
-			      (path (cdr form&path)))
-			  (%set-current-load-path (directory-name path))
-			  (imap (lambda (e) (pass1 e p1env)) expr)))
-		      form&path)
-      (%set-current-load-path save))))
+	(imap (lambda (form&path)
+		(let ((expr (car form&path))
+		      (path (cdr form&path)))
+		  (%set-current-load-path! (directory-name path))
+		  (pass1 expr p1env)))
+	      form&path)
+     (%set-current-load-path! save))))
 
 (define-pass1-syntax (include form p1env) :sagittarius
   (smatch form
@@ -3086,15 +3089,16 @@
 				    ;; we initialise internal define later
 				    (p1env-extend! p1env frame))))
 		 ((global-eq? head 'begin p1env)
-		  (pass1/body-rec (append (imap (lambda (x) (cons x env)) args)
+		  (pass1/body-rec (append! (imap (lambda (x) (cons x env)) args)
 					  rest)
 				  intdefs intmacros p1env))
-		 ((global-eq? head 'include p1env)
-		  (pass1/body-rec (append! (pass1/include args p1env #f) rest)
-				  intdefs intmacros p1env))
-		 ((global-eq? head 'include-ci p1env)
-		  (pass1/body-rec (append! (pass1/include args p1env #t) rest)
-				  intdefs intmacros p1env))
+		 ((or (and (global-eq? head 'include p1env) 'include)
+		      (and (global-eq? head 'include-ci p1env) 'include-ci)) =>
+		  (lambda (type)
+		    (let ((expr&path 
+			   (pass1/include args p1env (eq? type 'include-ci))))
+		      (pass1/body-rec (append! expr&path rest)
+				      intdefs intmacros p1env))))
 		 ;; 11.2.2 syntax definition (R6RS)
 		 ;; 5.3 Syntax definition (R7RS)
 		 ((global-eq? head 'define-syntax p1env)
