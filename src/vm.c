@@ -2326,8 +2326,8 @@ SgObject run_loop()
 
 void Sg__InitVM()
 {
-  /* this env is p1env and it must be 4 elements vector for now. */
-  SgObject initialEnv = Sg_MakeVector(4, SG_UNDEF);
+  /* this env is p1env and it must be 5 elements vector for now. */
+  SgObject initialEnv = Sg_MakeVector(5, SG_UNDEF);
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   rootVM = theVM = Sg_NewVM(NULL, SG_MAKE_STRING("root"));
 #else
@@ -2346,6 +2346,7 @@ void Sg__InitVM()
   /* env */
   SG_VECTOR_ELEMENT(initialEnv, 0) = rootVM->currentLibrary;
   SG_VECTOR_ELEMENT(initialEnv, 1) = SG_NIL;
+  SG_VECTOR_ELEMENT(initialEnv, 4) = SG_FALSE;
   rootVM->usageEnv = initialEnv;
   rootVM->macroEnv = initialEnv;
 

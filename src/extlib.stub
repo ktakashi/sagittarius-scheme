@@ -374,6 +374,9 @@
   (define-c-proc current-load-path () :no-side-effect
     (result (-> (Sg_VM) currentLoadPath)))
 
+  ;; should we make this constant?
+  (define-c-proc directory-name (p::<string>) :no-side-effect Sg_DirectoryName)
+
   (define-c-proc sagittarius-installed-directory () :no-side-effect
     Sg_InstalledDirectory)
 

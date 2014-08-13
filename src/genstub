@@ -8,14 +8,18 @@
 
 (define (gen files force? clean?)
   (define (do-gen f c)
+    (define (prompt f)
+      (format #t "~a ..." f)
+      (cgen-genstub f)
+      (print "done!"))
     (let1 exist? #f
       (if (and (not force?) (file-exists? c))
 	  (let ((stub-mtime (file-stat-mtime f))
 		(out-mtime  (file-stat-mtime c)))
 	    (if (< stub-mtime out-mtime)
 		(print "generated file is older than stub file. " c)
-		(cgen-genstub f)))
-	  (cgen-genstub f))))
+		(prompt f)))
+	  (prompt f))))
   (if clean?
       (print "cleaning generated file from: " files)
       (print (if force? "force " "") "generating files:" files))

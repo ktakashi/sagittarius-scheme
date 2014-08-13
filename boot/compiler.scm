@@ -91,6 +91,15 @@
     ((%guard-rec var exc other . more)
      (syntax-error "malformed guard clause" other))))
 
+;; simple unwind-protect to avoid dynamic-wind
+(define-syntax unwind-protect
+  (syntax-rules ()
+    ((_ expr handler ...)
+     (let ((h (lambda () handler ...)))
+       (receive r (with-error-handler (lambda (e) (h) (raise e))
+				      (lambda () expr))
+	 (h)
+	 (apply values r))))))
 
 (define-syntax $src
   (syntax-rules ()
@@ -277,11 +286,14 @@
 ;;                compilig procedure.  It accumulates information needed
 ;;                in later stages for the optimization.  This slot may
 ;;                be #f.
+;;     source-path - to resolve include properly. could be #f
+;;                   holds source file name.
 (define-simple-struct p1env #f make-p1env
   library
   frames
   exp-name
   current-proc
+  source-path ;; after 0.5.7 otherwise compiler would fail
   )
 
 ;;;;;;;;;;;
@@ -1062,47 +1074,43 @@
 
 ;; p1env-lookup -> moved to (sagittarius vm) library
 
-(define (p1env-add-name p1env name)
-  (make-p1env (p1env-library p1env)
-	      (p1env-frames p1env)
-	      name
-	      (p1env-current-proc p1env)))
+(define-macro (copy-p1env p1env . kvs)
+  `(make-p1env ,(get-keyword :library      kvs `(p1env-library ,p1env))
+	       ,(get-keyword :frames       kvs `(p1env-frames ,p1env))
+	       ,(get-keyword :exp-name     kvs `(p1env-exp-name ,p1env))
+	       ,(get-keyword :current-proc kvs `(p1env-current-proc ,p1env))
+	       ;; after 0.5.7
+	       ;; ,(get-keyword :source-path  kvs `(p1env-source-path ,p1env))
+	       ,(get-keyword :source-path  kvs #f)
+	       ))
+
+(define (p1env-add-name p1env name) 
+  (copy-p1env p1env :exp-name name))
 (define (p1env-extend p1env frame type)
-  (make-p1env (p1env-library p1env)
-	      (acons type frame (p1env-frames p1env))
-	      (p1env-exp-name p1env)
-	      (p1env-current-proc p1env)))
+  (copy-p1env p1env :frames (acons type frame (p1env-frames p1env))))
 
 (define (p1env-extend/name p1env frame type name)
-  (make-p1env (p1env-library p1env)
-	      (acons type frame (p1env-frames p1env))
-	      name
-	      (p1env-current-proc p1env)))
+  (copy-p1env p1env
+	      :frames (acons type frame (p1env-frames p1env))
+	      :exp-name name))
 (define (p1env-extend/proc p1env frame type proc)
-  (make-p1env (p1env-library p1env)
-	      (acons type frame (p1env-frames p1env))
-	      (p1env-exp-name p1env)
-	      proc))
+  (copy-p1env p1env
+	      :frames (acons type frame (p1env-frames p1env))
+	      :current-proc proc))
 
 (define (p1env-extend-w/o-type p1env frame)
-  (make-p1env (p1env-library p1env)
-	      (append frame (p1env-frames p1env))
-	      (p1env-exp-name p1env)
-	      (p1env-current-proc p1env)))
+  (copy-p1env p1env :frames (append frame (p1env-frames p1env))))
 
 (define (p1env-sans-name p1env)
   (if (p1env-exp-name p1env)
-      (make-p1env (p1env-library p1env)
-		  (p1env-frames p1env)
-		  #f
-		  (p1env-current-proc p1env))
+      (copy-p1env p1env :exp-name #f)
       p1env))
 
 (define (p1env-swap-frame p1env frame)
-  (make-p1env (p1env-library p1env)
-	      frame
-	      (p1env-exp-name p1env)
-	      (p1env-current-proc p1env)))
+  (copy-p1env p1env :frames frame))
+
+(define (p1env-swap-source p1env source)
+  (copy-p1env p1env :source-path source))
 
 (define (make-bottom-p1env . maybe-library)
   (let ((bottom-frame (list (list ENV-BOTTOM)))
@@ -2843,15 +2851,17 @@
 		(pass1/export (car clauses) current-lib)
 		(loop (cdr clauses) finish?))
 	       ((include include-ci)
-		(let ((expr (pass1/include body p1env (eq? type 'include-ci))))	
-		  ($seq-body-set! seq (append! ($seq-body seq)
-					       (list (pass1 (car expr) p1env))))
+		(let ((expr&path
+		       (pass1/include body p1env (eq? type 'include-ci))))	
+		  ($seq-body-set! seq 
+		   (append! ($seq-body seq)
+			    (pass1/include-rec expr&path p1env)))
 		  (loop (cdr clauses) finish?)))
 	       ((include-library-declarations)
-		;; returned expression is ((begin exprs ...) file)
-		;; and exprs ::= (begin expr ...)
+		;; returned expression is (((exprs ...) . file) ...)
+		;; and exprs ::= (expr ...)
 		(let ((exprs (pass1/include body p1env #f)))
-		  (ifor-each (lambda (expr) (loop (cdr expr) #f)) (cdar exprs))
+		  (ifor-each (lambda (expr) (loop (car expr) #f)) exprs)
 		  (loop (cdr clauses) finish?)))
 	       ((begin)
 		($seq-body-set! seq 
@@ -2891,7 +2901,7 @@
   (define (check path)
     (if (file-exists? path)
 	;; open-input-file-port ignores option.
-	(open-file-input-port path #f 'block (native-transcoder))
+	(values (open-file-input-port path #f 'block (native-transcoder)) path)
 	#f))
   (define (bad)
     (syntax-error "include file does not exists" path))
@@ -2909,33 +2919,51 @@
     (let loop ((files files)
 	       (forms '()))
       (if (null? files)
-	  `((,begin. ,@(reverse! forms)) . ,files)
-	  (let ((p (pass1/open-include-file (car files) path)))
-	    (dynamic-wind
-		(lambda () #t)
-		(lambda ()
-		  (let loop2 ((r (read-with-case p case-insensitive? #t))
-			      (form '()))
-		    (if (eof-object? r)
-			(loop (cdr files)
-			      (cons `(,begin. ,@(reverse! form)) forms))
-			(loop2 (read-with-case p case-insensitive? #t)
-			       (cons r form)))))
-		(lambda () (close-input-port p)))))))
-  )
+	  (reverse! forms)
+	  (let-values (((p dir) (pass1/open-include-file (car files) path)))
+	    (unwind-protect
+		(let loop2 ((r (read-with-case p case-insensitive? #t))
+			    (form '()))
+		  (if (eof-object? r)
+		      (loop (cdr files)
+			    (cons `(,(reverse! form) . ,dir) forms))
+		      (loop2 (read-with-case p case-insensitive? #t)
+			     (cons r form))))
+	      (close-input-port p)))))))
+
+;; sigh... if we let p1env have source path then
+;; we don't have to do this crap but for now.
+(define (pass1/include-rec1 form&path p1env)
+  (let ((save (current-load-path)))
+    (unwind-protect
+	(let ((expr (car form&path))
+	      (path (cdr form&path)))
+	  (%set-current-load-path (directory-name path))
+	  ($seq (imap (lambda (e) (pass1 e p1env)) expr)))
+      (%set-current-load-path save))))
+(define (pass1/include-rec form&path p1env)
+  (let ((save (current-load-path)))
+    (unwind-protect
+	($append-map1 (lambda (form&path)
+			(let ((expr (car form&path))
+			      (path (cdr form&path)))
+			  (%set-current-load-path (directory-name path))
+			  (imap (lambda (e) (pass1 e p1env)) expr)))
+		      form&path)
+      (%set-current-load-path save))))
 
 (define-pass1-syntax (include form p1env) :sagittarius
   (smatch form
     ((- files ___)
      (let ((form (pass1/include files p1env #f)))
-       (pass1 (car form) p1env)))
+       ($seq (pass1/include-rec form p1env))))
     (- (syntax-error "malformed include" form))))
 
 (define-pass1-syntax (include-ci form p1env) :sagittarius
   (smatch form
     ((- files ___)
      (let ((form (pass1/include files p1env #t)))
-       (pass1 (car form) p1env)))
+       ($seq (pass1/include-rec form p1env))))
     (- (syntax-error "malformed include" form))))
 
 
@@ -3024,21 +3052,22 @@
       (set-cdr! frame (append! (cdr frame) (list p)))
       p1env))
   (smatch exprs
-    ((((op . args) . env) . rest)
+    ((((op . args) . env/path) . rest)
      (or (and-let* (( (not (assq op intdefs)) )
+		    (env (if (string? env/path) p1env env/path))
 		    (head (pass1/lookup-head op env)))
 	   (unless (list? args)
 	     (syntax-error 
 	      "proper list required for function application or macro use"
 	      (caar exprs)))
 	   (cond ((lvar? head)
-		  (pass1/body-finish intdefs intmacros exprs))
+		  (pass1/body-finish intdefs intmacros exprs env))
 		 ((macro? head)
 		  (let ((e (call-macro-expander head (caar exprs) env)))
 		    (pass1/body-rec `((,e . ,env) . ,rest)
 				    intdefs intmacros p1env)))
 		 ;; when (let-syntax ((xif if) (xif ...)) etc.
-		 ((syntax? head) (pass1/body-finish intdefs exprs))
+		 ((syntax? head) (pass1/body-finish intdefs exprs env))
 		 ((global-eq? head 'define p1env)
 		  (let* ((def (smatch args
 				(((name . formals) . body)
@@ -3062,10 +3091,10 @@
 					  rest)
 				  intdefs intmacros p1env))
 		 ((global-eq? head 'include p1env)
-		  (pass1/body-rec (cons (pass1/include args p1env #f) rest)
+		  (pass1/body-rec (append! (pass1/include args p1env #f) rest)
 				  intdefs intmacros p1env))
 		 ((global-eq? head 'include-ci p1env)
-		  (pass1/body-rec (cons (pass1/include args p1env #t) rest)
+		  (pass1/body-rec (append! (pass1/include args p1env #t) rest)
 				  intdefs intmacros p1env))
 		 ;; 11.2.2 syntax definition (R6RS)
 		 ;; 5.3 Syntax definition (R7RS)
@@ -3103,16 +3132,17 @@
 							 env)))
 			  (pass1/body-rec `((,expr . ,env) . ,rest)
 					  intdefs intmacros p1env)))
-		      (pass1/body-finish intdefs intmacros exprs)))
+		      (pass1/body-finish intdefs intmacros exprs env)))
 		 (else
 		  (error 'pass1/body 
 			 "[internal] p1env-lookup returned weird obj"
 			 head `(,op . ,args)))))
-	 (pass1/body-finish intdefs intmacros exprs)))
-    (- (pass1/body-finish intdefs intmacros exprs))))
+	 (pass1/body-finish intdefs intmacros exprs
+			    (if (string? env/path) p1env env/path))))
+    (- (pass1/body-finish intdefs intmacros exprs p1env))))
 
-(define (pass1/body-finish intdefs intmacros exprs)
-  (define (finish exprs) (pass1/body-rest exprs))
+(define (pass1/body-finish intdefs intmacros exprs p1env)
+  (define (finish exprs) (pass1/body-rest exprs p1env))
   (define (collect-lvars intdefs) (imap cdadr intdefs))
   #;
   (unless (null? intmacros)
@@ -3152,20 +3182,22 @@
       (lvar-initval-set! lvar iexpr)
       iexpr)))
 
-(define (pass1/body-rest exprs)
+(define (pass1/body-rest exprs p1env)
   (smatch exprs
     (() ($seq '()))
-    ((expr&env) (pass1/body-1 expr&env #f))
+    ((expr&env) (pass1/body-1 expr&env #f p1env))
     (- ($seq (let loop ((exprs exprs)
 			(r '()))
 	       (if (null? (cdr exprs))
-		   (reverse (cons (pass1/body-1 (car exprs) #f) r))
+		   (reverse (cons (pass1/body-1 (car exprs) #f p1env) r))
 		   (loop (cdr exprs)
-			 (cons (pass1/body-1 (car exprs) #t) r))))))))
+			 (cons (pass1/body-1 (car exprs) #t p1env) r))))))))
 
-(define (pass1/body-1 expr&env sans?)
-  (let ((env (cdr expr&env)))
-    (pass1 (car expr&env) (if sans? (p1env-sans-name env) env))))
+(define (pass1/body-1 expr&env sans? p1env)
+  (if (string? (cdr expr&env))
+      (pass1/include-rec1 expr&env p1env)
+      (let ((env (cdr expr&env)))
+	(pass1 (car expr&env) (if sans? (p1env-sans-name env) env)))))
 
 
 (define (pass1/call form proc args p1env)
