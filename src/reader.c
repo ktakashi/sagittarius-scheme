@@ -1688,6 +1688,10 @@ SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
     /* clear it */
     Sg_HashCoreClear(SG_HASHTABLE_CORE(ctx->graph), 0);
   }
+  /* FIXME it's a bit wast */
+  ENSURE_COPIED_TABLE(port);
+  SG_PORT_READTABLE(port)->insensitiveP = (ctx->flags & SG_READ_NO_CASE);
+
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);
   if (!ctx->escapedp && SG_EQ(obj, SG_SYMBOL_DOT)) {
@@ -1735,18 +1739,19 @@ SgObject Sg_ReadDelimitedList(SgObject port, SgChar delim, int sharedP)
   return obj;
 }
 
+/* FIXME this is ugly so remove it */
 SgObject Sg_ReadWithCase(SgPort *p, int insensitiveP, int shared)
 {
-  readtable_t *table;
-  int oflag;
-  SgObject obj;
-  
-  table = Sg_PortReadTable(p);
-  oflag = table->insensitiveP;
-  table->insensitiveP = insensitiveP;
-  obj = Sg_Read(p, shared);
-  table->insensitiveP = oflag;
-  return obj;
+  SgReadContext ctx = SG_STATIC_READ_CONTEXT;
+
+  if (shared) {
+    SgHashTable graph;
+    Sg_InitHashTableSimple(&graph, SG_HASH_EQ, 1);
+    ctx.graph = &graph;
+  }
+  ctx.graphRef = FALSE;
+  ctx.flags = SG_READ_SOURCE_INFO | ((insensitiveP)? SG_READ_NO_CASE: 0);
+  return Sg_ReadWithContext(p, &ctx);
 }
 
 static disptab_t* alloc_disptab();
