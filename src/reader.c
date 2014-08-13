@@ -1607,7 +1607,8 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
       case CT_TERM_MACRO:
       case CT_NON_TERM_MACRO: {
 	SgObject o = macro_reader(port, c, table->readtable, ctx);
-	if (o) return o;
+	/* if the (values) is the result of reader then we ignore the result */
+	if (o && Sg_VM()->valuesCount) return o;
 	break;
       }
       case CT_ILLEGAL:
