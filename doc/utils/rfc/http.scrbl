@@ -147,6 +147,19 @@ passing @var{param}.
 @define[Function]{@name{http-null-receiver}}
 @desc{Creates a receiver which returning content is string, bytevecotor and
 unspecified value, respectively.
+
+
+@codeblock[=> "status headers and string representation of received content"]{
+(http-get "google.com" "/" :receiver (http-string-receiver))
+}
+
+@codeblock[=> "status headers and bytevector representation of received content"]{
+(http-get "google.com" "/" :receiver (http-binary-receiver))
+}
+
+@codeblock[=> "status headers and unspecified value"]{
+(http-get "google.com" "/" :receiver (http-null-receiver))
+}
 }
 
 @define[Function]{@name{http-oport-receiver} @args{sink flusher}}
@@ -155,6 +168,14 @@ a procedure takes two arguments, @var{sink} and headers.
 
 Creates a receiver which stores the content of response to @var{sink} and
 returns the result of @var{flusher}.
+
+@codeblock[=> "status headers and bytevector representation of received content"]{
+(http-get "google.com" "/"
+          :receiver (let-values (((port extract) 
+                                  (open-bytevector-output-port)))
+                      (http-oport-receiver port 
+                                           (lambda (port size) (extract)))))
+}
 }
 
 @define[Function]{@name{http-file-receiver}
@@ -169,6 +190,11 @@ the returning file name is temporary file.
 
 If there is no response or @code{content-length} header contains non
 number value, then the file will be cleaned.
+
+@codeblock[=> "status headers and \"google.html\""]{
+(http-get "google.com" "/" :receiver (http-file-receiver "google.html"))
+}
+
 }
 
 @; TODO
