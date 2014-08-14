@@ -323,6 +323,7 @@
 	    (else (error 'compute-keys! "cipher not supported" c))))
     (define (cipher-mode c)
       (cond ((string-suffix? "cbc" c) MODE_CBC)
+	    ((string-suffix? "ctr" c) MODE_CTR)
 	    ;; TODO counter mode
 	    (else (error 'compute-keys! "mode not supported" c))))
     (define client-enc (~ transport 'client-enc))
@@ -338,9 +339,8 @@
 		 (let1 k (digest key)
 		   (loop (bytevector-append key k))))))))
     (define (make-cipher c mode key size iv)
-      ;; TODO counter mode
       (cipher c (generate-secret-key c (adjust-keysize key size))
-	      :mode mode :iv iv :padder #f))
+	      :mode mode :iv iv :padder #f :ctr-mode CTR_COUNTER_BIG_ENDIAN))
     (define sid (~ transport 'session-id))
     (let ((client-iv   (digest (bytevector-append #vu8(#x41) sid))) ;; "A"
 	  (server-iv   (digest (bytevector-append #vu8(#x42) sid))) ;; "B"
@@ -370,7 +370,8 @@
       (let ((cnl (~ req kex-slot 'names))
 	    (snl (~ res kex-slot 'names)))
 	(let loop ((lis cnl))
-	  (cond ((null? lis) (error 'key-exchange "algorithm not supported"))
+	  (cond ((null? lis) (error 'key-exchange "algorithm not supported"
+				    cnl snl))
 		((member (car lis) snl) =>
 		 (lambda (l) 
 		   (rlet1 v (string->symbol (car l))

@@ -76,7 +76,7 @@
 		  (iv #f)
 		  (padder pkcs5-padder)
 		  (rounds 0)
-		  (ctr-mode CTR_COUNTER_LITTLE_ENDIAN)
+		  (ctr-mode CTR_COUNTER_BIG_ENDIAN)
 		  :allow-other-keys
 		  :rest rest)
     (unless (or (= mode MODE_ECB) (bytevector? iv))
