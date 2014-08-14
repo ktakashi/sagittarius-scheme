@@ -261,11 +261,14 @@
 		    "diffie-hellman-group14-sha1"
 		    "diffie-hellman-group1-sha1"))
   (define public-key-list (name-list "ssh-rsa" "ssh-dss"))
-  (define encryption-list (name-list "aes128-cbc" "aes256-cbc"
-				     "3des-cbc" "blowfish-cbc"
-				     ;; counter mode
-				     "3des-ctr" "blowfish-ctr"
-				     "aes128-ctr" "aes256-ctr"))
+  (define encryption-list (name-list 
+			   ;; counter mode first
+			   "aes256-ctr" "aes128-ctr"
+			   "3des-ctr" "blowfish-ctr"
+			   ;; cbc
+			   "aes256-cbc" "aes128-cbc"
+			   "3des-cbc" "blowfish-cbc"
+			   ))
   (define compression-list (name-list "none"))
   ;; only hmac-sha1. or maybe sha2 as well?
   (define mac-list (name-list "hmac-sha1"))
