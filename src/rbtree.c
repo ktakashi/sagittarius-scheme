@@ -423,6 +423,8 @@ static SgTreeEntry* rb_search(SgTreeMap *tm, intptr_t key, SgDictOp op)
   case SG_DICT_CREATE: return rb_set(tm, key);
   case SG_DICT_DELETE: return rb_delete(tm, key);
   }
+  Sg_Error(UC("[Internal] Operation is not supported."));
+  return NULL;
 } 
 
 static SgObject rb_copy(const SgTreeMap *tm)
