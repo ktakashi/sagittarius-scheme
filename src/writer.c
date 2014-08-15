@@ -693,9 +693,17 @@ static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
       Sg_PutuzUnsafe(port, UC("#\\"));
       if (ch <= 0x20)      Sg_PutzUnsafe(port, char_names[ch]);
       else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
-      else                 Sg_PutcUnsafe(port, ch);
+      else switch (Sg_CharGeneralCategory(ch)) {
+	case Mn: case Mc: case Me: /* Marks  */
+	case Zs: case Zl: case Zp: /* Separator */
+	case Cc: case Cf: case Cs: case Co: case Cn: /* control */
+	  Sg_Printf(port, UC("x%x"), ch);
+	  break;
+	default:
+	  Sg_PutcUnsafe(port, ch);
+	  break;
+	}
     }
-
   } 
 #ifdef USE_IMMEDIATE_FLONUM
   else if (SG_IFLONUMP(obj)) {
@@ -1387,21 +1395,12 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
 	  Sg_PutcUnsafe(port, ch);
 	}
       } else {
-	/* handling control characters which is not printable. */
-	switch (Sg_CharGeneralCategory(ch)) {
-	case Cc: case Cf: case Cs: case Co: case Cn:
+	/* the same as R6RS except -> and ... */
+	if ((q == p && Sg_Ucs4ConstituentP(ch)) ||
+	    (q != p && Sg_Ucs4SubsequentP(ch))) {
+	  Sg_PutcUnsafe(port, ch);
+	} else {
 	  Sg_Printf(port, UC("\\x%02x;"), ch);
-	  break;
-	default:
-	  if (Sg_Ucs4WhiteSpaceP(ch)) {
-	    /* well this looks exactly the same as 0x20 so we 
-	       distinguish them
-	       TODO should we? */
-	    Sg_Printf(port, UC("\\x%02x;"), ch);
-	  } else {
-	    Sg_PutcUnsafe(port, ch);
-	  }
-	  break;
 	}
       }
     }
