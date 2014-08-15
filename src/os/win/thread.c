@@ -137,7 +137,7 @@ void Sg_DestroyCond(SgInternalCond *cond)
 
 int Sg_Notify(SgInternalCond *cond)
 {
-  int have_waiters, BOOL r = TRUE;
+  int have_waiters; BOOL r = TRUE;
   if (!cond->mutex) return 0; /* nobody ever waited on this cond var */
   
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(*cond->mutex);
@@ -233,7 +233,7 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
   if (last_waiter) {
     r1 = SignalObjectAndWait(cond->waiters_done, mutex->mutex, INFINITE, FALSE);
   } else {
-    r1 = Sg_LockMutex(mutex);
+    r1 = WaitForSingleObject(mutex->mutex, INFINITE);
   }
   if (r0 == WAIT_TIMEOUT) return SG_INTERNAL_COND_TIMEDOUT;
   if (r0 != WAIT_OBJECT_0 || r1 != WAIT_OBJECT_0) return -1;
