@@ -34,7 +34,7 @@
 	    regexp-replace regexp-replace-all
 	    regexp-fold regexp-extract regexp-split
 	    regexp-match? regexp-match-count
-	    regexp-match-submatch regexp-match-submatch/list
+	    regexp-match-submatch
 	    regexp-match->list
 	    regexp-match-submatch-start regexp-match-submatch-end)
     (import (rnrs)

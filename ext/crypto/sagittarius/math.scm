@@ -34,8 +34,8 @@
 	    register-prng
 	    lookup-prng
 	    )
-    (import (sagittarius))
-  (load-dynamic-library "sagittarius--math")
+    (import (sagittarius) (sagittarius dynamic-module))
+  (load-dynamic-module "sagittarius--math")
   ;; pseudo-random type
   (define-constant Yarrow "yarrow")
   (define-constant Fortuna "fortuna")

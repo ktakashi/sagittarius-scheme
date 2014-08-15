@@ -31,9 +31,7 @@
 ;; This file is a part of Sagittarius Scheme system.
 #!compatible
 (library (sagittarius record)
-    (export record-type?
-	    make-record-type
-	    record-type-rtd
-	    record-type-rcd)
+    ;; it's not used at all now...
+    (export )
     (import (sagittarius))
 )

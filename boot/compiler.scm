@@ -2708,8 +2708,8 @@
 			   iform 
 			   (append ($define-flags iform) '(constable))))))
 	       inlinables)
-    iforms)
-  )
+    iforms))
+
 ;; these two are not defined R6RS, so put it (sagittarius) library
 (define-pass1-syntax (export form p1env) :sagittarius
   (check-toplevel form p1env)
@@ -2771,6 +2771,83 @@
   (library-exported-set! lib #f)
   (library-imported-set! lib '()))
 
+;; (define (pass1/check-exports iforms lib)
+;;   (define (collect-defines iforms)
+;;     (define (collect-define iform r)
+;;       (case/unquote (iform-tag iform)
+;; 	(($DEFINE) (cons (id-name ($define-id iform)) r))
+;; 	;; $seq may have $define
+;; 	(($SEQ) (append (collect-defines ($seq-body iform)) r))
+;; 	;; there is no $define inside of other tags
+;; 	(else r)))
+;;     (let loop ((iforms iforms) (r '()))
+;;       (if (null? iforms)
+;; 	  r				; order doesn't matter
+;; 	  (let ((iform (car iforms)))
+;; 	    (loop (cdr iforms) (collect-define iform r))))))
+;;   ;; we don't need re-importing bindings to check
+;;   (define (except-imported lib)
+;;     (let* ((tmp (library-exported lib))
+;; 	   (exported (append (car tmp) (imap car (cdr tmp)))))
+;;       (ifilter-map (lambda (name)
+;; 		     (and (not (keyword? name))
+;; 			  (not (find-binding lib name #f))
+;; 			  name))
+;; 		   exported)))
+;;   ;; TODO if we use delete! then collect-defines
+;;   ;; we don't have to use lset-difference
+;;   (or (memq :all (library-exported lib))
+;;       (let* ((exports (except-imported lib))
+;; 	     (defines (collect-defines iforms)))
+;; 	;; well i think this is lset-difference's bug but
+;; 	;; if `exports` is shorter than `defines` and `defines`
+;; 	;; have all names in `exports` then it returns '()
+;; 	(let ((diff (lset-difference eq? exports defines)))
+;; 	  (or (null? diff)
+;; 	      (if (vm-r6rs-mode?)
+;; 		  (error 'check-exports "attempt to export unbound variable(s)"
+;; 			 diff)
+;; 		  (vm-warn (format "attempt to export unbound variable(s) ~a"
+;; 				   diff))))))))
+
+(define (pass1/check-exports iforms lib)
+  (define (collect-defines iforms exports)
+    (define (collect-define iform exports)
+      (case/unquote (iform-tag iform)
+	(($DEFINE) (delete! (id-name ($define-id iform)) exports eq?))
+	;; $seq may have $define
+	(($SEQ) (collect-defines ($seq-body iform) exports))
+	;; there is no $define inside of other tags
+	(else exports)))
+    (let loop ((iforms iforms) (exports exports))
+      (if (null? iforms)
+	  exports
+	  (let ((iform (car iforms)))
+	    (loop (cdr iforms) (collect-define iform exports))))))
+  ;; we don't need re-importing bindings to check
+  (define (except-imported lib)
+    (let* ((tmp (library-exported lib))
+	   (exported (append (car tmp) (imap car (cdr tmp)))))
+      (ifilter-map (lambda (name)
+		     (and (not (keyword? name))
+			  (not (find-binding lib name #f))
+			  name))
+		   exported)))
+  ;; TODO if we use delete! then collect-defines
+  ;; we don't have to use lset-difference
+  (or (memq :all (library-exported lib))
+      (let* ((exports (except-imported lib))
+	     (diff    (collect-defines iforms exports)))
+	;; well i think this is lset-difference's bug but
+	;; if `exports` is shorter than `defines` and `defines`
+	;; have all names in `exports` then it returns '()
+	(or (null? diff)
+	    (if (vm-r6rs-mode?)
+		(error 'check-exports "attempt to export unbound variable(s)"
+		       diff)
+		(vm-warn (format "attempt to export unbound variable(s) ~a"
+				 diff)))))))
+
 (define (pass1/library form lib p1env)
   (define (finish iform save)
     ;; restore
@@ -2783,6 +2860,7 @@
     (vm-current-library lib)
     ;; compile define-syntax first
     (let ((iforms (imap (lambda (x) (pass1 x p1env)) (expand-form form p1env))))
+      (pass1/check-exports iforms lib)
       (finish ($seq (append
 		     (list ($library lib)) ; put library here
 		     (pass1/collect-inlinable! iforms lib)
@@ -2834,6 +2912,7 @@
 	    (() 
 	     (when finish?
 	       (vm-current-library save)
+	       (pass1/check-exports ($seq-body seq) current-lib)
 	       ($seq-body-set! seq
 		(append!
 		 (list ($library current-lib))

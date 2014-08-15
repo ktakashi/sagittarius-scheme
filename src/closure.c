@@ -145,7 +145,11 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
     case GREF_CALL: case GREF_TAIL_CALL: {
       int skippedP = FALSE;
       int flag2 = check_gref_call(SG_OBJ(code[i+1]), seen, &skippedP);
-      if (!skippedP) flag = flag2;
+      if (!skippedP) {
+	/* if it's transparent leave it (flag may already be next level) */
+	if (flag2 != SG_PROC_TRANSPARENT) 
+	  flag = flag2;
+      }
       break;
     }
     case CLOSURE:

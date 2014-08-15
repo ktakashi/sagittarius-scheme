@@ -236,6 +236,11 @@
       (delete x lis equal?)
       (filter (lambda (y) (not ((car =) x y))) lis)))
 
+(define (delete! x lis . =)
+  (if (null? =)
+      (delete x lis equal?)
+      (filter! (lambda (y) (not ((car =) x y))) lis)))
+
 (define (reduce f ridentity lis)
   (or (procedure? f)
       (assertion-violation 'reduce (wrong-type-argument-message "procedure" = 1)))
@@ -573,6 +578,37 @@
     (cond ((null? lst) (reverse! acc))
 	  ((pred (car lst)) (loop (cdr lst) (cons (car lst) acc)))
 	  (else (loop (cdr lst) acc)))))
+
+;; from SRFI-1, reference implementation
+(define (filter! pred lis)
+  (let lp ((ans lis))
+    (cond ((null? ans)            ans)		  ; Scan looking for
+	  ((not (pred (car ans))) (lp (cdr ans))) ; first cons of result.
+
+	  ;; ANS is the eventual answer.
+	  ;; SCAN-IN: (CDR PREV) = LIS and (CAR PREV) satisfies PRED.
+	  ;;          Scan over a contiguous segment of the list that
+	  ;;          satisfies PRED.
+	  ;; SCAN-OUT: (CAR PREV) satisfies PRED. Scan over a contiguous
+	  ;;           segment of the list that *doesn't* satisfy PRED.
+	  ;;           When the segment ends, patch in a link from PREV
+	  ;;           to the start of the next good segment, and jump to
+	  ;;           SCAN-IN.
+	  (else (letrec ((scan-in (lambda (prev lis)
+				    (if (pair? lis)
+					(if (pred (car lis))
+					    (scan-in lis (cdr lis))
+					    (scan-out prev (cdr lis))))))
+			 (scan-out (lambda (prev lis)
+				     (let lp ((lis lis))
+				       (if (pair? lis)
+					   (if (pred (car lis))
+					       (begin (set-cdr! prev lis)
+						      (scan-in lis (cdr lis)))
+					       (lp (cdr lis)))
+					   (set-cdr! prev lis))))))
+		  (scan-in ans (cdr ans))
+		  ans)))))
 
 (define (partition pred lst)
   (let loop ((lst lst) (acc1 '()) (acc2 '()))

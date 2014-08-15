@@ -92,7 +92,7 @@
    (only (core) last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold
     lset-difference assoc member find find-tail lset-union reduce
-    filter-map)
+    filter-map filter! delete!)
    (only (core inline) define-inliner)
     )
 
@@ -1212,36 +1212,36 @@
 ;;; minimal number of SET-CDR!s to splice the tail of one run of ins to the
 ;;; beginning of the next.
 
-(define (filter! pred lis)
-  (check-arg procedure? pred filter!)
-  (let lp ((ans lis))
-    (cond ((null-list? ans)       ans)          ; Scan looking for
-      ((not (pred (car ans))) (lp (cdr ans)))   ; first cons of result.
-
-      ;; ANS is the eventual answer.
-      ;; SCAN-IN: (CDR PREV) = LIS and (CAR PREV) satisfies PRED.
-      ;;          Scan over a contiguous segment of the list that
-      ;;          satisfies PRED.
-      ;; SCAN-OUT: (CAR PREV) satisfies PRED. Scan over a contiguous
-      ;;           segment of the list that *doesn't* satisfy PRED.
-      ;;           When the segment ends, patch in a link from PREV
-      ;;           to the start of the next good segment, and jump to
-      ;;           SCAN-IN.
-      (else (letrec ((scan-in (lambda (prev lis)
-                    (if (pair? lis)
-                    (if (pred (car lis))
-                        (scan-in lis (cdr lis))
-                        (scan-out prev (cdr lis))))))
-             (scan-out (lambda (prev lis)
-                     (let lp ((lis lis))
-                       (if (pair? lis)
-                       (if (pred (car lis))
-                           (begin (set-cdr! prev lis)
-                              (scan-in lis (cdr lis)))
-                           (lp (cdr lis)))
-                       (set-cdr! prev lis))))))
-          (scan-in ans (cdr ans))
-          ans)))))
+;; (define (filter! pred lis)
+;;   (check-arg procedure? pred filter!)
+;;   (let lp ((ans lis))
+;;     (cond ((null-list? ans)       ans)          ; Scan looking for
+;;       ((not (pred (car ans))) (lp (cdr ans)))   ; first cons of result.
+;; 
+;;       ;; ANS is the eventual answer.
+;;       ;; SCAN-IN: (CDR PREV) = LIS and (CAR PREV) satisfies PRED.
+;;       ;;          Scan over a contiguous segment of the list that
+;;       ;;          satisfies PRED.
+;;       ;; SCAN-OUT: (CAR PREV) satisfies PRED. Scan over a contiguous
+;;       ;;           segment of the list that *doesn't* satisfy PRED.
+;;       ;;           When the segment ends, patch in a link from PREV
+;;       ;;           to the start of the next good segment, and jump to
+;;       ;;           SCAN-IN.
+;;       (else (letrec ((scan-in (lambda (prev lis)
+;;                     (if (pair? lis)
+;;                     (if (pred (car lis))
+;;                         (scan-in lis (cdr lis))
+;;                         (scan-out prev (cdr lis))))))
+;;              (scan-out (lambda (prev lis)
+;;                      (let lp ((lis lis))
+;;                        (if (pair? lis)
+;;                        (if (pred (car lis))
+;;                            (begin (set-cdr! prev lis)
+;;                               (scan-in lis (cdr lis)))
+;;                            (lp (cdr lis)))
+;;                        (set-cdr! prev lis))))))
+;;           (scan-in ans (cdr ans))
+;;           ans)))))
 
 
 
@@ -1366,12 +1366,12 @@
 ;;    [(x lis =)
 ;;     (filter (lambda (y) (not (= x y))) lis)]))
 
-(define delete!
-  (case-lambda
-    [(x lis)
-     (delete! x lis equal?)]
-    [(x lis =)
-     (filter! (lambda (y) (not (= x y))) lis)]))
+;; (define delete!
+;;   (case-lambda
+;;     [(x lis)
+;;      (delete! x lis equal?)]
+;;     [(x lis =)
+;;      (filter! (lambda (y) (not (= x y))) lis)]))
 
 ;;; Extended from R4RS to take an optional comparison argument.
 ;;(define member

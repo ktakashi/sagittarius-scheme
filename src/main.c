@@ -567,6 +567,8 @@ int main(int argc, char **argv)
       if (SG_UNBOUNDP(repl)) goto err;
       /* change current library */
       vm->currentLibrary = lib;
+      /* set VM log level warning for convenience */
+      SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
       Sg_Apply0(SG_GLOC_GET(SG_GLOC(repl)));
       /* never reaches */
       goto exit;

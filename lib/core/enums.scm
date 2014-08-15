@@ -14,7 +14,6 @@
 	    enum-set-difference
 	    enum-set-complement
 	    enum-set-projection
-	    define-enumeration
 	    <enum-type>
 	    <enum-set>)
     (import (core)

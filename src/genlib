@@ -20,6 +20,11 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
+;; TODO remove after 0.5.8
+(with-library (core base)
+	      (import (srfi :1))
+	      (export delete!))
+
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 
 ;; we can use (rnrs) here since it won't be pre-compiled
