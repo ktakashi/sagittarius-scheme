@@ -711,11 +711,4 @@
   (define-c-proc %set-current-macro-env! (env::<vector>) ::<void>
     (set! (-> (Sg_VM) macroEnv) env))
 
-  ;; for include
-  (define-c-proc %set-current-load-path! (path) ::<void>
-    (unless (or (SG_FALSEP path) (SG_STRINGP path))
-      (wrong-type-of-argument-violation '%set-current-load-path 
-					"string or #f" path))
-    (set! (-> (Sg_VM) currentLoadPath) path))
-
 )

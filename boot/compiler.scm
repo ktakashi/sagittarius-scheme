@@ -293,7 +293,7 @@
   frames
   exp-name
   current-proc
-  source-path ;; after 0.5.7 otherwise compiler would fail
+  (source-path (current-load-path)) 
   )
 
 ;;;;;;;;;;;
@@ -1079,9 +1079,7 @@
 	       ,(get-keyword :frames       kvs `(p1env-frames ,p1env))
 	       ,(get-keyword :exp-name     kvs `(p1env-exp-name ,p1env))
 	       ,(get-keyword :current-proc kvs `(p1env-current-proc ,p1env))
-	       ;; after 0.5.7
-	       ;; ,(get-keyword :source-path  kvs `(p1env-source-path ,p1env))
-	       ,(get-keyword :source-path  kvs #f)
+	       ,(get-keyword :source-path  kvs `(p1env-source-path ,p1env))
 	       ))
 
 (define (p1env-add-name p1env name) 
@@ -2893,7 +2891,7 @@
     (- (syntax-error "malformed define-library" form))))
 
 ;; it's kinda headache but r7rs requires this.
-;; if path is relative we search it from current-loading-path
+;; if path is relative we search it from current-load-path
 ;; ex) /usr/local/share/sagittarius/lib/rnrs/base.scm
 ;;     -> /usr/local/share/sagittarius/lib/rnrs
 (define (pass1/open-include-file path includer-path)
@@ -2908,13 +2906,12 @@
 	((and includer-path
 	      (check (build-path includer-path path))))
 	((check path))
-	(else (bad)))
-  )
+	(else (bad))))
 
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
     (syntax-error "include requires string" file))
-  (let ((path (current-load-path))
+  (let ((path (p1env-source-path p1env))
 	(ctx  (make-read-context :source-info #t :no-case case-insensitive?
 				 :shared #t)))
     (let loop ((files files)
@@ -2930,29 +2927,14 @@
 		      (loop2 (read-with-context p ctx) (cons r form))))
 	      (close-input-port p)))))))
 
-;; sigh... if we let p1env have source path then
-;; we don't have to do this crap but for now.
-;; FIXME after 0.5.7 we should be able to have 5th element of p1env source-path
-;; replace here to only swap the source-path with the contained path
-;; instead of calling %set-current-load-path!
-(define (pass1/include-rec1 form&path p1env)
-  (let ((save (current-load-path)))
-    (unwind-protect
-	(let ((expr (car form&path))
-	      (path (cdr form&path)))
-	  (%set-current-load-path! (directory-name path))
-	  (pass1 e p1env))
-      (%set-current-load-path! save))))
+
 (define (pass1/include-rec form&path p1env)
   (let ((save (current-load-path)))
-    (unwind-protect
-	(imap (lambda (form&path)
-		(let ((expr (car form&path))
-		      (path (cdr form&path)))
-		  (%set-current-load-path! (directory-name path))
-		  (pass1 expr p1env)))
-	      form&path)
-     (%set-current-load-path! save))))
+    (imap (lambda (form&path)
+	    (let ((expr (car form&path))
+		  (path (cdr form&path)))
+	      (pass1 expr (p1env-swap-source p1env (directory-name path)))))
+	  form&path)))
 
 (define-pass1-syntax (include form p1env) :sagittarius
   (smatch form
@@ -3097,6 +3079,10 @@
 		  (lambda (type)
 		    (let ((expr&path 
 			   (pass1/include args p1env (eq? type 'include-ci))))
+		      (ifor-each (lambda (e&p)
+				   (let ((p (directory-name (cdr e&p))))
+				     (set-cdr! e&p (p1env-swap-source env p))))
+				 expr&path)
 		      (pass1/body-rec (append! expr&path rest)
 				      intdefs intmacros p1env))))
 		 ;; 11.2.2 syntax definition (R6RS)
@@ -3197,10 +3183,8 @@
 			 (cons (pass1/body-1 (car exprs) #t p1env) r))))))))
 
 (define (pass1/body-1 expr&env sans? p1env)
-  (if (string? (cdr expr&env))
-      (pass1/include-rec1 expr&env p1env)
-      (let ((env (cdr expr&env)))
-	(pass1 (car expr&env) (if sans? (p1env-sans-name env) env)))))
+  (let ((env (cdr expr&env)))
+    (pass1 (car expr&env) (if sans? (p1env-sans-name env) env))))
 
 
 (define (pass1/call form proc args p1env)
