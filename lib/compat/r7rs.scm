@@ -24,6 +24,9 @@
 (define-syntax syntax-rules
   (er-macro-transformer
    (lambda (expr rename compare)
+     ;; for unbound variable warning
+     (define (error msg . irr)
+       (apply core:error 'syntax-rules msg irr))
      (let ((ellipsis-specified? (identifier? (cadr expr)))
            (count 0)
            (_er-macro-transformer (rename 'er-macro-transformer))
