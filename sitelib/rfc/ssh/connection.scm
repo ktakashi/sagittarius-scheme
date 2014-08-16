@@ -31,7 +31,7 @@
 (library (rfc ssh connection)
     (export open-client-ssh-channel
 	    open-client-ssh-session-channel
-	    ssh-chennel-eof
+	    ssh-channel-eof
 	    close-ssh-channel
 	    call-with-ssh-channel
 

@@ -77,6 +77,7 @@
     (import (rnrs) 
 	    (sagittarius)
 	    (sagittarius object) 
+	    (sagittarius control)
 	    (rfc ssh)
 	    (rfc sftp constants)
 	    (clos user)
