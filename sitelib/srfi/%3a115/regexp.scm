@@ -53,7 +53,7 @@
     (guard (e (else #f)) (sre-parse sre)))
 
   (define regexp->sre regex->sre)
-  (define (char-set->sre cs) (list (char-set->string cset)))
+  (define (char-set->sre cs) (list (char-set->string cs)))
 
   (define (regexp-matches re str :optional (start 0) (end (string-length str)))
     (let ((m (regex-matcher (regexp re) str start end)))
@@ -66,13 +66,14 @@
     (let ((m (regex-matcher (regexp re) str start end)))
       (and (regex-looking-at m) m)))
 
+  (define (default-finish from md str acc) acc)
   (define (regexp-fold rx kons knil str 
 		       :optional (finish default-finish)
 		       (start 0) (end (string-length str)))
     (regex-fold (regexp rx) kons knil str finish start end))
 
   (define (regexp-split rx str 
-			:optional (start 0) (end (string-length text)))
+			:optional (start 0) (end (string-length str)))
     (string-split (regexp rx) str start end))
   
   (define (regexp-extract rx str :optional (start 0) (end (string-length str)))

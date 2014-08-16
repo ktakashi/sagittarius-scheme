@@ -136,8 +136,7 @@
 
 (with-test-prefix "stream-cons"
   (pass-if "is a stream" (stream? (stream-cons 1 stream-null)))
-  (pass-if "is not a null stream" (not (stream-null? (stream-cons 1 
-tream-null))))
+  (pass-if "is not a null stream" (not (stream-null? (stream-cons 1 stream-null))))
   (pass-if "is a stream pair" (stream-pair? (stream-cons 1 stream-null))))
 
 (with-test-prefix "stream?"
@@ -147,8 +146,7 @@ tream-null))))
 
 (with-test-prefix "stream-null?"
   (pass-if "is true for null stream" (stream-null? stream-null))
-  (pass-if "is false for stream pair" (not (stream-null? (stream-cons 1 
-tream-null))))
+  (pass-if "is false for stream pair" (not (stream-null? (stream-cons 1 stream-null))))
   (pass-if "is false for non-stream" (not (stream-null? "four"))))
 
 (with-test-prefix "stream-pair?"

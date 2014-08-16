@@ -62,7 +62,7 @@
   (define (treemap-fold kons tm knil)
     (unless (procedure? kons)
       (assertion-violation 'treemap-map
-			   (wrong-type-argument-message "procedure" proc 1)))
+			   (wrong-type-argument-message "procedure" kons 1)))
     (unless (treemap? tm)
       (assertion-violation 'treemap-map
 			   (wrong-type-argument-message "treemap" tm 2)))

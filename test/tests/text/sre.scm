@@ -11,9 +11,6 @@
 (define (write-to-string o)
   (call-with-string-output-port
    (lambda (out) (write o out))))
-(define (re-equal? re1 re2)
-  ;; to regard 'any as equal to char-set:full
-  (ast-equal? (regex-ast re1) (regex-ast re2)))
 
 (define (ast-equal? ast1 ast2)
   (or (eqv? ast1 ast2)
@@ -28,6 +25,10 @@
 	   (char-set? ast2) (char-set= ast2 char-set:full))
       (begin #?=ast1 #?=ast2 #f)	; for debugging
      ))
+
+(define (re-equal? re1 re2)
+  ;; to regard 'any as equal to char-set:full
+  (ast-equal? (regex-ast re1) (regex-ast re2)))
 
 (define regexp? regex-pattern?)
 

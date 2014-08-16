@@ -33,6 +33,7 @@
 	    macroexpand macroexpand-1
 	    :export-reader-macro)
     (import (rnrs)
+	    (rnrs eval)
 	    (core errors)
 	    (sagittarius)
 	    (sagittarius control)

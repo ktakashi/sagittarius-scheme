@@ -52,6 +52,7 @@
 	    deque-shift/wait! deque-pop/wait!)
     (import (rnrs)
 	    (rnrs mutable-pairs)
+	    (clos core)
 	    (clos user)
 	    (sagittarius)
 	    (srfi :1)

@@ -1,4 +1,4 @@
-(import (rnrs) (srfi :64) (srfi :115))
+(import (rnrs) (core base) (srfi :64) (srfi :115))
 
 (define-syntax test
   (syntax-rules ()
