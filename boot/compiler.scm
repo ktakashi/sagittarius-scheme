@@ -2771,45 +2771,6 @@
   (library-exported-set! lib #f)
   (library-imported-set! lib '()))
 
-;; (define (pass1/check-exports iforms lib)
-;;   (define (collect-defines iforms)
-;;     (define (collect-define iform r)
-;;       (case/unquote (iform-tag iform)
-;; 	(($DEFINE) (cons (id-name ($define-id iform)) r))
-;; 	;; $seq may have $define
-;; 	(($SEQ) (append (collect-defines ($seq-body iform)) r))
-;; 	;; there is no $define inside of other tags
-;; 	(else r)))
-;;     (let loop ((iforms iforms) (r '()))
-;;       (if (null? iforms)
-;; 	  r				; order doesn't matter
-;; 	  (let ((iform (car iforms)))
-;; 	    (loop (cdr iforms) (collect-define iform r))))))
-;;   ;; we don't need re-importing bindings to check
-;;   (define (except-imported lib)
-;;     (let* ((tmp (library-exported lib))
-;; 	   (exported (append (car tmp) (imap car (cdr tmp)))))
-;;       (ifilter-map (lambda (name)
-;; 		     (and (not (keyword? name))
-;; 			  (not (find-binding lib name #f))
-;; 			  name))
-;; 		   exported)))
-;;   ;; TODO if we use delete! then collect-defines
-;;   ;; we don't have to use lset-difference
-;;   (or (memq :all (library-exported lib))
-;;       (let* ((exports (except-imported lib))
-;; 	     (defines (collect-defines iforms)))
-;; 	;; well i think this is lset-difference's bug but
-;; 	;; if `exports` is shorter than `defines` and `defines`
-;; 	;; have all names in `exports` then it returns '()
-;; 	(let ((diff (lset-difference eq? exports defines)))
-;; 	  (or (null? diff)
-;; 	      (if (vm-r6rs-mode?)
-;; 		  (error 'check-exports "attempt to export unbound variable(s)"
-;; 			 diff)
-;; 		  (vm-warn (format "attempt to export unbound variable(s) ~a"
-;; 				   diff))))))))
-
 (define (pass1/check-exports iforms lib)
   (define (collect-defines iforms exports)
     (define (collect-define iform exports)
@@ -2844,9 +2805,10 @@
 	(or (null? diff)
 	    (if (vm-r6rs-mode?)
 		(error 'check-exports "attempt to export unbound variable(s)"
-		       diff)
-		(vm-warn (format "attempt to export unbound variable(s) ~a"
-				 diff)))))))
+		       diff lib)
+		(vm-warn (format 
+			  "attempt to export unbound variable(s) ~a at ~a"
+			  diff (library-name lib))))))))
 
 (define (pass1/library form lib p1env)
   (define (finish iform save)
@@ -5032,7 +4994,7 @@
 		(memq name (library-defined lib)))
       (if (vm-r6rs-mode?)
 	  (undefined-violation name "unbound identifier")
-	  (vm-warn (format "reference to undefined variable: ~a in ~a"
+	  (vm-warn (format "reference to undefined variable: '~a' in ~a"
 			   name (library-name lib)))))))
 
 (define (pass5/$GREF iform cb renv ctx)
