@@ -2226,10 +2226,6 @@ static void init_readtable(readtable_t *table, int type)
   r[' '].type = CT_WHITE_SPACE;
   r['\\'].type = CT_SINGLE_ESCAPE;
 
-  if (type != INIT_R6RS) {
-    /* Larceny bench mark doesn't like this. */
-    SET_NONTERM_MACRO(r, '|', read_vertical_bar);
-  }
   SET_TERM_MACRO(r, '"', read_double_quote);
   SET_TERM_MACRO(r, '\'', read_quote);
   SET_TERM_MACRO(r, '(', read_open_paren);
@@ -2239,32 +2235,32 @@ static void init_readtable(readtable_t *table, int type)
   SET_TERM_MACRO(r, ';', read_semicolon);
   SET_TERM_MACRO(r, '`', read_quasiquote);
   SET_TERM_MACRO(r, ',', read_unquote); 
-  if (type != INIT_R6RS) {
-    if (type != INIT_R7RS) {
-      SET_NONTERM_MACRO(r, ':', read_colon);
-    }
-    table->symbol_reader = read_compatible_symbol;
-  } else {
-    table->symbol_reader = read_r6rs_symbol;
-  }
-  if (type == INIT_R6RS) {
-    SET_TERM_MACRO(r, '#', dispmacro_reader);
-  } else {
-    SET_NONTERM_MACRO(r, '#', dispmacro_reader);
-  }
+
   r['#'].disp = d;
 
   SET_DISP_MACRO(d, '\'', read_hash_quote);
   SET_DISP_MACRO(d, '`', read_hash_quasiquote);
   SET_DISP_MACRO(d, ',', read_hash_unquote);
   SET_DISP_MACRO(d, '!', read_hash_bang);
-  SET_DISP_MACRO(d, 'v', read_hash_v);
-  if (type != INIT_R6RS) {
+  /* strict mode things */
+  if (type == INIT_R6RS) {
+    SET_DISP_MACRO(d, 'v', read_hash_v);
+    SET_TERM_MACRO(r, '#', dispmacro_reader);
+    table->symbol_reader = read_r6rs_symbol;
+  } else {
+    SET_NONTERM_MACRO(r, '#', dispmacro_reader);
     SET_DISP_MACRO(d, 'u', read_hash_u);
-    if (type != INIT_R7RS) {
-      /* #:a is only for compat mode */
-      SET_DISP_MACRO(d, ':', read_hash_colon);
-    }
+    SET_NONTERM_MACRO(r, '|', read_vertical_bar);
+    table->symbol_reader = read_compatible_symbol;
+  }
+
+  /* only compat mode */
+  if (type == INIT_COMPAT) {
+    /* #:a is only for compat mode */
+    SET_DISP_MACRO(d, ':', read_hash_colon);
+    SET_NONTERM_MACRO(r, ':', read_colon);
+    /* well it's set only R6RS above but compat mode should read this as well */
+    SET_DISP_MACRO(d, 'v', read_hash_v);
   }
   SET_DISP_MACRO(d, 't', read_hash_t);
   SET_DISP_MACRO(d, 'T', read_hash_t);

@@ -43,6 +43,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/vm.h"
 
 static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -50,7 +51,12 @@ static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   size_t i, size = b->size;
   uint8_t *u8 = b->elements;
   char buf[32];
-  Sg_PutuzUnsafe(port, UC("#vu8("));
+  
+  if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R7RS_MODE)) {
+    Sg_PutuzUnsafe(port, UC("#u8("));
+  } else {
+    Sg_PutuzUnsafe(port, UC("#vu8("));
+  }
   if (size != 0) {
     for (i = 0; i < size - 1; i++) {
       snprintf(buf, array_sizeof(buf), "%u", u8[i]);
