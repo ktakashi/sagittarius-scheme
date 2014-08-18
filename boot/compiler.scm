@@ -2907,14 +2907,11 @@
 			  (imap (lambda (x) (pass1 x p1env)) body)))
 		(loop (cdr clauses) finish?))
 	       ((cond-expand)
-		(let ((r (pass1/cond-expand body (car clauses) p1env)))
-		  ;; if only one element in ($seq), it will elliminate it.
-		  (if ($seq? r)
-		      ($seq-body-set! seq
-				      (append! ($seq-body seq) ($seq-body r)))
-		      ($seq-body-set! seq
-				      (append! ($seq-body seq) (list r)))))
-		(loop (cdr clauses) finish?))
+		(let ((exprs (pass1/cond-expand body (car clauses) p1env)))
+		  ;; cond-expand must have only library-declarations
+		  ;; this do the same as include-library-declarations
+		  (loop exprs #f)
+		  (loop (cdr clauses) finish?)))
 	       (else
 		(syntax-error "define-library: invalid library declaration"
 			      type))))
@@ -2927,7 +2924,7 @@
 	    (newenv      (make-bottom-p1env current-lib)))
        (pass1/init-library current-lib)
        ;; import 'import' syntax
-       (pass1/import '(import (only (sagittarius) import)) current-lib) 
+       ;; (pass1/import '(import (only (sagittarius) import)) current-lib) 
        (process-declare body current-lib newenv)))
     (- (syntax-error "malformed define-library" form))))
 
@@ -3030,12 +3027,12 @@
     (smatch clauses
       (() (syntax-error "unfulfilled cond-expand" form))
       ((((? cond-else? -) body ___) . rest)
-       (unless (null? rest)
-	 (syntax-error "'else' clauses followed by more clauses" form))
-       (pass1 `(,begin. ,@body) p1env))
+       (if (null? rest)
+	   body
+	   (syntax-error "'else' clauses followed by more clauses" form)))
       (((condition body ___) . rest)
        (if (fulfill? condition)
-	   (pass1 `(,begin. ,@body) p1env)
+	   body
 	   (process-clause (cdr clauses))))
       (- (syntax-error "malformed cond-expand" form)))
     )
@@ -3045,7 +3042,8 @@
 (define-pass1-syntax (cond-expand form p1env) :sagittarius
   (smatch form
     ((- clauses ___)
-     (pass1/cond-expand clauses form p1env))
+     (let ((exprs (pass1/cond-expand clauses form p1env)))
+       (pass1 `(,begin. ,@exprs) p1env)))
     (- (syntax-error "malformed cond-expand" form)))
   )
 

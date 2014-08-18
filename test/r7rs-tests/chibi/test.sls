@@ -1,3 +1,4 @@
+;; -*- mode:scheme; coding:utf-8; -*-
 ;; from chibi scheme
 (define-library (chibi test)
   (export
