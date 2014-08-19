@@ -86,7 +86,7 @@
 	  (srfi :23)
 	  (srfi :39)
 	  (only (scheme private) define-values)
-	  ;; for undefined and square
+	  ;; for undefined and square, read-line
 	  (sagittarius))
 
   (define-syntax let-syntax
@@ -220,24 +220,25 @@
      ((s port start) (put-string port s start))
      ((s port start end) (put-string port s start (- end start)))))
 
-  (define read-line
-    (case-lambda
-     (() (read-line (current-input-port)))
-     ((port)
-      ;; EOF check
-      (let ((e (lookahead-char port)))
-	(if (eof-object? e)
-	    e
-	    (call-with-string-output-port
-	     (lambda (out)
-	       (let loop ((c (get-char port)))
-		 (unless (eof-object? c)
-		   (case c
-		     ((#\linefeed)) ;; done
-		     ((#\return)
-		      (case (lookahead-char port)
-			((#\linefeed) (get-char port)))) ;; discard it
-		     (else (put-char out c) (loop (get-char port)))))))))))))
+
+;;   (define read-line
+;;     (case-lambda
+;;      (() (read-line (current-input-port)))
+;;      ((port)
+;;       ;; EOF check
+;;       (let ((e (lookahead-char port)))
+;; 	(if (eof-object? e)
+;; 	    e
+;; 	    (call-with-string-output-port
+;; 	     (lambda (out)
+;; 	       (let loop ((c (get-char port)))
+;; 		 (unless (eof-object? c)
+;; 		   (case c
+;; 		     ((#\linefeed)) ;; done
+;; 		     ((#\return)
+;; 		      (case (lookahead-char port)
+;; 			((#\linefeed) (get-char port)))) ;; discard it
+;; 		     (else (put-char out c) (loop (get-char port)))))))))))))
 
   (define read-string
     (case-lambda

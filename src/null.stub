@@ -1804,28 +1804,38 @@
 				      getter setter close ready)))
 
   ;; 8.2.8 binary input
-  (decl-code
-   (.include <string.h>))
+  (decl-code (.include <string.h>))
+
+  ;; we don't know what would happen in custom port
+  ;; so if it's custom port we lock it.
+  (define-cise-stmt binary-port-read-u8-op
+    ((_ p safe)
+     (let ((unsafe (string->symbol (format "~aUnsafe" safe))))
+       `(let ((b::int))
+	  (if (SG_CUSTOM_PORTP ,p)
+	      (set! b (,safe ,p))
+	      (set! b (,unsafe ,p)))
+	  (if (== EOF b)
+	      (result SG_EOF)
+	      (result (SG_MAKE_INT b)))))))
+  (define-cise-stmt binary-port-write-u8-op
+    ((_ p b safe)
+     (let ((unsafe (string->symbol (format "~aUnsafe" safe))))
+       `(if (SG_CUSTOM_PORTP ,p)
+	    (,safe ,p ,b)
+	    (,unsafe ,p ,b)))))
 
   (define-c-proc get-u8 (p::<port> :optional (reckless #f))
     (check-port-open get-u8 p)
-    (when (SG_FALSEP reckless)
-      (check-binary-port get-u8 p))
+    (when (SG_FALSEP reckless) (check-binary-port get-u8 p))
     (check-input-port get-u8 p)
-    (let ((b::int (Sg_Getb p)))
-      (if (== EOF b)
-	  (result SG_EOF)
-	  (result (SG_MAKE_INT b)))))
+    (binary-port-read-u8-op p Sg_Getb))
   
   (define-c-proc lookahead-u8 (p::<port> :optional (reckless #f))
     (check-port-open lookahead-u8 p)
-    (when (SG_FALSEP reckless)
-      (check-binary-port lookahead-u8 p))
+    (when (SG_FALSEP reckless) (check-binary-port lookahead-u8 p))
     (check-input-port lookahead-u8 p)
-    (let ((b::int (Sg_Peekb p)))
-      (if (== EOF b)
-	  (result SG_EOF)
-	  (result (SG_MAKE_INT b)))))
+    (binary-port-read-u8-op p Sg_Peekb))
 
   (define-cise-stmt check-fixnum-range
     ((_ name t start end start-op end-op)
@@ -1910,23 +1920,43 @@
 					  "textual-port"
 					  ,p))))
 
+  (define-cise-expr string-port?
+    ((_ p)
+     `(== SG_STRING_TEXTUAL_PORT_TYPE (-> (SG_TEXTUAL_PORT ,p) type))))
+  ;; If it's transcoded port there is always a chance to read more then
+  ;; one byte and if that happens in multi thread script it would not
+  ;; read a char properly. in case of the we need lock
+  ;; custom port is the same reason as binary port.
+  ;; so only string port which is buffering and it always put one char
+  ;; in one operation.
+  (define-cise-stmt string-port-read-char-op
+    ((_ p safe)
+     (let ((unsafe (string->symbol (format "~aUnsafe" safe))))
+       `(let ((c::SgChar))
+	  (if (string-port? ,p)
+	      (set! c (,unsafe ,p))
+	      (set! c (,safe ,p)))
+	  (if (== c EOF)
+	      (result SG_EOF)
+	      (result (SG_MAKE_CHAR c)))))))
+  (define-cise-stmt string-port-write-char-op
+    ((_ p c safe)
+     (let ((unsafe (string->symbol (format "~aUnsafe" safe))))
+       `(if (string-port? ,p)
+	      (,unsafe ,p ,c)
+	      (,safe ,p ,c)))))
+
   (define-c-proc get-char (p::<port>) 
     (check-port-open get-char p)
     (check-textual-port get-char p)
     (check-input-port get-char p)
-    (let ((c::SgChar (Sg_Getc p)))
-      (if (== c EOF)
-	  (result SG_EOF)
-	  (result (SG_MAKE_CHAR c)))))
+    (string-port-read-char-op p Sg_Getc))
 
   (define-c-proc lookahead-char (p::<port>) 
     (check-port-open lookahead-char p)
     (check-textual-port lookahead-char p)
     (check-input-port lookahead-char p)
-    (let ((c::SgChar (Sg_Peekc p)))
-      (if (== c EOF)
-	  (result SG_EOF)
-	  (result (SG_MAKE_CHAR c)))))
+    (string-port-read-char-op p Sg_Peekc))
 
   (define-c-proc get-string-n (p::<port> count::<fixnum>)
     (check-port-open get-string-n p)
@@ -2014,8 +2044,7 @@
 		(let ((c::SgChar (Sg_GetcUnsafe p)))
 		  ;; transcoder return LF as eol.
 		  ;; TODO string-port doesn't have any indication for eol
-		  (cond ((or (== c LF)
-			     (== c EOF))
+		  (cond ((or (== c LF) (== c EOF))
 			 (break))
 			(else
 			 (Sg_PutcUnsafe buf c)))))
@@ -2190,7 +2219,7 @@
       (check-binary-port put-u8 p))
     (check-output-port put-u8 p)
     (check-fixnum-range put-u8 octet 0 255 <= <=)
-    (Sg_Putb p octet))
+    (binary-port-write-u8-op p octet Sg_Putb))
 
   (define-c-proc put-bytevector
     (p::<port> bv::<bytevector>
@@ -2214,7 +2243,7 @@
     (check-port-open put-char p)
     (check-output-port put-char p)
     (check-textual-port put-char p)
-    (Sg_Putc p ch))
+    (string-port-write-char-op p ch Sg_Putc))
 
   (define-c-proc put-string
     (p::<port> s::<string>
@@ -2227,8 +2256,7 @@
     (check-non-negative-fixnum put-string start)
     (check-non-negative-fixnum put-string count)
     (unless (<= (+ count start) (SG_STRING_SIZE s))
-      (assertion-violation 'put-string
-			   "invalid range"))
+      (assertion-violation 'put-string "invalid range"))
     (Sg_Writes p (+ (SG_STRING_VALUE s) start) count))
 
   (define-c-proc put-datum (p::<port> datum) ::<void>
@@ -2313,18 +2341,14 @@
   (define-c-proc read-char (:optional (p::<port> (Sg_CurrentInputPort)))
     (check-port-open read-char p)
     (check-input-port read-char p)
-    (let ((c::SgChar (Sg_Getc p)))
-      (if (== c EOF)
-	  (result SG_EOF)
-	  (result (SG_MAKE_CHAR c)))))
+    (check-textual-port read-char p)
+    (string-port-read-char-op p Sg_Getc))
 
   (define-c-proc peek-char (:optional (p::<port> (Sg_CurrentInputPort)))
     (check-port-open peek-char p)
     (check-input-port peek-char p)
-    (let ((c::SgChar (Sg_Peekc p)))
-      (if (== c EOF)
-	  (result SG_EOF)
-	  (result (SG_MAKE_CHAR c)))))
+    (check-textual-port peek-char p)
+    (string-port-read-char-op p Sg_Peekc))
 
   (define-c-proc read (:optional (p::<port> (Sg_CurrentInputPort))
 		       :key (source-info?::<boolean> #f)
@@ -2343,12 +2367,14 @@
     ::<void>
     (check-port-open write-char p)
     (check-output-port write-char p)
-    (Sg_Putc p ch))
+    (check-textual-port write-char p)
+    (string-port-write-char-op p ch Sg_Putc))
   
   (define-c-proc newline (:optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
     (check-port-open newline p)
     (check-output-port newline p)
-    (Sg_Putc p #\linefeed))
+    (check-textual-port newline p)
+    (string-port-write-char-op p #\linefeed Sg_Putc))
 
   (define-c-proc display (o :optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
     (check-port-open display p)
