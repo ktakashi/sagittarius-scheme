@@ -77,6 +77,13 @@ static SgObject load_cc(SgObject result, void **data);
 
 static SgObject eval_cc(SgObject result, void **data)
 {
+  /* preserve fold case flags... */
+  struct load_ctx *ctx = LOAD_CTX(data[0]);
+  if (Sg_PortCaseInsensitiveP(ctx->port)) {
+    ctx->read_context->flags |= SG_READ_NO_CASE;
+  } else {
+    ctx->read_context->flags &= ~SG_READ_NO_CASE;
+  }
   if (!SG_EOFP(result)) {
     Sg_VMPushCC(load_cc, data, 1);
     return Sg_VMEval(result, SG_FALSE);

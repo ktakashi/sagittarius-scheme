@@ -1847,6 +1847,14 @@ readtable_t* Sg_CopyReadTable(readtable_t *src)
   }
   return newr;
 }
+int Sg_PortCaseInsensitiveP(SgPort *port)
+{
+  if (SG_PORT_READTABLE(port)) {
+    return SG_PORT_READTABLE(port)->insensitiveP;
+  }
+  return FALSE;
+}
+
 static SgInternalMutex obtable_mutax;
 static SgHashTable *obtable = NULL;
 

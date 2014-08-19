@@ -577,6 +577,9 @@ SG_EXTERN int      Sg_AddPortCleanup(SgPort *port);
 SG_EXTERN void     Sg_RegisterBufferedPort(SgPort *port);
 SG_EXTERN void     Sg_UnregisterBufferedPort(SgPort *port);
 
+/* misc */
+SG_EXTERN int      Sg_PortCaseInsensitiveP(SgPort *port);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_PORT_H_ */
