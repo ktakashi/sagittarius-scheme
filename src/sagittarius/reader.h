@@ -48,6 +48,7 @@ enum {
   SG_READ_SOURCE_INFO = 1L,
   SG_CHANGE_VM_MODE   = 1L<<1,	/* change VM mode */
   SG_READ_NO_CASE     = 1L<<2,	/* case insensitive */
+  SG_READ_CASE        = 1L<<3,	/* case sensitive (for presavation) */
 };
 
 /* <read-context> for custom load */

@@ -1035,6 +1035,9 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (ustrcmp(tag->value, "fold-case") == 0) {
 	  ENSURE_COPIED_TABLE(port);
 	  SG_PORT_READTABLE(port)->insensitiveP = TRUE;
+	  /* we need to preserve for include-ci with #!fold-case */
+	  ctx->flags |= SG_READ_NO_CASE;
+	  ctx->flags &= ~SG_READ_CASE;
 	  return NULL;
 	}
 	break;
@@ -1048,6 +1051,8 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (ustrcmp(tag->value, "no-fold-case") == 0) {
 	  ENSURE_COPIED_TABLE(port);
 	  SG_PORT_READTABLE(port)->insensitiveP = FALSE;
+	  ctx->flags &= ~SG_READ_NO_CASE;
+	  ctx->flags |= SG_READ_CASE;
 	  return NULL;
 	}
 	if (ustrcmp(tag->value, "nocache") == 0) {
@@ -1691,9 +1696,11 @@ SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
   }
   /* we only set if the flag is explicitly set.
      this makes #!fold-case one time only. */
-  if (ctx->flags & SG_READ_NO_CASE) {
+  if (ctx->flags & SG_READ_NO_CASE ||
+      ctx->flags & SG_READ_CASE) {
     ENSURE_COPIED_TABLE(port);
-    SG_PORT_READTABLE(port)->insensitiveP = TRUE;
+    /* one or the other */
+    SG_PORT_READTABLE(port)->insensitiveP = (ctx->flags & SG_READ_NO_CASE);
   }
 
   ctx->firstLine = Sg_LineNo(port);
