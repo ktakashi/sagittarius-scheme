@@ -2949,14 +2949,16 @@
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
     (syntax-error "include requires string" file))
-  (let ((path (p1env-source-path p1env))
-	(ctx  (make-read-context :source-info #t :no-case case-insensitive?
-				 :shared #t)))
+  (let ((path (p1env-source-path p1env)))
     (let loop ((files files)
 	       (forms '()))
       (if (null? files)
 	  (reverse! forms)
-	  (let-values (((p dir) (pass1/open-include-file (car files) path)))
+	  (let-values (((p dir) (pass1/open-include-file (car files) path))
+		       ;; context must be per file
+		       ((ctx) 	(make-read-context :source-info #t
+						   :no-case case-insensitive?
+						   :shared #t)))
 	    (unwind-protect
 		(let loop2 ((r (read-with-context p ctx)) (form '()))
 		  (if (eof-object? r)
