@@ -1462,4 +1462,19 @@
 			  (display "|'\n|" out)))))
 		out))))
 
+;; call #56
+(let ()
+  (define strings "#!fold-case ABC ABC ΓΛΏΣΣΑ ΜΈΛΟΣ \
+                   #!no-fold-case ABC ABC ΓΛΏΣΣΑ ΜΈΛΟΣ")
+  
+  (test-equal "#!fold-case"
+	      "abcabcγλώσσαμέλοσABCABCΓΛΏΣΣΑΜΈΛΟΣ"
+	      (call-with-port (open-string-input-port strings)
+		(lambda (in)
+		  (call-with-string-output-port
+		   (lambda (out)
+		     (let loop ((s (read in)))
+		       (unless (eof-object? s)
+			 (write s out)
+			 (loop (read in))))))))))
 (test-end)

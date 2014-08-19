@@ -1689,9 +1689,12 @@ SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
     /* clear it */
     Sg_HashCoreClear(SG_HASHTABLE_CORE(ctx->graph), 0);
   }
-  /* FIXME it's a bit wast */
-  ENSURE_COPIED_TABLE(port);
-  SG_PORT_READTABLE(port)->insensitiveP = (ctx->flags & SG_READ_NO_CASE);
+  /* we only set if the flag is explicitly set.
+     this makes #!fold-case one time only. */
+  if (ctx->flags & SG_READ_NO_CASE) {
+    ENSURE_COPIED_TABLE(port);
+    SG_PORT_READTABLE(port)->insensitiveP = TRUE;
+  }
 
   ctx->firstLine = Sg_LineNo(port);
   obj = read_expr4(port, ACCEPT_EOF, EOF, ctx);

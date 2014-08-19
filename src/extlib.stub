@@ -564,6 +564,9 @@
   (define-c-proc port-closed? (p::<port>) ::<boolean>  :no-side-effect
     Sg_PortClosedP)
 
+  (define-c-proc port-case-insensitive? (p::<port>) ::<boolean>  :no-side-effect
+    Sg_PortCaseInsensitiveP)
+
   (define-c-proc write/ss (o :optional (p::<port> (Sg_CurrentOutputPort)))
     ::<void>
     (check-port-open write/ss p)
