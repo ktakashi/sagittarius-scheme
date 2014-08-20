@@ -746,6 +746,18 @@
   ;;(set! (AC vm) SG_UNDEF)
   NEXT)
 
+#|
+(define-inst ADDI_PUSH (1 0 #f) :combined
+  (ADDI PUSH))
+
+(define-inst PUSH_GREF (0 1 #f) :combined
+  (PUSH GREF))
+
+;; To support this type of thing without above thing
+;; we need a better state transition table
+(define-inst PUSH_GREF_TAIL_CALL (1 1 #f) :combined
+  (PUSH GREF TAIL_CALL))
+|#
 
 ;;;; end of file
 ;; Local Variables:

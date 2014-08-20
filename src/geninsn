@@ -297,11 +297,10 @@ SG_CDECL_END
 		      (vars (cdr i&v)))
 		  ;; just construct
 		  ;; { current, prev, type, vals, name }
-		  (cgen-body (format "{~a, ~a, ~a, ~a, ~a},"
+		  (cgen-body (format "{~a, ~a, ~a, ~a},"
 				     (car vars)
 				     (cadr vars)
 				     (format "ARGUMENT~a" (~ insn 'argc))
-				     (~ (find-by-name (car vars)) 'vals)
 				     (~ insn 'name))))))
 	    ;; we use the fact that insn is starting from 0
 	    (cgen-body "#endif /* STATE_TABLE */")

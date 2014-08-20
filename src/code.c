@@ -121,21 +121,22 @@ static void flush(SgCodeBuilder *cb)
   cb->packet = empty_packet;
 }
 
+
 #define STATE_TABLE
 static struct comb_table_t {
   SgWord     current;
   SgWord     previous;
-  PacketType type;
-  int        argc;
+  int        type;
   SgWord     next;
 } comb_table[] = {
 #include "vminsn.c"
-  {CAR, CAR, ARGUMENT0, 0, CAAR},
-  {CAR, CDR, ARGUMENT0, 0, CADR},
-  {CDR, CAR, ARGUMENT0, 0, CDAR},
-  {CDR, CDR, ARGUMENT0, 0, CDDR}
+  {CAR, CAR, CAAR},
+  {CAR, CDR, CADR},
+  {CDR, CAR, CDAR},
+  {CDR, CDR, CDDR}
 };
 #undef STATE_TABLE
+
 
 /* TODO generate this from instructions.scm */
 static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
@@ -171,9 +172,24 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
   for (i = 0; i < array_sizeof(comb_table); i++) {
     struct comb_table_t *entry = &comb_table[i];
     if (entry->current == curr && entry->previous == prev) {
+      InsnInfo *currI = Sg_LookupInsnName(curr); 
       cb->packet.insn = entry->next;
       cb->packet.type = entry->type;
-      switch (entry->argc) {
+      /* only one object can be supported any way */
+      if (currI->argc) {
+	cb->packet.obj = packet->obj;
+      }
+#if 0
+      {
+      InsnInfo *prevI = Sg_LookupInsnName(prev);
+      InsnInfo *nextI = Sg_LookupInsnName(entry->next);
+      fprintf(stderr, "%s:%s -> %s", currI->name, prevI->name, nextI->name);
+      Sg_Printf(Sg_StandardErrorPort(), UC(" %S %S\n"), cb->packet.obj,
+		packet->obj);
+      }
+#endif
+
+      switch (currI->instValues) {
       case 2:
 	cb->packet.arg1 = packet->arg1;
 	/* fall through */
@@ -182,8 +198,7 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
 	break;
       case 0: break;
       default:
-	Sg_Panic("[Internal] immediate value count more than 2 [%d]",
-		 entry->argc);
+	Sg_Panic("[Internal] immediate value count more than 2");
 	break;
       }
       return;
