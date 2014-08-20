@@ -2307,7 +2307,11 @@ SgObject run_loop()
 #include "vminsn.c"
 #undef VM_LOOP
       DEFAULT {
+#ifdef _MSC_VER
+	__assume(0);
+#else
 	Sg_Panic("unknown instruction appeard. %08x", c);
+#endif
       }
     }
   process_queue:
