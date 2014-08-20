@@ -192,26 +192,6 @@
       (render1 insn)
       (cgen-body "}"))
     ))
-;; how should we construct state transition without changing
-;; code builder structure?
-#|
-(define (collect-state-table insns)
-  (define (compute-table-size insns combs)
-    (let1 base (length insns)
-      )
-    )
-  (let1 2variants (list-sort
-		   (lambda (a b) 
-		     (string<? (symbol->string (car a))
-			       (symbol->string (car b))))
-		   (filter-map (lambda (insn) 
-				 (and (~ insn '2variants)
-				      (reverse (~ insn '2variants)))) insns))
-    (let* ((table-size (compute-table-size insns 2variants))
-	   (table (make-vector table-size)))
-      ))
-  )
-|#
 
 (define *insn-file* "instructions.scm")
 (define *header-prefix* "
@@ -302,16 +282,30 @@ SG_CDECL_END
 	      (length insns)))
 	    (cgen-body "#endif /* DEFINSN */")
 	    ;; state table
-#|
+
 	    (cgen-body "#ifdef STATE_TABLE")
-	    (pp insns (current-error-port))
-	    (let1 table (collect-state-table insns))
-	    (dolist (insn insns)
-	      
-	      )
+	    ;; (pp insns (current-error-port))
+	    (let1 variants (filter-map (lambda (insn) 
+					 (let1 v (~ insn '2variants)
+					   (and v (cons insn (reverse v)))))
+				       insns)
+	      (define (find-by-name name)
+		(find (lambda (insn)
+			(eq? (~ insn 'name) name)) insns))
+	      (dolist (i&v variants)
+		(let ((insn (car i&v))
+		      (vars (cdr i&v)))
+		  ;; just construct
+		  ;; { current, prev, type, vals, name }
+		  (cgen-body (format "{~a, ~a, ~a, ~a, ~a},"
+				     (car vars)
+				     (cadr vars)
+				     (format "ARGUMENT~a" (~ insn 'argc))
+				     (~ (find-by-name (car vars)) 'vals)
+				     (~ insn 'name))))))
 	    ;; we use the fact that insn is starting from 0
-	    (cgen-body "#endif STATE_TABLE")
-|#
+	    (cgen-body "#endif /* STATE_TABLE */")
+
 	    ;; emit body
 	    (cgen-body "#ifdef VM_LOOP")
 	    (construct-vm-body insns)

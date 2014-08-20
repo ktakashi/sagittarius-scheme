@@ -30,6 +30,7 @@
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/code.h"
+#include "sagittarius/core.h"
 #include "sagittarius/closure.h"
 #include "sagittarius/error.h"
 #include "sagittarius/number.h"
@@ -119,156 +120,41 @@ static void flush(SgCodeBuilder *cb)
   }
   cb->packet = empty_packet;
 }
+
+#define STATE_TABLE
+static struct comb_table_t {
+  SgWord     current;
+  SgWord     previous;
+  PacketType type;
+  int        argc;
+  SgWord     next;
+} comb_table[] = {
+#include "vminsn.c"
+  {CAR, CAR, ARGUMENT0, 0, CAAR},
+  {CAR, CDR, ARGUMENT0, 0, CADR},
+  {CDR, CAR, ARGUMENT0, 0, CDAR},
+  {CDR, CDR, ARGUMENT0, 0, CDDR}
+};
+#undef STATE_TABLE
+
 /* TODO generate this from instructions.scm */
-static void combineInsnArg0(SgCodeBuilder *cb, SgCodePacket *packet)
+static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
 {
+  SgWord curr = packet->insn;
+  SgWord prev = cb->packet.insn;
+  int i;
+  /* handle special case */
   switch (packet->insn) {
-  case PUSH:
+  case LEAVE:
     switch (cb->packet.insn) {
-    case LREF:
-      cb->packet.insn = LREF_PUSH;
-      break;
-    case FREF:
-      cb->packet.insn = FREF_PUSH;
-      break;
-    case GREF:
-      cb->packet.insn = GREF_PUSH;
-      break;
-    case CONST:
-      cb->packet.insn = CONST_PUSH;
-      break;
-    case CONSTI:
-      cb->packet.insn = CONSTI_PUSH;
-      break;
-    case LREF_CAR:
-      cb->packet.insn = LREF_CAR_PUSH;
-      break;
-    case FREF_CAR:
-      cb->packet.insn = FREF_CAR_PUSH;
-      break;
-    case GREF_CAR:
-      cb->packet.insn = GREF_CAR_PUSH;
-      break;
-    case LREF_CDR:
-      cb->packet.insn = LREF_CDR_PUSH;
-      break;
-    case FREF_CDR:
-      cb->packet.insn = FREF_CDR_PUSH;
-      break;
-    case GREF_CDR:
-      cb->packet.insn = GREF_CDR_PUSH;
-      break;
-    case CAR:
-      cb->packet.insn = CAR_PUSH;
-      break;
-    case CDR:
-      cb->packet.insn = CDR_PUSH;
-      break;
-    case CONS:
-      cb->packet.insn = CONS_PUSH;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-  case RET:
-    switch (cb->packet.insn) {
-    case CONST:
-      cb->packet.insn = CONST_RET;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-  case CAR:
-    switch (cb->packet.insn) {
-    case LREF:
-      cb->packet.insn = LREF_CAR;
-      break;
-    case FREF:
-      cb->packet.insn = FREF_CAR;
-      break;
-    case GREF:
-      cb->packet.insn = GREF_CAR;
-      break;
-    case CAR:
-      cb->packet.insn = CAAR;
-      break;
-    case CDR:
-      cb->packet.insn = CADR;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-  case CDR:
-    switch (cb->packet.insn) {
-    case LREF:
-      cb->packet.insn = LREF_CDR;
-      break;
-    case FREF:
-      cb->packet.insn = FREF_CDR;
-      break;
-    case GREF:
-      cb->packet.insn = GREF_CDR;
-      break;
-    case CAR:
-      cb->packet.insn = CDAR;
-      break;
-    case CDR:
-      cb->packet.insn = CDDR;
-      break;
-    default:
-      goto flush;
+    case LEAVE: cb->packet.arg0 += packet->arg0; return;
     }
     break;
   case UNDEF:
     switch (cb->packet.insn) {
-    case UNDEF: break;
-    default:
-      goto flush;
+    case UNDEF: return;
     }
     break;
-  case CALL:
-    switch (cb->packet.insn) {
-    case GREF:
-      cb->packet.insn = GREF_CALL;
-      cb->packet.type = ARGUMENT1;
-      cb->packet.arg0 = packet->arg0;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-  case TAIL_CALL:
-    switch (cb->packet.insn) {
-    case GREF:
-      cb->packet.insn = GREF_TAIL_CALL;
-      cb->packet.type = ARGUMENT1;
-      cb->packet.arg0 = packet->arg0;
-      break;
-    default:
-      goto flush;
-    }
-    break;
-  case LEAVE:
-    switch (cb->packet.insn) {
-      /* merge it */
-    case LEAVE: cb->packet.arg0 += packet->arg0; break;
-    default: goto flush;
-    }
-    break;
-  default:
-  flush:
-    flush(cb);
-    COPY_CODE_PACKET(cb->packet, *packet);
-    break;
-  }
-}
-
-static void combineInsnArg1(SgCodeBuilder *cb, SgCodePacket *packet)
-{
-  switch (packet->insn) {
   case CONST: {
     SgObject obj = packet->obj;
     if (SG_INTP(obj) && SG_INT_FITS_INSN_VALUE(SG_INT_VALUE(obj))) {
@@ -277,32 +163,37 @@ static void combineInsnArg1(SgCodeBuilder *cb, SgCodePacket *packet)
       packet->type = ARGUMENT0;
       packet->arg0 = SG_INT_VALUE(obj);
       COPY_CODE_PACKET(cb->packet, *packet);
-      break;
+      return;
     }
-    goto flush;
   }
-  default:
-  flush:
-    flush(cb);
-    COPY_CODE_PACKET(cb->packet, *packet);
-    break;
   }
+
+  for (i = 0; i < array_sizeof(comb_table); i++) {
+    struct comb_table_t *entry = &comb_table[i];
+    if (entry->current == curr && entry->previous == prev) {
+      cb->packet.insn = entry->next;
+      cb->packet.type = entry->type;
+      switch (entry->argc) {
+      case 2:
+	cb->packet.arg1 = packet->arg1;
+	/* fall through */
+      case 1:
+	cb->packet.arg0 = packet->arg0; 
+	break;
+      case 0: break;
+      default:
+	Sg_Panic("[Internal] immediate value count more than 2 [%d]",
+		 entry->argc);
+	break;
+      }
+      return;
+    }
+  }
+
+  flush(cb);
+  COPY_CODE_PACKET(cb->packet, *packet);
 }
 
-static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
-{
-  switch (packet->type) {
-  case ARGUMENT0:
-    combineInsnArg0(cb, packet);
-    break;
-  case ARGUMENT1:
-    combineInsnArg1(cb, packet);
-    break;
-  default:
-    /* suppose not to be happen */
-    Sg_Error(UC("[internal] CodeBuilder failed to emit code."));
-  }
-}
 
 static void builder_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
