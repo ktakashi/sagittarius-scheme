@@ -234,11 +234,11 @@
 (define-cise-stmt branch-number-test
   ((_ op func)
    `(let ((s (POP (SP vm))))
-      (cond ((logand (SG_INTP (AC vm)) (SG_INTP s))
+      (cond ((and (SG_INTP (AC vm)) (SG_INTP s))
 	     (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
-	    ((logand (SG_FLONUMP (AC vm)) (SG_FLONUMP s))
+	    ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP s))
 	     (if (,op (SG_FLONUM_VALUE s) (SG_FLONUM_VALUE (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
@@ -271,8 +271,8 @@
 	    (set! (AC vm) SG_TRUE)
 	    (post++ (PC vm)))
 	  (begin
-	    (+= (PC vm) (PEEK_OPERAND (PC vm)))
-	    (set! (AC vm) SG_FALSE)))
+	    (set! (AC vm) SG_FALSE)
+	    (+= (PC vm) (PEEK_OPERAND (PC vm)))))
       NEXT)))
 
 (define-inst BNEQ (0 1 #t) :label

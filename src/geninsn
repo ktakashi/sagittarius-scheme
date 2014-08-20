@@ -48,7 +48,12 @@
    (push-variant :init-value #f)
    (base-variant :init-value #f)
    (ret-variant :init-value #f)
+   (2variants :init-value #f)
    ))
+(define-method write-object ((i <vm-insn-info>) out)
+  (format out "#<vm-insn-info ~a:~a(~a) ~a ~a>" 
+	  (~ i 'name) (~ i 'code) (~ i 'vals)
+	  (~ i 'argc) (~ i '2variants)))
 
 (define (expand-toplevels file)
   (fold (lambda (form seed)
@@ -97,6 +102,18 @@
 		 (baseinsn (find (^i (eq? (~ i'name) basename)) insns)))
 	    (set! (~ baseinsn slot) insn)
 	    (set! (~ insn 'base-variant) baseinsn)))
+	(let loop ((comb comb))
+	  (if (= (length comb) 2)
+	      (set! (~ insn '2variants) comb)
+	      ;; find minimum 2 of combination
+	      (let-values (((first rest) (split-at comb 2)))
+		(let ((target (find (lambda (insn)
+				      (equal? (~ insn '2variants) first))
+				    insns)))
+		  ;; should be found so no check
+		  (let ((name (~ target 'name)))
+		    (loop (cons name rest)))))))
+	
 	(case (car (last-pair comb))
 	  ((PUSH) (wire "PUSH" 'push-variant))
 	  ((RET) (wire "RET" 'ret-variant))))
@@ -175,6 +192,26 @@
       (render1 insn)
       (cgen-body "}"))
     ))
+;; how should we construct state transition without changing
+;; code builder structure?
+#|
+(define (collect-state-table insns)
+  (define (compute-table-size insns combs)
+    (let1 base (length insns)
+      )
+    )
+  (let1 2variants (list-sort
+		   (lambda (a b) 
+		     (string<? (symbol->string (car a))
+			       (symbol->string (car b))))
+		   (filter-map (lambda (insn) 
+				 (and (~ insn '2variants)
+				      (reverse (~ insn '2variants)))) insns))
+    (let* ((table-size (compute-table-size insns 2variants))
+	   (table (make-vector table-size)))
+      ))
+  )
+|#
 
 (define *insn-file* "instructions.scm")
 (define *header-prefix* "
@@ -223,7 +260,8 @@ SG_CDECL_END
 
 (define (main args)
   (with-args (cdr args)
-      ((clean (#\c "clean") #f #f))
+      ((clean  (#\c "clean") #f #f)
+       (force? (#\f "force") #f #f))
     (if clean
 	(let ((c-file (~ *unit* 'c-file))
 	      (h-file (~ *unit* 'h-file)))
@@ -233,7 +271,8 @@ SG_CDECL_END
 	(parameterize ((cgen-current-unit *unit*))
 	  (let ((c-file (~ *unit* 'c-file))
 		(h-file (~ *unit* 'h-file)))
-	    (when (and (file-exists? c-file) (file-exists? h-file))
+	    (when (and (file-exists? c-file) (file-exists? h-file)
+		       (not force?))
 	      (let ((omtime (file-stat-mtime *insn-file*))
 		    (cmtime (file-stat-mtime c-file))
 		    (hmtime (file-stat-mtime h-file)))
@@ -262,6 +301,17 @@ SG_CDECL_END
 	      "#define INSTRUCTION_COUNT ~a /** number of instructions */"
 	      (length insns)))
 	    (cgen-body "#endif /* DEFINSN */")
+	    ;; state table
+#|
+	    (cgen-body "#ifdef STATE_TABLE")
+	    (pp insns (current-error-port))
+	    (let1 table (collect-state-table insns))
+	    (dolist (insn insns)
+	      
+	      )
+	    ;; we use the fact that insn is starting from 0
+	    (cgen-body "#endif STATE_TABLE")
+|#
 	    ;; emit body
 	    (cgen-body "#ifdef VM_LOOP")
 	    (construct-vm-body insns)

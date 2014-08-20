@@ -3,15 +3,24 @@
 SASH=${SASH:-"sash"}
 
 # merged from autogen.sh
+geninsn()
+{
+    case `pwd` in
+	*src) ;;
+	*) cd src ;;
+    esac
+    $SASH ./geninsn $1
+    cd ../
+}
+
 precomp()
 {
     echo Generating compiled library files
     cd src
     $SASH genlib $1
     echo generating instruction
-    $SASH ./geninsn $1
+    geninsn $1
     # done :)
-    cd ../
 }
 
 stub()
@@ -79,6 +88,7 @@ usage()
     echo "    dist:       create distribution file"
     echo "    gen:        generate all files"
     echo "    precomp:    generate precompiled files"
+    echo "    insn:       generate VM instructions"
     echo "    stub:       generate stub files"
     echo "    srfi:       generate R7RS style SRFI libraries"
     echo "    clean:      clean generated files"
@@ -96,6 +106,7 @@ if [ $# -ge 1 ] ; then
 	srfi)    srfi $1;;
 	precomp) precomp $1;;
 	clean)   stub "-c"; precomp "-c"; srfi "-c" ;;
+	insn)    geninsn $1;;
 	*)       usage ;;
     esac
 else
