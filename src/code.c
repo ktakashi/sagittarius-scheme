@@ -130,10 +130,10 @@ static struct comb_table_t {
   SgWord     next;
 } comb_table[] = {
 #include "vminsn.c"
-  {CAR, CAR, CAAR},
-  {CAR, CDR, CADR},
-  {CDR, CAR, CDAR},
-  {CDR, CDR, CDDR}
+  {CAR, CAR, ARGUMENT0, CAAR},
+  {CAR, CDR, ARGUMENT0, CADR},
+  {CDR, CAR, ARGUMENT0, CDAR},
+  {CDR, CDR, ARGUMENT0, CDDR}
 };
 #undef STATE_TABLE
 
@@ -166,6 +166,8 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
       COPY_CODE_PACKET(cb->packet, *packet);
       return;
     }
+    goto flush;
+    break;
   }
   }
 
@@ -179,16 +181,6 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
       if (currI->argc) {
 	cb->packet.obj = packet->obj;
       }
-#if 0
-      {
-      InsnInfo *prevI = Sg_LookupInsnName(prev);
-      InsnInfo *nextI = Sg_LookupInsnName(entry->next);
-      fprintf(stderr, "%s:%s -> %s", currI->name, prevI->name, nextI->name);
-      Sg_Printf(Sg_StandardErrorPort(), UC(" %S %S\n"), cb->packet.obj,
-		packet->obj);
-      }
-#endif
-
       switch (currI->instValues) {
       case 2:
 	cb->packet.arg1 = packet->arg1;
@@ -204,7 +196,7 @@ static void cb_put(SgCodeBuilder *cb, SgCodePacket *packet)
       return;
     }
   }
-
+ flush:
   flush(cb);
   COPY_CODE_PACKET(cb->packet, *packet);
 }
