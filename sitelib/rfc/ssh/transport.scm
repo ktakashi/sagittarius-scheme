@@ -79,6 +79,12 @@
     (string-append "SSH-2.0-Sagittarius_" (sagittarius-version)))
   (define *ssh-version-string* (make-parameter +default-version-string+))
 
+  ;; RFC 4253 defines identification string like the followings;
+  ;;  SSH-protoversion-softwareversion SP comments CR LF
+  ;; Thus 'comments' must be a part of identification string
+  ;; to be used as a part of MAC.
+  ;; 
+  ;; So the following comment is an mistake.
   ;; RFC 4253 says software version MUST consist of printable
   ;; US-ASCII character, with the exception of whitespace characters
   ;; and the minus sign (-). (from 4.2. Protocol Version Exchange)
@@ -87,7 +93,10 @@
   ;; for mac calculation. In that case, I think we can ignore
   ;; the comment part since there is no way to determine if it's
   ;; the starting of comment or a part of software version string.
-  (define *ssh-strict-version-exchange* (make-parameter #t))
+  ;; 
+  ;; To keep backward compatibility we need to keep this but
+  ;; do nothing
+  (define *ssh-strict-version-exchange* (make-parameter #f))
 
   ;; utility
   (define (read-ascii-line in)
@@ -121,6 +130,8 @@
 		 (error 'version-exchange "no version string"))
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
+		   (set! (~ transport 'target-version) vs)
+		   #;
 		   (if (*ssh-strict-version-exchange*)
 		       (set! (~ transport 'target-version) (m 1))
 		       (set! (~ transport 'target-version) vs))
