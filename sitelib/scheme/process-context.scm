@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme process-context)
     (export command-line exit emergency-exit
 	    get-environment-variable get-environment-variables)

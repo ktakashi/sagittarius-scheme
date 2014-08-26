@@ -183,21 +183,12 @@
 
   ;; gloc
   (define-c-proc gloc-ref (g::<gloc>) SG_GLOC_GET)
-
-  (define-c-proc gloc-set! (g::<gloc> value) ::<void>
-    (SG_GLOC_SET g value))
-
+  (define-c-proc gloc-set! (g::<gloc> value) ::<void> SG_GLOC_SET)
   (define-c-proc gloc-bound? (g::<gloc>) ::<boolean>
     (result (not (SG_UNBOUNDP (SG_GLOC_GET g)))))
-
-  (define-c-proc gloc-const? (g::<gloc>) ::<boolean>
-    (result (Sg_GlocConstP g)))
-
-  (define-c-proc gloc-library (g::<gloc>) ::<top>
-    (result (-> g library)))
-
-  (define-c-proc gloc-name (g::<gloc>) ::<top>
-    (result (-> g name)))
+  (define-c-proc gloc-const? (g::<gloc>) ::<boolean> Sg_GlocConstP)
+  (define-c-proc gloc-library (g::<gloc>) (result (-> g library)))
+  (define-c-proc gloc-name (g::<gloc>)    (result (-> g name)))
 
   ;; closure
   (define-c-proc make-toplevel-closure (cb::<code-builder>)

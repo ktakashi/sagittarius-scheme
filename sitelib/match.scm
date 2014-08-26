@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; match.scm: ported by Takashi Kato for Sagittarius
-#!compatible
+#!core
 #!nobacktrace
 (library (match)
     (export match

@@ -1,5 +1,5 @@
 ;; -*- scheme -*-
-#!compatible
+#!core
 (library (text sxml helper)
     (export parser-error
 	    ssax:warn

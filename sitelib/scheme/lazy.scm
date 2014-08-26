@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme lazy)
     (export delay force delay-force make-promise promise?)
     (import (core promise)))

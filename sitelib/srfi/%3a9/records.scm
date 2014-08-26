@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!compatible
+#!core
 (library (srfi :9 records)
   (export (rename (srfi:define-record-type define-record-type)))
   (import (rnrs)

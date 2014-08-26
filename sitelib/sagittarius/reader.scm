@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; This file is a part of Sagittarius Scheme system.
-#!compatible
+#!core
 (library (sagittarius reader)
     (export define-reader-macro
 	    define-dispatch-macro

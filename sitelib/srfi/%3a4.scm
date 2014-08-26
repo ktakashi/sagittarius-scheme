@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!compatible
+#!core
 (library (srfi :4)
     (export :export-reader-macro
 	    <s8vector>

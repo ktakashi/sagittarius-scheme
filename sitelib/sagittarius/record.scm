@@ -29,7 +29,7 @@
 ;;;  
 
 ;; This file is a part of Sagittarius Scheme system.
-#!compatible
+#!core
 (library (sagittarius record)
     ;; it's not used at all now...
     (export )

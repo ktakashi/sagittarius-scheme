@@ -2,7 +2,7 @@
 ;;;
 ;;; random.scm math library
 ;;; 
-#!compatible
+#!core
 (library (math random)
     (export prng?
 	    pseudo-random?

@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme char)
     (export
      char-alphabetic? char-ci<=? char-ci<? char-ci=? char-ci>=? char-ci>?

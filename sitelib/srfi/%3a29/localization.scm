@@ -27,8 +27,8 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-#!compatible
-#< (sagittarius regex) >
+#!core
+#!read-macro=sagittarius/regex
 (library (srfi :29 localization)
     (export current-language current-country current-locale-details
 	    declare-bundle! store-bundle! load-bundle!

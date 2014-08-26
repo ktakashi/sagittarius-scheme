@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme time)
     (export current-jiffy current-second jiffies-per-second)
     (import (rnrs)

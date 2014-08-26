@@ -1,6 +1,6 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 ;; compat.scm:  provides R7RS compatible procedures and macros
-#!compatible
+#!core
 (library (compat r7rs)
     (export syntax-rules let-syntax letrec-syntax)
     (import (rename (except (core) identifier?)

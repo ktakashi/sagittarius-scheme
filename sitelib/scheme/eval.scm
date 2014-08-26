@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme eval)
     (export environment eval)
     (import (rnrs) (rnrs eval)))

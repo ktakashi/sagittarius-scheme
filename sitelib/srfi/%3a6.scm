@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :6)
   (export
     get-output-string

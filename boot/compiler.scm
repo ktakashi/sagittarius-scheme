@@ -1049,10 +1049,7 @@
 ;; I don't think I need this for now, but maybe later.
 (define (id->bound-gloc id)
   (let ((gloc (find-binding (id-library id) (id-name id) #f)))
-    (if (and gloc
-	     (gloc-bound? gloc))
-	gloc
-	#f)))
+    (and gloc (gloc-bound? gloc) gloc)))
 
 (define (ensure-library thing name create?)
   (let ((mod (cond ((pair? thing) (find-library thing create?))
@@ -3422,6 +3419,14 @@
 	 (not (assq (id-name id) (cdr (library-exported lib)))))))
 
 (define (pass2/$GREF iform penv tail?)
+  ;; if the variable is defined not in this library
+  ;; and VM mode is no-overwrite, then we can fold this.
+  (define (const-variable? id gloc)
+    (and-let* (( (vm-no-overwrite?) )
+	       ;; procedure should not be folded
+	       ( (not (procedure? (gloc-ref gloc))) )
+	       (lib (gloc-library gloc)))
+      (not (eq? lib (id-library id)))))
   ;; inline library constable
   (or (and-let* (( (not (vm-nolibrary-inlining?)) ) 
 		 ( ($gref-inlinable? iform penv) )
@@ -3440,10 +3445,10 @@
 	    #f))
       (and-let* (( (not (vm-noconstant-inlining?)) )
 		 (gloc (id->bound-gloc ($gref-id iform)))
-		 ( (gloc-const? gloc) )
-		 ;; TODO should we throw error if nothing bounded?
 		 (v (gloc-ref gloc))
-		 ( (cachable? v)))
+		 ( (cachable? v) )
+		 ( (or (gloc-const? gloc)
+		       (const-variable? ($gref-id iform) gloc)) ))
 	($const v))
       iform))
 

@@ -36,7 +36,7 @@
 ;; <http://www.ietf.org/rfc/rfc2047.txt>
 
 ;; The api names are from Gauche.
-#!compatible
+#!core
 #!read-macro=sagittarius/regex
 (library (rfc mime)
     (export mime-parse-version

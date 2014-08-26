@@ -30,7 +30,7 @@
 
 ;; the implementation based on Python's cgi.py
 ;; multipart parsing part is based on Gauche's cgi.scm
-#!compatible
+#!core
 #!read-macro=sagittarius/regex
 (library (www cgi)
     (export cgi-parse

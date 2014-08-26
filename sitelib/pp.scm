@@ -1,5 +1,5 @@
 ;; -*- scheme -*-
-#!compatible
+#!core
 (library (pp)
     (export pretty-print pretty-print-to-string
 	    pp

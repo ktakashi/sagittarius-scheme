@@ -1,5 +1,5 @@
 ;; From chicken scheme's egg http://wiki.call-cc.org/eggref/4/packrat
-#!compatible
+#!core
 #!nobacktrace
 (library (packrat)
     (export parse-result?

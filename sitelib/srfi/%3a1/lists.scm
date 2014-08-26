@@ -1,4 +1,4 @@
-#!compatible
+#!core
 #!nobacktrace
 ;;; SRFI-1 list-processing library          -*- Scheme -*-
 ;;; Reference implementation

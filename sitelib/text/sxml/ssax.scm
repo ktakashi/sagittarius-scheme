@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 ;; SSAX ported for Sagittarius Scheme by Takashi Kato
-#!compatible
+#!core
 #!nobacktrace
 (library (text sxml ssax)
     (export make-xml-token ;; for testing

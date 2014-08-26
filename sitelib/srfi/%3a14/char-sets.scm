@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!compatible
+#!core
 #!nobacktrace
 (library (srfi :14 char-sets)
   (export

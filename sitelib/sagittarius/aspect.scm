@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (sagittarius aspect)
     (export point-cut)
     (import (core)

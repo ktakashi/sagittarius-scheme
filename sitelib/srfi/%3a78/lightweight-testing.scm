@@ -67,7 +67,7 @@
 
 ;;#!r6rs
 ;; for Sagittarius we can't use #!r6rs notation
-#!compatible
+#!core
 (library (srfi :78 lightweight-testing)
   (export
     check

@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme repl)
     (export interaction-environment)
     (import (only (rnrs) define quote)

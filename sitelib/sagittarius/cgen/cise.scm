@@ -3,7 +3,7 @@
 ;; Originally from Gauche gauche.cgen.cise, so are the rest of literal, stub
 ;; type and unit.
 
-#!compatible
+#!core
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen cise)
     (export define-cise-macro define-cise-stmt define-cise-expr

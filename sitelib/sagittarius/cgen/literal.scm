@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; cgen cise.
-#!compatible
+#!core
 (library (sagittarius cgen literal)
     (export <cgen-literal> cgen-c-name cgen-cexpr cgen-make-literal
 	    cgen-cpred

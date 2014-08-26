@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :1)
   (export
     alist-cons

@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme load)
     (export (rename (r7rs:load load)))
     (import (rnrs)

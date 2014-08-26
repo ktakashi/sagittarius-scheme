@@ -2,7 +2,7 @@
 ;;;
 ;;; dsa.scm Cryptographic library
 ;;; 
-#!compatible
+#!core
 (library (crypto key dsa)
     (export DSA
 	    generate-dsa-parameter)

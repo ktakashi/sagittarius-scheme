@@ -4,7 +4,7 @@
 ;; This library just exports all variables from (sagittarius cgen cise) and
 ;; (sagittarius cgen unit). These 2 libraries do not depend on Sagittarius
 ;; headers. So it can be used for normal C generator (I guess).
-#!compatible
+#!core
 (library (sagittarius cgen)
     (export :all)
     (import (sagittarius cgen cise)

@@ -2,7 +2,7 @@
 ;;;
 ;;; cipher.scm Cryptographic library
 ;;; 
-#!compatible
+#!core
 (library (crypto cipher)
     (export crypto-object?
 	    cipher-keysize

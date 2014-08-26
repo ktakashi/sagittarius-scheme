@@ -2,7 +2,7 @@
 ;;;
 ;;; pkcs.scm Cryptographic library
 ;;; 
-#!compatible
+#!core
 (library (crypto pkcs)
     (export ;; padder
 	    pkcs5-padder

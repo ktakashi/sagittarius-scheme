@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; cgen cise.
-#!compatible
+#!core
 (library (sagittarius cgen syntax)
     (export)
     (import (rnrs)

@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme private)
     (export define-values)
     (import (rnrs) (rnrs mutable-pairs))

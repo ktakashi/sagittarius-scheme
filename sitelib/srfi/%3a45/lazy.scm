@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (srfi :45 lazy)
     (export lazy eager delay force)
     (import (rnrs) (rnrs mutable-pairs))

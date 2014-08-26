@@ -29,7 +29,7 @@
 ;;;  
 
 ;; the library name contains a typo, so don't use it!
-#!compatible
+#!core
 #!nocache
 #!deprecated
 (library (srfi :14 char-set)

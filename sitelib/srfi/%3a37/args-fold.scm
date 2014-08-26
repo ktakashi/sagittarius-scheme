@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :37 args-fold)
   (export args-fold
 	  ;; issue, option is already defined, so import can not

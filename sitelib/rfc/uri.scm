@@ -32,7 +32,7 @@
 ;; RFC3986 URI Generic Syntax
 ;; <http://www.ietf.org/rfc/rfc3986.txt>
 
-#!compatible
+#!core
 #!read-macro=sagittarius/regex
 (library (rfc uri)
     (export uri-parse

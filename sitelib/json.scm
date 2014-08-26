@@ -1,5 +1,5 @@
 ;; from chicken's egg wiki.call-cc.org/eggref/4/json
-#!compatible
+#!core
 (library (json)
     (export json-write
 	    json-read)

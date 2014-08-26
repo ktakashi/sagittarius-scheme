@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme case-lambda)
     (export case-lambda)
     (import (rnrs)))

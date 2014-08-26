@@ -5,6 +5,8 @@
 
 (add-load-path "./gambit-benchmarks")
 
+;; use this because (time) also shows the expression
+;; which is in benchmark always (run-bench name count ok? run)
 (define format.6f
   (lambda (x)
     (let* ((str (number->string (/ (round (* x 1000000.0)) 1000000.0)))
@@ -13,7 +15,6 @@
           str
           (string-append str (make-string pad #\0))))))
 
-;; from Ypsilon start
 (define-syntax time
   (syntax-rules ()
     ((_ expr)
@@ -77,7 +78,7 @@
   (lambda (x)
     (syntax-case x ()
       ((?_ name count)
-       (let ((symbolic-name (syntax->datum (syntax name))))
+       (let ((symbolic-name (syntax->datum #'name)))
          (with-syntax ((symbol-iters (datum->syntax #'?_ (string->symbol (format "~a-iters" symbolic-name))))
                        (string-name (datum->syntax #'?_ (symbol->string symbolic-name))))
            (syntax

@@ -30,7 +30,7 @@
 
 ;; The code is based on the following site:
 ;;  http://d.hatena.ne.jp/leque/20110105/p1
-#!compatible
+#!core
 
 ;; eql specializer is now builtin so this is for backward compatibility
 (library (sagittarius mop eql)

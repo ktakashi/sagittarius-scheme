@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :19)
     (export make-time
 	    time?

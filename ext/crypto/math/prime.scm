@@ -1,5 +1,5 @@
 ;;
-#!compatible
+#!core
 (library (math prime)
     (export prime? ;; this is Scheme way, isn't it?
 	    (rename (prime? is-prime?)) ;; backward compatibility

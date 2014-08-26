@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!compatible
+#!core
 (library (scheme write)
     (export (rename (write-cyclic write)
 		    (write/ss write-shared)

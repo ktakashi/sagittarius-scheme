@@ -184,7 +184,8 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* child thread should not affect parent load-path*/
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
   v->dynamicLoadPath = proto ? Sg_CopyList(proto->dynamicLoadPath): SG_NIL;
-  v->flags = proto? proto->flags : 0;
+  /* default no overwrite */
+  v->flags = proto? proto->flags : SG_NO_OVERWRITE;
 
   v->currentInputPort = proto 
     ? proto->currentInputPort

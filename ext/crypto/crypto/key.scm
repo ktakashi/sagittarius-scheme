@@ -2,7 +2,7 @@
 ;;;
 ;;; key.scm Cryptographic library
 ;;; 
-#!compatible
+#!core
 (library (crypto key)
     (export key?
 	    generate-secret-key

@@ -1,7 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; eager-comprehensions ported for Sagittarius by Takashi Kato
 #!nobacktrace
-
+#!core
 ;; originally from Gauche
 
 ; <PLAINTEXT>
@@ -29,7 +29,7 @@
 ;     decisions related to performance are taken for Scheme48.
 ;   * Alternative implementations, Comments and Warnings are 
 ;     mentioned after the definition with a heading.
-#!compatible
+
 (library (srfi :42 eager-comprehensions)
   (export
     do-ec list-ec append-ec string-ec string-append-ec vector-ec 

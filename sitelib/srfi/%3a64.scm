@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :64)
   (export
    test-begin

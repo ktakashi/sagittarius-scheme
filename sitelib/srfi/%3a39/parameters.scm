@@ -1,7 +1,7 @@
 ;;; -*- scheme -*-
 ;;; parameters - srfi 39, parameter objects
 ;;;  
-;;;   Copyright (c) 2000-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -26,7 +26,7 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-#!compatible
+#!core
 (library (srfi :39 parameters)
   (export make-parameter parameterize)
   (import (sagittarius parameters)))

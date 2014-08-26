@@ -1013,7 +1013,8 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	    SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	    /* now core mode doesn't allow this */
+	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;

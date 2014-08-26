@@ -1,6 +1,6 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 ;; math.scm: mathmatic library.
-#!compatible
+#!core
 (library (math)
     (export :all)
     (import (math random)

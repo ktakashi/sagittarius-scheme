@@ -2,7 +2,7 @@
 ;;;
 ;;; des.scm Cryptographic library
 ;;; 
-#!compatible
+#!core
 (library (crypto key des)
     (export generate-secret-key)
     (import (rnrs)

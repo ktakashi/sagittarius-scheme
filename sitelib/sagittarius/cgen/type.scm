@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-#!compatible
+#!core
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen type)
     (export <cgen-type> cgen-type-from-name make-cgen-type

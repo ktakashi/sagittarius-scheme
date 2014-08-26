@@ -26,6 +26,7 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
+#!core
 
 ;; Ported for Sagittarius
 ;; Copyright (c) 2005, 2006 Per Bothner
@@ -49,7 +50,6 @@
 ;; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 ;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
-#!compatible
 (library (srfi :64 testing)
     (export
      test-begin
