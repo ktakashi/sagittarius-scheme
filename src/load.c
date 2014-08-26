@@ -127,8 +127,6 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
   /* TODO put macro in vm.h */
   /* reset all flags except log and cache */
   vm->flags = vm->flags & (SG_LOG_LEVEL_MASK | SG_CACHE_MASK); 
-  /* default no overwrite */
-  SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
   return Sg_VMDynamicWindC(NULL, load_body, load_after, lc);
 }
 

@@ -1,5 +1,5 @@
 ;; -*- scheme -*-
-#!compatible
+#!core
 (library (srfi :8)
   (export
     receive)

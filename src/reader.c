@@ -1002,7 +1002,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	    SG_VM_UNSET_FLAG(vm, SG_NO_OVERWRITE);
+	    SG_VM_SET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -1013,8 +1013,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
-	    /* now core mode doesn't allow this */
-	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -1045,7 +1044,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
       case 'n':
 	if (ustrcmp(tag->value, "no-overwrite") == 0) {
 	  if (ctx->flags & SG_CHANGE_VM_MODE) {
-	    SG_VM_SET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	    SG_VM_UNSET_FLAG(Sg_VM(), SG_ALLOW_OVERWRITE);
 	  }
 	  return NULL;
 	}
@@ -1100,7 +1099,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
       case 'o':
 	if (ustrcmp(tag->value, "overwrite") == 0) {
 	  if (ctx->flags & SG_CHANGE_VM_MODE) {
-	    SG_VM_UNSET_FLAG(Sg_VM(), SG_NO_OVERWRITE);
+	    SG_VM_SET_FLAG(Sg_VM(), SG_ALLOW_OVERWRITE);
 	  }
 	  return NULL;
 	}
@@ -1110,7 +1109,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  SgVM *vm = Sg_VM();
 	  if (ctx->flags & SG_CHANGE_VM_MODE) {
 	    SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
-	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
+	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	  }
@@ -1120,8 +1119,8 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	if (ustrcmp(tag->value, "r7rs") == 0) {
 	  SgVM *vm = Sg_VM();
 	  if (ctx->flags & SG_CHANGE_VM_MODE) {
-	    SG_VM_SET_FLAG(vm, SG_NO_OVERWRITE);
 	    SG_VM_SET_FLAG(vm, SG_R7RS_MODE);
+	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	  }

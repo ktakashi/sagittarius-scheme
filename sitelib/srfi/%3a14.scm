@@ -1,4 +1,4 @@
-#!compatible
+#!core
 (library (srfi :14)
   (export ->char-set
           char-set
