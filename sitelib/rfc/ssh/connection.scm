@@ -123,7 +123,8 @@
 			(utf8->string (~ f 'description))
 			(~ f 'reason-code))))
 	      (else
-	       (error 'open-client-ssh-channel "unknown type" type))))))
+	       (error 'open-client-ssh-channel "unknown type" 
+		      type resp))))))
 
   (define (open-client-ssh-session-channel transport . opts)
     (apply open-client-ssh-channel transport
