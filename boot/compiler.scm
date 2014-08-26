@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding:utf-8; -*-
-#!core
+#!compatible
 ;;
 ;; This compiler has 4 stages.
 ;; pass0 - for future use.
@@ -14,59 +14,14 @@
 ;;          (import ;; need this?)
 
 ;; common definition
-(cond-expand
- (gauche
-  (require "lib/smatch.scm")    ;; for smatch
-  (require "compiler-aux.scm") ;; for define-simple-struct
-  (use util.list)
-
-  (define make-eq-hashtable make-hash-table)
-  ;; just stub this is only used by *library*
-  ;; so I just need equal
-  (define-macro (make-hashtable . dummy)
-    (make-hash-table 'equal?))
-  (define hashtable-set! hash-table-put!)
-  (define hashtable-ref hash-table-get)
-  (define hashtable-contains? hash-table-exists?)
-  (define hashtable-keys-list hash-table-keys)
-  (define hashtable-values-list hash-table-values)
-  (define hashtable-for-each (lambda (proc ht) (hash-table-for-each ht proc)))
-  (define (syntax-error form . irritants)
-    (errorf "syntax-error: ~s, irritants ~s" form irritants))
-  (define (scheme-error who msg . irritants)
-    (errorf "error ~s: ~s, irritants ~s" who msg irritants))
-  (define hashtable->alist hash-table->alist)
-  (define (flush-output-port p) (flush))
-  (define inexact exact->inexact)
-  (define (source-info form) #f)
-  (define (source-info-set! form info) form)
-  (define list-head take)
-  (define o-error-handler with-error-handler)
-  (define (with-error-handler h t f)
-    (o-error-handler h t :rewind-before f))
-  (define (save-expansion-history! n o) n)
-  (define (lookup-expansion-history n) #f)
-  ;; load instruction definition
-  (load "insn.scm")
-  ;; load Vm procedures to run on scheme VM
-  (load "lib/ext.scm")
-  (load "lib/vm.scm")
-  ;;(load "lib/macro.scm")
-  (load "lib/macro.scm")
-  )
- (sagittarius
-  ;; sagittarius
-  ;; include is just a mark for generating the compiler
-  (include "lib/smatch.scm")
-  #;(include "compiler-aux.scm"))
-)
+(include "lib/smatch.scm")
 
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm
 ;; this does not use call/cc
 (define-syntax guard
   (syntax-rules ()
-    ((guard (var . clauses) . body)
+    ((_ (var . clauses) . body)
      (with-error-handler
        (lambda (e)
 	 (let ((var e))
@@ -355,26 +310,17 @@
 (define-constant SMALL_LAMBDA_SIZE 12)
 ;; Maximum size of $LAMBDA node I allow to inline for library optimization
 (define-constant INLINABLE_LAMBDA_SIZE 24)
-(cond-expand
- (gauche
-  (define-macro (generate-dispatch-table prefix)
-    `(vector ,@(map (lambda (p)
-		      (string->symbol (string-append (symbol->string prefix) "/"
-						     (symbol->string (car p)))))
-		    .intermediate-tags.)))
-  )
- (sagittarius
-  (define-syntax generate-dispatch-table
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (smatch form
-	 ((_ prefix)
-	  `(vector ,@(map (lambda (p)
-			    (string->symbol (string-append
-					     (symbol->string prefix) "/"
-					     (symbol->string (car p)))))
-			  .intermediate-tags.))))))))
-)
+
+(define-syntax generate-dispatch-table
+  (er-macro-transformer
+   (lambda (form rename compare)
+     (smatch form
+       ((_ prefix)
+	`(vector ,@(map (lambda (p)
+			  (string->symbol (string-append
+					   (symbol->string prefix) "/"
+					   (symbol->string (car p)))))
+			.intermediate-tags.)))))))
 
 (define-syntax iform-tag
   (syntax-rules ()
@@ -1203,36 +1149,18 @@
 (define setter.  (global-id 'setter))
 
 ;; load expander here for macro...
-(cond-expand
- (gauche
-  ;; dispatch methods.
-  ;; all methods have to have the same signature.
-  (define-macro (define-pass1-syntax formals library . body)
-    ;; for future expantion, i took module also
-    (let ((lib (ensure-library-name library)))
-      (let ((name (string->symbol (string-append
-				   "syntax/"
-				   (symbol->string (car formals))))))
-	`(let ((,name (lambda ,(cdr formals) ,@body)))
-	   (%insert-binding ',lib ',(car formals)
-			    (make-syntax ',(car formals) ,name))))))
-  ;; load procedures here is better, i think
-  (load "lib/proc.scm")
-  )
- (sagittarius
-  (define-syntax define-pass1-syntax
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (smatch form
-	 ((- formals library . body)
-	  (let ((lib (ensure-library-name library)))
-	    (let ((name (string->symbol 
-			 (string-append "syntax/"
-					(symbol->string (car formals))))))
-	      `(let ((,name (lambda ,(cdr formals) ,@body)))
-		 (%insert-binding ',lib ',(car formals)
-				  (make-syntax ',(car formals) ,name))))))))))
- ))
+(define-syntax define-pass1-syntax
+  (er-macro-transformer
+   (lambda (form rename compare)
+     (smatch form
+       ((- formals library . body)
+	(let ((lib (ensure-library-name library)))
+	  (let ((name (string->symbol 
+		       (string-append "syntax/"
+				      (symbol->string (car formals))))))
+	    `(let ((,name (lambda ,(cdr formals) ,@body)))
+	       (%insert-binding ',lib ',(car formals)
+				(make-syntax ',(car formals) ,name))))))))))
 
 ;; get symbol or id, and returns identiier.
 (define (ensure-identifier sym-or-id p1env)
@@ -1405,9 +1333,9 @@
     (- (syntax-error "malformed quasiquote" form))))
 
 
-(define (check-direct-variable name p1env form)
-  (cond-expand
-   (sagittarius.scheme.vm
+(cond-expand
+ (sagittarius.scheme.vm
+  (define (check-direct-variable name p1env form)
     (when (vm-no-overwrite?)
       (let* ((lib (p1env-library p1env))
 	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
@@ -1415,11 +1343,12 @@
 	(when (and gloc (not (eq? (gloc-library gloc) lib)))
 	  (syntax-error "attempt to modify immutable variable"
 			(unwrap-syntax form)
-			(unwrap-syntax name))))))
-   (else
-    ;; boot code generator can not use above, because ext.scm is redefining
-    ;; most of the identifier related procedures.
-    #t)))
+			(unwrap-syntax name)))))))
+ (else
+  ;; boot code generator can not use above, because ext.scm is redefining
+  ;; most of the identifier related procedures.
+  (define (check-direct-variable name p1env form) #t)))
+
 
 (define (pass1/define form oform flags library p1env)
   (check-toplevel oform p1env)
@@ -1596,11 +1525,8 @@
       symid))
 
 ;; we need to export er-macro-transformer and er-rename
-(cond-expand
- (gauche #f)
- (sagittarius
-  (let ((lib (ensure-library-name :null)))
-    (%insert-binding lib 'er-rename er-rename))))
+(let ((lib (ensure-library-name :null)))
+  (%insert-binding lib 'er-rename er-rename))
 
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
   (smatch form
@@ -2380,17 +2306,16 @@
 ;;                 | (rename <import set> (<identifier1> <identifier2>) ...)
 ;;
 (cond-expand
- ((or gauche sagittarius)
-  ;; for generating boot code, we need this to avoid to import unneccessary 
-  ;; libraries.
-  (define (check-expand-phase phases)
-    (memq 'expand phases)))
  (sagittarius.scheme.vm
   ;; dummy
   (define-syntax check-expand-phase
     (er-macro-transformer
      (lambda (f r c)
-       '#f)))))
+       '#f))))
+ (else
+  ;; for generating boot code, we need this to avoid to import unneccessary 
+  ;; libraries.
+  (define (check-expand-phase phases) (memq 'expand phases))))
 
 ;;
 ;; Parsing import spec
@@ -4366,99 +4291,58 @@
 	     id lambda-node)))
 
 ;; scan
-(cond-expand
- (gauche
-  (define-macro (pass4/scan* iforms bs fs t? labels)
-    (let1 iforms. (gensym)
-      `(let1 ,iforms. ,iforms
-	 (cond [(null? ,iforms.) ,fs]
-	       [(null? (cdr ,iforms.))
-		(pass4/scan (car ,iforms.) ,bs ,fs ,t? ,labels)]
-	       [else
-		(let loop ([,iforms. ,iforms.] [,fs ,fs])
-		  (if (null? ,iforms.)
-		      ,fs
-		      (loop (cdr ,iforms.)
-			    (pass4/scan (car ,iforms.) ,bs ,fs ,t? ,labels))))])
-	 )))
+(define-syntax pass4/scan*
+  (er-macro-transformer
+   (lambda (f r c)
+     (smatch f
+       ((- iforms bs fs t? labels)
+	(let ((iforms. (gensym)))
+	  `(let ((,iforms. ,iforms))
+	     (cond ((null? ,iforms.) ,fs)
+		   ((null? (cdr ,iforms.))
+		    (pass4/scan (car ,iforms.) ,bs ,fs ,t? ,labels))
+		   (else
+		    (let loop ((,iforms. ,iforms.) (,fs ,fs))
+		      (if (null? ,iforms.)
+			  ,fs
+			  (loop (cdr ,iforms.)
+				(pass4/scan (car ,iforms.)
+					    ,bs ,fs ,t? ,labels)))))))))))))
 
-  (define-macro (pass4/subst! access-form labels)
-    (match-let1 (accessor expr) access-form
-      (let ([orig (gensym)]
-	    [result (gensym)]
-	    [setter (if (eq? accessor 'car)
-			'set-car! 
-			(string->symbol #`",|accessor|-set!"))])
-	`(let* ([,orig (,accessor ,expr)]
-		[,result (pass4/subst ,orig ,labels)])
-	   (unless (eq? ,orig ,result)
-	     (,setter ,expr ,result))
-	   ,expr))))
+(define-syntax pass4/subst!
+  (er-macro-transformer
+   (lambda (f r c)
+     (smatch f
+       ((- access-form labels)
+	(smatch access-form
+	  ((accessor expr)
+	   (let ((org (gensym))
+		 (result (gensym))
+		 (setter (if (eq? accessor 'car)
+			     'set-car!
+			     (string->symbol (format "~a-set!" accessor)))))
+	     `(let* ((,org (,accessor ,expr))
+		     (,result (pass4/subst ,org ,labels)))
+		(unless (eq? ,org ,result)
+		  (,setter ,expr ,result))
+		,expr)))))))))
 
-  (define-macro (pass4/subst*! iforms labels)
-    (let1 iforms. (gensym)
-      `(let1 ,iforms. ,iforms
-	 (cond [(null? ,iforms.)]
-	       [(null? (cdr ,iforms.)) (pass4/subst! (car ,iforms.) ,labels)]
-	       [else
-		(let loop ([,iforms. ,iforms.])
-		  (unless (null? ,iforms.)
-		    (pass4/subst! (car ,iforms.) ,labels)
-		    (loop (cdr ,iforms.))))]))))
-  )
- (sagittarius
-  (define-syntax pass4/scan*
-    (er-macro-transformer
-     (lambda (f r c)
-       (smatch f
-	 ((- iforms bs fs t? labels)
-	  (let ((iforms. (gensym)))
-	    `(let ((,iforms. ,iforms))
-	       (cond ((null? ,iforms.) ,fs)
-		     ((null? (cdr ,iforms.))
-		      (pass4/scan (car ,iforms.) ,bs ,fs ,t? ,labels))
-		     (else
-		      (let loop ((,iforms. ,iforms.) (,fs ,fs))
-			(if (null? ,iforms.)
-			    ,fs
-			    (loop (cdr ,iforms.)
-				  (pass4/scan (car ,iforms.)
-					      ,bs ,fs ,t? ,labels)))))))))))))
+(define-syntax pass4/subst*!
+  (er-macro-transformer
+   (lambda (f r c)
+     (smatch f
+       ((- iforms labels)
+	(let ((iforms. (gensym)))
+	  `(let ((,iforms. ,iforms))
+	     (cond ((null? ,iforms.))
+		   ((null? (cdr ,iforms.)) (pass4/subst! (car ,iforms.)
+							 ,labels))
+		   (else
+		    (let loop ((,iforms. ,iforms.))
+		      (unless (null? ,iforms.)
+			(pass4/subst! (car ,iforms.) ,labels)
+			(loop (cdr ,iforms.)))))))))))))
 
-  (define-syntax pass4/subst!
-    (er-macro-transformer
-     (lambda (f r c)
-       (smatch f
-	 ((- access-form labels)
-	  (smatch access-form
-	    ((accessor expr)
-	     (let ((org (gensym))
-		   (result (gensym))
-		   (setter (if (eq? accessor 'car)
-			       'set-car!
-			       (string->symbol (format "~a-set!" accessor)))))
-	       `(let* ((,org (,accessor ,expr))
-		       (,result (pass4/subst ,org ,labels)))
-		  (unless (eq? ,org ,result)
-		    (,setter ,expr ,result))
-		  ,expr)))))))))
-
-  (define-syntax pass4/subst*!
-    (er-macro-transformer
-     (lambda (f r c)
-       (smatch f
-	 ((- iforms labels)
-	  (let ((iforms. (gensym)))
-	    `(let ((,iforms. ,iforms))
-	       (cond ((null? ,iforms.))
-		     ((null? (cdr ,iforms.)) (pass4/subst! (car ,iforms.)
-							   ,labels))
-		     (else
-		      (let loop ((,iforms. ,iforms.))
-			(unless (null? ,iforms.)
-			  (pass4/subst! (car ,iforms.) ,labels)
-			  (loop (cdr ,iforms.)))))))))))))
-  ))
 
 (define (pass4/scan iform bs fs t? labels)
   ((vector-ref *pass4/lambda-lifting-table* (iform-tag iform))
@@ -5696,11 +5580,7 @@
 		(loop (cdr args) (max depth (+ d cnt 1)) (+ cnt 1)
 		      (renv-add-dummy renv))))))))
 
-(cond-expand
- (gauche
-  (load "lib/builtin-inliner.scm"))
- (sagittarius
-  (include "lib/builtin-inliner.scm")))
+(include "lib/builtin-inliner.scm")
 ;; ADD
 (define-builtin-inliner-+ + ADD $const)
 ;;(define-builtin-inliner-+ +. ADDI ensure-inexact-const)
@@ -5792,11 +5672,6 @@
 	       (make-renv)
 	       'tail
 	       RET)))))
-
-(cond-expand
- (gauche
-  (load "lib/debug.scm"))
- (else))
 
 ;; for debug
 (define (compile-p1 program)

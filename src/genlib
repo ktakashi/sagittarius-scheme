@@ -48,6 +48,8 @@
 
 (define-constant +targets-file+ "genlib.targets")
 
+(define *features* (make-parameter '(sagittarius sagittarius.scheme.vm)))
+
 (define-syntax parse-options
   (syntax-rules ()
     ((_ options ((name mark default) ...) body ...)
@@ -56,18 +58,19 @@
        body ...))))
 
 (define (load-compiler options)
-  (parse-options options
+  (parameterize ((*features* '(sagittarius)))
+    (parse-options options
       ((compiler compiler        +default-compiler+)
        (libs     compiler-import +default-imports+)
        (includes  includes       +default-includes+))
-    (let1 form (construct-library-form 
-		compiler `((library . (sagittarius host compiler))
-			   (exports compile)
-			   (imports . ,libs)
-			   (includes . ,includes)))
-      (eval form (environment '(only (sagittarius) library)
-			      'user))
-      (find-procedure 'compile '(sagittarius host compiler)))))
+      (let1 form (construct-library-form 
+		  compiler `((library . (sagittarius host compiler))
+			     (exports compile)
+			     (imports . ,libs)
+			     (includes . ,includes)))
+	(eval form (environment '(only (sagittarius) library)
+				'user))
+	(find-procedure 'compile '(sagittarius host compiler))))))
 
 (define (name-generator filename libname)
   (define (path-directory filename)
@@ -92,7 +95,7 @@
 	     (if it then else)))))))
 
 (define (resolve-cond-expand&include forms loadpaths)
-  (define marks '(sagittarius sagittarius.scheme.vm))
+  (define marks (*features*))
   (define (find-file base loadpaths)
     (car (filter-map (lambda (dir)
 		       (let1 f (build-path dir base)

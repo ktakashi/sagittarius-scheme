@@ -2,7 +2,7 @@
 ;; compat.scm:  provides R7RS compatible procedures and macros
 #!core
 (library (compat r7rs)
-    (export syntax-rules let-syntax letrec-syntax)
+    (export syntax-rules)
     (import (rename (except (core) identifier?)
 		    (length length*)
 		    (number->string %number->string))

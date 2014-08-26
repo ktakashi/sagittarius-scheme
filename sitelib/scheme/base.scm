@@ -71,13 +71,14 @@
      write-string write-u8
 
      zero?)
-  (import (rename (except (rnrs) syntax-rules define-record-type)
+  (import (rename (except (rnrs) syntax-rules define-record-type
+			  bytevector-copy!)
 		  (error r6rs:error)
 		  (let-syntax r6rs:let-syntax)
 		  (letrec-syntax r6rs:letrec-syntax))
 	  (rnrs mutable-pairs)
 	  (rnrs mutable-strings)
-	  (rnrs r5rs)
+	  (except (rnrs r5rs) let-syntax letrec-syntax error)
 	  (compat r7rs)
 	  (srfi :0)
 	  (rename (srfi :1) (make-list srfi:make-list))
@@ -129,8 +130,7 @@
   (define-copy! vector-copy! vector-length vector-set! vector-ref)
 
   ;; for now error object is r6rs' condition
-  (define (error message . irr)
-    (apply r6rs:error 'error message irr))
+  ;; (define (error message . irr) (apply r6rs:error 'error message irr))
   (define error-object? condition?)
 
   (define (error-object-irritants obj)
