@@ -698,7 +698,7 @@
        (match form
 	 ((_ type expr)
 	  `("((",(cise-render-typed-var type "" env)")("
-	    ,(render-rec expr env) "))")))
+	    ,(render-rec expr eenv) "))")))
        env)))
 
   (define (type-decl-initial? sym)
