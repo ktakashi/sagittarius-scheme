@@ -9,6 +9,7 @@
 	(sagittarius ffi))
 
 (test-begin "(run-ffi-test)")
+
 (cond-expand
  (sagittarius.ffi
   (define ffi-test-lib
@@ -16,7 +17,20 @@
         (cond-expand
           (darwin (string-append build-directory-path "/test-lib.dylib"))
           (else (string-append build-directory-path "/test-lib.so")))))
-  (define array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
+
+  ;; originally this was array but now it must be an
+  ;; different name otherwise define-c-struct
+  ;; would confuse so that array is an keyword and exported by
+  ;; (sagittarius ffi) and re-definition would make free-identifier=?
+  ;; fails. the reason why this worked before was that
+  ;; it's in cond-expand so this variable was not defined
+  ;; yet when the macros were expanded. however because
+  ;; of compilation time constant folding if 'array' in
+  ;; quicksort would be folded by symbol array. to avoid
+  ;; that rename was needed.
+  ;; this basically breaking backward compatibility however
+  ;; hmmmm the behaviour itself was a bug...
+  (define bv-array (u8-list->bytevector '(6 6 1 4 2 9 3 7)))
 
   (test-assert "suffix" shared-object-suffix)
   (test-assert "suffix(1)" (string? (shared-object-suffix)))
@@ -106,10 +120,9 @@
 					 (lambda (x y)
 					   (- (pointer-ref-c-int8 x 0)
 					      (pointer-ref-c-int8 y 0))))))
-		(qsort array (bytevector-length array) 1 compare)
+		(qsort bv-array (bytevector-length bv-array) 1 compare)
 		(free-c-callback compare)
-		array))
-
+		bv-array))
 
   ;; pointer address
   (test-equal "address passing"
