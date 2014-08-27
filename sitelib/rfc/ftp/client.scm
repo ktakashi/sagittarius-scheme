@@ -35,7 +35,8 @@
 	    ftp-login ftp-login-with-socket ftp-quit 
 	    ftp-mkdir ftp-chdir ftp-rmdir
 	    ftp-current-directory
-	    ftp-delete ftp-stat
+	    ftp-delete 
+	    ftp-stat ftp-system ftp-size
 	    ftp-help
 
 	    ftp-get
@@ -133,6 +134,14 @@
 
   ;; rmd
   (define (ftp-rmdir conn dirname) (simple-command conn "RMD" dirname))
+  ;; stat
+  (define (ftp-stat conn . opt) (apply simple-command conn "STAT" opt))
+  ;; syst
+  (define (ftp-system conn) (string-drop (simple-command conn "SYST") 4))
+  ;; size
+  (define (ftp-size conn path) 
+    (ftp-set-type conn)
+    (string->number (string-drop (simple-command conn "SIZE" path) 4)))
   ;; mkd
   (define (ftp-mkdir conn dirname)
     (parse-257 (simple-command conn "MKD" dirname)))
@@ -144,9 +153,9 @@
       (ftp-error #f res)))
 
   (define (ftp-chdir conn path)
-    (if (string=? dirname "..")
+    (if (string=? path "..")
 	(simple-command conn "CDUP")
-	(simple-command conn "CWD" dirname)))
+	(simple-command conn "CWD" path)))
   ;; dele
   (define (ftp-delete conn path) (simple-command conn "DELE" path))
   ;; help
@@ -214,7 +223,8 @@
       (let loop ((r '()) (u8* (socket-recv s 1)))
 	(let1 u8 (bytevector-u8-ref u8* 0)
 	  (if (= u8 lf)
-	      (utf8->string (u8-list->bytevector (reverse! (cons u8 r))))
+	      (string-trim-right 
+	       (utf8->string (u8-list->bytevector (reverse! (cons u8 r)))))
 	      (loop (cons u8 r) (socket-recv s 1))))))
     (define (get-resp s)
       (let1 l (recv-line s)
