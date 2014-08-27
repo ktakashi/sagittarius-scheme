@@ -1332,22 +1332,35 @@
     (- (syntax-error "malformed quasiquote" form))))
 
 
+;; Check if the given variable is bound in other library.
+;; Now, we won't allow to set! if the variable is bound in
+;; other library. the 'set!?' is indicating where this
+;; called.
+;; If the library (environment) is mutable then compiler allow
+;; to redefine. The mutable libraries are 'user (interactive-environment)
+;; and eval environments.
+;; NOTE: R6RS and R7RS actually don't allow user to define in eval
+;; so we might want to make it immutable since we can. but for now.
 (cond-expand
  (sagittarius.scheme.vm
-  (define (check-direct-variable name p1env form)
+  (define (check-direct-variable name p1env form set!?)
     (when (vm-no-overwrite?)
       (let* ((lib (p1env-library p1env))
 	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
 				 #f)))
 	(when (and gloc (not (eq? (gloc-library gloc) lib))
-		   (not (library-mutable? lib)))
-	  (syntax-error "attempt to modify immutable variable"
+		   (or set!? (not (library-mutable? lib))))
+	  ;; switch message. it won't hurt that much but
+	  ;; may give some hints to users.
+	  (syntax-error (if set!? 
+			    "imported variable cannot be assigned"
+			    "attempt to modify immutable variable")
 			(unwrap-syntax form)
 			(unwrap-syntax name)))))))
  (else
   ;; boot code generator can not use above, because ext.scm is redefining
   ;; most of the identifier related procedures.
-  (define (check-direct-variable name p1env form) #t)))
+  (define (check-direct-variable name p1env form set!?) #t)))
 
 
 (define (pass1/define form oform flags library p1env)
@@ -1360,7 +1373,7 @@
 		   oform flags library p1env))
     ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
-     (check-direct-variable name p1env oform)
+     (check-direct-variable name p1env oform #f)
      ;; this renames all the same identifier
      (when (identifier? name) (rename-pending-identifier! name))
      (let ((vname (variable-name name))
@@ -1449,7 +1462,7 @@
   (check-toplevel form p1env)
   (smatch form
     ((- name expr)
-     (check-direct-variable name p1env form)
+     (check-direct-variable name p1env form #f)
      (library-defined-add! (p1env-library p1env) name)
      (let ((transformer (pass1/eval-macro-rhs 
 			 'define-syntax
@@ -2264,11 +2277,11 @@
 		    (let ((gval (gloc-ref gloc)))
 		      (cond ((macro? gval) (do-macro gval name form p1env))
 			    (else
-			     (check-direct-variable name p1env form)
+			     (check-direct-variable name p1env form #t)
 			     ($gset (ensure-identifier var p1env)
 				    (pass1 expr p1env))))))
 		  (begin
-		    (check-direct-variable name p1env form)
+		    (check-direct-variable name p1env form #t)
 		    ($gset (ensure-identifier var p1env)
 			   (pass1 expr p1env))))))))
     (- (syntax-error "malformed set!" form))))
