@@ -40,7 +40,12 @@
 
 	    ftp-get
 	    ftp-put ftp-put-unique
-	    <ftp-connection>)
+	    <ftp-connection>
+
+	    ;; receivers
+	    ftp-binary-receiver
+	    ftp-file-receiver
+	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
@@ -147,11 +152,24 @@
   ;; help
   (define (ftp-help conn . opt) (apply simple-command conn "HELP" opt))
 
-  (define (ftp-get conn path :key (sink (open-output-bytevector))
-				  (flusher get-output-bytevector))
+  ;; ftp-get receiver
+  (define (ftp-binary-receiver)
+    (let-values (((out extract) (open-bytevector-output-port)))
+      (lambda (in)
+	(copy-binary-port out in)
+	(extract))))
+  (define (ftp-file-receiver filename)
+    (lambda (in)
+      (call-with-output-file filename
+	(lambda (out)
+	  (copy-binary-port out in))
+	:transcoder #f)))
+
+
+  (define (ftp-get conn path :key (receiver (ftp-binary-receiver)))
     (req&recv conn
 	      (cut send-command conn "RETR" path)
-	      (lambda (in) (copy-binary-port sink in) (flusher sink))))
+	      receiver))
 
   ;; STOR
   (define (ftp-put conn from-file :optional (to-file (path-basename from-file)))
