@@ -59,6 +59,7 @@ struct SgLibraryRec
 				 */
   readtable_t *readtable;
   SgObject     reader;		/* custom reader */
+  int          mutableP;
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
@@ -71,10 +72,13 @@ struct SgLibraryRec
 #define SG_LIBRARY_TABLE(obj)    SG_LIBRARY(obj)->table
 #define SG_LIBRARY_READTABLE(obj)    SG_LIBRARY(obj)->readtable
 #define SG_LIBRARY_READER(obj)   SG_LIBRARY(obj)->reader
+#define SG_LIBRARY_PARENTS(obj)  SG_LIBRARY(obj)->parents
+#define SG_LIBRARY_MUTABLEP(obj) SG_LIBRARY(obj)->mutableP
 
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeLibrary(SgObject name);
+SG_EXTERN SgObject Sg_MakeMutableLibrary(SgObject name);
 SG_EXTERN SgObject Sg_MakeEvalLibrary();
 SG_EXTERN SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name);
 SG_EXTERN void     Sg_RemoveLibrary(SgLibrary *lib);
@@ -92,6 +96,10 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
 SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP);
+/* make library immutable
+   this operation, for now, is one way.
+ */
+SG_EXTERN void     Sg_LockLibrary(SgLibrary *library);
 
 #define Sg_ImportLibrary(t, f)  Sg_ImportLibraryFullSpec((t), (f), SG_NIL)
 

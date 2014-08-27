@@ -185,7 +185,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;
   v->dynamicLoadPath = proto ? Sg_CopyList(proto->dynamicLoadPath): SG_NIL;
   /* default no overwrite */
-  v->flags = proto? proto->flags : SG_ALLOW_OVERWRITE;
+  v->flags = proto? proto->flags : 0;
 
   v->currentInputPort = proto 
     ? proto->currentInputPort
@@ -2344,7 +2344,7 @@ void Sg__InitVM()
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
-  rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), TRUE);
+  rootVM->currentLibrary = Sg_MakeMutableLibrary(SG_INTERN("user"));
   /* mark as this is toplevel library. */
   SG_LIBRARY_DEFINEED(rootVM->currentLibrary) = SG_FALSE;
   

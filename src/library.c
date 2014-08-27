@@ -105,6 +105,7 @@ static SgLibrary* make_library()
   z->version = SG_NIL;
   z->parents = SG_NIL;
   z->reader = SG_FALSE;
+  SG_LIBRARY_MUTABLEP(z) = FALSE;
   Sg_InitMutex(&z->lock, FALSE);
   return z;
 }
@@ -235,7 +236,7 @@ static void remove_library(SgLibrary *lib)
   UNLOCK_LIBRARIES();
 }
 
-SgObject Sg_MakeLibrary(SgObject name)
+static SgLibrary* make_library_rec(SgObject name)
 {
   SgLibrary *z = make_library();
   SgVM *vm = Sg_VM();
@@ -250,7 +251,26 @@ SgObject Sg_MakeLibrary(SgObject name)
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; library %S has been created\n"), name);
   }
+  return z;
+}
+
+SgObject Sg_MakeLibrary(SgObject name)
+{
+  return SG_OBJ(make_library_rec(name));
+}
+
+SgObject Sg_MakeMutableLibrary(SgObject name) 
+{
+  SgLibrary *z = make_library_rec(name);
+  SG_LIBRARY_MUTABLEP(z) = TRUE;
   return SG_OBJ(z);
+}
+
+void Sg_LockLibrary(SgLibrary *library)
+{
+  Sg_LockMutex(&library->lock);
+  SG_LIBRARY_MUTABLEP(library) = FALSE;
+  Sg_UnlockMutex(&library->lock);
 }
 
 /* creates anonymous library */
@@ -265,6 +285,7 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
+  SG_LIBRARY_MUTABLEP(z) = TRUE;
   return z;
 }
 
@@ -577,15 +598,11 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
 			convert_name_to_symbol(SG_CAR(id_version)), SG_FALSE);
   /* TODO check version number */
   if (SG_FALSEP(lib)) {
+    /* shouldn't this first search then create? */
     if (createp) {
       return Sg_MakeLibrary(name);
     } else {
       lib = search_library(SG_CAR(id_version), FALSE);
-#if 0
-      if (SG_FALSEP(lib)) {
-	Sg_Error(UC("no library named %S"), name);
-      }
-#endif
     }
   }
   return lib;

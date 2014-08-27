@@ -14,7 +14,10 @@
 ;;          (import ;; need this?)
 
 ;; common definition
-(include "lib/smatch.scm")
+(cond-expand
+ (sagittarius.scheme.vm
+  (include "lib/smatch.scm"))
+ (else #t))
 
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm
@@ -137,6 +140,7 @@
 ;; used by p1env-lookup
 ;; TODO move this somewhere in C level
 ;; so that both Scheme and C can share the value.
+;; it's a
 (define-constant LEXICAL    0)
 (define-constant ENV-BOTTOM 4)
 ;;(define-constant PATTERN 2)
@@ -998,18 +1002,13 @@
     (and gloc (gloc-bound? gloc) gloc)))
 
 (define (ensure-library thing name create?)
-  (let ((mod (cond ((pair? thing) (find-library thing create?))
+  (let ((lib (cond ((pair? thing) (find-library thing create?))
 		   ((library? thing) thing)
 		   ((symbol? thing) (find-library thing create?))
 		   (else
-		    (assertion-violation
-		     'ensure-library
-		     (format 
-		      "~a requires a library name or a library, but got: ~s"
-		      name thing))))))
-    (or mod
-	(scheme-error 'ensure-library
-		      (format "~a: no such library: ~s" name thing)))))
+		    (assertion-violation 
+		     name "required a library name or a library" thing)))))
+    (or lib (scheme-error name "no such library" thing))))
 
 (define (check-toplevel form p1env)
   (unless (p1env-toplevel? p1env)
@@ -1340,7 +1339,8 @@
       (let* ((lib (p1env-library p1env))
 	     (gloc (find-binding lib (if (identifier? name) (id-name name) name)
 				 #f)))
-	(when (and gloc (not (eq? (gloc-library gloc) lib)))
+	(when (and gloc (not (eq? (gloc-library gloc) lib))
+		   (not (library-mutable? lib)))
 	  (syntax-error "attempt to modify immutable variable"
 			(unwrap-syntax form)
 			(unwrap-syntax name)))))))

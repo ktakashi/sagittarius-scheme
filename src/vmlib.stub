@@ -114,19 +114,13 @@
   (define-c-proc make-library (name) Sg_MakeLibrary)
 
   (define-c-proc library? (arg0) ::<boolean> SG_LIBRARYP)
-
   (define-c-proc library-name (arg0::<library>) SG_LIBRARY_NAME)
-
   (define-c-proc library-imported (arg0::<library>) SG_LIBRARY_IMPORTED)
-
   (define-c-proc library-imported-set! (arg0::<library> arg1) ::<void>
     (set! (SG_LIBRARY_IMPORTED arg0) arg1))
-
   (define-c-proc library-exported (arg0::<library>) SG_LIBRARY_EXPORTED)
-
   (define-c-proc library-exported-set! (arg0::<library> arg1) ::<void>
     (set! (SG_LIBRARY_EXPORTED arg0) arg1))
-
   (define-c-proc library-exported-add! (arg0::<library> arg1) ::<void>
     (if (SG_FALSEP (SG_LIBRARY_EXPORTED arg0)) ;; not set yet
 	(set! (SG_LIBRARY_EXPORTED arg0) arg1)
@@ -135,13 +129,11 @@
 	  (set! (SG_LIBRARY_EXPORTED arg0)
 		(Sg_Cons (Sg_Append2X exports (SG_CAR arg1))
 			 (Sg_Append2X renames (SG_CDR arg1)))))))
-
   (define-c-proc library-defined (lib) 
     (cond ((SG_LIBRARYP lib) (result (SG_LIBRARY_DEFINEED lib)))
 	  ((SG_FALSEP lib) (result (SG_LIBRARY_DEFINEED (Sg_VMCurrentLibrary))))
 	  (else (wrong-type-of-argument-violation 'library-defined 
 						  "library or #f" lib))))
-
   (define-c-proc library-defined-add! (lib::<library> v) ::<void>
     (unless (or (SG_SYMBOLP v) (SG_IDENTIFIERP v))
       (wrong-type-of-argument-violation 'library-defined-add!
@@ -150,11 +142,10 @@
     (let ((def (SG_LIBRARY_DEFINEED lib)))
       (when (and (not (SG_FALSEP def)) (SG_FALSEP (Sg_Memq v def)))
 	(set! (SG_LIBRARY_DEFINEED lib) (Sg_Cons v def)))))
-
   (define-c-proc library-table (lib::<library>) SG_LIBRARY_TABLE)
-
-  (define-c-proc library-parents (lib::<library>)
-    (result (-> lib parents)))
+  (define-c-proc library-parents (lib::<library>) SG_LIBRARY_PARENTS)
+  (define-c-proc library-mutable? (lib::<library>) ::<boolean> 
+    SG_LIBRARY_MUTABLEP)
 
   (define-c-proc find-library (arg0 createp::<boolean>) Sg_FindLibrary)
 
