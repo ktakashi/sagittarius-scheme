@@ -213,9 +213,10 @@ enum {
 */
 #define builtin_cachable_p(obj)						\
   (!SG_PTRP(obj) || SG_SYMBOLP(obj) || SG_STRINGP(obj) ||		\
-   SG_KEYWORD(obj) || SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) ||	\
+   SG_KEYWORDP(obj) || SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) ||	\
    SG_VECTORP(obj) || SG_PAIRP(obj) || SG_NUMBERP(obj) ||		\
-   SG_MACROP(obj) || SG_GLOCP(obj))
+   SG_MACROP(obj) || SG_GLOCP(obj) || SG_CODE_BUILDERP(obj) ||\
+   SG_LIBRARYP(obj) || SG_CLOSUREP(obj))
 
 static int cachable_p(SgObject obj)
 {
