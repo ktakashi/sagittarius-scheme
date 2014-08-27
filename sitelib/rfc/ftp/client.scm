@@ -40,7 +40,8 @@
 	    ftp-help
 
 	    ftp-get
-	    ftp-put ftp-put-unique
+	    ftp-put ftp-put-file
+	    ftp-put-unique ftp-put-unique-file
 	    <ftp-connection>
 
 	    ;; receivers
@@ -181,17 +182,23 @@
 	      receiver))
 
   ;; STOR
-  (define (ftp-put conn from-file :optional (to-file (path-basename from-file)))
-    (receive (res _)
-	(call-with-input-file from-file
-	  (cute req&send conn (cut send-command conn "STOR" to-file) <>)
-	  :transcoder #f)
+  (define (ftp-put-file conn from-file
+			:optional (to-file (path-basename from-file)))
+    (call-with-input-file from-file
+      (cut ftp-put conn <> to-file)
+      :transcoder #f))
+
+  (define (ftp-put conn bin to-file)
+    (receive (res _) (req&send conn (cut send-command conn "STOR" to-file) bin)
       res))
 
   ;; STOU
-  (define (ftp-put-unique conn from-file)
+  (define (ftp-put-unique conn bin)
+    (req&send conn (cut send-command conn "STORU") bin))
+
+  (define (ftp-put-unique-file conn from-file)
     (call-with-input-file from-file
-      (cute req&send conn (cut send-command conn "STOU") <>)
+      (cut ftp-put-unique conn <>)
       :transcoder #f))
 
   ;; low level stuff
