@@ -34,9 +34,12 @@
 	    ;; commands
 	    ftp-login ftp-login-with-socket ftp-quit 
 	    ftp-mkdir ftp-chdir ftp-rmdir
-	    ftp-current-directory
-	    ftp-delete 
+	    ftp-current-directory (rename (ftp-current-directory ftp-pwd))
+	    ftp-delete ftp-rename
 	    ftp-stat ftp-system ftp-size
+	    ftp-mdtm ftp-mtime
+	    ftp-site
+	    ftp-noop ftp-list ftp-name-list (rename (ftp-name-list ftp-ls))
 	    ftp-help
 
 	    ftp-get
@@ -57,6 +60,7 @@
 	    (clos user)
 	    (srfi :13 strings)
 	    (srfi :18 multithreading)
+	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (util file)
 	    (util port)
@@ -153,10 +157,44 @@
       (regex-replace-all #/""/ dirname "\"")
       (ftp-error #f res)))
 
+  ;; cdup or cwd
   (define (ftp-chdir conn path)
     (if (string=? path "..")
 	(simple-command conn "CDUP")
 	(simple-command conn "CWD" path)))
+
+  ;; SITE
+  (define (ftp-site conn arg) (simple-command conn "SITE" arg))
+  ;; MDTM
+  (define (ftp-mdtm conn path) (simple-command conn "MDTM" path))
+
+  (define (ftp-mtime conn path :optional (local-time? #f))
+    (regex-match-let (#/(\d{4})(\d\d)(\d\d)(\d\d)(\d\d)(\d\d)/ 
+			(ftp-mdtm conn path))
+	(#f year month day hour min sec)
+      (date->time-utc
+       (make-date 0
+		  (string->number sec) (string->number min) (string->number hour)
+		  (string->number day) (string->number month)
+		  (string->number year)
+		  (if local-time? (date-zone-offset (current-date)) 0)))))
+  
+  ;; NOOP
+  (define (ftp-noop conn) (simple-command conn "NOOP"))
+  
+  ;; LIST
+  ;; NLIST
+  (define (make-lister cmd)
+    (lambda (conn . opt)
+      (req&recv conn
+		(cut apply send-command conn cmd opt)
+		(lambda (in) 
+		  (port->string-list 
+		   (transcoded-port in (native-transcoder))))
+		'ascii)))
+  (define ftp-list (make-lister "LIST"))
+  (define ftp-name-list (make-lister "NLST"))
+
   ;; dele
   (define (ftp-delete conn path) (simple-command conn "DELE" path))
   ;; help
@@ -200,6 +238,17 @@
     (call-with-input-file from-file
       (cut ftp-put-unique conn <>)
       :transcoder #f))
+
+  ;; RNFR
+  ;; RNTO
+  (define (ftp-rename conn from to)
+    (let1 res1 (send-command conn "RNFR" from)
+      (if (not (string-prefix? "3" res1))
+	  (ftp-error 'ftp-rename res1)
+	  (let1 res2 (send-command conn "RNTO" to)
+	    (if (not (string-prefix? "2" res2))
+		(ftp-error 'ftp-rename res2)
+		res2)))))
 
   ;; low level stuff
   (define (send-command conn cmd . args)
@@ -266,7 +315,7 @@
 
     (define (parse-227 res)
       (if (not (string-prefix? "227" res))
-	  (ftp-error res)
+	  (ftp-error #f res)
 	  (regex-match-let (#/\((\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/ res)
 	      (#f h1 h2 h3 h4 p1 p2)
 	    (let1 ds (make-client-socket (string-join (list h1 h2 h3 h4) ".")
@@ -279,7 +328,7 @@
 	(format "\\~a\\~a\\~a([^\\~a]+)\\~d" s s s s s))
 
       (if (not (string-prefix? "229" res))
-	  (ftp-error res)
+	  (ftp-error #f res)
 	  ;; response format (<d><d><d><tcp-port><d>)
 	  ;; we need tcp-port
 	  (regex-match-let (#/\((.+?)\)/ res) (#f s)
