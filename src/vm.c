@@ -675,7 +675,6 @@ SgObject Sg_Eval(SgObject sexp, SgObject env)
   /* store cache */
   if (vm->state == IMPORTING) SG_SET_CAR(vm->cache, Sg_Cons(v, SG_CAR(vm->cache)));
   if (vm->state != IMPORTING) vm->state = RUNNING;
-  CLEAR_STACK(vm);
 
   ASSERT(SG_CODE_BUILDERP(v));
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
@@ -1339,6 +1338,7 @@ static void save_partial_cont(SgVM *vm)
 static void expand_stack(SgVM *vm)
 {
   SgObject *p;
+  int i, size;
 
   if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
     Sg_Printf(vm->logPort,
@@ -1347,7 +1347,12 @@ static void expand_stack(SgVM *vm)
   }
 
   save_cont(vm);
-  memmove(vm->stack, FP(vm), (SP(vm) - FP(vm))*sizeof(SgObject));
+  /* seems this is a bit faster (it's really a bit) */
+  size = (SP(vm) - FP(vm));
+  for (p = FP(vm), i = 0; i < size; i++, p++) {
+    vm->stack[i] = *p;
+  }
+  /* memmove(vm->stack, FP(vm), (SP(vm) - FP(vm))*sizeof(SgObject)); */
   SP(vm) -= FP(vm) - vm->stack;
   FP(vm) = vm->stack;
 
