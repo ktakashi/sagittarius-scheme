@@ -41,8 +41,15 @@ static void proc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   if (SG_PROCEDURE_TYPE(obj) == SG_PROC_SUBR)
     Sg_Putuz(port, UC("#<subr "));
-  else 
+  else if (SG_PROCEDURE_TYPE(obj) == SG_PROC_CLOSURE)
     Sg_Putuz(port, UC("#<closure "));
+  /* well should not be here but in case. */
+  else if (SG_PROCEDURE_TYPE(obj) == SG_PROC_GENERIC)
+    Sg_Putuz(port, UC("#<generic "));
+  else if (SG_PROCEDURE_TYPE(obj) == SG_PROC_METHOD)
+    Sg_Putuz(port, UC("#<method "));
+  else if (SG_PROCEDURE_TYPE(obj) == SG_PROC_NEXT_METHOD)
+    Sg_Putuz(port, UC("#<next-method "));
   Sg_Write(SG_PROCEDURE_NAME(obj), port, SG_WRITE_DISPLAY);
   Sg_Putc(port, '>');
 }

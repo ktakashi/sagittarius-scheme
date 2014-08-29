@@ -544,6 +544,7 @@ int main(int argc, char **argv)
   if (optind_s < argc) {
     SgObject proc;
     exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind_s])));
+
     /* to run R6RS bench ... */
     if (!noMainP) {
       /* SRFI-22 */

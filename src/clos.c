@@ -2787,8 +2787,8 @@ static SgClass *slot_unbound_SPEC[] = {
   SG_CLASS_TOP,
   SG_CLASS_TOP
 };
-SG_DEFINE_METHOD(slot_unbound_rec, &Sg_GenericSlotUnbound,
-		 3, 0, slot_unbound_SPEC, &slot_unbound_subr_rec);
+static SG_DEFINE_METHOD(slot_unbound_rec, &Sg_GenericSlotUnbound,
+			3, 0, slot_unbound_SPEC, &slot_unbound_subr_rec);
 
 /* slot-missing */
 static SgObject slot_missing_subr(SgObject *argv, int argc, void *data)
@@ -2804,8 +2804,8 @@ static SgClass *slot_missing_SPEC[] = {
   SG_CLASS_TOP,
   SG_CLASS_TOP
 };
-SG_DEFINE_METHOD(slot_missing_rec, &Sg_GenericSlotMissing,
-		 3, 1, slot_missing_SPEC, &slot_missing_subr_rec);
+static SG_DEFINE_METHOD(slot_missing_rec, &Sg_GenericSlotMissing,
+			3, 1, slot_missing_SPEC, &slot_missing_subr_rec);
 
 static SgObject unbound_variable_subr(SgObject *argv, int argc, void *data)
 {
@@ -2828,8 +2828,9 @@ static SgClass *unbound_variable_SPEC[] = {
   SG_CLASS_TOP,
   SG_CLASS_TOP
 };
-SG_DEFINE_METHOD(unbound_variable_rec, &Sg_GenericUnboundVariable,
-		 3, 0, unbound_variable_SPEC, &unbound_variable_subr_rec);
+static SG_DEFINE_METHOD(unbound_variable_rec, &Sg_GenericUnboundVariable,
+			3, 0, unbound_variable_SPEC,
+			&unbound_variable_subr_rec);
 
 void Sg__InitClos()
 {

@@ -152,7 +152,6 @@
     proctype = SG_PROC_GENERIC;
     goto GENERIC_ENTRY;
   }
-
   proctype = SG_PROCEDURE_TYPE(AC(vm));
   switch (proctype) {
   case SG_PROC_SUBR: {
@@ -274,7 +273,8 @@
   default: Sg_Panic("something's wrong");
   }
 
- DO_METHOD_CALL:
+  /* not used... */
+ /* DO_METHOD_CALL: */
   if (proctype == SG_PROC_GENERIC) {
     /* we have no applicable methods */
 #if defined(APPLY_CALL)

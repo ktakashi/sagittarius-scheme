@@ -63,11 +63,9 @@ enum {
 #define SG_PROC_EFFECT_FLAG_EQ(f, name) ((f&SG_PROC_EFFECT_MASK)==name)
 #define SG_PROC_ERROR_FLAGP(f)          ((f&SG_PROC_ERROR_MASK)==SG_PROC_ERROR)
 
-/* TODO think about it...*/
 struct SgProcedureRec
 {
   SG_INSTANCE_HEADER;
-  /* use 2 words for them so that no unnecessary bitwise operations */
   unsigned int required   : 16;	/* # of required arguments */
   unsigned int optional   : 8;	/* # of optional arguments.
 				   for subr optimisation. to check this number
@@ -89,6 +87,7 @@ struct SgProcedureRec
 				     00: not an error procedure
 				     01: error procedure
 				*/
+  /* unsigned int reserved   : 24; */
   SgObject     name;		/* procedure name */
   SgObject     setter;		/* setter procedure of this procedure. */
   SgObject     inliner;		/* #f, procedure or instruction */

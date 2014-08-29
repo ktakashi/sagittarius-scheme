@@ -321,7 +321,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 	return SG_OBJ(val);
       }
     }
-    SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
+    (void)SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
     return value;
   } else {
     if (flags & SG_HASH_NO_OVERWRITE && e->value) {
@@ -425,7 +425,7 @@ int Sg_WeakHashTableShrink(SgWeakHashTable *table)
     if (table->weakness & SG_WEAK_KEY) {
       SgWeakBox *box = (SgWeakBox *)e->key;
       if (Sg_WeakBoxEmptyP(box)) {
-	Sg_WeakHashTableDelete(table, e->key);
+	Sg_WeakHashTableDelete(table, SG_OBJ(e->key));
 	count++;
 	continue;
       }
@@ -433,7 +433,7 @@ int Sg_WeakHashTableShrink(SgWeakHashTable *table)
     if (table->weakness & SG_WEAK_VALUE) {
       SgWeakBox *box = (SgWeakBox *)e->value;
       if (Sg_WeakBoxEmptyP(box)) {
-	Sg_WeakHashTableDelete(table, e->key);
+	Sg_WeakHashTableDelete(table, SG_OBJ(e->key));
 	count++;
 	continue;
       }

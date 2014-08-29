@@ -839,7 +839,7 @@ static SgObject apply_rec(SgVM *vm, SgObject proc, SgObject rest, int nargs)
 
   AC(vm) = proc;
   program = (CL(vm)) ? CL(vm) : SG_OBJ(&internal_toplevel_closure);
-  return evaluate_safe(program, code);  
+  return evaluate_safe(program, code);
 }
 
 
@@ -2066,11 +2066,11 @@ static void process_queued_requests(SgVM *vm)
       }
       break;
     case SG_VM_REQUEST_TERMINATE:
-      vm->state = SG_VM_TERMINATED;
+      vm->threadState = SG_VM_TERMINATED;
       break;
     }
     SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-    if (vm->state == SG_VM_TERMINATED) {
+    if (vm->threadState == SG_VM_TERMINATED) {
       Sg_ExitThread(&vm->thread, NULL);
     }
   }
@@ -2260,8 +2260,8 @@ static void show_inst_count(void *data)
 
 #ifdef __GNUC__
 # define SWITCH(val)        goto *dispatch_table[val];
-# define CASE(insn)         SG_CPP_CAT(LABEL_, insn) :
-# define DISPATCH            /* empty */
+# define CASE(insn)         	/* dummy */
+# define DISPATCH		/* empty */
 # define NEXT							\
   do {								\
     if (vm->attentionRequest) goto process_queue;		\
@@ -2269,7 +2269,7 @@ static void show_inst_count(void *data)
     COUNT_INSN(c);						\
     goto *dispatch_table[INSN(c)];				\
   } while (0)
-# define DEFAULT            LABEL_DEFAULT :
+# define DEFAULT            	/* dummy */
 #else
 # define SWITCH(val)        switch (val)
 # define CASE(insn)         case insn :
@@ -2295,7 +2295,7 @@ SgObject run_loop()
   
 #ifdef __GNUC__
   static void *dispatch_table[INSTRUCTION_COUNT] = {
-#define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(LABEL_, insn),
+#define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(label_, insn),
 #include "vminsn.c"
 #undef DEFINSN
   };

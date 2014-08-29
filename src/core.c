@@ -175,15 +175,14 @@ void Sg_Init()
   /* this is even funny... orz */
   /* Sg_ImportLibrary(coreBase, nullsym); */
   Sg__InitConditions();
+
   Sg_ImportLibrary(coreBase, nullsym);
 
   Sg__Init_core_errors();
   Sg__Init_core_syntax_case();
-
   Sg__Init_sagittarius_compiler_util();
   Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler();
-
   /* even these files need to be ordered */
   Sg__Init_core_arithmetic();
   /* Sg__Init_match_core(); */
