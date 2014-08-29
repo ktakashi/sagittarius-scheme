@@ -265,20 +265,23 @@ typedef struct SgTraceConditionRec
 
 #define SG_INIT_CONDITION_PRED(cl, lib, name)				\
   do {									\
-    SgObject pred = Sg_MakeSubr(Sg__ConditionPredicate, (void *)cl,	\
-				1, 0, SG_MAKE_STRING(name));		\
+    SgObject pred = Sg_MakeSubrFull(Sg__ConditionPredicate, (void *)cl,	\
+				    1, 0, SG_MAKE_STRING(name),		\
+				    SG_PROC_TRANSPARENT);		\
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), pred);		\
   } while (0);
 #define SG_INIT_CONDITION_CTR(cl, lib, name, n)				\
   do {									\
-    SgObject proc = Sg_MakeSubr(Sg__ConditionConstructorN, (void *)cl,	\
-				(n), 0,	SG_MAKE_STRING(name));		\
+    SgObject proc = Sg_MakeSubrFull(Sg__ConditionConstructorN, (void *)cl, \
+				    (n), 0, SG_MAKE_STRING(name),	\
+				    SG_PROC_NO_SIDE_EFFECT);		\
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
   } while (0)
 #define SG_INIT_CONDITION_ACC(fn, lib, name)				\
   do {									\
-    SgObject acc = Sg_MakeSubr(Sg__ConditionAccessor, (void *)fn, 1, 0,	\
-			       SG_MAKE_STRING(name));			\
+    SgObject acc = Sg_MakeSubrFull(Sg__ConditionAccessor, (void *)fn, 1, 0, \
+				   SG_MAKE_STRING(name),		\
+				   SG_PROC_TRANSPARENT);		\
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), acc);		\
   } while (0)
 

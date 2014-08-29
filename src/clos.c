@@ -1028,6 +1028,7 @@ SgObject Sg_ComputeGetterAndSetter(SgClass *klass, SgObject slot)
 
       if (!sac) continue;
       if (sac->getter && SG_FALSEP(getter)) {
+	/* TODO, can we assume C getter is transparent? */
 	getter = Sg_MakeSubr(c_getter_wrapper, sac->getter, 1, 0, s);
       }
       if (sac->setter && SG_FALSEP(setter)) {

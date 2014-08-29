@@ -243,8 +243,21 @@
   (define-class <c-proc> (<procstub>)
     ((inline-insn :init-value #f)
      (proc-name   :init-keyword :proc-name)))
-  ;; not used
-  (define-constant c-proc-flags '(:constant :no-side-effect))
+
+  ;; For optimisation
+  ;; :constant       for transparent procedures (e.g. car)
+  ;; :no-side-effect for procedures have no side effect (e.g. cons)
+  ;; :error          for procedures raise an error
+  ;; The :error flag is sort of tricky. This is for closure analysis
+  ;; after it's compiled. For example;
+  ;; (define (foo a)
+  ;;   (when (string? a) (error 'foo "no string"))
+  ;;   (list a))
+  ;; Above should be marked as :no-side-effect after the VM instruction
+  ;; analysis however currently it's marked with side effect. To avoid
+  ;; it :error marks 'error' procedure raises an error. 
+  ;; NOTE We consider that an error is not a side effect.
+  (define-constant c-proc-flags '(:constant :no-side-effect :error))
 
   (define-form-parser define-c-proc (scheme-name argspec . body)
     (define (extract-flags body)
@@ -529,12 +542,16 @@
 	 (c-stub-name cproc)
 	 (cgen-c-name (slot-ref cproc'proc-name)))
       (let1 flags (slot-ref cproc 'flags)
-	(if (memv :constant flags)
-	    (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_TRANSPARENT;~%"
-	       (c-stub-name cproc))
-	    (when (memv :no-side-effect flags)
-	      (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_NO_SIDE_EFFECT;~%"
-		 (c-stub-name cproc))))))
+	(cond ((memv :constant flags)
+	       (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_TRANSPARENT;~%"
+		  (c-stub-name cproc)))
+	      ((memv :no-side-effect flags)
+	       (f "  SG_PROCEDURE_TRANSPARENT(&~a) = SG_PROC_NO_SIDE_EFFECT;~%"
+		  (c-stub-name cproc))))
+	;; must be logior
+	(when (memv :error flags)
+	  (f "  SG_PROCEDURE_TRANSPARENT(&~a) |= SG_PROC_ERROR;~%"
+	     (c-stub-name cproc)))))
     (call-next-method))
 
   (define-method cgen-emit-init ((cproc <setter-mixin>))

@@ -1,4 +1,4 @@
-/* closure.c                                        -*- mode:c; coding:utf-8; -*-
+/* closure.c                                       -*- mode:c; coding:utf-8; -*-
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -147,8 +147,11 @@ static int closure_transparent_rec(SgCodeBuilder *cb, SgObject seen)
       int flag2 = check_gref_call(SG_OBJ(code[i+1]), seen, &skippedP);
       if (!skippedP) {
 	/* if it's transparent leave it (flag may already be next level) */
-	if (flag2 != SG_PROC_TRANSPARENT) 
+	if (!SG_PROC_EFFECT_FLAG_EQ(flag2, SG_PROC_TRANSPARENT)) {
 	  flag = flag2;
+	} else if (SG_PROC_ERROR_FLAGP(flag2)) {
+	  flag |= SG_PROC_ERROR; /* add error */
+	}
       }
       break;
     }
@@ -202,7 +205,9 @@ static int check_gref_call(SgObject id_or_gloc, SgObject seen, int *skippedP)
   if (!SG_PROCEDUREP(proc)) return SG_CLOSURE_SIDE_EFFECT;
   if (SG_SUBRP(proc)) {
     int f = SG_PROCEDURE_TRANSPARENT(proc);
-    if (f == SG_SUBR_SIDE_EFFECT) return SG_CLOSURE_SIDE_EFFECT;
+    if (SG_PROC_EFFECT_FLAG_EQ(f, SG_SUBR_SIDE_EFFECT)) {
+      return SG_CLOSURE_SIDE_EFFECT;
+    }
     return f;
   } else if (SG_CLOSUREP(proc)) {
     return closure_transparent(proc, Sg_Cons(proc, seen));

@@ -525,11 +525,11 @@ void Sg__InitPair()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
   SG_PROCEDURE_NAME(&list_transpose_s_stub) = SG_MAKE_STRING("list-transpose*");
-  SG_PROCEDURE_TRANSPARENT(&list_transpose_s_stub) = TRUE;
+  SG_PROCEDURE_TRANSPARENT(&list_transpose_s_stub) = SG_PROC_TRANSPARENT;
   Sg_InsertBinding(lib, SG_INTERN("list-transpose*"),
 		   SG_OBJ(&list_transpose_s_stub));
   SG_PROCEDURE_NAME(&list_transpose_p_stub) = SG_MAKE_STRING("list-transpose+");
-  SG_PROCEDURE_TRANSPARENT(&list_transpose_p_stub) = TRUE;
+  SG_PROCEDURE_TRANSPARENT(&list_transpose_p_stub) = SG_PROC_TRANSPARENT;
   Sg_InsertBinding(lib, SG_INTERN("list-transpose+"),
 		   SG_OBJ(&list_transpose_p_stub));
 }

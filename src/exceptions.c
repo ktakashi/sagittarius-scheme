@@ -874,7 +874,9 @@ void Sg__InitConditions()
 #define INIT_PRED(cl, name) SG_INIT_CONDITION_PRED(cl, lib, name)
 #define INIT_CTR0(cl, name, pred)					\
   do {									\
-    SgObject proc = Sg_MakeSubr(invoke0, cl, 0, 0, SG_MAKE_STRING(name)); \
+    SgObject proc = Sg_MakeSubrFull(invoke0, cl, 0, 0,			\
+				    SG_MAKE_STRING(name),		\
+				    SG_PROC_NO_SIDE_EFFECT);		\
     Sg_InsertBinding(SG_LIBRARY(lib), SG_INTERN(name), proc);		\
     INIT_PRED(cl, pred);						\
   } while (0)

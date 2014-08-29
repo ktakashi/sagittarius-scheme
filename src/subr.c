@@ -65,6 +65,16 @@ SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required, int optional,
   return SG_OBJ(s);
 }
 
+SgObject Sg_MakeSubrFull(SgSubrProc proc, void *data, int required,
+			 int optional, SgObject info, int trans)
+{
+  SgSubr *s = make_subr(required, optional, info);
+  s->func = proc;
+  s->data = data;
+  /* SG_PROCEDURE_TRANSPARENT(s) = trans; */
+  return SG_OBJ(s);
+}
+
 static SgObject theNullProc = SG_NIL;
 static SgObject null_proc(SgObject *args, int argc, void *data)
 {
@@ -74,7 +84,8 @@ static SgObject null_proc(SgObject *args, int argc, void *data)
 SgObject Sg_NullProc()
 {
   if (SG_NULLP(theNullProc)) {
-    theNullProc = Sg_MakeSubr(null_proc, NULL, 0, 1, SG_INTERN("nullproc"));
+    theNullProc = Sg_MakeSubrFull(null_proc, NULL, 0, 1, SG_INTERN("nullproc"),
+				  SG_PROC_TRANSPARENT);
   }
   return SG_OBJ(theNullProc);
 }

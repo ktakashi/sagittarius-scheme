@@ -47,17 +47,27 @@ typedef enum {
 
 /* bit tricky... */
 enum {
-  SG_CLOSURE_UNCHECKED = 0,
-  SG_SUBR_SIDE_EFFECT  = 0,	/* not transparent nor no side effect */
-  SG_PROC_TRANSPARENT  = 1,
-  SG_PROC_NO_SIDE_EFFECT = 2,
-  SG_CLOSURE_SIDE_EFFECT = 3	/* only for closure */
+  SG_CLOSURE_UNCHECKED   = 0,
+  SG_SUBR_SIDE_EFFECT    = 0, /* not transparent nor no side effect */
+  /* blow 2 are common for subr and closure */
+  SG_PROC_TRANSPARENT    = 0x01, /* 0b01 */
+  SG_PROC_NO_SIDE_EFFECT = 0x02, /* 0b10 */
+  /* below is only for closuers */
+  SG_CLOSURE_SIDE_EFFECT = 0x03, /* 0b11 */
+  /* error */
+  SG_PROC_ERROR          = 0x04	 /* 0b0100 */
 };
+#define SG_PROC_EFFECT_MASK 0x03
+#define SG_PROC_ERROR_MASK  0x0C
+
+#define SG_PROC_EFFECT_FLAG_EQ(f, name) ((f&SG_PROC_EFFECT_MASK)==name)
+#define SG_PROC_ERROR_FLAGP(f)          ((f&SG_PROC_ERROR_MASK)==SG_PROC_ERROR)
 
 /* TODO think about it...*/
 struct SgProcedureRec
 {
   SG_INSTANCE_HEADER;
+  /* use 2 words for them so that no unnecessary bitwise operations */
   unsigned int required   : 16;	/* # of required arguments */
   unsigned int optional   : 8;	/* # of optional arguments.
 				   for subr optimisation. to check this number
@@ -67,13 +77,18 @@ struct SgProcedureRec
 				   for now. */
   unsigned int type       : 3;	/* procedure type defined above */
   unsigned int locked     : 1;	/* setter locked? */
-  unsigned int transparent: 2;	/* transparent flags;
-				   0: subr FALSE, closuer UNCHECKED
-				   1: transparent
-				   2: no side effect
-				   3: only closure FALSE */
-
-  unsigned int reserved   : 2;	/* padding, for future extension. */
+  unsigned int transparent: 4;	/* transparent flags;
+				   4 bits with following structure
+				     ee bb
+				   bb:
+				     00: subr FALSE, closuer UNCHECKED
+				     01: transparent
+				     10: no side effect
+				     11: only closure FALSE
+				   ee:
+				     00: not an error procedure
+				     01: error procedure
+				*/
   SgObject     name;		/* procedure name */
   SgObject     setter;		/* setter procedure of this procedure. */
   SgObject     inliner;		/* #f, procedure or instruction */
@@ -90,10 +105,12 @@ struct SgProcedureRec
 #define SG_PROCEDURE_INLINER(obj)  SG_PROCEDURE(obj)->inliner
 #define SG_PROCEDURE_SETTER(obj)   SG_PROCEDURE(obj)->setter
 
-#define SG_PROCEDURE_TRANSPARENTP(obj)				\
-  (SG_PROCEDURE(obj)->transparent == SG_PROC_TRANSPARENT)
-#define SG_PROCEDURE_NO_SIDE_EFFECTP(obj)			\
-  (SG_PROCEDURE(obj)->transparent == SG_PROC_NO_SIDE_EFFECT)
+#define SG_PROCEDURE_TRANSPARENTP(obj)					\
+  SG_PROC_EFFECT_FLAG_EQ(SG_PROCEDURE(obj)->transparent, SG_PROC_TRANSPARENT)
+#define SG_PROCEDURE_NO_SIDE_EFFECTP(obj)				\
+  SG_PROC_EFFECT_FLAG_EQ(SG_PROCEDURE(obj)->transparent, SG_PROC_NO_SIDE_EFFECT)
+#define SG_PROCEDURE_ERRORP(obj)				\
+  SG_PROC_ERROR_FLAGP(SG_PROCEDURE(obj)->transparent)
 
 #define SG_PROCEDURE_INIT(obj, req, opt, typ, name)	\
   SG_PROCEDURE_REQUIRED(obj) = (req),			\
@@ -106,7 +123,7 @@ struct SgProcedureRec
   SG_PROCEDURE_SETTER(obj) = SG_FALSE
 
 #define SG__PROCEDURE_INITIALIZER(klass, req, opt, type, name, inliner)	\
-  { {(klass)},(req),(opt),(type),FALSE, 0, 0, (name), SG_FALSE, (inliner) }
+  { {(klass)},(req),(opt),(type),FALSE, 0, (name), SG_FALSE, (inliner) }
 
 /* This is just container for procedure */
 struct SgSubrRec
@@ -145,6 +162,8 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required,
 			       int optional, SgObject info);
+SG_EXTERN SgObject Sg_MakeSubrFull(SgSubrProc proc, void *data, int required,
+				   int optional, SgObject info, int trans);
 SG_EXTERN SgObject Sg_NullProc();
 SG_EXTERN SgObject Sg_SetterSet(SgProcedure *proc, SgProcedure *setter,
 				int lock);
