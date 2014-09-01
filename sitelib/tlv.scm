@@ -2,7 +2,7 @@
 ;;;
 ;;; tlv.scm - TLV parser
 ;;;
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -33,7 +33,8 @@
 	    
 	    tlv-builder
 	    tlv-object?
-	    tlv-tag tlv-data tlv-components
+	    tlv-tag (rename (%tlv-tag tlv-tag-as-bytevector))
+	    tlv-data tlv-components
 	    <tlv>
 	    ;; utilities
 	    dump-tlv
@@ -50,18 +51,20 @@
 	    write-emv-tlv write-dgi-tlv
 	    *tag-dictionary*
 	    )
-    (import (rnrs) (clos user)
+    (import (rnrs) 
+	    (clos user)
 	    (only (sagittarius)
 		  format define-constant reverse! and-let*
 		  bytevector->integer integer->bytevector)
 	    (sagittarius control)
 	    (binary pack)
+	    (util bytevector)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
   ;; default TLV class
   (define-class <tlv> ()
-    ((tag    :init-keyword :tag    :reader tlv-tag)
+    ((tag    :init-keyword :tag    :reader %tlv-tag)
      ;; bytevector
      (data   :init-keyword :data   :reader tlv-data :init-value #f)
      ;; constructed TLV
@@ -69,14 +72,22 @@
 		 :init-value '())))
 
   (define (tlv-object? o) (is-a? o <tlv>))
+  (define (tlv-tag tlv) (bytevector->integer (%tlv-tag tlv)))
 
   (define-method write-object ((o <tlv>) p)
     (if (tlv-data o)
-	(format p "#<tlv :tag ~x :data ~a>" (tlv-tag o) (tlv-data o))
-	(format p "#<tlv :tag ~x :components ~a>"
-		(tlv-tag o) (tlv-components o))))
+	(format p "#<tlv :tag ~a :data ~a>" 
+		(bytevector->hex-string (%tlv-tag o)) (tlv-data o))
+	(format p "#<tlv :tag ~a :components ~a>"
+		(bytevector->hex-string (%tlv-tag o)) (tlv-components o))))
 
-  (define (make-tlv-unit tag data) (make <tlv> :tag tag :data data))
+  (define (make-tlv-unit tag data) 
+    (let1 tag (cond ((integer? tag) (integer->bytevector tag))
+		    ((bytevector? tag) tag)
+		    (else (assertion-violation 
+			   'make-tlv-unit 
+			   "tag must be an integer or bytevector" tag)))
+      (make <tlv> :tag tag :data data)))
 
   (define (make-generic-tlv-parser tag-reader length-reader object-builder)
     (define (parse-tlv-object-list in in-indefinite?)
@@ -104,11 +115,8 @@
 			  (when (< (bytevector-length data) len)
 			    (assertion-violation 'tlv-parser "corrupted data"))
 			  (if constructed?
-			      (object-builder 
-			       b
-			       tag 
-			       (call-with-port 
-				   (open-bytevector-input-port data)
+			      (object-builder b tag 
+			       (call-with-port (open-bytevector-input-port data)
 				 (cut parse-tlv-object-list <> in-indefinite?))
 			       #t)
 			      (object-builder b tag data #f))))
@@ -122,7 +130,9 @@
   ;; DGI style tag and length reader
   (define (read-dgi-tag in b)
     ;; it's always 2 bytes
-    (values (+ (bitwise-arithmetic-shift b 8) (get-u8 in)) #f))
+    (let1 r (make-bytevector 2 b)
+      (bytevector-u8-set! r 1 (get-u8 in))
+      (values r #f)))
   (define (read-dgi-length in)
     ;; length can be 1 or 3 bytes
     (let1 b (get-u8 in)
@@ -138,17 +148,22 @@
   (define (read-tag in b)
     (define (rec)
       (if (= (bitwise-and b #x1F) #x1F)
-	  (let1 b2 (get-u8 in)
-	    (when (zero? (bitwise-and b2 #x7F))
-	      (assertion-violation 
-	       'read-tag "corrupted stream - invalid high tag number found" b2))
-	    (do ((b3 b2 (get-u8 in)) 
-		 (r b (bitwise-ior (bitwise-arithmetic-shift r 8) b3)))
-		((or (eof-object? b3) (zero? (bitwise-and b3 #x80)))
-		 (when (eof-object? b)
-		   (assertion-violation 'read-tag "EOF found inside tag value"))
-		 (bitwise-ior (bitwise-arithmetic-shift r 8) b3))))
-	  b))
+	  (call-with-bytevector-output-port
+	   (lambda (out)
+	     (put-u8 out b)
+	     (let1 b2 (get-u8 in)
+	       (when (zero? (bitwise-and b2 #x7F))
+		 (assertion-violation 
+		  'read-tag "corrupted stream - invalid high tag number found"
+		  b2))
+	       (do ((b3 b2 (get-u8 in)))
+		   ((or (eof-object? b3) (zero? (bitwise-and b3 #x80)))
+		    (when (eof-object? b3)
+		      (assertion-violation 'read-tag
+					   "EOF found inside tag value"))
+		    (put-u8 out b3))
+		 (put-u8 out b3)))))
+	  (make-bytevector 1 b)))
     (let1 tag (rec)
       (values tag (not (zero? (bitwise-and #x20 b))))))
 
@@ -195,7 +210,7 @@
       (dotimes (i indent)
 	(display #\space out)))
     (define (print-tag tag)
-      (format out "[Tag] ~X" tag)
+      (format out "[Tag] ~a" (bytevector->hex-string tag))
       (and-let* (( (pair? dic) )
 		 (name (assv tag dic)))
 	(format out ": ~a" (cadr name))))
@@ -205,7 +220,7 @@
 	(dotimes (i (bytevector-length data))
 	  (format out " ~2,'0X" (bytevector-u8-ref data i))))
       (let ((data (tlv-data tlv))
-	    (type (and-let* ((tag (tlv-tag tlv))
+	    (type (and-let* ((tag (bytevector->integer (%tlv-tag tlv)))
 			     ( (pair? dic) )
 			     (slot (assv tag dic)))
 		    (if (null? (cddr slot))
@@ -231,7 +246,7 @@
     (define (dump-components tlv indent)
       (unless (zero? indent) (newline out))
       (print-indent indent)
-      (print-tag (tlv-tag tlv))
+      (print-tag (%tlv-tag tlv))
       (let1 components (tlv-components tlv)
 	(if (null? components)
 	    (dump-data tlv indent)
@@ -256,12 +271,12 @@
       (let1 value (if (null? components)
 		      (tlv-data tlv)
 		      (components-values components))
-	(write-tag out (tlv-tag tlv))
+	(write-tag out (%tlv-tag tlv))
 	(write-length out (bytevector-length value))
 	(write-value value))))
 
   (define (write-dgi-tlv tlv . opts)
-    (define (write-tag out tag) (put-bytevector out (pack "!S" tag)))
+    (define (write-tag out tag) (put-bytevector out tag))
     (define (write-length out len) 
       ;; 1 or 3
       (if (> len #xFF)
@@ -270,7 +285,7 @@
     (apply generic-tlv-writer tlv write-tag write-length opts))
 
   (define (write-emv-tlv tlv . opts)
-    (define (write-tag out tag) (put-bytevector out (integer->bytevector tag)))
+    (define (write-tag out tag) (put-bytevector out tag))
     (define (write-length out len)
       (define ashr bitwise-arithmetic-shift-right)
       (define (get-length len)
@@ -300,20 +315,21 @@
   (define-method ->tlv ((o <list>))
     (define (convert e)
       (define (->valid-data data)
-	(cond ((bytevector? data)
-	       (values #f data))
-	      ((integer? data)
-	       (values #f (integer->bytevector data)))
+	(cond ((bytevector? data) (values #f data))
+	      ((integer? data) (values #f (integer->bytevector data)))
 	      ((and (list? data) (for-all integer? data))
 	       (values #f (u8-list->bytevector data)))
 	      (else
 	       (values #t (->tlv data)))))
       (unless (pair? e)
 	(assertion-violation '->tlv "invalid structured object is given" o))
-      (unless (integer? (car e))
-	(assertion-violation '->tlv "tag must be integer" o))
+      (unless (or (integer? (car e)) (bytevector? (car e)))
+	(assertion-violation '->tlv "tag must be integer or bytevector" o))
       (let-values (((constructed? data) (->valid-data (cdr e))))
-	(tlv-builder -1 (car e) data constructed?)))
+	(let1 tag (if (integer? (car e))
+		      (integer->bytevector (car e))
+		      (car e))
+	  (tlv-builder -1 tag data constructed?))))
     (fold-right (^(e seed) (cons (convert e) seed)) '() o))
 
 )

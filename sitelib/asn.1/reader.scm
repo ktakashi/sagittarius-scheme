@@ -2,7 +2,7 @@
 ;;;
 ;;; types.scm - ASN.1 binary reader
 ;;;
-;;;   Copyright (c) 2009-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2014  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -120,7 +120,7 @@
   (define (convert-tag b tag)
     (let ((b2 (bitwise-and b #x1F)))
       (if (= b2 #x1F)
-	  tag
+	  (bytevector->integer tag)
 	  b2)))
 
   (define (object-builder b tag data constructed?)
@@ -130,7 +130,6 @@
 
   (define (read-asn.1-object in)
     (unless (binary-port? in)
-      (assertion-violation 'read-asn.1-object
-			   "binary port required" in))
+      (assertion-violation 'read-asn.1-object "binary port required" in))
     (read-object in))
   )
