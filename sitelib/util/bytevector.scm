@@ -42,6 +42,7 @@
 	    ->odd-parity!
 
 	    bytevector->hex-string
+	    hex-string->bytevector
 	    bytevector-reverse!
 	    bytevector-reverse
 	    ;; inspired by srfi 13
@@ -157,9 +158,20 @@
   (call-with-string-output-port
    (lambda (out)
      (dotimes (i (bytevector-length bv))
-       (format out "~2,'0X" (bytevector-u8-ref bv i)))))
-)
-
+       (format out "~2,'0X" (bytevector-u8-ref bv i))))))
+(define (hex-string->bytevector str)
+  (unless (even? (string-length str))
+    (assertion-violation 'hex-string->bytevector "odd length string" str))
+  (let* ((len (string-length str))
+	 (bv (make-bytevector (/ len 2))))
+    (dotimes (i (bytevector-length bv) bv)
+      ;; TODO this actually accepts something non ASCII string
+      ;; but anyway.
+      (let ((h (digit-value (string-ref str (* i 2))))
+	    (l (digit-value (string-ref str (+ (* i 2) 1)))))
+	(bytevector-u8-set! bv i 
+			    (bitwise-ior (bitwise-arithmetic-shift h 4) l))))))
+  
 ;; srfi 13 things
 ;; helper
 (define (u8? n) (and (integer? n) (<= 0 n #xFF)))

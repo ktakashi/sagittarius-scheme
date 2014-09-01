@@ -52,6 +52,11 @@
 			:padding (lambda (bv) 
 				   (bytevector-append bv #vu8(0 0)))) r))
 
+(test-equal "bytevector->hex-string" "12345678" 
+	    (bytevector->hex-string #vu8(#x12 #x34 #x56 #x78)))
+(test-equal "hex-string->bytevector" #vu8(#x12 #x34 #x56 #x78)
+	    (hex-string->bytevector "12345678"))
+
 (define ->bv string->utf8)
 (define u8-set:whitespace  (char-set->u8-set char-set:whitespace))
 (define u8-set:letter      (char-set->u8-set char-set:letter))
