@@ -240,7 +240,7 @@ struct SgVMRec
   SgPort    *currentOutputPort;
   SgPort    *currentInputPort;
   SgPort    *currentErrorPort;
-  SgPort    *logPort;
+  SgPort    *logPort;		/* it's not often used.. */
 
   /* return point */
   SgCStack  *cstack;
@@ -291,6 +291,12 @@ struct SgVMRec
 
   /* current loading port */
   SgObject currentLoadingPort;
+  /* Thread local alist of generic functions 
+     the structure is
+     generics = (generic ...)
+     generic = (gf max methods ...)
+   */
+  SgObject generics;
 };
 
 /*
@@ -468,6 +474,8 @@ SG_EXTERN SgObject Sg_VMValues4(SgVM *vm, SgObject v1,
 SG_EXTERN SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 				SgObject v2, SgObject v3, SgObject v4,
 				SgObject v5);
+/* it would be too dangerous to exporse */
+/* SG_EXTERN SgObject Sg_RootVM(); */
 
 SG_CDECL_END
 

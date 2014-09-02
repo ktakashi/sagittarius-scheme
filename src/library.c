@@ -239,7 +239,6 @@ static void remove_library(SgLibrary *lib)
 static SgLibrary* make_library_rec(SgObject name)
 {
   SgLibrary *z = make_library();
-  SgVM *vm = Sg_VM();
   /* TODO if it's from Sg_FindLibrary, this is processed twice. */
   SgObject id_version = library_name_to_id_version(name);
   
@@ -248,9 +247,6 @@ static SgLibrary* make_library_rec(SgObject name)
 
   add_library(z);
 
-  if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; library %S has been created\n"), name);
-  }
   return z;
 }
 
@@ -277,7 +273,7 @@ void Sg_LockLibrary(SgLibrary *library)
 SgObject Sg_MakeEvalLibrary()
 {
   SgObject name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
-  return Sg_MakeChildLibrary(Sg_VM(), name);
+  return Sg_MakeChildLibrary(NULL, name);
 }
 
 SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
@@ -522,7 +518,7 @@ static SgObject search_library(SgObject name, int onlyPath)
     SgObject path = SG_STRING(SG_CAR(paths));
     /* this must creates a new library */
     if (Sg_FileExistP(path)) {
-      int state;
+      int state, save;
       /* once library is created, then it must not be re-created.
 	 so we need to get lock for reading cache. */
       LOCK_LIBRARIES();
@@ -531,14 +527,14 @@ static SgObject search_library(SgObject name, int onlyPath)
 	UNLOCK_LIBRARIES();
 	return lib;
       }
+      save = vm->state;
+      vm->state = IMPORTING;	/* reading cache is also importing now */
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
-	int save = vm->state;
 	SgObject saveLib = vm->currentLibrary;
 	if (userlib == NULL) {
 	  userlib = Sg_FindLibrary(SG_INTERN("user"), FALSE);
 	}
-	vm->state = IMPORTING;
 	/* creates new cache */
 	vm->cache = Sg_Cons(SG_NIL, vm->cache);
 	/* if find-library called inside of library and the library does not
@@ -556,8 +552,8 @@ static SgObject search_library(SgObject name, int onlyPath)
 	/* we don't need the first cache, so discard it */
 	vm->cache = SG_CDR(vm->cache);
 	/* restore state */
-	vm->state = save;
       }
+      vm->state = save;
       UNLOCK_LIBRARIES();
     } else {
       /* first creation or no file. */

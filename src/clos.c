@@ -243,16 +243,52 @@ static void set_method_debug_name(SgMethod *m, SgGeneric *g)
   }
 }
 
+/*
+  If the add-method is called from main thread then we add
+  the method to given generic, otherwise we add it to VM's
+  generics storage so that child thread won't contaminate
+  parent thread.
+ */
+static int main_or_import()
+{
+  if (Sg_MainThreadP()) return TRUE;
+  return Sg_VM()->state == IMPORTING;
+}
+
+/* some helpers */
+static SgObject get_thead_local_methods(SgGeneric *gf)
+{
+  SgObject gslot = Sg_Assq(gf, Sg_VM()->generics);
+  if (SG_FALSEP(gslot)) return SG_NIL;
+  return SG_CDDR(gslot);
+}
+
+static SgObject get_all_methods(SgGeneric *gf)
+{
+  SgObject ms = get_thead_local_methods(gf);
+  if (SG_NULLP(ms)) return  SG_GENERIC_METHODS(gf);
+  /* thread local first */
+  return Sg_Append2(ms, SG_GENERIC_METHODS(gf));
+}
+
+static int generic_max_reqargs(SgGeneric *gf)
+{
+  SgObject gslot = Sg_Assq(gf, Sg_VM()->generics);
+  if (SG_FALSEP(gslot)) return SG_GENERIC_MAX_REQARGS(gf);
+  return (int)SG_CADR(gslot);
+}
+
+/* TODO the code is now messy referctor me */
 SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
-  SgObject mp, pair;
-  int reqs = SG_GENERIC_MAX_REQARGS(generic), replaced = FALSE, i;
+  SgObject mp, pair, whereToAdd, gslot = SG_NIL;
+  int reqs = generic_max_reqargs(generic), replaced = FALSE, i, mainP;
   if (method->generic && method->generic != generic) {
     Sg_Error(UC("method %S already added to a generic function %S"),
 	     method, method->generic);
   }
   if (!SG_FALSEP(Sg_Memq(SG_OBJ(method), SG_GENERIC_METHODS(generic)))) {
-    Sg_Error(UC("method %S already appears in a method list of generid %S "
+    Sg_Error(UC("method %S already appears in a method list of generic %S "
 		"something wrong in MOP implementation?"),
 	     method, method->generic);
   }
@@ -261,7 +297,20 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 
   method->generic = generic;
   /* pre-allcate cons pair to avoid triggering GC */
-  pair = Sg_Cons(SG_OBJ(method), SG_GENERIC_METHODS(generic));
+  mainP = main_or_import();
+  if (mainP) {
+    whereToAdd = SG_GENERIC_METHODS(generic);
+  } else {
+    gslot = Sg_Assq(generic, Sg_VM()->generics);
+    if (SG_FALSEP(gslot)) {
+      gslot = SG_LIST2(generic, SG_OBJ(0));
+      whereToAdd = SG_NIL;
+      Sg_VM()->generics = Sg_Cons(gslot, Sg_VM()->generics);
+    } else {
+      whereToAdd = SG_CDDR(gslot);
+    }
+  }
+  pair = Sg_Cons(SG_OBJ(method), whereToAdd);
   if (SG_PROCEDURE_REQUIRED(method) > (unsigned int)reqs) {
     reqs = SG_PROCEDURE_REQUIRED(method);
   }
@@ -279,30 +328,67 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 	if (sp1[i] != sp2[i]) break;
       }
       if (i == required) {
-	SG_SET_CAR(mp, SG_OBJ(method));
-	replaced = TRUE;
-	break;
+	if (mainP) {
+	  SG_SET_CAR(mp, SG_OBJ(method));
+	  replaced = TRUE;
+	  break;
+	} else {
+	  Sg_UnlockMutex(&generic->mutex);
+	  /* we don't allow to replace the one defined in root vm */
+	  Sg_Error(UC("method %S of generic %S is defined in main thread, "
+		      "child thread can not replace it"),
+		   method, method->generic);
+	}
       }
     }
   }
   if (!replaced) {
-    SG_GENERIC_METHODS(generic) = pair;
-    SG_GENERIC_MAX_REQARGS(generic) = reqs;
+    if (mainP) {
+      SG_GENERIC_METHODS(generic) = pair;
+      SG_GENERIC_MAX_REQARGS(generic) = reqs;
+    } else {
+      SG_SET_CDR(SG_CDR(gslot), pair);
+      SG_SET_CAR(SG_CDR(gslot), SG_OBJ(reqs));
+    }
+    
   }
   Sg_UnlockMutex(&generic->mutex);
   return SG_UNDEF;
 }
 
+/*
+  remove-method is sort of otherway around.
+  even the method exists on parent thread however it won't be
+  removed from parent thread. child thread can't modify parent
+  thread.
+ */
+/* TODO the code is now messy referctor me */
 SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
 {
-  SgObject mp;
+  SgObject mp, gslot = SG_NIL;
+  int mainP, maxReq = 0;
   if (!SG_METHOD_GENERIC(m) || SG_METHOD_GENERIC(m) != gf) return SG_UNDEF;
 
   Sg_LockMutex(&gf->mutex);
-  mp = SG_GENERIC_METHODS(gf);
+  mainP = main_or_import();
+  if (mainP) {
+    mp = SG_GENERIC_METHODS(gf);
+  } else {
+    gslot = Sg_Assq(gf, Sg_VM()->generics);
+    if (SG_FALSEP(gslot)) {
+      mp = SG_NIL;
+    } else {
+      mp = SG_CDDR(gslot);
+    }
+  }
   if (SG_PAIRP(mp)) {
     if (SG_EQ(SG_CAR(mp), SG_OBJ(m))) {
-      SG_GENERIC_METHODS(gf) = SG_CDR(mp);
+      if (mainP) {
+	SG_GENERIC_METHODS(gf) = SG_CDR(mp);
+      } else {
+	/* never be #f */
+	SG_SET_CDR(SG_CDR(gslot), SG_CDR(mp));
+      }
     } else {
       while (SG_PAIRP(SG_CDR(mp))) {
 	if (SG_EQ(SG_CADR(mp), SG_OBJ(m))) {
@@ -314,10 +400,26 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
       }
     }
   }
-  SG_FOR_EACH(mp, SG_GENERIC_METHODS(gf)) {
+  if (mainP) {
+    mp = SG_GENERIC_METHODS(gf);
+    maxReq = SG_GENERIC_MAX_REQARGS(gf);
+  } else {
+    if (SG_FALSEP(gslot)) {
+      mp = SG_NIL;
+    } else {
+      mp = SG_CDDR(gslot);
+      maxReq = (int)SG_CADR(gslot);
+    }
+  }
+  SG_FOR_EACH(mp, mp) {
     /* sync # of required selector */
-    if (SG_PROCEDURE_REQUIRED(SG_CAR(mp)) > (unsigned int)SG_GENERIC_MAX_REQARGS(gf)) {
-      SG_GENERIC_MAX_REQARGS(gf) = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+    if (SG_PROCEDURE_REQUIRED(SG_CAR(mp)) > (unsigned int)maxReq) {
+      if (mainP) {
+	SG_GENERIC_MAX_REQARGS(gf) = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+      } else {
+	int m = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+	SG_SET_CAR(SG_CDR(gslot), SG_OBJ(m));
+      }
     }
   }
   Sg_UnlockMutex(&gf->mutex);
@@ -547,13 +649,14 @@ static int specializer_match(SgObject sp, SgObject obj)
 static SgObject compute_applicable_methods(SgGeneric *gf, SgObject *argv,
 					   int argc, int applyargs)
 {
-  SgObject methods = SG_GENERIC_METHODS(gf), mp;
+  SgObject methods = get_all_methods(gf), mp;
   SgObject h = SG_NIL, t = SG_NIL;
   SgObject *args = argv;
   int nsel;
+
   if (SG_NULLP(methods)) return SG_NIL;
 
-  nsel = SG_GENERIC_MAX_REQARGS(gf);
+  nsel = generic_max_reqargs(gf);
   if (applyargs) argc--;
   if (applyargs && nsel) {
     int size = Sg_Length(argv[argc]) + argc, i;
@@ -1727,7 +1830,8 @@ static void generic_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<generic %S (%d)>"),
 	    SG_PROCEDURE_NAME(SG_GENERIC(obj)),
-	    Sg_Length(SG_GENERIC_METHODS(obj)));
+	    Sg_Length(SG_GENERIC_METHODS(obj)) + 
+	    Sg_Length(get_thead_local_methods(SG_GENERIC(obj))));
 }
 
 static SgObject generic_allocate(SgClass *klass, SgObject initargs)
@@ -1755,7 +1859,8 @@ static void generic_name_set(SgGeneric *gf, SgObject name)
 
 static SgObject generic_methods(SgGeneric *gf)
 {
-  return SG_GENERIC_METHODS(gf);
+  /* for MOP we need to consider all methods. */
+  return get_all_methods(SG_GENERIC_METHODS(gf));
 }
 
 

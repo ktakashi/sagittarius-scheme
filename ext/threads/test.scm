@@ -270,4 +270,27 @@
 
 ;; #41
 (test-assert "real number timeout value" (thread-sleep! 0.001))
+
+;; CLOS extra
+(import (clos user))
+(define-method local (a) a)
+(let ()
+  (define (thunk)
+    (let-method ((local ((a <integer>) (+ a 1))))
+      (local 1))
+    (local 1))
+  (test-equal "let-method" 1
+	      (let ((ts (thread-start! (make-thread thunk))))
+		(thread-join! ts))))
+
+(let ()
+  (define (thunk)
+    (let-method ((local ((a <integer>) (+ a 1))))
+      (test-equal "local <symbol>" 'a (local 'a)))
+    (local 1))
+  (let-method ((local ((a <symbol>) a)))
+    (test-equal "let-method (2)" 1
+		(let ((ts (thread-start! (make-thread thunk))))
+		  (thread-join! ts)))))
+
 (test-end)
