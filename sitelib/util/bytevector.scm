@@ -160,17 +160,29 @@
      (dotimes (i (bytevector-length bv))
        (format out "~2,'0X" (bytevector-u8-ref bv i))))))
 (define (hex-string->bytevector str)
-  (unless (even? (string-length str))
-    (assertion-violation 'hex-string->bytevector "odd length string" str))
+  ;; make the same as following
+  ;; (integer->bytevector (string->number str 16))
+  ;; so it needs to handle odd length string as well
+  ;; thus "123" would be #vu8(#x01 #x23)
+  (define (safe-ref s i)
+    (if (< i 0) #\0 (string-ref s i)))
+  (define (->hex c)
+    (if (char-set-contains? char-set:hex-digit c)
+	(or (digit-value c) ;; easy
+	    (let ((c (char-upcase c)))
+	      ;; must be A-F
+	      (- (char->integer c) #x37)))
+	(assertion-violation 'hex-string->bytevector "non hex character" c str)))
   (let* ((len (string-length str))
-	 (bv (make-bytevector (/ len 2))))
-    (dotimes (i (bytevector-length bv) bv)
-      ;; TODO this actually accepts something non ASCII string
-      ;; but anyway.
-      (let ((h (digit-value (string-ref str (* i 2))))
-	    (l (digit-value (string-ref str (+ (* i 2) 1)))))
-	(bytevector-u8-set! bv i 
-			    (bitwise-ior (bitwise-arithmetic-shift h 4) l))))))
+	 (bv (make-bytevector (ceiling (/ len 2)))))
+    (let loop ((i (- (bytevector-length bv) 1)) (j (- len 1)))
+      (if (< i 0)
+	  bv
+	  (let ((h (->hex (safe-ref str (- j 1))))
+		(l (->hex (safe-ref str j))))
+	    (bytevector-u8-set! bv i 
+	      (bitwise-ior (bitwise-arithmetic-shift h 4) l))
+	    (loop (- i 1) (- j 2)))))))
   
 ;; srfi 13 things
 ;; helper
