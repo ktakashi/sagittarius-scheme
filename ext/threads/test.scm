@@ -277,19 +277,25 @@
 (define-method local (a) a)
 (let ()
   (define (thunk)
-    (let-method ((local ((a <integer>) (+ a 1))))
-      (local 1))
+    (let-method ((local ((a <integer>)) (+ a 1)))
+      (local 1)
+      (sys-nanosleep 10))
     (local 1))
-  (test-equal "let-method" 1
-	      (let ((ts (thread-start! (make-thread thunk))))
-		(thread-join! ts))))
+  (test-equal "let-method" '(1 1 1 1 1)
+	      (let ((ts (map thread-start! 
+			     (let loop ((i 0) (r '()))
+			       (if (= i 5)
+				   r
+				   (loop (+ i 1)
+					 (cons (make-thread thunk) r)))))))
+		(map thread-join! ts))))
 
 (let ()
   (define (thunk)
-    (let-method ((local ((a <integer>) (+ a 1))))
+    (let-method ((local ((a <integer>)) (+ a 1)))
       (test-equal "local <symbol>" 'a (local 'a)))
     (local 1))
-  (let-method ((local ((a <symbol>) a)))
+  (let-method ((local ((a <symbol>)) a))
     (test-equal "let-method (2)" 1
 		(let ((ts (thread-start! (make-thread thunk))))
 		  (thread-join! ts)))))
