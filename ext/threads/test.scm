@@ -301,8 +301,6 @@
   (define eval3 '(define-method local ((a <symbol>)) 'eval3))
   (define (make-thunk expr)
     (lambda () 
-      ;;(print (eval 'define-method (current-library)))
-      ;;(eval `(import (rnrs) (clos user)) (current-library))
       (eval expr (current-library))
       (local 'a)))
   (define (make-thunk2 expr)
@@ -324,5 +322,71 @@
     (test-equal "local eval3" 'eval3 (thread-join! t3))
     (test-equal "local (4)" 'eval3 (local 'a))
     ))
+
+;; error case
+(let ()
+  (define eval1 '(define-method local (a) 'wont-return))
+  (define eval2 '(define-method local ((a <symbol>)) 'replaced))
+  (define (make-thunk expr)
+    (lambda () 
+      (eval expr (current-library))
+      (local 'a)))
+  (define (make-thunk2 expr)
+    (lambda () 
+      (eval expr (find-library 'user #f))
+      (local 'a)))
+
+  (let ((t1 (make-thread (make-thunk eval1)))
+	(t2 (make-thread (make-thunk2 eval2))))
+    (thread-start! t1)
+    (test-error "local error" condition? (thread-join! t1))
+    (test-equal "local (5)" 'eval3 (local 'a))
+    ;; must be done after all other thread is done
+    ;; this should affect globally
+    (thread-start! t2)
+    (test-equal "local replace" 'replaced (thread-join! t2))
+    (test-equal "local (6)" 'replaced (local 'a))
+    ))
+
+;; replace in local context
+(let ()
+  (define eval1 '(define-method local ((a <integer>)) a))
+  (define eval2 '(define-method local ((a <integer>)) (+ a 1)))
+  (define thunk
+    (lambda () 
+      (eval eval1 (current-library))
+      ;; replace it
+      (eval eval2 (current-library))
+      (local 1)))
+  (let ((t1 (make-thread thunk)))
+    (thread-start! t1)
+    (test-equal "local replace in context" 2 (thread-join! t1))))
+
+;; class redefintion
+(import (clos core))
+(let ()
+  (define eval1 '(define-class <foo> () ()))
+  (define eval2 '(define-class <foo> () (a)))
+  (define thunk
+    (lambda () 
+      (eval eval1 (current-library))
+      ;; replace it
+      (eval eval2 (current-library))
+      (let ((class (eval '<foo> (current-library))))
+	(slot-exists? (make class) 'a))))
+  (let ((t1 (make-thread thunk)))
+    (thread-start! t1)
+    (test-assert "local <foo> redefinition" (thread-join! t1))))
+
+;; now define it globally
+(define-class <foo> () ())
+(let ()
+  (define eval1 '(define-class <foo> () (a)))
+  (define thunk
+    (lambda () 
+      (eval eval1 (current-library))))
+  (let ((t1 (make-thread thunk)))
+    (thread-start! t1)
+    (test-error "global <foo> redefinition" condition? (thread-join! t1))))
 
 (test-end)

@@ -244,12 +244,14 @@ static void set_method_debug_name(SgMethod *m, SgGeneric *g)
 }
 
 /*
-  If the add-method is called from main thread then we add
-  the method to given generic, otherwise we add it to VM's
-  generics storage so that child thread won't contaminate
-  parent thread.
+  Some of CLOS operations, such as add-method, remove-method and
+  redefining class needs to be aware of current environment so
+  that it won't propagate the changes to other environments.
+  Basically, if the current environment (library) is a child
+  environment then we need to do some trick (or simply raises an
+  error).
  */
-static int main_or_import()
+static int in_global_context_p()
 {
   /* if (Sg_MainThreadP()) return TRUE; */
   /* return Sg_VM()->state == IMPORTING; */
@@ -279,11 +281,39 @@ static int generic_max_reqargs(SgGeneric *gf)
   return (int)SG_CADR(gslot);
 }
 
+static int check_method(SgObject methods, SgMethod *method,
+			int replaceP, int *errorP)
+{
+  SgObject mp;
+  SG_FOR_EACH(mp, methods) {
+    SgMethod *mm = SG_METHOD(SG_CAR(mp));
+    if (SG_PROCEDURE_REQUIRED(method) == SG_PROCEDURE_REQUIRED(mm) &&
+	SG_PROCEDURE_OPTIONAL(method) == SG_PROCEDURE_OPTIONAL(mm) &&
+	SG_EQ(SG_METHOD_QUALIFIER(method), SG_METHOD_QUALIFIER(mm))) {
+      SgClass **sp1 = SG_METHOD_SPECIALIZERS(method);
+      SgClass **sp2 = SG_METHOD_SPECIALIZERS(mm);
+      int required = SG_PROCEDURE_REQUIRED(method), i;
+      for (i = 0; i < required; i++) {
+	if (sp1[i] != sp2[i]) break;
+      }
+      if (i == required) {
+	if (replaceP) {
+	  SG_SET_CAR(mp, SG_OBJ(method));
+	} else if (errorP) {
+	  *errorP = TRUE;
+	}
+	return TRUE;
+      }
+    }
+  }
+  return FALSE;
+}
 /* TODO the code is now messy referctor me */
 SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 {
-  SgObject mp, pair, whereToAdd, gslot = SG_NIL;
-  int reqs = generic_max_reqargs(generic), replaced = FALSE, i, mainP;
+  SgObject pair, whereToAdd, gslot = SG_NIL;
+  int reqs = generic_max_reqargs(generic), replaced = FALSE, mainP;
+  int errp = FALSE;
   if (method->generic && method->generic != generic) {
     Sg_Error(UC("method %S already added to a generic function %S"),
 	     method, method->generic);
@@ -298,7 +328,7 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
 
   method->generic = generic;
   /* pre-allcate cons pair to avoid triggering GC */
-  mainP = main_or_import();
+  mainP = in_global_context_p();
   if (mainP) {
     whereToAdd = SG_GENERIC_METHODS(generic);
   } else {
@@ -318,41 +348,25 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
   }
   Sg_LockMutex(&generic->mutex);
   /* Check if a method with the same signature exists */
-  SG_FOR_EACH(mp, SG_GENERIC_METHODS(generic)) {
-    SgMethod *mm = SG_METHOD(SG_CAR(mp));
-    if (SG_PROCEDURE_REQUIRED(method) == SG_PROCEDURE_REQUIRED(mm) &&
-	SG_PROCEDURE_OPTIONAL(method) == SG_PROCEDURE_OPTIONAL(mm) &&
-	SG_EQ(SG_METHOD_QUALIFIER(method), SG_METHOD_QUALIFIER(mm))) {
-      SgClass **sp1 = SG_METHOD_SPECIALIZERS(method);
-      SgClass **sp2 = SG_METHOD_SPECIALIZERS(mm);
-      int required = SG_PROCEDURE_REQUIRED(method);
-      for (i = 0; i < required; i++) {
-	if (sp1[i] != sp2[i]) break;
-      }
-      if (i == required) {
-	if (mainP) {
-	  SG_SET_CAR(mp, SG_OBJ(method));
-	  replaced = TRUE;
-	  break;
-	} else {
-	  Sg_UnlockMutex(&generic->mutex);
-	  /* we don't allow to replace the one defined in root vm */
-	  Sg_Error(UC("method %S of generic %S is defined in main thread, "
-		      "child thread can not replace it"),
-		   method, method->generic);
-	}
-      }
-    }
+  replaced = check_method(SG_GENERIC_METHODS(generic),method, mainP, &errp);
+  if (errp) {
+    Sg_UnlockMutex(&generic->mutex);
+    /* we don't allow to replace the one defined in root vm */
+    Sg_Error(UC("method %S of generic %S is defined in main thread, "
+		"child thread can not replace it"),
+	     method, method->generic);
   }
   if (!replaced) {
     if (mainP) {
       SG_GENERIC_METHODS(generic) = pair;
       SG_GENERIC_MAX_REQARGS(generic) = reqs;
     } else {
-      SG_SET_CDR(SG_CDR(gslot), pair);
-      SG_SET_CAR(SG_CDR(gslot), SG_OBJ(reqs));
+      replaced = check_method(SG_CDDR(gslot), method, TRUE, NULL);
+      if (!replaced) {
+	SG_SET_CDR(SG_CDR(gslot), pair);
+	SG_SET_CAR(SG_CDR(gslot), SG_OBJ(reqs));
+      }
     }
-    
   }
   Sg_UnlockMutex(&generic->mutex);
   return SG_UNDEF;
@@ -372,7 +386,7 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
   if (!SG_METHOD_GENERIC(m) || SG_METHOD_GENERIC(m) != gf) return SG_UNDEF;
 
   Sg_LockMutex(&gf->mutex);
-  mainP = main_or_import();
+  mainP = in_global_context_p();
   if (mainP) {
     mp = SG_GENERIC_METHODS(gf);
   } else {
@@ -1778,6 +1792,22 @@ void Sg_StartClassRedefinition(SgClass *klass)
   SgVM *vm;
   if (SG_CLASS_CATEGORY(klass) != SG_CLASS_SCHEME) {
     Sg_Error(UC("builtin class can not redefined %S"), klass);
+  }
+  if (!in_global_context_p()) {
+    /* now we need to check if the class is defined in the same environment.
+       to detect the defined library we use simply the name of class the same
+       way of define-class does (see lib/clos/user.scm).
+       NOTE: the prediction is a bit naive. for example subclasses.
+     */
+    SgObject lib = Sg_VMCurrentLibrary();
+    SgObject g = Sg_FindBinding(lib, klass->name, SG_FALSE);
+    /* gloc won't be #f but in case. and if it is #f then assume it's defined
+       somewhere else. */
+    if (SG_FALSEP(g) || SG_GLOC(g)->library != lib) {
+      Sg_Error(UC("Given class %S is defined in non child environment. "
+		  "Child environment does not allow to change global class."),
+	       klass);
+    }
   }
 
   vm = Sg_VM();
