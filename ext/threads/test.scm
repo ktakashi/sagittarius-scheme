@@ -389,4 +389,22 @@
     (thread-start! t1)
     (test-error "global <foo> redefinition" condition? (thread-join! t1))))
 
+;; some of global defined methods
+(let ()
+  (define def-lib '(library (a-method) 
+		       (export a-method)
+		       (import (clos user))
+		     (define-generic a-method)))
+  (define ext-lib '(library (a-method-impl) 
+		       (export a-method)
+		       (import (a-method) (clos user))
+		     (define-method a-method (a) a)))
+  (eval def-lib (current-library))
+  (let ((t (make-thread (lambda () (eval ext-lib (current-library))))))
+    (thread-start! t)
+    (thread-join! t)
+    (test-equal "a-method" 'a (eval '(a-method 'a)
+				    (environment '(rnrs) '(a-method))))))
+
+
 (test-end)
