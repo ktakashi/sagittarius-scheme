@@ -59,7 +59,22 @@ struct SgLibraryRec
 				 */
   readtable_t *readtable;
   SgObject     reader;		/* custom reader */
-  int          mutableP;
+  int          mutableP;	/* if this is TRUE then redefinition is
+				   always allowed.
+				   c.f) user, eval environment and child
+				*/
+  SgObject     holder;		/* #f or VM.
+				   if this is not #f then the library
+				   is child library.
+				 */
+  /* Environment specific generic functions.
+     the structure is
+     generics = (generic ...)
+     generic = (gf max methods ...)
+     NOTE: we add this but defined slot can be used for this
+           so do not access this directly.
+   */
+  SgObject generics;
 };
 
 #define SG_LIBRARY(obj)  ((SgLibrary*)(obj))
@@ -74,6 +89,10 @@ struct SgLibraryRec
 #define SG_LIBRARY_READER(obj)   SG_LIBRARY(obj)->reader
 #define SG_LIBRARY_PARENTS(obj)  SG_LIBRARY(obj)->parents
 #define SG_LIBRARY_MUTABLEP(obj) SG_LIBRARY(obj)->mutableP
+#define SG_LIBRARY_GENERICS(obj) SG_LIBRARY(obj)->generics
+
+#define SG_CHILD_LIBRARYP(obj)					\
+  (SG_LIBRARYP(obj)&&!SG_FALSEP(SG_LIBRARY(obj)->holder))
 
 SG_CDECL_BEGIN
 
@@ -97,7 +116,7 @@ SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
 SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP);
 /* make library immutable
-   this operation, for now, is one way.
+   this operation, for now, is one way. (and not used)
  */
 SG_EXTERN void     Sg_LockLibrary(SgLibrary *library);
 

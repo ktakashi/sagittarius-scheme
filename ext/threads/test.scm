@@ -272,7 +272,8 @@
 (test-assert "real number timeout value" (thread-sleep! 0.001))
 
 ;; CLOS extra
-(import (clos user))
+;; need find-library
+(import (clos user) (sagittarius vm))
 (define-method local (a) a)
 (let ()
   (define (thunk)
@@ -292,5 +293,36 @@
     (test-equal "let-method (2)" 1
 		(let ((ts (thread-start! (make-thread thunk))))
 		  (thread-join! ts)))))
+
+;; interactive thing
+(let ()
+  (define eval1 '(define-method local ((a <symbol>)) 'eval1))
+  (define eval2 '(define-method local ((a <symbol>)) 'eval2))
+  (define eval3 '(define-method local ((a <symbol>)) 'eval3))
+  (define (make-thunk expr)
+    (lambda () 
+      ;;(print (eval 'define-method (current-library)))
+      ;;(eval `(import (rnrs) (clos user)) (current-library))
+      (eval expr (current-library))
+      (local 'a)))
+  (define (make-thunk2 expr)
+    (lambda () 
+      (eval expr (find-library 'user #f))
+      (local 'a)))
+
+  (let ((t1 (make-thread (make-thunk eval1)))
+	(t2 (make-thread (make-thunk eval2)))
+	(t3 (make-thread (make-thunk2 eval3))))
+    (thread-start! t1)
+    (thread-start! t2)
+    (test-equal "local eval1" 'eval1 (thread-join! t1))
+    (test-equal "local eval2" 'eval2 (thread-join! t2))
+    (test-equal "local (3)" 'a (local 'a))
+    ;; must be done after all other thread is done
+    ;; this should affect globally
+    (thread-start! t3)
+    (test-equal "local eval3" 'eval3 (thread-join! t3))
+    (test-equal "local (4)" 'eval3 (local 'a))
+    ))
 
 (test-end)

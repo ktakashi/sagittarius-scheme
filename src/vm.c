@@ -129,13 +129,13 @@ static void vm_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_VMClass, vm_print);
 
-static SgObject copy_generics(SgObject gs)
+static SgObject copy_generics(SgObject lib)
 {
-  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject h = SG_NIL, t = SG_NIL, gs;
   /* copying cdr part of slot of alist.
      adding method is done by destructively to avoid
      to affect it in parent thread. */
-  SG_FOR_EACH(gs, gs) {
+  SG_FOR_EACH(gs, SG_LIBRARY_GENERICS(lib)) {
     SgObject g = SG_CAR(gs);
     /* well, it won't hurt anyway :) */
     SG_APPEND1(h, t, Sg_CopyList(g));
@@ -190,12 +190,11 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     SG_LIBRARY_DEFINEED(nl) = SG_FALSE;
     v->currentLibrary = nl;
     v->parameters = Sg_WeakHashTableCopy(proto->parameters);
-    v->generics = copy_generics(proto->generics);
+    SG_LIBRARY_GENERICS(nl) = copy_generics(proto->currentLibrary);
   } else {
     v->currentLibrary = SG_UNDEF;
     v->parameters = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY, 64, 
 					       SG_FALSE);
-    v->generics = SG_NIL;
   }
   /* child thread should not affect parent load-path*/
   v->loadPath = proto ? Sg_CopyList(proto->loadPath): SG_NIL;

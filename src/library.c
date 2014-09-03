@@ -105,6 +105,8 @@ static SgLibrary* make_library()
   z->version = SG_NIL;
   z->parents = SG_NIL;
   z->reader = SG_FALSE;
+  z->holder = SG_FALSE;
+  SG_LIBRARY_GENERICS(z) = SG_NIL;
   SG_LIBRARY_MUTABLEP(z) = FALSE;
   Sg_InitMutex(&z->lock, FALSE);
   return z;
@@ -273,7 +275,7 @@ void Sg_LockLibrary(SgLibrary *library)
 SgObject Sg_MakeEvalLibrary()
 {
   SgObject name = Sg_MakeSymbol(SG_MAKE_STRING("(eval environment)"), FALSE);
-  return Sg_MakeChildLibrary(NULL, name);
+  return Sg_MakeChildLibrary(Sg_VM(), name);
 }
 
 SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
@@ -281,6 +283,7 @@ SgObject Sg_MakeChildLibrary(SgVM *vm, SgObject name)
   SgLibrary *z = make_library();
   z->name = name;
   z->version = SG_FALSE;
+  z->holder = SG_OBJ(vm);	/* eval is also child */
   SG_LIBRARY_MUTABLEP(z) = TRUE;
   return z;
 }

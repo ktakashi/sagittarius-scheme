@@ -291,12 +291,6 @@ struct SgVMRec
 
   /* current loading port */
   SgObject currentLoadingPort;
-  /* Thread local alist of generic functions 
-     the structure is
-     generics = (generic ...)
-     generic = (gf max methods ...)
-   */
-  SgObject generics;
 };
 
 /*

@@ -251,14 +251,15 @@ static void set_method_debug_name(SgMethod *m, SgGeneric *g)
  */
 static int main_or_import()
 {
-  if (Sg_MainThreadP()) return TRUE;
-  return Sg_VM()->state == IMPORTING;
+  /* if (Sg_MainThreadP()) return TRUE; */
+  /* return Sg_VM()->state == IMPORTING; */
+  return !SG_CHILD_LIBRARYP(Sg_VMCurrentLibrary());
 }
 
 /* some helpers */
 static SgObject get_thead_local_methods(SgGeneric *gf)
 {
-  SgObject gslot = Sg_Assq(gf, Sg_VM()->generics);
+  SgObject gslot = Sg_Assq(gf, SG_LIBRARY_GENERICS(Sg_VMCurrentLibrary()));
   if (SG_FALSEP(gslot)) return SG_NIL;
   return SG_CDDR(gslot);
 }
@@ -273,7 +274,7 @@ static SgObject get_all_methods(SgGeneric *gf)
 
 static int generic_max_reqargs(SgGeneric *gf)
 {
-  SgObject gslot = Sg_Assq(gf, Sg_VM()->generics);
+  SgObject gslot = Sg_Assq(gf, SG_LIBRARY_GENERICS(Sg_VMCurrentLibrary()));
   if (SG_FALSEP(gslot)) return SG_GENERIC_MAX_REQARGS(gf);
   return (int)SG_CADR(gslot);
 }
@@ -301,11 +302,12 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
   if (mainP) {
     whereToAdd = SG_GENERIC_METHODS(generic);
   } else {
-    gslot = Sg_Assq(generic, Sg_VM()->generics);
+    SgObject lib = Sg_VMCurrentLibrary();
+    gslot = Sg_Assq(generic, SG_LIBRARY_GENERICS(lib));
     if (SG_FALSEP(gslot)) {
       gslot = SG_LIST2(generic, SG_OBJ(0));
       whereToAdd = SG_NIL;
-      Sg_VM()->generics = Sg_Cons(gslot, Sg_VM()->generics);
+      SG_LIBRARY_GENERICS(lib) = Sg_Cons(gslot, SG_LIBRARY_GENERICS(lib));
     } else {
       whereToAdd = SG_CDDR(gslot);
     }
@@ -374,7 +376,7 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
   if (mainP) {
     mp = SG_GENERIC_METHODS(gf);
   } else {
-    gslot = Sg_Assq(gf, Sg_VM()->generics);
+    gslot = Sg_Assq(gf, SG_LIBRARY_GENERICS(Sg_VMCurrentLibrary()));
     if (SG_FALSEP(gslot)) {
       mp = SG_NIL;
     } else {
