@@ -48,7 +48,7 @@
 	    ;; procedure
 	    <procedure>
 	    ;; etc
-	    <identifier> <code-builder> <time>
+	    <identifier> <code-builder> <time> <char-set>
 
 
 	    ;; builtin generic
