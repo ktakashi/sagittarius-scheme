@@ -366,15 +366,6 @@ SgObject Sg_Memv(SgObject obj, SgObject list)
   }
   return SG_FALSE;
 }
-/*
-SgObject Sg_Member(SgObject obj, SgObject list)
-{
-  SG_FOR_EACH(list, list) {
-    if (Sg_EqualP(obj, SG_CAR(list))) return list;
-  }
-  return SG_FALSE;
-}
-*/
 
 SgObject Sg_Assq(SgObject obj, SgObject alist)
 {
@@ -408,19 +399,34 @@ SgObject Sg_Assv(SgObject obj, SgObject alist)
   return SG_FALSE;
 }
 
-/*
-SgObject Sg_Assoc(SgObject obj, SgObject alist)
+SgObject Sg_GetPairAnnotation(SgObject pair, SgObject name)
 {
-  SgObject cp;
-  if (!SG_LISTP(alist)) Sg_Error(UC("assv: list requried, but got %S"), alist);
-  SG_FOR_EACH(cp, alist) {
-    SgObject entry = SG_CAR(cp);
-    if (!SG_PAIRP(entry)) continue;
-    if (Sg_EqualP(obj, SG_CAR(entry))) return entry;
+  SgObject s;
+  if (!SG_PAIRP(pair)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("pair-annotation"),
+				    SG_MAKE_STRING("pair"),
+				    pair, SG_NIL);
   }
-  return SG_FALSE;
+  s = Sg_Assq(name, SG_PAIR(pair)->info);
+  if (SG_FALSEP(s)) return SG_FALSE;
+  return SG_CDR(s);
 }
-*/
+SgObject Sg_SetPairAnnotation(SgObject pair, SgObject name, SgObject v)
+{
+  SgObject s;
+  if (!SG_PAIRP(pair)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("pair-annotation"),
+				    SG_MAKE_STRING("pair"),
+				    pair, SG_NIL);
+  }
+  s = Sg_Assq(name, SG_PAIR(pair)->info);
+  if (SG_FALSEP(s)) {
+    SG_PAIR(pair)->info = Sg_Acons(name, v, SG_PAIR(pair)->info);
+  } else {
+    SG_SET_CDR(s, v);
+  }
+  return pair;
+}
 
 /* from Ypsilon */
 static SgObject do_transpose(int shortest_len, SgObject args[])

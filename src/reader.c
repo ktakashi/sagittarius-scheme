@@ -36,7 +36,6 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/hashtable.h"
-#include "sagittarius/weak.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/compare.h"
 #include "sagittarius/keyword.h"
@@ -730,9 +729,8 @@ static SgObject read_list(SgPort *port, SgChar closer, SgReadContext *ctx)
     if (!SG_VM_IS_SET_FLAG(vm, SG_NO_DEBUG_INFO)) {
       SgObject info = Sg_FileName(port);
       if (!SG_FALSEP(info) && ctx->flags & SG_READ_SOURCE_INFO) {
-	Sg_WeakHashTableSet(SG_WEAK_HASHTABLE(vm->sourceInfos),
-			    r, Sg_Cons(info, SG_MAKE_INT(line)),
-			    0);
+	r = Sg_SetPairAnnotation(r, SYM_SOURCE_INFO, 
+				 Sg_Cons(info, SG_MAKE_INT(line)));
       }
     }
   }
@@ -1881,7 +1879,7 @@ int Sg_ConstantLiteralP(SgObject o)
   SgObject e;
   if (SG_PAIRP(o)) {
     /* simple check */
-    return !SG_FALSEP(Sg_Assq(SYM_CONST, SG_PAIR(o)->info));
+    return !SG_FALSEP(Sg_GetPairAnnotation(o, SYM_CONST));
   } else if (SG_VECTORP(o)) {
     /* again simple check */
     return SG_LITERAL_VECTORP(o);
@@ -1908,7 +1906,7 @@ SgObject Sg_AddConstantLiteral(SgObject o)
     }
     if (SG_PAIRP(o)) {
       /* do the cdr parts. */
-      SG_PAIR(o)->info = Sg_Acons(SYM_CONST, SG_TRUE, SG_PAIR(o)->info);
+      Sg_SetPairAnnotation(o, SYM_CONST, SG_TRUE);
       if (SG_PAIRP(SG_CAR(o))) {
 	SG_SET_CAR(o, Sg_AddConstantLiteral(SG_CAR(o)));
       }
@@ -2372,6 +2370,9 @@ void Sg__InitReaderClass()
   CINIT(SG_CLASS_SHARED_REF,   "<shared-ref>");
   /* for now no slot def */
   CINIT(SG_CLASS_READ_CONTEXT, "<read-context>");
+
+  SYM_CONST = SG_INTERN("const");
+  SYM_SOURCE_INFO = SG_INTERN("source-info");
 }
 
 /*

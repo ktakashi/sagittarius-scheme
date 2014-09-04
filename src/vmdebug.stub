@@ -12,22 +12,16 @@
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h>))
 
-  (define-c-proc vm-dump-code (cb::<code-builder>) ::<top>
-    (Sg_VMDumpCode cb)
-    (result SG_UNDEF))
+  (define-c-proc vm-dump-code (cb::<code-builder>) ::<void> Sg_VMDumpCode)
 
-  (define-c-proc source-info (o) ::<top>
-    (if (SG_PTRP o)
-	(result (Sg_WeakHashTableRef 
-		 (SG_WEAK_HASHTABLE (-> (Sg_VM) sourceInfos)) o #f))
+  (define-c-proc source-info (o)
+    (if (SG_PAIRP o)
+	(result (Sg_GetPairAnnotation o 'source-info))
 	(result SG_FALSE)))
 
   (define-c-proc source-info-set! (o i) 
-    (when (and (SG_PTRP o) (not (SG_FALSEP i)))
-      (let* ((vm::SgVM* (Sg_VM)))
-	(unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
-	  (Sg_WeakHashTableSet (SG_WEAK_HASHTABLE (-> vm sourceInfos))
-			       o i 0))))
+    (when (and (SG_PAIRP o) (not (SG_FALSEP i)))
+      (Sg_SetPairAnnotation o 'source-info i))
     (result o))
 
   ;; expansion-history is only debug purpose

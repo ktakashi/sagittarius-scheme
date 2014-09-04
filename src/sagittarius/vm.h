@@ -263,9 +263,6 @@ struct SgVMRec
   /* parameters */
   SgObject    parameters;
 
-  /* source info */
-  SgObject    sourceInfos;
-
   /* gc related */
   int finalizerPending;
   int attentionRequest;

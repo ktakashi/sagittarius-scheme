@@ -175,9 +175,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->dynamicWinders = SG_NIL;
   v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-
-  v->sourceInfos = Sg_MakeWeakHashTableSimple(SG_HASH_EQ, SG_WEAK_KEY,
-					      4000, SG_FALSE);
   v->commandLineArgs = SG_NIL;
 
   /* from proto */
@@ -419,7 +416,6 @@ static inline void report_error(SgObject exception, SgObject out)
   SgObject error = SG_NIL, stackTrace = SG_NIL;
   SgObject cur;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
-  SgVM *vm = Sg_VM();
 
   if (SG_PAIRP(exception)) {
     error = SG_CAR(exception);
@@ -454,9 +450,7 @@ static inline void report_error(SgObject exception, SgObject out)
 	} else {
 	  src = Sg_LastPair(tmp);
 	  src = SG_CDAR(src);
-	  info = Sg_WeakHashTableRef(SG_WEAK_HASHTABLE(vm->sourceInfos),
-				     src, SG_FALSE);
-	  /* info = SG_SOURCE_INFO(src); */
+	  info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
 	}
 	if (SG_FALSEP(info) || !info) {
 	  Sg_Printf(buf,
