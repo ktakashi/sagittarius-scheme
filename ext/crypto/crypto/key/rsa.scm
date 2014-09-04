@@ -108,8 +108,7 @@
       (display buf p)))
 
   ;; marker class for generic functions
-  (define-class <rsa> () ())
-  (define RSA (make <rsa>))
+  (define RSA :rsa)
 
   (define *rsa-min-keysize* 256)
   (define *rsa-max-keysize* 4096)
@@ -128,13 +127,13 @@
 	(make-rsa-private-crt-key modulus public-exponent private-exponent p q)
 	(make-rsa-private-key modulus private-exponent)))
   
-  (define-method generate-private-key ((marker <rsa>)
+  (define-method generate-private-key ((marker (eql RSA))
 				       (m <integer>)
 				       (pe <integer>)
 				       . rest)
     (apply rsa-generate-private-key m pe rest))
 
-  (define-method generate-public-key ((marker <rsa>)
+  (define-method generate-public-key ((marker (eql RSA))
 				      (m <integer>)
 				      (e <integer>))
     (make-rsa-public-key m e))
@@ -169,7 +168,7 @@
       (let ((d (mod-inverse e phi)))
 	(create-key-pair n e d p q))))
 
-  (define-method generate-key-pair ((marker <rsa>) . args)
+  (define-method generate-key-pair ((marker (eql RSA)) . args)
     (let-keywords args
 	((e 65537)
 	 (size 1024)
@@ -365,7 +364,7 @@
 		(make-der-integer (slot-ref key 'modulus))
 		(make-der-integer (slot-ref key 'exponent)))))
       (encode der)))
-  (define-method export-public-key ((marker <rsa>) (key <rsa-public-key>))
+  (define-method export-public-key ((marker (eql RSA)) (key <rsa-public-key>))
     (rsa-export-public-key key))
 
   (define (rsa-import-public-key public)
@@ -385,11 +384,11 @@
 			    (slot-ref (car objects) 'bytes))
 			   (bytevector->integer
 			    (slot-ref (cadr objects) 'bytes)))))
-  (define-method import-public-key ((marker <rsa>) (in <bytevector>))
+  (define-method import-public-key ((marker (eql RSA)) (in <bytevector>))
     (import-public-key marker (open-bytevector-input-port in)))
-  (define-method import-public-key ((marker <rsa>) (in <port>))
+  (define-method import-public-key ((marker (eql RSA)) (in <port>))
     (import-public-key marker (read-asn.1-object in)))
-  (define-method import-public-key ((marker <rsa>) (in <asn.1-sequence>))
+  (define-method import-public-key ((marker (eql RSA)) (in <asn.1-sequence>))
     (rsa-import-public-key in))
 
   #|
@@ -423,7 +422,7 @@
 		(make-der-integer (slot-ref private 'dQ))
 		(make-der-integer (slot-ref private 'dP)))))
       (encode der)))
-  (define-method export-private-key ((marker <rsa>) (key <rsa-private-crt-key>))
+  (define-method export-private-key ((marker (eql RSA)) (key <rsa-private-crt-key>))
     (rsa-export-private-key key))
   
   (define (rsa-import-private-key private)
@@ -458,10 +457,10 @@
 	 :p (der-integer->integer p)
 	 :q (der-integer->integer q)))))
 
-  (define-method import-private-key ((marker <rsa>) (in <bytevector>))
+  (define-method import-private-key ((marker (eql RSA)) (in <bytevector>))
     (import-private-key marker (open-bytevector-input-port in)))
-  (define-method import-private-key ((marker <rsa>) (in <port>))
+  (define-method import-private-key ((marker (eql RSA)) (in <port>))
     (import-private-key marker (read-asn.1-object in)))
-  (define-method import-private-key ((marker <rsa>) (in <asn.1-sequence>))
+  (define-method import-private-key ((marker (eql RSA)) (in <asn.1-sequence>))
     (rsa-import-private-key in))
 )

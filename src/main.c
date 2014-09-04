@@ -380,7 +380,8 @@ int main(int argc, char **argv)
       } else if (tstrcmp(t("warn"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
       } else {
-	Sg_Warn(UC("unknown log level option %A"), make_scheme_string(optarg_s));
+	Sg_Warn(UC("unknown log level option %A"), 
+		make_scheme_string(optarg_s));
       }
       break;
     case 'f':

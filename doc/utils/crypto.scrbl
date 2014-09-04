@@ -437,8 +437,8 @@ want to create a new cipher, you just need to follow the example.
   (slot-set! o 'signer (lambda _ #vu8()))
   (slot-set! o 'verifier (lambda _ #t))
   (slot-set! o 'keysize (lambda _ 0)))
-(define-class <sample> () ())
-(define sample (make <sample>))
+
+(define sample :sample)
 (register-spi sample <sample-cipher-spi>)
 ;; test sample-cipher
 (define sample-cipher (cipher sample #f))
@@ -493,14 +493,17 @@ NOTE: Even required slots, Sagittarius does not check if it's set or not.
 }
 
 @define[Function]{@name{register-spi} @args{mark spi}}
-@desc{Register custom cipher spi.
+@desc{Register custom cipher SPI.
 
 @var{mark} can be any thing which returns #t then compared by @code{equal?}
 
 @var{spi} must be subclass of @code{<cipher-spi>}
 
 NOTE: We recommend to make @var{mark} the same as example code does and export
-the registered @var{mark}.
+the registered @var{mark}. And the @var{mark} must be unique enough not to
+overwrite existing SPI names. 
+
+e.g. @code{:rsa} and @code{:dsa} is already used for RSA and DSA.
 }
 
 The concept of this SPI is influenced by Java's JCE. The toplevel of cipher is

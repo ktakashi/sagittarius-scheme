@@ -59,8 +59,7 @@
       (values x y)))
 
   ;; marker
-  (define-class <dsa> () ())
-  (define DSA (make <dsa>))
+  (define DSA :dsa)
 
   (define-class <dsa-public-key> (<public-key> <dsa-key-parameter>)
     ((Y :init-keyword :Y)))
@@ -82,7 +81,7 @@
     (format out "   Y: ~x~%" (slot-ref pr 'Y))
     (format out "   X: ~x~%>" (slot-ref pr 'X)))
 
-  (define-method generate-key-pair ((m <dsa>) :key (size 1024)
+  (define-method generate-key-pair ((m (eql DSA)) :key (size 1024)
 				    (prng (secure-random RC4))
 				    (parameter #f))
     (let* ((pr (if parameter 
@@ -96,7 +95,7 @@
 	      (public (make <dsa-public-key> :p p :q q :g g :Y y)))
 	  (make-keypair private public)))))
 
-  (define-method generate-public-key ((marker <dsa>) p q g y)
+  (define-method generate-public-key ((marker (eql DSA)) p q g y)
     (make <dsa-public-key> :p p :q q :g g :Y y))
 
   ;; According to OpenSSL
@@ -207,7 +206,7 @@
   ;; If every one uses publicExponent + parameter format
   ;; I would go for that one though...
   (define oid (make-der-object-identifier "1.2.840.10040.4.1"))
-  (define-method export-public-key ((m <dsa>) (key <dsa-public-key>))
+  (define-method export-public-key ((m (eql DSA)) (key <dsa-public-key>))
     (encode (make-der-sequence
 	     (make-der-sequence
 	      oid
@@ -218,11 +217,11 @@
 	     (make-der-bit-string 
 	      (encode (make-der-integer (slot-ref key 'Y)))))))
 
-  (define-method import-public-key ((marker <dsa>) (in <bytevector>))
+  (define-method import-public-key ((marker (eql DSA)) (in <bytevector>))
     (import-public-key DSA (open-bytevector-input-port in)))
-  (define-method import-public-key ((marker <dsa>) (in <port>))
+  (define-method import-public-key ((marker (eql DSA)) (in <port>))
     (import-public-key DSA (read-asn.1-object in)))
-  (define-method import-public-key ((marker <dsa>) (in <asn.1-sequence>))
+  (define-method import-public-key ((marker (eql DSA)) (in <asn.1-sequence>))
     (define (extract-param&keys who in)
       (let ((objects (slot-ref in 'sequence)))
 	(unless (= 2 (length objects))
@@ -260,7 +259,7 @@
         privateExponent INTEGER
       }
   |#
-  (define-method export-private-key ((m <dsa>) (key <dsa-private-key>))
+  (define-method export-private-key ((m (eql DSA)) (key <dsa-private-key>))
     ;; should we do like this or OpenSSL DSA private key format?
     (encode (make-der-sequence
 	     (make-der-integer 0)
@@ -270,11 +269,11 @@
 	     (make-der-integer (slot-ref key 'Y))
 	     (make-der-integer (slot-ref key 'X)))))
 
-  (define-method import-private-key ((marker <dsa>) (in <bytevector>))
+  (define-method import-private-key ((marker (eql DSA)) (in <bytevector>))
     (import-private-key DSA (open-bytevector-input-port in)))
-  (define-method import-private-key ((marker <dsa>) (in <port>))
+  (define-method import-private-key ((marker (eql DSA)) (in <port>))
     (import-private-key DSA (read-asn.1-object in)))
-  (define-method import-private-key ((marker <dsa>) (in <asn.1-sequence>))
+  (define-method import-private-key ((marker (eql DSA)) (in <asn.1-sequence>))
     (let ((objs (slot-ref in 'sequence)))
       (unless (= 6 (length objs)) 
 	(error 'import-private-key "invalid sequence size" in))
