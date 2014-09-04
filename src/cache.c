@@ -214,18 +214,41 @@ enum {
 #define builtin_cachable_p(obj)						\
   (!SG_PTRP(obj) || SG_SYMBOLP(obj) || SG_STRINGP(obj) ||		\
    SG_KEYWORDP(obj) || SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) ||	\
-   SG_VECTORP(obj) || SG_PAIRP(obj) || SG_NUMBERP(obj) ||		\
+   SG_NUMBERP(obj) ||							\
    SG_MACROP(obj) || SG_GLOCP(obj) || SG_CODE_BUILDERP(obj) ||\
    SG_LIBRARYP(obj) || SG_CLOSUREP(obj))
 
-static int cachable_p(SgObject obj)
+static int cachable_p_rec(SgObject obj, SgObject seen)
 {
-  if (builtin_cachable_p(obj)) return TRUE;
-  else {
+  /* it's already checked so just return true */
+  if (!SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
+
+  Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+  if (builtin_cachable_p(obj)) {
+    return TRUE;
+    /* containers needs to be traversed.  */
+  } else if (SG_PAIRP(obj)) {
+    return cachable_p_rec(SG_CAR(obj), seen) && 
+      cachable_p_rec(SG_CDR(obj), seen);
+  } else if (SG_VECTORP(obj)) {
+    /* vector is easier */
+    int i;
+    for (i = 0; i < SG_VECTOR_SIZE(obj); i++) {
+      if (!cachable_p_rec(SG_VECTOR_ELEMENT(obj, i), seen)) return FALSE;
+    }
+    return TRUE;
+  } else {
     SgClass *klass = Sg_ClassOf(obj);
     return (klass->cacheReader && klass->cacheWriter) ||
       (SG_PROCEDUREP(klass->creader) && SG_PROCEDUREP(klass->cwriter));
   }
+}
+
+static int cachable_p(SgObject obj)
+{
+  SgHashTable seen;
+  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 1);
+  return cachable_p_rec(obj, &seen);
 }
 
 #define put_4byte(v)				\
