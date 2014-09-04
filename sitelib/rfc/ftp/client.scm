@@ -50,6 +50,9 @@
 	    ;; receivers
 	    ftp-binary-receiver
 	    ftp-file-receiver
+
+	    ;; condition
+	    &ftp-error ftp-error? ftp-error-status
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -78,7 +81,7 @@
      (socket :init-keyword :socket)))
 
   (define-condition-type &ftp-error &error make-ftp-error ftp-error?
-    (status ftp-status))
+    (status ftp-error-status))
 
   (define (ftp-error who status)
     (raise (apply condition
