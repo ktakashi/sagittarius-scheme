@@ -37,8 +37,15 @@ struct SgPairRec
 {
   SgObject car;
   SgObject cdr;
-  /* benchmark said set-ca/dr! is super slow. */
-  char     constp;
+  /* 
+     alist of pair info.
+     FIXME
+     We can't depends on Boehm GC's GC_size. Default build puts some
+     extra information to memory so that size would be the same as
+     annotated pair and usual pair.
+     So we make pair always 3 words...
+   */
+  SgObject info;
 };
 
 SG_CLASS_DECL(Sg_ListClass);

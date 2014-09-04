@@ -79,6 +79,14 @@ static uint8_t CHAR_MAP[] = {
 #define INITIAL_CHARP(x)   ((CHAR_MAP[x] & CHAR_MAP_INITIAL) != 0)
 #define DELIMITER_CHARP(x) ((CHAR_MAP[x] & CHAR_MAP_DELIMITER) != 0)
 
+static SgObject pair_infos[] = {
+  SG_UNDEF,
+  SG_UNDEF
+};
+
+#define SYM_CONST       pair_infos[0]
+#define SYM_SOURCE_INFO pair_infos[1]
+
 static int convert_hex_char_to_int(SgChar c)
 {
   if ((c >= '0') & (c <= '9')) return c - '0';
@@ -1873,10 +1881,10 @@ int Sg_ConstantLiteralP(SgObject o)
   SgObject e;
   if (SG_PAIRP(o)) {
     /* simple check */
-    return SG_PAIR(o)->constp;
+    return !SG_FALSEP(Sg_Assq(SYM_CONST, SG_PAIR(o)->info));
   } else if (SG_VECTORP(o)) {
     /* again simple check */
-    return SG_VECTOR(o)->literalp;
+    return SG_LITERAL_VECTORP(o);
   }
   e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
   if (SG_UNBOUNDP(e)) return FALSE;
@@ -1900,7 +1908,7 @@ SgObject Sg_AddConstantLiteral(SgObject o)
     }
     if (SG_PAIRP(o)) {
       /* do the cdr parts. */
-      SG_PAIR(o)->constp = TRUE;
+      SG_PAIR(o)->info = Sg_Acons(SYM_CONST, SG_TRUE, SG_PAIR(o)->info);
       if (SG_PAIRP(SG_CAR(o))) {
 	SG_SET_CAR(o, Sg_AddConstantLiteral(SG_CAR(o)));
       }

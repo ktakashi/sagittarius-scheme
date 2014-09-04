@@ -52,7 +52,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_NullClass, NULL, NULL, NULL, NULL, list_cpl);
 static inline SgPair* make_pair()
 {
   SgPair *z = SG_NEW(SgPair);
-  z->constp = FALSE;
+  z->info = SG_NIL;
   return z;
 }
 
