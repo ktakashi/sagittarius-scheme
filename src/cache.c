@@ -211,31 +211,32 @@ enum {
 /* symbol, string, keyword, identifier, bytevector, vector,
    pair, number, macro
 */
-#define builtin_cachable_p(obj)						\
+#define builtin_cachable_p(obj, seen)					\
   (!SG_PTRP(obj) || SG_SYMBOLP(obj) || SG_STRINGP(obj) ||		\
    SG_KEYWORDP(obj) || SG_IDENTIFIERP(obj) || SG_BVECTORP(obj) ||	\
+   (!seen && SG_PAIRP(obj)) || (!seen && SG_VECTORP(obj)) ||		\
    SG_NUMBERP(obj) ||							\
-   SG_MACROP(obj) || SG_GLOCP(obj) || SG_CODE_BUILDERP(obj) ||\
+   SG_MACROP(obj) || SG_GLOCP(obj) || SG_CODE_BUILDERP(obj) ||		\
    SG_LIBRARYP(obj) || SG_CLOSUREP(obj))
 
-static int cachable_p_rec(SgObject obj, SgObject seen)
+static int cachable_p(SgObject obj, SgObject seen)
 {
   /* it's already checked so just return true */
-  if (!SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
+  if (seen && !SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
 
-  if (builtin_cachable_p(obj)) {
+  if (builtin_cachable_p(obj, seen)) {
     return TRUE;
     /* containers needs to be traversed.  */
   } else if (SG_PAIRP(obj)) {
-    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
-    return cachable_p_rec(SG_CAR(obj), seen) && 
-      cachable_p_rec(SG_CDR(obj), seen);
+    if (seen) Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+    return cachable_p(SG_CAR(obj), seen) && 
+      cachable_p(SG_CDR(obj), seen);
   } else if (SG_VECTORP(obj)) {
     /* vector is easier */
     int i;
-    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
+    if (seen) Sg_HashTableSet(seen, obj, SG_TRUE, 0);
     for (i = 0; i < SG_VECTOR_SIZE(obj); i++) {
-      if (!cachable_p_rec(SG_VECTOR_ELEMENT(obj, i), seen)) return FALSE;
+      if (!cachable_p(SG_VECTOR_ELEMENT(obj, i), seen)) return FALSE;
     }
     return TRUE;
   } else {
@@ -243,13 +244,6 @@ static int cachable_p_rec(SgObject obj, SgObject seen)
     return (klass->cacheReader && klass->cacheWriter) ||
       (SG_PROCEDUREP(klass->creader) && SG_PROCEDUREP(klass->cwriter));
   }
-}
-
-static int cachable_p(SgObject obj)
-{
-  SgHashTable seen;
-  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 1);
-  return cachable_p_rec(obj, &seen);
 }
 
 #define put_4byte(v)				\
@@ -461,7 +455,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 {
   SgObject value;
  loop:
-  if (!cachable_p(obj)) ESCAPE(ctx, "non cacheable object %S\n", obj);
+  if (!cachable_p(obj, NULL)) ESCAPE(ctx, "non cacheable object %S\n", obj);
   if (!interesting_p(obj)) return cbs;
 
   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
@@ -1802,7 +1796,11 @@ void Sg_CleanCache(SgObject target)
 
 int Sg_CachableP(SgObject o)
 {
-  return cachable_p(o);
+  /* this is used for constant folding thus we need to check
+     inside of the containers. */
+  SgHashTable seen;
+  Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 1);
+  return cachable_p(o, &seen);
 }
 
 void Sg__InitCache()
