@@ -16,12 +16,17 @@
 
   (define-c-proc source-info (o)
     (if (SG_PAIRP o)
-	(result (Sg_GetPairAnnotation o 'source-info))
+	(let* ((vm::SgVM* (Sg_VM)))
+	  (if (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
+	      (result SG_FALSE)
+	      (result (Sg_GetPairAnnotation o 'source-info))))
 	(result SG_FALSE)))
 
   (define-c-proc source-info-set! (o i) 
     (when (and (SG_PAIRP o) (not (SG_FALSEP i)))
-      (Sg_SetPairAnnotation o 'source-info i))
+      (let* ((vm::SgVM* (Sg_VM)))
+	(unless (SG_VM_IS_SET_FLAG vm SG_NO_DEBUG_INFO)
+	  (set! o (Sg_SetPairAnnotation o 'source-info i)))))
     (result o))
 
   ;; expansion-history is only debug purpose

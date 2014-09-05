@@ -18,7 +18,7 @@
     (format #t "(library (encoding table ~a-utf16)~%" type)
     (format #t "    (export *~a-utf16-table*~%" type)
     (format #t "            *utf16-~a-table*)~%" type)
-    (display   "    (import (core))")(newline)
+    (display   "    (import (core) (sagittarius))")(newline)
 
     (receive (type-utf16 utf16-type)
 	(let loop ((line (get-line (current-input-port)))
@@ -31,22 +31,34 @@
 		       (loop (get-line (current-input-port)) tu ut))
 		      (else
 		       (let* ((tokens (string-tokenize line char-set:hex-digit))
-			      (tcode (string->number (string-append "#x" (list-ref tokens position))))
-			      (ucode (string->number (string-append "#x" (list-ref tokens *utf16-position*)))))
+			      (tcode (string->number (list-ref tokens position)
+						     16))
+			      (ucode (string->number (list-ref tokens 
+							       *utf16-position*)
+						     16)))
 			 (loop (get-line (current-input-port))
 			       (acons tcode ucode tu)
 			       (acons ucode tcode ut))))))))
-      (write `(define ,(string->symbol (format "*~a-utf16-table*" type)) ',type-utf16))(newline)
-      (write `(define ,(string->symbol (format "*utf16-~a-table*" type)) ',utf16-type))(newline))
+      (write `(define-constant 
+		,(string->symbol (format "*~a-utf16-table*" type))
+		',type-utf16))
+      (newline)
+      (write `(define-constant 
+		,(string->symbol (format "*utf16-~a-table*" type))
+		',utf16-type))
+      (newline))
 
     (display   ")")(newline)))
 
 (for-each 
  (lambda (pos) 
    (let ((file (format "~a-utf16.scm" (vector-ref *position-table* pos))))
+     (when (file-exists? file) (delete-file file))
      (with-input-from-file *mapping-file*
        (lambda ()
 	 (with-output-to-file file
 	   (lambda ()
-	     (generate-table pos)))))))
+	     (generate-table pos)))))
+     (copy-file file (build-path "../sitelib/encoding/table/" file) #t)
+     (delete-file file)))
  '(0 1 2))

@@ -3384,9 +3384,10 @@
       (and-let* (( (not (vm-noconstant-inlining?)) )
 		 (gloc (id->bound-gloc ($gref-id iform)))
 		 (v (gloc-ref gloc))
-		 ( (cachable? v) )
 		 ( (or (gloc-const? gloc)
-		       (const-variable? ($gref-id iform) gloc)) ))
+		       ;; to avoid scanning huge list, we trust users.
+		       (and (cachable? v)
+			    (const-variable? ($gref-id iform) gloc)) )))
 	($const v))
       iform))
 

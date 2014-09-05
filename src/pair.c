@@ -367,20 +367,25 @@ SgObject Sg_Memv(SgObject obj, SgObject list)
   return SG_FALSE;
 }
 
-SgObject Sg_Assq(SgObject obj, SgObject alist)
+static SgObject assq_rec(SgObject obj, SgObject alist)
 {
   SgObject cp;
-  if (!SG_LISTP(alist)) {
-    Sg_WrongTypeOfArgumentViolation(SG_INTERN("assq"),
-				    SG_MAKE_STRING("list"),
-				    alist, SG_NIL);
-  }
   SG_FOR_EACH(cp, alist) {
     SgObject entry = SG_CAR(cp);
     if (!SG_PAIRP(entry)) continue;
     if (SG_EQ(obj, SG_CAR(entry))) return entry;
   }
   return SG_FALSE;
+}
+
+SgObject Sg_Assq(SgObject obj, SgObject alist)
+{
+  if (!SG_LISTP(alist)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("assq"),
+				    SG_MAKE_STRING("list"),
+				    alist, SG_NIL);
+  }
+  return assq_rec(obj, alist);
 }
 
 SgObject Sg_Assv(SgObject obj, SgObject alist)
@@ -407,10 +412,11 @@ SgObject Sg_GetPairAnnotation(SgObject pair, SgObject name)
 				    SG_MAKE_STRING("pair"),
 				    pair, SG_NIL);
   }
-  s = Sg_Assq(name, SG_PAIR(pair)->info);
+  s = assq_rec(name, SG_PAIR(pair)->info);
   if (SG_FALSEP(s)) return SG_FALSE;
   return SG_CDR(s);
 }
+
 SgObject Sg_SetPairAnnotation(SgObject pair, SgObject name, SgObject v)
 {
   SgObject s;
@@ -419,7 +425,7 @@ SgObject Sg_SetPairAnnotation(SgObject pair, SgObject name, SgObject v)
 				    SG_MAKE_STRING("pair"),
 				    pair, SG_NIL);
   }
-  s = Sg_Assq(name, SG_PAIR(pair)->info);
+  s = assq_rec(name, SG_PAIR(pair)->info);
   if (SG_FALSEP(s)) {
     SG_PAIR(pair)->info = Sg_Acons(name, v, SG_PAIR(pair)->info);
   } else {
@@ -525,7 +531,6 @@ static SgObject list_transpose_p(SgObject *args, int argc, void *data)
 
 static SG_DEFINE_SUBR(list_transpose_p_stub, 1, 1, list_transpose_p,
 		      SG_FALSE, NULL);
-
 
 void Sg__InitPair()
 {

@@ -223,16 +223,17 @@ static int cachable_p_rec(SgObject obj, SgObject seen)
   /* it's already checked so just return true */
   if (!SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
 
-  Sg_HashTableSet(seen, obj, SG_TRUE, 0);
   if (builtin_cachable_p(obj)) {
     return TRUE;
     /* containers needs to be traversed.  */
   } else if (SG_PAIRP(obj)) {
+    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
     return cachable_p_rec(SG_CAR(obj), seen) && 
       cachable_p_rec(SG_CDR(obj), seen);
   } else if (SG_VECTORP(obj)) {
     /* vector is easier */
     int i;
+    Sg_HashTableSet(seen, obj, SG_TRUE, 0);
     for (i = 0; i < SG_VECTOR_SIZE(obj); i++) {
       if (!cachable_p_rec(SG_VECTOR_ELEMENT(obj, i), seen)) return FALSE;
     }

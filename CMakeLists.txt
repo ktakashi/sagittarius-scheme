@@ -477,6 +477,7 @@ ADD_CUSTOM_TARGET(test
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-clean
@@ -486,6 +487,7 @@ ADD_CUSTOM_TARGET(test-clean
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-ext
@@ -495,6 +497,7 @@ ADD_CUSTOM_TARGET(test-ext
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm ext
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
