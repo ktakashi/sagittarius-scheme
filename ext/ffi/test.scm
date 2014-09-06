@@ -368,6 +368,20 @@
       (int32_t array (* size-of-char n) dummy))
     (test-equal "size" (* size-of-int32_t size-of-char n)
 		(size-of-c-struct foo)))
+  ;; memcpy
+  (test-error "wrong argument" condition? (c-memcpy 'a 0 'b 0 0))
+  (test-error "wrong argument" condition? 
+	      (c-memcpy (allocate-pointer 0) 0 'b 0 0))
+  (let ((p (allocate-pointer (* size-of-char 5)))
+	(p2 (allocate-pointer (* size-of-char 5))))
+    (c-memcpy p 0 (string->utf8 "1234") 0 4)
+    (test-equal "c-memcpy" "1234" (pointer->string p))
+    (c-memcpy p2 0 (string->utf8 "987") 0 3)
+    (test-equal "c-memcpy" "987" (pointer->string p2))
+    (c-memcpy p 1 p2 1 2)
+    (test-equal "c-memcpy" "1874" (pointer->string p))
+    )
+
   )
  (else
   #t))

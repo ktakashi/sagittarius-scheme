@@ -51,6 +51,10 @@
 
 (define-c-proc c-free (p::<pointer>) ::<void> Sg_CFree)
 
+;; memcpy
+(define-c-proc c-memcpy (d::<pointer> o::<fixnum> s st::<fixnum> si::<fixnum>)
+  ::<void> Sg_CMemcpy)
+
 ;; finalizer
 (define-c-proc register-ffi-finalizer (p::<pointer> proc::<procedure>)
   Sg_RegisterFFIFinalizer)

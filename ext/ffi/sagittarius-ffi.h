@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * ffi.h
+/* ffi.h                                           -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
@@ -194,6 +192,9 @@ SgObject Sg_PointerToUInteger(SgPointer *p, int bits);
 /* malloc */
 SgObject Sg_CMalloc(size_t size);
 void     Sg_CFree(SgPointer *p);
+void     Sg_CMemcpy(SgPointer *d, long offset, 
+		    SgObject   s, long start,
+		    long size);
 
 /* finalize */
 SgObject Sg_RegisterFFIFinalizer(SgPointer *pointer, SgObject proc);

@@ -18,6 +18,7 @@
 	    ;; finalizer
 	    register-ffi-finalizer
 	    unregister-ffi-finalizer
+	    c-memcpy
 
 	    ;; pointer
 	    pointer?

@@ -1,6 +1,4 @@
-/* -*- C -*- */
-/*
- * ffi.c
+/* ffi.c                                           -*- mode:c; coding:utf-8; -*-
  *
  *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
@@ -1635,6 +1633,25 @@ void Sg_CFree(SgPointer *p)
 {
   free((void*)p->pointer);
   p->pointer = (uintptr_t)NULL;
+}
+
+void Sg_CMemcpy(SgPointer *d, long offset, 
+		SgObject   s, long start,
+		long size)
+{
+  void *dst = (void *)(d->pointer + offset);
+  void *src;
+
+  if (SG_POINTERP(s)) {
+    src = (void *)(SG_POINTER(s)->pointer + start);
+  } else if (SG_BVECTORP(s)) {
+    src = (void *)(SG_BVECTOR_ELEMENTS(s) + start);
+  } else {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("c-memcpy"),
+				    SG_MAKE_STRING("pointer or bytevector"),
+				    s, SG_NIL);
+  }
+  memcpy(dst, src, size);
 }
 
 static void invoke_finalizer(SgObject obj, void *data)
