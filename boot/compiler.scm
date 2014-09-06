@@ -2407,6 +2407,15 @@
 ;;  ((non-renamed symbols) ((org renamed) ...))
 (define (pass1/export export lib)
   (define (parse-export spec)
+    (define (check renames)
+      (ifor-each (lambda (rename)
+		   (or (and (= (length rename) 2)
+			    (symbol? (car rename))
+			    (symbol? (cadr rename)))
+		       (syntax-error "malformed rename clause" 
+				     `(rename ,renames) rename)))
+		 renames)
+      renames)
     (let loop ((spec spec)
 	       (ex '())
 	       (renames '()))
@@ -2438,7 +2447,8 @@
 						  renames))
 		      ;; assume this is R6RS library
 		      ;; r6rs spec says rename must be (original renamed)
-		      (loop (cdr spec) ex (append (cdr rename) renames)))))
+		      (loop (cdr spec) ex (append (check (cdr rename))
+						  renames)))))
 	    (else
 	     (syntax-error 
 	      "unknown object appeared in export spec" (car spec))))))
