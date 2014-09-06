@@ -25,7 +25,7 @@
 	    uinteger->pointer
 	    pointer->integer
 	    pointer->uinteger
-	    
+
 	    object->pointer
 	    pointer->object
 	    allocate-pointer
@@ -81,6 +81,15 @@
 	    pointer-ref-c-int32
 	    pointer-ref-c-uint64
 	    pointer-ref-c-int64
+	    ;; for convenience
+	    (rename (pointer-ref-c-uint8  pointer-ref-c-uint8_t)
+		    (pointer-ref-c-int8	  pointer-ref-c-int8_t)
+		    (pointer-ref-c-uint16 pointer-ref-c-uint16_t)
+		    (pointer-ref-c-int16  pointer-ref-c-int16_t)
+		    (pointer-ref-c-uint32 pointer-ref-c-uint32_t)
+		    (pointer-ref-c-int32  pointer-ref-c-int32_t)
+		    (pointer-ref-c-uint64 pointer-ref-c-uint64_t)
+		    (pointer-ref-c-int64  pointer-ref-c-int64_t))
 	    pointer-ref-c-unsigned-char
 	    pointer-ref-c-char
 	    pointer-ref-c-unsigned-short
@@ -93,10 +102,14 @@
 	    pointer-ref-c-long-long
 	    pointer-ref-c-intptr
 	    pointer-ref-c-uintptr
+	    ;; for convenience
+	    (rename (pointer-ref-c-intptr  pointer-ref-c-intptr_t)
+		    (pointer-ref-c-uintptr pointer-ref-c-uintptr_t))
 	    pointer-ref-c-float
 	    pointer-ref-c-double
 	    pointer-ref-c-pointer
 	    pointer-ref-c-wchar
+	    (rename (pointer-ref-c-wchar pointer-ref-c-wchar_t))
 	    ;; set!
 	    pointer-set-c-uint8!
 	    pointer-set-c-int8!
@@ -106,6 +119,15 @@
 	    pointer-set-c-int32!
 	    pointer-set-c-uint64!
 	    pointer-set-c-int64!
+	    ;; for convenience
+	    (rename (pointer-set-c-uint8!  pointer-set-c-uint8_t! )
+		    (pointer-set-c-int8!   pointer-set-c-int8_t!  )
+		    (pointer-set-c-uint16! pointer-set-c-uint16_t!)
+		    (pointer-set-c-int16!  pointer-set-c-int16_t! )
+		    (pointer-set-c-uint32! pointer-set-c-uint32_t!)
+		    (pointer-set-c-int32!  pointer-set-c-int32_t! )
+		    (pointer-set-c-uint64! pointer-set-c-uint64_t!)
+		    (pointer-set-c-int64!  pointer-set-c-int64_t! ))
 	    pointer-set-c-unsigned-char!
 	    pointer-set-c-char!
 	    pointer-set-c-unsigned-short!
@@ -118,10 +140,13 @@
 	    pointer-set-c-long-long!
 	    pointer-set-c-intptr!
 	    pointer-set-c-uintptr!
+	    (rename (pointer-set-c-intptr!  pointer-set-c-intptr_t!)
+		    (pointer-set-c-uintptr! pointer-set-c-uintptr_t!))
 	    pointer-set-c-float!
 	    pointer-set-c-double!
-	    pointer-set-c-wchar!
 	    pointer-set-c-pointer!
+	    pointer-set-c-wchar!
+	    (rename (pointer-set-c-wchar! pointer-set-c-wchar_t!))
 	    ;; alignment
 	    align-of-bool
 	    align-of-char
@@ -148,13 +173,20 @@
 	    align-of-intptr_t
 	    align-of-uintptr_t
 	    align-of-wchar_t
+
+	    ;; ffi procedures
+	    pointer-ref-c-of
+	    pointer-set-c!-of
+	    size-of-of
+	    align-of-of
+
 	    ;; c-primitives
 	    void
 	    char short int long unsigned-short unsigned-int unsigned-long
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct array
-	    intptr_t uintptr_t wchar_t* ___
+	    intptr_t uintptr_t whar_t wchar_t* ___
 
 	    ;; utility
 	    null-pointer
@@ -207,8 +239,80 @@
   (define callback           'callback)
   (define struct             'struct)
   (define array              'array)
+  (define wchar_t            'wchar_t)
   (define wchar_t*           'wchar_t*)
   (define ___                '___)
+
+  ;; helper
+  (define (pointer-ref-c-char* p offset)
+    (pointer->string (pointer-ref-c-pointer p offset)))
+  (define (pointer-ref-c-wchar_t* p offset)
+    (wchar-pointer->string (pointer-ref-c-pointer p offset)))
+  (define (pointer-set-c-char*! s/bv offset)
+    (if (string? s/bv)
+	(pointer-set-c-char*! (string->utf8 s/bv))
+	(pointer-set-c-pointer! s/bv)))
+  (define (pointer-set-c-wchar_t*! s/bv offset)
+    (if (string? s/bv)
+	(pointer-set-c-wchar_t*! (string->utf16 s/bv (endianness native)))
+	(pointer-set-c-pointer! s/bv)))
+  ;; should be either
+  (define pointer-ref-c-size_t
+    (if (= size-of-size_t size-of-int32_t)
+	pointer-ref-c-int32
+	pointer-ref-c-int64))
+  (define pointer-set-c-size_t!
+    (if (= size-of-size_t size-of-int32_t)
+	pointer-set-c-int32!
+	pointer-set-c-int64!))
+
+  ;; type ref set size-of align-of
+  (define %type-proc-table
+    `((char               . #(,pointer-ref-c-char               ,pointer-set-c-char!                ,size-of-char               ,align-of-char              ))
+      (short              . #(,pointer-ref-c-short              ,pointer-set-c-short!               ,size-of-short              ,align-of-short             ))
+      (int                . #(,pointer-ref-c-int                ,pointer-set-c-int!                 ,size-of-int                ,align-of-int               ))
+      (long               . #(,pointer-ref-c-long               ,pointer-set-c-long!                ,size-of-long               ,align-of-long              ))
+      (intptr_t           . #(,pointer-ref-c-intptr             ,pointer-set-c-intptr!              ,size-of-intptr_t           ,align-of-intptr_t          ))
+      (uintptr_t          . #(,pointer-ref-c-uintptr            ,pointer-set-c-uintptr!             ,size-of-uintptr_t          ,align-of-uintptr_t         ))
+      (unsigned-short     . #(,pointer-ref-c-unsigned-short     ,pointer-set-c-unsigned-short!      ,size-of-unsigned-short     ,align-of-unsigned-short    ))
+      (unsigned-int       . #(,pointer-ref-c-unsigned-int       ,pointer-set-c-unsigned-int!        ,size-of-unsigned-int       ,align-of-unsigned-int      ))
+      (unsigned-long      . #(,pointer-ref-c-unsigned-long      ,pointer-set-c-unsigned-long!       ,size-of-unsigned-long      ,align-of-unsigned-long     ))
+      (int8_t             . #(,pointer-ref-c-int8               ,pointer-set-c-int8!                ,size-of-int8_t             ,align-of-int8_t            ))
+      (int16_t            . #(,pointer-ref-c-int16              ,pointer-set-c-int16!               ,size-of-int16_t            ,align-of-int16_t           ))
+      (int32_t            . #(,pointer-ref-c-int32              ,pointer-set-c-int32!               ,size-of-int32_t            ,align-of-int32_t           ))
+      (uint8_t            . #(,pointer-ref-c-uint8              ,pointer-set-c-uint8!               ,size-of-uint8_t            ,align-of-uint8_t           ))
+      (uint16_t           . #(,pointer-ref-c-uint16             ,pointer-set-c-uint16!              ,size-of-uint16_t           ,align-of-uint16_t          ))
+      (uint32_t           . #(,pointer-ref-c-uint32             ,pointer-set-c-uint32!              ,size-of-uint32_t           ,align-of-uint32_t          ))
+      (size_t             . #(,pointer-ref-c-size_t             ,pointer-set-c-size_t!              ,size-of-size_t             ,align-of-size_t            ))
+      (int64_t            . #(,pointer-ref-c-int64              ,pointer-set-c-int64!               ,size-of-int64_t            ,align-of-int64_t           ))
+      (uint64_t           . #(,pointer-ref-c-uint64             ,pointer-set-c-uint64!              ,size-of-uint64_t           ,align-of-uint64_t          ))
+      (long-long          . #(,pointer-ref-c-long-long          ,pointer-set-c-long-long!           ,size-of-long-long          ,align-of-long-long         ))
+      (unsigned-long-long . #(,pointer-ref-c-unsigned-long-long ,pointer-set-c-unsigned-long-long!  ,size-of-unsigned-long-long ,align-of-unsigned-long-long))
+      (bool               . #(,pointer-ref-c-uint8              ,pointer-set-c-uint8!               ,size-of-bool               ,align-of-bool              ))
+      (void*              . #(,pointer-ref-c-pointer            ,pointer-set-c-pointer!             ,size-of-void*              ,align-of-void*             ))
+      (char*              . #(,pointer-ref-c-char*              ,pointer-set-c-char*!               ,size-of-void*              ,align-of-void*             ))
+      (float              . #(,pointer-ref-c-float              ,pointer-set-c-float!               ,size-of-float              ,align-of-float             ))
+      (double             . #(,pointer-ref-c-double             ,pointer-set-c-double!              ,size-of-double             ,align-of-double            ))
+    ;; how should we treat callback?
+    ;;(callback           . #(,pointer-ref-c-callback           ,pointer-set-c-callback!            ,size-of-callback           ,align-of-callback          ))
+      (wchar_t            . #(,pointer-ref-c-wchar              ,pointer-set-c-wchar!               ,size-of-wchar_t            ,align-of-wchar_t           ))
+      (wchar_t*           . #(,pointer-ref-c-wchar_t*           ,pointer-set-c-wchar_t*!            ,size-of-void*              ,align-of-void*             ))))
+
+  (define (%type-procedure type pos)
+    (cond ((assq type %type-proc-table) => 
+	   (lambda (v) (vector-ref (cdr v) pos)))
+	  ((c-struct? type)
+	   (case pos
+	     ((0 1 4) 
+	      (error 'type-procecure 
+		     "ref/set!/align-of for c-struct is not supported" type))
+	     ((3) size-of-c-struct)
+	     (else (error 'type-procecure "invalid position" pos))))
+	  (else (error 'type-procecure "unknown type" type))))
+  (define (pointer-ref-c-of type)  (%type-procedure type 0))
+  (define (pointer-set-c!-of type) (%type-procedure type 1))
+  (define (size-of-of type)        (%type-procedure type 2))
+  (define (align-of-of type)       (%type-procedure type 3))
 
   (define null-pointer (integer->pointer 0))
   (define (null-pointer? p)
@@ -235,14 +339,14 @@
 	    (do ((i 0 (+ i size-of-wchar_t)))
 		((zero? (pointer-ref-c-wchar pointer i))
 		 (bytevector->string (getter)
-				     (make-transcoder 
+				     (make-transcoder
 				      (case size-of-wchar_t
 					((2) (utf-16-codec))
 					((4) (utf-32-codec)))
 				      (native-eol-style))))
 	      (let ((wc (pointer-ref-c-wchar pointer i)))
 		(case size-of-wchar_t
-		  ((2) 
+		  ((2)
 		   (bytevector-u16-set! buf 0 wc (endianness big))
 		   (put-bytevector out buf))
 		  ((4)
@@ -267,7 +371,7 @@
 	(pointer-ref-c-pointer pointer (* size-of-void* offset))))
 
   (define-syntax define-c-typedef
-    (syntax-rules (* s*)      
+    (syntax-rules (* s*)
       ((_ old (* new) rest ...)
        (begin
 	 (define new void*)
@@ -299,16 +403,16 @@
 	(lambda args
 	  (let ((args-length (length args)))
 	    (if (memq ___ arg-types)
-		(let-values (((rest required) 
+		(let-values (((rest required)
 			      (partition (lambda (e) (eq? ___ e)) arg-types)))
 		  (unless (< (length required) args-length)
-		    (assertion-violation 
+		    (assertion-violation
 		     name
 		     (format "wrong arguments number at least ~d required, but got ~d"
 			     (length required)
 			     args-length) args)))
 		(unless (= (length arg-types) (length args))
-		  (assertion-violation 
+		  (assertion-violation
 		   name
 		   (format "wrong arguments number ~d required, but got ~d"
 			   (length arg-types)
@@ -344,7 +448,7 @@
 						arg-types))
 			 #\v)
 			(else
-			 (assertion-violation 'make-sigunatures 
+			 (assertion-violation 'make-sigunatures
 					      "invalid argument type"
 					      arg-types)))
 		      r)))))
@@ -393,7 +497,7 @@
   (define (make-c-struct name defs packed?)
     (let ((layouts
 	   (map (lambda (def)
-		  (cond 
+		  (cond
 		   ((and (eq? 'struct (car def))
 			 (= (length def) 3))
 		    `(,(caddr def) -1 struct . ,(cadr def)))
@@ -410,13 +514,13 @@
 		    => (lambda (type)
 			 `(,(cadr def) ,(cdr type) . ,(car type))))
 		   (else
-		    (assertion-violation 
+		    (assertion-violation
 		     'make-c-struct
 		     (format "invalid struct declaration ~a" def)
 		     (list name defs)))))
 		defs)))
       (unless (unique-id-list? (map car layouts))
-	(assertion-violation 
+	(assertion-violation
 	 'make-c-struct
 	 "struct declaration contains duplicated member name"
 	 (list name defs)))
@@ -432,25 +536,28 @@
   (define-syntax type-list
     (lambda (x)
       (define (build type* r)
-	(syntax-case type* (struct)
+	(syntax-case type* (struct array)
 	  (() (reverse! r))
 	  (((struct type member) rest ...)
-	   (build #'(rest ...) 
+	   (build #'(rest ...)
 		  (cons (cons* #'list 'struct #'type #'('member)) r)))
+	  (((type array n args ...) rest ...)
+	   (build #'(rest ...) 
+		  (cons (cons* #'list #'type 'array #'n #'('args ...)) r)))
 	  (((type args ...) rest ...)
 	   (build #'(rest ...) (cons (cons* #'list #'type #'('args ...)) r)))))
       (syntax-case x ()
 	((_ types ...)
 	 (build #'(types ...) (list #'list))))))
-  
+
   (define-syntax define-c-struct
     (lambda (x)
       (define (generate-accessors name spec r)
 	;; the struct members should can't be created at runtime
 	;; so we can define the accessor here
 	(define (gen m suffix)
-	  (datum->syntax name (string->symbol 
-			       (format "~a-~a-~a" 
+	  (datum->syntax name (string->symbol
+			       (format "~a-~a-~a"
 				       (syntax->datum name)
 				       (syntax->datum m)
 				       suffix))))
@@ -493,11 +600,11 @@
 	 (not #'packed?)
 	 ;; with black magic ...
 	 (with-syntax (((accessors ...)
-			(generate-accessors #'name 
+			(generate-accessors #'name
 					    #'((type . rest) ...)
 					    '())))
 	   #'(begin
-	       (define name (make-c-struct 'name 
+	       (define name (make-c-struct 'name
 					   (type-list (type . rest) ...)
 					   (eq? packed? :packed)))
 	       accessors ...))))))
@@ -560,7 +667,7 @@
       (void*              . #\p)))
 
   ;; c-varibale
-  (define-class <c-variable> () 
+  (define-class <c-variable> ()
     ((pointer :init-keyword :pointer)
      (getter  :init-keyword :getter)
      (setter  :init-keyword :setter)))
@@ -592,7 +699,7 @@
     (lambda (x)
       (define (get-accessor type)
 	(let ((name (symbol->string (syntax->datum type))))
-	  (regex-match-cond 
+	  (regex-match-cond
 	    ((#/(.+?)_t$/ name) (#f name)
 	     (list (string->symbol (string-append "pointer-ref-c-" name))
 		   (string->symbol (string-append "pointer-set-c-" name "!"))))
@@ -605,7 +712,7 @@
 	((_ lib char* name)
 	 #'(c-variable lib name (lambda (p) (pointer->string (deref p 0))) #f))
 	((_ lib wchar_t* name)
-	 #'(c-variable lib name 
+	 #'(c-variable lib name
 		       (lambda (p) (wchar-pointer->string (deref p 0))) #f))
 	;; TODO how should we treat this? for now direct pointer access
 	((_ lib void* name)
@@ -613,13 +720,13 @@
 	 ;; handle set! with setter. So for now make it like this
 	 #'(c-variable lib name (lambda (p) p) #f))
 	((_ lib type name)
-	 (with-syntax (((getter setter) 
+	 (with-syntax (((getter setter)
 			(datum->syntax #'k (get-accessor #'type))))
-	   #'(c-variable lib name 
+	   #'(c-variable lib name
 			 (lambda (p) (getter p 0))
 			 (lambda (p v) (setter p 0 v)))))
 	((_ lib name getter setter)
 	 #'(make-c-variable lib 'name getter setter)))))
 
-  
+
   )

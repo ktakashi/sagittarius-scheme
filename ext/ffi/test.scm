@@ -362,6 +362,12 @@
       (test-error "set! wchar_t*" (set! (wcvar) "wchar_t* is immutable"))
       (test-equal "c variable wchar" "test wchar" (wcvar))))
     )
+  (let ((n 4))
+    ;; variable length struct array
+    (define-c-struct foo
+      (int32_t array (* size-of-char n) dummy))
+    (test-equal "size" (* size-of-int32_t size-of-char n)
+		(size-of-c-struct foo)))
   )
  (else
   #t))
