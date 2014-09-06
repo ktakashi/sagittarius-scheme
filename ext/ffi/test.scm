@@ -382,6 +382,42 @@
     (test-equal "c-memcpy" "1874" (pointer->string p))
     )
 
+  ;; union
+  (let ()
+    (define-c-struct a-st
+      (short s1)
+      (short s2))
+    (define-c-union a-union
+      (int i)
+      (char array size-of-int c*)
+      (struct a-st st))
+    ;; we can use c-struct allocation
+    (let ((p (allocate-c-struct a-union)))
+      (a-union-i-set! p #x12345678)
+      (test-equal "union a" #x12345678 (a-union-i-ref p))
+      ;; shares the memory
+      (test-equal "union st s1" 
+		  (if (eq? (endianness native) (endianness little))
+		      #x5678 #x1234)
+		  (a-st-s1-ref p))
+      (test-equal "union c*" 
+		  (if (eq? (endianness native) (endianness little))
+		      #(#x78 #x56 #x34 #x12) #(#x12 #x34 #x56 #x78))
+		  (a-union-c*-ref p))
+
+      (a-union-c*-set! p (if (eq? (endianness native) (endianness little))
+			     #(#x78 #x56 #x34 #x12) #(#x12 #x34 #x56 #x78)))
+      (test-equal "union a(1)" #x12345678 (a-union-i-ref p))
+      ;; shares the memory
+      (test-equal "union st s1(1)" 
+		  (if (eq? (endianness native) (endianness little))
+		      #x5678 #x1234)
+		  (a-st-s1-ref p))
+      (test-equal "union c*(1)" 
+		  (if (eq? (endianness native) (endianness little))
+		      #(#x78 #x56 #x34 #x12) #(#x12 #x34 #x56 #x78))
+		  (a-union-c*-ref p))
+      ))
   )
  (else
   #t))

@@ -450,7 +450,11 @@ static inline void report_error(SgObject exception, SgObject out)
 	} else {
 	  src = Sg_LastPair(tmp);
 	  src = SG_CDAR(src);
-	  info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
+	  if (SG_PAIRP(src)) {
+	    info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
+	  } else {
+	    info = SG_FALSE;
+	  }
 	}
 	if (SG_FALSEP(info) || !info) {
 	  Sg_Printf(buf,

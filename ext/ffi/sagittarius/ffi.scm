@@ -34,6 +34,7 @@
 
 	    ;; c-struct
 	    define-c-struct
+	    define-c-union
 	    c-struct?
 	    allocate-c-struct
 	    size-of-c-struct
@@ -206,6 +207,7 @@
 	    (core base)
 	    (clos user)
 	    (srfi :13 strings)
+	    (match)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius dynamic-module))
@@ -608,6 +610,100 @@
 	       (define name (make-c-struct 'name
 					   (type-list (type . rest) ...)
 					   (eq? packed? :packed)))
+	       accessors ...))))))
+
+
+  (define (find-max-size types) 
+    (define (find-size type n)
+      (* (size-of-of type) n))
+    (apply max 
+	   (map (lambda (spec)
+		  (match spec
+		    (('struct name rest ...) (size-of-c-struct name))
+		    ((type 'array n rest ...) (or (find-size type n) 0))
+		    ((type rest ...) (or (find-size type 1) 0)))) types)))
+  
+  ;; the union is a type of c-struct which has uninterned symbol
+  ;; member (thus not accessible), and provides bunch of procedures
+  ;; which manipulate the member memory storage.
+  (define-syntax define-c-union
+    (lambda (x)
+      (define (generate-accessors name spec r)
+	;; the struct members should can't be created at runtime
+	;; so we can define the accessor here
+	(define (gen m suffix)
+	  (datum->syntax name (string->symbol
+			       (format "~a-~a-~a"
+				       (syntax->datum name)
+				       (syntax->datum m)
+				       suffix))))
+	;; TODO how to solve struct inner members?
+	(define (continue type member n rest struct-type)
+	  (with-syntax ((name    name)
+			(getter (gen member "ref"))
+			(setter (gen member "set!"))
+			(?t     type)
+			(?n     n))
+	    (generate-accessors 
+	     #'name rest
+	     (cons (case struct-type
+		     ((struct)
+		      #'(begin
+			  (define (getter p) p)
+			  (define (setter p v)
+			    (c-memcpy p 0 v 0 (size-of-c-struct ?t)))))
+		     ((array)
+		      #'(begin
+			  (define (getter p)
+			    (define sizeof (size-of-of ?t))
+			    (define ref (pointer-ref-c-of ?t))
+			    (let* ((len ?n) (v (make-vector len)))
+			      (let loop ((i 0))
+				(cond ((= i len) v)
+				      (else
+				       (vector-set! v i (ref p (* sizeof i)))
+				       (loop (+ i 1)))))))
+			  (define (setter p v)
+			    (define sizeof (size-of-of ?t))
+			    (define set (pointer-set-c!-of ?t))
+			    (let* ((len ?n))
+			      (let loop ((i 0))
+				(cond ((= i len) v)
+				      (else
+				       (set p (* sizeof i) (vector-ref v i))
+				       (loop (+ i 1)))))))))
+		     (else
+		      #'(begin
+			  (define (getter p)
+			    (define ref (pointer-ref-c-of ?t))
+			    (ref p 0))
+			  (define (setter p v)
+			    (define set (pointer-set-c!-of ?t))
+			    (set p 0 v)))))
+		   r))))
+	(syntax-case spec (struct array)
+	  (() (reverse! r))
+	  (((type member) rest ...)
+	   (continue #'type #'member #f #'(rest ...) #f))
+	  (((struct type member) rest ...)
+	   (continue #'type #'member #f #'(rest ...) 'struct))
+	  (((type array elements member) rest ...)
+	   (continue #'type #'member #'elements #'(rest ...) 'array))))
+
+      (syntax-case x ()
+	((_ name (type rest ...) ...)
+	 ;; with black magic ...
+	 (with-syntax (((accessors ...)
+			(generate-accessors #'name
+					    #'((type rest ...) ...)
+					    '())))
+	   #'(begin
+	       (define name 
+		 (let* ((types (type-list (type rest ...) ...))
+			(max (find-max-size types)))
+		   (make-c-struct 'name
+				  (list (list uint8_t 'array max (gensym)))
+				  #f)))
 	       accessors ...))))))
 
   (define c-function-return-type-alist
