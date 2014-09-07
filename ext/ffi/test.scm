@@ -418,6 +418,28 @@
 		      #(#x78 #x56 #x34 #x12) #(#x12 #x34 #x56 #x78))
 		  (a-union-c*-ref p))
       ))
+
+  ;; call #60
+  (let ()
+    (define-c-struct bar
+      (int bi)
+      (char* bc*))
+    (define-c-struct foo
+      (short fs)
+      (struct bar fb)
+      (long fl))
+    (define foo-bar-bi (c-function ffi-test-lib int foo_bar_bi (void*)))
+    (define foo-bar-bc* (c-function ffi-test-lib char* foo_bar_bc (void*)))
+    (let ((fp (allocate-c-struct foo))
+	  (bp (allocate-c-struct bar)))
+      (bar-bi-set! bp 1234)
+      (bar-bc*-set! bp "hello world")
+      (test-assert "set internal struct as a pointer" (foo-fb-set! fp bp))
+      (test-assert "ref" (pointer? (foo-fb-ref fp)))
+      (test-equal "bi" 1234 (foo-bar-bi fp))
+      (test-equal "bc*" "hello world" (foo-bar-bc* fp))
+      )
+    )
   )
  (else
   #t))

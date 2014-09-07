@@ -543,7 +543,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_WCHAR_STR:
     return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
   default:
-    Sg_Panic("unknown FFI return type: %d", rettype);
+    Sg_Error(UC("unknown FFI return type: %d"), rettype);
     return NULL;
   }
 }
@@ -585,7 +585,15 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     return;		/* dummy */
   }
   if (array < 0) {
-    Sg_PointerSet(p, (int)align, type, value);
+    switch (type) {
+    case FFI_RETURN_TYPE_STRUCT:
+      /* we need to copy it */
+      Sg_CMemcpy(p, align, value, 0, size);
+      break;
+    default:
+      Sg_PointerSet(p, (int)align, type, value);
+      break;
+    }
   } else {
     int i;
     /* TODO what should we return for array? so far vector.*/
@@ -595,8 +603,15 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     }
     array /= size;
     for (i = 0; i < array && i < SG_VECTOR_SIZE(value); i++) {
-      Sg_PointerSet(p, (int)(align + (i * size)), type, 
-		    SG_VECTOR_ELEMENT(value, i));
+      switch (type) {
+      case FFI_RETURN_TYPE_STRUCT:
+	Sg_Error(UC("array of struct is not supported. %S"), st);
+	break;
+      default:
+	Sg_PointerSet(p, (int)(align + (i * size)), type, 
+		      SG_VECTOR_ELEMENT(value, i));
+	break;
+      }
     }
   }
 }
@@ -901,7 +916,7 @@ static ffi_type* lookup_ffi_return_type(int rettype)
   case FFI_RETURN_TYPE_CALLBACK: return &ffi_type_pointer;
   case FFI_RETURN_TYPE_WCHAR_STR: return &ffi_type_pointer;
   default:
-    Sg_Panic("unknown FFI return type: %d", rettype);
+    Sg_Error(UC("failed to lookup. unknown FFI return type: %d"), rettype);
     return NULL;
   }
 }
@@ -1000,7 +1015,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
     *((intptr_t *)result) = (intptr_t)0;
     return TRUE;
   default:
-    Sg_Panic("unknown FFI return type: %d", type);
+    Sg_Error(UC("failed to Scheme->C. unknown FFI return type: %d"), type);
     return FALSE;
   }
   return TRUE;

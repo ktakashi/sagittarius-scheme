@@ -154,6 +154,26 @@ EXPORT wchar_t* wide_fn(wchar_t *str)
   return str;
 }
 
+struct foo
+{
+  short fs;
+  struct {
+    int bi;
+    char *bc;
+  } bar;
+  long fl;
+};
+
+
+EXPORT int foo_bar_bi(struct foo *st_foo)
+{
+  return st_foo->bar.bi;
+}
+EXPORT char * foo_bar_bc(struct foo *st_foo)
+{
+  return st_foo->bar.bc;
+}
+
 extern EXPORT int     var;
 extern EXPORT char    *c_var;
 extern EXPORT wchar_t *wc_var;
