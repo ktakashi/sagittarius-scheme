@@ -206,8 +206,8 @@
     (import (rnrs)
 	    (core base)
 	    (clos user)
+	    ;; FIXME this must be removed!!
 	    (srfi :13 strings)
-	    (match)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius dynamic-module))
@@ -614,14 +614,14 @@
 
 
   (define (find-max-size types) 
-    (define (find-size type n)
-      (* (size-of-of type) n))
+    (define (find-size type n) (* (size-of-of type) n))
     (apply max 
 	   (map (lambda (spec)
-		  (match spec
-		    (('struct name rest ...) (size-of-c-struct name))
-		    ((type 'array n rest ...) (or (find-size type n) 0))
-		    ((type rest ...) (or (find-size type 1) 0)))) types)))
+		  (cond ((eq? (car spec) 'struct)
+			 (size-of-c-struct (cadr spec)))
+			((eq? (cadr spec) 'array)
+			 (or (find-size (car spec) (caddr spec)) 0))
+			(else (or (find-size (car spec) 1) 0)))) types)))
   
   ;; the union is a type of c-struct which has uninterned symbol
   ;; member (thus not accessible), and provides bunch of procedures
