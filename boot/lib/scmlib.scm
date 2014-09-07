@@ -158,16 +158,6 @@
 	    (apply proc (map (lambda (v) (vector-ref v i)) vecs))
 	    (loop (+ i 1)))))))
 
-;; TOO inefficient
-;; (define (vector-map proc vec1 . vec2)
-;;   (list->vector
-;;    (apply map proc (vector->list vec1)
-;; 	  (map vector->list vec2))))
-;; 
-;; (define (vector-for-each proc vec1 . vec2)
-;;   (apply for-each proc (vector->list vec1)
-;; 	 (map vector->list vec2)))
-
 ;; same as vector-for-each
 (define (string-for-each proc str . more)
   (if (null? more)
@@ -183,9 +173,49 @@
 	    (apply proc (map (lambda (s) (string-ref s i)) strs))
 	    (loop (+ i 1)))))))
 
-;; (define (string-for-each proc str1 . str2)
-;;   (apply for-each proc (string->list str1)
-;; 	 (map string->list str2)))
+;;;;
+;; from SRFI-13
+
+;;; (string-join string-list [delimiter grammar]) => string
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Paste strings together using the delimiter string.
+;;;
+;;; (join-strings '("foo" "bar" "baz") ":") => "foo:bar:baz"
+;;;
+;;; DELIMITER defaults to a single space " "
+;;; GRAMMAR is one of the symbols {prefix, infix, strict-infix, suffix} 
+;;; and defaults to 'infix.
+;;;
+;;; I could rewrite this more efficiently -- precompute the length of the
+;;; answer string, then allocate & fill it in iteratively. Using 
+;;; STRING-CONCATENATE is less efficient.
+
+(define (string-join strings :optional (delim " ") (grammar 'infix))
+  (define (buildit lis final)
+    (let recur ((lis lis))
+      (if (pair? lis)
+	  (cons delim (cons (car lis) (recur (cdr lis))))
+	  final)))
+  (unless (string? delim)
+    (error 'string-join "Delimiter must be a string" delim))
+  (cond ((pair? strings)
+	 (string-concatenate
+	  (case grammar
+	    ((infix strict-infix)
+	     (cons (car strings) (buildit (cdr strings) '())))
+	    ((prefix) (buildit strings '()))
+	    ((suffix)
+	     (cons (car strings) (buildit (cdr strings) (list delim))))
+	    (else (error 'string-join "Illegal join grammar"
+			 grammar string-join)))))
+	((not (null? strings))
+	 (error 'string-join "STRINGS parameter not list."
+		strings string-join))
+	((eq? grammar 'strict-infix)
+	 (error 'string-join 
+		"Empty list cannot be joined with STRICT-INFIX grammar."
+		string-join))
+	(else "")))		; Special-cased for infix grammar.
 
 ;;;;
 ;; from Ypsilon

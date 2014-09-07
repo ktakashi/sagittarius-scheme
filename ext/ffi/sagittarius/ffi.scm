@@ -206,8 +206,6 @@
     (import (rnrs)
 	    (core base)
 	    (clos user)
-	    ;; FIXME this must be removed!!
-	    (srfi :13 strings)
 	    (sagittarius)
 	    (sagittarius regex)
 	    (sagittarius dynamic-module))

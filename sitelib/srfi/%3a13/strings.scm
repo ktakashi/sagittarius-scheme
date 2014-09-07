@@ -70,6 +70,7 @@
 		    (string-ci-hash string-hash-ci))
 	    (rnrs r5rs)
 	    (rnrs mutable-strings)
+	    (only (core base) string-join)
 	    (sagittarius)
 	    (sagittarius control)
 	    (srfi :8 receive)
@@ -1845,57 +1846,6 @@
 	   (%string-copy! target i s start (+ start (- total-chars (- i tstart)))))
 
 	(%string-copy! target i s start end))))); Copy a whole span.
-
-
-
-;;; (string-join string-list [delimiter grammar]) => string
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Paste strings together using the delimiter string.
-;;;
-;;; (join-strings '("foo" "bar" "baz") ":") => "foo:bar:baz"
-;;;
-;;; DELIMITER defaults to a single space " "
-;;; GRAMMAR is one of the symbols {prefix, infix, strict-infix, suffix} 
-;;; and defaults to 'infix.
-;;;
-;;; I could rewrite this more efficiently -- precompute the length of the
-;;; answer string, then allocate & fill it in iteratively. Using 
-;;; STRING-CONCATENATE is less efficient.
-
-(define (string-join strings . delim+grammar)
-  (let-optionals* delim+grammar ((delim " " (string? delim))
-				 (grammar 'infix))
-    (let ((buildit (lambda (lis final)
-		     (let recur ((lis lis))
-		       (if (pair? lis)
-			   (cons delim (cons (car lis) (recur (cdr lis))))
-			   final)))))
-
-      (cond ((pair? strings)
-	     (string-concatenate
-	      (case grammar
-
-		((infix strict-infix)
-		 (cons (car strings) (buildit (cdr strings) '())))
-
-		((prefix) (buildit strings '()))
-
-		((suffix)
-		 (cons (car strings) (buildit (cdr strings) (list delim))))
-
-		(else (error "Illegal join grammar"
-			     grammar string-join)))))
-
-	     ((not (null? strings))
-	      (error "STRINGS parameter not list." strings string-join))
-
-	     ;; STRINGS is ()
-
-	     ((eq? grammar 'strict-infix)
-	      (error "Empty list cannot be joined with STRICT-INFIX grammar."
-		     string-join))
-
-	     (else "")))))		; Special-cased for infix grammar.
 
 
 ;;; Porting & performance-tuning notes
