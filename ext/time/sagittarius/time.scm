@@ -127,9 +127,10 @@
 	    (sagittarius)
 	    (sagittarius dynamic-module)
 	    (clos user)
-	    (sagittarius mop validator)
-	    (srfi :6 basic-string-ports))
+	    (sagittarius mop validator))
   (load-dynamic-module "sagittarius--time")
+
+  (define open-input-string open-string-input-port)
 
   (define (check-integer o v)
     (or (and (exact? v) (integer? v) v)

@@ -292,8 +292,8 @@
       
   ;; padding
   ;; PKCS#1 EME
-  (define PKCS-1-EMSA 1)
-  (define PKCS-1-EME  2)
+  (define-constant PKCS-1-EMSA 1)
+  (define-constant PKCS-1-EME  2)
 
   (define (pkcs-v1.5-padding prng key block-type)
     (define (encode data modulus)
