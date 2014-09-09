@@ -184,11 +184,26 @@
 
 	    ;; c-primitives
 	    void
-	    char short int long unsigned-short unsigned-int unsigned-long
+	    char short int long 
+	    ;; for some convenience
+	    (rename (short short-int)
+		    (char  unsigned-char)
+		    (char  signed-char)
+		    (short signed-short)
+		    (short signed-short-int)
+		    (int   signed-int)
+		    (long  signed-long)
+		    (long  signed-long-int))
+	    unsigned-short unsigned-int unsigned-long
+	    ;; for some convenience
+	    (rename (unsigned-short unsigned-short-int)
+		    (unsigned-int   unsigned)
+		    (unsigned-long  unsigned-long-int))
+
 	    int8_t int16_t int32_t uint8_t uint16_t uint32_t size_t
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct array
-	    intptr_t uintptr_t whar_t wchar_t* ___
+	    intptr_t uintptr_t wchar_t wchar_t* ___
 
 	    ;; utility
 	    null-pointer
@@ -196,6 +211,7 @@
 	    empty-pointer
 	    pointer->string
 	    pointer->bytevector
+	    wchar-pointer->string
 	    deref
 
 	    ;; c-variable
@@ -304,10 +320,10 @@
 	   (lambda (v) (vector-ref (cdr v) pos)))
 	  ((c-struct? type)
 	   (case pos
-	     ((0 1 4) 
+	     ((0 1 3) 
 	      (error 'type-procecure 
 		     "ref/set!/align-of for c-struct is not supported" type))
-	     ((3) size-of-c-struct)
+	     ((2) (size-of-c-struct type))
 	     (else (error 'type-procecure "invalid position" pos))))
 	  (else (error 'type-procecure "unknown type" type))))
   (define (pointer-ref-c-of type)  (%type-procedure type 0))
