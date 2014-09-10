@@ -354,6 +354,13 @@ ENDIF()
 
 ADD_SUBDIRECTORY(src build/src)
 ADD_SUBDIRECTORY(ext ${SAGITTARIUS_EXT_WORK_DIRECTORY})
+# seems it's impossible to add post install
+# without doing some trick
+# http://stackoverflow.com/questions/15026772/in-cmake-how-to-run-a-script-after-targets-get-installed
+# So what we are doing here is that put sub directory at the very end 
+# so that CMake will generate cmake_install.cmake with this direcotry
+# at the bottom of the file.
+ADD_SUBDIRECTORY(cmake build/cmake)
 
 FILE(APPEND ${SAGITTARIUS_EXT_FEATURES}
   "
