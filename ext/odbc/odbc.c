@@ -167,6 +167,32 @@ SgObject Sg_Connect(SgObject env, SgString *server, SgString *user,
   return conn;
 }
 
+SgObject Sg_DriverConnect(SgObject env, SgString *dns, int autoCommitP)
+{
+  SgObject conn;
+  const char *cdns;
+  SQLCHAR buffer[SQL_MAX_OPTION_STRING_LENGTH];
+  SQLRETURN ret;
+  SQLSMALLINT len;
+  ASSERT(SG_ODBC_ENV_P(env));
+  conn = make_odbc_ctx(SQL_HANDLE_DBC, SG_ODBC_CTX(env));
+  cdns = Sg_Utf32sToUtf8s(dns);
+
+  ret  = SQLDriverConnect(SG_ODBC_CTX(conn)->handle, NULL,
+			  (SQLCHAR *)cdns, SQL_NTS,
+			  (SQLCHAR *)buffer, SQL_MAX_OPTION_STRING_LENGTH,
+			  &len,
+			  SQL_DRIVER_NOPROMPT);
+  CHECK_ERROR(driver-connect, conn, ret);
+  if (!autoCommitP) {
+    ret = SQLSetConnectAttr(SG_ODBC_CTX(conn)->handle, SQL_ATTR_AUTOCOMMIT,
+			    SQL_AUTOCOMMIT_OFF, 0);
+    CHECK_ERROR(connect, conn, ret);
+  }
+  return conn;
+}
+
+
 int Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value)
 {
   Sg_ImplementationRestrictionViolation(
@@ -373,8 +399,8 @@ typedef struct blob_data_rec
 {
   SQLHSTMT stmt;
   int index;
-  char stringP: 1;
-  char openP  : 1;
+  char stringP :1;
+  char openP   :1;
 } blob_data_t;
 
 static int64_t blob_read(SgObject self, uint8_t *buf, int64_t size)
@@ -436,9 +462,9 @@ static int blob_ready(SgObject self)
 
 static SgFileTable vtable = {
   blob_read,
-  NULL,
-  NULL,
-  NULL,
+  NULL /* blob_write */,
+  NULL /* blob_seek */,
+  NULL /* blob_tell */,
   blob_size,
   blob_is_open,
   blob_open,
@@ -463,26 +489,27 @@ static SgObject make_blob_input_port(SQLHSTMT stmt, int index, int stringP)
   data->index = index;
   data->stringP = stringP;
   data->openP = TRUE;
-
-  return Sg_MakeFileBinaryInputPort(make_blob_file(data), SG_BUFMODE_BLOCK);
+  return Sg_MakeFileBinaryInputPort(make_blob_file(data), SG_BUFMODE_NONE);
 }
 
 static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
 				   int len, int stringP, int asPortP)
 {
   uint8_t buf[256] = {0};
-  SgObject port = Sg_MakeByteArrayOutputPort(0), bv;
+  SgObject port, bv;
   SQLLEN ind = 0;
 
   if (asPortP) {
     return make_blob_input_port(stmt, index, stringP);
   }
   
+  port = Sg_MakeByteArrayOutputPort(0);
   while (SQLGetData(stmt, index, (stringP) ? SQL_C_CHAR: SQL_C_BINARY,
 		    buf, sizeof(buf), &ind) != SQL_NO_DATA) {
     if (SQL_NULL_DATA == ind) return SG_NIL;
     Sg_WritebUnsafe(SG_PORT(port), buf, 0,
-		    (ind>sizeof(buf) || ind==SQL_NO_TOTAL) ? sizeof(buf) : ind);
+		    (ind > (SQLLEN)sizeof(buf) || ind==SQL_NO_TOTAL) 
+		    ? sizeof(buf) : ind);
   }
   bv = Sg_GetByteVectorFromBinaryPort(SG_PORT(port));
 
@@ -558,13 +585,18 @@ static SgObject timestamp_to_obj(SQL_TIMESTAMP_STRUCT *data)
 static SgObject try_known_name_data(SgObject stmt, int index,
 				    int length, const char * name)
 {
-  /* I have no idea why Oracle return sql data type -9 for varchar2. */
+  /* unicode varchar is -9, but not defined in ODBC */
   if (strcmp(name, "VARCHAR2") == 0) {
     return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
 			      length, TRUE, FALSE);
   }
   /* on sqlite blob is mapped SQL_BINARY with 0 length */
   if (strcmp(name, "blob") == 0) {
+    return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
+			      length, FALSE, TRUE);
+  }
+  /* DB2 returns BLOB with capital. SQL_BLOB = -99 */
+  if (strcmp(name, "BLOB") == 0) {
     return read_var_data_impl(SG_ODBC_CTX(stmt)->handle, index,
 			      length, FALSE, TRUE);
   }

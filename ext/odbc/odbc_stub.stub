@@ -18,7 +18,11 @@
 (define-c-proc connect!
   (env::<odbc-env> server::<string> user::<string> auth::<string>
 		   :optional (autoCommitP::<boolean> #t))
-  (result (Sg_Connect env server user auth autoCommitP)))
+  Sg_Connect)
+
+(define-c-proc driver-connect!
+  (env::<odbc-env> dns::<string> :optional (autoCommitP::<boolean> #t))
+  Sg_DriverConnect)
 
 (define-c-proc set-connect-attr!
   (hdbc::<odbc-dbc> name::<fixnum> value) ::<boolean>

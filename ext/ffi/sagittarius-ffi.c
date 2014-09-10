@@ -871,10 +871,14 @@ static int push_ffi_type_value(SgFuncInfo *info,
     /* address stuff */
   } else if (SG_PAIRP(obj) && 
 	     SG_EQ(SG_CAR(obj), address_mark) &&
-	     SG_POINTERP(SG_CADR(obj))) {
+	     (SG_POINTERP(SG_CADR(obj)) || SG_BVECTORP(SG_CADR(obj)))) {
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
-      storage->ptr = &(SG_POINTER(SG_CADR(obj))->pointer);
+      if (SG_POINTERP(SG_CADR(obj))) {
+	storage->ptr = &(SG_POINTER(SG_CADR(obj))->pointer);
+      } else {
+	storage->ptr = &(SG_BVECTOR_ELEMENTS(SG_CADR(obj)));
+      }
       return TRUE;
     default:
       *lastError = get_error_message(signature, obj);

@@ -31,6 +31,7 @@
 (library (odbc)
     (export create-odbc-env
 	    connect!
+	    driver-connect!
 	    set-connect-attr!
 	    disconnect!
 	    connection-open?

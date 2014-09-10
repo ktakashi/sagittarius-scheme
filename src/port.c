@@ -61,6 +61,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgPort *p = SG_PORT(obj);
   SgObject file = SG_FALSE;
   SgObject transcoder = SG_FALSE;
+  fprintf(stderr, "here\n");
   SG_PORT_LOCK(port);
   Sg_PutuzUnsafe(port, UC("#<"));
   if (SG_BINARY_PORTP(p)) {
@@ -123,7 +124,6 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutcUnsafe(port, ' ');
     Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
   }
-
   file = Sg_FileName(p);
   if (!SG_FALSEP(file)) {
     Sg_PutcUnsafe(port, ' ');
@@ -866,10 +866,10 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
 
   port->impl.bport = bp;
   bp->src.file = file;
-  /* this is important for buffer mode */
-  bp->position = SG_FILE_VTABLE(file)->tell(file);
 
   if (bufferMode != SG_BUFMODE_NONE) {
+    /* this is important for buffer mode */
+    bp->position = SG_FILE_VTABLE(file)->tell(file);
     if (buffer != NULL) {
       bp->buffer = buffer;
       bp->size = bufferSize;
@@ -886,6 +886,7 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
       register_buffered_port(port);
     }
   } else {
+    bp->position = 0;		/* correct? */
     SG_BINARY_PORT_VTABLE(bp) = &file_binary_block_table;
     SG_PORT_U8_AHEAD(port) = EOF;
   }

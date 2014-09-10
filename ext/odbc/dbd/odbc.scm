@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!read-macro=sagittarius/regex
 (library (dbd odbc)
     (export make-odbc-driver)
     (import (rnrs)
@@ -36,7 +37,8 @@
 	    (clos user)
 	    (clos core)
 	    (sagittarius)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (sagittarius regex))
 
   (define-class <dbi-odbc-driver> (<dbi-driver>)
     ((env :init-keyword :env :accessor odbc-driver-env)))
@@ -64,19 +66,28 @@
 	  default))
     (define (->boolean s)
       (if (string? s) (not (string=? s "false")) s))
+    (define (remove-dns= string) 
+      (regex-replace-first #/dns=(?:true|false|1|0);/ string "")) ;; |
     (let ((env (odbc-driver-env driver))
 	  (server   (get-option "server"))
+	  (dns      (get-option "dns" #f))
 	  (username (get-option "username" ""))
 	  (password (get-option "password" ""))
 	  (auto-commit (get-option "auto-commit" #t)))
-      (unless server
+      (unless (or server dns)
 	(assertion-violation 'make-odbc-connection
-			     "server option is required"))
-      (let-keywords auth ((username username)
-			  (password password)
-			  (auto-commit (->boolean auto-commit)))
-	(make <dbi-odbc-connection>
-	  :hbc (connect! env server username password auto-commit)))))
+			     "server or dns option is required"))
+      ;; DNS is driver specific so we can't get anything but
+      ;; just passing everything
+      (if dns
+	  (let-keywords auth ((auto-commit auto-commit) . ignore)
+	    (make <dbi-odbc-connection>
+	      :hbc (driver-connect! env (remove-dns= options) auto-commit)))
+	  (let-keywords auth ((username username)
+			      (password password)
+			      (auto-commit (->boolean auto-commit)))
+	    (make <dbi-odbc-connection>
+	      :hbc (connect! env server username password auto-commit))))))
 
   (define-method dbi-open? ((conn <dbi-odbc-connection>))
     (connection-open? (odbc-connection-odbc-hbc conn)))

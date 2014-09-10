@@ -124,6 +124,7 @@ SG_CLASS_DECL(Sg_OdbcErrorClass);
 SgObject Sg_CreateOdbcCtx(SQLSMALLINT type, SgObject parent);
 SgObject Sg_Connect(SgObject env, SgString *server, SgString *user,
 		    SgString *auth, int autoCommitP);
+SgObject Sg_DriverConnect(SgObject env, SgString *dns, int autoCommitP);
 int      Sg_SetConnectAttr(SgObject hdbc, int name, SgObject value);
 int      Sg_Disconnect(SgObject hdbc);
 int      Sg_ConnectionOpenP(SgObject hdbc);
