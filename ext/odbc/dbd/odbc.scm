@@ -138,6 +138,11 @@
       (row-count stmt)))
 
   (define-method dbi-fetch! ((query <dbi-odbc-query>))
+    (define (safe-get-data stmt i)
+      ;; ignore warning
+      (with-exception-handler
+       (lambda (e) #t)
+       (lambda () (get-data stmt i))))
     (let* ((stmt (dbi-query-prepared query))
 	   (next? (fetch! stmt)))
       (if next?
@@ -145,7 +150,7 @@
 		 (ret (make-vector count)))
 	    (do ((i 1 (+ i 1)))
 		((= i (+ count 1)) ret)
-	      (let ((data (get-data stmt i)))
+	      (let ((data (safe-get-data stmt i)))
 		(cond ((odbc-date? data)
 		       (vector-set! ret (- i 1) (odbc-date->date data)))
 		      ((odbc-time? data)
