@@ -49,19 +49,30 @@ static SgObject make_odbc_error()
   return Sg_ConditionAllocate(SG_CLASS_ODBC_ERROR, SG_NIL);
 }
 
+#if defined(__CYGWIN__) || defined(_WIN32)
+#  define SQL_GetDiag    SQLGetDiagRecW
+#  define DIAGCHAR       SQLWCHAR
+#  define make_string    Sg_WCharTsToString
+#else
+#  define SQL_GetDiag    SQLGetDiagRec
+#  define DIAGCHAR       SQLCHAR
+#  define make_string(s) Sg_Utf8sToUtf32s(s, strlen(s))
+#endif
+
+
 #define CHECK_ERROR(who, ctx, ret)					\
   do {									\
     if ((ret) != SQL_SUCCESS && (ret) != SQL_NO_DATA) {			\
       SgObject whoc = Sg_MakeWhoCondition(SG_INTERN(#who));		\
       SgObject cond = SG_UNDEF, m = SG_FALSE, msgc = SG_FALSE;		\
-      char diagState[50] = {0}, msg[256] = {0};				\
+      DIAGCHAR diagState[50] = {0}, msg[256] = {0};			\
       SQLINTEGER nativeState;						\
       SQLSMALLINT len;							\
       int continuableP = TRUE;						\
-      SQLGetDiagRec(SG_ODBC_CTX(ctx)->type, SG_ODBC_CTX(ctx)->handle,	\
-		    1, (SQLCHAR *)diagState, &nativeState,		\
-		    (SQLCHAR *)msg, sizeof(msg), &len);			\
-      m = Sg_MakeStringC(msg);						\
+      SQL_GetDiag(SG_ODBC_CTX(ctx)->type, SG_ODBC_CTX(ctx)->handle,	\
+		  1, (DIAGCHAR *)diagState, &nativeState,		\
+		  (DIAGCHAR *)msg, sizeof(msg), &len);			\
+      m = make_string(msg);						\
       switch (ret) {							\
       case SQL_SUCCESS_WITH_INFO: {					\
 	SgObject wa_ = Sg_MakeWarning();				\
