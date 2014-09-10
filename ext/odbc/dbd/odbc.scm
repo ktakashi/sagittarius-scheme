@@ -153,7 +153,7 @@
       ;; ignore warning
       (safe-execute (get-data stmt i)))
     (let* ((stmt (dbi-query-prepared query))
-	   (next? (fetch! stmt)))
+	   (next? (safe-execute (fetch! stmt))))
       (if next?
 	  (let* ((count (column-count stmt))
 		 (ret (make-vector count)))
