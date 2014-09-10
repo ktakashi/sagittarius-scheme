@@ -58,6 +58,13 @@
   (define-class <dbi-odbc-column> (<dbi-column>)
     ((column-size :init-keyword :column-size :init-value #f)))
 
+  (define-syntax safe-execute
+    (syntax-rules ()
+      ((_ expr ...)
+       (with-exception-handler
+	(lambda (e) #t)
+	(lambda () expr ...)))))
+
   (define-method dbi-make-connection ((driver <dbi-odbc-driver>)
 				      (options <string>)
 				      (option-alist <list>) . auth)
@@ -87,13 +94,11 @@
 		   ;; if the driver just raises an warning then we need to
 		   ;; ignore this is needed for portable configuration... 
 		   ;; i guess
-		   (with-exception-handler
-		    (lambda (e) #t)
-		    (lambda ()
-		      (driver-connect! env 
-				       (replace-uid&pwd options
-							username password) 
-				       auto-commit))))))))
+		   (safe-execute
+		    (driver-connect! env 
+				     (replace-uid&pwd options
+						      username password) 
+				     auto-commit)))))))
 
   (define-method dbi-open? ((conn <dbi-odbc-connection>))
     (connection-open? (odbc-connection-odbc-hbc conn)))
@@ -140,15 +145,13 @@
 	     (params args (cdr params)))
 	    ((null? params) #t)
 	  (bind-parameter! stmt i (car params))))
-      (execute! stmt)
+      (safe-execute (execute! stmt))
       (row-count stmt)))
 
   (define-method dbi-fetch! ((query <dbi-odbc-query>))
     (define (safe-get-data stmt i)
       ;; ignore warning
-      (with-exception-handler
-       (lambda (e) #t)
-       (lambda () (get-data stmt i))))
+      (safe-execute (get-data stmt i)))
     (let* ((stmt (dbi-query-prepared query))
 	   (next? (fetch! stmt)))
       (if next?
