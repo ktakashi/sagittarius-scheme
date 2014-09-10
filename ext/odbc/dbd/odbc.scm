@@ -64,30 +64,36 @@
     (define (get-option name :optional (default #f))
       (or (and-let* ((v (assoc name option-alist))) (cdr v))
 	  default))
-    (define (->boolean s)
-      (if (string? s) (not (string=? s "false")) s))
-    (define (remove-dns= string) 
-      (regex-replace-first #/dns=(?:true|false|1|0);/ string "")) ;; |
+    (define (->boolean s) (if (string? s) (not (string=? s "false")) s))
+    (define (replace-uid&pwd dns user pass)
+      (define (do-replace dns name v)
+	(define re (regex (string-append name "([^;]+);")))
+	(define (replace m) (string-append name v ";"))
+	(cond ((zero? (string-length v)) dns)
+	      ((re dns) (regex-replace-first re dns replace))
+	      (else (string-append dns ";" name v ";"))))
+      (do-replace (do-replace dns "UID=" user) "PWD=" pass))
     (let ((env (odbc-driver-env driver))
 	  (server   (get-option "server"))
-	  (dns      (get-option "dns" #f))
 	  (username (get-option "username" ""))
 	  (password (get-option "password" ""))
 	  (auto-commit (get-option "auto-commit" #t)))
-      (unless (or server dns)
-	(assertion-violation 'make-odbc-connection
-			     "server or dns option is required"))
-      ;; DNS is driver specific so we can't get anything but
-      ;; just passing everything
-      (if dns
-	  (let-keywords auth ((auto-commit auto-commit) . ignore)
-	    (make <dbi-odbc-connection>
-	      :hbc (driver-connect! env (remove-dns= options) auto-commit)))
-	  (let-keywords auth ((username username)
-			      (password password)
-			      (auto-commit (->boolean auto-commit)))
-	    (make <dbi-odbc-connection>
-	      :hbc (connect! env server username password auto-commit))))))
+      (let-keywords auth ((username username)
+			  (password password)
+			  (auto-commit (->boolean auto-commit)))
+	(make <dbi-odbc-connection>
+	  :hbc (if server
+		   (connect! env server username password auto-commit)
+		   ;; if the driver just raises an warning then we need to
+		   ;; ignore this is needed for portable configuration... 
+		   ;; i guess
+		   (with-exception-handler
+		    (lambda (e) #t)
+		    (lambda ()
+		      (driver-connect! env 
+				       (replace-uid&pwd options
+							username password) 
+				       auto-commit))))))))
 
   (define-method dbi-open? ((conn <dbi-odbc-connection>))
     (connection-open? (odbc-connection-odbc-hbc conn)))
