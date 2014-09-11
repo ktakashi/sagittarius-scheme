@@ -1,4 +1,9 @@
-(import (rnrs) (tlv) (srfi :64))
+#!read-macro=sagittarius/regex
+(import (rnrs)
+	(tlv)
+	(util bytevector)
+	(sagittarius regex)
+	(srfi :64))
 
 (test-begin "TLV library tests")
 
@@ -78,5 +83,40 @@
 	      (tlv-tag (bytevector->tlv  #vu8(#x1F #xFF #x7F #x00))))
   (test-equal "4 length tag" #x1FFFFF7F
 	      (tlv-tag (bytevector->tlv  #vu8(#x1F #xFF #xFF #x7F #x00)))))
+
+;; LV
+(let ()
+  (define LV "41 042cb5deaf002307ea866c32af628a59\
+                 a5b24d3cefc615ba924660819ee96461\
+                 9770f3175e53e2bfea58bad28465ed1e\
+                 2dc463c8ae33a950ae54136c2cd6f8c8\
+                 08\
+              1d a61b9002aa0295011080018881011083\
+                 01319103000000450411223344\
+              10 601c32691f0c339b1136770a2ab060cd\
+              03 f2367b\
+              40 afcb1b01887d58d0e628e2bc2986f41d\
+                 82de36e35e1cd35413032bc7fa8c3b2f\
+                 d88492edff456712c9e5f805b3e0cae2\
+                 142e12a3b37099a10763986a39da4690")
+  (define Vs '("042cb5deaf002307ea866c32af628a59\
+                a5b24d3cefc615ba924660819ee96461\
+                9770f3175e53e2bfea58bad28465ed1e\
+                2dc463c8ae33a950ae54136c2cd6f8c8\
+                08"
+	       "a61b9002aa0295011080018881011083\
+                01319103000000450411223344"
+	       "601c32691f0c339b1136770a2ab060cd"
+	       "f2367b"
+	       "afcb1b01887d58d0e628e2bc2986f41d\
+                82de36e35e1cd35413032bc7fa8c3b2f\
+                d88492edff456712c9e5f805b3e0cae2\
+                142e12a3b37099a10763986a39da4690"))
+  (test-equal "read-lv"
+	      (map hex-string->bytevector Vs)
+	      (read-lv (open-bytevector-input-port
+			(hex-string->bytevector
+			 (regex-replace-all #/\s+/ LV "")))))
+  )
 
 (test-end)

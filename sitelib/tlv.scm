@@ -42,7 +42,7 @@
 	    ->tlv make-tlv-unit
 	    read-tlv
 
-	    ;; for exptension
+	    ;; for extension
 	    ;; it's actually BER length reader
 	    (rename read-length read-ber-length)
 
@@ -50,6 +50,10 @@
 	    (rename (write-emv-tlv write-tlv))
 	    write-emv-tlv write-dgi-tlv
 	    *tag-dictionary*
+
+	    ;; this is LV (not TLV) but good to have here
+	    make-lv-parser
+	    read-lv
 	    )
     (import (rnrs) 
 	    (clos user)
@@ -331,5 +335,24 @@
 		      (car e))
 	  (tlv-builder -1 tag data constructed?))))
     (fold-right (^(e seed) (cons (convert e) seed)) '() o))
+
+
+  ;; LV utilities
+  ;; default length reader
+  ;;   LL dddddd
+  ;;   LL = one byte length
+  ;;   dd = LL bytes data
+  (define (make-lv-parser :optional (length-reader get-u8))
+    (lambda (in)
+      (let ((len (length-reader in)))
+	(if (eof-object? len)
+	    #f
+	    (let ((r (get-bytevector-n in len)))
+	      (cond ((eof-object? r) #f)
+		    ((= (bytevector-length r) len) r)
+		    (else (error 'lv-reader "not a valid LV structure"))))))))
+  (define (read-lv in :optional (parser (make-lv-parser)))
+    ;; lazy
+    (read-tlv in parser))
 
 )
