@@ -49,15 +49,17 @@
     (lambda (x)
       (define (bindings&options opts args ro rb)
 	(define (next name short long default assq req?)
-	  (bindings&options
-	   (cdr opts) args
-	   (cons #`(option '(#,short #,long) #,req? #f 
-			   (lambda (opt n arg alist vs)
-			     (values (acons '#,name (if #,req? arg #t) alist)
-				     vs)))
-		 ro)
-	   (cons #`(#,name (cond ((#,assq '#,name #,args) => cdr)
-			       (else #,default))) rb)))
+	  (let ((short (or (syntax->datum short) 
+			   (datum->syntax name #\null))))
+	    (bindings&options
+	     (cdr opts) args
+	     (cons #`(option '(#,short #,long) #,req? #f 
+			     (lambda (opt n arg alist vs)
+			       (values (acons '#,name (if #,req? arg #t) alist)
+				       vs)))
+		   ro)
+	     (cons #`(#,name (cond ((#,assq '#,name #,args) => cdr)
+				   (else #,default))) rb))))
 	(syntax-case opts (*)
 	  (((name (short long) * default) . rest)
 	   (next #'name #'short #'long #'default #'pack-args #'#t))
