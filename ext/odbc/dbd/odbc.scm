@@ -62,7 +62,7 @@
     (syntax-rules ()
       ((_ expr ...)
        (with-exception-handler
-	(lambda (e) #t)
+	(lambda (e) (if (warning? e) #t (raise e)))
 	(lambda () expr ...)))))
 
   (define-method dbi-make-connection ((driver <dbi-odbc-driver>)

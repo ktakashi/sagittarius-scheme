@@ -101,7 +101,8 @@
 	(let ((buf (make-bytevector 4096)))
 	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)))
 	    (unless (eof-object? n)
-	      (put-bytevector dst buf 0 n))))))
+	      (put-bytevector dst buf 0 n)
+	      (loop (get-bytevector-n! src buf 0 4096 #t)))))))
 
   ;; lock file port
   (define (call-with-port-lock port proc . opt)
