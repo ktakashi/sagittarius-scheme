@@ -1586,8 +1586,14 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
   SgChar c;
   readtable_t *table;
   SgObject item;
+  SgVM *vm = Sg_VM();
   while (1) {
   top:
+    /* when previous execution was (values), then valuesCount = 0 and
+       this skips all read expression. to prevent that we need to
+       set it 1 here.
+    */
+    vm->valuesCount = 1;
     c = Sg_GetcUnsafe(port);
     /* we ignore unicode space for now. */
     if (c == EOF) {
@@ -1619,7 +1625,7 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
       case CT_NON_TERM_MACRO: {
 	SgObject o = macro_reader(port, c, table->readtable, ctx);
 	/* if the (values) is the result of reader then we ignore the result */
-	if (o && Sg_VM()->valuesCount) return o;
+	if (o && vm->valuesCount) return o;
 	break;
       }
       case CT_ILLEGAL:
