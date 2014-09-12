@@ -1592,6 +1592,7 @@ SgObject read_expr4(SgPort *port, int flags, SgChar delim, SgReadContext *ctx)
     /* when previous execution was (values), then valuesCount = 0 and
        this skips all read expression. to prevent that we need to
        set it 1 here.
+       this call must return a value anyway :)
     */
     vm->valuesCount = 1;
     c = Sg_GetcUnsafe(port);
