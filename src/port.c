@@ -61,7 +61,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgPort *p = SG_PORT(obj);
   SgObject file = SG_FALSE;
   SgObject transcoder = SG_FALSE;
-  fprintf(stderr, "here\n");
+
   SG_PORT_LOCK(port);
   Sg_PutuzUnsafe(port, UC("#<"));
   if (SG_BINARY_PORTP(p)) {
