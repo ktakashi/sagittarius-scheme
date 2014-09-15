@@ -1191,7 +1191,7 @@ static SgObject read_number(SgPort *in)
     SG_BIGNUM_SET_SIGN(num, sign);
     for (i = 0; i < size; i++) {
       unsigned long buf = 0;
-      Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(unsigned long));
+      Sg_ReadbUnsafe(in, (uint8_t *)&buf, sizeof(unsigned long));
       num->elements[i] = buf;
     }
     return SG_OBJ(num);
