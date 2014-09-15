@@ -31,6 +31,7 @@
 #include <ctype.h>
 #include <string.h>
 #define LIBSAGITTARIUS_BODY
+#include "sagittarius/bignum.h"
 #include "sagittarius/cache.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/closure.h"
@@ -169,43 +170,52 @@ static SgString* id_to_filename(SgString *id)
   NB: tag must be read as signed char because we use -1 as invalid cache.
 */
 enum {
-  INVALID_CACHE_TAG = -1,
+  INVALID_CACHE_TAG         = -1,
   /* tag len insn */
-  INSTRUCTION_TAG = 1,
+  INSTRUCTION_TAG           = 0x01,
   /* tag len # for reference */
-  MARK_TAG,			/* mark tag for closure */
-  CODE_BUILDER_TAG,
-  CODE_BUILDER_END_TAG,
+  MARK_TAG                  = 0x02, /* mark tag for closure */
+  CODE_BUILDER_TAG          = 0x03,
+  CODE_BUILDER_END_TAG      = 0x04,
   /* tag len ${object}(library name) */
-  LIBRARY_TAG,
-  IMPORT_TAG,
-  EXPORT_TAG,
-  LIBRARY_LOOKUP_TAG,
-  IMMEDIATE_TAG,		/* fixnum, char, boolean etc. */
+  LIBRARY_TAG               = 0x05,
+  IMPORT_TAG                = 0x06,
+  EXPORT_TAG                = 0x07,
+  LIBRARY_LOOKUP_TAG        = 0x08,
+  IMMEDIATE_TAG             = 0x09, /* fixnum, char, boolean etc. */
   /* primitives */
-  STRING_TAG,
-  INTERNED_SYMBOL_TAG,
-  UNINTERNED_SYMBOL_TAG,
-  KEYWORD_TAG,
-  NUMBER_TAG,			/* this number is not fixnum */
-  IDENTIFIER_TAG,
-  BYTE_VECTOR_TAG,
-  CLOSURE_TAG,
+  STRING_TAG                = 0x0A,
+  INTERNED_SYMBOL_TAG       = 0x0B,
+  UNINTERNED_SYMBOL_TAG     = 0x0C,
+  KEYWORD_TAG               = 0x0D,
+  NUMBER_TAG                = 0x0E, /* this number is not fixnum */
+  IDENTIFIER_TAG            = 0x0F,
+  BYTE_VECTOR_TAG           = 0x10,
+  CLOSURE_TAG               = 0x11,
   /* these can contain other pointers */
-  VECTOR_TAG,
-  PLIST_TAG,
-  DLIST_TAG,
+  VECTOR_TAG                = 0x12,
+  PLIST_TAG                 = 0x13,
+  DLIST_TAG                 = 0x14,
   /* macro needs special treat */
-  MACRO_SECTION_TAG,
-  MACRO_TAG,
-  MACRO_END_TAG,
-  MACRO_SECTION_END_TAG,
-  LIBRARY_REF_TAG,
-  LOOKUP_TAG,
-  DEFINING_SHARED_TAG,
-  BOUNDARY_TAG,			/* boundary */
+  MACRO_SECTION_TAG         = 0x15,
+  MACRO_TAG                 = 0x16,
+  MACRO_END_TAG             = 0x17,
+  MACRO_SECTION_END_TAG     = 0x18,
+  LIBRARY_REF_TAG           = 0x19,
+  LOOKUP_TAG                = 0x1A,
+  DEFINING_SHARED_TAG       = 0x1B,
+  BOUNDARY_TAG              = 0x1C, /* boundary */
   /* custom */
-  USER_DEFINED_OBJECT_TAG,
+  USER_DEFINED_OBJECT_TAG   = 0x1D,
+};
+
+/* subtag for number */
+enum {
+  BIGNUM = 1,
+  FLONUM = 2,
+  RATIONAL = 3,
+  COMPLEX = 4,
+  STRING = 5		/* default */
 };
 
 /* symbol, string, keyword, identifier, bytevector, vector,
@@ -594,9 +604,26 @@ static void write_symbol_cache(SgPort *out, SgSymbol *s)
 
 static void write_number_cache(SgPort *out, SgObject o)
 {
-  /* lazy way for now */
-  SgObject str = Sg_NumberToString(o, 10, FALSE);
-  write_string_cache(out, SG_STRING(str), NUMBER_TAG);
+  /* reading bignum as a string is not good for performance */
+  
+  if (SG_BIGNUMP(o)) {
+    unsigned int size = SG_BIGNUM_GET_COUNT(o), i;
+    int sign = SG_BIGNUM_GET_SIGN(o);
+    put_word(out, size, NUMBER_TAG);
+    Sg_PutbUnsafe(out, BIGNUM);
+    Sg_PutbUnsafe(out, sign);
+    for (i = 0; i < size; i++) {
+      Sg_WritebUnsafe(out, (uint8_t *)&SG_BIGNUM(o)->elements[i],
+		      0, sizeof(unsigned long));
+    }
+  } else {
+    SgObject str = Sg_NumberToString(o, 10, FALSE);
+    int size = SG_STRING_SIZE(str);
+    SgChar *v = SG_STRING_VALUE(str);
+    put_word(out, size, NUMBER_TAG);
+    Sg_PutbUnsafe(out, STRING);
+    Sg_WritebUnsafe(out, (uint8_t *)v, 0,  size * sizeof(SgChar));
+  }
 }
 
 static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
@@ -1102,7 +1129,11 @@ static SgString* read_string(SgPort *in, int length)
   utf32 = Sg_Utf8sToUtf32s(buf, length);
   return Sg_MakeString(SG_STRING_VALUE(utf32), SG_LITERAL_STRING);
 #endif
-  SgChar *buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(length + 1));
+  SgChar *buf, tmp[1024];
+  buf = tmp;
+  if (length > 1023) {
+    buf = SG_NEW_ATOMIC2(SgChar *, sizeof(SgChar)*(length + 1));
+  }
   Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(SgChar)*length);
   buf[length] = 0;
   return Sg_MakeString(buf, SG_LITERAL_STRING, length);
@@ -1149,10 +1180,30 @@ static SgObject read_immediate(SgPort *in)
 static SgObject read_number(SgPort *in)
 {
   int length;
-  SgString *num;
+  int subtag;
   length = read_word(in, NUMBER_TAG);
-  num = read_string(in, length);
-  return Sg_StringToNumber(num, 10, FALSE);
+  subtag = Sg_GetbUnsafe(in);
+  switch (subtag) {
+  case BIGNUM: {
+    SgBignum *num = Sg_AllocateBignum(length);
+    int sign = Sg_GetbUnsafe(in);
+    unsigned int i, size = (unsigned int)length;
+    SG_BIGNUM_SET_SIGN(num, sign);
+    for (i = 0; i < size; i++) {
+      unsigned long buf = 0;
+      Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(unsigned long));
+      num->elements[i] = buf;
+    }
+    return SG_OBJ(num);
+  }
+  case STRING: {
+    SgString *num;
+    num = read_string(in, length);
+    return Sg_StringToNumber(num, 10, FALSE);
+  }
+  }
+  Sg_Panic("unknown subtag for number %d", subtag);
+  return SG_UNDEF;
 }
 
 static SgObject read_identifier(SgPort *in, read_ctx *ctx)

@@ -116,6 +116,12 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
     return b;
 }
 
+SgBignum* Sg_AllocateBignum(int size)
+{
+  /* should we initialise to zero? */
+  return make_bignum_rec(size, TRUE);
+}
+
 #define make_bignum(size) make_bignum_rec(size, TRUE)
 
 /* Should we expose this? */

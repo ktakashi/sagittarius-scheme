@@ -106,6 +106,9 @@ SG_EXTERN SgObject Sg_BignumExpt(SgBignum *b, long n);
 
 SG_EXTERN SgObject Sg_BignumSquare(SgBignum *bx);
 
+/* internal use */
+SG_EXTERN SgBignum* Sg_AllocateBignum(int size);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_BIGNUM_H_ */
