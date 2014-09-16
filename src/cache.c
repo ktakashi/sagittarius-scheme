@@ -616,6 +616,11 @@ static void write_number_cache(SgPort *out, SgObject o)
       Sg_WritebUnsafe(out, (uint8_t *)&SG_BIGNUM(o)->elements[i],
 		      0, sizeof(unsigned long));
     }
+  } else if (SG_FLONUMP(o)) {
+    double d = SG_FLONUM_VALUE(o);
+    put_word(out, sizeof(double), NUMBER_TAG);
+    Sg_PutbUnsafe(out, FLONUM);
+    Sg_WritebUnsafe(out, (uint8_t *)&d, 0, sizeof(double));
   } else {
     SgObject str = Sg_NumberToString(o, 10, FALSE);
     int size = SG_STRING_SIZE(str);
@@ -1177,7 +1182,7 @@ static SgObject read_immediate(SgPort *in)
   return SG_OBJ(read_word_rec(in, IMMEDIATE_TAG, WORD_SIZE));
 }
 
-static SgObject read_number(SgPort *in)
+static SgObject read_number(SgPort *in, read_ctx *ctx)
 {
   int length;
   int subtag;
@@ -1196,13 +1201,18 @@ static SgObject read_number(SgPort *in)
     }
     return SG_OBJ(num);
   }
+  case FLONUM: {
+    double d;
+    Sg_ReadbUnsafe(in, (uint8_t*)&d, sizeof(double));
+    return Sg_MakeFlonum(d);
+  }
   case STRING: {
     SgString *num;
     num = read_string(in, length);
     return Sg_StringToNumber(num, 10, FALSE);
   }
   }
-  Sg_Panic("unknown subtag for number %d", subtag);
+  ESCAPE(ctx, "unknown subtag %d\n", subtag);
   return SG_UNDEF;
 }
 
@@ -1502,7 +1512,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   case KEYWORD_TAG:
     return read_keyword(in);
   case NUMBER_TAG:
-    return read_number(in);
+    return read_number(in, ctx);
   case IDENTIFIER_TAG:
     return read_identifier(in, ctx);
   case BYTE_VECTOR_TAG:
