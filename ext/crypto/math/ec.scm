@@ -20,6 +20,7 @@
 	    ec-point-twice
 	    ec-point-negate
 	    ec-point-sub
+	    ec-point-mul
 	    ;; NIST parameters
 	    P-192
 	    P-224
@@ -181,6 +182,21 @@
 	  (else
 	   ;; add -y
 	   (ec-point-add x (ec-point-negate y)))))
+
+  ;; http://en.wikipedia.org/wiki/Non-adjacent_form
+  ;; this is probably super slow but for now...
+  (define (ec-point-mul p k)
+    (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
+    (let ((h (* k 3))
+	  (neg (ec-point-negate p)))
+      (let loop ((R p) (i (- (bitwise-length h) 2)))
+	(if (zero? i)
+	    R
+	    (let ((R (ec-point-twice R))
+		  (hbit? (bitwise-bit-set? h i)))
+	      (if (eqv? hbit? (bitwise-bit-set? k i))
+		  (loop R (- i 1))
+		  (loop (ec-point-add R (if hbit? p neg)) (- i 1))))))))
   
   ;;;;
   ;;; Parameters
