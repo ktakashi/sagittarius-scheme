@@ -210,8 +210,7 @@
 	 1 ;; (div (- 192 1) 160)
 	 ;;3045AE6FC8422F64ED579528D38120EAE12196D5
 	 #vu8(#x30 #x45 #xAE #x6F #xC8 #x42 #x2F #x64 #xED #x57
-	      #x95 #x28 #xD3 #x81 #x20 #xEA #xE1 #x21 #x96 #xD5)
-	 )))
+	      #x95 #x28 #xD3 #x81 #x20 #xEA #xE1 #x21 #x96 #xD5))))
 
   (define-constant P-224
     (let ((curve (make-fp-curve 
@@ -226,7 +225,6 @@
 	 #xFFFFFFFFFFFFFFFFFFFFFFFFFFFF16A2E0B8F03E13DD29455C5C2A3D
 	 1 ;; (div (- 224 1) 160)
 	 ;; BD71344799D5C7FCDC45B59FA3B9AB8F6A948BC5
-	 #vu8(#x30 #x45 #xAE #x6F #xC8 #x42 #x2F #x64 #xED #x57
-	      #x95 #x28 #xD3 #x81 #x20 #xEA #xE1 #x21 #x96 #xD5)
-	 )))
+	 #vu8(#xBD #x71 #x34 #x47 #x99 #xD5 #xC7 #xFC #xDC #x45
+	      #xB5 #x9F #xA3 #xB9 #xAB #x8F #x6A #x94 #x8B #xC5))))
 )
