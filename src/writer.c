@@ -35,6 +35,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/generic.h"
 #include "sagittarius/transcoder.h"
+#include "sagittarius/bytevector.h"
 #include "sagittarius/core.h"
 #include "sagittarius/clos.h"
 #include "sagittarius/file.h"
@@ -63,6 +64,7 @@ static void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx);
 static SgObject write_object_fallback(SgObject *args, int nargs, SgGeneric *gf);
+
 
 SG_DEFINE_GENERIC(Sg_GenericWriteObject, write_object_fallback, NULL);
 
@@ -346,6 +348,65 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
   format_pad(out, SG_STRING(str), mincol, 1, padchar, TRUE);
 }
 
+static void format_bin_bv(SgPort *port, SgObject bv)
+{
+#define BYTETOBINARYPATTERN "#b%d%d%d%d%d%d%d%d"
+#define BYTETOBINARY(byte)  \
+  (byte & 0x80 ? 1 : 0), \
+  (byte & 0x40 ? 1 : 0), \
+  (byte & 0x20 ? 1 : 0), \
+  (byte & 0x10 ? 1 : 0), \
+  (byte & 0x08 ? 1 : 0), \
+  (byte & 0x04 ? 1 : 0), \
+  (byte & 0x02 ? 1 : 0), \
+  (byte & 0x01 ? 1 : 0) 
+
+  int i;
+  char buf[16], *p;
+  uint8_t byte;
+  Sg_PutuzUnsafe(port, UC("#vu8("));
+  for (i = 0; i < SG_BVECTOR_SIZE(bv); i++) {
+    if (i) Sg_PutcUnsafe(port, ' ');
+    byte = SG_BVECTOR_ELEMENT(bv, i);
+    snprintf(buf, sizeof(buf), BYTETOBINARYPATTERN, BYTETOBINARY(byte));
+    p = buf;
+    for (;*p; p++) {
+      Sg_PutcUnsafe(port, *p);
+    }
+  }
+  Sg_PutcUnsafe(port, ')');
+#undef BYTETOBINARYPATTERN
+#undef BYTETOBINARY
+
+}
+
+
+static void format_bv(SgPort *port, SgObject bv, int radix, int upperP)
+{
+  int i;
+  char buf[10], *p;
+  const char *fmt;
+  switch (radix) {
+  case 2:  format_bin_bv(port, bv); return;
+  case 8:  fmt = "#o%o"; break;
+  case 10: fmt = "%u"; break;
+  case 16: if (upperP) fmt = "#x%X"; else fmt = "#x%x"; break;
+  }
+
+  Sg_PutuzUnsafe(port, UC("#vu8("));
+  for (i = 0; i < SG_BVECTOR_SIZE(bv); i++) {    
+    if (i) Sg_PutcUnsafe(port, ' ');
+
+    snprintf(buf, sizeof(buf), fmt, SG_BVECTOR_ELEMENT(bv, i));
+    p = buf;
+    for (;*p; p++) {
+      Sg_PutcUnsafe(port, *p);
+    }
+  }
+  Sg_PutcUnsafe(port, ')');
+}
+
+
 static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 {
   SgChar ch = 0;
@@ -418,7 +479,11 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
       case 'd': case 'D':
 	NEXT_ARG(arg, args);
 	if (numParams == 0 && !atflag && !colonflag) {
-	  format_write(arg, port, &actx, FALSE);
+	  if (SG_BVECTORP(arg)) {
+	    format_bv(port, arg, 10, FALSE);
+	  } else {
+	    format_write(arg, port, &actx, FALSE);
+	  }
 	} else {
 	  format_integer(port, arg, params, numParams, 10,
 			 colonflag, atflag, FALSE);
@@ -429,6 +494,8 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 	if (numParams == 0 && !atflag && !colonflag) {
 	  if (Sg_IntegerP(arg)) {
 	    format_write(Sg_NumberToString(arg, 2, FALSE), port, &actx, FALSE);
+	  } else if (SG_BVECTORP(arg)) {
+	    format_bv(port, arg, 2, FALSE);
 	  } else {
 	    format_write(arg, port, &actx, FALSE);
 	  }
@@ -442,6 +509,8 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 	if (numParams == 0 && !atflag && !colonflag) {
 	  if (Sg_IntegerP(arg)) {
 	    format_write(Sg_NumberToString(arg, 8, FALSE), port, &actx, FALSE);
+	  } else if (SG_BVECTORP(arg)) {
+	    format_bv(port, arg, 8, FALSE);
 	  } else {
 	    format_write(arg, port, &actx, FALSE);
 	  }
@@ -454,7 +523,10 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 	NEXT_ARG(arg, args);
 	if (numParams == 0 && !atflag && !colonflag) {
 	  if (Sg_IntegerP(arg)) {
-	    format_write(Sg_NumberToString(arg, 16, ch == 'X'), port, &actx, FALSE);
+	    format_write(Sg_NumberToString(arg, 16, ch == 'X'), port,
+			 &actx, FALSE);
+	  } else if (SG_BVECTORP(arg)) {
+	    format_bv(port, arg, 16, ch == 'X');
 	  } else {
 	    format_write(arg, port, &actx, FALSE);
 	  }
@@ -996,6 +1068,8 @@ void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp)
     write_ss_rec(obj, port, ctx);
   }
 }
+
+
 
 static void vprintf_proc(SgPort *port, const SgChar *fmt, 
 			 SgObject args, int sharedp)

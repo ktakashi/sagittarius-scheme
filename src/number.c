@@ -3572,11 +3572,14 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       }
     }
     x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
+    e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
     if (SG_INTP(m)) {
       m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
     }
   } else if (SG_INTP(e)) {
+#if LONG_MAX > 1UL << 32
   small_entry:
+#endif
     n = SG_INT_VALUE(e);
     y = SG_MAKE_INT(1);
     if (n < 0) {
@@ -3601,7 +3604,9 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
     /* both x and e are bignum */
     m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
   }
-  ASSERT(SG_BIGNUMP(x) && SG_BIGNUMP(e) && SG_BIGNUMP(m));
+  if (!(SG_BIGNUMP(x) && SG_BIGNUMP(e) && SG_BIGNUMP(m))) {
+    Sg_Error(UC("exact integer required. %S %S %S"), x, e, m);
+  }
   return Sg_BignumModExpt(SG_BIGNUM(x), SG_BIGNUM(e), SG_BIGNUM(m));
 }
 
