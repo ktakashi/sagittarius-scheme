@@ -17,6 +17,8 @@
 (library (math ec)
     (export make-ec-point
 	    ec-point-add
+	    ec-point-negate
+	    ec-point-sub
 	    ;; NIST parameters
 	    P-192
 	    P-224
@@ -40,6 +42,8 @@
   (define (mod-div a b p) (mod (* a (mod-inverse b p)) p))
   ;; a^2 (mod p)
   (define (mod-square a p) (mod-expt a 2 p))
+  ;; -a (mod p)
+  (define (mod-negate a p) (mod (- a) p))
   ;; mod-inverse is defined in (sagittarius)
   ;; mod-expt is defined in (sagittarius)
 
@@ -128,6 +132,22 @@
 	   (if (fp-curve? (ec-point-curve x))
 	       (fp-ec-point-add x y)
 	       (f2m-ec-point-add x y)))))
+
+  (define (ec-point-negate x)
+    (let ((curve (ec-point-curve x)))
+      (if (fp-curve? curve)
+	  (make-ec-point curve (ec-point-x x) 
+			 (mod-negate (ec-point-y x) (fp-curve-q curve)))
+	  (error 'ec-point-negate "not supported yet"))))
+
+  (define (ec-point-sub x y)
+    (cond ((not (equal? (ec-point-curve x) (ec-point-curve y)))
+	   (error 'ec-point-add "attempt to adding differenct curve point"
+		  x y))
+	  ((ec-point-infinity? y) x)
+	  (else
+	   ;; add -y
+	   (ec-point-add x (ec-point-negate y)))))
   
   ;;;;
   ;;; Parameters
