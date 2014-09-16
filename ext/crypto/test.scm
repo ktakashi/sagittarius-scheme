@@ -7,7 +7,8 @@
 	(crypto)
 	(math random)
 	(math prime)
-	(math hash))
+	(math hash)
+	(math ec))
 
 ;; plain value for all test cases
 (define *plain-value* (string->utf8 "I want to encrypt this text with the key!"))
@@ -363,5 +364,18 @@
 
   (test-equal "import private key" (keypair-private key-pair)
 	      (import-private-key RSA epri)))
+
+;; EC arithmetic
+(let ((S (make-ec-point (ec-parameter-curve P-192)
+			#xD458E7D127AE671B0C330266D246769353A012073E97ACF8
+			#x325930500D851F336BDDC050CF7FB11B5673A1645086DF3B))
+      (T (make-ec-point (ec-parameter-curve P-192)
+			#xF22C4395213E9EBE67DDECDD87FDBD01BE16FB059B9753A4
+			#x264424096AF2B3597796DB48F8DFB41FA9CECC97691A9C79))
+      (R (make-ec-point (ec-parameter-curve P-192)
+			#x48E1E4096B9B8E5CA9D0F1F077B8ABF58E843894DE4D0290
+			#x408FA77C797CD7DBFB16AA48A3648D3D63C94117D7B6AA4B)))
+  (test-equal "EC add" R (ec-point-add S T)))
+
 
 (test-end)
