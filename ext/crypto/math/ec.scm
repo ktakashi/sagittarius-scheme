@@ -17,6 +17,7 @@
 (library (math ec)
     (export make-ec-point
 	    ec-point-add
+	    ec-point-twice
 	    ec-point-negate
 	    ec-point-sub
 	    ;; NIST parameters
@@ -27,7 +28,9 @@
 	    )
     (import (core)
 	    (core base)
+	    (core errors)
 	    (core syntax)
+	    (core inline)
 	    (sagittarius))
 
   ;; modular arithmetic
@@ -67,15 +70,24 @@
   (define-syntax fp-curve-q
     (syntax-rules ()
       ((_ o) (vector-ref o 1))))
+  (define-syntax fp-curve-a
+    (syntax-rules ()
+      ((_ o) (vector-ref o 2))))
+  (define-syntax fp-curve-b
+    (syntax-rules ()
+      ((_ o) (vector-ref o 3))))
 
   (define (%curve? o type) (and (vector? o) 
 				(not (zero? (vector-length o)))
 				(eq? (curve-type o) type)))
   (define (fp-curve? o)  (%curve? o 'fp))
   (define (f2m-curve? o) (%curve? o 'f2m))
+  (define (ec-curve=? a b) (equal? a b))
 
   ;; EC point
   (define (make-ec-point curve x y) (vector curve x y))
+  (define-inliner make-ec-point (math ec) ((_ c x y) (vector c x y)))
+
   (define (infinity-point curve) (make-ec-point curve #f #f))
   (define-syntax ec-point-curve
     (syntax-rules ()
@@ -95,11 +107,32 @@
   (define (ec-point-infinity? p)
     (or (not (ec-point-x p))
 	(not (ec-point-y p))))
-  (define (ec-point=? a b)
-    (and (vector? o)
-	 (= (vector-length o) 3)
-	 (or (fp-curve? (ec-point-curve o))
-	     (f2m-curve? (ec-point-curve o)))))
+  (define (ec-point=? a b) (equal? a b))
+
+  (define (ec-point-twice x)
+    (define (fp-ec-point-twice x)
+      (let* ((xx (ec-point-x x))
+	     (xy (ec-point-y x))
+	     (curve (ec-point-curve x))
+	     (p (fp-curve-q curve))
+	     ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
+	     (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
+				      (fp-curve-a curve)
+				      p)
+			     (mod-mul xy 2 p) p))
+	     ;; x3 = gamma^2 - x*2
+	     (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
+	     ;; y3 = gamma*(xx - x3) - xy
+	     (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+	(make-ec-point curve x3 y3)))
+    (define (f2m-ec-point-twice x)
+      (error 'ec-point-twice "not supported yet" x))
+    (cond ((ec-point-infinity? x) x)
+	  ((zero? (ec-point-y x)) (infinity-point (ec-point-curve x)))
+	  (else 
+	   (if (fp-curve? (ec-point-curve x))
+	       (fp-ec-point-twice x)
+	       (f2m-ec-point-twice x)))))
 
   (define (ec-point-add x y)
     (define (fp-ec-point-add x y)
@@ -119,7 +152,7 @@
 	(make-ec-point curve x3 y3)))
     (define (f2m-ec-point-add x y)
       (error 'ec-point-add "not supported yet" x y))
-    (cond ((not (equal? (ec-point-curve x) (ec-point-curve y)))
+    (cond ((not (ec-curve=? (ec-point-curve x) (ec-point-curve y)))
 	   (error 'ec-point-add "attempt to adding differenct curve point"
 		  x y))
 	  ((ec-point-infinity? x) y)
@@ -141,7 +174,7 @@
 	  (error 'ec-point-negate "not supported yet"))))
 
   (define (ec-point-sub x y)
-    (cond ((not (equal? (ec-point-curve x) (ec-point-curve y)))
+    (cond ((not (ec-curve=? (ec-point-curve x) (ec-point-curve y)))
 	   (error 'ec-point-add "attempt to adding differenct curve point"
 		  x y))
 	  ((ec-point-infinity? y) x)

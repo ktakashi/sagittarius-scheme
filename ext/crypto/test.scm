@@ -366,20 +366,31 @@
 	      (import-private-key RSA epri)))
 
 ;; EC arithmetic
+;; from example calculation
+;; https://www.nsa.gov/ia/_files/nist-routines.pdf
+;; P-192
 (let ((S (make-ec-point (ec-parameter-curve P-192)
 			#xD458E7D127AE671B0C330266D246769353A012073E97ACF8
 			#x325930500D851F336BDDC050CF7FB11B5673A1645086DF3B))
       (T (make-ec-point (ec-parameter-curve P-192)
 			#xF22C4395213E9EBE67DDECDD87FDBD01BE16FB059B9753A4
 			#x264424096AF2B3597796DB48F8DFB41FA9CECC97691A9C79)))
+
   (let ((R (make-ec-point (ec-parameter-curve P-192)
 			  #x48E1E4096B9B8E5CA9D0F1F077B8ABF58E843894DE4D0290
 			  #x408FA77C797CD7DBFB16AA48A3648D3D63C94117D7B6AA4B)))
     (test-equal "EC add P-192" R (ec-point-add S T)))
+
   (let ((R (make-ec-point (ec-parameter-curve P-192)
 			  #xFC9683CC5ABFB4FE0CC8CC3BC9F61EABC4688F11E9F64A2E
 			  #x093e31d00fb78269732b1bd2a73c23cdd31745d0523d816b)))
-    (test-equal "EC sub P-192" R (ec-point-sub S T))))
+    (test-equal "EC sub P-192" R (ec-point-sub S T)))
+  
+  (let ((2R (make-ec-point (ec-parameter-curve P-192)
+			   #x30C5BC6B8C7DA25354B373DC14DD8A0EBA42D25A3F6E6962
+			   #x0DDE14BC4249A721C407AEDBF011E2DDBBCB2968C9D889CF)))
+    (test-equal "EC twice P-192" 2R (ec-point-twice S)))
+  )
 
 
 (test-end)
