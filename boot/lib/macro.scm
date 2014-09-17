@@ -721,22 +721,29 @@
 (define adapt-to-rank-moved-vars
   (lambda (form ranks vars)
     (define mac-env (current-macro-env))
+    (define use-env (current-usage-env))
 
-    ;; bit ugly solution to resolve different compile unit of (syntax)
+    ;; *UGLY* solution to resolve different compile unit of (syntax)
     (define (rename-or-copy-id id)
-      (cond ((or (find-binding (id-library id) (id-name id) #f)
-		 ;; macro identifier need to have it's syntax information
-		 ;; to bent scope
-		 ;; FIXME smells like a bug
-		 (macro? (p1env-lookup mac-env id LEXICAL)))
-	     (make-pending-identifier (id-name id)
-				      (vector-ref mac-env 1)
-				      (id-library id)))
-	    (else
-	     ;; simply copy but mark as template variable
-	     (make-pending-identifier (id-name id)
-				      (id-envs id)
-				      (id-library id)))))
+      (let ((b (p1env-lookup mac-env id LEXICAL)))
+	(cond ((or (find-binding (id-library id) (id-name id) #f)
+		   ;; macro identifier need to have it's syntax information
+		   ;; to bent scope
+		   ;; FIXME smells like a bug
+		   (macro? b))
+	       (make-pending-identifier (id-name id)
+					(vector-ref mac-env 1)
+					(id-library id)))
+	      ;; template variable is not bound in macro env but usage env
+	      ;; in this case we don't want to find renamed id in usage env.
+	      ;; so clear the env.
+	      ((and (identifier? b)
+		    (not (identifier? (p1env-lookup use-env id LEXICAL))))
+	       (make-pending-identifier (id-name id) '() (id-library id)))
+	      (else
+	       ;; simply copy but mark as template variable
+	       (make-pending-identifier (id-name id) (id-envs id) 
+					(id-library id))))))
 
     (define (rename t)
       (or (cond ((not (identifier? t)) #f)

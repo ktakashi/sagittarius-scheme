@@ -266,9 +266,6 @@
     (aif (assoc 'a '((a . 1) (b . 2) (c . 3)))
 	 (test-equal "hygienic aif (0)" 0 it)
 	 #f))
-  ;; This case should also be resolve but it's sort of other side of coin
-  ;; of wrapped it issue...
-  #;
   (test-equal "hygienic aif" 0
 	      (let ((it 0))
 		(aif (assoc 'a '((a . 1) (b . 2) (c . 3)))
