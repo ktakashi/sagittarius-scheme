@@ -3272,12 +3272,6 @@
   (define-cfn variable? (o) ::int :static
     (return (or (SG_IDENTIFIERP o) (SG_SYMBOLP o))))
 
-  (decl-code (.define "ENV_BOTTOM" "SG_MAKE_INT(4)"))
-  (define-cfn bottom-env? (env) ::int :static
-    (return (or (SG_NULLP env)
-		(and (SG_PAIRP (SG_CAR env))
-		     (SG_EQ ENV-BOTTOM (SG_CAAR env))))))
-
   (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
     ::int :static
     (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
@@ -3293,24 +3287,11 @@
 	     (if (and (variable? v1) (variable? v2))
 		 ;; not locally bounded, so if the name are the same
 		 ;; it might be globally equal
-		 
 		 (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
 					   (SG_IDENTIFIER_NAME id1) #f))
 		       (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
 					   (SG_IDENTIFIER_NAME id2) #f)))
-		   (if (or (SG_FALSEP g1) (SG_FALSEP g2))
-		       (if (and (not (bottom-env? (SG_IDENTIFIER_ENVS id1)))
-				(not (bottom-env? (SG_IDENTIFIER_ENVS id2)))
-				(not (SG_EQ (SG_IDENTIFIER_LIBRARY id1)
-					    (SG_IDENTIFIER_LIBRARY id2)))) 
-			   ;; if libraries are not equal and #f returned
-			   ;; it's not the same identifier
-			   (return FALSE)
-			   ;; looks ok but both need to be either pending
-			   ;; or non pending.
-			   (return (SG_EQ (SG_IDENTIFIER_PENDING id1)
-					  (SG_IDENTIFIER_PENDING id2))))
-		       (return (SG_EQ g1 g2))))
+		   (return (SG_EQ g1 g2)))
 		 (return (SG_EQ v1 v2))))
 	    ((or (not (variable? v1)) (not (variable? v2)))
 	     ;; locally bounded

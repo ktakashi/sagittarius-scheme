@@ -291,12 +291,7 @@
     ;; but in case...
     (let ((p-id (ensure-id pat  (current-macro-env)))
 	  (e-id (ensure-id expr (current-usage-env))))
-      (or (free-identifier=? p-id e-id)
-	  ;; if it's not the same bound, then the name and not bounded
-	  ;; symbol
-	  (and (and (eq? (id-name p-id) (id-name e-id)))
-	       (not (find-binding (id-library p-id) (id-name p-id) #f))
-	       (not (find-binding (id-library e-id) (id-name e-id) #f))))))
+      (free-identifier=? p-id e-id)))
   (cond ((bar? pat) #t)
         ((variable? pat)
          (cond ((literal-match? pat lites)
@@ -753,14 +748,12 @@
 		;; env lookup can't find proper binding.
 		;; Call #7
 		((and (pending-identifier? t)
-		      (not (identifier? 
-			    (p1env-lookup mac-env t LEXICAL))))
+		      (not (identifier? (p1env-lookup mac-env t LEXICAL))))
 		 #f)
 		((lookup-transformer-env t))
 		;; mark as template variable so that pattern variable
 		;; lookup won't make misjudge.
-		(else
-		 (add-to-transformer-env! t (rename-or-copy-id t))))
+		(else (add-to-transformer-env! t (rename-or-copy-id t))))
 	  t))
     ;; regenerate pattern variable
     (define (rewrite-template t vars)

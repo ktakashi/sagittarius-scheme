@@ -66,14 +66,14 @@
 
   (define-inliner map (core base)
     ((_ p arg)
-     (let ((proc p))
+     (let ((map-proc p))
        (let loop ((l arg) (r '()))
 	 (cond ((null? l) (reverse! r))
-	       ((pair? l) (loop (cdr l) (cons (proc (car l)) r)))
+	       ((pair? l) (loop (cdr l) (cons (map-proc (car l)) r)))
 	       (else
 		(assertion-violation 'map
 		 (wrong-type-argument-message "proper list" l)
-		 (list proc arg))))))))
+		 (list map-proc arg))))))))
 
   (define-inliner for-each (core base)
     ((_ p arg)

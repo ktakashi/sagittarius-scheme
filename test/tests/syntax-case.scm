@@ -233,4 +233,46 @@
   (test-equal "ellipsis adjustment"
 	      '((v1 id1 id2) (v2 id1 id2))
 	      (move-vars (id1 id2) (v1 v2))))
+
+;; call #61
+(let ()
+  (define-syntax extract
+    (syntax-rules ()
+      ((_ symb body _cont)
+       (letrec-syntax
+	   ((tr
+	     (syntax-rules (symb)
+	       ((_ x symb tail (cont-head symb-l . cont-args))
+		(cont-head (x . symb-l) . cont-args))
+	       ((_ d (x . y) tail cont)
+		(tr x x (y . tail) cont))
+	       ((_ d1 d2 () (cont-head  symb-l . cont-args))
+		(cont-head (symb . symb-l) . cont-args))
+	       ((_ d1 d2 (x . y) cont)
+		(tr x x y cont)))))
+	 (tr body body () _cont)))))
+
+  (define-syntax aif
+    (syntax-rules ()
+      ((_ ?c ?t ?e)
+       (let-syntax ((cont
+		     (syntax-rules ()
+		       ((cont (??it) ??c ??t ??e)
+			(let ((??it ??c))
+			  (if ??it ??t ??e))))))
+	 (extract it (?t . ?e) (cont () ?c ?t ?e))))))
+
+  (let ((it 0))
+    (aif (assoc 'a '((a . 1) (b . 2) (c . 3)))
+	 (test-equal "hygienic aif (0)" 0 it)
+	 #f))
+  ;; This case should also be resolve but it's sort of other side of coin
+  ;; of wrapped it issue...
+  #;
+  (test-equal "hygienic aif" 0
+	      (let ((it 0))
+		(aif (assoc 'a '((a . 1) (b . 2) (c . 3)))
+		     it
+		     #f))))
+
 (test-end)
