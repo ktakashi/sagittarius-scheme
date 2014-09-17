@@ -1107,7 +1107,8 @@
 ;; on IARGS (list of IForm) into a mere $LET node.
 (define (expand-inlined-procedure src iform iargs) 
   (let ((lvars ($lambda-lvars iform))
-	(args (adjust-arglist ($lambda-args iform)
+	(args (adjust-arglist src
+			      ($lambda-args iform)
 			      ($lambda-option iform)
 			      iargs ($lambda-name iform))))
     (ifor-each2 (lambda (lv a) (lvar-initval-set! lv a)) lvars args)
@@ -1115,11 +1116,15 @@
 
 ;; Adjust argmuent list according to reqargs and optarg count.
 ;; Used in procedure inlining and local call optimization.
-(define (adjust-arglist reqargs optarg iargs name)
+(define (adjust-arglist src reqargs optarg iargs name)
   (unless (argcount-ok? iargs reqargs (> optarg 0))
-    (error name
-	   (format "wrong number of arguments: ~s requires ~a, but got ~a"
-		   name reqargs (length iargs))))
+    (raise (condition (make-compile-error (source-info src)
+					  (unwrap-syntax src))
+		      (make-who-condition name)
+		      (make-message-condition 
+		       (format 
+			"wrong number of arguments: ~s requires ~a, but got ~a"
+			name reqargs (length iargs))))))
   (if (zero? optarg)
       iargs
       (receive (reqs opts) (split-at iargs reqargs)
@@ -3274,6 +3279,19 @@
 
 ;;
 ;; Pass2: Optimization
+
+(define-syntax define-p2-backtracible
+  (syntax-rules ()
+    ((_ (name . formals) body ...)
+     (define-p2-backtracible name (lambda formals body ...)))
+    ((_ name expr)
+     (define name
+       (lambda (iform penv tail?)
+	 (guard (e (else
+		    (raise (condition e (add-backtrace e ($*-src iform))))))
+	   (expr iform penv tail?)))))))
+
+
 ;; dispatch table is defined after all all method are defined.
 (define (pass2/rec iform penv tail?)
   ((vector-ref *pass2-dispatch-table* (iform-tag iform))
@@ -3316,7 +3334,7 @@
 
 (define (pass2/$UNDEF iform penv tail?) iform)
 
-(define (pass2/$DEFINE iform penv tail?)
+(define-p2-backtracible (pass2/$DEFINE iform penv tail?)
   (unless (memq 'optimized ($define-flags iform))
     ($define-expr-set! iform (pass2/rec ($define-expr iform) penv #f)))
   iform)
@@ -3427,7 +3445,7 @@
 ;;    => ($if <t0> ($const #f) ($if <e0> <then> ($it)))
 ;;     if <else> == ($it)
 
-(define (pass2/$IF iform penv tail?)
+(define-p2-backtracible (pass2/$IF iform penv tail?)
   (let ((test-form (pass2/rec ($if-test iform) penv #f))
 	(then-form (pass2/rec ($if-then iform) penv tail?))
 	(else-form (pass2/rec ($if-else iform) penv tail?)))
@@ -3460,7 +3478,7 @@
 ;;   may be able to optimize the calls to it. It is done here since I
 ;;   need to run pass2 for all the call sites of the lvar to analyze
 ;;   its usage.
-(define (pass2/$LET iform penv tail?)
+(define-p2-backtracible (pass2/$LET iform penv tail?)
   ;; taken from Gauche's fix...
   (define (process-inits lvars inits)
     (let loop ((lvars lvars) (inits inits)
@@ -3612,9 +3630,8 @@
     (ifor-each 
      (lambda (call)
        ($call-args-set! (car call)
-			(adjust-arglist reqargs optarg
-					($call-args (car call))
-					name))
+			(adjust-arglist ($call-src (car call)) reqargs optarg
+					($call-args (car call)) name))
        ($call-flag-set! (car call) 'local))
      calls)
     ;; just in case if the lambda-node is traversed more than once,
@@ -3628,9 +3645,8 @@
   (let ((reqargs ($lambda-args lambda-node))
 	(optarg  ($lambda-option lambda-node))
 	(name    ($lambda-name lambda-node)))
-    ($call-args-set! call (adjust-arglist reqargs optarg
-					  ($call-args call)
-					  name))
+    ($call-args-set! call (adjust-arglist ($call-src call) reqargs optarg
+					  ($call-args call) name))
     (lvar-ref--! lvar)
     ($call-flag-set! call 'embed)
     ($call-proc-set! call lambda-node)
@@ -3644,8 +3660,8 @@
 	  (let ((jcall (car rec-calls)))
 	    (lvar-ref--! lvar)
 	    ($call-args-set! jcall 
-			     (adjust-arglist reqargs optarg ($call-args jcall)
-					     name))
+			     (adjust-arglist ($call-src jcall) reqargs optarg
+					     ($call-args jcall) name))
 	    ($call-proc-set! jcall call)
 	    ($call-flag-set! jcall 'jump))
 	  (loop (cdr rec-calls)))))))
@@ -3670,12 +3686,12 @@
 	   (inline-it (car calls) (iform-copy lambda-node '()))
 	   (loop (cdr calls))))))
 
-(define (pass2/$LAMBDA iform penv tail?)
+(define-p2-backtracible (pass2/$LAMBDA iform penv tail?)
   ($lambda-body-set! iform (pass2/rec ($lambda-body iform)
 				      (cons iform penv) #t))
   iform)
 
-(define (pass2/$RECEIVE iform penv tail?)
+(define-p2-backtracible (pass2/$RECEIVE iform penv tail?)
   ($receive-expr-set! iform (pass2/rec ($receive-expr iform) penv #f))
   ($receive-body-set! iform (pass2/rec ($receive-body iform) penv tail?))
   iform)
@@ -3712,7 +3728,7 @@
 ;;     marked inlinable, check the size if we can inline it.
 ;;
 ;;  4. If proc is $Gref which has inline insn then inline it.
-(define (pass2/$CALL iform penv tail?)
+(define-p2-backtracible (pass2/$CALL iform penv tail?)
   ;; for (cond ((assq x y) => cdr)) case
   (define (inlinable-gref? gref)
     (and-let* (( (has-tag? gref $GREF) )
@@ -3841,7 +3857,7 @@
 
 (define (pass2/self-recursing? node penv) (memq node penv))
 
-(define (pass2/$ASM iform penv tail?)
+(define-p2-backtracible (pass2/$ASM iform penv tail?)
   (let ((args (imap (lambda (arg)
 		      (pass2/rec arg penv #f))
 		    ($asm-args iform))))
@@ -4582,7 +4598,7 @@
   (can-free '())
   (display 0))
 
-(define (add-backtrace c src) (make-trace-condition (unwrap-syntax src)))
+(define (add-backtrace c src) (make-trace-condition (truncate-program src)))
 
 (define-syntax define-backtracible
   (syntax-rules ()
@@ -5671,6 +5687,11 @@
   (if info
       (format "~s:~d" (car info) (cdr info))
       #f))
+(define (truncate-program program)
+  (format/ss "~,,,,60:s" 
+	     (if (circular-list? program)
+		 program
+		 (unwrap-syntax program))))
 
 (define (pass2-4 iform library)
   (pass4 (pass3 (pass2 iform library)) library))
@@ -5682,10 +5703,7 @@
     (define (raise-error e info program)
       (raise (condition (make-compile-error
 			 (format-source-info info)
-			 (format/ss "~,,,,40:s" 
-				    (if (circular-list? program)
-					program
-					(unwrap-syntax program))))
+			 (truncate-program program))
 			e)))
     (guard (e ((import-error? e) (raise e))
 	      (else (let ((info (source-info program)))
