@@ -53,6 +53,7 @@
 	    send-frame
 	    (rename (recv-frame&payload recv-frame))
 	    send-transfer
+	    recv-transfer
 	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
@@ -90,12 +91,12 @@
   (define-constant +channel-max+ 1024)
   (define-class <amqp-connection> (<state-mixin>)
     ;; should connection manage sessions?
-    ((principal :init-keyword :principal :init-value #f)
+    ((principal  :init-keyword :principal :init-value #f)
      ;; socket-port
-     (socket    :init-keyword :socket)
+     (socket     :init-keyword :socket)
      ;; for informations
-     (hostname  :init-keyword :hostname)
-     (port      :init-keyword :port)
+     (hostname   :init-keyword :hostname)
+     (port       :init-keyword :port)
      ;; frame size
      (frame-size :init-keyword :frame-size)
      ;; channels
@@ -406,8 +407,7 @@
       (let-values (((ext attach) (recv-frame conn)))
 	(let1 link (make-link attach handle)
 	  (if (slot-bound? attach 'target)
-	      (let-values (((ext flow) (recv-frame conn)))
-		(flow-control link flow values))
+	      (flow-control link values)
 	      (detach-amqp-link! link))))))
 
   (define-composite-type transfer amqp:transfer:list #x00000000 #x00000014
@@ -423,6 +423,12 @@
      (aborted         :type :boolean :default #f)
      (batchable       :type :boolean :default #f))
     :provides (frame))
+  (define-method write-object ((t <amqp-transfer>) out)
+    (format out "#<transfer ~a:~a f:~a ~a>"
+	    (bytevector->hex-string (~ t 'delivery-tag))
+	    (~ t 'delivery-id)
+	    (~ t 'message-format)
+	    (~ t 'more)))
 
   (define-composite-type disposition amqp:disposition:list #x00000000 #x00000015
     ((role :type role :mandatory #t)
@@ -446,14 +452,12 @@
      (properties       :type fields))
     :provides (frame))
 
-
-  (define (recv-flow-frame conn)
-    (let-values (((ext flow) (recv-frame conn))) flow))
   ;; well for may laziness...
   ;; TODO this is not correct
-  (define-method flow-control ((link <amqp-sender-link>) flow k)
-    (let* ((session (~ link 'session))
-	   (conn (~ session 'connection)))
+  (define-method flow-control ((link <amqp-sender-link>) k)
+    (define session (~ link 'session))
+    (define conn (~ session 'connection))
+    (let-values (((ext flow) (recv-frame conn)))
       (when flow
 	;; session info
 	(let ((inext (if (slot-bound? flow 'next-incoming-id)
@@ -470,6 +474,7 @@
 	;; link info
 	(set! (~ link 'remote-link-credit) (~ flow 'link-credit))
 	(set! (~ link 'remote-delivery-count) (~ flow 'delivery-count)))
+      ;; we probably don't have to send this back...
       (let1 flow (make-amqp-flow 
 		  ;; if the role is sender then this must be set
 		  :next-incoming-id 0
@@ -478,11 +483,22 @@
 		  :outgoing-window 0
 		  :handle (~ link 'handle)
 		  :delivery-count 0
-		  :link-credit #x64)
+		  :link-credit (+ (~ link 'remote-link-credit)
+				  (~ link 'remote-delivery-count)))
 	(send-frame conn flow)
 	(k link))))
-  (define-method flow-control ((link <amqp-receiver-link>) flow k)
-    )
+  (define-method flow-control ((link <amqp-receiver-link>) k)
+    (define session (~ link 'session))
+    (define conn (~ session 'connection))
+    ;; send flow
+    (send-frame conn (make-amqp-flow :next-incoming-id 0
+				     :incoming-window #x7FFFFFFF
+				     :next-outgoing-id 1
+				     :outgoing-window 0
+				     :handle (~ link 'handle)
+				     :link-credit #x64))
+    ;; we don't have to receive flow here
+    (k link))
 
   (define (detach-amqp-link! link :key error)
     (define (free-handle handle map) (vector-set! map handle #f))
@@ -540,8 +556,25 @@
       (if (< (bytevector-length message) (- frame-size 512))
 	  (let1 transfer (apply make-transfer message :more #f opt)
 	    (send-frame connection transfer message)
-	    (let-values (((ext flow) (recv-frame connection)))
-	      (flow-control link flow handle-disposition)))
+	    (flow-control link handle-disposition))
 	  (error 'send-transfer "not supported yet"))))
+
+  (define (recv-transfer link)
+    (define session (~ link 'session))
+    (define connection (~ session 'connection))
+    (define (finish result)
+      (flow-control link (lambda (link) result)))
+
+    (let-values (((out extract) (open-bytevector-output-port)))
+      (let loop ()
+	(let-values (((ext transfer payload) (recv-frame&payload connection)))
+	  (put-bytevector out payload)
+	  (if (~ transfer 'more)
+	      (loop)
+	      (let ((in (open-bytevector-input-port (extract))))
+		(let loop ((d (read-amqp-data in)) (r '()))
+		  (if (eof-object? d)
+		      (finish (reverse! r))
+		      (loop (read-amqp-data in) (cons d r))))))))))
 	
   )

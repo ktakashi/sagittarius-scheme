@@ -142,9 +142,11 @@
     (hashtable-set! *type/class-table* name class))
 
   (define (read-constructor in)
-    (let* ((first (get-u8 in))
-	   (descriptor (and (zero? first) (read-amqp-data in))))
-      (values first descriptor)))
+    (let ((first (get-u8 in)))
+      (if (eof-object? first)
+	  (values first #f)
+	  (let ((descriptor (and (zero? first) (read-amqp-data in))))
+	    (values first descriptor)))))
   (define (read-data code in)
     (let ((sub-cate (sub-category code))
 	  (sub-type (sub-type code))
@@ -219,9 +221,10 @@
 		      (scheme-value compound))))))
   (define (read-amqp-data in)
     (let-values (((first descriptor) (read-constructor in)))
-      (if descriptor
-	  (construct-composite descriptor (read-data (get-u8 in) in))
-	  (read-data first in))))
+      (cond ((eof-object? first) first)
+	    (descriptor
+	     (construct-composite descriptor (read-data (get-u8 in) in)))
+	    (else (read-data first in)))))
 
   (define (write-primitive-amqp-data out type v)
     (define (get-type slot) (slot-definition-option slot :type))
