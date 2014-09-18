@@ -491,8 +491,7 @@
     (define session (~ link 'session))
     (define conn (~ session 'connection))
     ;; send flow
-    (send-frame conn (make-amqp-flow :next-incoming-id 0
-				     :incoming-window #x7FFFFFFF
+    (send-frame conn (make-amqp-flow :incoming-window #x7FFFFFFF
 				     :next-outgoing-id 1
 				     :outgoing-window 0
 				     :handle (~ link 'handle)
@@ -559,22 +558,35 @@
 	    (flow-control link handle-disposition))
 	  (error 'send-transfer "not supported yet"))))
 
-  (define (recv-transfer link)
+  (define (recv-transfer link disposition-handler)
     (define session (~ link 'session))
     (define connection (~ session 'connection))
-    (define (finish result)
+    (define (finish first-id transfer result)
+      (define (make-disposition settled? state)
+	(make-amqp-disposition 
+	 :role #t
+	 :first first-id
+	 :last (~ transfer 'delivery-id) ;; for now we don't support this yet
+	 :settled settled?
+	 :state state))
+      ;; send disposition
+      (send-frame connection (disposition-handler 'accepted make-disposition))
+      ;; this might be a flow so handle it...
+      (let-values (((ext disp) (recv-frame connection)))
+	;; (display disp) (newline)
+	)
       (flow-control link (lambda (link) result)))
-
     (let-values (((out extract) (open-bytevector-output-port)))
-      (let loop ()
+      (let loop ((first-id #f))
 	(let-values (((ext transfer payload) (recv-frame&payload connection)))
 	  (put-bytevector out payload)
 	  (if (~ transfer 'more)
-	      (loop)
+	      (loop (or first-id (~ transfer 'delivery-id)))
 	      (let ((in (open-bytevector-input-port (extract))))
 		(let loop ((d (read-amqp-data in)) (r '()))
 		  (if (eof-object? d)
-		      (finish (reverse! r))
+		      (finish (or first-id (~ transfer 'delivery-id))
+			      transfer (reverse! r))
 		      (loop (read-amqp-data in) (cons d r))))))))))
 	
   )

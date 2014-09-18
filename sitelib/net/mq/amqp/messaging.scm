@@ -213,9 +213,14 @@
 	(error 'annotation-delete! "amqp-annotation required" annot))
       (hashtable-delete! (scheme-value (scheme-value annot)) key)))
 
+  ;; FIXME
   (define (disposition-handler disposition make-disposition)
-    (let ((state (~ disposition 'state)))
-      (if (amqp-accepted? state)
-	  (make-disposition #t (make-amqp-accepted))
-	  (make-disposition #f (make-amqp-received)))))
+    (if (symbol? disposition)
+	(case disposition
+	  ((accepted) (make-disposition #t (make-amqp-accepted)))
+	  (else       (make-disposition #f (make-amqp-received))))
+	(let ((state (~ disposition 'state)))
+	  (if (amqp-accepted? state)
+	      (make-disposition #t (make-amqp-accepted))
+	      (make-disposition #f (make-amqp-received))))))
 )
