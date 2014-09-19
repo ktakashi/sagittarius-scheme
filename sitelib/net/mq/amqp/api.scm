@@ -49,6 +49,22 @@
 	    create-amqp-binary-message
 	    create-amqp-mime-message
 	    amqp-message-data
+	    ;; amqp-message-header
+	    ;; header
+	    amqp-message-header-durable
+	    amqp-message-header-durable-set!
+	    amqp-message-header-priority
+	    amqp-message-header-priority-set!
+	    amqp-message-header-ttl
+	    amqp-message-header-ttl-set!
+	    amqp-message-header-first-aquirer
+	    amqp-message-header-first-aquirer-set!
+	    amqp-message-header-delivery-count
+	    amqp-message-header-delivery-count-set!
+	    ;; application properties
+	    amqp-message-delete-property!
+	    amqp-message-ref-property
+	    amqp-message-set-string-property!
 	    )
     (import (rnrs)
 	    (clos user)
@@ -158,4 +174,43 @@
   (define (amqp-message-data message)
     (scheme-value (~ message 'application-data 'value)))
 
+  ;; (define (amqp-message-header message) (~ message 'header))
+
+  (define-syntax define-header-accessor
+    (lambda (x)
+      (syntax-case x ()
+	((k prop type)
+	 (with-syntax ((ref (datum->syntax #'k
+			     (string->symbol
+			      (format "amqp-message-header-~a" 
+				      (syntax->datum #'prop)))))
+		       (set (datum->syntax #'k
+			     (string->symbol
+			      (format "amqp-message-header-~a-set!" 
+				      (syntax->datum #'prop))))))
+	   #'(begin
+	       (define (ref message) (~ message 'header 'prop))
+	       (define (set message v) 
+		 (set! (~ message 'header 'prop) v))))))))
+  
+  (define-header-accessor durable :boolean)
+  (define-header-accessor priority :ubyte)
+  (define-header-accessor ttl milliseconds)
+  (define-header-accessor first-aquirer :boolean)
+  (define-header-accessor delivery-count :uint)
+
+  (define (amqp-message-delete-property! m key)
+    (annotation-delete! (~ m 'application-properties) 
+			(->amqp-value :string (->string key))))
+
+  (define (amqp-message-set-property! m key type v)
+    (annotation-set! (~ m 'application-properties)
+		     (->amqp-value :string (->string key))
+		     (->amqp-value type v)))
+  (define (amqp-message-set-string-property! message key str)
+    (amqp-message-set-property! message key :string str))
+
+  (define (amqp-message-ref-property m key)
+    (scheme-value (annotation-ref (~ m 'application-properties) 
+				  (->amqp-value :string (->string key)))))
 )
