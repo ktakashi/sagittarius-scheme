@@ -43,16 +43,16 @@
 	    annotation-set!
 	    annotation-ref
 	    annotation-delete!
-	    ;; for testing
-	    make-amqp-header
-	    <amqp-delivery-annotations>
-	    <amqp-message-annotations>
-	    make-amqp-properties
-	    make-amqp-application-properties
-	    <amqp-data>
+
+	    <amqp-header> make-amqp-header
+	    <amqp-delivery-annotations> make-amqp-delivery-annotation
+	    <amqp-message-annotations> make-amqp-message-annotation
+	    <amqp-properties> make-amqp-properties
+	    <amqp-application-properties> make-amqp-application-properties
+	    <amqp-data> make-amqp-data
 	    <amqp-amqp-sequence>
-	    make-amqp-amqp-value
-	    <amqp-footer>
+	    <amqp-amqp-value> make-amqp-amqp-value
+	    <amqp-footer> make-amqp-footer
 	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
@@ -138,11 +138,17 @@
   (define-restricted-type delivery-annotations annotations
     :provides (section)
     :descriptor (amqp:delivery-annotations:map #x00000000 #x00000071))
+  (define (make-amqp-delivery-annotation)
+    (make <amqp-delivery-annotations> 
+      :value (->amqp-value :map (make-equal-hashtable))))
 
   ;; 3.2.3 Message Annotations
   (define-restricted-type message-annotations annotations
     :provides (section)
     :descriptor (amqp:message-annotations:map #x00000000 #x00000072))
+  (define (make-amqp-message-annotation)
+    (make <amqp-message-annotations> 
+      :value (->amqp-value :map (make-equal-hashtable))))
 
   ;; 3.2.4 Properties
   (define-composite-type properties amqp:properties:list #x00000000 #x00000073
@@ -173,6 +179,7 @@
   (define-restricted-type data :binary
     :provides (section)
     :descriptor (amqp:data:binary #x00000000 #x00000075))
+  (define (make-amqp-data bv) (make <amqp-data> :value bv))
 
   ;; 3.2.7 Amqp Sequence
   (define-restricted-type amqp-sequence :list
@@ -190,6 +197,9 @@
   (define-restricted-type footer annotations
     :provides (section)
     :descriptor (amqp:footer:map #x00000000 #x00000078))
+  (define (make-amqp-footer)
+    (make <amqp-footer> 
+      :value (->amqp-value :map (make-equal-hashtable))))
 
   ;; utilities
   (define (annotation-set! annot key value)
@@ -218,7 +228,7 @@
     (if (symbol? disposition)
 	(case disposition
 	  ((accepted) (make-disposition #t (make-amqp-accepted)))
-	  (else       (make-disposition #f (make-amqp-received))))
+	  (else       (make-disposition #f (make-amqp-released))))
 	(let ((state (~ disposition 'state)))
 	  (if (amqp-accepted? state)
 	      (make-disposition #t (make-amqp-accepted))

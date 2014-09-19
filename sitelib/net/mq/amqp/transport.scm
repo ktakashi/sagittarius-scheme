@@ -94,6 +94,7 @@
     ((principal  :init-keyword :principal :init-value #f)
      ;; socket-port
      (socket     :init-keyword :socket)
+     (raw-socket :init-keyword :raw-socket)
      ;; for informations
      (hostname   :init-keyword :hostname)
      (port       :init-keyword :port)
@@ -158,6 +159,7 @@
     
     (let* ((socket (make-client-socket host service))
 	   (conn (make <amqp-connection> :socket (socket-port socket)
+		       :raw-socket socket
 		       :state :start
 		       :hostname host :port service)))
       (negotiate-header conn major minor revision)
@@ -424,10 +426,9 @@
      (batchable       :type :boolean :default #f))
     :provides (frame))
   (define-method write-object ((t <amqp-transfer>) out)
-    (format out "#<transfer ~a:~a f:~a ~a>"
+    (format out "#<transfer ~a:~a ~a>"
 	    (bytevector->hex-string (~ t 'delivery-tag))
 	    (~ t 'delivery-id)
-	    (~ t 'message-format)
 	    (~ t 'more)))
 
   (define-composite-type disposition amqp:disposition:list #x00000000 #x00000015
@@ -475,6 +476,7 @@
 	(set! (~ link 'remote-link-credit) (~ flow 'link-credit))
 	(set! (~ link 'remote-delivery-count) (~ flow 'delivery-count)))
       ;; we probably don't have to send this back...
+      #;
       (let1 flow (make-amqp-flow 
 		  ;; if the role is sender then this must be set
 		  :next-incoming-id 0
@@ -486,11 +488,13 @@
 		  :link-credit (+ (~ link 'remote-link-credit)
 				  (~ link 'remote-delivery-count)))
 	(send-frame conn flow)
-	(k link))))
+	(k link))
+      (k link)))
   (define-method flow-control ((link <amqp-receiver-link>) k)
     (define session (~ link 'session))
     (define conn (~ session 'connection))
     ;; send flow
+    ;; FIXME compute properly
     (send-frame conn (make-amqp-flow :incoming-window #x7FFFFFFF
 				     :next-outgoing-id 1
 				     :outgoing-window 0
@@ -558,35 +562,43 @@
 	    (flow-control link handle-disposition))
 	  (error 'send-transfer "not supported yet"))))
 
+  ;; FIXME this is too naive, even doesn't do proper flow control.
+  ;; Receive one set of transfers. The broker may send more but
+  ;; that will be handled receiver tries to retrieve more.
+  ;; TODO consider +amqp-second+ option.
   (define (recv-transfer link disposition-handler)
     (define session (~ link 'session))
     (define connection (~ session 'connection))
-    (define (finish first-id transfer result)
+    ;; TODO we may not want to create buffer port when just discarding
+    (define (read-transfer)
+      (let-values (((out extract) (open-bytevector-output-port)))
+	(let loop ((first-id #f))
+	  (let-values (((ext transfer payload)
+			(recv-frame&payload connection)))
+	    (put-bytevector out payload)
+	    (if (~ transfer 'more)
+		(loop (or first-id (~ transfer 'delivery-id)))
+		(values (or first-id (~ transfer 'delivery-id))
+			(~ transfer 'delivery-id)
+			(extract)))))))
+    (define (send-disposition first-id last-id type)
       (define (make-disposition settled? state)
 	(make-amqp-disposition 
 	 :role #t
 	 :first first-id
-	 :last (~ transfer 'delivery-id) ;; for now we don't support this yet
-	 :settled settled?
+	 :last last-id
+	 :settled (eq? type 'accepted)
 	 :state state))
       ;; send disposition
-      (send-frame connection (disposition-handler 'accepted make-disposition))
-      ;; this might be a flow so handle it...
-      (let-values (((ext disp) (recv-frame connection)))
-	;; (display disp) (newline)
-	)
-      (flow-control link (lambda (link) result)))
-    (let-values (((out extract) (open-bytevector-output-port)))
-      (let loop ((first-id #f))
-	(let-values (((ext transfer payload) (recv-frame&payload connection)))
-	  (put-bytevector out payload)
-	  (if (~ transfer 'more)
-	      (loop (or first-id (~ transfer 'delivery-id)))
-	      (let ((in (open-bytevector-input-port (extract))))
-		(let loop ((d (read-amqp-data in)) (r '()))
-		  (if (eof-object? d)
-		      (finish (or first-id (~ transfer 'delivery-id))
-			      transfer (reverse! r))
-		      (loop (read-amqp-data in) (cons d r))))))))))
+      (send-frame connection (disposition-handler type make-disposition)))
+    (let loop ()
+      (let-values (((first last value) (read-transfer)))
+	(cond ((is-a? value <amqp-flow>)
+	       ;; may be previous transfer's <flow> so handle it
+	       ;; TODO flow control
+	       (flow-control link (lambda (link) (loop))))
+	      (else
+	       (send-disposition first last 'accepted)
+	       value)))))
 	
   )
