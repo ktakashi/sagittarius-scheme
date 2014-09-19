@@ -145,16 +145,20 @@
   (define-class <amqp-receiver-link> (<amqp-link>) ())
 
   ;; will version be other than 1.0.0 for future?
-  ;;(define-constant +version-prefix+ "AMQP\x0;")
-  (define-constant +version-prefix+ #vu8(65 77 81 80 0)) ;; "AMQP\x0;"
+  (define-constant +version-prefix+ #vu8(65 77 81 80)) ;; "AMQP"
   
   (define-constant +initial-end-states+ '(:opended :end))
+
+  (define-constant +no-security+ 0)
+  ;; TODO support them
+  (define-constant +use-tls+     2)
+  (define-constant +use-sasl+    3)
 
   ;; socket can be either TLS or raw socket
   (define (amqp-make-client-connection host service
 				       :key (major 1) (minor 0) (revision 0)
 					    ;; not supported yet
-					    (sasl? #f)
+					    (security-level +no-security+)
 				       :allow-other-keys opts)
     
     (let* ((socket (make-client-socket host service))
@@ -162,12 +166,13 @@
 		       :raw-socket socket
 		       :state :start
 		       :hostname host :port service)))
-      (negotiate-header conn major minor revision)
+      (negotiate-header conn major minor revision security-level)
       (apply open-amqp-connection! conn opts)))
 
-  (define (negotiate-header conn major minor revision)
+  (define (negotiate-header conn major minor revision security-mark)
     (define (construct-header out)
       (put-bytevector out +version-prefix+)
+      (put-u8 out security-mark)
       (put-u8 out major)
       (put-u8 out minor)
       (put-u8 out revision))
@@ -175,7 +180,9 @@
       (put-bytevector (~ conn 'socket) header)
       (let1 res (get-bytevector-n (~ conn 'socket) (bytevector-length header))
 	(unless (bytevector=? header res)
-	  (error 'negotiate-header "unknown protocol" (utf8->string res)))
+	  (error 'negotiate-header "unknown protocol" 
+		 `((request ,(utf8->string header))
+		   (response ,(utf8->string res)))))
 	(set! (~ conn 'state) :hdr-exch))))
 
   ;; misc types
@@ -455,26 +462,30 @@
 
   ;; well for may laziness...
   ;; TODO this is not correct
+  (define (sender-flow-control link flow)
+    (define session (~ link 'session))
+    ;; session info
+    (let ((inext (if (slot-bound? flow 'next-incoming-id)
+		     (~ flow 'next-incoming-id)
+		     #f))
+	  (iwin (~ flow 'incoming-window)))
+      (if inext
+	  (let1 iwin2 (- (+ inext iwin) (~ session 'next-outgoing-id))
+	    (set! (~ session 'remote-next-incoming-id) inext)
+	    (set! (~ session 'remote-incoming-window) iwin2))
+	  (set! (~ session 'remote-incoming-window) iwin))
+      (set! (~ session 'remote-next-outgoint-id) (~ flow 'next-outgoing-id))
+      (set! (~ session 'remote-outgoing-window) (~ flow 'outgoing-window)))
+    ;; link info
+    (set! (~ link 'remote-link-credit) (~ flow 'link-credit))
+    (set! (~ link 'remote-delivery-count) (~ flow 'delivery-count))
+    link)
+
   (define-method flow-control ((link <amqp-sender-link>) k)
     (define session (~ link 'session))
     (define conn (~ session 'connection))
     (let-values (((ext flow) (recv-frame conn)))
-      (when flow
-	;; session info
-	(let ((inext (if (slot-bound? flow 'next-incoming-id)
-			 (~ flow 'next-incoming-id)
-			 #f))
-	      (iwin (~ flow 'incoming-window)))
-	  (if inext
-	      (let1 iwin2 (- (+ inext iwin) (~ session 'next-outgoing-id))
-		(set! (~ session 'remote-next-incoming-id) inext)
-		(set! (~ session 'remote-incoming-window) iwin2))
-	      (set! (~ session 'remote-incoming-window) iwin))
-	  (set! (~ session 'remote-next-outgoint-id) (~ flow 'next-outgoing-id))
-	  (set! (~ session 'remote-outgoing-window) (~ flow 'outgoing-window)))
-	;; link info
-	(set! (~ link 'remote-link-credit) (~ flow 'link-credit))
-	(set! (~ link 'remote-delivery-count) (~ flow 'delivery-count)))
+      (sender-flow-control link flow)
       ;; we probably don't have to send this back...
       #;
       (let1 flow (make-amqp-flow 
@@ -513,8 +524,16 @@
 	(send-frame conn detach)
 	(free-handle (~ link 'handle) (~ link 'session 'local-handles))
 	;; receive detach
-	(let-values (((ext detach) (recv-frame conn)))
-	  (free-handle (~ detach 'handle) (~ link 'session 'remote-handles)))
+	;; At least ActiveMQ, it just sends all pending messages.
+	;; So even when we send detach message however there might
+	;; be some other messages in the socket. What we can is 
+	;; that discard them until we receive response of detach.
+	(let loop ()
+	  (let-values (((ext detach) (recv-frame conn)))
+	    (if (is-a? detach <amqp-detach>)
+		(free-handle (~ detach 'handle) 
+			     (~ link 'session 'remote-handles))
+		(loop))))
 	(set! (~ link 'state) :detached)))
     link)
 
@@ -546,20 +565,22 @@
        :state state))
     (define (handle-disposition link)
       (let-values (((ext disp) (recv-frame connection)))
-	;; TODO disposition contains first and last
-	;; I think we should check it...
-	(let1 sender-disp (disposition-handler disp make-disposition)
-	  (send-frame connection sender-disp)
-	  (if (~ sender-disp 'settled)
-	      link
-	      ;; TODO send the rest message
-	      (handle-disposition link)))))
+	(if (is-a? disp <amqp-flow>)
+	    (handle-disposition (sender-flow-control link disp))
+	    ;; TODO disposition contains first and last
+	    ;; I think we should check it...
+	    (let1 sender-disp (disposition-handler disp make-disposition)
+	      (send-frame connection sender-disp)
+	      (if (~ sender-disp 'settled)
+		  link
+		  ;; TODO send the rest message
+		  (handle-disposition link))))))
     (let ((frame-size (~ connection 'frame-size)))
       ;; can be sen in one go
       (if (< (bytevector-length message) (- frame-size 512))
 	  (let1 transfer (apply make-transfer message :more #f opt)
 	    (send-frame connection transfer message)
-	    (flow-control link handle-disposition))
+	    (handle-disposition link))
 	  (error 'send-transfer "not supported yet"))))
 
   ;; FIXME this is too naive, even doesn't do proper flow control.

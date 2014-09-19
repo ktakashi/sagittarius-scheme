@@ -77,8 +77,8 @@
 	    (sagittarius object)
 	    (sagittarius control))
 
-  (define (with-amqp-connection host service proc)
-    (define conn (amqp-make-client-connection host service))
+  (define (with-amqp-connection host service proc . opts)
+    (define conn (apply amqp-make-client-connection host service opts))
     (unwind-protect (proc conn) (close-amqp-connection! conn)))
   (define (with-amqp-session conn proc)
     (define s (begin-amqp-session! conn))
