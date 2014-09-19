@@ -681,7 +681,7 @@ static int symbol_need_bar(const SgChar *s, int n)
   }
 #endif
 
-  if (isdigit(s[0])) {
+  if (s[0] <= 0x7F && isdigit(s[0])) {
     return TRUE;
   } else {
     SgChar c;
