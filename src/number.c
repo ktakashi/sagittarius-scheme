@@ -3572,7 +3572,9 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       }
     }
     x = Sg_MakeBignumFromSI(SG_INT_VALUE(x));
-    e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
+    if (SG_INTP(e)) {
+      e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
+    }
     if (SG_INTP(m)) {
       m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
     }

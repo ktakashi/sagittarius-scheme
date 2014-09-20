@@ -111,7 +111,7 @@
   (define-method write-object ((o <hmac>) out)
     (format out "#<hmac ~a>" (slot-ref o 'hash)))
 
-  (define-class <hmac-marker> () ())
-  (define HMAC (make <hmac-marker>))
+  ;;(define-class <hmac-marker> () ())
+  (define HMAC :hmac)
   (register-hash HMAC <hmac>)
 )
