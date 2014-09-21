@@ -1,32 +1,58 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 ;; compat.scm:  provides R7RS compatible procedures and macros
 #!core
+;; for unbound variable warning
+(library (compat r7rs helper)
+    (export any length* error cons-source)
+    (import (core)
+	    (core base)
+	    (rename (core errors) (error core:error))
+	    (only (sagittarius vm debug) source-info-set!))
+  ;; Chibi allow 'ls' to be non pair as its extension.
+  ;; syntax-rules depends on this behaviour so we need to allow it
+  (define (any pred ls)
+    (if (pair? ls)
+	(if (null? (cdr ls)) 
+	    (pred (car ls))
+	    (or (pred (car ls))
+		(any pred (cdr ls))))
+	#f))
+
+  (define (error msg . irr) (apply core:error 'syntax-rules msg irr))
+
+  ;; Chibi's length* returns element count of car parts of inproper list
+  ;; e.g) (length* '(1 2 3 . 4)) ;; => 3
+  ;; And syntax-rules depends on this behaviour. So provide it.
+  ;; it's a bit awkward way to do it
+  (define (length* ls)
+    (let ((r (length ls)))
+      (cond ((positive? r) r)	    ; no worry
+	    ((= r -2) #f)	    ; -2 is circular list so return #f
+	    (else
+	     (let loop ((i 0) (ls ls))
+	       (if (not (pair? ls))
+		   i
+		   (loop (+ i 1) (cdr ls))))))))
+
+  (define (cons-source kar kdr source) (source-info-set! (cons kar kdr) source))
+)
+
 (library (compat r7rs)
     (export syntax-rules)
     (import (rename (except (core) identifier?)
-		    (length length*)
 		    (number->string %number->string))
-	    (rename (core base) (for-all every) (exists any))
-	    (rename (core errors) (error core:error))
+	    (core base)
 	    (rename (sagittarius)
 		    (unwrap-syntax strip-syntactic-closures)
 		    ;; on chibi-scheme, identifier is either symbol or syntax
 		    ;; object. so we need to provide this.
 		    (variable? identifier?))
-	    (only (sagittarius vm debug) source-info-set!))
-
-(define (cons-source kar kdr source)
-  (source-info-set! (cons kar kdr) source))
-(define (error msg . irr)
-  (apply core:error 'syntax-rules msg irr))
+	    (compat r7rs helper))
 
 ;; from chibi-scheme
 (define-syntax syntax-rules
   (er-macro-transformer
    (lambda (expr rename compare)
-     ;; for unbound variable warning
-     (define (error msg . irr)
-       (apply core:error 'syntax-rules msg irr))
      (let ((ellipsis-specified? (identifier? (cadr expr)))
            (count 0)
            (_er-macro-transformer (rename 'er-macro-transformer))
@@ -85,7 +111,7 @@
                          (,_and (,_>= ,_len ,len)
                                 (,_let ,_lp ((,_ls ,v)
                                              (,_i (,_- ,_len ,len))
-                                             (,_res (,_quote ())))
+                                             (,_res (,_quote ()))) 
                                   (,_if (,_>= 0 ,_i)
                                       ,(lp `(,(cddr p) 
                                              (,(car p) ,(car (cdr p))))
