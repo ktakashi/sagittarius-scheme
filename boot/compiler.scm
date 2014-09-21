@@ -3031,10 +3031,6 @@
      (or (and-let* (( (not (assq op intdefs)) )
 		    (env (if (string? env/path) p1env env/path))
 		    (head (pass1/lookup-head op env)))
-	   (unless (list? args)
-	     (syntax-error 
-	      "proper list required for function application or macro use"
-	      (caar exprs)))
 	   (cond ((lvar? head)
 		  (pass1/body-finish intdefs intmacros exprs env))
 		 ((macro? head)
@@ -3179,6 +3175,9 @@
 
 
 (define (pass1/call form proc args p1env)
+  (unless (list? form)
+    (error 'pass1 "proper list required for function application"
+	   (if (circular-list? form) form (unwrap-syntax form))))
   (let ((src ($history form)))
     (cond ((null? args)
 	   ($call src proc '()))
@@ -3214,6 +3213,11 @@
   (define (pass1/expand-inliner name proc)
     (let ((inliner (procedure-inliner proc)))
       (cond ((integer? inliner)
+	     ;; inliner procedure should check the argument.
+	     ;; so for now it's here. we may check both for future.
+	     (unless (list? form)
+	       (error 'pass1 "proper list required for function application"
+		      (if (circular-list? form) form (unwrap-syntax form))))
 	     (let ((nargs (length (cdr form)))
 		   (opt?   (procedure-optional? proc)))
 	       (unless (argcount-ok? (cdr form)
@@ -3233,9 +3237,6 @@
 		   inlined))))))
   (cond
    ((pair? form)
-    (unless (list? form)
-      (error 'pass1 "proper list required for function application or macro use"
-	     (if (circular-list? form) form (unwrap-syntax form))))
     (cond ((pass1/lookup-head (car form) p1env)
 	   => (lambda (obj)
 		(cond ((identifier? obj) (pass1/global-call obj))
