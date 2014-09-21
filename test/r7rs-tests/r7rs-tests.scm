@@ -2294,6 +2294,18 @@
   (let ((n 3))
     (test 3 (foo n (values n)))))
 
+;; http://d.hatena.ne.jp/mjt/20140921/p1
+(define-syntax extract-last
+  (syntax-rules ()
+    ((_ (bogus ... . last))
+     'last)
+    ((_ bogus) "error")))
+
+(test 1 (extract-last (0 . 1))) ;; => 1
+(test '() (extract-last (1 0))) ;; => nil
+(test '() (extract-last ())) ;; => nil
+(test 1 (extract-last 1)) ;; => 1 
+
 (test-end)
 
 (test-end)
