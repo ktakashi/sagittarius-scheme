@@ -34,13 +34,17 @@
 (library (net mq amqp transport)
     (export amqp-make-client-connection
 	    open-amqp-connection!
+	    amqp-connection?
 	    close-amqp-connection!
 	    ;; session
 	    begin-amqp-session!
 	    end-amqp-session!
+	    amqp-session?
 	    ;; link
 	    attach-amqp-link!
 	    detach-amqp-link!
+	    amqp-sender-link?
+	    amqp-receiver-link?
 	    ;; misc
 	    +amqp-sender+
 	    +amqp-receiver+
@@ -102,6 +106,7 @@
      (frame-size :init-keyword :frame-size)
      ;; channels
      (remote-channels :init-form (make-vector +channel-max+ #f))))
+  (define (amqp-connection? o) (is-a? o <amqp-connection>))
 
   ;; max hande count, should be sufficient
   ;; TODO if we support sparse array, then we can make this default
@@ -124,6 +129,7 @@
      ;; for creating a link we need to assing unused handle
      (remote-handles :init-form (make-vector +handle-max+ #f))
      (local-handles  :init-form (make-vector +handle-max+ #f))))
+  (define (amqp-session? o) (is-a? o <amqp-session>))
 
   (define-class <amqp-link> (<state-mixin>)
     ((name :init-keyword :name :init-value #f)
@@ -143,6 +149,8 @@
 
   (define-class <amqp-sender-link> (<amqp-link>) ())
   (define-class <amqp-receiver-link> (<amqp-link>) ())
+  (define (amqp-sender-link? o) (is-a? o <amqp-sender-link>))
+  (define (amqp-receiver-link? o) (is-a? o <amqp-receiver-link>))
 
   ;; will version be other than 1.0.0 for future?
   (define-constant +version-prefix+ #vu8(65 77 81 80)) ;; "AMQP"
@@ -578,7 +586,7 @@
     (let ((frame-size (~ connection 'frame-size)))
       ;; can be sen in one go
       (if (< (bytevector-length message) (- frame-size 512))
-	  (let1 transfer (apply make-transfer message :more #f opt)
+	  (let1 transfer (make-transfer message :more #f)
 	    (send-frame connection transfer message)
 	    (handle-disposition link))
 	  (error 'send-transfer "not supported yet"))))
@@ -587,7 +595,7 @@
   ;; Receive one set of transfers. The broker may send more but
   ;; that will be handled receiver tries to retrieve more.
   ;; TODO consider +amqp-second+ option.
-  (define (recv-transfer link disposition-handler)
+  (define (recv-transfer link disposition-handler :key (query #f))
     (define session (~ link 'session))
     (define connection (~ session 'connection))
     ;; TODO we may not want to create buffer port when just discarding
@@ -618,8 +626,9 @@
 	       ;; may be previous transfer's <flow> so handle it
 	       ;; TODO flow control
 	       (flow-control link (lambda (link) (loop))))
-	      (else
+	      ((or (not query) (query value))
 	       (send-disposition first last 'accepted)
-	       value)))))
+	       value)
+	      (else (send-disposition first last 'released) (loop))))))
 	
   )

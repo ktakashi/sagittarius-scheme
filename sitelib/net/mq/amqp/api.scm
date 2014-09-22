@@ -31,8 +31,11 @@
 (library (net mq amqp api)
     (export (rename (amqp-make-client-connection open-amqp-connection))
 	    close-amqp-connection!
+	    amqp-connection?
+
 	    begin-amqp-session!
 	    end-amqp-session!
+	    amqp-session?
 
 	    call-with-amqp-connection
 	    call-with-amqp-session
@@ -40,11 +43,14 @@
 	    create-amqp-sender
 	    create-amqp-receiver
 	    (rename (detach-amqp-link! destroy-amqp-sender)
-		    (detach-amqp-link! destroy-amqp-receiver))
+		    (detach-amqp-link! destroy-amqp-receiver)
+		    (amqp-sender-link? amqp-sender?)
+		    (amqp-receiver-link? amqp-receiver?))
 
 	    send-amqp-message
 	    receive-amqp-message
 	    ;; message
+	    amqp-message?
 	    create-amqp-text-message
 	    create-amqp-binary-message
 	    create-amqp-mime-message
@@ -63,7 +69,8 @@
 	    amqp-message-delivery-count-set!
 	    ;; properties
 	    amqp-message-message-id
-	    amqp-message-message-id-set!
+	    ;; now should we expose this?
+	    ;; amqp-message-message-id-set!
 	    amqp-message-user-id
 	    amqp-message-user-id-set!
 	    amqp-message-to
@@ -125,6 +132,8 @@
 			  :init-form (make-amqp-message-annotation))
      (footer :init-keyword :footer :init-form (make-amqp-footer))))
 
+  (define (amqp-message? o) (is-a? o <amqp-annotated-message>))
+
   (define (create-amqp-sender session destination)
     (let ((source (make-amqp-source :dynamic #t))
 	  (target (make-amqp-target 
@@ -143,35 +152,44 @@
     (send-transfer sender +message-format+ (amqp-message->bytevector message)
 		   disposition-handler))
 
-  (define (receive-amqp-message receiver :key (timeout #f))
+  ;; this can be used for query
+  (define (construct-message m)
+    (let ((in (open-bytevector-input-port m)))
+      (let loop ((opts '()))
+	(let ((e (read-amqp-data in)))
+	  ;; we don't check presense so the last come is used
+	  (cond ((eof-object? e) 
+		 (apply make <amqp-annotated-message> opts))
+		((is-a? e <amqp-header>) 
+		 (loop (cons* :header e opts)))
+		((is-a? e <amqp-footer>) 
+		 (loop (cons* :footer e opts)))
+		((is-a? e <amqp-delivery-annotations>) 
+		 (loop (cons* :delivery-annotations e opts)))
+		((is-a? e <amqp-message-annotations>) 
+		 (loop (cons* :message-annotations e opts)))
+		((is-a? e <amqp-properties>) 
+		 (loop (cons* :properties e opts)))
+		((is-a? e <amqp-application-properties>)
+		 (loop (cons* :application-properties e opts)))
+		((or (is-a? e <amqp-amqp-value>)
+		     (is-a? e <amqp-data>)
+		     (is-a? e <amqp-amqp-sequence>))
+		 (loop (cons* :application-data e opts)))
+		;; ignore or raise an error?
+		(else (loop opts)))))))
+
+;;   (define (amqp-query-message-id id)
+;;     (lambda (m)
+;;       (let ((message (construct-message m)))
+;; 	(equal? (amqp-message-message-id message) id))))
+	      
+  (define (receive-amqp-message receiver :key (timeout #f) (query #f))
     (define socket (~ receiver 'session 'connection 'raw-socket))
     (define (recv)
-      (let* ((m (recv-transfer receiver disposition-handler))
-	     (in (open-bytevector-input-port m)))
+      (let ((m (recv-transfer receiver disposition-handler :query query)))
 	;; message is just an bytevector so we need to parse it
-	(let loop ((opts '()))
-	  (let ((e (read-amqp-data in)))
-	    ;; we don't check presense so the last come is used
-	    (cond ((eof-object? e) 
-		   (apply make <amqp-annotated-message> opts))
-		  ((is-a? e <amqp-header>) 
-		   (loop (cons* :header e opts)))
-		  ((is-a? e <amqp-footer>) 
-		   (loop (cons* :footer e opts)))
-		  ((is-a? e <amqp-delivery-annotations>) 
-		   (loop (cons* :delivery-annotations e opts)))
-		  ((is-a? e <amqp-message-annotations>) 
-		   (loop (cons* :message-annotations e opts)))
-		  ((is-a? e <amqp-properties>) 
-		   (loop (cons* :properties e opts)))
-		  ((is-a? e <amqp-application-properties>)
-		   (loop (cons* :application-properties e opts)))
-		  ((or (is-a? e <amqp-amqp-value>)
-		       (is-a? e <amqp-data>)
-		       (is-a? e <amqp-amqp-sequence>))
-		   (loop (cons* :application-data e opts)))
-		  ;; ignore or raise an error?
-		  (else (loop opts)))))))
+	(construct-message m)))
     (let ((r (if timeout (socket-read-select timeout socket) '(1))))
       (if (null? r)
 	  #f
@@ -193,7 +211,7 @@
 
   (define (create-amqp-binary-message data)
     (make <amqp-annotated-message> 
-      :application-data (make-amqp-amqp-value (->amqp-value :binary text))))
+      :application-data (make-amqp-amqp-value (->amqp-value :binary data))))
 
   (define (create-amqp-mime-message content-type data)
     (make <amqp-annotated-message> 
