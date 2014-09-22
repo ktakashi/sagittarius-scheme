@@ -45,6 +45,9 @@
 	    tls-socket-info-values
 	    call-with-tls-socket
 	    <tls-socket>
+	    ;; blocking
+	    tls-socket-nonblocking!
+	    tls-socket-blocking!
 
 	    ;; for the user who wants to specify TSL version
 	    *tls-version-1.2*
@@ -60,6 +63,8 @@
 	    socket-name
 	    socket-info
 	    socket-info-values
+	    socket-nonblocking!
+	    socket-blocking!
 	    ;; to send handshake explicitly
 	    tls-server-handshake
 	    tls-client-handshake
@@ -1019,9 +1024,13 @@
 			   (~ session 'last-record-type) 
 			   (~ session 'buffer))
 	  ;; analyse the record
-	  (let* ((raw-socket (~ socket 'raw-socket))
-		 ;; the first 5 octets must be record header
-		 (buf (socket-recv raw-socket 5 flags)))
+	  ;; when the socket is nonblocking then socket-recv may return
+	  ;; #f instead of empty bytevector. In that case we need to return
+	  ;; #f as this procedure's result so that caller can know the
+	  ;; socket isn't ready yet.
+	  (and-let* ((raw-socket (~ socket 'raw-socket))
+		     ;; the first 5 octets must be record header
+		     (buf (socket-recv raw-socket 5 flags)))
 	    (unless (= (bytevector-length buf) 5)
 	      (tls-error 'read-record "invalid record header"
 			 *unexpected-message* buf))
@@ -1382,7 +1391,8 @@
     (when (tls-socket-closed? socket)
       (assertion-violation 'tls-socket-send
 			   "tls socket is alresy closed"))
-    (tls-socket-send-inner socket data flags *application-data* #t))
+    (tls-socket-send-inner socket data flags *application-data* #t)
+    (bytevector-length data))
 
   (define (tls-socket-send-inner socket data flags type encrypt?)
     (define (calculate-padding cipher len)
@@ -1467,8 +1477,9 @@
 		   (in (open-bytevector-input-port record)))
 	  (set! (~ socket 'buffer) in)
 	  (get-bytevector-n in size))
-	;; something is wrong
-	(tls-error 'tls-socket-recv "invalid socket state" *internal-error*)))
+	;; TODO check if the raw socket is nonblocking mode or not.
+	;; (tls-error 'tls-socket-recv "invalid socket state" *internal-error*)
+	))
 
   (define (send-alert socket level description)
     (let1 alert (make-tls-alert level description)
@@ -1476,10 +1487,16 @@
 			     (~ socket 'session 'session-encrypted?))))
 
   (define (tls-socket-close socket)
-    (send-alert socket *warning* *close-notify*)
-    (socket-close (~ socket 'raw-socket))
-    ;; if we don't have any socket, we can't reconnect
-    (set! (~ socket 'raw-socket) #f))
+    ;; the combination of socket conversion and call-with-tls-socket
+    ;; calls this twice and raises an error. so if the socket is
+    ;; already closed, then we need not to do twice.
+    (unless (tls-socket-closed? socket)
+      (send-alert socket *warning* *close-notify*)
+      (socket-close (~ socket 'raw-socket))
+      (socket-shutdown (~ socket 'raw-socket) SHUT_RDWR)
+      ;; if we don't have any socket, we can't reconnect
+      (set! (~ socket 'raw-socket) #f)
+      (set! (~ socket 'session 'closed?) #t)))
 
   ;; utility
   (define (call-with-tls-socket socket proc)
@@ -1495,6 +1512,11 @@
     (socket-info (~ socket 'raw-socket)))
   (define (tls-socket-info-values socket :key (type 'peer))
     (socket-info-values (~ socket 'raw-socket) :type type))
+
+  (define (tls-socket-nonblocking! socket) 
+    (socket-nonblocking! (~ socket 'raw-socket)))
+  (define (tls-socket-blocking! socket) 
+    (socket-blocking! (~ socket 'raw-socket)))
 
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
@@ -1520,4 +1542,9 @@
     (tls-socket-info o))
   (define-method socket-info-values ((o <tls-socket>) . opt)
     (apply tls-socket-info-values o opt))
+
+  (define-method socket-nonblocking! ((o <tls-socket>))
+    (tls-socket-nonblocking! o))
+  (define-method socket-blocking! ((o <tls-socket>))
+    (tls-socket-blocking! o))
   )

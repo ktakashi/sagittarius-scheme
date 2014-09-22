@@ -1,5 +1,6 @@
 (import (rnrs) 
 	(sagittarius threads) 
+	(sagittarius object) 
 	(rfc tls)
 	(rfc x.509) 
 	(crypto)
@@ -16,18 +17,80 @@
                              (current-date))
                       (make-x509-issuer '((C . "NL")))))
 
+(define server-socket (make-server-tls-socket "10000" (list cert)))
 
-(define server (make-server-tls-socket "5000" (list cert)))
-(define server-thread
-  (let ((t (make-thread (lambda ()
-              (let ((s (tls-socket-accept server)))
-                (tls-socket-send s (string->utf8 "hello")))))))
-    (thread-start! t))
-  (thread-sleep! 2))
+(define (server-run)
+  (let loop ()
+    (let ((addr (tls-socket-accept server-socket)))
+      (call-with-tls-socket addr
+	(lambda (sock)
+	  (let ((p (transcoded-port (tls-socket-port sock) 
+				    (native-transcoder))))
+	    (call-with-port p
+	      (lambda (p)
+		(let lp2 ((r (get-line p)))
+		  (cond ((or (not (string? r)) (string=? r "test-end")))
+			((or (not (string? r)) (string=? r "end")) (loop))
+			(else
+			 (let ((res (string->utf8 (string-append r "\r\n"))))
+			   (when (string=? r "wait")
+			     ;; wait one sec
+			     (thread-sleep! 1))
+			   (put-bytevector p res 0 (bytevector-length res) #t)
+			   (lp2 (get-line p))))))))))))))
 
-(let ((client (make-client-tls-socket "localhost" "5000")))
-  (test-equal "TLS client" "hello" (utf8->string (tls-socket-recv client 50))))
+(define server-thread (thread-start! (make-thread server-run)))
+(thread-sleep! 2)
 
-(test-assert "TLS server finish" (thread-join! server-thread))
+(let ((client-socket (make-client-tls-socket "localhost" "10000")))
+  (test-assert "tls-socket?"(tls-socket? client-socket))
+  (test-equal "raw socket-send"
+	      (+ (string-length "hello") 2) ;; for \r\n
+	      (tls-socket-send client-socket (string->utf8 "hello\r\n") 0))
+  (test-equal "raw socket-recv"
+	      (string->utf8 "hello\r\n")
+	      (tls-socket-recv client-socket (+ (string-length "hello") 2) 0))
+
+  ;; make port
+  (let ((port (tls-socket-port client-socket)))
+    (test-assert "port?" (port? port))
+    (test-assert "binary-port?" (binary-port? port))
+    (test-assert "input-port?" (input-port? port))
+    (test-assert "output-port?" (output-port? port))
+
+    (put-bytevector port (string->utf8 "put from port\r\n"))
+    (test-equal "get-bytevector-n"
+		(string->utf8 "put from port\r\n")
+		(get-bytevector-n port
+				  (string-length "put from port\r\n")))
+    ;; textual
+    (let ((text-port (transcoded-port port
+				      (make-transcoder (utf-8-codec)
+						       'crlf))))
+      (put-string text-port "put from text port\r\n")
+      (test-equal "get-line" "put from text port" (get-line text-port))
+      ;; end test
+      (put-string text-port "end\r\n")
+      ;; the test server is a bit too naive to handle this...
+      ;; (close-port text-port)
+      )))
+
+(let ((client-socket (make-client-tls-socket "localhost" "10000")))
+  (tls-socket-nonblocking! client-socket)
+  (test-equal "raw nonblocking socket-send"
+	      (+ (string-length "wait") 2)
+	      (tls-socket-send client-socket (string->utf8 "wait\r\n") 0))
+  (test-equal "raw nonblocking socket-recv"
+	      #f
+	      (tls-socket-recv client-socket 
+			       (+ (string-length "hello\r\n") 2) 0))
+  (tls-socket-blocking! client-socket)
+  (tls-socket-send client-socket (string->utf8 "test-end\r\n") 0)
+  (thread-sleep! 2)
+  (tls-socket-close client-socket)
+  )
+
+(thread-join! server-thread)
+;;(test-assert "TLS server finish" (thread-join! server-thread))
 
 (test-end)
