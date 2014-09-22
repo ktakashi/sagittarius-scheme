@@ -34,8 +34,8 @@
 	    begin-amqp-session!
 	    end-amqp-session!
 
-	    with-amqp-connection
-	    with-amqp-session
+	    call-with-amqp-connection
+	    call-with-amqp-session
 
 	    create-amqp-sender
 	    create-amqp-receiver
@@ -104,10 +104,10 @@
 	    (sagittarius object)
 	    (sagittarius control))
 
-  (define (with-amqp-connection host service proc . opts)
+  (define (call-with-amqp-connection host service proc . opts)
     (define conn (apply amqp-make-client-connection host service opts))
     (unwind-protect (proc conn) (close-amqp-connection! conn)))
-  (define (with-amqp-session conn proc)
+  (define (call-with-amqp-session conn proc)
     (define s (begin-amqp-session! conn))
     (unwind-protect (proc s) (end-amqp-session! s)))
 
@@ -195,7 +195,8 @@
 
   (define (create-amqp-mime-message content-type data)
     (make <amqp-annotated-message> 
-      :properties (make-amqp-properties :content-type content-type)
+      :properties (make-amqp-properties
+		   :content-type (string->symbol content-type))
       :application-data (make-amqp-data (->amqp-value :binary data))))
 
   (define (amqp-message-data message)
@@ -257,7 +258,7 @@
   (define-property-accessor subject)
   (define-property-accessor reply-to scheme-value make-amqp-address)
   (define-property-accessor correlation-id scheme-value make-amqp-address)
-  (define-property-accessor content-type)
+  (define-property-accessor content-type symbol->string string->symbol)
   (define-property-accessor content-encoding)
   (define-property-accessor absolute-expiry-time)
   (define-property-accessor creation-time)
