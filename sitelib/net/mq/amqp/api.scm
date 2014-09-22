@@ -166,7 +166,9 @@
 		   (loop (cons* :properties e opts)))
 		  ((is-a? e <amqp-application-properties>)
 		   (loop (cons* :application-properties e opts)))
-		  ((is-a? e <amqp-amqp-value>)
+		  ((or (is-a? e <amqp-amqp-value>)
+		       (is-a? e <amqp-data>)
+		       (is-a? e <amqp-amqp-sequence>))
 		   (loop (cons* :application-data e opts)))
 		  ;; ignore or raise an error?
 		  (else (loop opts)))))))
