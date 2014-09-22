@@ -18,6 +18,7 @@
 @include-section["utils/heap.scrbl"]
 @include-section["utils/list.scrbl"]
 @include-section["utils/math.scrbl"]
+@include-section["utils/net/amqp.scrbl"]
 @include-section["utils/net/oauth.scrbl"]
 @include-section["utils/odbc.scrbl"]
 @include-section["utils/pkcs/5.scrbl"]
