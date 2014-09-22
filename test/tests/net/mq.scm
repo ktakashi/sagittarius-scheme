@@ -75,7 +75,7 @@
 		  date))
 
 (let ((uuid (bytevector->uuid #vu8(200 58 39 22 185 8 17 227 162 243 0 255 48 18 112 11))))
-  (test-primitive :uuid #vu8(#x93 200 58 39 22 185 8 17 227 162 243 0 255 48 18 112 11) uuid))
+  (test-primitive :uuid #vu8(#x98 200 58 39 22 185 8 17 227 162 243 0 255 48 18 112 11) uuid))
 
 (test-primitive :binary #vu8(#xA0 #x05 1 2 3 4 5) #vu8(1 2 3 4 5))
 

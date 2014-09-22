@@ -53,21 +53,41 @@
 	    <amqp-amqp-sequence>
 	    <amqp-amqp-value> make-amqp-amqp-value
 	    <amqp-footer> make-amqp-footer
+
+	    make-amqp-message-id
+	    <amqp-message-id>
+	    <amqp-message-id-uuid>
+	    <amqp-message-id-binary>
+	    <amqp-message-id-string>
 	    )
     (import (except (rnrs) fields)
 	    (sagittarius)
 	    (sagittarius object)
 	    (clos user)
 	    (clos core)
+	    (rfc uuid)
 	    (net mq amqp types)
 	    (net mq amqp transport))
 
-  (define-restricted-type terminus-durability    :uint)
-  (define-restricted-type terminus-expiry-policy :symbol)
-  (define-restricted-type node-properties        fields)
-  (define-restricted-type filter-set             :map)
+  (define-restricted-type terminus-durability     :uint)
+  (define-restricted-type terminus-expiry-policy  :symbol)
+  (define-restricted-type node-properties         fields)
+  (define-restricted-type filter-set              :map)
   (define-restricted-type address-string  :string :provides (address))
-  (define-restricted-type annotations            :map)
+  (define-restricted-type annotations             :map)
+  (define-restricted-type message-id      :ulong  :provides (message-id))
+  (define-restricted-type message-id-uuid :uuid   :provides (message-id))
+  (define-restricted-type message-id-binary :binary :provides (message-id))
+  (define-restricted-type message-id-string :string :provides (message-id))
+
+  (define (make-amqp-message-id obj)
+    (let ((tag (cond ((string? obj)     :string)
+		     ((bytevector? obj) :binary)
+		     ((integer? obj)    :ulong)
+		     ((uuid? obj)       :uuid)
+		     (else (error 'make-amqp-message-id 
+				  "unsupported message id object" obj)))))
+      (->amqp-value tag obj)))
 
   (define-constant +message-format+ 0)
 
@@ -157,7 +177,7 @@
      (to :type :* :requires 'address)
      (subject :type :string)
      (reply-to :type :* :requires 'address)
-     (correlation-id :type :* :requires 'address)
+     (correlation-id :type :* :requires 'message-id)
      (content-type :type :symbol)
      (content-encoding :type :symbol)
      (absolute-expiry-time :type :timestamp)

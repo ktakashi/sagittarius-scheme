@@ -75,6 +75,7 @@
 	    (clos core)
 	    (clos user)
 	    (binary data)
+	    (srfi :1)
 	    (srfi :19)
 	    (srfi :26)
 	    (rfc uuid)
@@ -138,8 +139,10 @@
 
   (define (add-class-entry! class name code)
     (hashtable-set! *class/type-table* class name)
-    (hashtable-set! *code/class-table* code class)
-    (hashtable-set! *type/class-table* name class))
+    ;; if code is not there then name is not there either
+    (when code
+      (hashtable-set! *code/class-table* code class)
+      (hashtable-set! *type/class-table* name class)))
 
   (define (read-constructor in)
     (let ((first (get-u8 in)))
@@ -171,6 +174,22 @@
       (if (slot-bound? v 'value)
 	  (scheme-value v)
 	  v))
+    (define (primitive-class? class) (keyword? (~ *class/type-table* class)))
+    (define (provides? class requires) 
+      ;; all AMQP classes are managed in table so search it
+      ;; FIXME it's very awkward way to do it...
+      (and-let* ((targets (filter-map (lambda (class) 
+					(and (memq requires (~ class 'provides))
+					     class))
+				      (hashtable-keys-list 
+				       *class/type-table*))))
+	;; if this address requires then the class is address-tring
+	;; so find the restricted class
+	(exists (lambda (maybe-target)
+		  (eq? (~ maybe-target 'restricted) 
+		       (hashtable-ref *class/type-table* class)))
+		targets)))
+
     (let* ((code (scheme-value descriptor))
 	   ;; must be either symbol or ulong
 	   (class (hashtable-ref (if (symbol? code)
@@ -201,6 +220,10 @@
 			  ;; non mandatory elements, so check the type.
 			  (let1 type-class 
 			      (hashtable-ref *type/class-table* type #f)
+			    #;
+			    (when (eq? type :*)
+			      (format #t "~a:~a:~a:[~s]~%" name type value
+				      (keyword? (~ *class/type-table* class))))
 			    (cond ((eq? type-class class)
 				   (set! (~ o name) (scheme-value value)))
 				  ((and (multiple? slot)
@@ -214,8 +237,12 @@
 					      (vector->list 
 					       (scheme-value value)))))
 				  ((and (eq? type :*)
-					(memq (get-requires slot)
-					      (~ class 'provides)))
+					(or (memq (get-requires slot)
+						  (~ class 'provides))
+					    (and (primitive-class? class)
+						 (provides? class
+							    (get-requires slot)
+							    ))))
 				   (set! (~ o name) value))))))
 		      (class-direct-slots class)
 		      (scheme-value compound))))))
@@ -461,7 +488,7 @@
 		 :restricted v)
 	       (define name 
 		 (let ()
-		   (when dc (add-class-entry! class 'dn dc))
+		   (add-class-entry! class 'dn dc)
 		   v))))))))
 
   (define (write-nothing out v))
@@ -569,7 +596,7 @@
 			(endianness big)))))))
   ;; uuid
   (define-primitive-type :uuid
-    ((#x93 (lambda (data) (bytevector->uuid data))
+    ((#x98 (lambda (data) (bytevector->uuid data))
 	   (lambda (out uuid) (put-bytevector out (uuid->bytevector uuid))))))
   ;; variables
   ;; binary

@@ -51,16 +51,43 @@
 	    amqp-message-data
 	    ;; amqp-message-header
 	    ;; header
-	    amqp-message-header-durable
-	    amqp-message-header-durable-set!
-	    amqp-message-header-priority
-	    amqp-message-header-priority-set!
-	    amqp-message-header-ttl
-	    amqp-message-header-ttl-set!
-	    amqp-message-header-first-aquirer
-	    amqp-message-header-first-aquirer-set!
-	    amqp-message-header-delivery-count
-	    amqp-message-header-delivery-count-set!
+	    amqp-message-durable
+	    amqp-message-durable-set!
+	    amqp-message-priority
+	    amqp-message-priority-set!
+	    amqp-message-ttl
+	    amqp-message-ttl-set!
+	    amqp-message-first-aquirer
+	    amqp-message-first-aquirer-set!
+	    amqp-message-delivery-count
+	    amqp-message-delivery-count-set!
+	    ;; properties
+	    amqp-message-message-id
+	    amqp-message-message-id-set!
+	    amqp-message-user-id
+	    amqp-message-user-id-set!
+	    amqp-message-to
+	    amqp-message-to-set!
+	    amqp-message-subject
+	    amqp-message-subject-set!
+	    amqp-message-reply-to
+	    amqp-message-reply-to-set!
+	    amqp-message-correlation-id
+	    amqp-message-correlation-id-set!
+	    amqp-message-content-type
+	    amqp-message-content-type-set!
+	    amqp-message-content-encoding
+	    amqp-message-content-encoding-set!
+	    amqp-message-absolute-expiry-time
+	    amqp-message-absolute-expiry-time-set!
+	    amqp-message-creation-time
+	    amqp-message-creation-time-set!
+	    amqp-message-group-id
+	    amqp-message-group-id-set!
+	    amqp-message-group-sequence
+	    amqp-message-group-sequence-set!
+	    amqp-message-reply-to-group-id
+	    amqp-message-reply-to-group-id-set!
 	    ;; application properties
 	    amqp-message-delete-property!
 	    amqp-message-ref-property
@@ -176,28 +203,67 @@
 
   ;; (define (amqp-message-header message) (~ message 'header))
 
-  (define-syntax define-header-accessor
+  (define-syntax define-message-accessor
     (lambda (x)
       (syntax-case x ()
-	((k prop type)
+	((k path prop)
+	 #'(define-message-accessor path prop (lambda (x) x) (lambda (x) x)))
+	((k path prop type-val type-ctr)
 	 (with-syntax ((ref (datum->syntax #'k
 			     (string->symbol
-			      (format "amqp-message-header-~a" 
+			      (format "amqp-message-~a" 
 				      (syntax->datum #'prop)))))
 		       (set (datum->syntax #'k
 			     (string->symbol
-			      (format "amqp-message-header-~a-set!" 
+			      (format "amqp-message-~a-set!" 
 				      (syntax->datum #'prop))))))
 	   #'(begin
-	       (define (ref message) (~ message 'header 'prop))
+	       ;; should we make fallback mandatory?
+	       (define (ref message :optional fallback)
+		 (let ((p (~ message 'path)))
+		   (cond ((undefined? fallback)
+			  (type-val (~ p 'prop)))
+			 ((slot-bound? p 'prop)
+			  (type-val (~ p 'prop)))
+			 (else fallback))))
 	       (define (set message v) 
-		 (set! (~ message 'header 'prop) v))))))))
+		 (set! (~ message 'path 'prop) (type-ctr v)))))))))
+
+  ;; header types are all promitives so ignroe
+  (define-syntax define-header-accessor
+    (syntax-rules ()
+      ((_ prop type)
+       (define-message-accessor header prop))))
   
   (define-header-accessor durable :boolean)
   (define-header-accessor priority :ubyte)
   (define-header-accessor ttl milliseconds)
   (define-header-accessor first-aquirer :boolean)
   (define-header-accessor delivery-count :uint)
+
+  ;; message properties accessor
+  (define-syntax define-property-accessor
+    (syntax-rules ()
+      ((_ prop)
+       (define-message-accessor properties prop))
+      ((_ prop ref set)
+       (define-message-accessor properties prop ref set))))
+
+  ;; we can't see what message id type is.
+  (define (make-amqp-address str) (->amqp-value address-string str))
+  (define-property-accessor message-id scheme-value make-amqp-message-id)
+  (define-property-accessor user-id)
+  (define-property-accessor to scheme-value make-amqp-address)
+  (define-property-accessor subject)
+  (define-property-accessor reply-to scheme-value make-amqp-address)
+  (define-property-accessor correlation-id scheme-value make-amqp-address)
+  (define-property-accessor content-type)
+  (define-property-accessor content-encoding)
+  (define-property-accessor absolute-expiry-time)
+  (define-property-accessor creation-time)
+  (define-property-accessor group-id)
+  (define-property-accessor group-sequence)
+  (define-property-accessor reply-to-group-id)
 
   (define (amqp-message-delete-property! m key)
     (annotation-delete! (~ m 'application-properties) 
