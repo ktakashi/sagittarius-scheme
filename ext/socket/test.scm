@@ -15,24 +15,23 @@
 
 ;; addr is client socket
 (define (server-run)
-  (let ((addr (socket-accept echo-server-socket)))
-    (call-with-socket
-     addr
-     (lambda (sock)
-       (let ((p (transcoded-port (socket-port sock)
-				 (native-transcoder))))
-	 (call-with-port
-	  p
-	  (lambda (p)
-	    (let lp2 ((r (get-line p)))
-	      (if (or (not (string? r)) (string=? r "test-end"))
-		  (put-string p "")
-		  (let ((res (string->utf8 (string-append r "\r\n"))))
-		    (when (string=? r "wait")
-		      ;; wait one sec
-		      (thread-sleep! 1000))
-		    (put-bytevector p res 0 (bytevector-length res) #t)
-		    (lp2 (get-line p))))))))))))
+  (let loop ()
+    (let ((addr (socket-accept echo-server-socket)))
+      (call-with-socket addr
+        (lambda (sock)
+	  (let ((p (transcoded-port (socket-port sock) (native-transcoder))))
+	    (call-with-port p
+	      (lambda (p)
+		(let lp2 ((r (get-line p)))
+		  (cond ((or (not (string? r)) (string=? r "end")))
+			((or (not (string? r)) (string=? r "test-end"))
+			 (put-string p "") (loop))
+			(else
+			 (let ((res (string->utf8 (string-append r "\r\n"))))
+			   ;; wait one sec
+			   (when (string=? r "wait") (thread-sleep! 1))
+			   (put-bytevector p res 0 (bytevector-length res) #t)
+			   (lp2 (get-line p))))))))))))))
 
 (define server-thread (make-thread server-run))
 
@@ -82,10 +81,10 @@
   (test-equal "raw nonblocking socket-recv"
 	      #f
 	      (socket-recv client-socket (+ (string-length "hello\r\n") 2) 0))
-  (socket-send client-socket (string->utf8 "test-end\r\n") 0)
+  (socket-send client-socket (string->utf8 "end\r\n") 0)
   )
 
-(thread-join! server-thread)
+(test-assert "wait server ends" (thread-join! server-thread))
 
 ;; addr info slots
 (let ((info (get-addrinfo "localhost" "5000" (make-hint-addrinfo
