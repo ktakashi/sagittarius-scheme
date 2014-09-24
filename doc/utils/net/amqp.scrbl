@@ -39,6 +39,9 @@ remote queues.
 
 @subsubsection{High level APIs}
 
+@define[Function]{@name{amqp-connection?} @args{obj}}
+@desc{Returns #t if given @var{obj} is AMQP connection. Otherwise #f.}
+
 @define[Function]{@name{open-amqp-connection} @args{host port}}
 @desc{Creates an AMQP connection object.}
 
@@ -54,6 +57,9 @@ an error. Thus Invoking captured continuation inside of @var{proc} would not
 work.
 }
 
+@define[Function]{@name{amqp-session?} @args{obj}}
+@desc{Returns #t if given @var{obj} is AMQP session. Otherwise #f.}
+
 @define[Function]{@name{begin-amqp-session!} @args{connection}}
 @desc{Starts AMQP session on the given @var{connection}}
 
@@ -68,6 +74,11 @@ The stated session will be ended both @var{proc} returns or raises
 an error. Thus Invoking captured continuation inside of @var{proc} would not
 work.
 }
+
+@define[Function]{@name{amqp-sender?} @args{obj}}
+@define[Function]{@name{amqp-receiver?} @args{obj}}
+@desc{Returns #t if given @var{obj} is AMQP sender and receiver, respectively.
+Otherwise #f.}
 
 @define[Function]{@name{create-amqp-sender} @args{session source-queue}}
 @define[Function]{@name{create-amqp-receiver} @args{session target-queue}}
@@ -93,6 +104,9 @@ queue names on the remote server.
 Keyword argument @var{timeout} must be #f or integer. If this is specified
 then the procedure waits only specified milliseconds.
 }
+
+@define[Function]{@name{amqp-message?} @args{obj}}
+@desc{Returns #t if given @var{obj} is AMQP message. Otherwise #f.}
 
 @define[Function]{@name{create-amqp-text-message text}}
 @define[Function]{@name{create-amqp-binary-message data}}
