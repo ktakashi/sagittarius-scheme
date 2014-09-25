@@ -45,6 +45,7 @@
 	    ;; write
 	    write-fixed-header
 	    write-utf8
+	    write-packet-identifier
 
 	    ;; packet types
 	    +connect+
@@ -120,6 +121,7 @@
   (define (write-utf8 out bv)
     (put-u16 out (bytevector-length bv) (endianness big))
     (put-bytevector out bv))
+  (define (write-packet-identifier out pi) (put-u16 out pi (endianness big)))
 
   ;; reading variable header and payload
   (define (read-utf8-string in)
@@ -147,14 +149,11 @@
 	    (values size (reverse! r))
 	    (case (car rules)
 	      ((:u8) (loop (cdr rules) (+ size 1) (cons (get-u8 in) r)))
-	      ((:u16)
-	       (loop (cdr rules) (+ size 1) (cons (get-unpack in "!S") r)))
+	      ((:u16 :pi)
+	       (loop (cdr rules) (+ size 2) (cons (get-unpack in "!S") r)))
 	      ((:utf8)
 	       (let-values (((len str) (read-utf8-string in)))
 		 (loop (cdr rules) (+ size len) (cons str r))))
-	      ((:pi)
-	       (let-values (((len pi) (read-packet-identifier in)))
-		 (loop (cdr rules) (+ size len) (cons pi r))))
 	      (else =>
 	       (lambda (t) (error 'read-variable-header "unknown rule" t)))))))
     ;; first read variables
