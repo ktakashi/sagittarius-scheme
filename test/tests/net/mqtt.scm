@@ -79,7 +79,7 @@
        (in (open-bytevector-input-port bv)))
   (let-values (((h p) (read-variable-header&payload in (bytevector-length bv)
 						    :u8 :utf8 :pi)))
-    (test-equal "variable header" '(1 "ab" #vu8(1 2)) h)
+    (test-equal "variable header" '(1 "ab" 258) h)
     (test-assert "input-port? (payload)" (input-port? p))
     (test-assert "binary-port? (payload)" (binary-port? p))
     (test-equal "payload" #vu8(1 2 3 4 5) (get-bytevector-all p))))
@@ -89,7 +89,7 @@
   (let-values (((h p) (read-variable-header&payload in 
 						    (- (bytevector-length bv) 1)
 						    :u8 :utf8 :pi)))
-    (test-equal "variable header" '(1 "ab" #vu8(1 2)) h)
+    (test-equal "variable header" '(1 "ab" 258) h)
     (test-assert "input-port? (payload)" (input-port? p))
     (test-assert "binary-port? (payload)" (binary-port? p))
     (test-equal "payload" #vu8(1 2 3 4) (get-bytevector-all p))))
@@ -100,7 +100,7 @@
 						    (- (bytevector-length bv) 1)
 						    :chunk-size 1
 						    :u8 :utf8 :pi)))
-    (test-equal "variable header" '(1 "ab" #vu8(1 2)) h)
+    (test-equal "variable header" '(1 "ab" 258) h)
     (test-assert "input-port? (payload)" (input-port? p))
     (test-assert "binary-port? (payload)" (binary-port? p))
     (test-equal "payload" #vu8(1 2 3 4) (get-bytevector-all p))))
@@ -111,7 +111,7 @@
   (let-values (((h p) (read-variable-header&payload in 
 						    (bytevector-length bv)
 						    :u8 :utf8 :pi)))
-    (test-equal "variable header" '(1 "ab" #vu8(1 2)) h)
+    (test-equal "variable header" '(1 "ab" 258) h)
     (test-assert "input-port? (payload)" (input-port? p))
     (test-assert "binary-port? (payload)" (binary-port? p))
     (test-assert "payload" (eof-object? (get-bytevector-all p)))))
