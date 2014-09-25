@@ -93,7 +93,7 @@
 				      (message #f)
 				      (retain? #f)
 				      (keep-alive 10) ;; 10 sec?
-				      (version +mqtt-3.1+)
+				      (version +mqtt-3.1.1+)
 				      ;; TODO
 				      (qos +qos-at-most-once+))
     (define (construct-flag)
