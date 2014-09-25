@@ -42,6 +42,10 @@
 	    ;; if it's useful enough
 	    make-chunked-binary-input-port
 
+	    ;; write
+	    write-fixed-header
+	    write-utf8
+
 	    ;; packet types
 	    +connect+
 	    +connack+
@@ -62,7 +66,8 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
-	    (binary pack))
+	    (binary pack)
+	    (binary io))
 
   (define-constant +connect+   	 1)
   (define-constant +connack+   	 2)
@@ -78,6 +83,12 @@
   (define-constant +pingreq+     12)
   (define-constant +pingresp+    13)
   (define-constant +disconnect+  14)
+
+  ;; we can define some of variable headers rules
+  (define-constant +connect-variable-header+ '(:utf8 :u8 :u8 :u16))
+  (define-constant +conack-variable-header+ '(:u8 :u8))
+  (define-constant +publish-variable-header+ '(:utf8 :pi))
+  (define-constant +puback-variable-header+ '(:pi))
 
   (define (read-fixed-header in)
     (define (read-length in)
@@ -97,6 +108,19 @@
 	      (bitwise-and b1 #x0F)
 	      len)))
 
+  (define (write-fixed-header out type flag remaining-length)
+    (define (encode-length out len)
+      (let loop ((encoded-byte (mod len #x80)) (X (div len #x80)))
+	(if (positive? X)
+	    (put-u8 out (bitwise-ior encoded-byte #x80))
+	    (put-u8 out encoded-byte))
+	(unless (zero? X) (loop (mod X #x80) (div X #x80)))))
+    (put-u8 out (bitwise-ior (bitwise-arithmetic-shift type 4) flag))
+    (encode-length out remaining-length))
+  (define (write-utf8 out bv)
+    (put-u16 out (bytevector-length bv) (endianness big))
+    (put-bytevector out bv))
+
   ;; reading variable header and payload
   (define (read-utf8-string in)
     (let ((len (get-unpack in "!S")))
@@ -107,6 +131,7 @@
   ;; rules are how to read variable header
   ;; followings are the rules
   ;; :u8   - byte
+  ;; :u16  - 16 bit unsigned integer
   ;; :utf8 - utf8 string
   ;; :pi   - packet identifier
   ;; As far as I know, there is no other types on MQTT spec
@@ -122,6 +147,8 @@
 	    (values size (reverse! r))
 	    (case (car rules)
 	      ((:u8) (loop (cdr rules) (+ size 1) (cons (get-u8 in) r)))
+	      ((:u16)
+	       (loop (cdr rules) (+ size 1) (cons (get-unpack in "!S") r)))
 	      ((:utf8)
 	       (let-values (((len str) (read-utf8-string in)))
 		 (loop (cdr rules) (+ size len) (cons str r))))
@@ -132,12 +159,14 @@
 	       (lambda (t) (error 'read-variable-header "unknown rule" t)))))))
     ;; first read variables
     (let-values (((vlen vals) (read-variable-header in rules)))
-      (values vals 
-	      (if (> (- len vlen) chunk-size)
-		  (make-chunked-binary-input-port in :chunk-size chunk-size
-						  :threshold (- len vlen))
-		  (open-bytevector-input-port 
-		   (get-bytevector-n in (- len vlen)))))))
+      (let ((len (- len vlen)))
+	(when (negative? len) 
+	  (error 'read-variable-header&payload "corrupted data stream"))
+	(values vals 
+		(if (> len chunk-size)
+		    (make-chunked-binary-input-port in :chunk-size chunk-size
+						    :threshold len)
+		  (open-bytevector-input-port (get-bytevector-n in len)))))))
   
   ;; payload will be returned as a binary input port. the builtin one
   ;; may consume maximum number of memory allocation and it wouldn't be

@@ -105,4 +105,23 @@
     (test-assert "binary-port? (payload)" (binary-port? p))
     (test-equal "payload" #vu8(1 2 3 4) (get-bytevector-all p))))
 
+;; no payload
+(let* ((bv #vu8(1 0 2 97 98 1 2))
+       (in (open-bytevector-input-port bv)))
+  (let-values (((h p) (read-variable-header&payload in 
+						    (bytevector-length bv)
+						    :u8 :utf8 :pi)))
+    (test-equal "variable header" '(1 "ab" #vu8(1 2)) h)
+    (test-assert "input-port? (payload)" (input-port? p))
+    (test-assert "binary-port? (payload)" (binary-port? p))
+    (test-assert "payload" (eof-object? (get-bytevector-all p)))))
+
+;; error case
+(let* ((bv #vu8(1 0 2 97 98 1 2))
+       (in (open-bytevector-input-port bv)))
+  (test-error "corrupted data" condition?
+	      (read-variable-header&payload in 
+					    (- (bytevector-length bv) 1)
+					    :u8 :utf8 :pi)))
+
 (test-end)
