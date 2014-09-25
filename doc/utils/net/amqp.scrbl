@@ -1,6 +1,8 @@
 @; -*- coding: utf-8 -*-
 
 @subsection[:tag "net.amqp"]{(net mq amqp) - AMQP library}
+
+@define[Library]{@name{(net mq amqp)}}
 @desc{Providing APIs for @hyperlink[:href "http://www.amqp.org"]{AMQP},
 Advanced Message Queuing Protocol.
 
