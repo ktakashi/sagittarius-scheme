@@ -43,6 +43,8 @@
 	    ;; unsubscribe
 	    mqtt-unsubscribe
 
+	    mqtt-ping
+
 	    +mqtt-3.1+
 	    +mqtt-3.1.1+
 	    +qos-at-most-once+
@@ -221,6 +223,8 @@
       (values (bitwise-arithmetic-shift-right flag 3)
 	      (bitwise-and (bitwise-arithmetic-shift-right flag 1) #x03)
 	      (bitwise-and flag #x01)))
+    (when (null? (~ conn 'callbacks))
+      (error 'mqtt-receive-message "No subscription"))
     (let*-values (((type flag len) (read-fixed-header (~ conn 'port)))
 		  ((dup qos retain) (parse-flags flag))
 		  ((vh payload) (apply read-variable-header&payload 
@@ -319,5 +323,13 @@
       (set! (~ conn 'callbacks) (alist-delete! topic (~ conn 'callbacks)))
       #t))
     
-  ;; TODO pingreq
+  ;;; pingreq
+  (define (mqtt-ping conn)
+    (define in/out (~ conn 'port))
+    (write-fixed-header in/out +pingreq+ 0 0)
+    (let-values (((type flag len) (read-fixed-header in/out)))
+      (unless (= type +pingresp+)
+	(error 'mqtt-ping
+	       "Server respond back invalid packet" type))
+      #t))
 )
