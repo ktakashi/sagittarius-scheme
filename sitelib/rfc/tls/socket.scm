@@ -177,7 +177,10 @@
      ;; both server and client need these slots
      (certificates :init-value '() :init-keyword :certificates)
      (private-key  :init-value #f  :init-keyword :private-key)
-     (sent-close?  :init-value #f)))
+     (sent-close?  :init-value #f)
+     ;; root server socket doesn't have peer
+     ;; this is for sending close notify
+     (has-peer?    :init-keyword :has-peer? :init-value #t)))
 
   (define-class <tls-client-socket> (<tls-socket>)
     (;; for convenience to test.
@@ -272,7 +275,8 @@
 	  :private-key private-key
 	  :certificates certificates
 	  :authorities authorities
-	  :session (make-initial-session prng <tls-server-session>)))
+	  :session (make-initial-session prng <tls-server-session>)
+	  :has-peer? #f))
 
   (define (make-server-tls-socket port certificates :key
 				  (prng (secure-random RC4))
@@ -1495,7 +1499,7 @@
     ;; already closed, then we need not to do twice.
     (unless (tls-socket-closed? socket)
       (unless (~ socket 'sent-close?)
-	(guard (e (else #t))
+	(when (~ socket 'has-peer?)
 	  (send-alert socket *warning* *close-notify*)))
       (socket-close (~ socket 'raw-socket))
       ;; if we don't have any socket, we can't reconnect
@@ -1504,7 +1508,7 @@
 
   (define (tls-socket-shutdown socket how)
     (unless (~ socket 'sent-close?)
-      (guard (e (else #t))
+      (when (~ socket 'has-peer?)
 	(send-alert socket *warning* *close-notify*))
       (socket-shutdown (~ socket 'raw-socket) how)
       (set! (~ socket 'sent-close?) #t)))
