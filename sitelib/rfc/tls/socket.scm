@@ -36,6 +36,7 @@
 	    tls-socket?
 	    tls-socket-send
 	    tls-socket-recv
+	    tls-socket-shutdown
 	    tls-socket-close
 	    tls-socket-closed?
 	    tls-socket-accept
@@ -55,6 +56,7 @@
 	    *tls-version-1.0*
 
 	    socket-close
+	    socket-shutdown
 	    socket-send
 	    socket-recv
 	    socket-accept
@@ -174,7 +176,8 @@
      (buffer     :init-value #f)
      ;; both server and client need these slots
      (certificates :init-value '() :init-keyword :certificates)
-     (private-key  :init-value #f  :init-keyword :private-key)))
+     (private-key  :init-value #f  :init-keyword :private-key)
+     (sent-close?  :init-value #f)))
 
   (define-class <tls-client-socket> (<tls-socket>)
     (;; for convenience to test.
@@ -1491,12 +1494,20 @@
     ;; calls this twice and raises an error. so if the socket is
     ;; already closed, then we need not to do twice.
     (unless (tls-socket-closed? socket)
-      (send-alert socket *warning* *close-notify*)
+      (unless (~ socket 'sent-close?)
+	(guard (e (else #t))
+	  (send-alert socket *warning* *close-notify*)))
       (socket-close (~ socket 'raw-socket))
-      (socket-shutdown (~ socket 'raw-socket) SHUT_RDWR)
       ;; if we don't have any socket, we can't reconnect
       (set! (~ socket 'raw-socket) #f)
       (set! (~ socket 'session 'closed?) #t)))
+
+  (define (tls-socket-shutdown socket how)
+    (unless (~ socket 'sent-close?)
+      (guard (e (else #t))
+	(send-alert socket *warning* *close-notify*))
+      (socket-shutdown (~ socket 'raw-socket) how)
+      (set! (~ socket 'sent-close?) #t)))
 
   ;; utility
   (define (call-with-tls-socket socket proc)
@@ -1521,6 +1532,8 @@
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
     (tls-socket-close o))
+  (define-method socket-shutdown ((o <tls-socket>) how)
+    (tls-socket-shutdown o how))
   (define-method socket-send ((o <tls-socket>) data :optional (flags 0))
     (tls-socket-send o data flags))
   (define-method socket-recv ((o <tls-socket>) size :optional (flags 0))
