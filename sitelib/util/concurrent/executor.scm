@@ -44,7 +44,7 @@
 
 	    abort-rejected-handler
 	    terminate-oldest-handler
-	    waiting-next-handler
+	    wait-finishing-handler
 	    
 	    &rejected-execution-error
 	    rejected-execution-error?
@@ -106,7 +106,7 @@
 
   ;; wait for trivial time until pool is available
   ;; if it won't then raise an error.
-  (define (waiting-next-handler wait-retry)
+  (define (wait-finishing-handler wait-retry)
     (lambda (future executor)
       (thread-sleep! 0.1) ;; trivial time waiting
       (let loop ((count 0))

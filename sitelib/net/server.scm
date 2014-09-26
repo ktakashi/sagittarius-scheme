@@ -34,6 +34,9 @@
 	    make-server-config
 	    start-server!
 	    stop-server! ;; well for multithreading?
+	    
+	    ;; for extension
+	    <simple-server>
 	    <server-config>)
     (import (rnrs)
 	    (util concurrent)
@@ -53,6 +56,7 @@
      (exception-handler :init-keyword :exception-handler
 			:init-value #f)
      (max-thread    :init-keyword :max-thread    :init-value 1)
+     (max-retry     :init-keyword :max-retry     :init-value 10)
      ;; For TLS socket
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())))
@@ -68,7 +72,8 @@
     (define dispatch
       (let ((executor (and (> (~ config 'max-thread) 1)
 			   (make-executor (~ config 'max-thread)
-					  (waiting-next-handler 10)))))
+					  (wait-finishing-handler
+					   (~ config 'max-retry))))))
 	(lambda (socket)
 	  (define (handle socket)
 	    (guard (e (else 
