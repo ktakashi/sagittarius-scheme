@@ -37,12 +37,14 @@
 	    executor? make-executor
 	    executor-state executor-pool-size
 	    executor-max-pool-size
+	    executor-available?
 
 	    shutdown-executor!
 	    execute-future!
 
 	    abort-rejected-handler
 	    terminate-oldest-handler
+	    waiting-next-handler
 	    
 	    &rejected-execution-error
 	    rejected-execution-error?
@@ -98,6 +100,18 @@
       (cleanup executor oldest 'terminated))
     ;; retry
     (execute-future! executor future))
+  (define (waiting-next-handler wait-retry)
+    (lambda (future executor)
+      (thread-sleep! 0.1) ;; trivial time waiting
+      (let loop ((count 0))
+	(cond ((executor-available? executor)
+	       (execute-future! executor future))
+	      ((= count wait-retry)
+	       ;; now how should we handle this?
+	       ;; for now raises an error...
+	       (abort-rejected-handler future executor))
+	      ;; bit longer waiting
+	      (else (thread-sleep! 0.5) (loop (+ count 1)))))))
   (define default-rejected-handler abort-rejected-handler)
 
   (define-record-type (<thread-pool-executor> make-executor executor?)
@@ -157,6 +171,9 @@
 		(lambda (executor future) 
 		  (p #f executor (current-time) future)))))
 
+  (define (executor-available? executor)
+    (< (executor-pool-size executor) (executor-max-pool-size executor)))
+  
   ;; shutdown
   ;; shutdown given executor. We need to first finish all
   ;; workers then change the state.
