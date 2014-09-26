@@ -89,10 +89,13 @@
     (future rejected-future)
     (executor rejected-executor))
   ;; TODO some other reject policy
+
+  ;; aboring when pool is full
   (define (abort-rejected-handler future executor)
     (raise (condition (make-rejected-execution-error future executor)
 		      (make-who-condition 'executor)
 		      (make-message-condition "Failed to add task"))))
+  ;; assume the oldest one is negligible
   (define (terminate-oldest-handler future executor)
     (let ((oldest (dequeue! (executor-workers executor))))
       (thread-terminate! (worker-thread oldest))
@@ -100,6 +103,9 @@
       (cleanup executor oldest 'terminated))
     ;; retry
     (execute-future! executor future))
+
+  ;; wait for trivial time until pool is available
+  ;; if it won't then raise an error.
   (define (waiting-next-handler wait-retry)
     (lambda (future executor)
       (thread-sleep! 0.1) ;; trivial time waiting
@@ -112,6 +118,8 @@
 	       (abort-rejected-handler future executor))
 	      ;; bit longer waiting
 	      (else (thread-sleep! 0.5) (loop (+ count 1)))))))
+
+  ;; default is abort
   (define default-rejected-handler abort-rejected-handler)
 
   (define-record-type (<thread-pool-executor> make-executor executor?)
@@ -204,23 +212,25 @@
 	      (cleanup executor worker 'done)
 	      r)))))
     
-    (with-atmoic executor
-     (let ((pool-size (executor-pool-size executor))
-	   (max-pool-size (executor-max-pool-size executor))
-	   (reject-handler (executor-rejected-handler executor)))
-       (if (and (< pool-size max-pool-size)
-		(eq? (executor-state executor) 'running))
-	   ;; add
-	   (let* ((worker (make-worker executor future))
-		  (thread (make-thread (worker-thunk worker))))
-	     (enqueue! (executor-workers executor) worker)
-	     (executor-pool-size-set! executor (+ pool-size 1))
-	     (future-worker-set! future worker)
-	     (worker-thread-set! worker thread)
-	     ;; thread must be started *after* we do above
-	     ;; otherwise may get something weird condition
-	     (thread-start! thread)
-	     executor)
-	   (reject-handler future executor)))))
+    (or (with-atmoic executor
+	  (let ((pool-size (executor-pool-size executor))
+		(max-pool-size (executor-max-pool-size executor)))
+	    (and (< pool-size max-pool-size)
+		 (eq? (executor-state executor) 'running)
+		 ;; add
+		 (let* ((worker (make-worker executor future))
+			(thread (make-thread (worker-thunk worker))))
+		   (enqueue! (executor-workers executor) worker)
+		   (executor-pool-size-set! executor (+ pool-size 1))
+		   (future-worker-set! future worker)
+		   (worker-thread-set! worker thread)
+		   ;; thread must be started *after* we do above
+		   ;; otherwise may get something weird condition
+		   (thread-start! thread)
+		   executor))))
+	;; the reject handler may lock executor again
+	;; to avoid double lock, this must be out side of atomic
+	(let ((reject-handler (executor-rejected-handler executor)))
+	  (reject-handler future executor))))
 
 )
