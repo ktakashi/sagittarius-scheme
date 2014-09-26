@@ -66,6 +66,7 @@
   (define-class <simple-server> ()
     ((server-socket  :init-keyword :server-socket)
      (server-thread  :init-keyword :server-thread)
+     (stopper-socket :init-keyword :stopper-socket :init-value #f)
      (stopper-thread :init-keyword :stopper-thread :init-value #f)
      (stopped?       :init-value #f :reader server-stopped?)))
 
@@ -106,7 +107,7 @@
 	     (dispatch client-socket)
 	     (loop (socket-accept socket))))))
       (let ((server (make <simple-server> :server-thread server-thread
-			  :server-socket socket)))
+			  :server-socket socket :stopper-socket stop-socket)))
 	(when stop-socket
 	  (set! (~ server 'stopper-thread)
 		(make-thread 
@@ -131,13 +132,16 @@
       (thread-join! (thread-start! (~ server 'server-thread)))))
 
   (define (stop-server! server)
-    (thread-terminate! (~ server 'server-thread))
-    (when (~ server 'stopper-thread)
-      (thread-terminate! (~ server 'stopper-thread)))
-    (let ((socket (~ server 'server-socket)))
+    (define (close-socket socket)
       (socket-shutdown socket SHUT_RDWR)
       (socket-close socket))
-    (set! (~ server 'stopped?) #t))
+    (unless (~ server 'stopped?)
+      (when (~ server 'stopper-thread)
+	(close-socket (~ server 'stopper-socket))
+	(thread-terminate! (~ server 'stopper-thread)))
+      (close-socket (~ server 'server-socket))
+      (thread-terminate! (~ server 'server-thread))
+      (set! (~ server 'stopped?) #t)))
 
 )
       

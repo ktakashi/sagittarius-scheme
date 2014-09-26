@@ -1,7 +1,11 @@
 (import (rnrs)
 	(net server)
 	(sagittarius socket)
+	(rfc tls)
+	(rfc x.509)
+	(crypto)
 	(srfi :18)
+	(srfi :19)
 	(srfi :64))
 
 (test-begin "Simple server framework")
@@ -56,4 +60,29 @@
   (test-assert "server-stopped?" (server-stopped? server))
 )
 
+(let ()
+  (define keypair (generate-key-pair RSA :size 1024))
+  (define cert (make-x509-basic-certificate keypair 1
+					    (make-x509-issuer '((C . "NL")))
+					    (make-validity (current-date)
+							   (current-date))
+					    (make-x509-issuer '((C . "NL")))))
+
+  (define config (make-server-config :shutdown-port "8888"
+				     :secure? #t
+				     :certificates (list cert)))
+  (define (handler socket)
+    (let ((bv (socket-recv socket 255)))
+      (socket-send socket bv)))
+  (define server (make-simple-server "5000" handler config))
+  (define server-thread (make-thread (lambda () (start-server! server))))
+  (thread-start! server-thread)
+  (thread-sleep! 0.1)
+  (let ((sock (make-client-tls-socket "localhost" "5000")))
+    (socket-send sock (string->utf8 "hello"))
+    (test-equal "TLS echo back" (string->utf8 "hello") (socket-recv sock 255))
+    (socket-close sock))
+  (test-assert "stop TLS server" (stop-server! server))
+  (test-assert "finish simple server" (thread-join! server-thread))
+  )
 (test-end)
