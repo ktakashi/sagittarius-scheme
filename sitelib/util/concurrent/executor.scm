@@ -44,6 +44,9 @@
 	    abort-rejected-handler
 	    terminate-oldest-handler
 	    
+	    &rejected-execution-error
+	    rejected-execution-error?
+
 	    )
     (import (rnrs)
 	    (srfi :18)
@@ -171,7 +174,7 @@
 	 (let loop ((workers workers))
 	   (unless (queue-empty? workers)
 	     (thread-terminate! (worker-thread (queue-front workers)))
-	     (dequeue! workers)
+	     (cleanup executor (dequeue! workers) 'terminated)
 	     (loop workers)))))))
 
   (define (execute-future! executor future)
