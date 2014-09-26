@@ -35,6 +35,8 @@
 	    start-server!
 	    stop-server! ;; well for multithreading?
 	    
+	    server-stopped?
+
 	    ;; for extension
 	    <simple-server>
 	    <server-config>)
@@ -62,8 +64,10 @@
      (certificates  :init-keyword :certificates  :init-value '())))
 
   (define-class <simple-server> ()
-    ((server-thread :init-keyword :server-thread)
-     (stopper-thread :init-keyword :stopper-thread)))
+    ((server-socket  :init-keyword :server-socket)
+     (server-thread  :init-keyword :server-thread)
+     (stopper-thread :init-keyword :stopper-thread :init-value #f)
+     (stopped?       :init-value #f :reader server-stopped?)))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
   (define (make-simple-server port handler 
@@ -101,19 +105,23 @@
 	   (let loop ((client-socket (socket-accept socket)))
 	     (dispatch client-socket)
 	     (loop (socket-accept socket))))))
-      
-      (make <simple-server> :server-thread server-thread
-	    :stopper-thread
-	    (if stop-socket
+      (let ((server (make <simple-server> :server-thread server-thread
+			  :server-socket socket)))
+	(when stop-socket
+	  (set! (~ server 'stopper-thread)
 		(make-thread 
 		 (lambda ()
 		   (let ((sock (socket-accept stop-socket)))
 		     ;; ignore all errors
 		     (guard (e (else #t))
 		       (set! stop? ((~ config 'shutdown-handler) sock))
-		       (when stop? (thread-terminate! server-thread)))
-		     (socket-close sock))))
-		#f))))
+		       (when stop? 
+			 (thread-terminate! server-thread)
+			 (socket-shutdown socket SHUT_RDWR)
+			 (socket-close socket)
+			 (set! (~ server 'stopped?) #t)))
+		     (socket-close sock))))))
+	server)))
   
   (define (start-server! server)
     (when (~ server 'stopper-thread)
@@ -125,7 +133,11 @@
   (define (stop-server! server)
     (thread-terminate! (~ server 'server-thread))
     (when (~ server 'stopper-thread)
-      (thread-terminate! (~ server 'stopper-thread))))
+      (thread-terminate! (~ server 'stopper-thread)))
+    (let ((socket (~ server 'server-socket)))
+      (socket-shutdown socket SHUT_RDWR)
+      (socket-close socket))
+    (set! (~ server 'stopped?) #t))
 
 )
       
