@@ -28,6 +28,7 @@
   (test-assert "future-done? (1)" (future-done? f1))
   (test-assert "future-cancelled? (1)" (not (future-cancelled? f1)))
   (test-assert "execute(2)" (executor? (execute-future! e f2)))
+  (test-assert "available?" (not (executor-available? e)))
   (test-error "exeucte(3)" rejected-execution-error? (execute-future! e f3))
   (test-equal "pool size" 1 (executor-pool-size e))
   (test-assert "future-cancel" (future-cancel f2))
