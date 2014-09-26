@@ -66,4 +66,21 @@
   (test-assert "future-cancelled? (3)" (future-cancelled? f3))
   )
 
+;; concurrent executor 
+(let* ((e (make-executor 1))
+       (t1 (make-thread (lambda ()
+			  (let ((f (future (thread-sleep! 5))))
+			    (execute-future! e f)))))
+       (t2 (make-thread (lambda ()
+			  (let ((f (future (thread-sleep! 5))))
+			    (execute-future! e f))))))
+  ;; hope we get there
+  (map thread-start! (list t1 t2))
+  (thread-sleep! 0.1)
+  (test-equal "pool size" 1 (executor-pool-size e))
+  (test-error "failed to add" uncaught-exception?
+	      ;; one of them must be failed
+	      (begin (thread-join! t1) (thread-join! t2)))
+  )
+
 (test-end)

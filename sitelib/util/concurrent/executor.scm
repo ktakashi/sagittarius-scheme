@@ -51,7 +51,6 @@
     (import (rnrs)
 	    (srfi :18)
 	    (srfi :19)
-	    ;; for mt-queue
 	    (util queue))
   ;; future
   (define-record-type (<future> make-future future?)
@@ -187,13 +186,14 @@
 		   (r (thunk)))
 	      (cleanup executor worker 'done)
 	      r)))))
-    (let ((pool-size (executor-pool-size executor))
-	  (max-pool-size (executor-max-pool-size executor))
-	  (reject-handler (executor-rejected-handler executor)))
-      (if (and (< pool-size max-pool-size)
-	       (eq? (executor-state executor) 'running))
-	  ;; add
-	  (with-atmoic executor
+    
+    (with-atmoic executor
+     (let ((pool-size (executor-pool-size executor))
+	   (max-pool-size (executor-max-pool-size executor))
+	   (reject-handler (executor-rejected-handler executor)))
+       (if (and (< pool-size max-pool-size)
+		(eq? (executor-state executor) 'running))
+	   ;; add
 	   (let* ((worker (make-worker executor future))
 		  (thread (make-thread (worker-thunk worker))))
 	     (enqueue! (executor-workers executor) worker)
@@ -203,7 +203,7 @@
 	     ;; thread must be started *after* we do above
 	     ;; otherwise may get something weird condition
 	     (thread-start! thread)
-	     executor))
-	  (reject-handler future executor))))
+	     executor)
+	   (reject-handler future executor)))))
 
 )
