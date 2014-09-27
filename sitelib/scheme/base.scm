@@ -92,12 +92,12 @@
 
   (define-syntax let-syntax
     (syntax-rules ()
-      ((_ ((var trans ...)) expr ...)
+      ((_ ((var trans) ...) expr ...)
        (r6rs:let-syntax ((var trans) ...) (let () expr ...)))))
 
   (define-syntax letrec-syntax
     (syntax-rules ()
-      ((_ ((var trans ...)) expr ...)
+      ((_ ((var trans) ...) expr ...)
        (r6rs:letrec-syntax ((var trans) ...) (let () expr ...)))))
 
   (define-syntax syntax-error
