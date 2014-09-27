@@ -46,6 +46,7 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (srfi :18)
+	    (srfi :26)
 	    (rfc tls))
 
   ;; connecting this would shut it donw
@@ -59,13 +60,17 @@
 			:init-value #f)
      (max-thread    :init-keyword :max-thread    :init-value 1)
      (max-retry     :init-keyword :max-retry     :init-value 10)
+     ;; enabling this creates 2 server socket for both IPv4 and IPv6
+     ;; if EADDRINUSE is raised then only IPv6 is created.
+     ;; NOTE: I don't have such environment yet...
+     (use-ipv6?     :init-keyword :use-ipv6?     :init-value #f)
      ;; For TLS socket
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())))
 
   (define-class <simple-server> ()
-    ((server-socket  :init-keyword :server-socket)
-     (server-thread  :init-keyword :server-thread)
+    ((server-sockets :init-keyword :server-sockets)
+     (server-threads :init-keyword :server-threads)
      (stopper-socket :init-keyword :stopper-socket :init-value #f)
      (stopper-thread :init-keyword :stopper-thread :init-value #f)
      (stopped?       :init-value #f :reader server-stopped?)))
@@ -94,20 +99,30 @@
 	      (handle socket)))))
     (define stop-socket (and (~ config 'shutdown-port)
 			     (make-server-socket (~ config 'shutdown-port))))
-    (let ((socket (if (and (~ config 'secure?)
-			   (not (null? (~ config 'certificates))))
-		      ;; For now no private key, it's simple server
-		      ;; anyway
-		      (make-server-tls-socket port (~ config 'certificates))
-		      (make-server-socket port))))
-      (define server-thread 
-	(make-thread
-	 (lambda ()
-	   (let loop ((client-socket (socket-accept socket)))
-	     (dispatch client-socket)
-	     (loop (socket-accept socket))))))
-      (let ((server (make <simple-server> :server-thread server-thread
-			  :server-socket socket :stopper-socket stop-socket)))
+    (define (make-socket ai-family)
+      (if (and (~ config 'secure?)
+	       (not (null? (~ config 'certificates))))
+	  ;; For now no private key, it's simple server
+	  ;; anyway
+	  (make-server-tls-socket port (~ config 'certificates) ai-family)
+	  (make-server-socket port ai-family)))
+    (let* ((ai-families (if (~ config 'use-ipv6?) 
+			    `(,AF_INET6 ,AF_INET)
+			    `(,AF_INET)))
+	   ;; hope all platform accepts dual when IPv6 is enabled
+	   (sockets (fold-right (lambda (ai-family s)
+				  (guard (e (else s))
+				    (cons (make-socket ai-family) s)))
+				'() ai-families)))
+      (define server-threads
+	(map (lambda (socket)
+	       (make-thread
+		(lambda ()
+		  (let loop ((client-socket (socket-accept socket)))
+		    (dispatch client-socket)
+		    (loop (socket-accept socket)))))) sockets))
+      (let ((server (make <simple-server> :server-threads server-threads
+			  :server-sockets sockets :stopper-socket stop-socket)))
 	(when stop-socket
 	  (set! (~ server 'stopper-thread)
 		(make-thread 
@@ -117,9 +132,9 @@
 		     (guard (e (else #t))
 		       (set! stop? ((~ config 'shutdown-handler) sock))
 		       (when stop? 
-			 (thread-terminate! server-thread)
-			 (socket-shutdown socket SHUT_RDWR)
-			 (socket-close socket)
+			 (for-each thread-terminate! server-threads)
+			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
+			 (for-each socket-close sockets)
 			 (set! (~ server 'stopped?) #t)))
 		     (socket-close sock))))))
 	server)))
@@ -129,7 +144,7 @@
       (thread-start! (~ server 'stopper-thread)))
     (guard (e ((terminated-thread-exception? e) #t)
 	      (else (raise e)))
-      (thread-join! (thread-start! (~ server 'server-thread)))))
+      (map thread-join! (map thread-start! (~ server 'server-threads)))))
 
   (define (stop-server! server)
     (define (close-socket socket)
@@ -139,8 +154,8 @@
       (when (~ server 'stopper-thread)
 	(close-socket (~ server 'stopper-socket))
 	(thread-terminate! (~ server 'stopper-thread)))
-      (close-socket (~ server 'server-socket))
-      (thread-terminate! (~ server 'server-thread))
+      (map close-socket (~ server 'server-sockets))
+      (map thread-terminate! (~ server 'server-threads))
       (set! (~ server 'stopped?) #t)))
 
 )

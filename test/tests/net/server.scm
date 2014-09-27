@@ -1,5 +1,6 @@
 (import (rnrs)
 	(net server)
+	(sagittarius)
 	(sagittarius socket)
 	(rfc tls)
 	(rfc x.509)
@@ -10,6 +11,10 @@
 
 (test-begin "Simple server framework")
 
+(define-constant +shutdown-port+ "10000")
+
+;; use default config
+;; no IPv6, no shutdown port and signel thread
 (let ()
   (define (handler socket)
     (let ((bv (socket-recv socket 255)))
@@ -19,43 +24,52 @@
   ;; wait until it's started
   (thread-start! server-thread)
   (thread-sleep! 0.1)
+
   (let ((sock (make-client-socket "localhost" "5000")))
     (socket-send sock (string->utf8 "hello"))
     (test-equal "echo back" (string->utf8 "hello") (socket-recv sock 255))
     (socket-close sock))
+
   (test-assert "stop server" (stop-server! server))
   (test-assert "finish simple server" (thread-join! server-thread))
 )
 
 ;; multi threading server
 (let ()
-  (define config (make-server-config :shutdown-port "8888"
+  (define config (make-server-config :shutdown-port +shutdown-port+
 				     :exception-handler (lambda (e s) (print e))
-				     :max-thread 5))
+				     :max-thread 5
+				     :use-ipv6? #t))
   (define (handler socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))
   (define server-thread (make-thread (lambda () (start-server! server))))
+  (define (test ai-family)
+    (let ((t* (map (lambda (_)
+		     (make-thread
+		      (lambda ()
+			(define sock (make-client-socket "localhost" "5000"
+							 ai-family))
+			(thread-sleep! 0.2)
+			(socket-send sock (string->utf8 "hello"))
+			(let ((r (utf8->string (socket-recv sock 255))))
+			  (socket-close sock)
+			  r))))
+		   ;; more than max thread
+		   '(1 2 3 4 5 6 7 8 9 10))))
+      (test-equal "multi threaded server"
+		  '("hello" "hello" "hello" "hello" "hello"
+		    "hello" "hello" "hello" "hello" "hello")
+		  (map thread-join! (map thread-start! t*)))))
   (thread-start! server-thread)
   (thread-sleep! 0.1)
-  (let ((t* (map (lambda (_)
-		 (make-thread
-		  (lambda ()
-		    (define sock (make-client-socket "localhost" "5000"))
-		    (thread-sleep! 0.2)
-		    (socket-send sock (string->utf8 "hello"))
-		    (let ((r (utf8->string (socket-recv sock 255))))
-		      (socket-close sock)
-		      r))))
-		 ;; more than max thread
-		 '(1 2 3 4 5 6 7 8 9 10))))
-    (test-equal "multi threaded server"
-		'("hello" "hello" "hello" "hello" "hello"
-		  "hello" "hello" "hello" "hello" "hello")
-		(map thread-join! (map thread-start! t*))))
+  ;; test both sockets
+  (test AF_INET6)
+  (test AF_INET)
+
   ;; stop server by accessing shutdown port
-  (make-client-socket "localhost" "8888")
+  (make-client-socket "localhost" +shutdown-port+)
   (thread-sleep! 0.2)
   (test-assert "server-stopped?" (server-stopped? server))
 )
@@ -68,20 +82,27 @@
 							   (current-date))
 					    (make-x509-issuer '((C . "NL")))))
 
-  (define config (make-server-config :shutdown-port "8888"
+  (define config (make-server-config :shutdown-port +shutdown-port+
 				     :secure? #t
+				     :use-ipv6? #t
 				     :certificates (list cert)))
   (define (handler socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))
   (define server-thread (make-thread (lambda () (start-server! server))))
+  (define (test ai-family)
+    (let ((sock (make-client-tls-socket "localhost" "5000" ai-family)))
+      (socket-send sock (string->utf8 "hello"))
+      (test-equal "TLS echo back" (string->utf8 "hello") (socket-recv sock 255))
+      (socket-close sock)))
+
   (thread-start! server-thread)
   (thread-sleep! 0.1)
-  (let ((sock (make-client-tls-socket "localhost" "5000")))
-    (socket-send sock (string->utf8 "hello"))
-    (test-equal "TLS echo back" (string->utf8 "hello") (socket-recv sock 255))
-    (socket-close sock))
+  ;; test both socket
+  (test AF_INET)
+  (test AF_INET6)
+
   (test-assert "stop TLS server" (stop-server! server))
   (test-assert "finish simple server" (thread-join! server-thread))
   )
