@@ -2677,11 +2677,12 @@
 	  (values (reverse! r) expanded?)
 	  (let* ((expr (car form))
 		 (name (if (pair? expr) (car expr) expr))
-		 (gloc (if (variable? name)
-			   (find-binding (p1env-library p1env)
-					 (variable-name name)
-					 #f)
-			   #f)))
+		 (gloc (cond ((symbol? name)
+			      (find-binding (p1env-library p1env) name #f))
+			     ((identifier? name)
+			      (find-binding (id-library name)
+					    (id-name name) #f))
+			     (else #f))))
 	    ;; toplevel must be bounded to something
 	    ;; FIXME, we can't check it here...
 	    ;; (unless gloc

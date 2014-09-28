@@ -1477,4 +1477,18 @@
 		       (unless (eof-object? s)
 			 (write s out)
 			 (loop (read in))))))))))
+
+;; call #66
+(test-assert "toplevel macro expansion in library"
+	     (eval '(library (issue-66)
+			(export make-foo foo? foo-foo foo-bar)
+			(import (srfi :9))
+		      (define-record-type <foo>
+			(make-foo foo bar)
+			foo?
+			(foo foo-foo)
+			(bar foo-bar)))
+		   ;; need 'library syntax defined in (sagittarius)
+		   (environment '(sagittarius))))
+
 (test-end)
