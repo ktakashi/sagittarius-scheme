@@ -63,7 +63,6 @@ SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
 
 static void thread_cleanup_inner(SgVM *vm)
 {
-  SgObject exc;
   vm->threadState = SG_VM_TERMINATED;
   if (vm->canceller) {
     /* this thread is cancelled */
@@ -281,7 +280,7 @@ static int wait_for_termination(SgVM *target)
   do {
     r = Sg_WaitWithTimeout(&target->cond, &target->vmlock, &ts);
   } while (r != SG_INTERNAL_COND_TIMEDOUT &&
-	   target->state != SG_VM_TERMINATED);
+	   target->threadState != SG_VM_TERMINATED);
   return r == 0;
 }
 

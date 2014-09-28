@@ -1200,13 +1200,17 @@ static void set_callback_result(SgCallback *callback, SgObject ret,
     if (!SG_NUMBERP(ret)) goto ret0;
     *((double *) result) = Sg_GetDouble(ret);
     break;
+#if SIZEOF_LONG != 4
   int64_entry:
+#endif
   case FFI_RETURN_TYPE_INT64_T:
     cif->flags = FFI_TYPE_SINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
     *((int64_t *) result) = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
     break;
+#if SIZEOF_LONG != 4
   uint64_entry:
+#endif
   case FFI_RETURN_TYPE_UINT64_T:
     cif->flags = FFI_TYPE_UINT64;
     if (!SG_NUMBERP(ret)) goto ret0;
@@ -1659,7 +1663,7 @@ void Sg_CMemcpy(SgPointer *d, long offset,
 		long size)
 {
   void *dst = (void *)(d->pointer + offset);
-  void *src;
+  void *src = NULL;
 
   if (SG_POINTERP(s)) {
     src = (void *)(SG_POINTER(s)->pointer + start);
@@ -1669,6 +1673,7 @@ void Sg_CMemcpy(SgPointer *d, long offset,
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("c-memcpy"),
 				    SG_MAKE_STRING("pointer or bytevector"),
 				    s, SG_NIL);
+    return;
   }
   memcpy(dst, src, size);
 }
