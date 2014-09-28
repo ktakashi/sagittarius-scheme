@@ -55,7 +55,7 @@ static SgClass *trans_cpl[] = {
 static void transcoder_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgTranscoder *t = SG_TRANSCODER(obj);
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, UC("#<transcoder "));
   Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(t)));
   Sg_PutcUnsafe(port, ' ');
@@ -76,7 +76,7 @@ static void transcoder_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   case SG_IGNORE_ERROR:  Sg_PutuzUnsafe(port, UC("ignore")); break;
   }
   Sg_PutcUnsafe(port, '>');
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 SG_DEFINE_BUILTIN_CLASS(Sg_TranscoderClass,

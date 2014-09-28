@@ -287,7 +287,16 @@ struct SgPortRec
   SgObject     reader;
   SgObject     data;		/* alist of port data */
 
-  SgInternalMutex lock;
+  /* unlike the other object, lock is a pointer. 
+     port has 2 lock, one is read lock the other one is write lock.
+     on the normal case these 2 are basically the same.
+     however there is one case these 2 need to be different which
+     is socket port. even though socket support is out side of
+     main component but it needs to have a way to make input/output
+     port bidirectional.
+   */
+  SgInternalMutex *readLock;
+  SgInternalMutex *writeLock;
 
   /* common methods */
   SgPortTable *vtbl;
@@ -388,19 +397,32 @@ enum SgCustomPortType {
 #define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
 #define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
 
-#define SG_PORT_LOCK(port)	Sg_LockMutex(&(port)->lock)
-#define SG_PORT_UNLOCK(port)	Sg_UnlockMutex(&(port)->lock)
+#define SG_PORT_LOCK_READ(port)	  Sg_LockMutex((port)->readLock)
+#define SG_PORT_UNLOCK_READ(port) Sg_UnlockMutex((port)->readLock)
 
-#define SG_INIT_PORT(port, d, t, m)		\
-  do {						\
-    SG_SET_CLASS((port), SG_CLASS_PORT);	\
-    (port)->direction = (d);			\
-    (port)->type = (t);				\
-    (port)->bufferMode = (m);			\
-    (port)->reader = SG_FALSE;			\
-    (port)->closed = FALSE;			\
-    (port)->data = SG_NIL;			\
-    Sg_InitMutex(&(port)->lock, TRUE);		\
+#define SG_PORT_LOCK_WRITE(port)   Sg_LockMutex((port)->writeLock)
+#define SG_PORT_UNLOCK_WRITE(port) Sg_UnlockMutex((port)->writeLock)
+
+#define SG_INIT_PORT(port, d, t, m)			\
+  do {							\
+    SG_SET_CLASS((port), SG_CLASS_PORT);		\
+    (port)->direction = (d);				\
+    (port)->type = (t);					\
+    (port)->bufferMode = (m);				\
+    (port)->reader = SG_FALSE;				\
+    (port)->closed = FALSE;				\
+    (port)->data = SG_NIL;				\
+    (port)->readLock = SG_NEW_ATOMIC(SgInternalMutex);	\
+    Sg_InitMutex((port)->readLock, TRUE);		\
+    /* by default read and write locks are */		\
+    /* the same */					\
+    (port)->readLock = (port)->writeLock;		\
+  } while (0)
+
+#define SG_INIT_WRITE_LOCK(port)			\
+  do {							\
+    (port)->writeLock = SG_NEW_ATOMIC(SgInternalMutex);	\
+    Sg_InitMutex((port)->writeLock, TRUE);		\
   } while (0)
 
 #define SG_INIT_BINARY_PORT(bp, t)		\
@@ -461,10 +483,23 @@ SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
 					      int bufferSize);
 
+/* make binary port. 
+   
+   if the last flag bidirectionalP is true then it creates bidinrecional
+   port, when direction is SG_IN_OUT_PORT. it is users responsibility to
+   make sure reading and writing are separeted completely.
+   e.g. buffering
+
+   keep in mind, file port will never be bidirectional.
+   NOTE: this is only creates 2 locks for port so that the port APIs
+         will lock separate locks.
+   NOTE: currently this is only used to make socket port...
+ */
 SG_EXTERN SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
 				     SgPortTable *portTable,
 				     SgBinaryPortTable *binaryPortTable,
-				     void *data);
+				     void *data,
+				     int bidirectionalP);
 
 SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port,
 					      SgTranscoder *transcoder);

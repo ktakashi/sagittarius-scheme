@@ -113,13 +113,13 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   ctx.sharedId = 0;
   SET_STACK_SIZE(&ctx);
 
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   if (SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED) {
     write_ss(obj, port, &ctx);
   } else {
     write_ss_rec(obj, port, &ctx);
   }
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
@@ -147,9 +147,9 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   SET_STACK_SIZE(&ctx);
 
   if (width <= 0) {
-    SG_PORT_LOCK(SG_PORT(port));
+    SG_PORT_LOCK_WRITE(SG_PORT(port));
     format_write(obj, SG_PORT(port), &ctx, TRUE);
-    SG_PORT_UNLOCK(SG_PORT(port));
+    SG_PORT_UNLOCK_WRITE(SG_PORT(port));
     return 0;
   }
 
@@ -615,9 +615,9 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
     /* for now I assume it's a textual port */
     out = SG_PORT(port);
   }
-  SG_PORT_LOCK(out);
+  SG_PORT_LOCK_WRITE(out);
   format_proc(out, fmt, args, ss);
-  SG_PORT_UNLOCK(out);
+  SG_PORT_UNLOCK_WRITE(out);
 }
 
 void Sg_Printf(SgPort *port, const SgChar *fmt, ...)
@@ -1378,9 +1378,9 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
       break;
     }
   }
-  SG_PORT_LOCK(out);
+  SG_PORT_LOCK_WRITE(out);
   vprintf_proc(out, fmt, h, sharedp);
-  SG_PORT_UNLOCK(out);
+  SG_PORT_UNLOCK_WRITE(out);
 }
 
 SgObject Sg_Sprintf(const SgChar *fmt, ...)
@@ -1426,7 +1426,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
   int r6rsMode = SG_VM_IS_SET_FLAG(Sg_VM(), SG_R6RS_MODE);
   int mode = SG_WRITE_MODE(ctx);
 
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   if (size == 0) {
     /* if the mode is R6RS then (string->symbol "") should not
        print anything. however, some of the R6RS implementations
@@ -1512,7 +1512,7 @@ void Sg_WriteSymbolName(SgString *snam, SgPort *port,
     Sg_PutsUnsafe(port, snam);
   }
  end:  
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg__InitWrite()

@@ -52,7 +52,7 @@ static SgInternalMutex obtable_mutax;
 static void symbol_print(SgObject sym, SgPort *port, SgWriteContext *ctx)
 {
   SgSymbol *obj = SG_SYMBOL(sym);
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   ASSERT(SG_STRINGP(obj->name));
   if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
     Sg_PutsUnsafe(port, obj->name);
@@ -60,7 +60,7 @@ static void symbol_print(SgObject sym, SgPort *port, SgWriteContext *ctx)
     if (SG_UNINTERNED_SYMBOL(obj)) Sg_PutuzUnsafe(port, UC("#:"));
     Sg_WriteSymbolName(obj->name, port, ctx, 0);
   }
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SymbolClass, symbol_print);

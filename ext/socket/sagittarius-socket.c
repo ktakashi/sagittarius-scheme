@@ -1100,10 +1100,12 @@ static inline SgObject make_socket_port(SgSocket *socket,
 {
   if (closeP) {
     return Sg_MakeBinaryPort(d, &socket_close_table, 
-			     &socket_binary_table, (void*)socket);
+			     &socket_binary_table, (void*)socket,
+			     (d == SG_IN_OUT_PORT));
   } else {
     return Sg_MakeBinaryPort(d, &socket_table, 
-			     &socket_binary_table, (void*)socket);
+			     &socket_binary_table, (void*)socket,
+			     (d == SG_IN_OUT_PORT));
   }
 }
 

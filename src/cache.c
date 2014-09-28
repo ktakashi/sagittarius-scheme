@@ -1766,7 +1766,7 @@ int Sg_ReadCache(SgString *id)
   ctx.isLinkNeeded = FALSE;
   ctx.file = cache_path;
   ctx.links = SG_NIL;
-  SG_PORT_LOCK(&in);
+  SG_PORT_LOCK_READ(&in);
   /* check if it's invalid cache or not */
   b = Sg_PeekbUnsafe(&in);
   if (b == INVALID_CACHE_TAG) {
@@ -1820,7 +1820,7 @@ int Sg_ReadCache(SgString *id)
   }
  end:
   vm->currentLibrary = save;
-  SG_PORT_UNLOCK(&in);
+  SG_PORT_UNLOCK_READ(&in);
   Sg_UnlockFile(&file);
   Sg_ClosePort(&in);
   SG_CLEAN_BINARY_PORT(&bp);

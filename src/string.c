@@ -44,7 +44,7 @@
 static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 {
   SgString *obj = SG_STRING(o);
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
     Sg_PutsUnsafe(port, obj);
   } else {
@@ -103,7 +103,7 @@ static void string_print(SgObject o, SgPort *port, SgWriteContext *ctx)
     }
     Sg_PutcUnsafe(port, '"');
   } 
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 SG_DEFINE_BUILTIN_CLASS(Sg_StringClass, string_print, NULL, NULL, NULL,
