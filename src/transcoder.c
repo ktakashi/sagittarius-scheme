@@ -124,10 +124,15 @@ static SgObject get_mode(int mode)
       (save) = SG_BINARY_PORT(port)->closed;		\
       SG_BINARY_PORT(port)->closed = FALSE;		\
       break;						\
-    case SG_BINARY_CUSTOM_PORT_TYPE:			\
-      (save) = SG_CUSTOM_BINARY_PORT(port)->closed;	\
-      SG_CUSTOM_BINARY_PORT(port)->closed = FALSE;	\
-      break;						\
+    case SG_CUSTOM_PORT_TYPE:				\
+      switch (SG_CUSTOM_PORT(port)->type) {		\
+      case SG_BINARY_CUSTOM_PORT_TYPE:			\
+	(save) = SG_CUSTOM_BINARY_PORT(port)->closed;	\
+	SG_CUSTOM_BINARY_PORT(port)->closed = FALSE;	\
+	break;						\
+      default: break;					\
+      }							\
+    default: break;					\
     }							\
   } while (0)
 
@@ -137,9 +142,14 @@ static SgObject get_mode(int mode)
     case SG_BINARY_PORT_TYPE:				\
       SG_BINARY_PORT(port)->closed = (prev);		\
       break;						\
-    case SG_BINARY_CUSTOM_PORT_TYPE:			\
-      SG_CUSTOM_BINARY_PORT(port)->closed = (prev);	\
-      break;						\
+    case SG_CUSTOM_PORT_TYPE:				\
+      switch (SG_CUSTOM_PORT(port)->type) {		\
+      case SG_BINARY_CUSTOM_PORT_TYPE:			\
+	SG_CUSTOM_BINARY_PORT(port)->closed = (prev);	\
+	break;						\
+      default: break;					\
+      }							\
+    default: break;					\
     }							\
   } while (0)
 

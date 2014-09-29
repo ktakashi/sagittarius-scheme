@@ -549,14 +549,16 @@
   (define-cise-stmt check-input-port
     ((_ name p)
      `(unless (or (SG_INPORTP ,p)
-		  (SG_INOUTPORTP ,p))
+		  (SG_INOUTPORTP ,p)
+		  (SG_BIDIRECT_PORTP ,p))
 	(wrong-type-of-argument-violation ',name
 					  "input port"
 					  ,p))))
   (define-cise-stmt check-output-port
     ((_ name p)
      `(unless (or (SG_OUTPORTP ,p)
-		  (SG_INOUTPORTP ,p))
+		  (SG_INOUTPORTP ,p)
+		  (SG_BIDIRECT_PORTP ,p))
 	(wrong-type-of-argument-violation ',name
 					  "output port"
 					  ,p))))

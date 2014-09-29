@@ -81,7 +81,27 @@
   (test-equal "raw nonblocking socket-recv"
 	      #f
 	      (socket-recv client-socket (+ (string-length "hello\r\n") 2) 0))
-  (socket-send client-socket (string->utf8 "end\r\n") 0)
+  (socket-send client-socket (string->utf8 "test-end\r\n") 0)
+  )
+
+;; now socket-port creates bidirectional port
+(let ((port (socket-port (make-client-socket "localhost" "5000")))
+      (text "bidirectional port\r\n"))
+  (define recv-thread
+    (make-thread
+     (lambda ()
+       (get-bytevector-n port (string-length text)))))
+  (define send-thread
+    (make-thread
+     (lambda ()
+       (put-bytevector port (string->utf8 text)))))
+  ;; it's not a good test case because it's assuming it works properly.
+  (thread-start! recv-thread)
+  (thread-sleep! 0.1)
+  (thread-start! send-thread)
+  (test-equal "bidirectional port" text 
+	      (utf8->string (thread-join! recv-thread)))
+  (put-bytevector port (string->utf8 "end\r\n"))
   )
 
 (test-assert "wait server ends" (thread-join! server-thread))

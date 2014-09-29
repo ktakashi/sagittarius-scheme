@@ -152,7 +152,8 @@ static void port_cleanup(SgPort *port)
     if (SG_BINARY_PORT(port)->type == SG_FILE_BINARY_PORT_TYPE) {
       /* file needs to be closes */
       if (port->direction == SG_OUTPUT_PORT ||
-	  port->direction == SG_IN_OUT_PORT) {
+	  port->direction == SG_IN_OUT_PORT ||
+	  port->direction == SG_BIDIRECTIONAL_PORT) {
 	SG_PORT_VTABLE(port)->flush(port);
       }
       SG_PORT_VTABLE(port)->close(port);
@@ -165,6 +166,8 @@ static void port_cleanup(SgPort *port)
     break;
   }
   port->closed = TRUE;
+  /* in case */
+  SG_CLEAN_PORT_LOCK(port);
   Sg_UnregisterFinalizer(SG_OBJ(port));
 }
 
@@ -184,6 +187,9 @@ static SgPort* make_port_rec(enum SgPortDirection d, enum SgPortType t,
 {
   SgPort *z = SG_NEW(SgPort);
   SG_INIT_PORT(z, d, t, m);
+  if (d == SG_BIDIRECTIONAL_PORT) {
+    SG_INIT_WRITE_LOCK(z);
+  }
   /* we only register binary and custom ports to finalizer.
      other has only on memory buffer.
    */
@@ -858,6 +864,9 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
   case SG_INPUT_PORT:  SG_PORT_VTABLE(port) = &fb_inputs; break;
   case SG_OUTPUT_PORT: SG_PORT_VTABLE(port) = &fb_outputs; break;
   case SG_IN_OUT_PORT: SG_PORT_VTABLE(port) = &fb_in_outputs; break;
+  default:
+    Sg_Panic("Enum type is not suitable for file binary port: %d", d);
+    return SG_UNDEF;
   }
 
   port->impl.bport = bp;
@@ -1161,15 +1170,11 @@ SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
 SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
 			   SgPortTable *portTable,
 			   SgBinaryPortTable *binaryPortTable,
-			   void *data,
-			   int bidirectionalP)
+			   void *data)
 {
   SgPort *z = make_port_rec(direction, SG_BINARY_PORT_TYPE,
 			    SG_BUFMODE_NONE, FALSE);
   SgBinaryPort *b = make_binary_port(SG_CUSTOM_BINARY_PORT_TYPE);
-  if (direction == SG_IN_OUT_PORT && bidirectionalP) {
-    SG_INIT_WRITE_LOCK(z);
-  }
   z->closed = FALSE;
   SG_PORT_VTABLE(z) = portTable;
   SG_BINARY_PORT_VTABLE(b) = binaryPortTable;
@@ -1427,6 +1432,15 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 					  SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
+  SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
+
+  return Sg_InitTranscodedPort(z, t, port, transcoder, SG_IN_OUT_PORT);
+}
+
+SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port, 
+					   SgTranscoder *transcoder)
+{
+  SgPort *z = make_port(SG_BIDIRECTIONAL_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
   return Sg_InitTranscodedPort(z, t, port, transcoder, SG_IN_OUT_PORT);
