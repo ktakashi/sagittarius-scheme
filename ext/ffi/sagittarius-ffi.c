@@ -650,9 +650,9 @@ static void desc_c_struct_rec(SgCStruct *ct, SgPort *port, int indent)
 
 void Sg_DescCStruct(SgCStruct *ct, SgObject port)
 {
-  SG_PORT_LOCK(SG_PORT(port));
+  SG_PORT_LOCK_WRITE(SG_PORT(port));
   desc_c_struct_rec(ct, SG_PORT(port), 0);
-  SG_PORT_UNLOCK(SG_PORT(port));
+  SG_PORT_UNLOCK_WRITE(SG_PORT(port));
 }
 
 /* from ruby-ffi module */

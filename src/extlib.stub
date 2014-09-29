@@ -549,14 +549,16 @@
   (define-cise-stmt check-input-port
     ((_ name p)
      `(unless (or (SG_INPORTP ,p)
-		  (SG_INOUTPORTP ,p))
+		  (SG_INOUTPORTP ,p)
+		  (SG_BIDIRECT_PORTP ,p))
 	(wrong-type-of-argument-violation ',name
 					  "input port"
 					  ,p))))
   (define-cise-stmt check-output-port
     ((_ name p)
      `(unless (or (SG_OUTPORTP ,p)
-		  (SG_INOUTPORTP ,p))
+		  (SG_INOUTPORTP ,p)
+		  (SG_BIDIRECT_PORTP ,p))
 	(wrong-type-of-argument-violation ',name
 					  "output port"
 					  ,p))))
@@ -591,7 +593,7 @@
 	    (else
 	     ;; TODO how much should we allocate as default size?
 	     (let ((buf (Sg_MakeStringOutputPort 512)))
-	       (SG_PORT_LOCK p)
+	       (SG_PORT_LOCK_READ p)
 	       (loop
 		(let ((c::SgChar (Sg_GetcUnsafe p)))
 		  ;; transcoder return LF as eol.
@@ -603,7 +605,7 @@
 			 (break))
 			(else
 			 (Sg_PutcUnsafe buf c)))))
-	       (SG_PORT_UNLOCK p)
+	       (SG_PORT_UNLOCK_READ p)
 	       (result (Sg_GetStringFromStringPort buf)))))))
 
   (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))

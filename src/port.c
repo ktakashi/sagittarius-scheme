@@ -62,7 +62,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SgObject file = SG_FALSE;
   SgObject transcoder = SG_FALSE;
 
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, UC("#<"));
   if (SG_BINARY_PORTP(p)) {
     switch (SG_BINARY_PORT(p)->type) {
@@ -139,7 +139,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutuzUnsafe(port, UC("closed"));
   }
   Sg_PutcUnsafe(port, '>');
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 #define PORT_DEFAULT_BUF_SIZE SG_PORT_DEFAULT_BUFFER_SIZE
@@ -152,7 +152,8 @@ static void port_cleanup(SgPort *port)
     if (SG_BINARY_PORT(port)->type == SG_FILE_BINARY_PORT_TYPE) {
       /* file needs to be closes */
       if (port->direction == SG_OUTPUT_PORT ||
-	  port->direction == SG_IN_OUT_PORT) {
+	  port->direction == SG_IN_OUT_PORT ||
+	  port->direction == SG_BIDIRECTIONAL_PORT) {
 	SG_PORT_VTABLE(port)->flush(port);
       }
       SG_PORT_VTABLE(port)->close(port);
@@ -165,6 +166,8 @@ static void port_cleanup(SgPort *port)
     break;
   }
   port->closed = TRUE;
+  /* in case */
+  SG_CLEAN_PORT_LOCK(port);
   Sg_UnregisterFinalizer(SG_OBJ(port));
 }
 
@@ -184,6 +187,9 @@ static SgPort* make_port_rec(enum SgPortDirection d, enum SgPortType t,
 {
   SgPort *z = SG_NEW(SgPort);
   SG_INIT_PORT(z, d, t, m);
+  if (d == SG_BIDIRECTIONAL_PORT) {
+    SG_INIT_WRITE_LOCK(z);
+  }
   /* we only register binary and custom ports to finalizer.
      other has only on memory buffer.
    */
@@ -347,19 +353,15 @@ static void file_flush_internal(SgObject self)
   uint8_t *buf = SG_BINARY_PORT(self)->buffer;
   SgBinaryPort *bport = SG_BINARY_PORT(self);
   /* for shared buffered port such as stdout */
-  /* SG_PORT_LOCK(SG_PORT(self)); */
   while (SG_BINARY_PORT(self)->bufferIndex > 0) {
     int64_t written_size = SG_PORT_FILE_VTABLE(self)->write(SG_PORT_FILE(self),
 							    buf,
 							    bport->bufferIndex);
     buf += written_size;
     bport->bufferIndex -= written_size;
-    /* ASSERT(bport->bufferIndex >= 0); */
   }
-  /* ASSERT(SG_BINARY_PORT(self)->bufferIndex == 0); */
   bport->bufferIndex = 0;
   bport->bufferSize = 0;
-  /* SG_PORT_UNLOCK(SG_PORT(self)); */
 }
 
 static void file_flush(SgObject self)
@@ -862,6 +864,9 @@ SgObject Sg_InitFileBinaryPort(SgPort *port, SgBinaryPort *bp,
   case SG_INPUT_PORT:  SG_PORT_VTABLE(port) = &fb_inputs; break;
   case SG_OUTPUT_PORT: SG_PORT_VTABLE(port) = &fb_outputs; break;
   case SG_IN_OUT_PORT: SG_PORT_VTABLE(port) = &fb_in_outputs; break;
+  default:
+    Sg_Panic("Enum type is not suitable for file binary port: %d", d);
+    return SG_UNDEF;
   }
 
   port->impl.bport = bp;
@@ -1427,6 +1432,15 @@ SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 					  SgTranscoder *transcoder)
 {
   SgPort *z = make_port(SG_IN_OUT_PORT, SG_TEXTUAL_PORT_TYPE, -1);
+  SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
+
+  return Sg_InitTranscodedPort(z, t, port, transcoder, SG_IN_OUT_PORT);
+}
+
+SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port, 
+					   SgTranscoder *transcoder)
+{
+  SgPort *z = make_port(SG_BIDIRECTIONAL_PORT, SG_TEXTUAL_PORT_TYPE, -1);
   SgTextualPort *t = make_textual_port(SG_TRANSCODED_TEXTUAL_PORT_TYPE);
 
   return Sg_InitTranscodedPort(z, t, port, transcoder, SG_IN_OUT_PORT);
@@ -2446,104 +2460,104 @@ void Sg_FlushAllPort(int exitting)
 int Sg_Getb(SgPort *port)
 {
   int b;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   b = Sg_GetbUnsafe(port);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return b;
 }
 
 int Sg_Peekb(SgPort *port)
 {
   int b;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   b = Sg_PeekbUnsafe(port);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return b;
 }
 
 int64_t Sg_Readb(SgPort *port, uint8_t *buf, int64_t size)
 {
   int64_t ret;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   ret = Sg_ReadbUnsafe(port, buf, size);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return ret;
 }
 
 int64_t Sg_ReadbAll(SgPort *port, uint8_t **buf)
 {
   int64_t ret;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   ret = Sg_ReadbAllUnsafe(port, buf);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return ret;
 }
 
 void Sg_Writeb(SgPort *port, uint8_t *b, int64_t start, int64_t count)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_WritebUnsafe(port, b, start, count);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putb(SgPort *port, uint8_t b)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutbUnsafe(port, b);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 SgChar Sg_Getc(SgPort *port)
 {
   SgChar ch;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   ch = Sg_GetcUnsafe(port);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return ch;
 }
 
 SgChar Sg_Peekc(SgPort *port)
 {
   SgChar ch;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   ch = Sg_PeekcUnsafe(port);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return ch;
 }
 
 void Sg_Putc(SgPort *port, SgChar ch)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutcUnsafe(port, ch);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putz(SgPort *port, const char *str)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutzUnsafe(port, str);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putuz(SgPort *port, const SgChar *str)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, str);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Puts(SgPort *port, SgString *str)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutsUnsafe(port, str);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Writes(SgPort *port, SgChar *s, int64_t count)
 {
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_WritesUnsafe(port, s, count);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_WritesUnsafe(SgPort *port, SgChar *s, int64_t count)
@@ -2561,9 +2575,9 @@ void Sg_WritesUnsafe(SgPort *port, SgChar *s, int64_t count)
 int64_t Sg_Reads(SgPort *port, SgChar *s, int64_t count)
 {
   int64_t size;
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_READ(port);
   size = Sg_ReadsUnsafe(port, s, count);
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_READ(port);
   return size;
 }
 int64_t Sg_ReadsUnsafe(SgPort *port, SgChar *s, int64_t count)

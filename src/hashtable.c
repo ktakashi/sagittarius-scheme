@@ -675,7 +675,7 @@ SgHashEntry* Sg_HashIterNext(SgHashIter *itr)
 static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgHashTable *ht = SG_HASHTABLE(obj);
-  SG_PORT_LOCK(port);
+  SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, UC("#<hashtable "));
   if (SG_IMMUTABLE_HASHTABLE_P(ht)) {
     Sg_PutuzUnsafe(port, UC("immutable "));
@@ -700,7 +700,7 @@ static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     break;
   }
   Sg_PutcUnsafe(port, '>');
-  SG_PORT_UNLOCK(port);
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 /*
