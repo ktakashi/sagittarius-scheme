@@ -383,7 +383,7 @@ static void file_fill_buffer(SgObject self)
   if (bp->dirty && SG_PORT(self)->direction == SG_IN_OUT_PORT) {
     file_flush(self);
   }
-  while (read_size < buffer_size) {
+  while (read_size < (int64_t)buffer_size) {
     int64_t result =
       SG_PORT_FILE_VTABLE(self)->read(SG_PORT_FILE(self),
 				      bp->buffer + read_size,
@@ -944,7 +944,7 @@ static int64_t byte_array_read_u8(SgObject self, uint8_t *buf, int64_t size)
   uint8_t *end = SG_BINARY_PORT_BUFFER(self)->end;
   size_t bsize =  end - start;
   size_t rest = bsize - index;
-  size_t read_size = (rest >= size) ? (size_t)size : rest;
+  size_t read_size = (rest >= (size_t)size) ? (size_t)size : rest;
   int i; 
 
   for (i = 0; i < read_size; i++) {
@@ -1373,7 +1373,7 @@ static void trans_set_port_position(SgObject self, int64_t offset,
   SgPort *p = SG_TRANSCODED_PORT_SRC_PORT(self);
   SG_TRANSCODED_PORT_BUFFER(self) = EOF;
   /* FIXME */
-  return Sg_SetPortPosition(p, offset, whence);
+  Sg_SetPortPosition(p, offset, whence);
 }
 
 
@@ -2318,7 +2318,7 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
       uint8_t *end = SG_BINARY_PORT_BUFFER(port)->end;
       size_t  index = SG_BINARY_PORT_BUFFER(port)->index;
       size_t size = end-start;
-      return Sg_MakeByteVectorFromU8Array(start+index, size-index);
+      return Sg_MakeByteVectorFromU8Array(start+index, (int)(size-index));
     } else {
       /* recreate */
       int size;
@@ -2355,8 +2355,12 @@ SgObject Sg_GetStringFromStringPort(SgPort *port)
 void Sg_ClosePort(SgPort *port)
 {
   SG_PORT_VTABLE(port)->close(port);
-  /* if (!port->closed) */
-  /*   port_cleanup(port); */
+  if (port->closed) {
+    /* destroy mutex */
+    SG_CLEAN_PORT_LOCK(port);
+    /* following must be useless */
+    /*   port_cleanup(port); */
+  }
 }
 
 /* this doesn't close port, just pseudo.

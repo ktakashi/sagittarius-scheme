@@ -11,16 +11,17 @@
 
 (test-begin "Simple server framework")
 
-(define-constant +shutdown-port+ "10000")
+(define-constant +shutdown-port+ "7500")
 
 ;; use default config
 ;; no IPv6, no shutdown port and signel thread
 (let ()
-  (define (handler socket)
+  (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler))
   (define server-thread (make-thread (lambda () (start-server! server))))
+  (test-assert "server?" (server? server))
   ;; wait until it's started
   (thread-start! server-thread)
   (thread-sleep! 0.1)
@@ -37,10 +38,11 @@
 ;; multi threading server
 (let ()
   (define config (make-server-config :shutdown-port +shutdown-port+
-				     :exception-handler (lambda (e s) (print e))
+				     :exception-handler 
+				     (lambda (sr s e) (print e))
 				     :max-thread 5
 				     :use-ipv6? #t))
-  (define (handler socket)
+  (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))
@@ -62,6 +64,8 @@
 		  '("hello" "hello" "hello" "hello" "hello"
 		    "hello" "hello" "hello" "hello" "hello")
 		  (map thread-join! (map thread-start! t*)))))
+  (test-assert "config?" (server-config? config))
+  (test-assert "server-config" (eq? config (server-config server)))
   (thread-start! server-thread)
   (thread-sleep! 0.1)
   ;; test both sockets
@@ -86,7 +90,7 @@
 				     :secure? #t
 				     :use-ipv6? #t
 				     :certificates (list cert)))
-  (define (handler socket)
+  (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))

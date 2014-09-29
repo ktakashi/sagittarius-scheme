@@ -60,7 +60,10 @@ void Sg__MutexCleanup(void *mutex_)
 
 void Sg_DestroyMutex(SgInternalMutex *mutex)
 {
-  CloseHandle(mutex->mutex);
+  if (mutex->mutex != INVALID_HANDLE_VALUE) {
+    CloseHandle(mutex->mutex);
+    mutex->mutex = INVALID_HANDLE_VALUE;
+  }
 }
 
 static DWORD ExceptionFilter(EXCEPTION_POINTERS *ep, DWORD *ei)
@@ -194,7 +197,7 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
     unsigned long now_sec, target_sec;
     unsigned long target_usec, now_usec;
     Sg_GetTimeOfDay(&now_sec, &now_usec);
-    target_sec = pts->tv_sec;
+    target_sec = (unsigned long)pts->tv_sec;
     target_usec = pts->tv_nsec / 1000;
     if (target_sec < now_sec
 	|| (target_sec == now_sec && target_usec <= now_usec)) {
