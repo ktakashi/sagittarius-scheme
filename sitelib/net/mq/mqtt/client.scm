@@ -73,14 +73,14 @@
     (let ((socket (make-client-socket host port)))
       (apply port->mqtt-connection (socket-port socket) opt)))
 
-  ;; version number, protocol name and connection variable header length
-  (define-constant +mqtt-3.1+   '(3 "MQIsdp" 12))
-  (define-constant +mqtt-3.1.1+ '(4 "MQTT"   10))
-
   ;; QoS
   (define-constant +qos-at-most-once+  0)
   (define-constant +qos-at-least-once+ 1)
   (define-constant +qos-exactly-once+  2)
+
+  ;; version number, protocol name and connection variable header length
+  (define-constant +mqtt-3.1+   '(3 "MQIsdp" 12))
+  (define-constant +mqtt-3.1.1+ '(4 "MQTT"   10))
 
   (define (generate-client-id)
     (string-append "Sagittarius-MQTT" 

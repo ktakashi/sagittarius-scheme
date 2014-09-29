@@ -85,12 +85,6 @@
   (define-constant +pingresp+    13)
   (define-constant +disconnect+  14)
 
-  ;; we can define some of variable headers rules
-  (define-constant +connect-variable-header+ '(:utf8 :u8 :u8 :u16))
-  (define-constant +conack-variable-header+ '(:u8 :u8))
-  (define-constant +publish-variable-header+ '(:utf8 :pi))
-  (define-constant +puback-variable-header+ '(:pi))
-
   (define (read-fixed-header in)
     (define (read-length in)
       (define (check-error multiplier)
@@ -127,6 +121,9 @@
   (define (read-utf8-string in)
     (let ((len (get-unpack in "!S")))
       (values (+ len 2) (utf8->string (get-bytevector-n in len)))))
+  (define (read-application-data in)
+    (let ((len (get-unpack in "!S")))
+      (values (+ len 2) (get-bytevector-n in len))))
   ;; hmmmm, binary?
   (define (read-packet-identifier in) (values 2 (get-bytevector-n in 2)))
 
