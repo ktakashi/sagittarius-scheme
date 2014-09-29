@@ -1943,9 +1943,11 @@
 				     (else
 				      `(,loop
 					(,cdr. (,cdr. ,argvar))
-					(,.cons* (,car. ,argvar)
-						 (,car. (,cdr. ,argvar))
-						 ,restvar)
+					;; keep the order
+					(,.append! ,restvar
+						   (,.list
+						    (,car. ,argvar)
+						    (,car. (,cdr. ,argvar))))
 					,@tmps))))))))
 	      form) p1env))))
 

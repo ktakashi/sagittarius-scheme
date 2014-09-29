@@ -1491,4 +1491,11 @@
 		   ;; need 'library syntax defined in (sagittarius)
 		   (environment '(sagittarius))))
 
+;; call #68
+(let ()
+  (define (foo :key bar :allow-other-keys rest) rest)
+  (test-equal ":allow-other-keys order"
+	      '(:a :b :c :d) (foo :a :b :c :d)))
+
+
 (test-end)
