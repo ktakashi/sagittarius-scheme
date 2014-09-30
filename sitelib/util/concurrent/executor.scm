@@ -34,7 +34,7 @@
 	    future-get future-cancel
 	    future-done? future-cancelled?
 
-	    executor? make-executor
+	    executor? make-thread-pool-executor
 	    executor-state executor-pool-size
 	    executor-max-pool-size
 	    executor-available?
@@ -122,7 +122,7 @@
   ;; default is abort
   (define default-rejected-handler abort-rejected-handler)
 
-  (define-record-type (<thread-pool-executor> make-executor executor?)
+  (define-record-type (<thread-pool-executor> make-thread-pool-executor executor?)
     (fields (mutable pool-size executor-pool-size executor-pool-size-set!)
 	    (mutable state executor-state executor-state-set!)
 	    (immutable max-pool-size executor-max-pool-size)

@@ -91,9 +91,8 @@
       (define stop? #f)
       (define dispatch
 	(let ((executor (and (> (~ config 'max-thread) 1)
-			     (make-executor (~ config 'max-thread)
-					    (wait-finishing-handler
-					     (~ config 'max-retry))))))
+			     (make-thread-pool-executor (~ config 'max-thread)
+			      (wait-finishing-handler (~ config 'max-retry))))))
 	  (lambda (server socket)
 	    (define (handle socket)
 	      (guard (e (else 

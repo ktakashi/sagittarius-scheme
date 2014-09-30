@@ -5,6 +5,9 @@
 
 (test-begin "Concurrent utilities")
 
+;; for my laziness...
+(define make-executor make-thread-pool-executor)
+
 (let ((executor (make-executor 1)))
   (test-assert "executor?" (executor? executor))
   (test-equal "max pool size" 1 (executor-max-pool-size executor))
