@@ -3,12 +3,22 @@
 # Build file for @module@
 
 ADD_LIBRARY(sagittarius--@module@ MODULE
-  @module@.c @module@_stub.c)
+  @module@.c 
+  ${CMAKE_CURRENT_BINARY_DIR}/@module@_stub.c)
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--@module@
   COMMAND ${GENSTUB}
-  FILES ${CMAKE_CURRENT_SOURCE_DIR}/@module@_stub.stub)
+  FILES @module@_stub.stub)
+
+IF (MSVC OR CYGWIN)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(@module@.c
+    ${CMAKE_CURRENT_BINARY_DIR}/@module@_stub.c 
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
 SET_TARGET_PROPERTIES(sagittarius--@module@ PROPERTIES PREFIX "")
 TARGET_LINK_LIBRARIES(sagittarius--@module@ sagittarius)
