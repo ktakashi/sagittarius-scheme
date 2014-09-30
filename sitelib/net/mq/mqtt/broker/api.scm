@@ -39,7 +39,13 @@
 ;; try not to assume.
 (library (net mq mqtt broker api)
     (export make-mqtt-broker-context
-	    mqtt-broker-connect!)
+	    mqtt-broker-connect!
+	    mqtt-broker-disconnect!
+
+	    mqtt-session-alive?
+
+	    <mqtt-broker-context>
+	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -60,12 +66,17 @@
 
   ;; TODO
   (define-class <mqtt-session> ()
-    ((version :init-keyword :version)
+    ((context :init-keyword :context)
+     (client-id :init-keyword :client-id)
+     (version :init-keyword :version)
+     (keep-alive :init-keyword :keep-alive)
      alive-until ;; time object
      ;; these are will topic thing
      (topic   :init-keyword :topic)
      (message :init-keyword :message)
      (retain? :init-keyword :retain?)))
+
+  (define (mqtt-session-alive? session) (~ session 'context))
 
   ;; This is the entry when server got a connection.
   (define-constant +name-level+
@@ -123,13 +134,15 @@
 		    ((client-id) (read-utf8-string payload))
 		    ((topic message user password)
 		     (parse-rest (caddr vh) payload)))
-	(define (make/retrieve-session client-id flag)
+	(define (make/retrieve-session client-id flag vh)
 	  (cond ((and (not (bitwise-bit-set? flag clean-session-bit))
 		      (hashtable-ref (~ context 'sessions) client-id #f))
 		 => (lambda (s) (values #f s)))
 		(else
 		 (values #t 
 			 (make <mqtt-session>
+			   :context context :client-id client-id
+			   :keep-alive (cadddr vh)
 			   :topic topic :message message
 			   :retain (bitwise-bit-set? flag will-retain-bit)
 			   :qos (bitwise-arithmetic-shift-right
@@ -139,9 +152,18 @@
 		   ( (check-verion vh) )
 		   ( (authenticate user password) ))
 	  (let-values (((created? session) 
-			(make/retrieve-session client-id flag)))
+			(make/retrieve-session client-id flag vh)))
 	    (set! (~ session 'alive-until) (compute-period (cadddr vh)))
 	    (hashtable-set! (~ context 'sessions) client-id session)
-	    (send-conack 0 (not created?) session))))))
+	    (send-conack 0 (not created?) session)
+	    session)))))
+
+  ;; disconnect
+  (define (mqtt-broker-disconnect! session type flags len in/out)
+    ;; no response back
+    (hashtable-delete! (~ session 'context 'sessions)
+		       (~ session 'client-id))
+    ;; invalidate session
+    (set! (~ session 'context) #f))
 )
 		

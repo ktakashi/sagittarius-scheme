@@ -35,13 +35,15 @@
 	    <mqtt-broker-server-config>)
     (import (rnrs)
 	    (clos user)
+	    (sagittarius)
 	    (sagittarius object)
 	    (sagittarius socket)
 	    (net mq mqtt packet)
 	    (net mq mqtt broker api)
 	    (net server))
-  (define-class <mqtt-broker> (<simple-server>)
-    (context))
+  (define-class <mqtt-broker> (<simple-server> <mqtt-broker-context>)
+    ;; private slot
+    ((handlers :init-keyword :handlers)))
   (define-class <mqtt-broker-config> (<server-config>)
     ())
 
@@ -49,17 +51,40 @@
     (apply make <mqtt-broker-config> opt))
 
   (define (make-mqtt-broker port :optional (config (make-mqtt-broker-config)))
+    (define (setup-handlers)
+      (let ((ht (make-eqv-hashtable)))
+	;;(hashtable-set! ht +publish+)
+	;;(hashtable-set! ht +puback+)
+	;;(hashtable-set! ht +pubrec+)
+	;;(hashtable-set! ht +pubrel+)
+	;;(hashtable-set! ht +pubcomp+)
+	;;(hashtable-set! ht +subscribe+)
+	;;(hashtable-set! ht +unsubscribe+)
+	;;(hashtable-set! ht +pingreq+)
+	(hashtable-set! ht +disconnect+ mqtt-broker-disconnect!)
+	ht))
     (define (mqtt-handler server socket)
+      (define (unsupported)
+	(error 'mqtt-handler "not supported yet"))
       (let ((in/out (socket-port socket)))
-	(mqtt-broker-connect! (~ server 'context) in/out)
-	(let loop ()
-	  (let-values (((type flags len) (read-fixed-header in/out)))
-	    (error 'mqtt-handler "not supported yet" type)))))
-
+	(and-let* ((session (mqtt-broker-connect! server in/out)))
+	  (let loop ()
+	    (let-values (((type flags len) (read-fixed-header in/out)))
+	      (cond ((hashtable-ref (~ server 'handlers) type) =>
+		     (lambda (handler)
+		       (handler session type flags len in/out)
+		       ;; TODO keep alive?
+		       ;; as long as session is alive.
+		       (when (mqtt-session-alive? session) (loop))))
+		    (else
+		     (error 'mqtt-handler "unknown packet type" type))))))))
+    ;; hmmmm it's a bit inconvenient if we can't pass keyword argument
+    ;; to construct server...
     (let ((server (make-simple-server port mqtt-handler
 				      :server-class <mqtt-broker>
 				      config)))
-      (set! (~ server 'context) (make-mqtt-broker-context))
+      (set! (~ server 'handlers) (setup-handlers))
+      ;; TODO adding authentication-handler or so
       server))
 
 )
