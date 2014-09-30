@@ -161,6 +161,7 @@
 
 (test-assert "/finance (1)" (mqtt-topic-match? "+/+" "/finance"))
 (test-assert "/finance (2)" (not (mqtt-topic-match? "+" "/finance")))
+(test-assert "/finance (3)" (mqtt-topic-match? "/finance" "/finance"))
 
 (test-assert "# (1)" (mqtt-topic-match? "#" "sport/tennis/player1"))
 (test-assert "# (2)" (not (mqtt-topic-match? "#" "$SYS")))

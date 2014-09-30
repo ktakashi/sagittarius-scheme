@@ -75,21 +75,19 @@
     (define (string-last s)
       (let ((len (string-length s)))
 	(string-ref s (- len 1))))
-    ;; add empty entry
-    (define (fixup topics)
+    ;; add empty entry for convenience
+    (define (fixup topic topics)
       (let ((l (if (char=? (string-last topic) #\/) '("") '()))
 	    (f (if (char=? (string-ref topic 0) #\/) '("") '())))
 	(append f topics l)))
-    (let ((filters (string-tokenize filter topic-name-set))
-	  (topics  (fixup (string-tokenize topic topic-name-set))))
+    (let ((filters (fixup filter (string-tokenize filter topic-name-set)))
+	  (topics  (fixup topic (string-tokenize topic topic-name-set))))
       (let loop ((first? #t) (filters filters) (topics topics))
 	(cond ((and (null? filters) (null? topics)))   ;; matched
 	      ((or (null? filters) (null? topics))
-	       ;; FIXME looks ugly...
 	       (and (not (null? filters))
-		    (let ((filter (car filters)))
-		      (or (string=? filter "#") ;; foo/# foo case
-		))))
+		    ;; foo/# foo case
+		    (or (string=? (car filters) "#"))))
 	      ((string=? (car filters) "#")
 	       (or (not first?)
 		   ;; starting "$" doesn't match if with "#"
