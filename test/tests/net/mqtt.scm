@@ -1,5 +1,6 @@
 (import (rnrs)
 	(net mq mqtt packet)
+	(net mq mqtt topic)
 	(srfi :64)
 	(pp))
 
@@ -123,5 +124,52 @@
 	      (read-variable-header&payload in 
 					    (- (bytevector-length bv) 1)
 					    :u8 :utf8 :pi)))
+
+;; topic validation
+(test-assert "#" (mqtt-valid-topic? "#"))
+(test-assert "sport/tennis/#" (mqtt-valid-topic? "sport/tennis/#"))
+(test-assert "sport/tennis#" (not (mqtt-valid-topic? "sport/tennis#")))
+(test-assert "sport/tennis/#/ranking" 
+	     (not (mqtt-valid-topic? "sport/tennis/#/ranking")))
+(test-assert "sport/#/#" (not (mqtt-valid-topic? "sport/#/#")))
+
+(test-assert "+" (mqtt-valid-topic? "+"))
+(test-assert "+/tennis/#" (mqtt-valid-topic? "+/tennis/#"))
+(test-assert "sport+" (not (mqtt-valid-topic? "sport+")))
+(test-assert "sport/+/player1" (mqtt-valid-topic? "sport/+/player1"))
+
+(test-assert "sport/tennis/player1/# (1)"
+	     (mqtt-topic-match? "sport/tennis/player1/#"
+				"sport/tennis/player1"))
+(test-assert "sport/tennis/player1/# (2)"
+	     (mqtt-topic-match? "sport/tennis/player1/#" 
+				"sport/tennis/player1/ranking"))
+(test-assert "sport/tennis/player1/# (3)"
+	     (mqtt-topic-match? "sport/tennis/player1/#"
+				"sport/tennis/player1/score/wimbledon"))
+
+(test-assert "sport/tennis/+ (1)" 
+	     (mqtt-topic-match? "sport/tennis/+" "sport/tennis/player1"))
+(test-assert "sport/tennis/+ (2)" 
+	     (mqtt-topic-match? "sport/tennis/+" "sport/tennis/player2"))
+(test-assert "sport/tennis/+ (3)" 
+	     (not (mqtt-topic-match? "sport/tennis/+"
+				     "sport/tennis/player1/ranking")))
+
+(test-assert "sport/+ (1)" (not (mqtt-topic-match? "sport/+" "sport")))
+(test-assert "sport/+ (2)" (mqtt-topic-match? "sport/+" "sport/"))
+
+(test-assert "/finance (1)" (mqtt-topic-match? "+/+" "/finance"))
+(test-assert "/finance (2)" (not (mqtt-topic-match? "+" "/finance")))
+
+(test-assert "# (1)" (mqtt-topic-match? "#" "sport/tennis/player1"))
+(test-assert "# (2)" (not (mqtt-topic-match? "#" "$SYS")))
+(test-assert "+/monitor/Clients" 
+	     (not (mqtt-topic-match? "+/monitor/Clients"
+				     "$SYS/monitor/Clients")))
+(test-assert "$SYS/# (1)" (mqtt-topic-match? "$SYS/#" "$SYS/"))
+(test-assert "$SYS/monitor/+" (mqtt-topic-match? "$SYS/monitor/+"
+						 "$SYS/monitor/Clients"))
+
 
 (test-end)

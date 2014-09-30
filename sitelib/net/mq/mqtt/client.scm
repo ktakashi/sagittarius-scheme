@@ -58,6 +58,7 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (net mq mqtt packet)
+	    (net mq mqtt topic)
 	    (binary io)
 	    (srfi :1)
 	    (srfi :13)
@@ -171,6 +172,8 @@
   ;;; subscribe
   ;; we don't support multiple subscribe
   (define (mqtt-subscribe conn topic qos callback)
+    (unless (mqtt-valid-topic? topic)
+      (error 'mqtt-publish "not a valid topic" topic))
     (let ((pi (allocate-packet-identifier conn))
 	  (in/out (~ conn 'port))
 	  (u8-topic (string->utf8 topic)))
@@ -239,8 +242,9 @@
 	((1) (mqtt-puback conn (cadr vh)))
 	((2) (mqtt-pubrec conn (cadr vh))))
       ;; find callback
-      ;; TODO wildcard thing
-      (let ((callback (assoc (car vh) (~ conn 'callbacks))))
+      (let ((callback (assoc (car vh) (~ conn 'callbacks)
+			     (lambda (topic filter)
+			       (mqtt-topic-match? filter topic)))))
 	(unless callback
 	  (error 'mqtt-receive-message
 		 "No subscription but got message from server"
@@ -279,6 +283,8 @@
 	    pi))))
     (define packet-prefix
       (if (= qos +qos-at-most-once+) 2 4))
+    (unless (mqtt-valid-topic? topic)
+      (error 'mqtt-publish "not a valid topic" topic))
     (let* ((u8-topic (string->utf8 topic))
 	   (len (+ packet-prefix (bytevector-length u8-topic)))
 	   (pi (allocate-packet-identifier conn)))
@@ -305,6 +311,8 @@
   ;; TODO wild card
   (define (mqtt-unsubscribe conn topic)
     (define in/out (~ conn 'port))
+    (unless (mqtt-valid-topic? topic)
+      (error 'mqtt-publish "not a valid topic" topic))
     (let ((u8-topic (string->utf8 topic))
 	  (pi (allocate-packet-identifier conn)))
       (write-fixed-header in/out +unsubscribe+ 2 
