@@ -62,6 +62,10 @@
 	    +pingreq+
 	    +pingresp+
 	    +disconnect+
+	    ;; QoS
+	    +qos-at-most-once+
+	    +qos-at-least-once+
+	    +qos-exactly-once+
 	    )
     (import (rnrs)
 	    (clos user)
@@ -85,6 +89,11 @@
   (define-constant +pingresp+    13)
   (define-constant +disconnect+  14)
 
+  ;; QoS
+  (define-constant +qos-at-most-once+  0)
+  (define-constant +qos-at-least-once+ 1)
+  (define-constant +qos-exactly-once+  2)
+
   (define (read-fixed-header in)
     (define (read-length in)
       (define (check-error multiplier)
@@ -97,11 +106,13 @@
 	   (check-error multiplier)
 	   (+ v (* encoded-byte multiplier)))
 	(check-error multiplier)))
-    (let* ((b1 (get-u8 in))
-	   (len (read-length in)))
-      (values (bitwise-arithmetic-shift-right b1 4)
-	      (bitwise-and b1 #x0F)
-	      len)))
+    (let ((b1 (get-u8 in)))
+      (if (eof-object? b1)
+	  (values #f #f #f)
+	  (let ((len (read-length in)))
+	    (values (bitwise-arithmetic-shift-right b1 4)
+		    (bitwise-and b1 #x0F)
+		    len)))))
 
   (define (write-fixed-header out type flag remaining-length)
     (define (encode-length out len)

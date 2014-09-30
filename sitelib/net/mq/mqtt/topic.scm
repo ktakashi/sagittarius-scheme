@@ -30,11 +30,39 @@
 
 (library (net mq mqtt topic)
     (export mqtt-valid-topic?
-	    mqtt-topic-match?)
+	    mqtt-topic-match?
+
+	    make-mqtt-topic
+	    mqtt-topic-enqueue!
+	    mqtt-topic-dequeue!
+	    mqtt-topic-name
+	    mqtt-topic-retain-message
+	    mqtt-topic-retain-message-set!
+	    <mqtt-topic>
+	    )
     (import (rnrs)
+	    (clos user)
+	    (sagittarius object)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
-	    (srfi :14 char-sets))
+	    (srfi :14 char-sets)
+	    (util queue))
+  (define-class <mqtt-topic> ()
+    ((name  :init-keyword :name :reader mqtt-topic-name)
+     (queue :init-form (make-mtqueue))
+     (retain-message :init-value #f :reader mqtt-topic-retain-message
+		     :writer mqtt-topic-retain-message-set!)))
+  (define-class <mqtt-topic-entry> ()
+    ((qos :init-keyword :qos)
+     (payload :init-keyword :payload)))
+  (define (make-mqtt-topic name) (make <mqtt-topic> :name name))
+  (define (mqtt-topic-enqueue! topic qos payload)
+    (enqueue! (~ topic 'queue) (make <mqtt-topic-entry> 
+				 :qos qos :payload payload)))
+  (define (mqtt-topic-dequeue! topic)
+    (let ((e (dequeue! (~ topic 'queue))))
+      (values (~ e 'qos) (~ e 'payload))))
+
   ;; checks given topic/topic filter is valid
   (define (mqtt-valid-topic? topic)
     (define (check-valid-hash topic)

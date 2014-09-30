@@ -31,8 +31,8 @@
 (library (net mq mqtt broker)
     (export make-mqtt-broker
 	    make-mqtt-broker-config
-	    <mqtt-broker-server>
-	    <mqtt-broker-server-config>)
+	    <mqtt-broker>
+	    <mqtt-broker-config>)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -53,12 +53,12 @@
   (define (make-mqtt-broker port :optional (config (make-mqtt-broker-config)))
     (define (setup-handlers)
       (let ((ht (make-eqv-hashtable)))
-	;;(hashtable-set! ht +publish+)
+	(hashtable-set! ht +publish+ mqtt-broker-publish)
 	;;(hashtable-set! ht +puback+)
 	;;(hashtable-set! ht +pubrec+)
 	;;(hashtable-set! ht +pubrel+)
 	;;(hashtable-set! ht +pubcomp+)
-	;;(hashtable-set! ht +subscribe+)
+	(hashtable-set! ht +subscribe+ mqtt-broker-subscribe)
 	;;(hashtable-set! ht +unsubscribe+)
 	;;(hashtable-set! ht +pingreq+)
 	(hashtable-set! ht +disconnect+ mqtt-broker-disconnect!)
@@ -70,7 +70,10 @@
 	(and-let* ((session (mqtt-broker-connect! server in/out)))
 	  (let loop ()
 	    (let-values (((type flags len) (read-fixed-header in/out)))
-	      (cond ((hashtable-ref (~ server 'handlers) type) =>
+	      ;; when connection is down, we don't invalidate the
+	      ;; session for recovery purpose
+	      (cond ((not type)) 
+		    ((hashtable-ref (~ server 'handlers) type) =>
 		     (lambda (handler)
 		       (handler session type flags len in/out)
 		       ;; TODO keep alive?

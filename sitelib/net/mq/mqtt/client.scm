@@ -74,11 +74,6 @@
     (let ((socket (make-client-socket host port)))
       (apply port->mqtt-connection (socket-port socket) opt)))
 
-  ;; QoS
-  (define-constant +qos-at-most-once+  0)
-  (define-constant +qos-at-least-once+ 1)
-  (define-constant +qos-exactly-once+  2)
-
   ;; version number, protocol name and connection variable header length
   (define-constant +mqtt-3.1+   '(3 "MQIsdp" 12))
   (define-constant +mqtt-3.1.1+ '(4 "MQTT"   10))
@@ -173,7 +168,7 @@
   ;; we don't support multiple subscribe
   (define (mqtt-subscribe conn topic qos callback)
     (unless (mqtt-valid-topic? topic)
-      (error 'mqtt-publish "not a valid topic" topic))
+      (error 'mqtt-subscribe "not a valid topic" topic))
     (let ((pi (allocate-packet-identifier conn))
 	  (in/out (~ conn 'port))
 	  (u8-topic (string->utf8 topic)))
