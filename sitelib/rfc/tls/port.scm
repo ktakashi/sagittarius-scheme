@@ -56,9 +56,7 @@
 	(tls-socket-send socket bv 0)))
     (define (close) (tls-socket-close socket))
     (define (ready?) 
-      (let1 raw-socket (~ socket 'raw-socket)
-	(receive (r w e) (socket-select (list raw-socket) '() '() 0)
-	  (not (null? r)))))
+      (not (null? (socket-read-select 0 (~ socket 'raw-socket)))))
     (ctr read! write! close ready?))
 
   (define (tls-socket-port socket :optional (close? #t))
