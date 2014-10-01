@@ -50,6 +50,14 @@
   (define (make-mqtt-broker-config . opt)
     (apply make <mqtt-broker-config> opt))
 
+  (define-condition-type &connection &error make-connection-error
+    connection-error?
+    (socket connection-socket))
+  (define (connection-error socket)
+    (raise (condition (make-connection-error socket)
+		      (make-who-condition 'mqtt-broker)
+		      (make-message-condition "Connection is broken"))))
+
   (define (make-mqtt-broker port :optional (config (make-mqtt-broker-config)))
     (define (setup-handlers)
       (let ((ht (make-eqv-hashtable)))
@@ -68,19 +76,27 @@
 	(error 'mqtt-handler "not supported yet"))
       (let ((in/out (socket-port socket)))
 	(and-let* ((session (mqtt-broker-connect! server in/out)))
-	  (let loop ()
-	    ;; as long as session is alive.
-	    (when (mqtt-session-alive? session)
-	      (let-values (((type flags len) (read-fixed-header in/out)))
-		;; when connection is down, we don't invalidate the
-		;; session for recovery purpose
-		(cond ((not type)) 
-		      ((hashtable-ref (~ server 'handlers) type) =>
-		       (lambda (handler)
-			 (handler session type flags len in/out)
-			 (loop)))
-		      (else
-		       (error 'mqtt-handler "unknown packet type" type)))))))))
+	  (guard (e ((connection-error? e)
+		     (mqtt-broker-will-message session)
+		     (raise e))
+		    (else 
+		     ;; this must be internal or client packet error
+		     ;; should we also broad case will message?
+		     (raise e)))
+	    (let loop ()
+	      ;; as long as session is alive.
+	      (when (mqtt-session-alive? session)
+		(let-values (((type flags len) (read-fixed-header in/out)))
+		  ;; when connection is down, we don't invalidate the
+		  ;; session for recovery purpose
+		  (cond ((not type) (connection-error socket)) 
+			((hashtable-ref (~ server 'handlers) type) =>
+			 (lambda (handler)
+			   (handler session type flags len in/out)
+			   (loop)))
+			(else
+			 (error 'mqtt-handler "unknown packet type"
+				type))))))))))
     ;; hmmmm it's a bit inconvenient if we can't pass keyword argument
     ;; to construct server...
     (let ((server (make-simple-server port mqtt-handler

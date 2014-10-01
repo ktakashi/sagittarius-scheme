@@ -97,7 +97,7 @@
       (bitwise-ior (if username #x80 #x00)
 		   (if password #x40 #x00)
 		   (if (and topic message retain?) #x20 #x00)
-		   qos
+		   (bitwise-arithmetic-shift qos 3)
 		   (if (and topic message) #x04 #x00)
 		   (if (and client-id (not (string-null? client-id)))
 		       #x00 #x02)))
@@ -131,6 +131,7 @@
       ;; FIXED value
       (write-utf8 in/out (string->utf8 (cadr version)))
       (put-u8 in/out (car version))
+      ;; (format #t "~b~%" (construct-flag))
       (put-u8 in/out (construct-flag))
       (put-u16 in/out keep-alive (endianness big))
       (for-each (cut write-utf8 in/out <>) payloads)

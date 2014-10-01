@@ -38,11 +38,14 @@
 	    mqtt-topic-name
 	    mqtt-topic-retain-message
 	    mqtt-topic-retain-message-set!
+	    mqtt-topic-retain-qos
+	    mqtt-topic-retain-qos-set!
 	    <mqtt-topic>
 	    )
     (import (rnrs)
 	    (clos user)
 	    (sagittarius object)
+	    (net mq mqtt packet)
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
@@ -51,7 +54,10 @@
     ((name  :init-keyword :name :reader mqtt-topic-name)
      (queue :init-form (make-mtqueue))
      (retain-message :init-value #f :reader mqtt-topic-retain-message
-		     :writer mqtt-topic-retain-message-set!)))
+		     :writer mqtt-topic-retain-message-set!)
+     (retain-qos     :init-value +qos-at-most-once+ 
+		     :reader mqtt-topic-retain-qos
+		     :writer mqtt-topic-retain-qos-set!)))
   (define-class <mqtt-topic-entry> ()
     ((qos :init-keyword :qos)
      (payload :init-keyword :payload)))

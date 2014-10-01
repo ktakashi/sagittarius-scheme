@@ -50,6 +50,8 @@
 	    mqtt-broker-unsubscribe
 	    mqtt-broker-pingreq
 
+	    mqtt-broker-will-message
+
 	    mqtt-session-alive?
 
 	    <mqtt-broker-context>
@@ -118,6 +120,7 @@
      (topic   :init-keyword :topic)
      (message :init-keyword :message)
      (retain? :init-keyword :retain?)
+     (qos     :init-keyword :qos)
      ;; lock
      (lock    :init-form (make-mutex))))
 
@@ -133,8 +136,11 @@
 
   (define (update-alive-until! session)
     (define (compute-period)
-      (add-duration! (current-time)
-		     (make-time time-duration 0 (~ session 'keep-alive))))
+      (let ((keep-alive (~ session 'keep-alive)))
+	(if (zero? keep-alive)
+	    #t ;; infinite
+	    (add-duration! (current-time)
+			   (make-time time-duration 0 keep-alive)))))
     (mutex-lock! (~ session 'lock))
     (unwind-protect
 	(if (~ session 'alive-until)
@@ -224,7 +230,7 @@
 			   :port in/out
 			   :keep-alive (cadddr vh)
 			   :topic topic :message message
-			   :retain (bitwise-bit-set? flag will-retain-bit)
+			   :retain? (bitwise-bit-set? flag will-retain-bit)
 			   :qos (bitwise-arithmetic-shift-right
 				 (bitwise-and flag will-qos-mask) 2))))))
 	;; not check for client-id should we?
@@ -253,6 +259,24 @@
     )
 
   ;;; publish
+  (define (create/retrieve-topic context topic)
+    (cond ((hashtable-ref (~ context 'topics) topic #f))
+	  (else (let ((t (make-mqtt-topic topic)))
+		  (hashtable-set! (~ context 'topics) topic t)
+		  t))))
+  (define (mqtt-broker-will-message session)
+    (and-let* ((topic (~ session 'topic))
+	       (message (~ session 'message))
+	       (retain? (~ session 'retain?))
+	       (qos   (~ session 'qos))
+	       (context (~ session 'context)))
+      (let ((t (create/retrieve-topic context topic)))
+	(when retain?
+	  (mqtt-topic-retain-message-set! t message)
+	  (mqtt-topic-retain-qos-set! t qos))
+	(store/send-payload context topic qos retain?
+			    (open-bytevector-input-port message)))))
+
   (define (mqtt-broker-publish session type flags len in/out)
     (define (parse-flags flag)
       (values (bitwise-arithmetic-shift-right flag 3)
@@ -345,10 +369,7 @@
 				   (mqtt-topic-match? subscription topic)))
 			 session))
 		  (hashtable-values-list sessions)))
-    (let ((t (cond ((hashtable-ref (~ context 'topics) topic #f))
-		   (else (let ((t (make-mqtt-topic topic)))
-			   (hashtable-set! (~ context 'topics) topic t)
-			   t))))
+    (let ((t (create/retrieve-topic context topic))
 	  (m (get-bytevector-all payload)))
       (let ((subscribers (get-subscribers topic (~ context 'sessions))))
 	(if (null? subscribers)
@@ -362,16 +383,36 @@
   (define (mqtt-broker-subscribe session type flags len in/out)
     (define context (~ session 'context))
     (define topics (~ context 'topics))
-    (define (send-retain filter)
+    (define (send-retain qos&filter)
+      (define (check-type type expected)
+	(or (= type expected)
+	    (error 'mqtt-broker-subscribe
+		   "Client respond invalid packet type for retain message"
+		   type)))
       (hashtable-for-each 
        (lambda (name topic)
-	 (and-let* ((retain (mqtt-topic-retain-message topic))
-		    ( (mqtt-topic-match? filter name) ))
-	   ;; is this QoS 0?
-	   (send-publish session (mqtt-topic-name topic) 
-			 +qos-at-most-once+ retain)))
+	 (and-let* (( (not (= (car qos&filter) #x80)) )
+		    (retain (mqtt-topic-retain-message topic))
+		    (qos    (min (car qos&filter)
+				 (mqtt-topic-retain-qos topic)))
+		    ( (mqtt-topic-match? (cdr qos&filter) name) ))
+	   (send-publish session (mqtt-topic-name topic) qos retain)
+	   (cond ((= qos +qos-at-least-once+)
+		  (let-values (((type flags len)
+				(read-fixed-header in/out)))
+		    (check-type type +puback+)
+		    (mqtt-broker-puback session type flags len in/out)))
+		 ((= qos +qos-exactly-once+)
+		  (let-values (((type flags len)
+				(read-fixed-header in/out)))
+		    (check-type type +pubrec+)
+		    (mqtt-broker-pubrec session type flags len in/out))
+		  (let-values (((type flags len)
+				(read-fixed-header in/out)))
+		    (check-type type +pubcomp+)
+		    (mqtt-broker-pubcomp session type flags len in/out))))))
        topics))
-    (define (send-suback pi codes filters)
+    (define (send-suback pi codes)
       (define (update-subscription filters)
 	(let ((subscriptions (~ session 'subscriptions)))
 	  ;; TODO merge topic?
@@ -385,14 +426,14 @@
 	  ;; (list-sort mqtt-topic< subscriptions)
 	  (set! (~ session 'subscriptions) `(,@filters ,@subscriptions))
 	  ))
-      (update-subscription filters)
+      (update-subscription (map cdr codes))
       (let ((len (length codes)))
 	(write-fixed-header in/out +suback+ 0 (+ 2 len))
 	(write-packet-identifier in/out pi)
-	(for-each (cut put-u8 in/out <>) codes))
+	(for-each (cut put-u8 in/out <>) (map car codes)))
       ;; now we need to send publish if subscribed topics contains
       ;; retain messages
-      (for-each send-retain filters))
+      (for-each send-retain codes))
     (define (read-topic&qos in)
       (if (eof-object? (lookahead-u8 in))
 	  (values #f #f)
@@ -400,14 +441,14 @@
 	    (values name (get-u8 in)))))
     (update-alive-until! session)
     (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
-      (let loop ((res '()) (subscriptions '()))
+      (let loop ((res '()))
 	(let-values (((topic qos) (read-topic&qos payload)))
 	  (if topic
 	      (cond ((mqtt-valid-topic? topic)
-		     (loop (cons qos res) (cons topic subscriptions)))
+		     (loop (acons qos topic res)))
 		    (else
-		     (loop (cons #x80 res) subscriptions)))
-	      (send-suback (car vh) (reverse! res) subscriptions))))))
+		     (loop (acons #x80 topic res))))
+	      (send-suback (car vh) (reverse! res)))))))
   
   ;; FIXME almost the same as client so refactor it
   (define (send-publish session topic qos message)
