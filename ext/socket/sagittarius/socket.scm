@@ -223,9 +223,9 @@
 
   ;; for backward compatibility
   (define (socket-info-values socket :key (type 'peer))
-    (let ((peer (if (eq? type 'peer)
-		    (socket-peer socket)
-		    (socket-info socket))))
+    (let ((peer (cond ((eq? type 'peer) (socket-peer socket))
+		      ((eq? type 'info) (socket-info socket))
+		      (else (error 'socket-info-values "unknown type" type)))))
       (if peer
 	  (values (slot-ref peer 'hostname)
 		  (slot-ref peer 'ip-address)
