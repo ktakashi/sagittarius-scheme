@@ -42,6 +42,10 @@
 	    mqtt-broker-connect!
 	    mqtt-broker-disconnect!
 	    mqtt-broker-publish
+	    mqtt-broker-puback
+	    mqtt-broker-pubrel
+	    mqtt-broker-pubrec
+	    mqtt-broker-pubcomp
 	    mqtt-broker-subscribe
 
 	    mqtt-session-alive?
@@ -51,39 +55,90 @@
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
+	    (sagittarius control)
 	    (sagittarius object)
 	    (net mq mqtt packet)
 	    (net mq mqtt topic)
 	    (binary pack)
 	    (util hashtables)
+	    (srfi :1)
+	    (srfi :18)
 	    (srfi :19)
 	    (srfi :26))
 
+  ;; TODO
+  ;;  - handling authentication
   (define-class <mqtt-broker-context> ()
     ;; holds client ID and session object
     ((sessions    :init-form (make-string-hashtable))
      (topics      :init-form (make-string-hashtable))
+     (cleaner-interval :init-keyword :cleaner-interval 
+		       :init-value 10)
+     cleaner-thread
      (authentication-handler :init-keyword :authentication-handler
-			     :init-value #f)
-     (authorities :init-keyword :authorities :init-value '())))
+			     :init-value #f)))
+
+  (define-method initialize ((r <mqtt-broker-context>) initargs)
+    (define (thunk)
+      (let loop ()
+	(thread-sleep! (~ r 'cleaner-interval))
+	(dolist (session (hashtable-values-list (~ r 'sessions)))
+	  (mutex-lock! (~ session 'lock))
+	  (and-let* ((until (~ session 'alive-until))
+		     ( (time? until) ))
+	    (when (time<? until (current-time))
+	      (set! (~ session 'alive-until) #f)
+	      ;; let client know it's closed
+	      (close-port (~ session 'port))))
+	  (mutex-unlock! (~ session 'lock)))
+	;; TODO maybe we want to check context state
+	;; so that we can terminate this thread
+	(loop)))
+    ;; in case of GCed
+    (set! (~ r 'cleaner-thread) (thread-start! (make-thread thunk)))
+    (call-next-method))
 
   (define (make-mqtt-broker-context . opt)
     (apply make <mqtt-broker-context> opt))
 
-  ;; TODO
   (define-class <mqtt-session> ()
     ((context :init-keyword :context)
      (client-id :init-keyword :client-id)
      (version :init-keyword :version)
+     (port    :init-keyword :port)
      (packets :init-form (make-eqv-hashtable))
      (server-packets :init-form (make-eqv-hashtable))
-     (subscriptions :init-form (make-string-hashtable))
+     ;; set of subscriptions
+     (subscriptions :init-value '())
      (keep-alive :init-keyword :keep-alive)
-     alive-until ;; time object
+     (alive-until :init-value #t) ;; time object
      ;; these are will topic thing
      (topic   :init-keyword :topic)
      (message :init-keyword :message)
-     (retain? :init-keyword :retain?)))
+     (retain? :init-keyword :retain?)
+     ;; lock
+     (lock    :init-form (make-mutex))))
+
+  (define-condition-type &session-expired &error 
+    make-session-expired session-expired?)
+  (define (session-expired session)
+    ;; TODO handling will topic
+    ;; when session is expired then 
+    (session-invalidate! session)
+    (raise (condition (make-session-expired)
+		      (make-who-condition 'broker-session)
+		      (make-message-condition "session expired"))))
+
+  (define (update-alive-until! session)
+    (define (compute-period)
+      (add-duration! (current-time)
+		     (make-time time-duration 0 (~ session 'keep-alive))))
+    (mutex-lock! (~ session 'lock))
+    (unwind-protect
+	(if (~ session 'alive-until)
+	    (set! (~ session 'alive-until) (compute-period))
+	    (session-expired session))
+      (mutex-unlock! (~ session 'lock))))
 
   ;; we will delete them when QoS protocol is finished
   (define (allocate-packet-identifier session message)
@@ -140,8 +195,6 @@
 	  (guard (e (else (send-conack #x04 #f #f)))
 	    ((~ context 'authentication-handler) context user password))
 	  #t))
-    (define (compute-period keep-alive)
-      (add-duration! (current-time) (make-time time-duration 0 keep-alive)))
     (let-values (((type flags len) (read-fixed-header in/out)))
       (unless (= type +connect+)
 	(error 'mqtt-broker-connect! "expected CONNECT packet" type))
@@ -155,11 +208,15 @@
 	(define (make/retrieve-session client-id flag vh)
 	  (cond ((and (not (bitwise-bit-set? flag clean-session-bit))
 		      (hashtable-ref (~ context 'sessions) client-id #f))
-		 => (lambda (s) (values #f s)))
+		 => (lambda (s) 
+		      ;; restore session with given port
+		      (set! (~ session 'port) in/out)
+		      (values #f s)))
 		(else
 		 (values #t 
 			 (make <mqtt-session>
 			   :context context :client-id client-id
+			   :port in/out
 			   :keep-alive (cadddr vh)
 			   :topic topic :message message
 			   :retain (bitwise-bit-set? flag will-retain-bit)
@@ -171,18 +228,24 @@
 		   ( (authenticate user password) ))
 	  (let-values (((created? session) 
 			(make/retrieve-session client-id flag vh)))
-	    (set! (~ session 'alive-until) (compute-period (cadddr vh)))
+	    (update-alive-until! session)
 	    (hashtable-set! (~ context 'sessions) client-id session)
 	    (send-conack 0 (not created?) session)
 	    session)))))
 
   ;; disconnect
-  (define (mqtt-broker-disconnect! session type flags len in/out)
-    ;; no response back
+  (define (session-invalidate! session)
+    (close-port (~ session 'port))
+    (hashtable-clear! (~ session 'packets))
+    (hashtable-clear! (~ session 'server-packets))
     (hashtable-delete! (~ session 'context 'sessions)
 		       (~ session 'client-id))
-    ;; invalidate session
     (set! (~ session 'context) #f))
+  (define (mqtt-broker-disconnect! session type flags len in/out)
+    ;; no response back
+    ;; invalidate session
+    (session-invalidate! session)
+    )
 
   ;;; publish
   (define (mqtt-broker-publish session type flags len in/out)
@@ -190,6 +253,12 @@
       (values (bitwise-arithmetic-shift-right flag 3)
 	      (bitwise-and (bitwise-arithmetic-shift-right flag 1) #x03)
 	      (bitwise-and flag #x01)))
+    (define (send-resp type pi)
+      (write-fixed-header in/out type 0 2)
+      (write-packet-identifier in/out pi))
+    (define (send-puback pi) (send-resp +puback+ pi))
+    (define (send-pubrec pi) (send-resp +pubrec+ pi))
+    (update-alive-until! session)
     (let*-values (((dup qos retain) (parse-flags flags))
 		  ((vh payload) (apply read-variable-header&payload 
 				       in/out len :utf8
@@ -199,73 +268,156 @@
       (unless (mqtt-valid-topic? (car vh))
 	(error 'mqtt-broker-publish "Invalid topic" (car vh)))
       ;; store packat identifier (only one)
-      (if (= qos +qos-at-most-once+)
-	  (store-payload (~ session 'context) (car vh) qos retain payload)
-	  (let ((pi (cadr vh)))
-	    (hashtable-set! (~ session 'packets) pi 
-			    (vector (car vh) qos retain payload))))))
+      (cond ((= qos +qos-at-most-once+)
+	     (store/send-payload (~ session 'context)
+				 (car vh) qos retain payload))
+	    ((= qos +qos-at-least-once+)
+	     (send-puback (cadr vh))
+	     (store/send-payload (~ session 'context)
+				 (car vh) qos retain payload))
+	    (else
+	     (let ((pi (cadr vh)))
+	       (send-pubrec pi)
+	       (hashtable-set! (~ session 'packets) pi 
+			       (vector (car vh) qos retain payload)))))))
   
+  (define (mqtt-broker-puback session type flags len in/out)
+    (define packets (~ session 'server-packets))
+    (update-alive-until! session)
+    (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+      ;; delete message accociated with given packet identifier
+      ;; if not, we don't do anything
+      (cond ((hashtable-ref packets (car vh))
+	     (hashtable-delete! packets (car vh))))))
+
+  (define (mqtt-broker-pubrel session type flags len in/out)
+    (define packets (~ session 'packets))
+    (define (send-pubcomp pi)
+      (write-fixed-header in/out +pubcomp+ 0 2)
+      (write-packet-identifier in/out pi))
+    (update-alive-until! session)
+    (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+      ;; delete message accociated with given packet identifier
+      ;; if not, we don't do anything
+      (cond ((hashtable-ref packets (car vh)) =>
+	     (lambda (appdata)
+	       (hashtable-delete! packets (car vh))
+	       (send-pubcomp (car vh))
+	       (store/send-payload (~ session 'context)
+				   (vector-ref appdata 0)
+				   (vector-ref appdata 1)
+				   (vector-ref appdata 2)
+				   (vector-ref appdata 3)))))))
+
+  (define (mqtt-broker-pubrec session type flags len in/out)
+    (define packets (~ session 'server-packets))
+    (define (send-pubrel pi)
+      (write-fixed-header in/out +pubrel+ 0 2)
+      (write-packet-identifier in/out pi))
+    (update-alive-until! session)
+    (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+      ;; delete message accociated with given packet identifier
+      ;; if not, we don't do anything
+      (cond ((hashtable-ref packets (car vh))
+	     (send-pubrel (car vh))
+	     (hashtable-set! packets (car vh) #t)))))
+
+  (define (mqtt-broker-pubcomp session type flags len in/out)
+    (define packets (~ session 'server-packets))
+    (update-alive-until! session)
+    (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+      ;; delete message accociated with given packet identifier
+      ;; if not, we don't do anything
+      (cond ((hashtable-ref packets (car vh))
+	     (hashtable-delete! packets (car vh))))))
+
   ;; this is not an API but helper (will be used puback and pubrel)
-  (define (store-payload context topic qos retain payload)
+  (define (store/send-payload context topic qos retain payload)
+    (define (get-subscribers topic sessions)
+      (filter-map (lambda (session)
+		    (and (member topic (~ session 'subscriptions)
+				 (lambda (topic subscription)
+				   (mqtt-topic-match? subscription topic)))
+			 session))
+		  (hashtable-values-list sessions)))
     (let ((t (cond ((hashtable-ref (~ context 'topics) topic #f))
 		   (else (let ((t (make-mqtt-topic topic)))
 			   (hashtable-set! (~ context 'topics) topic t)
 			   t))))
 	  (m (get-bytevector-all payload)))
-      (mqtt-topic-enqueue! t qos m)
+      (let ((subscribers (get-subscribers topic (~ context 'sessions))))
+	(if (null? subscribers)
+	    (mqtt-topic-enqueue! t qos m)
+	    ;; send it without storing
+	    (for-each (cut send-publish <> topic qos m) subscribers)))
       (unless (zero? retain) (mqtt-topic-retain-message-set! t m))))
 
   ;; subscribe
   ;; TODO should we create topic if doesn't exist?
   (define (mqtt-broker-subscribe session type flags len in/out)
     (define context (~ session 'context))
-    (define topics (hashtable->alist (~ context 'topics)))
-    (define (send-retain topic)
-      (and-let* ((retain (mqtt-topic-retain-message topic)))
-	;; is this QoS 0?
-	(send-publish session in/out (mqtt-topic-name topic) 
-		      +qos-at-most-once+ retain)))
-    (define (send-suback pi codes topics)
+    (define topics (~ context 'topics))
+    (define (send-retain filter)
+      (hashtable-for-each 
+       (lambda (name topic)
+	 (and-let* ((retain (mqtt-topic-retain-message topic))
+		    ( (mqtt-topic-match? filter name) ))
+	   ;; is this QoS 0?
+	   (send-publish session (mqtt-topic-name topic) 
+			 +qos-at-most-once+ retain)))
+       topics))
+    (define (send-suback pi codes filters)
+      (define (update-subscription filters)
+	(let ((subscriptions (~ session 'subscriptions)))
+	  ;; TODO merge topic?
+	  ;; I'm not sure if we actually need to merge topics
+	  ;; say client subscribes '#' first then 'topics/#'.
+	  ;; it may have different handler for message. but
+	  ;; how about vice versa? should we send to more specific
+	  ;; topic or last in? something like this?
+	  ;; assume mqtt-topic< compares topics which is more
+	  ;; specific.
+	  ;; (list-sort mqtt-topic< subscriptions)
+	  (set! (~ session 'subscriptions) `(,@filters ,@subscriptions))
+	  ))
+      (update-subscription filters)
       (let ((len (length codes)))
 	(write-fixed-header in/out +suback+ 0 (+ 2 len))
 	(write-packet-identifier in/out pi)
 	(for-each (cut put-u8 in/out <>) codes))
       ;; now we need to send publish if subscribed topics contains
       ;; retain messages
-      (for-each send-retain topics))
+      (for-each send-retain filters))
     (define (read-topic&qos in)
       (if (eof-object? (lookahead-u8 in))
 	  (values #f #f)
 	  (let ((name (read-utf8-string in)))
 	    (values name (get-u8 in)))))
+    (update-alive-until! session)
     (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
       (let loop ((res '()) (subscriptions '()))
 	(let-values (((topic qos) (read-topic&qos payload)))
 	  (if topic
-	      (let loop2 ((topics topics) (subscribed? #f)
-			  (subscriptions subscriptions))
-		(cond ((null? topics)
-		       (loop (cons (if subscribed? qos #x80) res)
-			     subscriptions))
-		      ((mqtt-topic-match? topic (caar topics))
-		       (hashtable-set! (~ session 'subscriptions) 
-				       (caar topics) qos)
-		       (loop2 (cdr topics) #t 
-			      (cons (cdar topics) subscriptions)))
-		      (else (loop2 (cdr topics) subscribed? subscriptions))))
+	      (cond ((mqtt-valid-topic? topic)
+		     (loop (cons qos res) (cons topic subscriptions)))
+		    (else
+		     (loop (cons #x80 res) subscriptions)))
 	      (send-suback (car vh) (reverse! res) subscriptions))))))
   
   ;; FIXME almost the same as client so refactor it
-  (define (send-publish session in/out topic qos message)
+  (define (send-publish session topic qos message)
+    (define in/out (~ session 'port))
     (define packet-prefix (if (= qos +qos-at-most-once+) 2 4))
     (define pi (allocate-packet-identifier session message))
-    (let* ((u8-topic (string->utf8 topic))
-	   (len (+ packet-prefix (bytevector-length u8-topic))))
-      (write-fixed-header in/out +publish+ (bitwise-arithmetic-shift qos 1)
-			  (+ len (bytevector-length message)))
-      (write-utf8 in/out u8-topic)
-      (unless (= qos +qos-at-most-once+)
-	(write-packet-identifier in/out pi))
-      (put-bytevector in/out message)))
+    (guard (e ((i/o-error? e) #f) ;; must likely socket erorr so ignore.
+	      (else (raise e)))
+      (let* ((u8-topic (string->utf8 topic))
+	     (len (+ packet-prefix (bytevector-length u8-topic))))
+	(write-fixed-header in/out +publish+ (bitwise-arithmetic-shift qos 1)
+			    (+ len (bytevector-length message)))
+	(write-utf8 in/out u8-topic)
+	(unless (= qos +qos-at-most-once+)
+	  (write-packet-identifier in/out pi))
+	(put-bytevector in/out message))))
 )
 		

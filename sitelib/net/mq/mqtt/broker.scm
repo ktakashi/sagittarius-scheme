@@ -54,10 +54,10 @@
     (define (setup-handlers)
       (let ((ht (make-eqv-hashtable)))
 	(hashtable-set! ht +publish+ mqtt-broker-publish)
-	;;(hashtable-set! ht +puback+)
-	;;(hashtable-set! ht +pubrec+)
-	;;(hashtable-set! ht +pubrel+)
-	;;(hashtable-set! ht +pubcomp+)
+	(hashtable-set! ht +puback+ mqtt-broker-puback)
+	(hashtable-set! ht +pubrec+ mqtt-broker-pubrec)
+	(hashtable-set! ht +pubrel+ mqtt-broker-pubrel)
+	(hashtable-set! ht +pubcomp+ mqtt-broker-pubcomp)
 	(hashtable-set! ht +subscribe+ mqtt-broker-subscribe)
 	;;(hashtable-set! ht +unsubscribe+)
 	;;(hashtable-set! ht +pingreq+)
@@ -69,18 +69,18 @@
       (let ((in/out (socket-port socket)))
 	(and-let* ((session (mqtt-broker-connect! server in/out)))
 	  (let loop ()
-	    (let-values (((type flags len) (read-fixed-header in/out)))
-	      ;; when connection is down, we don't invalidate the
-	      ;; session for recovery purpose
-	      (cond ((not type)) 
-		    ((hashtable-ref (~ server 'handlers) type) =>
-		     (lambda (handler)
-		       (handler session type flags len in/out)
-		       ;; TODO keep alive?
-		       ;; as long as session is alive.
-		       (when (mqtt-session-alive? session) (loop))))
-		    (else
-		     (error 'mqtt-handler "unknown packet type" type))))))))
+	    ;; as long as session is alive.
+	    (when (mqtt-session-alive? session)
+	      (let-values (((type flags len) (read-fixed-header in/out)))
+		;; when connection is down, we don't invalidate the
+		;; session for recovery purpose
+		(cond ((not type)) 
+		      ((hashtable-ref (~ server 'handlers) type) =>
+		       (lambda (handler)
+			 (handler session type flags len in/out)
+			 (loop)))
+		      (else
+		       (error 'mqtt-handler "unknown packet type" type)))))))))
     ;; hmmmm it's a bit inconvenient if we can't pass keyword argument
     ;; to construct server...
     (let ((server (make-simple-server port mqtt-handler
