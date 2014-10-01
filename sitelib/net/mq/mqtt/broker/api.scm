@@ -47,6 +47,8 @@
 	    mqtt-broker-pubrec
 	    mqtt-broker-pubcomp
 	    mqtt-broker-subscribe
+	    mqtt-broker-unsubscribe
+	    mqtt-broker-pingreq
 
 	    mqtt-session-alive?
 
@@ -157,7 +159,10 @@
 
   ;; reading variable header and payload
   (define (read-utf8-string in)
-    (let ((len (get-unpack in "!S"))) (utf8->string (get-bytevector-n in len))))
+    (if (eof-object? (lookahead-u8 in))
+	(eof-object)
+	(let ((len (get-unpack in "!S")))
+	  (utf8->string (get-bytevector-n in len)))))
   ;; (define (read-packet-identifier in) (get-unpack in "!S"))
   (define (read-application-data in)
     (let ((len (get-unpack in "!S"))) (get-bytevector-n in len)))
@@ -419,5 +424,26 @@
 	(unless (= qos +qos-at-most-once+)
 	  (write-packet-identifier in/out pi))
 	(put-bytevector in/out message))))
+
+  ;; unsubscribe
+  (define (mqtt-broker-unsubscribe session type flag len in/out)
+    ;; MQTT-3.10.4-1, comparing character-by-character
+    ;; easy huh?
+    (define (unsubscribe topics)
+      (let ((subscriptions (~ session 'subscriptions)))
+	(set! (~ session 'subscriptions)
+	      (lset-difference string=? subscriptions topics))))
+    (update-alive-until! session)
+    (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+      (let loop ((r '()))
+	(let ((topic (read-utf8-string payload)))
+	  (if (eof-object? topic)
+	      (unsubscribe r)
+	      (loop (cons topic r)))))))
+
+  (define (mqtt-broker-pingreq session type flag len in/out)
+    (update-alive-until! session)
+    (write-fixed-header in/out +pingresp+ 0 0))
+
 )
 		
