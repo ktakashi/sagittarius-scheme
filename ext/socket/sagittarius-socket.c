@@ -716,6 +716,37 @@ void Sg_SocketClose(SgSocket *socket)
 
 }
 
+/* fdset */
+static void fdset_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("#<fdset %d>"), SG_FDSET(self)->maxfd);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FdSetClass, fdset_printer);
+
+static SgFdSet* make_fd_set()
+{
+  SgFdSet *z = SG_NEW(SgFdSet);
+  SG_SET_CLASS(z, SG_CLASS_FD_SET);
+  z->maxfd = -1;
+  FD_ZERO(&z->fdset);
+  return z;
+}
+
+static SgFdSet* copy_fd_set(SgFdSet *src)
+{
+  SgFdSet *z = SG_NEW(SgFdSet);
+  SG_SET_CLASS(z, SG_CLASS_FD_SET);
+  z->fdset = src->fdset;
+  z->maxfd = src->maxfd;
+  return z;
+}
+
+SgObject Sg_MakeFdSet()
+{
+  return SG_OBJ(make_fd_set());
+}
+
 static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
 {
   SgObject cp;
@@ -732,6 +763,13 @@ static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
     FD_SET(fd, fds);
   }
   return max;
+}
+
+SgObject Sg_SocketsToFdSet(SgObject sockets)
+{
+  SgFdSet *fdset = make_fd_set();
+  fdset->maxfd = collect_max_fd(fdset->maxfd, sockets, &fdset->fdset);
+  return SG_OBJ(fdset);
 }
 
 static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
@@ -788,31 +826,66 @@ static SgObject collect_fds(SgObject sockets, fd_set *fds)
   return h;
 }
 
-SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
-			 SgObject timeout)
+SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
 {
-  int max = 0, numfds;
-  fd_set readfds, writefds, errorfds;
+  return collect_fds(sockets, &SG_FDSET(fdset)->fdset);
+}
+
+static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
+				  SgObject timeout)
+{
   struct timeval tv;
-  SgObject rr, wr, er;
-  max = collect_max_fd(max, reads, &readfds);
-  max = collect_max_fd(max, writes, &writefds);
-  max = collect_max_fd(max, errors, &errorfds);
+  int max = 0, numfds;
+  if (rfds) max = rfds->maxfd;
+  if (wfds && wfds->maxfd > max) max = wfds->maxfd;
+  if (efds && efds->maxfd > max) max = efds->maxfd;
 
-  numfds = select(max + 1, &readfds, &writefds, &errorfds,
+  numfds = select(max + 1, 
+		  (rfds ? &rfds->fdset : NULL), 
+		  (wfds ? &wfds->fdset : NULL), 
+		  (efds ? &efds->fdset : NULL), 
 		  select_timeval(timeout, &tv));
-
   if (numfds < 0) {
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
 	       SG_FALSE, SG_NIL);
   }
-
-  rr = collect_fds(reads, &readfds);
-  wr = collect_fds(writes, &writefds);
-  er = collect_fds(errors, &errorfds);
-  return Sg_Values3(rr, wr, er);
+  return Sg_Values4(Sg_MakeInteger(numfds),
+		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
+		    (wfds ? SG_OBJ(wfds) : SG_FALSE),
+		    (efds ? SG_OBJ(efds) : SG_FALSE));
 }
+
+static SgFdSet* check_fd(SgObject o)
+{
+  if (SG_FALSEP(o)) return NULL;
+  if (!SG_FDSETP(o)) {
+    Sg_Error(UC("<fdset> or #f required but got %S"), o);
+  }
+  return SG_FDSET(o);
+}
+
+SgObject Sg_SocketSelect(SgObject reads, SgObject writes, SgObject errors,
+			 SgObject timeout)
+{
+  SgFdSet *r = check_fd(reads);
+  SgFdSet *w = check_fd(writes);
+  SgFdSet *e = check_fd(errors);
+  return socket_select_int((r? copy_fd_set(r) : NULL),
+			   (w? copy_fd_set(w) : NULL),
+			   (e? copy_fd_set(e) : NULL),
+			   timeout);
+}
+
+SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
+			 SgObject timeout)
+{
+  SgFdSet *r = check_fd(reads);
+  SgFdSet *w = check_fd(writes);
+  SgFdSet *e = check_fd(errors);
+  return socket_select_int(r, w, e, timeout);
+}
+
 
 SgObject Sg_SocketPeer(SgObject socket)
 {
@@ -1170,6 +1243,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_SOCKET_INFO, UC("<socket-info>"), lib,
 			     NULL, SG_FALSE, si_slots, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_FD_SET, UC("<fdset>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)

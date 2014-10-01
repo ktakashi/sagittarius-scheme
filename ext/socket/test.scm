@@ -47,6 +47,40 @@
   (test-equal "raw socket-send"
 	      (+ (string-length "hello") 2) ;; for \r\n
 	      (socket-send client-socket (string->utf8 "hello\r\n") 0))
+
+  ;; these are not documented
+  (test-assert "socket-read-select"
+	       (not (null? (socket-read-select 100 client-socket))))
+  (test-assert "socket-write-select"
+	       (not (null? (socket-write-select 100 client-socket))))
+  ;; does socket even have error fd?
+  ;; (test-assert "socket-error-select"
+  ;;               (null? (socket-error-select 100 client-socket)))
+
+  ;; fdset
+  ;; `socket-select!`, `socket-select` and fdset related procedures
+  ;; are not documented so may change especially socket doesn't have
+  ;; error side FD so I think it's useless.
+  (let ((fdset (make-fdset)))
+    (test-assert "fdset?" (fdset? fdset))
+    (test-assert "fdset-set! (1)" (fdset-set! fdset client-socket #t))
+    (test-assert "fdset-ref  (1)" (fdset-ref fdset client-socket))
+    (test-assert "fdset-set! (2)" (fdset-set! fdset client-socket #f))
+    (test-assert "fdset-ref  (2)" (not (fdset-ref fdset client-socket)))
+    (test-assert "fdset-set! (3)" (fdset-set! fdset client-socket #t))
+    ;; it's ready already
+    ;; what's good for specifying error fds?
+    (let-values (((n r w e) (socket-select! fdset #f #f 0)))
+      (test-equal "socket-select!" 1 n)
+      (test-assert "socket-select!" (fdset? r))
+      (test-assert "socket-select!" (not w))
+      (test-assert "socket-select!" (not e)))
+    
+    (test-assert "fdset-ref  (3)" (fdset-ref fdset client-socket))
+    (let ((l (list client-socket)))
+      (test-equal "collect-sockets" l (collect-sockets fdset l))
+      (test-assert "sockets->fdset" (fdset? (sockets->fdset l)))))
+		
   (test-equal "raw socket-recv"
 	      (string->utf8 "hello\r\n")
 	      (socket-recv client-socket (+ (string-length "hello") 2) 0))

@@ -134,6 +134,18 @@ SG_CLASS_DECL(Sg_SocketInfoClass);
 #define SG_SOCKET_INFO(obj)  ((SgSocketInfo*)obj)
 #define SG_SOCKET_INFO_P(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET_INFO)
 
+typedef struct SgFdSetRec
+{
+  SG_HEADER;
+  fd_set    fdset;
+  int       maxfd;
+} SgFdSet;
+
+SG_CLASS_DECL(Sg_FdSetClass);
+#define SG_CLASS_FD_SET (&Sg_FdSetClass)
+#define SG_FDSET(obj)  ((SgFdSet*)obj)
+#define SG_FDSETP(obj) SG_XTYPEP(obj, SG_CLASS_FD_SET)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
@@ -175,9 +187,16 @@ SG_EXTERN SgObject  Sg_MakeSocketInputPort(SgSocket *socket);
 SG_EXTERN SgObject  Sg_MakeSocketOutputPort(SgSocket *socket);
 SG_EXTERN void      Sg_ShutdownPort(SgPort *port, int how);
 
+/* fdset */
+SG_EXTERN SgObject  Sg_MakeFdSet();
+SG_EXTERN SgObject  Sg_SocketsToFdSet(SgObject sockets);
+SG_EXTERN SgObject  Sg_CollectSockets(SgObject fdset, SgObject sockets);
+
 /* select */
 SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,
 				    SgObject errors, SgObject timeout);
+SG_EXTERN SgObject  Sg_SocketSelectX(SgObject reads, SgObject writes,
+				     SgObject errors, SgObject timeout);
 
 /* misc */
 SG_EXTERN SgObject  Sg_SocketPeer(SgObject socket);
