@@ -170,6 +170,28 @@
       pi))
 
   ;;; subscribe
+
+  ;; helper to handle published message
+  ;; subscribe and unsubscribe (could be other control packet as well)
+  ;; may have timing issue. typically if topic has retain message and
+  ;; 2 subscribe packet are sent to server, then the first response
+  ;; packet would be PUBLISH instead of SUBACK which required by second
+  ;; subscribe. To avoid this, we consume message (hopefully properly)
+  ;; until it gets proper type.
+  ;; FIXME This is not a good solution...
+  (define (consume-until conn expected-type)
+    (define in/out (~ conn 'port))
+    (let loop ()
+      (let-values (((type flag len) (read-fixed-header in/out)))
+	(if (= type expected-type)
+	    (values type flag len)
+	    (cond ((= type +publish+)
+		   (receive-message conn type flag len)
+		   (loop))
+		  (else
+		   ;; let it caller raise an error...
+		   ;; !!!FIXME!!!
+		   (values type flag len)))))))
   ;; we don't support multiple subscribe
   (define (mqtt-subscribe conn topic qos callback)
     (unless (mqtt-valid-topic? topic)
@@ -185,7 +207,7 @@
       (write-utf8 in/out u8-topic)
       (put-u8 in/out qos)
       ;; receive suback
-      (let-values (((type flag len) (read-fixed-header in/out)))
+      (let-values (((type flag len) (consume-until conn +suback+)))
 	(unless (= type +suback+)
 	  (error 'mqtt-subscribe "Server respond non SUBACK packet" type))
 	(let-values (((vh payload) (read-variable-header&payload in/out len
@@ -224,18 +246,15 @@
     (write-fixed-header in/out +pubcomp+ 0 2)
     (write-packet-identifier in/out pi))
 
-  (define (mqtt-receive-message conn)
+  ;; assume +publish+ was sent
+  (define (receive-message conn type flag len)
     (define (parse-flags flag)
       (values (bitwise-arithmetic-shift-right flag 3)
 	      (bitwise-and (bitwise-arithmetic-shift-right flag 1) #x03)
 	      (bitwise-and flag #x01)))
-    (when (null? (~ conn 'callbacks))
-      (error 'mqtt-receive-message "No subscription"))
-    (let*-values (((type flag len) (read-fixed-header (~ conn 'port)))
-		  ((dup qos retain) (parse-flags flag))
+    (let*-values (((dup qos retain) (parse-flags flag))
 		  ((vh payload) (apply read-variable-header&payload 
-				       (~ conn 'port) len
-				       :utf8 
+				       (~ conn 'port) len :utf8 
 				       (if (= qos +qos-at-most-once+)
 					   '()
 					   '(:pi)))))
@@ -253,6 +272,12 @@
 		 "No subscription but got message from server"
 		 (car vh)))
 	((cdr callback) (car vh) payload))))
+
+  (define (mqtt-receive-message conn)
+    (when (null? (~ conn 'callbacks))
+      (error 'mqtt-receive-message "No subscription"))
+    (let-values (((type flag len) (read-fixed-header (~ conn 'port))))
+      (receive-message conn type flag len)))
 
   ;;; publish
   ;; message must be a bytevector
@@ -323,7 +348,7 @@
       (write-packet-identifier in/out pi)
       (write-utf8 in/out u8-topic)
       ;; unsuback
-      (let-values (((type flag len) (read-fixed-header in/out)))
+      (let-values (((type flag len) (consume-until conn +unsuback+)))
 	(unless (= type +unsuback+)
 	  (error 'mqtt-unsubscribe "Server respond invalid packet" type))
 	(let-values (((vh pay) (read-variable-header&payload in/out len :pi)))
@@ -338,7 +363,7 @@
   (define (mqtt-ping conn)
     (define in/out (~ conn 'port))
     (write-fixed-header in/out +pingreq+ 0 0)
-    (let-values (((type flag len) (read-fixed-header in/out)))
+    (let-values (((type flag len) (consume-until conn +pingresp+)))
       (unless (= type +pingresp+)
 	(error 'mqtt-ping
 	       "Server respond back invalid packet" type))
