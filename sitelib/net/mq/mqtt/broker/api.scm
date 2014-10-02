@@ -489,17 +489,22 @@
       (let* ((u8-topic (string->utf8 topic))
 	     (len (+ packet-prefix (bytevector-length u8-topic))))
 	(write-fixed-header in/out +publish+ (bitwise-arithmetic-shift qos 1)
-			    (+ len (bytevector-length message)))
+			    (+ len (if (eof-object? message)
+				       0
+				       (bytevector-length message))))
 	(write-utf8 in/out u8-topic)
 	(unless (= qos +qos-at-most-once+)
 	  (write-packet-identifier in/out pi))
-	(put-bytevector in/out message))))
+	(unless (eof-object? message)
+	  (put-bytevector in/out message)))))
 
   ;; unsubscribe
   (define (mqtt-broker-unsubscribe session type flag len in/out)
     ;; MQTT-3.10.4-1, comparing character-by-character
     ;; easy huh?
-    (define (unsubscribe topics)
+    (define (unsubscribe topics pi)
+      (write-fixed-header in/out +unsuback+ 0 2)
+      (write-packet-identifier in/out pi)
       (let ((subscriptions (~ session 'subscriptions)))
 	(set! (~ session 'subscriptions)
 	      (lset-difference string=? subscriptions topics))))
@@ -508,7 +513,7 @@
       (let loop ((r '()))
 	(let ((topic (read-utf8-string payload)))
 	  (if (eof-object? topic)
-	      (unsubscribe r)
+	      (unsubscribe r (car vh))
 	      (loop (cons topic r)))))))
 
   (define (mqtt-broker-pingreq session type flag len in/out)
