@@ -20,6 +20,7 @@
 (define-type <sockaddr> "SgSockaddr*")
 (define-type <ip-address> "SgIpAddress*")
 (define-type <socket-info> "SgSocketInfo*")
+(define-type <fdset> "SgFdSet*")
 
 (define-c-proc addrinfo? (o) ::<boolean> :constant SG_ADDRINFOP)
 (define-c-proc make-addrinfo ()  Sg_MakeAddrinfo)
@@ -140,13 +141,54 @@
 (define-c-proc socket-blocking! (o::<socket>) ::<boolean>
   Sg_SocketBlocking)
 
+(define-c-proc make-fdset () :no-side-effect Sg_MakeFdSet)
+(define-c-proc fdset? (o) ::<boolean> :constant SG_FDSETP)
+(define-c-proc sockets->fdset (sockets) :no-side-effect Sg_SocketsToFdSet)
+(define-c-proc collect-sockets (fdset::<fdset> sockets) :no-side-effect 
+  Sg_CollectSockets)
+
+(define-cise-stmt check-fd-range
+  ((_ fd)
+   (let ((fd_ (gensym)))
+     `(let ((,fd_ :: int ,fd))
+	(when (or (< ,fd_ 0) (>= ,fd_ FD_SETSIZE))
+	  (Sg_Error 
+	   (UC "Socket descriptor value is out of range: (0 <= %d < %d)")
+	   ,fd_ FD_SETSIZE))))))
+
+(define-c-proc fdset-set! (fdset::<fdset> socket::<socket> flag::<boolean>)
+  ::<void>
+  (let ((fd::int (cast int (-> socket socket))))
+    (check-fd-range fd)
+    (cond (flag (FD_SET fd (& (-> fdset fdset)))
+		(when (< (-> fdset maxfd) fd) (set! (-> fdset maxfd) fd)))
+	  (else (FD_CLR fd (& (-> fdset fdset)))
+		(when (== (-> fdset maxfd) fd)
+		  (let ((i::int (- (-> fdset maxfd) 1)))
+		    (for (() (>= i 0) (post-- i))
+			 (when (FD_ISSET i (& (-> fdset fdset))) (break)))
+		    (set! (-> fdset maxfd) i)))))))
+
+(define-c-proc fdset-ref (fdset::<fdset> socket::<socket>) ::<boolean>
+  (setter fdset-set!)
+  (let ((fd::int (cast int (-> socket socket))))
+    (if (< fd 0)
+	(result FALSE) ;; invalid or closed socket so never be set
+	(begin (check-fd-range fd) 
+	       (result (FD_ISSET fd (& (-> fdset fdset))))))))
+
+
 (define-c-proc socket-select (reads writes errors timeval) Sg_SocketSelect)
+(define-c-proc socket-select! (reads writes errors timeval) Sg_SocketSelectX)
 
 (define-c-proc socket-peer (o::<socket>) :no-side-effect Sg_SocketPeer)
 (define-c-proc socket-name (o::<socket>) :no-side-effect Sg_SocketName)
 (define-c-proc socket-info (o::<socket>) :no-side-effect Sg_SocketInfo)
+(define-c-proc socket-info? (o) ::<boolean> SG_SOCKET_INFO_P)
+
 (define-c-proc ip-address->string (ip::<ip-address>) :no-side-effect
   Sg_IpAddressToString)
 ;; constant?
 (define-c-proc ip-address->bytevector (ip::<ip-address>) :no-side-effect
   (result (-> ip ip)))
+(define-c-proc ip-address? (o) ::<boolean> SG_IP_ADDRESS_P)

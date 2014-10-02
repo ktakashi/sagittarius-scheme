@@ -20,7 +20,7 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler))
-  (define server-thread (make-thread (lambda () (start-server! server))))
+  (define server-thread (make-thread (lambda () (server-start! server))))
   (test-assert "server?" (server? server))
   ;; wait until it's started
   (thread-start! server-thread)
@@ -31,7 +31,7 @@
     (test-equal "echo back" (string->utf8 "hello") (socket-recv sock 255))
     (socket-close sock))
 
-  (test-assert "stop server" (stop-server! server))
+  (test-assert "stop server" (server-stop! server))
   (test-assert "finish simple server" (thread-join! server-thread))
 )
 
@@ -46,7 +46,7 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))
-  (define server-thread (make-thread (lambda () (start-server! server))))
+  (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((t* (map (lambda (_)
 		     (make-thread
@@ -94,7 +94,7 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler config))
-  (define server-thread (make-thread (lambda () (start-server! server))))
+  (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((sock (make-client-tls-socket "localhost" "5000" ai-family)))
       (socket-send sock (string->utf8 "hello"))
@@ -107,7 +107,7 @@
   (test AF_INET)
   (test AF_INET6)
 
-  (test-assert "stop TLS server" (stop-server! server))
+  (test-assert "stop TLS server" (server-stop! server))
   (test-assert "finish simple server" (thread-join! server-thread))
   )
 (test-end)

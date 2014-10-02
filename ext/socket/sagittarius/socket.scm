@@ -54,6 +54,7 @@
 
 	    ;; select
 	    socket-select
+	    socket-select!
 	    socket-read-select
 	    socket-write-select
 	    socket-error-select
@@ -110,13 +111,23 @@
 	    ;; sockaddr
 	    sockaddr?
 	    ;; socket-info
+	    socket-info?
 	    socket-peer
 	    socket-name
 	    socket-info
 	    socket-info-values
 	    ;; ip-address
+	    ip-address?
 	    ip-address->string
 	    ip-address->bytevector
+	    ;; fdset
+	    make-fdset
+	    fdset?
+	    sockets->fdset
+	    collect-sockets
+	    fdset-set!
+	    fdset-ref
+	    
 	    ;; clos
 	    <socket>
 	    <addrinfo>
@@ -213,19 +224,25 @@
 			     service)))))
   ;; for convenience
   (define (socket-read-select timeout . rest)
-    (receive (r w e) (socket-select rest '() '() timeout) r))
+    (let ((rfds (sockets->fdset rest)))
+      (receive (n r w e) (socket-select! rfds #f #f timeout) 
+	(collect-sockets r rest))))
 
   (define (socket-write-select timeout . rest)
-    (receive (r w e) (socket-select '() rest '() timeout) w))
+    (let ((wfds (sockets->fdset rest)))
+      (receive (n r w e) (socket-select! #f wfds #f timeout) 
+	(collect-sockets w rest))))
 
   (define (socket-error-select timeout . rest)
-    (receive (r w e) (socket-select '() '() rest timeout) e))
+    (let ((efds (sockets->fdset rest)))
+      (receive (n r w e) (socket-select! #f #f efds timeout) 
+	(collect-sockets e rest))))
 
   ;; for backward compatibility
   (define (socket-info-values socket :key (type 'peer))
-    (let ((peer (if (eq? type 'peer)
-		    (socket-peer socket)
-		    (socket-info socket))))
+    (let ((peer (cond ((eq? type 'peer) (socket-peer socket))
+		      ((eq? type 'info) (socket-info socket))
+		      (else (error 'socket-info-values "unknown type" type)))))
       (if peer
 	  (values (slot-ref peer 'hostname)
 		  (slot-ref peer 'ip-address)

@@ -4,6 +4,7 @@
 	(rfc tls)
 	(rfc x.509) 
 	(crypto)
+	(srfi :18)
 	(srfi :19)
 	(srfi :64))
 
@@ -59,6 +60,8 @@
     (test-assert "output-port?" (output-port? port))
 
     (put-bytevector port (string->utf8 "put from port\r\n"))
+    (thread-sleep! 2) ;; I hope it's enough
+    (test-assert "port-ready?" (port-ready? port))
     (test-equal "get-bytevector-n"
 		(string->utf8 "put from port\r\n")
 		(get-bytevector-n port

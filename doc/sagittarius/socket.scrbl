@@ -190,6 +190,17 @@ The @code{socket-shutdown} shutdowns socket.
 
 @subsubsection{Socket information}
 
+@define[Class]{@name{<socket-info>}}
+@desc{The socket information immutable class. This class has 3 slots
+
+@define[Slot]{@name{hostname}}
+@desc{This slot has string value represents own or peer socket host.}
+@define[Slot]{@name{ip-address}}
+@desc{This slot has ip-address object of own or peer socket.}
+@define[Slot]{@name{port}}
+@desc{This slot has integer value of own or peer socket port number.}
+}
+
 @define[Function]{@name{socket-peer} @args{socket}}
 @desc{@var{Socket} must be a socket object.
 
@@ -210,11 +221,15 @@ Returns socket info object or #f. The socket info object contains hostname,
 IP address and port number. These information is retrieved from getsockname(2).
 }
 
-@define[Function]{@name{socket-info-values} @args{socket}}
+@define[Function]{@name{socket-info-values} @args{socket :key (type 'peer)}}
 @desc{@var{Socket} must be a socket object.
 
 Returns 3 values; hostname, IP address and port number. This procedures is
 for convenience to handle socket info object.
+
+The keyword argument specifies which socket info it should retrieve. If the
+type is @code{peer} then it uses @code{socket-peer}. If it is @code{info},
+then it uses @code{socket-info}
 }
 
 @subsubsection{IP address operations}

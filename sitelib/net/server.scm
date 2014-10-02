@@ -34,8 +34,8 @@
 	    make-server-config
 	    server?
 	    server-config? server-config
-	    start-server!
-	    stop-server! ;; well for multithreading?
+	    server-start!
+	    server-stop! ;; well for multithreading?
 	    
 	    server-stopped?
 
@@ -124,7 +124,8 @@
 				    (guard (e (else s))
 				      (cons (make-socket ai-family) s)))
 				  '() ai-families)))
-	
+	(when (null? sockets)
+	  (error 'make-simple-server "failed to create server sockets" port))
 	(let ((server (make server-class
 			    :server-sockets sockets :stopper-socket stop-socket
 			    :config config)))
@@ -152,7 +153,7 @@
 		       (socket-close sock))))))
 	  server))))
   
-  (define (start-server! server)
+  (define (server-start! server)
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
     (when (~ server 'stopper-thread)
@@ -161,7 +162,7 @@
 	      (else (raise e)))
       (map thread-join! (map thread-start! (~ server 'server-threads)))))
 
-  (define (stop-server! server)
+  (define (server-stop! server)
     (define (close-socket socket)
       (socket-shutdown socket SHUT_RDWR)
       (socket-close socket))

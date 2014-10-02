@@ -373,7 +373,7 @@
 	  (m (get-bytevector-all payload)))
       (let ((subscribers (get-subscribers topic (~ context 'sessions))))
 	(if (null? subscribers)
-	    (mqtt-topic-enqueue! t qos m)
+	    (mqtt-topic-enqueue! t qos m) ;; for what?
 	    ;; send it without storing
 	    (for-each (cut send-publish <> topic qos m) subscribers)))
       (unless (zero? retain) (mqtt-topic-retain-message-set! t m))))
