@@ -31,6 +31,12 @@
 (library (net mq mqtt topic)
     (export mqtt-valid-topic?
 	    mqtt-topic-match?
+	    mqtt-topic-compare
+	    mqtt-topic<?
+	    mqtt-topic>?
+	    mqtt-topic=?
+	    mqtt-topic<=?
+	    mqtt-topic>=?
 
 	    make-mqtt-topic
 	    mqtt-topic-enqueue!
@@ -105,17 +111,20 @@
   ;; now we need to make them match
   ;; NOTE: Assumes `filter` is a valid topic
   (define topic-name-set (char-set-complement (string->char-set "/")))
-  (define (mqtt-topic-match? filter topic)
+  ;; add empty entry for convenience
+  (define (topic-tokenize topic)
     (define (string-last s)
       (let ((len (string-length s)))
 	(string-ref s (- len 1))))
-    ;; add empty entry for convenience
-    (define (fixup topic topics)
+    (define (%fixup topic topics)
       (let ((l (if (char=? (string-last topic) #\/) '("") '()))
 	    (f (if (char=? (string-ref topic 0) #\/) '("") '())))
 	(append f topics l)))
-    (let ((filters (fixup filter (string-tokenize filter topic-name-set)))
-	  (topics  (fixup topic (string-tokenize topic topic-name-set))))
+    (%fixup topic (string-tokenize topic topic-name-set)))
+
+  (define (mqtt-topic-match? filter topic)    
+    (let ((filters (topic-tokenize filter))
+	  (topics  (topic-tokenize topic)))
       (let loop ((first? #t) (filters filters) (topics topics))
 	(cond ((and (null? filters) (null? topics)))   ;; matched
 	      ((or (null? filters) (null? topics))
@@ -133,7 +142,41 @@
 		    (loop #f (cdr filters) (cdr topics))))
 	      ((string=? (car filters) (car topics))
 	       (loop #f (cdr filters) (cdr topics)))
-	      (else #f))))))
+	      (else #f)))))
+
+  ;; compares given topics. 
+  ;; the returning values are followings
+  ;;   -1 a < b - b is more specific
+  ;;   0  a = b - equally specified
+  ;;   1  a > b - a is more specific
+  ;; Definition
+  ;;   - longer is more specific
+  ;;   - '#' makes less specific
+  ;;   - '+' makes less specific ('#' < '+')
+  ;;   - the same hierarcy is equally specified
+  ;; NOTE: a = b doesn't mean topics are the same but equally specified
+  (define (mqtt-topic-compare a b)
+    (define (plus/hash s)
+      (or (string=? s "#") (string=? s "+")))
+    (unless (and (mqtt-valid-topic? a)
+		 (mqtt-valid-topic? b))
+      (error 'mqtt-topic-compare "not a valid topic" a b))
+    (let loop ((a* (topic-tokenize a)) (b* (topic-tokenize b)))
+      (cond ((and (null? a*) (null? b*)) 0)
+	    ((null? a*) -1)
+	    ((null? b*) 1)
+	    ;; avoid +/foo +/bar thing
+	    ((string=? (car a*) (car b*)) (loop (cdr a*) (cdr b*)))
+	    ((plus/hash (car a*)) -1)
+	    ((plus/hash (car b*)) 1)
+	    (else (loop (cdr a*) (cdr b*))))))
+
+  (define (mqtt-topic<? a b)  (< (mqtt-topic-compare a b) 0))
+  (define (mqtt-topic>? a b)  (> (mqtt-topic-compare a b) 0))
+  (define (mqtt-topic=? a b)  (= (mqtt-topic-compare a b) 0))
+  (define (mqtt-topic<=? a b) (<= (mqtt-topic-compare a b) 0))
+  (define (mqtt-topic>=? a b) (>= (mqtt-topic-compare a b) 0))
+)
 
 ;; 
 ;; reference

@@ -196,7 +196,10 @@
 	  (let ((rc (get-u8 payload)))
 	    (when (= rc +suback-failure+)
 	      (error 'mqtt-subscribe "Failed to subscribe" topic))
-	    (set! (~ conn 'callbacks) (acons topic callback(~ conn 'callbacks)))
+	    (set! (~ conn 'callbacks) 
+		  (list-sort (lambda (a b)
+			       (mqtt-topic>? (car a) (car b)))
+			     (acons topic callback (~ conn 'callbacks))))
 	    rc)))))
   
   (define (mqtt-puback conn pi)

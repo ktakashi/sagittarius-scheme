@@ -173,4 +173,61 @@
 						 "$SYS/monitor/Clients"))
 
 
+;; specific topic
+(define-syntax test-topic-compare
+  (syntax-rules ()
+    ((_ a b expected)
+     (test-equal (format "~a vs ~a" a b)
+		 expected (mqtt-topic-compare a b)))))
+(test-topic-compare "foo/bar" "buz/bla" 0)
+(test-topic-compare "foo/bar" "buz/bla/brr" -1)
+(test-topic-compare "foo/bar/brr" "buz/bla" 1)
+(test-topic-compare "+/bar" "buz/bla" -1)
+(test-topic-compare "foo/bar" "+/bla" 1)
+(test-topic-compare "+/bar" "+/bla" 0)
+(test-topic-compare "#" "buz/bla" -1)
+(test-topic-compare "#" "buz/#" -1)
+(test-topic-compare "foo/#" "buz/#" 0)
+(test-topic-compare "foo/bar/#" "buz/#" 1)
+
+(define-syntax test-topic*?
+  (syntax-rules ()
+    ((_ a b <=>?)
+     (test-assert (format "~a vs ~a (~a)" a b <=>?) (<=>? a b)))))
+(define-syntax test-topic<?
+  (syntax-rules ()
+    ((_ a b) (test-topic*? a b mqtt-topic<?))))
+(define-syntax test-topic<=?
+  (syntax-rules ()
+    ((_ a b) (test-topic*? a b mqtt-topic<=?))))
+(define-syntax test-topic>?
+  (syntax-rules ()
+    ((_ a b) (test-topic*? a b mqtt-topic>?))))
+(define-syntax test-topic>=?
+  (syntax-rules ()
+    ((_ a b) (test-topic*? a b mqtt-topic>=?))))
+(define-syntax test-topic=?
+  (syntax-rules ()
+    ((_ a b) (test-topic*? a b mqtt-topic=?))))
+(test-topic<? "foo/bar" "buz/bla/brr")
+(test-topic<? "+/bar" "buz/bla")
+(test-topic<? "#" "buz/bla")
+(test-topic<? "#" "buz/#")
+
+(test-topic>? "foo/bar" "+/bla")
+(test-topic>? "foo/bar/brr" "buz/bla")
+(test-topic>? "foo/bar/#" "buz/#")
+
+(test-topic>=? "foo/#" "buz/#")
+(test-topic>=? "foo/bar" "buz/bla")
+(test-topic>=? "+/bar" "+/bla")
+
+(test-topic<=? "foo/#" "buz/#")
+(test-topic<=? "foo/bar" "buz/bla")
+(test-topic<=? "+/bar" "+/bla")
+
+(test-topic=? "foo/#" "buz/#")
+(test-topic=? "foo/bar" "buz/bla")
+(test-topic=? "+/bar" "+/bla")
+
 (test-end)
