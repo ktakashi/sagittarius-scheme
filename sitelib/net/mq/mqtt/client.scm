@@ -102,7 +102,11 @@
 		   (if (and client-id (not (string-null? client-id)))
 		       #x00 #x02)))
     (define (compute-length)
-      (define (->utf8 v) (and v (string->utf8 v)))
+      ;; make this a bit flexible
+      (define (->utf8 v) 
+	(and v 
+	     (or (and (string? v) (string->utf8 v))
+		 (and (bytevector? v) v))))
       (define (length v) (if v (+ (bytevector-length v) 2) 0))
       (let ((u8-id (string->utf8 (or client-id (generate-client-id))))
 	    (u8-topic (->utf8 topic))
@@ -190,7 +194,7 @@
 	    (error 'mqtt-subscribe "Server respond invalid packet identifier"
 		   (car vh)))
 	  (let ((rc (get-u8 payload)))
-	    (when (= rc #x80)
+	    (when (= rc +suback-failure+)
 	      (error 'mqtt-subscribe "Failed to subscribe" topic))
 	    (set! (~ conn 'callbacks) (acons topic callback(~ conn 'callbacks)))
 	    rc)))))

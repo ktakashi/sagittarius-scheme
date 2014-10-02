@@ -85,73 +85,74 @@
   (define (make-server-config . opt) (apply make <server-config> opt))
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
+				   ;; must have default config
+			           (config (make-server-config))
 			      :allow-other-keys rest)
-    (let-optionals* rest
-	((config (make-server-config)))
-      (define stop? #f)
-      (define dispatch
-	(let ((executor (and (> (~ config 'max-thread) 1)
-			     (make-thread-pool-executor (~ config 'max-thread)
-			      (wait-finishing-handler (~ config 'max-retry))))))
-	  (lambda (server socket)
-	    (define (handle socket)
-	      (guard (e (else 
-			 (when (~ config 'exception-handler)
-			   ((~ config 'exception-handler) server socket e))
-			 (socket-close socket)
-			 #t))
-		(call-with-socket socket 
-		  (lambda (sock) (handler server sock)))))
-	    ;; ignore error
-	    (if executor
-		(let ((f (future (handle socket))))
-		  (execute-future! executor f))
-		(handle socket)))))
-      (define stop-socket (and (~ config 'shutdown-port)
-			       (make-server-socket (~ config 'shutdown-port))))
-      (define (make-socket ai-family)
-	(if (and (~ config 'secure?)
-		 (not (null? (~ config 'certificates))))
-	    ;; For now no private key, it's simple server
-	    ;; anyway
-	    (make-server-tls-socket port (~ config 'certificates) ai-family)
-	    (make-server-socket port ai-family)))
-      (let* ((ai-families (if (~ config 'use-ipv6?) 
-			      `(,AF_INET6 ,AF_INET)
-			      `(,AF_INET)))
-	     ;; hope all platform accepts dual when IPv6 is enabled
-	     (sockets (fold-right (lambda (ai-family s)
-				    (guard (e (else s))
-				      (cons (make-socket ai-family) s)))
-				  '() ai-families)))
-	(when (null? sockets)
-	  (error 'make-simple-server "failed to create server sockets" port))
-	(let ((server (make server-class
-			    :server-sockets sockets :stopper-socket stop-socket
-			    :config config)))
-	  (define server-threads
-	    (map (lambda (socket)
-		   (make-thread
-		    (lambda ()
-		      (let loop ((client-socket (socket-accept socket)))
-			(dispatch server client-socket)
-			(loop (socket-accept socket)))))) sockets))
-	  (set! (~ server 'server-threads) server-threads)
-	  (when stop-socket
-	    (set! (~ server 'stopper-thread)
-		  (make-thread 
-		   (lambda ()
-		     (let ((sock (socket-accept stop-socket)))
-		       ;; ignore all errors
-		       (guard (e (else #t))
-			 (set! stop? ((~ config 'shutdown-handler) server sock))
-			 (when stop? 
-			   (for-each thread-terminate! server-threads)
-			   (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
-			   (for-each socket-close sockets)
-			   (set! (~ server 'stopped?) #t)))
-		       (socket-close sock))))))
-	  server))))
+    (define stop? #f)
+    (define dispatch
+      (let ((executor (and (> (~ config 'max-thread) 1)
+			   (make-thread-pool-executor (~ config 'max-thread)
+			    (wait-finishing-handler (~ config 'max-retry))))))
+	(lambda (server socket)
+	  (define (handle socket)
+	    (guard (e (else 
+		       (when (~ config 'exception-handler)
+			 ((~ config 'exception-handler) server socket e))
+		       (socket-close socket)
+		       #t))
+	      (call-with-socket socket 
+				(lambda (sock) (handler server sock)))))
+	  ;; ignore error
+	  (if executor
+	      (let ((f (future (handle socket))))
+		(execute-future! executor f))
+	      (handle socket)))))
+    (define stop-socket (and (~ config 'shutdown-port)
+			     (make-server-socket (~ config 'shutdown-port))))
+    (define (make-socket ai-family)
+      (if (and (~ config 'secure?)
+	       (not (null? (~ config 'certificates))))
+	  ;; For now no private key, it's simple server
+	  ;; anyway
+	  (make-server-tls-socket port (~ config 'certificates) ai-family)
+	  (make-server-socket port ai-family)))
+    (let* ((ai-families (if (~ config 'use-ipv6?) 
+			    `(,AF_INET6 ,AF_INET)
+			    `(,AF_INET)))
+	   ;; hope all platform accepts dual when IPv6 is enabled
+	   (sockets (fold-right (lambda (ai-family s)
+				  (guard (e (else s))
+				    (cons (make-socket ai-family) s)))
+				'() ai-families)))
+      (when (null? sockets)
+	(error 'make-simple-server "failed to create server sockets" port))
+      (let ((server (apply make server-class
+		      :server-sockets sockets :stopper-socket stop-socket
+		      :config config
+		      rest)))
+	(define server-threads
+	  (map (lambda (socket)
+		 (make-thread
+		  (lambda ()
+		    (let loop ((client-socket (socket-accept socket)))
+		      (dispatch server client-socket)
+		      (loop (socket-accept socket)))))) sockets))
+	(set! (~ server 'server-threads) server-threads)
+	(when stop-socket
+	  (set! (~ server 'stopper-thread)
+		(make-thread 
+		 (lambda ()
+		   (let ((sock (socket-accept stop-socket)))
+		     ;; ignore all errors
+		     (guard (e (else #t))
+		       (set! stop? ((~ config 'shutdown-handler) server sock))
+		       (when stop? 
+			 (for-each thread-terminate! server-threads)
+			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
+			 (for-each socket-close sockets)
+			 (set! (~ server 'stopped?) #t)))
+		     (socket-close sock))))))
+	server)))
   
   (define (server-start! server)
     (unless (server? server)
@@ -164,6 +165,7 @@
 
   (define (server-stop! server)
     (define (close-socket socket)
+      ;; we don't care if socket sending failed or not...
       (socket-shutdown socket SHUT_RDWR)
       (socket-close socket))
     (unless (server? server)

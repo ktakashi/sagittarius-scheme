@@ -31,6 +31,8 @@
 (library (net mq mqtt broker)
     (export make-mqtt-broker
 	    make-mqtt-broker-config
+	    mqtt-broker-start!
+	    mqtt-broker-stop!
 	    <mqtt-broker>
 	    <mqtt-broker-config>)
     (import (rnrs)
@@ -47,8 +49,9 @@
   (define-class <mqtt-broker-config> (<server-config>)
     ())
 
-  (define (make-mqtt-broker-config . opt)
-    (apply make <mqtt-broker-config> opt))
+  ;; at least make some threads otherwise sort of useless...
+  (define (make-mqtt-broker-config :key (max-thread 10) :allow-other-keys opt)
+    (apply make <mqtt-broker-config> :max-thread max-thread opt))
 
   (define-condition-type &connection &error make-connection-error
     connection-error?
@@ -58,7 +61,8 @@
 		      (make-who-condition 'mqtt-broker)
 		      (make-message-condition "Connection is broken"))))
 
-  (define (make-mqtt-broker port :optional (config (make-mqtt-broker-config)))
+  (define (make-mqtt-broker port :key (config (make-mqtt-broker-config))
+			    :allow-other-keys rest)
     (define (setup-handlers)
       (let ((ht (make-eqv-hashtable)))
 	(hashtable-set! ht +publish+ mqtt-broker-publish)
@@ -97,13 +101,22 @@
 			(else
 			 (error 'mqtt-handler "unknown packet type"
 				type))))))))))
-    ;; hmmmm it's a bit inconvenient if we can't pass keyword argument
-    ;; to construct server...
-    (let ((server (make-simple-server port mqtt-handler
+    (let ((server (apply make-simple-server port mqtt-handler
 				      :server-class <mqtt-broker>
-				      config)))
-      (set! (~ server 'handlers) (setup-handlers))
+				      :config config
+				      :handlers (setup-handlers)
+				      rest)))
       ;; TODO adding authentication-handler or so
       server))
+
+  (define (mqtt-broker-start! broker)
+    (server-start! broker))
+  (define (mqtt-broker-stop! broker)
+    (unless (~ broker 'stopped?)
+      ;; first stop the server
+      (server-stop! broker)
+      ;; then stop the cleaner
+      (mqtt-session-cleaner-stop! broker)
+      ))
 
 )

@@ -32,7 +32,7 @@
     (socket-close sock))
 
   (test-assert "stop server" (server-stop! server))
-  (test-assert "finish simple server" (thread-join! server-thread))
+  (test-assert "finish simple server (1)" (thread-join! server-thread))
 )
 
 ;; multi threading server
@@ -45,7 +45,7 @@
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
-  (define server (make-simple-server "5000" handler config))
+  (define server (make-simple-server "5000" handler :config config))
   (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((t* (map (lambda (_)
@@ -93,7 +93,7 @@
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
-  (define server (make-simple-server "5000" handler config))
+  (define server (make-simple-server "5000" handler :config config))
   (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((sock (make-client-tls-socket "localhost" "5000" ai-family)))
@@ -108,6 +108,6 @@
   (test AF_INET6)
 
   (test-assert "stop TLS server" (server-stop! server))
-  (test-assert "finish simple server" (thread-join! server-thread))
+  (test-assert "finish simple server (2)" (thread-join! server-thread))
   )
 (test-end)

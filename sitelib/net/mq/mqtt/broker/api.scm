@@ -53,6 +53,11 @@
 	    mqtt-broker-will-message
 
 	    mqtt-session-alive?
+	    mqtt-session-cleaner-stop!
+
+	    ;; should we export this for writing authentication handler?
+	    ;;(rename (authentication-error? mqtt-authentication-error?)
+	    ;;	      (authentication-error  mqtt-authentication-error))
 
 	    <mqtt-broker-context>
 	    )
@@ -69,6 +74,22 @@
 	    (srfi :18)
 	    (srfi :19)
 	    (srfi :26))
+
+  ;; conditions
+  ;; should we expose this?
+  (define-condition-type &session-expired &error 
+    make-session-expired session-expired?)
+
+  ;; this condition would be too generic
+  ;; if we create this condition somewhere else we should
+  ;; move this in common place. (like (util security)?)
+  (define-condition-type &authenticate &error
+    make-authentication-error authentication-error?)
+
+  (define (authentication-error)
+    (raise (condition (make-authentication-error)
+		      (make-who-condition 'mqtt-broker)
+		      (make-message-condition "failed to authenticate"))))
 
   ;; TODO
   ;;  - handling authentication
@@ -98,12 +119,13 @@
 	;; TODO maybe we want to check context state
 	;; so that we can terminate this thread
 	(loop)))
-    ;; in case of GCed
     (set! (~ r 'cleaner-thread) (thread-start! (make-thread thunk)))
     (call-next-method))
 
   (define (make-mqtt-broker-context . opt)
     (apply make <mqtt-broker-context> opt))
+  (define (mqtt-session-cleaner-stop! context)
+    (thread-terminate! (~ context 'cleaner-thread)))
 
   (define-class <mqtt-session> ()
     ((context :init-keyword :context)
@@ -124,8 +146,6 @@
      ;; lock
      (lock    :init-form (make-mutex))))
 
-  (define-condition-type &session-expired &error 
-    make-session-expired session-expired?)
   (define (session-expired session)
     ;; TODO handling will topic
     ;; when session is expired then 
@@ -199,12 +219,21 @@
       (cond ((assoc (car vh) +name-level+) =>
 	     (lambda (slot)
 	       (or (= (cdr slot) (cadr vh))
-		   (send-conack #x01 #f #f))))
-	    (else (send-conack #x01 #f #f))))
+		   (send-conack +connack-unacceptable-protocol+ #f #f))))
+	    (else (send-conack +connack-unacceptable-protocol+ #f #f))))
     (define (authenticate user password)
       (if (~ context 'authentication-handler)
-	  (guard (e (else (send-conack #x04 #f #f)))
-	    ((~ context 'authentication-handler) context user password))
+	  (guard (e ((authentication-error? e)
+		     (send-conack +connack-authentication-error+ #f #f)
+		     ;; let server know
+		     (raise e))
+		    (else 
+		     ;; should this be something else?
+		     (send-conack +connack-bad-username/password+ #f #f)
+		     (raise e)))
+	    (or ((~ context 'authentication-handler) context user password)
+		;; if handler returned #f then it's failed to authenticate
+		(authentication-error)))
 	  #t))
     (let-values (((type flags len) (read-fixed-header in/out)))
       (unless (= type +connect+)
@@ -391,7 +420,7 @@
 		   type)))
       (hashtable-for-each 
        (lambda (name topic)
-	 (and-let* (( (not (= (car qos&filter) #x80)) )
+	 (and-let* (( (not (= (car qos&filter) +suback-failure+)) )
 		    (retain (mqtt-topic-retain-message topic))
 		    (qos    (min (car qos&filter)
 				 (mqtt-topic-retain-qos topic)))
@@ -447,7 +476,7 @@
 	      (cond ((mqtt-valid-topic? topic)
 		     (loop (acons qos topic res)))
 		    (else
-		     (loop (acons #x80 topic res))))
+		     (loop (acons +suback-failure+ topic res))))
 	      (send-suback (car vh) (reverse! res)))))))
   
   ;; FIXME almost the same as client so refactor it

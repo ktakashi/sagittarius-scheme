@@ -62,10 +62,19 @@
 	    +pingreq+
 	    +pingresp+
 	    +disconnect+
+	    ;; CONNACK code
+	    +connack-accepted+
+	    +connack-unacceptable-protocol+
+	    +connack-identifier-rejected+
+	    +connack-server-unavailable+
+	    +connack-bad-username/password+
+	    +connack-authentication-error+
 	    ;; QoS
 	    +qos-at-most-once+
 	    +qos-at-least-once+
 	    +qos-exactly-once+
+	    ;; suback
+	    +suback-failure+
 	    )
     (import (rnrs)
 	    (clos user)
@@ -89,10 +98,21 @@
   (define-constant +pingresp+    13)
   (define-constant +disconnect+  14)
 
+  ;; connack code
+  (define-constant +connack-accepted+              0)
+  (define-constant +connack-unacceptable-protocol+ 1)
+  (define-constant +connack-identifier-rejected+   2)
+  (define-constant +connack-server-unavailable+    3)
+  (define-constant +connack-bad-username/password+ 4)
+  (define-constant +connack-authentication-error+  5)
+
   ;; QoS
   (define-constant +qos-at-most-once+  0)
   (define-constant +qos-at-least-once+ 1)
   (define-constant +qos-exactly-once+  2)
+
+  ;; subscription failure
+  (define-constant +suback-failure+    #x80)
 
   (define (read-fixed-header in)
     (define (read-length in)
@@ -150,7 +170,7 @@
   (define (read-variable-header&payload in len
 					:key (chunk-size 4096)
 					:allow-other-keys rules)
-    
+
     (define (read-variable-header in rules)
       (let loop ((rules rules) (size 0) (r '()))
 	(if (null? rules)
@@ -167,14 +187,14 @@
     ;; first read variables
     (let-values (((vlen vals) (read-variable-header in rules)))
       (let ((len (- len vlen)))
-	(when (negative? len) 
+	(when (negative? len)
 	  (error 'read-variable-header&payload "corrupted data stream"))
-	(values vals 
+	(values vals
 		(if (> len chunk-size)
 		    (make-chunked-binary-input-port in :chunk-size chunk-size
 						    :threshold len)
 		  (open-bytevector-input-port (get-bytevector-n in len)))))))
-  
+
   ;; payload will be returned as a binary input port. the builtin one
   ;; may consume maximum number of memory allocation and it wouldn't be
   ;; handle (well techinically it's only 255MB so possible but not
@@ -199,7 +219,7 @@
 		 (r '()))
 	(let ((buf (get-bytevector-n in chunk-size)))
 	  (if (eof-object? buf) (list->vector (reverse! r))
-	      (let ((len (bytevector-length buf))) 
+	      (let ((len (bytevector-length buf)))
 		(if (or (< len chunk-size)
 			(and threshold (>= (+ read-size len) threshold)))
 		    (list->vector (reverse! (cons buf r)))
@@ -226,10 +246,10 @@
 			 (cond ((and (not (last-chunk? chunks position))
 				     (= (+ offset count) chunk-size))
 				(set! (~ chunked-port 'offset) 0)
-				(set! (~ chunked-port 'position) 
+				(set! (~ chunked-port 'position)
 				      (+ position 1)))
 			       (else
-				(set! (~ chunked-port 'offset) 
+				(set! (~ chunked-port 'offset)
 				      (+ offset count))))
 			 (+ count copied))
 			((not (last-chunk? chunks position))
@@ -254,13 +274,13 @@
 	  (cond ((>= index (vector-length chunks))
 		 (let ((last (- (vector-length chunks) 1)))
 		   (set! (~ chunked-port 'position) last)
-		   (set! (~ chunked-port 'offset) 
+		   (set! (~ chunked-port 'offset)
 			 (bytevector-length (vector-ref chunks last)))))
 		(else
 		 (set! (~ chunked-port 'position) index)
 		 (set! (~ chunked-port 'offset) offset)))))
       (define (close) (set! (~ chunked-port 'chunks) #f))
-      (make-custom-binary-input-port "chunked-binary-input-port" 
+      (make-custom-binary-input-port "chunked-binary-input-port"
 				     read! get-position set-position! close)))
 
 )
