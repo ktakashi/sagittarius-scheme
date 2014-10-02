@@ -50,9 +50,9 @@
 
   ;; these are not documented
   (test-assert "socket-read-select"
-	       (not (null? (socket-read-select 100 client-socket))))
+	       (not (null? (socket-read-select #f client-socket))))
   (test-assert "socket-write-select"
-	       (not (null? (socket-write-select 100 client-socket))))
+	       (not (null? (socket-write-select #f client-socket))))
   ;; does socket even have error fd?
   ;; (test-assert "socket-error-select"
   ;;               (null? (socket-error-select 100 client-socket)))
@@ -70,7 +70,7 @@
     (test-assert "fdset-set! (3)" (fdset-set! fdset client-socket #t))
     ;; it's ready already
     ;; what's good for specifying error fds?
-    (let-values (((n r w e) (socket-select! fdset #f #f 0)))
+    (let-values (((n r w e) (socket-select! fdset #f #f #f)))
       (test-equal "socket-select!" 1 n)
       (test-assert "socket-select!" (fdset? r))
       (test-assert "socket-select!" (not w))
