@@ -56,19 +56,22 @@
 	    ;; (rfc uuid)
 	    (sagittarius)
 	    (sagittarius socket)
+	    (sagittarius control)
 	    (sagittarius object)
 	    (net mq mqtt packet)
 	    (net mq mqtt topic)
 	    (binary io)
 	    (srfi :1)
 	    (srfi :13)
+	    (srfi :18)
 	    (srfi :19)
 	    (srfi :26))
 
   (define-class <mqtt-connection> ()
     ((port  :init-keyword :port)
-     (packet-identifier :init-value 1)
-     (callbacks :init-value '())))
+     (packets :init-form (make-eqv-hashtable))
+     (callbacks :init-value '())
+     (lock :init-form (make-mutex))))
      
   (define (open-mqtt-connection host port . opt)
     (let ((socket (make-client-socket host port)))
@@ -165,9 +168,11 @@
 
   ;; FIXME this overflows. check max value
   (define (allocate-packet-identifier conn)
-    (let ((pi (~ conn 'packet-identifier)))
-      (set! (~ conn 'packet-identifier) (+ pi 1))
-      pi))
+    (define packets (~ conn 'packets))
+    (define pis (hashtable-keys-list packets))
+    (let ((next (if (null? pis) 1 (+ (apply max pis) 1))))
+      (hashtable-set! packets next #t)
+      next))
 
   ;;; subscribe
 
@@ -288,10 +293,12 @@
       (bitwise-ior (bitwise-arithmetic-shift qos 1)
 		   (if retain? #x01 #x00)))
     (define in/out (~ conn 'port))
+    (define packets (~ conn 'packets))
     (define (handle-puback pi len)
       (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
 	(unless (= pi (car vh))
 	  (error 'mqtt-publish "Server respond invalid packet identifier" pi))
+	(hashtable-delete! packets pi)
 	pi))
     (define (handle-pubrec pi len)
       ;; TODO do more properly
@@ -308,9 +315,13 @@
 	    (unless (= pi (car vh))
 	      (error 'mqtt-publish 
 		     "Server respond invalid packet identifier" pi))
+	    (hashtable-delete! packets pi)
 	    pi))))
-    (define packet-prefix
-      (if (= qos +qos-at-most-once+) 2 4))
+    (define packet-prefix (if (= qos +qos-at-most-once+) 2 4))
+    (define (control-packet qos)
+      (if (= qos +qos-at-least-once+)
+	  +puback+
+	  +pubrec+))
     (unless (mqtt-valid-topic? topic)
       (error 'mqtt-publish "not a valid topic" topic))
     (let* ((u8-topic (string->utf8 topic))
@@ -325,7 +336,8 @@
       ;; now handle response
       (if (= qos +qos-at-most-once+)
 	  pi
-	  (let-values (((type flag len) (read-fixed-header in/out)))
+	  (let-values (((type flag len)
+			(consume-until conn (control-packet qos))))
 	    (unless (or (and (= qos +qos-at-least-once+) 
 			     (= type +puback+))
 			(and (= qos +qos-exactly-once+) 
