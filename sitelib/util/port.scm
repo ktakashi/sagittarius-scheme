@@ -97,12 +97,14 @@
 
   (define (copy-binary-port dst src :key (size -1))
     (if (and size (integer? size) (positive? size))
-	(put-bytevector dst (get-bytevector-n src size #t))
+	(begin (put-bytevector dst (get-bytevector-n src size #t)) size)
 	(let ((buf (make-bytevector 4096)))
-	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)))
-	    (unless (eof-object? n)
-	      (put-bytevector dst buf 0 n)
-	      (loop (get-bytevector-n! src buf 0 4096 #t)))))))
+	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)) (r 0))
+	    (cond ((eof-object? n) r)
+		  (else
+		   (put-bytevector dst buf 0 n)
+		   (loop (get-bytevector-n! src buf 0 4096 #t)
+			 (+ r n))))))))
 
   ;; lock file port
   (define (call-with-port-lock port proc . opt)

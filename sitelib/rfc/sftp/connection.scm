@@ -81,6 +81,7 @@
 	    (binary data)
 	    (binary pack)
 	    (binary io)
+	    (util port)
 	    (srfi :26))
 
 (define-class <sftp-connection> ()
@@ -92,6 +93,7 @@
   (ssh-read-message (sftp-class-lookup type) in))
 (define (recv-sftp-packet connection)
   (define channel (~ connection 'channel))
+  ;; TODO use chunked port...
   (define (receive-rest first size)
     (let loop ((read-size (bytevector-length first)) (bv (list first)))
       (if (>= read-size size)
@@ -215,31 +217,33 @@
 	    (begin 
 	      (unless (is-a? handle/filename <sftp-fxp-handle>)
 		(sftp-close conn ohandle))
-	      (receiver -1 (eof-object)))
-	    (begin
-	      ;; must be <sftp-fxp-data>
-	      (receiver offset (~ r 'data))
-	      (loop (+ offset (bytevector-length (~ r 'data))))))))))
+	      (let-values (((ignore r)
+			    (receiver -1 (open-bytevector-input-port #vu8()))))
+		r))
+	    ;; must be <sftp-fxp-data>
+	    (let-values (((n ignore) (receiver offset (~ r 'data))))
+	      (loop (+ offset n))))))))
 (define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
-      (if (eof-object? data)
-	  (extract)
-	  (put-bytevector out data)))))
+      (if (< offset 0)
+	  (values -1 (extract))
+	  (values (copy-binary-port out data) #f)))))
 (define (sftp-file-receiver filename :key (options (file-options)))
   ;; by default we allocate 10MB buffer so it's more than internal
   ;; port buffer size. in this case without buffer is faster.
   (let1 out (open-file-output-port filename options 'none #f)
     (lambda (offset data)
-      (if (eof-object? data)
-	  (close-port out)
-	  (put-bytevector out data)))))
+      (if (< offset 0)
+	  (values -1 (close-port out))
+	  (values (copy-binary-port out data) #f)))))
 (define (sftp-oport-receiver out)
   (unless (binary-port? out)
     (assertion-violation 'sftp-oport-receiver "binary port required" out))
   (lambda (offset data)
-    (unless (eof-object? data)
-      (put-bytevector out data))))
+    (if (< offset 0)
+	(values -1 (undefined))
+	(values (copy-binary-port out data) #f))))
 
 ;; Writing size on the other hand, we can't control and there is
 ;; no way to know how much server can actually handle. So we use

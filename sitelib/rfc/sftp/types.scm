@@ -83,7 +83,8 @@
 	    (clos user)
 	    (clos core)
 	    (binary data) 
-	    (binary pack))
+	    (binary pack)
+	    (binary io))
 
 
 ;; sftp helper
@@ -102,6 +103,28 @@
 	(dotimes (i array-size? v)
 	  (vector-set! v i (get-unpack in "!Q"))))
       (get-unpack in "!Q")))
+
+;; data will creates chunked port if data length is more than
+;; threshold
+;; for efficiency
+(define-method write-message ((type (eql :data)) o out array-size?)
+  ;; unfortunately write is a bit inefficient
+  (define (do-write o) (write-message :string o out #f))
+  (if array-size?
+      (dotimes (i array-size?)
+	(do-write (vector-ref o i)))
+      (do-write o)))
+(define-method read-message ((t (eql :data)) in array-size?)
+  (define (get-port in)
+    (let ((size (get-unpack in "!L")))
+      (if (> size +default-chunk-size+)
+	  (input-port->chunked-binary-input-port in :threshold size)
+	  (open-bytevector-input-port (get-bytevector-n in size)))))
+  (if array-size?
+      (let1 v (make-vector array-size?)
+	(dotimes (i array-size? v)
+	  (vector-set! v i (get-port in))))
+      (get-port in)))
 
 (define *type-table* (make-eqv-hashtable))
 (define *class-table* (make-eq-hashtable))
@@ -299,7 +322,7 @@
 (define-sftp-message <sftp-fxp-handle> +ssh-fxp-handle+ ()
   :parents (<sftp-has-handle>))
 (define-sftp-message <sftp-fxp-data> +ssh-fxp-data+ 
-  ((data :string))
+  ((data :data))
   :parents (<sftp-has-id>))
 
 ;; helper

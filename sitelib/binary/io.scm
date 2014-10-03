@@ -47,6 +47,7 @@
 	    ;; memory efficient(?) ports
 	    input-port->chunked-binary-input-port
 	    ->chunked-binary-input-port
+	    +default-chunk-size+
 	    )
     (import (except (rnrs) get-line)
 	    (sagittarius)

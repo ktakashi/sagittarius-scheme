@@ -24,7 +24,7 @@ Following example code describes how to use in high level.
     (print (utf8->string (sftp-read! conn "reading/file" 
                                     (sftp-binary-receiver))))
     ;; store a file to local file directly
-    (sftp-read! conn "/a/file/path"
+    (sftp-read conn "/a/file/path"
 	(sftp-file-receiver "where/to/store" :options (file-options no-fail)))
 
     ;; upload a file
@@ -98,8 +98,8 @@ Closes given @var{handle} created by @code{sftp-open}.
  @args{conn handle/filename receiver :key (offset 0) buffer-size}}
 @desc{@var{conn} must be a SFTP connection.
 @var{handle/filename} must be either a handle or string.
-@var{receiver} must be a procedure accepts 2 arguments, offset and data,
-respectively.
+@var{receiver} must be a procedure accepts 2 arguments, @var{offset} which
+is an integer and @var{data} which is a binary input port, respectively.
 
 Reads the given @var{handle/filename} content from the server and
 call @var{receiver} with the returned value. When it reaches the end of file,
@@ -110,7 +110,20 @@ is useful to read only diff.
 
 The keyword argument @var{buffer-size} specifies how many bytes it tries to
 read in one read call. The default value is 1048576 (1MB). This value is only
-an indication so that server can decide actual data length to sent.
+an indication so that server can decide actual data length to send.
+
+The return value of this procedure is the result value of @var{receiver}.
+
+Receiver must return 2 values, one if processed octet count and the other
+one is result value. Following is the @var{sftp-binary-receiver} definition;
+@codeblock{
+(define (sftp-binary-receiver)
+  (let-values (((out extract) (open-bytevector-output-port)))
+    (lambda (offset data)
+      (if (< offset 0)
+          (values -1 (extract))
+          (values (copy-binary-port out data) #f)))))
+}
 }
 
 @define[Function]{@name{sftp-binary-receiver}}
