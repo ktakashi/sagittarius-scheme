@@ -80,6 +80,7 @@
 	    (rfc sftp constants)
 	    (binary data)
 	    (binary pack)
+	    (binary io)
 	    (srfi :26))
 
 (define-class <sftp-connection> ()
@@ -91,19 +92,23 @@
   (ssh-read-message (sftp-class-lookup type) in))
 (define (recv-sftp-packet connection)
   (define channel (~ connection 'channel))
-  (define (receive-rest first len)
-    (let1 size (+ len 4)
-      (let loop ((bv first))
-	(if (>= (bytevector-length bv) size)
-	    bv
-	    (let1 next (ssh-recv-channel-data channel)
-	      (loop (bytevector-append bv next)))))))
+  (define (receive-rest first size)
+    (let loop ((read-size (bytevector-length first)) (bv (list first)))
+      (if (>= read-size size)
+	  (bytevector-concatenate (reverse! bv))
+	  (let1 next (ssh-recv-channel-data channel)
+	    (loop (+ read-size (bytevector-length next))
+		  (cons next bv))))))
+  ;; packet format
+  ;;   uint32          length
+  ;;   byte            type
+  ;;   byte[length-1]  data payload
+  ;; so first 5 octets are not needed
   (let*-values (((first) (ssh-recv-channel-data channel))
 		((len type) (unpack "!LC" first)))
-    (let1 bv (receive-rest first len)
-      (let ((r (read-sftp-packet-data type 
-		(open-bytevector-input-port bv #f 5 (+ len 4)))))  ;; len-1+5
-	r))))
+    ;; skip length and type bytes
+    (let1 bv (receive-rest (bytevector-copy first 5) (- len 1))
+      (read-sftp-packet-data type (open-bytevector-input-port bv)))))
 
 (define (send-sftp-packet connection data)
   (let ((bv (ssh-message->bytevector data))
