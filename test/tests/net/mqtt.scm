@@ -29,52 +29,6 @@
 ;; Too big
 (test-length-decode condition? #vu8(0 #x80 #x80 #x80 #x80 #x01) test-error)
 
-;; test chunked port
-(let ()
-  (define (->chunked-port bv :key (chunk-size 4096) (threshold #f))
-    (make-chunked-binary-input-port (open-bytevector-input-port bv)
-				    :chunk-size chunk-size
-				    :threshold threshold))
-  (let ((in (->chunked-port #vu8())))
-    (test-assert "port?" (port? in))
-    (test-assert "input-port?" (input-port? in))
-    (test-assert "has-port-position?" (port-has-port-position? in))
-    (test-assert "has-set-port-position!?" (port-has-set-port-position!? in))
-    (test-assert "EOF" (eof-object? (get-u8 in))))
-
-  ;; some cases
-  (let ((in (->chunked-port #vu8(1 2 3 4 5) :chunk-size 5)))
-    (test-equal "one chunk" #vu8(1 2 3 4 5) (get-bytevector-n in 6))
-    (test-assert "set-port-position!" (set-port-position! in 2))
-    (test-equal "one chunk" #vu8(3 4 5) (get-bytevector-all in)))
-
-  (let ((in (->chunked-port #vu8(1 2 3 4 5 6 7 8 9) :chunk-size 5)))
-    (test-equal "two chunks" #vu8(1 2 3 4 5 6) (get-bytevector-n in 6))
-    (test-assert "set-port-position!" (set-port-position! in 11))
-    (test-equal "port-position" 9 (port-position in))
-    (test-assert "two chunks (eof)" (eof-object? (get-bytevector-all in)))
-    (test-assert "set-port-position!" (set-port-position! in 3))
-    (test-equal "port-position" 3 (port-position in)))
-
-  (let ((in (->chunked-port #vu8(1 2 3 4 5 6 7 8 9) 
-			     :chunk-size 5 :threshold 4)))
-    (test-equal "threshold chunks" #vu8(1 2 3 4) (get-bytevector-n in 6))
-    (test-assert "set-port-position!" (set-port-position! in 11))
-    (test-equal "port-position 4" 4 (port-position in))
-    (test-assert "threshold chunks (eof)" 
-		 (eof-object? (get-bytevector-all in)))
-    (test-assert "set-port-position!" (set-port-position! in 3))
-    (test-equal "port-position 3" 3 (port-position in)))
-
-  (let ((in (->chunked-port #vu8(1 2 3 4 5 6 7 8 9) :chunk-size 2)))
-    (test-equal "9 chunks" #vu8(1 2 3 4 5 6) (get-bytevector-n in 6))
-    (test-assert "set-port-position!" (set-port-position! in 11))
-    (test-equal "port-position" 9 (port-position in))
-    (test-assert "9 chunks (eof)" (eof-object? (get-bytevector-all in)))
-    (test-assert "set-port-position!" (set-port-position! in 3))
-    (test-equal "port-position" 3 (port-position in)))
-)
-
 ;; value *without* fixed header
 (let* ((bv #vu8(1 0 2 97 98 1 2 1 2 3 4 5))
        (in (open-bytevector-input-port bv)))

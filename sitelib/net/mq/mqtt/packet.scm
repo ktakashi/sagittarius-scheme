@@ -37,11 +37,6 @@
 (library (net mq mqtt packet)
     (export read-fixed-header
 	    read-variable-header&payload
-	    ;; for testing
-	    ;; we might want to move this to (binary io)
-	    ;; if it's useful enough
-	    make-chunked-binary-input-port
-
 	    ;; write
 	    write-fixed-header
 	    write-utf8
@@ -191,96 +186,8 @@
 	  (error 'read-variable-header&payload "corrupted data stream"))
 	(values vals
 		(if (> len chunk-size)
-		    (make-chunked-binary-input-port in :chunk-size chunk-size
-						    :threshold len)
+		    (input-port->chunked-binary-input-port 
+		     in :chunk-size chunk-size :threshold len)
 		  (open-bytevector-input-port (get-bytevector-n in len)))))))
-
-  ;; payload will be returned as a binary input port. the builtin one
-  ;; may consume maximum number of memory allocation and it wouldn't be
-  ;; handle (well techinically it's only 255MB so possible but not
-  ;; efficient, i guess). the idea for this port is that without allocating
-  ;; max number byte but doing the same as binary input port.
-  (define-class <chunked-input-port> ()
-    ((position :init-value 0) ;; index of vector
-     (offset   :init-value 0) ;; offset of bytevector
-     (chunks   :init-keyword :chunks)))
-
-  ;; buffer size default 4096
-  ;; threshold is how much bytes this needs to read from source port
-  ;; default #f (infinite).
-  (define (make-chunked-binary-input-port in :key (chunk-size 4096)
-					   (threshold #f))
-    (define (read-as-chunk in)
-      (define (next-chunk-size read-size)
-	(if threshold (min (- threshold read-size) chunk-size) chunk-size))
-
-      (let loop ((chunk-size (next-chunk-size 0))
-		 (read-size   0)
-		 (r '()))
-	(let ((buf (get-bytevector-n in chunk-size)))
-	  (if (eof-object? buf) (list->vector (reverse! r))
-	      (let ((len (bytevector-length buf)))
-		(if (or (< len chunk-size)
-			(and threshold (>= (+ read-size len) threshold)))
-		    (list->vector (reverse! (cons buf r)))
-		    (let ((read-size (+ read-size len)))
-		      (loop (next-chunk-size read-size)
-			    read-size
-			    (cons buf r)))))))))
-    (let ((chunked-port (make <chunked-input-port>
-			   :chunks (read-as-chunk in))))
-      (define (read! bv start count)
-	(define (last-chunk? chunks position)
-	  (= (vector-length chunks) (+ position 1)))
-	(let loop ((start start) (copied 0) (count count))
-	  (let ((offset   (~ chunked-port 'offset))
-		(position (~ chunked-port 'position))
-		(chunks  (~ chunked-port 'chunks)))
-	    (if (= (vector-length chunks) position)
-		0
-		(let* ((current-chunk (vector-ref chunks position))
-		       (chunk-size (bytevector-length current-chunk))
-		       (diff (- chunk-size offset)))
-		  (cond ((>= diff count)
-			 (bytevector-copy! current-chunk offset bv start count)
-			 (cond ((and (not (last-chunk? chunks position))
-				     (= (+ offset count) chunk-size))
-				(set! (~ chunked-port 'offset) 0)
-				(set! (~ chunked-port 'position)
-				      (+ position 1)))
-			       (else
-				(set! (~ chunked-port 'offset)
-				      (+ offset count))))
-			 (+ count copied))
-			((not (last-chunk? chunks position))
-			 (bytevector-copy! current-chunk offset bv start diff)
-			 (set! (~ chunked-port 'offset) 0)
-			 (set! (~ chunked-port 'position) (+ position 1))
-			 (loop (+ start diff) (+ diff copied) (- count diff)))
-			(else
-			 ;; last chunk and not enough
-			 (bytevector-copy! current-chunk offset bv start diff)
-			 (set! (~ chunked-port 'offset) (+ offset count))
-			 (set! (~ chunked-port 'position) (+ position 1))
-			 (+ diff copied))))))))
-      (define (get-position)
-	(let ((offset (~ chunked-port 'offset))
-	      (position (~ chunked-port 'position)))
-	  (+ offset (* position chunk-size))))
-      (define (set-position! pos)
-	(let ((index (div pos chunk-size))
-	      (offset (mod pos chunk-size))
-	      (chunks (~ chunked-port 'chunks)))
-	  (cond ((>= index (vector-length chunks))
-		 (let ((last (- (vector-length chunks) 1)))
-		   (set! (~ chunked-port 'position) last)
-		   (set! (~ chunked-port 'offset)
-			 (bytevector-length (vector-ref chunks last)))))
-		(else
-		 (set! (~ chunked-port 'position) index)
-		 (set! (~ chunked-port 'offset) offset)))))
-      (define (close) (set! (~ chunked-port 'chunks) #f))
-      (make-custom-binary-input-port "chunked-binary-input-port"
-				     read! get-position set-position! close)))
 
 )
