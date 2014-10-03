@@ -69,7 +69,9 @@
 
   (define-class <mqtt-connection> ()
     ((port  :init-keyword :port)
-     (packets :init-form (make-eqv-hashtable))
+     ;; we even don't need vector just 0/1 flag is fine
+     ;; max packet identifier is #xFFFF
+     (packets :init-form (make-bytevector #x10000 0))
      (callbacks :init-value '())
      (lock :init-form (make-mutex))))
      
@@ -169,10 +171,19 @@
   ;; FIXME this overflows. check max value
   (define (allocate-packet-identifier conn)
     (define packets (~ conn 'packets))
-    (define pis (hashtable-keys-list packets))
-    (let ((next (if (null? pis) 1 (+ (apply max pis) 1))))
-      (hashtable-set! packets next #t)
-      next))
+    (define (find-slot packets)
+      ;; 0 is reserved
+      (let loop ((i 1))
+	(cond ((= i #x10000)
+	       (error 'allocate-packet-identifier 
+		      "Packet identifier is never freed"))
+	      ((zero? (bytevector-u8-ref packets i))
+	       (bytevector-u8-set! packets i 1) i)
+	      (else (loop (+ i 1))))))
+    (find-slot packets))
+
+  (define (deallocate-packet-identifier conn pi)
+    (bytevector-u8-set! (~ conn 'packets) pi 0))
 
   ;;; subscribe
 
@@ -215,11 +226,12 @@
       (let-values (((type flag len) (consume-until conn +suback+)))
 	(unless (= type +suback+)
 	  (error 'mqtt-subscribe "Server respond non SUBACK packet" type))
-	(let-values (((vh payload) (read-variable-header&payload in/out len
-								 :pi)))
+	(let-values (((vh payload) 
+		      (read-variable-header&payload in/out len :pi)))
 	  (unless (= (car vh) pi)
 	    (error 'mqtt-subscribe "Server respond invalid packet identifier"
 		   (car vh)))
+	  (deallocate-packet-identifier conn pi)
 	  (let ((rc (get-u8 payload)))
 	    (when (= rc +suback-failure+)
 	      (error 'mqtt-subscribe "Failed to subscribe" topic))
@@ -296,9 +308,10 @@
     (define packets (~ conn 'packets))
     (define (handle-puback pi len)
       (let-values (((vh payload) (read-variable-header&payload in/out len :pi)))
+	;; TODO should we even check?
 	(unless (= pi (car vh))
 	  (error 'mqtt-publish "Server respond invalid packet identifier" pi))
-	(hashtable-delete! packets pi)
+	(deallocate-packet-identifier conn pi)
 	pi))
     (define (handle-pubrec pi len)
       ;; TODO do more properly
@@ -315,7 +328,7 @@
 	    (unless (= pi (car vh))
 	      (error 'mqtt-publish 
 		     "Server respond invalid packet identifier" pi))
-	    (hashtable-delete! packets pi)
+	    (deallocate-packet-identifier conn pi)
 	    pi))))
     (define packet-prefix (if (= qos +qos-at-most-once+) 2 4))
     (define (control-packet qos)
@@ -366,7 +379,8 @@
 	(let-values (((vh pay) (read-variable-header&payload in/out len :pi)))
 	  (unless (= pi (car vh))
 	    (error 'mqtt-unsubscribe 
-		   "Server respond invalid packet identifier" (car vh)))))
+		   "Server respond invalid packet identifier" (car vh)))
+	  (deallocate-packet-identifier conn pi)))
       ;; now remove callback
       (set! (~ conn 'callbacks) (alist-delete! topic (~ conn 'callbacks)))
       #t))

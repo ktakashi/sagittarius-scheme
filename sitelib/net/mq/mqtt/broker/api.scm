@@ -401,10 +401,13 @@
     (let ((t (create/retrieve-topic context topic))
 	  (m (get-bytevector-all payload)))
       (let ((subscribers (get-subscribers topic (~ context 'sessions))))
+	(for-each (cut send-publish <> topic qos m) subscribers)
+	;; i don't see any use full thing for this...
+	#;
 	(if (null? subscribers)
 	    (mqtt-topic-enqueue! t qos m) ;; for what?
 	    ;; send it without storing
-	    (for-each (cut send-publish <> topic qos m) subscribers)))
+	    ))
       (unless (zero? retain) (mqtt-topic-retain-message-set! t m))))
 
   ;; subscribe
