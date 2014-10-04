@@ -71,7 +71,7 @@
     ((port  :init-keyword :port)
      ;; we even don't need vector just 0/1 flag is fine
      ;; max packet identifier is #xFFFF
-     (packets :init-form (make-bytevector #x10000 0))
+     (packets :init-form (make-bytevector #xFFFF 0))
      (callbacks :init-value '())
      (lock :init-form (make-mutex))))
      
@@ -173,17 +173,17 @@
     (define packets (~ conn 'packets))
     (define (find-slot packets)
       ;; 0 is reserved
-      (let loop ((i 1))
-	(cond ((= i #x10000)
+      (let loop ((i 0))
+	(cond ((= i #xFFFF)
 	       (error 'allocate-packet-identifier 
 		      "Packet identifier is never freed"))
 	      ((zero? (bytevector-u8-ref packets i))
-	       (bytevector-u8-set! packets i 1) i)
+	       (bytevector-u8-set! packets i 1) (+ 1 i))
 	      (else (loop (+ i 1))))))
     (find-slot packets))
 
   (define (deallocate-packet-identifier conn pi)
-    (bytevector-u8-set! (~ conn 'packets) pi 0))
+    (bytevector-u8-set! (~ conn 'packets) (- pi 1) 0))
 
   ;;; subscribe
 
