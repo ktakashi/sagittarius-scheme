@@ -890,7 +890,8 @@ SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
 SgObject Sg_SocketPeer(SgObject socket)
 {
   struct sockaddr_storage name;
-  int len = sizeof(name), ret;
+  socklen_t len = sizeof(name);
+  int ret;
   ret = getpeername(SG_SOCKET(socket)->socket, (struct sockaddr *)&name, &len);
   if (ret == 0) {
     return make_socket_info(&name);
@@ -909,7 +910,8 @@ SgObject Sg_SocketName(SgObject socket)
 SgObject Sg_SocketInfo(SgObject socket)
 {
   struct sockaddr_storage name;
-  int len = sizeof(name), ret;
+  socklen_t len = sizeof(name);
+  int ret;
   ret = getsockname(SG_SOCKET(socket)->socket, (struct sockaddr *)&name, &len);
   if (ret == 0) {
     return make_socket_info(&name);

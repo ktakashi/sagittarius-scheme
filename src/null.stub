@@ -3411,7 +3411,7 @@
     (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
     ::<fixnum> :no-side-effect
     (let ((modulo::uint32_t 0))
-      (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
+      (cond ((SG_UNBOUNDP bound) (set! modulo (cast uint32_t SG_INT_MAX)))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
 	    ((SG_BIGNUMP bound)
 	     (set! modulo (Sg_BignumToUI (SG_BIGNUM bound) SG_CLAMP_BOTH NULL))))
@@ -3425,7 +3425,7 @@
     (o::<string> :optional bound (start::<fixnum> 0) (end::<fixnum> -1))
     ::<fixnum> :no-side-effect
     (let ((modulo::uint32_t 0))
-      (cond ((SG_UNBOUNDP bound) (set! modulo SG_INT_MAX))
+      (cond ((SG_UNBOUNDP bound) (set! modulo (cast uint32_t SG_INT_MAX)))
 	    ((SG_INTP bound) (set! modulo (SG_INT_VALUE bound)))
 	    ((SG_BIGNUMP bound)
 	     (set! modulo (Sg_BignumToUI (SG_BIGNUM bound) SG_CLAMP_BOTH NULL))))

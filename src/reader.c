@@ -1553,7 +1553,7 @@ SgObject dispmacro_reader(SgPort *port, SgChar c, SgReadContext *ctx)
 	c2 = Sg_GetcUnsafe(port);
 	if (c2 < '0' || c2 > '9') break;
 	param.value = param.value * 10 + c2 - '0';
-	if (param.value < 0 || param.value > SG_INT_MAX) {
+	if (param.value < 0 || (long)param.value > SG_INT_MAX) {
 	  lexical_error(port, ctx,
 			UC("invalid object tag, value out of range"));
 	}

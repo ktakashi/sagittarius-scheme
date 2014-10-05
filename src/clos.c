@@ -364,7 +364,7 @@ SgObject Sg_AddMethod(SgGeneric *generic, SgMethod *method)
       replaced = check_method(SG_CDDR(gslot), method, TRUE, NULL);
       if (!replaced) {
 	SG_SET_CDR(SG_CDR(gslot), pair);
-	SG_SET_CAR(SG_CDR(gslot), SG_OBJ(reqs));
+	SG_SET_CAR(SG_CDR(gslot), SG_OBJ((intptr_t)reqs));
       }
     }
   }
@@ -433,8 +433,8 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
       if (mainP) {
 	SG_GENERIC_MAX_REQARGS(gf) = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
       } else {
-	int m = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
-	SG_SET_CAR(SG_CDR(gslot), SG_OBJ(m));
+	intptr_t mr = SG_PROCEDURE_REQUIRED(SG_CAR(mp));
+	SG_SET_CAR(SG_CDR(gslot), SG_OBJ(mr));
       }
     }
   }

@@ -168,14 +168,15 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
 SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r)
 {
   int64_t sec_plus;
-  unsigned long nsec_plus, rr, q;
+  long rr;
+  unsigned long nsec_plus, q;
   
   if (!SG_EQ(y->type, time_duration)) {
     Sg_Error(UC("TIME-ERROR time-differece: no-duration %S"), y);
   }
   sec_plus = x->sec + y->sec;
   nsec_plus = x->nsec + y->nsec;
-  rr = (unsigned long)fmod(nsec_plus, TM_NANO);
+  rr = fmod(nsec_plus, TM_NANO);
   q = nsec_plus / TM_NANO;
   if (rr < 0) {
     r->sec = sec_plus + q + -1;
