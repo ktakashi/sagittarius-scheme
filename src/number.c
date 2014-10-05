@@ -52,6 +52,21 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+/* FIXME: duplicated definition. */
+typedef unsigned long ulong;
+#if SIZEOF_LONG == 8
+#ifdef __GNUC__
+typedef unsigned int dlong __attribute__((__mode__(TI)));
+#else
+# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#endif
+#define SHIFT_MAGIC 6
+#else
+typedef uint64_t dlong;
+#define SHIFT_MAGIC 5
+#endif
+
+
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
     int radix;                  /* radix */
@@ -2049,7 +2064,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
     if (SG_INTP(y)) {
       long v0 = SG_INT_VALUE(x);
       long v1 = SG_INT_VALUE(y);
-      long k = v0 * v1;
+      dlong k = v0 * v1;
       if ((v1 != 0 && k / v1 != v0) || !(k >= SG_INT_MIN && k <= SG_INT_MAX)) {
 	SgObject big = Sg_MakeBignumFromSI(v0);
 	return Sg_BignumMulSI(SG_BIGNUM(big), v1);

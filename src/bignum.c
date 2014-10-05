@@ -1618,13 +1618,13 @@ static SgBignum* bignum_mul_si(SgBignum *bx, long y)
   SgBignum *br;
   unsigned long yabs;
 
-  if (y == 1) return bx;
+  if (y == 1L) return bx;
   else if (y == 0) {
     br = make_bignum(1);
     SG_BIGNUM_SET_SIGN(br, 0);
     br->elements[0] = 0;
     return br;
-  } else if (y == -1) {
+  } else if (y == -1L) {
     br = SG_BIGNUM(Sg_BignumCopy(bx));
     SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(bx));
     return br;
