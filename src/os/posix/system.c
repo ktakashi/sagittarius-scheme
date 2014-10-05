@@ -410,7 +410,7 @@ SgObject Sg_GetMacAddress(int pos)
     if (dl->sdl_family == AF_LINK && dl->sdl_type == IFT_ETHER) {
       SgObject r;
       if (index++ != pos) continue;
-      addr = LLADDR(dl);
+      addr = (unsigned char *)LLADDR(dl);
       r = Sg_MakeByteVectorFromU8Array(addr, 6);
       freeifaddrs(ifa_list);
       return r;
