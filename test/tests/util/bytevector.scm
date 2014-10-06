@@ -1199,4 +1199,10 @@
 	     (bytevector-contains (->bv "The brown fox jumped...") 
 				  (->bv "e b") 2 5 0 2))
 
+;; others
+(test-equal "align-bytevectors (1)" '(#vu8(1 2 3 4 5) #vu8(6 7 8 9 3) #vu8(4))
+	    (align-bytevectors '(#vu8(1 2 3) #vu8(4 5 6 7 8 9) #vu8(3 4)) 5))
+(test-equal "align-bytevectors (2)" '(#vu8(1 2 3 4 5) #vu8(6 7 8 9 3) #vu8(4))
+	    (align-bytevectors '(#vu8(1 2 3 4 5) #vu8(6 7 8 9) #vu8(3 4)) 5))
+
 (test-end)

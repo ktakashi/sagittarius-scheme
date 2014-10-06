@@ -62,7 +62,8 @@
 	    (crypto)
 	    (clos user)
 	    (binary pack)
-	    (binary data))
+	    (binary data)
+	    (binary io))
 
   ;; must do until handshake but for now
   (define (make-client-ssh-transport server port . options)
@@ -163,6 +164,10 @@
   ;; in order then it can decrypt per block so that we don't have
   ;; to allocate huge bytevector buffer after decryption.
   (define (read-packet context)
+    (define (read-as-chunk bvs)
+      (lambda (size)
+	(list->vector (align-bytevectors bvs size))))
+
     ;; FIXME this is not a good implementation...
     (define (read&decrypt mac-length)
       (define c (~ context 'server-cipher))
@@ -175,7 +180,7 @@
 	  (hash-init! h)
 	  (hash-process! h (integer->bytevector (~ context 'server-sequence) 4))
 	  h))
-      (define (verify-mac transport payload mac)
+      (define (verify-mac transport mac)
 	(let ((bv (make-bytevector (hash-size hmac))))
 	  (hash-done! hmac bv)
 	  (bytevector=? mac bv)))
@@ -195,13 +200,14 @@
 	(let ((count (ceiling (/ size +packet-buffer-size+))))
 	  (let loop ((size size) (r '()))
 	    (if (zero? size)
-		(bytevector-concatenate (reverse! r))
+		(reverse! r)
 		(let ((bv (read-block1 size)))
 		  (loop (- size (bytevector-length bv)) (cons bv r)))))))
       ;; TODO there are still multiple of possibly huge allocation
       ;; i would like to have it only once. (or even zero if we change
       ;; read-packet to return port.)
-      (let* ((first (read-block in block-size))
+      (let* ((firsts (read-block in block-size))
+	     (first (car firsts))
 	     ;; i've never seen block cipher which has block size less
 	     ;; than 8
 	     (total-size (bytevector-u32-ref first 0 (endianness big)))
@@ -210,11 +216,14 @@
 	     (rest-size (- (+ total-size 4) block-size))
 	     (rest (read-block in rest-size))
 	     (mac  (socket-recv in mac-length))
-	     (pt   (bytevector-append first rest)))
-	(verify-mac context pt mac)
-	;; FIXME
-	(gc)
-	(bytevector-copy pt 5 (+ (- total-size padding-size 1) 5))))
+	     (pt   (->chunked-binary-input-port 
+		    (read-as-chunk (append firsts rest)))))
+	(verify-mac context mac)
+	;; we know chunked-binary port has set-port-position!
+	(set-port-position! pt 5)
+	;; FIXME we even don't want to do this
+	;; make read-packet return port...
+	(get-bytevector-n pt (- total-size padding-size 1))))
     (define (read-data in)
       (let* ((sizes (socket-recv in 5))
 	     (total (bytevector-u32-ref sizes 0 (endianness big)))
@@ -233,6 +242,11 @@
       (set! (~ context 'server-sequence) (+ (~ context 'server-sequence) 1))
       payload))
 
+  ;; FIXME this is also a bad implementation.
+  ;; what we need to do in future is
+  ;;   - creates ssh-message->port (returns input port)
+  ;;   - to do above, create chunked-binary input/output port
+  ;;   - do the same trick as read-packet. (encrypt per block, hash per block)
   (define (write-packet context msg)
     (define (compute-mac transport payload) 
       (or (and-let* ((h (~ context 'client-mac))

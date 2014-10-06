@@ -70,10 +70,15 @@
 	    bytevector-replace bytevector-tokenize
 	    ;; filtering & deleting
 	    bytevector-filter bytevector-delete
+
+	    ;; others
+	    align-bytevectors
+	    align-bytevectors!
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius control)
+	    (srfi :1 lists)
 	    (only (srfi :13 strings) make-kmp-restart-vector)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut))
@@ -517,5 +522,37 @@
 						  (+ i 1))))
 			 0 bv start end)
 	ans)))
+
+
+  
+;; helper
+(define (align-bytevectors bvs size)
+  (align-bytevectors! (list-copy bvs) size))
+(define (align-bytevectors! bvs size)
+  (define (length-pred bv) (= (bytevector-length bv) size))
+  (define (align1 bvs offset)
+    (let ((buf (make-bytevector size)))
+      (let loop ((bvs bvs) (i 0) (offset offset))
+	(cond ((null? bvs) (values (bytevector-copy buf 0 i) '() 0))
+	      ((= i size) (values buf bvs offset))
+	      (else
+	       (let* ((bv (car bvs))
+		      (len (bytevector-length bv))
+		      (buf-rest (- size i))
+		      (src-len (- len offset)))
+		 (cond ((>= buf-rest src-len)
+			;; buffer has enough space, just copy
+			(bytevector-copy! bv offset buf i src-len)
+			(loop (cdr bvs) (+ i src-len) 0))
+		       (else
+			(bytevector-copy! bv offset buf i buf-rest)
+			(values buf bvs (+ offset buf-rest))))))))))
+
+  (let-values (((aligned need) (span! length-pred bvs)))
+    (let loop ((need need) (r '()) (offset 0))
+      (if (null? need)
+	  (append aligned (reverse! r))
+	  (let-values (((bv rest offset) (align1 need offset)))
+	    (loop rest (cons bv r) offset))))))
 
 )
