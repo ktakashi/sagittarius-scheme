@@ -54,9 +54,11 @@ static SgObject make_odbc_error()
 #  define DIAGCHAR       SQLWCHAR
 #  define make_string    Sg_WCharTsToString
 #else
+#  include <string.h>
 #  define SQL_GetDiag    SQLGetDiagRec
 #  define DIAGCHAR       SQLCHAR
-#  define make_string(s) Sg_Utf8sToUtf32s(s, strlen(s))
+#  define make_string(s)					\
+  Sg_Utf8sToUtf32s((const char *)s, strlen((const char *)s))
 #endif
 
 
