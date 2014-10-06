@@ -72,9 +72,7 @@
   (test AF_INET6)
   (test AF_INET)
 
-  ;; stop server by accessing shutdown port
-  (make-client-socket "localhost" +shutdown-port+)
-  (thread-sleep! 0.2)
+  (test-assert "stop server" (server-stop! server))
   (test-assert "server-stopped?" (server-stopped? server))
 )
 
@@ -107,7 +105,8 @@
   (test AF_INET)
   (test AF_INET6)
 
-  (test-assert "stop TLS server" (server-stop! server))
+  ;; stop server by accessing shutdown port
+  (make-client-socket "localhost" +shutdown-port+)
   (test-assert "finish simple server (2)" (thread-join! server-thread))
   )
 (test-end)
