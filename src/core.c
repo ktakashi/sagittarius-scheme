@@ -436,7 +436,10 @@ void Sg_Abort(const char* msg)
 {
   int size = (int)strlen(msg);
 #ifndef _MSC_VER
-  (void)write(2, msg, size);
+  int r = write(2, msg, size);
+  if (r < 0) {
+    _exit(EXIT_CODE(errno));
+  }
 #else
   DWORD n;
   WriteConsole(GetStdHandle(STD_ERROR_HANDLE), msg, size, &n, NULL);

@@ -278,7 +278,7 @@ static int generic_max_reqargs(SgGeneric *gf)
 {
   SgObject gslot = Sg_Assq(gf, SG_LIBRARY_GENERICS(Sg_VMCurrentLibrary()));
   if (SG_FALSEP(gslot)) return SG_GENERIC_MAX_REQARGS(gf);
-  return (int)SG_CADR(gslot);
+  return (int)(intptr_t)SG_CADR(gslot);
 }
 
 static int check_method(SgObject methods, SgMethod *method,
@@ -424,7 +424,7 @@ SgObject Sg_RemoveMethod(SgGeneric *gf, SgMethod *m)
       mp = SG_NIL;
     } else {
       mp = SG_CDDR(gslot);
-      maxReq = (int)SG_CADR(gslot);
+      maxReq = (int)(intptr_t)SG_CADR(gslot);
     }
   }
   SG_FOR_EACH(mp, mp) {

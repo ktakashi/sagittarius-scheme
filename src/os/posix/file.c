@@ -368,7 +368,7 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
     if (Sg_FileExistP(dst) && !overwriteP) return FALSE;	\
   } while (0)							\
 
-  int fps, fpd;
+  int fps, fpd, r;
   struct stat st;
   const char *source = Sg_Utf32sToUtf8s(src), *dest = Sg_Utf32sToUtf8s(dst);
 #ifdef HAVE_MMAP
@@ -452,10 +452,15 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 #undef BSIZE
 #endif
   Sg_ChangeFileMode(dst, st.st_mode);
-  (void)chown(dest, st.st_uid, st.st_gid);
+  r = chown(dest, st.st_uid, st.st_gid);
 
   close(fpd);
   close(fps);
+
+  if (r < 0) {
+    Sg_Error(UC("chown: %A"), Sg_GetLastErrorMessageWithErrorCode(errno));
+    return FALSE;
+  }
   return TRUE;
 }
 
@@ -689,9 +694,14 @@ int Sg_CopyAccessControl(SgString *src, SgString *dst)
   struct stat st;
   const char *source = Sg_Utf32sToUtf8s(src), *dest = Sg_Utf32sToUtf8s(dst);
   if (stat(source, &st) == 0) {
+    int r;
     /* TODO check the return value... */
     (void)chmod(dest, st.st_mode);
-    (void)chown(dest, st.st_uid, st.st_gid);
+    r = chown(dest, st.st_uid, st.st_gid);
+    if (r < 0) {
+      Sg_Error(UC("copy-access-control: %A"),
+	       Sg_GetLastErrorMessageWithErrorCode(errno));
+    }
     return TRUE;
   }
   /* TODO should this be error? */
