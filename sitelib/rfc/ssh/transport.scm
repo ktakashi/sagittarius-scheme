@@ -156,37 +156,64 @@
   ;;   * make buffer in transport and read&decrypt per cipher block size
   (define-constant +max-packet-size+ 35000)
 
+  ;; as far as i know, all block cipher has 2^n size (8 or 16) thus 4096 is
+  ;; multiple of them.
+  (define-constant +packet-buffer-size+ 4096)
+  ;; As the feature of block cipher, if the decryption is done by
+  ;; in order then it can decrypt per block so that we don't have
+  ;; to allocate huge bytevector buffer after decryption.
   (define (read-packet context)
-    (define (verify-mac transport payload mac)
-      (and-let* ((h (~ context 'server-mac))
-		 (key (~ context 'server-mkey))
-		 (c (~ context 'server-sequence))
-		 (buf (make-bytevector (+ 4 (bytevector-length payload)))))
-	(bytevector-u32-set! buf 0 c (endianness big))
-	(bytevector-copy! payload 0 buf 4 (bytevector-length payload))
-	(bytevector=? mac (hash HMAC buf :hash h :key key))))
     ;; FIXME this is not a good implementation...
     (define (read&decrypt mac-length)
+      (define c (~ context 'server-cipher))
+      (define block-size (cipher-blocksize c))
+      (define in (~ context 'socket))
+
+      (define hmac
+	(let ((h (hash-algorithm HMAC :hash (~ context 'server-mac)
+				 :key (~ context 'server-mkey))))
+	  (hash-init! h)
+	  (hash-process! h (integer->bytevector (~ context 'server-sequence) 4))
+	  h))
+      (define (verify-mac transport payload mac)
+	(let ((bv (make-bytevector (hash-size hmac))))
+	  (hash-done! hmac bv)
+	  (bytevector=? mac bv)))
       (define (read-block in size)
-	(let loop ((diff size) (r '()))
-	  (if (zero? diff)
-	      (bytevector-concatenate (reverse! r))
-	      (let1 buf (socket-recv in diff)
-		(loop (- diff (bytevector-length buf)) (cons buf r))))))
-      (let* ((c (~ context 'server-cipher))
-	     (block-size (cipher-blocksize c))
-	     (in (~ context 'socket))
-	     (first (decrypt c (read-block in block-size)))
+	(define (read-block1 size)
+	  (define buf-size (min size +packet-buffer-size+))
+	  (define buf (make-bytevector buf-size))
+	  (define (finish buf)
+	    (let ((pt (decrypt c buf)))
+	      (hash-process! hmac pt)
+	      pt))
+	  (let loop ((rest buf-size) (read-size 0))
+	    (let ((n (socket-recv! in buf (+ 0 read-size) rest)))
+	      (if (= n rest)
+		  (finish buf)
+		  (loop (- rest n) (+ read-size n))))))
+	(let ((count (ceiling (/ size +packet-buffer-size+))))
+	  (let loop ((size size) (r '()))
+	    (if (zero? size)
+		(bytevector-concatenate (reverse! r))
+		(let ((bv (read-block1 size)))
+		  (loop (- size (bytevector-length bv)) (cons bv r)))))))
+      ;; TODO there are still multiple of possibly huge allocation
+      ;; i would like to have it only once. (or even zero if we change
+      ;; read-packet to return port.)
+      (let* ((first (read-block in block-size))
 	     ;; i've never seen block cipher which has block size less
 	     ;; than 8
 	     (total-size (bytevector-u32-ref first 0 (endianness big)))
 	     (padding-size (bytevector-u8-ref first 4))
 	     ;; hope the rest have multiple of block size...
 	     (rest-size (- (+ total-size 4) block-size))
-	     (rest (decrypt c (read-block in rest-size)))
+	     (rest (read-block in rest-size))
 	     (mac  (socket-recv in mac-length))
 	     (pt   (bytevector-append first rest)))
 	(verify-mac context pt mac)
+	;; FIXME
+	(gc)
 	(bytevector-copy pt 5 (+ (- total-size padding-size 1) 5))))
     (define (read-data in)
       (let* ((sizes (socket-recv in 5))
