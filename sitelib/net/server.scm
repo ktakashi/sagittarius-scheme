@@ -91,7 +91,6 @@
 				   ;; must have default config
 			           (config (make-server-config))
 			      :allow-other-keys rest)
-    (define stop? #f)
     (define dispatch
       (let ((executor (and (> (~ config 'max-thread) 1)
 			   (make-thread-pool-executor (~ config 'max-thread)
@@ -150,8 +149,7 @@
 		   (let loop ((sock (socket-accept stop-socket)))
 		     ;; ignore all errors
 		     (guard (e (else #t))
-		       (set! stop? ((~ config 'shutdown-handler) server sock))
-		       (when stop? 
+		       (when ((~ config 'shutdown-handler) server sock)
 			 (for-each thread-terminate! server-threads)
 			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
 			 (for-each socket-close sockets)
@@ -198,10 +196,11 @@
       (apply on-server-stop! server opt)
       (set! (~ server 'stopped?) #t)))
 
-  (define (wait-server-stop! server)
+  (define (wait-server-stop! server :optional (timeout #f))
     (or (~ server 'stopped?)
 	;; we don't have to lock again
-	(mutex-unlock! (~ server 'stop-lock) (~ server 'stop-waiter))))
+	(mutex-unlock! (~ server 'stop-lock) (~ server 'stop-waiter)
+		       timeout)))
 )
       
        
