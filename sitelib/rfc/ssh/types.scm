@@ -38,6 +38,7 @@
 	    define-ssh-message
 
 	    ssh-message->bytevector
+	    ssh-message->binary-port
 	    read-message
 	    (rename (write-message ssh-write-message)
 		    (read-message ssh-read-message))
@@ -86,6 +87,7 @@
 	    (srfi :26 cut)
 	    (binary pack)
 	    (binary data)
+	    (binary io)
 	    (math))
 
   (define-class <ssh-type-meta> (<class>) ())
@@ -191,6 +193,14 @@
   ;; for convenience
   (define (name-list . strs) (make <name-list> :names strs))
 
+  (define (ssh-message->binary-port msg)
+    ;; buffer size?
+    (let ((in/out (open-chunked-binary-input/output-port)))
+      (write-message (class-of msg) msg in/out)
+      (let ((pos (port-position in/out)))
+	(set-port-position! in/out 0)
+	;; return as values so that it can see the size
+	(values in/out pos))))
   (define (ssh-message->bytevector msg)
     (call-with-bytevector-output-port 
      (cut write-message (class-of msg) msg <>)))

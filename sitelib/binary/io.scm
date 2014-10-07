@@ -208,6 +208,7 @@
 				     (%set-position! chunked-port chunk-size)
 				     close)))
 
+  ;; should we take buffer size so that we can pre-allocate?
   (define (open-chunked-binary-input/output-port 
 	   :key (chunk-size +default-chunk-size+))
     (define (read-as-chunk ignore) #())
@@ -261,9 +262,11 @@
 	    ;; compute how many chuns required for this
 	    (let ((required (ceiling (/ (+ pos count) chunk-size)))
 		  (size (vector-length (~ chunked-port 'chunks)))
-		  (threshold (~ chunked-port 'threshold)))
-	      (expand! (- required size))
-	      (set! (~ chunked-port 'threshold) (+ threshold count))))
+		  )
+	      (expand! (- required size))))
+	  ;; update threshold!
+	  (set! (~ chunked-port 'threshold) 
+		(+ (~ chunked-port 'threshold) count))
 	  ;; now we have enough buffer so just fill
 	  (let ((chunks (~ chunked-port 'chunks)))
 	    (let loop ((offset (~ chunked-port 'offset))
@@ -276,7 +279,6 @@
 		       (bytevector-copy! bv start chunk offset count)
 		       (set! (~ chunked-port 'position) position)
 		       (set! (~ chunked-port 'offset) (+ offset count))
-		       
 		       (+ written count))
 		      (else 
 		       (let ((diff (- chunk-size offset)))

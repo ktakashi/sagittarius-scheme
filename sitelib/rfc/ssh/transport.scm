@@ -45,6 +45,10 @@
 	    service-request
 	    write-packet
 	    read-packet
+
+	    ;; given packet is binary input port
+	    ssh-write-packet-port
+	    ssh-write-ssh-message
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -217,7 +221,7 @@
 	     (rest (read-block in rest-size))
 	     (mac  (socket-recv in mac-length))
 	     (pt   (->chunked-binary-input-port 
-		    (read-as-chunk (append firsts rest)))))
+		    (read-as-chunk (cons first rest)))))
 	(verify-mac context mac)
 	;; we know chunked-binary port has set-port-position!
 	(set-port-position! pt 5)
@@ -248,46 +252,110 @@
   ;;   - to do above, create chunked-binary input/output port
   ;;   - do the same trick as read-packet. (encrypt per block, hash per block)
   (define (write-packet context msg)
-    (define (compute-mac transport payload) 
-      (or (and-let* ((h (~ context 'client-mac))
-		     (key (~ context 'client-mkey))
-		     (c (~ context 'client-sequence))
-		     (buf (make-bytevector (+ 4 (bytevector-length payload)))))
-	    (bytevector-u32-set! buf 0 c (endianness big))
-	    (bytevector-copy! payload 0 buf 4 (bytevector-length payload))
-	    (hash HMAC buf :hash h :key key))
-	  #vu8()))
-    (define (construct-packet transport payload)
-      (define (total-size data-len)
-	(define (round-up l)
-	  (let* ((c (~ transport 'client-cipher))
-		 (size (if c (- (cipher-blocksize c) 1) 7)))
-	    (bitwise-and (+ l size) (bitwise-not size))))
-	(round-up (+ data-len 4 1 4)))
-      (let* ((data-len (bytevector-length payload))
-	     (total-len (total-size data-len))
-	     (padding (read-random-bytes (~ transport 'prng)
-					 (- total-len 4 1 data-len)))
-	     (content (call-with-bytevector-output-port
-			 (lambda (out)
-			   (put-u32 out (- total-len 4) (endianness big))
-			   (put-u8 out (bytevector-length padding))
-			   (put-bytevector out payload)
-			   (put-bytevector out padding))))
-	     (mac     (compute-mac transport content)))
-	(values payload content mac)))
-    (define (encrypt-packet payload)
-      (let1 c (~ context 'client-cipher)
-	(if c
-	    (encrypt c payload)
-	    payload)))
+    (ssh-write-packet-port context (open-bytevector-input-port msg)
+			   (bytevector-length msg)))
+  (define (ssh-write-ssh-message context msg)
+    (let-values (((in size) (ssh-message->binary-port msg)))
+      (ssh-write-packet-port context in size)))
+;;  (define (write-packet context msg)
+;;    (define (compute-mac transport payload) 
+;;      (or (and-let* ((h (~ context 'client-mac))
+;;		     (key (~ context 'client-mkey))
+;;		     (c (~ context 'client-sequence))
+;;		     (buf (make-bytevector (+ 4 (bytevector-length payload)))))
+;;	    (bytevector-u32-set! buf 0 c (endianness big))
+;;	    (bytevector-copy! payload 0 buf 4 (bytevector-length payload))
+;;	    (hash HMAC buf :hash h :key key))
+;;	  #vu8()))
+;;    (define (construct-packet transport payload)
+;;      (define (total-size data-len)
+;;	(define (round-up l)
+;;	  (let* ((c (~ transport 'client-cipher))
+;;		 (size (if c (- (cipher-blocksize c) 1) 7)))
+;;	    (bitwise-and (+ l size) (bitwise-not size))))
+;;	(round-up (+ data-len 4 1 4)))
+;;      (let* ((data-len (bytevector-length payload))
+;;	     (total-len (total-size data-len))
+;;	     (padding (read-random-bytes (~ transport 'prng)
+;;					 (- total-len 4 1 data-len)))
+;;	     (content (call-with-bytevector-output-port
+;;			 (lambda (out)
+;;			   (put-u32 out (- total-len 4) (endianness big))
+;;			   (put-u8 out (bytevector-length padding))
+;;			   (put-bytevector out payload)
+;;			   (put-bytevector out padding))))
+;;	     (mac     (compute-mac transport content)))
+;;	(values payload content mac)))
+;;    (define (encrypt-packet payload)
+;;      (let1 c (~ context 'client-cipher)
+;;	(if c
+;;	    (encrypt c payload)
+;;	    payload)))
+;;
+;;    (let-values (((payload content mac) (construct-packet context msg)))
+;;      (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
+;;      (let1 out (~ context 'socket)
+;;	(socket-send out (encrypt-packet content))
+;;	(socket-send out mac))
+;;      payload))
 
-    (let-values (((payload content mac) (construct-packet context msg)))
-      (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
-      (let1 out (~ context 'socket)
-	(socket-send out (encrypt-packet content))
-	(socket-send out mac))
-      payload))
+  (define (ssh-write-packet-port context in size)
+    (define c (~ context 'client-cipher))
+    (define block-size (if c (cipher-blocksize c) 8))
+    (define out (~ context 'socket))
+    
+    (define total-len 
+      (let ()
+	(define (total-size data-len)
+	  (define (round-up l)
+	    (let ((size (if c (- (cipher-blocksize c) 1) 7)))
+	      (bitwise-and (+ l size) (bitwise-not size))))
+	  (round-up (+ data-len 4 1 4)))
+	(total-size size)))
+    (define padding (read-random-bytes (~ context 'prng)
+				       (- total-len 5 size)))
+    (define hmac
+      (and-let* ((hs (~ context 'client-mac))
+		 (key (~ context 'client-mkey))
+		 (h (hash-algorithm HMAC :hash hs :key key)))
+	(hash-init! h)
+	(hash-process! h (integer->bytevector (~ context 'client-sequence) 4))
+	h))
+    (define (encrypt&send)
+      (define buffer (make-bytevector block-size 0))
+      (define (do-send packet)
+	(when hmac (hash-process! hmac packet))
+	(socket-send out (if c (encrypt c packet) packet))
+	#t)
+      (define (do-first buffer)
+	(bytevector-u32-set! buffer 0 (- total-len 4) (endianness big))
+	(bytevector-u8-set! buffer 4 (bytevector-length padding))
+	(let ((n (get-bytevector-n! in buffer 5 (- block-size 5))))
+	  (if (or (eof-object? n) (< n (- block-size 5)))
+	      (let* ((i (+ 5 n))
+		     (len (- block-size i)))
+		(bytevector-copy! padding 0 buffer i len)
+		(do-send buffer)
+		(do-send (bytevector-copy padding len))
+		#f)
+	      (do-send buffer))))
+      (when (do-first buffer)
+	(let loop ((n (get-bytevector-n! in buffer 0 block-size)))
+	  (cond ((eof-object? n) (do-send padding))
+		((< n block-size)
+		 (let ((len (- block-size n)))
+		   (bytevector-copy! padding 0 buffer n len)
+		   (do-send buffer)
+		   (do-send (bytevector-copy padding len))))
+		(else 
+		 (do-send buffer)
+		 (loop (get-bytevector-n! in buffer 0 block-size)))))))
+    (encrypt&send)
+    (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
+    (when hmac
+      (let ((mac (make-bytevector (hash-size hmac))))
+	(hash-done! hmac mac)
+	(socket-send out mac))))
 
   ;; default 1000 usec
   ;; there is very high possibility that this returns #f if
@@ -440,7 +508,7 @@
       (if gex?
 	  ;; TODO min n max range
 	  (let1 gex-req (make <ssh-msg-kex-dh-gex-request>)
-	    (write-packet transport (ssh-message->bytevector gex-req))
+	    (ssh-write-ssh-message transport gex-req)
 	    (let* ((reply (read-packet transport))
 		   (gex-group (read-message <ssh-msg-kex-dh-gex-group>
 					(open-bytevector-input-port reply)))
@@ -461,7 +529,7 @@
     (define (send/receive transport init-class reply-class p e x
 			  make-verify-message)
       (let1 dh-init (make init-class :e e)
-	(write-packet transport (ssh-message->bytevector dh-init))
+	(ssh-write-ssh-message transport dh-init)
 	(let* ((reply (read-packet transport))
 	       (dh-reply (read-message reply-class
 				       (open-bytevector-input-port reply)))
@@ -512,41 +580,45 @@
 
     (let1 client-kex (make <ssh-msg-keyinit> 
 		       :cookie (read-random-bytes (~ transport 'prng) 16))
-      (let* ((client-packet
-	      (write-packet transport (ssh-message->bytevector client-kex)))
-	     (packet (read-packet transport))
-	     (server-kex (read-message <ssh-msg-keyinit> 
-				       (open-bytevector-input-port packet))))
-	;; ok do key exchange
-	;; first decide the algorithms
-	(fill-slot 'kex client-kex server-kex 'kex-algorithms)
-	(fill-slot 'client-enc client-kex server-kex
-		   'encryption-algorithms-client-to-server)
-	(fill-slot 'server-enc client-kex server-kex
-		   'encryption-algorithms-server-to-client)
-	(fill-slot 'client-mac client-kex server-kex
-		   'mac-algorithms-client-to-server)
-	(fill-slot 'server-mac client-kex server-kex
-		   'mac-algorithms-server-to-client)
-	;; dispatch
-	(cond ((#/group-exchange/ (~ transport 'kex))
-	       (do-gex transport client-packet packet))
-	      ((#/group\d+/ (~ transport 'kex))
-	       (do-dh transport client-packet packet))
-	      (else
-	       (error 'key-exchange "unknown KEX"))))))
+      (let-values (((in/out size) (ssh-message->binary-port client-kex)))
+	(ssh-write-packet-port transport in/out size)
+	(set-port-position! in/out 0)
+	(let* ((client-packet (get-bytevector-all in/out))
+	       (packet (read-packet transport))
+	       (server-kex (read-message <ssh-msg-keyinit> 
+					 (open-bytevector-input-port packet))))
+	  ;; ok do key exchange
+	  ;; first decide the algorithms
+	  (fill-slot 'kex client-kex server-kex 'kex-algorithms)
+	  (fill-slot 'client-enc client-kex server-kex
+		     'encryption-algorithms-client-to-server)
+	  (fill-slot 'server-enc client-kex server-kex
+		     'encryption-algorithms-server-to-client)
+	  (fill-slot 'client-mac client-kex server-kex
+		     'mac-algorithms-client-to-server)
+	  (fill-slot 'server-mac client-kex server-kex
+		     'mac-algorithms-server-to-client)
+	  ;; dispatch
+	  (cond ((#/group-exchange/ (~ transport 'kex))
+		 (do-gex transport client-packet packet))
+		((#/group\d+/ (~ transport 'kex))
+		 (do-dh transport client-packet packet))
+		(else
+		 (error 'key-exchange "unknown KEX")))))))
 
   (define (ssh-disconnect transport :key (code +ssh-disconnect-by-application+)
 			  (description "finish"))
-    (write-packet transport (ssh-message->bytevector
-			  (make <ssh-msg-disconnect>
-			    :code code
-			    :description description))))
+    (let-values (((in size) (ssh-message->binary-port
+			     (make <ssh-msg-disconnect>
+			       :code code
+			       :description description))))
+      (ssh-write-packet-port transport in size)))
 
   (define (service-request transport name)
-    (write-packet transport (ssh-message->bytevector 
-			  (make <ssh-msg-service-request>
-			    :service-name (string->utf8 name))))
+    (let-values (((in size) (ssh-message->binary-port 
+			     (make <ssh-msg-service-request>
+			       :service-name (string->utf8 name)))))
+      (ssh-write-packet-port transport in size))
     (read-message <ssh-msg-service-accept>
 		  (open-bytevector-input-port (read-packet transport))))
 )

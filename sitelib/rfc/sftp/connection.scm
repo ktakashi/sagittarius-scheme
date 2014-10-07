@@ -82,6 +82,7 @@
 	    (binary pack)
 	    (binary io)
 	    (util port)
+	    (util bytevector)
 	    (srfi :26))
 
 (define-class <sftp-connection> ()
@@ -95,9 +96,13 @@
   (define channel (~ connection 'channel))
   ;; TODO use chunked port...
   (define (receive-rest first size)
+    (define (finish bv)
+      (define (read-as-chunk size)
+	(list->vector (align-bytevectors bv size)))
+      (->chunked-binary-input-port read-as-chunk))
     (let loop ((read-size (bytevector-length first)) (bv (list first)))
       (if (>= read-size size)
-	  (bytevector-concatenate (reverse! bv))
+	  (finish (reverse! bv))
 	  (let1 next (ssh-recv-channel-data channel)
 	    (loop (+ read-size (bytevector-length next))
 		  (cons next bv))))))
@@ -109,8 +114,8 @@
   (let*-values (((first) (ssh-recv-channel-data channel))
 		((len type) (unpack "!LC" first)))
     ;; skip length and type bytes
-    (let1 bv (receive-rest (bytevector-copy first 5) (- len 1))
-      (read-sftp-packet-data type (open-bytevector-input-port bv)))))
+    (let1 in (receive-rest (bytevector-copy first 5) (- len 1))
+      (read-sftp-packet-data type in))))
 
 (define (send-sftp-packet connection data)
   (let ((bv (ssh-message->bytevector data))
@@ -123,6 +128,22 @@
 	(put-u32 out (+ (bytevector-length bv) 1) (endianness big))
 	(put-u8 out type)
 	(put-bytevector out bv))))))
+
+(define (send-sftp-packet-using-port connection data)
+  (let ((in/out (open-chunked-binary-input/output-port))
+	(type (sftp-type-lookup (class-of data))))
+    (unless type (error 'send-sftp-packet "unknown sftp packet type" data))
+    ;;(put-u32 in/out (+ (bytevector-length bv) 1) (endianness big))
+    ;;(put-u8 in/out type)
+    (set-port-position! in/out 5)
+    (write-message (class-of data) data in/out)
+    (let ((p (port-position in/out)))
+      (set-port-position! in/out 0)
+      (put-u32 in/out (+ p 1) (endianness big))
+      (put-u8 in/out type))
+    (set-port-position! in/out 0)
+    (ssh-send-channel-data (~ connection 'channel) in/out)
+    (close-port in/out)))
 
 (define (make-client-sftp-connection server port 
 				     :key (username #f) (password #f))
@@ -269,13 +290,14 @@
     (let loop ((offset offset))
       (let ((r (get-bytevector-n! inport buf 0 buffer-size)))
 	(unless (eof-object? r)
-	  (send-sftp-packet conn (make <sftp-fxp-write>
-				   :id (sftp-message-id! conn)
-				   :handle hndl
-				   :offset offset
-				   :data (if (= r buffer-size)
-					     buf
-					     (bytevector-copy buf 0 r))))
+	  (send-sftp-packet-using-port
+	   conn (make <sftp-fxp-write>
+		  :id (sftp-message-id! conn)
+		  :handle hndl
+		  :offset offset
+		  :data (if (= r buffer-size)
+			    buf
+			    (bytevector-copy buf 0 r))))
 	  (recv-sftp-packet1 conn)
 	  ;; bit awkward to call gc explicitly but
 	  ;; on some environment implicit gc would be too late.

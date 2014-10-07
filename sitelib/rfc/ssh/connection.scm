@@ -110,7 +110,7 @@
 			   :sender-channel sender-channel
 			   :initial-window initial-window
 			   :maximum-packet maximum-packet)))
-      (write-packet transport (ssh-message->bytevector channel-open))
+      (ssh-write-ssh-message transport channel-open)
       (let* ((resp (read-packet transport))
 	     (type (bytevector-u8-ref resp 0)))
 	(cond ((= type +ssh-msg-channel-open-confirmation+)
@@ -152,8 +152,7 @@
   (define (ssh-channel-eof channel)
     (let1 e (make <ssh-msg-channel-eof>
 	      :recipient-channel (~ channel 'recipient-channel))
-      (write-packet (~ channel 'transport) 
-		    (ssh-message->bytevector e))))
+      (ssh-write-ssh-message (~ channel 'transport) e)))
 
   (define-ssh-message <ssh-msg-channel-close> (<ssh-message>)
     ((type :byte +ssh-msg-channel-close+)
@@ -166,7 +165,7 @@
       (ssh-channel-eof channel)
       (let1 e (make <ssh-msg-channel-close>
 		:recipient-channel (~ channel 'recipient-channel))
-	(write-packet transport (ssh-message->bytevector e))))
+	(ssh-write-ssh-message transport e)))
     ;; remove this from transport
     (set! (~ channel 'open?) #f)
     (set! (~ transport 'channels) (remq channel channels)))
@@ -255,11 +254,10 @@
 	      ;; simply double it for now
 	      (let* ((new-size (* (~ channel 'client-window-size) 2))
 		     (m (make <ssh-msg-channel-window-adjust>
-			  :recipient-channel (~ channel
-						'recipient-channel)
+			  :recipient-channel (~ channel 'recipient-channel)
 			  :size new-size)))
 		(set! (~ channel 'client-window-size) new-size)
-		(write-packet transport (ssh-message->bytevector m)))))
+		(ssh-write-ssh-message transport m))))
 	  (if receiver
 	      (loop (read-packet transport) status)
 	      m)))
@@ -323,14 +321,14 @@
 	      :width-in-pixels width-in-pixels
 	      :height-in-pixels height-in-pixels
 	      :mode mode)
-      (write-packet (~ channel 'transport) (ssh-message->bytevector m))
+      (ssh-write-ssh-message (~ channel 'transport) m)
       (let1 r (read-packet (~ channel 'transport))
 	(handle-channel-request-response channel r #f))))
 
   (define (%ssh-request msg channel receiver)
     (define transport (~ channel 'transport))
     (check-open ssh-request-shell channel)
-    (write-packet transport (ssh-message->bytevector msg))
+    (ssh-write-ssh-message transport msg)
     (let1 r (read-packet transport)
       (handle-channel-request-response channel r receiver)))
 
@@ -362,18 +360,37 @@
 
   (define (ssh-send-channel-data channel data)
     (define transport (~ channel 'transport))
+    (define (do-bv data)
+      (let loop ((data data))
+	(let1 size (bytevector-length data)
+	  (let-values (((sending rest)
+			(if (> size (~ channel 'server-window-size))
+			    (bytevector-split-at* data size)
+			    (values data #vu8()))))
+	    (let1 m (make <ssh-msg-channel-data>
+		      :recipient-channel (~ channel 'recipient-channel)
+		      :data sending)
+	      (ssh-write-ssh-message transport m)
+	      (unless (zero? (bytevector-length rest)) (loop rest)))))))
+    (define (do-port port)
+      (define buffer-size (min (~ channel 'server-window-size) 4096))
+      (define buffer (make-bytevector buffer-size))
+      (let loop ()
+	(let1 n (get-bytevector-n! port buffer 0 buffer-size)
+	  (unless (eof-object? n)
+	    (let1 m (make <ssh-msg-channel-data>
+		      :recipient-channel (~ channel 'recipient-channel)
+		      :data (if (= n buffer-size)
+				buffer
+				(bytevector-copy buffer 0 n)))
+	      (ssh-write-ssh-message transport m)
+	      (when (= buffer-size n) (loop)))))))
     (check-open ssh-send-channel-data channel)
-    (let loop ((data data))
-      (let1 size (bytevector-length data)
-	(let-values (((sending rest)
-		      (if (> size (~ channel 'server-window-size))
-			  (bytevector-split-at* data size)
-			  (values data #vu8()))))
-	  (let1 m (make <ssh-msg-channel-data>
-		    :recipient-channel (~ channel 'recipient-channel)
-		    :data sending)
-	    (write-packet transport (ssh-message->bytevector m))
-	    (unless (zero? (bytevector-length rest)) (loop rest)))))))
+    (cond ((bytevector? data) (do-bv data))
+	  ((port? data) (do-port data))
+	  (else
+	   (error 'ssh-send-channel-data 
+		  "bytevector or binary input port required" data))))
 
   (define (ssh-recv-channel-data channel)
     (define transport (~ channel 'transport))

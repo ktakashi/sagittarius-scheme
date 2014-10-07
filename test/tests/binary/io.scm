@@ -156,6 +156,21 @@
     (test-equal "get-all" #vu8(1 2 3 4 5 0 0 0 0 0 11 12 13 14 15)
 		(get-bytevector-all in/out))
     )
+
+  (let ((in/out (open-chunked-binary-input/output-port)))
+    (test-assert "write some"
+		 (put-bytevector in/out #vu8(1 2 3 4 5 6 7 8)))
+    (test-assert "write-some" 
+		 (put-bytevector in/out #vu8(9 10 11 12 13 14 15 16 17)))
+    (set-port-position! in/out 0)
+    (let ((buf (make-bytevector 8 0)))
+      ;;(get-bytevector-n! in/out buf 4 4)
+      (test-equal "get-bytevector-n!" 4 (get-bytevector-n! in/out buf 4 4))
+      (test-equal "result" #vu8(0 0 0 0 1 2 3 4) buf)
+      (test-equal "get-bytevector-n!" 8 (get-bytevector-n! in/out buf 0 8))
+      (test-equal "result" #vu8(5 6 7 8 9 10 11 12) buf)
+      )
+    )
 )
 
 (test-end)

@@ -115,7 +115,7 @@
 		(signer (bytevector-append (pack "!L" (bytevector-length sid))
 					   sid
 					   (ssh-message->bytevector m)))))
-	(write-packet transport (ssh-message->bytevector m))
+	(ssh-write-ssh-message transport m)
 	;; read the responce
 	(read-auth-response transport
 	 (lambda (rp)
@@ -135,7 +135,7 @@
 	      :change-password? (and new-password #t)
 	      :old-password old-password
 	      :new-password new-password)
-      (write-packet transport (ssh-message->bytevector m))
+      (ssh-write-ssh-message transport m)
       ;; TODO better dispatch
       (read-auth-response transport
        (lambda (rp)
