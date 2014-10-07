@@ -254,19 +254,18 @@
 			 (make-bytevector chunk-size 0)))
 	  (set! (~ chunked-port 'chunks) new-chunks)
 	  (set! (~ chunked-port 'buffer-size) 
-		(* (vector-length chunks) chunk-size))))
+		(* (vector-length new-chunks) chunk-size))))
       (define (write! bv start count)
 	(let ((pos (get-position))
 	      (size (~ chunked-port 'buffer-size)))
 	  (when (>= (+ pos count) size)
 	    ;; compute how many chuns required for this
 	    (let ((required (ceiling (/ (+ pos count) chunk-size)))
-		  (size (vector-length (~ chunked-port 'chunks)))
-		  )
+		  (size (vector-length (~ chunked-port 'chunks))))
 	      (expand! (- required size))))
-	  ;; update threshold!
-	  (set! (~ chunked-port 'threshold) 
-		(+ (~ chunked-port 'threshold) count))
+	  ;; update threshold, when write! is adding data not updating
+	  (when (< (~ chunked-port 'threshold) (+ pos count))
+	    (set! (~ chunked-port 'threshold) (+ pos count)))
 	  ;; now we have enough buffer so just fill
 	  (let ((chunks (~ chunked-port 'chunks)))
 	    (let loop ((offset (~ chunked-port 'offset))

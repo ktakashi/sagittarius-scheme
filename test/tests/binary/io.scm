@@ -119,7 +119,8 @@
     (test-assert "set-port-position! (1)" (set-port-position! in/out 0))
     (test-equal "get some (in/out)" #vu8(6 7 8 9 10)
 		(get-bytevector-n in/out 5))
-    (test-assert "get-all eof" (eof-object? (get-bytevector-all in/out 5)))
+    ;;(print (port-position in/out))
+    (test-assert "get-all eof" (eof-object? (get-bytevector-all in/out)))
     (test-assert "set-port-position! (1)" (set-port-position! in/out 2))
     (test-equal "get-all 3" #vu8(8 9 10) (get-bytevector-all in/out 5)))
 
