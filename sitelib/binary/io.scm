@@ -47,12 +47,15 @@
 	    ;; memory efficient(?) ports
 	    input-port->chunked-binary-input-port
 	    ->chunked-binary-input-port
+	    open-chunked-binary-input/output-port
+	    ->chunked-binary-input/output-port
 	    +default-chunk-size+
 	    )
     (import (except (rnrs) get-line)
 	    (sagittarius)
 	    (clos user)
-	    (sagittarius object))
+	    (sagittarius object)
+	    (only (srfi :43 vectors) vector-copy!))
 
   (define (lookahead-next-u8 in) (get-u8 in) (lookahead-u8 in))
 
@@ -163,6 +166,10 @@
     ((position :init-value 0) ;; index of vector
      (offset   :init-value 0) ;; offset of bytevector
      (chunks   :init-keyword :chunks)))
+  ;; for input/output port
+  (define-class <chunked-output-buffer> (<chunked-buffer>)
+    ((buffer-size :init-value 0)
+     (threshold :init-value 0)))
 
   ;; buffer size default 4096
   (define-constant +default-chunk-size+ 4096)
@@ -194,57 +201,166 @@
 				       :key (chunk-size +default-chunk-size+))
     (let ((chunked-port (make <chunked-buffer>
 			  :chunks (read-as-chunk chunk-size))))
-      (define (read! bv start count)
-	(define (last-chunk? chunks position)
-	  (= (vector-length chunks) (+ position 1)))
-	(let loop ((start start) (copied 0) (count count))
-	  (let ((offset   (~ chunked-port 'offset))
-		(position (~ chunked-port 'position))
-		(chunks  (~ chunked-port 'chunks)))
-	    (if (= (vector-length chunks) position)
-		0
-		(let* ((current-chunk (vector-ref chunks position))
-		       (chunk-size (bytevector-length current-chunk))
-		       (diff (- chunk-size offset)))
-		  (cond ((>= diff count)
-			 (bytevector-copy! current-chunk offset bv start count)
-			 (cond ((and (not (last-chunk? chunks position))
-				     (= (+ offset count) chunk-size))
-				(set! (~ chunked-port 'offset) 0)
-				(set! (~ chunked-port 'position)
-				      (+ position 1)))
-			       (else
-				(set! (~ chunked-port 'offset)
-				      (+ offset count))))
-			 (+ count copied))
-			((not (last-chunk? chunks position))
-			 (bytevector-copy! current-chunk offset bv start diff)
-			 (set! (~ chunked-port 'offset) 0)
-			 (set! (~ chunked-port 'position) (+ position 1))
-			 (loop (+ start diff) (+ diff copied) (- count diff)))
-			(else
-			 ;; last chunk and not enough
-			 (bytevector-copy! current-chunk offset bv start diff)
-			 (set! (~ chunked-port 'offset) (+ offset count))
-			 (set! (~ chunked-port 'position) (+ position 1))
-			 (+ diff copied))))))))
-      (define (get-position)
-	(let ((offset (~ chunked-port 'offset))
-	      (position (~ chunked-port 'position)))
-	  (+ offset (* position chunk-size))))
-      (define (set-position! pos)
-	(let ((index (div pos chunk-size))
-	      (offset (mod pos chunk-size))
-	      (chunks (~ chunked-port 'chunks)))
-	  (cond ((>= index (vector-length chunks))
-		 (let ((last (- (vector-length chunks) 1)))
-		   (set! (~ chunked-port 'position) last)
-		   (set! (~ chunked-port 'offset)
-			 (bytevector-length (vector-ref chunks last)))))
-		(else
-		 (set! (~ chunked-port 'position) index)
-		 (set! (~ chunked-port 'offset) offset)))))
       (define (close) (set! (~ chunked-port 'chunks) #f))
       (make-custom-binary-input-port "chunked-binary-input-port"
-				     read! get-position set-position! close)))
+				     (%read! chunked-port)
+				     (%get-position chunked-port chunk-size) 
+				     (%set-position! chunked-port chunk-size)
+				     close)))
+
+  (define (open-chunked-binary-input/output-port 
+	   :key (chunk-size +default-chunk-size+))
+    (define (read-as-chunk ignore) #())
+    (->chunked-binary-input/output-port read-as-chunk :chunk-size chunk-size))
+  ;; we don't need only output port (built-in bytevector output port
+  ;; isn't so bad)
+  (define (->chunked-binary-input/output-port read-as-chunk
+	   :key (chunk-size +default-chunk-size+))
+    (let ((chunked-port (make <chunked-output-buffer>
+			  :chunks (read-as-chunk chunk-size))))
+      (define (align-chunk)
+	;; last chunk check
+	(let ((chunks (~ chunked-port 'chunks)))
+	  (unless (zero? (vector-length chunks))
+	    (let ((chunk (vector-ref chunks (- (vector-length chunks) 1))))
+	      (unless (= (bytevector-length chunk) chunk-size)
+		(let ((buf (make-bytevector chunk-size)))
+		  (bytevector-copy! chunk 0 buf 0 (bytevector-length chunk))
+		  (vector-set! chunks (- (vector-length chunks) 1) buf)))
+	      (set! (~ chunked-port 'buffer-size) 
+		    (* (vector-length chunks) chunk-size))))))
+      (define get-position (%get-position chunked-port chunk-size))
+      (define %read (%read! chunked-port))
+      (define (read! bv start count)
+	(let ((pos (get-position))
+	      (threshold (~ chunked-port 'threshold)))
+	  ;; if pos = then sof
+	  ;; if pos + count > threshold then reduce amount
+	  (cond ((= pos threshold) 0)
+		((> (+ pos count) threshold)
+		 (%read bv start (- threshold pos)))
+		(else (%read bv start count)))))
+      (define (expand! n)
+	(let* ((chunks (~ chunked-port 'chunks))
+	       (new-chunks (make-vector (+ (vector-length chunks) n))))
+	  ;; a bit of stupid kludge for empty chunk...
+	  (unless (zero? (vector-length chunks))
+	    (vector-copy! new-chunks 0 chunks))
+	  ;; expand!
+	  (do ((i 0 (+ i 1)))
+	      ((= i n))
+	    (vector-set! new-chunks (+ (vector-length chunks) i)
+			 (make-bytevector chunk-size 0)))
+	  (set! (~ chunked-port 'chunks) new-chunks)
+	  (set! (~ chunked-port 'buffer-size) 
+		(* (vector-length chunks) chunk-size))))
+      (define (write! bv start count)
+	(let ((pos (get-position))
+	      (size (~ chunked-port 'buffer-size)))
+	  (when (>= (+ pos count) size)
+	    ;; compute how many chuns required for this
+	    (let ((required (ceiling (/ (+ pos count) chunk-size)))
+		  (size (vector-length (~ chunked-port 'chunks)))
+		  (threshold (~ chunked-port 'threshold)))
+	      (expand! (- required size))
+	      (set! (~ chunked-port 'threshold) (+ threshold count))))
+	  ;; now we have enough buffer so just fill
+	  (let ((chunks (~ chunked-port 'chunks)))
+	    (let loop ((offset (~ chunked-port 'offset))
+		       (position (~ chunked-port 'position))
+		       (start start)
+		       (count count)
+		       (written 0))
+	      (let ((chunk (vector-ref chunks position)))
+		(cond ((>= (- chunk-size offset) count)
+		       (bytevector-copy! bv start chunk offset count)
+		       (set! (~ chunked-port 'position) position)
+		       (set! (~ chunked-port 'offset) (+ offset count))
+		       
+		       (+ written count))
+		      (else 
+		       (let ((diff (- chunk-size offset)))
+			 (bytevector-copy! bv start chunk offset diff)
+			 (loop 0 (+ position 1) (+ start diff) (- count diff)
+			       (+ written diff))))))))))
+      ;; if it's overflow then we need to expand chunks
+      (define %set (%set-position! chunked-port chunk-size))
+      (define (set-position! pos)
+	(let ((size (~ chunked-port 'buffer-size)))
+	  (when (>= pos size)
+	    (let ((required (ceiling (/ pos chunk-size))))
+	      (expand! (- required (vector-length (~ chunked-port 'chunks))))
+	      (set! (~ chunked-port 'threshold) pos)))
+	  (%set pos)))
+      (define (close) (set! (~ chunked-port 'chunks) #f))
+      (set! (~ chunked-port 'threshold)
+	    (let* ((chunks (~ chunked-port 'chunks))
+			    (len (vector-length chunks)))
+	      (let loop ((i 0) (c 0))
+		(if (= i len)
+		    c
+		    (loop (+ i 1) 
+			  (+ c (bytevector-length (vector-ref chunks i))))))))
+      ;; expand last chunk if needed
+      (align-chunk)
+      (make-custom-binary-input/output-port
+       "chunked-binary-input/output-port"
+       read! write! get-position set-position! close)))
+
+  ;; common procedure
+  ;; read must consider threshold for input/output...
+  (define (%read! chunked-port)
+    (lambda (bv start count)
+      (define (last-chunk? chunks position)
+	(= (vector-length chunks) (+ position 1)))
+      (let loop ((start start) (copied 0) (count count))
+	(let ((offset   (~ chunked-port 'offset))
+	      (position (~ chunked-port 'position))
+	      (chunks  (~ chunked-port 'chunks)))
+	  (if (= (vector-length chunks) position)
+	      0
+	      (let* ((current-chunk (vector-ref chunks position))
+		     (chunk-size (bytevector-length current-chunk))
+		     (diff (- chunk-size offset)))
+		(cond ((>= diff count)
+		       (bytevector-copy! current-chunk offset bv start count)
+		       (cond ((and (not (last-chunk? chunks position))
+				   (= (+ offset count) chunk-size))
+			      (set! (~ chunked-port 'offset) 0)
+			      (set! (~ chunked-port 'position)
+				    (+ position 1)))
+			     (else
+			      (set! (~ chunked-port 'offset)
+				    (+ offset count))))
+		       (+ count copied))
+		      ((not (last-chunk? chunks position))
+		       (bytevector-copy! current-chunk offset bv start diff)
+		       (set! (~ chunked-port 'offset) 0)
+		       (set! (~ chunked-port 'position) (+ position 1))
+		       (loop (+ start diff) (+ diff copied) (- count diff)))
+		      (else
+		       ;; last chunk and not enough
+		       (bytevector-copy! current-chunk offset bv start diff)
+		       (set! (~ chunked-port 'offset) (+ offset count))
+		       (set! (~ chunked-port 'position) (+ position 1))
+		       (+ diff copied)))))))))
+  (define (%get-position chunked-port chunk-size)
+    (lambda ()
+      (let ((offset (~ chunked-port 'offset))
+	    (position (~ chunked-port 'position)))
+	(+ offset (* position chunk-size)))))
+  (define (%set-position! chunked-port chunk-size)
+    (lambda (pos)
+      (let ((index (div pos chunk-size))
+	    (offset (mod pos chunk-size))
+	    (chunks (~ chunked-port 'chunks)))
+	(cond ((>= index (vector-length chunks))
+	       (let ((last (- (vector-length chunks) 1)))
+		 (set! (~ chunked-port 'position) last)
+		 (set! (~ chunked-port 'offset)
+		       (bytevector-length (vector-ref chunks last)))))
+	      (else
+	       (set! (~ chunked-port 'position) index)
+	       (set! (~ chunked-port 'offset) offset))))))
+  
 )
