@@ -101,22 +101,16 @@
 			(else
 			 (error 'mqtt-handler "unknown packet type"
 				type))))))))))
-    (let ((server (apply make-simple-server port mqtt-handler
-				      :server-class <mqtt-broker>
-				      :config config
-				      :handlers (setup-handlers)
-				      rest)))
-      ;; TODO adding authentication-handler or so
-      server))
+    (apply make-simple-server port mqtt-handler
+	   :server-class <mqtt-broker>
+	   :config config
+	   :handlers (setup-handlers)
+	   rest))
 
-  (define (mqtt-broker-start! broker)
-    (server-start! broker))
-  (define (mqtt-broker-stop! broker)
-    (unless (~ broker 'stopped?)
-      ;; first stop the server
-      (server-stop! broker)
-      ;; then stop the cleaner
-      (mqtt-session-cleaner-stop! broker)
-      ))
+  ;; just forwarding :)
+  (define mqtt-broker-start! server-start!)
+  (define mqtt-broker-stop! server-stop!)
+  (define-method on-server-stop! ((broker <mqtt-broker>) . ignore)
+    (mqtt-session-cleaner-stop! broker))
 
 )

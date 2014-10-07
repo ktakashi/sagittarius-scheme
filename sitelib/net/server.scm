@@ -34,10 +34,11 @@
 	    make-server-config
 	    server?
 	    server-config? server-config
-	    server-start!
-	    server-stop! ;; well for multithreading?
+	    server-start! on-server-start!
+	    ;; well for multithreading?
+	    server-stop!  on-server-stop! 
 	    
-	    server-stopped?
+	    server-stopped? wait-server-stop!
 
 	    ;; for extension
 	    <simple-server>
@@ -79,7 +80,9 @@
      (stopper-thread :init-keyword :stopper-thread :init-value #f)
      (stopped?       :init-value #f :reader server-stopped?)
      (config         :init-keyword :config
-		     :reader server-config)))
+		     :reader server-config)
+     (stop-lock      :init-form (make-mutex))
+     (stop-waiter    :init-form (make-condition-variable))))
   (define (server? o) (is-a? o <simple-server>))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
@@ -101,7 +104,7 @@
 		       (socket-close socket)
 		       #t))
 	      (call-with-socket socket 
-				(lambda (sock) (handler server sock)))))
+		(lambda (sock) (handler server sock)))))
 	  ;; ignore error
 	  (if executor
 	      (let ((f (future (handle socket))))
@@ -142,7 +145,9 @@
 	  (set! (~ server 'stopper-thread)
 		(make-thread 
 		 (lambda ()
-		   (let ((sock (socket-accept stop-socket)))
+		   ;; lock it here
+		   (mutex-lock! (~ server 'stop-lock))
+		   (let loop ((sock (socket-accept stop-socket)))
 		     ;; ignore all errors
 		     (guard (e (else #t))
 		       (set! stop? ((~ config 'shutdown-handler) server sock))
@@ -150,20 +155,33 @@
 			 (for-each thread-terminate! server-threads)
 			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
 			 (for-each socket-close sockets)
-			 (set! (~ server 'stopped?) #t)))
-		     (socket-close sock))))))
+			 (set! (~ server 'stopped?) #t)
+			 (condition-variable-broadcast! (~ server 'stop-waiter))
+			 (mutex-unlock! (~ server 'stop-lock))))
+		     (socket-close sock)
+		     (unless (~ server 'stopped?)
+		       (loop (socket-accept stop-socket))))))))
 	server)))
   
-  (define (server-start! server)
+  ;; default do nothing
+  (define-method on-server-start! ((s <simple-server>) . ignore))
+  (define-method on-server-stop! ((s <simple-server>) . ignore))
+
+  (define (server-start! server :key (background #f)
+			 :rest opts)
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
     (when (~ server 'stopper-thread)
       (thread-start! (~ server 'stopper-thread)))
+    ;; pass all keyword arguments
+    (apply on-server-start! server opts)
     (guard (e ((terminated-thread-exception? e) #t)
 	      (else (raise e)))
-      (map thread-join! (map thread-start! (~ server 'server-threads)))))
+      (let ((threads (map thread-start! (~ server 'server-threads))))
+	(unless background
+	  (map thread-join! threads)))))
 
-  (define (server-stop! server)
+  (define (server-stop! server . opt)
     (define (close-socket socket)
       ;; we don't care if socket sending failed or not...
       (socket-shutdown socket SHUT_RDWR)
@@ -176,8 +194,14 @@
 	(thread-terminate! (~ server 'stopper-thread)))
       (map close-socket (~ server 'server-sockets))
       (map thread-terminate! (~ server 'server-threads))
+      ;; should this be here?
+      (apply on-server-stop! server opt)
       (set! (~ server 'stopped?) #t)))
 
+  (define (wait-server-stop! server)
+    (or (~ server 'stopped?)
+	;; we don't have to lock again
+	(mutex-unlock! (~ server 'stop-lock) (~ server 'stop-waiter))))
 )
       
        

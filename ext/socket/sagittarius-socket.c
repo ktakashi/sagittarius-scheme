@@ -679,8 +679,10 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
       if (errno == EINTR) {
 	continue;
       } else {
-	/* setLastError(); */
-	return NULL;
+	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
+		   Sg_GetLastErrorMessageWithErrorCode(last_error),
+		   SG_FALSE, socket);
+	return NULL;		/* dummy */
       }
     } else {
       break;

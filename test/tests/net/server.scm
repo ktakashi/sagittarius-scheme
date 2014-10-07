@@ -20,10 +20,9 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler))
-  (define server-thread (make-thread (lambda () (server-start! server))))
   (test-assert "server?" (server? server))
+  (server-start! server :background #t)
   ;; wait until it's started
-  (thread-start! server-thread)
   (thread-sleep! 0.1)
 
   (let ((sock (make-client-socket "localhost" "5000")))
@@ -32,7 +31,6 @@
     (socket-close sock))
 
   (test-assert "stop server" (server-stop! server))
-  (test-assert "finish simple server (1)" (thread-join! server-thread))
 )
 
 ;; multi threading server
@@ -46,7 +44,6 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler :config config))
-  (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((t* (map (lambda (_)
 		     (make-thread
@@ -66,7 +63,7 @@
 		  (map thread-join! (map thread-start! t*)))))
   (test-assert "config?" (server-config? config))
   (test-assert "server-config" (eq? config (server-config server)))
-  (thread-start! server-thread)
+  (server-start! server :background #t)
   (thread-sleep! 0.1)
   ;; test both sockets
   (test AF_INET6)
@@ -92,14 +89,12 @@
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
   (define server (make-simple-server "5000" handler :config config))
-  (define server-thread (make-thread (lambda () (server-start! server))))
   (define (test ai-family)
     (let ((sock (make-client-tls-socket "localhost" "5000" ai-family)))
       (socket-send sock (string->utf8 "hello"))
       (test-equal "TLS echo back" (string->utf8 "hello") (socket-recv sock 255))
       (socket-close sock)))
-
-  (thread-start! server-thread)
+  (server-start! server :background #t)
   (thread-sleep! 0.1)
   ;; test both socket
   (test AF_INET)
@@ -107,6 +102,7 @@
 
   ;; stop server by accessing shutdown port
   (make-client-socket "localhost" +shutdown-port+)
-  (test-assert "finish simple server (2)" (thread-join! server-thread))
+  (test-assert "finish simple server (2)" (wait-server-stop! server))
+  (test-assert "finish simple server (3)" (wait-server-stop! server))
   )
 (test-end)
