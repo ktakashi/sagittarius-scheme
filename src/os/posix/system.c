@@ -30,6 +30,7 @@
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
+#include <signal.h>
 #include <unistd.h>
 #include <time.h>
 #include <errno.h>
@@ -447,6 +448,11 @@ SgObject Sg_SitelibPath()
   return sitelibpath;
 }
 
+static struct {
+  SgObject pids;
+  SgInternalMutex mutex;
+}  pid_list = { SG_NIL };
+
 uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 			    SgObject *inp, SgObject *outp, SgObject *errp,
 			    SgString *dir,
@@ -540,6 +546,10 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
     *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
   }
+  Sg_LockMutex(&pid_list.mutex);
+  /* manage pid */
+  pid_list.pids = Sg_Cons(SG_MAKE_INT(pid), pid_list.pids);
+  Sg_UnlockMutex(&pid_list.mutex);
   return (uintptr_t)pid;
  sysconf_fail:
  pipe_fail:
@@ -564,25 +574,78 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   exit(127);
 }
 
+static void remove_pid(pid_t pid)
+{
+  SgObject c, p = SG_NIL, tpid = SG_MAKE_INT(pid);
+  Sg_LockMutex(&pid_list.mutex);
+  for (c = pid_list.pids; SG_PAIRP(c); p = c, c = SG_CDR(c)) {
+    if (SG_EQ(SG_CAR(c), tpid)) {
+      if (SG_NULLP(p)) {
+	pid_list.pids = SG_CDR(c);
+	break;
+      } else {
+	/* destructively */
+	SG_SET_CDR(p, SG_CDR(c));
+	break;
+      }
+    }
+  }
+  Sg_UnlockMutex(&pid_list.mutex);
+}
+
 int Sg_SysProcessWait(uintptr_t pid)
 {
   int status = 0;
+  pid_t r;
  retry:
-  waitpid((pid_t)pid, &status, 0);
+  r = waitpid((pid_t)pid, &status, 0);
+  if (r < 0) {
+    if (r == EINTR) goto retry;
+    remove_pid(r);
+    Sg_Error(UC("Failed to wait process [pid: %d][%A]"), 
+	     (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(errno));
+    return -1;			/* dummy */
+  }
   /* FIXME how should I treat signals... */
   if (WIFEXITED(status)) {
+    remove_pid(r);
     return WEXITSTATUS(status);
   } else if (WIFSIGNALED(status)) {
+    remove_pid(r);
     Sg_Error(UC("killed by signal %d\n"), WTERMSIG(status));
   } else if (WIFSTOPPED(status)) {
+    remove_pid(r);
     Sg_Error(UC("stopped by signal %d\n"), WSTOPSIG(status));
   } else if (WIFCONTINUED(status)) {
     goto retry;
   }
-  return WEXITSTATUS(status);
+  /* should never reach here */
+  return -1;
+}
+
+/* wait for all pids when exits */
+static void finish_child_process(void *data)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, pid_list.pids) {
+    int status = 0;
+    pid_t pid = (pid_t)SG_INT_VALUE(SG_CAR(cp));
+    pid_t r = waitpid(pid, &status, WNOHANG);
+    if (r == 0) {
+      /* kill it */
+#ifdef SIGKILL
+      kill(pid, SIGKILL);
+#else
+      /* should be there */
+      kill(pid, SIGTERM);
+#endif
+    }
+  }
+
 }
 
 void Sg__InitSystem()
 {
-  /* do nothing */
+  Sg_InitMutex(&pid_list.mutex, TRUE);
+  Sg_AddCleanupHandler(finish_child_process, NULL);
 }
