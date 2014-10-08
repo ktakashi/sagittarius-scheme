@@ -139,7 +139,7 @@
     (write-message (class-of data) data in/out)
     (let ((p (port-position in/out)))
       (set-port-position! in/out 0)
-      (put-u32 in/out (+ p 1) (endianness big))
+      (put-u32 in/out (- p 4) (endianness big))
       (put-u8 in/out type))
     (set-port-position! in/out 0)
     (ssh-send-channel-data (~ connection 'channel) in/out)
