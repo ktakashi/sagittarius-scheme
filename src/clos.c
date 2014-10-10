@@ -1323,7 +1323,7 @@ void Sg_SlotSetUsingClass(SgClass *klass, SgObject obj, SgObject name,
   }
   ac = lookup_slot_info(klass, name);
   if (!ac) Sg_Error(UC("class %S doesn't have slot named %S."), klass, name);
-  return Sg_SlotSetUsingAccessor(obj, ac, value);
+  Sg_SlotSetUsingAccessor(obj, ac, value);
 }
 
 int Sg_SlotBoundUsingClass(SgClass *klass, SgObject obj, SgObject name)

@@ -539,7 +539,7 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
       if (SG_FALSEP(k)) {
 	return SG_FALSE;
       }
-      return k = eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
+      return eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
     }
   }
   if (SG_VECTORP(x)) {
