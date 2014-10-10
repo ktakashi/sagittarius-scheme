@@ -321,13 +321,18 @@
 	(hash-init! h)
 	(hash-process! h (integer->bytevector (~ context 'client-sequence) 4))
 	h))
-    (define (encrypt&send)
-      (define buffer (make-bytevector block-size 0))
-      (define (do-send packet)
+    (define (encrypt&send c hmac out)
+      ;; make buffer a bit bigger so that it won't call get-bytevector-n!
+      ;; millions times
+      (define buffer-size (* block-size 512))
+      (define buffer (make-bytevector buffer-size 0))
+      
+      (define (do-send out c hmac packet)
 	(when hmac (hash-process! hmac packet))
-	(socket-send out (if c (encrypt c packet) packet))
-	#t)
-      (define (do-first buffer)
+	(socket-send out (if c (encrypt c packet) packet)))
+
+      ;; fist time will use block-size
+      (define (do-first c hmac buffer)
 	(bytevector-u32-set! buffer 0 (- total-len 4) (endianness big))
 	(bytevector-u8-set! buffer 4 (bytevector-length padding))
 	(let ((n (get-bytevector-n! in buffer 5 (- block-size 5))))
@@ -335,22 +340,36 @@
 	      (let* ((i (+ 5 n))
 		     (len (- block-size i)))
 		(bytevector-copy! padding 0 buffer i len)
-		(do-send buffer)
-		(do-send (bytevector-copy padding len))
+		(do-send out c hmac buffer)
+		(do-send out c hmac (bytevector-copy padding len))
 		#f)
-	      (do-send buffer))))
-      (when (do-first buffer)
-	(let loop ((n (get-bytevector-n! in buffer 0 block-size)))
-	  (cond ((eof-object? n) (do-send padding))
-		((< n block-size)
-		 (let ((len (- block-size n)))
-		   (bytevector-copy! padding 0 buffer n len)
-		   (do-send buffer)
-		   (do-send (bytevector-copy padding len))))
+	      (begin (do-send out c hmac buffer) #t))))
+      (when (do-first c hmac (make-bytevector block-size 0))
+	(let loop ((n (get-bytevector-n! in buffer 0 buffer-size)))
+	  (cond ((eof-object? n) (do-send out c hmac padding))
+		((< n buffer-size)
+		 (let ((rest (- buffer-size n))
+		       (padlen (bytevector-length padding)))
+		   (cond ((< rest padlen)
+			  ;; not sure if this is correct and ever happen
+			  (bytevector-copy! padding 0 buffer n rest)
+			  (do-send out c hmac buffer)
+			  ;; in this case padding must be longer than block
+			  ;; size and copying from rest must make the length
+			  ;; to block-size
+			  (let ((p (bytevector-copy padding rest)))
+			    (unless (= (bytevector-length p) block-size)
+			      (error 'ssh-write-packet-port
+				     "[Internal] invalid padding size"))
+			    (do-send out c hmac p)))
+			 (else 
+			  (bytevector-copy! padding 0 buffer n padlen)
+			  (do-send out c hmac 
+				   (bytevector-copy buffer 0 (+ n padlen)))))))
 		(else 
-		 (do-send buffer)
-		 (loop (get-bytevector-n! in buffer 0 block-size)))))))
-    (encrypt&send)
+		 (do-send out c hmac buffer)
+		 (loop (get-bytevector-n! in buffer 0 buffer-size)))))))
+    (encrypt&send c hmac out)
     (set! (~ context 'client-sequence) (+ (~ context 'client-sequence) 1))
     (when hmac
       (let ((mac (make-bytevector (hash-size hmac))))

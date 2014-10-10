@@ -427,6 +427,7 @@
 	      (when (and (SG_VM_LOG_LEVEL vm SG_TRACE_LEVEL)
 			 (== (-> vm state) RUNNING))
 		(Sg_Printf (-> vm logPort) (UC ";; calling %S\n") (AC vm))))
+      (SG_PROF_COUNT_CALL vm (AC vm))
       (let ((cb::SgCodeBuilder* (-> (SG_CLOSURE (AC vm)) code)))
 	(set! (CL vm) (AC vm)
 	      (PC vm) (-> cb code)
