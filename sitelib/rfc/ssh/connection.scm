@@ -373,7 +373,13 @@
 	      (ssh-write-ssh-message transport m)
 	      (unless (zero? (bytevector-length rest)) (loop rest)))))))
     (define (do-port port)
-      (define buffer-size (min (~ channel 'server-window-size) 4096))
+      (define default-buffer-size (* 1024 8))
+      (define buffer-size 
+	;; some SFTP server would respond this 0...
+	(let ((sws (~ channel 'server-window-size)))
+	  (if (zero? sws)
+	      default-buffer-size
+	      (min sws default-buffer-size))))
       (define buffer (make-bytevector buffer-size))
       (let loop ()
 	(let1 n (get-bytevector-n! port buffer 0 buffer-size)
