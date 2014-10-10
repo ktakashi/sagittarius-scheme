@@ -150,11 +150,14 @@
 (define-cise-stmt check-fd-range
   ((_ fd)
    (let ((fd_ (gensym)))
-     `(let ((,fd_ :: int ,fd))
-	(when (or (< ,fd_ 0) (>= ,fd_ FD_SETSIZE))
-	  (Sg_Error 
-	   (UC "Socket descriptor value is out of range: (0 <= %d < %d)")
-	   ,fd_ FD_SETSIZE))))))
+     ;; seems windows socket descriptor is not ordered or so
+     ;; so just let it go.
+     `(.if "!defined(_MSC_VER)"
+	   (let ((,fd_ :: int ,fd))
+	     (when (or (< ,fd_ 0) (>= ,fd_ FD_SETSIZE))
+	       (Sg_Error 
+		(UC "Socket descriptor value is out of range: (0 <= %d < %d)")
+		,fd_ FD_SETSIZE)))))))
 
 (define-c-proc fdset-set! (fdset::<fdset> socket::<socket> flag::<boolean>)
   ::<void>
