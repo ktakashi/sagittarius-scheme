@@ -536,19 +536,15 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
       } else if (errno == EPIPE) {
 	if (flags & MSG_NOSIGNAL) {
 	  return 0;
-	} else {
-	  goto err;
 	}
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	return ret;
-      } else {
-      err:
-	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
-		   Sg_GetLastErrorMessageWithErrorCode(last_error),
-		   SG_FALSE, SG_NIL);
-	return ret;
       }
+      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
+		 Sg_GetLastErrorMessageWithErrorCode(last_error),
+		 SG_FALSE, SG_NIL);
+      return ret;		/* dummy */
     }
     return ret;
   }

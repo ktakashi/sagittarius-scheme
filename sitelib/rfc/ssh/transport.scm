@@ -73,6 +73,9 @@
   (define (make-client-ssh-transport server port . options)
     (let* ((socket (make-client-socket server port))
 	   (transport (make <ssh-transport> :socket socket)))
+      ;; didn't make performance better
+      ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
+      ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
       (version-exchange transport)
       (key-exchange transport)
       transport))
@@ -161,9 +164,11 @@
   ;;   * make buffer in transport and read&decrypt per cipher block size
   (define-constant +max-packet-size+ 35000)
 
-  ;; as far as i know, all block cipher has 2^n size (8 or 16) thus 4096 is
+  ;; as far as i know, all block cipher has 2^n size (8 or 16) thus 8192 is
   ;; multiple of them.
-  (define-constant +packet-buffer-size+ 4096)
+  ;; NB: for some reason Windows RCVBUF is set to 8KB by default.
+  ;;     reading more than that would cause performance issue.
+  (define-constant +packet-buffer-size+ (* 1024 8))
   ;; As the feature of block cipher, if the decryption is done by
   ;; in order then it can decrypt per block so that we don't have
   ;; to allocate huge bytevector buffer after decryption.
