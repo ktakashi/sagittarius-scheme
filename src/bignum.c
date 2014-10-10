@@ -140,9 +140,15 @@ SgBignum* Sg_AllocateBignum(int size)
     bignum_clear(var, size);				\
   } while (0)
 #else
+#define ALLOC_TEMP_BIGNUM_REC(var, size)	\
+  do {						\
+    (var) = make_bignum_rec(size, FALSE);	\
+  } while (0)
+
 #define ALLOC_TEMP_BIGNUM(var, size)		\
   do {						\
-    (var) = make_bignum(size);			\
+    ALLOC_TEMP_BIGNUM_REC(var, size);		\
+    bignum_clear(var, size);			\
   } while (0)
 #endif
 

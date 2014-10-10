@@ -32,6 +32,7 @@
 #define LIBSAGITTARIUS_BODY
 /* for warning */
 #define NO_NTZ
+#include "sagittarius/sagittariusdefs.h"
 #include "sagittarius/arith.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/bignum.h"

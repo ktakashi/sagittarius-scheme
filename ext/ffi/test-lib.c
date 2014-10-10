@@ -1,7 +1,21 @@
+#include <sagittarius/config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
+#ifdef HAVE_STDINT_H
+# include <stdint.h>
+#else
+
+#ifdef _WIN64
+typedef signed   __int64  intptr_t;
+typedef unsigned __int64  uintptr_t;
+#else
+typedef signed   __int32  intptr_t;
+typedef unsigned __int32  uintptr_t;
+#endif
+
+#endif
 #include <stdarg.h>
 
 #ifdef _MSC_VER
