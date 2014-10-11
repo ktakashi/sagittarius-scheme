@@ -358,12 +358,71 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
   }
 }
 
-static SgObject eP(SgHashTable **pht, SgObject x, SgObject y,
-		   SgObject k, struct equal_context *ctx);		   
-
+/* for VS2008 */
 static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
-		       SgObject k, struct equal_context *ctx)
+		       SgObject k, struct equal_context *ctx);
+static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
+		       SgObject k, struct equal_context *ctx);
+
+#ifdef _WIN32
+#define random rand
+#endif
+static SgObject eP(SgHashTable **pht, SgObject x, SgObject y, SgObject k,
+		   struct equal_context *ctx)
 {
+  ASSERT(SG_INTP(k));
+  if (SG_INT_VALUE(k) <= 0) {
+    if (k == ctx->kb) {
+      k = SG_MAKE_INT(random() % (2 * SG_INT_VALUE(ctx->k0)));
+      return fast_p(pht, x, y, k, ctx);
+    } else {
+      return slow_p(pht, x, y, k, ctx);
+    }
+  } else {
+    return fast_p(pht, x, y, k, ctx);
+  }
+}
+/* 
+   since (probably) VS2008 or earlier won't do tail recursion optiomisation,
+   so this equal? implementation would cause stack overflow. to avoid it as
+   much as possible, we do some manual tail recursion optiomisation. 
+   (using goto)
+*/
+#if defined(_MSC_VER) && _MSC_VER <= 1500
+# define FAST_ENTRY fast_entry:
+# define SLOW_ENTRY slow_entry:
+# define tail_eP(nx, ny, nk, ctx, fast_body, slow_body)			\
+  do {									\
+    /* change it */							\
+    x = (nx);								\
+    y = (ny);								\
+    k = (nk);								\
+    if (SG_INT_VALUE(k) <= 0) {						\
+      if ((k) == (ctx)->kb) {						\
+	(k) = SG_MAKE_INT(random() % (2 * SG_INT_VALUE(ctx->k0)));	\
+	fast_body;							\
+      } else {								\
+	slow_body;							\
+      }									\
+    } else {								\
+      fast_body;							\
+    }									\
+  } while (0)
+# define fast_tail_eP(pht, x, y, k, ctx)				\
+  tail_eP(x, y, k, ctx, goto fast_entry, slow_p(pht, x, y, k, ctx))
+# define slow_tail_eP(pht, x, y, k, ctx)				\
+  tail_eP(x, y, k, ctx, fast_p(pht, x, y, k, ctx), goto slow_entry)
+#else
+# define FAST_ENTRY		/* dummy */
+# define SLOW_ENTRY		/* dummy */
+# define fast_tail_eP(pht, x, y, k, ctx) return eP(pht, x, y, k, ctx)
+# define slow_tail_eP(pht, x, y, k, ctx) return eP(pht, x, y, k, ctx)
+#endif
+
+SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
+		SgObject k, struct equal_context *ctx)
+{
+  FAST_ENTRY;
   if (x == y) return k;
   if (SG_PAIRP(x)) {
     if (!SG_PAIRP(y)) {
@@ -373,7 +432,7 @@ static SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
     if (SG_FALSEP(k)) {
       return SG_FALSE;
     }
-    return k = eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
+    fast_tail_eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
   }
   if (SG_VECTORP(x)) {
     if (!SG_VECTORP(y)) {
@@ -523,9 +582,10 @@ static SgObject call_union_find(SgHashTable **pht, SgObject x,
   return union_find(*pht, x, y, ctx);
 }
 
-static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
-		       SgObject k, struct equal_context *ctx)
+SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
+		SgObject k, struct equal_context *ctx)
 {
+  SLOW_ENTRY;
   if (x == y) return k;
   if (SG_PAIRP(x)) {
     if (!SG_PAIRP(y)) {
@@ -539,7 +599,7 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
       if (SG_FALSEP(k)) {
 	return SG_FALSE;
       }
-      return eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
+      slow_tail_eP(pht, SG_CDR(x), SG_CDR(y), k, ctx);
     }
   }
   if (SG_VECTORP(x)) {
@@ -621,23 +681,6 @@ static SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
   } else {
     return SG_FALSE;
   }  
-}
-
-#ifdef _WIN32
-#define random rand
-#endif
-static SgObject eP(SgHashTable **pht, SgObject x, SgObject y, SgObject k, struct equal_context *ctx)
-{
-  ASSERT(SG_INTP(k));
-  if (SG_INT_VALUE(k) <= 0) {
-    if (k == ctx->kb) {
-      return fast_p(pht, x, y, SG_MAKE_INT(random() % (2 * SG_INT_VALUE(ctx->k0))), ctx);
-    } else {
-      return slow_p(pht, x, y, k, ctx);
-    }
-  } else {
-    return fast_p(pht, x, y, k, ctx);
-  }
 }
 
 static int interleave_p(SgObject x, SgObject y, SgObject k, struct equal_context *ctx)
