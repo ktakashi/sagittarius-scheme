@@ -2720,7 +2720,6 @@
   (define (expand-form form p1env) form)))
 
 (define (pass1/init-library lib)
-  ;; this means all but it is an error without export clause
   (library-exported-set! lib #f)
   (library-imported-set! lib '()))
 
@@ -2749,19 +2748,21 @@
 		   exported)))
   ;; TODO if we use delete! then collect-defines
   ;; we don't have to use lset-difference
-  (or (memq :all (library-exported lib))
-      (let* ((exports (except-imported lib))
-	     (diff    (collect-defines iforms exports)))
-	;; well i think this is lset-difference's bug but
-	;; if `exports` is shorter than `defines` and `defines`
-	;; have all names in `exports` then it returns '()
-	(or (null? diff)
-	    (if (vm-r6rs-mode?)
-		(error 'check-exports "attempt to export unbound variable(s)"
-		       diff lib)
-		(vm-warn (format 
-			  "attempt to export unbound variable(s) ~a at ~a"
-			  diff (library-name lib))))))))
+  (let ((exported (library-exported lib)))
+    (or (not exported)
+	(memq :all (car exported))
+	(let* ((exports (except-imported lib))
+	       (diff    (collect-defines iforms exports)))
+	  ;; well i think this is lset-difference's bug but
+	  ;; if `exports` is shorter than `defines` and `defines`
+	  ;; have all names in `exports` then it returns '()
+	  (or (null? diff)
+	      (if (vm-r6rs-mode?)
+		  (error 'check-exports "attempt to export unbound variable(s)"
+			 diff lib)
+		  (vm-warn (format 
+			    "attempt to export unbound variable(s) ~a at ~a"
+			    diff (library-name lib)))))))))
 
 (define (pass1/library form lib p1env)
   (define (finish iform save)

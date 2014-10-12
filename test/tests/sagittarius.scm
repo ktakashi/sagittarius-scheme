@@ -1480,22 +1480,27 @@
 
 ;; call #66
 (test-assert "toplevel macro expansion in library"
-	     (eval '(library (issue-66)
-			(export make-foo foo? foo-foo foo-bar)
-			(import (srfi :9))
-		      (define-record-type <foo>
-			(make-foo foo bar)
-			foo?
-			(foo foo-foo)
-			(bar foo-bar)))
-		   ;; need 'library syntax defined in (sagittarius)
-		   (environment '(sagittarius))))
+	     (r6rs:eval '(library (issue-66)
+			     (export make-foo foo? foo-foo foo-bar)
+			     (import (srfi :9))
+			   (define-record-type <foo>
+			     (make-foo foo bar)
+			     foo?
+			     (foo foo-foo)
+			     (bar foo-bar)))
+			;; need 'library syntax defined in (sagittarius)
+			(environment '(sagittarius))))
 
 ;; call #68
 (let ()
   (define (foo :key bar :allow-other-keys rest) rest)
   (test-equal ":allow-other-keys order"
 	      '(:a :b :c :d) (foo :a :b :c :d)))
+
+;; call #72
+(test-assert "no export in define-library"
+	     (r6rs:eval '(define-library (foo)) (environment '(sagittarius))))
+
 
 
 (test-end)
