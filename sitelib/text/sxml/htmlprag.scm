@@ -383,7 +383,7 @@
 		 (loop (append! (read-quoted in entities) res)))
 		((eqv? c #\>)
 		 (get-char in)
-		 (reverse res))
+		 (reverse! res))
 		((eqv? c #\<)
 		 (get-char in)
 		 (if (eqv? (lookahead-char in) #\!) (get-char in) #f)
@@ -410,7 +410,7 @@
 		    (cond ((eqv? #\[ nc)
 			   (get-char in)
 			   (let lp ((check '(#\C #\D #\A #\T #\A #\[))
-				    (acc '(#\[ #\! #\<)))
+				    (acc (list #\[ #\! #\<)))
 			     (cond ((null? check)
 				    (read-cdata in))
 				   ((and-let* ((c (lookahead-char in))
@@ -418,7 +418,7 @@
 					       ( (char-ci=? c (car check)) )))
 				    (lp (cdr check) (cons (get-char in) acc)))
 				   (else
-				    (list->string (reverse acc))))))
+				    (list->string (reverse! acc))))))
 			  (else
 			   (skip-whitespace in)
 			   (let ((nc (lookahead-char in)))
