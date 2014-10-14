@@ -639,4 +639,10 @@
  ;; html-2
 
  )
+
+;; additional material
+(test-equal "<p> inside of <div>" 
+	    `(,shtml-top-symbol (body (p (div (p)))))
+	    (html->shtml "<body><p><div><p></p></div></p></body>"))
+
 (test-end)

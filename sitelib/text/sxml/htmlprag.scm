@@ -669,7 +669,7 @@
 	;; we need to keep the second last one in case there is
 	;; something outside of <body> (broken HTML)
 	(cond ((and (not (null? (cdr store))) (null? (cddr store))) store)
-	      ((not name) store)
+	      ((not name) store) ;; should not reach this
 	      ((memq name parents) store)
 	      (else (merge-upto parents (cdr store))))))
     (define (finish-to name otokens)
@@ -697,10 +697,12 @@
 			  (slot (assq name constraints))
 			  (tokens (if slot
 				      (merge-upto (cdr slot) tokens)
-				      tokens))
-			  ;; it's merged
-			  (all tokens))
-		     (add-current all tokens token)
+				      tokens)))
+		     ;; we pass '() for all so that
+		     ;; the token is added to the current element.
+		     ;; parant constraints resolves the
+		     ;; <body><p><p><div></body> thing.
+		     (add-current '() tokens token)
 		     (if (memq name empty-elements)
 			 (loop (tokenizer) tokens tokens)
 			 (let ((new-tokens (cons token tokens)))
