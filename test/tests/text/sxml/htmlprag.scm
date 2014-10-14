@@ -12,8 +12,8 @@
      (let ((var val))
        (%htmlprag:testeez tests ...)))
     ((_ (test/equal name test expected) tests ...)
-     (begin 
-       (test-equal name expected test)
+     (begin
+       (test-equal 'test expected test)
        (%htmlprag:testeez tests ...)))
     ((_ test tests ...)
      (begin
