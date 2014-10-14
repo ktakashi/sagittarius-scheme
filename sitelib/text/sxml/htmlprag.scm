@@ -72,7 +72,8 @@
 	    (text parse)
 	    (srfi :1 lists)
 	    (srfi :13 strings)
-	    (srfi :14 char-sets))
+	    (srfi :14 char-sets)
+	    (srfi :39 parameters))
 
   ;; These are SXML specification
   (define shtml-comment-symbol '*COMMENT*)
@@ -752,6 +753,8 @@
 	       "unhandled foreign object in shtml attribute value"
 	       "unhandled foreign object in shtml")
 	   o))
+  ;; adding optional argument is a bit too inconvenient so it's a paramter
+  (define *writer-empty-elements* (make-parameter +default-empty-elements+))
   (define (write-shtml-as-html shtml
 			       :optional (out (current-output-port))
 					 (error-filer default-filter))
@@ -851,8 +854,7 @@
 		 entity)))
     (define (write-start start out)
       (define (write-content content)
-	;; FIXME should be parameter
-	(if (memq (car start) +default-empty-elements+)
+	(if (memq (car start) (*writer-empty-elements*))
 	    (put-string out " />")
 	    (begin
 	      (put-char out #\>)
