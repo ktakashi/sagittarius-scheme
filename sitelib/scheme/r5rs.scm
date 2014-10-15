@@ -48,6 +48,7 @@
 	    define-syntax delay
 	    denominator display
 	    do dynamic-wind
+	    else ;; not the standard one but need it.
 	    eof-object? eq?
 	    equal? eqv?
 	    eval even?
@@ -111,14 +112,15 @@
 	    vector? with-input-from-file
 	    with-output-to-file write
 	    write-char zero?)
-    (import (except (rnrs) write read)
+    ;; use R7RS let(rec)-syntax.
+    (import (except (rnrs) write read let-syntax letrec-syntax)
 	    (rnrs r5rs) 
 	    (rnrs mutable-pairs) 
 	    (rnrs mutable-strings)
 	    (scheme repl)
 	    (scheme write)
 	    (scheme read)
-	    (only (scheme base) char-ready?)
+	    (only (scheme base) char-ready? let-syntax letrec-syntax)
 	    (only (scheme eval) eval)
 	    (only (scheme load) load)))
 	    
