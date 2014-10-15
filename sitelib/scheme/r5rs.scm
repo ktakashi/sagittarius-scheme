@@ -106,6 +106,7 @@
 	    substring symbol->string
 	    symbol? tan
 	    truncate values
+	    unquote unquote-splicing ;; these 2 are not there but needed
 	    vector vector->list
 	    vector-fill! vector-length
 	    vector-ref vector-set!
