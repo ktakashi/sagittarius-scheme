@@ -106,7 +106,9 @@
 	    string=? string>=?
 	    string>? string?
 	    substring symbol->string
-	    symbol? tan
+	    symbol? 
+	    syntax-rules ;; again R7RS doesn't have but should I believe.
+	    tan
 	    truncate values
 	    unquote unquote-splicing ;; these 2 are not there but needed
 	    vector vector->list
