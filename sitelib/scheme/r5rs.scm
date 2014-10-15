@@ -5,7 +5,9 @@
 	    - /
 	    < <=
 	    = >
-	    >= abs
+	    >= 
+	    => ;; not on R7RS but we export
+	    abs
 	    acos and
 	    angle append
 	    apply asin
