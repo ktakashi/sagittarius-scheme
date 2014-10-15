@@ -118,14 +118,15 @@
 	    with-output-to-file write
 	    write-char zero?)
     ;; use R7RS let(rec)-syntax.
-    (import (except (rnrs) write read let-syntax letrec-syntax)
+    (import (except (rnrs) write read let-syntax letrec-syntax syntax-rules)
 	    (rnrs r5rs) 
 	    (rnrs mutable-pairs) 
 	    (rnrs mutable-strings)
 	    (scheme repl)
 	    (scheme write)
 	    (scheme read)
-	    (only (scheme base) char-ready? let-syntax letrec-syntax)
+	    (only (scheme base) char-ready? let-syntax letrec-syntax
+		  syntax-rules)
 	    (only (scheme eval) eval)
 	    (only (scheme load) load)))
 	    
