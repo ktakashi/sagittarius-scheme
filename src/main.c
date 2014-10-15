@@ -524,10 +524,10 @@ int main(int argc, char **argv)
   } else {
     /* only toplevel syntaxes such as import library and define-library */
     Sg_ImportLibraryFullSpec(vm->currentLibrary, SG_INTERN("(sagittarius)"),
-			     SG_LIST4(SG_INTERN("only"),
-				      SG_INTERN("import"),
-				      SG_INTERN("library"),
-				      SG_INTERN("define-library")));
+			     SG_LIST1(SG_LIST4(SG_INTERN("only"),
+					       SG_INTERN("import"),
+					       SG_INTERN("library"),
+					       SG_INTERN("define-library"))));
   }
   if (!SG_NULLP(preimport)) {
     SG_FOR_EACH(preimport, Sg_ReverseX(preimport)) {

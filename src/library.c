@@ -716,8 +716,8 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   slot = Sg_Cons(fromlib, SG_NIL);
   exportSpec = SG_LIBRARY_EXPORTED(fromlib);
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; importing library (from %S, to %S)\n"),
-	      SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to));
+    Sg_Printf(vm->logPort, UC(";; importing library from %S to %S: %S\n"),
+	      SG_LIBRARY_NAME(from), SG_LIBRARY_NAME(to), spec);
   }
   SG_LIBRARY_IMPORTED(tolib) = Sg_Acons(fromlib, spec,
 					SG_LIBRARY_IMPORTED(tolib));
