@@ -71,6 +71,17 @@ To install Sagittarius non default location, you need to specify
 
     % cmake . -DCMAKE_INSTALL_PREFIX=/path/to/install
 
+On some environment, there are 64 bits runtime specific directories such
+as `lib64`. To install Sagittarius runtime in the directory, then you
+can specify `LIB_DIR` variable as following;
+
+    % cmake . -DLIB_DIR=lib64
+
+Then the runtime install directoy will be `CMAKE_INSTALL_PREFIX/LIB_DIR`.
+There are also the variables to specify `bin`, `include` and `share` 
+directories, and the directory for the `.pc` files;
+`BIN_DIR`, `INCLUDE_DIR` `SHARE_DIR`, and `PKGCONFIG_DIR`, respectively.
+
 Since 0.5.6, Sagittarius's REPL is renamed to `sagittarius` and legacy
 `sash` is kept as a symbolic link. If you don't need the symbolic link
 then you can put the `INSTALL_SYMLINK` option off as following;
