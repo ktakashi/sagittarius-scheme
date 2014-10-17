@@ -8,6 +8,7 @@
 	(sagittarius vm)
 	(encoding decoder)
 	(srfi :1)
+	(srfi :39)
 	(srfi :64 testing))
 
 (define-syntax define-lambda
@@ -1500,6 +1501,10 @@
 ;; call #72
 (test-assert "no export in define-library"
 	     (r6rs:eval '(define-library (foo)) (environment '(sagittarius))))
+
+;; call #76
+(test-assert "parameter with transcoder" (make-parameter (native-transcoder)))
+(test-assert "parameter with codec" (make-parameter (utf-8-codec)))
 
 
 
