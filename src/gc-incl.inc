@@ -1,6 +1,6 @@
 /* gc-incl.inc                                      -*- mode:c; coding:utf-8 -*-
  *
- *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -44,4 +44,45 @@
 # endif
 #else
 # error "Sagittarius requires Boehm GC for now."
+#endif
+
+/* it's sort of GC related */
+
+/* I'm not sure how much performance impact we will get if we
+   make string/symbol/keyword GCable. But if we don't, we would
+   get huge memory leak. 
+   The impact would be when a symbol is GCed and re-created after
+   that, then the process first needs to lookup the weak hashtable
+   create a symbol then set it. Seems a bit of impact whilst if
+   we don't do, then it needs to do only lookup.
+
+   !!! Stability first, performance second !!!
+*/
+#define USE_WEAK_CONSTANT
+/* #define DEBUG_CONSTANT_COUNT */
+
+#if defined(DEBUG_CONSTANT_COUNT)
+# include "sagittarius/core.h"
+# if defined(USE_WEAK_CONSTANT)
+#  define DEFINE_DEBUG_DUMPER(type, table)				\
+  static void SG_CPP_CAT(type, _dumper)(void *data) {			\
+    fprintf(stderr, #type"% d\n", SG_WEAK_HASHTABLE_CORE(table)->entryCount); \
+  }
+# else
+#  define DEFINE_DEBUG_DUMPER(type, table)				\
+  static void SG_CPP_CAT(type, _dumper)(void *data) {			\
+    fprintf(stderr, #type"% d\n", SG_HASHTABLE_CORE(table)->entryCount); \
+  }
+# endif
+# define ADD_DEBUG_DUMPER(type) \
+  Sg_AddCleanupHandler(SG_CPP_CAT(type, _dumper), NULL)
+#else
+# define DEFINE_DEBUG_DUMPER(type, table) /* dummy */
+# define ADD_DEBUG_DUMPER(type)		 /* dummy */
+#endif
+
+#ifdef USE_WEAK_CONSTANT
+# define USE_WEAK_KEYWORD
+# define USE_WEAK_SYMBOL
+# define USE_WEAK_STRING
 #endif

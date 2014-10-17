@@ -39,6 +39,8 @@
 #include "sagittarius/writer.h"
 #include "sagittarius/builtin-keywords.h"
 
+#include "gc-incl.inc"
+
 static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgKeyword *k = SG_KEYWORD(obj);
@@ -54,9 +56,19 @@ static void keyword_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_KeywordClass, keyword_print);
 
+#ifdef USE_WEAK_KEYWORD
+# include "sagittarius/weak.h"
+# define Sg_HashTableRef Sg_WeakHashTableRef
+# define Sg_HashTableSet Sg_WeakHashTableSet
+#endif
+
 static struct
 {
+#ifdef USE_WEAK_KEYWORD
+  SgWeakHashTable *table;
+#else
   SgHashTable *table;
+#endif
   SgInternalMutex mutex;
 } keywords = { NULL };
 
@@ -104,11 +116,22 @@ SgObject Sg_GetKeyword(SgObject key, SgObject list, SgObject fallback)
 
 #include "builtin-keywords.c"
 
+DEFINE_DEBUG_DUMPER(keyword, keywords.table)
+
 void Sg__InitKeyword()
 {
   Sg_InitMutex(&keywords.mutex, FALSE);
+#ifdef USE_WEAK_KEYWORD
+  keywords.table = 
+    SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_STRING,
+						 SG_WEAK_BOTH,
+						 256, SG_FALSE));
+#else
   keywords.table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 256));
+#endif
   init_builtin_keywords();
+
+  ADD_DEBUG_DUMPER(keyword);
 }
 /*
   end of file

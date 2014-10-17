@@ -1,15 +1,14 @@
 ;; -*- scheme -*-
-#!compatible ;; for ypsilon
 (library (core)
     (export :all)
     (import :none)
-;; for Ypsilon
-  #!compatible
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h>
 	     <sagittarius/instruction.h>
-	     <sagittarius/builtin-symbols.h>))
+	     <sagittarius/builtin-symbols.h>
+	     ;; need this...
+	     "gc-incl.inc"))
 
   (define-cise-stmt assertion-violation
     ((_ who msg)
@@ -515,7 +514,14 @@
   (define-c-proc last-pair (lst) :constant Sg_LastPair)
 
   ;; 11.10 symbols
-  (define-c-proc symbol->string (z::<symbol>) :constant SG_SYMBOL_NAME)
+  (define-c-proc symbol->string (z::<symbol>) :constant 
+    (.if "defined(USE_WEAK_SYMBOL)"
+	 (result (SG_SYMBOL_NAME z))
+	 (if (SG_LITERAL_STRINGP (SG_SYMBOL_NAME z))
+	     (result (SG_SYMBOL_NAME z))
+	     ;; don't store it
+	     (result (Sg_CopyString (SG_SYMBOL_NAME z))))))
+
   (define-cise-stmt check-symbol
     ((_ name s)
      `(unless (SG_SYMBOLP ,s)

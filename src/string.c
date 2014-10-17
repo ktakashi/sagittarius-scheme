@@ -129,7 +129,17 @@ static SgString* make_string(int size)
   } while (0)
 
 static SgInternalMutex smutex;
-static SgHashTable *stable;
+
+#include "gc-incl.inc"
+
+#ifdef USE_WEAK_STRING
+# include "sagittarius/weak.h"
+# define Sg_HashTableRef Sg_WeakHashTableRef
+# define Sg_HashTableSet Sg_WeakHashTableSet
+static SgWeakHashTable *stable = NULL;
+#else
+static SgHashTable *stable = NULL;
+#endif
 
 static SgObject makestring(const SgChar *value, SgStringType flag, int length)
 {
@@ -519,7 +529,6 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
   return Sg_Substring(s, start, end);
 }
 
-
 #define STRING_HASH(hv, chars, size)				\
   do {								\
     int i_ = (size);						\
@@ -529,10 +538,19 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
     }								\
   } while (0)
 
+DEFINE_DEBUG_DUMPER(string, stable)
+
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
+#ifdef USE_WEAK_STRING
+  stable = Sg_MakeWeakHashTableSimple(SG_HASH_STRING, SG_WEAK_VALUE, 
+				      4096, SG_FALSE);
+#else
   stable = Sg_MakeHashTableSimple(SG_HASH_STRING, 4096);
+#endif
+
+  ADD_DEBUG_DUMPER(string);
 }
 
 /*
