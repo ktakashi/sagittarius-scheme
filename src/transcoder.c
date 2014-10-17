@@ -49,6 +49,7 @@
 
 static SgClass *trans_cpl[] = {
   SG_CLASS_TRANSCODER,
+  SG_CLASS_TOP,
   NULL
 };
 

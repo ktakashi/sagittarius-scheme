@@ -42,6 +42,7 @@
 
 static SgClass *codec_cpl[] = {
   SG_CLASS_CODEC,
+  SG_CLASS_TOP,
   NULL
 };
 
