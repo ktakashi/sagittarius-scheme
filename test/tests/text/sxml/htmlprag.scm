@@ -2,6 +2,7 @@
 #!nobacktrace
 (import (rnrs)
 	(text sxml htmlprag)
+	(srfi :39)
 	(srfi :64 testing))
 
 (define %htmlprag:a2c integer->char)
@@ -644,5 +645,16 @@
 (test-equal "<p> inside of <div>" 
 	    `(,shtml-top-symbol (body (p (div (p)))))
 	    (html->shtml "<body><p><div><p></p></div></p></body>"))
+
+;; converter
+(parameterize ((*shtml-entity-converter* integer->char))
+  (test-equal "&#1000" `(,shtml-top-symbol ,(string (integer->char 1000)))
+	      (html->shtml "&#1000"))
+  (test-equal "&#x9A" `(,shtml-top-symbol (& #x9A))
+	      (html->shtml "&#x9A")))
+
+(parameterize ((*shtml-entity-converter* (lambda (c) #f)))
+  (test-equal "&#65" `(,shtml-top-symbol (& 65))
+	      (html->shtml "&#65")))
 
 (test-end)

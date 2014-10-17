@@ -65,6 +65,9 @@
 	    html->shtml
 	    write-shtml-as-html
 	    shtml->html
+
+	    ;; extra parameters
+	    *shtml-entity-converter*
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -189,6 +192,11 @@
     (protocol (lambda (p)
 		(lambda ()
 		  (p #f #f)))))
+
+  (define (ascii->converter i) (and (<= 32 i 126) (integer->char i)))
+  ;; by default we keep original behaviour
+  (define *shtml-entity-converter* (make-parameter ascii->converter))
+
   (define (make-html-tokenizer in normalized?
 			       ;; resolving TODO from original htmlprag
 			       :optional (entities +default-entities+)
@@ -237,9 +245,10 @@
 
     (define (read-entity in entities)
       (define (conv/make-entity num)
-	(if (<= 32 num 126)
-	    (string (integer->char num))
-	    (make-shtml-entity num)))
+	(let ((c ((*shtml-entity-converter*) num)))
+	  (if (and c (char-set-contains? char-set:printing c))
+	      (string c)
+	      (make-shtml-entity num))))
       (get-char in)
       (cond ((eqv? (lookahead-char in) #\#)
 	     (get-char in)
