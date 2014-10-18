@@ -1,6 +1,6 @@
 #!/bin/sh
 
-SASH=${SASH:-"sash"}
+SASH=${SASH:-"sagittarius"}
 
 # merged from autogen.sh
 geninsn()

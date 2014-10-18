@@ -54,6 +54,11 @@ Or this command does the same;
 These commands generate C files from stub files and Scheme files respectively.
 This must be run *before* CMake command otherwise CMake process will fail.
 
+If you set the path to Sagittarius executable to the environment variable
+`SASH` with, then `dist.sh` will use that executable file.
+
+    % env SASH=/opt/bin/sagittarius ./dist.sh gen
+
 To clean the generated code, you need to execute following command;
 
     % ./dist.sh clean
