@@ -1506,6 +1506,25 @@
 (test-assert "parameter with transcoder" (make-parameter (native-transcoder)))
 (test-assert "parameter with codec" (make-parameter (utf-8-codec)))
 
-
+;; call #77
+;; test from Mosh
+(let ([only-once #t]
+      [v0 (vector 1 2 3 4 5 6)]
+      [cl '()]
+      [old-v1 #f])
+  (let ([v1 (vector-map
+	     (lambda (e)
+	      (call/cc
+	       (lambda (c)
+		(set! cl (cons c cl))
+		(* e e))))
+	     v0)])
+    (when only-once
+      (set! only-once #f)
+      (set! old-v1 v1)
+      ((car (reverse cl)) 'x))
+    (test-equal '#(1 2 3 4 5 6) v0)
+    (test-equal '#(1 4 9 16 25 36) old-v1)
+    (test-equal '#(x 4 9 16 25 36) v1)))
 
 (test-end)

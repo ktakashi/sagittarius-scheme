@@ -544,7 +544,7 @@ void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
 #ifdef USE_WEAK_STRING
-  stable = Sg_MakeWeakHashTableSimple(SG_HASH_STRING, SG_WEAK_VALUE, 
+  stable = Sg_MakeWeakHashTableSimple(SG_HASH_STRING, SG_WEAK_BOTH, 
 				      4096, SG_FALSE);
 #else
   stable = Sg_MakeHashTableSimple(SG_HASH_STRING, 4096);

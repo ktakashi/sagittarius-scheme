@@ -112,13 +112,10 @@
 ;; so make those tabulate/update! internal define for better performance.
 (define (vector-map proc vec . more)
   (define (vector-tabulate len proc)
-    (let ((vec (make-vector len)))
-      (let loop ((i 0))
-	(if (= i len)
-	    vec
-	    (begin
-	      (vector-set! vec i (proc i))
-	      (loop (+ i 1)))))))
+    (let loop ((i 0) (r '()))
+      (if (= i len)
+	  (list->vector (reverse! r))
+	  (loop (+ i 1) (cons (proc i) r)))))
   (if (null? more)
       (vector-tabulate (vector-length vec)
 		       (lambda (i) (proc (vector-ref vec i))))
