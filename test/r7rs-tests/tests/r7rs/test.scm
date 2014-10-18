@@ -176,6 +176,10 @@
 	    (else (display prefix) (write v))))
 
     (define (report-test-results)
+      (define (get-condition c)
+	(if (err? c)
+	    (err-err-c c)
+	    c))
       (if (null? failures)
 	  (begin
 	    (display "-- ")
@@ -189,7 +193,7 @@
 			(display "Expression:\n ")
 			(write (car t))
 			(display "\nResult:")
-			(write-result "\n " (cadr t))
+			(write-result "\n " (get-condition (cadr t)))
 			(display "\nExpected:")
 			(write-result "\n " (caddr t))
 			(display "\n\n"))

@@ -246,7 +246,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 
   if (weakness & SG_WEAK_KEY) {
     if (!Sg_HashCoreTypeToProcs(type, &wh->hasher, &wh->compare)) {
-      Sg_Error(UC("[internal error] Sg_MakeWeakHashTableSimple: unsupported type: %d"), type);
+      Sg_Error(UC("Sg_MakeWeakHashTableSimple: unsupported type: %d"), type);
     }
     /* wh->keyStore = Sg_MakeWeakVector(initSize); */
     Sg_HashCoreInitGeneral(&wh->core, weak_key_hash, weak_key_compare,
@@ -277,6 +277,7 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 				     (intptr_t)key, SG_DICT_GET);
   if (!e) return fallback;
   if (table->weakness & SG_WEAK_VALUE) {
+    /* get value first so that it won't be GCed */
     void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
     if (Sg_WeakBoxEmptyP((SgWeakBox*)e->value)) return table->defaultValue;
     ASSERT(val != NULL);
@@ -286,6 +287,25 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
   }
 }
 
+static SgObject weak_hashtable_delete(SgWeakHashTable *table,
+				      SgObject key)
+{
+  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
+				     (intptr_t)key, SG_DICT_DELETE);
+  if (e && e->value) {
+    if (table->weakness & SG_WEAK_VALUE) {
+      void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
+      if (!Sg_WeakBoxEmptyP((SgWeakBox*)e->value))
+	return SG_OBJ(val);
+      else
+	return SG_UNBOUND;
+    } else {
+      return SG_HASH_ENTRY_VALUE(e);
+    }
+  } else {
+    return NULL;
+  }
+}
 /* ugly solution for managing entry count of weak hash table. */
 static void key_finalizer(SgObject z, void *data)
 {
@@ -293,8 +313,45 @@ static void key_finalizer(SgObject z, void *data)
      so we want to decrease the entry count to avoid the unnecessary
      rehash operation.
    */
-  SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
-  Sg_WeakHashTableDelete(SG_WEAK_HASHTABLE(data), z);
+  SgWeakHashTable *table = SG_WEAK_HASHTABLE(data);
+  SgObject e = weak_hashtable_delete(table, z);
+  /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
+  if (e && SG_UNBOUNDP(e)) {
+    if ((table->weakness & SG_WEAK_VALUE) &&
+	(table->weakness & SG_WEAK_REMOVE)) {
+      Sg_UnregisterFinalizer(e);
+    }
+  }
+  /* it's gone so decrease count manually... */
+  if (!e) {
+    SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
+  }
+}
+
+typedef struct gc_value_rec 
+{
+  SgWeakHashTable *table;
+  intptr_t         key;
+} gc_value_t;
+
+static void value_finalizer(SgObject z, void *data)
+{
+  /* when key is gone, means the entry is gone.
+     so we want to decrease the entry count to avoid the unnecessary
+     rehash operation.
+  */
+  SgWeakHashTable *table = ((gc_value_t *)data)->table;
+  intptr_t key = ((gc_value_t *)data)->key;
+  SgObject e = weak_hashtable_delete(table, SG_OBJ(key));
+  /* in case */
+  /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
+  if (table->weakness & SG_WEAK_KEY) {
+    Sg_UnregisterFinalizer(SG_OBJ(key));
+  }
+  /* it's gone so decrease count manually... */
+  if (!e) {
+    SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
+  }
 }
 
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
@@ -305,6 +362,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 
   if (table->weakness & SG_WEAK_KEY) {
     proxy = (intptr_t)Sg_MakeWeakBox(key);
+    /* needed for managing entryCount... */
     Sg_RegisterFinalizer(key, key_finalizer, table);
   } else {
     proxy = (intptr_t)key;
@@ -321,6 +379,15 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 	return SG_OBJ(val);
       }
     }
+    if (table->weakness & SG_WEAK_REMOVE) {
+      gc_value_t *data = SG_NEW(gc_value_t);
+      if (e->value) {
+	Sg_UnregisterFinalizer(SG_OBJ(e->value));
+      }
+      data->table = table;
+      data->key = proxy;
+      Sg_RegisterFinalizer(value, value_finalizer, data);
+    }
     (void)SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
     return value;
   } else {
@@ -334,18 +401,23 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,
 				SgObject key)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_DELETE);
-  if (e && e->value) {
-    if (table->weakness & SG_WEAK_VALUE) {
-      void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
-      if (!Sg_WeakBoxEmptyP((SgWeakBox*)e->value))
-	return SG_OBJ(val);
-      else
-	return SG_UNBOUND;
-    } else {
-      return SG_HASH_ENTRY_VALUE(e);
+  /* remove finalizer */
+  SgObject v;
+  if (table->weakness & SG_WEAK_KEY) {
+    Sg_UnregisterFinalizer(key);
+  }
+  v = weak_hashtable_delete(table, key);
+  if (v) {
+    /* remove value finalizer if there is.
+       NOTE: if it's gone, then it's removed anyway
+     */
+    if (!SG_UNBOUNDP(v)) {
+      if ((table->weakness & SG_WEAK_VALUE) &&
+	  (table->weakness & SG_WEAK_REMOVE)) {
+	Sg_UnregisterFinalizer(v);
+      }
     }
+    return v;
   } else {
     return SG_UNBOUND;
   }
@@ -422,9 +494,12 @@ int Sg_WeakHashTableShrink(SgWeakHashTable *table)
   int count = 0;
   Sg_HashIterInit(SG_WEAK_HASHTABLE_CORE(table), &iter);
   while ((e = Sg_HashIterNext(&iter)) != NULL) {
+    /* feeling like this is actually useless.
+       if the weak key is gone, how could we delete
+       the entry? */
     if (table->weakness & SG_WEAK_KEY) {
       SgWeakBox *box = (SgWeakBox *)e->key;
-      if (Sg_WeakBoxEmptyP(box)) {
+      if (box && Sg_WeakBoxEmptyP(box)) {
 	Sg_WeakHashTableDelete(table, SG_OBJ(e->key));
 	count++;
 	continue;
@@ -432,7 +507,7 @@ int Sg_WeakHashTableShrink(SgWeakHashTable *table)
     }
     if (table->weakness & SG_WEAK_VALUE) {
       SgWeakBox *box = (SgWeakBox *)e->value;
-      if (Sg_WeakBoxEmptyP(box)) {
+      if (box && Sg_WeakBoxEmptyP(box)) {
 	Sg_WeakHashTableDelete(table, SG_OBJ(e->key));
 	count++;
 	continue;

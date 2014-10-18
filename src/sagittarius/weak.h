@@ -53,10 +53,16 @@ typedef struct SgWeakBoxRec SgWeakBox;
 
 #include "hashtable.h"
 
+/* This should not be part of enum. remove entry when the value is GCed */
+#define  SG_WEAK_REMOVE (1L<<2)
 typedef enum {
   SG_WEAK_KEY   = (1L<<0),
   SG_WEAK_VALUE = (1L<<1),
-  SG_WEAK_BOTH  = (SG_WEAK_KEY | SG_WEAK_VALUE)
+  SG_WEAK_BOTH  = (SG_WEAK_KEY | SG_WEAK_VALUE),
+  /* if key is removed then entry should be removed as well */
+  /* SG_WEAK_REMOVE_KEY = (SG_WEAK_REMOVE | SG_WEAK_KEY), */
+  SG_WEAK_REMOVE_VALUE = (SG_WEAK_REMOVE | SG_WEAK_VALUE),
+  SG_WEAK_REMOVE_BOTH  = (SG_WEAK_REMOVE | SG_WEAK_KEY | SG_WEAK_VALUE),
 } SgWeakness;
 
 typedef struct SgWeakHashTableRec

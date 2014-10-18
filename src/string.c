@@ -538,19 +538,24 @@ SgObject Sg_MaybeSubstring(SgString *s, int start, int end)
     }								\
   } while (0)
 
+#ifdef USE_WEAK_STRING
 DEFINE_DEBUG_DUMPER(string, stable)
+#endif
 
 void Sg__InitString()
 {
   Sg_InitMutex(&smutex, FALSE);
 #ifdef USE_WEAK_STRING
-  stable = Sg_MakeWeakHashTableSimple(SG_HASH_STRING, SG_WEAK_BOTH, 
+  /*  keys are refered by its values anyway */
+  stable = Sg_MakeWeakHashTableSimple(SG_HASH_STRING, SG_WEAK_REMOVE_VALUE, 
 				      4096, SG_FALSE);
 #else
   stable = Sg_MakeHashTableSimple(SG_HASH_STRING, 4096);
 #endif
 
+#ifdef USE_WEAK_STRING
   ADD_DEBUG_DUMPER(string);
+#endif
 }
 
 /*

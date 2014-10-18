@@ -92,6 +92,9 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
       return e;
     }
   }
+  /* TODO we probably want to immutable string
+     which is not mutable nor literal.
+   */
 #ifdef USE_WEAK_SYMBOL
   sname = name;
 #else
@@ -153,7 +156,7 @@ void Sg__InitSymbol()
   Sg_InitMutex(&obtable_mutax, FALSE);
 #ifdef USE_WEAK_SYMBOL
   obtable = SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_STRING,
-							 SG_WEAK_BOTH,
+							 SG_WEAK_REMOVE_VALUE,
 							 4096, SG_FALSE));
 #else
   obtable = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 4096));

@@ -124,7 +124,7 @@ void Sg__InitKeyword()
 #ifdef USE_WEAK_KEYWORD
   keywords.table = 
     SG_WEAK_HASHTABLE(Sg_MakeWeakHashTableSimple(SG_HASH_STRING,
-						 SG_WEAK_BOTH,
+						 SG_WEAK_REMOVE_VALUE,
 						 256, SG_FALSE));
 #else
   keywords.table = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_STRING, 256));

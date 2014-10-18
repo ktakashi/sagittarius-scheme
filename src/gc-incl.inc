@@ -66,12 +66,14 @@
 # if defined(USE_WEAK_CONSTANT)
 #  define DEFINE_DEBUG_DUMPER(type, table)				\
   static void SG_CPP_CAT(type, _dumper)(void *data) {			\
-    fprintf(stderr, #type"% d\n", SG_WEAK_HASHTABLE_CORE(table)->entryCount); \
+    fprintf(stderr, #type" %d (%d)\n",					\
+	    SG_WEAK_HASHTABLE_CORE(table)->entryCount,			\
+	    SG_WEAK_HASHTABLE_CORE(table)->bucketCount);		\
   }
 # else
 #  define DEFINE_DEBUG_DUMPER(type, table)				\
   static void SG_CPP_CAT(type, _dumper)(void *data) {			\
-    fprintf(stderr, #type"% d\n", SG_HASHTABLE_CORE(table)->entryCount); \
+    fprintf(stderr, #type" %d\n", SG_HASHTABLE_CORE(table)->entryCount); \
   }
 # endif
 # define ADD_DEBUG_DUMPER(type) \
@@ -84,5 +86,5 @@
 #ifdef USE_WEAK_CONSTANT
 # define USE_WEAK_KEYWORD
 # define USE_WEAK_SYMBOL
-# define USE_WEAK_STRING
+/* # define USE_WEAK_STRING */
 #endif
