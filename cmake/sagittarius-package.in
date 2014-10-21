@@ -1,4 +1,4 @@
-#!@CMAKE_INSTALL_PREFIX@/bin/sash
+#!@CMAKE_INSTALL_PREFIX@/@BIN_DIR@/sagittarius
 
 #!read-macro=sagittarius/regex
 (import (rnrs)
