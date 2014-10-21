@@ -4,12 +4,13 @@
 #define MyAppName "Sagittarius"
 #define MyAppVersion "@SAGITTARIUS_VERSION@"
 #define MyAppPublisher "Takashi Kato"
-#define MyAppURL "http://code.google.com/p/sagittarius-scheme/"
+#define MyAppURL "https://bitbucket.org/ktakashi/sagittarius-scheme/"
 #define MyAppExeName "sash.exe"
 #define BoehmGCVersion "@GC_VERSION@"
 #define BuiltDir "@CMAKE_RUNTIME_OUTPUT_DIRECTORY@"
 #define SrcDir   "@PROJECT_SOURCE_DIR@"
 #define BinDir   "@PROJECT_BINARY_DIR@"
+#define TargetArch "@SAGITTARIUS_ARCH@"
 
 [Setup]
 ; NOTE: The value of AppId uniquely identifies this application.
@@ -26,7 +27,7 @@ AppUpdatesURL={#MyAppURL}
 DefaultDirName={pf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 LicenseFile={#SrcDir}\Copyright
-OutputBaseFilename=setup_sagittarius_{#MyAppVersion}
+OutputBaseFilename=setup_sagittarius_{#MyAppVersion}{#TargetArch}
 Compression=lzma
 SolidCompression=yes
 ChangesAssociations=yes
@@ -34,12 +35,17 @@ ChangesAssociations=yes
 @SAGITTARIUS_INSTALLER_ARCH@
 
 [Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "japanese"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "en"; MessagesFile: "compiler:Default.isl"
+Name: "jp"; MessagesFile: "compiler:Languages\Japanese.isl"
+
+[CustomMessages]
+AdditionalRegistry=Registry association:
+jp.AdditionalRegistry=ƒŒƒWƒXƒgƒŠ‚É“o˜^‚·‚é:
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 Name: "quicklaunchicon"; Description: "{cm:CreateQuickLaunchIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 0,6.1
+Name: "registry"; Description: "{cm:AssocFileExtension, {#MyAppName}, .scm}"; GroupDescription: "{cm:AdditionalRegistry}"; Flags: unchecked
 
 [Files]
 Source: "{#BuiltDir}\sash.exe"; DestDir: "{app}"; DestName: "{#MyAppExeName}"; Flags: ignoreversion
@@ -75,10 +81,10 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Name: "{userappdata}\Microsoft\Internet Explorer\Quick Launch\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: quicklaunchicon
 
 [Registry]
-Root: HKCR; Subkey: ".scm"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName}"; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "{#MyAppName}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName} {#MyAppVersion}"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "{#MyAppName}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"
-Root: HKCR; Subkey: "{#MyAppName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"" %*"    
+Root: HKCR; Subkey: ".scm"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName}"; Flags: uninsdeletevalue; Tasks: registry
+Root: HKCR; Subkey: "{#MyAppName}"; ValueType: string; ValueName: ""; ValueData: "{#MyAppName} {#MyAppVersion}"; Flags: uninsdeletekey; Tasks: registry
+Root: HKCR; Subkey: "{#MyAppName}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#MyAppExeName},0"; Tasks: registry
+Root: HKCR; Subkey: "{#MyAppName}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"" %*"; Tasks: registry
 
 ;[Run]
 ;Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, "&", "&&")}}"; Flags: nowait postinstall skipifsilent
