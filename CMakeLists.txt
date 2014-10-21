@@ -411,7 +411,7 @@ ELSE()
   INSTALL(FILES ${PROJECT_SOURCE_DIR}/src/sagittarius.h
     DESTINATION ${INCLUDE_DIR})
   INSTALL(FILES ${PROJECT_BINARY_DIR}/sagittarius/config.h
-    DESTINATION ${INCLUDE_DIR})
+    DESTINATION ${INCLUDE_DIR}/sagittarius)
   INSTALL(DIRECTORY ${PROJECT_SOURCE_DIR}/src/sagittarius
     DESTINATION ${INCLUDE_DIR})
   # for different versions
