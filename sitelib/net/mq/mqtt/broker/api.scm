@@ -73,7 +73,8 @@
 	    (srfi :1)
 	    (srfi :18)
 	    (srfi :19)
-	    (srfi :26))
+	    (srfi :26)
+	    (util timer))
 
   ;; conditions
   ;; should we expose this?
@@ -98,34 +99,32 @@
     ((sessions    :init-form (make-string-hashtable))
      (topics      :init-form (make-string-hashtable))
      (cleaner-interval :init-keyword :cleaner-interval 
-		       :init-value 10)
-     cleaner-thread
+		       :init-value 10) ;; 10ms?
+     cleaner-timer
      (authentication-handler :init-keyword :authentication-handler
 			     :init-value #f)))
 
   (define-method initialize ((r <mqtt-broker-context>) initargs)
     (define (thunk)
-      (let loop ()
-	(thread-sleep! (~ r 'cleaner-interval))
-	(dolist (session (hashtable-values-list (~ r 'sessions)))
-	  (mutex-lock! (~ session 'lock))
-	  (and-let* ((until (~ session 'alive-until))
-		     ( (time? until) ))
-	    (when (time<? until (current-time))
-	      (set! (~ session 'alive-until) #f)
-	      ;; let client know it's closed
-	      (close-port (~ session 'port))))
-	  (mutex-unlock! (~ session 'lock)))
-	;; TODO maybe we want to check context state
-	;; so that we can terminate this thread
-	(loop)))
-    (set! (~ r 'cleaner-thread) (thread-start! (make-thread thunk)))
-    (call-next-method))
+      (dolist (session (hashtable-values-list (~ r 'sessions)))
+	(mutex-lock! (~ session 'lock))
+	(and-let* ((until (~ session 'alive-until))
+		   ( (time? until) ))
+	  (when (time<? until (current-time))
+	    (set! (~ session 'alive-until) #f)
+	    ;; let client know it's closed
+	    (close-port (~ session 'port))))
+	(mutex-unlock! (~ session 'lock))))
+    (call-next-method)
+    (let ((timer (make-timer)))
+      (timer-schedule! timer thunk 0 (~ r 'cleaner-interval))
+      (set! (~ r 'cleaner-timer) timer))
+    r)
 
   (define (make-mqtt-broker-context . opt)
     (apply make <mqtt-broker-context> opt))
   (define (mqtt-session-cleaner-stop! context)
-    (thread-terminate! (~ context 'cleaner-thread)))
+    (timer-cancel! (~ context 'cleaner-timer)))
 
   (define-class <mqtt-session> ()
     ((context :init-keyword :context)
@@ -250,7 +249,7 @@
 		      (hashtable-ref (~ context 'sessions) client-id #f))
 		 => (lambda (s) 
 		      ;; restore session with given port
-		      (set! (~ session 'port) in/out)
+		      (set! (~ s 'port) in/out)
 		      (values #f s)))
 		(else
 		 (values #t 

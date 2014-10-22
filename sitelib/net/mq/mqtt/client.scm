@@ -74,6 +74,8 @@
      (packets :init-form (make-bytevector #xFFFF 0))
      (callbacks :init-value '())
      (lock :init-form (make-mutex))))
+
+  (define (mqtt-connection? o) (is-a? o <mqtt-connection>))
      
   (define (open-mqtt-connection host port . opt)
     (let ((socket (make-client-socket host port)))
