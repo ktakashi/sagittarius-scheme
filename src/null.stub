@@ -292,8 +292,7 @@
   (define-c-proc real-part (r::<number>) :constant
     (cond ((SG_COMPLEXP r)
 	   (result (-> (SG_COMPLEX r) real)))
-	  ((SG_REALP r)
-	   (result (SG_MAKE_INT 0)))
+	  ((SG_REALP r) (result r))
 	  (else
 	   ;; never happen
 	   (wrong-type-of-argument-violation 'real-part "number required" r))))

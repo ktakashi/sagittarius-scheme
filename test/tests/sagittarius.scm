@@ -1527,4 +1527,9 @@
     (test-equal '#(1 4 9 16 25 36) old-v1)
     (test-equal '#(x 4 9 16 25 36) v1)))
 
+;; call #78...
+(test-equal "real-part 123" 123 (real-part 123))
+(test-equal "real-part 1.23" 1.23 (real-part 1.23))
+(test-equal "real-part 1/23" 1/23 (real-part 1/23))
+
 (test-end)
