@@ -42,5 +42,6 @@
 @include-section["utils/text/csv.scrbl"]
 @include-section["utils/text/html-lite.scrbl"]
 @include-section["utils/text/tree.scrbl"]
+@include-section["utils/timer.scrbl"]
 @include-section["utils/tlv.scrbl"]
 @include-section["utils/treemap.scrbl"]
