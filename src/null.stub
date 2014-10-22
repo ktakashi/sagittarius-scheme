@@ -111,7 +111,11 @@
   ;; = < > <= >=
   (define-c-proc = (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
-    (numcmp == Sg_NumCmp))
+    (loop (cond ((not (Sg_NumEq arg0 arg1)) (break))
+		((SG_NULLP rest) (result TRUE) (break))
+		(else (set! arg0 arg1)
+		      (set! arg1 (SG_CAR rest))
+		      (set! rest (SG_CDR rest))))))
   (define-c-proc < (arg0 arg1 :rest rest) ::<boolean> :constant
     (result FALSE)
     (numcmp < Sg_NumCmp))

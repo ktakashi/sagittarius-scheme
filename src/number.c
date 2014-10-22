@@ -2814,9 +2814,17 @@ int Sg_NumEq(SgObject x, SgObject y)
       return ((Sg_NumCmp(SG_COMPLEX(x)->real, SG_COMPLEX(y)->real) == 0)
 	      && (Sg_NumCmp(SG_COMPLEX(x)->imag, SG_COMPLEX(y)->imag) == 0));
     }
+    if (Sg_ZeroP(SG_COMPLEX(x)->imag)) {
+      return Sg_NumEq(SG_COMPLEX(x)->real, y);
+    }
     return FALSE;
   } else {
-    if (SG_COMPLEXP(y)) return FALSE;
+    if (SG_COMPLEXP(y)) {
+      if (Sg_ZeroP(SG_COMPLEX(y)->imag)) {
+	return Sg_NumEq(x, SG_COMPLEX(y)->real);
+      }
+      return FALSE;
+    }
     if (either_nan_p(x, y)) return FALSE;
     return (Sg_NumCmp(x, y) == 0);
   }

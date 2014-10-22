@@ -1532,4 +1532,7 @@
 (test-equal "real-part 1.23" 1.23 (real-part 1.23))
 (test-equal "real-part 1/23" 1/23 (real-part 1/23))
 
+;; call #79
+(test-assert "(apply = 1+1i 1+1i '())" (apply = 1+1i 1+1i '()))
+
 (test-end)
