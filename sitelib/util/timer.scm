@@ -152,7 +152,9 @@
     (let ((c (timer-next-id timer)))
       (timer-next-id-set! timer (+ c 1))
       c))
-
+  (define (check v msg)
+    (when (negative? v)
+      (error 'timer-schedule! msg v)))
   (define (current-time+millisecond msec)
     (let ((t (current-time)))
       (if (zero? msec)
@@ -160,6 +162,9 @@
 	  (let-values (((sec nsec) (milliseconds->sec&nano msec)))
 	    (let ((d (make-time time-duration nsec sec)))
 	      (add-duration t d))))))
+
+  (unless (time? first) (check first "negative delay"))
+  (check period "negative period")
 
   (mutex-lock! (timer-lock timer))
   (let* ((id (allocate-timer-id timer))

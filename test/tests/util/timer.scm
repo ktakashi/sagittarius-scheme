@@ -24,8 +24,8 @@
     (thread-sleep! 2)
     (test-assert "timer-remove!" (timer-remove! timer id))
     (test-assert "timer-exists? (2)" (not (timer-exists? timer id)))
-    ;; this may not be a good one
-    (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
+    ;; this depends on timing thing.
+    ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
     (test-assert "timer-cancel!" (timer-cancel! timer)))
   )
 
@@ -40,5 +40,12 @@
   (test-equal "error-handling" 'dummy handled)
   (test-assert "timer-cancel!" (timer-cancel! timer))
   )
+
+;; error case
+(let ((timer (make-timer)))
+  (test-error "timer-schedule! (negative first)" condition?
+	      (timer-schedule! timer (lambda () 1) -1))
+  (test-error "timer-schedule! (negative period)" condition?
+	      (timer-schedule! timer (lambda () 1) 0 -1)))
 
 (test-end)
