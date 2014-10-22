@@ -491,7 +491,15 @@ SgObject Sg_MakeRBTreeMap(SgTreeCompareProc *cmp)
 
 static int wrapped_compare(SgTreeMap *tm, intptr_t a, intptr_t b)
 {
-  SgObject r = Sg_Apply2(SG_OBJ(tm->data), SG_OBJ(a), SG_OBJ(b));
+  SgObject r;
+  if (SG_SUBRP(tm->data)) {
+    SgObject args[2];
+    args[0] = SG_OBJ(a);
+    args[1] = SG_OBJ(b);
+    r = SG_SUBR_FUNC(tm->data)(args, 2, SG_SUBR_DATA(tm->data));
+  } else {
+    r = Sg_Apply2(SG_OBJ(tm->data), SG_OBJ(a), SG_OBJ(b));
+  }
   if (SG_INTP(r)) return SG_INT_VALUE(r);
   Sg_Error(UC("compare returned non exact integer value %S"), r);
   return 0; 			/* dummy */
