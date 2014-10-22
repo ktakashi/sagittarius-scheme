@@ -1535,4 +1535,14 @@
 ;; call #79
 (test-assert "(apply = 1+1i 1+1i '())" (apply = 1+1i 1+1i '()))
 
+;; call #80
+(test-equal "vector-reverse!" 
+	    #(1 2 3 7 6 5 4 8 9 10)
+	    (vector-reverse! (vector 1 2 3 4 5 6 7 8 9 10) 3 7))
+(test-equal "bytevector-reverse!" 
+	    #vu8(1 2 3 7 6 5 4 8 9 10)
+	    (bytevector-reverse! (u8-list->bytevector 
+				  '(1 2 3 4 5 6 7 8 9 10))
+				  3 7))
+
 (test-end)

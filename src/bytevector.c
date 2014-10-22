@@ -158,10 +158,12 @@ void Sg_ByteVectorCopyX(SgByteVector *src, int srcStart,
 
 SgObject Sg_ByteVectorReverseX(SgByteVector *bv, int start, int end)
 {
-  int i, n = SG_BVECTOR_SIZE(bv), e;
+  int i, n = SG_BVECTOR_SIZE(bv), e, c;
   SG_CHECK_START_END(start, end, n);
 
-  for (i = start, e = end-1; i < end/2; i++, e--) {
+  n = (end-start)/2;
+
+  for (i = start, e = end-1, c = 0; c < n; i++, c++, e--) {
     uint8_t t = SG_BVECTOR_ELEMENT(bv, i);
     SG_BVECTOR_ELEMENT(bv, i) = SG_BVECTOR_ELEMENT(bv, e);
     SG_BVECTOR_ELEMENT(bv, e) = t;

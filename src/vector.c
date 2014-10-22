@@ -176,10 +176,12 @@ SgObject Sg_VectorConcatenate(SgObject vecList)
 SgObject Sg_VectorReverseX(SgObject vec, int start, int end)
 {
   SgObject t;
-  int i, n = SG_VECTOR_SIZE(vec), e;
+  int i, n = SG_VECTOR_SIZE(vec), e, c;
   SG_CHECK_START_END(start, end, n);
 
-  for (i = start, e = end-1; i < end/2; i++, e--) {
+  n = (end-start)/2;
+
+  for (i = start, e = end-1, c = 0; c < n; i++, c++, e--) {
     t = SG_VECTOR_ELEMENT(vec, i);
     SG_VECTOR_ELEMENT(vec, i) = SG_VECTOR_ELEMENT(vec, e);
     SG_VECTOR_ELEMENT(vec, e) = t;
