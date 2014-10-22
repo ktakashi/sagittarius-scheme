@@ -69,7 +69,7 @@
   (define-comparison (make-comparison=/< = <)
     (lambda (a b)
       (cond ((= a b) 0)
-	    ((< b a) -1)
+	    ((< a b) -1)
 	    (else 1))))
 
   (define-comparison (make-comparison=/> = >)
@@ -120,7 +120,7 @@
 	    (srfi :114 comparators comparisons)
 	    (only (scheme base) exact-integer?))
 
-  (define %undef (undefined))
+  (define-constant %undef (undefined))
 
   (define-syntax if3
     (syntax-rules ()
@@ -380,17 +380,18 @@
 	  (else (error "Invalid nan-handling specification" handling))))
       ;; Return an appropriately rounded number
       (define (rounded x symbol)
-	(cond
-	 ((procedure? symbol) (symbol x))
-	 ((eq? symbol 'round) (round x))
-	 ((eq? symbol 'ceiling) (ceiling x))
-	 ((eq? symbol 'floor) (floor x))
-	 ((eq? symbol 'truncate) (truncate x))
-	 (else (error "invalid rounding specification" symbol))))
+	(cond ((eq? symbol 'round) (round x))
+	      ((eq? symbol 'ceiling) (ceiling x))
+	      ((eq? symbol 'floor) (floor x))
+	      ((eq? symbol 'truncate) (truncate x))
+	      (else (error "invalid rounding specification" symbol))))
 
       ;; Return a number appropriately rounded to epsilon
       (define (rounded-to x epsilon symbol)
-	(rounded (/ x epsilon) symbol))
+	;; http://srfi.schemers.org/srfi-114/post-mail-archive/msg00003.html
+	(if (procedure? symbol)
+	    (symbol x epsilon)
+	    (rounded (/ x epsilon) symbol)))
 
       (let ((a-nan? (nan? a)) (b-nan? (nan? b)))
 	(cond ((and a-nan? b-nan?) 0)
@@ -454,11 +455,11 @@
 
   (define (make-vectorwise-hash hash length ref)
     (lambda (x)
-      (let loop ((index (- (length obj) 1)) (result 5381))
+      (let loop ((index (- (length x) 1)) (result 5381))
 	(if (zero? index)
 	    result
 	    (let* ((prod (mod (* result 33) +limit+))
-		   (sum (mod (+ prod (hash (ref obj index)) +limit+))))
+		   (sum (mod (+ prod (hash (ref x index)) +limit+))))
 	      (loop (- index 1) sum))))))
 
   (define (make-listwise-comparator test comparator nil? kar kdr)
