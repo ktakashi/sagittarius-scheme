@@ -1902,6 +1902,12 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
     /* how should we tread 0, for now break */
     if (SG_EQ(SG_MAKE_INT(0), result)) break;
     t = Sg_GetIntegerS64Clamp(result, SG_CLAMP_NONE, NULL);
+    if (t < 0) {
+      Sg_IOWriteError(SG_INTERN("put-bytevector"),
+		      Sg_Sprintf(UC("custom port write!"
+				    " exprected non negative integer")),
+		      result);
+    }
     written += t;
     c -= t;
   }

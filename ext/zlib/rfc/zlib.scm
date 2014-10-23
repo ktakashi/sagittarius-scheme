@@ -160,8 +160,8 @@
 								   (+ start i)))
 			    (set! current-pos (+ current-pos 1)))))
 		   (flush! in-buffer #f)
-		   (rec bv (+ start n) (- count n) n)))))
-	  (rec bv start count 0))
+		   (rec bv (+ start n) (- count n) (+ n diff))))))
+	(rec bv start count 0))
 
       (define (close)
 	(flush! in-buffer #t)
