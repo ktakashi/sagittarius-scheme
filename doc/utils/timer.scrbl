@@ -56,6 +56,14 @@ The returning value is an ID of scheduled task. This is needed for
 @code{timer-remove!} and @code{timer-exists?} procedures.
 }
 
+@define[Function]{@name{timer-reschedule!}
+ @args{timer timer-id first :optional (period 0)}}
+@desc{Reschedules the timer task associated with @var{timer-id} and 
+returns @var{timer-id}
+
+The @var{first} and @var{period} are the same as @code{timer-schedule!}.
+}
+
 @define[Function]{@name{timer-remove!} @args{timer id}}
 @desc{Removes given @var{id} task from the @var{timer}.}
 
