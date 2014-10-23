@@ -1887,7 +1887,7 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
   int bvsize = SG_BVECTOR_SIZE(bv);
   /* to avoid huge allocation, we use pre-allocated buffer to
      pass to the Scheme procedure. */
-  while (written != size) {
+  while (written < size) {
     int count = (c < bvsize)? (int)c: bvsize;
     int64_t t;
     memcpy(SG_BVECTOR_ELEMENTS(bv), v+written, count);

@@ -18,7 +18,7 @@
                              (current-date))
                       (make-x509-issuer '((C . "NL")))))
 
-(define server-socket (make-server-tls-socket "10000" (list cert)))
+(define server-socket (make-server-tls-socket "10001" (list cert)))
 
 (define (server-run)
   (let loop ()
@@ -43,7 +43,7 @@
 (define server-thread (thread-start! (make-thread server-run)))
 (thread-sleep! 2)
 
-(let ((client-socket (make-client-tls-socket "localhost" "10000")))
+(let ((client-socket (make-client-tls-socket "localhost" "10001")))
   (test-assert "tls-socket?"(tls-socket? client-socket))
   (test-equal "raw socket-send"
 	      (+ (string-length "hello") 2) ;; for \r\n
@@ -78,7 +78,7 @@
       ;; (close-port text-port)
       )))
 
-(let ((client-socket (make-client-tls-socket "localhost" "10000")))
+(let ((client-socket (make-client-tls-socket "localhost" "10001")))
   (tls-socket-nonblocking! client-socket)
   (test-equal "raw nonblocking socket-send"
 	      (+ (string-length "wait") 2)
