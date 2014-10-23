@@ -22,12 +22,13 @@ FOREACH (file ${files})
 ENDFOREACH(file)
 # uninstall symlink
 EXECUTE_PROCESS(
-  COMMAND @CMAKE_COMMAND@ -E remove "@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@"
+  COMMAND @CMAKE_COMMAND@ -E 
+  remove "$ENV{DESTDIR}@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@"
   OUTPUT_VARIABLE rm_out
   RESULT_VARIABLE rm_retval
   )
 IF(NOT ${rm_retval} EQUAL 0)
-  MESSAGE(FATAL_ERROR "Problem when removing \"@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@\"")
+  MESSAGE(FATAL_ERROR "Problem when removing \"$ENV{DESTDIR}@CMAKE_INSTALL_PREFIX@/bin/@LEGACY_SASH_NAME@\"")
 ENDIF()  
 
 MESSAGE(STATUS "Deleting Installed directries")
