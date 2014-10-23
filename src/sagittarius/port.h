@@ -286,10 +286,15 @@ typedef struct SgCustomPortRec
   /* custom port utility */
   int       type;		/* port type: binary or textual */
   /* these are for custom textual port */
-  SgChar   *buffer;		/* custom textual port buffer */
-  int       index;		/* buffer index */
-  int       size;		/* buffer size */
-  int       line;		/* line number */
+  union {
+    struct {
+      SgChar   *buffer;		/* custom textual port buffer */
+      int       index;		/* buffer index */
+      int       size;		/* buffer size */
+      int       line;		/* line number */
+    };
+    SgByteVector *binaryBuffer;	/* buffer for custom binary port */
+  };
   /* We share port interface */
   union {
     SgBinaryPort  *bport;

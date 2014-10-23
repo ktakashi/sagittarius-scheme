@@ -589,9 +589,9 @@
 			       inzip-filename central-extra "")))
 			   (else
 			    (put-bytevector compress-out buf 0 read)
-			    (lp (crc32 (if (< read bufsize)
-					   (bytevector-copy buf 0 read)
-					   buf)
+			    (lp (crc32 (if (= read bufsize)
+					   buf
+					   (bytevector-copy buf 0 read))
 				       crc) (+ n read))))))))))))
 
 

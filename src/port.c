@@ -1881,19 +1881,31 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
 					  int64_t size)
 {
   static const SgObject start = SG_MAKE_INT(0);
-  SgObject bv, result, count;
-
-  bv = Sg_MakeByteVectorFromU8Array(v, (int)size);
-
-  count = Sg_MakeIntegerFromS64(size);
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, start, count);
-  if (!SG_INTP(result)) {
-    Sg_IOWriteError(SG_INTERN("put-bytevector"),
-		    Sg_Sprintf(UC("custom port write!"
-				  " returned invalid value, %S"), result),
-		    result);
+  SgObject result;
+  SgByteVector *bv = SG_CUSTOM_PORT(self)->binaryBuffer;
+  int64_t written = 0, c = size;
+  int bvsize = SG_BVECTOR_SIZE(bv);
+  /* to avoid huge allocation, we use pre-allocated buffer to
+     pass to the Scheme procedure. */
+  while (written != size) {
+    int count = (c < bvsize)? (int)c: bvsize;
+    int64_t t;
+    memcpy(SG_BVECTOR_ELEMENTS(bv), v+written, count);
+    result = Sg_Apply3(SG_CUSTOM_PORT(self)->write, bv, 
+		       start, SG_MAKE_INT(count));
+    if (!SG_INTP(result)) {
+      Sg_IOWriteError(SG_INTERN("put-bytevector"),
+		      Sg_Sprintf(UC("custom port write!"
+				    " returned invalid value, %S"), result),
+		      result);
+    }
+    /* how should we tread 0, for now break */
+    if (SG_EQ(SG_MAKE_INT(0), result)) break;
+    t = Sg_GetIntegerS64Clamp(result, SG_CLAMP_NONE, NULL);
+    written += t;
+    c -= t;
   }
-  return Sg_GetIntegerS64Clamp(result, SG_CLAMP_NONE, NULL);
+  return written;
 }
 
 static int custom_close(SgObject self)
@@ -2093,7 +2105,7 @@ SgObject Sg_MakeCustomBinaryPort(SgString *id,
   c->setPosition = wrapSetPosition;
   c->close = close;
   c->ready = ready;
-  c->buffer = SG_UNDEF;
+  c->binaryBuffer = Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
 
   SG_PORT_VTABLE(z) = &custom_binary_table;
   z->impl.cport = c;
