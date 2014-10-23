@@ -20,6 +20,11 @@ The following describes how to use;
   (timer-cancel! timer))
 }
 
+A timer is kind of task queue running on a timer thread. Once it's started,
+then it waits until its queue is not empty or the first task reaches the
+configured time. The tasks are executed sequentially however its order is
+not reliable if there are multiple tasks queued on the same time.
+
 @define[Function]{@name{timer?} @args{obj}}
 @desc{Returns #t if @var{obj} is a timer object, otherwise #f.}
 
