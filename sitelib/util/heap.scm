@@ -324,7 +324,7 @@
     (define comp (~ heap 'compare))
     (define (do-nodes node root)
       (let loop ((cur node) (first #t))
-	(or (and cur (zero? (compare (~ cur 'key) key)) cur)
+	(or (and cur (zero? (comp (~ cur 'key) key)) cur)
 	    (and cur (or first (not (eq? cur node)))
 		 (loop (~ cur 'next) #f))
 	    ;; child if there is

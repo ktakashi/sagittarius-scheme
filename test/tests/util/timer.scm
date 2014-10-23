@@ -48,4 +48,18 @@
   (test-error "timer-schedule! (negative period)" condition?
 	      (timer-schedule! timer (lambda () 1) 0 -1)))
 
+;; reschedule
+
+(let ((a '()))
+  (define timer (timer-start! (make-timer)))
+  (define id (timer-schedule! timer (lambda () (set! a (cons 1 a))) 3000))
+  
+  (timer-schedule! timer (lambda () (set! a (cons 2 a))) 2000)
+  ;; reschedule
+  (timer-reschedule! timer id 1000 0)
+  (thread-sleep! 2.1) ;; wait 2 sec
+  ;; first one must be executed first so 2 1
+  (test-equal "reschedule" '(2 1) a)
+  )
+
 (test-end)
