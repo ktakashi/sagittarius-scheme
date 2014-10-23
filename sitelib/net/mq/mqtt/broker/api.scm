@@ -98,28 +98,9 @@
     ;; holds client ID and session object
     ((sessions    :init-form (make-string-hashtable))
      (topics      :init-form (make-string-hashtable))
-     (cleaner-interval :init-keyword :cleaner-interval 
-		       :init-value 10) ;; 10ms?
-     cleaner-timer
+     (cleaner-timer :init-form (timer-start! (make-timer)))
      (authentication-handler :init-keyword :authentication-handler
 			     :init-value #f)))
-
-  (define-method initialize ((r <mqtt-broker-context>) initargs)
-    (define (thunk)
-      (dolist (session (hashtable-values-list (~ r 'sessions)))
-	(mutex-lock! (~ session 'lock))
-	(and-let* ((until (~ session 'alive-until))
-		   ( (time? until) ))
-	  (when (time<? until (current-time))
-	    (set! (~ session 'alive-until) #f)
-	    ;; let client know it's closed
-	    (close-port (~ session 'port))))
-	(mutex-unlock! (~ session 'lock))))
-    (call-next-method)
-    (let ((timer (make-timer)))
-      (timer-schedule! timer thunk 0 (~ r 'cleaner-interval))
-      (set! (~ r 'cleaner-timer) timer))
-    r)
 
   (define (make-mqtt-broker-context . opt)
     (apply make <mqtt-broker-context> opt))
@@ -143,7 +124,9 @@
      (retain? :init-keyword :retain?)
      (qos     :init-keyword :qos)
      ;; lock
-     (lock    :init-form (make-mutex))))
+     (lock    :init-form (make-mutex))
+     ;; will be set
+     timer-id))
 
   (define (session-expired session)
     ;; TODO handling will topic
@@ -160,12 +143,11 @@
 	    #t ;; infinite
 	    (add-duration! (current-time)
 			   (make-time time-duration 0 keep-alive)))))
-    (mutex-lock! (~ session 'lock))
-    (unwind-protect
-	(if (~ session 'alive-until)
-	    (set! (~ session 'alive-until) (compute-period))
-	    (session-expired session))
-      (mutex-unlock! (~ session 'lock))))
+    (let ((next (compute-period)))
+      (when (time? next)
+	(timer-reschedule! (~ session 'context 'cleaner-timer)
+			   (~ session 'timer-id)
+			   next))))
 
   ;; we will delete them when QoS protocol is finished
   (define (allocate-packet-identifier session message)
@@ -191,6 +173,9 @@
   ;; (define (read-packet-identifier in) (get-unpack in "!S"))
   (define (read-application-data in)
     (let ((len (get-unpack in "!S"))) (get-bytevector-n in len)))
+
+  (define (session-cleaner context session)
+    (lambda () (session-invalidate! session)))
 
   (define (mqtt-broker-connect! context in/out)
     (define clean-session-bit 1)
@@ -267,6 +252,14 @@
 		   ( (authenticate user password) ))
 	  (let-values (((created? session) 
 			(make/retrieve-session client-id flag vh)))
+	    (when (or (not (slot-bound? session 'timer-id))
+		      (not (zero? (~ session 'keep-alive))))
+	      (set! (~ session 'timer-id)
+		    (timer-schedule! (~ context 'cleaner-timer)
+				     (session-cleaner context session)
+				     ;; what ever is fine it'll be updated
+				     ;; anyway. just need to be long enough
+				     1000)))
 	    (update-alive-until! session)
 	    (hashtable-set! (~ context 'sessions) client-id session)
 	    (send-conack 0 (not created?) session)
