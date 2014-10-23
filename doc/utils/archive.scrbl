@@ -115,7 +115,7 @@ Creates an archive output which represents the specified type of archive.
 @define[Method]{@name{create-entry} @args{archive-output file}}
 @desc{Creates an archive entry from the given @var{file}.}
 
-@define[Method]{@name{append-entry} @args{archive-output entry}}
+@define[Method]{@name{append-entry!} @args{archive-output entry}}
 @desc{Appends the given @var{entry} to @var{archive-output}.}
 
 @define[Method]{@name{finish!} @args{archive-output}}
