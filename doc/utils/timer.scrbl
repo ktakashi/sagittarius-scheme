@@ -35,8 +35,8 @@ timer stops when one of the tasks raised an error.
 @define[Function]{@name{timer-start!} @args{timer}}
 @desc{Starts the given @var{timer}.}
 
-@define[Function]{@name{timer-cancel!} @args{timer}}
-@desc{Stops the given @var{time}. }
+@define[Function]{@name{timer-stop!} @args{timer}}
+@desc{Stops the given @var{time}.
 
 NOTE: Once the timer is stopped, it is not reusable.}
 

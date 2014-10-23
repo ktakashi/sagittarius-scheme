@@ -26,7 +26,7 @@
     (test-assert "timer-exists? (2)" (not (timer-exists? timer id)))
     ;; this depends on timing thing.
     ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
-    (test-assert "timer-cancel!" (timer-cancel! timer)))
+    (test-assert "timer-stop!" (timer-stop! timer)))
   )
 
 (let* ((handled #f)
@@ -38,7 +38,7 @@
 					  (current-time))))
   (thread-sleep! 1)			;wait 
   (test-equal "error-handling" 'dummy handled)
-  (test-assert "timer-cancel!" (timer-cancel! timer))
+  (test-assert "timer-stop!" (timer-stop! timer))
   )
 
 ;; error case

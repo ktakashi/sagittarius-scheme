@@ -30,7 +30,7 @@
 
 (library (util timer)
     (export make-timer timer?
-	    timer-start! timer-cancel!
+	    timer-start! timer-stop!
 	    timer-schedule! timer-reschedule!
 	    timer-remove! timer-exists?)
     (import (rnrs)
@@ -143,7 +143,7 @@
   (thread-start! (timer-worker t))
   t)
 
-(define (timer-cancel! t)
+(define (timer-stop! t)
   (mutex-lock! (timer-lock t))
   (timer-done-set! t #t)
   (condition-variable-broadcast! (timer-waiter t))
