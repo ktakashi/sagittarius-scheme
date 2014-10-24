@@ -347,6 +347,7 @@ static void value_finalizer(SgObject z, void *data)
   /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
   if (key && (table->weakness & SG_WEAK_KEY)) {
     Sg_UnregisterFinalizer(SG_OBJ(key));
+    Sg_UnregisterDisappearingLink((void *)&((gc_value_t *)data)->key);
   }
   /* it's gone so decrease count manually... */
   if (!e) {
