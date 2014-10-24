@@ -236,8 +236,8 @@
 	  (set-asciiz rec (number->string chksum 8) 148 8))
       rec))
 
-  (define (make-header-record-from-file file)
-    (make-header-record file (file-mode-from-file file)
+  (define (make-header-record-from-file name file)
+    (make-header-record name (file-mode-from-file file)
 			;; FIXME these are dummy...
 			1000 1000
 			(if (file-directory? file)
@@ -252,8 +252,8 @@
 			;; device version??
 			#f #f))
 
-  (define (append-file tarport file)
-    (let ((header (make-header-record-from-file file)))
+  (define (append-file tarport file :key (entry-name #f))
+    (let ((header (make-header-record-from-file (or entry-name file) file)))
       (if (file-directory? file)
 	  (append-port tarport header (open-bytevector-input-port #vu8()))
 	  (call-with-input-file file

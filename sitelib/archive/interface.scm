@@ -79,6 +79,10 @@
   (define-generic append-entry!)
   (define-generic finish!)
 
+  ;; for convenience
+  (define-method create-entry ((out <archive-output>) file)
+    (create-entry out file file))
+
   ;; default doesn't do anything
   (define-method finish! ((in <archive-input>)) #t)
 
