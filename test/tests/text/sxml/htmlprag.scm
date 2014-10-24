@@ -1,7 +1,7 @@
 ;; -*- mode: scheme; coding: utf-8 -*-
 #!nobacktrace
 (import (rnrs)
-	(text sxml htmlprag)
+	(text sxml html-parser)
 	(srfi :39)
 	(srfi :64 testing))
 

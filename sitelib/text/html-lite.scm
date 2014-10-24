@@ -36,7 +36,8 @@
 	    ;; here I actually need to list up the exported procedures,
 	    ;; but sorry I'm lazy so I used (export ...) syntax...
 	    )
-    (import (rnrs) (sagittarius)
+    (import (rnrs)
+	    (sagittarius)
 	    (util port))
 
   (define (html-escape :optional (in (current-input-port)))
@@ -133,25 +134,22 @@
 	(string->symbol (format "html:~a" (identifier->symbol n))))
       (define (build specs)
 	(let loop ((specs specs) (r '()))
+	  (define (next spec name empty?)
+	    (loop (cdr specs)
+		  (cons* `(define ,name
+			    (make-html-element
+			     ',(identifier->symbol spec) ,empty?))
+			 `(export ,name)
+			 r)))
 	  (cond ((null? specs) (reverse! r))
 		((and (pair? (car specs)) (eqv? :empty (caar specs)))
 		 (let* ((spec (cadar specs))
 			(name (make-name spec)))
-		   (loop (cdr specs)
-			 (cons* `(define ,name
-				   (make-html-element 
-				    ',(identifier->symbol spec) #t))
-				`(export ,name)
-				r))))
+		   (next spec name #t)))
 		(else
 		 (let* ((spec (car specs))
 			(name (make-name spec)))
-		   (loop (cdr specs)
-			 (cons* `(define ,name
-				   (make-html-element
-				    ',(identifier->symbol spec) #f))
-				`(export ,name)
-				r)))))))
+		   (next spec name #f))))))
       (syntax-case x ()
 	((_ specs ...)
 	 #`(begin #,@(build #'(specs ...)))))))
