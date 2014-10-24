@@ -18,7 +18,7 @@ are followings;
 
 }
 
-@subsection{Constructors, predicates and accessors}
+@subsubsection{Constructors, predicates and accessors}
 
 @define[Class]{@name{<heap>}}
 @desc{A class of Fibonacci heap.}
