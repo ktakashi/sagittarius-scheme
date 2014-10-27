@@ -40,7 +40,7 @@
 	    (sagittarius object)
 	    (sagittarius process)
 	    (text html-lite) ;; for html-escape-string
-	    (text sxml htmlprag)
+	    (text sxml html-parser)
 	    (text sxml sxpath)
 	    (text sxml tools))
 

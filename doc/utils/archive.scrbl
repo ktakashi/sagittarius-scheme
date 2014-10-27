@@ -113,7 +113,23 @@ Creates an archive output which represents the specified type of archive.
 }
 
 @define[Method]{@name{create-entry} @args{archive-output file}}
-@desc{Creates an archive entry from the given @var{file}.}
+@desc{Creates an archive entry from the given @var{file}.
+
+For implementing user defined archive;
+
+This method is defined like following on the interface library:
+@codeblock{
+(define-method create-entry ((out <archive-output>) file)
+  (create-entry out file file))
+}
+So as long as it doesn't have to be distinguished, users don't have to
+implement this method.
+}
+
+@define[Method]{@name{create-entry} @args{archive-output entry-name file}}
+@desc{Creates an archive entry from the given @var{file}. The entry's name
+is @var{entry-name}. This is useful when users want to append entry with
+different name from file name.}
 
 @define[Method]{@name{append-entry!} @args{archive-output entry}}
 @desc{Appends the given @var{entry} to @var{archive-output}.}
@@ -243,4 +259,4 @@ implementation and it does nothing.
 Users can specialize the method for own archive input.
 }
 
-The other methods must implemented as it's described in above section.
+The other methods must be implemented as it's described in above section.

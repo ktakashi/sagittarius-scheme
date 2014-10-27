@@ -70,8 +70,8 @@
     (rlet1 r (extract-to-port (~ e 'input 'source) (~ e 'header) out)
       (set! (~ e 'input 'current) #f)))
 
-  (define-method create-entry ((out <tar-archive-output>) file)
-    (make <tar-archive-entry> :name file
+  (define-method create-entry ((out <tar-archive-output>) name file)
+    (make <tar-archive-entry> :name name
 	  :file file
 	  :type (if (and (file-exists? file) (file-directory? file))
 		    'directory
@@ -79,7 +79,7 @@
 
   (define-method append-entry! ((out <tar-archive-output>) 
 				(e <tar-archive-entry>))
-    (append-file (~ out 'sink) (~ e 'file)))
+    (append-file (~ out 'sink) (~ e 'file) :entry-name (~ e 'name)))
 
   (define-method finish! ((out <tar-archive-output>))
     (set! (~ out 'sink) #f))

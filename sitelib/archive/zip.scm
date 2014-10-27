@@ -84,8 +84,8 @@
 			      (~ e 'central) out)
       (set! (~ e 'input 'current) #f)))
 
-  (define-method create-entry ((out <zip-archive-output>) file)
-    (make <zip-archive-output-entry>
+  (define-method create-entry ((out <zip-archive-output>) name file)
+    (make <zip-archive-output-entry> :name name
       :file file
       :type (if (and (file-exists? file) (file-directory? file))
 		'directory
@@ -93,7 +93,8 @@
   
   (define-method append-entry! ((out <zip-archive-output>) 
 				(e <zip-archive-output-entry>))
-    (push! (~ out 'centrals) (append-file (~ out 'sink) (~ e 'file))))
+    (push! (~ out 'centrals) (append-file (~ out 'sink) (~ e 'file)
+					  :entry-name (~ e 'name))))
 
   (define-method finish! ((out <zip-archive-output>))
     (append-central-directory (~ out 'sink) (reverse! (~ out 'centrals)))

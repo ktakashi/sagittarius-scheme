@@ -512,24 +512,28 @@
   ;; returns a central-directory record. The port is positioned to
   ;; right after the file.
   (define (append-file out filename
-		       :key (compression-method compression-deflated))
+		       :key (compression-method compression-deflated)
+		       (entry-name #f))
     (let-values (((inzip-filename
                    date local-extra central-extra os-made-by
                    internal-attributes external-attributes)
                   (get-file-attributes filename)))
-      (if (file-directory? filename)
-	  (append-port out #f inzip-filename
-		       date local-extra central-extra os-made-by
-		       internal-attributes external-attributes
-		       :compression-method compression-method)
-	  (call-with-port (open-file-input-port filename)
-	    (lambda (p)
-	      (append-port out p
-			   inzip-filename
-			   date local-extra central-extra os-made-by
-			   internal-attributes external-attributes
-			   :compression-method compression-method))))))
-
+      ;; changing file name here
+      (let ((inzip-filename (if entry-name
+				(string-trim entry-name #\/)
+				inzip-filename)))
+	(if (file-directory? filename)
+	    (append-port out #f inzip-filename
+			 date local-extra central-extra os-made-by
+			 internal-attributes external-attributes
+			 :compression-method compression-method)
+	    (call-with-port (open-file-input-port filename)
+	      (lambda (p)
+		(append-port out p
+			     inzip-filename
+			     date local-extra central-extra os-made-by
+			     internal-attributes external-attributes
+			     :compression-method compression-method)))))))
 
   ;; Like append-file, except it takes a binary input port instead of
   ;; a file name, and you specify the attributes.

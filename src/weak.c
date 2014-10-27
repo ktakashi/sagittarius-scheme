@@ -345,8 +345,9 @@ static void value_finalizer(SgObject z, void *data)
   SgObject e = weak_hashtable_delete(table, SG_OBJ(key));
   /* in case */
   /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
-  if (table->weakness & SG_WEAK_KEY) {
+  if (key && (table->weakness & SG_WEAK_KEY)) {
     Sg_UnregisterFinalizer(SG_OBJ(key));
+    Sg_UnregisterDisappearingLink((void *)&((gc_value_t *)data)->key);
   }
   /* it's gone so decrease count manually... */
   if (!e) {
@@ -359,9 +360,9 @@ static void value_finalizer(SgObject z, void *data)
 #endif
 }
 
-SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
-			     SgObject key, SgObject value, int flags)
-{
+static SgObject weak_hashtable_set(SgWeakHashTable *table,
+				   SgObject key, SgObject value, int flags)
+{ 
   SgHashEntry *e;
   intptr_t proxy;
 
@@ -385,12 +386,21 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
       }
     }
     if (table->weakness & SG_WEAK_REMOVE) {
-      gc_value_t *data = SG_NEW(gc_value_t);
+      gc_value_t *data;
+      void *base = Sg_GCBase(key);
       if (e->value) {
-	Sg_UnregisterFinalizer(SG_OBJ(e->value));
+	/* not sure if we need this */
+	void *val = Sg_WeakBoxRef((SgWeakBox *)e->value);
+	if (!Sg_WeakBoxEmptyP((SgWeakBox *)e->value)) {
+	  Sg_UnregisterFinalizer(val);
+	}
       }
+      data = SG_NEW(gc_value_t);
       data->table = table;
-      data->key = proxy;
+      data->key = (intptr_t)key;
+      if (base) {
+	Sg_RegisterDisappearingLink((void *)&data->key, base);
+      }
       Sg_RegisterFinalizer(value, value_finalizer, data);
     }
     (void)SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
@@ -401,6 +411,18 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
     }
     return SG_HASH_ENTRY_SET_VALUE(e, value);
   }
+}
+
+
+SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
+			     SgObject key, SgObject value, int flags)
+{
+  SgObject r;
+  /* hope we don't have to disable */
+  /* GC_disable(); */
+  r = weak_hashtable_set(table, key, value, flags);
+  /* GC_enable(); */
+  return r;
 }
 
 SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,
