@@ -85,7 +85,7 @@ SgObject Sg_MakeHash(SgString *name)
   return SG_OBJ(hash);
 }
 
-int Sg_HashInit(SgObject algo)
+SgObject Sg_VMHashInit(SgObject algo)
 {
   if (SG_BUILTIN_HASH_P(algo)) {
     int index;
@@ -93,18 +93,19 @@ int Sg_HashInit(SgObject algo)
 	/* if it's initialized, we do not initialize it twice.
 	   I'm not sure if it's a good behaviour.
       */
-      return FALSE;
+      return SG_FALSE;
     }
     index = SG_BUILTIN_HASH(algo)->index;
     hash_descriptor[index].init(&SG_BUILTIN_HASH(algo)->state);
     SG_BUILTIN_HASH(algo)->initialized = TRUE;
+    return SG_TRUE;
   } else {
-    Sg_Apply1(SG_USER_HASH(algo)->init, algo);
+    /* should check by i'm lazy... */
+    return Sg_VMApply1(SG_USER_HASH(algo)->init, algo);
   }
-  return TRUE;
 }
 
-void Sg_HashProcess(SgObject algo, SgByteVector *in)
+SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in)
 {
   if (SG_BUILTIN_HASH_P(algo)) {
     if (!SG_BUILTIN_HASH(algo)->initialized) {
@@ -118,12 +119,19 @@ void Sg_HashProcess(SgObject algo, SgByteVector *in)
 	Sg_Error(UC("%A"), Sg_MakeStringC(error_to_string(err)));
       }
     }
+    return SG_UNDEF;
   } else {
-    Sg_Apply2(SG_USER_HASH(algo)->process, algo, in);
+    /* return value should be checked but i'm lazy... */
+    return Sg_VMApply2(SG_USER_HASH(algo)->process, algo, in);
   }
 }
 
-void Sg_HashDone(SgObject algo, SgByteVector *out)
+static SgObject return_out(SgObject result, void **data)
+{
+  return SG_OBJ(data[0]);
+}
+
+SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out)
 {
   if (SG_BUILTIN_HASH_P(algo)) {
     if (!SG_BUILTIN_HASH(algo)->initialized) {
@@ -137,8 +145,12 @@ void Sg_HashDone(SgObject algo, SgByteVector *out)
       }
     }
     SG_BUILTIN_HASH(algo)->initialized = FALSE;
+    return SG_OBJ(out);
   } else {
-    Sg_Apply2(SG_USER_HASH(algo)->done, algo, out);
+    void *d[1];
+    d[0] = SG_OBJ(out);
+    Sg_VMPushCC(return_out, d, 1);
+    return Sg_VMApply2(SG_USER_HASH(algo)->done, algo, out);
   }
 }
 

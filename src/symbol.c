@@ -92,19 +92,19 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
       return e;
     }
   }
-  /* TODO we probably want to immutable string
-     which is not mutable nor literal.
-   */
-#ifdef USE_WEAK_SYMBOL
-  sname = name;
-#else
   if (SG_LITERAL_STRINGP(name)) {
     sname = name;
   } else {
+    /* TODO we probably want to immutable string
+       which is not mutable nor literal.
+    */
+#ifdef USE_WEAK_SYMBOL
+    sname = Sg_CopyString(name);
+#else
     sname = Sg_MakeString(SG_STRING_VALUE(name), SG_LITERAL_STRING,
 			  SG_STRING_SIZE(name));
-  }
 #endif
+  }
   sym = make_symbol(sname, interned);
   if (!interned) return SG_OBJ(sym);
 

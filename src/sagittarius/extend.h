@@ -42,16 +42,16 @@ extern "C" {
   /* why did they change this... */
 # if defined(__x86_64__)
   extern int __data_start__[], __data_end__[], __bss_start__[], __bss_end__[];
-# define SG_INIT_EXTENSION(name)			\
+# define SG_INIT_EXTENSION(name)		\
   do {						\
     Sg_RegisterDL((void*)&__data_start__,	\
 		  (void*)&__data_end__,		\
-		  (void*)&__bss_start__,		\
+		  (void*)&__bss_start__,	\
 		  (void*)&__bss_end__);		\
   } while (0)
 # else
   extern int _data_start__[], _data_end__[], _bss_start__[], _bss_end__[];
-# define SG_INIT_EXTENSION(name)			\
+# define SG_INIT_EXTENSION(name)		\
   do {						\
     Sg_RegisterDL((void*)&_data_start__,	\
 		  (void*)&_data_end__,		\

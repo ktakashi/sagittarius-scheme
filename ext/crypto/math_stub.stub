@@ -55,13 +55,13 @@
 (define-c-proc make-hash-algorithm (name::<string>) :no-side-effect
   Sg_MakeHash)
 
-(define-c-proc hash-init! (h::<hash-algorithm>) ::<boolean> Sg_HashInit)
+(define-c-proc hash-init! (h::<hash-algorithm>) Sg_VMHashInit)
 
-(define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>) ::<void>
-  Sg_HashProcess)
+(define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>)
+  Sg_VMHashProcess)
 
-(define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>) ::<void>
-  Sg_HashDone)
+(define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>)
+  Sg_VMHashDone)
 
 (define-c-proc hash-size (h) :no-side-effect
   (unless (or (SG_HASH_P h) (SG_STRINGP h))

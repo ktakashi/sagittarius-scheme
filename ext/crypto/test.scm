@@ -266,14 +266,18 @@
 (test-assert "Verify with EMSA-PSS and MD5"
 	     (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
 		    (rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
-		    (em (sign rsa-sign-cipher valid-rsa-message :hash (hash-algorithm MD5))))
-	       (verify rsa-verify-cipher valid-rsa-message em :hash (hash-algorithm MD5))))
+		    (em (sign rsa-sign-cipher valid-rsa-message 
+			      :hash (hash-algorithm MD5))))
+	       (verify rsa-verify-cipher valid-rsa-message em 
+		       :hash (hash-algorithm MD5))))
 
 (test-assert "Verify with PKCS1-v1.5"
 	     (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
 		    (rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
-		    (em (sign rsa-sign-cipher valid-rsa-message :encode pkcs1-emsa-v1.5-encode)))
-	       (verify rsa-verify-cipher valid-rsa-message em :verify pkcs1-emsa-v1.5-verify)))
+		    (em (sign rsa-sign-cipher valid-rsa-message
+			      :encode pkcs1-emsa-v1.5-encode)))
+	       (verify rsa-verify-cipher valid-rsa-message em
+		       :verify pkcs1-emsa-v1.5-verify)))
 
 ;; Issue 21
 (test-assert "SOBER-128 prng"

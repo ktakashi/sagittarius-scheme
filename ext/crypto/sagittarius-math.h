@@ -139,9 +139,9 @@ SgObject Sg_VMReadRandomBytesX(SgObject prng, SgObject buf, int size);
 SgObject Sg_ReadSysRandom(int bits);
 
 SgObject Sg_MakeHash(SgString *name);
-int      Sg_HashInit(SgObject algo);
-void     Sg_HashProcess(SgObject algo, SgByteVector *in);
-void     Sg_HashDone(SgObject algo, SgByteVector *out);
+SgObject Sg_VMHashInit(SgObject algo);
+SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in);
+SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out);
 SgObject Sg_HashSize(SgObject algo);
 SgObject Sg_HashBlockSize(SgObject algo);
 SgObject Sg_HashOid(SgObject algo);

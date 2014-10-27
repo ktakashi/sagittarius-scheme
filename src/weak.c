@@ -352,6 +352,11 @@ static void value_finalizer(SgObject z, void *data)
   if (!e) {
     SG_WEAK_HASHTABLE_CORE(data)->entryCount--;
   }
+#if 0
+  else {
+    Sg_Printf(Sg_StandardErrorPort(), UC("%x, %S:%S\n"), table,key,z);
+  }
+#endif
 }
 
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
