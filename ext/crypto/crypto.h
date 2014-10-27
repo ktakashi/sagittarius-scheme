@@ -209,11 +209,11 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 				 SgObject key, SgObject iv, int rounds,
 				 SgObject padder, int ctr_mode);
 SgObject Sg_MakeCipher(SgObject spi);
-int      Sg_SuggestKeysize(SgCipher *cipher, int keysize);
+SgObject Sg_VMSuggestKeysize(SgCipher *cipher, int keysize);
 int      Sg_CipherBlockSize(SgCipher *cipher);
 
-SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data);
-SgObject Sg_Decrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data);
 
 SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt);
 SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,

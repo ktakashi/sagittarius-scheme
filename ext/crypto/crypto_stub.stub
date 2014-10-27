@@ -46,13 +46,12 @@
 				     spi '()))
   (result (Sg_MakeCipher spi)))
 
-(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) Sg_Encrypt)
+(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) Sg_VMEncrypt)
 
-(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) Sg_Decrypt)
+(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) Sg_VMDecrypt)
 
-(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>)
-  ::<fixnum> :no-side-effect
-  Sg_SuggestKeysize)
+(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) :no-side-effect
+  Sg_VMSuggestKeysize)
 
 ;; now it's generic
 ;;(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>

@@ -191,7 +191,13 @@ SgObject Sg_MakeCipher(SgObject spi)
   return SG_OBJ(c);
 }
 
-int Sg_SuggestKeysize(SgCipher *cipher, int keysize)
+static SgObject check_intp(SgObject result, void **data)
+{
+  if (SG_INTP(result)) return result;
+  else return SG_MAKE_INT(-1);
+}
+
+SgObject Sg_VMSuggestKeysize(SgCipher *cipher, int keysize)
 {
   SgObject spi = cipher->spi;
 
@@ -200,21 +206,17 @@ int Sg_SuggestKeysize(SgCipher *cipher, int keysize)
     if ((err = SG_BUILTIN_CIPHER_SPI(spi)->keysize(&keysize)) != CRYPT_OK) {
       Sg_Error(UC("Failed to get key size: %A"),
 	       Sg_MakeStringC(error_to_string(err)));
-      return -1;
+      return SG_MAKE_INT(-1);
     }
-    return keysize;
+    return SG_MAKE_INT(keysize);
   } else {
     /* must be others */
-    SgObject r;
     if (!SG_PROCEDUREP(SG_CIPHER_SPI(spi)->keysize)) {
       Sg_Error(UC("cipher does not support keysize %S"), cipher);
-      return -1;		/* dummy */
+      return SG_MAKE_INT(-1);	/* dummy */
     }
-    r = Sg_Apply1(SG_CIPHER_SPI(spi)->keysize, SG_MAKE_INT(keysize));
-    if (SG_INTP(r)) return SG_INT_VALUE(r);
-    else {
-      return -1;
-    }
+    Sg_VMPushCC(check_intp, NULL, 0);
+    return Sg_VMApply1(SG_CIPHER_SPI(spi)->keysize, SG_MAKE_INT(keysize));
   }
 }
 
@@ -230,10 +232,24 @@ int Sg_CipherBlockSize(SgCipher *cipher)
   }
 }
 
+static SgObject sym_after_padding(SgObject data, void **d)
+{
+  SgCipher *crypto = SG_CIPHER(d[0]);
+  SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
+  int len = SG_BVECTOR_SIZE(data);
+  SgObject ct = Sg_MakeByteVector(len, 0);
+  int err = spi->encrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(ct),
+			 len, &spi->skey);
+  if (err != CRYPT_OK) {
+    Sg_Error(UC("%A"), error_to_string(err));
+    return SG_UNDEF;		/* dummy */
+  }
+  return SG_OBJ(ct);
+}
+
 static SgObject symmetric_encrypt(SgCipher *crypto, SgByteVector *d)
 {
-  int len, err;
-  SgObject data = d, ct;	/* cipher text */
+  SgObject data = d;	/* cipher text */
   SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
 
   ASSERT(SG_BUILTIN_CIPHER_SPI_P(spi));
@@ -241,30 +257,38 @@ static SgObject symmetric_encrypt(SgCipher *crypto, SgByteVector *d)
   if (!SG_FALSEP(spi->padder)) {
     struct ltc_cipher_descriptor *desc = &cipher_descriptor[spi->cipher];
     int block_size = desc->block_length;
-    data = Sg_Apply3(spi->padder, data, SG_MAKE_INT(block_size), SG_TRUE);
+    void *d[1];
+    d[0] = crypto;
+    Sg_VMPushCC(sym_after_padding, d, 1);
+    return Sg_VMApply3(spi->padder, data, SG_MAKE_INT(block_size), SG_TRUE);
+  } else {
+    void *d[1];
+    d[0] = crypto;
+    return sym_after_padding(data, d);
   }
-  len = SG_BVECTOR_SIZE(data);
-  ct = Sg_MakeByteVector(len, 0);
-  err = spi->encrypt(SG_BVECTOR_ELEMENTS(data), SG_BVECTOR_ELEMENTS(ct),
-		     len, &spi->skey);
-  if (err != CRYPT_OK) {
-    Sg_Error(UC("%A"), error_to_string(err));
-    return SG_UNDEF;
-  }
-  return SG_OBJ(ct);
+}
+
+static SgObject pub_enc_after_padding(SgObject result, void **data)
+{
+  SgCipher *crypto = SG_CIPHER(data[0]);
+  return Sg_VMApply2(SG_CIPHER_SPI(crypto->spi)->encrypter, result, 
+		     SG_CIPHER_SPI(crypto->spi)->key);
 }
 
 static SgObject public_key_encrypt(SgCipher *crypto, SgByteVector *d)
 {
   SgObject data = d;
   if (!SG_FALSEP(SG_CIPHER_SPI(crypto->spi)->padder)) {
-    data = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->padder, data, SG_TRUE);
+    void *d[1];
+    d[0] = crypto;
+    Sg_VMPushCC(pub_enc_after_padding, d, 1);
+    return Sg_VMApply2(SG_CIPHER_SPI(crypto->spi)->padder, data, SG_TRUE);
   }
-  return Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->encrypter, data, 
+  return Sg_VMApply2(SG_CIPHER_SPI(crypto->spi)->encrypter, data, 
 		   SG_CIPHER_SPI(crypto->spi)->key);
 }
 
-SgObject Sg_Encrypt(SgCipher *crypto, SgByteVector *data)
+SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data)
 {
   if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
     return symmetric_encrypt(crypto, data);
@@ -291,25 +315,31 @@ static SgObject symmetric_decrypt(SgCipher *crypto, SgByteVector *data)
     struct ltc_cipher_descriptor *desc = &cipher_descriptor[spi->cipher];
     int block_size = desc->block_length;
     /* drop padding */
-    pt = Sg_Apply3(spi->padder, pt, SG_MAKE_INT(block_size), SG_FALSE);
+    return Sg_VMApply3(spi->padder, pt, SG_MAKE_INT(block_size), SG_FALSE);
   }
+  return pt;			/* just return the value */
+}
 
-  return pt;
+static SgObject pub_dec_after_decrypt(SgObject result, void **data)
+{
+  SgCipher *crypto = SG_CIPHER(data[0]);
+  if (!SG_FALSEP(SG_CIPHER_SPI(crypto->spi)->padder)) {
+    return Sg_VMApply2(SG_CIPHER_SPI(crypto->spi)->padder, result, SG_FALSE);
+  }
+  return result;
 }
 
 static SgObject public_key_decrypt(SgCipher *crypto, SgByteVector *data)
 {
-  SgObject d = SG_OBJ(data);
-  d = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->decrypter, d,
-		   SG_CIPHER_SPI(crypto->spi)->key);
-  if (!SG_FALSEP(SG_CIPHER_SPI(crypto->spi)->padder)) {
-    d = Sg_Apply2(SG_CIPHER_SPI(crypto->spi)->padder, d, SG_FALSE);
-  }
-  return d;
+  void *d[1];
+  d[0] = crypto;
+  Sg_VMPushCC(pub_dec_after_decrypt, d, 1);
+  return Sg_VMApply2(SG_CIPHER_SPI(crypto->spi)->decrypter, SG_OBJ(data),
+		     SG_CIPHER_SPI(crypto->spi)->key);
 }
 
 
-SgObject Sg_Decrypt(SgCipher *crypto, SgByteVector *data)
+SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data)
 {
   if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
     return symmetric_decrypt(crypto, data);
