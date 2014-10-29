@@ -388,8 +388,9 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   } while (EAI_AGAIN == ret);
 
   if (ret != 0) {
+    const char *msg = gai_strerror(ret);
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("get-addrinfo"), 
-	       Sg_GetLastErrorMessageWithErrorCode(ret),
+	       Sg_Utf8sToUtf32s(msg, strlen(msg)),
 	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
   }
