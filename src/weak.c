@@ -342,7 +342,13 @@ static void value_finalizer(SgObject z, void *data)
   */
   SgWeakHashTable *table = ((gc_value_t *)data)->table;
   intptr_t key = ((gc_value_t *)data)->key;
-  SgObject e = weak_hashtable_delete(table, SG_OBJ(key));
+  SgObject e;
+
+  e = Sg_WeakHashTableRef(table, SG_OBJ(key), NULL);
+  /* ok, it's still there, so delete it */
+  if (SG_EQ(e, z)) {
+    e = weak_hashtable_delete(table, SG_OBJ(key));
+  }
   /* in case */
   /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
   if (key && (table->weakness & SG_WEAK_KEY)) {
@@ -355,8 +361,8 @@ static void value_finalizer(SgObject z, void *data)
   }
 #if 0
   else {
-    Sg_Printf(Sg_StandardErrorPort(), UC("%x, %S:%S\n"), table,key,z);
-  }
+    Sg_Printf(Sg_StandardErrorPort(), UC("%x, %S, %S"), table,key,z);
+    fprintf(stderr, "[%p]\n", z);
 #endif
 }
 
@@ -379,7 +385,7 @@ static SgObject weak_hashtable_set(SgWeakHashTable *table,
 			   ? SG_DICT_GET: SG_DICT_CREATE);
   if (!e) return SG_UNBOUND;
   if (table->weakness & SG_WEAK_VALUE) {
-    if (flags & SG_HASH_NO_OVERWRITE && e->value) {
+    if (e->value && (flags & SG_HASH_NO_OVERWRITE)) {
       void *val = Sg_WeakBoxRef((SgWeakBox *)e->value);
       if (!Sg_WeakBoxEmptyP((SgWeakBox *)e->value)) {
 	return SG_OBJ(val);
@@ -403,7 +409,11 @@ static SgObject weak_hashtable_set(SgWeakHashTable *table,
       }
       Sg_RegisterFinalizer(value, value_finalizer, data);
     }
-    (void)SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
+    if (e->value) {
+      Sg_WeakBoxSet((SgWeakBox *)e->value, value);
+    } else {
+      (void)SG_HASH_ENTRY_SET_VALUE(e, Sg_MakeWeakBox(value));
+    }
     return value;
   } else {
     if (flags & SG_HASH_NO_OVERWRITE && e->value) {
