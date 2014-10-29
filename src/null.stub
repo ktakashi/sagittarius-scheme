@@ -3452,7 +3452,7 @@
   (define-c-proc eval (sexp env) Sg_VMEval)
 
   (define-c-proc environment (:rest spec) 
-    (result (Sg_Environment (Sg_MakeEvalLibrary) spec)))
+    (result (Sg_VMEnvironment (Sg_MakeEvalLibrary) spec)))
 
   ;; 17 mutable pairs
   (define-c-proc set-car! (o::<pair> v) ::<void> (inline SET_CAR)

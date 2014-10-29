@@ -744,25 +744,50 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
 
 static SgObject pass1_import = SG_UNDEF;
 
+static void init_pass1_import()
+{
+  SgLibrary *complib;
+  SgGloc *g;
+  Sg_LockMutex(&global_lock);
+  complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+  g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
+  if (SG_UNBOUNDP(g)) {
+    /* something wrong */
+    Sg_Panic("pass1/import was not found. loading error?");
+  }
+  pass1_import = SG_GLOC_GET(g);
+  Sg_UnlockMutex(&global_lock);
+}
+
+/* well this is actually not used, and i don't think will ever be used
+   but in case... */
 SgObject Sg_Environment(SgObject lib, SgObject spec)
 {
   if (SG_UNDEFP(pass1_import)) {
-    SgLibrary *complib;
-    SgGloc *g;
-    Sg_LockMutex(&global_lock);
-    complib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    g = Sg_FindBinding(complib, SG_INTERN("pass1/import"), SG_UNBOUND);
-    if (SG_UNBOUNDP(g)) {
-      /* something wrong */
-      Sg_Panic("pass1/import was not found. loading error?");
-    }
-    pass1_import = SG_GLOC_GET(g);
-    Sg_UnlockMutex(&global_lock);
+    init_pass1_import();
   }
   /* make spec look like import-spec */
   spec = Sg_Cons(SG_INTERN("import"), spec);
   Sg_Apply2(pass1_import, spec, lib);
   return lib;
+}
+
+static SgObject environment_cc(SgObject result, void **data)
+{
+  return SG_OBJ(data[0]);
+}
+
+SgObject Sg_VMEnvironment(SgObject lib, SgObject spec)
+{
+  void *data[1];
+  if (SG_UNDEFP(pass1_import)) {
+    init_pass1_import();
+  }
+  /* make spec look like import-spec */
+  spec = Sg_Cons(SG_INTERN("import"), spec);
+  data[0] = lib;
+  Sg_VMPushCC(environment_cc, data, 1);
+  return Sg_VMApply2(pass1_import, spec, lib);
 }
 
 static void print_frames(SgVM *vm);
