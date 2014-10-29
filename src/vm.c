@@ -1334,7 +1334,6 @@ static void save_cont_rec(SgVM *vm, int partialP)
       csave = save_a_cont(c);
       /* make the orig frame forwarded */
       if (prev) prev->prev = csave;
-
       prev = csave;
       tmp = c->prev;
       c->prev = csave;
@@ -1515,6 +1514,7 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
       vm->escapeData[1] = argframes[0];
       longjmp(vm->cstack->jbuf, 1);
     }
+    save_cont(vm);
   }
 
   handlers_to_call = throw_continuation_calculate_handlers(c, vm);
@@ -1940,32 +1940,28 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       POP_CONT();
       PC(vm) = prev_pc;
     } else {
-      /* FIXME
-	 if we don't handle this case properly, captured continuation
-	 within the custom port read/write procedure may causes infinite
-	 loop.
-	 Should we allow to do it?
-      */
-      /* check if the previous continuation is in the boundary.
-	 in that case, most likely the continuation is captured
-	 in Sg_Apply related functions and invoked the same way.
-	 Crossing more than 1 boundary is not allowed for now.
- 
-	 NOTE: the root continuation doesn't have cl register.
-	 see Sg_NewVM. or should we use fp == sp == stack to
-	 detect it?
-       */
-      SgContFrame *prev;
-      POP_CONT();		/* top frame is boundary so pop it */
-      prev =  vm->cont;
+      /* The VM's SP and FP registers are initialised as the same
+	 pointer, this causes call/cc save duplicated boundary mark
+	 and make it cyclic.
+	 e.g.) This would an error
+	   (import (rnrs) (srfi :18))
 
-      /* Sg_VMPrintFrame(); */
-      while (prev->cl) {
-	if (BOUNDARY_FRAME_MARK_P(prev)) {
-	  Sg_Error(UC("attempt to return to a continuation captured inside "
-		      "of C continuation."));
-	}
-	prev = prev->prev;
+	   (define (thunk) (guard (e (else (raise e))) (print 'ok)))
+	   (thread-join! (thread-start! (make-thread thunk)))
+
+	 Above case the last the second last frame's prev indicates
+	 the last frame as it should be, however the last frame's
+	 prev indicates the second last frame.
+	 To detect such situation, we need to allow cyclic boundaries. 
+         NOTE: a lot of things are depending on the behaviour so we
+	       can't change it...*/
+      /* TODO this check might be too naive */
+      if (vm->cont->prev && vm->cont->prev->prev && 
+	  vm->cont == vm->cont->prev->prev && vm->cont->prev == cstack.cont) {
+	POP_CONT();
+	PC(vm) = prev_pc;
+      } else {
+	Sg_Error(UC("attempt to return from C continuation boundary."));
       }
     }
     
