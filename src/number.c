@@ -3366,6 +3366,13 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
   SgObject mi = arg0;
   SgObject ma = arg0;
 
+  /* nan check */
+  if (Sg_NanP(arg0)) {
+    if (min) *min = arg0;
+    if (max) *max = arg0;
+    return;
+  }
+
   for (;;) {
     if (!SG_REALP(arg0))
       Sg_Error(UC("real number required, but got %S"), arg0);
@@ -3384,6 +3391,12 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
 	  *max = ma;
 	}
       }
+      return;
+    }
+    /* nan check */
+    if (Sg_NanP(SG_CAR(args))) {
+      if (min) *min = SG_CAR(args);
+      if (max) *max = SG_CAR(args);
       return;
     }
     if (!EXACTP(SG_CAR(args))) inexact = TRUE;

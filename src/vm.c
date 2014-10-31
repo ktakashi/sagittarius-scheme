@@ -629,20 +629,25 @@ SgObject Sg_VMCurrentLibrary()
   return Sg_VM()->currentLibrary;
 }
 
+static SgObject compiler = SG_UNDEF;
+static void init_compiler()
+{
+  SgObject compile_library;
+  SgGloc *g;
+  Sg_LockMutex(&global_lock);
+  compile_library=Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
+  g = Sg_FindBinding(compile_library, SG_INTERN("compile"), SG_FALSE);
+  compiler = SG_GLOC_GET(g);
+  Sg_UnlockMutex(&global_lock);
+}
+
 /* compiler */
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
-  static SgObject compiler = SG_UNDEF;
   SgObject r, save, usave, msave;
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
-    SgObject compile_library;
-    SgGloc *g;
-    Sg_LockMutex(&global_lock);
-    compile_library=Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
-    g = Sg_FindBinding(compile_library, SG_INTERN("compile"), SG_FALSE);
-    compiler = SG_GLOC_GET(g);
-    Sg_UnlockMutex(&global_lock);
+    init_compiler();
   }
   save = Sg_VM()->currentLibrary;
   usave = Sg_VM()->usageEnv;
@@ -673,6 +678,17 @@ SgObject Sg_Compile(SgObject o, SgObject e)
 #undef restore_vm
   return r;
 }
+
+/* I think making Sg_VMEval using Sg_VMPushCC wouldn't improve performance. 
+   NOTE: using Sg_VMPushCC on Sg_VMEval requires dynamic-wind. Thus, we need
+         to allocate bunch of subrs for each compilation. I believe this
+         is more expensive than creating continuation boundary.*/
+#if 0
+SgObject Sg_VMCompile(SgObject o, SgObject e)
+{
+  
+}
+#endif
 
 /* 
    env: library for now.
@@ -790,7 +806,7 @@ SgObject Sg_VMEnvironment(SgObject lib, SgObject spec)
   return Sg_VMApply2(pass1_import, spec, lib);
 }
 
-static void print_frames(SgVM *vm);
+static void print_frames(SgVM *vm, SgContFrame *cont);
 static void expand_stack(SgVM *vm);
 
 /* it does not improve performance */
@@ -1323,42 +1339,43 @@ static SgContFrame* save_a_cont(SgContFrame *c)
  */
 static void save_cont_rec(SgVM *vm, int partialP)
 {
-  SgContFrame *c = CONT(vm), *prev = NULL, *tmp;
+  SgContFrame *c = CONT(vm), *prev = NULL;
   SgCStack *cstk;
   SgContinuation *ep;
 
-  if (IN_STACK_P((SgObject*)c, vm)) {
-    do {
-      SgContFrame *csave;
-      if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
-      csave = save_a_cont(c);
-      /* make the orig frame forwarded */
-      if (prev) prev->prev = csave;
-      prev = csave;
-      tmp = c->prev;
-      c->prev = csave;
-      c->size = -1;
-      c = tmp;
-    } while (IN_STACK_P((SgObject*)c, vm));
+  if (!IN_STACK_P((SgObject*)c, vm)) return;
 
-    if (FORWARDED_CONT_P(vm->cont)) {
-      vm->cont = FORWARDED_CONT(vm->cont);
+  do {
+    SgContFrame *csave, *tmp;
+    if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
+    csave = save_a_cont(c);
+    /* make the orig frame forwarded */
+    if (prev) prev->prev = csave;
+
+    prev = csave;
+    tmp = c->prev;
+    c->prev = csave;
+    c->size = -1;
+    c = tmp;
+  } while (IN_STACK_P((SgObject*)c, vm));
+
+  if (FORWARDED_CONT_P(vm->cont)) {
+    vm->cont = FORWARDED_CONT(vm->cont);
+  }
+  for (cstk = vm->cstack; cstk; cstk = cstk->prev) {
+    if (FORWARDED_CONT_P(cstk->cont)) {
+      cstk->cont = FORWARDED_CONT(cstk->cont);
     }
-    for (cstk = vm->cstack; cstk; cstk = cstk->prev) {
-      if (FORWARDED_CONT_P(cstk->cont)) {
-	cstk->cont = FORWARDED_CONT(cstk->cont);
-      }
-    }
-    for (ep = vm->escapePoint; ep; ep = ep->prev) {
-      if (FORWARDED_CONT_P(ep->cont)) {
-	ep->cont = FORWARDED_CONT(ep->cont);
-      } 
-    }
-    for (ep = SG_VM_FLOATING_EP(vm); ep; ep = ep->floating) {
-      if (FORWARDED_CONT_P(ep->cont)) {
-	ep->cont = FORWARDED_CONT(ep->cont);
-      } 
-    }
+  }
+  for (ep = vm->escapePoint; ep; ep = ep->prev) {
+    if (FORWARDED_CONT_P(ep->cont)) {
+      ep->cont = FORWARDED_CONT(ep->cont);
+    } 
+  }
+  for (ep = SG_VM_FLOATING_EP(vm); ep; ep = ep->floating) {
+    if (FORWARDED_CONT_P(ep->cont)) {
+      ep->cont = FORWARDED_CONT(ep->cont);
+    } 
   }
 }
 
@@ -1537,7 +1554,7 @@ SgObject Sg_VMCallCC(SgObject proc)
 
 
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("continucation"));
+			 SG_MAKE_STRING("continuation"));
   return Sg_VMApply1(proc, contproc);
 }
 
@@ -1572,7 +1589,7 @@ SgObject Sg_VMCallPC(SgObject proc)
 
 
   contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("partial continucation"));
+			 SG_MAKE_STRING("partial continuation"));
   /* Remove the saved continuation chain */
   vm->cont = c;
   return Sg_VMApply1(proc, contproc);  
@@ -2226,9 +2243,8 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   return cont->prev;
 }
 
-static void print_frames(SgVM *vm)
+static void print_frames(SgVM *vm, SgContFrame *cont)
 {
-  SgContFrame *cont = CONT(vm);
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp - 1;
 
@@ -2269,9 +2285,14 @@ static void print_frames(SgVM *vm)
   Sg_Printf(vm->logPort, UC(";; 0x%x +---------------------------------------------+\n"), stack);
 }
 
+void Sg_VMPrintFrameFrom(SgContFrame *cont)
+{
+  print_frames(Sg_VM(), cont);
+}
+
 void Sg_VMPrintFrame()
 {
-  print_frames(Sg_VM());
+  print_frames(Sg_VM(), CONT(Sg_VM()));
 }
 
 #if PROF_INSN

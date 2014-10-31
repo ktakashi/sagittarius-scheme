@@ -1545,4 +1545,15 @@
 				  '(1 2 3 4 5 6 7 8 9 10))
 				  3 7))
 
+;; nan thing
+(test-assert "min with nan (0)" (nan? (min -inf.0 +nan.0)))
+(test-assert "min with nan (1)" (nan? (min +nan.0 -inf.0)))
+(test-assert "min with nan (2)" (nan? (min -inf.0 +nan.0 1)))
+(test-assert "min with nan (3)" (nan? (min 1 +nan.0 -inf.0)))
+
+(test-assert "max with nan (0)" (nan? (max +inf.0 +nan.0)))
+(test-assert "max with nan (1)" (nan? (max +nan.0 +inf.0)))
+(test-assert "max with nan (2)" (nan? (max +inf.0 +nan.0 1)))
+(test-assert "max with nan (3)" (nan? (max 1 +nan.0 +inf.0)))
+
 (test-end)
