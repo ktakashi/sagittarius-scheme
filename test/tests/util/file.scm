@@ -105,4 +105,21 @@
 (test-equal "build-path*(2)" (cond-expand (windows "a\\b") (else "a/b"))
 	    (build-path* "a" "b"))
 
+;; call #81
+(import (srfi :1) (srfi :18))
+(let ()
+  (define ls '(1 2 3))
+
+  (let ((ts (map (lambda (a) 
+		   (make-thread (lambda ()
+				  (let-values (((out file) 
+						(make-temporary-file)))
+				    (close-output-port out)
+				    file)))) ls)))
+    (map thread-start! ts)
+    (let ((files (map thread-join! ts)))
+      (delete-duplicates! files)
+      (test-equal "file count" 3 (length files))
+      (for-each delete-file files))))
+
 (test-end)
