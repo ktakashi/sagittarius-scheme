@@ -62,7 +62,6 @@
 	    (srfi :1 lists)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
-	    (srfi :18 multithreading)	; for thread-name...
 	    (srfi :26 cut)
 	    (srfi :38)
 	    (srfi :39 parameters)
@@ -147,7 +146,7 @@
   (define (make-temporary-file :optional (prefix "tmp"))
     (define (gen) 
       (string-append prefix 
-		     (format "~a" (thread-name (current-thread)))
+		     (symbol->string (gensym))
 		     (number->string (microsecond) 32)))
     (let loop ((file (gen)))
       (if (file-exists? file)
