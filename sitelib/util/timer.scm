@@ -35,6 +35,7 @@
 	    timer-remove! timer-exists?)
     (import (rnrs)
 	    (sagittarius) ;; for compare
+	    (sagittarius control) ;; unwind-protect
 	    (srfi :18)
 	    (srfi :19)
 	    (util heap))
@@ -65,11 +66,13 @@
 	  (mutable worker timer-worker %timer-worker-set!)
 	  (mutable next-id timer-next-id timer-next-id-set!)
 	  ;; tiemrs table
-	  (immutable active timer-active))
+	  (immutable active timer-active)
+	  )
   (protocol (lambda (p)
 	      (lambda ()
 		(p (make-heap task-compare) #f
-		   (make-mutex) (make-condition-variable)
+		   (make-mutex)
+		   (make-condition-variable)
 		   #f 1 (make-eqv-hashtable))))))
 
 ;; hmmmm, how many times I've written this type of macro...
@@ -78,8 +81,11 @@
     ((_ mutex cv)
      (wait-cv mutex cv #f))
     ((_ mutex cv timeout)
-     (when (mutex-unlock! mutex cv timeout)
-       (mutex-lock! mutex)))))
+     (let ((m mutex)
+	   (c cv)
+	   (to timeout))
+       (when (mutex-unlock! m c to)
+	 (mutex-lock! mutex))))))
 
 (define (milliseconds->sec&nano msec)
   (let ((sec (div msec 1000))
@@ -105,11 +111,12 @@
 		    (let ((first (heap-entry-value (heap-extract-min! queue))))
 		      ;; set running
 		      (timer-task-running-set! first #t)
+		      
+		      ;; here is not locked
 		      (mutex-unlock! (timer-lock t))
-		      ;; should we let it fail and break everything?
 		      (guard (e (error-handler (error-handler e))
-				(else (raise e)))
-			((timer-task-thunk first)))
+				 (else (raise e)))
+			 ((timer-task-thunk first)))
 		      (mutex-lock! (timer-lock t))
 		      (if (timer-task-running? first)
 			  (let ((p (timer-task-period first)))
@@ -211,11 +218,9 @@
 	    (else
 	     (if (timer-task-running? task)
 		 (timer-task-running-set! task #f)
-		 (begin
-		   ;;(timer-task-removed-set! task #t)
-		   (heap-delete! (timer-queue timer) 
-				 (make-key (timer-task-next task) task))
-		   (hashtable-delete! (timer-active timer) id)))
+		 (heap-delete! (timer-queue timer) 
+			       (make-key (timer-task-next task) task)))
+	     (hashtable-delete! (timer-active timer) id)
 	     (condition-variable-broadcast! (timer-waiter timer))
 	     (mutex-unlock! lock)
 	     #t)))))

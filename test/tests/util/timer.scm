@@ -17,12 +17,16 @@
 	       (integer? (timer-schedule! timer (lambda () 2) (current-time))))
 
   (let* ((ls '())
-	 (id (timer-schedule! timer (lambda () (set! ls (cons 'a ls)))
-			     0 1000)))
+	 (id (timer-schedule! timer 
+			      (lambda ()
+				(thread-sleep! 0.5) ;; remove timing issue
+				(set! ls (cons 'a ls)))
+			      0 500)))
     ;; run at least 3 times
     (test-assert "timer-exists? (1)" (timer-exists? timer id))
-    (thread-sleep! 2)
+    (thread-sleep! 1)
     (test-assert "timer-remove!" (timer-remove! timer id))
+    ;; (print (timer-exists? timer id))
     (test-assert "timer-exists? (2)" (not (timer-exists? timer id)))
     ;; this depends on timing thing.
     ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
@@ -36,7 +40,7 @@
   (test-assert "timer-schedule! (3)" 
 	       (integer? (timer-schedule! timer (lambda () (raise 'dummy))
 					  (current-time))))
-  (thread-sleep! 1)			;wait 
+  (thread-sleep! 0.1) ;; wait a bit
   (test-equal "error-handling" 'dummy handled)
   (test-assert "timer-stop!" (timer-stop! timer))
   )
@@ -52,12 +56,12 @@
 
 (let ((a '()))
   (define timer (timer-start! (make-timer)))
-  (define id (timer-schedule! timer (lambda () (set! a (cons 1 a))) 3000))
+  (define id (timer-schedule! timer (lambda () (set! a (cons 1 a))) 600))
   
-  (timer-schedule! timer (lambda () (set! a (cons 2 a))) 2000)
+  (timer-schedule! timer (lambda () (set! a (cons 2 a))) 400)
   ;; reschedule
-  (timer-reschedule! timer id 1000 0)
-  (thread-sleep! 2.1) ;; wait 2 sec
+  (timer-reschedule! timer id 300 0)
+  (thread-sleep! 0.5) ;; wait 500ms
   ;; first one must be executed first so 2 1
   (test-equal "reschedule" '(2 1) a)
   )
