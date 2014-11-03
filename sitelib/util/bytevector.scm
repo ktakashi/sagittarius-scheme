@@ -76,6 +76,7 @@
 	    align-bytevectors!
 	    )
     (import (rnrs)
+	    (rnrs mutable-strings)
 	    (sagittarius)
 	    (sagittarius control)
 	    (srfi :1 lists)
@@ -152,7 +153,7 @@
 	  (values r1 r2))
 	(values (if padding (padding bv) bv) #vu8()))))
 
-(define (bytevector->hex-string bv)
+(define (bytevector->hex-string bv :key (upper? #t))
 ;; this is not efficient...
 ;;   (define (fixup x)
 ;;     (if (= (string-length x) 1)
@@ -160,10 +161,24 @@
 ;; 	x))
 ;;   (string-concatenate (map (lambda (u8) (fixup (number->string u8 16)))
 ;; 			   (bytevector->u8-list bv)))
-  (call-with-string-output-port
-   (lambda (out)
-     (dotimes (i (bytevector-length bv))
-       (format out "~2,'0X" (bytevector-u8-ref bv i))))))
+;;   (let-values (((out extract) (open-string-output-port)))
+;;     (let ((fmt (if capital? "~2,'0X" "~2,'0x")))
+;;       (dotimes (i (bytevector-length bv))
+;; 	(format out fmt (bytevector-u8-ref bv i))))
+;;     (extract))
+  ;; this is the fastest
+  (define (hex->char i)
+    (cond ((< i 10) (integer->char (+ i 48)))   ;; + #\0
+	  (upper?   (integer->char (+ i 55)))   ;; + #\A - 10
+	  (else     (integer->char (+ i 87))))) ;; + #\a - 10
+  (let* ((len (bytevector-length bv))
+	 (str (make-string (* len 2))))
+    (dotimes (i len str)
+      (let* ((b (bytevector-u8-ref bv i))
+	     (hi (bitwise-arithmetic-shift (bitwise-and b #xF0) -4))
+	     (lo (bitwise-and b #x0F)))
+	(string-set! str (* i 2) (hex->char hi))
+	(string-set! str (+ (* i 2) 1) (hex->char lo))))))
 (define (hex-string->bytevector str)
   ;; make the same as following
   ;; (integer->bytevector (string->number str 16))
