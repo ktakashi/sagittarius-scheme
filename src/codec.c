@@ -94,17 +94,23 @@ static SgChar get_utf8_char(SgObject self, SgPort *port,
 		       int64_t size, ErrorHandlingMode mode,		\
 		       int checkBOM)					\
   {									\
-    uint8_t tmp[TMP_BUF_SIZE], *read_buf;				\
-    int64_t i, reading_size, read_size;					\
+    uint8_t read_buf[TMP_BUF_SIZE] = {0};				\
+    int64_t i=0, reading_size, read_size, rest = size, conved;		\
     reading_size = (calc);						\
     if (reading_size > TMP_BUF_SIZE) {					\
-      read_buf = SG_NEW_ATOMIC2(uint8_t *, reading_size);		\
-    } else {								\
-      read_buf = tmp;							\
+      reading_size = TMP_BUF_SIZE;					\
     }									\
-    read_size = Sg_ReadbUnsafe(port, read_buf, reading_size);		\
-    i = convertor(SG_CODEC(self), read_buf, read_size,			\
-		  buf, size, port, mode, checkBOM);			\
+    while (1) {								\
+      read_size = Sg_ReadbUnsafe(port, read_buf, reading_size);		\
+      if (read_size == 0) break;					\
+      conved = convertor(SG_CODEC(self), read_buf, read_size,		\
+			 buf+i, reading_size, port, mode, checkBOM);	\
+      i += conved;							\
+      if (read_size < reading_size) break;				\
+      if (size == i) break;						\
+      rest -= conved;							\
+      if (rest < reading_size) reading_size = rest;			\
+    }									\
     return i;								\
   }
 
