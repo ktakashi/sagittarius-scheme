@@ -1265,6 +1265,8 @@ static void trans_un_get_char(SgObject self, SgChar c)
 static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
 {
   int64_t offset = 0, readSize;
+  if (size == 0) return 0;	/* short cut */
+
   if (SG_TRANSCODED_PORT_BUFFER(self) != EOF) {
     buf[offset++] = SG_TRANSCODED_PORT_BUFFER(self);
     SG_TRANSCODED_PORT_BUFFER(self) = EOF;
@@ -2198,6 +2200,8 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
   SgObject s, result;
   int start;
   int64_t read = 0, offset = 0, i;
+  
+  if (size == 0) return 0;
 
   /* resolve buffer first */
   if (SG_CUSTOM_PORT(self)->buffer != NULL && 

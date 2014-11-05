@@ -1556,4 +1556,29 @@
 (test-assert "max with nan (2)" (nan? (max +inf.0 +nan.0 1)))
 (test-assert "max with nan (3)" (nan? (max 1 +nan.0 +inf.0)))
 
+;; call #82
+(let ()
+  (define (make-custom)
+    (define (read! s str count) count)
+    (define (close) #t)
+    (make-custom-textual-input-port "custom" read! #f #f close))
+  (test-equal "get-string-n with 0"
+	      ""
+	      (call-with-port (make-custom)
+		(lambda (in)
+		  (get-string-n in 0)))))
+
+(let ((file "get-string-n-0.tmp"))
+  ;; make it non empty file
+  (call-with-port (open-file-output-port file 
+					 (file-options no-fail) 
+					 (buffer-mode block)
+					 (native-transcoder)) 
+    (lambda (out) (put-string out "hoge")))
+  (test-equal "get-string-n with 0 (file)"
+	      ""
+	      (call-with-input-file file
+		(lambda (in) (get-string-n in 0))))
+  (delete-file file))
+
 (test-end)
