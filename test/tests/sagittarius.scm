@@ -1579,6 +1579,28 @@
 	      ""
 	      (call-with-input-file file
 		(lambda (in) (get-string-n in 0))))
+
+  ;; was i/o error
+  (test-equal "get-bytevector-n!"
+	      #vu8(0)
+	      (call-with-port (open-file-input-port file 
+						    (file-options no-fail)
+						    'none)
+		(lambda (in)
+		  (lookahead-u8 in)
+		  (let ((bv (make-bytevector 1 0)))
+		    (get-bytevector-n! in bv 0 0)
+		    bv))))
+  ;; was eof
+  (test-equal "get-bytevector-n! reading count"
+	      0
+	      (call-with-port (open-file-input-port file 
+						    (file-options no-fail)
+						    'none)
+		(lambda (in)
+		  (let ((bv (make-bytevector 1 0)))
+		    (get-bytevector-n! in bv 0 0)))))
+
   (delete-file file))
 
 (test-end)

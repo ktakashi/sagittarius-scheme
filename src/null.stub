@@ -1887,10 +1887,13 @@
     (check-non-negative-fixnum get-bytevector-n! start)
     (check-non-negative-fixnum get-bytevector-n! count)
     (check-fixnum-range get-bytevector-n! (SG_BVECTOR_SIZE bv)(+ start count)>=)
-    (let ((res::int64_t (Sg_Readb p (+ (SG_BVECTOR_ELEMENTS bv) start) count)))
-      (if (== res 0)
-	  (result SG_EOF)
-	  (result (SG_MAKE_INT res)))))
+    (if (== count 0)
+	(result (SG_MAKE_INT 0))
+	(let ((res::int64_t (Sg_Readb p (+ (SG_BVECTOR_ELEMENTS bv) start) 
+				      count)))
+	  (if (== res 0)
+	      (result SG_EOF)
+	      (result (SG_MAKE_INT res))))))
 
   ;; TODO this allocates memory twice.
   (define-c-proc get-bytevector-some (p::<port> :optional (reckless #f))

@@ -515,6 +515,7 @@ static int file_look_ahead_u8(SgObject self)
 static int64_t file_read_u8(SgObject self, uint8_t *buf, int64_t size)
 {
   int64_t result;
+  if (size == 0) return 0;
   if (SG_BINARY_PORT(self)->buffer) {
     result = file_read_from_buffer(self, buf, size);
   } else {
