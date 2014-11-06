@@ -1579,6 +1579,12 @@
 	      ""
 	      (call-with-input-file file
 		(lambda (in) (get-string-n in 0))))
+  (test-equal "get-string-n! with 0 (file)"
+	      0
+	      (call-with-input-file file
+		(lambda (in) 
+		  (let ((s (make-string 1 #\space)))
+		    (get-string-n! in s 0 0)))))
 
   ;; was i/o error
   (test-equal "get-bytevector-n!"
@@ -1601,6 +1607,26 @@
 		  (let ((bv (make-bytevector 1 0)))
 		    (get-bytevector-n! in bv 0 0)))))
 
+  (delete-file file))
+
+(let ((file "get-string-n-1.tmp"))
+  ;; make empty file
+  (call-with-port (open-file-output-port file 
+					 (file-options no-fail) 
+					 (buffer-mode block)
+					 (native-transcoder)) 
+    (lambda (out) #t))
+  (test-equal "get-string-n with 0 (file)"
+	      ""
+	      (call-with-input-file file
+		(lambda (in) (get-string-n in 0))))
+
+  (test-equal "get-string-n! with 0 (file)"
+	      0
+	      (call-with-input-file file
+		(lambda (in) 
+		  (let ((s (make-string 1 #\space)))
+		    (get-string-n! in s 0 0)))))
   (delete-file file))
 
 (test-end)
