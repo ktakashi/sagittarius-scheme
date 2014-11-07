@@ -2818,6 +2818,61 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
   return -1;			/* dummy */
 }
 
+SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle)
+{
+  volatile SgObject r = SG_UNDEF;
+  SgVM *vm = Sg_VM();
+  if (!SG_TEXTUAL_PORTP(port)) {
+    Sg_Error(UC("textual port required, but got %S"), port);
+  }
+  SG_PORT_LOCK_READ(port);
+  SG_UNWIND_PROTECT{
+    SgChar c = Sg_PeekcUnsafe(port);
+    if (c == EOF) r = SG_EOF;
+    else {
+      SgPort out;
+      SgTextualPort tp;
+      Sg_InitStringOutputPort(&out, &tp, 512);
+      while (1) {
+	c = Sg_GetcUnsafe(port);
+	if (c == EOF) break;
+	else {
+	  int eol = FALSE;
+	  switch (eolStyle) {
+	  case E_NONE:		/* check \n \r and \r\n */
+	    /* todo should we also check NEL, LS and CRNEL? */
+	    if (c == '\n') {
+	      eol = TRUE;
+	      break;
+	    }
+	    if (c == '\r') {
+	      eol = TRUE;
+	      if ('\n' == Sg_PeekcUnsafe(port)) {
+		Sg_GetcUnsafe(port);
+	      }
+	      break;
+	    }
+	  default:
+	    /* TODO multibyte EOL */
+	    if (c == (SgChar)eolStyle) {
+	      eol = TRUE;
+	    }
+	  }
+	  if (eol) break;
+	  Sg_PutcUnsafe(&out, c);
+	}
+      }
+      SG_PORT_UNLOCK_READ(port);
+      r = Sg_GetStringFromStringPort(&out);
+      SG_CLEAN_TEXTUAL_PORT(&tp);
+    }
+  } SG_WHEN_ERROR {
+    SG_PORT_UNLOCK_READ(port);
+    SG_NEXT_HANDLER;
+  } SG_END_PROTECT;
+  return r;
+}
+
 int Sg_HasPortPosition(SgPort *port)
 {
   return SG_PORT_VTABLE(port)->hasPortPosition &&

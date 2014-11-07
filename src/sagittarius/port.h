@@ -669,6 +669,8 @@ SG_EXTERN void     Sg_UnregisterBufferedPort(SgPort *port);
 
 /* misc */
 SG_EXTERN int      Sg_PortCaseInsensitiveP(SgPort *port);
+SG_EXTERN SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle);
+
 
 SG_CDECL_END
 

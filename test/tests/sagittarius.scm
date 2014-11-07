@@ -1640,4 +1640,18 @@
 		     (results '() (cons x results)))
 		    ((eof-object? x)
 		     (reverse results))))))
+
+;; read-line
+(let ()
+  (define (->port s) (open-string-input-port s))
+  (test-equal "read-line (1)" "abc" (read-line (->port "abc\rdef")))
+  (test-equal "read-line (2)" "abc" (read-line (->port "abc\ndef")))
+  (test-equal "read-line (3)" "abc" (read-line (->port "abc\r\ndef"))))
+
+(let ()
+  (define (->port s) (open-string-input-port s))
+  (test-equal "get-line (1)" "abc\rdef" (get-line (->port "abc\rdef")))
+  (test-equal "get-line (2)" "abc"      (get-line (->port "abc\ndef")))
+  (test-equal "get-line (3)" "abc\r"    (get-line (->port "abc\r\ndef"))))
+
 (test-end)
