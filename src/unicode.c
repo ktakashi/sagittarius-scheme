@@ -70,8 +70,8 @@ int Sg_Ucs4WhiteSpaceP(SgChar c)
   case 0x0085:    /*; White_Space # Cc       <control-0085> */
   case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
   case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
-    /* starting Unicode 6.3.0 this is Cf... */
-    /* case 0x180E: */    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
+  /* starting Unicode 6.3.0 this is Cf... */
+  /* case 0x180E: */    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
   case 0x2028:    /*; White_Space # Zl       LINE SEPARATOR */
   case 0x2029:    /*; White_Space # Zp       PARAGRAPH SEPARATOR */
   case 0x202F:    /*; White_Space # Zs       NARROW NO-BREAK SPACE */
@@ -94,7 +94,8 @@ int Sg_Ucs4IntralineWhiteSpaceP(SgChar c)
   switch (c) {
   case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
   case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
-  case 0x180E:    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
+  /* ditto */
+  /* case 0x180E: */    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
   case 0x202F:    /*; White_Space # Zs       NARROW NO-BREAK SPACE */
   case 0x205F:    /*; White_Space # Zs       MEDIUM MATHEMATICAL SPACE */
   case 0x3000:    /*; White_Space # Zs       IDEOGRAPHIC SPACE */

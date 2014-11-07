@@ -1629,4 +1629,15 @@
 		    (get-string-n! in s 0 0)))))
   (delete-file file))
 
+;; U+180E is not whitespace...
+(test-assert "Unicode 6.3.0 or later" (not (char-whitespace? #\x180E)))
+(test-error "Unicode 6.3.0 or later..."
+	    i/o-error?
+	    (let ()
+	      (define s (list->string '(#\" #\\ #\x180e #\")))
+	      (let ((in (open-string-input-port s)))
+		(do ((x (get-datum in) (get-datum in))
+		     (results '() (cons x results)))
+		    ((eof-object? x)
+		     (reverse results))))))
 (test-end)
