@@ -34,6 +34,7 @@
 #include "thread.h"
 #include "clos.h"
 #include "file.h"
+#include "vm.h"
 
 typedef enum SgFileLockType SgPortLockType;
 
@@ -329,8 +330,12 @@ struct SgPortRec
   unsigned int closed 	   : 1;
   unsigned int error  	   : 1;
   unsigned int reserved    : 30;
-  /* for some reason if we remove this then problem occurs... but why? */
-  unsigned int dummy;		/* remove this! */
+  /* using system lock is heavy so make it a bit lighter */
+  unsigned int readLockCount;
+  unsigned int writeLockCount;
+  SgVM        *readLockOwner;
+  SgVM        *writeLockOwner;
+
   readtable_t *readtable;
   SgObject     reader;
   SgObject     data;		/* alist of port data */
@@ -343,8 +348,7 @@ struct SgPortRec
      main component but it needs to have a way to make input/output
      port bidirectional.
    */
-  SgInternalMutex readLock;
-  SgInternalMutex writeLock;
+  SgInternalMutex lock;
 
   /* common methods */
   SgPortTable *vtbl;
@@ -406,25 +410,51 @@ struct SgPortRec
 #define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
 #define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
 
-#define SG_PORT_LOCK_READ(port)	  Sg_LockMutex(&(port)->readLock)
-#define SG_PORT_UNLOCK_READ(port) Sg_UnlockMutex(&(port)->readLock)
+/* from Gauche but we need to manage both read and write lock */
+#define SG_PORT_LOCK_REC(port, owner__, counter__)		\
+  do {								\
+    SgVM *vm = Sg_VM();						\
+    if ((port)-> owner__ != vm) {				\
+      SgVM *owner_;						\
+      Sg_LockMutex(&(port)->lock);				\
+      owner_ = (port)-> owner__;				\
+      if (owner_ == NULL					\
+	  || (owner_->threadState == SG_VM_TERMINATED)) {	\
+	(port)-> owner__ = vm;					\
+	(port)-> counter__ = 1;					\
+      }								\
+      Sg_UnlockMutex(&(port)->lock);				\
+    } else {							\
+      (port)-> counter__ ++;					\
+    }								\
+  } while (0)
 
-#define SG_PORT_LOCK_WRITE(port)			\
-  do {							\
-    if ((port)->direction == SG_BIDIRECTIONAL_PORT) {	\
-      Sg_LockMutex(&(port)->writeLock);			\
-    } else {						\
-      SG_PORT_LOCK_READ(port);				\
-    }							\
+#define SG_PORT_UNLOCK_REC(port, owner__, counter__)		\
+  do {								\
+    if (--(port)-> counter__ <= 0) (port)-> owner__ = NULL;	\
+  } while (0)
+
+#define SG_PORT_LOCK_READ(port)				\
+  SG_PORT_LOCK_REC(port, readLockOwner, readLockCount)
+#define SG_PORT_UNLOCK_READ(port)				\
+  SG_PORT_UNLOCK_REC(port, readLockOwner, readLockCount)
+
+#define SG_PORT_LOCK_WRITE(port)				\
+  do {								\
+      if ((port)->direction == SG_BIDIRECTIONAL_PORT) {		\
+	SG_PORT_LOCK_REC(port, writeLockOwner, writeLockCount);	\
+      } else {							\
+	SG_PORT_LOCK_READ(port);				\
+      }								\
   } while (0)
   
-#define SG_PORT_UNLOCK_WRITE(port)			\
-  do {							\
-    if ((port)->direction == SG_BIDIRECTIONAL_PORT) {	\
-      Sg_UnlockMutex(&(port)->writeLock);		\
-    } else {						\
-      SG_PORT_UNLOCK_READ(port);			\
-    }							\
+#define SG_PORT_UNLOCK_WRITE(port)				\
+  do {								\
+    if ((port)->direction == SG_BIDIRECTIONAL_PORT) {		\
+      SG_PORT_UNLOCK_REC(port, writeLockOwner, writeLockCount);	\
+    } else {							\
+      SG_PORT_UNLOCK_READ(port);				\
+    }								\
   } while (0)
 
 #define SG_INIT_PORT(port, d, t, m)			\
@@ -436,14 +466,14 @@ struct SgPortRec
     (port)->reader = SG_FALSE;				\
     (port)->closed = FALSE;				\
     (port)->data = SG_NIL;				\
-    Sg_InitMutex(&(port)->readLock, TRUE);		\
-    /* Sg_InitMutex(&(port)->writeLock, TRUE);	 */	\
+    (port)->readLockCount = 0;				\
+    (port)->readLockOwner = NULL;			\
+    (port)->writeLockCount = 0;				\
+    (port)->writeLockOwner = NULL;			\
+    Sg_InitMutex(&(port)->lock, TRUE);			\
   } while (0)
 
-#define SG_INIT_WRITE_LOCK(port)			\
-  do {							\
-    Sg_InitMutex(&(port)->writeLock, TRUE);		\
-  } while (0)
+#define SG_INIT_WRITE_LOCK(port) /* do nothing */
 
 #define SG_INIT_BINARY_PORT(bp, t)		\
   do {						\
@@ -463,10 +493,7 @@ struct SgPortRec
 
 #define SG_CLEAN_PORT_LOCK(port)			\
   do {							\
-    Sg_DestroyMutex(&(port)->readLock);			\
-    if ((port)->direction == SG_BIDIRECTIONAL_PORT) {	\
-      Sg_DestroyMutex(&(port)->writeLock);		\
-    }							\
+    Sg_DestroyMutex(&(port)->lock);			\
   } while (0)
 
 /* for GC friendliness */

@@ -70,7 +70,8 @@ int Sg_Ucs4WhiteSpaceP(SgChar c)
   case 0x0085:    /*; White_Space # Cc       <control-0085> */
   case 0x00A0:    /*; White_Space # Zs       NO-BREAK SPACE */
   case 0x1680:    /*; White_Space # Zs       OGHAM SPACE MARK */
-  case 0x180E:    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
+    /* starting Unicode 6.3.0 this is Cf... */
+    /* case 0x180E: */    /*; White_Space # Zs       MONGOLIAN VOWEL SEPARATOR */
   case 0x2028:    /*; White_Space # Zl       LINE SEPARATOR */
   case 0x2029:    /*; White_Space # Zp       PARAGRAPH SEPARATOR */
   case 0x202F:    /*; White_Space # Zs       NARROW NO-BREAK SPACE */
@@ -810,6 +811,11 @@ GeneralCategory Sg_CharGeneralCategory(SgChar ch)
   }
 #endif
   SgObject c;
+  /* !!!fuck!!! 
+     seems starting Unicode 6.0, U+180E is Cf however this must be
+     space separator (Zs). I have no idea why they changed the
+     category. but it's better
+   */
   c = Sg_HashTableRef(general_category, SG_MAKE_CHAR(ch), SG_FALSE);
   if (!SG_FALSEP(c)) {
     return SG_INT_VALUE(c);
