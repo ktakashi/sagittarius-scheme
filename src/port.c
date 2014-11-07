@@ -2483,39 +2483,59 @@ void Sg_FlushAllPort(int exitting)
   }
 }
 
+#define SAFE_READ_CALL(p, call)			\
+  do {						\
+    SG_UNWIND_PROTECT {				\
+      call;					\
+    } SG_WHEN_ERROR {				\
+      SG_PORT_UNLOCK_READ(p);			\
+      SG_NEXT_HANDLER;				\
+    } SG_END_PROTECT;				\
+  } while (0)
+
+#define SAFE_WRITE_CALL(p, call)		\
+  do {						\
+    SG_UNWIND_PROTECT {				\
+      call;					\
+    } SG_WHEN_ERROR {				\
+      SG_PORT_UNLOCK_WRITE(p);			\
+      SG_NEXT_HANDLER;				\
+    } SG_END_PROTECT;				\
+  } while (0)
+
 
 int Sg_Getb(SgPort *port)
 {
-  int b;
+  int b = -1;
   SG_PORT_LOCK_READ(port);
-  b = Sg_GetbUnsafe(port);
+  SAFE_READ_CALL(port, b = Sg_GetbUnsafe(port));
   SG_PORT_UNLOCK_READ(port);
   return b;
 }
 
 int Sg_Peekb(SgPort *port)
 {
-  int b;
+  int b = -1;
   SG_PORT_LOCK_READ(port);
-  b = Sg_PeekbUnsafe(port);
+  SAFE_READ_CALL(port, b = Sg_PeekbUnsafe(port));
   SG_PORT_UNLOCK_READ(port);
   return b;
 }
 
 int64_t Sg_Readb(SgPort *port, uint8_t *buf, int64_t size)
 {
-  int64_t ret;
+  int64_t ret = 0;
   SG_PORT_LOCK_READ(port);
-  ret = Sg_ReadbUnsafe(port, buf, size);
+  SAFE_READ_CALL(port, ret = Sg_ReadbUnsafe(port, buf, size));
   SG_PORT_UNLOCK_READ(port);
   return ret;
 }
 
 int64_t Sg_ReadbAll(SgPort *port, uint8_t **buf)
 {
-  int64_t ret;
+  int64_t ret = 0;
   SG_PORT_LOCK_READ(port);
-  ret = Sg_ReadbAllUnsafe(port, buf);
+  SAFE_READ_CALL(port, ret = Sg_ReadbAllUnsafe(port, buf));
   SG_PORT_UNLOCK_READ(port);
   return ret;
 }
@@ -2523,31 +2543,31 @@ int64_t Sg_ReadbAll(SgPort *port, uint8_t **buf)
 void Sg_Writeb(SgPort *port, uint8_t *b, int64_t start, int64_t count)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_WritebUnsafe(port, b, start, count);
+  SAFE_WRITE_CALL(port, Sg_WritebUnsafe(port, b, start, count));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putb(SgPort *port, uint8_t b)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutbUnsafe(port, b);
+  SAFE_WRITE_CALL(port, Sg_PutbUnsafe(port, b));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 SgChar Sg_Getc(SgPort *port)
 {
-  SgChar ch;
+  SgChar ch = -1;
   SG_PORT_LOCK_READ(port);
-  ch = Sg_GetcUnsafe(port);
+  SAFE_READ_CALL(port, ch = Sg_GetcUnsafe(port));
   SG_PORT_UNLOCK_READ(port);
   return ch;
 }
 
 SgChar Sg_Peekc(SgPort *port)
 {
-  SgChar ch;
+  SgChar ch = -1;
   SG_PORT_LOCK_READ(port);
-  ch = Sg_PeekcUnsafe(port);
+  SAFE_READ_CALL(port, ch = Sg_PeekcUnsafe(port));
   SG_PORT_UNLOCK_READ(port);
   return ch;
 }
@@ -2555,35 +2575,35 @@ SgChar Sg_Peekc(SgPort *port)
 void Sg_Putc(SgPort *port, SgChar ch)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutcUnsafe(port, ch);
+  SAFE_WRITE_CALL(port, Sg_PutcUnsafe(port, ch));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putz(SgPort *port, const char *str)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutzUnsafe(port, str);
+  SAFE_WRITE_CALL(port, Sg_PutzUnsafe(port, str));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Putuz(SgPort *port, const SgChar *str)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutuzUnsafe(port, str);
+  SAFE_WRITE_CALL(port, Sg_PutuzUnsafe(port, str));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Puts(SgPort *port, SgString *str)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutsUnsafe(port, str);
+  SAFE_WRITE_CALL(port, Sg_PutsUnsafe(port, str));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
 void Sg_Writes(SgPort *port, SgChar *s, int64_t count)
 {
   SG_PORT_LOCK_WRITE(port);
-  Sg_WritesUnsafe(port, s, count);
+  SAFE_WRITE_CALL(port, Sg_WritesUnsafe(port, s, count));
   SG_PORT_UNLOCK_WRITE(port);
 }
 
@@ -2821,7 +2841,6 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle)
 {
   volatile SgObject r = SG_UNDEF;
-  SgVM *vm = Sg_VM();
   if (!SG_TEXTUAL_PORTP(port)) {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
