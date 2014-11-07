@@ -57,6 +57,9 @@ int Sg_Ucs4SubsequentP(SgChar c)
   return (subsequent[offset] & bit) != 0;
 }
 
+/* !!!fuck!!! 
+   seems starting Unicode 6.3.0, U+180E is Cf. Who the hell decided that!
+*/
 int Sg_Ucs4WhiteSpaceP(SgChar c)
 {
   /*; White_Space # Zs       SPACE */
@@ -812,11 +815,6 @@ GeneralCategory Sg_CharGeneralCategory(SgChar ch)
   }
 #endif
   SgObject c;
-  /* !!!fuck!!! 
-     seems starting Unicode 6.0, U+180E is Cf however this must be
-     space separator (Zs). I have no idea why they changed the
-     category. but it's better
-   */
   c = Sg_HashTableRef(general_category, SG_MAKE_CHAR(ch), SG_FALSE);
   if (!SG_FALSEP(c)) {
     return SG_INT_VALUE(c);
