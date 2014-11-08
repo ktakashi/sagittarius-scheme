@@ -412,5 +412,36 @@
     (test-equal "a-method" 'a (eval '(a-method 'a)
 				    (environment '(rnrs) '(a-method))))))
 
+;; port
+(let ((rr '())  ;; read count
+      (wr '()))  ;; write count
+
+  (define (make-custom)
+    (define (read! bv start count)
+      (set! rr (cons 'read rr))
+      (error 'dummy "dummy")
+      count)
+    (define (write! bv start count)
+      (set! wr (cons 'write wr))
+      count)
+    (define (close) #t)
+    (make-custom-binary-input/output-port "custom" read! write! #f #f close))
+
+  (let ((in/out (make-custom)))
+    (define (thunk read?)
+      (lambda ()
+	(if read?
+	    (get-bytevector-n in/out 5)
+	    (put-bytevector in/out #vu8(1 2 3 4 5)))))
+    (define (safe-join! t)
+      (guard (e (else #t))
+	(thread-join! t)))
+    (let ((ts (map thread-start!
+		   (map (lambda (read?) (make-thread (thunk read?)))
+			'(#t #f #t #f #t #f)))))
+      (for-each safe-join! ts)
+      (test-equal "read lock" '(read read read) rr)
+      (test-equal "write lock" '(write write write) wr))))
+
 
 (test-end)
