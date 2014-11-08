@@ -1752,76 +1752,29 @@ static int custom_binary_open(SgObject self)
   return !SG_PORT(self)->closed;
 }
 
-static int custom_binary_get_u8(SgObject self)
-{
-  static const SgObject start = SG_MAKE_INT(0);
-  static const SgObject count = SG_MAKE_INT(1);
-  SgObject bv, result;
-  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
-    int c = SG_CUSTOM_U8_AHEAD(self);
-    SG_CUSTOM_U8_AHEAD(self) = EOF;
-    return c;
-  }
-  bv = Sg_MakeByteVector(1, 0);
-
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
-  if (!SG_INTP(result)) {
-    Sg_IOReadError(SG_INTERN("get-u8"),
-		   Sg_Sprintf(UC("custom port read! returned invalid value %S"),
-			      result),
-		   result);
-  }
-  if (result == SG_MAKE_INT(0)) {
-    return EOF;
-  }
-  /* make binary port's position as a mark */
-  SG_CUSTOM_BINARY_PORT(self)->position += SG_INT_VALUE(result);
-  return SG_BVECTOR_ELEMENT(bv, 0);
-}
-
-static int custom_binary_lookahead_u8(SgObject self)
-{
-  static const SgObject start = SG_MAKE_INT(0);
-  static const SgObject count = SG_MAKE_INT(1);
-  SgObject bv, result;
-  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
-    return SG_CUSTOM_U8_AHEAD(self);
-  }
-  bv = Sg_MakeByteVector(1, 0);
-
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv, start, count);
-  if (!SG_INTP(result)) {
-    Sg_IOReadError(SG_INTERN("lookahead-u8"),
-		   Sg_Sprintf(UC("custom port read! returned invalid value %S"),
-			      result),
-		   result);
-  }
-  if (result == SG_MAKE_INT(0)) {
-    return EOF;
-  }
-  SG_CUSTOM_U8_AHEAD(self) = SG_BVECTOR_ELEMENT(bv, 0);
-  return SG_CUSTOM_U8_AHEAD(self);
-}
-
 static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
 {
   SgObject bv, result;
-  int start = 0;
+  int bvsize;
   int64_t read = 0;
-  bv = Sg_MakeByteVector((int)size, 0);
 
   if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
-    SG_BVECTOR_ELEMENT(bv, 0) = SG_CUSTOM_U8_AHEAD(self);
+    buf[0] = SG_CUSTOM_U8_AHEAD(self);
     SG_CUSTOM_U8_AHEAD(self) = EOF;
-    start++;
+    if (size == 1) return 1;	/* short cut */
     size--;
     read++;
   }
-  /* we need to calculate the read size, see port.sls in r6rs test suite... */
+
+  bv = SG_CUSTOM_PORT(self)->binaryBuffer;
+  bvsize = SG_BVECTOR_SIZE(bv);
+  /* input/output port is *not* a bidirectional port so we can use the
+     same buffer as write. so re-use it.*/
   for (; size; ) {
     int r;
+    int count = (size < bvsize)? (int)size: bvsize;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
-		       SG_MAKE_INT(start), SG_MAKE_INT(size));
+		       SG_MAKE_INT(0), SG_MAKE_INT(count));
     
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-bytevector"),
@@ -1833,15 +1786,39 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
       break;
     }
     r = SG_INT_VALUE(result);
+    memcpy(buf+read, SG_BVECTOR_ELEMENTS(bv), r);
     read += r;
     size -= r;
-    start += r;
   }
   if (read == 0) return 0;	/* short cut */
   SG_CUSTOM_BINARY_PORT(self)->position += read;
-  memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read);
+  /* memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read); */
   return read;
 }
+
+static int custom_binary_get_u8(SgObject self)
+{
+  uint8_t buf[1];
+  int64_t r = custom_binary_read(self, buf, 1);
+  
+  if (r == 0) {
+    return EOF;
+  }
+  return buf[0];
+}
+
+static int custom_binary_lookahead_u8(SgObject self)
+{
+  int b;
+  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
+    return SG_CUSTOM_U8_AHEAD(self);
+  }
+  b = custom_binary_get_u8(self);
+  SG_CUSTOM_BINARY_PORT(self)->position--;
+  SG_CUSTOM_U8_AHEAD(self) = b;
+  return b;
+}
+
 
 static int64_t custom_binary_read_all(SgObject self, uint8_t **buf)
 {
@@ -1857,27 +1834,6 @@ static int64_t custom_binary_read_all(SgObject self, uint8_t **buf)
   }
   *buf = Sg_GetByteArrayFromBinaryPort(accum);
   return read_size;
-}
-
-static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
-{
-  static const SgObject start = SG_MAKE_INT(0);
-  static const SgObject count = SG_MAKE_INT(1);
-  SgObject bv, result;
-  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
-    return SG_CUSTOM_U8_AHEAD(self);
-  }
-  bv = Sg_MakeByteVector(1, b);
-
-  result = Sg_Apply3(SG_CUSTOM_PORT(self)->write,
-		    bv, start, count);
-  if (!SG_INTP(result)) {
-    Sg_IOWriteError(SG_INTERN("put-u8"),
-		    Sg_Sprintf(UC("custom port write!"
-				  " returned invalid value, %S"), result),
-		    result);
-  }
-  return SG_INT_VALUE(result);
 }
 
 static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
@@ -1916,6 +1872,14 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
   }
   return written;
 }
+
+static int64_t custom_binary_put_u8(SgObject self, uint8_t b)
+{
+  uint8_t buf[1];
+  buf[0] = b;
+  return custom_binary_put_u8_array(self, buf, 1);
+}
+
 
 static int custom_close(SgObject self)
 {
