@@ -2868,6 +2868,61 @@ SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle)
   return r;
 }
 
+static SgObject readb_until(SgPort *port, SgByteVector *eol)
+{
+  SgPort out;
+  SgBinaryPort bp;
+  SgObject r;
+  /* use something the same as buffer ports (256) */
+  uint8_t tmp[DEFAULT_BUFFER_SIZE], *buf;
+  int size = SG_BVECTOR_SIZE(eol);
+  /* setup buffer */
+  if (SG_BVECTOR_SIZE(eol) > DEFAULT_BUFFER_SIZE) {
+    buf = SG_NEW_ATOMIC2(uint8_t *, SG_BVECTOR_SIZE(eol));
+  } else {
+    buf = tmp;
+  }
+  Sg_InitByteArrayOutputPort(&out, &bp, 256);
+  while (1) {
+    int b = Sg_GetbUnsafe(port);
+    if (b == EOF) {
+      break;
+    } else if (b == SG_BVECTOR_ELEMENT(eol, 0)) {
+      /* inner loop */
+      int i, offset = 0;
+      buf[0] = b;
+      for (i = 1; i < size; i++) {
+	b = Sg_GetbUnsafe(port);
+
+	if (b == EOF) break;
+
+	buf[i] = b;
+	if (b != SG_BVECTOR_ELEMENT(eol, i)) {
+	  offset = 1;
+	  break;
+	}
+      }
+      if (i == size) break;
+      Sg_WritebUnsafe(&out, buf, 0, i + offset);
+    } else {
+      Sg_PutbUnsafe(&out, b);
+    }
+  }
+
+  r = Sg_GetByteVectorFromBinaryPort(&out);
+  SG_CLEAN_BINARY_PORT(&bp);
+  return r;
+}
+
+SgObject Sg_ReadbUntil(SgPort *port, SgByteVector *eol)
+{
+  SgObject r = SG_UNDEF;
+  SG_PORT_LOCK_READ(port);
+  SAFE_READ_CALL(port, r = readb_until(port, eol));
+  SG_PORT_UNLOCK_READ(port);
+  return r;
+}
+
 int Sg_HasPortPosition(SgPort *port)
 {
   return SG_PORT_VTABLE(port)->hasPortPosition &&

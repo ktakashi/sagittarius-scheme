@@ -60,6 +60,11 @@
   (define (lookahead-next-u8 in) (get-u8 in) (lookahead-u8 in))
 
   (define (get-until bin bv-mark)
+    (let ((bv (get-bytevector-until bin bv-mark)))
+      (values bv (if (eof-object? bv) #f bv-mark)))
+    )
+  #;
+  (define (get-until bin bv-mark)
     (let-values (((out extract) (open-bytevector-output-port)))
       (define (finish bv/false) (values (extract) bv/false))
       (let* ((buf-len (bytevector-length bv-mark))

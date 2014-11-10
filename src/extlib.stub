@@ -411,6 +411,9 @@
     (Sg_UnlockPort port)
     (result port))
 
+  (define-c-proc get-bytevector-until (port::<port> bv::<bytevector>)
+    Sg_ReadbUntil)
+
   ;; readonly current library access
   ;; it's nice to have this
   (define-c-proc current-library () :no-side-effect

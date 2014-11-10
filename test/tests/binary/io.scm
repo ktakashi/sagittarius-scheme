@@ -47,19 +47,19 @@
 				:transcoder (native-transcoder)))))
 
 (let ((bin (string->binary-port "hello\rworld")))
-  (test-equal "linefeed \\a no match(1)" 
+  (test-equal "linefeed \\n no match(1)" 
 	      ;; native-transcoder converts \r to \n...
 	      (string->utf8 "hello\rworld")
 	      (binary:get-line bin))
-  (test-assert "linefeed \\a(2) no match"
+  (test-assert "linefeed \\n(2) no match"
 	       (eof-object? (binary:get-line bin))))
 
 (let ((bin (string->binary-port "hello\rworld\r")))
-  (test-equal "linefeed \\a no match(1)" 
+  (test-equal "linefeed \\r\\n no match(1)" 
 	      ;; native-transcoder converts \r to \n...
 	      (string->utf8 "hello\rworld\r")
 	      (binary:get-line bin :eol #vu8(#x0d #x0a)))
-  (test-assert "linefeed \\a(2) no match" 
+  (test-assert "linefeed \\r\\n(2) no match" 
 	       (eof-object? (binary:get-line bin))))
 
 ;; chunked port
