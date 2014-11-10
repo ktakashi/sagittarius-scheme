@@ -12,8 +12,9 @@
 	      (binary:get-line bin :transcoder (native-transcoder)))
   (test-equal "linefeed \\n(2)" "world"
 	      (binary:get-line bin :transcoder (native-transcoder)))
-  (test-equal "linefeed \\n(3)" ""
-	      (binary:get-line bin :transcoder (native-transcoder))))
+  (test-assert "linefeed \\n(3)"
+	       (eof-object?
+		(binary:get-line bin :transcoder (native-transcoder)))))
 
 (let ((bin (string->binary-port "hello\r\nworld")))
   (test-equal "linefeed \\r\\n(1)" "hello" 
@@ -24,10 +25,11 @@
 	      (binary:get-line bin
 			       :eol #vu8(#x0d #x0a)
 			       :transcoder (native-transcoder)))
-  (test-equal "linefeed \\r\\n(3)" ""
-	      (binary:get-line bin 
-			       :eol #vu8(#x0d #x0a)
-			       :transcoder (native-transcoder))))
+  (test-assert "linefeed \\r\\n(3)"
+	      (eof-object?
+	       (binary:get-line bin 
+				:eol #vu8(#x0d #x0a)
+				:transcoder (native-transcoder)))))
 
 (let ((bin (string->binary-port "hello\rworld")))
   (test-equal "linefeed \\r(1)" "hello" 
@@ -38,24 +40,27 @@
 	      (binary:get-line bin
 			       :eol #vu8(#x0d)
 			       :transcoder (native-transcoder)))
-  (test-equal "linefeed \\r(3)" ""
-	      (binary:get-line bin 
-			       :eol #vu8(#x0d)
-			       :transcoder (native-transcoder))))
+  (test-assert "linefeed \\r(3)" 
+	      (eof-object?
+	       (binary:get-line bin 
+				:eol #vu8(#x0d)
+				:transcoder (native-transcoder)))))
 
 (let ((bin (string->binary-port "hello\rworld")))
   (test-equal "linefeed \\a no match(1)" 
 	      ;; native-transcoder converts \r to \n...
 	      (string->utf8 "hello\rworld")
 	      (binary:get-line bin))
-  (test-equal "linefeed \\a(2) no match" #vu8() (binary:get-line bin)))
+  (test-assert "linefeed \\a(2) no match"
+	       (eof-object? (binary:get-line bin))))
 
 (let ((bin (string->binary-port "hello\rworld\r")))
   (test-equal "linefeed \\a no match(1)" 
 	      ;; native-transcoder converts \r to \n...
 	      (string->utf8 "hello\rworld\r")
 	      (binary:get-line bin :eol #vu8(#x0d #x0a)))
-  (test-equal "linefeed \\a(2) no match" #vu8() (binary:get-line bin)))
+  (test-assert "linefeed \\a(2) no match" 
+	       (eof-object? (binary:get-line bin))))
 
 ;; chunked port
 ;; test chunked port

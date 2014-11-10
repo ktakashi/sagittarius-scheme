@@ -85,10 +85,12 @@
 
   ;; default \n = #x0a
   (define (get-line bin :key (eol #vu8(#x0a)) (transcoder #f))
-    (let-values (((r _) (get-until bin eol)))
-      (if transcoder
-	  (bytevector->string r transcoder)
-	  r)))
+    (if (eof-object? (lookahead-u8 bin))
+	(eof-object)
+	(let-values (((r _) (get-until bin eol)))
+	  (if transcoder
+	      (bytevector->string r transcoder)
+	      r))))
 
   ;; other utilities
   (define-syntax define-put&get
