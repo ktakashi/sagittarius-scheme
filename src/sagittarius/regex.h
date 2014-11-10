@@ -110,55 +110,144 @@ SG_CLASS_DECL(Sg_PatternClass);
 #define SG_PATTERN(obj)   ((SgPattern *)obj)
 #define SG_PATTERNP(obj) SG_XTYPEP(obj, SG_CLASS_PATTERN)
 
-typedef struct match_ctx_rec_t match_ctx_t;
+typedef struct text_match_ctx_rec_t text_match_ctx_t;
+typedef struct binary_match_ctx_rec_t binary_match_ctx_t;
 
 typedef struct SgMatcherRec
 {
   SG_HEADER;
   SgPattern *pattern;
-  SgString  *text;
   /* privates */
   int        from;
   int        to;
   int        first;
   int        last;
   int        lastAppendPosition;
-  match_ctx_t *match_ctx;
-  SgString   *submatch[1];
 } SgMatcher;
+
+typedef struct SgTextMatcherRec
+{
+  SgMatcher  common;
+  SgString  *text;
+  text_match_ctx_t *match_ctx;
+  SgString   *submatch[1];
+} SgTextMatcher;
+
+typedef struct SgBinaryMatcherRec
+{
+  SgMatcher  common;
+  SgByteVector *text;
+  binary_match_ctx_t   *match_ctx;
+  SgByteVector  *submatch[1];
+} SgBinaryMatcher;
+
 
 SG_CLASS_DECL(Sg_MatcherClass);
 #define SG_CLASS_MATCHER   (&Sg_MatcherClass)
 #define SG_MATCHER(obj)   ((SgMatcher *)obj)
-#define SG_MATCHERP(obj) SG_XTYPEP(obj, SG_CLASS_MATCHER)
+#define SG_MATCHERP(obj) SG_ISA(obj, SG_CLASS_MATCHER)
+
+SG_CLASS_DECL(Sg_TextMatcherClass);
+#define SG_CLASS_TEXT_MATCHER   (&Sg_TextMatcherClass)
+#define SG_TEXT_MATCHER(obj)   ((SgTextMatcher *)obj)
+#define SG_TEXT_MATCHERP(obj) SG_XTYPEP(obj, SG_CLASS_TEXT_MATCHER)
+
+SG_CLASS_DECL(Sg_BinaryMatcherClass);
+#define SG_CLASS_BINARY_MATCHER  (&Sg_BinaryMatcherClass)
+#define SG_BINARY_MATCHER(obj)   ((SgBinaryMatcher *)obj)
+#define SG_BINARY_MATCHERP(obj)  SG_XTYPEP(obj, SG_CLASS_BINARY_MATCHER)
+
+/* common accessor */
+#define SG_MATCHER_PATTERN(r)  SG_MATCHER(r)->pattern
+#define SG_MATCHER_FROM(r)     SG_MATCHER(r)->from
+#define SG_MATCHER_TO(r)       SG_MATCHER(r)->to
+#define SG_MATCHER_FIRST(r)    SG_MATCHER(r)->first
+#define SG_MATCHER_LAST(r)     SG_MATCHER(r)->last
+#define SG_MATCHER_LAST_APPEND_POSITION(r) SG_MATCHER(r)->lastAppendPosition
 
 SG_CDECL_BEGIN
 SG_EXTERN SgObject   Sg_CompileRegex(SgString *pattern, int flags,
 				     int parseOnly);
 SG_EXTERN SgObject   Sg_CompileRegexAST(SgObject ast, int flags);
 
-SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgString *text,
-				     int start, int end);
-SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);
-SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
-SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
-
-SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, SgObject groupOrName);
-SG_EXTERN int        Sg_RegexGroupPosition(SgMatcher *m, SgObject groupOrName,
-					   int startP);
-
-SG_EXTERN SgString*  Sg_RegexReplaceAll(SgMatcher *m, SgObject replacement);
-SG_EXTERN SgString*  Sg_RegexReplaceFirst(SgMatcher *m, SgObject replacement);
-SG_EXTERN SgString*  Sg_RegexReplace(SgMatcher *m, SgObject replacement,
-				     int count);
-
-SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
 /* for debug */
 SG_EXTERN void       Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
 /* misc */
 SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP);
 SG_EXTERN SgObject   Sg_CharSetToRegexString(SgObject cset, int invertP);
+
+/* text matcher */
+SG_EXTERN SgMatcher* Sg_RegexTextMatcher(SgPattern *pattern, SgString *text,
+					   int start, int end);
+SG_EXTERN SgObject   Sg_RegexTextAfter(SgTextMatcher *matcher);
+SG_EXTERN SgObject   Sg_RegexTextBefore(SgTextMatcher *matcher);
+
+SG_EXTERN int        Sg_RegexTextMatches(SgTextMatcher *m);
+SG_EXTERN int        Sg_RegexTextLookingAt(SgTextMatcher *m);
+SG_EXTERN int        Sg_RegexTextFind(SgTextMatcher *m, int start);
+
+SG_EXTERN SgObject   Sg_RegexTextGroup(SgTextMatcher *m, SgObject groupOrName);
+SG_EXTERN int        Sg_RegexTextGroupPosition(SgTextMatcher *m, 
+					       SgObject groupOrName,
+					       int startP);
+
+SG_EXTERN SgString*  Sg_RegexTextReplaceAll(SgTextMatcher *m, 
+					    SgObject replacement);
+SG_EXTERN SgString*  Sg_RegexTextReplaceFirst(SgTextMatcher *m, 
+					      SgObject replacement);
+SG_EXTERN SgString*  Sg_RegexTextReplace(SgTextMatcher *m, SgObject replacement,
+					 int count);
+SG_EXTERN int        Sg_RegexTextCaptureCount(SgTextMatcher *m);
+
+/* binary matcher */
+SG_EXTERN SgMatcher* Sg_RegexBinaryMatcher(SgPattern *pattern,
+					   SgByteVector *text,
+					   int start, int end);
+SG_EXTERN SgObject   Sg_RegexBinaryAfter(SgBinaryMatcher *matcher);
+SG_EXTERN SgObject   Sg_RegexBinaryBefore(SgBinaryMatcher *matcher);
+SG_EXTERN int        Sg_RegexBinaryMatches(SgBinaryMatcher *m);
+SG_EXTERN int        Sg_RegexBinaryLookingAt(SgBinaryMatcher *m);
+SG_EXTERN int        Sg_RegexBinaryFind(SgBinaryMatcher *m, int start);
+
+SG_EXTERN SgObject   Sg_RegexBinaryGroup(SgBinaryMatcher *m, 
+					 SgObject groupOrName);
+SG_EXTERN int        Sg_RegexBinaryGroupPosition(SgBinaryMatcher *m, 
+					       SgObject groupOrName,
+					       int startP);
+
+SG_EXTERN SgByteVector* Sg_RegexBinaryReplaceAll(SgBinaryMatcher *m, 
+						 SgObject replacement);
+SG_EXTERN SgByteVector* Sg_RegexBinaryReplaceFirst(SgBinaryMatcher *m, 
+						   SgObject replacement);
+SG_EXTERN SgByteVector* Sg_RegexBinaryReplace(SgBinaryMatcher *m, 
+					      SgObject replacement,
+					      int count);
+SG_EXTERN int        Sg_RegexBinaryCaptureCount(SgBinaryMatcher *m);
+
+
+
+/* Old interfaces */
+SG_EXTERN SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgObject text,
+					 int start, int end);
+SG_EXTERN int        Sg_RegexMatches(SgMatcher *m);
+SG_EXTERN int        Sg_RegexLookingAt(SgMatcher *m);
+SG_EXTERN int        Sg_RegexFind(SgMatcher *m, int start);
+
+SG_EXTERN SgObject   Sg_RegexGroup(SgMatcher *m, SgObject groupOrName);
+SG_EXTERN int        Sg_RegexGroupPosition(SgMatcher *m, 
+					   SgObject groupOrName,
+					   int startP);
+
+SG_EXTERN SgObject   Sg_RegexReplaceAll(SgMatcher *m, 
+				       SgObject replacement);
+SG_EXTERN SgObject   Sg_RegexReplaceFirst(SgMatcher *m, 
+					  SgObject replacement);
+SG_EXTERN SgObject   Sg_RegexReplace(SgMatcher *m, SgObject replacement,
+				     int count);
+SG_EXTERN int        Sg_RegexCaptureCount(SgMatcher *m);
+SG_EXTERN SgObject   Sg_RegexAfter(SgMatcher *matcher);
+SG_EXTERN SgObject   Sg_RegexBefore(SgMatcher *matcher);
 
 SG_CDECL_END
 

@@ -17,6 +17,13 @@
 	    dump-regex)
     (import :none)
 
+  (define-type <text-matcher> 
+    "SgTextMatcher*"
+    "text-matcher" "SG_TEXT_MATCHERP" "SG_TEXT_MATCHER")
+  (define-type <binary-matcher> 
+    "SgBinaryMatcher*"
+    "binary-matcher" "SG_BINARY_MATCHERP" "SG_BINARY_MATCHER")
+
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius.h> <sagittarius/regex.h>))
@@ -38,7 +45,7 @@
 
 
   (define-c-proc regex-matcher 
-    (p::<pattern> text::<string> 
+    (p::<pattern> text
 		  :optional (start::<fixnum> 0) (end::<fixnum> -1))
     :no-side-effect
     Sg_RegexMatcher)
@@ -82,24 +89,18 @@
 	  (result SG_FALSE)
 	  (result (SG_MAKE_INT p)))))
 
-  (define-c-proc regex-after (m::<matcher>)
-    (result (Sg_Substring (-> m text)
-			  (-> m last)
-			  (-> m to))))
+  (define-c-proc regex-after (m::<matcher>) Sg_RegexAfter)
+  (define-c-proc regex-before (m::<matcher>) Sg_RegexBefore)
 
-  (define-c-proc regex-before (m::<matcher>)
-    (result (Sg_Substring (-> m text)
-			  (-> m from)
-			  (-> m first))))
 
   (define-c-proc regex-capture-count (m::<matcher>) ::<fixnum> :no-side-effect
     Sg_RegexCaptureCount)
 
   (define-c-proc regex-first (m::<matcher>) ::<fixnum> :no-side-effect
-    (result (-> m first)))
+    SG_MATCHER_FIRST)
 
   (define-c-proc regex-last (m::<matcher>) ::<fixnum> :no-side-effect
-    (result (-> m last)))
+    SG_MATCHER_LAST)
 
   (define-c-proc regex-replace-all (m::<matcher> replacement)
     (unless (or (SG_STRINGP replacement)
@@ -141,4 +142,15 @@
   (define-c-proc char-set->regex-string
     (cset::<char-set> :optional (invert?::<boolean> #f))
     Sg_CharSetToRegexString)
+
+  ;; text binary matchers
+  (define-c-proc regex-text-matcher 
+    (p::<pattern> text::<string> 
+		  :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
+    Sg_RegexTextMatcher)
+
+  (define-c-proc regex-text-after (m::<text-matcher>) Sg_RegexTextAfter)
+  (define-c-proc regex-text-before (m::<text-matcher>) Sg_RegexTextBefore)
+
 )

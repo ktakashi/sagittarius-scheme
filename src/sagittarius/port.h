@@ -623,6 +623,7 @@ SG_EXTERN int64_t  Sg_ReadbAll(SgPort *port, uint8_t **buf);
 SG_EXTERN void     Sg_Writeb(SgPort *port, uint8_t *b,
 			     int64_t start, int64_t count);
 SG_EXTERN void     Sg_Putb(SgPort *port, uint8_t b);
+SG_EXTERN void     Sg_Putbv(SgPort *port, SgByteVector *bv);
 SG_EXTERN SgChar   Sg_Getc(SgPort *port);
 SG_EXTERN SgChar   Sg_Peekc(SgPort *port);
 SG_EXTERN void     Sg_Putc(SgPort *port, SgChar ch);
@@ -631,6 +632,7 @@ SG_EXTERN void     Sg_Putuz(SgPort *port, const SgChar *str);
 SG_EXTERN void     Sg_Puts(SgPort *port, SgString *str);
 
 SG_EXTERN void     Sg_PutbUnsafe(SgPort *port, uint8_t b);
+SG_EXTERN void     Sg_PutbvUnsafe(SgPort *port, SgByteVector *bv);
 SG_EXTERN void     Sg_WritebUnsafe(SgPort *port, uint8_t *b, int64_t start,
 				   int64_t count);
 /* for textual port */

@@ -33,6 +33,19 @@ SET(BUILTIN_SOURCES
   compiler.c   compiler-aux.c
   lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c)
 
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/regex_match.c
+  ${CMAKE_CURRENT_BINARY_DIR}/regex_text_match.c  COPYONLY)
+CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/regex_match.c
+  ${CMAKE_CURRENT_BINARY_DIR}/regex_binary_match.c COPYONLY)
+
+SET_SOURCE_FILES_PROPERTIES(${CMAKE_CURRENT_BINARY_DIR}/regex_binary_match.c
+  PROPERTIES
+  COMPILE_DEFINITIONS "BINARY_MATCHER" )
+
+SET(MATCHER_SOURCES 
+  regex_text_match.c 
+  regex_binary_match.c)
+
 SET(SAGITTARIUS_LIB_SOURCE
   ${SAGITTARIUS_LIB_SOURCE}
   codec.c          port.c
@@ -66,6 +79,7 @@ SET(SAGITTARIUS_LIB_SOURCE
   clos.c
   collection.c     compare.c
   regex.c          regex_stub.c
+  ${MATCHER_SOURCES}
 
   system.c
   # libraries

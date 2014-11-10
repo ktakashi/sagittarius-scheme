@@ -2518,6 +2518,13 @@ void Sg_Putb(SgPort *port, uint8_t b)
   SG_PORT_UNLOCK_WRITE(port);
 }
 
+void Sg_Putbv(SgPort *port, SgByteVector *bv)
+{
+  SG_PORT_LOCK_WRITE(port);
+  SAFE_WRITE_CALL(port, Sg_PutbvUnsafe(port, bv));
+  SG_PORT_UNLOCK_WRITE(port);
+}
+
 SgChar Sg_Getc(SgPort *port)
 {
   SgChar ch = -1;
@@ -2620,6 +2627,11 @@ void Sg_PutbUnsafe(SgPort *port, uint8_t b)
     }
     Sg_Error(UC("binary port required, but got %S"), port);
   }
+}
+
+void Sg_PutbvUnsafe(SgPort *port, SgByteVector *bv)
+{
+  Sg_WritebUnsafe(port, SG_BVECTOR_ELEMENTS(bv), 0, SG_BVECTOR_SIZE(bv));
 }
 
 void Sg_WritebUnsafe(SgPort *port, uint8_t *b, int64_t start, int64_t count)

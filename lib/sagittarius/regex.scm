@@ -120,6 +120,8 @@
   ;; CLOS libraries are in lib.
   (define-method object-apply ((self <pattern>) (s <string>))
     (looking-at self s))
+  (define-method object-apply ((self <pattern>) (s <bytevector>))
+    (looking-at self s))
   (define-method object-apply ((self <matcher>) (group <integer>))
     (regex-group self group))
   (define-method object-apply ((self <matcher>) (group <symbol>))

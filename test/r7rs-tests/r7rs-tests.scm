@@ -309,6 +309,7 @@
 
 (test #t (promise? (delay (+ 2 2))))
 (test #t (promise? (make-promise (+ 2 2))))
+
 (test #t
     (let ((x (delay (+ 2 2))))
       (force x)
