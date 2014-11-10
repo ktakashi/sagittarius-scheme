@@ -2855,9 +2855,9 @@ SgMatcher* Sg_RegexMatcher(SgPattern *pattern, SgObject text,
 
 int Sg_RegexMatches(SgMatcher *m)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextMatches(SG_TEXT_MATCHER(m));
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryMatches(SG_BINARY_MATCHER(m));
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2866,9 +2866,9 @@ int Sg_RegexMatches(SgMatcher *m)
 }
 int Sg_RegexLookingAt(SgMatcher *m)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextLookingAt(SG_TEXT_MATCHER(m));
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryLookingAt(SG_BINARY_MATCHER(m));
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2877,9 +2877,9 @@ int Sg_RegexLookingAt(SgMatcher *m)
 }
 int Sg_RegexFind(SgMatcher *m, int start)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextFind(SG_TEXT_MATCHER(m), start);
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryFind(SG_BINARY_MATCHER(m), start);
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2889,9 +2889,9 @@ int Sg_RegexFind(SgMatcher *m, int start)
 
 SgObject Sg_RegexGroup(SgMatcher *m, SgObject groupOrName)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextGroup(SG_TEXT_MATCHER(m), groupOrName);
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryGroup(SG_BINARY_MATCHER(m), groupOrName);
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2900,9 +2900,9 @@ SgObject Sg_RegexGroup(SgMatcher *m, SgObject groupOrName)
 }
 int Sg_RegexGroupPosition(SgMatcher *m, SgObject groupOrName, int startP)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextGroupPosition(SG_TEXT_MATCHER(m), groupOrName, startP);
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryGroupPosition(SG_BINARY_MATCHER(m),
 				       groupOrName, startP);
   } else {
@@ -2914,9 +2914,9 @@ int Sg_RegexGroupPosition(SgMatcher *m, SgObject groupOrName, int startP)
 SgObject Sg_RegexReplaceAll(SgMatcher *m, 
 			    SgObject replacement)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextReplaceAll(SG_TEXT_MATCHER(m), replacement);
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryReplaceAll(SG_BINARY_MATCHER(m), replacement);
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2926,9 +2926,9 @@ SgObject Sg_RegexReplaceAll(SgMatcher *m,
 SgObject Sg_RegexReplace(SgMatcher *m, SgObject replacement,
 			 int count)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextReplace(SG_TEXT_MATCHER(m), replacement, count);
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryReplace(SG_BINARY_MATCHER(m), replacement, count);
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2937,9 +2937,9 @@ SgObject Sg_RegexReplace(SgMatcher *m, SgObject replacement,
 }
 int Sg_RegexCaptureCount(SgMatcher *m)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextCaptureCount(SG_TEXT_MATCHER(m));
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryCaptureCount(SG_BINARY_MATCHER(m));
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2949,9 +2949,9 @@ int Sg_RegexCaptureCount(SgMatcher *m)
 
 SgObject Sg_RegexAfter(SgMatcher *m)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextAfter(SG_TEXT_MATCHER(m));
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryAfter(SG_BINARY_MATCHER(m));
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);
@@ -2960,9 +2960,9 @@ SgObject Sg_RegexAfter(SgMatcher *m)
 }
 SgObject Sg_RegexBefore(SgMatcher *m)
 {
-  if (SG_TEXT_MATCHER(m)) {
+  if (SG_TEXT_MATCHERP(m)) {
     return Sg_RegexTextBefore(SG_TEXT_MATCHER(m));
-  } else if (SG_BINARY_MATCHER(m)) {
+  } else if (SG_BINARY_MATCHERP(m)) {
     return Sg_RegexBinaryBefore(SG_BINARY_MATCHER(m));
   } else {
     Sg_Error(UC("matcher requires but god %S"), m);

@@ -35,69 +35,75 @@
 #include "sagittarius/regex.h"
 #include "sagittarius/error.h"
 #include "sagittarius/port.h"
-#include "sagittarius/string.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/cache.h"
+
 
 #include "regex_priv.inc"
 
 #ifdef BINARY_MATCHER
-typedef uint8_t char_t;
-typedef SgByteVector text_t;
-#define matcher_t  SgBinaryMatcher
-#define match_ctx_rec_t binary_match_ctx_rec_t
-#define match_ctx_t binary_match_ctx_t
-#define MATCHER  SG_BINARY_MATCHER
-#define MATCHERP SG_BINARY_MATCHERP
-#define CLASS_MATCHER SG_CLASS_BINARY_MATCHER
-#define MATCHER_CLASS Sg_BinaryMatcherClass
-#define TEXT_ELEMENTS SG_BVECTOR_ELEMENTS
-#define TEXT_ELEMENT  SG_BVECTOR_ELEMENT
-#define TEXT_SIZE     SG_BVECTOR_SIZE
-#define TEXTP         SG_BVECTORP
-#define TEXT          SG_BVECTOR
-#define DECL_FUNC_NAME(name)			\
-  SG_CPP_CAT(Sg_RegexBinary, name)
-#define CLASS_NAME "binary-matcher"
-#define PUTC Sg_PutbUnsafe
-#define PUTS Sg_PutbvUnsafe
-#define WRITES Sg_WritebUnsafe
-#define SUB_TEXT Sg_ByteVectorCopy
-#define DECL_BUFFER(p, tp, size)		\
-  SgPort p;					\
-  SgBinaryPort tp;				\
-  Sg_InitByteArrayOutputPort(&(p), &(tp), size)
-#define GET_BUFFER Sg_GetByteArrayFromBinaryPort
-#define CLEAN_BUFFER SG_CLEAN_BINARY_PORT
+/* binary */
+  #include "sagittarius/bytevector.h"
+  typedef uint8_t char_t;
+  typedef SgByteVector text_t;
+  #define matcher_t  SgBinaryMatcher
+  #define match_ctx_rec_t binary_match_ctx_rec_t
+  #define match_ctx_t binary_match_ctx_t
+  #define MATCHER  SG_BINARY_MATCHER
+  #define MATCHERP SG_BINARY_MATCHERP
+  #define CLASS_MATCHER SG_CLASS_BINARY_MATCHER
+  #define MATCHER_CLASS Sg_BinaryMatcherClass
+  #define TEXT_ELEMENTS SG_BVECTOR_ELEMENTS
+  #define TEXT_ELEMENT  SG_BVECTOR_ELEMENT
+  #define TEXT_SIZE     SG_BVECTOR_SIZE
+  #define TEXTP         SG_BVECTORP
+  #define TEXT          SG_BVECTOR
+  #define DECL_FUNC_NAME(name)			\
+    SG_CPP_CAT(Sg_RegexBinary, name)
+  #define CLASS_NAME "binary-matcher"
+  #define PUTC Sg_PutbUnsafe
+  #define PUTS Sg_PutbvUnsafe
+  #define WRITES Sg_WritebUnsafe
+  #define SUB_TEXT Sg_ByteVectorCopy
+  #define DECL_BUFFER(p, tp, size)		\
+    SgPort p;					\
+    SgBinaryPort tp;				\
+    Sg_InitByteArrayOutputPort(&(p), &(tp), size)
+  #define GET_BUFFER Sg_GetByteVectorFromBinaryPort
+  #define CLEAN_BUFFER SG_CLEAN_BINARY_PORT
+  #define ALLOC_TEXT Sg_MakeByteVector
 #else
-typedef SgChar char_t;
-typedef SgString text_t;
-#define matcher_t  SgTextMatcher
-#define match_ctx_rec_t text_match_ctx_rec_t
-#define match_ctx_t text_match_ctx_t
-#define MATCHER  SG_TEXT_MATCHER
-#define MATCHERP SG_TEXT_MATCHERP
-#define CLASS_MATCHER SG_CLASS_TEXT_MATCHER
-#define MATCHER_CLASS Sg_TextMatcherClass
-#define TEXT_ELEMENTS SG_STRING_VALUE
-#define TEXT_ELEMENT  SG_STRING_VALUE_AT
-#define TEXT_SIZE     SG_STRING_SIZE
-#define TEXTP         SG_STRINGP
-#define TEXT          SG_STRING
-#define DECL_FUNC_NAME(name)			\
-  SG_CPP_CAT(Sg_RegexText, name)
-#define CLASS_NAME "text-matcher"
-/* port operations */
-#define PUTC Sg_PutcUnsafe
-#define PUTS Sg_PutsUnsafe
-#define WRITES(p, s, start, count) Sg_WritesUnsafe(p, (s)+(start), count)
-#define SUB_TEXT Sg_Substring
-#define DECL_BUFFER(p, tp, size)		\
-  SgPort p;					\
-  SgTextualPort tp;				\
-  Sg_InitStringOutputPort(&(p), &(tp), size)
-#define GET_BUFFER Sg_GetStringFromStringPort
-#define CLEAN_BUFFER SG_CLEAN_TEXTUAL_PORT
+/* string */
+  #include "sagittarius/string.h"
+  typedef SgChar char_t;
+  typedef SgString text_t;
+  #define matcher_t  SgTextMatcher
+  #define match_ctx_rec_t text_match_ctx_rec_t
+  #define match_ctx_t text_match_ctx_t
+  #define MATCHER  SG_TEXT_MATCHER
+  #define MATCHERP SG_TEXT_MATCHERP
+  #define CLASS_MATCHER SG_CLASS_TEXT_MATCHER
+  #define MATCHER_CLASS Sg_TextMatcherClass
+  #define TEXT_ELEMENTS SG_STRING_VALUE
+  #define TEXT_ELEMENT  SG_STRING_VALUE_AT
+  #define TEXT_SIZE     SG_STRING_SIZE
+  #define TEXTP         SG_STRINGP
+  #define TEXT          SG_STRING
+  #define DECL_FUNC_NAME(name)			\
+    SG_CPP_CAT(Sg_RegexText, name)
+  #define CLASS_NAME "text-matcher"
+  /* port operations */
+  #define PUTC Sg_PutcUnsafe
+  #define PUTS Sg_PutsUnsafe
+  #define WRITES(p, s, start, count) Sg_WritesUnsafe(p, (s)+(start), count)
+  #define SUB_TEXT Sg_Substring
+  #define DECL_BUFFER(p, tp, size)		\
+    SgPort p;					\
+    SgTextualPort tp;				\
+    Sg_InitStringOutputPort(&(p), &(tp), size)
+  #define GET_BUFFER Sg_GetStringFromStringPort
+  #define CLEAN_BUFFER SG_CLEAN_TEXTUAL_PORT
+  #define ALLOC_TEXT Sg_ReserveString
 #endif
 
 typedef struct thread_rec_t
@@ -507,6 +513,7 @@ static const char_t * precheck(const char_t *p, const char_t *ep, inst_t *inst)
 
   if (checkp) {
     while (p != ep) {
+      /* fprintf(stderr, "%c:%p:%p\n", *p, p, ep); */
       if (inst_matches(NULL, inst, *p)) break;
       if (inst2 && inst_matches(NULL, inst2, *p)) break;
       p++;
@@ -964,7 +971,7 @@ static void retrive_group(SgMatcher *m, int submatch)
       ep = ctx->match[i];
     }
     size = ep - sp;
-    str  = TEXT(Sg_ReserveString(size, 0));
+    str  = TEXT(ALLOC_TEXT(size, 0));
     MATCHER(m)->submatch[i/2] = str;
     /* str[size] = 0; */
     for (j = 0; j < size; j++) {
@@ -1131,7 +1138,7 @@ static void append_replacement(SgMatcher *m, SgPort *p, SgObject replacement)
     case 1:
       r = Sg_Apply1(replacement, m);
       if (!TEXTP(r)) {
-    	Sg_Error(UC("replacement procedure returned non string object. %S"), r);
+    	Sg_Error(UC("replacement procedure returned non replacible object. %S"), r);
       }
       PUTS(p, r);
       break;

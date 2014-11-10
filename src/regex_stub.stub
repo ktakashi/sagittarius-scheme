@@ -103,27 +103,33 @@
     SG_MATCHER_LAST)
 
   (define-c-proc regex-replace-all (m::<matcher> replacement)
-    (unless (or (SG_STRINGP replacement)
+    (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
+		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
-      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
-				       (SG_MAKE_STRING "string or procedure")
-				       replacement SG_NIL))
+      (Sg_WrongTypeOfArgumentViolation 
+       'regex-replace-all
+       (SG_MAKE_STRING "string, bytevector or procedure")
+       replacement SG_NIL))
     (result (Sg_RegexReplaceAll m replacement)))
 
   (define-c-proc regex-replace-first (m::<matcher> replacement)
-    (unless (or (SG_STRINGP replacement)
+    (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
+		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
-      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
-				       (SG_MAKE_STRING "string or procedure")
-				       replacement SG_NIL))
+      (Sg_WrongTypeOfArgumentViolation 
+       'regex-replace-first
+       (SG_MAKE_STRING "string, bytevector or procedure")
+       replacement SG_NIL))
     (result (Sg_RegexReplaceFirst m replacement)))
 
   (define-c-proc regex-replace (m::<matcher> replacement count::<fixnum>)
-    (unless (or (SG_STRINGP replacement)
+    (unless (or (and (SG_STRINGP replacement) (SG_TEXT_MATCHER m))
+		(and (SG_BVECTORP replacement) (SG_BINARY_MATCHER m))
 		(SG_PROCEDUREP replacement))
-      (Sg_WrongTypeOfArgumentViolation 'regex-replace-all
-				       (SG_MAKE_STRING "string or procedure")
-				       replacement SG_NIL))
+      (Sg_WrongTypeOfArgumentViolation 
+       'regex-replace
+       (SG_MAKE_STRING "string, bytevector or procedure")
+       replacement SG_NIL))
     (result (Sg_RegexReplace m replacement count)))
 
   ;; pred
