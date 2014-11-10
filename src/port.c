@@ -2876,6 +2876,10 @@ static SgObject readb_until(SgPort *port, SgByteVector *eol)
   /* use something the same as buffer ports (256) */
   uint8_t tmp[DEFAULT_BUFFER_SIZE], *buf;
   int size = SG_BVECTOR_SIZE(eol);
+
+  /* pre-check */
+  if (Sg_PeekbUnsafe(port) == EOF) return SG_EOF;
+
   /* setup buffer */
   if (SG_BVECTOR_SIZE(eol) > DEFAULT_BUFFER_SIZE) {
     buf = SG_NEW_ATOMIC2(uint8_t *, SG_BVECTOR_SIZE(eol));

@@ -1654,4 +1654,11 @@
   (test-equal "get-line (2)" "abc"      (get-line (->port "abc\ndef")))
   (test-equal "get-line (3)" "abc\r"    (get-line (->port "abc\r\ndef"))))
 
+;;; get-bytevector-until
+(let ((in (open-bytevector-input-port (string->utf8 "hello\n"))))
+  (test-equal "get-bytevector-until(1)" (string->utf8 "hello")
+	      (get-bytevector-until in #vu8(#x0A)))
+  (test-assert "get-bytevector-until(2)" 
+	       (eof-object? (get-bytevector-until in #vu8(#x0A)))))
+
 (test-end)
