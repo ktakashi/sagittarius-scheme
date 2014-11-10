@@ -16,6 +16,36 @@
 (test-equal "bytevector-and" #vu8(#xF0 #x0F)
 	    (bytevector-and #vu8(#xFa #x6F) #vu8(#xF0 #x0F)))
 
+;; comparisons
+(let ((runner (lambda (proc s1 s2)
+		(proc (string->utf8 s1) (string->utf8 s2)))))
+  (define-syntax test-cmp
+    (syntax-rules ()
+      ((_ expr expected)
+       (test-equal (format "~s" 'expr) expected expr))))
+  (test-cmp (runner bytevector<? "z" "z") #f)
+  (test-cmp (runner bytevector<? "z" "\xDF;") #t)
+  (test-cmp (runner bytevector<? "\xDF;" "z") #f)
+  (test-cmp (runner bytevector<? "z" "zz") #t)
+  (test-cmp (runner bytevector<? "z" "Z") #f)
+  (test-cmp (runner bytevector<=? "z" "\xDF;") #t)
+  (test-cmp (runner bytevector<=? "\xDF;" "z") #f)
+  (test-cmp (runner bytevector<=? "z" "zz") #t)
+  (test-cmp (runner bytevector<=? "z" "Z") #f)
+  (test-cmp (runner bytevector<=? "z" "z") #t)
+  (test-cmp (runner bytevector<? "z" "z") #f)
+  (test-cmp (runner bytevector>? "z" "\xDF;") #f)
+  (test-cmp (runner bytevector>? "\xDF;" "z") #t)
+  (test-cmp (runner bytevector>? "z" "zz") #f)
+  (test-cmp (runner bytevector>? "z" "Z") #t)
+  (test-cmp (runner bytevector>=? "z" "\xDF;") #f)
+  (test-cmp (runner bytevector>=? "\xDF;" "z") #t)
+  (test-cmp (runner bytevector>=? "z" "zz") #f)
+  (test-cmp (runner bytevector>=? "z" "Z") #t)
+  (test-cmp (runner bytevector>=? "z" "z") #t))
+
+
+
 (test-equal "bytevector-slices (normal)"
 	    '(#vu8(0 1 2 3) #vu8(4 5 6 7) #vu8(8 9 10 11) #vu8(12 13 14 15))
 	    (bytevector-slices (u8-list->bytevector (iota 16)) 4))

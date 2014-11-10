@@ -906,6 +906,39 @@
     :no-side-effect
     (result (Sg_ByteVectorReverseX (Sg_ByteVectorCopy bv 0 -1) start end)))
 
+  (define-cise-stmt check-bytevector
+    ((_ name s)
+     `(unless (SG_BVECTORP ,s)
+	(wrong-type-of-argument-violation ',name "bytevector" ,s))))
+  (define-cise-stmt bytevector-compare
+    ((_ compare value name first second rest)
+     `(begin
+	(cond ((SG_NULLP ,rest)
+	       (result (,compare (Sg_ByteVectorCmp ,first ,second) ,value)))
+	      ((not (,compare (Sg_ByteVectorCmp ,first ,second) ,value))
+	       (result FALSE))
+	      (else
+	       (let ((prev ,second))
+		 (dolist (p ,rest)
+		   (check-bytevector ,name p)
+		   (unless (,compare (Sg_ByteVectorCmp prev p) ,value)
+		     (return #f))
+		   (set! prev p))
+		 (result TRUE)))))))
+  (define-c-proc bytevector<? (bv1::<bytevector> bv2::<bytevector> :rest rest)
+    ::<boolean> :constant
+    (bytevector-compare < 0 bytevector<? bv1 bv2 rest))
+  (define-c-proc bytevector>? (bv1::<bytevector> bv2::<bytevector> :rest rest)
+    ::<boolean> :constant
+    (bytevector-compare > 0 bytevector>? bv1 bv2 rest))
+  (define-c-proc bytevector<=? (bv1::<bytevector> bv2::<bytevector> :rest rest)
+    ::<boolean> :constant
+    (bytevector-compare <= 0 bytevector<? bv1 bv2 rest))
+  (define-c-proc bytevector>=? (bv1::<bytevector> bv2::<bytevector> :rest rest)
+    ::<boolean> :constant
+    (bytevector-compare >= 0 bytevector>? bv1 bv2 rest))
+
+
   (define-c-proc current-usage-env () (result (-> (Sg_VM) usageEnv)))
 
   (define-c-proc current-macro-env () (result (-> (Sg_VM) macroEnv)))

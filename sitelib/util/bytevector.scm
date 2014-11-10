@@ -41,6 +41,12 @@
 	    ->odd-parity
 	    ->odd-parity!
 
+	    ;; extra comparison
+	    bytevector<?
+	    bytevector>?
+	    bytevector<=?
+	    bytevector>=?
+
 	    bytevector->hex-string
 	    hex-string->bytevector
 	    bytevector-reverse!
