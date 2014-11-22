@@ -13,13 +13,13 @@ Following examples show how to use Sagittarius's regular expression.
 @codeblock[=> "world!"]{
 ;; For Perl like
 (cond ((looking-at (regex "^hello\\s*(.+)") "hello world!")
-            => (lambda (m) (m 1))))
+        => (lambda (m) (m 1))))
 }
 
 @codeblock{
 ;; For Java like
 (cond ((matches (regex "(\\w+?)\\s*(.+)") "123hello world!")) ;; this won't match
-          (else "incovenient eh?"))
+      (else "incovenient eh?"))
 }
 
 The @code{matches} procedure is total match, so it ignores boundary matcher
@@ -299,3 +299,10 @@ flag}
    }
   ]}
 ]
+
+@subsubsection{Regular expression for bytevectors}
+
+Above APIs can be used bytevectors as well. In this case, the regular 
+expression engine treats given bytevectors as if it's ASCII strings.
+If users want to use this feature, users must give bytevectors instead
+of strings.
