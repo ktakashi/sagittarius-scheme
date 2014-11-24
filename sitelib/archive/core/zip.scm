@@ -561,7 +561,7 @@
       (put-zip-record out (make-file-record
                            10 0 compression-method date 0 0 0
                            inzip-filename local-extra #f))
-      (cond ((string-suffix? "/" inzip-filename)
+      (cond ((not in) ;;(string-suffix? "/" inzip-filename)
              ;; Directory
              (make-central-directory
               version-1.0 os-made-by version-1.0 0 compression-method
@@ -569,7 +569,8 @@
               inzip-filename central-extra ""))
             (else
              (let* ((datapos (port-position out))
-                    (bufsize (* 1024 1024))
+		     ;; if we do 1MB buffer, then GC would complain...
+                    (bufsize (* 1024 128))
                     (buf (make-bytevector bufsize)))
 	       (let-values (((compress-out flusher)
 			     (get-compress-out compression-method out)))

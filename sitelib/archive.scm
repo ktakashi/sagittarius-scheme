@@ -38,6 +38,7 @@
 	    make-input-archive
 	    ;; backward compatibility
 	    (rename (make-input-archive make-archive-input))
+	    archive-input?
 	    next-entry!
 	    extract-entry
 
@@ -45,12 +46,14 @@
 	    make-output-archive
 	    ;; backward compatibility
 	    (rename (make-output-archive make-archive-input))
+	    archive-output?
 	    create-entry
 	    append-entry!
 
 	    ;; common
 	    finish!
 
+	    archive-entry?
 	    archive-entry-name
 	    archive-entry-type
 

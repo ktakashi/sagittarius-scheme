@@ -75,7 +75,7 @@
 	  :file file
 	  :type (if (and (file-exists? file) (file-directory? file))
 		    'directory
-		    'type)))
+		    'file)))
 
   (define-method append-entry! ((out <tar-archive-output>) 
 				(e <tar-archive-entry>))

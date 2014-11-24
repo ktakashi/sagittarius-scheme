@@ -35,14 +35,17 @@
 
 	    ;; for input
 	    make-archive-input
+	    archive-input?
 	    next-entry!
 	    extract-entry
 
 	    ;; for output
 	    make-archive-output
+	    archive-output?
 	    create-entry
 	    append-entry!
 
+	    archive-entry?
 	    archive-entry-name
 	    archive-entry-type
 	    ;; common
@@ -54,9 +57,11 @@
 
   (define-class <archive-input> ()
     ((source :init-keyword :source)))
+  (define (archive-input? o) (is-a? o <archive-input>))
 
   (define-class <archive-output> ()
     ((sink   :init-keyword :sink)))
+  (define (archive-output? o) (is-a? o <archive-output>))
 
   (define-class <archive-entry> ()
     ((name   :init-keyword :name :reader archive-entry-name)
@@ -64,6 +69,7 @@
      (type   :init-keyword :type :reader archive-entry-type
 	     ;; output entry may not have to know
 	     :init-value #f)))
+  (define (archive-entry? o) (is-a? o <archive-entry>))
 
   (define-method write-object ((e <archive-entry>) out)
     (format out "#<archive-entry ~a ~a>" (archive-entry-name e)
