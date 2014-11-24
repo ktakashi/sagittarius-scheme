@@ -497,7 +497,7 @@ FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r6rstestrc"
 FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r7rstestrc"
   "${PROJECT_SOURCE_DIR}/test/r7rs-tests\n${PROJECT_SOURCE_DIR}/ext/crypto\n${PROJECT_SOURCE_DIR}/ext/time")
 FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
-  "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads")
+  "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads\n${PROJECT_SOURCE_DIR}/ext/zlib")
 
 ADD_CUSTOM_TARGET(test
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
