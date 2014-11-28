@@ -102,6 +102,18 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     }}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-106/srfi-106.html"]{SRFI-106}}
     @td{(srfi :106 socket)}}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-110/srfi-110.html"]{SRFI-110}}
+    @td{(srfi :110)
+
+    The library exports a replacible reader. To use it write following
+    hash-bang directives.
+@codeblock{
+;; write both for compatibility
+#!reader=sweet
+#!sweet
+}
+    The order doesn't matter, Sagittarius just ignores the latter style.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-111/srfi-111.html"]{SRFI-111}}
     @td{(srfi :111 boxes)
 
@@ -111,6 +123,44 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{boxes} is taken from R7RS-large library name.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-112/srfi-112.html"]{SRFI-112}}
+    @td{(srfi :112 inquery)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :112)}. So for the portability it's better to use the
+    @code{(srfi :112)}.
+
+    The name @code{inquery} is taken from R7RS-large library name.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-114/srfi-114.html"]{SRFI-114}}
+    @td{(srfi :114 comparator)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :114)}. So for the portability it's better to use the
+    @code{(srfi :114)}.
+
+    The name @code{comparator} is taken from its name.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-115/srfi-115.html"]{SRFI-115}}
+    @td{(srfi :115 regexp)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :115)}. So for the portability it's better to use the
+    @code{(srfi :115)}.
+
+    The name @code{regexp} is taken from reference implementation provided
+    on Chibi Scheme.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-116/srfi-116.html"]{SRFI-116}}
+    @td{(srfi :116 ilists)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :116)}. So for the portability it's better to use the
+    @code{(srfi :116)}.
+
+    The name @code{ilists} is taken from reference implementation.
+    }}
+
 }
 
 Each library can be imported like this:
