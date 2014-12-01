@@ -69,6 +69,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
         The library exports @code{srfi-49-read}, @code{srfi-49-load} procedures.
         And also be able to replace reader, For more detail, see
 @secref["lib.sagittarius.reader"]{(sagittarius reader) - reader macro library}.}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-60/srfi-60.html"]{SRFI-60}}
+    @td{(srfi :60 integer-bits)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-61/srfi-61.html"]{SRFI-61}}
     @td{This SRFI is supported by builtin @code{cond}}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-64/srfi-64.html"]{SRFI-64}}
