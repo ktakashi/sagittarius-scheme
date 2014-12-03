@@ -51,18 +51,11 @@
 
   (define (make-comparator type-test equality comparison hash
 			   :optional (name #f))
-    (let ((type (if (eq? type-test #t) (lambda (x) #t) type-test))
-	  (eq   (if (eq? equality #t)
-		    (lambda (x y) (eqv? (comparison x y) 0))
-		    equality))
-	  (comp (or comparison 
-		    (lambda (x y)
-		      (error 'comparator-comparison
-			     "compasison not supported"))))
-	  (hashf (or hash (lambda (x)
-			    (error 'comparator-hash "hashing not supported")))))
-      (%make-comparator type eq comp hashf name
-			(not comparison) (not hash) (eq? type-test #t))))
+    ;; TODO parameter check
+    (let ((eq (if (eq? equality #t)
+		  (lambda (x y) (eqv? (comparison x y) 0))
+		  equality)))
+      (%make-comparator type-test eq comparison hash name)))
 
   (define eq-comparator (%eq-comparator))
   (define eqv-comparator (%eqv-comparator))

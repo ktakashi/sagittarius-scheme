@@ -77,7 +77,7 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
 				     SgObject compFn, SgObject hashFn,
-				     SgObject name,   unsigned long flags);
+				     SgObject name);
 /* pre-defined comparators.
    The returning value should be const SgObject but I'm lazy...
  */

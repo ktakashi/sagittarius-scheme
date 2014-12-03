@@ -1271,17 +1271,10 @@
   ;; cgen doesn't have this yet
   (define-type <comparator> "SgComparator *" "comparator")
   (.typedef "unsigned long" "ulong")
-  (define-c-proc %make-comparator (type-test equality comparison hash
-				   name no-compare::<boolean>
-				   no-hash::<boolean>
-				   any-type::<boolean>)
-    :no-side-effect
-    (let* ((flags::ulong
-		   (logior (logior (?: no-compare SG_COMPARATOR_NO_ORDER 0)
-				   (?: no-hash SG_COMPARATOR_NO_HASH 0))
-			   (?: any-type SG_COMPARATOR_ANY_TYPE 0))))
-      (result (Sg_MakeComparator type-test equality comparison
-				 hash name flags))))
+  ;; only equality argument must be a procedure.
+  (define-c-proc %make-comparator (type-test eq::<procedure>
+				   comparison hash name)
+    :no-side-effect Sg_MakeComparator)
   (define-c-proc comparator? (o) ::<boolean> :constant SG_COMPARATORP)
   ;; can we make this constant?
   (define-c-proc comparator-comparison-procedure? (c::<comparator>)

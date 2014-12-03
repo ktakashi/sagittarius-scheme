@@ -80,28 +80,6 @@ static SgSlotAccessor comparator_slots[] = {
   { { NULL } }
 };
 
-static SgComparator* make_comparator(SgObject typeFn, SgObject eqFn,
-				     SgObject compFn, SgObject hashFn,
-				     SgObject name,   unsigned long flags)
-{
-  SgComparator *c = SG_NEW(SgComparator);
-  SG_SET_CLASS(c, SG_CLASS_COMPARATOR);
-  c->name = name;
-  c->typeFn = typeFn;
-  c->eqFn = eqFn;
-  c->compFn = compFn;
-  c->hashFn = hashFn;
-  c->flags = flags;
-  return c;
-}
-
-SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
-			   SgObject compFn, SgObject hashFn,
-			   SgObject name,   unsigned long flags)
-{
-  return SG_OBJ(make_comparator(typeFn, eqFn, compFn, hashFn, name, flags));
-}
-
 static SgObject eq_comparator = SG_UNDEF;
 static SgObject eqv_comparator = SG_UNDEF;
 static SgObject equal_comparator = SG_UNDEF;
@@ -115,8 +93,14 @@ static SgObject no_comparison(SgObject *args, int argc, void *data)
   Sg_Error(UC("comparison: can't compare objects %S vs %S"), args[0], args[1]);
   return SG_UNDEF;		/* dummy */
 }
-static SG_DEFINE_SUBR(no_type_test_stub, 2, 0, no_type_test, SG_FALSE, NULL);
+static SgObject no_hash(SgObject *args, int argc, void *data)
+{
+  Sg_Error(UC("hash function is not supported"));
+  return SG_UNDEF;		/* dummy */
+}
+static SG_DEFINE_SUBR(no_type_test_stub, 1, 0, no_type_test, SG_FALSE, NULL);
 static SG_DEFINE_SUBR(no_comparison_stub, 2, 0, no_comparison, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(no_hash_stub, 1, 0, no_hash, SG_FALSE, NULL);
 
 /* now we define eq?, eqv? equal? eq-hash, eqv-hash and equal-hash here */
 #define DEF_EQ_PROC(name, proc)						\
@@ -143,6 +127,42 @@ DEF_HASH_PROC(eq, Sg_EqHash)
 DEF_HASH_PROC(eqv, Sg_EqvHash)
 DEF_HASH_PROC(equal, Sg_EqualHash)
 #undef DEF_HASH_PROC
+
+
+static SgComparator* make_comparator(SgObject typeFn, SgObject eqFn,
+				     SgObject compFn, SgObject hashFn,
+				     SgObject name,   unsigned long flags)
+{
+  SgComparator *c = SG_NEW(SgComparator);
+  SG_SET_CLASS(c, SG_CLASS_COMPARATOR);
+  c->name = name;
+  c->typeFn = typeFn;
+  c->eqFn = eqFn;
+  c->compFn = compFn;
+  c->hashFn = hashFn;
+  c->flags = flags;
+  return c;
+}
+
+SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
+			   SgObject compFn, SgObject hashFn,
+			   SgObject name)
+{
+  unsigned long flags = 0;
+  if (SG_TRUEP(typeFn)) {
+    typeFn = SG_OBJ(&no_type_test_stub);
+    flags |= SG_COMPARATOR_ANY_TYPE;
+  }
+  if (SG_FALSEP(compFn)) {
+    compFn = SG_OBJ(&no_comparison_stub);
+    flags |= SG_COMPARATOR_NO_ORDER;
+  }
+  if (SG_FALSEP(hashFn)) {
+    hashFn = SG_OBJ(&no_hash_stub);
+    flags |= SG_COMPARATOR_NO_HASH;
+  }
+  return SG_OBJ(make_comparator(typeFn, eqFn, compFn, hashFn, name, flags));
+}
 
 static SgObject make_comparator_c(SgObject eqFn,
 				  SgObject hashFn,
