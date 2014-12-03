@@ -1328,5 +1328,10 @@
   (define-c-proc %eqv-comparator () :constant Sg_EqvComparator)
   (define-c-proc %equal-comparator () :constant Sg_EqualComparator)
   (define-c-proc %string-comparator () :constant Sg_StringComparator)
+
+  ;; hashtable using comparator
+  (define-c-proc make-hashtable/comparator 
+    (c::<comparator> :optional (k::<fixnum> 200)) :no-side-effect
+    Sg_MakeHashTableWithComparator)
   
 )

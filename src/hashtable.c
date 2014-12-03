@@ -546,7 +546,8 @@ void Sg_HashCoreInitSimple(SgHashCore *core,
   SgHashProc *hasher = NULL;
   SgHashCompareProc *compare = NULL;
   if (hash_core_predef_procs(type, &access, &hasher, &compare) == FALSE) {
-    Sg_Error(UC("[internal error]: wrong TYPE argument passed to Sg_HashCoreInitSimple: %d"), type);
+    Sg_Error(UC("wrong TYPE argument passed to Sg_HashCoreInitSimple: %d"),
+	     type);
   }
   hash_core_init(core, access, hasher, compare, initSize, data);
 }
@@ -732,7 +733,7 @@ static SgObject hash_cache_reader(SgPort *port, SgReadCacheCtx *ctx)
   case SG_HASH_GENERAL: {
     SgObject hasher = Sg_ReadCacheObject(port, ctx);
     SgObject compare = Sg_ReadCacheObject(port, ctx);
-    ht = SG_HASHTABLE(Sg_MakeHashTableForScheme(hasher, compare, entryCount));
+    ht = SG_HASHTABLE(Sg_MakeHashTable(hasher, compare, entryCount));
     break;
   }
   default:
@@ -826,18 +827,8 @@ SgObject Sg_InitHashTableSimple(SgHashTable *table,
   return SG_OBJ(table);
 }
 
-SgObject Sg_MakeHashTable(SgHashProc *hasher, SgHashCompareProc *compre,
+SgObject Sg_MakeHashTable(SgObject hasher, SgObject compare,
 			  int initSize)
-{
-  SgHashTable *z = SG_NEW(SgHashTable);
-  SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
-  Sg_HashCoreInitGeneral(&z->core, hasher, compre, initSize, NULL);
-  z->type = SG_HASH_GENERAL;
-  return SG_OBJ(z);
-}
-
-SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare,
-				   int initSize)
 {
   SgHashTable *z = SG_HASHTABLE(Sg_MakeHashTableSimple(SG_HASH_GENERAL,
 						       initSize));
@@ -845,6 +836,31 @@ SgObject Sg_MakeHashTableForScheme(SgObject hasher, SgObject compare,
   z->core.generalCompare = compare;
   return SG_OBJ(z);
 }
+
+SgObject Sg_MakeHashTableWithComparator(SgObject comparator, 
+					int initSize)
+{
+  /* do some optimisation */
+  if (comparator == Sg_EqComparator()) {
+    return Sg_MakeHashTableSimple(SG_HASH_EQ, initSize);
+  } else if (comparator == Sg_EqvComparator()) {
+    return Sg_MakeHashTableSimple(SG_HASH_EQV, initSize);
+  } else if (comparator == Sg_EqualComparator()) {
+    return Sg_MakeHashTableSimple(SG_HASH_EQUAL, initSize);
+  } else if (comparator == Sg_StringComparator()) {
+    return Sg_MakeHashTableSimple(SG_HASH_STRING, initSize);
+  } else {
+    if (!SG_PROCEDUREP(SG_COMPARATOR(comparator)->hashFn) ||
+	!SG_PROCEDUREP(SG_COMPARATOR(comparator)->eqFn)) {
+      Sg_Error(UC("make-hashtable/comparator: comparator doesn't "
+		  "have hash and/or equality procedure(s). %S"), comparator);
+    }
+    return Sg_MakeHashTable(SG_COMPARATOR(comparator)->hashFn,
+			    SG_COMPARATOR(comparator)->eqFn,
+			    initSize);
+  }
+}
+
 
 SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 {

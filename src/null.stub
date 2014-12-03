@@ -3354,7 +3354,7 @@
       (wrong-type-of-argument-violation 'make-hashtable 
 					"non negative exact integer"
 					(SG_MAKE_INT k)))
-    (result (Sg_MakeHashTableForScheme hasher equiv k)))
+    (result (Sg_MakeHashTable hasher equiv k)))
 
   ;; 13.2 procedures
   (define-c-proc hashtable? (o) ::<boolean> :constant SG_HASHTABLE_P)
