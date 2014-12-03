@@ -51,6 +51,9 @@ typedef uint32_t SgHashProc(const SgHashCore *hc, intptr_t key);
 typedef int      SgHashCompareProc(const SgHashCore *hc, intptr_t key,
 				   intptr_t entryKey);
 
+/* 
+   TODO use comparator.
+ */
 struct SgHashCoreRec
 {
   void  **buckets;

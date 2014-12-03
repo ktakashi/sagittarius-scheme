@@ -76,9 +76,10 @@
   (define-c-proc null? (o) ::<boolean> :constant (inline NULLP) SG_NULLP)
 
   ;; 11.5 equivalence predicates
-  (define-c-proc eq? (a b) ::<boolean> :constant (inline EQ) SG_EQ)
-  (define-c-proc eqv? (a b) ::<boolean> :constant (inline EQV) Sg_EqvP)
-  (define-c-proc equal? (a b) ::<boolean> :constant Sg_EqualP)
+  ;; defined in compare.c
+  ;;(define-c-proc eq? (a b) ::<boolean> :constant (inline EQ) SG_EQ)
+  ;;(define-c-proc eqv? (a b) ::<boolean> :constant (inline EQV) Sg_EqvP)
+  ;;(define-c-proc equal? (a b) ::<boolean> :constant Sg_EqualP)
 
   ;; 11.7.4.1 numerical type predicates
   (define-c-proc complex? (o) ::<boolean> :constant SG_NUMBERP)
@@ -3402,7 +3403,8 @@
     (result (not (SG_IMMUTABLE_HASHTABLE_P ht))))
 
   ;; 13.4
-  (define-c-proc equal-hash (o) ::<fixnum> :no-side-effect Sg_EqualHash)
+  ;; defined in compare.c
+  ;; (define-c-proc equal-hash (o) ::<fixnum> :no-side-effect Sg_EqualHash)
 
   ;; for srfi-13 we need to take bound as an argument
   (define-c-proc string-hash

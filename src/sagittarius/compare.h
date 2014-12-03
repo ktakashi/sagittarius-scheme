@@ -1,6 +1,6 @@
 /* compare.h                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2014  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -31,6 +31,39 @@
 #define SAGITTARIUS_COMPARE_H_
 
 #include "sagittariusdefs.h"
+#include "clos.h"
+
+SG_CLASS_DECL(Sg_ComparatorClass);
+#define SG_CLASS_COMPARATOR (&Sg_ComparatorClass)
+
+/* 
+   <comparator>
+    - type-test
+    - equality
+    - comparison
+    - hash
+    - comparison?
+    - hash?
+ */
+struct SgComparatorRec
+{
+  SG_HEADER;
+  SgObject name;		/* for debugging */
+  SgObject typeFn;		/* type-test */
+  SgObject eqFn;		/* equality */
+  SgObject compFn;		/* comparison */
+  SgObject hashFn;		/* hash*/
+  unsigned long flags;		/* comparison?, hash? and so */
+};
+
+#define SG_COMPARATORP(obj) SG_XTYPEP(obj, SG_CLASS_COMPARATOR)
+#define SG_COMPARATOR(obj)  ((SgComparator *)obj)
+
+enum SgComparatorFlags {
+  SG_COMPARATOR_NO_ORDER  = (1L << 0), /* no comparison procedure */
+  SG_COMPARATOR_NO_HASH   = (1L << 1), /* no hash procedure */
+  SG_COMPARATOR_ANY_TYPE  = (1L << 2), /* type-test returns always #t */
+};
 
 enum {
     SG_CMP_EQ,
@@ -41,6 +74,16 @@ enum {
 #define SG_EQ(x, y) ((x) == (y))
 
 SG_CDECL_BEGIN
+
+SG_EXTERN SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
+				     SgObject compFn, SgObject hashFn,
+				     SgObject name,   unsigned long flags);
+/* pre-defined comparators.
+   The returning value should be const SgObject but I'm lazy...
+ */
+SG_EXTERN SgObject Sg_EqComparator();
+SG_EXTERN SgObject Sg_EqvComparator();
+SG_EXTERN SgObject Sg_EqualComparator();
 
 SG_EXTERN int Sg_EqP(SgObject x, SgObject y);
 SG_EXTERN int Sg_EqvP(SgObject x, SgObject y);

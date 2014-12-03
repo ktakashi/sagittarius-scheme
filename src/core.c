@@ -95,7 +95,7 @@ extern void Sg__Init_core_arithmetic();
 /* extern void Sg__Init_sagittarius_interactive(); */
 
 extern void Sg__InitExtFeatures();
-
+extern void Sg__InitComparator();
 void Sg_Init()
 {
   SgObject nullsym, coreBase, compsym, sgsym;
@@ -162,6 +162,7 @@ void Sg_Init()
   Sg__InitSystem();
 
   Sg__Init_sagittarius();
+  Sg__InitComparator();		/* need (core) and (sagittarius) */
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();
   Sg__Init_sagittarius_clos();

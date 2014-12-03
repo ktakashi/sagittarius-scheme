@@ -537,10 +537,10 @@
 			   (SG_MAKE_STRING "hashtable-iterator")))))
 
   ;; the same as symbol-hash but different procedure
-  ;; should we use Sg_MakeIntegerU as eqv-hash?
-  (define-c-proc eq-hash (o) ::<fixnum> :no-side-effect Sg_EqHash)
-  (define-c-proc eqv-hash (o) :no-side-effect
-    (result (Sg_MakeIntegerU (Sg_EqvHash o))))
+  ;; defined in compare.c
+  ;;(define-c-proc eq-hash (o) ::<fixnum> :no-side-effect Sg_EqHash)
+  ;; (define-c-proc eqv-hash (o) :no-side-effect
+  ;;    (result (Sg_MakeIntegerU (Sg_EqvHash o))))
 
   ;; error
   (define-c-proc with-error-handler
@@ -593,7 +593,7 @@
     (result (Sg_ReadLine p E_NONE)))
 
   (define-c-proc read/ss (:optional (p::<port> (Sg_CurrentInputPort))
-			  :key (source-info?::<boolean> #f))
+				    :key (source-info?::<boolean> #f))
     (check-port-open read/ss p)
     (check-input-port read/ss p)
     (let ((ctx::SgReadContext SG_STATIC_READ_CONTEXT))
@@ -1267,5 +1267,73 @@
       (result (Sg_MakeSubr treemap-itr itr 1 0 
 			   (SG_MAKE_STRING "treemap-iterator")))))
 
+  ;; comparator
+  ;; cgen doesn't have this yet
+  (define-type <comparator> "SgComparator *" "comparator")
+  (.typedef "unsigned long" "ulong")
+  (define-c-proc %make-comparator (type-test equality comparison hash
+				   name no-compare::<boolean>
+				   no-hash::<boolean>
+				   any-type::<boolean>)
+    :no-side-effect
+    (let* ((flags::ulong
+		   (logior (logior (?: no-compare SG_COMPARATOR_NO_ORDER 0)
+				   (?: no-hash SG_COMPARATOR_NO_HASH 0))
+			   (?: any-type SG_COMPARATOR_ANY_TYPE 0))))
+      (result (Sg_MakeComparator type-test equality comparison
+				 hash name flags))))
+  (define-c-proc comparator? (o) ::<boolean> :constant SG_COMPARATORP)
+  ;; can we make this constant?
+  (define-c-proc comparator-comparison-procedure? (c::<comparator>)
+    ::<boolean> :constant
+    (result (not (logand (-> c flags) SG_COMPARATOR_NO_ORDER))))
+  (define-c-proc comparator-hash-function? (c::<comparator>)
+    ::<boolean> :constant
+    (result (not (logand (-> c flags) SG_COMPARATOR_NO_HASH))))
 
+  (define-c-proc comparator-type-test-procedure (c::<comparator>) :constant
+    (result (-> c typeFn)))
+  (define-c-proc comparator-equality-predicate (c::<comparator>) :constant
+    (result (-> c eqFn)))
+  (define-c-proc comparator-comparison-procedure (c::<comparator>) :constant
+    (result (-> c compFn)))
+  (define-c-proc comparator-hash-function (c::<comparator>) :constant
+    (result (-> c hashFn)))
+
+  ;; for performance
+  (define-c-proc comparator-test-type (c::<comparator> obj) :constant
+    (if (logand (-> c flags) SG_COMPARATOR_ANY_TYPE)
+	(result SG_TRUE)
+	(result (Sg_VMApply1 (-> c typeFn) obj))))
+
+  (define-cfn comparator-check-type-cc (result data::void**) :static
+     (when (SG_FALSEP result)
+       (let* ([c   (SG_OBJ (aref data 0))]
+	      [obj (SG_OBJ (aref data 1))])
+	 (Sg_Error (UC "Comparator %S cannot accept object %S") c obj)))
+     (return SG_TRUE))
+
+  (define-c-proc comparator-check-type (c::<comparator> obj) :constant
+    (if (logand (-> c flags) SG_COMPARATOR_ANY_TYPE)
+	(result SG_TRUE)
+	(let* ([data::(.array void* (2))])
+	  (set! (aref data 0) c)
+	  (set! (aref data 1) obj)
+	  (Sg_VMPushCC comparator-check-type-cc data 2)
+	  (result (Sg_VMApply1 (-> c typeFn) obj)))))
+
+  (define-c-proc comparator-equal? (c::<comparator> a b) :constant
+    (result (Sg_VMApply2 (-> c eqFn) a b)))
+
+  (define-c-proc comparator-compare (c::<comparator> a b) :constant
+    (result (Sg_VMApply2 (-> c compFn) a b)))
+
+  (define-c-proc comparator-hash (c::<comparator> x) :constant
+    (result (Sg_VMApply1 (-> c hashFn) x)))
+
+  (define-c-proc %eq-comparator () :constant Sg_EqComparator)
+  (define-c-proc %eqv-comparator () :constant Sg_EqvComparator)
+  (define-c-proc %equal-comparator () :constant Sg_EqualComparator)
+
+  
 )

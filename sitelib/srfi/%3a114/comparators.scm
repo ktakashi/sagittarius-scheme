@@ -114,8 +114,9 @@
 	    ;; non SRFI method
 	    object-type
 	    )
-    (import (rnrs) 
+    (import (rnrs)
 	    (sagittarius)
+	    (sagittarius comparators)
 	    (clos user)
 	    (srfi :114 comparators comparisons)
 	    (only (scheme base) exact-integer?))
@@ -173,7 +174,7 @@
        (if-not=? p els %undef))
       ((_ p els then)
        (if3 p els then els))))
-
+#|
   (define-record-type (<comparator> make-comparator comparator?)
     (fields (immutable type-test   comparator-type-test-procedure)
 	    (immutable equality    comparator-equality-predicate)
@@ -194,6 +195,7 @@
 				(error 'compasison "hashing not supported")))
 		     (if comparison #t #f)
 		     (if hash #t #f))))))
+|#
   ;; compare and equal-hash are extensible.
   (define-method object-type (obj)
       (cond ((null? obj) 0)
@@ -218,7 +220,7 @@
   ;; with object-hash
   (define default-comparator 
     (make-comparator #t #t default-comparison equal-hash))
-
+#|
   (define (comparator-test-type comparator obj)
     ((comparator-type-test-procedure comparator) obj))
   (define (comparator-check-type comparator obj)
@@ -231,7 +233,7 @@
     ((comparator-comparison-procedure c) o1 o2))
   (define (comparator-hash c o)
     ((comparator-hash-function c) o))
-
+|#
   ;; comparison predicate constructors
   (let-syntax ((define-make= (syntax-rules ()
 			       ((_ name comparison)
@@ -548,9 +550,9 @@
 
   ;; wrapped ones
   ;; symbol-hash is eq-hash
-  (define eq-comparator (make-comparator #t eq? #f eq-hash))
-  (define eqv-comparator (make-comparator #t eqv? #f eqv-hash))
-  (define equal-comparator (make-comparator #t equal? #f equal-hash))
+  ;;(define eq-comparator (make-comparator #t eq? #f eq-hash))
+  ;;(define eqv-comparator (make-comparator #t eqv? #f eqv-hash))
+  ;;(define equal-comparator (make-comparator #t equal? #f equal-hash))
 
   ;;; copied from reference implementation
 ;;; Selecting comparator: finds the first one that type-tests

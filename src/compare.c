@@ -33,14 +33,190 @@
 #include "sagittarius/clos.h"
 #include "sagittarius/error.h"
 #include "sagittarius/identifier.h"
+#include "sagittarius/instruction.h"
+#include "sagittarius/library.h"
 #include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/record.h"
 #include "sagittarius/string.h"
+#include "sagittarius/subr.h"
+#include "sagittarius/symbol.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/hashtable.h"
 #include "sagittarius/vm.h"	/* for box */
+#include "sagittarius/writer.h"
+
+static void comparator_print(SgObject o, SgPort *port, SgWriteContext *ctx)
+{
+  SgComparator *c = SG_COMPARATOR(o);
+  if (SG_FALSEP(c->name)) {
+    Sg_Printf(port, UC("#<comparator %p>"), c);
+  } else {
+    Sg_Printf(port, UC("#<comparator %S>"), c->name);
+  }
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ComparatorClass, comparator_print);
+
+/* fields are immutable */
+#define DEF_ACCESSOR(field)					\
+  static SgObject SG_CPP_CAT(comparator_, field)(SgObject c)	\
+  {								\
+    return SG_COMPARATOR(c)->field;				\
+  }
+DEF_ACCESSOR(name)
+DEF_ACCESSOR(typeFn)
+DEF_ACCESSOR(eqFn)
+DEF_ACCESSOR(compFn)
+DEF_ACCESSOR(hashFn)
+
+static SgSlotAccessor comparator_slots[] = {
+  SG_CLASS_SLOT_SPEC("name", 0, comparator_name, NULL),
+  SG_CLASS_SLOT_SPEC("type-test", 1, comparator_typeFn, NULL),
+  SG_CLASS_SLOT_SPEC("equality", 2, comparator_eqFn, NULL),
+  SG_CLASS_SLOT_SPEC("comparison", 3, comparator_compFn, NULL),
+  SG_CLASS_SLOT_SPEC("hash", 4, comparator_hashFn, NULL),
+  { { NULL } }
+};
+
+static SgComparator* make_comparator(SgObject typeFn, SgObject eqFn,
+				     SgObject compFn, SgObject hashFn,
+				     SgObject name,   unsigned long flags)
+{
+  SgComparator *c = SG_NEW(SgComparator);
+  SG_SET_CLASS(c, SG_CLASS_COMPARATOR);
+  c->name = name;
+  c->typeFn = typeFn;
+  c->eqFn = eqFn;
+  c->compFn = compFn;
+  c->hashFn = hashFn;
+  c->flags = flags;
+  return c;
+}
+
+SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
+			   SgObject compFn, SgObject hashFn,
+			   SgObject name,   unsigned long flags)
+{
+  return SG_OBJ(make_comparator(typeFn, eqFn, compFn, hashFn, name, flags));
+}
+
+static SgObject eq_comparator = SG_UNDEF;
+static SgObject eqv_comparator = SG_UNDEF;
+static SgObject equal_comparator = SG_UNDEF;
+
+static SgObject no_type_test(SgObject *args, int argc, void *data)
+{
+  return SG_TRUE;
+}
+static SgObject no_comparison(SgObject *args, int argc, void *data)
+{
+  Sg_Error(UC("comparison: can't compare objects %S vs %S"), args[0], args[1]);
+  return SG_UNDEF;		/* dummy */
+}
+static SG_DEFINE_SUBR(no_type_test_stub, 2, 0, no_type_test, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(no_comparison_stub, 2, 0, no_comparison, SG_FALSE, NULL);
+
+/* now we define eq?, eqv? equal? eq-hash, eqv-hash and equal-hash here */
+#define DEF_EQ_PROC(name, proc)						\
+  static SgObject SG_CPP_CAT(name, _proc)(SgObject *args, int argc, void *data)	\
+  {									\
+    return SG_MAKE_BOOL(proc(args[0], args[1]));			\
+  }									\
+  static SG_DEFINE_SUBR(SG_CPP_CAT(name, _proc_stub), 2, 0,		\
+			SG_CPP_CAT(name, _proc), SG_FALSE, NULL);
+DEF_EQ_PROC(eq, SG_EQ)
+DEF_EQ_PROC(eqv, Sg_EqvP)
+DEF_EQ_PROC(equal, Sg_EqualP)
+#undef DEF_EQ_PROC
+
+#define DEF_HASH_PROC(name, proc)					\
+  static SgObject SG_CPP_CAT(name, _hash_proc)				\
+       (SgObject *args, int argc, void *data)				\
+  {									\
+    return Sg_MakeIntegerU(proc(args[0]));				\
+  }									\
+  static SG_DEFINE_SUBR(SG_CPP_CAT(name, _hash_proc_stub), 1, 0,	\
+			SG_CPP_CAT(name, _hash_proc), SG_FALSE, NULL);
+DEF_HASH_PROC(eq, Sg_EqHash)
+DEF_HASH_PROC(eqv, Sg_EqvHash)
+DEF_HASH_PROC(equal, Sg_EqualHash)
+#undef DEF_HASH_PROC
+
+static SgObject make_comparator_c(SgObject eqFn,
+				  SgObject hashFn,
+				  SgObject name)
+{
+  SgComparator *c = make_comparator(&no_type_test_stub,
+				    eqFn,
+				    &no_comparison_stub,
+				    hashFn,
+				    name,
+				    SG_COMPARATOR_NO_ORDER |
+				    SG_COMPARATOR_ANY_TYPE);
+  return SG_OBJ(c);
+}
+
+SgObject Sg_EqComparator()
+{
+  if (SG_UNDEFP(eq_comparator)) {
+    eq_comparator = make_comparator_c(&eq_proc_stub, &eq_hash_proc_stub,
+				      SG_INTERN("eq-comparator"));
+  }
+  return eq_comparator;
+}
+SgObject Sg_EqvComparator()
+{
+  if (SG_UNDEFP(eqv_comparator)) {
+    eqv_comparator = make_comparator_c(&eqv_proc_stub, &eqv_hash_proc_stub,
+				       SG_INTERN("eqv-comparator"));
+  }
+  return eqv_comparator;
+}
+SgObject Sg_EqualComparator()
+{
+  if (SG_UNDEFP(equal_comparator)) {
+    equal_comparator = make_comparator_c(&equal_proc_stub, &equal_hash_proc_stub,
+					 SG_INTERN("equal-comparator"));
+  }
+  return equal_comparator;
+}
+
+/* initialise */
+void Sg__InitComparator()
+{
+  SgLibrary *closlib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), FALSE);
+  SgLibrary *corelib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
+  SgLibrary *sglib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+
+  Sg_InitStaticClass(SG_CLASS_COMPARATOR, UC("<comparator>"),
+		     closlib, comparator_slots, 0);
+#define INSERT_EQ_PROC(name, stub, inliner)				\
+  do {									\
+    SgObject nameS = SG_MAKE_STRING(name);				\
+    SG_PROCEDURE_NAME(stub) = nameS;					\
+    SG_PROCEDURE_TRANSPARENT(stub) = SG_PROC_TRANSPARENT;		\
+    SG_PROCEDURE_INLINER(stub) = (inliner);				\
+    Sg_InsertBinding(corelib, Sg_Intern(nameS), SG_OBJ(stub));		\
+  } while (0)
+  INSERT_EQ_PROC("eq?", &eq_proc_stub, SG_MAKE_INT(EQ));
+  INSERT_EQ_PROC("eqv?", &eqv_proc_stub, SG_MAKE_INT(EQV));
+  INSERT_EQ_PROC("equal?", &equal_proc_stub, SG_FALSE);
+#undef INSERT_EQ_PROC
+
+#define INSERT_HASH_PROC(lib, name, stub)				\
+  do {									\
+    SgObject nameS = SG_MAKE_STRING(name);				\
+    SG_PROCEDURE_NAME(stub) = nameS;					\
+    SG_PROCEDURE_TRANSPARENT(stub) = SG_PROC_NO_SIDE_EFFECT;		\
+    Sg_InsertBinding(lib, Sg_Intern(nameS), SG_OBJ(stub));		\
+  } while (0)
+  INSERT_HASH_PROC(sglib, "eq-hash", &eq_hash_proc_stub);
+  INSERT_HASH_PROC(sglib, "eqv-hash", &eqv_hash_proc_stub);
+  INSERT_HASH_PROC(corelib, "equal-hash", &equal_hash_proc_stub);
+#undef INSERT_HASH_PROC
+}
 
 int Sg_Compare(SgObject x, SgObject y)
 {
