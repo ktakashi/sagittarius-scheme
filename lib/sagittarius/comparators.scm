@@ -44,9 +44,20 @@
 	  ;; built-in comparatorss
 	  eq-comparator
 	  eqv-comparator
-	  equal-comparator)
+	  equal-comparator
+	  string-comparator
+
+	  ;; others
+	  make-comparison<
+	  make-comparison>
+	  make-comparison<=
+	  make-comparison>=
+	  make-comparison=/<
+	  make-comparison=/>
+	  )
   (import (rnrs)
 	  (sagittarius)
+	  (core inline)
 	  (clos user))
 
   (define (make-comparator type-test equality comparison hash
@@ -60,5 +71,45 @@
   (define eq-comparator (%eq-comparator))
   (define eqv-comparator (%eqv-comparator))
   (define equal-comparator (%equal-comparator))
+  (define string-comparator (%string-comparator))
+  
+  (define-syntax define-comparison
+    (syntax-rules ()
+      ((_ (name . formals) expr)
+       (begin
+	 (define (name . formals)
+	   expr)
+	 (define-inliner name (sagittarius comparators)
+	   ((_ . formals) expr))))))
+
+  (define-comparison (make-comparison< <)
+    (lambda (a b)
+      (cond ((< a b) -1)
+	    ((< b a) 1)
+	    (else 0))))
+  (define-comparison (make-comparison> >)
+    (lambda (a b)
+      (cond ((> a b) -1)
+	    ((> b a) 1)
+	    (else 0))))
+  (define-comparison (make-comparison<= <=)
+    (lambda (a b)
+      (if (<= a b) (if (<= b a) 0 -1) 1)))
+
+  (define-comparison (make-comparison>= >=)
+    (lambda (a b)
+      (if (>= a b) (if (>= b a) 0 1) -1)))
+
+  (define-comparison (make-comparison=/< = <)
+    (lambda (a b)
+      (cond ((= a b) 0)
+	    ((< a b) -1)
+	    (else 1))))
+
+  (define-comparison (make-comparison=/> = >)
+    (lambda (a b)
+      (cond ((= a b) 0)
+	    ((> b a) 1)
+	    (else -1))))
 
   )

@@ -28,58 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; inline doesn't work in the same library, because it needs to be
-;; executed
-(library (srfi :114 comparators comparisons)
-    (export make-comparison<
-	    make-comparison>
-	    make-comparison<=
-	    make-comparison>=
-	    make-comparison=/<
-	    make-comparison=/>)
-    (import (rnrs) (core inline))
-  
-  (define-syntax define-comparison
-    (syntax-rules ()
-      ((_ (name . formals) expr)
-       (begin
-	 (define (name . formals)
-	   expr)
-	 (define-inliner name (srfi :114 comparators comparisons)
-	   ((_ . formals) expr))))))
-
-  (define-comparison (make-comparison< <)
-    (lambda (a b)
-      (cond ((< a b) -1)
-	    ((< b a) 1)
-	    (else 0))))
-  (define-comparison (make-comparison> >)
-    (lambda (a b)
-      (cond ((> a b) -1)
-	    ((> b a) 1)
-	    (else 0))))
-  (define-comparison (make-comparison<= <=)
-    (lambda (a b)
-      (if (<= a b) (if (<= b a) 0 -1) 1)))
-
-  (define-comparison (make-comparison>= >=)
-    (lambda (a b)
-      (if (>= a b) (if (>= b a) 0 1) -1)))
-
-  (define-comparison (make-comparison=/< = <)
-    (lambda (a b)
-      (cond ((= a b) 0)
-	    ((< a b) -1)
-	    (else 1))))
-
-  (define-comparison (make-comparison=/> = >)
-    (lambda (a b)
-      (cond ((= a b) 0)
-	    ((> b a) 1)
-	    (else -1))))
-
-)
-
 (library (srfi :114 comparators)
     (export comparator? comparator-comparison-procedure? 
 	    comparator-hash-function?
@@ -118,7 +66,7 @@
 	    (sagittarius)
 	    (sagittarius comparators)
 	    (clos user)
-	    (srfi :114 comparators comparisons)
+	    ;; (srfi :114 comparators comparisons)
 	    (only (scheme base) exact-integer?))
 
   (define-constant %undef (undefined))
@@ -334,9 +282,9 @@
   (define char-ci-comparator
     (make-comparator char? char-ci=? char-ci-comparison char-ci-hash))
 
-  (define string-comparison (make-comparison=/< string=? string<?))
-  (define string-comparator
-    (make-comparator string? string=? string-comparison string-hash))
+;;  (define string-comparison (make-comparison=/< string=? string<?))
+;;  (define string-comparator
+;;    (make-comparator string? string=? string-comparison string-hash))
 
   (define string-ci-comparison (make-comparison=/< string-ci=? string-ci<?))
   (define string-ci-comparator
@@ -744,4 +692,4 @@
 	   #f))))
 
 
-)
+  )

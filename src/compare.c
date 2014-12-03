@@ -124,6 +124,51 @@ DEF_HASH_PROC(eqv, Sg_EqvHash)
 DEF_HASH_PROC(equal, Sg_EqualHash)
 #undef DEF_HASH_PROC
 
+/* string comparator. this is not the same as string=?, string-hash but
+   match more simplified.
+   NOTE: we don't expose them directly from (sagittarius) or (core)
+*/
+/* string? 
+   TODO Should we export this from (core)?
+ */
+static SgObject string_p(SgObject *args, int argc, void *data)
+{
+  return SG_MAKE_BOOL(SG_STRINGP(args[0]));
+}
+static SG_DEFINE_SUBR(string_p_stub, 1, 0, string_p, SG_FALSE, NULL);
+
+/* string-hash */
+static SgObject string_hash(SgObject *args, int argc, void *data)
+{
+  if (!SG_STRINGP(args[0])) {
+    Sg_Error(UC("string-comparator: string required but got %S"), args[0]);
+  }
+  return Sg_MakeIntegerU(Sg_StringHash(SG_STRING(args[0]), SG_INT_MAX));
+}
+static SG_DEFINE_SUBR(string_hash_stub, 1, 0, string_hash, SG_FALSE, NULL);
+
+static SgObject string_eq(SgObject *args, int argc, void *data)
+{
+  if (!SG_STRINGP(args[0]) || !SG_STRINGP(args[1])) {
+    Sg_Error(UC("string-comparator: string required but got %S and %S"),
+	     args[0], args[1]);
+  }
+  return SG_MAKE_BOOL(Sg_StringEqual(SG_STRING(args[0]), SG_STRING(args[1])));
+}
+static SG_DEFINE_SUBR(string_eq_stub, 2, 0, string_eq, SG_FALSE, NULL);
+
+static SgObject string_cmp(SgObject *args, int argc, void *data)
+{
+  int r;
+  if (!SG_STRINGP(args[0]) || !SG_STRINGP(args[1])) {
+    Sg_Error(UC("string-comparator: string required but got %S and %S"),
+	     args[0], args[1]);
+  }
+  r = Sg_StringCompare(SG_STRING(args[0]), SG_STRING(args[1]));
+  return SG_MAKE_INT(r);
+}
+static SG_DEFINE_SUBR(string_cmp_stub, 2, 0, string_cmp, SG_FALSE, NULL);
+
 
 static SgComparator* make_comparator(SgObject typeFn, SgObject eqFn,
 				     SgObject compFn, SgObject hashFn,
@@ -175,6 +220,9 @@ static SgComparator eqv_comparator =
   DEF_EQ_COMPARATOR(&eqv_proc_stub, &eqv_hash_proc_stub);
 static SgComparator equal_comparator =
   DEF_EQ_COMPARATOR(&equal_proc_stub, &equal_hash_proc_stub);
+static SgComparator string_comparator =
+  DEF_BUILTIN_COMPARATOR(&string_p_stub, &string_eq_stub, &string_cmp_stub,
+			 &string_hash_stub, 0);
 
 
 SgObject Sg_EqComparator()
@@ -188,6 +236,10 @@ SgObject Sg_EqvComparator()
 SgObject Sg_EqualComparator()
 {
   return SG_OBJ(&equal_comparator);
+}
+SgObject Sg_StringComparator()
+{
+  return SG_OBJ(&string_comparator);
 }
 
 /* initialise */
@@ -226,6 +278,14 @@ void Sg__InitComparator()
   eq_comparator.name    = SG_INTERN("eq-comparator");
   eqv_comparator.name   = SG_INTERN("eqv-comparator");
   equal_comparator.name = SG_INTERN("equal-comparator");
+  string_comparator.name = SG_INTERN("string-comparator");
+  /* for convenience */
+  SG_PROCEDURE_NAME(&string_p_stub)  = SG_MAKE_STRING("comparator-string?");
+  SG_PROCEDURE_NAME(&string_eq_stub) = SG_MAKE_STRING("comparator-string=?");
+  SG_PROCEDURE_NAME(&string_cmp_stub) =
+    SG_MAKE_STRING("comparator-string-compare");
+  SG_PROCEDURE_NAME(&string_hash_stub) =
+    SG_MAKE_STRING("comparator-string-hash");
 }
 
 int Sg_Compare(SgObject x, SgObject y)

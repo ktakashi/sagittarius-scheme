@@ -84,6 +84,7 @@ SG_EXTERN SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
 SG_EXTERN SgObject Sg_EqComparator();
 SG_EXTERN SgObject Sg_EqvComparator();
 SG_EXTERN SgObject Sg_EqualComparator();
+SG_EXTERN SgObject Sg_StringComparator();
 
 SG_EXTERN int Sg_EqP(SgObject x, SgObject y);
 SG_EXTERN int Sg_EqvP(SgObject x, SgObject y);
