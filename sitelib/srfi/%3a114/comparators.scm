@@ -58,15 +58,11 @@
 	    in-open-interval? in-closed-interval? in-open-closed-interval? 
 	    in-closed-open-interval?
 	    comparator-min comparator-max
-
-	    ;; non SRFI method
-	    object-type
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius comparators)
 	    (clos user)
-	    ;; (srfi :114 comparators comparisons)
 	    (only (scheme base) exact-integer?))
 
   (define-constant %undef (undefined))
@@ -144,20 +140,6 @@
 		     (if comparison #t #f)
 		     (if hash #t #f))))))
 |#
-  ;; compare and equal-hash are extensible.
-  (define-method object-type (obj)
-      (cond ((null? obj) 0)
-	    ((pair? obj) 1)
-	    ((boolean? obj) 2)
-	    ((char? obj) 3)
-	    ((string? obj) 4)
-	    ((symbol? obj) 5)
-	    ((number? obj) 6)
-	    ((vector? obj) 7)
-	    ((bytevector? obj) 8)
-	    ;; if user wants to add some disjoint type then
-	    ;; this object-type method needs to be specialized
-	    (else 32767)))
   (define (default-comparison a b)
     (let ((a-type (object-type a))
 	  (b-type (object-type b)))

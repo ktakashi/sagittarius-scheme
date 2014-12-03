@@ -54,6 +54,12 @@
 	  make-comparison>=
 	  make-comparison=/<
 	  make-comparison=/>
+
+	  ;; non SRFI procedure
+	  object-type
+	  ;; hook method
+	  disjoint-order
+	  
 	  )
   (import (rnrs)
 	  (sagittarius)
@@ -72,6 +78,29 @@
   (define eqv-comparator (%eqv-comparator))
   (define equal-comparator (%equal-comparator))
   (define string-comparator (%string-comparator))
+
+  ;; This is a bit tricky.
+  ;; we want the order rather static value. (Well as long as we use
+  ;; method then it won't be totally static though). However the
+  ;; reference implementation way is rather dynamic so that the
+  ;; evaluation order matters and we don't want it. maybe we should
+  ;; provide more proper procedure such as taking 2 argument, like
+  ;; comparator and index order. But for now.
+  ;;
+  ;; Default value is taken from reference implementation
+  (define-method disjoint-order (obj) 32767)
+  ;; compare and equal-hash are extensible.
+  (define (object-type obj)
+      (cond ((null? obj) 0)
+	    ((pair? obj) 1)
+	    ((boolean? obj) 2)
+	    ((char? obj) 3)
+	    ((string? obj) 4)
+	    ((symbol? obj) 5)
+	    ((number? obj) 6)
+	    ((vector? obj) 7)
+	    ((bytevector? obj) 8)
+	    (else (disjoint-order obj))))
   
   (define-syntax define-comparison
     (syntax-rules ()
