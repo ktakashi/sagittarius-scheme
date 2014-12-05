@@ -134,14 +134,23 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{inquery} is taken from R7RS-large library name.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-113/srfi-113.html"]{SRFI-113}}
+    @td{(srfi :113 sets)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :113)}. So for the portability it's better to use the
+    @code{(srfi :113)}.
+
+    The name @code{sets} is taken from its name.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-114/srfi-114.html"]{SRFI-114}}
-    @td{(srfi :114 comparator)
+    @td{(srfi :114 comparators)
 
     The long name is Sagittarius specific and the specified library name 
     is @code{(srfi :114)}. So for the portability it's better to use the
     @code{(srfi :114)}.
 
-    The name @code{comparator} is taken from its name.
+    The name @code{comparators} is taken from its name.
     }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-115/srfi-115.html"]{SRFI-115}}
     @td{(srfi :115 regexp)
