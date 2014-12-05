@@ -2,6 +2,7 @@
 	(srfi :113 sets)
 	(srfi :114 comparators)
 	(srfi :39)
+	(clos user)
 	(prefix (srfi :64) srfi:)
 	(only (scheme base) define-values))
 
@@ -31,8 +32,8 @@
     ((_ expr)
      (srfi:test-error 'expr condition? expr))))
 
-(srfi:test-assert "dummy" #t)
-#;
+;;(srfi:test-assert "dummy" #t)
+
 (test-group "sets"
 (define (big x) (> x 5))
 
@@ -86,7 +87,7 @@
   (set! nums (set eqv-comparator 10 20 30 40 50))
   ;; nums is now {10, 20, 30, 40, 50}
   (test-assert
-    (set=? nums (set-unfold
+   (set=? nums (set-unfold
        (lambda (i) (= i 0))
        (lambda (i) (* i 10))
        (lambda (i) (- i 1))

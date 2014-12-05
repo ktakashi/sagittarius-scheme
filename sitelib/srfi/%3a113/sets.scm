@@ -52,7 +52,7 @@
 	  set-union! set-intersection! set-difference! set-xor!
 
 	  bag bag-contains? bag-unfold
-	  bag? bag-empty bag-disjoint?
+	  bag? bag-empty? bag-disjoint?
 	  bag-member bag-element-comparator
 	  bag-adjoin bag-adjoin! bag-replace bag-replace!
 	  bag-delete bag-delete! bag-delete-all bag-delete-all!
@@ -66,9 +66,10 @@
 	  bag-union! bag-intersection! bag-difference! bag-xor!
 	  
 	  bag-sum bag-sum! bag-product bag-product!
+	  bag-unique-size
 	  bag-element-count bag-for-each-unique bag-fold-unique
 	  bag-increment! bag-decrement!
-	  bag->set set->bag set->bag!
+	  bag->set set->bag set->bag! bag->alist alist->bag
 
 	  set-comparator bag-comparator)
   (import (rnrs)
@@ -93,8 +94,17 @@
   ;; class definition for set and bag
   (define-class <set> (<abstract-container>) ())
   (define (set? o) (is-a? o <set>))
+  (define-method write-object ((o <set>) out)
+    (display "#<set" out)
+    (set-for-each (lambda (e) (display " " out) (write e out)) o)
+    (display ">" out))
+
   (define-class <bag> (<abstract-container>) ())
   (define (bag? o) (is-a? o <bag>))
+  (define-method write-object ((o <bag>) out)
+    (display "#<bag" out)
+    (bag-for-each (lambda (e) (display " " out) (write e out)) o)
+    (display ">" out))
 
   ;; starts with 10 for now
   (define-method disjoint-order ((o <set>)) 10)
@@ -124,7 +134,7 @@
   (define (sob-cleanup! sob)
     (define (nonpositive-keys ht)
       (filter values
-	      (hashtable-map (lambda (k v) (and (negative? v) k)) ht)))
+	      (hashtable-map (lambda (k v) (and (<= v 0) k)) ht)))
     (let ((ht (slot-ref sob 'hashtable)))
       (for-each (lambda (key) (hashtable-delete! ht key))
 		(nonpositive-keys ht))
@@ -188,7 +198,7 @@
   (let-syntax ((define-unfold
 		 (syntax-rules ()
 		   ((_ ?name ?class)
-		    (define (?name stop? mapper successor sees comparator)
+		    (define (?name stop? mapper successor seed comparator)
 		      (let ((result (make-sob ?class comparator)))
 			(let loop ((seed seed))
 			  (if (stop? seed)
@@ -205,7 +215,8 @@
 		   ((_ ?name ?class)
 		    (define (?name sob member)
 		      (check-type ?name sob ?class)
-		      (hashtable-contains? (slot-ref sob 'hashtable) member))))))
+		      (hashtable-contains? 
+		       (slot-ref sob 'hashtable) member))))))
     (define-contains set-contains? <set>)
     (define-contains bag-contains? <bag>))
 
@@ -229,11 +240,11 @@
 			  (let loop ((keys (hashtable-keys-list
 					    (slot-ref a 'hashtable))))
 			    (cond ((null? keys))
-				  ((hashtable-contains? ht (car key)) #f)
+				  ((hashtable-contains? ht (car keys)) #f)
 				  (else (loop (cdr keys)))))))
 		      (check-type ?name a ?class)
 		      (check-type ?name b ?class)
-		      (check-comparator ?name sob ?class)
+		      (check-comparator ?name a b)
 		      (and (disjoint? a b)
 			   (disjoint? b a)))))))
     (define-disjoint set-disjoint? <set>)
@@ -275,12 +286,11 @@
 		      (define (?name sob . elements)
 			(check-type ?name sob ?class)
 			(for-each (lambda (e) (sob-increment! sob e 1))
-				  elements))
+				  elements)
+			sob)
 		      (define (?name2 sob . elements)
 			(check-type ?name2 sob ?class)
-			(let ((r (sob-copy sob ?class)))
-			  (apply ?name sob elements)
-			  r)))))))
+			(apply ?name (sob-copy sob ?class) elements)))))))
     (define-adjoin set-adjoin! set-adjoin <set>)
     (define-adjoin bag-adjoin! bag-adjoin <bag>))
 
@@ -306,9 +316,7 @@
 				  (else (loop (cdr keys)))))))
 		      (define (?name2 sob element)
 			(check-type ?name2 sob ?class)
-			(let ((r (sob-copy sob ?class)))
-			  (?name sob element)
-			  r)))))))
+			(?name (sob-copy sob ?class) element)))))))
     (define-replace set-replace! set-replace <set>)
     (define-replace bag-replace! bag-replace <bag>))
 
@@ -325,9 +333,7 @@
 			(sob-cleanup! sob))
 		      (define (?name2 sob . elements)
 			(check-type ?name2 sob ?class)
-			(let ((r (sob-copy sob ?class)))
-			  (?name sob element)
-			  r))))))
+			(apply ?name (sob-copy sob ?class) elements))))))
 	       (define-delete-all
 		 (syntax-rules ()
 		   ((_ ?name ?name2 ?class)
@@ -340,9 +346,7 @@
 			(sob-cleanup! sob))
 		      (define (?name2 sob elements)
 			(check-type ?name2 sob ?class)
-			(let ((r (sob-copy sob ?class)))
-			  (?name sob element)
-			  r)))))))
+			(?name (sob-copy sob ?class) elements)))))))
     (define-delete set-delete! set-delete <set>)
     (define-delete bag-delete! bag-delete <bag>)
     (define-delete-all set-delete-all! set-delete-all <set>)
@@ -408,7 +412,7 @@
 		      (check-type ?name sob ?class)
 		      (?fold (lambda (e t) (if (pred e) (+ t 1) t)) 0 sob))))))
     (define-count set-count set-fold <set>)
-    (define-count bag-count set-fold <bag>))
+    (define-count bag-count bag-fold <bag>))
 
   ;; any
   (let-syntax ((define-any
@@ -422,8 +426,8 @@
 				;; shouldn't this return result of pred?
 				((pred (car keys)) #t)
 				(else (loop (cdr keys)))))))))))
-    (define-any set-any <set>)
-    (define-any bag-any <bag>))
+    (define-any set-any? <set>)
+    (define-any bag-any? <bag>))
 
   ;; every
   (let-syntax ((define-every
@@ -435,9 +439,9 @@
 			(let loop ((keys (hashtable-keys-list ht)))
 			  (cond ((null? keys) #t)
 				((pred (car keys)) (loop (cdr keys)))
-				(else #t)))))))))
-    (define-every set-every <set>)
-    (define-every bag-every <bag>))
+				(else #f)))))))))
+    (define-every set-every? <set>)
+    (define-every bag-every? <bag>))
 
   ;; for-each
   (let-syntax ((define-for-each
@@ -459,7 +463,8 @@
 		      (check-type ?name sob ?class)
 		      (let ((r (make-sob ?class comparator)))
 			(hashtable-for-each
-			 (lambda (key value) (sob-increment! r (proc key) value))
+			 (lambda (key value)
+			   (sob-increment! r (proc key) value))
 			 (slot-ref sob 'hashtable))
 			r))))))
     (define-map set-map <set>)
@@ -496,13 +501,14 @@
   (let-syntax ((define-filter!
 		 (syntax-rules ()
 		   ((_ ?name ?class)
-		    (define (?name pred  sob)
+		    (define (?name pred sob)
 		      (check-type ?name sob ?class)
 		      (hashtable-for-each
 		       (lambda (key value)
 			 (unless (pred key)
-			   (sob-decrement! r key value)))
-		       (slot-ref sob 'hashtable)))))))
+			   (sob-decrement! sob key value)))
+		       (slot-ref sob 'hashtable))
+		      (sob-cleanup! sob))))))
     (define-filter! set-filter! <set>)
     (define-filter! bag-filter! <bag>))
 
@@ -575,7 +581,7 @@
   (define (list->set comparator list)
     (list->set! (make-sob <set> comparator) list))
   (define (list->bag comparator list)
-    (list->set! (make-sob <bag> comparator) list))
+    (list->bag! (make-sob <bag> comparator) list))
 
   ;; =?
   (define-syntax define-dyadic
@@ -583,7 +589,7 @@
       ((_ name op)
        (define (name sob1 sob2)
 	 (let ((ht1 (slot-ref sob1 'hashtable))
-	       (ht2 (slot-ref sob1 'hashtable)))
+	       (ht2 (slot-ref sob2 'hashtable)))
 	   (and (op (hashtable-size ht1) (hashtable-size ht2))
 		(let-values (((keys values) (hashtable-entries ht1)))
 		  (let ((len (vector-length keys)))
@@ -595,9 +601,11 @@
 				 (loop (+ i 1))))))))))))))
   (define-dyadic dyadic-sob=? =)
   (define-dyadic dyadic-sob<=? <=)
-  (define-dyadic dyadic-sob>=? >=)
-  (define-dyadic dyadic-sob>? >)
-  (define-dyadic dyadic-sob<? <)
+  ;; from reference implementation
+  (define (dyadic-sob>? sob1 sob2) (not (dyadic-sob<=? sob1 sob2)))
+  (define (dyadic-sob<? sob1 sob2) (dyadic-sob>? sob2 sob1))
+  (define (dyadic-sob>=? sob1 sob2) (not (dyadic-sob<? sob1 sob2)))
+
   (let-syntax ((define-=?
 		 (syntax-rules ()
 		   ((_ ?name ?= ?class)
@@ -609,9 +617,10 @@
 		       ((sob1 sob2)
 			(check-type ?name sob1 ?class)
 			(check-type ?name sob2 ?class)
-			(=? sob1 sob2))
+			(check-comparator ?name sob1 sob2)
+			(?= sob1 sob2))
 		       ((sob1 sob2 . sobs)
-			(and (?name sob1 sob2) (apply ?name sobs)))))))))
+			(and (?name sob1 sob2) (apply ?name sob2 sobs)))))))))
     (define-=? set=? dyadic-sob=? <set>)
     (define-=? bag=? dyadic-sob=? <bag>)
     (define-=? set<=? dyadic-sob<=? <set>)
@@ -624,10 +633,196 @@
     (define-=? bag>? dyadic-sob>? <bag>)
     )
 
-  ;; TODO union, intersection and difference
-  ;; TODO bag specific procedures
+  ;; set theory operations
+  (define (sob-union! result sob1 sob2)
+    (let ((sob1-ht (slot-ref sob1 'hashtable))
+	  (sob2-ht (slot-ref sob2 'hashtable))
+	  (result-ht (slot-ref result 'hashtable)))
+      (hashtable-for-each
+       (lambda (key value1)
+	 (let ((value2 (hashtable-ref sob2-ht key 0)))
+	   (hashtable-set! result-ht key (max value1 value2))))
+       sob1-ht)
+      (hashtable-for-each
+       (lambda (key value2)
+	 (let ((value1 (hashtable-ref sob1-ht key 0)))
+	   (when (zero? value1)
+	     (hashtable-set! result-ht key value2))))
+       sob2-ht)))
+
+  (define (sob-intersection! result sob1 sob2)
+    (let ((sob1-ht (slot-ref sob1 'hashtable))
+	  (sob2-ht (slot-ref sob2 'hashtable))
+	  (result-ht (slot-ref result 'hashtable)))
+      (hashtable-for-each
+       (lambda (key value1)
+	 (let ((value2 (hashtable-ref sob2-ht key 0)))
+	   (hashtable-set! result-ht key (min value1 value2))))
+       sob1-ht)))
+  (define (sob-difference! result sob1 sob2)
+    (let ((sob1-ht (slot-ref sob1 'hashtable))
+	  (sob2-ht (slot-ref sob2 'hashtable))
+	  (result-ht (slot-ref result 'hashtable)))
+      (hashtable-for-each
+       (lambda (key value1)
+	 (let ((value2 (hashtable-ref sob2-ht key 0)))
+	   (hashtable-set! result-ht key (- value1 value2))))
+       sob1-ht)))
+  (let-syntax ((define-theory
+		 (syntax-rules ()
+		   ((_ ?name ?name2 ?class ?op ?cleanup)
+		    (begin
+		      (define (?name sob1 sob2 . sobs)
+			(check-type ?name sob1 ?class)
+			(check-type ?name sob2 ?class)
+			(check-comparator ?name sob1 sob2)
+			(for-each (lambda (sob)
+				    (check-type ?name sob ?class)
+				    (check-comparator ?name sob sob1))
+				  sobs)
+			(?op sob1 sob1 sob2)
+			(for-each
+			 (lambda (sob) (?op sob1 sob1 sob))
+			 sobs)
+			;; sucks...
+			(if ?cleanup
+			    (sob-cleanup! sob1)
+			    sob1))
+		      (define (?name2 sob1 sob2 . sobs)
+			(apply ?name (sob-empty-copy sob1 ?class) sob2 sobs)))
+		    ))))
+    (define-theory set-union! set-union <set> sob-union! #f)
+    (define-theory bag-union! bag-union <bag> sob-union! #f)
+    (define-theory set-intersection! set-intersection
+      <set> sob-intersection! #t)
+    (define-theory bag-intersection! bag-intersection
+      <bag> sob-intersection! #t)
+    (define-theory set-difference! set-difference
+      <set> sob-difference! #t)
+    (define-theory bag-difference! bag-difference
+      <bag> sob-difference! #t))
+
+  (define (sob-xor! result sob1 sob2)
+    (let ((sob1-ht (slot-ref sob1 'hashtable))
+	  (sob2-ht (slot-ref sob2 'hashtable))
+	  (result-ht (slot-ref result 'hashtable)))
+      (hashtable-for-each
+       (lambda (key value2)
+	 (let ((value1 (hashtable-ref sob1-ht key 0)))
+	   (when (zero? value1)
+	     (hashtable-set! result-ht key value2))))
+       sob2-ht)
+      (hashtable-for-each
+       (lambda (key value1)
+	 (let ((value2 (hashtable-ref sob2-ht key 0)))
+	   (hashtable-set! result-ht key (abs (- value1 value2)))))
+       sob1-ht)
+      (sob-cleanup! result)))
+  ;; xor
+  (let-syntax ((define-xor
+		 (syntax-rules ()
+		   ((_ ?name ?name2 ?class)
+		    (begin
+		      (define (?name sob1 sob2)
+			(check-type ?name sob1 ?class)
+			(check-type ?name sob2 ?class)
+			(check-comparator ?name sob1 sob2)
+			(sob-xor! sob1 sob1 sob2))
+		      (define (?name2 sob1 sob2)
+			(?name (sob-copy sob1 ?class) sob2)))))))
+    (define-xor set-xor! set-xor <set>)
+    (define-xor bag-xor! bag-xor <bag>))
   
   ;; bag specific
+  ;; bag-sum
+  (define (bag-sum! bag1 bag2 . bags)
+    (define (sum! result sob1 sob2)
+      (let ((sob1-ht (slot-ref sob1 'hashtable))
+	    (sob2-ht (slot-ref sob2 'hashtable))
+	    (result-ht (slot-ref result 'hashtable)))
+	(hashtable-for-each
+	 (lambda (key value1)
+	   (let ((value2 (hashtable-ref sob2-ht key 0)))
+	     (hashtable-set! result-ht key (+ value1 value2))))
+	 sob1-ht)
+	(hashtable-for-each
+	 (lambda (key value2)
+	   (let ((value1 (hashtable-ref sob1-ht key 0)))
+	     (when (zero? value1)
+	       (hashtable-set! result-ht key value2))))
+	 sob2-ht)))
+    (check-type bag-sum! bag1 <bag>)
+    (check-type bag-sum! bag2 <bag>)
+    (for-each (lambda (bag)
+		(check-type bag-sum! bag <bag>)) bags)
+    (sum! bag1 bag1 bag2)
+    (for-each (lambda (bag) (sum! bag1 bag1 bag)) bags)
+    bag1)
+  (define (bag-sum bag1 bag2 . bags)
+    (apply bag-sum! (bag-copy bag1) bag2 bags))
+
+  ;; bag-product
+  (define (bag-product! bag n)
+    (define (product! result sob n)
+      (let ((rht (slot-ref result 'hashtable)))
+	(hashtable-for-each
+	 (lambda (elem count) (hashtable-set! rht elem (* count n)))
+	 (slot-ref bag 'hashtable))
+	result))
+    (check-type bag-product! bag <bag>)
+    (unless (and (exact? n) (integer? n) (positive? n))
+      (error 'bag-product! "non negative exact integer required" n))
+    (product! bag bag n))
+  (define (bag-product bag n)
+    (bag-product! (bag-copy bag) n))
+
+  ;; etc
+  (define (bag-unique-size bag)
+    (check-type bag-unique-size bag <bag>)
+    (hashtable-size (slot-ref bag 'hashtable)))
+  (define (bag-element-count bag elm)
+    (check-type bag-element-count bag <bag>)
+    (hashtable-ref (slot-ref bag 'hashtable) elm 0))
+  (define (bag-for-each-unique proc bag)
+    (check-type bag-for-each-unique bag <bag>)
+    (hashtable-for-each
+     (lambda (key value) (proc key value))
+     (slot-ref bag 'hashtable)))
+  (define (bag-fold-unique proc seed bag)
+    (check-type 'bag-fold-unique bag <bag>)
+    (let ((ht (slot-ref bag 'hashtable)))
+      (fold proc seed (hashtable-keys-list ht) (hashtable-values-list ht))))
+
+  ;; conversion
+  (define (bag->set bag)
+    (check-type bag->set bag <bag>)
+    (rlet1 r (make-sob <set> (slot-ref bag 'comparator))
+      (hashtable-for-each
+       (lambda (k v) (sob-increment! r k v))
+       (slot-ref bag 'hashtable))))
+  (define (set->bag! bag set)
+    (check-type set->bag! bag <bag>)
+    (check-type set->bag! set <set>)
+    (check-comparator set->bag! bag set)
+    (hashtable-for-each
+     (lambda (k v) (sob-increment! bag k v))
+     (slot-ref set 'hashtable))
+    bag)
+  (define (set->bag set)
+    (set->bag! (make-sob <bag> (slot-ref set 'comparator)) set))
+
+  (define (bag->alist bag)
+    (check-type bag->alist bag <bag>)
+    (bag-fold-unique acons '() bag))
+  (define (alist->bag comparator alist)
+    (let* ((result (bag comparator))
+	   (ht (slot-ref result 'hashtable)))
+      (for-each (lambda (k&v)
+		  (let ((k (car k&v)))
+		    (unless (hashtable-contains? ht k)
+		      (sob-increment! result k (cdr k&v))))) alist)
+      result))
+
   (define (bag-increment! bag element count)
     (check-type bag-increment! bag <bag>)
     (sob-increment! bag element count)

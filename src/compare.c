@@ -208,11 +208,13 @@ SgObject Sg_MakeComparator(SgObject typeFn, SgObject eqFn,
 #define DEF_BUILTIN_COMPARATOR(type, eq, comp, hash, flags)	\
   { { SG_CLASS_STATIC_TAG(Sg_ComparatorClass) },		\
     SG_FALSE, (type), (eq), (comp), (hash), (flags) }
-#define DEF_EQ_COMPARATOR(eq, hash)					\
-  DEF_BUILTIN_COMPARATOR(&no_type_test_stub, eq,			\
-			 &no_comparison_stub,				\
-			 hash,						\
-			 SG_COMPARATOR_NO_ORDER | SG_COMPARATOR_ANY_TYPE)
+#define DEF_EQ_COMPARATOR(eq, hash)			\
+  DEF_BUILTIN_COMPARATOR(&no_type_test_stub,		\
+			 (eq),				\
+			 &no_comparison_stub,		\
+			 (hash),			\
+			 SG_COMPARATOR_NO_ORDER |	\
+			 SG_COMPARATOR_ANY_TYPE)
 
 static SgComparator eq_comparator =
   DEF_EQ_COMPARATOR(&eq_proc_stub, &eq_hash_proc_stub);
