@@ -1661,4 +1661,9 @@
   (test-assert "get-bytevector-until(2)" 
 	       (eof-object? (get-bytevector-until in #vu8(#x0A)))))
 
+;; hashtable SEGV
+(let ((ht (make-hashtable eqv-hash =)))
+  (hashtable-set! ht 0 1)
+  (test-assert "SEGV case" (hashtable-set! ht 0 1)))
+
 (test-end)
