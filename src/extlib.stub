@@ -1324,10 +1324,10 @@
   (define-c-proc comparator-hash (c::<comparator> x) :constant
     (result (Sg_VMApply1 (-> c hashFn) x)))
 
-  (define-c-proc %eq-comparator () :constant Sg_EqComparator)
-  (define-c-proc %eqv-comparator () :constant Sg_EqvComparator)
-  (define-c-proc %equal-comparator () :constant Sg_EqualComparator)
-  (define-c-proc %string-comparator () :constant Sg_StringComparator)
+  (define-c-proc %eq-comparator () Sg_EqComparator)
+  (define-c-proc %eqv-comparator () Sg_EqvComparator)
+  (define-c-proc %equal-comparator () Sg_EqualComparator)
+  (define-c-proc %string-comparator () Sg_StringComparator)
 
   ;; hashtable using comparator
   (define-c-proc make-hashtable/comparator 
