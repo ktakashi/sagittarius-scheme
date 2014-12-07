@@ -130,6 +130,8 @@
 		     "SG_CODE_BUILDER")
      ;; time
      (<time> "SgTime*" "time object" "SG_TIMEP" "SG_TIME")
+     (<comparator> "SgComparator *" "comparator" "SG_COMPARATORP"
+		   "SG_COMPARATOR")
      ))
 
   (define (cgen-box-expr type c-expr)

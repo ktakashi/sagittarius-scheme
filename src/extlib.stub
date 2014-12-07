@@ -11,6 +11,10 @@
 	     <sagittarius/cache.h>))
 
   (define-type <read-context> "SgReadContext*" "read-context")
+  ;; comparator
+  ;; cgen doesn't have this yet
+  ;; TODO remove this after 0.6.0
+  (define-type <comparator> "SgComparator *" "comparator")
 
   (define-cise-stmt assertion-violation
     ((_ who msg)
@@ -1217,6 +1221,13 @@
   ;; tree-map, only expose default implementation for now (rb-tree)
   (define-c-proc make-rb-treemap (cmp::<procedure>) :no-side-effect
     Sg_MakeSchemeRBTreeMap)
+  (define-c-proc make-rb-treemap/comparator (c::<comparator>) :no-side-effect
+    (let ((p (-> c compFn)))
+      (unless (and (SG_PROCEDUREP p)
+		   (>= (SG_PROCEDURE_REQUIRED p) 2))
+	(assertion-violation 'make-rb-treemap/comparator
+			     "given comparator doesn't support compare" c))
+      (result (Sg_MakeSchemeRBTreeMap p))))
   (define-c-proc treemap? (o) ::<boolean> :constant SG_TREEMAP_P)
 
   (define-c-proc treemap-ref (tm::<tree-map> key :optional (fallback #f))
@@ -1267,9 +1278,6 @@
       (result (Sg_MakeSubr treemap-itr itr 1 0 
 			   (SG_MAKE_STRING "treemap-iterator")))))
 
-  ;; comparator
-  ;; cgen doesn't have this yet
-  (define-type <comparator> "SgComparator *" "comparator")
   (.typedef "unsigned long" "ulong")
   ;; only equality argument must be a procedure.
   (define-c-proc %make-comparator (type-test eq::<procedure>

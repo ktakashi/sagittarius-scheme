@@ -30,6 +30,7 @@
 
 (library (util treemap)
     (export make-rb-treemap
+	    make-rb-treemap/comparator
 	    treemap?
 	    treemap-ref
 	    treemap-set!
