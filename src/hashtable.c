@@ -472,14 +472,7 @@ static uint32_t general_hash(const SgHashCore *table, intptr_t key)
   SgObject hash, hasher = table->generalHasher;
   
   if (SG_SUBRP(hasher)) {
-    SgObject args[2];
-    int argc = 1;
-    args[0] = SG_OBJ(key);
-    args[1] = SG_NIL;		/* mark there is no rest argument */
-    if (SG_PROCEDURE_OPTIONAL(hasher)) {
-      argc++;
-    }
-    hash = SG_SUBR_FUNC(hasher)(args, argc, SG_SUBR_DATA(hasher));
+    SG_CALL_SUBR1(hash, hasher, SG_OBJ(key));
   } else {
     hash = Sg_Apply1(table->generalHasher, SG_OBJ(key));
   }
@@ -496,15 +489,7 @@ static int general_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
 {
   SgObject ret, compare = table->generalCompare;
   if (SG_SUBRP(compare)) {
-    SgObject args[3];
-    int argc = 2;
-    args[0] = SG_OBJ(key);
-    args[1] = SG_OBJ(k2);
-    args[2] = SG_NIL;		/* mark there is no rest argument */
-    if (SG_PROCEDURE_OPTIONAL(compare)) {
-      argc++;
-    }
-    ret = SG_SUBR_FUNC(compare)(args, argc, SG_SUBR_DATA(compare));
+    SG_CALL_SUBR2(ret, compare, SG_OBJ(key), SG_OBJ(k2));
   } else {
     ret = Sg_Apply2(table->generalCompare, SG_OBJ(key), SG_OBJ(k2));
   }

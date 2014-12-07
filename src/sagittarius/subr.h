@@ -157,6 +157,42 @@ struct SgSubrRec
 #define SG_MAYBE(unboxer, obj) 	  (SG_FALSEP(obj)?NULL:(unboxer(obj)))
 #define SG_MAKE_MAYBE(boxer, obj) ((obj)?(boxer(obj)):SG_FALSE)
 
+/* Calling subr directly.
+   
+   Calling Scheme procedure using Sg_Apply is expensive and may impact
+   performance. For example, generic hashtable uses Scheme procedures
+   however calling this with Sg_Apply is slow. To make performance a bit
+   better, we call subr without using Sg_Apply.
+   There are couple of edge case to do it;
+
+   - optional argument handling
+   - continuation passing style
+
+   #1: If the subr accepts optional arguments then it must be provided
+       even if it's not there. For now, we don't allow calling following
+       type of situation:
+       	 required argument: 1
+       	 optional argument: n
+       	 call with 2 arguments
+       Handling above situation is requires the same thing as vmcall.c
+       does.
+   #2: If the subr calls Sg_VMApply or Sg_VMPushCC inside, this would
+       most likely fails. However we don't (or rather can't) check it.
+       So this must be users' responsibility.
+*/
+#define SG_CALL_SUBR_n(r, subr, n, ...)					\
+  do {									\
+    SgObject args__[n+1] = {__VA_ARGS__, SG_NIL};			\
+    int argc__ = (n);							\
+    if (SG_PROCEDURE_OPTIONAL(subr)) argc__++;				\
+    (r) = SG_SUBR_FUNC(subr)(args__, argc__, SG_SUBR_DATA(subr));	\
+  } while (0)
+#define SG_CALL_SUBR1(r, subr, arg) SG_CALL_SUBR_n(r, subr, 1, arg)
+#define SG_CALL_SUBR2(r, subr, arg1, arg2)	\
+  SG_CALL_SUBR_n(r, subr, 2, arg1, arg2)
+  
+
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSubr(SgSubrProc proc, void *data, int required,

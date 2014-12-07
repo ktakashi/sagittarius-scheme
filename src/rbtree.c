@@ -493,10 +493,7 @@ static int wrapped_compare(SgTreeMap *tm, intptr_t a, intptr_t b)
 {
   SgObject r;
   if (SG_SUBRP(tm->data)) {
-    SgObject args[2];
-    args[0] = SG_OBJ(a);
-    args[1] = SG_OBJ(b);
-    r = SG_SUBR_FUNC(tm->data)(args, 2, SG_SUBR_DATA(tm->data));
+    SG_CALL_SUBR2(r, tm->data, SG_OBJ(a), SG_OBJ(b));
   } else {
     r = Sg_Apply2(SG_OBJ(tm->data), SG_OBJ(a), SG_OBJ(b));
   }
