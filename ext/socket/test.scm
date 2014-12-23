@@ -150,4 +150,11 @@
 		(socket-sendto s #vu8(1 2 3 4) (addrinfo-sockaddr info)))))
 
 
+;; srfi 106
+(import (srfi :106))
+
+(test-equal "msg-peek"    MSG_PEEK *msg-peek*)
+(test-equal "msg-oob"     MSG_OOB *msg-oob*)
+(test-equal "msg-waitall" MSG_WAITALL *msg-waitall*)
+
 (test-end)

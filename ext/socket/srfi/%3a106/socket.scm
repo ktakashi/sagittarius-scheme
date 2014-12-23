@@ -41,6 +41,7 @@
             *ai-canonname* *ai-numerichost*
             *ai-v4mapped* *ai-all* *ai-addrconfig*
             *ipproto-ip* *ipproto-tcp* *ipproto-udp*
+	    *msg-peek* *msg-oob* *msg-waitall*
             *shut-rd* *shut-wr* *shut-rdwr*
             address-family socket-domain address-info
             ip-protocol message-type shutdown-method)
