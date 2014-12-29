@@ -643,7 +643,7 @@
 		     ;; we need to replace it.
 		     ((lookup-pattern-variable p1env vars lst))		    
 		     (else (wrap-symbol lst))))
-	      ((identifier? lst) lst)
+	      ;; ((identifier? lst) lst)
 	      ((vector? lst)
 	       (list->vector (loop (vector->list lst))))
 	      ((pair? lst)
@@ -874,7 +874,10 @@
 		  (adapt-to-rank-moved-vars in-form in-ranks in-vars)))
 
       (define (expand-var tmpl vars)
-	(cond ((assq tmpl vars)
+	(cond (;; (assq tmpl vars)
+	       (exists (lambda (slot)
+			 (and (free-identifier=? tmpl (car slot)) slot))
+		       vars)
 	       => (lambda (slot)
 		    (cond ((null? (cdr slot)) '())
 			  (else (cadr slot)))))
