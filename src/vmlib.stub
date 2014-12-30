@@ -383,7 +383,8 @@
   (define-cfn bottom-env? (env) ::int :static
     (return (or (SG_NULLP env)
 		(and (SG_PAIRP (SG_CAR env))
-		     (SG_EQ ENV-BOTTOM (SG_CAAR env))))))
+		     (SG_EQ ENV-BOTTOM (SG_CAAR env))
+		     (SG_NULLP (SG_CDR env))))))
 
   ;; it's basically equal? but we don't want to use it because it's heavy
   ;; so simplified version
@@ -514,12 +515,26 @@
 			 (SG_EQ (SG_IDENTIFIER_NAME name)
 				(SG_IDENTIFIER_NAME (SG_CAR vp)))
 			 ;;(%id-env=? name (SG_CAR vp))
-			 (or (envs-shared? (SG_IDENTIFIER_ENVS name)
-					   (SG_IDENTIFIER_ENVS (SG_CAR vp))
-					   frames)
-			     (envs-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp))
-					   (SG_IDENTIFIER_ENVS name)
-					   frames)))
+			 ;; FIXME this is most likely incorrect...
+			 (or
+			  ;; handling datum->syntax first
+			  ;; This doesn't fix variable lookup issue
+			  ;; if the target variable is wrapped by
+			  ;; datum->syntax inside of local macro
+			  ;; this wouldn't pick it up properly.
+			  ;; See test/tests/syntax-case.scm
+			  (and (SG_EQ (SG_IDENTIFIER_ENVS name)
+				      (SG_IDENTIFIER_ENVS (SG_CAR vp)))
+			       (not (SG_NULLP (SG_IDENTIFIER_ENVS name)))
+			       ;;(not (SG_IDENTIFIER_PENDING (SG_CAR vp)))
+			       (bottom-env? (SG_IDENTIFIER_ENVS name)))
+			  ;; check template variable
+			  (envs-shared? (SG_IDENTIFIER_ENVS name)
+					(SG_IDENTIFIER_ENVS (SG_CAR vp))
+					frames)
+			  (envs-shared? (SG_IDENTIFIER_ENVS (SG_CAR vp))
+					(SG_IDENTIFIER_ENVS name)
+					frames)))
 		    ;; next-method? problem
 		    ;; again not sure if this is correct...
 		    ;; if the name is not a template-id? and the env is not

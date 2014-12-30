@@ -272,4 +272,55 @@
 		     it
 		     #f))))
 
+;; call #88
+
+;; global
+(define-syntax let-it
+  (lambda (x)
+    (define (bind-it k binding)
+      (syntax-case binding ()
+    ((var . val) 
+     (let ((n (syntax->datum #'var)))
+       #`(#,(datum->syntax k n) val)))
+    (_ (error 'let-it "invalid form"))))
+    (syntax-case x ()
+      ((k ((var . val) rest ...) body ...)
+       (with-syntax (((var1 val1) (bind-it #'k #'(var . val))))
+     #'(let ((var1 val1))
+         (let-it (rest ...) body ...))))
+      ((_ () body ...)
+       #'(begin body ...)))))
+
+(let-it ((name . 'name)) (test-equal "datum->syntax(1)" 'name name))
+
+;; local
+;; disables this test for now.
+;; To resolve this issue, we need to compare identifier environment
+;; in sence of eq? (or equal?). However, doing it introduces other
+;; issue, bending scope. We most likely need to rewrite macro expander
+;; and compiler to resolve both issues. Following is probably one of
+;; the ways
+;;  - Modifies compiler to rewrite bound identifier with proper env frames
+;;  - Modifies variable lookup to compare identifier envs in sence of eq?
+#;
+(let ()  
+  (define-syntax let-it
+    (lambda (x)
+      (define (bind-it k binding)
+	(syntax-case binding ()
+	  ((var . val) 
+	   (let ((n (syntax->datum #'var)))
+	     #`(#,(datum->syntax k n) val)))
+	  (_ (error 'let-it "invalid form"))))
+      (syntax-case x ()
+	((k ((var . val) rest ...) body ...)
+	 (with-syntax (((var1 val1) (bind-it #'k #'(var . val))))
+	   #'(let ((var1 val1))
+	       (let-it (rest ...) body ...))))
+	((_ () body ...)
+	 #'(begin body ...)))))
+
+  (let-it ((name . 'name)) (test-equal "datum->syntax(2)" 'name name))
+  )
+
 (test-end)
