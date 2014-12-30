@@ -113,8 +113,7 @@ MESSAGE(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")
 
 
 # version string
-# we might skip this version and proceed 0.6.0
-SET(SAGITTARIUS_VERSION "0.5.11" CACHE 
+SET(SAGITTARIUS_VERSION "0.6.0" CACHE 
   STRING "Sagittarius release version string" FORCE)
 
 SET(SAGITTARIUS_LIB_SUFFIX ${SAGITTARIUS_LIB_SUFFIX}
