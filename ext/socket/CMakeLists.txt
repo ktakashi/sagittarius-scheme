@@ -28,7 +28,8 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--socket sagittarius)
 
-IF (${SAGITTARIUS_OS} STREQUAL "qnx")
+IF (${SAGITTARIUS_OS} STREQUAL "qnx" OR 
+    ${SAGITTARIUS_OS} STREQUAL "sunos")
   TARGET_LINK_LIBRARIES(sagittarius--socket socket)
 ENDIF()
 

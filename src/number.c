@@ -52,6 +52,14 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+/* Solaris doesn't have isinf */
+#if defined(__SVR4) && defined(__sun)
+# ifndef isinf
+#  include <ieeefp.h>
+#  define isinf(x) (!finite((x)) && (x) == (x))
+# endif
+#endif
+
 /* FIXME: duplicated definition. */
 typedef unsigned long ulong;
 #if SIZEOF_LONG == 8
@@ -3980,8 +3988,12 @@ SgObject Sg__ConstObjes[SG_NUM_CONST_OBJS] = {SG_FALSE};
 extern void Sg__InitBignum();
 void Sg__InitNumber()
 {
-/* VC does not have these macros. SUCKS!! */
-#ifdef _MSC_VER
+/* VC does not have these macros. SUCKS!! 
+   Seems Solaris doesn't have it either...
+ */
+#if !defined(INFINITY) || !defined(NAN)
+#undef INFINITY
+#undef NAN
   static double __d0 = 0.0;
   static double __d1 = 1.0;
 #define INFINITY (__d1/__d0)

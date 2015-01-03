@@ -48,10 +48,12 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR)
 
     # for some reason static library doesn't have this
     # on x86_64 and is required.
-    IF (${${_PROCESSOR}} STREQUAL "x86_64")
+    # Solaris GCC (32 bit) doesn't have this either. so
+    # just put it whenever. it doesn't hurt anyway...
+#    IF (${${_PROCESSOR}} STREQUAL "x86_64")
       SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
       SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
-    ENDIF()
+#    ENDIF()
 
     IF (${${_PROCESSOR}} STREQUAL "armv7")
 	# https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448

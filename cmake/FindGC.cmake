@@ -88,6 +88,12 @@ return 0;
 ELSE()
   FIND_LIBRARY(BOEHM_GC_LIBRARIES NAMES gc
     HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
+  # OpenSolaris uses bgc as Boehm GC runtime in its package manager.
+  # so try it
+  IF (NOT BOEHM_GC_LIBRARIES)
+    FIND_LIBRARY(BOEHM_GC_LIBRARIES NAMES bgc
+      HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
+  ENDIF()
 ENDIF()
 
 INCLUDE(FindPackageHandleStandardArgs)

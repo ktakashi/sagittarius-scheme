@@ -388,6 +388,16 @@ SgObject Sg_GetMacAddress(int pos)
 }
 #endif
 
+#elif defined(__SVR4) && defined(__sun)
+SgObject Sg_GetMacAddress(int pos)
+{
+  /* FIXME: how to get MAC address on Open Solaris? */
+  if (empty_mac == NULL) {
+    empty_mac = Sg_MakeByteVector(6, 0);
+  }
+  return empty_mac;  
+}
+
 #else
 /* assume BSD or OSX */
 SgObject Sg_GetMacAddress(int pos)
