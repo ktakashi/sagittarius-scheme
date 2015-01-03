@@ -45,11 +45,14 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
-#if !defined(__linux__) && !defined(__CYGWIN__)
+#if defined(__SVR4) && defined(__sun)
+# include <net/if_arp.h>
+# include <sys/sockio.h>
+#elif !defined(__linux__) && !defined(__CYGWIN__)
 /* assume BSD or OSX */
-#include <ifaddrs.h>
-#include <net/if_dl.h>
-#include <net/if_types.h>
+# include <ifaddrs.h>
+# include <net/if_dl.h>
+# include <net/if_types.h>
 #endif
 #ifdef HAVE_SCHED_H
 # include <sched.h>
@@ -391,11 +394,42 @@ SgObject Sg_GetMacAddress(int pos)
 #elif defined(__SVR4) && defined(__sun)
 SgObject Sg_GetMacAddress(int pos)
 {
+  
   /* FIXME: how to get MAC address on Open Solaris? */
+  int sock;
+  struct arpreq arpreq;
+  struct ifreq nicnumber[24];
+  struct ifconf ifconf;
+
   if (empty_mac == NULL) {
     empty_mac = Sg_MakeByteVector(6, 0);
   }
-  return empty_mac;  
+ 
+  if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+    return empty_mac;
+  }
+  ifconf.ifc_buf = (caddr_t)nicnumber;
+  ifconf.ifc_len = sizeof(nicnumber);
+  
+  if (!ioctl(sock,SIOCGIFCONF, (char*)&ifconf)) {
+    int nicount = ifconf.ifc_len / (sizeof(struct ifreq));
+    /* adjust position */
+    if (pos < 0) pos = 0;
+    if (pos > nicount) pos = nicount - 1;
+  } else {
+    close(sock);
+    return empty_mac;
+  }
+  ((struct sockaddr_in*)&arpreq.arp_pa)->sin_addr.s_addr=
+    ((struct sockaddr_in*)&nicnumber[pos].ifr_addr)->sin_addr.s_addr;
+  
+  if (!(ioctl(sock, SIOCGARP, (char*)&arpreq))) {
+    close(sock);
+    return Sg_MakeByteVectorFromU8Array((uint8_t *)arpreq.arp_ha.sa_data, 6);
+  } else {
+    return empty_mac;
+  }
+
 }
 
 #else

@@ -108,6 +108,10 @@ IF(NOT WIN32)
   IF (NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
     TARGET_LINK_LIBRARIES(sagittarius pthread)
   ENDIF()
+  IF (${SAGITTARIUS_OS} STREQUAL "sunos")
+    # for get-mac-address ...
+    TARGET_LINK_LIBRARIES(sagittarius socket)
+  ENDIF()
   IF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd"
       OR ${SAGITTARIUS_OS} STREQUAL "qnx")
     TARGET_LINK_LIBRARIES(sagittarius c)
