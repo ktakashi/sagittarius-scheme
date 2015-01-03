@@ -677,7 +677,11 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
   for (;;) {
     fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
     if (-1 == fd) {
-      if (errno == EINTR) {
+      /* For some reason, accept may fail on Solaris without
+	 errno set. I'm not sure what this exactly means but
+	 seems we can retry.
+       */
+      if (!errno || errno == EINTR) {
 	continue;
       } else {
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
