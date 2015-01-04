@@ -492,11 +492,9 @@ SgObject Sg_GetMacAddress(int pos)
       r = Sg_MakeByteVectorFromU8Array(addr, 6);
       freeifaddrs(ifa_list);
       return r;
-    } else {
-      freeifaddrs(ifa_list);
-      return empty_mac;
     }
   }
+  freeifaddrs(ifa_list);
   return empty_mac;
 }
 #endif
