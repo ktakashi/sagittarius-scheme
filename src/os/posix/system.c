@@ -411,11 +411,25 @@ SgObject Sg_GetMacAddress(int pos)
   ifconf.ifc_buf = (caddr_t)nicnumber;
   ifconf.ifc_len = sizeof(nicnumber);
   
-  if (!ioctl(sock,SIOCGIFCONF, (char*)&ifconf)) {
+  if (!ioctl(sock, SIOCGIFCONF, (char*)&ifconf)) {
     int nicount = ifconf.ifc_len / (sizeof(struct ifreq));
+    int i;
+    struct ifreq nic;
+    for (i = 0; i < nicount; i++) {
+      strcpy(nic.ifr_name, nicnumber[i].ifr_name);
+      if (!ioctl(sock, SIOCGIFFLAGS, (char *)&nic)) {
+	if (nic.ifr_flags & IFF_LOOPBACK) break;
+      }
+    }
     /* adjust position */
     if (pos < 0) pos = 0;
     if (pos > nicount) pos = nicount - 1;
+    /* avoid loop back */
+    if (pos == i) {
+      if (pos < nicount) pos++;
+      else if (pos > 0) pos--;
+    }
+
   } else {
     close(sock);
     return empty_mac;
