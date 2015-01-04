@@ -321,16 +321,35 @@ SgObject Sg_GetMacAddress(int pos)
     empty_mac = Sg_MakeByteVector(6, 0);
   }
   fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+  if (fd == -1) return empty_mac;
+
   ifc.ifc_len = sizeof(ifs);
   ifc.ifc_req = ifs;
+
   if (ioctl(fd, SIOCGIFCONF, &ifc) < 0) {
     /* failed, return empty MAC address */
+    close(fd);
     return empty_mac;
+  } else {
+    size = (ifc.ifc_len / sizeof(struct ifreq));
+    /* avoid loopback address */
+    struct ifreq nic;
+    int i;
+    for (i = 0; i < size; i++) {
+      strcpy(nic.ifr_name, ifs[i].ifr_name);
+      if (ioctl(fd, SIOCGIFFLAGS, &nic) == 0) {
+	if (nic.ifr_flags & IFF_LOOPBACK) break;
+      }
+    }
+    if (pos < 0) pos = 0;
+    else if (pos > size) pos = size-1;
+    if (pos == i) {
+      if (pos < size) pos++;
+      else if (pos > 0 && pos > size) pos--;
+    }
+    ifr = &ifs[pos];
   }
-  size = (ifc.ifc_len / sizeof(struct ifreq));
-  if (pos < 0) pos = 0;
-  else if (pos > size) pos = size-1;
-  ifr = &ifs[pos];
   
   if (ifr->ifr_addr.sa_family == AF_INET) {
     strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
