@@ -27,7 +27,7 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
-MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR)
+MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
   MESSAGE(STATUS "Fixup compiler flags ${${_PROCESSOR}}")
   IF (CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
       CMAKE_COMPILER_IS_GNUCC OR
@@ -50,10 +50,10 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR)
     # on x86_64 and is required.
     # Solaris GCC (32 bit) doesn't have this either. so
     # just put it whenever. it doesn't hurt anyway...
-#    IF (${${_PROCESSOR}} STREQUAL "x86_64")
+    IF (${${_PROCESSOR}} STREQUAL "x86_64" OR ${${_PLATFORM}} STREQUAL "sunos")
       SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
       SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
-#    ENDIF()
+    ENDIF()
 
     IF (${${_PROCESSOR}} STREQUAL "armv7")
 	# https://bugs.launchpad.net/ubuntu/+source/gcc-4.4/+bug/503448
