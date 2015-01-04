@@ -1,6 +1,6 @@
 /* system.c                                        -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2013  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -332,34 +332,36 @@ SgObject Sg_GetMacAddress(int pos)
     close(fd);
     return empty_mac;
   } else {
-    size = (ifc.ifc_len / sizeof(struct ifreq));
     /* avoid loopback address */
     struct ifreq nic;
-    int i;
+    int i, index = 0;
+    if (pos < 0) pos = 0;
+
+    size = (ifc.ifc_len / sizeof(struct ifreq));
+
+    /* Do the same resolusion as *BSD/OSX */
     for (i = 0; i < size; i++) {
       strcpy(nic.ifr_name, ifs[i].ifr_name);
       if (ioctl(fd, SIOCGIFFLAGS, &nic) == 0) {
-	if (nic.ifr_flags & IFF_LOOPBACK) break;
+	if (!(nic.ifr_flags & IFF_LOOPBACK) &&
+	    ifs[i].ifr_addr.sa_family == AF_INET) {
+	  uint8_t *d;
+	  /* fprintf(stderr, "nic %s\n", nic.ifr_name); */
+	  if (index++ != pos) continue;
+	  ifr = &ifs[i];
+	  strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
+	  if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
+	    close(fd);
+	    return empty_mac;
+	  }
+	  d = (uint8_t *)ifreq.ifr_hwaddr.sa_data;
+	  return Sg_MakeByteVectorFromU8Array(d, 6);
+	}
       }
     }
-    if (pos < 0) pos = 0;
-    else if (pos > size) pos = size-1;
-    if (pos == i) {
-      if (pos < size) pos++;
-      else if (pos > 0 && pos > size) pos--;
-    }
-    ifr = &ifs[pos];
+    close(fd);
+    return empty_mac;
   }
-  
-  if (ifr->ifr_addr.sa_family == AF_INET) {
-    strncpy(ifreq.ifr_name, ifr->ifr_name, sizeof(ifreq.ifr_name));
-    if (ioctl(fd, SIOCGIFHWADDR, &ifreq) < 0) {
-      return empty_mac;
-    }
-    return Sg_MakeByteVectorFromU8Array((uint8_t *)ifreq.ifr_hwaddr.sa_data, 6);
-  }
-  /* something wrong but return empty MAC address */
-  return empty_mac;
 }
 #elif defined(__QNX__)
 
@@ -432,34 +434,31 @@ SgObject Sg_GetMacAddress(int pos)
   
   if (!ioctl(sock, SIOCGIFCONF, (char*)&ifconf)) {
     int nicount = ifconf.ifc_len / (sizeof(struct ifreq));
-    int i;
+    int i, index = 0;
     struct ifreq nic;
     for (i = 0; i < nicount; i++) {
       strcpy(nic.ifr_name, nicnumber[i].ifr_name);
       if (!ioctl(sock, SIOCGIFFLAGS, (char *)&nic)) {
-	if (nic.ifr_flags & IFF_LOOPBACK) break;
+	if (!(nic.ifr_flags & IFF_LOOPBACK) &&
+	    nicnumber[i].ifr_addr.sa_family == AF_INET) {
+	  if (index++ != pos) continue;
+	  ((struct sockaddr_in*)&arpreq.arp_pa)->sin_addr.s_addr=
+	    ((struct sockaddr_in*)&nicnumber[pos].ifr_addr)->sin_addr.s_addr;
+	  
+	  if (!(ioctl(sock, SIOCGARP, (char*)&arpreq))) {
+	    uint8_t *d = arpreq.arp_ha.sa_data;
+	    close(sock);
+	    return Sg_MakeByteVectorFromU8Array(d, 6);
+	  } else {
+	    close(sock);
+	    return empty_mac;
+	  }
+	}
       }
-    }
-    /* adjust position */
-    if (pos < 0) pos = 0;
-    if (pos > nicount) pos = nicount - 1;
-    /* avoid loop back */
-    if (pos == i) {
-      if (pos < nicount) pos++;
-      else if (pos > 0) pos--;
     }
 
   } else {
     close(sock);
-    return empty_mac;
-  }
-  ((struct sockaddr_in*)&arpreq.arp_pa)->sin_addr.s_addr=
-    ((struct sockaddr_in*)&nicnumber[pos].ifr_addr)->sin_addr.s_addr;
-  
-  if (!(ioctl(sock, SIOCGARP, (char*)&arpreq))) {
-    close(sock);
-    return Sg_MakeByteVectorFromU8Array((uint8_t *)arpreq.arp_ha.sa_data, 6);
-  } else {
     return empty_mac;
   }
 
