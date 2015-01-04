@@ -431,6 +431,8 @@ SgObject Sg_GetMacAddress(int pos)
   }
   ifconf.ifc_buf = (caddr_t)nicnumber;
   ifconf.ifc_len = sizeof(nicnumber);
+
+  if (pos < 0) pos = 0;
   
   if (!ioctl(sock, SIOCGIFCONF, (char*)&ifconf)) {
     int nicount = ifconf.ifc_len / (sizeof(struct ifreq));
@@ -443,20 +445,18 @@ SgObject Sg_GetMacAddress(int pos)
 	    nicnumber[i].ifr_addr.sa_family == AF_INET) {
 	  if (index++ != pos) continue;
 	  ((struct sockaddr_in*)&arpreq.arp_pa)->sin_addr.s_addr=
-	    ((struct sockaddr_in*)&nicnumber[pos].ifr_addr)->sin_addr.s_addr;
+	    ((struct sockaddr_in*)&nicnumber[i].ifr_addr)->sin_addr.s_addr;
 	  
 	  if (!(ioctl(sock, SIOCGARP, (char*)&arpreq))) {
-	    uint8_t *d = arpreq.arp_ha.sa_data;
+	    uint8_t *d = (uint8_t *)arpreq.arp_ha.sa_data;
 	    close(sock);
 	    return Sg_MakeByteVectorFromU8Array(d, 6);
-	  } else {
-	    close(sock);
-	    return empty_mac;
 	  }
 	}
       }
     }
-
+    close(sock);
+    return empty_mac;
   } else {
     close(sock);
     return empty_mac;
