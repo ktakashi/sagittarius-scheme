@@ -506,7 +506,7 @@
      `(let ((e::SgDictEntry*)
 	    (data::(.array void* (1))))
 	(set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
-			   SG_DICT_CREATE))
+			   SG_DICT_CREATE 0))
 	;; FIXME shut up the compiler with case...
 	(unless (-> e value) (cast void (SG_DICT_ENTRY_SET_VALUE e default)))
 	(set! (aref data 0) (cast void* e))

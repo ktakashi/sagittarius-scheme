@@ -107,7 +107,8 @@ SgObject Sg_TreeMapCopy(const SgTreeMap *src)
   return SG_TREEMAP_C_PROC(src, copy)(src);
 }
 
-SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key, SgDictOp op)
+SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key, 
+				  SgDictOp op, int flags)
 {
   return SG_TREEMAP_C_PROC(tm, search)(tm, key, op);
 }
@@ -116,7 +117,7 @@ SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key, SgDictOp op)
 SgObject Sg_TreeMapRef(SgTreeMap *tm, SgObject key,
 		       SgObject fallback)
 {
-  SgTreeEntry *e =  Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_GET);
+  SgTreeEntry *e =  Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_GET, 0);
   if (!e) return fallback;
   return SG_DICT_ENTRY_VALUE(e);
 }
@@ -125,7 +126,7 @@ SgObject Sg_TreeMapSet(SgTreeMap *tm, SgObject key, SgObject value,
 		       int flags)
 {
   SgDictOp op = (flags & SG_DICT_NO_CREATE) ? SG_DICT_GET : SG_DICT_CREATE;
-  SgTreeEntry *e = Sg_TreeMapCoreSearch(tm, (intptr_t)key, op);
+  SgTreeEntry *e = Sg_TreeMapCoreSearch(tm, (intptr_t)key, op, 0);
   if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_DICT_NO_OVERWRITE) return SG_DICT_ENTRY_VALUE(e);
@@ -137,7 +138,7 @@ SgObject Sg_TreeMapSet(SgTreeMap *tm, SgObject key, SgObject value,
 
 SgObject Sg_TreeMapDelete(SgTreeMap *tm, SgObject key)
 {
-  return Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_DELETE);
+  return Sg_TreeMapCoreSearch(tm, (intptr_t)key, SG_DICT_DELETE, 0);
 }
 
 void Sg_TreeMapClear(SgTreeMap *tm)

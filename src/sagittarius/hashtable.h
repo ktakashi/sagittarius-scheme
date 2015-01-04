@@ -103,6 +103,11 @@ typedef SgDictEntry SgHashEntry;
 #define SG_IMMUTABLE_HASHTABLE_P(obj)					\
   (SG_HASHTABLE_P(obj) && SG_HASHTABLE(obj)->immutablep)
 
+/* hash core seaerch flags */
+typedef enum {
+  SG_HASH_NO_ERROR = (1L<<0),	/* don't raise an error on hashtable level */
+} SgHashRefFlag;
+
 
 SG_CDECL_BEGIN
 /* hash core */
@@ -118,7 +123,7 @@ SG_EXTERN void Sg_HashCoreInitGeneral(SgHashCore *core,
 SG_EXTERN int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
 				     SgHashCompareProc **compare);
 SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
-					 SgDictOp op);
+					 SgDictOp op, int flags);
 SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
 			       const SgHashCore *src);
 

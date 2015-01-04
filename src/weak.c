@@ -34,6 +34,7 @@
 #include "sagittarius/error.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
+#include "sagittarius/string.h"
 #include "sagittarius/writer.h"
 
 static void wvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
@@ -270,11 +271,12 @@ SgObject Sg_WeakHashTableCopy(SgWeakHashTable *src)
   return SG_OBJ(wh);
 }
 
-SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
-			     SgObject key, SgObject fallback)
+static SgObject weak_hashtable_ref(SgWeakHashTable *table,
+				   SgObject key, SgObject fallback,
+				   int flags)
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_GET);
+				     (intptr_t)key, SG_DICT_GET, flags);
   if (!e) return fallback;
   if (table->weakness & SG_WEAK_VALUE) {
     /* get value first so that it won't be GCed */
@@ -287,11 +289,17 @@ SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
   }
 }
 
+SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
+			     SgObject key, SgObject fallback)
+{
+  return weak_hashtable_ref(table, key, fallback, 0);
+}
+
 static SgObject weak_hashtable_delete(SgWeakHashTable *table,
 				      SgObject key)
 {
   SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_DELETE);
+				     (intptr_t)key, SG_DICT_DELETE, 0);
   if (e && e->value) {
     if (table->weakness & SG_WEAK_VALUE) {
       void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
@@ -342,13 +350,15 @@ static void value_finalizer(SgObject z, void *data)
   */
   SgWeakHashTable *table = ((gc_value_t *)data)->table;
   intptr_t key = ((gc_value_t *)data)->key;
-  SgObject e;
+  SgObject e = SG_NIL;		/* dummy */
 
-  e = Sg_WeakHashTableRef(table, SG_OBJ(key), NULL);
+  e = weak_hashtable_ref(table, SG_OBJ(key), NULL, SG_HASH_NO_ERROR);
   /* ok, it's still there, so delete it */
   if (SG_EQ(e, z)) {
     e = weak_hashtable_delete(table, SG_OBJ(key));
   }
+
+ next:
   /* in case */
   /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
   if (key && (table->weakness & SG_WEAK_KEY)) {
@@ -382,7 +392,8 @@ static SgObject weak_hashtable_set(SgWeakHashTable *table,
 
   e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), proxy,
 			(flags & SG_HASH_NO_CREATE)
-			   ? SG_DICT_GET: SG_DICT_CREATE);
+			   ? SG_DICT_GET: SG_DICT_CREATE,
+			0);
   if (!e) return SG_UNBOUND;
   if (table->weakness & SG_WEAK_VALUE) {
     if (e->value && (flags & SG_HASH_NO_OVERWRITE)) {

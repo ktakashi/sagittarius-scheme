@@ -42,11 +42,11 @@
 
 /* for my laziness */
 #define Sg_TreeMapCoreRef(tm, k)			\
-  Sg_TreeMapCoreSearch(tm, (intptr_t)k, SG_DICT_GET)
+  Sg_TreeMapCoreSearch(tm, (intptr_t)k, SG_DICT_GET, 0)
 
 static SgTreeEntry* Sg_TreeMapCoreSet(SgTreeMap *tm, SgObject k, 
 				      SgObject v, int dummy) {
-  SgTreeEntry *e = Sg_TreeMapCoreSearch(tm, (intptr_t)k, SG_DICT_CREATE);
+  SgTreeEntry *e = Sg_TreeMapCoreSearch(tm, (intptr_t)k, SG_DICT_CREATE, 0);
   (void)SG_DICT_ENTRY_SET_VALUE(e, v);
   return e;
 }

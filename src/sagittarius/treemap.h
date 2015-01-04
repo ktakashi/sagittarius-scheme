@@ -117,7 +117,7 @@ SG_CDECL_BEGIN
 
 /* C APIs */
 SG_EXTERN SgTreeEntry* Sg_TreeMapCoreSearch(SgTreeMap *tm, intptr_t key,
-					    SgDictOp op);
+					    SgDictOp op, int flags);
 SG_EXTERN SgObject Sg_MakeDefaultTreeMap(SgTreeCompareProc *cmp);
 SG_EXTERN SgObject Sg_TreeMapCopy(const SgTreeMap *src);
 SG_EXTERN SgObject Sg_TreeMapRef(SgTreeMap *tm, SgObject key,
