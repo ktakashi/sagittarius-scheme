@@ -35,9 +35,6 @@
 
 
   ;; for library dependency
-  (define-c-proc identifier=? (use_env x mac_env y) ::<boolean> :constant
-    Sg_IdentifierEqP)
-
   (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME) :no-side-effect
 
   (define-c-proc identifier->symbol (id) :no-side-effect
