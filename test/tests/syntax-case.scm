@@ -302,7 +302,6 @@
 ;; the ways
 ;;  - Modifies compiler to rewrite bound identifier with proper env frames
 ;;  - Modifies variable lookup to compare identifier envs in sence of eq?
-#;
 (let ()  
   (define-syntax let-it
     (lambda (x)

@@ -103,9 +103,6 @@
   (check-misplaced-ellipsis pat lites)
   (check-duplicate-variable pat lites))
 
-(define (extend-env newframe env)
-  (acons PATTERN newframe env))
-
 ;; for global call.
 (define .match-syntax-case (make-identifier 'match-syntax-case '()
 					    '(core syntax-case)))
@@ -147,37 +144,59 @@
 
 (define syntax-quote. (make-identifier 'syntax-quote '()
 				       '(sagittarius compiler)))
+
+(define (pattern-variable? id)
+  (and (identifier? id)
+       (not (null? (id-envs id)))
+       (symbol? (car (id-envs id)))))
+
+(define (rewrite-form form seen env library
+		      make-identifier
+		      handle-identifeir)
+  (define (seen-or-gen id env library)
+    (cond ((hashtable-ref seen id #f))
+	  (else (let ((new-id (make-identifier id env library)))
+		  (hashtable-set! seen id new-id)
+		  new-id))))
+  (let loop ((expr form))
+    (cond ((pair? expr)
+	   (let ((a (loop (car expr)))
+		 (d (loop (cdr expr))))
+	     (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		 expr
+		 (cons a d))))
+	  ((vector? expr)
+	   (list->vector (loop (vector->list expr))))
+	  ((and (identifier? expr)
+		(handle-identifeir expr))
+	   (seen-or-gen expr env (id-library expr)))
+	  ((symbol? expr) (seen-or-gen expr env library))
+	  (else expr))))
+
 ;; syntax-case compiler
 (define compile-syntax-case
   (lambda (exp-name expr literals clauses library env mac-env make-p1env)
     (define (rewrite oexpr patvars)
       (define seen (make-eq-hashtable))
-      (define (seen-or-gen id env library)
-	(cond ((hashtable-ref seen id #f))
-	      (else (let ((new-id (make-identifier id env library)))
-		      (hashtable-set! seen id new-id)
-		      new-id))))
-      (let loop ((expr oexpr))
-	(cond ((pair? expr)
-	       (let ((a (loop (car expr)))
-		     (d (loop (cdr expr))))
-		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		     expr
-		     (cons a d))))
-	      ((vector? expr)
-	       (list->vector (loop (vector->list expr))))
-	      ((assq expr patvars) => cdr)
-	      ((and (identifier? expr)
-		    ;; this is a template variable so don't rename
-		    (not (pending-identifier? expr))
-		    (not (identifier? (p1env-lookup mac-env expr LEXICAL))))
-	       ;; preserve local variable.
-	       ;; if we can find local variable at this point,
-	       ;; then if it needs to be found at any point with this
-	       ;; environment anyway.
-	       (seen-or-gen expr env (id-library expr)))
-	      ((symbol? expr) (seen-or-gen expr env library))
-	      (else expr))))
+      (for-each (lambda (pvar) (hashtable-set! seen (car pvar) (cdr pvar)))
+		patvars)
+      (rewrite-form oexpr seen env library
+		    ;; at this stage, symbol must be converted to
+		    ;; the same meaning of identifier
+		    (lambda (name env library)
+		      (make-identifier name (if (symbol? name) '() env)
+				       library))
+		    (lambda (id)
+		      (and (not (pending-identifier? id))
+			   (not (pattern-variable? id))
+			   ;; preserve local variable.
+			   ;; if we can find local variable at this point,
+			   ;; then if it needs to be found at any point with this
+			   ;; environment anyway.
+			   (not (identifier?
+				 (p1env-lookup mac-env id LEXICAL)))))))
+    (define (extend-env newframe env) (acons PATTERN newframe env))
+    
     (define mac-save (current-macro-env))
     (define use-save (current-usage-env))
     ;; set both macro and usage env so that free-identifier=? can
@@ -186,32 +205,18 @@
     (%set-current-usage-env! mac-env)
     (let ((lites (rewrite literals '())))
       
-      (define pattern-mark (list exp-name))
+      (define pattern-mark (list 'pattern-variable))
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
 	  (let ((p (car p)))
-	    (cons p
-		  ;; issue of
-		  ;; (let-syntax ((_ (syntax-rules ())))
-		  ;;   (let-syntax ((foo (syntax-rules () ((_ _) _))))
-		  ;;     (foo 'bar)))
-		  ;; if the '_' is wrapped as above then
-		  ;; the identifier contains BOUNDARY tag in the
-		  ;; very beginning of its env. However if it's
-		  ;; wrapped before, e.g. wrapped by other macro
-		  ;; then the identifier doesn't contain BOUNDARY
-		  ;; tag. in that case we simpley check if the
-		  ;; identifier is bound in macro env.
-		  ;; TODO can we assume this?
-		  ;; if the pattern is bound then don't convert it
-		  (cond ((or (symbol? p)
-			     (and-let* ((e (id-envs p)))
-			       (or (null? e)
-				   (and (not (memq BOUNDARY (car e)))
-					(assq BOUNDARY e))))
-			     (identifier? (p1env-lookup mac-env p LEXICAL)))
-			 (make-pattern-identifier p pattern-mark library))
-			(else p)))))
+	    ;; preserve local variable to detect the following:
+	    ;; (let-syntax ((_ (syntax-rules ())))
+	    ;;   (let-syntax ((foo (syntax-rules () ((_ _) _))))
+	    ;;     (foo 'bar)))
+	    (cons p (cond ((or (symbol? p)
+			       (identifier? (p1env-lookup mac-env p LEXICAL)))
+			   (make-pattern-identifier p pattern-mark library))
+			  (else p)))))
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
@@ -515,93 +520,37 @@
 ;; it contains all lexical variables for fender and expander. 
 ;; see compile-syntax-case.
 (define (compile-syntax exp-name tmpl env mac-env)
-  ;; issue 84 and 85. to wrap symbol properly during expansion,
-  ;; we need to wrap all template variables if it's not wrapped.
-  (define (rewrite expr)
-    (define seen (make-eq-hashtable))
-    (define (seen-or-gen id)
-      (cond ((hashtable-ref seen id #f))
-	    (else
-	     (let ((new-id (make-pending-identifier id
-			    (vector-ref mac-env 1)
-			    (vector-ref mac-env 0))))
-	       (hashtable-set! seen id new-id)
-	       new-id))))
-    (let loop ((expr expr))
-      (cond ((pair? expr)
-	     (let ((a (loop (car expr))) (d (loop (cdr expr))))
-	       (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		   expr
-		   (cons a d))))
-	    ((symbol? expr) (seen-or-gen expr))
-	    (else expr))))
   (let* ((ids (collect-unique-ids tmpl))
-	 (template (if (exists identifier? ids) tmpl (rewrite tmpl)))
-	 (ranks (filter values
-			(map (lambda (id)
-			       (let ((p (p1env-lookup mac-env id PATTERN)))
-				 (and (number? p)
-				      (cons id p))))
-			     ids))))
+	 (template tmpl)
+	 (ranks (filter-map (lambda (id)
+			      (let ((p (p1env-lookup mac-env id PATTERN)))
+				(and (number? p)
+				     (cons id p))))
+			    ids)))
     ;; later
     (check-template template ranks)
     (let ((patvar (let ((v (p1env-lookup mac-env .vars LEXICAL BOUNDARY)))
 		    ;; if .vars is identifier, then it must be toplevel
-		    ;; so not pattarn variables.
+		    ;; so not a pattarn variable.
 		    (if (identifier? v)
 			'()
-			.vars)))
-	  (env    (vector-copy mac-env)))
-      ;; we don't need current-proc for this
-      ;; this makes compiled cache size much smaller.
-      (vector-set! env 3 #f)
+			.vars))))
       (if (variable? template)
 	  (if (null? ranks)
 	      `(,.expand-syntax ,patvar
 				(,syntax-quote. ,template)
-				()
-				(,syntax-quote. ,env))
+				())
 	      `(,.expand-syntax ,patvar
 				(,syntax-quote. ,template)
-				(,syntax-quote. ,(list (cons template 0)))
-				(,syntax-quote. ,env)))
+				(,syntax-quote. ,(list (cons template 0)))))
 	  `(,.expand-syntax ,patvar 
 			    (,syntax-quote. ,template)
-			    (,syntax-quote. ,ranks)
-			    (,syntax-quote. ,env))))))
+			    (,syntax-quote. ,ranks))))))
 
 (define expand-syntax
-  (lambda (vars template ranks p1env)
+  (lambda (vars template ranks)
     (define use-env (current-usage-env))
     (define mac-env (current-macro-env))
-
-    (define (lookup-pattern-variable p1env vars id)
-      (define (id=? id1 p)
-	(define (check? id p)
-	  (if (identifier? id)
-	      (id-env=? id p)
-	      #t))
-	(and (check? id1 p)
-	     (eq? (syntax->datum id1) (id-name p))))
-
-      (cond ((assq id vars) #f)
-	    ((pending-identifier? id) #f)
-	    (else
-	     (let loop ((frames (vector-ref p1env 1)))
-	       (cond ((null? frames) #f)
-		     ((and (pair? frames)
-			   (= (caar frames) PATTERN))
-		      (let loop2 ((frame (cdar frames)))
-			(cond ((null? frame) (loop (cdr frames)))
-			      ((assq (caar frame) vars)
-			       => (lambda (slot)
-				    (let ((r (cadr slot)))
-				      ;; pattern variables are always
-				      ;; identifier.
-				      (or (and (identifier? r) (id=? id r) r)
-					  (loop2 (cdr frame))))))
-			      (else (loop2 (cdr frame))))))
-		     (else (loop (cdr frames))))))))
 
     (define (contain-identifier? lst)
       (let loop ((lst lst))
@@ -618,7 +567,7 @@
     (define (wrap-symbol sym)
       (define (finish new) (add-to-transformer-env! sym new))
       (let ((use-lib (vector-ref use-env 0)))
-	(finish (make-identifier sym (vector-ref use-env 1) use-lib))))
+	(finish (make-identifier sym '() use-lib))))
 
     (define (partial-identifier olst)
       (define (check-binding name env library)
@@ -631,28 +580,30 @@
 		      (let ((a (loop (car lst))) (d (loop (cdr lst))))
 			(cond ((and (eq? (car lst) a) (eq? (cdr lst) d)) lst)
 			      (else (cons a d)))))
-		     ((identifier? lst)
-		      (cond ((check-binding lst mac-env (id-library lst)) lst)
-			    ((lookup-pattern-variable p1env vars lst))
-			    (else lst)))
+		     ((vector? lst) (list->vector (loop (vector->list lst))))
 		     (else lst)))
 	      ((null? lst) '())
 	      ((symbol? lst)
 	       (cond ((lookup-transformer-env lst))
-		     ;; If transcribed expression contains pattern variable,
-		     ;; we need to replace it.
-		     ((lookup-pattern-variable p1env vars lst))		    
 		     (else (wrap-symbol lst))))
-	      ;; ((identifier? lst) lst)
 	      ((vector? lst)
 	       (list->vector (loop (vector->list lst))))
 	      ((pair? lst)
 	       (cons (loop (car lst))
 		     (loop (cdr lst))))
 	      (else lst))))
+    (define (rewrite template)
+      (rewrite-form template (make-eq-hashtable) (vector-ref mac-env 1)
+		    (vector-ref mac-env 0)
+		    make-pending-identifier
+		    ;; preserve template variables and
+		    ;; pattern variables
+		    (lambda (id)
+		      (and (not (pending-identifier? id))
+			   (not (assoc id ranks free-identifier=?))))))
     (if (null? template)
 	'()
-	(let ((form (transcribe-template template ranks vars)))
+	(let ((form (transcribe-template (rewrite template) ranks vars)))
 	  (cond ((null? form) '())
 		((identifier? form) form)
 		((symbol? form)
@@ -676,14 +627,14 @@
 
 (define (collect-ellipsis-vars tmpl ranks depth vars)
   (let ((ids (collect-unique-ids tmpl)))
-    (filter values
-            (map (lambda (slot)
-                   (and (memq (car slot) ids)
-                        (let ((rank (cdr (assq (car slot) ranks))))
-                          (cond ((< rank depth) slot)
-                                ((null? (cdr slot)) slot)
-                                (else (cons (car slot) (cadr slot)))))))
-                 vars))))
+    (filter-map (lambda (slot)
+		  (and (member (car slot) ids free-identifier=?)
+		       (let ((rank (cdr (assoc (car slot) ranks
+					       free-identifier=?))))
+			 (cond ((< rank depth) slot)
+			       ((null? (cdr slot)) slot)
+			       (else (cons (car slot) (cadr slot)))))))
+		vars)))
 
 (define contain-rank-moved-var?
   (lambda (tmpl ranks vars)
@@ -724,7 +675,8 @@
     (define use-env (current-usage-env))
 
     ;; *UGLY* solution to resolve different compile unit of (syntax)
-    (define (rename-or-copy-id id)
+    (define (rename-or-copy-id id) id
+      #;
       (let ((b (p1env-lookup mac-env id LEXICAL)))
 	(cond ((or (find-binding (id-library id) (id-name id) #f)
 		   ;; macro identifier need to have it's syntax information
@@ -745,7 +697,8 @@
 	       (make-pending-identifier (id-name id) (id-envs id) 
 					(id-library id))))))
 
-    (define (rename t)
+    (define (rename t) t
+      #;
       (or (cond ((not (identifier? t)) #f)
 		;; if the identifier is template variable and
 		;; mac-env contains this as a local binding
@@ -764,16 +717,18 @@
 	  t))
     ;; regenerate pattern variable
     (define (rewrite-template t vars)
-      (cond ((null? t) t)
-	    ((pair? t)
-	     (cons (rewrite-template (car t) vars)
-		   (rewrite-template (cdr t) vars)))
-	    ((vector? t)
-	     (list->vector (rewrite-template (vector->list t) vars)))
-	    ;; could be a pattern variable, so keep it
-	    ((and (variable? t) (assq t vars)) t)
-	    ;; rename template variable
-	    (else (rename t))))
+      t
+;;      (cond ((null? t) t)
+;;	    ((pair? t)
+;;	     (cons (rewrite-template (car t) vars)
+;;		   (rewrite-template (cdr t) vars)))
+;;	    ((vector? t)
+;;	     (list->vector (rewrite-template (vector->list t) vars)))
+;;	    ;; could be a pattern variable, so keep it
+;;	    ((and (variable? t) (assq t vars)) t)
+;;	    ;; rename template variable
+;;	    (else (rename t)))
+      )
 
     (define (rewrite-template-ranks-vars tmpl ranks vars)
       (define moved-ranks (make-eq-hashtable))
@@ -971,22 +926,8 @@
     (define seen (make-eq-hashtable))
     ;; simply converts symbol to identifier.
     (define (rewrite expr frame library)
-      (let loop ((expr expr))
-	(cond ((pair? expr)
-	       (let ((a (loop (car expr)))
-		     (d (loop (cdr expr))))
-		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-		     expr
-		     (cons a d))))
-	      ((vector? expr)
-	       (list->vector (loop (vector->list expr))))
-	      ((symbol? expr)
-	       (cond ((hashtable-ref seen expr))
-		     (else 
-		      (let ((id (make-pattern-identifier expr frame library)))
-			(hashtable-set! seen expr id)
-			id))))
-	      (else expr))))
+      (rewrite-form expr (make-eq-hashtable) frame library
+		    make-identifier (lambda (id) #f)))
     (or (identifier? template-id)
 	(assertion-violation 
 	 'datum->syntax 
@@ -1007,6 +948,10 @@
   (make-macro 'variable-transformer
 	      (lambda (m expr p1env data)
 		(define (rewrite expr env)
+		  (rewrite-form expr (make-eq-hashtable) (vector-ref env 1)
+				(vector-ref env 0) make-identifier
+				(lambda (id) #f))
+		  #;
 		  (let loop ((expr expr))
 		    (cond ((pair? expr)
 			   (let ((a (loop (car expr)))
