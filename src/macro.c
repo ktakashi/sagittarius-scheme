@@ -158,9 +158,17 @@ static SgObject macro_transform_cc(SgObject result, void **data)
   mac_env = SG_MACRO(macro)->env;
 
   vm->usageEnv = p1env;
-  vm->macroEnv = mac_env;
+  vm->macroEnv = Sg_VectorCopy(mac_env, 0, -1, SG_FALSE);
   vm->transEnv = SG_NIL;
 
+  /* frame copy to distinguish template variables 
+     this must be done per macro invocation.
+     TODO: can't we move this in Scheme world so that
+           at lease p1env structure can be hidden in C.
+  */
+  SG_VECTOR_ELEMENT(vm->macroEnv, 1) =
+    Sg_CopyList(SG_VECTOR_ELEMENT(vm->macroEnv, 1));
+  
   Sg_VMPushCC(macro_restore_env_cc, next_data, 2);
   if (SG_MACROP(result)) {
     /* variable transformer */

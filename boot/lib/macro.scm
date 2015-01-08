@@ -593,7 +593,9 @@
 		     (loop (cdr lst))))
 	      (else lst))))
     (define (rewrite template)
-      (rewrite-form template (make-eq-hashtable) (vector-ref mac-env 1)
+      (rewrite-form template
+		    (make-eq-hashtable)
+		    (vector-ref mac-env 1)
 		    (vector-ref mac-env 0)
 		    make-pending-identifier
 		    ;; preserve template variables and
