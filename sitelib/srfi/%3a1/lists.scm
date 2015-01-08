@@ -87,7 +87,7 @@
    
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) receive circular-list? dotted-list? reverse! acons
-    append!)
+    append! list-copy)
    (only (sagittarius control) check-arg)
    (only (core) last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold
@@ -325,11 +325,12 @@
 
 ;;; (unfold not-pair? car cdr lis values)
 
-(define (list-copy lis)
-  (let recur ((lis lis))
-    (if (pair? lis)
-    (cons (car lis) (recur (cdr lis)))
-    lis)))
+;; define in C
+;; (define (list-copy lis)
+;;   (let recur ((lis lis))
+;;     (if (pair? lis)
+;;     (cons (car lis) (recur (cdr lis)))
+;;     lis)))
 
 ;;; IOTA count [start step] (start start+step ... start+(count-1)*step)
 

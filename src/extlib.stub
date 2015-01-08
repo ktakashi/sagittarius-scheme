@@ -83,6 +83,8 @@
 	(SG_APPEND h t (SG_CAR cp)))
       (result h)))
 
+  (define-c-proc list-copy (lst) Sg_CopyList)
+  
   ;; vector
   (define-c-proc vector-copy (vec::<vector> :optional (start::<fixnum> 0)
 					            (end::<fixnum> -1)

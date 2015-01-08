@@ -34,7 +34,6 @@
 	    (core misc)
 	    (match)
 	    (shorten)
-	    (srfi :26 cut)
 	    (sagittarius)
 	    (sagittarius vm))
 
