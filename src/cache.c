@@ -447,9 +447,9 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
   return ctx.index;
 }
 
-#define builtin_interesting_p(obj)				\
-  (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||	\
-   SG_IDENTIFIERP(obj) || SG_MACROP(obj) ||			\
+#define builtin_interesting_p(obj)					\
+  (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||		\
+   SG_IDENTIFIERP(obj) || SG_MACROP(obj) || SG_LIBRARYP(obj) ||		\
    SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj) || SG_GLOCP(obj))
 
 static int interesting_p(SgObject obj)
@@ -513,6 +513,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       /* do nothing */
     } else {
       SgClass *klass = Sg_ClassOf(obj);
+      cbs = write_cache_scan(klass->name, cbs, ctx);
       if (SG_PROCEDUREP(klass->cscanner)) {
 	cbs = Sg_Apply3(klass->cscanner, obj, cbs, ctx);
       } else if (klass->cacheScanner) {
@@ -544,12 +545,12 @@ SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
 }
 
 /* correct code builders in code*/
-static int ind = 0;
 static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 				  SgLibrary **lib, cache_ctx *ctx)
 {
   SgWord *code = cb->code;
   int i, len = cb->size;
+  r = write_cache_scan(cb->name, r, ctx);
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     if (!info->label) {
@@ -559,9 +560,7 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 	if (SG_CODE_BUILDERP(o)) {
 	  r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
 	  /* we need to check it recursively */
-	  ind += 2;
 	  r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
-	  ind -= 2;
 	}
 	if (info->number == LIBRARY && lib != NULL) {
 	  /* LIBRARY instruction is a mark for this.
@@ -726,16 +725,21 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     put_word(out, uid, DEFINING_SHARED_TAG);
     Sg_HashTableSet(ctx->sharedObjects, o, SG_MAKE_INT(uid), 0);
   }
-#if 0
+  /* if we scan everything correctly this isn't needed but something
+     is missing. To avoid stack overflow, we do extra cyclic object
+     check. */
   else if (SG_UNDEFP(sharedState)) {
     /* something is wrong */
     /* Sg_PrintfShared(Sg_StandardErrorPort(), UC(";; -> %S\n"), o); */
-    ESCAPE(ctx, "not collected cyclic object %#20S\n", o);
+    ESCAPE(ctx, "not collected cyclic object %#20S (%S)\n", o, Sg_ClassOf(o));
   } else if (SG_FALSEP(sharedState)){
     /* mark for safety */
-    Sg_HashTableSet(ctx->sharedObjects, o, SG_UNDEF, 0);
+    if (!(!SG_PTRP(o) || SG_SYMBOLP(o) || SG_STRINGP(o) ||
+	  SG_NUMBERP(o) || SG_BVECTORP(o))) {
+      Sg_HashTableSet(ctx->sharedObjects, o, SG_UNDEF, 0);
+    }
   }
-#endif
+
   /* how could this happen? */
   if (!o) {
     ESCAPE(ctx, "%S object\n", o);
@@ -894,7 +898,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
 	  */
 	  put_word(out, SG_INT_VALUE(SG_CDR(slot)), MARK_TAG);
 	  continue;
-	}
+	}	
 	write_object_cache(out, o, cbs, ctx);
       }
     }
