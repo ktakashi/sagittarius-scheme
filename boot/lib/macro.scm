@@ -587,7 +587,11 @@
 		    (make-eq-hashtable)
 		    (vector-ref mac-env 1)
 		    (vector-ref mac-env 0)
-		    make-pending-identifier
+		    (lambda (name env frame)
+		      (cond ((lookup-transformer-env name))
+			    (else
+			     (let ((id (make-pending-identifier name env frame)))
+			       (add-to-transformer-env! name id)))))
 		    ;; preserve template variables and
 		    ;; pattern variables
 		    (lambda (id)
