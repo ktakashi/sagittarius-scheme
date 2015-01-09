@@ -3322,7 +3322,8 @@
     ::<boolean>
     (result 
      (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-	  (SG_EQ (SG_IDENTIFIER_ENVS id1) (SG_IDENTIFIER_ENVS id2))
+	  ;;(SG_EQ (SG_IDENTIFIER_ENVS id1) (SG_IDENTIFIER_ENVS id2))
+	  (SG_EQ (SG_IDENTIFIER_IDENTITY id1) (SG_IDENTIFIER_IDENTITY id2))
 	  (SG_EQ (SG_IDENTIFIER_LIBRARY id1) (SG_IDENTIFIER_LIBRARY id2))))
     #;(let ((vm::SgVM* (Sg_VM)))
       (if (SG_EQ (-> vm usageEnv) (-> vm macroEnv))

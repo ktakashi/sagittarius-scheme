@@ -84,7 +84,7 @@
 		  %remove-direct-subclass!
 		  %replace-class-binding!
 		  %add-direct-subclass!))
-
+    
   ;; We provides CL like define-class
   ;; The syntax is (define-class ?name (?supers ...) ({slot-specifier}*))
   ;; no class-option. (maybe I will provide :metaclass in future)
@@ -329,15 +329,16 @@
 			 #'())
 		  m)))))
       (syntax-case x ()
-	((k ?qualifier ?generic ?args . ?body)
+	;; k will be passed from upper macro otherwise it's not R6RS compliant
+	((_ k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
 	 (let-values (((qargs rest opt) (analyse #'?args)))
 	   (build #'k #'?qualifier #'?generic qargs rest opt #'?body)))
-	((_ ?generic ?qualifier ?args . ?body)
+	((_ k ?generic ?qualifier ?args . ?body)
 	 (keyword? #'?qualifier)
-	 #'(generate-add-method ?qualifier ?generic ?args . ?body))
-	((_ ?generic ?args . ?body)
-	 #'(generate-add-method :primary ?generic ?args . ?body)))))
+	 #'(generate-add-method k ?qualifier ?generic ?args . ?body))
+	((_ k ?generic ?args . ?body)
+	 #'(generate-add-method k :primary ?generic ?args . ?body)))))
 
   (define-syntax define-method
     (lambda (x)
@@ -357,11 +358,11 @@
 	     #'(begin
 		 def ...
 		 (define dummy
-		   (generate-add-method ?qualifier ?generic ?args . ?body))))))
-	((_ ?generic ?qualifier ?args . ?body)
+		   (generate-add-method k ?qualifier ?generic ?args . ?body))))))
+	((define-method ?generic ?qualifier ?args . ?body)
 	 (keyword? #'?qualifier)
 	 #'(define-method ?qualifier ?generic ?args . ?body))
-	((_ ?generic ?args . ?body)
+	((define-method ?generic ?args . ?body)
 	 #'(define-method :primary ?generic ?args . ?body)))))
 
   #|
@@ -372,20 +373,20 @@
   |#
   (define-syntax let-method
     (syntax-rules ()
-      ((_ "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+      ((let-method "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
 	  ((gf spec expr ...) next ...) body ...)
        (let-method "bind" (t tmp ...) (gf gfs ...) (spec specs ...) 
 		   ((expr ...) exprs ...) (next ...)
 		   body ...))
-      ((_ "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
+      ((k "bind" (tmp ...) (gfs ...) (specs ...) (exprs ...)
 	  () body ...)
        (let ((tmp #f) ...)
 	 (dynamic-wind
-	     (lambda () (set! tmp (generate-add-method gfs specs . exprs)) ...)
+	     (lambda () (set! tmp (generate-add-method k gfs specs . exprs)) ...)
 	     (lambda () body ...)
 	     (lambda () (remove-method gfs tmp) ...))))
       ;; entry point
-      ((_ (bindings ...) body ...)
+      ((let-method (bindings ...) body ...)
        (let-method "bind" () () () () (bindings ...) body ...))))
 
 

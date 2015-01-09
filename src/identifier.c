@@ -47,13 +47,13 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Putc(port, '#');
   if (SG_LIBRARYP(id->library)) {
     Sg_Write(id->library->name, port, SG_WRITE_DISPLAY);
-  } else {
-    Sg_Write(SG_INTERN(":toplevel"), port, 0);
   }
 #if 1
   if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE ||
       SG_WRITE_MODE(ctx) == SG_WRITE_SHARED) {
     char buf[50];
+    Sg_Putc(port, ' ');
+    Sg_Write(SG_IDENTIFIER_IDENTITY(id), port, SG_WRITE_WRITE);
     snprintf(buf, sizeof(buf), " (%p):%d", id, SG_IDENTIFIER_PENDING(id));
     Sg_Putz(port, buf);
   }
@@ -64,18 +64,6 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_IdentifierClass, id_print);
 
-static SgObject get_binding_frame(SgObject var, SgObject env)
-{
-  SgObject frame, fp;
-  SG_FOR_EACH(frame, env) {
-    if (!SG_PAIRP(SG_CAR(frame))) continue;
-    SG_FOR_EACH(fp, SG_CDAR(frame)) {
-      if (SG_CAAR(fp) == var) return frame;
-    }
-  }
-  return SG_NIL;
-}
-
 static SgIdentifier* make_identifier()
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
@@ -84,6 +72,7 @@ static SgIdentifier* make_identifier()
   return id;
 }
 
+/* should we move this to vm.c so that SG_CURRENT_IDENTITY can be hidden? */
 SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
 {
   SgIdentifier *id = make_identifier();
@@ -91,6 +80,11 @@ SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
     ? SG_IDENTIFIER_NAME(id_or_sm) : id_or_sm;
   id->library = library;
   id->envs = envs;		/* not matter what */
+  if (SG_NULLP(envs)) {
+    SG_IDENTIFIER_IDENTITY(id) = SG_FALSE; /* global */
+  } else {
+    SG_IDENTIFIER_IDENTITY(id) = SG_CURRENT_IDENTITY;
+  }
   return SG_OBJ(id);
 }
 

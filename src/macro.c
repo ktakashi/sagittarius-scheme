@@ -137,6 +137,8 @@ static SgObject macro_restore_env_cc(SgObject result, void **data)
   vm->usageEnv = SG_OBJ(data[0]);
   vm->macroEnv = SG_OBJ(data[1]);
   vm->transEnv = SG_NIL;	/* gc friendliness */
+  /* use macro... */
+  vm->identity = SG_OBJ(data[2]);
   return result;
 }
 
@@ -146,14 +148,15 @@ static SgObject macro_transform_cc(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();
   SgObject macro, form, p1env, mac_env;
-  void *next_data[2];
-
+  void *next_data[3];
+  
   macro = data[0];
   form = data[1];
   p1env = data[2];
 
   next_data[0] = vm->usageEnv;
   next_data[1] = vm->macroEnv;
+  next_data[2] = vm->identity;	/* TODO use macro... */
 
   mac_env = SG_MACRO(macro)->env;
 
@@ -161,7 +164,9 @@ static SgObject macro_transform_cc(SgObject result, void **data)
   vm->macroEnv = mac_env;
   vm->transEnv = SG_NIL;
 
-  Sg_VMPushCC(macro_restore_env_cc, next_data, 2);
+  vm->identity = SG_GENERATE_IDENTITY;
+  
+  Sg_VMPushCC(macro_restore_env_cc, next_data, 3);
   if (SG_MACROP(result)) {
     /* variable transformer */
     return Sg_VMApply4(SG_MACRO(result)->transformer,

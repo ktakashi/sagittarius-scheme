@@ -302,7 +302,6 @@
 ;; the ways
 ;;  - Modifies compiler to rewrite bound identifier with proper env frames
 ;;  - Modifies variable lookup to compare identifier envs in sence of eq?
-#;
 (let ()  
   (define-syntax let-it
     (lambda (x)
@@ -322,5 +321,18 @@
 
   (let-it ((name . 'name)) (test-equal "datum->syntax(2)" 'name name))
   )
+
+(let ()
+  (define-syntax aif
+    (lambda (x)
+      (syntax-case x ()
+	((ng test then)
+	 #'(aif test then #f))
+	((aif test then else)
+	 (with-syntax ((it (datum->syntax #'aif 'it)))
+	   #'(let ((it test))
+	       (if it then else)))))))
+  (test-assert "normal" (aif (assq 'a '((a . 0))) it #f))
+  (test-error  "not the same bound id" (aif (assq 'a '((a . 0))) it)))
 
 (test-end)

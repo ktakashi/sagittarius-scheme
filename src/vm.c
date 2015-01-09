@@ -199,24 +199,10 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   /* default no overwrite */
   v->flags = proto? proto->flags : 0;
 
-  v->currentInputPort = proto 
-    ? proto->currentInputPort
-    : Sg_MakeTranscodedInputPort(Sg_StandardInputPort(),
-				 Sg_IsUTF16Console(Sg_StandardIn())
-				 ? Sg_MakeNativeConsoleTranscoder()
-				 : Sg_MakeNativeTranscoder());
-  v->currentOutputPort = proto
-    ? proto->currentOutputPort
-    : Sg_MakeTranscodedOutputPort(Sg_StandardOutputPort(),
-				  Sg_IsUTF16Console(Sg_StandardOut())
-				  ? Sg_MakeNativeConsoleTranscoder()
-				  : Sg_MakeNativeTranscoder());
-  v->currentErrorPort = proto 
-    ? proto->currentErrorPort
-    : Sg_MakeTranscodedOutputPort(Sg_StandardErrorPort(),
-				  Sg_IsUTF16Console(Sg_StandardError())
-				  ? Sg_MakeNativeConsoleTranscoder()
-				  : Sg_MakeNativeTranscoder());
+  /* the very initial ones will be initialised in Sg_InitPort() */
+  v->currentInputPort = proto ? proto->currentInputPort : NULL;
+  v->currentOutputPort = proto ? proto->currentOutputPort : NULL;
+  v->currentErrorPort = proto ? proto->currentErrorPort : NULL;
 
   v->currentLoadingPort = proto
     ? proto->currentLoadingPort
@@ -227,6 +213,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
   v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
   v->transEnv = v->history = SG_NIL;
+  v->identity = proto ? proto->identity : SG_GENERATE_IDENTITY;
 
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
@@ -287,6 +274,25 @@ int Sg_MainThreadP()
 }
 
 #define Sg_VM() theVM
+
+
+/* some convenient accessors */
+#define PC(vm)             (vm)->pc
+#define AC(vm)             (vm)->ac
+#define CL(vm)             (vm)->cl
+#define FP(vm)             (vm)->fp
+#define SP(vm)             (vm)->sp
+#define CONT(vm)           (vm)->cont
+
+#define INDEX(sp, n)        (*((sp) - (n) - 1))
+#define INDEX_SET(sp, n, v) (*((sp) - (n) - 1) = (v))
+#define PUSH(sp, o)         (*(sp)++ = (o))
+#define POP(sp)             (*(--(sp)))
+
+/* is the given pointer in the stack? */
+#define IN_STACK_P(ptr, vm)				\
+  ((uintptr_t)((ptr) - vm->stack) < SG_VM_STACK_SIZE)
+
 
 /* values  */
 SgObject Sg_Values(SgObject args)
