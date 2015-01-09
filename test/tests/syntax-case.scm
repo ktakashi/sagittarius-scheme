@@ -335,4 +335,19 @@
   (test-assert "normal" (aif (assq 'a '((a . 0))) it #f))
   (test-error  "not the same bound id" (aif (assq 'a '((a . 0))) it)))
 
+(library (foo)
+  (export foo)
+  (import (rnrs))
+
+  (define bar 123)
+  (define-syntax foo
+    (let ()
+      (define $bar #'bar)
+      (lambda (x)
+	(syntax-case x ()
+	  ((_) $bar)))))
+  )
+(import (foo))
+(test-equal "refering internal library definition" 123 (foo))
+
 (test-end)

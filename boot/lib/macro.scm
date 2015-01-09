@@ -510,8 +510,13 @@
 ;; it contains all lexical variables for fender and expander. 
 ;; see compile-syntax-case.
 (define (compile-syntax exp-name tmpl env mac-env)
+  ;; need to keep which library the symbols are defined.
+  (define (rewrite tmpl)
+    ;; only wraps symbols
+    (rewrite-form tmpl (make-eq-hashtable) '() (vector-ref mac-env 0)
+		  make-identifier (lambda (id) #f)))
   (let* ((ids (collect-unique-ids tmpl))
-	 (template tmpl)
+	 (template (rewrite tmpl))
 	 (ranks (filter-map (lambda (id)
 			      (let ((p (p1env-lookup mac-env id PATTERN)))
 				(and (number? p)
