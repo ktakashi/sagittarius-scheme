@@ -356,10 +356,15 @@
 	:symbol-name (cgen-literal (symbol->string value))))
     (pred (self) "SG_SYMBOLP")
     (init (self)
-     (format #t "  ~a = Sg_Intern(~a); /* ~a */~%"
-	     (cgen-c-name self)
-	     (cgen-c-name (slot-ref self 'symbol-name))
-	     (cgen-safe-comment (slot-ref self 'value))))
+     (if (interned-symbol? (slot-ref self 'value))
+	 (format #t "  ~a = Sg_Intern(~a); /* ~a */~%"
+		 (cgen-c-name self)
+		 (cgen-c-name (slot-ref self 'symbol-name))
+		 (cgen-safe-comment (slot-ref self 'value)))
+	 (format #t "  ~a = Sg_MakeSymbol(~a, FALSE); /* ~a */~%"
+		 (cgen-c-name self)
+		 (cgen-c-name (slot-ref self 'symbol-name))
+		 (cgen-safe-comment (slot-ref self 'value)))))
     (static (self) #f))
 
   (define-cgen-literal <cgen-scheme-keyword> <keyword>
