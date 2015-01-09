@@ -1531,14 +1531,11 @@
      "rename procedure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
       (or (hashtable-ref dict symid #f)
-	  (let ((var (p1env-lookup p1env symid LEXICAL)))
-	    (let ((id (if (identifier? var)
-			  var
-			  (make-identifier symid
-					   (p1env-frames p1env)
-					   (p1env-library p1env)))))
-	      (hashtable-set! dict symid id)
-	      id)))
+	  (let ((id (make-identifier symid
+				     (p1env-frames p1env)
+				     (p1env-library p1env))))
+	    (hashtable-set! dict symid id)
+	    id))
       ;; should we copy?
       symid))
 
@@ -1585,7 +1582,7 @@
 	     ($lambda-body-set! intform (pass1/body body newenv))
 	     intform))
 	  (else
-	   (let ((g (gensym)))
+	   (let ((g (gensym "keys")))
 	     (pass1/lambda form (append vars g)
 			   (pass1/extended-lambda form g kargs body)
 			   p1env #t))))))
@@ -1645,7 +1642,7 @@
 			       (_ (syntax-error
 				   "illegal optional argument spec" kargs))))
 			   os))
-	      (rest (or r (gensym))))
+	      (rest (or r (gensym "rest"))))
 	  `((,_let-optionals* ,garg ,(append binds rest)
 	     ,@(if (and (not r) (null? ks))
 		   `((,unless. (,null?. ,rest)
@@ -1813,7 +1810,7 @@
 				       ,(cddar vars&inits&test)))
 		    (,let. () ,@body))))
 	  (else
-	   (let ((g (gensym))
+	   (let ((g (gensym "opts"))
 		 (v (caar vars&inits&test))
 		 (i (cadar vars&inits&test))
 		 (t (cddar vars&inits&test)))
@@ -1831,7 +1828,7 @@
 	    (else (loop (cdr lst) (cons (p (car lst)) r))))))
   (smatch form
     ((_ arg specs . body)
-     (let* ((g (gensym))
+     (let* ((g (gensym "opts"))
 	    (_undefined (global-id 'undefined)))
        (pass1 ($src 
 	       `(,let. ((,g ,arg))
@@ -1891,7 +1888,7 @@
 		     (cons var vars)
 		     (cons key keys)
 		     (cons default defaults)
-		     (cons (gensym) tmps))))
+		     (cons (gensym "tmps") tmps))))
 	    (else (finish (or specs #t))))))
   (let ((argvar (gensym "args")) (loop (gensym "loop"))
 	(_undefined? (global-id 'undefined?))
@@ -2225,7 +2222,7 @@
   (smatch form
     ((-) (syntax-error "at least one clause is required for case" form))
     ((- pred clauses ___)
-     (let* ((tmp (gensym))
+     (let* ((tmp (gensym "tmp"))
 	    (expanded-clauses (expand-clauses clauses tmp)))
        (let ((expr `(,let. ((,tmp ,pred))
 		      ,expanded-clauses)))
@@ -4472,7 +4469,7 @@
 		       (and (null? (cdr fvs))
 			    (zero? (lvar-set-count (car fvs)))
 			    (eq? (lvar-initval (car fvs)) lm)))
-		   (let ((gvar (make-identifier (gensym) '() library)))
+		   (let ((gvar (make-identifier (gensym "lambda") '() library)))
 		     ($lambda-name-set!
 		      lm
 		      (list top-name (or (and-let* ((n ($lambda-name lm)))

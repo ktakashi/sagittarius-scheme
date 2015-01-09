@@ -210,10 +210,15 @@ struct SgVMRec
   SgObject values[DEFAULT_VALUES_SIZE];
   SgValuesBuffer *extra_values;
 
-  /* macro expansion */
-  SgObject usageEnv;
-  SgObject macroEnv;
-  SgObject transEnv;
+  /* macro expansion 
+     FIXME these registers should not be in VM it's compiler thing.
+           to make VM size a bit smaller (5 words) we should define
+           them somewhere else.
+   */
+  SgObject usageEnv;		/* current usage env */
+  SgObject macroEnv;		/* current macro env */
+  SgObject transEnv;		/* just a storage for macro expansion */
+  SgObject identity;		/* macro expansion identity */
   /* to store macro expansion history alist */
   SgObject history;
   /* 
@@ -332,29 +337,10 @@ typedef enum {
 
 #define SG_VM_LOG_LEVEL(vm, level)  (((vm)->flags & SG_LOG_LEVEL_MASK) >= level)
 
-#define PC(vm)             (vm)->pc
-#define AC(vm)             (vm)->ac
-#define CL(vm)             (vm)->cl
-#define FP(vm)             (vm)->fp
-#define SP(vm)             (vm)->sp
-#define CONT(vm)           (vm)->cont
-
-#if 0
-#define CALC_OFFSET(vm, offset)  ((SgObject*)CONT(vm)-FP(vm))
-#else
-#define CALC_OFFSET(vm, offset) /* dummy */
-#endif
-
-#define INDEX(sp, n)        (*((sp) - (n) - 1))
-#define INDEX_SET(sp, n, v) (*((sp) - (n) - 1) = (v))
-#define PUSH(sp, o)         (*(sp)++ = (o))
-#define POP(sp)             (*(--(sp)))
-
+#define SG_CURRENT_IDENTITY  (Sg_VM()->identity)
+#define SG_GENERATE_IDENTITY (Sg_Gensym(SG_MAKE_STRING("id.")))
 
 #define SG_CCONT_DATA_SIZE 6
-
-#define IN_STACK_P(ptr, vm)				\
-  ((uintptr_t)((ptr) - vm->stack) < SG_VM_STACK_SIZE)
 
 #define SG_LET_FRAME_SIZE           2
 #define SG_FRAME_SIZE               CONT_FRAME_SIZE

@@ -43,6 +43,7 @@ struct SgIdentifierRec
   SgObject   envs;
   SgLibrary *library;
   int        pending;
+  SgObject   identity;
 };
 
 #define SG_IDENTIFIER(obj)   ((SgIdentifier*)(obj))
@@ -51,6 +52,7 @@ struct SgIdentifierRec
 #define SG_IDENTIFIER_ENVS(obj)     (SG_IDENTIFIER(obj)->envs)
 #define SG_IDENTIFIER_LIBRARY(obj)  (SG_IDENTIFIER(obj)->library)
 #define SG_IDENTIFIER_PENDING(obj)  (SG_IDENTIFIER(obj)->pending)
+#define SG_IDENTIFIER_IDENTITY(obj) (SG_IDENTIFIER(obj)->identity)
 
 SG_CDECL_BEGIN
 

@@ -260,16 +260,6 @@
 		(p1env-lookup mac-env .vars LEXICAL BOUNDARY)
 		r)))))
 
-(cond-expand
- (gauche
-  (define-macro (apply-ex proc . rest)
-    `(apply-proc ,proc ,@rest)))
- (sagittarius
-  (define-syntax apply-ex
-    (er-macro-transformer
-     (lambda (f r c)
-       `(apply ,(cadr f) ,@(cddr f)))))))
-
 (define (count-pair lst)
   (let loop ((lst lst) (n 0))
     (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
@@ -403,8 +393,8 @@
 	    (let ((vars (match form pat)))
 	      (if (and vars
 		       (or (not fender)
-			   (apply-ex fender (list (append vars patvars)))))
-		  (apply-ex expr (list (append vars patvars)))
+			   (apply fender (list (append vars patvars)))))
+		  (apply expr (list (append vars patvars)))
 		  (loop (cdr lst)))))))))
 
 ;; compile (syntax ...)
@@ -488,7 +478,7 @@
 	       (cond ((variable? (car lst))
 		      (let ((rank (rank-of (car lst) ranks)))
 			(cond ((< rank 0)
-			       (syntax-violation "syntax template" "misplace ellipsis following literal" (unwrap-syntax tmpl) (unwrap-syntax (car lst))))
+			       (syntax-violation "syntax template" "misplaced ellipsis following literal" (unwrap-syntax tmpl) (unwrap-syntax (car lst))))
 			      ((> rank (+ depth 1))
 			       (syntax-violation "syntax template" "too few ellipsis following subtemplate" (unwrap-syntax tmpl) (unwrap-syntax (car lst))))
 			      (else
@@ -673,65 +663,6 @@
 
 (define adapt-to-rank-moved-vars
   (lambda (form ranks vars)
-    (define mac-env (current-macro-env))
-    (define use-env (current-usage-env))
-
-    ;; *UGLY* solution to resolve different compile unit of (syntax)
-    (define (rename-or-copy-id id) id
-      #;
-      (let ((b (p1env-lookup mac-env id LEXICAL)))
-	(cond ((or (find-binding (id-library id) (id-name id) #f)
-		   ;; macro identifier need to have it's syntax information
-		   ;; to bent scope
-		   ;; FIXME smells like a bug
-		   (macro? b))
-	       (make-pending-identifier (id-name id)
-					(vector-ref mac-env 1)
-					(id-library id)))
-	      ;; template variable is not bound in macro env but usage env
-	      ;; in this case we don't want to find renamed id in usage env.
-	      ;; so clear the env.
-	      ((and (identifier? b)
-		    (not (identifier? (p1env-lookup use-env id LEXICAL))))
-	       (make-pending-identifier (id-name id) '() (id-library id)))
-	      (else
-	       ;; simply copy but mark as template variable
-	       (make-pending-identifier (id-name id) (id-envs id) 
-					(id-library id))))))
-
-    (define (rename t) t
-      #;
-      (or (cond ((not (identifier? t)) #f)
-		;; if the identifier is template variable and
-		;; mac-env contains this as a local binding
-		;; then the variable is bound in macro and
-		;; passed to let-syntax template.
-		;; in this case we can't rewrite it otherwise
-		;; env lookup can't find proper binding.
-		;; Call #7
-		((and (pending-identifier? t)
-		      (not (identifier? (p1env-lookup mac-env t LEXICAL))))
-		 #f)
-		((lookup-transformer-env t))
-		;; mark as template variable so that pattern variable
-		;; lookup won't make misjudge.
-		(else (add-to-transformer-env! t (rename-or-copy-id t))))
-	  t))
-    ;; regenerate pattern variable
-    (define (rewrite-template t vars)
-      t
-;;      (cond ((null? t) t)
-;;	    ((pair? t)
-;;	     (cons (rewrite-template (car t) vars)
-;;		   (rewrite-template (cdr t) vars)))
-;;	    ((vector? t)
-;;	     (list->vector (rewrite-template (vector->list t) vars)))
-;;	    ;; could be a pattern variable, so keep it
-;;	    ((and (variable? t) (assq t vars)) t)
-;;	    ;; rename template variable
-;;	    (else (rename t)))
-      )
-
     (define (rewrite-template-ranks-vars tmpl ranks vars)
       (define moved-ranks (make-eq-hashtable))
       (define moved-vars (make-eq-hashtable))
@@ -757,7 +688,7 @@
 			      (hashtable-set! moved-vars renamed var)))))
 		 renamed))
 	      ((assq name vars) name)
-	      (else (rename name))))
+	      (else name)))
 
       (define (traverse-escaped lst depth)
 	(let loop ((lst lst) (depth depth))
@@ -799,7 +730,7 @@
 
     (if (contain-rank-moved-var? form ranks vars)
         (rewrite-template-ranks-vars form ranks vars)
-        (values (rewrite-template form vars) ranks vars))))
+        (values form ranks vars))))
 
 (define (consume-ellipsis-vars ranks depth vars)
   (let ((exhausted #f) (consumed #f))
@@ -927,14 +858,18 @@
   (lambda (template-id datum)
     (define seen (make-eq-hashtable))
     ;; simply converts symbol to identifier.
-    (define (rewrite expr frame library)
-      (rewrite-form expr (make-eq-hashtable) frame library
-		    make-identifier (lambda (id) #f)))
+    (define (rewrite expr)
+      (rewrite-form expr
+		    (make-eq-hashtable)
+		    '() #f ;; dummy
+		    (lambda (name env library)
+		      (copy-identifier name template-id))
+		    (lambda (id) #f)))
     (or (identifier? template-id)
 	(assertion-violation 
 	 'datum->syntax 
 	 (format "expected identifier, but got ~s" template-id)))
-    (rewrite datum (id-envs template-id) (id-library template-id))))
+    (rewrite datum)))
 
 ;; syntax->datum
 (define (syntax->datum syntax)
@@ -952,23 +887,7 @@
 		(define (rewrite expr env)
 		  (rewrite-form expr (make-eq-hashtable) (vector-ref env 1)
 				(vector-ref env 0) make-identifier
-				(lambda (id) #f))
-		  #;
-		  (let loop ((expr expr))
-		    (cond ((pair? expr)
-			   (let ((a (loop (car expr)))
-				 (d (loop (cdr expr))))
-			     (if (and (eq? a (car expr)) (eq? d (cdr expr)))
-				 expr
-				 (cons a d))))
-			  ((vector? expr)
-			   (list->vector (loop (vector->list expr))))
-			  ((symbol? expr)
-			   ;; issue 93 doing the same as pattern wrapping
-			   ;; so that symbol can see the proper frame
-			   (make-pattern-identifier expr (vector-ref env 1)
-					    (vector-ref env 0)))
-			  (else expr))))
+				(lambda (id) #f)))
 		;; Issue 68. this must use current usage env not
 		;; macro env when this macro is created.
 		(proc (rewrite expr (current-usage-env))))

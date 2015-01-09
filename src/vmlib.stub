@@ -44,6 +44,16 @@
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (result (Sg_MakeIdentifier name envs maybe-library)))
 
+  (define-c-proc copy-identifier (name id::<identifier>)
+    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
+      (wrong-type-of-argument-violation 'make-identifier 
+					"symbol or identifier" name))
+    (let ((new-id (Sg_MakeIdentifier name
+				     (SG_IDENTIFIER_ENVS id)
+				     (SG_IDENTIFIER_LIBRARY id))))
+      (set! (SG_IDENTIFIER_IDENTITY new-id) (SG_IDENTIFIER_IDENTITY id))
+      (result new-id)))
+
   (define-c-proc make-pending-identifier (name envs maybe-library)
     (unless (SG_LIBRARYP maybe-library)
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
@@ -319,6 +329,16 @@
 			 (SG_NULLP (SG_IDENTIFIER_ENVS name))
 			 (SG_EQ (SG_IDENTIFIER_LIBRARY name) lib))
 		    ;; bound identifier comparison
+		    (and (SG_IDENTIFIERP (SG_CAR vp))
+			 (SG_IDENTIFIERP name)
+			 (SG_EQ (SG_IDENTIFIER_NAME (SG_CAR vp))
+				(SG_IDENTIFIER_NAME name))
+			 (SG_EQ (SG_IDENTIFIER_LIBRARY (SG_CAR vp))
+				(SG_IDENTIFIER_LIBRARY name))
+			 (SG_EQ (SG_IDENTIFIER_IDENTITY (SG_CAR vp))
+				(SG_IDENTIFIER_IDENTITY name)))
+		    ;; should not use env
+		    #;
 		    (and (SG_IDENTIFIERP (SG_CAR vp))
 			 (SG_IDENTIFIERP name)
 			 (SG_EQ (SG_IDENTIFIER_NAME (SG_CAR vp))

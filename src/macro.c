@@ -137,6 +137,8 @@ static SgObject macro_restore_env_cc(SgObject result, void **data)
   vm->usageEnv = SG_OBJ(data[0]);
   vm->macroEnv = SG_OBJ(data[1]);
   vm->transEnv = SG_NIL;	/* gc friendliness */
+  /* use macro... */
+  vm->identity = SG_OBJ(data[2]);
   return result;
 }
 
@@ -146,30 +148,25 @@ static SgObject macro_transform_cc(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();
   SgObject macro, form, p1env, mac_env;
-  void *next_data[2];
-
+  void *next_data[3];
+  
   macro = data[0];
   form = data[1];
   p1env = data[2];
 
   next_data[0] = vm->usageEnv;
   next_data[1] = vm->macroEnv;
+  next_data[2] = vm->identity;	/* TODO use macro... */
 
   mac_env = SG_MACRO(macro)->env;
 
   vm->usageEnv = p1env;
-  vm->macroEnv = Sg_VectorCopy(mac_env, 0, -1, SG_FALSE);
+  vm->macroEnv = mac_env;
   vm->transEnv = SG_NIL;
 
-  /* frame copy to distinguish template variables 
-     this must be done per macro invocation.
-     TODO: can't we move this in Scheme world so that
-           at lease p1env structure can be hidden in C.
-  */
-  SG_VECTOR_ELEMENT(vm->macroEnv, 1) =
-    Sg_CopyList(SG_VECTOR_ELEMENT(vm->macroEnv, 1));
+  vm->identity = SG_GENERATE_IDENTITY;
   
-  Sg_VMPushCC(macro_restore_env_cc, next_data, 2);
+  Sg_VMPushCC(macro_restore_env_cc, next_data, 3);
   if (SG_MACROP(result)) {
     /* variable transformer */
     return Sg_VMApply4(SG_MACRO(result)->transformer,

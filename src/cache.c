@@ -450,7 +450,7 @@ static int write_cache(SgObject name, SgCodeBuilder *cb, SgPort *out, int index)
 #define builtin_interesting_p(obj)				\
   (SG_STRINGP(obj) || SG_SYMBOLP(obj) || SG_KEYWORDP(obj) ||	\
    SG_IDENTIFIERP(obj) || SG_MACROP(obj) ||			\
-   SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj))
+   SG_PAIRP(obj) || SG_VECTORP(obj) || SG_CLOSUREP(obj) || SG_GLOCP(obj))
 
 static int interesting_p(SgObject obj)
 {
@@ -491,20 +491,19 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       }
       cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
-      SgObject cp;
-      cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);	
+      cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);
       if (ctx->macroPhaseP) {
 	/* compiler now share the frame so we need to check each frame
 	   separately here.*/
 	cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-	SG_FOR_EACH(cp, SG_IDENTIFIER_ENVS(obj)) {
-	  cbs = write_cache_scan(SG_CAR(cp), cbs, ctx);
-	}
+	cbs = write_cache_scan(SG_IDENTIFIER_IDENTITY(obj), cbs, ctx);	
       }
       if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
 	cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),
 			       cbs, ctx);
       }
+    } else if (SG_GLOCP(obj)) {
+      cbs = write_cache_scan(SG_GLOC(obj)->name, cbs, ctx);
     } else if (SG_LIBRARYP(obj)) {
       cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
     } else if (SG_MACROP(obj)) {
@@ -545,6 +544,7 @@ SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
 }
 
 /* correct code builders in code*/
+static int ind = 0;
 static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 				  SgLibrary **lib, cache_ctx *ctx)
 {
@@ -559,7 +559,9 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 	if (SG_CODE_BUILDERP(o)) {
 	  r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
 	  /* we need to check it recursively */
+	  ind += 2;
 	  r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
+	  ind -= 2;
 	}
 	if (info->number == LIBRARY && lib != NULL) {
 	  /* LIBRARY instruction is a mark for this.
@@ -715,6 +717,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 			       cache_ctx *ctx)
 {
   SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_UNBOUND);
+
   if (SG_INTP(sharedState)) {
     put_word(out, SG_INT_VALUE(sharedState), LOOKUP_TAG);
     return;
@@ -768,8 +771,8 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
        only for optimization.
        p1env ::= #( library frames exp-name current-proc )
     */
-    write_string_cache(out, SG_SYMBOL(SG_IDENTIFIER(o)->name)->name,
-		       IDENTIFIER_TAG);
+    put_word(out, SG_IDENTIFIER_PENDING(o), IDENTIFIER_TAG);
+    write_object_cache(out, SG_IDENTIFIER_NAME(o), cbs, ctx);
     if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(o))) {
       write_object_cache(out, SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(o)),
 			 cbs, ctx);
@@ -779,9 +782,22 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     }
     if (ctx->macroPhaseP) {
       write_object_cache(out, SG_IDENTIFIER_ENVS(o), cbs, ctx);
+      write_object_cache(out, SG_IDENTIFIER_IDENTITY(o), cbs, ctx);
     } else {
       write_object_cache(out, SG_NIL, cbs, ctx);
+      write_object_cache(out, SG_FALSE, cbs, ctx);
     }
+  } else if (SG_GLOCP(o)) {
+    /* gloc is for performance thing, it can be replaced by identifier */
+    SgObject name = SG_GLOC(o)->name;
+    SgObject lib = SG_GLOC(o)->library;
+    put_word(out, 0, IDENTIFIER_TAG);
+    write_object_cache(out, name, cbs, ctx);
+    write_object_cache(out, SG_LIBRARY(lib)->name, cbs, ctx);
+    /* gloc does not have any envs. */
+    emit_immediate(out, SG_NIL);
+    /* gloc must be an global variable */
+    emit_immediate(out, SG_FALSE);
   } else if (SG_CLOSUREP(o)) {
     /* we can't cache closure with free variables */
     if (SG_CODE_BUILDER(SG_CLOSURE(o)->code)->freec != 0) {
@@ -796,14 +812,6 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     write_string_cache(out, SG_SYMBOL(SG_LIBRARY_NAME(o))->name,
 		       LIBRARY_LOOKUP_TAG);
     /* write_symbol_cache(out, SG_LIBRARY_NAME(o)); */
-  } else if (SG_GLOCP(o)) {
-    /* gloc is for performance thing, it can be replaced by identifier */
-    SgObject name = SG_GLOC(o)->name;
-    SgObject lib = SG_GLOC(o)->library;
-    write_string_cache(out, SG_SYMBOL(name)->name, IDENTIFIER_TAG);
-    write_object_cache(out, SG_LIBRARY(lib)->name, cbs, ctx);
-    /* gloc does not have any envs. */
-    emit_immediate(out, SG_NIL);
   } else if (SG_MACROP(o)) {
     /* we need to write macro inside of the identifier if it's in
        macro writing phase. */
@@ -1218,28 +1226,28 @@ static SgObject read_number(SgPort *in, read_ctx *ctx)
 
 static SgObject read_identifier(SgPort *in, read_ctx *ctx)
 {
-  int length;
-  SgString *name;
-  SgObject lib;
-  SgObject envs;
+  int pending;
+  SgObject name, lib, envs, identity;
   SgIdentifier *id;
 
-  length = read_word(in, IDENTIFIER_TAG);
-  name = read_string(in, length);
+  pending = read_word(in, IDENTIFIER_TAG);
+  name = read_object_rec(in, ctx);
   /* read library name */
   lib = read_object_rec(in, ctx);
   if (!SG_FALSEP(lib)) {
     lib = Sg_FindLibrary(lib, FALSE);
   }
   envs = read_object_rec(in, ctx);
+  identity = read_object_rec(in, ctx);
 
   /* we need to resolve shread object later */
   id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
-  id->name = Sg_Intern(name);
+  id->name = name,
   id->library = lib;
   id->envs = envs;
-  id->pending = FALSE;
+  id->identity = identity;
+  id->pending = pending;
   return id;
 }
 
@@ -1455,12 +1463,19 @@ static void read_cache_link(SgObject obj, SgHashTable *seen, read_ctx *ctx)
   if (SG_IDENTIFIERP(obj)) {
     /* this can be shared object completely */
     SgObject envs = SG_IDENTIFIER_ENVS(obj);
+    SgObject identity = SG_IDENTIFIER_IDENTITY(obj);
     if (SG_SHAREDREF_P(envs)) {
       SgObject index = SG_SHAREDREF(envs)->index;
       SG_IDENTIFIER_ENVS(obj) = get_shared(index, ctx);
       envs = SG_IDENTIFIER_ENVS(obj);
     }
+    if (SG_SHAREDREF_P(identity)) {
+      SgObject index = SG_SHAREDREF(envs)->index;
+      SG_IDENTIFIER_IDENTITY(obj) = get_shared(index, ctx);
+      identity = SG_IDENTIFIER_IDENTITY(obj);
+    }
     read_cache_link(envs, seen, ctx);
+    read_cache_link(identity, seen, ctx);
     return;
   }
 }
