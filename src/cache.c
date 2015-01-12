@@ -60,6 +60,11 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
 
+/*
+  FIXME
+  this is getting messy, so need refactoring!
+ */
+
 #define VALIDATE_TAG  "Sagittarius version "SAGITTARIUS_VERSION
 
 static SgString *CACHE_DIR = NULL;
@@ -486,10 +491,12 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 	cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
       }
     } else if (SG_CLOSUREP(obj)) {
-      if (SG_FALSEP(Sg_Assq(obj, cbs))) {
+      if (SG_FALSEP(Sg_Assq(SG_CLOSURE(obj)->code, cbs))) {
 	cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+	cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
+      } else {
+	return cbs;
       }
-      cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
     } else if (SG_IDENTIFIERP(obj)) {
       cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);
       if (ctx->macroPhaseP) {
@@ -526,6 +533,8 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
 
 static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
 {
+  SG_VECTOR_ELEMENT(m->env, 3) = SG_FALSE;
+
   cbs = write_cache_scan(m->name, cbs, ctx);
   cbs = write_cache_scan(m->env, cbs, ctx);
   if (SG_CLOSUREP(m->data)) {
@@ -544,13 +553,16 @@ SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
   return write_cache_scan(obj, cbs, (cache_ctx *)ctx);
 }
 
+
 /* correct code builders in code*/
 static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 				  SgLibrary **lib, cache_ctx *ctx)
 {
   SgWord *code = cb->code;
   int i, len = cb->size;
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("scanning %S(%p)\n"), cb, cb); */
   r = write_cache_scan(cb->name, r, ctx);
+
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     if (!info->label) {
@@ -561,6 +573,7 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 	  r = Sg_Acons(o, SG_MAKE_INT(ctx->index++), r);
 	  /* we need to check it recursively */
 	  r = write_cache_pass1(SG_CODE_BUILDER(o), r, lib, ctx);
+	  break;
 	}
 	if (info->number == LIBRARY && lib != NULL) {
 	  /* LIBRARY instruction is a mark for this.
@@ -577,6 +590,7 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
     }
     i += 1 + info->argc;
   }
+  
   /* save collected closures here */
   ctx->closures = r;
   return r;
@@ -691,12 +705,11 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
   SgObject closure;
   int subrP = SG_SUBRP(SG_MACRO(macro)->transformer);
 
-  SG_VECTOR_ELEMENT(SG_MACRO(macro)->env, 3) = SG_FALSE;
-
   put_word(out, subrP, MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
+
   if (subrP) {
     write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code,
 		      closures, ctx);
@@ -704,9 +717,12 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
     write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
 		      closures, ctx);
   }
+
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
     Sg_PutbUnsafe(out, CLOSURE_TAG);
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S(%p)\n"),  */
+    /* 	      SG_CAR(slot), SG_CAR(slot)); */
     write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, ctx);      
   }
   Sg_PutbUnsafe(out, MACRO_END_TAG);
@@ -717,6 +733,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
 {
   SgObject sharedState = Sg_HashTableRef(ctx->sharedObjects, o, SG_UNBOUND);
 
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("%S(%p)\n"), o, o); */
   if (SG_INTP(sharedState)) {
     put_word(out, SG_INT_VALUE(sharedState), LOOKUP_TAG);
     return;
@@ -852,10 +869,20 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
 {
   int i, len = cb->size;
   SgWord *code = cb->code;
-  SgObject this_slot = Sg_Assq(cb, cbs);
+  /* delete slot for macro */
+  SgObject this_slot = Sg_Assq(cb, cbs), state;
   
   if (SG_FALSEP(this_slot)) {
-    ESCAPE(ctx, "Target code builder %S is not collected.\n", cb);
+    ESCAPE(ctx, "Target code builder %S(%p) is not collected.\n", cb, cb);
+  }
+
+  /* it's kinda abuse but fine */
+  state = Sg_HashTableRef(ctx->sharedObjects, cb, SG_UNBOUND);
+  if (SG_UNBOUNDP(state)) {
+    Sg_HashTableSet(ctx->sharedObjects, cb, SG_TRUE, 0);
+  } else {
+    /* it's already written */
+    return;
   }
 
   put_word(out, len, CODE_BUILDER_TAG);
@@ -898,7 +925,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
 	  */
 	  put_word(out, SG_INT_VALUE(SG_CDR(slot)), MARK_TAG);
 	  continue;
-	}	
+	}
 	write_object_cache(out, o, cbs, ctx);
       }
     }
@@ -940,8 +967,6 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
       Macro can be considered as one toplevel compiled code, which means we do
       not have to care about closures outside of given macro.
      */
-    /* do the same trik as identifier for macro env*/
-    SG_VECTOR_ELEMENT(macro->env, 3) = SG_FALSE;
     closures = write_macro_scan(macro, closures, ctx);
     /* Sg_Printf(Sg_StandardErrorPort(), UC("writing macro %S\n"), macro); */
     write_macro(out, macro, closures, ctx);
