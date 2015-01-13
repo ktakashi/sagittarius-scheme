@@ -69,7 +69,10 @@
 	    ((eq? eql? eqv?)       (make-eqv-hashtable))
 	    ((eq? eql? equal?)     (make-equal-hashtable))
 	    ((eq? eql? string=?)   (make-string-hashtable))
-	    ((eq? eql? string-ci?) (make-hashtable string-ci=? string-ci-hash))))
+	    ((eq? eql? string-ci?) (make-hashtable string-ci=? string-ci-hash))
+	    (else
+	     (assertion-violation 'make-hash-table
+				  "unknown equivalent procedure" eql?))))
      (() (make-equal-hashtable))))
 
   (define no-entry (list 'no-entry))
