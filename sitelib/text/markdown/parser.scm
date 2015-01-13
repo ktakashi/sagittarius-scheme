@@ -172,6 +172,7 @@ Blockquote ::= '>' SP* Paragraph
             |  '>' SP* Linefeed (Blockquote)*
 Line ::= ( (SP* '-') | (SP* '*') ){3,} Linefeed
 CodeBlock ::= SP{4,} Inline+ Linefeed
+           |  '`'{3,} Linefeed Text Linefeed '`'{3,}
 BlockHtml ::= '<' (div|p|table|pre) (SP+ HtmlAttribute)* '>'
               (Text | BlockHtml | InlineHtml)+ 
               '<' '/' (div|p|table|pre) '>'
@@ -264,9 +265,8 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	    ((p <- paragraph)   p))
      ;; TODO Should we store this to somewhere or into the AST?
      ;; first the most toplevel elements
-     (paragraph ((i <- inlines separator)
-		 (cons* :paragraph i)))
-     (p-entry ((i <- inlines linefeed) i))
+     (paragraph ((i <- inlines separator) (cons* :paragraph i)))
+     ;; (p-entry ((i <- inlines linefeed) i))
      (separator (((min-max (lambda (c)
 			     (char-set-contains? *no-linefeed-ws-sets* c)) 0)
 		  linefeed) :separator)
@@ -312,9 +312,22 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
      (line (((line-def #\-) linefeed) (list :line))
 	   (((line-def #\*) linefeed) (list :line)))
      ;; code block
-     ;; for now we only supports space
-     (code-block (((token "    ") c <- inlines linefeed)
+     ;; we also supports '```'
+     ;; for text block we probably don't need separator but
+     ;; to make things consistency...
+     (code-block (((token "    ") c <- inlines separator)
+		  (cons :code-block c))
+		 (((min-max #\` 3) linefeed 
+		   c <- code-elements 
+		   (min-max #\` 3) separator)
 		  (cons :code-block c)))
+     (code-elements ((e <- code-element linefeed 
+		      e* <- code-elements)
+		     (if (null? e*)
+			 (string-append e "\n")
+			 (string-append e "\n" e*)))
+		    (() '()))
+     (code-element (((! (min-max #\` 3)) e <- text) (cadr e)))
      ;; block html
      (block-html (('#\< s <- block-tag attr <- html-attributes space* '#\>
 		   h <- block-contents
