@@ -4,7 +4,7 @@
 	(srfi :64))
 
 ;; tests from Chibi Scheme.
-(test-begin "hash")
+(test-begin "SRFI-69 Basic hash tables")
 
 (define-syntax test (identifier-syntax test-equal))
 
