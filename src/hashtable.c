@@ -88,14 +88,15 @@ static void hash_iter_init(SgHashCore *core, SgHashIter *itr);
 
 #define COMBINE(hv1, hv2)  ((hv1)*5+(hv2))
 
-uint32_t Sg_EqHash(SgObject obj)
+uint32_t Sg_EqHash(SgObject obj, uint32_t bound)
 {
   uint32_t hashval;
   ADDRESS_HASH(hashval, obj);
+  if (bound) return (hashval & HASHMASK) % bound;
   return hashval & HASHMASK;
 }
 
-uint32_t Sg_EqvHash(SgObject obj)
+uint32_t Sg_EqvHash(SgObject obj, uint32_t bound)
 {
   uint32_t hashval;
   if (SG_NUMBERP(obj)) {
@@ -112,17 +113,18 @@ uint32_t Sg_EqvHash(SgObject obj)
     } else if (SG_FLONUMP(obj)) {
       hashval = (unsigned long)(SG_FLONUM_VALUE(obj) * 2654435761UL);
     } else if (SG_RATIONALP(obj)) {
-      unsigned long h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator);
-      unsigned long h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator);
+      uint32_t h1 = Sg_EqvHash(SG_RATIONAL(obj)->numerator, bound);
+      uint32_t h2 = Sg_EqvHash(SG_RATIONAL(obj)->denominator, bound);
       hashval = COMBINE(h1, h2);
     } else {
-      unsigned long h1 = Sg_EqvHash(SG_COMPLEX(obj)->real);
-      unsigned long h2 = Sg_EqvHash(SG_COMPLEX(obj)->imag);
+      uint32_t h1 = Sg_EqvHash(SG_COMPLEX(obj)->real, bound);
+      uint32_t h2 = Sg_EqvHash(SG_COMPLEX(obj)->imag, bound);
       hashval = COMBINE(h1, h2);
     }
   } else {
     ADDRESS_HASH(hashval, obj);
   }
+  if (bound) return (hashval & HASHMASK) % bound;
   return hashval & HASHMASK;
 }
 
@@ -215,7 +217,7 @@ static uint32_t equal_hash_rec(SgObject obj, int level)
     SMALL_INT_HASH(hashval, (unsigned long)SG_WORD(obj));
     return hashval;
   } else if (SG_NUMBERP(obj)) {
-    return Sg_EqvHash(obj);
+    return Sg_EqvHash(obj, 0);
   } else if (SG_STRINGP(obj)) {
     return Sg_StringHash(SG_STRING(obj), 0);
   } else if (SG_PAIRP(obj)) {
@@ -240,9 +242,11 @@ static uint32_t equal_hash_rec(SgObject obj, int level)
   }
 }
 
-uint32_t Sg_EqualHash(SgObject obj)
+uint32_t Sg_EqualHash(SgObject obj, uint32_t bound)
 {
-  return equal_hash_rec(obj, MAX_NESTING_LEVEL);
+  uint32_t hash = equal_hash_rec(obj, MAX_NESTING_LEVEL);
+  if (bound) return hash % bound;
+  return hash;
 }
 
 uint32_t Sg_StringHash(SgString *str, uint32_t bound)
@@ -394,7 +398,7 @@ static int address_compare(const SgHashCore *ht, intptr_t key, intptr_t k2)
 /* eqv? and equal? */
 static uint32_t eqv_hash(const SgHashCore *table, intptr_t key)
 {
-  return Sg_EqvHash(SG_OBJ(key));
+  return Sg_EqvHash(SG_OBJ(key), 0);
 }
 
 static int eqv_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
@@ -404,7 +408,7 @@ static int eqv_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
 
 static uint32_t equal_hash(const SgHashCore *table, intptr_t key)
 {
-  return Sg_EqualHash(SG_OBJ(key));
+  return Sg_EqualHash(SG_OBJ(key), 0);
 }
 
 static int equal_compare(const SgHashCore *table, intptr_t key, intptr_t k2)
@@ -487,7 +491,7 @@ static uint32_t general_hash(const SgHashCore *table, intptr_t key)
   /* well the value must be either fixnum or bignum.
      To avoid overflow we use eqv-hash.
    */
-  return Sg_EqvHash(hash);
+  return Sg_EqvHash(hash, 0);
 }
 
 static int general_compare(const SgHashCore *table, intptr_t key, intptr_t k2)

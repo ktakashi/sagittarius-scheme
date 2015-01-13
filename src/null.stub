@@ -3437,7 +3437,8 @@
       (result (Sg_StringHash (Sg_StringFoldCase (Sg_MaybeSubstring o start end))
 			     modulo))))
 
-  (define-c-proc symbol-hash (o::<symbol>) ::<fixnum> :no-side-effect Sg_EqHash)
+  (define-c-proc symbol-hash (o::<symbol>) ::<fixnum> :no-side-effect
+    (result (Sg_EqHash o 0)))
 
   ;; 15 composit library
   ;; 16 eval

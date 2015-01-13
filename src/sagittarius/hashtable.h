@@ -135,9 +135,9 @@ SG_EXTERN void Sg_HashIterInit(SgHashCore *table,
 SG_EXTERN SgHashEntry* Sg_HashIterNext(SgHashIter *itr);
 
 /* hasher */
-SG_EXTERN uint32_t Sg_EqHash(SgObject obj);
-SG_EXTERN uint32_t Sg_EqvHash(SgObject obj);
-SG_EXTERN uint32_t Sg_EqualHash(SgObject obj);
+SG_EXTERN uint32_t Sg_EqHash(SgObject obj, uint32_t bound);
+SG_EXTERN uint32_t Sg_EqvHash(SgObject obj, uint32_t bound);
+SG_EXTERN uint32_t Sg_EqualHash(SgObject obj, uint32_t bound);
 SG_EXTERN uint32_t Sg_StringHash(SgString *str, uint32_t bound);
 
 SG_EXTERN SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize);

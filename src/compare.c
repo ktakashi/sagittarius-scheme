@@ -115,7 +115,14 @@ DEF_EQ_PROC(equal, Sg_EqualP)
   static SgObject SG_CPP_CAT(name, _hash_proc)				\
        (SgObject *args, int argc, void *data)				\
   {									\
-    return Sg_MakeIntegerU(proc(args[0]));				\
+    uint32_t bound = 0;							\
+    if (argc == 2) {							\
+      if (!SG_INTP(args[1])) {						\
+	Sg_Error(UC("bound must a fixnum: %S"), args[1]);		\
+      }									\
+      bound = SG_INT_VALUE(args[1]);					\
+    }									\
+    return Sg_MakeIntegerU(proc(args[0], bound));			\
   }									\
   static SG_DEFINE_SUBR(SG_CPP_CAT(name, _hash_proc_stub), 1, 0,	\
 			SG_CPP_CAT(name, _hash_proc), SG_FALSE, NULL);
