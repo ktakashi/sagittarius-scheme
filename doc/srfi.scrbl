@@ -75,6 +75,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{This SRFI is supported by builtin @code{cond}}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-64/srfi-64.html"]{SRFI-64}}
     @td{(srfi :64 testing)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-69/srfi-69.html"]{SRFI-69}}
+    @td{(srfi :69 basic-hash-tables)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-78/srfi-78.html"]{SRFI-78}}
     @td{(srfi :78 lightweight-testing)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
