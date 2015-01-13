@@ -326,7 +326,12 @@
     ((id-name :init-keyword :id-name)
      (library :init-keyword :library)) ;; name
     (make (value)
-      (unless (null? (id-envs value))
+      ;; FIXME this warning message is a bit oversight since 
+      ;;       identifiers are now compared by it's identity
+      (unless (or (null? (id-envs value))
+		  ;; FIXME comparing this is a bit too much depending on
+		  ;;       the structure of compiler environment.
+		  (equal? (id-envs value) '((4))))
 	(format (current-error-port) 
 		"*WARNING* identifier '~a' in ~a contains environment~%    \
                  assume the identifier can be resolved in the \
