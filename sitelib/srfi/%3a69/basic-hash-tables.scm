@@ -65,11 +65,11 @@
     (case-lambda
      ((eql? hash) (make-hashtable hash eql?))
      ((eql?)
-      (cond ((eq? eql? eq?)        (make-eq-hashtable))
-	    ((eq? eql? eqv?)       (make-eqv-hashtable))
-	    ((eq? eql? equal?)     (make-equal-hashtable))
-	    ((eq? eql? string=?)   (make-string-hashtable))
-	    ((eq? eql? string-ci?) (make-hashtable string-ci=? string-ci-hash))
+      (cond ((eq? eql? eq?)         (make-eq-hashtable))
+	    ((eq? eql? eqv?)        (make-eqv-hashtable))
+	    ((eq? eql? equal?)      (make-equal-hashtable))
+	    ((eq? eql? string=?)    (make-string-hashtable))
+	    ((eq? eql? string-ci=?) (make-hashtable string-ci=? string-ci-hash))
 	    (else
 	     (assertion-violation 'make-hash-table
 				  "unknown equivalent procedure" eql?))))

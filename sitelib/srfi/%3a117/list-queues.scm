@@ -85,7 +85,7 @@
 
   (define (raise-lqe-error who q)
     (raise (apply condition 
-		  (filter valies
+		  (filter values
 			  (list (and who (make-who-condition who))
 				(make-message-condition  "list-queue is empty")
 				(make-empty-list-queue-error)
