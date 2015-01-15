@@ -30,7 +30,7 @@ Copyright and condition of use of main portion of the source:
 
 -----------------------------------------------------------------------------
 
-Copy right of pass2, pass3 and pass4 at compiler.scm from Gauche ------------
+Copyright of pass2, pass3 and pass4 at compiler.scm from Gauche -------------
 
   Copyright (c) 2000-2014  Shiro Kawai  <shiro@acm.org>
 
@@ -63,7 +63,7 @@ Copy right of pass2, pass3 and pass4 at compiler.scm from Gauche ------------
 
 -----------------------------------------------------------------------------
 
-Copyright of pattern matching at macro.scm and core/record.scm --------------
+Copyright of pattern matching at macro.scm and (core record) ----------------
 
 Copyright (c) 2004-2009 Yoshikatsu Fujita. All rights reserved.
 Copyright (c) 2004-2009 LittleWing Company Limited. All rights reserved.
@@ -200,7 +200,7 @@ Copyright of SRFI-13 --------------------------------------------------------
 
 -----------------------------------------------------------------------------
 
-Copyright of binary/pack.scm ------------------------------------------------
+Copyright of (binary pack) --------------------------------------------------
 
 ;; Copyright © 2008, 2009, 2010, 2011 Göran Weinholt <goran@weinholt.se>
 
@@ -224,7 +224,7 @@ Copyright of binary/pack.scm ------------------------------------------------
 
 -----------------------------------------------------------------------------
 
-Copyright of binary/pack-aux.scm --------------------------------------------
+Copyright of (binary pack-aux) ----------------------------------------------
 
 ;; Copyright © 2008, 2009 Göran Weinholt <goran@weinholt.se>
 
@@ -248,7 +248,7 @@ Copyright of binary/pack-aux.scm --------------------------------------------
 
 -----------------------------------------------------------------------------
 
-Copyright of archive/core/tar.scm --------------------------------------------
+Copyright of (archive core tar) ---------------------------------------------
 
 ;; Copyright © 2010, 2012 Göran Weinholt <goran@weinholt.se>
 ;;
@@ -272,7 +272,7 @@ Copyright of archive/core/tar.scm --------------------------------------------
 
 -----------------------------------------------------------------------------
 
-Copyright of archive/core/zip.scm --------------------------------------------
+Copyright of (archive core zip) ---------------------------------------------
 
 ;; Copyright © 2009, 2010 Göran Weinholt <goran@weinholt.se>
 
@@ -296,7 +296,9 @@ Copyright of archive/core/zip.scm --------------------------------------------
 
 -----------------------------------------------------------------------------
 
-Copyright of sagittarius/cgen.scm and subdirectory files --------------------
+Copyright of (sagittarius cgen cise), (sagittarius cgen stub),  
+             (sagittarius cgen type) and (sagittarius cgen unit)
+-----------------------------------------------------------------------------
 
 ;;;   Copyright (c) 2004-2014  Shiro Kawai  <shiro@acm.org>
 ;;;
