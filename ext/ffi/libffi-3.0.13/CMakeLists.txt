@@ -64,9 +64,14 @@ TRY_COMPILE(libffi_cv_as_x86_pcrel
   ${CMAKE_BINARY_DIR} ${conftest_asm_file}
   CMAKE_FLAGS "-c"
   OUTPUT_VARIABLE output)
+# above complation always fail because of lack of main.
+# so just check the warning.
 if (${output} MATCHES "illegal|warning")
   set(libffi_cv_as_x86_pcrel "no")
+else()
+  set(libffi_cv_as_x86_pcrel "yes")
 endif()
+message(STATUS "Platform has x86 pcrel ... ${libffi_cv_as_x86_pcrel}")
 if (${libffi_cv_as_x86_pcrel} STREQUAL "yes")
   set(HAVE_AS_X86_PCREL 1)
 endif()
@@ -84,8 +89,15 @@ set(PACKAGE_TARNAME ${PACKAGE})
 set(PACKAGE_VERSION "3.0.13")
 set(PACKAGE_STRING "${PACKAGE} ${PACKAGE_VERSION}")
 set(VERSION "${PACKAGE_VERSION}")
-# long double? what's the hell is it!?
-set(HAVE_LONG_DOUBLE 0)
+
+CHECK_TYPE_SIZE("long double" SIZEOF_LONGDOUBLE)
+if (HAVE_SIZEOF_LONGDOUBLE)
+  message(STATUS "Platform has long double")
+  set(HAVE_LONG_DOUBLE 1)
+else()
+  message(STATUS "Platform does not have long double")
+  set(HAVE_LONG_DOUBLE 0)
+endif()
 
 set(arch ${SAGITTARIUS_PROCESSOR} CACHE STRING "system architecture")
 set(host ${CMAKE_SYSTEM_NAME} CACHE STRING "system name")
