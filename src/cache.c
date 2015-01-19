@@ -476,56 +476,54 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
   if (SG_FALSEP(value)) {
     Sg_HashTableSet(ctx->sharedObjects, obj, SG_TRUE, 0);
-    return cbs;
   } else if (SG_TRUEP(value)) {
+    /* it was there already so skip. */
     return cbs;
   } else {
     Sg_HashTableSet(ctx->sharedObjects, obj, SG_FALSE, 0);
-    if (SG_PAIRP(obj)) {
-      cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
-      obj = SG_CDR(obj);
-      goto loop;
-    } else if (SG_VECTORP(obj)) {
-      int i, size = SG_VECTOR_SIZE(obj);
-      for (i = 0; i < size; i++) {
-	cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
-      }
-    } else if (SG_CLOSUREP(obj)) {
-      if (SG_FALSEP(Sg_Assq(SG_CLOSURE(obj)->code, cbs))) {
-	cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
-	cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
-      } else {
-	return cbs;
-      }
-    } else if (SG_IDENTIFIERP(obj)) {
-      cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);
-      if (ctx->macroPhaseP) {
-	/* compiler now share the frame so we need to check each frame
-	   separately here.*/
-	cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-	cbs = write_cache_scan(SG_IDENTIFIER_IDENTITY(obj), cbs, ctx);	
-      }
-      if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
-	cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),
-			       cbs, ctx);
-      }
-    } else if (SG_GLOCP(obj)) {
-      cbs = write_cache_scan(SG_GLOC(obj)->name, cbs, ctx);
-    } else if (SG_LIBRARYP(obj)) {
-      cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
-    } else if (SG_MACROP(obj)) {
-      if (ctx->macroPhaseP) {
-	cbs = write_macro_scan(SG_MACRO(obj), cbs, ctx);
-      }
-      /* do nothing */
-    } else {
-      SgClass *klass = Sg_ClassOf(obj);
-      cbs = write_cache_scan(klass->name, cbs, ctx);
-      if (SG_PROCEDUREP(klass->cscanner)) {
-	cbs = Sg_Apply3(klass->cscanner, obj, cbs, ctx);
-      } else if (klass->cacheScanner) {
-	cbs = klass->cacheScanner(obj, cbs, (void *)ctx);
-      }
+  }
+  if (SG_PAIRP(obj)) {
+    cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
+    obj = SG_CDR(obj);
+    goto loop;
+  } else if (SG_VECTORP(obj)) {
+    int i, size = SG_VECTOR_SIZE(obj);
+    for (i = 0; i < size; i++) {
+      cbs = write_cache_scan(SG_VECTOR_ELEMENT(obj, i), cbs, ctx);
+    }
+  } else if (SG_CLOSUREP(obj)) {
+    if (SG_FALSEP(Sg_Assq(SG_CLOSURE(obj)->code, cbs))) {
+      cbs = Sg_Acons(SG_CLOSURE(obj)->code, SG_MAKE_INT(ctx->index), cbs);
+      cbs = write_cache_pass1(SG_CLOSURE(obj)->code, cbs, NULL, ctx);
+    }
+  } else if (SG_IDENTIFIERP(obj)) {
+    cbs = write_cache_scan(SG_IDENTIFIER_NAME(obj), cbs, ctx);
+    if (ctx->macroPhaseP) {
+      /* compiler now share the frame so we need to check each frame
+	 separately here.*/
+      cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
+      cbs = write_cache_scan(SG_IDENTIFIER_IDENTITY(obj), cbs, ctx);	
+    }
+    if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
+      cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),
+			     cbs, ctx);
+    }
+  } else if (SG_GLOCP(obj)) {
+    cbs = write_cache_scan(SG_GLOC(obj)->name, cbs, ctx);
+  } else if (SG_LIBRARYP(obj)) {
+    cbs = write_cache_scan(SG_LIBRARY_NAME(obj), cbs, ctx);
+  } else if (SG_MACROP(obj)) {
+    if (ctx->macroPhaseP) {
+      cbs = write_macro_scan(SG_MACRO(obj), cbs, ctx);
+    }
+    /* do nothing */
+  } else {
+    SgClass *klass = Sg_ClassOf(obj);
+    cbs = write_cache_scan(klass->name, cbs, ctx);
+    if (SG_PROCEDUREP(klass->cscanner)) {
+      cbs = Sg_Apply3(klass->cscanner, obj, cbs, ctx);
+    } else if (klass->cacheScanner) {
+      cbs = klass->cacheScanner(obj, cbs, (void *)ctx);
     }
   }
   return cbs;
