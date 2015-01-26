@@ -19,6 +19,7 @@
 	       ("more" . #(("more" . "stuff"))))
 	    (call-with-input-file synopsis-data
 	      (cut json-read <>)))
+
 (test-equal "synopsis (write)"
 	    "{\"some\": {\"partial\": [42]}, \
               \"other\": {\"partial\": \"a string\"}, \
@@ -105,5 +106,45 @@
 (test-surrogate "surrogate pairs(4)" "\x10fffd;" "\"\\udbff\\udffd\"")
 
 ;; TODO error test cases
+
+;; mode change
+(import (prefix (text json) text:)
+	(srfi :39 parameters))
+
+(parameterize ((text:*json-map-type* 'alist))
+  (define json-string "{\"some\": {\"partial\": [42]}, \
+                        \"other\": {\"partial\": \"a string\"}, \
+                        \"more\": {\"more\": \"stuff\"}}")
+  (test-equal "json Gauche compat (read)"
+	      '(("some"  . (("partial" . #(42))))
+		("other" . (("partial" . "a string")))
+		("more"  . (("more" . "stuff"))))
+	      (text:json-read (open-string-input-port json-string)))
+  (test-equal "json Gauche compat (write)"
+	      json-string
+	      (call-with-string-output-port
+	       (cut text:json-write '(("some"  . (("partial" . #(42))))
+				      ("other" . (("partial" . "a string")))
+				      ("more"  . (("more" . "stuff"))))
+		    <>)))
+
+  ;; (json) doesn't get affected
+  (test-equal "don't get affected (read)"
+	      '#(("some" . #(("partial" 42)))
+		 ("other" . #(("partial" . "a string")))
+		 ("more" . #(("more" . "stuff"))))
+	      (json-read (open-string-input-port json-string)))
+  (test-equal "don't get affected (write)"
+	    "{\"some\": {\"partial\": [42]}, \
+              \"other\": {\"partial\": \"a string\"}, \
+              \"more\": {\"more\": \"stuff\"}}"
+	    (call-with-string-output-port
+	     (cut json-write
+		  '#(("some" . #(("partial" 42)))
+		     ("other" . #(("partial" . "a string")))
+		     ("more" . #(("more" . "stuff"))))
+		  <>)))
+  )
+
 
 (test-end)

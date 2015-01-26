@@ -30,19 +30,31 @@
 
 (library (text json)
     (export json-write
-	    json-read)
+	    json-read
+	    
+	    *json-map-type*)
     (import (rnrs)
 	    (util hashtables)
 	    (text parse)
 	    (srfi :14 char-sets)
-	    ;; for digit-value
+	    (srfi :39 parameters)
+	    ;; for digit-value, reverse!
 	    (sagittarius))
+
+  (define *json-map-type* 
+    (make-parameter 'vector
+		    (lambda (x)
+		      (if (or (eq? x 'vector) (eq? x 'alist))
+			  x
+			  (error '*json-map-type* 
+				 "type must be 'vector or 'alist" x)))))
 
   ;; write
   (define json-write
     (case-lambda
      ((x) (json-write x (current-output-port)))
      ((x port)
+      (define type (*json-map-type*))
       (define (hashtable->vector ht)
 	(list->vector (hashtable->alist ht)))
       (define (write-ht vec port)
@@ -73,8 +85,14 @@
       (define (write-any x port)
 	(cond 
 	 ((hashtable? x) (write-ht (hashtable->vector x) port))
-	 ((vector? x) (write-ht x port))
-	 ((list? x) (write-array x port))
+	 ((vector? x) 
+	  (if (eq? type 'vector)
+	      (write-ht x port)
+	      (write-array (vector->list x) port)))
+	 ((list? x) 
+	  (if (eq? type 'vector)
+	      (write-array x port)
+	      (write-ht (list->vector x) port)))
 	 ((eq? x 'null) (display "null" port))
 	 ((symbol? x) (write (symbol->string x) port))
 	 ((or (string? x) (number? x)) (write x port))
@@ -255,5 +273,5 @@
   (define json-read
     (case-lambda
      (() (json-read (current-input-port)))
-     ((port) (read-any 'vector port))))
+     ((port) (read-any (*json-map-type*) port))))
 )

@@ -28,10 +28,24 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; TODO once we implemented swiching parser mode
-;; we need to make sure the json-read and/or json-write
-;; works as current behaviour even the configuration
-;; says different thing.
 (library (json)
-    (export :all)
-    (import (text json)))
+    (export json-read
+	    json-write)
+    (import (rnrs) (prefix (text json) json:) (srfi :39))
+
+  (define json-write
+    (case-lambda
+     ((x) (json-read (current-output-port)))
+     ((x port)
+      ;; keep backward compatibility
+      (parameterize ((json:*json-map-type* 'vector))
+	(json:json-write x port)))))
+  (define json-read
+    (case-lambda
+     (() (json-read (current-input-port)))
+     ((port)
+      ;; keep backward compatibility
+      (parameterize ((json:*json-map-type* 'vector))
+	(json:json-read port)))))
+
+  )
