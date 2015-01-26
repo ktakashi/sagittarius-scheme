@@ -19,7 +19,6 @@
 	       ("more" . #(("more" . "stuff"))))
 	    (call-with-input-file synopsis-data
 	      (cut json-read <>)))
-
 (test-equal "synopsis (write)"
 	    "{\"some\": {\"partial\": [42]}, \
               \"other\": {\"partial\": \"a string\"}, \
@@ -105,5 +104,6 @@
 (test-surrogate "surrogate pairs(3)" "\x1d11e;" "\"\\ud834\\udd1e\"")
 (test-surrogate "surrogate pairs(4)" "\x10fffd;" "\"\\udbff\\udffd\"")
 
+;; TODO error test cases
 
 (test-end)
