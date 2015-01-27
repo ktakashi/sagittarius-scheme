@@ -74,8 +74,8 @@
 	       (and (compare (car a) (car b))
 		    (compare (cdr a) (cdr b))))
 	      ((and (variable? a) (variable? b))
-	       (free-identifier=? (ensure-id a (current-macro-env))
-				  (ensure-id b (current-macro-env))))
+	       (let ((env (current-usage-env)))
+		 (free-identifier=? (ensure-id a env) (ensure-id b env))))
 	      (else (eq? a b))))
       (f expr rename compare))))
 

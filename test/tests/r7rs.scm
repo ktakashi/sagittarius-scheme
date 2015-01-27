@@ -13,9 +13,15 @@
 		       (define-syntax import (syntax-rules ()))
 		       (define-syntax foo
 			 (syntax-rules (import)
-			   ((_ import) 'ok)
-			   ((_ _) 'ng))))
+			   ((_ import) 'ng)
+			   ((_ _) 'ok))))
 		     )
 		   (environment '(sagittarius))))
+
+;; (lib) is there
+(import (lib))
+(test-equal "syntax-rules literal comparison" 'ok (foo import))
+(let ((r (foo import)))
+  (test-equal "syntax-rules literal comparison (symbol)" 'ok r))
 
 (test-end)
