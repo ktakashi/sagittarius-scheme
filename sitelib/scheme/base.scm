@@ -28,7 +28,7 @@
 
      gcd get-output-bytevector get-output-string guard
 
-     if import include include-ci inexact inexact? input-port-open? input-port?
+     if include include-ci inexact inexact? input-port-open? input-port?
      integer->char integer?
 
      lambda lcm length let let* let*-values let-syntax let-values
@@ -87,7 +87,7 @@
 	  (srfi :23)
 	  (srfi :39)
 	  (only (scheme private) define-values)
-	  ;; for undefined and square, read-line
+	  ;; for undefined, square and read-line
 	  (sagittarius))
 
   (define-syntax let-syntax
