@@ -1525,19 +1525,28 @@
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define (er-rename symid p1env dict)
+  (define (rename symid dict p1env)
+    (let ((id (make-identifier symid
+			       (p1env-frames p1env)
+			       (p1env-library p1env))))
+      (hashtable-set! dict symid id)
+      id))
   (unless (variable? symid)
     (scheme-error 
      'er-macro-transformer
      "rename procedure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
       (or (hashtable-ref dict symid #f)
-	  (let ((id (make-identifier symid
-				     (p1env-frames p1env)
-				     (p1env-library p1env))))
-	    (hashtable-set! dict symid id)
-	    id))
-      ;; should we copy?
-      symid))
+	  (rename symid dict p1env))
+      ;; preserve local variable, pattern variable and pending identifier
+      ;; the same as syntax-case
+      (or (and (not (pending-identifier? symid))
+	       ;; exported from (core syntax-case)
+	       (not (pattern-variable? symid))
+	       (not (identifier? (p1env-lookup p1env symid LEXICAL)))
+	       (or (hashtable-ref dict symid #f)
+		   (rename symid dict p1env)))
+	  symid)))
 
 ;; we need to export er-macro-transformer and er-rename
 (let ((lib (ensure-library-name :null)))
