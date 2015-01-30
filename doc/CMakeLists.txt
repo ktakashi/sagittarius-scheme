@@ -34,9 +34,10 @@ INSTALL(DIRECTORY ${PROJECT_BINARY_DIR}/doc/lib
 
 # it's a bit weird dependency but creates R7RS srfi files here as well
 # because it's the last dependency
-ADD_CUSTOM_TARGET(r7rs-srfi ALL
-  DEPENDS sagittarius
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-  -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
-  ${PROJECT_SOURCE_DIR}/script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+# disabled it for now. I don't see any reason to do this...
+# ADD_CUSTOM_TARGET(r7rs-srfi ALL
+#   DEPENDS sagittarius
+#   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+#   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
+#   ${PROJECT_SOURCE_DIR}/script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi
+#   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
