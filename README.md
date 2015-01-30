@@ -18,10 +18,7 @@ Sagittarius source code;
 
     % cmake .
     % make
-    % make doc
     % make install
-
-`make doc` is required to install Sagittarius.
 
 Following sections describes more details.
 
@@ -94,19 +91,12 @@ to re-run `cmake` command.
 
     % make
     % make test
-    % make doc
-
-The command `make doc` creates HTML documentation in the directory
-`doc/`.
 
 After a successful compilation (of both the binary targets and the
 documentation), it is possible to install Sagittarius to the default system
 location with the command:
 
     % make install
-
-Note: `make doc` command must be run before `make install` command, otherwise
-installation process will fail
 
 After installation, you might need to run `ldconfig` to run Sagittarius
 properly.
@@ -175,7 +165,6 @@ The final commands are almost the same as in Unix-like environments.
 
     % nmake
     % nmake test
-    % nmake doc
 
 After these commands, you move to the `win/` directory and double click
 the file `innosetup.iss`.  Go to [Build] - [Compile], then it will
