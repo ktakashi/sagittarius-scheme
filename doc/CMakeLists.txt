@@ -18,7 +18,7 @@ ADD_CUSTOM_TARGET(doc ALL
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
-ADD_CUSTOM_TARGET(online-doc ALL
+ADD_CUSTOM_TARGET(online-doc
   DEPENDS sagittarius--time
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
