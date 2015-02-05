@@ -92,8 +92,6 @@
 	(nsec (* (mod msec 1000) 1000000)))
     (values sec nsec)))
 
-(define (make-key time task) task)
-
 (define (make-timer :key (error-handler #f))
   (define (timer-start! t)
     (define (main-loop t)
@@ -119,10 +117,12 @@
 		      (if (timer-task-running? first)
 			  (let ((p (timer-task-period first)))
 			    (timer-task-running-set! first #f)
-			    (if (time? p)
-				(let ((next (add-duration next p)))
-				  (timer-task-next-set! first next)
-				  (heap-set! queue (make-key next first)first))
+			    (if (and (time? p)
+				     (or (positive? (time-nanosecond p))
+					 (positive? (time-second p))))
+				(let ((next2 (add-duration next p)))
+				  (timer-task-next-set! first next2)
+				  (heap-set! queue first first))
 				(hashtable-delete! (timer-active t)
 						   (timer-task-id first))))
 			  (hashtable-delete! (timer-active t)
@@ -184,7 +184,7 @@
 		     (else (millisecond->time-duration period))))
 	 (task (%make-timer-task id thunk first p)))
     (hashtable-set! (timer-active timer) id task)
-    (heap-set! (timer-queue timer) (make-key first task) task)
+    (heap-set! (timer-queue timer) task task)
     (condition-variable-broadcast! (timer-waiter timer))
     (mutex-unlock! (timer-lock timer))
     id))
@@ -206,12 +206,12 @@
 			  (else (millisecond->time-duration period))))
 	      (queue (timer-queue timer)))
 	  ;; should be able to delete here...
-	  (heap-delete! queue (make-key old task))
+	  (heap-delete! queue task)
 	  ;; update period
 	  (timer-task-period-set! task p)
 	  (timer-task-next-set! task next)
 	  ;; now reschedule it
-	  (heap-set! queue (make-key next task) task)
+	  (heap-set! queue task task)
 	  ;; let them know
 	  (condition-variable-broadcast! (timer-waiter timer))))
       (mutex-unlock! lock)))
@@ -225,8 +225,7 @@
 	    (else
 	     (if (timer-task-running? task)
 		 (timer-task-running-set! task #f)
-		 (heap-delete! (timer-queue timer) 
-			       (make-key (timer-task-next task) task)))
+		 (heap-delete! (timer-queue timer) task))
 	     (hashtable-delete! (timer-active timer) id)
 	     (condition-variable-broadcast! (timer-waiter timer))
 	     (mutex-unlock! lock)

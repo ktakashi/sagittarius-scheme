@@ -79,8 +79,10 @@
 			      (make-time time-duration 500000000 0))))
     ;; run at least 2 times
     (thread-sleep! 1)
-    (test-assert "timer-remove!" (timer-remove! timer id))
+    (timer-reschedule! timer id 300 (make-time time-duration 0 0))
     (test-assert "result" (>= (length ls) 2))
+    (thread-sleep! 0.5)
+    (test-assert "removed" (not (timer-exists? timer id)))
     (test-assert "timer-stop!" (timer-stop! timer))))
   
 
