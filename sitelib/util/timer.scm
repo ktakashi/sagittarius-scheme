@@ -92,9 +92,7 @@
 	(nsec (* (mod msec 1000) 1000000)))
     (values sec nsec)))
 
-(define (make-key time task) task
-  #;(cons time (timer-task-id task))
-  )
+(define (make-key time task) task)
 
 (define (make-timer :key (error-handler #f))
   (define (timer-start! t)
@@ -115,21 +113,16 @@
 		      ;; here is not locked
 		      (mutex-unlock! (timer-lock t))
 		      (guard (e (error-handler (error-handler e))
-				 (else (raise e)))
+				(else (raise e)))
 			 ((timer-task-thunk first)))
 		      (mutex-lock! (timer-lock t))
 		      (if (timer-task-running? first)
 			  (let ((p (timer-task-period first)))
 			    (timer-task-running-set! first #f)
-			    (if (> p 0)
-				(let-values (((sec nsec)
-					      (milliseconds->sec&nano p)))
-				  (let* ((d (make-time time-duration 
-						       nsec sec))
-					 (next (add-duration next d)))
-				    (timer-task-next-set! first next)
-				    (heap-set! queue (make-key next first)
-					       first)))
+			    (if (time? p)
+				(let ((next (add-duration next p)))
+				  (timer-task-next-set! first next)
+				  (heap-set! queue (make-key next first)first))
 				(hashtable-delete! (timer-active t)
 						   (timer-task-id first))))
 			  (hashtable-delete! (timer-active t)
@@ -159,13 +152,20 @@
 
 (define (check-positive who v msg)
   (when (negative? v) (error who msg v)))
+
+(define (millisecond->time-duration msec)
+  (let-values (((sec nsec) (milliseconds->sec&nano msec)))
+    (make-time time-duration nsec sec)))
 (define (current-time+millisecond msec)
   (let ((t (current-time)))
     (if (zero? msec)
 	t
-	(let-values (((sec nsec) (milliseconds->sec&nano msec)))
-	  (let ((d (make-time time-duration nsec sec)))
-	    (add-duration t d))))))
+	(add-duration t (millisecond->time-duration msec)))))
+
+(define (check-period who period)
+  (or (and (number? period) (check-positive who period "negative period"))
+      (and (time? period) (eq? (time-type period) time-duration))
+      (error who "positive or time-duration is required" period)))
 
 (define (timer-schedule! timer thunk first :optional (period 0))
   (define (allocate-timer-id timer)
@@ -174,12 +174,15 @@
       c))
   (define (check v msg) (check-positive 'timer-schedule! v msg))
   (unless (time? first) (check first "negative delay"))
-  (check period "negative period")
+  (check-period 'timer-schedule! period)
 
   (mutex-lock! (timer-lock timer))
   (let* ((id (allocate-timer-id timer))
 	 (first (if (time? first) first (current-time+millisecond first)))
-	 (task (%make-timer-task id thunk first period)))
+	 (p    (cond ((time? period) period)
+		     ((zero? period) period)
+		     (else (millisecond->time-duration period))))
+	 (task (%make-timer-task id thunk first p)))
     (hashtable-set! (timer-active timer) id task)
     (heap-set! (timer-queue timer) (make-key first task) task)
     (condition-variable-broadcast! (timer-waiter timer))
@@ -189,7 +192,8 @@
 (define (timer-reschedule! timer id first :optional (period 0))
   (define (check v msg) (check-positive 'timer-reschedule! v msg))
   (unless (time? first) (check first "negative delay"))
-  (check period "negative period")
+  (check-period 'timer-reschedule! period)
+
   (let ((lock (timer-lock timer)))
     (mutex-lock! lock)
     (let ((task (hashtable-ref (timer-active timer) id)))
@@ -197,11 +201,14 @@
       (when task
 	(let ((old (timer-task-next task))
 	      (next (if (time? first) first (current-time+millisecond first)))
+	      (p    (cond ((time? period) period)
+			  ((zero? period) period)
+			  (else (millisecond->time-duration period))))
 	      (queue (timer-queue timer)))
 	  ;; should be able to delete here...
 	  (heap-delete! queue (make-key old task))
 	  ;; update period
-	  (timer-task-period-set! task period)
+	  (timer-task-period-set! task p)
 	  (timer-task-next-set! task next)
 	  ;; now reschedule it
 	  (heap-set! queue (make-key next task) task)

@@ -50,7 +50,9 @@
   (test-error "timer-schedule! (negative first)" condition?
 	      (timer-schedule! timer (lambda () 1) -1))
   (test-error "timer-schedule! (negative period)" condition?
-	      (timer-schedule! timer (lambda () 1) 0 -1)))
+	      (timer-schedule! timer (lambda () 1) 0 -1))
+  (test-error "timer-schedule! (non number period)" condition?
+	      (timer-schedule! timer (lambda () 1) 0 'foo)))
 
 ;; reschedule
 
@@ -65,5 +67,21 @@
   ;; first one must be executed first so 2 1
   (test-equal "reschedule" '(2 1) a)
   )
+
+;; time-duration
+(let ((timer (make-timer)))
+  (timer-start! timer)
+  (let* ((ls '())
+	 (id (timer-schedule! timer 
+			      (lambda () (set! ls (cons 'a ls)))
+			      0
+			      ;; 500 ms (in nsec)
+			      (make-time time-duration 500000000 0))))
+    ;; run at least 2 times
+    (thread-sleep! 1)
+    (test-assert "timer-remove!" (timer-remove! timer id))
+    (test-assert "result" (>= (length ls) 2))
+    (test-assert "timer-stop!" (timer-stop! timer))))
+  
 
 (test-end)
