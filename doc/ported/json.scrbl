@@ -3,8 +3,10 @@
 @subsection[:tag "ported.json"]{(json) -- JSON parser library}
 
 @define[Library]{@name{(json)}}
-@desc{This library is ported from Chicken Scheme json module and provides
-JSON reader and writer.}
+@desc{This library is compatible with Chicken Scheme json module and provides
+JSON reader and writer. The library is a thin wrapper of 
+@secref["text.json"]{(text json)} library.
+}
 
 @define[Function]{@name{json-read} @args{:optional (port (current-input-port))}}
 @desc{Reads JSON from given @var{port} and returns representing S-expression.
@@ -17,7 +19,9 @@ JSON boolean <-> boolean
 JSON null    <-> symbol @code{null}
 }
 
-The procedure does not support @code{u} escape.
+Read and write procedure always use above conversion rules even if 
+@code{*json-map-type*} is set to @code{'alist}.
+
 }
 
 @define[Function]{@name{json-write}

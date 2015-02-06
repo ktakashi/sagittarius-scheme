@@ -41,6 +41,7 @@
 @include-section["utils/rpc.scrbl"]
 @include-section["utils/text/csv.scrbl"]
 @include-section["utils/text/html-lite.scrbl"]
+@include-section["utils/text/json.scrbl"]
 @include-section["utils/text/tree.scrbl"]
 @include-section["utils/timer.scrbl"]
 @include-section["utils/tlv.scrbl"]
