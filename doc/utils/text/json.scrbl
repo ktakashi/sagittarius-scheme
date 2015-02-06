@@ -6,7 +6,7 @@
 @desc{This library provides JSON parser and writer. 
 }
 
-@define[Parameter]@{@name{*json-map-type*}}
+@define[Parameter]{@name{*json-map-type*}}
 @desc{Controls mapping of JSON map and array. The value must be either
 @code{'vector} or @code{'alist}. The first one is compatible with Chicken
 Scheme's json module, the latter one is compatible with Gauche's 
