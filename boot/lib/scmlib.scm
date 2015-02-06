@@ -453,7 +453,7 @@
   (let* ((p-bound (expt 2 (- (* size 8) 1)))
          (n-bound (- (+ p-bound 1))))
     (if (< n-bound val p-bound)
-        (if (> val 0)
+        (if (>= val 0)
             (bytevector-uint-set! bv index val endien size)
             (bytevector-uint-set! bv index (+ val (expt 256 size)) endien size))
         (assertion-violation 'bytevector-sint-set!

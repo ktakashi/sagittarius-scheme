@@ -1666,4 +1666,9 @@
   (hashtable-set! ht 0 1)
   (test-assert "SEGV case" (hashtable-set! ht 0 1)))
 
+;; #97
+(test-equal "sint-list->bytevector (with 0)"
+	    #vu8(0)
+	    (sint-list->bytevector '(0) (endianness little) 1))
+
 (test-end)
