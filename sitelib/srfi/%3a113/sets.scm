@@ -762,7 +762,7 @@
     (apply bag-sum! (bag-copy bag1) bag2 bags))
 
   ;; bag-product
-  (define (bag-product! bag n)
+  (define (bag-product! n bag)
     (define (product! result sob n)
       (let ((rht (slot-ref result 'hashtable)))
 	(hashtable-for-each
@@ -773,8 +773,8 @@
     (unless (and (exact? n) (integer? n) (positive? n))
       (error 'bag-product! "non negative exact integer required" n))
     (product! bag bag n))
-  (define (bag-product bag n)
-    (bag-product! (bag-copy bag) n))
+  (define (bag-product n bag)
+    (bag-product! n (bag-copy bag)))
 
   ;; etc
   (define (bag-unique-size bag)
