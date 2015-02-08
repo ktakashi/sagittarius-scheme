@@ -339,6 +339,15 @@
 				(get-char in)
 				(let ((value 
 				       (if (memv (lookahead-char in) '(#\" #\'))
+					   ;; don't convert attr's entity
+					   ;; kinda nonsense
+					   (let* ((term (get-char in))
+						  (r (read-until
+						      (lambda (c) (eqv? term c))
+						      in)))
+					     (get-char in)
+					     r)
+					   #;
 					   (apply string-append
 						  (read-quoted in entities))
 					   (read-until
