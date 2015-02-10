@@ -94,7 +94,7 @@ index @code{0}. The comparison procedures are @code{<}, @code{>}, @code{<=}
 and @code{>=}, respectively.
 }
 
-@define[Function]{@name{bytevector->hex-string} @args{bv :key (upper? #t}}}
+@define[Function]{@name{bytevector->hex-string} @args{bv :key (upper? #t)}}
 @desc{Converts given bytevector @var{bv} to hex string.
 
 The keyword argument @var{upper?} is specified with true value, then the
@@ -114,4 +114,191 @@ Optional arguments @var{start} and @var{end} controls from and until where
 the procedure reverses the bytevector. @var{end} is exclusive.
 
 The @code{bytevector-reverse!} reverses destructively.
+}
+
+@subsubsection{SRFI-13 convension APIs}
+
+@sub*section{U8 sets}
+
+U8 set is a list of integers which range is in between @code{0 <= n <= 255}.
+This is useful to handle bytevectors as if they are ASCII strings.
+
+@define[Function]{@name{u8?} @args{o}}
+@desc{Returns #t if given @var{o} is an integer in range of 
+@code{0 <= @var{o} <= 255}, otherwise #f.}
+
+@define[Function]{@name{u8-set?} @args{o}}
+@desc{Returns #t if given @var{o} is a list and its all elements satisfy
+@code{u8?}. Otherwise #f.
+}
+
+@define[Function]{@name{u8-set-contains?} @args{u8-set u8}}
+@desc{@var{u8-set} must satisfy @code{u8-set?}. @var{u8} should satisfy
+@code{u8}. The procedure doesn't check if arguments satify this.
+
+Returns #t if given @var{u8-set} contains @var{u8}.
+}
+
+@define[Function]{@name{string->u8-set} @args{string}}
+@desc{Converts given @var{string} to list of integers. Given @var{string} should
+only contains in range of ASCII characters but the procedure doesn't check. 
+Thus the procedure may return a list doesn't satify @code{u8-set?}.
+It is users' responsibility to pass ASCII string.
+}
+
+@define[Function]{@name{char-set->u8-set} @args{cset}}
+@desc{Converts given char-set @var{cset} to u8 set. This procedure returns
+a list that satify @code{u8-set?} by dropping outside of ASCII characters.
+}
+
+@sub*section{Bytevectors as ASCII strings}
+
+@define[Function]{@name{bytevector-fold}
+ @args{kons knil bv :optional start end}}
+@define[Function]{@name{bytevector-fold-right}
+ @args{kons knil bv :optional start end}}
+@desc{Iterate given @var{bv} from @var{start} until @var{end}. @var{kons} is
+called by each element with result of the @var{kons}. The inital value is
+@var{knil}.
+
+This is analogy of @var{fold-left} and @var{fold-right}.
+}
+
+@define[Function]{@name{bytevector-take} @args{bv n}}
+@define[Function]{@name{bytevector-take-right} @args{bv n}}
+@desc{Subtract bytevector @var{bv} until index @var{n} (exclusive).
+
+The @code{bytevector-take} takes from left and the @code{bytevector-take-right}
+takes from right.
+}
+
+@define[Function]{@name{bytevector-drop} @args{bv n}}
+@define[Function]{@name{bytevector-drop-right} @args{bv n}}
+@desc{Drops given @var{bv} until index @var{n} (exclusive).
+
+The @code{bytevector-drop} drops from left and the @code{bytevector-drop-right}
+drops from right.
+}
+
+@define[Function]{@name{bytevector-trim}
+ @args{bv :optional criterion start end}}
+@define[Function]{@name{bytevector-trim-right}
+ @args{bv :optional criterion start end}}
+@define[Function]{@name{bytevector-trim-both}
+ @args{bv :optional criterion start end}}
+@desc{Trims given bytevector @var{bv} from left, right and both, respectively.
+
+The optional argument @var{criterion} specifies how to trim. By default, it
+uses whitespaces. @code{" \r\f\v\n\t"}.
+
+The optional arguments @var{start} and @var{end} specify from and until where
+the procedure trims. The default value is 0 for @var{start} and the length
+of given bytevector for @var{end}.
+}
+
+@define[Function]{@name{bytevector-pad} @args{bv n :optional (u8 0) start end}}
+@define[Function]{@name{bytevector-pad-right} 
+ @args{bv n :optional (u8 0) start end}}
+@desc{Pads given bytevector @var{bv} with @var{n} elements of @var{u8}.
+The @code{bytevector-pad} pads left side of given @var{bv}. The 
+@code{bytevector-pad-right} pads right side of given @var{bv}.
+
+The optional arguments @var{start} and @var{end} specify from and until where
+the procedure pads. The default value is 0 for @var{start} and the length
+of given bytevector for @var{end}.
+}
+
+@define[Function]{@name{bytevector-prefix-length}
+ @args{bv1 bv2 :optional start1 end1 start2 end2}}
+@define[Function]{@name{bytevector-suffix-length}
+ @args{bv1 bv2 :optional start1 end1 start2 end2}}
+@desc{Return the length of the longest common prefix/suffix of the two 
+bytevectors.
+
+The optional start/end indices restrict the comparison to the indicated 
+sub bytevectors of @var{bv1} and @var{bv2}.
+}
+
+@define[Function]{@name{bytevector-prefix?}
+ @args{bv1 bv2 :optional start1 end1 start2 end2}}
+@define[Function]{@name{bytevector-suffix?}
+ @args{bv1 bv2 :optional start1 end1 start2 end2}}
+@desc{Returns #t if @var{bv1} is a prefix/suffix of @var{bv2}. Otherwise #f. 
+
+The optional start/end indices restrict the comparison to the indicated 
+sub bytevectors of @var{bv1} and @var{bv2}.
+}
+
+@define[Function]{@name{bytevector-index}
+ @args{bv criterion :optional start end}}
+@define[Function]{@name{bytevector-index-right}
+ @args{bv criterion :optional start end}}
+@desc{Searches through the given bytevector @var{bv} from the left (right), 
+returning the index of the first occurrence of an element which satisfies
+the @var{criterion}.
+
+@var{criterion} can be a u8 value, a u8 set or a procedure.
+
+If the procedure doesn't find any element satisfies @var{criterion}, then
+returns #f.
+}
+
+@define[Function]{@name{bytevector-skip}
+ @args{bv criterion :optional start end}}
+@define[Function]{@name{bytevector-skip-right}
+ @args{bv criterion :optional start end}}
+@desc{Search through the given bytevector @var{bv} from the left (right), 
+returning the index of the first occurrence of an element which does not
+satisfy the @var{criterion}.
+
+@var{criterion} can be a u8 value, a u8 set or a procedure.
+
+If the procedure doesn't find any element which does not satisfy 
+@var{criterion}, then returns #f.
+}
+
+
+@define[Function]{@name{bytevector-contains}
+ @args{bv1 bv2 :optional start1 end1 start2 end2}}
+@desc{Returns index of @var{bv1} where @var{bv2} is found. If @var{bv1} doesn't
+contain @var{bv2} then returns #f.
+
+The optional start/end indices restrict the comparison to the indicated 
+sub bytevectors of @var{bv1} and @var{bv2}.
+}
+
+@define[Function]{@name{bytevector-replace}
+ @args{bv1 bv2 start1 end2 :optional start2 end2}}
+@desc{Returns
+@codeblock{
+(bytevector-append (bytevector-copy s1 0 start1)
+                   (bytevector-copy s2 start2 end2)
+                   (bytevector-copy s1 end1 (string-length s1)))
+}
+}
+
+@define[Function]{@name{bytevector-tokenize}
+ @args{bv :optional token-set start end}}
+@desc{Split the given bytevector @var{bv} into a list of sub bytevectors,
+where each sub bytevector is a maximal non-empty contigunous sequence of
+elements from the u8 set @var{token-set}.
+
+Optional argument @var{token-set} must be a u8 set. By default, it's a
+list of bytes of ASCII graphical characters.
+
+The optional start/end indices restrict the comparison to the indicated 
+sub bytevectors of @var{bv}.
+}
+
+@define[Function]{@name{bytevector-filter}
+ @args{criterion bv :optional start end}}
+@define[Function]{@name{bytevector-delete}
+ @args{criterion bv :optional start end}}
+@desc{Filter the bytevector @var{bv}, retaining only those elements that 
+satisfy / do not satisfy the @var{criterion} argument.
+
+@var{criterion} can be a u8 value, a u8 set or a procedure.
+
+The optional start/end indices restrict the comparison to the indicated 
+sub bytevectors of @var{bv}.
 }
