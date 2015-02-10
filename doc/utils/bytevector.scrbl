@@ -82,3 +82,36 @@ result of bytevector.
 
 If the second procedure is used, then @var{bv} will be modified.
 }
+
+@define[Function]{@name{bytevector<?} @args{bv1 bv2 rest @dots{}}}
+@define[Function]{@name{bytevector>?} @args{bv1 bv2 rest @dots{}}}
+@define[Function]{@name{bytevector<=?} @args{bv1 bv2 rest @dots{}}}
+@define[Function]{@name{bytevector>=?} @args{bv1 bv2 rest @dots{}}}
+@desc{Comparing given bytevectors.
+
+The comparison is done by comparing the elements of bytevectors from
+index @code{0}. The comparison procedures are @code{<}, @code{>}, @code{<=}
+and @code{>=}, respectively.
+}
+
+@define[Function]{@name{bytevector->hex-string} @args{bv :key (upper? #t}}}
+@desc{Converts given bytevector @var{bv} to hex string.
+
+The keyword argument @var{upper?} is specified with true value, then the
+procedures converts to upper case hex values, otherwise lower case.
+}
+
+@define[Function]{@name{hex-string->bytevector} @args{string}}
+@desc{Converts given hex string @var{string} to bytevector.}
+
+@define[Function]{@name{bytevector-reverse!}
+ @args{bv :optional (start 0) (end (bytevector-length bv))}}
+@define[Function]{@name{bytevector-reverse}
+ @args{bv :optional (start 0) (end (bytevector-length bv))}}
+@desc{Reverse the given bytevector @var{bv}.
+
+Optional arguments @var{start} and @var{end} controls from and until where
+the procedure reverses the bytevector. @var{end} is exclusive.
+
+The @code{bytevector-reverse!} reverses destructively.
+}
