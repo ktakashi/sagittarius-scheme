@@ -183,7 +183,6 @@
 		    (public-key? (keypair-public kp)))))
 
 ;; with padding
-
 (test-equal "encrypt/decript with padding"
 	    `(,encrypted-rsa-message-with-padding ,valid-rsa-message ,valid-rsa-message)
 	    (let ((rsa-encrypt-cipher (cipher RSA public-rsa-key :block-type PKCS-1-EMSA))
@@ -194,7 +193,6 @@
 		    (decrypt rsa-decrypt-crt-cipher encrypted-rsa-message-with-padding))))
 
 ;; without padding
-
 (test-equal "encrypt/decript without padding"
 	    `(,encrypted-rsa-message-without-padding ,valid-rsa-message ,valid-rsa-message)
 	    (let ((rsa-encrypt-cipher (cipher RSA public-rsa-key :padding #f))
@@ -407,6 +405,20 @@
       (test-equal "EC multiply P-192 (2)" r 
 		  (ec-point-add R (ec-point-mul T e)))))
   )
+
+;; call #98 restoring value properly
+(let ()
+  (define keypair (generate-key-pair RSA))
+  
+  (define msg #vu8(0 0 0 1))
+  ;; Bouncy Castle compatible behaviour...
+  (let ((enc-ci (cipher RSA (keypair-public keypair) :padding #f))
+	(dec-ci (cipher RSA (keypair-private keypair) :padding #f)))
+    (test-equal "restoring (fail)" #vu8(1) (decrypt dec-ci (encrypt enc-ci msg))))
+
+  (let ((enc-ci (cipher RSA (keypair-public keypair)))
+	(dec-ci (cipher RSA (keypair-private keypair))))
+    (test-equal "restoring (success)" msg (decrypt dec-ci (encrypt enc-ci msg)))))
 
 
 (test-end)

@@ -189,8 +189,8 @@
 	(let ((padder (if padding (padding prng key block-type) #f)))
 	  (slot-set! o 'name 'RSA)
 	  (slot-set! o 'key key)
-	  (slot-set! o 'encrypt rsa-encrypt)
-	  (slot-set! o 'decrypt rsa-decrypt)
+	  (slot-set! o 'encrypt (%rsa-encrypt padding))
+	  (slot-set! o 'decrypt (%rsa-decrypt padding))
 	  (slot-set! o 'padder padder)
 	  (slot-set! o 'signer rsa-sign)
 	  (slot-set! o 'verifier rsa-verify)
@@ -202,14 +202,14 @@
   (define (rsa-keysize keysize) *rsa-max-keysize*)
 
   ;; util
-  (define (rsa-mod-expt bv key . opt)
-    (let ((sign? (if (null? opt) #f (car opt)))
-	  (chunk (bytevector->integer bv)))
+  ;; FIXME this kinda sucks!
+  (define (rsa-mod-expt bv key padding?)
+    (let ((chunk (bytevector->integer bv)))
       (cond ((rsa-public-key? key)
 	     (let ((r (mod-expt chunk
 				(slot-ref key 'exponent)
 				(slot-ref key 'modulus))))
-	       (if sign?
+	       (if padding?
 		   (integer->bytevector r (bytevector-length bv))
 		   (integer->bytevector r))))
 	    ((rsa-private-crt-key? key)
@@ -224,14 +224,14 @@
 		      (b (mod-expt chunk dq q)) ; b ^ dQ mod q
 		      (c (mod (* (- a b) qp) p)) ; (a - b) * qp (mod p)
 		      (d (+ b (* q c))))	   ; b + q * c
-		 (if sign?
+		 (if padding?
 		     (integer->bytevector d (bytevector-length bv))
 		     (integer->bytevector d)))))
 	    ((rsa-private-key? key)
 	     (let* ((modulus (slot-ref key 'modulus))
 		    (private-exponent (slot-ref key 'private-exponent))
 		    (a (mod-expt chunk private-exponent modulus)))
-	       (if sign?
+	       (if padding?
 		   (integer->bytevector a (bytevector-length bv))
 		   (integer->bytevector a))))
 	    (else
@@ -240,26 +240,30 @@
 
   ;; encrypt/decrypt
   ;; This procedure must be called from C and bv may be padded there.
-  (define (rsa-encrypt bv key)
-    (let ((key-length (align-size (slot-ref key 'modulus)))
-	  (data-length (bytevector-length bv)))
-      ;; for consistancy with JCE
-      (when (> data-length key-length)
-	(raise-encrypt-error 'rsa-encrypt
-			     "too much data for RSA block"
-			     'RSA))
-      (rsa-mod-expt bv key)))
-    
-  (define (rsa-decrypt bv key)
-    (let ((key-length (align-size (slot-ref key 'modulus)))
-	  (data-length (bytevector-length bv)))
-      ;; for consistancy with JCE
-      (when (> data-length key-length)
-	(raise-encrypt-error 'rsa-encrypt
-			     "too much data for RSA block"
-			     'RSA))
-      (rsa-mod-expt bv key)))
-
+  (define (%rsa-encrypt padding?)
+    (lambda (bv key)
+      (let ((key-length (align-size (slot-ref key 'modulus)))
+	    (data-length (bytevector-length bv)))
+	;; for consistancy with JCE
+	(when (> data-length key-length)
+	  (raise-encrypt-error 'rsa-encrypt
+			       "too much data for RSA block"
+			       'RSA))
+	(rsa-mod-expt bv key padding?))))
+  ;; backward compatibility
+  (define rsa-encrypt (%rsa-encrypt #f))
+  
+  (define (%rsa-decrypt padding?)
+    (lambda (bv key)
+      (let ((key-length (align-size (slot-ref key 'modulus)))
+	    (data-length (bytevector-length bv)))
+	;; for consistancy with JCE
+	(when (> data-length key-length)
+	  (raise-encrypt-error 'rsa-encrypt
+			       "too much data for RSA block"
+			       'RSA))
+	(rsa-mod-expt bv key padding?))))
+  (define rsa-decrypt (%rsa-decrypt #f))
 
   (define (rsa-sign bv key :key (encode pkcs1-emsa-pss-encode)
 			   :allow-other-keys opt)
@@ -279,7 +283,7 @@
       ;; length check
       (unless (= k (bytevector-length S))
 	(raise-decrypt-error 'rsa-verify "invalid signature" 'RSA))
-      (let* ((EM (rsa-mod-expt S key))
+      (let* ((EM (rsa-mod-expt S key #f))
 	     (len (bitwise-length modulus))
 	     (k (align-size (bit len)))
 	     (em-len (bytevector-length EM)))
@@ -324,10 +328,10 @@
     (define (decode data modulus)
       (let ((modulus-length (align-size modulus))
 	    (message-length (bytevector-length data))
-	    (type (bytevector-u8-ref data 0)))
+	    (type (bytevector-u8-ref data 1)))
 	(unless (= type block-type)
 	  (raise-decode-error 'pkcs-v1.5-padding "invalid block type"))
-	(let ((from (do ((i 1 (+ i 1)))
+	(let ((from (do ((i 2 (+ i 1)))
 			((= (bytevector-u8-ref data i) 0) (+ i 1))
 		      (unless (or (= type PKCS-1-EME)
 				  (= (bytevector-u8-ref data i) #xff))
