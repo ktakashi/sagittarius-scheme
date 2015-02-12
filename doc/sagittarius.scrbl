@@ -714,4 +714,5 @@ The macro return the result of @var{expr}.}
 @include-section["sagittarius/record.scrbl"]
 @include-section["sagittarius/regex.scrbl"]
 @include-section["sagittarius/socket.scrbl"]
+@include-section["sagittarius/threads.scrbl"]
 @include-section["sagittarius/debug.scrbl"]
