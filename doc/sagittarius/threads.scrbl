@@ -82,4 +82,76 @@ by calling @code{thread-cont!}.
 
 @subsubsection{Mutex APIs}
 
+@define[Function]{@name{mutex?} @args{obj}}
+@desc{[SRFI-18] Returns #t if given @var{obj} is a mutex, otherwise #f.}
+
+@define[Function]{@name{make-mutex} @args{:optional name}}
+@desc{[SRFI-18] Returns a new mutex. 
+
+The optional argument @var{name} gives the mutex a name. If it's not specified,
+then the procedure makes an unique name.}
+
+@define[Function]{@name{mutex-name} @args{mutex}}
+@desc{[SRFI-18] Returns the name of given @var{mutex}.}
+
+@define[Function]{@name{mutex-specific} @args{mutex}}
+@desc{[SRFI-18] Returns the content of specific slot of given @var{mutex}.}
+
+@define[Function]{@name{mutex-specific-set!} @args{mutex obj}}
+@desc{[SRFI-18] Stores the @var{obj} to given @var{mutex}'s specific slot.}
+
+@define[Function]{@name{mutex-state} @args{mutex obj}}
+@desc{[SRFI-18] Returns the state of given @var{mutex}.}
+
+@define[Function]{@name{mutex-lock!} @args{mutex :optional timeout thread}}
+@desc{[SRFI-18] Locks the given @var{mutex}. If the @var{mutex} is currently
+locked, the current thread waits the @var{mutex} is unlocked or until the
+@var{timeout} is reached. If @var{timeout} is reached, the procedure returns
+#f.
+
+@; TBD thread argument description.
+}
+
+@define[Function]{@name{mutex-unlock!} @args{mutex :optional cv timeout}}
+@desc{[SRFI-18] Unlocks the given @var{mutex}. If condition variable @var{cv}
+is specified, the current thread is blocked and added to the @var{cv} before
+unlocking @var{mutex}, the thread can unblock at any time but no later than
+when an appropriate call to @code{condition-variable-signal!} or
+@code{condition-variable-broadcast!} is performed, and no later than the 
+@var{timeout}, if it's given.
+
+@; TBD better description.
+}
+
+@; TBD with-locking-mutex
+
 @subsubsection{Condition variable APIs}
+
+@define[Function]{@name{condition-variable?} @args{obj}}
+@desc{[SRFI-18] Returns #t if given @var{obj} is a condition variable,
+otherwise #f.}
+
+@define[Function]{@name{make-condition-variable} @args{:optional name}}
+@desc{[SRFI-18] Returns a new condition variable.
+
+The optional argument @var{name} gives the condition variable a name. If 
+it's not specified, then the procedure makes an unique name.}
+
+@define[Function]{@name{condition-variable-name} @args{cv}}
+@desc{[SRFI-18] Returns the name of given @var{cv}.}
+
+@define[Function]{@name{condition-variable-specific} @args{cv}}
+@desc{[SRFI-18] Returns the content of specific slot of given @var{cv}.}
+
+@define[Function]{@name{condition-variable-specific-set!} @args{cv obj}}
+@desc{[SRFI-18] Stores the @var{obj} to given @var{cv}'s specific slot.}
+
+@define[Function]{@name{condition-variable-signal} @args{cv}}
+@desc{[SRFI-18] If there are thread blocked on @var{cv}, the scheduler selects
+a thread and unblocks it.}
+
+@define[Function]{@name{condition-variable-broadcast!} @args{cv}}
+@desc{[SRFI-18] Unblocks all the threads blocked on the @var{cv}.}
+
+@; TBD sys-nanosleep
+@; TBD condition accessors.
