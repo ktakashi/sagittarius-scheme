@@ -8,6 +8,7 @@
 	    pkcs-v1.5-padding
 	    PKCS-1-EME
 	    PKCS-1-EMSA
+	    rsa-oaep-padding
 	    ;; encrypt/decrypt
 	    rsa-encrypt
 	    rsa-decrypt
@@ -29,6 +30,7 @@
 	    (asn.1 reader)
 	    (clos user)
 	    (srfi :1 lists)
+	    (util bytevector)
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius crypto))
@@ -295,10 +297,98 @@
 	(apply verify M EM (- len 1) opt))))
       
   ;; padding
+
+  ;; OAEP
+  ;; Reference: RFC3447
+  ;;  https://tools.ietf.org/html/rfc3447
+  ;; TODO separate encoder and decoder to (crypto pkcs)
+  ;; hasher must be given explicitly
+  (define (rsa-oaep-padding hasher :key (mgf mgf-1) (label #vu8()))
+    ;; ignore block-type
+    (let* ((algo (hash-algorithm hasher))
+	   (hlen (hash-size algo))
+	   (lhash (hash algo label)))
+      ;; TODO check label length against hash function input limitation.
+      (lambda (prng key block-type)
+	(define (encode data modulus)
+	  (define (fixup ps)
+	    ;; make sure it doesn't contain 01
+	    (define len (bytevector-length ps))
+	    (let loop ((i 0))
+	      (cond ((= i len) ps)
+		    ((= (bytevector-u8-ref ps i) #x01)
+		     (bytevector-u8-set! ps i 0)
+		     (loop (+ i 1)))
+		    (else (loop (+ i 1))))))
+	  (let* ((modulus-length (align-size modulus))
+		 (ps (fixup (read-random-bytes prng (- modulus-length
+						       (bytevector-length data)
+						       (* hlen 2)
+						       2))))
+		 (db (bytevector-append lhash ps #vu8(#x01) data))
+		 (seed (read-random-bytes prng hlen))
+		 (db-mask (mgf seed (- modulus-length hlen 1) algo))
+		 (masked-db (bytevector-xor db db-mask))
+		 (seed-mask (mgf masked-db hlen algo))
+		 (masked-seed (bytevector-xor seed seed-mask)))
+	    (bytevector-append #vu8(#x00) masked-seed masked-db)))
+	(define (decode data modulus)
+	  (define (parse-em data)
+	    (values (bytevector-u8-ref data 0)
+		    (bytevector-copy data 1 (+ hlen 1))
+		    ;; TODO length check
+		    (bytevector-copy data (+ hlen 1))))
+	  (define (parse-db db)
+	    (define (find-ps-end db)
+	      (let loop ((i hlen))
+		(if (= (bytevector-u8-ref db i) #x01)
+		    i
+		    (loop (+ i 1)))))
+	    (let ((ps-end (find-ps-end db)))
+	      (values (bytevector-copy db 0 hlen)
+		      (bytevector-copy db hlen ps-end)
+		      (bytevector-u8-ref db ps-end)
+		      (bytevector-copy db (+ ps-end 1)))))
+	  (let-values (((Y masked-seed masked-db) (parse-em data)))
+	    (let* ((seed-mask (mgf masked-db hlen algo))
+		   (seed (bytevector-xor masked-seed seed-mask))
+		   (modulus-length (align-size modulus))
+		   (db-mask (mgf seed (- modulus-length hlen 1) algo))
+		   (db (bytevector-xor masked-db db-mask)))
+	      (let-values (((lhash-dash ps one M) (parse-db db)))
+		(unless (and (bytevector=? lhash lhash-dash)
+			     (zero? Y)
+			     (= one #x01))
+		  (raise-decode-error 'rsa-oaep-padding "decryption error"))
+		M))))
+	(lambda (data pad?)
+	  (unless (or (rsa-public-key? key) (rsa-private-key? key))
+	    (raise-encode-error 'rsa-oaep-padding 
+				(if pad?
+				    "public key required" 
+				    "private key required")
+				key))
+	  (let ((modulus (slot-ref key 'modulus)))
+	    (define (input-blocksize)
+	      (let ((core-size (- (align-size (bit (bitwise-length modulus)))
+				  (if pad? 1 0))))
+		(if pad?
+		    (- core-size 1 (* hlen 2))
+		    core-size)))
+	    ;; input length check
+	    (when (> (bytevector-length data) (input-blocksize))
+	      (raise-encode-error 'rsa-oaep-padding
+				  "too much data for RSA block size"))
+
+	    (if pad?
+		(encode data modulus)
+		(decode data modulus)))))))
+
   ;; PKCS#1 EME
   (define-constant PKCS-1-EMSA 1)
   (define-constant PKCS-1-EME  2)
 
+  ;; TODO separate encoder and decoder to (crypto pkcs)
   (define (pkcs-v1.5-padding prng key block-type)
     (define (encode data modulus)
       (let ((modulus-length (align-size modulus))

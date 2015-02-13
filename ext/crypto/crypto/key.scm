@@ -22,6 +22,7 @@
 	    PKCS-1-EME
 	    PKCS-1-EMSA
 
+	    rsa-oaep-padding
 	    ;; DSA
 	    DSA
 	    generate-dsa-parameter
