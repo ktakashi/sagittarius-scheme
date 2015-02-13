@@ -61,12 +61,19 @@
     (make <pbe-secret-key> :password  password :hash (hash-algorithm SHA-1)
 	  :scheme DES3 :iv-size 8 :length 24
 	  :type PKCS12))
+  (define-method generate-secret-key ((marker <pbe-sha1-des3-3>)
+				      (password <bytevector>))
+    (generate-secret-key marker (utf8->string password)))
 
   (define-method generate-secret-key ((marker <pbe-sha1-rc2-40-3>)
 				      (password <string>))
     (make <pbe-secret-key> :password  password :hash (hash-algorithm SHA-1)
 	  :scheme RC2 :iv-size 8 :length 5
 	  :type PKCS12))
+  (define-method generate-secret-key ((marker <pbe-sha1-rc2-40-3>)
+				      (password <bytevector>))
+    (generate-secret-key marker (utf8->string password)))
+
 
   ;; PKCS#5 and PKCS#12 have defferent key derivation and iv generation
   ;; So we need to define these method

@@ -34,6 +34,7 @@
     (export load-keystore
 	    ;; read only accessors
 	    keystore-keys keystore-key-certificates
+	    keystore-get-key
 	    keystore-certificates)
     (import (rnrs)
 	    (clos user)
@@ -252,6 +253,15 @@
     ;; do nothing
     )
 
+  (define (keystore-get-key keystore name password)
+    (let ((keys (slot-ref keystore 'keys)))
+      (cond ((hashtable-ref keys name #f)
+	     => (lambda (key)
+		  (if (procedure? key)
+		      (key password)
+		      key)))
+	    (else #f))))
+
   (define (load-keystore in-file password
 			 :key (extra-data-handler default-extra-data-handler))
 
@@ -275,13 +285,14 @@
 	  (assertion-violation 'load-keystore "not supported"
 			       (slot-ref info 'id))))
 
-    (define (unwrap-key alg-id data password)
-      (let* ((plain-key (cipher-util alg-id password (slot-ref data 'string)
-				     decrypt))
-	     (asn.1-key
-	      (read-asn.1-object (open-bytevector-input-port plain-key)))
-	     (priv-key-info (make-private-key-info asn.1-key)))
-	(create-private-key-from-private-key-info priv-key-info)))
+    (define (unwrap-key alg-id data)
+      (lambda (password)
+	(let* ((plain-key (cipher-util alg-id password (slot-ref data 'string)
+				       decrypt))
+	       (asn.1-key
+		(read-asn.1-object (open-bytevector-input-port plain-key)))
+	       (priv-key-info (make-private-key-info asn.1-key)))
+	  (create-private-key-from-private-key-info priv-key-info))))
 
     (define (crypt-data alg-id password data)
       (cipher-util alg-id password data decrypt))
@@ -291,8 +302,7 @@
 			      (let ((e-in (make-encrypted-private-key-info 
 					   (slot-ref b 'value))))
 				(unwrap-key (slot-ref e-in 'id)
-					    (slot-ref e-in 'data)
-					    password))
+					    (slot-ref e-in 'data)))
 			      (create-private-key-from-private-key-info
 			       (make-private-key-info (slot-ref b 'value)))))
 	     (alias #f)
