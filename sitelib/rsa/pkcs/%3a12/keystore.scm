@@ -31,11 +31,15 @@
 ;; only the part I want, for now
 
 (library (rsa pkcs :12 keystore)
-    (export load-keystore
-	    ;; read only accessors
-	    keystore-keys keystore-key-certificates
-	    keystore-get-key
-	    keystore-certificates)
+    (export pkcs12-keystore? make-pkcs12-keystore
+	    load-pkcs12-keystore-file load-pkcs12-keystore
+	    ;; entry accessors
+	    pkcs12-keystore-get-key
+
+	    ;; read only accessors 
+	    ;; (for debugging use won't be documented)
+	    pkcs12-keystore-keys pkcs12-keystore-key-certificates
+	    pkcs12-keystore-certificates)
     (import (rnrs)
 	    (clos user)
 	    (rsa pkcs :12 cipher)
@@ -238,14 +242,16 @@
   (define-class <pkcs12-keystore> ()
     ((key-algorithm)
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
-		:reader keystore-keys)
+		:reader pkcs12-keystore-keys)
      (key-certs :init-form (make-string-hashtable)
-		:reader keystore-key-certificates)
+		:reader pkcs12-keystore-key-certificates)
      (cert-algorithm)
      (certs     :init-form (make-string-hashtable)
-		:reader keystore-certificates)
+		:reader pkcs12-keystore-certificates)
      (chain-certs)
      (local-ids :init-form (make-string-hashtable))))
+  (define (make-pkcs12-keystore) (make <pkcs12-keystore>))
+  (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
 
   (define *rsa-private-key-oid* "1.2.840.113549.1.1.1")
 
@@ -253,24 +259,25 @@
     ;; do nothing
     )
 
-  (define (keystore-get-key keystore name password)
+  (define (pkcs12-keystore-get-key keystore name)
     (let ((keys (slot-ref keystore 'keys)))
-      (cond ((hashtable-ref keys name #f)
-	     => (lambda (key)
-		  (if (procedure? key)
-		      (key password)
-		      key)))
+      (cond ((hashtable-ref keys name #f))
 	    (else #f))))
 
-  (define (load-keystore in-file password
-			 :key (extra-data-handler default-extra-data-handler))
+  (define (load-pkcs12-keystore-file in-file password . opt)
+    (call-with-input-file in-file
+      (lambda (in) (apply load-pkcs12-keystore in password opt))
+      :transcoder #f))
+
+  (define (load-pkcs12-keystore in password
+			:key (extra-data-handler default-extra-data-handler))
 
     (define (cipher-util alg-id password data processer)
       (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
 			    (else #f)))
 	    (pbe-params (make-pkcs12-pbe-params (slot-ref alg-id 'parameters))))
 	(unless alg-name
-	  (assertion-violation 'load-keystore
+	  (assertion-violation 'load-pkcs12-keystore
 			       "unknown algorithm identifier" alg-id))
 	(let* ((param (make-pbe-parameter 
 		       (pkcs12-pbe-params-get-iv pbe-params)
@@ -282,56 +289,68 @@
     (define (create-private-key-from-private-key-info info)
       (if (equal? (get-id (slot-ref info'id)) *rsa-private-key-oid*)
 	  (import-private-key RSA (slot-ref info 'private-key))
-	  (assertion-violation 'load-keystore "not supported"
+	  (assertion-violation 'load-pkcs12-keystore "not supported"
 			       (slot-ref info 'id))))
 
-    (define (unwrap-key alg-id data)
-      (lambda (password)
-	(let* ((plain-key (cipher-util alg-id password (slot-ref data 'string)
-				       decrypt))
-	       (asn.1-key
-		(read-asn.1-object (open-bytevector-input-port plain-key)))
-	       (priv-key-info (make-private-key-info asn.1-key)))
-	  (create-private-key-from-private-key-info priv-key-info))))
+    ;; Seems PKCS#12 uses the same password as store password.
+    ;; NB: at least bouncy castle does like that. so keep it simple.
+    (define (unwrap-key alg-id data password)
+      (let* ((plain-key (cipher-util alg-id password (slot-ref data 'string)
+				     decrypt))
+	     (asn.1-key
+	      (read-asn.1-object (open-bytevector-input-port plain-key)))
+	     (priv-key-info (make-private-key-info asn.1-key)))
+	(create-private-key-from-private-key-info priv-key-info)))
 
     (define (crypt-data alg-id password data)
       (cipher-util alg-id password data decrypt))
 
+    (define (process-attributes attributes)
+      (if attributes
+	  (let loop ((seqs (slot-ref attributes 'set))
+		     (local-id #f)
+		     (alias #f))
+	    (if (null? seqs)
+		(values local-id alias)
+		(let* ((seq (car seqs))
+		       (oid (asn.1-sequence-get seq 0))
+		       (attr-set (asn.1-sequence-get seq 1))
+		       (attr (if (> (asn.1-set-size attr-set) 0)
+				 (asn.1-set-get attr-set 0)
+				 #f)))
+		  ;; TODO existing check
+		  (loop (cdr seqs)
+			(or (and (equal? oid *pkcs-9-at-local-key-id*) attr)
+			    local-id)
+			(or (and (equal? oid *pkcs-9-at-friendly-name*)
+				 (asn.1-string->string attr))
+			    alias)))))
+	  (values #f #f)))
     (define (process-shrouded-key-bag b keystore unwrap?)
-      (let* ((private-key (if unwrap?
-			      (let ((e-in (make-encrypted-private-key-info 
-					   (slot-ref b 'value))))
-				(unwrap-key (slot-ref e-in 'id)
-					    (slot-ref e-in 'data)))
-			      (create-private-key-from-private-key-info
-			       (make-private-key-info (slot-ref b 'value)))))
-	     (alias #f)
-	     (local-id #f))
-	(dolist (seq (slot-ref (slot-ref b 'attributes) 'set))
-	  (let ((oid (asn.1-sequence-get seq 0))
-		(attr-set (asn.1-sequence-get seq 1))
-		(attr #f))
-	    (when (> (asn.1-set-size attr-set) 0)
-	      (set! attr (asn.1-set-get attr-set 0)))
-	    ;; TODO check existing
-	    (cond ((equal? oid *pkcs-9-at-friendly-name*)
-		   (set! alias (asn.1-string->string attr))
-		   (hashtable-set! (slot-ref keystore 'keys)
-				   alias
-				   private-key))
-		  ((equal? oid *pkcs-9-at-local-key-id*)
-		   (set! local-id attr)))))
-	(if local-id
-	    (let ((name (format "~X" (bytevector->integer
-				      (slot-ref local-id 'string)))))
-	      (if alias
-		  (hashtable-set! (slot-ref keystore 'keys) name
-				  private-key)
-		  (hashtable-set! (slot-ref keystore 'local-ids)
-				  alias 
-				  name)))
-	    (hashtable-set! (slot-ref keystore 'keys) "unmarkded"
-			    private-key))))
+      (let ((private-key (if unwrap?
+			     (let ((e-in (make-encrypted-private-key-info 
+					  (slot-ref b 'value))))
+			       (unwrap-key (slot-ref e-in 'id)
+					   (slot-ref e-in 'data)
+					   password))
+			     (create-private-key-from-private-key-info
+			      (make-private-key-info (slot-ref b 'value))))))
+	 (let-values (((local-id alias)
+		       (process-attributes (slot-ref b 'attributes))))
+	   (when alias
+	     (hashtable-set! (slot-ref keystore 'keys) alias
+			     private-key))
+	   (if local-id
+	       (let ((name (format "~X" (bytevector->integer
+					 (slot-ref local-id 'string)))))
+		 (if alias
+		     (hashtable-set! (slot-ref keystore 'local-ids)
+				     alias 
+				     name)
+		     (hashtable-set! (slot-ref keystore 'keys) name
+				     private-key)))
+	       (hashtable-set! (slot-ref keystore 'keys) "unmarkded"
+			       private-key)))))
 
     (define (process-data c keystore)
       (let* ((obj (read-asn.1-object 
@@ -342,14 +361,15 @@
 	  (if (= i size)
 	      (reverse! r)
 	      (let ((b (make-safe-bag (asn.1-sequence-get obj i))))
-	    (cond ((equal? (slot-ref b 'id) *pkcs-8-shrouded-key-bag*)
-		   (process-shrouded-key-bag b keystore #t)
-		   (loop (+ i 1) r))
-		  ((equal? (slot-ref b 'id) *pkcs-12-cert-bag*)
-		   (loop (+ i 1) (cons b r)))
-		  (else
-		   (extra-data-handler b)
-		   (loop (+ i 1) r))))))))
+		(cond ((equal? (slot-ref b 'id) *pkcs-8-shrouded-key-bag*)
+		       (process-shrouded-key-bag b keystore #t)
+		       (loop (+ i 1) r))
+		      ((equal? (slot-ref b 'id) *pkcs-12-cert-bag*)
+		       (loop (+ i 1) (cons b r)))
+		      (else
+		       ;; FIXME what should we do?
+		       (extra-data-handler b)
+		       (loop (+ i 1) r))))))))
 
     (define (process-encrypted-data c keystore)
       (let* ((d (make-encrypted-data (slot-ref c 'content)))
@@ -371,71 +391,62 @@
 		       (process-shrouded-key-bag b keystore #f)
 		       (loop (+ i 1) r))
 		      (else
+		       ;; FIXME what should we do?
 		       (extra-data-handler b)
 		       (loop (+ i 1) r))))))))
-
-    (call-with-input-file in-file
-      (lambda (in)
-	(let* ((r (read-asn.1-object in))
-	       (pkcs12 (make-pfx r))
-	       (info   (slot-ref pkcs12 'content-info))
-	       (keystore (make <pkcs12-keystore>))
-	       (chain '()))
-	  ;; first keys
-	  (when (equal? (slot-ref info 'content-type) *pkcs-7-data*)
-	    (let* ((auth-safe (make-authenticated-safe
-			       (read-asn.1-object
-				(open-bytevector-input-port
-				 (slot-ref (slot-ref info 'content) 'string)))))
-		   (ac (slot-ref auth-safe 'info)))
-	      (vector-for-each 
-	       (lambda (c)
-		 (cond ((equal? *pkcs-7-data*
-				(slot-ref c 'content-type))
-			(set! chain (append chain (process-data c keystore))))
-		       ((equal? *pkcs-7-encrypted-data*
-				(slot-ref c 'content-type))
-			(set! chain (append chain (process-encrypted-data
-						    c keystore))))
-		       (else
-			(extra-data-handler c))))
-	       ac)))
-	  ;; then certs
-	  (dolist (b chain)
-	    (let ((cb (make-cert-bag (slot-ref b 'value))))
-	      (unless (equal? (slot-ref cb 'id) *pkcs-9-x509-certificate*)
-		(assertion-violation 'load-keystore
-				     "Unsupported certificate type"
-				     (slot-ref cb 'id)))
-	      (let ((cert (make-x509-certificate (slot-ref (slot-ref cb 'value)
-							   'string)))
-		    (local-id #f)
-		    (alias #f))
-		(when (slot-ref b 'attributes)
-		  (dolist (seq (slot-ref (slot-ref b 'attributes) 'set))
-		    (let ((oid (asn.1-sequence-get seq 0))
-			  (attr-set (asn.1-sequence-get seq 1))
-			  (attr #f))
-		      (when (> (asn.1-set-size attr-set) 0)
-			(set! attr (asn.1-set-get attr-set 0)))
-		      ;; TODO check existing
-		      (cond ((equal? oid *pkcs-9-at-friendly-name*)
-			     (set! alias (asn.1-string->string attr)))
-			    ((equal? oid *pkcs-9-at-local-key-id*)
-			     (set! local-id attr)))))
-		  ;; TODO cert-id
-		  #;(hashtable-set! (slot-ref keystore 'chain-certs)
-		  (make-cert-id
-		  (x509-certificate-get-public-key cert))
-		  cert)
-		  ;; TODO unmarked key
-		  (when local-id
-		    (let ((name (format "~X" (slot-ref local-id 'string))))
-		      (hashtable-set! (slot-ref keystore 'key-certs)
-				      name cert)))
-		  (when alias
-		    (hashtable-set! (slot-ref keystore 'certs)
-				    alias cert))))))
-	  keystore))
-      :transcoder #f))
+    (define (process-keys keystore info)
+      (if (equal? (slot-ref info 'content-type) *pkcs-7-data*)
+	  (let* ((auth-safe (make-authenticated-safe
+			     (read-asn.1-object
+			      (open-bytevector-input-port
+			       (slot-ref (slot-ref info 'content) 'string)))))
+		 (ac (slot-ref auth-safe 'info))
+		 (len (vector-length ac)))
+	    (let loop ((i 0) (chain '()))
+	      (if (= i len)
+		  chain
+		  (let ((c (vector-ref ac i)))
+		    (cond ((equal? *pkcs-7-data* (slot-ref c 'content-type))
+			   (loop (+ i 1) 
+				 (append! chain (process-data c keystore))))
+			  ((equal? *pkcs-7-encrypted-data* 
+				   (slot-ref c 'content-type))
+			   (loop (+ i 1)
+				 (append! chain 
+					  (process-encrypted-data c keystore)
+					  )))
+			  (else 
+			   ;; FIXME what should we do?
+			   (extra-data-handler c)
+			   (loop (+ i 1) chain)))))))
+	  '()))
+    (let* ((r (read-asn.1-object in))
+	   (pkcs12 (make-pfx r))
+	   (info   (slot-ref pkcs12 'content-info))
+	   (keystore (make-pkcs12-keystore))
+	   ;; first keys
+	   (chain (process-keys keystore info)))
+      ;; then certs
+      (dolist (b chain)
+	(let ((cb (make-cert-bag (slot-ref b 'value))))
+	  (unless (equal? (slot-ref cb 'id) *pkcs-9-x509-certificate*)
+	    (assertion-violation 'load-pkcs12-keystore
+				 "Unsupported certificate type"
+				 (slot-ref cb 'id)))
+	  (let ((cert (make-x509-certificate 
+		       (slot-ref (slot-ref cb 'value) 'string))))
+	    (let-values (((local-id alias) (process-attributes 
+					    (slot-ref b 'attributes))))
+	      ;; TODO cert-id
+	      #;(hashtable-set! (slot-ref keystore 'chain-certs)
+	      (make-cert-id
+	      (x509-certificate-get-public-key cert))
+	      cert)
+	      ;; TODO unmarked key
+	      (when local-id
+		(let ((name (format "~X" (slot-ref local-id 'string))))
+		  (hashtable-set! (slot-ref keystore 'key-certs) name cert)))
+	      (when alias
+		(hashtable-set! (slot-ref keystore 'certs) alias cert))))))
+      keystore))
 )
