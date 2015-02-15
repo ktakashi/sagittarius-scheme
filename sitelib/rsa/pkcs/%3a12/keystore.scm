@@ -36,13 +36,16 @@
 	    ;; entry accessors
 	    pkcs12-keystore-get-key
 	    pkcs12-keystore-get-certificate
+	    ;; do we want a procedure to get certificate chain?
 
 	    ;; store
 	    store-pkcs12-keystore
 	    store-pkcs12-keystore-to-file
-	    ;; TODO support
-	    ;; pkcs12-keystore-set-key!
-	    ;; pkcs12-keystore-set-certificate!
+	    
+	    pkcs12-keystore-set-key!
+	    pkcs12-keystore-set-certificate!
+
+	    pkcs12-keystore-delete-entry!
 
 	    ;; read only accessors 
 	    ;; (for debugging use won't be documented)
@@ -614,36 +617,38 @@
       (hashtable-ref (slot-ref keystore 'bag-attributes) obj #f))
 	    
     (define (process-key-bag-attribute keystore obj bag-attr name)
-      (let ((nm (hashtable-ref bag-attr *pkcs-9-at-friendly-name* #f))
-	    (sets (make-der-set)))
-	(unless (and nm (equal? (asn.1-string->string nm) name))
-	  (hashtable-set! bag-attr *pkcs-9-at-friendly-name* 
-			  (make-der-bmp-string name)))
-	(unless (hashtable-ref bag-attr *pkcs-9-at-local-key-id* #f)
-	  (let ((ct (if (x509-certificate? obj) ;; other certificate?
-			obj
-			(pkcs12-keystore-get-certificate keystore name))))
-	    (hashtable-set! bag-attr *pkcs-9-at-local-key-id*
-			    (create-subject-key-id 
-			     (x509-certificate-get-public-key ct)))))
-	(hashtable-for-each
-	 (lambda (oid value)
-	   (asn.1-set-add sets (make-der-sequence oid (make-der-set value))))
-	 bag-attr)
+      (let ((sets (make-der-set)))
+	(when bag-attr
+	  (let ((nm (hashtable-ref bag-attr *pkcs-9-at-friendly-name* #f)))
+	    (unless (and nm (equal? (asn.1-string->string nm) name))
+	      (hashtable-set! bag-attr *pkcs-9-at-friendly-name* 
+			      (make-der-bmp-string name)))
+	    (unless (hashtable-ref bag-attr *pkcs-9-at-local-key-id* #f)
+	      (let ((ct (if (x509-certificate? obj) ;; other certificate?
+			    obj
+			    (pkcs12-keystore-get-certificate keystore name))))
+		(hashtable-set! bag-attr *pkcs-9-at-local-key-id*
+				(create-subject-key-id 
+				 (x509-certificate-get-public-key ct)))))
+	    (hashtable-for-each
+	     (lambda (oid value)
+	       (asn.1-set-add sets 
+			      (make-der-sequence oid (make-der-set value))))
+	     bag-attr)))
 	(when (zero? (asn.1-set-size sets))
 	  (let ((ct (if (x509-certificate? obj) ;; other certificate?
 			obj
 			(pkcs12-keystore-get-certificate keystore name))))
-	    (asn.1-sequence-add sets
-				(make-der-sequence
-				 *pkcs-9-at-local-key-id*
-				 (make-der-set 
-				  (create-subject-key-id 
-				   (x509-certificate-get-public-key ct)))))
-	    (asn.1-sequence-add sets
-				(make-der-sequence
-				 *pkcs-9-at-friendly-name*
-				 (make-der-set (make-der-bmp-string name))))))
+	    (asn.1-set-add sets
+	      (make-der-sequence
+	       *pkcs-9-at-local-key-id*
+	       (make-der-set 
+		(create-subject-key-id 
+		 (x509-certificate-get-public-key ct)))))
+	    (asn.1-set-add sets
+	      (make-der-sequence
+	       *pkcs-9-at-friendly-name*
+	       (make-der-set (make-der-bmp-string name))))))
 	sets))
 	    
     (define (process-keys keys)
@@ -708,25 +713,27 @@
 	       (hashtable-set! done-certs cert cert))))
 	 keys))
       (define (process-cert-bag-attributes bag-attr name handle-empty?)
-	(let ((nm (hashtable-ref bag-attr *pkcs-9-at-friendly-name* #f))
-	      (sets (make-der-set)))
-	  (unless (and nm (equal? (asn.1-string->string nm) name))
-	    (hashtable-set! bag-attr *pkcs-9-at-friendly-name* 
-			    (make-der-bmp-string name)))
-	  (hashtable-for-each
-	   (lambda (oid value)
-	     ;; comment from Bouncy Castle
-	     ;; a certificate not immediately linked to a key doesn't require
-	     ;; a local-key-id and will confuse some PKCS12 implementations
-	     (unless (equal? oid *pkcs-9-at-local-key-id*)
-	       (asn.1-set-add sets 
-			      (make-der-sequence oid (make-der-set value)))))
-	   bag-attr)
+	(let ((sets (make-der-set)))
+	  (when bag-attr
+	    (let ((nm (hashtable-ref bag-attr *pkcs-9-at-friendly-name* #f)))
+	      (unless (and nm (equal? (asn.1-string->string nm) name))
+		(hashtable-set! bag-attr *pkcs-9-at-friendly-name* 
+				(make-der-bmp-string name)))
+	      (hashtable-for-each
+	       (lambda (oid value)
+		 ;; comment from Bouncy Castle
+		 ;; a certificate not immediately linked to a key doesn't
+		 ;; require a local-key-id and will confuse some PKCS12 
+		 ;; implementations
+		 (unless (equal? oid *pkcs-9-at-local-key-id*)
+		   (asn.1-set-add sets 
+		     (make-der-sequence oid (make-der-set value)))))
+	       bag-attr)))
 	  (when (and handle-empty? (zero? (asn.1-set-size sets)))
-	    (asn.1-sequence-add sets
-				(make-der-sequence
-				 *pkcs-9-at-friendly-name*
-				 (make-der-set (make-der-bmp-string name)))))
+	    (asn.1-set-add sets
+	      (make-der-sequence
+	       *pkcs-9-at-friendly-name*
+	       (make-der-set (make-der-bmp-string name)))))
 	  sets))
       (define (process-certificates keys certs)
 	(hashtable-for-each
@@ -738,7 +745,7 @@
 			       (make-der-octet-string 
 				(x509-certificate->bytevector cert))))
 		    (bag-attr (bag-attributes keystore cert))
-		    (names (process-cert-bag-attributes bag-attr cert-id #f)))
+		    (names (process-cert-bag-attributes bag-attr cert-id #t)))
 	       (let ((bag (make-safe-bag 
 			   *pkcs-12-cert-bag*
 			   (asn.1-encodable->asn.1-object cert-bag)
@@ -757,7 +764,7 @@
 			       (make-der-octet-string 
 				(x509-certificate->bytevector cert))))
 		    (bag-attr (bag-attributes keystore cert))
-		    (names (process-bag-attributes bag-attr cert #f)))
+		    (names (process-cert-bag-attributes bag-attr cert #f)))
 	       (let ((bag (make-safe-bag 
 			   *pkcs-12-cert-bag*
 			   (asn.1-encodable->asn.1-object cert-bag)
@@ -808,4 +815,60 @@
       (lambda (out)
 	(store-pkcs12-keystore keystore out password))
       :transcoder #f))
+
+  (define (pkcs12-keystore-set-certificate! keystore alias cert)
+    (unless (x509-certificate? cert)
+      (assertion-violation 'pkcs12-keystore-set-certificate!
+			   "X509 certificate is required" cert))
+    (when (hashtable-contains? (slot-ref keystore 'keys) alias)
+      (error 'pkcs12-keystore-set-certificate!
+	     "There is a key entry with the same name" alias))
+    (hashtable-set! (slot-ref keystore 'certs) alias cert)
+    (hashtable-set! (slot-ref keystore 'chain-certs) 
+		    (make-cert-id (x509-certificate-get-public-key cert))
+		    cert))
+
+  (define (pkcs12-keystore-delete-entry! keystore alias)
+    (let* ((keys (slot-ref keystore 'keys))
+	   (certs (slot-ref keystore 'certs))
+	   (chain-certs (slot-ref keystore 'chain-certs))
+	   (key (hashtable-ref keys alias #f))
+	   (c   (hashtable-ref certs alias #f)))
+      (hashtable-delete! keys alias)
+      (hashtable-delete! certs alias)
+      (when c (hashtable-delete! chain-certs
+				 (make-cert-id
+				  (x509-certificate-get-public-key c))))
+      (when key
+	(let* ((local-ids (slot-ref keystore 'local-ids))
+	       (key-certs (slot-ref keystore 'key-certs))
+	       (id (hashtable-ref local-ids alias #f))
+	       (c  (and id (hashtable-ref key-certs id #f))))
+	  (hashtable-delete! local-ids alias)
+	  (when id (hashtable-delete! key-certs id))
+	  (when c 
+	    (hashtable-delete! chain-certs
+			       (make-cert-id
+				(x509-certificate-get-public-key c))))))))
+
+  (define (pkcs12-keystore-set-key! keystore alias key certs)
+    (unless (private-key? key)
+      (assertion-violation 'pkcs12-keystore-set-key!
+			   "Private key is required" key))
+    (when (and (private-key? key) (or (null? certs) (not certs)))
+      (assertion-violation 'pkcs12-keystore-set-key!
+			   "no certificate chain for private key" key certs))
+    (let ((keys (slot-ref keystore 'keys))
+	  (chain (slot-ref keystore 'chain-certs)))
+      (when (hashtable-contains? keys alias)
+	(pkcs12-keystore-delete-entry! keystore alias))
+      (hashtable-set! keys alias key)
+      (hashtable-set! (slot-ref keystore 'certs) alias (car certs))
+      (for-each (lambda (cert)
+		  (hashtable-set! chain
+		    (make-cert-id (x509-certificate-get-public-key cert))
+		    cert))
+		certs)))
+			  
+
 )
