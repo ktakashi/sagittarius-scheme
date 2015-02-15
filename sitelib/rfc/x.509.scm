@@ -47,7 +47,18 @@
 	    ;; certificate generation
 	    make-x509-issuer
 	    make-validity
-	    make-x509-basic-certificate)
+	    make-x509-basic-certificate
+
+	    ;; etc
+	    make-subject-public-key-info
+	    subject-public-key-info-key-data
+
+	    make-subject-key-identifier
+
+	    <algorithm-identifier>
+	    make-algorithm-identifier
+	    algorithm-identifier-id
+	    )
     (import (rnrs)
 	    (rnrs mutable-strings)
 	    (clos user)
@@ -150,6 +161,7 @@
     ((object-id  :init-keyword :object-id)
      (parameters :init-keyword :parameters :init-value #f)
      (parameters-defined? :init-keyword :defined? :init-value #f)))
+  (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
   (define-method make-algorithm-identifier ((o <der-object-identifier>))
     (make <algorithm-identifier> :object-id o))
   (define-method make-algorithm-identifier ((s <asn.1-sequence>))
@@ -164,8 +176,24 @@
 	    :defined? #t)
 	  (make <algorithm-identifier>
 	    :object-id (asn.1-sequence-get s 0)))))
-  (define-method get-id ((id <algorithm-identifier>))
-    (~ id 'object-id 'identifier))
+  (define-method make-algorithm-identifier ((oid <string>)
+					    (param <asn.1-encodable>))
+    (make <algorithm-identifier> 
+      :object-id (make-der-object-identifier oid)
+      :parameters param
+      :defined? #t))
+  (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
+    (make-der-sequence (slot-ref o 'object-id)
+		       (if (slot-ref o 'parameters-defined?)
+			   (slot-ref o 'parameters)
+			   (make-der-null))))
+
+  (define-method write-object ((o <algorithm-identifier>) (p <port>))
+    (format p "#<algorithm-identifier ~a~%~a>" (algorithm-identifier-id o)
+	    (slot-ref o 'parameters)))
+
+  (define (algorithm-identifier-id id) (~ id 'object-id 'identifier))
+
   (define-method der-encode ((id <algorithm-identifier>) out)
     (if (~ id 'parameters-defined?)
 	(der-encode (make-der-sequence (~ id 'object-id) 
@@ -221,15 +249,27 @@
     (and-let* ((ext (assoc oid (~ o 'extensions))))
       (cdr ext)))
 
-
   (define-class <subject-public-key-info> (<asn.1-encodable>)
     ((algorithm-identifier :init-keyword :algorithm-identifier)
      (key-data :init-keyword :key-data)))
   (define-method make-subject-public-key-info ((s <asn.1-sequence>))
     ;; TODO check length
-    (make <subject-public-key-info>
-      :algorithm-identifier (make-algorithm-identifier (asn.1-sequence-get s 0))
-      :key-data (asn.1-sequence-get s 1)))
+    (let ((id (asn.1-sequence-get s 0)))
+      (make <subject-public-key-info>
+	:algorithm-identifier (if (algorithm-identifier? id)
+				  id
+				  (make-algorithm-identifier id))
+	:key-data (asn.1-sequence-get s 1))))
+  (define (subject-public-key-info-key-data o) (~ o 'key-data))
+
+  (define-class <subject-key-identifier> (<asn.1-encodable>)
+    ((key-identifier :init-keyword :key-identifier)))
+  (define-method make-subject-key-identifier ((keyid <bytevector>))
+    (make <subject-key-identifier> :key-identifier keyid))
+  (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>))
+    (make-der-octet-string (~ o 'key-identifier)))
+  (define-method der-encode ((o <subject-key-identifier>) out)
+    (der-encode (asn.1-encodable->asn.1-object o) out))
 
   (define-class <tbs-certificate-structure> (<asn.1-encodable>)
     ((sequence      :init-keyword :sequence) ;; original asn.1 object

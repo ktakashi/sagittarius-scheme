@@ -111,7 +111,7 @@
 				(slot-ref obj 'octs))
 			       (else
 				(let ((bco (make-ber-constructed-octet-string
-					    (slot-ref obj 'octets))))
+					    (slot-ref obj 'string))))
 				  (slot-ref bco 'octs)))))
 			((is-a? obj <asn.1-sequence>) (slot-ref obj 'sequence))
 			((is-a? obj <asn.1-set>) (slot-ref obj 'set))

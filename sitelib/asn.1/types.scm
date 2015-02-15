@@ -96,6 +96,7 @@
 
 	    ;;
 	    asn.1-object?
+	    asn.1-encodable?
 
 	    ;; methods
 	    der-encodable->der-object
@@ -153,6 +154,7 @@
      "subclass must implement der-encodable->der-object method" o))
 
   (define-class <asn.1-encodable> (<der-encodable>) ())
+  (define (asn.1-encodable? o) (is-a? o <asn.1-encodable>))
   (define-method asn.1-encodable->asn.1-object ((o <asn.1-encodable>))
     (assertion-violation 
      'asn.1-encodable->asn.1-object
@@ -172,7 +174,12 @@
   ;; DERObject (abstract)
   (define-class <der-object> (<asn.1-encodable>) ())
   (define-method asn.1-encodable->asn.1-object ((o <der-object>)) o)
-  (define-method der-encode ((o <der-object>) (p <port>))
+  (define-method der-encode ((o <asn.1-encodable>) out)
+    (der-encode (asn.1-encodable->asn.1-object o) out))
+  (define-method der-encode ((o <der-object>) p)
+    ;; TODO could this be infinite loop?
+    (der-encode (der-encodable->der-object o) p)
+    #;
     (assertion-violation 'der-encode
 			 "subclass must implement der-encode method" o))
 
