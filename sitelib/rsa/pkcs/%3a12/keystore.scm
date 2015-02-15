@@ -86,7 +86,8 @@
 				    (content <asn.1-encodable>))
     (make <content-info> :content-type type :content content))
   (define-method asn.1-encodable->asn.1-object ((o <content-info>))
-    (make-ber-sequence (slot-ref o 'content-type) (slot-ref o 'content)))
+    (make-ber-sequence (slot-ref o 'content-type) 
+		       (make-ber-tagged-object #t 0 (slot-ref o 'content))))
 
   (define-class <digest-info> (<asn.1-encodable>)
     ((digest :init-keyword :digest)
@@ -153,7 +154,9 @@
 			     "wrong version of for PFX PDU"))
       (make <pfx>
 	:content-info (make-content-info (asn.1-sequence-get seq 1))
-	:mac-data (make-mac-data (asn.1-sequence-get seq 2)))))
+	:mac-data (if (= (asn.1-sequence-size seq) 3)
+		      (make-mac-data (asn.1-sequence-get seq 2))
+		      #f))))
   (define-method make-pfx ((mi <content-info>)
 			   (md <mac-data>))
     (make <pfx> :content-info mi :mac-data md))
@@ -162,7 +165,8 @@
       (asn.1-sequence-add s (make-der-integer 3))
       (asn.1-sequence-add s (slot-ref o 'content-info))
       ;; TODO mac-data can be null
-      (asn.1-sequence-add s (slot-ref o 'mac-data))
+      (and-let* ((mac (slot-ref o 'mac-data)))
+	(asn.1-sequence-add s (slot-ref o 'mac-data)))
       s))
 
   ;; object identifiers
@@ -203,7 +207,7 @@
 
   (define-method asn.1-encodable->asn.1-object ((o <safe-bag>))
     (let ((id (slot-ref o 'id))
-	  (value (slot-ref o 'value))
+	  (value (make-der-tagged-object #t 0 (slot-ref o 'value)))
 	  (attr (slot-ref o 'attributes)))
       (if attr
 	  (make-der-sequence id value attr)
@@ -319,6 +323,19 @@
   (define (pkcs12-pbe-params-get-iv o)
     (slot-ref (slot-ref o 'iv) 'string))
 
+  ;; helper class
+  (define-class <cert-id> ()
+    ((id :init-keyword :id)))
+  (define-method make-cert-id ((key <public-key>))
+    (make <cert-id> :id (subject-key-identifier-key-identifier
+			 (create-subject-key-id key))))
+  (define-method make-cert-id ((id <bytevector>))
+    (make <cert-id> :id id))
+  (define (cert-id=? a b)
+    (bytevector=? (slot-ref a 'id) (slot-ref b 'id)))
+  (define (cert-id-hash a)
+    (equal-hash (slot-ref a 'id)))
+
   (define-class <pkcs12-keystore> ()
     ;; we are not so flexible for algorithms
     ((key-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
@@ -329,7 +346,7 @@
      (cert-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
      (certs     :init-form (make-string-hashtable)
 		:reader pkcs12-keystore-certificates)
-     (chain-certs :init-form (make-equal-hashtable)
+     (chain-certs :init-form (make-hashtable cert-id-hash cert-id=?)
 		  :reader pkcs12-keystore-chain-certificates)
      (local-ids :init-form (make-string-hashtable))
      ;; bag attributes holds bag attributes of the object
@@ -552,8 +569,6 @@
 					    (slot-ref b 'attributes)
 					    #f)))
 	      ;; associate cert and it's id
-	      ;; TODO implementis
-	      #;
 	      (hashtable-set! (slot-ref keystore 'chain-certs)
 			      (make-cert-id
 			       (x509-certificate-get-public-key cert))
@@ -568,6 +583,19 @@
 
   ;; Storing PKCS#12 keystore to given output port
   ;; I'm not sure if this is properly implemented...
+
+  ;; this is also used on cert-id
+  (define (create-subject-key-id pubkey)
+    (let ((info (make-subject-public-key-info
+		 (make-der-sequence
+		  (make-algorithm-identifier
+		   *rsa-private-key-oid*
+		   (make-der-null))
+		  (read-asn.1-object 
+		   (open-bytevector-input-port
+		    (export-public-key RSA pubkey)))))))
+      (make-subject-key-identifier
+       (hash SHA-1 (encode (subject-public-key-info-key-data info))))))
   (define (store-pkcs12-keystore keystore out password)
     ;; should we make this keystore slot?
     (define prng (secure-random RC4))
@@ -584,18 +612,6 @@
 
     (define (bag-attributes keystore obj)
       (hashtable-ref (slot-ref keystore 'bag-attributes) obj #f))
-
-    (define (create-subject-key-id pubkey)
-      (let ((info (make-subject-public-key-info
-		   (make-der-sequence
-		    (make-algorithm-identifier
-		     *rsa-private-key-oid*
-		     (make-der-null))
-		   (read-asn.1-object 
-		    (open-bytevector-input-port
-		     (export-public-key RSA pubkey)))))))
-	(make-subject-key-identifier
-	 (hash SHA-1 (encode (subject-public-key-info-key-data info))))))
 	    
     (define (process-key-bag-attribute keystore obj bag-attr name)
       (let ((nm (hashtable-ref bag-attr *pkcs-9-at-friendly-name* #f))
@@ -741,7 +757,7 @@
 			       (make-der-octet-string 
 				(x509-certificate->bytevector cert))))
 		    (bag-attr (bag-attributes keystore cert))
-		    (names (process-bag-attributes bag-attr cert-id #f)))
+		    (names (process-bag-attributes bag-attr cert #f)))
 	       (let ((bag (make-safe-bag 
 			   *pkcs-12-cert-bag*
 			   (asn.1-encodable->asn.1-object cert-bag)
@@ -767,9 +783,8 @@
 	       ;; key derivation doesn't consider encryption scheme
 	       ;; so just use DES for now.
 	       (key (generate-secret-key pbe-with-sha1-and-des password)))
-	  (let-values (((dkey iv) (derive-key&iv (slot-ref key 'type)
-						 key param)))
-	    (hash HMAC data :key dkey :hash SHA-1))))
+	  (let ((mac-key (derive-mac-key key param)))
+	    (hash HMAC data :key mac-key :hash SHA-1))))
       (let ((res (compute-mac data password))
 	    (alg-id (make-algorithm-identifier *sha1-oid* (make-der-null))))
 	(make-mac-data (make-digest-info alg-id res) salt min-iteration)))

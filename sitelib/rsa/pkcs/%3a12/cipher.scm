@@ -35,6 +35,7 @@
 	    pbe-with-sha-and-40bit-rc2-cbc
 	    ;; for convenience
 	    make-pbe-parameter generate-secret-key
+	    derive-mac-key ;; need this...
 	    <pbe-cipher-spi> <pbe-secret-key>
 	    <pbe-parameter>)
     (import (rnrs)
@@ -82,10 +83,7 @@
   (define-constant *iv-material*  2)
   (define-constant *mac-material* 3)
 
-  (define-method derive-key&iv ((marker <pkcs12>)
-				(key <pbe-secret-key>)
-				(param <pbe-parameter>))
-    ;; parameters
+  (define (derive-pkcs12-key key param in-byte n)
     (define u (hash-size (slot-ref key 'hash)))
     (define v (hash-block-size (slot-ref key 'hash)))
     (define salt (slot-ref param 'salt))
@@ -150,8 +148,19 @@
 		(bytevector-copy! A 0 d-key (* i u) (- n (* i u)))
 		(bytevector-copy! A 0 d-key (* i u) u))))
 	d-key))
-    (values (generate-derived-key *key-material* (slot-ref key 'length))
-	    (generate-derived-key *iv-material* (slot-ref key 'iv-size))))
+    (generate-derived-key in-byte n))
+
+  (define-method derive-key&iv ((marker <pkcs12>)
+				(key <pbe-secret-key>)
+				(param <pbe-parameter>))
+    (values (derive-pkcs12-key key param *key-material* (slot-ref key 'length))
+	    (derive-pkcs12-key key param *iv-material*
+			       (slot-ref key 'iv-size))))
+
+  ;; derive MAC key
+  (define (derive-mac-key key param)
+    (derive-pkcs12-key key param *mac-material*
+		       (hash-size (slot-ref key 'hash))))
 
   (register-spi pbe-with-sha-and3-keytripledes-cbc <pbe-cipher-spi>)
   (register-spi pbe-with-sha-and-40bit-rc2-cbc <pbe-cipher-spi>)

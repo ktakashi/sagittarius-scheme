@@ -54,6 +54,7 @@
 	    subject-public-key-info-key-data
 
 	    make-subject-key-identifier
+	    subject-key-identifier-key-identifier
 
 	    <algorithm-identifier>
 	    make-algorithm-identifier
@@ -268,8 +269,8 @@
     (make <subject-key-identifier> :key-identifier keyid))
   (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>))
     (make-der-octet-string (~ o 'key-identifier)))
-  (define-method der-encode ((o <subject-key-identifier>) out)
-    (der-encode (asn.1-encodable->asn.1-object o) out))
+  (define (subject-key-identifier-key-identifier ski)
+    (~ ski 'key-identifier))
 
   (define-class <tbs-certificate-structure> (<asn.1-encodable>)
     ((sequence      :init-keyword :sequence) ;; original asn.1 object
