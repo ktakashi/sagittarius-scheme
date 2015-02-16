@@ -42,7 +42,7 @@
     ;;      such as `keystore-type` procedure per library to return
     ;;      actual type?
     (let ((name (string->symbol (format "load-~a-keystore" type))))
-      (eval `(,name in password)
+      (eval `(,name ,in ,password)
 	    (environment `(security keystore ,type)))))
 
   (define (load-keystore-file type file password)
@@ -53,7 +53,7 @@
   (define (make-keystore type)
     ;; Ditto
     (let ((name (string->symbol (format "make-~a-keystore" type))))
-      (eval `(,name in password)
+      (eval `(,name)
 	    (environment `(security keystore ,type)))))
 
   )
