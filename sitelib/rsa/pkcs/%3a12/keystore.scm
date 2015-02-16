@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; pkcs 12 keystore.scm - PKCS#12 library.
 ;;;  
@@ -68,7 +68,8 @@
 	    (asn.1)
 	    (util hashtables)
 	    (sagittarius)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (security keystore interface))
 
   ;; oid-cipher mapping
   (define *mapping*
@@ -317,7 +318,7 @@
   (define (cert-id-hash a)
     (equal-hash (slot-ref a 'id)))
 
-  (define-class <pkcs12-keystore> ()
+  (define-class <pkcs12-keystore> (<keystore>)
     ;; we are not so flexible for algorithms
     ((key-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
