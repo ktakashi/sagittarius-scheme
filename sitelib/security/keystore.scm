@@ -31,6 +31,17 @@
 (library (security keystore)
     (export load-keystore load-keystore-file make-keystore
 	    <keystore> keystore?
+	    keystore-get-key
+	    keystore-get-certificate
+	    keystore-get-certificate-chain
+	    keystore-get-creation-date
+
+	    store-keystore
+	    store-keystore-to-file
+	    
+	    keystore-set-key!
+	    keystore-set-certificate!
+	    keystore-delete-entry!
 	    )
     (import (rnrs)
 	    (rnrs eval)

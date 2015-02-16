@@ -31,7 +31,7 @@
 ;; only the part I want, for now
 
 (library (rsa pkcs :12 keystore)
-    (export pkcs12-keystore? make-pkcs12-keystore
+    (export <pkcs12-keystore> pkcs12-keystore? make-pkcs12-keystore
 	    load-pkcs12-keystore-file load-pkcs12-keystore
 	    ;; entry accessors
 	    pkcs12-keystore-get-key

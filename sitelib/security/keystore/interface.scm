@@ -29,11 +29,43 @@
 ;;;  
 
 (library (security keystore interface)
-    (export <keystore> keystore?)
-    (import (rnrs) (clos user))
+    (export <keystore> keystore?
+	    keystore-get-key
+	    keystore-get-certificate
+	    keystore-get-certificate-chain
+	    keystore-get-creation-date
+
+	    store-keystore
+	    store-keystore-to-file
+	    
+	    keystore-set-key!
+	    keystore-set-certificate!
+	    keystore-delete-entry!
+	    )
+    (import (rnrs) (clos user) (srfi :19))
 
   ;; abstract class for keystore
   (define-class <keystore> () ())
   (define (keystore? o) (is-a? o <keystore>))
   
+  (define-generic keystore-get-key)
+  (define-generic keystore-get-certificate)
+  (define-generic keystore-get-certificate-chain)
+  (define-generic keystore-get-creation-date)
+  (define-method keystore-get-creation-date ((ks <keystore>) alias)
+    ;; default now
+    (and (or (keystore-get-key ks alias)
+	     (keystore-get-certificate ks alias))
+	 (current-date)))
+
+  (define-generic store-keystore)
+  (define-generic store-keystore-to-file)
+  (define-method store-keystore-to-file ((ks <keystore>) file password)
+    (call-with-output-file file
+      (lambda (out) (store-keystore ks out password))
+      :transcoder #f))
+  (define-generic keystore-set-key!)
+  (define-generic keystore-set-certificate!)
+  (define-generic keystore-delete-entry!)
+
 )

@@ -1,6 +1,9 @@
 (import (rnrs)
 	(security keystore)
 	(rfc base64)
+	(rfc x.509)
+	(crypto)
+	(srfi :19)
 	(srfi :64))
 
 ;; the same as PKCS#12 test ...
@@ -117,5 +120,72 @@
 (let ((in (open-bytevector-input-port test-p12)))
   (test-assert "keystore? (1)" (make-keystore 'pkcs12))
   (test-assert "keystore? (2)" (keystore? (load-keystore 'pkcs12 in "test"))))
+
+(let* ((in (open-bytevector-input-port test-p12))
+       (keystore (load-keystore 'pkcs12 in "test")))
+  (test-assert "keystore-get-key (pkcs12)"
+	       (private-key? (keystore-get-key keystore "ca" "test")))
+  (test-assert "keystore-get-certificate (pkcs12)"
+	       (x509-certificate?
+		(keystore-get-certificate keystore "ca")))
+  
+  (let ((file "test.p12"))
+    (when (file-exists? file) (delete-file file))
+    ;; test storing, we can put different password now
+    (store-keystore-to-file keystore file "test2")
+    (let ((ks (load-keystore-file 'pkcs12 file "test2")))
+      (test-assert "keystore-get-key"
+		   (private-key? (keystore-get-key ks "ca" "test")))
+      (test-assert "keystore-get-certificate"
+		   (x509-certificate?
+		    (keystore-get-certificate ks "ca"))))
+    (delete-file file)
+    ))
+
+(let* ((ks (make-keystore 'pkcs12))
+       (keypair (generate-key-pair RSA))
+       (keypair2 (generate-key-pair RSA)))
+  (define cert (make-x509-basic-certificate keypair 0
+		 (make-x509-issuer 
+		  '((C . "foo")
+		    (O . "bar")))
+		 (make-validity (current-date)
+				(current-date))
+		 (make-x509-issuer '((DN . "buzz")))))
+  ;; chain certs
+  (define cert2 (make-x509-basic-certificate keypair2 0
+		  (make-x509-issuer 
+		   '((C . "foo2")
+		     (O . "bar2")))
+		  (make-validity (current-date)
+				 (current-date))
+		  (make-x509-issuer '((DN . "buzz2")))))
+  (test-assert "store key"
+	       (keystore-set-key! ks "key" 
+					 (keypair-private keypair)
+					 (list cert cert2)))
+  (test-error "store key without cert" condition?
+	      (keystore-set-key! ks "key" (keypair-private keypair) '()))
+  
+  (test-assert "store cert"
+	       (keystore-set-certificate! ks "cert" cert))
+
+  (test-assert "chain" 
+	       (not (null? (keystore-get-certificate-chain ks "cert"))))
+
+  (let ((file "test.p12"))
+    (when (file-exists? file) (delete-file file))
+    ;; test storing, we can put different password now
+    (store-keystore-to-file ks file "test3")
+    (let ((ks (load-keystore-file 'pkcs12 file "test3")))
+      (test-assert "keystore-get-key"
+		   (private-key? (keystore-get-key ks "key" "test3")))
+      (test-assert "keystore-get-certificate"
+		   (x509-certificate?
+		    (keystore-get-certificate ks "cert"))))
+    (delete-file file)
+    )
+
+  )
 
 (test-end)
