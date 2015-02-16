@@ -162,10 +162,12 @@
 		  (make-x509-issuer '((DN . "buzz2")))))
   (test-assert "store key"
 	       (keystore-set-key! ks "key" 
-					 (keypair-private keypair)
-					 (list cert cert2)))
+				  (keypair-private keypair)
+				  "ignore"
+				  (list cert cert2)))
   (test-error "store key without cert" condition?
-	      (keystore-set-key! ks "key" (keypair-private keypair) '()))
+	      (keystore-set-key! ks "key" (keypair-private keypair) 
+				 "ignore" '()))
   
   (test-assert "store cert"
 	       (keystore-set-certificate! ks "cert" cert))

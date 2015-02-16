@@ -46,7 +46,7 @@
   (define-method store-keystore ((ks <pkcs12-keystore>) out password)
     (store-pkcs12-keystore ks out password))
 
-  (define-method keystore-set-key! ((ks <pkcs12-keystore>) alias key certs)
+  (define-method keystore-set-key! ((ks <pkcs12-keystore>) alias key pw certs)
     (pkcs12-keystore-set-key! ks alias key certs))
   (define-method keystore-set-certificate! ((ks <pkcs12-keystore>) alias cert)
     (pkcs12-keystore-set-certificate! ks alias cert))
