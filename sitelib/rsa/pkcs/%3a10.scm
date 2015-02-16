@@ -54,6 +54,7 @@
   (define-class <subject-public-key-info> (<asn.1-encodable>)
     ((algorithm-identifier :init-keyword :algorithm-identifier)
      (key-data :init-keyword :key-data)))
+  (define (subject-public-key-info? o) (is-a? o <subject-public-key-info>))
   (define-method make-subject-public-key-info ((s <asn.1-sequence>))
     ;; TODO check length
     (let ((id (asn.1-sequence-get s 0)))
