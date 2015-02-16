@@ -54,6 +54,7 @@
     (import (rnrs)
 	    (clos user)
 	    (rsa pkcs :5)
+	    (rsa pkcs :8)
 	    (rename (rsa pkcs :10) (algorithm-identifier-id get-id))
 	    (rsa pkcs :12 cipher)
 	    (rfc hmac)
@@ -217,52 +218,6 @@
 	  (make-der-sequence id value attr)
 	  (make-der-sequence id value))))
 
-  (define-class <private-key-info> (<asn.1-encodable>)
-    ((id :init-keyword :id)
-     (attributes :init-keyword :attributes)
-     (private-key :init-keyword :private-key)))
-  (define-method make-private-key-info ((s <asn.1-sequence>))
-    (unless (zero? (der-integer->integer (asn.1-sequence-get s 0)))
-      (assertion-violation 'make-private-key-info
-			   "wrong version for private key info"))
-    (let* ((id (make-algorithm-identifier (asn.1-sequence-get s 1)))
-	   (ain (open-bytevector-input-port
-		 (slot-ref (asn.1-sequence-get s 2) 'string)))
-	   (priv-key (read-asn.1-object ain))
-	   (attributes (if (> (asn.1-sequence-size s) 3)
-			   (make-der-set (asn.1-sequence-get s 3))
-			   #f)))
-      (make <private-key-info> :id id :attributes attributes 
-	    :private-key priv-key)))
-  (define-method make-private-key-info ((id <algorithm-identifier>)
-					(key <private-key>))
-    (make <private-key-info> :id id :attributes #f
-	  :private-key (export-private-key key)))
-  (define-method asn.1-encodable->asn.1-object ((o <private-key-info>))
-    (make-der-sequence
-     (make-der-integer 0)
-     (slot-ref o 'id)
-     (make-der-octet-string (slot-ref o 'private-key))))
-
-  (define-class <encrypted-private-key-info> (<asn.1-encodable>)
-    ((id   :init-keyword :id)
-     (data :init-keyword :data)))
-  (define-method make-encrypted-private-key-info ((s <asn.1-sequence>))
-    (make <encrypted-private-key-info>
-      :id (make-algorithm-identifier (asn.1-sequence-get s 0))
-      :data (asn.1-sequence-get s 1)))
-  (define-method make-encrypted-private-key-info ((id <algorithm-identifier>)
-						  (data <bytevector>))
-    (make <encrypted-private-key-info> :id id 
-	  :data (make-der-octet-string data)))
-  (define-method asn.1-encodable->asn.1-object 
-    ((o <encrypted-private-key-info>))
-    (make-der-sequence (slot-ref o 'id) (slot-ref o 'data)))
-  (define-method write-object ((o <encrypted-private-key-info>) (p <port>))
-    (format p "#<encrypted-private-key-info~%~a~%~a>"
-	    (slot-ref o 'id)
-	    (slot-ref o 'data)))
-
   (define-class <encrypted-data> (<asn.1-encodable>)
     ((data         :init-keyword :data) ;; for ->asn.1-object
      (content-type :init-keyword :content-type)
@@ -411,11 +366,7 @@
   (define (load-pkcs12-keystore in password
 			:key (extra-data-handler default-extra-data-handler))
 
-    (define (create-private-key-from-private-key-info info)
-      (if (equal? (get-id (slot-ref info'id)) *rsa-private-key-oid*)
-	  (import-private-key RSA (slot-ref info 'private-key))
-	  (assertion-violation 'load-pkcs12-keystore "not supported"
-			       (slot-ref info 'id))))
+    (define create-private-key-from-private-key-info pki->private-key)
 
     ;; Seems PKCS#12 uses the same password as store password.
     ;; NB: at least bouncy castle does like that. so keep it simple.
