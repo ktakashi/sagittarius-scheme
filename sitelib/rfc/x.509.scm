@@ -50,15 +50,11 @@
 	    make-x509-basic-certificate
 
 	    ;; etc
-	    make-subject-public-key-info
-	    subject-public-key-info-key-data
-
+	    <subject-key-identifier>
+	    subject-key-identifier?
 	    make-subject-key-identifier
 	    subject-key-identifier-key-identifier
 
-	    <algorithm-identifier>
-	    make-algorithm-identifier
-	    algorithm-identifier-id
 	    )
     (import (rnrs)
 	    (rnrs mutable-strings)
@@ -70,7 +66,8 @@
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (math)
-	    (asn.1))
+	    (asn.1)
+	    (rsa pkcs :10))
   ;; these might be somewhere
   (define-class <rdn> (<asn.1-encodable>)
     ((values :init-keyword :values)))
@@ -158,48 +155,6 @@
 	 (equal? (~ a 'rdns) (~ b 'rdns))))
   
   ;; base on boucycasle's x509 package.
-  (define-class <algorithm-identifier> (<asn.1-encodable>)
-    ((object-id  :init-keyword :object-id)
-     (parameters :init-keyword :parameters :init-value #f)
-     (parameters-defined? :init-keyword :defined? :init-value #f)))
-  (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
-  (define-method make-algorithm-identifier ((o <der-object-identifier>))
-    (make <algorithm-identifier> :object-id o))
-  (define-method make-algorithm-identifier ((s <asn.1-sequence>))
-    (let ((len (asn.1-sequence-size s)))
-      (unless (<= 1 len 2)
-	(assertion-violation 'make-algorithm-identifier
-			     "bad sequence size" len))
-      (if (= len 2)
-	  (make <algorithm-identifier>
-	    :object-id (asn.1-sequence-get s 0)
-	    :parameters (asn.1-sequence-get s 1)
-	    :defined? #t)
-	  (make <algorithm-identifier>
-	    :object-id (asn.1-sequence-get s 0)))))
-  (define-method make-algorithm-identifier ((oid <string>)
-					    (param <asn.1-encodable>))
-    (make <algorithm-identifier> 
-      :object-id (make-der-object-identifier oid)
-      :parameters param
-      :defined? #t))
-  (define-method asn.1-encodable->asn.1-object ((o <algorithm-identifier>))
-    (make-der-sequence (slot-ref o 'object-id)
-		       (if (slot-ref o 'parameters-defined?)
-			   (slot-ref o 'parameters)
-			   (make-der-null))))
-
-  (define-method write-object ((o <algorithm-identifier>) (p <port>))
-    (format p "#<algorithm-identifier ~a~%~a>" (algorithm-identifier-id o)
-	    (slot-ref o 'parameters)))
-
-  (define (algorithm-identifier-id id) (~ id 'object-id 'identifier))
-
-  (define-method der-encode ((id <algorithm-identifier>) out)
-    (if (~ id 'parameters-defined?)
-	(der-encode (make-der-sequence (~ id 'object-id) 
-				       (~ id 'parameters)) out)
-	(der-encode (make-der-sequence (~ id 'object-id) (make-der-null)) out)))
 
   (define-class <x509-principal> (<x500-name>) ())
   (define-method make-x509-principal ((o <x500-name>))
@@ -250,21 +205,9 @@
     (and-let* ((ext (assoc oid (~ o 'extensions))))
       (cdr ext)))
 
-  (define-class <subject-public-key-info> (<asn.1-encodable>)
-    ((algorithm-identifier :init-keyword :algorithm-identifier)
-     (key-data :init-keyword :key-data)))
-  (define-method make-subject-public-key-info ((s <asn.1-sequence>))
-    ;; TODO check length
-    (let ((id (asn.1-sequence-get s 0)))
-      (make <subject-public-key-info>
-	:algorithm-identifier (if (algorithm-identifier? id)
-				  id
-				  (make-algorithm-identifier id))
-	:key-data (asn.1-sequence-get s 1))))
-  (define (subject-public-key-info-key-data o) (~ o 'key-data))
-
   (define-class <subject-key-identifier> (<asn.1-encodable>)
     ((key-identifier :init-keyword :key-identifier)))
+  (define (subject-key-identifier? o) (is-a? o <subject-key-identifier>))
   (define-method make-subject-key-identifier ((keyid <bytevector>))
     (make <subject-key-identifier> :key-identifier keyid))
   (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>))
