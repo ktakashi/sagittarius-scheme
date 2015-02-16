@@ -1,4 +1,4 @@
-;;; -*- Scheme -*-
+;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; encode.scm - ASN.1 BER types
 ;;;

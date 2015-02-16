@@ -233,6 +233,15 @@
 			   #f)))
       (make <private-key-info> :id id :attributes attributes 
 	    :private-key priv-key)))
+  (define-method make-private-key-info ((id <algorithm-identifier>)
+					(key <private-key>))
+    (make <private-key-info> :id id :attributes #f
+	  :private-key (export-private-key key)))
+  (define-method asn.1-encodable->asn.1-object ((o <private-key-info>))
+    (make-der-sequence
+     (make-der-integer 0)
+     (slot-ref o 'id)
+     (make-der-octet-string (slot-ref o 'private-key))))
 
   (define-class <encrypted-private-key-info> (<asn.1-encodable>)
     ((id   :init-keyword :id)
@@ -657,13 +666,10 @@
 	(hashtable-for-each
 	 (lambda (name key)
 	   (define (make-encrypted-key-content key)
-	     (let ((key-bytes (export-private-key key)))
-	       (encode
-		(make-der-sequence
-		 (make-der-integer 0)
-		 (make-algorithm-identifier *rsa-private-key-oid*
-					    (make-der-null))
-		 (make-der-octet-string key-bytes)))))
+	     (encode
+	      (make-private-key-info 
+	       (make-algorithm-identifier *rsa-private-key-oid* (make-der-null))
+	       key)))
 	   (let* ((salt (read-random-bytes prng salt-size))
 		  (param (make-pkcs12-pbe-params salt min-iteration))
 		  (key-bytes (wrap-key key-algorithm
