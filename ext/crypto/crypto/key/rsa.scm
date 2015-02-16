@@ -458,7 +458,10 @@
 		(make-der-integer (slot-ref key 'modulus))
 		(make-der-integer (slot-ref key 'exponent)))))
       (encode der)))
+  ;; we don't need marker but backward compatibility
   (define-method export-public-key ((marker (eql RSA)) (key <rsa-public-key>))
+    (rsa-export-public-key key))
+  (define-method export-public-key ((key <rsa-public-key>))
     (rsa-export-public-key key))
 
   (define (rsa-import-public-key public)
@@ -517,6 +520,8 @@
 		(make-der-integer (slot-ref private 'dP)))))
       (encode der)))
   (define-method export-private-key ((marker (eql RSA)) (key <rsa-private-crt-key>))
+    (rsa-export-private-key key))
+  (define-method export-private-key ((key <rsa-private-crt-key>))
     (rsa-export-private-key key))
   
   (define (rsa-import-private-key private)

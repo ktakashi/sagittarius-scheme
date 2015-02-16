@@ -206,7 +206,7 @@
   ;; If every one uses publicExponent + parameter format
   ;; I would go for that one though...
   (define oid (make-der-object-identifier "1.2.840.10040.4.1"))
-  (define-method export-public-key ((m (eql DSA)) (key <dsa-public-key>))
+  (define (dsa-export-public-key key)
     (encode (make-der-sequence
 	     (make-der-sequence
 	      oid
@@ -216,6 +216,10 @@
 	       (make-der-integer (slot-ref key 'g))))
 	     (make-der-bit-string 
 	      (encode (make-der-integer (slot-ref key 'Y)))))))
+  (define-method export-public-key ((m (eql DSA)) (key <dsa-public-key>))
+    (dsa-export-public-key key))
+  (define-method export-public-key ((key <dsa-public-key>))
+    (dsa-export-public-key key))
 
   (define-method import-public-key ((marker (eql DSA)) (in <bytevector>))
     (import-public-key DSA (open-bytevector-input-port in)))
@@ -259,7 +263,7 @@
         privateExponent INTEGER
       }
   |#
-  (define-method export-private-key ((m (eql DSA)) (key <dsa-private-key>))
+  (define (dsa-export-private-key key)
     ;; should we do like this or OpenSSL DSA private key format?
     (encode (make-der-sequence
 	     (make-der-integer 0)
@@ -268,6 +272,10 @@
 	     (make-der-integer (slot-ref key 'g))
 	     (make-der-integer (slot-ref key 'Y))
 	     (make-der-integer (slot-ref key 'X)))))
+  (define-method export-private-key ((m (eql DSA)) (key <dsa-private-key>))
+    (dsa-export-private-key key))
+  (define-method export-private-key ((key <dsa-private-key>))
+    (dsa-export-private-key key))
 
   (define-method import-private-key ((marker (eql DSA)) (in <bytevector>))
     (import-private-key DSA (open-bytevector-input-port in)))

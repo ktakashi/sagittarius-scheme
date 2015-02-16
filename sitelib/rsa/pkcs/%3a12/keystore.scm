@@ -596,7 +596,7 @@
 		   (make-der-null))
 		  (read-asn.1-object 
 		   (open-bytevector-input-port
-		    (export-public-key RSA pubkey)))))))
+		    (export-public-key pubkey)))))))
       (make-subject-key-identifier
        (hash SHA-1 (encode (subject-public-key-info-key-data info))))))
   (define (store-pkcs12-keystore keystore out password)
@@ -657,7 +657,7 @@
 	(hashtable-for-each
 	 (lambda (name key)
 	   (define (make-encrypted-key-content key)
-	     (let ((key-bytes (export-private-key RSA key)))
+	     (let ((key-bytes (export-private-key key)))
 	       (encode
 		(make-der-sequence
 		 (make-der-integer 0)
@@ -668,7 +668,6 @@
 		  (param (make-pkcs12-pbe-params salt min-iteration))
 		  (key-bytes (wrap-key key-algorithm
 				       (make-encrypted-key-content key)
-				       ;; (export-private-key RSA key)
 				       password param))
 		  (alg-id (make-algorithm-identifier 
 			   (cdr (assq key-algorithm *reverse-mapping*))
