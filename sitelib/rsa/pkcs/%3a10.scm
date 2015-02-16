@@ -41,6 +41,7 @@
     (import (rnrs)
 	    (clos user)
 	    (asn.1)
+	    (sagittarius)
 	    (sagittarius object))
 
   ;; TODO other ASN1 modules.

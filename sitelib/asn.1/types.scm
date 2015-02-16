@@ -117,6 +117,7 @@
 	    *current-indent*
 	    (rename (generic-write der-generic-write))
 	    der-list->string
+	    der-octet-string-octets
 	    )
     (import (except (rnrs) bytevector->string)
 	    (clos user)
@@ -351,6 +352,7 @@
       (der-write-encoded OCTET-STRING (slot-ref o 'string) p))
     (define-method write-object ((o <der-octet-string>) (p <port>))
       (generic-write "der-octet-string" (slot-ref o 'string) p))
+    (define (der-octet-string-octets o) (slot-ref o 'string))
 
     ;; DERGeneralString
     (define-class <der-general-string> (<asn.1-object> <der-string>)

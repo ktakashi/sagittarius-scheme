@@ -101,6 +101,11 @@
   (define-class <digest-info> (<asn.1-encodable>)
     ((digest :init-keyword :digest)
      (algorithm-identifier :init-keyword :algorithm-identifier)))
+  (define-method make-digest-info ((s <asn.1-sequence>))
+    (make <digest-info> 
+      :digest (der-octet-string-octets (asn.1-sequence-get s 1))
+      :algorithm-identifier (make-algorithm-identifier
+			     (asn.1-sequence-get s 0))))
   (define-method make-digest-info ((id <algorithm-identifier>)
 				   (digest <bytevector>))
     (make <digest-info> :digest digest :algorithm-identifier id))
@@ -114,8 +119,12 @@
      (salt        :init-keyword :salt)
      (iteration-count :init-keyword :iteration-count :init-value 1)))
   (define-method make-mac-data ((s <asn.1-sequence>))
-    ;; todo
-    )
+    (let ((di (make-digest-info (asn.1-sequence-get s 0)))
+	  (salt (der-octet-string-octets (asn.1-sequence-get s 1)))
+	  (ic (if (= (asn.1-sequence-size s) 3)
+		  (der-integer->integer (asn.1-sequence-get s 2))
+		  1)))
+      (make <mac-data> :digest-info di :salt salt :iteration-count ic)))
   (define-method make-mac-data ((dig-info <digest-info>)
 				(salt <bytevector>)
 				(iteration-count <integer>))
@@ -352,6 +361,23 @@
       (lambda (in) (apply load-pkcs12-keystore in password opt))
       :transcoder #f))
 
+  (define *digest-mapping*
+    `((,*sha1-oid* . ,SHA-1)
+      ("2.16.840.1.101.3.4.2.1" . ,SHA-256)
+      ("2.16.840.1.101.3.4.2.2" . ,SHA-384)
+      ("2.16.840.1.101.3.4.2.3" . ,SHA-512)))
+  
+  (define (compute-mac oid data password salt iteration)
+    (define (find-method oid)
+      (cond ((assoc oid *digest-mapping*) => cdr)
+	    (else (error 'compute-mac "Digest not supported" oid))))
+    (let* ((param (make-pbe-parameter salt iteration))
+	   ;; key derivation doesn't consider encryption scheme
+	   ;; so just use DES for now.
+	   (key (generate-secret-key pbe-with-sha1-and-des password)))
+      (let ((mac-key (derive-mac-key key param)))
+	(hash HMAC data :key mac-key :hash (find-method oid)))))
+
   (define (cipher-util alg-id password data processer)
     (let ((alg-name (cond ((assoc (get-id alg-id) *mapping*) => cdr)
 			  (else #f)))
@@ -518,9 +544,22 @@
 			   (extra-data-handler c)
 			   (loop (+ i 1) chain)))))))
 	  '()))
+    (define (validate-mac pfx info)
+      (let* ((md (slot-ref pfx 'mac-data))
+	     (di (slot-ref md 'digest-info))
+	     (id (slot-ref di 'algorithm-identifier))
+	     (salt (slot-ref md 'salt))
+	     (count (slot-ref md 'iteration-count))
+	     (data (der-octet-string-octets (slot-ref info 'content))))
+	(unless (bytevector=? (slot-ref di 'digest)
+			      (compute-mac (get-id id)
+					   data password salt count))
+	  (error 'load-pkcs12-keystore 
+		 "key store mac invalid - wrong password or corrupted file."))
+	info))
     (let* ((r (read-asn.1-object in))
 	   (pkcs12 (make-pfx r))
-	   (info   (slot-ref pkcs12 'content-info))
+	   (info   (validate-mac pkcs12 (slot-ref pkcs12 'content-info)))
 	   (keystore (make-pkcs12-keystore))
 	   ;; first keys
 	   (chain (process-keys keystore info)))
@@ -746,14 +785,7 @@
 
     (define (compute-mac-data data password)
       (define salt (read-random-bytes prng salt-size))
-      (define (compute-mac data password)
-	(let* ((param (make-pbe-parameter salt min-iteration))
-	       ;; key derivation doesn't consider encryption scheme
-	       ;; so just use DES for now.
-	       (key (generate-secret-key pbe-with-sha1-and-des password)))
-	  (let ((mac-key (derive-mac-key key param)))
-	    (hash HMAC data :key mac-key :hash SHA-1))))
-      (let ((res (compute-mac data password))
+      (let ((res (compute-mac *sha1-oid* data password salt min-iteration))
 	    (alg-id (make-algorithm-identifier *sha1-oid* (make-der-null))))
 	(make-mac-data (make-digest-info alg-id res) salt min-iteration)))
 
