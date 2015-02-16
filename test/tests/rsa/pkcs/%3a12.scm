@@ -3,6 +3,7 @@
 	(rfc base64)
 	(crypto) ;; for private-key? and so
 	(rfc x.509) ;; for predicate
+	(srfi :1)
 	(srfi :19)
 	(srfi :64))
 
@@ -170,6 +171,12 @@
   
   (test-assert "store cert"
 	       (pkcs12-keystore-set-certificate! ks "cert" cert))
+
+  (test-assert "aliases" 
+	       (lset= string=? '("key" "cert") (pkcs12-keystore-aliases ks)))
+
+  (test-assert "chain" 
+	       (not (null? (pkcs12-keystore-get-certificate-chain ks "cert"))))
 
   (let ((file "test.p12"))
     (when (file-exists? file) (delete-file file))

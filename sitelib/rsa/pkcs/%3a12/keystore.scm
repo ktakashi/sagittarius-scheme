@@ -36,7 +36,7 @@
 	    ;; entry accessors
 	    pkcs12-keystore-get-key
 	    pkcs12-keystore-get-certificate
-	    ;; do we want a procedure to get certificate chain?
+	    pkcs12-keystore-get-certificate-chain
 
 	    ;; store
 	    store-pkcs12-keystore
@@ -47,18 +47,22 @@
 
 	    pkcs12-keystore-delete-entry!
 
+	    ;; should we document this?
+	    pkcs12-keystore-aliases
+
 	    ;; read only accessors 
 	    ;; (for debugging use won't be documented)
 	    pkcs12-keystore-keys pkcs12-keystore-key-certificates
 	    pkcs12-keystore-certificates)
     (import (rnrs)
 	    (clos user)
+	    (srfi :1)
 	    (rsa pkcs :5)
 	    (rsa pkcs :8)
 	    (rename (rsa pkcs :10) (algorithm-identifier-id get-id))
 	    (rsa pkcs :12 cipher)
 	    (rfc hmac)
-	    (rfc x.509)
+	    (rename (rfc x.509) (verify x509-verity))
 	    (crypto)
 	    (math)
 	    (asn.1)
@@ -826,6 +830,42 @@
 		    (make-cert-id (x509-certificate-get-public-key cert))
 		    cert))
 		certs)))
-			  
+  
+  (define (pkcs12-keystore-get-certificate-chain keystore alias)
+    (define (process-chain c acc)
+      (define (find-by-issuer-dn c)
+	;; verify raises an error when failed...
+	(define (verify c msg sig)
+	  (guard (e (else #f))
+	    (x509-verity c msg sig)))
+	(let ((issuer-dn (x509-certificate-get-issuer-dn c))
+	      (subject-dn (x509-certificate-get-subject-dn c)))
+	  (if (equal? issuer-dn subject-dn)
+	      #f
+	      (let ((certs (hashtable->alist (slot-ref keystore 'chain-certs))))
+		(find 
+		 (lambda (k&v)
+		   (and-let* ((crt (cdr k&v))
+			      ( (equal? issuer-dn
+					(x509-certificate-get-subject-dn crt)) )
+			      (pk (x509-certificate-get-public-key crt))
+			      ;; is this correct?
+			      ( (verify c (export-public-key pk) 
+					(x509-certificate-get-signature c))) )
+		     crt))
+		 certs)))))
+      (if c
+	  ;; TODO handle authority key identifier 
+	  (let ((next-c (find-by-issuer-dn c)))
+	    (process-chain next-c (cons c acc)))
+	  (reverse! acc)))
+    (if (hashtable-contains? (slot-ref keystore 'keys) alias)
+	'()
+	(let ((c (pkcs12-keystore-get-certificate keystore alias)))
+	  (process-chain c '()))))
 
+  (define (pkcs12-keystore-aliases keystore)
+    (let ((ca (hashtable-keys-list (slot-ref keystore 'certs)))
+	  (ks (hashtable-keys-list (slot-ref keystore 'keys))))
+      (lset-union string=? ca ks)))
 )

@@ -63,6 +63,7 @@
 	    (sagittarius control)
 	    (sagittarius object)
 	    (rename (crypto) (verify crypto:verify))
+	    (srfi :1 lists)
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (math)
@@ -159,6 +160,8 @@
   (define-class <x509-principal> (<x500-name>) ())
   (define-method make-x509-principal ((o <x500-name>))
     (make <x509-principal> :rdns (~ o 'rdns)))
+  (define-method object-equal? ((a <x500-name>) (b <x500-name>))
+    (lset= equal? (vector->list (~ a 'rdns)) (vector->list (~ b 'rdns))))
 
   (define-class <x509-time> (<asn.1-encodable>)
     ((time :init-keyword :time)))
