@@ -5,7 +5,9 @@
 #!core
 (library (crypto key dsa)
     (export DSA
-	    generate-dsa-parameter)
+	    generate-dsa-parameter
+	    <dsa-private-key>
+	    <dsa-public-key>)
     (import (rnrs)
 	    (math)
 	    (sagittarius)

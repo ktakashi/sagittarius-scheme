@@ -10,6 +10,10 @@
 	    generate-private-key
 	    generate-public-key
 	    RSA
+
+	    <rsa-private-key> <rsa-private-crt-key>
+	    <rsa-public-key>
+
 	    keypair?
 	    keypair-private
 	    keypair-public
@@ -26,6 +30,8 @@
 	    ;; DSA
 	    DSA
 	    generate-dsa-parameter
+	    <dsa-private-key>
+	    <dsa-public-key>
 
 	    ;; external representive
 	    export-public-key

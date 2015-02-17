@@ -17,6 +17,10 @@
 	    rsa-verify
 	    ;; marker
 	    RSA
+
+	    ;; CLOS
+	    <rsa-private-key> <rsa-private-crt-key>
+	    <rsa-public-key>
 	    )
     (import (rnrs)
 	    (crypto pkcs)

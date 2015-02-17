@@ -28,27 +28,21 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-(library (security keystore jks)
-    (export <jks-keystore> jks-keystore?
-	    <jceks-keystore> jceks-keystore?
-
-	    ;; load
-	    load-jks-keystore
-	    
-	    ;; get
-	    jks-keystore-get-key
-	    )
+(library (security keystore jceks)
+    (export <jceks-keystore> jceks-keystore?
+	    load-jceks-keystore
+	    jceks-keystore-get-key)
     (import (rnrs)
 	    (clos user)
 	    (security keystore jceks keystore))
 
-  (define-class <jks-keystore> (<base-jceks-keystore>) ())
 
-  (define (jks-keystore? o) (is-a? o <jks-keystore>))
+  (define-class <jceks-keystore> (<base-jceks-keystore>) ())
+  (define (jceks-keystore? o) (is-a? o <jceks-keystore>))
 
-  (define load-jks-keystore 
-    (generate-load-jceks-key-store <jks-keystore> '(#xfeedfeed)))
+  (define load-jceks-keystore 
+    (generate-load-jceks-key-store <jceks-keystore> '(#xcececece #xfeedfeed)))
 
-  (define jks-keystore-get-key (generate-jceks-get-key jks-keystore? #f))
-  (define jks-keystore-set-key! (generate-jceks-set-key! jks-keystore? #f))
-)
+  (define jceks-keystore-get-key (generate-jceks-get-key jceks-keystore? #t))
+  (define jceks-keystore-set-key! (generate-jceks-set-key! jceks-keystore? #t))
+  )

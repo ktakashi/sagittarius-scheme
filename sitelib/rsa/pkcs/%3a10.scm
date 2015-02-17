@@ -37,7 +37,9 @@
 	    <algorithm-identifier>
 	    algorithm-identifier?
 	    make-algorithm-identifier
-	    algorithm-identifier-id)
+	    algorithm-identifier-id ;; returns OID string
+	    algorithm-identifier-object-id ;; der-object-identifier
+	    algorithm-identifier-parameters)
     (import (rnrs)
 	    (clos user)
 	    (asn.1)
@@ -73,8 +75,10 @@
    }
   |#
   (define-class <algorithm-identifier> (<asn.1-encodable>)
-    ((object-id  :init-keyword :object-id)
-     (parameters :init-keyword :parameters :init-value #f)
+    ((object-id  :init-keyword :object-id
+		 :reader algorithm-identifier-object-id)
+     (parameters :init-keyword :parameters :init-value #f
+		 :reader algorithm-identifier-parameters)
      (parameters-defined? :init-keyword :defined? :init-value #f)))
   (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
   (define-method make-algorithm-identifier ((o <der-object-identifier>))

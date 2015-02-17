@@ -36,6 +36,8 @@
 	    <encrypted-private-key-info>
 	    encrypted-private-key-info?
 	    make-encrypted-private-key-info
+	    encrypted-private-key-info-id
+	    encrypted-private-key-info-data
 
 	    <pkcs8-private-key>
 	    pkcs8-private-key?
@@ -83,10 +85,19 @@
 			   #f)))
       (make <private-key-info> :id id :attributes attributes 
 	    :private-key priv-key)))
+  (define-method make-private-key-info ((bv <bytevector>))
+    (let ((o (read-asn.1-object (open-bytevector-input-port bv))))
+      (make-private-key-info o)))
   (define-method make-private-key-info ((id <algorithm-identifier>)
 					(key <private-key>))
     (make <private-key-info> :id id :attributes #f
 	  :private-key (export-private-key key)))
+  (define-method make-private-key-info ((key <rsa-private-key>))
+    (make-private-key-info 
+     (make-algorithm-identifier "1.2.840.113549.1.1.1")
+     key))
+
+
   (define-method asn.1-encodable->asn.1-object ((o <private-key-info>))
     (make-der-sequence
      (make-der-integer 0)
@@ -102,14 +113,17 @@
       EncryptedData ::= OCTET STRING
   |#
   (define-class <encrypted-private-key-info> (<asn.1-encodable>)
-    ((id   :init-keyword :id)
-     (data :init-keyword :data)))
+    ((id   :init-keyword :id :reader encrypted-private-key-info-id)
+     (data :init-keyword :data :reader encrypted-private-key-info-data)))
   (define (encrypted-private-key-info? o) 
     (is-a? o <encrypted-private-key-info>))
   (define-method make-encrypted-private-key-info ((s <asn.1-sequence>))
     (make <encrypted-private-key-info>
       :id (make-algorithm-identifier (asn.1-sequence-get s 0))
       :data (asn.1-sequence-get s 1)))
+  (define-method make-encrypted-private-key-info ((bv <bytevector>))
+    (make-encrypted-private-key-info 
+     (read-asn.1-object (open-bytevector-input-port bv))))
   (define-method make-encrypted-private-key-info ((id <algorithm-identifier>)
 						  (data <bytevector>))
     (make <encrypted-private-key-info> :id id 
