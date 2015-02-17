@@ -32,7 +32,11 @@
     (export <base-jceks-keystore>
 	    generate-load-jceks-key-store
 	    generate-jceks-get-key
-	    generate-jceks-set-key!)
+	    generate-jceks-get-certificate
+	    generate-jceks-get-certificate-chain
+	    generate-jceks-get-creation-date
+	    generate-jceks-set-key!
+	    generate-jceks-set-certificate!)
     (import (rnrs)
 	    (clos user)
 	    (crypto)
@@ -79,46 +83,48 @@
   (define-constant +salt-length+ 20)
   (define-constant +digest-length+ 20)
 
+  (define (compute-xor xor salt pw)
+    (define sha (hash-algorithm SHA-1))
+    (define xor-len (bytevector-length xor))
+    (define round (ceiling (/ (bytevector-length xor) +digest-length+)))
+    (let loop ((i 0) (offset 0) (digest salt))
+      (if (= i round)
+	  xor
+	  (begin
+	    (hash-init! sha)
+	    (hash-process! sha pw)
+	    (hash-process! sha digest)
+	    (hash-done! sha digest)
+	    (if (< i (- round 1))
+		(bytevector-copy! digest 0 xor offset +digest-length+)
+		(bytevector-copy! digest 0 xor offset 
+				  (- xor-len offset)))
+	    (loop (+ i 1) (+ offset +digest-length+) digest)))))
   ;; getters
   (define (generate-jceks-get-key keystore? crypto?)
     (lambda (keystore alias password)
       (define (unwrap-jks data)
 	(define sha (hash-algorithm SHA-1))
 	(define (compute-round data)
-	  (let ((data-len (- (bytevector-length data) +salt-length+ 
-			     +digest-length+)))
-	    (values data-len (ceiling (/ data-len +digest-length+)))))
-	(define (compute-xor xor salt pw round)
-	  (define xor-len (bytevector-length xor))
-	  (let loop ((i 0) (offset 0) (digest salt))
-	    (if (= i round)
-		xor
-		(begin
-		  (hash-init! sha)
-		  (hash-process! sha pw)
-		  (hash-process! sha digest)
-		  (hash-done! sha digest)
-		  (if (< i (- round 1))
-		      (bytevector-copy! digest 0 xor offset +digest-length+)
-		      (bytevector-copy! digest 0 xor offset 
-					(- xor-len offset)))
-		  (loop (+ i 1) (+ offset +digest-length+) digest)))))
-	(let-values (((enc-len round) (compute-round data)))
-	  (let* ((enc-data (bytevector-copy data +salt-length+
-					    (+ +salt-length+ enc-len)))
-		 (salt (bytevector-copy data 0 +salt-length+))
-		 (pw-bv (string->utf16 password 'big))
-		 (xor (compute-xor (make-bytevector enc-len) salt pw-bv round)))
-	    (let ((r (bytevector-xor enc-data xor)))
-	      ;; check integrity.
-	      (hash-init! sha)
-	      (hash-process! sha pw-bv)
-	      (hash-process! sha r)
-	      (hash-done! sha salt)
-	      (unless (bytevector=? salt (bytevector-copy data (+ +salt-length+
-								  enc-len)))
-		(error 'jks-keystore-get-key "Cannot recover key"))
-	      (pki->private-key (make-private-key-info r))))))
+	  (- (bytevector-length data) +salt-length+ +digest-length+))
+	(let* ((enc-len (compute-round data))
+	       (enc-data (bytevector-copy data +salt-length+
+					  (+ +salt-length+ enc-len)))
+	       (salt (bytevector-copy data 0 +salt-length+))
+	       (pw-bv (string->utf16 password 'big))
+	       (xor (compute-xor (make-bytevector enc-len) salt pw-bv)))
+
+	  (let ((r (bytevector-xor enc-data xor)))
+	    ;; check integrity.
+	    (hash-init! sha)
+	    (hash-process! sha pw-bv)
+	    (hash-process! sha r)
+	    (hash-done! sha salt)
+	    (unless (bytevector=? salt (bytevector-copy data (+ +salt-length+
+								enc-len)))
+	      (error 'jks-keystore-get-key "Cannot recover key"))
+	    (pki->private-key (make-private-key-info r)))))
+
       (define (unwrap-key alg-id data)
 	;; must be der-sequence like this structure
 	;; sequence
@@ -154,12 +160,74 @@
 			       "Unknown keystore" keystore))
       (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => unwrap)
 	    (else #f))))
+  (define (generate-jceks-get-certificate keystore?)
+    (lambda (keystore alias)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-get-key 
+			       "Unknown keystore" keystore))
+      (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
+	     (lambda (e)
+	       (cond ((is-a? e <certificate-entry>)
+		      (slot-ref e 'certificate))
+		     ((is-a? e <private-key-entry>)
+		      (car (slot-ref e 'chain)))
+		     (else #f))))
+	    (else #f))))
+  (define (generate-jceks-get-certificate-chain keystore?)
+    (lambda (keystore alias)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-get-key 
+			       "Unknown keystore" keystore))
+      (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
+	     (lambda (e)
+	       (cond ((is-a? e <private-key-entry>) (slot-ref e 'chain))
+		     (else #f))))
+	    (else #f))))
+
+  (define (generate-jceks-get-creation-date keystore?)
+    (lambda (keystore alias)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-get-key 
+			       "Unknown keystore" keystore))
+      (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
+	     (lambda (e) (slot-ref e 'date)))
+	    (else #f))))
 
   ;; setters
   (define (generate-jceks-set-key! keystore? crypto?)
     (lambda (keystore alias key password certs)
       (define prng (slot-ref keystore 'prng))
-      (define (wrap-jks key) (error 'jks-keystore-set-key! "TODO"))
+      (define (wrap-jks key) 
+	(define sha (hash-algorithm SHA-1))
+	(define (gen-salt data)
+	  ;; compute-xor change given salt destructively so we need to
+	  ;; put it here...
+	  (let ((salt (read-random-bytes prng +salt-length+)))
+	    (bytevector-copy! salt 0 data 0 +salt-length+)
+	    salt))
+	(let* ((pki-bv (encode (make-private-key-info key)))
+	       ;; encrypted value
+	       (data (make-bytevector (+ (bytevector-length pki-bv)
+					 +salt-length+
+					 +digest-length+)))
+	       (salt (gen-salt data))
+	       (len (bytevector-length pki-bv))
+	       (pw  (string->utf16 password 'big))
+	       (xor  (compute-xor (make-bytevector len) salt pw)))
+
+	  (bytevector-copy! (bytevector-xor pki-bv xor) 0
+			    data +salt-length+ len)
+
+	  (hash-init! sha)
+	  (hash-process! sha pw)
+	  (hash-process! sha pki-bv)
+	  (hash-done! sha salt)
+
+	  (bytevector-copy! salt 0 data (+ len +salt-length+) +digest-length+)
+	  (make-encrypted-private-key-info
+	   (make-algorithm-identifier +jks-keystore-oid+ (make-der-null))
+	   data)))
+	  
       (define (wrap-jceks key)
 	(let* ((salt (read-random-bytes 8)) ;; it's fixed length ... *sigh*
 	       (count 1024)		  ;; make it a bit bigger
@@ -178,6 +246,9 @@
 	(if crypto?
 	    (wrap-jceks key)
 	    (wrap-jks key)))
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-set-key!
+			       "Unknown keystore" keystore))
       (unless (for-all x509-certificate? certs)
 	(assertion-violation 'jks-keystore-set-key!
 	  "Private key must be accompanied by certificate chain"))
@@ -186,12 +257,23 @@
 	(hashtable-set! entries alias (make <private-key-entry>
 					:data (current-time)
 					:protected-key (encode epki)
-					:chain certs)))
+					:chain certs)))))
+
+  (define (generate-jceks-set-certificate! keystore?)
+    (lambda (keystore alias cert)
       (or (keystore? keystore)
-	  (assertion-violation 'jks-keystore-get-key 
+	  (assertion-violation 'jks-keystore-set-certificate!
 			       "Unknown keystore" keystore))
-      (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => unwrap)
-	    (else #f))))
+      (let ((entries (slot-ref keystore 'entries)))
+	(cond ((hashtable-ref entries alias #f) => 
+	       (lambda (e)
+		 (cond ((is-a? e <private-key-entry>)
+			(error 'jks-keystore-set-certificate!
+			       "Can't overwrite own certificate"))))))
+	(hashtable-set! entries alias
+			(make <certificate-entry>
+			  :date (current-time)
+			  :certificate cert)))))
 
   (define (default-secret-key-handler . ignore) 
     (error 'load-jks-keystore "secret key is not supported"))

@@ -94,7 +94,7 @@
 	  :private-key (export-private-key key)))
   (define-method make-private-key-info ((key <rsa-private-key>))
     (make-private-key-info 
-     (make-algorithm-identifier "1.2.840.113549.1.1.1")
+     (make-algorithm-identifier "1.2.840.113549.1.1.1" (make-der-null))
      key))
 
 

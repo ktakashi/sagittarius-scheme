@@ -190,4 +190,69 @@
 
   )
 
+;; direct keystore APIs
+(import (security keystore jks)
+	(security keystore jceks))
+
+(let ()
+  (define ks
+    (call-with-input-file (string-append (current-directory)
+					 "/test/data/test.jks")
+      (lambda (in) (load-jks-keystore in "test"))
+      :transcoder #f))
+
+  (test-assert "JKS get key"
+	       (private-key? (jks-keystore-get-key ks "priv-key" "pass")))
+
+  (let* ((keypair (generate-key-pair RSA))
+	 (keypair2 (generate-key-pair RSA)))
+    (define cert (make-x509-basic-certificate keypair 0
+		   (make-x509-issuer 
+		    '((C . "foo")
+		      (O . "bar")))
+		   (make-validity (current-date)
+				  (current-date))
+		   (make-x509-issuer '((DN . "buzz")))))
+    ;; chain certs
+    (define cert2 (make-x509-basic-certificate keypair2 0
+		    (make-x509-issuer 
+		     '((C . "foo2")
+		       (O . "bar2")))
+		    (make-validity (current-date)
+				   (current-date))
+		    (make-x509-issuer '((DN . "buzz2")))))
+    (test-assert "JKS set key"
+		 (jks-keystore-set-key! ks "key" 
+					(keypair-private keypair)
+					"pass"
+					(list cert cert2)))
+
+    (test-assert "JKS get key(2)" 
+		 (private-key? (jks-keystore-get-key ks "key" "pass")))
+
+    (test-assert "JKS get certificate"
+		 (x509-certificate? (jks-keystore-get-certificate ks "cert")))
+    
+    (test-assert "JKS get chain" 
+		 (not (null? 
+		       (jks-keystore-get-certificate-chain ks "priv-key"))))
+
+    #;
+    (let ((file "test.p12"))
+    (when (file-exists? file) (delete-file file))
+    ;; test storing, we can put different password now
+    (store-keystore-to-file ks file "test3")
+    (let ((ks (load-keystore-file 'pkcs12 file "test3")))
+    (test-assert "keystore-get-key"
+    (private-key? (keystore-get-key ks "key" "pass")))
+    (test-assert "keystore-get-certificate"
+    (x509-certificate?
+    (keystore-get-certificate ks "cert"))))
+    (delete-file file)
+    )
+
+    )
+)
+
+
 (test-end)

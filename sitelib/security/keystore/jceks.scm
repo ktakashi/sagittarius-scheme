@@ -31,7 +31,13 @@
 (library (security keystore jceks)
     (export <jceks-keystore> jceks-keystore?
 	    load-jceks-keystore
-	    jceks-keystore-get-key)
+	    jceks-keystore-get-key
+	    jceks-keystore-get-certificate
+	    jceks-keystore-get-certificate-chain
+	    jceks-keystore-get-creation-date
+
+	    jceks-keystore-set-key!
+	    jceks-keystore-set-certificate!)
     (import (rnrs)
 	    (clos user)
 	    (security keystore jceks keystore))
@@ -44,5 +50,14 @@
     (generate-load-jceks-key-store <jceks-keystore> '(#xcececece #xfeedfeed)))
 
   (define jceks-keystore-get-key (generate-jceks-get-key jceks-keystore? #t))
+  (define jceks-keystore-get-certificate 
+    (generate-jceks-get-certificate jceks-keystore?))
+  (define jceks-keystore-get-certificate-chain
+    (generate-jceks-get-certificate-chain jceks-keystore?))
+  (define jceks-keystore-get-creation-date
+    (generate-jceks-get-creation-date jceks-keystore?))
   (define jceks-keystore-set-key! (generate-jceks-set-key! jceks-keystore? #t))
+  (define jceks-keystore-set-certificate!
+    (generate-jceks-set-certificate! jceks-keystore?))
+
   )

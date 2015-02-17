@@ -37,6 +37,13 @@
 	    
 	    ;; get
 	    jks-keystore-get-key
+	    jks-keystore-get-certificate
+	    jks-keystore-get-certificate-chain
+	    jks-keystore-get-creation-date
+
+	    ;; set
+	    jks-keystore-set-key!
+	    jks-keystore-set-certificate!
 	    )
     (import (rnrs)
 	    (clos user)
@@ -50,5 +57,16 @@
     (generate-load-jceks-key-store <jks-keystore> '(#xfeedfeed)))
 
   (define jks-keystore-get-key (generate-jceks-get-key jks-keystore? #f))
+  (define jks-keystore-get-certificate 
+    (generate-jceks-get-certificate jks-keystore?))
+  (define jks-keystore-get-certificate-chain
+    (generate-jceks-get-certificate-chain jks-keystore?))
+  (define jks-keystore-get-creation-date
+    (generate-jceks-get-creation-date jks-keystore?))
   (define jks-keystore-set-key! (generate-jceks-set-key! jks-keystore? #f))
+  (define jks-keystore-set-certificate!
+    (generate-jceks-set-certificate! jks-keystore?))
+
+
+
 )
