@@ -79,8 +79,7 @@
 	       (buf (make-bytevector buf-len)))
 	  ;; the first data is not the same length as buf
 	  (hash-init! algo)
-	  (hash-process! algo (bytevector-copy salt (* i half)
-					       (+ (* i half) half)))
+	  (hash-process! algo salt (* i half) (+ (* i half) half))
 	  (hash-process! algo pass)
 	  (hash-done! algo buf)
 	  (dotimes (j (- count 1))
