@@ -140,8 +140,8 @@ SgObject Sg_ReadSysRandom(int bits);
 
 SgObject Sg_MakeHash(SgString *name);
 SgObject Sg_VMHashInit(SgObject algo);
-SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in);
-SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out);
+SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in, int start, int end);
+SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out, int start, int end);
 SgObject Sg_HashSize(SgObject algo);
 SgObject Sg_HashBlockSize(SgObject algo);
 SgObject Sg_HashOid(SgObject algo);

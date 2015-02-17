@@ -57,10 +57,12 @@
 
 (define-c-proc hash-init! (h::<hash-algorithm>) Sg_VMHashInit)
 
-(define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>)
+(define-c-proc hash-process! (h::<hash-algorithm> in::<bytevector>
+			       :optional (start::<fixnum> 0) (end::<fixnum> -1))
   Sg_VMHashProcess)
 
-(define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>)
+(define-c-proc hash-done! (h::<hash-algorithm> out::<bytevector>
+			    :optional (start::<fixnum> 0) (end::<fixnum> -1))
   Sg_VMHashDone)
 
 (define-c-proc hash-size (h) :no-side-effect

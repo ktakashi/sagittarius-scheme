@@ -233,6 +233,32 @@
 	    #vu8(#xC7 #x2B #x96 #x98 #xFA #x19 #x27 #xE1 #xDD #x12 #xD3 #xCF #x26 #xED #x84 #xB2)
 	    (hash MD5 valid-rsa-message))
 
+;; new interface
+(let ((msg (string->utf8 "hello world"))
+      (md (hash-algorithm MD5))
+      (out (make-bytevector (hash-size MD5)))
+      (out2 (make-bytevector (+ (hash-size MD5) 2) 0)))
+  (test-equal "optional start end for hash-process!"
+	      (hash md msg)
+	      (begin
+		(hash-init! md)
+		(hash-process! md msg 0 5)
+		(hash-process! md msg 5)
+		(hash-done! md out)))
+  (test-equal "optional start end for hash-done! (1)"
+	      (bytevector-append #vu8(0) (hash md msg) #vu8(0))
+	      (begin
+		(hash-init! md)
+		(hash-process! md msg)
+		(hash-done! md out2 1)))
+  (test-error "optional start end for hash-done! (2)"
+	      condition?
+	      (begin
+		(hash-init! md)
+		(hash-process! md msg)
+		(hash-done! md out 0 1)))
+)
+
 (test-equal "MD5 OID"
 	    "1.2.840.113549.2.5"
 	    (hash-oid (hash-algorithm MD5)))

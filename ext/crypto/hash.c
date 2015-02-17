@@ -105,41 +105,65 @@ SgObject Sg_VMHashInit(SgObject algo)
   }
 }
 
-SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in)
+SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in, int start, int end)
 {
+  int len = SG_BVECTOR_SIZE(in);
+  SG_CHECK_START_END(start, end, len);
   if (SG_BUILTIN_HASH_P(algo)) {
     if (!SG_BUILTIN_HASH(algo)->initialized) {
       Sg_Error(UC("%A is not initialized"), algo);
     } else {
       int index = SG_BUILTIN_HASH(algo)->index;
       int err = hash_descriptor[index].process(&SG_BUILTIN_HASH(algo)->state,
-					       SG_BVECTOR_ELEMENTS(in),
-					       SG_BVECTOR_SIZE(in));
+					       SG_BVECTOR_ELEMENTS(in)+start,
+					       end-start);
       if (err != CRYPT_OK) {
 	Sg_Error(UC("%A"), Sg_MakeStringC(error_to_string(err)));
       }
     }
     return SG_UNDEF;
   } else {
+    SgObject proc = SG_USER_HASH(algo)->process;
     /* return value should be checked but i'm lazy... */
-    return Sg_VMApply2(SG_USER_HASH(algo)->process, algo, in);
+    if (SG_PROCEDURE_REQUIRED(proc) == 2) {
+      /* copy in if needed */
+      if (start && end != len) {
+	in = SG_BVECTOR(Sg_ByteVectorCopy(SG_BVECTOR(in), start, end));
+      }
+      return Sg_VMApply2(proc, algo, in);
+    } else {
+      /* new interface */
+      return Sg_VMApply4(proc, algo, in, 
+			 SG_MAKE_INT(start), SG_MAKE_INT(end));
+    }
   }
 }
 
-static SgObject return_out(SgObject result, void **data)
+static SgObject copy_out(SgObject result, void **data)
 {
-  return SG_OBJ(data[0]);
+  SgByteVector *oin = SG_BVECTOR(data[0]);
+  int start = (int)data[1], end = (int)data[2];
+  Sg_ByteVectorCopyX(SG_BVECTOR(result), 0,
+		     oin, start, end-start);
+  return SG_OBJ(oin);
 }
 
-SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out)
+SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out, int start, int end)
 {
+  int len = SG_BVECTOR_SIZE(out);
+  SG_CHECK_START_END(start, end, len);
   if (SG_BUILTIN_HASH_P(algo)) {
     if (!SG_BUILTIN_HASH(algo)->initialized) {
       Sg_Error(UC("%A is not initialized"), algo);
     } else {
       int index = SG_BUILTIN_HASH(algo)->index;
-      int err = hash_descriptor[index].done(&SG_BUILTIN_HASH(algo)->state,
-					    SG_BVECTOR_ELEMENTS(out));
+      int err, size;
+      size = hash_descriptor[index].hashsize;
+      if (end-start < size) {
+	Sg_Error(UC("hash-done!: Out of range. (%d - %d)"), start, end);
+      }
+      err = hash_descriptor[index].done(&SG_BUILTIN_HASH(algo)->state,
+					SG_BVECTOR_ELEMENTS(out)+start);
       if (err != CRYPT_OK) {
 	Sg_Error(UC("%A"), Sg_MakeStringC(error_to_string(err)));
       }
@@ -147,10 +171,32 @@ SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out)
     SG_BUILTIN_HASH(algo)->initialized = FALSE;
     return SG_OBJ(out);
   } else {
+    SgObject proc = SG_USER_HASH(algo)->done;
+    /* why this was there? */
+    /*
     void *d[1];
     d[0] = SG_OBJ(out);
     Sg_VMPushCC(return_out, d, 1);
-    return Sg_VMApply2(SG_USER_HASH(algo)->done, algo, out);
+    */
+    /* return value should be checked but i'm lazy... */
+    if (SG_PROCEDURE_REQUIRED(proc) == 2) {
+      /* copy in if needed 
+	 This is only for backward compatibility
+       */
+      if (start && end != len) {
+	void *d[3];
+	d[0] = out;		/* save original */
+	d[1] = SG_OBJ(start);
+	d[2] = SG_OBJ(end);
+	Sg_VMPushCC(copy_out, d, 3);
+	out = SG_BVECTOR(Sg_ByteVectorCopy(out, start, end));
+      }
+      return Sg_VMApply2(proc, algo, out);
+    } else {
+      /* new interface */
+      return Sg_VMApply4(proc, algo, out, 
+			 SG_MAKE_INT(start), SG_MAKE_INT(end));
+    }
   }
 }
 
