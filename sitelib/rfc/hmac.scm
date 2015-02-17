@@ -66,10 +66,10 @@
       (hash-init! hash-algo)
       (hash-process! hash-algo buffer)))
 
-  (define (hmac-process algo in)
-    (hash-process! (slot-ref algo 'hash) in))
+  (define (hmac-process algo in start end)
+    (hash-process! (slot-ref algo 'hash) in start end))
 
-  (define (hmac-done algo out)
+  (define (hmac-done algo out start end)
     (let* ((hash-algo (slot-ref algo 'hash))
 	   (hashsize  (hash-size hash-algo))
 	   (blocksize (hash-block-size hash-algo))
@@ -84,7 +84,7 @@
       (hash-process! hash-algo buffer)
       (hash-process! hash-algo isha)
       (hash-done! hash-algo buffer)
-      (bytevector-copy! buffer 0 out 0 (min hashsize (bytevector-length out)))
+      (bytevector-copy! buffer 0 out start (min hashsize (- end start)))
       out))
 
   (define-class <hmac> (<mac>)

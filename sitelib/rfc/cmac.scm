@@ -50,6 +50,8 @@
     (set! (~ cmac 'buffer) (~ cmac 'zero))
     (set! (~ cmac 'last) #vu8()))
 
+  ;; FIXME cmac-process and cmac-done should accept start/end arguments
+  ;;       but it's a bit hustle to tackle it...
   (define (cmac-process cmac in)
     ;; split input message to block size.
     (define (split-message cmac in)

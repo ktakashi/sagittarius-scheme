@@ -10,7 +10,7 @@
 (define aes-mac (hash-algorithm CMAC :cipher aes-cipher))
 
 (test-begin "CMAC")
-
+#|
 (test-assert "CMAS?" (hash-algorithm? aes-mac))
 ;; we can't test K1 and K2 
 (test-equal "AES-128(key, 0)"
@@ -81,6 +81,39 @@
 	      (let ((out (make-bytevector 16 0)))
 		(hash-done! aes-mac out)
 		out)))
+|#
+;; new interface
+(print (let ((msg (uint-list->bytevector 
+			'(#x6bc1bee2 #x2e409f96 #xe93d7e11 #x7393172a)
+			(endianness big) 4))
+		  (out (make-bytevector (hash-size aes-mac))))
+	 (hash-init! aes-mac)
+	 (hash-process! aes-mac msg 0 7)
+	 (hash-process! aes-mac msg 7)
+	 (hash-done! aes-mac out)))
+(test-equal "new interface"
+	    (integer->bytevector #x070a16b46b4d4144f79bdd9dd04a287c)
+	    (let ((msg (uint-list->bytevector 
+			'(#x6bc1bee2 #x2e409f96 #xe93d7e11 #x7393172a)
+			(endianness big) 4))
+		  (out (make-bytevector (hash-size aes-mac))))
+	      (hash-init! aes-mac)
+	      (hash-process! aes-mac msg 0 7)
+	      (hash-process! aes-mac msg 7)
+	      (hash-done! aes-mac out)))
+(test-equal "new interface"
+	    (bytevector-append
+	     #vu8(0)
+	     (integer->bytevector #x070a16b46b4d4144f79bdd9dd04a287c)
+	     #vu8(0))
+	    (let ((msg (uint-list->bytevector 
+			'(#x6bc1bee2 #x2e409f96 #xe93d7e11 #x7393172a)
+			(endianness big) 4))
+		  (out (make-bytevector (+ (hash-size aes-mac) 2))))
+	      (hash-init! aes-mac)
+	      (hash-process! aes-mac msg 0 7)
+	      (hash-process! aes-mac msg 7)
+	      (hash-done! aes-mac out 1)))
 
 ;; AES_CMAC_96
 (define aes-mac-96 (hash-algorithm CMAC :cipher aes-cipher :size (/ 96 8)))

@@ -29,4 +29,26 @@
 	    ;; SHA-1 is default
 	    (hash HMAC message :key key :hash SHA-512))
 
+;; for new interface
+(test-equal "HMAC-MD5"
+	    (integer->bytevector #x961FF2373921D4EADFE97E4CCC56D3E2)
+	    (let* ((md (hash-algorithm HMAC :hash MD5 :key key))
+		   (out (make-bytevector (hash-size md))))
+	      (hash-init! md)
+	      (hash-process! md message 0 4)
+	      (hash-process! md message 4)
+	      (hash-done! md out)))
+
+(test-equal "HMAC-MD5"
+	    (bytevector-append 
+	     #vu8(0)
+	     (integer->bytevector #x961FF2373921D4EADFE97E4CCC56D3E2)
+	     #vu8(0))
+	    (let* ((md (hash-algorithm HMAC :hash MD5 :key key))
+		   (out (make-bytevector (+ (hash-size md) 2))))
+	      (hash-init! md)
+	      (hash-process! md message 0 4)
+	      (hash-process! md message 4)
+	      (hash-done! md out 1)))
+
 (test-end)

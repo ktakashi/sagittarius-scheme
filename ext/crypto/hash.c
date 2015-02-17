@@ -127,7 +127,7 @@ SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in, int start, int end)
     /* return value should be checked but i'm lazy... */
     if (SG_PROCEDURE_REQUIRED(proc) == 2) {
       /* copy in if needed */
-      if (start && end != len) {
+      if (start || end != len) {
 	in = SG_BVECTOR(Sg_ByteVectorCopy(SG_BVECTOR(in), start, end));
       }
       return Sg_VMApply2(proc, algo, in);
@@ -183,7 +183,7 @@ SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out, int start, int end)
       /* copy in if needed 
 	 This is only for backward compatibility
        */
-      if (start && end != len) {
+      if (start || end != len) {
 	void *d[3];
 	d[0] = out;		/* save original */
 	d[1] = SG_OBJ(start);
