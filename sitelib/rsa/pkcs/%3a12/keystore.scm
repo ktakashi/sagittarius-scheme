@@ -321,6 +321,7 @@
   (define-class <pkcs12-keystore> (<keystore>)
     ;; we are not so flexible for algorithms
     ((key-algorithm :init-value pbe-with-sha-and3-keytripledes-cbc)
+     ;; storing encrypted-private-key-info
      (keys      :init-form (make-hashtable string-ci-hash string-ci=?)
 		:reader pkcs12-keystore-keys)
      (key-certs :init-form (make-string-hashtable)
@@ -332,7 +333,15 @@
 		  :reader pkcs12-keystore-chain-certificates)
      (local-ids :init-form (make-string-hashtable))
      ;; bag attributes holds bag attributes of the object
-     (bag-attributes :init-form (make-eq-hashtable))))
+     (bag-attributes :init-form (make-eq-hashtable))
+     ;; prng
+     (prng :init-form (secure-random RC4)
+	   :reader pkcs12-keystore-prng
+	   :writer pkcs12-keystore-set-prng!)))
+
+  (define-constant salt-size 20) ;; SHA-1 hash size
+  (define-constant min-iteration 1024)
+
   (define (make-pkcs12-keystore) (make <pkcs12-keystore>))
   (define (pkcs12-keystore? o) (is-a? o <pkcs12-keystore>))
 
@@ -342,10 +351,30 @@
     ;; do nothing
     )
 
-  (define (pkcs12-keystore-get-key keystore name)
+  (define (pkcs12-keystore-get-key keystore name password)
+    ;; JCE PKCS#12 is implemented properly as the spec mentioned.
+    ;; so make it compatible
+    (define (unwrap-key alg-id data password)
+      (let* ((plain-key (cipher-util alg-id password 
+				     (slot-ref data 'string) decrypt))
+	     (asn.1-key
+	      (read-asn.1-object (open-bytevector-input-port plain-key)))
+	     (priv-key-info (make-private-key-info asn.1-key)))
+	priv-key-info))
+
     (let ((keys (slot-ref keystore 'keys)))
-      (cond ((hashtable-ref keys name #f))
+      (cond ((hashtable-ref keys name #f)
+	     => (lambda (pki)
+		  (cond ((private-key-info? pki) (pki->private-key pki))
+			((encrypted-private-key-info? pki)
+			 (pki->private-key (unwrap-key (slot-ref pki 'id)
+						       (slot-ref pki 'data)
+						       password)))
+			(else 
+			 (error 'pkcs12-keystore-get-key 
+				"unknown object" pki)))))
 	    (else #f))))
+
   (define (pkcs12-keystore-get-certificate keystore name)
     (let ((certs (slot-ref keystore 'certs)))
       (cond ((hashtable-ref certs name #f))
@@ -397,18 +426,6 @@
   (define (load-pkcs12-keystore in password
 			:key (extra-data-handler default-extra-data-handler))
 
-    (define create-private-key-from-private-key-info pki->private-key)
-
-    ;; Seems PKCS#12 uses the same password as store password.
-    ;; NB: at least bouncy castle does like that. so keep it simple.
-    (define (unwrap-key alg-id data password)
-      (let* ((plain-key (cipher-util alg-id password 
-				     (slot-ref data 'string) decrypt))
-	     (asn.1-key
-	      (read-asn.1-object (open-bytevector-input-port plain-key)))
-	     (priv-key-info (make-private-key-info asn.1-key)))
-	(create-private-key-from-private-key-info priv-key-info)))
-
     (define (crypt-data alg-id password data)
       (cipher-util alg-id password data decrypt))
 
@@ -454,11 +471,10 @@
       (let ((private-key (if unwrap?
 			     (let ((e-in (make-encrypted-private-key-info 
 					  (slot-ref b 'value))))
-			       (unwrap-key (slot-ref e-in 'id)
-					   (slot-ref e-in 'data)
-					   password))
-			     (create-private-key-from-private-key-info
-			      (make-private-key-info (slot-ref b 'value))))))
+			       ;; just return this
+			       e-in)
+			     ;; just return this
+			     (make-private-key-info (slot-ref b 'value)))))
 	 (let-values (((local-id alias)
 		       (process-attributes private-key keystore
 			 (slot-ref b 'attributes)
@@ -605,18 +621,7 @@
       (make-subject-key-identifier
        (hash SHA-1 (encode (subject-public-key-info-key-data info))))))
   (define (store-pkcs12-keystore keystore out password)
-    ;; should we make this keystore slot?
-    (define prng (secure-random RC4))
-    (define salt-size 20) ;; SHA-1 hash size
-    (define min-iteration 1024)
-
-    (define (wrap-key alg-name key-bv password pbe-params)
-      (let* ((param (make-pbe-parameter 
-		     (pkcs12-pbe-params-get-iv pbe-params)
-		     (pkcs12-pbe-params-get-iterations pbe-params)))
-	     (k (generate-secret-key alg-name password))
-	     (pbe-cipher (cipher alg-name k :parameter param)))
-	(encrypt pbe-cipher key-bv)))
+    (define prng (slot-ref keystore 'prng))
 
     (define (bag-attributes keystore obj)
       (hashtable-ref (slot-ref keystore 'bag-attributes) obj #f))
@@ -657,29 +662,14 @@
 	sets))
 	    
     (define (process-keys keys)
-      (let ((seq (make-der-sequence))
-	    (key-algorithm (slot-ref keystore 'key-algorithm)))
+      (let ((seq (make-der-sequence)))
 	(hashtable-for-each
 	 (lambda (name key)
-	   (define (make-encrypted-key-content key)
-	     (encode
-	      (make-private-key-info 
-	       (make-algorithm-identifier *rsa-private-key-oid* (make-der-null))
-	       key)))
-	   (let* ((salt (read-random-bytes prng salt-size))
-		  (param (make-pkcs12-pbe-params salt min-iteration))
-		  (key-bytes (wrap-key key-algorithm
-				       (make-encrypted-key-content key)
-				       password param))
-		  (alg-id (make-algorithm-identifier 
-			   (cdr (assq key-algorithm *reverse-mapping*))
-			   (der-encodable->der-object param)))
-		  (key-info (make-encrypted-private-key-info alg-id key-bytes))
-		  (bag-attr (bag-attributes keystore key))
+	   (let* ((bag-attr (bag-attributes keystore key))
 		  (names (process-key-bag-attribute keystore key 
 						    bag-attr name)))
 	     (let ((bag (make-safe-bag *pkcs-8-shrouded-key-bag*
-				       (der-encodable->der-object key-info)
+				       (der-encodable->der-object key)
 				       names)))
 	       (asn.1-sequence-add seq bag))))
 	 keys)
@@ -845,7 +835,33 @@
 			       (make-cert-id
 				(x509-certificate-get-public-key c))))))))
 
-  (define (pkcs12-keystore-set-key! keystore alias key certs)
+  (define (pkcs12-keystore-set-key! keystore alias key password certs)
+    (define prng (slot-ref keystore 'prng))
+    (define key-algorithm (slot-ref keystore 'key-algorithm))
+
+    (define (wrap-key alg-name key-bv password pbe-params)
+      (let* ((param (make-pbe-parameter 
+		     (pkcs12-pbe-params-get-iv pbe-params)
+		     (pkcs12-pbe-params-get-iterations pbe-params)))
+	     (k (generate-secret-key alg-name password))
+	     (pbe-cipher (cipher alg-name k :parameter param)))
+	(encrypt pbe-cipher key-bv)))
+    (define (make-encrypted-key-content key)
+      (encode
+       (make-private-key-info 
+	(make-algorithm-identifier *rsa-private-key-oid* (make-der-null))
+	key)))
+    (define (->epki key password)
+      (let* ((salt (read-random-bytes prng salt-size))
+	     (param (make-pkcs12-pbe-params salt min-iteration))
+	     (key-bytes (wrap-key key-algorithm
+				  (make-encrypted-key-content key)
+				  password param))
+	     (alg-id (make-algorithm-identifier 
+		      (cdr (assq key-algorithm *reverse-mapping*))
+		      (der-encodable->der-object param))))
+	(make-encrypted-private-key-info alg-id key-bytes)))
+
     (unless (private-key? key)
       (assertion-violation 'pkcs12-keystore-set-key!
 			   "Private key is required" key))
@@ -856,7 +872,7 @@
 	  (chain (slot-ref keystore 'chain-certs)))
       (when (hashtable-contains? keys alias)
 	(pkcs12-keystore-delete-entry! keystore alias))
-      (hashtable-set! keys alias key)
+      (hashtable-set! keys alias (->epki key password))
       (hashtable-set! (slot-ref keystore 'certs) alias (car certs))
       (for-each (lambda (cert)
 		  (hashtable-set! chain

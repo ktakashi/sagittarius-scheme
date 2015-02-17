@@ -37,7 +37,7 @@
 	    (security keystore interface))
 
   (define-method keystore-get-key ((ks <pkcs12-keystore>) alias password)
-    (pkcs12-keystore-get-key ks alias))
+    (pkcs12-keystore-get-key ks alias password))
   (define-method keystore-get-certificate ((ks <pkcs12-keystore>) alias)
     (pkcs12-keystore-get-certificate ks alias))
   (define-method keystore-get-certificate-chain ((ks <pkcs12-keystore>) alias)
@@ -47,7 +47,7 @@
     (store-pkcs12-keystore ks out password))
 
   (define-method keystore-set-key! ((ks <pkcs12-keystore>) alias key pw certs)
-    (pkcs12-keystore-set-key! ks alias key certs))
+    (pkcs12-keystore-set-key! ks alias key pw certs))
   (define-method keystore-set-certificate! ((ks <pkcs12-keystore>) alias cert)
     (pkcs12-keystore-set-certificate! ks alias cert))
   (define-method keystore-delete-entry! ((ks <pkcs12-keystore>) alias)

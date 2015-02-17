@@ -124,7 +124,7 @@
   (test-assert "pkcs12-keystore-certificates" 
 	       (pkcs12-keystore-certificates keystore))
   (test-assert "pkcs12-keystore-get-key"
-	       (private-key? (pkcs12-keystore-get-key keystore "ca")))
+	       (private-key? (pkcs12-keystore-get-key keystore "ca" "test")))
   (test-assert "pkcs12-keystore-get-certificate"
 	       (x509-certificate?
 		(pkcs12-keystore-get-certificate keystore "ca")))
@@ -135,7 +135,7 @@
     (store-pkcs12-keystore-to-file keystore file "test2")
     (let ((ks (load-pkcs12-keystore-file file "test2")))
       (test-assert "pkcs12-keystore-get-key"
-		   (private-key? (pkcs12-keystore-get-key ks "ca")))
+		   (private-key? (pkcs12-keystore-get-key ks "ca" "test")))
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "ca"))))
@@ -165,9 +165,12 @@
   (test-assert "store key"
 	       (pkcs12-keystore-set-key! ks "key" 
 					 (keypair-private keypair)
-					 (list cert cert2)))
+					 "test3"
+					 (list cert cert2)
+					 ))
   (test-error "store key without cert" condition?
-	      (pkcs12-keystore-set-key! ks "key" (keypair-private keypair) '()))
+	      (pkcs12-keystore-set-key! ks "key" (keypair-private keypair)
+					"test3" '()))
   
   (test-assert "store cert"
 	       (pkcs12-keystore-set-certificate! ks "cert" cert))
@@ -184,7 +187,7 @@
     (store-pkcs12-keystore-to-file ks file "test3")
     (let ((ks (load-pkcs12-keystore-file file "test3")))
       (test-assert "pkcs12-keystore-get-key"
-		   (private-key? (pkcs12-keystore-get-key ks "key")))
+		   (private-key? (pkcs12-keystore-get-key ks "key" "test3")))
       (test-assert "pkcs12-keystore-get-certificate"
 		   (x509-certificate?
 		    (pkcs12-keystore-get-certificate ks "cert"))))

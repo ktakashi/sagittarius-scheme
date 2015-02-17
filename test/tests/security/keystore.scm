@@ -163,11 +163,11 @@
   (test-assert "store key"
 	       (keystore-set-key! ks "key" 
 				  (keypair-private keypair)
-				  "ignore"
+				  "pass"
 				  (list cert cert2)))
   (test-error "store key without cert" condition?
 	      (keystore-set-key! ks "key" (keypair-private keypair) 
-				 "ignore" '()))
+				 "pass" '()))
   
   (test-assert "store cert"
 	       (keystore-set-certificate! ks "cert" cert))
@@ -181,7 +181,7 @@
     (store-keystore-to-file ks file "test3")
     (let ((ks (load-keystore-file 'pkcs12 file "test3")))
       (test-assert "keystore-get-key"
-		   (private-key? (keystore-get-key ks "key" "test3")))
+		   (private-key? (keystore-get-key ks "key" "pass")))
       (test-assert "keystore-get-certificate"
 		   (x509-certificate?
 		    (keystore-get-certificate ks "cert"))))
