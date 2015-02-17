@@ -29,7 +29,7 @@
 ;;;  
 
 (library (security keystore jks)
-    (export <jks-keystore> jks-keystore?
+    (export <jks-keystore> jks-keystore? make-jks-keystore
 	    <jceks-keystore> jceks-keystore?
 
 	    ;; load
@@ -49,11 +49,13 @@
 	    )
     (import (rnrs)
 	    (clos user)
-	    (security keystore jceks keystore))
+	    (security keystore jceks keystore)
+	    (security keystore interface))
 
   (define-class <jks-keystore> (<base-jceks-keystore>) ())
 
   (define (jks-keystore? o) (is-a? o <jks-keystore>))
+  (define (make-jks-keystore) (make <jks-keystore>))
 
   (define load-jks-keystore 
     (generate-load-jceks-key-store <jks-keystore> '(#xfeedfeed)))
@@ -78,6 +80,23 @@
   (define jks-keystore-set-certificate!
     (generate-jceks-set-certificate! jks-keystore?))
 
+
+  (define-method keystore-get-key ((ks <jks-keystore>) alias password)
+    (jks-keystore-get-key ks alias password))
+  (define-method keystore-get-certificate ((ks <jks-keystore>) alias)
+    (jks-keystore-get-certificate ks alias))
+  (define-method keystore-get-certificate-chain ((ks <jks-keystore>) alias)
+    (jks-keystore-get-certificate-chain ks alias))
+
+  (define-method store-keystore ((ks <jks-keystore>) out password)
+    (store-jks-keystore ks out password))
+
+  (define-method keystore-set-key! ((ks <jks-keystore>) alias key pw certs)
+    (jks-keystore-set-key! ks alias key pw certs))
+  (define-method keystore-set-certificate! ((ks <jks-keystore>) alias cert)
+    (jks-keystore-set-certificate! ks alias cert))
+  (define-method keystore-delete-entry! ((ks <jks-keystore>) alias)
+    (jks-keystore-delete-entry! ks alias))
 
 
 )

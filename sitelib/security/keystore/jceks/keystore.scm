@@ -252,7 +252,7 @@
       (or (keystore? keystore)
 	  (assertion-violation 'jks-keystore-set-key!
 			       "Unknown keystore" keystore))
-      (unless (for-all x509-certificate? certs)
+      (unless (and (not (null? certs)) (for-all x509-certificate? certs))
 	(assertion-violation 'jks-keystore-set-key!
 	  "Private key must be accompanied by certificate chain"))
       (let ((epki (wrap key))
