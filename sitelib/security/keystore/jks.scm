@@ -34,7 +34,9 @@
 
 	    ;; load
 	    load-jks-keystore
-	    
+	    load-jks-keystore-file
+	    store-jks-keystore
+	    store-jks-keystore-to-file
 	    ;; get
 	    jks-keystore-get-key
 	    jks-keystore-get-certificate
@@ -55,7 +57,16 @@
 
   (define load-jks-keystore 
     (generate-load-jceks-key-store <jks-keystore> '(#xfeedfeed)))
-
+  (define (load-jks-keystore-file file password)
+    (call-with-input-file file
+      (lambda (in) (load-jks-keystore in password))
+      :transcoder #f))
+  (define store-jks-keystore
+    (generate-store-jceks-keystore jks-keystore? #xfeedfeed))
+  (define (store-jks-keystore-to-file keystore file password)
+    (call-with-output-file file
+      (lambda (out) (store-jks-keystore keystore out password))
+      :transcoder #f))
   (define jks-keystore-get-key (generate-jceks-get-key jks-keystore? #f))
   (define jks-keystore-get-certificate 
     (generate-jceks-get-certificate jks-keystore?))

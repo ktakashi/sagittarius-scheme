@@ -31,6 +31,9 @@
 (library (security keystore jceks)
     (export <jceks-keystore> jceks-keystore?
 	    load-jceks-keystore
+	    load-jceks-keystore-file
+	    store-jceks-keystore
+	    store-jceks-keystore-to-file
 	    jceks-keystore-get-key
 	    jceks-keystore-get-certificate
 	    jceks-keystore-get-certificate-chain
@@ -48,6 +51,18 @@
 
   (define load-jceks-keystore 
     (generate-load-jceks-key-store <jceks-keystore> '(#xcececece #xfeedfeed)))
+  (define (load-jceks-keystore-file file password)
+    (call-with-input-file file
+      (lambda (in) (load-jceks-keystore in password))
+      :transcoder #f))
+  ;; should we accept JKS keystore as well?
+  ;; (we can do with checking <base-jceks-keystore>)
+  (define store-jceks-keystore
+    (generate-store-jceks-keystore jceks-keystore? #xcececece))
+  (define (store-jceks-keystore-to-file keystore file password)
+    (call-with-output-file file
+      (lambda (out) (store-jceks-keystore keystore out password))
+      :transcoder #f))
 
   (define jceks-keystore-get-key (generate-jceks-get-key jceks-keystore? #t))
   (define jceks-keystore-get-certificate 

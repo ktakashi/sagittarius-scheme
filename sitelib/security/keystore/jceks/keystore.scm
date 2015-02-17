@@ -31,6 +31,8 @@
 (library (security keystore jceks keystore)
     (export <base-jceks-keystore>
 	    generate-load-jceks-key-store
+	    generate-store-jceks-keystore
+
 	    generate-jceks-get-key
 	    generate-jceks-get-certificate
 	    generate-jceks-get-certificate-chain
@@ -49,6 +51,7 @@
 	    (rfc x.509)
 	    (srfi :19 time)
 	    (util bytevector)
+	    (util hashtables)
 	    (sagittarius)
 	    (sagittarius control)
 	    (security keystore interface)
@@ -229,17 +232,17 @@
 	   data)))
 	  
       (define (wrap-jceks key)
-	(let* ((salt (read-random-bytes 8)) ;; it's fixed length ... *sigh*
-	       (count 1024)		  ;; make it a bit bigger
+	(let* ((salt (read-random-bytes prng 8)) ;; it's fixed length ... *sigh*
+	       (count 1024) ;; make it a bit bigger
 	       (param (make-algorithm-identifier
 		       +pbe-with-md5-and-des3-oid+
 		       (make-der-sequence
 			(make-der-octet-string salt)
 			(make-der-integer count))))
 	       (pbe-param (make-pbe-parameter salt count))
-	       (key (generate-secret-key pbe-with-md5-and-des3 password))
+	       (pbe-key (generate-secret-key pbe-with-md5-and-des3 password))
 	       (pbe-cipher (cipher pbe-with-md5-and-des 
-				   key :parameter pbe-param)))
+				   pbe-key :parameter pbe-param)))
 	  (make-encrypted-private-key-info param
 	    (encrypt pbe-cipher (encode (make-private-key-info key))))))
       (define (wrap key)
@@ -255,7 +258,7 @@
       (let ((epki (wrap key))
 	    (entries (slot-ref keystore 'entries)))
 	(hashtable-set! entries alias (make <private-key-entry>
-					:data (current-time)
+					:date (current-time)
 					:protected-key (encode epki)
 					:chain certs)))))
 
@@ -264,6 +267,9 @@
       (or (keystore? keystore)
 	  (assertion-violation 'jks-keystore-set-certificate!
 			       "Unknown keystore" keystore))
+      (unless (x509-certificate? cert)
+	(assertion-violation 'jks-keystore-set-certificate!
+			     "X509 certificate required" cert))
       (let ((entries (slot-ref keystore 'entries)))
 	(cond ((hashtable-ref entries alias #f) => 
 	       (lambda (e)
@@ -278,16 +284,17 @@
   (define (default-secret-key-handler . ignore) 
     (error 'load-jks-keystore "secret key is not supported"))
 
+  (define (pre-key-hash password)
+    (and password
+	 (let ((md (hash-algorithm SHA-1)))
+	   (hash-init! md)
+	   (hash-process! md (string->utf16 password 'big))
+	   ;; funny huh?
+	   (hash-process! md (string->utf8 "Mighty Aphrodite"))
+	   md)))
+
   (define (generate-load-jceks-key-store class magics)
     (lambda (bin password :key (secret-key-handler default-secret-key-handler))
-      (define (pre-key-hash password)
-	(and password
-	     (let ((md (hash-algorithm SHA-1)))
-	       (hash-init! md)
-	       (hash-process! md (string->utf16 password 'big))
-	       ;; funny huh?
-	       (hash-process! md (string->utf8 "Mighty Aphrodite"))
-	       md)))
       (define (get-utf8 in)
 	(let ((len (get-u16 in 'big)))
 	  (utf8->string (get-bytevector-n in len))))
@@ -306,7 +313,7 @@
 	  (let loop ((i 0) (r '()))
 	    (if (= i count)
 		(reverse! r)
-		(loop (+ i 1) (load-certificate in version))))))
+		(loop (+ i 1) (cons (load-certificate in version) r))))))
 
       (define (timestamp->time millis)
 	(define (milliseconds->sec&nano msec)
@@ -327,7 +334,6 @@
 		  len))))
 	(define (close) (close-port in))
 	(make-custom-binary-input-port "digest port" read! #f #f close))
-      
       (let* ((md (pre-key-hash password))
 	     (in (if password (make-digest-input-port bin md) bin))
 	     (magic (get-u32 in 'big))
@@ -374,5 +380,72 @@
 	      (error 'load-jks-keystore 
 		     "Keystore was tampered with, or password was incorrect")))
 	  ks))))
+
+  (define (generate-store-jceks-keystore keystore? magic)
+    ;; TODO should we add secret key handler?
+    (lambda (keystore bout password)
+      (define done? #f)
+      (define (make-digest-output-port out digest)
+	(define (write! bv start count)
+	  (put-bytevector out bv start count)
+	  (unless done? (hash-process! digest bv start (+ start count)))
+	  count)
+	(define (close))
+	(make-custom-binary-output-port "digest port" write! #f #f close))
+      
+      (define (put-utf8 out str)
+	(let ((bv (string->utf8 str)))
+	  (put-u16 out (bytevector-length bv) 'big)
+	  (put-bytevector out bv)))
+
+      (define (write-cert out cert)
+	(put-utf8 out "X509") ;; we only support this...
+	(let ((bv (x509-certificate->bytevector cert)))
+	  (put-u32 out (bytevector-length bv) 'big)
+	  (put-bytevector out bv)))
+
+      (define (time->millisecond time)
+	(let ((sec (time-second time))
+	      (nsec (time-nanosecond time)))
+	  (+ (* sec 1000) (div nsec 1000000))))
+
+      (or (keystore? keystore)
+	  (assertion-violation 'store-jks-keystore
+			       "Unknown keystore" keystore))
+      (let* ((md (pre-key-hash password))
+	     (out (if password (make-digest-output-port bout md) bout))
+	     (entries (slot-ref keystore 'entries)))
+	(put-u32 out magic 'big)
+	(put-u32 out 2 'big) ;; always latest version
+	(put-u32 out (hashtable-size entries) 'big)
+	(hashtable-for-each 
+	 (lambda (alias e)
+	   (cond ((is-a? e <certificate-entry>)
+		  (put-u32 out 2 'big)
+		  (put-utf8 out alias)
+		  (put-u64 out (time->millisecond (slot-ref e 'date)) 'big)
+		  (write-cert out (slot-ref e 'certificate)))
+		 ((is-a? e <private-key-entry>)
+		  (put-u32 out 1 'big)
+		  (put-utf8 out alias)
+		  (put-u64 out (time->millisecond (slot-ref e 'date)) 'big)
+		  (let ((epki-bv (slot-ref e 'protected-key))
+			(chain (slot-ref e 'chain)))
+		    (put-u32 out (bytevector-length epki-bv) 'big)
+		    (put-bytevector out epki-bv)
+		    (put-u32 out (length chain) 'big)
+		    (for-each (lambda (cert) (write-cert out cert)) chain)))
+		 ((is-a? e <secret-key-entry>)
+		  ;; TODO
+		  (error 'store-jks-keystore "Secret key is not supported"))
+		 (else (error 'store-jks-keystore "Unknown entry" e))))
+	 entries)
+	(and-let* (( md )
+		   (digest (make-bytevector (hash-size md)))
+		   ( (hash-done! md digest) )
+		   ;; so that hash won't raise an error
+		   ( (set! done? #t) ))
+	  (put-bytevector out digest))
+	(undefined))))
 
   )

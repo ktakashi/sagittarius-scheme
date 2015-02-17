@@ -237,22 +237,75 @@
 		 (not (null? 
 		       (jks-keystore-get-certificate-chain ks "priv-key"))))
 
-    #;
-    (let ((file "test.p12"))
-    (when (file-exists? file) (delete-file file))
-    ;; test storing, we can put different password now
-    (store-keystore-to-file ks file "test3")
-    (let ((ks (load-keystore-file 'pkcs12 file "test3")))
-    (test-assert "keystore-get-key"
-    (private-key? (keystore-get-key ks "key" "pass")))
-    (test-assert "keystore-get-certificate"
-    (x509-certificate?
-    (keystore-get-certificate ks "cert"))))
-    (delete-file file)
-    )
-
-    )
+    (let ((file "test.jks"))
+      (when (file-exists? file) (delete-file file))
+      ;; test storing, we can put different password now
+      (store-jks-keystore-to-file ks file "test3")
+      (let ((ks (load-jks-keystore-file file "test3")))
+	(test-assert "keystore-get-key"
+		     (private-key? (jks-keystore-get-key ks "key" "pass")))
+	(test-assert "keystore-get-certificate"
+		     (x509-certificate?
+		      (jks-keystore-get-certificate ks "cert"))))
+      (delete-file file)))
 )
 
+(define (test-jceks file)
+  (define ks
+    (call-with-input-file (string-append (current-directory) "/test/data/" file)
+      (lambda (in) (load-jceks-keystore in "test"))
+      :transcoder #f))
+
+  (test-assert "JCEKS get key"
+	       (private-key? (jceks-keystore-get-key ks "priv-key" "pass")))
+
+  (let* ((keypair (generate-key-pair RSA))
+	 (keypair2 (generate-key-pair RSA)))
+    (define cert (make-x509-basic-certificate keypair 0
+		   (make-x509-issuer 
+		    '((C . "foo")
+		      (O . "bar")))
+		   (make-validity (current-date)
+				  (current-date))
+		   (make-x509-issuer '((DN . "buzz")))))
+    ;; chain certs
+    (define cert2 (make-x509-basic-certificate keypair2 0
+		    (make-x509-issuer 
+		     '((C . "foo2")
+		       (O . "bar2")))
+		    (make-validity (current-date)
+				   (current-date))
+		    (make-x509-issuer '((DN . "buzz2")))))
+
+    (test-assert "JCEKS set key"
+		 (jceks-keystore-set-key! ks "key" 
+					(keypair-private keypair)
+					"pass"
+					(list cert cert2)))
+
+    (test-assert "JCEKS get key(2)" 
+		 (private-key? (jceks-keystore-get-key ks "key" "pass")))
+
+    (test-assert "JCEKS get certificate"
+		 (x509-certificate? (jceks-keystore-get-certificate ks "cert")))
+    
+    (test-assert "JCEKS get chain" 
+		 (not (null? 
+		       (jceks-keystore-get-certificate-chain ks "priv-key"))))
+
+    (when (file-exists? file) (delete-file file))
+    ;; test storing, we can put different password now
+    (store-jceks-keystore-to-file ks file "test3")
+    (let ((ks (load-jceks-keystore-file file "test3")))
+      (test-assert "keystore-get-key"
+		   (private-key? (jceks-keystore-get-key ks "key" "pass")))
+      (test-assert "keystore-get-certificate"
+		   (x509-certificate?
+		    (jceks-keystore-get-certificate ks "cert"))))
+    (delete-file file)))
+
+(test-jceks "test.jceks")
+;; can read this as well
+(test-jceks "test.jks")
 
 (test-end)
