@@ -161,6 +161,14 @@
 		  :writer set-date-zone-offset!
 		  :validator check-integer)))
 
+  (define-method write-object ((d <date>) out)
+    (format out "#<date ~d/~2,'0d/~2,'0d ~2,'0d:~2,'0d:~2,'0d.~9,'0d (~a)>"
+	    (date-year d) (date-month d) (date-day d)
+	    (date-hour d) (date-minute d) (date-second d)
+	    (date-nanosecond d) (date-zone-offset d)))
+
+
+
   (define (date? o) (is-a? o <date>))
   (define (make-date nano sec min hour day month year offset)
     (make <date> :nanosecond nano :second sec :minute min
