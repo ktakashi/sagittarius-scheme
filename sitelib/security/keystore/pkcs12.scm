@@ -42,6 +42,8 @@
     (pkcs12-keystore-get-certificate ks alias))
   (define-method keystore-get-certificate-chain ((ks <pkcs12-keystore>) alias)
     (pkcs12-keystore-get-certificate-chain ks alias))
+  (define-method keystore-contains-alias? ((ks <pkcs12-keystore>) alias)
+    (pkcs12-keystore-contains-alias? ks alias))
 
   (define-method store-keystore ((ks <pkcs12-keystore>) out password)
     (store-pkcs12-keystore ks out password))

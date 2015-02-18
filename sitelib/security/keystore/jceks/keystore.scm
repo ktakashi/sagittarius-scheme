@@ -36,6 +36,7 @@
 	    generate-jceks-get-key
 	    generate-jceks-get-certificate
 	    generate-jceks-get-certificate-chain
+	    generate-jceks-contains-alias?
 	    generate-jceks-get-creation-date
 	    generate-jceks-set-key!
 	    generate-jceks-set-certificate!)
@@ -195,6 +196,12 @@
       (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
 	     (lambda (e) (slot-ref e 'date)))
 	    (else #f))))
+  (define (generate-jceks-contains-alias? keystore?)
+    (lambda (keystore alias)
+      (or (keystore? keystore)
+	  (assertion-violation 'jks-keystore-get-key 
+			       "Unknown keystore" keystore))
+      (hashtable-contains? (slot-ref keystore 'entries) alias)))
 
   ;; setters
   (define (generate-jceks-set-key! keystore? crypto?)

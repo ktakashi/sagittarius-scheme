@@ -37,6 +37,7 @@
 	    jceks-keystore-get-key
 	    jceks-keystore-get-certificate
 	    jceks-keystore-get-certificate-chain
+	    jceks-keystore-contains-alias?
 	    jceks-keystore-get-creation-date
 
 	    jceks-keystore-set-key!
@@ -71,6 +72,8 @@
     (generate-jceks-get-certificate jceks-keystore?))
   (define jceks-keystore-get-certificate-chain
     (generate-jceks-get-certificate-chain jceks-keystore?))
+  (define jceks-keystore-contains-alias? 
+    (generate-jceks-contains-alias? jceks-keystore?))
   (define jceks-keystore-get-creation-date
     (generate-jceks-get-creation-date jceks-keystore?))
   (define jceks-keystore-set-key! (generate-jceks-set-key! jceks-keystore? #t))
@@ -83,6 +86,8 @@
     (jceks-keystore-get-certificate ks alias))
   (define-method keystore-get-certificate-chain ((ks <jceks-keystore>) alias)
     (jceks-keystore-get-certificate-chain ks alias))
+  (define-method keystore-contains-alias? ((ks <jceks-keystore>) alias)
+    (jceks-keystore-contains-alias? ks alias))
 
   (define-method store-keystore ((ks <jceks-keystore>) out password)
     (store-jceks-keystore ks out password))

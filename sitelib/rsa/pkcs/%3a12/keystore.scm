@@ -38,6 +38,8 @@
 	    pkcs12-keystore-get-certificate
 	    pkcs12-keystore-get-certificate-chain
 
+	    pkcs12-keystore-contains-alias?
+
 	    ;; store
 	    store-pkcs12-keystore
 	    store-pkcs12-keystore-to-file
@@ -385,6 +387,11 @@
 			       name #f))
 			     (else name))))
 	       (hashtable-ref key-certs id #f))))))
+
+  (define (pkcs12-keystore-contains-alias? keystore name)
+    (cond ((hashtable-contains? (slot-ref keystore 'keys) name))
+	  ((hashtable-contains? (slot-ref keystore 'certs) name))
+	  (else #f)))
 
   (define (load-pkcs12-keystore-file in-file password . opt)
     (call-with-input-file in-file

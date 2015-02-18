@@ -34,6 +34,7 @@
 	    keystore-get-certificate
 	    keystore-get-certificate-chain
 	    keystore-get-creation-date
+	    keystore-contains-alias?
 
 	    store-keystore
 	    store-keystore-to-file
@@ -51,11 +52,11 @@
   (define-generic keystore-get-key)
   (define-generic keystore-get-certificate)
   (define-generic keystore-get-certificate-chain)
+  (define-generic keystore-contains-alias?)
   (define-generic keystore-get-creation-date)
   (define-method keystore-get-creation-date ((ks <keystore>) alias)
     ;; default now
-    (and (or (keystore-get-key ks alias)
-	     (keystore-get-certificate ks alias))
+    (and (keystore-contains-alias? ks alias)
 	 (current-date)))
 
   (define-generic store-keystore)

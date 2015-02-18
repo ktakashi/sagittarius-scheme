@@ -35,6 +35,7 @@
 	    keystore-get-certificate
 	    keystore-get-certificate-chain
 	    keystore-get-creation-date
+	    keystore-contains-alias?
 
 	    store-keystore
 	    store-keystore-to-file

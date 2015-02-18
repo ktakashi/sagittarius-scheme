@@ -178,6 +178,11 @@
     (test-assert (format "chain ~a" type)
 		 (not (null? (keystore-get-certificate-chain ks "cert"))))
 
+    (test-assert (format "contains? ~a" type)
+		 (keystore-contains-alias? ks "cert"))
+    (test-assert (format "contains? ~a" type)
+		 (keystore-contains-alias? ks "key"))
+
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now
     (store-keystore-to-file ks file "test3")
