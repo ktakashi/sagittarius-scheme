@@ -182,6 +182,8 @@
 		 (keystore-contains-alias? ks "cert"))
     (test-assert (format "contains? ~a" type)
 		 (keystore-contains-alias? ks "key"))
+    (test-assert (format "creation date ~a" type)
+		 (date? (keystore-get-creation-date ks "key")))
 
     (when (file-exists? file) (delete-file file))
     ;; test storing, we can put different password now

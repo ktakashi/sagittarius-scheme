@@ -194,7 +194,7 @@
 	  (assertion-violation 'jks-keystore-get-key 
 			       "Unknown keystore" keystore))
       (cond ((hashtable-ref (slot-ref keystore 'entries) alias #f) => 
-	     (lambda (e) (slot-ref e 'date)))
+	     (lambda (e) (time-utc->date (slot-ref e 'date))))
 	    (else #f))))
   (define (generate-jceks-contains-alias? keystore?)
     (lambda (keystore alias)

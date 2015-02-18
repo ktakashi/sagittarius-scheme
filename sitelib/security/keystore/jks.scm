@@ -90,6 +90,8 @@
     (jks-keystore-get-certificate ks alias))
   (define-method keystore-get-certificate-chain ((ks <jks-keystore>) alias)
     (jks-keystore-get-certificate-chain ks alias))
+  (define-method keystore-get-creation-date ((ks <jks-keystore>) alias)
+    (jks-keystore-get-creation-date ks alias))
   (define-method keystore-contains-alias? ((ks <jks-keystore>) alias)
     (jks-keystore-contains-alias? ks alias))
 
