@@ -34,4 +34,8 @@
 	   (r (get-line (transcoded-port out (native-transcoder)))))
       (test-equal "output from process" "error" r))))
 
+(test-error "passing non string"
+	    condition?
+	    (run *process-name* 'foo))
+
 (test-end)
