@@ -50,7 +50,7 @@
 	    *rfc5322-atext-chars*
 	    date->rfc5322-date
 	    )
-    (import (rename (rnrs) (get-line text:get-line))
+    (import (except (rnrs) get-line)
 	    (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius io)
@@ -91,21 +91,15 @@
   (define (rfc5322-line-reader port)
     (define (get-line port)
       (if (textual-port? port)
-	  (text:get-line port)
-	  (utf8->string (bytevector-trim-right (binary:get-line port) '(#x0d)))))
-    (let1 r (get-line port)
-      (if (eof-object? r)
-	  r
-	  (let1 len (string-length r)
-	    (cond ((zero? len) r)
-		  ((char=? #\x0d (string-ref r (- len 1))) ;; check CR
-		   ;; TODO memory waste
-		   (substring r 0 (- len 1)))
-		  (else r))))))
-      
+	  (read-line port) ;; this can handle all known eol
+	  (let ((bv (binary:get-line port)))
+	    (if (eof-object? bv)
+		bv
+		(utf8->string (bytevector-trim-right bv '(#x0d)))))))
+    (get-line port))
 
   (define (rfc5322-read-headers in :optional (strict? #f)
-					     (reader (cut rfc5322-line-reader <>)))
+				     (reader (cut rfc5322-line-reader <>)))
     (define (accum name bodies r)
       (cons (list name (string-concatenate-reverse bodies)) r))
     (define drop-leading-fws string-trim)
