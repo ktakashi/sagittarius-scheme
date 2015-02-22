@@ -948,8 +948,10 @@ void Sg__InitLibrary()
   Sg_InitMutex(&suffix_mutex, FALSE);
   ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   
-  extensions = SG_LIST3(SG_MAKE_STRING(".ss"),
+  extensions = SG_LIST4(SG_MAKE_STRING(".ss"),
 			SG_MAKE_STRING(".sls"),
+			/* well, i don't like this but for my convenience */
+			SG_MAKE_STRING(".sld"),
 			SG_MAKE_STRING(".scm"));
   extensions = Sg_AddConstantLiteral(extensions);
 }
