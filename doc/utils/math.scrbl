@@ -216,14 +216,18 @@ for example multiple input datas, you might need to use these low leve APIs.
 @desc{Initialise given @var{hash-algorithm}.
 }
 
-@define[Function]{@name{hash-process!} @args{hash-algorithm bv}}
+@define[Function]{@name{hash-process!}
+ @args{hash-algorithm bv :optional (start 0) (end (bytevector-length bv))}}
 @desc{@var{bv} must be a bytevector.
 
 Process hash process with input data @var{bv}. The result will be stored in the
 @var{hash-algorithm}.
+
+Optional arguments @var{start} and @var{end} limits the input @var{bv}.
 }
 
-@define[Function]{@name{hash-done!} @args{hash-algorithm out}}
+@define[Function]{@name{hash-done!}
+ @args{hash-algorithm out :optional (start 0) (end (bytevector-length bv))}}
 @desc{@var{out} must be a bytevector and must have hash size which the
 @code{hash-size} procedure returns.
 
@@ -231,6 +235,9 @@ Flushes stored hash result in @var{hash-algorithm} into @var{out}.
 
 Once this procedure is called @var{hash-algorithm}'s state will be changed. If
 you want to reuse it, you need to call @code{hash-init!}.
+
+Optional arguments @var{start} and @var{end} specifies the offset of
+output bytevector.
 }
 
 @sub*section[:tag "custom.hash"]{Custom hash algorithm}
@@ -273,7 +280,13 @@ The following example describes how to make it.
 
 The slots @code{init}, @code{process} and @code{done} must be set with a
 procedure which will be called by @code{hash-init!}, @code{hash-process!} and
-@code{hash-done!} respectively.
+@code{hash-done!} respectively. 
+
+The procedure set to @code{process} and @code{done}  must accept 2 or 4
+arguments. If it can accept 4 arguments, then optional argumens @var{start}
+and @var{end} are passed. Implementation can use these information to 
+ptimise memory allocation. If it can accept 2 argumens, then framework 
+handles the range. In this case, uneccesarry allocation may happen.
 
 The slots @code{block-size} and @code{hash-size} must be non negative exact
 integer and will be returned by @code{hash-block-size} and @code{hash-size}
