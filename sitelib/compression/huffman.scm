@@ -111,17 +111,29 @@
   (define (mask n) (- (bitwise-arithmetic-shift 1 n) 1))
   (let loop ()
     (let1 u8 (get-u8 in)
-      (let* ((end? (eof-object? u8))
-	     (e  (vector-ref encode-table (if end? 256 u8)))
-	     (bits (vector-ref e 0))
-	     (code (vector-ref e 1)))
-	;;(print bits ":" code "(" end? ")")
-	(if (and end? (not code))
-	    (when carry (put-u8 out carry))
+      (if (eof-object? u8)
+	  (when carry
+	    (let* ((e (vector-ref encode-table 256))
+		   (bits (vector-ref e 0))
+		   (code (vector-ref e 1)))
+	      (when code
+		;; for now we just pad as HPACK specified
+		;; TODO above assumpiton may not work in other situation
+		(let* ((shift (carry-shift-size bits))
+		       (carry (bitwise-arithmetic-shift-left carry shift))
+		       (code (bitwise-arithmetic-shift-right
+			      code (- bits shift))))
+		  (put-u8 out (bitwise-ior carry code))))))
+	  (let* ((e  (vector-ref encode-table u8))
+		 (bits (vector-ref e 0))
+		 (code (vector-ref e 1)))
+	    (unless code 
+	      (error 'huffman-encode "symbol is not defined in encode table" e))
 	    ;; ex) a:110 x 3
 	    ;;     8 bits of above is 11011011 0
 	    ;;     so first iteration makes carry 110 and size 3
 	    ;;     second iteration, 110110, 6
+	    ;;(print bits ":" code "(" end? ")")
 	    (let loop2 ((bits bits) (code code))
 	      ;;(print "  - " bits ":" code "[" carry "," carry-size "]")
 	      (cond (carry-size
@@ -138,16 +150,16 @@
 			      (set! carry #f)
 			      (set! carry-size #f)
 			      (if (zero? code-shift)
-				  (unless end? (loop))
+				  (loop)
 				  (loop2 code-shift
 					 (bitwise-and code (mask code-shift)))))
 			     (else
 			      (set! carry (bitwise-ior ccarry ccode))
 			      ;;(print "   [new carry] " ccarry)
 			      (set! carry-size (+ carry-shift carry-size))
-			      (unless end? (loop))))))
+			      (loop)))))
 		    ;; easy :)
-		    ((= bits 8) (put-u8 out code) (unless end? (loop)))
+		    ((= bits 8) (put-u8 out code) (loop))
 		    (else 
 		     ;; first put until carry
 		     (do ((bits bits (- bits 8))
@@ -159,7 +171,7 @@
 		       (put-u8 out (bitwise-arithmetic-shift-right
 				    code (- bits 8))))
 		     ;; (print "  *" carry "," carry-size)
-		     (unless end? (loop))))))))))
+		     (loop)))))))))
 
 (define (huffman-code-table->dfs-table table)
   (let1 root (huffman-table->binary-tree table)
