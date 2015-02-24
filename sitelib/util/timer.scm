@@ -108,7 +108,6 @@
 		      ;; set running
 		      (timer-task-running-set! first #t)
 		      
-		      ;; here is not locked
 		      (mutex-unlock! (timer-lock t))
 		      (guard (e (error-handler (error-handler e))
 				(else (raise e)))
@@ -206,7 +205,8 @@
 			  (else (millisecond->time-duration period))))
 	      (queue (timer-queue timer)))
 	  ;; should be able to delete here...
-	  (heap-delete! queue task)
+	  (unless (timer-task-running? task)
+	    (heap-delete! queue task))
 	  ;; update period
 	  (timer-task-period-set! task p)
 	  (timer-task-next-set! task next)
