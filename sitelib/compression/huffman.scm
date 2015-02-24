@@ -253,7 +253,7 @@
 		       (rec (slot-ref node 'left) (+ depth 1))
 		       "")))
       (string-append right-s own left-s)))
-  (print (rec node 0)))
+  (display (rec node 0)) (newline))
 
 (define (insert! node char bits)
   (define (rec node char bits)
