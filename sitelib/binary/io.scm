@@ -50,6 +50,8 @@
 	    open-chunked-binary-input/output-port
 	    ->chunked-binary-input/output-port
 	    +default-chunk-size+
+
+	    ->size-limit-binary-input-port
 	    )
     (import (except (rnrs) get-line)
 	    (sagittarius)
@@ -369,5 +371,53 @@
 	      (else
 	       (set! (~ chunked-port 'position) index)
 	       (set! (~ chunked-port 'offset) offset))))))
+
+  ;; size limited port
+  ;; this itself might not be so useful but if there is an API
+  ;; which takes input port and reads until EOF, then this can
+  ;; be used.
+  ;; 
+  ;; use case:
+  ;;  a port contains multiple records and an API reads it but
+  ;;  expects the given port ends with EOF. if the size of the
+  ;;  record is known then this can be used instead of get all
+  ;;  bytes ahead and convert it to bytevector input port.
+  (define (->size-limit-binary-input-port iport size)
+    (define size-left size)
+    (define original-position (if (port-has-port-position? iport)
+				  (port-position iport)
+				  #f))
+
+    (define (read! bv start count)
+      (let ((reading-size (min count size-left)))
+	(if (<= reading-size 0)
+	    0 ;; don't call get-bytevector-n! for performance
+	    (let ((ret (get-bytevector-n! iport bv start reading-size)))
+	      (cond ((eof-object? ret) 0) ;; well size was too big but hey
+		    ((zero? ret) 0)	;; count was 0?
+		    (else
+		     (set! size-left (- size-left ret))
+		     ret))))))
+    (define position
+      (and original-position
+	   (lambda () (- size size-left))))
+    
+    (define set-position!
+      (and original-position
+	   (port-has-set-port-position!? iport)
+	   (lambda (pos)
+	     (cond ((> pos size) 
+		    (set! size-left 0)
+		    (set-port-position! iport (+ original-position size)))
+		   (else
+		    (set! size-left (- size pos))
+		    (set-port-position! iport (+ original-position pos)))))))
+    ;; should we take keyword argument to close iport?
+    (define (close) #t)
+    ;; Sagittarius specific remove if you want to make this
+    ;; R6RS compliant.
+    (define (ready) (port-ready? iport))
+    (make-custom-binary-input-port "limited-size port" 
+				   read! position set-position! close ready))
   
 )

@@ -179,4 +179,27 @@
     )
 )
 
+(let ()
+  (define data "abcdefghijklmnopqrstuvwxyz1234567890")
+  (call-with-port (open-bytevector-input-port (string->utf8 data))
+    (lambda (in)
+      (test-assert "size limit port"
+		   (binary-port? (->size-limit-binary-input-port in 10)))
+      (let ((in1 (->size-limit-binary-input-port in 10)))
+	(test-equal "get all" 10 (bytevector-length (get-bytevector-all in1)))
+	(test-assert "eof" (eof-object? (get-u8 in1)))
+	;; reset this affects original port as well
+	(set-port-position! in1 0)
+	(test-equal "u8 (1)" #\a (integer->char (get-u8 in1)))
+	;; set-port-position! affects original port if it supports
+	;; port position operations.
+	(test-equal "u8 (2)" #\b (integer->char (lookahead-u8 in)))
+	(test-equal "get all(2)" 9 (bytevector-length (get-bytevector-all in1)))
+	)
+      ;; recreation can continue
+      (let ((in1 (->size-limit-binary-input-port in 10)))
+	(test-equal "u8 (3)" #\k (integer->char (get-u8 in1)))
+	)))
+  )
+
 (test-end)
