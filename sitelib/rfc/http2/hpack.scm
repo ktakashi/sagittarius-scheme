@@ -88,30 +88,35 @@
   (define make-entry cons)
   (define entry-name car)
   (define entry-value cdr)
+  (define (compute-entry-size e)
+    (let ((n-size (bytevector-length (entry-name e)))
+	  (v-size (bytevector-length (entry-value e))))
+      (+ n-size v-size 32)))
+
   (define (evict-table-entries! table new-entry-size)
     (let ((max-size (dynamic-table-max-size table))
 	  (fields (dynamic-table-header-fields table)))
-      (let loop ((size (current-size (dynamic-table-current-size table))))
-	(let ((new-size (- size
-			   (compute-entry-size 
-			    (list-queue-remove-front! fields)))))
-	  (if (>= max-size (+ new-size new-entry-size))
-	      (dynamic-table-current-size-set! table new-size)
-	      (loop new-size))))))
+      (let loop ((size (dynamic-table-current-size table)))
+	(if (zero? size)
+	    (dynamic-table-current-size-set! table 0)
+	    (let* ((e (list-queue-remove-back! fields))
+		   (new-size (- size (compute-entry-size e))))
+	      (if (>= max-size (+ new-size new-entry-size))
+		  (dynamic-table-current-size-set! table new-size)
+		  (loop new-size)))))))
   (define (dynamic-entry-put! table e)
-    (define (compute-entry-size e)
-      (let ((n-size (bytevector-length (entry-name e)))
-	    (v-size (bytevector-length (entry-value e))))
-	(+ n-size v-size 32)))
-    
     (let ((max-size (dynamic-table-max-size table))
 	  (current-size (dynamic-table-current-size table))
 	  (entry-size (compute-entry-size e))
 	  (fields (dynamic-table-header-fields table)))
       (when (> (+ current-size entry-size) max-size)
 	(evict-table-entries! table entry-size))
-      (list-queue-add-back! fields e)
-      (dynamic-table-current-size-set! table (+ current-size entry-size))))
+      ;; may reduced
+      (let ((current-size (dynamic-table-current-size table)))
+	(list-queue-add-front! fields e)
+	;; TODO what should we do if one entry is bigger than
+	;;      max size?
+	(dynamic-table-current-size-set! table (+ current-size entry-size)))))
 
   ;; hpack context
   ;; we need this to manage dynamic table
@@ -134,8 +139,15 @@
 
   (define (lookup-table context index)
     (if (> index +static-table-size+)
-	(let ((table (hpack-context-dynamic-table context)))
-	  (error 'lookup-table "not yet"))
+	;; TODO this takes O(n) make it O(1) somehow
+	(let ((table (hpack-context-dynamic-table context))
+	      (dynamic-index (- index +static-table-size+ 1)))
+	  (let loop ((i 0) (entries (list-queue-list 
+				     (dynamic-table-header-fields table))))
+	    ;; (format #t "~a:~a~%" i (utf8->string (caar entries)))
+	    (if (= i dynamic-index)
+		(car entries)
+		(loop (+ i 1) (cdr entries)))))
 	(cond ((assv index static-decode-table) => cdr)
 	      (else (error 'lookup-table "[INTERNAL] invalid static table")))))
 
@@ -163,7 +175,7 @@
 	    (loop (cons (lookup-table context index) r))))
 	 ;; 6.2.1 Literal Header Field with Incremental Indexing
 	 ((= (bitwise-and b #x40) #x40)
-	  (let ((index (read-index in b #x2F)))
+	  (let ((index (read-index in b #x3F)))
 	    (let-values (((name value) (read-name&value in index)))
 	      (dynamic-table-put! context name value)
 	      (loop (acons name value r)))))
@@ -171,7 +183,7 @@
 	 ((= (bitwise-and b #x20) #x20)
 	  (let ((new-size (read-hpack-integer in b #x1F))
 		(table (hpack-context-dynamic-table context)))
-	    (dynamic-table-max-size-set! new-size)
+	    (dynamic-table-max-size-set! table new-size)
 	    (evict-table-entries! table 0)
 	    (loop r)))
 	 (else
