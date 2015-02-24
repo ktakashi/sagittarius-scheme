@@ -35,14 +35,33 @@
 	    hpack-huffman->bytevector
 	    bytevector->hpack-huffman
 
-	    ;; TODO table lookup
+	    ;; hpack context
+	    make-hpack-context
+	    ;; read
+	    make-hpack-reader
+	    read-hpack
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for include
-	    (compression huffman))
+	    (compression huffman)
+	    (util bytevector)
+	    ;; for lightweight queue (I don't think we need deque)
+	    (srfi :117 list-queues))
 
   (define-constant +code-table+ (include "hpack-code-table.scm"))
-  (define-constant +static-table+ (include "hpack-static-table.scm"))
+  (define-constant +raw-static-table+ (include "hpack-static-table.scm"))
+  ;; need to compute offset
+  (define-constant +static-table-size+ (vector-length +raw-static-table+))
+
+  (define static-decode-table
+    (let loop ((i 0) (r '()))
+      (if (= i +static-table-size+)
+	  r
+	  (let ((e (vector-ref +raw-static-table+ i)))
+	    (loop (+ i 1)
+		  (acons (vector-ref e 0)
+			 (cons (vector-ref e 1) (vector-ref e 2))
+			 r))))))
 
   (define hpack-huffman-encoder (make-huffman-encoder +code-table+))
   (define hpack-huffman-decoder (make-huffman-decoder +code-table+))
@@ -57,7 +76,157 @@
      (lambda (out)
        (hpack-huffman-encoder (open-bytevector-input-port bv) out))))
 
-  ;; 
+  ;; kinda lazy to type ctr, pred and accessor
+  (define-record-type dynamic-table
+    (fields (mutable header-fields)
+	    (mutable max-size)
+	    (mutable current-size))
+    (protocol (lambda (p)
+		(lambda (max-size)
+		  (let ((fields (list-queue)))
+		    (p fields max-size 0))))))
+  (define make-entry cons)
+  (define entry-name car)
+  (define entry-value cdr)
+  (define (evict-table-entries! table new-entry-size)
+    (let ((max-size (dynamic-table-max-size table))
+	  (fields (dynamic-table-header-fields table)))
+      (let loop ((size (current-size (dynamic-table-current-size table))))
+	(let ((new-size (- size
+			   (compute-entry-size 
+			    (list-queue-remove-front! fields)))))
+	  (if (>= max-size (+ new-size new-entry-size))
+	      (dynamic-table-current-size-set! table new-size)
+	      (loop new-size))))))
+  (define (dynamic-entry-put! table e)
+    (define (compute-entry-size e)
+      (let ((n-size (bytevector-length (entry-name e)))
+	    (v-size (bytevector-length (entry-value e))))
+	(+ n-size v-size 32)))
+    
+    (let ((max-size (dynamic-table-max-size table))
+	  (current-size (dynamic-table-current-size table))
+	  (entry-size (compute-entry-size e))
+	  (fields (dynamic-table-header-fields table)))
+      (when (> (+ current-size entry-size) max-size)
+	(evict-table-entries! table entry-size))
+      (list-queue-add-back! fields e)
+      (dynamic-table-current-size-set! table (+ current-size entry-size))))
 
+  ;; hpack context
+  ;; we need this to manage dynamic table
+  (define-record-type hpack-context
+    (fields dynamic-table
+	    header-list)
+    (protocol (lambda (p)
+		(lambda (max-size)
+		  (let ((table (make-dynamic-table max-size))
+			(queue (list-queue)))
+		    (p table queue))))))
+  (define (append-header-list! context e)
+    (let ((header-list (hpack-context-header-list context)))
+      (list-queue-add-back! header-list e)))
+  (define (dynamic-table-put! context name value)
+    (let ((e (make-entry name value))
+	  (table (hpack-context-dynamic-table context)))
+      (dynamic-entry-put! table e)
+      (append-header-list! context e)))
 
+  (define (lookup-table context index)
+    (if (> index +static-table-size+)
+	(let ((table (hpack-context-dynamic-table context)))
+	  (error 'lookup-table "not yet"))
+	(cond ((assv index static-decode-table) => cdr)
+	      (else (error 'lookup-table "[INTERNAL] invalid static table")))))
+
+  ;; reader is easy
+  (define (make-hpack-reader context)
+    ;; port must be limited
+    (lambda (in)
+      (read-hpack in context)))
+
+  (define (read-hpack in context)
+    (define (read-name&value in index)
+      (let ((name (if (zero? index)
+		      (read-hpack-string in)
+		      (entry-name (lookup-table context index))))
+	    (value (read-hpack-string in)))
+	(values name value)))
+    (define read-index read-hpack-integer)
+    (let loop ((r '()))
+      (let ((b (get-u8 in)))
+	(cond 
+	 ((eof-object? b) (reverse! r))
+	 ;; 6.1 Indexed Header Field Representation
+	 ((= (bitwise-and b #x80) #x80) 
+	  (let ((index (read-index in b #x7F)))
+	    (loop (cons (lookup-table context index) r))))
+	 ;; 6.2.1 Literal Header Field with Incremental Indexing
+	 ((= (bitwise-and b #x40) #x40)
+	  (let ((index (read-index in b #x2F)))
+	    (let-values (((name value) (read-name&value in index)))
+	      (dynamic-table-put! context name value)
+	      (loop (acons name value r)))))
+	 ;; 6.3 Dynamic Table Size Update
+	 ((= (bitwise-and b #x20) #x20)
+	  (let ((new-size (read-hpack-integer in b #x1F))
+		(table (hpack-context-dynamic-table context)))
+	    (dynamic-table-max-size-set! new-size)
+	    (evict-table-entries! table 0)
+	    (loop r)))
+	 (else
+	  (let ((type (bitwise-and b #xF0))
+		(index (read-index in b #x0F)))
+	    (cond 
+	     ;; 6.2.2 Literal Header Field without Indexing
+	     ((zero? type) 
+	      (let-values (((name value) (read-name&value in index)))
+		(let ((e (make-entry name value)))
+		  (append-header-list! context e)
+		  (loop (acons name value r)))))
+	     ;; 6.2.3 Literal Header Field never Indexed
+	     ((= type #x10) 
+	      ;; for transfering, 
+	      ;; TODO handle this properly
+	      (let-values (((name value) (read-name&value in index)))
+		(let ((e (make-entry name value)))
+		  (append-header-list! context e)
+		  ;; maybe we need to add never indexed field to the context?
+		  (loop (acons name value r)))))
+	     (else
+	      (error 'read-hpack
+		     "unknown HPACK type" b)))))))))
+
+  (define (read-hpack-integer in first-byte prefix)
+    #|
+      decode I from the next N bits
+      if I < 2^N - 1, return I
+      else
+          M = 0
+          repeat
+              B = next octet
+              I = I + (B & 127) * 2^M
+              M = M + 7
+          while B & 128 == 128
+          return I
+    |#
+    (define (read-variable-integer in)
+      (let loop ((M 0) (B (get-u8 in)) (I 0))
+	(let ((i (+ I (* (bitwise-and B 127) (expt 2 M)))))
+	  (if (= (bitwise-and B 128) 128)
+	      (loop (+ M 7) (get-u8 in) i)
+	      i))))
+    (let ((v (bitwise-and first-byte prefix)))
+      (if (= v prefix)
+	  ;; read variable length
+	  (read-variable-integer in)
+	  v)))
+
+  (define (read-hpack-string in)
+    (let* ((b (get-u8 in))
+	   (len (read-hpack-integer in b #x7F)))
+      (let ((bv (get-bytevector-n in len)))
+	(if (= (bitwise-and b #x80) #x80)
+	    (hpack-huffman->bytevector bv)
+	    bv))))
 )
