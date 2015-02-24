@@ -41,7 +41,8 @@
 	    (sagittarius) ;; for include
 	    (compression huffman))
 
-  (define-constant +code-table+ (include "hpack-table.scm"))
+  (define-constant +code-table+ (include "hpack-code-table.scm"))
+  (define-constant +static-table+ (include "hpack-static-table.scm"))
 
   (define hpack-huffman-encoder (make-huffman-encoder +code-table+))
   (define hpack-huffman-decoder (make-huffman-decoder +code-table+))
@@ -55,4 +56,8 @@
     (call-with-bytevector-output-port
      (lambda (out)
        (hpack-huffman-encoder (open-bytevector-input-port bv) out))))
+
+  ;; 
+
+
 )
