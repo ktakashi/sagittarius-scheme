@@ -27,16 +27,17 @@
        (define-reader-macro :define name c proc #f))
       ((_ name c proc non-term?)
        (define-reader-macro :define name c proc non-term?))
-      ((k :define name c proc non-term?)
-       (begin
-	 (define name proc)
-	 (unless (char? 'c)
-	   (assertion-violation 'k
-				(format "character requireb but got ~s" 'c)))
-	 (unless (procedure? name)
-	   (assertion-violation 'k
-				(format "procedure requireb but got ~s" name)))
-	 (%insert-macro-character c name (current-library) non-term?)))))
+      ((k :define name c proc? non-term?)
+       (define name 
+	 (let ((proc proc?))
+	   (unless (char? 'c)
+	     (assertion-violation 'k
+				  (format "character requireb but got ~s" 'c)))
+	   (unless (procedure? proc)
+	     (assertion-violation 'k
+		  (format "procedure requireb but got ~s" proc)))
+	   (%insert-macro-character c proc (current-library) non-term?)
+	   proc)))))
 
   (define-syntax define-dispatch-macro
     (syntax-rules ()
@@ -46,19 +47,21 @@
        (define-dispatch-macro :define name c sc proc #f))
       ((_ name c sc proc non-term?)
        (define-dispatch-macro :define name c sc proc non-term?))
-      ((k :define name c sc proc non-term?)
-       (begin
-	 (define name proc)
-	 (unless (and (char? 'c) (char? 'sc))
-	   (assertion-violation 'k
-				(format "character requireb but got ~s and ~s"
-					'c 'sc)))
-	 
-	 (unless (procedure? name)
-	   (assertion-violation 'k
-				(format "procedure requireb but got ~s" name)))
-	 (%insert-dispatch-macro-character c sc name (current-library)
-					   non-term?)))))
+      ((k :define name c sc proc? non-term?)
+       (define name 
+	 (let ((proc proc?))
+	   ;; should we make this macro syntax-case and check this
+	   ;; in syntax level?
+	   (unless (and (char? 'c) (char? 'sc))
+	     (assertion-violation 'k
+		  (format "character requireb but got ~s and ~s" 'c 'sc)))
+	   
+	   (unless (procedure? proc)
+	     (assertion-violation 'k
+			  (format "procedure requireb but got ~s" proc)))
+	   (%insert-dispatch-macro-character c sc proc (current-library)
+					     non-term?)
+	   proc)))))
 
   (define-syntax define-reader
     (syntax-rules ()
