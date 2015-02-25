@@ -40,10 +40,16 @@
 	    ;; read
 	    make-hpack-reader
 	    read-hpack
+	    
+	    ;; write
+	    make-hpack-writer
+	    write-hpack
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for include
+	    (sagittarius control)
 	    (compression huffman)
+	    (binary io)
 	    (util bytevector)
 	    ;; for lightweight queue (I don't think we need deque)
 	    (srfi :117 list-queues))
@@ -62,6 +68,22 @@
 		  (acons (vector-ref e 0)
 			 (list (vector-ref e 1) (vector-ref e 2))
 			 r))))))
+
+  (define-values (static-encode-kv-table static-encode-v-table)
+    (let ((kv (make-equal-hashtable +static-table-size+))
+	  ;; generic hashtable is actually heavier
+	  (v  (make-equal-hashtable +static-table-size+)))
+      (let loop ((i 0))
+	(if (= i +static-table-size+)
+	    (values kv v)
+	    (let ((e (vector-ref +raw-static-table+ i))
+		  (i (+ i 1)))
+	      (unless (zero? (bytevector-length (vector-ref e 2)))
+		(hashtable-set! kv (cons (vector-ref e 1) (vector-ref e 2)) i))
+	      ;; use the first one (seems like that on example of spec)
+	      (unless (hashtable-contains? v (vector-ref e 1))
+		(hashtable-set! v (vector-ref e 1) i))
+	      (loop i))))))
 
   (define hpack-huffman-encoder (make-huffman-encoder +code-table+))
   (define hpack-huffman-decoder (make-huffman-decoder +code-table+))
@@ -137,8 +159,16 @@
 	  (table (hpack-context-dynamic-table context)))
       (dynamic-entry-put! table e)
       (append-header-list! context e)))
+  (define (dynamic-table-contains? context name value)
+    (let ((table (hpack-context-dynamic-table context)))
+      (exists (lambda (e)
+		(and (bytevector=? name (entry-name e))
+		     (bytevector=? value (entry-value e))))
+	      (list-queue-list (dynamic-table-header-fields table)))))
+      
+      
 
-  (define (lookup-table context index)
+  (define (lookup-decode-table context index)
     (if (> index +static-table-size+)
 	;; TODO this takes O(n) make it O(1) somehow
 	(let ((table (hpack-context-dynamic-table context))
@@ -150,7 +180,8 @@
 		(car entries)
 		(loop (+ i 1) (cdr entries)))))
 	(cond ((assv index static-decode-table) => cdr)
-	      (else (error 'lookup-table "[INTERNAL] invalid static table")))))
+	      (else (error 'lookup-decode-table
+			   "[INTERNAL] invalid static table")))))
 
   ;; reader is easy
   (define (make-hpack-reader context)
@@ -162,7 +193,7 @@
     (define (read-name&value in index)
       (let ((name (if (zero? index)
 		      (read-hpack-string in)
-		      (entry-name (lookup-table context index))))
+		      (entry-name (lookup-decode-table context index))))
 	    (value (read-hpack-string in)))
 	(values name value)))
     (define read-index read-hpack-integer)
@@ -173,7 +204,7 @@
 	 ;; 6.1 Indexed Header Field Representation
 	 ((= (bitwise-and b #x80) #x80) 
 	  (let ((index (read-index in b #x7F)))
-	    (loop (cons (lookup-table context index) r))))
+	    (loop (cons (lookup-decode-table context index) r))))
 	 ;; 6.2.1 Literal Header Field with Incremental Indexing
 	 ((= (bitwise-and b #x40) #x40)
 	  (let ((index (read-index in b #x3F)))
@@ -184,6 +215,10 @@
 	 ((= (bitwise-and b #x20) #x20)
 	  (let ((new-size (read-hpack-integer in b #x1F))
 		(table (hpack-context-dynamic-table context)))
+	    (when (> new-size (dynamic-table-max-size table))
+	      (error 'read-hpack
+		     "New dynamic table size is bigger than current size"
+		     new-size))
 	    (dynamic-table-max-size-set! table new-size)
 	    (evict-table-entries! table 0)
 	    (loop r)))
@@ -224,7 +259,7 @@
           return I
     |#
     (define (read-variable-integer in)
-      (let loop ((M 0) (B (get-u8 in)) (I 0))
+      (let loop ((M 0) (B (get-u8 in)) (I prefix))
 	(let ((i (+ I (* (bitwise-and B 127) (expt 2 M)))))
 	  (if (= (bitwise-and B 128) 128)
 	      (loop (+ M 7) (get-u8 in) i)
@@ -238,8 +273,112 @@
   (define (read-hpack-string in)
     (let* ((b (get-u8 in))
 	   (len (read-hpack-integer in b #x7F)))
-      (let ((bv (get-bytevector-n in len)))
-	(if (= (bitwise-and b #x80) #x80)
-	    (hpack-huffman->bytevector bv)
-	    bv))))
+      (if (= (bitwise-and b #x80) #x80)
+	  ;; should we do this much? seems kinda overkill...
+	  (call-with-bytevector-output-port
+	   (lambda (out)
+	     (hpack-huffman-decoder (->size-limit-binary-input-port in len)
+				    out)))
+	  (get-bytevector-n in len))))
+
+  ;; FIXME this *always* takes O(n) of dynamic table entries
+  (define (lookup-encode-table context name value)
+    (define (lookup-dynamic-table context name value)
+      (let ((table (hpack-context-dynamic-table context)))
+	(let loop ((i (+ 1 +static-table-size+))
+		   (entries (list-queue-list
+			     (dynamic-table-header-fields table))))
+	  (if (null? entries)
+	      #f
+	      (let ((e (car entries)))
+		(if (and (bytevector=? name (entry-name e))
+			 (bytevector=? value (entry-value e)))
+		    i
+		    (loop (+ i 1) (cdr entries))))))))
+    (let ((e (cons name value)))
+      ;; dynamic table must be first.
+      (cond ((lookup-dynamic-table context name value) =>
+	     (lambda (i) (values i 'indexed)))
+	    ((hashtable-ref static-encode-kv-table e #f) =>
+	     (lambda (i) (values i 'indexed)))
+	    ((hashtable-ref static-encode-v-table name #f) =>
+	     (lambda (i) (values i 'name)))
+	    (else (values #f #f)))))
+	     
+
+  (define (make-hpack-writer context)
+    (lambda (out hpack)
+      (write-hpack out context hpack)))
+
+  ;; writer
+  ;; hpack is a list of following structure
+  ;;  hpack   ::= (element ...)
+  ;;  element ::= (name value attrs ...) | (:table-size-update n)
+  ;;  name    ::= bytevector
+  ;;  value   ::= bytevector
+  ;;  attrs   ::= :no-indexing | :never-indexed | :no-huffman
+  (define (write-hpack out context hpack)
+    (define (prefix&bits attrs)
+      (cond ((memq :no-indexing attrs)   (values #x0 4))
+	    ((memq :never-indexed attrs) (values #x1 4))
+	    (else                        (values #x40 6)))) ;; literal
+    (dolist (e hpack)
+      (if (memq :table-size-update e)
+	  (write-hpack-integer out (cadr e) #x20 5)
+	  (let ((name (car e))
+		(value (cadr e))
+		(attrs (cddr e)))
+	    (let-values (((index indexing-type)
+			  (lookup-encode-table context name value)))
+	      (cond ((eq? indexing-type 'indexed)
+		     (write-hpack-integer out index #x80 7)) ;; 6.1
+		    ((eq? indexing-type 'name)
+		     (let-values (((prefix bits) (prefix&bits attrs)))
+		       (when (and (= prefix #x40)
+				  (not (dynamic-table-contains? 
+					context name value)))
+			 (dynamic-table-put! context name value))
+		       (write-hpack-integer out index prefix bits)
+		       (write-hpack-string out value (memq :no-huffman attrs))))
+		    (else
+		     ;; literal
+		     (let-values (((prefix bits) (prefix&bits attrs)))
+		       (write-hpack-integer out 0 prefix bits)
+		       (let ((no-huffman? (memq :no-huffman attrs)))
+			 (unless (dynamic-table-contains? context name value)
+			   (dynamic-table-put! context name value))
+			 (write-hpack-string out name no-huffman?)
+			 (write-hpack-string out value no-huffman?))))))))))
+
+  (define (write-hpack-integer out n prefix bits)
+    (define (mask n) (- (expt 2 n) 1))
+    #|
+      if I < 2^N - 1, encode I on N bits
+      else
+          encode (2^N - 1) on N bits
+          I = I - (2^N - 1)
+          while I >= 128
+               encode (I % 128 + 128) on 8 bits
+               I = I / 128
+          encode I on 8 bits
+    |#
+    (define (write-variable-length out n prefix bits)
+      (define 2^n-1 (mask bits))
+      (put-u8 out (bitwise-ior prefix 2^n-1))
+      (do ((I (- n 2^n-1) (div I 128)))
+	  ((< I 128)
+	   (put-u8 out I))
+	(put-u8 out (+ (mod I 128) 128))))
+    (if (> (bitwise-length n) bits)
+	(write-variable-length out n prefix bits)
+	(put-u8 out (bitwise-ior prefix (bitwise-and n (mask bits))))))
+
+  (define (write-hpack-string out value no-huffman?)
+    (cond (no-huffman?
+	   (write-hpack-integer out (bytevector-length value) #x00 7)
+	   (put-bytevector out value))
+	  (else
+	   (let ((bv (bytevector->hpack-huffman value)))
+	     (write-hpack-integer out (bytevector-length bv) #x80 7)
+	     (put-bytevector out bv)))))
 )

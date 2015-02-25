@@ -132,26 +132,69 @@
   (define ctx (make-hpack-context 4096))
   (define reader (make-hpack-reader ctx))
   (define max-size-16 #vu8(#b00110000))
-  (define max-size-1306 #vu8(#b00111111 #b10011010 #b00001010))
+  (define max-size-1337 #vu8(#b00111111 #b10011010 #b00001010))
+
+  (test-equal "max size" '() 
+	      (reader (open-bytevector-input-port max-size-1337)))
+  (test-equal "max size 1337" 1337 (table-max-size ctx))
 
   (test-equal "max size" '() (reader (open-bytevector-input-port max-size-16)))
   (test-equal "max size 16" 16 (table-max-size ctx))
 
-  (test-equal "max size" '() 
-	      (reader (open-bytevector-input-port max-size-1306)))
-  (test-equal "max size 1306" 1306 (table-max-size ctx))
+  (test-error "setting bigger max size" condition?
+	      (reader (open-bytevector-input-port max-size-1337)))
+  (test-equal "max size 16 (2)" 16 (table-max-size ctx))
   )
 
-;; read-variable integer
+;; encode test
 (let ()
-  ;; it's not exposed so use with-library to test.
-  (define read-hpack-integer 
-    (with-library (rfc http2 hpack) read-hpack-integer))
-  (test-equal "read variable length integer"
-	      1306
-	      (read-hpack-integer (open-bytevector-input-port
-				   (integer->bytevector #b1001101000001010))
-				  #x1F #x1F)))
+  (define ctx (make-hpack-context 256))
+  (define writer (make-hpack-writer ctx))
+  (define (hpack->bytevector hpack)
+    (call-with-bytevector-output-port
+     (lambda (out)
+       (writer out hpack))))
+  (define res1
+    (uint-list->bytevector
+     '(#x4882 #x6402 #x5885 #xaec3 #x771a #x4b61 #x96d0 #x7abe
+       #x9410 #x54d4 #x44a8 #x2005 #x9504 #x0b81 #x66e0 #x82a6
+       #x2d1b #xff6e #x919d #x29ad #x1718 #x63c7 #x8f0b #x97c8
+       #xe9ae #x82ae #x43d3)
+     'big 2))
+  (define res2 (integer->bytevector #x4883640effc1c0bf))
+  (define res3 (hex-string->bytevector
+		"88c16196d07abe941054d444a8200595\
+                 040b8166e084a62d1bffc05a839bd9ab\
+                 77ad94e7821dd7f2e6c7b335dfdfcd5b\
+                 3960d5af27087f3672c1ab270fb5291f\
+                 9587316065c003ed4ee5b1063d5007"))
+
+  (test-equal "decode response1"
+	      res1
+	      (hpack->bytevector 
+	       '((#*":status"       #*"302")
+		 (#*"cache-control" #*"private")
+		 (#*"date"          #*"Mon, 21 Oct 2013 20:13:21 GMT")
+		 (#*"location"      #*"https://www.example.com"))))
+
+  (test-equal "read response2 (with huffman)"
+	      res2
+	      (hpack->bytevector 
+	       '((#*":status"       #*"307")
+		 (#*"cache-control" #*"private")
+		 (#*"date"          #*"Mon, 21 Oct 2013 20:13:21 GMT")
+		 (#*"location"      #*"https://www.example.com"))))
+
+  (test-equal "read response3 (with huffman)"
+	      res3
+	      (hpack->bytevector 
+	       '((#*":status"          #*"200")
+		(#*"cache-control"    #*"private")
+		(#*"date"             #*"Mon, 21 Oct 2013 20:13:22 GMT")
+		(#*"location"         #*"https://www.example.com")
+		(#*"content-encoding" #*"gzip")
+		(#*"set-cookie"       #*"foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1"))))
+  )
 
 (test-end)
 
