@@ -65,7 +65,8 @@
       ((_ (name port) expr ...)
        (define-reader name (lambda (port) expr ...)))
       ((_ name proc)
-       (begin
-	 (%library-reader-set! (current-library) proc)
-	 (define name proc)))))
+       (define name 
+	 (let ((p proc))
+	   (%library-reader-set! (current-library) proc)
+	   p)))))
 )
