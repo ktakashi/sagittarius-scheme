@@ -41,12 +41,13 @@
 
   (define-dispatch-macro #\# #\*
     (bv-string-reader iport subchar param)
-    (define string-reader (get-macro-character #\"))
+    ;; (define string-reader (get-macro-character #\"))
     (case (lookahead-char iport)
       ((#\")
-       (get-char iport)
        ;; let built-in procedure handle it
-       (string->utf8 (string-reader iport #\")))
+       ;; TODO this doesn't secure if '"' reader macro is overwritten
+       ;;      we may need read-string or something
+       (string->utf8 (read iport)))
       (else
        (lexical-violation 'bv-string-reader "#* expects #\""))))
 
