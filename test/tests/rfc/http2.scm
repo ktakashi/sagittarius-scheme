@@ -44,7 +44,7 @@
 		(":authority" . "www.example.com"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port req1))))
   )
 
@@ -65,7 +65,7 @@
 		(":authority" . "www.example.com"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port req1))))
   (test-equal "table size (req1)" 57 (table-size ctx))
 
@@ -77,7 +77,7 @@
 		("cache-control" . "no-cache"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port req2))))
   (test-equal "table size (req2)" 110 (table-size ctx))
 
@@ -89,7 +89,7 @@
 		("custom-key" . "custom-value"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port req3))))
   (test-equal "table size (req3)" 164 (table-size ctx))
   )
@@ -119,7 +119,7 @@
 		("location" . "https://www.example.com"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port res1))))
   (test-equal "table size (res1)" 222 (table-size ctx))
 
@@ -130,7 +130,7 @@
 		("location" . "https://www.example.com"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port res2))))
   (test-equal "table size (res2)" 222 (table-size ctx))
 
@@ -143,7 +143,7 @@
 		("set-cookie" . "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1"))
 	      (map (lambda (k&v)
 		     (cons (utf8->string (car k&v))
-			   (utf8->string (cdr k&v))))
+			   (utf8->string (cadr k&v))))
 		   (reader (open-bytevector-input-port res3))))
   (test-equal "table size (res3)" 215 (table-size ctx))
   )

@@ -60,7 +60,7 @@
 	  (let ((e (vector-ref +raw-static-table+ i)))
 	    (loop (+ i 1)
 		  (acons (vector-ref e 0)
-			 (cons (vector-ref e 1) (vector-ref e 2))
+			 (list (vector-ref e 1) (vector-ref e 2))
 			 r))))))
 
   (define hpack-huffman-encoder (make-huffman-encoder +code-table+))
@@ -85,9 +85,10 @@
 		(lambda (max-size)
 		  (let ((fields (list-queue)))
 		    (p fields max-size 0))))))
-  (define make-entry cons)
+  (define make-entry list)
   (define entry-name car)
-  (define entry-value cdr)
+  (define entry-value cadr)
+  (define entry-value/attr cdr)
   (define (compute-entry-size e)
     (let ((n-size (bytevector-length (entry-name e)))
 	  (v-size (bytevector-length (entry-value e))))
@@ -178,7 +179,7 @@
 	  (let ((index (read-index in b #x3F)))
 	    (let-values (((name value) (read-name&value in index)))
 	      (dynamic-table-put! context name value)
-	      (loop (acons name value r)))))
+	      (loop (acons name (list value) r)))))
 	 ;; 6.3 Dynamic Table Size Update
 	 ((= (bitwise-and b #x20) #x20)
 	  (let ((new-size (read-hpack-integer in b #x1F))
@@ -193,18 +194,18 @@
 	     ;; 6.2.2 Literal Header Field without Indexing
 	     ((zero? type) 
 	      (let-values (((name value) (read-name&value in index)))
-		(let ((e (make-entry name value)))
+		(let ((e (make-entry name value :no-indexing)))
 		  (append-header-list! context e)
-		  (loop (acons name value r)))))
+		  (loop (acons name (entry-value/attr e) r)))))
 	     ;; 6.2.3 Literal Header Field never Indexed
 	     ((= type #x10) 
 	      ;; for transfering, 
 	      ;; TODO handle this properly
 	      (let-values (((name value) (read-name&value in index)))
-		(let ((e (make-entry name value)))
+		(let ((e (make-entry name value :never-indexed)))
 		  (append-header-list! context e)
 		  ;; maybe we need to add never indexed field to the context?
-		  (loop (acons name value r)))))
+		  (loop (acons name (entry-value/attr e) r)))))
 	     (else
 	      (error 'read-hpack
 		     "unknown HPACK type" b)))))))))
