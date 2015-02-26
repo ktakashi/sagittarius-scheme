@@ -2680,38 +2680,59 @@
 (cond-expand
  (sagittarius.scheme.vm
   (define (expand-macro form p1env)
-    (let loop ((form form) (r '()) (expanded? #f))
-      (if (null? form)
-	  (values (reverse! r) expanded?)
-	  (let* ((expr (car form))
-		 (name (if (pair? expr) (car expr) expr))
-		 (gloc (cond ((symbol? name)
-			      (find-binding (p1env-library p1env) name #f))
-			     ((identifier? name)
-			      (find-binding (id-library name)
-					    (id-name name) #f))
-			     (else #f))))
-	    ;; toplevel must be bounded to something
-	    ;; FIXME, we can't check it here...
-	    ;; (unless gloc
-	    ;;   (assertion-violation name "unbound variable" expr))
-	    (or (and-let* (( gloc )
-			   (m (gloc-ref gloc))
-			   ( (macro? m))
-			   (e ($history (call-macro-expander m expr p1env) 
-					expr)))
-		  (loop (cdr form) (cons e r) #t))
-		(loop (cdr form) (cons expr r) expanded?))))))
+    ;;(define (begin? x) (global-eq? x 'begin p1env))
+    (define (rec form r expanded?)
+      (define (try-expand expr name r expanded? next-form)
+	(or (and-let* ((gloc (cond ((symbol? name)
+				    (find-binding (p1env-library p1env)
+						  name #f))
+				   ((identifier? name)
+				    (find-binding (id-library name)
+						  (id-name name) #f))
+				   (else #f)))
+		       (m (gloc-ref gloc))
+		       ( (macro? m) )
+		       (e ($history (call-macro-expander m expr p1env))))
+	      (rec next-form (cons e r) #t))
+	    (rec next-form (cons expr r) expanded?)))
+      (smatch form
+	(() (values (reverse! r) expanded?))
+	;; toplevel begin forms are eliminated by compile-define-syntax
+	#;
+	((((? begin? -) exprs ___) . rest)
+	 ;; do the same trick as define-syntax compilation
+	 (if (null? rest)
+	     (rec body r expanded?)
+	     (let-values (((er e?) (rec exprs r expanded?))
+			  ((rr r?) (rec rest '() expanded?)))
+	       (values (append! er rr) (or e? r?)))))
+	(((? variable? expr) . rest)
+	 (try-expand expr expr r expanded? rest))
+	(((? pair? expr) . rest)
+	 (try-expand expr (car expr) r expanded? rest))
+	;; not symbol, not identifier and not pair
+	(- (rec (cdr form) (cons (car form) r) expanded?))))
+    (rec form '() #f))
   (define (compile-define-syntax form p1env)
-    (let loop ((form form) (r '()) (exists? #f))
-      (if (null? form)
-	  (values (reverse! r) exists?)
-	  (let ((expr (car form)))
-	    (cond ((and (pair? expr)
-			(global-eq? (car expr) 'define-syntax p1env))
-		   (pass1 expr p1env) ; we don't need the result
-		   (loop (cdr form) r #t))
-		  (else (loop (cdr form) (cons expr r) exists?)))))))
+    (define (define-syntax? x) (global-eq? x 'define-syntax p1env))
+    (define (begin? x) (global-eq? x 'begin p1env))
+    (define (rec form r exists?)
+      ;; TODO how should we handle let(rec)-syntax which contains
+      ;;      define-syntax on toplevel?
+      (smatch form
+	(() (values (reverse! r) exists?))
+	((((? define-syntax? -) body ___) . rest)
+	 (pass1 (car form) p1env) ;; will be stored in the library
+	 (rec rest r #t))
+	;; result of macro expansion often has this
+	((((? begin? -) exprs ___) . rest)
+	 (if (null? rest)
+	     (rec exprs r exists?)
+	     (let-values (((er e?) (rec exprs r exists?))
+			  ((rr r?) (rec rest '() exists?)))
+	       (values (append! er rr) (or e? r?)))))
+	(else (rec (cdr form) (cons (car form) r) exists?))))
+    (rec form '() #f))
 
   (define (expand-form form p1env)
     (let*-values (((form exists?) (compile-define-syntax form p1env))
