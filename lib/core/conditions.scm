@@ -35,6 +35,12 @@
 
 	  initialize-builtin-condition
 	  define-condition-accessor
+
+	  ;; extra
+	  &compile compile-error? ;; we don't expose constructor
+	  compile-error-source compile-error-program
+	  &import import-error?	;; ditto
+	  import-error-library
 	  )
   (import (core)
 	  (core base)
@@ -94,6 +100,9 @@
   (initialize-builtin-condition &i/o-encoding &i/o-port char)
   (initialize-builtin-condition &i/o-decoding &i/o-port)
 
+  (initialize-builtin-condition &compile &error source program)
+  (initialize-builtin-condition &import &error library)
+
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
       (lambda (o)
@@ -141,6 +150,13 @@
     (condition-accessor (record-type-rtd &i/o-port) &i/o-port-port))
   (define i/o-encoding-error-char
     (condition-accessor (record-type-rtd &i/o-encoding) &i/o-encoding-char))
+
+  (define compile-error-source
+    (condition-accessor (record-type-rtd &compile) &compile-error-source))
+  (define compile-error-program
+    (condition-accessor (record-type-rtd &compile) &compile-error-program))
+  (define import-error-library
+    (condition-accessor (record-type-rtd &import) &import-library))
 
   (define-syntax define-condition-type
     (lambda (x)
