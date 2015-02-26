@@ -2301,7 +2301,12 @@
 
 ;; begin
 (define-pass1-syntax (begin form p1env) :null
-  ($seq (imap (lambda (expr) (pass1 expr p1env)) (cdr form))))
+  ($seq (imap (lambda (expr) (pass1 expr p1env))
+	      ;; for after macro expansion.
+	      ;; FIXME this is too adhoc
+	      (if (p1env-toplevel? p1env)
+		  (expand-form (cdr form) p1env)
+		  (cdr form)))))
 
 
 ;; library related
