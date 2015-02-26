@@ -888,8 +888,14 @@
   (or (list? obj)
       (assertion-violation 'generate-temporaries
                            (format "expected list, but got ~s" obj)))
-  (map (lambda (n) (make-identifier (gensym "temp") '() (vm-current-library)))
-       obj))
+  (let ((lib (vm-current-library)))
+    (map (lambda (n) 
+	   ;; I hope this is unique enough.
+	   (make-identifier (string->symbol 
+			     (format "temp.~a.~a" (library-name lib)
+				     (microsecond)))
+			    '() lib))
+	 obj)))
 
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer
