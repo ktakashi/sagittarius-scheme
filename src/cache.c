@@ -476,7 +476,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   value = Sg_HashTableRef(ctx->sharedObjects, obj, SG_UNBOUND);
   if (SG_FALSEP(value)) {
     Sg_HashTableSet(ctx->sharedObjects, obj, SG_TRUE, 0);
-  } else if (SG_TRUEP(value)) {
+  } else if (SG_TRUEP(value) || SG_INTP(value)) {
     /* it was there already so skip. */
     return cbs;
   } else {
@@ -1529,6 +1529,11 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     SgObject o;
     uid = read_word(in, LOOKUP_TAG);
     o = Sg_HashTableRef(ctx->sharedObjects, SG_MAKE_INT(uid), SG_UNBOUND);
+#if 0
+    if (!uid) {
+      Sg_Printf(Sg_StandardErrorPort(), UC("lookup:   %S[%p](%d)\n"), o, o, uid);
+    }
+#endif
     if (SG_UNBOUNDP(o)) {
       ctx->isLinkNeeded = TRUE;
       return make_shared_ref(uid);
@@ -1541,6 +1546,11 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     SgObject o;
     uid = read_word(in, DEFINING_SHARED_TAG);
     o = read_object_rec(in, ctx);
+#if 0
+    if (SG_SYMBOLP(o) && !SG_INTERNED_SYMBOL(o)) {
+      Sg_Printf(Sg_StandardErrorPort(), UC("defining: %S[%p](%d)\n"), o, o, uid);
+    }
+#endif
     Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
     return o;
   }

@@ -888,7 +888,8 @@
   (or (list? obj)
       (assertion-violation 'generate-temporaries
                            (format "expected list, but got ~s" obj)))
-  (map (lambda (n) (make-identifier (gensym) '() (vm-current-library))) obj))
+  (map (lambda (n) (make-identifier (gensym "temp") '() (vm-current-library)))
+       obj))
 
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer
