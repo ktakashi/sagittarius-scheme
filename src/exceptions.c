@@ -534,7 +534,7 @@ SG_DEFINE_BASE_CLASS(Sg_IOFileDoesNotExistClass, SgIOFilename,
 /* compile */
 static void comp_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  Sg_Printf(p, UC("#<%A %A %S>"), SG_CLASS(Sg_ClassOf(o))->name,
+  Sg_Printf(p, UC("#<%A %A %#60S>"), SG_CLASS(Sg_ClassOf(o))->name,
 	    SG_COMPILE_CONDITION(o)->source,
 	    SG_COMPILE_CONDITION(o)->program);
 }
@@ -607,7 +607,7 @@ SG_DEFINE_BASE_CLASS(Sg_ImportConditionClass, SgImportCondition,
 
 static void trace_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
-  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+  Sg_Printf(p, UC("#<%A %#60A>"), SG_CLASS(Sg_ClassOf(o))->name,
 	    SG_IRRITATNS_CONDITION(o)->irritants);
 }
 static SgObject trace_allocate(SgClass *klass, SgObject initargs)
@@ -706,19 +706,32 @@ static void describe_simple(SgPort *out, SgObject con)
   SgSlotAccessor **acc = klass->gettersNSetters;
   int count = klass->nfields;
   Sg_Write(klass->name, out, SG_WRITE_WRITE);
-  for (; acc && *acc; acc++) {
-    SgObject v = Sg_SlotRefUsingAccessor(con, (*acc));
-    if (count == 1) {
-      if (SG_STRINGP(v)) {
-	Sg_Printf(out, UC(" %A"), v);
+  /* a bit of ugly trick
+     &compile and &trace may contain huge program. to avoid printing them
+     we handle them. we don't use is-a? here for performance and subtype
+     handling.
+     FIXME: how should we handle if they are extended?
+   */
+  if (SG_EQ(klass, SG_CLASS_COMPILE_CONDITION)) {
+    Sg_Printf(out, UC("\n    program: %#60S"), comp_prog(con));
+    Sg_Printf(out, UC("\n    source: %A"), comp_source(con));
+  } else if (SG_EQ(klass, SG_CLASS_TRACE_CONDITION)) {
+    Sg_Printf(out, UC(" %#60S"), irr_irritants(con));
+  } else {
+    for (; acc && *acc; acc++) {
+      SgObject v = Sg_SlotRefUsingAccessor(con, (*acc));
+      if (count == 1) {
+	if (SG_STRINGP(v)) {
+	  Sg_Printf(out, UC(" %A"), v);
+	} else {
+	  Sg_Printf(out, UC(" %S"), v);
+	}
       } else {
-	Sg_Printf(out, UC(" %S"), v);
-      }
-    } else {
-      if (SG_STRINGP(v)) {
-	Sg_Printf(out, UC("\n    %A: %A"), (*acc)->name, v);
-      } else {
-	Sg_Printf(out, UC("\n    %A: %S"), (*acc)->name, v);
+	if (SG_STRINGP(v)) {
+	  Sg_Printf(out, UC("\n    %A: %A"), (*acc)->name, v);
+	} else {
+	  Sg_Printf(out, UC("\n    %A: %S"), (*acc)->name, v);
+	}
       }
     }
   }

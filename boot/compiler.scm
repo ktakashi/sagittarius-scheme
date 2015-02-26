@@ -5699,10 +5699,9 @@
       (format "~s:~d" (car info) (cdr info))
       #f))
 (define (truncate-program program)
-  (format/ss "~,,,,60:s" 
-	     (if (circular-list? program)
-		 program
-		 (unwrap-syntax program))))
+  (if (circular-list? program)
+      program
+      (unwrap-syntax program)))
 
 (define (pass2-4 iform library)
   (pass4 (pass3 (pass2 iform library)) library))
