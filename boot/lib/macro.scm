@@ -902,11 +902,19 @@
 	      (lambda (m expr p1env data)
 		(define (rewrite expr env)
 		  (rewrite-form expr (make-eq-hashtable) (vector-ref env 1)
-				(vector-ref env 0) make-identifier
-				(lambda (id) #f)))
-		;; Issue 68. this must use current usage env not
-		;; macro env when this macro is created.
-		(proc (rewrite expr (current-usage-env))))
+				(vector-ref env 0) 
+				;; the same as syntax-case
+				(lambda (name env library)
+				  (make-identifier name
+						   (if (symbol? name) '() env)
+						   library))
+				(lambda (id)
+				  (and (not (pending-identifier? id))
+				       (not (pattern-variable? id))
+				       (not (identifier?
+					     (p1env-lookup env id
+							   LEXICAL)))))))
+		(proc (rewrite expr p1env)))
 	      '()
 	      (current-macro-env)))
 
