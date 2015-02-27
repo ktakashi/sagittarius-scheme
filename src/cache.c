@@ -1969,8 +1969,8 @@ int Sg_ReadCache(SgString *id)
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
     uint64_t end_real;
     Sg_TimeUsage(&end_real, NULL, NULL);
-    Sg_Printf(vm->logPort, UC(";; read cache of %S [%d usec]\n"), id,
-	      (end_real - real));
+    Sg_Printf(vm->logPort, UC(";; read cache of %S [%d ms]\n"), id,
+	      (end_real - real)/1000);
   }
   return ret;
 }

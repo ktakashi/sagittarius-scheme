@@ -141,7 +141,7 @@ static SgObject load_info_cc(SgObject result, void **data)
   uint64_t er, r;
   Sg_TimeUsage(&er, NULL, NULL);
   r = Sg_GetIntegerU64Clamp(real, SG_CLAMP_NONE, NULL);
-  Sg_Printf(out, UC(";; loaded %S [%d usec]\n"), path, er - r);
+  Sg_Printf(out, UC(";; loaded %S [%d ms]\n"), path, (er - r)/1000);
   return result;
 }
 
