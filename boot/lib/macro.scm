@@ -889,13 +889,19 @@
       (assertion-violation 'generate-temporaries
                            (format "expected list, but got ~s" obj)))
   (let ((lib (vm-current-library)))
-    (map (lambda (n) 
-	   ;; I hope this is unique enough.
-	   (make-identifier (string->symbol 
-			     (format "temp.~a.~a" (library-name lib)
-				     (microsecond)))
-			    '() lib))
-	 obj)))
+    (let loop ((i 0) (obj obj) (r '()))
+      (if (null? obj)
+	  r
+	  (loop (+ i 1)
+		(cdr obj)
+		;; hope it's unique enough
+		(cons (make-identifier 
+		       (string->symbol (format "temp.~a.~a'~a"
+					       (library-name lib)
+					       (microsecond)
+					       i))
+		       '() lib)
+		      r))))))
 
 (define (make-variable-transformer proc)
   (make-macro 'variable-transformer

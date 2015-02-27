@@ -60,6 +60,8 @@
 #include "sagittarius/vm.h"
 #include "sagittarius/writer.h"
 
+/* #define USE_UTF8_STRING 1 */
+
 /*
   FIXME
   this is getting messy, so need refactoring!
@@ -559,7 +561,26 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
   SgWord *code = cb->code;
   int i, len = cb->size;
   /* Sg_Printf(Sg_StandardErrorPort(), UC("scanning %S(%p)\n"), cb, cb); */
-  r = write_cache_scan(cb->name, r, ctx);
+  SgObject name = cb->name, value;
+#if 0
+  if (SG_IDENTIFIERP(name)) {
+    name = SG_IDENTIFIER_NAME(name);
+  }
+#endif
+  r = write_cache_scan(name, r, ctx);
+
+  value = Sg_HashTableRef(ctx->sharedObjects, cb, SG_UNBOUND);
+  if (SG_FALSEP(value)) {
+    Sg_HashTableSet(ctx->sharedObjects, cb, SG_TRUE, 0);
+  } else if (SG_TRUEP(value) || SG_INTP(value)) {
+    /* already scanned
+       scanning name may return new closure so save it.
+     */
+    ctx->closures = r;
+    return r;
+  } else {
+    Sg_HashTableSet(ctx->sharedObjects, cb, SG_FALSE, 0);
+  }
 
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
@@ -596,16 +617,17 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 
 static void write_string_cache(SgPort *out, SgString *s, int tag)
 {
-#if 0
+#ifdef USE_UTF8_STRING
   const char *str = Sg_Utf32sToUtf8s(s);
   int size = strlen(str);
   put_word(out, size, tag);
   Sg_WritebUnsafe(out, (uint8_t*)str, 0, size);
-#endif
+#else
   SgChar *str = SG_STRING_VALUE(s);
   int size = SG_STRING_SIZE(s);
   put_word(out, size, tag);
   Sg_WritebUnsafe(out, (uint8_t*)str, 0, size * sizeof(SgChar));
+#endif
 }
 
 static void write_symbol_cache(SgPort *out, SgSymbol *s)
@@ -715,11 +737,11 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
     write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
 		      closures, ctx);
   }
-
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), macro); */
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
     Sg_PutbUnsafe(out, CLOSURE_TAG);
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S(%p)\n"),  */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S(%p)\n"), */
     /* 	      SG_CAR(slot), SG_CAR(slot)); */
     write_cache_pass2(out, SG_CODE_BUILDER(SG_CAR(slot)), closures, ctx);      
   }
@@ -740,6 +762,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
     put_word(out, uid, DEFINING_SHARED_TAG);
     Sg_HashTableSet(ctx->sharedObjects, o, SG_MAKE_INT(uid), 0);
   }
+#if 0
   /* if we scan everything correctly this isn't needed but something
      is missing. To avoid stack overflow, we do extra cyclic object
      check. */
@@ -754,6 +777,7 @@ static void write_object_cache(SgPort *out, SgObject o, SgObject cbs,
       Sg_HashTableSet(ctx->sharedObjects, o, SG_UNDEF, 0);
     }
   }
+#endif
 
   /* how could this happen? */
   if (!o) {
@@ -869,18 +893,24 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   SgWord *code = cb->code;
   /* delete slot for macro */
   SgObject this_slot = Sg_Assq(cb, cbs), state;
-  
+  SgObject name = cb->name;
+#if 0
+  if (SG_IDENTIFIERP(name)) {
+    name = SG_IDENTIFIER_NAME(name);
+  }
+#endif
   if (SG_FALSEP(this_slot)) {
     ESCAPE(ctx, "Target code builder %S(%p) is not collected.\n", cb, cb);
   }
 
   /* it's kinda abuse but fine */
   state = Sg_HashTableRef(ctx->sharedObjects, cb, SG_UNBOUND);
-  if (SG_UNBOUNDP(state)) {
-    Sg_HashTableSet(ctx->sharedObjects, cb, SG_TRUE, 0);
-  } else {
-    /* it's already written */
-    return;
+  if (SG_INTP(state)) {
+    put_word(out, SG_INT_VALUE(state), LOOKUP_TAG);
+  } else if (SG_TRUEP(state)) {
+    int uid = ctx->uid++;
+    put_word(out, uid, DEFINING_SHARED_TAG);
+    Sg_HashTableSet(ctx->sharedObjects, cb, SG_MAKE_INT(uid), 0);
   }
 
   put_word(out, len, CODE_BUILDER_TAG);
@@ -898,7 +928,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   /* I don't think we need this much, but just in case */
   put_4byte(cb->freec);
   put_4byte(SG_INT_VALUE(SG_CDR(this_slot)));
-  write_object_cache(out, cb->name, cbs, ctx);
+  write_object_cache(out, name, cbs, ctx);
   debug_print("written code builder length: %d, pos: %d\n", len,
 	      Sg_PortPosition(out));
   for (i = 0; i < len;) {
@@ -1065,14 +1095,15 @@ static int read_4byte(SgPort *in)
   return ((a << 24) | (b << 16) | (c << 8) | d);
 }
 
-static SgWord read_word_rec(SgPort *in, int tag_type, int size)
+static SgWord read_word_rec(SgPort *in, int tag_type, int size, read_ctx *ctx)
 {
   int i;
   SgWord ret = 0;
   int tag = Sg_GetbUnsafe(in);
   if (tag != tag_type) {
-    Sg_Panic("unexpected cache tag appeared. (expected %d, got %d)\n",
-	     tag_type, tag);
+    ESCAPE(ctx,
+	   "unexpected cache tag appeared. (expected %d, got %d)[pos=%d]\n",
+	   tag_type, tag, Sg_PortPosition(in));
   }
   /* dd cc bb aa -> aa bb cc dd */
   for (i = 0; i < size; i++) {
@@ -1082,9 +1113,9 @@ static SgWord read_word_rec(SgPort *in, int tag_type, int size)
   return ret;
 }
 
-static int read_word(SgPort *in, int tag_type)
+static int read_word(SgPort *in, int tag_type, read_ctx *ctx)
 {
-  return (int)read_word_rec(in, tag_type, EMIT_SIZE);
+  return (int)read_word_rec(in, tag_type, EMIT_SIZE, ctx);
 }
 
 static SgObject link_cb(SgObject cb, read_ctx *ctx)
@@ -1137,12 +1168,17 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       SgObject cb = read_code(in, ctx);
       /* here we need to read the rest closures */
       while ((b = Sg_PeekbUnsafe(in)) != boundary) {
+	/* SgObject r; */
 	if (b == EOF) {
 	  ESCAPE(ctx, "Unexpected EOF in file %A\n", ctx->file);
 	  return SG_FALSE; /* invalid cache */
 	}
 	/* we just need to store the rest to ctx.seen */
 	/* read_code(in, &ctx); */
+	/* r = read_object(in, ctx); */
+	/* if (boundary == MACRO_END_TAG) { */
+	/*   Sg_Printf(Sg_StandardErrorPort(), UC("read: %S\n"), r); */
+	/* } */
 	read_object(in, ctx);
       }
       return link_cb(cb, ctx);
@@ -1160,15 +1196,16 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
 
 static SgString* read_string(SgPort *in, int length)
 {
-#if 0
+#ifdef USE_UTF8_STRING
   char *buf = SG_NEW_ATOMIC2(char *, length + 1);
   SgString *utf32;
   Sg_ReadbUnsafe(in, (uint8_t*)buf, length);
   buf[length] = 0;
   /* This is kinda awkward */
   utf32 = Sg_Utf8sToUtf32s(buf, length);
-  return Sg_MakeString(SG_STRING_VALUE(utf32), SG_LITERAL_STRING);
-#endif
+  return Sg_MakeString(SG_STRING_VALUE(utf32), SG_LITERAL_STRING,
+		       SG_STRING_SIZE(utf32));
+#else
   SgChar *buf, tmp[1024];
   buf = tmp;
   if (length > 1023) {
@@ -1177,14 +1214,17 @@ static SgString* read_string(SgPort *in, int length)
   Sg_ReadbUnsafe(in, (uint8_t *)buf, sizeof(SgChar)*length);
   buf[length] = 0;
   return Sg_MakeString(buf, SG_LITERAL_STRING, length);
+#endif
 }
 
-static SgObject read_symbol(SgPort *in, int internP)
+static SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
 {
   int length;
   SgString *name;
-  length = read_word(in, (internP) ? INTERNED_SYMBOL_TAG 
-				   : UNINTERNED_SYMBOL_TAG);
+  length = read_word(in, 
+		     (internP) ? INTERNED_SYMBOL_TAG 
+			       : UNINTERNED_SYMBOL_TAG,
+		     ctx);
   name = read_string(in, length);
   return Sg_MakeSymbol(name, internP);
 }
@@ -1194,7 +1234,7 @@ static SgObject lookup_library(SgPort *in, read_ctx *ctx)
   int length;
   SgString *name;
   SgObject lib;
-  length = read_word(in, LIBRARY_LOOKUP_TAG);
+  length = read_word(in, LIBRARY_LOOKUP_TAG, ctx);
   name = read_string(in, length);
   lib = Sg_MakeSymbol(name, TRUE);
   lib = Sg_FindLibrary(lib, FALSE);
@@ -1203,25 +1243,25 @@ static SgObject lookup_library(SgPort *in, read_ctx *ctx)
 }
 
 
-static SgObject read_keyword(SgPort *in)
+static SgObject read_keyword(SgPort *in, read_ctx *ctx)
 {
   int length;
   SgString *name;
-  length = read_word(in, KEYWORD_TAG);
+  length = read_word(in, KEYWORD_TAG, ctx);
   name = read_string(in, length);
   return Sg_MakeKeyword(name);
 }
 
-static SgObject read_immediate(SgPort *in)
+static SgObject read_immediate(SgPort *in, read_ctx *ctx)
 {
-  return SG_OBJ(read_word_rec(in, IMMEDIATE_TAG, WORD_SIZE));
+  return SG_OBJ(read_word_rec(in, IMMEDIATE_TAG, WORD_SIZE, ctx));
 }
 
 static SgObject read_number(SgPort *in, read_ctx *ctx)
 {
   int length;
   int subtag;
-  length = read_word(in, NUMBER_TAG);
+  length = read_word(in, NUMBER_TAG, ctx);
   subtag = Sg_GetbUnsafe(in);
   switch (subtag) {
   case BIGNUM: {
@@ -1257,7 +1297,7 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   SgObject name, lib, envs, identity;
   SgIdentifier *id;
 
-  pending = read_word(in, IDENTIFIER_TAG);
+  pending = read_word(in, IDENTIFIER_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* read library name */
   lib = read_object_rec(in, ctx);
@@ -1278,11 +1318,11 @@ static SgObject read_identifier(SgPort *in, read_ctx *ctx)
   return id;
 }
 
-static SgObject read_bvector(SgPort *in)
+static SgObject read_bvector(SgPort *in, read_ctx *ctx)
 {
   int length, i, literalp;
   SgByteVector *bv;
-  length = read_word(in, BYTE_VECTOR_TAG);
+  length = read_word(in, BYTE_VECTOR_TAG, ctx);
   literalp = Sg_GetbUnsafe(in);
   bv = Sg_MakeByteVector(length, 0);
   for (i = 0; i < length; i++) {
@@ -1300,7 +1340,7 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
   int length, i, literalp;
   SgVector *vec;
 
-  length = read_word(in, VECTOR_TAG);
+  length = read_word(in, VECTOR_TAG, ctx);
   literalp = Sg_GetbUnsafe(in);
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
@@ -1318,7 +1358,7 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
   int length, i, literalp;
   SgObject h = SG_NIL, t = SG_NIL;
 
-  length = read_word(in, PLIST_TAG);
+  length = read_word(in, PLIST_TAG, ctx);
   literalp = Sg_GetbUnsafe(in);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
@@ -1335,7 +1375,7 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
   int length, i, literalp;
   SgObject h = SG_NIL, t = SG_NIL, o;
 
-  length = read_word(in, DLIST_TAG);
+  length = read_word(in, DLIST_TAG, ctx);
   literalp = Sg_GetbUnsafe(in);
   o = read_object_rec(in, ctx);
   for (i = 0; i < length; i++) {
@@ -1353,7 +1393,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
 {
   int transP, tag;
   SgObject name, data, env, lib;
-  transP = read_word(in, MACRO_TAG);
+  transP = read_word(in, MACRO_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
   env  = read_object_rec(in, ctx);
@@ -1376,12 +1416,70 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   }
 }
 
+
+static SgSharedRef* make_shared_ref(int mark)
+{
+  SgSharedRef *z = SG_NEW(SgSharedRef);
+  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
+  z->index = SG_MAKE_INT(mark);
+  return z;
+}
+
+static SgObject read_lookup(SgPort *in, read_ctx *ctx)
+{
+  int uid;
+  SgObject o;
+  uid = read_word(in, LOOKUP_TAG, ctx);
+  o = Sg_HashTableRef(ctx->sharedObjects, SG_MAKE_INT(uid), SG_UNBOUND);
+#if 0
+  if (!uid) {
+    Sg_Printf(Sg_StandardErrorPort(), UC("lookup:   %S[%p](%d)\n"), o, o, uid);
+  }
+#endif
+  if (SG_UNBOUNDP(o)) {
+    ctx->isLinkNeeded = TRUE;
+    return make_shared_ref(uid);
+  } else {
+    return o;
+  }
+}
+
+static int read_shared_tag(SgPort *in, read_ctx *ctx)
+{
+  return read_word(in, DEFINING_SHARED_TAG, ctx);
+}
+
+static SgObject read_shared_def(SgPort *in, read_ctx *ctx)
+{
+  int uid = read_shared_tag(in, ctx);
+  SgObject o = read_object_rec(in, ctx);
+
+#if 0
+  if (SG_SYMBOLP(o) && !SG_INTERNED_SYMBOL(o)) {
+    Sg_Printf(Sg_StandardErrorPort(), UC("defining: %S[%p](%d)\n"), o, o, uid);
+  }
+#endif
+  Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
+  return o;
+}
+
 static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
-  int tag = Sg_GetbUnsafe(in);
+  int tag = Sg_GetbUnsafe(in), uid = -1;
   SgObject cb;
   CLOSE_TAG_CHECK(ctx, CLOSURE_TAG, tag);
+  tag = Sg_PeekbUnsafe(in);
+  switch (tag) {
+  case LOOKUP_TAG:
+    return read_lookup(in, ctx);
+  case DEFINING_SHARED_TAG: 
+    uid = read_shared_tag(in, ctx);
+    break;
+  }
   cb = read_code(in, ctx);
+  if (uid >= 0) {
+    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), cb, 0);
+  }
   /* Sg_HashTableSet(ctx->seen, SG_MAKE_INT(num), cb, 0); */
   /* Do we need free variables? */
   return cb;
@@ -1435,14 +1533,6 @@ static SgObject read_user_defined_object(SgPort *in, read_ctx *ctx)
     }
     return obj;
   }
-}
-
-static SgSharedRef* make_shared_ref(int mark)
-{
-  SgSharedRef *z = SG_NEW(SgSharedRef);
-  SG_SET_CLASS(z, SG_CLASS_SHARED_REF);
-  z->index = SG_MAKE_INT(mark);
-  return z;
 }
 
 static SgObject get_shared(SgObject index, read_ctx *ctx)
@@ -1515,60 +1605,34 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
   switch (tag) {
   case INSTRUCTION_TAG:
     ctx->insnP = TRUE;
-    return SG_OBJ((intptr_t)read_word(in, INSTRUCTION_TAG));
+    return SG_OBJ((intptr_t)read_word(in, INSTRUCTION_TAG, ctx));
   case MARK_TAG: {
     int index;
     /* discards tag  */
-    index = read_word(in, MARK_TAG);
+    index = read_word(in, MARK_TAG, ctx);
     return make_shared_ref(index);
   }
   case IMMEDIATE_TAG:
-    return read_immediate(in);
-  case LOOKUP_TAG: {
-    int uid;
-    SgObject o;
-    uid = read_word(in, LOOKUP_TAG);
-    o = Sg_HashTableRef(ctx->sharedObjects, SG_MAKE_INT(uid), SG_UNBOUND);
-#if 0
-    if (!uid) {
-      Sg_Printf(Sg_StandardErrorPort(), UC("lookup:   %S[%p](%d)\n"), o, o, uid);
-    }
-#endif
-    if (SG_UNBOUNDP(o)) {
-      ctx->isLinkNeeded = TRUE;
-      return make_shared_ref(uid);
-    } else {
-      return o;
-    }
-  }
-  case DEFINING_SHARED_TAG: {
-    int uid;
-    SgObject o;
-    uid = read_word(in, DEFINING_SHARED_TAG);
-    o = read_object_rec(in, ctx);
-#if 0
-    if (SG_SYMBOLP(o) && !SG_INTERNED_SYMBOL(o)) {
-      Sg_Printf(Sg_StandardErrorPort(), UC("defining: %S[%p](%d)\n"), o, o, uid);
-    }
-#endif
-    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
-    return o;
-  }
+    return read_immediate(in, ctx);
+  case LOOKUP_TAG: 
+    return read_lookup(in, ctx);
+  case DEFINING_SHARED_TAG: 
+    return read_shared_def(in, ctx);
   case STRING_TAG: 
-    length = read_word(in, STRING_TAG);
+    length = read_word(in, STRING_TAG, ctx);
     return read_string(in, length);
   case INTERNED_SYMBOL_TAG:
-    return read_symbol(in, TRUE);
+    return read_symbol(in, TRUE, ctx);
   case UNINTERNED_SYMBOL_TAG:
-    return read_symbol(in, FALSE);
+    return read_symbol(in, FALSE, ctx);
   case KEYWORD_TAG:
-    return read_keyword(in);
+    return read_keyword(in, ctx);
   case NUMBER_TAG:
     return read_number(in, ctx);
   case IDENTIFIER_TAG:
     return read_identifier(in, ctx);
   case BYTE_VECTOR_TAG:
-    return read_bvector(in);
+    return read_bvector(in, ctx);
   case CLOSURE_TAG:
     return read_closure(in, ctx);
   case VECTOR_TAG:
@@ -1623,14 +1687,14 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
-  name = read_symbol(in, TRUE);
+  name = read_symbol(in, TRUE, ctx);
   if (SG_FALSEP(name)) 
     ESCAPE(ctx, "%S contains invalid library name.\n", ctx->file);
 
   /* if vm is reading a cache, which means library is not loaded yet.
      so we need to create it.
    */
-  length = read_word(in, IMPORT_TAG);
+  length = read_word(in, IMPORT_TAG, ctx);
   for (i = 0; i < length; i++) {
     from = read_object(in, ctx);
     import = read_object(in, ctx);
@@ -1640,7 +1704,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     later = Sg_Acons(from, import, later);
   }
   /* read export */
-  read_word(in, EXPORT_TAG);		/* we don't need EXPORT_TAG's length */
+  read_word(in, EXPORT_TAG, ctx); /* we don't need EXPORT_TAG's length */
   expot = read_object(in, ctx);
 
   tag = Sg_GetbUnsafe(in);
@@ -1672,7 +1736,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   int len, tag, argc, optional, maxStack, freec, index, i;
   SgWord *code;
   SgObject cb, name;
-  len = read_word(in, CODE_BUILDER_TAG);
+  len = read_word(in, CODE_BUILDER_TAG, ctx);
   argc = Sg_GetbUnsafe(in);
   optional = Sg_GetbUnsafe(in);
   maxStack = Sg_GetbUnsafe(in);
@@ -1710,7 +1774,7 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
 {
   int len, tag, i;
   SgObject lib;
-  len = read_word(in, MACRO_SECTION_TAG);
+  len = read_word(in, MACRO_SECTION_TAG, ctx);
   lib = read_object(in, ctx);
   lib = Sg_FindLibrary(lib, FALSE);
   /* never happen. i guess */
@@ -1729,38 +1793,23 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   return SG_UNDEF;
 }
 
-/* if it's more than 1MB we don't read the cache file but
-   compile the library.
+/* 
+   If linking objects are more than threshold, then it would most
+   likely take too much time like more than fresh compilation.
+   In that case, we re-compile it.
+   NB: this happens when macro is too big.
+
    TODO actual benchmark is needed.
  */
-#define CACHE_THRESHOLD 1024*1024
+#define CACHE_THRESHOLD 0x10000
 
-int Sg_ReadCache(SgString *id)
+static int check_timestamp(SgString* id, SgString *cache_path)
 {
-  SgVM *vm = Sg_VM();
-  SgString *cache_path = id_to_filename(id), *timestamp;
   SgFile file;
-  SgPort in;
-  SgBinaryPort bp;
+  SgString *timestamp;
   SgObject obj, vtime, otime;
-  SgHashTable seen, shared;
-  SgLibrary * volatile save = vm->currentLibrary;
-  read_ctx ctx;
-  char tagbuf[50];
-  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
-  int b, ret;
   int64_t size;
-
-  if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
-    return INVALID_CACHE;
-  }
-
-  if (!Sg_FileExistP(cache_path)) {
-    return RE_CACHE_NEEDED;
-  }
-  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id);
-  }
+  char tagbuf[50];
   /* check timestamp */
   timestamp = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   if (!Sg_FileExistP(timestamp)) {
@@ -1785,9 +1834,6 @@ int Sg_ReadCache(SgString *id)
   if (strcmp(tagbuf, VALIDATE_TAG) != 0) {
     return RE_CACHE_NEEDED;
   }
-  /* call #35, if the cache size is too big then it's better not to
-     read it. (linking object takes too much time.) */
-  if (size > CACHE_THRESHOLD) return INVALID_CACHE;
 
   obj = Sg_FileSize(cache_path);
   if (SG_EXACT_INTP(obj)) {
@@ -1799,7 +1845,39 @@ int Sg_ReadCache(SgString *id)
   } else {
     return INVALID_CACHE;	/* which case? */
   }
-  /* end check timestamp */
+  return CACHE_READ;
+}
+
+int Sg_ReadCache(SgString *id)
+{
+  SgVM *vm = Sg_VM();
+  SgString *cache_path = id_to_filename(id);
+  SgFile file;
+  SgPort in;
+  SgBinaryPort bp;
+  SgObject obj;
+  SgHashTable seen, shared;
+  SgLibrary * volatile save = vm->currentLibrary;
+  read_ctx ctx;
+  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
+  int b, ret;
+  /* for statistic */
+  uint64_t real;
+
+  if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
+    return INVALID_CACHE;
+  }
+
+  if (!Sg_FileExistP(cache_path)) {
+    return RE_CACHE_NEEDED;
+  }
+  ret = check_timestamp(id, cache_path);
+  if (ret != CACHE_READ) return ret;
+  /* a bit of statistic for reading cache */
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+    Sg_TimeUsage(&real, NULL, NULL);
+    /* Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id); */
+  }
 
   SG_OPEN_FILE(&file, cache_path, SG_READ);
   Sg_LockFile(&file, SG_SHARED);
@@ -1811,6 +1889,9 @@ int Sg_ReadCache(SgString *id)
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
 
+  /* FIXME this is not right but we don't want to allocate extra memory.
+     NB: read context might be passed to Scheme world.
+   */
   SG_SET_CLASS(&ctx, SG_CLASS_READ_CACHE_CTX);
   ctx.seen = &seen;
   ctx.sharedObjects = &shared;
@@ -1844,7 +1925,11 @@ int Sg_ReadCache(SgString *id)
 	continue;
       }
       /* obj must be cb */
-      ASSERT(SG_CODE_BUILDERP(obj));
+      if (!SG_CODE_BUILDERP(obj)) {
+	ret = INVALID_CACHE;
+	goto end;
+      }
+      /* ASSERT(SG_CODE_BUILDERP(obj)); */
       if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
 	Sg_VMDumpCode(obj);
       }
@@ -1854,6 +1939,11 @@ int Sg_ReadCache(SgString *id)
       SgObject cp;
       SgHashTable linkSeen;
       /* int i = 1; */
+      if (Sg_Length(ctx.links) > CACHE_THRESHOLD) {
+	/* call #35, if the cache size is too big then it's better not to
+	   read it. (linking object takes too much time.) */
+	return INVALID_CACHE;
+      }
       Sg_InitHashTableSimple(&linkSeen, SG_HASH_EQ, 128);
       read_cache_link(SG_CAR(ctx.links), &linkSeen, &ctx);
       /* fprintf(stderr, "count: %d\n", Sg_Length(ctx.links)); */
@@ -1876,6 +1966,12 @@ int Sg_ReadCache(SgString *id)
   Sg_UnlockFile(&file);
   Sg_ClosePort(&in);
   SG_CLEAN_BINARY_PORT(&bp);
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+    uint64_t end_real;
+    Sg_TimeUsage(&end_real, NULL, NULL);
+    Sg_Printf(vm->logPort, UC(";; read cache of %S [%d usec]\n"), id,
+	      (end_real - real));
+  }
   return ret;
 }
 

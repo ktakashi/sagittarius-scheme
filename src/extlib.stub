@@ -947,7 +947,7 @@
   (define-c-proc current-macro-env () (result (-> (Sg_VM) macroEnv)))
 
   ;; time
-  (define-c-proc time-usage () :no-side-effect Sg_TimeUsage)
+  (define-c-proc time-usage () :no-side-effect Sg_VMTimeUsage)
 
   (define-c-proc cond-features () :no-side-effect Sg_CondFeatures)
 

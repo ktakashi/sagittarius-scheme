@@ -199,7 +199,7 @@ SgObject Sg_GetTemporaryDirectory()
   return utf16ToUtf32(value);
 }
 
-SgObject Sg_TimeUsage()
+int Sg_TimeUsage(uint64_t *real, uint64_t *user, uint64_t *sys)
 {
   FILETIME real_time;
   FILETIME creation_time;
@@ -209,18 +209,22 @@ SgObject Sg_TimeUsage()
   GetSystemTimeAsFileTime(&real_time);
   if (GetProcessTimes(GetCurrentProcess(), &creation_time,
 		      &exit_time, &kernel_time, &user_time)) {
-    return Sg_Values3(Sg_MakeFlonum(((double)real_time.dwLowDateTime
-				     + (double)real_time.dwHighDateTime
-				     * (double)UINT32_MAX) / 10000000.0),
-		      Sg_MakeFlonum(((double)user_time.dwLowDateTime
-				     + (double)user_time.dwHighDateTime
-				     * (double)UINT32_MAX) / 10000000.0),
-		      Sg_MakeFlonum(((double)kernel_time.dwLowDateTime
-				     + (double)kernel_time.dwHighDateTime
-				     * (double)UINT32_MAX) / 10000000.0));
-
+    if (real)
+      *real = ((uint64_t)real_time.dwLowDateTime
+	       + real_time.dwHighDateTime
+	       * UINT32_MAX);
+    if (user)
+      *user = ((uint64_t)user_time.dwLowDateTime
+	       + user_time.dwHighDateTime
+	       * UINT32_MAX);
+    if (sys)
+      *sys = ((uint64_t)kernel_time.dwLowDateTime
+	      + kernel_time.dwHighDateTime
+	      * UINT32_MAX);
+    return 0;
   }
-  return SG_FALSE;
+  
+  return -1;
 }
 
 SgObject Sg_GetMacAddress(int pos)

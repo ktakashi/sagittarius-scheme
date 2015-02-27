@@ -37,6 +37,7 @@
 #include "sagittarius/file.h"
 #include "sagittarius/gloc.h"
 #include "sagittarius/library.h"
+#include "sagittarius/number.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/reader.h"
@@ -132,6 +133,18 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
 
 static SgTranscoder *default_load_transcoder = SG_UNDEF;
 
+static SgObject load_info_cc(SgObject result, void **data)
+{
+  SgObject path = data[0];
+  SgObject real = data[1];
+  SgObject out = data[2];
+  uint64_t er, r;
+  Sg_TimeUsage(&er, NULL, NULL);
+  r = Sg_GetIntegerU64Clamp(real, SG_CLAMP_NONE, NULL);
+  Sg_Printf(out, UC(";; loaded %S [%d usec]\n"), path, er - r);
+  return result;
+}
+
 SgObject Sg_VMLoad(SgString *path)
 {
   SgObject file;
@@ -157,8 +170,14 @@ SgObject Sg_VMLoad(SgString *path)
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
   
-  if (SG_VM_LOG_LEVEL(Sg_VM(), SG_INFO_LEVEL)) {
-    Sg_Printf(vm->logPort, UC(";; loading %S\n"), path);
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+    void *data[3];
+    uint64_t r;
+    Sg_TimeUsage(&r, NULL, NULL);
+    data[0] = path;
+    data[1] = Sg_MakeIntegerFromU64(r);
+    data[2] = vm->logPort;
+    Sg_VMPushCC(load_info_cc, data, 3);
   }
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }

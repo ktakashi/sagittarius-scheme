@@ -69,7 +69,9 @@ SG_EXTERN SgObject      Sg_GetDefaultDynamicLoadPath();
 /* time */
 SG_EXTERN int           Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec);
 SG_EXTERN struct timespec* Sg_GetTimeSpec(SgObject t, struct timespec *spec);
-SG_EXTERN SgObject      Sg_TimeUsage();
+SG_EXTERN int           Sg_TimeUsage(uint64_t *real, uint64_t *user, 
+				     uint64_t *sys);
+SG_EXTERN SgObject      Sg_VMTimeUsage();
 
 /* for threading */
 SG_EXTERN void          Sg_YieldCPU();

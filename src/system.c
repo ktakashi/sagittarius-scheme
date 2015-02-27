@@ -37,6 +37,7 @@
 #include "sagittarius/library.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
+#include "sagittarius/values.h"
 
 static void time_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
@@ -138,6 +139,28 @@ struct timespec* Sg_GetTimeSpec(SgObject t, struct timespec *spec)
   }
   return spec;
 }
+
+static double usec2double(uint64_t time)
+{
+  /* sec*10000000 + usec */
+  uint64_t sec = time/10000000;
+  uint64_t usec = time%10000000;
+  return sec + usec / 1000000.0;
+}
+
+SgObject Sg_VMTimeUsage()
+{
+  uint64_t r, u, s;
+  int rr = Sg_TimeUsage(&r, &u, &s);
+  if (rr < 0) {
+    SgObject zero = Sg_MakeFlonum(0);
+    return Sg_Values3(zero, zero, zero);
+  }
+  return Sg_Values3(Sg_MakeFlonum(usec2double(r)),
+		    Sg_MakeFlonum(usec2double(u)),
+		    Sg_MakeFlonum(usec2double(s)));
+}
+
 
 void Sg__InitBaseSystem()
 {

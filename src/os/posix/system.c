@@ -45,6 +45,10 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <netinet/in.h>
+/* TODO
+   might be better not to use these platform specific macro.
+   should we detect those header files on CMake level?
+ */
 #if defined(__SVR4) && defined(__sun)
 # include <net/if_arp.h>
 # include <sys/sockio.h>
@@ -286,20 +290,34 @@ SgObject Sg_GetTemporaryDirectory()
   return Sg_MakeStringC(real);
 }
 
-/* from Ypsilon */
-SgObject Sg_TimeUsage()
+int Sg_TimeUsage(uint64_t *real, uint64_t *user, uint64_t *sys)
 {
-  struct timeval tv;
+  unsigned long sec, usec;
+
+#ifdef HAVE_GETRUSAGE
   struct rusage ru;
+  int r = Sg_GetTimeOfDay(&sec, &usec);
 
-  gettimeofday(&tv, NULL);
-  getrusage(RUSAGE_SELF, &ru);
+  r = getrusage(RUSAGE_SELF, &ru);
+  if (r < 0) return r;
 
-  return Sg_Values3(Sg_MakeFlonum((double)tv.tv_sec + tv.tv_usec / 1000000.0),
-		    Sg_MakeFlonum((double)ru.ru_utime.tv_sec +
-				    ru.ru_utime.tv_usec / 1000000.0),
-		    Sg_MakeFlonum((double)ru.ru_stime.tv_sec +
-				    ru.ru_stime.tv_usec / 1000000.0));
+  if (real)
+    *real = (uint64_t)sec*1000000 + usec;
+  if (user)
+    *user = (uint64_t)ru.ru_utime.tv_sec*1000000 + ru.ru_utime.tv_usec;
+  if (sys)
+    *sys = (uint64_t)ru.ru_stime.tv_sec*1000000 + ru.ru_stime.tv_usec;
+  return r;
+#else  /* i don't think there is a path to reach here though */
+  int r = Sg_GetTimeOfDay(&sec, &usec);
+  if (real)
+    *real = (uint64_t)sec + (usec/1000000);
+  if (user)
+    *user = 0ULL;
+  if (sys)
+    *sys = 0ULL;
+  return r;
+#endif
 }
 
 /* the value will be the same so why not to be located here */
