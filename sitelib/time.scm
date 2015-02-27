@@ -38,7 +38,7 @@
        (let-values (((real-start user-start sys-start) (time-usage)))
 	 (define (round0 x)
 	   (/ (round (* x 1000000.0)) 1000000.0))
-	 (let ((result (apply (lambda () expr) '())))
+	 (let-values ((result (apply (lambda () expr) '())))
 	   (let-values (((real-end user-end sys-end) (time-usage)))
 	     (let ((real (round0 (- real-end real-start)))
 		   (user (round0 (- user-end user-start)))
@@ -46,6 +46,6 @@
 	       (format #t "~%;;  ~s~%" 'expr)
 	       (format #t ";;  ~8,,,'0a real    ~8,,,'0a user    ~8,,,'0a sys~%" real user sys)
 	       (flush-output-port (current-output-port))))
-	   result)))))
+	   (apply values result))))))
 
 )
