@@ -896,10 +896,12 @@
 		(cdr obj)
 		;; hope it's unique enough
 		(cons (make-identifier 
-		       (string->symbol (format "temp.~a.~a'~a"
-					       (library-name lib)
-					       (microsecond)
-					       i))
+		       (string->symbol 
+			(format "temp.~a.~a'~a"
+				(gensym)
+				;; make it smaller
+				(number->string (microsecond) 32)
+				i))
 		       '() lib)
 		      r))))))
 
