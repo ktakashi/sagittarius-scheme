@@ -511,17 +511,28 @@
 ;; see compile-syntax-case.
 (define (compile-syntax exp-name tmpl env mac-env)
   ;; need to keep which library the symbols are defined.
-  (define (rewrite tmpl)
-    ;; only wraps symbols
-    (rewrite-form tmpl (make-eq-hashtable) '() (vector-ref mac-env 0)
-		  make-identifier (lambda (id) #f)))
+  (define (rewrite tmpl ranks)
+    (rewrite-form tmpl 
+		  (make-eq-hashtable) 
+		  env
+		  (vector-ref mac-env 0)
+		  (lambda (name env library)
+		    (make-identifier name (if (symbol? name) '() env)
+				     library))
+		  (lambda (id)
+		    (and (not (pending-identifier? id))
+			 (not (pattern-variable? id))
+			 ;; don't rename pattern variables
+			 (not (assoc id ranks free-identifier=?))
+			 (not (identifier?
+			       (p1env-lookup mac-env id LEXICAL)))))))
   (let* ((ids (collect-unique-ids tmpl))
-	 (template (rewrite tmpl))
 	 (ranks (filter-map (lambda (id)
 			      (let ((p (p1env-lookup mac-env id PATTERN)))
 				(and (number? p)
 				     (cons id p))))
-			    ids)))
+			    ids))
+	 (template (rewrite tmpl ranks)))
     ;; later
     (check-template template ranks)
     (let ((patvar (let ((v (p1env-lookup mac-env .vars LEXICAL BOUNDARY)))
@@ -592,10 +603,12 @@
 		    (make-eq-hashtable)
 		    (vector-ref mac-env 1)
 		    (vector-ref mac-env 0)
-		    (lambda (name env frame)
+		    (lambda (name env lib)
 		      (cond ((lookup-transformer-env name))
 			    (else
-			     (let ((id (make-pending-identifier name env frame)))
+			     ;; TODO not sure if this is actually correct
+			     (let* ((env (if (null? env) (id-envs name) env))
+				    (id (make-pending-identifier name env lib)))
 			       (add-to-transformer-env! name id)))))
 		    ;; preserve template variables and
 		    ;; pattern variables

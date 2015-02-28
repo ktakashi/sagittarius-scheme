@@ -1671,4 +1671,94 @@
 	    #vu8(0)
 	    (sint-list->bytevector '(0) (endianness little) 1))
 
+
+;; found in nausicaa-oopp
+;; template variable should be renamed properly
+;; this caused infnite loop before
+(define-syntax %define-inline
+  (syntax-rules ()
+    ((_ (?name ?arg ... . ?rest) ?form0 ?form ...)
+     (define-syntax ?name
+       (syntax-rules ()
+	 ((_ ?arg ... . ?rest)
+	  (begin ?form0 ?form ...)))))))
+
+(define-syntax define-with-caller
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ (?who (?caller-arg ...) ((?func-arg ?func-default) ...))
+	  ?body0 ?body ...)
+       (with-syntax (((FUNCTION) (generate-temporaries #'(#f))))
+	 #'(begin
+	     (%define-inline (?who ?caller-arg ...)
+	       (FUNCTION ?caller-arg ... ?func-default ...))
+	     (define (FUNCTION ?caller-arg ... ?func-arg ...)
+	       (let-syntax ((?who (identifier-syntax FUNCTION)))
+		 ?body0 ?body ...))))))))
+
+
+(define (make-tagged-variable-transformer tag-id src-var-id)
+  (make-variable-transformer
+   (lambda (stx)
+     (with-syntax ((TAG		tag-id)
+		   (SRC-VAR	src-var-id))
+       (syntax-case stx (set!)
+
+	 ;;Syntax to reference the value of the binding.
+	 (??var
+	  (identifier? #'??var)
+	  src-var-id)
+
+	 ;;Syntax to apply a method or reference a field of the tag
+	 ;;of ?VAR.
+	 ((??var . ??stuff)
+	  #'(TAG dispatch: SRC-VAR (??var . ??stuff)))
+
+	 (_
+	  (syntax-violation '?var
+	    "invalid tagged-variable syntax use" stx)))))))
+
+(define-with-caller (parse-let-bindings (bindings-stx top-id synner)
+					((vars			'())
+					 (tags			'())
+					 (syntax-bindings	'())))
+
+  (syntax-case bindings-stx ()
+    (()
+     (list (reverse vars) (reverse tags) (reverse syntax-bindings)))
+    (((?var ?tag) . ?other-bindings)
+     (let ((tag-id #'?tag))
+       (parse-let-bindings #'?other-bindings top-id synner
+	   (cons #'?var vars)
+	   (cons tag-id tags)
+	   (if (free-identifier=? tag-id top-id)
+	       syntax-bindings
+	       (cons #'(?var (make-tagged-variable-transformer #'?tag #'?var))
+		     syntax-bindings)))))
+    (_
+     (synner "invalid bindings syntax" bindings-stx))))
+
+(define-syntax with-tags
+  (lambda (x)
+    (define (synner msg . irr) (error 'with-tags msg irr))
+    (syntax-case x ()
+      ((_ (?var ...) ?body0 ?body ...)
+       (with-syntax
+	   ((((VAR ...) (TAG ...) (SYNTAX-BINDING ...))
+	     (parse-let-bindings #'(?var ...) #'<top> synner)))
+	 #`(let-syntax (SYNTAX-BINDING ...) ?body0 ?body ...)))
+      (_
+       (synner "syntax error")))))
+
+(define-syntax <beta>
+  (lambda (x)
+    (syntax-case x (dispatch:)
+      ((_ dispatch: src (var . stuff)) #'src))))
+
+(define (beta-def-ref o)
+  (with-tags ((o <beta>))
+    (list (o d) (o e) (o f))))
+
+(test-equal "template variable boundness" '(a a a) (beta-def-ref 'a))
+
 (test-end)
