@@ -84,6 +84,12 @@ int i=GC_get_parallel();
 return 0;
 }
 " GC_GET_THREADED_PARALLEL_WORKS)
+    IF(GC_GET_THREADED_PARALLEL_WORKS)
+      # If non threaded library is installed, then for some reason CMake
+      # would pick the wrong one (libgc.so). To avoid that, we make sure
+      # libgc-threaded.so will be used.
+      SET(BOEHM_GC_LIBRARIES "${PC_BDW_GC_LIBRARY_DIRS}/libgc-threaded.so")
+    ENDIF()
   ENDIF()
 ELSE()
   FIND_LIBRARY(BOEHM_GC_LIBRARIES NAMES gc
