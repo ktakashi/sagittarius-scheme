@@ -154,7 +154,7 @@
 	  (mutex-unlock! mutex)
 	  (mutex-specific-set! mutex (- n 1)))))
 
-  (define-syntax with-atmoic
+  (define-syntax with-atomic
     (syntax-rules ()
       ((_ executor expr ...)
        (dynamic-wind
@@ -162,7 +162,7 @@
 	   (lambda () expr ...)
 	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
   (define (cleanup executor worker state)
-    (with-atmoic executor
+    (with-atomic executor
      (executor-pool-size-set! executor (- (executor-pool-size executor) 1))
      ;; reduce pool count
      ;; remove from workers
@@ -186,7 +186,7 @@
   ;; shutdown given executor. We need to first finish all
   ;; workers then change the state.
   (define (shutdown-executor! executor)
-    (with-atmoic executor
+    (with-atomic executor
      (let ((state (executor-state executor))
 	   (workers (executor-workers executor)))
        (guard (e (else (executor-state-set! executor state)
@@ -212,7 +212,7 @@
 	      (cleanup executor worker 'done)
 	      r)))))
     
-    (or (with-atmoic executor
+    (or (with-atomic executor
 	  (let ((pool-size (executor-pool-size executor))
 		(max-pool-size (executor-max-pool-size executor)))
 	    (and (< pool-size max-pool-size)
