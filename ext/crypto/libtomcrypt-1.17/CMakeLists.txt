@@ -96,7 +96,11 @@ ADD_LIBRARY(hashes STATIC
   src/hashes/chc/chc.c
   # sha2
   src/hashes/sha2/sha256.c
+  # this is included in sha512.c
+  #src/hashes/sha2/sha384.c
   src/hashes/sha2/sha512.c
+  src/hashes/sha2/sha512_224.c
+  src/hashes/sha2/sha512_256.c
   # whirl
   src/hashes/whirl/whirl.c)
 

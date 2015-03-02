@@ -85,7 +85,9 @@
    #define LTC_SHA384
    #define LTC_SHA256
    #define LTC_SHA224
-   
+   #define LTC_SHA512_224
+   #define LTC_SHA512_256
+
    #define LTC_NO_MACS
    #define LTC_HMAC
    #define LTC_OMAC
@@ -195,6 +197,8 @@
 #define LTC_SHA384
 #define LTC_SHA256
 #define LTC_SHA224
+#define LTC_SHA512_224
+#define LTC_SHA512_256
 #define LTC_TIGER
 #define LTC_SHA1
 #define LTC_MD5

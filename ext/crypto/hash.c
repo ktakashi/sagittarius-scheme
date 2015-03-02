@@ -142,7 +142,7 @@ SgObject Sg_VMHashProcess(SgObject algo, SgByteVector *in, int start, int end)
 static SgObject copy_out(SgObject result, void **data)
 {
   SgByteVector *oin = SG_BVECTOR(data[0]);
-  int start = (int)data[1], end = (int)data[2];
+  int start = SG_INT_VALUE(data[1]), end = SG_INT_VALUE(data[2]);
   Sg_ByteVectorCopyX(SG_BVECTOR(result), 0,
 		     oin, start, end-start);
   return SG_OBJ(oin);
@@ -186,8 +186,8 @@ SgObject Sg_VMHashDone(SgObject algo, SgByteVector *out, int start, int end)
       if (start || end != len) {
 	void *d[3];
 	d[0] = out;		/* save original */
-	d[1] = SG_OBJ(start);
-	d[2] = SG_OBJ(end);
+	d[1] = SG_MAKE_INT(start);
+	d[2] = SG_MAKE_INT(end);
 	Sg_VMPushCC(copy_out, d, 3);
 	out = SG_BVECTOR(Sg_ByteVectorCopy(out, start, end));
       }
@@ -408,16 +408,23 @@ void Sg__InitHash(SgLibrary *lib)
   }
   
   REGISTER_HASH(&whirlpool_desc);
-  REGISTER_HASH(&sha512_desc);
-  REGISTER_HASH(&sha384_desc);
-  REGISTER_HASH(&rmd160_desc);
-  REGISTER_HASH(&sha256_desc);
-  REGISTER_HASH(&rmd320_desc);
-  REGISTER_HASH(&sha224_desc);
   REGISTER_HASH(&tiger_desc);
+  /* SHA1 */
   REGISTER_HASH(&sha1_desc);
-  REGISTER_HASH(&rmd256_desc);
+  /* SHA2 */
+  REGISTER_HASH(&sha224_desc);
+  REGISTER_HASH(&sha256_desc);
+  REGISTER_HASH(&sha384_desc);
+  REGISTER_HASH(&sha512_desc);
+  REGISTER_HASH(&sha512_224_desc);
+  REGISTER_HASH(&sha512_256_desc);
+
+  /* RMD */
   REGISTER_HASH(&rmd128_desc);
+  REGISTER_HASH(&rmd160_desc);
+  REGISTER_HASH(&rmd256_desc);
+  REGISTER_HASH(&rmd320_desc);
+  /* MD n */
   REGISTER_HASH(&md5_desc);
   REGISTER_HASH(&md4_desc);
   REGISTER_HASH(&md2_desc);
