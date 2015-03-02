@@ -910,8 +910,8 @@
 		;; hope it's unique enough
 		(cons (make-identifier 
 		       (string->symbol 
-			(format "temp.~a.~a'~a"
-				(gensym)
+			(format "~a.~a'~a"
+				(gensym "temp.")
 				;; make it smaller
 				(number->string (microsecond) 32)
 				i))

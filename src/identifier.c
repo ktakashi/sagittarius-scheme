@@ -54,7 +54,7 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     char buf[50];
     Sg_Putc(port, ' ');
     Sg_Write(SG_IDENTIFIER_IDENTITY(id), port, SG_WRITE_WRITE);
-    snprintf(buf, sizeof(buf), " (%p):%d", id->name, SG_IDENTIFIER_PENDING(id));
+    snprintf(buf, sizeof(buf), " (%p):%d", id, SG_IDENTIFIER_PENDING(id));
     Sg_Putz(port, buf);
   }
   /* Sg_Write(id->envs, port, SG_WRITE_SHARED); */
