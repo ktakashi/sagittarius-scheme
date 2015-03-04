@@ -217,6 +217,7 @@
 	   ((title-case title)	char-set:title-case)
 	   ((numeric num digit)	char-set:digit)
 	   ((punctuation punct)	char-set:punctuation)
+	   ((symbol)            char-set:symbol)
 	   ((hex-digit xdigit hex)	char-set:hex-digit)
 	   ((whitespace white space)	char-set:whitespace)
 	   ((alphanumeric alnum alphanum)	char-set:letter+digit)
