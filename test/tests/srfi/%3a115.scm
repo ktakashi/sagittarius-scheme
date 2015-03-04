@@ -259,11 +259,9 @@
 (test-assert (not (regexp-search '(: bow "foo") "")))
 
 ;; not yet fixed bugs
-#|
 (test-assert "w/ascii"  (regexp-search '(w/ascii bos (* alpha) eos) "English"))
 (test-assert "w/ascii(2)"
 	     (not (regexp-search '(w/ascii bos (* alpha) eos) "Ελληνική")))
-|#
 (test-assert (regexp-search '(w/unicode bos (* alpha) eos) "English"))
 (test-assert (regexp-search '(w/unicode bos (* alpha) eos) "Ελληνική"))
 

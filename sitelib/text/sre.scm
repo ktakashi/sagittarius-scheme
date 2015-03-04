@@ -176,7 +176,7 @@
     (define (parse sre)
       (define (parse-symbol sre)
 	(define (finish cset)
-	  (if (ascii?)
+	  (if (and (char-set? cset) (ascii?))
 	      (char-set-intersection cset char-set:ascii)
 	      cset))
 	(finish
