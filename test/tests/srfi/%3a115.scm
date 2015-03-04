@@ -198,7 +198,6 @@
 ;; *** ditto
 (test '("a" "b" "c" "d" "e" "f" "g" "h" "i")
       (regexp-split '(* digit) "abc123def456ghi789"))
-
 (test '("a" "b") (regexp-split '(+ whitespace) "a b"))
 
 (test '("한" "글")
@@ -244,5 +243,13 @@
 		   (span (rx ,elapsed "-" ,elapsed)))
 	      (regexp-match-submatch (regexp-search span " 1:45:02-2:06:13 ")
 				     0)))
+
+;; partition
+(test '("") (regexp-partition '(+ (or space punct)) ""))
+(test '("Hello" ", " "world" "!\n")
+      (regexp-partition '(+ (or space punct)) "Hello, world!\n"))
+(test '("" "¿" "Dónde" " " "Estás" "?")
+      (regexp-partition '(+ (or space punct)) "¿Dónde Estás?"))
+
 
 (test-end)

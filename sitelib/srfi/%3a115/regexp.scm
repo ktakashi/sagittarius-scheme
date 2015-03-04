@@ -32,7 +32,7 @@
     (export regexp regexp? valid-sre? rx regexp->sre char-set->sre
 	    regexp-matches regexp-matches? regexp-search
 	    regexp-replace regexp-replace-all
-	    regexp-fold regexp-extract regexp-split
+	    regexp-fold regexp-extract regexp-split regexp-partition
 	    regexp-match? regexp-match-count
 	    regexp-match-submatch
 	    regexp-match->list
@@ -76,6 +76,20 @@
 			:optional (start 0) (end (string-length str)))
     (string-split (regexp rx) str start end))
   
+
+  (define (regexp-partition rx str 
+			    :optional (start 0) (end (string-length str)))
+    (define (kons from md str a)
+      (let ((left (substring str from (regexp-match-submatch-start md 0))))
+	(cons (regexp-match-submatch md 0)
+	      (cons left a))))
+    
+    (define (final from md str a)
+      (if (or (< from end) (null? a))
+	  (cons (substring str from end) a)
+	  a))
+    (reverse! (regexp-fold rx kons '() str final start end)))
+
   (define (regexp-extract rx str :optional (start 0) (end (string-length str)))
     (regexp-fold rx 
 		 (lambda (from md str a)

@@ -164,9 +164,8 @@
 	      ((regex-find m)
 	       (let ((first (regex-first m))
 		     (last  (regex-last m)))
-		 (let* ((off (if (= first last) 1 0))
-			(s   (substring str from (+ first off))))
-		   (loop (kons from m s acc) (+ last off)))))
+		 (let ((off (if (= first last) 1 0)))
+		   (loop (kons from m str acc) (+ last off)))))
 	      (else (finish from #f str acc))))))
   ;; now this is a bit inefficient...
   (define (string-split text str/pattern 
@@ -183,8 +182,10 @@
        (lambda (from md str a) 
 	 (let* ((i (regex-first md))
 		(e (regex-last md))
-		(off (if (= i e) 1 0)))
-	   (if (< from (+ i off)) (cons str a) a)))
+		(off (if (= from e) 1 0)))
+	   (if (< from (+ i off))
+	       (cons (substring str from (+ i off)) a)
+	       a)))
        '()
        text
        (lambda (from md str a)
