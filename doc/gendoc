@@ -3,6 +3,17 @@
 	(getopt)
 	(sagittarius document html))
 
+(define (usage)
+  (print "gendoc [OPTIONS] file"))
+
+(define (check-older output)
+  (unless (port? output)
+    (let ((files (glob "**/*.scrbl"))
+	  (doc-mtime (file-stat-mtime output)))
+      (when (for-all (lambda (file) (< (file-stat-mtime file) doc-mtime)) files)
+	(print "Document is not changed. " output)
+	(exit 0)))))
+
 (define (main args)
   (with-args args
       ((output     (#\o "output") #t (current-output-port))
@@ -13,6 +24,7 @@
     (unless (file-exists? (cadr files))
       (usage)
       (exit -1))
+    (check-older output)
     (scribble-file->html (cadr files)
 			 :output output
 			 :style style
