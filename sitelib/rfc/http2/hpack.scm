@@ -187,7 +187,7 @@
   ;; needed for connection
   (define (update-hpack-table-size! context size)
     (let1 table (hpack-context-dynamic-table context)
-      (dynamic-table-max-size-set! table new-size)
+      (dynamic-table-max-size-set! table size)
       (evict-table-entries! table 0)))
 
   ;; reader is easy

@@ -1029,7 +1029,8 @@ static int socket_get_u8(SgObject self)
     } else if (-1 == ret) {
       Sg_IOReadError(SG_INTERN("get-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self);
+		     self,
+		     SG_NIL);
       return -1;
     } else {
       SG_BINARY_PORT(self)->position += ret;
@@ -1061,7 +1062,8 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     if (-1 == now) {
       Sg_IOReadError(SG_INTERN("read-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self);
+		     self,
+		     SG_NIL);
       return -1;
     }
     size -= now;
@@ -1086,7 +1088,8 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
     if (-1 == read_size) {
       Sg_IOReadError(SG_INTERN("read-u8-all"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self);
+		     self,
+		     SG_NIL);
       return -1;
     } else {
       Sg_WritebUnsafe(&buffer, read_buf, 0, read_size);
@@ -1111,7 +1114,8 @@ static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
   if (-1 == written_size) {
     Sg_IOWriteError(SG_INTERN("read-u8"),
 		    Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		    self);
+		    self,
+		    SG_NIL);
     return -1;
   }
   return written_size;
