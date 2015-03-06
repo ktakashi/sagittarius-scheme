@@ -10,8 +10,8 @@
 	    assertion/syntax-violation
 	    raise-i/o-filename-error
 	    raise-i/o-error
-	    raise-misc-i/o-error-with-port
-	    raise-misc-i/o-error
+	    ;;raise-misc-i/o-error-with-port
+	    ;;raise-misc-i/o-error
 	    raise-i/o-read-error
 	    raise-i/o-write-error
 	    raise-i/o-file-protection-error
@@ -124,7 +124,7 @@
     (raise
      (apply condition
             (filter values
-                    (list (apply constructor options)
+                    (list (constructor)
                           (and who (make-who-condition who))
                           (make-message-condition message)
                           (and port (make-i/o-port-error port))
@@ -142,20 +142,23 @@
                                (make-irritants-condition options))))))))
 
 (define raise-i/o-read-error
-  (lambda (who message port)
-    (raise-misc-i/o-error-with-port make-i/o-read-error who message port)))
+  (lambda (who message port . irr)
+    (apply raise-misc-i/o-error-with-port
+	   make-i/o-read-error who message port irr)))
 
 (define raise-i/o-write-error
-  (lambda (who message port)
-    (raise-misc-i/o-error-with-port make-i/o-write-error who message port)))
+  (lambda (who message port . irr)
+    (apply raise-misc-i/o-error-with-port
+	   make-i/o-write-error who message port irr)))
 
 (define raise-i/o-file-protection-error
   (lambda (who message filename)
     (raise-misc-i/o-error make-i/o-file-protection-error who message filename)))
 
 (define raise-i/o-file-is-read-only-error
-  (lambda (who message port)
-    (raise-misc-i/o-error-with-port make-i/o-file-is-read-only-error who message port)))
+  (lambda (who message port . irr)
+    (apply raise-misc-i/o-error-with-port
+	   make-i/o-file-is-read-only-error who message port irr)))
 
 (define raise-i/o-file-already-exists-error
   (lambda (who message filename)
@@ -167,7 +170,13 @@
 
 (define raise-i/o-invalid-position-error
   (lambda (who message port position)
-    (raise-misc-i/o-error-with-port make-i/o-invalid-position-error who message port position)))
+    (raise
+     (apply condition
+	    (filter values
+		    (list (make-i/o-invalid-position-error position)
+			  (make-i/o-port-error port)
+			  (and who (make-who-condition who))
+			  (make-message-condition message)))))))
 
 (define raise-i/o-decoding-error
   (lambda (who message port)

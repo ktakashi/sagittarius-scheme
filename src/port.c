@@ -1780,6 +1780,7 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
       Sg_IOReadError(SG_INTERN("get-bytevector"),
 		     Sg_Sprintf(UC("custom port read! "
 				   "returned invalid value %S"), result),
+		     self,
 		     result);
     }
     if (result == SG_MAKE_INT(0)) {
@@ -1856,6 +1857,7 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
       Sg_IOWriteError(SG_INTERN("put-bytevector"),
 		      Sg_Sprintf(UC("custom port write!"
 				    " returned invalid value, %S"), result),
+		      self,
 		      result);
     }
     /* how should we tread 0, for now break */
@@ -1865,6 +1867,7 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
       Sg_IOWriteError(SG_INTERN("put-bytevector"),
 		      Sg_Sprintf(UC("custom port write!"
 				    " exprected non negative integer")),
+		      self,
 		      result);
     }
     written += t;
@@ -2108,6 +2111,7 @@ static SgChar custom_textual_get_char(SgObject self)
       Sg_IOReadError(SG_INTERN("get-char"),
 		     Sg_Sprintf(UC("custom port read! "
 				   "returned invalid value %S"), result),
+		     self,
 		     result);
     }
     if (result == SG_MAKE_INT(0)) {
@@ -2189,6 +2193,7 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
       Sg_IOReadError(SG_INTERN("get-char"),
 		     Sg_Sprintf(UC("custom port read! "
 				   "returned invalid value %S"), result),
+		     self,
 		     result);
     }
     if (result == SG_MAKE_INT(0)) {
@@ -2219,6 +2224,7 @@ static void custom_textual_put_char(SgObject self, SgChar ch)
   if (!SG_INTP(result)) {
     Sg_IOWriteError(SG_INTERN("put-char"),
 		    Sg_Sprintf(UC("custom port write! returned invalid value, %S"), result),
+		    self,
 		    result);
   }
 }

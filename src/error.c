@@ -104,10 +104,10 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
   SgObject proc;
   switch (type) {
   case SG_IO_READ_ERROR:
-    Sg_IOReadError(who, msg, port);
+    Sg_IOReadError(who, msg, port, file);
     break;
   case SG_IO_WRITE_ERROR:
-    Sg_IOWriteError(who, msg, port);
+    Sg_IOWriteError(who, msg, port, file);
     break;
   case SG_IO_FILE_NOT_EXIST_ERROR:
     g = Sg_FindBinding(SG_INTERN("(core errors)"),
@@ -150,7 +150,7 @@ void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg,
   }
 }
 
-void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
+void Sg_IOReadError(SgObject who, SgObject msg, SgObject port, SgObject irr)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
 			     SG_INTERN("raise-i/o-read-error"), SG_FALSE);
@@ -159,10 +159,10 @@ void Sg_IOReadError(SgObject who, SgObject msg, SgObject port)
     Sg_Panic("Initialization was failed.");
   }
   proc = SG_GLOC_GET(g);
-  Sg_Apply3(proc, who, msg, port);
+  Sg_Apply4(proc, who, msg, port, irr);
 }
 
-void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
+void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port, SgObject irr)
 {
   SgGloc *g = Sg_FindBinding(SG_INTERN("(core errors)"),
 			     SG_INTERN("raise-i/o-write-error"), SG_FALSE);
@@ -171,7 +171,7 @@ void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port)
     Sg_Panic("Initialization was failed.");
   }
   proc = SG_GLOC_GET(g);
-  Sg_Apply3(proc, who, msg, port);
+  Sg_Apply4(proc, who, msg, port, irr);
 }
 
 void Sg_AssertionViolation(SgObject who, SgObject message, SgObject irritants)

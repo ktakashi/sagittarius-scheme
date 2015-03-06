@@ -37,6 +37,7 @@
 
 	    ;; hpack context
 	    make-hpack-context
+	    update-hpack-table-size!
 	    ;; read
 	    make-hpack-reader
 	    read-hpack
@@ -183,6 +184,12 @@
 	      (else (error 'lookup-decode-table
 			   "[INTERNAL] invalid static table")))))
 
+  ;; needed for connection
+  (define (update-hpack-table-size! context size)
+    (let1 table (hpack-context-dynamic-table context)
+      (dynamic-table-max-size-set! table new-size)
+      (evict-table-entries! table 0)))
+
   ;; reader is easy
   (define (make-hpack-reader context)
     ;; port must be limited
@@ -219,8 +226,7 @@
 	      (error 'read-hpack
 		     "New dynamic table size is bigger than current size"
 		     new-size))
-	    (dynamic-table-max-size-set! table new-size)
-	    (evict-table-entries! table 0)
+	    (update-hpack-table-size! context new-size)
 	    (loop r)))
 	 (else
 	  (let ((type (bitwise-and b #xF0))

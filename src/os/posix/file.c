@@ -163,7 +163,7 @@ static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
   if (result < 0) {
     /* TODO this must be &io/error */
     SgObject err = get_last_error_message(self);
-    Sg_IOReadError(SG_INTERN("file reader"), err, self);
+    Sg_IOReadError(SG_INTERN("file reader"), err, SG_FALSE, self);
   }
   return result;
 }
@@ -178,7 +178,7 @@ static int64_t posix_write(SgObject self, uint8_t *buf, int64_t size)
   setLastError(self);
   if (result < 0) {
     SgObject err = get_last_error_message(self);
-    Sg_IOWriteError(SG_INTERN("file writer"), err, self);
+    Sg_IOWriteError(SG_INTERN("file writer"), err, SG_FALSE, self);
   }
   return result;
 }

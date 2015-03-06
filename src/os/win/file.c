@@ -117,17 +117,20 @@ static int64_t win_write(SgObject self, uint8_t *buf, int64_t size)
 					(const wchar_t *)buf, 
 					(DWORD)(size / 2), 
 					(LPSTR)NULL, 0, NULL, NULL)) == 0) {
-      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), 
+		      SG_FALSE, self);
     }
     dest = SG_NEW_ATOMIC2(uint8_t *, destSize + 1);
     if (WideCharToMultiByte(GetConsoleOutputCP(), 0, (const wchar_t *)buf,
 			    (DWORD)(size / 2),
 			    (LPSTR)dest, destSize, NULL, NULL) == 0) {
-      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), 
+		      SG_FALSE, self);
     }
     isOK = WriteFile(SG_FD(file)->desc, dest, destSize, &writeSize, NULL);
     if (writeSize != destSize) {
-      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), SG_UNDEF);
+      Sg_IOWriteError(SG_INTERN("write"), Sg_GetLastErrorMessage(), 
+		      SG_FALSE, self);
     }
     writeSize = (DWORD)size;
 #else

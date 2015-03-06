@@ -52,8 +52,10 @@ SG_EXTERN void Sg_SyntaxError(SgObject form, SgObject irritants);
 /* general &i/o exception*/
 SG_EXTERN void Sg_IOError(SgIOErrorType type, SgObject who, SgObject msg, 
 			  SgObject file, SgObject port);
-SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port);
-SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port);
+SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port,
+			      SgObject irr);
+SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port,
+			       SgObject irr);
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, 
 				     SgObject irritants);
 SG_EXTERN void Sg_UndefinedViolation(SgObject who, SgObject message);

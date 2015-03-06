@@ -799,7 +799,7 @@ static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
       Sg_IOWriteError((SG_WRITE_MODE(c) == SG_WRITE_DISPLAY)		\
 		      ? SG_INTERN("display")				\
 		      : SG_INTERN("write"),				\
-		      SG_MAKE_STRING("stack overflow"), (p));		\
+		      SG_MAKE_STRING("stack overflow"), (p), SG_NIL);	\
       return;								\
     }									\
   } while(0)
