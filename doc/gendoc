@@ -7,7 +7,7 @@
   (print "gendoc [OPTIONS] file"))
 
 (define (check-older output)
-  (unless (port? output)
+  (unless (or (port? output) (not (file-exists? output)))
     (let ((files (glob "**/*.scrbl"))
 	  (doc-mtime (file-stat-mtime output)))
       (when (for-all (lambda (file) (< (file-stat-mtime file) doc-mtime)) files)
