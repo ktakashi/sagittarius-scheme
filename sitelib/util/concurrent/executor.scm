@@ -30,11 +30,7 @@
 
 ;; portable concurrent library
 (library (util concurrent executor)
-    (export future? make-future future
-	    future-get future-cancel
-	    future-done? future-cancelled?
-
-	    executor? make-thread-pool-executor
+    (export executor? make-thread-pool-executor
 	    executor-state executor-pool-size
 	    executor-max-pool-size
 	    executor-available?
@@ -48,39 +44,36 @@
 	    
 	    &rejected-execution-error
 	    rejected-execution-error?
+
+	    ;; future
+	    <executor-future> make-executor-future executor-future?
 	    )
     (import (rnrs)
 	    (srfi :18)
 	    (srfi :19)
-	    (srfi :117))
-  ;; future
-  (define-record-type (<future> make-future future?)
-    (fields (immutable thunk future-thunk)
-	    (mutable worker future-worker future-worker-set!)
-	    (mutable state future-state future-state-set!))
-    (protocol (lambda (p)
-		(lambda (thunk)
-		  (p thunk #f 'created)))))
+	    (srfi :117)
+	    (util concurrent future))
 
-  ;; for convenience
-  (define-syntax future
-    (syntax-rules ()
-      ((_ expr ...)
-       (make-future (lambda () expr ...)))))
-
-  (define (future-get future) 
+  ;; TODO the future implementation 
+  (define (executor-future-get future)
     (let ((w (future-worker future)))
       (unless w (error 'future-get "Future didn't run yet"))
       (thread-join! (worker-thread w))))
-
-  (define (future-cancel future)
+  (define (executor-future-cancel future)
     (let ((w (future-worker future)))
       (unless w (error 'future-get "Future didn't run yet"))
       (thread-terminate! (worker-thread w))
       (cleanup (worker-executor w) w 'terminated)))
 
-  (define (future-done? future) (eq? (future-state future) 'done))
-  (define (future-cancelled? future) (eq? (future-state future) 'terminated))
+  (define-record-type (<executor-future> make-executor-future executor-future?)
+    (parent <future>)
+    (fields (mutable worker future-worker future-worker-set!))
+    (protocol (lambda (n)
+		(lambda (thunk)
+		  (let ((p (n thunk
+			      executor-future-get
+			      executor-future-cancel)))
+		    (p #f))))))
 
   ;; executor and worker
   (define-condition-type &rejected-execution-error &error 

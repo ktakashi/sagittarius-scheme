@@ -101,7 +101,7 @@
 
 (define tests-executor (make-thread-pool-executor max-promise))
 (define (make-promise proc)
-  (let ((f (make-future proc)))
+  (let ((f (make-executor-future proc)))
     (execute-future! tests-executor f)
     f))
 

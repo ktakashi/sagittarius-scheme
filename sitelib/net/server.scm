@@ -106,7 +106,7 @@
 		(lambda (sock) (handler server sock)))))
 	  ;; ignore error
 	  (if executor
-	      (let ((f (future (handle socket))))
+	      (let ((f (future (class <executor-future>) (handle socket))))
 		(execute-future! executor f))
 	      (handle socket)))))
     (define stop-socket (and (~ config 'shutdown-port)

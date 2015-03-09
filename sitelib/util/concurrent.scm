@@ -28,6 +28,9 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+;; This is not portable but it's super easy to make it
+;; R6RS+SRFI portable.
 (library (util concurrent)
     (export :all)
-    (import (util concurrent executor)))
+    (import (util concurrent future)
+	    (util concurrent executor)))
