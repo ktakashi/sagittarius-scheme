@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; almost portable concurrent library
+;; portable concurrent library
 (library (util concurrent executor)
     (export future? make-future future
 	    future-get future-cancel
@@ -48,12 +48,11 @@
 	    
 	    &rejected-execution-error
 	    rejected-execution-error?
-
 	    )
     (import (rnrs)
 	    (srfi :18)
 	    (srfi :19)
-	    (util queue))
+	    (srfi :117))
   ;; future
   (define-record-type (<future> make-future future?)
     (fields (immutable thunk future-thunk)
@@ -97,7 +96,7 @@
 		      (make-message-condition "Failed to add task"))))
   ;; assume the oldest one is negligible
   (define (terminate-oldest-handler future executor)
-    (let ((oldest (dequeue! (executor-workers executor))))
+    (let ((oldest (list-queue-remove-front! (executor-workers executor))))
       (thread-terminate! (worker-thread oldest))
       ;; now remove
       (cleanup executor oldest 'terminated))
@@ -133,7 +132,7 @@
 		(lambda (max-pool-size . rest)
 		  ;; i don't see using mtqueue for this since
 		  ;; mutating the slot is atomic
-		  (p 0 'running max-pool-size (make-queue)
+		  (p 0 'running max-pool-size (list-queue)
 		     (if (null? rest)
 			 default-rejected-handler
 			 (car rest))
@@ -162,6 +161,9 @@
 	   (lambda () expr ...)
 	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
   (define (cleanup executor worker state)
+    (define (remove-from-queue! proc queue)
+      (list-queue-set-list! queue (list-queue-list queue)))
+
     (with-atomic executor
      (executor-pool-size-set! executor (- (executor-pool-size executor) 1))
      ;; reduce pool count
@@ -196,9 +198,9 @@
 	 (when (eq? state 'running)
 	   (executor-state-set! executor 'shutdown))
 	 (let loop ((workers workers))
-	   (unless (queue-empty? workers)
-	     (thread-terminate! (worker-thread (queue-front workers)))
-	     (cleanup executor (dequeue! workers) 'terminated)
+	   (unless (list-queue-empty? workers)
+	     (thread-terminate! (worker-thread (list-queue-front workers)))
+	     (cleanup executor (list-queue-remove-front! workers) 'terminated)
 	     (loop workers)))))))
 
   (define (execute-future! executor future)
@@ -220,7 +222,7 @@
 		 ;; add
 		 (let* ((worker (make-worker executor future))
 			(thread (make-thread (worker-thunk worker))))
-		   (enqueue! (executor-workers executor) worker)
+		   (list-queue-add-back! (executor-workers executor) worker)
 		   (executor-pool-size-set! executor (+ pool-size 1))
 		   (future-worker-set! future worker)
 		   (worker-thread-set! worker thread)

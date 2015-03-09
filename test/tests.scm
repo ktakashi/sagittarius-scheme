@@ -97,7 +97,7 @@
 ;; 		(else
 ;; 		 (loop (cdr p) (cons (car p) r))))))))
 
-(define-constant max-promise 10)
+(define-constant max-promise 5)
 
 (define tests-executor (make-thread-pool-executor max-promise))
 (define (make-promise proc)

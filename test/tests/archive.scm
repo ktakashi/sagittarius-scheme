@@ -10,7 +10,7 @@
 
 (test-begin "archive")
 
-(define data-dir (build-path* (current-directory) "test" "tests"))
+(define data-dir (build-path* (current-directory) "test" "r6rs-test-suite"))
 
 (define (test-archive type dst-file)
   (let ((files (find-files data-dir)))
