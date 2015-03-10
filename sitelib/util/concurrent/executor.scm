@@ -49,6 +49,7 @@
 	    <executor-future> make-executor-future executor-future?
 	    )
     (import (rnrs)
+	    (only (srfi :1) remove!)
 	    (srfi :18)
 	    (srfi :19)
 	    (srfi :117)
@@ -155,7 +156,7 @@
 	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
   (define (cleanup executor worker state)
     (define (remove-from-queue! proc queue)
-      (list-queue-set-list! queue (list-queue-list queue)))
+      (list-queue-set-list! queue (remove! proc (list-queue-list queue))))
 
     (with-atomic executor
      (executor-pool-size-set! executor (- (executor-pool-size executor) 1))
