@@ -11,10 +11,10 @@
     (or (<= #xA1 b #xF4)
 	(= b #x8E)))
   
-  (define (lookup-utf16 euc)
-    (assv euc *euc-utf16-table*))
+  (define (lookup-utf16 euc) 
+    (lookup-table euc *euc-utf16-table*))
   (define (lookup-euc utf16)
-    (assv utf16 *utf16-euc-table*))
+    (lookup-table utf16 *utf16-euc-table*))
 
   (define (euc-jp-codec)
     (define (getc port mode check-bom? data)

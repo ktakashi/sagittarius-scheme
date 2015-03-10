@@ -10,6 +10,16 @@
 (define *utf16-position* 4)
 (define *position-table* '#(jis sjis euc))
 
+(define (construct-define name type)
+  `(define ,name
+     (let ((table (make-eqv-hashtable ,(length type))))
+       (define dummy ',(list->vector type))
+       (let loop ((i 0))
+	 (if (= i ,(length type))
+	     table
+	     (let ((k&v (vector-ref dummy i)))
+	       (hashtable-set! table (car k&v) (cdr k&v))
+	       (loop (+ i 1))))))))
 
 (define (generate-table position)
   (let ((type (vector-ref *position-table* position)))
@@ -18,7 +28,7 @@
     (format #t "(library (encoding table ~a-utf16)~%" type)
     (format #t "    (export *~a-utf16-table*~%" type)
     (format #t "            *utf16-~a-table*)~%" type)
-    (display   "    (import (core) (sagittarius))")(newline)
+    (display   "    (import (core) (core base) (sagittarius))")(newline)
 
     (receive (type-utf16 utf16-type)
 	(let loop ((line (get-line (current-input-port)))
@@ -39,13 +49,13 @@
 			 (loop (get-line (current-input-port))
 			       (acons tcode ucode tu)
 			       (acons ucode tcode ut))))))))
-      (write `(define-constant 
-		,(string->symbol (format "*~a-utf16-table*" type))
-		',type-utf16))
+      (write (construct-define      
+	      (string->symbol (format "*~a-utf16-table*" type))
+	      type-utf16))
       (newline)
-      (write `(define-constant 
-		,(string->symbol (format "*utf16-~a-table*" type))
-		',utf16-type))
+      (write (construct-define
+	      (string->symbol (format "*utf16-~a-table*" type))
+	      utf16-type))
       (newline))
 
     (display   ")")(newline)))

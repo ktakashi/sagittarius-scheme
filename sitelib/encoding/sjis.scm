@@ -12,9 +12,9 @@
 	(<= #xE0 b #xEF)))
 
   (define (lookup-utf16 sjis)
-    (assv sjis *sjis-utf16-table*))
+    (lookup-table sjis *sjis-utf16-table*))
   (define (lookup-sjis utf16)
-    (assv utf16 *utf16-sjis-table*))
+    (lookup-table utf16 *utf16-sjis-table*))
 
   (define (sjis-codec)
     (define (getc port mode check-bom? data)

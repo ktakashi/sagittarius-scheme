@@ -1,7 +1,8 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
 (library (encoding util)
     (export utf16->ucs4
-	    ucs4->utf16)
+	    ucs4->utf16
+	    lookup-table)
     (import (core))
 
   ;; http://unicode.org/faq/utf_bom.html#utf16-4
@@ -25,4 +26,8 @@
 	   (lo (bitwise-and (bitwise-ior lo-surrogate-start
 					 (bitwise-and X 1023)))))
       (+ (bitwise-arithmetic-shift-left hi 16) lo)))
+
+  ;; make it here
+  (define (lookup-table code table) (hashtable-ref code table #f))
+
 )

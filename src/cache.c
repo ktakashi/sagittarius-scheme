@@ -1449,20 +1449,6 @@ static int read_shared_tag(SgPort *in, read_ctx *ctx)
   return read_word(in, DEFINING_SHARED_TAG, ctx);
 }
 
-static SgObject read_shared_def(SgPort *in, read_ctx *ctx)
-{
-  int uid = read_shared_tag(in, ctx);
-  SgObject o = read_object_rec(in, ctx);
-
-#if 0
-  if (SG_SYMBOLP(o) && !SG_INTERNED_SYMBOL(o)) {
-    Sg_Printf(Sg_StandardErrorPort(), UC("defining: %S[%p](%d)\n"), o, o, uid);
-  }
-#endif
-  Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
-  return o;
-}
-
 static SgObject read_closure(SgPort *in, read_ctx *ctx)
 {
   int tag = Sg_GetbUnsafe(in), uid = -1;
@@ -1616,8 +1602,12 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return read_immediate(in, ctx);
   case LOOKUP_TAG: 
     return read_lookup(in, ctx);
-  case DEFINING_SHARED_TAG: 
-    return read_shared_def(in, ctx);
+  case DEFINING_SHARED_TAG: {
+    int uid = read_shared_tag(in, ctx);
+    SgObject o = read_object_rec(in, ctx);
+    Sg_HashTableSet(ctx->sharedObjects, SG_MAKE_INT(uid), o, 0);
+    return o;
+  }
   case STRING_TAG: 
     length = read_word(in, STRING_TAG, ctx);
     return read_string(in, length);

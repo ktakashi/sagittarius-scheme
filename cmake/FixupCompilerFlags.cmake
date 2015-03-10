@@ -69,6 +69,13 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     #    SET(CMAKE_CXX_FLAGS "-flto ${CMAKE_CXX_FLAGS}")
     #  ENDIF()
   ELSEIF(MSVC)
+    # By default MSVC only allocate 1MB of stack and it doesn't have
+    # cross reference tail recursive optimisation. So reading cache
+    # causes stack overflow. Well, not a good solution but allocate
+    # a bit more. (8MB)
+    SET(CMAKE_SHARED_LINKER_FLAGS 
+      "/STACK:0x800000 ${CMAKE_SHARED_LINKER_FLAGS}")
+
     # /MT to avoid C-runtime
     # the rest is the same as CMake default
     IF(NOT (MSVC_VERSION LESS 1700))
