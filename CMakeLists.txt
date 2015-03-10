@@ -220,12 +220,14 @@ IF(USE_BOEHM_GC)
     # for now get it from github...
     # SET(GC_URL "https://github.com/ivmai/bdwgc/archive")
     IF (MSVC OR WATCOM)
-      SET(USED_GC_VERSION "gc-7.2f")
-      SET(GC_VERSION "gc-7.2")
+      SET(USED_GC_VERSION "gc-7.4.2")
+      SET(GC_VERSION "gc-7.4.2")
+      SET(NEED_LIB_ATMIC TRUE)
     ELSE()
       # for qnx we only support until 7.2d (as long as it doesn't support...)
       SET(USED_GC_VERSION "gc-7.2d")
       SET(GC_VERSION "gc-7.2")
+      SET(NEED_LIB_ATMIC FALSE)
     ENDIF()
     FIND_FILE(HAS_BOEHM_GC_TAR
       NAMES gc.tar.gz
@@ -283,21 +285,59 @@ IF(USE_BOEHM_GC)
 ENDIF(CMAKE_USE_PTHREADS_INIT)"
 	GC_BUILD_LINES "${GC_BUILD_LINES}")
     ENDIF()
-    IF (WIN32)
-      MESSAGE(STATUS "Adding install command")
-      STRING(REGEX REPLACE "ENDIF\\(WIN32\\)" "
-  INSTALL(TARGETS gcmt-dll DESTINATION .)
-ENDIF(WIN32)"
-	GC_BUILD_LINES "${GC_BUILD_LINES}")
-    ENDIF()
 
-    FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINES}")
+    SET(IN_WIN32_TERM FALSE)
+    MESSAGE(STATUS "Appending GC build configuration to temp file.")
+    STRING(REGEX REPLACE ";" "\\\\;" GC_BUILD_LINES "${GC_BUILD_LINES}")
+    STRING(REGEX REPLACE "\n" ";" GC_BUILD_LINES "${GC_BUILD_LINES}")
+    FOREACH(GC_BUILD_LINE ${GC_BUILD_LINES})
+      IF (MSVC AND GC_BUILD_LINE STREQUAL "IF(WIN32)")
+	MESSAGE(STATUS "Found IF(WIN32)")
+	SET(IN_WIN32_TERM TRUE)
+      ENDIF()
+      # skip cord
+      IF (IN_WIN32_TERM AND GC_BUILD_LINE STREQUAL "ENDIF(WIN32)")
+	MESSAGE(STATUS "Adding install command")
+	SET(GC_BUILD_LINE "INSTALL(TARGETS gcmt-dll DESTINATION .)")
+	SET(IN_WIN32_TERM FALSE)
+      ENDIF()
+      IF (NOT IN_WIN32_TERM)
+	FILE(APPEND ${GC_DIR}/CMakeLists.txt.tmp "${GC_BUILD_LINE}\n")
+      ENDIF()
+    ENDFOREACH()
+
     FILE(RENAME ${GC_DIR}/CMakeLists.txt.tmp ${GC_DIR}/CMakeLists.txt)
 
     ADD_SUBDIRECTORY(${GC_DIR} build/gc)
     INCLUDE_DIRECTORIES(${GC_DIR}/include)
     SET(HAVE_GC_H 1)
     SET(GC_DEPENDS_TARGET gcmt-dll)
+
+    IF (NEED_LIB_ATMIC)
+      # since 7.4.0 or 7.4.2? Boehm GC separated libatomic_ops so
+      # we need to download it separately
+      SET(LIBATOMIC_OPS "libatomic_ops-7.4.0")
+      FIND_FILE(HAS_LIBATMIC_OPS_TAR
+	NAMES libatomic_ops.tar.gz
+	PATHS ${GC_DIR})
+      MESSAGE(STATUS
+	"Checked libatmic_ops archive file: ${HAS_LIBATMIC_OPS_TAR}")
+      IF (NOT EXISTS ${HAS_LIBATMIC_OPS_TAR})
+	MESSAGE(STATUS "Downloading ${GC_URL}/${LIBATOMIC_OPS}.tar.gz")
+	FILE(
+	  DOWNLOAD "${GC_URL}/${LIBATOMIC_OPS}.tar.gz"
+	  "${GC_DIR}/libatomic_ops.tar.gz"
+	  SHOW_PROGRESS)
+	EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
+	  ${GC_DIR}/libatomic_ops.tar.gz
+	  WORKING_DIRECTORY ${GC_DIR})
+	MESSAGE(STATUS "unpacked libatomic_ops.tar.gz")
+      ENDIF()
+      IF (EXISTS ${GC_DIR}/${LIBATOMIC_OPS})
+	FILE(RENAME ${GC_DIR}/${LIBATOMIC_OPS} ${GC_DIR}/libatomic_ops)
+      ENDIF()
+    ENDIF()
+
   ENDIF(BOEHM_GC_FOUND) 
 ENDIF(USE_BOEHM_GC)
 
