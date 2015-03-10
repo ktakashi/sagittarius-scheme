@@ -7,6 +7,8 @@
 
 ;; for my laziness...
 (define make-executor make-thread-pool-executor)
+(define executor-pool-size thread-pool-executor-pool-size)
+(define executor-max-pool-size thread-pool-executor-max-pool-size)
 
 (let ((executor (make-executor 1)))
   (test-assert "executor?" (executor? executor))

@@ -30,11 +30,16 @@
 
 ;; portable concurrent library
 (library (util concurrent executor)
-    (export executor? make-thread-pool-executor
-	    executor-state executor-pool-size
-	    executor-max-pool-size
-	    executor-available?
+    (export <executor> executor? ;; interface
+	    executor-state
 
+	    <thread-pool-executor> make-thread-pool-executor 
+	    thread-pool-executor?
+	    ;; below must be thread-pool-executor specific
+	    thread-pool-executor-pool-size
+	    thread-pool-executor-max-pool-size
+	    ;; these must be generic for all executors
+	    executor-available?
 	    shutdown-executor!
 	    execute-future!
 
@@ -115,22 +120,32 @@
   ;; default is abort
   (define default-rejected-handler abort-rejected-handler)
 
-  (define-record-type (<thread-pool-executor> make-thread-pool-executor executor?)
-    (fields (mutable pool-size executor-pool-size executor-pool-size-set!)
-	    (mutable state executor-state executor-state-set!)
-	    (immutable max-pool-size executor-max-pool-size)
+  ;; For now only dummy
+  (define-record-type (<executor> %make-executor executor?)
+    (fields (mutable state executor-state executor-state-set!))
+    (protocol (lambda (p) (lambda () (p 'running)))))
+
+  (define-record-type (<thread-pool-executor> 
+		       make-thread-pool-executor 
+		       thread-pool-executor?)
+    (parent <executor>)
+    (fields (mutable pool-size thread-pool-executor-pool-size 
+		     ;; lazy, it's not exposed anyway
+		     executor-pool-size-set!)
+	    (immutable max-pool-size 
+		       thread-pool-executor-max-pool-size)
 	    (immutable workers executor-workers)
 	    (immutable rejected-handler executor-rejected-handler)
 	    (immutable mutex executor-mutex))
-    (protocol (lambda (p)
+    (protocol (lambda (n)
 		(lambda (max-pool-size . rest)
 		  ;; i don't see using mtqueue for this since
 		  ;; mutating the slot is atomic
-		  (p 0 'running max-pool-size (list-queue)
-		     (if (null? rest)
-			 default-rejected-handler
-			 (car rest))
-		     (make-mutex))))))
+		  ((n) 0 max-pool-size (list-queue)
+		   (if (null? rest)
+		       default-rejected-handler
+		       (car rest))
+		   (make-mutex))))))
 
   ;; it's also defined in (sagittarius thread)
   (define (mutex-lock-recursively! mutex)
@@ -159,7 +174,8 @@
       (list-queue-set-list! queue (remove! proc (list-queue-list queue))))
 
     (with-atomic executor
-     (executor-pool-size-set! executor (- (executor-pool-size executor) 1))
+     (executor-pool-size-set! executor
+			      (- (thread-pool-executor-pool-size executor) 1))
      ;; reduce pool count
      ;; remove from workers
      (remove-from-queue! (lambda (w) (eq? worker w))
@@ -176,7 +192,8 @@
 		  (p #f executor (current-time) future)))))
 
   (define (executor-available? executor)
-    (< (executor-pool-size executor) (executor-max-pool-size executor)))
+    (< (thread-pool-executor-pool-size executor) 
+       (thread-pool-executor-max-pool-size executor)))
   
   ;; shutdown
   ;; shutdown given executor. We need to first finish all
@@ -209,8 +226,8 @@
 	      r)))))
     
     (or (with-atomic executor
-	  (let ((pool-size (executor-pool-size executor))
-		(max-pool-size (executor-max-pool-size executor)))
+	  (let ((pool-size (thread-pool-executor-pool-size executor))
+		(max-pool-size (thread-pool-executor-max-pool-size executor)))
 	    (and (< pool-size max-pool-size)
 		 (eq? (executor-state executor) 'running)
 		 ;; add
