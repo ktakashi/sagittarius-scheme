@@ -1193,14 +1193,14 @@
   ;; system call
   (define-c-proc sys-process-call 
     (name::<string> args::<list> :key (directory #f) (detach? #f))
-    (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
-      (wrong-type-of-argument-violation 'sys-process-call
-					"string or #f" directory))
     (dolist (arg args)
       (unless (SG_STRINGP arg)
 	(wrong-type-of-argument-violation 'sys-process-call
 					  "arguments must be a list of string"
 					  args)))
+    (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
+      (wrong-type-of-argument-violation 'sys-process-call
+					"string or #f" directory))
     (let ((in  NULL) (out NULL) (err NULL))
       (let* ((flags::int 0)
 	     (d::SgString* NULL)
