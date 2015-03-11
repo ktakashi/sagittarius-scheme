@@ -66,7 +66,7 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   }
 }
 
-static DWORD ExceptionFilter(EXCEPTION_POINTERS *ep, DWORD *ei)
+static DWORD exception_filter(EXCEPTION_POINTERS *ep)
 {
   return EXCEPTION_EXECUTE_HANDLER;
 }
@@ -82,7 +82,6 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   ThreadParams *threadParams = (ThreadParams *)params;
   SgThreadEntryFunc *start;
   void *arg;
-  DWORD ei[] = { 0, 0, 0 };
   unsigned int status;
   
   start = threadParams->start;
@@ -91,7 +90,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   free(threadParams);
   __try {
     status = (*start)(arg);
-  } __except (ExceptionFilter(GetExceptionInformation(), ei)) {
+  } __except (exception_filter(GetExceptionInformation())) {
     return FALSE;
   }
   return status;
@@ -290,12 +289,7 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 
 static void cancel_self(DWORD unused)
 {
-  ULONG exceptionInformation[3];
-  exceptionInformation[0] = (ULONG)(2);
-  exceptionInformation[1] = (ULONG)(0);
-  exceptionInformation[2] = (ULONG)(0);
-
-  RaiseException (-1, 0, 3, (CONST ULONG_PTR *)exceptionInformation);
+  RaiseException(0xcacacaca, 0, 0, NULL);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)

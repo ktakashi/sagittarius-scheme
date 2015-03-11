@@ -64,7 +64,8 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
   SgSocket *socket = SG_SOCKET(self);
   const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
     ? UC("client") : (socket->type == SG_SOCKET_SERVER)
-    ? UC("server") : UC("unknown");
+    ? UC("server") : (socket->type == SG_SOCKET_CLOSED)
+    ? UC("closed") : UC("unknown");
   SgObject address = (socket->address != NULL) ? socket->address: SG_FALSE;
   Sg_Printf(port, UC("#<socket %s %S>"), type, address);
 }
@@ -111,7 +112,9 @@ static SgString* get_address_string(const struct sockaddr *addr,
 static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgAddrinfo *info = SG_ADDRINFO(self);
-  SgObject addr = get_address_string(info->ai->ai_addr, info->ai->ai_addrlen);
+  SgObject addr = get_address_string(info->ai->ai_addr, 
+				     /* fxxk Windows! */
+				     (socklen_t)info->ai->ai_addrlen);
   Sg_Printf(port, UC("#<addrinfo %A>"), addr);
 }
 
@@ -394,7 +397,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
     const char *msg = gai_strerror(ret);
 #endif
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("get-addrinfo"), 
-	       Sg_Utf8sToUtf32s(msg, strlen(msg)),
+	       Sg_Utf8sToUtf32s(msg, (int)strlen(msg)),
 	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
   }
@@ -437,9 +440,9 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
-  if (connect(socket->socket, p->ai_addr, p->ai_addrlen) == 0) {
+  if (connect(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
     socket->type = SG_SOCKET_CLIENT;
-    socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
+    socket->address = get_address_string(p->ai_addr, (socklen_t)p->ai_addrlen);
     return socket;
   }
   socket->lastError = last_error;
@@ -449,9 +452,9 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
 SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
-  if (bind(socket->socket, p->ai_addr, p->ai_addrlen) == 0) {
+  if (bind(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
     socket->type = SG_SOCKET_SERVER;
-    socket->address = get_address_string(p->ai_addr, p->ai_addrlen);
+    socket->address = get_address_string(p->ai_addr, (socklen_t)p->ai_addrlen);
     return socket;
   }
   socket->lastError = last_error;
@@ -637,7 +640,8 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
   while (rest > 0) {
     const int ret = sendto(socket->socket, (char*)data, size, 
 			   /* we don't want SIGPIPE */
-			   flags | MSG_NOSIGNAL, addr->addr, addr->addr_size);
+			   flags | MSG_NOSIGNAL, addr->addr, 
+			   (int)addr->addr_size);
     if (ret == -1) {
       if (errno == EINTR) {
 	continue;
@@ -718,9 +722,9 @@ void Sg_SocketClose(SgSocket *socket)
   closesocket(socket->socket);
 #else
   close(socket->socket);
-#endif
   socket->socket = -1;
-
+#endif
+  socket->type = SG_SOCKET_CLOSED;
 }
 
 /* fdset */
@@ -766,7 +770,10 @@ static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
 				      SG_CAR(cp), sockets);
     }
     fd = SG_SOCKET(SG_CAR(cp))->socket;
+    /* MSDN says the first argument of select is ignored, so this is useless */
+#ifndef _WIN32
     if (max < fd) max = fd;
+#endif
     FD_SET(fd, fds);
   }
   return max;
@@ -934,7 +941,7 @@ SgObject Sg_IpAddressToString(SgObject ip)
 
 int Sg_SocketOpenP(SgSocket *socket)
 {
-  return socket->socket != -1;
+  return socket->type != SG_SOCKET_CLOSED;
 }
 
 int Sg_SocketNonblocking(SgSocket *socket)
@@ -1058,7 +1065,8 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     readSize++;
   }
   for (;;) {
-    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, size, 0);
+    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
+			       (int)size, 0);
     if (-1 == now) {
       Sg_IOReadError(SG_INTERN("read-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
@@ -1110,7 +1118,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 
 static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
 {
-  int64_t written_size = Sg_SocketSend(SG_PORT_SOCKET(self), v, size, 0);
+  int64_t written_size = Sg_SocketSend(SG_PORT_SOCKET(self), v, (int)size, 0);
   if (-1 == written_size) {
     Sg_IOWriteError(SG_INTERN("read-u8"),
 		    Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
@@ -1135,7 +1143,11 @@ static int socket_ready(SgObject self)
   int state;
   FD_ZERO(&fds);
   FD_SET(SG_SOCKET(socket)->socket, &fds);
+#ifdef _WIN32
+  state = select(0, &fds, NULL, NULL, &tm);
+#else
   state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, &tm);
+#endif
   if (state < 0) {
     if (last_error == EINTR) return FALSE;
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 

@@ -59,6 +59,7 @@ typedef enum {
   SG_SOCKET_UNKNOWN,
   SG_SOCKET_CLIENT,
   SG_SOCKET_SERVER,
+  SG_SOCKET_CLOSED,
 } SgSocketType;
 
 #ifndef _WIN32

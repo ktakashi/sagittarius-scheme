@@ -150,9 +150,9 @@
 		     ;; ignore all errors
 		     (guard (e (else #t))
 		       (when ((~ config 'shutdown-handler) server sock)
-			 (for-each thread-terminate! server-threads)
 			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
 			 (for-each socket-close sockets)
+			 (for-each thread-terminate! server-threads)
 			 (set! (~ server 'stopped?) #t)
 			 (condition-variable-broadcast! (~ server 'stop-waiter))
 			 (mutex-unlock! (~ server 'stop-lock))))
