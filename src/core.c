@@ -472,6 +472,7 @@ SgObject Sg_CondFeatures()
 
 static void init_cond_features()
 {
+  Sg_InitMutex(&cond_features.mutex, FALSE);
   Sg_AddCondFeature(UC("sagittarius"));
   Sg_AddCondFeature(UC("sagittarius.os."SAGITTARIUS_PLATFORM));
   /* R7RS appendix B */
