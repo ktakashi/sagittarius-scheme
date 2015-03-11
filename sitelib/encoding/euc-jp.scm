@@ -29,7 +29,7 @@
 	       (let* ((euc (get-euc first))
 		      (utf16 (lookup-utf16 euc)))
 		 (cond (utf16
-			(integer->char (cdr utf16)))
+			(integer->char utf16))
 		       ((eq? mode 'ignore)
 			(loop (get-u8 port)))
 		       ((eq? mode 'replace)
@@ -46,12 +46,12 @@
 	     (utf16 (if (< ucs4 #x10000) ucs4 (ucs4->utf16 ucs4)))
 	     (euc (lookup-euc utf16)))
 	(cond (euc
-	       (let ((euc (cdr euc)))
-		 (if (<= euc #xDF)
-		     (put-u8 euc)
-		     (begin
-		       (put-u8 port (bitwise-and (bitwise-arithmetic-shift-right euc 8) #xFF))
-		       (put-u8 port (bitwise-and euc #xFF))))))
+	       (if (<= euc #xDF)
+		   (put-u8 euc)
+		   (begin
+		     (put-u8 port (bitwise-and 
+				   (bitwise-arithmetic-shift-right euc 8) #xFF))
+		     (put-u8 port (bitwise-and euc #xFF)))))
 	      ;; check ascii
 	      ((<= #x00 utf16 #x7F) (put-u8 port utf16))
 	      ((eq? mode 'ignore) ) ;; ignore

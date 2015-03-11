@@ -29,7 +29,7 @@
 	       (let* ((sjis (get-sjis first))
 		      (utf16 (lookup-utf16 sjis)))
 		 (cond (utf16
-			(integer->char (cdr utf16)))
+			(integer->char utf16))
 		       ((eq? mode 'ignore)
 			(loop (get-u8 port)))
 		       ((eq? mode 'replace)
@@ -46,12 +46,12 @@
 	     (utf16 (if (< ucs4 #x10000) ucs4 (ucs4->utf16 ucs4)))
 	     (sjis (lookup-sjis utf16)))
 	(cond (sjis
-	       (let ((sjis (cdr sjis)))
-		 (if (<= sjis #xDF)
-		     (put-u8 sjis)
-		     (begin
-		       (put-u8 port (bitwise-and (bitwise-arithmetic-shift-right sjis 8) #xFF))
-		       (put-u8 port (bitwise-and sjis #xFF))))))
+	       (if (<= sjis #xDF)
+		   (put-u8 sjis)
+		   (begin
+		     (put-u8 port (bitwise-and 
+				   (bitwise-arithmetic-shift-right sjis 8) #xFF))
+		     (put-u8 port (bitwise-and sjis #xFF)))))
 	      ;; check ascii
 	      ((<= #x00 utf16 #x7F) (put-u8 port utf16))
 	      ((eq? mode 'ignore) ) ;; ignore

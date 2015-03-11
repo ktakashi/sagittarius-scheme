@@ -28,6 +28,6 @@
       (+ (bitwise-arithmetic-shift-left hi 16) lo)))
 
   ;; make it here
-  (define (lookup-table code table) (hashtable-ref code table #f))
+  (define (lookup-table code table) (hashtable-ref table code #f))
 
 )
