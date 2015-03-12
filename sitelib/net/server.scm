@@ -82,7 +82,11 @@
      (config         :init-keyword :config
 		     :reader server-config)
      (stop-lock      :init-form (make-mutex))
-     (stop-waiter    :init-form (make-condition-variable))))
+     (stop-waiter    :init-form (make-condition-variable))
+     ;; private slot not to use thread-terminate!
+     (stop-request   :init-value #f)
+     ;; will be set
+     server-stopper))
   (define (server? o) (is-a? o <simple-server>))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
@@ -137,9 +141,19 @@
 		 (make-thread
 		  (lambda ()
 		    (let loop ((client-socket (socket-accept socket)))
-		      (dispatch server client-socket)
-		      (loop (socket-accept socket)))))) sockets))
+		      (unless (~ server 'stop-request)
+			(dispatch server client-socket)
+			(loop (socket-accept socket))))))) sockets))
+	(define (stop-server)
+	  (set! (~ server 'stop-request) #t)
+	  (for-each (lambda (ai-family)
+		      (if (and (~ config 'secure?)
+			       (not (null? (~ config 'certificates))))
+			  (make-client-tls-socket "localhost" port ai-family)
+			  (make-client-socket "localhost" port ai-family)))
+		    ai-families))
 	(set! (~ server 'server-threads) server-threads)
+	(set! (~ server 'server-stopper) stop-server)
 	(when stop-socket
 	  (set! (~ server 'stopper-thread)
 		(make-thread 
@@ -150,9 +164,15 @@
 		     ;; ignore all errors
 		     (guard (e (else #t))
 		       (when ((~ config 'shutdown-handler) server sock)
+			 ;; access to stop
+			 ;; this works because accepting thread is only one
+			 ;; so once it's accepted, then the server socket
+			 ;; won't call accept.
+			 ;; FIXME ugly...
+			 (stop-server)
 			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
 			 (for-each socket-close sockets)
-			 (for-each thread-terminate! server-threads)
+			 (for-each thread-join! server-threads)
 			 (set! (~ server 'stopped?) #t)
 			 (condition-variable-broadcast! (~ server 'stop-waiter))
 			 (mutex-unlock! (~ server 'stop-lock))))
@@ -187,11 +207,13 @@
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
     (unless (~ server 'stopped?)
-      (when (~ server 'stopper-thread)
-	(close-socket (~ server 'stopper-socket))
-	(thread-terminate! (~ server 'stopper-thread)))
+      (set! (~ server 'config 'shutdown-handler) default-shutdown-handler)
+      (if (~ server 'stopper-thread)
+	  ;; we need to stop the shutdown thread as well
+	  (make-client-socket "localhost" (~ server 'config 'shutdown-port))
+	  ((~ server 'server-stopper)))
+      (map thread-join! (~ server 'server-threads))
       (map close-socket (~ server 'server-sockets))
-      (map thread-terminate! (~ server 'server-threads))
       ;; should this be here?
       (apply on-server-stop! server opt)
       (set! (~ server 'stopped?) #t)))
