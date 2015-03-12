@@ -141,9 +141,10 @@
 		 (make-thread
 		  (lambda ()
 		    (let loop ((client-socket (socket-accept socket)))
-		      (unless (~ server 'stop-request)
-			(dispatch server client-socket)
-			(loop (socket-accept socket))))))) sockets))
+		      (cond ((~ server 'stop-request) (socket-close socket))
+			    (else
+			     (dispatch server client-socket)
+			     (loop (socket-accept socket)))))))) sockets))
 	(define (stop-server)
 	  (set! (~ server 'stop-request) #t)
 	  (for-each (lambda (ai-family)
@@ -170,15 +171,14 @@
 			 ;; won't call accept.
 			 ;; FIXME ugly...
 			 (stop-server)
-			 (for-each (cut socket-shutdown <> SHUT_RDWR) sockets)
-			 (for-each socket-close sockets)
 			 (for-each thread-join! server-threads)
 			 (set! (~ server 'stopped?) #t)
 			 (condition-variable-broadcast! (~ server 'stop-waiter))
 			 (mutex-unlock! (~ server 'stop-lock))))
 		     (socket-close sock)
-		     (unless (~ server 'stopped?)
-		       (loop (socket-accept stop-socket))))))))
+		     (if (~ server 'stopped?)
+			 (socket-close stop-socket)
+			 (loop (socket-accept stop-socket))))))))
 	server)))
   
   ;; default do nothing
