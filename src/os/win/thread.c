@@ -289,7 +289,9 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 
 static void cancel_self(DWORD unused)
 {
-  RaiseException(0xcacacaca, 0, 0, NULL);
+  ULONG param[1];
+  param[0] = (ULONG)1;
+  RaiseException(0xcacacaca, 0, 1, (CONST ULONG_PTR *)param);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
