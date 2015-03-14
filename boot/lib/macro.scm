@@ -524,6 +524,8 @@
 			 (not (pattern-variable? id))
 			 ;; don't rename pattern variables
 			 (not (assoc id ranks free-identifier=?))
+			 ;; don't rename local variable
+			 #;
 			 (not (identifier?
 			       (p1env-lookup mac-env id LEXICAL)))))))
   (let* ((ids (collect-unique-ids tmpl))
