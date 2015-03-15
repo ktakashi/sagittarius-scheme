@@ -1540,13 +1540,19 @@
 	  (rename symid dict p1env))
       ;; preserve local variable, pattern variable and pending identifier
       ;; the same as syntax-case
+      ;; disable for now to make R7RS portable macro work
+      ;; this is for affinity between R6RS and R7RS.
+      ;; FIXME: we need *proper* solution for this.
+      #;
       (or (and (not (pending-identifier? symid))
 	       ;; exported from (core syntax-case)
 	       (not (pattern-variable? symid))
 	       (not (identifier? (p1env-lookup p1env symid LEXICAL)))
 	       (or (hashtable-ref dict symid #f)
 		   (rename symid dict p1env)))
-	  symid)))
+	  symid)
+      symid
+      ))
 
 ;; we need to export er-macro-transformer and er-rename
 (let ((lib (ensure-library-name :null)))

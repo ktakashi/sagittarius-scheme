@@ -705,7 +705,8 @@ static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_Write(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx->mode);
     break;
   }
-  Sg_PutcUnsafe(port, '>');
+  /* Sg_PutcUnsafe(port, '>'); */
+  Sg_Printf(port, UC(" %p>"), obj);
   SG_PORT_UNLOCK_WRITE(port);
 }
 
