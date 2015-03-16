@@ -84,8 +84,8 @@
       (result id)))
 
   (define-c-proc id-envs (id::<identifier>) SG_IDENTIFIER_ENVS)
-
   (define-c-proc id-library (id::<identifier>) SG_IDENTIFIER_LIBRARY)
+  (define-c-proc id-identity (id::<identifier>) SG_IDENTIFIER_IDENTITY)
 
   ;; syntax
   (define-c-proc make-syntax (name::<symbol> proc) Sg_MakeSyntax)
