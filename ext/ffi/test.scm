@@ -442,6 +442,12 @@
     )
 
   ;; address offset
+(let* ((p (make-bytevector 6 (char->integer #\*)))
+		     (setter (c-function ffi-test-lib void
+					 passing_w_offset
+					 (void*))))
+		(setter (address p 2))
+		(utf8->string p))
   (test-equal "passing bytevector offset"
 	      "**ok**"
 	      (let* ((p (make-bytevector 6 (char->integer #\*)))
@@ -450,6 +456,13 @@
 					 (void*))))
 		(setter (address p 2))
 		(utf8->string p)))
+  (test-error "passing bytevector offset (error)"
+	      condition?
+	      (let* ((p (make-bytevector 5 (char->integer #\*)))
+		     (setter (c-function ffi-test-lib void
+					 passing_w_offset
+					 (void*))))
+		(setter (address p 5))))
 
   (test-equal "passing pointer offset"
 	      "**ok**"

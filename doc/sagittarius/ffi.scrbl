@@ -238,6 +238,7 @@ of the argument type list, otherwise it raises an error.
 }
 
 @define[Macro]{@name{address} @args{pointer}}
+@define[Macro]{@name{address} @args{pointer offset}}
 @desc{Convenient macro for address passing.
 
 When you need to pass an address of a pointer to C function, you can write like
@@ -247,7 +248,12 @@ this;
 This is equivalent of following C code;
 @snipet{c_func(&pointer)}
 
-NOTE: this works only FFI pointer object.
+@var{pointer} can be a pointer object or a bytevector.
+
+If the second form is used, then the passing address is offset of @var{offset}.
+It is user's responsibility to make sure the given @var{pointer} has enough
+space when @var{offset} is passed. If the @var{pointer} is a bytevector and
+@var{offset} is more than the bytevector size, then an error is signaled.
 }
 
 @define[Macro]{@name{c-callback}

@@ -871,6 +871,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
     /* address stuff */
   } else if (SG_PAIRP(obj) && 
 	     SG_EQ(SG_CAR(obj), address_mark) &&
+	     !SG_NULLP(SG_CDR(obj)) &&
 	     (SG_POINTERP(SG_CADR(obj)) || SG_BVECTORP(SG_CADR(obj)))) {
     int offset = 0;
     if (!SG_NULLP(SG_CDDR(obj))) {
@@ -895,6 +896,11 @@ static int push_ffi_type_value(SgFuncInfo *info,
       } else {
 	storage->ptr = &(SG_BVECTOR_ELEMENTS(SG_CADR(obj)));
 	if (offset) {
+	  if (SG_BVECTOR_SIZE(SG_CADR(obj)) <= offset) {
+	    *lastError = Sg_Sprintf(UC("specified offset is overflowing, %d"),
+				    offset);
+	    return FALSE;
+	  }
 	  /* this is easy.
 	     bytevector is allocated with extended structure (not sure,
 	     if this term is correct), thus the memory is continuous.
