@@ -231,7 +231,7 @@ static void show_usage()
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
 	  "                                 before sash will be executed.\n"
 	  "  -r,--standard                  Execute Sagittarius on specified standard.\n"
-	  "      6 "
+	  "      6                 Executes in strict R6RS mode\n"
 	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
 	  "  -A<path>,--append-loadpath=<path>  Adds <path> to the last of the load path\n"
 	  "                                     list.\n"
