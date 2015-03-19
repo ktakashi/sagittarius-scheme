@@ -2726,18 +2726,31 @@
 		 (p1env (cdr form&env)))
 	    (define (define-syntax? x) (global-eq? x 'define-syntax p1env))
 	    (define (begin? x) (global-eq? x 'begin p1env))
-	    (define (wrap exprs) (imap (lambda (e) (cons e p1env)) exprs))
+	    (define (let-syntax? x) (global-eq? x 'let-syntax p1env))
+	    (define (letrec-syntax? x) (global-eq? x 'letrec-syntax p1env))
+	    (define (wrap exprs p1env) (imap (lambda (e) (cons e p1env)) exprs))
+	    (define (handle-local-macro compile/let-syntax)
+	      (let-values (((newenv body) (compile/let-syntax form p1env)))
+		;; wrap the body with newenv and go on)
+		(rec `(,@(wrap body newenv) ,@(cdr form&envs)) r #t)))
 	    (smatch form
 	      (((? define-syntax? -) body ___)
 	       (pass1 form p1env) ;; will be stored in the library
 	       (rec (cdr form&envs) r #t))
+	      ;; handling let(rec)-syntax
+	      ;; TODO maybe we should check transformer spec so that
+	      ;;      we can do slight of optimisation? (e.g. no macro)
+	      (((? let-syntax? -) body ___)
+	       (handle-local-macro pass1/compile-let-syntax))
+	      (((? letrec-syntax? -) body ___)
+	       (handle-local-macro pass1/compile-letrec-syntax))
 	      ;; result of macro expansion often has this
 	      (((? begin? -) exprs ___)
 	       ;; do we need to handle like this?
 	       (let ((rest (cdr form&envs))
 		     ;; inside of 'begin' is raw expression so
 		     ;; wrap it before processing it
-		     (exprs (wrap exprs)))
+		     (exprs (wrap exprs p1env)))
 		 (if (null? rest)
 		     (rec exprs r exists?)
 		     (let-values (((er e?) (rec exprs r exists?))

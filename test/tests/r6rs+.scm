@@ -1,6 +1,7 @@
 ;; -*- scheme -*-
 (import (rnrs)
-	(rnrs mutable-pairs)
+	(rename (rnrs eval) (eval r6rs:eval))
+	(rnrs eval)
 	(core errors)
 	(srfi :64 testing))
 
@@ -73,5 +74,60 @@
 	    #vu8(2 3 4 5)
 	    (bytevector-copy #vu8(1 2 3 4 5 6) 1 5))
 
+;; macro defininion comes *after* the usage
+;; this actually not a valid R6RS code
+;; eval can't have define but we allow it
+(test-equal "simple wrap" '(123)
+	    (r6rs:eval '(begin
+			  (define (fun) (mac))
+			  (fun)
+			  (let-syntax ((print (syntax-rules ()
+						((_ o ...) (list o ...)))))
+			    (define-syntax mac
+			      (syntax-rules ()
+				((_) (print 123))))))
+		       (environment '(rnrs))))
+(test-equal "let-syntax define" '(hoge)
+	    (r6rs:eval '(begin
+			  (define (fun) (foo))
+			  (let-syntax ((print (syntax-rules ()
+						((_ o ...) (list o ...)))))
+			    (define-syntax mac
+			      (syntax-rules ()
+				((_)
+				 (begin
+				   (print 123)
+				   (flush-output-port (current-output-port))))))
+			    (define (foo)
+			      (print 'hoge))
+			    )
+			  (fun))
+		       (environment '(rnrs))))
+(test-equal "simple wrap (letrec-syntax)" '(123)
+	    (r6rs:eval '(begin
+			  (define (fun) (mac))
+			  (fun)
+			  (letrec-syntax ((print (syntax-rules ()
+						   ((_ o ...) (list o ...)))))
+			    (define-syntax mac
+			      (syntax-rules ()
+				((_) (print 123))))))
+		       (environment '(rnrs))))
+(test-equal "let-syntax define (letrec-syntax)" '(hoge)
+	    (r6rs:eval '(begin
+			  (define (fun) (foo))
+			  (letrec-syntax ((print (syntax-rules ()
+						   ((_ o ...) (list o ...)))))
+			    (define-syntax mac
+			      (syntax-rules ()
+				((_)
+				 (begin
+				   (print 123)
+				   (flush-output-port (current-output-port))))))
+			    (define (foo)
+			      (print 'hoge))
+			    )
+			  (fun))
+		       (environment '(rnrs))))
 
 (test-end)
