@@ -406,7 +406,13 @@
 
   (define-syntax address
     (syntax-rules ()
-      ((_ p) (list 'address p))))
+      ;; underling process can handle 2 elements list as well
+      ;; to avoid unnecessary allocation, we do like this.
+      ((_ p) (list 'address p))
+      ((_ p offset) 
+       (if (and (fixnum? offset) (>= offset 0))
+	   (list 'address p offset)
+	   (error 'address "offset must be zero or positive fixnum" offset)))))
 
   (define (pointer->c-function pointer ret-type name arg-types)
     (let ((stub-ret-type (assoc ret-type c-function-return-type-alist)))

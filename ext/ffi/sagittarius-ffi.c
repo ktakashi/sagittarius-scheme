@@ -872,12 +872,36 @@ static int push_ffi_type_value(SgFuncInfo *info,
   } else if (SG_PAIRP(obj) && 
 	     SG_EQ(SG_CAR(obj), address_mark) &&
 	     (SG_POINTERP(SG_CADR(obj)) || SG_BVECTORP(SG_CADR(obj)))) {
+    int offset = 0;
+    if (!SG_NULLP(SG_CDDR(obj))) {
+      SgObject off = SG_CAR(SG_CDDR(obj));
+      if (!SG_INTP(off) || SG_INT_VALUE(off) < 0) {
+	*lastError = Sg_Sprintf(UC("address offset must be a positive fixnum"
+				   " but got %S"),
+				off);
+	return FALSE;
+      }
+      offset = SG_INT_VALUE(off);
+    }
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
       if (SG_POINTERP(SG_CADR(obj))) {
-	storage->ptr = &(SG_POINTER(SG_CADR(obj))->pointer);
+	if (offset) {
+	  /* we need to do kinda silly thing here to get offset*/
+	  storage->ptr = &*(void**)(SG_POINTER(SG_CADR(obj))->pointer + offset);
+	} else {
+	  storage->ptr = &(SG_POINTER(SG_CADR(obj))->pointer);
+	}
       } else {
 	storage->ptr = &(SG_BVECTOR_ELEMENTS(SG_CADR(obj)));
+	if (offset) {
+	  /* this is easy.
+	     bytevector is allocated with extended structure (not sure,
+	     if this term is correct), thus the memory is continuous.
+	     so just adding offset is enough.
+	   */
+	  storage->ptr = (void *)((uintptr_t)storage->ptr + offset);
+	}
       }
       return TRUE;
     default:

@@ -440,6 +440,31 @@
       (test-equal "bc*" "hello world" (foo-bar-bc* fp))
       )
     )
+
+  ;; address offset
+  (test-equal "passing bytevector offset"
+	      "**ok**"
+	      (let* ((p (make-bytevector 6 (char->integer #\*)))
+		     (setter (c-function ffi-test-lib void
+					 passing_w_offset
+					 (void*))))
+		(setter (address p 2))
+		(utf8->string p)))
+
+  (test-equal "passing pointer offset"
+	      "**ok**"
+	      (let* ((p (allocate-pointer 7))
+		     (setter (c-function ffi-test-lib void
+					 passing_w_offset
+					 (void*)))
+		     (c (char->integer #\*)))
+		;; initialise
+		(do ((i 0 (+ i 1)))
+		    ((= i 6)) ;; the last must be 0
+		  (pointer-set-c-char! p i c))
+		(setter (address p 2))
+		(pointer->string p)))
+
   )
  (else
   #t))

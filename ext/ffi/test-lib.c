@@ -188,6 +188,13 @@ EXPORT char * foo_bar_bc(struct foo *st_foo)
   return st_foo->bar.bc;
 }
 
+EXPORT void passing_w_offset(char *v)
+{
+  *v = 'o';
+  *(v+1) = 'k';
+}
+
+
 extern EXPORT int     var;
 extern EXPORT char    *c_var;
 extern EXPORT wchar_t *wc_var;
