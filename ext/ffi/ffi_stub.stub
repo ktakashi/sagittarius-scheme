@@ -182,8 +182,12 @@
   (check-null-pointer pointer-ref-c-pointer p)
   (result (Sg_MakePointer (POINTER_REF void_ptr p offset))))
 
-(define-c-proc pointer-address (p::<pointer>) :no-side-effect
-  (result (Sg_MakePointer (& (-> p pointer)))))
+(define-c-proc pointer-address (p::<pointer> :optional (offset::<fixnum> 0))
+  :no-side-effect
+  (if offset
+      (result (Sg_MakePointer 
+	       (& (pointer (cast void** (+ (-> p pointer) offset))))))
+      (result (Sg_MakePointer (& (-> p pointer))))))
 
 ;; to use POINTER_REF macro.
 (decl-code

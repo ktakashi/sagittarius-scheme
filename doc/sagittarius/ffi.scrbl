@@ -370,8 +370,11 @@ void* deref(void **pointer, int offset) {
 If NULL pointer is given, it raises @code{&assertion}.
 }
 
-@define[Function]{@name{pointer-address} @args{pointer}}
+@define[Function]{@name{pointer-address} @args{pointer :optional offset}}
 @desc{Returns an address of given @var{pointer}.
+
+If optional argument @var{offset} is given, then the returning address of
+@var{pointer} is the offset of given @var{offset}.
 
 NOTE: This creates a newly allocated Scheme FFI pointer object.
 
