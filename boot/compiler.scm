@@ -2838,7 +2838,7 @@
 		     (list ($undef))))
 	      save))))
 
-(define-pass1-syntax (library form p1env) :sagittarius
+(define (pass1/compile-library form p1env)
   (define (check tag clause name)
     (or (eq? (identifier->symbol (car clause)) tag)
 	(syntax-error (format "malformed ~s clause in library ~s" tag name)
@@ -2846,8 +2846,8 @@
   (check-toplevel form p1env)
   (smatch form
     ((- name export
-	     import
-	     body ___)
+	import
+	body ___)
      (check 'import import name)
      (check 'export export name)
      ;; create a new p1env for this library.
@@ -2858,6 +2858,60 @@
        (pass1/export export current-lib)
        (pass1/library body current-lib newenv)))
     (- (syntax-error "malformed library" form))))
+
+(define-pass1-syntax (library form p1env) :sagittarius
+  (pass1/compile-library form p1env))
+
+;; This should not be used anywhere but loading script.
+;; The script will run on newly created library, thus
+;; users need to import all required library by themselvs.
+(define-pass1-syntax (program form p1env) :r6rs-script
+  (check-toplevel form p1env)
+  (let* ((exec-lib (ensure-library 'exec-r6rs 'program #t))
+	 (p1env    (make-bottom-p1env exec-lib))
+	 (programs (cdr form)))
+    (define (library? x) (global-eq? x 'library p1env))
+    (define (import? x) (global-eq? x 'import p1env))
+
+    (pass1/init-library exec-lib)
+    ;; import only 'import and 'library
+    ;; we allow script files to have library form as well
+    (pass1/import '(import (only (sagittarius) import library)) exec-lib)
+    (pass1/export '(export) exec-lib)
+    ;; check
+    (when (null? programs) (syntax-error "toplevel form is required"))
+    (let loop ((forms programs) (import-appear? #f))
+      (unless (null? forms)
+	(smatch (car forms)
+	  (((? library? -) rest ___)
+	   (if import-appear?
+	       (syntax-error "library form appeared after import" programs)
+	       (loop (cdr forms) #f)))
+	  (((? import? -) rest ___)
+	   (if import-appear?
+	       (syntax-error "import appeared in non toplevel" programs)
+	       (loop (cdr forms) #t)))
+	  (- (if import-appear?
+		 (loop (cdr forms) #t)
+		 (syntax-error "missing import form" programs))))))
+    ;; compile
+    (let loop ((forms programs) (seq ($seq '())))
+      (smatch (car forms)
+	(((? library? -) rest ___)
+	 (let ((lib-seq (pass1/compile-library (car forms) p1env)))
+	   ($seq-body-set! seq
+			   (append! ($seq-body seq) ($seq-body lib-seq)))
+	   (loop (cdr forms) seq)))
+	(((? import? -) rest ___)
+	 (pass1/import (car forms) exec-lib)
+	 (loop (cdr forms) seq))
+	(- 
+	 ;; program can be considered as one library
+	 ;; so we can do some optimisation
+	 (let ((body-seq (pass1/library forms exec-lib p1env)))
+	   ($seq-body-set! seq
+	     (append! ($seq-body seq) ($seq-body body-seq)))
+	   seq))))))
 
 ;; R7RS define-library
 ;; the syntax: 

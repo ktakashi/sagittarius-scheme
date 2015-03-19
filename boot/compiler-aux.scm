@@ -5,7 +5,8 @@
       ((:null) '(core))
       ((:sagittarius) '(sagittarius))
       ((:base) '(core base))
-      ((:r7rs) '(r7rs)) ;; for incompatibility between R6RS and R7RS, sucks!!
+      ;; only 'program' to run R6RS script
+      ((:r6rs-script) '(r6rs-script))
       (else
        (error 'ensure-library-name "invalid library tag:" tag)))))
 

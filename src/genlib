@@ -7,6 +7,7 @@
 	(sagittarius control)
 	(sagittarius compiler procedure)
 	(sagittarius vm)
+	(sagittarius aspect)
 	(util file)
 	(match)
 	(getopt)
@@ -21,10 +22,15 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
-;; TODO remove after 0.5.8
-(with-library (core base)
-	      (import (srfi :1))
-	      (export delete!))
+;; Remove after 0.6.3
+(point-cut
+ (sagittarius compiler util)
+ ensure-library-name
+ (lambda (tag)
+   (if (eq? tag :r6rs-script)
+       '(r6rs-script)
+       (proceed))))
+
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 

@@ -230,9 +230,8 @@ static void show_usage()
 	  "      no-optimization   Not optimiza.\n"
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
 	  "                                 before sash will be executed.\n"
-#if 0
-	  "  -6,--r6rs                      Runs sash with R6RS mode\n"
-#endif
+	  "  -r,--standard                  Execute Sagittarius on specified standard.\n"
+	  "      6 "
 	  "  -L<path>,--loadpath=<path>     Adds <path> to the head of the load path list.\n"
 	  "  -A<path>,--append-loadpath=<path>  Adds <path> to the last of the load path\n"
 	  "                                     list.\n"
@@ -294,6 +293,84 @@ static SgObject argsToList(int argc, int optind_s, tchar** argv)
   return h;
 }
 
+/* maybe we should move this to main code */
+static void set_vm_mode(SgVM *vm, int standard, SgPort *port)
+{
+  
+  switch (standard) {
+  case 6:
+    SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
+    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
+    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
+    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+    break;
+  case 7:
+    SG_VM_SET_FLAG(vm, SG_R7RS_MODE);
+    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
+    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+    break;
+  default: break;
+  }
+  if (port) {
+    /* flag is set so it returns R6RS read table */
+    Sg_SetPortReadTable(port, Sg_DefaultReadTable());
+  }
+}
+
+
+static int invoke_from_port(SgPort *port)
+{
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(r6rs-script)"), FALSE);
+  SgObject program = SG_INTERN("program");
+  SgObject forms = SG_NIL, t = SG_NIL, e;
+  SgObject eval, r;
+
+  SG_APPEND1(forms, t, program);
+  while ((e = Sg_Read(port, FALSE)) != SG_EOF) {
+    SG_APPEND1(forms, t, e);
+  }
+  eval = Sg_FindBinding(SG_INTERN("(core)"), SG_INTERN("eval"), SG_UNBOUND);
+  if (SG_UNBOUNDP(eval)) {
+    Sg_Panic("eval was not found.");
+  }
+  r = Sg_Apply2(SG_GLOC_GET(SG_GLOC(eval)), forms, lib);
+  return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
+}
+
+
+static int invoke_r6rs_file(SgString *path)
+{
+  SgObject file;
+  SgObject bport, tport, tran;
+  SgVM *vm = Sg_VM();
+  int r;
+  if (!Sg_FileExistP(path)) {
+    SgObject realPath = Sg_FindFile(path, vm->loadPath, NULL, FALSE);
+    if (SG_FALSEP(realPath)) {
+      Sg_Error(UC("no such file on load-path %S"), path);
+    }
+    path = realPath;
+  }
+  file = Sg_OpenFile(path, SG_READ);
+  if (!SG_FILEP(file)) {
+    /* file is error message */
+    Sg_Error(UC("given file was not able to open. %S\n"
+		"%A"), path, file);
+  }
+  tran = SG_TRANSCODER(Sg_MakeTranscoder(Sg_MakeUtf8Codec(),
+					 Sg_NativeEol(),
+					 SG_RAISE_ERROR));
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
+  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), tran);
+
+  set_vm_mode(vm, 6, SG_PORT(tport));
+
+  r = invoke_from_port(SG_PORT(tport));
+  Sg_ClosePort(tport);
+  return r;
+}
+
 static int profiler_mode = FALSE;
 static SgObject profiler_option = SG_UNDEF;
 
@@ -331,7 +408,7 @@ int main(int argc, char **argv)
 #endif
 {
   int opt, optionIndex = 0;
-  int forceInteactiveP = FALSE, noMainP = FALSE;
+  int forceInteactiveP = FALSE, noMainP = FALSE, standard_given = FALSE;
   int exit_code = 0;
   SgVM *vm;
   SgObject repl, lib, preimport = SG_NIL;
@@ -347,7 +424,7 @@ int main(int argc, char **argv)
     {t("help"), 0, 0, 'h'},
     {t("interactive"), 0, 0, 'i'},
     {t("import"), optional_argument, 0, 'I'},
-    /* {t("standard"), optional_argument, 0, 'r'}, */
+    {t("standard"), optional_argument, 0, 'r'},
     {t("version"), 0, 0, 'v'},
     {t("clean-cache"), 0, 0, 'c'},
     {t("disable-cache"), 0, 0, 'd'},
@@ -366,7 +443,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:snt"), 
+  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:"), 
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -409,21 +486,24 @@ int main(int argc, char **argv)
       */
       preimport = Sg_Cons(Sg_Intern(make_scheme_string(optarg_s)), preimport);
       break;
-#if 0
     case 'r':
       if (standard_given) {
 	Sg_Error(UC("Multiple -r option is specified."));
       }
       if (tstrcmp(t("6"), optarg_s) == 0) {
-	Sg_VMSetMode(vm, SG_VM_R6RS_MODE, 1);
+	if (forceInteactiveP) {
+	  Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
+	}
+	load_base_library = FALSE;
+	standard_given = 6;
       } else if (tstrcmp(t("7"), optarg_s) == 0) {
-	Sg_VMSetMode(vm, SG_VM_R7RS_MODE, 1);
+	standard_given = 7;
+	load_base_library = FALSE;
       } else {
 	Sg_Error(UC("Unsupported standard for -r option: %A"),
 		 make_scheme_string(optarg_s));
       }
       break;
-#endif
     case 'L': case 'A': {
       SgObject exp = make_scheme_string(optarg_s);
       int appendP = (opt == 'A');
@@ -482,6 +562,9 @@ int main(int argc, char **argv)
       show_usage();
       break;
     case 'i':
+      if (standard_given == 6) {
+	Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
+      }
       forceInteactiveP = TRUE;
       break;
     case 'c':
@@ -544,7 +627,12 @@ int main(int argc, char **argv)
 
   if (optind_s < argc) {
     SgObject proc;
-    exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind_s])));
+    if (standard_given == 6) {
+      exit_code = 
+	invoke_r6rs_file(SG_STRING(make_scheme_string(argv[optind_s])));
+    } else {
+      exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind_s])));
+    }
 
     /* to run R6RS bench ... */
     if (!noMainP) {
@@ -560,8 +648,18 @@ int main(int argc, char **argv)
   } else {
   repl:
     if (!isatty(0) && !forceInteactiveP) {
-      exit_code = Sg_LoadFromPort(SG_PORT(Sg_CurrentInputPort()));
+      if (standard_given)
+	set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
+
+      if (standard_given == 6) {
+	exit_code = invoke_from_port(SG_PORT(Sg_CurrentInputPort()));
+      } else {
+	exit_code = Sg_LoadFromPort(SG_PORT(Sg_CurrentInputPort()));
+      }
     } else {
+      if (standard_given == 6) {
+	Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
+      }
       repl = SG_UNDEF;
       lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
       if (SG_FALSEP(lib)) goto err;
