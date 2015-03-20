@@ -37,6 +37,8 @@
 #include "sagittarius/string.h"
 #include "sagittarius/library.h"
 #include "sagittarius/system.h"
+#include "sagittarius/symbol.h"
+#include "sagittarius/string.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/writer.h"
 
@@ -98,7 +100,10 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
     }
   }
   if (!quiet) {
-    Sg_Error(UC("given file was not found %S"), path);
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+	       SG_INTERN("find-file"),
+	       SG_MAKE_STRING("given file was not found"),
+	       path, SG_FALSE);
   }
   return SG_FALSE;
 }

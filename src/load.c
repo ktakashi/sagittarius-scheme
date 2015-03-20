@@ -154,9 +154,12 @@ SgObject Sg_VMLoad(SgString *path)
   SgVM *vm = Sg_VM();
 
   if (!Sg_FileExistP(path)) {
-    realPath = Sg_FindFile(path, vm->loadPath, NULL, FALSE);
+    realPath = Sg_FindFile(path, vm->loadPath, NULL, TRUE);
     if (SG_FALSEP(realPath)) {
-      Sg_Error(UC("no such file on load-path %S"), path);
+      Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+		 SG_INTERN("load"),
+		 SG_MAKE_STRING("no such file on load-path"),
+		 path, SG_FALSE);
     }
     path = realPath;
   }
@@ -164,8 +167,10 @@ SgObject Sg_VMLoad(SgString *path)
   file = Sg_OpenFile(path, SG_READ);
   if (!SG_FILEP(file)) {
     /* file is error message */
-    Sg_Error(UC("given file was not able to open. %S\n"
-		"%A"), path, file);
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+	       SG_INTERN("load"),
+	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
+	       path, SG_FALSE);
   }
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
