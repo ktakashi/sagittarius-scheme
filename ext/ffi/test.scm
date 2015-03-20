@@ -485,6 +485,15 @@
 		(setter (pointer-address p 2))
 		(pointer->string p)))
 
+    (test-equal "pointer->bytevector (normal)"
+		#vu8(1 1 1 1 1)
+		(let ((p (allocate-pointer 5 1)))
+		  (pointer->bytevector p 5)))
+    (test-equal "pointer->bytevector (offset)"
+		#vu8(1 1 1)
+		(let ((p (allocate-pointer 5 1)))
+		  (pointer->bytevector p 3 2)))
+
   )
  (else
   #t))

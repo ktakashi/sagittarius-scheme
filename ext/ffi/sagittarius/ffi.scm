@@ -372,12 +372,14 @@
 		   (bytevector-u32-native-set! buf 0 wc)
 		   (put-bytevector out buf)))))))))
 
-  (define (pointer->bytevector p size)
+  ;; we can't determine the size of given pointer
+  ;; so trust the user.
+  (define (pointer->bytevector p size :optional (offset 0))
     (if (null-pointer? p)
 	(assertion-violation 'pointer->bytevector "NULL pointer is given")
 	(do ((i 0 (+ i 1)) (bv (make-bytevector size)))
 	    ((= i size) bv)
-	  (bytevector-u8-set! bv i (pointer-ref-c-uint8 p i)))))
+	  (bytevector-u8-set! bv i (pointer-ref-c-uint8 p (+ i offset))))))
 
   (define (set-pointer-value! p n)
     (slot-set! p 'value n))

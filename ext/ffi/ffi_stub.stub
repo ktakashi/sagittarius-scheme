@@ -98,9 +98,9 @@
 (decl-code
  (.typedef "char*" "char_ptr")
  (.typedef "void*" "void_ptr"))
-(define-c-proc allocate-pointer (size::<fixnum>) 
+(define-c-proc allocate-pointer (size::<fixnum> :optional (fill::<fixnum> 0))
   (let ((p::char* (SG_NEW_ATOMIC2 char_ptr size)))
-    (memset p 0 size)
+    (memset p fill size)
     (result (Sg_MakePointer p))))
 
 ;; struct

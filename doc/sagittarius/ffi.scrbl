@@ -338,10 +338,10 @@ If NULL pointer is given, it raises @code{&assertion}.
 }
 
 @define[Function]{@name{pointer->bytevector}
- @args{pointer size}}
+ @args{pointer size :optional (offset 0)}}
 @desc{@var{Size} must be an exact integer.
 
-Converts given @var{pointer} to Scheme bytevector.
+Converts given @var{pointer} to Scheme bytevector from given @var{offset}. 
 
 If NULL pointer is given, it raises @code{&assertion}.
 }
@@ -382,10 +382,17 @@ NOTE: If the returned value is modified then given @var{pointer} will be
 affected.
 }
 
-@define[Function]{@name{allocate-pointer} @args{size}}
+@define[Function]{@name{allocate-pointer} @args{size :optional (fill 0)}}
 @desc{@var{size} must be a fixnum.
 
 Allocates a @var{size} of byte memory and returns an pointer object.
+
+If optional argument @var{fill} is given, it must be a fixnum, then the
+procedure fill the given @var{fill} into the allocated memory using
+@code{memset(3)}. 
+
+NOTE: the @var{fill} will be converted to an unsigned char by the 
+@code{memset(3)}.
 
 The allocated memory will be GCed.
 }
