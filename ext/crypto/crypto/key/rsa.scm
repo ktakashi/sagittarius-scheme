@@ -315,20 +315,27 @@
       ;; TODO check label length against hash function input limitation.
       (lambda (prng key block-type)
 	(define (encode data modulus)
-	  (define (fixup ps)
-	    ;; make sure it doesn't contain 01
-	    (define len (bytevector-length ps))
-	    (let loop ((i 0))
-	      (cond ((= i len) ps)
-		    ((= (bytevector-u8-ref ps i) #x01)
-		     (bytevector-u8-set! ps i 0)
-		     (loop (+ i 1)))
-		    (else (loop (+ i 1))))))
+;; 	  (define (fixup ps)
+;; 	    ;; make sure it doesn't contain 01
+;; 	    (define len (bytevector-length ps))
+;; 	    (let loop ((i 0))
+;; 	      (cond ((= i len) ps)
+;; 		    ((= (bytevector-u8-ref ps i) #x01)
+;; 		     (bytevector-u8-set! ps i 0)
+;; 		     (loop (+ i 1)))
+;; 		    (else (loop (+ i 1))))))
 	  (let* ((modulus-length (align-size modulus))
-		 (ps (fixup (read-random-bytes prng (- modulus-length
-						       (bytevector-length data)
-						       (* hlen 2)
-						       2))))
+;; 		 (ps (fixup (read-random-bytes prng (- modulus-length
+;; 						       (bytevector-length data)
+;; 						       (* hlen 2)
+;; 						       2))))
+		 ;; FUCK!!! Above is *perfectly* fine according to the
+		 ;; RFC but bloody bouncy castle expects PS is all 0
+		 ;; padded and it's already widely used.
+		 (ps (make-bytevector (- modulus-length
+					 (bytevector-length data)
+					 (* hlen 2)
+					 2) 0))
 		 (db (bytevector-append lhash ps #vu8(#x01) data))
 		 (seed (read-random-bytes prng hlen))
 		 (db-mask (mgf seed (- modulus-length hlen 1) algo))
