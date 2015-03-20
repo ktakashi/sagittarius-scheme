@@ -338,13 +338,29 @@ If NULL pointer is given, it raises @code{&assertion}.
 }
 
 @define[Function]{@name{pointer->bytevector}
- @args{pointer size :optional (offset 0)}}
+ @args{pointer size :optional (offset 0) (shared #t)}}
 @desc{@var{Size} must be an exact integer.
 
 Converts given @var{pointer} to Scheme bytevector from given @var{offset}. 
 
+If optional argument @var{shared} is #f, then the content of pointer won't
+be shared between pointer and bytevector. Default value is #t, thus if the
+given @var{pointer} is modified, then the created bytevector gets affected.
+
 If NULL pointer is given, it raises @code{&assertion}.
 }
+
+@define[Function]{@name{bytevector->pointer}
+ @args{bv :optional (offset 0) (shared #t)}}
+@desc{Converts given @var{bytevector} to pointer from given @var{offset}. 
+
+If optional argument @var{shared} is #f, then the content of bytevector won't
+be shared between bytevector and pointer. Default value is #t, thus if the
+given @var{bv} is modified, then the created pointer gets affected.
+
+If NULL pointer is given, it raises @code{&assertion}.
+}
+
 
 @define[Function]{@name{object->pointer} @args{obj}}
 @define[Function]{@name{pointer->object} @args{pointer}}

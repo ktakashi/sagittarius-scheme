@@ -12,6 +12,11 @@
 (define-type <func-info> "SgFuncInfo*")
 (define-type <cstruct> "SgCStruct*")
 
+(define-cise-stmt check-null-pointer
+  ((_ who p)
+   `(unless (-> ,p pointer)
+      (Sg_AssertionViolation ',who (SG_MAKE_STRING "got null pointer") '()))))
+
 (define-c-proc open-shared-library 
   (file::<string> :optional (raise::<boolean> #f)) 
   (let ((p::void* (Sg_OpenSharedObject file)))
@@ -95,6 +100,27 @@
 (define-c-proc pointer->object (p::<pointer>) :no-side-effect
   (result (SG_OBJ (-> p pointer))))
 
+;; we can't determine the size of given pointer
+;; so trust the user.
+(define-c-proc %pointer->bytevector 
+  (p::<pointer> size::<fixnum> offset::<fixnum>)
+  :no-side-effect
+  (check-null-pointer pointer->bytevector p)
+  (result (Sg_MakeByteVectorFromU8Array
+	   (cast (const uint8_t*)
+		 (& (pointer (cast void** (+ (-> p pointer) offset)))))
+	   size)))
+(define-c-proc %bytevector->pointer 
+  (bv::<bytevector> offset::<fixnum>)
+  :no-side-effect
+  (unless (SG_BVECTOR_IS_VALID_INDEX bv offset)
+    (Sg_AssertionViolation 'bytevector->pointer
+			   (SG_MAKE_STRING "offset out of range")
+			   (SG_LIST2 bv (SG_MAKE_INT offset))))
+  (result (Sg_MakePointer
+	   (& (pointer (cast void** (+ (cast uintptr_t (SG_BVECTOR_ELEMENTS bv))
+				       offset)))))))
+
 (decl-code
  (.typedef "char*" "char_ptr")
  (.typedef "void*" "void_ptr"))
@@ -132,11 +158,6 @@
   Sg_CStructSet)
 
 ;; ref
-(define-cise-stmt check-null-pointer
-  ((_ who p)
-   `(unless (-> ,p pointer)
-      (Sg_AssertionViolation ',who (SG_MAKE_STRING "got null pointer") '()))))
-
 (define-c-proc pointer-ref-c-uint8 (p::<pointer> offset::<fixnum>)
   ::<fixnum> :no-side-effect
   (check-null-pointer pointer-ref-c-uint8 p)

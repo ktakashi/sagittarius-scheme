@@ -485,14 +485,49 @@
 		(setter (pointer-address p 2))
 		(pointer->string p)))
 
-    (test-equal "pointer->bytevector (normal)"
-		#vu8(1 1 1 1 1)
-		(let ((p (allocate-pointer 5 1)))
-		  (pointer->bytevector p 5)))
-    (test-equal "pointer->bytevector (offset)"
-		#vu8(1 1 1)
-		(let ((p (allocate-pointer 5 1)))
-		  (pointer->bytevector p 3 2)))
+  (test-equal "pointer->bytevector (normal)"
+	      #vu8(1 1 1 1 1)
+	      (let ((p (allocate-pointer 5 1)))
+		(pointer->bytevector p 5)))
+  (test-equal "pointer->bytevector (shared)"
+	      #vu8(2 1 1 1 1)
+	      (let ((p (allocate-pointer 5 1)))
+		(pointer-set-c-uint8! p 0 2)
+		(pointer->bytevector p 5)))
+  (test-equal "pointer->bytevector (not shared)"
+	      #vu8(1 1 1 1 1)
+	      (let ((p (allocate-pointer 5 1)))
+		(pointer->bytevector p 5 0 #f)))
+  (test-equal "pointer->bytevector (offset)"
+	      #vu8(1 1 1)
+	      (let ((p (allocate-pointer 5 1)))
+		(pointer->bytevector p 3 2)))
+
+  (test-equal "bytevector->pointer (normal)"
+	      1
+	      (let* ((bv (make-bytevector 1 1))
+		     (p (bytevector->pointer bv)))
+		(pointer-ref-c-uint8 p 0)))
+  (test-equal "bytevector->pointer (shared)"
+	      2
+	      (let* ((bv (make-bytevector 1 1))
+		     (p (bytevector->pointer bv)))
+		(bytevector-u8-set! bv 0 2)
+		(pointer-ref-c-uint8 p 0)))
+  (test-equal "bytevector->pointer (not shared)"
+	      1
+	      (let* ((bv (make-bytevector 1 1))
+		     (p (bytevector->pointer bv 0 #f)))
+		(bytevector-u8-set! bv 0 2)
+		(pointer-ref-c-uint8 p 0)))
+  (test-equal "bytevector->pointer (offset)"
+	      '(2 3 4)
+	      (let* ((bv (bytevector-copy #vu8(0 1 2 3 4)))
+		     (p (bytevector->pointer bv 2)))
+		(list (pointer-ref-c-uint8 p 0)
+		      (pointer-ref-c-uint8 p 1)
+		      (pointer-ref-c-uint8 p 2))))
+
 
   )
  (else
