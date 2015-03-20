@@ -73,13 +73,19 @@ static void bvector_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS(Sg_ByteVectorClass, bvector_print, NULL, NULL, NULL,
 			SG_CLASS_SEQUENCE_CPL);
 
+static SgByteVector* make_bytevector_rec()
+{
+  SgByteVector *z = SG_NEW(SgByteVector);
+  SG_SET_CLASS(z, SG_CLASS_BVECTOR);
+  z->literalp = FALSE;
+  return z;
+}
 
 static SgByteVector* make_bytevector(int size)
 {
-  SgByteVector *z = SG_NEW_ATOMIC2(SgByteVector *, SG_BVECTOR_ALLOC_SIZE(size));
-  SG_SET_CLASS(z, SG_CLASS_BVECTOR);
+  SgByteVector *z = make_bytevector_rec();
   z->size = size;
-  z->literalp = FALSE;
+  z->elements = SG_NEW_ATOMIC2(uint8_t *, size);
   return z;
 }
 
@@ -100,9 +106,9 @@ SgObject Sg_MakeByteVector(int size, int fill)
 
 SgObject Sg_MakeByteVectorFromU8Array(const uint8_t *buf, int size)
 {
-  SgByteVector *z;
-  z = make_bytevector(size);
-  memcpy(z->elements, buf, size);
+  SgByteVector *z = make_bytevector_rec();
+  z->size = size;
+  z->elements = (uint8_t *)buf;
   return SG_OBJ(z);
 }
 

@@ -2311,6 +2311,7 @@ SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port)
       uint8_t *end = SG_BINARY_PORT_BUFFER(port)->end;
       size_t  index = SG_BINARY_PORT_BUFFER(port)->index;
       size_t size = end-start;
+      /* TODO should we copy? I'm not sure if we are using this pass though. */
       return Sg_MakeByteVectorFromU8Array(start+index, (int)(size-index));
     } else {
       /* recreate */

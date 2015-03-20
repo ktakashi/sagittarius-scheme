@@ -40,7 +40,7 @@ struct SgByteVectorRec
   SG_HEADER;
   int literalp : 1;
   int size     : (SIZEOF_INT*CHAR_BIT-1);
-  uint8_t elements[1];
+  uint8_t *elements;
 };
 
 #define SG_BVECTOR(obj)      ((SgByteVector*)obj)
@@ -62,16 +62,14 @@ struct SgByteVectorRec
 #define SG_BVECTOR_IS_VALID_INDEX(bv, index)	\
   (0 <= index && index < SG_BVECTOR_SIZE(bv))
 
-#define SG_BVECTOR_ALLOC_SIZE(size)		\
-  (sizeof(SgByteVector) + sizeof(uint8_t)*(size - 1))
-
 #ifdef HAVE_ALLOCA
 #define SG_ALLOC_TEMP_BVECTOR(var, size)				\
   do {									\
-    (var) = SG_BVECTOR(alloca(SG_BVECTOR_ALLOC_SIZE(size)));		\
+    (var) = SG_BVECTOR(alloca(sizeof(SgByteVector)));			\
     SG_SET_CLASS(var, SG_CLASS_BVECTOR);				\
     SG_BVECTOR_SIZE(var) = size;					\
     SG_BVECTOR_LITERALP(var) = FALSE;					\
+    SG_BVECTOR_ELEMENTS(var) = (uint8_t*)(alloca(size));		\
   } while (0)
 #else
 #define SG_ALLOC_TEMP_BVECTOR(var, size)		\
