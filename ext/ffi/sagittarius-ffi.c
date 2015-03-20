@@ -887,27 +887,36 @@ static int push_ffi_type_value(SgFuncInfo *info,
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
       if (SG_POINTERP(SG_CADR(obj))) {
+	/* we need to do kinda silly thing here to get offset*/
 	if (offset) {
-	  /* we need to do kinda silly thing here to get offset*/
-	  storage->ptr = &*(void**)(SG_POINTER(SG_CADR(obj))->pointer + offset);
+	  if (SG_POINTER(SG_CADR(obj))->pointer) {
+	    storage->ptr = 
+	      &*(void**)(SG_POINTER(SG_CADR(obj))->pointer + offset);
+	  } else {
+	    *lastError = 
+	      Sg_Sprintf(UC("offset of null pointer is not allowed"));
+	    return FALSE;
+	  }
 	} else {
+	  /* you may want to pass null pointer. then we just pass the
+	     address of this 'pointer' slot. */
 	  storage->ptr = &(SG_POINTER(SG_CADR(obj))->pointer);
 	}
       } else {
-	storage->ptr = &(SG_BVECTOR_ELEMENTS(SG_CADR(obj)));
+	/* simple overflow check */
 	if (offset) {
 	  if (SG_BVECTOR_SIZE(SG_CADR(obj)) <= offset) {
 	    *lastError = Sg_Sprintf(UC("specified offset is overflowing, %d"),
 				    offset);
 	    return FALSE;
 	  }
-	  /* this is easy.
-	     bytevector is allocated with extended structure (not sure,
-	     if this term is correct), thus the memory is continuous.
-	     so just adding offset is enough.
-	   */
-	  storage->ptr = (void *)((uintptr_t)storage->ptr + offset);
 	}
+	/* even though allocate memory of a bytevector is continuous but
+	   we do calculate the address offset like this (hope no overhead).
+	   this is because, we may change the structure of bytevector in 
+	   the future. */
+	storage->ptr = 
+	  &*(void**)((uintptr_t)SG_BVECTOR_ELEMENTS(SG_CADR(obj)) + offset);
       }
       return TRUE;
     default:
