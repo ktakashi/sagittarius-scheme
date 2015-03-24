@@ -1541,6 +1541,8 @@
       ;; preserve local variable, pattern variable and pending identifier
       ;; the same as syntax-case
       (or (and (not (pending-identifier? symid))
+	       ;; only global identifier will be renamed
+	       (not (id-identity symid))
 	       ;; exported from (core syntax-case)
 	       (or (hashtable-ref dict symid #f)
 		   (rename symid dict p1env)))
