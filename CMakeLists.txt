@@ -174,30 +174,6 @@ ENDIF()
 ### Compiler options
 FIXUP_COMPILER_FLAGS(SAGITTARIUS_PROCESSOR SAGITTARIUS_OS)
 
-# compiler option for global
-# TODO support MinGW
-IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
-  IF (MSVC OR WATCOM)
-    SET(USE_UCS4_CPP TRUE)
-  ELSE()
-    MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
-  ENDIF()
-ELSEIF(CYGWIN)
-  CHECK_C_COMPILER_FLAG("-fwide-exec-charset=ucs-4le" WIDE_EXEC_CHARSET)
-  IF (WIDE_EXEC_CHARSET)
-    SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
-  ENDIF()
-
-  # Cygwin stack issue
-  SET(cygwin_ldflags "-Wl,--stack,8388608")
-  SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
-  SET(CMAKE_MODULE_LINKER_FLAGS
-    "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
-  SET(CMAKE_SHARED_LINKER_FLAGS
-    "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
-ENDIF()
-
 # set module path here
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 

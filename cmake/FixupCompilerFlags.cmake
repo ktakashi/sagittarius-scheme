@@ -33,7 +33,8 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
       CMAKE_COMPILER_IS_GNUCC OR
       CMAKE_COMPILER_IS_GNUCXX)
 
-    # compiler warning is important to find a bug
+    # adding extra flags
+    #  * -Wall: compiler warning is important to find a bug
     SET(CMAKE_C_FLAGS "-Wall ${CMAKE_C_FLAGS}")
     SET(CMAKE_CXX_FLAGS "-Wall ${CMAKE_CXX_FLAGS}")
 
@@ -114,6 +115,30 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     # watcom's default alignment is 4, so we need to specify it.
     SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")
     SET(CMAKE_CXX_FLAGS "-ox -xs ${CMAKE_CXX_FLAGS}")
+  ENDIF()
+
+  # compiler option for global
+  # TODO support MinGW
+  IF(${CMAKE_SYSTEM_NAME} MATCHES Windows)
+    IF (MSVC OR WATCOM)
+      SET(USE_UCS4_CPP TRUE)
+    ELSE()
+      MESSAGE(FATAL_ERROR "On Windows Only MSVC is supported")
+    ENDIF()
+  ELSEIF(CYGWIN)
+    CHECK_C_COMPILER_FLAG("-fwide-exec-charset=ucs-4le" WIDE_EXEC_CHARSET)
+    IF (WIDE_EXEC_CHARSET)
+      SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fwide-exec-charset=ucs-4le")
+      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fwide-exec-charset=ucs-4le")
+    ENDIF()
+
+    # Cygwin stack issue
+    SET(cygwin_ldflags "-Wl,--stack,8388608")
+    SET(CMAKE_EXE_LINKER_FLAGS "${cygwin_ldflags} ${CMAKE_EXE_LINKER_FLAGS}")
+    SET(CMAKE_MODULE_LINKER_FLAGS
+      "${cygwin_ldflags} ${CMAKE_MODULE_LINKER_FLAGS}")
+    SET(CMAKE_SHARED_LINKER_FLAGS
+      "${cygwin_ldflags} ${CMAKE_SHARED_LINKER_FLAGS}")
   ENDIF()
 
 ENDMACRO (FIXUP_COMPILER_FLAGS)
