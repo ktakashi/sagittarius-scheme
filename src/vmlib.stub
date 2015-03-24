@@ -48,10 +48,10 @@
     (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
       (wrong-type-of-argument-violation 'make-identifier 
 					"symbol or identifier" name))
-    (let ((new-id (Sg_MakeIdentifier name
-				     (SG_IDENTIFIER_ENVS id)
+    (let ((new-id (Sg_MakeIdentifier name '()
 				     (SG_IDENTIFIER_LIBRARY id))))
       (set! (SG_IDENTIFIER_IDENTITY new-id) (SG_IDENTIFIER_IDENTITY id))
+      (set! (SG_IDENTIFIER_ENVS new-id) (SG_IDENTIFIER_ENVS id))
       (result new-id)))
 
   (define-c-proc make-pending-identifier (name envs maybe-library)
@@ -80,6 +80,7 @@
     (unless (SG_LIBRARYP maybe-library)
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
     (let ((id (Sg_MakeIdentifier name envs maybe-library)))
+      (set! (SG_IDENTIFIER_ENVS id) envs)
       ;;(set! (SG_IDENTIFIER_PENDING id) TRUE)
       (result id)))
 
@@ -297,18 +298,43 @@
 	(set! l2 (SG_CDR l2)))
       (result h)))
  
+  ;; I have no idea why this doesn't break anything
+  ;; basica idea is that if 2 identifiers share the
+  ;; same identity then it can be considered as the
+  ;; same identifiers. 
+  ;; the `id1` is outside of compile time environment
+  ;; and it can be compared either its identity itself
+  ;; or the cdr part of its identity. again, I HAVE NO
+  ;; IDEA WHY THIS WORKS.
+  ;; FIXME: this must be wrong, so implement identifier
+  ;;        identity properly (but how?)
+  (define-cfn list-eq? (l1 l2) ::int :static
+    (while (and (SG_PAIRP l1) (SG_PAIRP l2))
+      (unless (SG_EQ (SG_CAR l1) (SG_CAR l2)) (return FALSE))
+      (set! l1 (SG_CDR l1))
+      (set! l2 (SG_CDR l2)))
+    (return (SG_EQ l1 l2)))
+  (define-cfn identity-eq? (identity1 id2) ::int :static
+    (let ((identity2 (SG_IDENTIFIER_IDENTITY id2)))
+       ;; shortcut (#f #f) case, I guess
+      (cond ((SG_EQ identity1 identity2) (return TRUE))
+	    ((or (SG_FALSEP identity1) (SG_FALSEP identity2))
+	     (return FALSE))
+	    (else (return (list-eq? identity1 identity2))))))
+    
   (define-cfn p1env-lookup-inner 
     (p1env::SgVector* name lookup_as boundary)
     :static
     (let ((lib (SG_VECTOR_ELEMENT p1env 0))
-	  (same-env?::int FALSE)
 	  (frames (SG_VECTOR_ELEMENT p1env 1))
-	  (retried::int FALSE))
+	  (retried::int FALSE)
+	  (saved-env SG_NIL)
+	  (saved-identity SG_FALSE))
+      (when (SG_IDENTIFIERP name)
+	(set! saved-env (SG_IDENTIFIER_ENVS name))
+	(set! saved-identity (SG_IDENTIFIER_IDENTITY name)))
       (label retry)
       (dopairs (fp frames)
-	(when (and (SG_IDENTIFIERP name)
-		   (SG_EQ (SG_IDENTIFIER_ENVS name) fp))
-	  (set! same-env? TRUE))
 	;; don't go over boundary
 	(when (SG_EQ boundary (SG_CAAR fp)) (return name))
 	;; not interesting
@@ -326,7 +352,9 @@
 		    (and (SG_SYMBOLP (SG_CAR vp))
 			 (SG_IDENTIFIERP name)
 			 (SG_EQ (SG_CAR vp) (SG_IDENTIFIER_NAME name))
-			 (SG_NULLP (SG_IDENTIFIER_ENVS name))
+			 ;; top environment must be null
+			 (SG_NULLP saved-env)
+			 (SG_FALSEP saved-identity)
 			 (SG_EQ (SG_IDENTIFIER_LIBRARY name) lib))
 		    ;; bound identifier comparison
 		    (and (SG_IDENTIFIERP (SG_CAR vp))
@@ -335,34 +363,15 @@
 				(SG_IDENTIFIER_NAME name))
 			 (SG_EQ (SG_IDENTIFIER_LIBRARY (SG_CAR vp))
 				(SG_IDENTIFIER_LIBRARY name))
-			 (SG_EQ (SG_IDENTIFIER_IDENTITY (SG_CAR vp))
-				(SG_IDENTIFIER_IDENTITY name)))
+			 (identity-eq? saved-identity (SG_CAR vp)))
 		    ;; should not use env
-		    #;
-		    (and (SG_IDENTIFIERP (SG_CAR vp))
-			 (SG_IDENTIFIERP name)
-			 (SG_EQ (SG_IDENTIFIER_NAME (SG_CAR vp))
-				(SG_IDENTIFIER_NAME name))
-			 (SG_EQ (SG_IDENTIFIER_ENVS (SG_CAR vp))
-				(SG_IDENTIFIER_ENVS name))
-			 (SG_EQ (SG_IDENTIFIER_LIBRARY (SG_CAR vp))
-				(SG_IDENTIFIER_LIBRARY name)))
-		    ;; if it's in the same env, then like this...
-		    (and same-env?
-			 (or
-			  (and (SG_SYMBOLP (SG_CAR vp))
-			       (SG_EQ (SG_CAR vp) (SG_IDENTIFIER_NAME name)))
-			  (and (SG_IDENTIFIERP (SG_CAR vp))
-			       (SG_EQ (SG_IDENTIFIER_NAME (SG_CAR vp))
-				      (SG_IDENTIFIER_NAME name))
-			       ;; the same meaning of raw symbol
-			       (SG_NULLP (SG_IDENTIFIER_ENVS (SG_CAR vp)))))))
+		    )
 	    (return vp))))
       ;; for local macro thing
-      (when (and (not retried) (SG_IDENTIFIERP name)
-		 (SG_IDENTIFIER_PENDING name))
-	(set! retried TRUE)
-	(set! frames (SG_IDENTIFIER_ENVS name))
+      (when (not (SG_NULLP saved-env))
+	(set! frames (SG_CAR saved-env))
+	(set! saved-env (SG_CDR saved-env))
+	(set! saved-identity (SG_CDR saved-identity))
 	(goto retry))
       (return name)))
 

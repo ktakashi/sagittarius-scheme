@@ -275,7 +275,6 @@ int Sg_MainThreadP()
 
 #define Sg_VM() theVM
 
-
 /* some convenient accessors */
 #define PC(vm)             (vm)->pc
 #define AC(vm)             (vm)->ac

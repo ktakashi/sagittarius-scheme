@@ -504,7 +504,7 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
       /* compiler now share the frame so we need to check each frame
 	 separately here.*/
       cbs = write_cache_scan(SG_IDENTIFIER_ENVS(obj), cbs, ctx);
-      cbs = write_cache_scan(SG_IDENTIFIER_IDENTITY(obj), cbs, ctx);	
+      cbs = write_cache_scan(SG_IDENTIFIER_IDENTITY(obj), cbs, ctx);
     }
     if (SG_LIBRARYP(SG_IDENTIFIER_LIBRARY(obj))) {
       cbs = write_cache_scan(SG_LIBRARY_NAME(SG_IDENTIFIER_LIBRARY(obj)),

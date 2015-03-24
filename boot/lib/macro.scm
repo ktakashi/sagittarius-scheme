@@ -145,11 +145,6 @@
 (define syntax-quote. (make-identifier 'syntax-quote '()
 				       '(sagittarius compiler)))
 
-(define (pattern-variable? id)
-  (and (identifier? id)
-       (not (null? (id-envs id)))
-       (symbol? (car (id-envs id)))))
-
 (define (rewrite-form form seen env library
 		      make-identifier
 		      handle-identifeir)
@@ -186,15 +181,8 @@
 		    (lambda (name env library)
 		      (make-identifier name (if (symbol? name) '() env)
 				       library))
-		    (lambda (id)
-		      (and (not (pending-identifier? id))
-			   (not (pattern-variable? id))
-			   ;; preserve local variable.
-			   ;; if we can find local variable at this point,
-			   ;; then if it needs to be found at any point with this
-			   ;; environment anyway.
-			   (not (identifier?
-				 (p1env-lookup mac-env id LEXICAL)))))))
+		    (lambda (id) 
+		      (not (pending-identifier? id)))))
     (define (extend-env newframe env) (acons PATTERN newframe env))
     
     (define mac-save (current-macro-env))
@@ -205,7 +193,6 @@
     (%set-current-usage-env! mac-env)
     (let ((lites (rewrite literals '())))
       
-      (define pattern-mark (list 'pattern-variable))
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
 	  (let ((p (car p)))
@@ -213,10 +200,7 @@
 	    ;; (let-syntax ((_ (syntax-rules ())))
 	    ;;   (let-syntax ((foo (syntax-rules () ((_ _) _))))
 	    ;;     (foo 'bar)))
-	    (cons p (cond ((or (symbol? p)
-			       (identifier? (p1env-lookup mac-env p LEXICAL)))
-			   (make-pattern-identifier p pattern-mark library))
-			  (else p)))))
+	    (cons p (make-identifier p env library))))
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
@@ -520,14 +504,11 @@
 		    (make-identifier name (if (symbol? name) '() env)
 				     library))
 		  (lambda (id)
-		    (and (not (pending-identifier? id))
-			 (not (pattern-variable? id))
-			 ;; don't rename pattern variables
-			 (not (assoc id ranks free-identifier=?))
-			 ;; don't rename local variable
-			 #;
-			 (not (identifier?
-			       (p1env-lookup mac-env id LEXICAL)))))))
+		    (and (or (not (pending-identifier? id))
+			     ;; FIXME 
+			     (not (identifier?
+				   (p1env-lookup mac-env id LEXICAL))))
+			 (not (assoc id ranks free-identifier=?))))))
   (let* ((ids (collect-unique-ids tmpl))
 	 (ranks (filter-map (lambda (id)
 			      (let ((p (p1env-lookup mac-env id PATTERN)))
@@ -608,8 +589,9 @@
 		    (lambda (name env lib)
 		      (cond ((lookup-transformer-env name))
 			    (else
+			     ;; fake the identifier creation
 			     ;; TODO not sure if this is actually correct
-			     (let* ((env (if (null? env) (id-envs name) env))
+			     (let* ((env (if (null? env) `((,LEXICAL)) env))
 				    (id (make-pending-identifier name env lib)))
 			       (add-to-transformer-env! name id)))))
 		    ;; preserve template variables and
@@ -698,9 +680,7 @@
 
       (define (revealed name depth)
 	(cond ((< 0 (rank-of name ranks) depth)
-	       (let ((renamed (make-identifier (gensym)
-					       (id-envs name)
-					       (id-library name))))
+	       (let ((renamed (copy-identifier (gensym) name)))
 		 (or (hashtable-ref moved-ranks renamed #f)
 		     (let loop ((i (- depth (rank-of name ranks)))
 				(var (subform-of name vars)))
@@ -931,13 +911,9 @@
 				  (make-identifier name
 						   (if (symbol? name) '() env)
 						   library))
-				(lambda (id)
-				  (and (not (pending-identifier? id))
-				       (not (pattern-variable? id))
-				       (not (identifier?
-					     (p1env-lookup env id
-							   LEXICAL)))))))
-		(proc (rewrite expr p1env)))
+				(lambda (id) (not (pending-identifier? id)))))
+		;; use current usage env, issue 93
+		(proc (rewrite expr (current-usage-env))))
 	      '()
 	      (current-macro-env)))
 

@@ -1541,13 +1541,9 @@
       ;; preserve local variable, pattern variable and pending identifier
       ;; the same as syntax-case
       (or (and (not (pending-identifier? symid))
-		;; exported from (core syntax-case)
-		(not (pattern-variable? symid))
-		;; rename only global identifier
-		;; TODO is this actually correct?
-		(not (id-identity symid))
-		(or (hashtable-ref dict symid #f)
-		    (rename symid dict p1env)))
+	       ;; exported from (core syntax-case)
+	       (or (hashtable-ref dict symid #f)
+		   (rename symid dict p1env)))
 	   symid)
       ))
 

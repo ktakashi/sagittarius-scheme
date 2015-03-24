@@ -1761,4 +1761,16 @@
 
 (test-equal "template variable boundness" '(a a a) (beta-def-ref 'a))
 
+(let ()
+  (define-syntax wrap
+    (syntax-rules ()
+      ((_ name)
+       (define (name o)
+	 (with-tags ((o <beta>))
+	   (list (o d) (o e) (o f)))))))
+  (wrap beta-def-ref)
+  (test-equal "template variable boundness (wrapped)" '(a a a) 
+	      (beta-def-ref 'a)))
+
+
 (test-end)
