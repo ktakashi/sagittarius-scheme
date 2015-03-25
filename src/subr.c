@@ -51,6 +51,10 @@ static void proc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   else if (SG_PROCEDURE_TYPE(obj) == SG_PROC_NEXT_METHOD)
     Sg_Putuz(port, UC("#<next-method "));
   Sg_Write(SG_PROCEDURE_NAME(obj), port, SG_WRITE_DISPLAY);
+
+  Sg_Printf(port, UC(" %d:%d"),
+	    SG_PROCEDURE_REQUIRED(obj), SG_PROCEDURE_OPTIONAL(obj));
+
   Sg_Putc(port, '>');
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcedureClass, proc_print);

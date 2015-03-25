@@ -733,6 +733,20 @@
   (define-c-proc assertion-violation (who message :rest irritants) ::<void>
     Sg_AssertionViolation)
 
+  (define-c-proc error (who message :rest irritants) ::<void>
+    (let ((condi SG_FALSE))
+      (if (SG_FALSEP who)
+	  (set! condi 
+		(Sg_Condition 
+		 (SG_LIST2 (Sg_MakeError message)
+			   (Sg_MakeIrritantsCondition irritants))))
+	  (set! condi 
+		(Sg_Condition 
+		 (SG_LIST3 (Sg_MakeError message)
+			   (Sg_MakeWhoCondition who)
+			   (Sg_MakeIrritantsCondition irritants)))))
+      (Sg_Raise condi FALSE)))
+
   ;; we might remove this
   (define-c-proc scheme-error (who msg :rest irritant) ::<void>
     (Sg_Error (UC "%S %A %S") who msg irritant))

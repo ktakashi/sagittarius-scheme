@@ -59,16 +59,6 @@
                                     (else #f)))
                           (make-message-condition message)))))))
 
-(define error
-  (lambda (who message . irritants)
-    (raise
-     (apply condition
-            (filter values
-                    (list (make-error)
-                          (and who (make-who-condition who))
-                          (make-message-condition message)
-                          (make-irritants-condition irritants)))))))
-
 (define implementation-restriction-violation
   (lambda (who message . irritants)
     (raise
