@@ -130,4 +130,24 @@
 			  (fun))
 		       (environment '(rnrs))))
 
+;; call #107
+(let ()
+  (define-record-type <foo>
+    (fields a b))
+  
+  (define foo-rcd (make-record-constructor-descriptor 
+		   (record-type-descriptor <foo>) #f
+		   (lambda (p) (lambda () (p 1 2)))))
+  
+  (define (foo-fields foo) (list (<foo>-a foo) (<foo>-b foo)))
+  (test-equal "multiple record constructor descriptor (1)"
+	      '(a b)
+	      (foo-fields
+	       ((record-constructor (record-constructor-descriptor <foo>))
+		'a 'b)))
+  (test-equal "multiple record constructor descriptor (2)"
+	      '(1 2)
+	      (foo-fields ((record-constructor foo-rcd))))
+  )
+
 (test-end)

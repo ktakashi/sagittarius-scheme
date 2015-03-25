@@ -174,21 +174,24 @@
               "expected procedure for protocol since parent constructor descriptor have custom one"
               rtd parent protocol)))
 
-    (let ((rcd (make <record-constructor-descriptor>
-		 :rtd rtd 
-		 :parent (or parent
-			     (cond ((record-type-parent rtd)
-				    => (lambda (rtd)
-					 (make-record-constructor-descriptor
-					  rtd #f #f)))
-				   (else #f)))
-		 :protocol (or protocol (default-protocol rtd)))))
-      (slot-set! (slot-ref rtd 'class) 'rcd rcd)
-      rcd))
+    (make <record-constructor-descriptor>
+      :rtd rtd 
+      :parent (or parent
+		  (cond ((record-type-parent rtd)
+			 => (lambda (rtd)
+			      (make-record-constructor-descriptor
+			       rtd #f #f)))
+			(else #f)))
+      :protocol (or protocol (default-protocol rtd))))
   (define (record-constructor-descriptor? o) 
     (is-a? o <record-constructor-descriptor>))
 
-  (define (make-record-type name rtd rcd) (slot-ref rtd 'class))
+  ;; this is internal procedure used from define-record-type
+  ;; thus we don't expect to be used anywhere else but there.
+  ;; so we can set the rcd to rtd safely (i guess).
+  (define (make-record-type name rtd rcd)
+    (slot-set! (slot-ref rtd 'class) 'rcd rcd)
+    (slot-ref rtd 'class))
   
   (define (rtd-total-field-count rtd)
     (length (class-slots (slot-ref rtd 'class))))
