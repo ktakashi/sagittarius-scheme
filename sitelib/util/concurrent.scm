@@ -33,4 +33,5 @@
 (library (util concurrent)
     (export :all)
     (import (util concurrent future)
-	    (util concurrent executor)))
+	    (util concurrent executor)
+	    (util concurrent shared-queue)))

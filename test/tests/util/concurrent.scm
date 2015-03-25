@@ -1,7 +1,8 @@
 (import (rnrs)
 	(util concurrent)
 	(srfi :18)
-	(srfi :64))
+	(srfi :64)
+	(match))
 
 (test-begin "Concurrent utilities")
 
@@ -88,6 +89,56 @@
   (test-error "failed to add" uncaught-exception?
 	      ;; one of them must be failed
 	      (begin (thread-join! t1) (thread-join! t2)))
+  )
+
+;; shared-queue
+;; TODO test case for max-length
+(let ()
+  (define (open-account initial-amount out)
+    (define shared-queue (make-shared-queue))
+    (define (process)
+      (define balance initial-amount)
+      (let loop ()
+	(match (shared-queue-get! shared-queue)
+	  (('withdrow how-much)
+	   (if (< balance how-much)
+	       (begin (shared-queue-put! out "invalid amount") (loop))
+	       (begin
+		 (set! balance (- balance how-much))
+		 (shared-queue-put! out (cons how-much balance))
+		 (loop))))
+	  (('deposite a)
+	   (if (negative? a)
+	       (begin (shared-queue-put! out "invalid amount") (loop))
+	       (begin
+		 (set! balance (+ balance a))
+		 (shared-queue-put! out (cons 0 balance))
+		 (loop))))
+	  (('close) #t)
+	  (else "invalid message"0))))
+
+    (let ((t (make-thread process)))
+      (thread-start! t)
+      shared-queue))
+
+  (define recepit (make-shared-queue))
+  (define client (open-account 1000 recepit))
+  (define eager-client
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(test-equal "shared-queue-get (wait)" '(100 . 900)
+		    (shared-queue-get! recepit))))))
+
+  (shared-queue-put! client '(withdrow 100))
+  (shared-queue-put! client '(deposite 100))
+  (shared-queue-put! client '(close))
+  ;; wait until account closed
+  (thread-sleep! 0.1)
+
+  (test-equal "size"  1 (shared-queue-size recepit))
+  (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
+  (test-assert "empty?" (shared-queue-empty? recepit))
   )
 
 (test-end)
