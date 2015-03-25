@@ -1772,5 +1772,9 @@
   (test-equal "template variable boundness (wrapped)" '(a a a) 
 	      (beta-def-ref 'a)))
 
+;; call #108
+(test-equal "compilation error due to the incorrect check of $label"
+	    '#(11)
+	    (let () '#(11)))
 
 (test-end)

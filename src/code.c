@@ -74,10 +74,6 @@
 
 static SgCodePacket empty_packet = EMPTY_PACKET;
 
-/* TODO define label object or symbol. */
-#define is_label(o)							\
-  (SG_VECTORP(o) && Sg_VectorRef((o), 0, SG_FALSE) == SG_MAKE_INT(11))
-
 static void push(SgCodeBuilder *cb, SgWord word)
 {
   int length = cb->size;
@@ -106,10 +102,10 @@ static void flush(SgCodeBuilder *cb)
   case ARGUMENT0:
     push(cb, SG_WORD(insn));
     break;
-  case ARGUMENT1:
+  case ARGUMENT1: {
+    InsnInfo *info = Sg_LookupInsnName(cb->packet.insn);
     push(cb, SG_WORD(insn));
-    /* TODO check if obj is label */
-    if (is_label(cb->packet.obj)) {
+    if (info->label) {
       cb->labelRefs = Sg_Acons(cb->packet.obj, SG_MAKE_INT(cb->size),
 			       cb->labelRefs);
       push(cb, SG_WORD(0));
@@ -117,6 +113,7 @@ static void flush(SgCodeBuilder *cb)
       push(cb, SG_WORD(cb->packet.obj));
     }
     break;
+  }
   }
   cb->packet = empty_packet;
 }
