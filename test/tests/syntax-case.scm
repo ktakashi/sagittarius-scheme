@@ -350,4 +350,43 @@
 (import (foo))
 (test-equal "refering internal library definition" 123 (foo))
 
+;; call #106
+;; make reader R6RS strict mode
+#!r6rs
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (syntax-case x ()
+	((k name)
+	 #'(begin
+	     (define the-name 'foo)
+	     (define-syntax name
+	       (lambda (xx)
+		 (syntax-case xx (:foo)
+		   ((_ :foo) #'the-name)))))))))
+
+  (define-syntax bar
+    (lambda (x)
+      (syntax-case x ()
+	((k name foo?)
+	 #'(begin
+	     (define the-name 'bar)
+	     (define-syntax name
+	       (lambda (xx)
+		 (syntax-case xx (:foo :bar)
+		   ((_ :foo) #'(foo? :foo))
+		   ((_ :bar) #'the-name)))))))))
+
+  (let ()
+    (foo foo1)
+    (bar bar1 foo1)
+
+    (test-equal "variable visibility(1)" 'foo (bar1 :foo))
+    (test-equal "variable visibility(2)" 'bar (bar1 :bar))
+    )
+  )
+
+;; back to compatible for my convenience
+#!compatible
+
 (test-end)

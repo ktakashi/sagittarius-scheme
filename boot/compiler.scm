@@ -3249,7 +3249,11 @@
   (cond ((null? intdefs) (finish exprs))
 	(else
 	 (let ((intdefs. (reverse! intdefs)))
+	   ;; Below isn't needed anymore (I don't remember why we needed this
+	   ;; if we rename it here, then it causes some issue.
+	   ;; See test case for call #106 in test/tests/syntax-case.scm.
 	   ;; rename internal define if needed
+	   #;
 	   (ifor-each (lambda (def)
 			(let ((name (caar def)))
 			  (when (identifier? name) 
