@@ -331,12 +331,14 @@
       (unless (or (null? (id-envs value))
 		  ;; FIXME comparing this is a bit too much depending on
 		  ;;       the structure of compiler environment.
-		  (equal? (id-envs value) '((4))))
+		  (and (null? (cdr (id-envs value)))
+		       (equal? (car (id-envs value)) '((4)))))
 	(format (current-error-port) 
 		"*WARNING* identifier '~a' in ~a contains environment~%    \
                  assume the identifier can be resolved in the \
-                 target library.~%"
-		(id-name value) (library-name (id-library value))))
+                 target library. ~,,,20s~%"
+		(id-name value) (library-name (id-library value))
+		(id-envs value)))
       (let1 libname (symbol->string (library-name (id-library value)))
 	(make <cgen-scheme-identifier> :value value
 	      :c-name (cgen-allocate-static-datum)
