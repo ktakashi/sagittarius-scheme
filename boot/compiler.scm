@@ -3258,7 +3258,7 @@
 			(let ((name (caar def)))
 			  (when (identifier? name) 
 			    (rename-pending-identifier! name)))) intdefs.)
-	   ($let #f 'rec (collect-lvars intdefs.)
+	   ($let #f 'rec* (collect-lvars intdefs.)
 		 (imap (lambda (def) 
 			 (let ((expr (car def))
 			       (frame (cadr def))
