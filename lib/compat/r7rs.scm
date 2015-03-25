@@ -4,7 +4,7 @@
 ;; for unbound variable warning
 (library (compat r7rs helper)
     (export any length* error cons-source)
-    (import (core)
+    (import (except (core) error)
 	    (core base)
 	    (rename (core errors) (error core:error))
 	    (only (sagittarius vm debug) source-info-set!))
