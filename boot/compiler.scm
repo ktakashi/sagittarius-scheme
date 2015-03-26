@@ -2726,11 +2726,33 @@
 	    (define (begin? x) (global-eq? x 'begin p1env))
 	    (define (let-syntax? x) (global-eq? x 'let-syntax p1env))
 	    (define (letrec-syntax? x) (global-eq? x 'letrec-syntax p1env))
+	    ;; If cond-expand is used on R6RS mode then
+	    ;; it should be expanded as if it's a macro
+	    ;; otherwise doesn't work properly.
+	    (define (cond-expand? x) (global-eq? x 'cond-expand p1env))
+	    ;; the same goes include and include-ci for better
+	    ;; co-operation of R7RS
+	    ;; we can ignore include-library-declarations which is simply
+	    ;; an auxiliary keyword for define-library 
+	    (define (include? x) (global-eq? x 'include p1env))
+	    (define (include-ci? x) (global-eq? x 'include-ci p1env))
+
 	    (define (wrap exprs p1env) (imap (lambda (e) (cons e p1env)) exprs))
 	    (define (handle-local-macro compile/let-syntax)
 	      (let-values (((newenv body) (compile/let-syntax form p1env)))
 		;; wrap the body with newenv and go on)
 		(rec `(,@(wrap body newenv) ,@(cdr form&envs)) r #t)))
+
+	    (define (handle-include files case-insensitive?)
+	      (let ((form&paths (pass1/include files p1env case-insensitive?)))
+		(rec `(,@(imap (lambda (form&path)
+				 (let ((expr (car form&path))
+				       (path (cdr form&path)))
+				   (cons expr (p1env-swap-source p1env
+						 (directory-name path)))))
+			       form&paths)
+		       ,@(cdr form&envs)) r exists?)))
+
 	    (smatch form
 	      (((? define-syntax? -) body ___)
 	       (pass1 form p1env) ;; will be stored in the library
@@ -2742,6 +2764,15 @@
 	       (handle-local-macro pass1/compile-let-syntax))
 	      (((? letrec-syntax? -) body ___)
 	       (handle-local-macro pass1/compile-letrec-syntax))
+	      ;; expand cond-expand to expression
+	      (((? cond-expand? -) clauses ___)
+	       (rec `(,@(wrap (pass1/cond-expand clauses form p1env) p1env) 
+		      ,@(cdr form&envs))
+		    r exists?))
+	      ;; handle include
+	      (((? include? -) files ___)    (handle-include files #f))
+	      (((? include-ci? -) files ___) (handle-include files #t))
+	       
 	      ;; result of macro expansion often has this
 	      (((? begin? -) exprs ___)
 	       ;; do we need to handle like this?
@@ -3030,12 +3061,11 @@
 
 
 (define (pass1/include-rec form&path p1env)
-  (let ((save (current-load-path)))
-    (imap (lambda (form&path)
-	    (let ((expr (car form&path))
-		  (path (cdr form&path)))
-	      (pass1 expr (p1env-swap-source p1env (directory-name path)))))
-	  form&path)))
+  (imap (lambda (form&path)
+	  (let ((expr (car form&path))
+		(path (cdr form&path)))
+	    (pass1 expr (p1env-swap-source p1env (directory-name path)))))
+	form&path))
 
 (define-pass1-syntax (include form p1env) :sagittarius
   (smatch form
