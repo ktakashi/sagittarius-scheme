@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 (import (rnrs)
 	(rename (rnrs eval) (eval r6rs:eval))
-	(rnrs eval)
+	(rnrs mutable-pairs)
 	(core errors)
 	(srfi :64 testing))
 
