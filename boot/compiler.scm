@@ -1525,10 +1525,8 @@
 
 ;; 'rename' procedure - we just return a resolved identifier
 (define (er-rename symid p1env dict)
-  (define (rename symid dict p1env)
-    (let ((id (make-identifier symid
-			       (p1env-frames p1env)
-			       (p1env-library p1env))))
+  (define (rename symid dict env lib)
+    (let ((id (make-identifier symid env lib)))
       (hashtable-set! dict symid id)
       id))
   (unless (variable? symid)
@@ -1537,17 +1535,16 @@
      "rename procedure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
       (or (hashtable-ref dict symid #f)
-	  (rename symid dict p1env))
-      ;; preserve local variable, pattern variable and pending identifier
-      ;; the same as syntax-case
+	  (rename symid dict (p1env-frames p1env) (p1env-library p1env)))
+      ;; the same renaming rule as syntax-case
+      ;; TODO should we only rename when the `symid` is a pending identifier
+      ;;      and locally bound the same as compile-syntax?
+      ;;      the above is actually depending on non existing er-macro-expander
+      ;;      specification. we can decide when the spec is there.
       (or (and (not (pending-identifier? symid))
-	       ;; only global identifier will be renamed
-	       (not (id-identity symid))
-	       ;; exported from (core syntax-case)
 	       (or (hashtable-ref dict symid #f)
-		   (rename symid dict p1env)))
-	   symid)
-      ))
+		   (rename symid dict (p1env-frames p1env) (id-library symid))))
+	  symid)))
 
 ;; we need to export er-macro-transformer and er-rename
 (let ((lib (ensure-library-name :null)))
