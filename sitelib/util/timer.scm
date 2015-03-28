@@ -104,10 +104,12 @@
 		     (now   (current-time))
 		     (next  (timer-task-next first)))
 		(if (time>=? now next)
-		    (let ((first (heap-entry-value (heap-extract-min! queue))))
+		    (begin
 		      ;; set running
 		      (timer-task-running-set! first #t)
-		      
+		      ;; then remove it from heap
+		      ;; this prevents raising an error during reschedule.
+		      (heap-entry-value (heap-extract-min! queue))
 		      (mutex-unlock! (timer-lock t))
 		      (guard (e (error-handler (error-handler e))
 				(else (raise e)))
