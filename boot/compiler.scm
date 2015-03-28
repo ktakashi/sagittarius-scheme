@@ -340,12 +340,17 @@
 ;;     name      - name of the variable (symbol)
 ;;     ref-count - in how many places this variable is referenced?
 ;;     set-count - in how many places this variable is set!
-(define-simple-struct lvar 'lvar make-lvar
+(define-simple-struct lvar 'lvar %make-lvar
   name
   (initval '())
   (ref-count 0)
   (set-count 0))
 
+;; lvar name is basically for debug purpose and there is no reason to
+;; be an identifier. 
+(define (make-lvar name) (%make-lvar (if (identifier? name)
+					 (id-name name)
+					 name)))
 (define (make-lvar+ name) (make-lvar name))
 (define (lvar? obj) (and (vector? obj) (eq? (vector-ref obj 0) 'lvar)))
 (define (lvar-ref++! lvar) 
