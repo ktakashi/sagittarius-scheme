@@ -198,5 +198,49 @@
 
 (test-end)
 
-;;(test-begin "HTTP2")
-;;(test-end)
+(import (rfc http2 conditions))
+
+(define-syntax test-http2-condition
+  (lambda (x)
+    (define (->const name)
+      (let ((str (symbol->string (syntax->datum name))))
+	(string->symbol (string-append "+http2-error-code-" str "+"))))
+    (define (->names name)
+      (let ((str (symbol->string (syntax->datum name))))
+	(list (string->symbol (string-append "&http2-" str))
+	      (string->symbol (string-append "make-http2-" str))
+	      (string->symbol (string-append "http2-" str "?")))))
+    (define (->raise name)
+      (let ((str (symbol->string (syntax->datum name))))
+	(string->symbol (string-append "http2-" str))))
+    (syntax-case x ()
+      ((_ name code) 
+       (with-syntax ((const (datum->syntax #'k (->const #'name)))
+		     ((type ctr pred) (datum->syntax #'k (->names #'name)))
+		     (raise (datum->syntax #'k (->raise #'name))))
+	 #'(begin
+	     (test-equal "error code" code const)
+	     (guard (e (else 
+			(test-assert "condition predicate" (pred e))
+			(test-equal "http2-error-code" code 
+				    (http2-error-code e))))
+	       (raise 'name "dummy"))))))))
+
+(test-begin "HTTP2")
+
+(test-http2-condition no-error            #x0)
+(test-http2-condition protocol-error      #x1)
+(test-http2-condition internal-error      #x2)
+(test-http2-condition flow-control-error  #x3)
+(test-http2-condition settings-timeout    #x4)
+(test-http2-condition stream-closed       #x5)
+(test-http2-condition frame-size-error    #x6)
+(test-http2-condition refused-stream      #x7)
+(test-http2-condition cancel              #x8)
+(test-http2-condition compression-error   #x9)
+(test-http2-condition connect-error       #xa)
+(test-http2-condition enhance-your-calm   #xb)
+(test-http2-condition inadequate-security #xc)
+(test-http2-condition http/1.1-required   #xd)
+
+(test-end)
