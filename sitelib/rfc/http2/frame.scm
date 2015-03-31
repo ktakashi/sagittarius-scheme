@@ -286,37 +286,91 @@
     (make-http2-frame-data flags si 
 			   (yeild-buffer buffer (bitwise-bit-set? flags 3))))
 
-  (define-frame-converter +http2-frame-type-headers+
-    (headers-converter flags si buffer hpack-reader)
+  (define (parse-header-block flags buffer hpack-reader weight?)
     (define (read-headers bv size padding? offset hpack-reader)
       (let ((in (if padding?
-		    (let ((pad (bytevector-u8-ref bv 1)))
+		    (let ((pad (bytevector-u8-ref bv 0)))
 		      (open-bytevector-input-port bv #f (+ 1 offset)
 						  (- size pad)))
 		    (open-bytevector-input-port bv #f offset size))))
 	(hpack-reader in)))
     (define (read-dependency&weight bv offset)
       (values (bytevector-u32-ref bv offset (endianness big))
-	      (bytevector-u8-ref bv (+ offset 4))))
+	      (if weight? (bytevector-u8-ref bv (+ offset 4)) #f)))
+
     (let ((buf (frame-buffer-buffer buffer))
 	  (size (frame-buffer-size buffer))
 	  (padding? (bitwise-bit-set? flags 3))
-	  (priority? (bitwise-bit-set? flags 5)))
-      (let-values (((d w) (if priority?
+	  (priority? (if weight? (bitwise-bit-set? flags 5) #f)))
+      (let-values (((d w) (if (or priority? (not weight?))
 			      (read-dependency&weight buf (if padding? 1 0))
 			      (values #f #f))))
-	(make-http2-frame-headers 
-	 flags si d w 
-	 (read-headers buf size padding? (if priority? 5 0) hpack-reader)))))
+	(values d w
+		(read-headers buf size padding? 
+			      (cond (priority? 5)
+				    ((not weight?) 4)
+				    (else 0))
+			      hpack-reader)))))
 
-;; later
-;;   (define-frame-converter +http2-frame-type-priority+)
-;;   (define-frame-converter +http2-frame-type-rst-stream+)
-;;   (define-frame-converter +http2-frame-type-settings+)
-;;   (define-frame-converter +http2-frame-type-push-promise+)
-;;   (define-frame-converter +http2-frame-type-ping+)
-;;   (define-frame-converter +http2-frame-type-goaway+)
-;;   (define-frame-converter +http2-frame-type-window-update+)
-;;   (define-frame-converter +http2-frame-type-continuation+)
+  (define-frame-converter +http2-frame-type-headers+
+    (headers-converter flags si buffer hpack-reader)
+    (let-values (((d w headers)
+		  (parse-header-block flags buffer hpack-reader #t)))
+	(make-http2-frame-headers flags si d w headers)))
+
+   (define-frame-converter +http2-frame-type-priority+
+     (priority-converter flags si buffer hpack-reader)
+     (let* ((buf (frame-buffer-buffer buffer))
+	    (sd (bytevector-u32-ref buf 0 (endianness big)))
+	    (w  (bytevector-u8-ref buf 4)))
+       (make-http2-frame-priority flags si sd w)))
+   (define-frame-converter +http2-frame-type-rst-stream+
+     (rst-stream-converter flags si buffer hpack-reader)
+     (let ((buf (frame-buffer-buffer buffer)))
+       (make-http2-frame-rst-stream flags si
+	(bytevector-u32-ref buf 0 (endianness big)))))
+   (define-frame-converter +http2-frame-type-settings+
+     (settings-converter flags si buffer hpack-reader)
+     (define (parse-settings settings size)
+       (unless (zero? (mod size 6))
+	 (http2-frame-size-error 'settings-converter
+			   "SETTINGS must be multiple of 6"
+			   (bytevector-copy settings 0 size)))
+       ;; TODO parse it properly
+       '())
+     (make-http2-frame-settings flags si
+      (parse-settings (frame-buffer-buffer buffer)
+		      (frame-buffer-size buffer))))
+   (define-frame-converter +http2-frame-type-push-promise+
+     (push-promise-converter flags si buffer hpack-reader)
+     (let-values (((d w headers)
+		   (parse-header-block flags buffer hpack-reader #f)))
+	(make-http2-frame-push-promise flags si d headers)))
+
+   (define-frame-converter +http2-frame-type-ping+
+     (ping-converter flags si buffer hpack-reader)
+     (make-http2-frame-ping flags si (yeild-buffer buffer #f)))
+
+   (define-frame-converter +http2-frame-type-goaway+
+     (goaway-converter flags si buffer hpack-reader)
+     (let* ((buf (frame-buffer-buffer buffer))
+	    (size (frame-buffer-size buffer))
+	    (sid (bytevector-u32-ref buf 0 (endianness big)))
+	    (code (bytevector-u32-ref buf 4 (endianness big))))
+       (make-http2-frame-goaway flags si sid code 
+				(bytevector-copy buf 8 size))))
+
+   (define-frame-converter +http2-frame-type-window-update+
+     (window-update-converter flags si buffer hpack-reader)
+     (let ((buf (frame-buffer-buffer buffer)))
+       (make-http2-frame-window-update flags si
+	(bytevector-u32-ref buf 0 (endianness big)))))
+
+   (define-frame-converter +http2-frame-type-continuation+
+     (continuation-converter flags si buffer hpack-reader)
+     (let ((buf (frame-buffer-buffer buffer))
+	   (size (frame-buffer-size buffer)))
+       (make-http2-frame-continuation flags si 
+	(hpack-reader (open-bytevector-input-port buf #f 0 size)))))
 
 )

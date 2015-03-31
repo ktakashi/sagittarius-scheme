@@ -200,7 +200,8 @@
 
 ;; RFC HTTP2 
 (import (rfc http2 conditions)
-	(rfc http2 frame))
+	(rfc http2 frame)
+	(srfi :1))
 
 (define-syntax test-http2-condition
   (lambda (x)
@@ -351,24 +352,171 @@
 ;; with padding
 (test-http2-frame-data #vu8(0 0 4 0 8 0 0 0 1 2 1 0 0))
 
-(let ((buffer (make-frame-buffer)))
-  (define ctx (make-hpack-context 4096))
-  (define reader (make-hpack-reader ctx))
-  (define headers-frame
-    (bytevector-append #vu8(0 0 17 1 0 0 0 0 1)
-       (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)))
-  (let ((frame (read-http2-frame (open-bytevector-input-port headers-frame)
+(define (test-http2-frame-headers frame d w headers)
+  (let ((buffer (make-frame-buffer)))
+    (define ctx (make-hpack-context 4096))
+    (define reader (make-hpack-reader ctx))
+
+  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
 				 buffer
 				 reader)))
     (test-assert "headers?" (http2-frame-headers? frame))
-    (test-assert "dependency"
-		 (not (http2-frame-headers-stream-dependency frame)))
-    (test-assert "weight" (not (http2-frame-headers-weight frame)))
-    (test-equal "headers" 
-		'((#*":method"     #*"GET")
-		  (#*":scheme"     #*"http")
-		  (#*":path"       #*"/")
-		  (#*":authority"  #*"www.example.com"))
-		(http2-frame-headers-headers frame))))
+    (test-equal "dependency" d
+		(http2-frame-headers-stream-dependency frame))
+    (test-equal "weight" w (http2-frame-headers-weight frame))
+    (test-equal "headers" headers (http2-frame-headers-headers frame)))))
+
+(test-http2-frame-headers 
+ (bytevector-append #vu8(0 0 17 1 0 0 0 0 1)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+ #f #f '((#*":method"     #*"GET")
+	 (#*":scheme"     #*"http")
+	 (#*":path"       #*"/")
+	 (#*":authority"  #*"www.example.com")))
+;; with pad
+(test-http2-frame-headers 
+ (bytevector-append #vu8(0 0 23 1 8 0 0 0 1 5)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		    #vu8(0 0 0 0 0))
+ #f #f '((#*":method"     #*"GET")
+	 (#*":scheme"     #*"http")
+	 (#*":path"       #*"/")
+	 (#*":authority"  #*"www.example.com")))
+;; with dependency and weight
+(test-http2-frame-headers 
+ (bytevector-append #vu8(0 0 22 1 32 0 0 0 2 0 0 0 1 2)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+ 1 2 '((#*":method"     #*"GET")
+       (#*":scheme"     #*"http")
+       (#*":path"       #*"/")
+       (#*":authority"  #*"www.example.com")))
+;; with both
+(test-http2-frame-headers 
+ (bytevector-append #vu8(0 0 28 1 40 0 0 0 2 5 0 0 0 1 2)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		    #vu8(0 0 0 0 0))
+ 1 2 '((#*":method"     #*"GET")
+       (#*":scheme"     #*"http")
+       (#*":path"       #*"/")
+       (#*":authority"  #*"www.example.com")))
+
+;; priority
+(let* ((buffer (make-frame-buffer))
+       (frame (read-http2-frame 
+	       (open-bytevector-input-port #vu8(0 0 5 2 0 0 0 0 1 0 0 0 2 10))
+	       buffer #f)))
+  (test-assert "priority?" (http2-frame-priority? frame))
+  (test-equal "stream dependency" 2
+	      (http2-frame-priority-stream-dependency frame))
+  (test-equal "weight" 10 (http2-frame-priority-weight frame)))
+
+;; rst stream
+(let* ((buffer (make-frame-buffer))
+       (frame (read-http2-frame 
+	       (open-bytevector-input-port #vu8(0 0 4 3 0 0 0 0 1 0 0 0 1))
+	       buffer #f)))
+  (test-assert "rst-stream?" (http2-frame-rst-stream? frame))
+  (test-equal "error code" 1
+	      (http2-frame-rst-stream-error-code frame)))
+
+;; settings
+(define (test-http2-frame-settings frame settings)
+  (let* ((buffer (make-frame-buffer))
+	 (frame (read-http2-frame 
+		 (open-bytevector-input-port frame)
+		 buffer #f)))
+    (test-assert "setting?" (http2-frame-settings? frame))
+    (test-equal "settings" settings
+		(http2-frame-settings-settings frame))))
+(test-http2-frame-settings #vu8(0 0 0 4 0 0 0 0 0) '())
+;; TODO actuall settings
+
+;; push promise
+(define (test-http2-frame-push-promise frame d headers)
+  (let ((buffer (make-frame-buffer)))
+    (define ctx (make-hpack-context 4096))
+    (define reader (make-hpack-reader ctx))
+
+    (let ((frame (read-http2-frame (open-bytevector-input-port frame)
+				   buffer
+				   reader)))
+      (test-assert "push-promise?" (http2-frame-push-promise? frame))
+      (test-equal "dependency" d
+		  (http2-frame-push-promise-pushed-promise-id frame))
+      (test-equal "headers" headers (http2-frame-push-promise-headers frame)))))
+
+(test-http2-frame-push-promise 
+ (bytevector-append #vu8(0 0 21 5 0 0 0 0 1 0 0 0 1)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+ 1 '((#*":method"     #*"GET")
+     (#*":scheme"     #*"http")
+     (#*":path"       #*"/")
+     (#*":authority"  #*"www.example.com")))
+;; with pad
+(test-http2-frame-push-promise 
+ (bytevector-append #vu8(0 0 27 5 8 0 0 0 1 5 0 0 0 1)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		    #vu8(0 0 0 0 0))
+ 1 '((#*":method"     #*"GET")
+     (#*":scheme"     #*"http")
+     (#*":path"       #*"/")
+     (#*":authority"  #*"www.example.com")))
+
+;; ping
+(let ()
+  (define frame (bytevector-append #vu8(0 0 64 6 0 0 0 0 1)
+				   (u8-list->bytevector (iota 64))))
+  (let* ((buffer (make-frame-buffer))
+	 (frame (read-http2-frame 
+		 (open-bytevector-input-port frame)
+		 buffer #f)))
+    (test-assert "ping?" (http2-frame-ping? frame))
+    (test-equal "stream dependency" (u8-list->bytevector (iota 64))
+		(http2-frame-ping-opaque-data frame))))
+
+;; goaway
+(let ()
+  (define frame (bytevector-append #vu8(0 0 8 7 0 0 0 0 1)
+				   #vu8(0 0 0 1)
+				   #vu8(0 0 0 0)))
+  (let* ((buffer (make-frame-buffer))
+	 (frame (read-http2-frame 
+		 (open-bytevector-input-port frame)
+		 buffer #f)))
+    (test-assert "goaway?" (http2-frame-goaway? frame))
+    (test-equal "last stream id" 1
+		(http2-frame-goaway-last-stream-id frame))
+    (test-equal "error code" 0
+		(http2-frame-goaway-error-code frame))
+    (test-equal "aditional data" #vu8()
+		(http2-frame-goaway-data frame))))
+
+;; window update
+(let ()
+  (define frame (bytevector-append #vu8(0 0 4 8 0 0 0 0 1)
+				   #vu8(0 0 0 1)))
+  (let* ((buffer (make-frame-buffer))
+	 (frame (read-http2-frame 
+		 (open-bytevector-input-port frame)
+		 buffer #f)))
+    (test-assert "window-update?" (http2-frame-window-update? frame))
+    (test-equal "size increment" 1
+		(http2-frame-window-update-window-size-increment frame))))
+
+;; continuation
+(let ((buffer (make-frame-buffer)))
+  (define ctx (make-hpack-context 4096))
+  (define reader (make-hpack-reader ctx))
+  (define frame (bytevector-append #vu8(0 0 17 9 0 0 0 0 1)
+		  (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)))
+  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
+				 buffer
+				 reader)))
+    (test-assert "continuation?" (http2-frame-continuation? frame))
+    (test-equal "headers" '((#*":method"     #*"GET")
+			    (#*":scheme"     #*"http")
+			    (#*":path"       #*"/")
+			    (#*":authority"  #*"www.example.com")) 
+		(http2-frame-continuation-headers frame))))
 
 (test-end)
