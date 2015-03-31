@@ -340,21 +340,16 @@
 (test-http2-frame window-update #x8 window-size-increment)
 (test-http2-frame continuation  #x9 headers)
 
-(let ((buffer (make-frame-buffer)))
-  (define frame #vu8(0 0 1 0 0 0 0 0 1 1))
-  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				 buffer
-				 #f)))
-    (test-assert "data?" (http2-frame-data? frame))
-    (test-equal "data" #vu8(1) (http2-frame-data-data frame))))
+(define (test-http2-frame-data frame)
+  (let ((buffer (make-frame-buffer)))
+    (let ((frame (read-http2-frame (open-bytevector-input-port frame)
+				   buffer
+				   #f)))
+      (test-assert "data?" (http2-frame-data? frame))
+      (test-equal "data" #vu8(1) (http2-frame-data-data frame)))))
+(test-http2-frame-data #vu8(0 0 1 0 0 0 0 0 1 1))
 ;; with padding
-(let ((buffer (make-frame-buffer)))
-  (define frame #vu8(0 0 4 0 8 0 0 0 1 2 1 0 0))
-  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				 buffer
-				 #f)))
-    (test-assert "data?" (http2-frame-data? frame))
-    (test-equal "data" #vu8(1) (http2-frame-data-data frame))))
+(test-http2-frame-data #vu8(0 0 4 0 8 0 0 0 1 2 1 0 0))
 
 (let ((buffer (make-frame-buffer)))
   (define ctx (make-hpack-context 4096))
