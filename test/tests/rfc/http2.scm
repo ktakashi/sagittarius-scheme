@@ -198,7 +198,9 @@
 
 (test-end)
 
-(import (rfc http2 conditions))
+;; RFC HTTP2 
+(import (rfc http2 conditions)
+	(rfc http2 frame))
 
 (define-syntax test-http2-condition
   (lambda (x)
@@ -242,5 +244,136 @@
 (test-http2-condition enhance-your-calm   #xb)
 (test-http2-condition inadequate-security #xc)
 (test-http2-condition http/1.1-required   #xd)
+
+(test-assert "frame-buffer?" (frame-buffer? (make-frame-buffer)))
+(test-equal "initial buffer size" #x4000 +http2-initial-frame-buffer-size+)
+(test-equal "initial buffer-size" +http2-initial-frame-buffer-size+
+	    (bytevector-length (frame-buffer-buffer (make-frame-buffer))))
+(test-equal "current size" 0 (frame-buffer-size (make-frame-buffer)))
+
+(test-error "invalid size range(1)" http2-protocol-error?
+	    (make-frame-buffer
+	     (- +http2-initial-frame-buffer-size+ 1)))
+(test-error "invalid size range(2)" http2-protocol-error?
+	    (make-frame-buffer
+	     (+ +http2-max-frame-buffer-size+ 1)))
+(test-error "invalid size range(3)" http2-protocol-error?
+	    (update-frame-buffer! (make-frame-buffer)
+				  (- +http2-initial-frame-buffer-size+ 1)))
+(test-error "invalid size range(4)" http2-protocol-error?
+	    (update-frame-buffer! (make-frame-buffer)
+				  (+ +http2-max-frame-buffer-size+ 1)))
+
+;; frame types
+(test-equal "frame type" 0  +http2-frame-type-data+)
+(test-equal "frame type" 1  +http2-frame-type-headers+)
+(test-equal "frame type" 2  +http2-frame-type-priority+)
+(test-equal "frame type" 3  +http2-frame-type-rst-stream+)
+(test-equal "frame type" 4  +http2-frame-type-settings+)
+(test-equal "frame type" 5  +http2-frame-type-push-promise+)
+(test-equal "frame type" 6  +http2-frame-type-ping+)
+(test-equal "frame type" 7  +http2-frame-type-goaway+)
+(test-equal "frame type" 8  +http2-frame-type-window-update+)
+(test-equal "frame type" 9  +http2-frame-type-continuation+)
+
+(let ()
+  (define frame #vu8(0 0 1 0 0 0 0 0 1 1))
+  (test-equal "fill-http2-frame-buffer!" '(0 0 1 #vu8(1))
+	      (let ((buffer (make-frame-buffer)))
+		(let-values (((type flags si)
+			      (fill-http2-frame-buffer! 
+			       (open-bytevector-input-port frame) buffer)))
+		  (list type flags si (bytevector-copy
+				       (frame-buffer-buffer buffer)
+				       0
+				       (frame-buffer-size buffer))))))
+
+  (test-equal "write-http2-frame!" frame
+	      (call-with-bytevector-output-port
+	       (lambda (out)
+		 (let* ((buf (make-frame-buffer))
+			(fport (->frame-buffer-output-port buf)))
+		   (put-u8 fport 1)
+		   (write-http2-frame! out 0 0 1 buf)))))
+)
+
+(define-syntax test-http2-frame
+  (lambda (x)
+    (define (->const name)
+      (let ((str (symbol->string (syntax->datum name))))
+	(string->symbol (string-append "+http2-frame-type-" str "+"))))
+    (define (->names name)
+      (let ((str (symbol->string (syntax->datum name))))
+	(list (string->symbol (string-append "make-http2-frame-" str))
+	      (string->symbol (string-append "http2-frame-" str "?")))))
+    ;; R6RS record naming convension
+    (define (->accessors name fields)
+      (map (lambda (field)
+	     (let ((str (symbol->string (syntax->datum name)))
+		   (f   (symbol->string (syntax->datum field))))
+	       (string->symbol (string-append "http2-frame-" str "-" f))))
+	   fields))
+    (define (->data fields)
+      (fold (lambda (f acc) (cons (length acc) acc)) '() fields))
+    (syntax-case x ()
+      ((_ name code fields ...)
+       (with-syntax ((const (datum->syntax #'k (->const #'name)))
+		     ((ctr pred) (datum->syntax #'k (->names #'name)))
+		     ((datum ...) (datum->syntax #'k (->data #'(fields ...))))
+		     ((accessor ...) 
+		      (datum->syntax #'k (->accessors #'name #'(fields ...)))))
+	 #'(begin
+	     (test-assert 'ctr (pred (ctr 0 1 datum ...)))
+	     (let ((frame (ctr 0 1 datum ...)))
+	       (test-equal "frame type" code (http2-frame-type frame))
+	       (test-equal 'accessor datum (accessor frame))
+	       ...)))))))
+
+(test-http2-frame data          #x0 data)
+(test-http2-frame headers       #x1 stream-dependency weight headers)
+(test-http2-frame priority      #x2 stream-dependency weight)
+(test-http2-frame rst-stream    #x3 error-code)
+(test-http2-frame settings      #x4 settings)
+(test-http2-frame push-promise  #x5 pushed-promise-id headers)
+(test-http2-frame ping          #x6 opaque-data)
+(test-http2-frame goaway        #x7 last-stream-id error-code data)
+(test-http2-frame window-update #x8 window-size-increment)
+(test-http2-frame continuation  #x9 headers)
+
+(let ((buffer (make-frame-buffer)))
+  (define frame #vu8(0 0 1 0 0 0 0 0 1 1))
+  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
+				 buffer
+				 #f)))
+    (test-assert "data?" (http2-frame-data? frame))
+    (test-equal "data" #vu8(1) (http2-frame-data-data frame))))
+;; with padding
+(let ((buffer (make-frame-buffer)))
+  (define frame #vu8(0 0 4 0 8 0 0 0 1 2 1 0 0))
+  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
+				 buffer
+				 #f)))
+    (test-assert "data?" (http2-frame-data? frame))
+    (test-equal "data" #vu8(1) (http2-frame-data-data frame))))
+
+(let ((buffer (make-frame-buffer)))
+  (define ctx (make-hpack-context 4096))
+  (define reader (make-hpack-reader ctx))
+  (define headers-frame
+    (bytevector-append #vu8(0 0 17 1 0 0 0 0 1)
+       (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)))
+  (let ((frame (read-http2-frame (open-bytevector-input-port headers-frame)
+				 buffer
+				 reader)))
+    (test-assert "headers?" (http2-frame-headers? frame))
+    (test-assert "dependency"
+		 (not (http2-frame-headers-stream-dependency frame)))
+    (test-assert "weight" (not (http2-frame-headers-weight frame)))
+    (test-equal "headers" 
+		'((#*":method"     #*"GET")
+		  (#*":scheme"     #*"http")
+		  (#*":path"       #*"/")
+		  (#*":authority"  #*"www.example.com"))
+		(http2-frame-headers-headers frame))))
 
 (test-end)
