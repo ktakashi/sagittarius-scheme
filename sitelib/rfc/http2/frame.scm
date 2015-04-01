@@ -30,10 +30,11 @@
 
 
 (library (rfc http2 frame)
-    (export fill-http2-frame-buffer!
+    (export fill-http2-frame-buffer! ;; for testing
 	    read-http2-frame
-	    ;; TODO rename this...
-	    write-http2-frame!
+
+	    store-frame-to-frame-buffer! ;; for testing
+	    write-http2-frame
 
 	    frame-buffer? make-frame-buffer
 	    frame-buffer-buffer frame-buffer-size
@@ -215,21 +216,105 @@
   (define-http2-frame window-update #x8 window-size-increment)
   (define-http2-frame continuation  #x9 headers)
 
-  ;; always big endian
-  (define (put-length out n) (put-bytevector out (integer->bytevector n 3)))
-  (define (write-http2-frame! out type flags si buffer)
-    (let ((buf (frame-buffer-buffer buffer))
-	  (siz (frame-buffer-size buffer)))
-      (put-length out siz)
-      (put-u8 out type)
-      (put-u8 out flags)
-      (put-u32 out si 'big)
-      (put-bytevector out buf 0 siz)
-      (flush-output-port out)))
+  ;; hpack-context is required for HEADER, PUSH_PROMISE and CONTINUATION
+  ;; NOTE: must be a row context to count
+  (define (write-http2-frame out buffer frame end? hpack-context)
+    (pre-allocated-buffer-reset! buffer)
+    (let ((next (store-frame-to-frame-buffer! frame buffer end? hpack-context)))
+      (put-bytevector out (frame-buffer-buffer buffer) 0 
+		      (frame-buffer-size buffer))
+      (flush-output-port out)
+      (when next (write-http2-frame out buffer next hpack-context))))
+
+  (define (store-frame-to-frame-buffer! frame buffer end? hpack-context)
+    ((vector-ref *http2-buffer-convertors* (http2-frame-type frame))
+     frame buffer end? hpack-context))
+
+  (define *http2-buffer-convertors* (make-vector 10))
+  (define-syntax define-buffer-converter
+    (syntax-rules ()
+      ((_ code (name . args) body ...)
+       (define name
+	 (let ((p (lambda args body ...)))
+	   (vector-set! *http2-buffer-convertors* code p)
+	   p)))))
+
+  ;; Storing frame to buffer
+  ;; helpers
+  (define-constant +frame-common-size+ 9)
+  (define (put-frame-common buf length type flags si)
+    (binary-pre-allocated-buffer-put-bytevector! buf 
+     (integer->bytevector length 3))
+    (binary-pre-allocated-buffer-put-u8! buf type)
+    (binary-pre-allocated-buffer-put-u8! buf flags)
+    (binary-pre-allocated-buffer-put-u32! buf si (endianness big)))
+
+  (define-buffer-converter +http2-frame-type-data+
+    (buffer-converter-data frame buffer end? ctx)
+    (let* ((type (http2-frame-type frame))
+	   (flags (http2-frame-flags frame))
+	   (si (http2-frame-stream-identifier frame))
+	   ;; data
+	   (data (http2-frame-data-data frame))
+	   (buf  (frame-buffer-buffer buffer))
+	   (data-size (bytevector-length data))
+	   (buf-size  (- (bytevector-length buf) +frame-common-size+)))
+      ;; flags
+      ;; for now we don't do padding
+      (let ((end? (and end? (>= buf-size data-size)))
+	    (len  (min buf-size data-size)))
+	(put-frame-common buffer len type (if end? 1 0) si)
+	(binary-pre-allocated-buffer-put-bytevector! buffer data 0 len)
+	(and (< buf-size data-size)
+	     ;; TODO maybe we want to use shared data structure...
+	     (make-http2-frame-data flags si (bytevector-copy data len))))))
+
+  (define-buffer-converter +http2-frame-type-headers+
+    (buffer-converter-headers frame buffer end? ctx)
+    (let* ((type (http2-frame-type frame))
+	   (flags (http2-frame-flags frame))
+	   (si (http2-frame-stream-identifier frame))
+	   ;; data
+	   (headers (http2-frame-headers-headers frame))
+	   (deps (http2-frame-headers-stream-dependency frame))
+	   (weight (http2-frame-headers-weight frame))
+	   (buf  (frame-buffer-buffer buffer))
+	   (data-size (count-hpack-bytes ctx headers))
+	   (buf-size  (- (bytevector-length buf) +frame-common-size+)))
+      (when (> data-size buf-size)
+	(error 'buffer-converter-headers 
+	       "continuation header is not supported"))
+      ;; flags
+      ;; for now we don't do padding
+      (let ((priority? (and deps weight))
+	    (out (->frame-buffer-output-port buffer)))
+	(put-frame-common buffer data-size type 
+			  (bitwise-ior (if end? 1 0) 4 (if priority? 20 0))
+			  si)
+	(write-hpack out ctx headers)
+	#f)))
+
+;; later
+;;   (define-buffer-converter +http2-frame-type-priority+
+;;     (buffer-converter-priority frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-rst-stream+
+;;     (buffer-converter-rst-stream frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-settings+
+;;     (buffer-converter-settings frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-push-promise+
+;;     (buffer-converter-push-promise frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-ping+
+;;     (buffer-converter-ping frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-goaway+
+;;     (buffer-converter-goaway frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-window-update+
+;;     (buffer-converter-window-update frame buffer end? ctx))
+;;   (define-buffer-converter +http2-frame-type-continuation+
+;;     (buffer-converter-continuation frame buffer end? ctx))
 
   ;; Reading HTTP2 frame
   ;; - buffer needs to be explicitly passed
-  ;; - hpack-reader is used only for HEADER and PUSH_PROMISE
+  ;; - hpack-reader is used only for HEADER, PUSH_PROMISE and CONTINUATION
   (define (read-http2-frame in buffer hpack-reader)
     (let-values (((type flags si) (fill-http2-frame-buffer! in buffer)))
       ((vector-ref *http2-frame-convertors* type) 

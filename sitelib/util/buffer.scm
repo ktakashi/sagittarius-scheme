@@ -114,8 +114,8 @@
     (define buffer-size (pre-allocated-buffer-size binary-buffer))
 
     (unless (binary-pre-allocated-buffer-can-store? binary-buffer count offset)
-      (pre-allocated-buffer-overflow 'binary-pre-allocated-buffer-put-bytevector!
-				     bv))
+      (pre-allocated-buffer-overflow 
+       'binary-pre-allocated-buffer-put-bytevector! bv))
     (let ((pos (if offset offset buffer-size)))
       (bytevector-copy! bv start buffer pos count)
       (update-size! binary-buffer (+ pos count))))

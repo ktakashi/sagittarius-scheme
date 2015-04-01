@@ -307,7 +307,7 @@
 				       (frame-buffer-buffer buffer)
 				       0
 				       (frame-buffer-size buffer))))))
-
+  #;
   (test-equal "write-http2-frame!" frame
 	      (call-with-bytevector-output-port
 	       (lambda (out)
@@ -537,5 +537,35 @@
 			    (#*":path"       #*"/")
 			    (#*":authority"  #*"www.example.com")) 
 		(http2-frame-continuation-headers frame))))
+
+;; write frame
+;; data
+(test-equal "data write"
+	    #vu8(0 0 5 0 1 0 0 0 1 1 2 3 4 5)
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-data 0 1 #vu8(1 2 3 4 5)))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #t
+				    (make-hpack-context 4096))))))
+
+(define (test-http2-header-write expect headers dep w end?)
+  (test-equal "header write"
+	      expect
+	      (call-with-bytevector-output-port
+	       (lambda (out)
+		 (let ((frame (make-http2-frame-headers 0 1 dep w headers))
+		       (buffer (make-frame-buffer)))
+		   (write-http2-frame out buffer frame end?
+				      (make-hpack-context 4096)))))))
+
+(test-http2-header-write 
+ (bytevector-append #vu8(0 0 17 1 4 0 0 0 1)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+ '((#*":method"     #*"GET")
+   (#*":scheme"     #*"http")
+   (#*":path"       #*"/")
+   (#*":authority"  #*"www.example.com"))
+ #f #f #f)
 
 (test-end)
