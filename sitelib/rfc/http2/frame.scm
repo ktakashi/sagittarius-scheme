@@ -98,26 +98,31 @@
 	    (sagittarius)
 	    (binary io)
 	    (rfc http2 hpack)
-	    (rfc http2 conditions))
+	    (rfc http2 conditions)
+	    (rename (util buffer)
+		    (pre-allocated-buffer-buffer frame-buffer-buffer)
+		    (pre-allocated-buffer-size frame-buffer-size)
+		    (binary-pre-allocated-buffer? frame-buffer?)
+		    (binary-pre-allocated-buffer-can-store?
+		     frame-buffer-can-store?)
+		    (->binary-pre-allocated-buffer-output-port
+		     ->frame-buffer-output-port)))
 
   (define-constant +initial-frame-buffer-size+ #x4000)
   ;; Don't use this much but we can do it.
   (define-constant +max-frame-buffer-size+     #xffffff)
 
-  (define-record-type (<frame-buffer> make-frame-buffer frame-buffer?)
-    (fields (mutable buffer frame-buffer-buffer frame-buffer-buffer-set!)
-	    ;; buffer size (not buffer itself but read size)
-	    (mutable size   frame-buffer-size   frame-buffer-size-set!))
-    (protocol (lambda (p)
-		(case-lambda
-		 (() (p (make-bytevector +initial-frame-buffer-size+) 0))
-		 ((size)
-		  (unless (<= +initial-frame-buffer-size+
-			      size 
-			      +max-frame-buffer-size+)
-		    (http2-protocol-error 'make-frame-buffer
-					  "Frame size out of range" size))
-		  (p (make-bytevector size) 0))))))
+  (define make-frame-buffer
+    (case-lambda
+     (() (make-binary-pre-allocated-buffer 
+	  (make-bytevector +initial-frame-buffer-size+)))
+     ((size)
+      (unless (<= +initial-frame-buffer-size+ size +max-frame-buffer-size+)
+	(http2-protocol-error 'make-frame-buffer
+			      "Frame size out of range" size))
+      (make-binary-pre-allocated-buffer
+       (make-bytevector +max-frame-buffer-size+)))))
+
   (define (update-frame-buffer! buffer size)
     (unless (<= +initial-frame-buffer-size+ size +max-frame-buffer-size+)
       (http2-protocol-error 'update-frame-buffer!
@@ -128,7 +133,7 @@
       ;; TODO check shrink
       ;; TODO should we actually copy?
       (bytevector-copy! buf 0 new 0 siz)
-      (frame-buffer-buffer-set! buffer new)
+      (binary-pre-allocated-buffer-swap! buffer new siz)
       buffer))
   (define (yeild-buffer buffer padding?)
     (let ((buf (frame-buffer-buffer buffer))
@@ -167,8 +172,7 @@
 	(http2-frame-size-error 'fill-http2-frame-buffer!
 				"Frame size exceed SETTINGS_MAX_FRAME_SIZE"
 				len))
-      (get-bytevector-n! in buf 0 len)
-      (frame-buffer-size-set! buffer len)
+      (binary-pre-allocated-buffer-get-bytevector-n! buffer in len 0)
       (values type flags si)))
 
   (define-record-type http2-frame
@@ -222,47 +226,6 @@
       (put-u32 out si 'big)
       (put-bytevector out buf 0 siz)
       (flush-output-port out)))
-
-  ;; for convenience
-  (define (frame-buffer-can-store? frame-buffer count)
-    (let ((size (frame-buffer-size frame-buffer)))
-      (< (+ size count) 
-	 (bytevector-length (frame-buffer-buffer frame-buffer)))))
-
-  (define-condition-type &frame-buffer-overflow &i/o
-    make-frame-buffer-overflow frame-buffer-overflow?
-    (data frame-buffer-overflow-data))
-  (define (frame-buffer-overflow data)
-    (raise (condition (list (make-frame-buffer-overflow data)
-			    (make-who-condition 'frame-buffer-port)
-			    (make-message-condition "frame buffer overflow")))))
-  
-  (define (->frame-buffer-output-port frame-buffer)
-    ;; for updating buffer
-    (define (buffer) (frame-buffer-buffer frame-buffer))
-    (define (buffer-size) (frame-buffer-size frame-buffer))
-    (define (update-size! count)
-      (let ((size (frame-buffer-size frame-buffer)))
-	(frame-buffer-size-set! frame-buffer (+ size count))))
-    (define (can-write? count)
-      (frame-buffer-can-store? frame-buffer count))
-
-    (define (write! bv start count)
-      (unless (can-write? count)
-	(frame-buffer-overflow (bytevector-copy bv start count)))
-      (bytevector-copy! bv start (buffer) (buffer-size) count)
-      (update-size! count)
-      count)
-    (define position buffer-size)
-    (define (set-position! pos)
-      (unless (<= 0 pos (buffer-size))
-	(raise (condition (make-i/o-invalid-position-error pos)
-			  (make-who-condition 'frame-buffer-port)
-			  (make-message-condition "invalid position"))))
-      (update-size! pos))
-    (define (close!) #t)
-    (make-custom-binary-output-port "frame-buffer-port"
-				    write! position set-position! close!))
 
   ;; Reading HTTP2 frame
   ;; - buffer needs to be explicitly passed
