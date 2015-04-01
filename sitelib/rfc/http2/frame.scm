@@ -321,33 +321,33 @@
   ;; Reading HTTP2 frame
   ;; - buffer needs to be explicitly passed
   ;; - hpack-reader is used only for HEADER, PUSH_PROMISE and CONTINUATION
-  (define (read-http2-frame in buffer hpack-reader)
+  (define (read-http2-frame in buffer hpack-context)
     (let-values (((type flags si) (fill-http2-frame-buffer! in buffer)))
       ((vector-ref *http2-frame-convertors* type) 
-       flags si buffer hpack-reader)))
+       flags si buffer hpack-context)))
 
   (define *http2-frame-convertors* (make-vector 10))
   (define-syntax define-frame-converter
     (syntax-rules ()
       ((_ code (name . args) body ...)
        (define name
-	 (let ((p (lambda args body ...)))
-	   (vector-set! *http2-frame-convertors* code p)
-	   p)))))
+	 (let ((name (lambda args body ...)))
+	   (vector-set! *http2-frame-convertors* code name)
+	   name)))))
   
   (define-frame-converter +http2-frame-type-data+ 
-    (data-converter flags si buffer hpack-reader)
+    (data-converter flags si buffer hpack-context)
     (make-http2-frame-data flags si 
 			   (yeild-buffer buffer (bitwise-bit-set? flags 3))))
 
-  (define (parse-header-block flags buffer hpack-reader weight?)
-    (define (read-headers bv size padding? offset hpack-reader)
+  (define (parse-header-block flags buffer hpack-context weight?)
+    (define (read-headers bv size padding? offset hpack-context)
       (let ((in (if padding?
 		    (let ((pad (bytevector-u8-ref bv 0)))
 		      (open-bytevector-input-port bv #f (+ 1 offset)
 						  (- size pad)))
 		    (open-bytevector-input-port bv #f offset size))))
-	(hpack-reader in)))
+	(read-hpack in hpack-context)))
     (define (read-dependency&weight bv offset)
       (values (bytevector-u32-ref bv offset (endianness big))
 	      (if weight? (bytevector-u8-ref bv (+ offset 4)) #f)))
@@ -364,49 +364,54 @@
 			      (cond (priority? 5)
 				    ((not weight?) 4)
 				    (else 0))
-			      hpack-reader)))))
+			      hpack-context)))))
 
   (define-frame-converter +http2-frame-type-headers+
-    (headers-converter flags si buffer hpack-reader)
+    (headers-converter flags si buffer hpack-context)
     (let-values (((d w headers)
-		  (parse-header-block flags buffer hpack-reader #t)))
+		  (parse-header-block flags buffer hpack-context #t)))
 	(make-http2-frame-headers flags si d w headers)))
 
    (define-frame-converter +http2-frame-type-priority+
-     (priority-converter flags si buffer hpack-reader)
+     (priority-converter flags si buffer hpack-context)
      (let* ((buf (frame-buffer-buffer buffer))
 	    (sd (bytevector-u32-ref buf 0 (endianness big)))
 	    (w  (bytevector-u8-ref buf 4)))
        (make-http2-frame-priority flags si sd w)))
    (define-frame-converter +http2-frame-type-rst-stream+
-     (rst-stream-converter flags si buffer hpack-reader)
+     (rst-stream-converter flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer)))
        (make-http2-frame-rst-stream flags si
 	(bytevector-u32-ref buf 0 (endianness big)))))
    (define-frame-converter +http2-frame-type-settings+
-     (settings-converter flags si buffer hpack-reader)
+     (settings-converter flags si buffer hpack-context)
      (define (parse-settings settings size)
        (unless (zero? (mod size 6))
 	 (http2-frame-size-error 'settings-converter
 			   "SETTINGS must be multiple of 6"
 			   (bytevector-copy settings 0 size)))
-       ;; TODO parse it properly
-       '())
+       (let loop ((i 0) (r '()))
+	 (if (= i size) 
+	     (reverse! r)
+	     (let ((id (bytevector-u16-ref settings i (endianness big)))
+		   (v (bytevector-u32-ref settings (+ i 2) (endianness big))))
+	       ;; TODO convert identifier to readable symbol
+	       (loop (+ i 6) (acons id v r))))))
      (make-http2-frame-settings flags si
       (parse-settings (frame-buffer-buffer buffer)
 		      (frame-buffer-size buffer))))
    (define-frame-converter +http2-frame-type-push-promise+
-     (push-promise-converter flags si buffer hpack-reader)
+     (push-promise-converter flags si buffer hpack-context)
      (let-values (((d w headers)
-		   (parse-header-block flags buffer hpack-reader #f)))
+		   (parse-header-block flags buffer hpack-context #f)))
 	(make-http2-frame-push-promise flags si d headers)))
 
    (define-frame-converter +http2-frame-type-ping+
-     (ping-converter flags si buffer hpack-reader)
+     (ping-converter flags si buffer hpack-context)
      (make-http2-frame-ping flags si (yeild-buffer buffer #f)))
 
    (define-frame-converter +http2-frame-type-goaway+
-     (goaway-converter flags si buffer hpack-reader)
+     (goaway-converter flags si buffer hpack-context)
      (let* ((buf (frame-buffer-buffer buffer))
 	    (size (frame-buffer-size buffer))
 	    (sid (bytevector-u32-ref buf 0 (endianness big)))
@@ -415,16 +420,16 @@
 				(bytevector-copy buf 8 size))))
 
    (define-frame-converter +http2-frame-type-window-update+
-     (window-update-converter flags si buffer hpack-reader)
+     (window-update-converter flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer)))
        (make-http2-frame-window-update flags si
 	(bytevector-u32-ref buf 0 (endianness big)))))
 
    (define-frame-converter +http2-frame-type-continuation+
-     (continuation-converter flags si buffer hpack-reader)
+     (continuation-converter flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer))
 	   (size (frame-buffer-size buffer)))
        (make-http2-frame-continuation flags si 
-	(hpack-reader (open-bytevector-input-port buf #f 0 size)))))
+	(read-hpack (open-bytevector-input-port buf #f 0 size) hpack-context))))
 
 )

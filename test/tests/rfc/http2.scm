@@ -374,11 +374,9 @@
 (define (test-http2-frame-headers frame d w headers)
   (let ((buffer (make-frame-buffer)))
     (define ctx (make-hpack-context 4096))
-    (define reader (make-hpack-reader ctx))
 
   (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				 buffer
-				 reader)))
+				 buffer ctx)))
     (test-assert "headers?" (http2-frame-headers? frame))
     (test-equal "dependency" d
 		(http2-frame-headers-stream-dependency frame))
@@ -454,11 +452,9 @@
 (define (test-http2-frame-push-promise frame d headers)
   (let ((buffer (make-frame-buffer)))
     (define ctx (make-hpack-context 4096))
-    (define reader (make-hpack-reader ctx))
 
     (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				   buffer
-				   reader)))
+				   buffer ctx)))
       (test-assert "push-promise?" (http2-frame-push-promise? frame))
       (test-equal "dependency" d
 		  (http2-frame-push-promise-pushed-promise-id frame))
@@ -525,12 +521,10 @@
 ;; continuation
 (let ((buffer (make-frame-buffer)))
   (define ctx (make-hpack-context 4096))
-  (define reader (make-hpack-reader ctx))
   (define frame (bytevector-append #vu8(0 0 17 9 0 0 0 0 1)
 		  (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)))
   (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				 buffer
-				 reader)))
+				 buffer ctx)))
     (test-assert "continuation?" (http2-frame-continuation? frame))
     (test-equal "headers" '((#*":method"     #*"GET")
 			    (#*":scheme"     #*"http")
