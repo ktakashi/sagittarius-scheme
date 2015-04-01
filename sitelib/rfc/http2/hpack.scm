@@ -45,6 +45,8 @@
 	    ;; write
 	    make-hpack-writer
 	    write-hpack
+	    ;; util
+	    count-hpack-bytes
 	    )
     (import (rnrs)
 	    (sagittarius) ;; for include
@@ -316,45 +318,8 @@
     (lambda (out hpack)
       (write-hpack out context hpack)))
 
-  ;; writer
-  ;; hpack is a list of following structure
-  ;;  hpack   ::= (element ...)
-  ;;  element ::= (name value attrs ...) | (:table-size-update n)
-  ;;  name    ::= bytevector
-  ;;  value   ::= bytevector
-  ;;  attrs   ::= :no-indexing | :never-indexed | :no-huffman
   (define (write-hpack out context hpack)
-    (define (prefix&bits attrs)
-      (cond ((memq :no-indexing attrs)   (values #x0 4))
-	    ((memq :never-indexed attrs) (values #x1 4))
-	    (else                        (values #x40 6)))) ;; literal
-    (dolist (e hpack)
-      (if (memq :table-size-update e)
-	  (write-hpack-integer out (cadr e) #x20 5)
-	  (let ((name (car e))
-		(value (cadr e))
-		(attrs (cddr e)))
-	    (let-values (((index indexing-type)
-			  (lookup-encode-table context name value)))
-	      (cond ((eq? indexing-type 'indexed)
-		     (write-hpack-integer out index #x80 7)) ;; 6.1
-		    ((eq? indexing-type 'name)
-		     (let-values (((prefix bits) (prefix&bits attrs)))
-		       (when (and (= prefix #x40)
-				  (not (dynamic-table-contains? 
-					context name value)))
-			 (dynamic-table-put! context name value))
-		       (write-hpack-integer out index prefix bits)
-		       (write-hpack-string out value (memq :no-huffman attrs))))
-		    (else
-		     ;; literal
-		     (let-values (((prefix bits) (prefix&bits attrs)))
-		       (write-hpack-integer out 0 prefix bits)
-		       (let ((no-huffman? (memq :no-huffman attrs)))
-			 (unless (dynamic-table-contains? context name value)
-			   (dynamic-table-put! context name value))
-			 (write-hpack-string out name no-huffman?)
-			 (write-hpack-string out value no-huffman?))))))))))
+    (%write-hpack out context hpack))
 
   (define (write-hpack-integer out n prefix bits)
     (define (mask n) (- (expt 2 n) 1))
@@ -370,21 +335,90 @@
     |#
     (define (write-variable-length out n prefix bits)
       (define 2^n-1 (mask bits))
-      (put-u8 out (bitwise-ior prefix 2^n-1))
-      (do ((I (- n 2^n-1) (div I 128)))
-	  ((< I 128)
-	   (put-u8 out I))
-	(put-u8 out (+ (mod I 128) 128))))
-    (if (> (bitwise-length n) bits)
-	(write-variable-length out n prefix bits)
-	(put-u8 out (bitwise-ior prefix (bitwise-and n (mask bits))))))
+      (when out (put-u8 out (bitwise-ior prefix 2^n-1)))
+      (do ((I (- n 2^n-1) (div I 128)) (c 1 (+ c 1)))
+	  ((< I 128) (when out (put-u8 out I)) c)
+	(when out (put-u8 out (+ (mod I 128) 128)))))
+    (cond ((> (bitwise-length n) bits)
+	   (write-variable-length out n prefix bits))
+	  (else
+	   (when out
+	     (put-u8 out (bitwise-ior prefix (bitwise-and n (mask bits)))))
+	   1)))
 
   (define (write-hpack-string out value no-huffman?)
     (cond (no-huffman?
-	   (write-hpack-integer out (bytevector-length value) #x00 7)
-	   (put-bytevector out value))
+	   (let* ((len (bytevector-length value))
+		  (c (write-hpack-integer out len #x00 7)))
+	     (when out (put-bytevector out value))
+	     (+ c len)))
 	  (else
-	   (let ((bv (bytevector->hpack-huffman value)))
-	     (write-hpack-integer out (bytevector-length bv) #x80 7)
-	     (put-bytevector out bv)))))
+	   (let* ((bv (bytevector->hpack-huffman value))
+		  (len (bytevector-length bv))
+		  (c (write-hpack-integer out len #x80 7)))
+	     (when out (put-bytevector out bv))
+	     (+ c len)))))
+
+  ;; for now returns approx. count.
+  (define (count-hpack-bytes context hpack)
+    (%write-hpack #f context hpack))
+
+  ;; writer
+  ;; hpack is a list of following structure
+  ;;  hpack   ::= (element ...)
+  ;;  element ::= (name value attrs ...) | (:table-size-update n)
+  ;;  name    ::= bytevector
+  ;;  value   ::= bytevector
+  ;;  attrs   ::= :no-indexing | :never-indexed | :no-huffman
+  (define (%write-hpack out context hpack)
+    ;; literal
+    (define (prefix&bits attrs)
+      (cond ((memq :no-indexing attrs)   (values #x0 4))
+	    ((memq :never-indexed attrs) (values #x1 4))
+	    (else                        (values #x40 6)))) ;; literal
+    (let loop ((hpack hpack) (count 0))
+      (if (null? hpack)
+	  count
+	  (let ((e (car hpack)))
+	    (if (memq :table-size-update e)
+		(loop (cdr hpack)
+		      (+ count (write-hpack-integer out (cadr e) #x20 5)))
+		(let ((name (car e))
+		      (value (cadr e))
+		      (attrs (cddr e)))
+		  (let-values (((index indexing-type)
+				(lookup-encode-table context name value)))
+		    (cond ((eq? indexing-type 'indexed)
+			   ;; 6.1
+			   (loop (cdr hpack)
+				 (+ count 
+				    (write-hpack-integer out index #x80 7))))
+			  ((eq? indexing-type 'name)
+			   (let-values (((prefix bits) (prefix&bits attrs)))
+			     ;; if this is only count, we con't put
+			     ;; TODO this makes count inacculate.
+			     (when (and out 
+					(= prefix #x40)
+					(not (dynamic-table-contains? 
+					      context name value)))
+			       (dynamic-table-put! context name value))
+			     (let ((ic (write-hpack-integer 
+					out index prefix bits)))
+			       (loop (cdr hpack)
+				     (+ count ic
+					(write-hpack-string 
+					 out value 
+					 (memq :no-huffman attrs)))))))
+			  (else
+			   ;; literal
+			   (let-values (((prefix bits) (prefix&bits attrs)))
+			     (write-hpack-integer out 0 prefix bits)
+			     (let ((no-huffman? (memq :no-huffman attrs)))
+			       (when (and out
+					  (not (dynamic-table-contains? context name value)))
+				 (dynamic-table-put! context name value))
+			       (let ((sc (write-hpack-string out name no-huffman?)))
+				 (loop (cdr hpack)
+				       (+ count sc
+					  (write-hpack-string out value no-huffman?)))))))))))))))
 )

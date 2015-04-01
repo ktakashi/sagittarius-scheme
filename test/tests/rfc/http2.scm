@@ -196,6 +196,25 @@
 		(#*"set-cookie"       #*"foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1"))))
   )
 
+;; count
+(let ()
+  (define ctx (make-hpack-context 4096))
+  (test-equal "count-hpack-bytes (no huffman)"
+	      20
+	      (count-hpack-bytes ctx
+	       '((#*":method"     #*"GET" :no-huffman)
+		 (#*":scheme"     #*"http" :no-huffman)
+		 (#*":path"       #*"/" :no-huffman)
+		 (#*":authority"  #*"www.example.com" :no-huffman))))
+  (test-equal "count-hpack-bytes (with huffman)"
+	      17
+	      (count-hpack-bytes ctx
+	       '((#*":method"     #*"GET")
+		(#*":scheme"     #*"http")
+		(#*":path"       #*"/")
+		(#*":authority"  #*"www.example.com")))))
+
+
 (test-end)
 
 ;; RFC HTTP2 
