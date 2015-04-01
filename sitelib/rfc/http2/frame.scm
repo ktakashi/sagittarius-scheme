@@ -203,7 +203,7 @@
 		 (protocol
 		  (lambda (p)
 		    (lambda (flags si ?fields ...)
-		      ((p code type si) ?fields ...)))))))))))
+		      ((p code flags si) ?fields ...)))))))))))
 
   (define-http2-frame data          #x0 data)
   (define-http2-frame headers       #x1 stream-dependency weight headers)
@@ -224,7 +224,7 @@
       (put-bytevector out (frame-buffer-buffer buffer) 0 
 		      (frame-buffer-size buffer))
       (flush-output-port out)
-      (when next (write-http2-frame out buffer next hpack-context))))
+      (when next (write-http2-frame out buffer next end? hpack-context))))
 
   (define (store-frame-to-frame-buffer! frame buffer end? hpack-context)
     ((vector-ref *http2-buffer-convertors* (http2-frame-type frame))
@@ -235,9 +235,9 @@
     (syntax-rules ()
       ((_ code (name . args) body ...)
        (define name
-	 (let ((p (lambda args body ...)))
-	   (vector-set! *http2-buffer-convertors* code p)
-	   p)))))
+	 (let ((name (lambda args body ...)))
+	   (vector-set! *http2-buffer-convertors* code name)
+	   name)))))
 
   ;; Storing frame to buffer
   ;; helpers
@@ -299,8 +299,14 @@
 ;;     (buffer-converter-priority frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-rst-stream+
 ;;     (buffer-converter-rst-stream frame buffer end? ctx))
-;;   (define-buffer-converter +http2-frame-type-settings+
-;;     (buffer-converter-settings frame buffer end? ctx))
+   (define-buffer-converter +http2-frame-type-settings+
+     (buffer-converter-settings frame buffer end? ctx)
+     (let* ((type (http2-frame-type frame))
+	    (flags (http2-frame-flags frame))
+	    (si (http2-frame-stream-identifier frame)))
+       ;; TODO for now empty settings
+       (put-frame-common buffer 0 type flags si)
+       #f))
 ;;   (define-buffer-converter +http2-frame-type-push-promise+
 ;;     (buffer-converter-push-promise frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-ping+
