@@ -320,10 +320,13 @@
       ;; for now we don't do padding
       (let ((priority? (and deps weight))
 	    (out (->frame-buffer-output-port buffer)))
-	(put-frame-common buffer data-size type
+	(put-frame-common buffer 0 type
 			  (bitwise-ior (if end? 1 0) 4 (if priority? 20 0))
 			  si)
 	(write-hpack out ctx headers)
+	;; update size
+	(let ((size (- (frame-buffer-size buffer) +frame-common-size+)))
+	  (bytevector-copy! (integer->bytevector size 3) 0 buf 0 3))
 	#f)))
 
 ;; later
