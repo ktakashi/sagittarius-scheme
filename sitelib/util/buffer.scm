@@ -39,6 +39,7 @@
 	    pre-allocated-buffer-overflow-data
 	    ;; type specific
 	    make-binary-pre-allocated-buffer binary-pre-allocated-buffer?
+	    ;; appending
 	    binary-pre-allocated-buffer-put-u8!
 	    binary-pre-allocated-buffer-put-u16!
 	    binary-pre-allocated-buffer-put-u32!
@@ -50,6 +51,19 @@
 	    binary-pre-allocated-buffer-put-f32!
 	    binary-pre-allocated-buffer-put-f64!
 	    binary-pre-allocated-buffer-put-bytevector!
+	    ;; set by position
+	    binary-pre-allocated-buffer-set-u8!
+	    binary-pre-allocated-buffer-set-s8!	    
+	    binary-pre-allocated-buffer-set-u16!
+	    binary-pre-allocated-buffer-set-u32!
+	    binary-pre-allocated-buffer-set-u64!
+	    binary-pre-allocated-buffer-set-s16!
+	    binary-pre-allocated-buffer-set-s32!
+	    binary-pre-allocated-buffer-set-s64!
+	    binary-pre-allocated-buffer-set-f32!
+	    binary-pre-allocated-buffer-set-f64!
+	    binary-pre-allocated-buffer-set-bytevector!
+
 	    binary-pre-allocated-buffer-can-store?
 	    binary-pre-allocated-buffer-swap!
 	    binary-pre-allocated-buffer-get-bytevector-n!
@@ -90,7 +104,7 @@
 				"bytevector required" buf))
 	 ((p) buf 0)))))
   (define (binary-pre-allocated-buffer-can-store? buffer count
-					      :optional (offset #f))
+						  :optional (offset #f))
     (let ((size (if offset offset (pre-allocated-buffer-size buffer))))
       (<= (+ size count)
 	  (bytevector-length (pre-allocated-buffer-buffer buffer)))))
@@ -109,51 +123,50 @@
     (pre-allocated-buffer-size-set! binary-buffer size))
   ;; 
   (define (binary-pre-allocated-buffer-put-bytevector! binary-buffer bv 
-	   :optional (start 0) (count (bytevector-length bv)) (offset #f))
+	   :optional (start 0) (count (bytevector-length bv)))
     (define buffer (pre-allocated-buffer-buffer binary-buffer))
     (define buffer-size (pre-allocated-buffer-size binary-buffer))
 
-    (unless (binary-pre-allocated-buffer-can-store? binary-buffer count offset)
+    (unless (binary-pre-allocated-buffer-can-store? binary-buffer count)
       (pre-allocated-buffer-overflow 
        'binary-pre-allocated-buffer-put-bytevector! bv))
-    (let ((pos (if offset offset buffer-size)))
+    (let ((pos buffer-size))
       (bytevector-copy! bv start buffer pos count)
       (update-size! binary-buffer (+ pos count))))
 
-  (define (binary-pre-allocated-buffer-put-u8! binary-buffer u8 
-					       :optional (offset #f))
+  (define (binary-pre-allocated-buffer-set-bytevector! binary-buffer pos bv
+	   :optional (start 0) (count (bytevector-length bv)))
     (define buffer (pre-allocated-buffer-buffer binary-buffer))
     (define buffer-size (pre-allocated-buffer-size binary-buffer))
 
-    (unless (binary-pre-allocated-buffer-can-store? binary-buffer 1 offset)
-      (pre-allocated-buffer-overflow 'binary-pre-allocated-buffer-put-u8!
-				     u8))
-    (let ((pos (if offset offset buffer-size)))
-      (bytevector-u8-set! buffer pos u8)
-      (update-size! binary-buffer (+ pos 1))))
-  (define (binary-pre-allocated-buffer-put-s8! binary-buffer s8
-					   :optional (offset #f))
-    (define buffer (pre-allocated-buffer-buffer binary-buffer))
-    (define buffer-size (pre-allocated-buffer-size binary-buffer))
-    (unless (binary-pre-allocated-buffer-can-store? binary-buffer 1 offset)
-      (pre-allocated-buffer-overflow 'binary-pre-allocated-buffer-put-s8!
-				     s8))
-    (let ((pos (if offset offset buffer-size)))
-      (bytevector-s8-set! buffer pos s8)
-      (update-size! binary-buffer (+ pos 1))))
+    (unless (binary-pre-allocated-buffer-can-store? binary-buffer count pos)
+      (pre-allocated-buffer-overflow 
+       'binary-pre-allocated-buffer-put-bytevector! bv))
+    (bytevector-copy! bv start buffer pos count)
+    (when (< buffer-size (+ pos count))
+      (update-size! binary-buffer (+ pos count))))
 
   (define-syntax define-put!
     (syntax-rules ()
+      ((_ name setter)
+       (define-put! "entry" name setter 1 (binary-buffer v)))
       ((_ name setter size)
-       (define (name binary-buffer v endian :optional (offset #f))
+       (define-put! "entry" name setter size (binary-buffer v endian)))
+      ((_ "entry" name setter size (binary-buffer v rest ...))
+       (define (name binary-buffer v rest ...)
 	 (define buffer (pre-allocated-buffer-buffer binary-buffer))
 	 (define buffer-size (pre-allocated-buffer-size binary-buffer))
 
-	 (unless (binary-pre-allocated-buffer-can-store? binary-buffer size offset)
+	 (unless (binary-pre-allocated-buffer-can-store? binary-buffer size)
 	   (pre-allocated-buffer-overflow 'name v))
-	 (let ((pos (if offset offset buffer-size)))
-	   (setter buffer pos v endian)
+	 (let ((pos buffer-size))
+	   (setter buffer pos v rest ...)
 	   (update-size! binary-buffer (+ pos size)))))))
+
+  ;; u8/s8 will be specially handled
+  (define-put! binary-pre-allocated-buffer-put-u8! bytevector-u8-set!)
+  (define-put! binary-pre-allocated-buffer-put-s8! bytevector-s8-set!)
+
   (define-put! binary-pre-allocated-buffer-put-u16! bytevector-u16-set! 2)
   (define-put! binary-pre-allocated-buffer-put-u32! bytevector-u32-set! 4)
   (define-put! binary-pre-allocated-buffer-put-u64! bytevector-u64-set! 8)
@@ -162,6 +175,35 @@
   (define-put! binary-pre-allocated-buffer-put-s64! bytevector-s64-set! 8)
   (define-put! binary-pre-allocated-buffer-put-f32! bytevector-ieee-single-set! 4)
   (define-put! binary-pre-allocated-buffer-put-f64! bytevector-ieee-double-set! 8)
+
+  (define-syntax define-set!
+    (syntax-rules ()
+      ((_ name setter)
+       (define-set! "entry" name setter 1 (binary-buffer v)))
+      ((_ name setter size)
+       (define-set! "entry" name setter size (binary-buffer v endian)))
+      ((_ "entry" name setter size (binary-buffer v rest ...))
+       (define (name binary-buffer pos v rest ...)
+	 (define buffer (pre-allocated-buffer-buffer binary-buffer))
+	 (define buffer-size (pre-allocated-buffer-size binary-buffer))
+
+	 (unless (binary-pre-allocated-buffer-can-store? binary-buffer
+							 size pos)
+	   (pre-allocated-buffer-overflow 'name v))
+	 (setter buffer pos v rest ...)
+	 (when (< buffer-size (+ pos size))
+	   (update-size! binary-buffer (+ pos size)))))))
+  (define-set! binary-pre-allocated-buffer-set-u8! bytevector-u8-set!)
+  (define-set! binary-pre-allocated-buffer-set-s8! bytevector-s8-set!)
+
+  (define-set! binary-pre-allocated-buffer-set-u16! bytevector-u16-set! 2)
+  (define-set! binary-pre-allocated-buffer-set-u32! bytevector-u32-set! 4)
+  (define-set! binary-pre-allocated-buffer-set-u64! bytevector-u64-set! 8)
+  (define-set! binary-pre-allocated-buffer-set-s16! bytevector-s16-set! 2)
+  (define-set! binary-pre-allocated-buffer-set-s32! bytevector-s32-set! 4)
+  (define-set! binary-pre-allocated-buffer-set-s64! bytevector-s64-set! 8)
+  (define-set! binary-pre-allocated-buffer-set-f32! bytevector-ieee-single-set! 4)
+  (define-set! binary-pre-allocated-buffer-set-f64! bytevector-ieee-double-set! 8)
 
   (define (binary-pre-allocated-buffer-get-bytevector-n! buffer in n
 							 :optional (offset #f))

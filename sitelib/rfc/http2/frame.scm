@@ -326,7 +326,8 @@
 	(write-hpack out ctx headers)
 	;; update size
 	(let ((size (- (frame-buffer-size buffer) +frame-common-size+)))
-	  (bytevector-copy! (integer->bytevector size 3) 0 buf 0 3))
+	  (binary-pre-allocated-buffer-set-bytevector! 
+	   buffer (integer->bytevector size 3) 0))
 	#f)))
 
 ;; later
