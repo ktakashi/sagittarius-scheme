@@ -70,6 +70,10 @@
 	    http2-frame-type
 	    http2-frame-flags
 	    http2-frame-stream-identifier
+	    ;; helper
+	    http2-frame-end-stream?
+	    http2-frame-end-headers?
+
 	    ;; DATA
 	    http2-frame-data? make-http2-frame-data http2-frame-data-data
 	    ;; HEADERS
@@ -190,6 +194,17 @@
     (fields type
 	    flags
 	    stream-identifier))
+
+  ;; sort of common flags among the frames
+  (define (http2-frame-end-stream? frame)
+    (and (or (http2-frame-data? frame)
+	     (http2-frame-headers? frame))
+	 (bitwise-bit-set? (http2-frame-flags frame) 0)))
+  (define (http2-frame-end-headers? frame)
+    (and (or (http2-frame-headers? frame)
+	     (http2-frame-push-promise? frame)
+	     (http2-frame-continuation? frame)
+	 (bitwise-bit-set? (http2-frame-flags frame) 2))))
 
   (define-syntax define-http2-frame
     (lambda (x)
