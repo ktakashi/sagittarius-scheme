@@ -327,7 +327,7 @@
 	;; update size
 	(let ((size (- (frame-buffer-size buffer) +frame-common-size+)))
 	  (binary-pre-allocated-buffer-set-bytevector! 
-	   buffer (integer->bytevector size 3) 0))
+	   buffer 0 (integer->bytevector size 3)))
 	#f)))
 
 ;; later
