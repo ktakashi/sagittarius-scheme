@@ -123,7 +123,7 @@
     (pre-allocated-buffer-size-set! binary-buffer size))
   ;; 
   (define (binary-pre-allocated-buffer-put-bytevector! binary-buffer bv 
-	   :optional (start 0) (count (bytevector-length bv)))
+	   :optional (start 0) (count (- (bytevector-length bv) start)))
     (define buffer (pre-allocated-buffer-buffer binary-buffer))
     (define buffer-size (pre-allocated-buffer-size binary-buffer))
 
@@ -135,7 +135,7 @@
       (update-size! binary-buffer (+ pos count))))
 
   (define (binary-pre-allocated-buffer-set-bytevector! binary-buffer pos bv
-	   :optional (start 0) (count (bytevector-length bv)))
+	   :optional (start 0) (count (- (bytevector-length bv) start)))
     (define buffer (pre-allocated-buffer-buffer binary-buffer))
     (define buffer-size (pre-allocated-buffer-size binary-buffer))
 

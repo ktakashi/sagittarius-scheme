@@ -7,6 +7,7 @@
 @include-section["utils/binary/data.scrbl"]
 @include-section["utils/binary/io.scrbl"]
 @include-section["utils/binary/pack.scrbl"]
+@include-section["utils/buffer.scrbl"]
 @include-section["utils/bytevector.scrbl"]
 @include-section["utils/crypto.scrbl"]
 @include-section["utils/dbi.scrbl"]

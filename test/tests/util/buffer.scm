@@ -60,6 +60,35 @@
 (test-binary-buffer-number-put! 8 binary-pre-allocated-buffer-put-f64!
 				bytevector-ieee-double-ref 5.0 (endianness big))
 
+;; put-bytevector
+(let* ((bv (make-bytevector 10))
+       (buf (make-binary-pre-allocated-buffer bv)))
+  (test-assert "put-bytevector!(1)" 
+       (binary-pre-allocated-buffer-put-bytevector! buf #vu8(1 2 3 4 5)))
+  (test-equal "size" 5 (pre-allocated-buffer-size buf))
+  (test-equal "crop" #vu8(1 2 3 4 5) (crop-binary-buffer buf))
+  
+  (test-assert "put-bytevector!(2)" 
+       (binary-pre-allocated-buffer-put-bytevector! buf #vu8(6 7 8)))
+  (test-equal "size" 8 (pre-allocated-buffer-size buf))
+  (test-equal "crop" #vu8(1 2 3 4 5 6 7 8) (crop-binary-buffer buf))
+  (test-error "overflow" pre-allocated-buffer-overflow? 
+	      (binary-pre-allocated-buffer-put-bytevector! buf
+							   #vu8(10 11 12))))
+(let* ((bv (make-bytevector 10))
+       (buf (make-binary-pre-allocated-buffer bv)))
+  (test-assert "range (only start)" 
+	       (binary-pre-allocated-buffer-put-bytevector! buf
+							    #vu8(1 2 3)
+							    1))
+  (test-equal "crop" #vu8(2 3) (crop-binary-buffer buf))
+  (test-assert "range (start and count)" 
+	       (binary-pre-allocated-buffer-put-bytevector! buf
+							    #vu8(1 2 3 4)
+							    1 3))
+  (test-equal "crop" #vu8(2 3 2 3 4) (crop-binary-buffer buf))
+)
+
 (define (binary-pre-allocated-buffer-set-u8!/endian buf pos v . opts)
   (binary-pre-allocated-buffer-set-u8! buf pos v))
 (define (binary-pre-allocated-buffer-set-s8!/endian buf pos v . opts)
@@ -127,6 +156,17 @@
 							    #vu8(10 11 12)))
   (test-equal "size" 8 (pre-allocated-buffer-size buf))
   (test-equal "crop" #vu8(6 7 8 4 5 10 11 12) (crop-binary-buffer buf))
+
+  (test-assert "range (only start)" 
+	       (binary-pre-allocated-buffer-set-bytevector! buf 5
+							    #vu8(20 21 22)
+							    1))
+  (test-equal "crop" #vu8(6 7 8 4 5 21 22 12) (crop-binary-buffer buf))
+  (test-assert "range (start and count)" 
+	       (binary-pre-allocated-buffer-set-bytevector! buf 5
+							    #vu8(20 21 22 23)
+							    1 3))
+  (test-equal "crop" #vu8(6 7 8 4 5 21 22 23) (crop-binary-buffer buf))
 )
 
 (let* ((bv (make-bytevector 10))
