@@ -448,6 +448,18 @@
 (test-http2-frame-settings #vu8(0 0 0 4 0 0 0 0 0) '())
 ;; TODO actuall settings
 
+;; setting error
+(test-error "setting non zero stream id" http2-protocol-error?
+	    (let ((buf (make-frame-buffer)))
+	      (read-http2-frame (open-bytevector-input-port
+				 #vu8(0 0 6 4 0 0 0 0 1 0 2 0 0 0 0))
+				buf #f)))
+(test-error "setting ACK" http2-frame-size-error?
+	    (let ((buf (make-frame-buffer)))
+	      (read-http2-frame (open-bytevector-input-port
+				 #vu8(0 0 6 4 1 0 0 0 0 0 2 0 0 0 0))
+				buf #f)))
+
 ;; push promise
 (define (test-http2-frame-push-promise frame d headers)
   (let ((buffer (make-frame-buffer)))
@@ -543,6 +555,7 @@
 		 (write-http2-frame out buffer frame #t
 				    (make-hpack-context 4096))))))
 
+;; header
 (define (test-http2-header-write expect headers dep w end?)
   (test-equal "header write"
 	      expect
@@ -561,5 +574,34 @@
    (#*":path"       #*"/")
    (#*":authority"  #*"www.example.com"))
  #f #f #f)
+
+;; settings
+(define (test-http2-settings-write expect ack settings)
+  (test-equal "settings write"
+	      expect
+	      (call-with-bytevector-output-port
+	       (lambda (out)
+		 (let ((frame (make-http2-frame-settings ack 0 settings))
+		       (buffer (make-frame-buffer)))
+		   (write-http2-frame out buffer frame #f #f))))))
+(test-http2-settings-write #vu8(0 0 0 4 0 0 0 0 0) 0 '())
+(test-http2-settings-write #vu8(0 0 0 4 1 0 0 0 0) 1 '())
+(test-http2-settings-write #vu8(0 0 12 4 0 0 0 0 0 0 2 0 0 0 0 0 3 0 0 0 100) 0 
+			   `((,+http2-settings-enable-push+ 0)
+			     (,+http2-settings-max-concurrent-streams+ 100)))
+
+(test-error "SETTINGS with ACK" http2-frame-size-error?
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-settings 1 0 '((2 0))))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f #f)))))
+(test-error "SETTINGS with non zero stream identifier" http2-protocol-error?
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-settings 0 1 '((2 0))))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f #f)))))
+
 
 (test-end)

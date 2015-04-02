@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; rfc/http2/frame.scm - HTTP2 frame
-;;;  
+;;;
 ;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 
 (library (rfc http2 frame)
@@ -57,6 +57,14 @@
 	    +http2-frame-type-goaway+
 	    +http2-frame-type-window-update+
 	    +http2-frame-type-continuation+
+	    ;; SETTINGS
+	    +http2-settings-header-table-size+
+	    +http2-settings-enable-push+
+	    +http2-settings-max-concurrent-streams+
+	    +http2-settings-initial-window-size+
+	    +http2-settings-max-frame-size+
+	    +http2-settings-max-header-list-size+
+
 	    ;; frame types
 	    http2-frame?
 	    http2-frame-type
@@ -109,13 +117,14 @@
 		    (->binary-pre-allocated-buffer-output-port
 		     ->frame-buffer-output-port)))
 
+  ;; constants
   (define-constant +initial-frame-buffer-size+ #x4000)
   ;; Don't use this much but we can do it.
   (define-constant +max-frame-buffer-size+     #xffffff)
 
   (define make-frame-buffer
     (case-lambda
-     (() (make-binary-pre-allocated-buffer 
+     (() (make-binary-pre-allocated-buffer
 	  (make-bytevector +initial-frame-buffer-size+)))
      ((size)
       (unless (<= +initial-frame-buffer-size+ size +max-frame-buffer-size+)
@@ -216,12 +225,20 @@
   (define-http2-frame window-update #x8 window-size-increment)
   (define-http2-frame continuation  #x9 headers)
 
+  ;; SETTINGS
+  (define-constant +http2-settings-header-table-size+      #x1)
+  (define-constant +http2-settings-enable-push+            #x2)
+  (define-constant +http2-settings-max-concurrent-streams+ #x3)
+  (define-constant +http2-settings-initial-window-size+    #x4)
+  (define-constant +http2-settings-max-frame-size+         #x5)
+  (define-constant +http2-settings-max-header-list-size+   #x6)
+
   ;; hpack-context is required for HEADER, PUSH_PROMISE and CONTINUATION
   ;; NOTE: must be a row context to count
   (define (write-http2-frame out buffer frame end? hpack-context)
     (pre-allocated-buffer-reset! buffer)
     (let ((next (store-frame-to-frame-buffer! frame buffer end? hpack-context)))
-      (put-bytevector out (frame-buffer-buffer buffer) 0 
+      (put-bytevector out (frame-buffer-buffer buffer) 0
 		      (frame-buffer-size buffer))
       (flush-output-port out)
       (when next (write-http2-frame out buffer next end? hpack-context))))
@@ -243,7 +260,7 @@
   ;; helpers
   (define-constant +frame-common-size+ 9)
   (define (put-frame-common buf length type flags si)
-    (binary-pre-allocated-buffer-put-bytevector! buf 
+    (binary-pre-allocated-buffer-put-bytevector! buf
      (integer->bytevector length 3))
     (binary-pre-allocated-buffer-put-u8! buf type)
     (binary-pre-allocated-buffer-put-u8! buf flags)
@@ -282,13 +299,13 @@
 	   (data-size (count-hpack-bytes ctx headers))
 	   (buf-size  (- (bytevector-length buf) +frame-common-size+)))
       (when (> data-size buf-size)
-	(error 'buffer-converter-headers 
+	(error 'buffer-converter-headers
 	       "continuation header is not supported"))
       ;; flags
       ;; for now we don't do padding
       (let ((priority? (and deps weight))
 	    (out (->frame-buffer-output-port buffer)))
-	(put-frame-common buffer data-size type 
+	(put-frame-common buffer data-size type
 			  (bitwise-ior (if end? 1 0) 4 (if priority? 20 0))
 			  si)
 	(write-hpack out ctx headers)
@@ -303,10 +320,27 @@
      (buffer-converter-settings frame buffer end? ctx)
      (let* ((type (http2-frame-type frame))
 	    (flags (http2-frame-flags frame))
-	    (si (http2-frame-stream-identifier frame)))
-       ;; TODO for now empty settings
-       (put-frame-common buffer 0 type flags si)
-       #f))
+	    (si (http2-frame-stream-identifier frame))
+	    (settings (http2-frame-settings-settings frame)))
+       ;; sanity check
+       (unless (zero? si)
+	 (http2-protocol-error 'write-http2-frame
+			       "SETTINGS got non zero stream identifier" si))
+       (when (and (bitwise-bit-set? flags 0)
+		  (not (null? settings)))
+	 (http2-frame-size-error 'write-http2-frame
+				 "SETTINGS with ACK must not have settings"))
+       (put-frame-common buffer (* (length settings) 6) type flags si)
+       (let loop ((settings settings))
+	 (if (null? settings)
+	     #f
+	     (let ((s (car settings)))
+	       (binary-pre-allocated-buffer-put-u16! buffer (car s)
+						     (endianness big))
+	       (binary-pre-allocated-buffer-put-u32! buffer (cadr s)
+						     (endianness big))
+	       (loop (cdr settings))))
+	 )))
 ;;   (define-buffer-converter +http2-frame-type-push-promise+
 ;;     (buffer-converter-push-promise frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-ping+
@@ -323,7 +357,7 @@
   ;; - hpack-reader is used only for HEADER, PUSH_PROMISE and CONTINUATION
   (define (read-http2-frame in buffer hpack-context)
     (let-values (((type flags si) (fill-http2-frame-buffer! in buffer)))
-      ((vector-ref *http2-frame-convertors* type) 
+      ((vector-ref *http2-frame-convertors* type)
        flags si buffer hpack-context)))
 
   (define *http2-frame-convertors* (make-vector 10))
@@ -334,10 +368,10 @@
 	 (let ((name (lambda args body ...)))
 	   (vector-set! *http2-frame-convertors* code name)
 	   name)))))
-  
-  (define-frame-converter +http2-frame-type-data+ 
+
+  (define-frame-converter +http2-frame-type-data+
     (data-converter flags si buffer hpack-context)
-    (make-http2-frame-data flags si 
+    (make-http2-frame-data flags si
 			   (yeild-buffer buffer (bitwise-bit-set? flags 3))))
 
   (define (parse-header-block flags buffer hpack-context weight?)
@@ -360,7 +394,7 @@
 			      (read-dependency&weight buf (if padding? 1 0))
 			      (values #f #f))))
 	(values d w
-		(read-headers buf size padding? 
+		(read-headers buf size padding?
 			      (cond (priority? 5)
 				    ((not weight?) 4)
 				    (else 0))
@@ -391,12 +425,19 @@
 			   "SETTINGS must be multiple of 6"
 			   (bytevector-copy settings 0 size)))
        (let loop ((i 0) (r '()))
-	 (if (= i size) 
+	 (if (= i size)
 	     (reverse! r)
 	     (let ((id (bytevector-u16-ref settings i (endianness big)))
 		   (v (bytevector-u32-ref settings (+ i 2) (endianness big))))
 	       ;; TODO convert identifier to readable symbol
 	       (loop (+ i 6) (acons id v r))))))
+     (unless (zero? si)
+       (http2-protocol-error 'read-http2-frame
+			     "SETTINGS got non zero stream identifier" si))
+     (when (and (bitwise-bit-set? flags 0)
+		(not (zero? (frame-buffer-size buffer))))
+       (http2-frame-size-error 'read-http2-frame
+			       "SETTINGS with ACK has non zero data"))
      (make-http2-frame-settings flags si
       (parse-settings (frame-buffer-buffer buffer)
 		      (frame-buffer-size buffer))))
@@ -416,7 +457,7 @@
 	    (size (frame-buffer-size buffer))
 	    (sid (bytevector-u32-ref buf 0 (endianness big)))
 	    (code (bytevector-u32-ref buf 4 (endianness big))))
-       (make-http2-frame-goaway flags si sid code 
+       (make-http2-frame-goaway flags si sid code
 				(bytevector-copy buf 8 size))))
 
    (define-frame-converter +http2-frame-type-window-update+
@@ -429,7 +470,7 @@
      (continuation-converter flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer))
 	   (size (frame-buffer-size buffer)))
-       (make-http2-frame-continuation flags si 
+       (make-http2-frame-continuation flags si
 	(read-hpack (open-bytevector-input-port buf #f 0 size) hpack-context))))
 
 )
