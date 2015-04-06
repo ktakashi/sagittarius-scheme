@@ -377,7 +377,7 @@
   (define (read-http2-frame in buffer hpack-context)
     (let-values (((type flags si) (fill-http2-frame-buffer! in buffer)))
       ((vector-ref *http2-frame-convertors* type)
-       flags si buffer hpack-context)))
+       in flags si buffer hpack-context)))
 
   (define *http2-frame-convertors* (make-vector 10))
   (define-syntax define-frame-converter
@@ -389,17 +389,45 @@
 	   name)))))
 
   (define-frame-converter +http2-frame-type-data+
-    (data-converter flags si buffer hpack-context)
+    (data-converter in flags si buffer hpack-context)
     (make-http2-frame-data flags si
 			   (yeild-buffer buffer (bitwise-bit-set? flags 3))))
 
-  (define (parse-header-block flags buffer hpack-context weight?)
-    (define (read-headers bv size padding? offset hpack-context)
+  (define (parse-header-block in flags osi buffer hpack-context weight?)
+    (define (continuation->port in buffer)
+      ;; lazy...
+      (let ((in/out (open-chunked-binary-input/output-port)))
+	(put-bytevector in/out (frame-buffer-buffer buffer) 0
+			(frame-buffer-size buffer))
+	(let loop ((read-size (frame-buffer-size buffer)))
+	  ;; TODO max HEADERS size. if we don't limit this, this can be
+	  ;;      an attack. but how much?
+	  (let-values (((type flags si) (fill-http2-frame-buffer! in buffer)))
+	    (unless (= type +http2-frame-type-continuation+)
+	      (http2-protocol-error 'parse-header-block
+				    "expected CONTINUATION frame" type))
+	    (unless (= si osi)
+	      (http2-protocol-error 'parse-header-block
+				    "Invalid stream identifier"
+				    `((expected: ,osi)
+				      (got: ,si))))
+	    (put-bytevector in/out (frame-buffer-buffer buffer) 0
+			    (frame-buffer-size buffer))
+	    (cond ((bitwise-bit-set? flags 2)
+		   (set-port-position! in/out 0)
+		   in/out)
+		  (else 
+		   (loop (+ read-size (frame-buffer-size buffer)))))))))
+    (define (read-headers in flags bv size padding? offset hpack-context)
       (let ((in (if padding?
 		    (let ((pad (bytevector-u8-ref bv 0)))
-		      (open-bytevector-input-port bv #f (+ 1 offset)
-						  (- size pad)))
-		    (open-bytevector-input-port bv #f offset size))))
+		      (if (bitwise-bit-set? flags 2)
+			  (open-bytevector-input-port bv #f (+ 1 offset)
+						      (- size pad))
+			  (continuation->port in buffer)))
+		    (if (bitwise-bit-set? flags 2)
+			(open-bytevector-input-port bv #f offset size)
+			(continuation->port in buffer)))))
 	(read-hpack in hpack-context)))
     (define (read-dependency&weight bv offset)
       (values (bytevector-u32-ref bv offset (endianness big))
@@ -413,31 +441,31 @@
 			      (read-dependency&weight buf (if padding? 1 0))
 			      (values #f #f))))
 	(values d w
-		(read-headers buf size padding?
+		(read-headers in flags buf size padding?
 			      (cond (priority? 5)
 				    ((not weight?) 4)
 				    (else 0))
 			      hpack-context)))))
 
   (define-frame-converter +http2-frame-type-headers+
-    (headers-converter flags si buffer hpack-context)
+    (headers-converter in flags si buffer hpack-context)
     (let-values (((d w headers)
-		  (parse-header-block flags buffer hpack-context #t)))
+		  (parse-header-block in flags si buffer hpack-context #t)))
 	(make-http2-frame-headers flags si d w headers)))
 
    (define-frame-converter +http2-frame-type-priority+
-     (priority-converter flags si buffer hpack-context)
+     (priority-converter in flags si buffer hpack-context)
      (let* ((buf (frame-buffer-buffer buffer))
 	    (sd (bytevector-u32-ref buf 0 (endianness big)))
 	    (w  (bytevector-u8-ref buf 4)))
        (make-http2-frame-priority flags si sd w)))
    (define-frame-converter +http2-frame-type-rst-stream+
-     (rst-stream-converter flags si buffer hpack-context)
+     (rst-stream-converter in flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer)))
        (make-http2-frame-rst-stream flags si
 	(bytevector-u32-ref buf 0 (endianness big)))))
    (define-frame-converter +http2-frame-type-settings+
-     (settings-converter flags si buffer hpack-context)
+     (settings-converter in flags si buffer hpack-context)
      (define (parse-settings settings size)
        (unless (zero? (mod size 6))
 	 (http2-frame-size-error 'settings-converter
@@ -461,17 +489,17 @@
       (parse-settings (frame-buffer-buffer buffer)
 		      (frame-buffer-size buffer))))
    (define-frame-converter +http2-frame-type-push-promise+
-     (push-promise-converter flags si buffer hpack-context)
+     (push-promise-converter in flags si buffer hpack-context)
      (let-values (((d w headers)
-		   (parse-header-block flags buffer hpack-context #f)))
+		   (parse-header-block in flags si buffer hpack-context #f)))
 	(make-http2-frame-push-promise flags si d headers)))
 
    (define-frame-converter +http2-frame-type-ping+
-     (ping-converter flags si buffer hpack-context)
+     (ping-converter in flags si buffer hpack-context)
      (make-http2-frame-ping flags si (yeild-buffer buffer #f)))
 
    (define-frame-converter +http2-frame-type-goaway+
-     (goaway-converter flags si buffer hpack-context)
+     (goaway-converter in flags si buffer hpack-context)
      (let* ((buf (frame-buffer-buffer buffer))
 	    (size (frame-buffer-size buffer))
 	    (sid (bytevector-u32-ref buf 0 (endianness big)))
@@ -480,15 +508,18 @@
 				(bytevector-copy buf 8 size))))
 
    (define-frame-converter +http2-frame-type-window-update+
-     (window-update-converter flags si buffer hpack-context)
+     (window-update-converter in flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer)))
        (make-http2-frame-window-update flags si
 	(bytevector-u32-ref buf 0 (endianness big)))))
 
    (define-frame-converter +http2-frame-type-continuation+
-     (continuation-converter flags si buffer hpack-context)
+     (continuation-converter in flags si buffer hpack-context)
      (let ((buf (frame-buffer-buffer buffer))
 	   (size (frame-buffer-size buffer)))
+       (http2-protocol-error 'continuation-converter
+			     "Unexpected CONTINUATION frame")
+       #;
        (make-http2-frame-continuation flags si
 	(read-hpack (open-bytevector-input-port buf #f 0 size) hpack-context))))
 

@@ -384,7 +384,7 @@
     (test-equal "headers" headers (http2-frame-headers-headers frame)))))
 
 (test-http2-frame-headers 
- (bytevector-append #vu8(0 0 17 1 0 0 0 0 1)
+ (bytevector-append #vu8(0 0 17 1 4 0 0 0 1)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
  #f #f '((#*":method"     #*"GET")
 	 (#*":scheme"     #*"http")
@@ -392,7 +392,7 @@
 	 (#*":authority"  #*"www.example.com")))
 ;; with pad
 (test-http2-frame-headers 
- (bytevector-append #vu8(0 0 23 1 8 0 0 0 1 5)
+ (bytevector-append #vu8(0 0 23 1 12 0 0 0 1 5)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
 		    #vu8(0 0 0 0 0))
  #f #f '((#*":method"     #*"GET")
@@ -401,7 +401,7 @@
 	 (#*":authority"  #*"www.example.com")))
 ;; with dependency and weight
 (test-http2-frame-headers 
- (bytevector-append #vu8(0 0 22 1 32 0 0 0 2 0 0 0 1 2)
+ (bytevector-append #vu8(0 0 22 1 36 0 0 0 2 0 0 0 1 2)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
  1 2 '((#*":method"     #*"GET")
        (#*":scheme"     #*"http")
@@ -409,13 +409,60 @@
        (#*":authority"  #*"www.example.com")))
 ;; with both
 (test-http2-frame-headers 
- (bytevector-append #vu8(0 0 28 1 40 0 0 0 2 5 0 0 0 1 2)
+ (bytevector-append #vu8(0 0 28 1 44 0 0 0 2 5 0 0 0 1 2)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
 		    #vu8(0 0 0 0 0))
  1 2 '((#*":method"     #*"GET")
        (#*":scheme"     #*"http")
        (#*":path"       #*"/")
        (#*":authority"  #*"www.example.com")))
+
+;; CONTINUATION
+(let* ((buffer (make-frame-buffer))
+       (ctx (make-hpack-context 4096))
+       (frame (read-http2-frame 
+	       (open-bytevector-input-port 
+		(bytevector-append
+		 #vu8(0 0 17 1 0 0 0 0 1)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 #vu8(0 0 17 9 4 0 0 0 1)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 ))
+	       buffer ctx)))
+  (test-assert "header?" (http2-frame-headers? frame))
+  (test-equal "header" 
+	      '((#*":method"     #*"GET")
+		(#*":scheme"     #*"http")
+		(#*":path"       #*"/")
+		(#*":authority"  #*"www.example.com")
+		(#*":method"     #*"GET")
+		(#*":scheme"     #*"http")
+		(#*":path"       #*"/")
+		(#*":authority"  #*"www.example.com"))
+	      (http2-frame-headers-headers frame)))
+(let* ((buffer (make-frame-buffer))
+       (ctx (make-hpack-context 4096)))
+  (test-error "Wrong type" http2-protocol-error?
+	      (read-http2-frame 
+	       (open-bytevector-input-port 
+		(bytevector-append
+		 #vu8(0 0 17 1 0 0 0 0 1)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 #vu8(0 0 17 1 4 0 0 0 1)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 ))
+	       buffer ctx))
+  (test-error "Wrong stream identifier" http2-protocol-error?
+	      (read-http2-frame 
+	       (open-bytevector-input-port 
+		(bytevector-append
+		 #vu8(0 0 17 1 0 0 0 0 1)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 #vu8(0 0 17 9 4 0 0 0 2)
+		 (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
+		 ))
+	       buffer ctx)))
+
 
 ;; priority
 (let* ((buffer (make-frame-buffer))
@@ -473,7 +520,7 @@
       (test-equal "headers" headers (http2-frame-push-promise-headers frame)))))
 
 (test-http2-frame-push-promise 
- (bytevector-append #vu8(0 0 21 5 0 0 0 0 1 0 0 0 1)
+ (bytevector-append #vu8(0 0 21 5 4 0 0 0 1 0 0 0 1)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
  1 '((#*":method"     #*"GET")
      (#*":scheme"     #*"http")
@@ -481,7 +528,7 @@
      (#*":authority"  #*"www.example.com")))
 ;; with pad
 (test-http2-frame-push-promise 
- (bytevector-append #vu8(0 0 27 5 8 0 0 0 1 5 0 0 0 1)
+ (bytevector-append #vu8(0 0 27 5 12 0 0 0 1 5 0 0 0 1)
 		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)
 		    #vu8(0 0 0 0 0))
  1 '((#*":method"     #*"GET")
@@ -531,18 +578,14 @@
 		(http2-frame-window-update-window-size-increment frame))))
 
 ;; continuation
+
 (let ((buffer (make-frame-buffer)))
   (define ctx (make-hpack-context 4096))
   (define frame (bytevector-append #vu8(0 0 17 9 0 0 0 0 1)
 		  (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff)))
-  (let ((frame (read-http2-frame (open-bytevector-input-port frame)
-				 buffer ctx)))
-    (test-assert "continuation?" (http2-frame-continuation? frame))
-    (test-equal "headers" '((#*":method"     #*"GET")
-			    (#*":scheme"     #*"http")
-			    (#*":path"       #*"/")
-			    (#*":authority"  #*"www.example.com")) 
-		(http2-frame-continuation-headers frame))))
+  (test-error "CONTINUATION" http2-protocol-error?
+	      (read-http2-frame (open-bytevector-input-port frame)
+				buffer ctx)))
 
 ;; write frame
 ;; data
