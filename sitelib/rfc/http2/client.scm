@@ -370,9 +370,10 @@
     (syntax-rules (GET POST HEAD)
       ((_ conn "clause" (GET uri headers ...) rest ...)
        ;; TODO how should we handle other receivers?
-       (http2-add-request! conn (http2-headers-sender uri headers ...)
-			   (http2-binary-receiver))
-       (http2-multi-requests conn "clause" rest ...))
+       (begin
+	 (http2-add-request! conn (http2-headers-sender uri headers ...)
+			     (http2-binary-receiver))
+	 (http2-multi-requests conn "clause" rest ...)))
       ;; finish
       ((_ conn "clause") (http2-invoke-requests! conn))
       ;; entry point
