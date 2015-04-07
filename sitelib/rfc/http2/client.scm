@@ -46,6 +46,8 @@
 
 	    ;; primitive senders&receivers
 	    http2-headers-sender
+	    http2-data-sender
+	    http2-composite-sender
 	    
 	    http2-data-receiver
 	    http2-binary-receiver
