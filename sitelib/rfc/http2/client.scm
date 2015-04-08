@@ -42,6 +42,7 @@
 
 	    ;; common methods
 	    http2-get ;; TODO the rest
+	    http2-head
 	    http2-post
 
 	    ;; primitive senders&receivers
@@ -371,7 +372,7 @@
       ((_ conn "clause" (GET uri headers ...) rest ...)
        ;; TODO how should we handle other receivers?
        (begin
-	 (http2-add-request! conn (http2-headers-sender uri headers ...)
+	 (http2-add-request! conn (http2-headers-sender 'GET uri headers ...)
 			     (http2-binary-receiver))
 	 (http2-multi-requests conn "clause" rest ...)))
       ;; finish
@@ -409,9 +410,9 @@
   ;;      it might be better to wrap frames a bit for cutome senders
   ;;      so that users don't have to import (rfc http2 frame). but 
   ;;      for now.
-  (define (http2-headers-sender uri . headers)
+  (define (http2-headers-sender method uri . headers)
     (lambda (stream end-stream?)
-      (let* ((headers (apply http2-construct-header stream 'GET uri headers))
+      (let* ((headers (apply http2-construct-header stream method uri headers))
 	     (frame (make-http2-frame-headers 0 
 					      (http2-stream-identifier stream)
 					      #f #f
@@ -450,7 +451,15 @@
 		     :allow-other-keys headers)
     ;; discards the stored streams first
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
-    (http2-add-request! conn (apply http2-headers-sender uri headers)
+    (http2-add-request! conn (apply http2-headers-sender 'GET uri headers)
+			receiver)
+    (apply values (car (http2-invoke-requests! conn))))
+
+  (define (http2-head conn uri :key (receiver (http2-binary-receiver))
+		     :allow-other-keys headers)
+    ;; discards the stored streams first
+    (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
+    (http2-add-request! conn (apply http2-headers-sender 'HEAD uri headers)
 			receiver)
     (apply values (car (http2-invoke-requests! conn))))
 
@@ -460,7 +469,7 @@
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
     (http2-add-request! conn 
 			(http2-composite-sender 
-			 (apply http2-headers-sender uri headers)
+			 (apply http2-headers-sender 'POST uri headers)
 			 (http2-data-sender data))
 			receiver)
     (apply values (car (http2-invoke-requests! conn))))
