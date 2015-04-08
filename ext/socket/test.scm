@@ -157,4 +157,20 @@
 (test-equal "msg-oob"     MSG_OOB *msg-oob*)
 (test-equal "msg-waitall" MSG_WAITALL *msg-waitall*)
 
+;; blocking retry of get-bytevector-n
+(let ()
+  (define server (make-server-socket "5001"))
+  
+  (define t (make-thread
+	     (lambda ()
+	       (let ((s (socket-accept server)))
+		 (socket-send s #vu8(0 1 2 3 4))))))
+  (thread-start! t)
+  (let ()
+    (define client (make-client-socket "localhost" "5001"))
+    (define in (socket-input-port client))
+    (define buf (make-bytevector 10))
+    (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
+		(get-bytevector-n in 10))))
+
 (test-end)

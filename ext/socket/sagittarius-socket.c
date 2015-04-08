@@ -430,7 +430,8 @@ SgObject Sg_CreateSocket(int family, int socktype, int protocol)
 
 #ifdef SO_NOSIGPIPE
   const int option_value = 1;
-  if (-1 == setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &option_value, sizeof(option_value))) {
+  if (-1 == setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, 
+		       &option_value, sizeof(option_value))) {
     return SG_FALSE;
   }
 #endif
@@ -999,6 +1000,30 @@ static void socket_flush(SgObject self)
 {
 }
 
+static int socket_ready_int(SgObject socket, struct timeval *tm)
+{
+  fd_set fds;
+  int state;
+
+  FD_ZERO(&fds);
+  FD_SET(SG_SOCKET(socket)->socket, &fds);
+
+#ifdef _WIN32
+  state = select(0, &fds, NULL, NULL, tm);
+#else
+  state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, tm);
+#endif
+
+  if (state < 0) {
+    if (last_error == EINTR) return FALSE;
+    Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 
+	       Sg_GetLastErrorMessageWithErrorCode(last_error),
+	       SG_FALSE, SG_NIL);
+    return FALSE;
+  }
+  return FD_ISSET(SG_SOCKET(socket)->socket, &fds);
+}
+
 static int socket_open(SgObject self)
 {
   return Sg_SocketOpenP(SG_PORT_SOCKET(self));
@@ -1055,7 +1080,10 @@ static int socket_look_ahead_u8(SgObject self)
 
 static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
 {
-  /* we need to read eagarly, or else something wrong happen. */
+  /* we need to read eagarly, or else something wrong happen. 
+     for example, if the socket is TLS socket and encryption/decryption
+     take sometime to flush socket even the data is continuous.
+   */
   int readSize = 0;
   if (SG_PORT_HAS_U8_AHEAD(self) && size > 0) {
     buf[0] = SG_PORT_U8_AHEAD(self);
@@ -1067,6 +1095,8 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
   for (;;) {
     int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
 			       (int)size, 0);
+    int ready;
+    struct timeval tm = {0, 5};	/* wait a bit in case of retry */
     if (-1 == now) {
       Sg_IOReadError(SG_INTERN("read-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
@@ -1078,7 +1108,16 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     readSize += now;
     if (now == 0) break;
     if (size == 0) break;
-    /* loop */
+    /* now how could we know if this socket still have some data ready
+       or it's already ended. for now we use select if the socket has
+       something to be read.
+       FIXME: this may cause issue on TLS socket... */
+    ready = socket_ready_int(SG_PORT_SOCKET(self), &tm);
+    if (!ready) {
+      /* most likely nothing is waiting. i hope... */
+      break;
+    }
+    /* ok something is there keep reading*/
   }
   SG_BINARY_PORT(self)->position += readSize;
   return readSize;
@@ -1139,23 +1178,7 @@ static int socket_ready(SgObject self)
 {
   SgObject socket = SG_PORT_SOCKET(self);
   struct timeval tm = {0, 0};
-  fd_set fds;
-  int state;
-  FD_ZERO(&fds);
-  FD_SET(SG_SOCKET(socket)->socket, &fds);
-#ifdef _WIN32
-  state = select(0, &fds, NULL, NULL, &tm);
-#else
-  state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, &tm);
-#endif
-  if (state < 0) {
-    if (last_error == EINTR) return FALSE;
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 
-	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_NIL);
-    return FALSE;
-  }
-  return (state != 0);
+  return socket_ready_int(socket, &tm);
 }
 
 static SgPortTable socket_close_table = {
