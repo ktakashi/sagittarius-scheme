@@ -101,6 +101,9 @@
 	(let ((buf (make-bytevector 4096)))
 	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)) (r 0))
 	    (cond ((eof-object? n) r)
+		  ((< n 4096)
+		   (put-bytevector dst buf 0 n)
+		   r)
 		  (else
 		   (put-bytevector dst buf 0 n)
 		   (loop (get-bytevector-n! src buf 0 4096 #t)
