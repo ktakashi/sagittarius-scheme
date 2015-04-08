@@ -140,6 +140,8 @@
      (write-sequence :init-value 0)
      ;; session key (to avoid unnecessary caluculation)
      (session-key    :init-value #f)
+     (decrypt-cipher :init-value #f)
+     (encrypt-cipher :init-value #f)
      ;; RSA or DH parameters
      (params         :init-value #f)
      (closed?        :init-value #f)
@@ -942,17 +944,22 @@
 
   (define (read-record socket flags)
     (define (get-decrypt-cipher session)
-      (let* ((cipher&keysize (lookup-cipher&keysize session))
-	     (session-key (~ session 'session-key))
-	     (read-key (generate-secret-key (car cipher&keysize)
-					    (~ session-key 'read-key)))
-	     (iv (~ session-key 'read-iv))
-	     (c (cipher (car cipher&keysize) read-key
-			;; we can not use pkcs5padding
-			:padder #f
-			:iv iv :mode MODE_CBC)))
-	;;(slot-set! session 'decrypt-cipher c)
-	c))
+      (cond ((~ session 'decrypt-cipher))
+	    (else
+	     (let* ((cipher&keysize (lookup-cipher&keysize session))
+		    (session-key (~ session 'session-key))
+		    (read-key (generate-secret-key (car cipher&keysize)
+						   (~ session-key 'read-key)))
+		    (iv (~ session-key 'read-iv))
+		    (c (cipher (car cipher&keysize) read-key
+			       ;; we can not use pkcs5padding
+			       :padder #f
+			       :iv iv :mode MODE_CBC)))
+	       (slot-set! session 'decrypt-cipher c)
+	       ;; reset some of data
+	       (set! (~ session-key 'read-key) #f)
+	       (set! (~ session-key 'read-iv) #f)
+	       c))))
     (define (decrypt-data session em type)
       (let* ((decrypt-cipher (get-decrypt-cipher session))
 	     (message (decrypt decrypt-cipher em))
@@ -967,7 +974,6 @@
 			      (cipher-blocksize decrypt-cipher)
 			      0))
 	     (data (bytevector-copy message data-offset mac-offset)))
-	(set! (~ session 'session-key 'read-iv) (cipher-iv decrypt-cipher))
 	;; verify HMAC from server
 	(unless (bytevector=? mac (calculate-read-mac
 				   socket type
@@ -1409,17 +1415,23 @@
 
     (define (encrypt-data session version data)
       (define (get-encrypt-cipher)
-	(let* ((cipher&keysize (lookup-cipher&keysize session))
-	       (session-key (~ session 'session-key))
-	       (write-key (generate-secret-key (car cipher&keysize)
-					       (~ session-key 'write-key)))
-	       (iv (~ session-key 'write-iv))
-	       (c (cipher (car cipher&keysize) write-key
-			  ;; we need to pad by our self ... hmm
-			  :padder #f
-			  :iv iv :mode MODE_CBC)))
-	  ;;(slot-set! session 'encrypt-cipher c)
-	  c))
+	(cond ((~ session 'encrypt-cipher))
+	      (else
+	       (let* ((cipher&keysize (lookup-cipher&keysize session))
+		      (session-key (~ session 'session-key))
+		      (write-key (generate-secret-key 
+				  (car cipher&keysize)
+				  (~ session-key 'write-key)))
+		      (iv (~ session-key 'write-iv))
+		      (c (cipher (car cipher&keysize) write-key
+				 ;; we need to pad by our self ... hmm
+				 :padder #f
+				 :iv iv :mode MODE_CBC)))
+		 (slot-set! session 'encrypt-cipher c)
+		 ;; reset some of data
+		 (set! (~ session-key 'write-key) #f)
+		 (set! (~ session-key 'write-iv) #f)
+		 c))))
       ;; all toplevel data structures have the same slots.
       (let* ((body (if (= type *application-data*)
 		       data
@@ -1443,7 +1455,6 @@
 			     (put-bytevector p mac)
 			     (put-bytevector p padding)
 			     (put-u8 p (bytevector-length padding)))))))
-	(set! (~ session 'session-key 'write-iv) (cipher-iv encrypt-cipher))
 	(make-tls-ciphered-data em)))
     
     (let* ((session (~ socket 'session))
