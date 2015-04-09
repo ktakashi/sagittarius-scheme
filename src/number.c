@@ -3619,17 +3619,18 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
     }
   } else if (SG_INTP(e)) {
-#if LONG_MAX > 1UL << 32
-  small_entry:
-#endif
     if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
       /* if both are bignum, then the cost of mod and mul would be
 	 more expensive than converting e to bignum */
       e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
     } else {
-      long n = SG_INT_VALUE(e);
-      SgObject y = SG_MAKE_INT(1);
-
+      long n;
+      SgObject y;
+#if LONG_MAX > 1UL << 32
+  small_entry:
+#endif
+      n = SG_INT_VALUE(e);
+      y = SG_MAKE_INT(1);
       if (n < 0) {
 	invertp = TRUE;
 	n = -n;
