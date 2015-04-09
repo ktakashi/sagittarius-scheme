@@ -3574,9 +3574,7 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
 
 SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 {
-  long n;
   int invertp = FALSE;
-  SgObject y;
   if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
     Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
   }
@@ -3624,25 +3622,32 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 #if LONG_MAX > 1UL << 32
   small_entry:
 #endif
-    n = SG_INT_VALUE(e);
-    y = SG_MAKE_INT(1);
-    if (n < 0) {
-      invertp = TRUE;
-      n = -n;
-    }
-    while (n > 0) {
-      if (n % 2) {
-	y = Sg_IntegerMod(Sg_Mul(y, x), m);
-      }
-      n >>= 1;
-      if (n > 0) {
-	x = Sg_IntegerMod(Sg_Mul(x, x), m);
-      }
-    }
-    if (invertp) {
-      return Sg_ModInverse(y, m);
+    if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
+      /* if both are bignum, then the cost of mod and mul would be
+	 more expensive than converting e to bignum */
+      e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
     } else {
-      return y;
+      long n = SG_INT_VALUE(e);
+      SgObject y = SG_MAKE_INT(1);
+
+      if (n < 0) {
+	invertp = TRUE;
+	n = -n;
+      }
+      while (n > 0) {
+	if (n % 2) {
+	  y = Sg_IntegerMod(Sg_Mul(y, x), m);
+	}
+	n >>= 1;
+	if (n > 0) {
+	  x = Sg_IntegerMod(Sg_Mul(x, x), m);
+	}
+      }
+      if (invertp) {
+	return Sg_ModInverse(y, m);
+      } else {
+	return y;
+      }
     }
   } else if (SG_INTP(m)) {
     /* both x and e are bignum */
