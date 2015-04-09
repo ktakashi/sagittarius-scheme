@@ -2,7 +2,7 @@
 ;;;
 ;;; binary/io.scm - Binary IO.
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -43,6 +43,8 @@
 	    put-u32 put-s32 get-u32 get-s32
 	    put-u64 put-s64 get-u64 get-s64
 	    put-f32 put-f64 get-f32 get-f64
+	    ;; n variable
+	    put-u* put-s* get-u* get-s*
 
 	    ;; memory efficient(?) ports
 	    input-port->chunked-binary-input-port
@@ -63,32 +65,7 @@
 
   (define (get-until bin bv-mark)
     (let ((bv (get-bytevector-until bin bv-mark)))
-      (values bv (if (eof-object? bv) #f bv-mark)))
-    )
-  #;
-  (define (get-until bin bv-mark)
-    (let-values (((out extract) (open-bytevector-output-port)))
-      (define (finish bv/false) (values (extract) bv/false))
-      (let* ((buf-len (bytevector-length bv-mark))
-	     (buf     (make-bytevector buf-len)))
-	(let loop ((b (lookahead-u8 bin)))
-	  (cond ((eof-object? b) (finish #f))
-		((= b (bytevector-u8-ref bv-mark 0))
-		 ;; check
-		 (let loop2 ((i 0) (b2 b))
-		   (cond ((= i buf-len) (finish buf)) ;; we are done
-			 ((eqv? (bytevector-u8-ref bv-mark i) b2)
-			  (bytevector-u8-set! buf i b2)
-			  (get-u8 bin)
-			  (if (= (+ i 1) buf-len)
-			      (finish buf)
-			      (loop2 (+ i 1) (lookahead-u8 bin))))
-			 (else
-			  (put-bytevector out buf 0 i)
-			  (loop b2)))))
-		(else
-		 (put-u8 out b)
-		 (loop (lookahead-next-u8 bin))))))))
+      (values bv (if (eof-object? bv) #f bv-mark))))
 
   ;; default \n = #x0a
   (define (get-line bin :key (eol #vu8(#x0a)) (transcoder #f))
@@ -163,6 +140,34 @@
     (let ((buf (get-bytevector-n in 8)))
       (bytevector-ieee-double-ref buf 0 endian)))
 
+  (define-syntax define-put&get*
+    (lambda (x)
+      (define (->syntax k v) (datum->syntax k v))
+      (define (->names k name)
+	(let ((get (string->symbol (format "get-~a*" (syntax->datum name))))
+	      (put (string->symbol (format "put-~a*" (syntax->datum name)))))
+	  (->syntax k (list get put))))
+      (define (->set&ref k name)
+	(let ((set (string->symbol (format "bytevector-~aint-set!"
+					   (syntax->datum name))))
+	      (ref (string->symbol (format "bytevector-~aint-ref"
+					   (syntax->datum name)))))
+	  (->syntax k (list set ref))))
+      (syntax-case x ()
+	((k name)
+	 (with-syntax (((get put) (->names #'k #'name))
+		       ((set! ref) (->set&ref #'k #'name)))
+	   #'(begin
+	       (define (put out v n endian)
+		 (let ((bv (make-bytevector n)))
+		   (set! bv 0 v endian n)
+		   (put-bytevector out bv)))
+	       (define (get in n endian)
+		 (let ((bv (get-bytevector-n in n)))
+		   (ref bv 0 endian n)))))))))
+
+  (define-put&get* u)
+  (define-put&get* s)
 
   ;; built in bytevector input port would requires length of input date
   ;; however it would allocate huge amount of data.

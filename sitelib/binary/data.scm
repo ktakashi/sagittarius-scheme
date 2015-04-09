@@ -2,7 +2,7 @@
 ;;;
 ;;; binary/data.aux.scm - Binary data framework
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -39,7 +39,8 @@
 	    put-u16 put-s16 get-u16 get-s16
 	    put-u32 put-s32 get-u32 get-s32
 	    put-u64 put-s64 get-u64 get-s64
-	    put-f32 put-f64 get-f32 get-f64)
+	    put-f32 put-f64 get-f32 get-f64
+	    put-u* put-s* get-u* get-s*)
     (import (rnrs)
 	    (clos core)
 	    (clos user)

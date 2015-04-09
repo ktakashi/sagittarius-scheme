@@ -45,6 +45,16 @@
 (test-range-big get-u64 put-u64 8 uinteger->bytevector 0                   #xFFFFFFFF)
 (test-range-big get-s64 put-s64 8 sinteger->bytevector #x-8000000000000000 #x7FFFFFFFFFFFFFFF)
 
+;; kind of test for get-u*
+(let ()
+  (define (get-u24 in endian) (get-u* in 3 endian))
+  (define (put-u24 in n endian) (put-u* in n 3 endian))
+  (define (get-s24 in endian) (get-s* in 3 endian))
+  (define (put-s24 in n endian) (put-s* in n 3 endian))
+  
+  (test-range-big get-u24 put-u24 3 uinteger->bytevector 0 #xFFFFFF)
+  (test-range-big get-s24 put-s24 3 sinteger->bytevector #x-800000 #x7FFFFF))
+
 (define-simple-datum-define define-simple simple-read simple-write)
 
 (define-simple <simple1> ()
