@@ -1,7 +1,7 @@
 # Sagittarius Scheme System
 
 # What is this?
-This is a free Scheme implementation, mostly supporting the R6RS
+This is a free Scheme implementation, supporting R6RS and R7RS
 specification.
 
 # How to build and install?

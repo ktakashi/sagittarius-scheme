@@ -31,32 +31,26 @@ Implementation" (SRFI)s.
 There are a lot of Scheme implementations and it has different strong and weak
 point. Sagittarius focuses on "Flexibility" and "Easy to Use". R6RS specifies
 strict requirements, but sometimes you may think this is too much. For that
-purpose, Sagittarius has less strictness but it makes not to conform the
-requirements.
+purpose, Sagittarius has less strictness. There are invocation options that
+make Sagittarius run on strict RnRS mode.
 
 To avoid to lose portability or write miss-working code, you may want to know
 what are the non conformed points.
 
 @dl-list[]{
 @dl-item["Reader"]{
- Basically reader has 2 modes. One is R6RS mode and other one is compatible
- mode. Although, user can modify reader with reader macro. For more details, see
+ Basically reader has 3 modes. One is R6RS mode, one is R7RS mode and the 
+ last one is compatible mode. Although, user can modify reader with reader
+ macro. These modes can be switched via @code{#!r6rs}, @code{#!r7rs} or
+ @code{#!compatible}. For more details, see
  @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}.
 }
-@dl-item["Macro expansion"]{
- On R6RS requires explicit macro expansion phase, however Sagittarius does
- not have it. A macro is expanded when programs are compiled.}
-@dl-item["Unbound symbol"]{
- If you write unbound symbol in your code, however Sagittarius won't raise
- error until it really called. R6RS does not allow this behaviour. And also
- exported symbol. If you do not define exported symbol, Sagittarius, then, won't
- raise error until it will be called. I'm not sure if this is convenient or not.
- So this behaviour may be changed.}
-@dl-item["Toplevel"]{
- Sagittarius does not require toplevel expression which is specified in R6RS.}
 @dl-item["Miscellaneous"]{
- Redefinition of exported values are allowed. The value which imported at the
- last will be used.}
+ Redefinition of exported values are allowed on script file. This can be
+ restricted by @code{-r6} option to run the script strict R6RS mode.
+
+ Multiple import of the same identifier is allowed. The value which 
+ imported at the last will be used.}
 }
 
 @subsection{Notations}
