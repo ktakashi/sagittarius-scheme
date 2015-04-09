@@ -95,6 +95,7 @@
 	    (except (math) lookup-hash)
 	    (except (crypto) verify-mac)
 	    (clos user)
+	    (except (binary io) get-line)
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
@@ -225,6 +226,10 @@
     (let1 session (~ socket 'session)
       (or (~ session 'version)
 	  (~ socket 'version))))
+
+
+  ;; helper
+  (define (get-u24 in endianness) (get-u* in 3 endianness))
 
   (define (make-cipher-suites socket)
     (let* ((suites (~ socket 'cipher-suites))
@@ -1072,7 +1077,12 @@
 	     #vu8())))))
 
   (define (read-variable-vector in n)
-    (let* ((size (bytevector->integer (get-bytevector-n in n)))
+    (let* ((size (case n
+		   ((1) (get-u8 in))
+		   ((2) (get-u16 in (endianness big)))
+		   ((4) (get-u32 in (endianness big)))
+		   ;; should never reach
+		   (else (bytevector->integer (get-bytevector-n in n)))))
 	   (body (get-bytevector-n in size)))
       (make-variable-vector n (if (eof-object? body) #vu8() body))))
 
@@ -1096,20 +1106,18 @@
   (define (read-handshake in dh? version)
 
     (define (read-random in)
-      (let ((time (bytevector->integer (get-bytevector-n in 4)))
+      (let ((time (get-u32 in (endianness big)))
 	    (bytes (get-bytevector-n in 28)))
 	(make-tls-random bytes time)))
 
     (define (read-extensions in)
       (define (read-extension in)
-	(let ((type (bytevector->integer (get-bytevector-n in 2)))
+	(let ((type (get-u16 in (endianness big)))
 	      (data (read-variable-vector in 2)))
 	  (make-tls-extension type data)))
-      (and-let* ((size (get-bytevector-n in 2))
-		 ( (bytevector? size) )
-		 (len (bytevector->integer size))
-		 (bv  (get-bytevector-n in len)))
-	(call-with-port (open-bytevector-input-port bv)
+      (and-let* (( (not (eof-object? (lookahead-u8 in))) )
+		 (len (get-u16 in (endianness big))))
+	(call-with-port (->size-limit-binary-input-port in len)
 	  (lambda (in)
 	    (let loop ((exts '()))
 	      (if (eof-object? (lookahead-u8 in))
@@ -1117,7 +1125,7 @@
 		  (loop (cons (read-extension in) exts))))))))
 
     (define (read-client-hello in)
-      (let* ((version (bytevector->integer (get-bytevector-n in 2)))
+      (let* ((version (get-u16 in (endianness big)))
 	     (random  (read-random in))
 	     (session-id (read-variable-vector in 1))
 	     (cipher-suites (read-variable-vector in 2))
@@ -1156,10 +1164,10 @@
 	     signature))))
 
     (define (read-server-hello in)
-      (let* ((version (bytevector->integer (get-bytevector-n in 2)))
+      (let* ((version (get-u16 in (endianness big)))
 	     (random  (read-random in))
 	     (session-id (read-variable-vector in 1))
-	     (cipher-suite (bytevector->integer (get-bytevector-n in 2)))
+	     (cipher-suite (get-u16 in (endianness big)))
 	     (compression-method (get-u8 in))
 	     (extensions (read-extensions in)))
 	(unless (eof-object? (lookahead-u8 in))
@@ -1182,11 +1190,11 @@
 
     (define (read-certificate in)
       ;; we don't check the length, i trust you...
-      (let1 total-length (bytevector->integer (get-bytevector-n in 3))
+      (let1 total-length (get-u24 in (endianness big))
 	(let loop ((i 0) (certs '()) (read-size 0))
 	  (if (eof-object? (lookahead-u8 in))
 	      (make-tls-certificate (reverse! certs))
-	      (let* ((size (bytevector->integer (get-bytevector-n in 3)))
+	      (let* ((size (get-u24 in (endianness big)))
 		     (body (get-bytevector-n in size))
 		     (cert (make-x509-certificate body)))
 		(loop (+ i 1) (cons cert certs) (+ read-size size)))))))
@@ -1217,7 +1225,7 @@
     (or
      (and-let* ((type (get-u8 in))
 		( (integer? type) )
-		(size (bytevector->integer (get-bytevector-n in 3)))
+		(size (get-u24 in (endianness big)))
 		(body (get-bytevector-n in size)))
        (unless (or (zero? size) (= size (bytevector-length body)))
 	 (tls-error 'read-handshake
@@ -1341,10 +1349,10 @@
 	     (let1 data
 		 (call-with-bytevector-output-port
 		  (lambda (p)
-		    (put-u64 p (~ session seq))
+		    (put-u64 p (~ session seq) (endianness big))
 		    (put-u8 p type)
-		    (put-u16 p version)
-		    (put-u16 p (bytevector-length body))
+		    (put-u16 p version (endianness big))
+		    (put-u16 p (bytevector-length body) (endianness big))
 		    (put-bytevector p body)))
 	       data))
       bv))

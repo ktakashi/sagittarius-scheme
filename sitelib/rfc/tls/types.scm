@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/tls/types.scm - TLS 1.0 - 1.2 protocol library.
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -81,15 +81,13 @@
 	    tls-handshake-body
 	    tls-finished-data
 	    ;; utility
-	    put-u16
-	    put-u32
-	    put-u64 ;; for sequence number
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius object)
 	    (sagittarius control)
 	    (clos user)
+	    (except (binary io) get-line)
 	    (rfc x.509)
 	    (srfi :19 time)
 	    (srfi :39 parameters))
@@ -102,19 +100,8 @@
       (display #\space out)))
 
   ;; helper (always put as big endian)
-  (define (put-un out v n)
-    (let ((count (/ n 8)) (diff  (- n 8)))
-      (do ((end (+ count 1))
-	   (i 1 (+ i 1))
-	   (v v (bitwise-arithmetic-shift v 8)))
-	  ((= i end))
-	(let1 u8 (bitwise-and (bitwise-arithmetic-shift-right v diff) #xFF)
-	  (put-u8 out u8)))))
-  ;; for convenience
-  (define (put-u16 out u16) (put-un out u16 16))
-  (define (put-u24 out u24) (put-un out u24 24))
-  (define (put-u32 out u32) (put-un out u32 32))
-  (define (put-u64 out u64) (put-un out u64 64))
+  (define (put-un out v n) (put-u* out v n (endianness big)))
+  (define (put-u24 out n) (put-un out n 3))
 
   ;; base class
   (define-class <tls-packet-component> () ())
@@ -129,11 +116,11 @@
      (message :init-keyword :message)))
   (define-method write-tls-packet ((o <tls-record-layer>) out)
     (put-u8 out (slot-ref o 'type))
-    (put-u16 out (slot-ref o 'version))
+    (put-u16 out (slot-ref o 'version) (endianness big))
     (let1 m (call-with-bytevector-output-port
 	     (lambda (p)
 	       (write-tls-packet (slot-ref o 'message) p)))
-      (put-u16 out (bytevector-length m))
+      (put-u16 out (bytevector-length m) (endianness big))
       (put-bytevector out m)))
   (define (make-tls-record-layer type version message)
     (make <tls-record-layer> :type type :version version :message message))
@@ -170,7 +157,7 @@
   (define-method write-tls-packet ((o <variable-vector>) out)
     (let ((bv (slot-ref o 'value))
 	  (size (slot-ref o 'length-size)))
-      (put-un out (bytevector-length bv) (* size 8))
+      (put-un out (bytevector-length bv) size)
       (put-bytevector out bv)))
   (define (make-variable-vector size bv)
     (make <variable-vector> :length-size size :value bv))
@@ -216,7 +203,7 @@
     ((unix-time :init-keyword :unix-time)
      (random-bytes :init-keyword :random-bytes)))
   (define-method write-tls-packet ((o <tls-random>) out)
-    (put-u32 out (slot-ref o 'unix-time))
+    (put-u32 out (slot-ref o 'unix-time) (endianness big))
     (put-bytevector out (slot-ref o 'random-bytes)))
   (define (make-tls-random bytes :optional (time (time-second (current-time))))
     (make <tls-random> :unix-time time :random-bytes bytes))
@@ -239,7 +226,7 @@
      (compression-methods :init-keyword :compression-methods)
      (extensions          :init-keyword :extensions :init-value '())))
   (define-method write-tls-packet ((o <tls-client-hello>) out)
-    (put-u16 out (~ o 'version))
+    (put-u16 out (~ o 'version) (endianness big))
     (write-tls-packet (~ o 'random) out)
     (write-tls-packet (~ o 'session-id) out)
     (write-tls-packet (~ o 'cipher-suites) out)
@@ -261,11 +248,11 @@
      (compression-method  :init-keyword :compression-method)
      (extensions          :init-keyword :extensions :init-value '())))
   (define-method write-tls-packet ((o <tls-server-hello>) out)
-    (put-u16 out (slot-ref o 'version))
+    (put-u16 out (slot-ref o 'version) (endianness big))
     (write-tls-packet (slot-ref o 'random) out)
     (write-tls-packet (slot-ref o 'session-id) out)
     ;; cipher-suite is uint8[2]
-    (put-u16 out (slot-ref o 'cipher-suite))
+    (put-u16 out (slot-ref o 'cipher-suite) (endianness big))
     (put-u8 out (slot-ref o 'compression-method))
     (let1 ext (~ o 'extensions)
       (unless (null? ext)
@@ -305,7 +292,7 @@
   (define (make-tls-extension type data)
     (make <tls-extension> :type type :data data))
   (define-method write-tls-packet ((o <tls-extension>) out)
-    (put-u16 out (~ o 'type))
+    (put-u16 out (~ o 'type) (endianness big))
     (write-tls-packet (~ o 'data) out))
 
   ;; RFC6066 extensions
@@ -322,7 +309,7 @@
 	      (lambda (out)
 		(put-u8 out (~ o 'name-type))
 		(write-tls-packet (~ o 'name) out)))
-      (put-u16 out (bytevector-length bv))
+      (put-u16 out (bytevector-length bv) (endianness big))
       (put-bytevector out bv)))
   (define-class <server-name-list> (<tls-packet-component>)
     ((server-name-list :init-keyword :server-name-list :init-value '())))
