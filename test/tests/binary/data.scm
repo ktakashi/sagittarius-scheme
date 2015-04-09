@@ -39,9 +39,13 @@
 (test-get get-s8 sinteger->bytevector 127)
 
 (test-range-big get-u16 put-u16 2 uinteger->bytevector 0       #xFFFF)
+(test-range-big get-u16 put-u16 2 uinteger->bytevector #x1234  #x7890)
 (test-range-big get-s16 put-s16 2 sinteger->bytevector #x-8000 #x7FFF)
+(test-range-big get-s16 put-s16 2 sinteger->bytevector #x-1234 #x7890)
 (test-range-big get-u32 put-u32 4 uinteger->bytevector 0                   #xFFFFFFFF)
+(test-range-big get-u32 put-u32 4 uinteger->bytevector #x12345678          #x78901234)
 (test-range-big get-s32 put-s32 4 sinteger->bytevector #x-80000000         #x7FFFFFFF)
+(test-range-big get-s32 put-s32 4 sinteger->bytevector #x-12345678         #x78901234)
 (test-range-big get-u64 put-u64 8 uinteger->bytevector 0                   #xFFFFFFFF)
 (test-range-big get-s64 put-s64 8 sinteger->bytevector #x-8000000000000000 #x7FFFFFFFFFFFFFFF)
 

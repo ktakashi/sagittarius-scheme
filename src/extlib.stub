@@ -10,6 +10,9 @@
    (.include <sagittarius.h>
 	     <sagittarius/cache.h>))
 
+  (decl-code
+   (.typedef "unsigned long" "ulong"))
+
   (define-type <read-context> "SgReadContext*" "read-context")
   ;; comparator
   ;; cgen doesn't have this yet
@@ -552,6 +555,13 @@
     (result (Sg_VMWithErrorHandler handler thunk rewindBefore)))
 
   ;; io
+  (define-cise-stmt check-binary-port
+    ((_ name p)
+     `(unless (or (SG_BINARY_PORTP ,p)
+		  (and (SG_CUSTOM_PORTP ,p)
+		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
+			      SG_BINARY_CUSTOM_PORT_TYPE)))
+	(wrong-type-of-argument-violation ',name "binary-port" ,p))))
   (define-cise-stmt check-input-port
     ((_ name p)
      `(unless (or (SG_INPORTP ,p)
@@ -569,6 +579,97 @@
 					  "output port"
 					  ,p))))
   
+  ;; moved from (binary io) so that we don't have to
+  ;; allocate bytevectors
+  ;;
+  ;; NOTE:
+  ;; We only defines 16 bits and 32 bits for now.
+  ;; Benchmarking told me that the difference is only 200ms when
+  ;; it's executed 1000000 and 11 gc. (calling get-u16 twice)
+  ;; I don't see that much improvement and we aren't using this
+  ;; that much. So for now, only these experimental 2 are more 
+  ;; than enough.
+  (define-cise-stmt put-un
+    ((_ name out v size endian)
+     `(begin
+	(check-binary-port ,name ,out)
+	(check-output-port ,name ,out)
+	(cond ((SG_EQ ,endian 'big)
+	       (let ((i::int ,(- size 1)))
+		 (for (() (>= i 0) (post-- i))
+		      (Sg_Putb ,out (logand (ashr ,v (* i 8)) #xFF)))))
+	      ((SG_EQ ,endian 'little)
+	       (dotimes (i ,size)
+		 (Sg_Putb ,out (logand ,v #xFF))
+		 (set! ,v (ashr ,v 8))))
+	      (else
+	       (assertion-violation ',name "unsupported endianness" 
+				    ,endian))))))
+
+  (define-c-proc put-u16 (out::<port> v::<fixnum> endian::<symbol>) ::<void>
+    (unless (and (<= 0 v) (<= v #xFFFF))
+      (assertion-violation 'put-u16 "given value must be 0 <= n <= #xFFFF"
+			   (SG_MAKE_INT v)))
+    (put-un put-u16 out v 2 endian))
+  (define-c-proc put-s16 (out::<port> v::<fixnum> endian::<symbol>) ::<void>
+    (unless (and (<= #x-8000 v) (<= v #x7FFF))
+      (assertion-violation 'put-s16 "given value must be #x-8000 <= n <= #x7FFF"
+			   (SG_MAKE_INT v)))
+    (put-un put-s16 out v 2 endian))
+
+  (define-c-proc put-u32 (out::<port> n::<integer> endian::<symbol>) ::<void>
+    (let ((v::ulong (Sg_GetUIntegerClamp n SG_CLAMP_NONE NULL)))
+      (unless (and (<= 0 v) (<= v #xFFFFFFFF))
+	(assertion-violation 'put-u32 
+			     "given value must be 0 <= n <= #xFFFFFFFF"
+			     n))
+      (put-un put-u32 out v 4 endian)))
+  (define-c-proc put-s32 (out::<port> n::<integer> endian::<symbol>) ::<void>
+    (let ((v::long (Sg_GetIntegerClamp n SG_CLAMP_NONE NULL)))
+      (unless (and (<= #x-80000000 v) (<= v #x7FFFFFFF))
+	(assertion-violation 'put-s32 
+	     "given value must be #x-80000000 <= n <= #x7FFFFFFF"
+	     n))
+      (put-un put-s32 out v 4 endian)))
+  ;; TODO u64, s64, f32, f64, u* and s*
+  
+  (define-cise-stmt get-un
+    ((_ name in size endian type make)
+     `(begin
+	(check-binary-port ,name ,in)
+	(check-input-port ,name ,in)
+ 	(let ((r :: ,type 0))
+ 	  (cond ((SG_EQ ,endian 'big)
+ 		 (SG_PORT_LOCK_READ ,in)
+ 		 (dotimes (i ,size)
+ 		   (let ((t::int (Sg_Getb ,in)))
+		     (when (== EOF t)
+		       (assertion-violation ',name "unexpected EOF"))
+ 		     (set! r (logior (ashl r 8) t))))
+ 		 (SG_PORT_UNLOCK_READ ,in))
+ 		((SG_EQ ,endian 'little)
+ 		 (SG_PORT_LOCK_READ ,in)
+ 		 (dotimes (i ,size)
+ 		   (let ((t::int (Sg_Getb ,in)))
+		     (when (== EOF t)
+		       (assertion-violation ',name "unexpected EOF"))
+ 		     (set! r (logior r (ashl t (* i 8))))))
+ 		 (SG_PORT_UNLOCK_READ ,in))
+ 		(else
+ 		 (assertion-violation ',name "unsupported endianness" 
+ 				      ,endian)))
+ 	  (result (,make r))))))
+ 
+   (define-c-proc get-u16 (in::<port> endian::<symbol>)
+     (get-un get-u16 in 2 endian uint16_t SG_MAKE_INT))
+   (define-c-proc get-s16 (in::<port> endian::<symbol>)
+     (get-un get-s16 in 2 endian int16_t SG_MAKE_INT))
+   (define-c-proc get-u32 (in::<port> endian::<symbol>)
+     (get-un get-u32 in 4 endian uint32_t Sg_MakeIntegerU))
+   (define-c-proc get-s32 (in::<port> endian::<symbol>)
+     (get-un get-s32 in 4 endian int32_t Sg_MakeInteger))
+   ;; TODO u64, s64, f32, f64, u* and s*
+
   (define-c-proc port-closed? (p::<port>) ::<boolean>  :no-side-effect
     Sg_PortClosedP)
 
@@ -1163,8 +1264,6 @@
   (define-c-proc weak-hashtable-shrink (wh::<weak-hashtable>) ::<fixnum>
     Sg_WeakHashTableShrink)
 
-  (decl-code
-   (.typedef "unsigned long" "ulong"))
   (define-c-proc microsecond ()
     (let ((sec::ulong 0)
 	  (usec::ulong 0))
@@ -1345,5 +1444,5 @@
   (define-c-proc make-hashtable/comparator 
     (c::<comparator> :optional (k::<fixnum> 200)) :no-side-effect
     Sg_MakeHashTableWithComparator)
-  
+
 )

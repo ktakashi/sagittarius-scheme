@@ -118,10 +118,13 @@
 	  ;; return two's complement
 	  (- (bitwise-and r #x7F) 128))))
 
-  (define-put&get u16)
-  (define-put&get s16)
-  (define-put&get u32)
-  (define-put&get s32)
+  ;; 16 bits and 32 bits are defined in C for better performance
+  ;; I think these 2 are the most used ones.
+  ;;(define-put&get u16)
+  ;;(define-put&get s16)
+  ;;(define-put&get u32)
+  ;;(define-put&get s32)
+
   (define-put&get u64)
   (define-put&get s64)
   ;; flonum needs to be treated differently ... 
