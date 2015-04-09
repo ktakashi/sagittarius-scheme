@@ -380,6 +380,18 @@ static int stat = FALSE;
 static int load_base_library = TRUE;
 /* static int standard_given = FALSE; */
 
+/* kinda silly */
+static SgObject r7rs_prompter(SgObject *args, int argc, void *data)
+{
+  static SgObject prompt = NULL;
+  if (!prompt) {
+    prompt = SG_MAKE_STRING("sash[r7rs]> ");
+  }
+  Sg_Write(prompt, Sg_CurrentOutputPort(), SG_WRITE_DISPLAY);
+  return SG_UNDEF;
+}
+
+
 static void cleanup_main(void *data)
 {
   if (profiler_mode) {
@@ -649,16 +661,20 @@ int main(int argc, char **argv)
     if (forceInteactiveP) goto repl;
   } else {
   repl:
-    if (!isatty(0) && !forceInteactiveP) {
-      if (standard_given)
-	set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
+    /* set reader mode etc. */
+    if (standard_given)
+      set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
 
+    if (!isatty(0) && !forceInteactiveP) {
       if (standard_given == 6) {
 	exit_code = invoke_from_port(SG_PORT(Sg_CurrentInputPort()));
       } else {
 	exit_code = Sg_LoadFromPort(SG_PORT(Sg_CurrentInputPort()));
       }
     } else {
+      lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
+      if (SG_FALSEP(lib)) goto err;
+      
       if (standard_given == 6) {
 	Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
       } else if (standard_given == 7) {
@@ -667,12 +683,17 @@ int main(int argc, char **argv)
 	if (SG_FALSEP(sbl)) {
 	  Sg_Warn(UC("(scheme base) library is not located on the loadpath."));
 	} else {
+	  SgObject p = Sg_FindBinding(lib, SG_INTERN("current-prompter"),
+				      SG_UNBOUND);
 	  Sg_ImportLibrary(vm->currentLibrary, sbl);
+	  /* modify prompter */
+	  if (!SG_UNBOUNDP(p)) {
+	    SgObject prompter = Sg_MakeSubr(r7rs_prompter, NULL, 
+					    0, 0, SG_FALSE);
+	    Sg_Apply1(SG_GLOC_GET(SG_GLOC(p)), prompter);
+	  }
 	}
       }
-      repl = SG_UNDEF;
-      lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
-      if (SG_FALSEP(lib)) goto err;
       repl = Sg_FindBinding(lib, SG_INTERN("read-eval-print-loop"), SG_UNBOUND);
       if (SG_UNBOUNDP(repl)) goto err;
       /* change current library */
