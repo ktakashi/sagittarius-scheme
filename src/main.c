@@ -659,6 +659,14 @@ int main(int argc, char **argv)
     } else {
       if (standard_given == 6) {
 	Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
+      } else if (standard_given == 7) {
+	/* import (scheme base) */
+	SgObject sbl = Sg_FindLibrary(SG_INTERN("(scheme base)"), FALSE);
+	if (SG_FALSEP(sbl)) {
+	  Sg_Warn(UC("(scheme base) library is not located on the loadpath."));
+	} else {
+	  Sg_ImportLibrary(vm->currentLibrary, sbl);
+	}
       }
       repl = SG_UNDEF;
       lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
