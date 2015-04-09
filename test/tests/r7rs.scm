@@ -88,4 +88,30 @@
       (if-match (1 2 3) lst 'ok 'ng)))
   (test-equal "identifier renaming" 'ok (foo 1 2 3))
   )
+
+;; call #110
+(let ()
+  (define-syntax begin-scope
+    (syntax-rules ()
+      ((begin-scope defer <body> ...)
+       (let ((stuff '()))
+	 (let-syntax ((defer (syntax-rules ()
+			       ((defer <statement>)
+				(set! stuff (cons <statement> stuff))
+				))))
+	   (begin <body> ...))
+	 #;(for-each display stuff)
+	 stuff))))
+
+  (define (example-2)
+    (define out (open-output-string))
+    (begin-scope defer
+		 (display "one" out)
+		 (defer (display "two" out))
+		 (display "three" out))
+    (get-output-string out))
+  (test-equal "unbound variable error on let-syntax"
+	      "onetwothree"
+	      (example-2))
+)
 (test-end)
