@@ -3574,6 +3574,7 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
 
 SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 {
+  SgObject y;
   int invertp = FALSE;
   if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
     Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
@@ -3625,7 +3626,6 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
       e = Sg_MakeBignumFromSI(SG_INT_VALUE(e));
     } else {
       long n;
-      SgObject y;
 #if LONG_MAX > 1UL << 32
   small_entry:
 #endif
