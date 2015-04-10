@@ -1386,9 +1386,25 @@
   (define-c-proc string->utf8 (s::<string> :optional (start::<fixnum> 0)
 					   (end::<fixnum> -1))
     :no-side-effect
-    (let ((trans::SgTranscoder))
-      (Sg_InitTranscoder (& trans) (Sg_MakeUtf8Codec) E_NONE SG_REPLACE_ERROR)
-      (result (Sg_StringToByteVector s (& trans) start end))))
+    (let ((bv)
+	  (count::int 0)
+	  (size::int (SG_STRING_SIZE s)))
+      (SG_CHECK_START_END start end size)
+      (dotimes (i (- end start))
+	(let ((ucs4::SgChar (SG_STRING_VALUE_AT s (+ i start))))
+	  (+= count (?: (< ucs4 #x80) 1
+			(?: (< ucs4 #x800) 2
+			    (?: (< ucs4 #x10000) 3
+				;; the last one is error replacing so 2
+				(?: (< ucs4 #x200000) 4 2)))))))
+      (set! bv (Sg_MakeByteVector count 0))
+      (set! count 0)
+      (dotimes (i  (- end start))
+	(+= count (Sg_ConvertUcs4ToUtf8 
+		   (SG_STRING_VALUE_AT s (+ i start)) 
+		   (+ (SG_BVECTOR_ELEMENTS bv) count)
+		   SG_REPLACE_ERROR)))
+      (result bv)))
 
   ;; utf16 <-> string
   (define-c-proc utf16->string (bv::<bytevector> endian::<symbol>

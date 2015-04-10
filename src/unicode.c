@@ -455,23 +455,26 @@ SgObject Sg_Utf16sToUtf32s(const char *s, int len)
 
 char* Sg_Utf32sToUtf8s(const SgString *s)
 {
-  SgPort p, tp;
-  SgBinaryPort bp;
-  SgTextualPort ttp;
-  SgTranscoder t;
   char *r;
+  int count = 0, i;
 
-  Sg_InitByteArrayOutputPort(&p, &bp, s->size + sizeof(SgChar));
-
-  Sg_InitTranscoder(&t, Sg_MakeUtf8Codec(), LF, SG_IGNORE_ERROR);
-  Sg_InitTranscodedPort(&tp, &ttp, &p, &t, SG_OUTPUT_PORT);
-  Sg_TranscoderWrite(&t, &tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
-  Sg_PutbUnsafe(&p, '\0');
-
-  r = (char *)Sg_GetByteArrayFromBinaryPort(&p);
-
-  SG_CLEAN_BINARY_PORT(&bp);
-  SG_CLEAN_TEXTUAL_PORT(&ttp);
+  /* calculate returning size first */
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    SgChar ucs4 = SG_STRING_VALUE_AT(s, i);
+    count += ((ucs4 < 0x80)     ? 1 :
+	      (ucs4 < 0x800)    ? 2 :
+	      (ucs4 < 0x10000)  ? 3 :
+	      (ucs4 < 0x200000) ? 4 : 0);
+  }
+  /* conversion */
+  r = SG_NEW_ATOMIC2(char *, count+1);
+  count = 0;
+  for (i = 0; i < SG_STRING_SIZE(s); i++) {
+    count += Sg_ConvertUcs4ToUtf8(SG_STRING_VALUE_AT(s, i), 
+				  (uint8_t*)(r+count),
+				  SG_IGNORE_ERROR);
+  }
+  *(r+count) = '\0';
   return r;
 }
 
