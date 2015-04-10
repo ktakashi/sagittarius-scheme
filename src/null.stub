@@ -1379,9 +1379,24 @@
   (define-c-proc utf8->string (bv::<bytevector> :optional (start::<fixnum> 0)
 						(end::<fixnum> -1))
     :no-side-effect
-    (let ((trans::SgTranscoder))
-      (Sg_InitTranscoder (& trans) (Sg_MakeUtf8Codec) E_NONE SG_REPLACE_ERROR)
-      (result (Sg_ByteVectorToString bv (& trans) start end))))
+    (let ((s)
+	  (count::int 0)
+	  (size::int (SG_BVECTOR_SIZE bv))
+	  (i::int start))
+      (SG_CHECK_START_END start end size)
+      (while (< i end)
+	(post++ count)
+	(let ((f::uint8_t (SG_BVECTOR_ELEMENT bv i)))
+	  (+= i (?: (< f #x80) 1
+		    (?: (and (<= #xc2 f) (<= f #xdf)) 2
+			(?: (and (<= #xe0 f) (<= f #xef)) 3
+			    (?: (and (<= #xf0 f) (<= f #xf4)) 4 2)))))))
+      (set! s (Sg_ReserveString count 0))
+      (Sg_ConvertUtf8BufferToUcs4 (Sg_MakeUtf8Codec)
+				  (+ (SG_BVECTOR_ELEMENTS bv) start) size
+				  (SG_STRING_VALUE s) count NULL
+				  SG_REPLACE_ERROR FALSE)
+      (result s)))
 
   (define-c-proc string->utf8 (s::<string> :optional (start::<fixnum> 0)
 					   (end::<fixnum> -1))
