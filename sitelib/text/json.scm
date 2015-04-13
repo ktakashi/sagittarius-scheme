@@ -124,7 +124,9 @@
 	    (error 'json-read "Invalid JSON token" 
 		   (list->string (list #\/ nc)))))))
       
-    (let ((c (skip-while char-whitespace? in)))
+    (let ((c (skip-while (lambda (c) (and (not (eof-object? c))
+					  (char-whitespace? c)))
+			 in)))
       (case c
 	((#\/) (skip-comment in))
 	(else c))))
@@ -259,17 +261,19 @@
 
   (define (read-any map-type in)
     (let ((c (skip-white in)))
-      (case c
-	((#\{) (read-map map-type in))
-	((#\[) (read-array map-type in))
-	((#\") (read-jstring in))
-	((#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)
-	 (read-jnumber in))
-	;; these 3 are the only symbols, others are either string or number.
-	((#\t) (read-token '(#\t #\r #\u #\e) in) #t)
-	((#\f) (read-token '(#\f #\a #\l #\s #\e) in) #f)
-	((#\n) (read-token '(#\n #\u #\l #\l) in) 'null)
-	(else (error 'json-read "Invalid JSON character" c)))))
+      (if (eof-object? c)
+	  c
+	  (case c
+	    ((#\{) (read-map map-type in))
+	    ((#\[) (read-array map-type in))
+	    ((#\") (read-jstring in))
+	    ((#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)
+	     (read-jnumber in))
+	    ;; these 3 are the only symbols, others are either string or number.
+	    ((#\t) (read-token '(#\t #\r #\u #\e) in) #t)
+	    ((#\f) (read-token '(#\f #\a #\l #\s #\e) in) #f)
+	    ((#\n) (read-token '(#\n #\u #\l #\l) in) 'null)
+	    (else (error 'json-read "Invalid JSON character" c))))))
   (define json-read
     (case-lambda
      (() (json-read (current-input-port)))
