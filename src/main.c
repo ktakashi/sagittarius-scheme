@@ -216,7 +216,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 static void show_usage()
 {
   fprintf(stderr,
-	  "Usage: sash [-hvicdtn][-L<path>][-D<path>][-f<flag>][-I<library>]"
+	  "Usage: "PROGRAM_NAME" [-hvicdtn][-L<path>][-D<path>][-f<flag>][-I<library>]"
 	  "[-E<flags>][-p<file>][--] [file]\n"
 	  "options:\n"
 	  "  -v,--version                   Prints version and exits.\n"

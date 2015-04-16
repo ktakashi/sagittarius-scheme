@@ -145,7 +145,10 @@ ADD_EXECUTABLE(sash ${PLATFORM_SOURCE_FOR_SASH} main.c)
 # There is the project using same name 'sash' and it seems older than
 # Sagittarius. On ArchLinux this causes name confliction and make impossible
 # to create a package for Sagittarius. So rename target name.
-SET_TARGET_PROPERTIES(sash PROPERTIES OUTPUT_NAME ${REAL_SASH_NAME})
+SET_TARGET_PROPERTIES(sash PROPERTIES 
+  OUTPUT_NAME ${REAL_SASH_NAME}
+  COMPILE_DEFINITIONS "PROGRAM_NAME=\"${REAL_SASH_NAME}\"")
+
 TARGET_LINK_LIBRARIES(sash sagittarius)
 
 # copy gcmt-dll.dll to build
