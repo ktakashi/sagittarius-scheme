@@ -162,6 +162,29 @@ any command-line option processing and error handling.
 	      (cdr args)))
   0)
 }
+
+If the script file contains @code{main} procedure, then Sagittarius execute
+it as well with one argument which contains all command line arguments. This
+feature is defined in 
+@hyperlink[:href "http://srfi.schemers.org/srfi-22/"]{SRFI-22}. So the
+above example can also be written like the following:
+
+@codeblock{
+#!/usr/local/bin/sagittarius
+(import (rnrs))
+(define (main args)
+  (unless (null? (cdr args))
+    (for-each (lambda (file)
+		(call-with-input-file file
+		  (lambda (in)
+		    (display (get-string-all in)))))
+	      (cdr args)))
+  0)
+}
+
+NOTE: the @code{main} procedure is called after all toplevel expressions
+are executed.
+
 @subsection{Working on REPL}
 
 If @code{sagittarius} does not get any script file to process, then it will
