@@ -885,9 +885,9 @@
     (cond
      ((has-tag? iform $CONST) 
       (let ((v ($const-value iform)))
-	(if (or (number? v) (string? v) (bytevector? v))
-	    v
-	    `(quote ,v))))
+	(if (or (null? v) (pair? v) (vector? v))
+	    `(quote ,v)
+	    v)))
      ((has-tag? iform $UNDEF) (undefined)) ;; what should we do?
      ((has-tag? iform $LAMBDA) ;; construct formal
       (let ((opt ($lambda-option iform))
@@ -952,6 +952,7 @@
 	   ((VECTOR)  'vector)
 	   ((APPEND)  'append)
 	   ((VALUES)  'values)
+	   ((APPLY)   'apply)
 	   ((SET_CAR) 'set-car!)
 	   ((SET_CDR) 'set-cdr!)
 	   ((NUM_EQ)  '=)
@@ -971,16 +972,24 @@
 	      ($let-lvars iform) ($let-inits iform))
 	,(rec ($let-body iform))))
      ((has-tag? iform $IF)
-      (if (or ($it? ($if-then iform))
-	      ($it? ($if-else iform)))
-	  (let ((it (gen-name 'it)))
-	    `(let ((,it ,(rec ($if-test iform))))
-	       (if ,it
-		   ,(if ($it? ($if-then iform)) it (rec ($if-then iform)))
-		   ,(if ($it? ($if-else iform)) it (rec ($if-else iform))))))
-	  `(if ,(rec ($if-test iform))
-	       ,(rec ($if-then iform))
-	       ,(rec ($if-else iform)))))
+      (let ((test (rec ($if-test iform)))
+	    (then (rec ($if-then iform)))
+	    (els  (rec ($if-else iform))))
+	(define (emit test then else)
+	  ;; if (if test then #<unspecified>) then when
+	  ;; if (if test #<unspecified> else) then unless
+	  ;; TODO can we assume this?
+	  (cond ((undefined? then) `(unless ,test ,else))
+		((undefined? else) `(when ,test ,then))
+		(else `(if ,test ,then ,else))))
+	(if (or ($it? ($if-then iform))
+		($it? ($if-else iform)))
+	    (let ((it (gen-name 'it)))
+	      `(let ((,it ,test))
+		 ,(emit it 
+			(if ($it? ($if-then iform)) it then)
+			(if ($it? ($if-else iform)) it els))))
+	    `,(emit test then els))))
      ((has-tag? iform $IT) (undefined))
      ((has-tag? iform $LSET)
       `(set! ,(lvar->string ($lset-lvar iform)) ,(rec ($lset-expr iform))))
