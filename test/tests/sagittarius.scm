@@ -910,7 +910,8 @@
 ;; issue 101
 (test-equal "(atan 0)" 0 (atan 0))
 (test-equal "(atan 0.0)" 0.0 (atan 0.0))
-(test-error "(atan 0+i)" values (atan 0+i))
+;; this should not raise an error
+;; (test-error "(atan 0+i)" values (atan 0+i))
 
 ;; issue 102
 (test-equal "string-scan" '(#f #f) 
@@ -1776,5 +1777,13 @@
 (test-equal "compilation error due to the incorrect check of $label"
 	    '#(11)
 	    (let () '#(11)))
+
+;; call #113
+(test-equal "complex number subtraction (fixnum)" 0-i (- 0 0+i))
+(test-equal "complex number subtraction (fixnum)" 1-i (- 1 0+i))
+(test-equal "complex number subtraction (bignum)" #xFFFFFFFFFFFFFFFF-i
+	    (- #xFFFFFFFFFFFFFFFF 0+i))
+(test-equal "complex number subtraction (rational)" 1/3-i (- 1/3 0+i))
+(test-equal "complex number subtraction (flonum)" 0.0-1.0i (- 0.0 0+i))
 
 (test-end)

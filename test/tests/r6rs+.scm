@@ -150,4 +150,18 @@
 	      (foo-fields ((record-constructor foo-rcd))))
   )
 
+;; call #112
+;; FIXME the test case should use approximate value
+;; but I'm kinda lazy...
+(test-equal "(cos 0+i)"  1.5430806348152437-0.0i  (cos 0+i))
+(test-equal "(tan 0+i)"  0.0+0.761594155955765i   (tan 0+i))
+(test-equal "(sin 0+i)"  0.0+1.1752011936438014i  (sin 0+i))
+(test-equal "(sin 0+i)"  0.0+1.1752011936438014i  (sin 0+i))
+(test-equal "(asin 0+i)"  -0.0+0.8813735870195429i  (asin 0+i))
+(test-equal "(acos 0+i)"  1.5707963267948966-0.8813735870195429i (acos 0+i))
+(test-equal "(atan 0+i)"  0.0+inf.0i                            (atan 0+i))
+(test-error "(atan 0+i 0+i)" condition? (atan 0+i 0+i))
+(test-error "(atan 0 0+i)" condition? (atan 0 0+i))
+(test-error "(atan 0+i 0)" condition? (atan 0+i 0))
+
 (test-end)

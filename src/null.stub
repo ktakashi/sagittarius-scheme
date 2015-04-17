@@ -313,31 +313,18 @@
   (define-c-proc magnitude (n::<number>) :constant Sg_Magnitude)
   (define-c-proc angle (n::<number>) :constant Sg_Angle)
 
-  (define-c-proc sin (n::<number>) :constant
-    (check-real-valued sin n)
-    (result (Sg_Sin n)))
-
-  (define-c-proc cos (n::<number>) :constant
-    (check-real-valued cos n)
-    (result (Sg_Cos n)))
-
-  (define-c-proc tan (n::<number>) :constant
-    (check-real-valued tan n)
-    (result (Sg_Tan n)))
-
-  (define-c-proc asin (n::<number>) :constant
-    (check-real-valued asin n)
-    (result (Sg_Asin n)))
-
-  (define-c-proc acos (n::<number>) :constant
-    (check-real-valued acos n)
-    (result (Sg_Acos n)))
+  (define-c-proc sin (n::<number>) :constant Sg_Sin)
+  (define-c-proc cos (n::<number>) :constant Sg_Cos)
+  (define-c-proc tan (n::<number>) :constant Sg_Tan)
+  (define-c-proc asin (n::<number>) :constant Sg_Asin)
+  (define-c-proc acos (n::<number>) :constant Sg_Acos)
 
   (define-c-proc atan (n::<number> :optional n2::<number>) :constant
-    (check-real-valued atan n)
     (cond ((SG_UNBOUNDP n2) (result (Sg_Atan n)))
-	  (else (check-real-valued atan n2)
-		(result (Sg_Atan2 n n2)))))
+	  (else 
+	   (check-real-valued atan n)
+	   (check-real-valued atan n2)
+	   (result (Sg_Atan2 n n2)))))
 
   (define-c-proc sqrt (n::<number>) :constant Sg_Sqrt) :constant
   (define-c-proc exact-integer-sqrt (n::<number>) 
@@ -371,7 +358,7 @@
   ;; 11.7.4.4 numerical input and output
   (define-c-proc number->string (z::<number>
 				 :optional (radix::<fixnum> 10)
-				           (precision::<fixnum> 1)) :constant
+				 precision) :constant
     ;; ignore precision
     (result (Sg_NumberToString z radix FALSE)))
 
