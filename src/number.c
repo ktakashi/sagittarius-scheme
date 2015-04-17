@@ -1983,9 +1983,11 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_MakeFlonum((double)SG_INT_VALUE(x) - SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
-      if (x == SG_MAKE_INT(0)) return y;
+      SgObject img = SG_COMPLEX(y)->imag;
+      if (x == SG_MAKE_INT(0)) return Sg_Negate(y);
+      /* imag part must be negate. */
       else return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real),
-				 SG_COMPLEX(y)->imag);
+				 Sg_Negate(img));
     }
   }
   else if (SG_FLONUMP(x)) {
@@ -2003,7 +2005,9 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_MakeFlonum(SG_FLONUM_VALUE(x) - SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
-      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
+      /* imag part must be negate. */
+      SgObject img = SG_COMPLEX(y)->imag;
+      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), Sg_Negate(img));
     }
   }
   else if (SG_BIGNUMP(x)) {
@@ -2021,7 +2025,9 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_MakeFlonum(Sg_BignumToDouble(x) - SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
-      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
+      /* imag part must be negate. */
+      SgObject img = SG_COMPLEX(y)->imag;
+      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), Sg_Negate(img));
     }
   }
   else if (SG_RATIONALP(x)) {
@@ -2036,7 +2042,9 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_MakeFlonum(Sg_GetDouble(x) - SG_FLONUM_VALUE(y));
     }
     else if (SG_COMPLEXP(y)) {
-      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), SG_COMPLEX(y)->imag);
+      /* imag part must be negate. */
+      SgObject img = SG_COMPLEX(y)->imag;
+      return Sg_MakeComplex(Sg_Sub(x, SG_COMPLEX(y)->real), Sg_Negate(img));
     }
   }
   else if (SG_COMPLEXP(x)) {
@@ -2712,8 +2720,8 @@ SgObject Sg_Cos(SgObject obj)
     double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
     double e = exp(imag);
     double f = 1.0 / e;
-    return Sg_MakeComplex(Sg_MakeFlonum(0.5 * cos(real) * (e + f)),
-			  Sg_MakeFlonum(0.5 * sin(real) * (e - f)));
+    return Sg_MakeComplex(Sg_MakeFlonum(0.5 * cos(real) * (f + e)),
+			  Sg_MakeFlonum(0.5 * sin(real) * (f - e)));
   }
   else if (SG_REALP(obj)) return Sg_MakeFlonum(cos(Sg_GetDouble(obj)));
   Sg_Error(UC("number required, but got %S"), obj);
@@ -2729,7 +2737,7 @@ SgObject Sg_Tan(SgObject obj)
   else if (SG_COMPLEXP(obj)) {
     double real = Sg_GetDouble(SG_COMPLEX(obj)->real);
     double imag = Sg_GetDouble(SG_COMPLEX(obj)->imag);
-    double e = exp(imag);
+    double e = exp(2.0 * imag);
     double f = 1.0 / e;
     double d = cos(2.0 * real) + 0.5 * (e + f);
     return Sg_MakeComplex(Sg_MakeFlonum(sin(2.0 * real) / d),
