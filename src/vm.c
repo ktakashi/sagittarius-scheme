@@ -626,7 +626,9 @@ SgObject Sg_CurrentInputPort()
 SgObject Sg_CurrentLoadingPort()
 {
   SgVM *vm = Sg_VM();
-  return vm->currentLoadingPort;
+  SgObject p = vm->currentLoadingPort;
+  /* if it's set then return it, otherwise current-input-port */
+  return p ? p : vm->currentInputPort;
 }
 
 SgObject Sg_VMCurrentLibrary()
