@@ -885,7 +885,7 @@
     (cond
      ((has-tag? iform $CONST) 
       (let ((v ($const-value iform)))
-	(if (or (null? v) (pair? v) (vector? v))
+	(if (or (null? v) (pair? v) (vector? v) (symbol? v))
 	    `(quote ,v)
 	    v)))
      ((has-tag? iform $UNDEF) (undefined)) ;; what should we do?

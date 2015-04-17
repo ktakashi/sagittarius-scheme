@@ -10,8 +10,9 @@
      (test-expansion expr expr))
     ((_ expected expr)
      (test-equal 'expr 'expected (macroexpand 'expr)))))
-;; const value
+;; const values
 (test-expansion #t)
+(test-expansion 'a)
 (test-expansion #vu8(1 2))
 (test-expansion '#(1 2))
 (test-expansion '(1 2))
