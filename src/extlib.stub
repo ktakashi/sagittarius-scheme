@@ -619,14 +619,14 @@
 
   (define-c-proc put-u32 (out::<port> n::<integer> endian::<symbol>) ::<void>
     (let ((v::ulong (Sg_GetUIntegerClamp n SG_CLAMP_NONE NULL)))
-      (unless (and (<= 0 v) (<= v #xFFFFFFFF))
+      (unless (and (<= 0 v) (<= v UINT32_MAX))
 	(assertion-violation 'put-u32 
 			     "given value must be 0 <= n <= #xFFFFFFFF"
 			     n))
       (put-un put-u32 out v 4 endian)))
   (define-c-proc put-s32 (out::<port> n::<integer> endian::<symbol>) ::<void>
     (let ((v::long (Sg_GetIntegerClamp n SG_CLAMP_NONE NULL)))
-      (unless (and (<= #x-80000000 v) (<= v #x7FFFFFFF))
+      (unless (and (<= INT32_MIN v) (<= v INT32_MAX))
 	(assertion-violation 'put-s32 
 	     "given value must be #x-80000000 <= n <= #x7FFFFFFF"
 	     n))
