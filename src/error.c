@@ -41,53 +41,55 @@
 #include "sagittarius/gloc.h"
 #include "sagittarius/core.h"
 
+#define make_message3(msg_, prefix_, fmt_)	\
+  do {						\
+    va_list ap;					\
+    SgTextualPort tp;				\
+    SgPort err_;				\
+    const SgChar *p = (prefix_);		\
+    Sg_InitStringOutputPort(&err_, &tp, 0);	\
+    if (p)					\
+      Sg_PutuzUnsafe(&err_, prefix_);		\
+    va_start(ap, fmt_);				\
+    Sg_Vprintf(&err_, fmt_, ap, TRUE);		\
+    va_end(ap);					\
+    (msg_) = Sg_GetStringFromStringPort(&err_);	\
+    SG_CLEAN_TEXTUAL_PORT(&tp);			\
+  } while (0)
+
+#define make_message(msg_, fmt_)		\
+  make_message3(msg_, NULL, fmt_)
+
 void Sg_Warn(const SgChar* fmt, ...)
 {
-  va_list ap;
-  SgPort *err = SG_PORT(Sg_MakeStringOutputPort(0));
   SgObject errObj;
-  
-  Sg_PutuzUnsafe(err, UC("*warning* "));
-  va_start(ap, fmt);
-  Sg_Vprintf(err, fmt, ap, TRUE);
-  va_end(ap);
-  errObj = Sg_GetStringFromStringPort(err);
+  make_message3(errObj, UC("*warning* "), fmt);
   Sg_Printf(Sg_CurrentErrorPort(), UC("%A\n"), errObj);
 }
 
 void Sg_Error(const SgChar* fmt, ...)
 {
-  va_list ap;
-  SgPort err;
-  SgTextualPort tp;
   SgObject errObj;
-
-  Sg_InitStringOutputPort(&err, &tp, 0);
-  va_start(ap, fmt);
-  Sg_Vprintf(&err, fmt, ap, TRUE);
-  va_end(ap);
-  errObj = Sg_MakeError(Sg_GetStringFromStringPort(&err));
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  make_message(errObj, fmt);
+  errObj = Sg_MakeError(errObj);
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
 }
 
 void Sg_ReadError(const SgChar* fmt, ...)
 {
-  va_list ap;
-  SgPort err;
-  SgTextualPort tp;
   SgObject errObj;
-
-  Sg_InitStringOutputPort(&err, &tp, 0);
-  va_start(ap, fmt);
-  Sg_Vprintf(&err, fmt, ap, TRUE);
-  va_end(ap);
-
-  /* TODO I think we need an error type to catch */
-  errObj = Sg_GetStringFromStringPort(&err);
+  make_message(errObj, fmt);
   errObj = Sg_MakeReaderCondition(errObj);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
   Sg_VMThrowException(Sg_VM(), errObj, FALSE);
+}
+
+void Sg_SystemError(int errno_, const SgChar* msg, ...)
+{
+  SgObject err, msgC;
+  make_message(msgC, msg);
+  msgC = Sg_MakeMessageCondition(msgC);
+  err = Sg_MakeSystemError(errno_);
+  Sg_VMThrowException(Sg_VM(), Sg_Condition(SG_LIST2(err, msgC)), FALSE);
 }
 
 void Sg_SyntaxError(SgObject form, SgObject irritants)

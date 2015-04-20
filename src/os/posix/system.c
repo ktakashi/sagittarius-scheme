@@ -144,8 +144,7 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
   struct timespec ts;
   int r;
   r = clock_gettime(CLOCK_REALTIME, &ts);
-  /* TODO do we need system error? */
-  if (r < 0) Sg_Error(UC("clock_gettime failed"));
+  if (r < 0) Sg_SystemError(errno, UC("clock_gettime failed"));
   *sec = (unsigned long)ts.tv_sec;
   *usec = (unsigned long)ts.tv_nsec / 1000;
   return r;
@@ -154,7 +153,7 @@ int Sg_GetTimeOfDay(unsigned long *sec, unsigned long *usec)
   int r;
   r = gettimeofday(&tv, NULL);
   /* TODO do we need system error? */
-  if (r < 0) Sg_Error(UC("gettimeofday failed"));
+  if (r < 0) Sg_SystemError(errno, UC("gettimeofday failed"));
   *sec = (unsigned long)tv.tv_sec;
   *usec = (unsigned long)tv.tv_usec;
   return r;
@@ -649,6 +648,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   {
     char message[256];
     SgObject msg = Sg_GetLastErrorMessage();
+    int e = errno;
     snprintf(message, sizeof(message), "%s failed.", sysfunc);
     if (pipe0[0] != -1) close(pipe0[0]);
     if (pipe0[1] != -1) close(pipe0[1]);
@@ -656,8 +656,8 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     if (pipe1[1] != -1) close(pipe1[1]);
     if (pipe2[0] != -1) close(pipe2[0]);
     if (pipe2[1] != -1) close(pipe2[1]);
-    Sg_Error(UC("command: `%A %A`.\nmessage %A %A"),
-	     sname, sargs, Sg_MakeStringC(message), msg);
+    Sg_SystemError(e, UC("command: `%A %A`.\nmessage %A %A"),
+		   sname, sargs, Sg_MakeStringC(message), msg);
     return -1;
   }
  close_fail:
@@ -694,8 +694,8 @@ int Sg_SysProcessWait(uintptr_t pid)
   if (r < 0) {
     if (r == EINTR) goto retry;
     remove_pid(r);
-    Sg_Error(UC("Failed to wait process [pid: %d][%A]"), 
-	     (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(errno));
+    Sg_SystemError(errno, UC("Failed to wait process [pid: %d][%A]"), 
+		   (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(errno));
     return -1;			/* dummy */
   }
   /* FIXME how should I treat signals... */

@@ -47,6 +47,7 @@ SG_CDECL_BEGIN
 SG_EXTERN void Sg_Warn(const SgChar* msg, ...);
 SG_EXTERN void Sg_Error(const SgChar* msg, ...);
 SG_EXTERN void Sg_ReadError(const SgChar* msg, ...);
+SG_EXTERN void Sg_SystemError(int errono, const SgChar* msg, ...);
 SG_EXTERN void Sg_SyntaxError(SgObject form, SgObject irritants);
 
 /* general &i/o exception*/

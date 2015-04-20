@@ -627,6 +627,30 @@ SG_DEFINE_BASE_CLASS(Sg_TraceConditionClass, SgTraceCondition,
 		     trace_printer, NULL, NULL, trace_allocate,
 		     irr_cpl);
 
+static void system_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<system-error %A>"), SG_SYSTEM_ERROR(o)->errno_);
+}
+static SgObject system_allocate(SgClass *klass, SgObject initargs)
+{
+  SgSystemError *c = SG_ALLOCATE(SgSystemError, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+
+static SgObject sys_errno(SgSystemError *c)
+{
+  return c->errno_;
+}
+static SgSlotAccessor sys_slots[] = {
+  SG_CLASS_SLOT_SPEC("errno",  0, sys_errno, NULL),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_SystemErrorClass, SgSystemError,
+		     system_printer, NULL, NULL, system_allocate,
+		     Sg_ErrorConditionCPL);
+
+
 SgObject Sg_MakeNonContinuableViolation()
 {
   return Sg_ConditionAllocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
@@ -698,6 +722,13 @@ SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form)
   SG_SYNTAX_CONDITION(s)->form = form;
   SG_SYNTAX_CONDITION(s)->subform = subform;
   return Sg_Condition(SG_LIST2(s, Sg_MakeMessageCondition(msg)));
+}
+
+SgObject Sg_MakeSystemError(int errno_)
+{
+  SgObject c = system_allocate(SG_CLASS_SYSTEM_ERROR, SG_NIL);
+  SG_SYSTEM_ERROR(c)->errno_ = SG_MAKE_INT(errno_);
+  return c;
 }
 
 static void describe_simple(SgPort *out, SgObject con)
@@ -880,6 +911,8 @@ void Sg__InitConditions()
   INIT_CONDITION(SG_CLASS_COMPILE_CONDITION, "&compile", cmp_slots);
   INIT_CONDITION(SG_CLASS_IMPORT_CONDITION, "&import", imp_slots);
   INIT_CONDITION(SG_CLASS_TRACE_CONDITION, "&trace", NULL);
+  /* system error */
+  INIT_CONDITION(SG_CLASS_SYSTEM_ERROR, "&system", sys_slots);
   /* compound */
   INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
@@ -984,4 +1017,10 @@ void Sg__InitConditions()
   /* compound */
   /* compound condition don't need ctr nor pred. */
   INIT_ACC(cc_components, "&compound-condition-components");
+
+  /* we want to export them from (sagittarius) to make my life easier */
+  lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+  /* system */
+  INIT_CTR1_REC(SG_CLASS_SYSTEM_ERROR, "make-system-error", 
+		"system-error?");
 }

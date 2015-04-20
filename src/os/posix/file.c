@@ -368,7 +368,7 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
     if (Sg_FileExistP(dst) && !overwriteP) return FALSE;	\
   } while (0)							\
 
-  int fps, fpd, r;
+  int fps, fpd, r, e;
   struct stat st;
   const char *source = Sg_Utf32sToUtf8s(src), *dest = Sg_Utf32sToUtf8s(dst);
 #ifdef HAVE_MMAP
@@ -389,9 +389,10 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
     return FALSE;		/* dummy */
   }
   if(fstat(fps, &st) == -1) {
+    e = errno;
     close(fpd);
     close(fps);
-    Sg_Error(UC("failed to fstat"));
+    Sg_SystemError(e, UC("failed to fstat"));
     return FALSE;
   }
   if(pwrite(fpd, "", 1, st.st_size - 1) != 1) {
@@ -403,15 +404,17 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
     return FALSE;		/* dummy */
   }
   if((bufs=mmap(0, st.st_size, PROT_READ, MAP_SHARED, fps, 0)) == MAP_FAILED) {
+    e = errno;
     close(fpd);
     close(fps);
-    Sg_Error(UC("failed to mmap (src)"));
+    Sg_SystemError(e, UC("failed to mmap (src)"));
     return FALSE;		/* dummy */
   }
   if((bufd=mmap(0, st.st_size, PROT_WRITE, MAP_SHARED, fpd, 0)) == MAP_FAILED) {
+    e = errno;
     close(fpd);
     close(fps);
-    Sg_Error(UC("failed to mmap (dst)"));
+    Sg_SystemError(e, UC("failed to mmap (dst)"));
     return FALSE;		/* dummy */
   }
 
@@ -440,9 +443,10 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
     return FALSE;		/* dummy */
   }
   if(fstat(fps, &st) == -1) {
+    e = errno;
     close(fpd);
     close(fps);
-    Sg_Error(UC("failed to fstat"));
+    Sg_SystemError(e, UC("failed to fstat"));
     return FALSE;
   }
 
@@ -453,12 +457,12 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 #endif
   Sg_ChangeFileMode(dst, st.st_mode);
   r = chown(dest, st.st_uid, st.st_gid);
-
+  e = errno;
   close(fpd);
   close(fps);
 
   if (r < 0) {
-    Sg_Error(UC("chown: %A"), Sg_GetLastErrorMessageWithErrorCode(errno));
+    Sg_SystemError(e, UC("chown: %A"), Sg_GetLastErrorMessageWithErrorCode(e));
     return FALSE;
   }
   return TRUE;
@@ -699,8 +703,8 @@ int Sg_CopyAccessControl(SgString *src, SgString *dst)
     (void)chmod(dest, st.st_mode);
     r = chown(dest, st.st_uid, st.st_gid);
     if (r < 0) {
-      Sg_Error(UC("copy-access-control: %A"),
-	       Sg_GetLastErrorMessageWithErrorCode(errno));
+      Sg_SystemError(errno, UC("copy-access-control: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(errno));
     }
     return TRUE;
   }

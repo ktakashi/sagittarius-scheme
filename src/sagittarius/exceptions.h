@@ -54,6 +54,7 @@
      |    |    |         +- &i/o-decoding
      |    |    +- &compile (source program) <-- non R6RS
      |    |    +- &import (library)         <-- ditto
+     |    |    +- &system (errno)           <-- ditto
      |	  +- &violation
      |	       +- &assertion
      |	       +- &non-continuable
@@ -101,6 +102,9 @@ SG_CLASS_DECL(Sg_IODecodingErrorClass);
 SG_CLASS_DECL(Sg_CompileConditionClass);
 SG_CLASS_DECL(Sg_ImportConditionClass);
 SG_CLASS_DECL(Sg_TraceConditionClass);
+/* system */
+SG_CLASS_DECL(Sg_SystemErrorClass);
+
 
 #define SG_CLASS_CONDITION (&Sg_ConditionClass)
 #define SG_CLASS_WARNING   (&Sg_WarningClass)
@@ -132,6 +136,7 @@ SG_CLASS_DECL(Sg_TraceConditionClass);
 #define SG_CLASS_COMPILE_CONDITION (&Sg_CompileConditionClass)
 #define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
 #define SG_CLASS_TRACE_CONDITION  (&Sg_TraceConditionClass)
+#define SG_CLASS_SYSTEM_ERROR     (&Sg_SystemErrorClass)
 
 #define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONDITION)
 #define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
@@ -254,6 +259,15 @@ typedef struct SgTraceConditionRec
   SgIrritantsCondition base;
 } SgTraceCondition;
 
+typedef struct SgSystemErrorRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject errno_;
+} SgSystemError;
+#define SG_SYSTEM_ERROR(o)  ((SgSystemError *)o)
+#define SG_SYSTEM_ERRORP(o) SG_ISA(o, SG_CLASS_SYSTEM_ERROR)
+
+
 #define SG_INIT_CONDITION(cl, lib, name, slots)	\
   do {									\
     SgObject m = Sg_AllocateRecordTypeMeta(SG_CLASS_RECORD_TYPE_META,	\
@@ -335,6 +349,8 @@ SG_EXTERN SgObject Sg_MakeReaderCondition(SgObject msg);
 SG_EXTERN SgObject Sg_MakeError(SgObject msg);
 SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
+SG_EXTERN SgObject Sg_MakeSystemError(int errno_);
+
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 
