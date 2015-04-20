@@ -41,6 +41,8 @@
 	  compile-error-source compile-error-program
 	  &import import-error?	;; ditto
 	  import-error-library
+	  &system system-error?
+	  system-error-errno
 	  )
   (import (core)
 	  (core base)
@@ -102,6 +104,7 @@
 
   (initialize-builtin-condition &compile &error source program)
   (initialize-builtin-condition &import &error library)
+  (initialize-builtin-condition &system &error errno)
 
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
@@ -157,7 +160,8 @@
     (condition-accessor (record-type-rtd &compile) &compile-error-program))
   (define import-error-library
     (condition-accessor (record-type-rtd &import) &import-library))
-
+  (define system-error-errno
+    (condition-accessor (record-type-rtd &system) &system-errno))
   (define-syntax define-condition-type
     (lambda (x)
       (syntax-case x ()

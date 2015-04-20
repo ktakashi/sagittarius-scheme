@@ -1018,9 +1018,8 @@ void Sg__InitConditions()
   /* compound condition don't need ctr nor pred. */
   INIT_ACC(cc_components, "&compound-condition-components");
 
-  /* we want to export them from (sagittarius) to make my life easier */
-  lib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
   /* system */
-  INIT_CTR1_REC(SG_CLASS_SYSTEM_ERROR, "make-system-error", 
-		"system-error?");
+  INIT_CTR1(SG_CLASS_SYSTEM_ERROR, "make-system-error", 
+	    "system-error?",
+	    sys_errno, "&system-errno");
 }
