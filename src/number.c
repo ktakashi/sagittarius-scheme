@@ -47,6 +47,7 @@
 #include "sagittarius/bits.h"
 #include "sagittarius/values.h"
 #include "sagittarius/vm.h"
+#include "sagittarius/writer.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -74,6 +75,10 @@ typedef uint64_t dlong;
 #define SHIFT_MAGIC 5
 #endif
 
+/* wrong type of argument */
+#define wte4(who, t, g, irr)						\
+  Sg_WrongTypeOfArgumentViolation(who, SG_MAKE_STRING(t), g, irr)
+#define wte(who, t, g)	wte4(who, t, g, g)
 
 struct numread_packet {
     const SgChar *buffer;       /* original buffer */
@@ -364,8 +369,8 @@ static SgObject number_read_error(const SgChar *msg,
 				  struct numread_packet *context)
 {
   if (context->strict) {
-    Sg_Error(UC("bad number format (%s): %A"), msg, 
-	     Sg_HeapString(context->buffer));
+    Sg_ReadError(UC("bad number format (%s): %A"), msg, 
+		 Sg_HeapString(context->buffer));
   }
   return SG_FALSE;
 }
@@ -797,6 +802,7 @@ static void range_err(SgObject obj, int clamp, int *oor)
   if (clamp == SG_CLAMP_NONE && oor != NULL) {
     *oor = TRUE;
   } else {
+    /* TODO should we make invalid argument error? */
     Sg_Error(UC("argument out of range: %S"), obj);
   }
 }
@@ -974,15 +980,22 @@ SgObject Sg_MakeRational(SgObject numerator, SgObject denominator)
 {
   SgRational *z;
   if(!Sg_ExactP(numerator)) {
-    Sg_Error(UC("numerator must be an exact integer, but got %S"),
-	     numerator);
+    Sg_AssertionViolation(
+      SG_FALSE, 
+      Sg_Sprintf(UC("numerator must be an exact integer, but got %S"), 
+		 numerator),
+      numerator);
   }
   if(!Sg_ExactP(denominator)) {
-    Sg_Error(UC("denominator must be an exact integer, but got %S"),
-	     denominator);
+    Sg_AssertionViolation(
+      SG_FALSE, 
+      Sg_Sprintf(UC("denominator must be an exact integer, but got %S"), 
+		 denominator),
+      denominator);
   }
   if (denominator == SG_MAKE_INT(0)) {
-    Sg_Error(UC("undefined for 0"));
+    Sg_AssertionViolation(SG_FALSE, SG_MAKE_STRING("undefined for 0"),
+			  SG_LIST2(numerator, denominator));
   }
 
   if (denominator == SG_MAKE_INT(1)) return numerator;
@@ -1000,7 +1013,7 @@ SgObject Sg_ReduceRational(SgObject rational)
 
   if (SG_INTP(rational) || SG_BIGNUMP(rational)) return rational;
   if (!SG_RATIONALP(rational)) {
-    Sg_Error(UC("exect rational number required, but got %S"), rational);
+    wte(SG_FALSE, "exect rational number", rational);
   }
   numer = SG_RATIONAL(rational)->numerator;
   denom = SG_RATIONAL(rational)->denominator;
@@ -1278,7 +1291,7 @@ SgObject Sg_Numerator(SgObject x)
 {
   int inexact;
   SgObject obj;
-  if (!SG_NUMBERP(x)) Sg_Error(UC("number required, but got %S"), x);
+  if (!SG_NUMBERP(x)) wte(SG_INTERN("numerator"), "number", x);
   if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) return x;
   inexact = SG_FLONUMP(x);
   obj = Sg_Exact(x);
@@ -1293,7 +1306,7 @@ SgObject Sg_Denominator(SgObject x)
 {
   int inexact;
   SgObject obj;
-  if (!SG_NUMBERP(x)) Sg_Error(UC("number required, but got %S"), x);
+  if (!SG_NUMBERP(x)) wte(SG_INTERN("denominator"), "number", x);
   inexact = SG_FLONUMP(x);
   obj = Sg_Exact(x);
   if (SG_RATIONALP(obj)) {
@@ -1359,7 +1372,7 @@ int Sg_ZeroP(SgObject obj)
     SgComplex *c = SG_COMPLEX(obj);
     return Sg_ZeroP(c->real) && Sg_ZeroP(c->imag);
   }
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("zero?"), "number", obj);
   return -1;			/* dummy */
 }
 
@@ -1389,7 +1402,7 @@ int Sg_OddP(SgObject obj)
   if (SG_FLONUMP(obj) && Sg_IntegerP(obj)) {
     return (fmod(SG_FLONUM_VALUE(obj), 2.0) != 0.0);
   }
-  Sg_Error(UC("integer required, but got %S"), obj);
+  wte(SG_INTERN("odd?"), "integer", obj);
   return FALSE;			/* dummy */
 }
 
@@ -1408,7 +1421,7 @@ int Sg_InfiniteP(SgObject obj)
    SgObject i = SG_COMPLEX(obj)->imag;
     return Sg_InfiniteP(r) || Sg_InfiniteP(i);
   } else if (!SG_NUMBERP(obj)) {
-    Sg_Error(UC("number required, but got %S"), obj);
+    wte(SG_INTERN("infinite?"), "number", obj);
   }
   return FALSE;
 }
@@ -1423,7 +1436,7 @@ int Sg_NanP(SgObject obj)
    SgObject i = SG_COMPLEX(obj)->imag;
     return Sg_NanP(r) || Sg_NanP(i);
   } else if (!SG_NUMBERP(obj)) {
-    Sg_Error(UC("number required, but got %S"), obj);
+    wte(SG_INTERN("nan?"), "number", obj);
   }
   return FALSE;
 }
@@ -1498,7 +1511,7 @@ SgObject Sg_Negate(SgObject obj)
     SgComplex *c = SG_COMPLEX(obj);
     return Sg_MakeComplex(Sg_Negate(c->real), Sg_Negate(c->imag));
   }
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("negate"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -1509,7 +1522,7 @@ int Sg_NegativeP(SgObject obj)
   if (SG_FLONUMP(obj)) return SG_FLONUM_VALUE(obj) < 0.0;
   if (SG_RATIONALP(obj)) return Sg_NegativeP(SG_RATIONAL(obj)->numerator);
   if (SG_COMPLEXP(obj)) return Sg_NegativeP(SG_COMPLEX(obj)->real);
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("negative?"), "number", obj);
   return FALSE;			/* dummy */
 }
 
@@ -1528,7 +1541,7 @@ int Sg_PositiveP(SgObject obj)
   }
   if (SG_RATIONALP(obj)) return Sg_PositiveP(SG_RATIONAL(obj)->numerator);
   if (SG_COMPLEXP(obj)) return Sg_PositiveP(SG_COMPLEX(obj)->real);
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("positive?"), "number", obj);
   return FALSE;			/* dummy */
 }
 
@@ -1576,7 +1589,7 @@ SgObject Sg_Exact(SgObject obj)
     return obj;
   }
   if (SG_INTP(obj) || SG_BIGNUMP(obj) || SG_RATIONALP(obj)) return obj;
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("exact"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -1598,7 +1611,7 @@ SgObject Sg_Inexact(SgObject obj)
     if (SG_FLONUMP(c->real) & SG_FLONUMP(c->imag)) return obj;
     return Sg_MakeComplex(Sg_Inexact(c->real), Sg_Inexact(c->imag));
   } else {
-    Sg_Error(UC("number required, but got %S"), obj);
+    wte(SG_INTERN("inexact"), "number", obj);
   }
   return SG_UNDEF; 		/* dummy */
 }
@@ -1612,7 +1625,7 @@ int Sg_ExactP(SgObject obj)
     SgComplex *c = SG_COMPLEX(obj);
     return Sg_ExactP(c->real) && Sg_ExactP(c->imag);
   }
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("exact?"), "number", obj);
   return FALSE;
 }
 
@@ -1625,14 +1638,14 @@ int Sg_InexactP(SgObject obj)
     /* TODO is it correct? */
     return Sg_InexactP(c->real) || Sg_InexactP(c->imag);
   }
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("inexact?"), "number", obj);
   return FALSE;
 }
 
 SgObject Sg_Inverse(SgObject obj)
 {
   if (SG_INTP(obj)) {
-    if (SG_INT_VALUE(obj) == 0) Sg_Error(UC("inverse required not 0 number."));
+    if (SG_INT_VALUE(obj) == 0) wte(SG_INTERN("inverse"), "non 0 number", obj);
     if (SG_INT_VALUE(obj) > 0) {
       if (SG_INT_VALUE(obj) == 1) return obj;
       return Sg_MakeRational(SG_MAKE_INT(1), obj);
@@ -1642,7 +1655,7 @@ SgObject Sg_Inverse(SgObject obj)
   }
   if (SG_FLONUMP(obj)) return Sg_MakeFlonum(1.0 / SG_FLONUM_VALUE(obj));
   if (SG_BIGNUMP(obj)) {
-    if (SG_BIGNUM_GET_SIGN(obj) == 0) Sg_Error(UC("inverse required not 0 number."));
+    if (SG_BIGNUM_GET_SIGN(obj) == 0) wte(SG_INTERN("inverse"), "non 0 number", obj);
     if (SG_BIGNUM_GET_SIGN(obj) > 0) {
       return Sg_MakeRational(SG_MAKE_INT(1), obj);
     }
@@ -1662,7 +1675,7 @@ SgObject Sg_Inverse(SgObject obj)
 			   Sg_Negate(SG_RATIONAL(obj)->numerator));
   }
   if (SG_COMPLEXP(obj)) return Sg_Div(SG_MAKE_INT(1), obj);
-  Sg_Error(UC("number required, bot got %S"), obj);
+  wte(SG_INTERN("inverse"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -1693,7 +1706,7 @@ static inline int integer_length_rec(SgObject n)
 
 int Sg_IntegerLength(SgObject n)
 {
-  if (!Sg_IntegerP(n)) Sg_Error(UC("integer required, but got %S"), n);
+  if (!Sg_IntegerP(n)) wte(SG_INTERN("integer-length"), "integer", n);
   return integer_length_rec(n);
 }
 
@@ -1731,13 +1744,13 @@ SgObject Sg_Ash(SgObject x, long count)
   } else if (SG_BIGNUMP(x)) {
     return Sg_BignumAsh(SG_BIGNUM(x), count);
   }
-  Sg_Error(UC("exact integer required, but got %S"), x);
+  wte(SG_INTERN("bitwise-arithmetic-shift"), "exact integer", x);
   return SG_UNDEF;		/* dummy */
 }
 
 SgObject Sg_LogNot(SgObject x)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-not"), "exact integer", x);
   if (SG_INTP(x)) {
     /* this won't cause an overflow */
     return SG_MAKE_INT(~SG_INT_VALUE(x));
@@ -1748,8 +1761,8 @@ SgObject Sg_LogNot(SgObject x)
 
 SgObject Sg_LogAnd(SgObject x, SgObject y)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
-  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-and"), "exact integer", x);
+  if (!SG_EXACT_INTP(y)) wte(SG_INTERN("bitwise-and"), "exact integer", y);
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) & SG_INT_VALUE(y));
@@ -1778,8 +1791,8 @@ SgObject Sg_LogAnd(SgObject x, SgObject y)
 
 SgObject Sg_LogIor(SgObject x, SgObject y)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
-  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-ior"), "exact integer", x);
+  if (!SG_EXACT_INTP(y)) wte(SG_INTERN("bitwise-ior"), "exact integer", y);
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) | SG_INT_VALUE(y));
@@ -1798,8 +1811,8 @@ SgObject Sg_LogIor(SgObject x, SgObject y)
 
 SgObject Sg_LogXor(SgObject x, SgObject y)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
-  if (!SG_EXACT_INTP(y)) Sg_Error(UC("exact integer required, but got %S"), y);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-xor"), "exact integer", x);
+  if (!SG_EXACT_INTP(y)) wte(SG_INTERN("bitwise-xor"), "exact integer", y);
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
       return SG_MAKE_INT(SG_INT_VALUE(x) ^ SG_INT_VALUE(y));
@@ -1818,7 +1831,7 @@ SgObject Sg_LogXor(SgObject x, SgObject y)
 
 int Sg_BitCount(SgObject x)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-bit-count"), "exact integer", x);
   if (SG_INTP(x)) {
     long n = SG_INT_VALUE(x);
     if (n >= 0) {
@@ -1833,7 +1846,7 @@ int Sg_BitCount(SgObject x)
 
 int Sg_BitSize(SgObject x)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-length"), "exact integer", x);
   if (SG_INTP(x)) {
     long n = SG_INT_VALUE(x), n2;
     if (n == 0) return 0;
@@ -1847,7 +1860,7 @@ int Sg_BitSize(SgObject x)
 
 int Sg_FirstBitSet(SgObject x)
 {
-  if (!SG_EXACT_INTP(x)) Sg_Error(UC("exact integer required, but got %S"), x);
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-first-bit-set"), "exact integer", x);
   if (SG_INTP(x)) {
     long n = SG_INT_VALUE(x);
     int bit;
@@ -1958,9 +1971,7 @@ SgObject Sg_Add(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_WrongTypeOfArgumentViolation(SG_INTERN("+"),
-				  SG_MAKE_STRING("number"),
-				  SG_LIST2(x, y),  SG_NIL);
+  wte(SG_INTERN("+"), "number", SG_LIST2(x, y));
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2068,9 +2079,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_WrongTypeOfArgumentViolation(SG_INTERN("-"),
-				  SG_MAKE_STRING("number"),
-				  SG_LIST2(x, y),  SG_NIL);
+  wte(SG_INTERN("-"), "number", SG_LIST2(x, y));
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2175,9 +2184,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       return oprtr_norm_complex(real, imag);
     }
   }
-  Sg_WrongTypeOfArgumentViolation(SG_INTERN("*"),
-				  SG_MAKE_STRING("number"),
-				  SG_LIST2(x, y),  SG_NIL);
+  wte(SG_INTERN("*"), "number", SG_LIST2(x, y));
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2309,9 +2316,7 @@ SgObject Sg_Div(SgObject x, SgObject y)
       return oprtr_norm_complex(real3, imag3);
     }
   }
-  Sg_WrongTypeOfArgumentViolation(SG_INTERN("/"),
-				  SG_MAKE_STRING("number"),
-				  SG_LIST2(x, y),  SG_NIL);
+  wte(SG_INTERN("/"), "number", SG_LIST2(x, y));
   return SG_UNDEF;		/* dummy */
 
  a_normal:
@@ -2447,11 +2452,13 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
   goto bad_arg;
 
  div_by_zero:
-  Sg_Error(UC("attempt to calculate a quotient by zero"));
+  Sg_AssertionViolation(SG_INTERN("quotient"),
+			SG_MAKE_STRING("attempt to calculate a quotient by zero"),
+			SG_LIST2(x, y));
  bad_argy:
   x = y;
  bad_arg:
-  Sg_Error(UC("integer required, but got %S"), x);
+  wte(SG_INTERN("quotient"), "integer", x);
   return SG_UNDEF;		/* dummy */
 #undef do_complex
 }
@@ -2568,12 +2575,14 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   else goto bad_arg;
 
  div_by_zero:
-  Sg_Error(UC("%S: attempt to calculate a quotient by zero"),
-	   (remp) ? SG_INTERN("remainder") : SG_INTERN("modulo"));
+  Sg_AssertionViolation((remp) ? SG_INTERN("remainder") : SG_INTERN("modulo"),
+	SG_MAKE_STRING("attempt to calculate a remainder/modulo by zero"),
+	SG_LIST2(x, y));
  bad_argy:
   x = y;
  bad_arg:
-  Sg_Error(UC("integer required, but got %S"), x);
+  wte((remp) ? SG_INTERN("remainder") : SG_INTERN("modulo"),
+      "integer", x);
   return SG_UNDEF;		/* dummy */
 
 #undef do_complex
@@ -2665,8 +2674,11 @@ SgObject Sg_Expt(SgObject x, SgObject y)
     }
   }
   else if (Sg_ExactP(x) && SG_BIGNUMP(y)) {
-    Sg_Error(UC("expt: calculated number is too big to fit into memory %S %S"),
-	     x, y);
+    SgObject msg = 
+      Sg_Sprintf(UC("expt: calculated number is too big to fit into memory %S %S"),
+		 x, y);
+    Sg_ImplementationRestrictionViolation(SG_INTERN("expt"), msg, 
+					  SG_LIST2(x, y));
     return SG_UNDEF;
   }
   else return expt_body(x, y);
@@ -2686,7 +2698,7 @@ SgObject Sg_Exp(SgObject obj)
 			  Sg_MakeFlonum(a * sin(imag)));
   }
   else if (SG_REALP(obj)) return Sg_MakeFlonum(exp(Sg_GetDouble(obj)));
-  Sg_Error(UC("real number required, but got %S"), obj);
+  wte(SG_INTERN("exp"), "real number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2705,7 +2717,7 @@ SgObject Sg_Sin(SgObject obj)
 			  Sg_MakeFlonum(0.5 * cos(real) * (e - f)));
   }
   else if (SG_REALP(obj)) return Sg_MakeFlonum(sin(Sg_GetDouble(obj)));
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("sin"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2724,7 +2736,7 @@ SgObject Sg_Cos(SgObject obj)
 			  Sg_MakeFlonum(0.5 * sin(real) * (f - e)));
   }
   else if (SG_REALP(obj)) return Sg_MakeFlonum(cos(Sg_GetDouble(obj)));
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("cos"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2744,7 +2756,7 @@ SgObject Sg_Tan(SgObject obj)
 			  Sg_MakeFlonum(0.5 * (e - f) / d));
   }
   else if (SG_REALP(obj)) return Sg_MakeFlonum(tan(Sg_GetDouble(obj)));
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("tan"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2804,7 +2816,7 @@ SgObject Sg_Atan(SgObject obj)
 			  Sg_MakeFlonum(-0.5 * Sg_GetDouble(ans)));
   }
   if (SG_REALP(obj)) return Sg_MakeFlonum(atan(Sg_GetDouble(obj)));
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("atan"), "number", obj);
   return SG_UNDEF;
 }
 
@@ -2991,7 +3003,7 @@ int Sg_NumCmp(SgObject x, SgObject y)
   }
   badnum = x;
 
-  Sg_Error(UC("real number required, but got %S"), badnum);
+  wte(SG_FALSE, "real number", badnum);
   return 0;			/* dummy */
 }
 
@@ -3043,7 +3055,7 @@ SgObject Sg_Abs(SgObject obj)
     SgObject a = Sg_Sqrt(Sg_Add(Sg_Mul(r, r), Sg_Mul(i, i)));
     return a;
   } else {
-    Sg_Error(UC("number required, but got %S"), obj);
+    wte(SG_INTERN("abs"), "number", obj);
   }
   return obj;
 }
@@ -3112,7 +3124,7 @@ SgObject Sg_Sqrt(SgObject obj)
     s = sqrt(m / (x * x + y * y));
     Sg_MakeComplex(Sg_MakeFlonum(x * s), Sg_MakeFlonum(y * s));
   }
-  Sg_Error(UC("number requried, but got %S"), obj);
+  wte(SG_INTERN("sqrt"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3133,7 +3145,9 @@ SgObject Sg_ExactIntegerSqrt(SgObject k)
 {
   double d;
 
-  if (!SG_EXACT_INTP(k)) Sg_Error(UC("exact integer required, but got %S"), k);
+  if (!SG_EXACT_INTP(k)) {
+    wte(SG_INTERN("exact-integer-sqrt"), "exact integer", k);
+  }
 
   d = Sg_GetDouble(k);
   if (d < iexpt_2n53) {
@@ -3178,7 +3192,7 @@ int Sg_Sign(SgObject obj)
   } else if (SG_RATIONALP(obj)) {
     return Sg_Sign(SG_RATIONAL(obj)->numerator);
   } else {
-    Sg_Error(UC("real number required, but got %S"), obj);
+    wte(SG_INTERN("sign"), "real number", obj);
   }
   return r;
 }
@@ -3221,10 +3235,10 @@ SgObject Sg_Gcd(SgObject x, SgObject y)
   long ix, iy;
   unsigned long ux, uy, ur;
   if (!Sg_IntegerP(x)) {
-    Sg_Error(UC("integer required, but got %S"), x);
+    wte(SG_INTERN("gcd"), "integer", x);
   }
   if (!Sg_IntegerP(y)) {
-    Sg_Error(UC("integer required, but got %S"), y);
+    wte(SG_INTERN("gcd"), "integer", y);
   }
 
   if (SG_FLONUMP(x) || SG_FLONUMP(y)) {
@@ -3300,7 +3314,7 @@ SgObject Sg_Magnitude(SgObject z)
     if (Sg_NegativeP(z)) return Sg_Negate(z);
     return z;
   }
-  Sg_Error(UC("number required, but got %S"), z);
+  wte(SG_INTERN("magnitude"), "number", z);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3316,7 +3330,7 @@ SgObject Sg_Angle(SgObject obj)
     if (SG_FLONUMP(obj)) return Sg_MakeFlonum(0.0);
     return SG_MAKE_INT(0);
   }
-  Sg_Error(UC("number required, bot got %S"), obj);
+  wte(SG_INTERN("angle"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3371,7 +3385,7 @@ SgObject Sg_Log(SgObject obj)
     return Sg_MakeComplex(Sg_MakeFlonum(0.5 * log(real * real)),
 			  Sg_MakeFlonum(imag));
   }
-  Sg_Error(UC("number required, but got %S"), obj);
+  wte(SG_INTERN("log"), "number", obj);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3391,7 +3405,7 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
 
   for (;;) {
     if (!SG_REALP(arg0))
-      Sg_Error(UC("real number required, but got %S"), arg0);
+      wte(SG_INTERN("min/max"), "real number", arg0);
     if (SG_NULLP(args)) {
       if (min) {
 	if (inexact && EXACTP(mi)) {
@@ -3429,9 +3443,16 @@ void Sg_MinMax(SgObject arg0, SgObject args, SgObject *min, SgObject *max)
 
 SgObject Sg_IntegerDiv(SgObject x, SgObject y)
 {
-  if (!SG_REALP(x) || !SG_REALP(y)) Sg_Error(UC("real number required, but got %S and %S"), x, y);
-  if (!Sg_FiniteP(x) || Sg_NanP(x)) Sg_Error(UC("dividend must be neither infinite nor NaN: %S"), x);
-  if (Sg_ZeroP(y)) Sg_Error(UC("undefined for 0"));
+  if (!SG_REALP(x)) wte(SG_INTERN("div"), "real number", x);
+  if (!SG_REALP(y)) wte(SG_INTERN("div"), "real number", y);
+  if (!Sg_FiniteP(x) || Sg_NanP(x)) {
+    Sg_AssertionViolation(SG_INTERN("div"),
+	  SG_MAKE_STRING("dividend must be neither infinite nor NaN"), x);
+  }
+  if (Sg_ZeroP(y)) {
+    Sg_AssertionViolation(SG_INTERN("div"),
+			  SG_MAKE_STRING("undefined for 0"), y);
+  }
   
   if (SG_INTP(x)) {
     if (SG_INTP(y)) {
@@ -3462,9 +3483,16 @@ SgObject Sg_IntegerDiv(SgObject x, SgObject y)
 SgObject Sg_IntegerDiv0(SgObject x, SgObject y)
 {
   SgObject div, mod;
-  if (!SG_REALP(x) || !SG_REALP(y)) Sg_Error(UC("real number required, but got %S and %S"), x, y);
-  if (!Sg_FiniteP(x) || Sg_NanP(x)) Sg_Error(UC("dividend must be neither infinite nor NaN: %S"), x);
-  if (Sg_ZeroP(y)) Sg_Error(UC("undefined for 0"));
+  if (!SG_REALP(x)) wte(SG_INTERN("div0"), "real number", x);
+  if (!SG_REALP(y)) wte(SG_INTERN("div0"), "real number", y);
+  if (!Sg_FiniteP(x) || Sg_NanP(x)) {
+    Sg_AssertionViolation(SG_INTERN("div0"),
+	  SG_MAKE_STRING("dividend must be neither infinite nor NaN"), x);
+  }
+  if (Sg_ZeroP(y)) {
+    Sg_AssertionViolation(SG_INTERN("div0"),
+	  SG_MAKE_STRING("undefined for 0"), y);
+  }
 
   div = Sg_IntegerDiv(x, y);
   mod = Sg_Sub(x, Sg_Mul(div, y));
@@ -3500,7 +3528,7 @@ SgObject Sg_IntegerMod(SgObject x, SgObject y)
 
  err:
   /* y was 0 */
-  Sg_Error(UC("not zero required, but got %S"), y);
+  wte(SG_INTERN("mod"), "non zero number", y);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3541,7 +3569,7 @@ SgObject Sg_IntegerMod0(SgObject x, SgObject y)
   }
  err:
   /* y was 0 */
-  Sg_Error(UC("not zero required, but got %S"), y);
+  wte(SG_INTERN("mod0"), "non zero number", y);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -3550,12 +3578,12 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
 {
   SgObject u1, u3, v1, v3;
   int sign = 1;
-  if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(m)) {
-    Sg_Error(UC("exact integer required but got %S %S"), x, m);
-  }
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("mod-inverse"), "exact integer", x);
+  if (!SG_EXACT_INTP(m)) wte(SG_INTERN("mod-inverse"), "exact integer", m);
   if (Sg_Sign(m) != 1) {
-    Sg_Error(UC("modulus not positive %S"), m);
+    wte(SG_INTERN("mod-inverse"), "positive number", m);
   }
+
   if (SG_BIGNUMP(x) && SG_BIGNUMP(m)) {
     return Sg_BignumModInverse(x, m);
   }
@@ -3584,12 +3612,13 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
 {
   SgObject y;
   int invertp = FALSE;
-  if (!SG_EXACT_INTP(x) || !SG_EXACT_INTP(e) || !SG_EXACT_INTP(m)) {
-    Sg_Error(UC("exact integer required but got %S %S %S"), x, e, m);
-  }
+  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("mod-expt"), "exact integer", x);
+  if (!SG_EXACT_INTP(e)) wte(SG_INTERN("mod-expt"), "exact integer", e);
+  if (!SG_EXACT_INTP(m)) wte(SG_INTERN("mod-expt"), "exact integer", m);
   if (Sg_Sign(m) <= 0) {
-    Sg_Error(UC("modulus must be positive %S"), m);
+    wte(SG_INTERN("mod-inverse"), "positive number", m);
   }
+
   /* TODO handle more efficiently */
   if (SG_INTP(x)) {
     if (SG_INTP(e)) {
@@ -3663,7 +3692,7 @@ SgObject Sg_ModExpt(SgObject x, SgObject e, SgObject m)
     m = Sg_MakeBignumFromSI(SG_INT_VALUE(m));
   }
   if (!(SG_BIGNUMP(x) && SG_BIGNUMP(e) && SG_BIGNUMP(m))) {
-    Sg_Error(UC("exact integer required. %S %S %S"), x, e, m);
+    Sg_Error(UC("[internal] bignum required. %S %S %S"), x, e, m);
   }
   return Sg_BignumModExpt(SG_BIGNUM(x), SG_BIGNUM(e), SG_BIGNUM(m));
 }
@@ -3755,7 +3784,7 @@ SgObject Sg_Round(SgObject num, int mode)
     }
     return Sg_MakeFlonum(r);
   }
-  Sg_Error(UC("real number required, but got %S"), num);
+  wte(SG_INTERN("round"), "real number", num);
   return SG_UNDEF;
 }
 
@@ -3992,7 +4021,7 @@ SgObject Sg_NumberToString(SgObject obj, int radix, int use_upper)
       r = Sg_StringAppend(SG_LIST3(real, imag, SG_MAKE_STRING("i")));
     }
   } else {
-    Sg_Error(UC("number required: %S"), obj);
+    wte(SG_INTERN("number->string"), "number", obj);
   }
   return r;
 }

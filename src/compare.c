@@ -148,7 +148,8 @@ static SG_DEFINE_SUBR(string_p_stub, 1, 0, string_p, SG_FALSE, NULL);
 static SgObject string_hash(SgObject *args, int argc, void *data)
 {
   if (!SG_STRINGP(args[0])) {
-    Sg_Error(UC("string-comparator: string required but got %S"), args[0]);
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-comparator"),
+				    SG_INTERN("string"), args[0], SG_NIL);
   }
   return Sg_MakeIntegerU(Sg_StringHash(SG_STRING(args[0]), SG_INT_MAX));
 }
@@ -157,8 +158,10 @@ static SG_DEFINE_SUBR(string_hash_stub, 1, 0, string_hash, SG_FALSE, NULL);
 static SgObject string_eq(SgObject *args, int argc, void *data)
 {
   if (!SG_STRINGP(args[0]) || !SG_STRINGP(args[1])) {
-    Sg_Error(UC("string-comparator: string required but got %S and %S"),
-	     args[0], args[1]);
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-comparator"),
+				    SG_INTERN("string"), 
+				    SG_LIST2(args[0], args[1]),
+				    SG_NIL);
   }
   return SG_MAKE_BOOL(Sg_StringEqual(SG_STRING(args[0]), SG_STRING(args[1])));
 }
@@ -168,8 +171,10 @@ static SgObject string_cmp(SgObject *args, int argc, void *data)
 {
   int r;
   if (!SG_STRINGP(args[0]) || !SG_STRINGP(args[1])) {
-    Sg_Error(UC("string-comparator: string required but got %S and %S"),
-	     args[0], args[1]);
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-comparator"),
+				    SG_INTERN("string"), 
+				    SG_LIST2(args[0], args[1]),
+				    SG_NIL);
   }
   r = Sg_StringCompare(SG_STRING(args[0]), SG_STRING(args[1]));
   return SG_MAKE_INT(r);
