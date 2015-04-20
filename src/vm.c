@@ -430,8 +430,8 @@ static inline void report_error(SgObject exception, SgObject out)
     stackTrace = Sg_GetStackTrace();
   }
   Sg_Printf(buf,
-	    UC("*error*\n"
-	       "%A\n"), Sg_DescribeCondition(error));
+	    UC("Unhandled exception\n"
+	       "  %A\n"), Sg_DescribeCondition(error));
 
   if (!SG_NULLP(stackTrace)) {
     Sg_Printf(buf, UC("stack trace:\n"));
