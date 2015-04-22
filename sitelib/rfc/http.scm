@@ -439,7 +439,7 @@
   (define (ensured-copy sink remote size)
     (let loop ((size size))
       (let ((n (copy-binary-port sink remote :size size)))
-	(unless (= n size)
+	(when (and size (not (= n size)))
 	  (loop (- size n))))))
       
   (define (http-string-receiver)
