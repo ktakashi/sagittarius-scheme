@@ -436,6 +436,12 @@
 	(utf-8-codec)))
 
   ;; pre-defined receivers
+  (define (ensured-copy sink remote size)
+    (let loop ((size size))
+      (let ((n (copy-binary-port sink remote :size size)))
+	(unless (= n size)
+	  (loop (- size n))))))
+      
   (define (http-string-receiver)
     (lambda (code hdrs total retr)
       (let loop ((sink (open-output-bytevector)))
@@ -444,7 +450,7 @@
 		 (bytevector->string (get-output-bytevector sink)
 				     (make-transcoder (lookup-encoding hdrs))))
 		((or (not size) (> size 0))
-		 (copy-binary-port sink remote :size size)
+		 (ensured-copy sink remote size)
 		 (loop sink)))))))
 
   (define (http-binary-receiver)
@@ -453,7 +459,7 @@
 	(receive (remote size) (retr)
 	  (cond ((eqv? size 0) (get-output-bytevector sink))
 		((or (not size) (> size 0))
-		 (copy-binary-port sink remote :size size)
+		 (ensured-copy sink remote size)
 		 (loop sink)))))))
 
   (define (http-null-receiver)
@@ -462,7 +468,7 @@
 					      (file-options no-fail))))
 	(receive (remote size) (retr)
 	  (cond ((and size (<= size 0)) (close-output-port sink))
-		(else (copy-binary-port sink remote :size size)
+		(else (ensured-copy sink remote size)
 		      (loop sink)))))))
 
   ;; sink must be binary-port
@@ -473,7 +479,7 @@
 	(receive (remote size) (retr)
 	  (cond ((and size (<= size 0)) (flusher sink hdrs))
 		(else
-		 (copy-binary-port sink remote :size size)
+		 (ensured-copy sink remote size)
 		 (loop)))))))
 
   (define (http-file-receiver filename :key (temporary? #f))
@@ -482,7 +488,7 @@
 	(let loop ()
 	  (receive (remote size) (retr)
 	    (cond ((or (not size) (> size 0))
-		   (copy-binary-port port remote :size size) (loop))
+		   (ensured-copy port remote size) (loop))
 		  ((= size 0)
 		   (close-output-port port)
 		   (if temporary?

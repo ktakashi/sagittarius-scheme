@@ -97,7 +97,10 @@
 
   (define (copy-binary-port dst src :key (size -1))
     (if (and size (integer? size) (positive? size))
-	(begin (put-bytevector dst (get-bytevector-n src size #t)) size)
+	(let ((bv (get-bytevector-n src size #t)))
+	  (put-bytevector dst bv)
+	  ;; most of the case, it's the same as size but sometimes not.
+	  (bytevector-length bv))
 	(let ((buf (make-bytevector 4096)))
 	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)) (r 0))
 	    (cond ((eof-object? n) r)

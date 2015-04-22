@@ -1009,11 +1009,10 @@ static int socket_ready_int(SgObject socket, struct timeval *tm)
   FD_SET(SG_SOCKET(socket)->socket, &fds);
 
 #ifdef _WIN32
-  state = select(0, &fds, NULL, NULL, tm);
+  state = select(FD_SETSIZE, &fds, NULL, NULL, tm);
 #else
   state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, tm);
 #endif
-
   if (state < 0) {
     if (last_error == EINTR) return FALSE;
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 
@@ -1096,7 +1095,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
 			       (int)size, 0);
     int ready;
-    struct timeval tm = {0, 5};	/* wait a bit in case of retry */
+    struct timeval tm = {0, 10000};	/* wait a bit in case of retry (10ms?)*/
     if (-1 == now) {
       Sg_IOReadError(SG_INTERN("read-u8"),
 		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
