@@ -1676,11 +1676,11 @@
 	body
 	(let ((args (imap (lambda (expr)
 			    (smatch expr
-			      ((? variable? o) o)
 			      ((((? keyword? key) o) init) `(,o ,key, init))
 			      ;; for compatibility
-			      (( o (? keyword? key) init) `(,o ,key, init))
+			      ((o (? keyword? key) init) `(,o ,key, init))
 			      ((o init) `(,o ,init))
+			      ((? variable? o) o)
 			      (_ (syntax-error
 				  "illegal keyword argument spec" kargs))))
 			  ks)))
@@ -2451,11 +2451,6 @@
 	       (renames '()))
       (cond ((null? spec)
 	     (values ex renames))
-	    ((symbol? (car spec))
-	     (loop (cdr spec) (cons (car spec) ex) renames))
-	    ((identifier? (car spec))
-	     (loop (cdr spec) (cons (identifier->symbol (car spec)) ex)
-		   renames))
 	    ((keyword? (car spec))
 	     (case (car spec)
 	       ((:all :export-reader-macro :export-reader)
@@ -2464,6 +2459,11 @@
 		(syntax-error
 		 (format "unsupported export keyword ~s" (car spec))
 		 export))))
+	    ((symbol? (car spec))
+	     (loop (cdr spec) (cons (car spec) ex) renames))
+	    ((identifier? (car spec))
+	     (loop (cdr spec) (cons (identifier->symbol (car spec)) ex)
+		   renames))
 	    ((and (pair? (car spec))
 		  (eq? (caar spec) 'rename)
 		  (car spec))
