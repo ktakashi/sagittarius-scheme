@@ -61,6 +61,7 @@
 #include "sagittarius/writer.h"
 
 /* #define USE_UTF8_STRING 1 */
+#define STORE_SOURCE_INFO 1
 
 /*
   FIXME
@@ -486,6 +487,10 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   }
   if (SG_PAIRP(obj)) {
     cbs = write_cache_scan(SG_CAR(obj), cbs, ctx);
+    /* should we? */
+#ifdef STORE_SOURCE_INFO
+    cbs = write_cache_scan(SG_PAIR(obj)->info, cbs, ctx);
+#endif
     obj = SG_CDR(obj);
     goto loop;
   } else if (SG_VECTORP(obj)) {
@@ -553,6 +558,9 @@ SgObject Sg_WriteCacheScanRec(SgObject obj, SgObject cbs, SgWriteCacheCtx *ctx)
   return write_cache_scan(obj, cbs, (cache_ctx *)ctx);
 }
 
+#ifdef STORE_SOURCE_INFO
+static SgObject SOURCE_INFO = SG_UNDEF;
+#endif
 
 /* correct code builders in code*/
 static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
@@ -560,13 +568,11 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 {
   SgWord *code = cb->code;
   int i, len = cb->size;
-  /* Sg_Printf(Sg_StandardErrorPort(), UC("scanning %S(%p)\n"), cb, cb); */
   SgObject name = cb->name, value;
-#if 0
-  if (SG_IDENTIFIERP(name)) {
-    name = SG_IDENTIFIER_NAME(name);
-  }
+#ifdef STORE_SOURCE_INFO
+  SgObject newSrc = SG_NIL, t = SG_NIL;
 #endif
+
   r = write_cache_scan(name, r, ctx);
 
   value = Sg_HashTableRef(ctx->sharedObjects, cb, SG_UNBOUND);
@@ -584,6 +590,25 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
 
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
+#ifdef STORE_SOURCE_INFO
+    /* 
+       what we want is basically tracking source location if
+       possible. however if we store everything into a cache
+       file, then it would be too big (appox 3 times bigger).
+       so we strip out some of unnecessary source information
+       from code builder here.
+    */
+    if (info->hasSrc && !SG_FALSEP(cb->src)) {
+      SgObject src = Sg_Assv(SG_MAKE_INT(i), cb->src);
+      if (SG_PAIRP(src) && SG_PAIRP(SG_CDR(src))) {
+	/* only if there's actual source location.
+	   this makes cache remarkably small.
+	*/
+	SgObject si = Sg_GetPairAnnotation(SG_CDR(src), SOURCE_INFO);
+	if (!SG_FALSEP(si)) SG_APPEND1(newSrc, t, src);
+      }
+    }
+#endif
     if (!info->label) {
       int j;
       for (j = 1; j <= info->argc; j++) {
@@ -609,6 +634,11 @@ static SgObject write_cache_pass1(SgCodeBuilder *cb, SgObject r,
     }
     i += 1 + info->argc;
   }
+
+#ifdef STORE_SOURCE_INFO
+  cb->src = Sg_UnwrapSyntax(newSrc); /* we don't need syntax info */
+  r = write_cache_scan(cb->src, r, ctx);
+#endif
   
   /* save collected closures here */
   ctx->closures = r;
@@ -693,17 +723,20 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
     int size = Sg_Length(v);
     SgObject cp;
     put_word(out, size, PLIST_TAG);
-    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
     SG_FOR_EACH(cp, v) {
       write_object_cache(out, SG_CAR(cp), cbs, ctx);
     }
+#ifdef STORE_SOURCE_INFO
+    write_object_cache(out, SG_PAIR(org)->info, cbs, ctx);
+#else
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
+#endif
   } else {
     /* DLIST_TAG 4
        (symbol 'e) (symbol 'a) (symbol 'b) (symbol 'c) (symbol 'd) */
     int size = Sg_Length(v);
     SgObject cp, p;
     put_word(out, size, DLIST_TAG);
-    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
     p = Sg_HashTableRef(ctx->sharedObjects, o, SG_FALSE);
     if (SG_PAIRP(p)) {
       put_word(out, SG_INT_VALUE(SG_CAR(p)), DEFINING_SHARED_TAG);
@@ -715,7 +748,12 @@ static void write_list_cache(SgPort *out, SgObject o, SgObject cbs,
     }
     SG_FOR_EACH(cp, v) {
       write_object_cache(out, SG_CAR(cp), cbs, ctx);
-    }    
+    }
+#ifdef STORE_SOURCE_INFO
+    write_object_cache(out, SG_PAIR(org)->info, cbs, ctx);
+#else
+    Sg_PutbUnsafe(out, Sg_ConstantLiteralP(org));
+#endif
   }
 }
 
@@ -959,6 +997,12 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
     }
     i += 1 + info->argc;
   }
+  /* put src */
+#ifdef STORE_SOURCE_INFO
+  write_object_cache(out, cb->src, cbs, ctx);
+#else
+  write_object_cache(out, SG_NIL, cbs, ctx);
+#endif
   /* mark end */
   Sg_PutbUnsafe(out, CODE_BUILDER_END_TAG);
 }
@@ -1355,37 +1399,64 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
 /* PLIST_TAG length *e1* *e2* ... */
 static SgObject read_plist(SgPort *in, read_ctx *ctx)
 {
-  int length, i, literalp;
+  int length, i;
   SgObject h = SG_NIL, t = SG_NIL;
+#ifdef STORE_SOURCE_INFO
+  SgObject info;
+#else
+  int literalp;
+#endif
 
   length = read_word(in, PLIST_TAG, ctx);
-  literalp = Sg_GetbUnsafe(in);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
   }
+
+#ifdef STORE_SOURCE_INFO
+  info = read_object_rec(in, ctx);
+  SG_PAIR(h)->info = info;
+  if (Sg_ConstantLiteralP(h)) {
+    h = Sg_AddConstantLiteral(h);
+  }
+#else
+  literalp = Sg_GetbUnsafe(in);
   if (literalp) {
     h = Sg_AddConstantLiteral(h);
   }
+#endif
   return h;
 }
 
 /* DLIST_TAG length *en* *e1* *e2* ... *en-1* */
 static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 {
-  int length, i, literalp;
+  int length, i;
   SgObject h = SG_NIL, t = SG_NIL, o;
+#ifdef STORE_SOURCE_INFO
+  SgObject info;
+#else
+  int literalp;
+#endif
 
   length = read_word(in, DLIST_TAG, ctx);
-  literalp = Sg_GetbUnsafe(in);
   o = read_object_rec(in, ctx);
   for (i = 0; i < length; i++) {
     SG_APPEND1(h, t, read_object_rec(in, ctx));
   }
   /* set last element */
   SG_SET_CDR(t, o);
+#ifdef STORE_SOURCE_INFO
+  info = read_object_rec(in, ctx);
+  SG_PAIR(h)->info = info;
+  if (Sg_ConstantLiteralP(h)) {
+    h = Sg_AddConstantLiteral(h);
+  }
+#else
+  literalp = Sg_GetbUnsafe(in);
   if (literalp) {
     h = Sg_AddConstantLiteral(h);
   }
+#endif
   return h;
 }
 
@@ -1725,7 +1796,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
 {
   int len, tag, argc, optional, maxStack, freec, index, i;
   SgWord *code;
-  SgObject cb, name;
+  SgObject cb, name, src;
   len = read_word(in, CODE_BUILDER_TAG, ctx);
   argc = Sg_GetbUnsafe(in);
   optional = Sg_GetbUnsafe(in);
@@ -1751,10 +1822,12 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
     }
     code[i] = SG_WORD(o);
   }
+  src = read_object(in, ctx);
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, CODE_BUILDER_END_TAG, tag);
   cb = Sg_MakeCodeBuilderFromCache(name, code, len, argc, optional, 
 				   freec, maxStack);
+  SG_CODE_BUILDER(cb)->src = src;
   /* store seen */
   Sg_HashTableSet(ctx->seen, SG_MAKE_INT(index), cb, 0);
   return cb;
@@ -2016,4 +2089,7 @@ void Sg__InitCache()
   SEPARATOR = Sg_String(Sg_NativeFileSeparator());
   CACHE_EXT = SG_MAKE_STRING(".cache");
   TIMESTAMP_EXT = SG_MAKE_STRING(".timestamp");
+#ifdef STORE_SOURCE_INFO
+  SOURCE_INFO = SG_INTERN("source-info");
+#endif
 }
