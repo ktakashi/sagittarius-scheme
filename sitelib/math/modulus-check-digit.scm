@@ -1,6 +1,6 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
-;;; math/luhn.scm - Luhn checksum.
+;;; math/modulus-check-digit.scm - Modulus check digit framework
 ;;;  
 ;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -28,38 +28,39 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; Luhn algorithm
-;;   https://en.wikipedia.org/wiki/Luhn_algorithm
-(library (math luhn)
-    (export luhn-valid?
-	    luhn-calculate
-	    *luhn-converter*)
-    (import (rnrs)
-	    (math modulus-check-digit)
-	    (srfi :14 char-sets)
-	    (srfi :39 parameters))
 
-  (define identifier-char-set
-    (string->char-set "0123456789ABCDEFGHIJKLMNOPQRSTUVYWXZ_"))
-  (define *luhn-converter* 
-    (make-parameter 
-     ;; we accept identifiers as well like the following link
-     ;; https://wiki.openmrs.org/display/docs/Check+Digit+Algorithm
-     (lambda (s/i) 
-       (map (lambda (c) 
-	      (unless (char-set-contains? identifier-char-set c)
-		(assertion-violation 'luhn-checksum "invalid character" c))
-	      (- (char->integer c) 48))
-	    (string->list 
-	     (if (string? s/i) 
-		 (string-upcase s/i)
-		 (number->string s/i)))))))
+;; this library provides frame work of modulus check digit.
+;; users need to provide code converter which needs convert
+;; given code to a list of integer, weight calculator which
+;; calculates the weight of a code point which is added the
+;; total sum and modulus which is used to calculate modulo
+;; of the sum.
+;; how to use: see sitelib/math/luhn.scm
+(library (math modulus-check-digit)
+    (export define-check-digit)
+    (import (rnrs))
 
-  (define (luhn-weight n l r)
-    (if (even? r) (- (* n 2) (* (div n 5) 9)) n))
+  (define-syntax define-check-digit
+    (syntax-rules ()
+      ((_ validate calculate modulus weight converter)
+       (begin
+	 (define %c converter)
+	 (define %w weight)
+	 (define (validate code)
+	   (zero? (%calculate (%c code) #f modulus %w)))
+	 (define (calculate code)
+	   (let ((n (%calculate (%c code) #t modulus %w)))
+	     (mod (- modulus n) modulus)))))))
 
-  (define (luhn-conv code) ((*luhn-converter*) code))
-
-  (define-check-digit luhn-valid? luhn-calculate 10 luhn-weight luhn-conv)
+  (define (%calculate code calc? modulus weight)
+    (define (sum-them n* off)
+      (define lth (+ (length n*) off))
+      (let loop ((i 0) (n* n*) (sum 0))
+	(if (null? n*)
+	    sum
+	    (loop (+ i 1) (cdr n*)
+		  (+ sum (weight (car n*) (+ i 1) (- lth i)))))))
+    (let ((sum (sum-them code (if calc? 1 0))))
+      (mod sum modulus)))
 
   )
