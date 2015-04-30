@@ -116,4 +116,72 @@
   (test-equal "result(7)" '(((+) *) ((+) *))
 	      (parse-result-semantic-value ok)))
 
+;; *, + and ?
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((star <- (* '*)) star))))
+
+  (let* ((g (generator '((* . *) (* . *) (* . *))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "* (with value)" '(* * *) (parse-result-semantic-value r)))
+  (let* ((g (generator '()))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "* (without value)" '() (parse-result-semantic-value r))))
+
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((plus <- (+ '+)) plus))))
+  (let* ((g (generator '((+ . +) (+ . +) (+ . +))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "+ (with value)" '(+ + +) (parse-result-semantic-value r)))
+
+  (let* ((g (generator '()))
+	 (r (checker (base-generator->results g))))
+    (test-assert (not (parse-result-successful? r))))
+)
+
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((ques <- (? '?) '&) ques))))
+  (let* ((g (generator '((? . ?) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "? (with value)" '(?) (parse-result-semantic-value r)))
+  (let* ((g (generator '((&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "? (without value)" '() (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((? . ?) (? . ?) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert "more than one" (not (parse-result-successful? r))))
+)
+
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((eq <- (= 1 3 '=) '&) eq))))
+  (let* ((g (generator '((= . =) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "= (min count)" '(=) (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((= . =) (= . =) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "= (middle count)" '(= =) (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((= . =) (= . =) (= . =) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "= (max count)" '(= = =) (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (not (parse-result-successful? r))))
+
+)  
+
 (test-end)

@@ -303,6 +303,11 @@
 	    (cond ((parse-result-successful? result)
 		   (loop (+ i 1) (cons result vs) result
 			 (parse-result-next result)))
+		  ;; no matching in *
+		  ((zero? n)
+		   (return-results (reverse! vs) 
+				   (make-result #f results)
+				   k))
 		  ((<= n i)
 		   ;; is this correct???
 		   (return-results (reverse! vs) (or s result) k))
