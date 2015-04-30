@@ -60,5 +60,16 @@
 (test-parser '(:doc (:paragraph "hogehoge" "fugafuga")) 
 	     "hogehoge\nfugafuga\n\n")
 
+;; reference
+(test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")
+(test-parser '(:doc (:reference (:label "ref") "source " ""))
+	     "[ref]: source \"\"\n")
+(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+	     "[ref]: source \"title\"\n")
+(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+	     "[ref]: source 'title'\n")
+(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+	     "[ref]: source (title)\n")
+
 
 (test-end)

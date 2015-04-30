@@ -225,9 +225,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (doc ((b* <- (* block)) (cons :doc b*)))
    (block (((* blankline) 
 	    b <- (/ block-quote 
-		    ;; verbatim 
+		    verbatim 
 		    note 
-		    ;; reference 
+		    reference 
 		    ;; horizontal-rule 
 		    heading
 		    ;;ordered-list
@@ -235,7 +235,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    ;;html-block
 		    ;;style-block
 		    para
-		    plain
+		    plain ;; when this will be?
 		    )
 	    ) b))
 
@@ -250,8 +250,15 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (block-quote-one (('#\> (? '#\space) l <- line) l))
    (block-quote-next (((! '#\>) (! blankline) l <- line) l))
 
+   ;; verbatim
+   (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v)))
+   (verbatim-chunk ((b <- (* blankline) l <- (+ non-blank-indented-line))
+		    (if (null? b)
+			(string-concatenate l)
+			(apply string-append "\n" l))))
+
    (para ((non-indent-space i* <- inlines (+ blankline)) (cons :paragraph i*)))
-   (plain ((i* <- inlines) (cons :plain a)))
+   (plain ((i* <- inlines) (cons :plain i*)))
    (atx-inline (((! nl) (! sp (* '#\#) sp nl) i <- inline) i))
    (atx-start (((token "######")) :h6)
 	      (((token "#####"))  :h5)
@@ -377,6 +384,18 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		     (list (list :label (string-append "mailto:" e)) e)))
 
    ;; reference
+   (reference ((non-indent-space (! (token "[]")) l <- label '#\: spnl
+				 s <- ref-src t <- ref-title (+ blankline))
+	       (list :reference l s t)))
+   (ref-src ((c <- (+ nonspace-char)) (list->string c)))
+   (ref-title (('#\" '#\") "")
+	      ((spnl t <- title-single) t)
+	      ((spnl t <- title-double) t)
+	      ((spnl '#\( c <- (* title-helper3) '#\)) (list->string c))
+	      (() ""))
+   (title-helper3 (((! title-helper3*) c <- any-char) c))
+   (title-helper3* (('#\) sp nl) :ignore))
+
    ;; TODO find reference
    (note-reference ((ref <- raw-note-reference) (list :note-ref ref)))
    (raw-note-reference (((token "[^") c <- (+ note-char) '#\]) 
@@ -403,6 +422,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (indent (('#\tab) :indent)
 	   (((token "    ")) :indent))
    (indented-line ((indent l <- line) l))
+   (non-blank-indented-line (((! blankline) l <- indented-line) l))
    (optionally-indented-line (((? indent) l <- line) l))
 
    ;; line
