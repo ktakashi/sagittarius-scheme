@@ -1,5 +1,37 @@
-;; From chicken scheme's egg http://wiki.call-cc.org/eggref/4/packrat
-#!core
+;;; -*- mode:scheme; coding:utf-8 -*-
+;;;
+;;; packrat.scm - Packrat parser
+;;;  
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;   
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;  
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;  
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;  
+
+;; Originally from chicken scheme's egg
+;;   http://wiki.call-cc.org/eggref/4/packrat
+
+;; modified to handle extra syntax
 #!nobacktrace
 (library (packrat)
     (export parse-result?
@@ -319,7 +351,7 @@
 ;;  (let ((s (open-output-string)))
 ;;    (write o s)
 ;;    (get-output-string s)))
-;; Sagittarius use format
+;; Sagittarius uses format
 (define (object->external-representation o)
   (format "~s" o))
 
@@ -385,8 +417,6 @@
      (packrat-parser #f "alt" nt body (var <- (= 0 1 val val* ...) rest ...)))
     
     ;; TODO this should be merged with "expr" entry
-    ;; so that (var <- (/ alter0 alter1 ...)) would work fine.
-    ;; but for now i don't want to break existing code.
     ((_ #f "alt" nt body (var <- 'val rest ...))
      (packrat-check-base 'val
 			 (lambda (var)
@@ -396,6 +426,12 @@
      (lambda (results)
        (let ((var (parse-results-position results)))
 	 ((packrat-parser #f "alt" nt body (rest ...)) results))))
+
+    ;; (var <- (/ expr expr* ...))
+    ((_ #f "alt" nt body (var <- (/ alternative ...) rest ...))
+     (packrat-check (packrat-parser #f "expr" nt () (/ alternative ...))
+		    (lambda (var) 
+		      (packrat-parser #f "alt" nt body (rest ...)))))
 
     ((_ #f "alt" nt body (var <- val rest ...))
      (packrat-check val

@@ -182,6 +182,22 @@
 	 (r (checker (base-generator->results g))))
     (test-assert (not (parse-result-successful? r))))
 
+)
+
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((alt <- (/ '= '+ '?) '&) alt))))
+
+  (let* ((g (generator '((= . =) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "alt (=)" '= (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((+ . +) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "alt (+)" '+ (parse-result-semantic-value r)))
+
 )  
 
 (test-end)
