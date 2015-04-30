@@ -178,6 +178,10 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
        (char-with-charset 
 	(char-set-difference char-set:full
 			     *special-char-set* *newline-char-set*) results))
+     (define (one-line results)
+       (token-with-charset (char-set-difference char-set:full
+						*newline-char-set*)
+			   results))
 
      (define (token-with-charset-parser sets)
        (lambda (results)
@@ -220,9 +224,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
      doc)
    (doc ((b* <- (* block)) (cons :doc b*)))
    (block (((* blankline) 
-	    b <- (/ ;; block-quote 
+	    b <- (/ block-quote 
 		    ;; verbatim 
-		    ;; note 
+		    note 
 		    ;; reference 
 		    ;; horizontal-rule 
 		    heading
@@ -230,12 +234,24 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    ;;bullet-list
 		    ;;html-block
 		    ;;style-block
-		    ;;para
-		    ;;plain
+		    para
+		    plain
 		    )
 	    ) b))
+
+   (block-quote ((b <- block-quote-raw) (cons :blockquote (apply append b))))
+   (block-quote-raw ((b <- (+ block-quote-content)) b))
+   (block-quote-content ((b1 <- block-quote-one
+			  b2 <- (* block-quote-next)
+			  bl <- (* blankline))
+			 (if (null? bl)
+			     (cons b1 b2)
+			     `(,b1 ,@b2 "\n"))))
+   (block-quote-one (('#\> (? '#\space) l <- line) l))
+   (block-quote-next (((! '#\>) (! blankline) l <- line) l))
+
    (para ((non-indent-space i* <- inlines (+ blankline)) (cons :paragraph i*)))
-   (plain ((i* <- inlines) (list :plain a)))
+   (plain ((i* <- inlines) (cons :plain a)))
    (atx-inline (((! nl) (! sp (* '#\#) sp nl) i <- inline) i))
    (atx-start (((token "######")) :h6)
 	      (((token "#####"))  :h5)
@@ -248,21 +264,23 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    (heading ((h <- atx-heading) h))
 
-   (inline ((s <- str) s)
-	   ((e <- endline) :eol)
-	   ((ul-or-star-line) '())
+   (inlines ((i <- (+ inlines*)) i))
+   (inlines* (((! endline) i <- inline (? endline)) i))
+   (inline ((e <- endline) :eol)
+	   ((ul-or-star-line) :ul-or-star-line)
 	   ((space) :space)
 	   ((s <- strong) s)
 	   ((e <- emph) e)
 	   ((i <- image) i)
 	   ((l <- link) l)
-	   ;; ((n <- note-reference) n)
-	   ;; ((i <- inline-note) i)
+	   ((n <- note-reference) n)
+	   ((i <- inline-note) i)
 	   ;; ((c <- code) c)
 	   ;; ((r <- raw-html) r)
 	   ;; ((e <- entity) e)
 	   ;; ((e <- escaped-char) e)
 	   ;; ((s <- smart) s)
+	   ((s <- str) s) ;; should be lower, otherwise lots of things fail
 	   ((s <- symbol) s)
 	   )
 
@@ -310,7 +328,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    ;; image
    (image (('#\! l <- (/ explicit-link reference-link))
-	   (if (and (pair? l) (eq? l :link))
+	   (if (and (pair? l) (eq? (car l) :link))
 	       (begin (set-car! l :image) l)
 	       ;; TODO how should we handle
 	       (cons* :string "!" (cdr l)))))
@@ -319,11 +337,12 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (reference-link ((l <- reference-link-dobule) l)
 		   ((l <- reference-link-single) l))
    (reference-link-dobule ((a <- label spnl (! (token "[]")) b <- label)
-			   ;; TODO find reference?
-			   (cons :link a)))
-   (reference-link-single ((a <- label (? spnl (token "[]")))
-			   ;; TODO find reference?
-			   (cons :link a)))
+			   ;; TODO find reference
+			   (list :link a "" "")))
+   (reference-link-single ((a <- label (? refls-hlp))
+			   ;; TODO find reference
+			   (list :link a "" "")))
+   (refls-hlp ((spnl (token "[]")) :ignore))
 
    (explicit-link ((l <- label '#\( sp s <- source spnl t <- title sp '#\))
 		   (list :link l s t)))
@@ -349,14 +368,48 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (close-or-nl (('#\)) :ignore)
 		((nl) :ignore))
    
-   (auto-link ((u <- auto-link-url) (list :link u))
-	      ((e <- auto-link-email) (list :link e)))
-   (auto-link-url (('#\< u <- url '#\>) (list :url u)))
+   (auto-link ((u <- auto-link-url) (list :link (list :label u) u ""))
+	      ((e <- auto-link-email) `(:link ,@e "")))
+   (auto-link-url (('#\< u <- url '#\>) u))
    (auto-link-email (('#\< (token "mailto:") e <- email '#\>) 
-		     (list :email e))
-		    (('#\<  e <- email '#\>) (list :email e)))
+		     (list (list :label (string-append "mailto:" e)) e))
+		    (('#\<  e <- email '#\>)
+		     (list (list :label (string-append "mailto:" e)) e)))
 
    ;; reference
+   ;; TODO find reference
+   (note-reference ((ref <- raw-note-reference) (list :note-ref ref)))
+   (raw-note-reference (((token "[^") c <- (+ note-char) '#\]) 
+			(list->string c)))
+   (note-char (((! nl) (! '#\]) c <- any-char) c))
+   (note ((non-indent-space ref <- raw-note-reference '#\: sp
+			    b1 <- raw-note-block
+			    b2 <- (* raw-note-block*))
+	  (if (null? b2)
+	      `(:note (:ref ,ref) ,@b1)
+	      (apply append `(:note (:ref ,ref) ,@b1) b2))))
+   (raw-note-block ((b <- (+ raw-note-block-content) l* <- (* blankline)) b))
+   (raw-note-block* ((indent b <- raw-note-block) b))
+   (raw-note-block-content (((! blankline) l <- optionally-indented-line) l))
+
+   (inline-note (((token "^[") n <- (+ inline-note*) '#\]) (cons* :note n)))
+   (inline-note* (((! '#\]) i <- inline) i))
+
+   ;; indent
+   (non-indent-space (((token "   ")) :non-indent-space)
+		     (((token "  ")) :non-indent-space)
+		     (((token " ")) :non-indent-space)
+		     (((token "")) :non-indent-space))
+   (indent (('#\tab) :indent)
+	   (((token "    ")) :indent))
+   (indented-line ((indent l <- line) l))
+   (optionally-indented-line (((? indent) l <- line) l))
+
+   ;; line
+   (line ((l <- one-line nl) l)
+	 ;; ((l <- any+eof) l) ;; how to to EOF
+	 )
+
    ;; label
    (label (('#\[ (! '#\^ ) i* <- (* label-helper) '#\]) (cons :label i*)))
    (label-helper (((! '#\]) i <- inline) i))
