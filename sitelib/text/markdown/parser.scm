@@ -125,6 +125,8 @@
 (define *space-char-set* (string->char-set " \t"))
 (define *newline-char-set* (string->char-set "\n\r"))
 
+(define *nonspace-char-set* (char-set-difference char-set:full
+			     *special-char-set* *newline-char-set*))
 (define *normal-char-set*
   (char-set-difference char-set:full *special-char-set* *space-char-set*
 		       *newline-char-set*))
@@ -178,9 +180,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
        ;; correct?
        (char-with-charset char-set:full results))
      (define (nonspace-char results)
-       (char-with-charset 
-	(char-set-difference char-set:full
-			     *special-char-set* *newline-char-set*) results))
+       (char-with-charset *nonspace-char-set*
+	 results))
      (define (one-line results)
        (token-with-charset (char-set-difference char-set:full
 						*newline-char-set*)
@@ -192,7 +193,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   (if (parse-result-successful? result)
 	       (merge-result-errors result (parse-result-error result))
 	       result))))
-     ;; todo
+
      (define url
        (packrat-check (token-with-charset-parser
 		       (char-set-intersection char-set:letter char-set:ascii))
@@ -224,6 +225,58 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		       (make-result
 			(string-append result1 "@" result3)
 			results)))))))))
+     ;; code is better to do it here
+     (define (code starting-results)
+       ;; we also do until ticks5
+       (define (get-ticks results)
+	 (let loop ((results results) (count 0))
+	   (if (= count 5)
+	       (values count results)
+	       (let ((ch (parse-results-token-value results)))
+		 (if (eqv? #\` ch)
+		     (loop (parse-results-next results) (+ count 1))
+		     (values count results))))))
+       (define (read-code ticks results)
+	 (let loop ((acc '()) (results results))
+	   (let ((ch (parse-results-token-value results)))
+	     (cond ((not ch)
+		    (make-expected-result 
+		     (parse-results-position starting-results)
+		     "Unexpected EOF"))
+		   ((and (not (eqv? ch #\`))
+			 (char-set-contains? *nonspace-char-set* ch))
+		    (loop (cons ch acc) (parse-results-next results)))
+		   ((eqv? #\` ch)
+		    ;; check tick
+		    (let-values (((ticks2 next-results) (get-ticks results)))
+		      (if (= ticks ticks2)
+			  ;; ok ends
+			  (make-result 
+			   (list :code (list->string (reverse! acc)))
+			   next-results)
+			  (loop (cons ch acc) (parse-results-next results)))))
+		   (else 
+		    (loop (cons ch acc) (parse-results-next results)))))))
+	 
+       (let-values (((ticks results) (get-ticks starting-results)))
+	 (cond ((zero? ticks)
+		(make-expected-result (parse-results-position starting-results) 
+				      "inline code requires `"))
+	       ((eqv? (parse-results-token-value results) #\`)
+		(make-expected-result (parse-results-position starting-results)
+				      "more than max inline code `"))
+	       (else
+		(read-code ticks results)))))
+
+;; this goes to infinite loop ...
+;;      (define (any+eof results)
+;;        (let loop ((acc '()) (results results))
+;; 	 (let ((ch (parse-results-token-value results)))
+;; 	   (if ch
+;; 	       (loop (cons ch acc) (parse-results-next results))
+;; 	       (make-result (list->string (reverse! acc))
+;; 			    results)))))
+
      doc)
    (doc ((b* <- (* block)) (cons :doc b*)))
    (block (((* blankline) 
@@ -329,7 +382,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ((l <- link) l)
 	   ((n <- note-reference) n)
 	   ((i <- inline-note) i)
-	   ;; ((c <- code) c)
+	   ((c <- code) c)
 	   ;; ((r <- raw-html) r)
 	   ;; ((e <- entity) e)
 	   ;; ((e <- escaped-char) e)
@@ -474,7 +527,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    ;; line
    (line ((l <- one-line nl) l)
-	 ;; ((l <- any+eof) l) ;; how to to EOF
+	 ;; ((l <- any+eof) l) ;; how to handle EOF?
 	 )
 
    ;; label
