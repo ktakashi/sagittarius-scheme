@@ -39,8 +39,10 @@
 	    markdown-parser-expected)
     (import (rnrs)
 	    (rnrs mutable-pairs)
+	    (only (scheme base) list-set!)
 	    (packrat)
 	    (sagittarius)
+	    (sagittarius control)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut)
@@ -142,6 +144,10 @@
 (define *known-block-tags* 
   ;; TODO add
   '(div p table blockquote pre dl))
+
+;; internal parameter
+(define *reference* (make-parameter '()))
+(define *reference-ref* (make-parameter '()))
 
 #|
 Parser of Markdown
@@ -443,14 +449,28 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	       (cons* :string "!" (cdr l)))))
    ;; link
    (link ((l <- (/ explicit-link reference-link auto-link)) l))
-   (reference-link ((l <- reference-link-dobule) l)
-		   ((l <- reference-link-single) l))
+   (reference-link ((l <- (/ (reference-link-dobule) (reference-link-single)))
+		    l)
+		   #;((l <- reference-link-single) l))
    (reference-link-dobule ((a <- label spnl (! (token "[]")) b <- label)
-			   ;; TODO find reference
-			   (list :link a "" "")))
+			   (let ((r (list :link a "" ""))
+				 (refs (*reference-ref*)))
+			     (*reference-ref*
+			      (acons (cadr b)
+				     (cons r
+					   (string-append "[" (cadr a) "]"
+							  "[" (cadr b) "]"))
+				     refs))
+			     r)))
    (reference-link-single ((a <- label (? refls-hlp))
-			   ;; TODO find reference
-			   (list :link a "" "")))
+			   (let ((r (list :link a "" ""))
+				 (refs (*reference-ref*)))
+			     (*reference-ref*
+			      (acons (cadr a)
+				     (cons r
+					   (string-append "[" (cadr a) "]"))
+				     refs))
+			     r)))
    (refls-hlp ((spnl (token "[]")) :ignore))
 
    (explicit-link ((l <- label '#\( sp s <- source spnl t <- title sp '#\))
@@ -488,7 +508,10 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    ;; reference
    (reference ((non-indent-space (! (token "[]")) l <- label '#\: spnl
 				 s <- ref-src t <- ref-title (+ blankline))
-	       (list :reference l s t)))
+	       (let ((r (list :reference l s t))
+		     (refs (*reference*)))
+		 (*reference* (acons (cadr l) (cons s t) refs))
+		 r)))
    (ref-src ((c <- (+ nonspace-char)) (list->string c)))
    (ref-title (('#\" '#\") "")
 	      ((spnl t <- title-single) t)
@@ -585,8 +608,28 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 				 (block-tag '())
 			    ;; we don't use but need this
 			    :allow-other-keys)
+    (define (fixup-label r)
+      (let loop ((ref-ref (*reference-ref*)) (ref (*reference*)))
+	(if (null? ref-ref)
+	    r
+	    (let* ((refr (car ref-ref))
+		   (name (car refr))
+		   (e (cadr refr))
+		   (s (cddr refr)))
+	      (cond ((assoc name ref string=?) =>
+		     (lambda (slot)
+		       ;; ok found
+		       (list-set! e 2 (cadr slot))
+		       (list-set! e 3 (cddr slot))
+		       (loop (cdr ref-ref) ref)))
+		    (else
+		     (set-car! e s)
+		     (set-cdr! e '())
+		     (loop (cdr ref-ref) ref)))))))
     (parameterize ((inline-tags *known-inline-tags*)
-		   (block-tags *known-block-tags*))
+		   (block-tags *known-block-tags*)
+		   (*reference* '())
+		   (*reference-ref* '()))
       (unless (or (null? inline-tag)
 		  (list? inline-tag))
 	(assertion-violation 'parse-markdown
@@ -597,11 +640,11 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	(assertion-violation 'parse-markdown
 			     (format "list required but got ~s" block-tag)
 			     block-tag))
-      (inline-tags (append (inline-tags) inline-tag))
-      (block-tags (append (block-tags) block-tag))
+      ;;(inline-tags (append (inline-tags) inline-tag))
+      ;;(block-tags (append (block-tags) block-tag))
       (let ((result (parser (base-generator->results (generator p)))))
 	(if (parse-result-successful? result)
-	    (parse-result-semantic-value result)
+	    (fixup-label (parse-result-semantic-value result))
 	    (let ((e (parse-result-error result)))
 	      (raise-markdown-perser-error 'parse-markdown
 					   (parse-error-messages e)
