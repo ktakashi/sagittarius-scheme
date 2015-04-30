@@ -312,6 +312,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    (if (null? b)
 			(string-join l "\n")
 			(string-append "\n" (string-join l "\n")))))
+   ;; TODO add ``` ... ``` type of verbatim
+
    ;; horizontal-rule
    (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) :line)
 		    ((non-indent-space rule- sp nl (+ blankline)) :line)
@@ -374,8 +376,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (inlines ((i <- (+ inlines*)) i))
    (inlines* (((! endline) i <- inline (? endline)) i))
    (inline ((e <- endline) :eol)
-	   ((ul-or-star-line) :ul-or-star-line)
-	   ((space) :space)
+	   ((v <- ul-or-star-line) v)
+	   ((s <- space) s)
 	   ((s <- strong) s)
 	   ((e <- emph) e)
 	   ((i <- image) i)
@@ -388,7 +390,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ;; ((e <- escaped-char) e)
 	   ;; ((s <- smart) s)
 	   ((s <- str) s) ;; should be lower, otherwise lots of things fail
-	   ((s <- symbol) s)
+	   ((s <- symbol) (string s))
 	   )
 
    (str ((c* <- (+ normal-char) sc* <- (* str-chunk))
@@ -403,10 +405,10 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    (ul-or-star-line ((v <- (/ ul-line start-line)) v))
    (start-line (((token "****") v <- (* '#\*)) 
-		(string-appen "****" (list->string v)))
+		(string-append "****" (list->string v)))
 	       ((space-char v <- (+ '#\*) (& space-char)) (list->string v)))
    (ul-line (((token "____") v <- (* '#\_)) 
-	     (string-appen "____" (list->string v)))
+	     (string-append "____" (list->string v)))
 	    ((space-char v <- (+ '#\_) (& space-char)) (list->string v)))
 
    (emph ((v <- emph-star) v)
@@ -537,14 +539,14 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    ;; misc
    (blankline ((sp nl) :blankline))
    (sp (((* space-char)) :sp))
-   (space (((+ space-char)) :space))
+   (space (((+ space-char)) " "))
    (spnl ((sp (? nl sp)) :spnl))
-   (space-char (('#\space) :space)
-	       (('#\tab)   :space))
-   (nl   (('#\newline) :nl)
-	 (('#\return (? '#\newline)) :nl))
-   (white-space ((space-char) :whitespace)
-		((nl) :whitespace))
+   (space-char (('#\space) " ")
+	       (('#\tab)   "\t"))
+   (nl   (('#\newline) "\n")
+	 (('#\return (? '#\newline)) "\n"))
+   (white-space ((space-char) " ")
+		((nl) "\n"))
    ;; endline
    (endline ((linebreak) :eol)
 	    ((terminal-endline) :eol)

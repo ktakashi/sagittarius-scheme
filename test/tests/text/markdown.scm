@@ -60,6 +60,9 @@
 (test-parser '(:doc (:paragraph "hogehoge" "fugafuga")) 
 	     "hogehoge\nfugafuga\n\n")
 
+;; plain
+(test-parser '(:doc (:plain "#" " " "____" "****")) "# ____****")
+
 ;; verbatim
 (test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
 	     "    hogehoge\n    fugafuga\n")
