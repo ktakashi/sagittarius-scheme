@@ -171,6 +171,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
        (char-with-charset *special-char-set* results))
      (define (alphanumeric results) 
        (char-with-charset char-set:letter+digit results))
+     (define (number results) 
+       (char-with-charset char-set:digit results))
 
      (define (any-char results) 
        ;; correct?
@@ -229,10 +231,10 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    verbatim 
 		    note 
 		    reference 
-		    ;; horizontal-rule 
+		    horizontal-rule 
 		    heading
-		    ;;ordered-list
-		    ;;bullet-list
+		    ordered-list
+		    bullet-list
 		    ;;html-block
 		    ;;style-block
 		    para
@@ -257,6 +259,50 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    (if (null? b)
 			(string-join l "\n")
 			(string-append "\n" (string-join l "\n")))))
+   ;; horizontal-rule
+   (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) :line)
+		    ((non-indent-space rule- sp nl (+ blankline)) :line)
+		    ((non-indent-space rule_ sp nl (+ blankline)) :line))
+   (rule* (('#\* sp '#\* sp '#\* (* sp*)) :***))
+   (sp* ((sp '#\*) :*))
+   (rule- (('#\- sp '#\- sp '#\- (* sp-)) :---))
+   (sp- ((sp '#\-) :-))
+   (rule_ (('#\_ sp '#\_ sp '#\_ (* sp_)) :___))
+   (sp_ ((sp '#\_) :_))
+
+   ;; list
+   (bullet (((! horizontal-rule) non-indent-space 
+	     (/ ('#\+) ('#\*) ('#\-)) (+ space-char)) :bullet))
+   (bullet-list (((& bullet) l <- (/ (list-tight) (list-loose)))
+		 (cons :bullet-list l)))
+
+   (list-tight ((i <- (+ list-item-tight) (* blankline) 
+		   (! (/ (bullet) (enumerator)))) i))
+   (list-loose ((i <- (+ list-loose*)) i))
+   (list-loose* ((i <- list-item (* blankline)) (string-append i "\n\n")))
+
+   (list-item (((/ (bullet) (enumerator))
+		b <- list-block 
+		b* <- (* list-continuation-block))
+	       (apply string-append b b*)))
+   (list-item-tight (((/ (bullet) (enumerator))
+		      b <- list-block 
+		      b* <- (* list-item-tight*))
+		     (apply string-append b b*)))
+   (list-item-tight* (((! blankline) c <- list-continuation-block) c))
+
+   (list-block (((! blankline) l <- line l* <- (* list-block-line))
+		(string-append l "\n" (string-join l* "\n"))))
+   (list-continuation-block (((* blankline) l* <- (+ list-continuation-block*))
+			     (string-concatenate l*)))
+   (list-continuation-block* ((indent b <- list-block) b))
+
+   (list-block-line (((! blankline) (! (? indent) (/ (bullet) (enumerator)))
+		      (! horizontal-rule) l <- optionally-indented-line) l))
+
+   (enumerator ((non-indent-space (+ number) '#\. (+ space-char)) :enum))
+   (ordered-list (((& enumerator) l <- (/ (list-tight) (list-loose)))
+		  (cons :ordered-list l)))
 
    (para ((non-indent-space i* <- inlines (+ blankline)) (cons :paragraph i*)))
    (plain ((i* <- inlines) (cons :plain i*)))
