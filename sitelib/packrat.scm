@@ -345,6 +345,15 @@
 		   (return-results (reverse! vs) (or s result) k))
 		  (else result)))))))
 
+(define (packrat-peek parser k)
+  (lambda (results)
+    (let ((result (parser results)))
+      (if (parse-result-successful? result)
+	  (merge-result-errors ((k (parse-result-semantic-value result))
+				results)
+			       (parse-result-error result))
+	  result))))
+
 ;---------------------------------------------------------------------------
 
 ;;(define (object->external-representation o)
@@ -356,7 +365,7 @@
   (format "~s" o))
 
 (define-syntax packrat-parser
-  (syntax-rules (<- quote ! @ / = + * ?)
+  (syntax-rules (<- quote ! @ / = + * ? &)
     ((_ start (nonterminal (alternative body0 body ...) ...) ...)
      (let ()
        (define nonterminal
@@ -415,7 +424,13 @@
      (packrat-parser #f "alt" nt body (var <- (= 0 #f val val* ...) rest ...)))
     ((_ #f "alt" nt body (var <- (? val val* ...) rest ...))
      (packrat-parser #f "alt" nt body (var <- (= 0 1 val val* ...) rest ...)))
-    
+
+    ;; peek
+    ((_ #f "alt" nt body ((& val) rest ...))
+     (packrat-peek (packrat-parser #f "expr" nt () val)
+		   (lambda (result)
+		     (packrat-parser #f "alt" nt body (rest ...)))))
+
     ;; TODO this should be merged with "expr" entry
     ((_ #f "alt" nt body (var <- 'val rest ...))
      (packrat-check-base 'val
@@ -488,6 +503,7 @@
 		      ;; add temporary variable (may not be used in the end)
 		      (packrat-parser #f "expr" nt 
 				      (tmp var ...) (e2 ...)))))
+
     ;; handling special case for convenience.
     ((_ #f "expr" nt (var) ()) 
      (lambda (results) (make-result var results)))

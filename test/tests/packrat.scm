@@ -198,6 +198,22 @@
     (test-assert (parse-result-successful? r))
     (test-equal "alt (+)" '+ (parse-result-semantic-value r)))
 
+)
+
+;; peek
+(let ()
+  (define checker (packrat-parser expr
+				  (expr ((a <- '? (& '+)) a))))
+
+  (let* ((g (generator '((? . ?) (+))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (parse-result-successful? r))
+    (test-equal "peek" '? (parse-result-semantic-value r)))
+
+  (let* ((g (generator '((? . ?) (&))))
+	 (r (checker (base-generator->results g))))
+    (test-assert (not (parse-result-successful? r))))
+
 )  
 
 (test-end)
