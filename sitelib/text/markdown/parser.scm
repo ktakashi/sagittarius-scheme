@@ -41,6 +41,7 @@
 	    (rnrs mutable-pairs)
 	    (packrat)
 	    (sagittarius)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
@@ -254,8 +255,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v)))
    (verbatim-chunk ((b <- (* blankline) l <- (+ non-blank-indented-line))
 		    (if (null? b)
-			(string-concatenate l)
-			(apply string-append "\n" l))))
+			(string-join l "\n")
+			(string-append "\n" (string-join l "\n")))))
 
    (para ((non-indent-space i* <- inlines (+ blankline)) (cons :paragraph i*)))
    (plain ((i* <- inlines) (cons :plain i*)))

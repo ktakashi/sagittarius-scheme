@@ -60,6 +60,10 @@
 (test-parser '(:doc (:paragraph "hogehoge" "fugafuga")) 
 	     "hogehoge\nfugafuga\n\n")
 
+;; verbatim
+(test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
+	     "    hogehoge\n    fugafuga\n")
+
 ;; reference
 (test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")
 (test-parser '(:doc (:reference (:label "ref") "source " ""))
