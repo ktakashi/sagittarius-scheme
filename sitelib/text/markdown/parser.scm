@@ -320,12 +320,14 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (block-quote-next (((! '#\>) (! blankline) l <- line) (list l :eol)))
 
    ;; verbatim
-   (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v)))
+   (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v))
+	     (((token "```") nl v <- (+ non-backslash-line) (token "```") nl)
+	      (list :verbatim (string-join v "\n"))))
    (verbatim-chunk ((b <- (* blankline) l <- (+ non-blank-indented-line))
 		    (if (null? b)
 			(string-join l "\n")
 			(string-append "\n" (string-join l "\n")))))
-   ;; TODO add ``` ... ``` type of verbatim
+   (non-backslash-line (((! (token "```")) l <- line) l))
 
    ;; horizontal-rule
    (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) '(:line))

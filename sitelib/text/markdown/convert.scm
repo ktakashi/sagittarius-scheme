@@ -317,7 +317,7 @@
 	    (((:verbatim . code) . rest)
 	     ;; we need special treat for this
 	     (loop rest (cons `(pre ,(get-attribute :verbatim) 
-				    ,@(detail->sxml code))
+				    ,@code)
 				acc)))
 	    ;; for block html's content
 	    (((? string? text) . rest)

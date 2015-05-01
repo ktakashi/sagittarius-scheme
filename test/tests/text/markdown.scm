@@ -75,6 +75,9 @@
 ;; verbatim
 (test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
 	     "    hogehoge\n    fugafuga\n")
+;; ``` style
+(test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
+	     "```\nhogehoge\nfugafuga\n```\n")
 
 ;; reference
 (test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")
