@@ -53,11 +53,14 @@
 	     "[^note]: note\n    note2\n \n    note3\n")
 
 ;; inline note
+(test-parser '(:doc (:plain (:note "note"))) "^[note]")
+
+;; inline note
 (test-parser '(:doc (:header :h1 (:note "note"))) "# ^[note]\n")
 
 ;; block quote
-(test-parser '(:doc (:blockquote "hoge" "fuga" "\n")) ">hoge\n>fuga\n\n")
-(test-parser '(:doc (:blockquote "hoge" "fuga" "\n")) ">hoge\nfuga\n\n")
+(test-parser '(:doc (:blockquote "hoge" :eol "fuga" :eol)) ">hoge\n>fuga\n\n")
+(test-parser '(:doc (:blockquote "hoge" :eol "fuga" :eol)) ">hoge\nfuga\n\n")
 
 ;; paragraph
 (test-parser '(:doc (:paragraph "hogehoge" :eol "fugafuga" :eol)) 
@@ -90,5 +93,71 @@
 ;; inline code
 (test-parser '(:doc (:header :h1 (:code "code"))) "# `code`\n")
 (test-parser '(:doc (:header :h1 (:code "co`de"))) "# ``co`de``\n")
+
+;; line
+(test-parser '(:doc (:line)) "----\n\n")
+
+;; converter
+(define-syntax test-converter
+  (syntax-rules ()
+    ((_ sxml s-mark)
+     (test-equal s-mark sxml (markdown-sexp->sxml s-mark)))))
+
+;; line
+(test-converter '(div (@) (hr (@))) '(:doc (:line)))
+
+;; header
+(test-converter '(div (@) (h1 (@) "header")) '(:doc (:header :h1 "header")))
+(test-converter '(div (@) (h2 (@) "header")) '(:doc (:header :h2 "header")))
+
+;; paragraph
+(test-converter '(div (@) (p (@) "sentence")) '(:doc (:paragraph "sentence")))
+(test-converter '(div (@) (p (@) "sentence" "\n")) 
+		'(:doc (:paragraph "sentence" :eol)))
+(test-converter '(div (@) (p (@) "sentence1" "\n" "sentence2")) 
+		'(:doc (:paragraph "sentence1" :eol "sentence2")))
+
+;; blockquote
+(test-converter '(div (@) (blockquote (@) "sentence")) 
+		'(:doc (:blockquote "sentence")))
+(test-converter '(div (@) (blockquote (@) "sentence" "\n")) 
+		'(:doc (:blockquote "sentence" :eol)))
+(test-converter '(div (@) (blockquote (@) "sentence1" "\n" "sentence2")) 
+		'(:doc (:blockquote "sentence1" :eol "sentence2")))
+
+;; list
+(test-converter '(div (@) (ol (@) (li (@) "item1") (li (@) "item2")))
+		'(:doc (:ordered-list (:item "item1") (:item "item2"))))
+(test-converter '(div (@) (ul (@) (li (@) "item1") (li (@) "item2")))
+		'(:doc (:bullet-list (:item "item1") (:item "item2"))))
+
+;; plain
+(test-converter '(div (@) (p (@) "sentence")) '(:doc (:plain "sentence")))
+
+;; verbatim
+(test-converter '(div (@) (pre (@) "sentence")) '(:doc (:verbatim "sentence")))
+;; won't happen with parser
+(test-converter '(div (@) (pre (@) "sentence" "sentence2"))
+		'(:doc (:verbatim "sentence" "sentence2")))
+
+;; reference
+;; a bit tricky because all references are collected and appended
+;; to the bottom of the document
+(test-converter '(div (@) (div (@ (id "references"))
+			       (div (@)
+				    "[ref]: source 'title'")))
+		'(:doc (:reference (:label "ref") "source" "title")))
+(test-converter '(div (@) 
+		      (p (@)
+			 (a (@ (href "http://foo")
+			       (title "title"))
+			    "label"))
+		      (div (@ (id "references"))
+			   (div (@)
+				"[ref]: http://foo 'title'")))
+		'(:doc (:paragraph (:link (:label "label") "http://foo" "title"))
+		       (:reference (:label "ref") "http://foo" "title")))
+
+;; TODO inlines
 
 (test-end)

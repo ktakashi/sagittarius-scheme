@@ -302,15 +302,13 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	    ) b))
 
    (block-quote ((b <- block-quote-raw) (cons :blockquote (apply append b))))
-   (block-quote-raw ((b <- (+ block-quote-content)) b))
+   (block-quote-raw ((b <- (+ block-quote-content)) (apply append b)))
    (block-quote-content ((b1 <- block-quote-one
 			  b2 <- (* block-quote-next)
-			  bl <- (* blankline))
-			 (if (null? bl)
-			     (cons b1 b2)
-			     `(,b1 ,@b2 "\n"))))
-   (block-quote-one (('#\> (? '#\space) l <- line) l))
-   (block-quote-next (((! '#\>) (! blankline) l <- line) l))
+			  (* blankline))
+			 (cons b1 b2)))
+   (block-quote-one (('#\> (? '#\space) l <- line) (list l :eol)))
+   (block-quote-next (((! '#\>) (! blankline) l <- line) (list l :eol)))
 
    ;; verbatim
    (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v)))
