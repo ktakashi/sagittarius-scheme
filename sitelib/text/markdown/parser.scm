@@ -321,9 +321,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    ;; TODO add ``` ... ``` type of verbatim
 
    ;; horizontal-rule
-   (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) :line)
-		    ((non-indent-space rule- sp nl (+ blankline)) :line)
-		    ((non-indent-space rule_ sp nl (+ blankline)) :line))
+   (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) '(:line))
+		    ((non-indent-space rule- sp nl (+ blankline)) '(:line))
+		    ((non-indent-space rule_ sp nl (+ blankline)) '(:line)))
    (rule* (('#\* sp '#\* sp '#\* (* sp*)) :***))
    (sp* ((sp '#\*) :*))
    (rule- (('#\- sp '#\- sp '#\- (* sp-)) :---))
