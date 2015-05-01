@@ -82,8 +82,10 @@
 	     "[ref]: source (title)\n")
 
 ;; list
-(test-parser '(:doc (:ordered-list "item1\n" "item2\n")) "1. item1\n2. item2\n")
-(test-parser '(:doc (:bullet-list "item1\n" "item2\n")) "* item1\n* item2\n")
+(test-parser '(:doc (:ordered-list (:item "item1\n") (:item "item2\n")))
+	     "1. item1\n2. item2\n")
+(test-parser '(:doc (:bullet-list (:item "item1\n") (:item "item2\n")))
+	     "* item1\n* item2\n")
 
 ;; inline code
 (test-parser '(:doc (:header :h1 (:code "code"))) "# `code`\n")

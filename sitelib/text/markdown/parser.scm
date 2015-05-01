@@ -340,16 +340,16 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (list-tight ((i <- (+ list-item-tight) (* blankline) 
 		   (! (/ (bullet) (enumerator)))) i))
    (list-loose ((i <- (+ list-loose*)) i))
-   (list-loose* ((i <- list-item (* blankline)) (string-append i "\n\n")))
+   (list-loose* ((i <- list-item (* blankline)) i))
 
    (list-item (((/ (bullet) (enumerator))
 		b <- list-block 
 		b* <- (* list-continuation-block))
-	       (apply string-append b b*)))
+	       (list :item (apply string-append b b*))))
    (list-item-tight (((/ (bullet) (enumerator))
 		      b <- list-block 
 		      b* <- (* list-item-tight*))
-		     (apply string-append b b*)))
+		     (list :item (apply string-append b b*))))
    (list-item-tight* (((! blankline) c <- list-continuation-block) c))
 
    (list-block (((! blankline) l <- line l* <- (* list-block-line))
