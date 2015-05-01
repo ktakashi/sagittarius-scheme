@@ -13,6 +13,9 @@
 (test-parser '(:doc (:header :h6 "hoge__a")) "###### hoge__a\n")
 (test-parser '(:doc (:header :h6 "hoge'a")) "###### hoge'a\n")
 
+(test-parser '(:doc (:header :h2 "Header") (:header :h1 "Header2"))
+	     "Header\n------\n\nHeader2\n=======\n")
+
 ;; with inline
 (test-parser '(:doc (:header :h6 (:emph "hoge"))) "###### *hoge*\n")
 (test-parser '(:doc (:header :h6 (:strong "hoge"))) "###### **hoge**\n")
