@@ -152,17 +152,16 @@
 	    ;; otherone is just a label.
 	    (((:image (:link (:label label) source title)) . rest)
 	     (loop rest (cons `(img (@ (src ,(string-trim-both source))
-				       (alt ,(if (string-null? title)
-						 label
-						 title))))
+				       (alt ,label)
+				       (title ,title)))
 			      acc)))
 	    (((:image (:label label)) . rest) 
 	     (loop rest (cons (string-append "!" label) acc)))
 	    (((:link (:label label) source title) . rest)
 	     (loop rest (cons `(a (@ (href ,(string-trim-both source))
-				       (title ,(if (string-null? title)
-						   label
-						   title)))
+				     (title ,(if (string-null? title)
+						 label
+						 title)))
 				  ,label)
 			      acc)))
 	    (((:code code) . rest) (loop rest (cons `(code ,code) acc)))

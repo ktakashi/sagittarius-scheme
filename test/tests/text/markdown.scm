@@ -170,8 +170,11 @@
 ;; html-block
 (test-converter '(div (@) (table)) '(:doc (:html-block (table))))
 
-;; TODO inlines
-
-
+;; TODO more inlines
+(test-converter '(div (@) (p (@) (img (@ (src "image.jpg") 
+					 (alt "alt text")
+					 (title "title")))))
+		'(:doc (:plain (:image (:link (:label "alt text") 
+					      "image.jpg" "title")))))
 
 (test-end)
