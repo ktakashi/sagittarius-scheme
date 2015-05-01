@@ -377,7 +377,16 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (atx-heading ((t <- atx-start sp i* <- (+ atx-inline) (? sp (* '#\#) sp) nl)
 		 (cons t i*)))
 
-   (heading ((h <- atx-heading) h))
+   (setext-heading ((h <- setext-heading1) (cons :h1 h))
+		   ((h <- setext-heading2) (cons :h2 h)))
+   (setext-heading1 ((i <- (+ setext-line) nl setext-bottom1) i))
+   (setext-bottom1 (((+ '#\=) nl) :bottom1))
+   (setext-heading2 ((i <- (+ setext-line) nl setext-bottom2) i))
+   (setext-bottom2 (((+ '#\-) nl) :bottom2))
+   (setext-line (((! endline) i <- inline) i))
+
+   (heading ((h <- atx-heading) (cons :header h))
+	    ((h <- setext-heading) (cons :header h)))
 
    (inlines ((i <- (+ inlines*)) i))
    (inlines* (((! endline) i <- inline (? endline)) i))
@@ -623,8 +632,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		       (list-set! e 3 (cddr slot))
 		       (loop (cdr ref-ref) ref)))
 		    (else
-		     (set-car! e s)
-		     (set-cdr! e '())
+		     ;; make it as a label for my sake.
+		     (set-car! e :label)
+		     (set-cdr! e (list s))
 		     (loop (cdr ref-ref) ref)))))))
     (parameterize ((inline-tags *known-inline-tags*)
 		   (block-tags *known-block-tags*)

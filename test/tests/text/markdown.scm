@@ -9,36 +9,36 @@
     ((_ expected str)
      (test-equal str expected (parse-markdown (open-string-input-port str))))))
 
-(test-parser '(:doc (:h6 "hoge")) "###### hoge\n")
-(test-parser '(:doc (:h6 "hoge__a")) "###### hoge__a\n")
-(test-parser '(:doc (:h6 "hoge'a")) "###### hoge'a\n")
+(test-parser '(:doc (:header :h6 "hoge")) "###### hoge\n")
+(test-parser '(:doc (:header :h6 "hoge__a")) "###### hoge__a\n")
+(test-parser '(:doc (:header :h6 "hoge'a")) "###### hoge'a\n")
 
 ;; with inline
-(test-parser '(:doc (:h6 (:emph "hoge"))) "###### *hoge*\n")
-(test-parser '(:doc (:h6 (:strong "hoge"))) "###### **hoge**\n")
-(test-parser '(:doc (:h6 (:emph "hoge"))) "###### _hoge_\n")
-(test-parser '(:doc (:h6 (:strong "hoge"))) "###### __hoge__\n")
+(test-parser '(:doc (:header :h6 (:emph "hoge"))) "###### *hoge*\n")
+(test-parser '(:doc (:header :h6 (:strong "hoge"))) "###### **hoge**\n")
+(test-parser '(:doc (:header :h6 (:emph "hoge"))) "###### _hoge_\n")
+(test-parser '(:doc (:header :h6 (:strong "hoge"))) "###### __hoge__\n")
 
 ;; inline link
 ;; auto link
-(test-parser '(:doc (:h1 (:link (:label "http://hogehoge")
+(test-parser '(:doc (:header :h1 (:link (:label "http://hogehoge")
 				"http://hogehoge" "")))
 	     "# <http://hogehoge>\n")
-(test-parser '(:doc (:h1 (:link (:label "mailto:ktakashi@ymail.com")
+(test-parser '(:doc (:header :h1 (:link (:label "mailto:ktakashi@ymail.com")
 				"ktakashi@ymail.com" "")))
 	     "# <ktakashi@ymail.com>\n")
-(test-parser '(:doc (:h1 (:link (:label "mailto:ktakashi@ymail.com")
+(test-parser '(:doc (:header :h1 (:link (:label "mailto:ktakashi@ymail.com")
 				"ktakashi@ymail.com" "")))
 	     "# <mailto:ktakashi@ymail.com>\n")
 
 ;; explicit link
-(test-parser '(:doc (:h1 (:link (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:link (:label "link") "source " "title")))
 	     "# [link](source 'title')\n")
-(test-parser '(:doc (:h1 (:link (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:link (:label "link") "source " "title")))
 	     "# [link](source \"title\")\n")
 
 ;; image
-(test-parser '(:doc (:h1 (:image (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:image (:label "link") "source " "title")))
 	    "# ![link](source 'title')\n")
 
 ;; note
@@ -50,7 +50,7 @@
 	     "[^note]: note\n    note2\n \n    note3\n")
 
 ;; inline note
-(test-parser '(:doc (:h1 (:note "note"))) "# ^[note]\n")
+(test-parser '(:doc (:header :h1 (:note "note"))) "# ^[note]\n")
 
 ;; block quote
 (test-parser '(:doc (:blockquote "hoge" "fuga" "\n")) ">hoge\n>fuga\n\n")
@@ -83,7 +83,7 @@
 (test-parser '(:doc (:bullet-list "item1\n" "item2\n")) "* item1\n* item2\n")
 
 ;; inline code
-(test-parser '(:doc (:h1 (:code "code"))) "# `code`\n")
-(test-parser '(:doc (:h1 (:code "co`de"))) "# ``co`de``\n")
+(test-parser '(:doc (:header :h1 (:code "code"))) "# `code`\n")
+(test-parser '(:doc (:header :h1 (:code "co`de"))) "# ``co`de``\n")
 
 (test-end)
