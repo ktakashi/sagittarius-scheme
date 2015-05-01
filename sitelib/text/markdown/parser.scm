@@ -365,8 +365,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (ordered-list (((& enumerator) l <- (/ (list-tight) (list-loose)))
 		  (cons :ordered-list l)))
 
-   (para ((non-indent-space i* <- inlines (+ blankline)) (cons :paragraph i*)))
-   (plain ((i* <- inlines) (cons :plain i*)))
+   (para ((non-indent-space i* <- inlines (+ blankline)) 
+	  (cons :paragraph (apply append i*))))
+   (plain ((i* <- inlines) (cons :plain (apply append i*))))
    (atx-inline (((! nl) (! sp (* '#\#) sp nl) i <- inline) i))
    (atx-start (((token "######")) :h6)
 	      (((token "#####"))  :h5)
@@ -389,8 +390,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	    ((h <- setext-heading) (cons :header h)))
 
    (inlines ((i <- (+ inlines*)) i))
-   (inlines* (((! endline) i <- inline (? endline)) i))
-   (inline ((e <- endline) :eol)
+   (inlines* (((! endline) i <- inline e <- (? endline)) (cons i e)))
+   (inline ((e <- endline) e)
 	   ((v <- ul-or-star-line) v)
 	   ((s <- space) s)
 	   ((s <- strong) s)
@@ -452,10 +453,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    ;; image
    (image (('#\! l <- (/ explicit-link reference-link))
-	   (if (and (pair? l) (eq? (car l) :link))
-	       (begin (set-car! l :image) l)
-	       ;; TODO how should we handle
-	       (cons* :string "!" (cdr l)))))
+	   (list :image l)))
    ;; link
    (link ((l <- (/ explicit-link reference-link auto-link)) l))
    (reference-link ((l <- (/ (reference-link-dobule) (reference-link-single)))

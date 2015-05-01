@@ -41,7 +41,7 @@
 	     "# [link](source \"title\")\n")
 
 ;; image
-(test-parser '(:doc (:header :h1 (:image (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:image (:link (:label "link") "source " "title"))))
 	    "# ![link](source 'title')\n")
 
 ;; note
@@ -60,7 +60,7 @@
 (test-parser '(:doc (:blockquote "hoge" "fuga" "\n")) ">hoge\nfuga\n\n")
 
 ;; paragraph
-(test-parser '(:doc (:paragraph "hogehoge" "fugafuga")) 
+(test-parser '(:doc (:paragraph "hogehoge" :eol "fugafuga" :eol)) 
 	     "hogehoge\nfugafuga\n\n")
 
 ;; plain
