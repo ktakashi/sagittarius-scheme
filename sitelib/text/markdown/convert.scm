@@ -272,11 +272,9 @@
 			 acc)))
 	    (((:line) . rest)
 	     (loop (cdr sexp) (cons `(hr ,(get-attribute :line)) acc)))
-	    #;
-	    (((:html-block (:tag . name) (:attr . attr) . content) . rest)
-	     (loop (cdr sexp) (cons `(,(string->symbol name)
-				      (@ ,@(alist->attr attr))
-				      ,@(rec content #t)) acc)))
+	    (((:html-block content) . rest)
+	    ;; assume it's SXML style
+	     (loop rest (cons content acc)))
 	    (((:paragraph . content) . rest)
 	     (loop rest (cons `(p ,(get-attribute :paragraph)
 				  ,@(detail->sxml content))

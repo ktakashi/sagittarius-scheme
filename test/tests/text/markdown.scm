@@ -103,6 +103,9 @@
 (test-parser '(:doc (:plain " ")) "&#32;")
 (test-parser '(:doc (:plain (& "yen"))) "&yen;")
 
+;; escaped char
+(test-parser '(:doc (:plain (& "yen") "&" "yen;")) "&yen;\\&yen;")
+
 ;; converter
 (define-syntax test-converter
   (syntax-rules ()
@@ -164,6 +167,11 @@
 		'(:doc (:paragraph (:link (:label "label") "http://foo" "title"))
 		       (:reference (:label "ref") "http://foo" "title")))
 
+;; html-block
+(test-converter '(div (@) (table)) '(:doc (:html-block (table))))
+
 ;; TODO inlines
+
+
 
 (test-end)
