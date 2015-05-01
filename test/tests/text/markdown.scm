@@ -136,7 +136,7 @@
 
 ;; paragraph
 (test-converter '(div (@) (p (@) "sentence")) '(:doc (:paragraph "sentence")))
-(test-converter '(div (@) (p (@) "sentence" "\n")) 
+(test-converter '(div (@) (p (@) "sentence")) 
 		'(:doc (:paragraph "sentence" :eol)))
 (test-converter '(div (@) (p (@) "sentence1" "\n" "sentence2")) 
 		'(:doc (:paragraph "sentence1" :eol "sentence2")))
@@ -144,7 +144,7 @@
 ;; blockquote
 (test-converter '(div (@) (blockquote (@) "sentence")) 
 		'(:doc (:blockquote "sentence")))
-(test-converter '(div (@) (blockquote (@) "sentence" "\n")) 
+(test-converter '(div (@) (blockquote (@) "sentence")) 
 		'(:doc (:blockquote "sentence" :eol)))
 (test-converter '(div (@) (blockquote (@) "sentence1" "\n" "sentence2")) 
 		'(:doc (:blockquote "sentence1" :eol "sentence2")))

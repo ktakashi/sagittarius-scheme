@@ -191,7 +191,11 @@
 	     (loop rest (cons `(strong (@) ,code ,@(detail->sxml maybe)) acc)))
 	    (((:strike code maybe ...) . rest) 
 	     (loop rest (cons `(del (@) ,code ,@(detail->sxml maybe)) acc)))
-	    ((:eol . rest) (loop rest (cons "\n" acc)))
+	    ((:eol . rest) 
+	     ;; this emits a bit cleaner HTML.
+	     (if (null? rest)
+		 (loop rest acc)
+		 (loop rest (cons "\n" acc))))
 	    (((:item item ...) . rest) 
 	     (loop rest (cons `(li ,(get-attribute :item) ,@(detail->sxml item))
 			      acc)))
