@@ -2,7 +2,7 @@
 ;;;
 ;;; text/markdown.scm - Markdown utilities
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -30,6 +30,7 @@
 
 (library (text markdown)
     (export markdown-read
+	    string->markdown
 	    markdown-write
 	    parse-markdown
 	    markdown-sexp->sxml
@@ -42,17 +43,24 @@
 	    markdown-parser-expected)
     (import (rnrs)
 	    (clos user)
+	    (core errors)
 	    (text markdown parser)
 	    (text markdown convert))
 
-  (define-method markdown-read ((p <port>) . opt)
+  (define (markdown-read p :key (as 'sxml) :allow-other-keys opt)
     (let ((sexp (apply parse-markdown p opt)))
-      (apply markdown-sexp->string sexp opt)))
+      (case as
+	((sxml) (apply markdown-sexp->sxml sexp opt))
+	((html) (apply markdown-sexp->string sexp opt))
+	((sexp) sexp)
+	(else (assertion-violation 'markdown-read "unsupported type" as)))))
 
-  (define-method markdown-read ((s <string>) . opt)
+  (define (string->markdown s . opt)
     (apply markdown-read (open-string-input-port s) opt))
 
   ;; for now just stub
-  (define-generic markdown-write)
+  (define (markdown-write . ignore)
+    (implementation-restriction-violation 'markdown-write
+					  "not supported yet"))
 
   )

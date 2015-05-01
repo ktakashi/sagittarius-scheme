@@ -328,8 +328,11 @@
       (rec sexp #f)
       ))
 
-  (define (markdown-sexp->string sexp . opts)
+  (define (markdown-sexp->string sexp :key (no-indent #f) 
+				 :allow-other-keys opts)
     (let ((sxml (apply markdown-sexp->sxml sexp opts)))
-      (srl:sxml->html sxml)))
+      (if no-indent
+	   (srl:sxml->html-noindent sxml)
+	   (srl:sxml->html sxml))))
 
   )

@@ -188,4 +188,15 @@
 		'(:doc (:plain (:image (:link (:label "alt text") 
 					      "image.jpg" "title")))))
 
+;; high level APIs
+
+(define-syntax test-reader
+  (syntax-rules ()
+    ((_ expected str opts ...)
+     (test-equal str expected (string->markdown str opts ...)))))
+
+(test-reader '(div (@) (h1 (@) "header")) "# header\n")
+(test-reader "<div><h1>header</h1></div>" "# header\n" :as 'html :no-indent #t)
+(test-reader '(:doc (:header :h1 "header")) "# header\n" :as 'sexp)
+
 (test-end)
