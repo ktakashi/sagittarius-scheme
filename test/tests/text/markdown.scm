@@ -118,8 +118,8 @@
 ;; converter
 (define-syntax test-converter
   (syntax-rules ()
-    ((_ sxml s-mark)
-     (test-equal s-mark sxml (markdown-sexp->sxml s-mark)))))
+    ((_ sxml s-mark opts ...)
+     (test-equal s-mark sxml (markdown-sexp->sxml s-mark opts ...)))))
 
 ;; line
 (test-converter '(div (@) (hr (@))) '(:doc (:line)))
@@ -164,7 +164,8 @@
 (test-converter '(div (@) (div (@ (id "references"))
 			       (div (@)
 				    "[ref]: source 'title'")))
-		'(:doc (:reference (:label "ref") "source" "title")))
+		'(:doc (:reference (:label "ref") "source" "title"))
+		:no-reference #f)
 (test-converter '(div (@) 
 		      (p (@)
 			 (a (@ (href "http://foo")
@@ -174,7 +175,8 @@
 			   (div (@)
 				"[ref]: http://foo 'title'")))
 		'(:doc (:paragraph (:link (:label "label") "http://foo" "title"))
-		       (:reference (:label "ref") "http://foo" "title")))
+		       (:reference (:label "ref") "http://foo" "title"))
+		:no-reference #f)
 
 ;; html-block
 (test-converter '(div (@) (table)) '(:doc (:html-block (table))))
