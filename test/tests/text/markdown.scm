@@ -47,10 +47,13 @@
 ;; note
 (test-parser '(:doc (:note (:ref "note") "note"))
 	     "[^note]: note\n")
-(test-parser '(:doc (:note (:ref "note") "note" "note2"))
+(test-parser '(:doc (:note (:ref "note") "note" :eol "note2"))
 	     "[^note]: note\n    note2\n")
-(test-parser '(:doc (:note (:ref "note") "note" "note2" "note3"))
+(test-parser '(:doc (:note (:ref "note") "note" :eol "note2" :eol "note3"))
 	     "[^note]: note\n    note2\n \n    note3\n")
+;; note with code
+(test-parser '(:doc (:note (:ref "note") "note" " " (:code "code")))
+	     "[^note]: note `code`\n")
 
 ;; inline note
 (test-parser '(:doc (:plain (:note "note"))) "^[note]")
@@ -89,6 +92,9 @@
 	     "1. item1\n2. item2\n")
 (test-parser '(:doc (:bullet-list (:item "item1") (:item "item2")))
 	     "* item1\n* item2\n")
+;; list with inline
+(test-parser '(:doc (:bullet-list (:item "item1" " " (:code "code"))))
+	     "* item1 `code`\n")
 
 ;; inline code
 (test-parser '(:doc (:header :h1 (:code "code"))) "# `code`\n")
