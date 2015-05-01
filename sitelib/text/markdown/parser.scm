@@ -663,7 +663,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		   (name (car refr))
 		   (e (cadr refr))
 		   (s (cddr refr)))
-	      (cond ((assoc name ref string=?) =>
+	      (cond ((assoc name ref string-ci=?) =>
 		     (lambda (slot)
 		       ;; ok found
 		       (list-set! e 2 (cadr slot))
@@ -682,7 +682,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	  (unless (null? note-ref)
 	    (let* ((note (car note-ref))
 		   (ref (cadr note)))
-	      (unless (assoc ref notes string=?)
+	      (unless (assoc ref notes string-ci=?)
 		(set-car! note :label)
 		(set-cdr! note (list (string-append "[^" ref "]"))))
 	      (loop (cdr note-ref) notes)))))
