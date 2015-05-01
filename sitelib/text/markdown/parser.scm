@@ -2,7 +2,7 @@
 ;;;
 ;;; text/markdown/parser.scm - Parser for Markdown text
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -38,372 +38,579 @@
 	    markdown-parser-position
 	    markdown-parser-expected)
     (import (rnrs)
+	    (rnrs mutable-pairs)
+	    (only (scheme base) list-set!)
 	    (packrat)
 	    (sagittarius)
+	    (sagittarius control)
+	    (util list)
+	    (srfi :1 lists)
+	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
 
-  ;; lexical generator
-  (define (generator p)
-    (let ((ateof #f)
-	  (pos (top-parse-position (cond ((car (port-info p)))
-					 (else "<?>")))))
-      (lambda ()	
-	(if ateof
-	    (values pos #f)
-	    (let ((x (read-char p)))
-	      (if (eof-object? x)
-		  (begin
-		    (set! ateof #t)
-		    (values pos #f))
-		  (let ((old-pos pos))
-		    (set! pos (update-parse-position pos x))
-		    (values old-pos (cons x x)))))))))
+;; lexical generator
+(define (generator p)
+  (let ((ateof #f)
+	(pos (top-parse-position (cond ((car (port-info p)))
+				       (else "<?>")))))
+    (lambda ()	
+      (if ateof
+	  (values pos #f)
+	  (let ((x (read-char p)))
+	    (if (eof-object? x)
+		(begin
+		  (set! ateof #t)
+		  (values pos #f))
+		(let ((old-pos pos))
+		  (set! pos (update-parse-position pos x))
+		  (values old-pos (cons x x)))))))))
 
-  ;; helper for tokens
-  (define (token str)
+;; helper for tokens
+(define (token str)
+  (lambda (starting-results)
+    (let loop ((pos 0) (results starting-results))
+      (if (= pos (string-length str))
+	  (make-result str results)
+	  (let ((ch (parse-results-token-value results)))
+	    (if (and ch (char=? ch (string-ref str pos)))
+		(loop (+ pos 1) (parse-results-next results))
+		(make-expected-result
+		 (parse-results-position starting-results) str)))))))
+
+(define (min-max char/pred/charset :optional (min 0) (max #f))
+  (let ((pred (cond ((char? char/pred/charset)
+		     (lambda (c) (char=? char/pred/charset c)))
+		    ((procedure? char/pred/charset) char/pred/charset)
+		    ((char-set? char/pred/charset)
+		     (lambda (c) (char-set-contains? char/pred/charset c)))
+		    (else
+		     (assertion-violation 
+		      'min-max
+		      (format "character or procedure required but got ~s"
+			      char/pred) char/pred))))
+	(required (format "~a{~a,~a}" char/pred/charset min (if max max ""))))
     (lambda (starting-results)
-      (let loop ((pos 0) (results starting-results))
-	(if (= pos (string-length str))
-	    (make-result str results)
-	    (let ((ch (parse-results-token-value results)))
-	      (if (and ch (char=? ch (string-ref str pos)))
-		  (loop (+ pos 1) (parse-results-next results))
-		  (make-expected-result
-		   (parse-results-position starting-results) str)))))))
+      (let loop ((count 0) (results starting-results) (acc '()))
+	(let ((c (parse-results-token-value results)))
+	  (if (and c (pred c))
+	      (loop (+ count 1) (parse-results-next results) (cons c acc))
+	      (cond ((or (and max (<= min count max)) ;; when max is given
+			 (and (not max) (<= min count)))
+		     (make-result (list->string (reverse! acc)) results))
+		    (else
+		     (make-expected-result
+		      (parse-results-position starting-results)
+		      required)))))))))
 
-  (define (min-max char/pred/charset :optional (min 0) (max #f))
-    (let ((pred (cond ((char? char/pred/charset)
-		       (lambda (c) (char=? char/pred/charset c)))
-		      ((procedure? char/pred/charset) char/pred/charset)
-		      ((char-set? char/pred/charset)
-		       (lambda (c) (char-set-contains? char/pred/charset c)))
-		      (else
-		       (assertion-violation 
-			'min-max
-			(format "character or procedure required but got ~s"
-				char/pred) char/pred))))
-	  (required (format "~a{~a,~a}" char/pred/charset min (if max max ""))))
-      (lambda (starting-results)
-	(let loop ((count 0) (results starting-results) (acc '()))
-	  (let ((c (parse-results-token-value results)))
-	    (if (and c (pred c))
-		(loop (+ count 1) (parse-results-next results) (cons c acc))
-		(cond ((or (and max (<= min count max)) ;; when max is given
-			   (and (not max) (<= min count)))
-		       (make-result (list->string (reverse! acc)) results))
-		      (else
-		       (make-expected-result
-			(parse-results-position starting-results)
-			required)))))))))
+(define (one-of-token tokens)
+  (lambda (starting-results)
+    (let outer ((tokens tokens))
+      (if (null? tokens)
+	  (make-expected-result
+	   (parse-results-position starting-results) tokens)
+	  (let ((str (symbol->string (car tokens))))
+	    (let loop ((pos 0) (results starting-results))
+	      (if (= pos (string-length str))
+		  (make-result str results)
+		  (let ((ch (parse-results-token-value results)))
+		    (if (and ch (char=? ch (string-ref str pos)))
+			(loop (+ pos 1) (parse-results-next results))
+			(outer (cdr tokens)))))))))))
 
-  (define (one-of-token tokens)
-    (lambda (starting-results)
-      (let outer ((tokens tokens))
-	(if (null? tokens)
-	    (make-expected-result
-	     (parse-results-position starting-results) tokens)
-	    (let ((str (symbol->string (car tokens))))
-	      (let loop ((pos 0) (results starting-results))
-		(if (= pos (string-length str))
-		    (make-result str results)
-		    (let ((ch (parse-results-token-value results)))
-		      (if (and ch (char=? ch (string-ref str pos)))
-			  (loop (+ pos 1) (parse-results-next results))
-			  (outer (cdr tokens)))))))))))
+(define (combine-pred . preds)
+  (lambda (ch)
+    (exists (cut <> ch) preds)))
 
-  (define (combine-pred . preds)
-    (lambda (ch)
-      (exists (cut <> ch) preds)))
+;; TODO union with extended special char
+(define *special-char-set* (string->char-set "~*_`&[]()<!#\\'\""))
 
-  ;; should not contain linefeed
-  (define *any-sets* (char-set-delete char-set:full #\linefeed #\return))
-  ;; id should not contain #\[ and #\]
-  (define *id-sets* (char-set-delete *any-sets* #\" #\[ #\]))
-  ;; RFC 2396 (#\( and #\) are not in it)
-  (define *url-sets* (char-set-union
-		      char-set:letter+digit
-		      (string->char-set "-_.!~*'%;/?:@&=+$,")))
-  (define *code-span-sets* 
-    (char-set-delete char-set:full #\` #\linefeed #\return))
-  (define *plain-sets*
-    (char-set-delete char-set:full #\linefeed #\return #\`
-		     #\_ #\- #\* #\[ #\] #\: #\< #\= #\" #\! #\#))
-  (define *no-linefeed-ws-sets*
-    (char-set-delete char-set:whitespace #\return #\linefeed))
+(define *space-char-set* (string->char-set " \t"))
+(define *newline-char-set* (string->char-set "\n\r"))
 
-  (define *html-char-sets*
-    (char-set-delete char-set:full #\<))
+(define *nonspace-char-set* (char-set-difference char-set:full
+			     *space-char-set* *newline-char-set*))
+(define *normal-char-set*
+  (char-set-difference char-set:full *special-char-set* *space-char-set*
+		       *newline-char-set*))
+;; parameters
+(define inline-tags (make-parameter '()))
+(define block-tags (make-parameter '()))
 
-  (define *header-char-sets*
-    (char-set-delete char-set:full #\linefeed #\return #\#))
+(define *known-inline-tags* 
+  ;; TODO add
+  ;; we need not a literal list
+  '(a img span code b strong strike i abbr address br hr sub sup))
 
-  (define *attribute-value-sets*
-    (char-set-delete char-set:full #\"))
-  
-  ;; parameters
-  (define inline-tags (make-parameter '()))
-  (define block-tags (make-parameter '()))
+(define *known-block-tags* 
+  ;; TODO add
+  '(div p table blockquote pre dl))
 
-  (define *known-inline-tags* 
-    ;; TODO add
-    ;; we need not a literal list
-    '(a img span code b strong strike i abbr address br hr sub sup))
-
-  (define *known-block-tags* 
-    ;; TODO add
-    '(div p table blockquote pre dl))
+;; internal parameter
+(define *reference* (make-parameter '()))
+(define *note-reference* (make-parameter '()))
 
 #|
-BNF of Markdown,
-
-Doc ::= Element*
-Element ::= Paragraph | Header | List | Blockquote | Line
-         |  CodeBlock | InlineHtml | BlockHtml | Reference
-Paragraph ::= Inline* Linefeed{2,}
-Inline ::= (Text | Emphasis | Link | Image | CoseSpan | InlineHtml)
-Header ::= Setext-Style | Atx-Style
-Setext-Style ::= Inline+ Linefeed ('=' | '-')+
-Atx-Style ::= '#'{1,6} Inline+ '#'*
-List ::= (Number '.' SP+ Inline+) (Linefeed List)*
-      |  ('*' SP+ Inline+) (Linefeed List)*
-Blockquote ::= '>' SP* Paragraph
-            |  '>' SP* Linefeed (Blockquote)*
-Line ::= ( (SP* '-') | (SP* '*') ){3,} Linefeed
-CodeBlock ::= SP{4,} Inline+ Linefeed
-           |  '`'{3,} Linefeed Text Linefeed '`'{3,}
-BlockHtml ::= '<' (div|p|table|pre) (SP+ HtmlAttribute)* '>'
-              (Text | BlockHtml | InlineHtml)+ 
-              '<' '/' (div|p|table|pre) '>'
-InlineHtml ::= '<' ({not block html}) (SP+ HtmlAttribute)* '>'
-               (Text | InlineHtml)+
-               '<' '/' ({not block html}) '>'
-Text ::= ANY
-Emphasis ::= '*' Text '*' | '**' Text '**'
-          |  '_' Text '_' | '__' Text '__'
-Link ::= '[' ID ']' '(' URL ('"' Text '"')? ')'
-ID ::= Text
-Image ::= '!' '[' ID ']' '(' URL ('"' Text '"')? ')'
-CodeSpan ::= '`' ANY '`'
-Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
+Parser of Markdown
+Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 |#
-  ;; (packrat) does not support *, +, and ?. so we need to write the definition
-  ;; kinda awkward way.
-  ;; for now does not accept tab
-  (define markdown-parser
-    (packrat-parser
-     (begin
-       (define (token-with-charset sets results)
+(define markdown-parser
+  (packrat-parser
+   (begin
+     (define (token-with-charset sets results)
+       (let loop ((acc '()) (results results))
+	 (let ((ch (parse-results-token-value results)))
+	   (cond ((and ch (char-set-contains? sets ch))
+		  (loop (cons ch acc) (parse-results-next results)))
+		 ((zero? (length acc))
+		  (make-expected-result
+		   (parse-results-position results) "<?>"))
+		 (else
+		  (make-result (list->string (reverse! acc)) results))))))
+     (define (char-with-charset sets results)
+       (let ((ch (parse-results-token-value results)))
+	 (if (and ch (char-set-contains? sets ch))
+	     (make-result ch (parse-results-next results))
+	     (make-expected-result
+		 (parse-results-position results) "<?>"))))
+     
+     (define (normal-char results) 
+       (char-with-charset *normal-char-set* results))
+     (define (symbol results) 
+       (char-with-charset *special-char-set* results))
+     (define (alphanumeric results) 
+       (char-with-charset char-set:letter+digit results))
+     (define (number results) 
+       (char-with-charset char-set:digit results))
+
+     (define (any-char results) 
+       ;; correct?
+       (char-with-charset char-set:full results))
+     (define (nonspace-char results)
+       (char-with-charset *nonspace-char-set*
+	 results))
+     (define (one-line results)
+       (token-with-charset (char-set-difference char-set:full
+						*newline-char-set*)
+			   results))
+
+     (define (token-with-charset-parser sets)
+       (lambda (results)
+	 (let ((result (token-with-charset sets results)))
+	   (if (parse-result-successful? result)
+	       (merge-result-errors result (parse-result-error result))
+	       result))))
+
+     (define url
+       (packrat-check (token-with-charset-parser
+		       (char-set-intersection char-set:letter char-set:ascii))
+	 (lambda (result1)
+	   (packrat-check (token "://")
+	      (lambda (result2)
+		(packrat-check (token-with-charset-parser
+				(char-set-difference char-set:full
+				  (string->char-set "\r\n>")))
+		   (lambda (result3)
+		     (lambda (results)
+		       (make-result
+			(string-append result1 "://" result3)
+			results)))))))))
+     
+     (define email
+       (packrat-check (token-with-charset-parser
+		       (char-set-union
+			(char-set-intersection char-set:letter char-set:ascii)
+			(string->char-set "-+_./!%~$")))
+	 (lambda (result1)
+	   (packrat-check (token "@")
+	      (lambda (result2)
+		(packrat-check (token-with-charset-parser
+				(char-set-difference char-set:full
+				     (string->char-set "\r\n>")))
+		   (lambda (result3)
+		     (lambda (results)
+		       (make-result
+			(string-append result1 "@" result3)
+			results)))))))))
+     ;; code is better to do it here
+     (define (code starting-results)
+       ;; we also do until ticks5
+       (define (get-ticks results)
+	 (let loop ((results results) (count 0))
+	   (if (= count 5)
+	       (values count results)
+	       (let ((ch (parse-results-token-value results)))
+		 (if (eqv? #\` ch)
+		     (loop (parse-results-next results) (+ count 1))
+		     (values count results))))))
+       (define (read-code ticks results)
 	 (let loop ((acc '()) (results results))
 	   (let ((ch (parse-results-token-value results)))
-	     (cond ((and ch (char-set-contains? sets ch))
+	     (cond ((not ch)
+		    (make-expected-result 
+		     (parse-results-position starting-results)
+		     "Unexpected EOF"))
+		   ((and (not (eqv? ch #\`))
+			 (char-set-contains? *nonspace-char-set* ch))
 		    (loop (cons ch acc) (parse-results-next results)))
-		   ((zero? (length acc))
-		    (make-expected-result
-		     (parse-results-position results) "<?>"))
-		   (else
-		    (make-result (list->string (reverse! acc)) results))))))
-       ;; for block html
-       (define (html-chars results)
-	 (token-with-charset *html-char-sets* results))
-       (define (any-chars results)
-	 (token-with-charset *any-sets* results))
-       (define (sub-set set . diffs)
-	 (let ((set (apply char-set-delete set diffs)))
-	   (lambda (results)
-	     (token-with-charset set results))))
-       (define (id results)
-	 (token-with-charset *id-sets* results))
-       (define (url results)
-	 (token-with-charset *url-sets* results))
-       (define (code-span-chars results)
-	 (token-with-charset *code-span-sets* results))
-       (define (eof? results)
-	 (let ((ch (parse-results-token-value results)))
-	   (if (eof-object? ch)
-	       (make-result ch results)
-	       (make-expected-result
-		(parse-results-position results) "#<eof>"))))
-       (define (number results)
-	 (token-with-charset char-set:digit results))
-       (define (plain-chars results)
-	 (token-with-charset *plain-sets* results))
-       ;; TODO I think except #\" but I'm not sure so for now the same as URL.
-       (define (title results)
-	 (token-with-charset *attribute-value-sets* results))
-       (define (h-chars results)
-	 (token-with-charset *header-char-sets* results))
-       (define (attr-chars results)
-	 (token-with-charset *attribute-value-sets* results))
-       ;; for line
-       (define (line-def char)
-	 (lambda (starting-results)
-	   (let loop ((results starting-results) (appear 0))
-	     (let ((ch (parse-results-token-value results)))
-	       (cond ((and ch
-			   (or (char=? ch char)
-			       (char-set-contains? *no-linefeed-ws-sets* ch)))
-		      (loop (parse-results-next results)
-			    (if (char=? ch char) (+ appear 1) appear)))
-		     ((and (positive? appear) ch (char=? ch #\linefeed))
-		      (make-result "---" results))
-		     (else
-		      (make-expected-result
-		       (parse-results-position starting-results) "---")))))))
-       doc)
-     (doc ((es <- elements) (cons :doc es))
-	  (() (list :doc))) ;; empty document
-     (elements ((e <- entry es <- elements) (cons e es))
-	       (() '()))
-     (entry ((h <- header)      h)
-	    ((b <- block-quote) b)
-	    ((l <- line)        l)
-	    ((s <- separator)   s)
-	    ((i <- inline-html) i)
-	    ((r <- reference)   r)
-	    ;; blocks must be lower order
-	    ((c <- code-block)  c)
-	    ((b <- block-html)  b)
-	    ((l <- mlist)       l)
-	    ((p <- paragraph)   p))
-     ;; TODO Should we store this to somewhere or into the AST?
-     ;; first the most toplevel elements
-     (paragraph ((i <- inlines separator) (cons* :paragraph i)))
-     ;; (p-entry ((i <- inlines linefeed) i))
-     (separator (((min-max (lambda (c)
-			     (char-set-contains? *no-linefeed-ws-sets* c)) 0)
-		  linefeed) :separator)
-		((eof?) :separator))
-     ;; inline elements
-     (inlines ((i <- inline is <- inlines) (cons i is))
-	      (() '()))
-     (inline ((e <- emphasis) e)
-	     ((i <- image) i) ;; image must be higher
-	     ((l <- link) l)
-	     ((c <- code-span) c)
-	     ((i <- inline-html) i)
-	     ;; ah, i want a smart solution
-	     ((p <- plain) p)
-	     ((t <- text) t))
-     ;; headers
-     (header ((h <- atx-style linefeed)    (cons :header h))
-	     ((h <- setext-style linefeed) (cons :header h)))
-     (setext-style ((t <- h-chars linefeed (min-max #\= 1)) (list :h1 t))
-		   ((t <- h-chars linefeed (min-max #\- 1)) (list :h2 t)))
-     (atx-style (((token "######") t <- h-chars (min-max #\#)) (list :h6 t))
-		(((token "#####") t <- h-chars (min-max #\#))  (list :h5 t))
-		(((token "####") t <- h-chars (min-max #\#))   (list :h4 t))
-		(((token "###") t <- h-chars (min-max #\#))    (list :h3 t))
-		(((token "##") t <- h-chars (min-max #\#))     (list :h2 t))
-		(((token "#") t <- h-chars (min-max #\#))      (list :h1 t)))
-     ;; block quote
-     (block-quote (('#\> (min-max char-whitespace?) p <- inlines linefeed)
-		   (cons :block-quote p))
-		  (('#\> (min-max char-whitespace?) linefeed
-		    b <- block-quote)
-		   b))
-     ;; lists
-     (mlist ((l <- star-lists linefeed) (cons :star-list l))
-	    ((l <- number-lists linefeed) (cons :number-list l)))
-     (star-lists ((l <- star-list ls <- star-lists) (cons l ls))
-		 (() '()))
-     (star-list ((space* (/ ('#\*) ('#\-)) space+ i <- inlines linefeed) i))
-     (number-lists ((l <- number-list ls <- number-lists) (cons l ls))
-		   (() '()))
-     (number-list ((space* number '#\. space+ i <- inlines linefeed) i))
-     ;; line
-     (line (((line-def #\-) linefeed) (list :line))
-	   (((line-def #\*) linefeed) (list :line)))
-     ;; code block
-     ;; we also supports '```'
-     ;; for text block we probably don't need separator but
-     ;; to make things consistency...
-     (code-block (((token "    ") c <- inlines separator)
-		  (cons :code-block c))
-		 (((min-max #\` 3) linefeed 
-		   c <- code-elements 
-		   (min-max #\` 3) separator)
-		  (list :code-block (list :plain c))))
-     (code-elements ((e <- code-element linefeed 
-		      e* <- code-elements)
-		     (if (null? e*)
-			 (string-append e "\n")
-			 (string-append e "\n" e*)))
-		    (() '()))
-     (code-element (((! (min-max #\` 3)) e <- text) (cadr e)))
-     ;; block html
-     (block-html (('#\< s <- block-tag attr <- html-attributes space* '#\>
-		   h <- block-contents
-		   (token "</") e <- block-tag '#\> linefeed)
-		  ;; TODO check tag
-		  (cons* :html (cons :tag s) (cons :attr attr) h)))
-     (block-tag ((t <- (one-of-token (block-tags))) t))
-     (block-contents ((b <- block-html bs <- block-contents) (cons b bs))
-		     ((i <- inline-html bs <- block-contents) (cons i bs))
-		     ((t <- html-chars bs <- block-contents)
-		      (cons t bs))
-		     (() '()))
-     ;; inline html
-     (inline-html ((space* '#\< s <- inline-tag
-			   attr <- html-attributes space* '#\>
-		   h <- inline-contents
-		   (token "</") e <- inline-tag '#\>)
-		  ;; TODO check tag
-		  (cons* :html (cons :tag s) (cons :attr attr) h)))
-     (inline-tag ((t <- (one-of-token (inline-tags))) t))
-     (inline-contents ((t <- html-chars is <- inline-contents) (cons t is))
-		      ((i <- inline-html is <- inline-contents) (cons i is))
-		      (() '()))
-     ;; for now attribute value is the same as plain
-     (html-attributes ((attr <- html-attribute attrs <- html-attributes)
-		       (cons attr attrs))
-		      (() '()))
-     (html-attribute ((space+ name <- plain '#\= '#\" value <- attr-chars '#\")
-		      (cons (cadr name) value)))
-     ;; basic inline elements
-     (text ((t <- any-chars) (list :text t)))
-     (plain ((p <- plain-chars) (list :plain p)))
-     (emphasis (('#\* t <- (sub-set *any-sets* #\*) '#\*)
-		(cons :italic t))
-	       (((token "**") t <- (sub-set *any-sets* #\*) (token "**"))
-		(cons :bold t))
-	       (('#\_ t <- (sub-set *any-sets* #\_) '#\_)
-		(cons :italic t))
-	       (((token "__") t <- (sub-set *any-sets* #\_) (token "__"))
-		(cons :bold t)))
-     (link (( '#\[ i <- id '#\] '#\( u <- url space* '#\" t <- title '#\" '#\))
-	    (list :link (cons :url u) (cons :title t) i))
-	   (('#\[ i <- id '#\] '#\( u <- url '#\))
-	    (list :link (cons :url u) i))
-	   (('#\[ i <- id '#\] '#\[ ref <- id '#\])
-	    (list :link (cons :id ref) i))
-	   (('#\[ i <- id '#\] '#\[ '#\])
-	    (list :link (cons :id i) i)))
-     (image (('#\! '#\[ i <- id '#\] '#\( u <- url space* 
-	      '#\" t <- title '#\" '#\))
-	     (list :image (cons :url u) (cons :title t) i))
-	    (('#\! '#\[ i <- id '#\] '#\( u <- url '#\))
-	     (list :image (cons :url u) i))	    
-	    (('#\! '#\[ i <- id '#\] '#\[ ref <- id '#\])
-	     (list :image (cons :id ref) i))
-	    (('#\! '#\[ i <- id '#\] '#\[ '#\])
-	     (list :image (cons :id i) i)))
-     (code-span (('#\` t <- code-span-chars '#\`) (cons :code-span t)))
-     ;; reference (tag (:url . url) id)
-     (reference (((min-max #\space 0 3) '#\[ i <- id '#\]
-		  '#\: space+ u <- url space+ '#\" t <- title '#\")
-		 (cons* :reference i u t))
-		(((min-max #\space 0 3) '#\[ i <- id '#\] '#\: space+ u <- url)
-		 (cons* :reference i u #f)))
-     ;; linefeed can be \n, \r or \r\n
-     (linefeed (('#\linefeed) "\n")
-	       (('#\return) "\n")
-	       (((token "\r\n")) "\n"))
-     (space+ (((min-max *no-linefeed-ws-sets* 1)) '()))
-     (space* (((min-max *no-linefeed-ws-sets*)) '()))
-     ))
+		   ((eqv? #\` ch)
+		    ;; check tick
+		    (let-values (((ticks2 next-results) (get-ticks results)))
+		      (if (= ticks ticks2)
+			  ;; ok ends
+			  (make-result 
+			   (list :code (list->string (reverse! acc)))
+			   next-results)
+			  (loop (cons ch acc) (parse-results-next results)))))
+		   (else 
+		    (loop (cons ch acc) (parse-results-next results)))))))
+	 
+       (let-values (((ticks results) (get-ticks starting-results)))
+	 (cond ((zero? ticks)
+		(make-expected-result (parse-results-position starting-results) 
+				      "inline code requires `"))
+	       ((eqv? (parse-results-token-value results) #\`)
+		(make-expected-result (parse-results-position starting-results)
+				      "more than max inline code `"))
+	       (else
+		(read-code ticks results)))))
+     (define (hex results)
+       (char-with-charset char-set:hex-digit results))
+     (define (dec results)
+       (char-with-charset char-set:digit results))
+     (define (cset s)
+       (let ((cs (string->char-set s)))
+	 (lambda (results)
+	   (char-with-charset cs results))))
 
+;; this goes to infinite loop ...
+;;      (define (any+eof results)
+;;        (let loop ((acc '()) (results results))
+;; 	 (let ((ch (parse-results-token-value results)))
+;; 	   (if ch
+;; 	       (loop (cons ch acc) (parse-results-next results))
+;; 	       (make-result (list->string (reverse! acc))
+;; 			    results)))))
+
+     doc)
+   (doc ((b* <- (* block)) (cons :doc b*)))
+   (block (((* blankline) 
+	    b <- (/ block-quote 
+		    verbatim 
+		    note 
+		    reference 
+		    horizontal-rule 
+		    heading
+		    ordered-list
+		    bullet-list
+		    ;;html-block
+		    ;;style-block
+		    para
+		    plain ;; when this will be?
+		    )
+	    ) b))
+
+   (block-quote ((b <- block-quote-raw) (cons :blockquote (apply append b))))
+   (block-quote-raw ((b <- (+ block-quote-content)) (apply append b)))
+   (block-quote-content ((b1 <- block-quote-one
+			  b2 <- (* block-quote-next)
+			  (* blankline))
+			 (cons b1 b2)))
+   (block-quote-one (('#\> (? '#\space) l <- line) (list l :eol)))
+   (block-quote-next (((! '#\>) (! blankline) l <- line) (list l :eol)))
+
+   ;; verbatim
+   (verbatim ((v <- (+ verbatim-chunk)) (cons :verbatim v))
+	     (((token "```") nl v <- (+ non-backslash-line) (token "```") nl)
+	      (list :verbatim (string-join v "\n"))))
+   (verbatim-chunk ((b <- (* blankline) l <- (+ non-blank-indented-line))
+		    (if (null? b)
+			(string-join l "\n")
+			(string-append "\n" (string-join l "\n")))))
+   (non-backslash-line (((! (token "```")) l <- line) l))
+
+   ;; horizontal-rule
+   (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) '(:line))
+		    ((non-indent-space rule- sp nl (+ blankline)) '(:line))
+		    ((non-indent-space rule_ sp nl (+ blankline)) '(:line)))
+   (rule* (('#\* sp '#\* sp '#\* (* sp*)) :***))
+   (sp* ((sp '#\*) :*))
+   (rule- (('#\- sp '#\- sp '#\- (* sp-)) :---))
+   (sp- ((sp '#\-) :-))
+   (rule_ (('#\_ sp '#\_ sp '#\_ (* sp_)) :___))
+   (sp_ ((sp '#\_) :_))
+
+   ;; list
+   (bullet (((! horizontal-rule) non-indent-space 
+	     (/ ('#\+) ('#\*) ('#\-)) (+ space-char)) :bullet))
+   (bullet-list (((& bullet) l <- (/ (list-tight) (list-loose)))
+		 (cons :bullet-list l)))
+
+   (list-tight ((i <- (+ list-item-tight) (* blankline) 
+		   (! (/ (bullet) (enumerator)))) i))
+   (list-loose ((i <- (+ list-loose*)) i))
+   (list-loose* ((i <- list-item (* blankline)) i))
+
+   (list-item (((/ (bullet) (enumerator))
+		b <- list-block 
+		b* <- (* list-continuation-block))
+	       (if (null? b*)
+		   `(:item ,@(take b (- (length b) 1)))
+		   `(:item ,@b ,@(apply append b*)))))
+   (list-item-tight (((/ (bullet) (enumerator))
+		      b <- list-block 
+		      b* <- (* list-item-tight*))
+		     (if (null? b*)
+			 `(:item ,@(take b (- (length b) 1)))
+			 `(:item ,@b ,@(apply append b*)))))
+   (list-item-tight* (((! blankline) c <- list-continuation-block) c))
+
+   (list-block (((! blankline) l <- inline l* <- (* list-block-line) nl)
+		`(,l ,@l* :eol)))
+   (list-continuation-block (((* blankline) l* <- (+ list-continuation-block*))
+			     (apply append l*)))
+   (list-continuation-block* ((indent b <- list-block) b))
+
+   (list-block-line (((! blankline) (! (/ (bullet) (enumerator)))
+		      (! horizontal-rule) l <- optionally-indented-line) l))
+
+   (enumerator ((non-indent-space (+ number) '#\. (+ space-char)) :enum))
+   (ordered-list (((& enumerator) l <- (/ (list-tight) (list-loose)))
+		  (cons :ordered-list l)))
+
+   (para ((non-indent-space i* <- inlines (+ blankline)) 
+	  (cons :paragraph (apply append i*))))
+   (plain ((i* <- inlines) (cons :plain (apply append i*))))
+   (atx-inline (((! nl) (! sp (* '#\#) sp nl) i <- inline) i))
+   (atx-start (((token "######")) :h6)
+	      (((token "#####"))  :h5)
+	      (((token "####"))   :h4)
+	      (((token "###"))    :h3)
+	      (((token "##"))     :h2)
+	      (((token "#"))      :h1))
+   (atx-heading ((t <- atx-start sp i* <- (+ atx-inline) (? sp (* '#\#) sp) nl)
+		 (cons t i*)))
+
+   (setext-heading ((h <- setext-heading1) (cons :h1 h))
+		   ((h <- setext-heading2) (cons :h2 h)))
+   (setext-heading1 ((i <- (+ setext-line) nl setext-bottom1) i))
+   (setext-bottom1 (((+ '#\=) nl) :bottom1))
+   (setext-heading2 ((i <- (+ setext-line) nl setext-bottom2) i))
+   (setext-bottom2 (((+ '#\-) nl) :bottom2))
+   (setext-line (((! endline) i <- inline) i))
+
+   (heading ((h <- atx-heading) (cons :header h))
+	    ((h <- setext-heading) (cons :header h)))
+
+   (inlines ((i <- (+ inlines*)) i))
+   (inlines* (((! endline) i <- inline e <- (? endline)) (cons i e)))
+   (inline ((e <- endline) e)
+	   ((v <- ul-or-star-line) v)
+	   ((s <- space) s)
+	   ((s <- strong) s)
+	   ((e <- emph) e)
+	   ((i <- image) i)
+	   ((l <- link) l)
+	   ((n <- note-reference) n)
+	   ((i <- inline-note) i)
+	   ((c <- code) c)
+	   ;; ((r <- raw-html) r)
+	   ((e <- entity) e)
+	   ((e <- escaped-char) (string e))
+	   ((s <- str) s) ;; should be lower, otherwise lots of things fail
+	   ((s <- symbol) (string s))
+	    )
+
+   (entity ((e <- (/ (hex-entity) (dec-entity))) (string e))
+	   ((e <- char-entity) `(& ,(list->string e))))
+   (hex-entity (((token "&#") (cset "xX") x <- (+ hex) '#\;) 
+		(integer->char (string->number (list->string x) 16))))
+   (dec-entity (((token "&#") d <- (+ dec) '#\;) 
+		(integer->char (string->number (list->string d)))))
+   (char-entity (('#\& d <- (+ alphanumeric) '#\;) d))
+
+   (escaped-char (('#\\ (! nl) s <- symbol) s))
+
+   (str ((c* <- (+ normal-char) sc* <- (* str-chunk))
+	 (apply string-append (list->string c*) sc*)))
+   
+   (str-chunk ((c <- (/ normal-char str-chunk-helper))
+	       (if (char? c)
+		   (string c)
+		   c))
+	      (('#\' (& alphanumeric)) "'"))
+   (str-chunk-helper ((c* <- (+ '#\_) (& alphanumeric)) (list->string c*)))
+
+   (ul-or-star-line ((v <- (/ ul-line start-line)) v))
+   (start-line (((token "****") v <- (* '#\*)) 
+		(string-append "****" (list->string v)))
+	       ((space-char v <- (+ '#\*) (& space-char)) (list->string v)))
+   (ul-line (((token "____") v <- (* '#\_)) 
+	     (string-append "____" (list->string v)))
+	    ((space-char v <- (+ '#\_) (& space-char)) (list->string v)))
+
+   (emph ((v <- emph-star) v)
+	 ((v <- emph-ul) v))
+   (emph-star (('#\* (! white-space) c <- (+ emph-star-helper) '#\*)
+	       (cons* :emph c)))
+   (emph-star-helper (((! '#\*) i <- inline) i)
+		     ((s <- strong-star) s))
+   (emph-ul (('#\_ (! white-space) c <- (+ emph-ul-helper) '#\_)
+	     (cons* :emph c)))
+   (emph-ul-helper (((! '#\_) i <- inline) i)
+		     ((s <- strong-ul) s))
+   
+   (strong ((v <- strong-star) v)
+	   ((v <- strong-ul) v))
+   (strong-star (((token "**") 
+		  (! white-space) c <- (+ strong-star-helper)
+		  (token "**"))
+		 (cons* :strong c)))
+   (strong-star-helper (((! (token "**")) i <- inline) i))
+   (strong-ul (((token "__")
+		(! white-space) c <- (+ strong-ul-helper)
+		(token "__"))
+	       (cons* :strong c)))
+   (strong-ul-helper (((! (token "__")) i <- inline) i))
+
+   ;; image
+   (image (('#\! l <- (/ explicit-link reference-link))
+	   (list :image l)))
+   ;; link
+   (link ((l <- (/ explicit-link reference-link auto-link)) l))
+   (reference-link ((l <- (/ (reference-link-dobule) (reference-link-single)))
+		    l)
+		   #;((l <- reference-link-single) l))
+   (reference-link-dobule ((a <- label spnl (! (token "[]")) b <- label)
+			   (let ((r (list :link a "" ""))
+				 (refs (*reference*)))
+			     (*reference*
+			      (acons (cadr b)
+				     (cons r
+					   (string-append "[" (cadr a) "]"
+							  "[" (cadr b) "]"))
+				     refs))
+			     r)))
+   (reference-link-single ((a <- label (? refls-hlp))
+			   (let ((r (list :link a "" ""))
+				 (refs (*reference*)))
+			     (*reference*
+			      (acons (cadr a)
+				     (cons r
+					   (string-append "[" (cadr a) "]"))
+				     refs))
+			     r)))
+   (refls-hlp ((spnl (token "[]")) :ignore))
+
+   (explicit-link ((l <- label '#\( sp s <- source spnl t <- title sp '#\))
+		   (list :link l s t)))
+   (source (('#\< s <- source-contents '#\>) s)
+	   ((s <- source-contents) s))
+   (source-contents ((v <- (* source-contents-helper))
+		     (string-concatenate v)))
+   (source-contents-helper ((c* <- (+ schh)) (list->string c*))
+			   (('#\( s <- source-contents '#\))
+			    (string-concatenate s)))
+   ;; source contents helper helper...
+   (schh (((! '#\() (! '#\)) (! '#\>) c <- nonspace-char) c))
+   (title ((v <- title-single) v)
+	  ((v <- title-double) v)
+	  (((token "")) ""))
+   (title-single (('#\' v* <- (* title-helper1) '#\') (list->string v*)))
+   (title-double (('#\" v* <- (* title-helper2) '#\") (list->string v*)))
+   (title-helper1 (((! title-helper1*) c <- any-char) c))
+   (title-helper1* (('#\' sp close-or-nl) :ignore))
+   (title-helper2 (((! title-helper2*) c <- any-char) c))
+   (title-helper2* (('#\" sp close-or-nl) :ignore))
+   (close-or-nl (('#\)) :ignore)
+		((nl) :ignore))
+   
+   (auto-link ((u <- auto-link-url) (list :link (list :label u) u ""))
+	      ((e <- auto-link-email) `(:link ,@e "")))
+   (auto-link-url (('#\< u <- url '#\>) u))
+   (auto-link-email (('#\< (token "mailto:") e <- email '#\>) 
+		     (list (list :label (string-append "mailto:" e)) e))
+		    (('#\<  e <- email '#\>)
+		     (list (list :label (string-append "mailto:" e)) e)))
+
+   ;; reference
+   (reference ((non-indent-space (! (token "[]")) l <- label '#\: spnl
+				 s <- ref-src t <- ref-title (+ blankline))
+	       (list :reference l s t)))
+   (ref-src ((c <- (+ nonspace-char)) (list->string c)))
+   (ref-title (('#\" '#\") "")
+	      ((spnl t <- title-single) t)
+	      ((spnl t <- title-double) t)
+	      ((spnl '#\( c <- (* title-helper3) '#\)) (list->string c))
+	      (() ""))
+   (title-helper3 (((! title-helper3*) c <- any-char) c))
+   (title-helper3* (('#\) sp nl) :ignore))
+
+   ;; TODO find reference
+   (note-reference ((ref <- raw-note-reference) 
+		    (let ((r (list :note-ref ref))
+			  (refs (*note-reference*)))
+		      (*note-reference* (cons r refs))
+		      r)))
+   (raw-note-reference (((token "[^") c <- (+ note-char) '#\]) 
+			(list->string c)))
+   (note-char (((! nl) (! '#\]) c <- any-char) c))
+   (note ((non-indent-space ref <- raw-note-reference '#\: sp
+			    b1 <- raw-note-block
+			    b2 <- (* raw-note-block*))
+	  (if (null? b2)
+	      `(:note (:ref ,ref) ,@b1)
+	      (apply append `(:note (:ref ,ref) ,@b1 :eol)
+		     (intersperse '(:eol) b2)))))
+   (raw-note-block ((b <- (+ raw-note-block-content) l* <- (* blankline)) b))
+   (raw-note-block* ((indent b <- raw-note-block) b))
+   (raw-note-block-content (((! blankline) l <- optionally-indented-line) l))
+
+   (inline-note (((token "^[") n <- (+ inline-note*) '#\]) (cons* :note n)))
+   (inline-note* (((! '#\]) i <- inline) i))
+
+   ;; indent
+   (non-indent-space (((token "   ")) :non-indent-space)
+		     (((token "  ")) :non-indent-space)
+		     (((token " ")) :non-indent-space)
+		     (((token "")) :non-indent-space))
+   (indent (('#\tab) :indent)
+	   (((token "    ")) :indent))
+   (indented-line ((indent l <- line) l))
+   (non-blank-indented-line (((! blankline) l <- indented-line) l))
+   (optionally-indented-line (((? indent) l <- inline) l))
+
+   ;; line
+   (line ((l <- one-line nl) l)
+	 ;; ((l <- any+eof) l) ;; how to handle EOF?
+	 )
+
+   ;; label
+   (label (('#\[ (! '#\^ ) i* <- (* label-helper) '#\]) (cons :label i*)))
+   (label-helper (((! '#\]) i <- inline) i))
+
+   ;; misc
+   (blankline ((sp nl) :blankline))
+   (sp (((* space-char)) :sp))
+   (space (((+ space-char)) " "))
+   (spnl ((sp (? nl sp)) :spnl))
+   (space-char (('#\space) " ")
+	       (('#\tab)   "\t"))
+   (nl   (('#\newline) "\n")
+	 (('#\return (? '#\newline)) "\n"))
+   (white-space ((space-char) " ")
+		((nl) "\n"))
+   ;; endline
+   (endline ((linebreak) :eol)
+	    ((terminal-endline) :eol)
+	    ((normal-endline) :eol))
+
+   (normal-endline ((sp nl (! blankline) (! '#\>) (! atx-start)) 
+		    :normal-endline))
+   (terminal-endline ((sp nl sp) :terminal-endline))
+   (linebreak (((token "  ") normal-endline) :linebreak))
+   ))
   ;; condition
   (define-condition-type &markdown-parser-error &error
     make-parser-error markdown-parser-error?
@@ -432,8 +639,57 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 				 (block-tag '())
 			    ;; we don't use but need this
 			    :allow-other-keys)
+    (define (collect-reference&notes r)
+      (let loop ((sexp (cdr r)) (refs '()) (notes '()))
+	(cond ((null? sexp) (values refs notes))
+	      ((eq? (caar sexp) :reference)
+	       (loop (cdr sexp) (cons (car sexp) refs) notes))
+	      ((eq? (caar sexp) :note)
+	       (loop (cdr sexp) refs  (cons (car sexp) notes)))
+	      (else (loop (cdr sexp) refs notes)))))
+    (define (fixup-label r)
+      (define (fixup-refs ref)
+	(define (format-ref refs)
+	  (map (lambda (ref)
+		 (cons* (cadr (cadr ref)) (caddr ref) (cadddr ref))) refs))
+	(let loop ((ref-ref (*reference*)) (ref (format-ref ref)))
+	  (unless (null? ref-ref)
+	    (let* ((refr (car ref-ref))
+		   (name (car refr))
+		   (e (cadr refr))
+		   (s (cddr refr)))
+	      (cond ((assoc name ref string=?) =>
+		     (lambda (slot)
+		       ;; ok found
+		       (list-set! e 2 (cadr slot))
+		       (list-set! e 3 (cddr slot))))
+		    (else
+		     ;; make it as a label for my sake.
+		     (set-car! e :label)
+		     (set-cdr! e (list s))))
+	      (loop (cdr ref-ref) ref)))))
+      (define (fixup-notes notes)
+	(define (format-note notes)
+	  (map (lambda (note)
+		 (cons (cadr (cadr note)) (cddr note))) notes))
+	;; (:note-ref note)
+	(let loop ((note-ref (*note-reference*)) (notes (format-note notes)))
+	  (unless (null? note-ref)
+	    (let* ((note (car note-ref))
+		   (ref (cadr note)))
+	      (unless (assoc ref notes string=?)
+		(set-car! note :label)
+		(set-cdr! note (list (string-append "[^" ref "]"))))
+	      (loop (cdr note-ref) notes)))))
+      (let-values (((ref notes) (collect-reference&notes r)))
+	(fixup-refs ref)
+	(fixup-notes notes)
+	r))
+	  
     (parameterize ((inline-tags *known-inline-tags*)
-		   (block-tags *known-block-tags*))
+		   (block-tags *known-block-tags*)
+		   (*reference* '())
+		   (*note-reference* '()))
       (unless (or (null? inline-tag)
 		  (list? inline-tag))
 	(assertion-violation 'parse-markdown
@@ -444,11 +700,11 @@ Reference ::= SP{0,3} '[' ID ']' ':' URL ('"' Text '"')?
 	(assertion-violation 'parse-markdown
 			     (format "list required but got ~s" block-tag)
 			     block-tag))
-      (inline-tags (append (inline-tags) inline-tag))
-      (block-tags (append (block-tags) block-tag))
+      ;;(inline-tags (append (inline-tags) inline-tag))
+      ;;(block-tags (append (block-tags) block-tag))
       (let ((result (parser (base-generator->results (generator p)))))
 	(if (parse-result-successful? result)
-	    (parse-result-semantic-value result)
+	    (fixup-label (parse-result-semantic-value result))
 	    (let ((e (parse-result-error result)))
 	      (raise-markdown-perser-error 'parse-markdown
 					   (parse-error-messages e)
