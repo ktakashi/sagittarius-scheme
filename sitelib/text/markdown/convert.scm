@@ -140,9 +140,29 @@
 	;; TODO attribute
 	(let loop ((sexp sexp) (acc '()))
 	  (define (gen-sup count ref note)
+	    (define (strip note)
+	      (let loop ((note note) (r '()))
+		(if (null? note)
+		    (string-concatenate (reverse! r))
+		    (let ((e (car note)))
+		      (cond ((string? e)
+			     (loop (cdr note) (cons e r)))
+			    ((eq? e :eol)
+			     (loop (cdr note) (cons "\n" r)))
+			    (else
+			     (case (car e)
+			       ((:label :code)
+				(loop (cdr note) (cons (cadr e) r)))
+			       ((:link) 
+				(loop (cdr note) (cons (cadr (cadr e)) r)))
+			       ((:emph :strong)
+				(loop (cdr note) (cons (strip (cdr e)) r)))
+			       ;; ignore
+			       (else (loop (cdr note) r)))))))))
+
 	    `(sub (@ (id ,(string-append note-prefix ref))) 
 		  (a (@ (href ,(string-append "#" sup-prefix ref))
-			(title ,(string-join note " ")))
+			(title ,(strip note)))
 		     ,(number->string (+ count 1)))))
 	  (match sexp
 	    (() (reverse! acc))
@@ -171,8 +191,9 @@
 	    (((:strong code maybe ...) . rest) 
 	     (loop rest (cons `(strong ,code ,@(detail->sxml maybe)) acc)))
 	    ((:eol . rest) (loop rest (cons "\n" acc)))
-	    (((:item item) . rest) 
-	     (loop rest (cons `(li ,(get-attribute :item) ,item) acc)))
+	    (((:item item ...) . rest) 
+	     (loop rest (cons `(li ,(get-attribute :item) ,@(detail->sxml item))
+			      acc)))
 	    (((:note-ref ref) . rest)
 	     (let ((count (length note-refs))
 		   (note (find-note ref)))
@@ -208,7 +229,7 @@
 		    (cons
 		     `(li ,(append (get-attribute :note)
 				   `((id ,(string-append sup-prefix ref))))
-			  ,@content
+			  ,@(detail->sxml content)
 			  (a (@ (href ,(string-append "#" note-prefix ref)))
 			     "."))
 		     acc)))

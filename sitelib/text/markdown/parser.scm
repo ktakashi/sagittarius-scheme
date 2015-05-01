@@ -43,6 +43,7 @@
 	    (packrat)
 	    (sagittarius)
 	    (sagittarius control)
+	    (util list)
 	    (srfi :13 strings)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut)
@@ -351,22 +352,20 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (list-item (((/ (bullet) (enumerator))
 		b <- list-block 
 		b* <- (* list-continuation-block))
-	       (list :item (apply string-append b b*))))
+	       `(:item ,@b ,@(apply append b*))))
    (list-item-tight (((/ (bullet) (enumerator))
 		      b <- list-block 
 		      b* <- (* list-item-tight*))
-		     (list :item (apply string-append b b*))))
+		     `(:item ,@b ,@(apply append b*))))
    (list-item-tight* (((! blankline) c <- list-continuation-block) c))
 
-   (list-block (((! blankline) l <- line l* <- (* list-block-line))
-		(if (null? l*)
-		    l
-		    (string-append l " " (string-join l* " ")))))
+   (list-block (((! blankline) l <- inline l* <- (* list-block-line) nl)
+		(cons l l*)))
    (list-continuation-block (((* blankline) l* <- (+ list-continuation-block*))
-			     (string-concatenate l*)))
+			     (apply append l*)))
    (list-continuation-block* ((indent b <- list-block) b))
 
-   (list-block-line (((! blankline) (! (? indent) (/ (bullet) (enumerator)))
+   (list-block-line (((! blankline) (! (/ (bullet) (enumerator)))
 		      (! horizontal-rule) l <- optionally-indented-line) l))
 
    (enumerator ((non-indent-space (+ number) '#\. (+ space-char)) :enum))
@@ -412,10 +411,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ;; ((r <- raw-html) r)
 	   ((e <- entity) e)
 	   ((e <- escaped-char) (string e))
-	   ;; ((s <- smart) s)
 	   ((s <- str) s) ;; should be lower, otherwise lots of things fail
 	   ((s <- symbol) (string s))
-	   )
+	    )
 
    (entity ((e <- (/ (hex-entity) (dec-entity))) (string e))
 	   ((e <- char-entity) `(& ,(list->string e))))
@@ -556,7 +554,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 			    b2 <- (* raw-note-block*))
 	  (if (null? b2)
 	      `(:note (:ref ,ref) ,@b1)
-	      (apply append `(:note (:ref ,ref) ,@b1) b2))))
+	      (apply append `(:note (:ref ,ref) ,@b1 :eol)
+		     (intersperse '(:eol) b2)))))
    (raw-note-block ((b <- (+ raw-note-block-content) l* <- (* blankline)) b))
    (raw-note-block* ((indent b <- raw-note-block) b))
    (raw-note-block-content (((! blankline) l <- optionally-indented-line) l))
@@ -573,7 +572,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   (((token "    ")) :indent))
    (indented-line ((indent l <- line) l))
    (non-blank-indented-line (((! blankline) l <- indented-line) l))
-   (optionally-indented-line (((? indent) l <- line) l))
+   (optionally-indented-line (((? indent) l <- inline) l))
 
    ;; line
    (line ((l <- one-line nl) l)
