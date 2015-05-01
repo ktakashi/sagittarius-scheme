@@ -129,6 +129,25 @@
 		    (loop (cdr notes)))))))
 
       (define (detail->sxml sexp)
+	(define (strip note)
+	  (let loop ((note note) (r '()))
+	    (if (null? note)
+		(string-concatenate (reverse! r))
+		(let ((e (car note)))
+		  (cond ((string? e)
+			 (loop (cdr note) (cons e r)))
+			((eq? e :eol)
+			 (loop (cdr note) (cons "\n" r)))
+			(else
+			 (case (car e)
+			   ((:label :code)
+			    (loop (cdr note) (cons (cadr e) r)))
+			   ((:link) 
+			    (loop (cdr note) (cons (cadr (cadr e)) r)))
+			   ((:emph :strong)
+			    (loop (cdr note) (cons (strip (cdr e)) r)))
+			   ;; ignore
+			   (else (loop (cdr note) r)))))))))
 	;; inlines
 	;;  :eol
 	;;  :link
@@ -140,26 +159,6 @@
 	;; TODO attribute
 	(let loop ((sexp sexp) (acc '()))
 	  (define (gen-sup count ref note)
-	    (define (strip note)
-	      (let loop ((note note) (r '()))
-		(if (null? note)
-		    (string-concatenate (reverse! r))
-		    (let ((e (car note)))
-		      (cond ((string? e)
-			     (loop (cdr note) (cons e r)))
-			    ((eq? e :eol)
-			     (loop (cdr note) (cons "\n" r)))
-			    (else
-			     (case (car e)
-			       ((:label :code)
-				(loop (cdr note) (cons (cadr e) r)))
-			       ((:link) 
-				(loop (cdr note) (cons (cadr (cadr e)) r)))
-			       ((:emph :strong)
-				(loop (cdr note) (cons (strip (cdr e)) r)))
-			       ;; ignore
-			       (else (loop (cdr note) r)))))))))
-
 	    `(sub (@ (id ,(string-append note-prefix ref))) 
 		  (a (@ (href ,(string-append "#" sup-prefix ref))
 			(title ,(strip note)))
@@ -168,12 +167,12 @@
 	    (() (reverse! acc))
 	    ;; :label is sort of special we just need its content
 	    (((:label str ...) . rest) 
-	     (loop rest (cons (string-concatenate str) acc)))
+	     (loop rest (cons `(span (@) ,@(detail->sxml str)) acc)))
 	    ;; :image can be 2 pattern, one is with link
 	    ;; otherone is just a label.
 	    (((:image (:link (:label label ...) source title)) . rest)
 	     (loop rest (cons `(img (@ (src ,(string-trim-both source))
-				       (alt ,(string-concatenate label))
+				       (alt ,(strip label))
 				       (title ,title)))
 			      acc)))
 	    (((:image (:label label ...)) . rest) 
@@ -181,9 +180,9 @@
 	    (((:link (:label label ...) source title) . rest)
 	     (loop rest (cons `(a (@ (href ,(string-trim-both source))
 				     (title ,(if (string-null? title)
-						 (string-concatenate label)
+						 (strip label)
 						 title)))
-				  ,@label)
+				  ,@(detail->sxml label))
 			      acc)))
 	    (((:code code) . rest) (loop rest (cons `(code ,code) acc)))
 	    (((:emph code maybe ...) . rest) 
@@ -288,7 +287,7 @@
 					 (if (null? try)
 					     (get-attribute :header)
 					     try))
-				      ,@content) acc)))
+				      ,@(detail->sxml content)) acc)))
 	    (((:blockquote . content) . rest)
 	     (loop rest (cons `(blockquote ,(get-attribute :blockquote)
 					   ,@(detail->sxml content))
