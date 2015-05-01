@@ -35,13 +35,13 @@
 	     "# <mailto:ktakashi@ymail.com>\n")
 
 ;; explicit link
-(test-parser '(:doc (:header :h1 (:link (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:link (:label "link") "source" "title")))
 	     "# [link](source 'title')\n")
-(test-parser '(:doc (:header :h1 (:link (:label "link") "source " "title")))
+(test-parser '(:doc (:header :h1 (:link (:label "link") "source" "title")))
 	     "# [link](source \"title\")\n")
 
 ;; image
-(test-parser '(:doc (:header :h1 (:image (:link (:label "link") "source " "title"))))
+(test-parser '(:doc (:header :h1 (:image (:link (:label "link") "source" "title"))))
 	    "# ![link](source 'title')\n")
 
 ;; note
@@ -75,13 +75,13 @@
 
 ;; reference
 (test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")
-(test-parser '(:doc (:reference (:label "ref") "source " ""))
+(test-parser '(:doc (:reference (:label "ref") "source" ""))
 	     "[ref]: source \"\"\n")
-(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+(test-parser '(:doc (:reference (:label "ref") "source" "title"))
 	     "[ref]: source \"title\"\n")
-(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+(test-parser '(:doc (:reference (:label "ref") "source" "title"))
 	     "[ref]: source 'title'\n")
-(test-parser '(:doc (:reference (:label "ref") "source " "title"))
+(test-parser '(:doc (:reference (:label "ref") "source" "title"))
 	     "[ref]: source (title)\n")
 
 ;; list
