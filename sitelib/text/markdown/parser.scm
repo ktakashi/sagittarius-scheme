@@ -353,7 +353,9 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (list-item-tight* (((! blankline) c <- list-continuation-block) c))
 
    (list-block (((! blankline) l <- line l* <- (* list-block-line))
-		(string-append l "\n" (string-join l* "\n"))))
+		(if (null? l*)
+		    l
+		    (string-append l " " (string-join l* " ")))))
    (list-continuation-block (((* blankline) l* <- (+ list-continuation-block*))
 			     (string-concatenate l*)))
    (list-continuation-block* ((indent b <- list-block) b))
