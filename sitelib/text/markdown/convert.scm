@@ -65,7 +65,7 @@
   ;; detail keywords (ex :inline) to specify its style.
   (define (markdown-sexp->sxml sexp :key (style #f) ;; for the top most
 			                 (class #f)
-					 (no-reference #f)
+					 (no-reference #t)
 					 (no-notes #f)
 			            :allow-other-keys attributes)
     ;; under the :doc
