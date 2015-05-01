@@ -97,6 +97,12 @@
 ;; line
 (test-parser '(:doc (:line)) "----\n\n")
 
+;; entity
+(test-parser '(:doc (:plain "\x12345;")) "&#x12345;")
+(test-parser '(:doc (:plain "\x12345;")) "&#X12345;")
+(test-parser '(:doc (:plain " ")) "&#32;")
+(test-parser '(:doc (:plain (& "yen"))) "&yen;")
+
 ;; converter
 (define-syntax test-converter
   (syntax-rules ()
