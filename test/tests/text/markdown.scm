@@ -40,6 +40,12 @@
 (test-parser '(:doc (:header :h1 (:link (:label "link") "source" "title")))
 	     "# [link](source \"title\")\n")
 
+;; strike
+(test-parser '(:doc (:plain (:strike "stike") " " "strike"))
+	     "~~stike~~ strike")
+(test-parser '(:doc (:plain (:strike (:code "code") " " "ok")))
+	     "~~`code` ok~~")
+
 ;; image
 (test-parser '(:doc (:header :h1 (:image (:link (:label "link") "source" "title"))))
 	    "# ![link](source 'title')\n")
@@ -187,6 +193,15 @@
 					 (title "title")))))
 		'(:doc (:plain (:image (:link (:label "alt text") 
 					      "image.jpg" "title")))))
+;; emph
+(test-converter '(div (@) (p (@) (em (@) "blabla")))
+		'(:doc (:plain (:emph "blabla"))))
+;; strong
+(test-converter '(div (@) (p (@) (strong (@) "blabla")))
+		'(:doc (:plain (:strong "blabla"))))
+;; strike
+(test-converter '(div (@) (p (@) (del (@) "strike")))
+		'(:doc (:plain (:strike "strike"))))
 
 ;; high level APIs
 

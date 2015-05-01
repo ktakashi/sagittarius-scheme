@@ -410,6 +410,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ((s <- space) s)
 	   ((s <- strong) s)
 	   ((e <- emph) e)
+	   ((e <- strike) e)
 	   ((i <- image) i)
 	   ((l <- link) l)
 	   ((n <- note-reference) n)
@@ -473,6 +474,10 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		(token "__"))
 	       (cons* :strong c)))
    (strong-ul-helper (((! (token "__")) i <- inline) i))
+
+   (strike (((token "~~") (! white-space) s <- (+ strike1) (token "~~"))
+	    (cons :strike s)))
+   (strike1 (((! (token "~~")) i <- inline) i))
 
    ;; image
    (image (('#\! l <- (/ explicit-link reference-link))
