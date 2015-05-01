@@ -128,7 +128,7 @@
 (define *newline-char-set* (string->char-set "\n\r"))
 
 (define *nonspace-char-set* (char-set-difference char-set:full
-			     *special-char-set* *newline-char-set*))
+			     *space-char-set* *newline-char-set*))
 (define *normal-char-set*
   (char-set-difference char-set:full *special-char-set* *space-char-set*
 		       *newline-char-set*))
@@ -504,8 +504,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ((s <- source-contents) s))
    (source-contents ((v <- (* source-contents-helper))
 		     (string-concatenate v)))
-   (source-contents-helper ((c* <- (+ schh))
-			    (list->string c*))
+   (source-contents-helper ((c* <- (+ schh)) (list->string c*))
 			   (('#\( s <- source-contents '#\))
 			    (string-concatenate s)))
    ;; source contents helper helper...
