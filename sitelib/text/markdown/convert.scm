@@ -66,18 +66,21 @@
   (define (markdown-sexp->sxml sexp :key (style #f) ;; for the top most
 			                 (class #f)
 					 (no-reference #f)
+					 (no-notes #f)
 			            :allow-other-keys attributes)
     ;; under the :doc
-    (define (collect-reference sexp)
-      (let loop ((sexp sexp) (acc '()) (ref '()))
-	(cond ((null? sexp) (values (reverse! acc) ref))
+    (define (collect-reference&notes sexp)
+      (let loop ((sexp sexp) (acc '()) (ref '()) (notes '()))
+	(cond ((null? sexp) (values (reverse! acc) ref notes))
 	      ((and (pair? (car sexp)) (keyword? (caar sexp)))
 	       (case (caar sexp)
 		 ((:header :blockquote :line :html-block :verbatim
-		   :ordered-list :bullet-list :paragraph :plain :note)
-		  (loop (cdr sexp) (cons (car sexp) acc) ref))
+		   :ordered-list :bullet-list :paragraph :plain)
+		  (loop (cdr sexp) (cons (car sexp) acc) ref notes))
 		 ((:reference)
-		  (loop (cdr sexp) acc (cons (car sexp) ref)))
+		  (loop (cdr sexp) acc (cons (car sexp) ref) notes))
+		 ((:note)
+		  (loop (cdr sexp) acc ref (cons (car sexp) notes)))
 		 (else
 		  (assertion-violation 'markdown-sexp->sxml
 				       "invalid keyword in the given list"
@@ -101,7 +104,7 @@
       (assertion-violation 'markdown-sexp->sxml
 			   "invalid keyword in the given list"
 			   (car sexp) sexp))
-    (let-values (((sexp refs) (collect-reference (cdr sexp))))
+    (let-values (((sexp refs notes) (collect-reference&notes (cdr sexp))))
       (define (lookup-reference ref)
 	(cond ((assoc ref refs) => cdr)
 	      (else
@@ -115,8 +118,16 @@
 	      (else '(@))))
       (define note-prefix "fnref_")
       (define sup-prefix "fn_")
-      (define notes '()) ;; storage for notes, destritively
       (define note-refs '())
+      (define (find-note ref)
+	(let loop ((notes notes))
+	  (if (null? notes)
+	      '("")
+	      (let ((note (car notes)))
+		(if (string=? (cadr (cadr note)) ref)
+		    (cddr note)
+		    (loop (cdr notes)))))))
+
       (define (detail->sxml sexp)
 	;; inlines
 	;;  :eol
@@ -128,9 +139,10 @@
 	;;  :note-ref
 	;; TODO attribute
 	(let loop ((sexp sexp) (acc '()))
-	  (define (gen-sup count ref)
+	  (define (gen-sup count ref note)
 	    `(sub (@ (id ,(string-append note-prefix ref))) 
-		  (a (@ (href ,(string-append "#" sup-prefix ref)))
+		  (a (@ (href ,(string-append "#" sup-prefix ref))
+			(title ,(string-join note " ")))
 		     ,(number->string (+ count 1)))))
 	  (match sexp
 	    (() (reverse! acc))
@@ -162,21 +174,27 @@
 	    (((:item item) . rest) 
 	     (loop rest (cons `(li ,(get-attribute :item) ,item) acc)))
 	    (((:note-ref ref) . rest)
-	     (let ((count (length note-refs)))
+	     (let ((count (length note-refs))
+		   (note (find-note ref)))
 	       (push! note-refs (cons ref count))
-	       (loop rest (cons (gen-sup count ref) acc))))
+	       (loop rest (cons (gen-sup count ref note) acc))))
 	    (((:note note ...) . rest)
 	     (let ((count (length note-refs))
 		   (ref (symbol->string (gensym))))
 	       (push! note-refs (cons ref count))
 	       (push! notes (cons ref note))
-	       (loop rest (cons (gen-sup count ref) acc))))
+	       (loop rest (cons (gen-sup count ref note) acc))))
 	    (((? string? s) . rest) 
 	     ;; explicitly add newline
 	     (loop rest (cons s acc)))
+	    ;; HTML entity
+	    ((('& entity) . rest) (loop rest (cons (car sexp) acc)))
 	    (_ (assertion-violation 'markdown-sexp->sxml
 				    "invalid inline sexp form" sexp)))))
       (define (gen-notes notes)
+	(define (format-notes notes)
+	  (map (lambda (note)
+		 (cons (cadr (cadr note)) (cddr note))) notes))
 	(define (order-notes notes)
 	  (list-sort (lambda (note-a note-b) 
 		       (let ((a (assoc (car note-a) note-refs))
@@ -195,11 +213,13 @@
 			     "."))
 		     acc)))
 		'() notes))
-	(let ((notes (gen (order-notes notes))))
-	  (if (null? notes)
-	      notes
-	      `((ol (@ (id "notes"))
-		     ,(get-attribute :notes) ,@notes)))))
+	(if no-notes
+	    '()
+	    (let ((notes (gen (order-notes (format-notes notes)))))
+	      (if (null? notes)
+		  notes
+		  `((ol (@ (id "notes"))
+			,(get-attribute :notes) ,@notes))))))
 
       (define (gen-reference refs)
 	(define (gen refs)
@@ -280,9 +300,6 @@
 	     (loop rest (cons `(pre ,(get-attribute :verbatim) 
 				    ,@(detail->sxml code))
 				acc)))
-	    (((:note (:ref ref) note ...) . rest)
-	     (push! notes (cons ref note))
-	     (loop rest acc))
 	    ;; for block html's content
 	    (((? string? text) . rest)
 	     (loop rest (cons text acc)))

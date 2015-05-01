@@ -147,7 +147,7 @@
 
 ;; internal parameter
 (define *reference* (make-parameter '()))
-(define *reference-ref* (make-parameter '()))
+(define *note-reference* (make-parameter '()))
 
 #|
 Parser of Markdown
@@ -273,6 +273,14 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 				      "more than max inline code `"))
 	       (else
 		(read-code ticks results)))))
+     (define (hex results)
+       (char-with-charset char-set:hex-digit results))
+     (define (dec results)
+       (char-with-charset char-set:digit results))
+     (define (cset s)
+       (let ((cs (string->char-set s)))
+	 (lambda (results)
+	   (char-with-charset cs results))))
 
 ;; this goes to infinite loop ...
 ;;      (define (any+eof results)
@@ -402,12 +410,22 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	   ((i <- inline-note) i)
 	   ((c <- code) c)
 	   ;; ((r <- raw-html) r)
-	   ;; ((e <- entity) e)
-	   ;; ((e <- escaped-char) e)
+	   ((e <- entity) e)
+	   ((e <- escaped-char) (string e))
 	   ;; ((s <- smart) s)
 	   ((s <- str) s) ;; should be lower, otherwise lots of things fail
 	   ((s <- symbol) (string s))
 	   )
+
+   (entity ((e <- (/ (hex-entity) (dec-entity))) (string e))
+	   ((e <- char-entity) `(& ,(list->string e))))
+   (hex-entity (((token "&#") (cset "xX") x <- (+ hex) '#\;) 
+		(integer->char (string->number (list->string x) 16))))
+   (dec-entity (((token "&#") d <- (+ dec) '#\;) 
+		(integer->char (string->number (list->string d)))))
+   (char-entity (('#\& d <- (+ alphanumeric) '#\;) d))
+
+   (escaped-char (('#\\ (! nl) s <- symbol) s))
 
    (str ((c* <- (+ normal-char) sc* <- (* str-chunk))
 	 (apply string-append (list->string c*) sc*)))
@@ -461,8 +479,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		   #;((l <- reference-link-single) l))
    (reference-link-dobule ((a <- label spnl (! (token "[]")) b <- label)
 			   (let ((r (list :link a "" ""))
-				 (refs (*reference-ref*)))
-			     (*reference-ref*
+				 (refs (*reference*)))
+			     (*reference*
 			      (acons (cadr b)
 				     (cons r
 					   (string-append "[" (cadr a) "]"
@@ -471,8 +489,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 			     r)))
    (reference-link-single ((a <- label (? refls-hlp))
 			   (let ((r (list :link a "" ""))
-				 (refs (*reference-ref*)))
-			     (*reference-ref*
+				 (refs (*reference*)))
+			     (*reference*
 			      (acons (cadr a)
 				     (cons r
 					   (string-append "[" (cadr a) "]"))
@@ -515,10 +533,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    ;; reference
    (reference ((non-indent-space (! (token "[]")) l <- label '#\: spnl
 				 s <- ref-src t <- ref-title (+ blankline))
-	       (let ((r (list :reference l s t))
-		     (refs (*reference*)))
-		 (*reference* (acons (cadr l) (cons s t) refs))
-		 r)))
+	       (list :reference l s t)))
    (ref-src ((c <- (+ nonspace-char)) (list->string c)))
    (ref-title (('#\" '#\") "")
 	      ((spnl t <- title-single) t)
@@ -529,7 +544,11 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
    (title-helper3* (('#\) sp nl) :ignore))
 
    ;; TODO find reference
-   (note-reference ((ref <- raw-note-reference) (list :note-ref ref)))
+   (note-reference ((ref <- raw-note-reference) 
+		    (let ((r (list :note-ref ref))
+			  (refs (*note-reference*)))
+		      (*note-reference* (cons r refs))
+		      r)))
    (raw-note-reference (((token "[^") c <- (+ note-char) '#\]) 
 			(list->string c)))
    (note-char (((! nl) (! '#\]) c <- any-char) c))
@@ -615,10 +634,21 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 				 (block-tag '())
 			    ;; we don't use but need this
 			    :allow-other-keys)
+    (define (collect-reference&notes r)
+      (let loop ((sexp (cdr r)) (refs '()) (notes '()))
+	(cond ((null? sexp) (values refs notes))
+	      ((eq? (caar sexp) :reference)
+	       (loop (cdr sexp) (cons (car sexp) refs) notes))
+	      ((eq? (caar sexp) :note)
+	       (loop (cdr sexp) refs  (cons (car sexp) notes)))
+	      (else (loop (cdr sexp) refs notes)))))
     (define (fixup-label r)
-      (let loop ((ref-ref (*reference-ref*)) (ref (*reference*)))
-	(if (null? ref-ref)
-	    r
+      (define (fixup-refs ref)
+	(define (format-ref refs)
+	  (map (lambda (ref)
+		 (cons* (cadr (cadr ref)) (caddr ref) (cadddr ref))) refs))
+	(let loop ((ref-ref (*reference*)) (ref (format-ref ref)))
+	  (unless (null? ref-ref)
 	    (let* ((refr (car ref-ref))
 		   (name (car refr))
 		   (e (cadr refr))
@@ -627,17 +657,34 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		     (lambda (slot)
 		       ;; ok found
 		       (list-set! e 2 (cadr slot))
-		       (list-set! e 3 (cddr slot))
-		       (loop (cdr ref-ref) ref)))
+		       (list-set! e 3 (cddr slot))))
 		    (else
 		     ;; make it as a label for my sake.
 		     (set-car! e :label)
-		     (set-cdr! e (list s))
-		     (loop (cdr ref-ref) ref)))))))
+		     (set-cdr! e (list s))))
+	      (loop (cdr ref-ref) ref)))))
+      (define (fixup-notes notes)
+	(define (format-note notes)
+	  (map (lambda (note)
+		 (cons (cadr (cadr note)) (cddr note))) notes))
+	;; (:note-ref note)
+	(let loop ((note-ref (*note-reference*)) (notes (format-note notes)))
+	  (unless (null? note-ref)
+	    (let* ((note (car note-ref))
+		   (ref (cadr note)))
+	      (unless (assoc ref notes string=?)
+		(set-car! note :label)
+		(set-cdr! note (list (string-append "[^" ref "]"))))
+	      (loop (cdr note-ref) notes)))))
+      (let-values (((ref notes) (collect-reference&notes r)))
+	(fixup-refs ref)
+	(fixup-notes notes)
+	r))
+	  
     (parameterize ((inline-tags *known-inline-tags*)
 		   (block-tags *known-block-tags*)
 		   (*reference* '())
-		   (*reference-ref* '()))
+		   (*note-reference* '()))
       (unless (or (null? inline-tag)
 		  (list? inline-tag))
 	(assertion-violation 'parse-markdown
