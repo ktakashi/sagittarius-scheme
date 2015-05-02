@@ -86,8 +86,7 @@
   (define (ec-curve=? a b) (equal? a b))
 
   ;; EC point
-  (define (make-ec-point curve x y) (vector curve x y))
-  (define-inliner make-ec-point (math ec) ((_ c x y) (vector c x y)))
+  (define-inline (make-ec-point curve x y) (vector curve x y))
 
   (define (infinity-point curve) (make-ec-point curve #f #f))
   (define-syntax ec-point-curve

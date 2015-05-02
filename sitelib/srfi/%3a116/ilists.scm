@@ -276,10 +276,7 @@
 		(not (null? x))))
 	  (not (null? x)))))
 
-  (define (not-ipair? x) (not (ipair? x)))	; Inline me.
-  ;; OK :)
-  (define-inliner not-ipair? (srfi :116 ilists)
-    ((_ x) (let ((t x)) (not (ipair? t)))))
+  (define-inline (not-ipair? x) (not (ipair? x)))	; Inline me.
 
   (define (null-ilist? l)
     (cond ((ipair? l) #f)
@@ -746,41 +743,19 @@
 		  (values in (if (ipair? in) (ipair elt out) lis))))))))
 
 ;;; Inline us, please.
-  (define (iremove pred l) (ifilter  (lambda (x) (not (pred x))) l))
-  (define-inliner iremove (srfi :116 ilists)
-    ((_ pred l) (let ((p pred)) (ifilter (lambda (x) (not (p x))) l))))
+  (define-inline (iremove pred l) (ifilter  (lambda (x) (not (pred x))) l))
 
-  (define (idelete x lis :optional (= equal?)) 
+  (define-inline (idelete x lis :optional (= equal?)) 
     (ifilter (lambda (y) (not (= x y))) lis))
-  (define-inliner idelete (srfi :116 ilists)
-    ((_ x lis) 
-     (let ((xx x))
-       (ifilter (lambda (y) (not (equal? xx y))) lis)))
-    ((_ x lis =) 
-     (let ((p =)
-	   (xx x))
-       (ifilter (lambda (y) (not (= xx y))) lis))))
 
 ;;; Extended from R4RS to take an optional comparison argument.
-  (define (imember x lis :optional (= equal?))
+  (define-inline (imember x lis :optional (= equal?))
     (ifind-tail (lambda (y) (= x y)) lis))
-  (define-inliner imember (srfi :116 ilists)
-    ((_ x lis) 
-     (let ((xx x))
-       (ifind-tail (lambda (y) (equal? xx y)) lis)))
-    ((_ x lis =) 
-     (let ((p =)
-	   (xx x))
-       (ifind-tail (lambda (y) (= xx y)) lis))))
+
 ;;; The IMEMBER and then IFIND-TAIL call should definitely
 ;;; be inlined for IMEMQ & IMEMV.
-  (define (imemq    x lis) (imember x lis eq?))
-  (define-inliner imemq (srfi :116 ilists)
-    ((_ x lis) (let ((xx x)) (ifind-tail (lambda (y) (eq? xx y)) lis))))
-  (define (imemv    x lis) (imember x lis eqv?))
-  (define-inliner imemv (srfi :116 ilists)
-    ((_ x lis) (let ((xx x)) (ifind-tail (lambda (y) (eqv? xx y)) lis))))
-
+  (define-inline (imemq    x lis) (imember x lis eq?))
+  (define-inline (imemv    x lis) (imember x lis eqv?))
 
   (define (idelete-duplicates lis :optional (elt= equal?))
     (check-arg procedure? elt= idelete-duplicates)

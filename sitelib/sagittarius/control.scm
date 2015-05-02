@@ -5,6 +5,7 @@
     (export define-macro
 	    define-optional
 	    define-values
+	    define-inline ;; experimental but useful i guess
 	    let-optionals*
 	    get-optional
 	    define-with-key ;; for compatibility
@@ -33,6 +34,7 @@
 	    (core errors)
 	    (core syntax)
 	    (core misc)
+	    (only (core inline) define-inline)
 	    (match)
 	    (shorten)
 	    (sagittarius)

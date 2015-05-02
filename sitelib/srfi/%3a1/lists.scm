@@ -93,7 +93,7 @@
    (only (core base) split-at null-list? delete lset-intersection take drop fold
     lset-difference assoc member find find-tail lset-union reduce
     filter-map filter! delete!)
-   (only (core inline) define-inliner)
+   (only (core inline) define-inline)
     )
 
 ;;;
@@ -459,10 +459,7 @@
 ;;              (lag (cdr lag)))
 ;;          (or (eq? x lag) (lp x lag))))))))
 
-(define (not-pair? x) (not (pair? x)))  ; Inline me.
-;; OK :)
-(define-inliner not-pair? (srfi :1 lists)
-  ((_ x) (let ((t x)) (not (pair? t)))))
+(define-inline (not-pair? x) (not (pair? x)))  ; Inline me.
 
 ;;; This is a legal definition which is fast and sloppy:
 ;;;     (define null-list? not-pair?)
@@ -1330,18 +1327,8 @@
 
 
 ;;; Inline us, please.
-(define (remove  pred l) (filter  (lambda (x) (not (pred x))) l))
-(define (remove! pred l) (filter! (lambda (x) (not (pred x))) l))
-
-;;; Sagittarius. OK :)
-(define-inliner remove (srfi :1 lists)
-  ((_ pred l)
-   (let ((p pred))
-     (filter (lambda (x) (not (p x))) l))))
-(define-inliner remove! (srfi :1 lists)
-  ((_ pred l)
-   (let ((p pred))
-     (filter! (lambda (x) (not (p x))) l))))
+(define-inline (remove  pred l) (filter  (lambda (x) (not (pred x))) l))
+(define-inline (remove! pred l) (filter! (lambda (x) (not (pred x))) l))
 
 ;;; Here's the taxonomy for the DELETE/ASSOC/MEMBER functions.
 ;;; (I don't actually think these are the world's most important
