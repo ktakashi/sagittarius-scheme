@@ -95,6 +95,7 @@
 	    (srfi :1)
 	    ;; for format
 	    (sagittarius)
+	    (sagittarius control) ;; for define-inline
 	    (pp))
 ;; Packrat Parser Library
 ;;
@@ -495,7 +496,16 @@
     ((_ #f "expr" nt var (* val val* ...))
      (packrat-parser #f "expr" nt var (= 0 #f val val* ...)))
     ((_ #f "expr" nt var (? val val* ...))
-     (packrat-parser #f "expr" nt var (= 0 1  val val* ...)))    
+     (packrat-parser #f "expr" nt var (= 0 1  val val* ...)))
+    ;; to accept (+ ((token "...")) ...) thing
+    ;; a bit awkward but this can be useful
+    ((_ #f "expr" nt (var ...) ((e1) e2 ...))
+     ;; new expression doesn't need to inherit the temporary variables.
+     (packrat-check e1
+		    (lambda (tmp)
+		      ;; add temporary variable (may not be used in the end)
+		      (packrat-parser #f "expr" nt 
+				      (tmp var ...) (e2 ...)))))
     ((_ #f "expr" nt (var ...) (e1 e2 ...))
      ;; new expression doesn't need to inherit the temporary variables.
      (packrat-check (packrat-parser #f "expr" nt () e1)

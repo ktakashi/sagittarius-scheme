@@ -61,9 +61,7 @@
 	(ucs-range->char-set! #x23 #x2c #f
 	    (ucs-range->char-set #x20 #x22))))
 
-  (define *any-set*
-    (char-set-union *text-set*
-		    (string->char-set ",\r\n")))
+  (define *any-set* char-set:full)
 
   (define (read-text results pred)
     (let loop ((acc '()) (results results))
