@@ -46,9 +46,9 @@
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
-	    (packrat)
 	    (sagittarius control)
 	    (except (srfi :1 lists) any)
+	    (util port)
 	    (srfi :14 char-sets)
 	    (srfi :26 cut)
 	    (clos user))
@@ -63,107 +63,55 @@
 
   (define *any-set* char-set:full)
 
-  (define (read-text results pred)
-    (let loop ((acc '()) (results results))
-      (let ((ch (parse-results-token-value results)))
-	;; it's just testing
-	(cond ((and ch (pred ch results)) =>
-	       (lambda (ch)
-		 (loop (cons (car ch) acc)
-		       (parse-results-next (cdr ch)))))
-	      (else (make-result (list->string (reverse! acc)) results))))))
+  (define (csv-read1 p)
+    (define (read-entry p)
+      (define (finish cs eol?)
+	(values (list->string (reverse! cs)) eol?))
+      (define (crlf? c p)
+	(case c
+	  ((#\return)
+	   (when (eqv? (lookahead-char p) #\newline)
+	     (get-char p))
+	   #t)
+	  ((#\newline) #t)
+	  (else #f)))
+      ;; reads until #\,
+      (let loop ((cs '()) (q? #f))
+	(let ((c (get-char p)))
+	  (cond ((eof-object? c) (finish cs #t)) ;; EOF end 
+		((and (not q?) (eqv? c #\,)) (finish cs #f)) ;; end
+		((eqv? c #\") ;; double quote
+		 (if q?
+		     (case (lookahead-char p)
+		       ((#\") (get-char p) (loop (cons c cs) q?))
+		       (else (loop cs #f)))
+		     (loop cs #t)))
+		((and (not q?) (crlf? c p)) (finish cs #t))
+		(else (loop (cons c cs) q?))))))
+    (let loop ((r '()))
+      (let ((c (lookahead-char p)))
+	(cond ((eof-object? c) c)
+	      ((eqv? c #\#) (get-line p) (loop r))
+	      (else
+	       (let-values (((e eol?) (read-entry p)))
+		 (if eol?
+		     (reverse! (cons e r))
+		     (loop (cons e r)))))))))
+	 
 
-  (define (any results)
-    (read-text results (lambda (ch results)
-			 (case ch
-			   ((#\")
-			    (let ((ch (parse-results-token-value
-				       (parse-results-next results))))
-			      (and ch (char=? ch #\")
-				   (cons ch (parse-results-next results)))))
-			   (else
-			    (and (char-set-contains? *any-set* ch)
-				 (cons ch results)))))))
-  (define (textdata results)
-    (read-text results (lambda (ch results)
-			 (and (char-set-contains? *text-set* ch)
-			      (cons ch results)))))
-
-  (define parser
-    (packrat-parser 
-     (begin 
-       (define (token str)
-	 (lambda (starting-results)
-	   (let loop ((pos 0) (results starting-results))
-	     (if (= pos (string-length str))
-		 (make-result str results)
-		 (let ((ch (parse-results-token-value results)))
-		   (if (and ch (char=? ch (string-ref str pos)))
-		       (loop (+ pos 1) (parse-results-next results))
-		       (make-expected-result
-			(parse-results-position starting-results) str)))))))
-       (define (comment results)
-	 (let loop ((acc '()) (results results))
-	   (let ((ch (parse-results-token-value results)))
-	     (case ch
-	       ((#\linefeed)
-		(make-result (list->string (reverse! acc)) results))
-	       ((#\return)
-		(let ((ch (parse-results-token-value 
-			   (parse-results-next results))))
-		  (if (and ch (char=? ch #\linefeed))
-		      (make-result (list->string (reverse! acc)) results)
-		      (loop (cons ch acc) (parse-results-next results)))))
-	       (else (loop (cons ch acc)
-			   (parse-results-next results)))))))
-       file)
-
-     (file     ((h <- header crlf r <- records) (cons h r))
-	       ((h <- header) (list h)))
-     ;; supports both crlf and lf
-     (crlf     (((/ ((token "\r\n")) ((token "\n")))) "\r\n"))
-     (header   ((comments n <- names) (cons :header n)))
-     (records  ((comments f <- fields crlf r <- records)
-		(cons (cons :record f) r))
-	       ((comments f <- fields) (list (cons :record f))))
-     (comments (('#\# comment crlf comments) '())
-	       (() '()))
-     (fields   ((f <- field-entry '#\, fs <- fields) (cons f fs))
-	       ((f <- field-entry) (list f)))
-     (names    ((n <- field-entry '#\, ns <- fields) (cons n ns))
-	       ((n <- field-entry) (list n)))
-     (field-entry (('#\" e <- any '#\") e)
-		  ((e <- textdata) e))))
-
-  (define (generator p)
-    (let ((ateof #f)
-	  (pos (top-parse-position "<?>")))
-      (lambda ()
-	(if ateof
-	    (values pos #f)
-	    (let ((x (read-char p)))
-	      (if (eof-object? x)
-		  (begin
-		    (set! ateof #t)
-		    (values pos #f))
-		  (let ((old-pos pos))
-		    (set! pos (update-parse-position pos x))
-		    (values old-pos (cons x x)))))))))
-
+  ;; if optional argument first-line-is-header? is #f
   (define (csv->list p :optional (first-line-is-header? #f))
-    (let ((result (parser (base-generator->results (generator p)))))
-      (if (parse-result-successful? result)
-	  (let ((csv-list (parse-result-semantic-value result)))
-	    (unless first-line-is-header?
-	      (cond ((assq :header csv-list)
-		     => (lambda (slot) (set-car! slot :record)))))
-	    csv-list)
-	  (apply assertion-violation
-		 (let ((e (parse-result-error result)))
-		   (list 'parse-csv
-			 (parse-error-messages e)
-			 (parse-position->string (parse-error-position e))
-			 (parse-error-expected e)))))))
+    (let ((ch (lookahead-char p)))
+      (if (eof-object? ch)
+	  (list :records "") ;; empty
+	  (let* ((header (if first-line-is-header?
+			     (cons :header (csv-read1 p))
+			     #f))
+		 (records (port-map (lambda (r) (cons :record r))
+				    (lambda () (csv-read1 p)))))
+	    (if header
+		(cons header records)
+		records)))))
 
   ;; CLOS
   (define-class <csv> ()
