@@ -245,9 +245,6 @@ SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP)
   SgByteVector *bv;
   SgObject cp;
   int len = 0, i;
-  if (!SG_PROPER_LISTP(lst)) {
-    Sg_Error(UC("proper list required, but got %S"), lst);
-  }
   SG_FOR_EACH(cp, lst) {
     SgObject num = SG_CAR(cp);
     if (SG_INTP(num) &&
@@ -255,8 +252,18 @@ SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP)
       len++;
       continue;
     } else {
-      return SG_NIL;
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->bytevector"),
+				      signP
+				      ? SG_MAKE_STRING("unsigned integer list")
+				      : SG_MAKE_STRING("integer list"),
+				      num, lst);
+      return SG_UNDEF;
     }
+  }
+  if (!SG_NULLP(cp)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("list->bytevector"),
+				    SG_MAKE_STRING("proper list"),
+				    lst, lst);
   }
   bv = make_bytevector(len);
   /* again... */

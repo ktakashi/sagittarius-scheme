@@ -164,4 +164,10 @@
 (test-error "(atan 0 0+i)" condition? (atan 0 0+i))
 (test-error "(atan 0+i 0)" condition? (atan 0+i 0))
 
+;; call #115
+(test-error "u8-list->bytevector (non u8 list)" assertion-violation?
+	    (u8-list->bytevector '(a)))
+(test-error "u8-list->bytevector (error)" assertion-violation?
+	    (u8-list->bytevector '(1 2 . 3)))
+
 (test-end)
