@@ -42,9 +42,7 @@
 	    (core errors) ;; for implementation-restriction-violation
 	    (srfi :1 lists)
 	    (sagittarius)
-	    (sagittarius control)
-	    (core base)
-	    (pp))
+	    (sagittarius control))
 
 ;; TODO create table APIs (to implement HPACK we don't need it)
 ;; so for now those aren't provided (yet).
