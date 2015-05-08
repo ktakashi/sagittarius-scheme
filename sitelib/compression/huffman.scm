@@ -42,7 +42,9 @@
 	    (core errors) ;; for implementation-restriction-violation
 	    (srfi :1 lists)
 	    (sagittarius)
-	    (sagittarius control))
+	    (sagittarius control)
+	    (core base)
+	    (pp))
 
 ;; TODO create table APIs (to implement HPACK we don't need it)
 ;; so for now those aren't provided (yet).
@@ -163,8 +165,7 @@
 		    (else 
 		     ;; first put until carry
 		     (do ((bits bits (- bits 8))
-			  (code code (bitwise-arithmetic-shift-right
-				      code 8)))
+			  (code code (bitwise-and code (mask (- bits 8)))))
 			 ((<= bits 8)
 			  (set! carry-size bits)
 			  (set! carry code))
