@@ -52,6 +52,10 @@
 	    
 	    http2-data-receiver
 	    http2-binary-receiver
+	    http2-null-receiver
+
+	    http2-redirect-handler
+	    ;; TODO redirect handler using HTTP1.1
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -61,9 +65,11 @@
 	    (binary io)
 	    (match)
 	    (rfc tls)
+	    (rfc uri)
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
+	    (srfi :1)
 	    (srfi :18))
 
   ;; HTTP2 client connection
@@ -109,23 +115,30 @@
   ;; TODO we might want to reuse this
   (define-record-type http2-stream
     (fields identifier
+	    method	  ;; needed for redirect
+	    uri		  ;; ditto
 	    sender
-	    (mutable receiver) ;; this can be later
-	    (mutable state)
+	    (mutable receiver)	  ;; this can be later
+	    (mutable state)	  ;; not really used though
 	    (mutable window-size) ;; again do we need this?
-	    connection)
+	    connection		  ;; connection of this stream
+	    redirect-handler	  ;; for redirect, must be per stream?
+	    )
     (protocol
      (lambda (p)
-       (lambda (identifier sender receiver connection)
-	 (p identifier sender receiver 'open 
+       (lambda (identifier method uri sender receiver connection
+			   :key (redirect-handler http2-redirect-handler))
+	 (p identifier method uri sender receiver 'open 
 	    (http2-client-connection-window-size connection)
-	    connection)))))
+	    connection
+	    redirect-handler)))))
   ;; open stream
   ;; associate sender and receiver to the created stream
   ;; associate stream to identifier
-  (define (http2-open-stream conn sender receiver)
+  (define (http2-open-stream conn method uri sender receiver . opts)
     (define stream-id (http2-next-stream-identifier conn))
-    (let ((stream (make-http2-stream stream-id sender receiver conn)))
+    (let ((stream (apply make-http2-stream stream-id method uri sender 
+			 receiver conn opts)))
       (hashtable-set! (http2-client-connection-streams conn) stream-id stream)
       stream))
 
@@ -163,6 +176,9 @@
     (identifier-syntax http2-client-connection-secure?))
   (define-syntax %h2-agent
     (identifier-syntax http2-client-connection-user-agent))
+
+  (define-syntax %h2-redirect
+    (identifier-syntax http2-stream-redirect-handler))
 
   (define-constant +http2-default-user-agent+
     (string-append "Sagittarius-" (sagittarius-version)))
@@ -227,15 +243,14 @@
       next-id))
 
   ;; TODO do we need this?
-  (define (http2-add-request! conn sender receiver)
-    (http2-open-stream conn sender receiver)
+  (define (http2-add-request! conn method uri sender receiver . opts)
+    (apply http2-open-stream conn method uri sender receiver opts)
     conn)
 
   (define (http2-has-pending-streams? conn)
     (not (zero? (hashtable-size (http2-client-connection-streams conn)))))
 
   ;; This is an interface of generic HTTP2 request.
-  
   ;; TODO we need to handle push/promise, window update and others.
   (define (http2-invoke-requests! conn)
     (define streams (http2-client-connection-streams conn))
@@ -291,12 +306,21 @@
       ;; the results is alist of sid, headers and receiver results.
       ;; the receiver results are only collected when the stream is
       ;; ended.
-      (let loop ((results '()))
-	(define (continue/quit results)
+      (let loop ((results '()) (redirected-sids '()) (redirected-results '()))
+	(define (continue/quit results sid? redirect?)
 	  (if (http2-has-pending-streams? conn)
-	      (loop results)
+	      (loop results 
+		    (if sid? (cons sid? redirected-sids) redirected-sids)
+		    (if redirect? 
+			(append redirect? redirected-results)
+			redirected-results))
 	      ;; drop stream identifier
-	      (map (lambda (slot) (list (cadr slot) (cddr slot))) results)))
+	      (apply append (filter-map 
+			     (lambda (slot) 
+			       (and (not (memv (car slot) redirected-sids))
+				    (list (cadr slot) (cddr slot))))
+			     results)
+		     redirected-results)))
 	(let* ((frame (read-frame))
 	       (sid   (http2-frame-stream-identifier frame))
 	       (stream (hashtable-ref streams sid #f)))
@@ -304,7 +328,7 @@
 		;; these 2 must be first
 		((http2-frame-settings? frame)
 		 (http2-apply-server-settings conn frame)
-		 (continue/quit results))
+		 (continue/quit results #f #f))
 		((http2-frame-goaway? frame)
 		 (close-port in/out)
 		 (let ((msg? (http2-frame-goaway-data frame)))
@@ -321,7 +345,7 @@
 		 ;; stream identifier?
 		 ;; TODO might be better to raise an error when
 		 ;; this is the last stream.
-		 (continue/quit results)
+		 (continue/quit results #f #f)
 		 #;
 		 (error 'http2-request "protocol error" 
 			(http2-frame-rst-stream-error-code frame)))
@@ -337,14 +361,29 @@
 			  (http2-client-connection-window-size-set! conn size))
 			 (else
 			  (http2-stream-window-size-set! stream size))))
-		 (continue/quit results))
+		 (continue/quit results #f #f))
 		((http2-frame-headers? frame)
 		 (let ((headers (http2-frame-headers-headers frame)))
 		   (when (http2-frame-end-stream? frame)
 		     (terminate-stream sid))
 		   ;; TODO can HTTP2 send HEADERS more than once?
 		   ;; if so, do we want to update the stored one?
-		   (continue/quit (acons sid (cons headers #f) results))))
+		   (let ((status (utf8->string 
+				  (http2-header-ref #*":status" headers))))
+		     (if (and status 
+			      (char=? (string-ref status 0) #\3)
+			      ;; 304 and 305 are not redirect
+			      (not (memv (string-ref status 2) '(#\4 #\5))))
+			 ;; redirect
+			 (let ((r ((%h2-redirect stream) stream headers)))
+			   (if r
+			       ;; handled externally
+			       (continue/quit results sid r)
+			       ;; redirect handler should push
+			       ;; new stream
+			       (continue/quit results sid #f)))
+			 (continue/quit (acons sid (cons headers #f) 
+					       results) #f #f)))))
 		((http2-frame-data? frame)
 		 (let ((r (call-receiver sid stream results frame)))
 		   (when (http2-frame-end-stream? frame)
@@ -353,17 +392,17 @@
 		     ;; if there is no slot created?
 		     (cond ((assv sid results) =>
 			    (lambda (slot) (set-cdr! (cdr slot) r)))))
-		   (continue/quit results)))
+		   (continue/quit results #f #f)))
 		(else
 		 (error 'http2-request "frame not supported" frame)))))))
 
   ;; convenient macro
   (define-syntax http2-request
     (syntax-rules ()
-      ((_ conn sender receiver)
+      ((_ conn method uri sender receiver opts ...)
        (let ((s sender)
 	     (r receiver))
-	 (http2-add-request! conn s r)
+	 (http2-add-request! conn method uri s r opts ...)
 	 (http2-invoke-requests! conn)))))
 
   ;; TODO 
@@ -372,7 +411,9 @@
       ((_ conn "clause" (GET uri headers ...) rest ...)
        ;; TODO how should we handle other receivers?
        (begin
-	 (http2-add-request! conn (http2-headers-sender 'GET uri headers ...)
+	 (http2-add-request! conn 
+			     'GET uri
+			     (http2-headers-sender headers ...)
 			     (http2-binary-receiver))
 	 (http2-multi-requests conn "clause" rest ...)))
       ;; finish
@@ -382,13 +423,13 @@
        (http2-multi-requests conn "clause" (clause ...) rest ...))))
 	 
   ;; helper
-  (define (http2-construct-header stream method uri . extras)
+  (define (http2-construct-header stream . extras)
     (define conn (http2-stream-connection stream))
     ;; TODO handle extras
     (let1 secure? (%h2-secure? conn)
-      `((#*":method" ,(string->utf8 (symbol->string method)))
+      `((#*":method" ,(string->utf8 (symbol->string (http2-stream-method stream))))
 	(#*":scheme" ,(if secure? #*"https" #*"http"))
-	(#*":path"   ,(string->utf8 uri))
+	(#*":path"   ,(string->utf8 (http2-stream-uri stream)))
 	(#*"user-agent" ,(string->utf8 (%h2-agent conn)))
 	,@(let loop ((h extras) (r '()))
 	    (match h
@@ -405,14 +446,14 @@
 	      (else
 	       (error 'http2-construct-header "invalid header" extras)))))))
 
-  ;; senders
+;;; senders
   ;; TODO should senders look like this?
   ;;      it might be better to wrap frames a bit for cutome senders
   ;;      so that users don't have to import (rfc http2 frame). but 
   ;;      for now.
-  (define (http2-headers-sender method uri . headers)
+  (define (http2-headers-sender . headers)
     (lambda (stream end-stream?)
-      (let* ((headers (apply http2-construct-header stream method uri headers))
+      (let* ((headers (apply http2-construct-header stream headers))
 	     (frame (make-http2-frame-headers 0 
 					      (http2-stream-identifier stream)
 					      #f #f
@@ -435,43 +476,106 @@
 		 ((car senders) stream #f)
 		 (loop (cdr senders))))))))
 
-  ;; receivers
+;;; receivers
   ;; TODO better handling...
   (define (http2-data-receiver sink flusher)
     (lambda (stream headers frame end-stream?)
       (when (http2-frame-data? frame)
 	(put-bytevector sink (http2-frame-data-data frame)))
       (and end-stream? (flusher sink))))
+
   (define (http2-binary-receiver)
     (let ((out (open-output-bytevector)))
       (http2-data-receiver out get-output-bytevector)))
 
-  ;; common APIs
-  (define (http2-get conn uri :key (receiver (http2-binary-receiver))
+  ;; do nothing :)
+  (define (http2-null-receiver) 
+    (lambda (stream header frame end-stream?) #vu8()))
+
+  ;; TODO more receivers
+
+
+;;; common APIs
+  ;; GET
+  (define (http2-get conn uri 
+		     :key (receiver (http2-binary-receiver))
+			  (redirect-handler http2-redirect-handler)
 		     :allow-other-keys headers)
     ;; discards the stored streams first
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
-    (http2-add-request! conn (apply http2-headers-sender 'GET uri headers)
-			receiver)
+    (http2-add-request! conn 'GET uri (apply http2-headers-sender headers)
+			receiver
+			:redirect-handler redirect-handler)
     (apply values (car (http2-invoke-requests! conn))))
 
-  (define (http2-head conn uri :key (receiver (http2-binary-receiver))
+  ;; HEAD
+  (define (http2-head conn uri 
+		      :key (receiver (http2-binary-receiver))
+			   (redirect-handler http2-redirect-handler)
 		     :allow-other-keys headers)
     ;; discards the stored streams first
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
-    (http2-add-request! conn (apply http2-headers-sender 'HEAD uri headers)
-			receiver)
-    (apply values (car (http2-invoke-requests! conn))))
+    (http2-add-request! conn 'HEAD uri (apply http2-headers-sender headers)
+			receiver
+			:redirect-handler redirect-handler)
+    (apply values (http2-invoke-requests! conn)))
 
-  (define (http2-post conn uri data :key (receiver (http2-binary-receiver))
+  ;; POST (not properly tested)
+  (define (http2-post conn uri data 
+		      :key (receiver (http2-binary-receiver))
+			   (redirect-handler http2-redirect-handler)
 		      :allow-other-keys headers)
     ;; discards the stored streams first
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
-    (http2-add-request! conn 
+    (http2-add-request! conn 'POST uri
 			(http2-composite-sender 
-			 (apply http2-headers-sender 'POST uri headers)
+			 (apply http2-headers-sender headers)
 			 (http2-data-sender data))
-			receiver)
+			receiver
+			:redirect-handler redirect-handler)
     (apply values (car (http2-invoke-requests! conn))))
+
+
+;;; handlers
+  ;; redirect
+  ;; TODO redirect history
+  (define (http2-redirect-handler stream headers)
+    ;; get location
+    (define (get-location headers)
+      ;; for now only header
+      (cond ((http2-header-ref #*"location" headers) => utf8->string)
+	    (else #f)))
+    (let ((loc (get-location headers))
+	  (receiver (http2-stream-receiver stream)))
+      (let-values (((s ui host port path q f) (uri-parse loc)))
+	;; update stream receiver to null receiver
+	(http2-stream-receiver-set! stream (http2-null-receiver))
+	(if (and host (not (string=? host
+				     (http2-client-connection-server
+				      (http2-stream-connection stream)))))
+	    (let ((conn (make-http2-client-connection 
+			 host (if port (number->string port) "80")
+			 :secure? (and s (string=? s "https")))))
+	      ;; we use the same http2 redirect handler
+	      (http2-request conn
+			     (http2-stream-method stream)
+			     path
+			     (http2-stream-sender stream)
+			     receiver))
+	    ;; make new stream
+	    (let ((s (http2-open-stream (http2-stream-connection stream)
+					(http2-stream-method stream)
+					path
+					(http2-stream-sender stream)
+					receiver)))
+	      ;; invoke sender
+	      ;; TODO shouls we handle this in `http2-invoke-requests!`?
+	      ((http2-stream-sender stream) s #t)
+	      #f)))))
+
+;;; helpers
+  (define (http2-header-ref bv headers)
+    (cond ((assoc bv headers bytevector=?) => cadr)
+	  (else #f)))
 
   )

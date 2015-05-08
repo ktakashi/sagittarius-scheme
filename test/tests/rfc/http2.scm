@@ -20,6 +20,13 @@
 	    (bytevector->hpack-huffman 
 	     (string->utf8 "Mon, 21 Oct 2013 20:13:21 GMT")))
 
+;; incorrect encoding was done in (compression huffman)
+(test-equal "HPACK huffman encode->decode"
+	    #*"\"\x1;"
+	    (hpack-huffman->bytevector
+	     (bytevector->hpack-huffman #*"\"\x1;")))
+
+
 
 ;; depending on the slot definition
 ;; do not use other than tests (may change)
