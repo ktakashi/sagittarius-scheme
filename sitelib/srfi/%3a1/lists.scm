@@ -88,12 +88,12 @@
    (only (rnrs mutable-pairs) set-cdr! set-car!)
    (only (sagittarius) receive circular-list? dotted-list? reverse! acons
     append! list-copy)
-   (only (sagittarius control) check-arg)
+   (only (sagittarius control) check-arg define-inline)
    (only (core) last-pair)
    (only (core base) split-at null-list? delete lset-intersection take drop fold
     lset-difference assoc member find find-tail lset-union reduce
     filter-map filter! delete!)
-   (only (core inline) define-inline)
+   ;; (only (core inline) define-inline)
     )
 
 ;;;
