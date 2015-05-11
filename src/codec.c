@@ -161,12 +161,38 @@ SgObject Sg_MakeUtf8Codec()
   return SG_OBJ(z);
 }
 
+#define PUT_BOM(port, endian, littlep)					\
+  do {									\
+    int64_t mark;							\
+    if (SG_BINARY_PORTP(port)) {					\
+      mark = SG_BINARY_PORT(port)->position;				\
+    } else if (SG_CUSTOM_PORTP(port)) {					\
+      ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE); \
+      mark = SG_CUSTOM_PORT(port)->impl.bport->position;		\
+    } else {								\
+      Sg_Panic("[internal error] codec got textual port");		\
+      mark = -1;		/* dummy */				\
+    }									\
+    if (mark == 0 && endian == UTF_16CHECK_BOM) {			\
+      if (littlep) {							\
+	uint8_t bom[2] = {0xff, 0xfe};					\
+	Sg_WritebUnsafe(port, bom, 0, 2);				\
+      } else {								\
+	uint8_t bom[2] = {0xfe, 0xff};					\
+	Sg_WritebUnsafe(port, bom, 0, 2);				\
+      }									\
+    }									\
+  } while (0);
+
+
 static int put_utf16_char(SgObject self, SgPort *port, SgChar c,
 			  ErrorHandlingMode mode)
 {
   uint8_t buf[4];
-  int littlep = SG_CODEC(self)->impl.builtin.littlep;
+  int littlep = SG_CODEC_BUILTIN(self)->littlep;
   int size = Sg_ConvertUcs4ToUtf16(c, buf, mode, littlep);
+  /* put BOM if the it's starting position */
+  PUT_BOM(port, SG_CODEC_ENDIAN(self), littlep);
   put_binary_array(port, buf, size);
 }
 
@@ -184,8 +210,9 @@ static int64_t write_utf16(SgObject self, SgPort* port, SgChar *str,
 {
   /* we at lease need 'size' size buffer. */
   uint8_t tmp[TMP_BUF_SIZE];
-  int converted_size = 0, littlep = SG_CODEC(self)->impl.builtin.littlep;
+  int converted_size = 0, littlep = SG_CODEC_BUILTIN(self)->littlep;
   int64_t i;
+  PUT_BOM(port, SG_CODEC_ENDIAN(self), littlep);
   /* we can not know the real size until we convert. */
   for (i = 0; i < count; i++) {
     SgChar c = str[i];
@@ -257,6 +284,8 @@ static int put_utf32_char(SgObject self, SgPort *port, SgChar u,
 			  ErrorHandlingMode mode)
 {
   uint8_t buf[4];
+  /* for now we don't do for UTF-32 */
+  /* PUT_BOM(port, SG_CODEC_ENDIAN(self)); */
   char_to_utf8_array(self, u, buf);
   put_binary_array(port, buf, 4);
 }
@@ -358,6 +387,7 @@ static int64_t write_utf32(SgObject self, SgPort* port, SgChar *s,
   uint8_t tmp[TMP_BUF_SIZE];
   int converted = 0;
   int64_t i;
+  /* PUT_BOM(port, SG_CODEC_ENDIAN(self)); */
   for (i = 0; i < count; i++) {
     char_to_utf8_array(self, s[i], tmp + converted);
     converted += 4;
@@ -401,6 +431,7 @@ SgObject Sg_MakeUtf32Codec(Endianness endian)
 #endif
     SG_CODEC_ENDIAN(z) = endian;
   }
+  SG_CODEC_BUILTIN(z)->littlep = (SG_CODEC_ENDIAN(z) == UTF_32LE);
   SG_CODEC_BUILTIN(z)->putc = put_utf32_char;
   SG_CODEC_BUILTIN(z)->getc = get_utf32_char;
   SG_CODEC_BUILTIN(z)->readc = read_utf32;
