@@ -528,7 +528,8 @@
 		      (pointer-ref-c-uint8 p 1)
 		      (pointer-ref-c-uint8 p 2))))
 
-
+  ;; make-c-callback is exported now
+  (test-assert "make-c-callback" make-c-callback)
   )
  (else
   #t))

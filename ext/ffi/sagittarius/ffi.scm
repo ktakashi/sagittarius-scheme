@@ -10,6 +10,7 @@
 	    pointer->c-function
 
 	    c-callback
+	    make-c-callback ;; in some cases, we want this as well
 	    free-c-callback
 	    callback?
 	    ;; malloc
