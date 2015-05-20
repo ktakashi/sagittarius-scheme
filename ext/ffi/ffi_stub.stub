@@ -83,7 +83,7 @@
 			   (SG_LIST1 n)))
   (let ((r (Sg_MakePointer NULL)))
     (.if "SIZEOF_VOIDP == 4"
-	 (set! (-> (SG_POINTER r) pointer) (cast uintptr_t (Sg_GetInteger n)))
+	 (set! (-> (SG_POINTER r) pointer) (cast uintptr_t (Sg_GetUInteger n)))
 	 (set! (-> (SG_POINTER r) pointer) 
 	       (cast uintptr_t (Sg_GetIntegerU64Clamp n SG_CLAMP_BOTH NULL))))
     (result r)))
