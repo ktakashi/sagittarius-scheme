@@ -52,6 +52,7 @@
   (define-class <record-constructor-descriptor> ()
     ((rtd :init-keyword :rtd :reader rcd-rtd)
      (protocol :init-keyword :protocol :reader rcd-protocol)
+     (has-protocol? :init-keyword :has-protocol? :reader rcd-has-protocol?)
      (parent :init-keyword :parent :reader rcd-parent)))
 
   (define-method compute-getter-and-setter ((c <record-type-meta>) slot)
@@ -167,7 +168,7 @@
               "expected #f for protocol since no parent constructor descriptor is provided"
               rtd parent protocol)))
     (and parent
-         (not (rcd-protocol parent))
+         (rcd-has-protocol? parent)
          (or protocol
              (assertion-violation
               'make-record-constructor-descriptor
@@ -182,7 +183,8 @@
 			      (make-record-constructor-descriptor
 			       rtd #f #f)))
 			(else #f)))
-      :protocol (or protocol (default-protocol rtd))))
+      :protocol (or protocol (default-protocol rtd))
+      :has-protocol? (if protocol #t #f)))
   (define (record-constructor-descriptor? o) 
     (is-a? o <record-constructor-descriptor>))
 

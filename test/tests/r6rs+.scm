@@ -177,4 +177,20 @@
 	    #vu8(#xFE #xFF)
 	    (string->bytevector "" (make-transcoder (utf-16-codec))))
 
+(test-error "parent has custom protocol"
+	    condition?
+	    (eval
+	     '(let ()
+		(define-record-type this-parent
+		  (fields count elements)
+		  (protocol
+		   (lambda (p)
+		     (lambda (size)
+		       (p size (make-vector size))))))
+		;; error
+		(define-record-type child
+		  (fields attr)
+		  (parent this-parent)))
+	     (environment '(rnrs))))
+
 (test-end)
