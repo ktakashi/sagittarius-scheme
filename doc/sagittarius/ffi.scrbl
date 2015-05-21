@@ -237,6 +237,13 @@ of the argument type list, otherwise it raises an error.
 
 }
 
+@define[Function]{@name{make-c-function}
+ @args{shared-library return-type name argument-types}}
+@desc{Creates C function. This procedure is underlying procedure for
+@code{c-function} macro. The arguments are the same as @code{c-function},
+only @var{argument-types} must be a list of types.
+}
+
 @define[Macro]{@name{address} @args{pointer}}
 @define[Macro]{@name{address} @args{pointer offset}}
 @desc{Convenient macro for address passing.
@@ -286,6 +293,13 @@ it is users responsibility to handle it.
 
 @var{proc} must be a procedure takes the same number of arguments as
 @var{argument-types} list.
+}
+
+@define[Macro]{@name{make-c-callback}
+ @args{return-type argument-types proc}}
+@desc{Creates C callback. This procedure is underlying procedure for
+@code{c-callback} macro. The arguments are the same as @code{c-callback},
+only @var{argument-types} must be a list of types.
 }
 
 @define[Function]{@name{free-c-callback} @args{callback}}
