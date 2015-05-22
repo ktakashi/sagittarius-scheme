@@ -462,21 +462,21 @@ static inline void report_error(SgObject exception, SgObject out)
 	  }
 	}
 	if (SG_FALSEP(info) || !info) {
-	  Sg_Printf(buf,
-		    UC("  [%A] %A\n"
-		       "    src: %#50S\n"),
-		    index, SG_CADR(proc),
-		    Sg_UnwrapSyntax(src));
+	  Sg_PrintfShared(buf,
+			  UC("  [%A] %A\n"
+			     "    src: %#50S\n"),
+			  index, SG_CADR(proc),
+			  Sg_UnwrapSyntax(src));
 	} else {
 	  file = SG_CAR(info);
 	  line = SG_CDR(info);
-	  Sg_Printf(buf,
-		    UC("  [%A] %A\n"
-		       "    src: %#50S\n"
-		       "    %S:%A\n"),
-		    index, SG_CADR(proc),
-		    Sg_UnwrapSyntax(src),
-		    file, line);
+	  Sg_PrintfShared(buf,
+			  UC("  [%A] %A\n"
+			     "    src: %#50S\n"
+			     "    %S:%A\n"),
+			  index, SG_CADR(proc),
+			  Sg_UnwrapSyntax(src),
+			  file, line);
 	}
       
       } else {

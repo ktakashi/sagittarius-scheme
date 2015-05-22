@@ -755,13 +755,13 @@ static void describe_simple(SgPort *out, SgObject con)
 	if (SG_STRINGP(v)) {
 	  Sg_Printf(out, UC(" %A"), v);
 	} else {
-	  Sg_Printf(out, UC(" %S"), v);
+	  Sg_PrintfShared(out, UC(" %S"), v);
 	}
       } else {
 	if (SG_STRINGP(v)) {
 	  Sg_Printf(out, UC("\n    %A: %A"), (*acc)->name, v);
 	} else {
-	  Sg_Printf(out, UC("\n    %A: %S"), (*acc)->name, v);
+	  Sg_PrintfShared(out, UC("\n    %A: %S"), (*acc)->name, v);
 	}
       }
     }

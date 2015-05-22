@@ -1946,8 +1946,9 @@ SgObject Sg_NoNextMethod(SgObject *argv, int argc, SgGeneric *gf)
   }
   Sg_AssertionViolation(SG_INTERN("call-next-method"),
 			Sg_Sprintf(UC("no applicable method for %S with "
-				      "arguments %S"), SG_OBJ(gf), h),
-			SG_NIL);
+				      "class(es) %S of arguments"), 
+				   SG_OBJ(gf), h),
+			args);
   return SG_UNDEF;		/* dummy */
 }
 

@@ -1212,6 +1212,7 @@ static void vprintf_proc(SgPort *port, const SgChar *fmt,
 	  get_value();
 	  mode = (c == 'A') ? SG_WRITE_DISPLAY 
 	    : (c == 'L') ? SG_WRITE_LIBPATH
+	    : (sharedp) ? SG_WRITE_SHARED
 	    : SG_WRITE_WRITE;
 	  wctx.mode = mode;
 	  wctx.table = NULL;
