@@ -2354,7 +2354,7 @@ static void show_inst_count(void *data)
 SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
-  
+
 #ifdef __GNUC__
   static void *dispatch_table[INSTRUCTION_COUNT] = {
 #define DEFINSN(insn, vals, argc, src, label) && SG_CPP_CAT(label_, insn),

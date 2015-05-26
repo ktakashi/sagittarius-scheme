@@ -114,4 +114,8 @@
 	      "onetwothree"
 	      (example-2))
 )
+
+;; call #119
+(test-assert "not an error" (not (input-port-open? (current-output-port))))
+(test-assert "not an error" (not (output-port-open? (current-input-port))))
 (test-end)

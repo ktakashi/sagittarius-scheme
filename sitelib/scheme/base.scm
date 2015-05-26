@@ -151,14 +151,16 @@
 
   ;; ports
   (define (input-port-open? p)
-    (or (input-port? p)
-	(assertion-violation 'input-port-open? "input-port required" p))
-    (not (port-closed? p)))
+    (or (port? p)
+	(assertion-violation 'input-port-open? "port required" p))
+    (and (input-port? p)
+	 (not (port-closed? p))))
 
   (define (output-port-open? p)
-    (or (output-port? p)
-	(assertion-violation 'output-port-open? "output-port required" p))
-    (not (port-closed? p)))
+    (or (port? p)
+	(assertion-violation 'output-port-open? "port required" p))
+    (and (output-port? p)
+	 (not (port-closed? p))))
 
   (define (open-input-bytevector bv) (open-bytevector-input-port bv))
 
