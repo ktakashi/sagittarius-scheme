@@ -1,4 +1,4 @@
-(import (scheme base) (scheme eval) (srfi 64))
+(import (scheme base) (scheme eval) (scheme char) (srfi 64))
 
 (test-begin "R7RS extra")
 
@@ -118,4 +118,33 @@
 ;; call #119
 (test-assert "not an error" (not (input-port-open? (current-output-port))))
 (test-assert "not an error" (not (output-port-open? (current-input-port))))
+
+;; call #120
+;; from Larceny
+(let ()
+  (define (filter-all-chars p?)
+    (do ((i 0 (+ i 1))
+	 (chars '()
+		(if (and (not (<= #xd800 i #xdfff))
+			 (p? (integer->char i)))
+		    (cons (integer->char i) chars)
+		    chars)))
+	((= i #x110000)
+	 (reverse chars))))
+  (define (filter p? xs)
+    (do ((xs (reverse xs) (cdr xs))
+	 (ys '() (if (p? (car xs))
+		     (cons (car xs) ys)
+		     ys)))
+	((null? xs)
+	 ys)))
+  (test-equal "digit-value and char-numeric?" '()
+	      (let* ((chars (filter-all-chars
+			     (lambda (c) (not (char-numeric? c)))))
+		     (vals (map digit-value chars)))
+		(filter values
+			(map (lambda (char is-bad?)
+			       (and is-bad? char))
+			     chars vals)))))
+
 (test-end)

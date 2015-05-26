@@ -759,9 +759,28 @@ int Sg_CharNumericP(SgChar ch)
 {
   if ('0' <= ch && ch <= '9') return TRUE;
   else if (0x80 <= ch) {
-    switch (Sg_CharGeneralCategory(ch)) {
-    case Nd: case Nl: case No: return TRUE;
-    default: return FALSE;
+    /* handle special cases
+       U+F96B, U+F973, U+F978, U+F9B2, U+F9D1, U+F9D3, U+F9FD, U+2F890
+       these are kanji numbers but categorised in Lo.
+       NB: digit-value can convert it because it has numeric property
+           to make R7RS compliant, we need to handle it separately
+     */
+    switch (ch) {
+    case 0xF96B: 		/* CJK COMPATIBILITY IDEOGRAPH 3  */
+    case 0xF973:		/* CJK COMPATIBILITY IDEOGRAPH 10 */
+    case 0xF978:		/* CJK COMPATIBILITY IDEOGRAPH 2  */
+    case 0xF9B2:		/* CJK COMPATIBILITY IDEOGRAPH 0  */
+    case 0xF9D1:		/* CJK COMPATIBILITY IDEOGRAPH 6  */
+    case 0xF9D3:		/* CJK COMPATIBILITY IDEOGRAPH 6  */
+    case 0xF9FD:		/* CJK COMPATIBILITY IDEOGRAPH 10 */
+    case 0x2F890:		/* CJK COMPATIBILITY IDEOGRAPH 9  */
+      return TRUE;
+    default:
+      /* OK, check category */
+      switch (Sg_CharGeneralCategory(ch)) {
+      case Nd: case Nl: case No: return TRUE;
+      default: return FALSE;
+      }
     }
   }
   else return FALSE;
