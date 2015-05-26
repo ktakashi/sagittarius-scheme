@@ -1788,6 +1788,14 @@
 (test-equal "complex number subtraction (flonum)" 0.0-1.0i (- 0.0 0+i))
 
 ;; call #121
-(test-equal "quotient" 2.0 (quotient 17.0 3.0))
+(test-equal "quotient" 5.0 (quotient 17.0 3.0))
+
+;; call #122
+(test-assert "(log -0.0)"
+	     (let* ((r (log -0.0))
+		    (real (real-part r))
+		    (imag (imag-part r)))
+	       (and (infinite? real)
+		    (<= 3.141592 imag 3.141593))))
 
 (test-end)

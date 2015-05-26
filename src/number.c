@@ -3378,7 +3378,7 @@ SgObject Sg_Log(SgObject obj)
   if (SG_REALP(obj)) {
     real = Sg_GetDouble(obj);
     if (isinf(real) && SG_BIGNUMP(obj)) return log_handle_inf(obj);
-    if (real >= 0) return Sg_MakeFlonum(log(real));
+    if (real > 0) return Sg_MakeFlonum(log(real));
     imag = atan2(0.0, real);
     if (imag == 0.0) return Sg_MakeFlonum(0.5 * log(real * real));
     return Sg_MakeComplex(Sg_MakeFlonum(0.5 * log(real * real)),
