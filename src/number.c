@@ -2440,10 +2440,9 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
     {
       double q;
       if (ry == 0.0) goto div_by_zero;
-      q = roundeven(rx / ry);
+      q = (rx*ry > 0)? floor(rx/ry) : ceil(rx/ry);
       if (rem) {
-	double v = rx - q*ry;
-	double rr = (v < 0.0) ? ceil(v) : floor(v);
+	double rr = roundeven(rx - q*ry);
 	*rem = Sg_MakeFlonum(rr);
       }
       return Sg_MakeFlonum(q);

@@ -4,6 +4,7 @@
 (import (rnrs)
 	(rnrs mutable-pairs)
 	(rename (rnrs eval) (eval r6rs:eval))
+	(rnrs r5rs)
 	(sagittarius)
 	(sagittarius vm)
 	(encoding decoder)
@@ -1785,5 +1786,8 @@
 	    (- #xFFFFFFFFFFFFFFFF 0+i))
 (test-equal "complex number subtraction (rational)" 1/3-i (- 1/3 0+i))
 (test-equal "complex number subtraction (flonum)" 0.0-1.0i (- 0.0 0+i))
+
+;; call #121
+(test-equal "quotient" 2.0 (quotient 17.0 3.0))
 
 (test-end)

@@ -292,8 +292,7 @@
   ;; with division to determine the quotient, and compute the remainder
   ;; from that.
 
-  (define (floor-quotient n m)
-    (inexact->exact (floor (/ n m))))
+  (define (floor-quotient n m) (floor (/ n m)))
   (define (floor-remainder n m)
     (- n (* m (floor-quotient n m))))
   (define (floor/ n m)
