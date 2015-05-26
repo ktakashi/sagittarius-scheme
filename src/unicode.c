@@ -759,7 +759,10 @@ int Sg_CharNumericP(SgChar ch)
 {
   if ('0' <= ch && ch <= '9') return TRUE;
   else if (0x80 <= ch) {
-    return Sg_CharGeneralCategory(ch) == Nd;
+    switch (Sg_CharGeneralCategory(ch)) {
+    case Nd: case Nl: case No: return TRUE;
+    default: return FALSE;
+    }
   }
   else return FALSE;
 }
