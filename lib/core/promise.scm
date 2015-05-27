@@ -26,12 +26,12 @@
 	(let ((promise* ((promise-value promise))))
 	  (unless (promise-done? promise)
 	    (promise-update! promise* promise))
-	  (force promise))))
+	  (force promise*))))
 
-  (define (make-promise obj) (delay obj))
+  (define (make-promise obj) (if (promise? obj) obj (delay obj)))
 
   (define (promise-update! new old)
-      (set-promise-done?! old (promise-done? new))
-      (set-promise-value! old (promise-value new))
-      (set-promise-done?! new (promise-done? old)))
+    (set-promise-done?! old (promise-done? new))
+    (set-promise-value! old (promise-value new))
+    (set-promise-done?! new (promise-done? old)))
 )
