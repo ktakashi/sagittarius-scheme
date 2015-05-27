@@ -1,4 +1,4 @@
-(import (scheme base) (scheme eval) (scheme char) (srfi 64))
+(import (scheme base) (scheme eval) (scheme char) (scheme lazy) (srfi 64))
 
 (test-begin "R7RS extra")
 
@@ -146,5 +146,15 @@
 			(map (lambda (char is-bad?)
 			       (and is-bad? char))
 			     chars vals)))))
+
+(test-equal "promise" '(1 1 101)
+	    (let ((n 100))
+	      (define r (delay (begin (set! n (+ n 1)) 1)))
+	      (define s (delay-force r))
+	      (define t (delay-force s))
+	      
+	      (let ((result1 (force t))
+		    (result2 (force r)))
+		(list result1 result2 n))))
 
 (test-end)
