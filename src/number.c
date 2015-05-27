@@ -2561,7 +2561,8 @@ SgObject Sg_Modulo(SgObject x, SgObject y, int remp)
   do_flonum:
     if (ry == 0.0) goto div_by_zero;
     rem = fmod(rx, ry);
-    if (!remp && rem != 0.0) {
+    if (!remp) {
+      if (rem == 0.0) return Sg_MakeFlonum(0.0);
       if ((rx > 0 && ry < 0) || (rx < 0 && ry > 0)) {
 	rem += ry;
       }

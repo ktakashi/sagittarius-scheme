@@ -1798,4 +1798,8 @@
 	       (and (infinite? real)
 		    (<= 3.141592 imag 3.141593))))
 
+;; modulo should return 0.0
+(test-eqv "(modulo -15.0 -3.0" 0.0 (modulo -15.0 -3.0))
+(test-eqv "(modulo -15.0 3.0"  0.0 (modulo -15.0 3.0))
+
 (test-end)
