@@ -340,13 +340,10 @@ static int invoke_from_port(SgPort *port)
   return (SG_INTP(r) ? SG_INT_VALUE(r) : 0);
 }
 
-
-static int invoke_r6rs_file(SgString *path)
+static SgObject open_file_port(SgVM *vm, SgString *path)
 {
   SgObject file;
-  SgObject bport, tport, tran;
-  SgVM *vm = Sg_VM();
-  int r;
+  SgObject bport, tran;
   if (!Sg_FileExistP(path)) {
     SgObject realPath = Sg_FindFile(path, vm->loadPath, NULL, FALSE);
     if (SG_FALSEP(realPath)) {
@@ -364,14 +361,32 @@ static int invoke_r6rs_file(SgString *path)
 					 Sg_NativeEol(),
 					 SG_RAISE_ERROR));
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
-  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), tran);
+  return Sg_MakeTranscodedInputPort(SG_PORT(bport), tran);
+}
 
+static int invoke_r6rs_file(SgString *path)
+{
+  SgVM *vm = Sg_VM();
+  SgObject tport = open_file_port(vm, path);
+  int r;
   set_vm_mode(vm, 6, SG_PORT(tport));
 
   r = invoke_from_port(SG_PORT(tport));
   Sg_ClosePort(tport);
   return r;
 }
+
+#if 0
+/* use R7RS read table and pass Sg_LoadFromPort  */
+static int invoke_r7rs_file(SgString *path)
+{
+  SgVM *vm = Sg_VM();
+  SgObject tport = open_file_port(vm, path);
+  set_vm_mode(vm, 7, SG_PORT(tport));
+
+  return Sg_LoadFromPort(SG_PORT(tport));
+}
+#endif
 
 static int profiler_mode = FALSE;
 static SgObject profiler_option = SG_UNDEF;
@@ -639,11 +654,18 @@ int main(int argc, char **argv)
   }
   Sg_AddCleanupHandler(cleanup_main, NULL);
 
+  /* set reader mode etc. */
+  if (standard_given)
+    set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
+
   if (optind_s < argc) {
     SgObject proc;
     if (standard_given == 6) {
       exit_code = 
 	invoke_r6rs_file(SG_STRING(make_scheme_string(argv[optind_s])));
+    /* } else if (standard_given == 7) { */
+    /*   exit_code =  */
+    /* 	invoke_r7rs_file(SG_STRING(make_scheme_string(argv[optind_s]))); */
     } else {
       exit_code = Sg_Load(SG_STRING(make_scheme_string(argv[optind_s])));
     }
@@ -661,10 +683,6 @@ int main(int argc, char **argv)
     if (forceInteactiveP) goto repl;
   } else {
   repl:
-    /* set reader mode etc. */
-    if (standard_given)
-      set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
-
     if (!isatty(0) && !forceInteactiveP) {
       if (standard_given == 6) {
 	exit_code = invoke_from_port(SG_PORT(Sg_CurrentInputPort()));
