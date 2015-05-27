@@ -685,7 +685,8 @@ static int symbol_need_bar(const SgChar *s, int n)
     return TRUE;
   } else {
     SgChar c;
-    while ((c = *s++) != 0 && n--) {
+    while (n--) {
+      c = *s++;
       if (c >= 0x80) {
 	switch (Sg_CharGeneralCategory(c)) {
 	case Cc: case Cf: case Cs: case Co: case Cn:

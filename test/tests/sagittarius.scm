@@ -1809,4 +1809,11 @@
 	     (open-string-input-port
 	      (string #\| #\\ #\a #\\ #\b #\\ #\t #\\ #\n #\\ #\r #\\ #\| #\\ #\" #\\ #\\ #\|))))
 
+(test-equal "write identifier with null"
+	    ;; this is slightly depending on the mode.
+	    "|\\x00;\\x01;\\x02;\\x09;\\x0d;A\\x0a;\\x09;~\\x7f;|"
+	    (call-with-string-output-port
+	     (lambda (out)
+	       (write '|\x000;\x01;\x2;\t\r\x41;\n\t\x7e;\x7f;| out))))
+
 (test-end)
