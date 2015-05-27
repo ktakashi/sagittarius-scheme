@@ -157,4 +157,24 @@
 		    (result2 (force r)))
 		(list result1 result2 n))))
 
+(test-equal "promise(2)" '(5 0 10)
+	    (let ()
+	      (define q
+		(let ((count 5))
+		  (define (get-count) count)
+		  (define p (delay (if (<= count 0)
+				       count
+				       (begin (set! count (- count 1))
+					      (force p)
+					      (set! count (+ count 2))
+					      count))))
+		  (list get-count p)))
+	      (define get-count (car q))
+	      (define p (cadr q))
+	      
+	      (let* ((result1 (get-count))  ; =>   5
+		     (result2 (force p))    ; =>   0
+		     (result3 (get-count))) ; =>   10
+		(list result1 result2 result3))))
+
 (test-end)

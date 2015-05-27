@@ -7,8 +7,14 @@
   ;; should we make this applicable so that
   ;; we can support implicit force?
   (define-record-type (<promise> promise promise?)
-    (fields (mutable done? promise-done? set-promise-done?!)
-	    (mutable value promise-value set-promise-value!)))
+    (fields (mutable box promise-box set-promise-box!))
+    (protocol
+     (lambda (p)
+       (lambda (done? value)
+	 ;; this is cheaper 
+	 (p (cons done? value))))))
+  (define (promise-done? p) (car (promise-box p)))
+  (define (promise-value p) (cdr (promise-box p)))
 
   (define-syntax delay-force
     (syntax-rules ()
@@ -26,12 +32,15 @@
 	(let ((promise* ((promise-value promise))))
 	  (unless (promise-done? promise)
 	    (promise-update! promise* promise))
-	  (force promise*))))
+	  (force promise))))
 
   (define (make-promise obj) (if (promise? obj) obj (delay obj)))
 
   (define (promise-update! new old)
-    (set-promise-done?! old (promise-done? new))
-    (set-promise-value! old (promise-value new))
-    (set-promise-done?! new (promise-done? old)))
+    (let ((old-box (promise-box old))
+	  (new-box (promise-box new)))
+      (set-car! old-box (car new-box))
+      (set-cdr! old-box (cdr new-box))
+      ;; swap box
+      (set-promise-box! new old-box)))
 )
