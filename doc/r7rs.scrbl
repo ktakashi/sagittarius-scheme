@@ -464,9 +464,23 @@ These procedures are the same as R6RS;
 @codeblock{
  char-alphabetic? char-ci<=? char-ci<? char-ci=? char-ci>=? char-ci>?
  char-downcase char-foldcase char-lower-case? char-numeric? char-upcase
- char-upper-case? char-whitespace? digit-value string-ci<=? string-ci<?
+ char-upper-case? char-whitespace? string-ci<=? string-ci<?
  string-ci=? string-ci>=? string-ci>? string-downcase string-foldcase
  string-upcase}
+}
+
+@define[Function]{@name{digit-value} @args{c}}
+@desc{[R7RS+] Converts given character to it's numeric value. If the given
+character does not have numeric value, then it returns #f.
+
+This procedure is extended from R7RS definition.
+
+@snipet[=> "1"]{(digit-value #\1)}
+@snipet[=> "4"]{(digit-value #\x0664)}
+@snipet[=> "#f"]{(digit-value #\x0EA6)}
+@snipet[=> "1/4"]{(digit-value #\xbc)}
+@snipet[=> "10"]{(digit-value #\xbf0)}
+
 }
 
 @subsubsection{Complex library}
