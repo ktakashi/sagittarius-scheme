@@ -452,9 +452,12 @@ static SgChar read_escape(SgPort *port, SgReadContext *ctx)
   case EOF: 
     lexical_error(port, ctx, 
 		  UC("unexpected end-of-file while reading escape sequence"));
+  default:
+    if (ctx->escapedp) return c;
+    lexical_error(port, ctx, 
+		  UC("invalid escape sequence, \\%c"), c);
   }
-  lexical_error(port, ctx, 
-		UC("invalid escape sequence, \\%c"), c);
+
   return -1;			/* dummy */
 }
 
@@ -890,11 +893,7 @@ static SgObject read_quoted_symbol(SgPort *port, SgReadContext *ctx,
 			   interned);
     }
     if (c == '\\') {
-      c = Sg_GetcUnsafe(port);
-      if (c == 'x') {
-	Sg_UngetcUnsafe(port, c);
-	c = read_escape(port, ctx);
-      }
+      c = read_escape(port, ctx);
     }
     buf[i++] = c;
   }

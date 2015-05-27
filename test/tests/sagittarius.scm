@@ -1802,4 +1802,11 @@
 (test-eqv "(modulo -15.0 -3.0" 0.0 (modulo -15.0 -3.0))
 (test-eqv "(modulo -15.0 3.0"  0.0 (modulo -15.0 3.0))
 
+;; escape thing on escaped symbol
+(test-equal "|\\x07;\\x08;\\x09;\\x0a;\\x0d;\\|\"\\|"
+	    '|\x07;\x08;\x09;\x0a;\x0d;\|"\\|
+	    (read
+	     (open-string-input-port
+	      (string #\| #\\ #\a #\\ #\b #\\ #\t #\\ #\n #\\ #\r #\\ #\| #\\ #\" #\\ #\\ #\|))))
+
 (test-end)
