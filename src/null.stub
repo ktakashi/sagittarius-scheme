@@ -1365,7 +1365,7 @@
   ;; utf8 <-> string
   (define-cise-expr utf8-tail?
     ((_ b)
-     `(and (#x80 <= ,b) (<= ,b #xbf))))
+     `(and (<= #x80 ,b) (<= ,b #xbf))))
   (define-cfn check-utf8-3bytes (bv i::int)
     ::int :static
     (let ((first::int (SG_BVECTOR_ELEMENT bv i))
@@ -1405,7 +1405,8 @@
 	(post++ count)
 	(let ((f::uint8_t (SG_BVECTOR_ELEMENT bv i)))
 	  (+= i (?: (< f #x80) 1
-		    (?: (and (<= #xc2 f) (<= f #xdf)) 2
+		    (?: (and (<= #xc2 f) (<= f #xdf)
+			     (utf8-tail? (SG_BVECTOR_ELEMENT bv (+ i 1)))) 2
 			(?: (and (<= #xe0 f) (<= f #xef)
 				 (check-utf8-3bytes bv i)) 3
 			    ;; the last one is error replacing so 1

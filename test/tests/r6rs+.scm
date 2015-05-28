@@ -193,4 +193,67 @@
 		  (parent this-parent)))
 	     (environment '(rnrs))))
 
+;; From Larceny
+(let ()
+  (define (string~? s1 s2)
+    (define (replacement? c)
+      (char=? c #\xfffd))
+    (define (canonicalized s)
+      (let loop ((rchars (reverse (string->list s)))
+		 (cchars '()))
+	(cond ((or (null? rchars) (null? (cdr rchars)))
+	       (list->string cchars))
+	      ((and (replacement? (car rchars))
+		    (replacement? (cadr rchars)))
+	       (loop (cdr rchars) cchars))
+	      (else
+	       (loop (cdr rchars) (cons (car rchars) cchars))))))
+    (string=? (canonicalized s1) (canonicalized s2)))
+  (test-assert "utf-8, errors 1"
+       (string~? (utf8->string '#vu8(#x61                             ; a
+				     #xc0 #x62                        ; ?b
+				     #xc1 #x63                        ; ?c
+				     #xc2 #x64                        ; ?d
+				     #x80 #x65                        ; ?e
+				     #xc0 #xc0 #x66                   ; ??f
+				     #xe0 #x67                        ; ?g
+				     ))
+		 "a\xfffd;b\xfffd;c\xfffd;d\xfffd;e\xfffd;\xfffd;f\xfffd;g"))
+  
+  (test-assert "utf-8, errors 2"
+       (string~? (utf8->string '#vu8(#xe0 #x80 #x80 #x68              ; ???h
+				     #xe0 #xc0 #x80 #x69              ; ???i
+				     #xf0 #x6a                        ; ?j
+				     ))
+		 "\xfffd;\xfffd;\xfffd;h\xfffd;\xfffd;\xfffd;i\xfffd;j"))
+
+  (test-assert "utf-8, errors 3"
+       (string~? (utf8->string '#vu8(#x61                             ; a
+				     #xf0 #x80 #x80 #x80 #x62         ; ????b
+				     #xf0 #x90 #x80 #x80 #x63         ; .c
+				     ))
+		 "a\xfffd;\xfffd;\xfffd;\xfffd;b\x10000;c"))
+
+  (test-assert "utf-8, errors 4"
+       (string~? (utf8->string '#vu8(#x61                             ; a
+				     #xf0 #xbf #xbf #xbf #x64         ; .d
+				     #xf0 #xbf #xbf #x65              ; ?e
+				     #xf0 #xbf #x66                   ; ?f
+				     ))
+			 "a\x3ffff;d\xfffd;e\xfffd;f"))
+
+  (test-assert "utf-8, errors 5"
+       (string~? (utf8->string '#vu8(#x61                             ; a
+				     #xf4 #x8f #xbf #xbf #x62         ; .b
+				     #xf4 #x90 #x80 #x80 #x63         ; ????c
+				     ))
+
+			 "a\x10ffff;b\xfffd;\xfffd;\xfffd;\xfffd;c"))
+
+  (test-assert "utf-8, errors 6"
+       (string~? (utf8->string '#vu8(#x61                             ; a
+				     #xf5 #x80 #x80 #x80 #x64         ; ????d
+				     ))
+		 "a\xfffd;\xfffd;\xfffd;\xfffd;d")))
+
 (test-end)
