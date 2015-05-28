@@ -705,7 +705,11 @@
   (define (sob-xor! result sob1 sob2)
     (let ((sob1-ht (slot-ref sob1 'hashtable))
 	  (sob2-ht (slot-ref sob2 'hashtable))
-	  (result-ht (slot-ref result 'hashtable)))
+	  (result-ht (if (eq? result sob1)
+			 ;; if the result and first argument are the same
+			 ;; object, then we need to create fresh one.
+			 (make-hashtable/comparator (slot-ref sob1 'comparator))
+			 (slot-ref result 'hashtable))))
       (hashtable-for-each
        (lambda (key value2)
 	 (let ((value1 (hashtable-ref sob1-ht key 0)))
@@ -717,6 +721,13 @@
 	 (let ((value2 (hashtable-ref sob2-ht key 0)))
 	   (hashtable-set! result-ht key (abs (- value1 value2)))))
        sob1-ht)
+      (when (eq? result sob1)
+	;; ok put all elements in result
+	(let ((ht (slot-ref result 'hashtable)))
+	  (hashtable-for-each
+	   (lambda (key value)
+	     (hashtable-set! ht key value))
+	   result-ht)))
       (sob-cleanup! result)))
   ;; xor
   (let-syntax ((define-xor

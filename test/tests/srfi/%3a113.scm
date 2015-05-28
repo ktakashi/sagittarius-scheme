@@ -638,4 +638,62 @@
 
 ) ; end r7rs-sets
 
+;; from comp.lang.scheme
+;; https://groups.google.com/forum/#!topic/comp.lang.scheme/s1PIxpSn2Ts
+
+(srfi:test-equal "set-xor! (1)" '(1 3)
+		 (list-sort <
+			    (let* ((S1 (set default-comparator 1 2))
+				   (S2 (set default-comparator 2 3))
+				   (S (set-xor! S1 S2)))
+			      (set->list S))))
+
+(srfi:test-equal "set-xor! (2)" '(2 3)
+		 (list-sort <
+			    (let* ((S0 (set default-comparator))
+				   (S2 (set default-comparator 2 3))
+				   (S (set-xor! S0 S2)))
+			      (set->list S))))
+
+(srfi:test-equal "bag-xor! (1)" '(1 3)
+		 (list-sort < 
+			    (let* ((B1 (bag default-comparator 1 2))
+				   (B2 (bag default-comparator 2 3))
+				   (B (bag-xor! B1 B2)))
+			      (bag->list B))))
+(srfi:test-equal "bag-xor! (2)" '(2 3)
+		 (list-sort <
+			    (let* ((B0 (bag default-comparator))
+				   (B2 (bag default-comparator 2 3))
+				   (B (bag-xor! B0 B2)))
+			      (bag->list B))))
+
+(srfi:test-equal "set-xor (1)" '(1 3)
+		 (list-sort <
+			    (let* ((S1 (set default-comparator 1 2))
+				   (S2 (set default-comparator 2 3))
+				   (S (set-xor S1 S2)))
+			      (set->list S))))
+
+(srfi:test-equal "set-xor (2)" '(2 3)
+		 (list-sort <
+			    (let* ((S0 (set default-comparator))
+				   (S2 (set default-comparator 2 3))
+				   (S (set-xor S0 S2)))
+			      (set->list S))))
+
+(srfi:test-equal "bag-xor (1)" '(1 3)
+		 (list-sort < 
+			    (let* ((B1 (bag default-comparator 1 2))
+				   (B2 (bag default-comparator 2 3))
+				   (B (bag-xor B1 B2)))
+			      (bag->list B))))
+(srfi:test-equal "bag-xor (2)" '(2 3)
+		 (list-sort <
+			    (let* ((B0 (bag default-comparator))
+				   (B2 (bag default-comparator 2 3))
+				   (B (bag-xor B0 B2)))
+			      (bag->list B))))
+
+
 (srfi:test-end)
