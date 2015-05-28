@@ -1289,11 +1289,15 @@ double Sg_RationalToDouble(SgRational *obj)
 
 SgObject Sg_Numerator(SgObject x)
 {
-  int inexact;
+  int inexact = FALSE;
   SgObject obj;
   if (!SG_NUMBERP(x)) wte(SG_INTERN("numerator"), "number", x);
-  if (SG_FLONUMP(x) && SG_FLONUM_VALUE(x) == 0.0) return x;
-  inexact = SG_FLONUMP(x);
+  if (SG_FLONUMP(x)) {
+    double d = SG_FLONUM_VALUE(x);
+    if (d == 0.0) return x;
+    if (isinf(d) || isnan(d)) return x;
+    inexact = TRUE;
+  }
   obj = Sg_Exact(x);
   if (SG_RATIONALP(obj)) {
     if (inexact) return Sg_Inexact(SG_RATIONAL(obj)->numerator);
@@ -1304,10 +1308,14 @@ SgObject Sg_Numerator(SgObject x)
 
 SgObject Sg_Denominator(SgObject x)
 {
-  int inexact;
+  int inexact = FALSE;
   SgObject obj;
   if (!SG_NUMBERP(x)) wte(SG_INTERN("denominator"), "number", x);
-  inexact = SG_FLONUMP(x);
+  if (SG_FLONUMP(x)) {
+    double d = SG_FLONUM_VALUE(x);
+    if (isinf(d) || isnan(d)) return Sg_MakeFlonum(1.0);
+    inexact = TRUE;
+  }
   obj = Sg_Exact(x);
   if (SG_RATIONALP(obj)) {
     if (inexact) return Sg_Inexact(SG_RATIONAL(obj)->denominator);
@@ -1550,6 +1558,13 @@ SgObject Sg_Exact(SgObject obj)
   if (SG_FLONUMP(obj)) {
     double d = SG_FLONUM_VALUE(obj);
     double f, i;
+    /* inf.0 or nan.0 doesn't have exact value. */
+    
+    if (isinf(d) || isnan(d)) {
+      Sg_AssertionViolation(SG_INTERN("exact"),
+	    Sg_Sprintf(UC("no exact representation for %S"), obj),
+	    SG_LIST1(obj));
+    }
 #if defined(__WATCOMC__) || defined(__FreeBSD__) || defined(__OpenBSD__)
     /* Yes, on Watcom/FreeBSD if +inf.0 or +nan.0 is passed to modf,
        it returns +nan.0. Sucks!!! */

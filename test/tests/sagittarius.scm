@@ -1816,4 +1816,9 @@
 	     (lambda (out)
 	       (write '|\x000;\x01;\x2;\t\r\x41;\n\t\x7e;\x7f;| out))))
 
+;; call #124,
+(test-error "(exact +inf.0)" assertion-violation? (exact +inf.0)) 
+(test-error "(exact -inf.0)" assertion-violation? (exact -inf.0)) 
+(test-error "(exact +nan.0)" assertion-violation? (exact +nan.0)) 
+
 (test-end)
