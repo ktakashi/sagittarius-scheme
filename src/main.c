@@ -226,7 +226,8 @@ static void show_usage()
 	  "      no-inline         Not use inline ASM.\n"
 	  "      no-inline-local   Not inline local call.\n"
 	  "      no-lambda-lifting Not do lambda lifting.\n"
-	  "      no-library-inline Not do lambda lifting.\n"
+	  "      no-library-inline Not do library inlining.\n"
+	  "      no-const-fold     Not do constant folding.\n"
 	  "      no-optimization   Not optimiza.\n"
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
 	  "                                 before sash will be executed.\n"
@@ -499,10 +500,13 @@ int main(int argc, char **argv)
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
       } else if (tstrcmp(t("no-library-inline"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_LIBRARY_INLINING);
+      } else if (tstrcmp(t("no-const-fold"), optarg_s) == 0) {
+	SG_VM_SET_FLAG(vm, SG_NO_CONST_INLINING);
       } else if (tstrcmp(t("no-optimization"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_ASM);
 	SG_VM_SET_FLAG(vm, SG_NO_INLINE_LOCAL);
 	SG_VM_SET_FLAG(vm, SG_NO_LAMBDA_LIFT);
+	SG_VM_SET_FLAG(vm, SG_NO_CONST_INLINING);
       } else if (tstrcmp(t("no-backtrace"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
       } else {

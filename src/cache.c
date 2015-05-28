@@ -226,6 +226,17 @@ enum {
   STRING = 5		/* default */
 };
 
+/* 
+   If linking objects are more than threshold, then it would most
+   likely take too much time like more than fresh compilation.
+   In that case, we re-compile it.
+   NB: this happens when macro is too big.
+
+   TODO actual benchmark is needed.
+ */
+#define CACHE_THRESHOLD 0x10000
+
+
 /* symbol, string, keyword, identifier, bytevector, vector,
    pair, number, macro
 */
@@ -240,7 +251,12 @@ enum {
 static int cachable_p(SgObject obj, SgObject seen)
 {
   /* it's already checked so just return true */
-  if (seen && !SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
+  if (seen) {
+    if (!SG_UNBOUNDP(Sg_HashTableRef(seen, obj, SG_UNBOUND))) return TRUE;
+    /* check the size, if this is more than this, then it would be
+       rejected anyway. */
+    if (SG_HASHTABLE_CORE(seen)->entryCount > CACHE_THRESHOLD) return FALSE;
+  }
 
   if (builtin_cachable_p(obj, seen)) {
     return TRUE;
@@ -1856,15 +1872,6 @@ static SgObject read_macro_section(SgPort *in, read_ctx *ctx)
   return SG_UNDEF;
 }
 
-/* 
-   If linking objects are more than threshold, then it would most
-   likely take too much time like more than fresh compilation.
-   In that case, we re-compile it.
-   NB: this happens when macro is too big.
-
-   TODO actual benchmark is needed.
- */
-#define CACHE_THRESHOLD 0x10000
 
 static int check_timestamp(SgString* id, SgString *cache_path)
 {
