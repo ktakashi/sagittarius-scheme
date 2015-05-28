@@ -336,7 +336,6 @@ int64_t Sg_TranscoderRead(SgObject self, SgPort *port,
       read += SG_STRING_SIZE(r) - diff;
     }
   }
-
   /* resolve_eol compress the size */
   if (read != size) goto retry;
  end:
