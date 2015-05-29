@@ -71,7 +71,7 @@ struct SgVMProfilerRec
 #ifdef SAGITTARIUS_PROFILE
 #define SG_PROF_COUNT_CALL(vm, obj)					\
   do {									\
-    if ((vm)->state == RUNNING && (vm)->profilerRunning) {		\
+    if ((vm)->profilerRunning && (vm)->state == RUNNING) {		\
       if ((vm)->profiler->currentCount == SG_PROF_COUNTER) {		\
 	Sg_ProfilerCountBufferFlush(vm);				\
       }									\
