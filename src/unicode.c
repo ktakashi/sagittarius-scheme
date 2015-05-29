@@ -297,6 +297,9 @@ static inline int port_u8_reader(void *data, int getP)
   if (getP) {
     return Sg_GetbUnsafe(SG_PORT(data));
   } else {
+    if (Sg_HasSetPortPosition(SG_PORT(data))) {
+      Sg_SetPortPosition(SG_PORT(data), -1, SG_CURRENT);
+    }
     return -1;
   }
 }
@@ -308,6 +311,8 @@ SgChar Sg_ConvertUtf8ToUcs4(SgPort *port, ErrorHandlingMode mode)
   return r;
 }
 
+/* we only support proper replacement on the ports which have
+   set-port-position! */
 typedef struct
 {
   int64_t  pos;
@@ -331,7 +336,17 @@ static inline int buffer_u8_reader(void *data, int getP)
       } else
 	return EOF;
     } else {
-      ctx->pos--;
+      /* error case. revert back to previous position. 
+	 it might be slow but it's error recovery, so
+	 we don't care that much.
+	 TODO: custom port doesn't accept SG_CURENT...
+       */      
+      if (ctx->pos == ctx->buf_size && ctx->port &&
+	  Sg_HasSetPortPosition(ctx->port)) {
+	Sg_SetPortPosition(ctx->port, -1, SG_CURRENT);
+      } else {
+	ctx->pos--;
+      }
       return -1;
     }
   }

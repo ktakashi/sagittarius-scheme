@@ -256,4 +256,38 @@
 				     ))
 		 "a\xfffd;\xfffd;\xfffd;\xfffd;d")))
 
+(let ()
+  (define buf-size 10)
+  (define bv (make-bytevector buf-size (char->integer #\a)))
+  (define (bytevector-append . bvs)
+    (let* ((len (fold-left (lambda (sum bv) 
+			     (+ (bytevector-length bv) sum)) 0 bvs))
+	   (r (make-bytevector len)))
+      (fold-left (lambda (off bv)
+		   (let ((len (bytevector-length bv)))
+		     (bytevector-copy! bv 0 r off len)
+		     (+ off len)))
+		 0 bvs)
+      r))
+
+  (let ((bv2 (bytevector-append bv #vu8(#xe0 #x67 #x0a))))
+    (call-with-port (transcoded-port 
+		     (open-bytevector-input-port bv2) 
+		     (make-transcoder (utf-8-codec)
+				      (eol-style lf)
+				      (error-handling-mode replace)))
+       (lambda (in)
+	 (get-string-n in (+ 1 buf-size))
+	 (test-equal "read string after error code" "g\n"
+		     (get-string-all in))))
+    (call-with-port (transcoded-port 
+		     (open-bytevector-input-port #vu8(#xe0 #x67 #x0a))
+		     (make-transcoder (utf-8-codec)
+				      (eol-style lf)
+				      (error-handling-mode replace)))
+       (lambda (in)
+	 (get-char in)
+	 (test-equal "read char after error code" #\g (get-char in))))))
+
+
 (test-end)
