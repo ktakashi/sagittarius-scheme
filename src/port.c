@@ -119,6 +119,9 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutuzUnsafe(port, UC("-output-port"));
   } else if (SG_INOUTPORTP(p)) {
     Sg_PutuzUnsafe(port, UC("-input/output-port"));
+  } else if (SG_BIDIRECT_PORTP(p)) {
+    /* it's debug purpose anyway */
+    Sg_PutuzUnsafe(port, UC("-bidirection-port"));
   }
   if (SG_CUSTOM_PORTP(p)) {
     Sg_PutcUnsafe(port, ' ');

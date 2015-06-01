@@ -92,7 +92,7 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   SgWriteContext ctx;
   SgPort *port;
 
-  if (!SG_OUTPORTP(p) && !SG_INOUTPORTP(p)) {
+  if (!SG_OUTPORTP(p) && !SG_INOUTPORTP(p) && !SG_BIDIRECT_PORTP(p)) {
     Sg_Error(UC("output port required, but got %S"), p);
   }
   if (!(SG_TEXTUAL_PORTP(p) || 
@@ -131,7 +131,7 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
   SgHashTable seen;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 8);
@@ -177,7 +177,7 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   SgTextualPort tp;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   Sg_InitStringOutputPort(&out, &tp, 0);
@@ -600,7 +600,7 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
 {
   SgPort *out;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   if (!(SG_TEXTUAL_PORTP(port) ||
@@ -724,7 +724,10 @@ static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx)
 static SgObject write_object_fallback(SgObject *args, int argc, SgGeneric *gf)
 {
   SgClass *klass;
-  if (argc != 2 || (argc == 2 && !SG_OUTPORTP(args[1]))) {
+  if (argc != 2 || (argc == 2 && 
+		    !(SG_OUTPORTP(args[1]) || 
+		      SG_INOUTPORTP(args[1]) ||
+		      SG_BIDIRECT_PORTP(args[1])))) {
     Sg_Error(UC("no applicable method for write-object with %S"),
 	     Sg_ArrayToList(args, argc));
   }
@@ -1305,7 +1308,7 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
   SgPort *out;
   const SgChar *fmtp = fmt;
   int c;
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port)) {
+  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   if (!(SG_TEXTUAL_PORTP(port) ||

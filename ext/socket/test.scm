@@ -2,12 +2,14 @@
 (add-load-path "./socket")
 (add-load-path "./threads")
 
+#!read-macro=sagittarius/bv-string
 (import (srfi :64 testing)
 	(srfi :13 strings)
 	(rnrs)
 	(srfi :0 cond-expand)
 	(clos user)
 	(sagittarius socket)
+	(sagittarius) ;; for format
 	;; use thread for testing
 	(sagittarius threads))
 
@@ -117,6 +119,15 @@
 	      (socket-recv client-socket (+ (string-length "hello\r\n") 2) 0))
   (socket-send client-socket (string->utf8 "test-end\r\n") 0)
   )
+
+;; call #125
+(let* ((client-socket (make-client-socket "localhost" "5000"))
+       (in/out (socket-port client-socket)))
+  (test-assert "with display" (display "hello\n" in/out))
+  (test-assert "with format" (format in/out "hello\n"))
+  (test-equal "result" #*"hello\r\nhello\r\n" (get-bytevector-all in/out))
+  (put-bytevector in/out #*"test-end\r\n")
+  (close-port in/out))
 
 ;; now socket-port creates bidirectional port
 (let ((port (socket-port (make-client-socket "localhost" "5000")))
