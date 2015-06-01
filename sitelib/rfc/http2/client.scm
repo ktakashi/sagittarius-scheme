@@ -96,8 +96,15 @@
      (lambda (n)
        (lambda (server port secure? user-agent)
 	 (let ((socket (if secure?
-			   (make-client-tls-socket server port)
+			   (make-client-tls-socket 
+			    server port
+			    ;; at least try to use ALPN
+			    :hello-extensions 
+			    (list (make-server-name-indication (list server))
+				  (make-protocol-name-list (list "h2"))))
 			   (make-client-socket server port))))
+	   ;; TODO check TLS socket extension. 
+	   ;; (though, we can't do anything here since this only does HTTP2...)
 	   (n (make-hpack-context 4096)
 	      (make-hpack-context 4096)
 	      (socket-port socket)
