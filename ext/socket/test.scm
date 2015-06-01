@@ -122,10 +122,20 @@
 
 ;; call #125
 (let* ((client-socket (make-client-socket "localhost" "5000"))
-       (in/out (socket-port client-socket)))
-  (test-assert "with display" (display "hello\n" in/out))
-  (test-assert "with format" (format in/out "hello\n"))
-  (test-equal "result" #*"hello\r\nhello\r\n" (get-bytevector-all in/out))
+       (in/out (socket-port client-socket))
+       (msg "hello\n"))
+  (define (ensure-n in n)
+    (let loop ((n n) (r '()))
+      (let ((bv (get-bytevector-n in n)))
+      (if (= (bytevector-length bv) n)
+	  (bytevector-concatenate (reverse! (cons bv r)))
+	  (loop (- n (bytevector-length bv)) (cons bv r))))))
+  (test-assert "with display" (display msg in/out))
+  (test-assert "with format" (format in/out msg))
+  ;; response contains \r
+  (let ((r (ensure-n in/out (+ (* (string-length msg) 2) 2))))
+    ;;(write (utf8->string r)) (newline)
+    (test-equal "result" #*"hello\r\nhello\r\n" r))
   (put-bytevector in/out #*"test-end\r\n")
   (close-port in/out))
 
