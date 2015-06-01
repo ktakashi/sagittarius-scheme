@@ -100,6 +100,8 @@
 
 	    ;; extensions RFC6066
 	    *server-name*
+	    ;; extension of RFC 7301
+	    *application-layer-protocol-negotiation*
 	    *max-fragment-lenght*
 	    *client-certificate-url*
 	    *trusted-ca-keys*
@@ -241,6 +243,7 @@
   (define *supported-signatures* `((,*rsa* . ,RSA)))
 
   (define-constant *server-name* 0)
+  (define-constant *application-layer-protocol-negotiation* 16)
   ;; for now followings are not supported 
   (define-constant *max-fragment-lenght* 1)
   (define-constant *client-certificate-url* 2)

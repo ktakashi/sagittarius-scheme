@@ -63,6 +63,8 @@
 	    ;; extensions
 	    make-tls-server-name
 	    make-tls-server-name-list
+	    make-tls-protocol-name
+	    make-tls-protocol-name-list
 	    ;; predicate
 	    tls-alert?
 	    tls-handshake?
@@ -306,6 +308,8 @@
     ((type :init-keyword :type)
      (data :init-keyword :data))
     :packet-writer write-tls-extension)
+  (define-method write-object ((o <tls-extension>) out)
+    (format out "#<tls-extension ~a:~a>" (~ o 'type) (~ o 'data)))
   (define (make-tls-extension type data)
     (make <tls-extension> :type type :data data))
 
@@ -336,6 +340,33 @@
     (let1 bv (call-with-bytevector-output-port
 	      (^o (for-each (^n (write-tls-packet n o)) names)))
       (make <server-name-list> :server-name-list (make-variable-vector 2 bv))))
+
+  ;; RFC 7301 ALPN extension
+  (define (write-tls-protocol-name o out)
+    (write-tls-packet (~ o 'name) out))
+  (define-class <protocol-name> (<tls-packet-component>)
+    ((name :init-keyword :name))
+    :packet-writer write-tls-protocol-name)
+  (define (make-tls-protocol-name name)
+    (make <protocol-name> :name (make-variable-vector 1 (string->utf8 name))))
+
+  (define (write-tls-protocol-name-list o out)
+    (let1 bv (call-with-bytevector-output-port
+	      (lambda (out) 
+		(for-each (lambda (n) (write-tls-packet n out))
+			  (~ o 'protocol-name-list))))
+      ;; why the hell?
+      (write-tls-packet (make-variable-vector 2
+		          (call-with-bytevector-output-port
+			   (lambda (out)
+			     (write-tls-packet (make-variable-vector 2 bv)
+					       out))))
+			out)))
+  (define-class <protocol-name-list> (<tls-packet-component>)
+    ((protocol-name-list :init-keyword :protocol-name-list :init-value #f))
+    :packet-writer write-tls-protocol-name-list)
+  (define (make-tls-protocol-name-list names)
+    (make <protocol-name-list> :protocol-name-list names))
 
   ;; Server Certificate
   (define (write-tls-certificate o out)

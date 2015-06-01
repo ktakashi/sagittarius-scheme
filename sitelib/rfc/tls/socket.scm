@@ -79,6 +79,7 @@
 	    ;; hello extension helper
 	    make-hello-extension
 	    make-server-name-indication
+	    make-protocol-name-list
 	    )
     (import (rnrs)
 	    (core errors)
@@ -183,7 +184,8 @@
      (sent-close?  :init-value #f)
      ;; root server socket doesn't have peer
      ;; this is for sending close notify
-     (has-peer?    :init-keyword :has-peer? :init-value #t)))
+     (has-peer?    :init-keyword :has-peer? :init-value #t)
+     (extensions :init-value '())))
 
   (define-class <tls-client-socket> (<tls-socket>)
     (;; for convenience to test.
@@ -637,6 +639,10 @@
   (define (make-server-name-indication names)
     (let1 names (map (^n (make-tls-server-name *host-name* n)) names)
       (make-tls-extension *server-name* (make-tls-server-name-list names))))
+  (define (make-protocol-name-list names)
+    (let1 names (map (^n (make-tls-protocol-name n)) names)
+      (make-tls-extension *application-layer-protocol-negotiation*
+			  (make-tls-protocol-name-list names))))
 
   (define (socket->tls-socket socket :key (client-socket #t)
 			      :allow-other-keys opt)
@@ -672,7 +678,9 @@
 	  (set! (~ session 'version) version))
 	(set! (~ session 'server-random) (~ sh 'random))
 	(set! (~ session 'cipher-suite) (~ sh 'cipher-suite))
-	(set! (~ session 'methods) (~ sh 'compression-method))))
+	(set! (~ session 'methods) (~ sh 'compression-method))
+	;; should this be socket level?
+	(set! (~ socket 'extensions) (~ sh 'extensions))))
 
     (define (process-server-key-exchange socket ske)
       ;; TODO check if client certificate has suitable key.
