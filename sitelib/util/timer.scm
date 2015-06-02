@@ -102,13 +102,13 @@
   (define (timer-start! t)
     (define (main-loop t)
       (case (timer-state t)
-	((cancelling) 
-	 (timer-state-set! t 'cancelled))
+	((cancelling) (timer-state-set! t 'cancelled))
+	((cancelled)) ;; do nothing
 	((stopping)
-	 (timer-state-set! t 'stopped)
 	 (condition-variable-broadcast! (timer-waiter t))
 	 ;; otherwise other operation can't do anything...
-	 (mutex-unlock! (timer-lock t)) 
+	 (mutex-unlock! (timer-lock t))
+	 (timer-state-set! t 'stopped)
 	 ;; it's stopped as long as mutex is locked
 	 (mutex-unlock! (timer-stop-lock t) (timer-stop-waiter t) #f)
 	 ;; lock again
@@ -162,12 +162,13 @@
 (define (timer-start! t)
   (mutex-lock! (timer-lock t))
   (case (timer-state t)
-    ((stopped) 
+    ((stopped)
      (condition-variable-broadcast! (timer-stop-waiter t))
      (mutex-unlock! (timer-stop-lock t))
      (condition-variable-broadcast! (timer-waiter t)))
     ((created) (thread-start! (timer-worker t)))
     (else (assertion-violation 'timer-start! "already running" t)))
+
   (timer-state-set! t 'running)
   (mutex-unlock! (timer-lock t))
   t)
@@ -176,10 +177,19 @@
   (mutex-lock! (timer-lock t))
   (timer-state-set! t 'stopping)
   (mutex-lock! (timer-stop-lock t))
+  ;; notify to queue 
   (condition-variable-broadcast! (timer-waiter t))
+  ;; this should let the timer lock its lock
   (mutex-unlock! (timer-lock t))
-  ;; let's wait until the state is stopped
-  (mutex-unlock! (timer-lock t) (timer-waiter t))
+  ;; make sure timer lock is unlocked so that other process can modify
+  ;; the timer.
+  (thread-yield!)
+  ;; can't we do better?
+  (let loop ()
+    (unless (eq? (timer-state t) 'stopped)
+      (thread-yield!)
+      (thread-sleep! 0.1) ;; sleep a bit
+      (loop)))
   t)
 
 (define (timer-cancel! t)
@@ -201,7 +211,7 @@
        (unless need-lock?
 	 (condition-variable-broadcast! (timer-waiter t))
 	 (mutex-unlock! (timer-lock t)))
-       (thread-sleep! 0.1) ;; wait a bit to give some chance
+       (thread-yield!) ;; wait a bit to give some chance
        (retry #t))))
   (timer-state-set! t 'cancelling)
   (condition-variable-broadcast! (timer-waiter t))

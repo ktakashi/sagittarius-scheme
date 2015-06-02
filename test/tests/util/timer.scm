@@ -32,7 +32,7 @@
     ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
     (test-assert "timer-stop!" (timer? (timer-stop! timer)))
     (test-assert "timer-start! (restart)" (timer? (timer-start! timer)))
-
+    
     (test-assert "timer-cancel!" (timer-cancel! timer)))
   )
 
@@ -89,6 +89,6 @@
     (test-assert "removed" (not (timer-exists? timer id)))
     (test-assert "timer-stop!" (timer? (timer-stop! timer)))
     (test-assert "timer-cancel!" (timer-cancel! timer))))
-  
+
 
 (test-end)
