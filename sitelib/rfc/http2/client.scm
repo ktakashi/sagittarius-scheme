@@ -432,12 +432,13 @@
   ;; helper
   (define (http2-construct-header stream . extras)
     (define conn (http2-stream-connection stream))
-    ;; TODO handle extras
+    (define ->bv string->utf8)
     (let1 secure? (%h2-secure? conn)
-      `((#*":method" ,(string->utf8 (symbol->string (http2-stream-method stream))))
+      `((#*":method" ,(->bv (symbol->string (http2-stream-method stream))))
 	(#*":scheme" ,(if secure? #*"https" #*"http"))
-	(#*":path"   ,(string->utf8 (http2-stream-uri stream)))
-	(#*"user-agent" ,(string->utf8 (%h2-agent conn)))
+	(#*":path"   ,(->bv (http2-stream-uri stream)))
+	(#*"host"    ,(->bv (http2-client-connection-server conn)))
+	(#*"user-agent" ,(->bv (%h2-agent conn)))
 	,@(let loop ((h extras) (r '()))
 	    (match h
 	      ;; compatible format (:key "value")
@@ -445,8 +446,8 @@
 	      ;; convert them using format and string->utf8?
 	      (((? keyword? name) value rest ...)
 	       (loop rest
-		     (cons (list (string->utf8 (keyword->string name))
-				 (string->utf8 value)) r)))
+		     (cons (list (->bv (keyword->string name))
+				 (->bv value)) r)))
 	      (((? bytevector? name) (? bytevector? value) rest ...)
 	       (loop rest (cons (list name value) r)))
 	      (() (reverse! r))
