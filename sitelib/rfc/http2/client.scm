@@ -525,7 +525,7 @@
     (http2-add-request! conn 'HEAD uri (apply http2-headers-sender headers)
 			receiver
 			:redirect-handler redirect-handler)
-    (apply values (http2-invoke-requests! conn)))
+    (apply values (car (http2-invoke-requests! conn))))
 
   ;; POST (not properly tested)
   (define (http2-post conn uri data 
