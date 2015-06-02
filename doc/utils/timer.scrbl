@@ -37,13 +37,37 @@ when timer procedure raises an error. If this is not specified, then
 timer stops when one of the tasks raised an error.
 }
 
+@define[Function]{@name{timer-state} @args{timer}}
+@desc{Returns the state of given timer. The possible states are the followings:
+
+@dl-list{
+@dl-item["created"]{The timer is created and not executed yet.}
+@dl-item["running"]{The timer is running.}
+@dl-item["stopped"]{The timer is stopped (can be resumed).}
+@dl-item["cancelled"]{The timer is cancelled (cannot be resumed).}
+}
+}
+
+
 @define[Function]{@name{timer-start!} @args{timer}}
-@desc{Starts the given @var{timer}.}
+@desc{Starts the given @code{created} state @var{timer}.
+
+If the given timer's state is @code{stopped}, then this procedure resumes
+the given timer.
+
+If the timer state is not @code{created} or @code{stopped}, then
+@code{&assertion} is raised.
+}
 
 @define[Function]{@name{timer-stop!} @args{timer}}
-@desc{Stops the given @var{time}.
+@desc{Stops the given @var{time}.}
 
-NOTE: Once the timer is stopped, it is not reusable.}
+@define[Function]{@name{timer-cancel!} @args{timer}}
+@desc{Cancel the given @var{time}. If one of the tasks raised an error and
+no error handler is specified, then this procedure will re-raise the error.
+
+Once the timer is cancelled, then this timer is completely destroyed.}
+
 
 @define[Function]{@name{timer-schedule!}
  @args{timer thunk first :optional (period 0)}}

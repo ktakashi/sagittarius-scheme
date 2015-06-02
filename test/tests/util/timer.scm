@@ -30,7 +30,10 @@
     (test-assert "timer-exists? (2)" (not (timer-exists? timer id)))
     ;; this depends on timing thing.
     ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
-    (test-assert "timer-stop!" (timer-stop! timer)))
+    (test-assert "timer-stop!" (timer? (timer-stop! timer)))
+    (test-assert "timer-start! (restart)" (timer? (timer-start! timer)))
+
+    (test-assert "timer-cancel!" (timer-cancel! timer)))
   )
 
 (let* ((handled #f)
@@ -42,7 +45,8 @@
 					  (current-time))))
   (thread-sleep! 0.1) ;; wait a bit
   (test-equal "error-handling" 'dummy handled)
-  (test-assert "timer-stop!" (timer-stop! timer))
+  (test-assert "timer-stop!" (timer? (timer-stop! timer)))
+  (test-assert "timer-cancel!" (timer-cancel! timer))
   )
 
 ;; error case
@@ -55,7 +59,6 @@
 	      (timer-schedule! timer (lambda () 1) 0 'foo)))
 
 ;; reschedule
-
 (let ((a '()))
   (define timer (timer-start! (make-timer)))
   (define id (timer-schedule! timer (lambda () (set! a (cons 1 a))) 600))
@@ -66,6 +69,7 @@
   (thread-sleep! 0.5) ;; wait 500ms
   ;; first one must be executed first so 2 1
   (test-equal "reschedule" '(2 1) a)
+  (test-assert "timer-cancel!" (timer-cancel! timer))
   )
 
 ;; time-duration
@@ -83,7 +87,8 @@
     (test-assert "result" (>= (length ls) 2))
     (thread-sleep! 0.5)
     (test-assert "removed" (not (timer-exists? timer id)))
-    (test-assert "timer-stop!" (timer-stop! timer))))
+    (test-assert "timer-stop!" (timer? (timer-stop! timer)))
+    (test-assert "timer-cancel!" (timer-cancel! timer))))
   
 
 (test-end)

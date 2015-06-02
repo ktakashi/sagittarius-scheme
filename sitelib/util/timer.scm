@@ -2,7 +2,7 @@
 ;;;
 ;;; util/timer.scm - Timer
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,8 +29,8 @@
 ;;;  
 
 (library (util timer)
-    (export make-timer timer?
-	    timer-start! timer-stop!
+    (export make-timer timer? timer-state
+	    timer-start! timer-stop! timer-cancel!
 	    timer-schedule! timer-reschedule!
 	    timer-remove! timer-exists?)
     (import (rnrs)
@@ -59,7 +59,8 @@
 
 (define-record-type (<timer> %make-timer timer?)
   (fields (immutable queue timer-queue)
-	  (mutable done? timer-done? timer-done-set!)
+	  ;; stop, cancel or #f
+	  (mutable state timer-state timer-state-set!)
 	  (immutable lock timer-lock)
 	  (immutable waiter timer-waiter)
 	  ;; worker thread
@@ -67,13 +68,18 @@
 	  (mutable next-id timer-next-id timer-next-id-set!)
 	  ;; tiemrs table
 	  (immutable active timer-active)
+	  ;; we can't share them... *sign*
+	  (immutable stop-lock timer-stop-lock)
+	  (immutable stop-waiter timer-stop-waiter)
 	  )
   (protocol (lambda (p)
 	      (lambda ()
-		(p (make-heap task-compare) #f
+		(p (make-heap task-compare) 'created
 		   (make-mutex)
 		   (make-condition-variable)
-		   #f 1 (make-eqv-hashtable))))))
+		   #f 1 (make-eqv-hashtable)
+		   (make-mutex)
+		   (make-condition-variable))))))
 
 ;; hmmmm, how many times I've written this type of macro...
 (define-syntax wait-cv
@@ -95,42 +101,55 @@
 (define (make-timer :key (error-handler #f))
   (define (timer-start! t)
     (define (main-loop t)
-      (unless (timer-done? t)
-	;; we may want to <mt-heap> for this purpose...
-	(let ((queue (timer-queue t)))
-	  (if (heap-empty? queue)
-	      (wait-cv (timer-lock t) (timer-waiter t))
-	      (let* ((first (heap-entry-value (heap-min queue)))
-		     (now   (current-time))
-		     (next  (timer-task-next first)))
-		(if (time>=? now next)
-		    (begin
-		      ;; set running
-		      (timer-task-running-set! first #t)
-		      ;; then remove it from heap
-		      ;; this prevents raising an error during reschedule.
-		      (heap-entry-value (heap-extract-min! queue))
-		      (mutex-unlock! (timer-lock t))
-		      (guard (e (error-handler (error-handler e))
-				(else (raise e)))
+      (case (timer-state t)
+	((cancelling) 
+	 (timer-state-set! t 'cancelled))
+	((stopping)
+	 (timer-state-set! t 'stopped)
+	 (condition-variable-broadcast! (timer-waiter t))
+	 ;; otherwise other operation can't do anything...
+	 (mutex-unlock! (timer-lock t)) 
+	 ;; it's stopped as long as mutex is locked
+	 (mutex-unlock! (timer-stop-lock t) (timer-stop-waiter t) #f)
+	 ;; lock again
+	 (mutex-lock! (timer-lock t))
+	 (main-loop t))
+	(else
+	 ;; we may want to <mt-heap> for this purpose...
+	 (let ((queue (timer-queue t)))
+	   (if (heap-empty? queue)
+	       (wait-cv (timer-lock t) (timer-waiter t))
+	       (let* ((first (heap-entry-value (heap-min queue)))
+		      (now   (current-time))
+		      (next  (timer-task-next first)))
+		 (if (time>=? now next)
+		     (begin
+		       ;; set running
+		       (timer-task-running-set! first #t)
+		       ;; then remove it from heap
+		       ;; this prevents raising an error during reschedule.
+		       (heap-entry-value (heap-extract-min! queue))
+		       (mutex-unlock! (timer-lock t))
+		       (guard (e (error-handler (error-handler e))
+				 (else (raise e)))
 			 ((timer-task-thunk first)))
-		      (mutex-lock! (timer-lock t))
-		      (if (timer-task-running? first)
-			  (let ((p (timer-task-period first)))
-			    (timer-task-running-set! first #f)
-			    (if (and (time? p)
-				     (or (positive? (time-nanosecond p))
-					 (positive? (time-second p))))
-				(let ((next2 (add-duration next p)))
-				  (timer-task-next-set! first next2)
-				  (heap-set! queue first first))
-				(hashtable-delete! (timer-active t)
-						   (timer-task-id first))))
-			  (hashtable-delete! (timer-active t)
-					     (timer-task-id first))))
-		    (wait-cv (timer-lock t) (timer-waiter t)
-			     (timer-task-next first))))))
-	(main-loop t)))
+		       (mutex-lock! (timer-lock t))
+		       (if (timer-task-running? first)
+			   (let ((p (timer-task-period first)))
+			     (timer-task-running-set! first #f)
+			     (if (and (time? p)
+				      (or (positive? (time-nanosecond p))
+					  (positive? (time-second p))))
+				 (let ((next2 (add-duration next p)))
+				   (timer-task-next-set! first next2)
+				   (heap-set! queue first first))
+				 (hashtable-delete! (timer-active t)
+						    (timer-task-id first))))
+			   (hashtable-delete! (timer-active t)
+					      (timer-task-id first))))
+		     (wait-cv (timer-lock t) (timer-waiter t)
+			      (timer-task-next first))))))
+	 (main-loop t))))
     (lambda ()
       (dynamic-wind
 	  (lambda () (mutex-lock! (timer-lock t)))
@@ -141,12 +160,50 @@
     t))
 
 (define (timer-start! t)
-  (thread-start! (timer-worker t))
+  (mutex-lock! (timer-lock t))
+  (case (timer-state t)
+    ((stopped) 
+     (condition-variable-broadcast! (timer-stop-waiter t))
+     (mutex-unlock! (timer-stop-lock t))
+     (condition-variable-broadcast! (timer-waiter t)))
+    ((created) (thread-start! (timer-worker t)))
+    (else (assertion-violation 'timer-start! "already running" t)))
+  (timer-state-set! t 'running)
+  (mutex-unlock! (timer-lock t))
   t)
 
 (define (timer-stop! t)
   (mutex-lock! (timer-lock t))
-  (timer-done-set! t #t)
+  (timer-state-set! t 'stopping)
+  (mutex-lock! (timer-stop-lock t))
+  (condition-variable-broadcast! (timer-waiter t))
+  (mutex-unlock! (timer-lock t))
+  ;; let's wait until the state is stopped
+  (mutex-unlock! (timer-lock t) (timer-waiter t))
+  t)
+
+(define (timer-cancel! t)
+  (mutex-lock! (timer-lock t))
+  (let retry ((need-lock? #f))
+    (case (timer-state t)
+      ((stopped) 
+       (condition-variable-broadcast! (timer-stop-waiter t))
+       ;; lock first to prevent to be locked by the timer
+       (when need-lock? (mutex-lock! (timer-lock t)))
+       ;; ok unlock it
+       (mutex-unlock! (timer-stop-lock t)))
+      ;; basically this pass never happens. since timer-stop! makes sure
+      ;; the timer is stopped state.
+      ((stopping)
+       ;; make sure we don't do this twice, otherwise it'd wait
+       ;; forever until someone unlock the lock (and in this case
+       ;; nobody).
+       (unless need-lock?
+	 (condition-variable-broadcast! (timer-waiter t))
+	 (mutex-unlock! (timer-lock t)))
+       (thread-sleep! 0.1) ;; wait a bit to give some chance
+       (retry #t))))
+  (timer-state-set! t 'cancelling)
   (condition-variable-broadcast! (timer-waiter t))
   (mutex-unlock! (timer-lock t))
   (thread-join! (timer-worker t)))
@@ -207,7 +264,8 @@
 			  (else (millisecond->time-duration period))))
 	      (queue (timer-queue timer)))
 	  ;; should be able to delete here...
-	  (unless (timer-task-running? task)
+	  (when (and (not (timer-task-running? task))
+		     (heap-search queue task))
 	    (heap-delete! queue task))
 	  ;; update period
 	  (timer-task-period-set! task p)

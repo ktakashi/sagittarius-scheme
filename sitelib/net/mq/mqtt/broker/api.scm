@@ -105,7 +105,7 @@
   (define (make-mqtt-broker-context . opt)
     (apply make <mqtt-broker-context> opt))
   (define (mqtt-session-cleaner-stop! context)
-    (timer-stop! (~ context 'cleaner-timer)))
+    (timer-cancel! (~ context 'cleaner-timer)))
 
   (define-class <mqtt-session> ()
     ((context :init-keyword :context)
