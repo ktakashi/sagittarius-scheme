@@ -138,7 +138,10 @@
 		   (cons (make-promise
 			  (lambda ()
 			    (with-output-to-string 
-			      (lambda () (load file))))) futures))))
+			      (lambda ()
+				(load file)
+				(test-runner-reset (test-runner-get))))))
+			 futures))))
 	  (else
 	   (print-results futures)
 	   (loop files '())))))
