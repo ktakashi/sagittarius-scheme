@@ -33,11 +33,28 @@
 	  thread-pool-size
 	  thread-pool-push-task!
 	  thread-pool-wait-all!
-	  thread-pool-release!)
+	  thread-pool-release!
+
+	  thread-pool-thread-terminate! ;; hmmmm
+	  )
   (import (rnrs)
 	  (srfi :18)
 	  (util concurrent shared-queue))
 
+(define (make-executor queue)
+  (lambda ()
+    ;; use thread specific slot to know, which thread is
+    ;; available.
+    (thread-specific-set! (current-thread) 'idling)
+    (let loop ()
+      (let ((task (shared-queue-get! queue)))
+	;; if it's #f then must be called from
+	;; thread-pool-release!
+	(when task
+	  (thread-specific-set! (current-thread) 'executing)
+	  (guard (e (else #f)) (task))
+	  (thread-specific-set! (current-thread) 'idling)
+	  (loop))))))
 (define-record-type (<thread-pool> make-thread-pool thread-pool?)
   (fields threads ;; to join
 	  queues  ;; shared-queues
@@ -45,20 +62,6 @@
   (protocol
    (lambda (p)
      (lambda (n)
-       (define (make-executor queue)
-	 (lambda ()
-	   ;; use thread specific slot to know, which thread is
-	   ;; available.
-	   (thread-specific-set! (current-thread) 'idling)
-	   (let loop ()
-	     (let ((task (shared-queue-get! queue)))
-	       ;; if it's #f then must be called from
-	       ;; thread-pool-release!
-	       (when task
-		 (thread-specific-set! (current-thread) 'executing)
-		 (guard (e (else #f)) (task))
-		 (thread-specific-set! (current-thread) 'idling)
-		 (loop))))))
        (let ((threads (make-vector n))
 	     (queues  (make-vector n)))
 	 (do ((i 0 (+ i 1)))
@@ -95,7 +98,8 @@
 		    ((and (add-to-back? i) (< s qsize)) (loop (+ i 1) i s))
 		    (else (loop (+ i 1) maybe qsize))))))))
   (let ((where (find-available tp (if (null? opt) default-handler (car opt)))))
-    (shared-queue-put! (vector-ref (<thread-pool>-queues tp) where) task)))
+    (shared-queue-put! (vector-ref (<thread-pool>-queues tp) where) task)
+    where))
 
 (define (thread-pool-wait-all! tp)
   (define (wait-queue tp)
@@ -116,11 +120,30 @@
   (wait-threads tp))
 
 
-(define (thread-pool-release! tp)
-  (vector-for-each (lambda (q) (shared-queue-put! q #f))
-		   (<thread-pool>-queues tp))
-  (vector-for-each (lambda (t) (thread-join! t))
-		   (<thread-pool>-threads tp)))
+(define (thread-pool-release! tp . opt)
+  (let ((type (if (null? opt) 'join (car opt))))
+    (vector-for-each (lambda (q) (shared-queue-put! q #f))
+		     (<thread-pool>-queues tp))
+    (vector-for-each (lambda (t)
+		       (case type
+			 ;; default join
+			 ;; ((join) (thread-join! t))
+			 ((terminate) (thread-terminate! t))
+			 (else (thread-join! t))))
+		     (<thread-pool>-threads tp))))
+
+(define (thread-pool-thread-terminate! tp id)
+  (define threads (<thread-pool>-threads tp))
+  (define queues (<thread-pool>-queues tp))
+  (let ((t (vector-ref threads id)))
+    (thread-terminate! t) ;; don't do it!
+    (let ((q (vector-ref queues id)))
+      ;; clear all pending tasks.
+      ;; the thread is terminated, so it's not interesting anymore
+      (shared-queue-clear! q)
+      ;; prepare for next time
+      (vector-set! threads id
+		    (thread-start! (make-thread (make-executor q)))))))
 
 ;; TODO Should we add thread-pool-stop! ?
 

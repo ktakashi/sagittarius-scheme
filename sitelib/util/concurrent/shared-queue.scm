@@ -37,7 +37,8 @@
     (export shared-queue? make-shared-queue <shared-queue>
 	    shared-queue-empty? shared-queue-size
 	    shared-queue-max-length
-	    shared-queue-put! shared-queue-get!)
+	    shared-queue-put! shared-queue-get!
+	    shared-queue-clear!)
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (srfi :18))
@@ -107,7 +108,7 @@
 	(cond ((if (zero? (shared-queue-max-length sq))
 		   (zero? (%w sq))
 		   (shared-queue-overflows? sq 1))
-	       (cond ((mutex-unlock! (%lock sq) (%read-cv sq) timeout)
+	       (cond ((mutex-unlock! (%lock sq) (%write-cv sq) timeout)
 		      (mutex-lock! (%lock sq))
 		      (loop))
 		     (else timeout-value)))
@@ -127,6 +128,13 @@
     (and (>= (shared-queue-max-length sq) 0)
 	 (> (+ count (shared-queue-size sq)) (shared-queue-max-length sq))))
 
+  (define (shared-queue-clear! sq)
+    (mutex-lock! (%lock sq))
+    (shared-queue-size-set! sq 0)
+    (shared-queue-head-set! sq '())
+    (shared-queue-tail-set! sq '())
+    (mutex-unlock! (%lock sq)))
+  
   )
 
 ;; Local Variables:
