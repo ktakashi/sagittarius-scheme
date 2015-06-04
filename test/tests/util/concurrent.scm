@@ -148,6 +148,10 @@
       (if (shared-queue-empty? sq)
 	  r
 	  (loop (cons (shared-queue-get! sq) r)))))
+  (define (custom-add-to-back n)
+    (if (negative? n)
+	(error 'dummy "failed to add")
+	#f))
   (test-assert "thread-pool?" (thread-pool? pool))
   (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
   (test-assert "wait!" (thread-pool-wait-all! pool))
@@ -161,6 +165,14 @@
       (thread-pool-push-task! pool
 			      (lambda ()
 				(thread-sleep! 0.1)
-				(shared-queue-put! sq i))))))
+				(shared-queue-put! sq i)))))
+  (test-error "optional handler" error?
+	      (do ((i 0 (+ i 1)))
+		  ((= i 10) (thread-pool-wait-all! pool) #f)
+		(thread-pool-push-task! pool
+					;; just wait
+					(lambda () (thread-sleep! 1))
+					custom-add-to-back)))
+  )
 
 (test-end)

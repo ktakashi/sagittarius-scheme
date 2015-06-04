@@ -70,22 +70,25 @@
 
 ;; TODO should we always put task to thread?
 ;;      maybe it's better to raise an error?
-(define (thread-pool-push-task! tp task)
+(define (thread-pool-push-task! tp task . opt)
+  ;; if we didn't get any then first one, sorry.
+  (define (default-handler n)
+    (if (negative? n) 0 n))
   ;; idling thread is the highest
   ;; then less number ones
-  (define (find-available tp)
+  (define (find-available tp add-to-back?)
     (let* ((threads (<thread-pool>-threads tp))
 	   (queue (<thread-pool>-queues tp))
 	   (size (vector-length threads)))
-      (let loop ((i 0) (maybe 0) (qsize +inf.0))
+      (let loop ((i 0) (maybe -1) (qsize +inf.0))
 	(if (= i size)
-	    maybe ;; if we didn't get any then first one, sorry.
+	    (add-to-back? maybe)
 	    (let ((t (vector-ref threads i))
 		  (s (shared-queue-size (vector-ref queue i))))
-	      (cond ((eq? (thread-specific t) 'idling) i)
-		    ((< s qsize) (loop (+ i 1) i s))
+	      (cond ((and (zero? s) (eq? (thread-specific t) 'idling)) i)
+		    ((and (add-to-back? i) (< s qsize)) (loop (+ i 1) i s))
 		    (else (loop (+ i 1) maybe qsize))))))))
-  (let ((where (find-available tp)))
+  (let ((where (find-available tp (if (null? opt) default-handler (car opt)))))
     (shared-queue-put! (vector-ref (<thread-pool>-queues tp) where) task)))
 
 (define (thread-pool-wait-all! tp)
