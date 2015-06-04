@@ -2,7 +2,7 @@
 ;;;
 ;;; util/concurrent.scm - Concurrent library
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -34,4 +34,5 @@
     (export :all)
     (import (util concurrent future)
 	    (util concurrent executor)
-	    (util concurrent shared-queue)))
+	    (util concurrent shared-queue)
+	    (util concurrent thread-pool)))

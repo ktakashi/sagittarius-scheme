@@ -141,4 +141,26 @@
   (test-assert "empty?" (shared-queue-empty? recepit))
   )
 
+;; thread-pool
+(let ((pool (make-thread-pool 5)))
+  (define (crop sq)
+    (let loop ((r '()))
+      (if (shared-queue-empty? sq)
+	  r
+	  (loop (cons (shared-queue-get! sq) r)))))
+  (test-assert "thread-pool?" (thread-pool? pool))
+  (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
+  (test-assert "wait!" (thread-pool-wait-all! pool))
+  (let ((sq (make-shared-queue)))
+    (do ((i 0 (+ i 1)))
+	((= i 10)
+	 (thread-pool-wait-all! pool)
+	 (test-equal "result"
+		     '(0 1 2 3 4 5 6 7 8 9)
+		     (list-sort < (crop sq))))
+      (thread-pool-push-task! pool
+			      (lambda ()
+				(thread-sleep! 0.1)
+				(shared-queue-put! sq i))))))
+
 (test-end)
