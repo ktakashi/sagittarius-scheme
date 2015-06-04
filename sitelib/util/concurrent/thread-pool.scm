@@ -30,6 +30,7 @@
 
 (library (util concurrent thread-pool)
   (export make-thread-pool thread-pool? <thread-pool>
+	  thread-pool-size
 	  thread-pool-push-task!
 	  thread-pool-wait-all!
 	  thread-pool-release!)
@@ -68,8 +69,13 @@
 			  (thread-start!
 			   (make-thread (make-executor q)))))))))))
 
-;; TODO should we always put task to thread?
-;;      maybe it's better to raise an error?
+
+(define (thread-pool-size tp)
+  ;; whatever is fine.
+  (vector-length (<thread-pool>-threads tp)))
+
+;; Optional argument must be a procedure takes one argument.
+;;  see default-handler
 (define (thread-pool-push-task! tp task . opt)
   ;; if we didn't get any then first one, sorry.
   (define (default-handler n)

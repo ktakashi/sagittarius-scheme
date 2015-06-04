@@ -153,6 +153,7 @@
 	(error 'dummy "failed to add")
 	#f))
   (test-assert "thread-pool?" (thread-pool? pool))
+  (test-equal "size" 5 (thread-pool-size pool))
   (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
   (test-assert "wait!" (thread-pool-wait-all! pool))
   (let ((sq (make-shared-queue)))
