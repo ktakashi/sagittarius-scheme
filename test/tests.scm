@@ -34,6 +34,10 @@
 	(rfc uuid)
 	;; so is text sre
 	(text sre)
+	;; so is rfc tls
+	(rfc tls)
+	;; so is rfc http
+	(rfc http)
 	(util file)
 	(sagittarius io)
 	(scheme load)

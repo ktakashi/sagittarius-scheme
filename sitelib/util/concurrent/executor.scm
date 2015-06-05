@@ -198,14 +198,16 @@
     (define (task-invoker thunk)
       (lambda ()
 	(let ((q (future-result future)))
-	  (guard (e (else 
+	  (guard (e (else
 		     (future-canceller-set! future #t) ;; kinda abusing
+		     (cleanup executor future 'finished)
 		     (shared-queue-put! q e)))
-	    (shared-queue-put! q (thunk)))
-	  ;; not done
-	  (cleanup executor future 'finished))))
+	     (let ((r (thunk)))
+	       ;; first remove future then put the result
+	       ;; otherwise future-get may be called before.
+	       (cleanup executor future 'finished)
+	       (shared-queue-put! q r))))))
     (define (canceller future) (cleanup executor future 'terminated))
-    
     (or (with-atomic executor
 	  (let ((pool-size (thread-pool-executor-pool-size executor))
 		(max-pool-size (thread-pool-executor-max-pool-size executor)))

@@ -91,13 +91,14 @@
   ;; kinda silly
   (define (future-get future)
     (define (finish r)
+      ;; now we can change the state shared.
+      (future-state-set! future 'done)
       (if (eqv? (future-canceller future) #t) ;; kinda silly
 	  (raise r)
 	  r))
     (when (eq? (future-state future) 'terminated)
       (error 'future-get "future is terminated" future))
     (let ((state (future-state future)))
-      (future-state-set! future 'done)
       (let ((r (future-result future)))
 	(finish 
 	 (cond ((and (not (eq? state 'done)) (shared-queue? r))
