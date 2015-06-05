@@ -128,7 +128,7 @@
 			   (print (describe-condition 
 				   (uncaught-exception-reason e))))
 			  (else (print e)))
-		  (print (future-get f)))) 
+		  (print (future-get f))))
 	      (reverse! futures)))
   (let loop ((files files) (futures '()))
     (cond ((null? files) (print-results futures))
@@ -152,7 +152,8 @@
 	(run-tests files)
 	(let ((thunks (map (^f
 			     (^()
-			       (load f (environment '(rnrs) '(sagittarius)))))
+			       (load f (environment '(rnrs) '(sagittarius)))
+			       (test-runner-reset (test-runner-get))))
 			   files)))
 	  (for-each (lambda (file thunk)
 		      (thunk)

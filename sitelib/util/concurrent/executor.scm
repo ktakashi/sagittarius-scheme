@@ -58,28 +58,18 @@
 	    (srfi :18)
 	    (srfi :19)
 	    (srfi :117)
-	    (util concurrent future))
+	    (util concurrent shared-queue)
+	    (util concurrent future)
+	    (util concurrent thread-pool))
 
-  ;; TODO the future implementation 
-  (define (executor-future-get future)
-    (let ((w (future-worker future)))
-      (unless w (error 'future-get "Future didn't run yet"))
-      (thread-join! (worker-thread w))))
-  (define (executor-future-cancel future)
-    (let ((w (future-worker future)))
-      (unless w (error 'future-get "Future didn't run yet"))
-      (thread-terminate! (worker-thread w))
-      (cleanup (worker-executor w) w 'terminated)))
-
+  (define (not-started dummy)
+    (assertion-violation 'executor-future "Future is not started yet" dummy))
   (define-record-type (<executor-future> make-executor-future executor-future?)
     (parent <future>)
-    (fields (mutable worker future-worker future-worker-set!))
+    ;; (fields (mutable worker future-worker future-worker-set!))
     (protocol (lambda (n)
 		(lambda (thunk)
-		  (let ((p (n thunk
-			      executor-future-get
-			      executor-future-cancel)))
-		    (p #f))))))
+		  ((n thunk not-started))))))
 
   ;; executor and worker
   (define-condition-type &rejected-execution-error &error 
@@ -95,10 +85,10 @@
 		      (make-message-condition "Failed to add task"))))
   ;; assume the oldest one is negligible
   (define (terminate-oldest-handler future executor)
-    (let ((oldest (list-queue-remove-front! (executor-workers executor))))
-      (thread-terminate! (worker-thread oldest))
+    (let ((oldest (list-queue-remove-front! (executor-pool-ids executor))))
+      (thread-pool-thread-terminate! (executor-pool executor) (car oldest))
       ;; now remove
-      (cleanup executor oldest 'terminated))
+      (cleanup executor (cdr oldest) 'terminated))
     ;; retry
     (execute-future! executor future))
 
@@ -129,25 +119,32 @@
 		       make-thread-pool-executor 
 		       thread-pool-executor?)
     (parent <executor>)
-    (fields (mutable pool-size thread-pool-executor-pool-size 
-		     ;; lazy, it's not exposed anyway
-		     executor-pool-size-set!)
-	    (immutable max-pool-size 
-		       thread-pool-executor-max-pool-size)
-	    (immutable workers executor-workers)
+    (fields (immutable pool-ids executor-pool-ids)
+	    (immutable pool executor-pool)
 	    (immutable rejected-handler executor-rejected-handler)
 	    (immutable mutex executor-mutex))
     (protocol (lambda (n)
 		(lambda (max-pool-size . rest)
 		  ;; i don't see using mtqueue for this since
 		  ;; mutating the slot is atomic
-		  ((n) 0 max-pool-size (list-queue)
+		  ((n) (make-list-queue '())
+		   (make-thread-pool max-pool-size)
 		   (if (null? rest)
 		       default-rejected-handler
 		       (car rest))
 		   (make-mutex))))))
 
-  ;; it's also defined in (sagittarius thread)
+  (define (thread-pool-executor-pool-size executor)
+    (length (list-queue-list (executor-pool-ids executor))))
+  (define (thread-pool-executor-max-pool-size executor)
+    (thread-pool-size (executor-pool executor)))
+
+  ;; this is basically not a good solution...
+  ;; there are couple of points that with-atomic is called more than
+  ;; twice in the same thread.
+  ;;  e.g. shutdown-executor! calls future-cancel and it's cancler is
+  ;;       calling with-atomic ...
+  ;; so the lock should be recursive lock.
   (define (mutex-lock-recursively! mutex)
     (if (eq? (mutex-state mutex) (current-thread))
 	(let ((n (mutex-specific mutex)))
@@ -161,7 +158,6 @@
       (if (= n 0)
 	  (mutex-unlock! mutex)
 	  (mutex-specific-set! mutex (- n 1)))))
-
   (define-syntax with-atomic
     (syntax-rules ()
       ((_ executor expr ...)
@@ -169,77 +165,59 @@
 	   (lambda () (mutex-lock-recursively! (executor-mutex executor)))
 	   (lambda () expr ...)
 	   (lambda () (mutex-unlock-recursively! (executor-mutex executor)))))))
-  (define (cleanup executor worker state)
+  (define (cleanup executor future state)
     (define (remove-from-queue! proc queue)
       (list-queue-set-list! queue (remove! proc (list-queue-list queue))))
-
     (with-atomic executor
-     (executor-pool-size-set! executor
-			      (- (thread-pool-executor-pool-size executor) 1))
-     ;; reduce pool count
-     ;; remove from workers
-     (remove-from-queue! (lambda (w) (eq? worker w))
-			 (executor-workers executor))
-     (future-state-set! (worker-task worker) state)))
-
-  (define-record-type (<worker> make-worker worker?)
-    (fields (mutable thread worker-thread worker-thread-set!)
-	    (immutable executor worker-executor)
-	    (immutable create-time worker-create-time)
-	    (immutable future worker-task))
-    (protocol (lambda (p)
-		(lambda (executor future) 
-		  (p #f executor (current-time) future)))))
+      (remove-from-queue! (lambda (o) (eq? (cdr o) future))
+			  (executor-pool-ids executor))
+      (future-state-set! future state)))
 
   (define (executor-available? executor)
     (< (thread-pool-executor-pool-size executor) 
        (thread-pool-executor-max-pool-size executor)))
   
   ;; shutdown
-  ;; shutdown given executor. We need to first finish all
-  ;; workers then change the state.
   (define (shutdown-executor! executor)
     (with-atomic executor
-     (let ((state (executor-state executor))
-	   (workers (executor-workers executor)))
+     (let ((state (executor-state executor)))
        (guard (e (else (executor-state-set! executor state)
 		       (raise e)))
 	 ;; to avoid accepting new task
 	 ;; chenge it here
 	 (when (eq? state 'running)
 	   (executor-state-set! executor 'shutdown))
-	 (let loop ((workers workers))
-	   (unless (list-queue-empty? workers)
-	     (thread-terminate! (worker-thread (list-queue-front workers)))
-	     (cleanup executor (list-queue-remove-front! workers) 'terminated)
-	     (loop workers)))))))
+	 ;; we terminate the threads so that we can finish all
+	 ;; infinite looped threads.
+	 ;; NB, it's dangerous
+	 (thread-pool-release! (executor-pool executor) 'terminate)
+	 (for-each (lambda (future) (future-cancel (cdr future)))
+		   (list-queue-remove-all! (executor-pool-ids executor)))))))
 
   (define (execute-future! executor future)
-    (define (worker-thunk worker)
+    (define (task-invoker thunk)
       (lambda ()
-	(let ((future (worker-task worker)))
-	  (guard (e (else (cleanup executor worker 'error) 
-			  (raise e)))
-	    (let* ((thunk (future-thunk future))
-		   (r (thunk)))
-	      (cleanup executor worker 'done)
-	      r)))))
+	(let ((q (future-result future)))
+	  (guard (e (else 
+		     (future-canceller-set! future #t) ;; kinda abusing
+		     (shared-queue-put! q e)))
+	    (shared-queue-put! q (thunk)))
+	  ;; not done
+	  (cleanup executor future 'finished))))
+    (define (canceller future) (cleanup executor future 'terminated))
     
     (or (with-atomic executor
 	  (let ((pool-size (thread-pool-executor-pool-size executor))
 		(max-pool-size (thread-pool-executor-max-pool-size executor)))
 	    (and (< pool-size max-pool-size)
 		 (eq? (executor-state executor) 'running)
-		 ;; add
-		 (let* ((worker (make-worker executor future))
-			(thread (make-thread (worker-thunk worker))))
-		   (list-queue-add-back! (executor-workers executor) worker)
-		   (executor-pool-size-set! executor (+ pool-size 1))
-		   (future-worker-set! future worker)
-		   (worker-thread-set! worker thread)
-		   ;; thread must be started *after* we do above
-		   ;; otherwise may get something weird condition
-		   (thread-start! thread)
+		 (future-result-set! future (make-shared-queue))
+		 (let* ((thunk (future-thunk future))
+			(id (thread-pool-push-task! (executor-pool executor)
+						    (task-invoker thunk))))
+		   (future-canceller-set! future canceller)
+		   (list-queue-add-back!
+		    (executor-pool-ids executor) (cons id future))
 		   executor))))
 	;; the reject handler may lock executor again
 	;; to avoid double lock, this must be out side of atomic

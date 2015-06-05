@@ -143,6 +143,7 @@
 	  (map (lambda (socket)
 		 (make-thread
 		  (lambda ()
+		    (thread-specific-set! (current-thread) 'done)
 		    (let loop ((client-socket (socket-accept socket)))
 		      (cond ((~ server 'stop-request) (socket-close socket))
 			    (else
@@ -184,7 +185,16 @@
 			 (socket-close stop-socket)
 			 (loop (socket-accept stop-socket))))))))
 	server)))
-  
+  ;; wait until the server started
+  (define (server-wait! server)
+    (let loop ()
+      ;; kinda awkward...
+      (unless (for-all (lambda (t) (eq? (thread-specific t) 'done))
+		       (~ server 'server-threads))
+	(thread-yield!)
+	(thread-sleep! 0.1)
+	(loop))))
+
   ;; default do nothing
   (define-method on-server-start! ((s <simple-server>) . ignore))
   (define-method on-server-stop! ((s <simple-server>) . ignore))
@@ -200,8 +210,9 @@
     (guard (e ((terminated-thread-exception? e) #t)
 	      (else (raise e)))
       (let ((threads (map thread-start! (~ server 'server-threads))))
-	(unless background
-	  (map thread-join! threads)))))
+	(if background
+	    (server-wait! server)
+	    (map thread-join! threads)))))
 
   (define (server-stop! server . opt)
     (define (close-socket socket)

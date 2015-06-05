@@ -42,34 +42,41 @@
 	    ;; see util/concurrent/executor.scm
 	    future-state-set!
 	    future-thunk
-
+	    future-result
+	    future-result-set!
+	    future-canceller
+	    future-canceller-set!
 	    ;; implementation specific
 	    <simple-future> make-simple-future simple-future?
 	    )
     (import (rnrs)
-	    (srfi :18))
+	    (srfi :18)
+	    (util concurrent shared-queue))
 
   ;; future
   (define-record-type (<future> %make-future future?)
-    (fields (immutable thunk future-thunk)
-	    (immutable get %future-get)
-	    (immutable cancel %future-cancel)
-	    (mutable state future-state future-state-set!))
+    (fields (mutable thunk future-thunk future-thunk-set!)
+	    (mutable result future-result future-result-set!)
+	    (mutable state future-state future-state-set!)
+	    (mutable canceller future-canceller future-canceller-set!))
     (protocol (lambda (p)
-		(lambda (thunk get cancel)
-		  (p thunk get cancel 'created)))))
+		(lambda (thunk result)
+		  (p thunk result 'created #f)))))
 
-  (define (simple-get future) (thread-join! (simple-future-thread future)))
-  (define (simple-cancel future) 
-    (thread-terminate! (simple-future-thread future)))
-
+  (define (simple-invoke thunk f q)
+    (lambda ()
+      (guard (e (else (future-canceller-set! f #t) (shared-queue-put! q e)))
+	(shared-queue-put! q (thunk)))
+      (future-state-set! f 'finished)))
   (define-record-type (<simple-future> make-simple-future simple-future?)
-    (fields (immutable thread simple-future-thread))
+    (fields (mutable thread simple-future-thread %future-thread-set!))
     (parent <future>)
     (protocol (lambda (n)
 		(lambda (thunk)
-		  ((n thunk simple-get simple-cancel)
-		   (thread-start! (make-thread thunk)))))))
+		  (let ((q (make-shared-queue)))
+		    (let ((f ((n thunk q) #f)))
+		      (thread-start! (make-thread (simple-invoke thunk f q)))
+		      f))))))
 
   (define-syntax class (syntax-rules ()))
   ;; for convenience default using simple future
@@ -83,13 +90,31 @@
 
   ;; kinda silly
   (define (future-get future)
-    ;; TODO should set this get?
-    (future-state-set! future 'done)
-    ((%future-get future) future))
+    (define (finish r)
+      (if (eqv? (future-canceller future) #t) ;; kinda silly
+	  (raise r)
+	  r))
+    (when (eq? (future-state future) 'terminated)
+      (error 'future-get "future is terminated" future))
+    (let ((state (future-state future)))
+      (future-state-set! future 'done)
+      (let ((r (future-result future)))
+	(finish 
+	 (cond ((and (not (eq? state 'done)) (shared-queue? r))
+		(future-result-set! future (shared-queue-get! r))
+		(future-result future))
+	       ((and (not (eq? state 'done)) (procedure? r))
+		(future-result-set! (r future))
+		(future-result future))
+	       (else r))))))
+  ;; kinda dummy
   (define (future-cancel future)
-    ;; TODO should set this after join?
-    (future-state-set! future 'terminated)
-    ((%future-cancel future) future))
+    (unless (eq? (future-state future) 'done)
+      (future-state-set! future 'terminated))
+    (let ((c (future-canceller future)))
+      (when (procedure? c)
+	(c future)
+	(future-canceller-set! future #f))))
 
   (define (future-done? future) (eq? (future-state future) 'done))
   (define (future-cancelled? future) (eq? (future-state future) 'terminated))
