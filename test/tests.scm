@@ -43,6 +43,7 @@
 	(scheme load)
 	;; well, using this before testing huh?
 	(util concurrent)
+	(sagittarius vm)
 	)
 
 ;; ;; simple future
@@ -125,6 +126,11 @@
   (for-each (lambda (arg) (display arg (current-error-port))) args)
   (newline (current-error-port)))
 
+(define (clear-bindings library)
+  ;; dont use this casually
+  (let ((table (library-table library)))
+    (hashtable-clear! table)))
+
 (define (run-tests files)
   (define (print-results futures)
     (for-each (lambda (f)
@@ -143,6 +149,7 @@
 			  (lambda ()
 			    (with-output-to-string 
 			      (lambda ()
+				(clear-bindings (current-library))
 				(load file)
 				(test-runner-reset (test-runner-get))))))
 			 futures))))
