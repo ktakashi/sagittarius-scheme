@@ -2,7 +2,7 @@
 ;;;
 ;;; sagittarius/parameters.scm - parameter library
 ;;;  
-;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -37,11 +37,22 @@
 	    (sagittarius object)
 	    (only (sagittarius) current-dynamic-environment))
 
+  ;; global storage for initial value of parameters
+  ;; key: parameter
+  ;; value: initial value
+  (define *parameter-initials* (make-weak-eq-hashtable :weakness 'key))
+  (define mark (list 0)) ;; unique mark
+
   (define-class <parameter> ()
     ((converter :init-keyword :converter)))
 
   (define-method object-apply ((p <parameter>))
-    (~ (current-dynamic-environment) p))
+    (let ((r (weak-hashtable-ref (current-dynamic-environment) p mark)))
+      (if (eq? r mark)
+	  (let ((init (~ *parameter-initials* p)))
+	    (set! (~ (current-dynamic-environment) p) init)
+	    init)
+	  r)))
   (define-method object-apply ((p <parameter>) v)
     (let ((conv (~ p 'converter)))
       (if conv
@@ -53,6 +64,11 @@
 	  (init (if converter (converter init) init)))
       ;; to keep parameter thread local
       (set! (~ (current-dynamic-environment) p) init)
+      ;; loading libarry is thread safe. thus, as long as parameters
+      ;; are bound in global then we don't have any problem with this.
+      ;; NB: We don't consider locally created parameter's thread safeness.
+      ;; TODO: rehash may cause problem.
+      (set! (~ *parameter-initials* p) init)
       p))
 
   (define (%parameter-value-set! p v)

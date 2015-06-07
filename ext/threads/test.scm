@@ -443,5 +443,41 @@
       (test-equal "read lock" '(read read read) rr)
       (test-equal "write lock" '(write write write) wr))))
 
+;; call #126
+(let ()
+  (define box (make-vector 1))
+  (define lock (make-mutex))
+  (define waiter (make-condition-variable))
+  
+  (define t 
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(mutex-unlock! lock waiter)
+	((vector-ref box 0))))))
+  
+  (define (do-param v)
+    (let ((r1 (eval '(*param*) (environment '(param)))))
+      (eval `(*param* ,v) (environment '(param)))
+      (list r1 (eval '(*param*) (environment '(param))))))
+  (define (run-thread param)
+    (thread-join! (thread-start! (make-thread (lambda () (do-param param))))))
+  (eval '(library (param)
+	     (export *param*)
+	     (import (core) (sagittarius parameters))
+	   (define *param* (make-parameter 10)))
+	'(sagittarius))
+  ;; child thread loads the parameter
+  (test-equal "create parameter" '(10 :changed) (run-thread :changed))
+  ;; main thread
+  (test-equal "parent thread" '(10 :changed-main) (do-param :changed-main))
+  ;; other thread?  
+  (test-equal "child thread" '(:changed-main :changed-other)
+	      (run-thread :changed-other))
+  
+  (vector-set! box 0 (lambda () (do-param :changed-before)))
+  (condition-variable-broadcast! waiter)
+  (test-equal "thread created before" '(10 :changed-before) (thread-join! t))
+  )
 
 (test-end)
