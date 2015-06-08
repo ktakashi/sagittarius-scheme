@@ -53,6 +53,12 @@
 	    &rejected-execution-error rejected-execution-error?
 	    rejected-future rejected-executor
 
+	    <fork-join-executor> make-fork-join-executor
+	    fork-join-executor?
+	    fork-join-executor-available?
+	    fork-join-executor-execute-future!
+	    fork-join-executor-shutdown!
+
 	    ;; this condition should not be extended
 	    duplicate-executor-registration?
 	    duplicate-executor-rtd
