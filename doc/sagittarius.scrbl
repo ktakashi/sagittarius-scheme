@@ -689,6 +689,35 @@ equivalent to:
 @snipet{(apply string-append @var{list-of-strings})}
 }
 
+@subsubsection{Load path}
+
+@define[Function]{@name{add-load-path} @args{path :key (append #f)}}
+@desc{Add given @var{path} to current loading path list.
+
+If keyword argument @var{append} is @code{#t}, then given @var{path} is
+appended to the current loading path list, otherwise prepend to the list.
+}
+
+@define[Function]{@name{add-load-suffix} @args{suffix :key (append #f)}}
+@desc{Add given @var{suffix} to current suffix list.
+
+If keyword argument @var{append} is @code{#t}, then given @var{suffix} is
+appended to the current suffix list, otherwise prepend to the list.
+
+The @var{suffix} should contain @code{.} as well.
+}
+
+@define[Function]{@name{load-path} @args{}}
+@define[Function]{@name{load-path} @args{paths}}
+@desc{Retrives/sets current loading path.
+
+If the latter form is used, then the given path list @var{paths} is set
+to current loading path list. Otherwise retrieves the list.
+
+The returning value is not copied, thus modifying the list may cause
+unexpected results.
+}
+
 @subsubsection{Debugging aid}
 
 @define[Function]{@name{disasm} @args{closure}}
