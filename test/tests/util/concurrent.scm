@@ -1,4 +1,5 @@
 (import (rnrs)
+	(sagittarius) ;; for format
 	(util concurrent)
 	(srfi :18)
 	(srfi :64)
@@ -176,5 +177,47 @@
 					(lambda () (thread-sleep! 1))
 					custom-add-to-back)))
   )
+
+;; shared-priority-queue
+(let ()
+  (define spq (make-shared-priority-queue compare))
+  (define (push . args)
+    (for-each (lambda (arg)
+		(test-assert (format "shared-priority-queue-put! ~a" arg)
+			     (shared-priority-queue-put! spq arg)))
+	      args))
+  (define (pop . args)
+    (for-each (lambda (arg)
+		(test-equal (format "shared-priority-queue-get! ~a" arg)
+			    arg
+			    (shared-priority-queue-get! spq)))
+	      args))
+  (push 10 8 1 9 7 5 6)
+  (pop 1 5 6 7 8 9 10)
+
+  (push 9 8 10)
+  (test-assert "shared-priority-queue-remove! (1)"
+	       (shared-priority-queue-remove! spq 9))
+  (test-assert "shared-priority-queue-remove! (2)"
+	       (not (shared-priority-queue-remove! spq 9)))
+  (pop 8 10)
+
+  (let* ((e (make-thread-pool-executor 1))
+	 (lock (make-mutex))
+	 (cv (make-condition-variable))
+	 (f (make-executor-future
+	      (lambda ()
+		;; wait until ready
+		(mutex-unlock! lock cv)
+		;; get all
+		(let loop ((r '()))
+		  (if (shared-priority-queue-empty? spq)
+		      (reverse! r)
+		      (loop (cons (shared-priority-queue-get! spq) r))))))))
+    (mutex-lock! lock)
+    (execute-future! e f)
+    (push 5 1 7 2 8 4 6 3)
+    (condition-variable-broadcast! cv)
+    (test-equal "sync" '(1 2 3 4 5 6 7 8) (future-get f))))
 
 (test-end)

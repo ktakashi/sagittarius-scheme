@@ -38,7 +38,18 @@
 	    shared-queue-empty? shared-queue-size
 	    shared-queue-max-length
 	    shared-queue-put! shared-queue-get!
-	    shared-queue-clear!)
+	    shared-queue-clear!
+
+	    ;; shared-priority-queue
+	    ;; even thought the name is queue but it's not a
+	    ;; sub class of shared-queue.
+	    shared-priority-queue? make-shared-priority-queue
+	    <shared-priority-queue>
+	    shared-priority-queue-empty? shared-priority-queue-size
+	    shared-priority-queue-put! shared-priority-queue-get!
+	    shared-priority-queue-remove!
+	    shared-priority-queue-clear!
+	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (srfi :18))
@@ -134,6 +145,159 @@
     (shared-queue-head-set! sq '())
     (shared-queue-tail-set! sq '())
     (mutex-unlock! (%lock sq)))
+
+  ;; priority queue
+  ;; we do simply B-tree
+  (define-record-type 
+    (<shared-priority-queue> make-shared-priority-queue shared-priority-queue?)
+    (fields (mutable elements %spq-es %spq-es-set!)
+	    (mutable size shared-priority-queue-size %spq-size-set!)
+	    ;; procedure return -1, 0 and 1
+	    (immutable compare shared-priority-queue-compare)
+	    ;; synchronisation stuff
+	    (mutable w %spq-w %spq-w-set!)
+	    (immutable lock %spq-lock)
+	    (immutable cv %spq-cv)
+	    )
+    (protocol 
+     (lambda (p)
+       (lambda (compare . maybe-capacity)
+	 (let ((capacity (if (pair? maybe-capacity) (car maybe-capacity) 10)))
+	   (unless (integer? capacity)
+	     (assertion-violation 'make-shared-priority-queue
+				  "capacity must be an integer" capacity))
+	   (p (make-vector capacity) 0 compare 0 (make-mutex) 
+	      (make-condition-variable)))))))
+
+  (define (shared-priority-queue-empty? spq) 
+    (zero? (shared-priority-queue-size spq)))
+
+  (define (shared-priority-queue-put! spq o)
+    (define size (shared-priority-queue-size spq))
+    (define (grow! spq min-capacity)
+      (define old (%spq-es spq))
+      ;; double if it's small, otherwise 50%.
+      (let* ((capacity (+ size (if (< size 64)
+				  (+ size 2)
+				  (div size 2))))
+	     (new (make-vector capacity)))
+	(do ((i 0 (+ i 1)))
+	    ((= i size))
+	  (vector-set! new i (vector-ref old i)))
+	(%spq-es-set! spq new)))
+	      
+    (mutex-lock! (%spq-lock spq))
+    (%spq-w-set! spq (+ (%spq-w spq) 1))
+    (when (>= size (vector-length (%spq-es spq)))
+      (grow! spq (+ size 1)))
+    (if (zero? size)
+	(vector-set! (%spq-es spq) 0 o)
+	(shift-up spq size o))
+    (%spq-size-set! spq (+ size 1))
+    (when (> (%spq-w spq) 0)
+      (condition-variable-broadcast! (%spq-cv spq)))
+    (mutex-unlock! (%spq-lock spq)))
+
+  (define (shared-priority-queue-get! spq . maybe-timeout)
+    (let ((timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
+	  (timeout-value (if (and (pair? maybe-timeout)
+				  (pair? (cdr maybe-timeout)))
+			     (cadr maybe-timeout)
+			     #f)))
+      (mutex-lock! (%spq-lock spq))
+      (%spq-w-set! spq (+ (%spq-w spq) 1))
+      (let loop ()
+	(cond ((shared-priority-queue-empty? spq)
+	       (cond ((mutex-unlock! (%spq-lock spq) (%spq-cv spq) timeout)
+		      (mutex-lock! (%spq-lock sq))
+		      (loop))
+		     (else
+		      (%spq-w-set! spq (- (%spq-w spq) 1))
+		      timeout-value)))
+	      (else
+	       (%spq-w-set! spq (- (%spq-w spq) 1))
+	       (%spq-size-set! spq (- (shared-priority-queue-size spq) 1))
+	       (let* ((s (shared-priority-queue-size spq))
+		      (es (%spq-es spq))
+		      (r (vector-ref es 0))
+		      (x (vector-ref es s)))
+		 (vector-set! es s #f)
+		 (unless (zero? s) (shift-down spq 0 x))
+		 (mutex-unlock! (%spq-lock spq))
+		 r))))))
+
+  (define (shared-priority-queue-remove! spq o)
+    (define cmp (shared-priority-queue-compare spq))
+    (define es (%spq-es spq))
+    (define (find)
+      (define len (shared-priority-queue-size spq))
+      (let loop ((i 0))
+	(cond ((= i len) -1)
+	      ((zero? (cmp o (vector-ref es i))) i)
+	      (else (loop (+ i 1))))))
+    (define (remove-at spq index)
+      (%spq-size-set! spq (- (shared-priority-queue-size spq) 1))
+      (let ((s (shared-priority-queue-size spq)))
+	(if (= s index)
+	    (vector-set! es i #f)
+	    (let ((moved (vector-ref es s)))
+	      (vector-set! es s #f)
+	      (shift-down spq index moved)
+	      (when (eq? (vector-ref es index) moved)
+		(shift-up spq index moved)))))
+      (mutex-unlock! (%spq-lock spq)))
+    (mutex-lock! (%spq-lock spq))
+    (let ((index (find)))
+      (if (>= index 0)
+	  (begin (remove-at spq index) #t)
+	  (begin (mutex-unlock! (%spq-lock spq)) #f))))
+
+  (define (shift-up spq index o)
+    (define cmp (shared-priority-queue-compare spq))
+    (define es (%spq-es spq))
+    (let loop ((k index))
+      (if (> k 0)
+	  (let* ((parent (div (- k 1) 2))
+		 (e (vector-ref es parent)))
+	    (if (>= (cmp o e) 0)
+		(vector-set! es k o)
+		(begin
+		  (vector-set! es k e)
+		  (loop parent))))
+	  (vector-set! es k o))))
+
+  (define (shift-down spq k x)
+    (define cmp (shared-priority-queue-compare spq))
+    (define es (%spq-es spq))
+    (define size (shared-priority-queue-size spq))
+    (define half (div size 2))
+    (let loop ((k k))
+      (if (< k half)
+	  (let* ((child (+ (* k 2) 1))
+		 (o (vector-ref es child))
+		 (right (+ child 1)))
+	    (let-values (((o child)
+			  (if (and (< right size)
+				   (> (cmp o (vector-ref es right)) 0))
+			      (values (vector-ref es right) right)
+			      (values o child))))
+	      (if (<= (cmp x o) 0)
+		  (vector-set! es k x)
+		  (begin
+		    (vector-set! es k o)
+		    (loop child)))))
+	  (vector-set! es k x))))
+
+  (define (shared-priority-queue-clear! spq) 
+    (mutex-lock! (%spq-lock spq))
+    ;; clear it
+    (do ((len (shared-priority-queue-size spq))
+	 (es (%spq-es spq))
+	 (i 0 (+ i 1)))
+	((= i len) 
+	 (%spq-size-set! spq 0)
+	 (mutex-unlock! (%spq-lock spq)))
+      (vector-set! es i #f)))
   
   )
 
