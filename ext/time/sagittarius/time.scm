@@ -413,9 +413,9 @@
         (let* ((hours    (quotient secs (* 60 60)))
                (rem      (remainder secs (* 60 60)))
                (minutes  (quotient rem 60))
-               (seconds  (remainder rem 60)))	  
+               (seconds  (remainder rem 60)))
           (make-date (time-nanosecond time)
-                     seconds
+		     seconds
                      minutes
                      hours
                      date

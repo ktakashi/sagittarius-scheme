@@ -63,6 +63,7 @@ static struct
   uint32_t utc_second;
   uint32_t second;
 } leap_second_table[] = {
+  {1435708800, 36},
   {1341100800, 35},
   {1230768000, 34},
   {1136073600, 33},

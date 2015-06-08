@@ -263,8 +263,7 @@
 		      (map (lambda (m)
 			     (bytevector-append space (string->utf8 m)))
 			   args)))))
-      (socket-send s msg)
-      (socket-send s crlf)
+      (socket-send s (bytevector-append msg crlf))
       (get-response conn)))
 
   (define (simple-command conn cmd . args)
