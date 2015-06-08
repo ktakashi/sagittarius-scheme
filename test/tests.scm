@@ -27,24 +27,15 @@
 	;;(srfi :18 multithreading)
 	(sagittarius threads)
 	(sagittarius control)
-	;; child thread can not access to default parameter value,
-	;; so parent must import this.
+	;; for resetting
 	(srfi :64 testing)
-	;; so is rfc uuid...
-	(rfc uuid)
-	;; so is text sre
-	(text sre)
-	;; so is rfc tls
-	(rfc tls)
-	;; so is rfc http
-	(rfc http)
 	(util file)
 	(sagittarius io)
 	(scheme load)
 	;; well, using this before testing huh?
 	(util concurrent)
 	(sagittarius vm)
-	)
+	(pp))
 
 ;; ;; simple future
 ;; (define-class <promise> ()
@@ -116,12 +107,6 @@
  (else
   (define-constant path "test/tests")))
 
-;; parameters problem for (rfc http). it's required in (net oauth) and
-;; the library is also tested. so these 2 dependency causes parameters
-;; problem like (srfi :64 testing) therefore we need to import it here.
-;; it's a bit awkward solution.
-(import (rfc http))
-
 (define (debug . args)
   (for-each (lambda (arg) (display arg (current-error-port))) args)
   (newline (current-error-port)))
@@ -132,6 +117,15 @@
     (hashtable-clear! table)))
 
 (define (run-tests files)
+;; might use this in future
+;; well not a big deal to rewrite but keep it for my sake.
+;;   (define storage '())
+;;   (define (push-to-storage thread file)
+;;     (cond ((assq thread storage) =>
+;; 	   (lambda (slot)
+;; 	     (set-cdr! slot (cons file (cdr slot)))))
+;; 	  (else 
+;; 	   (set! storage (acons thread (list file) storage)))))
   (define (print-results futures)
     (for-each (lambda (f)
 		(guard (e ((uncaught-exception? e)
@@ -149,6 +143,7 @@
 			  (lambda ()
 			    (with-output-to-string 
 			      (lambda ()
+				;; (push-to-storage (current-thread) file)
 				(clear-bindings (current-library))
 				(load file)
 				(test-runner-reset (test-runner-get))))))

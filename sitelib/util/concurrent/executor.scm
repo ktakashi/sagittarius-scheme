@@ -46,6 +46,7 @@
 	    abort-rejected-handler
 	    terminate-oldest-handler
 	    wait-finishing-handler
+	    push-future-handler
 	    
 	    &rejected-execution-error
 	    rejected-execution-error?
@@ -195,6 +196,20 @@
 		   (list-queue-remove-all! (executor-pool-ids executor)))))))
 
   (define (execute-future! executor future)
+    (or (with-atomic executor
+	  (let ((pool-size (thread-pool-executor-pool-size executor))
+		(max-pool-size (thread-pool-executor-max-pool-size executor)))
+	    (and (< pool-size max-pool-size)
+		 (eq? (executor-state executor) 'running)
+		 (push-future-handler executor future))))
+	;; the reject handler may lock executor again
+	;; to avoid double lock, this must be out side of atomic
+	(let ((reject-handler (executor-rejected-handler executor)))
+	  (reject-handler future executor))))
+
+  ;; We can push the future to thread-pool
+  (define (push-future-handler executor future)
+    (define (canceller future) (cleanup executor future 'terminated))
     (define (task-invoker thunk)
       (lambda ()
 	(let ((q (future-result future)))
@@ -202,28 +217,21 @@
 		     (future-canceller-set! future #t) ;; kinda abusing
 		     (cleanup executor future 'finished)
 		     (shared-queue-put! q e)))
-	     (let ((r (thunk)))
-	       ;; first remove future then put the result
-	       ;; otherwise future-get may be called before.
-	       (cleanup executor future 'finished)
-	       (shared-queue-put! q r))))))
-    (define (canceller future) (cleanup executor future 'terminated))
-    (or (with-atomic executor
-	  (let ((pool-size (thread-pool-executor-pool-size executor))
-		(max-pool-size (thread-pool-executor-max-pool-size executor)))
-	    (and (< pool-size max-pool-size)
-		 (eq? (executor-state executor) 'running)
-		 (future-result-set! future (make-shared-queue))
-		 (let* ((thunk (future-thunk future))
-			(id (thread-pool-push-task! (executor-pool executor)
-						    (task-invoker thunk))))
-		   (future-canceller-set! future canceller)
-		   (list-queue-add-back!
-		    (executor-pool-ids executor) (cons id future))
-		   executor))))
-	;; the reject handler may lock executor again
-	;; to avoid double lock, this must be out side of atomic
-	(let ((reject-handler (executor-rejected-handler executor)))
-	  (reject-handler future executor))))
-
+	    (let ((r (thunk)))
+	      ;; first remove future then put the result
+	      ;; otherwise future-get may be called before.
+	      (cleanup executor future 'finished)
+	      (shared-queue-put! q r))))))
+    ;; in case this is called directly
+    (unless (eq? (executor-state executor) 'running)
+      (assertion-violation 'push-future-handler
+			   "executor is not running" executor))
+    (future-result-set! future (make-shared-queue))    
+    (let* ((thunk (future-thunk future))
+	   (id (thread-pool-push-task! (executor-pool executor)
+				       (task-invoker thunk))))
+      (future-canceller-set! future canceller)
+      (list-queue-add-back!
+       (executor-pool-ids executor) (cons id future))
+      executor))
 )

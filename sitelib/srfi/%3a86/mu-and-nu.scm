@@ -29,8 +29,23 @@
 ;;;  
 
 (library (srfi :86 mu-and-nu)
-    (export mu nu alet alet*)
+    (export mu nu alet alet* 
+	    ;; it's better to export them as well so that
+	    ;; prefix can be added
+	    opt cat key rec and values)
     (import (rnrs) (srfi :8 receive))
+
+(define-syntax define-auxiliary-syntax
+  (syntax-rules ()
+    ((_ e e* ...)
+     (begin
+       (define-syntax e (syntax-rules ()))
+       (define-auxiliary-syntax e* ...)))
+    ;; done
+    ((_) (begin))))
+
+(define-auxiliary-syntax opt cat key rec #;and #;values)
+
 ;;; From SRFI-86 reference implementation
 
 ;;; mu & nu
