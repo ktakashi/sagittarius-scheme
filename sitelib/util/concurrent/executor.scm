@@ -32,27 +32,36 @@
 (library (util concurrent executor)
     (export <executor> executor? ;; interface
 	    executor-state
+	    executor-available?
+	    shutdown-executor!
+	    execute-future!
 
 	    <thread-pool-executor> make-thread-pool-executor 
 	    thread-pool-executor?
 	    ;; below must be thread-pool-executor specific
 	    thread-pool-executor-pool-size
 	    thread-pool-executor-max-pool-size
-	    ;; these must be generic for all executors
-	    executor-available?
-	    shutdown-executor!
-	    execute-future!
+	    thread-pool-executor-available?
+	    thread-pool-executor-execute-future!
+	    thread-pool-executor-shutdown!
 
 	    abort-rejected-handler
 	    terminate-oldest-handler
 	    wait-finishing-handler
 	    push-future-handler
 	    
-	    &rejected-execution-error
-	    rejected-execution-error?
+	    &rejected-execution-error rejected-execution-error?
+	    rejected-future rejected-executor
+
+	    ;; this condition should not be extended
+	    duplicate-executor-registration?
+	    duplicate-executor-rtd
 
 	    ;; future
 	    <executor-future> make-executor-future executor-future?
+
+	    ;; for extension
+	    register-executor-methods
 	    )
     (import (rnrs)
 	    (only (srfi :1) remove!)
@@ -174,12 +183,12 @@
 			  (executor-pool-ids executor))
       (future-state-set! future state)))
 
-  (define (executor-available? executor)
+  (define (thread-pool-executor-available? executor)
     (< (thread-pool-executor-pool-size executor) 
        (thread-pool-executor-max-pool-size executor)))
   
   ;; shutdown
-  (define (shutdown-executor! executor)
+  (define (thread-pool-executor-shutdown! executor)
     (with-atomic executor
      (let ((state (executor-state executor)))
        (guard (e (else (executor-state-set! executor state)
@@ -195,20 +204,20 @@
 	 (for-each (lambda (future) (future-cancel (cdr future)))
 		   (list-queue-remove-all! (executor-pool-ids executor)))))))
 
-  (define (execute-future! executor future)
+  (define (thread-pool-executor-execute-future! executor future)
     (or (with-atomic executor
 	  (let ((pool-size (thread-pool-executor-pool-size executor))
 		(max-pool-size (thread-pool-executor-max-pool-size executor)))
 	    (and (< pool-size max-pool-size)
 		 (eq? (executor-state executor) 'running)
-		 (push-future-handler executor future))))
+		 (push-future-handler future executor))))
 	;; the reject handler may lock executor again
 	;; to avoid double lock, this must be out side of atomic
 	(let ((reject-handler (executor-rejected-handler executor)))
 	  (reject-handler future executor))))
 
   ;; We can push the future to thread-pool
-  (define (push-future-handler executor future)
+  (define (push-future-handler future executor)
     (define (canceller future) (cleanup executor future 'terminated))
     (define (task-invoker thunk)
       (lambda ()
@@ -234,4 +243,105 @@
       (list-queue-add-back!
        (executor-pool-ids executor) (cons id future))
       executor))
+
+  ;; fork-join-executor
+  ;; this is more or less an example of how to implement 
+  ;; custom executors. the executor doesn't manage anything
+  ;; but just creates a thread and execute it.
+  (define-record-type (<fork-join-executor> 
+		       make-fork-join-executor 
+		       fork-join-executor?)
+    (parent <executor>)
+    (protocol (lambda (n) (lambda () ((n))))))
+
+  (define (fork-join-executor-available? e) 
+    (unless (fork-join-executor? e)
+      (assertion-violation 'fork-join-executor-available? 
+			   "not a fork-join-executor" e))
+    #t)
+  (define (fork-join-executor-execute-future! e f)
+    ;; the same as simple future
+    (define (task-invoker thunk)
+      (lambda ()
+	(let ((q (future-result f)))
+	  (guard (e (else (future-canceller-set! f #t)
+			  (future-state-set! f 'finished)
+			  (shared-queue-put! q e)))
+	    (let ((r (thunk)))
+	      (future-state-set! f 'finished)
+	      (shared-queue-put! q r))))))
+    (unless (fork-join-executor? e)
+      (assertion-violation 'fork-join-executor-available? 
+			   "not a fork-join-executor" e))
+    ;; we don't manage thread so just create and return
+    (thread-start! (make-thread (task-invoker (future-thunk f))))
+    f)
+  (define (fork-join-executor-shutdown! e)
+    (unless (fork-join-executor? e)
+      (assertion-violation 'fork-join-executor-available? 
+			   "not a fork-join-executor" e))
+    ;; we don't manage anything
+    (executor-state-set! executor 'shutdown))
+
+  (define *registered-executors* '())
+  (define *register-lock* (make-mutex))
+  (define-condition-type &duplicate-executor-registration
+    &error make-duplicate-executor-registration duplicate-executor-registration?
+    (rtd duplicate-executor-rtd))
+
+  (define (%register-executor-methods rtd pred available? execute shutdown)
+    (mutex-lock! *register-lock*)
+    ;; hope record-type-descriptor returns the defined rtd not
+    ;; newly created one
+    (when (assq rtd *registered-executors*)
+      (mutex-unlock! *register-lock*)
+      (raise (make-duplicate-executor-registration rtd)
+	     (make-who-condition 'register-executor-methods)
+	     (make-message-condition 
+	      "specified predicate is already registered")))
+    (set! *registered-executors*
+	  (cons (list rtd pred available? execute shutdown)
+		*registered-executors*))
+    (mutex-unlock! *register-lock*))
+
+  (define-syntax register-executor-methods
+    (syntax-rules ()
+      ((_ type available? execute shutdown)
+       (define dummy
+	 (let ((rtd (record-type-descriptor type)))
+	   (%register-executor-methods 
+	    rtd
+	    (record-predicate rtd) available? execute shutdown))))))
+
+  (define-syntax invoke-method
+    (syntax-rules ()
+      ((_ who pos fallack e args ...)
+       (let loop ((methods *registered-executors*))
+	 (cond ((null? methods) 
+		(if (executor? e)
+		    fallback
+		    (assertion-violation 'who "not an executor" e)))
+	       (((cadar methods) e)
+		((pos (cdar methods)) e args ...))
+	       (else (loop (cdr methods))))))))
+  (define (not-supported e)
+    (error #f "given executor is not supported" e))
+
+  (define (executor-available? e)
+    (invoke-method executor-available? cadr #f e))
+  (define (execute-future! e f)
+    (invoke-method execute-future! caddr (not-supported e) e f))
+  (define (shutdown-executor! e)
+    (invoke-method shutdown-executor! cadddr (not-supported e) e))
+
+  ;; pre-defined executor
+  (register-executor-methods <thread-pool-executor>
+			     thread-pool-executor-available?
+			     thread-pool-executor-execute-future!
+			     thread-pool-executor-shutdown!)
+
+  (register-executor-methods <fork-join-executor>
+			     fork-join-executor-available?
+			     fork-join-executor-execute-future!
+			     fork-join-executor-shutdown!)
 )

@@ -12,6 +12,15 @@
 (define executor-pool-size thread-pool-executor-pool-size)
 (define executor-max-pool-size thread-pool-executor-max-pool-size)
 
+;; simple future
+(let ((f1 (future 'ok))
+      (f2 (future (error 'dummy "dummy"))))
+  (test-assert "simple-future?" (simple-future? f1))
+  (test-assert "simple-future? (2)" (simple-future? f2))
+  (test-equal "simple-future? get" 'ok (future-get f1))
+  (test-error "simple-future? get" error? (future-get f2))
+  )
+
 (let ((executor (make-executor 1)))
   (test-assert "executor?" (executor? executor))
   (test-equal "max pool size" 1 (executor-max-pool-size executor))
@@ -74,6 +83,17 @@
   (test-assert "shutodown" (shutdown-executor! e))
   (test-equal "pool size (7)" 0 (executor-pool-size e))
   (test-assert "future-cancelled? (3)" (future-cancelled? f3))
+  )
+
+(let ((e (make-executor 1 push-future-handler))
+      (f1 (future (class <executor-future>) (thread-sleep! 1)))
+      (f2 (future (class <executor-future>) (thread-sleep! 1))))
+  (test-assert "executor?" (executor? (execute-future! e f1)))
+  (test-assert "executor? (2)" (executor? (execute-future! e f2)))
+  (test-assert "available?" (not (executor-available? e)))
+  ;; weird, huh?
+  (test-equal "pool size" 2 (executor-pool-size e))
+  (test-assert "shutodown" (shutdown-executor! e))  
   )
 
 ;; concurrent executor 
