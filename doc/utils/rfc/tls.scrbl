@@ -68,9 +68,10 @@ Creates a server TLS socket. @var{service} and @var{opt} will be passed to
 The keyword arguments @var{prng} and @var{version} are the same meaning as
 @code{make-client-tls-socket}.
 
-The keyword argument @var{private-key} is used the same as client socket
-the difference is that it is used if the client side only supports RSA key
-exchange.
+The keyword argument @var{private-key} is used the same as client socket.
+The difference is that it is used also for Deffie-Hellman key exchange.
+If this is not specified, then key exhange is done anonymously.
+It is strongly recomended to specify this keyword argument.
 
 The keyword argument @var{authorities} must be a list of x509 certificate and
 if this is not empty list then the server socket will send certificate request

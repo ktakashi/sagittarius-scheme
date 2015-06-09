@@ -175,6 +175,12 @@ Following is the description of keyword arguments.
     If @var{secure?} is true value and @var{certificates} is a list of
     X509 certificates, then the server uses TLS.
   }
+  @dl-item[@var{private-key}]{
+    If the server uses TLS, then this keyword argument is passed to
+    @code{make-server-tls-socket}. It is strongly recommended to
+    specify this keyword argument, otherwise key exchange is done
+    anonymously, means no signature is sent.
+  }
 }
 }
 
