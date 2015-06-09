@@ -46,6 +46,15 @@
 	    TLS-RSA-WITH-AES-256-CBC-SHA
 	    TLS-RSA-WITH-AES-128-CBC-SHA256
 	    TLS-RSA-WITH-AES-256-CBC-SHA256
+	    TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
+	    TLS-DHE-RSA-WITH-AES-128-CBC-SHA
+	    TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+	    TLS-DH-anon-WITH-3DES-EDE-CBC-SHA
+	    TLS-DH-anon-WITH-AES-128-CBC-SHA
+	    TLS-DH-anon-WITH-AES-256-CBC-SHA
+	    TLS-DH-anon-WITH-AES-128-CBC-SHA256
+	    TLS-DH-anon-WITH-AES-256-CBC-SHA256
+
 	    *cipher-suites*
 	    ;; record types
 	    *change-cipher-spec*
@@ -94,6 +103,7 @@
 	    ;; key exchange algorithm set
 	    ;;*rsa-key-exchange-algorithms*
 	    *dh-key-exchange-algorithms*
+	    *dh-anon-key-exchange-algorithms*
 	    ;; For TLS 1.2
 	    *supported-signatures*
 	    *supported-hashes*
@@ -142,27 +152,48 @@
   (define-constant TLS-DHE-RSA-WITH-AES-128-CBC-SHA  #x0033)
   (define-constant TLS-DHE-RSA-WITH-AES-256-CBC-SHA  #x0039)
 
+  ;; anonymous key exchange
+  (define-constant TLS-DH-anon-WITH-3DES-EDE-CBC-SHA   #x001B)
+  (define-constant TLS-DH-anon-WITH-AES-128-CBC-SHA    #x0034)
+  (define-constant TLS-DH-anon-WITH-AES-256-CBC-SHA    #x003A)
+  (define-constant TLS-DH-anon-WITH-AES-128-CBC-SHA256 #x006C)
+  (define-constant TLS-DH-anon-WITH-AES-256-CBC-SHA256 #x006D)
+
   (define-constant *dh-key-exchange-algorithms*
     `(
       ,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
       ,TLS-DHE-RSA-WITH-AES-256-CBC-SHA
       ,TLS-DHE-RSA-WITH-AES-128-CBC-SHA
       ))
+  (define-constant *dh-anon-key-exchange-algorithms*
+    `(
+      ,TLS-DH-anon-WITH-3DES-EDE-CBC-SHA
+      ,TLS-DH-anon-WITH-AES-128-CBC-SHA
+      ,TLS-DH-anon-WITH-AES-256-CBC-SHA
+      ,TLS-DH-anon-WITH-AES-128-CBC-SHA256
+      ,TLS-DH-anon-WITH-AES-256-CBC-SHA256
+      ))
 
   (define *cipher-suites*
     `(
       ;; cipher suite number   .   public key  (scheme . key-length) hash
       ;; DHE
-      (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1 ,*rsa*))
-      (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1 ,*rsa*))
-      (,TLS-DHE-RSA-WITH-AES-128-CBC-SHA  . (,RSA (,AES . 16) ,SHA-1 ,*rsa*))
+      (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1))
+      (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1))
+      (,TLS-DHE-RSA-WITH-AES-128-CBC-SHA  . (,RSA (,AES . 16) ,SHA-1))
       ;;(,TLS-RSA-WITH-RC4-128-MD5        . (,RSA (RC4 . 16) MD5))
       ;;(,TLS-RSA-WITH-RC4-128-SHA        . (,RSA (RC4 . 16) SHA-1))
-      (,TLS-RSA-WITH-3DES-EDE-CBC-SHA   . (,RSA (,DES3 . 24) ,SHA-1 ,*rsa*))
-      (,TLS-RSA-WITH-AES-128-CBC-SHA    . (,RSA (,AES . 16) ,SHA-1 ,*rsa*))
-      (,TLS-RSA-WITH-AES-256-CBC-SHA    . (,RSA (,AES . 32) ,SHA-1 ,*rsa*))
-      (,TLS-RSA-WITH-AES-128-CBC-SHA256 . (,RSA (,AES . 16) ,SHA-256 ,*rsa*))
-      (,TLS-RSA-WITH-AES-256-CBC-SHA256 . (,RSA (,AES . 32) ,SHA-256 ,*rsa*))
+      (,TLS-RSA-WITH-3DES-EDE-CBC-SHA   . (,RSA (,DES3 . 24) ,SHA-1))
+      (,TLS-RSA-WITH-AES-128-CBC-SHA    . (,RSA (,AES . 16) ,SHA-1))
+      (,TLS-RSA-WITH-AES-256-CBC-SHA    . (,RSA (,AES . 32) ,SHA-1))
+      (,TLS-RSA-WITH-AES-128-CBC-SHA256 . (,RSA (,AES . 16) ,SHA-256))
+      (,TLS-RSA-WITH-AES-256-CBC-SHA256 . (,RSA (,AES . 32) ,SHA-256))
+      ;; should be very low priority
+      (,TLS-DH-anon-WITH-AES-256-CBC-SHA256 . (#f (,AES . 32) ,SHA-256))
+      (,TLS-DH-anon-WITH-AES-128-CBC-SHA256 . (#f (,AES . 16) ,SHA-256))
+      (,TLS-DH-anon-WITH-AES-256-CBC-SHA    . (#f (,AES . 32) ,SHA-1))
+      (,TLS-DH-anon-WITH-3DES-EDE-CBC-SHA   . (#f (,DES3 . 24) ,SHA-1))
+      (,TLS-DH-anon-WITH-AES-128-CBC-SHA    . (#f (,AES . 16) ,SHA-1))
 
       ;; do not support this (not only for security reason...)
       ;;(,TLS-NULL-WITH-NULL-NULL         . (#f #f #f))

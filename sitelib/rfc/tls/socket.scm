@@ -365,6 +365,14 @@
 		      (loop (+ i 2) (acons hash sig r))
 		      (loop (+ i 2) r)))))))
 
+      ;; if socket doesn't have private-key, then we need to remove
+      ;; DHE protocols
+      (define (adjust-suites socket suites)
+	(if (~ socket 'private-key)
+	    suites
+	    (remp (lambda (s)
+		    (memv (car s ) *dh-key-exchange-algorithms*)) suites)))
+
       ;;(display (tls-packet->bytevector hello)) (newline)
       (unless (<= *tls-version-1.0*  (~ hello 'version) *tls-version-1.2*)
 	(tls-error 'tls-server-handshake
@@ -379,14 +387,16 @@
 	     (bv (~ vv 'value))
 	     (len (bytevector-length bv))
 	     (has-key? (~ socket 'private-key))
-	     (supporting-suites *cipher-suites*))
+	     (supporting-suites (adjust-suites socket *cipher-suites*)))
 	(let loop ((i 0))
 	  (cond ((>= i len)
 		 (tls-error 'tls-server-handshake "no cipher"
 			    *handshake-failure*))
 		((and-let* ((spec (bytevector-u16-ref bv i 'big))
 			    ( (or has-key? 
-				  (memv spec *dh-key-exchange-algorithms*)) ))
+				  (memv spec *dh-key-exchange-algorithms*)
+				  (memv spec 
+					*dh-anon-key-exchange-algorithms*)) ))
 		   (assv spec supporting-suites))
 		 => (^s
 		     (set! (~ socket 'session 'cipher-suite) (car s))))
@@ -431,7 +441,7 @@
 				    (cons (caar h*) h)
 				    (loop (cdr h*)))))))
 		     (c (or (get-param s&a *supported-signatures* cdr) 
-			    (list *rsa* RSA)))
+			    (list 1 RSA)))
 		     (s-cipher (cipher (cdr c) key :block-type PKCS-1-EMSA))
 		     ;; TODO create DigestInfo
 		     (data (make-der-sequence 
@@ -465,7 +475,8 @@
 			 (implementation-restriction-violation 
 			  'send-server-key-exchange 
 			  "DH_RSA is not supported yet")))
-	     (signature (sign-param socket params)))
+	     (signature (and (~ socket 'private-key)
+			     (sign-param socket params))))
 	(set! (~ socket 'session 'params) params)
 	(set! (~ socket 'session 'a) a)
 #;
@@ -475,8 +486,9 @@
 ;;	(newline)
 	(tls-socket-send-inner socket
 	 (make-tls-handshake *server-key-echange*
-	  (make-tls-server-key-exchange params 
-					(tls-packet->bytevector signature)))
+	  (make-tls-server-key-exchange 
+	   params 
+	   (if signature (tls-packet->bytevector signature) #vu8())))
 	 0 *handshake* #f)))
     
     (define (send-certificate-request)
@@ -1164,8 +1176,10 @@
   ;; for now
   (define (check-key-exchange-algorithm suite set) (memv suite set))
   (define (is-dh? session)
-    (check-key-exchange-algorithm (~ session 'cipher-suite)
-				  *dh-key-exchange-algorithms*))
+    (or (check-key-exchange-algorithm (~ session 'cipher-suite)
+				      *dh-key-exchange-algorithms*)
+	(check-key-exchange-algorithm (~ session 'cipher-suite)
+				      *dh-anon-key-exchange-algorithms*)))
   (define (read-handshake in dh? version)
 
     (define (read-random in)
