@@ -205,7 +205,10 @@ static int posix_ready(SgObject self)
   /* what would be the best behaviour if the given FD is larger than
      FD_SETSIZE? I don't like predicates raise an error, so for now
      I only return #f. */
-  if (SG_FD(self)->fd >= FD_SETSIZE) return FALSE;
+  /* if FD id less than 0, then it must be invalid and signaled error by now
+     but just in case. (NB: I've seen bunch of stack overflow dump on 64 bit
+     Linux, checking negative FD may prevent it) */
+  if (SG_FD(self)->fd < 0 || SG_FD(self)->fd >= FD_SETSIZE) return FALSE;
 
   FD_SET(SG_FD(self)->fd, &fds);
   state = select(SG_FD(self)->fd + 1, &fds, NULL, NULL, &tm);
