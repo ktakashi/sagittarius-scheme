@@ -225,10 +225,11 @@
   (let* ((e (make-thread-pool-executor 1))
 	 (lock (make-mutex))
 	 (cv (make-condition-variable))
+	 (ready? #f)
 	 (f (make-executor-future
 	      (lambda ()
 		;; wait until ready
-		(mutex-unlock! lock cv)
+		(unless ready? (mutex-unlock! lock cv))
 		;; get all
 		(let loop ((r '()))
 		  (if (shared-priority-queue-empty? spq)
@@ -237,7 +238,13 @@
     (mutex-lock! lock)
     (execute-future! e f)
     (push 5 1 7 2 8 4 6 3)
+    ;; on single core environment, the thread would be executed after
+    ;; the main thread process is done. so we need to do this trick,
+    ;; otherwise it wait until condition-variable is signaled which
+    ;; is already done by main thread...
+    (set! ready? #t)
     (condition-variable-broadcast! cv)
+    (mutex-unlock! lock)
     (test-equal "sync" '(1 2 3 4 5 6 7 8) (future-get f))))
 
 (test-end)
