@@ -345,6 +345,31 @@
 	    0 *alert* #f)
 	   (finish socket e))))
 
+  (define (verify-message socket message signature)
+    (let* ((session (~ socket 'session))
+	   (key (if (is-a? session <tls-client-session>)
+		    (~ session 'public-key)
+		    (x509-certificate-get-public-key (~ session 'authority)))))
+      (if (>= (~ session 'version) *tls-version-1.2*)
+	  (or (and-let* ((s (assv (~ signature 'hash) *supported-hashes*))
+			 (c (assv (~ signature 'algorithm)
+				  *supported-signatures*))
+			 (v-cipher (cipher (cdr c) key
+					   :block-type PKCS-1-EMSA))
+			 (msg (decrypt v-cipher (~ signature 'signature)))
+			 (obj (read-asn.1-object
+			       (open-bytevector-input-port msg))))
+		(bytevector=? (hash (cdr s) message)
+			      (~ (asn.1-sequence-get obj 1) 'string)))
+	      (tls-error 'certificate-verify "verify failed"
+			 *unsupported-certificate*))
+	  (let1 rsa-cipher (cipher RSA key :block-type PKCS-1-EMSA)
+	    (or (bytevector=? (bytevector-concat (hash MD5 message)
+						 (hash SHA-1 message))
+			      (decrypt rsa-cipher (~ signature 'signature)))
+		(tls-error 'certificate-verify "verify failed"
+			   *unsupported-certificate*))))))
+
   (define (tls-server-handshake socket :key (raise-error #t))
     (guard (e (else (handle-error socket e :raise-error raise-error)))
       (%tls-server-handshake socket)
@@ -424,6 +449,7 @@
 	(define (get-param s&a lists kar )
 	  (let loop ((lists lists))
 	    (cond ((null? lists) #f)
+		  ((null? s&a) #f)
 		  ((= (kar (car s&a)) (caar lists)) (car lists))
 		  (else (loop (cdr lists))))))
 	(let ((data (bytevector-append
@@ -441,7 +467,7 @@
 				    (cons (caar h*) h)
 				    (loop (cdr h*)))))))
 		     (c (or (get-param s&a *supported-signatures* cdr) 
-			    (list 1 RSA)))
+			    (cons 1 RSA)))
 		     (s-cipher (cipher (cdr c) key :block-type PKCS-1-EMSA))
 		     ;; TODO create DigestInfo
 		     (data (make-der-sequence 
@@ -538,28 +564,8 @@
     (define (process-verify socket o)
       (let* ((session (~ socket 'session))
 	     (message (~ session 'verify-message))
-	     (signature (~ o 'signature 'signature))
-	     (key (x509-certificate-get-public-key (~ session 'authority))))
-
-	(if (>= (~ session 'version) *tls-version-1.2*)
-	    (or (and-let* ((s (assv (~ o 'signature 'hash) *supported-hashes*))
-			   (c (assv (~ o 'signature 'algorithm)
-				    *supported-signatures*))
-			   (v-cipher (cipher (cdr c) key
-					       :block-type PKCS-1-EMSA))
-			   (msg (decrypt v-cipher signature))
-			   (obj (read-asn.1-object
-				 (open-bytevector-input-port msg))))
-		  (bytevector=? (hash (cdr s) message)
-				(~ (asn.1-sequence-get obj 1) 'string)))
-		(tls-error 'certificate-verify "verify failed"
-			   *unsupported-certificate*))
-	    (let1 rsa-cipher (cipher RSA key :block-type PKCS-1-EMSA)
-	      (or (bytevector=? (bytevector-concat (hash MD5 message)
-						   (hash SHA-1 message))
-				(decrypt rsa-cipher signature))
-		  (tls-error 'certificate-verify "verify failed"
-			     *unsupported-certificate*))))))
+	     (signature (~ o 'signature 'signature)))
+	(verify-message socket message signature)))
 
     (define (send-server-hello-done)
       (tls-socket-send-inner socket
@@ -750,6 +756,15 @@
 	(set! (~ socket 'extensions) (~ sh 'extensions))))
 
     (define (process-server-key-exchange socket ske)
+      (define (bytevector->signature socket bv)
+	(if (= (~ socket 'session 'version) *tls-version-1.2*)
+	    ;; with info
+	    (let ((hash (bytevector-u8-ref bv 0))
+		  (algo (bytevector-u8-ref bv 1)))
+	      ;; now it's variable vector, length(2byte) + content
+	      (make-tls-signature-with-algorhtm hash algo
+						(bytevector-copy bv 4)))
+	    (make-tls-signature (bytevector-copy bv 2))))
       ;; TODO check if client certificate has suitable key.
       (let1 session (~ socket 'session)
 	(if (is-dh? session)
@@ -760,8 +775,8 @@
 	    ;; Kb = A^b mod p
 	    ;; calculate client Yc
 	    (let* ((dh (~ ske 'params))
-		   (g (bytevector->integer (~ dh 'dh-g 'value)))
-		   (p (bytevector->integer (~ dh 'dh-p 'value)))
+		   (g (bytevector->integer (~ dh 'dh-g)))
+		   (p (bytevector->integer (~ dh 'dh-p)))
 		   ;; b must be 0 <= b <= p-2
 		   ;; so let me take (- (div (bitwise-length p) 8) 1)
 		   ;; ex) if 1024 bit p, then b will be 1016
@@ -769,9 +784,21 @@
 		       (read-random-bytes (~ socket 'prng) 
 					  (- (div (bitwise-length p) 8) 1))))
 		   ;; A
-		   (Ys (bytevector->integer (~ dh 'dh-Ys 'value)))
+		   (Ys (bytevector->integer (~ dh 'dh-Ys)))
 		   ;; B
 		   (Yc (mod-expt g b p)))
+	      ;; check signature
+	      (unless (memv (~ session 'cipher-suite)
+			    *dh-anon-key-exchange-algorithms*)
+		;; construct message
+		(let ((signature (~ ske 'signed-params))
+		      (data (bytevector-append
+			     (random->bytevector (~ session 'client-random)
+						 (~ session 'server-random))
+			     (tls-packet->bytevector dh))))
+		  (verify-message socket data 
+				  (bytevector->signature socket signature))))
+		  
 	      (set! (~ session 'params) 
 		    (make <dh-params> :p p :g g :Ys Ys :Yc Yc))
 	      ;; compute master secret
@@ -1229,7 +1256,8 @@
 		(signature (get-bytevector-all in)))
 	    ;; TODO check signature if server sent certificate
 	    (make-tls-server-key-exchange
-	     (make-tls-server-dh-params p g ys)
+	     (make-tls-server-dh-params 
+	      (~ p 'value)  (~ g 'value) (~ ys 'value))
 	     signature))
 	  ;; must be RSA
       	  (let ((rsa-modulus (read-variable-vector in 2))
