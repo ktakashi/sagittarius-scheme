@@ -139,27 +139,30 @@
 
   ;; DHE
   (define-constant TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA #x0016)
+  (define-constant TLS-DHE-RSA-WITH-AES-128-CBC-SHA  #x0033)
   (define-constant TLS-DHE-RSA-WITH-AES-256-CBC-SHA  #x0039)
 
   (define-constant *dh-key-exchange-algorithms*
     `(
       ,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA
       ,TLS-DHE-RSA-WITH-AES-256-CBC-SHA
+      ,TLS-DHE-RSA-WITH-AES-128-CBC-SHA
       ))
 
   (define *cipher-suites*
     `(
       ;; cipher suite number   .   public key  (scheme . key-length) hash
       ;; DHE
-      (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1))
-      (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1))
+      (,TLS-DHE-RSA-WITH-AES-256-CBC-SHA  . (,RSA (,AES . 32) ,SHA-1 ,*rsa*))
+      (,TLS-DHE-RSA-WITH-3DES-EDE-CBC-SHA . (,RSA (,DES3 . 24) ,SHA-1 ,*rsa*))
+      (,TLS-DHE-RSA-WITH-AES-128-CBC-SHA  . (,RSA (,AES . 16) ,SHA-1 ,*rsa*))
       ;;(,TLS-RSA-WITH-RC4-128-MD5        . (,RSA (RC4 . 16) MD5))
       ;;(,TLS-RSA-WITH-RC4-128-SHA        . (,RSA (RC4 . 16) SHA-1))
-      (,TLS-RSA-WITH-3DES-EDE-CBC-SHA   . (,RSA (,DES3 . 24) ,SHA-1))
-      (,TLS-RSA-WITH-AES-128-CBC-SHA    . (,RSA (,AES . 16) ,SHA-1))
-      (,TLS-RSA-WITH-AES-256-CBC-SHA    . (,RSA (,AES . 32) ,SHA-1))
-      (,TLS-RSA-WITH-AES-128-CBC-SHA256 . (,RSA (,AES . 16) ,SHA-256))
-      (,TLS-RSA-WITH-AES-256-CBC-SHA256 . (,RSA (,AES . 32) ,SHA-256))
+      (,TLS-RSA-WITH-3DES-EDE-CBC-SHA   . (,RSA (,DES3 . 24) ,SHA-1 ,*rsa*))
+      (,TLS-RSA-WITH-AES-128-CBC-SHA    . (,RSA (,AES . 16) ,SHA-1 ,*rsa*))
+      (,TLS-RSA-WITH-AES-256-CBC-SHA    . (,RSA (,AES . 32) ,SHA-1 ,*rsa*))
+      (,TLS-RSA-WITH-AES-128-CBC-SHA256 . (,RSA (,AES . 16) ,SHA-256 ,*rsa*))
+      (,TLS-RSA-WITH-AES-256-CBC-SHA256 . (,RSA (,AES . 32) ,SHA-256 ,*rsa*))
 
       ;; do not support this (not only for security reason...)
       ;;(,TLS-NULL-WITH-NULL-NULL         . (#f #f #f))

@@ -1755,7 +1755,8 @@ static int custom_binary_open(SgObject self)
   return !SG_PORT(self)->closed;
 }
 
-static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
+static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf, 
+					int64_t size, int allP)
 {
   SgObject bv, result;
   int bvsize;
@@ -1793,11 +1794,19 @@ static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
     memcpy(buf+read, SG_BVECTOR_ELEMENTS(bv), r);
     read += r;
     size -= r;
+
+    /* make things stop */
+    if (allP && size != SG_INT_VALUE(result)) break;
   }
   if (read == 0) return 0;	/* short cut */
   SG_CUSTOM_BINARY_PORT(self)->position += read;
   /* memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read); */
   return read;
+}
+
+static int64_t custom_binary_read(SgObject self, uint8_t *buf, int64_t size)
+{
+  return custom_binary_read_inner(self, buf, size, FALSE);
 }
 
 static int custom_binary_get_u8(SgObject self)
@@ -1831,10 +1840,11 @@ static int64_t custom_binary_read_all(SgObject self, uint8_t **buf)
   uint8_t rbuf[1024];
 
   for (;;) {
-    int64_t size = custom_binary_read(self, rbuf, 1024);
+    int64_t size = custom_binary_read_inner(self, rbuf, 1024, TRUE);
     if (size == 0) break;
     read_size += size;
     Sg_WritebUnsafe(accum, rbuf, 0, (int)size);
+    if (size != 1024) break;
   }
   *buf = Sg_GetByteArrayFromBinaryPort(accum);
   return read_size;

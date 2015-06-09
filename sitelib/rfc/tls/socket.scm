@@ -97,6 +97,7 @@
 	    (except (crypto) verify-mac)
 	    (clos user)
 	    (except (binary io) get-line)
+	    (rsa pkcs :10)
 	    (srfi :19 time)
 	    (srfi :26 cut)
 	    (srfi :39 parameters))
@@ -152,7 +153,9 @@
      (messages :init-form (open-output-bytevector))
      ;; for multiple messages in one record
      (buffer   :init-value #f)
-     (last-record-type :init-value #f)))
+     (last-record-type :init-value #f)
+     ;; signature algorithms extension described in TLS 1.2 (RFC 5246)
+     (signature-algorithms :init-value '())))
 
   (define-class <tls-client-session> (<tls-session>)
     ((signature-algorithm :init-value #f)
@@ -265,7 +268,7 @@
       :session-id (read-random-bytes prng 28)
       :methods #vu8(0)))
 
-  (define *dh-primi-size* (make-parameter 1024))
+  (define *dh-prime-size* (make-parameter 1024))
   ;; is 2 ok?
   (define-constant +dh-g+ 2)
 
@@ -333,13 +336,9 @@
 
   (define (handle-error socket e :key (raise-error #t))
     (define (finish socket e)
-      (cond (raise-error (socket-close socket) (raise e))
-	    (else (socket-close socket) socket)))
-    (cond ((tls-alert? e)
-	   (tls-socket-send-inner socket
-	    (make-tls-alert (alert-level e) (alert-message e))
-	    0 *alert* #f)
-	   (finish socket e))
+      (cond (raise-error (%tls-socket-close socket) (raise e))
+	    (else (%tls-socket-close socket) socket)))
+    (cond ((tls-alert? e) (finish socket e))
 	  (else
 	   (tls-socket-send-inner socket
 	    (make-tls-alert *fatal* *internal-error*)
@@ -353,6 +352,19 @@
 
   (define (%tls-server-handshake socket)
     (define (process-client-hello! hello)
+      (define (handle-signature-algorithm extension)
+	(let* ((data (~ extension 'data 'value))
+	       (size (+ (bytevector-u16-ref data 0 'big) 2)))
+	  (let loop ((i 2) (r '()))
+	    (if (= i size)
+		(set! (~ socket 'session 'signature-algorithms) (reverse! r))
+		(let ((hash (bytevector-u8-ref data i))
+		      (sig  (bytevector-u8-ref data (+ i 1))))
+		  (if (and (assv sig *supported-signatures*)
+			   (assv hash *supported-hashes*))
+		      (loop (+ i 2) (acons hash sig r))
+		      (loop (+ i 2) r)))))))
+
       ;;(display (tls-packet->bytevector hello)) (newline)
       (unless (<= *tls-version-1.0*  (~ hello 'version) *tls-version-1.2*)
 	(tls-error 'tls-server-handshake
@@ -360,11 +372,14 @@
 		   (~ hello 'version)))
       (set! (~ socket 'session 'version) (~ hello 'version))
       (set! (~ socket 'session 'client-random) (~ hello 'random))
+      ;; (display (~ hello 'extensions)) (newline)
+      (cond ((find-tls-extension *signature-algorithms* (~ hello 'extensions))
+	     => handle-signature-algorithm))
       (let* ((vv (~ hello 'cipher-suites))
 	     (bv (~ vv 'value))
 	     (len (bytevector-length bv))
 	     (has-key? (~ socket 'private-key))
-	     (suppoting-suites *cipher-suites*))
+	     (supporting-suites *cipher-suites*))
 	(let loop ((i 0))
 	  (cond ((>= i len)
 		 (tls-error 'tls-server-handshake "no cipher"
@@ -372,7 +387,7 @@
 		((and-let* ((spec (bytevector-u16-ref bv i 'big))
 			    ( (or has-key? 
 				  (memv spec *dh-key-exchange-algorithms*)) ))
-		   (assv spec suppoting-suites))
+		   (assv spec supporting-suites))
 		 => (^s
 		     (set! (~ socket 'session 'cipher-suite) (car s))))
 		(else (loop (+ i 2)))))))
@@ -395,7 +410,47 @@
 	(make-tls-certificate (~ socket 'certificates)))
        0 *handshake* #f))
     (define (send-server-key-exchange)
-      (let* ((prime  (random-prime (div (*dh-primi-size*) 8) 
+      (define (sign-param socket params)
+	(define (get-param s&a lists kar )
+	  (let loop ((lists lists))
+	    (cond ((null? lists) #f)
+		  ((= (kar (car s&a)) (caar lists)) (car lists))
+		  (else (loop (cdr lists))))))
+	(let ((data (bytevector-append
+		     (random->bytevector (~ socket 'session 'client-random)
+					 (~ socket 'session 'server-random))
+		     (tls-packet->bytevector params)))
+	      (key (~ socket 'private-key)))
+	  (if (= (~ socket 'session 'version) *tls-version-1.2*)
+	      ;; use first one
+	      (let* ((s&a (~ socket 'session 'signature-algorithms))
+		     (h (or (get-param s&a *supported-hashes* car) 
+			    (let ((h (lookup-hash (~ socket 'session))))
+			      (let loop ((h* *supported-hashes*))
+				(if (eq? (cdar h*) h)
+				    (cons (caar h*) h)
+				    (loop (cdr h*)))))))
+		     (c (or (get-param s&a *supported-signatures* cdr) 
+			    (list *rsa* RSA)))
+		     (s-cipher (cipher (cdr c) key :block-type PKCS-1-EMSA))
+		     ;; TODO create DigestInfo
+		     (data (make-der-sequence 
+			    (make-algorithm-identifier
+			     (make-der-object-identifier (hash-oid (cdr h))))
+			    (make-der-octet-string 
+			     (hash (cdr h) data)))))
+		(make-tls-signature-with-algorhtm
+		 (car h) (car c)
+		 (encrypt s-cipher 
+			  (call-with-bytevector-output-port
+			   (lambda (out) (der-encode data out))))))
+	      (let ((md5 (hash MD5 data))
+		    (sha (hash SHA-1 data))
+		    (s-cipher (cipher RSA key :block-type PKCS-1-EMSA)))
+		(make-tls-signature 
+		 (encrypt s-cipher (bytevector-append md5 sha)))))))
+
+      (let* ((prime  (random-prime (div (*dh-prime-size*) 8) 
 				   :prng (~ socket 'prng)))
 	     (a (bytevector->integer
 		 (read-random-bytes (~ socket 'prng)
@@ -410,8 +465,7 @@
 			 (implementation-restriction-violation 
 			  'send-server-key-exchange 
 			  "DH_RSA is not supported yet")))
-	     (signature (hash (lookup-hash (~ socket 'session)) 
-			      (tls-packet->bytevector params))))
+	     (signature (sign-param socket params)))
 	(set! (~ socket 'session 'params) params)
 	(set! (~ socket 'session 'a) a)
 #;
@@ -421,7 +475,8 @@
 ;;	(newline)
 	(tls-socket-send-inner socket
 	 (make-tls-handshake *server-key-echange*
-	  (make-tls-server-key-exchange params signature))
+	  (make-tls-server-key-exchange params 
+					(tls-packet->bytevector signature)))
 	 0 *handshake* #f)))
     
     (define (send-certificate-request)
@@ -1276,11 +1331,8 @@
       (cadddr suite)))
 
   (define (random->bytevector random1 random2)
-    (bytevector-concat
-     (call-with-bytevector-output-port 
-      (lambda (p) (write-tls-packet random1 p)))
-     (call-with-bytevector-output-port 
-      (lambda (p) (write-tls-packet random2 p)))))
+    (call-with-bytevector-output-port 
+      (lambda (p) (write-tls-packet random1 p) (write-tls-packet random2 p))))
   ;; dummy
   (define (exportable? session) #f)
 
@@ -1520,6 +1572,11 @@
       (tls-socket-send-inner socket alert 0 *alert*
 			     (~ socket 'session 'session-encrypted?))))
 
+  (define (%tls-socket-close socket)
+    (socket-close (~ socket 'raw-socket))
+    ;; if we don't have any socket, we can't reconnect
+    (set! (~ socket 'raw-socket) #f)
+    (set! (~ socket 'session 'closed?) #t))
   (define (tls-socket-close socket)
     ;; the combination of socket conversion and call-with-tls-socket
     ;; calls this twice and raises an error. so if the socket is
@@ -1528,10 +1585,7 @@
       (unless (~ socket 'sent-close?)
 	(when (~ socket 'has-peer?)
 	  (send-alert socket *warning* *close-notify*)))
-      (socket-close (~ socket 'raw-socket))
-      ;; if we don't have any socket, we can't reconnect
-      (set! (~ socket 'raw-socket) #f)
-      (set! (~ socket 'session 'closed?) #t)))
+      (%tls-socket-close socket)))
 
   (define (tls-socket-shutdown socket how)
     (unless (~ socket 'sent-close?)
@@ -1540,7 +1594,13 @@
       (socket-shutdown (~ socket 'raw-socket) how)
       (set! (~ socket 'sent-close?) #t)))
 
-  ;; utility
+  ;; utilities
+  (define (find-tls-extension type extensions)
+    (let loop ((extensions extensions))
+      (cond ((null? extensions) #f)
+	    ((= type (~ (car extensions) 'type)) (car extensions))
+	    (else (loop (cdr extensions))))))
+
   (define (call-with-tls-socket socket proc)
     (receive args (proc socket)
       (tls-socket-close socket)

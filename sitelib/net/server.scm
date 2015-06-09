@@ -71,7 +71,8 @@
      (use-ipv6?     :init-keyword :use-ipv6?     :init-value #f)
      ;; For TLS socket
      (secure?       :init-keyword :secure?       :init-value #f)
-     (certificates  :init-keyword :certificates  :init-value '())))
+     (certificates  :init-keyword :certificates  :init-value '())
+     (private-key   :init-keyword :private-key   :init-value #f)))
   (define (server-config? o) (is-a? o <server-config>))
 
   (define-class <simple-server> ()
@@ -121,7 +122,9 @@
 	       (not (null? (~ config 'certificates))))
 	  ;; For now no private key, it's simple server
 	  ;; anyway
-	  (make-server-tls-socket port (~ config 'certificates) ai-family)
+	  (make-server-tls-socket port (~ config 'certificates) 
+				  :private-key (~ config 'private-key)
+				  ai-family)
 	  (make-server-socket port ai-family)))
     (let* ((ai-families (if (~ config 'use-ipv6?) 
 			    `(,AF_INET6 ,AF_INET)
@@ -144,11 +147,16 @@
 		 (make-thread
 		  (lambda ()
 		    (thread-specific-set! (current-thread) 'done)
-		    (let loop ((client-socket (socket-accept socket)))
-		      (cond ((~ server 'stop-request) (socket-close socket))
-			    (else
-			     (dispatch server client-socket)
-			     (loop (socket-accept socket)))))))) sockets))
+		    (let loop ()
+		      (guard (e (else
+				 (when (~ config 'exception-handler)
+				   ((~ config 'exception-handler) server #f e))
+				 (loop)))
+			(let ((client-socket (socket-accept socket)))
+			  (cond ((~ server 'stop-request) (socket-close socket))
+				(else
+				 (dispatch server client-socket)
+				 (loop))))))))) sockets))
 	(define (stop-server)
 	  (set! (~ server 'stop-request) #t)
 	  (for-each (lambda (sock&ai)
