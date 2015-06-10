@@ -770,6 +770,11 @@ static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
 				      SG_MAKE_STRING("socket"),
 				      SG_CAR(cp), sockets);
     }
+    if (!Sg_SocketOpenP(SG_CAR(cp))) {
+      Sg_AssertionViolation(SG_INTERN("socket-select"),
+			    SG_MAKE_STRING("socket is closed"),
+			    SG_LIST2(SG_CAR(cp), sockets));
+    }
     fd = SG_SOCKET(SG_CAR(cp))->socket;
     /* MSDN says the first argument of select is ignored, so this is useless */
 #ifndef _WIN32

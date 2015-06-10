@@ -129,8 +129,7 @@
 		      (when (null? (vector-ref socket-pool i))
 			(mutex-unlock! mutex cv))
 		      (let ((sockets 
-			     ;; wait 1 sec
-			     (apply socket-read-select 1
+			     (apply socket-read-select #f
 				    (vector-ref socket-pool i)))
 			    (server (vector-ref servers i)))
 			(for-each 
@@ -143,13 +142,21 @@
 			     (handler server socket)))
 			 sockets)
 			;; remove closed sockets
-			(let ((closed (filter socket-closed? sockets)))
+			(let ((closed (filter socket-closed? 
+					      (vector-ref socket-pool i)))
+			      (inactive (apply socket-write-select 0
+					       (filter 
+						(lambda (s)
+						  (not (socket-closed? s)))
+						(vector-ref socket-pool i)))))
 			  (unless (null? closed)
 			    (mutex-lock! mutex)
 			    (vector-set! socket-pool i
-					 (lset-difference eq? 
-					  (vector-ref socket-pool i)
-					  closed))
+					 (lset-intersection eq?
+					   (lset-difference eq? 
+					    (vector-ref socket-pool i)
+					    closed)
+					   inactive))
 			    (mutex-unlock! mutex))
 			  (loop)))))))))
 	    ;; non blocking requires special coding rule.
