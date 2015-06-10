@@ -132,6 +132,8 @@
   Sg_SocketShutdown)
 
 (define-c-proc socket-close  (o::<socket>) ::<void> Sg_SocketClose)
+(define-c-proc socket-closed?  (o::<socket>) ::<boolean>
+  (result (not (Sg_SocketOpenP o))))
 
 (define-c-proc socket-fd (o::<socket>) ::<fixnum> :no-side-effect
   (result (-> o socket)))

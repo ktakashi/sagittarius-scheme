@@ -1665,6 +1665,8 @@
   ;; to make call-with-socket available for tls-socket
   (define-method socket-close ((o <tls-socket>))
     (tls-socket-close o))
+  (define-method socket-closed? ((o <tls-socket>))
+    (tls-socket-closed? o))
   (define-method socket-shutdown ((o <tls-socket>) how)
     (tls-socket-shutdown o how))
   (define-method socket-send ((o <tls-socket>) data :optional (flags 0))
