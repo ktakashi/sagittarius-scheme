@@ -37,63 +37,8 @@
 	(sagittarius vm)
 	(pp))
 
-;; ;; simple future
-;; (define-class <promise> ()
-;;   ((future :init-keyword :future)
-;;    (thread :init-keyword :thread :accessor promise-thread)))
-;;  
-;; (define-class <future> ()
-;;   ((promise :accessor future-promise)))
-;; 
-;; (define-method promise-specific ((p <promise>) o)
-;;   (thread-specific-set! (promise-thread p) o))
-;; (define-method promise-specific ((p <promise>))
-;;   (thread-specific (promise-thread p)))
-;; 
-;;  
-;; (define (make-promise proc . args)
-;;   (let* ((thunk (lambda () (apply proc args)))
-;;   (thread (make-thread thunk))
-;;   (future (make <future> :thunk thunk))
-;;   (promise (make <promise> :future future :thread thread)))
-;;     (future-promise future promise)
-;;     (thread-start! thread)
-;;     promise))
-;;  
-;; (define-method get-future ((p <promise>))
-;;   (slot-ref p 'future))
-;;  
-;; (define-method get ((f <future>))
-;;   (let ((promise (future-promise f)))
-;;     (guard (e (#t e))
-;;       (thread-join! (promise-thread promise)))))
-;;  
-;; (define-method finished? ((f <future>))
-;;   (let ((promise (future-promise f)))
-;;     (eq? (thread-state (promise-thread promise)) 'terminated)))
-;; 
-;; ;; Do we even want to know if the promise is finished or not?
-;; ;; I don't think this does not affect any performance.
-;; (define (get-finished-future promises)
-;;   (let loop ((p promises)
-;; 	     (r '()))
-;;     (if (null? p)
-;; 	(reverse! r)
-;; 	(let ((f (get-future (car p))))
-;; 	  (cond ((finished?  f)
-;; 		 (let ((result (get f)))
-;; 		   (cond ((uncaught-exception? result)
-;; 			  (print "FAILED WITH ERROR:")
-;; 			  (print (promise-specific (car p)))
-;; 			  (print (describe-condition
-;; 				  (uncaught-exception-reason result))))
-;; 			 (else
-;; 			  (print (get f)))))
-;; 		 (loop (cdr p) r))
-;; 		(else
-;; 		 (loop (cdr p) (cons (car p) r))))))))
 
-(define-constant max-promise 5)
+(define-constant max-promise (* (cpu-count) 2))
 
 (define tests-executor (make-thread-pool-executor max-promise))
 (define (make-promise proc)
@@ -154,7 +99,7 @@
 
 (define (run-sitelib-tests :optional (multithread? #t))
   (let ((files (find-files (or config path) :pattern ".scm$")))
-    (if multithread?
+    (if (and multithread? (> max-promise 1))
 	(run-tests files)
 	(let ((thunks (map (^f
 			     (^()
