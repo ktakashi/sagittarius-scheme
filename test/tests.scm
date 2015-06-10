@@ -99,7 +99,10 @@
 
 (define (run-sitelib-tests :optional (multithread? #t))
   (let ((files (find-files (or config path) :pattern ".scm$")))
-    (if (and multithread? (> max-promise 1))
+    (if (and multithread? 
+	     (or (> (cpu-count) 1)
+		 (begin (print "Only one CPU, disabling multithreading tests")
+			#f)))
 	(run-tests files)
 	(let ((thunks (map (^f
 			     (^()
