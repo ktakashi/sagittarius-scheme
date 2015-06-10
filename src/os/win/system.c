@@ -528,9 +528,21 @@ static void cleanup_win_proc(void *data)
   }
 }
 
+static int cpu_count = -1;
+
+int Sg_CPUCount()
+{
+  return cpu_count;
+}
+
 void Sg__InitSystem()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
+
+  SYSTEM_INFO sysinfo;
+  GetSystemInfo( &sysinfo );
+  cpu_count = sysinfo.dwNumberOfProcessors;
+
   active_win_procs.procs = 
     SG_WEAK_VECTOR(Sg_MakeWeakVector(PROCESS_VECTOR_SIZE));
   Sg_InitStaticClassWithMeta(SG_CLASS_WIN_PROC, UC("<windows-process>"), 

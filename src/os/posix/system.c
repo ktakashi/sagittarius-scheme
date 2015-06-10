@@ -736,8 +736,25 @@ static void finish_child_process(void *data)
 
 }
 
+/* general fallback */
+static int cpu_count = 1;
+
+int Sg_CPUCount()
+{
+  return cpu_count;
+}
+
 void Sg__InitSystem()
 {
+  /* NB: we can also use HW_AVAILCPU/HW_NCPU on *BSD (including OS X)
+         however, seems above platform support _SC_NPROCESSORS_ONLN
+         so don't bother. */
+#ifdef HAVE__SC_NPROCESSORS_ONLN
+  cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
+#elif defined(hpux)
+  cpu_count = mpctl(MPC_GETNUMSPUS, NULL, NULL); 
+#endif
+
   Sg_InitMutex(&pid_list.mutex, TRUE);
   Sg_AddCleanupHandler(finish_child_process, NULL);
 }

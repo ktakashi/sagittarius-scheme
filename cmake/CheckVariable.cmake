@@ -29,11 +29,20 @@
 
 INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 
-MACRO (CHECK_PTHREAD_FLAG _FLAG _VAR)
+MACRO (CHECK_PTHREAD_VAR _FLAG _VAR)
   # _NP suffix problem
   CHECK_C_SOURCE_COMPILES(
 "#include <pthread.h>
 int main() { return ${_FLAG}; }
 " ${_VAR})
 
-ENDMACRO (CHECK_PTHREAD_FLAG)
+ENDMACRO (CHECK_PTHREAD_VAR)
+
+MACRO (CHECK_UNISTD_VAR _FLAG _VAR)
+  # _NP suffix problem
+  CHECK_C_SOURCE_COMPILES(
+"#include <unistd.h>
+int main() { return ${_FLAG}; }
+" ${_VAR})
+
+ENDMACRO (CHECK_UNISTD_VAR)

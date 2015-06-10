@@ -1318,6 +1318,9 @@
     (result (Sg_SysProcessWait 
 	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
 
+  ;; cpu-count
+  (define-c-proc cpu-count () ::<fixnum> Sg_CPUCount)
+
   ;; compare
   (define-c-proc compare (x y) ::<fixnum> :no-side-effect Sg_Compare)
 

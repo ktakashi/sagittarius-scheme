@@ -46,6 +46,10 @@
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP
 
+/* for CPU count */
+#cmakedefine HAVE__SC_NPROCESSORS_ONLN
+#cmakedefine HAVE__SC_NPROCESSORS_CONF
+
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 
 #cmakedefine SIZEOF_INT @SIZEOF_INT@

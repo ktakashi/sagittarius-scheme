@@ -102,6 +102,16 @@ SG_EXTERN uintptr_t Sg_SysProcessCall(SgObject name, SgObject args,
 				      int flags); 
 SG_EXTERN int       Sg_SysProcessWait(uintptr_t pid);
 
+/* CPU count
+   returns number of cpu. the returning value contains hyperthreading.
+   e.g.) Core i5 has 2 cores with hyperthreading, so the returning value
+         would be 4.
+
+   NOTE: this uses _SC_NPROCESSORS_ONLN on POSIX environment if
+         available. if not, it always return 1.
+ */
+SG_EXTERN int       Sg_CPUCount();
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_SYSTEM_H_ */

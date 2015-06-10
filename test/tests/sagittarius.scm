@@ -1828,5 +1828,7 @@
 
   (test-assert "bytevector->string more than pre defined buffer"
 	       (utf16->string bv 'little)))
+;; cpu-count
+(test-assert "cpu-count" (>= (cpu-count) 1))
 
 (test-end)
