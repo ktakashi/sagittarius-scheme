@@ -177,7 +177,7 @@
   (define (session-cleaner context session)
     (lambda () (session-invalidate! session)))
 
-  (define (mqtt-broker-connect! context in/out)
+  (define (mqtt-broker-connect! context type flags len in/out)
     (define clean-session-bit 1)
     (define will-flag-bit 2)
     (define will-qos-mask #x0C) ;; bit 3 and 4
@@ -219,51 +219,50 @@
 		;; if handler returned #f then it's failed to authenticate
 		(authentication-error)))
 	  #t))
-    (let-values (((type flags len) (read-fixed-header in/out)))
-      (unless (= type +connect+)
-	(error 'mqtt-broker-connect! "expected CONNECT packet" type))
-      (let*-values (((vh payload) (read-variable-header&payload 
-				   ;; name, level, flag, keep-alive
-				   in/out len :utf8 :u8 :u8 :u16))
-		    ;; parse all payload as a simple verification.
-		    ((client-id) (read-utf8-string payload))
-		    ((topic message user password)
-		     (parse-rest (caddr vh) payload)))
-	(define (make/retrieve-session client-id flag vh)
-	  (cond ((and (not (bitwise-bit-set? flag clean-session-bit))
-		      (hashtable-ref (~ context 'sessions) client-id #f))
-		 => (lambda (s) 
-		      ;; restore session with given port
-		      (set! (~ s 'port) in/out)
-		      (values #f s)))
-		(else
-		 (values #t 
-			 (make <mqtt-session>
-			   :context context :client-id client-id
-			   :port in/out
-			   :keep-alive (cadddr vh)
-			   :topic topic :message message
-			   :retain? (bitwise-bit-set? flag will-retain-bit)
-			   :qos (bitwise-arithmetic-shift-right
-				 (bitwise-and flag will-qos-mask) 2))))))
-	;; not check for client-id should we?
-	(and-let* ((flag (caddr vh))
-		   ( (check-verion vh) )
-		   ( (authenticate user password) ))
-	  (let-values (((created? session) 
-			(make/retrieve-session client-id flag vh)))
-	    (when (or (not (slot-bound? session 'timer-id))
-		      (not (zero? (~ session 'keep-alive))))
-	      (set! (~ session 'timer-id)
-		    (timer-schedule! (~ context 'cleaner-timer)
-				     (session-cleaner context session)
-				     ;; what ever is fine it'll be updated
-				     ;; anyway. just need to be long enough
-				     1000)))
-	    (update-alive-until! session)
-	    (hashtable-set! (~ context 'sessions) client-id session)
-	    (send-conack 0 (not created?) session)
-	    session)))))
+    (unless (= type +connect+)
+      (error 'mqtt-broker-connect! "expected CONNECT packet" type))
+    (let*-values (((vh payload) (read-variable-header&payload 
+				 ;; name, level, flag, keep-alive
+				 in/out len :utf8 :u8 :u8 :u16))
+		  ;; parse all payload as a simple verification.
+		  ((client-id) (read-utf8-string payload))
+		  ((topic message user password)
+		   (parse-rest (caddr vh) payload)))
+      (define (make/retrieve-session client-id flag vh)
+	(cond ((and (not (bitwise-bit-set? flag clean-session-bit))
+		    (hashtable-ref (~ context 'sessions) client-id #f))
+	       => (lambda (s) 
+		    ;; restore session with given port
+		    (set! (~ s 'port) in/out)
+		    (values #f s)))
+	      (else
+	       (values #t 
+		       (make <mqtt-session>
+			 :context context :client-id client-id
+			 :port in/out
+			 :keep-alive (cadddr vh)
+			 :topic topic :message message
+			 :retain? (bitwise-bit-set? flag will-retain-bit)
+			 :qos (bitwise-arithmetic-shift-right
+			       (bitwise-and flag will-qos-mask) 2))))))
+      ;; not check for client-id should we?
+      (and-let* ((flag (caddr vh))
+		 ( (check-verion vh) )
+		 ( (authenticate user password) ))
+	(let-values (((created? session) 
+		      (make/retrieve-session client-id flag vh)))
+	  (when (or (not (slot-bound? session 'timer-id))
+		    (not (zero? (~ session 'keep-alive))))
+	    (set! (~ session 'timer-id)
+		  (timer-schedule! (~ context 'cleaner-timer)
+				   (session-cleaner context session)
+				   ;; what ever is fine it'll be updated
+				   ;; anyway. just need to be long enough
+				   1000)))
+	  (update-alive-until! session)
+	  (hashtable-set! (~ context 'sessions) client-id session)
+	  (send-conack 0 (not created?) session)
+	  session))))
 
   ;; disconnect
   (define (session-invalidate! session)

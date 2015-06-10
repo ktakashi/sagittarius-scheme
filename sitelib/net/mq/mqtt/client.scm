@@ -36,6 +36,7 @@
 	    
 	    mqtt-subscribe
 	    mqtt-receive-message
+	    mqtt-message-ready?
 
 	    ;; publish
 	    mqtt-publish
@@ -69,6 +70,7 @@
 
   (define-class <mqtt-connection> ()
     ((port  :init-keyword :port)
+     (socket :init-value #f)
      ;; we even don't need vector just 0/1 flag is fine
      ;; max packet identifier is #xFFFF
      (packets :init-form (make-bytevector #xFFFF 0))
@@ -78,9 +80,11 @@
   (define (mqtt-connection? o) (is-a? o <mqtt-connection>))
      
   (define (open-mqtt-connection host port . opt)
-    (let ((socket (make-client-socket host port)))
-      (apply port->mqtt-connection (socket-port socket) opt)))
-
+    (let* ((socket (make-client-socket host port))
+	   (conn (apply port->mqtt-connection (socket-port socket) opt)))
+      (set! (~ conn 'socket) socket)
+      conn))
+  
   ;; version number, protocol name and connection variable header length
   (define-constant +mqtt-3.1+   '(3 "MQIsdp" 12))
   (define-constant +mqtt-3.1.1+ '(4 "MQTT"   10))
@@ -291,6 +295,16 @@
 		 "No subscription but got message from server"
 		 (car vh)))
 	((cdr callback) (car vh) payload))))
+
+  (define (mqtt-message-ready? conn :key (timeout 0))
+    (if (~ conn 'socket)
+	(socket-read-select timeout (~ conn 'socket))
+	(let loop ()
+	  (or (port-ready? (~ conn 'port))
+	      (if timeout
+		  (begin (thread-sleep! timeout) (port-ready? (~ conn 'port)))
+		  (begin (thread-sleep! 1) (loop)))))))
+
 
   (define (mqtt-receive-message conn)
     (when (null? (~ conn 'callbacks))

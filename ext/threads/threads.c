@@ -330,7 +330,7 @@ SgObject Sg_ThreadInterrupt(SgVM *target)
   }
   if (target->threadState != SG_VM_RUNNABLE) {
     Sg_AssertionViolation(SG_INTERN("thread-interrupt!"),
-			  SG_MAKE_STRING("thread is not yet run"),
+			  SG_MAKE_STRING("thread is not running"),
 			  SG_LIST1(target));
   }
   Sg_InterruptThread(&target->thread);

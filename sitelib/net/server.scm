@@ -50,7 +50,8 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (rename (srfi :1) (alist-cons acons))
-	    (srfi :18)
+	    ;;(srfi :18)
+	    (sagittarius threads) ;; need thread-interrupt!
 	    (srfi :26)
 	    (rfc tls))
 
@@ -72,7 +73,9 @@
      ;; For TLS socket
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())
-     (private-key   :init-keyword :private-key   :init-value #f)))
+     (private-key   :init-keyword :private-key   :init-value #f)
+     ;; non blocking (default #f for backward compatibility)
+     (non-blocking? :init-keyword :non-blocking? :init-value #f)))
   (define (server-config? o) (is-a? o <server-config>))
 
   (define-class <simple-server> ()
@@ -98,23 +101,101 @@
 			           (config (make-server-config))
 			      :allow-other-keys rest)
     (define dispatch
-      (let ((executor (and (> (~ config 'max-thread) 1)
-			   (make-thread-pool-executor (~ config 'max-thread)
-			    (wait-finishing-handler (~ config 'max-retry))))))
-	(lambda (server socket)
-	  (define (handle socket)
-	    (guard (e (else 
-		       (when (~ config 'exception-handler)
-			 ((~ config 'exception-handler) server socket e))
-		       (socket-close socket)
-		       #t))
-	      (call-with-socket socket 
-		(lambda (sock) (handler server sock)))))
-	  ;; ignore error
-	  (if executor
-	      (let ((f (future (class <executor-future>) (handle socket))))
-		(execute-future! executor f))
-	      (handle socket)))))
+      (if (~ config 'non-blocking?)
+	  (let* ((num-threads (~ config 'max-thread))
+		 (thread-pool (make-thread-pool num-threads))
+		 (socket-pool (make-vector num-threads))
+		 (mutexes (make-vector num-threads))
+		 (cvs (make-vector num-threads))
+		 ;; silly
+		 (servers (make-vector num-threads))
+		 (thread-ids (make-vector num-threads)))
+	    ;; prepare executor
+	    (do ((i 0 (+ i 1)))
+		((= i num-threads))
+	      (vector-set! socket-pool i '())
+	      (let ((mutex (make-mutex))
+		    (cv (make-condition-variable)))
+		(vector-set! mutexes i mutex)
+		(vector-set! cvs i cv)
+		;; keep id
+		(vector-set! 
+		 thread-ids i
+		 (thread-pool-push-task!
+		  thread-pool
+		  (lambda ()
+		    (let loop ()
+		      ;; wait until pool is not null
+		      (when (null? (vector-ref socket-pool i))
+			(mutex-unlock! mutex cv))
+		      (let ((sockets 
+			     ;; wait 1 sec
+			     (apply socket-read-select 1
+				    (vector-ref socket-pool i)))
+			    (server (vector-ref servers i)))
+			(for-each 
+			 (lambda (socket) 
+			   (guard (e ((~ config 'exception-handler)
+				      ((~ config 'exception-handler)
+				       server socket e)
+				      (socket-close socket))
+				     (else (socket-close socket)))
+			     (handler server socket)))
+			 sockets)
+			;; remove closed sockets
+			(let ((closed (filter socket-closed? sockets)))
+			  (unless (null? closed)
+			    (mutex-lock! mutex)
+			    (vector-set! socket-pool i
+					 (lset-difference eq? 
+					  (vector-ref socket-pool i)
+					  closed))
+			    (mutex-unlock! mutex))
+			  (loop)))))))))
+	    ;; non blocking requires special coding rule.
+	    ;;  1. handler must always return even the socket is still
+	    ;;     active
+	    ;;  2. handler must close the socket when it's not needed.
+	    (lambda (server socket)
+	      (define (find-min)
+		(let loop ((i 1) (index 0))
+		  (cond ((= i num-threads) index)
+			((< (length (vector-ref socket-pool i))
+			    (length (vector-ref socket-pool index)))
+			 (loop (+ i 1) i))
+			(else (loop (+ i 1) index)))))
+	      (let* ((index (find-min))
+		     (sockets (vector-ref socket-pool index)))
+		(mutex-lock! (vector-ref mutexes index))
+		;; if we could lock means this is either handling or waiting
+		;; and it is safe to call thread-interrupt!
+		(vector-set! socket-pool index (cons socket sockets))
+		(vector-set! servers index server) ;; it's always the same!
+		;; notify it
+		(condition-variable-broadcast! (vector-ref cvs index))
+		(thread-interrupt! 
+		 (thread-pool-thread thread-pool (vector-ref thread-ids index)))
+		(mutex-unlock! (vector-ref mutexes index)))))
+	  ;; normal one. 
+	  (let ((executor (and (> (~ config 'max-thread) 1)
+			       (make-thread-pool-executor 
+				(~ config 'max-thread)
+				(wait-finishing-handler 
+				 (~ config 'max-retry))))))
+	    (lambda (server socket)
+	      (define (handle socket)
+		(guard (e (else 
+			   (when (~ config 'exception-handler)
+			     ((~ config 'exception-handler) server socket e))
+			   (socket-close socket)
+			   #t))
+		  (call-with-socket socket 
+		    (lambda (sock) (handler server sock)))))
+	      ;; ignore error
+	      (if executor
+		  (let ((f (future (class <executor-future>) (handle socket))))
+		    (execute-future! executor f))
+		  (handle socket))))))
     (define stop-socket (and (~ config 'shutdown-port)
 			     (make-server-socket (~ config 'shutdown-port))))
     (define (make-socket ai-family)

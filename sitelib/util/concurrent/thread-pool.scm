@@ -36,6 +36,7 @@
 	  thread-pool-release!
 
 	  thread-pool-thread-terminate! ;; hmmmm
+	  thread-pool-thread
 	  )
   (import (rnrs)
 	  (srfi :18)
@@ -72,6 +73,8 @@
 			  (thread-start!
 			   (make-thread (make-executor q)))))))))))
 
+(define (thread-pool-thread tp id)
+  (vector-ref (<thread-pool>-threads tp) id))
 
 (define (thread-pool-size tp)
   ;; whatever is fine.
