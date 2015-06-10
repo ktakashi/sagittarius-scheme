@@ -749,8 +749,21 @@ int Sg_CPUCount()
   return cpu_count;
 }
 
+static void ignore_handler(int signum)
+{
+  /* do nothing */
+}
+
 void Sg__InitSystem()
 {
+  struct sigaction        actions;
+  /* we use SIGALRM to interrupt threads */
+  memset(&actions, 0, sizeof(actions));
+  sigemptyset(&actions.sa_mask);
+  actions.sa_flags = SA_RESTART;
+  actions.sa_handler = ignore_handler;
+  sigaction(SIGALRM, &actions, NULL);
+
   /* NB: we can also use HW_AVAILCPU/HW_NCPU on *BSD (including OS X)
          however, seems above platform support _SC_NPROCESSORS_ONLN
          so don't bother. */

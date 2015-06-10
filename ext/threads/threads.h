@@ -124,6 +124,7 @@ extern SgObject Sg_ThreadStop(SgVM *vm, SgObject timeout, SgObject timeoutval);
 extern SgObject Sg_ThreadCont(SgVM *vm);
 extern SgObject Sg_ThreadSleep(SgObject timeout);
 extern SgObject Sg_ThreadTerminate(SgVM *vm);
+extern SgObject Sg_ThreadInterrupt(SgVM *vm);
 extern unsigned long Sg_SysNanosleep(double nanosecond);
 
 SgObject Sg_MakeConditionVariable(SgObject name);

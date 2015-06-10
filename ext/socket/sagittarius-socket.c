@@ -861,6 +861,12 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		  (efds ? &efds->fdset : NULL), 
 		  select_timeval(timeout, &tv));
   if (numfds < 0) {
+    if (errno == EINTR) {
+      return Sg_Values4(SG_FALSE,
+			SG_FALSE,
+			SG_FALSE,
+			SG_FALSE);
+    }
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
 	       SG_FALSE, SG_NIL);

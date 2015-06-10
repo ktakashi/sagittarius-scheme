@@ -157,6 +157,7 @@ SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 SG_EXTERN void Sg_ExitThread(SgInternalThread *thread, void *ret);
 SG_EXTERN void Sg_TerminateThread(SgInternalThread *thread);
+SG_EXTERN void Sg_InterruptThread(SgInternalThread *thread);
 
 SG_CDECL_END
 

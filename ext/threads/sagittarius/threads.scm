@@ -42,6 +42,7 @@
 	    thread-start! thread-join! thread-yield! thread-sleep!
 	    thread-stop! thread-cont!
 	    thread-terminate!
+	    thread-interrupt!
 
 	    ;; mutex
 	    mutex? make-mutex

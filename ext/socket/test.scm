@@ -196,6 +196,23 @@
     (define in (socket-input-port client))
     (define buf (make-bytevector 10))
     (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
-		(get-bytevector-n in 10))))
+		(get-bytevector-n in 10))
+    (socket-close server)))
+
+;; thread-interrupt!
+;; it's weird to test here but initial purpose for this
+;; is interrupting select, so not too bad
+(let ()
+  (define server (make-server-socket "5001"))
+  (define t (make-thread
+	      (lambda ()
+		(socket-read-select #f server))))
+  (test-error "not yet run interrupt" condition? (thread-interrupt! t))
+  (thread-start! t)
+  (thread-sleep! 1) ;; wait a bit
+  (test-assert "thread-interrupt!" (thread-interrupt! t))
+  (test-equal "result" '() (thread-join! t))
+  (test-error "self interrupt" condition? (thread-interrupt! (current-thread)))
+  (socket-close server))
 
 (test-end)
