@@ -17,24 +17,25 @@
 
 ;; addr is client socket
 (define (server-run)
-  (let loop ()
-    (let ((addr (socket-accept echo-server-socket)))
-      (call-with-socket addr
-        (lambda (sock)
-	  (let ((p (transcoded-port (socket-port sock) (native-transcoder))))
-	    (call-with-port p
-	      (lambda (p)
-		(let lp2 ((r (get-line p)))
-		  (cond ((or (not (string? r)) (string=? r "end")))
-			((or (not (string? r)) (string=? r "test-end"))
-			 (put-string p "") (loop))
-			(else
-			 (let ((res (string->utf8 (string-append r "\r\n"))))
-			   ;; wait one sec
-			   (when (string=? r "wait") (thread-sleep! 1))
-			   (put-bytevector p res 0 (bytevector-length res) #t)
-			   (lp2 (get-line p))))))))))))))
-
+  (guard (e (else ;; shouldn't happen but happens so put like this
+	     (print e) (socket-close echo-server-socket)))
+    (let loop ()
+      (let ((addr (socket-accept echo-server-socket)))
+	(call-with-socket addr
+	  (lambda (sock)
+	    (let ((p (transcoded-port (socket-port sock) (native-transcoder))))
+	      (call-with-port p
+		(lambda (p)
+		  (let lp2 ((r (get-line p)))
+		    (cond ((or (not (string? r)) (string=? r "end")))
+			  ((or (not (string? r)) (string=? r "test-end"))
+			   (put-string p "") (loop))
+			  (else
+			   (let ((res (string->utf8 (string-append r "\r\n"))))
+			     ;; wait one sec
+			     (when (string=? r "wait") (thread-sleep! 1))
+			     (put-bytevector p res 0 (bytevector-length res) #t)
+			     (lp2 (get-line p)))))))))))))))
 (define server-thread (make-thread server-run))
 
 (test-begin "(run-socket-test)")
@@ -82,7 +83,7 @@
     (let ((l (list client-socket)))
       (test-equal "collect-sockets" l (collect-sockets fdset l))
       (test-assert "sockets->fdset" (fdset? (sockets->fdset l)))))
-		
+
   (test-equal "raw socket-recv"
 	      (string->utf8 "hello\r\n")
 	      (socket-recv client-socket (+ (string-length "hello") 2) 0))
@@ -122,6 +123,7 @@
   (test-assert "socket-closed?" (socket-closed? client-socket))
   )
 
+
 ;; call #125
 (let* ((client-socket (make-client-socket "localhost" "5000"))
        (in/out (socket-port client-socket))
@@ -129,15 +131,16 @@
   (define (ensure-n in n)
     (let loop ((n n) (r '()))
       (let ((bv (get-bytevector-n in n)))
-      (if (= (bytevector-length bv) n)
-	  (bytevector-concatenate (reverse! (cons bv r)))
-	  (loop (- n (bytevector-length bv)) (cons bv r))))))
+	(if (= (bytevector-length bv) n)
+	    (bytevector-concatenate (reverse! (cons bv r)))
+	    (loop (- n (bytevector-length bv)) (cons bv r))))))
   (test-assert "with display" (display msg in/out))
   (test-assert "with format" (format in/out msg))
   ;; response contains \r
   (let ((r (ensure-n in/out (+ (* (string-length msg) 2) 2))))
     ;;(write (utf8->string r)) (newline)
     (test-equal "result" #*"hello\r\nhello\r\n" r))
+
   (put-bytevector in/out #*"test-end\r\n")
   (close-port in/out)
   ;; socket-port without optional argument closes given socket
@@ -174,7 +177,6 @@
     (test-equal "seocket-sendto" 4 
 		(socket-sendto s #vu8(1 2 3 4) (addrinfo-sockaddr info)))))
 
-
 ;; srfi 106
 (import (srfi :106))
 
@@ -199,20 +201,18 @@
 		(get-bytevector-n in 10))
     (socket-close server)))
 
-;; thread-interrupt!
-;; it's weird to test here but initial purpose for this
-;; is interrupting select, so not too bad
+;; socket-interrupt!
+;; cancelling blocking socket operation in other threads
 (let ()
   (define server (make-server-socket "5001"))
   (define t (make-thread
 	      (lambda ()
 		(socket-read-select #f server))))
-  (test-error "not yet run interrupt" condition? (thread-interrupt! t))
+  (test-assert "not blocked" (not (socket-interrupt! server)))
   (thread-start! t)
   (thread-sleep! 1) ;; wait a bit
-  (test-assert "thread-interrupt!" (thread-interrupt! t))
+  (test-assert "socket-interrupt!" (socket-interrupt! server))
   (test-equal "result" '() (thread-join! t))
-  (test-error "self interrupt" condition? (thread-interrupt! (current-thread)))
   (socket-close server))
 
 (test-end)

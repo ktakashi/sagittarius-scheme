@@ -321,12 +321,6 @@ void Sg_TerminateThread(SgInternalThread *thread)
   
 }
 
-void Sg_InterruptThread(SgInternalThread *thread)
-{
-  /* TODO */
-  Sg_Error(UC("not supported yet"));
-}
-
 /*
   end of file
   Local Variables:

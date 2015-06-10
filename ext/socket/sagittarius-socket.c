@@ -280,6 +280,7 @@ static SgSocket* make_socket_inner(SOCKET fd)
   Sg_RegisterFinalizer(s, socket_finalizer, NULL);
   s->type = SG_SOCKET_UNKNOWN;
   s->address = NULL;
+  s->thread = NULL;
   return s;
 }
 
@@ -731,7 +732,8 @@ void Sg_SocketClose(SgSocket *socket)
 /* fdset */
 static void fdset_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<fdset %d>"), SG_FDSET(self)->maxfd);
+  Sg_Printf(port, UC("#<fdset %d %S>"), SG_FDSET(self)->maxfd,
+	    SG_FDSET(self)->sockets);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FdSetClass, fdset_printer);
@@ -741,6 +743,7 @@ static SgFdSet* make_fd_set()
   SgFdSet *z = SG_NEW(SgFdSet);
   SG_SET_CLASS(z, SG_CLASS_FD_SET);
   z->maxfd = -1;
+  z->sockets = SG_NIL;
   FD_ZERO(&z->fdset);
   return z;
 }
@@ -770,7 +773,7 @@ static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
 				      SG_MAKE_STRING("socket"),
 				      SG_CAR(cp), sockets);
     }
-    if (!Sg_SocketOpenP(SG_CAR(cp))) {
+    if (!Sg_SocketOpenP(SG_SOCKET(SG_CAR(cp)))) {
       Sg_AssertionViolation(SG_INTERN("socket-select"),
 			    SG_MAKE_STRING("socket is closed"),
 			    SG_LIST2(SG_CAR(cp), sockets));
@@ -789,6 +792,7 @@ SgObject Sg_SocketsToFdSet(SgObject sockets)
 {
   SgFdSet *fdset = make_fd_set();
   fdset->maxfd = collect_max_fd(fdset->maxfd, sockets, &fdset->fdset);
+  fdset->sockets = sockets;
   return SG_OBJ(fdset);
 }
 
@@ -854,24 +858,107 @@ SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
 static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 				  SgObject timeout)
 {
+#define SET_THREAD(fdset)				\
+  do {							\
+    if (fdset) {					\
+      SgObject sockets = (fdset)->sockets;		\
+      SG_FOR_EACH(sockets, sockets) {			\
+	SG_SOCKET(SG_CAR(sockets))->thread = vm;	\
+      }							\
+    }							\
+  } while (0)
+#define UNSET_THREAD(fdset)				\
+  do {							\
+    if (fdset) {					\
+      SgObject sockets = (fdset)->sockets;		\
+      SG_FOR_EACH(sockets, sockets) {			\
+	SG_SOCKET(SG_CAR(sockets))->thread = NULL;	\
+      }							\
+    }							\
+  } while (0)
+  
+#ifdef _WIN32
+# define SET_EVENT(fdset, flags)			\
+  do {							\
+    if (fdset) {					\
+      SgObject sockets = (fdset)->sockets;		\
+      SG_FOR_EACH(sockets, sockets) {			\
+	SOCKET s = SG_SOCKET(SG_CAR(sockets))->socket;	\
+	WSAEventSelect(s, hEvents[0], flags);		\
+      }							\
+    }							\
+  }while (0)
+  
+#else
+# define SET_EVENT(fdset, flags) 	/* dummy */
+#endif  
   struct timeval tv;
   int max = 0, numfds;
+  SgVM *vm = Sg_VM();
+  
+#ifdef _WIN32
+  HANDLE hEvents[2];
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  /* all the same */
+  hEvents[1] = (&vm->thread)->event;
+#endif
+  
   if (rfds) max = rfds->maxfd;
   if (wfds && wfds->maxfd > max) max = wfds->maxfd;
   if (efds && efds->maxfd > max) max = efds->maxfd;
 
+
+  /* set thread to all sockets which fdsets have */
+  SET_THREAD(rfds);
+  SET_THREAD(wfds);
+  SET_THREAD(efds);
+
+  SET_EVENT(rfds, FD_READ | FD_OOB);
+  SET_EVENT(wfds, FD_WRITE);
+  SET_EVENT(efds, FD_READ | FD_OOB);
+
+#ifdef _WIN32
+  int r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  if (r == WAIT_OBJECT_0) {
+    numfds = select(max + 1, 
+		  (rfds ? &rfds->fdset : NULL), 
+		  (wfds ? &wfds->fdset : NULL), 
+		  (efds ? &efds->fdset : NULL), 
+		  select_timeval(timeout, &tv));
+  } else {
+    numfds = -1;
+  }
+#else
   numfds = select(max + 1, 
 		  (rfds ? &rfds->fdset : NULL), 
 		  (wfds ? &wfds->fdset : NULL), 
 		  (efds ? &efds->fdset : NULL), 
 		  select_timeval(timeout, &tv));
+#endif
+  
+  UNSET_THREAD(rfds);
+  UNSET_THREAD(wfds);
+  UNSET_THREAD(efds);  
+
+  SET_EVENT(rfds, 0);
+  SET_EVENT(wfds, 0);
+  SET_EVENT(efds, 0);
+
+#ifdef _WIN32
+  CloseHandle(hEvents[0]);
+#endif
+
   if (numfds < 0) {
-    if (errno == EINTR) {
-      return Sg_Values4(SG_FALSE,
-			SG_FALSE,
-			SG_FALSE,
-			SG_FALSE);
-    }
+    /* if it's on Windows, then it always interrupted, I guess. */
+#ifndef _WIN32
+    if (errno == EINTR)
+#endif
+      {
+	return Sg_Values4(SG_FALSE,
+			  SG_FALSE,
+			  SG_FALSE,
+			  SG_FALSE);
+      }
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
 	       SG_FALSE, SG_NIL);
@@ -880,6 +967,8 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
 		    (wfds ? SG_OBJ(wfds) : SG_FALSE),
 		    (efds ? SG_OBJ(efds) : SG_FALSE));
+#undef SET_THREAD
+#undef UNSET_THREAD
 }
 
 static SgFdSet* check_fd(SgObject o)
@@ -958,7 +1047,7 @@ int Sg_SocketOpenP(SgSocket *socket)
 
 int Sg_SocketNonblocking(SgSocket *socket)
 {
-#if _WIN32
+#ifdef _WIN32
   unsigned long val = 1;
   if (ioctlsocket(socket->socket, FIONBIO, &val) != 0) {
     goto err;
@@ -979,7 +1068,7 @@ int Sg_SocketNonblocking(SgSocket *socket)
 }
 int Sg_SocketBlocking(SgSocket *socket)
 {
-#if _WIN32
+#ifdef _WIN32
   unsigned long val = 0;
   int err;
   if ((err = ioctlsocket(socket->socket, FIONBIO, &val)) != 0) {
@@ -1277,6 +1366,29 @@ static void finish_winsock(void *data)
 }
 #endif
 
+/* cancelling blocking socket operation */
+int Sg_SocketInterrupt(SgSocket *socket)
+{
+  if (socket->thread) {
+#ifdef _WIN32
+    SetEvent((&socket->thread->thread)->event);
+#else
+    pthread_kill((&socket->thread->thread)->thread, SIGALRM);
+#endif
+    return TRUE;
+  }
+  return FALSE;
+
+}
+
+#ifndef _WIN32
+static void ignore_handler(int signum)
+{
+  /* do nothing */
+}
+#endif
+
+
 SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 {
   SgLibrary *lib;
@@ -1284,6 +1396,14 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
   WSADATA wsaData;
   WSAStartup(2, &wsaData);
   Sg_AddCleanupHandler(finish_winsock, NULL);
+#else
+  struct sigaction        actions;
+  /* we use SIGALRM to cancel select */
+  memset(&actions, 0, sizeof(actions));
+  sigemptyset(&actions.sa_mask);
+  actions.sa_flags = SA_RESTART;
+  actions.sa_handler = ignore_handler;
+  sigaction(SIGALRM, &actions, NULL);
 #endif
   SG_INIT_EXTENSION(sagittarius__socket);
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius socket)"),

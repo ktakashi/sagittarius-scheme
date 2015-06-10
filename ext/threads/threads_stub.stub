@@ -73,8 +73,6 @@
 
 (define-c-proc thread-terminate! (vm::<thread>) ::<void> Sg_ThreadTerminate)
 
-(define-c-proc thread-interrupt! (vm::<thread>) ::<void> Sg_ThreadInterrupt)
-
 (define-c-proc mutex? (o) ::<boolean> :constant SG_MUTEXP)
 
 (define-c-proc make-mutex 

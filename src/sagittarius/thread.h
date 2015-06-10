@@ -50,9 +50,14 @@ typedef struct SgInternalThreadRec
 {
   HANDLE  thread;
   void   *returnValue;
+  HANDLE  event;
 } SgInternalThread;
 typedef unsigned int SgThreadEntryFunc(void *);
-#define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (HANDLE)NULL)
+#define SG_INTERNAL_THREAD_INIT(thr)				\
+  do {								\
+    (thr)->thread = (HANDLE)NULL;				\
+    (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
+  } while (0)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
 struct SgInternalCondRec
 {
@@ -157,7 +162,6 @@ SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 SG_EXTERN void Sg_ExitThread(SgInternalThread *thread, void *ret);
 SG_EXTERN void Sg_TerminateThread(SgInternalThread *thread);
-SG_EXTERN void Sg_InterruptThread(SgInternalThread *thread);
 
 SG_CDECL_END
 

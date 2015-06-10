@@ -319,24 +319,6 @@ SgObject Sg_ThreadTerminate(SgVM *target)
   return SG_UNDEF;
 }
 
-SgObject Sg_ThreadInterrupt(SgVM *target)
-{
-  SgVM *vm = Sg_VM();
-  if (target == vm) {
-    /* self interruption */
-    Sg_AssertionViolation(SG_INTERN("thread-interrupt!"),
-			  SG_MAKE_STRING("attempt to interrupt the own thread"),
-			  SG_LIST1(target));
-  }
-  if (target->threadState != SG_VM_RUNNABLE) {
-    Sg_AssertionViolation(SG_INTERN("thread-interrupt!"),
-			  SG_MAKE_STRING("thread is not running"),
-			  SG_LIST1(target));
-  }
-  Sg_InterruptThread(&target->thread);
-  return SG_UNDEF;
-}
-
 #if !defined HAVE_NANOSLEEP || defined(_WIN32)
 int nanosleep(const struct timespec *req, struct timespec *rem)
 {

@@ -143,6 +143,8 @@
 (define-c-proc socket-blocking! (o::<socket>) ::<boolean>
   Sg_SocketBlocking)
 
+(define-c-proc socket-interrupt! (o::<socket>) ::<boolean> Sg_SocketInterrupt)
+
 (define-c-proc make-fdset () :no-side-effect Sg_MakeFdSet)
 (define-c-proc fdset? (o) ::<boolean> :constant SG_FDSETP)
 (define-c-proc sockets->fdset (sockets) :no-side-effect Sg_SocketsToFdSet)
@@ -171,8 +173,17 @@
   (let ((fd::int (cast int (-> socket socket))))
     (check-fd-range fd)
     (cond (flag (FD_SET fd (& (-> fdset fdset)))
+		(set! (-> fdset sockets) (Sg_Cons socket (-> fdset sockets)))
 		(when (< (-> fdset maxfd) fd) (set! (-> fdset maxfd) fd)))
 	  (else (FD_CLR fd (& (-> fdset fdset)))
+		(let ((p SG_FALSE)
+		      (h (-> fdset sockets)))
+		  (for (() (not (SG_NULLP h)) (set! p h h (SG_CDR h)))
+		       (when (SG_EQ (SG_CAR h) socket)
+			 (if (SG_FALSEP p)
+			     (set! (-> fdset sockets) (SG_CDR h))
+			     (SG_SET_CDR p (SG_CDR h)))
+			 (break))))
 		(when (== (-> fdset maxfd) fd)
 		  (let ((i::int (- (-> fdset maxfd) 1)))
 		    (for (() (>= i 0) (post-- i))

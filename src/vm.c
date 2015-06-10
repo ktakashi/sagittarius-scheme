@@ -99,6 +99,9 @@ static void vm_finalize(SgObject obj, void *data)
   Sg_RemoveLibrary(vm->currentLibrary);
   Sg_DestroyMutex(&vm->vmlock);
   Sg_DestroyCond(&vm->cond);
+#ifdef _WIN32
+  CloseHandle((&vm->thread)->event);
+#endif  
 }
 
 static void vm_print(SgObject obj, SgPort *port, SgWriteContext *ctx)

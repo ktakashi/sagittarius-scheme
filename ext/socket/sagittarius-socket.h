@@ -73,6 +73,7 @@ typedef struct SgSocketRec
   int lastError;
   SgSocketType type;
   SgString *address;		/* for print */
+  SgVM   *thread;		/* for pthread_kill */
 } SgSocket;
 
 SG_CLASS_DECL(Sg_SocketClass);
@@ -140,6 +141,7 @@ typedef struct SgFdSetRec
   SG_HEADER;
   fd_set    fdset;
   int       maxfd;
+  SgObject  sockets;
 } SgFdSet;
 
 SG_CLASS_DECL(Sg_FdSetClass);
@@ -182,6 +184,7 @@ SG_EXTERN SgObject  Sg_SocketErrorMessage(SgSocket *socket);
 
 SG_EXTERN int       Sg_SocketNonblocking(SgSocket *socket);
 SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
+SG_EXTERN int       Sg_SocketInterrupt(SgSocket *socket);
 
 SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket, int close);
 SG_EXTERN SgObject  Sg_MakeSocketInputPort(SgSocket *socket);

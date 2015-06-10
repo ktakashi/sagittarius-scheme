@@ -157,10 +157,6 @@ void Sg_TerminateThread(SgInternalThread *thread)
   pthread_cancel(thread->thread);
 }
 
-void Sg_InterruptThread(SgInternalThread *thread)
-{
-  pthread_kill(thread->thread, SIGALRM);
-}
 /*
   end of file
   Local Variables:

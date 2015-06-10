@@ -50,8 +50,7 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (rename (srfi :1) (alist-cons acons))
-	    ;;(srfi :18)
-	    (sagittarius threads) ;; need thread-interrupt!
+	    (srfi :18)
 	    (srfi :26)
 	    (rfc tls))
 
@@ -174,14 +173,11 @@
 	      (let* ((index (find-min))
 		     (sockets (vector-ref socket-pool index)))
 		(mutex-lock! (vector-ref mutexes index))
-		;; if we could lock means this is either handling or waiting
-		;; and it is safe to call thread-interrupt!
 		(vector-set! socket-pool index (cons socket sockets))
 		(vector-set! servers index server) ;; it's always the same!
 		;; notify it
 		(condition-variable-broadcast! (vector-ref cvs index))
-		(thread-interrupt! 
-		 (thread-pool-thread thread-pool (vector-ref thread-ids index)))
+		(for-each socket-interrupt! sockets)
 		(mutex-unlock! (vector-ref mutexes index)))))
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)
