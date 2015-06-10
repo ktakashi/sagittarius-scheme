@@ -38,7 +38,7 @@
 	(pp))
 
 
-(define-constant max-promise (* (cpu-count) 2))
+(define-constant max-promise (cpu-count))
 
 (define tests-executor (make-thread-pool-executor max-promise))
 (define (make-promise proc)

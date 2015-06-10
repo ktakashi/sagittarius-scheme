@@ -27,6 +27,11 @@
  *
  *  $Id: $
  */
+/* should this be only for linux or it won't hurt any others? */
+#if defined(__linux__)
+# define _GNU_SOURCE
+#endif
+
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
@@ -751,6 +756,16 @@ void Sg__InitSystem()
          so don't bother. */
 #ifdef HAVE__SC_NPROCESSORS_ONLN
   cpu_count = (int)sysconf(_SC_NPROCESSORS_ONLN);
+  /* in case of taskset we also check sched_getaffinity if available */
+# if defined(HAVE_SCHED_GETAFFINITY) && defined(HAVE_CPU_COUNT)
+  {
+    cpu_set_t mask;
+    if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == 0) {
+      cpu_count = CPU_COUNT(&mask);
+    }
+  }
+# endif
+
 #elif defined(hpux)
   cpu_count = mpctl(MPC_GETNUMSPUS, NULL, NULL); 
 #endif

@@ -49,6 +49,8 @@
 /* for CPU count */
 #cmakedefine HAVE__SC_NPROCESSORS_ONLN
 #cmakedefine HAVE__SC_NPROCESSORS_CONF
+#cmakedefine HAVE_SCHED_GETAFFINITY
+#cmakedefine HAVE_CPU_COUNT
 
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 

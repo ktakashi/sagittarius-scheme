@@ -718,10 +718,60 @@ The returning value is not copied, thus modifying the list may cause
 unexpected results.
 }
 
+@subsubsection{System and platform}
+
+@define[Function]{@name{uname} @args{}}
+@desc{Return a vector which contains the following information.
+
+@dl-list{
+ @dl-item["System name"]{Operating system name. E.g. "Linux"}
+ @dl-item["Node name"]{The name of the computer.}
+ @dl-item["Release"]{Release number of the system if availabel.}
+ @dl-item["Version"]{Version number of the system if availabel.}
+ @dl-item["Machine"]{Machine architecture of the system.}
+}
+
+On POSIX environment, this is the result of @code{uname(2)}.
+
+On Windows environment, this is the result of couple of Win32 API calls
+and formatted to look like the result of @code{uname(2)}.
+}
+
+@define[Function]{@name{get-mac-address} @args{:optional (position 0)}}
+@desc{Retrieves MAC address. The returning value is a bytevector which
+contains 6 elements.
+
+If optional argument specifies which NIC's MAC address should be returned.
+}
+
+@define[Function]{@name{gc} @args{}}
+@desc{Invokes garbage collection manually.}
+
+@define[Function]{@name{cpu-count} @args{}}
+@desc{Returns number of CPUs. The result contains hyperthreading, for example,
+if the CPU is Core i5 which have 2 cores and hyperthreading is enabled, then
+the returning value is 4.
+
+On Linux environment, the procedure also considers @code{taskset(1)}.
+
+This procedure returns static value initialised during initialisation of
+Sagittarius process. Thus, if the process is restricted after its 
+initialisation by @code{taskset(1)}, for example the environment has 4 CPUs
+but restricted to 1, then this process, however, returns 4.
+}
+
 @subsubsection{Debugging aid}
 
 @define[Function]{@name{disasm} @args{closure}}
 @desc{Disassembles the compiled body of @var{closure} and print it.
+}
+
+@define[Function]{@name{arity} @args{procedure}}
+@desc{Returns arity of given @var{procedure}.
+
+It returns a pair whose car part is required arguments count and cdr part
+is boolean which indicates if the procedure accepts optional arguments or
+not.
 }
 
 @define[Library]{@name{(time)}}

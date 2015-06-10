@@ -93,6 +93,18 @@ ENDIF()
 CHECK_FUNCTION_EXISTS(gettimeofday  HAVE_GETTIMEOFDAY)
 CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
 CHECK_FUNCTION_EXISTS(getrusage     HAVE_GETRUSAGE)
+CHECK_FUNCTION_EXISTS(sched_getaffinity     HAVE_SCHED_GETAFFINITY)
+# CPU_COUNT is a bit tricky
+# Linux man page says it's defined in <sched.h> but seems <unistd.h>
+# is the place
+CHECK_C_SOURCE_COMPILES(
+"#define _GNU_SOURCE
+#include <unistd.h>
+#include <sched.h>
+int main() { return CPU_COUNT(NULL); }
+"
+HAVE_CPU_COUNT)
+
 
 # platform name
 STRING(TOLOWER ${CMAKE_SYSTEM_NAME} SAGITTARIUS_PLATFORM)
