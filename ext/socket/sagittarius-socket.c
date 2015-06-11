@@ -899,6 +899,7 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		  (efds ? &efds->fdset : NULL), 
 		  select_timeval(timeout, &tv));
   } else {
+    ResetEvent(hEvents[1]);
     numfds = -1;
   }
   SET_EVENT(rfds, 0);

@@ -198,7 +198,7 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv,
 
   /* intr? */
   if (intr) {
-    SgObject e = Sg_MakeThreadInterruptException((vm) ? vm : SG_FALSE);
+    SgObject e = Sg_MakeThreadInterruptException((vm) ? vm : SG_VM(SG_FALSE));
     Sg_Raise(e, FALSE);
     r = FALSE;
   }

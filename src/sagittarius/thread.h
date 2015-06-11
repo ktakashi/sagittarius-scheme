@@ -56,7 +56,7 @@ typedef unsigned int SgThreadEntryFunc(void *);
 #define SG_INTERNAL_THREAD_INIT(thr)				\
   do {								\
     (thr)->thread = (HANDLE)NULL;				\
-    (thr)->event = CreateEvent(NULL, FALSE, FALSE, NULL);	\
+    (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
   } while (0)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
 struct SgInternalCondRec
