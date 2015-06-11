@@ -3,7 +3,8 @@
 	(rfc mime)
 	(rfc :5322)
 	(srfi :26 cut)
-	(srfi :64 testing))
+	(srfi :64 testing)
+	(prefix (binary io) binary:))
 
 (define utf-8-text "寿限無、寿限無五劫の擦り切れ海砂利水魚の水行末 雲来末 風来末食う寝る処に住む処やぶら小路の藪柑子パイポパイポ パイポのシューリンガンシューリンガンのグーリンダイグーリンダイのポンポコピーのポンポコナーの長久命の長助")
 
@@ -180,8 +181,8 @@ Content</div>
                read)))
     (call-with-input-file src
       (lambda (inp)
-        (let* ((title (get-line inp)) ;; test title
-               (expl  (get-line inp)) ;; explanation (ignored)
+        (let* ((title (utf8->string (binary:get-line inp))) ;; test title
+               (expl  (binary:get-line inp)) ;; explanation (ignored)
                (headers (or headers (rfc5322-read-headers inp))))
           (test-equal (format "mime-parse-message (~a - ~a)" num title)
 		      res
@@ -192,8 +193,8 @@ Content</div>
 			    (mime-parse-message inp headers
 						(cut mime-body->string <> <>))
 			    #f)
-			   )))))
-    ))
+			   ))))
+      :transcoder #f)))
 
 
 (import (sagittarius control)) ;; for dotimes
@@ -255,8 +256,7 @@ Content</div>
 		  `("multipart/mixed" 0 ,src)
 		  (mime-message-resolver
 		   (let1 in (open-bytevector-input-port (string->utf8 composed))
-		     (call-with-port
-		      (transcoded-port in (native-transcoder))
+		     (call-with-port in
 		      (cut mime-parse-message <>
 			   `(("mime-version" "1.0")
 			     ("content-type" 
@@ -276,6 +276,10 @@ Content</div>
 (test-equal "decoding"
 	    decoded-utf-8-text
 	    (mime-decode-text encoded-utf-8-text))
+(let* ((utf8-multi-part (string->utf8 multi-part))
+       (in (open-bytevector-input-port utf8-multi-part))
+       (headers (rfc5322-read-headers in))
+       (r '())))
 (test-equal "parsing"
 	    '(#t "multipart" "alternative"
 		 (("x-sender" "<sender@sendersdomain.com>")
@@ -289,13 +293,13 @@ Content</div>
 		  ("content-type" "multipart/alternative; boundary=\"----=_NextPart_DC7E1BB5_1105_4DB3_BAE3_2A6208EB099D\""))
 		 #t)
 	    (let* ((utf8-multi-part (string->utf8 multi-part))
-		   (bin (open-bytevector-input-port utf8-multi-part))
-		   (in (transcoded-port bin (make-transcoder (utf-8-codec))))
+		   (in (open-bytevector-input-port utf8-multi-part))
 		   (headers (rfc5322-read-headers in))
 		   (r '()))
 	      (if (mime-parse-version (rfc5322-header-ref headers "mime-version"))
-		  (let ((packet (mime-parse-message in headers (lambda (packet port)
-								 (get-string-all port)))))
+		  (let ((packet (mime-parse-message in headers 
+						    (lambda (packet port)
+						      (get-bytevector-all port)))))
 		    (set! r (cons (mime-part? packet) r))
 		    (set! r (cons (mime-part-type packet) r))
 		    (set! r (cons (mime-part-subtype packet) r))

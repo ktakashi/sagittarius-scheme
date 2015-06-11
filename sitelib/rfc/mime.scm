@@ -347,12 +347,12 @@
 	  (dequeue! q)))
 
     (define (newb)
-      (match (get-u8 srcport #t)
+      (match (get-u8 srcport)
 	((and #x0d b) ;; CR, check to see LF
-	 (let1 b2 (lookahead-u8 srcport #t)
+	 (let1 b2 (lookahead-u8 srcport)
 	   (if (eqv? b2 #x0a)
 	       (begin
-		 (get-u8 srcport #t)
+		 (get-u8 srcport)
 		 (enqueue! q b)
 		 (enqueue! q #x0a)
 		 (check-boundary))
@@ -363,30 +363,30 @@
 	(b b)))
 
     (define (check-boundary)
-      (let loop ((b   (lookahead-u8 srcport #t))
+      (let loop ((b   (lookahead-u8 srcport))
 		 (ind 0)
 		 (max (bytevector-length --boundary)))
 	(cond ((eof-object? b) (deq! q))
 	      ((= ind max)
 	       (cond ((memv b '(#x0d #x0a)) ;; found boundary
-		      (get-u8 srcport #t)   ;; consume LF or CRLF
+		      (get-u8 srcport)   ;; consume LF or CRLF
 		      (when (and (eqv? #x0d b)
-				 (eqv? #x0a (lookahead-u8 srcport #t)))
-			(get-u8 srcport #t))
+				 (eqv? #x0a (lookahead-u8 srcport)))
+			(get-u8 srcport))
 		      (dequeue-all! q)
 		      (mime-port-state self 'boundary)
 		      eof)
 		     ((eqv? b #x2d) ;; maybe end boundary
-		      (enqueue! q (get-u8 srcport #t))
-		      (cond ((eqv? (lookahead-u8 srcport #t) #x2d) ; yes
-			     (get-u8 srcport #t)
+		      (enqueue! q (get-u8 srcport))
+		      (cond ((eqv? (lookahead-u8 srcport) #x2d) ; yes
+			     (get-u8 srcport)
 			     (dequeue-all! q)
 			     (skip-epilogue))
 			    (else (deq! q))))
 		     (else (deq! q))))
 	      ((= b (bytevector-u8-ref --boundary ind))
-	       (enqueue! q (get-u8 srcport #t))
-	       (loop (lookahead-u8 srcport #t) (+ ind 1) max))
+	       (enqueue! q (get-u8 srcport))
+	       (loop (lookahead-u8 srcport) (+ ind 1) max))
 	      ((queue-empty? q) (newb))
 	      (else (dequeue! q)))))
 
@@ -403,10 +403,10 @@
 	      (else (dequeue-all! q) (loop (newb))))))
 
     (define (skip-epilogue)
-      (let loop ((b (get-u8 srcport #t)))
+      (let loop ((b (get-u8 srcport)))
 	(if (eof-object? b)
 	    (begin (mime-port-state self 'eof) b)
-	    (loop (get-u8 srcport #t)))))
+	    (loop (get-u8 srcport)))))
 
     (define (read! bv start count)
       (let loop ((ind start))
@@ -421,9 +421,7 @@
 
     (define (close)
       (close-input-port srcport))
-    (transcoded-port
-     (make-custom-binary-input-port "mime-port" read! #f #f close)
-     (make-transcoder (utf-8-codec))))
+    (make-custom-binary-input-port "mime-port" read! #f #f close))
 
   ;; basic streaming parser
   (define-class <mime-part> ()
@@ -511,7 +509,7 @@
 	     packet)
 	    (else ;; parser returned without reading entire part.
 	     ;; discard the rest of the part.
-	     (get-string-all port)
+	     (get-bytevector-all port)
 	     packet))))))
 
   (define (message-parse port packet handler)
@@ -522,23 +520,23 @@
       packet))
 
   ;; body readers
-  ;; inp must not be string port.
+  ;; inp must be binary port.
   ;; outp must be binary output port.
   (define (mime-retrieve-body packet inp outp)
     (define (read-line/nl)
-      (let loop ((c (get-char inp))
+      (define (list->string u8s)
+	(utf8->string (u8-list->bytevector u8s)))
+      (let loop ((c (get-u8 inp))
 		 (chars '()))
 	(cond ((eof-object? c)
 	       (if (null? chars) c (list->string (reverse! chars))))
-	      ((char=? c #\newline) (list->string (reverse! (cons c chars))))
-	      ((char=? c #\return)
-	       (let1 c (lookahead-char inp)
-		 (if (char=? c #\newline)
-		     (list->string (reverse! (cons* (get-char inp)
-						    #\return
-						    chars)))
+	      ((= c #x0a) (list->string (reverse! (cons c chars))))
+	      ((= c #x0d)
+	       (let1 c (lookahead-u8 inp)
+		 (if (eqv? c #x0a)
+		     (list->string (reverse! (cons* (get-u8 inp) #x0d chars)))
 		     (list->string (reverse! cons #\return chars)))))
-	      (else (loop (get-char inp) (cons c chars))))))
+	      (else (loop (get-u8 inp) (cons c chars))))))
 
     (define (read-text decoder)
       (let loop ((line (read-line/nl)))
