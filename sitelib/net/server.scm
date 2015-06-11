@@ -106,7 +106,6 @@
 		 (thread-pool (make-thread-pool num-threads))
 		 (socket-pool (make-vector num-threads))
 		 (mutexes (make-vector num-threads))
-		 (cvs (make-vector num-threads))
 		 ;; silly
 		 (servers (make-vector num-threads))
 		 (thread-ids (make-vector num-threads)))
@@ -114,10 +113,8 @@
 	    (do ((i 0 (+ i 1)))
 		((= i num-threads))
 	      (vector-set! socket-pool i '())
-	      (let ((mutex (make-mutex))
-		    (cv (make-condition-variable)))
+	      (let ((mutex (make-mutex)))
 		(vector-set! mutexes i mutex)
-		(vector-set! cvs i cv)
 		;; keep id
 		(vector-set! 
 		 thread-ids i
@@ -125,9 +122,6 @@
 		  thread-pool
 		  (lambda ()
 		    (let loop ()
-		      ;; wait until pool is not null
-		      (when (null? (vector-ref socket-pool i))
-			(mutex-unlock! mutex cv))
 		      (let ((sockets 
 			     (apply socket-read-select #f
 				    (vector-ref socket-pool i)))
@@ -135,9 +129,11 @@
 			(for-each 
 			 (lambda (socket) 
 			   (guard (e ((~ config 'exception-handler)
+				      ;; let them handle it
 				      ((~ config 'exception-handler)
-				       server socket e)
-				      (socket-close socket))
+				       server socket e))
+				     ;; if exception-handler is not there
+				     ;; close the socket.
 				     (else (socket-close socket)))
 			     (handler server socket)))
 			 sockets)
@@ -177,7 +173,7 @@
 		(vector-set! socket-pool index (cons socket sockets))
 		(vector-set! servers index server) ;; it's always the same!
 		;; notify it
-		(condition-variable-broadcast! (vector-ref cvs index))
+		;; (condition-variable-broadcast! (vector-ref cvs index))
 		(thread-interrupt!
 		 (thread-pool-thread thread-pool 
 				     (vector-ref thread-ids index)))

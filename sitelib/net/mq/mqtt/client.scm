@@ -59,6 +59,7 @@
 	    (sagittarius socket)
 	    (sagittarius control)
 	    (sagittarius object)
+	    (sagittarius process)
 	    (net mq mqtt packet)
 	    (net mq mqtt topic)
 	    (binary io)
@@ -90,8 +91,9 @@
   (define-constant +mqtt-3.1.1+ '(4 "MQTT"   10))
 
   (define (generate-client-id)
-    (string-append "Sagittarius-MQTT" 
-		   (number->string (time-second (current-time)) 32)))
+    (string-append "Sagittarius-MQTT-" 
+		   (number->string (getpid) 32)
+		   (number->string (time-nanosecond (current-time)) 32)))
   (define (port->mqtt-connection in/out 
 				 :key (client-id #f)
 				      (username #f)
