@@ -116,16 +116,16 @@
 	      (let ((mutex (make-mutex)))
 		(vector-set! mutexes i mutex)
 		;; keep id
-		(vector-set! 
-		 thread-ids i
-		 (thread-pool-push-task!
-		  thread-pool
+		(vector-set! thread-ids i
+		 (thread-pool-push-task! thread-pool
 		  (lambda ()
 		    (let loop ()
 		      (let ((sockets 
 			     (apply socket-read-select #f
 				    (vector-ref socket-pool i)))
 			    (server (vector-ref servers i)))
+			;; we don't want to get thread-interrupt! here
+			(mutex-lock! mutex)
 			(for-each 
 			 (lambda (socket) 
 			   (guard (e ((~ config 'exception-handler)
@@ -146,14 +146,13 @@
 						  (not (socket-closed? s)))
 						(vector-ref socket-pool i)))))
 			  (unless (null? closed)
-			    (mutex-lock! mutex)
 			    (vector-set! socket-pool i
 					 (lset-intersection eq?
 					   (lset-difference eq? 
 					    (vector-ref socket-pool i)
 					    closed)
-					   inactive))
-			    (mutex-unlock! mutex))
+					   inactive)))
+			  (mutex-unlock! mutex)
 			  (loop)))))))))
 	    ;; non blocking requires special coding rule.
 	    ;;  1. handler must always return even the socket is still
