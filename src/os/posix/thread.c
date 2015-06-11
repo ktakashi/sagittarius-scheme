@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <string.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
@@ -155,6 +156,29 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 void Sg_TerminateThread(SgInternalThread *thread)
 {
   pthread_cancel(thread->thread);
+}
+
+int  Sg_InterruptThread(SgInternalThread *thread)
+{
+  return pthread_kill(thread->thread, SIGALRM) == 0;
+}
+
+static void ignore_handler(int signum)
+{
+  /* do nothing */
+  /* TODO: should we put interrupted flag? */
+}
+
+/* called from Sg__InitSystem */
+void Sg__InitThread()
+{
+  struct sigaction        actions;
+  /* we use SIGALRM to cancel select */
+  memset(&actions, 0, sizeof(actions));
+  sigemptyset(&actions.sa_mask);
+  actions.sa_flags = SA_RESTART;
+  actions.sa_handler = ignore_handler;
+  sigaction(SIGALRM, &actions, NULL);
 }
 
 /*

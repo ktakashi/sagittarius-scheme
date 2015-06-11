@@ -749,6 +749,8 @@ int Sg_CPUCount()
   return cpu_count;
 }
 
+extern void Sg__InitThread();
+
 void Sg__InitSystem()
 {
   /* NB: we can also use HW_AVAILCPU/HW_NCPU on *BSD (including OS X)
@@ -772,4 +774,5 @@ void Sg__InitSystem()
 
   Sg_InitMutex(&pid_list.mutex, TRUE);
   Sg_AddCleanupHandler(finish_child_process, NULL);
+  Sg__InitThread();
 }

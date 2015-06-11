@@ -192,6 +192,9 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 {
   int last_waiter, bad_mutex = FALSE;
   DWORD msecs, r0, r1;
+  HANDLE hEvents[2];
+  /* for thread-interrupt!, we need current thread's event */
+  SgVM *vm = Sg_VM();
   if (pts) {
     unsigned long now_sec, target_sec;
     unsigned long target_usec, now_usec;
@@ -226,7 +229,16 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
 		" mutex %p"), cond, mutex);
   }
 
-  r0 = SignalObjectAndWait(mutex->mutex, cond->semaphore, msecs, FALSE);
+  /* Caveat!
+     on POSIX, pthread_cond_wait/pthread_cond_timedwait can't be
+     interrupted by signal. thus there is no EINTR 
+     see: http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_cond_timedwait.html
+     should only Windows be able to be interruptted?
+   */
+  hEvents[0] = cond->semaphore;
+  hEvents[1] = (&vm->thread)->event;
+  SetEvent(mutex->mutex);
+  r0 = WaitForMultipleObjects(2, hEvents, FALSE, msecs);
   /* always unlock it */
   EnterCriticalSection(&cond->waiters_count_lock);
   cond->waiters_count--;
@@ -238,7 +250,7 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
     r1 = WaitForSingleObject(mutex->mutex, INFINITE);
   }
   if (r0 == WAIT_TIMEOUT) return SG_INTERNAL_COND_TIMEDOUT;
-  if (r0 != WAIT_OBJECT_0 || r1 != WAIT_OBJECT_0) return -1;
+  if (r0 != WAIT_OBJECT_0 || r1 != WAIT_OBJECT_0) return SG_INTERNAL_COND_INTR;
   return 0;
 }
 
@@ -319,6 +331,11 @@ void Sg_TerminateThread(SgInternalThread *thread)
   }
   thread->returnValue = SG_UNDEF;
   
+}
+
+int Sg_InterruptThread(SgInternalThread *thread)
+{
+  return SetEvent(thread->event);
 }
 
 /*

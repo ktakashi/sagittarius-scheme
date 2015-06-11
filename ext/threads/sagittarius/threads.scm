@@ -42,6 +42,7 @@
 	    thread-start! thread-join! thread-yield! thread-sleep!
 	    thread-stop! thread-cont!
 	    thread-terminate!
+	    thread-interrupt!
 
 	    ;; mutex
 	    mutex? make-mutex
@@ -61,6 +62,7 @@
 	    ;; exceptions
 	    join-timeout-exception? abandoned-mutex-exception?
 	    terminated-thread-exception? uncaught-exception?
+	    thread-interrupt-exception? ;; extra
 	    thead-exception-thread
 	    abandoned-mutex-exception-mutex
 	    terminated-thread-exception-terminator

@@ -156,7 +156,11 @@ SgObject Sg_MutexLock(SgMutex *mutex, SgObject timeout, SgVM *owner)
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
 
   /* intr? */
-  /* if (intr) ...  */
+  if (intr) {
+    SgObject e = Sg_MakeThreadInterruptException(owner);
+    Sg_Raise(e, FALSE);
+    r = FALSE;
+  }
   if (abandoned) {
     SgObject exc = Sg_MakeAbandonedMutexException(abandoned, mutex);
     r = Sg_Raise(exc, FALSE);
@@ -170,6 +174,7 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv,
   SgObject r = SG_TRUE;
   struct timespec ts, *pts;
   int intr = FALSE;
+  SgVM *vm = mutex->owner;	/* original owner */
 
   pts = Sg_GetTimeSpec(timeout, &ts);
 
@@ -192,7 +197,11 @@ SgObject Sg_MutexUnlock(SgMutex *mutex, SgConditionVariable *cv,
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
 
   /* intr? */
-  /* if (intr) ... */
+  if (intr) {
+    SgObject e = Sg_MakeThreadInterruptException((vm) ? vm : SG_FALSE);
+    Sg_Raise(e, FALSE);
+    r = FALSE;
+  }
   return r;
 }
 
@@ -310,6 +319,11 @@ SG_DEFINE_BASE_CLASS(Sg_UncaughtExceptionClass,
 		     exc_printer, NULL, NULL, uncaught_allocate,
 		     thread_exc_cpl);
 
+SG_DEFINE_BASE_CLASS(Sg_ThreadInterruptExceptionClass, SgThreadException,
+		     exc_printer, NULL, NULL, parent_allocate,
+		     thread_exc_cpl);
+
+
 SgObject Sg_MakeJoinTimeoutException(SgVM *vm)
 {
   SgObject c = parent_allocate(SG_CLASS_JOIN_TIMEOUT_EXCEPTION, SG_NIL);
@@ -341,6 +355,13 @@ SgObject Sg_MakeUncaughtException(SgVM *vm, SgObject reason)
   return c;
 }
 
+SgObject Sg_MakeThreadInterruptException(SgVM *vm)
+{
+  SgObject c = parent_allocate(SG_CLASS_THREAD_INTERRUPT_EXCEPTION, SG_NIL);
+  SG_THREAD_EXCEPTION(c)->thread = vm;
+  return c;
+}
+
 SG_CDECL_BEGIN
 void Sg__InitMutex(SgLibrary *lib)
 {
@@ -354,6 +375,8 @@ void Sg__InitMutex(SgLibrary *lib)
 		    "&terminated-thread-exception", term_slots);
   SG_INIT_CONDITION(SG_CLASS_UNCAUGHT_EXCEPTION, lib, 
 		    "&uncaught-exception", uncaught_slots);
+  SG_INIT_CONDITION(SG_CLASS_THREAD_INTERRUPT_EXCEPTION, lib, 
+		    "&thread-interrupt-exception", NULL);
   /* super class thread-exception */
 #define INIT_CTR_PRED(cl, name, n, pred)	\
   SG_INIT_CONDITION_PRED(cl, lib, pred);	\
@@ -384,6 +407,11 @@ void Sg__InitMutex(SgLibrary *lib)
   INIT_CTR_PRED(SG_CLASS_UNCAUGHT_EXCEPTION,
 		"make-uncaught-exception", 2, "uncaught-exception?");
   INIT_ACC(uncaught_reason, "&uncaught-exception-reason");
+
+  /* &thread-interrupt-exception */
+  INIT_CTR_PRED(SG_CLASS_JOIN_TIMEOUT_EXCEPTION, 
+		"make-thread-interrupt-exception", 1, 
+		"thread-interrupt-exception?");
 
   sym_not_owned      = SG_INTERN("not-owned");
   sym_abandoned      = SG_INTERN("abandoned");

@@ -50,7 +50,8 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (rename (srfi :1) (alist-cons acons))
-	    (srfi :18)
+	    ;; (srfi :18)
+	    (sagittarius threads) ;; need thread-interrupt!
 	    (srfi :26)
 	    (rfc tls))
 
@@ -177,7 +178,9 @@
 		(vector-set! servers index server) ;; it's always the same!
 		;; notify it
 		(condition-variable-broadcast! (vector-ref cvs index))
-		(for-each socket-interrupt! sockets)
+		(thread-interrupt!
+		 (thread-pool-thread thread-pool 
+				     (vector-ref thread-ids index)))
 		(mutex-unlock! (vector-ref mutexes index)))))
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)

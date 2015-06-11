@@ -184,7 +184,6 @@ SG_EXTERN SgObject  Sg_SocketErrorMessage(SgSocket *socket);
 
 SG_EXTERN int       Sg_SocketNonblocking(SgSocket *socket);
 SG_EXTERN int       Sg_SocketBlocking(SgSocket *socket);
-SG_EXTERN int       Sg_SocketInterrupt(SgSocket *socket);
 
 SG_EXTERN SgObject  Sg_MakeSocketPort(SgSocket *socket, int close);
 SG_EXTERN SgObject  Sg_MakeSocketInputPort(SgSocket *socket);

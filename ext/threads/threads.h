@@ -71,12 +71,14 @@ SG_CLASS_DECL(Sg_JoinTimeoutExceptionClass);
 SG_CLASS_DECL(Sg_AbondanedMutexExceptionClass);
 SG_CLASS_DECL(Sg_TerminatedThreadExceptionClass);
 SG_CLASS_DECL(Sg_UncaughtExceptionClass);
+SG_CLASS_DECL(Sg_ThreadInterruptExceptionClass);
 
 #define SG_CLASS_THREAD_EXCEPTION            (&Sg_ThreadExceptionClass)
 #define SG_CLASS_JOIN_TIMEOUT_EXCEPTION      (&Sg_JoinTimeoutExceptionClass)
 #define SG_CLASS_ABONDANED_MUTEX_EXCEPTION   (&Sg_AbondanedMutexExceptionClass)
 #define SG_CLASS_TERMINATED_THREAD_EXCEPTION (&Sg_TerminatedThreadExceptionClass)
 #define SG_CLASS_UNCAUGHT_EXCEPTION          (&Sg_UncaughtExceptionClass)
+#define SG_CLASS_THREAD_INTERRUPT_EXCEPTION  (&Sg_ThreadInterruptExceptionClass)
 
 typedef struct SgThreadExceptionRec
 {
@@ -141,6 +143,7 @@ SgObject Sg_MakeJoinTimeoutException(SgVM *vm);
 SgObject Sg_MakeAbandonedMutexException(SgVM *vm, SgMutex *mutex);
 SgObject Sg_MakeTerminatedThreadException(SgVM *vm, SgVM *terminator);
 SgObject Sg_MakeUncaughtException(SgVM *vm, SgObject reason);
+SgObject Sg_MakeThreadInterruptException(SgVM *vm);
 
 SG_CDECL_END
 #endif /* ! SAGITTARIUS_THREADS_H_ */

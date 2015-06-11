@@ -163,8 +163,12 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
     vm->resultException = SG_FALSE;
   }
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
-  /* intr? */
-  /* if (intr) ... ? */
+
+  if (intr) {
+    /* TODO should this be continuable? */
+    SgObject e = Sg_MakeThreadInterruptException(vm);
+    result = Sg_Raise(e, FALSE);
+  }
   if (tout) {
     if (SG_UNBOUNDP(timeoutval)) {
       SgObject e = Sg_MakeJoinTimeoutException(vm);
@@ -264,6 +268,11 @@ SgObject Sg_ThreadSleep(SgObject timeout)
   Sg_LockMutex(&dummym);
   /* sleep should sleep second not milli second */
   intr = Sg_WaitWithTimeout(&dummyc, &dummym, pts);
+  if (intr == SG_INTERNAL_COND_INTR) {
+    /* TODO should this be continuable? */
+    SgObject e = Sg_MakeThreadInterruptException(Sg_VM());
+    Sg_Raise(e, TRUE);
+  }
   Sg_UnlockMutex(&dummym);
   Sg_DestroyMutex(&dummym);
   Sg_DestroyCond(&dummyc);
@@ -317,6 +326,22 @@ SgObject Sg_ThreadTerminate(SgVM *target)
   Sg_UnlockMutex(&target->vmlock);
 
   return SG_UNDEF;
+}
+
+SgObject Sg_ThreadInterrupt(SgVM *target)
+{
+  SgVM *vm = Sg_VM();
+  if (target == vm) {
+    Sg_AssertionViolation(SG_INTERN("thread-interrupt!"),
+			  SG_MAKE_STRING("attempt to interrupt own"),
+			  SG_LIST1(target));
+  }
+  if (target->threadState != SG_VM_RUNNABLE) {
+    Sg_AssertionViolation(SG_INTERN("thread-interrupt!"),
+			  SG_MAKE_STRING("thread is not running"),
+			  SG_LIST1(target));
+  }
+  return SG_MAKE_BOOL(Sg_InterruptThread(&target->thread));
 }
 
 #if !defined HAVE_NANOSLEEP || defined(_WIN32)

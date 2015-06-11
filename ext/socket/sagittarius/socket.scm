@@ -61,7 +61,6 @@
 	    socket-error-select
 	    socket-nonblocking!
 	    socket-blocking!
-	    socket-interrupt!
 	    ;; addrinfo
 	    make-addrinfo
 

@@ -143,8 +143,6 @@
 (define-c-proc socket-blocking! (o::<socket>) ::<boolean>
   Sg_SocketBlocking)
 
-(define-c-proc socket-interrupt! (o::<socket>) ::<boolean> Sg_SocketInterrupt)
-
 (define-c-proc make-fdset () :no-side-effect Sg_MakeFdSet)
 (define-c-proc fdset? (o) ::<boolean> :constant SG_FDSETP)
 (define-c-proc sockets->fdset (sockets) :no-side-effect Sg_SocketsToFdSet)

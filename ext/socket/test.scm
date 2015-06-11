@@ -201,17 +201,17 @@
 		(get-bytevector-n in 10))
     (socket-close server)))
 
-;; socket-interrupt!
+;; thread-interrupt!
 ;; cancelling blocking socket operation in other threads
 (let ()
   (define server (make-server-socket "5001"))
   (define t (make-thread
 	      (lambda ()
 		(socket-read-select #f server))))
-  (test-assert "not blocked" (not (socket-interrupt! server)))
+  (test-error "not blocked" condition? (thread-interrupt! t))
   (thread-start! t)
   (thread-sleep! 1) ;; wait a bit
-  (test-assert "socket-interrupt!" (socket-interrupt! server))
+  (test-assert "thread-interrupt!" (thread-interrupt! t))
   (test-equal "result" '() (thread-join! t))
   (socket-close server))
 
