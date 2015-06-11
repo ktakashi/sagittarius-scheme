@@ -13,6 +13,7 @@ this library provides.
 (define (handler server socket)
   ;; echo message is limited to 255 bytes in this example
   (let ((r (socket-recv socket 255)))
+    ;; socket will be closed by the framework
     (socket-send socket r)))
 
 (define server (make-simple-server handler))
@@ -32,6 +33,7 @@ how to make multi threading server.
 
 (define (handler server socket)
   (let ((r (socket-recv socket 255)))
+    ;; socket will be closed by the framework
     (socket-send socket r)))
 
 (define server (make-simple-server handler :config server-config))
@@ -41,6 +43,32 @@ how to make multi threading server.
 If the server gets more than 5 connection simultaneously, then it tries to
 wait until one of the connection's task finishes. If it doesn't finish in
 time, then connection will be refused.
+
+If clients keep the connection but server wants to handle requests more than
+configured thread number, then specify @var{non-blocking?} keyword argument
+with #t.
+@codeblock{
+(import (net server) (sagittarius socket))
+
+;; specifies maximum thread number
+(define server-config (make-server-config :max-thread 5 :non-blocking? #t))
+
+(define (handler server socket)
+  (let ((r (socket-recv socket 255)))
+    (if (eof-object? r)
+        ;; close the socket after the process
+        (socket-close socket)
+        (socket-send socket r))))
+
+(define server (make-simple-server handler :config server-config))
+
+(server-start! server)
+}
+Above server example creates 5 threads and accept all requests. The requests
+are dispatched to the least busy thread. There are couple of restrictions
+to use this server. See the descirption of @var{non-blocking?} keyword
+argument.
+
 
 @subsubsection{Server}
 
@@ -165,6 +193,26 @@ Following is the description of keyword arguments.
     how many times server waits.
 
     Default value is 10.
+  }
+  @dl-item[@var{non-blocking?}]{
+    Creating non blocking server.
+
+    If the server is non blocking server, then the server @var{handler}
+    must follow the following rules:
+
+    @itemlist{
+      @item{the @var{handler} process must not block/stop even if the
+            given socket is active.}
+      @item{the @var{handler} process must close the socket when it's
+            not needed.}
+    }
+    
+    When handler raises an error and @var{exception-handler} is specified,
+    then the given socket won't be closed. So @var{exception-handler} needs
+    to decide whether the exception is continuable or not. Otherwise, server
+    closes the socket.
+
+    Specifying this keyword argument makes server ignore @var{max-retry}.
   }
   @dl-item[@var{use-ipv6?}]{
     Specifying whether or not the server uses IPv6.
