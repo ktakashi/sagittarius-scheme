@@ -333,7 +333,7 @@
 	    (and-let* (( cur )
 		       ( (not (eq? cur root)) )
 		       (child (~ cur 'child)))
-	      (loop child cur)))))
+	      (do-nodes child cur)))))
     
     ;; start with min so it must not have parent.
     (finish (do-nodes (~ heap 'min) #f)))
