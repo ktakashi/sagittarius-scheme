@@ -453,6 +453,11 @@
   else   ; IForm for else expression
 )
 
+(define-syntax $if?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $IF))))
+
 ;; $let <src> <type> <lvars> <inits> <body>
 ;; Binding construct. let, letrec, letrec* and inlined closure is represented
 ;; by this node (let* is expanded to nested $let in pass 1)
@@ -464,6 +469,11 @@
   inits  ; list of IForms to initialize lvars
   body   ; IForm for the body
 )
+
+(define-syntax $let?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $LET))))
 
 ;; $lambda <src> <name> <args> <option> <lvars> <body> [<flags>]
 ;; Closure.
@@ -499,6 +509,11 @@
   expr   ; IForm for the expr to yield multiple values
   body   ; IForm for the body
 )
+
+(define-syntax $receive?
+  (syntax-rules ()
+    ((_ iform)
+     (has-tag? iform $RECEIVE))))
 
 ;; $label <src> <label> <body>
 (define-simple-struct $label $LABEL $label
@@ -3651,6 +3666,60 @@
 	     (loop (cdr lvars) (cdr inits)
 		   (cons (car lvars) new-lvars)
 		   (cons (pass2/rec (car inits) penv #f) new-inits))))))
+
+  (define (find-lvar iform lvars)
+    (let loop ((iform iform))
+      (cond (($lref? iform)
+	     (and-let* ((lvar ($lref-lvar iform))
+			( (memq lvar lvars) ))
+	       lvar))
+	    (($if? iform)
+	     (or (loop ($if-test iform))
+		 (loop ($if-then iform))
+		 (loop ($if-else iform))))
+	    (($let? iform)
+	     (or (exists loop ($let-inits iform))
+		 (loop ($let-body iform))))
+	    (($receive? iform)
+	     (or (loop ($receive-expr iform))
+		 (loop ($receive-body iform))))
+	    (($seq? iform) (exists loop ($seq-body iform)))
+	    (($call? iform)
+	     (or (exists loop ($call-args iform))
+		 (and ($lambda? ($call-proc iform))
+		      (loop ($lambda-body ($call-proc iform))))))
+	    (($asm? iform) (exists loop ($asm-args iform)))
+	    (($list? iform) (exists loop ($list-args iform)))
+	    (else #f))))
+  ;; to avoid unwanted behaviour, we check uninitialised variable here
+  ;; what we need to do is that check init with following ruls:
+  ;;  1. if it's lvar, then go to #2, otherwise next
+  ;;  2. this lvar is appeared before
+  ;;    2.1 if it's rec*, ok go to next
+  ;;    2.2 else error.
+  ;;  3. not appeared, error
+  (and-let* ((type (memv ($let-type iform) '(rec rec*))))
+    (let ((allow? (eq? (car type) 'rec*))
+	  (all-vars ($let-lvars iform)))
+      (let loop ((lvars all-vars) 
+		 (inits ($let-inits iform))
+		 (seen '()))
+	(unless (null? lvars)
+	  (let ((init (car inits)))
+	    (cond ((find-lvar init all-vars) =>
+		   (lambda (lvar)
+		     (if (and allow? (memq lvar seen))
+			 (loop (cdr lvars) (cdr inits) (cons (car lvars) seen))
+			 (syntax-error 
+			  "attempt to reference uninitialised variable"
+			  ;; kinda silly but
+			  ;; internally car part is the form of &syntax
+			  ;; cdr part is the subform. so like this
+			  ;; should print better error
+			  ($let-src iform)
+			  (unwrap-syntax (lvar-name lvar))))))
+		  (else
+		   (loop (cdr lvars) (cdr inits) (cons (car lvars) seen)))))))))
   (receive (lvars inits) (process-inits ($let-lvars iform) ($let-inits iform))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
     (let ((obody (pass2/rec ($let-body iform) penv tail?)))
