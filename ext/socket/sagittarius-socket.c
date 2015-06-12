@@ -877,23 +877,19 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   /* TODO wrap this with macro */
 #ifdef _WIN32
 
-# define SET_EVENT(fdset, flags, revertp)		\
-  do {							\
-    if (fdset) {					\
-      SgObject sockets = (fdset)->sockets;		\
-      SG_FOR_EACH(sockets, sockets) {			\
-	SgSocket *sock = SG_SOCKET(SG_CAR(sockets));	\
-	ULONG val = (revertp) ? sock->nonblocking : 1;	\
-	SOCKET s = sock->socket;			\
-	WSAEventSelect(s, hEvents[0], flags);		\
-	ioctlsocket(s, FIONBIO, &val);			\
-      }							\
-    }							\
+# define SET_EVENT(fdset, flags)					\
+  do {									\
+    if (fdset) {							\
+      SgObject sockets = (fdset)->sockets;				\
+      SG_FOR_EACH(sockets, sockets) {					\
+	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvents[0], flags);	\
+      }									\
+    }									\
   }while (0)
 
-  SET_EVENT(rfds, FD_READ | FD_OOB, FALSE);
-  SET_EVENT(wfds, FD_WRITE, FALSE);
-  SET_EVENT(efds, FD_READ | FD_OOB, FALSE);
+  SET_EVENT(rfds, FD_READ | FD_OOB);
+  SET_EVENT(wfds, FD_WRITE);
+  SET_EVENT(efds, FD_READ | FD_OOB);
 
   int r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
   if (r == WAIT_OBJECT_0) {
@@ -904,11 +900,12 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		    select_timeval(timeout, &tv));
   } else {
     ResetEvent(hEvents[1]);
+    SetLastError(EINTR);
     numfds = -1;
   }
-  SET_EVENT(rfds, 0, TRUE);
-  SET_EVENT(wfds, 0, TRUE);
-  SET_EVENT(efds, 0, TRUE);
+  SET_EVENT(rfds, 0);
+  SET_EVENT(wfds, 0);
+  SET_EVENT(efds, 0);
   CloseHandle(hEvents[0]);
 #else
   numfds = select(max + 1, 

@@ -152,6 +152,43 @@ SG_CLASS_DECL(Sg_FdSetClass);
 #define SG_FDSET(obj)  ((SgFdSet*)obj)
 #define SG_FDSETP(obj) SG_XTYPEP(obj, SG_CLASS_FD_SET)
 
+#ifdef _WIN32
+/* for abortable socket */
+# define SG_SET_SOCKET_EVENT(sock, hEvent, flags)		\
+  do {								\
+    ULONG val = !(flags) ? SG_SOCKET(sock)->nonblocking: 1;	\
+    SOCKET s = SG_SOCKET(sock)->socket;				\
+    WSAEventSelect(s, (hEvent), flags);				\
+    ioctlsocket(s, FIONBIO, &val);				\
+  } while (0)
+#define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation)	\
+  do {								\
+    if (SG_SOCKET(socket)->nonblocking) {			\
+      (ret) = operation;					\
+    } else {							\
+      HANDLE hEvents_[2];					\
+      SgVM *vm = Sg_VM();					\
+      int r;							\
+      hEvents_[0] = CreateEvent(NULL, FALSE, FALSE, NULL);	\
+      hEvents_[1] = (&vm->thread)->event;			\
+      SG_SET_SOCKET_EVENT(socket, hEvents_[0], flags);		\
+      r = WaitForMultipleObjects(2, hEvents_, FALSE, INFINITE);	\
+      if (r == WAIT_OBJECT_0) {					\
+	(ret) = operation;					\
+      } else {							\
+	ret = -1;						\
+	SetLastError(WSAEINTR);					\
+      }								\
+      SG_SET_SOCKET_EVENT(socket, hEvents_[0], 0);		\
+      CloseHandle(hEvents_[0]);					\
+    }								\
+  } while (0)
+#else
+#define SG_SET_SOCKET_EVENT(sock, hEvent, flags, revertp) /* dummy */
+#define SG_ABORTABLE_SOCKET_OP(ret, socket, flags, operation) \
+  (ret) = operation;
+#endif
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
