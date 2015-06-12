@@ -74,6 +74,9 @@ typedef struct SgSocketRec
   SgSocketType type;
   SgString *address;		/* for print */
   SgVM   *thread;		/* for pthread_kill */
+#ifdef _WIN32
+  int nonblocking;		/* blocking or not */
+#endif
 } SgSocket;
 
 SG_CLASS_DECL(Sg_SocketClass);

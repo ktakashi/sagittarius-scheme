@@ -541,13 +541,14 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 			 /* we don't want SIGPIPE */
 			 flags | MSG_NOSIGNAL);
     if (ret == -1) {
-      if (errno == EINTR) {
+      socket->lastError = last_error;
+      if (last_error == EINTR) {
 	continue;
-      } else if (errno == EPIPE) {
+      } else if (last_error == EPIPE) {
 	if (flags & MSG_NOSIGNAL) {
 	  return 0;
 	}
-      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	return ret;
       }
@@ -571,15 +572,15 @@ int Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data, int size, int flags,
 			     flags | MSG_NOSIGNAL, addr->addr,
 			     (socklen_t *)&addr->addr_size);
     if (ret == -1) {
-      if (errno == EINTR) {
+      if (last_error == EINTR) {
 	continue;
-      } else if (errno == EPIPE) {
+      } else if (last_error == EPIPE) {
 	if (flags & MSG_NOSIGNAL) {
 	  return 0;
 	} else {
 	  goto err;
 	}
-      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	return ret;
       } else {
@@ -605,15 +606,15 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
 			 /* we don't want SIGPIPE */
 			 flags | MSG_NOSIGNAL);
     if (ret == -1) {
-      if (errno == EINTR) {
+      if (last_error == EINTR) {
 	continue;
-      } else if (errno == EPIPE) {
+      } else if (last_error == EPIPE) {
 	if (flags & MSG_NOSIGNAL) {
 	  return 0;
 	} else {
 	  goto err;
 	}	
-      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	continue;
       } else {
@@ -645,15 +646,15 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
 			   flags | MSG_NOSIGNAL, addr->addr, 
 			   (int)addr->addr_size);
     if (ret == -1) {
-      if (errno == EINTR) {
+      if (last_error == EINTR) {
 	continue;
-      } else if (errno == EPIPE) {
+      } else if (last_error == EPIPE) {
 	if (flags & MSG_NOSIGNAL) {
 	  return 0;
 	} else {
 	  goto err;
 	}	
-      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      } else if (last_error == EAGAIN || last_error == EWOULDBLOCK) {
 	/* most probably non-blocking socket */
 	continue;
       } else {
@@ -684,10 +685,10 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
     fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
     if (-1 == fd) {
       /* For some reason, accept may fail on Solaris without
-	 errno set. I'm not sure what this exactly means but
+	 last_error set. I'm not sure what this exactly means but
 	 seems we can retry.
        */
-      if (!errno || errno == EINTR) {
+      if (!last_error || last_error == EINTR) {
 	continue;
       } else {
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
@@ -876,35 +877,38 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   /* TODO wrap this with macro */
 #ifdef _WIN32
 
-# define SET_EVENT(fdset, flags)			\
+# define SET_EVENT(fdset, flags, revertp)		\
   do {							\
     if (fdset) {					\
       SgObject sockets = (fdset)->sockets;		\
       SG_FOR_EACH(sockets, sockets) {			\
-	SOCKET s = SG_SOCKET(SG_CAR(sockets))->socket;	\
+	SgSocket *sock = SG_SOCKET(SG_CAR(sockets));	\
+	ULONG val = (revertp) ? sock->nonblocking : 1;	\
+	SOCKET s = sock->socket;			\
 	WSAEventSelect(s, hEvents[0], flags);		\
+	ioctlsocket(s, FIONBIO, &val);			\
       }							\
     }							\
   }while (0)
 
-  SET_EVENT(rfds, FD_READ | FD_OOB);
-  SET_EVENT(wfds, FD_WRITE);
-  SET_EVENT(efds, FD_READ | FD_OOB);
+  SET_EVENT(rfds, FD_READ | FD_OOB, FALSE);
+  SET_EVENT(wfds, FD_WRITE, FALSE);
+  SET_EVENT(efds, FD_READ | FD_OOB, FALSE);
 
   int r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, 
-		  (rfds ? &rfds->fdset : NULL), 
-		  (wfds ? &wfds->fdset : NULL), 
-		  (efds ? &efds->fdset : NULL), 
-		  select_timeval(timeout, &tv));
+		    (rfds ? &rfds->fdset : NULL), 
+		    (wfds ? &wfds->fdset : NULL), 
+		    (efds ? &efds->fdset : NULL), 
+		    select_timeval(timeout, &tv));
   } else {
     ResetEvent(hEvents[1]);
     numfds = -1;
   }
-  SET_EVENT(rfds, 0);
-  SET_EVENT(wfds, 0);
-  SET_EVENT(efds, 0);
+  SET_EVENT(rfds, 0, TRUE);
+  SET_EVENT(wfds, 0, TRUE);
+  SET_EVENT(efds, 0, TRUE);
   CloseHandle(hEvents[0]);
 #else
   numfds = select(max + 1, 
@@ -914,10 +918,34 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		  select_timeval(timeout, &tv));
 #endif
 
+#define REMOVE_SOCKET(fdset_)					\
+  do {								\
+    if (fdset_) {						\
+      SgObject sockets, prev = SG_FALSE;			\
+      for (sockets = (fdset_)->sockets;				\
+	   !SG_NULLP(sockets);					\
+	   prev = sockets, sockets = SG_CDR(sockets)) {		\
+	SgSocket *socket = SG_SOCKET(SG_CAR(sockets));		\
+	if (!FD_ISSET(socket->socket, &(fdset_)->fdset)) {	\
+	  if (SG_FALSEP(prev)) {				\
+	    (fdset_)->sockets = SG_CDR(sockets);		\
+	  } else {						\
+	    SG_SET_CDR(prev, SG_CDR(sockets));			\
+	  }							\
+	}							\
+      }								\
+    }								\
+  } while (0)
+  REMOVE_SOCKET(rfds);
+  REMOVE_SOCKET(wfds);
+  REMOVE_SOCKET(efds);
+
+#undef REMOVE_SOCKET
+
   if (numfds < 0) {
     /* if it's on Windows, then it always interrupted, I guess. */
 #ifndef _WIN32
-    if (errno == EINTR)
+    if (last_error == EINTR)
 #endif
       {
 	return Sg_Values4(SG_FALSE,
@@ -1016,6 +1044,7 @@ int Sg_SocketNonblocking(SgSocket *socket)
   if (ioctlsocket(socket->socket, FIONBIO, &val) != 0) {
     goto err;
   }
+  socket->nonblocking = 1;
 #else
   int flags = fcntl(socket->socket, F_GETFL, 0);
   flags &= ~O_SYNC;
@@ -1038,6 +1067,7 @@ int Sg_SocketBlocking(SgSocket *socket)
   if ((err = ioctlsocket(socket->socket, FIONBIO, &val)) != 0) {
     goto err;
   }
+  socket->nonblocking = 0;
 #else
   int flags = fcntl(socket->socket, F_GETFL, 0);
   flags &= ~O_NONBLOCK;
@@ -1222,7 +1252,7 @@ static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
 {
   int64_t written_size = Sg_SocketSend(SG_PORT_SOCKET(self), v, (int)size, 0);
   if (-1 == written_size) {
-    Sg_IOWriteError(SG_INTERN("read-u8"),
+    Sg_IOWriteError(SG_INTERN("write-u8"),
 		    Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
 		    self,
 		    SG_NIL);

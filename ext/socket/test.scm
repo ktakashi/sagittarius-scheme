@@ -17,9 +17,9 @@
 
 ;; addr is client socket
 (define (server-run)
-  (guard (e (else ;; shouldn't happen but happens so put like this
-	     (print e) (socket-close echo-server-socket)))
-    (let loop ()
+  (let loop ()
+    (guard (e (else ;; shouldn't happen but happens so put like this
+	       (loop)))
       (let ((addr (socket-accept echo-server-socket)))
 	(call-with-socket addr
 	  (lambda (sock)
@@ -120,7 +120,7 @@
 	      (socket-recv client-socket (+ (string-length "hello\r\n") 2) 0))
   (socket-send client-socket (string->utf8 "test-end\r\n") 0)
   (test-assert "socket-close" (socket-close client-socket))
-  (test-assert "socket-closed?" (socket-closed? client-socket))
+  (test-assert "socket-closed? (1)" (socket-closed? client-socket))
   )
 
 
@@ -144,7 +144,7 @@
   (put-bytevector in/out #*"test-end\r\n")
   (close-port in/out)
   ;; socket-port without optional argument closes given socket
-  (test-assert "socket-closed?" (socket-closed? client-socket)))
+  (test-assert "socket-closed? (2)" (socket-closed? client-socket)))
 
 ;; now socket-port creates bidirectional port
 (let ((port (socket-port (make-client-socket "localhost" "5000")))
