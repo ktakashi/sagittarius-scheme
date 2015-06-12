@@ -289,5 +289,246 @@
 	 (get-char in)
 	 (test-equal "read char after error code" #\g (get-char in))))))
 
+;; call #127
+;; in $lref
+(test-error "letrec (1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar bar))
+		       bar))
+		  (environment '(rnrs))))
+;; in $asm
+(test-error "letrec (2)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (cons 'a bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $call
+(test-error "letrec (3)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (for-all (lambda (a) a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $let
+(test-error "letrec (4)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (let ((bar2 bar)) bar2)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec (4.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (let ((bar2 'a)) bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $let ok
+(test-assert "letrec (5)"
+	     (eval '(lambda (bar)
+		      (letrec ((bar (let ((bar 'foo)) bar)))
+			bar))
+		   (environment '(rnrs))))
+
+;; in $receive
+(test-error "letrec (6)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (receive (bar) (values bar) bar)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec (6.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (receive (buz) (values a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $receive ok
+(test-error "letrec (7)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (receive (bar) (values 'a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $seq
+(test-error "letrec (8)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (begin bar #t)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $list
+(test-error "letrec (9)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (list bar #t)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $if
+(test-error "letrec (10)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (if bar #t #f)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec (10.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (if #t bar #f)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec (10.2)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar (if #f #f bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; referred above
+(test-error "letrec (11)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((bar buz)
+			      (buz #t))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec (11.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec ((buz #t)
+			      (bar buz))
+		       bar))
+		  (environment '(rnrs))))
+;; ok
+(test-assert "letrec (12)"
+	     (eval '(lambda (bar)
+		      (letrec ((bar (lambda () bar)))
+			bar))
+		   (environment '(rnrs))))
+
+;; letrec*
+;; in $lref
+(test-error "letrec* (1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar bar))
+		       bar))
+		  (environment '(rnrs))))
+;; in $asm
+(test-error "letrec* (2)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (cons 'a bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $call
+(test-error "letrec* (3)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (for-all (lambda (a) a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $let
+(test-error "letrec* (4)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (let ((bar2 bar)) bar2)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec* (4.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (let ((bar2 'a)) bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $let ok
+(test-assert "letrec* (5)"
+	     (eval '(lambda (bar)
+		      (letrec* ((bar (let ((bar 'foo)) bar)))
+			bar))
+		   (environment '(rnrs))))
+
+;; in $receive
+(test-error "letrec* (6)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (receive (bar) (values bar) bar)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec* (6.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (receive (buz) (values a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $receive ok
+(test-error "letrec* (7)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (receive (bar) (values 'a) bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $seq
+(test-error "letrec* (8)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (begin bar #t)))
+		       bar))
+		  (environment '(rnrs))))
+;; in $list
+(test-error "letrec* (9)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (list bar #t)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; in $if
+(test-error "letrec* (10)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (if bar #t #f)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec* (10.1)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (if #t bar #f)))
+		       bar))
+		  (environment '(rnrs))))
+(test-error "letrec* (10.2)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar (if #f #f bar)))
+		       bar))
+		  (environment '(rnrs))))
+
+;; referred above
+(test-error "letrec* (11)"
+	    syntax-violation?
+	    (eval '(lambda (bar)
+		     (letrec* ((bar buz)
+			      (buz #t))
+		       bar))
+		  (environment '(rnrs))))
+(test-assert "letrec* (11.1)"
+	    (eval '(lambda (bar)
+		     (letrec* ((buz #t)
+			       (bar buz))
+		       bar))
+		  (environment '(rnrs))))
+;; ok
+(test-assert "letrec* (12)"
+	     (eval '(lambda (bar)
+		      (letrec* ((bar (lambda () bar)))
+			bar))
+		   (environment '(rnrs))))
+
 
 (test-end)

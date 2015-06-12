@@ -403,10 +403,21 @@
 	      (else (dequeue-all! q) (loop (newb))))))
 
     (define (skip-epilogue)
-      (let loop ((b (get-u8 srcport)))
+      (define (getu8 p)
+	(if (port-ready? p)
+	    (get-u8 p)
+	    (eof-object)))
+      ;; this is what we need, but kinda inefficient
+      ;; so we read everything until either port is
+      ;; not ready or read EOF object.
+      ;; 
+      ;;(get-bytevector-all srcport)
+      ;;(mime-port-state self 'eof)
+      ;;(eof-object)      
+      (let loop ((b (getu8 srcport)))
 	(if (eof-object? b)
 	    (begin (mime-port-state self 'eof) b)
-	    (loop (get-u8 srcport)))))
+	    (loop (getu8 srcport)))))
 
     (define (read! bv start count)
       (let loop ((ind start))
@@ -419,9 +430,9 @@
 		    (bytevector-u8-set! bv ind b)
 		    (loop (+ ind 1))))))))
 
-    (define (close)
-      (close-input-port srcport))
-    (make-custom-binary-input-port "mime-port" read! #f #f close))
+    (define (close) (close-input-port srcport))
+    (define (ready?) (port-ready? srcport))
+    (make-custom-binary-input-port "mime-port" read! #f #f close ready?))
 
   ;; basic streaming parser
   (define-class <mime-part> ()

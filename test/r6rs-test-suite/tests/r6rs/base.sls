@@ -198,7 +198,11 @@
                 'should-not-get-here)
               &assertion)
 
-    (test (letrec ([x (if (eq? (cons 1 2) (cons 1 2))
+    ;; this is invalid test case. should not be compiled
+    ;; NB: (eq? (cons 1 2) (cons 1 2)) returns always #f so
+    ;;     we can detect such cases and if one of the branch
+    ;;     is never reached then we can optimise it. should we?
+    #;(test (letrec ([x (if (eq? (cons 1 2) (cons 1 2))
                           x
                           1)]) 
             x)
