@@ -861,9 +861,9 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 {
   struct timeval tv;
   int max = 0, numfds;
-  SgVM *vm = Sg_VM();
   
 #ifdef _WIN32
+  SgVM *vm = Sg_VM();
   HANDLE hEvents[2];
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
   /* all the same */
