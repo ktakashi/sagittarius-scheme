@@ -908,6 +908,7 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(efds, 0);
   CloseHandle(hEvents[0]);
 #else
+ retry:
   numfds = select(max + 1, 
 		  (rfds ? &rfds->fdset : NULL), 
 		  (wfds ? &wfds->fdset : NULL), 
@@ -940,16 +941,18 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #undef REMOVE_SOCKET
 
   if (numfds < 0) {
-    /* if it's on Windows, then it always interrupted, I guess. */
-#ifndef _WIN32
-    if (last_error == EINTR)
-#endif
-      {
+    if (last_error == EINTR) {
+      SG_INTERRUPTED_THREAD() {
 	return Sg_Values4(SG_FALSE,
 			  SG_FALSE,
 			  SG_FALSE,
 			  SG_FALSE);
-      }
+      } SG_INTERRUPTED_THREAD_ELSE() {
+#ifndef _WIN32
+	goto retry;
+#endif
+      } SG_INTERRUPTED_THREAD_END();
+    }
     Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
 	       Sg_GetLastErrorMessageWithErrorCode(last_error),
 	       SG_FALSE, SG_NIL);

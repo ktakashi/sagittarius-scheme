@@ -34,6 +34,7 @@
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
+#include <sagittarius/vm.h>
 
 #include "../../gc-incl.inc"
 
@@ -165,8 +166,8 @@ int  Sg_InterruptThread(SgInternalThread *thread)
 
 static void ignore_handler(int signum)
 {
-  /* do nothing */
-  /* TODO: should we put interrupted flag? */
+  SgVM *vm = Sg_VM();
+  (&vm->thread)->interrupted = TRUE;
 }
 
 /* called from Sg__InitSystem */

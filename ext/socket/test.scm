@@ -215,4 +215,24 @@
   (test-equal "result" '() (thread-join! t))
   (socket-close server))
 
+;; signal related
+;; this test case is only relevant on multi core Linux
+(let ()
+  (define server (make-server-socket "5001"))
+  (define interrupted? #f)
+  (define t (thread-start!
+	     (make-thread
+	      (lambda ()
+		(socket-read-select #f server)
+		(set! interrupted? #t)))))
+  (gc) ;; this uses signal on Linux
+  (thread-yield!)
+  (thread-sleep! 1)
+  (test-assert "not interrupted" (not interrupted?))
+  (test-assert "thread-interrupt!" (thread-interrupt! t))
+  (thread-yield!)
+  (thread-sleep! 1)
+  (test-assert "interrupted" interrupted?)
+  (socket-close server))
+
 (test-end)

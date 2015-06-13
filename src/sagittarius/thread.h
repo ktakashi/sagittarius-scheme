@@ -73,6 +73,15 @@ typedef struct SgInternalCondRec SgInternalCond;
 #define SG_INTERNAL_COND_TIMEDOUT 1
 #define SG_INTERNAL_COND_INTR     2
 
+#define SG_INTERRUPTED_THREAD()			\
+  if (TRUE)
+
+#define SG_INTERRUPTED_THREAD_ELSE()		\
+  } else {
+
+#define SG_INTERRUPTED_THREAD_END()		\
+  }
+
 #else
 #include <errno.h>
 #include <pthread.h>
@@ -83,6 +92,7 @@ typedef struct SgInternalMutexRec
 typedef struct SgInternalThreadRec
 {
   pthread_t thread;
+  int interrupted;
 } SgInternalThread;
 typedef void* SgThreadEntryFunc(void *);
 
@@ -91,11 +101,29 @@ typedef struct  SgInternalCondRec
   pthread_cond_t cond;
 } SgInternalCond;
 
-#define SG_INTERNAL_THREAD_INIT(thr)         ((thr)->thread = (pthread_t)NULL)
+#define SG_INTERNAL_THREAD_INIT(thr)		\
+  do {						\
+    (thr)->thread = (pthread_t)NULL;		\
+    (thr)->interrupted = FALSE;			\
+  } while (0)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (pthread_t)NULL)
 
 #define SG_INTERNAL_COND_TIMEDOUT ETIMEDOUT
 #define SG_INTERNAL_COND_INTR     EINTR
+
+/* TODO FIXME, this is kinda ugly */
+#define SG_INTERRUPTED_THREAD()					\
+  do {								\
+    SgVM *vm___ = Sg_VM();					\
+    int interrupted__ = (&vm___->thread)->interrupted;		\
+    if (interrupted__) (&vm___->thread)->interrupted = FALSE;	\
+    if (interrupted__)
+
+#define SG_INTERRUPTED_THREAD_ELSE()		\
+    else
+
+#define SG_INTERRUPTED_THREAD_END()		\
+  } while (0)
 
 #endif
 
