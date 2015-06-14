@@ -73,14 +73,11 @@ typedef struct SgInternalCondRec SgInternalCond;
 #define SG_INTERNAL_COND_TIMEDOUT 1
 #define SG_INTERNAL_COND_INTR     2
 
-#define SG_INTERRUPTED_THREAD()			\
-  if (TRUE)
+/* dummies */
+#define SG_INTERRUPTED_THREAD()	     if (TRUE)
+#define SG_INTERRUPTED_THREAD_ELSE() else
+#define SG_INTERRUPTED_THREAD_END()
 
-#define SG_INTERRUPTED_THREAD_ELSE()		\
-  } else {
-
-#define SG_INTERRUPTED_THREAD_END()		\
-  }
 
 #else
 #include <errno.h>
