@@ -2091,6 +2091,7 @@ static SgObject process_queued_requests_cc(SgObject result, void **data)
   if (vm->valuesCount < DEFAULT_VALUES_SIZE) {
     vm->extra_values = NULL;
   }
+  SG_RESET_INTERRUPTED_THREAD(vm);
   return vm->ac;
 }
 

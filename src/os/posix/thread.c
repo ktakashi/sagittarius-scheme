@@ -168,6 +168,7 @@ static void ignore_handler(int signum)
 {
   SgVM *vm = Sg_VM();
   (&vm->thread)->interrupted = TRUE;
+  vm->attentionRequest = TRUE;
 }
 
 /* called from Sg__InitSystem */

@@ -235,4 +235,36 @@
   (test-assert "interrupted" interrupted?)
   (socket-close server))
 
+;; ditto
+(let ()
+  (define server (make-server-socket "5001"))
+  (define interrupted? #f)
+  (define accepted #f)
+  (define recieved #f)
+  (define (yield!)
+    (thread-yield!)
+    (thread-sleep! 1))
+  (define (invoke-gc)
+    (gc) ;; this uses signal on Linux
+    (thread-interrupt! t) ;; interrupted flag on
+    (yield!))
+  (define t (thread-start!
+	     (make-thread
+	      (lambda ()
+		(let ((client (socket-accept server)))
+		  (set! accepted #t)
+		  (set! recieved (socket-recv client 1))
+		  (socket-close client)
+		  recieved)))))
+  (invoke-gc)
+  (test-assert "not accepted" (not accepted))
+  (let ((client (make-client-socket "localhost" "5001")))
+    (yield!)
+    (test-assert "accepted" accepted)
+    (test-assert "not recieved" (not recieved))
+    (socket-send client #vu8(1))
+    (test-equal "received" #vu8(1) (thread-join! t))
+    (socket-close client))
+  (socket-close server))
+
 (test-end)

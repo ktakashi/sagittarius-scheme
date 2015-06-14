@@ -77,7 +77,7 @@ typedef struct SgInternalCondRec SgInternalCond;
 #define SG_INTERRUPTED_THREAD()	     if (TRUE)
 #define SG_INTERRUPTED_THREAD_ELSE() else
 #define SG_INTERRUPTED_THREAD_END()
-
+#define SG_RESET_INTERRUPTED_THREAD(vm) /* dummy */
 
 #else
 #include <errno.h>
@@ -122,6 +122,9 @@ typedef struct  SgInternalCondRec
 #define SG_INTERRUPTED_THREAD_END()		\
   } while (0)
 
+#define SG_RESET_INTERRUPTED_THREAD(vm)		\
+  ((&(vm)->thread)->interrupted = FALSE)
+  
 #endif
 
 /* emulate pthread_cleanup_push/pop*/
