@@ -839,6 +839,8 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
   return NULL;                /* dummy */
 }
 
+/* not used */
+#if 0
 static SgObject collect_fds(SgObject sockets, fd_set *fds)
 {
   SgObject h = SG_NIL, t = SG_NIL;
@@ -855,6 +857,7 @@ SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
 {
   return collect_fds(sockets, &SG_FDSET(fdset)->fdset);
 }
+#endif
 
 static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 				  SgObject timeout)

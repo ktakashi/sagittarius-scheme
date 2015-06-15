@@ -146,13 +146,16 @@
 (define-c-proc make-fdset () :no-side-effect Sg_MakeFdSet)
 (define-c-proc fdset? (o) ::<boolean> :constant SG_FDSETP)
 (define-c-proc sockets->fdset (sockets) :no-side-effect Sg_SocketsToFdSet)
-(define-c-proc collect-sockets (fdset sockets) :no-side-effect 
+(define-c-proc collect-sockets (fdset) :no-side-effect 
   (cond ((SG_FALSEP fdset) (result SG_NIL)) ;; interrupted?
-	((SG_FDSETP fdset) (result (Sg_CollectSockets fdset sockets)))
+	((SG_FDSETP fdset) (result (Sg_CopyList (-> (SG_FDSET fdset) sockets))))
 	(else
 	 (Sg_AssertionViolation 'collect-sockets
 				(SG_MAKE_STRING "<fdset> required")
 				(SG_LIST1 fdset)))))
+
+(define-c-proc fdset-sockets (fdset::<fdset>) :no-side-effect 
+  (result (Sg_CopyList (-> fdset sockets))))
 
 (define-cise-stmt check-fd-range
   ((_ fd)

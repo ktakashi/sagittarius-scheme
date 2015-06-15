@@ -233,7 +233,7 @@ SG_EXTERN void      Sg_ShutdownPort(SgPort *port, int how);
 /* fdset */
 SG_EXTERN SgObject  Sg_MakeFdSet();
 SG_EXTERN SgObject  Sg_SocketsToFdSet(SgObject sockets);
-SG_EXTERN SgObject  Sg_CollectSockets(SgObject fdset, SgObject sockets);
+/* SG_EXTERN SgObject  Sg_CollectSockets(SgObject fdset, SgObject sockets); */
 
 /* select */
 SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,

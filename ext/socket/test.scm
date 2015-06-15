@@ -81,7 +81,7 @@
     
     (test-assert "fdset-ref  (3)" (fdset-ref fdset client-socket))
     (let ((l (list client-socket)))
-      (test-equal "collect-sockets" l (collect-sockets fdset l))
+      (test-equal "collect-sockets" l (collect-sockets fdset))
       (test-assert "sockets->fdset" (fdset? (sockets->fdset l)))))
 
   (test-equal "raw socket-recv"

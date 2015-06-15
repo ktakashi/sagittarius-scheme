@@ -78,7 +78,28 @@ by calling @code{thread-cont!}.
 }
 
 @define[Function]{@name{thread-cont!} @args{thread}}
-@desc{Resumes execution of the @var{thread}.}
+@desc{Resumes execution of the @var{thread}.
+
+If the caller thread is not the one stopped the target thread, then
+the procedure raises an error.
+}
+
+@define[Function]{@name{thread-interrupt!} @args{thread}}
+@desc{Interrupts blocking system call.
+
+This procedure causes @code{EINTR} and cancels blocking system call such 
+as @code{select (2)}. Currently the only relevant procedure for this is
+@code{socket-select} related procedures. See
+@secref["socket.low.level"]{socket library - Low level APIs}.
+
+Currently the procedure uses @code{SIGALRM} on POSIX environment. This
+might be changed in future, so do not depend on the signal to interrupt
+the call from outside of Sagittarius process.
+
+On Windows, the procedure uses combination of @code{WSAEventSelect} and
+@code{WaitForMultipleObjects}. So there is no way to interrupt from
+outside of Sagittarius process.
+}
 
 @subsubsection{Mutex APIs}
 

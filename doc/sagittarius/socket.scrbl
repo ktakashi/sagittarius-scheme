@@ -247,3 +247,237 @@ of @code{socket-info-values}.
 
 Converts given IP address object to bytevector.
 }
+
+@subsubsection[:tag "socket.low.level"]{Low level APIs}
+
+The low level socket APIs are almost compatible with BSD socket.
+
+@sub*section{Socket}
+
+@define[Function]{@name{socket-sendto}
+ @args{socket bvtevector sockaddr :optional (flags 0)}}
+@desc{Sends a binary data block to given sockaddr and returns the
+sent data size.
+
+This procedures is a thin wrapper of POSIX's @code{sendto (2)}.
+}
+@define[Function]{@name{socket-recvfrom}
+ @args{socket sockaddr :optional (flags 0)}}
+@desc{Receives a binary data block from given sockaddr. If zero length
+bytevector is returned, it means the peer connection is closed.
+
+This procedures is a thin wrapper of POSIX's @code{recvfrom (2)}.
+}
+
+@define[Function]{@name{make-socket}  @args{ai-family ai-socktype ai-protocol}}
+@desc{Creates socket object. The procedure returns #f if it couldn't create
+a socket. @code{SO_NOSIGPIPE} socket option is set to the created socket.
+
+This procedure is a thin wrapper of @code{socket (2)}.
+}
+
+@define[Function]{@name{socket-connect!} @args{socket addrinfo}}
+@desc{Initiate connection on the given @var{socket} with given
+addrinfo @var{addrinfo}.
+
+This procedure is a thin wrapper of @code{connect (2)}.
+}
+
+@define[Function]{@name{socket-bind!} @args{socket addrinfo}}
+@desc{Binds a name to the given socket @var{socket} with given addrinfo
+@var{addrinfo}.
+
+This procedure is a thin wrapper of @code{bind (2)}.
+}
+
+@define[Function]{@name{socket-listen!} @args{socket backlog}}
+@desc{Listen for connections on the given socket @var{socket}.
+
+This procedure is a thin wrapper of @code{listen (2)}.
+}
+
+@define[Function]{@name{socket-setsockopt!}
+ @args{socket level name value}}
+@desc{Sets socket option on the given socket @var{socket}.
+
+@var{level} must be an integer and should be one of the followings:
+@itemlist{
+  @item{SOL_SOCKET}
+  @item{SOL_TCP}
+  @item{SOL_IP}
+}
+
+@var{name} must be an integer and should be one of the followings:
+@itemlist{
+  @item{SO_ACCEPTCONN}
+  @item{SO_BINDTODEVICE}
+  @item{SO_BROADCAST}
+  @item{SO_DEBUG}
+  @item{SO_DONTROUTE}
+  @item{SO_ERROR}
+  @item{SO_KEEPALIVE}
+  @item{SO_LINGER}
+  @item{SO_OOBINLINE}
+  @item{SO_PASSCRED}
+  @item{SO_PEERCRED}
+  @item{SO_PRIORITY}
+  @item{SO_RCVBUF}
+  @item{SO_RCVLOWAT}
+  @item{SO_RCVTIMEO}
+  @item{SO_REUSEADDR}
+  @item{SO_REUSEPORT}
+  @item{SO_SNDBUF}
+  @item{SO_SNDLOWAT}
+  @item{SO_SNDTIMEO}
+  @item{SO_TIMESTAMP}
+  @item{SO_TYPE}
+  @item{TCP_NODELAY}
+  @item{TCP_MAXSEG}
+  @item{TCP_CORK}
+  @item{IP_OPTIONS}
+  @item{IP_PKTINFO}
+  @item{IP_RECVTOS}
+  @item{IP_RECVTTL}
+  @item{IP_RECVOPTS}
+  @item{IP_TOS}
+  @item{IP_TTL}
+  @item{IP_HDRINCL}
+  @item{IP_RECVERR}
+  @item{IP_MTU_DISCOVER}
+  @item{IP_MTU}
+  @item{IP_ROUTER_ALERT}
+  @item{IP_MULTICAST_TTL}
+  @item{IP_MULTICAST_LOOP}
+  @item{IP_ADD_MEMBERSHIP}
+  @item{IP_DROP_MEMBERSHIP}
+  @item{IP_MULTICAST_IF} 
+}
+
+The @var{value} must be either bytevector or integer.
+
+This procedure is a thin wrapper of @code{setsockopt (2)}.
+}
+
+@define[Function]{@name{socket-getsockopt}
+ @args{socket level name size}}
+@desc{Gets socket option on the given socket @var{socket}.
+
+The @var{level} and @var{name} are the same as @code{socket-setsockopt!}.
+
+@var{size} must be an integer. If the value is positive number, then the
+returning value is a bytevector whose element count is @var{size} and
+contains the socket option converted to byte array. Otherwise it returns
+an integer value.
+}
+
+@define[Function]{@name{socket-nonblocking!} @args{socket}}
+@define[Function]{@name{socket-blocking!} @args{socket}}
+@desc{Converts given socket to nonblocking socket and blocking socket,
+respectively.
+}
+
+@define[Function]{@name{socket-select} @args{rfds wfds efds timeout}}
+@define[Function]{@name{socket-select!} @args{rfds wfds efds timeout}}
+@desc{Monitor given fdset.
+
+@var{rfds}, @var{wfds} and @var{efds} must be fdset object.
+
+@var{timeout} must be #f, integer, time object or pair of integers. If this
+value is not #f, then the procedure waits only specified amount of time or
+something interesting happens. Otherwise infinite time or something
+interesting happens.
+
+This procedure blocks the thread and can be interrupted by
+@code{thread-interrupt!}.
+
+This procedure is a thin wrapper of @code{select (2)}.
+}
+
+@define[Function]{@name{socket-read-select} @args{timeout sockets @dots{}}}
+@define[Function]{@name{socket-write-select} @args{timeout sockets @dots{}}}
+@define[Function]{@name{socket-error-select} @args{timeout sockets @dots{}}}
+@desc{Waits until the given sockets @var{sockets} have something interesting.
+This is the convenient procedure for @code{socket-select}.
+
+@var{timeout} is the same as @code{socket-select}.
+
+@code{socket-read-select} can be used to detect if the given sockets have
+readable data.
+
+@code{socket-write-select} can be used to detect if the given sockets are
+still active.
+
+@code{socket-error-select} can be used to detect if the given sockets are
+readable data. This procedure might not be so interesting since it can be
+done by @code{socket-read-select}.
+}
+
+@sub*section{Addrinfo}
+
+@define[Function]{@name{addrinfo?} @args{obj}}
+@desc{Returns #t if given @var{obj} is an addrinfo, otherwise #f.}
+
+@define[Function]{@name{make-addrinfo}}
+@desc{Creates empty addrinfo object.
+
+The object has the following slots:
+@itemlist{
+ @item{@code{family}}
+ @item{@code{socktype}}
+ @item{@code{flags}}
+ @item{@code{protocol}}
+ @item{@code{sockaddr}}
+ @item{@code{next}}
+}
+
+}
+@define[Function]{@name{make-hint-addrinfo}
+ @args{family socktype flags protocol}}
+@desc{Creates an addrinfo with given flags. This can be used as hint for
+@code{get-addrinfo}.}
+
+@define[Function]{@name{get-addrinfo} @args{addrinfo}}
+@desc{Gets addrinfo of given hint addrinfo.
+
+When the procedure fails, then @code{&i/o} is raised.
+
+This procedure is a thin wrapper of @code{getaddrinfo (3)}.
+}
+
+@define[Function]{@name{next-addrinfo} @args{addrinfo}}
+@desc{Retrieves next addrinfo of given @var{addrinfo} if availalbe, otherwise
+returns #f.}
+
+@define[Function]{@name{addrinfo-sockaddr} @args{addrinfo}}
+@desc{Retrieves @code{sockaddr} slot of given @var{addrinfo}.
+
+The returning value can be used @code{socket-recvfrom} and @code{socket-sendto}.
+}
+
+@define[Function]{@name{sockaddr?} @args{obj}}
+@desc{Returns #t if given @var{obj} is an sockaddr object, otherwise #f.}
+
+@sub*section{FD sets}
+
+@define[Function]{@name{fdset?} @args{obj}}
+@desc{Returns #t if given @var{obj} is a fdset object, otherwise #f.}
+
+@define[Function]{@name{make-fdset}}
+@desc{Creates a empty fdset object.}
+
+@define[Function]{@name{sockets->fdset} @args{sockets}}
+@desc{Creates a fdset from given socket list @var{sockets}.}
+
+@define[Function]{@name{fdset-ref} @args{fdset socket}}
+@desc{Returns #t if the given @var{socket} is set to @var{fdset}, otherwise #f.}
+
+@define[Function]{@name{fdset-set!} @args{fdset socket flag}}
+@desc{Sets/unsets the given socket @var{socket} on @var{fdset}.
+
+If the @var{flags} is #f, then the procedure unsets the @var{socket}.
+
+If the @var{flags} is #t, then the procedure sets the @var{socket}.
+}
+
+@define[Function]{@name{collect-sockets} @args{fdset}}
+@desc{Returns a list of socket which are set on @var{fdset}.}

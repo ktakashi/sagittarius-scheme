@@ -227,17 +227,17 @@
   (define (socket-read-select timeout . rest)
     (let ((rfds (sockets->fdset rest)))
       (receive (n r w e) (socket-select! rfds #f #f timeout) 
-	(collect-sockets r rest))))
+	(collect-sockets r))))
 
   (define (socket-write-select timeout . rest)
     (let ((wfds (sockets->fdset rest)))
       (receive (n r w e) (socket-select! #f wfds #f timeout) 
-	(collect-sockets w rest))))
+	(collect-sockets w))))
 
   (define (socket-error-select timeout . rest)
     (let ((efds (sockets->fdset rest)))
       (receive (n r w e) (socket-select! #f #f efds timeout) 
-	(collect-sockets e rest))))
+	(collect-sockets e))))
 
   ;; for backward compatibility
   (define (socket-info-values socket :key (type 'peer))
