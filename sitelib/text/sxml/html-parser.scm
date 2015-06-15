@@ -862,7 +862,7 @@
       (put-char out #\>))
 
     (define (write-top top out) 
-      (for-each (lambda (thing) (write-thing thing out)) top))
+      (for-each (lambda (thing) (write-thing thing out)) (cdr top)))
     (define (write-empty empty out))
     (define (write-entity entity out)
       (or (and-let* ((v (shtml-entity-value entity)))

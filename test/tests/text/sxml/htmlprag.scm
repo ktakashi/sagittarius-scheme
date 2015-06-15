@@ -645,6 +645,9 @@
 (test-equal "<p> inside of <div>" 
 	    `(,shtml-top-symbol (body (p (div (p)))))
 	    (html->shtml "<body><p><div><p></p></div></p></body>"))
+(test-equal "with *TOP*" 
+	    (shtml->html `(html))
+	    (shtml->html `(,shtml-top-symbol (html))))
 
 ;; converter
 (parameterize ((*shtml-entity-converter* integer->char))
