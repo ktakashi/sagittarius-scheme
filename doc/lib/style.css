@@ -23,10 +23,12 @@ h1.title {
 
 h2.section {
     font-size: xx-large;
+    border-bottom: 2px solid;
 }
 
 h3.subsection {
     font-size: x-large;
+    text-decoration: underline;
 }
 
 h4.subsubsection {
@@ -82,14 +84,14 @@ ul.section, ul.sub-section, ul.sub-sub-section, ul.sub-sub-sub-section {
 }
 
 div.snipet-box {
-    background-color: #2E8B57;
+    background-color: #9932CC;
     color: #F5F5F5;
     margin: 0px;
 }
 
 pre.snipet {
     color: #000000;
-    background-color: #98edfa;
+    background-color: #BED6C9;
     margin-bottom: 0;
 }
 
@@ -104,14 +106,14 @@ span.snipet-result {
 }
 
 div.codeblock-box {
-    background-color: #2E8B57;
+    background-color: #9932CC;
     color: #F5F5F5;
     margin: 0px;
 }
 
 pre.codeblock {
     color: #000000;
-    background-color: #98edfa;
+    background-color: #BED6C9;
     margin-bottom: 0;
 }
 
