@@ -72,7 +72,7 @@ If the function encounters EOF and @code{*eof*} is not included in
 message.
 }
 
-@define[Functions]{@name{next-token-of} @args{char-list/pred :optional port}
+@define[Functions]{@name{next-token-of} @args{char-list/pred :optional port}}
 @desc{Reads and collects the characters as far as it belongs to @var{char-list/pred},
 then returns them as a string. The first character that doesn't belong to
 @var{char-list/pred} remains on the @var{port}.
@@ -82,7 +82,7 @@ If it is a predicate, each character is passed to it, and the character is
 regarded to ``belong to'' @var{char-list/pred} when it returns a true value.
 }
 
-@define[Functions]{@name{read-string} @args{n :optional port}
+@define[Functions]{@name{read-string} @args{n :optional port}}
 @desc{Reads up to @var{n} characters, collects them into a string, and returns
 it. If the input stream contains less characters, the returns string contains
 as many characters available.

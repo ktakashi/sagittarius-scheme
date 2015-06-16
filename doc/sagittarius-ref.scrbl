@@ -135,11 +135,11 @@ unix-like systems.
 
 Typical Sagittarius script has the first line like this:
 
-@code{#!/usr/local/bin/sagittarius}
+@snipet{#!/usr/local/bin/sagittarius}
 
 or
 
-@code{#!/bin/env sagittarius}
+@snipet{#!/bin/env sagittarius}
 
 The second form uses "shell trampoline" technique so that the script works as
 far as sash is in the PATH.
@@ -280,7 +280,8 @@ Users can provide own library with precompile script. The script looks like
 this;
 
 @codeblock{
-(import (the-library-1) (the-library-2))
+(import (the-library-1)
+        (the-library-2))
 }
 
 When this script is run, then the libraries will be cached in the cache

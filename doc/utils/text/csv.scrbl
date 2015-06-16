@@ -24,8 +24,8 @@ object and its accessors.
 '().
 }
 
-@define[Generic]{@name{csv-read} @args{(port <port>) . option}
-@define[Generic]{@name{csv-read} @args{(string <string>) . option}
+@define[Generic]{@name{csv-read} @args{(port <port>) . option}}
+@define[Generic]{@name{csv-read} @args{(string <string>) . option}}
 @desc{Reads CSV data from given @var{port} and returns csv object.
 
 If the second form is called, the procedure opens string input port from given

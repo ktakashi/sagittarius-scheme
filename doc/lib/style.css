@@ -12,6 +12,9 @@
     width: 100%;
     height: 100%;
 }
+body {
+    background-color: #FAEBD7;
+}
 /* end */
 
 h1.title {
@@ -49,12 +52,15 @@ div.desc {
 
 div.define {
     font-size: medium;
-    background-color: #00fede;
+    background-color: #708090;
+    color: #F5F5F5;
 }
 
 span.define-category {
-    text-decoration: underline;
+    /* text-decoration: underline; */
     font-size: large;
+    font-weight: bold;
+    color: #DDA0DD;
 }
 
 span.define-category:after {
@@ -75,39 +81,47 @@ ul.section, ul.sub-section, ul.sub-sub-section, ul.sub-sub-sub-section {
     list-style-type: none;
 }
 
-pre.snipet {
-    position: relative;
+div.snipet-box {
+    background-color: #2E8B57;
+    color: #F5F5F5;
+    margin: 0px;
 }
 
-span.snipet-code {
-    display: block;
-    /* width: 50%; */
+pre.snipet {
+    color: #000000;
     background-color: #98edfa;
+    margin-bottom: 0;
 }
 
 span.snipet-arrow {
-    display: inline-block;
-    width: 5%;
+    width: 20px;
+    font-family: monospace;
 }
 
 span.snipet-result {
-    display: inline-block;
-    width: 20%;
+    width: 100%;
+    font-family: monospace;
+}
+
+div.codeblock-box {
+    background-color: #2E8B57;
+    color: #F5F5F5;
+    margin: 0px;
 }
 
 pre.codeblock {
+    color: #000000;
     background-color: #98edfa;
+    margin-bottom: 0;
 }
 
 span.codeblock-arrow {
-    display: inline-block;
     width: 20px;
-    background-color: #ffffff;
+    font-family: monospace;
 }
 span.codeblock-result {
-    display: inline-block;
     width: 100%;
-    background-color: #ffffff;
+    font-family: monospace;
 }
 
 
@@ -243,7 +257,7 @@ section {
     clear: both;
 }
 div.prev-next {
-    witdh: 100%;
+    width: 100%;
     position: relative;
     padding: 10px;
     

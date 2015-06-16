@@ -347,7 +347,7 @@ position before continuing on. (This is the "not-followed-by" matcher).}
 @subsubsection{The parckrat-parser macro}
 
 @define[Macro]{@name{packrat-parser}
- @args{result-expr nonterminal-definition @dots{}}
+ @args{result-expr nonterminal-definition @dots{}}}
 @desc{
 The @code{packrat-parse} macro provides syntactic sugar for building complex
 parser combinators from simpler combinators. The general form of the macro, in

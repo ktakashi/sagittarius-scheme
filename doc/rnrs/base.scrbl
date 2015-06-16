@@ -137,16 +137,16 @@ returned as the results of the procedure call.
       not given. The scope in which @var{init-expr} is evaluated includes the
       preceding formal arguments.
 
-      @codeblock[=> (1 2 3)]{
+      @snipet[=> (1 2 3)]{
 ((lambda (a b :optional (c (+ a b))) (list a b c)) 1 2)
       }
-      @codeblock[=> (1 2 -1)]{
+      @snipet[=> (1 2 -1)]{
 ((lambda (a b :optional (c (+ a b))) (list a b c)) 1 2 -1)
       }
-      @codeblock[=> (1 2 "#<unspecified>")]{
+      @snipet[=> (1 2 "#<unspecified>")]{
 ((lambda (a b :optional c) (list a b c)) 1 2)
       }
-      @codeblock[=> (1 2)]{
+      @snipet[=> (1 2)]{
 ((lambda (:optional (a 0) (b (+ a 1))) (list a b)))
       }
 
@@ -154,10 +154,10 @@ returned as the results of the procedure call.
       number of required and optional arguments are given, unless it also has
       @code{:key} or @code{:rest} arguments spec.
 
-      @codeblock[=> &serious]{
+      @snipet[=> &serious]{
 ((lambda (:optional a b) (list a b)) 1 2 3)
       }
-      @codeblock[=> (1 2 (3))]{
+      @snipet[=> (1 2 (3))]{
 ((lambda (:optional a b :rest r) (list a b r)) 1 2 3)
       }
     }
@@ -199,20 +199,20 @@ returned as the results of the procedure call.
 
       @snipet[=> &serious]{((lambda (:key a) a) :a 1 :b 2)}
       @snipet[=> 1]{((lambda (:key a :allow-other-keys) a) :a 1 :b 2)}
-      @codeblock[=> (1 (:b 2))]{
+      @snipet[=> (1 (:b 2))]{
 ((lambda (:key a :allow-other-keys z) (list a z)) :a 1 :b 2)
       }
 
       When used with @code{:optional} argument spec, the keyword arguments are
       searched after all the optional arguments are bound.
 
-      @codeblock[=> (1 2 3)]{
+      @snipet[=> (1 2 3)]{
 ((lambda (:optional a b :key c) (list a b c)) 1 2 :c 3)
       }
-      @codeblock[=> (:c 3 "#<unspecified>")]{
+      @snipet[=> (:c 3 "#<unspecified>")]{
 ((lambda (:optional a b :key c) (list a b c)) :c 3)
       }
-      @codeblock[=> &serious]{
+      @snipet[=> &serious]{
 ((lambda (:optional a b :key c) (list a b c)) 1 :c 3)
       }
     }
@@ -224,13 +224,13 @@ returned as the results of the procedure call.
       optional arguments, and the remaining arguments are bound to
       @var{variable}.
 
-      @codeblock[=> (1 2 (3 4 5))]{
+      @snipet[=> (1 2 (3 4 5))]{
 ((lambda (a b :rest z) (list a b z)) 1 2 3 4 5)
       }
-      @codeblock[=> (1 2 3 4 (5))]{
+      @snipet[=> (1 2 3 4 (5))]{
 ((lambda (a b :optional c d :rest z) (list a b z)) 1 2 3 4 5)
       }
-      @codeblock[=> (1 2 3 "#<unspecified>" ())]{
+      @snipet[=> (1 2 3 "#<unspecified>" ())]{
       ((lambda (a b :optional c d :rest z) (list a b z)) 1 2 3)
       }
 
@@ -238,7 +238,7 @@ returned as the results of the procedure call.
       accesses the same list of actual argument -- the remaining arguments after
       required and optional arguments are taken
 
-      @codeblock[=> (1 (:k 3) 3)]{
+      @snipet[=> (1 (:k 3) 3)]{
 ((lambda (:optional a :rest r :key k) (list a r k)) 1 :k 3)
       }
     }

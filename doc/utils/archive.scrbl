@@ -45,8 +45,8 @@ Creates an archive input which represents the specified type of archive.
 then it returns #f.
 }
 
-@define[Macro]{@name{do-entry} @args{(entry archive-input) body @dots{}}
-@define[Macro]{@name{do-entry} @args{(entry archive-input result) body @dots{}}
+@define[Macro]{@name{do-entry} @args{(entry archive-input) body @dots{}}}
+@define[Macro]{@name{do-entry} @args{(entry archive-input result) body @dots{}}}
 @desc{Convenient macro. Iterates the given @var{archive-input}'s entries.
 
 The macro is expanded like this;

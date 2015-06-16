@@ -138,24 +138,37 @@
 
   (define-scribble-plugin (codeblock . args)
     (let* ((e (if (eq? (car args) '=>) (format "~a" (cadr args)) #f))
-	   (code `(pre (@ (class "codeblock"))
-		       ,@(map scribble->sxml-inner (if e (cddr args) args)))))
+	   (code `(codeblock
+		   (@ (class "codeblock"))
+		   ,@(map scribble->sxml-inner (if e (cddr args) args)))))
       (if e
-	  (append! code `((span (@ (class "codeblock-arrow")) "=>")
-			  (span (@ (class "codeblock-result"))
-				,(scribble->sxml-inner e))))
+	  `(div (@ (class "codeblock-box"))
+		,code 
+		(span (@ (class "codeblock-arrow")) "=>")
+		(span (@ (class "codeblock-result"))
+		      ,(scribble->sxml-inner e)))
 	  code)))
 
+  (define (strip-linefeed e)
+    (cond ((string? e) (regex-replace-all #/[\n\r]+/ e " "))
+	  ((pair? e)
+	   (let loop ((e e) (r '()))
+	     (if (null? e)
+		 (reverse! r)
+		 (loop (cdr e) (cons (strip-linefeed (car e)) r)))))
+	  (else e)))
   (define-scribble-plugin (snipet . args)
     (let* ((e (if (eq? (car args) '=>) (format "~a" (cadr args)) #f))
 	   (code `(pre (@ (class "snipet"))
-		       (span (@ (class "snipet-code"))
-			     ,@(map scribble->sxml-inner
-				    (if e (cddr args) args))))))
+		       ,@(map (lambda (e)
+				(strip-linefeed (scribble->sxml-inner e)))
+			      (if e (cddr args) args)))))
       (if e
-	  (append! code `((span (@ (class "snipet-arrow")) "=>")
-			  (span (@ (class "snipet-result"))
-				,(scribble->sxml-inner e))))
+	  `(div (@ (class "snipet-box"))
+		,code
+		(span (@ (class "snipet-arrow")) "=>")
+		(span (@ (class "snipet-result"))
+		      ,(scribble->sxml-inner e)))
 	  code)))
 
   (define-scribble-plugin (atmark) "@")
@@ -432,7 +445,8 @@
     `((table-of-contents  ,content-list-handler . #f)
       (included           ,cdr                  . #t)
       (index-table        ,index-table-handler  . #f)
-      (title              h1                    . #f)))
+      (title              h1                    . #f)
+      (codeblock          pre                   . #f)))
   ;; 
   ;; from here we just need to handle two elements,
   ;; table-of-contents and include. include might be used for creating separated
@@ -441,7 +455,7 @@
     (let loop ((elements elements)
 	       (r '())
 	       (had-linefeed? had-linefeed?))
-      ;;(unless (null? elements) (pp (car elements)))
+      ;; (unless (null? elements) (pp (car elements)))
       (cond ((null? elements) (reverse! r))
 	    ((and (pair? (car elements))
 		  (assq (caar elements) *handlers*))

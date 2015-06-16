@@ -44,7 +44,7 @@ Writing reader macro in library and export it
       (read-delimited-list #\$ port)))
 )
 
-#<(reader macro test)> ;; imports reader macro
+#!read-macro=reader/macro/test  ;; imports reader macro
 !define test !lambda !$ !display "hello reader macro"$$$
 !test$    ;; prints "hello reader macro"
 }
