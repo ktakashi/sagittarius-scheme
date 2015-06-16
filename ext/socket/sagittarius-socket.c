@@ -895,6 +895,11 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(efds, FD_READ | FD_OOB);
 
   int r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  /* we don't have to wait any more so close it */
+  SET_EVENT(rfds, 0);
+  SET_EVENT(wfds, 0);
+  SET_EVENT(efds, 0);
+  CloseHandle(hEvents[0]);
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, 
 		    (rfds ? &rfds->fdset : NULL), 
@@ -903,13 +908,9 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 		    select_timeval(timeout, &tv));
   } else {
     ResetEvent(hEvents[1]);
-    SetLastError(EINTR);
+    WSASetLastError(EINTR);
     numfds = -1;
   }
-  SET_EVENT(rfds, 0);
-  SET_EVENT(wfds, 0);
-  SET_EVENT(efds, 0);
-  CloseHandle(hEvents[0]);
 #else
  retry:
   numfds = select(max + 1, 
@@ -950,8 +951,8 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 			  SG_FALSE,
 			  SG_FALSE,
 			  SG_FALSE);
-      } SG_INTERRUPTED_THREAD_ELSE() {
 #ifndef _WIN32
+      } SG_INTERRUPTED_THREAD_ELSE() {
 	goto retry;
 #endif
       } SG_INTERRUPTED_THREAD_END();
