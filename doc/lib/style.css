@@ -49,6 +49,7 @@ div.desc {
 
 div.define {
     font-size: medium;
+    background-color: #00fede;
 }
 
 span.define-category {
@@ -79,8 +80,9 @@ pre.snipet {
 }
 
 span.snipet-code {
-    display: inline-block;
-    width: 50%;
+    display: block;
+    /* width: 50%; */
+    background-color: #98edfa;
 }
 
 span.snipet-arrow {
@@ -92,6 +94,22 @@ span.snipet-result {
     display: inline-block;
     width: 20%;
 }
+
+pre.codeblock {
+    background-color: #98edfa;
+}
+
+span.codeblock-arrow {
+    display: inline-block;
+    width: 20px;
+    background-color: #ffffff;
+}
+span.codeblock-result {
+    display: inline-block;
+    width: 100%;
+    background-color: #ffffff;
+}
+
 
 /* tools.js */
 a.closed {
