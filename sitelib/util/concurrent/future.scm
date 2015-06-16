@@ -36,6 +36,8 @@
 	    future-get future-cancel
 	    future-done? future-cancelled?
 
+	    &future-terminated future-terminated? terminated-future
+
 	    future-state
 	    ;; these should not be used by user but we need to expose it
 	    ;; so that future implementation can do flexible state control
@@ -52,6 +54,10 @@
     (import (rnrs)
 	    (srfi :18)
 	    (util concurrent shared-queue))
+
+  (define-condition-type &future-terminated &error
+    make-future-terminated future-terminated?
+    (future terminated-future))
 
   ;; future
   (define-record-type (<future> %make-future future?)
@@ -99,7 +105,11 @@
 	  (raise r)
 	  r))
     (when (eq? (future-state future) 'terminated)
-      (error 'future-get "future is terminated" future))
+      (raise (condition
+	      (make-future-terminated future)
+	      (make-who-condition 'future-get)
+	      (make-message-condition "future is terminated")
+	      (make-irritants-condition future))))
     (let ((state (future-state future)))
       (let ((r (future-result future)))
 	(finish 

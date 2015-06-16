@@ -51,6 +51,7 @@
   (test-equal "pool size (2)" 1 (executor-pool-size e))
   (test-assert "future-cancel" (future-cancel f2))
   (test-assert "future-cancelled? (2)" (future-cancelled? f2))
+  (test-error "future-terminated?" future-terminated? (future-get f2))
   (test-equal "pool size (3)" 0 (executor-pool-size e))
   )
 
