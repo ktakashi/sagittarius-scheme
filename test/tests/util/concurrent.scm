@@ -115,7 +115,6 @@
   )
 
 ;; shared-queue
-;; TODO test case for max-length
 (let ()
   (define (open-account initial-amount out)
     (define shared-queue (make-shared-queue))
@@ -162,6 +161,45 @@
   (test-equal "size"  1 (shared-queue-size recepit))
   (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
   (test-assert "empty?" (shared-queue-empty? recepit))
+  )
+
+;; max-length test
+(let ()
+  (define shared-queue (make-shared-queue 1))
+  (test-equal "max-length" 1 (shared-queue-max-length shared-queue))
+
+  (test-equal "shared-queue-put!" 1 (shared-queue-put! shared-queue 1))
+  (test-equal "shared-queue-put! (timeout)" 'boom 
+	      (shared-queue-put! shared-queue 1 1 'boom))
+  (test-assert "shared-queue-overflows?" 
+	       (shared-queue-overflows? shared-queue 1))
+  )
+
+;; max-length 0
+(let ()
+  (define shared-queue (make-shared-queue 0))
+  (define results '())
+  (define reader
+    (make-thread
+     (lambda ()
+       (set! results (cons 'r results))
+       (shared-queue-get! shared-queue))))
+
+  (define writer
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(shared-queue-put! shared-queue 'wakeup)
+	(set! results (cons 'w results))))))
+  (test-equal "max-length" 0 (shared-queue-max-length shared-queue))
+  (test-assert "shared-queue-overflows?" 
+	       (shared-queue-overflows? shared-queue 1))
+  ;; queue dosn't have reader
+  (test-equal "shared-queue-put!  (timeout)"
+	      #f (shared-queue-put! shared-queue 1 0 #f))
+  (thread-start! reader)
+  (test-equal "join!" 'wakeup (thread-join! reader))
+  (test-equal "results" '(w r) results)
   )
 
 ;; thread-pool

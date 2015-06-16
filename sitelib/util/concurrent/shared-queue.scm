@@ -37,6 +37,7 @@
     (export shared-queue? make-shared-queue <shared-queue>
 	    shared-queue-empty? shared-queue-size
 	    shared-queue-max-length
+	    shared-queue-overflows?
 	    shared-queue-put! shared-queue-get!
 	    shared-queue-clear!
 
@@ -133,7 +134,8 @@
 		 (shared-queue-size-set! sq (+ (shared-queue-size sq) 1))
 		 (when (> (%w sq) 0)
 		   (condition-variable-broadcast! (%read-cv sq)))
-		 (mutex-unlock! (%lock sq))))))))
+		 (mutex-unlock! (%lock sq))
+		 obj))))))
 
   (define (shared-queue-overflows? sq count)
     (and (>= (shared-queue-max-length sq) 0)
