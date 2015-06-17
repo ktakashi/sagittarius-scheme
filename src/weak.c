@@ -358,7 +358,6 @@ static void value_finalizer(SgObject z, void *data)
     e = weak_hashtable_delete(table, SG_OBJ(key));
   }
 
- next:
   /* in case */
   /* maybe we shouldn't support SG_WEAK_REMOVE_BOTH */
   if (key && (table->weakness & SG_WEAK_KEY)) {

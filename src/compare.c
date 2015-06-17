@@ -151,7 +151,8 @@ static SgObject string_hash(SgObject *args, int argc, void *data)
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("string-comparator"),
 				    SG_INTERN("string"), args[0], SG_NIL);
   }
-  return Sg_MakeIntegerU(Sg_StringHash(SG_STRING(args[0]), SG_INT_MAX));
+  return Sg_MakeIntegerU(Sg_StringHash(SG_STRING(args[0]),
+				       (uint32_t)SG_INT_MAX));
 }
 static SG_DEFINE_SUBR(string_hash_stub, 1, 0, string_hash, SG_FALSE, NULL);
 

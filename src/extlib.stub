@@ -618,8 +618,9 @@
     (put-un put-s16 out v 2 endian))
 
   (define-c-proc put-u32 (out::<port> n::<integer> endian::<symbol>) ::<void>
-    (let ((v::ulong (Sg_GetUIntegerClamp n SG_CLAMP_NONE NULL)))
-      (unless (and (<= 0 v) (<= v UINT32_MAX))
+    (let ((oor::int 0)
+	  (v::ulong (Sg_GetUIntegerClamp n SG_CLAMP_NONE (& oor))))
+      (unless (and (not oor) (<= v UINT32_MAX))
 	(assertion-violation 'put-u32 
 			     "given value must be 0 <= n <= #xFFFFFFFF"
 			     n))

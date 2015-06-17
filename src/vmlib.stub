@@ -327,7 +327,6 @@
     :static
     (let ((lib (SG_VECTOR_ELEMENT p1env 0))
 	  (frames (SG_VECTOR_ELEMENT p1env 1))
-	  (retried::int FALSE)
 	  (saved-env SG_NIL)
 	  (saved-identity SG_FALSE))
       (when (SG_IDENTIFIERP name)
