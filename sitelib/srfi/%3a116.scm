@@ -29,4 +29,5 @@
 ;;;  
 (library (srfi :116)
     (export :all)
-    (import (srfi :116 ilists)))
+    (import (srfi :116 ilists)
+	    (srfi :116 comparators)))

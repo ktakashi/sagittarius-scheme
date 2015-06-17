@@ -107,4 +107,13 @@
 
 ;; TODO more tests...
 
+;; fixed car comparator and cdr comparator
+(let ((carh (comparator-hash default-comparator 'car))
+      (cdrh (comparator-hash default-comparator 'cdr))
+      (objh (comparator-hash default-comparator '(car . cdr))))
+  (define car-comparator (make-car-comparator default-comparator))
+  (define cdr-comparator (make-cdr-comparator default-comparator))
+  (test-equal "car hash" carh (comparator-hash car-comparator '(car . cdr)))
+  (test-equal "cdr hash" cdrh (comparator-hash cdr-comparator '(car . cdr))))
+
 (test-end)
