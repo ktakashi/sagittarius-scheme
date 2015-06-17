@@ -825,10 +825,10 @@
 
 	;; N-ary case
 	(receive (heads tails) (%cars+cdrs (ipair lis1 lists))
-	  (or (not (ipair? heads))
+	  (or (not (pair? heads))
 	      (let lp ((heads heads) (tails tails))
 		(receive (next-heads next-tails) (%cars+cdrs tails)
-		  (if (ipair? next-heads)
+		  (if (pair? next-heads)
 		      (and (apply pred heads) (lp next-heads next-tails))
 		      (apply pred heads)))))) ; Last PRED app is tail call.
 

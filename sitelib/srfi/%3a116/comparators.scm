@@ -2,7 +2,7 @@
 ;;;
 ;;; comparators.scm - SRFI-116 immutable list comparators
 ;;;  
-;;;   Copyright (c) 2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
