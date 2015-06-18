@@ -192,6 +192,7 @@
     (get-char in)
     (let loop ((acc '()))
       (let ((c (get-char in)))
+	(when (eof-object? c) (error 'json-read "Unexpected EOF"))
 	(case c
 	  ((#\\) (loop (cons (read-escape in) acc)))
 	  ((#\") (list->string (reverse! acc)))

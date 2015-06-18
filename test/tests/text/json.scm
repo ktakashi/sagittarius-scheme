@@ -96,4 +96,8 @@
 	      (cut json-read <>)))
   )
 
+;; call #129
+(test-error "unexpected EOF in string"
+	    (parse-json-string "\"a'"))
+
 (test-end)
