@@ -95,12 +95,13 @@
 	(send-packed-data socket :datum form)))
     (define (make-printer socket)
       (lambda args
+	(define port (transcoded-port (socket-port socket #f)
+				      (native-transcoder)))
 	(define (handle-values n port)
 	  (dotimes (i n)
 	    (display (read/ss port)) (newline)))
 	(let loop ()
-	  (let* ((port (recv-datum socket))
-		 (tag   (read/ss port)))
+	  (let* ((tag   (read/ss port)))
 	    (unless (eof-object? tag)
 	      (case tag
 		((:values) (handle-values (read/ss port) port))
@@ -108,9 +109,14 @@
 		 (format #t "error in: ~s~%" (read/ss port))
 		 (display (read/ss port)) (newline))
 		((:exit) (display ";; finished") (newline) (exit 0))
-		(else 
+		((:io)
 		 ;; other I/O
-		 (display tag) (loop))))))))
+		 (display (read/ss port))
+		 (flush-output-port (current-output-port))
+		 (loop))
+		(else 
+		 (format #t "protocol error: unknown tag ~s: ~a\n"
+			 tag (get-string-all port)))))))))
     (define (authenticate socket)
       (define (wait-response)
 	(let loop ()
@@ -192,10 +198,10 @@
 		   name (ip-address->string ip) port args ...)))))
     (define (detach socket)
       (define (main-loop in out err)
-	(define (set-ports! p)
+	(define (set-ports! p out)
 	  (current-input-port p)
-	  (current-output-port p)
-	  (current-error-port p))
+	  (current-output-port out)
+	  (current-error-port out))
 	(define (restore-ports!)
 	  (current-input-port in)
 	  (current-output-port out)
@@ -224,15 +230,21 @@
 		       (let ((e (read/ss in))
 			     (p (transcoded-port (socket-port socket)
 						 (native-transcoder))))
-			 (set-ports! p)
-			 (set! current-expression e)
-			 (if (eof-object? e)
-			     (set! stop? #t)
-			     (receive r (eval e interaction-environment)
-			       (send-datum 
-				socket
-				(apply pack-data :values (length r)
-				       (data->string r)))))))
+			 (let-values (((out extract)
+				       (open-string-output-port)))
+			   (set-ports! p out)
+			   (set! current-expression e)
+			   (if (eof-object? e)
+			       (set! stop? #t)
+			       (receive r (eval e interaction-environment)
+				 (let ((output (extract)))
+				   (unless (zero? (string-length output))
+				     (send-datum socket
+						 (pack-data :io output))))
+				 (send-datum 
+				  socket
+				  (apply pack-data :values (length r)
+					 (data->string r))))))))
 		      ((:exit)
 		       (logging socket "disconnect")
 		       (send-packed-data socket :exit)
