@@ -23,6 +23,7 @@
 	    sxml:content
 	    sxml:text
 	    sxml:content-raw
+	    sxml:attr-list
 	    sxml:attr-list-u
 	    sxml:aux-list
 	    sxml:aux-list-u

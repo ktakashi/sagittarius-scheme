@@ -432,12 +432,12 @@
     (make-comparator 
      pair? #t 
      (lambda (a b) (comparator-compare comparator (car a) (car b)))
-     (lambda (obj) (comparator-hash comparator obj))))
+     (lambda (obj) (comparator-hash comparator (car obj)))))
   (define (make-cdr-comparator comparator)
     (make-comparator 
      pair? #t 
      (lambda (a b) (comparator-compare (cdr a) (cdr b)))
-     (lambda (obj) (comparator-hash comparator obj))))
+     (lambda (obj) (comparator-hash comparator (cdr obj)))))
 
   (define (make-pair-comparison car-comparator cdr-comparator)
     (lambda (a b)
@@ -458,7 +458,7 @@
 
   ;; improper list
   (define (make-improper-list-comparison comparator)
-    (let ((pair-comparison (make-pair-comparator comparator comparator)))
+    (let ((pair-comparison (make-pair-comparison comparator comparator)))
       (lambda (a b)
 	(define (type o)
 	  (cond ((null? o) 0)
@@ -467,7 +467,7 @@
 	(let ((result (real-comparison (type a) (type b))))
 	  (cond ((not (zero? result)) result)
 		((null? a) 0)
-		((pair? a) (pair-comparison a b))
+		((pair? a) (ipair-comparison a b))
 		(else (comparator-compare comparator a b)))))))
   (define (make-improper-list-hash comparator)
     ;; I think this is good enough

@@ -461,9 +461,9 @@ A shared queue is a queue which operations are done atomically.
 @desc{Creates a shared queue.
 
 If optional argument @var{max-length} is 0, then the queue can be used as
-a notifier. If the value is positive number, then the queue can only have
-specified number of elements. If it overflows, then it waits until the
-number of elements is less than @var{max-length}.
+synchronised queue. If the value is positive number, then the queue can 
+only have specified number of elements. If it overflows, then it waits 
+until the number of elements is less than @var{max-length}.
 }
 
 @define[Function]{@name{shared-queue-empty?} @args{shared-queue}}
