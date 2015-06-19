@@ -32,7 +32,7 @@ key mechanism. For public/private key, it only supports RSA for now.
 @define[Function]{@name{cipher}
  @args{type key
  :key (mode MODE_ECB) (iv #f) (padder pkcs5-padder)
-      (rounds 0) (ctr-mode CTR_COUNTER_LITTLE_ENDIAN)
+      (rounds 0) (ctr-mode CTR_COUNTER_BIG_ENDIAN)
  :rest options}}
 @desc{Creates a cipher object.
 
