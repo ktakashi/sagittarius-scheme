@@ -109,10 +109,14 @@
 		 (format #t "error in: ~s~%" (read/ss port))
 		 (display (read/ss port)) (newline))
 		((:exit) (display ";; finished") (newline) (exit 0))
-		((:io)
-		 ;; other I/O
+		 ;; I/O
+		((:stdout)
 		 (display (read/ss port))
 		 (flush-output-port (current-output-port))
+		 (loop))
+		((:stderr)
+		 (display (read/ss port) (current-error-port))
+		 (flush-output-port (current-error-port))
 		 (loop))
 		(else 
 		 (format #t "protocol error: unknown tag ~s: ~a\n"
@@ -198,10 +202,10 @@
 		   name (ip-address->string ip) port args ...)))))
     (define (detach socket)
       (define (main-loop in out err)
-	(define (set-ports! p out)
+	(define (set-ports! p out err)
 	  (current-input-port p)
 	  (current-output-port out)
-	  (current-error-port out))
+	  (current-error-port err))
 	(define (restore-ports!)
 	  (current-input-port in)
 	  (current-output-port out)
@@ -231,16 +235,22 @@
 			     (p (transcoded-port (socket-port socket)
 						 (native-transcoder))))
 			 (let-values (((out extract)
+				       (open-string-output-port))
+				      ((err eextract)
 				       (open-string-output-port)))
-			   (set-ports! p out)
+			   (set-ports! p out err)
 			   (set! current-expression e)
 			   (if (eof-object? e)
 			       (set! stop? #t)
 			       (receive r (eval e interaction-environment)
-				 (let ((output (extract)))
+				 (let ((output (extract))
+				       (errout (eextract)))
 				   (unless (zero? (string-length output))
 				     (send-datum socket
-						 (pack-data :io output))))
+						 (pack-data :stdout output)))
+				   (unless (zero? (string-length errout))
+				     (send-datum socket
+						 (pack-data :stderr errout))))
 				 (send-datum 
 				  socket
 				  (apply pack-data :values (length r)
