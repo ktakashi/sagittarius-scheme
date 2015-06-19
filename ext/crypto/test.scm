@@ -494,4 +494,33 @@
     (test-error "OAEP padding encrypt&decrypt (input error)" condition?
 		(encrypt enc-ci valid-rsa-message))))
 
+;; call #130
+(let ()
+  (define priv
+    (generate-private-key RSA 
+     #xb14314da2ddd1f811734cc8bf868c34ff94519f463da28769889674fb88c1756602fc21d1c2961b4745b8e1c82bdc1748e554dd6d1bc25c63023d25cff0692c09d74c88882bd9afecf3887d050ca4dd2e59ee94b5085e262ac66dc864100cc6879449fa2b4ff9aebe4776c6e663e567c9db71e89686c7c5662fb31bcfc333755
+     #x693ca61891ba0186263cd66312eb3f692f57f2fcc07b38229094a29d15b735f3b5cf24b31b9105cc9877f27ac2b3dd32517e1b6439c835b4dfc7a4904967a19f736d1b5d13c10d3de61fc17c736e71cb1145a8312942d914cc66c80d974af7602928193082dc77326bfdf8ab282469eae26e8e445b6892435813fed417d033d1
+     :public-exponent #x10001
+     :p #xc82733b2c4a6811bd8ff7fd77cbe889d7dfd83aeed6d86666dcb84ccb7a5a9f717b967c93190baf46e0fcf765d8fcfdd73f2d372bcfa8333feab1a151bef0ca7
+     :q #xe2b8c8da2b7b726dcbc95688056d3ef96e5cfc4ac38d68981e86fed84129235eaa42970a264fd4f24f36c2fddf0c7826b37b62f0b51915aa059f8e1d5ee8afa3))
+  (define pub
+    (generate-public-key RSA
+     #xb14314da2ddd1f811734cc8bf868c34ff94519f463da28769889674fb88c1756602fc21d1c2961b4745b8e1c82bdc1748e554dd6d1bc25c63023d25cff0692c09d74c88882bd9afecf3887d050ca4dd2e59ee94b5085e262ac66dc864100cc6879449fa2b4ff9aebe4776c6e663e567c9db71e89686c7c5662fb31bcfc333755
+     #x10001))
+  (define msg #vu8(0 0 0 1))
+  ;; don't use secure random to reproduce this issue
+  (define prng (pseudo-random RC4))
+
+  ;; the issue is that fixing up byte was also 0 thus de-padding
+  ;; procedure mis calculate the position.
+  ;; this happend with above key (probaby doesn't matter) with
+  ;; encryption after 27 times
+  (do ((i 0 (+ i 1)))
+      ((= i 28))
+    (when (= i 27)
+      (let ((enc-ci (cipher RSA priv :prng prng))
+	    (dec-ci (cipher RSA pub :prng prng)))
+	(test-equal "restoring (success)" 
+		    msg (decrypt dec-ci (encrypt enc-ci msg)))))))
+
 (test-end)

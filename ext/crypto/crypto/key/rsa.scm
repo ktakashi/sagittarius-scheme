@@ -416,8 +416,10 @@
 		((= i ps-length) #t)
 	      ;; transform zero bytes (if any) to non-zero random bytes
 	      (when (zero? (bytevector-u8-ref ps i))
-		(bytevector-u8-set! ps i (bytevector-u8-ref
-					  (read-random-bytes prng 1) 0)))))
+		(do ((j 0 (+ j 1)) (r (read-random-bytes prng 1)
+				      (read-random-bytes prng 1)))
+		    ((not (zero? (bytevector-u8-ref r 0)))
+		     (bytevector-u8-set! ps i (bytevector-u8-ref r 0)))))))
 	  (let ((bv (make-bytevector (+ 2 ps-length 1 message-length) 0)))
 	    ;; set block-type
 	    (bytevector-u8-set! bv 1 block-type)
