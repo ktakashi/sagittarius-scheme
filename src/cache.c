@@ -1115,6 +1115,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   cache_path = Sg_StringAppend2(cache_path, TIMESTAMP_EXT);
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
   Sg_InitFileBinaryPort(&out, &bp, &tagfile, SG_OUTPUT_PORT, SG_BUFMODE_NONE,
 			NULL, 0);
@@ -1125,6 +1126,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   Sg_ClosePort(&out);
 
   SG_CLEAN_BINARY_PORT(&bp);
+  Sg_UnlockFile(&tagfile);
 
   return TRUE;
 }
