@@ -12,7 +12,12 @@ IF (MSVC OR CYGWIN)
   SET_SOURCE_FILES_PROPERTIES(sagittarius-process.c
     ${CMAKE_CURRENT_BINARY_DIR}/process_stub.c
     PROPERTIES LANGUAGE CXX)
+ELSEIF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # For shm_open, shm_unlink
+  # NB FreeBSD has it on libc
+  TARGET_LINK_LIBRARIES(sagittarius--process rt)
 ENDIF()
+
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # for test
