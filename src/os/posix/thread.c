@@ -224,7 +224,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     }
     if (sem_init(sem, 1, value) == -1) {
       char *msg = strerror(errno);
-      Sg_SystemError(errno, UC("failed to sem_open %A"), 
+      Sg_SystemError(errno, UC("failed to sem_init %A"), 
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
     }
     semaphore->semaphore = sem;
