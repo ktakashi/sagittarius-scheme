@@ -7,9 +7,48 @@
 
  (.include <sagittarius.h>)
  (.define "LIBSAGITTARIUS_EXT_BODY")
- (.include <sagittarius/extend.h>))
+ (.include <sagittarius/extend.h>)
+ (.include <sagittarius-process.h>))
+
+(define-type <shared-memory> "SgSharedMemory*")
 
 (define-c-proc getpid () ::<fixnum>
   (.if "defined(_WIN32)"
        (result (GetCurrentProcessId()))
        (result (getpid))))
+
+(define-c-proc shared-memory? (o) ::<boolean> SG_SHARED_MEMORY_P)
+(define-c-proc shared-memory->bytevector (shm::<shared-memory>)
+  (result (-> shm memory)))
+
+(define-cfn get-open-flags (option no-fail::int*) ::int :static
+  (let* ((opt (Sg_SlotRefUsingClass (Sg_ClassOf option) option 'members))
+	 (no-create?::int (not (SG_FALSEP (Sg_Memq 'no-create opt))))
+	 (no-truncate?::int (not (SG_FALSEP (Sg_Memq 'no-truncate opt))))
+	 (no-fail?::int (not (SG_FALSEP (Sg_Memq 'no-fail opt)))))
+    (when no-fail? (set! (pointer no-fail) no-fail?))
+    (cond ((and no-create? no-truncate?) (return 0)) ;; 
+	  (no-create? (return SG_TRUNCATE))
+	  (no-truncate? (return SG_CREATE))
+	  ;; if only no-fail is specified
+	  (else (return (logior SG_CREATE SG_TRUNCATE))))))
+    
+
+(define-c-proc open-shared-memory (name::<string> size::<fixnum>
+				   :optional (option #f))
+  (unless (or (SG_FALSEP option) (Sg_RecordP option))
+    (Sg_AssertionViolation 'open-shared-memory
+			   (SG_MAKE_STRING "invalid option") 
+			   (SG_LIST1 option)))
+  (let ((no-fail?::int)
+	(flags::int (?: (SG_FALSEP option) 
+			;; default create.
+			;; so creation does truncate the shared memory
+			(logior SG_CREATE SG_TRUNCATE)
+			(get-open-flags option (& no-fail?)))))
+    ;; it won't fail if we specify this
+    (when no-fail? (set! flags (logior flags SG_CREATE)))
+    (result (Sg_OpenSharedMemory name size flags))))
+
+(define-c-proc close-shared-memory (shm::<shared-memory>)
+  Sg_CloseSharedMemory)

@@ -38,4 +38,23 @@
 	    condition?
 	    (run *process-name* 'foo))
 
+(test-assert "open-shared-memory" open-shared-memory)
+(test-assert "close-shared-memory" close-shared-memory)
+
+(let ((shm (open-shared-memory "/sagittarius-process" 4096)))
+  (test-assert "shared-memory?" (shared-memory? shm))
+  (test-assert "close" (close-shared-memory shm)))
+
+(define-constant *shm-name* (build-path build-directory-path "test-shm.bin"))
+(define-constant +shared-memory-path+ "/sagittarius-process")
+
+(let* ((shm (open-shared-memory "/sagittarius-process" 4096))
+       (proc (make-process *shm-name* '()))
+       (bv (shared-memory->bytevector shm)))
+  (test-assert "call" (process-call proc))
+  (process-wait proc)
+  ;; (test-assert "wait" )
+  (test-equal "ref" "process" (utf8->string (bytevector-copy bv 0 7)))
+  (test-assert "close" (close-shared-memory shm)))
+
 (test-end)

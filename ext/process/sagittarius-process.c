@@ -106,12 +106,12 @@ SgObject Sg_OpenSharedMemory(SgString *name, size_t size, int flags)
   high = size>>32;
   low = size&((1LL<<32)-1);
   if (flags & SG_CREATE) {
-    hMapFile = CreateFileMapping(INVALID_HANDLE_VALUE,
-				 NULL,
-				 PAGE_READWRITE,
-				 high,
-				 low,
-				 memname);
+    hMapFile = CreateFileMappingW(INVALID_HANDLE_VALUE,
+				  NULL,
+				  PAGE_READWRITE,
+				  high,
+				  low,
+				  memname);
   } else {
     hMapFile = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE, memname);
   }

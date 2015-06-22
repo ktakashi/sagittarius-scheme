@@ -55,6 +55,13 @@
 
 	    ;; extra
 	    getpid
+
+	    ;; IPC
+	    shared-memory?
+	    open-shared-memory
+	    close-shared-memory
+	    shared-memory->bytevector
+	    ;; TODO semaphore
 	    )
     (import (rnrs)
 	    (clos user)

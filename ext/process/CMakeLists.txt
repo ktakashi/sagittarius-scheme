@@ -23,10 +23,29 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # for test
 ADD_EXECUTABLE(test-proc test-proc.c)
 SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
+# for shared memory test
+ADD_EXECUTABLE(test-shm test-shm.c)
+
+IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  # For shm_open, shm_unlink
+  # NB FreeBSD has it on libc
+  TARGET_LINK_LIBRARIES(test-shm rt)
+ELSEIF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd" 
+    OR ${SAGITTARIUS_OS} STREQUAL "qnx")
+  TARGET_LINK_LIBRARIES(test-shm c)
+ENDIF()
+
+
+SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
+
 ADD_CUSTOM_TARGET(copy-test-proc
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-proc.bin
+            ${PROJECT_BINARY_DIR}/ext/
+    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-shm.bin
             ${PROJECT_BINARY_DIR}/ext/)
 ADD_DEPENDENCIES(copy-test-proc test-proc)
+ADD_DEPENDENCIES(copy-test-proc test-shm)
+
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 ADD_STUBS(sagittarius--process
