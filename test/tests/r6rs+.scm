@@ -1,6 +1,6 @@
 ;; -*- scheme -*-
 (import (rnrs)
-	(rename (rnrs eval) (eval r6rs:eval))
+	(rnrs eval)
 	(rnrs mutable-pairs)
 	(core errors)
 	(srfi :64 testing))
@@ -78,57 +78,57 @@
 ;; this actually not a valid R6RS code
 ;; eval can't have define but we allow it
 (test-equal "simple wrap" '(123)
-	    (r6rs:eval '(begin
-			  (define (fun) (mac))
-			  (fun)
-			  (let-syntax ((print (syntax-rules ()
-						((_ o ...) (list o ...)))))
-			    (define-syntax mac
-			      (syntax-rules ()
-				((_) (print 123))))))
-		       (environment '(rnrs))))
+	    (eval '(begin
+		     (define (fun) (mac))
+		     (fun)
+		     (let-syntax ((print (syntax-rules ()
+					   ((_ o ...) (list o ...)))))
+		       (define-syntax mac
+			 (syntax-rules ()
+			   ((_) (print 123))))))
+		  (environment '(rnrs))))
 (test-equal "let-syntax define" '(hoge)
-	    (r6rs:eval '(begin
-			  (define (fun) (foo))
-			  (let-syntax ((print (syntax-rules ()
-						((_ o ...) (list o ...)))))
-			    (define-syntax mac
-			      (syntax-rules ()
-				((_)
-				 (begin
-				   (print 123)
-				   (flush-output-port (current-output-port))))))
-			    (define (foo)
-			      (print 'hoge))
-			    )
-			  (fun))
-		       (environment '(rnrs))))
+	    (eval '(begin
+		     (define (fun) (foo))
+		     (let-syntax ((print (syntax-rules ()
+					   ((_ o ...) (list o ...)))))
+		       (define-syntax mac
+			 (syntax-rules ()
+			   ((_)
+			    (begin
+			      (print 123)
+			      (flush-output-port (current-output-port))))))
+		       (define (foo)
+			 (print 'hoge))
+		       )
+		     (fun))
+		  (environment '(rnrs))))
 (test-equal "simple wrap (letrec-syntax)" '(123)
-	    (r6rs:eval '(begin
-			  (define (fun) (mac))
-			  (fun)
-			  (letrec-syntax ((print (syntax-rules ()
-						   ((_ o ...) (list o ...)))))
-			    (define-syntax mac
-			      (syntax-rules ()
-				((_) (print 123))))))
-		       (environment '(rnrs))))
+	    (eval '(begin
+		     (define (fun) (mac))
+		     (fun)
+		     (letrec-syntax ((print (syntax-rules ()
+					      ((_ o ...) (list o ...)))))
+		       (define-syntax mac
+			 (syntax-rules ()
+			   ((_) (print 123))))))
+		  (environment '(rnrs))))
 (test-equal "let-syntax define (letrec-syntax)" '(hoge)
-	    (r6rs:eval '(begin
-			  (define (fun) (foo))
-			  (letrec-syntax ((print (syntax-rules ()
-						   ((_ o ...) (list o ...)))))
-			    (define-syntax mac
-			      (syntax-rules ()
-				((_)
-				 (begin
-				   (print 123)
-				   (flush-output-port (current-output-port))))))
-			    (define (foo)
-			      (print 'hoge))
-			    )
-			  (fun))
-		       (environment '(rnrs))))
+	    (eval '(begin
+		     (define (fun) (foo))
+		     (letrec-syntax ((print (syntax-rules ()
+					      ((_ o ...) (list o ...)))))
+		       (define-syntax mac
+			 (syntax-rules ()
+			   ((_)
+			    (begin
+			      (print 123)
+			      (flush-output-port (current-output-port))))))
+		       (define (foo)
+			 (print 'hoge))
+		       )
+		     (fun))
+		  (environment '(rnrs))))
 
 ;; call #107
 (let ()
