@@ -34,6 +34,7 @@ int main()
 					  0, 0, 4096);
   strcpy((char *)ptr, "process");
   UnmapViewOfFile(ptr);
+  CloseHandle(hMapFile);
   return 0;
 }
 
