@@ -386,7 +386,7 @@ int Sg_InterruptThread(SgInternalThread *thread)
 SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
 {
   SgInternalSemaphore *sem = SG_NEW(SgInternalSemaphore);
-  if (value > 0) {
+  if (value >= 0) {
     wchar_t *semname = NULL;
     if (value > MAX_SEM_COUNT) {
       Sg_AssertionViolation(SG_INTERN("make-semaphore"),

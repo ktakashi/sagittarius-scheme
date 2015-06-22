@@ -205,7 +205,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
 			    SG_MAKE_STRING("name must start with '/'"),
 			    SG_LIST1(name));
     }
-    if (value > 0) flags |= O_CREAT;
+    if (value >= 0) flags |= O_CREAT;
     /* TODO mode? */
     semaphore->semaphore = sem_open(semname, flags, 0666, value);
     if (semaphore->semaphore == SEM_FAILED) {
