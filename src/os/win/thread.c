@@ -33,6 +33,10 @@
 #include <sagittarius/thread.h>
 #include <sagittarius/system.h>
 #include <sagittarius/error.h>
+#include <sagittarius/pair.h>
+#include <sagittarius/string.h>
+#include <sagittarius/symbol.h>
+#include <sagittarius/unicode.h>
 #include <sagittarius/vm.h>
 
 #include "../../gc-incl.inc"
@@ -388,7 +392,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
   SgInternalSemaphore *sem = SG_NEW(SgInternalSemaphore);
   if (value >= 0) {
     wchar_t *semname = NULL;
-    if (value > MAX_SEM_COUNT) {
+    if (value > INT_MAX) {
       Sg_AssertionViolation(SG_INTERN("make-semaphore"),
 			    SG_MAKE_STRING("value is too big"),
 			    SG_LIST1(SG_MAKE_INT(value)));
@@ -402,7 +406,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     /* TODO should we check the name?  */
     /* NOTE: we put MAX_SEM_COUNT so that it can have the same behaviour
              as POSIX. */
-    sem->semaphore = CreateSemaphoreW(NULL, value, MAX_SEM_COUNT, semname);
+    sem->semaphore = CreateSemaphoreW(NULL, value, INT_MAX, semname);
     if (!sem->semaphore) {
       int errn = GetLastError();
       Sg_SystemError(errn, UC("failed to create semaphore, %A"),
@@ -419,7 +423,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
 	    SG_NIL);
     }
     sem->semaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS,
-				    FALSE, name);
+				    FALSE, semname);
   }
   return sem;
 }
@@ -434,7 +438,8 @@ int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
 
 int  Sg_PostSemaphore(SgInternalSemaphore *semaphore)
 {
-  int r = ReleaseSemaphore(semaphore->semaphore);
+  LONG out;
+  int r = ReleaseSemaphore(semaphore->semaphore, 1, &out);
   if (r) return 0;
   return GetLastError();
 }

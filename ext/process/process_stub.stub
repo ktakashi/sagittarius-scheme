@@ -40,7 +40,7 @@
     (Sg_AssertionViolation 'open-shared-memory
 			   (SG_MAKE_STRING "invalid option") 
 			   (SG_LIST1 option)))
-  (let ((no-fail?::int)
+  (let ((no-fail?::int FALSE)
 	(flags::int (?: (SG_FALSEP option) 
 			;; default create.
 			;; so creation does truncate the shared memory

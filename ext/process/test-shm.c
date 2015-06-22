@@ -29,7 +29,7 @@ int main()
 int main()
 {
   HANDLE hMapFile = OpenFileMappingW(FILE_MAP_ALL_ACCESS, FALSE,
-				     _T("/sagittarius-process"));
+				     L"/sagittarius-process");
   uint8_t *ptr = (uint8_t *)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS,
 					  0, 0, 4096);
   strcpy((char *)ptr, "process");

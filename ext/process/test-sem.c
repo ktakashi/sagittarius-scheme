@@ -55,8 +55,9 @@ void ipc()
 int main()
 {
   HANDLE hSem = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS, FALSE, L"/input");
+  LONG out;
   ipc();
-  ReleaseSemaphore(hSem);
+  ReleaseSemaphore(hSem, 1, &out);
   CloseHandle(hSem);
 }
 
