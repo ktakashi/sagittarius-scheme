@@ -2,6 +2,7 @@
 (add-load-path "./process/")
 (import (rnrs)
 	(sagittarius process)
+	(sagittarius threads) ;; for semaphore
 	(srfi :64 testing))
 
 (test-begin "process tests")
@@ -52,9 +53,25 @@
        (proc (make-process *shm-name* '()))
        (bv (shared-memory->bytevector shm)))
   (test-assert "call" (process-call proc))
-  (process-wait proc)
-  ;; (test-assert "wait" )
+  (test-assert "wait"  (process-wait proc))
   (test-equal "ref" "process" (utf8->string (bytevector-copy bv 0 7)))
   (test-assert "close" (close-shared-memory shm)))
+
+;; IPC
+(let ((sem (make-semaphore "/input" 0))
+      (shm (open-shared-memory "/sagittarius-process" 4096)))
+  (define thread
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(semaphore-wait! sem)
+	(utf8->string (bytevector-copy (shared-memory->bytevector shm) 0 7))))))
+  ;; other process
+  (let ((p (make-process (build-path build-directory-path "test-sem.bin") '())))
+    (process-call p)
+    (process-wait p)
+    (test-equal "IPC" "process" (thread-join! thread))
+    (close-shared-memory shm)
+    (semaphore-destroy! sem)))
 
 (test-end)

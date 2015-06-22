@@ -22,29 +22,36 @@ ENDIF()
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 # for test
 ADD_EXECUTABLE(test-proc test-proc.c)
-SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
 # for shared memory test
 ADD_EXECUTABLE(test-shm test-shm.c)
+# for IPC
+ADD_EXECUTABLE(test-sem test-sem.c)
+
+SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
+SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
+SET_TARGET_PROPERTIES(test-sem PROPERTIES SUFFIX ".bin")
 
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # For shm_open, shm_unlink
   # NB FreeBSD has it on libc
   TARGET_LINK_LIBRARIES(test-shm rt)
+  TARGET_LINK_LIBRARIES(test-sem rt pthread)
 ELSEIF (${SAGITTARIUS_PLATFORM} MATCHES ".*bsd" 
     OR ${SAGITTARIUS_OS} STREQUAL "qnx")
   TARGET_LINK_LIBRARIES(test-shm c)
+  TARGET_LINK_LIBRARIES(test-sem c pthread)
 ENDIF()
-
-
-SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
 
 ADD_CUSTOM_TARGET(copy-test-proc
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-proc.bin
             ${PROJECT_BINARY_DIR}/ext/
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-shm.bin
+            ${PROJECT_BINARY_DIR}/ext/
+    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-sem.bin
             ${PROJECT_BINARY_DIR}/ext/)
 ADD_DEPENDENCIES(copy-test-proc test-proc)
 ADD_DEPENDENCIES(copy-test-proc test-shm)
+ADD_DEPENDENCIES(copy-test-proc test-sem)
 
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
