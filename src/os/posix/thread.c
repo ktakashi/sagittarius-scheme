@@ -206,6 +206,7 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
 			    SG_LIST1(name));
     }
     if (value >= 0) flags |= O_CREAT;
+    else value = 0;		/* ignore it, please */
     /* TODO mode? */
     semaphore->semaphore = sem_open(semname, flags, 0666, value);
     if (semaphore->semaphore == SEM_FAILED) {
@@ -216,6 +217,11 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     semaphore->name = SG_OBJ(name);
   } else {
     sem_t *sem = SG_NEW(sem_t);
+    if (value < 0) {
+      Sg_AssertionViolation(SG_INTERN("make-semaphore"),
+			    SG_MAKE_STRING("anonymous semaphore must have positive initial value"),
+			    SG_LIST1(SG_MAKE_INT(value)));
+    }
     if (sem_init(sem, 1, value) == -1) {
       char *msg = strerror(errno);
       Sg_SystemError(errno, UC("failed to sem_open %A"), 

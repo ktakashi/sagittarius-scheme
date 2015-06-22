@@ -400,7 +400,9 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
       sem->name = SG_FALSE;
     }
     /* TODO should we check the name?  */
-    sem->semaphore = CreateSemaphoreW(NULL, value, value, semname);
+    /* NOTE: we put MAX_SEM_COUNT so that it can have the same behaviour
+             as POSIX. */
+    sem->semaphore = CreateSemaphoreW(NULL, value, MAX_SEM_COUNT, semname);
     if (!sem->semaphore) {
       int errn = GetLastError();
       Sg_SystemError(errn, UC("failed to create semaphore, %A"),
@@ -412,8 +414,8 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
       semname = Sg_StringToWCharTs(name);
       sem->name = SG_OBJ(name);
     } else {
-      Sg_ImplementationRestrictionViolation(SG_INTERN("make-semaphore"),
-	    SG_MAKE_STRING("opening anonymous  semaphore is not supporeted."),
+      Sg_AssertionViolation(SG_INTERN("make-semaphore"),
+	    SG_MAKE_STRING("opening anonymous semaphore is not supporeted."),
 	    SG_NIL);
     }
     sem->semaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS,

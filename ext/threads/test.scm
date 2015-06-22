@@ -485,6 +485,9 @@
 				 (r (semaphore? s)))
 			    (semaphore-destroy! s)))
 
+;; error
+(test-error "semaphore" assertion-violation? (make-semaphore #f -1))
+
 (let ((sem (make-semaphore #f 1))) ;; anonymous binary semaphore
   (define counter 0)
   (define ts (map (lambda (index)
