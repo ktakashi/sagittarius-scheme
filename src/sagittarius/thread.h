@@ -59,7 +59,7 @@ typedef unsigned int SgThreadEntryFunc(void *);
     (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
   } while (0)
 #define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
-struct SgInternalCondRec
+typedef struct SgInternalCondRec
 {
   int waiters_count;
   CRITICAL_SECTION waiters_count_lock;
@@ -67,8 +67,13 @@ struct SgInternalCondRec
   HANDLE waiters_done;
   SgInternalMutex *mutex;
   size_t was_broadcast;
-};
-typedef struct SgInternalCondRec SgInternalCond;
+} SgInternalCond;
+
+typedef struct SgInternalSemaphoreRec
+{
+  SgObject name;		/* #f unnamed semaphore */
+  HANDLE semaphore;
+} SgInternalSemaphore;
 
 #define SG_INTERNAL_COND_TIMEDOUT 1
 #define SG_INTERNAL_COND_INTR     2
@@ -82,6 +87,7 @@ typedef struct SgInternalCondRec SgInternalCond;
 #else
 #include <errno.h>
 #include <pthread.h>
+#include <semaphore.h>
 typedef struct SgInternalMutexRec
 {
   pthread_mutex_t mutex;
@@ -97,6 +103,13 @@ typedef struct  SgInternalCondRec
 {
   pthread_cond_t cond;
 } SgInternalCond;
+
+typedef struct SgInternalSemaphoreRec
+{
+  SgObject name;		/* #f unnamed semaphore */
+  sem_t   *semaphore;
+} SgInternalSemaphore;
+
 
 #define SG_INTERNAL_THREAD_INIT(thr)		\
   do {						\
@@ -191,6 +204,15 @@ SG_EXTERN int  Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 SG_EXTERN void Sg_ExitThread(SgInternalThread *thread, void *ret);
 SG_EXTERN void Sg_TerminateThread(SgInternalThread *thread);
 SG_EXTERN int  Sg_InterruptThread(SgInternalThread *thread);
+
+/* if value <= 0 then don't create. */
+SG_EXTERN SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value);
+SG_EXTERN int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore,
+				struct timespec *pts);
+SG_EXTERN int  Sg_PostSemaphore(SgInternalSemaphore *semaphore);
+SG_EXTERN void Sg_CloseSemaphore(SgInternalSemaphore *semaphore);
+SG_EXTERN void Sg_DestroySemaphore(SgInternalSemaphore *semaphore);
+
 
 SG_CDECL_END
 

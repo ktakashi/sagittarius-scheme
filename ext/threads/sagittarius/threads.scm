@@ -68,6 +68,11 @@
 	    terminated-thread-exception-terminator
 	    uncaught-exception-reason
 
+	    ;; semaphore
+	    semaphore? make-semaphore semaphore-wait! semaphore-post!
+	    semaphore-close! semaphore-destroy!
+	    semaphore-name
+
 	    ;; sagittarius threads specific
 	    ;; from srfi-18
 	    mutex-lock-recursively! mutex-unlock-recursively!
@@ -77,7 +82,7 @@
 	    sys-nanosleep
 	    thread-guard
 	    ;; clos
-	    <thread> <mutex> <condition-variable>
+	    <thread> <mutex> <condition-variable> <semaphore>
 	    )
     (import (core)
 	    (core syntax)

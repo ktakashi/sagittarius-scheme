@@ -480,4 +480,26 @@
   (test-equal "thread created before" '(10 :changed-before) (thread-join! t))
   )
 
+;; semaphore
+(test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
+				 (r (semaphore? s)))
+			    (semaphore-destroy! s)))
+
+(let ((sem (make-semaphore #f 1))) ;; anonymous binary semaphore
+  (define counter 0)
+  (define ts (map (lambda (index)
+		    (make-thread
+		      (lambda ()
+			(semaphore-wait! sem)
+			(set! counter (+ counter 1))
+			(semaphore-post! sem)))) '(1 2)))
+  (for-each thread-start! ts)
+  (for-each thread-join! ts)
+  (test-equal "semaphore" 2 counter)
+  (test-assert "name" (not (semaphore-name sem))) ;; anonymous returns #f
+  (test-assert "destroy" (semaphore-destroy! sem)))
+
+		     
+
+
 (test-end)

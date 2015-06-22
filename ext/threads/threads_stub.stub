@@ -25,6 +25,7 @@
 
 (define-type <mutex> "SgMutex*")
 (define-type <condition-variable> "SgConditionVariable*")
+(define-type <semaphore> "SgSemaphore*")
 
 ;; thread is VM
 (define-c-proc thread? (obj) ::<boolean> :constant SG_VMP)
@@ -141,3 +142,21 @@
 
 (define-c-proc sys-nanosleep (n::<number>) 
   (result (Sg_MakeInteger (Sg_SysNanosleep (Sg_GetDouble n)))))
+
+;; semaphore
+(define-c-proc semaphore? (o) ::<boolean> SG_SEMAPHOREP)
+
+(define-c-proc make-semaphore (name value::<fixnum>)
+  (unless (or (SG_FALSEP name) (SG_STRINGP name))
+    (wrong-type-of-argument-violation 'make-semaphore "string or #f" name))
+  (result (Sg_MakeSemaphore name value)))
+
+(define-c-proc semaphore-name (sem::<semaphore>)
+  (result (-> (-> sem semaphore) name)))
+
+(define-c-proc semaphore-wait! (sem::<semaphore> :optional (timeout #f))
+  ::<boolean> Sg_SemaphoreWait)
+(define-c-proc semaphore-post! (sem::<semaphore>) ::<boolean> Sg_SemaphorePost)
+(define-c-proc semaphore-close! (sem::<semaphore>) ::<void> Sg_SemaphoreClose)
+(define-c-proc semaphore-destroy! (sem::<semaphore>) ::<void> 
+  Sg_SemaphoreDestroy)

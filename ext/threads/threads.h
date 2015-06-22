@@ -114,6 +114,22 @@ typedef struct SgUncaughtExceptionRec
 #define SG_UNCAUGHT_EXCEPTION(o)  ((SgUncaughtException *)o)
 #define SG_UNCAUGHT_EXCEPTIONP(o) SG_ISA(o, SG_CLASS_UNCAUGHT_EXCEPTION)
 
+/* semaphore 
+
+   For now we expose native functionality with thin wrapper.
+ */
+SG_CLASS_DECL(Sg_SemaphoreClass);
+#define SG_CLASS_SEMAPHORE     (&Sg_SemaphoreClass)
+typedef struct SgSemaphoreRec
+{
+  SG_INSTANCE_HEADER;
+  SgInternalSemaphore *semaphore;
+} SgSemaphore;
+
+#define SG_SEMAPHORE(obj)    ((SgSemaphore *)obj)
+#define SG_SEMAPHOREP(obj)   SG_XTYPEP(obj, SG_CLASS_SEMAPHORE)
+
+
 SG_CDECL_BEGIN
 /*
   Scheme level thread API
@@ -144,6 +160,15 @@ SgObject Sg_MakeAbandonedMutexException(SgVM *vm, SgMutex *mutex);
 SgObject Sg_MakeTerminatedThreadException(SgVM *vm, SgVM *terminator);
 SgObject Sg_MakeUncaughtException(SgVM *vm, SgObject reason);
 SgObject Sg_MakeThreadInterruptException(SgVM *vm);
+
+/* semaphore */
+/* values <=0 means retriving */
+SgObject Sg_MakeSemaphore(SgObject name, int value);
+int      Sg_SemaphoreWait(SgSemaphore *sem, SgObject timeout);
+int      Sg_SemaphorePost(SgSemaphore *sem);
+void     Sg_SemaphoreClose(SgSemaphore *sem);
+void     Sg_SemaphoreDestroy(SgSemaphore *sem);
+
 
 SG_CDECL_END
 #endif /* ! SAGITTARIUS_THREADS_H_ */

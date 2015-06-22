@@ -252,6 +252,64 @@ SgObject Sg_ConditionVariableBroadcast(SgConditionVariable *cond)
   return SG_UNDEF;
 }
 
+
+/* semaphore */
+static void sem_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+
+}
+static SgObject sem_allocate(SgClass *klass, SgObject initargs);
+
+SG_DEFINE_BASE_CLASS(Sg_SemaphoreClass, SgSemaphore,
+		     sem_printer, NULL, NULL, sem_allocate,
+		     NULL);
+
+static SgObject sem_allocate(SgClass *klass, SgObject initargs)
+{
+  return NULL; 			/* dummy for now */
+}
+
+
+SgObject Sg_MakeSemaphore(SgObject name, int value)
+{
+  SgInternalSemaphore *sem
+    = Sg_InitSemaphore((SG_FALSEP(name)) ? NULL : SG_STRING(name), value);
+  SgSemaphore *z = SG_NEW(SgSemaphore);
+  SG_SET_CLASS(z, SG_CLASS_SEMAPHORE);
+  z->semaphore = sem;
+  return SG_OBJ(z);
+}
+
+int Sg_SemaphoreWait(SgSemaphore *sem, SgObject timeout)
+{
+  struct timespec ts, *pts;
+  int r;
+
+  pts = Sg_GetTimeSpec(timeout, &ts);
+  r = Sg_WaitSemaphore(sem->semaphore, pts);
+  /* TODO intr? */
+  if (r == SG_INTERNAL_COND_TIMEDOUT) return FALSE;
+  return TRUE;
+}
+int Sg_SemaphorePost(SgSemaphore *sem)
+{
+  int r = Sg_PostSemaphore(sem->semaphore);
+  if (r) {
+    Sg_Error(UC("semaphore-post!: %A"),
+	     Sg_GetLastErrorMessageWithErrorCode(r));
+  }
+  return TRUE;
+}
+void Sg_SemaphoreClose(SgSemaphore *sem)
+{
+  Sg_CloseSemaphore(sem->semaphore);
+}
+void Sg_SemaphoreDestroy(SgSemaphore *sem)
+{
+  Sg_DestroySemaphore(sem->semaphore);
+}
+
+
 static SgClass *error_cpl[] = {
   SG_ERROR_CONDITION_CPL,
   NULL
@@ -421,6 +479,8 @@ void Sg__InitMutex(SgLibrary *lib)
 			     SG_FALSE, NULL, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_CONDITION_VARIABLE,
 			     UC("<condition-variable>"), lib, NULL,
+			     SG_FALSE, NULL, 0);
+  Sg_InitStaticClassWithMeta(SG_CLASS_SEMAPHORE, UC("<semaphore>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
 }
 SG_CDECL_END

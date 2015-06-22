@@ -236,12 +236,9 @@ static int wait_for_single_object(HANDLE waitOn, DWORD msecs)
 }
 #endif
 
-static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
-			 struct timespec *pts)
+static DWORD converts_timespec(struct timespec *pts)
 {
-  int last_waiter, bad_mutex = FALSE;
-  DWORD msecs, r0, r1;
-
+  DWORD msecs;
   if (pts) {
     unsigned long now_sec, target_sec;
     unsigned long target_usec, now_usec;
@@ -262,6 +259,17 @@ static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
   } else {
     msecs = INFINITE;
   }
+  return msecs;
+}
+
+static int wait_internal(SgInternalCond *cond, SgInternalMutex *mutex,
+			 struct timespec *pts)
+{
+  int last_waiter, bad_mutex = FALSE;
+  DWORD msecs, r0, r1;
+
+  msecs = converts_timespec(pts);
+
   EnterCriticalSection(&cond->waiters_count_lock);
   if (cond->mutex != NULL && cond->mutex != mutex) {
     bad_mutex = TRUE;
@@ -374,6 +382,71 @@ int Sg_InterruptThread(SgInternalThread *thread)
 {
   return SetEvent(thread->event);
 }
+
+SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
+{
+  SgInternalSemaphore *sem = SG_NEW(SgInternalSemaphore);
+  if (value > 0) {
+    wchar_t *semname = NULL;
+    if (value > MAX_SEM_COUNT) {
+      Sg_AssertionViolation(SG_INTERN("make-semaphore"),
+			    SG_MAKE_STRING("value is too big"),
+			    SG_LIST1(SG_MAKE_INT(value)));
+    }
+    if (name) {
+      semname = Sg_StringToWCharTs(name);
+      sem->name = SG_OBJ(name);
+    } else {
+      sem->name = SG_FALSE;
+    }
+    /* TODO should we check the name?  */
+    sem->semaphore = CreateSemaphoreW(NULL, value, value, semname);
+    if (!sem->semaphore) {
+      int errn = GetLastError();
+      Sg_SystemError(errn, UC("failed to create semaphore, %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(errn));
+    }
+  } else {
+    wchar_t *semname = NULL;
+    if (name) {
+      semname = Sg_StringToWCharTs(name);
+      sem->name = SG_OBJ(name);
+    } else {
+      Sg_ImplementationRestrictionViolation(SG_INTERN("make-semaphore"),
+	    SG_MAKE_STRING("opening anonymous  semaphore is not supporeted."),
+	    SG_NIL);
+    }
+    sem->semaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS,
+				    FALSE, name);
+  }
+  return sem;
+}
+int  Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
+{
+  DWORD msecs = converts_timespec(pts);
+  int r = WaitForSingleObject(semaphore->semaphore, msecs);
+  if (r == WAIT_TIMEOUT) return SG_INTERNAL_COND_TIMEDOUT;
+  if (r != WAIT_OBJECT_0) return SG_INTERNAL_COND_INTR;
+  return 0;
+}
+
+int  Sg_PostSemaphore(SgInternalSemaphore *semaphore)
+{
+  int r = ReleaseSemaphore(semaphore->semaphore);
+  if (r) return 0;
+  return GetLastError();
+}
+void Sg_CloseSemaphore(SgInternalSemaphore *semaphore)
+{
+  CloseHandle(semaphore->semaphore);
+}
+
+void Sg_DestroySemaphore(SgInternalSemaphore *semaphore)
+{
+  /* the same as close */
+  CloseHandle(semaphore->semaphore);
+}
+
 
 /*
   end of file

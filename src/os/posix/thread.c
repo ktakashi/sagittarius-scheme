@@ -31,10 +31,16 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
+#include <fcntl.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
+#include <sagittarius/error.h>
+#include <sagittarius/pair.h>
+#include <sagittarius/string.h>
+#include <sagittarius/symbol.h>
 #include <sagittarius/vm.h>
+#include <sagittarius/unicode.h>
 
 #include "../../gc-incl.inc"
 
@@ -182,6 +188,79 @@ void Sg__InitThread()
   actions.sa_handler = ignore_handler;
   sigaction(SIGALRM, &actions, NULL);
 }
+
+SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
+{
+  SgInternalSemaphore *semaphore = SG_NEW(SgInternalSemaphore);
+  if (value > SEM_VALUE_MAX) {
+    Sg_AssertionViolation(SG_INTERN("make-semaphore"),
+			  SG_MAKE_STRING("value is too big"),
+			  SG_LIST1(SG_MAKE_INT(value)));
+  }
+  if (name) {
+    char *semname = Sg_Utf32sToUtf8s(name);
+    int flags = 0;
+    if (semname[0] != '/') {
+      Sg_AssertionViolation(SG_INTERN("make-semaphore"),
+			    SG_MAKE_STRING("name must start with '/'"),
+			    SG_LIST1(name));
+    }
+    if (value > 0) flags |= O_CREAT;
+    /* TODO mode? */
+    semaphore->semaphore = sem_open(semname, flags, 0666, value);
+    if (semaphore->semaphore == SEM_FAILED) {
+      char *msg = strerror(errno);
+      Sg_SystemError(errno, UC("failed to sem_open %A"), 
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
+    }
+    semaphore->name = SG_OBJ(name);
+  } else {
+    sem_t *sem = SG_NEW(sem_t);
+    if (sem_init(sem, 1, value) == -1) {
+      char *msg = strerror(errno);
+      Sg_SystemError(errno, UC("failed to sem_open %A"), 
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
+    }
+    semaphore->semaphore = sem;
+    semaphore->name = SG_FALSE;
+  }
+  return semaphore;
+}
+
+int Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
+{
+  int r;
+  if (pts) {
+    r = sem_timedwait(semaphore->semaphore, pts);
+  } else {
+    r = sem_wait(semaphore->semaphore);
+  }
+  if (r != 0) return errno;
+  return r;
+}
+
+int Sg_PostSemaphore(SgInternalSemaphore *semaphore)
+{
+  int r = sem_post(semaphore->semaphore);
+  if (r != 0) return errno;
+  return r;
+}
+void Sg_CloseSemaphore(SgInternalSemaphore *semaphore)
+{
+  if (!SG_FALSEP(semaphore->name)) {
+    sem_close(semaphore->semaphore);
+  }
+}
+void Sg_DestroySemaphore(SgInternalSemaphore *semaphore)
+{
+  if (SG_FALSEP(semaphore->name)) {
+    sem_destroy(semaphore->semaphore);
+  } else {
+    char *name = Sg_Utf32sToUtf8s(semaphore->name);
+    sem_unlink(name);
+  }
+}
+
 
 /*
   end of file
