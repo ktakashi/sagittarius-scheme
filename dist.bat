@@ -6,15 +6,23 @@ set SASH="%ProgramFiles%\Sagittarius\sash.exe"
 
 goto :entry
 
+rem insn
+:insn
+shift
+echo "Generating instructions files"
+cd src
+%SASH% geninsn %1
+cd ..
+goto next
+
 rem precomp
 :precomp
 shift
 echo "Generating compiled library files"
 cd src
 %SASH% genlib %1
-%SASH% geninsn %1
 cd ..
-
+call insn dummy %1
 goto next
 
 rem stub
