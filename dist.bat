@@ -9,7 +9,7 @@ goto :entry
 rem precomp
 :precomp
 shift
-echo "Genrating compiled library files"
+echo "Generating compiled library files"
 cd src
 %SASH% genlib %1
 %SASH% geninsn %1
@@ -20,7 +20,7 @@ goto next
 rem stub
 :stub
 shift
-echo "Genrating library from stub"
+echo "Generating library from stub"
 cd src
 %SASH% genstub %1
 cd ..
@@ -55,6 +55,7 @@ goto next
 
 
 :entry
+if not exist "%SASH%" goto err
 if "%1"=="" goto usage
 
 :next
@@ -68,6 +69,11 @@ echo "    precomp:    generate precompiled files"
 echo "    stub:       generate stub files"
 echo "    srfi:       generate R7RS style SRFI libraries"
 echo "    clean:      clean generated files"
+
+goto :end
+
+:err
+echo "Sagittarius is not installed. Default %SASH%"
 
 :end
 
