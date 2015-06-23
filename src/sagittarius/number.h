@@ -140,8 +140,14 @@ enum ScmClampMode {
 };
 
 #ifdef _MSC_VER
-#define isinf(x) (!_finite(x) && !_isnan(x))
-#define isnan(x) _isnan(x)
+/* seems it's defined in VS 12.0 */
+# include <math.h>
+# ifndef isinf
+#  define isinf(x) (!_finite(x) && !_isnan(x))
+# endif
+# ifndef isnan
+#  define isnan(x) _isnan(x)
+# endif
 #endif
 
 SG_EXTERN SgObject Sg_MakeInteger(long x);

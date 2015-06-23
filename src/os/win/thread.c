@@ -429,10 +429,10 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
       if (e == ERROR_FILE_NOT_FOUND) {
 	Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
 		   SG_INTERN("open-semaphore"),
-		   Sg_GetLastErrorMessageWithErrorCode(e);
+		   Sg_GetLastErrorMessageWithErrorCode(e),
 		   name, SG_UNDEF);
       } else {
-	Sg_SystemError(errn, UC("failed to open semaphore, %A"),
+	Sg_SystemError(e, UC("failed to open semaphore, %A"),
 		       Sg_GetLastErrorMessageWithErrorCode(e));
       }
     }
