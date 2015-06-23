@@ -70,3 +70,5 @@ echo "    srfi:       generate R7RS style SRFI libraries"
 echo "    clean:      clean generated files"
 
 :end
+
+exit 0
