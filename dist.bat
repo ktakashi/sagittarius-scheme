@@ -22,7 +22,7 @@ echo "Generating compiled library files"
 cd src
 %SASH% genlib %1
 cd ..
-call insn dummy %1
+call :insn dummy %1
 goto next
 
 rem stub
