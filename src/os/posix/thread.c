@@ -210,9 +210,17 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     /* TODO mode? */
     semaphore->semaphore = sem_open(semname, flags, 0666, value);
     if (semaphore->semaphore == SEM_FAILED) {
-      char *msg = strerror(errno);
-      Sg_SystemError(errno, UC("failed to sem_open %A"), 
-		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
+      int e = errno;
+      char *msg = strerror(e);
+      if (e == ENOENT) {
+	Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+		   SG_INTERN("open-semaphore"),
+		   Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		   name, SG_UNDEF);
+      } else {
+	Sg_SystemError(errno, UC("failed to sem_open %A"), 
+		       Sg_Utf8sToUtf32s(msg, strlen(msg)));
+      }
     }
     semaphore->name = SG_OBJ(name);
   } else {

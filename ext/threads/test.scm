@@ -486,8 +486,12 @@
 			    (semaphore-destroy! s)))
 
 ;; error
-(test-error "semaphore (error 1)" assertion-violation? (make-semaphore #f -1))
-(test-error "semaphore (error 2)" assertion-violation? (make-semaphore #f #f))
+(test-error "make semaphore (error)"
+	    assertion-violation? (make-semaphore #f -1))
+(test-error "open semaphore (error 1)"
+	    assertion-violation? (open-semaphore #f))
+(test-error "open semaphore (error 2)"
+	    i/o-error? (open-semaphore "/not exist"))
 
 (let ((sem (make-semaphore #f 1))) ;; anonymous binary semaphore
   (define counter 0)

@@ -424,6 +424,18 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
     }
     sem->semaphore = OpenSemaphoreW(SEMAPHORE_ALL_ACCESS,
 				    FALSE, semname);
+    if (sem->semaphore == NULL) {
+      int e = GetLastError();
+      if (e == ERROR_FILE_NOT_FOUND) {
+	Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+		   SG_INTERN("open-semaphore"),
+		   Sg_GetLastErrorMessageWithErrorCode(e);
+		   name, SG_UNDEF);
+      } else {
+	Sg_SystemError(errn, UC("failed to open semaphore, %A"),
+		       Sg_GetLastErrorMessageWithErrorCode(e));
+      }
+    }
   }
   return sem;
 }

@@ -146,16 +146,21 @@
 ;; semaphore
 (define-c-proc semaphore? (o) ::<boolean> SG_SEMAPHOREP)
 
-(define-c-proc make-semaphore (name value)
+;; Create/open semaphore
+(define-c-proc make-semaphore (name value::<fixnum>)
   (unless (or (SG_FALSEP name) (SG_STRINGP name))
     (wrong-type-of-argument-violation 'make-semaphore "string or #f" name))
-  (unless (or (SG_FALSEP value) 
-	      (and (SG_INTP value) (>= (SG_INT_VALUE value) 0)))
+  (when (< value 0)
     (wrong-type-of-argument-violation 'make-semaphore 
-				      "non negative fixnum or #f" value))
-  (let ((v::int (?: (SG_INTP value) (SG_INT_VALUE value) -1))
+				      "non negative fixnum" 
+				      (SG_MAKE_INT value)))
+  (let ((v::int value)
 	(n::SgString* (?: (SG_FALSEP name) NULL (SG_STRING name))))
     (result (Sg_MakeSemaphore n v))))
+
+;; Open named semaphore
+(define-c-proc open-semaphore (name::<string>)
+  (result (Sg_MakeSemaphore name -1)))
 
 (define-c-proc semaphore-name (sem::<semaphore>)
   (result (-> (-> sem semaphore) name)))

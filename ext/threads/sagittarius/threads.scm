@@ -69,7 +69,8 @@
 	    uncaught-exception-reason
 
 	    ;; semaphore
-	    semaphore? make-semaphore semaphore-wait! semaphore-post!
+	    semaphore? make-semaphore open-semaphore
+	    semaphore-wait! semaphore-post!
 	    semaphore-close! semaphore-destroy!
 	    semaphore-name
 
