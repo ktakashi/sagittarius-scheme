@@ -9,7 +9,7 @@ rem reached to max retry count.
 set RETRY=0
 set MAX_RETRY=100
 
-COMMAND=%1
+set COMMAND=%1
 shift
 :retry
 %COMMAND% %*
