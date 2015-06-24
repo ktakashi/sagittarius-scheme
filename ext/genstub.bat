@@ -11,11 +11,20 @@ set RETRY=0
 set MAX_RETRY=100
 
 set COMMAND=%1
-shift
 rem Make it look like Windows command
 set COMMAND==%COMMAND:/=\%
+set "ARGS="
+shift
+rem shift doesn't affect %* unfortunately...
+:parse
+if "%1" neq "" (
+    set ARGS=%ARGS %1
+    shift
+    goto :parse
+)
+
 :retry
-%COMMAND% %*
+%COMMAND% %ARGS%
 rem check c0000005
 if errorlevel -1073741819 (
     set /a RETRY=%RETRY%+1
