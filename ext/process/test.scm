@@ -39,8 +39,12 @@
 	    condition?
 	    (run *process-name* 'foo))
 
+;; shared memory
 (test-assert "open-shared-memory" open-shared-memory)
 (test-assert "close-shared-memory" close-shared-memory)
+
+(test-error "no creation" i/o-error?
+	    (open-shared-memory "/not exist" 4096 (file-options no-create)))
 
 (let ((shm (open-shared-memory "/sagittarius-process" 4096)))
   (test-assert "shared-memory?" (shared-memory? shm))

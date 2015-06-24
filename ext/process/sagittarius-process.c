@@ -70,9 +70,17 @@ SgObject Sg_OpenSharedMemory(SgString *name, size_t size, int flags)
   /* TODO mode? should we make it executable? */
   fd = shm_open(memname, f, 0666); 
   if (fd < 0) {
-    const char *msg = strerror(errno);
-    Sg_SystemError(errno, UC("open-shared-memory: shm_open failed. %A"),
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
+    int e = errno;
+    const char *msg = strerror(e);
+    if (e == ENOENT) {
+      Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+		 SG_INTERN("open-shared-memory"),
+		 Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		 name, SG_UNDEF);
+    } else {
+      Sg_SystemError(e, UC("open-shared-memory: shm_open failed. %A"),
+		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
+    }
   }
   /* TODO if not created? */
   if (truncp) {
@@ -117,9 +125,16 @@ SgObject Sg_OpenSharedMemory(SgString *name, size_t size, int flags)
   }
   if (hMapFile == NULL) {
     int err = GetLastError();
-    Sg_SystemError(err,
-		   UC("open-shared-memory: CreateFileMapping failed. %A"),
-		   Sg_GetLastErrorMessageWithErrorCode(err));
+    if (err == ERROR_FILE_NOT_FOUND) {
+      Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+		 SG_INTERN("open-shared-memory"),
+		 Sg_GetLastErrorMessageWithErrorCode(err),
+		 name, SG_UNDEF);
+    } else {
+      Sg_SystemError(err,
+		     UC("open-shared-memory: CreateFileMapping failed. %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(err));
+    }      
   }
   ptr = (uint8_t *)MapViewOfFile(hMapFile, FILE_MAP_ALL_ACCESS, 0, high, low);
 

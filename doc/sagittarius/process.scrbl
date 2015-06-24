@@ -167,3 +167,73 @@ process.
 NOTE: The exit status are platform dependent. On Windows, the value will be
 32 bit integer. On POSIX, the value will be 8 bit unsigned integer.
 }
+
+@define[Function]{@name{process-kill} @args{process}}
+@desc{@var{process} must be a process object.
+
+Kill the given process and returns the exit status of the given
+process. If the process is already terminated before the @code{process-kill}
+is called, then returning value is its status code. Otherwise -1.
+}
+
+@define[Function]{@name{getpid} @args{}}
+@desc{Returns pid of current Sagittarius process. The returning value
+is an integer.
+}
+
+@define[Function]{@name{pid->process} @args{pid}}
+@desc{@var{pid} must be an integer represents process id.
+
+Creates a process form given @var{pid}. 
+
+NOTE: the created process doesn't have any ports. Those values are set to #f.
+}
+
+@; IPC
+@subsubsection{Inter-process communication (IPC)}
+
+Users can choose how to communicate processes. One of the typical ways is
+using socket. @code{(sagittarius process)} provides shared memory for
+simple IPC.
+
+@define[Function]{@name{shared-memory?} @args{obj}}
+@desc{Returns #t if given @var{obj} is a shared memory object, otherwise #f.}
+
+@define[Function]{@name{open-shared-memory} @args{name size :optional option}}
+@desc{Creates or opens shared memory named @var{name}. 
+
+@var{name} must be an string and must be a valid shared memory name. If there
+is already a shared memory with the same name, then this procedure maps to it
+and ignores the @var{size} argument.
+
+@var{size} must be an integer. When a new shared memory is created, then
+its size is restricted to the given @var{size}.
+
+Optional argument @var{option} must be an enumeration which created by
+@var{file-options}. If @code{no-create} is specified, and there is
+no shared memory with given @var{name}, then @code{&i/o-file-does-not-exist}
+is raised. If @code{no-truncate} is specified, then the created shared
+memory is intact, otherwise it is truncted.
+
+}
+
+@define[Function]{@name{close-shared-memory} @args{shared-memory}}
+@desc{Closes given @var{shared-memory} and invalidate the allocated
+memory.
+
+This procedure also removes the given @var{shared-memory}. On some platform,
+for example Linux, if shared memory is not explicitly unliked, then it stays
+until the OS is restarted. To avoid it, users need to call this procedure.
+
+NOTE: invalidation means that the bytevector returned by 
+@code{shared-memory->bytevector} will be 0 length bytevector.
+}
+
+@define[Function]{@name{shared-memory->bytevector} @args{shared-memory}}
+@desc{Returns actual instance of shared memory as a bytevector.
+
+Modifying the returning bytevector also modifies the actual shared memory.
+
+To do synchronisation of this, use semaphore provided by
+@code{(sagittarius threads)}.
+}

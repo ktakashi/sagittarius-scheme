@@ -107,7 +107,8 @@
 
   (define (pid->process pid)
     ;; attached process.
-    (make <process> :name #f :args '() :pid pid))
+    (make <process> :name #f :args '() :pid pid
+	  :input #f :output #f :error #f :directory #f))
 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)

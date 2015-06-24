@@ -176,3 +176,53 @@ a thread and unblocks it.}
 
 @; TBD sys-nanosleep
 @; TBD condition accessors.
+
+@subsubsection{Semaphore APIs}
+
+@define[Function]{@name{semaphore?} @args{obj}}
+@desc{Returns #t if given @var{obj} is a semaphore, otherwise #f.}
+
+@define[Function]{@name{make-semaphore} @args{name initial}}
+@desc{Creates a new semaphore with initial count @var{initial}
+
+@var{name} must be either #f or string which represents semaphore name.
+If the value is #f, then the returning semaphore is memory based semaphore.
+
+@var{initial} must be non negative integer.
+
+If there is already the semaphore has the same name, then this procedure
+returns that semaphore instead of creating new one.
+}
+
+@define[Function]{@name{open-semaphore} @args{name}}
+@desc{Opens semaphore which has @var{name}.
+
+If there is no such semaphore, then the procedure raises
+@code{&i/o-file-does-not-exist}.
+}
+
+@define[Function]{@name{semaphore-name} @args{semaphore}}
+@desc{Returns the name of given @var{semaphore}.}
+
+@define[Function]{@name{semaphore-wait!} @args{semaphore :optional timeout}}
+@desc{Locks the @var{semaphore}. If the current count of @var{semaphore}
+is 0, then the procedure waits.
+
+The optional argument @var{timeout} is specified, which it must be #f, integer
+or time object, then the procedure only waits the given @var{timeout} amount.
+#f means inifinite.
+}
+
+@define[Function]{@name{semaphore-post!} @args{semaphore}}
+@desc{Unlock the @var{semaphore}. This procedure increase the count
+of @var{semaphore}.}
+
+@define[Function]{@name{semaphore-close!} @args{semaphore}}
+@desc{Closes the semaphore.}
+
+@define[Function]{@name{semaphore-destroy!} @args{semaphore}}
+@desc{Removes the semaphore.
+
+NOTE: the @code{semaphore-close!} and @code{semaphore-destroy!} behaves the
+same on Windows.
+}
