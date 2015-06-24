@@ -57,6 +57,7 @@ ADD_CUSTOM_TARGET(copy-test-proc
 ADD_DEPENDENCIES(copy-test-proc test-proc)
 ADD_DEPENDENCIES(copy-test-proc test-shm)
 ADD_DEPENDENCIES(copy-test-proc test-sem)
+ADD_DEPENDENCIES(copy-test-proc test-kill)
 
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
