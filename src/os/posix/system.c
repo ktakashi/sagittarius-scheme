@@ -598,7 +598,8 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     if (flags & SG_PROCESS_DETACH) {
       pid = fork();
       if (pid < 0) goto fork_fail;
-      if (pid > 0) exit(0);
+      /* kill intermidiate process */
+      if (pid == 0) exit(0);
 
       setsid();
     }

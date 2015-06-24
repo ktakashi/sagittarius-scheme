@@ -1,4 +1,4 @@
-@echo off
+rem @echo off
 rem Ugly workaround for appveyor
 rem For some reason x64 binary on Windows Server 2012 R2 causes
 rem access violation. This doens't happen on x64 Windows 7.
@@ -11,9 +11,9 @@ set RETRY=0
 set MAX_RETRY=100
 
 set COMMAND=%1
+shift
 rem Make it look like Windows command
 set COMMAND==%COMMAND:/=\%
-shift
 :retry
 %COMMAND% %*
 rem check c0000005
