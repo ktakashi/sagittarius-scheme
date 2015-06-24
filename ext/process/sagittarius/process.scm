@@ -46,6 +46,7 @@
 	    process-run
 	    process-call
 	    process-wait
+	    process-kill
 	    <process>
 
 	    ;; user level APIs
@@ -54,7 +55,7 @@
 	    create-process
 
 	    ;; extra
-	    getpid
+	    getpid pid->process
 
 	    ;; IPC
 	    shared-memory?
@@ -83,6 +84,9 @@
   (define (make-process name args)
     (make <process> :name name :args args))
   (define (process-call p . opts)
+    (unless (slot-ref p 'name)
+      (assertion-violation 'process-call "attached process can't be called"
+			   p))
     (let-values (((pid input output error)
 		  (apply sys-process-call (slot-ref p 'name) (slot-ref p 'args)
 			 opts)))
@@ -98,6 +102,12 @@
   (define (process-run p . opts)
     (apply process-call p opts)
     (process-wait p))
+  (define (process-kill p)
+    (sys-process-kill (slot-ref p 'pid)))
+
+  (define (pid->process pid)
+    ;; attached process.
+    (make <process> :name #f :args '() :pid pid))
 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)

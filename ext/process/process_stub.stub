@@ -17,6 +17,8 @@
        (result (GetCurrentProcessId()))
        (result (getpid))))
 
+(define-c-proc %pid->sys-process (pid::<fixnum>) ::<fixnum> Sg_PidToSysProcess)
+
 (define-c-proc shared-memory? (o) ::<boolean> SG_SHARED_MEMORY_P)
 (define-c-proc shared-memory->bytevector (shm::<shared-memory>)
   (result (-> shm memory)))

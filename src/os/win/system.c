@@ -517,6 +517,42 @@ int Sg_SysProcessWait(uintptr_t pid)
   return status;
 }
 
+int Sg_SysProcessKill(uintptr_t pid)
+{
+  SgWinProcess *p = (SgWinProcess *)pid;
+  DWORD status = 0;
+  if (!SG_WIN_PROCP(p)) Sg_Error(UC("invalid pid %S"), SG_OBJ(p));
+  if (p->process == (HANDLE)-1) return -1;
+  if (!TerminateProcess(p->process, -1)) {
+    int e = GetLastError();
+    /* TODO we way want to explicitly put TERMINATE_PROCESS
+       security attribute on the process we craeted so that
+       at least we can always make sure it's terminatable. */
+    Sg_SystemError(e, UC("failed to kill process: %A"),
+		   Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  /* TerminateProcess is asynchronoise. So wait for it. */
+  WaitForSingleObject(p->process, INFINITE);
+  /* might be finished before killing, so get the status here. */
+  GetExitCodeProcess(p->process, &status);
+  CloseHandle(p->process);
+  p->process = (HANDLE)-1;
+  Sg_UnregisterFinalizer(p);
+  unregister_win_proc(p);
+  return status;
+}
+
+uintptr_t Sg_PidToSysProcess(uintptr_t pid)
+{
+  HANDLE process = OpenProcess(PROCESS_ALL_ACCESS, TRUE, (DWORD)pid);
+  if (process == NULL) {
+    int e = GetLastError();
+    Sg_SystemError(e, UC("failed to open process: %A"),
+		   Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  return (uintptr_t)make_win_process(process);
+}
+
 static void cleanup_win_proc(void *data)
 {
   int i;

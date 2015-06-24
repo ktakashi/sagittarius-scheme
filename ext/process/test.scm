@@ -74,4 +74,8 @@
     (close-shared-memory shm)
     (semaphore-destroy! sem)))
 
+;; process-kill
+(let ((p (make-process (build-path build-directory-path "test-kill.bin") '())))
+  (process-call p)
+  (test-equal "process-kill" -1 (process-kill p)))
 (test-end)

@@ -105,7 +105,8 @@ const SgChar* Sg_NativeFileSeparator()
 
 SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 {
-  return Sg_MakeStringC(strerror(code));
+  char *msg = strerror(code);
+  return Sg_Utf8sToUtf32s(msg, strlen(msg));
 }
 
 SgObject Sg_GetLastErrorMessage()
@@ -652,8 +653,8 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
  fork_fail:
   {
     char message[256];
-    SgObject msg = Sg_GetLastErrorMessage();
     int e = errno;
+    SgObject msg = Sg_GetLastErrorMessageWithErrorCode(e);
     snprintf(message, sizeof(message), "%s failed.", sysfunc);
     if (pipe0[0] != -1) close(pipe0[0]);
     if (pipe0[1] != -1) close(pipe0[1]);
@@ -739,6 +740,42 @@ static void finish_child_process(void *data)
     }
   }
 
+}
+
+int Sg_SysProcessKill(uintptr_t pid)
+{
+  pid_t p = (pid_t)pid;
+  /* simply kill */
+  int r;
+#ifdef SIGKILL
+  r = kill(p, SIGKILL);
+#else
+  /* should be there */
+  r = kill(p, SIGTERM);
+#endif
+
+  if (r < 0) {
+    int e = errno;
+    if (e == ESRCH) {
+      /* wait the pid */
+      return Sg_SysProcessWait(pid);
+    } else {
+      /* must be EPERM, so system error */
+      Sg_SystemError(e, UC("failed to kill process: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));
+    }
+  }
+  /* remove it. */
+  remove_pid(pid);
+  /* dummy status code
+     it's killed so should be something error code, should't it? */
+  return -1;
+}
+
+/* This is for Windows, so on POSIX, just return */
+uintptr_t Sg_PidToSysProcess(uintptr_t pid)
+{
+  return pid;
 }
 
 /* general fallback */

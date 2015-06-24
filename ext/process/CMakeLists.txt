@@ -26,10 +26,13 @@ ADD_EXECUTABLE(test-proc test-proc.c)
 ADD_EXECUTABLE(test-shm test-shm.c)
 # for IPC
 ADD_EXECUTABLE(test-sem test-sem.c)
+# for process-kill
+ADD_EXECUTABLE(test-kill test-kill.c)
 
 SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
 SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
 SET_TARGET_PROPERTIES(test-sem PROPERTIES SUFFIX ".bin")
+SET_TARGET_PROPERTIES(test-kill PROPERTIES SUFFIX ".bin")
 
 IF(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   # For shm_open, shm_unlink
@@ -48,6 +51,8 @@ ADD_CUSTOM_TARGET(copy-test-proc
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-shm.bin
             ${PROJECT_BINARY_DIR}/ext/
     COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-sem.bin
+            ${PROJECT_BINARY_DIR}/ext/
+    COMMAND ${CMAKE_COMMAND} -E copy ${PROJECT_BINARY_DIR}/build/test-kill.bin
             ${PROJECT_BINARY_DIR}/ext/)
 ADD_DEPENDENCIES(copy-test-proc test-proc)
 ADD_DEPENDENCIES(copy-test-proc test-shm)
