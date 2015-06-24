@@ -1,4 +1,4 @@
-rem @echo off
+@echo off
 rem Ugly workaround for appveyor
 rem For some reason x64 binary on Windows Server 2012 R2 causes
 rem access violation. This doens't happen on x64 Windows 7.
@@ -26,7 +26,8 @@ if defined ARGS set ARGS=%ARGS:~1%
 :retry
 %COMMAND% %ARGS%
 rem check c0000005
-if errorlevel -1073741819 (
+if %errorlevel% == 3221225477 (
+    echo %errorlevel%
     set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry
 )
