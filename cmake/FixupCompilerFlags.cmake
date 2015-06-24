@@ -79,23 +79,6 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
 
     # /MT to avoid C-runtime
     # the rest is the same as CMake default
-    IF(NOT (MSVC_VERSION LESS 1700))
-      ADD_DEFINITIONS("-D_USING_V110_SDK71_")
-      # For supporting Windows XP
-      # NOTE: We only support it until 2014 which is the expiration year of
-      # Windows XP.
-      # WARNING this might be changed by CMake itself
-      IF (${${_PROCESSOR}} STREQUAL "x86_64")
-	SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.02")
-      ELSE()
-	# 32 bit
-	SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.01")
-      ENDIF()
-      SET(CMAKE_CREATE_CONSOLE_EXE "${VS2012_XP_FLAG}")
-      SET(CMAKE_SHARED_LINKER_FLAGS 
-	"${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
-    ENDIF()
-
     FOREACH(flag_var
 	CMAKE_CXX_FLAGS CMAKE_  CMAKE_CXX_FLAGS_DEBUG
 	CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
@@ -143,3 +126,21 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
 
 ENDMACRO (FIXUP_COMPILER_FLAGS)
 
+MACRO(MAKE_XP_COMPAT_BINARY)
+    IF(NOT (MSVC_VERSION LESS 1700))
+      ADD_DEFINITIONS("-D_USING_V110_SDK71_")
+      # For supporting Windows XP
+      # NOTE: We only support it until 2014 which is the expiration year of
+      # Windows XP.
+      # WARNING this might be changed by CMake itself
+      IF (${${_PROCESSOR}} STREQUAL "x86_64")
+	SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.02")
+      ELSE()
+	# 32 bit
+	SET(VS2012_XP_FLAG "/SUBSYSTEM:CONSOLE,5.01")
+      ENDIF()
+      SET(CMAKE_CREATE_CONSOLE_EXE "${VS2012_XP_FLAG}")
+      SET(CMAKE_SHARED_LINKER_FLAGS 
+	"${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
+    ENDIF()
+ENDMACRO(MAKE_XP_COMPAT_BINARY)

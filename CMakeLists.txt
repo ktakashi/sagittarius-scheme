@@ -8,6 +8,9 @@ OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 OPTION(INSTALL_SYMLINK "installing symlink" ON)
 OPTION(DEBUG_VERSION "build type" ON)
+IF (MSVC)
+  OPTION(MAKE_XP_BINARY "create XP compatible binary" ON)
+ENDIF()
 
 ### Platform checks
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
@@ -188,6 +191,9 @@ ENDIF()
 
 ### Compiler options
 FIXUP_COMPILER_FLAGS(SAGITTARIUS_PROCESSOR SAGITTARIUS_OS)
+IF (MAKE_XP_BINARY)
+  MAKE_XP_COMPAT_BINARY()
+ENDIF()
 
 # set module path here
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)

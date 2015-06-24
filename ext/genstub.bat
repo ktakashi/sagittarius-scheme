@@ -8,7 +8,7 @@ rem the execution until either hits executed properly or
 rem reached to max retry count.
 
 set RETRY=0
-set MAX_RETRY=100
+set MAX_RETRY=10
 
 set COMMAND=%1
 rem Make it look like Windows command
@@ -25,8 +25,8 @@ if "%~1" neq "" (
 if defined ARGS set ARGS=%ARGS:~1%
 :retry
 %COMMAND% %ARGS%
-rem check c0000005
-if %errorlevel% == 3221225477 (
+rem check c0000005 (how?)
+if %errorlevel% neq 0 (
     echo %errorlevel%
     set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry
