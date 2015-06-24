@@ -18,7 +18,7 @@ shift
 rem shift doesn't affect %* unfortunately...
 :parse
 if "%1" neq "" (
-    set ARGS=%ARGS %1
+    set ARGS=%ARGS% %1
     shift
     goto :parse
 )
