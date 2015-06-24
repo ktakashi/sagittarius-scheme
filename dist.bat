@@ -22,7 +22,7 @@ shift
 :retry
 %SASH% %COMMAND% %*
 if %errorlevel% neq 0 (
-    set RETRY=%RETRY%+1
+    set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry
 )
 rem return to caller

@@ -15,7 +15,7 @@ shift
 %COMMAND% %*
 rem check c0000005
 if errorlevel -1073741819 (
-    set RETRY=%RETRY%+1
+    set /a RETRY=%RETRY%+1
     if %RETRY% neq %MAX_RETRY% goto retry
 )
 rem if it failed with othter error code, we need to pass it
