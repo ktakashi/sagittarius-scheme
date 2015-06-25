@@ -1631,7 +1631,9 @@
 
   (define (tls-socket-shutdown socket how)
     (unless (~ socket 'sent-close?)
-      (when (~ socket 'has-peer?)
+      (when (and (~ socket 'has-peer?)
+		 ;; TODO should this be here or send-alert?
+		 (socket-write-select 0 (~ socket 'raw-socket)))
 	(send-alert socket *warning* *close-notify*))
       (socket-shutdown (~ socket 'raw-socket) how)
       (set! (~ socket 'sent-close?) #t)))

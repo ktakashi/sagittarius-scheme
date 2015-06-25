@@ -1,6 +1,7 @@
 (import (rnrs) 
 	(sagittarius threads) 
 	(sagittarius object) 
+	(sagittarius socket) 
 	(rfc tls)
 	(rfc x.509) 
 	(crypto)
@@ -10,6 +11,11 @@
 
 
 (test-begin "RFC TLS")
+
+(define (shutdown&close s)
+  (tls-socket-shutdown s SHUT_RDWR)
+  (tls-socket-close s))
+
 (define keypair (generate-key-pair RSA :size 1024))
 
 (define cert (make-x509-basic-certificate keypair 1
@@ -21,25 +27,28 @@
 (define server-socket (make-server-tls-socket "10001" (list cert)))
 
 (define (server-run)
+  (define end? #f)
   (let loop ()
     (let ((addr (tls-socket-accept server-socket)))
-      (call-with-tls-socket addr
-	(lambda (sock)
-	  (let ((p (transcoded-port (tls-socket-port sock) 
-				    (native-transcoder))))
-	    (call-with-port p
-	      (lambda (p)
-		(let lp2 ((r (get-line p)))
-		  (cond ((or (not (string? r)) (string=? r "test-end")))
-			((or (not (string? r)) (string=? r "end")) (loop))
-			(else
-			 (let ((res (string->utf8 (string-append r "\r\n"))))
-			   (when (string=? r "wait")
-			     ;; wait one sec
-			     (thread-sleep! 1))
-			   (put-bytevector p res 0 (bytevector-length res) #t)
-			   (lp2 (get-line p))))))))))))))
-
+      (guard (e (else (unless end? (loop))))
+	(call-with-tls-socket addr
+	  (lambda (sock)
+	    (let ((p (transcoded-port (tls-socket-port sock #f) 
+				      (native-transcoder))))
+	      (call-with-port p
+	        (lambda (p)
+		  (let lp2 ((r (get-line p)))
+		    (cond ((or (not (string? r)) (string=? r "test-end"))
+			   (set! end? #t))
+			  ((or (not (string? r)) (string=? r "end")) (loop))
+			  (else
+			   (let ((res (string->utf8 (string-append r "\r\n"))))
+			     (when (string=? r "wait")
+			       ;; wait one sec
+			       (thread-sleep! 1))
+			     (put-bytevector p res 0 (bytevector-length res) #t)
+			     (lp2 (get-line p)))))))))))))))
+  
 (define server-thread (thread-start! (make-thread server-run)))
 (thread-sleep! 2)
 
@@ -76,7 +85,8 @@
       (put-string text-port "end\r\n")
       ;; the test server is a bit too naive to handle this...
       ;; (close-port text-port)
-      )))
+      ))
+  (shutdown&close client-socket))
 
 (let ((client-socket (make-client-tls-socket "localhost" "10001")))
   (tls-socket-nonblocking! client-socket)
@@ -90,10 +100,10 @@
   (tls-socket-blocking! client-socket)
   (tls-socket-send client-socket (string->utf8 "test-end\r\n") 0)
   (thread-sleep! 2)
-  (tls-socket-close client-socket)
-  )
+  ;; (tls-socket-close client-socket)
+  (shutdown&close client-socket))
 
 (thread-join! server-thread)
 ;;(test-assert "TLS server finish" (thread-join! server-thread))
-
+(shutdown&close server-socket)
 (test-end)

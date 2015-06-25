@@ -109,7 +109,9 @@
   (make-thread (lambda ()
 		 (let1 socket (make-server-socket *http-port*)
 		   (set! server-up? #t)
-		   (http-server socket)))))
+		   (guard (e (else #f)) (http-server socket))
+		   (socket-shutdown socket SHUT_RDWR)
+		   (socket-close socket)))))
 (thread-start! server-thread)
 ;; since 0.3.8 client/server socket creation are really slow on linux.
 ;; needs to be improved.

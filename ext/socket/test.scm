@@ -13,6 +13,10 @@
 	;; use thread for testing
 	(sagittarius threads))
 
+(define (shutdown&close s)
+  (socket-shutdown s SHUT_RDWR)
+  (socket-close s))
+
 (define echo-server-socket (make-server-socket "5000"))
 
 ;; addr is client socket
@@ -167,6 +171,7 @@
   )
 
 (test-assert "wait server ends" (thread-join! server-thread))
+(shutdown&close echo-server-socket)
 
 ;; addr info slots
 (let ((info (get-addrinfo "localhost" "5000" (make-hint-addrinfo
@@ -199,7 +204,8 @@
     (define buf (make-bytevector 10))
     (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
 		(get-bytevector-n in 10))
-    (socket-close server)))
+    (shutdown&close client)
+    (shutdown&close server)))
 
 ;; thread-interrupt!
 ;; cancelling blocking socket operation in other threads
@@ -233,7 +239,7 @@
   (thread-yield!)
   (thread-sleep! 1)
   (test-assert "interrupted" interrupted?)
-  (socket-close server))
+  (shutdown&close server))
 
 ;; ditto
 (let ()
@@ -264,7 +270,7 @@
     (test-assert "not recieved" (not recieved))
     (socket-send client #vu8(1))
     (test-equal "received" #vu8(1) (thread-join! t))
-    (socket-close client))
-  (socket-close server))
+    (shutdown&close client))
+  (shutdown&close server))
 
 (test-end)
