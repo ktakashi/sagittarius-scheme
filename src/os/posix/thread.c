@@ -173,8 +173,11 @@ int  Sg_InterruptThread(SgInternalThread *thread)
 static void ignore_handler(int signum)
 {
   SgVM *vm = Sg_VM();
-  (&vm->thread)->interrupted = TRUE;
-  vm->attentionRequest = TRUE;
+  /* VM may not be initialised yet. */
+  if (vm) {
+    (&vm->thread)->interrupted = TRUE;
+    vm->attentionRequest = TRUE;
+  }
 }
 
 /* called from Sg__InitSystem */
