@@ -50,37 +50,29 @@
   ;; to keep connection we need to do some low level operations
   (define-constant +chunk-size+ 512)
 
-  (define (send-datum socket datum)
-    (let1 bv (string->utf8 (format "~a" datum))
-      (socket-send socket bv)))
-  (define (recv-datum socket)
-    (define (recv-bv)
-      (call-with-bytevector-output-port
-       (lambda (out)
-	 (let loop ()
-	   (let1 bv (socket-recv socket +chunk-size+)
-	     (put-bytevector out bv)
-	     (unless (< (bytevector-length bv) +chunk-size+)
-	       (loop)))))))
-    (let1 bv (recv-bv)
-      (open-string-input-port (utf8->string bv))))
+  (define (send-datum socket datum) (socket-send socket datum))
 
   ;; remote repl protocol
   ;; client
-  ;;   send datum: :datum <datum>
-  ;;   exit      : :exit
+  ;;   send datum: (:datum <datum>)
+  ;;   exit      : (:exit)
   ;; server
-  ;;   on auth   : :request-authenticate for authenticate
-  ;;               :response-authenticate <result>
-  ;;   on success: :values <n> <value 1> ... <value n>
-  ;;   on error  : :error <expression> <message>
-  ;;   on exit   : :exit
-  ;;   other i/o : {no-tags just strings}
+  ;;   on auth   : (:request-authenticate) for authenticate
+  ;;               (:response-authenticate <result>)
+  ;;   on success: (:values <value 1> ... <value n>)
+  ;;   on error  : (:error <expression> <message>)
+  ;;   on exit   : (:exit)
+  ;;   i/o       : (:stdout string) for standard output
+  ;;             : (:stderr string) for standard error
 
   (define (pack-data tag . data)
-    (call-with-string-output-port
-     (^o (write tag o)
-	 (for-each (^d (display #\space o) (write d o)) data))))
+    (let-values (((out extract) (open-bytevector-output-port)))
+      (let ((o (transcoded-port out (native-transcoder))))
+	(display #\( o)
+	(write tag o)
+	(for-each (^d (display #\space o) (write d o)) data)
+	(display #\) o)
+	(extract))))
 
   (define-syntax send-packed-data
     (syntax-rules ()
@@ -93,49 +85,49 @@
     (define (make-evaluator socket)
       (lambda (form env)
 	(send-packed-data socket :datum form)))
-    (define (make-printer socket)
+    (define (handle-values v)
+      (for-each (lambda (v) (display v) (newline)) v))
+    (define (make-printer port)
       (lambda args
-	(define port (transcoded-port (socket-port socket #f)
-				      (native-transcoder)))
-	(define (handle-values n port)
-	  (dotimes (i n)
-	    (display (read/ss port)) (newline)))
 	(let loop ()
-	  (let* ((tag   (read/ss port)))
-	    (unless (eof-object? tag)
-	      (case tag
-		((:values) (handle-values (read/ss port) port))
+	  (define (check) (when (port-ready? port) (loop)))
+	  (let* ((command (read/ss port)))
+	    (unless (eof-object? command)
+	      (case (car command)
+		((:values) (handle-values (cdr command)) (check))
 		((:error)
-		 (format #t "error in: ~s~%" (read/ss port))
-		 (display (read/ss port)) (newline))
+		 (format #t "error in: ~s~%" (cadr command))
+		 (display (caddr command)) (newline)
+		 (check))
 		((:exit) (display ";; finished") (newline) (exit 0))
 		 ;; I/O
 		((:stdout)
-		 (display (read/ss port))
+		 (display (cadr command))
 		 (flush-output-port (current-output-port))
 		 (loop))
 		((:stderr)
-		 (display (read/ss port) (current-error-port))
+		 (display (cadr command) (current-error-port))
 		 (flush-output-port (current-error-port))
 		 (loop))
 		(else 
 		 (format #t "protocol error: unknown tag ~s: ~a\n"
-			 tag (get-string-all port)))))))))
-    (define (authenticate socket)
+			 (car command) (get-string-all port)))))))))
+    (define (authenticate socket in/out)
       (define (wait-response)
 	(let loop ()
-	  (let1 port (recv-datum socket)
-	    (case (read/ss port)
-	      ((:response-authenticate) (read/ss port))
-	      ((:alert) (display (read/ss port)) (newline) (loop))
+	  (let ((command (read/ss in/out)))
+	    (case (car command)
+	      ((:response-authenticate) (cadr command))
+	      ((:alert) (display (cadr command)) (newline) (loop))
 	      ((:prompt)
-	       (display (read/ss port))
+	       (display (cadr command))
 	       (flush-output-port)
 	       (send-packed-data socket :user-input (read/ss))
 	       (loop))))))
-      (case (read/ss (recv-datum socket))
-	((:request-authenticate) (wait-response))
-	((:no-authenticate) #t)))
+      (let ((command (read/ss in/out)))
+	(case (car command)
+	  ((:request-authenticate) (wait-response))
+	  ((:no-authenticate) #t))))
     (call-with-socket (if secure
 			  (make-client-tls-socket node service
 						  :certificates
@@ -144,12 +136,14 @@
 						      '()))
 			  (make-client-socket node service))
       (lambda (socket)
+	(define in/out (transcoded-port (socket-port socket #f) 
+					(native-transcoder)))
 	(let-values (((name ip port) (socket-info-values socket)))
 	  (format #t "~%connect: ~a:~a (enter ^D to exit) ~%~%"
 		  name port))
-	(when (authenticate socket)
+	(when (authenticate socket in/out)
 	  (parameterize ((current-evaluator (make-evaluator socket))
-			 (current-printer   (make-printer socket))
+			 (current-printer   (make-printer in/out))
 			 (current-exit (lambda ()
 					 (send-packed-data socket :exit))))
 	    (read-eval-print-loop #f)))))
@@ -164,10 +158,12 @@
     (let* ((bv (string->utf8 (string-append username "&" password)))
 	   (credential (hash digest bv)))
       (lambda (socket)
+	(define port (transcoded-port (socket-port socket #f) 
+				      (native-transcoder)))
 	(define (read-response socket)
-	  (let1 port (recv-datum socket)
-	    (case (read/ss port)
-	      ((:user-input) (read/ss port))
+	  (let ((command (read/ss port)))
+	    (case (car command)
+	      ((:user-input) (cadr command))
 	      (else ;; how should we handle?
 	       => (^r
 		   (error 'username&password-authenticate
@@ -201,6 +197,8 @@
 	   (format log (string-append "remote-repl: [~a(~a):~a] " fmt "~%")
 		   name (ip-address->string ip) port args ...)))))
     (define (detach socket)
+      (define in/out (transcoded-port (socket-port socket #f) 
+				      (native-transcoder)))
       (define (main-loop in out err)
 	(define (set-ports! p out err)
 	  (current-input-port p)
@@ -228,12 +226,11 @@
 		      :error (format "~s" current-expression) msg))
 		  (and (serious-condition? c) (continue)))
 		(lambda ()
-		  (let1 in (recv-datum socket)
-		    (case (read/ss in)
+		  (let ((command (read/ss in/out)))
+		    (case (car command)
 		      ((:datum)
-		       (let ((e (read/ss in))
-			     (p (transcoded-port (socket-port socket)
-						 (native-transcoder))))
+		       (let ((e (cadr command))
+			     (p in/out))
 			 (let-values (((out extract)
 				       (open-string-output-port))
 				      ((err eextract)
@@ -253,8 +250,8 @@
 						 (pack-data :stderr errout))))
 				 (send-datum 
 				  socket
-				  (apply pack-data :values (length r)
-					 (data->string r))))))))
+				  (apply pack-data
+					 :values (data->string r))))))))
 		      ((:exit)
 		       (logging socket "disconnect")
 		       (send-packed-data socket :exit)
