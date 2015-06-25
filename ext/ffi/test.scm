@@ -530,6 +530,8 @@
 
   ;; make-c-callback is exported now
   (test-assert "make-c-callback" make-c-callback)
+
+  (close-shared-library ffi-test-lib)
   )
  (else
   #t))
