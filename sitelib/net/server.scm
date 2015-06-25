@@ -134,7 +134,8 @@
 				       server socket e))
 				     ;; if exception-handler is not there
 				     ;; close the socket.
-				     (else (socket-close socket)))
+				     (else (socket-shutdown socket SHUT_RDWR)
+					   (socket-close socket)))
 			     (handler server socket)))
 			 sockets)
 			;; remove closed sockets

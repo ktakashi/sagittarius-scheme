@@ -83,6 +83,7 @@
 	    (cond ((not type) 
 		   (and-let* ((session (hashtable-ref socket-table socket #f)))
 		     (mqtt-broker-will-message session))
+		   (socket-shutdown socket SHUT_RDWR)
 		   (socket-close socket))
 		  ((hashtable-ref (~ server 'handlers) type) =>
 		   (lambda (handler)
@@ -91,6 +92,7 @@
 			   (handler session type flags len in/out)
 			   (begin
 			     (hashtable-delete! socket-table socket)
+			     (socket-shutdown socket SHUT_RDWR)
 			     (socket-close socket))))))
 		  ((= type +connect+)
 		   (let ((session (mqtt-broker-connect! server 
@@ -98,6 +100,7 @@
 		     (if session
 			 (hashtable-set! socket-table socket session)
 			 (begin
+			   (socket-shutdown socket SHUT_RDWR)
 			   (socket-close socket)
 			   (error 'mqtt-connect "failed to connect")))))
 		  (else

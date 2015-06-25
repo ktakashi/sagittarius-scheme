@@ -449,6 +449,7 @@
 	  ;; (list-sort mqtt-topic< subscriptions)
 	  (set! (~ session 'subscriptions) `(,@filters ,@subscriptions))
 	  ))
+      
       (update-subscription (map cdr codes))
       (let ((len (length codes)))
 	(write-fixed-header in/out +suback+ 0 (+ 2 len))
