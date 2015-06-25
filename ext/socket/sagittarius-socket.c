@@ -67,7 +67,7 @@ static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
     ? UC("server") : (socket->type == SG_SOCKET_CLOSED)
     ? UC("closed") : UC("unknown");
   SgObject address = (socket->address != NULL) ? socket->address: SG_FALSE;
-  Sg_Printf(port, UC("#<socket %s %S>"), type, address);
+  Sg_Printf(port, UC("#<socket %s:%d %S>"), type, socket->socket, address);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
@@ -859,6 +859,39 @@ SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
 }
 #endif
 
+static SgObject skip_sockets(SgObject sockets, SgFdSet *fds)
+{
+  SG_FOR_EACH(sockets, sockets) {
+    SgSocket *sock = SG_SOCKET(SG_CAR(sockets));
+    if (FD_ISSET(sock->socket, &fds->fdset)) {
+      return sockets;
+    }
+  }
+  return SG_NIL;		/* empty huh? */
+}
+
+static SgObject remove_socket(SgFdSet *fds)
+{
+  SgObject ans = fds->sockets, cp, prev = SG_FALSE;
+
+  if (SG_NULLP(ans)) return ans; /* simple */
+  /* remove non set sockets first */
+  cp = ans = skip_sockets(ans, fds);
+  for (;!SG_NULLP(cp);) {
+    SgSocket *sock = SG_SOCKET(SG_CAR(cp));
+    if (!FD_ISSET(sock->socket, &fds->fdset)) {
+      SgObject next = skip_sockets(cp, fds);
+      SG_SET_CDR(prev, next);
+      if (SG_NULLP(next)) break;
+      prev = next;
+      cp = SG_CDR(next);
+    } else {
+      prev = cp, cp = SG_CDR(cp);
+    }
+  }
+  return ans;
+}
+
 static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 				  SgObject timeout)
 {
@@ -923,19 +956,7 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #define REMOVE_SOCKET(fdset_)					\
   do {								\
     if (fdset_) {						\
-      SgObject sockets, prev = SG_FALSE;			\
-      for (sockets = (fdset_)->sockets;				\
-	   !SG_NULLP(sockets);					\
-	   prev = sockets, sockets = SG_CDR(sockets)) {		\
-	SgSocket *socket = SG_SOCKET(SG_CAR(sockets));		\
-	if (!FD_ISSET(socket->socket, &(fdset_)->fdset)) {	\
-	  if (SG_FALSEP(prev)) {				\
-	    (fdset_)->sockets = SG_CDR(sockets);		\
-	  } else {						\
-	    SG_SET_CDR(prev, SG_CDR(sockets));			\
-	  }							\
-	}							\
-      }								\
+      (fdset_)->sockets = remove_socket(fdset_);		\
     }								\
   } while (0)
   REMOVE_SOCKET(rfds);
@@ -1131,6 +1152,7 @@ static int socket_close(SgObject self)
   if (!SG_PORT(self)->closed) {
     SG_PORT(self)->closed = TRUE;
     SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
+    Sg_SocketShutdown(SG_PORT_SOCKET(self), SHUT_RDWR);
     Sg_SocketClose(SG_PORT_SOCKET(self));
   }
   return SG_PORT(self)->closed;
