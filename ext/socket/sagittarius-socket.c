@@ -725,7 +725,7 @@ void Sg_SocketClose(SgSocket *socket)
   closesocket(socket->socket);
 #else
   close(socket->socket);
-  socket->socket = -1;
+  /* socket->socket = -1; */
 #endif
   socket->type = SG_SOCKET_CLOSED;
 }

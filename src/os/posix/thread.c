@@ -184,7 +184,7 @@ void Sg__InitThread()
   /* we use SIGALRM to cancel select */
   memset(&actions, 0, sizeof(actions));
   sigemptyset(&actions.sa_mask);
-  actions.sa_flags = SA_RESTART;
+  /* actions.sa_flags = SA_RESTART; */
   actions.sa_handler = ignore_handler;
   sigaction(SIGALRM, &actions, NULL);
 }
