@@ -93,7 +93,7 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
       ENDIF(${flag_var} MATCHES "/MDd")
     ENDFOREACH(flag_var)
 
-    ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
+    # ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
   ELSEIF(WATCOM)
     # watcom's default alignment is 4, so we need to specify it.
     SET(CMAKE_C_FLAGS "-ox ${CMAKE_C_FLAGS}")

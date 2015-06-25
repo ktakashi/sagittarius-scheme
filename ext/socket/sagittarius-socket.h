@@ -38,7 +38,6 @@
 # include <wspiapi.h>
 # pragma comment(lib, "iphlpapi.lib")
 #endif
-# define snprintf _snprintf
 /* what a crap!! */
 # define SHUT_RD   SD_RECEIVE 
 # define SHUT_WR   SD_SEND 

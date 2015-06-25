@@ -2109,7 +2109,7 @@ SgObject Sg_Mul(SgObject x, SgObject y)
 	SgObject big = Sg_MakeBignumFromSI(v0);
 	return Sg_BignumMulSI(SG_BIGNUM(big), v1);
       } else 
-	return Sg_MakeInteger(k);
+	return Sg_MakeInteger((long)k);
     } else if (SG_BIGNUMP(y)) {
       if (x == SG_MAKE_INT(0)) return x;
       else if (x == SG_MAKE_INT(1)) return y;
@@ -3819,22 +3819,30 @@ static inline int numcmp3(SgObject x, SgObject d, SgObject y)
   }
 }
 
+#ifdef _MSC_VER
+/* to shut compiler */
+# define strcpy_ strcpy_s
+#else
+/* this works fine anyway */
+# define strcpy_(buf, len, s) strcpy(buf, s)
+#endif
+
 static void double_print(char *buf, int buflen, double val, int plus_sign)
 {
   SgObject f;
   int exp, sign;
   f = Sg_DecodeFlonum(val, &exp, &sign);
   if (val == 0.0) {
-    if (plus_sign) strcpy(buf, "+0.0");
-    else if (sign < 0) strcpy(buf, "-0.0");
-    else strcpy(buf, "0.0");
+    if (plus_sign) strcpy_(buf, buflen, "+0.0");
+    else if (sign < 0) strcpy_(buf, buflen, "-0.0");
+    else strcpy_(buf, buflen,  "0.0");
     return;
   } else if (isinf(val)) {
-    if (sign < 0) strcpy(buf, "-inf.0");
-    else strcpy(buf, "+inf.0");
+    if (sign < 0) strcpy_(buf, buflen, "-inf.0");
+    else strcpy_(buf, buflen, "+inf.0");
     return;
   } else if (isnan(val)) {
-    strcpy(buf, "+nan.0");
+    strcpy_(buf, buflen, "+nan.0");
     return;
   }
   if (sign < 0) *buf++ = '-', buflen--;
@@ -3940,23 +3948,28 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
       if (!tc1) {
 	if (!tc2) {
 	  *buf++ = (char)SG_INT_VALUE(q) + '0';
+	  buflen--;
 	  if (digs == point) *buf++ = '.', buflen--;
 	  continue;
 	} else {
 	  *buf++ = (char)SG_INT_VALUE(q) + '1';
+	  buflen--;
 	  break;
 	}
       } else {
 	if (!tc2) {
 	  *buf++ = (char)SG_INT_VALUE(q) + '0';
+	  buflen--;
 	  break;
 	} else {
 	  tc3 = numcmp3(r, r, s);
 	  if ((round && tc3 <= 0) || (!round && tc3 < 0)) {
 	    *buf++ = (char)SG_INT_VALUE(q) + '0';
+	    buflen--;
 	    break;
 	  } else {
 	    *buf++ = (char)SG_INT_VALUE(q) + '1';
+	    buflen--;
 	    break;
 	  }
 	}
@@ -3966,13 +3979,13 @@ static void double_print(char *buf, int buflen, double val, int plus_sign)
       for (; digs < point && buflen > 5; digs++) {
 	*buf++ = '0', buflen--;
       }
-      *buf++ = '.';
-      *buf++ = '0';
+      *buf++ = '.', buflen--;
+      *buf++ = '0', buflen--;
     }
     est--;
     if (est != 0) {
-      *buf++ = 'e';
-      sprintf(buf, "%d", (int)est);
+      *buf++ = 'e', buflen--;
+      snprintf(buf, buflen, "%d", (int)est);
     } else {
       *buf++ = 0;
     }

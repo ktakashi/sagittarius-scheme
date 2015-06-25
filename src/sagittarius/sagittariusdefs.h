@@ -129,7 +129,8 @@ typedef uint32_t _W64 uintptr_t;
 #ifndef _MSC_VER
 #include <inttypes.h>
 #else
-#define snprintf _snprintf
+#define snprintf(buf_, count_, ...)			\
+  _snprintf_s(buf_, count_, _TRUNCATE, __VA_ARGS__)
 #pragma warning(disable : 4255)
 #pragma warning(disable : 4820)
 #pragma warning(disable : 4711)
