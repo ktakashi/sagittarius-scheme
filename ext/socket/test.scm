@@ -273,4 +273,31 @@
     (shutdown&close client))
   (shutdown&close server))
 
+;; call #134, socket-select returns incorrect socket
+(let ()
+  (define server (make-server-socket "5001"))
+  (define vec (make-vector 5))
+  (define t 
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(let loop ((i 0))
+	  (unless (= i 5)
+	    (let ((s (socket-accept server)))
+	      (vector-set! vec i s)
+	      (loop (+ i 1)))))
+	(apply socket-read-select #f (vector->list vec))))))
+  (let ((s* (map (lambda (i) (make-client-socket "localhost" "5001"))
+		 ;; whatever is fine
+		 '(1 2 3 4 5))))
+    (socket-send (car s*) #vu8(1))
+    (socket-send (car (last-pair s*)) #vu8(1))
+    (let ((r (thread-join! t)))
+      (test-equal "socket-select (size)" 2 (length r))
+      (test-equal "socket-select (1)" (vector-ref vec 0) (car r))
+      (test-equal "socket-select (2)" (vector-ref vec 4) (cadr r))
+      (for-each shutdown&close s*)
+      (vector-for-each shutdown&close vec)
+      (shutdown&close server))))
+
 (test-end)
