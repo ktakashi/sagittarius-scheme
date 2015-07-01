@@ -672,7 +672,7 @@ If the @var{obj} contains cyclic, the procedure writes with datum label.
 
 @subsubsection{R5RS library}
 
-@define[Library]{@name{(scheme write)}}
+@define[Library]{@name{(scheme r5rs)}}
 @desc{[R7RS]The (scheme r5rs) library provides the identifiers defined
 by R5RS, except that @code{transcript-on} and @code{transcript-off} are
 not present. Note that the @code{exact} and @code{inexact} procedures
