@@ -47,9 +47,6 @@
 	    (math)
 	    (pp))
   (define interaction-environment (find-library 'user #t))
-  ;; to keep connection we need to do some low level operations
-  (define-constant +chunk-size+ 512)
-
   (define (send-datum socket datum) (socket-send socket datum))
 
   ;; remote repl protocol
@@ -293,11 +290,13 @@
 					     :authorities (list authority))
 		     (make-server-socket service))
       (format log "~%remote-repl: ~a~%" (socket-name server))
-      (lambda ()
+      (values 
+       (lambda ()
 	(let loop ()
 	  (let1 socket (socket-accept server :handshake #f)
 	    (logging socket "accept")
 	    (thread-start! (make-thread (detach socket)))
-	    (loop))))))
+	    (loop))))
+       server)))
 
 )
