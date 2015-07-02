@@ -277,21 +277,38 @@
 (let ()
   (define server (make-server-socket "5001"))
   (define vec (make-vector 5))
+  (define server-lock (make-mutex))
+  (define client-lock (make-mutex))
   (define t 
     (thread-start!
      (make-thread
       (lambda ()
+	(mutex-lock! server-lock)
 	(let loop ((i 0))
 	  (unless (= i 5)
 	    (let ((s (socket-accept server)))
 	      (vector-set! vec i s)
 	      (loop (+ i 1)))))
+	;; FIXME we need something nicer
+	(mutex-unlock! server-lock)
+	(mutex-lock! client-lock)
+	(mutex-unlock! client-lock)
+
 	(apply socket-read-select #f (vector->list vec))))))
+  ;; lock it
+  (mutex-lock! client-lock)
   (let ((s* (map (lambda (i) (make-client-socket "localhost" "5001"))
 		 ;; whatever is fine
 		 '(1 2 3 4 5))))
+    ;; wait until server is done
+    (mutex-lock! server-lock)
+    (mutex-unlock! server-lock)
+    ;; send it (server is waiting for you!)
     (socket-send (car s*) #vu8(1))
     (socket-send (car (last-pair s*)) #vu8(1))
+    ;; let server do select
+    (mutex-unlock! client-lock)
+
     (let ((r (thread-join! t)))
       (test-equal "socket-select (size)" 2 (length r))
       (test-equal "socket-select (1)" (vector-ref vec 0) (car r))
