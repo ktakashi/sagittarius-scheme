@@ -65,6 +65,7 @@
 		  (map thread-join! (map thread-start! t*)))))
   (test-assert "config?" (server-config? config))
   (test-assert "server-config" (eq? config (server-config server)))
+
   (server-start! server :background #t)
   (thread-sleep! 0.1)
   ;; test both sockets

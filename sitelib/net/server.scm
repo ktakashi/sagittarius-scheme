@@ -217,7 +217,7 @@
 			    `(,AF_INET6 ,AF_INET)
 			    `(,AF_INET)))
 	   ;; hope all platform accepts dual when IPv6 is enabled
-	   (socket&ais (fold-right (lambda (ai-family s)
+	   (socket&ais (fold-left (lambda (s ai-family)
 				     (guard (e (else s))
 				       (acons (make-socket ai-family) ai-family
 					      s)))
@@ -240,19 +240,26 @@
 				   ((~ config 'exception-handler) server #f e))
 				 (loop)))
 			(let ((client-socket (socket-accept socket)))
-			  (cond ((~ server 'stop-request) (socket-close socket))
+			  (cond ((~ server 'stop-request)
+				 (close-socket client-socket)
+				 (close-socket socket))
 				(else
 				 (dispatch server client-socket)
 				 (loop))))))))) sockets))
 	(define (stop-server)
 	  (set! (~ server 'stop-request) #t)
 	  (for-each (lambda (sock&ai)
-		      (let ((ai-family (cdr sock&ai)))
+		      (define (try ai-family)
 			(close-socket
 			 (if (and (~ config 'secure?)
 				  (not (null? (~ config 'certificates))))
 			     (make-client-tls-socket "localhost" port ai-family)
-			     (make-client-socket "localhost" port ai-family)))))
+			     (make-client-socket "localhost" port ai-family))))
+		      ;; At least on Linux, AF_INET6 can create a server
+		      ;; socket but client is not allowed. To avoid waiting
+		      ;; forever, we need to try both IPv6 and IPv4
+		      (guard (e (else (try AF_INET))) ;; IPv4
+			(try (cdr sock&ai))))
 		    socket&ais))
 	(set! (~ server 'server-threads) server-threads)
 	(set! (~ server 'server-stopper) stop-server)
