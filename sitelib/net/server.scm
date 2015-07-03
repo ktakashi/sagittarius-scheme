@@ -203,8 +203,7 @@
 		  (let ((f (future (class <executor-future>) (handle socket))))
 		    (execute-future! executor f))
 		  (handle socket))))))
-    (define stop-socket (and (~ config 'shutdown-port)
-			     (make-server-socket (~ config 'shutdown-port))))
+
     (define (make-socket ai-family)
       (if (and (~ config 'secure?)
 	       (not (null? (~ config 'certificates))))
@@ -227,7 +226,7 @@
       (when (null? sockets)
 	(error 'make-simple-server "failed to create server sockets" port))
       (let ((server (apply make server-class
-		      :server-sockets sockets :stopper-socket stop-socket
+		      :server-sockets sockets
 		      :config config
 		      rest)))
 	(define server-threads
@@ -257,10 +256,13 @@
 		    socket&ais))
 	(set! (~ server 'server-threads) server-threads)
 	(set! (~ server 'server-stopper) stop-server)
-	(when stop-socket
+	(when (~ config 'shutdown-port)
 	  (set! (~ server 'stopper-thread)
 		(make-thread 
 		 (lambda ()
+		   (define stop-socket (make-server-socket 
+					(~ config 'shutdown-port)))
+		   (set! (~ server 'stopper-socket) stop-socket)
 		   ;; lock it here
 		   (mutex-lock! (~ server 'stop-lock))
 		   (let loop ((sock (socket-accept stop-socket)))
