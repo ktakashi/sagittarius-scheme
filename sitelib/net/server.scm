@@ -90,6 +90,7 @@
      (stopper-thread :init-keyword :stopper-thread :init-value #f)
      (config         :init-keyword :config
 		     :reader server-config)
+     (lock           :init-form (make-mutex))
      (stop-lock      :init-form (make-mutex))
      (stop-waiter    :init-form (make-condition-variable))
      ;; private slot not to use thread-terminate!
@@ -279,6 +280,8 @@
 		 ;; lock it here
 		 (mutex-lock! (~ server 'stop-lock))
 		 (let loop ((sock (socket-accept stop-socket)))
+		   ;; to avoid passing #f to socket close
+		   (mutex-lock! (~ server 'lock))
 		   ;; ignore all errors
 		   (guard (e (else #t))
 		     (when ((~ config 'shutdown-handler) server sock)
@@ -292,6 +295,8 @@
 		       (set! (~ server 'server-sockets) #f)
 		       (condition-variable-broadcast! (~ server 'stop-waiter))
 		       (mutex-unlock! (~ server 'stop-lock))))
+		   (mutex-unlock! (~ server 'lock))
+		   (socket-shutdown sock SHUT_RDWR)
 		   (socket-close sock)
 		   (if (server-stopped? server)
 		       (socket-close stop-socket)
@@ -336,17 +341,22 @@
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
     (unless (server-stopped? server)
-      (set! (~ server 'config 'shutdown-handler) default-shutdown-handler)
-      (if (~ server 'stopper-thread)
-	  ;; we need to stop the shutdown thread as well
-	  (close-socket
-	   (make-client-socket "localhost" (~ server 'config 'shutdown-port)))
-	  ((~ server 'server-stopper)))
+      (let ((ohandler (~ server 'config 'shutdown-handler)))
+	(set! (~ server 'config 'shutdown-handler) default-shutdown-handler)
+	(if (~ server 'stopper-thread)
+	    ;; we need to stop the shutdown thread as well
+	    (close-socket
+	     (make-client-socket "localhost" (~ server 'config 'shutdown-port)))
+	    ((~ server 'server-stopper)))
+	(set! (~ server 'config 'shutdown-handler) ohandler))
       (map thread-join! (~ server 'server-threads))
-      (map close-socket (~ server 'server-sockets))
+      (mutex-lock! (~ server 'lock))
+      (when (~ server 'server-sockets)
+	(map close-socket (~ server 'server-sockets)))
       ;; should this be here?
       (apply on-server-stop! server opt)
-      (set! (~ server 'server-sockets) #f)))
+      (set! (~ server 'server-sockets) #f)
+      (mutex-unlock! (~ server 'lock))))
 
   (define (wait-server-stop! server :optional (timeout #f))
     (or (server-stopped? server)
