@@ -211,7 +211,7 @@
       (let loop ()
 	(cond ((shared-priority-queue-empty? spq)
 	       (cond ((mutex-unlock! (%spq-lock spq) (%spq-cv spq) timeout)
-		      (mutex-lock! (%spq-lock sq))
+		      (mutex-lock! (%spq-lock spq))
 		      (loop))
 		     (else
 		      (%spq-w-set! spq (- (%spq-w spq) 1))
@@ -241,7 +241,7 @@
       (%spq-size-set! spq (- (shared-priority-queue-size spq) 1))
       (let ((s (shared-priority-queue-size spq)))
 	(if (= s index)
-	    (vector-set! es i #f)
+	    (vector-set! es s #f)
 	    (let ((moved (vector-ref es s)))
 	      (vector-set! es s #f)
 	      (shift-down spq index moved)

@@ -287,7 +287,7 @@
       (assertion-violation 'fork-join-executor-available? 
 			   "not a fork-join-executor" e))
     ;; we don't manage anything
-    (executor-state-set! executor 'shutdown))
+    (executor-state-set! e 'shutdown))
 
   (define *registered-executors* '())
   (define *register-lock* (make-mutex))
@@ -321,7 +321,7 @@
 
   (define-syntax invoke-method
     (syntax-rules ()
-      ((_ who pos fallack e args ...)
+      ((_ who pos fallback e args ...)
        (let loop ((methods *registered-executors*))
 	 (cond ((null? methods) 
 		(if (executor? e)
