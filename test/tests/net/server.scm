@@ -111,4 +111,13 @@
   (test-assert "finish simple server (2)" (wait-server-stop! server))
   (test-assert "finish simple server (3)" (wait-server-stop! server))
   )
+
+;; call #135
+(let ()
+  (define server (make-simple-server "12345" (lambda (s sock) #t)))
+
+  (test-assert "socket not created"
+	       (let ((s (make-server-socket "12345")))
+		 (socket-close s))))
+
 (test-end)
