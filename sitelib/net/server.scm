@@ -84,11 +84,10 @@
   (define (server-config? o) (is-a? o <server-config>))
 
   (define-class <simple-server> ()
-    ((server-sockets :init-keyword :server-sockets)
+    ((server-sockets :init-keyword :server-sockets :init-value #f)
      (server-threads :init-keyword :server-threads)
      (stopper-socket :init-keyword :stopper-socket :init-value #f)
      (stopper-thread :init-keyword :stopper-thread :init-value #f)
-     (stopped?       :init-value #f :reader server-stopped?)
      (config         :init-keyword :config
 		     :reader server-config)
      (stop-lock      :init-form (make-mutex))
@@ -96,8 +95,11 @@
      ;; private slot not to use thread-terminate!
      (stop-request   :init-value #f)
      ;; will be set
-     server-stopper))
+     server-stopper
+     (port           :init-keyword :port)
+     (dispatch       :init-keyword :dispatch)))
   (define (server? o) (is-a? o <simple-server>))
+  (define (server-stopped? server) (not (~ server 'server-sockets)))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
   (define (make-simple-server port handler
@@ -203,6 +205,12 @@
 		  (let ((f (future (class <executor-future>) (handle socket))))
 		    (execute-future! executor f))
 		  (handle socket))))))
+    (apply make server-class :dispatch dispatch :config config :port port rest))
+
+  (define (initialise-server! server)
+    (define config (~ server 'config))
+    (define dispatch (~ server 'dispatch))
+    (define port (~ server 'port))
 
     (define (make-socket ai-family)
       (if (and (~ config 'secure?)
@@ -218,79 +226,79 @@
 			    `(,AF_INET)))
 	   ;; hope all platform accepts dual when IPv6 is enabled
 	   (socket&ais (fold-left (lambda (s ai-family)
-				     (guard (e (else s))
-				       (acons (make-socket ai-family) ai-family
-					      s)))
-				   '() ai-families))
+				    (guard (e (else s))
+				      (acons (make-socket ai-family) ai-family
+					     s)))
+				  '() ai-families))
 	   (sockets (map car socket&ais)))
+      (define server-threads
+	(map (lambda (socket)
+	       (make-thread
+		(lambda ()
+		  (thread-specific-set! (current-thread) 'done)
+		  (let loop ()
+		    (guard (e (else
+			       (when (~ config 'exception-handler)
+				 ((~ config 'exception-handler) server #f e))
+			       (loop)))
+		      (let ((client-socket (socket-accept socket)))
+			(cond ((~ server 'stop-request)
+			       (close-socket client-socket)
+			       (close-socket socket))
+			      (else
+			       (dispatch server client-socket)
+			       (loop))))))))) sockets))
+      (define (stop-server)
+	(set! (~ server 'stop-request) #t)
+	(for-each (lambda (sock&ai)
+		    (define (try ai-family)
+		      (close-socket
+		       (if (and (~ config 'secure?)
+				(not (null? (~ config 'certificates))))
+			   (make-client-tls-socket "localhost" port ai-family)
+			   (make-client-socket "localhost" port ai-family))))
+		    ;; At least on Linux, AF_INET6 can create a server
+		    ;; socket but client is not allowed. To avoid waiting
+		    ;; forever, we need to try both IPv6 and IPv4
+		    (guard (e (else (try AF_INET))) ;; IPv4
+		      (try (cdr sock&ai))))
+		  socket&ais))
       (when (null? sockets)
 	(error 'make-simple-server "failed to create server sockets" port))
-      (let ((server (apply make server-class
-		      :server-sockets sockets
-		      :config config
-		      rest)))
-	(define server-threads
-	  (map (lambda (socket)
-		 (make-thread
-		  (lambda ()
-		    (thread-specific-set! (current-thread) 'done)
-		    (let loop ()
-		      (guard (e (else
-				 (when (~ config 'exception-handler)
-				   ((~ config 'exception-handler) server #f e))
-				 (loop)))
-			(let ((client-socket (socket-accept socket)))
-			  (cond ((~ server 'stop-request)
-				 (close-socket client-socket)
-				 (close-socket socket))
-				(else
-				 (dispatch server client-socket)
-				 (loop))))))))) sockets))
-	(define (stop-server)
-	  (set! (~ server 'stop-request) #t)
-	  (for-each (lambda (sock&ai)
-		      (define (try ai-family)
-			(close-socket
-			 (if (and (~ config 'secure?)
-				  (not (null? (~ config 'certificates))))
-			     (make-client-tls-socket "localhost" port ai-family)
-			     (make-client-socket "localhost" port ai-family))))
-		      ;; At least on Linux, AF_INET6 can create a server
-		      ;; socket but client is not allowed. To avoid waiting
-		      ;; forever, we need to try both IPv6 and IPv4
-		      (guard (e (else (try AF_INET))) ;; IPv4
-			(try (cdr sock&ai))))
-		    socket&ais))
-	(set! (~ server 'server-threads) server-threads)
-	(set! (~ server 'server-stopper) stop-server)
-	(when (~ config 'shutdown-port)
-	  (set! (~ server 'stopper-thread)
-		(make-thread 
-		 (lambda ()
-		   (define stop-socket (make-server-socket 
-					(~ config 'shutdown-port)))
-		   (set! (~ server 'stopper-socket) stop-socket)
-		   ;; lock it here
-		   (mutex-lock! (~ server 'stop-lock))
-		   (let loop ((sock (socket-accept stop-socket)))
-		     ;; ignore all errors
-		     (guard (e (else #t))
-		       (when ((~ config 'shutdown-handler) server sock)
-			 ;; access to stop
-			 ;; this works because accepting thread is only one
-			 ;; so once it's accepted, then the server socket
-			 ;; won't call accept.
-			 ;; FIXME ugly...
-			 (stop-server)
-			 (for-each thread-join! server-threads)
-			 (set! (~ server 'stopped?) #t)
-			 (condition-variable-broadcast! (~ server 'stop-waiter))
-			 (mutex-unlock! (~ server 'stop-lock))))
-		     (socket-close sock)
-		     (if (~ server 'stopped?)
-			 (socket-close stop-socket)
-			 (loop (socket-accept stop-socket))))))))
-	server)))
+
+      (set! (~ server 'server-sockets) sockets)
+      (set! (~ server 'server-threads) server-threads)
+      (set! (~ server 'server-stopper) stop-server)
+      (when (~ config 'shutdown-port)
+	(set! (~ server 'stopper-thread)
+	      (make-thread 
+	       (lambda ()
+		 (define stop-socket (make-server-socket 
+				      (~ config 'shutdown-port)))
+		 (set! (~ server 'stopper-socket) stop-socket)
+		 ;; lock it here
+		 (mutex-lock! (~ server 'stop-lock))
+		 (let loop ((sock (socket-accept stop-socket)))
+		   ;; ignore all errors
+		   (guard (e (else #t))
+		     (when ((~ config 'shutdown-handler) server sock)
+		       ;; access to stop
+		       ;; this works because accepting thread is only one
+		       ;; so once it's accepted, then the server socket
+		       ;; won't call accept.
+		       ;; FIXME ugly...
+		       (stop-server)
+		       (for-each thread-join! server-threads)
+		       (set! (~ server 'server-sockets) #f)
+		       (condition-variable-broadcast! (~ server 'stop-waiter))
+		       (mutex-unlock! (~ server 'stop-lock))))
+		   (socket-close sock)
+		   (if (server-stopped? server)
+		       (socket-close stop-socket)
+		       (loop (socket-accept stop-socket))))))))
+      server))
+
+
   ;; wait until the server started
   (define (server-wait! server)
     (let loop ()
@@ -309,6 +317,10 @@
 			 :rest opts)
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
+
+    (if (~ server 'server-sockets) 
+	(assertion-violation 'start-server! "server is already started" server)
+	(initialise-server! server))
     (when (~ server 'stopper-thread)
       (thread-start! (~ server 'stopper-thread)))
     ;; pass all keyword arguments
@@ -323,7 +335,7 @@
   (define (server-stop! server . opt)
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
-    (unless (~ server 'stopped?)
+    (unless (server-stopped? server)
       (set! (~ server 'config 'shutdown-handler) default-shutdown-handler)
       (if (~ server 'stopper-thread)
 	  ;; we need to stop the shutdown thread as well
@@ -334,10 +346,10 @@
       (map close-socket (~ server 'server-sockets))
       ;; should this be here?
       (apply on-server-stop! server opt)
-      (set! (~ server 'stopped?) #t)))
+      (set! (~ server 'server-sockets) #f)))
 
   (define (wait-server-stop! server :optional (timeout #f))
-    (or (~ server 'stopped?)
+    (or (server-stopped? server)
 	;; we don't have to lock again
 	(mutex-unlock! (~ server 'stop-lock) (~ server 'stop-waiter)
 		       timeout)))
