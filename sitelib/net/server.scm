@@ -116,18 +116,24 @@
 		 (mutexes (make-vector num-threads))
 		 ;; silly
 		 (servers (make-vector num-threads))
-		 (thread-ids (make-vector num-threads)))
+		 (thread-ids (make-vector num-threads))
+		 (cvs (make-vector num-threads)))
 	    ;; prepare executor
 	    (do ((i 0 (+ i 1)))
 		((= i num-threads))
 	      (vector-set! socket-pool i '())
-	      (let ((mutex (make-mutex)))
+	      (let ((mutex (make-mutex))
+		    (cv (make-condition-variable)))
 		(vector-set! mutexes i mutex)
+		(vector-set! cvs i cv)
 		;; keep id
 		(vector-set! thread-ids i
 		 (thread-pool-push-task! thread-pool
 		  (lambda ()
 		    (let loop ()
+		      ;; unfortunately this is needed for Cygwin.
+		      (when (null? (vector-ref socket-pool i))
+			(mutex-unlock! mutex cv))
 		      (let ((sockets 
 			     (apply socket-read-select #f
 				    (vector-ref socket-pool i)))
@@ -181,7 +187,7 @@
 		(vector-set! socket-pool index (cons socket sockets))
 		(vector-set! servers index server) ;; it's always the same!
 		;; notify it
-		;; (condition-variable-broadcast! (vector-ref cvs index))
+		(condition-variable-broadcast! (vector-ref cvs index))
 		(thread-interrupt!
 		 (thread-pool-thread thread-pool 
 				     (vector-ref thread-ids index)))
