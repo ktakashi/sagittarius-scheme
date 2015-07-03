@@ -55,6 +55,11 @@
 	    (srfi :26)
 	    (rfc tls))
 
+  (define (close-socket socket)
+    ;; we don't care if socket sending failed or not...
+    (socket-shutdown socket SHUT_RDWR)
+    (socket-close socket))
+
   ;; connecting this would shut it donw
   (define (default-shutdown-handler server socket) #t)
 
@@ -244,10 +249,11 @@
 	  (set! (~ server 'stop-request) #t)
 	  (for-each (lambda (sock&ai)
 		      (let ((ai-family (cdr sock&ai)))
-			(if (and (~ config 'secure?)
-				 (not (null? (~ config 'certificates))))
-			    (make-client-tls-socket "localhost" port ai-family)
-			    (make-client-socket "localhost" port ai-family))))
+			(close-socket
+			 (if (and (~ config 'secure?)
+				  (not (null? (~ config 'certificates))))
+			     (make-client-tls-socket "localhost" port ai-family)
+			     (make-client-socket "localhost" port ai-family)))))
 		    socket&ais))
 	(set! (~ server 'server-threads) server-threads)
 	(set! (~ server 'server-stopper) stop-server)
@@ -306,17 +312,14 @@
 	    (map thread-join! threads)))))
 
   (define (server-stop! server . opt)
-    (define (close-socket socket)
-      ;; we don't care if socket sending failed or not...
-      (socket-shutdown socket SHUT_RDWR)
-      (socket-close socket))
     (unless (server? server)
       (assertion-violation 'start-server! "server object required" server))
     (unless (~ server 'stopped?)
       (set! (~ server 'config 'shutdown-handler) default-shutdown-handler)
       (if (~ server 'stopper-thread)
 	  ;; we need to stop the shutdown thread as well
-	  (make-client-socket "localhost" (~ server 'config 'shutdown-port))
+	  (close-socket
+	   (make-client-socket "localhost" (~ server 'config 'shutdown-port)))
 	  ((~ server 'server-stopper)))
       (map thread-join! (~ server 'server-threads))
       (map close-socket (~ server 'server-sockets))
