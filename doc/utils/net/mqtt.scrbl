@@ -11,7 +11,7 @@ Reference @hyperlink[:href "http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.
 Following examples describe how to receive and publish messages.
 
 @codeblock{
-(import (rnrs) (net mq mqtt client))
+(import (rnrs) (net mq mqtt))
 
 (let ((conn (open-mqtt-connection "localhost" "1883")))
   ;; subscribes to "topic" topic with accepting QoS exactly once
@@ -32,7 +32,7 @@ Following examples describe how to receive and publish messages.
 }
 
 @codeblock{
-(import (rnrs) (net mq mqtt client))
+(import (rnrs) (net mq mqtt))
 
 (let ((conn (open-mqtt-connection "localhost" "1883")))
   ;; publish message to "topic" topic.
@@ -110,3 +110,57 @@ By default, it uses @code{+qos-at-most-once+}.
 
 @define[Function]{@name{mqtt-ping} @args{conn}}
 @desc{Sends PINGREQ packet to the server.}
+
+
+@subsubsection{MQTT broker}
+
+@define[Library]{@name{(net mq mqtt broker)}}
+@desc{This library provides simple MQTT broker implementation.
+
+The broker only does what broker suppose to do, thus there is no user
+customised behaviour.
+}
+
+The simplest broker script would look like this:
+@codeblock{
+(import (rnrs) (net mq mqtt broker))
+
+;; Wait on port 9000
+(define broker (make-mqtt-broker "9000")))
+
+;; start the broker.
+(mqtt-broker-start! broker)
+}
+
+@define[Function]{@name{make-mqtt-broker}
+ @args{:key config authentication-handler :allow-other-keys}}
+@desc{Creates MQTT broker. 
+
+The returning broker is a sub type of @code{<simple-server>}.
+
+If @var{config} keyword argument is specified, the value must be an
+configuration object created by @code{make-mqtt-broker-config}, then the
+specified configuration is used. Otherwise default configuration
+which can be created by @code{(make-mqtt-broker-config)} is used.
+
+If @var{authentication-handler} keyword argument is specified, then
+the specified value which must be a procedure takes 2 arguments, username
+and password, handles authentication. If the procedure doesn't return
+true value then authentication error packet is sent to the client.
+}
+
+@define[Function]{@name{make-mqtt-broker-config}
+ @args{:key (max-thread 10) :allow-other-keys}}
+@desc{Creates a MQTT broker configuration object.
+
+The returning value is a sub type of @code{<server-config>} with
+@code{:non-blocking?} option.
+}
+
+@define[Function]{@name{mqtt-broker-start!} @args{broker opt @dots{}}}
+@define[Function]{@name{mqtt-broker-stop!} @args{broker opt @dots{}}}
+@desc{Start and stop procedure for MQTT broker. 
+
+These procedures are mere redefinitions of @code{server-start!} and 
+@code{server-stop!}.
+}
