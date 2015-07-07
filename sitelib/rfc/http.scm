@@ -421,7 +421,7 @@
 				       "bad line in chunked data"
 				       line)))))))
     (begin0 (receiver code headers total callback)
-      (when condition raise condition)))
+      (when condition (raise condition))))
 
 	
   (define (lookup-encoding hdrs)
