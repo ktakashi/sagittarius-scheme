@@ -138,7 +138,7 @@
 		       (else (loop r (reader in))))))))))
 
   (define (rfc5322-header-ref header field-name . maybe-default)
-    (cond ((assoc field-name header) => cadr)
+    (cond ((assoc field-name header string-ci=?) => cadr)
 	  (else (get-optional maybe-default #f))))
 
   (define (rfc5322-field->tokens field . opts)
