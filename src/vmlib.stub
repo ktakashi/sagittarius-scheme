@@ -414,8 +414,10 @@
   (define-c-proc print-stack-frames () ::<void>
     (Sg_VMPrintFrame))
 
-  (define-c-proc get-stack-trace-object () ::<top>
-    (result (Sg_GetStackTrace)))
+  (define-c-proc get-stack-trace-object () Sg_GetStackTrace)
+  (define-c-proc format-stack-trace 
+    (o :optional (out::<port> (Sg_CurrentOutputPort))) ::<void>
+    Sg_FormatStackTrace)
 
   ;; optimize
   (define-c-proc vm-noinline-locals? () ::<boolean>

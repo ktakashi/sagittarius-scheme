@@ -417,12 +417,76 @@ SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 #define CLEAR_STACK(vm)		/* dummy */
 #endif
 
+static void format_stack_trace(SgObject stackTrace, SgObject buf, 
+			       int destructiveP)
+{
+  static const int MAX_STACK_TRACE = 20;
+  SgObject cur;
+  Sg_Printf(buf, UC("stack trace:\n"));
+  stackTrace = (destructiveP) 
+    ? Sg_ReverseX(stackTrace) 
+    : Sg_Reverse(stackTrace);
+  SG_FOR_EACH(cur, stackTrace) {
+    SgObject obj, index, proc, tmp, src, file, info, line;
+
+    obj = SG_CAR(cur);
+    index = SG_CAR(obj);
+    if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
+      Sg_Printf(buf,
+		UC("      ... (more stack dump truncated)\n"));
+      break;
+    }
+
+    proc = SG_CDR(obj);		/* (proc name src) */
+    if (SG_EQ(SG_CAR(proc), SG_INTERN("*proc*"))) {
+      tmp = SG_CAR(SG_CDDR(proc));
+      if (!SG_PAIRP(tmp)) {
+	goto no_src;
+      } else {
+	src = Sg_LastPair(tmp);
+	src = SG_CDAR(src);
+	if (SG_PAIRP(src)) {
+	  info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
+	} else {
+	  info = SG_FALSE;
+	}
+      }
+      if (SG_FALSEP(info) || !info) {
+	Sg_PrintfShared(buf,
+			UC("  [%A] %A\n"
+			   "    src: %#50S\n"),
+			index, SG_CADR(proc),
+			Sg_UnwrapSyntax(src));
+      } else {
+	file = SG_CAR(info);
+	line = SG_CDR(info);
+	Sg_PrintfShared(buf,
+			UC("  [%A] %A\n"
+			   "    src: %#50S\n"
+			   "    %S:%A\n"),
+			index, SG_CADR(proc),
+			Sg_UnwrapSyntax(src),
+			file, line);
+      }
+      
+    } else {
+    no_src:
+      /* *cproc* does not have any source info */
+      Sg_Printf(buf,
+		UC("  [%A] %A\n"),
+		index, SG_CADR(proc));
+    }
+  }
+}
+
+void Sg_FormatStackTrace(SgObject e, SgObject out)
+{
+  format_stack_trace(e, out, FALSE);
+}
 
 static inline void report_error(SgObject exception, SgObject out)
 {
-  static const int MAX_STACK_TRACE = 20;
   SgObject error = SG_NIL, stackTrace = SG_NIL;
-  SgObject cur;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
 
   if (SG_PAIRP(exception)) {
@@ -438,10 +502,10 @@ static inline void report_error(SgObject exception, SgObject out)
 	  break;
 	}
       }
-      if (SG_NULLP(stackTrace)) {
-	stackTrace = Sg_GetStackTrace();
-      }
-    } else {
+    } else if (SG_STACK_TRACE_CONDITION_P(error)) {
+      stackTrace = SG_STACK_TRACE_CONDITION(error)->trace;
+    } 
+    if (SG_NULLP(stackTrace)) {
       stackTrace = Sg_GetStackTrace();
     }
   }
@@ -450,59 +514,7 @@ static inline void report_error(SgObject exception, SgObject out)
 	       "  %A\n"), Sg_DescribeCondition(error));
 
   if (!SG_NULLP(stackTrace)) {
-    Sg_Printf(buf, UC("stack trace:\n"));
-    stackTrace = Sg_ReverseX(stackTrace);
-    SG_FOR_EACH(cur, stackTrace) {
-      SgObject obj, index, proc,
-	tmp, src, file, info, line;
-      obj = SG_CAR(cur);
-      index = SG_CAR(obj);
-      if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
-	Sg_Printf(buf,
-		  UC("      ... (more stack dump truncated)\n"));
-	break;
-      }
-
-      proc = SG_CDR(obj);		/* (proc name src) */
-      if (SG_EQ(SG_CAR(proc), SG_INTERN("*proc*"))) {
-	tmp = SG_CAR(SG_CDDR(proc));
-	if (!SG_PAIRP(tmp)) {
-	  goto no_src;
-	} else {
-	  src = Sg_LastPair(tmp);
-	  src = SG_CDAR(src);
-	  if (SG_PAIRP(src)) {
-	    info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
-	  } else {
-	    info = SG_FALSE;
-	  }
-	}
-	if (SG_FALSEP(info) || !info) {
-	  Sg_PrintfShared(buf,
-			  UC("  [%A] %A\n"
-			     "    src: %#50S\n"),
-			  index, SG_CADR(proc),
-			  Sg_UnwrapSyntax(src));
-	} else {
-	  file = SG_CAR(info);
-	  line = SG_CDR(info);
-	  Sg_PrintfShared(buf,
-			  UC("  [%A] %A\n"
-			     "    src: %#50S\n"
-			     "    %S:%A\n"),
-			  index, SG_CADR(proc),
-			  Sg_UnwrapSyntax(src),
-			  file, line);
-	}
-      
-      } else {
-      no_src:
-	/* *cproc* does not have any source info */
-	Sg_Printf(buf,
-		  UC("  [%A] %A\n"),
-		  index, SG_CADR(proc));
-      }
-    }
+    format_stack_trace(stackTrace, buf, TRUE);
   }
   Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
