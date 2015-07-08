@@ -772,28 +772,23 @@ static SgObject make_stack_trace(SgObject cause, SgObject trace)
 
 SgObject Sg_AddStackTrace(SgObject e)
 {
-  if (Sg_ConditionP(e)) {
+  if (Sg_CompoundConditionP(e)) {
     SgObject trace = Sg_GetStackTrace();
     SgObject cause = SG_FALSE;
     SgObject components;
-    if (Sg_CompoundConditionP(e)) {
-      SgObject cp, h = SG_NIL, t = SG_NIL;
-      /* TODO remove stack trace destructively! */
-      components = Sg_CompoundConditionComponent(e);
-      SG_FOR_EACH(cp, components) {
-	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
-	  cause = SG_CAR(cp);
-	  continue;
-	} else {
-	  SG_APPEND1(h, t, SG_CAR(cp));
-	}
+    SgObject cp, h = SG_NIL, t = SG_NIL;
+    /* TODO remove stack trace destructively! */
+    components = Sg_CompoundConditionComponent(e);
+    SG_FOR_EACH(cp, components) {
+      if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
+	cause = SG_CAR(cp);
+	continue;
+      } else {
+	SG_APPEND1(h, t, SG_CAR(cp));
       }
-      SG_APPEND1(h, t, make_stack_trace(cause, trace));
-      components = h;
-    } else {
-      components = SG_LIST2(e, make_stack_trace(SG_FALSE, trace));
     }
-    return Sg_Condition(components);
+    SG_APPEND1(h, t, make_stack_trace(cause, trace));
+    return Sg_Condition(h);
   }
   return e;
 }

@@ -7,6 +7,7 @@
 	(rnrs r5rs)
 	(sagittarius)
 	(sagittarius vm)
+	(sagittarius conditions)
 	(encoding decoder)
 	(srfi :1)
 	(srfi :39)
@@ -1830,5 +1831,14 @@
 	       (utf16->string bv 'little)))
 ;; cpu-count
 (test-assert "cpu-count" (>= (cpu-count) 1))
+
+;; stack-trace condition
+(test-assert "compound condition"
+	     (guard (e (else (stack-trace-condition? e)))
+	       (error 'dummy "it's me")))
+
+(test-assert "simple condition"
+	     (guard (e (else (not (stack-trace-condition? e))))
+	       (raise (make-who-condition 'who))))
 
 (test-end)
