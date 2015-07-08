@@ -66,9 +66,17 @@
      +- &irritants (irritants)
           +- &trace <-- non R6RS, for compile time error trace
      +- &who (who)
+     +- &stack-trace (cause trace) <-- non R6RS. *1
 
    we implement these standard conditions in C.
    For convenience &compound-condition is defined
+
+   *1 &stack-trace can be a sub condition of &irritants however we don't
+      want to show it when condition is printed. to make my life easier
+      we make it separate.
+      NB: &stack-trace is an implicit condition. it's added whenever 
+          raise/raise-continuable is called and the argument is a
+          condition.
  */
 SG_CLASS_DECL(Sg_ConditionClass);
 SG_CLASS_DECL(Sg_WarningClass);
@@ -104,6 +112,8 @@ SG_CLASS_DECL(Sg_ImportConditionClass);
 SG_CLASS_DECL(Sg_TraceConditionClass);
 /* system */
 SG_CLASS_DECL(Sg_SystemErrorClass);
+/* stack trace */
+SG_CLASS_DECL(Sg_StackTraceConditionClass);
 
 
 #define SG_CLASS_CONDITION (&Sg_ConditionClass)
@@ -137,6 +147,7 @@ SG_CLASS_DECL(Sg_SystemErrorClass);
 #define SG_CLASS_IMPORT_CONDITION  (&Sg_ImportConditionClass)
 #define SG_CLASS_TRACE_CONDITION  (&Sg_TraceConditionClass)
 #define SG_CLASS_SYSTEM_ERROR     (&Sg_SystemErrorClass)
+#define SG_CLASS_STACK_TRACE_CONDITION (&Sg_StackTraceConditionClass)
 
 #define SG_CONDITIONP(o)          SG_ISA(o, SG_CLASS_CONDITION)
 #define SG_COMPOUND_CONDITIONP(o) SG_XTYPEP(o, SG_CLASS_COMPOUND_CONDITION)
@@ -267,6 +278,15 @@ typedef struct SgSystemErrorRec
 #define SG_SYSTEM_ERROR(o)  ((SgSystemError *)o)
 #define SG_SYSTEM_ERRORP(o) SG_ISA(o, SG_CLASS_SYSTEM_ERROR)
 
+typedef struct SgStackTraceConditionRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject cause;		/* #f or &stack-trace */
+  SgObject trace;		/* back trace */
+} SgStackTraceCondition;
+#define SG_STACK_TRACE_CONDITION(o)  ((SgStackTraceCondition *)o)
+#define SG_STACK_TRACE_CONDITION_P(o) SG_ISA(o, SG_CLASS_STACK_TRACE_CONDITION)
+
 
 #define SG_INIT_CONDITION(cl, lib, name, slots)	\
   do {									\
@@ -351,6 +371,7 @@ SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 SG_EXTERN SgObject Sg_MakeSystemError(int errno_);
 
+SG_EXTERN SgObject Sg_AddStackTrace(SgObject e);
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 

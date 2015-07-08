@@ -43,6 +43,9 @@
 	  import-error-library
 	  &system system-error?
 	  system-error-errno
+	  &stack-trace stack-trace-condition?
+	  condition-cause
+	  condition-stack-trace
 	  )
   (import (core)
 	  (core base)
@@ -105,6 +108,7 @@
   (initialize-builtin-condition &compile &error source program)
   (initialize-builtin-condition &import &error library)
   (initialize-builtin-condition &system &error errno)
+  (initialize-builtin-condition &stack-trace &condition cause trace)
 
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
@@ -162,6 +166,11 @@
     (condition-accessor (record-type-rtd &import) &import-library))
   (define system-error-errno
     (condition-accessor (record-type-rtd &system) &system-errno))
+
+  (define condition-cause
+    (condition-accessor (record-type-rtd &stack-trace) &stack-trace-cause))
+  (define condition-stack-trace
+    (condition-accessor (record-type-rtd &stack-trace) &stack-trace-trace))
   (define-syntax define-condition-type
     (lambda (x)
       (syntax-case x ()

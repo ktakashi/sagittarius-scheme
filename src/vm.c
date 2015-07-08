@@ -430,7 +430,20 @@ static inline void report_error(SgObject exception, SgObject out)
     stackTrace = SG_CDR(exception);
   } else {
     error = exception;
-    stackTrace = Sg_GetStackTrace();
+    if (Sg_CompoundConditionP(error)) {
+      SgObject cp;
+      SG_FOR_EACH(cp, Sg_CompoundConditionComponent(error)) {
+	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
+	  stackTrace = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
+	  break;
+	}
+      }
+      if (SG_NULLP(stackTrace)) {
+	stackTrace = Sg_GetStackTrace();
+      }
+    } else {
+      stackTrace = Sg_GetStackTrace();
+    }
   }
   Sg_Printf(buf,
 	    UC("Unhandled exception\n"
@@ -1761,6 +1774,7 @@ SgObject Sg_GetStackTrace()
 
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
+  exception = Sg_AddStackTrace(exception);
   if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
     if (continuableP) {
       vm->ac = Sg_Apply1(vm->exceptionHandler, exception);

@@ -650,6 +650,37 @@ SG_DEFINE_BASE_CLASS(Sg_SystemErrorClass, SgSystemError,
 		     system_printer, NULL, NULL, system_allocate,
 		     Sg_ErrorConditionCPL);
 
+static void stack_trace_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<stack-trace cause=%A>"), 
+	    SG_STACK_TRACE_CONDITION(o)->cause);
+}
+static SgObject stack_trace_allocate(SgClass *klass, SgObject initargs)
+{
+  SgStackTraceCondition *c = SG_ALLOCATE(SgStackTraceCondition, klass);
+  SG_SET_CLASS(c, klass);
+  c->cause = SG_FALSE;
+  c->trace = SG_NIL;
+  return SG_OBJ(c);
+}
+
+static SgObject st_cause(  SgStackTraceCondition *c)
+{
+  return c->cause;
+}
+static SgObject st_trace(  SgStackTraceCondition *c)
+{
+  return c->trace;
+}
+static SgSlotAccessor st_slots[] = {
+  SG_CLASS_SLOT_SPEC("cause",  0, st_cause, NULL),
+  SG_CLASS_SLOT_SPEC("trace",  1, st_trace, NULL),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_StackTraceConditionClass, SgStackTraceCondition,
+		     stack_trace_printer, NULL, NULL, stack_trace_allocate,
+		     Sg_ConditionCPL);
+
 
 SgObject Sg_MakeNonContinuableViolation()
 {
@@ -731,6 +762,42 @@ SgObject Sg_MakeSystemError(int errno_)
   return c;
 }
 
+static SgObject make_stack_trace(SgObject cause, SgObject trace)
+{
+  SgObject st = stack_trace_allocate(SG_CLASS_STACK_TRACE_CONDITION, SG_NIL);
+  SG_STACK_TRACE_CONDITION(st)->cause = cause;
+  SG_STACK_TRACE_CONDITION(st)->trace = trace;
+  return st;
+}
+
+SgObject Sg_AddStackTrace(SgObject e)
+{
+  if (Sg_ConditionP(e)) {
+    SgObject trace = Sg_GetStackTrace();
+    SgObject cause = SG_FALSE;
+    SgObject components;
+    if (Sg_CompoundConditionP(e)) {
+      SgObject cp, h = SG_NIL, t = SG_NIL;
+      /* TODO remove stack trace destructively! */
+      components = Sg_CompoundConditionComponent(e);
+      SG_FOR_EACH(cp, components) {
+	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
+	  cause = SG_CAR(cp);
+	  continue;
+	} else {
+	  SG_APPEND1(h, t, SG_CAR(cp));
+	}
+      }
+      SG_APPEND1(h, t, make_stack_trace(cause, trace));
+      components = h;
+    } else {
+      components = SG_LIST2(e, make_stack_trace(SG_FALSE, trace));
+    }
+    return Sg_Condition(components);
+  }
+  return e;
+}
+
 static void describe_simple(SgPort *out, SgObject con)
 {
   SgClass *klass = Sg_ClassOf(con);
@@ -748,6 +815,8 @@ static void describe_simple(SgPort *out, SgObject con)
     Sg_Printf(out, UC("\n    source: %A"), comp_source(con));
   } else if (SG_EQ(klass, SG_CLASS_TRACE_CONDITION)) {
     Sg_Printf(out, UC(" %#60S"), irr_irritants(con));
+  } else if (SG_EQ(klass, SG_CLASS_STACK_TRACE_CONDITION)) {
+    /* ignore this */
   } else {
     for (; acc && *acc; acc++) {
       SgObject v = Sg_SlotRefUsingAccessor(con, (*acc));
@@ -913,6 +982,8 @@ void Sg__InitConditions()
   INIT_CONDITION(SG_CLASS_TRACE_CONDITION, "&trace", NULL);
   /* system error */
   INIT_CONDITION(SG_CLASS_SYSTEM_ERROR, "&system", sys_slots);
+  /* stack trace */
+  INIT_CONDITION(SG_CLASS_STACK_TRACE_CONDITION, "&stack-trace", st_slots);
   /* compound */
   INIT_CONDITION(SG_CLASS_COMPOUND_CONDITION, "&compound-condition", cc_slots);
 
@@ -1022,4 +1093,10 @@ void Sg__InitConditions()
   INIT_CTR1(SG_CLASS_SYSTEM_ERROR, "make-system-error", 
 	    "system-error?",
 	    sys_errno, "&system-errno");
+
+  /* &stack-trace */
+  INIT_CTR2(SG_CLASS_STACK_TRACE_CONDITION, 
+	    "make-stack-trace-condition", "stack-trace-condition?",
+	    st_cause, "&stack-trace-cause",
+	    st_trace, "&stack-trace-trace");
 }
