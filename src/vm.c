@@ -486,7 +486,7 @@ void Sg_FormatStackTrace(SgObject e, SgObject out)
 
 static inline void report_error(SgObject exception, SgObject out)
 {
-  SgObject error = SG_NIL, stackTrace = SG_NIL;
+  SgObject error = SG_NIL, stackTrace = SG_NIL, next = SG_FALSE;
   SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
 
   if (SG_PAIRP(exception)) {
@@ -499,11 +499,13 @@ static inline void report_error(SgObject exception, SgObject out)
       SG_FOR_EACH(cp, Sg_CompoundConditionComponent(error)) {
 	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
 	  stackTrace = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
+	  next = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cause;
 	  break;
 	}
       }
     } else if (SG_STACK_TRACE_CONDITION_P(error)) {
       stackTrace = SG_STACK_TRACE_CONDITION(error)->trace;
+      next = SG_STACK_TRACE_CONDITION(error)->cause;
     } 
     if (SG_NULLP(stackTrace)) {
       stackTrace = Sg_GetStackTrace();
@@ -514,7 +516,16 @@ static inline void report_error(SgObject exception, SgObject out)
 	       "  %A\n"), Sg_DescribeCondition(error));
 
   if (!SG_NULLP(stackTrace)) {
-    format_stack_trace(stackTrace, buf, TRUE);
+    while (1) {
+      format_stack_trace(stackTrace, buf, TRUE);
+      if (SG_STACK_TRACE_CONDITION_P(next)) {
+	stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
+	next = SG_STACK_TRACE_CONDITION(next)->cause;
+	Sg_Printf(buf, UC("Nested "));
+      } else {
+	break;
+      }
+    }
   }
   Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
