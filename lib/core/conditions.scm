@@ -43,9 +43,11 @@
 	  import-error-library
 	  &system system-error?
 	  system-error-errno
-	  &stack-trace stack-trace-condition?
-	  condition-cause
-	  condition-stack-trace
+	  ;; NB: we might want to use different type of mechanism of
+	  ;;     tracing stack trace, so don't export it for now.
+	  ;; &stack-trace stack-trace-condition?
+	  ;; condition-cause
+	  ;; condition-stack-trace
 	  )
   (import (core)
 	  (core base)
