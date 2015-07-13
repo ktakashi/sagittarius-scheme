@@ -46,7 +46,7 @@ static SgObject thread_error_handler(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-static SG_DEFINE_SUBR(thread_error_handler_STUB, 1, 0, thread_error_handler,
+static SG_DEFINE_SUBR(thread_error_handler_STUB, 2, 0, thread_error_handler,
 		      SG_FALSE, NULL);
 
 SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
@@ -99,7 +99,7 @@ static void* thread_entry(void *data)
       case SG_VM_ESCAPE_ERROR:
 	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
 	vm->resultException = exc;
-	Sg_ReportError(SG_OBJ(vm->escapeData[1]), vm->currentErrorPort);
+	Sg_ReportErrorInternal(SG_OBJ(vm->escapeData[1]), vm->currentErrorPort);
 	break;
       }
     } SG_END_PROTECT;

@@ -429,6 +429,7 @@ SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
 SG_EXTERN SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 					 int rewindBefore);
 SG_EXTERN void     Sg_ReportError(SgObject e, SgObject out);
+SG_EXTERN void     Sg_ReportErrorInternal(SgObject e, SgObject out);
 /* pretty printer for stack trace */
 SG_EXTERN void     Sg_FormatStackTrace(SgObject e, SgObject out);
 

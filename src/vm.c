@@ -531,7 +531,12 @@ static inline void report_error(SgObject exception, SgObject out)
   Sg_FlushAllPort(FALSE);
 }
 
-void Sg_ReportError(volatile SgObject e, SgObject out)
+void Sg_ReportError(SgObject e, SgObject out)
+{
+  report_error(e, out);
+}
+
+void Sg_ReportErrorInternal(volatile SgObject e, SgObject out)
 {
   SgVM *vm = Sg_VM();
 
@@ -541,14 +546,11 @@ void Sg_ReportError(volatile SgObject e, SgObject out)
   }
   SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   SG_UNWIND_PROTECT {
-    /* FIXME this is ugly... */
-    if ((SG_EQ(vm->currentErrorPort, out) ||
-	 SG_EQ(vm->currentOutputPort, out)) &&
-	SG_PROCEDUREP(vm->defaultEscapeHandler)) {
-      Sg_Apply1(vm->defaultEscapeHandler, e);
+    if (SG_PROCEDUREP(vm->defaultEscapeHandler)) {
+      Sg_Apply2(vm->defaultEscapeHandler, e, out);
     } else {
       Sg_FlushAllPort(FALSE);
-      report_error(e, out);
+      Sg_ReportError(e, out);
     }
   }
   SG_WHEN_ERROR {
@@ -1889,7 +1891,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
       SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
     }
   } else {
-    Sg_ReportError(e, vm->currentErrorPort);
+    Sg_ReportErrorInternal(e, vm->currentErrorPort);
     SG_FOR_EACH(hp, vm->dynamicWinders) {
       SgObject proc = SG_CDAR(hp);
       vm->dynamicWinders = SG_CDR(hp);
