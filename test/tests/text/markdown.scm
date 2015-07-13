@@ -84,6 +84,9 @@
 ;; ``` style
 (test-parser '(:doc (:verbatim "hogehoge\nfugafuga"))
 	     "```\nhogehoge\nfugafuga\n```\n")
+;; call #136
+(test-parser '(:doc (:verbatim "hogehoge\n\nfugafuga"))
+	     "```\nhogehoge\n\nfugafuga\n```\n")
 
 ;; reference
 (test-parser '(:doc (:reference (:label "ref") "source" "")) "[ref]: source\n")

@@ -251,9 +251,6 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    (make-expected-result 
 		     (parse-results-position starting-results)
 		     "Unexpected EOF"))
-		   ((and (not (eqv? ch #\`))
-			 (char-set-contains? *nonspace-char-set* ch))
-		    (loop (cons ch acc) (parse-results-next results)))
 		   ((eqv? #\` ch)
 		    ;; check tick
 		    (let-values (((ticks2 next-results) (get-ticks results)))
@@ -328,7 +325,8 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 		    (if (null? b)
 			(string-join l "\n")
 			(string-append "\n" (string-join l "\n")))))
-   (non-backslash-line (((! (token "```")) l <- line) l))
+   (non-backslash-line (((! (token "```")) l <- line) l)
+		       ((s <- sp nl) (apply string-append s)))
 
    ;; horizontal-rule
    (horizontal-rule ((non-indent-space rule* sp nl (+ blankline)) '(:line))
@@ -597,7 +595,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 
    ;; misc
    (blankline ((sp nl) :blankline))
-   (sp (((* space-char)) :sp))
+   (sp ((s <- (* space-char)) s))
    (space (((+ space-char)) " "))
    (spnl ((sp (? nl sp)) :spnl))
    (space-char (('#\space) " ")
