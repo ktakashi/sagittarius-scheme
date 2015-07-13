@@ -218,9 +218,10 @@
 						  (condition-message c)
 						  c))
 		  ;; socket connection
-		  (let1 msg (describe-condition c)
+		  (let-values (((out extract) (open-string-output-port)))
+		    (report-error c out)
 		    (send-packed-data socket 
-		      :error (format "~s" current-expression) msg))
+		      :error (format "~s" current-expression) (extract)))
 		  (and (serious-condition? c) (continue)))
 		(lambda ()
 		  (let ((command (read/ss in/out)))
