@@ -9,6 +9,7 @@
 	(sagittarius vm)
 	(sagittarius conditions)
 	(encoding decoder)
+	(core) ;; for simple-condition?
 	(srfi :1)
 	(srfi :39)
 	(srfi :64 testing))
