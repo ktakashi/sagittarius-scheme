@@ -119,6 +119,9 @@
 	    date->string string->date
 	    ;; clos
 	    <time> <date>
+
+	    ;; for testing
+	    local-tz-offset
 	    )
     (import (core)
 	    (core base)

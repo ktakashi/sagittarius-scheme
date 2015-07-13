@@ -7,7 +7,8 @@
 	   <sagittarius-time.h>))
 
 ;; it's not transparent
-(define-c-proc local-tz-offset () :no-side-effect Sg_LocalTzOffset)
+(define-c-proc local-tz-offset (:optional (now #f))
+  :no-side-effect Sg_LocalTzOffset)
 
 
 					       

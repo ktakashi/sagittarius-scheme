@@ -34,12 +34,17 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-time.h"
 
-SgObject Sg_LocalTzOffset()
+SgObject Sg_LocalTzOffset(SgObject t)
 {
   struct tm localTime;
   struct tm utcTime;
-  time_t current = time(NULL);
-  time_t l;
+  time_t current, l;
+  struct timespec spec, *tmp;
+
+  tmp = Sg_GetTimeSpec(t, &spec);
+  if (tmp) current = tmp->tv_sec;
+  else  current = time(NULL);
+
 #ifdef _WIN32
   localtime_s(&localTime, &current);
   l = mktime(&localTime);

@@ -224,6 +224,10 @@
 	    "1981-12-02T00:00:00+01:00"
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
+
+;; local-tz-offset
+(test-assert "local-tz-offset (1)" (local-tz-offset))
+(test-assert "local-tz-offset (2)" (local-tz-offset (current-time)))
   
 (test-end)
   

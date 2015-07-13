@@ -52,7 +52,7 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r);
 
 SgObject Sg_MakeDate(SgObject nano, int sec, int min, int hour,
 		     int day, int mon, int year, int64_t zone);
-SgObject Sg_LocalTzOffset();
+SgObject Sg_LocalTzOffset(SgObject t);
 
 SG_CDECL_END
 
