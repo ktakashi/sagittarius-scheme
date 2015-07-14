@@ -234,28 +234,28 @@
 (define summer-time (date->time-utc (make-date 0 0 0 0 14 7 2015 7200)))
 (define winter-time (date->time-utc (make-date 0 0 0 0 14 12 2015 3600)))
 
+;; FXXK!!!
+;; On Windows, there is no way to set more than 3 letters DST name.
+;; Thus, even this is written in Europe but we need to use pacific
+;; time which has PST/PDT.
+(define tz-name "PST+8PDT")
+(define tz-names '("PST" "PDT"))
 ;; timezone tests
-(test-assert "set-timezone! (CET)" (set-timezone! "CET"))
-;; one or the other
-(cond-expand
- ;; for some reason, Windows returns W. Europe Daylight Time (WEDT) not 
- ;; CET/CEST even though WEDT is only used in very few places. (at least
- ;; it returned WEDT in the Netherlands. SUCKS!!!) For now, I don't know
- ;; how to deal it so skip.
- ((not windows)
-  (test-assert "timezone" (member (timezone) '("CET" "CEST")))
-  (test-equal "timezone" "CET" (timezone winter-time))
-  (test-equal "timezone" "CEST" (timezone summer-time))
-  (test-equal "timezones" '("CET" "CEST") (let-values ((r (timezones))) r)))
- (else #t))
+(test-assert "set-timezone! (0)" (set-timezone! tz-name))
 
-(test-equal "timezone-offset (3)" 7200 (timezone-offset summer-time))
-(test-equal "timezone-offset (4)" 3600 (timezone-offset winter-time))
+;; one or the other
+(test-assert "timezone(1)" (member (timezone) tz-names))
+(test-equal "timezone(2)" (car tz-names) (timezone winter-time))
+(test-equal "timezone(3)" (cadr tz-names) (timezone summer-time))
+(test-equal "timezones" tz-names (let-values ((r (timezones))) r))
+
+(test-equal "timezone-offset (3)" -25200 (timezone-offset summer-time))
+(test-equal "timezone-offset (4)" -28800 (timezone-offset winter-time))
 
 (test-assert "daylight-saving-time?" (daylight-saving-time? summer-time))
 (test-assert "daylight-saving-time?" (not (daylight-saving-time? winter-time)))
 ;; reset
-(test-assert "set-timezone! (CET)" (set-timezone! #f))
+(test-assert "set-timezone! (reset)" (set-timezone! #f))
 
 (cond-expand
  ((not cygwin)

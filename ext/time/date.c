@@ -35,34 +35,62 @@
 #include "sagittarius-time.h"
 
 #ifdef _WIN32
-#define tzname _tzname
+#include <windows.h>
+#include <limits.h>
+/* this might be since VS2013? */
+#ifndef TZNAME_MAX
+# define TZNAME_MAX 255
+#endif
+static SgObject get_tzname_n(int n)
+{
+  char buf[TZNAME_MAX];
+  size_t out;
+  _get_tzname(&out, buf, TZNAME_MAX, n);
+  buf[out] = 0;
+  return Sg_MakeStringC(buf);
+}
+#define tzname0 get_tzname_n(0)
+#define tzname1 get_tzname_n(1)
 #define tzset _tzset
+#else
+#define tzname0 Sg_MakeStringC(tzname[0])
+#define tzname1 Sg_MakeStringC(tzname[1])
 #endif
 
 SgObject Sg_Timezones()
 {
-  SgObject zone = Sg_MakeStringC(tzname[0]);
-  SgObject dst = Sg_MakeStringC(tzname[1]);
+  SgObject zone = tzname0;
+  SgObject dst = tzname1;
   return Sg_Values2(zone, dst);
 }
 
 SgObject Sg_Timezone(SgObject when)
 {
   if (Sg_DaylightP(when)) {
-    return Sg_MakeStringC(tzname[1]);
+    return tzname1;
   } else {
-    return Sg_MakeStringC(tzname[0]);
+    return tzname0;
   }
 }
 
 void Sg_SetTimezone(SgString *zone)
 {
   /* TODO check if the given zone is a valid timezone name */
+#ifdef _WIN32
+  /* tzset is CRT so we need to use putenv */
+  if (zone) {
+    _putenv_s("TZ", Sg_Utf32sToUtf8s(zone));
+  } else {
+    /* remove it */
+    _putenv("TZ=");
+  }
+#else
   if (zone) {
     Sg_Setenv(UC("TZ"), SG_STRING_VALUE(zone));
   } else {
     Sg_Setenv(UC("TZ"), NULL);
   }
+#endif
   tzset();
 }
 
