@@ -52,7 +52,11 @@ SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r);
 
 SgObject Sg_MakeDate(SgObject nano, int sec, int min, int hour,
 		     int day, int mon, int year, int64_t zone);
-SgObject Sg_LocalTzOffset(SgObject t);
+SgObject Sg_TimezoneOffset(SgObject t);
+SgObject Sg_Timezone(SgObject when);
+SgObject Sg_Timezones();
+void     Sg_SetTimezone(SgString *zone);
+int      Sg_DaylightP(SgObject t);
 
 SG_CDECL_END
 

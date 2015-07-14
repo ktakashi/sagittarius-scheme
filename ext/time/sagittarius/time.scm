@@ -121,7 +121,11 @@
 	    <time> <date>
 
 	    ;; for testing
-	    local-tz-offset
+	    timezone-offset
+	    timezones
+	    timezone
+	    set-timezone!
+	    daylight-saving-time?
 	    )
     (import (core)
 	    (core base)
@@ -409,7 +413,7 @@
   (define (tm:time->date time tz-offset ttype)
     (if (not (eq? (time-type time) ttype))
         (tm:time-error 'time->date 'incompatible-time-types  time))
-    (let* ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
+    (let* ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
       (receive (secs date month year)
           (tm:decode-julian-day-number
            (tm:time->julian-day-number (time-second time) offset))
@@ -657,7 +661,7 @@
 
   (define (current-date . tz-offset)
     (time-utc->date (current-time time-utc)
-                    (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
+                    (if (null? tz-offset) (timezone-offset) (car tz-offset))))
 
 
   (define (julian-day->time-utc jdn)
@@ -673,11 +677,11 @@
     (time-utc->time-monotonic! (julian-day->time-utc jdn)))
 
   (define (julian-day->date jdn . tz-offset)
-    (let ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
+    (let ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
       (time-utc->date (julian-day->time-utc jdn) offset)))
 
   (define (modified-julian-day->date jdn . tz-offset)
-    (let ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
+    (let ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
       (julian-day->date (+ jdn 4800001/2) offset)))
 
   (define (modified-julian-day->time-utc jdn)
@@ -1272,7 +1276,7 @@
            (date-month date)
            (date-year date)
            (date-zone-offset date)))
-    (let ( (newdate (make-date 0 0 0 0 0 0 0 (local-tz-offset))) )
+    (let ( (newdate (make-date 0 0 0 0 0 0 0 (timezone-offset))) )
       (tm:string->date newdate
                        0
                        template-string

@@ -87,6 +87,7 @@
        (= (date-zone-offset d1) (date-zone-offset d2))))
 
 (test-begin "(run-time-test)")
+
 (let ((t (make-time time-utc 10 20)))
   (test-assert "time?" (time? t))
   (test-equal "time type" (time-type t) time-utc)
@@ -225,9 +226,30 @@
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
 
-;; local-tz-offset
-(test-assert "local-tz-offset (1)" (local-tz-offset))
-(test-assert "local-tz-offset (2)" (local-tz-offset (current-time)))
-  
+;; timezone-offset
+(test-assert "timezone-offset (1)" (timezone-offset))
+(test-assert "timezone-offset (2)" (timezone-offset (current-time)))
+
+(define current-timezone (timezone))
+(define summer-time (date->time-utc (make-date 0 0 0 0 14 7 2015 7200)))
+(define winter-time (date->time-utc (make-date 0 0 0 0 14 12 2015 3600)))
+
+;; timezone tests
+(test-assert "set-timezone! (CET)" (set-timezone! "CET"))
+;; one or the other
+(test-assert "timezone" (member (timezone) '("CET" "CEST")))
+(test-equal "timezone" "CET" (timezone winter-time))
+(test-equal "timezone" "CEST" (timezone summer-time))
+(test-equal "timezones" '("CET" "CEST") (let-values ((r (timezones))) r))
+
+(test-equal "timezone-offset (3)" 7200 (timezone-offset summer-time))
+(test-equal "timezone-offset (4)" 3600 (timezone-offset winter-time))
+
+(test-assert "daylight-saving-time?" (daylight-saving-time? summer-time))
+(test-assert "daylight-saving-time?" (not (daylight-saving-time? winter-time)))
+;; reset
+(test-assert "set-timezone! (CET)" (set-timezone! #f))
+(test-equal "resetted timezone" current-timezone (timezone))
+
 (test-end)
   

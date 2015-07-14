@@ -34,7 +34,39 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-time.h"
 
-SgObject Sg_LocalTzOffset(SgObject t)
+#ifdef _WIN32
+#define tzname _tzname
+#define tzset _tzset
+#endif
+
+SgObject Sg_Timezones()
+{
+  SgObject zone = Sg_MakeStringC(tzname[0]);
+  SgObject dst = Sg_MakeStringC(tzname[1]);
+  return Sg_Values2(zone, dst);
+}
+
+SgObject Sg_Timezone(SgObject when)
+{
+  if (Sg_DaylightP(when)) {
+    return Sg_MakeStringC(tzname[1]);
+  } else {
+    return Sg_MakeStringC(tzname[0]);
+  }
+}
+
+void Sg_SetTimezone(SgString *zone)
+{
+  /* TODO check if the given zone is a valid timezone name */
+  if (zone) {
+    Sg_Setenv(UC("TZ"), SG_STRING_VALUE(zone));
+  } else {
+    Sg_Setenv(UC("TZ"), NULL);
+  }
+  tzset();
+}
+
+SgObject Sg_TimezoneOffset(SgObject t)
 {
   struct tm localTime;
   struct tm utcTime;
@@ -54,6 +86,25 @@ SgObject Sg_LocalTzOffset(SgObject t)
   l = mktime(&localTime);
   gmtime_r(&l, &utcTime);
 #endif
+  localTime.tm_isdst = 0;	/* set to 0 so that mktime consider DST */
   return Sg_MakeIntegerFromS64((int64_t)mktime(&localTime)
 			       - (int64_t)mktime(&utcTime));
+}
+
+int Sg_DaylightP(SgObject t)
+{
+  struct tm localTime;
+  time_t current;
+  struct timespec spec, *tmp;
+
+  tmp = Sg_GetTimeSpec(t, &spec);
+  if (tmp) current = tmp->tv_sec;
+  else  current = time(NULL);
+
+#ifdef _WIN32
+  localtime_s(&localTime, &current);
+#else
+  localtime_r(&current, &localTime);
+#endif
+  return localTime.tm_isdst;  
 }

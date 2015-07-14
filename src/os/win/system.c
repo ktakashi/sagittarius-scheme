@@ -128,9 +128,12 @@ SgObject Sg_Getenv(const SgChar *env)
 void Sg_Setenv(const SgChar *env, const SgChar *value)
 {
   SgString *s = Sg_HeapString(env);
-  SgString *v = Sg_HeapString(value);
-  SetEnvironmentVariableW(utf32ToUtf16(s), 
-			  (value) ? utf32ToUtf16(v) : NULL);
+  if (value) {
+    SgString *v = Sg_HeapString(value);
+    SetEnvironmentVariableW(utf32ToUtf16(s), utf32ToUtf16(v));
+  } else {
+    SetEnvironmentVariableW(utf32ToUtf16(s), NULL);
+  }
 }
 
 SgObject Sg_GetenvAlist()
