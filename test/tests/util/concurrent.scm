@@ -86,14 +86,19 @@
   (test-assert "future-cancelled? (3)" (future-cancelled? f3))
   )
 
-(let ((e (make-executor 1 push-future-handler))
-      (f1 (future (class <executor-future>) (thread-sleep! 1)))
-      (f2 (future (class <executor-future>) (thread-sleep! 1))))
+(let* ((e (make-executor 1 push-future-handler))
+       (sq1 (make-shared-queue))
+       (sq2 (make-shared-queue))
+       (f1 (future (class <executor-future>) (shared-queue-get! sq1)))
+       (f2 (future (class <executor-future>) (shared-queue-get! sq2))))
   (test-assert "executor?" (executor? (execute-future! e f1)))
   (test-assert "executor? (2)" (executor? (execute-future! e f2)))
   (test-assert "available?" (not (executor-available? e)))
   ;; weird, huh?
   (test-equal "pool size" 2 (executor-pool-size e))
+  ;; let it finish
+  (shared-queue-put! sq1 #t)
+  (shared-queue-put! sq2 #t)
   (test-assert "shutodown" (shutdown-executor! e))  
   )
 
