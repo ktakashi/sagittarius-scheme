@@ -89,7 +89,7 @@
 		     (assertion-violation 
 		      'min-max
 		      (format "character or procedure required but got ~s"
-			      char/pred) char/pred))))
+			      char/pred/charset) char/pred/charset))))
 	(required (format "~a{~a,~a}" char/pred/charset min (if max max ""))))
     (lambda (starting-results)
       (let loop ((count 0) (results starting-results) (acc '()))
