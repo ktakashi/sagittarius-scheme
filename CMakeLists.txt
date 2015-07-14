@@ -568,6 +568,17 @@ ADD_CUSTOM_TARGET(test-ext
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm ext
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+ADD_CUSTOM_TARGET(test-site-s
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+          -D${PROJECT_BINARY_DIR}/build
+	  -D${PROJECT_BINARY_DIR}/build/modules
+	  -L${PROJECT_SOURCE_DIR}
+	  -L${PROJECT_SOURCE_DIR}/lib
+	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -fno-backtrace
+	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+
 
 ADD_SUBDIRECTORY(doc doc)
 
