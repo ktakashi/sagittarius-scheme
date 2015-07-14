@@ -114,11 +114,7 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   SET_STACK_SIZE(&ctx);
 
   SG_PORT_LOCK_WRITE(port);
-  if (SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED) {
-    write_ss(obj, port, &ctx);
-  } else {
-    write_ss_rec(obj, port, &ctx);
-  }
+  format_write(obj, port, &ctx, SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED);
   SG_PORT_UNLOCK_WRITE(port);
 }
 
@@ -1066,11 +1062,54 @@ void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp)
 {
+  /* From https://support.microsoft.com/en-us/kb/315937 
+     The stack area of the Windows environment might be restricted
+     to less then our expected size. In this case, it raises 0xc00000fd
+     error. so trap it here.
+   */
+  /* only for MSVC. */
+#ifdef _MSC_VER
+  volatile __int64 frame = 0;
+  __try {
+#endif
   if (sharedp) {
     write_ss(obj, port, ctx);
   } else {
     write_ss_rec(obj, port, ctx);
   }
+#ifdef _MSC_VER
+  } __except(EXCEPTION_EXECUTE_HANDLER) {
+    LPBYTE lpPage = (LPBYTE)(&frame);
+    SYSTEM_INFO si;
+    MEMORY_BASIC_INFORMATION mi;
+    DWORD dwOldProtect;
+
+    /* Get page size of system */
+    GetSystemInfo(&si);            
+    /* Find SP address */
+    
+    /* Get allocation base of stack */
+    VirtualQuery(lpPage, &mi, sizeof(mi));
+    /* Go to page beyond current page */
+    lpPage = (LPBYTE)(mi.BaseAddress)-si.dwPageSize;
+    /* Free portion of stack just abandoned */
+    if (!VirtualFree(mi.AllocationBase,
+		     (LPBYTE)lpPage - (LPBYTE)mi.AllocationBase,
+		     MEM_DECOMMIT)) {
+      Sg_Panic("VirtualFree failed during stack recovery");
+    }
+    /* Reintroduce the guard page */
+    if (!VirtualProtect(lpPage, si.dwPageSize, 
+			PAGE_GUARD | PAGE_READWRITE, 
+			&dwOldProtect)) {
+      Sg_Panic("VirtualProtect failed during stack recovery");
+    }
+    Sg_IOWriteError((SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY)
+		    ? SG_INTERN("display")
+		    : SG_INTERN("write"),
+		    SG_MAKE_STRING("stack overflow"), port, SG_NIL);
+  }
+#endif
 }
 
 
