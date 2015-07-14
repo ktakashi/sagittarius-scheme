@@ -97,7 +97,11 @@
 					       *anonymous-pass*
 					       ""))
 				 (authenticate #f)
-				 (account "") (passive #f))
+				 (account "") 
+				 ;; default passive,
+				 ;; http://cr.yp.to/ftp/retr.html
+				 ;; above says don't send PORT.
+				 (passive #t))
 
     (define (do-authenticate conn)
       (let1 r1 (send-command conn "AUTH TLS")
@@ -263,11 +267,13 @@
 		      (map (lambda (m)
 			     (bytevector-append space (string->utf8 m)))
 			   args)))))
+      ;; (format #t "--> ~a~%" (utf8->string msg))
       (socket-send s (bytevector-append msg crlf))
       (get-response conn)))
 
   (define (simple-command conn cmd . args)
     (let1 res (apply send-command conn cmd  args)
+      ;; (format #t "<-- ~a~%~%" res)
       (if (positive-completion? res)
 	  res
 	  (ftp-error cmd res))))
@@ -348,10 +354,13 @@
     (define (make-asock)
       ;; NOTE following socket APIs are not documented yet.
       (define (make-ftp-server-socket ip4?)
+	(define info (socket-info (~ conn 'socket)))
 	(let ((s (make-socket (if ip4? AF_INET AF_INET6) SOCK_STREAM))
 	      (hints (make-hint-addrinfo :family (if ip4? AF_INET AF_INET6)
 					 :socktype SOCK_STREAM)))
-	  (unless (socket-bind! s (get-addrinfo "localhost" #f hints))
+	  (unless (socket-bind! s (get-addrinfo (ip-address->string 
+						 (~ info 'ip-address))
+						#f hints))
 	    (ftp-error 'ftp "failed to bind socket" s))
 	  (unless (socket-listen! s SOMAXCONN)
 	    (ftp-error 'ftp "failed to listen socket" s))
