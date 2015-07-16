@@ -11,6 +11,7 @@ exec sagittarius $0 "$@"
 	(sagittarius regex)
 	(sagittarius control)
 	(srfi :13)
+	(srfi :19)
 	(srfi :39)
 	(util file)
 	(util hashtables)
@@ -181,6 +182,69 @@ zoneinfo2tdf.pl
   (let ((prefix (string-downcase (substring name 0 3))))
     (cdr (assoc (string->symbol prefix) +month-prefix+))))
 
+;; for now we ignore the difference between w and s
+;; (honestly, I don't know the difference, wall clock and standard time in this
+;;  case. does standard time mean not daylight saving time?)
+(define (day-of-week y m d)
+  #|
+    dayofweek(y, m, d)/* 1 <= m <= 12,  y > 1752 (in the U.K.) */
+    {
+        static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+        y -= m < 3;
+        return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
+    }
+    from https://en.wikipedia.org/wiki/Determination_of_the_day_of_the_week
+  |#
+  (define t #(0 3 2 5 0 3 5 1 4 6 2 4))
+  (let ((y (if (< m 3) (- y 1) y)))
+    (mod (+ (- (+ y (div y 4)) (div y 100))
+	    (div y 400) (vector-ref t (- m 1)) d)
+	 7)))
+
+(define-constant +day-of-week+
+  '((Sun . 0) (Mon . 1) (Tue . 2) (Wed . 3) (Thu . 4) (Fri . 5) (Sat . 6)))
+#|
+    January - 31 days
+    February - 28 days; 29 days in Leap Years
+    March - 31 days
+    April - 30 days
+    May - 31 days
+    June - 30 days
+    July - 31 days
+    August - 31 days
+    September - 30 days
+    October - 31 days
+    November - 30 days
+    December - 31 days 
+|#
+(define-constant +days-of-months+
+  ;; 1  2  3  4  5  6  7  8  9 10 11 12
+  #(31 28 31 30 31 30 31 31 30 31 30 31))
+(define (leap-year? y) (and (not (zero? (mod y 1000))) (zero? (mod y 4))))
+
+(define (resolve-day d y m)
+  (define (last-day-of m)
+    (let ((d (vector-ref +days-of-months+ (- m 1))))
+      (if (and (= m 2) (leap-year? y))
+	  (+ d 1)
+	  d)))
+  (if (number? d)
+      d 
+      (match d
+	((day . 'last)
+	 (unless (and y m) 
+	   (error 'resolve-day "can't resolve without year and month"))
+	 (let* ((last (last-day-of m))
+		(last-day (day-of-week y m last))
+		(target (cdr (assq day +day-of-week+)))
+		(off (abs (- last-day target))))
+	   (- last off))))))
+(define (->utc-second base-offset y m d off?)
+  (let ((d (make-date 0 0 0 0 (if d (resolve-day d y m) 0) (if m m 0) y
+		      (if off? (car off?) base-offset))))
+    (time-second (date->time-utc d))))
+  
+
 (define (compile-zones zones)
   (define (compose name histories)
     (define (hour->second time) (car (parse-time-at time)))
@@ -199,7 +263,7 @@ zoneinfo2tdf.pl
 	      (and day (parse-date-on day))
 	      (and time (parse-time-at time))))
       (match rest
-	(() '())
+	(() '(#f #f #f))
 	((mon) (finish mon #f #f))
 	((mon day?) (finish mon day? #f))
 	((mon day? time) (finish mon day? time))))
@@ -209,12 +273,14 @@ zoneinfo2tdf.pl
 	   (fold-left (lambda (acc history)
 			(match history
 			  ((off rule-name zone-name year rest ...)
-			   (let ((y (string->number year)))
+			   (let ((y (string->number year))
+				 (rest (parse-rest rest))
+				 (base (basics off rule-name zone-name)))
 			     ;; we don't need you
 			     (if (minimum-year>=? y)
-				 (cons `(,@(basics off rule-name zone-name) 
-					 y
-					 ,@(parse-rest rest))
+				 (cons `(,@base
+					 ,(apply ->utc-second
+						 (car base) y rest))
 				       acc)
 				 acc)))
 			  (_ (error 'why "why" name history))))
@@ -317,6 +383,6 @@ zoneinfo2tdf.pl
       (when (file-exists? out) (delete-file out))
       (call-with-output-file out
 	(lambda (out)
-	  (write r out) (newline out))))
+	  (pp r out))))
     (when remove (delete-directory* +work-dir+))
     (print "Done!")))
