@@ -208,16 +208,19 @@
   (define (ftp-help conn . opt) (apply simple-command conn "HELP" opt))
 
   ;; ftp-get receiver
+  (define (ensure-copy out in)
+    (copy-binary-port out in)
+    (when (port-ready? in) (ensure-copy out in)))
   (define (ftp-binary-receiver)
     (let-values (((out extract) (open-bytevector-output-port)))
       (lambda (in)
-	(copy-binary-port out in)
+	(ensure-copy out in)
 	(extract))))
   (define (ftp-file-receiver filename)
     (lambda (in)
       (call-with-output-file filename
 	(lambda (out)
-	  (copy-binary-port out in))
+	  (ensure-copy out in))
 	:transcoder #f)))
 
 
@@ -405,7 +408,8 @@
 			    (tls-client-handshake
 			     (socket->tls-socket (get-data-socket)))
 			    (get-data-socket))
-		  (unwind-protect (reader (socket-port s))
+		  (unwind-protect (reader (socket-port s #f))
+		    (socket-shutdown s SHUT_RDWR) 
 		    (socket-close s)))
 		(let1 res2 (get-response conn)
 		  (unless (positive-completion? res2)
@@ -416,9 +420,11 @@
       (let1 dst (socket-port (if (is-a? (~ conn 'socket) <tls-socket>)
 				 (tls-client-handshake
 				  (socket->tls-socket (get-data-socket)))
-				 (get-data-socket)))
+				 (get-data-socket))
+			     #f)
 	(copy-binary-port dst port)
-	(flush-output-port dst)))
+	(flush-output-port dst)
+	(close-port dst)))
 
     (define (send-data)
       (call-with-data-connection conn
