@@ -226,6 +226,20 @@
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
 
+
+#|
+#|
+Disabled it for now.
+
+Starting next version, we will have timezone object to handle those
+zone offset and daylight saving time. Current implementation of 
+timezone depends too much of OS timezone, it is ok if the OS handles
+them as we expect however it seems more likely not. Moreover, neither
+POSIX nor Windows provides timezone object but mere local machine
+timezone information. To avoid these inconvenience, we need own
+timezone implementation.
+|#
+
 ;; timezone-offset
 (test-assert "timezone-offset (1)" (timezone-offset))
 (test-assert "timezone-offset (2)" (timezone-offset (current-time)))
@@ -266,6 +280,6 @@
   ;; so skip it for now.
   (test-equal "resetted timezone" current-timezone (timezone)))
  (else #t))
-
+|#
 (test-end)
   
