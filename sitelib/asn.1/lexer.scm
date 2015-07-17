@@ -15,7 +15,7 @@
 	    (sagittarius)
 	    )
 
-  (define-condition-type &asn.1-lexical-error &asn.1-error
+  (define-condition-type &asn.1-lexical-error &error
     make-asn.1-lexical-error asn.1-lexical-error?
     (token condition-asn.1-token))
 

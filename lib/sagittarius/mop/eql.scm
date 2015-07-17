@@ -34,7 +34,7 @@
 
 ;; eql specializer is now builtin so this is for backward compatibility
 (library (sagittarius mop eql)
-    (export (rename <class> <eql-specializable-generic>) eql)
+    (export (rename (<class> <eql-specializable-generic>)) eql)
     (import (only (clos user) <class> eql))
 #|
   (define-class <eql-specializer> (<class>)

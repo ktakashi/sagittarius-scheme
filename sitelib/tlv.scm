@@ -44,7 +44,7 @@
 
 	    ;; for extension
 	    ;; it's actually BER length reader
-	    (rename read-length read-ber-length)
+	    (rename (read-length read-ber-length))
 
 	    ;; for compatibility
 	    (rename (write-emv-tlv write-tlv))

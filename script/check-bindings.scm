@@ -8,19 +8,19 @@
 (define (check-exports file)
   (define (do-check name exports)
     (guard (e (#t
-               (when (message-condition? e)
-                 (print (condition-message e)))
-               (print "failed to find library: " name)))
+	       (when (message-condition? e)
+		 (print (condition-message e)))
+               (print "failed to find library: " name " - " file)))
       ;; resolve library first otherwise compiler compiles library
       ;; incollectly.
-      (eval `(import ,name) #f)
+      (eval `(import ,name) (environment '(sagittarius)))
       (let ((lib (find-library name #f)))
         (define (check orig export)
           (unless (keyword? export)
 	    (let ((gloc (find-binding lib export #f)))
 	      (or (and gloc (gloc-bound? gloc))
 		  (format (current-error-port)
-			  "Not binded ~a#~a~%" export name)))))
+			  "Not bound ~a#~a~ in ~a%" export name file)))))
         (for-each
          (lambda (export)
            (match export

@@ -33,7 +33,7 @@
             socket? 
 	    socket-input-port socket-output-port
             call-with-socket
-            (rename bitwise-ior socket-merge-flags)
+            (rename (bitwise-ior socket-merge-flags))
 	    socket-purge-flags
             socket-accept socket-send socket-recv socket-shutdown socket-close
             *af-unspec* *af-inet* *af-inet6*
