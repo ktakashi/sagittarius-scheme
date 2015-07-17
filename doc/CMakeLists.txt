@@ -4,7 +4,8 @@
 #     not sure if this is reliable but this is more like my mental health.
 
 # make doc
-IF (NOT EXISTS ${PROJECT_BINARY_DIR}/doc)
+IF (NOT EXISTS ${PROJECT_BINARY_DIR}/doc/lib)
+  MESSAGE(STATUS "Copying doc/lib to ${PROJECT_BINARY_DIR}/doc")
   FILE(COPY ${PROJECT_SOURCE_DIR}/doc/lib
     DESTINATION ${PROJECT_BINARY_DIR}/doc)
 ENDIF()
