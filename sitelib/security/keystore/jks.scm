@@ -30,7 +30,7 @@
 
 (library (security keystore jks)
     (export <jks-keystore> jks-keystore? make-jks-keystore
-	    <jceks-keystore> jceks-keystore?
+	    ;; <jceks-keystore> jceks-keystore?
 
 	    ;; load
 	    load-jks-keystore
