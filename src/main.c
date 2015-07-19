@@ -458,13 +458,8 @@ typedef BOOL (WINAPI *ProcSymGetLineFromAddrW64)(HANDLE,
 						 PDWORD,
 						 PIMAGEHLP_LINEW64);
 typedef BOOL (WINAPI *ProcSymInitialize)(HANDLE, PCTSTR, BOOL);
-typedef DWORD64 (WINAPI *ProcSymLoadModuleEx)(HANDLE, HANDLE, PCWSTR,
-					      PCTSTR, DWORD64, DWORD,
-					      PMODLOAD_DATA, DWORD);
 typedef BOOL (WINAPI *ProcSymFromAddr)(HANDLE, DWORD64, 
 				       PDWORD64, PSYMBOL_INFOW);
-typedef BOOL (WINAPI *ProcSymGetOptions)();
-typedef BOOL (WINAPI *ProcSymSetOptions)(DWORD);
 typedef BOOL (WINAPI *ProcSymGetSearchPathW)(HANDLE, PWSTR, DWORD);
 typedef BOOL (WINAPI *ProcSymSetSearchPathW)(HANDLE, PCWSTR);
 
@@ -473,10 +468,7 @@ static ProcSymFunctionTableAccess64 symFunctionTableAccess64 = NULL;
 static ProcSymGetModuleBase64 symGetModuleBase64 = NULL;
 static ProcSymGetLineFromAddrW64 symGetLineFromAddrW64 = NULL;
 static ProcSymInitialize symInitialize = NULL;
-static ProcSymLoadModuleEx symLoadModuleExW = NULL;
 static ProcSymFromAddr symFromAddrW = NULL;
-static ProcSymGetOptions symGetOptions = NULL;
-static ProcSymSetOptions symSetOptions = NULL;
 static ProcSymGetSearchPathW symGetSearchPathW = NULL;
 static ProcSymSetSearchPathW symSetSearchPathW = NULL;
 
@@ -495,22 +487,15 @@ static int init_func()
 						  "SymGetLineFromAddrW64");
     symInitialize 
       = (ProcSymInitialize)GetProcAddress(dbghelp, "SymInitialize");
-    symLoadModuleExW
-      = (ProcSymLoadModuleEx)GetProcAddress(dbghelp, "SymLoadModuleExW");
     symFromAddrW
       = (ProcSymFromAddr)GetProcAddress(dbghelp, "SymFromAddrW");
-    symGetOptions
-      = (ProcSymGetOptions)GetProcAddress(dbghelp, "SymGetOptions");
-    symSetOptions
-      = (ProcSymSetOptions)GetProcAddress(dbghelp, "SymSetOptions");
     symGetSearchPathW
       = (ProcSymGetSearchPathW)GetProcAddress(dbghelp, "SymGetSearchPathW");
     symSetSearchPathW
       = (ProcSymSetSearchPathW)GetProcAddress(dbghelp, "SymSetSearchPathW");
 
     return stackWalk64 && symFunctionTableAccess64 && symGetModuleBase64 &&
-      symGetLineFromAddrW64 && symInitialize && symLoadModuleExW &&
-      symFromAddrW && symGetOptions && symSetOptions &&
+      symGetLineFromAddrW64 && symInitialize && symFromAddrW &&
       symGetSearchPathW && symSetSearchPathW;
   }
   return FALSE;
@@ -578,19 +563,10 @@ static void dump_trace(const char *file, void **trace, int count)
 {
   HANDLE proc = GetCurrentProcess();
   int initP = symInitialize(proc, NULL, TRUE);
-#if 0
-  DWORD64 loadAddr = symLoadModuleExW(proc, NULL, NULL, NULL, 0, 0, NULL, 0);
-#endif
   int i;
   FILE *out;
   PSYMBOL_INFOW info;
   wchar_t searchPath[1024] = {0};
-#if 0
-  DWORD opt = symGetOptions();
-
-  opt |= SYMOPT_UNDNAME;
-  symSetOptions(opt);
-#endif
 
   if (symGetSearchPathW(proc, searchPath, 1024)) {
     wchar_t *tmp;
