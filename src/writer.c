@@ -1078,7 +1078,8 @@ void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp)
     write_ss_rec(obj, port, ctx);
   }
 #ifdef _MSC_VER
-  } __except(EXCEPTION_EXECUTE_HANDLER) {
+  } __except(GetExceptionCode() == EXCEPTION_STACK_OVERFLOW ? 
+             EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
     LPBYTE lpPage = (LPBYTE)(&frame);
     SYSTEM_INFO si;
     MEMORY_BASIC_INFORMATION mi;
