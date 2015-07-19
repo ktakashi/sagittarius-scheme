@@ -79,9 +79,9 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     SET(CMAKE_MODULE_LINKER_FLAGS 
       "/STACK:0x800000 ${CMAKE_SHARED_LINKER_FLAGS}")
     SET(CMAKE_CXX_FLAGS 
-      "/F 0x800000 ${CMAKE_CXX_FLAGS}")
+      "/F 0x800000 /Zi ${CMAKE_CXX_FLAGS}")
     SET(CMAKE_C_FLAGS 
-      "/F 0x800000 ${CMAKE_C_FLAGS}")
+      "/F 0x800000 /Zi ${CMAKE_C_FLAGS}")
 
     # /MT to avoid C-runtime
     # the rest is the same as CMake default

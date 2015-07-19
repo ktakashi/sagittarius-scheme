@@ -98,7 +98,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
   if (optreset_s || !*place) {
     /* update scanning pointer */
     optreset_s = 0;
-    
+
     if (optind_s >= argc) {
       place = EMSG;
       return -1;
@@ -108,7 +108,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
       place = EMSG;
       return -1;
     }
-    
+
     place++;
     if (place[0] && place[0] == t('-') && place[1] == t('\0')) {
       /* found "--" */
@@ -120,7 +120,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
       /* long option */
       size_t namelen;
       int i;
-      
+
       place++;
       namelen = tstrcspn(place, t("="));
       for (i = 0; longopts[i].name != NULL; i++) {
@@ -135,7 +135,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	    } else {
 	      if (optstring[0] == t(':'))
 		return BADARG;
-	      if (opterr_s) 
+	      if (opterr_s)
 		tfprintf(stderr,
 			 t("%s: option requires an argument -- %s\n"),
 			 argv[0], place);
@@ -150,12 +150,12 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	    }
 	  }
 	  optind_s++;
-	  
+
 	  if (longindex)
 	    *longindex = i;
-	  
+
 	  place = EMSG;
-	  
+
 	  if (longopts[i].flag == NULL)
 	    return longopts[i].value;
 	  else {
@@ -164,7 +164,7 @@ static int getopt_long(int argc, tchar **argv, const tchar *optstring,
 	  }
 	}
       }
-      
+
       if (opterr_s && optstring[0] != t(':'))
 	tfprintf(stderr,
 		 t("%s: illegal option -- %s %d\n"), argv[0], place, __LINE__);
@@ -299,7 +299,7 @@ static SgObject argsToList(int argc, int optind_s, tchar** argv)
 /* maybe we should move this to main code */
 static void set_vm_mode(SgVM *vm, int standard, SgPort *port)
 {
-  
+
   switch (standard) {
   case 6:
     SG_VM_SET_FLAG(vm, SG_R6RS_MODE);
@@ -432,7 +432,229 @@ static void cleanup_main(void *data)
 }
 
 #if defined(_MSC_VER)
+
+#include <windows.h>
+#include <shlwapi.h>
+#include <dbghelp.h>
+#pragma comment(lib, "shlwapi.lib")
+
+static int real_main(int argc, tchar **argv);
+/* we want to track stack trace as well */
+#define MAX_STACK_SIZE 32
+
+typedef BOOL (WINAPI *ProcStackWalk64)(DWORD,
+				       HANDLE,
+				       HANDLE,
+				       LPSTACKFRAME64,
+				       PVOID,
+				       PREAD_PROCESS_MEMORY_ROUTINE64,
+				       PFUNCTION_TABLE_ACCESS_ROUTINE64,
+				       PGET_MODULE_BASE_ROUTINE64,
+				       PTRANSLATE_ADDRESS_ROUTINE64);
+typedef PVOID (WINAPI *ProcSymFunctionTableAccess64)(HANDLE, DWORD64);
+typedef DWORD64 (WINAPI *ProcSymGetModuleBase64)(HANDLE, DWORD64);
+typedef BOOL (WINAPI *ProcSymGetLineFromAddrW64)(HANDLE,
+						 DWORD64,
+						 PDWORD,
+						 PIMAGEHLP_LINEW64);
+typedef BOOL (WINAPI *ProcSymInitialize)(HANDLE, PCTSTR, BOOL);
+typedef DWORD64 (WINAPI *ProcSymLoadModuleEx)(HANDLE, HANDLE, PCWSTR,
+					      PCTSTR, DWORD64, DWORD,
+					      PMODLOAD_DATA, DWORD);
+typedef BOOL (WINAPI *ProcSymFromAddr)(HANDLE, DWORD64, 
+				       PDWORD64, PSYMBOL_INFOW);
+typedef BOOL (WINAPI *ProcSymGetOptions)();
+typedef BOOL (WINAPI *ProcSymSetOptions)(DWORD);
+typedef BOOL (WINAPI *ProcSymGetSearchPathW)(HANDLE, PWSTR, DWORD);
+typedef BOOL (WINAPI *ProcSymSetSearchPathW)(HANDLE, PCWSTR);
+
+static ProcStackWalk64 stackWalk64 = NULL;
+static ProcSymFunctionTableAccess64 symFunctionTableAccess64 = NULL;
+static ProcSymGetModuleBase64 symGetModuleBase64 = NULL;
+static ProcSymGetLineFromAddrW64 symGetLineFromAddrW64 = NULL;
+static ProcSymInitialize symInitialize = NULL;
+static ProcSymLoadModuleEx symLoadModuleExW = NULL;
+static ProcSymFromAddr symFromAddrW = NULL;
+static ProcSymGetOptions symGetOptions = NULL;
+static ProcSymSetOptions symSetOptions = NULL;
+static ProcSymGetSearchPathW symGetSearchPathW = NULL;
+static ProcSymSetSearchPathW symSetSearchPathW = NULL;
+
+static int init_func()
+{
+  HANDLE dbghelp = LoadLibraryA("dbghelp");
+  if (dbghelp) {
+    stackWalk64 = (ProcStackWalk64)GetProcAddress(dbghelp, "StackWalk64");
+    symFunctionTableAccess64 = 
+      (ProcSymFunctionTableAccess64)GetProcAddress(dbghelp, 
+						   "SymFunctionTableAccess64");
+    symGetModuleBase64 
+      = (ProcSymGetModuleBase64)GetProcAddress(dbghelp, "SymGetModuleBase64");
+    symGetLineFromAddrW64 
+      = (ProcSymGetLineFromAddrW64)GetProcAddress(dbghelp, 
+						  "SymGetLineFromAddrW64");
+    symInitialize 
+      = (ProcSymInitialize)GetProcAddress(dbghelp, "SymInitialize");
+    symLoadModuleExW
+      = (ProcSymLoadModuleEx)GetProcAddress(dbghelp, "SymLoadModuleExW");
+    symFromAddrW
+      = (ProcSymFromAddr)GetProcAddress(dbghelp, "SymFromAddrW");
+    symGetOptions
+      = (ProcSymGetOptions)GetProcAddress(dbghelp, "SymGetOptions");
+    symSetOptions
+      = (ProcSymSetOptions)GetProcAddress(dbghelp, "SymSetOptions");
+    symGetSearchPathW
+      = (ProcSymGetSearchPathW)GetProcAddress(dbghelp, "SymGetSearchPathW");
+    symSetSearchPathW
+      = (ProcSymSetSearchPathW)GetProcAddress(dbghelp, "SymSetSearchPathW");
+
+    return stackWalk64 && symFunctionTableAccess64 && symGetModuleBase64 &&
+      symGetLineFromAddrW64 && symInitialize && symLoadModuleExW &&
+      symFromAddrW && symGetOptions && symSetOptions &&
+      symGetSearchPathW && symSetSearchPathW;
+  }
+  return FALSE;
+}
+
+static int fill_trace(EXCEPTION_POINTERS *ep, void **trace)
+{
+  CONTEXT cr = *ep->ContextRecord;
+  STACKFRAME64 stack_frame;
+  HANDLE cp, ct;
+  int count = 0, i, machine_type;
+
+  cp = GetCurrentProcess();
+  ct = GetCurrentThread();
+
+#if defined(_WIN64)
+  machine_type = IMAGE_FILE_MACHINE_AMD64;
+  memset(&stack_frame, 0, sizeof(stack_frame));
+  stack_frame.AddrPC.Offset = cr.Rip;
+  stack_frame.AddrFrame.Offset = cr.Rbp;
+  stack_frame.AddrStack.Offset = cr.Rsp;
+#else
+  machine_type = IMAGE_FILE_MACHINE_I386;
+  memset(&stack_frame, 0, sizeof(stack_frame));
+  stack_frame.AddrPC.Offset = cr.Eip;
+  stack_frame.AddrFrame.Offset = cr.Ebp;
+  stack_frame.AddrStack.Offset = cr.Esp;
+#endif
+  stack_frame.AddrPC.Mode = AddrModeFlat;
+  stack_frame.AddrFrame.Mode = AddrModeFlat;
+  stack_frame.AddrStack.Mode = AddrModeFlat;
+
+  while (stackWalk64(machine_type, cp, ct, &stack_frame, &cr,
+		     NULL,
+		     symFunctionTableAccess64,
+		     symGetModuleBase64,
+		     NULL) &&
+	 count < MAX_STACK_SIZE) {
+    trace[count++] = (void*)stack_frame.AddrPC.Offset;
+  }
+  /* put null */
+  for (i = count; i < MAX_STACK_SIZE; i++) trace[i] = NULL;
+  return count;
+}
+
+static void print(FILE *out, int index, void *addr,
+		  SYMBOL_INFOW *info, IMAGEHLP_LINEW64 *line)
+{
+  fprintf(out, "[%d] %p:", index, addr);
+  if (info) {
+    fprintf(out, " %S", info->Name);
+  } else {
+    fprintf(out, " unknown");
+  }
+  if (line) {
+    fprintf(out, "\n\t%S:%d", line->FileName, line->LineNumber);
+  }
+  fprintf(out, "\n");
+}
+
+#define MAX_SYMBOL_LENNGTH 256
+#define MALLOC_SIZE (sizeof(SYMBOL_INFOW)+MAX_SYMBOL_LENNGTH*sizeof(wchar_t))
+
+static void dump_trace(const char *file, void **trace, int count)
+{
+  HANDLE proc = GetCurrentProcess();
+  int initP = symInitialize(proc, NULL, TRUE);
+#if 0
+  DWORD64 loadAddr = symLoadModuleExW(proc, NULL, NULL, NULL, 0, 0, NULL, 0);
+#endif
+  int i;
+  FILE *out;
+  PSYMBOL_INFOW info;
+  wchar_t searchPath[1024] = {0};
+#if 0
+  DWORD opt = symGetOptions();
+
+  opt |= SYMOPT_UNDNAME;
+  symSetOptions(opt);
+#endif
+
+  if (symGetSearchPathW(proc, searchPath, 1024)) {
+    wchar_t *tmp;
+    int count;
+    for (count = 0, tmp = searchPath; *tmp; tmp++, count++);
+    *tmp++ = L';';
+    GetModuleFileNameW(NULL, tmp, 1024-count-1);
+    PathRemoveFileSpecW(tmp);
+    PathAddBackslashW(tmp);
+    symSetSearchPathW(proc, searchPath);
+  }
+
+  info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
+  info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
+  info->SizeOfStruct = sizeof(SYMBOL_INFO);
+  fopen_s(&out, file, "a+");
+
+  fputs("Backtrace:\n", stderr);
+  fputs("Backtrace:\n", out);
+  for (i = 0; i < count; i++) {
+    DWORD64 displacement = 0;
+    if (initP) {
+      if (symFromAddrW(proc, (DWORD64)trace[i], &displacement, info)) {
+	IMAGEHLP_LINEW64 line;
+	line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+	if (symGetLineFromAddrW64(proc, (DWORD64)trace[i],
+				  (PDWORD)&displacement, &line)) {
+	  print(stderr, i, trace[i], info, &line);
+	  print(out, i, trace[i], info, &line);
+	}
+      } else {
+	print(stderr, i, trace[i], info, NULL);
+	print(out, i, trace[i], info, NULL);
+      }
+    } else {
+      print(stderr, i, trace[i], NULL, NULL);
+      print(out, i, trace[i], NULL, NULL);
+    }
+  }
+  fclose(out);
+  free(info);
+}
+
+static int filter(EXCEPTION_POINTERS *ep)
+{
+  if (init_func()) {
+    void *trace[MAX_STACK_SIZE];
+    int count = fill_trace(ep, trace);
+    dump_trace("dump.txt", trace, count);
+  }
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
 int wmain(int argc, tchar **argv)
+{
+  __try {
+    return real_main(argc, argv);
+  } __except(filter(GetExceptionInformation())) {
+    /* shouldn't reach here */
+    return -1;
+  }
+}
+
+int real_main(int argc, tchar **argv)
 #else
 int main(int argc, char **argv)
 #endif
@@ -468,12 +690,12 @@ int main(int argc, char **argv)
 #endif
     {0, 0, 0, 0}
    };
-  
+
   /* TODO initialize heap size */
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:"), 
+  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:"),
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -487,7 +709,7 @@ int main(int argc, char **argv)
       } else if (tstrcmp(t("warn"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_WARN_LEVEL);
       } else {
-	Sg_Warn(UC("unknown log level option %A"), 
+	Sg_Warn(UC("unknown log level option %A"),
 		make_scheme_string(optarg_s));
       }
       break;
@@ -615,7 +837,7 @@ int main(int argc, char **argv)
 	profiler_option = SG_INTERN("count");
       } else {
 	goto usage;
-      }      
+      }
       break;
 #endif
     case 's':
@@ -652,7 +874,7 @@ int main(int argc, char **argv)
   }
   /* set profiler */
   if (profiler_mode) {
-    Sg_ImportLibrary(vm->currentLibrary, 
+    Sg_ImportLibrary(vm->currentLibrary,
 		     SG_INTERN("(sagittarius vm profiler)"));
     Sg_ProfilerStart();
   }
@@ -665,7 +887,7 @@ int main(int argc, char **argv)
   if (optind_s < argc) {
     SgObject proc;
     if (standard_given == 6) {
-      exit_code = 
+      exit_code =
 	invoke_r6rs_file(SG_STRING(make_scheme_string(argv[optind_s])));
     /* } else if (standard_given == 7) { */
     /*   exit_code =  */
@@ -696,7 +918,7 @@ int main(int argc, char **argv)
     } else {
       lib = Sg_FindLibrary(SG_INTERN("(sagittarius interactive)"), FALSE);
       if (SG_FALSEP(lib)) goto err;
-      
+
       if (standard_given == 6) {
 	Sg_Error(UC("Strict R6RS mode doesn't have REPL"));
       } else if (standard_given == 7) {
@@ -710,7 +932,7 @@ int main(int argc, char **argv)
 	  Sg_ImportLibrary(vm->currentLibrary, sbl);
 	  /* modify prompter */
 	  if (!SG_UNBOUNDP(p)) {
-	    SgObject prompter = Sg_MakeSubr(r7rs_prompter, NULL, 
+	    SgObject prompter = Sg_MakeSubr(r7rs_prompter, NULL,
 					    0, 0, SG_FALSE);
 	    Sg_Apply1(SG_GLOC_GET(SG_GLOC(p)), prompter);
 	  }
