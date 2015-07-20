@@ -86,7 +86,7 @@
        (= (date-nanosecond d1) (date-nanosecond d2))
        (= (date-zone-offset d1) (date-zone-offset d2))))
 
-(test-begin "(run-time-test)")
+(test-begin "time")
 
 (let ((t (make-time time-utc 10 20)))
   (test-assert "time?" (time? t))
@@ -226,60 +226,41 @@
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
 
+(test-end)
 
-#|
-#|
-Disabled it for now.
+;; timezone 
+(import (sagittarius timezone))
 
-Starting next version, we will have timezone object to handle those
-zone offset and daylight saving time. Current implementation of 
-timezone depends too much of OS timezone, it is ok if the OS handles
-them as we expect however it seems more likely not. Moreover, neither
-POSIX nor Windows provides timezone object but mere local machine
-timezone information. To avoid these inconvenience, we need own
-timezone implementation.
-|#
+;; rest first
+(test-runner-reset (test-runner-get))
+(test-begin "timezone")
 
-;; timezone-offset
-(test-assert "timezone-offset (1)" (timezone-offset))
-(test-assert "timezone-offset (2)" (timezone-offset (current-time)))
+(test-assert "timezone?" (timezone? (timezone "GMT")))
 
-(define current-timezone (timezone))
-(define summer-time (date->time-utc (make-date 0 0 0 0 14 7 2015 7200)))
-(define winter-time (date->time-utc (make-date 0 0 0 0 14 12 2015 3600)))
+(let ((summer (date->time-utc (make-date 0 0 0 0 20 7 2015  7200)))
+      (winter (date->time-utc (make-date 0 0 0 0 20 12 2015 3600)))
+      (tz (timezone "Europe/Amsterdam")))
+  (test-equal "timezone-name" "Europe/Amsterdam" (timezone-name tz))
+  (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz))
+  (test-equal "timezone-offset(1)" 7200 (timezone-offset tz summer))
+  (test-equal "timezone-offset(2)" 3600 (timezone-offset tz winter))
+  (test-assert "dst? (1)" (timezone-dst? tz summer))
+  (test-assert "dst? (2)" (not (timezone-dst? tz winter))))
 
-;; FXXK!!!
-;; On Windows, there is no way to set more than 3 letters DST name.
-;; Thus, even this is written in Europe but we need to use pacific
-;; time which has PST/PDT.
-(define tz-name "PST+8PDT")
-(define tz-names '("PST" "PDT"))
-;; timezone tests
-(test-assert "set-timezone! (0)" (set-timezone! tz-name))
+;; timezone rule (kinda boundary test)
+;; Rule	C-Eur	1977	1980	-	Apr	Sun>=1	 2:00s	1:00	S
+;; Rule	C-Eur	1945	only	-	Sep	16	 2:00s	0	-
+;; 1977/4/3 is the first Sunday
+(let ((summer (date->time-utc (make-date 0 0 0 2 3 4 1977 3600)))
+      ;; TODO the time part is ignored for now
+      (winter (date->time-utc (make-date 0 0 0 2 16 9 1945 3600)))
+      (tz (timezone "CET")))
+  (test-equal "timezone-name" "CET" (timezone-name tz))
+  (test-equal "timezone-raw-offset" 3600 (timezone-raw-offset tz))
+  (test-equal "timezone-offset(1)" 7200 (timezone-offset tz summer))
+  (test-equal "timezone-offset(2)" 3600 (timezone-offset tz winter))
+  (test-assert "dst? (1)" (timezone-dst? tz summer))
+  (test-assert "dst? (2)" (not (timezone-dst? tz winter))))
 
-;; one or the other
-(test-assert "timezone(1)" (member (timezone) tz-names))
-(test-equal "timezone(2)" (car tz-names) (timezone winter-time))
-(test-equal "timezone(3)" (cadr tz-names) (timezone summer-time))
-(test-equal "timezones" tz-names (let-values ((r (timezones))) r))
-
-(test-equal "timezone-offset (3)" -25200 (timezone-offset summer-time))
-(test-equal "timezone-offset (4)" -28800 (timezone-offset winter-time))
-
-(test-assert "daylight-saving-time?" (daylight-saving-time? summer-time))
-(test-assert "daylight-saving-time?" (not (daylight-saving-time? winter-time)))
-;; reset
-(test-assert "set-timezone! (reset)" (set-timezone! #f))
-
-(cond-expand
- ((not cygwin)
-  ;; On Cygwin, it seems calling tzset without TZ environment causes
-  ;; weird behaviour. (I would expect that it's set to the initial value
-  ;; the same as the others but seems it'll get it from somewhere else
-  ;; and never be the same name.) Again, I don't know how to deal this
-  ;; so skip it for now.
-  (test-equal "resetted timezone" current-timezone (timezone)))
- (else #t))
-|#
 (test-end)
   

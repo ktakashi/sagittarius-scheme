@@ -252,12 +252,15 @@
       (let* ((effective-date (cdr r))
 	     (effective-month (vector-ref (car r) 2)))
 	(or (not (= month effective-month))
+	    ;; TODO consider time
 	    (<= effective-date date))))
 
     (let loop ((rules (cdr rules))
 	       (dst #f)
 	       (std #f))
       (cond ((null? rules)
+	     ;; e.g. if standard time starts September and current time
+	     ;;      is April, then std can be #f.
 	     (cond ((and dst (check-date dst date)) (car dst))
 		   ((and std (check-date std date)) (car std))
 		   (else
@@ -270,16 +273,18 @@
 		    (sd (cdr std))
 		    (sr (car std))
 		    (sm (vector-ref sr 2)))
+	       (define (check m1 m2 d1 d2 r1 r2)
+		 (if (and (<= m1 month m2)
+			  ;; TODO consider time
+			  (cond ((= month m1) (>= d1 date))
+				((= month m2) (< date d2))
+				(else #t)))
+		     r1
+		     r2))
 	       ;; we have northern and southern hemisphere
 	       (if (> sm dm)
-		   (if (and (<= dm month sm) 
-			    (if (= month dm) (>= dd date) #t))
-		       dr
-		       sr)
-		   (if (and (<= sm month dm)
-			    (if (= month sm) (>= sd date) #t))
-		       sr
-		       dr))))
+		   (check dm sm dd sd dr sr)
+		   (check sm dm sd dd sr dr))))
 	    (else
 	     (let ((rule (car rules)))
 	       (or (and-let* ((start (vector-ref rule 0))
