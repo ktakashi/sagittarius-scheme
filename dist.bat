@@ -59,11 +59,18 @@ echo Generating R7RS style SRFI libraries
 call :invoke ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
+rem tzdata
+:tzdata
+echo "Generating TZ database"
+call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -r %1
+goto :eof
+
 rem gen
 :gen
 call :stub
 call :precomp
 call :srfi
+call :tzdata
 goto:eof
 
 rem clean
@@ -71,6 +78,7 @@ rem clean
 call :stub "-c"
 call :precomp "-c"
 call :srfi "-c"
+call :tzdata "-c"
 goto:eof
 
 rem entry point
@@ -81,12 +89,13 @@ for %%x in (%*) do call :%%x
 goto end
 
 :usage
-echo "usage: %0 precomp|stub|clean"
-echo "    gen:        generate all files"
-echo "    precomp:    generate precompiled files"
-echo "    stub:       generate stub files"
-echo "    srfi:       generate R7RS style SRFI libraries"
-echo "    clean:      clean generated files"
+echo "usage: %0 precomp|stub|srfi|tz|clean"
+echo "    gen:        generates all files"
+echo "    precomp:    generates precompiled files"
+echo "    stub:       generates stub files"
+echo "    srfi:       generates R7RS style SRFI libraries"
+echo "    tz:         generates TZ database"
+echo "    clean:      cleasn generated files"
 
 goto :end
 

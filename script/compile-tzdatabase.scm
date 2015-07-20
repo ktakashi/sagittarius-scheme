@@ -376,7 +376,12 @@ zoneinfo2tdf.pl
 (define (main args)
   (with-args (cdr args)
       ((out (#\o "out") #t (usage))
-       (remove (#\r "remove") #f #f))
+       (remove (#\r "remove") #f #f)
+       (clean? (#\c "clean") #f #f))
+    (when clean?
+      (print "Removing file:" out)
+      (when (file-exists? out) (delete-file out))
+      (exit 0))
     (unless (file-exists? +work-dir+) (create-directory +work-dir+))
     (parameterize ((current-directory +work-dir+)) ;; change directory
       (unless (file-exists? +tz-archive+) 

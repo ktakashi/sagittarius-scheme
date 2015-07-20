@@ -34,8 +34,14 @@ stub()
 srfi()
 {
     echo Generating R7RS style SRFI libraries
-    # in case
     $SASH ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
+}
+
+tzdata()
+{
+    echo Generating TZ database
+    $SASH ./script/compile-tzdatabase.scm \
+	-o ext/time/sagittarius/tzdata.scm -r $1
 }
 
 dist() {
@@ -84,14 +90,15 @@ dist() {
 
 usage()
 {
-    echo "usage: $0 dist|precomp|stub|stub|clean"
-    echo "    dist:       create distribution file"
-    echo "    gen:        generate all files"
-    echo "    precomp:    generate precompiled files"
-    echo "    insn:       generate VM instructions"
-    echo "    stub:       generate stub files"
-    echo "    srfi:       generate R7RS style SRFI libraries"
-    echo "    clean:      clean generated files"
+    echo "usage: $0 dist|precomp|stub|stub|srfi|tz|clean"
+    echo "    dist:       creates distribution file"
+    echo "    gen:        generates all files"
+    echo "    precomp:    generates precompiled files"
+    echo "    insn:       generates VM instructions"
+    echo "    stub:       generates stub files"
+    echo "    srfi:       generates R7RS style SRFI libraries"
+    echo "    tz:         generates TZ database"
+    echo "    clean:      cleans generated files"
 }
 
 
@@ -102,10 +109,11 @@ if [ $# -ge 1 ] ; then
     case $name in
 	dist)    dist $1;;
 	stub)    stub $1;;
-	gen)     stub $1; precomp $1; srfi;;
+	gen)     stub $1; precomp $1; srfi; tzdata;;
 	srfi)    srfi $1;;
+	tz)      tzdata $1;;
 	precomp) precomp $1;;
-	clean)   stub "-c"; precomp "-c"; srfi "-c" ;;
+	clean)   stub "-c"; precomp "-c"; srfi "-c" ; tzdata "-c";;
 	insn)    geninsn $1;;
 	*)       usage ;;
     esac
