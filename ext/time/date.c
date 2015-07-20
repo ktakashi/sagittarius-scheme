@@ -57,7 +57,13 @@ static SgObject get_tzname_n(int n)
 #define tzname1 Sg_MakeStringC(tzname[1])
 #endif
 
+/* for windows, we need to use the following mapping file:
+   http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml
 
+   how to do it:
+   1. get timezone name by GetTimeZoneInformation
+   2. use StandardName to map tzid.
+*/
 #ifdef _WIN32
 SgObject Sg_LocalTimezoneName()
 {
