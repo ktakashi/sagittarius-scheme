@@ -66,16 +66,16 @@ leapseconds.awk
 zoneinfo2tdf.pl
 |#
 (define-constant +targets+
-  '(;"africa"
-    ;"antarctica"
-    ;"asia"
-    ;"australasia"
-    ;"europe"
+  '("africa"
+    "antarctica"
+    "asia"
+    "australasia"
+    "europe"
     "northamerica"
-    ;"southamerica"
-    ;"pacificnew"
-    ;"etcetera"
-    ;"backzone"
+    "southamerica"
+    "pacificnew"
+    "etcetera"
+    "backzone"
     ))
 
 (define (ftp-sized-file-receiver file size)
