@@ -6,25 +6,6 @@
  (.include <sagittarius/extend.h>
 	   <sagittarius-time.h>))
 
-;; it's not transparent
-(define-c-proc timezone-offset (:optional (when #f))
-  :no-side-effect Sg_TimezoneOffset)
-
-(define-c-proc timezones () :no-side-effect Sg_Timezones)
-(define-c-proc timezone (:optional (when #f)) :no-side-effect Sg_Timezone)
-
-(define-c-proc set-timezone! (z) ::<void>
-  (let ((v::SgString* NULL))
-    (cond ((SG_STRINGP z) (set! v (SG_STRING z)))
-	  ((SG_FALSEP z)) ;; reset
-	  (else
-	   (Sg_AssertionViolation 'set-timezone!
-				  (SG_MAKE_STRING "string or #f required")
-				  (SG_LIST1 z))))
-     (Sg_SetTimezone v)))
-
-(define-c-proc daylight-saving-time? (:optional (when #f)) ::<boolean>
-  Sg_DaylightP)
-
+(define-c-proc local-timezone-name () :no-side-effect Sg_LocalTimezoneName)
 
 					       

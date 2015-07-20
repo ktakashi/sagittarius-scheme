@@ -75,7 +75,7 @@
   (for-each (lambda (file thunk)
 	      (parameterize ((test-runner-factory test-runner-detail))
 		(parameterize ((test-runner-current (test-runner-create)))
-		  (guard (e (#t (print (describe-condition e))))
+		  (guard (e (else (report-error e)))
 		    (thunk))))
 	      (newline))
 	    files thunks))

@@ -119,26 +119,21 @@
 	    date->string string->date
 	    ;; clos
 	    <time> <date>
-
-	    ;; for testing
-	    timezone-offset
-	    timezones
-	    timezone
-	    set-timezone!
-	    daylight-saving-time?
 	    )
     (import (core)
 	    (core base)
 	    (core io)
 	    (core errors)
 	    (sagittarius)
-	    (sagittarius dynamic-module)
+	    (sagittarius time-private)
+	    (sagittarius time-util)
+	    (sagittarius timezone)
 	    (clos user)
 	    (sagittarius mop validator))
-  (load-dynamic-module "sagittarius--time")
 
   (define open-input-string open-string-input-port)
-
+  (define (local-tz-offset) (timezone-offset (local-timezone)))
+  
   (define (check-integer o v)
     (or (and (exact? v) (integer? v) v)
 	(error o "integer required" v)))
@@ -238,10 +233,6 @@
   ;;   a different epoch is used.
 
   (define tm:nano (expt 10 9))
-  (define tm:sid  86400)    ; seconds in a day
-  (define tm:sihd 43200)    ; seconds in a half day
-  (define tm:tai-epoch-in-jd 4881175/2) ; julian day number for 'the epoch'
-
 
   ;; A table of leap seconds
   ;; See ftp://maia.usno.navy.mil/ser7/tai-utc.dat
@@ -413,7 +404,7 @@
   (define (tm:time->date time tz-offset ttype)
     (if (not (eq? (time-type time) ttype))
         (tm:time-error 'time->date 'incompatible-time-types  time))
-    (let* ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
+    (let* ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
       (receive (secs date month year)
           (tm:decode-julian-day-number
            (tm:time->julian-day-number (time-second time) offset))
@@ -512,29 +503,6 @@
 	  (let ((ppos (tm:char-pos #\. str 0 (string-length str))))
 	    (substring str  (+ ppos 1) (string-length str))))))
 
-
-  ;; gives the seconds/date/month/year
-  (define (tm:decode-julian-day-number jdn)
-    (let* ((days (truncate jdn))
-           (a (+ days 32044))
-           (b (quotient (+ (* 4 a) 3) 146097))
-           (c (- a (quotient (* 146097 b) 4)))
-           (d (quotient (+ (* 4 c) 3) 1461))
-           (e (- c (quotient (* 1461 d) 4)))
-           (m (quotient (+ (* 5 e) 2) 153))
-           (y (+ (* 100 b) d -4800 (quotient m 10))))
-      (values ; seconds date month year
-       (* (- jdn days) tm:sid)
-       (+ e (- (quotient (+ (* 153 m) 2) 5)) 1)
-       (+ m 3 (* -12 (quotient m 10)))
-       (if (>= 0 y) (- y 1) y))
-      ))
-  (define (tm:time->julian-day-number seconds tz-offset)
-    (+ (/ (+ seconds
-             tz-offset
-             tm:sihd)
-          tm:sid)
-       tm:tai-epoch-in-jd))
 
   (define (tm:find proc l)
     (if (null? l)
@@ -661,7 +629,7 @@
 
   (define (current-date . tz-offset)
     (time-utc->date (current-time time-utc)
-                    (if (null? tz-offset) (timezone-offset) (car tz-offset))))
+                    (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
 
 
   (define (julian-day->time-utc jdn)
@@ -677,11 +645,11 @@
     (time-utc->time-monotonic! (julian-day->time-utc jdn)))
 
   (define (julian-day->date jdn . tz-offset)
-    (let ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
+    (let ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
       (time-utc->date (julian-day->time-utc jdn) offset)))
 
   (define (modified-julian-day->date jdn . tz-offset)
-    (let ((offset (if (null? tz-offset) (timezone-offset) (car tz-offset))))
+    (let ((offset (if (null? tz-offset) (local-tz-offset) (car tz-offset))))
       (julian-day->date (+ jdn 4800001/2) offset)))
 
   (define (modified-julian-day->time-utc jdn)
@@ -1276,7 +1244,7 @@
            (date-month date)
            (date-year date)
            (date-zone-offset date)))
-    (let ( (newdate (make-date 0 0 0 0 0 0 0 (timezone-offset))) )
+    (let ( (newdate (make-date 0 0 0 0 0 0 0 (local-tz-offset))) )
       (tm:string->date newdate
                        0
                        template-string

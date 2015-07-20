@@ -225,7 +225,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__time()
   time_process = SG_INTERN("time-process");
   time_thread = SG_INTERN("time-thread");
 
-  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius time)"),
+  lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius time-private)"),
 				  FALSE));
   Sg__Init_time_stub(lib);
   Sg__Init_date_stub(lib);

@@ -57,82 +57,151 @@ static SgObject get_tzname_n(int n)
 #define tzname1 Sg_MakeStringC(tzname[1])
 #endif
 
-SgObject Sg_Timezones()
-{
-  SgObject zone = tzname0;
-  SgObject dst = tzname1;
-  return Sg_Values2(zone, dst);
-}
-
-SgObject Sg_Timezone(SgObject when)
-{
-  if (Sg_DaylightP(when)) {
-    return tzname1;
-  } else {
-    return tzname0;
-  }
-}
-
-void Sg_SetTimezone(SgString *zone)
-{
-  /* TODO check if the given zone is a valid timezone name */
-#ifdef _WIN32
-  /* tzset is CRT so we need to use putenv */
-  if (zone) {
-    _putenv_s("TZ", Sg_Utf32sToUtf8s(zone));
-  } else {
-    /* remove it */
-    _putenv("TZ=");
-  }
-#else
-  if (zone) {
-    Sg_Setenv(UC("TZ"), SG_STRING_VALUE(zone));
-  } else {
-    Sg_Setenv(UC("TZ"), NULL);
-  }
-#endif
-  tzset();
-}
-
-SgObject Sg_TimezoneOffset(SgObject t)
-{
-  struct tm localTime;
-  struct tm utcTime;
-  time_t current, l;
-  struct timespec spec, *tmp;
-
-  tmp = Sg_GetTimeSpec(t, &spec);
-  if (tmp) current = tmp->tv_sec;
-  else  current = time(NULL);
 
 #ifdef _WIN32
-  localtime_s(&localTime, &current);
-  l = mktime(&localTime);
-  gmtime_s(&utcTime, &l);
-#else
-  localtime_r(&current, &localTime);
-  l = mktime(&localTime);
-  gmtime_r(&l, &utcTime);
-#endif
-  localTime.tm_isdst = 0;	/* set to 0 so that mktime consider DST */
-  return Sg_MakeIntegerFromS64((int64_t)mktime(&localTime)
-			       - (int64_t)mktime(&utcTime));
-}
-
-int Sg_DaylightP(SgObject t)
+SgObject Sg_LocalTimezoneName()
 {
-  struct tm localTime;
-  time_t current;
-  struct timespec spec, *tmp;
-
-  tmp = Sg_GetTimeSpec(t, &spec);
-  if (tmp) current = tmp->tv_sec;
-  else  current = time(NULL);
-
-#ifdef _WIN32
-  localtime_s(&localTime, &current);
-#else
-  localtime_r(&current, &localTime);
-#endif
-  return localTime.tm_isdst;  
+  /* TODO get it properly */
+  return tzname0;
 }
+#elif defined(__CYGWIN__)
+SgObject Sg_LocalTimezoneName()
+{
+  /* TODO get it properly */
+  return tzname0;
+}
+#else
+/* assume proper POSIX */
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <dirent.h>
+#include <fcntl.h>
+
+#define ETC_TIMEZONE "/etc/timezone"
+#define ETC_LOCALTIME "/etc/localtime"
+#define ZONEINFO_DIR "/usr/share/zoneinfo"
+
+/*
+  From here
+  http://stackoverflow.com/questions/3118582/how-do-i-find-the-current-system-timezone
+ */
+/* 
+   the str is the directory name read by readlink.
+   e.g. /usr/share/zoneinfo/Europe/Amsterdam
+   so strip the zoneinfo/ prefix
+ */
+static const char * get_zone_info(const char *str)
+{
+  static const char *zidir = "zoneinfo/";
+  char * pos = strstr((const char *)str, zidir);
+  if (pos == NULL) {
+    return NULL;
+  }
+  return pos + strlen(zidir);
+}
+
+static SgObject read_tz_dir(const char *buf, size_t size, const char *dir)
+{
+  DIR *d;
+  struct dirent *entry;
+  char path[1024];		/* max path, I hope */
+  if ((d = opendir(dir)) != NULL) {
+    for (entry = readdir(d); entry != NULL; entry = readdir(d)) {
+      struct stat statbuf;
+      /* skip '.' or '..' */
+      if (entry->d_name[0] == '.') continue;
+      if (strcmp(entry->d_name, "posixrules") == 0 ||
+	  strcmp(entry->d_name, "localtime") == 0) {
+	/* localtime may cases infinite loop */
+	continue;
+      }
+      snprintf(path, sizeof(path), "%s/%s", dir, entry->d_name);
+      if (lstat(path, &statbuf) != 0) continue;
+      if (S_ISREG(statbuf.st_mode)) {
+	size_t size = statbuf.st_size;
+	char *content = SG_NEW_ATOMIC2(char *, size);
+	int fd;
+	if ((fd = open(path, O_RDONLY)) != -1) { 
+	  if (read(fd, content, size) == (ssize_t)size) {
+	    close(fd);
+	    if (memcmp(buf, content, size) == 0) {
+	      const char *r = get_zone_info(path);
+	      if (r != NULL) {
+		closedir(d);
+		return Sg_MakeStringC(r);
+	      }
+	      /* retry */
+	    }
+	  }
+	  close(fd);
+	}
+      } else if (S_ISDIR(statbuf.st_mode)) {
+	SgObject r = read_tz_dir(buf, size, path);
+	if (!SG_FALSEP(r)) {
+	  closedir(d);
+	  return r;
+	}
+      }
+    }
+    closedir(d);
+  }
+  /* fallback */
+  return SG_FALSE;
+}
+
+SgObject Sg_LocalTimezoneName()
+{
+  FILE *fp;
+  struct stat statbuf;
+
+  if ((fp = fopen(ETC_TIMEZONE, "r")) != NULL) {
+    char line[256];
+    SgObject r = SG_FALSE;
+    if (fgets(line, sizeof(line), fp) != NULL) {
+      char *p = strchr(line, '\n');
+      if (p != NULL) {
+	*p = '\0';
+      }
+      if (strlen(line) > 0) {
+	r = Sg_MakeStringC(line);
+      }
+    }
+    (void) fclose(fp);
+    if (!SG_FALSEP(r)) return r;
+  }
+
+  /* try /etc/localtime */
+  if (lstat(ETC_LOCALTIME, &statbuf) == 0) {
+    if (S_ISLNK(statbuf.st_mode)) {
+      char linkbuf[PATH_MAX+1];
+      const char *r;
+      int len;
+      if ((len = readlink(ETC_LOCALTIME, linkbuf, sizeof(linkbuf)-1)) == 0) {
+	linkbuf[len] = '\0';
+      }
+      r = get_zone_info(linkbuf);
+      if (r != NULL) return Sg_MakeStringC(r);
+    } else {
+      /* it's a regular file? */
+      size_t size = statbuf.st_size;
+      char *buf = SG_NEW_ATOMIC2(char *, size);
+      int fd;
+      if ((fd = open(ETC_LOCALTIME, O_RDONLY)) != -1) {
+	if (read(fd, buf, size) == (ssize_t)size) {
+	  SgObject r;
+	  close(fd);
+	  /* down the rabit hole */
+	  r = read_tz_dir(buf, size, ZONEINFO_DIR);
+	  if (!SG_FALSEP(r)) return r;
+	}
+	close(fd);
+      }
+    }
+
+  }
+  /* fallback */
+  return tzname0;
+}
+#endif
