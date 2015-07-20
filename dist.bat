@@ -60,10 +60,10 @@ call :invoke ./script/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi %1
 goto:eof
 
 rem tzdata
-:tzdata
+:tz
 echo "Generating TZ database"
 call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -r %1
-goto :eof
+goto:eof
 
 rem gen
 :gen
