@@ -182,9 +182,6 @@ zoneinfo2tdf.pl
   (let ((prefix (string-downcase (substring name 0 3))))
     (cdr (assoc (string->symbol prefix) +month-prefix+))))
 
-;; for now we ignore the difference between w and s
-;; (honestly, I don't know the difference, wall clock and standard time in this
-;;  case. does standard time mean not daylight saving time?)
 (define (day-of-week y m d)
   #|
     dayofweek(y, m, d)/* 1 <= m <= 12,  y > 1752 (in the U.K.) */
@@ -241,6 +238,13 @@ zoneinfo2tdf.pl
 	   (- last off))))))
 (define (->utc-second base-offset y m d off?)
   (let ((d (make-date 0 0 0 0 (if d (resolve-day d y m) 0) (if m m 0) y
+		      ;; for now we ignore the difference between 'w' and 's'
+		      ;; and treat them kinda 'u' (always the same offset)
+		      ;; (honestly I don't know what the differenct between
+		      ;;  u(universal) and s(standard). Are they not the
+		      ;;  same?)
+		      ;; NB: this is the end of the timezone thus, most of
+		      ;;     the time it's neligible anyway.
 		      (if off? (car off?) base-offset))))
     (time-second (date->time-utc d))))
   
