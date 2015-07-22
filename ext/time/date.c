@@ -45,6 +45,7 @@
    see sagittarius/timezone.scm
 */
 #if defined( _WIN32) || defined(__CYGWIN__)
+#include <windows.h>
 SgObject Sg_LocalTimezoneName()
 {
   TIME_ZONE_INFORMATION tz;
