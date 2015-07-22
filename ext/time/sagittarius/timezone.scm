@@ -157,6 +157,19 @@
 
   (define (local-timezone) (timezone (local-timezone-name)))
 
+  (cond-expand
+   ((or windows cygwin)
+    (define-constant +win-mappings+ (include "win-mappings.scm"))
+    (define (local-timezone-name)
+      (let* ((zone-id (%local-timezone-name))
+	     ;; first comes first serve...
+	     (tzid (binary-search +win-mappings+ zone-id)))
+	(if tzid
+	    (cdr tzid)
+	    ;; fallback
+	    "Etc/GMT"))))
+   (else (define local-timezone-name %local-timezone-name)))
+
 ;;; private stuff
   (define (timezone-zone&rule tz when)
     (define (find-rule-with-sec sec offset rules)

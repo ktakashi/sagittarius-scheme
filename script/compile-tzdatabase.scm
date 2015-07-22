@@ -385,11 +385,17 @@ zoneinfo2tdf.pl
   (compile))
 
 (define (create-win-mappings out)
+  (define seen (make-string-hashtable))
   (define (compile-map-zone map-zone)
     (let ((tzid (sxml:attr map-zone 'type))
-	  (territory (sxml:attr map-zone 'territory))
+	  ;; (territory (sxml:attr map-zone 'territory))
 	  (zone-id (sxml:attr map-zone 'other)))
-      (cons zone-id (vector territory (car (string-split tzid #/\s+/))))))
+      ;; since there is no way to get current location, we don't put
+      ;; duplicated zone id nor region code.
+      (cond ((hashtable-contains? seen zone-id) #f)
+	    (else
+	     (hashtable-set! seen zone-id #t)
+	     (cons zone-id (car (string-split tzid #/\s+/)))))))
 
   (define (emit zones)
     (let ((sorted (list-sort (lambda (a b) (string<? (car a) (car b))) zones)))
@@ -409,7 +415,7 @@ zoneinfo2tdf.pl
       ;; other=win name
       ;; type=tzid
       ;; territory=country name (2 letter or 3 digits)
-      (emit (map compile-map-zone map-zones)))))
+      (emit (filter-map compile-map-zone map-zones)))))
 
 (define (usage)
   (print "compile-tzdatabase.scm -o output -w windows-mappings [-r|--remove]")

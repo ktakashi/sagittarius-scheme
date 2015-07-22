@@ -34,48 +34,50 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-time.h"
 
-#ifdef _WIN32
-#include <windows.h>
-#include <limits.h>
-/* this might be since VS2013? */
-#ifndef TZNAME_MAX
-# define TZNAME_MAX 255
-#endif
-static SgObject get_tzname_n(int n)
-{
-  char buf[TZNAME_MAX];
-  size_t out;
-  _get_tzname(&out, buf, TZNAME_MAX, n);
-  buf[out] = 0;
-  return Sg_MakeStringC(buf);
-}
-#define tzname0 get_tzname_n(0)
-#define tzname1 get_tzname_n(1)
-#define tzset _tzset
-#else
-#define tzname0 Sg_MakeStringC(tzname[0])
-#define tzname1 Sg_MakeStringC(tzname[1])
-#endif
-
 /* for windows, we need to use the following mapping file:
    http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml
 
    how to do it:
    1. get timezone name by GetTimeZoneInformation
    2. use StandardName to map tzid.
+
+   the second path is implemented in Scheme world,
+   see sagittarius/timezone.scm
 */
-#ifdef _WIN32
+#if defined( _WIN32) || defined(__CYGWIN__)
 SgObject Sg_LocalTimezoneName()
 {
-  /* TODO get it properly */
-  return tzname0;
+  TIME_ZONE_INFORMATION tz;
+  int r = GetTimeZoneInformation(&tz);
+  if (r != TIME_ZONE_ID_UNKNOWN) {
+    return Sg_WCharTsToString(tz.StandardName);
+  }
+  /* fallback
+     This will be Etc/GMT
+   */
+  return SG_MAKE_STRING("UTC");
 }
-#elif defined(__CYGWIN__)
-SgObject Sg_LocalTimezoneName()
+/*
+  This doesn't work since locale can be what users want to.
+  e.g.) living in the Netherlands but set to en_US.
+  I think there is no way to detect current actual *location*.
+ */
+#if 0
+SgObject Sg_LocalRegionName()
 {
-  /* TODO get it properly */
-  return tzname0;
+  wchar_t isoCountry[5] = {0};	/* I think 4 is fine but in case */
+  int r = GetLocaleInfoW(LOCALE_USER_DEFAULT,
+			 LOCALE_SISO3166CTRYNAME,
+			 isoCountry,
+			 sizeof(isoCountry) / sizeof(wchar_t));
+  if (r) {
+    return Sg_WCharTsToString(isoCountry);
+  } else {
+    return SG_FALSE;
+  }
 }
+#endif
+
 #else
 /* assume proper POSIX */
 #include <sys/stat.h>
@@ -84,6 +86,7 @@ SgObject Sg_LocalTimezoneName()
 #include <string.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <locale.h>
 
 #define ETC_TIMEZONE "/etc/timezone"
 #define ETC_LOCALTIME "/etc/localtime"
@@ -208,6 +211,7 @@ SgObject Sg_LocalTimezoneName()
 
   }
   /* fallback */
-  return tzname0;
+  return Sg_MakeStringC(tzname[0]);
 }
+
 #endif

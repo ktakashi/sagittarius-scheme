@@ -41,7 +41,7 @@
 	    add-duration add-duration!
 	    subtract-duration subtract-duration!
 	    ;; timezone
-	    local-timezone-name
+	    %local-timezone-name
 	    )
     (import (sagittarius dynamic-module))
   (load-dynamic-module "sagittarius--time"))

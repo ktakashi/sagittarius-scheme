@@ -6,6 +6,6 @@
  (.include <sagittarius/extend.h>
 	   <sagittarius-time.h>))
 
-(define-c-proc local-timezone-name () :no-side-effect Sg_LocalTimezoneName)
+(define-c-proc %local-timezone-name () :no-side-effect Sg_LocalTimezoneName)
 
 					       
