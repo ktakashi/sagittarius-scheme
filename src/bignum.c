@@ -552,7 +552,7 @@ uint32_t Sg_BignumToU32(SgBignum *b, int clamp, int *oor)
 }
 
 #else
-int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
+int64_t Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
 {
   int64_t r = 0;
   if (clamp == SG_CLAMP_NONE && oor != NULL) *oor = FALSE;
@@ -567,7 +567,7 @@ int64_t  Sg_BignumToS64(SgBignum *b, int clamp, int *oor)
     }
   } else {
     if (SG_BIGNUM_GET_COUNT(b) == 1) {
-      r = b->elements[0];
+      r = -(int64_t)b->elements[0];
     } else if (SG_BIGNUM_GET_COUNT(b) > 2 ||
 	       b->elements[1] > (unsigned long)LONG_MAX+1) {
       if (!(clamp & SG_CLAMP_HI)) goto err;
