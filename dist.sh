@@ -41,7 +41,9 @@ tzdata()
 {
     echo Generating TZ database
     $SASH ./script/compile-tzdatabase.scm \
-	-o ext/time/sagittarius/tzdata.scm -r $1
+	-o ext/time/sagittarius/tzdata.scm \
+	-w ext/time/sagittarius/win-mappings.scm \
+	-r $1
 }
 
 dist() {

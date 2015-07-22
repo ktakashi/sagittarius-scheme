@@ -4,6 +4,7 @@ exec sagittarius $0 "$@"
 |#
 #!read-macro=sagittarius/regex
 (import (rnrs)
+	(rfc http)
 	(rfc ftp)
 	(rfc gzip)
 	(archive)
@@ -18,12 +19,18 @@ exec sagittarius $0 "$@"
 	(match)
 	(getopt)
 	(only (binary io) open-chunked-binary-input/output-port)
+	(text sxml ssax)
+	(text sxml sxpath)
+	(text sxml tools)
 	(pp))
 
 (define-constant +tz-archive+ "tzdata-latest.tar.gz")
 (define-constant +ftp-host+ "ftp.iana.org")
 (define-constant +tz-code+ (string-append "/tz/" +tz-archive+))
 (define-constant +work-dir+ "tzdata")
+
+(define-constant +windows-mappings-url+
+  "http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml")
 
 ;; zone history and rules older than this parameter are stripped 
 (define *minimum-year* (make-parameter 0))
@@ -377,16 +384,45 @@ zoneinfo2tdf.pl
   (collect)
   (compile))
 
+(define (create-win-mappings out)
+  (define (compile-map-zone map-zone)
+    (let ((tzid (sxml:attr map-zone 'type))
+	  (territory (sxml:attr map-zone 'territory))
+	  (zone-id (sxml:attr map-zone 'other)))
+      (cons zone-id (vector territory (car (string-split tzid #/\s+/))))))
+
+  (define (emit zones)
+    (let ((sorted (list-sort (lambda (a b) (string<? (car a) (car b))) zones)))
+      (when (file-exists? out) (delete-file out))
+      (call-with-output-file out
+	(lambda (o) (pp (list->vector sorted) o)))))
+
+  (print "Downloading Windows ZoneID -> TZID mapping file")
+  (let*-values (((server path) (url-server&path +windows-mappings-url+))
+		((s h body) (http-get server path)))
+    (print "HTTP status: " s)
+    (let* ((sxml (with-exception-handler
+		  (lambda (e) (and (serious-condition? e) (raise e)))
+		  (lambda ()
+		    (ssax:xml->sxml (open-string-input-port body) '()))))
+	   (map-zones ((sxpath "//mapZone") sxml)))
+      ;; other=win name
+      ;; type=tzid
+      ;; territory=country name (2 letter or 3 digits)
+      (emit (map compile-map-zone map-zones)))))
+
 (define (usage)
-  (print "compile-tzdatabase.scm -o output [-r|--remove]")
+  (print "compile-tzdatabase.scm -o output -w windows-mappings [-r|--remove]")
   (exit -1))
 
 ;; TODO create minimum and maximum years arguments
 (define (main args)
   (with-args (cdr args)
-      ((out (#\o "out") #t (usage))
+      ((out    (#\o "out") #t (usage))
        (remove (#\r "remove") #f #f)
-       (clean? (#\c "clean") #f #f))
+       (clean? (#\c "clean") #f #f)
+       (win-map (#\w "win-map") #t (usage))
+       )
     (when clean?
       (print "Removing file:" out)
       (when (file-exists? out) (delete-file out))
@@ -406,4 +442,5 @@ zoneinfo2tdf.pl
 	  (newline out)
 	  (pp r out))))
     (when remove (delete-directory* +work-dir+))
+    (create-win-mappings win-map)
     (print "Done!")))
