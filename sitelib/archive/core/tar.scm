@@ -210,7 +210,11 @@
     (let ((rec (make-bytevector 512 0)))
       (let-values (((dir base ext) (decompose-path filename)))
 	;; I think this is the proper format for ustar
-	(set-asciiz rec (if ext (string-append base "." ext) base) 0 100)
+	(set-asciiz rec (cond (ext (string-append base "." ext))
+			      ((eqv? typeflag (char->integer #\5))
+			       (string-append base "/"))
+			      (else base))
+		    0 100)
 	(set-asciiz rec (number->string mode 8) 100 8)
 	(set-asciiz rec (number->string uid 8) 108 8)
 	(set-asciiz rec (number->string gid 8) 116 8)
@@ -264,9 +268,10 @@
     (put-bytevector tarport header)
     (let ((buf (make-bytevector 512 0)))
 	(let loop ((r (get-bytevector-n! source buf 0 512)))
-	  (put-bytevector tarport buf)
-	  (when (and (not (eof-object? r)) (= r 512))
-	    (loop (get-bytevector-n! source buf 0 512))))))
+	  (unless (eof-object? r) 
+	    (put-bytevector tarport buf)
+	    (when (= r 512)
+	      (loop (get-bytevector-n! source buf 0 512)))))))
     
 ;;; Tarball reading
 
