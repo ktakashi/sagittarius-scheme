@@ -267,11 +267,14 @@
   (define (append-port tarport header source)
     (put-bytevector tarport header)
     (let ((buf (make-bytevector 512 0)))
-	(let loop ((r (get-bytevector-n! source buf 0 512)))
-	  (unless (eof-object? r) 
-	    (put-bytevector tarport buf)
-	    (when (= r 512)
-	      (loop (get-bytevector-n! source buf 0 512)))))))
+      (let loop ((r (get-bytevector-n! source buf 0 512)))
+	;; Don't put empty buffer if there is no data read.
+	;; this happens when it's appending a directory.
+	;; (or empty file)
+	(unless (eof-object? r) 
+	  (put-bytevector tarport buf)
+	  (when (= r 512)
+	    (loop (get-bytevector-n! source buf 0 512)))))))
     
 ;;; Tarball reading
 
