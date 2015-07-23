@@ -1316,12 +1316,18 @@
 	     (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
 
   (define-c-proc sys-process-wait (pid::<integer>) ::<fixnum>
-    (result (Sg_SysProcessWait 
-	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
+    (.if "SIZEOF_VOIDP >= 8"
+	 (result (Sg_SysProcessWait
+	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
+	 (result (Sg_SysProcessWait
+	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
 
   (define-c-proc sys-process-kill (pid::<integer>) ::<fixnum>
-    (result (Sg_SysProcessKill
-	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL)))))
+    (.if "SIZEOF_VOIDP >= 8"
+	 (result (Sg_SysProcessKill
+	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
+	 (result (Sg_SysProcessKill
+	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
 
   ;; cpu-count
   (define-c-proc cpu-count () ::<fixnum> Sg_CPUCount)
