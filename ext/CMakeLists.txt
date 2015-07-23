@@ -12,7 +12,7 @@ ENDIF()
 MESSAGE(STATUS "Stub generator ${HOST_SASH}")
 
 IF (MSVC)
-  SET(GENSTUB ${PROJECT_SOURCE_DIR}/invoke.bat)
+  SET(GENSTUB ${PROJECT_SOURCE_DIR}/win/invoke.bat)
 ENDIF()
 
 SET(GENSTUB
