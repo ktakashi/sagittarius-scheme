@@ -616,6 +616,8 @@ static int filter(EXCEPTION_POINTERS *ep)
     void *trace[MAX_STACK_SIZE];
     int count = fill_trace(ep, trace);
     dump_trace("dump.txt", trace, count);
+  } else {
+    fputs("Failed to dump stack trace.\n", stderr);
   }
   return EXCEPTION_CONTINUE_SEARCH;
 }
