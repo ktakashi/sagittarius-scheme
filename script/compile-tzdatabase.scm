@@ -28,6 +28,7 @@ exec sagittarius $0 "$@"
 (define-constant +ftp-host+ "ftp.iana.org")
 (define-constant +tz-code+ (string-append "/tz/" +tz-archive+))
 (define-constant +work-dir+ "tzdata")
+(define-constant +max-retry+ 5)
 
 (define-constant +windows-mappings-url+
   "http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml")
@@ -98,22 +99,22 @@ zoneinfo2tdf.pl
       :transcoder #f)))
 
 (define (download-archive)
-  (define (follow-symbolic-link s)
-    (cond ((#/->\s*(.+)/ s) => (lambda (m) (m 1)))
-	  (else (error 'download-archive "unknown stat format" s))))
-  ;; input e.g.
-  ;; "213-Status follows:-rw-r--r-- 1 49 49  185129 Jun 13 20:39 file
-  (define (retrieve-size s)
-    (let ((l (string-split  s #/\s+/)))
-      (string->number (list-ref l 5))))
-  (let ((conn (ftp-login +ftp-host+)))
-    (guard (e (else (report-error e) (ftp-quit conn)))
-      (let* ((file (follow-symbolic-link (ftp-stat conn +tz-code+)))
-	     (real (string-append "/tz/" file))
-	     (size (retrieve-size (ftp-stat conn real))))
-      (ftp-get conn real
-	       :receiver (ftp-sized-file-receiver +tz-archive+ size))
-      (ftp-quit conn)))))
+  (define (do-login)
+    (let loop ((count 0))
+      (guard (e (else (if (= count +max-retry+) 
+			  (begin (print "Failed connect!") (raise e))
+			  (begin (print "Retry") (loop (+ count 1))))))
+	(ftp-login +ftp-host+))))
+
+  (let ((conn (do-login)))
+    (dynamic-wind
+	(lambda () #t)
+	(lambda ()
+	  (let* ((size (ftp-size conn +tz-code+)))
+	    (print "File size: " size)
+	    (ftp-get conn +tz-code+
+		     :receiver (ftp-sized-file-receiver +tz-archive+ size))))
+	(lambda () (ftp-quit conn)))))
 
 (define (parse&collect in zones aliases)
   (define (trim-comment line) (regex-replace-all #/#.*/ line ""))
@@ -400,6 +401,7 @@ zoneinfo2tdf.pl
   (define (emit zones)
     (let ((sorted (list-sort (lambda (a b) (string<? (car a) (car b))) zones)))
       (when (file-exists? out) (delete-file out))
+      (print "Write to " out)
       (call-with-output-file out
 	(lambda (o) (pp (list->vector sorted) o)))))
 
