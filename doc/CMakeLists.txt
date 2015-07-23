@@ -10,21 +10,28 @@ IF (NOT EXISTS ${PROJECT_BINARY_DIR}/doc/lib)
     DESTINATION ${PROJECT_BINARY_DIR}/doc)
 ENDIF()
 
-ADD_CUSTOM_TARGET(doc ALL
-  DEPENDS sagittarius--time
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+# same trick as genstub
+IF (MSVC)
+  SET(GENDOC ${PROJECT_SOURCE_DIR}/win/invoke.bat)
+ENDIF()
+
+SET(GENDOC
+  ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
-  gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
+  gendoc)
+
+ADD_CUSTOM_TARGET(doc ALL
+  DEPENDS sagittarius--time
+  COMMAND ${GENDOC}
+  --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
 ADD_CUSTOM_TARGET(online-doc
   DEPENDS sagittarius--time
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
-  -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
-  -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
-  gendoc --output=${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
+  COMMAND ${GENDOC} 
+  --output=${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
   --style=lib/style.css --separate=2 sagittarius-ref.scrbl
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
 
