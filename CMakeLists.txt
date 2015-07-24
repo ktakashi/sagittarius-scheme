@@ -584,9 +584,9 @@ ADD_CUSTOM_TARGET(test-site-s
 # and this causes tzdata.scm a problem
 IF (MSVC)
   # our famous appveyor wrapper...
-  SET(TZ_UPDATE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
+  SET(INVOKE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
 ENDIF()
-SET(TZ_UPDATE ${TZ_UPDATE}
+SET(TZ_UPDATE ${INVOKE}
   ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -D${PROJECT_BINARY_DIR}/build
   -D${PROJECT_BINARY_DIR}/build/modules
@@ -618,7 +618,7 @@ ELSE ()
 ENDIF()
 ADD_CUSTOM_TARGET(clear-cache ALL
   DEPENDS update-tz
-  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
+  COMMAND ${INVOKE} ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ADD_SUBDIRECTORY(doc doc)

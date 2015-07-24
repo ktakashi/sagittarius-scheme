@@ -12,13 +12,13 @@ set MAX_RETRY=10
 
 set COMMAND=%1
 rem Make it look like Windows command
-set COMMAND==%COMMAND:/=\%
+set COMMAND=%COMMAND:/=\%
 set "ARGS="
 shift
 rem shift doesn't affect %* unfortunately...
 :parse
 if "%~1" neq "" (
-    set ARGS=%ARGS% %1
+    set ARGS=%ARGS% "%1"
     shift
     goto :parse
 )
