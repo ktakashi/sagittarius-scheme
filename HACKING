@@ -1,11 +1,12 @@
 This file is for those who want s to hask the cutting-edge Sagittarius
-sources from the Mercurial repository. If you just want to compile
+sources from  the Mercurial  repository. If you  just want  to compile
 from the distribution, you don't need to read any further.
 
 # How to check out from the repository
 
-This section is for those who are not fimiliar with Mercurial commands.
-As a preconditions, Mercurial is installed on your environment.
+This  section  is  for  those  who are  not  fimiliar  with  Mercurial
+commands.   As  a  preconditions,   Mercurial  is  installed  on  your
+environment.
 
 ## Basic commands for Mercurial
 
@@ -31,12 +32,12 @@ Note: `default` branch is git's `master`.
 
 # How to build HEAD code
 
-To build HEAD code, you need the latest release of Sagittarius Scheme. So
-first please install it.
+To  build  HEAD code,  you  need  the  latest release  of  Sagittarius
+Scheme. So first please install it.
 
 ## Provided developer tool
 
-We provide `dist.sh` for developer and it generates boot code, VM
+We  provide `dist.sh`  for developer  and it  generates boot  code, VM
 instructions and generated code from stub file.
 
 ## Generate code
@@ -46,16 +47,18 @@ To generate code you need to execute following commands;
     % ./dist.sh stub
     % ./dist.sh precomp
     % ./dist.sh srfi
+    % ./dist.sh tz
 
 Or this command does the same;
 
     % ./dist.sh gen
 
-These commands generate C files from stub files and Scheme files respectively.
-This must be run *before* CMake command otherwise CMake process will fail.
+These  commands generate  C files  from  stub files  and Scheme  files
+respectively.  This must be run *before* CMake command otherwise CMake
+process will fail.
 
-If you set the path to Sagittarius executable to the environment variable
-`SASH` with, then `dist.sh` will use that executable file.
+If  you set  the path  to  Sagittarius executable  to the  environment
+variable `SASH` with, then `dist.sh` will use that executable file.
 
     % env SASH=/opt/bin/sagittarius ./dist.sh gen
 
@@ -63,3 +66,9 @@ To clean the generated code, you need to execute following command;
 
     % ./dist.sh clean
 
+
+### end of file
+# Local Variables:
+# mode: markdown
+# fill-column: 70
+# End:
