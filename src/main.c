@@ -230,6 +230,7 @@ static void show_usage()
 	  "      no-const-fold     Not do constant folding.\n"
 	  "      no-optimization   Not optimiza.\n"
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
+	  "  -e<expr>,--expr=<expr> Eval given expression before loading script\n"
 	  "                                 before sash will be executed.\n"
 	  "  -r,--standard                  Execute Sagittarius on specified standard.\n"
 	  "      6                 Executes in strict R6RS mode.\n"
@@ -642,6 +643,7 @@ int main(int argc, char **argv)
   int exit_code = 0;
   SgVM *vm;
   SgObject repl, lib, preimport = SG_NIL;
+  SgObject expr = SG_FALSE;
 
   static struct option long_options[] = {
     {t("loadpath"), optional_argument, 0, 'L'},
@@ -663,6 +665,7 @@ int main(int argc, char **argv)
     {t("stat"), 0, 0, 's'},
     {t("no-main"), 0, 0, 'n'},
     {t("toplevel-only"), 0, 0, 't'},
+    {t("expr"), optional_argument, 0, 'e'},
 #ifdef SAGITTARIUS_PROFILE
      {t("profile"), optional_argument, 0, 'P'},
 #endif
@@ -673,7 +676,7 @@ int main(int argc, char **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:"),
+  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:"),
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -689,6 +692,13 @@ int main(int argc, char **argv)
       } else {
 	Sg_Warn(UC("unknown log level option %A"),
 		make_scheme_string(optarg_s));
+      }
+      break;
+    case 'e':
+      if (SG_FALSEP(expr)) {
+	expr = make_scheme_string(optarg_s);
+      } else {
+	expr = Sg_StringAppend2(expr, make_scheme_string(optarg_s));
       }
       break;
     case 'f':
@@ -850,6 +860,11 @@ int main(int argc, char **argv)
       Sg_ImportLibrary(vm->currentLibrary, SG_CAR(preimport));
     }
   }
+  if (!SG_FALSEP(expr)) {
+    SgObject in = Sg_MakeStringInputPort(SG_STRING(expr), 0, -1);
+    Sg_LoadFromPort(in);
+  }
+
   /* set profiler */
   if (profiler_mode) {
     Sg_ImportLibrary(vm->currentLibrary,

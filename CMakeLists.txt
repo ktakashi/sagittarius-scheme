@@ -610,6 +610,16 @@ ADD_CUSTOM_TARGET(update-tz ALL
 	  sagittarius--threads
   COMMAND ${TZ_UPDATE}
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+# clearing cache
+IF (WIN32)
+  SET(EXIT_EXPR "(exit)")
+ELSE ()
+  SET(EXIT_EXPR "'(exit)'")
+ENDIF()
+ADD_CUSTOM_TARGET(clear-cache ALL
+  DEPENDS update-tz
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ADD_SUBDIRECTORY(doc doc)
 
