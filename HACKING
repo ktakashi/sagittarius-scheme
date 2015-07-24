@@ -67,8 +67,9 @@ To clean the generated code, you need to execute following command;
     % ./dist.sh clean
 
 
-### end of file
-# Local Variables:
-# mode: markdown
-# fill-column: 70
-# End:
+<!-- end of file
+Local Variables:
+mode: markdown
+fill-column: 70
+End:
+-->

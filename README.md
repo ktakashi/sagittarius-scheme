@@ -186,8 +186,9 @@ document.
 
 See HACKING file.
 
-### end of file
-# Local Variables:
-# mode: markdown
-# fill-column: 70
-# End:
+<!-- end of file
+Local Variables:
+mode: markdown
+fill-column: 70
+End:
+-->
