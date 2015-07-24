@@ -38,6 +38,10 @@
 	    timezone-offset
 	    timezone-dst?
 	    <timezone>
+
+	    ;; utilities
+	    timezone-name-list
+
 	    ;; for debug
 	    timezone-rules
 	    timezone-rule-name
@@ -57,13 +61,19 @@
   (define-constant +tz-rules+ 1)
   (define-constant +tz-alias+ 2)
 
+  ;; should we copy them each time?
+  (define timezone-name-list
+    (let ((list (vector->list 
+		 (vector-map car (vector-ref +tzdata+ +tz-zone+)))))
+      (lambda () list)))
+  
   ;; timezone record. this is a immutable record
   (define-record-type (<timezone> make-timezone timezone?)
     (fields (immutable name timezone-name)
 	    ;; these 4 slots are for convenience
 	    ;; it contains *latest* timezone info
 	    (immutable short-name %timezone-short-name)
-	    (immutable raw-offset timezone-raw-offset)
+	    (immutable raw-offset %timezone-raw-offset)
 	    (immutable rule-name  timezone-rule-name)
 	    (immutable start-offet timezone-start-offset)
 	    ;; histories
@@ -139,7 +149,7 @@
   ;; this considers DST.
   (define (timezone-offset tz :optional (when (current-time)))
     (let-values (((zone rule) (timezone-zone&rule tz when)))
-      (let ((raw-offset (timezone-raw-offset zone)))
+      (let ((raw-offset (%timezone-raw-offset zone)))
 	(+ raw-offset (vector-ref rule 5)))))
 
   (define (timezone-dst? tz :optional (when (current-time)))
@@ -151,9 +161,16 @@
   (define (timezone-short-name tz :optional (when (current-time)))
     (let-values (((zone rule) (timezone-zone&rule tz when)))
       (let ((letter (vector-ref rule 6)))
-	(if letter
+	(if (and letter (string-scan (%timezone-short-name zone) "~"))
 	    (format (%timezone-short-name zone) letter)
 	    (%timezone-short-name zone)))))
+
+  (define (timezone-raw-offset tz :optional (when #f))
+    (if when
+	(let-values (((zone rule) (timezone-zone&rule tz when)))
+	  (%timezone-raw-offset zone))
+	;; this is current
+	(%timezone-raw-offset tz)))
 
   (define (local-timezone) (timezone (local-timezone-name)))
 
@@ -186,10 +203,22 @@
 		(else (loop (cdr hs)))))))
     ;; for GMT without DST (fallback)
     (define default-rule #(0 9999 1 1 0 0 #f))
+    (define (timezone-from-start start tz rules)
+      (make-timezone (timezone-name tz)
+		     (caddr start)
+		     (car start)
+		     (cadr start)
+		     (if (>= (length start) 4)
+			 (car (cdddr start))
+			 ;; FIXME this isn't right
+			 #f)
+		     '()
+		     ;; this paticular rule is needed
+		     rules))
 
     (let ((sec (time-second when)) ;; ignore nanosecond
 	  (rules (timezone-rules tz))
-	  (raw-offset (timezone-raw-offset tz))
+	  (raw-offset (%timezone-raw-offset tz))
 	  (starts (timezone-start-offset tz)))
       (if (or (not starts) (> sec starts)) ;; if starts is #f then means always
 	  (or (and-let* ((rule-name (timezone-rule-name tz))
@@ -199,25 +228,16 @@
 	      (values tz default-rule))
 	  (let-values (((secs date month year)
 			(tm:decode-julian-day-number
+			 ;; FIXME this is slightly wrong
 			 (tm:time->julian-day-number sec raw-offset))))
 	    (let ((start (find-start sec (timezone-histories tz))))
 	      (or (and-let* ((rule-name (cadr start))
 			     (rules (assoc rule-name rules))
 			     (rule (find-rule tz date month year rules)))
 		    ;; TODO don't create this each time...
-		    (values (make-timezone (timezone-name tz)
-					   (vector-ref start 2)
-					   (vector-ref start 0)
-					   (vector-ref start 1)
-					   (if (>= (vector-length start) 4)
-					       (vector-ref start 3)
-					       ;; FIXME this isn't right
-					       #f)
-					   '()
-					   ;; this paticular rule is needed
-					   (list rules))
-			    rule))
-		  (values tz default-rule)))))))
+		    (values (timezone-from-start start tz (list rules)) rule))
+		  (values (timezone-from-start start tz (list rules))
+			  default-rule)))))))
 
   ;; copy&paste from compile-tzdatabase.scm
   (define-constant +days-of-months+

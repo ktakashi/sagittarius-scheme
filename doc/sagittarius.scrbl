@@ -794,4 +794,5 @@ The macro return the result of @var{expr}.}
 @include-section["sagittarius/regex.scrbl"]
 @include-section["sagittarius/socket.scrbl"]
 @include-section["sagittarius/threads.scrbl"]
+@include-section["sagittarius/timezone.scrbl"]
 @include-section["sagittarius/debug.scrbl"]
