@@ -579,6 +579,37 @@ ADD_CUSTOM_TARGET(test-site-s
 	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
+# TODO remove after 0.6.7
+# this is because 0.6.6 has a bignum signness bug on 32 bit environment
+# and this causes tzdata.scm a problem
+IF (MSVC)
+  # our famous appveyor wrapper...
+  SET(TZ_UPDATE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
+ENDIF()
+SET(TZ_UPDATE ${TZ_UPDATE}
+  ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+  -D${PROJECT_BINARY_DIR}/build
+  -D${PROJECT_BINARY_DIR}/build/modules
+  -L${PROJECT_SOURCE_DIR}
+  -L${PROJECT_SOURCE_DIR}/lib
+  -L${PROJECT_SOURCE_DIR}/sitelib
+  -L${PROJECT_SOURCE_DIR}/ext/time
+  -L${PROJECT_SOURCE_DIR}/ext/socket
+  -L${PROJECT_SOURCE_DIR}/ext/zlib
+  -L${PROJECT_SOURCE_DIR}/ext/crypto
+  -L${PROJECT_SOURCE_DIR}/ext/threads
+  ${PROJECT_SOURCE_DIR}/script/compile-tzdatabase.scm
+  -o ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/tzdata.scm 
+  -w ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/win-mappings.scm)
+ADD_CUSTOM_TARGET(update-tz ALL
+  DEPENDS sagittarius--time 
+          sagittarius--socket
+	  sagittarius--zlib
+	  sagittarius--crypto
+	  sagittarius--math
+	  sagittarius--threads
+  COMMAND ${TZ_UPDATE}
+  WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
 ADD_SUBDIRECTORY(doc doc)
 
