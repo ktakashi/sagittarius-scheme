@@ -25,13 +25,42 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 (define-constant +data-dir+ (build-path +unicode-dir+ "data"))
 (define-constant +ucd-dir+ (build-path +unicode-dir+ "ucd"))
 
+#|
+List of interesting files
+
+    unicode/data/CaseFolding.txt
+    unicode/data/CompositionExclusions.txt
+    unicode/data/DerivedCoreProperties.txt (used by extract-unicode-props.scm)
+    unicode/data/GraphemeBreakProperty.txt (ditto)
+    unicode/data/PropList.txt
+    unicode/data/SpecialCasing.txt
+    unicode/data/UnicodeData.txt
+    unicode/data/WordBreakProperty.txt (not used)
+
+|#
+(define-constant +interesting-files+
+  '("CaseFolding.txt"
+    "CompositionExclusions.txt"
+    "DerivedCoreProperties.txt"
+    "GraphemeBreakProperty.txt"
+    "PropList.txt"
+    "SpecialCasing.txt"
+    "UnicodeData.txt"
+    "WordBreakProperty.txt"))
+
+(define (path-filename p)
+  (let-values (((dir base ext) (decompose-path p)))
+    (if ext (string-append base "." ext) base)))
+
 (define (download-ucd)
   (define out (open-chunked-binary-input/output-port))
   (define (flusher sink hdrs) (set-port-position! out 0))
   (define (destinator e) 
-    (let ((name (archive-entry-name e)))
-      (print "Extracting " name)
-      (build-path +data-dir+ name)))
+    (let ((name (path-filename (archive-entry-name e))))
+      (if (member name +interesting-files+)
+	  (begin (print "Extracting " name)
+		 (build-path +data-dir+ name))
+	  #f)))
   (unless (file-exists? +data-dir+)
     (create-directory* +data-dir+)
     (print "Downloading UCD.zip")
@@ -54,10 +83,11 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
   (define lexeme.inc (build-path +unicode-dir+ "lexeme.inc"))
   (unless (file-exists? lexeme.inc)
     (download-ucd)
-    (unless (file-exists? +ucd-dir+)
-      (create-directory* +ucd-dir+)
-      (parameterize ((current-directory +unicode-dir+))
-	(compile-ucd)))))
+    (create-directory* +ucd-dir+)
+    (parameterize ((current-directory +unicode-dir+))
+      (compile-ucd))
+    ;; remove .datum file we don't need
+    (delete-directory* +ucd-dir+)))
 
 (define (clean-unicode-files dir)
   (print "Cleaning Unicode codepoints")
@@ -70,9 +100,6 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
   (when (file-exists? +data-dir+)
     (print "Removing " +data-dir+)
     (delete-directory* +data-dir+))
-  (when (file-exists? +ucd-dir+)
-    (print "Removing " +ucd-dir+)
-    (delete-directory* +ucd-dir+))
   (print "Done!"))
 
 (define (main args)
