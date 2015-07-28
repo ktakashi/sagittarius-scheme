@@ -6,8 +6,8 @@
 
 |#
 #!read-macro=sagittarius/regex
-(library (anonymous)
-  (export)
+(library (build-lexeme-code)
+  (export parse-unicodedata)
   (import (rnrs)
 	  (sagittarius)
 	  (sagittarius regex)
@@ -163,7 +163,7 @@
 	    (format #t " done~%~!")))))))
 
 
-  (parse-unicodedata)
+  ;; (parse-unicodedata)
 
   ) ;[end]
 

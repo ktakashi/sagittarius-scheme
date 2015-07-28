@@ -18,9 +18,9 @@
 
 |#
 #!read-macro=sagittarius/regex
-(library (anonymous)
+(library (build-ucd-1)
 
-  (export)
+  (export parse-ucd-1)
 
   (import (rnrs)
 	  (sagittarius)
@@ -471,11 +471,11 @@
        (put-datum output (hashtable->alist ht-casefolding))
        )))
 
-
-      (parse-unicodedata)
-      (parse-proplist)
-      (parse-specialcasing)
-      (parse-casefolding)
-      (format #t " done~%~!") ;[end]
+  (define (parse-ucd-1)
+    (parse-unicodedata)
+    (parse-proplist)
+    (parse-specialcasing)
+    (parse-casefolding)
+    (format #t " done~%~!")) ;[end]
 
 )

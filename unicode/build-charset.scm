@@ -2,7 +2,10 @@
 creates:
   char-set-range.inc
 |#
-(import (rnrs) (sagittarius) (match))
+(library (build-charset)
+    (export build-charset)
+    (import (rnrs) (sagittarius) (match))
+(define (print . args) (for-each display args) (newline))
 
 (define (shrink-range-list lst)
   (if (null? lst)
@@ -14,11 +17,6 @@ creates:
 	   (if (= e2 (- e3 1))
 	       (loop (cons (cons e1 e4) more) ans)
 	       (loop (cdr lst) (cons (cons e1 e2) ans))))))))
-
-(define +general-category-1+ 
-  (call-with-input-file "./ucd/general-category-1.datum" read))
-(define +general-category-2+ 
-  (call-with-input-file "./ucd/general-category-2.datum" read))
 
 (define lower? (lambda (p) (eq? (cdr p) 'Ll)))
 (define upper? (lambda (p) (eq? (cdr p) 'Lu)))
@@ -32,6 +30,11 @@ creates:
 (define cntrl? (lambda (p) (memq (cdr p) '(Cc Cf Co Cs Cn))))
 
 (define (emit-range name pred :optional (other #f))
+  (define +general-category-1+ 
+    (call-with-input-file "./ucd/general-category-1.datum" read))
+  (define +general-category-2+ 
+    (call-with-input-file "./ucd/general-category-2.datum" read))
+  
   (let ((base (map (lambda (p) (cons (car p) (car p)))
 		   (append (filter pred +general-category-1+)
 			   (filter pred +general-category-2+))))
@@ -51,7 +54,7 @@ creates:
       (print "};"))))
 
 
-(define (main args)
+(define (build-charset)
   (when (file-exists? "charset.inc") (delete-file "charset.inc"))
   (format #t "~%generating charset.inc...~!")
   (with-output-to-file "charset.inc"
@@ -68,3 +71,4 @@ creates:
       (emit-range "space_set" space?)
       (emit-range "cntrl_set" cntrl?)))
   (print "done"))
+)

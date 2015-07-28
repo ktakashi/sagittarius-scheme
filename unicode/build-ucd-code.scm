@@ -7,8 +7,9 @@
 ;; } simple_lower_case[10] = {
 ;;    { 111, 113 }, // so on
 ;; }
-(import (rnrs)
-	(srfi :13))
+(library (build-ucd-code)
+    (export build-ucd-code)
+    (import (rnrs) (sagittarius) (srfi :13))
 
 (define (input-file-path f)
   (format "ucd/~a.datum" f))
@@ -55,10 +56,11 @@ out))
 				   (native-transcoder)))
 	 (datum (read in)))
     (close-port in)
-    (delete-file (output-file-path file))
-    (call-with-output-file (output-file-path file)
-      (lambda (out)
-	(converter file out datum)))))
+    (let ((ofile (output-file-path file)))
+      (when (file-exists? ofile) (delete-file ofile))
+      (call-with-output-file ofile
+	(lambda (out)
+	  (converter file out datum))))))
 
 
 (define converter-1
@@ -70,18 +72,6 @@ out))
 			(c-out (cdr p))))
 	      datum)
     (write-foot out)))
-
-(convert converter-1 "other-alphabetic")
-(convert converter-1 "other-lowercase")
-(convert converter-1 "other-uppercase")
-(convert converter-1 "simple-lowercase")
-(convert converter-1 "simple-titlecase")
-(convert converter-1 "simple-uppercase")
-(convert converter-1 "canonical-class")
-(convert converter-1 "compatibility")
-(convert converter-1 "general-category-1")
-(convert converter-1 "general-category-2")
-
 
 (define (write-head-with-count out count struct datum)
   (format out
@@ -123,13 +113,6 @@ static struct {
 		(format out " }, },~%"))
 	      datum)
     (write-foot out)))
-			  
-
-(convert converter-2 "case-folding")
-(convert converter-2 "special-casing-lower")
-(convert converter-2 "special-casing-title")
-(convert converter-2 "special-casing-upper")
-(convert converter-2 "decompose")
 
 ;; this is too big for 32 bits
 (define (write-head64 out struct datum)
@@ -160,7 +143,6 @@ static struct {
 			(c-out (cdr p))))
 	      datum)
     (write-foot out)))
-(convert converter-3 "compose")
 
 (define (write-head-for-numeric out struct datum)
   (format out
@@ -191,5 +173,28 @@ static struct {
 			  (c-out (denominator v)))))
 	      datum)
     (write-foot out)))
-;; since unicode 7.0 numeric-property has 64 bit value... wtf?
-(convert converter-4 "numeric-property")
+
+(define (build-ucd-code)
+  (convert converter-1 "other-alphabetic")
+  (convert converter-1 "other-lowercase")
+  (convert converter-1 "other-uppercase")
+  (convert converter-1 "simple-lowercase")
+  (convert converter-1 "simple-titlecase")
+  (convert converter-1 "simple-uppercase")
+  (convert converter-1 "canonical-class")
+  (convert converter-1 "compatibility")
+  (convert converter-1 "general-category-1")
+  (convert converter-1 "general-category-2")
+  
+
+  (convert converter-2 "case-folding")
+  (convert converter-2 "special-casing-lower")
+  (convert converter-2 "special-casing-title")
+  (convert converter-2 "special-casing-upper")
+  (convert converter-2 "decompose")
+
+  (convert converter-3 "compose")
+  ;; since unicode 7.0 numeric-property has 64 bit value.
+  (convert converter-4 "numeric-property"))
+
+)

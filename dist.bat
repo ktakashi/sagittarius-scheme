@@ -65,12 +65,19 @@ echo "Generating TZ database"
 call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -r %1
 goto:eof
 
+rem unicode
+:unicode
+echo "Generating Unicode codepoints"
+call :invoke ./script/compile-unicode.scm %1
+goto:eof
+
 rem gen
 :gen
 call :stub
 call :precomp
 call :srfi
 call :tz
+call :unicode
 goto:eof
 
 rem clean
@@ -78,7 +85,8 @@ rem clean
 call :stub "-c"
 call :precomp "-c"
 call :srfi "-c"
-call :tzdata "-c"
+call :tz "-c"
+call :unicode "-c"
 goto:eof
 
 rem entry point
@@ -95,6 +103,7 @@ echo "    precomp:    generates precompiled files"
 echo "    stub:       generates stub files"
 echo "    srfi:       generates R7RS style SRFI libraries"
 echo "    tz:         generates TZ database"
+echo "    unicode:    generates Unicode codepoints"
 echo "    clean:      cleasn generated files"
 
 goto :end

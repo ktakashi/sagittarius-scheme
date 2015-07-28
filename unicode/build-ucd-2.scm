@@ -10,9 +10,9 @@
 |#
 
 #!read-macro=sagittarius/regex
-(library (anonymous)
+(library (build-ucd-2)
 
-  (export)
+  (export parse-ucd-2)
 
   (import (rnrs)
 	  (sagittarius)
@@ -145,41 +145,42 @@
            input)
         (format #t " done~%~!")))))
 
-  (parse-composition-exclusions)
-  (parse-unicodedata)
-
-  (call-with-port
-   (open-file-output-port (datum-file "canonical-class.datum")
-                          (file-options no-fail) (buffer-mode block)
-                          (native-transcoder))
-   (lambda (output)
-        (format #t "processing canonical-class.datum ...~!")
+  (define (parse-ucd-2)
+    (parse-composition-exclusions)
+    (parse-unicodedata)
+    
+    (call-with-port
+     (open-file-output-port (datum-file "canonical-class.datum")
+			    (file-options no-fail) (buffer-mode block)
+			    (native-transcoder))
+     (lambda (output)
+       (format #t "processing canonical-class.datum ...~!")
         (put-datum output (hashtable->alist ht-canonical-class))
         (format #t " done~%~!")))
-
-  (call-with-port
-   (open-file-output-port (datum-file "decompose.datum")
-                          (file-options no-fail) (buffer-mode block)
-                          (native-transcoder))
-      (lambda (output)
-        (format #t "processing decompose.datum ...~!")
-        (put-datum output (hashtable->alist ht-decompose))
-        (format #t " done~%~!")))
-
-  (call-with-port
-   (open-file-output-port (datum-file "compose.datum")
-                          (file-options no-fail) (buffer-mode block)
-                          (native-transcoder))
-   (lambda (output)
-     (format #t "processing compose.datum ...~!")
-     (put-datum output (hashtable->alist ht-compose))
-     (format #t " done~%~!")))
-
-  (call-with-port
-   (open-file-output-port (datum-file "compatibility.datum") (file-options no-fail) (buffer-mode block) (native-transcoder))
-   (lambda (output)
-     (format #t "processing compatibility.datum ...~!")
-     (put-datum output (hashtable->alist ht-compatibility))
-     (format #t " done~%~!")))
+    
+    (call-with-port
+     (open-file-output-port (datum-file "decompose.datum")
+			    (file-options no-fail) (buffer-mode block)
+			    (native-transcoder))
+     (lambda (output)
+       (format #t "processing decompose.datum ...~!")
+       (put-datum output (hashtable->alist ht-decompose))
+       (format #t " done~%~!")))
+    
+    (call-with-port
+     (open-file-output-port (datum-file "compose.datum")
+			    (file-options no-fail) (buffer-mode block)
+			    (native-transcoder))
+     (lambda (output)
+       (format #t "processing compose.datum ...~!")
+       (put-datum output (hashtable->alist ht-compose))
+       (format #t " done~%~!")))
+    
+    (call-with-port
+     (open-file-output-port (datum-file "compatibility.datum") (file-options no-fail) (buffer-mode block) (native-transcoder))
+     (lambda (output)
+       (format #t "processing compatibility.datum ...~!")
+       (put-datum output (hashtable->alist ht-compatibility))
+       (format #t " done~%~!"))))
   
   ) ;[end]

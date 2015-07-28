@@ -46,6 +46,12 @@ tzdata()
 	-r $1
 }
 
+unicode()
+{
+    echo Generating Unicode codepoints
+    $SASH ./script/compile-unicode.scm $1
+}
+
 dist() {
     if [ $# -ne 1 ]; then
 	echo Usage: $0 src-dir
@@ -100,6 +106,7 @@ usage()
     echo "    stub:       generates stub files"
     echo "    srfi:       generates R7RS style SRFI libraries"
     echo "    tz:         generates TZ database"
+    echo "    unicode:    generates Unicode code points"
     echo "    clean:      cleans generated files"
 }
 
@@ -111,9 +118,10 @@ if [ $# -ge 1 ] ; then
     case $name in
 	dist)    dist $1;;
 	stub)    stub $1;;
-	gen)     stub $1; precomp $1; srfi; tzdata;;
+	gen)     stub $1; precomp $1; srfi; tzdata; unicode;;
 	srfi)    srfi $1;;
 	tz)      tzdata $1;;
+	unicode) unicode $1;;
 	precomp) precomp $1;;
 	clean)   stub "-c"; precomp "-c"; srfi "-c" ; tzdata "-c";;
 	insn)    geninsn $1;;
