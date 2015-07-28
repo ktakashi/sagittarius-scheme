@@ -41,6 +41,8 @@
 
 #include "../../gc-incl.inc"
 
+#define TERMINATION_CODE 0xcacacaca
+
 void Sg_InitMutex(SgInternalMutex *mutex, int recursive)
 {
   mutex->mutex = CreateMutex(NULL, FALSE, NULL);
@@ -70,9 +72,13 @@ void Sg_DestroyMutex(SgInternalMutex *mutex)
   }
 }
 
-static DWORD exception_filter(EXCEPTION_POINTERS *ep)
+static DWORD exception_filter(DWORD code, EXCEPTION_POINTERS *ep)
 {
-  return EXCEPTION_EXECUTE_HANDLER;
+  if (code == TERMINATION_CODE) {
+    return EXCEPTION_EXECUTE_HANDLER;
+  } else {
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
 }
 
 typedef struct ThreadParams
@@ -94,7 +100,7 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   free(threadParams);
   __try {
     status = (*start)(arg);
-  } __except (exception_filter(GetExceptionInformation())) {
+  } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
     return FALSE;
   }
   return status;
@@ -352,7 +358,7 @@ static void cancel_self(DWORD unused)
 {
   ULONG param[1];
   param[0] = (ULONG)1;
-  RaiseException(0xcacacaca, 0, 1, (CONST ULONG_PTR *)param);
+  RaiseException(TERMINATION_CODE, 0, 1, (CONST ULONG_PTR *)param);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
