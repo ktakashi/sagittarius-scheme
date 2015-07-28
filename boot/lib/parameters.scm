@@ -1,5 +1,0 @@
-(library (sagittarius parameters)
-    (export make-parameter)
-    (import null)
-  (define (make-parameter . args))
-)
