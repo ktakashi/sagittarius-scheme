@@ -19,7 +19,8 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 	(srfi :39))
 
 (define-constant +host+ "www.unicode.org")
-(define-constant +latest+ "/Public/zipped/latest/UCD.zip")
+;;(define-constant +latest+ "/Public/zipped/latest/UCD.zip")
+(define-constant +latest+ "/Public/zipped/8.0.0/UCD.zip")
 (define-constant +unicode-dir+ "unicode")
 (define-constant +data-dir+ (build-path +unicode-dir+ "data"))
 (define-constant +ucd-dir+ (build-path +unicode-dir+ "ucd"))
@@ -59,13 +60,20 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 	(compile-ucd)))))
 
 (define (clean-unicode-files dir)
+  (print "Cleaning Unicode codepoints")
   (path-for-each dir (lambda (p type) 
 		       (when (and (eq? type 'file) 
 				  ;; keep build file
 				  (not (string=? "scm" (path-extension p))))
+			 (print "Removing file " p)
 			 (delete-file p))))
-  (delete-directory* +data-dir+)
-  (delete-directory* +ucd-dir+))
+  (when (file-exists? +data-dir+)
+    (print "Removing " +data-dir+)
+    (delete-directory* +data-dir+))
+  (when (file-exists? +ucd-dir+)
+    (print "Removing " +ucd-dir+)
+    (delete-directory* +ucd-dir+))
+  (print "Done!"))
 
 (define (main args)
   (with-args (cdr args)
