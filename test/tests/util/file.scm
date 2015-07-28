@@ -92,6 +92,7 @@
   )
 
 (test-assert "delete-directory*" (delete-directory* top-test-dir))
+(test-assert "dir is removed(1)" (not (file-exists? top-test-dir)))
 
 ;; build-path*
 (test-equal "build-path*" 
@@ -121,5 +122,38 @@
       (delete-duplicates! files)
       (test-equal "file count" 3 (length files))
       (for-each delete-file files))))
+
+;; call #140
+(let ()
+  (define hidden-dir (build-path* top-test-dir ".hidden"))
+  (define normal-dir (build-path* top-test-dir "normal"))
+  (define (fake-touch file) (call-with-output-file file (lambda (out) #t)))
+  (create-directory* hidden-dir)
+  (create-directory* normal-dir)
+  (create-directory* (build-path* normal-dir ".hidden2"))
+  (fake-touch (build-path* normal-dir "foo"))
+  (fake-touch (build-path* hidden-dir "boo"))
+  (test-assert "delete-directory* with hidden" (delete-directory* top-test-dir))
+  (test-assert "dir is removed(2)" (not (file-exists? top-test-dir))))
+  
+;; related to call #140
+(let ()
+  (define hidden-dir (build-path* top-test-dir ".hidden"))
+  (define normal-dir (build-path* top-test-dir "normal"))
+  (define (fake-touch file) (call-with-output-file file (lambda (out) #t)))
+  ;; implement with path-map
+  (define ($delete-directory path)
+    ;; delete-directory can handle file as well
+    (define (remove path type) (delete-directory path))
+    (path-map path remove)
+    ;; delete the top most
+    (delete-directory path))
+  (create-directory* hidden-dir)
+  (create-directory* normal-dir)
+  (create-directory* (build-path* normal-dir ".hidden2"))
+  (fake-touch (build-path* normal-dir "foo"))
+  (fake-touch (build-path* hidden-dir "boo"))
+  (test-assert "$delete-directory" ($delete-directory top-test-dir))
+  (test-assert "dir is removed(3)" (not (file-exists? top-test-dir))))
 
 (test-end)

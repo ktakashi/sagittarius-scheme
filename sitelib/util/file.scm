@@ -2,7 +2,7 @@
 ;;;
 ;;; file.scm - file utility
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; The API's names are from Gauche
+;; The API's names are taken from Gauche
 #!read-macro=sagittarius/regex
 (library (util file)
     (export file->list
@@ -47,10 +47,10 @@
 	    find-files
 
 	    path-for-each path-map
-	    delete-directory*
-	    create-directory*
+	    delete-directory delete-directory*
+	    create-directory create-directory*
 	    copy-directory
-	    build-path*
+	    build-path build-path*
 
 	    null-device
 	    ;;console-device
@@ -182,30 +182,29 @@
     (define non-stop? (not stop-on-false))
     (define (rec path entries)
       (let loop ((entries entries))
+	(define (do-dir entry abs-path)
+	  (and (or (and recursive (rec abs-path (read-directory abs-path)))
+		   non-stop?)
+	       (or file-only
+		   (proc (if absolute-path abs-path entry) 'directory)
+		   non-stop?)
+	       (loop (cdr entries))))
+
 	(unless (null? entries)
 	  (let* ((entry (car entries))
 		 (abs-path (build-path path entry)))
-	    (cond ((and all (char=? (string-ref entry 0) #\.))
+	    (cond ((and (member entry '("." "..") string=?)
+			(file-directory? abs-path))
+		   ;; ignore '.' and '..' otherwise it will be a problem
+		   (loop (cdr entries)))
+		  ((and all (char=? (string-ref entry 0) #\.))
 		   (if (file-directory? abs-path)
-			 ;; ignore '.' and '..'
-			 (loop (cdr entries))
-			 (begin
-			   (proc (if absolute-path abs-path entry) 'file)
-			   (loop (cdr entries)))))
+		       (do-dir entry abs-path)
+		       (begin
+			 (proc (if absolute-path abs-path entry) 'file)
+			 (loop (cdr entries)))))
 		  ((file-directory? abs-path)
-		   ;; ignore '.' and '..' otherwise it will be
-		   (if (member entry '("." "..") string=?)
-		       (loop (cdr entries))
-		       ;; first do it recursively
-		       (and (or (and (when recursive
-				       (rec abs-path 
-					    (read-directory abs-path))))
-				non-stop?)
-			    (or file-only
-				(proc (if absolute-path abs-path entry)
-				      'directory)
-				non-stop?)
-			    (loop (cdr entries)))))
+		   (do-dir entry abs-path))
 		  ((file-symbolic-link? abs-path)
 		   (and (or (not physical)
 			    (proc (if absolute-path abs-path entry)
@@ -228,32 +227,32 @@
 		    (absolute-path #t) (all #t) (recursive #t))
     (define (rec path entries)
       (let loop ((entries entries) (r '()))
+	(define (do-dir entry abs-path)
+	  (let ((rp (if recursive
+			(rec abs-path (read-directory abs-path))
+			'())))
+	    (if file-only
+		(loop (cdr entries) (append! r rp))
+		(let ((pr (proc (if absolute-path abs-path entry)
+				'directory)))
+		  (loop (cdr entries)
+			(append! (cons pr r) rp))))))
+
 	(if (null? entries)
 	    r
 	    (let* ((entry (car entries))
 		   (abs-path (build-path path entry)))
-	      (cond ((and all (char=? (string-ref entry 0) #\.))
+	      (cond ((and (file-directory? abs-path)
+			  (member entry '("." "..") string=?))
+		     (loop (cdr entries) r))
+		    ((and all (char=? (string-ref entry 0) #\.))
 		     (if (file-directory? abs-path)
-			 ;; ignore '.' and '..'
-			 (loop (cdr entries) r)
+			 (do-dir entry abs-path)
 			 (let ((rp (proc (if absolute-path abs-path entry)
 					 'file)))
 			   (loop (cdr entries) (cons rp r)))))
 		    ((file-directory? abs-path)
-		     ;; ignore '.' and '..' otherwise it will be
-		     ;; infinite recursive
-		     (if (member entry '("." "..") string=?)
-			 (loop (cdr entries) r)
-			 ;; first do it recursively
-			 (let ((rp (if recursive
-				       (rec abs-path (read-directory abs-path))
-				       '())))
-			   (if file-only
-			       (loop (cdr entries) (append! r rp))
-			       (let ((pr (proc (if absolute-path abs-path entry)
-					       'directory)))
-				 (loop (cdr entries)
-				       (append! (cons pr r) rp)))))))
+		     (do-dir entry abs-path))
 		    ((file-symbolic-link? abs-path)
 		     (if physical
 			 (loop (cdr entries) r)
