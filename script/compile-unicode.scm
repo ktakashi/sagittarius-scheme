@@ -6,7 +6,7 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 (add-load-path "unicode")
 (import (rnrs)
 	(sagittarius)
-	(rfc http)
+	(rfc ftp)
 	(archive)
 	(getopt)
 	(util file)
@@ -18,9 +18,11 @@ exec sagittarius -L${this_path}/../unicode $0 "$@"
 	(build-ucd-code)
 	(srfi :39))
 
-(define-constant +host+ "www.unicode.org")
-;;(define-constant +latest+ "/Public/zipped/latest/UCD.zip")
-(define-constant +latest+ "/Public/zipped/8.0.0/UCD.zip")
+(define-constant +host+ "ftp.unicode.org")
+;; this is always the latest but we use explicit version.
+;;(define-constant +latest+ "/Public/UNIDATA/UCD.zip")
+(define-constant +latest+ "/Public/8.0.0/ucd/UCD.zip")
+(define-constant +max-retry+ 5)
 (define-constant +unicode-dir+ "unicode")
 (define-constant +data-dir+ (build-path +unicode-dir+ "data"))
 (define-constant +ucd-dir+ (build-path +unicode-dir+ "ucd"))
@@ -52,24 +54,45 @@ List of interesting files
   (let-values (((dir base ext) (decompose-path p)))
     (if ext (string-append base "." ext) base)))
 
+(define (ftp-sized-oport-receiver out size)
+  (lambda (in)
+    (define buf (make-bytevector 4096))
+    (let loop ((copied 0))
+      (unless (= copied size)
+	(let ((n (get-bytevector-n! in buf 0 4096)))
+	  (put-bytevector out buf 0 n)
+	  (loop (+ n copied)))))))
+
 (define (download-ucd)
   (define out (open-chunked-binary-input/output-port))
-  (define (flusher sink hdrs) (set-port-position! out 0))
   (define (destinator e) 
     (let ((name (path-filename (archive-entry-name e))))
       (if (member name +interesting-files+)
 	  (begin (print "Extracting " name)
 		 (build-path +data-dir+ name))
 	  #f)))
+
+  (define (do-login)
+    (let loop ((count 0))
+      (guard (e (else (if (= count +max-retry+) 
+			  (begin (print "Failed connect!") (raise e))
+			  (begin (print "Retry") (loop (+ count 1))))))
+	(ftp-login +host+))))
+
   (unless (file-exists? +data-dir+)
     (create-directory* +data-dir+)
     (print "Downloading UCD.zip")
-    (let-values (((s h b) 
-		  (http-get +host+ +latest+
-			    :receiver (http-oport-receiver out flusher))))
-      (call-with-input-archive-port 'zip out
-	(lambda (in)
-	  (extract-all-entries in :destinator destinator))))))
+    (let ((conn (do-login)))
+      (dynamic-wind values
+	  (lambda ()
+	    (let* ((size (ftp-size conn +latest+)))
+	      (print "File size: " size)
+	      (ftp-get conn +latest+
+		       :receiver (ftp-sized-oport-receiver out size))))
+	  (lambda () (set-port-position! out 0) (ftp-quit conn))))
+    (call-with-input-archive-port 'zip out
+      (lambda (in)
+	(extract-all-entries in :destinator destinator)))))
 
 (define (compile-ucd)
   (print (current-directory))
