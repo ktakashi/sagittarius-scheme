@@ -130,7 +130,6 @@
       [host (format "localhost:~a" *http-port*)])
   (define (req-body . args)
     (receive (s h b) (apply http-request args) b))
-
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
 		expected

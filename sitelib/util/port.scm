@@ -95,22 +95,33 @@
 	  (let ((x (fn item)))
 	    (loop (reader) (cons x r))))))
 
-  (define (copy-binary-port dst src :key (size -1))
-    (if (and size (integer? size) (positive? size))
+  ;; FIXME we are using reckless optional argument to read however
+  ;;       this should go away since it doesn't work for all port
+  ;;       types.
+  (define (copy-binary-port dst src :key (size #f))
+    (define bufsize 4096)
+    (define valid-size? (and size (integer? size) (positive? size)))
+    ;; if the specified size is smaller than buffer size then just
+    ;; read and copy it
+    (if (and valid-size? (< size bufsize))
 	(let ((bv (get-bytevector-n src size #t)))
 	  (put-bytevector dst bv)
 	  ;; most of the case, it's the same as size but sometimes not.
 	  (bytevector-length bv))
-	(let ((buf (make-bytevector 4096)))
-	  (let loop ((n (get-bytevector-n! src buf 0 4096 #t)) (r 0))
-	    (cond ((eof-object? n) r)
-		  ((< n 4096)
-		   (put-bytevector dst buf 0 n)
-		   (+ n r))
-		  (else
-		   (put-bytevector dst buf 0 n)
-		   (loop (get-bytevector-n! src buf 0 4096 #t)
-			 (+ r n))))))))
+	(let ((buf (make-bytevector bufsize))
+	      (read-size (if valid-size? size #f)))
+	  (let loop ((r 0))
+	    (define (rsize) (if (and read-size (< (- read-size r) bufsize))
+				(- read-size r)
+				bufsize))
+	    (let ((n (get-bytevector-n! src buf 0 (rsize) #t)))
+	      (cond ((eof-object? n) r)
+		    ((< n bufsize)
+		     (put-bytevector dst buf 0 n)
+		     (+ n r))
+		    (else
+		     (put-bytevector dst buf 0 n)
+		     (loop (+ r n)))))))))
 
   ;; lock file port
   (define (call-with-port-lock port proc . opt)
