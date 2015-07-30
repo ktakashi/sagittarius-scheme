@@ -28,7 +28,6 @@
  *  $Id: $
  */
 #include <windows.h>
-#include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
 #include <string.h>
@@ -45,10 +44,6 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
-#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#pragma comment(lib, "shlwapi.lib")
-#endif
-
 typedef struct FD_tag
 {
   HANDLE desc;
@@ -60,9 +55,7 @@ typedef struct FD_tag
 #define SG_FD(o)  ((FD*)(SG_FILE_DEP(o)))
 #define setLastError(file) (SG_FD(file)->lastError = GetLastError())
 
-#define F_OK 0
-#define W_OK 2
-#define R_OK 4
+#include "win_util.c"
 
 static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 {
@@ -182,8 +175,6 @@ static int win_is_open(SgObject self)
   SgFile *file = SG_FILE(self);
   return SG_FD(file)->desc != INVALID_HANDLE_VALUE;
 }
-
-#include "win_util.c"
 
 static int win_open(SgObject self, SgString *path, int flags)
 {
@@ -503,13 +494,13 @@ int Sg_FileExecutableP(SgString *path)
 
 int Sg_DirectoryP(SgString *path)
 {
-  return PathIsDirectoryW(utf32ToUtf16(path));
+  return directory_p(utf32ToUtf16(path));
 }
 
 int Sg_DeleteFileOrDirectory(SgString *path)
 {
   wchar_t *wpath = utf32ToUtf16(path);
-  if (PathIsDirectoryW(wpath)) {
+  if (directory_p(wpath)) {
     return RemoveDirectoryW(wpath);
   } else {
     return DeleteFileW(wpath);
@@ -543,7 +534,7 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
       const wchar_t* newPathW = utf32ToUtf16(newpath);
       const wchar_t* oldPathW = utf32ToUtf16(oldpath);
       /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
-      DWORD flag = PathIsDirectoryW(oldPathW) ? 1 : 0;
+      DWORD flag = directory_p(oldPathW) ? 1 : 0;
       if (win32CreateSymbolicLink(newPathW, oldPathW, flag)) {
 	return TRUE;
       }
@@ -665,14 +656,27 @@ static void concat_w(wchar_t *buf, size_t n, wchar_t *a, wchar_t *b)
 }
 #endif
 
+static int path_remove_file_spec(wchar_t *path)
+{
+  size_t size = wcslen(path), i;
+  
+  for (i = size-1; i != 0; i--) {
+    if (path[i] == '\\') goto ok;
+  }
+  return FALSE;
+ ok:
+  path[i+1] = L'\0';
+  return TRUE;
+}
+
 static void initialize_path()
 {
   wchar_t tmp[MAX_PATH];
   wchar_t path[MAX_PATH];
   if (GetModuleFileNameW(NULL, tmp, MAX_PATH)) {
-    if (PathRemoveFileSpecW(tmp)) {
+    if (path_remove_file_spec(tmp)) {
       static const wchar_t *fmt = L"%s%s";
-      PathAddBackslashW(tmp);
+      /* PathAddBackslashW(tmp); */ /* it's still there*/
       /* sitelib */
 #if _MSC_VER
       swprintf_s(path, MAX_PATH, fmt, tmp, _U(SAGITTARIUS_SITE_LIB_PATH));
@@ -710,8 +714,7 @@ SgObject Sg_InstalledDirectory()
 {
   wchar_t tmp[MAX_PATH];
   if (GetModuleFileNameW(NULL, tmp, MAX_PATH)) {
-    if (PathRemoveFileSpecW(tmp)) {
-      PathAddBackslashW(tmp);
+    if (path_remove_file_spec(tmp)) {
       return utf16ToUtf32(tmp);
     }
   }

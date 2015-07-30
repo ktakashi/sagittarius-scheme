@@ -435,9 +435,7 @@ static void cleanup_main(void *data)
 #if defined(_MSC_VER)
 
 #include <windows.h>
-#include <shlwapi.h>
 #include <dbghelp.h>
-#pragma comment(lib, "shlwapi.lib")
 
 static int real_main(int argc, tchar **argv);
 /* we want to track stack trace as well */
@@ -560,6 +558,19 @@ static void print(FILE *out, int index, void *addr,
 #define MAX_SYMBOL_LENNGTH 256
 #define MALLOC_SIZE (sizeof(SYMBOL_INFOW)+MAX_SYMBOL_LENNGTH*sizeof(wchar_t))
 
+static int path_remove_file_spec(wchar_t *path)
+{
+  size_t size = wcslen(path), i;
+  
+  for (i = size-1; i != 0; i--) {
+    if (path[i] == '\\') goto ok;
+  }
+  return FALSE;
+ ok:
+  path[i+1] = L'\0';
+  return TRUE;
+}
+
 static void dump_trace(const char *file, void **trace, int count)
 {
   HANDLE proc = GetCurrentProcess();
@@ -575,8 +586,7 @@ static void dump_trace(const char *file, void **trace, int count)
     for (count = 0, tmp = searchPath; *tmp; tmp++, count++);
     *tmp++ = L';';
     GetModuleFileNameW(NULL, tmp, 1024-count-1);
-    PathRemoveFileSpecW(tmp);
-    PathAddBackslashW(tmp);
+    path_remove_file_spec(tmp);
     symSetSearchPathW(proc, searchPath);
   }
 
@@ -585,8 +595,9 @@ static void dump_trace(const char *file, void **trace, int count)
   info->SizeOfStruct = sizeof(SYMBOL_INFO);
   fopen_s(&out, file, "a+");
 
-  fputs("Backtrace:\n", stderr);
-  fputs("Backtrace:\n", out);
+  fprintf(stderr, "Backtrace: [%d]\n", count);
+  fprintf(out, "Backtrace: [%d]\n", count);
+  fflush(out);
   for (i = 0; i < count; i++) {
     DWORD64 displacement = 0;
     if (initP) {

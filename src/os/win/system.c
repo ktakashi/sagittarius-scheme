@@ -28,15 +28,12 @@
  *  $Id: $
  */
 #include <windows.h>
-#include <shlwapi.h>
 #include <wchar.h>
 #include <io.h>
+#include <string.h>
+/* we don't link but we can use this definition */
 #include <iphlpapi.h>
 #include <winsock2.h>
-#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-#pragma comment(lib, "shlwapi.lib")
-#pragma comment(lib, "iphlpapi.lib")
-#endif
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/file.h"
 #include "sagittarius/system.h"
@@ -158,6 +155,19 @@ SgObject Sg_GetenvAlist()
   return ret;
 }
 
+static void path_append(wchar_t *dst, const wchar_t *p)
+{
+  size_t dsize = wcslen(dst);
+  if (dsize) {
+    size_t size = wcslen(p);
+    wchar_t last = dst[dsize-1];
+    dst += size;
+    if (last != L'\\') {
+      *dst++ = L'\\';
+    }
+  }
+  while (*p) *dst++ = *p++;
+}
 
 SgObject Sg_GetTemporaryDirectory()
 {
@@ -168,7 +178,7 @@ SgObject Sg_GetTemporaryDirectory()
 #define find_env(e)						\
   do {								\
     length = get_env(UC(e), value, MAX_PATH);			\
-    if (length == 0 && PathIsDirectoryW(value)) goto next;	\
+    if (length == 0 && directory_p(value)) goto next;		\
   } while (0)
 
   find_env("SAGITTARIUS_CACHE_DIR");
@@ -177,9 +187,9 @@ SgObject Sg_GetTemporaryDirectory()
   return SG_FALSE;
 
 #define create(v)				\
-  if (PathFileExistsW(v)) {			\
+  if (_waccess((v), F_OK) == 0) {		\
     /* something is exists */			\
-    if (!PathIsDirectoryW(v)) return SG_FALSE;	\
+    if (!directory_p(v)) return SG_FALSE;	\
   } else {					\
     /* create */				\
     CreateDirectoryW(v, NULL);			\
@@ -188,15 +198,15 @@ SgObject Sg_GetTemporaryDirectory()
  next:
   /* temporary directory path is too long */
   if (length > MAX_PATH) return SG_FALSE;
-  PathAppendW(value, NAME);
+  path_append(value, NAME);
   create(value);
 
   mbstowcs_s(&ret, buf, 50, SAGITTARIUS_VERSION, 50);
-  PathAppendW(value, buf);
+  path_append(value, buf);
   create(value);
 
   mbstowcs_s(&ret, buf, 50, SAGITTARIUS_TRIPLE, 50);
-  PathAppendW(value, buf);
+  path_append(value, buf);
   create(value);
 
   return utf16ToUtf32(value);
@@ -230,14 +240,25 @@ int Sg_TimeUsage(uint64_t *real, uint64_t *user, uint64_t *sys)
   return -1;
 }
 
+typedef DWORD (WINAPI *ProcGetAdaptersInfo)(PIP_ADAPTER_INFO, PULONG);
+
 SgObject Sg_GetMacAddress(int pos)
 {
 #define MAX_IFS 16
+  static ProcGetAdaptersInfo getAdaptersInfo = NULL;
   static SgObject empty_mac = NULL;
   IP_ADAPTER_INFO adapterInfo[MAX_IFS];
   DWORD buflen = sizeof(adapterInfo);
-  DWORD status = GetAdaptersInfo(adapterInfo, &buflen);
+  DWORD status;
   size_t size;
+
+  if (!getAdaptersInfo) {
+    HANDLE hdl = LoadLibraryA("iphlpapi");
+    getAdaptersInfo = 
+      (ProcGetAdaptersInfo)GetProcAddress(hdl, "GetAdaptersInfo");
+  }
+
+  status = getAdaptersInfo(adapterInfo, &buflen);
   if (empty_mac == NULL) {
     empty_mac = Sg_MakeByteVector(6, 0);
   }

@@ -35,6 +35,10 @@
 #include <sagittarius/string.h>
 #include <sagittarius/port.h>
 
+#define F_OK 0
+#define W_OK 2
+#define R_OK 4
+
 /* from mosh */
 static const wchar_t* utf32ToUtf16(SgString *path)
 {
@@ -122,4 +126,11 @@ static SgObject get_last_error(DWORD e)
   }
   return utf16ToUtf32(msg);
 #undef MSG_SIZE
+}
+
+static int directory_p(const wchar_t *path)
+{
+  DWORD attr = GetFileAttributesW(path);
+  if (attr == INVALID_FILE_ATTRIBUTES) return FALSE;
+  return attr & FILE_ATTRIBUTE_DIRECTORY;
 }
