@@ -8,7 +8,7 @@
 ;;    { 111, 113 }, // so on
 ;; }
 (library (build-ucd-code)
-    (export build-ucd-code)
+    (export build-ucd-code check-ucd-files)
     (import (rnrs) (sagittarius) (srfi :13))
 
 (define (input-file-path f)
@@ -196,5 +196,27 @@ static struct {
   (convert converter-3 "compose")
   ;; since unicode 7.0 numeric-property has 64 bit value.
   (convert converter-4 "numeric-property"))
+
+(define (check-ucd-files)
+  (for-all (lambda (f)
+	     (let ((inc-file (output-file-path f)))
+	       (file-exists? inc-file)))
+	     '("other-alphabetic"
+	       "other-lowercase"
+	       "other-uppercase"
+	       "simple-lowercase"
+	       "simple-titlecase"
+	       "simple-uppercase"
+	       "canonical-class"
+	       "compatibility"
+	       "general-category-1"
+	       "general-category-2"
+	       "case-folding"
+	       "special-casing-lower"
+	       "special-casing-title"
+	       "special-casing-upper"
+	       "decompose"
+	       "compose"
+	       "numeric-property")))
 
 )

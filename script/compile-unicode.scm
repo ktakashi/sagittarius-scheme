@@ -79,7 +79,11 @@ List of interesting files
 			  (begin (print "Retry") (loop (+ count 1))))))
 	(ftp-login +host+))))
 
-  (unless (file-exists? +data-dir+)
+  (define (check-files)
+    (and (file-exists? +data-dir+)
+	 (for-all (lambda (f) (file-exists? (build-path +data-dir+ f)))
+		  +interesting-files+)))
+  (unless (check-files)
     (create-directory* +data-dir+)
     (print "Downloading UCD.zip")
     (let ((conn (do-login)))
@@ -92,10 +96,9 @@ List of interesting files
 	  (lambda () (set-port-position! out 0) (ftp-quit conn))))
     (call-with-input-archive-port 'zip out
       (lambda (in)
-	(extract-all-entries in :destinator destinator)))))
+	(extract-all-entries in :destinator destinator :overwrite #t)))))
 
 (define (compile-ucd)
-  (print (current-directory))
   (parse-ucd-1)
   (parse-ucd-2)
   (parse-unicodedata)
@@ -104,7 +107,13 @@ List of interesting files
 
 (define (process-unicode)
   (define lexeme.inc (build-path +unicode-dir+ "lexeme.inc"))
-  (unless (file-exists? lexeme.inc)
+  (define charset.inc (build-path +unicode-dir+ "charset.inc"))
+  (define (check-inc-files)
+    (parameterize ((current-directory +unicode-dir+))
+      (check-ucd-files)))
+
+  (unless (and (file-exists? lexeme.inc) (file-exists? charset.inc)
+	       (check-inc-files))
     (download-ucd)
     (create-directory* +ucd-dir+)
     (parameterize ((current-directory +unicode-dir+))
