@@ -229,22 +229,32 @@ IF(USE_BOEHM_GC)
     FIND_FILE(HAS_BOEHM_GC_TAR
       NAMES gc.tar.gz
       PATHS ${CMAKE_CURRENT_BINARY_DIR})
+
     MESSAGE(STATUS "Checked Boehm GC archive file: ${HAS_BOEHM_GC_TAR}")
+
     IF (NOT EXISTS ${HAS_BOEHM_GC_TAR})
       MESSAGE(STATUS "Downloading ${GC_URL}/${USED_GC_VERSION}.tar.gz")
       FILE(
 	DOWNLOAD "${GC_URL}/${USED_GC_VERSION}.tar.gz"
 	"${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz"
 	SHOW_PROGRESS)
+
       EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -E tar xzf
 	${CMAKE_CURRENT_BINARY_DIR}/gc.tar.gz
 	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
       MESSAGE(STATUS "unpacked gc.tar.gz")
     ENDIF()
+
     IF (NOT MSVC AND NOT WATCOM AND NOT ${SAGITTARIUS_OS} STREQUAL "qnx")
       MESSAGE(FATAL_ERROR "First install Boehm GC. Go to gc directory.")
     ENDIF()
+
     ADD_DEFINITIONS("-DLARGE_CONFIG -DGC_DLL")
+    # OK we don't want to link this for god sake.
+    IF (MSVC)
+      ADD_DEFINITIONS("-DDONT_USE_USER32_DLL")
+    ENDIF()
+
     # since we are using explicit GC_DLL macro, Boehm GC's unit test can not
     # be built because of the dependency problem. so we need to recreate the
     # CMakeLists.txt without ADD_SUBDIRECTORY.
