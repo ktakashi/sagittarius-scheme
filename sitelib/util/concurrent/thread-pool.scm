@@ -138,15 +138,17 @@
 (define (thread-pool-thread-terminate! tp id)
   (define threads (<thread-pool>-threads tp))
   (define queues (<thread-pool>-queues tp))
-  (let ((t (vector-ref threads id)))
+  (let ((t (vector-ref threads id))
+	(q (vector-ref queues id))
+	(nq (make-shared-queue)))
+    ;; clear all pending tasks.
+    ;; the thread is terminated, so it's not interesting anymore
+    (shared-queue-clear! q)
     (thread-terminate! t) ;; don't do it!
-    (let ((q (vector-ref queues id)))
-      ;; clear all pending tasks.
-      ;; the thread is terminated, so it's not interesting anymore
-      (shared-queue-clear! q)
-      ;; prepare for next time
-      (vector-set! threads id
-		    (thread-start! (make-thread (make-executor q)))))))
+    (vector-set! queues id nq)
+    ;; prepare for next time
+    (vector-set! threads id
+		 (thread-start! (make-thread (make-executor nq))))))
 
 ;; TODO Should we add thread-pool-stop! ?
 

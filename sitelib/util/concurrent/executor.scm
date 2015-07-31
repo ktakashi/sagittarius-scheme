@@ -101,10 +101,20 @@
 		      (make-message-condition "Failed to add task"))))
   ;; assume the oldest one is negligible
   (define (terminate-oldest-handler future executor)
-    (let ((oldest (list-queue-remove-front! (executor-pool-ids executor))))
-      (thread-pool-thread-terminate! (executor-pool executor) (car oldest))
-      ;; now remove
-      (cleanup executor (cdr oldest) 'terminated))
+    (define (get-oldest executor)
+      (with-atomic executor
+	(let ((l (executor-pool-ids executor)))
+	  (and (not (list-queue-empty? l))
+	       (list-queue-remove-front! l)))))
+    ;; the oldest might already be finished.
+    (let ((oldest (get-oldest executor)))
+      (and oldest
+	   ;; if the running future is finishing and locking the mutex,
+	   ;; we'd get abandoned mutex. to avoid it lock it.
+	   (with-atomic executor
+	     (thread-pool-thread-terminate! (executor-pool executor)
+					    (car oldest)))
+	   (cleanup executor (cdr oldest) 'terminated)))
     ;; retry
     (execute-future! executor future))
 
@@ -155,25 +165,22 @@
   (define (thread-pool-executor-max-pool-size executor)
     (thread-pool-size (executor-pool executor)))
 
-  ;; this is basically not a good solution...
-  ;; there are couple of points that with-atomic is called more than
-  ;; twice in the same thread.
-  ;;  e.g. shutdown-executor! calls future-cancel and it's cancler is
-  ;;       calling with-atomic ...
-  ;; so the lock should be recursive lock.
-  (define (mutex-lock-recursively! mutex)
-    (if (eq? (mutex-state mutex) (current-thread))
-	(let ((n (mutex-specific mutex)))
-	  (mutex-specific-set! mutex (+ n 1)))
-	(begin
-	  (mutex-lock! mutex)
-	  (mutex-specific-set! mutex 0))))
+;;   (define (mutex-lock-recursively! mutex)
+;;     (if (eq? (mutex-state mutex) (current-thread))
+;; 	(let ((n (mutex-specific mutex)))
+;; 	  (mutex-specific-set! mutex (+ n 1)))
+;; 	(begin
+;; 	  (mutex-lock! mutex)
+;; 	  (mutex-specific-set! mutex 0))))
+;; 
+;;   (define (mutex-unlock-recursively! mutex)
+;;     (let ((n (mutex-specific mutex)))
+;;       (if (= n 0)
+;; 	  (mutex-unlock! mutex)
+;; 	  (mutex-specific-set! mutex (- n 1)))))
+  (define mutex-lock-recursively! mutex-lock!)
+  (define mutex-unlock-recursively! mutex-unlock!)
 
-  (define (mutex-unlock-recursively! mutex)
-    (let ((n (mutex-specific mutex)))
-      (if (= n 0)
-	  (mutex-unlock! mutex)
-	  (mutex-specific-set! mutex (- n 1)))))
   (define-syntax with-atomic
     (syntax-rules ()
       ((_ executor expr ...)
@@ -195,25 +202,32 @@
   
   ;; shutdown
   (define (thread-pool-executor-shutdown! executor)
-    (with-atomic executor
-     (let ((state (executor-state executor)))
-       (guard (e (else (executor-state-set! executor state)
-		       (raise e)))
-	 ;; to avoid accepting new task
-	 ;; chenge it here
-	 (when (eq? state 'running)
-	   (executor-state-set! executor 'shutdown))
-	 ;; we terminate the threads so that we can finish all
-	 ;; infinite looped threads.
-	 ;; NB, it's dangerous
-	 (thread-pool-release! (executor-pool executor) 'terminate)
-	 (for-each (lambda (future) (future-cancel (cdr future)))
-		   (list-queue-remove-all! (executor-pool-ids executor)))))))
-
+    ;; executor-future's future-cancel uses with-atomic
+    ;; so first finish up what we need to do for the executor
+    ;; then call future-cancel.
+    (define (executor-shutdown executor)
+      (with-atomic executor
+	(let ((state (executor-state executor)))
+	  (guard (e (else (executor-state-set! executor state)
+			  (raise e)))
+	    ;; to avoid accepting new task
+	    ;; chenge it here
+	    (when (eq? state 'running)
+	      (executor-state-set! executor 'shutdown))
+	    ;; we terminate the threads so that we can finish all
+	    ;; infinite looped threads.
+	    ;; NB, it's dangerous
+	    (thread-pool-release! (executor-pool executor) 'terminate)
+	    (list-queue-remove-all! (executor-pool-ids executor))))))
+    ;; now cancel futures
+    (for-each (lambda (future) (future-cancel (cdr future)))
+	      (executor-shutdown executor)))
+  
   (define (thread-pool-executor-execute-future! executor future)
     (or (with-atomic executor
 	  (let ((pool-size (thread-pool-executor-pool-size executor))
-		(max-pool-size (thread-pool-executor-max-pool-size executor)))
+		(max-pool-size (thread-pool-executor-max-pool-size
+				executor)))
 	    (and (< pool-size max-pool-size)
 		 (eq? (executor-state executor) 'running)
 		 (push-future-handler future executor))))
@@ -237,18 +251,25 @@
 	      ;; otherwise future-get may be called before.
 	      (cleanup executor future 'finished)
 	      (shared-queue-put! q r))))))
+    (define (add-future future executor)
+      (future-result-set! future (make-shared-queue))    
+      (let* ((thunk (future-thunk future))
+	     (id (thread-pool-push-task! (executor-pool executor)
+					 (task-invoker thunk))))
+	(future-canceller-set! future canceller)
+	(list-queue-add-back! (executor-pool-ids executor) (cons id future))
+	
+	executor))
     ;; in case this is called directly
     (unless (eq? (executor-state executor) 'running)
       (assertion-violation 'push-future-handler
 			   "executor is not running" executor))
-    (future-result-set! future (make-shared-queue))    
-    (let* ((thunk (future-thunk future))
-	   (id (thread-pool-push-task! (executor-pool executor)
-				       (task-invoker thunk))))
-      (future-canceller-set! future canceller)
-      (list-queue-add-back!
-       (executor-pool-ids executor) (cons id future))
-      executor))
+    ;; if the mutex is locked by the current thread, then we can
+    ;; simply add it (it's atomic)
+    ;; if not, then wait/lock it.
+    (if (eq? (mutex-state (executor-mutex executor)) (current-thread))
+	(add-future future executor)
+	(with-atomic executor (add-future future executor))))
 
   ;; fork-join-executor
   ;; this is more or less an example of how to implement 
