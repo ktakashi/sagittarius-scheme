@@ -10,6 +10,7 @@ OPTION(INSTALL_SYMLINK "installing symlink" ON)
 OPTION(DEBUG_VERSION "build type" ON)
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" ON)
+  OPTION(USE_CRT_DLL    "dynamic linking of CRT instead of static linking" OFF)
 ENDIF()
 
 ### Platform checks
@@ -193,6 +194,9 @@ ENDIF()
 FIXUP_COMPILER_FLAGS(SAGITTARIUS_PROCESSOR SAGITTARIUS_OS)
 IF (MAKE_XP_BINARY)
   MAKE_XP_COMPAT_BINARY(SAGITTARIUS_PROCESSOR)
+ENDIF()
+IF (NOT USE_CRT_DLL)
+  MSVC_LINK_STATIC_CRT()
 ENDIF()
 
 # set module path here

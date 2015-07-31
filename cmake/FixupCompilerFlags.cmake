@@ -83,22 +83,6 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     SET(CMAKE_C_FLAGS 
       "/F 0x800000 /Zi ${CMAKE_C_FLAGS}")
 
-    # /MT to avoid C-runtime
-    # the rest is the same as CMake default
-    FOREACH(flag_var
-	CMAKE_CXX_FLAGS CMAKE_  CMAKE_CXX_FLAGS_DEBUG
-	CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
-	CMAKE_CXX_FLAGS_RELWITHDEBINFO
-	CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-	CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-      IF(${flag_var} MATCHES "/MD")
-	STRING(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
-      ENDIF(${flag_var} MATCHES "/MD")
-      IF(${flag_var} MATCHES "/MDd")
-	STRING(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
-      ENDIF(${flag_var} MATCHES "/MDd")
-    ENDFOREACH(flag_var)
-
     # ADD_DEFINITIONS("-D_CRT_SECURE_NO_WARNINGS")
   ELSEIF(WATCOM)
     # watcom's default alignment is 4, so we need to specify it.
@@ -150,3 +134,23 @@ MACRO(MAKE_XP_COMPAT_BINARY _PROCESSOR)
 	"${VS2012_XP_FLAG} ${CMAKE_SHARED_LINKER_FLAGS}")
     ENDIF()
 ENDMACRO(MAKE_XP_COMPAT_BINARY)
+
+MACRO (MSVC_LINK_STATIC_CRT)
+  IF (MSVC)
+    # /MT to avoid C-runtime
+    # the rest is the same as CMake default
+    FOREACH(flag_var
+	CMAKE_CXX_FLAGS CMAKE_  CMAKE_CXX_FLAGS_DEBUG
+	CMAKE_CXX_FLAGS_RELEASE CMAKE_CXX_FLAGS_MINSIZEREL
+	CMAKE_CXX_FLAGS_RELWITHDEBINFO
+	CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+	CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+      IF(${flag_var} MATCHES "/MD")
+	STRING(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+      ENDIF(${flag_var} MATCHES "/MD")
+      IF(${flag_var} MATCHES "/MDd")
+	STRING(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
+      ENDIF(${flag_var} MATCHES "/MDd")
+    ENDFOREACH(flag_var)
+  ENDIF()
+ENDMACRO(MSVC_LINK_STATIC_CRT)
