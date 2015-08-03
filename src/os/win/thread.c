@@ -77,6 +77,7 @@ static DWORD exception_filter(DWORD code, EXCEPTION_POINTERS *ep)
   if (code == TERMINATION_CODE) {
     return EXCEPTION_EXECUTE_HANDLER;
   } else {
+    Sg_DumpNativeStackTrace(ep);
     return EXCEPTION_CONTINUE_SEARCH;
   }
 }
@@ -101,6 +102,8 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   __try {
     status = (*start)(arg);
   } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
+    /* after returning this function, Boehm GC will call
+       GC_unregister_my_thread(), so don't do it. */
     return FALSE;
   }
   return status;
@@ -376,7 +379,7 @@ void Sg_TerminateThread(SgInternalThread *thread)
   }
 
   SuspendThread(threadH);
-  if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
+  if (WaitForSingleObject(threadH, 0) != WAIT_OBJECT_0) {
     CONTEXT context;
     context.ContextFlags = CONTEXT_CONTROL;
     GetThreadContext(threadH, &context);
