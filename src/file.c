@@ -108,7 +108,6 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
   return SG_FALSE;
 }
 
-/* The implementation based on Ruby's dir.c */
 /* TODO I would prefer not to have this here but for now. */
 #if defined(_WIN32)
 /* 
@@ -123,15 +122,17 @@ static const SgChar * next_dirsep(const SgChar *s, int *skipped)
   }
   return s;
 }
+/* detect 'c:' or so */
 static inline int has_drive_letter(const SgChar *buf)
 {
-  if (isalpha(buf[0]) && buf[1] == ':') {
-    return 1;
-  } else {
-    return 0;
-  }
+  int c0 = buf[0], c1 = buf[1];
+  if (c0 > 0x80) return FALSE;	/* out of ascii range */
+  return isalpha(c0) && c1 == ':';
 }
 
+/*
+  TODO Should we skip?
+ */
 static const SgChar * skip_prefix(const SgChar *path, int *skipped)
 {
   if (dirsep_p(path[0]) || dirsep_p(path[1])) {
@@ -661,6 +662,8 @@ static SgObject brace_expand(SgString *str, int flags)
   const int escape = !(flags & SG_NOESCAPE);
   int lbrace = 0, rbrace = 0, nest = 0, i;
   int haslb = FALSE, hasrb = FALSE;
+
+  /* find { and }*/
   for (i = 0; i < SG_STRING_SIZE(str); i++) {
     if (SG_STRING_VALUE_AT(str, i) == '{' && nest++ == 0) {
       lbrace = i;
@@ -675,41 +678,45 @@ static SgObject brace_expand(SgString *str, int flags)
       if (++i == SG_STRING_SIZE(str)) break;
     }
   }
+  /* make "foo/{a,b}" to ("foo/a" "foo/b") */
   if (haslb && hasrb) {
     SgObject h = SG_NIL, t = SG_NIL;
-    intptr_t shift;
-    shift = lbrace;
-    i = lbrace;
-    while (i < rbrace) {
-      size_t size = SG_STRING_SIZE(str);
-      const int it = ++i;
-      const SgChar *st = SG_STRING_VALUE(str) + it;
-      SgString *buf = SG_STRING(Sg_ReserveString(size, 0));
-      if (lbrace != 0) {
-	memcpy(SG_STRING_VALUE(buf), SG_STRING_VALUE(str),
-	       lbrace*sizeof(SgChar));
-      }
-
-      nest = 0;
-      while (i < rbrace && !(SG_STRING_VALUE_AT(str, i) == ',' && nest == 0)) {
-	if (SG_STRING_VALUE_AT(str, i) == '{') nest++;
-	if (SG_STRING_VALUE_AT(str, i) == '}') nest--;
-	if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
-	  if (++i == rbrace) break;
-	}
-	i++;
-      }
-      memcpy(SG_STRING_VALUE(buf) + shift, st, (i - it) * sizeof(SgChar));
-      memcpy(SG_STRING_VALUE(buf) + shift + (i-it),
-	     SG_STRING_VALUE(str) + rbrace + 1, 
-	     (size - (shift + (i-it))) * sizeof(SgChar));
-      SG_STRING_SIZE(buf) = lbrace + (i - it) + size - rbrace;
-      /*
-      Sg_Printf(Sg_StandardErrorPort(), UC("(%d, %d)str: %A, buf: %A\n"), 
-		lbrace, rbrace, str, buf);
-      */
-      SG_APPEND(h, t, brace_expand(buf, flags));
+    SgPort out;
+    SgTextualPort tp;
+    int i;
+    /* copy value until the first '{' */
+    Sg_InitStringOutputPort(&out, &tp, 255);
+    for (i = 0; i < lbrace; i++) {
+      Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, i));
     }
+    /* skip '{' */
+    i++;
+    while (i < rbrace) {
+      /* now we need to copy one by one */
+      int nest = 0, j;
+      SgObject tmp;
+      for (;SG_STRING_VALUE_AT(str, i) != ',' || nest != 0; i++) {
+	if (i >= rbrace) break;
+
+  	if (SG_STRING_VALUE_AT(str, i) == '{') nest++;
+  	if (SG_STRING_VALUE_AT(str, i) == '}') nest--;
+  	if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
+  	  if (++i == rbrace) break;
+  	}
+  	Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, i));
+      }
+      /* skip ',' */
+      i++;
+      /* copy after the '}' */
+      for (j = rbrace+1; j < SG_STRING_SIZE(str); j++) {
+  	Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, j));
+      }
+      tmp = Sg_GetStringFromStringPort(&out);
+      SG_APPEND(h, t, brace_expand(tmp, flags));
+      /* back to the starting position */
+      Sg_SetPortPosition(&out, lbrace, SG_BEGIN);
+    }
+    SG_CLEAN_TEXTUAL_PORT(&tp);
     return h;
   } else {
     return SG_LIST1(str);
