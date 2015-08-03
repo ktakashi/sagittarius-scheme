@@ -2614,29 +2614,33 @@ static SgObject compile_regex_ast(SgString *pattern, SgObject ast, int flags)
   return SG_OBJ(p);
 }
 
-SgObject Sg_ParseCharSetString(SgString *s, int asciiP)
+SgObject Sg_ParseCharSetString(SgString *s, int asciiP, int start, int end)
 {
   /* sanity check */
   lexer_ctx_t ctx;
   int size = SG_STRING_SIZE(s);
   SgObject r;
+  SG_CHECK_START_END(start, end, size);
   if (size < 2) {
     Sg_Error(UC("invalid regex char-set string. %S"), s);
   }
-  if (SG_STRING_VALUE_AT(s, 0) != '[') {
-    Sg_Error(UC("regex char-set must start with '['. %S"), s);
+  if (SG_STRING_VALUE_AT(s, start) != '[') {
+    Sg_Error(UC("regex char-set must start with '['. %S[%d-%d]"),
+	     s, start, end);
   }
-  if (SG_STRING_VALUE_AT(s, size-1) != ']') {
-    Sg_Error(UC("regex char-set must end with ']'. %S"), s);
+  if (SG_STRING_VALUE_AT(s, end-1) != ']') {
+    Sg_Error(UC("regex char-set must end with ']'. %S[%d-%d]"), s, start, end);
   }
   init_lexer(&ctx, s, (asciiP) ? 0 : SG_UNICODE_CASE);
-  r = reg_expr(&ctx);
-  if (SG_PAIRP(r)) {
-    /* (inverted-char-class cset) */
-    return Sg_CharSetComplement(SG_CADR(r));
-  } else {
-    return r;
+  /* init_lexer only initialise the context with whole string but
+     we want to limit the range. */
+  ctx.pos = start+1;
+  ctx.len = end;
+  r = read_char_set(&ctx, NULL);
+  if (ctx.pos != ctx.len) {
+    Sg_Error(UC("non finished charset string. %S[%d-%d]"), s, start, end);
   }
+  return r;
 }
 
 SgObject Sg_CharSetToRegexString(SgObject cset, int invertP)

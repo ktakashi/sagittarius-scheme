@@ -174,7 +174,8 @@ SG_EXTERN SgObject   Sg_CompileRegexAST(SgObject ast, int flags);
 SG_EXTERN void       Sg_DumpRegex(SgPattern *pattern, SgObject port);
 
 /* misc */
-SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP);
+SG_EXTERN SgObject   Sg_ParseCharSetString(SgString *s, int asciiP, 
+					   int start, int end);
 SG_EXTERN SgObject   Sg_CharSetToRegexString(SgObject cset, int invertP);
 
 /* text matcher */

@@ -143,7 +143,9 @@
 
   ;; misc
   (define-c-proc parse-char-set-string
-    (s::<string> :optional (ascii::<boolean> #f))
+    (s::<string> :optional (ascii::<boolean> #f)
+			   (start::<fixnum> 0) 
+			   (end::<fixnum> -1))
     Sg_ParseCharSetString)
   (define-c-proc char-set->regex-string
     (cset::<char-set> :optional (invert?::<boolean> #f))

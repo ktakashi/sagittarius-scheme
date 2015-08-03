@@ -1215,10 +1215,15 @@
 (test-error "parse-char-set-string error(2)" condition?
 	    (parse-char-set-string "" #t))
 (test-error "parse-char-set-string error(3)" condition? 
-	     (char-set? (parse-char-set-string "[]" #t)))
+	    (parse-char-set-string "[]" #t))
 (test-assert "parse-char-set-string(1)" 
 	     (char-set? (parse-char-set-string "[a-z]" #t)))
-
+(test-assert "parse-char-set-string(2)"
+	     (char-set? (parse-char-set-string "[abc]def" #f 0 5)))
+(test-error "parse-char-set-string error(4)" condition? 
+	    (parse-char-set-string "[abc]def"))
+(test-error "parse-char-set-string error(5)" condition? 
+	    (parse-char-set-string "[abc]def]"))
 
 ;; binary regex
 
