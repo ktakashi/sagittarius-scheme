@@ -50,6 +50,10 @@
     (protocol
      (lambda (p)
        (lambda (n unit)
+	 (define (milliseconds->sec&nano msec)
+	   (let ((sec (div msec 1000))
+		 (nsec (* (mod msec 1000) 1000000)))
+	     (values sec nsec)))
 	 (define (microseconds->sec&nano n)
 	   (values (div n 1000000)
 		   (* (mod n 1000000) 1000)))

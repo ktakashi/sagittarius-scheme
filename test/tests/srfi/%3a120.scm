@@ -68,6 +68,16 @@
   (test-equal "reschedule" '(2 1) a)
   )
 
+(test-assert "make-timer-delta (1)" (make-timer-delta 1 'ms))
+(test-assert "make-timer-delta (2)" (make-timer-delta 1 'us))
+(test-assert "make-timer-delta (3)" (make-timer-delta 1 'ns))
+(test-assert "make-timer-delta (4)" (make-timer-delta 1 'h))
+(test-assert "make-timer-delta (5)" (make-timer-delta 1 'm))
+(test-assert "make-timer-delta (6)" (make-timer-delta 1 's))
+(test-error "make-timer-delta (error)"
+	    assertion-violation? (make-timer-delta 1 'c))
+(test-assert "timer-delta?" (timer-delta? (make-timer-delta 1 'ms)))
+
 ;; timer-delta
 (let ((timer (make-timer)))
   ;; (timer-start! timer)
