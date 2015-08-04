@@ -83,6 +83,7 @@ static DWORD exception_filter(DWORD code, EXCEPTION_POINTERS *ep)
 
 typedef struct ThreadParams
 {
+  SgInternalThread  *me;
   SgThreadEntryFunc *start;
   void *arg;
 } ThreadParams;
@@ -93,6 +94,13 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   SgThreadEntryFunc *start;
   void *arg;
   unsigned int status;
+  SgInternalThread *me = threadParams->me;
+#ifdef USE_BOEHM_GC
+  struct GC_stack_base sb;
+  if (GC_get_stack_base(&sb) == GC_SUCCESS) {
+    me->stackBase = (uintptr_t)sb.mem_base;
+  }
+#endif
   
   start = threadParams->start;
   arg = threadParams->arg;
@@ -101,8 +109,10 @@ static unsigned int __stdcall win32_thread_entry(void *params)
   __try {
     status = (*start)(arg);
   } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
-    return FALSE;
+    status = FALSE;
   }
+  /* clear the stackBase, from now on, thread can't be terminated */
+  me->stackBase = 0;
   return status;
 }
 
@@ -111,6 +121,7 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
 {
   /* this heap must be freed in win32_thread_entry */
   ThreadParams *params = (ThreadParams*)malloc(sizeof(ThreadParams));
+  params->me = thread;
   params->start = entry;
   params->arg = param;
   thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
@@ -327,30 +338,26 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 }
 
 #if defined(_M_IX86) || defined(_X86_)
-#define PTW32_PROGCTR(Context)  ((Context).Eip)
+#define WIN_PROGCTR(ctx)  ((ctx).Eip)
+#define WIN_STCKPTR(ctx)  ((ctx).Esp)
 #endif
 
 #if defined (_M_IA64)
-#define PTW32_PROGCTR(Context)  ((Context).StIIP)
-#endif
-
-#if defined(_MIPS_)
-#define PTW32_PROGCTR(Context)  ((Context).Fir)
-#endif
-
-#if defined(_ALPHA_)
-#define PTW32_PROGCTR(Context)  ((Context).Fir)
-#endif
-
-#if defined(_PPC_)
-#define PTW32_PROGCTR(Context)  ((Context).Iar)
+#define WIN_PROGCTR(ctx)  ((ctx).StIIP)
+/* probably we don't need it */
+#define WIN_STCKPTR(ctx)  -1
 #endif
 
 #if defined(_AMD64_)
-#define PTW32_PROGCTR(Context)  ((Context).Rip)
+#define WIN_PROGCTR(ctx)  ((ctx).Rip)
+#define WIN_STCKPTR(ctx)  ((ctx).Rsp)
 #endif
 
-#if !defined(PTW32_PROGCTR)
+#if defined(_MIPS_) || defined(_ALPHA_) || defined(_PPC_)
+#error _MIPS_, _ALPHA_ and _PPC_ are not in WinNT.h,  please add it
+#endif
+
+#if !defined(WIN_PROGCTR)
 #error Module contains CPU-specific code; modify and recompile.
 #endif
 
@@ -379,11 +386,21 @@ void Sg_TerminateThread(SgInternalThread *thread)
   if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
     CONTEXT context;
     context.ContextFlags = CONTEXT_CONTROL;
-    GetThreadContext(threadH, &context);
-    PTW32_PROGCTR(context) = (DWORD_PTR)cancel_self;
-    SetThreadContext(threadH, &context);
-    ResumeThread(threadH);
+    if (GetThreadContext(threadH, &context)) {
+      uintptr_t csp = WIN_STCKPTR(context);
+      uintptr_t tsp = thread->stackBase;
+      /* stack grow downwards, thus if context's sp is lower than
+	 thread's sp, then it's still in the thread function.
+	 NB: we use less than, so that it's indeed in Scheme or 
+	     at least our thread function.
+      */
+      if (csp < tsp) {
+	WIN_PROGCTR(context) = (DWORD_PTR)cancel_self;
+	SetThreadContext(threadH, &context);
+      }
+    }
   }
+  ResumeThread(threadH);
   thread->returnValue = SG_UNDEF;
   
 }
