@@ -126,7 +126,6 @@ void Sg_Init()
   Sg__InitLibrary();
   Sg__InitLoad();
   Sg__InitUnicode();
-  Sg__InitFile();
 
   Sg__InitVM();
   /* init clos uses findlibrary. so after VM */
@@ -155,6 +154,7 @@ void Sg_Init()
   Sg__Init_core();
   Sg__InitPair();
   Sg__InitCharSet();
+  Sg__InitFile();
 
   /* regex */
   Sg__InitRegex();

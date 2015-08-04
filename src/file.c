@@ -36,6 +36,7 @@
 #include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/library.h"
+#include "sagittarius/regex.h"
 #include "sagittarius/system.h"
 #include "sagittarius/symbol.h"
 #include "sagittarius/string.h"
@@ -157,506 +158,6 @@ static const SgChar * skip_prefix(const SgChar *path, int *skipped)
 #endif
 
 
-enum glob_pattern_type { 
-  PLAIN,
-  MAGICAL,
-  RECURSIVE,
-  MATCH_ALL,
-  MATCH_DIR
-};
-struct glob_pattern
-{
-  SgString *str;
-  enum glob_pattern_type type;
-  struct glob_pattern *next;
-};
-
-#define GLOB_DEBUG 0
-#if GLOB_DEBUG
-#include <sagittarius/symbol.h>
-static void dump_glob_pattern(SgObject path, struct glob_pattern *p)
-{
-  Sg_Printf(Sg_StandardErrorPort(), UC("path: %S\n"), path);
-  for (; p; p = p->next) {
-    SgObject type;
-    switch (p->type) {
-    case PLAIN:     type = SG_INTERN("plain"); break;
-    case MAGICAL:   type = SG_INTERN("magical"); break;
-    case RECURSIVE: type = SG_INTERN("recursive"); break;
-    case MATCH_ALL: type = SG_INTERN("all"); break;
-    case MATCH_DIR: type = SG_INTERN("dir"); break;
-    }
-    Sg_Printf(Sg_StandardErrorPort(), UC("%A[%S] -> "), p->str, type);
-  }
-  Sg_Printf(Sg_StandardErrorPort(), UC("*end*\n"));
-}
-#else
-#define dump_glob_pattern(a, b) 	/* dummy */
-#endif
-
-static const SgChar* find_dirsep(const SgChar *p, int flags)
-{
-  const int escape = !(flags & SG_NOESCAPE);
-
-  register SgChar c;
-  int open = FALSE;
-
-  while ((c = *p++) != 0) {
-    switch (c) {
-    case '[':
-      open = TRUE;
-      continue;
-    case ']':
-      open = TRUE;
-      continue;
-
-    case '/':
-      if (!open)
-	return p-1;
-      continue;
-
-    case '\\':
-      if (escape && !(c = *p++))
-	return p-1;
-      continue;
-    }
-  }
-  return p-1;
-}
-
-/* FIXME i know only windows has the case insensitive filesystem */
-#if defined(_WIN32)
-# define FS_SYSCASE 1
-#else
-# define FS_SYSCASE 0
-#endif
-
-static int
-has_magic(const SgChar *p, const SgChar *pend, int flags)
-{
-  const int escape = !(flags & SG_NOESCAPE);
-  const int nocase = flags & SG_CASEFOLD;
-
-  register SgChar c;
-
-  while (p < pend && (c = *p++) != 0) {
-    switch (c) {
-    case '*':
-    case '?':
-    case '[':
-      return TRUE;
-
-    case '\\':
-      if (escape && !(c = *p++))
-	return FALSE;
-      continue;
-
-    default:
-      if (!FS_SYSCASE && isalpha(c) && nocase)
-	return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-
-
-static struct glob_pattern *
-glob_make_pattern(const SgChar *p, const SgChar *e, int flags)
-{
-  struct glob_pattern *list, *tmp, **tail = &list;
-  int dirsep = FALSE;		/* pattern is terminated with '/' */
-
-  while (p < e && *p) {
-    tmp = SG_NEW(struct glob_pattern);
-    if (p[0] == '*' && p[1] == '*' && p[2] == '/') {
-      /* fold continuous RECURSIVEs (needed in glob_helper) */
-      do {
-	p += 3;
-	while (*p == '/') p++;
-      } while (p[0] == '*' && p[1] == '*' && p[2] == '/');
-      tmp->type = RECURSIVE;
-      tmp->str = NULL;
-      dirsep = TRUE;
-    } else {
-      const SgChar *m = find_dirsep(p, flags);
-      int magic = has_magic(p, m, flags);
-      SgObject buf;
-      if (!magic && *m) {
-	const SgChar *m2;
-	while (!has_magic(m+1, m2 = find_dirsep(m+1, flags), flags) && *m2) {
-	  m = m2;
-	}
-      }
-      buf = Sg_MakeString(p, SG_HEAP_STRING, m - p);
-      tmp->type = magic ? MAGICAL : PLAIN;
-      tmp->str = SG_STRING(buf);
-      if (*m) {
-	dirsep = TRUE;
-	p = m + 1;
-      } else {
-	dirsep = FALSE;
-	p = m;
-      }
-    }
-    *tail = tmp;
-    tail = &tmp->next;
-  }
-  tmp = SG_NEW(struct glob_pattern);
-  tmp->type = dirsep ? MATCH_DIR : MATCH_ALL;
-  tmp->str = NULL;
-  *tail = tmp;
-  tmp->next = NULL;
-  return list;
-}
-
-enum answer { YES, NO, UNKNOWN };
-
-static SgObject DOT_PATH = SG_FALSE;
-static SgObject DOTDOT_PATH = SG_FALSE;
-static SgObject STAR_PATH = SG_FALSE;
-
-static SgChar * bracket(const SgChar *p, /* pattern (next to '[') */
-			const SgChar *pend,
-			const SgChar *s, /* string */
-			const SgChar *send,
-			int flags)
-{
-  const int nocase = flags & SG_CASEFOLD;
-  const int escape = !(flags & SG_NOESCAPE);
-  unsigned int c1, c2;
-  int ok = FALSE, not = FALSE;
-
-  if (p >= pend) return NULL;
-  if (*p == '!' || *p == '^') {
-    not = TRUE;
-    p++;
-  }
-
-  while (*p != ']') {
-    const SgChar *t1 = p;
-    if (escape && *t1 == '\\')
-      t1++;
-    if (!*t1)
-      return NULL;
-    p = t1 + 1;
-    if (p >= pend) return NULL;
-    if (p[0] == '-' && p[1] != ']') {
-      const SgChar *t2 = p + 1;
-      if (escape && *t2 == '\\')
-	t2++;
-      if (!*t2)
-	return NULL;
-      p = t2 + 1;
-      if (ok) continue;
-      if (*t1 == *s || *t2 == *s) {
-	ok = TRUE;
-	continue;
-      }
-      c1 = *s;
-      if (nocase) c1 = Sg_CharUpCase(c1);
-      c2 = *t1;
-      if (nocase) c2 = Sg_CharUpCase(c2);
-      if (c1 < c2) continue;
-      c2 = *t2;
-      if (nocase) c2 = Sg_CharUpCase(c2);
-      if (c1 > c2) continue;
-    }
-    else {
-      if (ok) continue;
-      if (*t1 == *s) {
-	ok = TRUE;
-	continue;
-      }
-      if (!nocase) continue;
-      c1 = Sg_CharUpCase(*s);
-      c2 = Sg_CharUpCase(*p);
-      if (c1 != c2) continue;
-    }
-    ok = TRUE;
-  }
-
-  return ok == not ? NULL : (SgChar *)p + 1;
-}
-
-
-static int fnmatch_helper(const SgChar **pcur, /* pattern */
-			  const SgChar **scur, /* string */
-			  int flags)
-{
-  const int period = !(flags & SG_DOTMATCH);
-  const int pathname = flags & SG_PATHNAME;
-  const int escape = !(flags & SG_NOESCAPE);
-  const int nocase = flags & SG_CASEFOLD;
-
-  const SgChar *ptmp = 0;
-  const SgChar *stmp = 0;
-
-  const SgChar *p = *pcur;
-  const SgChar *pend = p + ustrlen(p);
-  const SgChar *s = *scur;
-  const SgChar *send = s + ustrlen(s);
-
-#define UNESCAPE(p) (escape && *(p) == '\\' ? (p) + 1 : (p))
-#define ISEND(p) (!*(p) || (pathname && *(p) == '/'))
-#define RETURN(val) return *pcur = p, *scur = s, (val);
-
-  if (period && *s == '.' && *UNESCAPE(p) != '.') /* leading period */
-    RETURN(1);
-
-  while (1) {
-    switch (*p) {
-    case '*':
-      do { p++; } while (*p == '*');
-      if (ISEND(UNESCAPE(p))) {
-	p = UNESCAPE(p);
-	RETURN(0);
-      }
-      if (ISEND(s))
-	RETURN(1);
-      ptmp = p;
-      stmp = s;
-      continue;
-
-    case '?':
-      if (ISEND(s))
-	RETURN(1);
-      p++;
-      s++;
-      continue;
-
-    case '[': {
-      const SgChar *t;
-      if (ISEND(s))
-	RETURN(1);
-      if ((t = bracket(p + 1, pend, s, send, flags))) {
-	p = t;
-	s++;
-	continue;
-      }
-      goto failed;
-    }
-    }
-
-    /* ordinary */
-    p = UNESCAPE(p);
-    if (ISEND(s))
-      RETURN(ISEND(p) ? 0 : 1);
-    if (ISEND(p))
-      goto failed;
-    if (*p == *s) {
-      p++;
-      s++;
-      continue;
-    }
-    if (!nocase) goto failed;
-    if (Sg_CharUpCase(*p) != Sg_CharUpCase(*s))
-      goto failed;
-    p++;
-    s++;
-    continue;
-
-  failed: /* try next '*' position */
-    if (ptmp && stmp) {
-      p = ptmp;
-      stmp++;
-      s = stmp;
-      continue;
-    }
-    RETURN(1);
-  }
-}
-
-
-static int fnmatch(SgObject pattern, SgObject string, int flags)
-{
-  const SgChar *p = SG_STRING_VALUE(pattern);
-  const SgChar *s = SG_STRING_VALUE(string);
-  const int period = !(flags & SG_DOTMATCH);
-  const int pathname = flags & SG_PATHNAME;
-
-  const SgChar *ptmp = 0;
-  const SgChar *stmp = 0;
-
-  if (pathname) {
-    while (1) {
-      if (p[0] == '*' && p[1] == '*' && p[2] == '/') {
-	do { p += 3; } while (p[0] == '*' && p[1] == '*' && p[2] == '/');
-	ptmp = p;
-	stmp = s;
-      }
-      if (fnmatch_helper(&p, &s, flags) == 0) {
-	while (*s && *s != '/') s++;
-	if (*p && *s) {
-	  p++;
-	  s++;
-	  continue;
-	}
-	if (!*p && !*s)
-	  return 0;
-      }
-      /* failed : try next recursion */
-      if (ptmp && stmp && !(period && *stmp == '.')) {
-	while (*stmp && *stmp != '/') stmp++;
-	if (*stmp) {
-	  p = ptmp;
-	  stmp++;
-	  s = stmp;
-	  continue;
-	}
-      }
-      return 1;
-    }
-  }
-  else
-    return fnmatch_helper(&p, &s, flags);
-}
-
-static SgObject join_path(SgObject base, int sep, SgObject name)
-{
-  if (sep) return Sg_BuildPath(base, name);
-  else {
-    return Sg_StringAppend2(base, name);
-  }
-}
-
-static SgObject remove_backslashes(SgObject path)
-{
-  int i, j, count = 0;
-  SgObject r;
-  for (i = 0; i < SG_STRING_SIZE(path); i++) {
-    if (SG_STRING_VALUE_AT(path, i) != '\\') count++;
-  }
-  r = Sg_ReserveString(count, '\0');
-  for (i = 0, j = 0; i < SG_STRING_SIZE(path); i++) {
-    if (SG_STRING_VALUE_AT(path, i) != '\\') {
-      SG_STRING_VALUE_AT(r, j++) = SG_STRING_VALUE_AT(path, i);
-    }
-  }
-  return r;
-}
-
-static SgObject glob_helper(SgString *path,
-			    int dirsep,
-			    enum answer exist,
-			    enum answer isdir,
-			    struct glob_pattern **beg,
-			    struct glob_pattern **end,
-			    int flags)
-{
-  struct glob_pattern **cur, **new_beg, **new_end;
-  int plain = FALSE, magical = FALSE, recursive = FALSE;
-  int match_all = FALSE, match_dir = FALSE;
-  int escape = !(flags & SG_NOESCAPE);
-  SgObject h = SG_NIL, t = SG_NIL;
-
-  dump_glob_pattern(path, *beg);  
-  for (cur = beg; cur < end; cur++) {
-    struct glob_pattern *p = *cur;
-    if (p->type == RECURSIVE) {
-      recursive = TRUE;
-      p = p->next;
-    }
-    switch (p->type) {
-    case PLAIN:     plain = TRUE; break;
-    case MAGICAL:   magical = TRUE; break;
-    case MATCH_ALL: match_all = TRUE; break;
-    case MATCH_DIR: match_dir = TRUE; break;
-    case RECURSIVE: Sg_Error(UC("continuous RECURSIVEs"));
-    }
-  }
-
-  if (match_all && exist == UNKNOWN) {
-    if (Sg_FileExistP(path)) {
-      exist = YES;
-      isdir = Sg_DirectoryP(path)
-	? YES : Sg_FileSymbolicLinkP(path)
-	? UNKNOWN : NO;
-    } else {
-      exist = NO;
-      isdir = NO;
-    }
-  }
-
-  if (match_dir && isdir == UNKNOWN) {
-    if (Sg_FileExistP(path)) {
-      exist = YES;
-      isdir = Sg_DirectoryP(path) ? YES : NO;
-    } else {
-      exist = NO;
-      isdir = NO;
-    }
-  }
-
-  if ((match_all && exist == YES) ||
-      (match_dir && isdir == YES)) {
-    SG_APPEND1(h, t, path);
-  }
-  /* no magic or no filesystem */
-  if (exist == NO || isdir == NO) return h;
-
-  if (magical || recursive) {
-    /* TODO check if the path was empty, then use '.' */
-    SgObject dirs = Sg_ReadDirectory(SG_STRING_SIZE(path) == 0
-				     ? DOT_PATH : path);
-
-    SG_FOR_EACH(dirs, dirs) {
-      SgObject dir = SG_CAR(dirs);
-      SgObject buf = join_path(path, dirsep, dir);
-      enum answer new_isdir = UNKNOWN;
-      if (recursive &&
-	  !Sg_StringEqual(dir, DOT_PATH) && !Sg_StringEqual(dir, DOTDOT_PATH) &&
-	  fnmatch(STAR_PATH, dir, flags) == 0) {
-	new_isdir = Sg_DirectoryP(buf)
-	  ? YES : Sg_FileSymbolicLinkP(buf)
-	  ? UNKNOWN : NO;
-      }
-      new_beg = new_end = SG_NEW2(struct glob_pattern **, (end - beg) * 2);
-      for (cur = beg; cur < end; cur++) {
-	struct glob_pattern *p = *cur;
-	if (p->type == RECURSIVE) {
-	  if (new_isdir == YES) { /* not symlink but real directory */
-	    *new_end++ = p;	  /* append recursive pattern */
-	  }
-	  p = p->next;		/* 0 times recursion */
-	}
-	if (p->type == PLAIN || p->type == MAGICAL) {
-	  if (fnmatch(p->str, dir, flags) == 0) {
-	    *new_end++ = p->next;
-	  }
-	}
-      }
-      SG_APPEND(h, t, glob_helper(SG_STRING(buf), TRUE, YES, new_isdir,
-				  new_beg, new_end, flags));
-    }
-  } else if (plain) {
-    struct glob_pattern **copy_beg, **copy_end, **cur2;
-
-    copy_beg = copy_end = SG_NEW2(struct glob_pattern **, end - beg);
-    for (cur = beg; cur < end; cur++) {
-      *copy_end++ = (*cur)->type == PLAIN ? *cur : NULL;
-    }
-    for (cur = copy_beg; cur < copy_end; cur++) {
-      if (*cur) {
-	SgObject name = (*cur)->str, buf;
-	if (escape) name = remove_backslashes(name);
-	new_beg = new_end = SG_NEW2(struct glob_pattern **, end - beg);
-	*new_end++ = (*cur)->next;
-	for (cur2 = cur + 1; cur2 < copy_end; cur2++) {
-	  if (*cur2 && fnmatch((*cur2)->str, name, flags) == 0) {
-	    *new_end++ = (*cur2)->next;
-	    *cur2 = NULL;
-	  }
-	}
-	buf = join_path(path, dirsep, name);
-	SG_APPEND(h, t, glob_helper(buf, 1, UNKNOWN, UNKNOWN, new_beg,
-				    new_end, flags));
-      }
-    }
-  }
-  return h;
-}
-
 static SgObject brace_expand(SgString *str, int flags)
 {
   const int escape = !(flags & SG_NOESCAPE);
@@ -723,29 +224,370 @@ static SgObject brace_expand(SgString *str, int flags)
   }
 }
 
+static SgObject DOT_PATH = SG_FALSE;
+static SgObject DOTDOT_PATH = SG_FALSE;
+static SgObject FULL_CHARSET = SG_FALSE;
+
+/*
+  converts given path template to pattern
+  e.g.)
+   - "foo/bar/\*"    -> (("foo") ("bar") (ANY))
+   - "foo/bar/buz*" -> (("foo") ("bar") ("buz" ANY))
+   - "foo/bar/[b][u]z*" -> (("foo") ("bar") ([b] [u] "z" ANY))
+  each element of the list represents a matching rule of path element.
+ */
+static int find_close_bracket(SgString *path, int start, int flags)
+{
+  const int escape = !(flags & SG_NOESCAPE);
+  int i;
+  for (i = start; i < SG_STRING_SIZE(path); i++) {
+    switch (SG_STRING_VALUE_AT(path, i)) {
+    case ']': return i;
+    case '\\':
+      if (escape) i++;
+      break;
+    }
+  }
+  return start;
+}
+
+static SgObject remove_backslashes(SgObject path)
+{
+  int i, j, count = 0;
+  SgObject r;
+  for (i = 0; i < SG_STRING_SIZE(path); i++) {
+    if (SG_STRING_VALUE_AT(path, i) != '\\') count++;
+  }
+  /* no backslash */
+  if (SG_STRING_SIZE(path) == count) return path;
+
+  r = Sg_ReserveString(count, '\0');
+  for (i = 0, j = 0; i < SG_STRING_SIZE(path); i++) {
+    if (SG_STRING_VALUE_AT(path, i) != '\\') {
+      SG_STRING_VALUE_AT(r, j++) = SG_STRING_VALUE_AT(path, i);
+    }
+  }
+  return r;
+}
+
+static SgObject convert_star(SgObject p)
+{
+  /* for may laziness, we use regular expression for '*' */
+  SgObject h = SG_NIL, t = SG_NIL;
+  int has_star = FALSE;
+  SG_FOR_EACH(p, p) {
+    if (SG_EQ(SG_CAR(p), SG_INTERN("*"))) {
+      has_star = TRUE;
+      break;
+    }
+    SG_APPEND1(h, t, SG_CAR(p));
+  }
+  if (has_star) {
+    /* TODO should we use AST directly to save some memory? */
+    SgPort out;
+    SgTextualPort tp;
+
+    /* copy value until the first '{' */
+    Sg_InitStringOutputPort(&out, &tp, 255);
+    Sg_PutzUnsafe(&out, ".*");
+    SG_FOR_EACH(p, SG_CDR(p)) {
+      if (SG_STRINGP(SG_CAR(p))) {
+	Sg_PutsUnsafe(&out, SG_STRING(SG_CAR(p)));
+      } else if (SG_CHAR_SET_P(SG_CAR(p))) {
+	Sg_PutsUnsafe(&out, Sg_CharSetToRegexString(SG_CAR(p), FALSE));
+      } else if (SG_EQ(SG_CAR(p), SG_INTERN("*"))) {
+	Sg_PutzUnsafe(&out, ".*");
+      } else {
+	Sg_Error(UC("[Internal] Unknown pattern '%S'"), SG_CAR(p));
+      }
+    }
+    Sg_PutcUnsafe(&out, '$');
+    SG_APPEND1(h, t, Sg_CompileRegex(Sg_GetStringFromStringPort(&out), 0,
+				     FALSE));
+    SG_CLEAN_TEXTUAL_PORT(&tp);
+    return h;
+  }
+  /* FIXME: we don't want to allocate memory in this case */
+  return h;
+}
+
+static SgObject ANY = SG_MAKE_INT(1);
+static SgObject DIR = SG_MAKE_INT(2);
+
+static SgObject glob_make_pattern(SgString *path, int flags)
+{
+  const int escape = !(flags & SG_NOESCAPE);
+  SgObject h = SG_NIL, t = SG_NIL, h1 = SG_NIL, t1 = SG_NIL;
+  int i, start;
+#define emit()							\
+  do {								\
+    if (start != i) {						\
+      SgObject tmp = Sg_Substring(path, start, i);		\
+      if (escape) tmp = remove_backslashes(tmp);		\
+      SG_APPEND1(h1, t1, tmp);					\
+    }								\
+    start = i+1;						\
+  } while (0)
+  
+  for (i = 0, start = 0; i < SG_STRING_SIZE(path);) {
+    SgChar c = SG_STRING_VALUE_AT(path, i);
+    
+    switch (c) {
+    case '[': {
+      int s = i, e;
+      e = find_close_bracket(path, start, flags);
+      if (s != e) {
+	emit();
+	SG_APPEND1(h1, t1, Sg_ParseCharSetString(path, FALSE, s, i=++e));
+	start = i;
+      }
+      i++;
+    } break;
+    case '/': 
+      /* next */
+      emit();
+      /* if the path starts with '/', then this can be null  */
+      if (!SG_NULLP(h1)) {
+	SG_APPEND1(h, t, convert_star(h1));
+      }
+      h1 = t1 = SG_NIL;		/* reset it */
+      /* this need to be updated */
+      start = ++i;
+      break;
+    case '*': {
+      int has = (start != i);
+      emit();
+      /* merge it if it's there */
+      if (!has && SG_STRING_SIZE(path) - i >= 3 &&
+	  SG_STRING_VALUE_AT(path, i+1) == '*' &&
+	  SG_STRING_VALUE_AT(path, i+2) == '/') {
+	do {
+	  i += 3;
+	  /* skip '/' */
+	  while (SG_STRING_VALUE_AT(path, i) == '/') i++;
+	} while (SG_STRING_VALUE_AT(path,   i) == '*' &&
+		 SG_STRING_VALUE_AT(path, i+1) == '*' &&
+		 SG_STRING_VALUE_AT(path, i+2) == '/');
+	SG_APPEND1(h1, t1, SG_INTERN("*/"));
+	SG_APPEND1(h, t, h1);
+	h1 = t1 = SG_NIL;		/* reset it */
+	start = i;
+      } else {
+	SG_APPEND1(h1, t1, SG_INTERN("*"));
+	while (SG_STRING_VALUE_AT(path, i) == '*') i++;
+      }
+      break;
+    }
+    case '?':
+      emit();
+      SG_APPEND1(h1, t1, FULL_CHARSET);
+      i++;
+      break;
+    default:
+      i++;
+      break;
+    }
+  }
+
+  emit();
+  if (!SG_NULLP(h1)) {
+    SG_APPEND1(h, t, convert_star(h1));
+    SG_APPEND1(h, t, SG_LIST1(ANY));
+  } else {
+    SG_APPEND1(h, t, SG_LIST1(DIR));
+  }
+#undef emit
+  return h;
+}
+
+enum answer
+{
+  YES,
+  NO,
+  UNKNOWN
+};
+
+static SgObject join_path(SgObject base, int sep, SgObject name)
+{
+  if (sep) return Sg_BuildPath(base, name);
+  else     return Sg_StringAppend2(base, name);
+}
+
+static int glob_match1(SgObject pat, SgObject path_element, int flags)
+{
+  const int period = !(flags & SG_DOTMATCH);
+  /* Flags are taken from Ruby but I don't know what FNM_PATHNAME does on glob.
+     so ignore.*/
+  /* const int pathname = flags & SG_PATHNAME; */ 
+  int pos = 0;
+  SgObject cp;
+
+  if (period) {
+    if (SG_STRING_VALUE_AT(path_element, 0) == '.' &&
+	/* leading period */
+	!(SG_STRINGP(SG_CAR(pat)) && 
+	  SG_STRING_VALUE_AT(SG_STRING(SG_CAR(pat)), 0) == '.')) {
+      return FALSE;
+    }
+  }
+
+  SG_FOR_EACH(cp, pat) {
+    /* the matching is pretty much simple, a rule may contain the followings:
+       - string
+       - charset
+       - pattern (regular expression)
+       these are resolved by prefix match, one char match or regex match,
+       respectively. */
+    SgObject p = SG_CAR(cp);
+
+    if (pos >= SG_STRING_SIZE(path_element)) return FALSE;
+    if (SG_STRINGP(p)) {
+      int i;
+      for (i = 0; i < SG_STRING_SIZE(p); i++) {
+	if (!SG_EQ(SG_STRING_VALUE_AT(p, i), 
+		   SG_STRING_VALUE_AT(path_element, pos++))) {
+	  return FALSE;
+	}
+      }
+    } else if (SG_CHAR_SET_P(p)) {
+      if (!Sg_CharSetContains(p, SG_STRING_VALUE_AT(path_element, pos++))) {
+	return FALSE;
+      }
+    } else if (SG_PATTERNP(p)) {
+      SgMatcher *m = Sg_RegexTextMatcher(SG_PATTERN(p), path_element, pos,
+					 SG_STRING_SIZE(path_element));
+      return Sg_RegexTextMatches(SG_TEXT_MATCHER(m));
+    } else {
+      Sg_Error(UC("[Internal] Unknown glob rule '%S' in '%S'"), p, pat);
+      return FALSE;		/* dummy */
+    }
+
+  }
+  return TRUE;
+}
+
+static SgObject glob_match(SgString *path, 
+			   int dirsep, 
+			   enum answer exist, 
+			   enum answer isdir,
+			   SgObject pattern,
+			   int flags)
+{
+  SgObject pat, h = SG_NIL, t = SG_NIL;
+  int match_dir = FALSE, match_any = FALSE, recursive = FALSE, plain = FALSE;
+  /*  no pattern */
+  if (SG_NULLP(pattern)) return h;
+
+  /* the current rule */
+  SG_FOR_EACH(pat, pattern) {
+    if (SG_EQ(SG_CAAR(pat), SG_INTERN("*/"))) {
+      recursive = TRUE;
+      continue;
+    }
+    if (SG_EQ(SG_CAAR(pat), DIR)) {
+      match_dir = TRUE;
+      plain = TRUE;
+    } else if (SG_EQ(SG_CAAR(pat), ANY)) {
+      match_any = TRUE;
+      plain = TRUE;
+    } else if (SG_STRINGP(SG_CAAR(pat)) && SG_NULLP(SG_CDAR(pat))) {
+      plain = TRUE;
+    }
+    break;
+  }
+
+  /* check existance on the last rule*/
+  if (match_any && exist == UNKNOWN) {
+    if (Sg_FileExistP(path)) {
+      exist = YES;
+      isdir = Sg_DirectoryP(path)
+	? YES : Sg_FileSymbolicLinkP(path)
+	? UNKNOWN : NO;
+    } else {
+      exist = NO;
+      isdir = NO;
+    }
+  }
+  if (match_dir && isdir == UNKNOWN) {
+    if (Sg_FileExistP(path)) {
+      exist = YES;
+      isdir = Sg_DirectoryP(path) ? YES : NO;
+    } else {
+      exist = NO;
+      isdir = NO;
+    }
+  }
+
+  if ((match_any && exist == YES) ||
+      (match_dir && isdir == YES)) {
+    SG_APPEND1(h, t, path);
+  }
+
+  if (match_any || match_dir) return h;
+
+  if (!plain || recursive) {
+    SgObject paths = Sg_ReadDirectory(path);
+    SG_FOR_EACH(paths, paths) {
+      SgObject p = SG_CAR(paths), next = SG_CDR(pat);
+      SgObject buf;
+      enum answer new_isdir = UNKNOWN;
+
+      if (!SG_EQ(path, DOT_PATH)) buf = join_path(path, dirsep, p);
+      else buf = p;
+
+      if (recursive &&
+	  !(Sg_StringEqual(p, DOT_PATH) || Sg_StringEqual(p, DOTDOT_PATH))) {
+	new_isdir = Sg_DirectoryP(buf)
+	  ? YES : Sg_FileSymbolicLinkP(buf)
+	  ? UNKNOWN : NO;
+      }
+      if (glob_match1(SG_CAR(pat), p, flags)) {
+	SG_APPEND(h, t, glob_match(buf, TRUE, YES, new_isdir, next, flags));
+      }
+      if (recursive && new_isdir == YES) {
+	/* ok, we need to put recursive mark here as well */
+	next = Sg_Cons(SG_LIST1(SG_INTERN("*/")), pat);
+	SG_APPEND(h, t, glob_match(buf, TRUE, YES, new_isdir, next, flags));
+      }
+    }
+  } else if (plain) {
+    SgObject name = SG_CAAR(pat);
+
+    /* if this is the first one, then ignore */
+    if (!SG_EQ(path, DOT_PATH))  name = join_path(path, dirsep, name);
+    /* we do match here to avoid dot files */
+    SG_APPEND(h, t, glob_match(name, TRUE, UNKNOWN, UNKNOWN, 
+			       SG_CDR(pattern), flags));
+  }
+  return h;
+}
+
 SgObject Sg_Glob(SgString *path, int flags)
 {
-  struct glob_pattern *list;
-  const SgChar *root, *start;
-  SgString *buf;
   SgObject paths, h = SG_NIL, t = SG_NIL;
-  int skiped = 0;
+  SgString *buf;
 
   paths = brace_expand(path, flags);
   SG_FOR_EACH(paths, paths) {
-    SgObject r;
+    SgObject r, list;
+    int drive_off = 0;
     path = SG_STRING(SG_CAR(paths));
-    start = root = SG_STRING_VALUE(path);
 #if defined(_WIN32)
-    root = skip_prefix(root, &skiped);
+    /* should we? */
+    /* root = skip_prefix(root, &skiped); */
 #endif
-
-    if (root && *root == '/') root++;
-    buf = Sg_Substring(path, 0, root - start);
-
-    list = glob_make_pattern(root, root + SG_STRING_SIZE(path) - skiped, flags);
-
-    r = glob_helper(buf, FALSE, UNKNOWN, UNKNOWN, &list, &list + 1, flags);
+    list = glob_make_pattern(path, flags);
+    /* if the path is start with '/' then we need to keep it.
+       otherwise we can assume it's current directory. 
+       NB: all other informations are in the `list` (compiled rule)
+    */
+    if (SG_STRING_VALUE_AT(path, drive_off) == '/') {
+      buf = Sg_Substring(path, 0, drive_off+1);
+    } else {
+      buf = DOT_PATH;
+    }
+    
+    r = glob_match(buf, FALSE, UNKNOWN, UNKNOWN, list, flags);
     SG_APPEND(h, t, r);
   }
   return h;
@@ -755,5 +597,5 @@ void Sg__InitFile()
 {
   DOT_PATH = SG_MAKE_STRING(".");
   DOTDOT_PATH = SG_MAKE_STRING("..");
-  STAR_PATH = SG_MAKE_STRING("*");
+  FULL_CHARSET = Sg_CharSetComplement(Sg_MakeEmptyCharSet());
 }
