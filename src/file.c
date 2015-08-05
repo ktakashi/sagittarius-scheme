@@ -228,6 +228,9 @@ static SgObject DOT_PATH = SG_FALSE;
 static SgObject DOTDOT_PATH = SG_FALSE;
 static SgObject FULL_CHARSET = SG_FALSE;
 
+#define STAR       SG_MAKE_INT(10) /* SG_INTERN("*") */
+#define STAR_SLASH SG_MAKE_INT(11) 
+
 /*
   converts given path template to pattern
   e.g.)
@@ -276,7 +279,7 @@ static SgObject convert_star(SgObject p)
   SgObject h = SG_NIL, t = SG_NIL;
   int has_star = FALSE;
   SG_FOR_EACH(p, p) {
-    if (SG_EQ(SG_CAR(p), SG_INTERN("*"))) {
+    if (SG_EQ(SG_CAR(p), STAR)) {
       has_star = TRUE;
       break;
     }
@@ -295,7 +298,7 @@ static SgObject convert_star(SgObject p)
 	Sg_PutsUnsafe(&out, SG_STRING(SG_CAR(p)));
       } else if (SG_CHAR_SET_P(SG_CAR(p))) {
 	Sg_PutsUnsafe(&out, Sg_CharSetToRegexString(SG_CAR(p), FALSE));
-      } else if (SG_EQ(SG_CAR(p), SG_INTERN("*"))) {
+      } else if (SG_EQ(SG_CAR(p), STAR)) {
 	Sg_PutzUnsafe(&out, ".*");
       } else {
 	Sg_Error(UC("[Internal] Unknown pattern '%S'"), SG_CAR(p));
@@ -311,8 +314,8 @@ static SgObject convert_star(SgObject p)
   return h;
 }
 
-static SgObject ANY = SG_MAKE_INT(1);
-static SgObject DIR = SG_MAKE_INT(2);
+#define ANY SG_MAKE_INT(1)
+#define DIR SG_MAKE_INT(2)
 
 static SgObject glob_make_pattern(SgString *path, int flags)
 {
@@ -368,12 +371,12 @@ static SgObject glob_make_pattern(SgString *path, int flags)
 	} while (SG_STRING_VALUE_AT(path,   i) == '*' &&
 		 SG_STRING_VALUE_AT(path, i+1) == '*' &&
 		 SG_STRING_VALUE_AT(path, i+2) == '/');
-	SG_APPEND1(h1, t1, SG_INTERN("*/"));
+	SG_APPEND1(h1, t1, STAR_SLASH);
 	SG_APPEND1(h, t, h1);
 	h1 = t1 = SG_NIL;		/* reset it */
 	start = i;
       } else {
-	SG_APPEND1(h1, t1, SG_INTERN("*"));
+	SG_APPEND1(h1, t1, STAR);
 	while (SG_STRING_VALUE_AT(path, i) == '*') i++;
       }
       break;
@@ -480,7 +483,7 @@ static SgObject glob_match(SgString *path,
 
   /* the current rule */
   SG_FOR_EACH(pat, pattern) {
-    if (SG_EQ(SG_CAAR(pat), SG_INTERN("*/"))) {
+    if (SG_EQ(SG_CAAR(pat), STAR_SLASH)) {
       recursive = TRUE;
       continue;
     }
@@ -546,7 +549,7 @@ static SgObject glob_match(SgString *path,
       }
       if (recursive && new_isdir == YES) {
 	/* ok, we need to put recursive mark here as well */
-	next = Sg_Cons(SG_LIST1(SG_INTERN("*/")), pat);
+	next = Sg_Cons(SG_LIST1(STAR_SLASH), pat);
 	SG_APPEND(h, t, glob_match(buf, TRUE, YES, new_isdir, next, flags));
       }
     }
