@@ -31,6 +31,10 @@
 #define SAGITTARIUS_SYSTEM_H_
 
 #include "sagittariusdefs.h"
+#ifdef _WIN32
+# include <windows.h>
+#endif
+
 #include <time.h>
 
 /* moved from ext/time */
@@ -113,6 +117,10 @@ SG_EXTERN uintptr_t Sg_PidToSysProcess(uintptr_t pid);
          available. if not, it always return 1.
  */
 SG_EXTERN int       Sg_CPUCount();
+
+#ifdef _WIN32
+SG_EXTERN void      Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep);
+#endif
 
 SG_CDECL_END
 

@@ -595,6 +595,204 @@ int Sg_CPUCount()
   return cpu_count;
 }
 
+/* for stack trace */
+#include <dbghelp.h>
+/* we want to track stack trace as well */
+#define MAX_STACK_SIZE 32
+
+typedef BOOL (WINAPI *ProcStackWalk64)(DWORD,
+				       HANDLE,
+				       HANDLE,
+				       LPSTACKFRAME64,
+				       PVOID,
+				       PREAD_PROCESS_MEMORY_ROUTINE64,
+				       PFUNCTION_TABLE_ACCESS_ROUTINE64,
+				       PGET_MODULE_BASE_ROUTINE64,
+				       PTRANSLATE_ADDRESS_ROUTINE64);
+typedef PVOID (WINAPI *ProcSymFunctionTableAccess64)(HANDLE, DWORD64);
+typedef DWORD64 (WINAPI *ProcSymGetModuleBase64)(HANDLE, DWORD64);
+typedef BOOL (WINAPI *ProcSymGetLineFromAddrW64)(HANDLE,
+						 DWORD64,
+						 PDWORD,
+						 PIMAGEHLP_LINEW64);
+typedef BOOL (WINAPI *ProcSymInitialize)(HANDLE, PCTSTR, BOOL);
+typedef BOOL (WINAPI *ProcSymFromAddr)(HANDLE, DWORD64, 
+				       PDWORD64, PSYMBOL_INFOW);
+typedef BOOL (WINAPI *ProcSymGetSearchPathW)(HANDLE, PWSTR, DWORD);
+typedef BOOL (WINAPI *ProcSymSetSearchPathW)(HANDLE, PCWSTR);
+
+static ProcStackWalk64 stackWalk64 = NULL;
+static ProcSymFunctionTableAccess64 symFunctionTableAccess64 = NULL;
+static ProcSymGetModuleBase64 symGetModuleBase64 = NULL;
+static ProcSymGetLineFromAddrW64 symGetLineFromAddrW64 = NULL;
+static ProcSymInitialize symInitialize = NULL;
+static ProcSymFromAddr symFromAddrW = NULL;
+static ProcSymGetSearchPathW symGetSearchPathW = NULL;
+static ProcSymSetSearchPathW symSetSearchPathW = NULL;
+
+static int init_func()
+{
+  HANDLE dbghelp = LoadLibraryA("dbghelp");
+  if (dbghelp) {
+    stackWalk64 = (ProcStackWalk64)GetProcAddress(dbghelp, "StackWalk64");
+    symFunctionTableAccess64 = 
+      (ProcSymFunctionTableAccess64)GetProcAddress(dbghelp, 
+						   "SymFunctionTableAccess64");
+    symGetModuleBase64 
+      = (ProcSymGetModuleBase64)GetProcAddress(dbghelp, "SymGetModuleBase64");
+    symGetLineFromAddrW64 
+      = (ProcSymGetLineFromAddrW64)GetProcAddress(dbghelp, 
+						  "SymGetLineFromAddrW64");
+    symInitialize 
+      = (ProcSymInitialize)GetProcAddress(dbghelp, "SymInitialize");
+    symFromAddrW
+      = (ProcSymFromAddr)GetProcAddress(dbghelp, "SymFromAddrW");
+    symGetSearchPathW
+      = (ProcSymGetSearchPathW)GetProcAddress(dbghelp, "SymGetSearchPathW");
+    symSetSearchPathW
+      = (ProcSymSetSearchPathW)GetProcAddress(dbghelp, "SymSetSearchPathW");
+
+    return stackWalk64 && symFunctionTableAccess64 && symGetModuleBase64 &&
+      symGetLineFromAddrW64 && symInitialize && symFromAddrW &&
+      symGetSearchPathW && symSetSearchPathW;
+  }
+  return FALSE;
+}
+
+static int fill_trace(EXCEPTION_POINTERS *ep, void **trace)
+{
+  CONTEXT cr = *ep->ContextRecord;
+  STACKFRAME64 stack_frame;
+  HANDLE cp, ct;
+  int count = 0, i, machine_type;
+
+  cp = GetCurrentProcess();
+  ct = GetCurrentThread();
+
+#if defined(_WIN64)
+  machine_type = IMAGE_FILE_MACHINE_AMD64;
+  memset(&stack_frame, 0, sizeof(stack_frame));
+  stack_frame.AddrPC.Offset = cr.Rip;
+  stack_frame.AddrFrame.Offset = cr.Rbp;
+  stack_frame.AddrStack.Offset = cr.Rsp;
+#else
+  machine_type = IMAGE_FILE_MACHINE_I386;
+  memset(&stack_frame, 0, sizeof(stack_frame));
+  stack_frame.AddrPC.Offset = cr.Eip;
+  stack_frame.AddrFrame.Offset = cr.Ebp;
+  stack_frame.AddrStack.Offset = cr.Esp;
+#endif
+  stack_frame.AddrPC.Mode = AddrModeFlat;
+  stack_frame.AddrFrame.Mode = AddrModeFlat;
+  stack_frame.AddrStack.Mode = AddrModeFlat;
+
+  while (stackWalk64(machine_type, cp, ct, &stack_frame, &cr,
+		     NULL,
+		     symFunctionTableAccess64,
+		     symGetModuleBase64,
+		     NULL) &&
+	 count < MAX_STACK_SIZE) {
+    trace[count++] = (void*)stack_frame.AddrPC.Offset;
+  }
+  /* put null */
+  for (i = count; i < MAX_STACK_SIZE; i++) trace[i] = NULL;
+  return count;
+}
+
+static void print(FILE *out, int index, void *addr,
+		  SYMBOL_INFOW *info, IMAGEHLP_LINEW64 *line)
+{
+  fprintf(out, "[%d] %p:", index, addr);
+  if (info) {
+    fprintf(out, " %S", info->Name);
+  } else {
+    fprintf(out, " unknown");
+  }
+  if (line) {
+    fprintf(out, "\n\t%S:%d", line->FileName, line->LineNumber);
+  }
+  fprintf(out, "\n");
+}
+
+#define MAX_SYMBOL_LENNGTH 256
+#define MALLOC_SIZE (sizeof(SYMBOL_INFOW)+MAX_SYMBOL_LENNGTH*sizeof(wchar_t))
+
+static int path_remove_file_spec(wchar_t *path)
+{
+  size_t size = wcslen(path), i;
+  
+  for (i = size-1; i != 0; i--) {
+    if (path[i] == '\\') goto ok;
+  }
+  return FALSE;
+ ok:
+  path[i+1] = L'\0';
+  return TRUE;
+}
+
+static void dump_trace(const char *file, void **trace, int count)
+{
+  HANDLE proc = GetCurrentProcess();
+  int initP = symInitialize(proc, NULL, TRUE);
+  int i;
+  FILE *out;
+  PSYMBOL_INFOW info;
+  wchar_t searchPath[1024] = {0};
+
+  if (symGetSearchPathW(proc, searchPath, 1024)) {
+    wchar_t *tmp;
+    int count;
+    for (count = 0, tmp = searchPath; *tmp; tmp++, count++);
+    *tmp++ = L';';
+    GetModuleFileNameW(NULL, tmp, 1024-count-1);
+    path_remove_file_spec(tmp);
+    symSetSearchPathW(proc, searchPath);
+  }
+
+  info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
+  info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
+  info->SizeOfStruct = sizeof(SYMBOL_INFO);
+  fopen_s(&out, file, "a+");
+
+  fprintf(stderr, "Backtrace: [%d]\n", count);
+  fprintf(out, "Backtrace: [%d]\n", count);
+  fflush(out);
+  for (i = 0; i < count; i++) {
+    DWORD64 displacement = 0;
+    if (initP) {
+      if (symFromAddrW(proc, (DWORD64)trace[i], &displacement, info)) {
+	IMAGEHLP_LINEW64 line;
+	line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+	if (symGetLineFromAddrW64(proc, (DWORD64)trace[i],
+				  (PDWORD)&displacement, &line)) {
+	  print(stderr, i, trace[i], info, &line);
+	  print(out, i, trace[i], info, &line);
+	}
+      } else {
+	print(stderr, i, trace[i], info, NULL);
+	print(out, i, trace[i], info, NULL);
+      }
+    } else {
+      print(stderr, i, trace[i], NULL, NULL);
+      print(out, i, trace[i], NULL, NULL);
+    }
+  }
+  fclose(out);
+  free(info);
+}
+
+
+void Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep)
+{
+  if (init_func()) {
+    void *trace[MAX_STACK_SIZE];
+    int count = fill_trace(ep, trace);
+    dump_trace("dump.txt", trace, count);
+  } else {
+    fputs("Failed to dump stack trace.\n", stderr);
+  }
+}
+
 void Sg__InitSystem()
 {
   SgLibrary *lib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
