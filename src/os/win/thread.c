@@ -88,26 +88,36 @@ typedef struct ThreadParams
   void *arg;
 } ThreadParams;
 
-static unsigned int __stdcall win32_thread_entry(void *params)
+static unsigned int __stdcall win32_thread_entry_innter(void *params)
 {
-  ThreadParams *threadParams = (ThreadParams *)params;
+  volatile ThreadParams *threadParams = (ThreadParams *)params;
   SgThreadEntryFunc *start;
   void *arg;
+  SgInternalThread *me;
   unsigned int status;
-  SgInternalThread *me = threadParams->me;
-#ifdef USE_BOEHM_GC
-  struct GC_stack_base sb;
-  if (GC_get_stack_base(&sb) == GC_SUCCESS) {
-    me->stackBase = (uintptr_t)sb.mem_base;
-  }
-#endif
   
+  me = threadParams->me;
   start = threadParams->start;
   arg = threadParams->arg;
   /* temporary storage is no longer needed. */
-  free(threadParams);
-  __try {
+  free(params);
+  me->stackBase = (uintptr_t)&threadParams;
+  if (setjmp(me->jbuf) == 0) {
     status = (*start)(arg);
+  } else {
+    /* terminated, should we raise an error? */
+    status = FALSE;
+  }
+  return status;
+}
+
+static unsigned int __stdcall win32_thread_entry(void *params)
+{
+  unsigned int status;
+  SgInternalThread *me = ((ThreadParams *)params)->me;
+  /* most likely we don't need __try anymore */
+  __try {
+    status = win32_thread_entry_innter(params);
   } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
     status = FALSE;
   }
@@ -333,6 +343,7 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
 {
+  thread->thread = NULL;	/* make it a bit safer */
   thread->returnValue = ret;
   _endthreadex((unsigned int)ret);
 }
@@ -353,19 +364,19 @@ void Sg_ExitThread(SgInternalThread *thread, void *ret)
 #define WIN_STCKPTR(ctx)  ((ctx).Rsp)
 #endif
 
-#if defined(_MIPS_) || defined(_ALPHA_) || defined(_PPC_)
-#error _MIPS_, _ALPHA_ and _PPC_ are not in WinNT.h,  please add it
-#endif
-
 #if !defined(WIN_PROGCTR)
 #error Module contains CPU-specific code; modify and recompile.
 #endif
 
-static void cancel_self(DWORD unused)
+static void cancel_self(uintptr_t unused)
 {
-  ULONG param[1];
-  param[0] = (ULONG)1;
-  RaiseException(TERMINATION_CODE, 0, 1, (CONST ULONG_PTR *)param);
+  /* jump if the thread is still there.
+     means _endthreadex is not called yet.
+  */
+  SgVM *vm = Sg_VM();
+  if (vm && vm->thread.thread) {
+    longjmp(vm->thread.jbuf, 1);
+  }
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
@@ -385,7 +396,7 @@ void Sg_TerminateThread(SgInternalThread *thread)
   SuspendThread(threadH);
   if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
     CONTEXT context;
-    context.ContextFlags = CONTEXT_CONTROL;
+    context.ContextFlags = CONTEXT_FULL;
     if (GetThreadContext(threadH, &context)) {
       uintptr_t csp = WIN_STCKPTR(context);
       uintptr_t tsp = thread->stackBase;
