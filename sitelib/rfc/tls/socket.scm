@@ -36,6 +36,7 @@
 	    tls-socket?
 	    tls-socket-send
 	    tls-socket-recv
+	    tls-socket-recv!
 	    tls-socket-shutdown
 	    tls-socket-close
 	    tls-socket-closed?
@@ -59,6 +60,7 @@
 	    socket-shutdown
 	    socket-send
 	    socket-recv
+	    socket-recv!
 	    socket-accept
 	    call-with-socket
 	    socket-peer
@@ -1587,24 +1589,30 @@
   ;; this is only used from out side of the world, means the received message
   ;; is always application data.
   (define (tls-socket-recv socket size :optional (flags 0))
+    (let* ((bv (make-bytevector size))
+	   (r (tls-socket-recv! socket bv 0 size flags)))
+      (cond ((= r size) bv)
+	    ((< r 0) #f) ;; non blocking?
+	    (else (bytevector-copy bv 0 r)))))
+
+  (define (tls-socket-recv! socket bv start len :optional (flags 0))
     (with-exception-handler
      (lambda (e) (handle-error socket e))
-     (lambda () (%tls-socket-recv socket size flags))))
+     (lambda () (%tls-socket-recv socket bv start len flags))))
 
-  (define (%tls-socket-recv socket size flags)
+  (define (%tls-socket-recv socket bv start len flags)
     (or (and-let* ((in (~ socket 'buffer))
-		   (buf (get-bytevector-n in size))
-		   ( (not (eof-object? buf)) ))
+		   (r  (get-bytevector-n! in bv start len))
+		   ( (not (eof-object? r)) ))
 	  ;; if the actual read size was equal or less than the requires size
 	  ;; the buffer is now empty so, we need to set the slot #f
-	  (when (< (bytevector-length buf) size)
-	    (set! (~ socket 'buffer) #f))
-	  buf)
+	  (when (< r len) (set! (~ socket 'buffer) #f))
+	  r)
 	(and-let* ((record (read-record socket flags))
 		   ( (bytevector? record) )
 		   (in (open-bytevector-input-port record)))
 	  (set! (~ socket 'buffer) in)
-	  (get-bytevector-n in size))
+	  (get-bytevector-n! in bv start len))
 	;; TODO check if the raw socket is nonblocking mode or not.
 	;; (tls-error 'tls-socket-recv "invalid socket state" *internal-error*)
 	))
@@ -1675,6 +1683,9 @@
     (tls-socket-send o data flags))
   (define-method socket-recv ((o <tls-socket>) size :optional (flags 0))
     (tls-socket-recv o size flags))
+  (define-method socket-recv! ((o <tls-socket>) bv start len
+			       :optional (flags 0))
+    (tls-socket-recv! o bv start len flags))
   (define-method socket-accept ((o <tls-socket>) . opt)
     (apply tls-socket-accept o opt))
   ;; To avoid no-next-method error

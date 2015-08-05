@@ -61,6 +61,15 @@
 	      (string->utf8 "hello\r\n")
 	      (tls-socket-recv client-socket (+ (string-length "hello") 2) 0))
 
+  (test-equal "raw socket-send (2)"
+	      (+ (string-length "hello") 2) ;; for \r\n
+	      (tls-socket-send client-socket (string->utf8 "hello\r\n") 0))
+  (test-equal "raw socket-recv!"
+	      (+ (string-length "hello") 2)
+	      (let ((bv (make-bytevector (+ (string-length "hello") 2))))
+		(tls-socket-recv! client-socket bv 0 
+				  (+ (string-length "hello") 2) 0)))
+
   ;; make port
   (let ((port (tls-socket-port client-socket)))
     (test-assert "port?" (port? port))

@@ -91,6 +91,15 @@
   (test-equal "raw socket-recv"
 	      (string->utf8 "hello\r\n")
 	      (socket-recv client-socket (+ (string-length "hello") 2) 0))
+  
+  (test-equal "raw socket-send (2)"
+	      (+ (string-length "hello") 2) ;; for \r\n
+	      (socket-send client-socket (string->utf8 "hello\r\n") 0))
+  (test-equal "raw socket-recv!"
+	      (+ (string-length "hello") 2)
+	      (let ((bv (make-bytevector (+ (string-length "hello") 2))))
+		(socket-recv! client-socket bv 0 
+			      (+ (string-length "hello") 2) 0)))
 
   ;; make port
   (let ((port (socket-port client-socket)))
@@ -181,6 +190,8 @@
   (let ((s (make-socket AF_INET SOCK_DGRAM)))
     (test-equal "seocket-sendto" 4 
 		(socket-sendto s #vu8(1 2 3 4) (addrinfo-sockaddr info)))))
+
+;; TODO test for socket-recvfrom and socket-recvfrom!
 
 ;; srfi 106
 (import (srfi :106))
