@@ -121,7 +121,6 @@ static unsigned int __stdcall win32_thread_entry(void *params)
     status = win32_thread_entry_innter(params);
   } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
     status = FALSE;
-       GC_unregister_my_thread(), so don't do it. */
   }
   /* clear the stackBase, from now on, thread can't be terminated */
   me->stackBase = 0;
