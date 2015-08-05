@@ -83,26 +83,46 @@ static DWORD exception_filter(DWORD code, EXCEPTION_POINTERS *ep)
 
 typedef struct ThreadParams
 {
+  SgInternalThread  *me;
   SgThreadEntryFunc *start;
   void *arg;
 } ThreadParams;
 
-static unsigned int __stdcall win32_thread_entry(void *params)
+static unsigned int __stdcall win32_thread_entry_innter(void *params)
 {
-  ThreadParams *threadParams = (ThreadParams *)params;
+  volatile ThreadParams *threadParams = (ThreadParams *)params;
   SgThreadEntryFunc *start;
   void *arg;
+  SgInternalThread *me;
   unsigned int status;
   
+  me = threadParams->me;
   start = threadParams->start;
   arg = threadParams->arg;
   /* temporary storage is no longer needed. */
-  free(threadParams);
-  __try {
+  free(params);
+  me->stackBase = (uintptr_t)&threadParams;
+  if (setjmp(me->jbuf) == 0) {
     status = (*start)(arg);
-  } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
-    return FALSE;
+  } else {
+    /* terminated, should we raise an error? */
+    status = FALSE;
   }
+  return status;
+}
+
+static unsigned int __stdcall win32_thread_entry(void *params)
+{
+  unsigned int status;
+  SgInternalThread *me = ((ThreadParams *)params)->me;
+  /* most likely we don't need __try anymore */
+  __try {
+    status = win32_thread_entry_innter(params);
+  } __except (exception_filter(GetExceptionCode(), GetExceptionInformation())) {
+    status = FALSE;
+  }
+  /* clear the stackBase, from now on, thread can't be terminated */
+  me->stackBase = 0;
   return status;
 }
 
@@ -111,6 +131,7 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
 {
   /* this heap must be freed in win32_thread_entry */
   ThreadParams *params = (ThreadParams*)malloc(sizeof(ThreadParams));
+  params->me = thread;
   params->start = entry;
   params->arg = param;
   thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
@@ -322,43 +343,40 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
 {
+  thread->thread = NULL;	/* make it a bit safer */
   thread->returnValue = ret;
   _endthreadex((unsigned int)ret);
 }
 
 #if defined(_M_IX86) || defined(_X86_)
-#define PTW32_PROGCTR(Context)  ((Context).Eip)
+#define WIN_PROGCTR(ctx)  ((ctx).Eip)
+#define WIN_STCKPTR(ctx)  ((ctx).Esp)
 #endif
 
 #if defined (_M_IA64)
-#define PTW32_PROGCTR(Context)  ((Context).StIIP)
-#endif
-
-#if defined(_MIPS_)
-#define PTW32_PROGCTR(Context)  ((Context).Fir)
-#endif
-
-#if defined(_ALPHA_)
-#define PTW32_PROGCTR(Context)  ((Context).Fir)
-#endif
-
-#if defined(_PPC_)
-#define PTW32_PROGCTR(Context)  ((Context).Iar)
+#define WIN_PROGCTR(ctx)  ((ctx).StIIP)
+/* probably we don't need it */
+#define WIN_STCKPTR(ctx)  -1
 #endif
 
 #if defined(_AMD64_)
-#define PTW32_PROGCTR(Context)  ((Context).Rip)
+#define WIN_PROGCTR(ctx)  ((ctx).Rip)
+#define WIN_STCKPTR(ctx)  ((ctx).Rsp)
 #endif
 
-#if !defined(PTW32_PROGCTR)
+#if !defined(WIN_PROGCTR)
 #error Module contains CPU-specific code; modify and recompile.
 #endif
 
-static void cancel_self(DWORD unused)
+static void cancel_self(uintptr_t unused)
 {
-  ULONG param[1];
-  param[0] = (ULONG)1;
-  RaiseException(TERMINATION_CODE, 0, 1, (CONST ULONG_PTR *)param);
+  /* jump if the thread is still there.
+     means _endthreadex is not called yet.
+  */
+  SgVM *vm = Sg_VM();
+  if (vm && vm->thread.thread) {
+    longjmp(vm->thread.jbuf, 1);
+  }
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
@@ -378,12 +396,22 @@ void Sg_TerminateThread(SgInternalThread *thread)
   SuspendThread(threadH);
   if (WaitForSingleObject(threadH, 0) == WAIT_TIMEOUT) {
     CONTEXT context;
-    context.ContextFlags = CONTEXT_CONTROL;
-    GetThreadContext(threadH, &context);
-    PTW32_PROGCTR(context) = (DWORD_PTR)cancel_self;
-    SetThreadContext(threadH, &context);
-    ResumeThread(threadH);
+    context.ContextFlags = CONTEXT_FULL;
+    if (GetThreadContext(threadH, &context)) {
+      uintptr_t csp = WIN_STCKPTR(context);
+      uintptr_t tsp = thread->stackBase;
+      /* stack grow downwards, thus if context's sp is lower than
+	 thread's sp, then it's still in the thread function.
+	 NB: we use less than, so that it's indeed in Scheme or 
+	     at least our thread function.
+      */
+      if (csp < tsp) {
+	WIN_PROGCTR(context) = (DWORD_PTR)cancel_self;
+	SetThreadContext(threadH, &context);
+      }
+    }
   }
+  ResumeThread(threadH);
   thread->returnValue = SG_UNDEF;
   
 }

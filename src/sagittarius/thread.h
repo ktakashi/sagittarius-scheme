@@ -36,6 +36,11 @@
 # ifdef _MSC_VER
 #  pragma warning(disable : 4127)
 # endif
+# ifdef HAVE_SETJMP_H
+#  include <setjmp.h>
+# else
+#  error TODO implement own set jmp
+# endif
 #endif
 
 #include <time.h>
@@ -51,6 +56,8 @@ typedef struct SgInternalThreadRec
   HANDLE  thread;
   void   *returnValue;
   HANDLE  event;
+  uintptr_t stackBase;
+  jmp_buf jbuf;
 } SgInternalThread;
 typedef unsigned int SgThreadEntryFunc(void *);
 #define SG_INTERNAL_THREAD_INIT(thr)				\
