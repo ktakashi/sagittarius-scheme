@@ -755,6 +755,7 @@ static SgFdSet* copy_fd_set(SgFdSet *src)
   SG_SET_CLASS(z, SG_CLASS_FD_SET);
   z->fdset = src->fdset;
   z->maxfd = src->maxfd;
+  z->sockets = Sg_CopyList(src->sockets);
   return z;
 }
 

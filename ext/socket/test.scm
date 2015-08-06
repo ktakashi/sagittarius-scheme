@@ -82,6 +82,12 @@
       (test-assert "socket-select!" (fdset? r))
       (test-assert "socket-select!" (not w))
       (test-assert "socket-select!" (not e)))
+
+    (let-values (((n r w e) (socket-select fdset #f #f #f)))
+      (test-equal "socket-select" 1 n)
+      (test-assert "socket-select" (fdset? r))
+      (test-assert "socket-select" (not w))
+      (test-assert "socket-select" (not e)))
     
     (test-assert "fdset-ref  (3)" (fdset-ref fdset client-socket))
     (let ((l (list client-socket)))
