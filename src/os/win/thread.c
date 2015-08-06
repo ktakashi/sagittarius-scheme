@@ -375,9 +375,7 @@ static void cancel_self(uintptr_t unused)
      means _endthreadex is not called yet.
   */
   SgVM *vm = Sg_VM();
-  if (vm && vm->thread.thread) {
-    longjmp(vm->thread.jbuf, 1);
-  }
+  longjmp(vm->thread.jbuf, 1);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
@@ -393,11 +391,11 @@ void Sg_TerminateThread(SgInternalThread *thread)
      */
     return;
   }
-
+  if (!threadH) return;
   SuspendThread(threadH);
   if (WaitForSingleObject(threadH, 0) != WAIT_OBJECT_0) {
     CONTEXT context;
-    context.ContextFlags = CONTEXT_FULL;
+    context.ContextFlags = CONTEXT_CONTROL;
     if (GetThreadContext(threadH, &context)) {
       uintptr_t csp = WIN_STCKPTR(context);
       uintptr_t tsp = thread->stackBase;
@@ -406,7 +404,8 @@ void Sg_TerminateThread(SgInternalThread *thread)
 	 NB: we use less than, so that it's indeed in Scheme or 
 	     at least our thread function.
       */
-      if (csp < tsp) {
+      /* if the thread handle is gone, means it's exit */
+      if (csp < tsp && thread->thread) {
 	WIN_PROGCTR(context) = (DWORD_PTR)cancel_self;
 	SetThreadContext(threadH, &context);
       }
