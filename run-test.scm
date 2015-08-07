@@ -90,12 +90,13 @@
 	   (call-test-case (load "./test/r7rs-tests/r7rs-tests.scm")
 			   #/failure/)))
 
-    (define (sitelib-test :optional (multithread? #t))
+    (define (sitelib-test :key (multithread? #t) (pattern ".scm$"))
       ;; for sitelib
       (print "testing sitelib")
       (flush-output-port (current-output-port))
       (load "./test/tests.scm")
-      (call-test-case (run-sitelib-tests multithread?)
+      (call-test-case (run-sitelib-tests :multithread? multithread? 
+					 :pattern pattern)
 		      #/FAIL/))
     (define (ext-test)
       ;; for extensions
@@ -110,18 +111,23 @@
 		       (r7rs-test)
 		       (sitelib-test)
 		       (ext-test))
-		 (map (lambda (test)
-			(case (string->symbol test)
-			  ((r6rs) (r6rs-test))
-			  ((r7rs) (r7rs-test))
-			  ((sitelib sitelib-m) (sitelib-test))
-			  ((sitelib-s) (sitelib-test #f))
-			  ((ext) (ext-test))
-			  (else
-			   (error 'run-test
-				  "unknown test" test))))
-		      (reverse! test))
-		 )))
+		 (let loop ((test (reverse! test)) (r '()))
+		   (if (null? test)
+		       r
+		       (case (string->symbol (car test))
+			 ((r6rs) (loop (cdr test) (cons (r6rs-test) r)))
+			 ((r7rs) (loop (cdr test) (cons (r7rs-test) r)))
+			 ((sitelib sitelib-m) 
+			  (loop (cdr (test)) (cons (sitelib-test) r)))
+			 ((sitelib-s) 
+			  (loop (cdr (test))
+				(cons (sitelib-test :multithread? #f) r)))
+			 ((sitelib-f)
+			  (loop (cddr test)
+				(cons (sitelib-test :pattern (cadr test)) r)))
+			 ((ext) (loop (cdr test) (cons (ext-test) r)))
+			 (else
+			  (error 'run-test "unknown test" test))))))))
       (if (for-all (lambda (b) b) r)
 	  0
 	  1))))

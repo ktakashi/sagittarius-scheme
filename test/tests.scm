@@ -62,7 +62,8 @@
     (hashtable-clear! table)))
 
 
-(define (run-sitelib-tests :optional (multithread? #t))
+(define (run-sitelib-tests :key (multithread? #t)
+			   (pattern ".scm$"))
   ;; FIXME this is also in ext/all-tests.scm
   (define (test-on-test-end-detail runner)
     (define (%test-write-result1 pair port)
@@ -154,7 +155,7 @@
 	     (print-results futures)
 	     (loop files '())))))
 
-  (let ((files (find-files (or config path) :pattern ".scm$")))
+  (let ((files (find-files (or config path) :pattern pattern)))
     (if (and multithread? 
 	     (or (> (cpu-count) 1)
 		 (begin 
