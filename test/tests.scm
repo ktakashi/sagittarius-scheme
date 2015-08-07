@@ -61,41 +61,6 @@
   (let ((table (library-table library)))
     (hashtable-clear! table)))
 
-(define (run-tests files)
-;; might use this in future
-;; well not a big deal to rewrite but keep it for my sake.
-;;   (define storage '())
-;;   (define (push-to-storage thread file)
-;;     (cond ((assq thread storage) =>
-;; 	   (lambda (slot)
-;; 	     (set-cdr! slot (cons file (cdr slot)))))
-;; 	  (else 
-;; 	   (set! storage (acons thread (list file) storage)))))
-  (define (print-results futures)
-    (for-each (lambda (f)
-		(guard (e ((uncaught-exception? e)
-			   (print (describe-condition 
-				   (uncaught-exception-reason e))))
-			  (else (print e)))
-		  (print (future-get f))))
-	      (reverse! futures)))
-  (let loop ((files files) (futures '()))
-    (cond ((null? files) (print-results futures))
-	  ((executor-available? tests-executor)
-	   (let ((file (car files)))
-	     (loop (cdr files) 
-		   (cons (make-promise
-			  (lambda ()
-			    (with-output-to-string 
-			      (lambda ()
-				;; (push-to-storage (current-thread) file)
-				(clear-bindings (current-library))
-				(load file)
-				(test-runner-reset (test-runner-get))))))
-			 futures))))
-	  (else
-	   (print-results futures)
-	   (loop files '())))))
 
 (define (run-sitelib-tests :optional (multithread? #t))
   ;; FIXME this is also in ext/all-tests.scm
@@ -144,20 +109,63 @@
     (let ((runner (test-runner-simple)))
       (test-runner-on-test-end! runner test-on-test-end-detail)
       runner))
+  (define-syntax with-detailed-runner
+    (syntax-rules ()
+      ((_ exprs ...)
+       (parameterize ((test-runner-factory test-runner-detail))
+	 (parameterize ((test-runner-current (test-runner-create)))
+	   exprs ...)))))
 
-  (parameterize ((test-runner-factory test-runner-detail))
-    (parameterize ((test-runner-current (test-runner-create)))
-      (let ((files (find-files (or config path) :pattern ".scm$")))
-	(if (and multithread? 
-		 (or (> (cpu-count) 1)
-		     (begin 
-		       (print "Only one CPU, disabling multithreading tests")
-		       #f)))
-	    (run-tests files)
-	    (let ((thunks (map (^f
-				(^()
-				  (load f (environment '(rnrs) '(sagittarius)))
-				  (test-runner-reset (test-runner-get))))
-			       files)))
-	      (for-each (lambda (file thunk) (thunk) (print))
-			files thunks)))))))
+
+  (define (run-tests files)
+    ;; might use this in future
+    ;; well not a big deal to rewrite but keep it for my sake.
+    ;;   (define storage '())
+    ;;   (define (push-to-storage thread file)
+    ;;     (cond ((assq thread storage) =>
+    ;; 	   (lambda (slot)
+    ;; 	     (set-cdr! slot (cons file (cdr slot)))))
+    ;; 	  (else 
+    ;; 	   (set! storage (acons thread (list file) storage)))))
+    (define (print-results futures)
+      (for-each (lambda (f)
+		  (guard (e ((uncaught-exception? e)
+			     (print (describe-condition 
+				     (uncaught-exception-reason e))))
+			    (else (print e)))
+		    (print (future-get f))))
+		(reverse! futures)))
+    (let loop ((files files) (futures '()))
+      (cond ((null? files) (print-results futures))
+	    ((executor-available? tests-executor)
+	     (let ((file (car files)))
+	       (loop (cdr files) 
+		     (cons (make-promise
+			    (lambda ()
+			      (with-detailed-runner
+			       (with-output-to-string 
+				 (lambda ()
+				   ;; (push-to-storage (current-thread) file)
+				   (clear-bindings (current-library))
+				   (load file)
+				   (test-runner-reset (test-runner-get)))))))
+			   futures))))
+	    (else
+	     (print-results futures)
+	     (loop files '())))))
+
+  (let ((files (find-files (or config path) :pattern ".scm$")))
+    (if (and multithread? 
+	     (or (> (cpu-count) 1)
+		 (begin 
+		   (print "Only one CPU, disabling multithreading tests")
+		   #f)))
+	(run-tests files)
+	(with-detailed-runner
+	 (let ((thunks (map (^f
+			     (^()
+			       (load f (environment '(rnrs) '(sagittarius)))
+			       (test-runner-reset (test-runner-get))))
+			    files)))
+	   (for-each (lambda (file thunk) (thunk) (print))
+		     files thunks))))))
