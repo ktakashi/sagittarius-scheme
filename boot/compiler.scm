@@ -1414,7 +1414,9 @@
 	   (dummy (gensym)))
        (library-defined-add! library vname)
        ($define oform flags
-		(make-identifier (unwrap-syntax name) '() library)
+		(if (identifier? name)
+		    name
+		    (make-identifier (unwrap-syntax name) '() library))
 		(if (null? expr)
 		    ($undef)
 		    (pass1 (caddr form) 
