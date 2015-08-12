@@ -215,7 +215,7 @@
 	(let ((str (symbol->string (syntax->datum name))))
 	  (string->symbol (string-append "http2-frame-" str))))
       (syntax-case x ()
-	((_ name code ?fields ...)
+	((k name code ?fields ...)
 	 (with-syntax ((const (datum->syntax #'k (->const #'name)))
 		       (type (datum->syntax #'k (->name #'name))))
 	   #'(begin

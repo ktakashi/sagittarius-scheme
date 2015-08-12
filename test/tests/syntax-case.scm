@@ -389,4 +389,27 @@
 ;; back to compatible for my convenience
 #!compatible
 
+;; this must be top level otherwise worked fine..
+(define-syntax define/datum->syntax
+  (lambda (x)
+    (define (concat n1 n2)
+      (string->symbol
+       (string-append (symbol->string (syntax->datum n1))
+              "-"
+              (symbol->string (syntax->datum n2)))))
+    (syntax-case x ()
+      ((k name1 name2 var)
+       (with-syntax ((name (datum->syntax #'k (concat #'name1 #'name2))))
+     #'(define name var))))))
+
+(define-syntax define/wrap
+  (syntax-rules ()
+    ((_ name1 name2 var)
+     (define/datum->syntax name1 name2 var))))
+
+(define/wrap n1 n2 'hoge)
+
+(test-error "datum->syntax refered incorrectly" undefined-violation?  n1-n2)
+
+
 (test-end)

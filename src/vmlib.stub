@@ -54,6 +54,11 @@
       (set! (SG_IDENTIFIER_ENVS new-id) (SG_IDENTIFIER_ENVS id))
       (result new-id)))
 
+  #|
+  TODO since we are renaming identifiers whose identify is not #f
+       means not a global identifier, we should be able to remove
+       the pending slot.
+  |#
   (define-c-proc make-pending-identifier (name envs maybe-library)
     (unless (SG_LIBRARYP maybe-library)
       (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
@@ -64,12 +69,17 @@
     (result (and (SG_IDENTIFIERP o) (SG_IDENTIFIER_PENDING o))))
 
   (define-c-proc rename-pending-identifier! (id::<identifier>)
-    (when (SG_IDENTIFIER_PENDING id)
+    (when (or (SG_IDENTIFIER_PENDING id)
+	      ;; if this is not global identifier, then we
+	      ;; can rename.
+	      ;; NB: this must be called only from compiler.
+	      (not (SG_FALSEP (SG_IDENTIFIER_IDENTITY id))))
       (set! (SG_IDENTIFIER_NAME id) 
 	    (Sg_Gensym (-> (SG_SYMBOL (SG_IDENTIFIER_NAME id)) name)))
       ;; Issue 86
-      ;; now pending identifiers hold macro environment but when it needs to
-      ;; be renamed, it must hold use environment as its context.
+      ;; now pending identifiers hold macro environment but when it
+      ;; needs to be renamed, it must hold use environment as its 
+      ;; context.
       (set! (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary)))
     (result id))
 

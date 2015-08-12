@@ -1408,14 +1408,13 @@
     ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform #f)
-     ;; this renames all the same identifier
-     (when (identifier? name) (rename-pending-identifier! name))
      (let ((vname (variable-name name))
 	   (dummy (gensym)))
        (library-defined-add! library vname)
        ($define oform flags
 		(if (identifier? name)
-		    name
+		    ;; this renames all the same identifier
+		    (rename-pending-identifier! name)
 		    (make-identifier (unwrap-syntax name) '() library))
 		(if (null? expr)
 		    ($undef)
