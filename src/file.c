@@ -115,18 +115,19 @@ SgObject Sg_FindFile(SgString *path, SgObject loadPaths,
    Windows drive letter related stuff
  */
 #define dirsep_p(x) ((x) == '/' || (x) == '\\')
-static const SgChar * next_dirsep(const SgChar *s, int *skipped)
+#define S SG_STRING_VALUE_AT
+
+static int next_dirsep(SgObject path, int skipped)
 {
-  while (*s && !dirsep_p(*s)) {
-    s++;
-    (*skipped)++;
+  while (skipped < SG_STRING_SIZE(path) && !dirsep_p(S(path, skipped))) {
+    skipped++;
   }
-  return s;
+  return skipped;
 }
 /* detect 'c:' or so */
-static inline int has_drive_letter(const SgChar *buf)
+static inline int has_drive_letter(SgObject buf)
 {
-  int c0 = buf[0], c1 = buf[1];
+  int c0 = S(buf,0), c1 = S(buf,1);
   if (c0 > 0x80) return FALSE;	/* out of ascii range */
   return isalpha(c0) && c1 == ':';
 }
@@ -134,27 +135,26 @@ static inline int has_drive_letter(const SgChar *buf)
 /*
   TODO Should we skip?
  */
-static const SgChar * skip_prefix(const SgChar *path, int *skipped)
+static int detect_prefix(SgObject path)
 {
-  if (dirsep_p(path[0]) || dirsep_p(path[1])) {
-    path += 2;
-    *skipped = 2;
-    while (dirsep_p(*path)) {
-      path++;
-      (*skipped)++;
+  /* network address or so e.g. \\foo\bar */
+  if (dirsep_p(S(path,0)) && dirsep_p(S(path,1))) {
+    int skipped = 2;
+    while (dirsep_p(S(path, skipped))) {
+      skipped++;
     }
-    if (*(path = next_dirsep(path, skipped)) && path[1] && !dirsep_p(path[1])) {
-      (*skipped)++;
-      path = next_dirsep(path + 1, skipped);
+    if ((skipped = next_dirsep(path, skipped)) < SG_STRING_SIZE(path) &&
+	skipped+1 < SG_STRING_SIZE(path) && !dirsep_p(S(path, skipped+1))) {
+      skipped = next_dirsep(path, skipped+1);
     }
-    return path;
+    return skipped;
   }
   if (has_drive_letter(path)) {
-    *skipped = 2;
-    return path + 2;
+    return 2;
   }
-  return path;
+  return 0;
 }
+#undef S
 #endif
 
 
@@ -577,19 +577,34 @@ SgObject Sg_Glob(SgString *path, int flags)
     path = SG_STRING(SG_CAR(paths));
 #if defined(_WIN32)
     /* should we? */
-    /* root = skip_prefix(root, &skiped); */
+    drive_off = detect_prefix(path);
 #endif
-    list = glob_make_pattern(path, flags);
     /* if the path is start with '/' then we need to keep it.
        otherwise we can assume it's current directory. 
        NB: all other informations are in the `list` (compiled rule)
     */
     if (SG_STRING_VALUE_AT(path, drive_off) == '/') {
       buf = Sg_Substring(path, 0, drive_off+1);
+#if defined(_WIN32)
+      /* a bit awkward to do it but need it */
+      if (drive_off) {
+	int i;
+	for (i = 0; i < drive_off+1; i++) {
+	  if (SG_STRING_VALUE_AT(buf, i) == '/') {
+	    SG_STRING_VALUE_AT(buf, i) = '\\';
+	  }
+	}
+      }
+#endif
     } else {
       buf = DOT_PATH;
     }
-    
+    /* strip drive or prefix */
+    if (drive_off) {
+      path = Sg_Substring(path, drive_off, SG_STRING_SIZE(path));
+    }
+    list = glob_make_pattern(path, flags);
+
     r = glob_match(buf, FALSE, UNKNOWN, UNKNOWN, list, flags);
     SG_APPEND(h, t, r);
   }
