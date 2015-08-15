@@ -123,7 +123,9 @@ if [ $# -ge 1 ] ; then
 	tz)      tzdata $1;;
 	unicode) unicode $1;;
 	precomp) precomp $1;;
-	clean)   stub "-c"; precomp "-c"; srfi "-c" ; tzdata "-c";;
+	clean)   
+	    stub "-c"; precomp "-c"; srfi "-c" ; 
+	    tzdata "-c"; unicode "-c";;
 	insn)    geninsn $1;;
 	*)       usage ;;
     esac
