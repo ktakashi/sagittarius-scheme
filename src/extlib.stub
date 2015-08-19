@@ -578,6 +578,20 @@
 	(wrong-type-of-argument-violation ',name
 					  "output port"
 					  ,p))))
+
+  (define-cise-macro (safe-oport-operation form env)
+    (ensure-stmt-ctx form env)
+    (let ((eenv (expr-env env))
+	  (p (cadr form))
+	  (call (caddr form)))
+      `("\ndo {"
+	"\n  SG_UNWIND_PROTECT {"
+	,(render-rec call env)
+	"\n  } SG_WHEN_ERROR {"
+	"\n    SG_PORT_UNLOCK_WRITE(" ,(render-rec p eenv) ");"
+	"\n    SG_NEXT_HANDLER;"
+	"\n  } SG_END_PROTECT;"
+	"\n} while (0);\n")))
   
   ;; moved from (binary io) so that we don't have to
   ;; allocate bytevectors
@@ -594,17 +608,23 @@
      `(begin
 	(check-binary-port ,name ,out)
 	(check-output-port ,name ,out)
-	(cond ((SG_EQ ,endian 'big)
-	       (let ((i::int ,(- size 1)))
-		 (for (() (>= i 0) (post-- i))
-		      (Sg_Putb ,out (logand (ashr ,v (* i 8)) #xFF)))))
-	      ((SG_EQ ,endian 'little)
-	       (dotimes (i ,size)
-		 (Sg_Putb ,out (logand ,v #xFF))
+	(SG_PORT_LOCK_WRITE ,out)
+	(safe-oport-operation
+	 ,out
+	 (cond ((SG_EQ ,endian 'big)
+		(let ((i::int ,(- size 1)))
+		  (for (() (>= i 0) (post-- i))
+		       (Sg_PutbUnsafe ,out (logand (ashr ,v (* i 8)) #xFF)))))
+	       ((SG_EQ ,endian 'little)
+		(dotimes (i ,size)
+		  (Sg_PutbUnsafe ,out (logand ,v #xFF))
 		 (set! ,v (ashr ,v 8))))
-	      (else
-	       (assertion-violation ',name "unsupported endianness" 
-				    ,endian))))))
+	       ((SG_EQ ,endian 'native)
+		(Sg_WritebUnsafe ,out (cast uint8_t* (& ,v)) 0 ,size))
+	       (else
+		(assertion-violation ',name "unsupported endianness" 
+				     ,endian))))
+	(SG_PORT_UNLOCK_WRITE ,out))))
 
   (define-c-proc put-u16 (out::<port> v::<fixnum> endian::<symbol>) ::<void>
     (unless (and (<= 0 v) (<= v #xFFFF))
@@ -633,33 +653,48 @@
 	     n))
       (put-un put-s32 out v 4 endian)))
   ;; TODO u64, s64, f32, f64, u* and s*
-  
+
+  (define-cise-macro (safe-rport-operation form env)
+    (ensure-stmt-ctx form env)
+    (let ((eenv (expr-env env))
+	  (p (cadr form))
+	  (call (caddr form)))
+      `("\ndo {"
+	"\n  SG_UNWIND_PROTECT {"
+	,(render-rec call env)
+	"\n  } SG_WHEN_ERROR {"
+	"\n    SG_PORT_UNLOCK_READ(" ,(render-rec p eenv) ");"
+	"\n    SG_NEXT_HANDLER;"
+	"\n  } SG_END_PROTECT;"
+	"\n} while (0);\n")))
   (define-cise-stmt get-un
     ((_ name in size endian type make)
      `(begin
 	(check-binary-port ,name ,in)
 	(check-input-port ,name ,in)
- 	(let ((r :: ,type 0))
- 	  (cond ((SG_EQ ,endian 'big)
- 		 (SG_PORT_LOCK_READ ,in)
- 		 (dotimes (i ,size)
- 		   (let ((t::int (Sg_Getb ,in)))
-		     (when (== EOF t)
-		       (assertion-violation ',name "unexpected EOF"))
- 		     (set! r (logior (ashl r 8) t))))
- 		 (SG_PORT_UNLOCK_READ ,in))
- 		((SG_EQ ,endian 'little)
- 		 (SG_PORT_LOCK_READ ,in)
- 		 (dotimes (i ,size)
- 		   (let ((t::int (Sg_Getb ,in)))
-		     (when (== EOF t)
-		       (assertion-violation ',name "unexpected EOF"))
- 		     (set! r (logior r (ashl t (* i 8))))))
- 		 (SG_PORT_UNLOCK_READ ,in))
- 		(else
- 		 (assertion-violation ',name "unsupported endianness" 
- 				      ,endian)))
- 	  (result (,make r))))))
+	(SG_PORT_LOCK_READ ,in)
+	(let ((r :: ,type 0))
+	  (safe-rport-operation
+	   ,in
+	   (cond ((SG_EQ ,endian 'big)
+		  (dotimes (i ,size)
+		    (let ((t::int (Sg_GetbUnsafe ,in)))
+		      (when (== EOF t)
+			(assertion-violation ',name "unexpected EOF"))
+		      (set! r (logior (ashl r 8) t)))))
+		 ((SG_EQ ,endian 'little)
+		  (dotimes (i ,size)
+		    (let ((t::int (Sg_GetbUnsafe ,in)))
+		      (when (== EOF t)
+			(assertion-violation ',name "unexpected EOF"))
+		      (set! r (logior r (ashl t (* i 8)))))))
+		 ((SG_EQ ,endian 'native)
+		  (Sg_ReadbUnsafe ,in (cast uint8_t* (& r)) ,size))
+		 (else
+		  (assertion-violation ',name "unsupported endianness" 
+				       ,endian))))
+	  (SG_PORT_UNLOCK_READ ,in)
+	  (result (,make r))))))
  
    (define-c-proc get-u16 (in::<port> endian::<symbol>)
      (get-un get-u16 in 2 endian uint16_t SG_MAKE_INT))

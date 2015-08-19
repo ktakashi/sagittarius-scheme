@@ -32,6 +32,24 @@
        (test-get get conv size min (endianness big))
        (test-get get conv size max (endianness big))))))
 
+(define-syntax test-range-little
+  (syntax-rules ()
+    ((_ get set size conv min max)
+     (begin
+       (test-set set conv size min (endianness little))
+       (test-set set conv size max (endianness little))
+       (test-get get conv size min (endianness little))
+       (test-get get conv size max (endianness little))))))
+
+(define-syntax test-range-native
+  (syntax-rules ()
+    ((_ get set size conv min max)
+     (begin
+       (test-set set conv size min 'native)
+       (test-set set conv size max 'native)
+       (test-get get conv size min 'native)
+       (test-get get conv size max 'native)))))
+
 ;; s8 doesn't take endiannness
 (test-set put-s8 sinteger->bytevector -128)
 (test-set put-s8 sinteger->bytevector 127)
@@ -48,6 +66,46 @@
 (test-range-big get-s32 put-s32 4 sinteger->bytevector #x-12345678         #x78901234)
 (test-range-big get-u64 put-u64 8 uinteger->bytevector 0                   #xFFFFFFFF)
 (test-range-big get-s64 put-s64 8 sinteger->bytevector #x-8000000000000000 #x7FFFFFFFFFFFFFFF)
+
+(define (uint->bv-little i size)
+  (let ((bv (make-bytevector size)))
+    (bytevector-uint-set! bv 0 i (endianness little) size)
+    bv))
+(define (sint->bv-little i size)
+  (let ((bv (make-bytevector size)))
+    (bytevector-sint-set! bv 0 i (endianness little) size)
+    bv))
+
+(test-range-little get-u16 put-u16 2 uint->bv-little 0       #xFFFF)
+(test-range-little get-u16 put-u16 2 uint->bv-little #x1234  #x7890)
+(test-range-little get-s16 put-s16 2 sint->bv-little #x-8000 #x7FFF)
+(test-range-little get-s16 put-s16 2 sint->bv-little #x-1234 #x7890)
+(test-range-little get-u32 put-u32 4 uint->bv-little 0                   #xFFFFFFFF)
+(test-range-little get-u32 put-u32 4 uint->bv-little #x12345678          #x78901234)
+(test-range-little get-s32 put-s32 4 sint->bv-little #x-80000000         #x7FFFFFFF)
+(test-range-little get-s32 put-s32 4 sint->bv-little #x-12345678         #x78901234)
+(test-range-little get-u64 put-u64 8 uint->bv-little 0                   #xFFFFFFFF)
+(test-range-little get-s64 put-s64 8 sint->bv-little #x-8000000000000000 #x7FFFFFFFFFFFFFFF)
+
+;; if it's built-in, then we can accept native
+(define (uint->bv-native i size)
+  (let ((bv (make-bytevector size)))
+    (bytevector-uint-set! bv 0 i (endianness native) size)
+    bv))
+(define (sint->bv-native i size)
+  (let ((bv (make-bytevector size)))
+    (bytevector-sint-set! bv 0 i (endianness native) size)
+    bv))
+
+(test-range-native get-u16 put-u16 2 uint->bv-native 0       #xFFFF)
+(test-range-native get-u16 put-u16 2 uint->bv-native #x1234  #x7890)
+(test-range-native get-s16 put-s16 2 sint->bv-native #x-8000 #x7FFF)
+(test-range-native get-s16 put-s16 2 sint->bv-native #x-1234 #x7890)
+(test-range-native get-u32 put-u32 4 uint->bv-native 0                   #xFFFFFFFF)
+(test-range-native get-u32 put-u32 4 uint->bv-native #x12345678          #x78901234)
+(test-range-native get-s32 put-s32 4 sint->bv-native #x-80000000         #x7FFFFFFF)
+(test-range-native get-s32 put-s32 4 sint->bv-native #x-12345678         #x78901234)
+
 
 ;; kind of test for get-u*
 (let ()

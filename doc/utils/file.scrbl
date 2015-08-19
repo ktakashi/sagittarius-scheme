@@ -143,6 +143,11 @@ returns a list which elements are the result value of @var{proc}.
 The keyword arguments are the same as @code{path-for-each}.
 }
 
+@define[Function]{@name{build-path} @args{paths @dots{}}}
+@desc{Re-exported procedure from @code{(sagittarius)} for convenience. See
+@secref["ext.sagittarius"]{Sagittarius extensions}.
+}
+
 @define[Function]{@name{build-path*} @args{paths @dots{}}}
 @desc{@var{paths} must be list of strings.
 
@@ -151,6 +156,12 @@ separator at the end of composed string.
 }
 
 @subsubsection{Directory operations}
+
+@define[Function]{@name{create-directory} @args{path}}
+@define[Function]{@name{delete-directory} @args{path}}
+@desc{Re-exported procedures from @code{(sagittarius)} for convenience. See
+@secref["ext.sagittarius"]{Sagittarius extensions}.
+}
 
 @define[Function]{@name{create-directory*} @args{path}}
 @define[Function]{@name{delete-directory*} @args{path}}

@@ -226,6 +226,29 @@ values are @code{eq}, @code{eqv}, @code{equal}, @code{string} and
 @define[Function]{@name{port-closed?} @args{port}}
 @desc{Returns #t if given @var{port} is closed, otherwise #f.}
 
+@define[Function]{@name{put-u16} @args{out v endian}}
+@define[Function]{@name{put-s16} @args{out v endian}}
+@define[Function]{@name{put-u32} @args{out v endian}}
+@define[Function]{@name{put-s32} @args{out v endian}}
+@desc{@var{out} must be binary output port. @var{endian} must be a value
+returned from @code{endianness} macro.
+
+Write @var{v} to @var{out} as unsigned/signed 16/32 bit integer.}
+
+@define[Function]{@name{get-u16} @args{in endian}}
+@define[Function]{@name{get-s16} @args{in endian}}
+@define[Function]{@name{get-u32} @args{in endian}}
+@define[Function]{@name{get-s32} @args{in endian}}
+@desc{@var{in} must be binary input port. @var{endian} must be a value
+returned from @code{endianness} macro.
+
+Read a number from @var{in} as unsigned/signed 16/32.}
+
+NOTE: above @code{put-*} and @code{get-*} have only 16 and 32 bit integers.
+This is because benchmark told us there's not much difference between C and
+Scheme implementation. We may add 64 bit integers and floting number 
+versions in future if there's enough demand.
+
 @define[Function]{@name{read/ss}
  @args{:optional (port @code{(current-input-port)})}}
 @define[Function]{@name{write/ss}

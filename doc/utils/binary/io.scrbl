@@ -28,6 +28,10 @@ converted to string.
 @define[Function]{@name{put-s16} @args{out v endian}}
 @define[Function]{@name{put-u32} @args{out v endian}}
 @define[Function]{@name{put-s32} @args{out v endian}}
+@desc{Re-exported procedure from @code{(sagittarius)} for convenience. See
+@secref["ext.sagittarius"]{Sagittarius extensions}.
+}
+
 @define[Function]{@name{put-u64} @args{out v endian}}
 @define[Function]{@name{put-s64} @args{out v endian}}
 @define[Function]{@name{put-f32} @args{out v endian}}
@@ -43,6 +47,10 @@ Write @var{v} to @var{out} as unsigned/signed 16/32/64 bit integer or
 @define[Function]{@name{get-s16} @args{in endian}}
 @define[Function]{@name{get-u32} @args{in endian}}
 @define[Function]{@name{get-s32} @args{in endian}}
+@desc{Re-exported procedure from @code{(sagittarius)} for convenience. See
+@secref["ext.sagittarius"]{Sagittarius extensions}.
+}
+
 @define[Function]{@name{get-u64} @args{in endian}}
 @define[Function]{@name{get-s64} @args{in endian}}
 @define[Function]{@name{get-f32} @args{in endian}}
