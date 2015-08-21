@@ -23,7 +23,7 @@ programs in Sagittarius.
 @subsection{Overview of Sagittarius}
 
 Sagittarius is a Scheme script engine; it reads Scheme programs, compiles it
-on-the-fly and executes it on a virtual machine. Sagittarius Mostly conforms
+on-the-fly and executes it on a virtual machine. Sagittarius conforms
 the language standard "Revised^6 Report on the Algorithmic Language Scheme"
 (R6RS), and supports various common libraries defined in "Scheme Requests for
 Implementation" (SRFI)s.
@@ -117,6 +117,11 @@ and @code{sash} on Windows environment.
 @define[Program]{@name{sagittarius} @args{[options] scheme-file arg @dots{}}}
 @desc{Invoking sagittarius. If @var{scheme-file} is not given, it runs with
 interactive mode.
+
+Specifying @code{-r} option with Scheme standard number, currently @code{6}
+and @code{7} are supported, forces to run Sagittarius on strict standard
+mode. For example, entire script is read then evaluated on R6RS 
+(@code{-r6} option) mode. Thus macros can be located below the main script.
 
 Detail options are given with option @code{"-h"}.}
 
