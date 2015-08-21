@@ -203,3 +203,31 @@ of @var{body}.
 It is not guaranteed to invoke the @var{cleanups} only once if a continuation is
 captured in @var{body} and call it.
 }
+
+@define[Macro]{@name{datum} @args{x}}
+@desc{Short form of @code{syntax->datum}.}
+
+@define[Macro]{@name{with-syntax*} @args{((p e0) ...) e1 e2 ...}}
+@desc{The macro is similar with @code{with-syntax}, the only difference is
+that this macro can refer previous pattern of @var{p} as if @code{let*} can.
+
+This can reduce nest level when users need to write multiple 
+@code{with-syntax} to refer bound syntax object.
+}
+
+@define[Macro]{@name{^} @args{formals body ...}}
+@desc{The alias of @code{lambda}.}
+
+@define[Macro]{@name{^c} @args{body ...}}
+@desc{Shortened notation of @code{(lambda (c) body ...)}. Where @code{c}
+can be any character of lower case of ASCII alphabet.
+
+@snipet[=> (1 4 9 16 25)]{(map (^z (* z z)) '(1 2 3 4 5))}
+}
+
+@define[Macro]{@name{^c*} @args{body ...}}
+@desc{Shortened notation of @code{(lambda c body ...)}. Where @code{c}
+can be any character of lower case of ASCII alphabet.
+
+@snipet[=> ((1) (2) (3) (4) (5))]{(map (^z* z*) '(1 2 3 4 5))}
+}

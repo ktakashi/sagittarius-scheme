@@ -21,6 +21,8 @@
 	    check-arg
 	    with-library
 	    unwind-protect
+	    datum
+	    with-syntax
 	    ;; for convenient
 	    ^a ^b ^c ^d ^e ^f ^g ^h ^i ^j ^k ^l ^m ^n
 	    ^o ^p ^q ^r ^s ^t ^u ^v ^w ^x ^y ^z ^_ ^
@@ -247,4 +249,5 @@
 	       (apply values r))))
 	(_ (syntax-violation 'unwind-protect
 			     "malformed unwind-protect" (unwrap-syntax x))))))
+
 )

@@ -2,40 +2,6 @@
 
 @subsection[:tag "rnrs.syntax-case.6"]{Syntax-case}
 
-On Sagittarius Scheme @code{syntax-case} does not behave as R6RS required. This
-is why it is @b{MOSTLY} R6RS implementation. As far as I know the part which is
-not compromised with R6RS is following expression does not return correct answer:
-
-@codeblock{
-(define-syntax let/scope
-  (lambda(x)
-    (syntax-case x ()
-      ((k scope-name body @dots{})
-       (syntax
-	(let-syntax
-	    ((scope-name
-	      (lambda(x)
-		(syntax-case x ()
-		  ((_ b (@dots{} @dots{}))
-		  (quasisyntax
-		   (begin
-		      (unsyntax-splicing
-		       (datum->syntax (syntax k)
-				      (syntax->datum 
-				       (syntax (b (@dots{} @dots{})))))))))))))
-           body @dots{}))))))
-(let ((x 1))
-  (let/scope d1
-    (let ((x 2))
-      (let/scope d2
-        (let ((x 3))
-          (list (d1 x) (d2 x) x))))))
-}
-
-This should return @code{(1 2 3)} however on Sagittarius it returns @code{(1 1 3}).
-If you want to write a portable program with @code{syntax-case}, it is better to
-check in other implementation too.
-
 @define[Library]{@name{(rnrs syntax-case (6))}}
 @desc{[R6RS] The @code{(rnrs syntax-case (6))}library provides support for
 writing low-level macros in a high-level style, with automatic syntax checking,

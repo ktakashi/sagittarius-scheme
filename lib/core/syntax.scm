@@ -14,7 +14,8 @@
 	    identifier?
 	    bound-identifier=?
 	    free-identifier=?
-	    syntax-violation)
+	    syntax-violation
+	    with-syntax*)
     (import (core)
 	    (core base)
 	    (core errors)
@@ -120,4 +121,13 @@
            (syntax
             (with-syntax replacements (syntax template*))))))))
 
+  ;; I've written loads of nested with-syntax
+  ;; better to have it
+  (define-syntax with-syntax* 
+    (syntax-rules ()
+      ((_ ((var val)) e1 e2 ...)
+       (with-syntax ((var val)) e1 e2 ...))
+      ((_ ((var0 val0) (var1 val1) ...) e1 e2 ...)
+       (with-syntax ((var0 val0))
+	 (with-syntax* ((var1 val1) ...) e1 e2 ...)))))
   )
