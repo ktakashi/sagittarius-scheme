@@ -1,0 +1,30 @@
+language: c
+sudo: required
+os:
+  - linux
+  - osx
+branches:
+  only:
+    -master
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew outdated bdw-gc || brew upgrade bdw-gc; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew outdated llvm || brew upgrade llvm; fi
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew outdated libffi || brew upgrade libffi; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo apt-get install cmake libgc-dev zlib1g-dev libffi-dev; fi
+  - curl -o version https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/latest-version.txt
+  - curl -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
+  - tar xvf sagittarius.tar.gz
+  - cd sagittarius-`cat version`
+  - cmake .
+  - if [ "$TRAVIS_OS_NAME" = "osx" ]; then make install; fi
+  - if [ "$TRAVIS_OS_NAME" = "linux" ]; then sudo make install; fi
+
+before_script:
+  - ./dist.sh gen
+  - cmake .
+
+script:
+  - make
+  - make test
