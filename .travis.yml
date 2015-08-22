@@ -1,11 +1,15 @@
+notifications:
+  recipients:
+    - ktakashi@ymail.com
 language: c
 sudo: required
 os:
   - linux
   - osx
+
 branches:
   only:
-    -master
+    - master
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
