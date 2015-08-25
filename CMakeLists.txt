@@ -595,9 +595,11 @@ ADD_CUSTOM_TARGET(test-site-s
 	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
-# TODO remove after 0.6.7
-# this is because 0.6.6 has a bignum signness bug on 32 bit environment
-# and this causes tzdata.scm a problem
+# This can be removed but may be convenient to run this with
+#  $ make update-tz
+# instead of
+#  $ ./dist.sh tz
+# to update timezone databese.
 IF (MSVC)
   # our famous appveyor wrapper...
   SET(INVOKE ${PROJECT_SOURCE_DIR}/win/invoke.bat)
@@ -617,7 +619,7 @@ SET(TZ_UPDATE ${INVOKE}
   ${PROJECT_SOURCE_DIR}/script/compile-tzdatabase.scm
   -o ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/tzdata.scm 
   -w ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/win-mappings.scm)
-ADD_CUSTOM_TARGET(update-tz ALL
+ADD_CUSTOM_TARGET(update-tz
   DEPENDS sagittarius--time 
           sagittarius--socket
 	  sagittarius--zlib
@@ -632,8 +634,7 @@ IF (WIN32)
 ELSE ()
   SET(EXIT_EXPR "'(exit)'")
 ENDIF()
-ADD_CUSTOM_TARGET(clear-cache ALL
-  DEPENDS update-tz
+ADD_CUSTOM_TARGET(clear-cache
   COMMAND ${INVOKE} ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c -e ${EXIT_EXPR}
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
