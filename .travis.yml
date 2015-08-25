@@ -20,8 +20,8 @@ before_install:
   - curl -L -o sagittarius.tar.gz https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-`cat version`.tar.gz
   - tar xvf sagittarius.tar.gz
   - cd sagittarius-`cat version`
-  - if [ `cat ../version` = "0.6.7" ]; curl -L -o osx.patch https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.6.7-osx.patch; fi
-  - if [ `cat ../version` = "0.6.7" ]; patch -p < osx.patch fi
+  - if [ `cat ../version` = "0.6.7" ]; then curl -L -o osx.patch https://bitbucket.org/ktakashi/sagittarius-scheme/downloads/sagittarius-0.6.7-osx.patch; fi
+  - if [ `cat ../version` = "0.6.7" ]; then patch -p < osx.patch fi
   - cmake .
   - sudo make install
 
