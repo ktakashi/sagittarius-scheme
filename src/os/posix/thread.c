@@ -244,11 +244,69 @@ SgInternalSemaphore * Sg_InitSemaphore(SgString *name, int value)
   return semaphore;
 }
 
+#if !defined(HAVE_SEM_TIMEDWAIT) && defined(HAVE_SEM_TRYWAIT)
+/* This is workaround for OSX. We do some approximate timeout */
+#include <time.h>
+
+#define MAX_TRY_COUNT 10
+static int emulate_sem_timewait(sem_t *sem, const struct timespec *timeout)
+{
+  /* CAUTION: this is too sloppy!!!
+
+     The idea is that using sem_trywait and nanosleep. We calculate delta
+     which is MAX_TRY_COUNT percent of the timeout time, then calling 
+     sem_trywait until either it succeeds or hit MAX_TRY_COUNT times 
+     failure.
+
+     There's a better solution which uses thread to monitor but this function
+     is POSIX, so OSX *MUST* support.
+
+     TODO: probably won't be fix, though.
+      This doesn't consider any signal call during waiting/sem_trywait.
+      Maybe better to consider those thing, but why should we? This should
+      not be a function user program emulates!
+  */
+  if (sem_trywait(sem) == 0) {
+    return 0;
+  } else {
+    int i;
+    struct timespec delta;
+    /* well... */
+    delta->tv_sec = timeout->tv->sec / 10;
+    delta->tv_nsec = timeout->tv->nsec / 10;
+    /* check */
+    if (timeout->tv_sec < 0 || timeout->tv_nsec > 1000000000) {
+      errno = EINVAL;
+      return -1;
+    } else if (delta->tv_sec == 0 && delta->tv_nsec == 0) {
+      /* invalid delta */
+      errno = EINVAL;
+      return -1;
+    }
+    /* now try */
+    for (i = 0; i < MAX_TRY_COUNT; i++) {
+      /* we don't consider non-sleeping time, sorry */
+      nanosleep(&delta, NULL);
+      if (sem_trywait(sem) == 0) return 0;
+    }
+    errno = ETIMEDOUT;
+    return -1;
+  }
+  
+}
+#endif
+
 int Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
 {
   int r;
   if (pts) {
+#if defined(HAVE_SEM_TIMEDWAIT)
     r = sem_timedwait(semaphore->semaphore, pts);
+#elif defined(HAVE_SEM_TRYWAIT)
+    r = emulate_sem_timewait(semaphore->semaphore, pts);
+#else
+    Sg_SystemError(-1, UC("sem_timedwait is not supported on this platform"));
+#endif
   } else {
     r = sem_wait(semaphore->semaphore);
   }

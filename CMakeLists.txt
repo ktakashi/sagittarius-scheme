@@ -98,6 +98,8 @@ CHECK_FUNCTION_EXISTS(gettimeofday  HAVE_GETTIMEOFDAY)
 CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
 CHECK_FUNCTION_EXISTS(getrusage     HAVE_GETRUSAGE)
 CHECK_FUNCTION_EXISTS(sched_getaffinity     HAVE_SCHED_GETAFFINITY)
+CHECK_FUNCTION_EXISTS(sem_timedwait HAVE_SEM_TIMEDWAIT)
+CHECK_FUNCTION_EXISTS(sem_trywait   HAVE_SEM_TRYWAIT)
 # CPU_COUNT is a bit tricky
 # Linux man page says it's defined in <sched.h> but seems <unistd.h>
 # is the place

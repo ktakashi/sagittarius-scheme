@@ -42,6 +42,8 @@
 #cmakedefine HAVE_GETTIMEOFDAY
 #cmakedefine HAVE_MMAP
 #cmakedefine HAVE_GETRUSAGE
+#cmakedefine HAVE_SEM_TIMEDWAIT
+#cmakedefine HAVE_SEM_TRYWAIT
 
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP
