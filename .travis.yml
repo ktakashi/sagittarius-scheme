@@ -12,6 +12,7 @@ branches:
     - master
 
 before_install:
+  - echo `pwd`
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install bdw-gc; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install libffi; fi
@@ -25,6 +26,8 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then cmake . -DFFI_LIBRARY_DIR=/usr/local/Cellar/libffi/3.0.13/lib; fi
   - if [ "$TRAVIS_OS_NAME" = "linux" ]; then cmake .; fi
   - sudo make install
+  - cd $TRAVIS_BUILD_DIR
+  - echo `pwd`
 
 before_script:
   - ./dist.sh gen
