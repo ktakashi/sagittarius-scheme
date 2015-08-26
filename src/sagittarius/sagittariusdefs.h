@@ -401,7 +401,7 @@ typedef enum  {
 /* fixnum */
 #define SG_INTP(obj)       (SG_TAG2(obj) == 1)
 #define SG_INT_VALUE(obj)  (((long)SG_WORD(obj)) >> 2)
-#define SG_MAKE_INT(obj)   SG_OBJ(((long)(obj) << 2) + 1)
+#define SG_MAKE_INT(obj)   SG_OBJ(((long)((unsigned long)(obj) << 2) + 1))
 /* Do not use this!!! */
 #define SG_ENSURE_INT(obj) SG_OBJ((long)(obj) | 1)
 #define SG_UINTP(obj)      (SG_INTP(obj)&&((long)SG_WORD(obj) >= 0))
