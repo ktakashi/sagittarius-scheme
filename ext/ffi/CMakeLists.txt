@@ -33,17 +33,22 @@ ENDIF()
 
 IF (LIB_FFI_FOUND AND NOT FORCE_USING_BUNDLED_LIBFFI)
   #CHECK_FUNCTION_EXISTS(ffi_prep_cif_var HAVE_FFI_PREP_CIF_VAR)
-  IF (FFI_LIBRARY_DIR)
-    FIND_LIBRARY(FFI ffi ${FFI_LIBRARY_DIR} NO_DEFAULT_PATH)
-    IF (NOT FFI)
-      # fallback 
-      MESSAGE(STATUS "Library path is specified but not found the library, try fallback")
+  # FIND_PACKAGE sets the blow variable but not all the case
+  # so if not there find it
+  IF (NOT LIB_FFI_LIBRARIES)
+    IF (FFI_LIBRARY_DIR)
+      FIND_LIBRARY(FFI ffi ${FFI_LIBRARY_DIR} NO_DEFAULT_PATH)
+      IF (NOT FFI)
+	# fallback 
+	MESSAGE(STATUS "Library path is specified but not found the library, try fallback")
+	FIND_LIBRARY(FFI ffi)
+      ENDIF()
+    ELSE()
       FIND_LIBRARY(FFI ffi)
     ENDIF()
-  ELSE()
-    FIND_LIBRARY(FFI ffi)
+    SET(LIB_FFI_LIBRARIES ${FFI})
   ENDIF()
-  SET(LIB_FFI_LIBRARIES ${FFI})
+
   # FIXME, we should use bundled libffi then
   IF (FFI)
     MESSAGE(STATUS "Found libraries ${FFI}")

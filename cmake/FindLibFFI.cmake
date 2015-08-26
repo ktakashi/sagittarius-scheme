@@ -40,7 +40,7 @@ IF (LIB_FFI_INCLUDE_DIR)
     HINTS ${PC_LIBFFI_LIBDIR} ${PC_LIBFFI_LIBRARY_DIRS})
 ENDIF()
 
-IF (APPLE AND NOT LIB_FFI_FOUND)
+IF (APPLE AND NOT LIB_FFI_INCLUDE_DIR)
   # OK workaround for OS X.
   # For some what I don't know reason, Homebrew doesn't link libffi
   # to /usr/local, thus pkg-config can't find it. There's workaround
@@ -64,6 +64,14 @@ IF (APPLE AND NOT LIB_FFI_FOUND)
   IF (LIBFFI_CELLER_DIR)
     MESSAGE(STATUS "Found Celler directory for libffi ${LIBFFI_CELLER_DIR}")
     FILE(GLOB LIB_FFI_INCLUDE_DIR "${LIBFFI_CELLER_DIR}/libffi-*/include")
+    IF (LIB_FFI_INCLUDE_DIR)
+      FIND_LIBRARY(LIB_FFI_LIBRARIES NAMES ffi HINTS ${LIBFFI_CELLER_DIR})
+      IF (LIB_FFI_LIBRARIES)
+	MESSAGE(STATUS "Looking for libffi library - ${LIB_FFI_LIBRARIES}")
+      ELSE()
+	MESSAGE(STATUS "Looking for libffi library - Not found")
+      ENDIF()
+    ENDIF()
   ENDIF()
 ENDIF()
 
