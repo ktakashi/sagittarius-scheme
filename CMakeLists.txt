@@ -7,7 +7,11 @@ OPTION(USE_BOEHM_GC "use boehm gc" ON)
 OPTION(USE_IMMEDIATE_FLONUM "use immediate flonum" ON)
 OPTION(SAGITTARIUS_PROFILE "profiler" ON)
 OPTION(INSTALL_SYMLINK "installing symlink" ON)
+# This basically adding -g for GCC or Clang
+# Make sure this option is off on MSVC otherwise the compiler
+# would create slow binary
 OPTION(DEBUG_VERSION "build type" ON)
+OPTION(FORCE_USING_BUNDLED_LIBFFI "For testing purpose" OFF)
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" ON)
   OPTION(USE_CRT_DLL    "dynamic linking of CRT instead of static linking" OFF)
