@@ -62,7 +62,7 @@ SgObject Sg_OpenSharedMemory(SgString *name, size_t size, int flags)
   SgObject bv;
 
   if (flags & SG_TRUNCATE) {
-    f |= O_TRUNC;
+    /* f |= O_TRUNC; */
     truncp = TRUE;
   }
   if (flags & SG_CREATE) f |= O_CREAT;
