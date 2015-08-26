@@ -2,7 +2,21 @@
 # 
 # Build file for regex
 
-IF (APPLE)
+CHECK_INCLUDE_FILE(ffi.h HAVE_FFI_H)
+
+IF (HAVE_FFI_H)
+  SET(LIB_FFI_FOUND TRUE)
+ELSE()
+  FIND_PACKAGE(LibFFI)
+  IF (LIB_FFI_INCLUDE_DIR)
+    INCLUDE_DIRECTORIES(${LIB_FFI_INCLUDE_DIR})
+  ENDIF()
+ENDIF()
+
+# FIND_PACKAGE(LibFFI) now also considers Homebrew thing.
+# So just keep it simple.
+IF (APPLE AND NOT LIB_FFI_FOUND)
+  # Keep legacy code here for backward compatibility
   IF (FFI_LIBRARY_DIR)
     MESSAGE(STATUS "Looking for ffi include directory in ${FFI_LIBRARY_DIR}")
     FILE(GLOB FFI_INCLUDE_DIR "${FFI_LIBRARY_DIR}/libffi-*/include")
@@ -14,18 +28,8 @@ IF (APPLE)
       MESSAGE(WARNING "Looking for ffi include directory in ${FFI_LIBRARY_DIR} - not found")
     ENDIF()
   ENDIF()
-ELSE()
-  CHECK_INCLUDE_FILE(ffi.h HAVE_FFI_H)
 ENDIF()
 
-IF (HAVE_FFI_H)
-  SET(LIB_FFI_FOUND TRUE)
-ELSE()
-  FIND_PACKAGE(LibFFI)
-  IF (LIB_FFI_INCLUDE_DIR)
-    INCLUDE_DIRECTORIES(${LIB_FFI_INCLUDE_DIR})
-  ENDIF()
-ENDIF()
 
 IF (LIB_FFI_FOUND)
   #CHECK_FUNCTION_EXISTS(ffi_prep_cif_var HAVE_FFI_PREP_CIF_VAR)

@@ -40,6 +40,33 @@ IF (LIB_FFI_INCLUDE_DIR)
     HINTS ${PC_LIBFFI_LIBDIR} ${PC_LIBFFI_LIBRARY_DIRS})
 ENDIF()
 
+IF (APPLE AND NOT LIB_FFI_FOUND)
+  # OK workaround for OS X.
+  # For some what I don't know reason, Homebrew doesn't link libffi
+  # to /usr/local, thus pkg-config can't find it. There's workaround
+  # that users can explicitly specify the path to libffi, however it's
+  # rather inconvenient and if the version is bumped up then the build
+  # process needs to adjust (which I don't want to do it on CI). So
+  # we will detect libffi using
+  SET(LIBFFI_CELLER "/usr/local/Cellar/libffi")
+  FILE(GLOB LIBFFI_CELLER_DIRS "${LIBFFI_CELLER}/*")
+  # is there a better to sort in desc?
+  LIST(SORT LIBFFI_CELLER_DIRS)
+  LIST(REVERSE LIBFFI_CELLER_DIRS)
+  FOREACH(DIR ${LIBFFI_CELLER_DIRS}) 
+    IF(IS_DIRECTORY ${LIBFFI_CELLER}/${DIR})
+      SET(LIBFFI_CELLER_DIR ${LIBFFI_CELLER}/${DIR})
+      BREAK()
+    ENDIF()
+  ENDFOREACH()
+
+  # I hope this is the latest installed version
+  IF (LIBFFI_CELLER_DIR)
+    MESSAGE(STATUS "Found Celler directory for libffi ${LIBFFI_CELLER_DIR}")
+    FILE(GLOB LIB_FFI_INCLUDE_DIR "${LIBFFI_CELLER_DIR}/libffi-*/include")
+  ENDIF()
+ENDIF()
+
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(Lib_FFI DEFAULT_MSG
                                   LIB_FFI_LIBRARIES LIB_FFI_INCLUDE_DIR)
