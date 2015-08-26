@@ -272,8 +272,8 @@ static int emulate_sem_timewait(sem_t *sem, const struct timespec *timeout)
     int i;
     struct timespec delta;
     /* well... */
-    delta->tv_sec = timeout->tv->sec / 10;
-    delta->tv_nsec = timeout->tv->nsec / 10;
+    delta->tv_sec = timeout->tv_sec / 10;
+    delta->tv_nsec = timeout->tv_nsec / 10;
     /* check */
     if (timeout->tv_sec < 0 || timeout->tv_nsec > 1000000000) {
       errno = EINVAL;
