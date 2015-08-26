@@ -481,9 +481,13 @@
   )
 
 ;; semaphore
-(test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
-				 (r (semaphore? s)))
-			    (semaphore-destroy! s)))
+;; OSX doesn't support anonymous semaphore, THANK YOU VERY MUCH!
+(cond-expand
+ ((not darwin)
+  (test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
+				   (r (semaphore? s)))
+			      (semaphore-destroy! s))))
+ (else #f))
 
 ;; error
 (test-error "make semaphore (error)"
@@ -493,20 +497,23 @@
 (test-error "open semaphore (error 2)"
 	    i/o-error? (open-semaphore "/not exist"))
 
-(let ((sem (make-semaphore #f 1))) ;; anonymous binary semaphore
-  (define counter 0)
-  (define ts (map (lambda (index)
-		    (make-thread
-		      (lambda ()
-			(semaphore-wait! sem)
-			(set! counter (+ counter 1))
-			(semaphore-post! sem)))) '(1 2)))
-  (for-each thread-start! ts)
-  (for-each thread-join! ts)
-  (test-equal "semaphore" 2 counter)
-  (test-assert "name" (not (semaphore-name sem))) ;; anonymous returns #f
-  (test-assert "destroy" (semaphore-destroy! sem)))
-
+;; ditto
+(cond-expand
+ ((not darwin)
+  (let ((sem (make-semaphore #f 1))) ;; anonymous binary semaphore
+    (define counter 0)
+    (define ts (map (lambda (index)
+		      (make-thread
+		       (lambda ()
+			 (semaphore-wait! sem)
+			 (set! counter (+ counter 1))
+			 (semaphore-post! sem)))) '(1 2)))
+    (for-each thread-start! ts)
+    (for-each thread-join! ts)
+    (test-equal "semaphore" 2 counter)
+    (test-assert "name" (not (semaphore-name sem))) ;; anonymous returns #f
+    (test-assert "destroy" (semaphore-destroy! sem))))
+ (else #f))
 		     
 
 

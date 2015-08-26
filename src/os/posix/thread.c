@@ -298,7 +298,7 @@ static int emulate_sem_timewait(sem_t *sem, const struct timespec *timeout)
 
 int Sg_WaitSemaphore(SgInternalSemaphore *semaphore, struct timespec *pts)
 {
-  int r;
+  int r = 0;
   if (pts) {
 #if defined(HAVE_SEM_TIMEDWAIT)
     r = sem_timedwait(semaphore->semaphore, pts);
