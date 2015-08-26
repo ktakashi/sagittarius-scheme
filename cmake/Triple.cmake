@@ -64,7 +64,7 @@ MACRO (TRIPLE _PROCESSOR _PLATFORM _OS _VENDOR _TRIPLE)
   ENDIF()
 
   # get vendor
-  IF (${_PLATFORM} STREQUAL "Darwin")
+  IF (${_PLATFORM} STREQUAL "darwin")
     SET(${_VENDOR} "apple")
   ELSE()
     SET(${_VENDOR} "pc")
