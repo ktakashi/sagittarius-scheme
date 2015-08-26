@@ -1,5 +1,6 @@
 (import (rnrs)
 	(util timer)
+	(util concurrent) ;; for shared-queue
 	(srfi :18)
 	(srfi :19)
 	(srfi :64))
@@ -17,19 +18,21 @@
 	       (integer? (timer-schedule! timer (lambda () 2) (current-time))))
 
   (let* ((ls '())
+	 (sq (make-shared-queue))	 
 	 (id (timer-schedule! timer 
 			      (lambda ()
-				(thread-sleep! 0.5) ;; remove timing issue
-				(set! ls (cons 'a ls)))
+				(unless (= (length ls) 3) 
+				  (set! ls (cons 'a ls)))
+				(shared-queue-put! sq #t))
 			      0 500)))
-    ;; run at least 3 times
+
     (test-assert "timer-exists? (1)" (timer-exists? timer id))
-    (thread-sleep! 1)
+    ;; run 3 times
+    (do ((i 0 (+ i 1))) ((= i 3)) (shared-queue-get! sq))
+
     (test-assert "timer-remove!" (timer-remove! timer id))
-    ;; (print (timer-exists? timer id))
     (test-assert "timer-exists? (2)" (not (timer-exists? timer id)))
-    ;; this depends on timing thing.
-    ;; (test-assert "result" (or (equal? ls '(a a a)) (equal? ls '(a a a a))))
+    (test-assert "result" (equal? ls '(a a a)))
     (test-assert "timer-stop!" (timer? (timer-stop! timer)))
     (test-assert "timer-start! (restart)" (timer? (timer-start! timer)))
     
@@ -37,13 +40,17 @@
   )
 
 (let* ((handled #f)
-       (timer (make-timer :error-handler (lambda (e) (set! handled e)))))
+       (sq (make-shared-queue))
+       (timer (make-timer :error-handler 
+			  (lambda (e) 
+			    (set! handled e)
+			    (shared-queue-put! sq #t)))))
   (test-assert "timer-start!" (timer? (timer-start! timer)))
   
   (test-assert "timer-schedule! (3)" 
 	       (integer? (timer-schedule! timer (lambda () (raise 'dummy))
 					  (current-time))))
-  (thread-sleep! 0.1) ;; wait a bit
+  (shared-queue-get! sq)
   (test-equal "error-handling" 'dummy handled)
   (test-assert "timer-stop!" (timer? (timer-stop! timer)))
   (test-assert "timer-cancel!" (timer-cancel! timer))
@@ -59,36 +66,49 @@
 	      (timer-schedule! timer (lambda () 1) 0 'foo)))
 
 ;; reschedule
-(let ((a '()))
+(let ((a '())
+      (sq (make-shared-queue)))
   (define timer (timer-start! (make-timer)))
-  (define id (timer-schedule! timer (lambda () (set! a (cons 1 a))) 600))
+  (define id (timer-schedule! timer
+			      (lambda ()
+				(set! a (cons 1 a))
+				(shared-queue-put! sq #t))
+			      600))
   
-  (timer-schedule! timer (lambda () (set! a (cons 2 a))) 400)
+  (timer-schedule! timer (lambda ()
+			   (set! a (cons 2 a))
+			   (shared-queue-put! sq #t))
+		   400)
   ;; reschedule
   (timer-reschedule! timer id 300 0)
-  (thread-sleep! 0.5) ;; wait 500ms
+  ;; wait until it's finished
+  (do ((i 0 (+ i 1))) ((= i 2)) (shared-queue-get! sq))
   ;; first one must be executed first so 2 1
   (test-equal "reschedule" '(2 1) a)
   (test-assert "timer-cancel!" (timer-cancel! timer))
   )
 
 ;; time-duration
-(let ((timer (make-timer)))
-  (timer-start! timer)
-  (let* ((ls '())
-	 (id (timer-schedule! timer 
-			      (lambda () (set! ls (cons 'a ls)))
-			      0
-			      ;; 500 ms (in nsec)
-			      (make-time time-duration 500000000 0))))
-    ;; run at least 2 times
-    (thread-sleep! 1)
-    (timer-reschedule! timer id 300 (make-time time-duration 0 0))
-    (test-assert "result" (>= (length ls) 2))
-    (thread-sleep! 0.5)
-    (test-assert "removed" (not (timer-exists? timer id)))
-    (test-assert "timer-stop!" (timer? (timer-stop! timer)))
-    (test-assert "timer-cancel!" (timer-cancel! timer))))
+(let* ((timer (timer-start! (make-timer)))
+       (sq (make-shared-queue))
+       (ls '())
+       (id (timer-schedule! timer 
+			    (lambda () 
+			      (unless (= (length ls) 2) 
+				(set! ls (cons 'a ls))
+				(shared-queue-put! sq #t)))
+			    0
+			    ;; 500 ms (in nsec)
+			    (make-time time-duration 500000000 0))))
+  ;; run at least 2 times
+  (do ((i 0 (+ i 1))) ((= i 2)) (shared-queue-get! sq))
+  (test-equal "result" '(a a) ls)
+  ;; There is no way to ensure to make this works
+  ;; it always depends on the timing...
+  ;; (timer-reschedule! timer id 300 (make-time time-duration 0 0))
+  ;; (test-assert "removed" (not (timer-exists? timer id)))
+  (test-assert "timer-stop!" (timer? (timer-stop! timer)))
+  (test-assert "timer-cancel!" (timer-cancel! timer)))
 
 
 (test-end)
