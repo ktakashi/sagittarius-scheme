@@ -47,17 +47,17 @@ IF (LIB_FFI_FOUND AND NOT FORCE_USING_BUNDLED_LIBFFI)
     ELSE()
       FIND_LIBRARY(FFI ffi)
     ENDIF()
-    SET(LIB_FFI_LIBRARIES ${FFI})
+    # FIXME, we should use bundled libffi then
+    IF (FFI)
+      MESSAGE(STATUS "Found libraries ${FFI}")
+      SET(LIB_FFI_LIBRARIES ${FFI})
+    ELSE()
+      MESSAGE(STATUS "Library not found")
+    ENDIF()
   ENDIF()
 
-  # FIXME, we should use bundled libffi then
-  IF (FFI)
-    MESSAGE(STATUS "Found libraries ${FFI}")
-  ELSE()
-    MESSAGE(STATUS "Library not found")
-  ENDIF()
-
-  CHECK_LIBRARY_EXISTS(${FFI} ffi_prep_cif_var "ffi.h" HAVE_FFI_PREP_CIF_VAR)
+  CHECK_LIBRARY_EXISTS(${LIB_FFI_LIBRARIES} ffi_prep_cif_var 
+    "ffi.h" HAVE_FFI_PREP_CIF_VAR)
   MESSAGE(STATUS "Sagittarius uses platform libffi")
 ELSEIF(WATCOM)
   MESSAGE(WARNING "Sagittarius does not support FFI on WATCOM")
