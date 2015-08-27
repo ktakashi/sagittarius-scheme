@@ -29,7 +29,7 @@
 ;; say (define time-0 (make-time 'time-tai 0 0)) will be literal
 (define-c-proc make-time (type::<symbol> nsec::<number> sec::<number>)
   (result (Sg_MakeTime type (Sg_GetIntegerS64Clamp sec SG_CLAMP_NONE NULL)
-		       (Sg_GetIntegerClamp nsec SG_CLAMP_NONE NULL))))
+		       (Sg_GetIntegerU64Clamp nsec SG_CLAMP_NONE NULL))))
 
 (define-c-proc time? (o) ::<boolean> :constant SG_TIMEP)
 

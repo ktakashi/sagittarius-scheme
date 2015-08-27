@@ -50,7 +50,7 @@ static SgTime* make_time_int(SgObject type)
   return t;
 }
 
-SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec)
+SgObject Sg_MakeTime(SgObject type, int64_t sec, uint64_t nsec)
 {
   SgTime *t = make_time_int(type);
   unsigned long rn = nsec % TM_NANO;
@@ -159,7 +159,7 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     r->sec = 0;
     r->nsec = 0;
   } else {
-    long nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
+    int64_t nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
     unsigned long nanos = labs(nano % TM_NANO);
     int64_t secs = nano / TM_NANO;
     r->sec = secs;

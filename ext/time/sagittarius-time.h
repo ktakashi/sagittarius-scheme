@@ -42,7 +42,7 @@
 
 SG_CDECL_BEGIN
 
-SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec);
+SgObject Sg_MakeTime(SgObject type, int64_t sec, uint64_t nsec);
 SgObject Sg_CurrentTime(SgObject type);
 SgObject Sg_SecondsToTime(int64_t sec);
 SgObject Sg_TimeToSeconds(SgTime *time);
