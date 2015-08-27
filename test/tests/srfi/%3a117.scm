@@ -107,13 +107,29 @@
                (lambda (x) (* x 10))
                (lambda (x) (+ x 1))
                0))
-    (test '(0 10 20 30 40 50) (list-queue-list ql))
+  (test '(0 10 20 30 40 50) (list-queue-list ql))
+  (define qlo (list-queue-unfold
+	       (lambda (x) (> x 5))
+               (lambda (x) (* x 5))
+               (lambda (x) (+ x 1))
+	       0 ql))
+  (test '(0 10 20 30 40 50 0 5 10 15 20 25) (list-queue-list qlo))
+  ;; i think this is also true but spec doesn't say explicitly...
+  (test '(0 10 20 30 40 50 0 5 10 15 20 25) (list-queue-list ql))
+
   (define qr (list-queue-unfold-right
                (lambda (x) (> x 5))
                (lambda (x) (* x 10))
                (lambda (x) (+ x 1))
                0))
-    (test '(50 40 30 20 10 0) (list-queue-list qr))
+  (define qro (list-queue-unfold-right
+               (lambda (x) (> x 5))
+               (lambda (x) (* x 5))
+               (lambda (x) (+ x 1))
+               0 qr))
+  (test '(25 20 15 10 5 0 50 40 30 20 10 0) (list-queue-list qro))
+  ;; ditto
+  (test '(25 20 15 10 5 0 50 40 30 20 10 0) (list-queue-list qr))
 ) ; end list-queues/unfold
 
 ) ; end list-queues

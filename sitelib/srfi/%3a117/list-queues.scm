@@ -180,10 +180,31 @@
   (define (list-queue-for-each proc q) (for-each proc (queue-first q)))
 
   ;; should we make them inlined?
-  (define (list-queue-unfold stop? mapper successor seed)
-    (make-list-queue (unfold stop? mapper successor seed)))
-  (define (list-queue-unfold-right stop? mapper successor seed)
-    (make-list-queue (unfold-right stop? mapper successor seed)))
+  (define (list-queue-unfold stop? mapper successor seed . maybe-queue)
+    (if (null? maybe-queue)
+	(make-list-queue (unfold stop? mapper successor seed))
+	;; This is slightly tricky.
+	;; SRFI-1 unfold simply appends the result of tail-gen onto
+	;; the accumlated list however SRFI-117 says the result
+	;; of mapper is appended to the queue.
+	;; thus, we can't do the same as list-queue-unfold-right
+	(let* ((queue (car maybe-queue))
+	       (first  (queue-first queue))
+	       (last (unfold stop? mapper successor seed))
+	       (new-last (if (null? last) (queue-last queue) (last-pair last))))
+	  (queue-first-set! queue (append! first last))
+	  (queue-last-set! queue new-last)
+	  queue)))
+
+  (define (list-queue-unfold-right stop? mapper successor seed . maybe-queue)
+    (if (null? maybe-queue)
+	(make-list-queue (unfold-right stop? mapper successor seed))
+	(let* ((queue (car maybe-queue))
+	       (last  (queue-last queue))
+	       (new-first (unfold-right stop? mapper successor seed
+					(queue-first queue))))
+	  (queue-first-set! queue new-first)
+	  queue)))
 
   (define list-queue-set-list!
     (case-lambda
