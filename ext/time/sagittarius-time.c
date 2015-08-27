@@ -157,8 +157,8 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     r->sec = 0;
     r->nsec = 0;
   } else {
-    double nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
-    unsigned long nanos = (unsigned long)fabs(fmod(nano, TM_NANO));
+    long nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
+    unsigned long nanos = labs(nano % TM_NANO);
     int64_t secs = nano / TM_NANO;
     r->sec = secs;
     r->nsec = nanos;
@@ -169,15 +169,14 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
 SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r)
 {
   int64_t sec_plus;
-  long rr;
-  unsigned long nsec_plus, q;
+  long nsec_plus, rr, q;
   
   if (!SG_EQ(y->type, time_duration)) {
-    Sg_Error(UC("TIME-ERROR time-differece: no-duration %S"), y);
+    Sg_Error(UC("TIME-ERROR add-duration: no-duration %S"), y);
   }
   sec_plus = x->sec + y->sec;
   nsec_plus = x->nsec + y->nsec;
-  rr = fmod(nsec_plus, TM_NANO);
+  rr = nsec_plus % TM_NANO;
   q = nsec_plus / TM_NANO;
   if (rr < 0) {
     r->sec = sec_plus + q + -1;
@@ -192,16 +191,16 @@ SgObject Sg_AddDuration(SgTime *x, SgTime *y, SgTime *r)
 SgObject Sg_SubDuration(SgTime *x, SgTime *y, SgTime *r)
 {
   int64_t sec_minus;
-  unsigned long nsec_minus, rr, q;
+  long rr, q, nsec_minus;
   
   if (!SG_EQ(y->type, time_duration)) {
-    Sg_Error(UC("TIME-ERROR time-differece: no-duration %S"), y);
+    Sg_Error(UC("TIME-ERROR subtract-duration: no-duration %S"), y);
   }
   sec_minus = x->sec - y->sec;
   nsec_minus = x->nsec - y->nsec;
-  rr = (unsigned long)fmod(nsec_minus, TM_NANO);
+  rr = nsec_minus % TM_NANO;
   q = nsec_minus / TM_NANO;
-  if (r < 0) {
+  if (rr < 0) {
     r->sec = sec_minus - q - 1;
     r->nsec = TM_NANO + rr;
   } else {

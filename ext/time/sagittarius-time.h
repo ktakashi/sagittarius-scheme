@@ -35,7 +35,7 @@
 #include <sagittarius.h>
 #include <time.h>
 
-#define TM_NANO  1.0e9
+#define TM_NANO  1000000000
 #define TM_SID   86400
 #define TM_SIDH  43200
 #define TM_TAI_EPOCH_IN_JD (double)(4881175/2)
