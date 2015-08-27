@@ -2806,7 +2806,7 @@
 
   (define-c-proc fxarithmetic-shift (fx1::<fixnum> fx2::<fixnum>) 
     ::<fixnum> :no-side-effect
-    (when (> (abs fx2) SG_INT_SIZE)
+    (when (> (labs fx2) SG_INT_SIZE)
       (assertion-violation 'fxarithmetic-shift "out of range"
 			   (SG_LIST2 (SG_MAKE_INT fx1) (SG_MAKE_INT fx2))))
     (let ((ret::long 0))

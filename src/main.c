@@ -675,6 +675,8 @@ int main(int argc, char **argv)
 					       SG_INTERN("library"),
 					       SG_INTERN("define-library"))));
   }
+  /* add cleanup here */
+  Sg_AddCleanupHandler(cleanup_main, NULL);
   if (!SG_NULLP(preimport)) {
     SG_FOR_EACH(preimport, Sg_ReverseX(preimport)) {
       Sg_ImportLibrary(vm->currentLibrary, SG_CAR(preimport));
@@ -691,7 +693,6 @@ int main(int argc, char **argv)
 		     SG_INTERN("(sagittarius vm profiler)"));
     Sg_ProfilerStart();
   }
-  Sg_AddCleanupHandler(cleanup_main, NULL);
 
   /* set reader mode etc. */
   if (standard_given)

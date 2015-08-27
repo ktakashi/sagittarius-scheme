@@ -158,7 +158,7 @@ SgObject Sg_TimeDifference(SgTime *x, SgTime *y, SgTime *r)
     r->nsec = 0;
   } else {
     double nano = (x->sec * TM_NANO + x->nsec) - (y->sec * TM_NANO + y->nsec);
-    unsigned long nanos = abs(fmod(nano, TM_NANO));
+    unsigned long nanos = (unsigned long)fabs(fmod(nano, TM_NANO));
     int64_t secs = nano / TM_NANO;
     r->sec = secs;
     r->nsec = nanos;
