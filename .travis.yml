@@ -1,6 +1,6 @@
 notifications:
   recipients:
-    - ktakashi@ymail.com
+    - sagittarius-ci@googlegroups.com
 language: c
 sudo: required
 os:
