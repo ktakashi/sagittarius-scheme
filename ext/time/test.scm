@@ -286,5 +286,16 @@
 (test-assert "timezone-name-list"
 	     (member "Europe/Amsterdam" (timezone-name-list)))
 
+;; extra
+(let ((t (make-time time-utc 0 0))
+      (d (make-time time-duration 100 0)))
+  (define s (subtract-duration t d))
+  (define a (add-duration t d))
+  (test-equal "subtract-duration (second)" -1 (time-second s))
+  (test-equal "subtract-duration (nanosecond)" 999999900 (time-nanosecond s))
+  (test-equal "add-duration (second)" 0 (time-second a))
+  (test-equal "add-duration (nanosecond)" 100 (time-nanosecond a)))
+  
+
 (test-end)
   
