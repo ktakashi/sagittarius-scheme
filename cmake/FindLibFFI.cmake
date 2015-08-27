@@ -40,7 +40,7 @@ IF (LIB_FFI_INCLUDE_DIR)
     HINTS ${PC_LIBFFI_LIBDIR} ${PC_LIBFFI_LIBRARY_DIRS})
 ENDIF()
 
-IF (APPLE AND NOT LIB_FFI_INCLUDE_DIR)
+IF (${CMAKE_SYSTEM_NAME} MATCHES "Darwin" AND NOT LIB_FFI_INCLUDE_DIR)
   # OK workaround for OS X.
   # For some what I don't know reason, Homebrew doesn't link libffi
   # to /usr/local, thus pkg-config can't find it. There's workaround
@@ -49,6 +49,8 @@ IF (APPLE AND NOT LIB_FFI_INCLUDE_DIR)
   # process needs to adjust (which I don't want to do it on CI). So
   # we will detect libffi using
   SET(LIBFFI_CELLER "/usr/local/Cellar/libffi")
+  MESSAGE(STATUS "Searching ${LIBFFI_CELLER} directory")
+
   FILE(GLOB LIBFFI_CELLER_DIRS "${LIBFFI_CELLER}/*")
   # is there a better to sort in desc?
   LIST(SORT LIBFFI_CELLER_DIRS)
@@ -62,16 +64,22 @@ IF (APPLE AND NOT LIB_FFI_INCLUDE_DIR)
 
   # I hope this is the latest installed version
   IF (LIBFFI_CELLER_DIR)
-    MESSAGE(STATUS "Found Celler directory for libffi ${LIBFFI_CELLER_DIR}")
+    MESSAGE(STATUS "Looking for Celler directory of libffi - ${LIBFFI_CELLER_DIR}")
     FILE(GLOB LIB_FFI_INCLUDE_DIR "${LIBFFI_CELLER_DIR}/libffi-*/include")
+
     IF (LIB_FFI_INCLUDE_DIR)
+      MESSAGE(STATUS "Looking for libffi include dir - ${LIB_FFI_INCLUDE_DIR}")
       FIND_LIBRARY(LIB_FFI_LIBRARIES NAMES ffi HINTS ${LIBFFI_CELLER_DIR})
       IF (LIB_FFI_LIBRARIES)
 	MESSAGE(STATUS "Looking for libffi library - ${LIB_FFI_LIBRARIES}")
       ELSE()
 	MESSAGE(STATUS "Looking for libffi library - Not found")
       ENDIF()
+    ELSE()
+      MESSAGE(STATUS "Looking for libffi include dir - Not found")
     ENDIF()
+  ELSE()
+    MESSAGE(STATUS "Lokking for Celler directory of libffi - Not found")
   ENDIF()
 ENDIF()
 
