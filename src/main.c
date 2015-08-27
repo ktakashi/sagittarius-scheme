@@ -432,9 +432,9 @@ static void cleanup_main(void *data)
   }
 }
 
-#if defined(_MSC_VER)
 static int real_main(int argc, tchar **argv);
 
+#if defined(_MSC_VER)
 static int filter(EXCEPTION_POINTERS *ep)
 {
   Sg_DumpNativeStackTrace(ep);
@@ -450,11 +450,99 @@ int wmain(int argc, tchar **argv)
     return -1;
   }
 }
-
-int real_main(int argc, tchar **argv)
 #else
-int main(int argc, char **argv)
+
+#include <signal.h>
+#ifdef HAVE_EXECINFO_H
+# include <execinfo.h>
 #endif
+
+#define MAX_FRAMES 64
+static inline void print_stack_trace(FILE *out)
+{
+#ifdef HAVE_BACKTRACE
+  void* addrlist[MAX_FRAMES+1];
+  char** symbollist = NULL;
+  int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*)), i;
+  
+  fprintf(out, "stack trace:\n");
+  if (addrlen == 0) {
+    fprintf(out, "  \n" );
+    return;
+  }
+#ifdef HAVE_BACKTRACE_SYMBOL
+  symbollist = backtrace_symbols(addrlist, addrlen);
+#endif
+  for (i = 0; i < addrlen; i++) {
+    if (symbollist) {
+      fprintf(out, "  [%d] %s\n", i, symbollist[i]);
+    } else {
+      fprintf(out, "  [%d] unknown source [%p]\n", i, addrlist[i]);
+    }
+  }
+  if (symbollist) free(symbollist);
+#else
+  fprintf(out, "stack trace is not available\n");
+#endif
+}
+
+void abort_handler(int signum, siginfo_t* si, void* unused )
+{
+  const char* name = NULL;
+  switch( signum ) {
+#ifdef SIGABRT
+  case SIGABRT: name = "SIGABRT";  break;
+#endif
+#ifdef SIGSEGV
+  case SIGSEGV: name = "SIGSEGV";  break;
+#endif
+#ifdef SIGBUS
+  case SIGBUS:  name = "SIGBUS";   break;
+#endif
+#ifdef SIGILL
+  case SIGILL:  name = "SIGILL";   break;
+#endif
+#ifdef SIGFPE
+  case SIGFPE:  name = "SIGFPE";   break;
+#endif
+  }
+ 
+  if (name) fprintf(stderr, "Caught signal %d (%s)\n", signum, name );
+  else      fprintf(stderr, "Caught signal %d\n", signum );
+ 
+  print_stack_trace(stderr);
+  exit(signum);
+}
+
+int main(int argc, char **argv)
+{
+  /* set SEGV thing */
+  struct sigaction sa;
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = abort_handler;
+  sigemptyset( &sa.sa_mask );
+  /* the following signals must exists but I don't trust them.
+     (experience from OSX...) */
+#ifdef SIGABRT
+  sigaction(SIGABRT, &sa, NULL );
+#endif
+#ifdef SIGSEGV
+  sigaction(SIGSEGV, &sa, NULL );
+#endif
+#ifdef SIGBUS
+  sigaction(SIGBUS,  &sa, NULL );
+#endif
+#ifdef SIGILL
+  sigaction(SIGILL,  &sa, NULL );
+#endif
+#ifdef SIGFPE
+  sigaction(SIGFPE,  &sa, NULL );
+#endif
+  return real_main(argc, argv);
+}
+
+#endif
+int real_main(int argc, tchar **argv)
 {
   int opt, optionIndex = 0;
   int forceInteactiveP = FALSE, noMainP = FALSE, standard_given = FALSE;

@@ -67,6 +67,7 @@ CHECK_INCLUDE_FILE(io.h        HAVE_IO_H)
 CHECK_INCLUDE_FILE(sys/mman.h  HAVE_SYS_MMAN_H)
 CHECK_INCLUDE_FILE(unistd.h    HAVE_UNISTD_H)
 CHECK_INCLUDE_FILE(semaphore.h HAVE_SEMAPHORE_H)
+CHECK_INCLUDE_FILE(execinfo.h  HAVE_EXECINFO_H)
 
 # sizeofs
 CHECK_TYPE_SIZE(int SIZEOF_INT)
@@ -104,6 +105,8 @@ CHECK_FUNCTION_EXISTS(getrusage     HAVE_GETRUSAGE)
 CHECK_FUNCTION_EXISTS(sched_getaffinity     HAVE_SCHED_GETAFFINITY)
 CHECK_FUNCTION_EXISTS(sem_timedwait HAVE_SEM_TIMEDWAIT)
 CHECK_FUNCTION_EXISTS(sem_trywait   HAVE_SEM_TRYWAIT)
+CHECK_FUNCTION_EXISTS(backtrace     HAVE_BACKTRACE)
+CHECK_FUNCTION_EXISTS(backtrace_symbols     HAVE_BACKTRACE_SYMBOL)
 # CPU_COUNT is a bit tricky
 # Linux man page says it's defined in <sched.h> but seems <unistd.h>
 # is the place

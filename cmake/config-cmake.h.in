@@ -33,6 +33,7 @@
 #cmakedefine HAVE_SYS_MMAN_H
 #cmakedefine HAVE_UNISTD_H
 #cmakedefine HAVE_SEMAPHORE_H
+#cmakedefine HAVE_EXECINFO_H
 
 #cmakedefine HAVE_ALLOCA
 #cmakedefine HAVE_SCHED_YIELD
@@ -44,6 +45,8 @@
 #cmakedefine HAVE_GETRUSAGE
 #cmakedefine HAVE_SEM_TIMEDWAIT
 #cmakedefine HAVE_SEM_TRYWAIT
+#cmakedefine HAVE_BACKTRACE
+#cmakedefine HAVE_BACKTRACE_SYMBOL
 
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP
