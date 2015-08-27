@@ -385,8 +385,13 @@ static void format_bv(SgPort *port, SgObject bv, int radix, int upperP)
   switch (radix) {
   case 2:  format_bin_bv(port, bv); return;
   case 8:  fmt = "#o%o"; break;
-  case 10: fmt = "%u"; break;
   case 16: if (upperP) fmt = "#x%X"; else fmt = "#x%x"; break;
+    /* default case, this isn't needed since format_bv is only used
+       internally and the radix is always one of listed values. 
+       but to make compiler shut. */
+  case 10: 
+  default:
+    fmt = "%u"; break;
   }
 
   Sg_PutuzUnsafe(port, UC("#vu8("));
