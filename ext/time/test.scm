@@ -226,6 +226,20 @@
 	    (date->string (make-date 0 0 0 0 2 12 1981 3600) "~6")
 	    )
 
+;; extra
+(let ((t (make-time time-utc 0 0))
+      (d (make-time time-duration 100 0)))
+  (define s (subtract-duration t d))
+  (define a (add-duration t d))
+  (test-equal "subtract-duration (second)" -1 (time-second s))
+  (test-equal "subtract-duration (nanosecond)" 999999900 (time-nanosecond s))
+  (test-equal "add-duration (second)" 0 (time-second a))
+  (test-equal "add-duration (nanosecond)" 100 (time-nanosecond a)))
+
+(let ((t (make-time time-utc 5000000001 0)))
+  (test-equal "5 sec in nano sec (second)" 5 (time-second t))
+  (test-equal "5 sec in nano sec (nanosecond)" 1 (time-nanosecond t)))
+
 (test-end)
 
 ;; timezone 
@@ -285,17 +299,6 @@
 ;; name-list
 (test-assert "timezone-name-list"
 	     (member "Europe/Amsterdam" (timezone-name-list)))
-
-;; extra
-(let ((t (make-time time-utc 0 0))
-      (d (make-time time-duration 100 0)))
-  (define s (subtract-duration t d))
-  (define a (add-duration t d))
-  (test-equal "subtract-duration (second)" -1 (time-second s))
-  (test-equal "subtract-duration (nanosecond)" 999999900 (time-nanosecond s))
-  (test-equal "add-duration (second)" 0 (time-second a))
-  (test-equal "add-duration (nanosecond)" 100 (time-nanosecond a)))
-  
 
 (test-end)
   

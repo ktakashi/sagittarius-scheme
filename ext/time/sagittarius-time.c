@@ -53,8 +53,10 @@ static SgTime* make_time_int(SgObject type)
 SgObject Sg_MakeTime(SgObject type, int64_t sec, unsigned long nsec)
 {
   SgTime *t = make_time_int(type);
-  t->sec = sec;
-  t->nsec = nsec;
+  unsigned long rn = nsec % TM_NANO;
+  int64_t rs = sec + (nsec / TM_NANO);
+  t->sec = rs;
+  t->nsec = rn;
   return SG_OBJ(t);
 }
 
