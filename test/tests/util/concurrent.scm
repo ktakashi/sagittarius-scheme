@@ -212,7 +212,8 @@
      (make-thread
       (lambda ()
 	(shared-queue-put! shared-queue 'wakeup)
-	(set! results (cons 'w results))))))
+	(set! results (cons 'w results))
+	'awake))))
   (test-equal "max-length" 0 (shared-queue-max-length shared-queue))
   (test-assert "shared-queue-overflows?" 
 	       (shared-queue-overflows? shared-queue 1))
@@ -221,6 +222,7 @@
 	      #f (shared-queue-put! shared-queue 1 0 #f))
   (thread-start! reader)
   (test-equal "join!" 'wakeup (thread-join! reader))
+  (test-equal "join!" 'awake (thread-join! writer))
   (test-equal "results" '(w r) results)
   )
 
