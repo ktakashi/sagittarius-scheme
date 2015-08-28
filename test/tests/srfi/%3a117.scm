@@ -113,9 +113,9 @@
                (lambda (x) (* x 5))
                (lambda (x) (+ x 1))
 	       0 ql))
-  (test '(0 10 20 30 40 50 0 5 10 15 20 25) (list-queue-list qlo))
+  (test '(0 5 10 15 20 25 0 10 20 30 40 50) (list-queue-list qlo))
   ;; i think this is also true but spec doesn't say explicitly...
-  (test '(0 10 20 30 40 50 0 5 10 15 20 25) (list-queue-list ql))
+  (test '(0 5 10 15 20 25 0 10 20 30 40 50) (list-queue-list ql))
 
   (define qr (list-queue-unfold-right
                (lambda (x) (> x 5))
