@@ -47,6 +47,7 @@
 #cmakedefine HAVE_SEM_TRYWAIT
 #cmakedefine HAVE_BACKTRACE
 #cmakedefine HAVE_BACKTRACE_SYMBOL
+#cmakedefine HAVE_BACKTRACE_SYMBOL_FD
 
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP

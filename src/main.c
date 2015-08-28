@@ -462,7 +462,7 @@ static inline void print_stack_trace(FILE *out)
 {
 #ifdef HAVE_BACKTRACE
   void* addrlist[MAX_FRAMES+1];
-  char** symbollist = NULL;
+  /* NB backtrace on glibc is *not* signal safe. but no other way. */
   int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*)), i;
   
   fprintf(out, "stack trace:\n");
@@ -470,20 +470,28 @@ static inline void print_stack_trace(FILE *out)
     fprintf(out, "  \n" );
     return;
   }
-#ifdef HAVE_BACKTRACE_SYMBOL
-  symbollist = backtrace_symbols(addrlist, addrlen);
-#endif
-  for (i = 0; i < addrlen; i++) {
-    if (symbollist) {
-      fprintf(out, "  [%d] %s\n", i, symbollist[i]);
-    } else {
-      fprintf(out, "  [%d] unknown source [%p]\n", i, addrlist[i]);
+# ifdef HAVE_BACKTRACE_SYMBOL_FD
+  /* this is safer (no malloc) */
+  backtrace_symbols_fd(addrlist, addrlen, fileno(out));
+# else
+#  ifdef HAVE_BACKTRACE_SYMBOL
+  /* OK we do need to use malloc */
+  {
+    char** symbollist = backtrace_symbols(addrlist, addrlen);
+#  endif
+    for (i = 0; i < addrlen; i++) {
+      if (symbollist) {
+	fprintf(out, "  [%d] %s\n", i, symbollist[i]);
+      } else {
+	fprintf(out, "  [%d] unknown source [%p]\n", i, addrlist[i]);
+      }
     }
+    if (symbollist) free(symbollist);
   }
-  if (symbollist) free(symbollist);
+#  endif  /* HAVE_BACKTRACE_SYMBOL_FD */
 #else
   fprintf(out, "stack trace is not available\n");
-#endif
+#endif  /* HAVE_BACKTRACE */
 }
 
 void abort_handler(int signum, siginfo_t* si, void* unused )

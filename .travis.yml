@@ -12,6 +12,7 @@ branches:
     - master
 
 before_install:
+  - rm -rf $HOME/.sagittarius
   - echo `pwd`
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" = "osx" ]; then brew install bdw-gc; fi
@@ -28,6 +29,7 @@ before_install:
   - sudo make install
   - cd $TRAVIS_BUILD_DIR
   - echo `pwd`
+  - rm -rf $HOME/.sagittarius
 
 before_script:
   - ./dist.sh gen
