@@ -411,7 +411,6 @@
 	   (goto tail_apply_entry)))))
 
 (define-inst CALL (1 0 #t)
-  (label call_entry)
   (.undef APPLY_CALL)
   (.include "vmcall.c")
   (label tail_apply_entry)

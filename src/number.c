@@ -288,7 +288,7 @@ static double prevfloat(double z)
   int k, sign;
   int64_t m = decode_double(z, &k, &sign);
   ASSERT(sign >= 0);
-  if (m == iexpt_2n52) return ldexp((double)(iexpt_2n53 - 1), k - 1);
+  if (k > -1074 && m == iexpt_2n52) return ldexp((double)(iexpt_2n53 - 1), k - 1);
   return ldexp((double)(m - 1), k);
 }
 
@@ -343,7 +343,8 @@ static double algorithmR(SgObject f, const int e, const double z0)
     }
     test = Sg_NumCmp(D2, y);
     if (test < 0) {
-      if (negP && m == iexpt_2n52 &&
+      if (negP && 
+	  m == iexpt_2n52 &&
 	  k > -1074 &&
 	  Sg_NumGt(Sg_Ash(D2, 1), y)) {
 	z = prevfloat(z);

@@ -1843,4 +1843,6 @@
 	     (guard (e (else (simple-condition? e)))
 	       (raise (make-who-condition 'who))))
 
+;; call #144
+(test-assert "2.225073858507201e-308" (string->number "2.225073858507201e-308"))
 (test-end)
