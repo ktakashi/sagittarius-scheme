@@ -138,6 +138,8 @@ static SgString* id_to_filename(SgString *id)
 {
   SgString *r;
   int size = SG_STRING_SIZE(id), i, offset = 0;
+
+  if (SG_FALSEP(CACHE_DIR)) return NULL;
   
   size += SG_STRING_SIZE(CACHE_DIR);
   size += SG_STRING_SIZE(SEPARATOR);
@@ -1077,6 +1079,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
 
+  if (!cache_path) return FALSE;
+
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
 			      ";;         cache=%A\n"), id, cache_path);
@@ -1936,6 +1940,8 @@ int Sg_ReadCache(SgString *id)
   /* for statistic */
   uint64_t real;
 
+  if (!cache_path) return INVALID_CACHE;
+
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
   }
@@ -2059,7 +2065,8 @@ void Sg_CleanCache(SgObject target)
     /* deletes all possible files */
     SG_FOR_EACH(cache_names, cache_names) {
       SgObject cache_name = id_to_filename(SG_CAR(cache_names));
-      Sg_DeleteFile(cache_name);
+      if (cache_name) 
+	Sg_DeleteFile(cache_name);
     }
   } else {
     SG_FOR_EACH(cache, caches) {
@@ -2101,4 +2108,11 @@ void Sg__InitCache()
 #ifdef STORE_SOURCE_INFO
   SOURCE_INFO = SG_INTERN("source-info");
 #endif
+  if (SG_FALSEP(CACHE_DIR)) {
+    Sg_Warn(UC("Failed to retrieve cache direactory. "
+	       "Maybe permission denied?"));
+    /* set disable cache to avoid unnecessary checks */
+    SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
+  }
+
 }
