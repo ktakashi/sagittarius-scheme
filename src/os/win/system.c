@@ -155,18 +155,26 @@ SgObject Sg_GetenvAlist()
   return ret;
 }
 
-static void path_append(wchar_t *dst, const wchar_t *p)
+static int path_append(wchar_t *dst, const wchar_t *p)
 {
   size_t dsize = wcslen(dst);
+  int ret = (int)dsize;
+
   if (dsize) {
     size_t size = wcslen(p);
     wchar_t last = dst[dsize-1];
-    dst += size;
+    dst += dsize;
+    ret += (int)size + (int)dsize;
     if (last != L'\\') {
       *dst++ = L'\\';
+      ret++;
     }
+  } else {
+    return MAX_PATH+1;
   }
   while (*p) *dst++ = *p++;
+  *dst = L'\0';
+  return ret;
 }
 
 SgObject Sg_GetTemporaryDirectory()
@@ -184,29 +192,34 @@ SgObject Sg_GetTemporaryDirectory()
   find_env("SAGITTARIUS_CACHE_DIR");
   find_env("TEMP");
   find_env("TMP");
+  /* if it's reach here means failed */
   return SG_FALSE;
 
-#define create(v)				\
-  if (_waccess((v), F_OK) == 0) {		\
-    /* something is exists */			\
-    if (!directory_p(v)) return SG_FALSE;	\
-  } else {					\
-    /* create */				\
-    CreateDirectoryW(v, NULL);			\
+#define create(v)					\
+  if (_waccess((v), F_OK) == 0) {			\
+    /* something exists already */			\
+    if (!directory_p(v)) return SG_FALSE;		\
+  } else {						\
+    /* create if failed, then no directory */		\
+    if (!CreateDirectoryW(v, NULL)) {			\
+      if (GetLastError() != ERROR_ALREADY_EXISTS) {	\
+	return SG_FALSE;				\
+      }							\
+    }							\
   }
 
  next:
   /* temporary directory path is too long */
   if (length > MAX_PATH) return SG_FALSE;
-  path_append(value, NAME);
+  if (path_append(value, NAME) > MAX_PATH) return SG_FALSE;
   create(value);
 
-  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_VERSION, 50);
-  path_append(value, buf);
+  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_VERSION, _TRUNCATE);
+  if (path_append(value, buf) > MAX_PATH) return SG_FALSE;
   create(value);
 
-  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_TRIPLE, 50);
-  path_append(value, buf);
+  mbstowcs_s(&ret, buf, 50, SAGITTARIUS_TRIPLE, _TRUNCATE);
+  if (path_append(value, buf) > MAX_PATH) return SG_FALSE;
   create(value);
 
   return utf16ToUtf32(value);
