@@ -437,6 +437,8 @@ static int real_main(int argc, tchar **argv);
 #if defined(_MSC_VER)
 static int filter(EXCEPTION_POINTERS *ep)
 {
+  fputs("Native error occurred\n", stderr);
+  fflush(stderr);		/* not needed but for my mental health */
   Sg_DumpNativeStackTrace(ep);
   return EXCEPTION_CONTINUE_SEARCH;
 }
