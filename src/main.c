@@ -437,7 +437,7 @@ static int real_main(int argc, tchar **argv);
 #if defined(_MSC_VER)
 static int filter(EXCEPTION_POINTERS *ep)
 {
-  fprintf(stderr, "Native error occurred (%d)\n", 
+  fprintf(stderr, "Native error occurred (%x)\n", 
 	  ep->ExceptionRecord->ExceptionCode);
   fflush(stderr);		/* not needed but for my mental health */
   Sg_DumpNativeStackTrace(ep);

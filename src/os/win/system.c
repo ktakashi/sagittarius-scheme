@@ -745,31 +745,38 @@ static int path_remove_file_spec(wchar_t *path)
 
 static void dump_trace(const char *file, void **trace, int count)
 {
-  HANDLE proc = GetCurrentProcess();
-  int initP = symInitialize(proc, NULL, TRUE);
+  HANDLE proc;
+  int initP;
   int i;
   FILE *out;
   PSYMBOL_INFOW info;
   wchar_t searchPath[1024] = {0};
 
+  /* dump something here to see if the process reaches here */
+  fopen_s(&out, file, "a+");
+  fprintf(stderr, "Backtrace: [%d]\n", count);
+  fprintf(out, "Backtrace: [%d]\n", count);
+  fflush(out);
+
+  /* OK do it. */
+  proc = GetCurrentProcess();
+  initP = symInitialize(proc, NULL, TRUE);
   if (symGetSearchPathW(proc, searchPath, 1024)) {
     wchar_t *tmp;
     int count;
     for (count = 0, tmp = searchPath; *tmp; tmp++, count++);
+    if (count >= 1024) goto next; /* in case */
     *tmp++ = L';';
     GetModuleFileNameW(NULL, tmp, 1024-count-1);
     path_remove_file_spec(tmp);
     symSetSearchPathW(proc, searchPath);
   }
 
+ next:
   info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
   info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
   info->SizeOfStruct = sizeof(SYMBOL_INFO);
-  fopen_s(&out, file, "a+");
 
-  fprintf(stderr, "Backtrace: [%d]\n", count);
-  fprintf(out, "Backtrace: [%d]\n", count);
-  fflush(out);
   for (i = 0; i < count; i++) {
     DWORD64 displacement = 0;
     if (initP) {
