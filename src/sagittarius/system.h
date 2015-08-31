@@ -106,6 +106,7 @@ SG_EXTERN uintptr_t Sg_SysProcessCall(SgObject name, SgObject args,
 				      int flags); 
 SG_EXTERN int       Sg_SysProcessWait(uintptr_t pid);
 SG_EXTERN int       Sg_SysProcessKill(uintptr_t pid);
+SG_EXTERN int       Sg_SysProcessAcriveP(uintptr_t pid);
 SG_EXTERN uintptr_t Sg_PidToSysProcess(uintptr_t pid);
 
 /* CPU count

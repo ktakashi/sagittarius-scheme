@@ -455,7 +455,7 @@ static int filter(EXCEPTION_POINTERS *ep)
 
 int wmain(int argc, tchar **argv)
 {
-  volatile __int64 frame;
+  volatile __int64 frame = 0;
   __try {
     return real_main(argc, argv);
   } __except(filter(GetExceptionInformation())) {

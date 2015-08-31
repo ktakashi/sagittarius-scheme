@@ -779,6 +779,19 @@ uintptr_t Sg_PidToSysProcess(uintptr_t pid)
   return pid;
 }
 
+int Sg_SysProcessAcriveP(uintptr_t pid)
+{
+  pid_t p = (pid_t)pid;
+  /* If sig is 0 (the null signal), error checking is performed but no 
+     signal is actually sent. The null signal can be used to check the 
+     validity of pid. */
+  if(kill(p, 0)) {
+    if (errno == ESRCH) return FALSE;
+  }
+  /* should this the case? */
+  return TRUE;
+}
+
 /* general fallback */
 static int cpu_count = 1;
 

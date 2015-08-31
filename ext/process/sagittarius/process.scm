@@ -47,6 +47,7 @@
 	    process-call
 	    process-wait
 	    process-kill
+	    process-active?
 	    <process>
 
 	    ;; user level APIs
@@ -104,6 +105,8 @@
     (process-wait p))
   (define (process-kill p)
     (sys-process-kill (slot-ref p 'pid)))
+  (define (process-active? p)
+    (sys-process-active? (slot-ref p 'pid)))
 
   (define (pid->process pid)
     ;; attached process.

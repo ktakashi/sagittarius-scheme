@@ -1364,6 +1364,13 @@
 	 (result (Sg_SysProcessKill
 	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
 
+  (define-c-proc sys-process-active? (pid::<integer>) ::<boolean>
+    (.if "SIZEOF_VOIDP >= 8"
+	 (result (Sg_SysProcessAcriveP
+	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
+	 (result (Sg_SysProcessAcriveP
+	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
+
   ;; cpu-count
   (define-c-proc cpu-count () ::<fixnum> Sg_CPUCount)
 

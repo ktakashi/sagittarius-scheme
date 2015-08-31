@@ -590,6 +590,16 @@ uintptr_t Sg_PidToSysProcess(uintptr_t pid)
   return (uintptr_t)make_win_process(process);
 }
 
+int Sg_SysProcessAcriveP(uintptr_t pid)
+{
+  SgWinProcess *p = (SgWinProcess *)pid;
+  DWORD status = 0;
+  if (!GetExitCodeProcess(p->process, &status)) {
+    return FALSE;		/* I don't know maybe it's dead? */
+  }
+  return status == STILL_ACTIVE;
+}
+
 static void cleanup_win_proc(void *data)
 {
   int i;
