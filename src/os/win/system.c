@@ -674,6 +674,7 @@ static int init_func()
 
 static int fill_trace(EXCEPTION_POINTERS *ep, void **trace)
 {
+  /* copy the context. NB: StackWalk64 may change the passing context. */
   CONTEXT cr = *ep->ContextRecord;
   STACKFRAME64 stack_frame;
   HANDLE cp, ct;
@@ -743,19 +744,20 @@ static int path_remove_file_spec(wchar_t *path)
   return TRUE;
 }
 
-static void dump_trace(const char *file, void **trace, int count)
+static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
 {
   HANDLE proc;
   int initP;
-  int i;
+  int i, count;
   FILE *out;
   PSYMBOL_INFOW info;
   wchar_t searchPath[1024] = {0};
+  void *trace[MAX_STACK_SIZE];
 
   /* dump something here to see if the process reaches here */
   fopen_s(&out, file, "a+");
-  fprintf(stderr, "Backtrace: [%d]\n", count);
-  fprintf(out, "Backtrace: [%d]\n", count);
+  fputs("Backtrace:\n", stderr);
+  fputs("Backtrace:\n", out);
   fflush(out);
 
   /* OK do it. */
@@ -763,11 +765,11 @@ static void dump_trace(const char *file, void **trace, int count)
   initP = symInitialize(proc, NULL, TRUE);
   if (symGetSearchPathW(proc, searchPath, 1024)) {
     wchar_t *tmp;
-    int count;
-    for (count = 0, tmp = searchPath; *tmp; tmp++, count++);
-    if (count >= 1024) goto next; /* in case */
+    int c;
+    for (c = 0, tmp = searchPath; *tmp; tmp++, c++);
+    if (c >= 1024) goto next; /* in case */
     *tmp++ = L';';
-    GetModuleFileNameW(NULL, tmp, 1024-count-1);
+    GetModuleFileNameW(NULL, tmp, 1024-c-1);
     path_remove_file_spec(tmp);
     symSetSearchPathW(proc, searchPath);
   }
@@ -776,6 +778,27 @@ static void dump_trace(const char *file, void **trace, int count)
   info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
   info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
   info->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+  if (initP) {
+    /* get the information of exception address */
+    DWORD64 displacement = 0;
+    void *addr = ep->ExceptionRecord->ExceptionAddress;
+    if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
+      IMAGEHLP_LINEW64 line;
+      line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+      if (symGetLineFromAddrW64(proc, (DWORD64)addr,
+				(PDWORD)&displacement, &line)) {
+	print(stderr, i, addr, info, &line);
+	print(out, i, addr, info, &line);
+      } else {
+	print(stderr, i, addr, info, NULL);
+	print(out, i, addr, info, NULL);
+      }
+    }
+  }
+
+  /* fill stack */
+  count = fill_trace(ep, trace);
 
   for (i = 0; i < count; i++) {
     DWORD64 displacement = 0;
@@ -787,10 +810,13 @@ static void dump_trace(const char *file, void **trace, int count)
 				  (PDWORD)&displacement, &line)) {
 	  print(stderr, i, trace[i], info, &line);
 	  print(out, i, trace[i], info, &line);
+	} else {
+	  print(stderr, i, trace[i], info, NULL);
+	  print(out, i, trace[i], info, NULL);
 	}
       } else {
-	print(stderr, i, trace[i], info, NULL);
-	print(out, i, trace[i], info, NULL);
+	print(stderr, i, trace[i], NULL, NULL);
+	print(out, i, trace[i], NULL, NULL);
       }
     } else {
       print(stderr, i, trace[i], NULL, NULL);
@@ -805,9 +831,7 @@ static void dump_trace(const char *file, void **trace, int count)
 void Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep)
 {
   if (init_func()) {
-    void *trace[MAX_STACK_SIZE];
-    int count = fill_trace(ep, trace);
-    dump_trace("dump.txt", trace, count);
+    dump_trace("dump.txt", ep);
   } else {
     fputs("Failed to dump stack trace.\n", stderr);
   }
