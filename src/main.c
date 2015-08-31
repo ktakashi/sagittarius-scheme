@@ -467,7 +467,7 @@ static inline void print_stack_trace(FILE *out)
 #ifdef HAVE_BACKTRACE
   void* addrlist[MAX_FRAMES+1];
   /* NB backtrace on glibc is *not* signal safe. but no other way. */
-  int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*)), i;
+  int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
   
   fprintf(out, "stack trace:\n");
   if (addrlen == 0) {
@@ -482,6 +482,7 @@ static inline void print_stack_trace(FILE *out)
   /* OK we do need to use malloc */
   {
     char** symbollist = backtrace_symbols(addrlist, addrlen);
+    int i;
 #  endif
     for (i = 0; i < addrlen; i++) {
       if (symbollist) {

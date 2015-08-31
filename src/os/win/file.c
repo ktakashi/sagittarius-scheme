@@ -375,10 +375,15 @@ static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;
 
+static SgFile *get_standard(DWORD n)
+{
+  return SG_FILE(Sg_MakeFileFromFD((uintptr_t)GetStdHandle(n)));
+}
+
 SgObject Sg_StandardOut()
 {
   if (!stdOut) {
-    stdOut = Sg_MakeFileFromFD(GetStdHandle(STD_OUTPUT_HANDLE));
+    stdOut = get_standard(STD_OUTPUT_HANDLE);
     stdOut->name = UC("stdout");
   }
   return SG_OBJ(stdOut);
@@ -387,7 +392,7 @@ SgObject Sg_StandardOut()
 SgObject Sg_StandardIn()
 {
   if (!stdIn) {
-    stdIn = Sg_MakeFileFromFD(GetStdHandle(STD_INPUT_HANDLE));
+    stdIn = get_standard(STD_INPUT_HANDLE);
     stdIn->name = UC("stdin");
   }
   return SG_OBJ(stdIn);
@@ -396,7 +401,7 @@ SgObject Sg_StandardIn()
 SgObject Sg_StandardError()
 {
   if (!stdError) {
-    stdError = Sg_MakeFileFromFD(GetStdHandle(STD_ERROR_HANDLE));
+    stdError = get_standard(STD_ERROR_HANDLE);
     stdError->name = UC("stderr");
   }
   return SG_OBJ(stdError);

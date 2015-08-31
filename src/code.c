@@ -368,7 +368,7 @@ SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb)
 
 static SgObject uintptr_to_integer(uintptr_t i)
 {
-#if SIZEOF_VOID == 8
+#if SIZEOF_VOIDP == 8
   return Sg_MakeIntegerFromU64(i);
 #else
   return Sg_MakeIntegerU(i);
@@ -377,7 +377,7 @@ static SgObject uintptr_to_integer(uintptr_t i)
 
 static SgObject intptr_to_integer(intptr_t i)
 {
-#if SIZEOF_VOID == 8
+#if SIZEOF_VOIDP == 8
   return Sg_MakeIntegerFromS64(i);
 #else
   return Sg_MakeInteger(i);

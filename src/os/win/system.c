@@ -716,6 +716,8 @@ static int fill_trace(EXCEPTION_POINTERS *ep, void **trace)
 static void print(FILE *out, int index, void *addr,
 		  SYMBOL_INFOW *info, IMAGEHLP_LINEW64 *line)
 {
+  if (!out) return;
+
   fprintf(out, "[%d] %p:", index, addr);
   if (info) {
     fprintf(out, " %S", info->Name);
@@ -751,19 +753,22 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
   int i, count;
   FILE *out;
   PSYMBOL_INFOW info;
-  wchar_t searchPath[1024] = {0};
+  wchar_t searchPath[1024];
   void *trace[MAX_STACK_SIZE];
 
   /* dump something here to see if the process reaches here */
-  fopen_s(&out, file, "a+");
+  if (fopen_s(&out, file, "a+")) {
+    /* failed don't use it */
+    out = NULL;
+  }
   fputs("Backtrace:\n", stderr);
-  fputs("Backtrace:\n", out);
-  fflush(out);
+  if (out) fputs("Backtrace:\n", out);
+  if (out) fflush(out);
 
   /* OK do it. */
   proc = GetCurrentProcess();
   initP = symInitialize(proc, NULL, TRUE);
-  if (symGetSearchPathW(proc, searchPath, 1024)) {
+  if (initP && symGetSearchPathW(proc, searchPath, 1024)) {
     wchar_t *tmp;
     int c;
     for (c = 0, tmp = searchPath; *tmp; tmp++, c++);
@@ -772,6 +777,8 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
     GetModuleFileNameW(NULL, tmp, 1024-c-1);
     path_remove_file_spec(tmp);
     symSetSearchPathW(proc, searchPath);
+  } else {
+    *searchPath = L'\0';
   }
 
  next:
@@ -788,11 +795,11 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
       line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
       if (symGetLineFromAddrW64(proc, (DWORD64)addr,
 				(PDWORD)&displacement, &line)) {
-	print(stderr, i, addr, info, &line);
-	print(out, i, addr, info, &line);
+	print(stderr, 0, addr, info, &line);
+	print(out, 0, addr, info, &line);
       } else {
-	print(stderr, i, addr, info, NULL);
-	print(out, i, addr, info, NULL);
+	print(stderr, 0, addr, info, NULL);
+	print(out, 0, addr, info, NULL);
       }
     }
   }
@@ -823,7 +830,7 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
       print(out, i, trace[i], NULL, NULL);
     }
   }
-  fclose(out);
+  if (out) fclose(out);
   free(info);
 }
 
