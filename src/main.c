@@ -443,7 +443,7 @@ static int filter(EXCEPTION_POINTERS *ep)
   exceptionAddress = ep->ExceptionRecord->ExceptionAddress;
   exceptionCode = ep->ExceptionRecord->ExceptionCode;
   fprintf(stderr, "Native error occurred at %p (%x)\n", 
-	  exceptionaddress, exceptioncode);
+	  exceptionAddress, exceptionCode);
   fflush(stderr);		/* not needed but for my mental health */
   __try {
     Sg_DumpNativeStackTrace(ep);
