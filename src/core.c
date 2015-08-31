@@ -169,12 +169,8 @@ void Sg_Init()
 
   /* this is scmlib.scm */
   Sg__Init_core_base();
-
-  /* generic initialization must be after the libraries initialization */
+  /* record can be here. */
   Sg__InitRecord();
-  /* each time when we put something in null, we need to add */
-  /* this is even funny... orz */
-  /* Sg_ImportLibrary(coreBase, nullsym); */
   Sg__InitConditions();
 
   Sg_ImportLibrary(coreBase, nullsym);

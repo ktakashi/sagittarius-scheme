@@ -530,14 +530,10 @@ static inline void report_error(SgObject exception, SgObject out)
   }
   /* for some reason, certain Windows platform failed to create
      stdout, at that moment, there is no stderr ready so out might
-     be NULL. */
-  if (out && SG_PORTP(out)) {
-    Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
-  } else {
-    /* Ok, something is wrong, so just dump to CRT stderr */
-    SgObject m = Sg_GetStringFromStringPort(buf);
-    fprintf(stderr, "%s\n", Sg_Utf32sToUtf8s(m));
-  }
+     be NULL.
+     NB: in the case, it's an unrecoverable error, so just dump
+         native stack trace.*/
+  Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
 }
 
