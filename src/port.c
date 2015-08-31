@@ -235,7 +235,7 @@ static struct {
 } active_buffered_ports = { 1, NULL };
 
 #define PORT_HASH(port)  \
-  ((((SG_WORD(port)>>3) * 2654435761UL)>>16) % PORT_VECTOR_SIZE)
+  (((((uintptr_t)(port)>>3) * 2654435761UL)>>16) % PORT_VECTOR_SIZE)
 
 
 static void register_buffered_port(SgPort *port)
@@ -247,10 +247,15 @@ static void register_buffered_port(SgPort *port)
  retry:
   h = i = (int)PORT_HASH(port);
   c = 0;
+  /* make sure h and i are not negative values. */
+  if (h < 0) {
+    h = i = -h;
+  }
   Sg_LockMutex(&active_buffered_ports.lock);
   while (!SG_FALSEP(Sg_WeakVectorRef(active_buffered_ports.ports,
 				     i, SG_FALSE))) {
-    i -= ++c; while (i < 0) i += PORT_VECTOR_SIZE;
+    i -= ++c; 
+    while (i < 0) i += PORT_VECTOR_SIZE;
     if (i == h) {
       /* Vector entry is full. We run global GC to try to collect
 	 unused entry. */
