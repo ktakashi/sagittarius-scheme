@@ -865,11 +865,12 @@ void Sg_ShowAddressFunction(void *addr)
   if (out) fputs("Caused address info:\n", out);
   if (out) fflush(out);
 
-  if (init_func) {
+  if (init_func()) {
     proc = GetCurrentProcess();
     initP = symInitialize(proc, NULL, TRUE);  
     if (initP) {
       PSYMBOL_INFOW info;
+      DWORD64 displacement = 0;
       init_search_path(proc);
       /* allocate */
       info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
