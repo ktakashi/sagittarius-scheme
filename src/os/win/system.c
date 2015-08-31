@@ -753,7 +753,7 @@ static void init_search_path(HANDLE proc)
     wchar_t *tmp;
     int c;
     for (c = 0, tmp = searchPath; *tmp; tmp++, c++);
-    if (c >= 1024) goto next; /* in case */
+    if (c >= 1024) return; /* in case */
     *tmp++ = L';';
     GetModuleFileNameW(NULL, tmp, 1024-c-1);
     path_remove_file_spec(tmp);
@@ -761,7 +761,7 @@ static void init_search_path(HANDLE proc)
   }
 }
 
-static void dump_trace_rec(FILE *out, HANDLE proc, 
+static void dump_trace_rec(FILE *out, HANDLE proc, EXCEPTION_POINTERS *ep,
 			   PSYMBOL_INFOW info, int initP)
 {
   void *trace[MAX_STACK_SIZE];
@@ -817,7 +817,6 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
     init_search_path(proc);
   }
 
- next:
   info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
   info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
   info->SizeOfStruct = sizeof(SYMBOL_INFO);
@@ -839,7 +838,7 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
       }
     }
   }
-  dump_trace_rec(out, proc, info, initP);
+  dump_trace_rec(out, proc, ep, info, initP);
   free(info);
 }
 
