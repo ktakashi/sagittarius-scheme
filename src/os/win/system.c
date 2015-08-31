@@ -846,7 +846,7 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
 void Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep)
 {
   if (init_func()) {
-    dump_trace("dump.txt", ep);
+    dump_trace("sagittarius_stackdump.txt", ep);
   } else {
     fputs("Failed to dump stack trace.\n", stderr);
   }
@@ -857,7 +857,7 @@ void Sg_ShowAddressFunction(void *addr)
   HANDLE proc;
   FILE *out;
   int initP;
-  if (fopen_s(&out, "cause.txt", "a+")) {
+  if (fopen_s(&out, "sagittarius_exception_addr.txt", "a+")) {
     /* failed don't use it */
     out = NULL;
   }
