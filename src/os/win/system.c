@@ -594,6 +594,10 @@ int Sg_SysProcessAcriveP(uintptr_t pid)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
   DWORD status = 0;
+  /* sanity */
+  if (!SG_WIN_PROCP(p)) Sg_Error(UC("invalid pid %S"), SG_OBJ(p));
+  if (p->process == (HANDLE)-1) return FALSE;  
+
   if (!GetExitCodeProcess(p->process, &status)) {
     return FALSE;		/* I don't know maybe it's dead? */
   }
