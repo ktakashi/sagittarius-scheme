@@ -176,6 +176,20 @@ process. If the process is already terminated before the @code{process-kill}
 is called, then returning value is its status code. Otherwise -1.
 }
 
+@define[Function]{@name{process-active?} @args{process}}
+@desc{@var{process} must be a process object.
+
+Return #t if the given @var{process} is still active. Otherwise #f.
+
+On Windows, the procedure uses @code{GetExitCodeProcess} which means
+if the process returns @code{STILL_ACTIVE(259)}, then this procedure
+return #t even if the process itself is already terminated.
+
+On POSIX, the procedure uses @code{kill (2)} sending 0 to check the
+existance of the process.
+}
+
+
 @define[Function]{@name{getpid} @args{}}
 @desc{Returns pid of current Sagittarius process. The returning value
 is an integer.
