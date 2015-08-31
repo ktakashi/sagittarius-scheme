@@ -746,29 +746,10 @@ static int path_remove_file_spec(wchar_t *path)
   return TRUE;
 }
 
-static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
+static void init_search_path(HANDLE proc)
 {
-  HANDLE proc;
-  int initP;
-  int i, count;
-  FILE *out;
-  PSYMBOL_INFOW info;
   wchar_t searchPath[1024];
-  void *trace[MAX_STACK_SIZE];
-
-  /* dump something here to see if the process reaches here */
-  if (fopen_s(&out, file, "a+")) {
-    /* failed don't use it */
-    out = NULL;
-  }
-  fputs("Backtrace:\n", stderr);
-  if (out) fputs("Backtrace:\n", out);
-  if (out) fflush(out);
-
-  /* OK do it. */
-  proc = GetCurrentProcess();
-  initP = symInitialize(proc, NULL, TRUE);
-  if (initP && symGetSearchPathW(proc, searchPath, 1024)) {
+  if (symGetSearchPathW(proc, searchPath, 1024)) {
     wchar_t *tmp;
     int c;
     for (c = 0, tmp = searchPath; *tmp; tmp++, c++);
@@ -777,35 +758,15 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
     GetModuleFileNameW(NULL, tmp, 1024-c-1);
     path_remove_file_spec(tmp);
     symSetSearchPathW(proc, searchPath);
-  } else {
-    *searchPath = L'\0';
   }
+}
 
- next:
-  info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
-  info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
-  info->SizeOfStruct = sizeof(SYMBOL_INFO);
-
-  if (initP) {
-    /* get the information of exception address */
-    DWORD64 displacement = 0;
-    void *addr = ep->ExceptionRecord->ExceptionAddress;
-    if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
-      IMAGEHLP_LINEW64 line;
-      line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
-      if (symGetLineFromAddrW64(proc, (DWORD64)addr,
-				(PDWORD)&displacement, &line)) {
-	print(stderr, 0, addr, info, &line);
-	print(out, 0, addr, info, &line);
-      } else {
-	print(stderr, 0, addr, info, NULL);
-	print(out, 0, addr, info, NULL);
-      }
-    }
-  }
-
+static void dump_trace_rec(FILE *out, HANDLE proc, 
+			   PSYMBOL_INFOW info, int initP)
+{
+  void *trace[MAX_STACK_SIZE];
   /* fill stack */
-  count = fill_trace(ep, trace);
+  int i, count = fill_trace(ep, trace);
 
   for (i = 0; i < count; i++) {
     DWORD64 displacement = 0;
@@ -831,6 +792,54 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
     }
   }
   if (out) fclose(out);
+}
+
+static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
+{
+  HANDLE proc;
+  int initP;
+  FILE *out;
+  PSYMBOL_INFOW info;
+
+  /* dump something here to see if the process reaches here */
+  if (fopen_s(&out, file, "a+")) {
+    /* failed don't use it */
+    out = NULL;
+  }
+  fputs("Backtrace:\n", stderr);
+  if (out) fputs("Backtrace:\n", out);
+  if (out) fflush(out);
+
+  /* OK do it. */
+  proc = GetCurrentProcess();
+  initP = symInitialize(proc, NULL, TRUE);
+  if (initP) {
+    init_search_path(proc);
+  }
+
+ next:
+  info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
+  info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
+  info->SizeOfStruct = sizeof(SYMBOL_INFO);
+
+  if (initP) {
+    /* get the information of exception address */
+    DWORD64 displacement = 0;
+    void *addr = ep->ExceptionRecord->ExceptionAddress;
+    if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
+      IMAGEHLP_LINEW64 line;
+      line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+      if (symGetLineFromAddrW64(proc, (DWORD64)addr,
+				(PDWORD)&displacement, &line)) {
+	print(stderr, 0, addr, info, &line);
+	print(out, 0, addr, info, &line);
+      } else {
+	print(stderr, 0, addr, info, NULL);
+	print(out, 0, addr, info, NULL);
+      }
+    }
+  }
+  dump_trace_rec(out, proc, info, initP);
   free(info);
 }
 
