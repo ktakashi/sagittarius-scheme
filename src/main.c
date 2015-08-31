@@ -435,23 +435,36 @@ static void cleanup_main(void *data)
 static int real_main(int argc, tchar **argv);
 
 #if defined(_MSC_VER)
+static void *exceptionAddress = NULL;
+static int   exceptionCode = 0;
+static int   showCausedFunction = FALSE;
 static int filter(EXCEPTION_POINTERS *ep)
 {
+  exceptionAddress = ep->ExceptionRecord->ExceptionAddress;
+  exceptionCode = ep->ExceptionRecord->ExceptionCode;
   fprintf(stderr, "Native error occurred at %p (%x)\n", 
-	  ep->ExceptionRecord->ExceptionAddress,
-	  ep->ExceptionRecord->ExceptionCode);
+	  exceptionaddress, exceptioncode);
   fflush(stderr);		/* not needed but for my mental health */
-  Sg_DumpNativeStackTrace(ep);
-  return EXCEPTION_CONTINUE_SEARCH;
+  __try {
+    Sg_DumpNativeStackTrace(ep);
+  } __except(EXCEPTION_EXECUTE_HANDLER) {
+    showCausedFunction = TRUE;
+  }
+  return EXCEPTION_EXECUTE_HANDLER;
 }
 
 int wmain(int argc, tchar **argv)
 {
+  volatile __int64 frame;
   __try {
     return real_main(argc, argv);
   } __except(filter(GetExceptionInformation())) {
-    /* shouldn't reach here */
-    return -1;
+    if (showCausedFunction) {
+      Sg_SanitiseStack(&frame);
+      /* ok try the caused one*/
+      Sg_ShowAddressFunction(exceptionAddress);
+    }
+    return exceptionCode;
   }
 }
 #else

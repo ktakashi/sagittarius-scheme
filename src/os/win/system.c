@@ -819,7 +819,7 @@ static void dump_trace(const char *file, EXCEPTION_POINTERS *ep)
 
   info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
   info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
-  info->SizeOfStruct = sizeof(SYMBOL_INFO);
+  info->SizeOfStruct = sizeof(SYMBOL_INFOW);
 
   if (initP) {
     /* get the information of exception address */
@@ -849,6 +849,81 @@ void Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep)
     dump_trace("dump.txt", ep);
   } else {
     fputs("Failed to dump stack trace.\n", stderr);
+  }
+}
+
+void Sg_ShowAddressFunction(void *addr)
+{
+  HANDLE proc;
+  FILE *out;
+  int initP;
+  if (fopen_s(&out, "cause.txt", "a+")) {
+    /* failed don't use it */
+    out = NULL;
+  }
+  fputs("Caused address info:\n", stderr);
+  if (out) fputs("Caused address info:\n", out);
+  if (out) fflush(out);
+
+  if (init_func) {
+    proc = GetCurrentProcess();
+    initP = symInitialize(proc, NULL, TRUE);  
+    if (initP) {
+      PSYMBOL_INFOW info;
+      init_search_path(proc);
+      /* allocate */
+      info = (PSYMBOL_INFOW)malloc(MALLOC_SIZE);
+      info->MaxNameLen = MAX_SYMBOL_LENNGTH - 1;
+      info->SizeOfStruct = sizeof(SYMBOL_INFOW);
+
+      if (symFromAddrW(proc, (DWORD64)addr, &displacement, info)) {
+	IMAGEHLP_LINEW64 line;
+	line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+	if (symGetLineFromAddrW64(proc, (DWORD64)addr,
+				  (PDWORD)&displacement, &line)) {
+	  print(stderr, 0, addr, info, &line);
+	  print(out, 0, addr, info, &line);
+	} else {
+	  print(stderr, 0, addr, info, NULL);
+	  print(out, 0, addr, info, NULL);
+	}
+      }
+      free(info);
+    }
+  } else {
+    /* ok not available. */
+    fprintf(stderr, "address: %p", addr);
+    if (out) fprintf(stderr, "address: %p", out);
+  }
+
+}
+
+void Sg_SanitiseStack(void *boundary)
+{
+  LPBYTE lpPage = (LPBYTE)boundary;
+  SYSTEM_INFO si;
+  MEMORY_BASIC_INFORMATION mi;
+  DWORD dwOldProtect;
+
+  /* Get page size of system */
+  GetSystemInfo(&si);            
+  /* Find SP address */
+    
+  /* Get allocation base of stack */
+  VirtualQuery(lpPage, &mi, sizeof(mi));
+  /* Go to page beyond current page */
+  lpPage = (LPBYTE)(mi.BaseAddress)-si.dwPageSize;
+  /* Free portion of stack just abandoned */
+  if (!VirtualFree(mi.AllocationBase,
+		   (LPBYTE)lpPage - (LPBYTE)mi.AllocationBase,
+		   MEM_DECOMMIT)) {
+    Sg_Panic("VirtualFree failed during stack recovery");
+  }
+  /* Reintroduce the guard page */
+  if (!VirtualProtect(lpPage, si.dwPageSize, 
+		      PAGE_GUARD | PAGE_READWRITE, 
+		      &dwOldProtect)) {
+    Sg_Panic("VirtualProtect failed during stack recovery");
   }
 }
 

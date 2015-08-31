@@ -1085,31 +1085,7 @@ void format_write(SgObject obj, SgPort *port, SgWriteContext *ctx, int sharedp)
 #ifdef _MSC_VER
   } __except(GetExceptionCode() == EXCEPTION_STACK_OVERFLOW ? 
              EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
-    LPBYTE lpPage = (LPBYTE)(&frame);
-    SYSTEM_INFO si;
-    MEMORY_BASIC_INFORMATION mi;
-    DWORD dwOldProtect;
-
-    /* Get page size of system */
-    GetSystemInfo(&si);            
-    /* Find SP address */
-    
-    /* Get allocation base of stack */
-    VirtualQuery(lpPage, &mi, sizeof(mi));
-    /* Go to page beyond current page */
-    lpPage = (LPBYTE)(mi.BaseAddress)-si.dwPageSize;
-    /* Free portion of stack just abandoned */
-    if (!VirtualFree(mi.AllocationBase,
-		     (LPBYTE)lpPage - (LPBYTE)mi.AllocationBase,
-		     MEM_DECOMMIT)) {
-      Sg_Panic("VirtualFree failed during stack recovery");
-    }
-    /* Reintroduce the guard page */
-    if (!VirtualProtect(lpPage, si.dwPageSize, 
-			PAGE_GUARD | PAGE_READWRITE, 
-			&dwOldProtect)) {
-      Sg_Panic("VirtualProtect failed during stack recovery");
-    }
+    Sg_SanitiseStack(&frame);
     Sg_IOWriteError((SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY)
 		    ? SG_INTERN("display")
 		    : SG_INTERN("write"),
