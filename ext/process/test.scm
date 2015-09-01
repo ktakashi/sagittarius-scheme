@@ -13,7 +13,7 @@
   (test-assert "process?" (process? proc))
   ;; some how this doesn't work, why?
   ;; on debugger it works... i don't get it.
-  (test-assert "call" (integer? (process-call proc)))
+  (test-assert "call (1)" (integer? (process-call proc)))
   (let ((r (process-wait proc)))
     (test-assert "status" (integer? r))
     (test-equal "process-wait" 0 r)
@@ -25,7 +25,7 @@
 (let ((proc (make-process *process-name* '())))
   ;; some how this doesn't work, why?
   ;; on debugger it works... i don't get it.
-  (test-assert "call" (integer? (process-call proc)))
+  (test-assert "call (2)" (integer? (process-call proc)))
   (let ((r (process-wait proc)))
     ;; we don't interpret
     (cond-expand
@@ -56,7 +56,7 @@
 (let* ((shm (open-shared-memory "/sagittarius-process" 4096))
        (proc (make-process *shm-name* '()))
        (bv (shared-memory->bytevector shm)))
-  (test-assert "call" (process-call proc))
+  (test-assert "call (3)" (process-call proc))
   (test-assert "wait"  (process-wait proc))
   (test-equal "ref" "process" (utf8->string (bytevector-copy bv 0 7)))
   (test-assert "close" (close-shared-memory shm)))
@@ -81,5 +81,6 @@
 ;; process-kill
 (let ((p (make-process (build-path build-directory-path "test-kill.bin") '())))
   (process-call p)
+  (test-assert "process-active?" (process-active? p))
   (test-equal "process-kill" -1 (process-kill p)))
 (test-end)
