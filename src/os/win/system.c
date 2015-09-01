@@ -358,7 +358,7 @@ static struct {
 } active_win_procs = { 1, NULL };
 
 #define PROC_HASH(port)  \
-  ((((SG_WORD(port)>>3) * 2654435761UL)>>16) % PROCESS_VECTOR_SIZE)
+  (((((uintptr_t)(port)>>3) * 2654435761UL)>>16) % PROCESS_VECTOR_SIZE)
 
 SG_CLASS_DECL(Sg_WinProcessClass);
 #define SG_CLASS_WIN_PROC (&Sg_WinProcessClass)
@@ -389,6 +389,9 @@ static void register_win_proc(SgWinProcess *proc)
  retry:
   h = i = (int)PROC_HASH(proc);
   c = 0;
+  if (h < 0) {
+    h = i = -h;
+  }
   Sg_LockMutex(&active_win_procs.lock);
   while (!SG_FALSEP(Sg_WeakVectorRef(active_win_procs.procs,
 				     i, SG_FALSE))) {

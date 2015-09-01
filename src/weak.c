@@ -97,7 +97,7 @@ SgObject Sg_WeakVectorRef(SgWeakVector *v, int index, SgObject fallback)
   SgObject *p;
   if (index < 0 || index >= v->size) {
     if (SG_UNBOUNDP(fallback)) {
-      Sg_Error(UC("argument out of range: %d"), index);
+      Sg_Error(UC("weak-vector-ref: argument out of range: %d"), index);
     }
     return fallback;
   }
@@ -114,7 +114,7 @@ SgObject Sg_WeakVectorSet(SgWeakVector *v, int index, SgObject value)
 {
   SgObject *p;
   if (index < 0 || index >= v->size) {
-    Sg_Error(UC("argument out of range: %d"), index);
+    Sg_Error(UC("weak-vector-set!: argument out of range: %d"), index);
   }
   p = (SgObject*)v->pointers;
   /* unregister the location if it was registered before */
