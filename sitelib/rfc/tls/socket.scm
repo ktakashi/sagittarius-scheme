@@ -1591,7 +1591,8 @@
   (define (tls-socket-recv socket size :optional (flags 0))
     (let* ((bv (make-bytevector size))
 	   (r (tls-socket-recv! socket bv 0 size flags)))
-      (cond ((= r size) bv)
+      (cond ((not r) r) ;; non blocking socket
+	    ((= r size) bv)
 	    ((< r 0) #f) ;; non blocking?
 	    (else (bytevector-copy bv 0 r)))))
 
