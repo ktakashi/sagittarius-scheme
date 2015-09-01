@@ -525,8 +525,8 @@
   (define-syntax %test-evaluate-with-catch
     (syntax-rules ()
       ((%test-evaluate-with-catch test-expression)
-       (guard (ex (else #f))
-	 test-expression))))
+       (guard (ex (else (values #f ex)))
+	 (values #t test-expression)))))
 
   (define (%test-source-line2 form)
     '())
@@ -552,7 +552,7 @@
 	 (if (%test-on-test-begin r)
 	     (let ((exp expected))
 	       (test-result-set! r 'expected-value exp)
-	       (let ((res (%test-evaluate-with-catch expr)))
+	       (let-values (((success? res) (%test-evaluate-with-catch expr)))
 		 (test-result-set! r 'actual-value res)
 		 (%test-on-test-end r (comp exp res)))))
 	 (%test-report-result)))))
@@ -568,9 +568,9 @@
        (let ()
 	 (if (%test-on-test-begin r)
 	     (let ()
-	       (let ((res (%test-evaluate-with-catch expr)))
+	       (let-values (((success? res) (%test-evaluate-with-catch expr)))
 		 (test-result-set! r 'actual-value res)
-		 (%test-on-test-end r res))))
+		 (%test-on-test-end r success?))))
 	 (%test-report-result)))))
   (define-syntax test-end
     (syntax-rules ()
