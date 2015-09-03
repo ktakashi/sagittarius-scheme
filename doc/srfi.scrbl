@@ -171,14 +171,36 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     is @code{(srfi :116)}. So for the portability it's better to use the
     @code{(srfi :116)}.
 
-    The name @code{ilists} is taken from reference implementation.
+    The name @code{ilists} is taken from sample implementation.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-117/srfi-117.html"]{SRFI-117}}
+    @td{(srfi :117 list-queue)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :117)}. So for the portability it's better to use the
+    @code{(srfi :117)}.
+
+    The name @code{list-queue} is taken from sample implementation.
+    }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-120/srfi-120.html"]{SRFI-120}}
+    @td{(srfi :120 timer)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :120)}. So for the portability it's better to use the
+    @code{(srfi :120)}.
+
+    The name @code{timer} is taken from sample implementation.
     }}
 
 }
 
-Each library can be imported like this:
+Each library can be imported like this: 
 @snipet{(import (srfi :1))}
 So you don't have to type the long name.
+
+All libraries have R7RS style library name as well. So SRFI-1 can be imported
+like this:
+@snipet{(import (srfi 1))}
 
 @subsection[:tag "srfi.reader.macro"]{Reader macros for SRFIs}
 
