@@ -179,11 +179,15 @@
 	  :hour hour :day day :month month :year year :zone-offset offset))
 
   (define (tm:time-error caller type value)
-    (if (member type tm:time-error-types)
-        (if value
-            (error caller (format "TIME-ERROR type ~s: ~s" type value))
-            (error caller (format "TIME-ERROR type ~s" type)))
-        (error caller (format "TIME-ERROR unsupported error type ~s" type))))
+    (let ((m (if (member type tm:time-error-types)
+		 (if value
+		     (format "TIME-ERROR type ~s: ~s" type value)
+		     (format "TIME-ERROR type ~s" type))
+		 (format "TIME-ERROR unsupported error type ~s" type))))
+      (raise (condition (list (make-time-error type)
+			      (make-who-condition caller)
+			      (make-message-condition m)
+			      (make-irritants-condition value))))))
 
   (define-constant time-duration  'time-duration)
   (define-constant time-utc       'time-utc)

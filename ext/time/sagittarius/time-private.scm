@@ -43,10 +43,18 @@
 	    leap-second-delta +leap-second-table+
 	    ;; timezone
 	    %local-timezone-name
+	    ;; time-error
+	    &time-error make-time-error time-error? time-error-type
 	    )
-    (import (core) (sagittarius) (sagittarius dynamic-module)
+    (import (core)
+	    (core conditions)
+	    (sagittarius)
+	    (sagittarius dynamic-module)
 	    (sagittarius time-util))
   (load-dynamic-module "sagittarius--time")
+
+  (define-condition-type &time-error &error make-time-error time-error?
+    (type time-error-type))
 
   (define-constant +leap-second-table+
     (include "leap-table.scm"))
