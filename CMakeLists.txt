@@ -626,7 +626,8 @@ SET(TZ_UPDATE ${INVOKE}
   -L${PROJECT_SOURCE_DIR}/ext/threads
   ${PROJECT_SOURCE_DIR}/script/compile-tzdatabase.scm
   -o ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/tzdata.scm 
-  -w ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/win-mappings.scm)
+  -w ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/win-mappings.scm
+  -l ${PROJECT_SOURCE_DIR}/ext/time/sagittarius/leap-table.scm)
 ADD_CUSTOM_TARGET(update-tz
   DEPENDS sagittarius--time 
           sagittarius--socket
