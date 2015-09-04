@@ -11,6 +11,8 @@
 	;; for slot access
 	(clos user))
 
+(test-begin "time")
+
 ;; check slot access
 (let ()
   (define time (current-time))
@@ -85,8 +87,6 @@
        (= (date-second d1) (date-second d2))
        (= (date-nanosecond d1) (date-nanosecond d2))
        (= (date-zone-offset d1) (date-zone-offset d2))))
-
-(test-begin "time")
 
 (let ((t (make-time time-utc 10 20)))
   (test-assert "time?" (time? t))
@@ -193,8 +193,8 @@
 (test-equal "date convertion"
 	    `(58937459/24 
 	      1337447/24
-	      ,(make-time time-monotonic 0 1308092433)
-	      ,(make-time time-tai 0 1308092433)
+	      ,(make-time time-monotonic 0 1308092434)
+	      ,(make-time time-tai 0 1308092434)
 	      ,(make-time time-utc 0 1308092400))
 	    (let ((d (make-date 0 0 0 0 15 6 2011 3600))
 		  (ret '()))

@@ -80,6 +80,9 @@
 	    (immutable histories  timezone-histories)
 	    (immutable rules      timezone-rules)))
 
+  (define-method write-object ((tz <timezone>) out)
+    (format out "#<timezone ~a>" (timezone-name tz)))
+
   (define (binary-search array name)
     (let loop ((from 0) (to (- (vector-length array) 1)))
       (and (<= from to)
@@ -280,7 +283,7 @@
 	   7)))
 
   ;; TODO better solution, this is ugly.
-  (define (find-rule tz date month year rules)
+  (define (find-rule tz date month year orules)
     (define (check-date r date)
       (let* ((effective-date (cdr r))
 	     (effective-month (vector-ref (car r) 2)))
@@ -288,7 +291,7 @@
 	    ;; TODO consider time
 	    (<= effective-date date))))
 
-    (let loop ((rules (cdr rules))
+    (let loop ((rules (cdr orules))
 	       (dst #f)
 	       (std #f))
       (cond ((null? rules)

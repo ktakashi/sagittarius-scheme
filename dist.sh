@@ -43,6 +43,7 @@ tzdata()
     $SASH ./script/compile-tzdatabase.scm \
 	-o ext/time/sagittarius/tzdata.scm \
 	-w ext/time/sagittarius/win-mappings.scm \
+	-l ext/time/sagittarius/leap-table.scm \
 	-r $1
 }
 

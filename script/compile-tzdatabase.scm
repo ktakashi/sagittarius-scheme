@@ -98,23 +98,27 @@ zoneinfo2tdf.pl
 	      (loop (+ n copied))))))
       :transcoder #f)))
 
-(define (download-archive)
+(define (download-ftp host file out)
   (define (do-login)
     (let loop ((count 0))
       (guard (e (else (if (= count +max-retry+) 
 			  (begin (print "Failed connect!") (raise e))
 			  (begin (print "Retry") (loop (+ count 1))))))
-	(ftp-login +ftp-host+))))
+	(ftp-login host))))
 
   (let ((conn (do-login)))
     (dynamic-wind
 	(lambda () #t)
 	(lambda ()
-	  (let* ((size (ftp-size conn +tz-code+)))
+	  (let* ((size (ftp-size conn file)))
 	    (print "File size: " size)
-	    (ftp-get conn +tz-code+
-		     :receiver (ftp-sized-file-receiver +tz-archive+ size))))
+	    (ftp-get conn file
+		     :receiver (ftp-sized-file-receiver out size))
+	    out))
 	(lambda () (ftp-quit conn)))))
+
+(define (download-archive)
+  (download-ftp +ftp-host+ +tz-code+ +tz-archive+))
 
 (define (parse&collect in zones aliases)
   (define (trim-comment line) (regex-replace-all #/#.*/ line ""))
@@ -419,8 +423,73 @@ zoneinfo2tdf.pl
       ;; territory=country name (2 letter or 3 digits)
       (emit (filter-map compile-map-zone map-zones)))))
 
+
+(define open-input-string open-string-input-port)
+;; From SRFI-19
+;; Copyright (C) I/NET, Inc. (2000, 2002, 2003). All Rights Reserved. 
+;; 
+;; Permission is hereby granted, free of charge, to any person obtaining
+;; a copy of this software and associated documentation files (the
+;; "Software"), to deal in the Software without restriction, including
+;; without limitation the rights to use, copy, modify, merge, publish,
+;; distribute, sublicense, and/or sell copies of the Software, and to
+;; permit persons to whom the Software is furnished to do so, subject to
+;; the following conditions:
+;; 
+;; The above copyright notice and this permission notice shall be
+;; included in all copies or substantial portions of the Software.
+;; 
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+;; LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+(define tm:sid  86400)    ; seconds in a day
+(define tm:tai-epoch-in-jd 4881175/2) ; julian day number for 'the epoch'
+
+;; A table of leap seconds
+;; See ftp://maia.usno.navy.mil/ser7/tai-utc.dat
+;; and update as necessary.
+;; this procedures reads the file in the abover
+;; format and creates the leap second table
+;; it also calls the almost standard, but not R5 procedures read-line
+;; & open-input-string
+;; ie (set! tm:leap-second-table (tm:read-tai-utc-date "tai-utc.dat"))
+(define (tm:read-tai-utc-data filename)
+  (define (convert-jd jd)
+    (* (- (exact jd) tm:tai-epoch-in-jd) tm:sid))
+  (define convert-sec exact)
+  (let ((port (open-input-file filename))
+	(table '()))
+    (let loop ((line (get-line port)))
+      (if (not (eof-object? line))
+	  (let* ((data (read (open-input-string 
+			      (string-append "(" line ")"))))
+		 (year (car data))
+		 (jd   (cadddr (cdr data)))
+		 (secs (cadddr (cdddr data))))
+	    (if (>= year 1972)
+		(set! table (acons (convert-jd jd) (convert-sec secs) table)))
+	    (loop (get-line port)))))
+    (close-input-port port)
+    table))
+;; From SRFI-19 end
+
+(define (create-leap-file leap)
+  (when (file-exists? "tai-utc.dat") (delete-file "tai-utc.dat"))
+  (let* ((file (download-ftp "maia.usno.navy.mil"
+			     "/ser7/tai-utc.dat"
+			     "tai-utc.dat"))
+	 (table (tm:read-tai-utc-data file)))
+    (when (file-exists? leap) (delete-file leap))
+    (call-with-output-file leap (lambda (out) (pp `(quote ,table) out)))
+    (delete-file file)))
+      
+
 (define (usage)
-  (print "compile-tzdatabase.scm -o output -w windows-mappings [-r|--remove]")
+  (print "compile-tzdatabase.scm -o output -w windows-mappings -l leap-file [-r|--remove]")
   (exit -1))
 
 ;; TODO create minimum and maximum years arguments
@@ -430,10 +499,15 @@ zoneinfo2tdf.pl
        (remove (#\r "remove") #f #f)
        (clean? (#\c "clean") #f #f)
        (win-map (#\w "win-map") #t (usage))
+       (leap   (#\l "leap-file") #t (usage))
        )
     (when clean?
       (print "Removing file:" out)
       (when (file-exists? out) (delete-file out))
+      (print "Removing file:" win-map)
+      (when (file-exists? win-map) (delete-file win-map))
+      (print "Removing file:" leap)
+      (when (file-exists? leap) (delete-file leap))
       (exit 0))
     (unless (file-exists? +work-dir+) (create-directory +work-dir+))
     (parameterize ((current-directory +work-dir+)) ;; change directory
@@ -451,4 +525,5 @@ zoneinfo2tdf.pl
 	  (pp r out))))
     (when remove (delete-directory* +work-dir+))
     (create-win-mappings win-map)
+    (create-leap-file leap)
     (print "Done!")))

@@ -125,7 +125,9 @@
 	    (core io)
 	    (core errors)
 	    (sagittarius)
-	    (sagittarius time-private)
+	    (rename (sagittarius time-private)
+		    (leap-second-delta tm:leap-second-delta)
+		    (+leap-second-table+ tm:leap-second-table))
 	    (sagittarius time-util)
 	    (sagittarius timezone)
 	    (clos user)
@@ -183,12 +185,12 @@
             (error caller (format "TIME-ERROR type ~s" type)))
         (error caller (format "TIME-ERROR unsupported error type ~s" type))))
 
-  (define time-duration  'time-duration)
-  (define time-utc       'time-utc)
-  (define time-tai       'time-tai)
-  (define time-monotonic 'time-monotonic)
-  (define time-thread    'time-thread)
-  (define time-process   'time-process)
+  (define-constant time-duration  'time-duration)
+  (define-constant time-utc       'time-utc)
+  (define-constant time-tai       'time-tai)
+  (define-constant time-monotonic 'time-monotonic)
+  (define-constant time-thread    'time-thread)
+  (define-constant time-process   'time-process)
 
   ;; from srfi-19 reference implementation
   (define tm:time-error-types
@@ -220,87 +222,19 @@
                                                 "September" "October"
                                                 "November" "December"))
 
-  (define tm:locale-pm "PM")
-  (define tm:locale-am "AM")
+  (define-constant tm:locale-pm "PM")
+  (define-constant tm:locale-am "AM")
 
   ;; See date->string
-  (define tm:locale-date-time-format "~a ~b ~d ~H:~M:~S~z ~Y")
-  (define tm:locale-short-date-format "~m/~d/~y")
-  (define tm:locale-time-format "~H:~M:~S")
-  (define tm:iso-8601-date-time-format "~Y-~m-~dT~H:~M:~S~z")
+  (define-constant tm:locale-date-time-format "~a ~b ~d ~H:~M:~S~z ~Y")
+  (define-constant tm:locale-short-date-format "~m/~d/~y")
+  (define-constant tm:locale-time-format "~H:~M:~S")
+  (define-constant tm:iso-8601-date-time-format "~Y-~m-~dT~H:~M:~S~z")
   ;;-- Miscellaneous Constants.
   ;;-- only the tm:tai-epoch-in-jd might need changing if
   ;;   a different epoch is used.
 
-  (define tm:nano (expt 10 9))
-
-  ;; A table of leap seconds
-  ;; See ftp://maia.usno.navy.mil/ser7/tai-utc.dat
-  ;; and update as necessary.
-  ;; this procedures reads the file in the abover
-  ;; format and creates the leap second table
-  ;; it also calls the almost standard, but not R5 procedures read-line
-  ;; & open-input-string
-  ;; ie (set! tm:leap-second-table (tm:read-tai-utc-date "tai-utc.dat"))
-  (define (tm:read-tai-utc-data filename)
-    (define (convert-jd jd)
-      (* (- (exact jd) tm:tai-epoch-in-jd) tm:sid))
-    (define convert-sec exact)
-    (let ((port (open-input-file filename))
-	  (table '()))
-      (let loop ((line (get-line port)))
-	(if (not (eof-object? line))
-	    (let* ((data (read (open-input-string 
-				(string-append "(" line ")"))))
-		   (year (car data))
-		   (jd   (cadddr (cdr data)))
-		   (secs (cadddr (cdddr data))))
-	      (if (>= year 1972)
-		  (set! table (acons (convert-jd jd) (convert-sec secs) table)))
-	      (loop (get-line port)))))
-      (close-input-port port)
-      table))
-
-  ;; each entry is ( utc seconds since epoch . # seconds to add for tai )
-  ;; note they go higher to lower, and end in 1972.
-  (define tm:leap-second-table
-    '((1136073600 . 33)
-      (915148800 . 32)
-      (867715200 . 31)
-      (820454400 . 30)
-      (773020800 . 29)
-      (741484800 . 28)
-      (709948800 . 27)
-      (662688000 . 26)
-      (631152000 . 25)
-      (567993600 . 24)
-      (489024000 . 23)
-      (425865600 . 22)
-      (394329600 . 21)
-      (362793600 . 20)
-      (315532800 . 19)
-      (283996800 . 18)
-      (252460800 . 17)
-      (220924800 . 16)
-      (189302400 . 15)
-      (157766400 . 14)
-      (126230400 . 13)
-      (94694400 . 12)
-      (78796800 . 11)
-      (63072000 . 10)))
-
-  (define (read-leap-second-table filename)
-    (set! tm:leap-second-table (tm:read-tai-utc-data filename))
-    (values))
-
-  (define (tm:leap-second-delta utc-seconds)
-    (letrec ( (lsd (lambda (table)
-                     (cond
-                      ((>= utc-seconds (caar table))
-                       (cdar table))
-                      (else (lsd (cdr table)))))) )
-      (if (< utc-seconds  (* (- 1972 1970) 365 tm:sid)) 0
-          (lsd  tm:leap-second-table))))
+  (define-constant tm:nano (expt 10 9))
 
   ;; going from tai seconds to utc seconds ...
   (define (tm:leap-second-neg-delta tai-seconds)

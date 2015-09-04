@@ -62,7 +62,7 @@ goto:eof
 rem tzdata
 :tz
 echo "Generating TZ database"
-call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -r %1
+call :invoke ./script/compile-tzdatabase.scm -o ext/time/sagittarius/tzdata.scm -w ext/time/sagittarius/win-mappings.scm -l ext/time/sagittarius/leap-table.scm -r %1
 goto:eof
 
 rem unicode
