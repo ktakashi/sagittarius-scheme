@@ -30,17 +30,20 @@
 
 ;; Gauche like ref, ~, ->string, ->integer and ->number
 (library (sagittarius object)
-    (export ref ~
+    (export ref ~ |setter of ref|
 	    ->string ->integer ->number object-compare)
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (rnrs mutable-strings)
 	    (sagittarius)
 	    (clos user))
-  ;; we don't support fallback for slot ref, since we don't have slot-bound?
-  ;; procedure.
+
   (define-method ref ((o <top>) (slot <symbol>))
     (slot-ref o slot))
+  (define-method ref ((o <top>) (slot <symbol>) fallback)
+    (if (slot-bound? o slot)
+	(slot-ref o slot)
+	fallback))
   (define-method (setter ref) ((o <top>) (slot <symbol>) value)
     (slot-set! o slot value))
 
@@ -74,7 +77,7 @@
   (define-method (setter ref) ((obj <vector>) (index <integer>) val)
     (vector-set! obj index val))
 
-  ;; the same as in srfi 17 library, however we can not refer from here.
+  ;; the same as in srfi 17 library, however we can not it refer from here.
   (define (%getter-with-setter get set)
     (let ((proc (lambda x (apply get x))))
       (set! (setter proc) set)
