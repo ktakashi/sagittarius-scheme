@@ -42,6 +42,7 @@
 	    (sagittarius control)
 	    (sagittarius object) 
 	    (srfi :4)
+	    (srfi :17)
 	    (srfi :18))
 
 ;; specified by the SRFI
@@ -51,14 +52,17 @@
 (define global-lock (make-mutex))
 (define *sparses* '())
 
-(define-method :around ref ((o <top>) slot)
-  ;; look up type
+(define-method ref :around (o slot)
   (cond ((and (not (find (lambda (s) (s o)) *sparses*))
 	      (find (lambda (t&g) (and ((car t&g) o) (cdr t&g))) *types*))
 	 => (lambda (t&g) ((cdr t&g) o slot)))
 	(else (call-next-method))))
-(define-method :around ref ((o <top>) slot fallback)
-  ;; look up type
+(define-method (setter ref) :around (o slot value)
+  (cond ((and (not (find (lambda (s) (s o)) *sparses*))
+	      (find (lambda (t&g) (and ((car t&g) o) (cdr t&g))) *types*))
+	 => (lambda (t&g) ((setter (cdr t&g)) o slot value)))
+	(else (call-next-method))))
+(define-method ref :around (o slot fallback)
   (cond ((and (find (lambda (s) (s o)) *sparses*)
 	      (find (lambda (t&g) (and ((car t&g) o) (cdr t&g))) *types*))
 	 => (lambda (t&g) ((cdr t&g) o slot)))
