@@ -102,6 +102,23 @@
 ); end list-queues/conversion
 
 (test-group "list-queues/unfold"
+  (define (double x) (* x 2))
+  (define (done? x) (> x 3))
+  (define (add1 x) (+ x 1))
+  (define x (list-queue-unfold done? double add1 0))
+  (test '(0 2 4 6) (list-queue-list x))
+  (define y (list-queue-unfold-right done? double add1 0))
+  (test '(6 4 2 0) (list-queue-list y))
+  (define x0 (list-queue 8))
+  (define x1 (list-queue-unfold done? double add1 0 x0))
+  (test '(0 2 4 6 8) (list-queue-list x1))
+  (define y0 (list-queue 8))
+  (define y1 (list-queue-unfold-right done? double add1 0 y0))
+  (test '(8 6 4 2 0) (list-queue-list y1))
+
+) ; end list-queues/unfold
+
+(test-group "list-queues/unfold (2)"
   (define ql (list-queue-unfold
                (lambda (x) (> x 5))
                (lambda (x) (* x 10))
@@ -122,15 +139,17 @@
                (lambda (x) (* x 10))
                (lambda (x) (+ x 1))
                0))
+  (test '(50 40 30 20 10 0) (list-queue-list qr))
   (define qro (list-queue-unfold-right
                (lambda (x) (> x 5))
                (lambda (x) (* x 5))
                (lambda (x) (+ x 1))
                0 qr))
-  (test '(25 20 15 10 5 0 50 40 30 20 10 0) (list-queue-list qro))
+  ;; back of the list
+  (test '(50 40 30 20 10 0 25 20 15 10 5 0) (list-queue-list qro))
   ;; ditto
-  (test '(25 20 15 10 5 0 50 40 30 20 10 0) (list-queue-list qr))
-) ; end list-queues/unfold
+  (test '(50 40 30 20 10 0 25 20 15 10 5 0) (list-queue-list qr))
+) ; end list-queues/unfold (2)
 
 ) ; end list-queues
 

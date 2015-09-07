@@ -181,7 +181,6 @@
     (if (null? maybe-queue)
 	(make-list-queue (unfold stop? mapper successor seed))
 	(let* ((queue (car maybe-queue))
-	       (last  (queue-last queue))
 	       (new-first (unfold stop? mapper successor seed
 				  (lambda (x) (queue-first queue)))))
 	  (queue-first-set! queue new-first)
@@ -190,11 +189,19 @@
   (define (list-queue-unfold-right stop? mapper successor seed . maybe-queue)
     (if (null? maybe-queue)
 	(make-list-queue (unfold-right stop? mapper successor seed))
+	;; unlike the srfi-1, it appends the result to given queue
+	;; so we need to a bit of tweek here.
+	;; FIXME: this takes O(m+n) instead of O(n)
+	;;        not sure if we should do non tail recursive as sample
+	;;        implementation so keep it like this for now.
+	;; NOTE: unfold-right in SRFI-1 is tail recursive so it won't
+	;;       consume stack.
 	(let* ((queue (car maybe-queue))
-	       (last  (queue-last queue))
-	       (new-first (unfold-right stop? mapper successor seed
-					(queue-first queue))))
-	  (queue-first-set! queue new-first)
+	       (last  (unfold-right stop? mapper successor seed))
+	       (first  (queue-first queue))
+	       (new-last (if (null? last) (queue-last queue) (last-pair last))))
+	  (queue-first-set! queue (append! first last))
+	  (queue-last-set! queue new-last)
 	  queue)))
 
   (define list-queue-set-list!
