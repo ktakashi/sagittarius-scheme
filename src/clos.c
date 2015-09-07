@@ -1892,7 +1892,7 @@ static void generic_name_set(SgGeneric *gf, SgObject name)
 static SgObject generic_methods(SgGeneric *gf)
 {
   /* for MOP we need to consider all methods. */
-  return get_all_methods(SG_GENERIC_METHODS(gf));
+  return get_all_methods(gf);
 }
 
 
