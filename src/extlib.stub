@@ -1211,10 +1211,12 @@
 
   ;; weak objects
   (define-c-proc weak-box? (o) ::<boolean> :constant SG_WEAK_BOXP)
-  (define-c-proc make-weak-box (o) Sg_MakeWeakBox)
-  (define-c-proc weak-box-empty? (wb::<weak-box>) ::<boolean> Sg_WeakBoxEmptyP)
+  (define-c-proc make-weak-box (o) :no-side-effect Sg_MakeWeakBox)
+  (define-c-proc weak-box-empty? (wb::<weak-box>) ::<boolean> :no-side-effect
+    Sg_WeakBoxEmptyP)
   (define-c-proc weak-box-set! (wb::<weak-box> o) ::<void> Sg_WeakBoxSet)
   (define-c-proc weak-box-ref (wb::<weak-box> :optional fallback) 
+    :no-side-effect (setter weak-box-set!)
     ;; this may return NULL so check it
     (let ((o (Sg_WeakBoxRef wb)))
       (cond (o (result o))
