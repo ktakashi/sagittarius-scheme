@@ -130,21 +130,12 @@ SgObject Sg_WeakVectorSet(SgWeakVector *v, int index, SgObject value)
 }
 
 /* weak box is a SgObject. but not public */
-struct SgWeakBoxRec
-{
-  SG_HEADER;
-  void *ptr;
-  int   registered;
-};
-#define SG_CLASS_WEAK_BOX (&Sg_WeakBoxClass)
-#define SG_WEAK_BOX(obj)  ((SgWeakBox*)(obj))
-#define SG_WEAK_BOXP(obj) SG_XTYPEP(obj, SG_CLASS_WEAK_BOX)
-
-
 static void wbox_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgWeakBox *wb = SG_WEAK_BOX(obj);
-  Sg_Printf(port, UC("#<weak-box %p>"), wb->ptr);
+  /* Don't even try to print ptr as if it's a Scheme object. There is
+     no guarantee!! */
+  Sg_Printf(port, UC("#<weak-box %p:%d>"), wb->ptr, wb->registered);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_WeakBoxClass, wbox_print);
@@ -172,6 +163,8 @@ SgWeakBox* Sg_MakeWeakBox(void *value)
 
 int Sg_WeakBoxEmptyP(SgWeakBox *wbox)
 {
+  /* if the content is static allocated, then we can't return
+     empty. */
   return (wbox->registered && wbox->ptr == NULL);
 }
 

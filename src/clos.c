@@ -3052,6 +3052,7 @@ void Sg__InitClos()
   /* weak */
   CINIT(SG_CLASS_WEAK_VECTOR,       "<weak-vector>");
   CINIT(SG_CLASS_WEAK_HASHTABLE,    "<weak-hashtable>");
+  CINIT(SG_CLASS_WEAK_BOX,          "<weak-box>");
 
   /* codec and transcoders */
   CINIT(SG_CLASS_CODEC,       "<codec>");

@@ -3,7 +3,7 @@
 @section[:tag "ext.sagittarius"]{Sagittarius extensions}
 
 Sagittarius has its own extension libraries because even R6RS is huge however I
-know it is not sufficient to write practical program. To support to write it,
+know it is not  sufficient to write practical program. To  support to write it,
 Sagittarius provides some useful libraries.
 
 @subsection[:tag "lib.sagittarius"]{(sagittarius) - builtin library}
@@ -465,13 +465,34 @@ from the @var{list}, the @var{fallback} will be return. Otherwise it raises
 
 }
 
+@subsubsection{Weak box}
 
-@subsubsection{Weak Pointer}
-A weak pointer is a reference to an object that doesn’t prevent the object from
-being garbage-collected. Sagittarius provides weak pointers as a weak vector 
-object. A weak vector is like a vector of objects, except each object can be
-garbage collected if it is not referenced from objects other than weak vectors.
-If the object is collected, the entry of the weak vector is replaced for #f.
+A weak  box is a reference  to an object  that doesn’t prevent the  object from
+being garbage-collected.
+
+@define[Function]{@name{weak-box?} @args{obj}}
+@desc{Returns #t if @var{obj} is weak box otherwise #f.}
+
+@define[Function]{@name{make-weak-box} @args{obj}}
+@desc{Returns a weak box whose value is @var{obj}.}
+
+@define[Function]{@name{weak-box-empty?} @args{wb}}
+@desc{Returns #t if the value of given weak box @var{wb} is garbage collocted.
+Otherwise #f.}
+
+@define[Function]{@name{weak-box-ref} @args{wb :optional (fallback #f)}}
+@desc{Returns the value of given weak box @var{wb} if it's not garbage 
+collocted. Otherwise returns @var{fallback}.}
+
+@define[Function]{@name{weak-box-set!} @args{wb obj}}
+@desc{Replace the value of given @var{wb} with @var{obj}.}
+
+
+@subsubsection{Weak vector}
+
+A weak vector  is like a vector  of objects, except each object  can be garbage
+collected if it is not referenced from objects other than weak vectors.  If the
+object is collected, the entry of the weak vector is replaced to #f.
 
 @define[Function]{@name{weak-vector?} @args{obj}}
 @desc{Returns #t if @var{obj} is weak vector otherwise #f.}
@@ -500,8 +521,9 @@ the size of @var{wvec}.
 }
 
 @subsubsection{Weak hashtable}
-A weak hashtable is a reference to an object that doesn’t prevent the object
-from being garbage-collected the same as weak vector. A weak hashtable is like
+
+A weak hashtable  is a reference to  an object that doesn’t  prevent the object
+from being garbage-collected the same as  weak vector. A weak hashtable is like
 a hashtable, except each entry can be garbage collected if it is not referenced
 from objects other than weak hashtable according to the constructed condition.
 
@@ -819,3 +841,10 @@ The macro return the result of @var{expr}.}
 @include-section["sagittarius/threads.scrbl"]
 @include-section["sagittarius/timezone.scrbl"]
 @include-section["sagittarius/debug.scrbl"]
+
+@; end of file
+@; Local Variables:
+@; mode: scrbl
+@; fill-column: 75
+@; End:
+

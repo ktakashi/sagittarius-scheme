@@ -132,6 +132,8 @@
      (<time> "SgTime*" "time object" "SG_TIMEP" "SG_TIME")
      (<comparator> "SgComparator *" "comparator" "SG_COMPARATORP"
 		   "SG_COMPARATOR")
+     (<weak-box> "SgWeakBox *" "weak-box" "SG_WEAK_BOXP"
+		   "SG_WEAK_BOX")
      ))
 
   (define (cgen-box-expr type c-expr)

@@ -14,10 +14,10 @@
    (.typedef "unsigned long" "ulong"))
 
   (define-type <read-context> "SgReadContext*" "read-context")
-  ;; comparator
-  ;; cgen doesn't have this yet
-  ;; TODO remove this after 0.6.0
-  (define-type <comparator> "SgComparator *" "comparator")
+  ;; weak-box
+  ;; TODO remove this after 0.6.8
+  (define-type <weak-box> "SgWeakBox*" "weak-box"
+    "SG_WEAK_BOXP" "SG_WEAK_BOX")
 
   (define-cise-stmt assertion-violation
     ((_ who msg)
@@ -1208,6 +1208,18 @@
     Sg_ConstantLiteralP)
 
   (define-c-proc digit-value (c::<char>) Sg_DigitValue)
+
+  ;; weak objects
+  (define-c-proc weak-box? (o) ::<boolean> :constant SG_WEAK_BOXP)
+  (define-c-proc make-weak-box (o) Sg_MakeWeakBox)
+  (define-c-proc weak-box-empty? (wb::<weak-box>) ::<boolean> Sg_WeakBoxEmptyP)
+  (define-c-proc weak-box-set! (wb::<weak-box> o) ::<void> Sg_WeakBoxSet)
+  (define-c-proc weak-box-ref (wb::<weak-box> :optional fallback) 
+    ;; this may return NULL so check it
+    (let ((o (Sg_WeakBoxRef wb)))
+      (cond (o (result o))
+	    ((SG_UNBOUNDP fallback) (result SG_FALSE))
+	    (else (result fallback)))))
 
   (define-c-proc weak-vector? (o) ::<boolean> :constant SG_WEAK_VECTORP)
   (define-c-proc make-weak-vector (size::<fixnum>) Sg_MakeWeakVector)

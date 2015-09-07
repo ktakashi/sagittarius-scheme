@@ -49,6 +49,15 @@ typedef struct SgWeakVectorRec
 
 /* weak box for weak hashtable */
 SG_CLASS_DECL(Sg_WeakBoxClass);
+#define SG_CLASS_WEAK_BOX (&Sg_WeakBoxClass)
+#define SG_WEAK_BOX(obj)  ((SgWeakBox*)(obj))
+#define SG_WEAK_BOXP(obj) SG_XTYPEP(obj, SG_CLASS_WEAK_BOX)
+struct SgWeakBoxRec
+{
+  SG_HEADER;
+  void *ptr;
+  int   registered;
+};
 typedef struct SgWeakBoxRec SgWeakBox;
 
 #include "hashtable.h"
