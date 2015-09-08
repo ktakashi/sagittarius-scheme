@@ -42,36 +42,39 @@
 	  (srfi :18)
 	  (util concurrent shared-queue))
 
-(define (make-executor queue)
+(define (make-executor specific i queue)
   (lambda ()
     ;; use thread specific slot to know, which thread is
     ;; available.
-    (thread-specific-set! (current-thread) 'idling)
+    (vector-set! specific i 'idling)
     (let loop ()
       (let ((task (shared-queue-get! queue)))
 	;; if it's #f then must be called from
 	;; thread-pool-release!
 	(when task
-	  (thread-specific-set! (current-thread) 'executing)
+	  (vector-set! specific i 'executing)
 	  (guard (e (else #f)) (task))
-	  (thread-specific-set! (current-thread) 'idling)
+	  (vector-set! specific i 'idling)
 	  (loop))))))
 (define-record-type (<thread-pool> make-thread-pool thread-pool?)
   (fields threads ;; to join
 	  queues  ;; shared-queues
+	  specifics ;; switch
 	  )
   (protocol
    (lambda (p)
      (lambda (n)
-       (let ((threads (make-vector n))
-	     (queues  (make-vector n)))
+       (let* ((threads (make-vector n))
+	      (queues  (make-vector n))
+	      (specific (make-vector n #f))
+	      (tp (p threads queues specific)))
 	 (do ((i 0 (+ i 1)))
-	     ((= i n) (p threads queues))
+	     ((= i n) tp)
 	   (let ((q (make-shared-queue)))
 	     (vector-set! queues i q)
 	     (vector-set! threads i
 			  (thread-start!
-			   (make-thread (make-executor q)))))))))))
+			   (make-thread (make-executor specific i q)))))))))))
 
 (define (thread-pool-thread tp id)
   (vector-ref (<thread-pool>-threads tp) id))
@@ -91,13 +94,15 @@
   (define (find-available tp add-to-back?)
     (let* ((threads (<thread-pool>-threads tp))
 	   (queue (<thread-pool>-queues tp))
+	   (specifics (<thread-pool>-specifics tp))
 	   (size (vector-length threads)))
       (let loop ((i 0) (maybe -1) (qsize +inf.0))
 	(if (= i size)
 	    (add-to-back? maybe)
 	    (let ((t (vector-ref threads i))
+		  (sp (vector-ref specifics i))
 		  (s (shared-queue-size (vector-ref queue i))))
-	      (cond ((and (zero? s) (eq? (thread-specific t) 'idling)) i)
+	      (cond ((and (zero? s) (eq? sp 'idling)) i)
 		    ((and (add-to-back? i) (< s qsize)) (loop (+ i 1) i s))
 		    (else (loop (+ i 1) maybe qsize))))))))
   (let ((where (find-available tp (if (null? opt) default-handler (car opt)))))
@@ -113,9 +118,16 @@
 	(thread-sleep! 0.1)
 	(loop))))
   (define (wait-threads tp)
-    (define threads (vector->list (<thread-pool>-threads tp)))
+    ;; (define threads (vector->list (<thread-pool>-threads tp)))
+    (define (check-specifics tp)
+      (define specifics (<thread-pool>-specifics tp))
+      (define size (vector-length specifics))
+      (let loop ((i 0))
+	(cond ((= i size) #t)
+	      ((eq? (vector-ref specifics i) 'idling) (loop (+ i 1)))
+	      (else #f))))
     (let loop ()
-      (unless (for-all (lambda (t) (eq? (thread-specific t) 'idling)) threads)
+      (unless (check-specifics tp)
 	(thread-yield!)
 	(thread-sleep! 0.1)
 	(loop))))
@@ -138,17 +150,18 @@
 (define (thread-pool-thread-terminate! tp id)
   (define threads (<thread-pool>-threads tp))
   (define queues (<thread-pool>-queues tp))
+  (define sp (<thread-pool>-specifics tp))
   (let ((t (vector-ref threads id))
 	(q (vector-ref queues id))
 	(nq (make-shared-queue)))
     ;; clear all pending tasks.
     ;; the thread is terminated, so it's not interesting anymore
     (shared-queue-clear! q)
-    (thread-terminate! t) ;; don't do it!
+    (thread-terminate! t) ;; this is dangerous, don't do it casually!
     (vector-set! queues id nq)
     ;; prepare for next time
     (vector-set! threads id
-		 (thread-start! (make-thread (make-executor nq))))))
+		 (thread-start! (make-thread (make-executor sp id nq))))))
 
 ;; TODO Should we add thread-pool-stop! ?
 
