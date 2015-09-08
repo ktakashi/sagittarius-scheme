@@ -43,7 +43,8 @@
 	    (sagittarius object) 
 	    (srfi :4)
 	    (srfi :17)
-	    (srfi :18))
+	    (srfi :18)
+	    (srfi :111))
 
 ;; specified by the SRFI
 (define ref* ~)
@@ -121,5 +122,15 @@
 (define-srfi-4-accessor f32 4)
 (define-srfi-4-accessor f64 8)
 
+;; box
+(define box-ref
+  (let ()
+    (define (check-star s) 
+      (or (eq? s '*)
+	  (assertion-violation 'ref "referring box with unexpected symbol" s)))
+    (define (bref b star) (check-star star) (unbox b))
+    (define (bset! b star value) (check-star star) (set-box! b value))
+    (let ((proc (getter-with-setter bref bset!)))
+      (register-getter-with-setter! box? proc #f))))
 
 )

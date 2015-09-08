@@ -2,6 +2,7 @@
 	(only (scheme base) bytevector)
 	(srfi :4)
 	(srfi :9)
+	(srfi :111)
 	(srfi :123)
 	(srfi :64))
 
@@ -86,6 +87,10 @@
 (test-assert "srfi-4" (let ((s16v (s16vector 0 1 2)))
 			(set! (ref s16v 1) 3)
 			(= 3 (ref s16v 1))))
+
+(test-assert "srfi-111" (let ((b (box 0)))
+			  (set! (ref b '*) 1)
+			  (= 1 (ref b '*))))
 (test-end "ref setter")
 
 (test-assert "ref* setter"
@@ -112,5 +117,8 @@
 	    (let ((wb (make-weak-box 1)))
 	      (set! (~ wb 'dummy) 5)
 	      (ref wb 'dummy)))
+
+(test-error "srfi-111 ref (error)" (let ((b (box 0))) (ref b 'foo)))
+(test-error "srfi-111 set (error)" (let ((b (box 0))) (set! (ref b 'foo) 1)))
 
 (test-end "SRFI-123")
