@@ -433,7 +433,6 @@ static int glob_match1(SgObject pat, SgObject path_element, int flags)
       return FALSE;
     }
   }
-
   SG_FOR_EACH(cp, pat) {
     /* the matching is pretty much simple, a rule may contain the followings:
        - string
@@ -466,6 +465,7 @@ static int glob_match1(SgObject pat, SgObject path_element, int flags)
     }
 
   }
+  if (pos != SG_STRING_SIZE(path_element)) return FALSE;
   return TRUE;
 }
 
