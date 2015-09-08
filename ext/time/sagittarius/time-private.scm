@@ -41,6 +41,7 @@
 	    add-duration add-duration!
 	    subtract-duration subtract-duration!
 	    leap-second-delta +leap-second-table+
+	    get-time-of-day
 	    ;; timezone
 	    %local-timezone-name
 	    ;; time-error

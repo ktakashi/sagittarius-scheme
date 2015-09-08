@@ -119,6 +119,8 @@
 	    date->string string->date
 	    ;; clos
 	    <time> <date>
+	    ;; other
+	    get-time-of-day
 	    )
     (import (core)
 	    (core base)
