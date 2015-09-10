@@ -37,6 +37,7 @@
 
 	  thread-pool-thread-terminate! ;; hmmmm
 	  thread-pool-thread
+	  thread-pool-thread-task-running?
 	  )
   (import (rnrs)
 	  (srfi :18)
@@ -163,6 +164,9 @@
     (vector-set! threads id
 		 (thread-start! (make-thread (make-executor sp id nq))))))
 
+(define (thread-pool-thread-task-running? tp id)
+  (let ((sp (<thread-pool>-specifics tp)))
+    (eq? (vector-ref sp id) 'executing)))
 ;; TODO Should we add thread-pool-stop! ?
 
   )
