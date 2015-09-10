@@ -425,6 +425,11 @@ a new thread into @var{thread-pool}.
 NTOE: this is a dangerous operation. Don't use it casually.
 }
 
+@define[Function]{@name{thread-pool-thread-task-running?} @args{thread-pool id}}
+@desc{Returns #t if the given @var{id} of thread in the @var{thread-pool} is 
+running. Otherwise #f.
+}
+
 @subsubsection{Shared queues}
 
 @define[Library]{@name{(util concurrent shared-queue)}}
