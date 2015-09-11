@@ -76,10 +76,8 @@ typedef enum {
 
 typedef struct SgWeakHashTableRec
 {
-  SG_HEADER;
+  SgHashTable parent;		/* sub class of hashtable */
   SgWeakness  weakness;
-  SgHashType  type;
-  SgHashCore  core;
   SgObject    defaultValue;
   SgHashProc        *hasher;
   SgHashCompareProc *compare;
@@ -88,13 +86,14 @@ typedef struct SgWeakHashTableRec
 
 typedef struct SgWeakHashIterRec
 {
-  SgWeakHashTable *table;
   SgHashIter iter;
+  SgWeakHashTable *table;
 } SgWeakHashIter;
 
 #define SG_WEAK_HASHTABLE(obj)      ((SgWeakHashTable*)obj)
 #define SG_WEAK_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_WEAK_HASHTABLE)
-#define SG_WEAK_HASHTABLE_CORE(obj) (&SG_WEAK_HASHTABLE(obj)->core)
+#define SG_WEAK_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
+#define SG_WEAK_HASHTABLE_TYPE(obj) (SG_HASHTABLE(obj)->type)
 
 SG_CDECL_BEGIN
 

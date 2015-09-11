@@ -234,7 +234,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
   SgWeakHashTable *wh = SG_NEW(SgWeakHashTable);
   SG_SET_CLASS(wh, SG_CLASS_WEAK_HASHTABLE);
   wh->weakness = weakness;
-  wh->type = type;
+  SG_WEAK_HASHTABLE_TYPE(wh) = type;
   wh->defaultValue = defaultValue;
   wh->goneEntries = 0;
 
@@ -243,10 +243,10 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
       Sg_Error(UC("Sg_MakeWeakHashTableSimple: unsupported type: %d"), type);
     }
     /* wh->keyStore = Sg_MakeWeakVector(initSize); */
-    Sg_HashCoreInitGeneral(&wh->core, weak_key_hash, weak_key_compare,
-			   initSize, wh);
+    Sg_HashCoreInitGeneral(SG_WEAK_HASHTABLE_CORE(wh), weak_key_hash,
+			   weak_key_compare, initSize, wh);
   } else {
-    Sg_HashCoreInitSimple(&wh->core, type, initSize, wh);
+    Sg_HashCoreInitSimple(SG_WEAK_HASHTABLE_CORE(wh), type, initSize, wh);
   }
   return SG_OBJ(wh);
 }
@@ -256,11 +256,11 @@ SgObject Sg_WeakHashTableCopy(SgWeakHashTable *src)
   SgWeakHashTable *wh = SG_NEW(SgWeakHashTable);
   SG_SET_CLASS(wh, SG_CLASS_WEAK_HASHTABLE);
   wh->weakness = src->weakness;
-  wh->type = src->type;
+  SG_WEAK_HASHTABLE_TYPE(wh) = SG_WEAK_HASHTABLE_TYPE(src);
   wh->defaultValue = src->defaultValue;
   wh->hasher = src->hasher;
   wh->compare = src->compare;
-  Sg_HashCoreCopy(&wh->core, &src->core);
+  Sg_HashCoreCopy(SG_WEAK_HASHTABLE_CORE(wh), SG_WEAK_HASHTABLE_CORE(src));
   return SG_OBJ(wh);
 }
 
