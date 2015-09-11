@@ -1559,8 +1559,8 @@ static void expand_stack(SgVM *vm)
 
   if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
     Sg_Printf(vm->logPort,
-	      UC(";; expanding stack in %S (fp=%d, sp=%d)\n"),
-	      CL(vm), FP(vm) - vm->stack, SP(vm) - vm->stack);
+	      UC(";; expanding stack in %S of %S (fp=%d, sp=%d)\n"),
+	      CL(vm), vm, FP(vm) - vm->stack, SP(vm) - vm->stack);
   }
 
   save_cont(vm);
