@@ -516,13 +516,15 @@ static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur,
   int i;
 
   Sg_PutuzUnsafe(buf, UC("stack trace:\n"));
-  for (i = 1;; i++) {
+  for (i = 1;;) {
     if (i > MAX_STACK_TRACE) {
       Sg_PutuzUnsafe(buf, UC("      ... (more stack dump truncated)\n"));
       return;
     }
 
     if (SG_SUBRP(cl)) {
+      /* useless to show */
+      if (SG_FALSEP(SG_PROCEDURE_NAME(cl))) goto next_frame;
       Sg_Printf(buf, UC("  [%d] %A\n"), i, SG_PROCEDURE_NAME(cl));
     } else if (SG_CLOSUREP(cl)) {
       SgObject name = SG_PROCEDURE_NAME(cl);
@@ -550,9 +552,13 @@ static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur,
 	}
       } else {
       no_src_info:
+	/* Should we show address and pointer? */
+	if (SG_FALSEP(name)) goto next_frame; /* useless to show */
 	Sg_Printf(buf, UC("  [%d] %A\n"), i, name);
       }
     }
+    i++;
+  next_frame:
     /* next frame */
     if ((!IN_STACK_P((SgObject *)cur, vm) || 
 	 (uintptr_t)cur > (uintptr_t)vm->stack) &&
