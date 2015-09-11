@@ -604,12 +604,12 @@ static inline void report_error(SgObject error, SgObject out)
       cl = SG_STACK_TRACE_CONDITION(error)->cl;
       pc = SG_STACK_TRACE_CONDITION(error)->pc;
     } 
-    if (!stackTrace) {
-      SgVM *vm = Sg_VM();
-      stackTrace = CONT(vm);
-      cl = CL(vm);
-      pc = PC(vm);
-    }
+  }
+  if (!stackTrace) {
+    SgVM *vm = Sg_VM();
+    stackTrace = CONT(vm);
+    cl = CL(vm);
+    pc = PC(vm);
   }
   Sg_Printf(buf,
 	    UC("Unhandled exception\n"
