@@ -250,6 +250,7 @@
 	(map (lambda (socket)
 	       (make-thread
 		(lambda ()
+		  (define stop? #f)
 		  (thread-specific-set! (current-thread) 'done)
 		  (let loop ()
 		    (guard (e (else
@@ -258,11 +259,11 @@
 		      (let ((client-socket (socket-accept socket)))
 			(cond ((~ server 'stop-request)
 			       (close-socket client-socket)
-			       (close-socket socket))
+			       (close-socket socket)
+			       (set! stop? #t))
 			      (else
 			       (dispatch server client-socket)))))
-		    (unless (socket-closed? socket)
-		      (loop))))))
+		    (unless stop? (loop))))))
 	     sockets))
       (define (stop-server)
 	(set! (~ server 'stop-request) #t)
