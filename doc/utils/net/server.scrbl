@@ -16,7 +16,7 @@ this library provides.
     ;; socket will be closed by the framework
     (socket-send socket r)))
 
-(define server (make-simple-server handler))
+(define server (make-simple-server "5000" handler))
 
 (server-start! server)
 }
@@ -36,7 +36,7 @@ how to make multi threading server.
     ;; socket will be closed by the framework
     (socket-send socket r)))
 
-(define server (make-simple-server handler :config server-config))
+(define server (make-simple-server "5000" handler :config server-config))
 
 (server-start! server)
 }
@@ -60,7 +60,7 @@ with #t.
         (socket-close socket)
         (socket-send socket r))))
 
-(define server (make-simple-server handler :config server-config))
+(define server (make-simple-server "5000" handler :config server-config))
 
 (server-start! server)
 }
