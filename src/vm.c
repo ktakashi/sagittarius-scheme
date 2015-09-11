@@ -418,23 +418,22 @@ SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 #define CLEAR_STACK(vm)		/* dummy */
 #endif
 
-static void format_stack_trace(SgObject stackTrace, SgObject buf, 
-			       int destructiveP)
+static const int MAX_STACK_TRACE = 20;
+
+void Sg_FormatStackTrace(SgObject stackTrace, SgObject out)
 {
-  static const int MAX_STACK_TRACE = 20;
   SgObject cur;
+  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
   Sg_Printf(buf, UC("stack trace:\n"));
-  stackTrace = (destructiveP) 
-    ? Sg_ReverseX(stackTrace) 
-    : Sg_Reverse(stackTrace);
+  stackTrace = Sg_Reverse(stackTrace);
+
   SG_FOR_EACH(cur, stackTrace) {
     SgObject obj, index, proc, tmp, src, file, info, line;
 
     obj = SG_CAR(cur);
     index = SG_CAR(obj);
     if (SG_INT_VALUE(index) > MAX_STACK_TRACE) {
-      Sg_Printf(buf,
-		UC("      ... (more stack dump truncated)\n"));
+      Sg_Printf(buf, UC("      ... (more stack dump truncated)\n"));
       break;
     }
 
@@ -480,36 +479,136 @@ static void format_stack_trace(SgObject stackTrace, SgObject buf,
   }
 }
 
-void Sg_FormatStackTrace(SgObject e, SgObject out)
+/* we need to check pc-1(for *CALL, or os) or pc-2(for GREF_*CALL) */
+static SgObject get_closure_source(SgObject cl, SgWord *pc) 
 {
-  format_stack_trace(e, out, FALSE);
+  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(cl)->code);
+  InsnInfo *info;
+  SgObject src = SG_FALSE;
+  intptr_t index = -1, j;
+  SgObject name = SG_PROCEDURE_NAME(cl);
+
+  if (SG_FALSEP(name)) {
+    /* try codebuilder name */
+    name = Sg_CodeBuilderFullName(cb);
+  }
+  /* before FRAME insn there must be a insn which has src info */
+  for (j = 1;; j++) {
+    if (Sg_GCBase(SG_OBJ(*(pc-j)))) continue;
+    info = Sg_LookupInsnName(INSN(*(pc-j)));
+    if (info && info->hasSrc) break;
+  }
+  /* for sanity */
+  if (info && info->hasSrc) {
+    index = (pc-j) - cb->code;
+  }
+  if (index > 0) {
+    if (SG_PAIRP(cb->src)) {
+      src = Sg_Assv(SG_MAKE_INT(index), cb->src);
+    }
+  }
+  return src;
 }
 
-static inline void report_error(SgObject exception, SgObject out)
+static void format_stack_trace(SgVM *vm, SgObject buf, SgContFrame *cur, 
+			       SgContFrame *prev, SgObject cl, SgWord *pc)
 {
-  SgObject error = SG_NIL, stackTrace = SG_NIL, next = SG_FALSE;
-  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  int i;
 
-  if (SG_PAIRP(exception)) {
-    error = SG_CAR(exception);
-    stackTrace = SG_CDR(exception);
-  } else {
-    error = exception;
+  Sg_PutuzUnsafe(buf, UC("stack trace:\n"));
+  for (i = 1;; i++) {
+    if (i > MAX_STACK_TRACE) {
+      Sg_PutuzUnsafe(buf, UC("      ... (more stack dump truncated)\n"));
+      return;
+    }
+
+    if (SG_SUBRP(cl)) {
+      Sg_Printf(buf, UC("  [%d] %A\n"), i, SG_PROCEDURE_NAME(cl));
+    } else if (SG_CLOSUREP(cl)) {
+      SgObject name = SG_PROCEDURE_NAME(cl);
+      if (SG_CLOSURE(cl)->code
+	  && SG_CODE_BUILDERP(SG_CLOSURE(cl)->code)) {
+	SgObject src = get_closure_source(cl, pc), info = SG_FALSE;;
+
+	if (SG_FALSEP(src)) goto no_src_info;
+	src = SG_CDR(src);
+	if (SG_PAIRP(src)) {
+	  info = Sg_GetPairAnnotation(src, SG_INTERN("source-info"));
+	}
+	if (SG_FALSEP(info) || !info) {
+	  Sg_PrintfShared(buf, UC("  [%d] %A\n"
+				  "    src: %#50S\n"),
+			  i, name,
+			  Sg_UnwrapSyntax(src));
+	} else {
+	  Sg_PrintfShared(buf,
+			  UC("  [%d] %A\n"
+			     "    src: %#50S\n"
+			     "    %S:%A\n"),
+			  i, name, Sg_UnwrapSyntax(src),
+			  SG_CAR(info), SG_CDR(info));
+	}
+      } else {
+      no_src_info:
+	Sg_Printf(buf, UC("  [%d] %A\n"), i, name);
+      }
+    }
+    /* next frame */
+    if ((!IN_STACK_P((SgObject *)cur, vm) || 
+	 (uintptr_t)cur > (uintptr_t)vm->stack) &&
+	/* already printed */
+	cur != prev) {
+      cl = cur->cl;
+      pc = cur->pc;
+      cur = cur->prev;
+
+      if (!SG_PTRP(cur)) return;
+      /* invalid cur frame */
+      if (IN_STACK_P((SgObject *)cur, vm) && 
+	  ((uintptr_t)cur < (uintptr_t)vm->stack ||
+	   (uintptr_t)vm->stackEnd < (uintptr_t)cur)) {
+	break;
+      }
+      if (!cl) return;
+      if (!SG_PROCEDUREP(cl)) return;
+    } else {
+      return;
+    }
+  }
+}
+
+
+static inline void report_error(SgObject error, SgObject out)
+{
+  SgObject next = SG_FALSE, cl;
+  SgPort *buf = SG_PORT(Sg_MakeStringOutputPort(-1));
+  SgContFrame *stackTrace = NULL;
+  SgWord *pc;
+
+  if (Sg_ConditionP(error)) {
     if (Sg_CompoundConditionP(error)) {
       SgObject cp;
       SG_FOR_EACH(cp, Sg_CompoundConditionComponent(error)) {
 	if (SG_STACK_TRACE_CONDITION_P(SG_CAR(cp))) {
-	  stackTrace = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
+	  stackTrace 
+	    = (SgContFrame *)SG_STACK_TRACE_CONDITION(SG_CAR(cp))->trace;
 	  next = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cause;
+	  cl = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->cl;
+	  pc = SG_STACK_TRACE_CONDITION(SG_CAR(cp))->pc;
 	  break;
 	}
       }
     } else if (SG_STACK_TRACE_CONDITION_P(error)) {
-      stackTrace = SG_STACK_TRACE_CONDITION(error)->trace;
+      stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(error)->trace;
       next = SG_STACK_TRACE_CONDITION(error)->cause;
+      cl = SG_STACK_TRACE_CONDITION(error)->cl;
+      pc = SG_STACK_TRACE_CONDITION(error)->pc;
     } 
-    if (SG_NULLP(stackTrace)) {
-      stackTrace = Sg_GetStackTrace();
+    if (!stackTrace) {
+      SgVM *vm = Sg_VM();
+      stackTrace = CONT(vm);
+      cl = CL(vm);
+      pc = PC(vm);
     }
   }
   Sg_Printf(buf,
@@ -517,12 +616,22 @@ static inline void report_error(SgObject exception, SgObject out)
 	       "  %A\n"), Sg_DescribeCondition(error));
 
   if (!SG_NULLP(stackTrace)) {
+    SgVM *vm = Sg_VM();
     while (1) {
-      format_stack_trace(stackTrace, buf, TRUE);
+      SgContFrame *nextFrame = NULL;
       if (SG_STACK_TRACE_CONDITION_P(next)) {
-	stackTrace = SG_STACK_TRACE_CONDITION(next)->trace;
+	nextFrame = (SgContFrame *)SG_STACK_TRACE_CONDITION(next)->trace;
+      }
+      format_stack_trace(vm, buf, stackTrace, nextFrame, cl, pc);
+      if (SG_STACK_TRACE_CONDITION_P(next)) {
+	/* prev = stackTrace; */
+	stackTrace = (SgContFrame *)SG_STACK_TRACE_CONDITION(next)->trace;
 	next = SG_STACK_TRACE_CONDITION(next)->cause;
-	Sg_Printf(buf, UC("Nested "));
+	if (SG_STACK_TRACE_CONDITION_P(next)) {
+	  cl = SG_STACK_TRACE_CONDITION(next)->cl;
+	  pc = SG_STACK_TRACE_CONDITION(next)->pc;
+	}
+	Sg_PutuzUnsafe(buf, UC("Nested "));
       } else {
 	break;
       }
@@ -1702,22 +1811,11 @@ SgObject Sg_AddDynamicLoadPath(SgString *path, int appendP)
   return vm->dynamicLoadPath;
 }
 
-/* returns alist of stack trace. */
-SgObject Sg_GetStackTrace()
+static SgObject get_stack_trace(SgContFrame *cont, SgObject cl, SgWord *pc)
 {
-  SgVM *vm = Sg_VM();
   SgObject r = SG_NIL, cur = SG_NIL, prev = SG_UNDEF;
-  SgContFrame *cont = CONT(vm);
-  SgObject cl = CL(vm);
-  SgWord *pc = PC(vm);
+  SgVM *vm = Sg_VM();
   int i;
-  if (!cl) {
-    /* before running */
-    return SG_NIL;
-  }
-  /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
-  /* get current posision's src */
-
   for (i = 0;;) {
     if (SG_PROCEDUREP(cl)) {
       SgObject name = SG_PROCEDURE_NAME(cl);
@@ -1731,32 +1829,9 @@ SgObject Sg_GetStackTrace()
       case SG_PROC_CLOSURE:
 	if (SG_CLOSURE(cl)->code
 	    && SG_CODE_BUILDERP(SG_CLOSURE(cl)->code)) {
-	  /* we need to check pc-1(for *CALL, or os) or pc-2(for GREF_*CALL) */
-	  SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(cl)->code);
-	  InsnInfo *info;
-	  SgObject src = SG_FALSE;
-	  intptr_t index = -1, j;
-	  if (SG_FALSEP(name)) {
-	    /* try codebuilder name */
-	    name = Sg_CodeBuilderFullName(cb);
-	  }
-	  /* before FRAME insn there must be a insn which has src info */
-	  for (j = 1;; j++) {
-	    if (Sg_GCBase(SG_OBJ(*(pc-j)))) continue;
-	    info = Sg_LookupInsnName(INSN(*(pc-j)));
-	    if (info && info->hasSrc) break;
-	  }
-	  /* for sanity */
-	  if (info && info->hasSrc) {
-	    index = (pc-j) - cb->code;
-	  }
-	  if (index > 0) {
-	    if (SG_PAIRP(cb->src)) {
-	      src = Sg_Assv(SG_MAKE_INT(index), cb->src);
-	    }
-	  }
+	  SgObject src = get_closure_source(cl, pc);
 	  if (SG_FALSEP(src)) {
-	    src = cb->src;
+	    src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;
 	  } else {
 	    /* need to be alist */
 	    src = SG_LIST1(src);
@@ -1803,9 +1878,48 @@ SgObject Sg_GetStackTrace()
   return cur;
 }
 
+/* returns alist of stack trace. */
+SgObject Sg_GetStackTrace()
+{
+  SgVM *vm = Sg_VM();
+  SgContFrame *cont = CONT(vm);
+  SgObject cl = CL(vm);
+  SgWord *pc = PC(vm);
+
+  if (!cl) {
+    /* before running */
+    return SG_NIL;
+  }
+  /* if (vm->state == COMPILING || vm->state == IMPORTING) return SG_NIL; */
+  /* get current posision's src */
+  return get_stack_trace(cont, cl, pc);
+}
+
+SgObject Sg_GetStackTraceFromCont(SgContFrame *cont)
+{
+  return get_stack_trace(cont, cont->cl, cont->pc);
+}
+
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
-  exception = Sg_AddStackTrace(exception);
+  /*
+    This change makes raise or raise-continuable and saving raised condition
+    a bit more expensive than before (and may cause memory explosion). The 
+    basic idea of this change is that using continuation frame as a stack 
+    trace so that nested stack trace can be detected easily. To make this 
+    happen, we save all frames into the heap as if call/cc is called when 
+    raise/raise-contiuable is called.
+    
+    Above sounds kinda horrible however if we implement segmented stacks type
+    call/cc described the blow paper, then this performance penalty wouldn't be
+    a problem.
+    - Representing Control in the Presence of First-Class Continuations
+      URL: http://www.cs.indiana.edu/~dyb/papers/stack.ps
+    Not sure if this happens in near future but we may review the current
+    implementation of call/cc if the performance would be an issue.
+  */
+  save_cont(vm);
+  exception = Sg_AddStackTrace(exception, vm);
   if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
     if (continuableP) {
       vm->ac = Sg_Apply1(vm->exceptionHandler, exception);

@@ -283,6 +283,8 @@ typedef struct SgStackTraceConditionRec
   SG_INSTANCE_HEADER;
   SgObject cause;		/* #f or &stack-trace */
   SgObject trace;		/* back trace */
+  SgObject cl;			/* saved cl */
+  SgWord   *pc;			/* saved pc */
 } SgStackTraceCondition;
 #define SG_STACK_TRACE_CONDITION(o)  ((SgStackTraceCondition *)o)
 #define SG_STACK_TRACE_CONDITION_P(o) SG_ISA(o, SG_CLASS_STACK_TRACE_CONDITION)
@@ -371,7 +373,7 @@ SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 SG_EXTERN SgObject Sg_MakeSystemError(int errno_);
 
-SG_EXTERN SgObject Sg_AddStackTrace(SgObject e);
+SG_EXTERN SgObject Sg_AddStackTrace(SgObject e, SgVM* vm);
 
 SG_EXTERN SgObject Sg_DescribeCondition(SgObject con);
 

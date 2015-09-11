@@ -652,6 +652,7 @@ SG_DEFINE_BASE_CLASS(Sg_SystemErrorClass, SgSystemError,
 
 static void stack_trace_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
+  /* !Don't print trace, it might be opaque pointer! */
   Sg_Printf(p, UC("#<stack-trace cause=%A>"), 
 	    SG_STACK_TRACE_CONDITION(o)->cause);
 }
@@ -664,13 +665,14 @@ static SgObject stack_trace_allocate(SgClass *klass, SgObject initargs)
   return SG_OBJ(c);
 }
 
-static SgObject st_cause(  SgStackTraceCondition *c)
+static SgObject st_cause(SgStackTraceCondition *c)
 {
   return c->cause;
 }
-static SgObject st_trace(  SgStackTraceCondition *c)
+static SgObject st_trace(SgStackTraceCondition *c)
 {
-  return c->trace;
+  /* it's a bit inefficient but this is not used anywhere anyway. */
+  return Sg_GetStackTraceFromCont((SgContFrame *)c->trace);
 }
 static SgSlotAccessor st_slots[] = {
   SG_CLASS_SLOT_SPEC("cause",  0, st_cause, NULL),
@@ -762,18 +764,19 @@ SgObject Sg_MakeSystemError(int errno_)
   return c;
 }
 
-static SgObject make_stack_trace(SgObject cause, SgObject trace)
+static SgObject make_stack_trace(SgObject cause, SgVM *vm)
 {
   SgObject st = stack_trace_allocate(SG_CLASS_STACK_TRACE_CONDITION, SG_NIL);
   SG_STACK_TRACE_CONDITION(st)->cause = cause;
-  SG_STACK_TRACE_CONDITION(st)->trace = trace;
+  SG_STACK_TRACE_CONDITION(st)->trace = vm->cont;
+  SG_STACK_TRACE_CONDITION(st)->cl = vm->cl;
+  SG_STACK_TRACE_CONDITION(st)->pc = vm->pc;
   return st;
 }
 
-SgObject Sg_AddStackTrace(SgObject e)
+SgObject Sg_AddStackTrace(SgObject e, SgVM *vm)
 {
   if (Sg_CompoundConditionP(e)) {
-    SgObject trace = Sg_GetStackTrace();
     SgObject cause = SG_FALSE;
     SgObject components;
     SgObject cp, h = SG_NIL, t = SG_NIL;
@@ -787,7 +790,7 @@ SgObject Sg_AddStackTrace(SgObject e)
 	SG_APPEND1(h, t, SG_CAR(cp));
       }
     }
-    SG_APPEND1(h, t, make_stack_trace(cause, trace));
+    SG_APPEND1(h, t, make_stack_trace(cause, vm));
     return Sg_Condition(h);
   }
   return e;
