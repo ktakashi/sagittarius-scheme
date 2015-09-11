@@ -132,8 +132,10 @@
 		  (lambda ()
 		    (let loop ()
 		      ;; unfortunately this is needed for Cygwin.
-		      (when (null? (vector-ref socket-pool i))
-			(mutex-unlock! mutex cv))
+		      (mutex-lock! mutex)
+		      (if (null? (vector-ref socket-pool i))
+			  (mutex-unlock! mutex cv)
+			  (mutex-unlock! mutex))
 		      (let ((sockets 
 			     (apply socket-read-select #f
 				    (vector-ref socket-pool i)))
@@ -181,17 +183,17 @@
 			    (length (vector-ref socket-pool index)))
 			 (loop (+ i 1) i))
 			(else (loop (+ i 1) index)))))
-	      (let* ((index (find-min))
-		     (sockets (vector-ref socket-pool index)))
+	      (let ((index (find-min)))
 		(mutex-lock! (vector-ref mutexes index))
-		(vector-set! socket-pool index (cons socket sockets))
-		(vector-set! servers index server) ;; it's always the same!
-		;; notify it
-		(condition-variable-broadcast! (vector-ref cvs index))
-		(thread-interrupt!
-		 (thread-pool-thread thread-pool 
-				     (vector-ref thread-ids index)))
-		(mutex-unlock! (vector-ref mutexes index)))))
+		(let ((sockets (vector-ref socket-pool index)))
+		  (vector-set! socket-pool index (cons socket sockets))
+		  (vector-set! servers index server) ;; it's always the same!
+		  ;; notify it
+		  (condition-variable-broadcast! (vector-ref cvs index))
+		  (thread-interrupt!
+		   (thread-pool-thread thread-pool 
+				       (vector-ref thread-ids index)))
+		  (mutex-unlock! (vector-ref mutexes index))))))
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)
 			       (make-thread-pool-executor 
