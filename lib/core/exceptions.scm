@@ -17,13 +17,11 @@
 	     (lambda (guard-k)
 	       (with-exception-handler
 		(lambda (condition)
-		  ((call/cc
-		    (lambda (handler-k)
-		      (guard-k
-		       (lambda ()
-			 (let ((var condition))
-			   (cond clause ... 
-				 (else e1 e2 ...)))))))))
+		  (guard-k
+		   (lambda ()
+		     (let ((var condition))
+		       (cond clause ... 
+			     (else e1 e2 ...))))))
 		(lambda ()
 		  ;; Sagittarius prefer receive
 		  (receive args
