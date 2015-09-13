@@ -31,6 +31,7 @@
 #include <math.h>
 #include <string.h>
 
+#define NO_NBITS
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/bignum.h"
 #include "sagittarius/number.h"
@@ -1815,25 +1816,21 @@ SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp)
 
 SgObject Sg_BignumModuloSI(SgBignum *a, long b, int remp)
 {
-  SgBignum *bb;
-  ASSERT(b != 0);
-  /* a bit of optimisation 
-     TODO consider negative b as well */
-  if (b > 0 && nbits(b) == 1) {
-    /* now it's 2^n, so we only need the first element of a
-       and mod it. assume a != 0*/
-    long ea = a->elements[0];
-    long r = (b-1)&ea;		/* mask it */
-    /*  b is positive */
-    if (!remp && r && SG_BIGNUM_GET_SIGN(a) < 0) {
-      return Sg_MakeIntegerFromS64((int64_t)(b + r));
-    }
-    return Sg_MakeInteger(r);
+  long r = 0;
+  long d = (b < 0) ? -b : b;
+  int i, sign = SG_BIGNUM_GET_SIGN(a);
+
+  /* ASSERT(b != 0); */
+  for (i = SG_BIGNUM_GET_COUNT(a)-1 ; i >= 0; i--) {
+    r = (((dlong)r<<WORD_BITS) | a->elements[i]) % d;
   }
-  ALLOC_TEMP_BIGNUM_REC(bb, 1);
-  SG_BIGNUM_SET_SIGN(bb, (b < 0) ? -1 : 1);
-  bb->elements[0] = (b < 0) ? -b : b;
-  return Sg_BignumModulo(a, bb, remp);
+  r = r * sign;			/* got remainder */
+
+  if (!remp && r && sign * b < 0){
+    return Sg_MakeIntegerFromS64((int64_t)(b + r));
+  }
+  return Sg_MakeInteger(r);
+
 }
 
 SgObject Sg_BignumDivSI(SgBignum *a, long b, long *rem)
