@@ -148,7 +148,7 @@
 			   (loop (+ i 1)))))))))))
 
   ;; Miller Rabin primality test
-  (define (prime? q :optional (k 50) (rand (secure-random RC4)))
+  (define (prime? q :optional (k 50) (rand (secure-random System)))
     (define bit-size (bitwise-length q))
     (define try-count (cond ((< bit-size 100)  50)
 			    ((< bit-size 256)  27)
@@ -163,7 +163,7 @@
     #;(miller-rabin? q k rand)
     )
 
-  (define (random-prime size :key (prng (secure-random System)))
+  (define (random-prime size :key (prng (secure-random RC4)))
     (let ((buf (make-bytevector size 0))
 	  (index (- size 1)))
       (let loop ()
