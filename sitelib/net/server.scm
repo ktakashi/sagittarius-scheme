@@ -112,13 +112,57 @@
     (define dispatch
       (if (~ config 'non-blocking?)
 	  (let* ((num-threads (~ config 'max-thread))
-		 (thread-pool (make-thread-pool num-threads))
+		 (thread-pool (make-thread-pool num-threads raise))
 		 (socket-pool (make-vector num-threads))
 		 (mutexes (make-vector num-threads))
 		 ;; silly
 		 (servers (make-vector num-threads))
 		 (thread-ids (make-vector num-threads))
 		 (cvs (make-vector num-threads)))
+	    (define (task i mutex cv)
+	      (lambda ()
+		(let loop ()
+		  ;; unfortunately this is needed for Cygwin.
+		  (mutex-lock! mutex)
+		  (if (null? (vector-ref socket-pool i))
+		      (mutex-unlock! mutex cv)
+		      (mutex-unlock! mutex))
+		  (let ((sockets 
+			 (apply socket-read-select #f
+				(vector-ref socket-pool i)))
+			(server (vector-ref servers i)))
+		    ;; we don't want to get thread-interrupt! here
+		    (mutex-lock! mutex)
+		    (for-each 
+		     (lambda (socket) 
+		       (guard (e ((~ config 'exception-handler)
+				  ;; let them handle it
+				  ((~ config 'exception-handler)
+				   server socket e))
+				 ;; if exception-handler is not there
+				 ;; close the socket.
+				 (else (socket-shutdown socket SHUT_RDWR)
+				       (socket-close socket)))
+			 (handler server socket)))
+		     sockets)
+		    ;; remove closed sockets
+		    (let ((closed (filter socket-closed? 
+					  (vector-ref socket-pool i)))
+			  (inactive (apply socket-write-select 0
+					   (filter 
+					    (lambda (s)
+					      (not (socket-closed? s)))
+					    (vector-ref socket-pool i)))))
+		      (unless (null? closed)
+			(vector-set! socket-pool i
+			  (lset-intersection eq?
+			     (lset-difference eq? 
+					      (vector-ref socket-pool i)
+					      closed)
+			     inactive)))
+		      (mutex-unlock! mutex)
+		      (loop))))))
+		
 	    ;; prepare executor
 	    (do ((i 0 (+ i 1)))
 		((= i num-threads))
@@ -129,49 +173,7 @@
 		(vector-set! cvs i cv)
 		;; keep id
 		(vector-set! thread-ids i
-		 (thread-pool-push-task! thread-pool
-		  (lambda ()
-		    (let loop ()
-		      ;; unfortunately this is needed for Cygwin.
-		      (mutex-lock! mutex)
-		      (if (null? (vector-ref socket-pool i))
-			  (mutex-unlock! mutex cv)
-			  (mutex-unlock! mutex))
-		      (let ((sockets 
-			     (apply socket-read-select #f
-				    (vector-ref socket-pool i)))
-			    (server (vector-ref servers i)))
-			;; we don't want to get thread-interrupt! here
-			(mutex-lock! mutex)
-			(for-each 
-			 (lambda (socket) 
-			   (guard (e ((~ config 'exception-handler)
-				      ;; let them handle it
-				      ((~ config 'exception-handler)
-				       server socket e))
-				     ;; if exception-handler is not there
-				     ;; close the socket.
-				     (else (socket-shutdown socket SHUT_RDWR)
-					   (socket-close socket)))
-			     (handler server socket)))
-			 sockets)
-			;; remove closed sockets
-			(let ((closed (filter socket-closed? 
-					      (vector-ref socket-pool i)))
-			      (inactive (apply socket-write-select 0
-					       (filter 
-						(lambda (s)
-						  (not (socket-closed? s)))
-						(vector-ref socket-pool i)))))
-			  (unless (null? closed)
-			    (vector-set! socket-pool i
-					 (lset-intersection eq?
-					   (lset-difference eq? 
-					    (vector-ref socket-pool i)
-					    closed)
-					   inactive)))
-			  (mutex-unlock! mutex)
-			  (loop)))))))))
+		 (thread-pool-push-task! thread-pool (task i mutex cv)))))
 	    ;; non blocking requires special coding rule.
 	    ;;  1. handler must always return even the socket is still
 	    ;;     active

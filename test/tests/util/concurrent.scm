@@ -261,6 +261,11 @@
 					custom-add-to-back)))
   )
 
+(let ((pool (make-thread-pool 5 raise)))
+  (test-error "thread-pool error-handler"
+	      error?
+	      (thread-pool-push-task! pool (lambda () (error 'dummy "msg")))))
+
 ;; shared-priority-queue
 (let ()
   (define spq (make-shared-priority-queue compare))

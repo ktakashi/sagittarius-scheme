@@ -43,7 +43,7 @@
 	  (srfi :18)
 	  (util concurrent shared-queue))
 
-(define (make-executor specific i queue)
+(define (make-executor specific i queue error-handler)
   (lambda ()
     ;; use thread specific slot to know, which thread is
     ;; available.
@@ -54,28 +54,34 @@
 	;; thread-pool-release!
 	(when task
 	  (vector-set! specific i 'executing)
-	  (guard (e (else #f)) (task))
+	  (guard (e (else (error-handler e))) (task))
 	  (vector-set! specific i 'idling)
 	  (loop))))))
+(define (default-error-handler e) #f)
 (define-record-type (<thread-pool> make-thread-pool thread-pool?)
   (fields threads ;; to join
 	  queues  ;; shared-queues
 	  specifics ;; switch
+	  error-handler
 	  )
   (protocol
    (lambda (p)
-     (lambda (n)
+     (lambda (n . maybe-error-handler)
        (let* ((threads (make-vector n))
 	      (queues  (make-vector n))
 	      (specific (make-vector n #f))
-	      (tp (p threads queues specific)))
+	      (error-handler (if (null? maybe-error-handler)
+				 default-error-handler
+				 (car maybe-error-handler)))
+	      (tp (p threads queues specific error-handler)))
 	 (do ((i 0 (+ i 1)))
 	     ((= i n) tp)
 	   (let ((q (make-shared-queue)))
 	     (vector-set! queues i q)
 	     (vector-set! threads i
 			  (thread-start!
-			   (make-thread (make-executor specific i q)))))))))))
+			   (make-thread (make-executor specific i q
+						       error-handler)))))))))))
 
 (define (thread-pool-thread tp id)
   (vector-ref (<thread-pool>-threads tp) id))
@@ -162,7 +168,10 @@
     (vector-set! queues id nq)
     ;; prepare for next time
     (vector-set! threads id
-		 (thread-start! (make-thread (make-executor sp id nq))))))
+		 (thread-start! 
+		  (make-thread 
+		   (make-executor sp id nq
+				  (<thread-pool>-error-handler tp)))))))
 
 (define (thread-pool-thread-task-running? tp id)
   (let ((sp (<thread-pool>-specifics tp)))

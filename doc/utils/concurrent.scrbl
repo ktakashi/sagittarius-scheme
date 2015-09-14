@@ -387,8 +387,14 @@ then this library can be used.
 @define[Function]{@name{thread-pool?} @args{obj}}
 @desc{Returns #t if given @var{obj} is a thread-pool, otherwise #f.}
 
-@define[Function]{@name{make-thread-pool} @args{thread-count}}
-@desc{Creates a thread pool with @var{thread-count} of threads. }
+@define[Function]{@name{make-thread-pool}
+ @args{thread-count :optional error-handler}}
+@desc{Creates a thread pool with @var{thread-count} of threads. 
+
+If the optional argument @var{error-handler} is given, it must be a
+procedure which accept one argument, then the procedure is called
+when the pushed task raised an error.
+}
 
 @define[Function]{@name{thread-pool-size} @args{thread-pool}}
 @desc{Returns number of threads on the given @var{thread-pool}.}
