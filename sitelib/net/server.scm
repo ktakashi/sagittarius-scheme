@@ -146,22 +146,20 @@
 			 (handler server socket)))
 		     sockets)
 		    ;; remove closed sockets
-		    (let ((closed (filter socket-closed? 
-					  (vector-ref socket-pool i)))
-			  (inactive (apply socket-write-select 0
-					   (filter 
-					    (lambda (s)
-					      (not (socket-closed? s)))
-					    (vector-ref socket-pool i)))))
-		      (unless (null? closed)
-			(vector-set! socket-pool i
-			  (lset-intersection eq?
-			     (lset-difference eq? 
-					      (vector-ref socket-pool i)
-					      closed)
-			     inactive)))
-		      (mutex-unlock! mutex)
-		      (loop))))))
+		    (let-values (((closed sockets)
+				  (partition socket-closed?
+					     (vector-ref socket-pool i))))
+		      (let ((active (apply socket-write-select 0 sockets)))
+			;; non closed active sockets
+			(vector-set! socket-pool i active)
+			;; close non active sockets
+			;; TODO should we?
+			(for-each (lambda (s)
+				    (socket-shutdown s SHUT_RDWR)
+				    (socket-close s))
+				  (lset-difference eq? sockets active))
+			(mutex-unlock! mutex)
+			(loop)))))))
 		
 	    ;; prepare executor
 	    (do ((i 0 (+ i 1)))
