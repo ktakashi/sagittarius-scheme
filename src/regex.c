@@ -2201,24 +2201,40 @@ static prog_t* compile(compile_ctx_t *ctx, SgObject ast)
 static void pattern_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   SgPattern *pattern = SG_PATTERN(self);
-
-  Sg_Printf(port, UC("#/%A/"), pattern->pattern);
+  int i, size = SG_STRING_SIZE(pattern->pattern);
+  SG_PORT_LOCK_WRITE(port);
+  Sg_PutzUnsafe(port, "#/");
+  /* Sg_Printf(port, UC("#/%A/"), pattern->pattern); */
+  for (i = 0; i < size;) {
+    SgChar c = SG_STRING_VALUE_AT(pattern->pattern, i++);
+    if (c == '\\') {
+      Sg_PutcUnsafe(port, '\\');
+      Sg_PutcUnsafe(port, SG_STRING_VALUE_AT(pattern->pattern, i++));
+    } else if (c == '/') {
+      Sg_PutcUnsafe(port, '\\');
+      Sg_PutcUnsafe(port, c);
+    } else {
+      Sg_PutcUnsafe(port, c);
+    }
+  }
+  Sg_PutcUnsafe(port, '/');
   /* flags */
   if (has(pattern, SG_COMMENTS)) {
-    Sg_Putc(port, 'x');
+    Sg_PutcUnsafe(port, 'x');
   }
   if (has(pattern, SG_CASE_INSENSITIVE)) {
-    Sg_Putc(port, 'i');
+    Sg_PutcUnsafe(port, 'i');
   }
   if (has(pattern, SG_MULTILINE)) {
-    Sg_Putc(port, 'm');
+    Sg_PutcUnsafe(port, 'm');
   }
   if (has(pattern, SG_DOTALL)) {
-    Sg_Putc(port, 's');
+    Sg_PutcUnsafe(port, 's');
   }
   if (has(pattern, SG_UNICODE_CASE)) {
-    Sg_Putc(port, 'u');
+    Sg_PutcUnsafe(port, 'u');
   }
+  SG_PORT_UNLOCK_WRITE(port);
 }
 
 static SgObject pattern_cache_reader(SgPort *port, SgReadCacheCtx *ctx)

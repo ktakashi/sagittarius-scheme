@@ -1896,5 +1896,11 @@
 		       "abraabraabrabracadabrabrabrabracadabrabrabra"
 		       "**$1**")))
 
+;; call 145
+(define (regex->string r) 
+  (call-with-string-output-port (lambda (o) (write r o))))
+(test-equal "escape slash (1)" "#/a\\/b/" (regex->string (regex "a/b")))
+(test-equal "escape slash (2)" "#/a\\/b/" (regex->string #/a\/b/))
+
 
 (test-end)
