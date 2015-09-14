@@ -163,7 +163,7 @@
     #;(miller-rabin? q k rand)
     )
 
-  (define (random-prime size :key (prng (secure-random RC4)))
+  (define (random-prime size :key (prng (secure-random System)))
     (let ((buf (make-bytevector size 0))
 	  (index (- size 1)))
       (let loop ()

@@ -9,7 +9,7 @@
 	    make-secure-random
 	    %random-seed-set!
 	    read-sys-random
-	    Yarrow Fortuna RC4 SOBER-128
+	    Yarrow Fortuna RC4 SOBER-128 System
 	    ;; hash
 	    hash-algorithm?
 	    make-hash-algorithm
@@ -43,6 +43,7 @@
   (define-constant Fortuna "fortuna")
   (define-constant RC4 "rc4")
   (define-constant SOBER-128 "sober128")
+  (define-constant System "sprng")
 
   ;; hash-algorithm type
   (define-constant WHIRLPOOL  "whirlpool")

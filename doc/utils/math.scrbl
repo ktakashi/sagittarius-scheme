@@ -33,6 +33,14 @@ algorithms are below:
 @define[Constant]{@name{RC4}}
 @define[Constant]{@name{SOBER-128}}
 
+The following is also a psuedo random but this may or may not be cryptographic
+random generator. 
+@define[Constant]{@name{System}}
+@desc{@code{System} prng uses platform random generator. For example, on 
+Unix like environment, this uses @code{/dev/urandom} or @code{/dev/random} if
+the first option is not available.
+}
+
 @var{seed} is entropy of the pseudo random.
 
 Note: each time if you create pseudo random, it returns exactly the same value.

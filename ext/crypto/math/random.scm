@@ -14,7 +14,7 @@
 	    random
 	    read-random-bytes
 	    read-random-bytes!
-	    Yarrow Fortuna RC4 SOBER-128
+	    Yarrow Fortuna RC4 SOBER-128 System
 
 	    register-prng
 	    lookup-prng
