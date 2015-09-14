@@ -183,12 +183,13 @@
 		    (let loop ((i 1) 
 			       (index 0)
 			       (pb-len (length (vector-ref socket-pool 0))))
-		      (let ((pool-a (vector-ref socket-pool i)))
-			(cond ((= i num-threads) index)
-			      ((null? pool-a) i) ;; shortcut
-			      ((< (length pool-a) pb-len)
-			       (loop (+ i 1) i (length pool-a)))
-			      (else (loop (+ i 1) index pb-len)))))))
+		      (if (= i num-threads)
+			  index
+			  (let ((pool-a (vector-ref socket-pool i)))
+			    (cond ((null? pool-a) i) ;; shortcut
+				  ((< (length pool-a) pb-len)
+				   (loop (+ i 1) i (length pool-a)))
+				  (else (loop (+ i 1) index pb-len))))))))
 	      (let ((index (find-min)))
 		(mutex-lock! (vector-ref mutexes index))
 		(let ((sockets (vector-ref socket-pool index)))
