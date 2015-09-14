@@ -192,16 +192,19 @@
 				  ((< (length pool-a) pb-len)
 				   (loop (+ i 1) i (length pool-a)))
 				  (else (loop (+ i 1) index pb-len))))))))
+	      ;; TODO may not be a good load balancing
 	      (let ((index (find-min)))
 		(mutex-lock! (vector-ref mutexes index))
-		(let ((sockets (vector-ref socket-pool index)))
+		(let ((sockets (vector-ref socket-pool index))
+		      (tid (vector-ref thread-ids index)))
 		  (vector-set! socket-pool index (cons socket sockets))
 		  (vector-set! servers index server) ;; it's always the same!
+		  (thread-interrupt! (thread-pool-thread thread-pool tid))
 		  ;; notify it
+		  ;; NB: if it's waiting for cv, then socket-read-select
+		  ;;     would return immediately after this. so no need
+		  ;;     to be before thread-interrupt!
 		  (condition-variable-broadcast! (vector-ref cvs index))
-		  (thread-interrupt!
-		   (thread-pool-thread thread-pool 
-				       (vector-ref thread-ids index)))
 		  (mutex-unlock! (vector-ref mutexes index))))))
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)
