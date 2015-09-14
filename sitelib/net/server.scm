@@ -133,18 +133,16 @@
 			(server (vector-ref servers i)))
 		    ;; we don't want to get thread-interrupt! here
 		    (mutex-lock! mutex)
-		    (for-each 
-		     (lambda (socket) 
-		       (guard (e ((~ config 'exception-handler)
-				  ;; let them handle it
-				  ((~ config 'exception-handler)
-				   server socket e))
-				 ;; if exception-handler is not there
-				 ;; close the socket.
-				 (else (socket-shutdown socket SHUT_RDWR)
-				       (socket-close socket)))
-			 (handler server socket)))
-		     sockets)
+		    (dolist (socket sockets)
+		      (guard (e ((~ config 'exception-handler)
+				 ;; let them handle it
+				 ((~ config 'exception-handler) 
+				  server socket e))
+				;; if exception-handler is not there
+				;; close the socket.
+				(else (socket-shutdown socket SHUT_RDWR)
+				      (socket-close socket)))
+			(handler server socket)))
 		    ;; remove closed sockets
 		    (let-values (((closed sockets)
 				  (partition socket-closed?
@@ -154,10 +152,9 @@
 			(vector-set! socket-pool i active)
 			;; close non active sockets
 			;; TODO should we?
-			(for-each (lambda (s)
-				    (socket-shutdown s SHUT_RDWR)
-				    (socket-close s))
-				  (lset-difference eq? sockets active))
+			(dolist (s (lset-difference eq? sockets active))
+			  (socket-shutdown s SHUT_RDWR)
+			  (socket-close s))
 			(mutex-unlock! mutex)
 			(loop)))))))
 		
