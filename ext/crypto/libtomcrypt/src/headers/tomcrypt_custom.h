@@ -158,7 +158,10 @@
 /* #define LTC_NO_ASM */
 
 /* disable FAST mode */
-/* #define LTC_NO_FAST */
+/* why don't you do like this from the beginning? */
+#if __GNUC__ < 4 || defined(_MSC_VER)
+# define LTC_NO_FAST
+#endif
 
 /* disable BSWAP on x86 */
 /* #define LTC_NO_BSWAP */

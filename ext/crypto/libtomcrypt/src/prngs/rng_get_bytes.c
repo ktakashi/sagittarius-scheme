@@ -100,15 +100,15 @@ static unsigned long rng_ansic(unsigned char *buf, unsigned long len,
    #define ARM
 #endif
 
-#define WIN32_LEAN_AND_MEAN
+/* #define WIN32_LEAN_AND_MEAN */
 #include <windows.h>
 #include <wincrypt.h>
 
 static unsigned long rng_win32(unsigned char *buf, unsigned long len,
                                void (*callback)(void))
 {
-   LTC_UNUSED_PARAM(callback);
    HCRYPTPROV hProv = 0;
+   LTC_UNUSED_PARAM(callback);
    if (!CryptAcquireContext(&hProv, NULL, MS_DEF_PROV, PROV_RSA_FULL,
                             (CRYPT_VERIFYCONTEXT | CRYPT_MACHINE_KEYSET)) &&
        !CryptAcquireContext (&hProv, NULL, MS_DEF_PROV, PROV_RSA_FULL,
