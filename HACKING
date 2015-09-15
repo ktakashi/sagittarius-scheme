@@ -48,6 +48,7 @@ To generate code you need to execute following commands;
     % ./dist.sh precomp
     % ./dist.sh srfi
     % ./dist.sh tz
+    % ./dist.sh unicode
 
 Or this command does the same;
 
@@ -66,6 +67,39 @@ To clean the generated code, you need to execute following command;
 
     % ./dist.sh clean
 
+### Using local TZ database and Unicode files
+
+If you want  to use local TZ  database file or Unicode  files, you can
+locate   the  following   files  into   `tzdata`  and   `unicode/data`
+directories respectively. If there is  no such directory yet, then you
+can create them manually.
+
+#### For TZ database
+
+- tzdata-latest.tar.gz [Download](ftp://iana.org/tz/tzdata-latest.tar.gz)
+- windowsZones.xml [Download](http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml)
+- tai-utc.dat [Download](ftp://maia.usno.navy.mil/ser7/tai-utc.dat)
+
+NOTE: all  of above files are  removed when `./dist.sh tz`  command is
+executed. If  you want to reuse  them, make sure you  copy them before
+you run the command.
+
+#### Unicode files
+
+- CaseFolding.txt
+- CompositionExclusions.txt
+- DerivedCoreProperties.txt
+- GraphemeBreakProperty.txt
+- PropList.txt
+- SpecialCasing.txt
+- UnicodeData.txt
+- WordBreakProperty.txt
+
+Above  Unicode files  can be  downloaded  from the  Unicode FTP  site:
+[ftp.unicode.org](ftp://ftp.unicode.org/Public/8.0.0/).     Currently,
+Sagittarius  uses  version  8.0.0,  if you  want  to  use  newer/older
+version,  you can  also  use  them. (May  break  some  of test  cases,
+especially if you use unicode version older than 6.3.0)
 
 <!-- end of file
 Local Variables:
