@@ -458,5 +458,5 @@
 
   (define (generate-jceks-delete-entry! keystore?)
     (lambda (keystore alias)
-      (hashtable-delete! (~ keystore 'entries) alias)))
+      (hashtable-delete! (slot-ref keystore 'entries) alias)))
   )
