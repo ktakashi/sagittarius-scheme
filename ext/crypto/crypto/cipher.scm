@@ -39,6 +39,7 @@
 	    Khazad
 	    SEED
 	    KASUMI
+	    Camellia
 	    ;; supported modes
 	    MODE_ECB
 	    MODE_CBC

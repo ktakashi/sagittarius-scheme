@@ -722,6 +722,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   REGISTER_CIPHER(&khazad_desc);
   REGISTER_CIPHER(&kseed_desc);
   REGISTER_CIPHER(&kasumi_desc);
+  REGISTER_CIPHER(&camellia_desc);
 
   /* put mode */
 #define MODE_CONST(name)					\

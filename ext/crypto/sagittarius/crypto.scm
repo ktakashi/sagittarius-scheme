@@ -65,6 +65,7 @@
 	    Khazad
 	    SEED
 	    KASUMI
+	    Camellia
 	    ;;
 	    <crypto>
 	    <cipher>
@@ -153,5 +154,5 @@
   (define-constant Khazad      :khazad)
   (define-constant SEED        :seed)
   (define-constant KASUMI      :kasumi)
-
+  (define-constant Camellia    :camellia)
 )
