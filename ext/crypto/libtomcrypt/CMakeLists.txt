@@ -90,13 +90,13 @@ ADD_LIBRARY(hashes STATIC
   src/hashes/rmd256.c
   src/hashes/rmd320.c
   src/hashes/sha1.c
-  src/hashes/sha2
   src/hashes/tiger.c
-  src/hashes/whirl
   # chc
   src/hashes/chc/chc.c
   # sha2
   src/hashes/sha2/sha256.c
+  src/hashes/sha2/sha224.c
+  src/hashes/sha2/sha384.c
   # this is included in sha512.c
   #src/hashes/sha2/sha384.c
   src/hashes/sha2/sha512.c
