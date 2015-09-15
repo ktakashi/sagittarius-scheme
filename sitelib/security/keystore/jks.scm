@@ -47,6 +47,8 @@
 	    ;; set
 	    jks-keystore-set-key!
 	    jks-keystore-set-certificate!
+	    ;; delete
+	    jks-keystore-delete-entry!
 	    )
     (import (rnrs)
 	    (clos user)
@@ -82,6 +84,8 @@
   (define jks-keystore-set-key! (generate-jceks-set-key! jks-keystore? #f))
   (define jks-keystore-set-certificate!
     (generate-jceks-set-certificate! jks-keystore?))
+  (define jks-keystore-delete-entry!
+    (generate-jceks-delete-entry! jks-keystore?))
 
 
   (define-method keystore-get-key ((ks <jks-keystore>) alias password)

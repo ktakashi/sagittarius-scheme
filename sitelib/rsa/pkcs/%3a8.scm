@@ -45,6 +45,7 @@
 	    pkcs8-private-key->private-key
 	    )
     (import (rnrs)
+	    (sagittarius)
 	    (clos user)
 	    (asn.1)
 	    (crypto)

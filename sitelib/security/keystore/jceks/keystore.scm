@@ -39,7 +39,8 @@
 	    generate-jceks-contains-alias?
 	    generate-jceks-get-creation-date
 	    generate-jceks-set-key!
-	    generate-jceks-set-certificate!)
+	    generate-jceks-set-certificate!
+	    generate-jceks-delete-entry!)
     (import (rnrs)
 	    (clos user)
 	    (crypto)
@@ -455,4 +456,7 @@
 	  (put-bytevector out digest))
 	(undefined))))
 
+  (define (generate-jceks-delete-entry! keystore?)
+    (lambda (keystore alias)
+      (hashtable-delete! (~ keystore 'entries) alias)))
   )
