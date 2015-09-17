@@ -130,10 +130,7 @@
     ;; 	   (set! storage (acons thread (list file) storage)))))
     (define (print-results futures)
       (for-each (lambda (f)
-		  (guard (e ((uncaught-exception? e)
-			     (print (describe-condition 
-				     (uncaught-exception-reason e))))
-			    (else (print e)))
+		  (guard (e (else (report-error e)))
 		    (print (future-get f))))
 		(reverse! futures)))
     (let loop ((files files) (futures '()))
