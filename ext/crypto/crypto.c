@@ -43,7 +43,7 @@ static int wrapped_gcm_process(unsigned char *pt,
   unsigned long ivlen = SG_BVECTOR_SIZE(iv);
   int err;
   /* reset after encryption */
-  
+  gcm_add_aad(&gcm->gcm, NULL, 0); /* make it right state. */
   err = gcm_process(&gcm->gcm, pt, len, ct, direction);
   if (err == CRYPT_OK) {
     unsigned long taglen = sizeof(gcm->tag);
@@ -425,13 +425,14 @@ SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data)
   }
 }
 
-SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data)
+SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data, int s, int e)
 {
   if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
     SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
     if (spi->update_aad) {
       unsigned long len = SG_BVECTOR_SIZE(data);
-      int err = spi->update_aad(&spi->skey, SG_BVECTOR_ELEMENTS(data), len);
+      SG_CHECK_START_END(s, e, len);
+      int err = spi->update_aad(&spi->skey, SG_BVECTOR_ELEMENTS(data)+s, e-s);
       if (err != CRYPT_OK) {
 	Sg_Error(UC("cipher-update-add!: %A"), error_to_string(err));
       }

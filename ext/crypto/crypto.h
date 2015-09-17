@@ -226,7 +226,7 @@ int      Sg_CipherBlockSize(SgCipher *cipher);
 
 SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data);
 SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data);
-SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data, int s, int e);
 SgObject Sg_VMCipherTag(SgCipher *crypto, SgByteVector *dst);
 SgObject Sg_VMCipherMaxTagSize(SgCipher *crypto);
 

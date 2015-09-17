@@ -53,7 +53,9 @@
 (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) :no-side-effect
   Sg_VMSuggestKeysize)
 
-(define-c-proc cipher-update-aad! (name::<cipher> aad::<bytevector>)
+(define-c-proc cipher-update-aad!
+  (name::<cipher> aad::<bytevector>
+   :optional (start::<fixnum> 0) (end::<fixnum> -1))
   Sg_VMUpdateAAD)
 
 (define-c-proc cipher-tag! (name::<cipher> dst::<bytevector>)
