@@ -31,7 +31,11 @@
 ;; This file is a part of Sagittarius Scheme system.
 #!core
 (library (sagittarius record)
-    ;; it's not used at all now...
-    (export )
-    (import (sagittarius))
+    (export record-type?
+	    make-record-type
+	    record-type-rcd
+	    record-type-rtd)
+    (import (core) (clos core) (core record procedural) (sagittarius clos))
+
+  (define (record-type? o) (is-a? o <record-type-meta>))
 )

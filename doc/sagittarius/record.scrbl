@@ -12,7 +12,10 @@
 @desc{@var{Name} must be symbol. @var{Rtd} must be record type descriptor.
 @var{Rcd} must be record constructor descriptor.
 
-Returns fresh record type.
+Associates given @var{rcd} to gien @var{rtd}.
+
+NOTE: this procedure doesn't create fresh record type but modifies given
+arguments destructively.
 }
 
 @define[Function]{@name{record-type-rtd} @args{record-type}}
