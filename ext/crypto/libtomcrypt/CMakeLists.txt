@@ -148,7 +148,18 @@ ADD_LIBRARY(modes STATIC
   src/modes/ofb/ofb_encrypt.c
   src/modes/ofb/ofb_getiv.c
   src/modes/ofb/ofb_setiv.c
-  src/modes/ofb/ofb_start.c)
+  src/modes/ofb/ofb_start.c
+
+  #gcm
+  src/encauth/gcm/gcm_add_aad.c
+  src/encauth/gcm/gcm_add_iv.c
+  src/encauth/gcm/gcm_done.c
+  src/encauth/gcm/gcm_init.c
+  src/encauth/gcm/gcm_gf_mult.c
+  src/encauth/gcm/gcm_mult_h.c
+  src/encauth/gcm/gcm_process.c
+  src/encauth/gcm/gcm_reset.c
+)
 
 #prngs
 ADD_LIBRARY(prngs STATIC

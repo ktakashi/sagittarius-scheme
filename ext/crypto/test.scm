@@ -523,4 +523,165 @@
 	(test-equal "restoring (success)" 
 		    msg (decrypt dec-ci (encrypt enc-ci msg)))))))
 
+;; GCM
+(test-assert "MODE_GCM" MODE_GCM)
+
+(define (test-gcm-decryption count key iv ct aad tag pt :key (invalid-tag #f))
+  (let* ((skey (generate-secret-key AES key))
+	 (gcm-cipher (cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+    (cipher-update-aad! gcm-cipher aad)
+    (test-equal (format "GCM decryption (~a)" count)
+		pt (decrypt gcm-cipher ct))
+    (let ((bv (make-bytevector (bytevector-length tag))))
+      (test-equal (format "GCM decryption tag length (~a)" count)
+		  (bytevector-length tag) (cipher-tag! gcm-cipher bv))
+      (if tag
+	  (test-assert (format "GCM decryption tag (~a)" count)
+		       (not (bytevector=? tag bv)))
+	  (test-equal (format "GCM decryption tag (~a)" count)
+		      tag bv)))))
+
+#|
+Count = 0
+Key = cf063a34d4a9a76c2c86787d3f96db71
+IV = 113b9785971864c83b01c787
+CT = 
+AAD = 
+Tag = 72ac8493e3a5228b5d130a69d2510e42
+PT = 
+|#
+(test-gcm-decryption 0 
+		     (integer->bytevector #xcf063a34d4a9a76c2c86787d3f96db71)
+		     (integer->bytevector #x113b9785971864c83b01c787)
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #x72ac8493e3a5228b5d130a69d2510e42)
+		     #vu8())
+#|
+Count = 1
+Key = a49a5e26a2f8cb63d05546c2a62f5343
+IV = 907763b19b9b4ab6bd4f0281
+CT = 
+AAD = 
+Tag = a2be08210d8c470a8df6e8fbd79ec5cf
+FAIL
+|#
+(test-gcm-decryption 1
+		     (integer->bytevector #xa49a5e26a2f8cb63d05546c2a62f5343)
+		     (integer->bytevector #x907763b19b9b4ab6bd4f0281)
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #xa2be08210d8c470a8df6e8fbd79ec5cf)
+		     #vu8()
+		     :invalid-tag #t)
+#|
+Count = 2
+Key = 2ad0bf5aeb47a0c1a98da3dfdab4fded
+IV = 25f1b6091ee7040fea4ba854
+CT = 
+AAD = 
+Tag = d7963d240317653e01cf5abe5d0966ae
+PT = 
+|#
+(test-gcm-decryption 2
+		     (integer->bytevector #x2ad0bf5aeb47a0c1a98da3dfdab4fded)
+		     (integer->bytevector #x25f1b6091ee7040fea4ba854)
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #xd7963d240317653e01cf5abe5d0966ae)
+		     #vu8())
+;; we don't do all test vectors...
+#|
+Count = 3
+Key = ea254e519268b0e3297dd96d98b5948a
+IV = 0e14a468989d3965c48adf7f52b68ac4fecd1ba7f5cd1748d63f0cd34ffe8c6d3fc89630f3d08967c983f4c22db51debf7c7d0d6ff3a5827d46b39087b075dc65e2c692fbaab995b8ab0d8f210f1092c0d36abec0f2e62361a617abd8ad77b650669b015c358903e224dbd9ef113652c0257f30cd5254e310a0d00df145e8dfa
+CT = 35337fd8497aefbfad20fff19a02ee11
+AAD = 
+Tag = decdcfc10f998a5a1a7be1344b81
+PT = 42fc4fc1da542a45a7c96461179c315a
+|#
+(test-gcm-decryption 3
+		     (integer->bytevector #xea254e519268b0e3297dd96d98b5948a)
+		     (integer->bytevector #x0e14a468989d3965c48adf7f52b68ac4fecd1ba7f5cd1748d63f0cd34ffe8c6d3fc89630f3d08967c983f4c22db51debf7c7d0d6ff3a5827d46b39087b075dc65e2c692fbaab995b8ab0d8f210f1092c0d36abec0f2e62361a617abd8ad77b650669b015c358903e224dbd9ef113652c0257f30cd5254e310a0d00df145e8dfa)
+		     (integer->bytevector #x35337fd8497aefbfad20fff19a02ee11)
+		     #vu8()
+		     (integer->bytevector #xdecdcfc10f998a5a1a7be1344b81)
+		     (integer->bytevector #x42fc4fc1da542a45a7c96461179c315a))
+
+;; with AAD
+#|
+Count = 4
+Key = 12fe7dc72949c5175db64c0bf92944c7
+IV = 8a9ebcb4ea47249a87dc2751aaa0114ba44441be49815cc05a2d42925f356e1e34ae5b30092d3cd1af79153872c6ad8e64f1d2241037fe18758ea696fa52e33ceabf4f4f6f4a77f32c4c3fd36fdd692d597978684feb0fc66d19d00906c6c6835fe6c4b8d4573c0eece4f1de85e0f5ae105485f6b2db4c821980a28d41f2f155
+CT = dd192ba4d1d9967fb9d8fd559307b1de
+AAD = a62d96ac6b4acdae784e4748cfe837fc
+Tag = 4528b211ba29af8f06d4d1388fbc549a
+PT = 498255c2c186a7792dfd1a613c0b434d
+|#
+(test-gcm-decryption 4
+		     (integer->bytevector #x12fe7dc72949c5175db64c0bf92944c7)
+		     (integer->bytevector #x8a9ebcb4ea47249a87dc2751aaa0114ba44441be49815cc05a2d42925f356e1e34ae5b30092d3cd1af79153872c6ad8e64f1d2241037fe18758ea696fa52e33ceabf4f4f6f4a77f32c4c3fd36fdd692d597978684feb0fc66d19d00906c6c6835fe6c4b8d4573c0eece4f1de85e0f5ae105485f6b2db4c821980a28d41f2f155)
+		     (integer->bytevector #xdd192ba4d1d9967fb9d8fd559307b1de)
+		     (integer->bytevector #xa62d96ac6b4acdae784e4748cfe837fc)
+		     (integer->bytevector #x4528b211ba29af8f06d4d1388fbc549a)
+		     (integer->bytevector #x498255c2c186a7792dfd1a613c0b434d))
+
+(define (test-gcm-encryption count key iv pt aad ct tag)
+  (let* ((skey (generate-secret-key AES key))
+	 (gcm-cipher (cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+    (cipher-update-aad! gcm-cipher aad)
+    (test-equal (format "GCM encryption (~a)" count) ct (encrypt gcm-cipher pt))
+    (let ((bv (make-bytevector (bytevector-length tag))))
+      (test-equal (format "GCM encryption tag length (~a)" count)
+		  (bytevector-length tag) (cipher-tag! gcm-cipher bv))
+      (test-equal (format "GCM encryption tag (~a)" count) tag bv))))
+#|
+Count = 0
+Key = 11754cd72aec309bf52f7687212e8957
+IV = 3c819d9a9bed087615030b65
+PT = 
+AAD = 
+CT = 
+Tag = 250327c674aaf477aef2675748cf6971
+|#
+(test-gcm-encryption 0 
+		     (integer->bytevector #x11754cd72aec309bf52f7687212e8957)
+		     (integer->bytevector #x3c819d9a9bed087615030b65)
+		     #vu8()
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #x250327c674aaf477aef2675748cf6971))
+#|
+Count = 1
+Key = ca47248ac0b6f8372a97ac43508308ed
+IV = ffd2b598feabc9019262d2be
+PT = 
+AAD = 
+CT = 
+Tag = 60d20404af527d248d893ae495707d1a
+|#
+(test-gcm-encryption 1
+		     (integer->bytevector #xca47248ac0b6f8372a97ac43508308ed)
+		     (integer->bytevector #xffd2b598feabc9019262d2be)
+		     #vu8()
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #x60d20404af527d248d893ae495707d1a))
+#|
+Count = 3
+Key = d19cfcba59b9a338c46c2408e3a0412b
+IV = ac
+PT = 41258dfc23f799affb2720f63316394021a6d183e9f37b9973ef79df92896fea0a288e97d6b63740597097fff27891a3069400
+AAD = c3dedc50a6a11924d095ad22644a09b6047630b46e2a3627ed1d418edeaaaeb08603f1e21d11919d7a3d57ef5134be9f
+CT = 3072def0c3fb47ff4fc124ab30e76f5903e235b2612148aae67181ef62a736ee6fc147cc703f76dee557eba84349f1c5b158be
+Tag = 267a3ba3670ff076
+|#
+(test-gcm-encryption 3
+		     (integer->bytevector #xd19cfcba59b9a338c46c2408e3a0412b)
+		     (integer->bytevector #xac)
+		     (integer->bytevector #x41258dfc23f799affb2720f63316394021a6d183e9f37b9973ef79df92896fea0a288e97d6b63740597097fff27891a3069400)
+		     (integer->bytevector #xc3dedc50a6a11924d095ad22644a09b6047630b46e2a3627ed1d418edeaaaeb08603f1e21d11919d7a3d57ef5134be9f)
+		     (integer->bytevector #x3072def0c3fb47ff4fc124ab30e76f5903e235b2612148aae67181ef62a736ee6fc147cc703f76dee557eba84349f1c5b158be)
+		     (integer->bytevector #x267a3ba3670ff076))
+
 (test-end)

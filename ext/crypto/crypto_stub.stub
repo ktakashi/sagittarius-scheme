@@ -53,6 +53,14 @@
 (define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) :no-side-effect
   Sg_VMSuggestKeysize)
 
+(define-c-proc cipher-update-aad! (name::<cipher> aad::<bytevector>)
+  Sg_VMUpdateAAD)
+
+(define-c-proc cipher-tag! (name::<cipher> dst::<bytevector>)
+  Sg_VMCipherTag)
+(define-c-proc cipher-max-tag-size (name::<cipher>) :no-side-effect
+  Sg_VMCipherMaxTagSize)
+
 ;; now it's generic
 ;;(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
 ;;  (result (Sg_CipherBlockSize name)))

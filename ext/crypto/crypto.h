@@ -38,7 +38,8 @@ typedef enum {
   MODE_CBC,
   MODE_CFB,
   MODE_OFB,
-  MODE_CTR
+  MODE_CTR,
+  MODE_GCM,
 } SgCryptoMode;
 
 
@@ -138,8 +139,18 @@ typedef int (*decrypt_proc)(const unsigned char *ct,
 typedef int (*iv_proc)(unsigned char *IV, unsigned long *len, void *skey);
 typedef int (*done_proc)(void *skey);
 typedef int (*keysize_proc)(int *keysize);
+typedef int (*update_aad_proc)(void *skey, unsigned char *ct, unsigned long len);
 
-typedef struct symmetric_cipher_rec_t
+typedef struct symmetric_cipher_rec_t SgBuiltinCipherSpi;
+typedef struct cipher_gcm_state_rec 
+{
+  gcm_state gcm;
+  unsigned char tag[16];	/* RFC 5116 defines 16 octet is the max */
+  /* to get iv from cipher */
+  SgBuiltinCipherSpi *spi;
+} cipher_gcm_state;
+
+struct symmetric_cipher_rec_t
 {
   SG_HEADER;
   SgObject       name;
@@ -155,6 +166,7 @@ typedef struct symmetric_cipher_rec_t
     symmetric_OFB ofb_key;
     symmetric_CFB cfb_key;
     symmetric_ECB ecb_key;
+    cipher_gcm_state  cipher_gcm;
   } skey;
   /* These properties are wrapper for libtomcrypt
      we do not put start function because on CTR and ECB mode it's not the same
@@ -169,7 +181,8 @@ typedef struct symmetric_cipher_rec_t
   /* clean up */
   done_proc done;
   keysize_proc keysize;
-} SgBuiltinCipherSpi;
+  update_aad_proc update_aad;
+};
 
 /* hopefully we have enough */
 typedef struct public_key_cipher_ret_t
@@ -187,7 +200,6 @@ typedef struct public_key_cipher_ret_t
   SgObject blocksize;
   SgObject iv;
 } SgCipherSpi;
-
 
 typedef struct SgCipherRec
 {
@@ -214,6 +226,9 @@ int      Sg_CipherBlockSize(SgCipher *cipher);
 
 SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data);
 SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherTag(SgCipher *crypto, SgByteVector *dst);
+SgObject Sg_VMCipherMaxTagSize(SgCipher *crypto);
 
 SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt);
 SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,

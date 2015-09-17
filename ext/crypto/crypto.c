@@ -32,6 +32,67 @@
 #include <sagittarius/extend.h>
 #include "crypto.h"
 
+/* GCM wrapper */
+static int wrapped_gcm_process(unsigned char *pt,
+			       unsigned char *ct,
+			       unsigned long len,
+			       cipher_gcm_state *gcm,
+			       int direction)
+{
+  SgObject iv = gcm->spi->iv;
+  unsigned long ivlen = SG_BVECTOR_SIZE(iv);
+  int err;
+  /* reset after encryption */
+  
+  err = gcm_process(&gcm->gcm, pt, len, ct, direction);
+  if (err == CRYPT_OK) {
+    unsigned long taglen = sizeof(gcm->tag);
+    err = gcm_done(&gcm->gcm, gcm->tag, &taglen);
+  }
+  /* we resets no matter what */
+  gcm_reset(&gcm->gcm);
+  gcm_add_iv(&gcm->gcm, SG_BVECTOR_ELEMENTS(iv), ivlen);
+  return err;
+}
+static int gcm_encrypt(const unsigned char *pt,
+		       unsigned char *ct,
+		       unsigned long len,
+		       cipher_gcm_state *gcm)
+{
+  return wrapped_gcm_process((unsigned char *)pt, ct, len, gcm, GCM_ENCRYPT);
+}
+static int gcm_decrypt(const unsigned char *ct,
+		       unsigned char *pt,
+		       unsigned long len,
+		       cipher_gcm_state *gcm)
+{
+  return wrapped_gcm_process(pt, (unsigned char *)ct, len, gcm, GCM_DECRYPT);
+}
+static int gcm_setiv(unsigned char *IV, unsigned long *len, 
+		     cipher_gcm_state *gcm)
+{
+  /* should we do this way? */
+  gcm_reset(&gcm->gcm);
+  gcm->spi->iv = Sg_MakeByteVectorFromU8Array(IV, *len);
+  return gcm_add_iv(&gcm->gcm, IV, *len);
+}
+
+static int fake_gcm_done(cipher_gcm_state *gcm)
+{
+  gcm_reset(&gcm->gcm);		/* at least reset it */
+  memset(gcm->tag, 0, sizeof(gcm->tag));
+  return CRYPT_OK;
+}
+
+static int gcm_update_aad(cipher_gcm_state *gcm, 
+			  unsigned char *aad, unsigned long len)
+{
+  return gcm_add_aad(&gcm->gcm, aad, len);
+}
+
+/* GCM wrapper end */
+
+
 static void cipher_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
   Sg_Printf(port, UC("#<cipher %S>"), SG_CIPHER(self)->spi);
@@ -169,6 +230,22 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 		    &spi->skey.ctr_key);
     SG_INIT_CIPHER(spi,
 		   ctr_encrypt, ctr_decrypt, NULL, NULL, ctr_done, keysize);
+    break;
+  case MODE_GCM:
+    if (!SG_BVECTOR(iv)) {
+      Sg_Error(UC("iv required on GCM mode"));
+      return SG_UNDEF;
+    }
+    err = gcm_init(&spi->skey.cipher_gcm.gcm, cipher, 
+		   SG_BVECTOR_ELEMENTS(key), SG_BVECTOR_SIZE(key));
+    if (err == CRYPT_OK) {
+      err = gcm_add_iv(&spi->skey.cipher_gcm.gcm, 
+		       SG_BVECTOR_ELEMENTS(iv), SG_BVECTOR_SIZE(iv));
+    }
+    SG_INIT_CIPHER(spi, gcm_encrypt, gcm_decrypt, NULL, gcm_setiv,
+		   fake_gcm_done, keysize);
+    spi->update_aad = (update_aad_proc)gcm_update_aad;
+    spi->skey.cipher_gcm.spi = spi;
     break;
   default:
     Sg_Error(UC("invalid mode %d"), mode);
@@ -346,6 +423,57 @@ SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data)
   } else {
     return public_key_decrypt(crypto, data);
   }
+}
+
+SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data)
+{
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
+    SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
+    if (spi->update_aad) {
+      unsigned long len = SG_BVECTOR_SIZE(data);
+      int err = spi->update_aad(&spi->skey, SG_BVECTOR_ELEMENTS(data), len);
+      if (err != CRYPT_OK) {
+	Sg_Error(UC("cipher-update-add!: %A"), error_to_string(err));
+      }
+      return SG_TRUE;
+    }
+  }
+  /* TODO should we check if this is user defined cipher? */
+  /* nothing to be done */
+  return SG_FALSE;
+}
+
+SgObject Sg_VMCipherTag(SgCipher *crypto, SgByteVector *dst)
+{
+  if (SG_BVECTOR_LITERALP(dst)) {
+    Sg_Error(UC("cipher-tag!: got literal bytevector %A"), dst);
+  }
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
+    SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
+    int i;
+    switch (spi->mode) {
+    case MODE_GCM:
+      for (i = 0; 
+	   i < SG_BVECTOR_SIZE(dst) && i < sizeof(spi->skey.cipher_gcm.tag);
+	   i++) {
+	SG_BVECTOR_ELEMENT(dst, i) = spi->skey.cipher_gcm.tag[i];
+      }
+      return SG_MAKE_INT(i);
+    default: break;
+    }
+  }
+  return SG_MAKE_INT(0);
+}
+SgObject Sg_VMCipherMaxTagSize(SgCipher *crypto)
+{
+  if (SG_BUILTIN_CIPHER_SPI_P(crypto->spi)) {
+    SgBuiltinCipherSpi *spi = SG_BUILTIN_CIPHER_SPI(crypto->spi);
+    switch (spi->mode) {
+    case MODE_GCM: return SG_MAKE_INT(sizeof(spi->skey.cipher_gcm.tag));
+    default: break;
+    }
+  }
+  return SG_MAKE_INT(0);
 }
 
 SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt)
@@ -733,6 +861,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__crypto()
   MODE_CONST(MODE_CFB);
   MODE_CONST(MODE_OFB);
   MODE_CONST(MODE_CTR);
+  MODE_CONST(MODE_GCM);
   MODE_CONST(CTR_COUNTER_LITTLE_ENDIAN);
   MODE_CONST(CTR_COUNTER_BIG_ENDIAN);
   MODE_CONST(LTC_CTR_RFC3686);

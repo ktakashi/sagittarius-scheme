@@ -13,6 +13,9 @@
 	    suggest-keysize
 	    cipher-blocksize
 	    cipher-iv
+	    cipher-update-aad!
+	    cipher-tag!
+	    cipher-max-tag-size
 	    sign
 	    verify
 	    ;;
@@ -28,6 +31,7 @@
 	    MODE_CFB
 	    MODE_OFB
 	    MODE_CTR
+	    MODE_GCM
 	    ;; ctr conter mode
 	    CTR_COUNTER_LITTLE_ENDIAN
 	    CTR_COUNTER_BIG_ENDIAN
