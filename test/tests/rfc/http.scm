@@ -84,10 +84,12 @@
 		     [(equal? request-uri "/exit")
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      (display "exit" in/out)
+		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
 		      => (lambda (x)
 			   (for-each (cut display <> in/out) x)
+			   (socket-shutdown client SHUT_RDWR)
 			   (socket-close client)
 			   (loop))]
 		     [else
@@ -99,6 +101,7 @@
 				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
+		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)
 		      (loop)]))))
 	    (else
