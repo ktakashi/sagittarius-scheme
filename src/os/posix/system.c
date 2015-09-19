@@ -743,18 +743,27 @@ static void finish_child_process(void *data)
 
 }
 
-int Sg_SysProcessKill(uintptr_t pid)
+int Sg_SysProcessKill(uintptr_t pid, int childrenp)
 {
   pid_t p = (pid_t)pid;
   /* simply kill */
-  int r;
+  int r, sig;
+  
 #ifdef SIGKILL
-  r = kill(p, SIGKILL);
+  sig = SIGKILL;
 #else
   /* should be there */
-  r = kill(p, SIGTERM);
+  sig = SIGTERM;
 #endif
-
+  if (childrenp) {
+    /* process group of this process id.
+       NOTE: this makes child process be able to kill parent process.
+       TODO: should we allow this?
+     */
+    r = killpg(getpgid(p), sig);
+  } else {
+    r = kill(p, sig);
+  }
   if (r < 0) {
     int e = errno;
     if (e == ESRCH) {

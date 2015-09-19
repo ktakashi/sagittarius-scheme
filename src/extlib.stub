@@ -1371,12 +1371,15 @@
 	 (result (Sg_SysProcessWait
 	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
 
-  (define-c-proc sys-process-kill (pid::<integer>) ::<fixnum>
+  (define-c-proc sys-process-kill (pid::<integer> :key (children? #f))
+    ::<fixnum>
     (.if "SIZEOF_VOIDP >= 8"
 	 (result (Sg_SysProcessKill
-	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
+	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))
+	     (not (SG_FALSEP children?))))
 	 (result (Sg_SysProcessKill
-	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
+	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))
+	     (not (SG_FALSEP children?))))))
 
   (define-c-proc sys-process-active? (pid::<integer>) ::<boolean>
     (.if "SIZEOF_VOIDP >= 8"

@@ -168,12 +168,17 @@ NOTE: The exit status are platform dependent. On Windows, the value will be
 32 bit integer. On POSIX, the value will be 8 bit unsigned integer.
 }
 
-@define[Function]{@name{process-kill} @args{process}}
+@define[Function]{@name{process-kill} @args{process :key children?}}
 @desc{@var{process} must be a process object.
 
 Kill the given process and returns the exit status of the given
 process. If the process is already terminated before the @code{process-kill}
 is called, then returning value is its status code. Otherwise -1.
+
+If the keyword argument @var{children?} is given and if it's true value, then
+the procedure kills the child processes. The process of killing child processes
+is not the same between Windows and POSIX. On Windows, the process seeks all
+possible child processes. On POSIX, it simply calls @code{killpg (2)}.
 }
 
 @define[Function]{@name{process-active?} @args{process}}

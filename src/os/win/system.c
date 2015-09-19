@@ -28,6 +28,7 @@
  *  $Id: $
  */
 #include <windows.h>
+#include <TlHelp32.h>
 #include <wchar.h>
 #include <io.h>
 #include <string.h>
@@ -557,12 +558,73 @@ int Sg_SysProcessWait(uintptr_t pid)
   return status;
 }
 
-int Sg_SysProcessKill(uintptr_t pid)
+/*
+  NOTE: this function is not so efficient, maybe we can do better without
+        creating snapshot for each child process.
+	this takes O(nm).
+ */
+static void kill_children(DWORD parentPid)
+{
+  HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  int cont = TRUE;
+  PROCESSENTRY32W pe;
+
+  pe.dwSize = sizeof(PROCESSENTRY32W);
+  if (Process32FirstW(hSnap, &pe)) {
+    while (cont) {
+      if (pe.th32ParentProcessID == parentPid) {
+	HANDLE child;
+	DWORD pid = pe.th32ProcessID;
+	/* stop it */
+	DebugActiveProcess(pid);
+	/* first child process */
+	kill_children(pid);
+	/* now death sentence! */
+	child = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+	if (child) {
+	  /* TODO do safe way
+	      - get Window handle
+	      - call PostMessage with WM_CLOSE
+	   */
+	  /* we don't care the result of TerminateProcess here */
+	  TerminateProcess(child, 0);
+	  CloseHandle(child);
+	}
+	DebugActiveProcessStop(pid);
+      }
+      cont = Process32NextW(hSnap, &pe);
+    }
+  }
+  CloseHandle(hSnap);
+}
+
+
+int Sg_SysProcessKill(uintptr_t pid, int childrenp)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
   DWORD status = 0;
   if (!SG_WIN_PROCP(p)) Sg_Error(UC("invalid pid %S"), SG_OBJ(p));
   if (p->process == (HANDLE)-1) return -1;
+
+  if (childrenp) {
+    /* ok do some trick. 
+       We need to consider the time gap to follow all child processes.
+       Means there might be a chance that given process or one of child
+       processes create new processes during traversing. To avoid this
+       we need to stop the process.
+       Unfortunately, there is no SuspendProcess Win32 API. So we do
+       kinda abusing the API purpose of DebugActiveProcess which
+       stops given process for debugging purpose.
+     */
+    DWORD thisPid = GetProcessId(p->process);
+    /* we don't care if this is stopped or not.
+       if not, good luck! */
+    DebugActiveProcess(thisPid);
+    kill_children(thisPid);
+    /* ok killed all children so resume it */
+    DebugActiveProcessStop(thisPid);
+  }
+
   if (!TerminateProcess(p->process, -1)) {
     int e = GetLastError();
     /* TODO we way want to explicitly put TERMINATE_PROCESS

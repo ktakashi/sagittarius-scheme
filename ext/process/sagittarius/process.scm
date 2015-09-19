@@ -103,8 +103,8 @@
   (define (process-run p . opts)
     (apply process-call p opts)
     (process-wait p))
-  (define (process-kill p)
-    (sys-process-kill (slot-ref p 'pid)))
+  (define (process-kill p :key (children? #f))
+    (sys-process-kill (slot-ref p 'pid) :children? children?))
   (define (process-active? p)
     (sys-process-active? (slot-ref p 'pid)))
 
