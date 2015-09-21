@@ -1847,6 +1847,10 @@
 (test-assert "2.225073858507201e-308" (string->number "2.225073858507201e-308"))
 
 (let ()
+  (define (string-copy! src spos dst dpos size)
+    (do ((i 0 (+ i 1)) (spos spos (+ spos 1)) (dpos dpos (+ dpos 1)))
+	((= i size) size)
+      (string-set! dst dpos (string-ref src spos))))
   (define (make-input s)
     (define pos 0)
     (define str-len (string-length s))
