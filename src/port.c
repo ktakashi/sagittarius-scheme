@@ -2842,7 +2842,9 @@ SgChar Sg_PeekcUnsafe(SgPort *port)
 SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle)
 {
   volatile SgObject r = SG_UNDEF;
-  if (!SG_TEXTUAL_PORTP(port)) {
+  if (!SG_TEXTUAL_PORTP(port) &&
+      !(SG_CUSTOM_PORTP(port) && 
+	SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE)) {
     Sg_Error(UC("textual port required, but got %S"), port);
   }
   SG_PORT_LOCK_READ(port);
