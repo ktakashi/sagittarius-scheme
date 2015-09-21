@@ -71,10 +71,14 @@ SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key)
   const char *cname = Sg_Utf32sToUtf8s(name);
   int cipher = find_cipher(cname), err;
 
+  if (cipher < 0) {
+    Sg_Error(UC("Failed to find cipher %S"), name);
+    return SG_FALSE;
+  }
   /* check key length */
   if ((err = cipher_descriptor[cipher].keysize(&len)) != CRYPT_OK) {
-    Sg_Error(UC("Failed to get key size: %A"),
-	     Sg_MakeStringC(error_to_string(err)));
+    Sg_Error(UC("Failed to get key size for %S[size=%d]: %A"),
+	     name, len, Sg_MakeStringC(error_to_string(err)));
     return SG_FALSE;
   }
 

@@ -6,18 +6,21 @@
 (library (sagittarius crypto)
     (export crypto-object?
 	    cipher?
-	    make-builtin-cipher-spi
-	    make-cipher
-	    encrypt
-	    decrypt
-	    suggest-keysize
+	    cipher-spi? make-builtin-cipher-spi
+	    create-cipher
+	    cipher-encrypt
+	    cipher-decrypt
+	    cipher-suggest-keysize
 	    cipher-blocksize
 	    cipher-iv
-	    sign
-	    verify
+	    cipher-update-aad!
+	    cipher-tag!
+	    cipher-max-tag-size
+	    cipher-signature
+	    cipher-verify
 	    ;;
-	    register-spi
-	    lookup-spi
+	    register-cipher-spi
+	    lookup-cipher-spi
 
 	    ;; key
 	    key?
@@ -28,6 +31,7 @@
 	    MODE_CFB
 	    MODE_OFB
 	    MODE_CTR
+	    MODE_GCM
 	    ;; ctr conter mode
 	    CTR_COUNTER_LITTLE_ENDIAN
 	    CTR_COUNTER_BIG_ENDIAN
@@ -65,6 +69,7 @@
 	    Khazad
 	    SEED
 	    KASUMI
+	    Camellia
 	    ;;
 	    <crypto>
 	    <cipher>
@@ -74,6 +79,11 @@
 	    <symmetric-key>
 	    <builtin-symmetric-key>
 	    <asymmetric-key>
+	    ;; for backward compatibility
+	    (rename (register-cipher-spi register-spi)
+		    (lookup-cipher-spi lookup-spi)
+		    (cipher-suggest-keysize suggest-keysize))
+
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -153,5 +163,5 @@
   (define-constant Khazad      :khazad)
   (define-constant SEED        :seed)
   (define-constant KASUMI      :kasumi)
-
+  (define-constant Camellia    :camellia)
 )

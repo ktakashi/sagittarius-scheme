@@ -38,7 +38,8 @@ typedef enum {
   MODE_CBC,
   MODE_CFB,
   MODE_OFB,
-  MODE_CTR
+  MODE_CTR,
+  MODE_GCM,
 } SgCryptoMode;
 
 
@@ -99,7 +100,7 @@ SG_CLASS_DECL(Sg_AsymmetricKeyClass);
 #define SG_CIPHERP(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER)
 
 #define SG_CIPHER_SPI(obj)  ((SgCipherSpi*)obj)
-#define SG_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER_SPI)
+#define SG_CIPHER_SPI_P(obj) SG_ISA(obj, SG_CLASS_CIPHER_SPI)
 
 #define SG_BUILTIN_CIPHER_SPI(obj)  ((SgBuiltinCipherSpi*)obj)
 #define SG_BUILTIN_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_BUILTIN_CIPHER_SPI)
@@ -138,8 +139,18 @@ typedef int (*decrypt_proc)(const unsigned char *ct,
 typedef int (*iv_proc)(unsigned char *IV, unsigned long *len, void *skey);
 typedef int (*done_proc)(void *skey);
 typedef int (*keysize_proc)(int *keysize);
+typedef int (*update_aad_proc)(void *skey, unsigned char *ct, unsigned long len);
 
-typedef struct symmetric_cipher_rec_t
+typedef struct symmetric_cipher_rec_t SgBuiltinCipherSpi;
+typedef struct cipher_gcm_state_rec 
+{
+  gcm_state gcm;
+  unsigned char tag[16];	/* RFC 5116 defines 16 octet is the max */
+  /* to get iv from cipher */
+  SgBuiltinCipherSpi *spi;
+} cipher_gcm_state;
+
+struct symmetric_cipher_rec_t
 {
   SG_HEADER;
   SgObject       name;
@@ -155,6 +166,7 @@ typedef struct symmetric_cipher_rec_t
     symmetric_OFB ofb_key;
     symmetric_CFB cfb_key;
     symmetric_ECB ecb_key;
+    cipher_gcm_state  cipher_gcm;
   } skey;
   /* These properties are wrapper for libtomcrypt
      we do not put start function because on CTR and ECB mode it's not the same
@@ -169,7 +181,8 @@ typedef struct symmetric_cipher_rec_t
   /* clean up */
   done_proc done;
   keysize_proc keysize;
-} SgBuiltinCipherSpi;
+  update_aad_proc update_aad;
+};
 
 /* hopefully we have enough */
 typedef struct public_key_cipher_ret_t
@@ -186,8 +199,10 @@ typedef struct public_key_cipher_ret_t
   SgObject data;
   SgObject blocksize;
   SgObject iv;
+  SgObject updateAAD;
+  SgObject tag;
+  SgObject tagsize;
 } SgCipherSpi;
-
 
 typedef struct SgCipherRec
 {
@@ -208,16 +223,21 @@ typedef struct SgCipherRec
 SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 				 SgObject key, SgObject iv, int rounds,
 				 SgObject padder, int ctr_mode);
-SgObject Sg_MakeCipher(SgObject spi);
-SgObject Sg_VMSuggestKeysize(SgCipher *cipher, int keysize);
+SgObject Sg_CreateCipher(SgObject spi);
+SgObject Sg_VMCipherSuggestKeysize(SgCipher *cipher, int keysize);
 int      Sg_CipherBlockSize(SgCipher *cipher);
 
-SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data);
-SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherEncrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherDecrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherUpdateAAD(SgCipher *crypto, SgByteVector *data,
+			      int s, int e);
+SgObject Sg_VMCipherTag(SgCipher *crypto, SgByteVector *dst);
+SgObject Sg_VMCipherMaxTagSize(SgCipher *crypto);
 
-SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt);
-SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
-		   SgObject opt);
+SgObject Sg_VMCipherSignature(SgCipher *crypto, SgByteVector *data,
+			      SgObject opt);
+SgObject Sg_VMCipherVerify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
+			 SgObject opt);
 
 /* keys */
 SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key);

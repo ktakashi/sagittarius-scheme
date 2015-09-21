@@ -21,6 +21,7 @@
 ;;(define-c-proc generate-secret-key (type::<string> key::<bytevector>) 
 ;;    (result (Sg_GenerateSecretKey type key)))
 
+(define-c-proc cipher-spi? (o) ::<boolean> :constant SG_CIPHER_SPI_P)
 (define-c-proc make-builtin-cipher-spi
   (name::<keyword> mode::<fixnum> key::<builtin-symmetric-key>
 		  iv rounds::<fixnum> padder ctr_mode::<fixnum>)
@@ -39,19 +40,32 @@
 				   (cast SgCryptoMode mode)
 				   key iv rounds padder ctr_mode)))
 
-(define-c-proc make-cipher (spi)
+(define-c-proc create-cipher (spi)
   (unless (Sg_TypeP spi SG_CLASS_CIPHER_SPI)
     (Sg_WrongTypeOfArgumentViolation 'make-cipher
 				     (SG_MAKE_STRING "<cipher-spi>")
 				     spi '()))
-  (result (Sg_MakeCipher spi)))
+  (result (Sg_CreateCipher spi)))
 
-(define-c-proc encrypt (crypto::<cipher> pt::<bytevector>) Sg_VMEncrypt)
+(define-c-proc cipher-encrypt (crypto::<cipher> pt::<bytevector>) 
+  Sg_VMCipherEncrypt)
 
-(define-c-proc decrypt (crypto::<cipher> ct::<bytevector>) Sg_VMDecrypt)
+(define-c-proc cipher-decrypt (crypto::<cipher> ct::<bytevector>) 
+  Sg_VMCipherDecrypt)
 
-(define-c-proc suggest-keysize (name::<cipher> size::<fixnum>) :no-side-effect
-  Sg_VMSuggestKeysize)
+(define-c-proc cipher-suggest-keysize (name::<cipher> size::<fixnum>)
+  :no-side-effect
+  Sg_VMCipherSuggestKeysize)
+
+(define-c-proc cipher-update-aad!
+  (name::<cipher> aad::<bytevector>
+   :optional (start::<fixnum> 0) (end::<fixnum> -1))
+  Sg_VMCipherUpdateAAD)
+
+(define-c-proc cipher-tag! (name::<cipher> dst::<bytevector>)
+  Sg_VMCipherTag)
+(define-c-proc cipher-max-tag-size (name::<cipher>) :no-side-effect
+  Sg_VMCipherMaxTagSize)
 
 ;; now it's generic
 ;;(define-c-proc cipher-blocksize (name::<cipher>) ::<fixnum>
@@ -63,13 +77,14 @@
       (result (Sg_VMSlotSet (-> cipher spi) 'iv iv))))
 
 ;; sign
-(define-c-proc sign (crypto::<cipher> data::<bytevector> :rest opt)
-  Sg_Signature)
+(define-c-proc cipher-signature (crypto::<cipher> data::<bytevector> :rest opt)
+  Sg_VMCipherSignature)
 
-(define-c-proc verify 
+(define-c-proc cipher-verify 
   (crypto::<cipher> M::<bytevector> S::<bytevector> :rest opt) 
-  Sg_Verify)
+  Sg_VMCipherVerify)
 
-(define-c-proc register-spi (name spi::<class>) ::<boolean> Sg_RegisterSpi)
-(define-c-proc lookup-spi (name) :no-side-effect Sg_LookupSpi)
+(define-c-proc register-cipher-spi (name spi::<class>) ::<boolean> 
+  Sg_RegisterSpi)
+(define-c-proc lookup-cipher-spi (name) :no-side-effect Sg_LookupSpi)
 
