@@ -1729,7 +1729,7 @@ SgObject Sg_Read(SgObject port, int readSharedObject)
 {
   SgReadContext ctx = SG_STATIC_READ_CONTEXT;
   ASSERT(SG_PORTP(port));
-  ASSERT(SG_TEXTUAL_PORTP(port));
+  /* ASSERT(SG_TEXTUAL_PORTP(port)); */
   /* make read context for shared object */
   if (readSharedObject) {
     SgHashTable graph;
