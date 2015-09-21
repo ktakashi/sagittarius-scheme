@@ -1,6 +1,7 @@
 (import (rnrs)
 	(rfc smtp commands)
 	(rfc smtp extensions)
+	(rfc smtp conditions)
 	(rfc base64)
 	(srfi :64))
 
@@ -37,12 +38,12 @@
 
 (define expected-credential (base64-encode-string "foo\x0;foo\x0;bar"))
 
-(define (make-emulative-port)
+(define (make-emulative-port str)
   (define (string-copy! src spos dst dpos size)
     (do ((i 0 (+ i 1)) (spos spos (+ spos 1)) (dpos dpos (+ dpos 1)))
 	((= i size) size)
       (string-set! dst dpos (string-ref src spos))))
-  (define str "235")
+  ;; (define str "235")
   (define pos 0)
   (define str-len (string-length str))
   (let-values (((out extract) (open-string-output-port)))
@@ -61,7 +62,7 @@
      extract)))
   
 (define (test-auth expected thunk)
-  (let*-values (((out extract) (make-emulative-port))
+  (let*-values (((out extract) (make-emulative-port "235"))
 		((status content) (smtp-auth out thunk)))
       (test-equal "auth status" 235 status)
       (test-equal "auth value" expected (extract))))
@@ -70,6 +71,9 @@
 (test-auth  "AUTH SOMETHING\r\n"
 	    (lambda () (values "SOMETHING" #f)))
 
+(let-values (((out extract) (make-emulative-port "500")))
+  (test-error "auth error" smtp-authentication-failure?
+	      (smtp-auth out (smtp-plain-authentication "foo" "bar"))))
 
 ;; read response
 ;; From SASM project
@@ -143,6 +147,7 @@
 	     (read-response response-2))
 (test-values "response-3" (200 "") (read-response response-3))
 
-(test-error "invalid-response" condition? (read-response invalid-response))
+(test-error "invalid-response" smtp-invalid-response-error? 
+	    (read-response invalid-response))
 
 (test-end)

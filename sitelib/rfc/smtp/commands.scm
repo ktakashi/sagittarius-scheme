@@ -46,7 +46,10 @@
 
 	    smtp-recv
 	    )
-    (import (rnrs) (srfi :1) (srfi :13))
+    (import (rnrs)
+	    (rfc smtp conditions)
+	    (srfi :1)
+	    (srfi :13))
 
 ;; port must have utf-8-codec or latin-1-codec to make this work
 ;; in binary world.
@@ -117,7 +120,11 @@
     (let-values (((status continue? content) (parse-line line)))
       (if continue?
 	  (if (and saved (not (= status saved)))
-	      (error 'smtp-recv "Invalid response" saved status)
+	      (raise (condition
+		      (list (make-smtp-invalid-response-error)
+			    (make-who-condition 'smtp-recv)
+			    (make-message-condition "Invalid response")
+			    (make-irritants-condition saved status))))
 	      (loop (string-trim-right (get-line in)) 
 		    status 
 		    (cons* "\n" content r)))

@@ -36,6 +36,7 @@
     (import (rnrs)
 	    (rfc tls)
 	    (rfc smtp commands)
+	    (rfc smtp conditions)
 	    (rfc base64))
 
 ;; STARTTLS extension
@@ -48,25 +49,34 @@
   (flush-output-port port)
   (let-values (((status content) (smtp-recv port)))
     (unless (= status 220)
-      (error 'smtp-starttls content status))
+      (raise (condition 
+	      (list (make-smtp-error)
+		    (make-who-condition 'smtp-starttls)
+		    (make-message-condition content)
+		    (make-irritants-condition status)))))
     (tls-client-handshake (socket->tls-socket socket))))
 
 ;; AUTH extension
 ;; reference https://tools.ietf.org/html/rfc4954
 (define (smtp-auth port initial-response-generator)
-  (put-string port "AUTH ")
   (let-values (((type initial-response) (initial-response-generator)))
+    (put-string port "AUTH ")
     (put-string port type)
     ;; if the initial-response is #f then don't send
     (when initial-response
       (put-char port #\space)
-      (put-string port initial-response)))
-  (put-string port "\r\n")
-  (flush-output-port port)
-  (let-values (((status content) (smtp-recv port)))
-    (case status
-      ((235 334) (values status content))
-      (else (error 'smtp-auth content status)))))
+      (put-string port initial-response))
+    (put-string port "\r\n")
+    (flush-output-port port)
+    (let-values (((status content) (smtp-recv port)))
+      (case status
+	((235 334) (values status content))
+	(else
+	 (raise (condition
+		 (list (make-smtp-authentication-failure type)
+		       (make-who-condition 'smtp-auth)
+		       (make-message-condition content)
+		       (make-irritants-condition status)))))))))
 
 ;; SASL PLAIN thing
 ;; TODO move to somewhere
