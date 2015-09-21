@@ -1,6 +1,7 @@
 (import (rnrs)
 	(rfc smtp commands)
 	(rfc smtp extensions)
+	(rfc base64)
 	(srfi :64))
 
 (test-begin "SMTP")
@@ -33,6 +34,42 @@
 (test-command "NOOP String\r\n" smtp-noop "String")
 
 (test-command "QUIT\r\n" smtp-quit)
+
+(define expected-credential (base64-encode-string "foo\x0;foo\x0;bar"))
+
+(define (make-emulative-port)
+  (define (string-copy! src spos dst dpos size)
+    (do ((i 0 (+ i 1)) (spos spos (+ spos 1)) (dpos dpos (+ dpos 1)))
+	((= i size) size)
+      (string-set! dst dpos (string-ref src spos))))
+  (define str "235")
+  (define pos 0)
+  (define str-len (string-length str))
+  (let-values (((out extract) (open-string-output-port)))
+    (define (write! src start size) (put-string out src start size) size)
+    (define (read! out start size)
+      (if (>= pos str-len)
+	  0
+	  (let ((size (min size (- str-len pos))))
+	    (string-copy! str pos out start size)
+	    (set! pos (+ size pos))
+	    size)))
+    (define (close) #f)
+    (values 
+     (make-custom-textual-input/output-port "emutative-port" 
+					    read! write! #f #f close)
+     extract)))
+  
+(define (test-auth expected thunk)
+  (let*-values (((out extract) (make-emulative-port))
+		((status content) (smtp-auth out thunk)))
+      (test-equal "auth status" 235 status)
+      (test-equal "auth value" expected (extract))))
+(test-auth (format "AUTH PLAIN ~a\r\n" expected-credential)
+	   (smtp-plain-authentication "foo" "bar"))
+(test-auth  "AUTH SOMETHING\r\n"
+	    (lambda () (values "SOMETHING" #f)))
+
 
 ;; read response
 ;; From SASM project

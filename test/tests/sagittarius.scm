@@ -1845,4 +1845,23 @@
 
 ;; call #144
 (test-assert "2.225073858507201e-308" (string->number "2.225073858507201e-308"))
+
+(let ()
+  (define (make-input s)
+    (define pos 0)
+    (define str-len (string-length s))
+    (define (read! out start size)
+      (if (>= pos str-len)
+	  0
+	  (let ((size (min (- str-len pos) size)))
+	    (string-copy! s pos out start size)
+	    (set! pos (+ pos size))
+	    size)))
+    (define (close) #f)
+    (make-custom-textual-input-port "input" read! #f #f close))
+  (let ((in (make-input "abcde")))
+    (test-equal "get-line with custom port"
+		"abcde"
+		(get-line in))))
+
 (test-end)
