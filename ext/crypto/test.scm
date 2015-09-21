@@ -8,7 +8,8 @@
 	(math random)
 	(math prime)
 	(math hash)
-	(math ec))
+	(math ec)
+	(clos user))
 
 ;; plain value for all test cases
 (define *plain-value* (string->utf8 "I want to encrypt this text with the key!"))
@@ -40,7 +41,8 @@
 				   :iv (make-bytevector 8 0)))
 ;; Triple DES test variables
 ;; we need 24 bytes for key
-(define *des3-key* (generate-secret-key DES3 (string->utf8 "24bytekey123456789012345")))
+(define des3-key-raw (string->utf8 "24bytekey123456789012345"))
+(define *des3-key* (generate-secret-key DES3 des3-key-raw))
 (define des3/ecb-cipher (cipher DES3 *des3-key*))
 (define *des3/ecb-encrypted-value* #vu8(206 108 187 150 233 197 246 31 249 102
 					    106 26 0 109 134 172 189 147 206 65
@@ -296,7 +298,7 @@
 (test-assert "Verify with EMSA-PSS and SHA-1"
 	     (let* ((rsa-sign-cipher (cipher RSA (keypair-private key-pair)))
 		    (rsa-verify-cipher (cipher RSA (keypair-public key-pair)))
-		    (em (sign rsa-sign-cipher valid-rsa-message)))
+		    (em (cipher-signature rsa-sign-cipher valid-rsa-message)))
 	       (verify rsa-verify-cipher valid-rsa-message em)))
 
 (test-assert "Verify with EMSA-PSS and MD5"
@@ -523,23 +525,58 @@
 	(test-equal "restoring (success)" 
 		    msg (decrypt dec-ci (encrypt enc-ci msg)))))))
 
+
+;; we have now updateAAD, tag and tagsize slot so test it
+(define-class <dummy-spi> (<cipher-spi>)
+  ((aad-value :reader dummy-aad)
+   (tag-value :reader dummy-tag)))
+(define-method initialize ((spi <dummy-spi>) initargs)
+  (slot-set! spi 'update-aad (lambda (data) 
+			       (slot-set! spi 'aad-value data)
+			       'ok))
+  (slot-set! spi 'encrypt (lambda (pt key)
+			    (slot-set! spi 'tag-value #vu8(1 2 3 4))))
+  (slot-set! spi 'tag (lambda (dst) 
+			(bytevector-copy! (dummy-tag spi) 0
+					  dst 0
+					  4)))
+  (slot-set! spi 'tagsize 4))
+(let* ((spi (make <dummy-spi>))
+       (cipher (make-cipher spi #f)))
+  ;; it's not documented but returning value is the result of
+  ;; underlying procedure of update-aad
+  (test-equal "dummy update AAD" 'ok (cipher-update-aad! cipher #vu8(1 2 3 4)))
+  (test-equal "dummy AAD" #vu8(1 2 3 4) (dummy-aad spi))
+  (cipher-encrypt cipher #vu8(5 6 7 8))
+  (test-equal "dummy tag" #vu8(1 2 3 4) (cipher-tag cipher)))
+
 ;; GCM
 (test-assert "MODE_GCM" MODE_GCM)
+(test-equal "GCM tag size" 16
+	    (cipher-max-tag-size
+	     (cipher AES
+		     ;; we can use DESede key for AES
+		     (generate-secret-key AES des3-key-raw)
+		     :iv #vu8(1 2 3 4 5 6 7 8) :mode MODE_GCM :padder #f)))
 
 (define (test-gcm-decryption count key iv ct aad tag pt :key (invalid-tag #f))
   (let* ((skey (generate-secret-key AES key))
-	 (gcm-cipher (cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
-    (cipher-update-aad! gcm-cipher aad)
-    (test-equal (format "GCM decryption (~a)" count)
-		pt (decrypt gcm-cipher ct))
-    (let ((bv (make-bytevector (bytevector-length tag))))
+	 (cipher (make-cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+    (cipher-update-aad! cipher aad)
+    (let-values (((decrypted this-tag)
+		  (cipher-decrypt/tag cipher ct
+				      :tag-size (bytevector-length tag))))
+      (test-equal (format "GCM decryption (~a)" count) pt decrypted)
       (test-equal (format "GCM decryption tag length (~a)" count)
-		  (bytevector-length tag) (cipher-tag! gcm-cipher bv))
+		  (bytevector-length tag) (bytevector-length this-tag))
+      (let ((bv (make-bytevector (bytevector-length tag))))
+	(test-equal (format "GCM decryption cipher-tag! (~a)" count)
+		    (bytevector-length tag) (cipher-tag! cipher bv)))
       (if tag
 	  (test-assert (format "GCM decryption tag (~a)" count)
-		       (not (bytevector=? tag bv)))
+		       (not (bytevector=? tag this-tag)))
 	  (test-equal (format "GCM decryption tag (~a)" count)
-		      tag bv)))))
+		      tag this-tag)))))
 
 #|
 Count = 0
@@ -628,13 +665,18 @@ PT = 498255c2c186a7792dfd1a613c0b434d
 
 (define (test-gcm-encryption count key iv pt aad ct tag)
   (let* ((skey (generate-secret-key AES key))
-	 (gcm-cipher (cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
-    (cipher-update-aad! gcm-cipher aad)
-    (test-equal (format "GCM encryption (~a)" count) ct (encrypt gcm-cipher pt))
-    (let ((bv (make-bytevector (bytevector-length tag))))
+	 (cipher (make-cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+    (cipher-update-aad! cipher aad)
+    (let-values (((encrypted this-tag)
+		  (cipher-encrypt/tag cipher pt 
+				      :tag-size (bytevector-length tag))))
+      (test-equal (format "GCM encryption (~a)" count) ct encrypted)
       (test-equal (format "GCM encryption tag length (~a)" count)
-		  (bytevector-length tag) (cipher-tag! gcm-cipher bv))
-      (test-equal (format "GCM encryption tag (~a)" count) tag bv))))
+		  (bytevector-length tag) (bytevector-length this-tag))
+      (let ((bv (make-bytevector (bytevector-length tag))))
+	(test-equal (format "GCM encryption cipher-tag! (~a)" count)
+		    (bytevector-length tag) (cipher-tag! cipher bv)))
+      (test-equal (format "GCM encryption tag (~a)" count) tag this-tag))))
 #|
 Count = 0
 Key = 11754cd72aec309bf52f7687212e8957

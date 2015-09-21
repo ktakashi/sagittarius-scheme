@@ -100,7 +100,7 @@ SG_CLASS_DECL(Sg_AsymmetricKeyClass);
 #define SG_CIPHERP(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER)
 
 #define SG_CIPHER_SPI(obj)  ((SgCipherSpi*)obj)
-#define SG_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_CIPHER_SPI)
+#define SG_CIPHER_SPI_P(obj) SG_ISA(obj, SG_CLASS_CIPHER_SPI)
 
 #define SG_BUILTIN_CIPHER_SPI(obj)  ((SgBuiltinCipherSpi*)obj)
 #define SG_BUILTIN_CIPHER_SPI_P(obj) SG_XTYPEP(obj, SG_CLASS_BUILTIN_CIPHER_SPI)
@@ -199,6 +199,9 @@ typedef struct public_key_cipher_ret_t
   SgObject data;
   SgObject blocksize;
   SgObject iv;
+  SgObject updateAAD;
+  SgObject tag;
+  SgObject tagsize;
 } SgCipherSpi;
 
 typedef struct SgCipherRec
@@ -220,19 +223,21 @@ typedef struct SgCipherRec
 SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 				 SgObject key, SgObject iv, int rounds,
 				 SgObject padder, int ctr_mode);
-SgObject Sg_MakeCipher(SgObject spi);
-SgObject Sg_VMSuggestKeysize(SgCipher *cipher, int keysize);
+SgObject Sg_CreateCipher(SgObject spi);
+SgObject Sg_VMCipherSuggestKeysize(SgCipher *cipher, int keysize);
 int      Sg_CipherBlockSize(SgCipher *cipher);
 
-SgObject Sg_VMEncrypt(SgCipher *crypto, SgByteVector *data);
-SgObject Sg_VMDecrypt(SgCipher *crypto, SgByteVector *data);
-SgObject Sg_VMUpdateAAD(SgCipher *crypto, SgByteVector *data, int s, int e);
+SgObject Sg_VMCipherEncrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherDecrypt(SgCipher *crypto, SgByteVector *data);
+SgObject Sg_VMCipherUpdateAAD(SgCipher *crypto, SgByteVector *data,
+			      int s, int e);
 SgObject Sg_VMCipherTag(SgCipher *crypto, SgByteVector *dst);
 SgObject Sg_VMCipherMaxTagSize(SgCipher *crypto);
 
-SgObject Sg_Signature(SgCipher *crypto, SgByteVector *data, SgObject opt);
-SgObject Sg_Verify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
-		   SgObject opt);
+SgObject Sg_VMCipherSignature(SgCipher *crypto, SgByteVector *data,
+			      SgObject opt);
+SgObject Sg_VMCipherVerify(SgCipher *crypto, SgByteVector *M, SgByteVector *S,
+			 SgObject opt);
 
 /* keys */
 SgObject Sg_GenerateSecretKey(SgString *name, SgByteVector *key);

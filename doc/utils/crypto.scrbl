@@ -29,7 +29,7 @@ key mechanism. For public/private key, it only supports RSA for now.
 
 @subsubsection{Cipher operations}
 
-@define[Function]{@name{cipher}
+@define[Function]{@name{make-cipher}
  @args{type key
  :key (mode MODE_ECB) (iv #f) (padder pkcs5-padder)
       (rounds 0) (ctr-mode CTR_COUNTER_BIG_ENDIAN)
@@ -62,6 +62,7 @@ The symmetric key algorithms.
 @define[Constant]{@name{Khazad}}
 @define[Constant]{@name{SEED}}
 @define[Constant]{@name{KASUMI}}
+@define[Constant]{@name{Camellia}}
 
 The public key algorithm
 @define[Constant]{@name{RSA}}
@@ -77,6 +78,7 @@ require initial vector @var{iv}. The possible mods are below.
 @define[Constant]{@name{MODE_CFB}}
 @define[Constant]{@name{MODE_OFB}}
 @define[Constant]{@name{MODE_CTR}}
+@define[Constant]{@name{MODE_GCM}}
 
 @var{iv} must be a bytevector or #f. This is an initial vector which some modes
 require. cf) @code{MODE_CBC}.
@@ -105,7 +107,7 @@ to use.
 @define[Function]{@name{cipher?} @args{obj}}
 @desc{Returns #t if the @var{obj} is cipher object.}
 
-@define[Function]{@name{encrypt} @args{cipher pt}}
+@define[Function]{@name{cipher-encrypt} @args{cipher pt}}
 @desc{@var{cipher} must be a cipher object.
 
 @var{pt} must be a bytevector.
@@ -114,7 +116,18 @@ to use.
 @var{cipher}.
 }
 
-@define[Function]{@name{decrypt} @args{cipher ct}}
+@define[Function]{@name{cipher-encrypt/tag} @args{cipher pt :key tag-size}}
+@desc{Similar with @code{cipher-encrypt}. The difference is that this
+procedure returns 2 values, encrypted @var{pt} and calculated tag if the
+given @var{cipher} supports authentication.
+
+If the keyword argument @var{tag-size} is specified and must be an integer,
+then the returning tag has the specified size. If the @var{cipher} supports
+less size than the specified size, then the remaining tag contains unspecified
+value. To retrieve the maximum length of tag, use @code{cipher-max-tag-size}.
+}
+
+@define[Function]{@name{cipher-decrypt} @args{cipher ct}}
 @desc{@var{cipher} must be a cipher object.
 
 @var{ct} must be a bytevector.
@@ -123,7 +136,57 @@ to use.
 @var{cipher}.
 }
 
-@define[Function]{@name{sign} @args{public-cipher data :optional opt}}
+@define[Function]{@name{cipher-decrypt/tag} @args{cipher ct :key tag-size}}
+@desc{Similar with @code{cipher-decrypt}. The difference is that this
+procedure returns 2 values, decrypted @var{ct} and calculated tag if the
+given @var{cipher} supports authentication.
+
+If the keyword argument @var{tag-size} is specified and must be an integer,
+then the returning tag has the specified size. If the @var{cipher} supports
+less size than the specified size, then the remaining tag contains unspecified
+value. To retrieve the maximum length of tag, use @code{cipher-max-tag-size}.
+}
+
+@define[Function]{@name{cipher-decrypt/verify} @args{cipher ct tag}}
+@desc{Similar with @code{cipher-decrypt}. The difference is that this
+procedure validates the calculated tag. If the given @var{tag} and
+calculated tag are not the same, then @code{&decrypt} is raised. 
+
+NOTE: if the tag is *not* calculated by the cipher, then this procedure
+always raises an error.
+}
+
+@define[Function]{@name{cipher-max-tag-size} @args{cipher}}
+@desc{Returns the maximum length of tag size.
+
+If the given @var{cipher} does not support authentication tag, then
+returning value is @code{0}.
+}
+
+@define[Function]{@name{cipher-update-aad!} @args{cipher aad}}
+@desc{Updates the additional authentication data.}
+
+@define[Function]{@name{cipher-tag!} @args{cipher dst}}
+@desc{@var{dst} must be a bytevector.
+
+Retrieves the authentication tag from given @var{cipher}.
+
+NOTE: this procedure must be called after either @code{cipher-encrypt} or
+@code{cipher-decrypt}. Otherwise the filled value is unspecified.
+}
+
+@define[Function]{@name{cipher-tag} @args{cipher :key size}}
+@desc{Retrieves the authentication tag from given @var{cipher}.
+
+If the keyword argument @var{size} is specified, then the returning
+bytevector has the @var{size} length, otherwise maximum tag length.
+
+NOTE: this procedure must be called after either @code{cipher-encrypt} or
+@code{cipher-decrypt}. Otherwise the filled value is unspecified.
+}
+
+@define[Function]{@name{cipher-signature}
+ @args{public-cipher data :optional opt}}
 @desc{@var{public-cipher} must be a cipher object created with public/private
 key algorithm.
 
@@ -140,7 +203,7 @@ accept keyword argument @var{encode}.
 encoder. Supported encoders are described below.
 }
 
-@define[Function]{@name{verify} @args{public-cipher M S :optional opt}}
+@define[Function]{@name{cipher-verify} @args{public-cipher M S :optional opt}}
 @desc{@var{public-cipher} must be a cipher object created with public/private
 key algorithm.
 
@@ -462,9 +525,6 @@ Subclass must set these slots.
 @dl-list{
   @dl-item["encrypt"]{The value must be a procedure which takes 2 arguments.}
   @dl-item["decrypt"]{The value must be a procedure which takes 2 arguments.}
-  @dl-item["padder"]{The value must be #f or a procedure which takes 2
-    arguments.
-  }
 }
 
 NOTE: Default symmetric key ciphers use @code{pkcs5-padder} which takes 3
@@ -487,12 +547,26 @@ These slots are optional.
   @dl-item["keysize"]{A procedure to get recommended keysize of this cipher. The
     given procedure must accept 1 argument.
   }
+  @dl-item["padder"]{The value must be #f or a procedure which takes 2
+    arguments.
+  }
+  @dl-item["update-aad"]{The value must be #f or a procedure which takes 1
+    arguments. This is called when @code{cipher-update-aad!} is called.
+  }
+  @dl-item["tag"]{The value must be #f or a procedure which takes 1
+    arguments. This is called when @code{cipher-tag!} is called.
+  }
+  @dl-item["tagsize"]{The value must be an integer. This represents the
+    maximum length of authentication tag.}
 }
 
 NOTE: Even required slots, Sagittarius does not check if it's set or not.
 }
 
-@define[Function]{@name{register-spi} @args{mark spi}}
+@define[Function]{@name{cipher-spi?} @args{o}}
+@desc{Returns #t if the given object @var{o} is a cipher SPI. Otherwise #f.}
+
+@define[Function]{@name{register-cipher-spi} @args{mark spi}}
 @desc{Register custom cipher SPI.
 
 @var{mark} can be any thing which returns #t then compared by @code{equal?}
@@ -534,3 +608,17 @@ This is the class hierarchy of these crypto objects.
 
 The @code{<cipher>} and @code{builtin-} prefixed classes can not have any
 subclass.
+
+@subsubsection{Backward compatibility}
+
+The following procedures are kept for backward compatibility.
+
+@itemlist{
+ @item{@code{cipher} - Use @code{make-cipher} instead.}
+ @item{@code{encrypt} - Use @code{cipher-encrypt} instead.}
+ @item{@code{decrypt} - Use @code{cipher-decrypt} instead.}
+ @item{@code{sign}  - Use @code{cipher-signature} instead.}
+ @item{@code{verity} - Use @code{cipher-verify} instead.}
+ @item{@code{register-spi} - Use @code{register-cipher-spi} instead.}
+}
+}

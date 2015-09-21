@@ -6,21 +6,21 @@
 (library (sagittarius crypto)
     (export crypto-object?
 	    cipher?
-	    make-builtin-cipher-spi
-	    make-cipher
-	    encrypt
-	    decrypt
-	    suggest-keysize
+	    cipher-spi? make-builtin-cipher-spi
+	    create-cipher
+	    cipher-encrypt
+	    cipher-decrypt
+	    cipher-suggest-keysize
 	    cipher-blocksize
 	    cipher-iv
 	    cipher-update-aad!
 	    cipher-tag!
 	    cipher-max-tag-size
-	    sign
-	    verify
+	    cipher-signature
+	    cipher-verify
 	    ;;
-	    register-spi
-	    lookup-spi
+	    register-cipher-spi
+	    lookup-cipher-spi
 
 	    ;; key
 	    key?
@@ -79,6 +79,11 @@
 	    <symmetric-key>
 	    <builtin-symmetric-key>
 	    <asymmetric-key>
+	    ;; for backward compatibility
+	    (rename (register-cipher-spi register-spi)
+		    (lookup-cipher-spi lookup-spi)
+		    (cipher-suggest-keysize suggest-keysize))
+
 	    )
     (import (rnrs)
 	    (sagittarius)
