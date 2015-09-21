@@ -96,7 +96,7 @@
 ;; EXPN
 (define (smtp-expn port string) (send-command port "EXPN" string))
 ;; HELP
-(define (smtp-expn port . string) (apply send-command port "HELP" string))
+(define (smtp-help port . string) (apply send-command port "HELP" string))
 ;; NOOP
 (define (smtp-noop port . string) (apply send-command port "NOOP" string))
 ;; QUIT
@@ -113,10 +113,14 @@
 	      (or (and (> (string-length line) 3)
 		       (substring line 4 (string-length line)))
 		  ""))))
-  (let loop ((line (string-trim-right (get-line in))) (r '()))
+  (let loop ((line (string-trim-right (get-line in))) (saved #f)  (r '()))
     (let-values (((status continue? content) (parse-line line)))
       (if continue?
-	  (loop (string-trim-right (get-line in)) (cons* "\n" content r))
+	  (if (and saved (not (= status saved)))
+	      (error 'smtp-recv "Invalid response" saved status)
+	      (loop (string-trim-right (get-line in)) 
+		    status 
+		    (cons* "\n" content r)))
 	  (values status (string-concatenate-reverse (cons content r)))))))
 
 )
