@@ -134,3 +134,29 @@ static int directory_p(const wchar_t *path)
   if (attr == INVALID_FILE_ATTRIBUTES) return FALSE;
   return attr & FILE_ATTRIBUTE_DIRECTORY;
 }
+
+static DWORD converts_timespec(struct timespec *pts)
+{
+  DWORD msecs;
+  if (pts) {
+    unsigned long now_sec, target_sec;
+    unsigned long target_usec, now_usec;
+    Sg_GetTimeOfDay(&now_sec, &now_usec);
+    target_sec = (unsigned long)pts->tv_sec;
+    target_usec = pts->tv_nsec / 1000;
+    if (target_sec < now_sec
+	|| (target_sec == now_sec && target_usec <= now_usec)) {
+      msecs = 1;
+    } else if (target_usec >= now_usec) {
+      msecs = (DWORD)ceil((target_sec - now_sec) * 1000
+			  + (target_usec - now_usec)/1000.0);
+    } else {
+      msecs = (DWORD)ceil((target_sec - now_sec - 1) * 1000
+			  + (1.0e6 + target_usec - now_usec)/1000.0);
+    }
+    if (msecs == 0) msecs++;
+  } else {
+    msecs = INFINITE;
+  }
+  return msecs;
+}

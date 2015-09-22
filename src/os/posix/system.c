@@ -692,15 +692,74 @@ static void remove_pid(pid_t pid)
   Sg_UnlockMutex(&pid_list.mutex);
 }
 
-int Sg_SysProcessWait(uintptr_t pid)
+static void* waiter(void *param)
 {
+  void **data = (void **)param;
+  pthread_cond_t *cond = (pthread_cond_t *)data[0];
+  pid_t pid = (pid_t)data[1];
   int status = 0;
-  pid_t r;
+  data[2] = (void *)waitpid(pid, &status, 0);
+  data[3] = (void *)errno;
+  pthread_cond_signal(cond);
+  pthread_exit((void *)data[2]);
+  return NULL;
+}
+
+int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
+{
+  int status = 0, e = 0;
+  pid_t r = -1;
 
  retry:
-  r = waitpid((pid_t)pid, &status, 0);
+  if (pts) {
+    pthread_cond_t cond;
+    pthread_t timer_thread;
+    pthread_attr_t attr;
+    pthread_mutex_t mutex;
+    void *param[4];
+    int ok = TRUE;
+
+    pthread_cond_init(&cond, NULL);
+    pthread_mutex_init(&mutex, NULL);
+
+    param[0] = &cond;
+    param[1] = (void *)pid;
+    param[2] = (void *)-1;
+    param[3] = (void *)0;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    if (pthread_create(&timer_thread, &attr, waiter, param) != 0) {
+      ok = FALSE;
+    }
+    pthread_attr_destroy(&attr);
+    /* fprintf(stderr, "here: %d:%d\n", pid, ok); */
+    if (ok) {
+      int pr;
+    do_again:
+      pr = pthread_cond_timedwait(&cond, &mutex, pts);
+      if (pr == ETIMEDOUT) {
+	pthread_kill(timer_thread, SIGALRM);
+	pthread_cond_destroy(&cond);
+	pthread_mutex_destroy(&mutex);
+	return -1;
+      } 
+      r = (pid_t)param[2];
+      if (r < 0) {
+	if (r == EINTR) goto do_again;
+	e = (int)param[3];
+      }
+    } else {
+      /* wait forever... */
+      r = waitpid((pid_t)pid, &status, 0);
+      e = errno;
+    }
+    pthread_cond_destroy(&cond);
+    pthread_mutex_destroy(&mutex);
+  } else {
+    r = waitpid((pid_t)pid, &status, 0);
+    e = errno;
+  }
   if (r < 0) {
-    int e = errno;
     if (r == EINTR) goto retry;
     remove_pid(r);
     Sg_SystemError(e, UC("Failed to wait process [pid: %d][%A]"), 
@@ -770,7 +829,7 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
     int e = errno;
     if (e == ESRCH) {
       /* wait the pid */
-      return Sg_SysProcessWait(pid);
+      return Sg_SysProcessWait(pid, NULL);
     } else {
       /* must be EPERM, so system error */
       Sg_SystemError(e, UC("failed to kill process: %A"),

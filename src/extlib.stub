@@ -1364,12 +1364,20 @@
 	     (result (Sg_Values4 (Sg_MakeIntegerFromU64 handle) in out err))
 	     (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
 
-  (define-c-proc sys-process-wait (pid::<integer>) ::<fixnum>
-    (.if "SIZEOF_VOIDP >= 8"
-	 (result (Sg_SysProcessWait
-	     (cast uintptr_t (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))))
-	 (result (Sg_SysProcessWait
-	     (cast uintptr_t (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))))))
+  (decl-code (.typedef "struct timespec" "timespec_t"))
+  (define-c-proc sys-process-wait (pid::<integer> :key (timeout #f)) ::<fixnum>
+    (let ((ts::timespec_t)
+	  (pts::timespec_t*))
+      (set! pts (Sg_GetTimeSpec timeout (& ts)))
+      (.if "SIZEOF_VOIDP >= 8"
+	   (result (Sg_SysProcessWait
+		    (cast uintptr_t 
+			  (Sg_GetIntegerU64Clamp pid SG_CLAMP_NONE NULL))
+		    pts))
+	   (result (Sg_SysProcessWait
+		    (cast uintptr_t 
+			  (Sg_GetUIntegerClamp pid SG_CLAMP_NONE NULL))
+		    pts)))))
 
   (define-c-proc sys-process-kill (pid::<integer> :key (children? #f))
     ::<fixnum>
@@ -1454,7 +1462,6 @@
       (result (Sg_MakeSubr treemap-itr itr 1 0 
 			   (SG_MAKE_STRING "treemap-iterator")))))
 
-  (.typedef "unsigned long" "ulong")
   ;; only equality argument must be a procedure.
   (define-c-proc %make-comparator (type-test eq::<procedure>
 				   comparison hash name)
