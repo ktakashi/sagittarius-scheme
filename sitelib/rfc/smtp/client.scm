@@ -56,6 +56,7 @@
 	    smtp:cc
 	    smtp:bcc
 	    smtp:attachment
+	    smtp:header
 
 	    ;; re-export
 	    smtp-plain-authentication
@@ -65,10 +66,11 @@
 	    smtp-mail-add-header!
 	    smtp-mail-add-attachment!
 
-	    make-smtp-mail-attachment
+	    make-smtp-attachment
 	    ;; low level
 	    smtp-mail->string)
     (import (rnrs)
+	    (rnrs mutable-pairs)
 	    (rfc smtp commands)
 	    (rfc smtp extensions)
 	    (rfc smtp conditions)
@@ -179,7 +181,11 @@
 			 "specified header must be set by other procedures"
 			 name))
   (let ((old (smtp-mail-headers mail)))
-    (smtp-mail-headers-set! mail (cons (cons name value) old))
+    (cond ((assoc name old string-ci=?) =>
+	   ;; Should we raise an error?
+	   (lambda (slot) (set-cdr! slot value)))
+	  (else
+	   (smtp-mail-headers-set! mail (cons (cons name value) old))))
     mail))
 
 (define (smtp-mail-add-attachment! mail mime)
@@ -289,7 +295,7 @@
     (check-status port 354)
     (smtp-send-data port (open-string-input-port data))
     (check-status port 250)
-    #t))
+    conn))
 
 ;; Disconnect SMTP connection
 ;; close socket
@@ -387,7 +393,7 @@
 	     (handle-multipart out headers content attachs)))
       (extract))))
 
-(define (make-smtp-mail-attachment type subtype content . maybe-filename)
+(define (make-smtp-attachment type subtype content . maybe-filename)
   (define (merge-header generated user-defined)
     ;; user-defined is always stronger so if it has content-disposition
     ;; then use that one
@@ -422,59 +428,71 @@
 (define-syntax smtp:bcc        (syntax-rules ()))
 (define-syntax smtp:from       (syntax-rules ()))
 (define-syntax smtp:attachment (syntax-rules ()))
+(define-syntax smtp:header     (syntax-rules ()))
 
 (define-syntax smtp:mail
-  (syntax-rules (smtp:subject smtp:to smtp:cc smtp:bcc smtp:attachment)
+  (syntax-rules (smtp:from smtp:subject smtp:to smtp:cc 
+			   smtp:bcc smtp:attachment smtp:header)
     ;; parse subject
-    ((_ "parse" from "no subject" content (recp ...) (attach ...)
+    ((_ "parse" from "no subject" content (recp ...) (attach ...) (head ...)
 	((smtp:subject sub) elements ...))
      (smtp:mail "parse" from sub content 
-		(recp ...) (attach ...) (elements ...)))
+		(recp ...) (attach ...) (head ...) (elements ...)))
     ;; TODO we want to generate these 3 somehow
     ;; parse to
-    ((_ "parse" from subject content (recp ...) (attach ...)
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
 	((smtp:to to ...) elements ...))
      (smtp:mail "parse" from subject content (recp ... (make-smtp-to to ...))
-		(attach ...) (elements ...)))
+		(attach ...) (head ...) (elements ...)))
     ;; parse cc
-    ((_ "parse" from subject content (recp ...) (attach ...)
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
 	((smtp:cc to ...) elements ...))
      (smtp:mail "parse" from subject content (recp ... (make-smtp-cc to ...))
-		(attach ...) (elements ...)))
+		(attach ...) (head ...) (elements ...)))
     ;; parse bcc
-    ((_ "parse" from subject content (recp ...) (attach ...)
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
 	((smtp:bcc to ...) elements ...))
      (smtp:mail "parse" from subject content (recp ... (make-smtp-bcc to ...))
-		(attach ...) (elements ...)))
+		(attach ...) (head ...) (elements ...)))
     ;; parse attachment
-    ((_ "parse" from subject content (recp ...) (attach ...)
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
 	((smtp:attachment spec ...) elements ...))
      (smtp:mail "parse" from subject content (recp ...)
-		((make-smtp-mail-attachment spec ...) attach ...)
+		((make-smtp-attachment spec ...) attach ...)
+		(head ...)
+		(elements ...)))
+    ;; parse header
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
+	((smtp:header n v) elements ...))
+     (smtp:mail "parse" from subject content (recp ...) (attach ...)
+		(head ... (n v))
 		(elements ...)))
     ;; parse content
-    ((_ "parse" from subject "" (recp ...) (attach ...)
+    ((_ "parse" from subject "" (recp ...) (attach ...) (head ...)
 	(e elements ...))
      (smtp:mail "parse" from subject e
 		(recp ...)
 		(attach ...) 
+		(head ...)
 		(elements ...)))
-    ((_ "parse" from subject content (recp ...) (attach ...)
+    ((_ "parse" from subject content (recp ...) (attach ...) (head ...)
 	(e elements ...))
      (smtp:mail "parse" from subject (string-append content "\r\n" e)
 		(recp ...)
 		(attach ...) 
+		(head ...)
 		(elements ...)))
     ;; finish
-    ((_ "parse" from subject content (recp ...) (attach ...) ())
+    ((_ "parse" from subject content (recp ...) (attach ...) ((hn hv) ...) ())
      (let ((mail (make-smtp-mail from subject content recp ...)))
        (smtp-mail-add-attachment! mail attach) ...
+       (smtp-mail-add-header! mail hn hv) ...
        mail))
     ;; entry point
     ((_ (smtp:from from ...) elements ...)
      (smtp:mail "parse" 
 		(make-smtp-from from ...)
-		"no subject" "" () () (elements ...)))))
+		"no subject" "" () () () (elements ...)))))
 
 
 

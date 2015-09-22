@@ -36,6 +36,7 @@
 @include-section["utils/rfc/pem.scrbl"]
 @include-section["utils/rfc/quoted-printable.scrbl"]
 @include-section["utils/rfc/sftp.scrbl"]
+@include-section["utils/rfc/smtp.scrbl"]
 @include-section["utils/rfc/tls.scrbl"]
 @include-section["utils/rfc/uri.scrbl"]
 @include-section["utils/rfc/uuid.scrbl"]

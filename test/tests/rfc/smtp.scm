@@ -291,6 +291,44 @@ Second line"
 	      "Second line"
 	      (smtp:cc "ktakashi@ymail.com"))))
 
+(test-equal "smtp-mail->string (5)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+X-Powered-By: Sagittarius Scheme\r
+Subject: Subject\r
+\r
+Message\r
+Second line"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com")
+	      "Second line"
+	      (smtp:cc "ktakashi@ymail.com")
+	      (smtp:header "X-Powered-By" "Sagittarius Scheme"))))
+(test-equal "smtp-mail->string (6)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+X-Powered-By: Sagittarius Scheme 0.6.9\r
+Subject: Subject\r
+\r
+Message\r
+Second line"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com")
+	      "Second line"
+	      (smtp:cc "ktakashi@ymail.com")
+	      (smtp:header "X-Powered-By" "Sagittarius Scheme")
+	      (smtp:header "X-Powered-By" "Sagittarius Scheme 0.6.9"))))
+
 (test-equal "attachment"
 	    '(#t "multipart" "mixed"
 		 (("from" "<ktakashi@ymail.com>")
