@@ -317,6 +317,39 @@
 
 (define (smtp-mail->string mail)
   (define qpes quoted-printable-encode-string)
+
+  (define (handle-multipart out headers content attachs)
+    (let*-values (((type subtype) 
+		   (cond ((assoc "content-type" headers string-ci=?)
+			  => (lambda (s)
+			       (let ((ctype (mime-parse-content-type (cdr s))))
+				 (values (car ctype) (cadr ctype)))))
+			 (else (values "text" "plain"))))
+		  ((body boundary)
+		   (mime-compose-message-string
+		    (cons (make-mime-part
+			   :type type :subtype subtype
+			   :content (qpes content)
+			   :transfer-encoding "quoted-printable")
+			  attachs))))
+      (put-string out "Mime-Version: 1.0\r\n")
+      ;; To enable 'cid' reference defined in RFC 2387
+      ;;  ref. https://tools.ietf.org/html/rfc2387
+      ;; we check existance of 'content-id' in the given attachments
+      ;; if there is, then we put multpart/related with the generated
+      ;; boundary
+      ;; TODO this is too naive and how can we support alternative 
+      ;;      with this?
+      (if (exists (lambda (m)
+		    (assoc "content-id" (mime-part-headers m)
+			   string-ci=?))
+		  attachs)
+	  (put-string out "Content-Type: multipart/related; boundary=\"")
+	  (put-string out "Content-Type: multipart/mixed; boundary=\""))
+      (put-string out boundary)
+      (put-string out "\"\r\n")
+      (put-string out body)))
+
   (let ((from (smtp-mail-from mail))
 	(recipents (smtp-mail-recipents mail))
 	(headers (smtp-mail-headers mail))
@@ -336,10 +369,12 @@
 		  (put-string out "\r\n")) recipents)
       ;; TODO handling multipart
       (for-each (lambda (h)
-		  (put-string out (car h))
-		  (put-string out ": ")
-		  (put-string out (cdr h))
-		  (put-string out "\r\n"))
+		  (when (or (null? attachs)
+			    (not (string-ci=? (car h) "content-type")))
+		    (put-string out (car h))
+		    (put-string out ": ")
+		    (put-string out (cdr h))
+		    (put-string out "\r\n")))
 		headers)
       ;; subject
       (put-string out "Subject: ")
@@ -349,29 +384,36 @@
 	     (put-string out "\r\n")
 	     (put-string out content))
 	    (else 
-	     (let-values (((body boundary)
-			   (mime-compose-message-string
-			    (cons (make-mime-part
-				   :content (qpes content)
-				   :transfer-encoding "quoted-printable")
-				  attachs))))
-	       (put-string out "Mime-Version: 1.0\r\n")
-	       (put-string out "Content-Type: multipart/mixed; boundary=\"")
-	       (put-string out boundary)
-	       (put-string out "\"\r\n")
-	       (put-string out body))))
+	     (handle-multipart out headers content attachs)))
       (extract))))
 
 (define (make-smtp-mail-attachment type subtype content . maybe-filename)
-  (let ((filename (if (null? maybe-filename)
-		      "attachment"
-		      (string-append "attachment;filename=\""
-				     (car maybe-filename) "\""))))
+  (define (merge-header generated user-defined)
+    ;; user-defined is always stronger so if it has content-disposition
+    ;; then use that one
+    (cond ((assoc "content-disposition" user-defined string-ci=?) user-defined)
+	  (else (cons generated user-defined))))
+	   
+  (let* ((disposition-type (if (or (null? maybe-filename)
+				   (null? (cdr maybe-filename)))
+			       "attachment"
+			       (cadr maybe-filename)))
+	 (filename (if (null? maybe-filename)
+		       disposition-type
+		       (string-append disposition-type ";filename=\""
+				      (car maybe-filename) "\"")))
+	 
+	 (headers (if (or (null? maybe-filename)
+			  (null? (cdr maybe-filename))
+			  (null? (cddr maybe-filename)))
+		      '()
+		      (cddr maybe-filename))))
     (make-mime-part
-     :type "text" :subtype "html"
+     :type type :subtype subtype
      :transfer-encoding "base64"
      :content content
-     :headers `(("content-disposition" ,filename)))))
+     :headers (merge-header `("content-disposition" ,filename)
+			    headers))))
 
 ;; High level API
 (define-syntax smtp:subject    (syntax-rules ()))
