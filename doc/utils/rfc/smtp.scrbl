@@ -181,7 +181,7 @@ the content of the creating SMTP mail. Except the @code{smtp:subject}, all
 elements can be appear multiple times.
 }
 
-@define[Macro]{@name{smtp-mail->string} @args{smtp-mail}}
+@define[Function]{@name{smtp-mail->string} @args{smtp-mail}}
 @desc{Returns MIME string of given @var{smtp-mail}.
 
 NOTE: the procedure consumes input port attachments if exists.
