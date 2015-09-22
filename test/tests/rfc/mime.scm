@@ -276,10 +276,7 @@ Content</div>
 (test-equal "decoding"
 	    decoded-utf-8-text
 	    (mime-decode-text encoded-utf-8-text))
-(let* ((utf8-multi-part (string->utf8 multi-part))
-       (in (open-bytevector-input-port utf8-multi-part))
-       (headers (rfc5322-read-headers in))
-       (r '())))
+
 (test-equal "parsing"
 	    '(#t "multipart" "alternative"
 		 (("x-sender" "<sender@sendersdomain.com>")

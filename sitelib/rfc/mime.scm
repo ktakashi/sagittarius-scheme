@@ -56,6 +56,7 @@
 	    ;; this is really incovenient...
 	    <mime-part>
 	    mime-part?
+	    make-mime-part
 	    mime-part-type
 	    mime-part-subtype
 	    mime-part-parameters
@@ -670,6 +671,9 @@
 	   ((bytevector? (mime-part-content part))
 	    (with-input-from-port 
 		(open-bytevector-input-port (mime-part-content part))
+	      (cut mime-generate-part-body part cte)))
+	   ((input-port? (mime-part-content part))
+	    (with-input-from-port (mime-part-content part)
 	      (cut mime-generate-part-body part cte)))
 	   (else (assertion-violation 'mime-generate-one-part
 				      "unsupported MIME part content")))))))

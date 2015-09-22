@@ -2,7 +2,11 @@
 	(rfc smtp commands)
 	(rfc smtp extensions)
 	(rfc smtp conditions)
+	(rfc smtp client)
 	(rfc base64)
+	(rfc mime)
+	(rfc :5322)
+	(srfi :1) ;; for alist-delete
 	(srfi :64))
 
 (test-begin "SMTP")
@@ -149,5 +153,179 @@
 
 (test-error "invalid-response" smtp-invalid-response-error? 
 	    (read-response invalid-response))
+
+;; Client APIs
+(define-syntax test-address
+  (lambda (x)
+    (define (make-ctr/pred k type)
+      (let* ((s (symbol->string (syntax->datum type)))
+	     (c (string->symbol (string-append "make-smtp-" s))))
+	(datum->syntax k c)))
+    (syntax-case x ()
+      ((k type addr)
+       (with-syntax ((ctr (make-ctr/pred #'k #'type)))
+	 #'(test-assert '(ctr addr) (ctr addr))))
+      ((k type name addr)
+       (with-syntax ((ctr (make-ctr/pred #'k #'type)))
+	 #'(test-assert '(ctr name addr) (ctr name addr)))))))
+
+(test-address from "ktakashi@ymail.com")
+(test-address to "ktakashi@ymail.com")
+(test-address cc "ktakashi@ymail.com")
+(test-address bcc "ktakashi@ymail.com")
+(test-address from "Takashi Kato" "ktakashi@ymail.com")
+(test-address to  "Takashi Kato" "ktakashi@ymail.com")
+(test-address cc  "Takashi Kato" "ktakashi@ymail.com")
+(test-address bcc "Takashi Kato" "ktakashi@ymail.com")
+
+(define-syntax test-address-pred
+  (lambda (x)
+    (define (make-ctr/pred k type)
+      (let* ((s (symbol->string (syntax->datum type)))
+	     (c (string->symbol (string-append "make-smtp-" s)))
+	     (p (string->symbol (string-append "smtp-" s "?"))))
+	(datum->syntax k (list c p))))
+    (syntax-case x ()
+      ((k type addr)
+       (with-syntax (((ctr pred) (make-ctr/pred #'k #'type)))
+	 #'(test-assert 'pred (pred (ctr addr))))))))
+    
+(test-address-pred from "ktakashi@ymail.com")
+(test-address-pred to "ktakashi@ymail.com")
+(test-address-pred cc "ktakashi@ymail.com")
+(test-address-pred bcc "ktakashi@ymail.com")
+
+(test-assert "smtp-mail?"
+	     (smtp-mail? (make-smtp-mail (make-smtp-from "ktakashi@ymail.com")
+					 "Subject" "Message")))
+(test-error "not from object" assertion-violation?
+	    (make-smtp-mail "ktakashi@ymail.com" "Subject" "Message"))
+
+;; make sure the file has eol style 'lf
+(define test-mail
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Subject: Subject\r
+\r
+Message")
+(test-equal "smtp-mail->string (1)"
+	    test-mail
+	    (smtp-mail->string
+	     (let ((mail (make-smtp-mail (make-smtp-from "ktakashi@ymail.com")
+					 "Subject" "Message")))
+	       (smtp-mail-add-recipent! mail
+					(make-smtp-to "ktakashi@ymail.com")))))
+
+;; High level
+(test-assert "smtp:mail" (smtp-mail?
+			  (smtp:mail (smtp:from "ktakashi@ymail.com"))))
+;; need at least one recipient
+(test-error "smtp-mail->string" assertion-violation?
+	    (smtp-mail->string 
+	     (smtp:mail (smtp:from "ktakashi@ymail.com"))))
+(test-equal "smtp:mail (default)"
+	    "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Subject: no subject\r
+\r
+"
+	    (smtp-mail->string 
+	     (smtp:mail (smtp:from "ktakashi@ymail.com")
+			(smtp:to "ktakashi@ymail.com"))))
+(test-equal "smtp-mail->string (1)"
+	    test-mail
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com"))))
+
+(test-equal "smtp-mail->string (2)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+Subject: Subject\r
+\r
+Message"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com")
+	      (smtp:cc "ktakashi@ymail.com"))))
+
+(test-equal "smtp-mail->string (3)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+Subject: Subject\r
+\r
+Message\r
+Second line"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      "Second line"
+	      (smtp:to "ktakashi@ymail.com")
+	      (smtp:cc "ktakashi@ymail.com"))))
+
+;; order doesn't matte except from
+(test-equal "smtp-mail->string (4)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+Subject: Subject\r
+\r
+Message\r
+Second line"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com")
+	      "Second line"
+	      (smtp:cc "ktakashi@ymail.com"))))
+
+(test-equal "attachment"
+	    '(#t "multipart" "mixed"
+		 (("from" "<ktakashi@ymail.com>")
+		  ("to" "<ktakashi@ymail.com>")
+		  ("subject" "Subject")
+		  ("mime-version" "1.0"))
+		 #t)
+	    (let* ((mail-content (smtp-mail->string
+				  (smtp:mail
+				   (smtp:from "ktakashi@ymail.com")
+				   (smtp:to "ktakashi@ymail.com")
+				   (smtp:subject "Subject")
+				   "Message"
+				   (smtp:attachment "text" "plain"
+						    "Attach" "foo.txt"))))
+		   (utf8-multi-part (string->utf8 mail-content))
+		   (in (open-bytevector-input-port utf8-multi-part))
+		   (headers (rfc5322-read-headers in))
+		   (r '()))
+	      (if (mime-parse-version (rfc5322-header-ref headers
+							  "mime-version"))
+		  (let ((packet (mime-parse-message in headers 
+				    (lambda (packet port)
+				      (get-bytevector-all port)))))
+		    (set! r (cons (mime-part? packet) r))
+		    (set! r (cons (mime-part-type packet) r))
+		    (set! r (cons (mime-part-subtype packet) r))
+		    (set! r (cons (alist-delete "content-type"
+						(mime-part-headers packet)
+						equal?) r))
+		    (set! r (cons (for-all mime-part? 
+					   (mime-part-content packet)) r))
+		    (reverse r))
+		  #f)))
+
+;; TODO make fake server and test client
 
 (test-end)
