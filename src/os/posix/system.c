@@ -696,13 +696,15 @@ int Sg_SysProcessWait(uintptr_t pid)
 {
   int status = 0;
   pid_t r;
+
  retry:
   r = waitpid((pid_t)pid, &status, 0);
   if (r < 0) {
+    int e = errno;
     if (r == EINTR) goto retry;
     remove_pid(r);
-    Sg_SystemError(errno, UC("Failed to wait process [pid: %d][%A]"), 
-		   (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(errno));
+    Sg_SystemError(e, UC("Failed to wait process [pid: %d][%A]"), 
+		   (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(e));
     return -1;			/* dummy */
   }
   /* FIXME how should I treat signals... */

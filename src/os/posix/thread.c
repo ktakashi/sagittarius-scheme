@@ -134,24 +134,6 @@ int Sg_Wait(SgInternalCond *cond, SgInternalMutex *mutex)
 int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 		       struct timespec *pts)
 {
-#if 0
-  struct timeval  now;
-  struct timespec timeout;
-  if (gettimeofday(&now, NULL) != 0) {
-    Sg_Panic("Fail to get current time");
-  }
-  now.tv_usec += msecs * 1000;
-  while (now.tv_usec >= 1000000) {
-    now.tv_sec++;
-    now.tv_usec -= 1000000;
-  }
-  timeout.tv_sec = now.tv_sec;
-  timeout.tv_nsec = now.tv_usec * 1000;
-  while (timeout.tv_nsec >= 1000000000) {
-    timeout.tv_sec++;
-    timeout.tv_nsec -= 1000000000;
-  }
-#endif
   return pthread_cond_timedwait(&cond->cond, &mutex->mutex, pts);
 }
 
