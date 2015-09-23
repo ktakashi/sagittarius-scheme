@@ -714,7 +714,6 @@ SgObject Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
   if (pts) {
     pthread_cond_t cond;
     pthread_t timer_thread;
-    pthread_attr_t attr;
     pthread_mutex_t mutex;
     void *param[4];
     int ok = TRUE;
@@ -726,12 +725,9 @@ SgObject Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
     param[1] = (void *)pid;
     param[2] = (void *)-1;	/* result of waitpid */
     param[3] = (void *)0;	/* errno of waiter */
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    if (pthread_create(&timer_thread, &attr, waiter, param) != 0) {
+    if (pthread_create(&timer_thread, NULL, waiter, param) != 0) {
       ok = FALSE;
     }
-    pthread_attr_destroy(&attr);
     if (ok) {
       int pr;
     do_again:
@@ -831,7 +827,7 @@ int Sg_SysProcessKill(uintptr_t pid, int childrenp)
     int e = errno;
     if (e == ESRCH) {
       /* wait the pid */
-      return Sg_SysProcessWait(pid, NULL);
+      return SG_INT_VALUE(Sg_SysProcessWait(pid, NULL));
     } else {
       /* must be EPERM, so system error */
       Sg_SystemError(e, UC("failed to kill process: %A"),
