@@ -1365,7 +1365,7 @@
 	     (result (Sg_Values4 (Sg_MakeIntegerU handle) in out err))))))
 
   (decl-code (.typedef "struct timespec" "timespec_t"))
-  (define-c-proc sys-process-wait (pid::<integer> :key (timeout #f)) ::<fixnum>
+  (define-c-proc sys-process-wait (pid::<integer> :key (timeout #f))
     (let ((ts::timespec_t)
 	  (pts::timespec_t*))
       (set! pts (Sg_GetTimeSpec timeout (& ts)))

@@ -705,7 +705,7 @@ static void* waiter(void *param)
   return NULL;
 }
 
-int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
+SgObject Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
 {
   int status = 0, e = 0;
   pid_t r = -1;
@@ -732,11 +732,12 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
       ok = FALSE;
     }
     pthread_attr_destroy(&attr);
-    /* fprintf(stderr, "here: %d:%d\n", pid, ok); */
     if (ok) {
       int pr;
     do_again:
+      pthread_mutex_lock(&mutex);
       pr = pthread_cond_timedwait(&cond, &mutex, pts);
+      pthread_mutex_unlock(&mutex);
       if (pr == ETIMEDOUT) {
 	pthread_kill(timer_thread, SIGALRM);
       }
@@ -760,18 +761,18 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
     e = errno;
   }
   if (r < 0) {
-    if (r == EINTR) {
-      if (pts) return -1;	/* stopped watching return -1 */
+    if (e == EINTR) {
+      if (pts) return SG_FALSE;	/* stopped watching return #f */
       goto retry;
     }
     Sg_SystemError(e, UC("Failed to wait process [pid: %d][%A]"), 
 		   (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(e));
-    return -1;			/* dummy */
+    return SG_MAKE_INT(-1);	/* dummy */
   }
   /* FIXME how should I treat signals... */
   if (WIFEXITED(status)) {
     remove_pid(r);
-    return WEXITSTATUS(status);
+    return SG_MAKE_INT(WEXITSTATUS(status));
   } else if (WIFSIGNALED(status)) {
     remove_pid(r);
     Sg_Error(UC("killed by signal %d\n"), WTERMSIG(status));
@@ -781,7 +782,7 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
     goto retry;
   }
   /* should never reach here */
-  return -1;
+  return SG_MAKE_INT(-1);
 }
 
 /* wait for all pids when exits */

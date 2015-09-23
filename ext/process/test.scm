@@ -39,6 +39,11 @@
 	    condition?
 	    (run *process-name* 'foo))
 
+(let ((p (call *process-name* "sleep")))
+  (test-equal "wait timeout" #f (process-wait p :timeout 1)) ;; 1 sec
+  (test-assert "still alive" (process-active? p))
+  (test-equal "process-kill" -1 (process-kill p)))
+
 ;; shared memory
 (test-assert "open-shared-memory" open-shared-memory)
 (test-assert "close-shared-memory" close-shared-memory)

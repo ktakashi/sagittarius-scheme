@@ -541,24 +541,24 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   return -1;			/* dummy */
 }
 
-int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
+SgObject Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
 {
   SgWinProcess *p = (SgWinProcess *)pid;
   DWORD status = 0, msecs;
   if (!SG_WIN_PROCP(p)) Sg_Error(UC("invalid pid %S"), SG_OBJ(p));
-  if (p->process == (HANDLE)-1) return -1;
+  if (p->process == (HANDLE)-1) return SG_MAKE_INT(-1);
   msecs = converts_timespec(pts);
   WaitForSingleObject(p->process, msecs);
   /* NOTE: this is from XP and I don't think anybody is compiling 
      on Windows 2000. So must be OK. */
   GetExitCodeProcess(p->process, &status);
   /* ok timed out */
-  if (status == STILL_ACTIVE) return -1;
+  if (status == STILL_ACTIVE) return SG_FALSE;
   CloseHandle(p->process);
   p->process = (HANDLE)-1;
   Sg_UnregisterFinalizer(p);
   unregister_win_proc(p);
-  return status;
+  return Sg_MakeInteger(status);
 }
 
 /*

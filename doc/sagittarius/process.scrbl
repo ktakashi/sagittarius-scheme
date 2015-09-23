@@ -158,14 +158,26 @@ On POSIX envionment this procesure returns the result status of the process.
 Invokes the @var{process} and continue the Scheme program.
 }
 
-@define[Function]{@name{process-wait} @args{process}}
+@define[Function]{@name{process-wait} @args{process :key timeout}}
 @desc{@var{process} must be a process object.
 
 Wait the given process until it ends and returns the exit status of the given
 process.
 
+If the keyword argument @var{timeout} is specified, then it must be an
+integer represents second or time object represents absolute time, then
+the procedure waits either the given process is finished or until the
+specified @var{timeout} period is passed. When the @var{timeout} period
+has passed and yet the process is not finished, then the procedure returns
+@code{#f}.
+
 NOTE: The exit status are platform dependent. On Windows, the value will be
 32 bit integer. On POSIX, the value will be 8 bit unsigned integer.
+
+NOTE: On POSIX environment, @var{timeout} only works if the given
+@var{process} is created by @code{make-process} related procedures. If the
+process is created by @code{pid->process}, then it raises an error with
+@code{ECHILD}.
 }
 
 @define[Function]{@name{process-kill} @args{process :key children?}}
