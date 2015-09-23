@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #ifdef _MSC_VER
-# include <windows>
+# include <windows.h>
 # define sleep Sleep
 #else
 # include <unistd.h>
