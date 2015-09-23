@@ -701,7 +701,7 @@ static void* waiter(void *param)
   data[2] = (void *)waitpid(pid, &status, 0);
   data[3] = (void *)errno;
   pthread_cond_signal(cond);
-  pthread_exit((void *)data[2]);
+  pthread_exit((void *)status);
   return NULL;
 }
 
@@ -721,11 +721,11 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
 
     pthread_cond_init(&cond, NULL);
     pthread_mutex_init(&mutex, NULL);
-
+    /* TODO should we reuse cond and pid? then we only need 2 elements */
     param[0] = &cond;
     param[1] = (void *)pid;
-    param[2] = (void *)-1;
-    param[3] = (void *)0;
+    param[2] = (void *)-1;	/* result of waitpid */
+    param[3] = (void *)0;	/* errno of waiter */
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     if (pthread_create(&timer_thread, &attr, waiter, param) != 0) {
@@ -739,13 +739,13 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
       pr = pthread_cond_timedwait(&cond, &mutex, pts);
       if (pr == ETIMEDOUT) {
 	pthread_kill(timer_thread, SIGALRM);
-	pthread_cond_destroy(&cond);
-	pthread_mutex_destroy(&mutex);
-	return -1;
-      } 
+      }
+      /* thread must be ended by here (by force or not) */
+      pthread_join(timer_thread, (void **)&status);
       r = (pid_t)param[2];
       if (r < 0) {
-	if (r == EINTR) goto do_again;
+	/* interrupted by something else */
+	if (r == EINTR && pr != ETIMEDOUT) goto do_again;
 	e = (int)param[3];
       }
     } else {
@@ -760,8 +760,10 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
     e = errno;
   }
   if (r < 0) {
-    if (r == EINTR) goto retry;
-    remove_pid(r);
+    if (r == EINTR) {
+      if (pts) return -1;	/* stopped watching return -1 */
+      goto retry;
+    }
     Sg_SystemError(e, UC("Failed to wait process [pid: %d][%A]"), 
 		   (pid_t)pid, Sg_GetLastErrorMessageWithErrorCode(e));
     return -1;			/* dummy */
@@ -774,7 +776,6 @@ int Sg_SysProcessWait(uintptr_t pid, struct timespec *pts)
     remove_pid(r);
     Sg_Error(UC("killed by signal %d\n"), WTERMSIG(status));
   } else if (WIFSTOPPED(status)) {
-    remove_pid(r);
     Sg_Error(UC("stopped by signal %d\n"), WSTOPSIG(status));
   } else if (WIFCONTINUED(status)) {
     goto retry;
