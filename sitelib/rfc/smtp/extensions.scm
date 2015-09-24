@@ -50,15 +50,28 @@
   (let-values (((status content) (smtp-recv port)))
     (unless (= status 220)
       (raise (condition 
-	      (list (make-smtp-error)
-		    (make-who-condition 'smtp-starttls)
-		    (make-message-condition content)
-		    (make-irritants-condition status)))))
+	      (make-smtp-error)
+	      (make-who-condition 'smtp-starttls)
+	      (make-message-condition content)
+	      (make-irritants-condition status))))
     (tls-client-handshake (socket->tls-socket socket))))
 
 ;; AUTH extension
 ;; reference https://tools.ietf.org/html/rfc4954
-(define (smtp-auth port initial-response-generator)
+(define (smtp-auth port initial-response-generator . maybe-next)
+  (define (do-next next type status content)
+    (let-values (((commend next) (next status content)))
+      (put-string port commend)
+      (put-string port "\r\n")
+      (let-values (((status resp) (smtp-recv port)))
+	(case status
+	  ((235) (values status resp))
+	  ((334) (if next (do-next next type status resp)))
+	  (else (raise (condition
+			(make-smtp-authentication-failure type)
+			(make-who-condition 'smtp-auth)
+			(make-message-condition resp)
+			(make-irritants-condition status))))))))
   (let-values (((type initial-response) (initial-response-generator)))
     (put-string port "AUTH ")
     (put-string port type)
@@ -70,13 +83,16 @@
     (flush-output-port port)
     (let-values (((status content) (smtp-recv port)))
       (case status
-	((235 334) (values status content))
+	((235) (values status content))
+	((334) (if (null? maybe-next)
+		   (values status content)
+		   (do-next (car maybe-next) type status content)))
 	(else
 	 (raise (condition
-		 (list (make-smtp-authentication-failure type)
-		       (make-who-condition 'smtp-auth)
-		       (make-message-condition content)
-		       (make-irritants-condition status)))))))))
+		 (make-smtp-authentication-failure type)
+		 (make-who-condition 'smtp-auth)
+		 (make-message-condition content)
+		 (make-irritants-condition status))))))))
 
 ;; SASL PLAIN thing
 ;; TODO move to somewhere

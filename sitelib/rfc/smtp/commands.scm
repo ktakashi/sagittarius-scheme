@@ -121,10 +121,10 @@
       (if continue?
 	  (if (and saved (not (= status saved)))
 	      (raise (condition
-		      (list (make-smtp-invalid-response-error)
-			    (make-who-condition 'smtp-recv)
-			    (make-message-condition "Invalid response")
-			    (make-irritants-condition saved status))))
+		      (make-smtp-invalid-response-error)
+		      (make-who-condition 'smtp-recv)
+		      (make-message-condition "Invalid response")
+		      (make-irritants-condition saved status)))
 	      (loop (string-trim-right (get-line in)) 
 		    status 
 		    (cons* "\n" content r)))

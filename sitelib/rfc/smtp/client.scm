@@ -71,7 +71,8 @@
 	    make-smtp-alternative-component
 	    make-smtp-alternative
 	    ;; low level
-	    smtp-mail->string)
+	    smtp-mail->string
+	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (rfc smtp commands)
@@ -270,11 +271,17 @@
       conn)))
 
 (define (smtp-authenticate! conn gen-initial-response . maybe-next)
-  (let-values (((status resp)
-		(smtp-auth (smtp-connection-in/out conn) gen-initial-response)))
-    (or (= status 235)
-	(and (not (null? maybe-next))
-	     ((car maybe-next) conn resp)))))
+  (define (wrap-next next)
+    (lambda (status content)
+      (let-values (((command next-next) (next conn status content)))
+	(if next-next
+	    (values command (wrap-next next-next))
+	    (values command #f)))))
+  
+  (apply smtp-auth (smtp-connection-in/out conn) gen-initial-response
+	 (if (null? maybe-next)
+	     '()
+	     (list (wrap-next (car maybe-next))))))
 
 (define (smtp-send! conn mail)
   (define (has-8bitmime? options)
@@ -318,6 +325,14 @@
     (socket-shutdown socket *shut-rdwr*)
     (socket-close socket)
     conn))
+
+(define (smtp-send-command conn s)
+  (let ((in/out (smtp-connection-in/out conn)))
+    (put-string in/out s)))
+;; wrapper for smtp-recv
+(define (smtp-recv-response conn)
+  (let ((in/out (smtp-connection-in/out conn)))
+    (smtp-recv in/out)))
 
 (define (smtp-address->string address)
   (let-values (((out extract) (open-string-output-port)))
