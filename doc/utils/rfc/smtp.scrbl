@@ -267,6 +267,23 @@ elements, header name and value. The value part can also contain
 MIME parameters.
 }
 
+@define[Function]{@name{make-smtp-alternative-component}
+ @args{type subtype content headers ...}}
+@desc{Creates a component of alternative message. The returning component
+is a mere MIME object.
+
+@var{type} and @var{subtype} are the same as @code{make-smtp-attachment}.
+}
+
+@define[Function]{@name{make-smtp-alternative} @args{alternatives ...}}
+@desc{Creates an alternative message. The returning message
+is a mere MIME object.
+
+NOTE: the returning message should be added by @code{smtp-mail-add-attachment!}
+and not @var{content} argument of @code{make-smtp-mail}. To make mail
+construction easier, use @code{smtp:mail} macro.
+}
+
 @define[Function]{@name{smtp-mail-add-recipent!} @args{smtp-mail recipient}}
 @desc{Adds SMTP recipient @var{recipient} to @var{smtp-mail} and returns
 SMTP mail object.

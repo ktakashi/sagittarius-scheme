@@ -68,6 +68,8 @@
 	    smtp-mail-add-attachment!
 
 	    make-smtp-attachment
+	    make-smtp-alternative-component
+	    make-smtp-alternative
 	    ;; low level
 	    smtp-mail->string)
     (import (rnrs)
@@ -426,12 +428,18 @@
      :headers (merge-header `("content-disposition" ,filename)
 			    headers))))
 
-(define (make-smtp-alternative type subtype content . headers)
+(define (make-smtp-alternative-component type subtype content . headers)
   (make-mime-part
      :type type :subtype subtype
      :transfer-encoding "base64"	; TODO printed-quotable?
      :content content
      :headers headers))
+
+(define (make-smtp-alternative . alternatives)
+  (make-mime-part
+     :type "multipart" :subtype "alternative"
+     :transfer-encoding #f
+     :content alternatives))
 
 ;; High level API
 (define-syntax smtp:subject    	(syntax-rules ()))
@@ -486,11 +494,9 @@
 	((smtp:alternative (spec ...) (spec* ...) ...) elements ...))
      ;; mark content #t so that alternative can only exist once
      (smtp:mail "parse" from subject #t (recp ...)
-		((make-smtp-attachment
-		  "multipart" "alternative"
-		  (list (make-smtp-alternative spec ...)
-			(make-smtp-alternative spec* ...)
-			...))
+		((make-smtp-alternative
+		  (make-smtp-alternative-component spec ...)
+		  (make-smtp-alternative-component spec* ...) ...)
 		 attach ...)
 		(head ...)
 		(elements ...)))
