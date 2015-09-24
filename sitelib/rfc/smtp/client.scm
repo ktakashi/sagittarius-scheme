@@ -333,11 +333,13 @@
 			 (else (values "text" "plain"))))
 		  ((body boundary)
 		   (mime-compose-message-string
-		    (cons (make-mime-part
-			   :type type :subtype subtype
-			   :content (qpes content)
-			   :transfer-encoding "quoted-printable")
-			  attachs))))
+		    (if content
+			(cons (make-mime-part
+			       :type type :subtype subtype
+			       :content (qpes content)
+			       :transfer-encoding "quoted-printable")
+			      attachs)
+			attachs))))
       (put-string out "Mime-Version: 1.0\r\n")
       ;; To enable 'cid' reference defined in RFC 2387
       ;;  ref. https://tools.ietf.org/html/rfc2387
@@ -388,7 +390,8 @@
       (put-string out "\r\n")
       (cond ((null? attachs)
 	     (put-string out "\r\n")
-	     (put-string out content))
+	     ;; check no content
+	     (when content (put-string out content)))
 	    (else 
 	     (handle-multipart out headers content attachs)))
       (extract))))
@@ -468,7 +471,7 @@
 		(head ... (n v))
 		(elements ...)))
     ;; parse content
-    ((_ "parse" from subject "" (recp ...) (attach ...) (head ...)
+    ((_ "parse" from subject #f (recp ...) (attach ...) (head ...)
 	(e elements ...))
      (smtp:mail "parse" from subject e
 		(recp ...)
@@ -492,7 +495,7 @@
     ((_ (smtp:from from ...) elements ...)
      (smtp:mail "parse" 
 		(make-smtp-from from ...)
-		"no subject" "" () () () (elements ...)))))
+		"no subject" #f () () () (elements ...)))))
 
 
 

@@ -30,4 +30,5 @@
 
 (library (rfc smtp)
     (export :all)
-    (import (rfc smtp client)))
+    (import (rfc smtp client)
+	    (rfc smtp conditions)))
