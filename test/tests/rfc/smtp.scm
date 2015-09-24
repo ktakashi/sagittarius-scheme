@@ -364,6 +364,40 @@ Second line"
 		    (reverse r))
 		  #f)))
 
+;; TODO proper test...
+(test-assert "alternative (1)"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:to "ktakashi@ymail.com")
+	      (smtp:subject "Subject")
+	      (smtp:alternative 
+	       ("text" "plain" "Plain text")
+	       ("text" "html" "HTML message")))))
+(test-error "alternative (2)" syntax-violation?
+	    (eval
+	     '(smtp-mail->string
+	       (smtp:mail
+		(smtp:from "ktakashi@ymail.com")
+		(smtp:to "ktakashi@ymail.com")
+		(smtp:subject "Subject")
+		(smtp:alternative 
+		 ("text" "plain" "Plain text")
+		 ("text" "html" "HTML message"))
+		(smtp:alternative 
+		 ("text" "plain" "alternative can't be twice"))))
+	     (environment '(rfc smtp client))))
+(test-error "alternative (3)" syntax-violation?
+	    (eval
+	     '(smtp-mail->string
+	       (smtp:mail
+		(smtp:from "ktakashi@ymail.com")
+		(smtp:to "ktakashi@ymail.com")
+		(smtp:subject "Subject")
+		(smtp:alternative 
+		 ("text" "plain" "Must have more than 1"))))
+	     (environment '(rfc smtp client))))
+
 ;; TODO make fake server and test client
 
 (test-end)

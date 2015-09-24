@@ -78,8 +78,22 @@ or inlined image.
                   '("content-id" "<image>"))
  ;; make this mail HTML
  (smtp:header "Content-Type" "text/html"))
-
 }
+
+Alternative message can be created like this:
+@codeblock{
+;; Message with alternative
+;; Content must not be specified otherwise raise an syntax error
+(smtp:mail
+ (smtp:from "Takashi Kato" "ktakashi@atmark{}ymail.com")
+ (smtp:subject "Message with alternative")
+ (smtp:to "ktakashi@atmark{}ymail.com")
+ (smtp:alternative
+  ("text" "plain" "Plain text message")
+  ("text" "html" "<html><body>HTML message</body><html>"))
+ )
+}
+
 
 @subsubsection{High level APIs}
 
@@ -174,11 +188,13 @@ for PLAIN authentication.
 @snipet{(smtp:attachment type subtype content filename)}
 @snipet{(smtp:attachment type subtype content filename disposition-parameter)}
 @snipet{(smtp:attachment type subtype content filename disposition-parameter headers ...)}
+@snipet{(smtp:alternative type subtype content)}
+@snipet{(smtp:alternative type subtype content headers ...)}
 @snipet{(smtp:header name value)}
 @snipet{string}
 The order of the appearance does not matter, except @var{string} which will be
-the content of the creating SMTP mail. Except the @code{smtp:subject}, all 
-elements can be appear multiple times.
+the content of the creating SMTP mail. Except the @code{smtp:subject} and
+@code{smtp:alternative}, all elements can be appear multiple times.
 }
 
 @define[Function]{@name{smtp-mail->string} @args{smtp-mail}}

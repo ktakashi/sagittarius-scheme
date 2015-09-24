@@ -57,6 +57,7 @@
 	    smtp:bcc
 	    smtp:attachment
 	    smtp:header
+	    smtp:alternative
 
 	    ;; re-export
 	    smtp-plain-authentication
@@ -333,7 +334,7 @@
 			 (else (values "text" "plain"))))
 		  ((body boundary)
 		   (mime-compose-message-string
-		    (if content
+		    (if (string? content)
 			(cons (make-mime-part
 			       :type type :subtype subtype
 			       :content (qpes content)
@@ -352,10 +353,10 @@
 		    (assoc "content-id" (mime-part-headers m)
 			   string-ci=?))
 		  attachs)
-	  (put-string out "Content-Type: multipart/related; boundary=\"")
-	  (put-string out "Content-Type: multipart/mixed; boundary=\""))
-      (put-string out boundary)
-      (put-string out "\"\r\n")
+	  (put-string out "Content-Type: multipart/related")
+	  (put-string out "Content-Type: multipart/mixed"))
+      (put-string out (mime-compose-parameters `((boundary . ,boundary)) #f))
+      (put-string out "\r\n")
       (put-string out body)))
 
   (let ((from (smtp-mail-from mail))
@@ -375,7 +376,6 @@
       (for-each (lambda (r)
 		  (put-string out (smtp-address->string r))
 		  (put-string out "\r\n")) recipents)
-      ;; TODO handling multipart
       (for-each (lambda (h)
 		  (when (or (null? attachs)
 			    (not (string-ci=? (car h) "content-type")))
@@ -391,7 +391,7 @@
       (cond ((null? attachs)
 	     (put-string out "\r\n")
 	     ;; check no content
-	     (when content (put-string out content)))
+	     (when (string? content) (put-string out content)))
 	    (else 
 	     (handle-multipart out headers content attachs)))
       (extract))))
@@ -409,8 +409,10 @@
 			       (cadr maybe-filename)))
 	 (filename (if (null? maybe-filename)
 		       disposition-type
-		       (string-append disposition-type ";filename=\""
-				      (car maybe-filename) "\"")))
+		       (string-append disposition-type 
+				      (mime-compose-parameters
+				       `((filename . ,(car maybe-filename)))
+				       #f))))
 	 
 	 (headers (if (or (null? maybe-filename)
 			  (null? (cdr maybe-filename))
@@ -424,18 +426,26 @@
      :headers (merge-header `("content-disposition" ,filename)
 			    headers))))
 
+(define (make-smtp-alternative type subtype content . headers)
+  (make-mime-part
+     :type type :subtype subtype
+     :transfer-encoding "base64"	; TODO printed-quotable?
+     :content content
+     :headers headers))
+
 ;; High level API
-(define-syntax smtp:subject    (syntax-rules ()))
-(define-syntax smtp:to         (syntax-rules ()))
-(define-syntax smtp:cc         (syntax-rules ()))
-(define-syntax smtp:bcc        (syntax-rules ()))
-(define-syntax smtp:from       (syntax-rules ()))
-(define-syntax smtp:attachment (syntax-rules ()))
-(define-syntax smtp:header     (syntax-rules ()))
+(define-syntax smtp:subject    	(syntax-rules ()))
+(define-syntax smtp:to         	(syntax-rules ()))
+(define-syntax smtp:cc         	(syntax-rules ()))
+(define-syntax smtp:bcc        	(syntax-rules ()))
+(define-syntax smtp:from       	(syntax-rules ()))
+(define-syntax smtp:attachment 	(syntax-rules ()))
+(define-syntax smtp:header     	(syntax-rules ()))
+(define-syntax smtp:alternative (syntax-rules ()))
 
 (define-syntax smtp:mail
   (syntax-rules (smtp:from smtp:subject smtp:to smtp:cc 
-			   smtp:bcc smtp:attachment smtp:header)
+		 smtp:bcc smtp:attachment smtp:header smtp:alternative)
     ;; parse subject
     ((_ "parse" from "no subject" content (recp ...) (attach ...) (head ...)
 	((smtp:subject sub) elements ...))
@@ -469,6 +479,20 @@
 	((smtp:header n v) elements ...))
      (smtp:mail "parse" from subject content (recp ...) (attach ...)
 		(head ... (n v))
+		(elements ...)))
+    ;; parse alternative (content must be #f)
+    ;; NB alternative is mere attachment
+    ((_ "parse" from subject #f (recp ...) (attach ...) (head ...)
+	((smtp:alternative (spec ...) (spec* ...) ...) elements ...))
+     ;; mark content #t so that alternative can only exist once
+     (smtp:mail "parse" from subject #t (recp ...)
+		((make-smtp-attachment
+		  "multipart" "alternative"
+		  (list (make-smtp-alternative spec ...)
+			(make-smtp-alternative spec* ...)
+			...))
+		 attach ...)
+		(head ...)
 		(elements ...)))
     ;; parse content
     ((_ "parse" from subject #f (recp ...) (attach ...) (head ...)
