@@ -138,7 +138,28 @@ response value (credential).
 
 Authenticates the given @var{smtp-connection}. If the response status
 is @code{354} and @var{next-step} is specified, then the @var{next-step}
-is called with @var{smtp-connection} and response string.
+is called with @var{smtp-connection}, status and response string. The
+procedure must return 2 values, next command and next-next procedure or #f.
+The @code{smtp-authenticate!} procedure stops when @var{next-next} 
+procedure is #f or returning response is @code{235}.
+
+The following is a simple LOGIN @var{next-step}.
+
+@codeblock{
+(define (smtp-login-authentication)
+  (define (prompt next?)
+    (lambda (conn status resp)
+      (or (and (= status 334)
+               ;; response is encoded to BASE 64 so decode it
+               (display (base64-decode-string resp))
+               (flush-output-port (current-output-port))
+               ;; next command (either username or password)
+               ;; must be encoded to BASE 64
+               (values (base64-encode-string (get-line (current-input-port)))
+                       (and next? (prompt #f))))
+          (values #f #f))))
+  (values (lambda () (values "LOGIN" #f)) (prompt #t)))
+}
 }
 
 @define[Function]{@name{smtp-send!} @args{smtp-connection smtp-mail}}
