@@ -77,12 +77,15 @@
 	    (rfc smtp commands)
 	    (rfc smtp extensions)
 	    (rfc smtp conditions)
+	    (srfi :1) ;; for alist-delete
 	    (srfi :13)
+	    (srfi :14)
 	    (srfi :106)
 	    (srfi :112)
 	    (rfc tls) ;; need socket-port for TLS
 	    (rfc mime) ;; for attachments
 	    (rfc quoted-printable)
+	    (rfc :5322)
 	    )
 
 (define-record-type (<smtp-connection> make-smtp-connection smtp-connection?)
@@ -183,12 +186,15 @@
     (assertion-violation 'smtp-mail-add-header!
 			 "specified header must be set by other procedures"
 			 name))
-  (let ((old (smtp-mail-headers mail)))
+  (let ((old (smtp-mail-headers mail))
+	(value (if (string-every char-set:ascii value)
+		   value
+		   (mime-encode-word value))))
     (cond ((assoc name old string-ci=?) =>
 	   ;; Should we raise an error?
-	   (lambda (slot) (set-cdr! slot value)))
+	   (lambda (slot) (set-cdr! slot (list value))))
 	  (else
-	   (smtp-mail-headers-set! mail (cons (cons name value) old))))
+	   (smtp-mail-headers-set! mail (cons (list name value) old))))
     mail))
 
 (define (smtp-mail-add-attachment! mail mime)
@@ -378,17 +384,15 @@
       (for-each (lambda (r)
 		  (put-string out (smtp-address->string r))
 		  (put-string out "\r\n")) recipents)
-      (for-each (lambda (h)
-		  (when (or (null? attachs)
-			    (not (string-ci=? (car h) "content-type")))
-		    (put-string out (car h))
-		    (put-string out ": ")
-		    (put-string out (cdr h))
-		    (put-string out "\r\n")))
-		headers)
+      (let ((headers (if (null? attachs)
+			 headers
+			 (alist-delete "content-type" headers string-ci=?))))
+	(rfc5322-write-headers headers :output out :continue #t))
       ;; subject
       (put-string out "Subject: ")
-      (put-string out  subject)
+      (if (string-every char-set:ascii subject)
+	  (put-string out subject)
+	  (put-string out  (mime-encode-word subject)))
       (put-string out "\r\n")
       (cond ((null? attachs)
 	     (put-string out "\r\n")

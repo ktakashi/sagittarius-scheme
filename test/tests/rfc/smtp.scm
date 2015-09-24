@@ -1,3 +1,4 @@
+;; -*- mode:scheme; coding:utf-8; -*-
 (import (rnrs)
 	(rfc smtp commands)
 	(rfc smtp extensions)
@@ -328,6 +329,23 @@ Second line"
 	      (smtp:cc "ktakashi@ymail.com")
 	      (smtp:header "X-Powered-By" "Sagittarius Scheme")
 	      (smtp:header "X-Powered-By" "Sagittarius Scheme 0.6.9"))))
+
+(test-equal "smtp-mail->string (3)"
+  "From: <ktakashi@ymail.com>\r
+To: <ktakashi@ymail.com>\r
+Cc: <ktakashi@ymail.com>\r
+X-Bogus: =?utf-8?B?44GC44GE44GG44GI44GK?=\r
+Subject: =?utf-8?B?44GC44GE44GG44GI44GK?=\r
+\r
+Message"
+	    (smtp-mail->string
+	     (smtp:mail
+	      (smtp:from "ktakashi@ymail.com")
+	      (smtp:subject "あいうえお")
+	      "Message"
+	      (smtp:to "ktakashi@ymail.com")
+	      (smtp:cc "ktakashi@ymail.com")
+	      (smtp:header "X-Bogus" "あいうえお"))))
 
 (test-equal "attachment"
 	    '(#t "multipart" "mixed"
