@@ -495,7 +495,7 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name)
   return paths;
 }
 
-static SgObject search_library(SgObject name, int onlyPath)
+static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
 {
   SgObject libname, lib, paths;
   SgVM *vm = Sg_VM();
@@ -555,6 +555,9 @@ static SgObject search_library(SgObject name, int onlyPath)
 	/* we don't need the first cache, so discard it */
 	vm->cache = SG_CDR(vm->cache);
 	/* restore state */
+	if (loadedp) *loadedp = TRUE;
+      } else {
+	if (loadedp) *loadedp = FALSE;
       }
       vm->state = save;
       UNLOCK_LIBRARIES();
@@ -579,7 +582,7 @@ static SgObject search_library(SgObject name, int onlyPath)
 SgObject Sg_SearchLibraryPath(SgObject name)
 {
   SgObject id_version = library_name_to_id_version(name);
-  SgObject path = search_library(SG_CAR(id_version), TRUE);
+  SgObject path = search_library(SG_CAR(id_version), TRUE, NULL);
   return path;
 }
 
@@ -601,14 +604,14 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     if (createp) {
       return Sg_MakeLibrary(name);
     } else {
-      lib = search_library(SG_CAR(id_version), FALSE);
+      lib = search_library(SG_CAR(id_version), FALSE, NULL);
     }
   }
   return lib;
 }
 
 
-SgObject Sg_SearchLibrary(SgObject lib)
+SgObject Sg_SearchLibrary(SgObject lib, int *loadedp)
 {
   SgObject id_version;
   /* i'm not sure if i need this, but just in case */
@@ -616,7 +619,7 @@ SgObject Sg_SearchLibrary(SgObject lib)
     return lib;
   }
   id_version = library_name_to_id_version(lib);
-  return search_library(SG_CAR(id_version), FALSE);
+  return search_library(SG_CAR(id_version), FALSE, loadedp);
 }
 
 #define ENSURE_LIBRARY(o, e)						\

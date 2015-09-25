@@ -1775,6 +1775,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgObject name, from, import, expot, keys, key;
   SgLibrary *lib;
   SgObject later = SG_NIL;
+  SgObject vtime = Sg_FileModifyTime(ctx->file);
 
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
@@ -1809,14 +1810,32 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SG_FOR_EACH(key, keys) {
     /* keys are alist */
     SgObject tmp;
+    int loadedp = FALSE;
     from = SG_CAAR(key);
     import = SG_CDAR(key);
     ASSERT(!SG_FALSEP(import));
     /* 
        import can be '() or resolved import spec.
      */
-    tmp = Sg_FindLibrary(from, FALSE);
+    tmp = Sg_SearchLibrary(from, &loadedp);
     if (!SG_LIBRARYP(tmp)) Sg_Error(UC("Library %A not found"), from);
+    if (loadedp) {
+      /* re-load it */
+      ctx->file = SG_FALSE;
+      longjmp(ctx->escape, 1);
+    } else {
+      SgObject depfiles = Sg_SearchLibraryPath(from);
+      SG_FOR_EACH(depfiles, depfiles) {
+	SgObject cache_file = id_to_filename(SG_CAR(depfiles));
+	SgObject cvtime = Sg_FileModifyTime(cache_file);
+	if (Sg_NumCmp(vtime, cvtime) < 0) {
+	  /* ok looks we need to recache it */
+	  ctx->file = SG_FALSE;
+	  longjmp(ctx->escape, 1);
+	}
+      }
+    }
+    
     Sg_ImportLibraryFullSpec(lib, tmp, import);
   }
   return lib;
@@ -2047,9 +2066,14 @@ int Sg_ReadCache(SgString *id)
     }
     ret = CACHE_READ;
   } else {
-    /* something wrong, well this happens so often in Windows somehow... */
-    /* so return as invalid cache */
-    ret = INVALID_CACHE;
+    if (SG_FALSEP(ctx.file)) {
+      /* re-load */
+      ret = RE_CACHE_NEEDED;
+    } else {
+      /* something wrong, well this happens so often in Windows somehow... */
+      /* so return as invalid cache */
+      ret = INVALID_CACHE;
+    }
   }
  end:
   vm->currentLibrary = save;

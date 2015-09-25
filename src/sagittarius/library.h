@@ -105,7 +105,7 @@ SG_EXTERN SgObject Sg_FindLibrary(SgObject name, int createp);
 SG_EXTERN void     Sg_ImportLibraryFullSpec(SgObject to, SgObject from,
 					    SgObject spec);
 SG_EXTERN void     Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec);
-SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib);
+SG_EXTERN SgObject Sg_SearchLibrary(SgObject lib, int *loadedp);
 SG_EXTERN SgGloc*  Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 				  SgObject value, int flags);
 
