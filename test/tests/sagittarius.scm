@@ -1868,4 +1868,10 @@
 		"abcde"
 		(get-line in))))
 
+;; call #149
+(test-equal "closure cache" #t (eval '(run) (environment '(inlined-cache))))
+(test-assert "not cachable"
+	     (not (eval '(cachable? *bar2*)
+			(environment '(sagittarius) '(closure-cache)))))
+
 (test-end)

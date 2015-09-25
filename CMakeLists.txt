@@ -560,25 +560,41 @@ FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r6rstestrc"
 FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-r7rstestrc"
   "${PROJECT_SOURCE_DIR}/test/r7rs-tests\n${PROJECT_SOURCE_DIR}/ext/crypto\n${PROJECT_SOURCE_DIR}/ext/time")
 FILE(WRITE "${PROJECT_BINARY_DIR}/.sagittarius-sitetestrc"
-  "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads\n${PROJECT_SOURCE_DIR}/ext/zlib")
+  "${PROJECT_SOURCE_DIR}/test/tests\n${PROJECT_BINARY_DIR}/test/data/\n${PROJECT_SOURCE_DIR}/ext/socket\n${PROJECT_SOURCE_DIR}/ext/threads\n${PROJECT_SOURCE_DIR}/ext/zlib\n${PROJECT_SOURCE_DIR}/test/lib")
 
+IF (WIN32)
+  SET(CACHE_EXPR "(import(inlined-cache))(exit)")
+ELSE ()
+  SET(CACHE_EXPR "'(import(inlined-cache))(exit)'")
+ENDIF()
+
+ADD_CUSTOM_TARGET(prepare-cache-test
+  COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
+          -D${PROJECT_BINARY_DIR}/build
+	  -D${PROJECT_BINARY_DIR}/build/modules
+	  -L${PROJECT_SOURCE_DIR}/test/lib
+	  -e ${CACHE_EXPR})
 ADD_CUSTOM_TARGET(test
+  DEPENDS prepare-cache-test
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/test/lib
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-clean
+  # DEPENDS prepare-cache-test it's useless...
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME} -c
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/test/lib
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -589,16 +605,19 @@ ADD_CUSTOM_TARGET(test-ext
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/test/lib
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm ext
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 ADD_CUSTOM_TARGET(test-site-s
+  DEPENDS prepare-cache-test
   COMMAND ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
           -D${PROJECT_BINARY_DIR}/build
 	  -D${PROJECT_BINARY_DIR}/build/modules
 	  -L${PROJECT_SOURCE_DIR}
 	  -L${PROJECT_SOURCE_DIR}/lib
 	  -L${PROJECT_SOURCE_DIR}/sitelib
+	  -L${PROJECT_SOURCE_DIR}/test/lib
 	  -fno-backtrace
 	  ${PROJECT_SOURCE_DIR}/run-test.scm sitelib-s
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR})

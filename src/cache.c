@@ -248,7 +248,8 @@ enum {
    (!seen && SG_PAIRP(obj)) || (!seen && SG_VECTORP(obj)) ||		\
    SG_NUMBERP(obj) ||							\
    SG_MACROP(obj) || SG_GLOCP(obj) || SG_CODE_BUILDERP(obj) ||		\
-   SG_LIBRARYP(obj) || SG_CLOSUREP(obj))
+   SG_LIBRARYP(obj) ||							\
+   (SG_CLOSUREP(obj) && SG_CODE_BUILDER(SG_CLOSURE(obj)->code)->freec == 0))
 
 static int cachable_p(SgObject obj, SgObject seen)
 {
@@ -1410,7 +1411,9 @@ static SgObject read_vector(SgPort *in, read_ctx *ctx)
   literalp = Sg_GetbUnsafe(in);
   vec = Sg_MakeVector(length, SG_UNDEF);
   for (i = 0; i < length; i++) {
-    SG_VECTOR_ELEMENT(vec, i) = read_object_rec(in, ctx);
+    SgObject o = read_object_rec(in, ctx);
+    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
+    SG_VECTOR_ELEMENT(vec, i) = o;
   }
   if (literalp) {
     vec = Sg_AddConstantLiteral(vec);
@@ -1431,7 +1434,9 @@ static SgObject read_plist(SgPort *in, read_ctx *ctx)
 
   length = read_word(in, PLIST_TAG, ctx);
   for (i = 0; i < length; i++) {
-    SG_APPEND1(h, t, read_object_rec(in, ctx));
+    SgObject o = read_object_rec(in, ctx);
+    if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
+    SG_APPEND1(h, t, o);
   }
 
 #ifdef STORE_SOURCE_INFO
@@ -1462,8 +1467,11 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
   length = read_word(in, DLIST_TAG, ctx);
   o = read_object_rec(in, ctx);
+  if (SG_CODE_BUILDERP(o)) o = Sg_MakeClosure(o, NULL);
   for (i = 0; i < length; i++) {
-    SG_APPEND1(h, t, read_object_rec(in, ctx));
+    SgObject oo = read_object_rec(in, ctx);
+    if (SG_CODE_BUILDERP(oo)) oo = Sg_MakeClosure(oo, NULL);
+    SG_APPEND1(h, t, oo);
   }
   /* set last element */
   SG_SET_CDR(t, o);
@@ -1816,7 +1824,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 
 static SgObject read_code(SgPort *in, read_ctx *ctx)
 {
-  int len, tag, argc, optional, maxStack, freec, index, i;
+  int len, tag, argc, optional, maxStack, freec, index, i, prev = -1;
   SgWord *code;
   SgObject cb, name, src;
   len = read_word(in, CODE_BUILDER_TAG, ctx);
@@ -1842,7 +1850,12 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
       /* resolve shared object here for identifier*/
       ctx->links = Sg_Cons(o, ctx->links);
     }
+    /* ugly... */
+    if (!ctx->insnP && SG_CODE_BUILDERP(o) && prev != -1 && prev != CLOSURE) {
+      o = Sg_MakeClosure(o, NULL);
+    }
     code[i] = SG_WORD(o);
+    prev = (ctx->insnP) ? INSN(SG_WORD(o)) : -1;
   }
   src = read_object(in, ctx);
   tag = Sg_GetbUnsafe(in);
