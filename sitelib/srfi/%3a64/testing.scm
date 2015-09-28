@@ -570,7 +570,7 @@
 	     (let ()
 	       (let-values (((success? res) (%test-evaluate-with-catch expr)))
 		 (test-result-set! r 'actual-value res)
-		 (%test-on-test-end r success?))))
+		 (%test-on-test-end r (and success? res)))))
 	 (%test-report-result)))))
   (define-syntax test-end
     (syntax-rules ()
