@@ -2876,7 +2876,7 @@ int Sg_NumEq(SgObject x, SgObject y)
 
 int Sg_NumCmp(SgObject x, SgObject y)
 {
-  SgObject badnum;
+  SgObject badnum = SG_FALSE;
     /* on WATCOM, somehow NAN is bigger than 0 */
 #ifdef __WATCOMC__
 #define nan_return(_r) do { if (isnan(_r)) return 0; } while(0)
@@ -3017,9 +3017,9 @@ int Sg_NumCmp(SgObject x, SgObject y)
     }
     badnum = x;
   }
-  badnum = x;
+  if (SG_FALSEP(badnum)) badnum = x;
 
-  wte(SG_FALSE, "real number", badnum);
+  wte4(SG_FALSE, "real number", badnum, SG_LIST2(x, y));
   return 0;			/* dummy */
 }
 

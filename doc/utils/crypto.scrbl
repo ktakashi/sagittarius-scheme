@@ -30,10 +30,7 @@ key mechanism. For public/private key, it only supports RSA for now.
 @subsubsection{Cipher operations}
 
 @define[Function]{@name{make-cipher}
- @args{type key
- :key (mode MODE_ECB) (iv #f) (padder pkcs5-padder)
-      (rounds 0) (ctr-mode CTR_COUNTER_BIG_ENDIAN)
- :rest options}}
+ @args{type key mode :key (mode-parameter #f) :allow-other-keys :rest options}}
 @desc{Creates a cipher object.
 
 @var{type} must be known cryptographic algorithm. Currently, @code{(crypto)}
@@ -80,15 +77,8 @@ require initial vector @var{iv}. The possible mods are below.
 @define[Constant]{@name{MODE_CTR}}
 @define[Constant]{@name{MODE_GCM}}
 
-@var{iv} must be a bytevector or #f. This is an initial vector which some modes
-require. cf) @code{MODE_CBC}.
-
-@var{rounds} specify how many times the cipher rounds the key.
-
-@var{ctr-mode} specifies counter mode. The possible mode is blow.
-@define[Constant]{@name{CTR_COUNTER_LITTLE_ENDIAN}}
-@define[Constant]{@name{CTR_COUNTER_BIG_ENDIAN}}
-@define[Constant]{@name{LTC_CTR_RFC3686}}
+The keyword argument @var{mode-parameter} is specified, it must be a mode
+parameter object, then the object will be parsed properly by the cipher.
 }
 
 @define[Function]{@name{cipher-keysize} @args{cipher test}}
@@ -222,6 +212,66 @@ accept keyword argument @var{verify}.
 @code{pkcs1-emsa-pss-verify}. And the rest keyword arguments will be passed to
 verifier. Supported verifiers are described below.
 }
+
+@subsubsection{Mode parameters}
+
+Mode parameters are pareters which can be used by specified mode. For example,
+@code{iv-parameter} is a parameter contains an IV.
+
+@define[Function]{@name{mode-parameter?} @args{obj}}
+@desc{Returns #t if the given @var{obj} is a mode parameter, otherwise #f.}
+
+@define[Function]{@name{make-composite-parameter} @args{parameters ...}}
+@desc{Creates a composite mode parameter.
+
+A composite parameter can hold multiple parameters.
+}
+
+@define["Record Type"]{@name{<iv-paramater>}}
+@desc{Record type for initial vector (IV) parameter.}
+
+@define[Function]{@name{make-iv-paramater} @args{iv}}
+@desc{@var{iv} must be a bytevector or #f. 
+
+Creates an IV mode parameter.
+
+IV is required by some modes. e.g. @code{MODE_CBC}.
+}
+
+@define["Record Type"]{@name{<ctr-paramater>}}
+@desc{Record type for counter mode parameter.
+
+This parameter is a subclass of @code{<iv-parameter>}.
+}
+
+@define[Function]{@name{make-ctr-paramater}
+ @args{iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN) (rfc3686 #f)}
+@desc{
+Creates a counter mode parameter. This is used by @code{MODE_CTR}.
+
+@var{iv} is passed to parent constructor.
+
+The followings are description of keyword parameters.
+
+@var{rounds} specify how many times the cipher rounds the key.
+
+@var{ctr-mode} specifies counter mode. The possible mode is blow.
+@define[Constant]{@name{CTR_COUNTER_LITTLE_ENDIAN}}
+@define[Constant]{@name{CTR_COUNTER_BIG_ENDIAN}}
+
+@var{rfc3686} is specifies whether the initialisation is done according
+to RFC 3686.
+}
+
+@define["Record Type"]{@name{<padding-paramater>}}
+@desc{Record type for padding parameter.}
+
+@define[Function]{@name{make-padding-paramater} @args{padder}}
+@desc{Creates a padding mode parameter.
+
+@var{padder} must be an procedure such as @code{pkcs5-padder}.
+}
+
 
 @subsubsection{Key operations}
 
@@ -561,6 +611,11 @@ These slots are optional.
 }
 
 NOTE: Even required slots, Sagittarius does not check if it's set or not.
+
+During its initialisation, the @var{initargs} (the second argument of
+the @code{initialize} method) takes at least 3 arguments, @var{key}, 
+@code{:mode-parameter} keyword and @var{parameter} passed to
+@code{make-cipher}. The rest of other arguments are also passed if exist.
 }
 
 @define[Function]{@name{cipher-spi?} @args{o}}

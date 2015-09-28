@@ -542,7 +542,7 @@
 					  4)))
   (slot-set! spi 'tagsize 4))
 (let* ((spi (make <dummy-spi>))
-       (cipher (make-cipher spi #f)))
+       (cipher (make-cipher spi #f MODE_ECB)))
   ;; it's not documented but returning value is the result of
   ;; underlying procedure of update-aad
   (test-equal "dummy update AAD" 'ok (cipher-update-aad! cipher #vu8(1 2 3 4)))
@@ -561,7 +561,10 @@
 
 (define (test-gcm-decryption count key iv ct aad tag pt :key (invalid-tag #f))
   (let* ((skey (generate-secret-key AES key))
-	 (cipher (make-cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+	 (cipher (make-cipher AES skey MODE_GCM
+			      :mode-parameter (make-composite-parameter
+					       (make-iv-paramater iv)
+					       (make-padding-paramater #f)))))
     (cipher-update-aad! cipher aad)
     (let-values (((decrypted this-tag)
 		  (cipher-decrypt/tag cipher ct
@@ -665,7 +668,10 @@ PT = 498255c2c186a7792dfd1a613c0b434d
 
 (define (test-gcm-encryption count key iv pt aad ct tag)
   (let* ((skey (generate-secret-key AES key))
-	 (cipher (make-cipher AES skey :iv iv :mode MODE_GCM :padder #f)))
+	 (cipher (make-cipher AES skey MODE_GCM
+			      :mode-parameter (make-composite-parameter
+					       (make-iv-paramater iv)
+					       (make-padding-paramater #f)))))
     (cipher-update-aad! cipher aad)
     (let-values (((encrypted this-tag)
 		  (cipher-encrypt/tag cipher pt 

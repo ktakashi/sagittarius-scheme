@@ -238,7 +238,7 @@
       (unless (is-a? key <pbe-secret-key>)
 	(assertion-violation 'initialize "<pbe-secret-key> required" key))
       (let-keywords* rest
-	  ((parameter #f))
+	  ((parameter #f) . rest)
 	(unless parameter
 	  (assertion-violation 
 	   'initialize

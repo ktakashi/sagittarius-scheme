@@ -114,7 +114,9 @@
                                #'((immutable name) proc #f)))
                             (_
                              (syntax-violation 'define-record-type
-					       "malformed field spec" x spec))))
+					       "malformed field spec"
+					       (syntax->datum x)
+					       (syntax->datum spec)))))
 			#'(specs ...))))
                  (_ (syntax-violation 'define-record-type 
 				      "malformed record clauses"

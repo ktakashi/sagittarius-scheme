@@ -1828,7 +1828,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
       SG_FOR_EACH(depfiles, depfiles) {
 	SgObject cache_file = id_to_filename(SG_CAR(depfiles));
 	SgObject cvtime = Sg_FileModifyTime(cache_file);
-	if (Sg_NumCmp(vtime, cvtime) < 0) {
+	if (!Sg_FileExistP(cache_file) || Sg_NumCmp(vtime, cvtime) < 0) {
 	  /* ok looks we need to recache it */
 	  ctx->file = SG_FALSE;
 	  longjmp(ctx->escape, 1);
