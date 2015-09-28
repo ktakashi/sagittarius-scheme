@@ -109,10 +109,13 @@
     (%make-composite-parameter params))
 
   (define (find-parameter p pred)
-    (let loop ((parameters (parameter-composite-parameters p)))
-      (cond ((null? parameters) #f)
-	    ((pred (car parameters)) (car parameters))
-	    (else (loop (cdr parameters))))))
+    (cond ((composite-parameter? p)
+	   (let loop ((parameters (parameter-composite-parameters p)))
+	     (cond ((null? parameters) #f)
+		   ((pred (car parameters)) (car parameters))
+		   (else (loop (cdr parameters))))))
+	  ((pred p) p)
+	  (else #f)))
 
   (define-syntax define-mode-parameter
     (lambda (x)

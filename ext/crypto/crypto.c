@@ -234,7 +234,8 @@ SgObject Sg_MakeBuiltinCipherSpi(SgString *name, SgCryptoMode mode,
 		    ctr_mode,
 		    &spi->skey.ctr_key);
     SG_INIT_CIPHER(spi,
-		   ctr_encrypt, ctr_decrypt, NULL, NULL, ctr_done, keysize);
+		   ctr_encrypt, ctr_decrypt, ctr_getiv, ctr_start,
+		   ctr_done, keysize);
     break;
   case MODE_GCM:
     if (!SG_BVECTOR(iv)) {
