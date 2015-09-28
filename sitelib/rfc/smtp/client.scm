@@ -468,7 +468,13 @@
 (define-syntax smtp:from       	(syntax-rules ()))
 (define-syntax smtp:attachment 	(syntax-rules ()))
 (define-syntax smtp:header     	(syntax-rules ()))
-(define-syntax smtp:alternative (syntax-rules ()))
+(define-syntax smtp:alternative 
+  (syntax-rules ()
+    ((_ (spec1 ...) (spec2 ...) (spec* ...) ...)
+     (make-smtp-alternative
+      (make-smtp-alternative-component spec1 ...)
+      (make-smtp-alternative-component spec2 ...)
+      (make-smtp-alternative-component spec* ...) ...))))
 
 (define-syntax smtp:mail
   (syntax-rules (smtp:from smtp:subject smtp:to smtp:cc 
@@ -510,13 +516,10 @@
     ;; parse alternative (content must be #f)
     ;; NB alternative is mere attachment
     ((_ "parse" from subject #f (recp ...) (attach ...) (head ...)
-	((smtp:alternative (spec ...) (spec* ...) ...) elements ...))
+	((smtp:alternative (spec* ...) ...) elements ...))
      ;; mark content #t so that alternative can only exist once
      (smtp:mail "parse" from subject #t (recp ...)
-		((make-smtp-alternative
-		  (make-smtp-alternative-component spec ...)
-		  (make-smtp-alternative-component spec* ...) ...)
-		 attach ...)
+		((smtp:alternative (spec* ...) ...) attach ...)
 		(head ...)
 		(elements ...)))
     ;; parse content

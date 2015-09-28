@@ -116,18 +116,20 @@
 	      (or (and (> (string-length line) 3)
 		       (substring line 4 (string-length line)))
 		  ""))))
+  (define (check status saved)
+    (when (and saved (not (= status saved)))
+      (raise (condition
+	      (make-smtp-invalid-response-error)
+	      (make-who-condition 'smtp-recv)
+	      (make-message-condition "Invalid response")
+	      (make-irritants-condition (list saved status))))))
   (let loop ((line (string-trim-right (get-line in))) (saved #f)  (r '()))
     (let-values (((status continue? content) (parse-line line)))
+      (check status saved)
       (if continue?
-	  (if (and saved (not (= status saved)))
-	      (raise (condition
-		      (make-smtp-invalid-response-error)
-		      (make-who-condition 'smtp-recv)
-		      (make-message-condition "Invalid response")
-		      (make-irritants-condition saved status)))
-	      (loop (string-trim-right (get-line in)) 
-		    status 
-		    (cons* "\n" content r)))
+	  (loop (string-trim-right (get-line in)) 
+		status 
+		(cons* "\n" content r))
 	  (values status (string-concatenate-reverse (cons content r)))))))
 
 )
