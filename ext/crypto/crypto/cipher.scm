@@ -26,10 +26,15 @@
 	    ;; parameters
 	    define-mode-parameter
 	    make-composite-parameter mode-parameter?
+	    <mode-name-parameter> make-mode-name-parameter mode-name-parameter?
+	    parameter-mode-name
 	    <iv-parameter> make-iv-paramater iv-parameter?
+	    parameter-iv
 	    <ctr-parameter> make-ctr-paramater ctr-parameter?
+	    parameter-rounds parameter-ctr-mode
 	    <rfc3686-parameter> make-rfc3686-paramater rfc3686-parameter?
 	    <padding-parameter> make-padding-paramater padding-parameter?
+	    parameter-padder
 	    ;; TODO more?
 
 	    ;; signing
@@ -205,19 +210,32 @@
 	    () ;; nofield
 	    (parent* ...) (protocol* ...)
 	    ())
-	 #'(define-record-type (name ctr pred)
-	     (parent* ...)
-	     (protocol* ...)))
+	 #'(begin
+	     (define-record-type (name ctr dummy)
+	       (parent* ...)
+	       (protocol* ...))
+	     (define (pred o)
+	       (and (mode-parameter? o)
+		    (or (dummy o)
+			(find-parameter o dummy))))))
 	((k "parse" (name ctr pred) 
 	    ((field* ...) acc ...)
 	    (parent* ...) (protocol* ...)
 	    ())
 	 #'(begin
-	     (define-record-type (name ctr pred)
+	     (define-record-type (name ctr dummy)
 	       (field* ...)
 	       (parent* ...)
 	       (protocol* ...))
-	     acc ...)))))
+	     acc ...
+	     (define (pred o)
+	       (and (mode-parameter? o)
+		    (or (dummy o)
+			(find-parameter o dummy)))))))))
+
+  (define-mode-parameter (<mode-name-parameter> make-mode-name-parameter
+						mode-name-parameter?)
+    (fields (mode-name parameter-mode-name)))
 
   (define-mode-parameter (<iv-parameter> make-iv-paramater iv-parameter?)
     (fields (iv parameter-iv)))
@@ -266,8 +284,9 @@
 		  :rest rest)
     (define (rfc3686?)
       (not (zero? (bitwise-and ctr-mode LTC_CTR_RFC3686))))
-    (apply make-cipher type key mode 
+    (apply make-cipher type key 
 	   :mode-parameter (make-composite-parameter
+			    (make-mode-name-parameter mode)
 			    (make-padding-paramater padder)
 			    (if (rfc3686?)
 				;; should we add nonce?
@@ -279,13 +298,15 @@
 						    :mode ctr-mode)))
 	   rest))
 
-  (define (make-cipher type key mode 
+  (define (make-cipher type key
 		       :key (mode-parameter #f)
 		       :allow-other-keys
 		       :rest rest)
     (define parameter mode-parameter)
     ;; kinda silly but for now
-    (let ((iv (and parameter (parameter-iv parameter)))
+    (let ((mode (or (and parameter (parameter-mode-name parameter MODE_ECB))
+		     MODE_ECB))
+	  (iv (and parameter (parameter-iv parameter)))
 	  ;; these 2 doesn't have to be there but
 	  ;; make-builtin-cipher-spi requires it.
 	  ;; TODO better construction
@@ -303,7 +324,7 @@
 			     (if (boolean? spi)
 				 (make-builtin-cipher-spi
 				  type mode key iv rounds padder ctr-mode)
-				 (apply make spi key
+				 (apply make spi key 
 					:mode-parameter parameter
 					rest))))
 		       ((cipher-spi? type) type) ;; reuse 
@@ -317,7 +338,7 @@
     (unless (<= 3 size 8)
       (assertion-violation 'key-check-value "size must be between 3 to 8"
 			   size))
-    (let ((c (make-cipher type key MODE_ECB)))
+    (let ((c (make-cipher type key)))
       (bytevector-copy (cipher-encrypt c +check-value+) 0 size)))
 
   ;; with authentication

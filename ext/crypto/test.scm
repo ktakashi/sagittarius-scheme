@@ -542,13 +542,30 @@
 					  4)))
   (slot-set! spi 'tagsize 4))
 (let* ((spi (make <dummy-spi>))
-       (cipher (make-cipher spi #f MODE_ECB)))
+       (cipher (make-cipher spi #f)))
   ;; it's not documented but returning value is the result of
   ;; underlying procedure of update-aad
   (test-equal "dummy update AAD" 'ok (cipher-update-aad! cipher #vu8(1 2 3 4)))
   (test-equal "dummy AAD" #vu8(1 2 3 4) (dummy-aad spi))
   (cipher-encrypt cipher #vu8(5 6 7 8))
   (test-equal "dummy tag" #vu8(1 2 3 4) (cipher-tag cipher)))
+
+;; mode
+(test-assert "composite-parameter" 
+	     (mode-parameter? (make-composite-parameter
+			       (make-mode-name-parameter MODE_ECB))))
+(test-error "composite-parameter (error)" (make-composite-parameter #f))
+
+(test-error "iv-parameter? (1)"
+	    (iv-parameter?  (make-iv-paramater #vu8())))
+(test-error "iv-parameter? (2)"
+	    (iv-parameter? (make-composite-parameter 
+			    (make-iv-paramater #vu8()))))
+
+(test-error "parameter-iv (2)" #vu8()
+	    (parameter-iv (make-composite-parameter 
+			    (make-iv-paramater #vu8()))))
+
 
 ;; GCM
 (test-assert "MODE_GCM" MODE_GCM)
@@ -561,8 +578,10 @@
 
 (define (test-gcm-decryption count key iv ct aad tag pt :key (invalid-tag #f))
   (let* ((skey (generate-secret-key AES key))
-	 (cipher (make-cipher AES skey MODE_GCM
+	 (cipher (make-cipher AES skey
 			      :mode-parameter (make-composite-parameter
+					       (make-mode-name-parameter
+						 MODE_GCM)
 					       (make-iv-paramater iv)
 					       (make-padding-paramater #f)))))
     (cipher-update-aad! cipher aad)
@@ -668,8 +687,10 @@ PT = 498255c2c186a7792dfd1a613c0b434d
 
 (define (test-gcm-encryption count key iv pt aad ct tag)
   (let* ((skey (generate-secret-key AES key))
-	 (cipher (make-cipher AES skey MODE_GCM
+	 (cipher (make-cipher AES skey
 			      :mode-parameter (make-composite-parameter
+					       (make-mode-name-parameter
+						MODE_GCM)
 					       (make-iv-paramater iv)
 					       (make-padding-paramater #f)))))
     (cipher-update-aad! cipher aad)
@@ -739,8 +760,10 @@ Tag = 267a3ba3670ff076
 	(nonce (vector-ref vec 2))
 	(plain (vector-ref vec 3))
 	(cipher (vector-ref vec 4)))
-    (define c (make-cipher AES (generate-secret-key AES key) MODE_CTR
-			:mode-parameter (make-rfc3686-paramater iv nonce)))
+    (define c (make-cipher AES (generate-secret-key AES key)
+			:mode-parameter (make-composite-parameter
+					 (make-mode-name-parameter MODE_CTR)
+					 (make-rfc3686-paramater iv nonce))))
     (test-equal (format "AES-CTR (~a)" i) cipher (cipher-encrypt c plain))))
 
 (define test-rfc3686-vector
