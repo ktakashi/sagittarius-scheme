@@ -261,10 +261,11 @@
 					custom-add-to-back)))
   )
 
-(let ((pool (make-thread-pool 5 raise)))
+(let ((pool (make-thread-pool 1 raise)))
   (test-error "thread-pool error-handler"
 	      error?
-	      (thread-pool-push-task! pool (lambda () (error 'dummy "msg")))))
+	      (thread-pool-release!
+	       (thread-pool-push-task! pool (lambda () (error 'dummy "msg"))))))
 
 ;; shared-priority-queue
 (let ()
