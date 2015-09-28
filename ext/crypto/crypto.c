@@ -68,6 +68,7 @@ static int gcm_decrypt(const unsigned char *ct,
 {
   return wrapped_gcm_process(pt, (unsigned char *)ct, len, gcm, GCM_DECRYPT);
 }
+
 static int gcm_setiv(unsigned char *IV, unsigned long *len, 
 		     cipher_gcm_state *gcm)
 {

@@ -556,13 +556,13 @@
 			       (make-mode-name-parameter MODE_ECB))))
 (test-error "composite-parameter (error)" (make-composite-parameter #f))
 
-(test-error "iv-parameter? (1)"
+(test-assert "iv-parameter? (1)"
 	    (iv-parameter?  (make-iv-paramater #vu8())))
-(test-error "iv-parameter? (2)"
+(test-assert "iv-parameter? (2)"
 	    (iv-parameter? (make-composite-parameter 
 			    (make-iv-paramater #vu8()))))
 
-(test-error "parameter-iv (2)" #vu8()
+(test-equal "parameter-iv (2)" #vu8()
 	    (parameter-iv (make-composite-parameter 
 			    (make-iv-paramater #vu8()))))
 
@@ -582,8 +582,7 @@
 			      :mode-parameter (make-composite-parameter
 					       (make-mode-name-parameter
 						 MODE_GCM)
-					       (make-iv-paramater iv)
-					       (make-padding-paramater #f)))))
+					       (make-iv-paramater iv)))))
     (cipher-update-aad! cipher aad)
     (let-values (((decrypted this-tag)
 		  (cipher-decrypt/tag cipher ct
@@ -594,12 +593,21 @@
       (let ((bv (make-bytevector (bytevector-length tag))))
 	(test-equal (format "GCM decryption cipher-tag! (~a)" count)
 		    (bytevector-length tag) (cipher-tag! cipher bv)))
-      (if tag
+      (if invalid-tag
 	  (test-assert (format "GCM decryption tag (~a)" count)
 		       (not (bytevector=? tag this-tag)))
 	  (test-equal (format "GCM decryption tag (~a)" count)
-		      tag this-tag)))))
+		      tag this-tag)))
+    (let-values (((encrypted this-tag)
+		  (cipher-encrypt/tag cipher pt 
+				      :tag-size (bytevector-length tag))))
+      (test-equal (format "GCM encrypted value (~a)" count) ct encrypted)
+      (if invalid-tag
+	  (test-assert (format "GCM encrypted tag (~a)" count) 
+		       (not (bytevector=? tag this-tag)))
+	  (test-equal (format "GCM encrypted tag (~a)" count) tag this-tag)))))
 
+;; from gcmDecrypt128.rsp
 #|
 Count = 0
 Key = cf063a34d4a9a76c2c86787d3f96db71
@@ -650,8 +658,10 @@ PT =
 		     (integer->bytevector #xd7963d240317653e01cf5abe5d0966ae)
 		     #vu8())
 ;; we don't do all test vectors...
+;; keylen = 128
+;; ivlen  = 1024
 #|
-Count = 3
+Count = 1
 Key = ea254e519268b0e3297dd96d98b5948a
 IV = 0e14a468989d3965c48adf7f52b68ac4fecd1ba7f5cd1748d63f0cd34ffe8c6d3fc89630f3d08967c983f4c22db51debf7c7d0d6ff3a5827d46b39087b075dc65e2c692fbaab995b8ab0d8f210f1092c0d36abec0f2e62361a617abd8ad77b650669b015c358903e224dbd9ef113652c0257f30cd5254e310a0d00df145e8dfa
 CT = 35337fd8497aefbfad20fff19a02ee11
@@ -659,6 +669,7 @@ AAD =
 Tag = decdcfc10f998a5a1a7be1344b81
 PT = 42fc4fc1da542a45a7c96461179c315a
 |#
+#;
 (test-gcm-decryption 3
 		     (integer->bytevector #xea254e519268b0e3297dd96d98b5948a)
 		     (integer->bytevector #x0e14a468989d3965c48adf7f52b68ac4fecd1ba7f5cd1748d63f0cd34ffe8c6d3fc89630f3d08967c983f4c22db51debf7c7d0d6ff3a5827d46b39087b075dc65e2c692fbaab995b8ab0d8f210f1092c0d36abec0f2e62361a617abd8ad77b650669b015c358903e224dbd9ef113652c0257f30cd5254e310a0d00df145e8dfa)
@@ -667,6 +678,23 @@ PT = 42fc4fc1da542a45a7c96461179c315a
 		     (integer->bytevector #xdecdcfc10f998a5a1a7be1344b81)
 		     (integer->bytevector #x42fc4fc1da542a45a7c96461179c315a))
 
+#|
+Count = 2
+Key = 09eabe1718525df9b6b268bf4526bc3c
+IV = 9798d99269034276321c6a7dc1fb57d8fb0b1fb4b4bb61f5471a834c6fcba82d84646541ee61ca96f8441aed005d783a1551eb5f6d50253f353dfedd3c9925d69b66b9c9792b5d6b4aa1c132a606ca24c45f9a9066add1522b457edff8ca711f40f8bcb6b0de9b2c9887e70b7c92ef12e18be35acd9685abfdb762664878868d
+CT = da051dd1f5c25188a7fa327438daf328
+AAD = 
+Tag = dac0b5a3b94584462d0fd2d17395
+PT = b36bfd4e8b182eae3e930de978be4be3
+|#
+#;
+(test-gcm-decryption 6
+		     (integer->bytevector #x09eabe1718525df9b6b268bf4526bc3c)
+		     (integer->bytevector #x9798d99269034276321c6a7dc1fb57d8fb0b1fb4b4bb61f5471a834c6fcba82d84646541ee61ca96f8441aed005d783a1551eb5f6d50253f353dfedd3c9925d69b66b9c9792b5d6b4aa1c132a606ca24c45f9a9066add1522b457edff8ca711f40f8bcb6b0de9b2c9887e70b7c92ef12e18be35acd9685abfdb762664878868d)
+		     (integer->bytevector #xda051dd1f5c25188a7fa327438daf328)
+		     #vu8()
+		     (integer->bytevector #xdac0b5a3b94584462d0fd2d17395)
+		     (integer->bytevector #xb36bfd4e8b182eae3e930de978be4be3))
 ;; with AAD
 #|
 Count = 4
@@ -677,6 +705,7 @@ AAD = a62d96ac6b4acdae784e4748cfe837fc
 Tag = 4528b211ba29af8f06d4d1388fbc549a
 PT = 498255c2c186a7792dfd1a613c0b434d
 |#
+#;
 (test-gcm-decryption 4
 		     (integer->bytevector #x12fe7dc72949c5175db64c0bf92944c7)
 		     (integer->bytevector #x8a9ebcb4ea47249a87dc2751aaa0114ba44441be49815cc05a2d42925f356e1e34ae5b30092d3cd1af79153872c6ad8e64f1d2241037fe18758ea696fa52e33ceabf4f4f6f4a77f32c4c3fd36fdd692d597978684feb0fc66d19d00906c6c6835fe6c4b8d4573c0eece4f1de85e0f5ae105485f6b2db4c821980a28d41f2f155)
@@ -684,6 +713,46 @@ PT = 498255c2c186a7792dfd1a613c0b434d
 		     (integer->bytevector #xa62d96ac6b4acdae784e4748cfe837fc)
 		     (integer->bytevector #x4528b211ba29af8f06d4d1388fbc549a)
 		     (integer->bytevector #x498255c2c186a7792dfd1a613c0b434d))
+
+#|
+[Keylen = 128]
+[IVlen = 1024]
+[PTlen = 0]
+[AADlen = 0]
+[Taglen = 128]
+Count = 2
+Key = 6e3a3b7b1cc98c1fa4754a7d63547427
+IV = 0c87956a3ed77f63a98a97b7e6fb58bf6a4426977c3a0a6409b79e1c536229e229bb69eb376563b168c1823dc2e3d9988a0f843b4d9b872f9119bbc00e3146605c4b1ca715b9e272e59298905ad1abd3b0981969028f94441223ff927419c17156d0110f165539a883ece07d6a81d00d5aa52fa443e97ee05e79a7183de46176
+CT = 
+AAD = 
+Tag = 8dcd0426704986f4fe7257288466f2b5
+PT = 
+|#
+(test-gcm-decryption 5
+		     (integer->bytevector #x6e3a3b7b1cc98c1fa4754a7d63547427)
+		     (integer->bytevector #x0c87956a3ed77f63a98a97b7e6fb58bf6a4426977c3a0a6409b79e1c536229e229bb69eb376563b168c1823dc2e3d9988a0f843b4d9b872f9119bbc00e3146605c4b1ca715b9e272e59298905ad1abd3b0981969028f94441223ff927419c17156d0110f165539a883ece07d6a81d00d5aa52fa443e97ee05e79a7183de46176)
+		     #vu8()
+		     #vu8()
+		     (integer->bytevector #x8dcd0426704986f4fe7257288466f2b5)
+		     #vu8())
+
+#|
+Count = 0
+Key = e98b72a9881a84ca6b76e0f43e68647a
+IV = 8b23299fde174053f3d652ba
+CT = 5a3c1cf1985dbb8bed818036fdd5ab42
+AAD = 
+Tag = 23c7ab0f952b7091cd324835043b5eb5
+PT = 28286a321293253c3e0aa2704a278032
+|#
+#;
+(test-gcm-decryption 7
+		     (integer->bytevector #xe98b72a9881a84ca6b76e0f43e68647a)
+		     (integer->bytevector #x8b23299fde174053f3d652ba)
+		     (integer->bytevector #x5a3c1cf1985dbb8bed818036fdd5ab42)
+		     #vu8()
+		     (integer->bytevector #x23c7ab0f952b7091cd324835043b5eb5)
+		     (integer->bytevector #x28286a321293253c3e0aa2704a278032))
 
 (define (test-gcm-encryption count key iv pt aad ct tag)
   (let* ((skey (generate-secret-key AES key))
