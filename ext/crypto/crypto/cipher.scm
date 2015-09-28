@@ -28,6 +28,7 @@
 	    make-composite-parameter mode-parameter?
 	    <iv-parameter> make-iv-paramater iv-parameter?
 	    <ctr-parameter> make-ctr-paramater ctr-parameter?
+	    <rfc3686-parameter> make-rfc3686-paramater rfc3686-parameter?
 	    <padding-parameter> make-padding-paramater padding-parameter?
 	    ;; TODO more?
 
@@ -90,8 +91,7 @@
 	    (crypto pkcs)
 	    (sagittarius)
 	    (clos core)
-	    (sagittarius crypto)
-	    (pp))
+	    (sagittarius crypto))
 
   ;; OK, the same idea as aeolus :)
   ;; just an interface
@@ -106,7 +106,14 @@
     (unless (for-all mode-parameter? params)
       (assertion-violation 'make-composite-parameter
 			   "mode-parameter is required" params))
-    (%make-composite-parameter params))
+    (let loop ((params params) (r '()))
+      (cond ((null? params)
+	     (%make-composite-parameter (reverse! r)))
+	    ((composite-parameter? (car params))
+	     (loop (cdr params) 
+		   `(,@(reverse (parameter-composite-parameters (car params)))
+		     . r)))
+	    (else (loop (cdr params) (cons (car params) r))))))
 
   (define (find-parameter p pred)
     (cond ((composite-parameter? p)
@@ -195,6 +202,13 @@
 	     (rest ...)))
 	;; done
 	((k "parse" (name ctr pred) 
+	    () ;; nofield
+	    (parent* ...) (protocol* ...)
+	    ())
+	 #'(define-record-type (name ctr pred)
+	     (parent* ...)
+	     (protocol* ...)))
+	((k "parse" (name ctr pred) 
 	    ((field* ...) acc ...)
 	    (parent* ...) (protocol* ...)
 	    ())
@@ -215,9 +229,26 @@
 	    (mode   parameter-ctr-mode))
     (parent <iv-parameter>)
     (protocol (lambda (p)
-		(lambda (iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)
-			      (rfc3686 #f))
-		  ((p iv) rounds (if rfc3686 (+ mode LTC_CTR_RFC3686) mode))))))
+		(lambda (iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN))
+		  ((p iv) rounds mode)))))
+  (define-mode-parameter (<rfc3686-parameter> make-rfc3686-paramater 
+					      rfc3686-parameter?)
+    (parent <ctr-parameter>)
+    (protocol (lambda (p)
+		(lambda (iv nonce :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN))
+		  (let ((v (make-bytevector 16))
+			(nlen (bytevector-length nonce))
+			(ivlen (bytevector-length iv)))
+		    (if (= mode CTR_COUNTER_BIG_ENDIAN)
+			;; NONCE || IV || ONE = 16
+			(begin
+			  (bytevector-copy! nonce 0 v 0 nlen)
+			  (bytevector-copy! iv 0 v nlen ivlen))
+			;; ONE || IV || NONCE (i guess)
+			(begin
+			  (bytevector-copy! iv 0 v 4 ivlen)
+			  (bytevector-copy! nonce 0 (+ 4 ivlen) nlen)))
+		    ((p v :rounds rounds :mode (+ mode LTC_CTR_RFC3686))))))))
 
   (define (cipher-keysize cipher test)
     (unless (cipher? cipher)
@@ -237,12 +268,15 @@
       (not (zero? (bitwise-and ctr-mode LTC_CTR_RFC3686))))
     (apply make-cipher type key mode 
 	   :mode-parameter (make-composite-parameter
-		       (make-padding-paramater padder)
-		       ;; this is enough
-		       (make-ctr-paramater iv 
-					   :rounds rounds
-					   :mode ctr-mode
-					   :rfc3686 (rfc3686?)))
+			    (make-padding-paramater padder)
+			    (if (rfc3686?)
+				;; should we add nonce?
+				(make-rfc3686-paramater iv #vu8(0 0 0 0)
+							:rounds rounds
+							:mode ctr-mode)
+				(make-ctr-paramater iv 
+						    :rounds rounds
+						    :mode ctr-mode)))
 	   rest))
 
   (define (make-cipher type key mode 

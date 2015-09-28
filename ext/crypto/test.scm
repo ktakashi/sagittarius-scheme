@@ -732,4 +732,93 @@ Tag = 267a3ba3670ff076
 		     (integer->bytevector #x3072def0c3fb47ff4fc124ab30e76f5903e235b2612148aae67181ef62a736ee6fc147cc703f76dee557eba84349f1c5b158be)
 		     (integer->bytevector #x267a3ba3670ff076))
 
+;; RFC3686
+(define (test-rfc3686 i vec)
+  (let ((key (vector-ref vec 0))
+	(iv (vector-ref vec 1))
+	(nonce (vector-ref vec 2))
+	(plain (vector-ref vec 3))
+	(cipher (vector-ref vec 4)))
+    (define c (make-cipher AES (generate-secret-key AES key) MODE_CTR
+			:mode-parameter (make-rfc3686-paramater iv nonce)))
+    (test-equal (format "AES-CTR (~a)" i) cipher (cipher-encrypt c plain))))
+
+(define test-rfc3686-vector
+  '(;; key iv nonce plain cipher
+    #(#vu8(#xAE #x68 #x52 #xF8 #x12 #x10 #x67 #xCC #x4B #xF7 #xA5 #x76 #x55 #x77 #xF3 #x9E)
+      #vu8(#x00 #x00 #x00 #x00 #x00 #x00 #x00 #x00)
+      #vu8(#x00 #x00 #x00 #x30)
+      #vu8(#x53 #x69 #x6E #x67 #x6C #x65 #x20 #x62 #x6C #x6F #x63 #x6B #x20 #x6D #x73 #x67)
+      #vu8(#xE4 #x09 #x5D #x4F #xB7 #xA7 #xB3 #x79 #x2D #x61 #x75 #xA3 #x26 #x13 #x11 #xB8))
+    #(#vu8(#x7E #x24 #x06 #x78 #x17 #xFA #xE0 #xD7 #x43 #xD6 #xCE #x1F #x32 #x53 #x91 #x63)
+      #vu8(#xC0 #x54 #x3B #x59 #xDA #x48 #xD9 #x0B)
+      #vu8(#x00 #x6C #xB6 #xDB)
+      #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+           #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+      #vu8(#x51 #x04 #xA1 #x06 #x16 #x8A #x72 #xD9 #x79 #x0D #x41 #xEE #x8E #xDA #xD3 #x88
+           #xEB #x2E #x1E #xFC #x46 #xDA #x57 #xC8 #xFC #xE6 #x30 #xDF #x91 #x41 #xBE #x28))
+    #(#vu8(#x76 #x91 #xBE #x03 #x5E #x50 #x20 #xA8 #xAC #x6E #x61 #x85 #x29 #xF9 #xA0 #xDC)
+      #vu8(#x27 #x77 #x7F #x3F #x4A #x17 #x86 #xF0)
+      #vu8(#x00 #xE0 #x01 #x7B)
+      #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+           #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F
+	   #x20 #x21 #x22 #x23)
+      #vu8(#xC1 #xCF #x48 #xA8 #x9F #x2F #xFD #xD9 #xCF #x46 #x52 #xE9 #xEF #xDB #x72 #xD7
+           #x45 #x40 #xA4 #x2B #xDE #x6D #x78 #x36 #xD5 #x9A #x5C #xEA #xAE #xF3 #x10 #x53
+	   #x25 #xB2 #x07 #x2F))
+    #(#vu8(#x16 #xAF #x5B #x14 #x5F #xC9 #xF5 #x79 #xC1 #x75 #xF9 #x3E #x3B #xFB #x0E #xED
+           #x86 #x3D #x06 #xCC #xFD #xB7 #x85 #x15)
+      #vu8(#x36 #x73 #x3C #x14 #x7D #x6D #x93 #xCB)
+      #vu8(#x00 #x00 #x00 #x48)
+      #vu8(#x53 #x69 #x6E #x67 #x6C #x65 #x20 #x62 #x6C #x6F #x63 #x6B #x20 #x6D #x73 #x67)
+      #vu8(#x4B #x55 #x38 #x4F #xE2 #x59 #xC9 #xC8 #x4E #x79 #x35 #xA0 #x03 #xCB #xE9 #x28))
+    #(#vu8(#x7C #x5C #xB2 #x40 #x1B #x3D #xC3 #x3C #x19 #xE7 #x34 #x08 #x19 #xE0 #xF6 #x9C
+           #x67 #x8C #x3D #xB8 #xE6 #xF6 #xA9 #x1A)
+      #vu8(#x02 #x0C #x6E #xAD #xC2 #xCB #x50 #x0D)
+      #vu8(#x00 #x96 #xB0 #x3B)
+      #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+           #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+      #vu8(#x45 #x32 #x43 #xFC #x60 #x9B #x23 #x32 #x7E #xDF #xAA #xFA #x71 #x31 #xCD #x9F
+	   #x84 #x90 #x70 #x1C #x5A #xD4 #xA7 #x9C #xFC #x1F #xE0 #xFF #x42 #xF4 #xFB #x00))
+    #(#vu8(#x02 #xBF #x39 #x1E #xE8 #xEC #xB1 #x59 #xB9 #x59 #x61 #x7B #x09 #x65 #x27 #x9B
+	   #xF5 #x9B #x60 #xA7 #x86 #xD3 #xE0 #xFE)
+      #vu8(#x5C #xBD #x60 #x27 #x8D #xCC #x09 #x12)
+      #vu8(#x00 #x07 #xBD #xFD)
+      #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+	   #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F
+	   #x20 #x21 #x22 #x23)
+      #vu8(#x96 #x89 #x3F #xC5 #x5E #x5C #x72 #x2F #x54 #x0B #x7D #xD1 #xDD #xF7 #xE7 #x58
+	   #xD2 #x88 #xBC #x95 #xC6 #x91 #x65 #x88 #x45 #x36 #xC8 #x11 #x66 #x2F #x21 #x88
+	   #xAB #xEE #x09 #x35))
+    #(#vu8(#x77 #x6B #xEF #xF2 #x85 #x1D #xB0 #x6F #x4C #x8A #x05 #x42 #xC8 #x69 #x6F #x6C
+	   #x6A #x81 #xAF #x1E #xEC #x96 #xB4 #xD3 #x7F #xC1 #xD6 #x89 #xE6 #xC1 #xC1 #x04)
+      #vu8(#xDB #x56 #x72 #xC9 #x7A #xA8 #xF0 #xB2)
+      #vu8(#x00 #x00 #x00 #x60)
+      #vu8(#x53 #x69 #x6E #x67 #x6C #x65 #x20 #x62 #x6C #x6F #x63 #x6B #x20 #x6D #x73 #x67)
+      #vu8(#x14 #x5A #xD0 #x1D #xBF #x82 #x4E #xC7 #x56 #x08 #x63 #xDC #x71 #xE3 #xE0 #xC0))
+    #(#vu8(#xF6 #xD6 #x6D #x6B #xD5 #x2D #x59 #xBB #x07 #x96 #x36 #x58 #x79 #xEF #xF8 #x86
+	   #xC6 #x6D #xD5 #x1A #x5B #x6A #x99 #x74 #x4B #x50 #x59 #x0C #x87 #xA2 #x38 #x84)
+      #vu8(#xC1 #x58 #x5E #xF1 #x5A #x43 #xD8 #x75)
+      #vu8(#x00 #xFA #xAC #x24)
+      #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+           #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F)
+      #vu8(#xF0 #x5E #x23 #x1B #x38 #x94 #x61 #x2C #x49 #xEE #x00 #x0B #x80 #x4E #xB2 #xA9
+	   #xB8 #x30 #x6B #x50 #x8F #x83 #x9D #x6A #x55 #x30 #x83 #x1D #x93 #x44 #xAF #x1C))
+  #(#vu8(#xFF #x7A #x61 #x7C #xE6 #x91 #x48 #xE4 #xF1 #x72 #x6E #x2F #x43 #x58 #x1D #xE2
+	 #xAA #x62 #xD9 #xF8 #x05 #x53 #x2E #xDF #xF1 #xEE #xD6 #x87 #xFB #x54 #x15 #x3D)
+    #vu8(#x51 #xA5 #x1D #x70 #xA1 #xC1 #x11 #x48)
+    #vu8(#x00 #x1C #xC5 #xB7)
+    #vu8(#x00 #x01 #x02 #x03 #x04 #x05 #x06 #x07 #x08 #x09 #x0A #x0B #x0C #x0D #x0E #x0F
+         #x10 #x11 #x12 #x13 #x14 #x15 #x16 #x17 #x18 #x19 #x1A #x1B #x1C #x1D #x1E #x1F
+	 #x20 #x21 #x22 #x23)
+    #vu8(#xEB #x6C #x52 #x82 #x1D #x0B #xBB #xF7 #xCE #x75 #x94 #x46 #x2A #xCA #x4F #xAA
+         #xB4 #x07 #xDF #x86 #x65 #x69 #xFD #x07 #xF4 #x8C #xC0 #xB5 #x83 #xD6 #x07 #x1F
+	 #x1E #xC0 #xE6 #xB8))
+  ))
+
+(let loop ((i 1) (v test-rfc3686-vector))
+  (unless (null? v)
+    (test-rfc3686 i (car v))
+    (loop (+ i 1) (cdr v))))
+
 (test-end)

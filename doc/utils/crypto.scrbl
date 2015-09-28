@@ -245,7 +245,7 @@ This parameter is a subclass of @code{<iv-parameter>}.
 }
 
 @define[Function]{@name{make-ctr-paramater}
- @args{iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN) (rfc3686 #f)}
+ @args{iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}
 @desc{
 Creates a counter mode parameter. This is used by @code{MODE_CTR}.
 
@@ -258,10 +258,18 @@ The followings are description of keyword parameters.
 @var{ctr-mode} specifies counter mode. The possible mode is blow.
 @define[Constant]{@name{CTR_COUNTER_LITTLE_ENDIAN}}
 @define[Constant]{@name{CTR_COUNTER_BIG_ENDIAN}}
-
-@var{rfc3686} is specifies whether the initialisation is done according
-to RFC 3686.
 }
+
+
+@define["Record Type"]{@name{<rfc3686-paramater>}}
+@desc{Record type for AES-CTR mode parameter defined in RFC 3686.
+
+This parameter is a subclass of @code{<ctr-parameter>}.
+}
+
+@define[Function]{@name{make-rfc3686-paramater}
+ @args{iv nonce :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN)}
+@desc{Creates RFC3686 mode parameter.}
 
 @define["Record Type"]{@name{<padding-paramater>}}
 @desc{Record type for padding parameter.}
