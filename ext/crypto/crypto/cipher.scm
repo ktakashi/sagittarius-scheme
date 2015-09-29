@@ -353,7 +353,7 @@
       (values encrypted (cipher-tag cipher :size tag-size))))
   (define (cipher-decrypt/tag cipher data
 			      :key (tag-size (cipher-max-tag-size cipher)))
-    (let ((pt (cipher-encrypt cipher data)))
+    (let ((pt (cipher-decrypt cipher data)))
       (values pt (cipher-tag cipher :size tag-size))))
   (define (cipher-decrypt/verify cipher encrypted tag)
     (let-values (((pt target)

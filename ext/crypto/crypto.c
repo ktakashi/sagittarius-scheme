@@ -49,7 +49,7 @@ static int wrapped_gcm_process(unsigned char *pt,
     unsigned long taglen = sizeof(gcm->tag);
     err = gcm_done(&gcm->gcm, gcm->tag, &taglen);
   }
-  /* we resets no matter what */
+  /* we reset no matter what */
   gcm_reset(&gcm->gcm);
   gcm_add_iv(&gcm->gcm, SG_BVECTOR_ELEMENTS(iv), ivlen);
   return err;
