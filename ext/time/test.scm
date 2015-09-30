@@ -300,5 +300,10 @@
 (test-assert "timezone-name-list"
 	     (member "Europe/Amsterdam" (timezone-name-list)))
 
+;; call #150
+;; Asia/Tokyo has 4 rules but none of them indicates later than 1951
+;; (I don't know why then they put such a stupid rule but anyway).
+(test-equal "Asia/Tokyo" 32400 (timezone-offset (timezone "Asia/Tokyo")))
+
 (test-end)
   
