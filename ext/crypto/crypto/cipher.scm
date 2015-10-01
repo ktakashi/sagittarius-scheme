@@ -31,10 +31,12 @@
 	    <iv-parameter> make-iv-parameter iv-parameter?
 	    parameter-iv
 	    <ctr-parameter> make-ctr-parameter ctr-parameter?
-	    parameter-rounds parameter-ctr-mode
+	    parameter-ctr-mode
 	    <rfc3686-parameter> make-rfc3686-parameter rfc3686-parameter?
 	    <padding-parameter> make-padding-parameter padding-parameter?
 	    parameter-padder
+	    <round-parameter> make-round-parameter round-parameter?
+	    parameter-rounds
 	    ;; TODO more?
 
 	    ;; signing
@@ -243,18 +245,17 @@
 					      padding-parameter?)
     (fields (padder parameter-padder)))
   (define-mode-parameter (<ctr-parameter> make-ctr-parameter ctr-parameter?)
-    (fields (rounds parameter-rounds)
-	    (mode   parameter-ctr-mode))
+    (fields (mode   parameter-ctr-mode))
     (parent <iv-parameter>)
     (protocol (lambda (p)
-		(lambda (iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN))
-		  ((p iv) rounds mode)))))
+		(lambda (iv :optional (mode CTR_COUNTER_BIG_ENDIAN))
+		  ((p iv) mode)))))
   (define-mode-parameter (<rfc3686-parameter> make-rfc3686-parameter 
 					      rfc3686-parameter?)
     (parent <ctr-parameter>)
     (protocol (lambda (p)
-		(lambda (iv nonce :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN))
-		  (let ((v (make-bytevector 16))
+		(lambda (iv nonce :optional (mode CTR_COUNTER_BIG_ENDIAN))
+		  (let ((v (make-bytevector 16 0))
 			(nlen (bytevector-length nonce))
 			(ivlen (bytevector-length iv)))
 		    (if (= mode CTR_COUNTER_BIG_ENDIAN)
@@ -266,7 +267,12 @@
 			(begin
 			  (bytevector-copy! iv 0 v 4 ivlen)
 			  (bytevector-copy! nonce 0 (+ 4 ivlen) nlen)))
-		    ((p v :rounds rounds :mode (+ mode LTC_CTR_RFC3686))))))))
+		    ;; let it do libtomcrypt
+		    ((p v (+ mode LTC_CTR_RFC3686))))))))
+
+  (define-mode-parameter (<round-parameter> make-round-parameter
+					    round-parameter?)
+    (fields (rounds parameter-rounds)))
 
   (define (cipher-keysize cipher test)
     (unless (cipher? cipher)
@@ -288,14 +294,12 @@
 	   :mode-parameter (make-composite-parameter
 			    (make-mode-name-parameter mode)
 			    (make-padding-parameter padder)
+			    (make-round-parameter rounds)
 			    (if (rfc3686?)
 				;; should we add nonce?
 				(make-rfc3686-parameter iv #vu8(0 0 0 0)
-							:rounds rounds
-							:mode ctr-mode)
-				(make-ctr-parameter iv 
-						    :rounds rounds
-						    :mode ctr-mode)))
+							ctr-mode)
+				(make-ctr-parameter iv  ctr-mode)))
 	   rest))
 
   (define (make-cipher type key
