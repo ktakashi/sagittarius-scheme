@@ -28,12 +28,12 @@
 	    make-composite-parameter mode-parameter?
 	    <mode-name-parameter> make-mode-name-parameter mode-name-parameter?
 	    parameter-mode-name
-	    <iv-parameter> make-iv-paramater iv-parameter?
+	    <iv-parameter> make-iv-parameter iv-parameter?
 	    parameter-iv
-	    <ctr-parameter> make-ctr-paramater ctr-parameter?
+	    <ctr-parameter> make-ctr-parameter ctr-parameter?
 	    parameter-rounds parameter-ctr-mode
-	    <rfc3686-parameter> make-rfc3686-paramater rfc3686-parameter?
-	    <padding-parameter> make-padding-paramater padding-parameter?
+	    <rfc3686-parameter> make-rfc3686-parameter rfc3686-parameter?
+	    <padding-parameter> make-padding-parameter padding-parameter?
 	    parameter-padder
 	    ;; TODO more?
 
@@ -237,19 +237,19 @@
 						mode-name-parameter?)
     (fields (mode-name parameter-mode-name)))
 
-  (define-mode-parameter (<iv-parameter> make-iv-paramater iv-parameter?)
+  (define-mode-parameter (<iv-parameter> make-iv-parameter iv-parameter?)
     (fields (iv parameter-iv)))
-  (define-mode-parameter (<padding-parameter> make-padding-paramater
+  (define-mode-parameter (<padding-parameter> make-padding-parameter
 					      padding-parameter?)
     (fields (padder parameter-padder)))
-  (define-mode-parameter (<ctr-parameter> make-ctr-paramater ctr-parameter?)
+  (define-mode-parameter (<ctr-parameter> make-ctr-parameter ctr-parameter?)
     (fields (rounds parameter-rounds)
 	    (mode   parameter-ctr-mode))
     (parent <iv-parameter>)
     (protocol (lambda (p)
 		(lambda (iv :key (rounds 0) (mode CTR_COUNTER_BIG_ENDIAN))
 		  ((p iv) rounds mode)))))
-  (define-mode-parameter (<rfc3686-parameter> make-rfc3686-paramater 
+  (define-mode-parameter (<rfc3686-parameter> make-rfc3686-parameter 
 					      rfc3686-parameter?)
     (parent <ctr-parameter>)
     (protocol (lambda (p)
@@ -287,13 +287,13 @@
     (apply make-cipher type key 
 	   :mode-parameter (make-composite-parameter
 			    (make-mode-name-parameter mode)
-			    (make-padding-paramater padder)
+			    (make-padding-parameter padder)
 			    (if (rfc3686?)
 				;; should we add nonce?
-				(make-rfc3686-paramater iv #vu8(0 0 0 0)
+				(make-rfc3686-parameter iv #vu8(0 0 0 0)
 							:rounds rounds
 							:mode ctr-mode)
-				(make-ctr-paramater iv 
+				(make-ctr-parameter iv 
 						    :rounds rounds
 						    :mode ctr-mode)))
 	   rest))

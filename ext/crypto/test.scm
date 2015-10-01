@@ -557,14 +557,14 @@
 (test-error "composite-parameter (error)" (make-composite-parameter #f))
 
 (test-assert "iv-parameter? (1)"
-	    (iv-parameter?  (make-iv-paramater #vu8())))
+	    (iv-parameter?  (make-iv-parameter #vu8())))
 (test-assert "iv-parameter? (2)"
 	    (iv-parameter? (make-composite-parameter 
-			    (make-iv-paramater #vu8()))))
+			    (make-iv-parameter #vu8()))))
 
 (test-equal "parameter-iv (2)" #vu8()
 	    (parameter-iv (make-composite-parameter 
-			    (make-iv-paramater #vu8()))))
+			    (make-iv-parameter #vu8()))))
 
 
 ;; GCM
@@ -582,7 +582,7 @@
 			      :mode-parameter (make-composite-parameter
 					       (make-mode-name-parameter
 						 MODE_GCM)
-					       (make-iv-paramater iv)))))
+					       (make-iv-parameter iv)))))
     (cipher-update-aad! cipher aad)
     (let-values (((decrypted this-tag)
 		  (cipher-decrypt/tag cipher ct
@@ -758,8 +758,8 @@ PT = 28286a321293253c3e0aa2704a278032
 			      :mode-parameter (make-composite-parameter
 					       (make-mode-name-parameter
 						MODE_GCM)
-					       (make-iv-paramater iv)
-					       (make-padding-paramater #f)))))
+					       (make-iv-parameter iv)
+					       (make-padding-parameter #f)))))
     (cipher-update-aad! cipher aad)
     (let-values (((encrypted this-tag)
 		  (cipher-encrypt/tag cipher pt 
@@ -830,7 +830,7 @@ Tag = 267a3ba3670ff076
     (define c (make-cipher AES (generate-secret-key AES key)
 			:mode-parameter (make-composite-parameter
 					 (make-mode-name-parameter MODE_CTR)
-					 (make-rfc3686-paramater iv nonce))))
+					 (make-rfc3686-parameter iv nonce))))
     (test-equal (format "AES-CTR (~a)" i) cipher (cipher-encrypt c plain))))
 
 (define test-rfc3686-vector
