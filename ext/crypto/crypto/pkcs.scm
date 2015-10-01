@@ -29,12 +29,9 @@
     (if pad?
 	(let* ((len (bytevector-length bv))
 	       (mod (modulo len block-size))
-	       (padding (- block-size mod)))
-	  (when (zero? padding)
-	    (set! padding 8))
-	  (let ((new (make-bytevector (+ len padding) 0)))
-	    ;; lazyness
-	    (bytevector-fill! new padding)
+	       (t (- block-size mod))
+	       (padding (if (zero? t) 8 t)))
+	  (let ((new (make-bytevector (+ len padding) padding)))
 	    (bytevector-copy! bv 0 new 0 len)
 	    new))
 	(let* ((len (bytevector-length bv))
