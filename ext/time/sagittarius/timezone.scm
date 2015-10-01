@@ -299,8 +299,7 @@
 	     ;;      is April, then std can be #f.
 	     (cond ((and dst (check-date dst date)) (car dst))
 		   ((and std (check-date std date)) (car std))
-		   (else
-		    (error 'timezone-offset "can't find a rule for tz" tz))))
+		   (else #f)))
 	    ((and dst std)
 	     ;; check
 	     (let* ((dd (cdr dst))
