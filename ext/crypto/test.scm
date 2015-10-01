@@ -827,11 +827,15 @@ Tag = 267a3ba3670ff076
 	(nonce (vector-ref vec 2))
 	(plain (vector-ref vec 3))
 	(cipher (vector-ref vec 4)))
-    (define c (make-cipher AES (generate-secret-key AES key)
-			:mode-parameter (make-composite-parameter
-					 (make-mode-name-parameter MODE_CTR)
-					 (make-rfc3686-parameter iv nonce))))
-    (test-equal (format "AES-CTR (~a)" i) cipher (cipher-encrypt c plain))))
+    (define param (make-composite-parameter
+		   (make-mode-name-parameter MODE_CTR)
+		   (make-rfc3686-parameter iv nonce)))
+    (define ec (make-cipher AES (generate-secret-key AES key)
+			       :mode-parameter param))
+    (define dc (make-cipher AES (generate-secret-key AES key)
+			       :mode-parameter param))
+    (test-equal (format "AES-CTR enc (~a)" i) cipher (cipher-encrypt ec plain))
+    (test-equal (format "AES-CTR dec (~a)" i) plain (cipher-encrypt dc cipher))))
 
 (define test-rfc3686-vector
   '(;; key iv nonce plain cipher
