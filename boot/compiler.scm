@@ -1409,13 +1409,14 @@
      (unless (variable? name) (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform #f)
      (let ((vname (variable-name name))
+	   (id (if (identifier? name)
+		   ;; this renames all the same identifier
+		   (rename-pending-identifier! name)
+		   (make-identifier name '() library)))
 	   (dummy (gensym)))
-       (library-defined-add! library vname)
+       (library-defined-add! library (id-name id))
        ($define oform flags
-		(if (identifier? name)
-		    ;; this renames all the same identifier
-		    (rename-pending-identifier! name)
-		    (make-identifier (unwrap-syntax name) '() library))
+		id
 		(if (null? expr)
 		    ($undef)
 		    (pass1 (caddr form) 
@@ -4552,7 +4553,7 @@
 
 (define (pass4/lifted-define lambda-node)
   (let ((id ($lambda-lifted-var lambda-node)))
-    (library-defined-add! (id-library id) (id-name id))
+    (library-defined-add! (id-library id) id)
     ($define ($lambda-src lambda-node)
 	     '() ;;'(const) ;; somehow it doesn't work with const flag
 	     id lambda-node)))

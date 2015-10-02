@@ -557,10 +557,11 @@
 (test-error "composite-parameter (error)" (make-composite-parameter #f))
 
 (test-assert "iv-parameter? (1)"
-	    (iv-parameter?  (make-iv-parameter #vu8())))
+	     (iv-parameter?  (make-iv-parameter #vu8())))
+
 (test-assert "iv-parameter? (2)"
-	    (iv-parameter? (make-composite-parameter 
-			    (make-iv-parameter #vu8()))))
+	     (iv-parameter? (make-composite-parameter 
+			     (make-iv-parameter #vu8()))))
 
 (test-equal "parameter-iv (2)" #vu8()
 	    (parameter-iv (make-composite-parameter 

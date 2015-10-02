@@ -1822,7 +1822,8 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     if (loadedp) {
       /* re-load it */
       ctx->file = SG_FALSE;
-      longjmp(ctx->escape, 1);
+      ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n", name, from);
+      /* longjmp(ctx->escape, 1); */
     } else {
       SgObject depfiles = Sg_SearchLibraryPath(from);
       SG_FOR_EACH(depfiles, depfiles) {
@@ -1831,7 +1832,9 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 	if (!Sg_FileExistP(cache_file) || Sg_NumCmp(vtime, cvtime) < 0) {
 	  /* ok looks we need to recache it */
 	  ctx->file = SG_FALSE;
-	  longjmp(ctx->escape, 1);
+	  ESCAPE(ctx, "dependency file of %A seems freshly loaded: %A\n",
+		 name, from);
+	  /* longjmp(ctx->escape, 1); */
 	}
       }
     }
