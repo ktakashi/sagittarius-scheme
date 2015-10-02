@@ -621,7 +621,7 @@ static inline void report_error(SgObject error, SgObject out)
 	    UC("Unhandled exception\n"
 	       "  %A\n"), Sg_DescribeCondition(error));
 
-  if (!SG_NULLP(stackTrace)) {
+  if (cl && !SG_NULLP(stackTrace)) {
     SgVM *vm = Sg_VM();
     while (1) {
       SgContFrame *nextFrame = NULL;
@@ -2031,8 +2031,8 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     vm->escapeData[1] = e;
     longjmp(vm->cstack->jbuf, 1);
   } else {
-    exit(EX_SOFTWARE);
-    /* Sg_Exit(EX_SOFTWARE); */
+    /* exit(EX_SOFTWARE); */
+    Sg_Exit(EX_SOFTWARE);
   }
 }
 
