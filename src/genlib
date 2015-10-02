@@ -22,15 +22,12 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
-;; Remove after 0.6.3
-(point-cut
- (sagittarius compiler util)
- ensure-library-name
- (lambda (tag)
-   (if (eq? tag :r6rs-script)
-       '(r6rs-script)
-       (proceed))))
-
+;; Remove after 0.6.10
+(with-library (core) (define vm-error-unbound?
+		       (let ((dummy #f))
+			 (lambda ()
+			   (set! dummy #f)
+			   dummy))))
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 

@@ -228,7 +228,8 @@ static void show_usage()
 	  "      no-lambda-lifting Not do lambda lifting.\n"
 	  "      no-library-inline Not do library inlining.\n"
 	  "      no-const-fold     Not do constant folding.\n"
-	  "      no-optimization   Not optimiza.\n"
+	  "      no-optimization   No optimisation.\n"
+	  "      no-unbound        Raise error for unbound variables.\n"
 	  "  -I<library>,--import=<library> Import specified library to user library\n"
 	  "  -e<expr>,--expr=<expr> Eval given expression before loading script\n"
 	  "                                 before sash will be executed.\n"
@@ -651,6 +652,8 @@ int real_main(int argc, tchar **argv)
 	SG_VM_SET_FLAG(vm, SG_NO_CONST_INLINING);
       } else if (tstrcmp(t("no-backtrace"), optarg_s) == 0) {
 	SG_VM_SET_FLAG(vm, SG_NO_DEBUG_INFO);
+      } else if (tstrcmp(t("no-unbound"), optarg_s) == 0) {
+	SG_VM_SET_FLAG(vm, SG_ERROR_UNBOUND);
       } else {
 	Sg_Warn(UC("unknown optimize option %A"), make_scheme_string(optarg_s));
       }

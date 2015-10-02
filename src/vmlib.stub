@@ -298,6 +298,8 @@
     (result (== (logand (ashr (-> (Sg_VM) flags) 8) #xFF) 0)))
   (define-c-proc vm-no-overwrite? () ::<boolean>
     (result (not (SG_VM_IS_SET_FLAG (Sg_VM) SG_ALLOW_OVERWRITE))))
+  (define-c-proc vm-error-unbound? () ::<boolean>
+    (result (SG_VM_IS_SET_FLAG (Sg_VM) SG_ERROR_UNBOUND)))
 
   ;; (%map-cons l1 l2) = (map cons l1 l2)
   (define-c-proc %map-cons (l1 l2)

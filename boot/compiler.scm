@@ -2868,7 +2868,7 @@
 	  ;; if `exports` is shorter than `defines` and `defines`
 	  ;; have all names in `exports` then it returns '()
 	  (or (null? diff)
-	      (if (vm-r6rs-mode?)
+	      (if (vm-error-unbound?)
 		  (error 'check-exports "attempt to export unbound variable(s)"
 			 diff lib)
 		  (vm-warn (format 
@@ -5149,7 +5149,7 @@
     (unless (or (find-binding lib name #f)
 		(not (library-defined lib)) ;; #f means topleve library
 		(memq name (library-defined lib)))
-      (if (vm-r6rs-mode?)
+      (if (vm-error-unbound?)
 	  (undefined-violation name "unbound identifier")
 	  (vm-warn (format "reference to undefined variable: '~a' in ~a"
 			   name (library-name lib)))))))

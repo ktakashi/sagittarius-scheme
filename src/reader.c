@@ -1100,6 +1100,13 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  }
 	  return NULL;
 	}
+	if (ustrncmp(tag->value, "nounbound", 7) == 0) {
+	  SgVM *vm = Sg_VM();
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_SET_FLAG(vm, SG_ERROR_UNBOUND);
+	  }
+	  return NULL;
+	}
 	break;
       case 'o':
 	if (ustrcmp(tag->value, "overwrite") == 0) {
@@ -1117,6 +1124,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
+	    SG_VM_SET_FLAG(vm, SG_ERROR_UNBOUND);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r6rs_read_table));
 	  return NULL;
@@ -1160,6 +1168,15 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	  if (SG_LIBRARY_READTABLE(lib)) {
 	    ENSURE_COPIED_TABLE(port);
 	    add_read_table(SG_LIBRARY_READTABLE(lib), Sg_PortReadTable(port));
+	  }
+	  return NULL;
+	}
+	break;
+      case 'u':	
+	if (ustrncmp(tag->value, "unbound", 7) == 0) {
+	  SgVM *vm = Sg_VM();
+	  if (ctx->flags & SG_CHANGE_VM_MODE) {
+	    SG_VM_UNSET_FLAG(vm, SG_ERROR_UNBOUND);
 	  }
 	  return NULL;
 	}
