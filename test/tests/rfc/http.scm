@@ -1,9 +1,10 @@
 ;; -*- scheme -*-
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (import (rnrs)
 	(rfc http)
 	(rfc mime)
 	(rfc :5322)
+	(sagittarius)
 	(sagittarius io)
 	(sagittarius regex)
 	(sagittarius control)
@@ -84,6 +85,7 @@
 		     [(equal? request-uri "/exit")
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      (display "exit" in/out)
+		      (set! server-stopped? #t)
 		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
@@ -108,11 +110,18 @@
 	     (error 'http-server "malformed request line:" request-line))))))
 
 (define server-up? #f)
+(define server-stopped? #f)
 (define server-thread
   (make-thread (lambda ()
 		 (let1 socket (make-server-socket *http-port*)
 		   (set! server-up? #t)
-		   (guard (e (else #f)) (http-server socket))
+		   (let loop ()
+		     ;; somehow socket connection is lost and
+		     ;; failed to send packet. why?
+		     ;; NB: on Windows or Cygwin. So anti virus?
+		     (guard (e (else (report-error e))) (http-server socket))
+		     ;; /exit is not called yet, retry
+		     (unless server-stopped? (loop)))
 		   (socket-shutdown socket SHUT_RDWR)
 		   (socket-close socket)))))
 (thread-start! server-thread)

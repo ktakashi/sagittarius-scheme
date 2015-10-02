@@ -191,14 +191,13 @@
   (define (with-connection conn proc)
     (let* ((secure? (http-connection-secure conn))
 	   (make-socket (if secure? make-client-tls-socket make-client-socket))
-	   ;;(close-socket (if secure? tls-socket-close socket-close))
-	   ;;(port-convert (if secure? tls-socket-port socket-port))
 	   (port (if secure? "443" "80")))
       (let1 s (server->socket (or (http-connection-proxy conn)
 				  (http-connection-server conn))
 			      port make-socket)
 	(unwind-protect
-	    (proc (socket-port s) (http-connection-extra-headers conn))
+	    (proc (socket-port s #f) (http-connection-extra-headers conn))
+	  (socket-shutdown s SHUT_RDWR)
 	  (socket-close s)))))
 
   (define (request-response method conn host request-uri
@@ -310,9 +309,6 @@
   ;; send
   (define (send-request out method host uri sender ext-headers options enc
 			auth-headers)
-    ;; this is actually not so portable. display requires textual-port but
-    ;; socket-port is binary-port. but hey!
-    ;;(display out (current-error-port))(newline)
     (binary:format out "~a ~a HTTP/1.1\r\n" method uri)
     (case method
       ((POST PUT)
@@ -697,6 +693,8 @@
 		       ,@(alist-delete "content-type" hdrs equal?)))
 	       (body-sink (header-sink hdrs))
 	       (port (body-sink size)))
+	  ;; put-string is defined in this library using
+	  ;; put-bytevector and string->utf8.
 	  (put-string port body)
 	  (body-sink 0)))))
 
