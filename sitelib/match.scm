@@ -263,7 +263,7 @@
 
 (define-syntax match-syntax-error
   (syntax-rules ()
-    ((_) (match-syntax-error "invalid match-syntax-error usage"))))
+    ((_ msg expr ...) (syntax-error msg expr ...))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -291,9 +291,9 @@
 (define-syntax match
   (syntax-rules ()
     ((match)
-     (match-syntax-error "missing match expression"))
+     (match-syntax-error "missing match expression" '(match)))
     ((match atom)
-     (match-syntax-error "no match clauses"))
+     (match-syntax-error "no match clauses" '(match atom)))
     ((match (app ...) (pat . body) ...)
      (let ((v (app ...)))
        (match-next v ((app ...) (set! (app ...))) (pat . body) ...)))

@@ -3,7 +3,7 @@
 #!core
 ;; for unbound variable warning
 (library (compat r7rs helper)
-    (export any length* error cons-source)
+    (export any length* error cons-source check-length)
     (import (except (core) error)
 	    (core base)
 	    (rename (core errors) (error core:error))
@@ -18,7 +18,8 @@
 		(any pred (cdr ls))))
 	#f))
 
-  (define (error msg . irr) (apply core:error 'syntax-rules msg irr))
+  ;; syntax-violation
+  (define (error msg . irr) (apply syntax-violation 'syntax-rules msg irr))
 
   ;; Chibi's length* returns element count of car parts of inproper list
   ;; e.g) (length* '(1 2 3 . 4)) ;; => 3
@@ -35,6 +36,12 @@
 		   (loop (+ i 1) (cdr ls))))))))
 
   (define (cons-source kar kdr source) (source-info-set! (cons kar kdr) source))
+  (define (check-length tmpl . args)
+    (or (apply = (map length args))
+	(syntax-violation 'syntax-rules
+			  "subforms have different size of matched input"
+			  `(template ,tmpl)
+			  `(input ,args))))
 )
 
 (library (compat r7rs)
@@ -73,7 +80,9 @@
            (_reverse (rename 'reverse))
            (_vector->list (rename 'vector->list))
            (_list->vector (rename 'list->vector))
-           (_cons3 (rename 'cons-source)))
+           (_cons3 (rename 'cons-source))
+	   (_check-length (rename 'check-length))
+	   (_format (rename 'format)))
        (define ellipsis (rename (if ellipsis-specified? (cadr expr) '...)))
        (define lits (if ellipsis-specified? (car (cddr expr)) (cadr expr)))
        (define forms (if ellipsis-specified? (cdr (cddr expr)) (cddr expr)))
@@ -245,9 +254,24 @@
                                          (identifier? once)
                                          (eq? once (car vars)))
                                     once ;; shortcut
-                                    (cons _map
-                                          (cons (list _lambda ell-vars once)
-                                                ell-vars))))
+				    ;; call #151 
+				    ;; map accepts different length of 
+				    ;; input this causes different input
+				    ;; form acceptible. put some validation
+				    ;; here
+				    (if (or (null? ell-vars)
+					    (null? (cdr ell-vars)))
+					;; not need to do it
+					(cons _map
+					      (cons (list _lambda ell-vars once)
+						    ell-vars))
+					(list _begin
+					      (cons* _check-length 
+						     (list _quote tmpl)
+						     ell-vars)
+					      (cons _map
+						    (cons (list _lambda ell-vars once)
+							  ell-vars))))))
                           (many (do ((d depth (- d 1))
                                      (many nest
                                            (list _apply _append many)))
@@ -272,8 +296,10 @@
                   forms)
                  (list
                   (list _cons
-                        (list _error "no expansion for"
-                              (list (rename 'strip-syntactic-closures) _expr))
+                        (list _error 
+			      (list _format "no expansion for ~s"
+				    (list (rename 'strip-syntactic-closures) _expr))
+			      (list (rename 'strip-syntactic-closures) _expr))
                         #f)))))))))))
   
 )

@@ -177,4 +177,15 @@
 		     (result3 (get-count))) ; =>   10
 		(list result1 result2 result3))))
 
+;; call #151
+(test-error "different input form"
+	    syntax-violation?
+	    (eval '(let ()
+		     (define-syntax zipm
+		       (syntax-rules ()
+			 ((_ (x ...) (y ...))
+			  (list '(x y) ...))))
+		     (zipm (1 2 3) (1 2 3 4)))
+		  (environment '(scheme base))))
+
 (test-end)
