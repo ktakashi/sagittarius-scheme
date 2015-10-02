@@ -115,8 +115,8 @@
       (bytevector-copy buf 0 size)))
 
   (define (binary-pre-allocated-buffer-swap! buffer new-buf size)
-    (pre-allocated-buffer-buffer-set! bufer new-buf)
-    (pre-allocated-buffer-size-set! bufer size))
+    (pre-allocated-buffer-buffer-set! buffer new-buf)
+    (pre-allocated-buffer-size-set! buffer size))
 
   ;; internal
   (define (update-size! binary-buffer size)
@@ -217,9 +217,9 @@
     (define (write! bv start count)
       (binary-pre-allocated-buffer-put-bytevector! binary-buffer bv start count)
       count)
-    (define (position) (binary-pre-allocated-buffer-size binary-buffer))
+    (define (position) (pre-allocated-buffer-size binary-buffer))
     (define (set-position! pos)
-      (define (buffer-size) (binary-pre-allocated-buffer-size binary-buffer))
+      (define (buffer-size) (pre-allocated-buffer-size binary-buffer))
       (unless (<= 0 pos (buffer-size))
 	(raise (condition (make-i/o-invalid-position-error pos)
 			  (make-who-condition 'binary-pre-allocated-buffer-port)

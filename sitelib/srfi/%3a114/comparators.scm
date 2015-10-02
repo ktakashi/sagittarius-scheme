@@ -467,7 +467,7 @@
 	(let ((result (real-comparison (type a) (type b))))
 	  (cond ((not (zero? result)) result)
 		((null? a) 0)
-		((pair? a) (ipair-comparison a b))
+		((pair? a) (pair-comparison a b))
 		(else (comparator-compare comparator a b)))))))
   (define (make-improper-list-hash comparator)
     ;; I think this is good enough
