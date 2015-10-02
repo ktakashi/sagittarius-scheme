@@ -1775,7 +1775,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
   SgObject name, from, import, expot, keys, key;
   SgLibrary *lib;
   SgObject later = SG_NIL;
-  SgObject vtime = Sg_FileModifyTime(ctx->file);
+  /* SgObject vtime = Sg_FileModifyTime(ctx->file); */
 
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, LIBRARY_TAG, tag);
@@ -1824,7 +1824,33 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
       ctx->file = SG_FALSE;
       ESCAPE(ctx, "dependency file of %A is freshly loaded: %A\n", name, from);
       /* longjmp(ctx->escape, 1); */
-    } else {
+    }
+    /* This doesn't work properly.
+       
+       Sg_SearchLibraryPath may return multiple possible paths of
+       actual library file. For example, if foo.sls is located
+       'sitelib/foo.sls' and 'user-site/foo.sls', then it can return
+       both. when Sagittarius is invoked with -L option (or 
+       add-load-path even) with the 'user-site', then we most
+       likely get one of the cache file is newer than current 
+       loading library cache.
+       To avoid this situation, we need to compare the path
+       element of the actual file and determine which file
+       is likely to be the actual cache file. Say, library
+       boo.sls is located both 'sitelib' and 'user-site' then
+       the cache file 'user-site' would most likely be the one.
+       The problem of this solution is that there still possibility
+       that the cache is *not* the actual one.
+       Loading the same library twice is strictly forbidden by
+       R6RS, besides that we musn't do this because of the
+       parameters. (if a library defines parameters and get read
+       more than one, then the parameter will be re-created. This
+       causes bunch of problems.)
+       As long as we can't determine absolutely right, we shouldn't
+       do this.
+     */
+#if 0 
+    else {
       SgObject depfiles = Sg_SearchLibraryPath(from);
       SG_FOR_EACH(depfiles, depfiles) {
 	SgObject cache_file = id_to_filename(SG_CAR(depfiles));
@@ -1838,6 +1864,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 	}
       }
     }
+#endif
     
     Sg_ImportLibraryFullSpec(lib, tmp, import);
   }
