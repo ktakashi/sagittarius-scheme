@@ -1008,6 +1008,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	    SG_VM_SET_FLAG(vm, SG_ALLOW_OVERWRITE);
+	    SG_VM_UNSET_FLAG(vm, SG_ERROR_UNBOUND);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -1019,6 +1020,7 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R7RS_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
+	    SG_VM_UNSET_FLAG(vm, SG_ERROR_UNBOUND);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&compat_read_table));
 	  return NULL;
@@ -1136,6 +1138,8 @@ SgObject read_hash_bang(SgPort *port, SgChar c, dispmacro_param *param,
 	    SG_VM_UNSET_FLAG(vm, SG_ALLOW_OVERWRITE);
 	    SG_VM_UNSET_FLAG(vm, SG_COMPATIBLE_MODE);
 	    SG_VM_UNSET_FLAG(vm, SG_R6RS_MODE);
+	    /* TODO should we? */
+	    SG_VM_UNSET_FLAG(vm, SG_ERROR_UNBOUND);
 	  }
 	  Sg_SetPortReadTable(port, Sg_CopyReadTable(&r7rs_read_table));
 	  return NULL;
