@@ -64,6 +64,8 @@
 		       "Content-length: 9\n\nNot found"))
     ht))
 
+(define server-up? #f)
+(define server-done? #f)
 (define (http-server socket)
   (let loop ()
     (let* ([client  (socket-accept socket)]
@@ -85,7 +87,7 @@
 		     [(equal? request-uri "/exit")
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      (display "exit" in/out)
-		      (set! server-stopped? #t)
+		      (set! server-done? #t)
 		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
@@ -109,8 +111,6 @@
 	    (else
 	     (error 'http-server "malformed request line:" request-line))))))
 
-(define server-up? #f)
-(define server-stopped? #f)
 (define server-thread
   (make-thread (lambda ()
 		 (let1 socket (make-server-socket *http-port*)
