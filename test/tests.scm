@@ -59,7 +59,11 @@
 (define (clear-bindings library)
   ;; dont use this casually
   (let ((table (library-table library)))
-    (hashtable-clear! table)))
+    (hashtable-clear! table))
+  ;; must be '() otherwise would die
+  (library-imported-set! library '())
+  (eval '(import (only (sagittarius) import library define-library))
+	library))
 
 
 (define (run-sitelib-tests :key (multithread? #t)
