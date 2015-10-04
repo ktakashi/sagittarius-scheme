@@ -53,6 +53,14 @@ SgObject Sg_LocalTimezoneName()
   if (r != TIME_ZONE_ID_UNKNOWN) {
     return Sg_WCharTsToString(tz.StandardName);
   }
+  /* If the timezone doesn't use daylight saving time,
+     then the return value is TIME_ZONE_ID_UNKNOWN. To
+     check if this is really an error or not, we need
+     to call GetLastError().
+   */
+  if (!GetLastError()) {
+    return Sg_WCharTsToString(tz.StandardName);
+  }
   /* fallback
      This will be Etc/GMT
    */
