@@ -121,7 +121,7 @@
 		     ;; NB: on Windows or Cygwin. So anti virus?
 		     (guard (e (else (report-error e))) (http-server socket))
 		     ;; /exit is not called yet, retry
-		     (unless server-stopped? (loop)))
+		     (unless server-done? (loop)))
 		   (socket-shutdown socket SHUT_RDWR)
 		   (socket-close socket)))))
 (thread-start! server-thread)
