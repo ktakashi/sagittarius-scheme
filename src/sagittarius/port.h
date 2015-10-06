@@ -340,6 +340,7 @@ typedef struct SgBufferedPortRec
   int      dirty;		/* TRUE if port position is changed */
 } SgBufferedPort;
 #define SG_BUFFERED_PORT(obj) ((SgBufferedPort *)obj)
+#define SG_BUFFERED_PORT_SRC(obj) SG_BUFFERED_PORT(obj)->src
 
 #define SG_CUSTOM_PORT_TYPE_BINARY  0
 #define SG_CUSTOM_PORT_TYPE_TEXTUAL 1
@@ -664,6 +665,9 @@ SG_EXTERN void     Sg_UnregisterBufferedPort(SgPort *port);
 SG_EXTERN int      Sg_PortCaseInsensitiveP(SgPort *port);
 SG_EXTERN SgObject Sg_ReadLine(SgPort *port, EolStyle eolStyle);
 SG_EXTERN SgObject Sg_ReadbUntil(SgPort *port, SgByteVector *eol);
+SG_EXTERN void     Sg_DefaultPortPrinter(SgObject obj, SgPort *port,
+					 SgWriteContext *ctx);
+
 
 SG_CDECL_END
 

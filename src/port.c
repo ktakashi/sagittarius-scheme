@@ -2883,6 +2883,11 @@ SgObject Sg_StandardErrorPort()
   return SG_OBJ(sg_stderr);
 }
 
+void Sg_DefaultPortPrinter(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  port_print(obj, port, ctx);
+}
+
 void Sg__InitPort()
 {
   SgVM *vm = Sg_VM();
