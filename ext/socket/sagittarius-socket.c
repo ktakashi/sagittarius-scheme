@@ -1315,6 +1315,7 @@ static inline SgObject make_socket_port(SgSocket *socket,
   SgSocketPort *port = SG_NEW(SgSocketPort);
   SG_INIT_PORT(port, SG_CLASS_SOCKET_PORT, d,
 	       (closeP)? &socket_close_table: &socket_table, SG_FALSE);
+  port->socket = socket;
   if (SG_OUTPUT_PORTP(port)) {
     Sg_RegisterBufferedPort(SG_PORT(port));
   }
