@@ -640,9 +640,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     out->name = UC("process-stdout");
     err->name = UC("process-stderr");
 
-    *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
-    *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
-    *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
+    *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFFER_MODE_NONE);
+    *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFFER_MODE_NONE);
+    *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFFER_MODE_NONE);
   }
   Sg_LockMutex(&pid_list.mutex);
   /* manage pid */

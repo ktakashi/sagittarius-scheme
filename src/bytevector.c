@@ -351,9 +351,10 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
 			       int start, int end)
 {
 #define BUF_SIZ 256
-  SgPort accum, bin, tin;
-  SgBinaryPort bp;
-  SgTextualPort tp, ap;
+  SgPort *accum, *bin, *tin;
+  SgBytePort bp;
+  SgStringPort ap;
+  SgTranscodedPort tp;
   SgObject r;
   SgChar buf[BUF_SIZ];
   int size = SG_BVECTOR_SIZE(bv);
@@ -366,15 +367,15 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
   size = end - start;
   if (size < read_size) read_size = size;
 
-  Sg_InitByteArrayInputPort(&bin, &bp, SG_BVECTOR_ELEMENTS(bv), start, end);
-  Sg_InitTranscodedPort(&tin, &tp, &bin, transcoder, SG_INPUT_PORT);
-  Sg_InitStringOutputPort(&accum, &ap, end);
+  bin = Sg_InitByteArrayInputPort(&bp, SG_BVECTOR_ELEMENTS(bv), start, end);
+  tin = Sg_InitTranscodedPort(&tp, bin, transcoder, SG_INPUT_PORT);
+  accum = Sg_InitStringOutputPort(&ap, end);
   
   for (;;) {
     int rest;
-    len = Sg_ReadsUnsafe(&tin, buf, read_size);
+    len = Sg_ReadsUnsafe(tin, buf, read_size);
     if (len < read_size) break;
-    Sg_WritesUnsafe(&accum, buf, len);
+    Sg_WritesUnsafe(accum, buf, len);
     total_size += len;
     rest = (int)(size - total_size);
     len = 0;
@@ -382,32 +383,33 @@ SgObject Sg_ByteVectorToString(SgByteVector *bv, SgTranscoder *transcoder,
     if (rest < read_size) read_size = rest;
   }
   if (len != 0) {
-    Sg_WritesUnsafe(&accum, buf, len);
+    Sg_WritesUnsafe(accum, buf, len);
   }
-  r = Sg_GetStringFromStringPort(&accum);
-  SG_CLEAN_BINARY_PORT(&bp);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
-  SG_CLEAN_TEXTUAL_PORT(&ap);
+  r = Sg_GetStringFromStringPort(&ap);
+  SG_CLEAN_BYTE_PORT(&bp);
+  SG_CLEAN_TRANSCODED_PORT(&tp);
+  SG_CLEAN_STRING_PORT(&ap);
   return r;
 }
 
 SgObject Sg_StringToByteVector(SgString *s, SgTranscoder *transcoder,
 			       int start, int end)
 {
-  SgPort accum, out;
-  SgBinaryPort bp;
-  SgTextualPort tp;
+  SgPort *accum, *out;
+  SgBytePort bp;
+  SgTranscodedPort tp;
   SgObject r;
   int len = SG_STRING_SIZE(s);
   SG_CHECK_START_END(start, end, len);
 
-  Sg_InitByteArrayOutputPort(&accum, &bp, end);
-  Sg_InitTranscodedPort(&out, &tp, &accum, transcoder, SG_OUTPUT_PORT);
-  Sg_WritesUnsafe(&out, SG_STRING_VALUE(s) + start, end - start);
+  accum = Sg_InitByteArrayOutputPort(&bp, end);
+  out = Sg_InitTranscodedPort(&tp, accum, transcoder, SG_OUTPUT_PORT);
 
-  r = Sg_GetByteVectorFromBinaryPort(&accum);
-  SG_CLEAN_BINARY_PORT(&bp);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  Sg_WritesUnsafe(out, SG_STRING_VALUE(s) + start, end - start);
+
+  r = Sg_GetByteVectorFromBinaryPort(&bp);
+  SG_CLEAN_BYTE_PORT(&bp);
+  SG_CLEAN_TRANSCODED_PORT(&tp);
 
   return r;
 }

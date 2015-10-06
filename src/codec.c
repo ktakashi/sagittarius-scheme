@@ -165,10 +165,7 @@ SgObject Sg_MakeUtf8Codec()
   do {									\
     int64_t mark;							\
     if (SG_BINARY_PORTP(port)) {					\
-      mark = SG_BINARY_PORT(port)->position;				\
-    } else if (SG_CUSTOM_PORTP(port)) {					\
-      ASSERT(SG_CUSTOM_PORT(port)->type == SG_BINARY_CUSTOM_PORT_TYPE); \
-      mark = SG_CUSTOM_PORT(port)->impl.bport->position;		\
+      mark = SG_PORT(port)->position;					\
     } else {								\
       Sg_Panic("[internal error] codec got textual port");		\
       mark = -1;		/* dummy */				\
@@ -588,9 +585,8 @@ Endianness Sg_Utf32CheckBOM(SgByteVector *bv)
 
 static SgObject readc_proc(SgObject *args, int argc, void *data)
 {
-  SgObject codec, port, size, mode, sdata, r;
-  SgPort out;
-  SgTextualPort tp;
+  SgObject codec, port, size, mode, sdata;
+  SgStringPort out;
   int count, i;
   codec = SG_OBJ(data);
   if (argc != 4) {
@@ -602,13 +598,13 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
   mode = args[2];
   sdata = args[3];
   count = SG_INT_VALUE(size);
-  Sg_InitStringOutputPort(&out, &tp, -1);
+  Sg_InitStringOutputPort(&out, -1);
   /* transcoder must handle the first character */
   for (i = 0; i < count; i++) {
     SgObject c = Sg_Apply4(SG_CODEC_CUSTOM(codec)->getc, port, mode, SG_FALSE,
 			   sdata);
     if (SG_CHARP(c)) {
-      Sg_PutcUnsafe(&out, SG_CHAR_VALUE(c));
+      Sg_PutcUnsafe(SG_PORT(&out), SG_CHAR_VALUE(c));
     } else if (SG_EOFP(c)) {
       break;
     } else {
@@ -616,9 +612,7 @@ static SgObject readc_proc(SgObject *args, int argc, void *data)
 			    SG_MAKE_STRING("getc procedure returned non character object"), c);
     }
   }
-  r = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
-  return r;
+  return Sg_GetStringFromStringPort(&out);
 }
 
 static SgObject writec_proc(SgObject *args, int argc, void *data)

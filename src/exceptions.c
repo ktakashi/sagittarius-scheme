@@ -838,25 +838,25 @@ static void describe_simple(SgPort *out, SgObject con)
 SgObject Sg_DescribeCondition(SgObject con)
 {
   if (Sg_ConditionP(con)) {
-    SgPort out;
-    SgTextualPort tp;
+    SgPort *out;
+    SgStringPort tp;
     SgObject cp;
-    Sg_InitStringOutputPort(&out, &tp, 512);
-    Sg_PutzUnsafe(&out, "Condition components:\n");
+    out = Sg_InitStringOutputPort(&tp, 512);
+    Sg_PutzUnsafe(out, "Condition components:\n");
     if (SG_SIMPLE_CONDITIONP(con)) {
-      Sg_PutzUnsafe(&out, "  ");
-      describe_simple(&out, con);
+      Sg_PutzUnsafe(out, "  ");
+      describe_simple(out, con);
     } else {
       SgObject comp;
       int i = 1;
       SG_FOR_EACH(comp, SG_COMPOUND_CONDITION(con)->components) {
-	Sg_Printf(&out, UC("  %d. "), i++);
-	describe_simple(&out, SG_CAR(comp));
-	Sg_PutcUnsafe(&out, '\n');
+	Sg_Printf(out, UC("  %d. "), i++);
+	describe_simple(out, SG_CAR(comp));
+	Sg_PutcUnsafe(out, '\n');
       }
     }
-    cp = Sg_GetStringFromStringPort(&out);
-    SG_CLEAN_TEXTUAL_PORT(&tp);
+    cp = Sg_GetStringFromStringPort(&tp);
+    SG_CLEAN_STRING_PORT(&tp);
     return cp;
   } else {
     return con;

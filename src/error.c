@@ -44,17 +44,17 @@
 #define make_message3(msg_, prefix_, fmt_)	\
   do {						\
     va_list ap;					\
-    SgTextualPort tp;				\
-    SgPort err_;				\
+    SgStringPort tp;				\
+    SgPort *err_;				\
     const SgChar *p = (prefix_);		\
-    Sg_InitStringOutputPort(&err_, &tp, 0);	\
+    err_ = Sg_InitStringOutputPort(&tp, 0);	\
     if (p)					\
-      Sg_PutuzUnsafe(&err_, prefix_);		\
+      Sg_PutuzUnsafe(err_, prefix_);		\
     va_start(ap, fmt_);				\
-    Sg_Vprintf(&err_, fmt_, ap, TRUE);		\
+    Sg_Vprintf(err_, fmt_, ap, TRUE);		\
     va_end(ap);					\
-    (msg_) = Sg_GetStringFromStringPort(&err_);	\
-    SG_CLEAN_TEXTUAL_PORT(&tp);			\
+    (msg_) = Sg_GetStringFromStringPort(&tp);	\
+    SG_CLEAN_STRING_PORT(&tp);			\
   } while (0)
 
 #define make_message(msg_, fmt_)		\

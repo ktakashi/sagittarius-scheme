@@ -2556,15 +2556,15 @@ static void unparse(SgObject n, SgPort *out)
 
 static SgObject unparse_ast(SgObject ast)
 {
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject str;
-  Sg_InitStringOutputPort(&out, &tp, 0);
+  out = Sg_InitStringOutputPort(&tp, 0);
 
-  unparse(ast, &out);
+  unparse(ast, out);
 
-  str = SG_STRING(Sg_GetStringFromStringPort(&out));
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  str = SG_STRING(Sg_GetStringFromStringPort(&tp));
+  SG_CLEAN_STRING_PORT(&tp);
   return str;
 }
 
@@ -2661,14 +2661,14 @@ SgObject Sg_ParseCharSetString(SgString *s, int asciiP, int start, int end)
 
 SgObject Sg_CharSetToRegexString(SgObject cset, int invertP)
 {
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject str;
 
-  Sg_InitStringOutputPort(&out, &tp, 0);
-  charset_to_regex(cset, invertP, &out);
-  str = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  out = Sg_InitStringOutputPort(&tp, 0);
+  charset_to_regex(cset, invertP, out);
+  str = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return str;
 }
 
@@ -2778,9 +2778,9 @@ void Sg_DumpRegex(SgPattern *pattern, SgObject port)
 /* returns (compile-regex "str" flag) */
 static SgObject read_regex_string(SgPort *port)
 {
-  SgPort buf;
-  SgTextualPort tp;
-  Sg_InitStringOutputPort(&buf, &tp, -1);
+  SgPort *buf;
+  SgStringPort tp;
+  buf = Sg_InitStringOutputPort(&tp, -1);
   while(1) {
     SgChar c = Sg_GetcUnsafe(port);
     if (c == EOF) {
@@ -2789,8 +2789,8 @@ static SgObject read_regex_string(SgPort *port)
     }
     if (c == '\\') {
       /* escape. */
-      Sg_PutcUnsafe(&buf, c);
-      Sg_PutcUnsafe(&buf, Sg_GetcUnsafe(port));
+      Sg_PutcUnsafe(buf, c);
+      Sg_PutcUnsafe(buf, Sg_GetcUnsafe(port));
     } else if (c == '/') {
       /* end mark */
       int flag = 0, add = 0;
@@ -2814,8 +2814,8 @@ static SgObject read_regex_string(SgPort *port)
 	add = SG_UNICODE_CASE;
 	goto add_flag;
       default:
-	tmp = Sg_GetStringFromStringPort(&buf);
-	SG_CLEAN_TEXTUAL_PORT(&tp);
+	tmp = Sg_GetStringFromStringPort(&tp);
+	SG_CLEAN_STRING_PORT(&tp);
 	return Sg_CompileRegex(tmp, flag, FALSE);
       }
     add_flag:
@@ -2823,7 +2823,7 @@ static SgObject read_regex_string(SgPort *port)
       Sg_GetcUnsafe(port);
       goto entry;
     } else {
-      Sg_PutcUnsafe(&buf, c);
+      Sg_PutcUnsafe(buf, c);
     }
   }
 }

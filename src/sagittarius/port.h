@@ -38,48 +38,19 @@
 
 typedef enum SgFileLockType SgPortLockType;
 
-enum SgPortDirection {
-  SG_INPUT_PORT = 0x01,
-  SG_OUTPUT_PORT = 0x02,
-  SG_IN_OUT_PORT = 0x03,
-  /* DO NOT USE FOR FILE PORT */
-  SG_BIDIRECTIONAL_PORT = 0x04
-};
+typedef enum {
+  SG_INPUT_PORT = 1UL,
+  SG_OUTPUT_PORT = 1UL<<1,
+  SG_IN_OUT_PORT = SG_INPUT_PORT | SG_OUTPUT_PORT,
+  /* input/output port + alpha */
+  SG_BIDIRECTIONAL_PORT = 1UL<<2 | SG_IN_OUT_PORT
+} SgPortDirection;
 
-enum SgPortType {
-  SG_BINARY_PORT_TYPE = 0x01,
-  SG_TEXTUAL_PORT_TYPE = 0x02,
-  SG_CUSTOM_PORT_TYPE = 0x03
-};
-
-enum SgBufferMode {
-  SG_BUFMODE_NONE = 0x01,
-  SG_BUFMODE_LINE = 0x02,
-  SG_BUFMODE_BLOCK = 0x03
-};
-
-enum SgBinaryPortType {
-  SG_FILE_BINARY_PORT_TYPE       = 0,
-  SG_BYTE_ARRAY_BINARY_PORT_TYPE = 1,
-  SG_CUSTOM_BINARY_PORT_TYPE     = 2,
-};
-
-enum SgBinaryPortClosedType {
-  SG_BPORT_OPEN   = 0,
-  SG_BPORT_PSEUDO = 1,
-  SG_BPORT_CLOSED = 2
-};
-
-enum SgTextualPortType {
-  SG_TRANSCODED_TEXTUAL_PORT_TYPE,
-  SG_STRING_TEXTUAL_PORT_TYPE,
-  SG_CUSTOM_TEXTUAL_PORT_TYPE,
-};
-
-enum SgCustomPortType {
-  SG_BINARY_CUSTOM_PORT_TYPE,
-  SG_TEXTUAL_CUSTOM_PORT_TYPE,
-};
+typedef enum {
+  SG_PORT_OPEN = 0,
+  SG_PORT_PSEUDO = 1,
+  SG_PORT_CLOSED = 2
+} SgPortClosedType;
 
 #define SG_STREAM_BUFFER_SIZE 32
 
@@ -175,104 +146,206 @@ SG_MAKE_STREAM_BUFFER(char_buffer, SgChar);
 #define SG_STREAM_BUFFER_SET_POSITIONC(start, cur, pos)		\
   SG_STREAM_BUFFER_SET_POSITION_REC(char_buffer, start, cur, pos)
 
-typedef struct SgBinaryPortTableRec
+/*
+   Port
+
+   On Sagittarius, port has the following class hierarchy.
+
+   + port
+      + bytevector port
+      + string port
+      + file port
+      + custom port
+      + buffered port
+
+   Buffer mode from R6RS is handled in 'buffered port'.
+ */
+/* base port class */
+SG_CLASS_DECL(Sg_PortClass);
+#define SG_CLASS_PORT (&Sg_PortClass)
+
+typedef struct SgPortTableRec
 {
-  /* only binary port has open */
+  void (*flush)(SgObject);
+  int  (*close)(SgObject);
+  int  (*ready)(SgObject);
+  int  (*lockPort)(SgObject, SgPortLockType);
+  int  (*unlockPort)(SgObject);
+  /* port position operators. it takes extra argument, whence */
+  int64_t  (*portPosition)(SgObject, Whence);
+  void     (*setPortPosition)(SgObject, int64_t, Whence);
+  /* port operations */
   int     (*open)(SgObject);
-  /* read/write methods */
-  int     (*getU8)(SgObject);
-  int     (*lookAheadU8)(SgObject);
-  int64_t (*readU8)(SgObject self, uint8_t *buf, int64_t size);
-  int64_t (*readU8All)(SgObject, uint8_t **);
-  int64_t (*putU8)(SgObject, uint8_t);
-  int64_t (*putU8Array)(SgObject, uint8_t*, int64_t);
-  /* this is private method */
-  int64_t (*bufferWriter)(SgObject, uint8_t *, int64_t);
-} SgBinaryPortTable;
 
-#define SG_PORT_DEFAULT_BUFFER_SIZE 8196
+  /* Binary port operations */
+  /* reads byte arrey from port */
+  int64_t (*readb)(SgObject, uint8_t *, int64_t);
+  /* reads all bytes from port */
+  int64_t (*readbAll)(SgObject, uint8_t **);
+  /* writes bytes to port */
+  int64_t (*writeb)(SgObject, uint8_t *, int64_t);
 
-typedef struct SgBinaryPortRec
+  /* Textual port operations */
+  /* reads string from port */
+  int64_t (*reads)(SgObject, SgChar *, int64_t);
+  int64_t (*writes)(SgObject, SgChar *, int64_t);
+} SgPortTable;
+
+struct SgPortRec
 {
-  SgBinaryPortTable *vtbl;
-  enum SgBinaryPortType type;
-  unsigned int     closed:   2; /* it may have, closed pseudo_closed or open */
-  unsigned int     reserved: 30;
+  SG_INSTANCE_HEADER;		/* can be extended */
+  SgPortTable *vtbl;
+  SgPortDirection direction;
+  /* we may want to use bit field but for now no need for it */
+  /* port closed type but for future extension (may not happen)
+     it's int. (for bit field)
+   */
+  int closed;
+  SgChar peek;			/* this can be char or byte */
+  /* Assosiated transcoder:
+     #f : no transcoder (binary port)
+     #t : string port
+     transcoder: transcoded textual port
+   */
+  SgObject transcoder;
+  unsigned int readLockCount;
+  unsigned int writeLockCount;
+  SgVM        *readLockOwner;
+  SgVM        *writeLockOwner;
+
+  readtable_t *readtable;
+  SgObject     reader;
+  SgObject     data;		/* alist of port data */
+
+  /* unlike the other object, lock is a pointer.
+     port has 2 lock, one is read lock the other one is write lock.
+     on the normal case these 2 are basically the same.
+     however there is one case these 2 need to be different which
+     is socket port. even though socket support is out side of
+     main component but it needs to have a way to make input/output
+     port bidirectional.
+   */
+  SgInternalMutex lock;
+  int64_t      position;	/* current position */
+  int64_t      lineNo;		/* line no */
+};
+
+#define SG_PORT(obj)           ((SgPort*)obj)
+#define SG_PORTP(obj)          SG_ISA(obj, SG_CLASS_PORT)
+#define SG_PORT_VTABLE(obj)    SG_PORT(obj)->vtbl
+#define SG_PORT_READER(obj)    SG_PORT(obj)->reader
+#define SG_PORT_READTABLE(obj) SG_PORT(obj)->readtable
+#define SG_PORT_DATA(obj)      SG_PORT(obj)->data
+
+#define SG_PORT_HAS_U8_AHEAD(obj)    (SG_PORT(obj)->peek != EOF)
+#define SG_PORT_U8_AHEAD(obj)        (SG_PORT(obj)->peek)
+#define SG_PORT_HAS_CHAR_AHEAD(obj)  (SG_PORT(obj)->peek != EOF)
+#define SG_PORT_CHAR_AHEAD(obj)      (SG_PORT(obj)->peek)
+
+/* port type */
+#define SG_BINARY_PORTP(obj)					\
+  ((SG_PORTP(obj)) && SG_FALSEP(SG_PORT(obj)->transcoder))
+#define SG_TEXTUAL_PORTP(obj)					\
+  ((SG_PORTP(obj)) && !SG_FALSEP(SG_PORT(obj)->transcoder))
+
+/* port direction */
+#define SG_INPUT_PORTP(obj)					\
+  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_INPUT_PORT))
+#define SG_OUTPUT_PORTP(obj)					\
+  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_OUTPUT_PORT))
+#define SG_IN_OUT_PORTP(obj)					\
+  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_IN_OUT_PORT))
+#define SG_BIDIRECTIONAL_PORTP(obj)					\
+  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_BIDIRECTIONAL_PORT))
+
+
+typedef struct SgFilePortRec
+{
+  SgPort parent;
+  SgFile *file;
+} SgFilePort;
+
+#define SG_FILE_PORT(obj) ((SgFilePort *)obj)
+
+typedef struct SgBytePortRec
+{
+  SgPort parent;
   union {
-    SgFile        *file;   /* file port */
     struct {
       byte_buffer *start;
       byte_buffer *current;
-    } obuf;
-    /* use bytevector for input port buffer */
+    } /* out */ ;
     struct {
-      uint8_t *start;
+      uint8_t *buf;
       uint8_t *end;
       size_t   index;
-    } buffer;
-    void          *data;	/* custom */
-  } src;
-  /*
-    these properties are only used for file-binary in/out port.
-    so actualy it should be in src union, but it's really tiring task
-    to do. for now I just put like this. 
-   */
-  uint8_t *buffer;		/* buffer */
-  size_t   size;		/* buffer size */
-  int64_t  bufferSize;		/* read size */
-  int64_t  bufferIndex;		/* buffer index */
-  int64_t  position;		/* current position */
-  int      dirty;		/* can be ahead ... */
-} SgBinaryPort;
+    } /* in */ ;
+  } buffer;
+} SgBytePort;
 
-typedef struct SgTextualPortTableRec
-{
-  int     (*getLineNo)(SgObject);
-  SgChar  (*getChar)(SgObject);
-  SgChar  (*lookAheadChar)(SgObject);
-  void    (*unGetChar)(SgObject, SgChar);
-  void    (*putChar)(SgObject, SgChar);
-  int64_t (*getString)(SgObject, SgChar *, int64_t);
-  int64_t (*putString)(SgObject, SgChar *, int64_t);
-} SgTextualPortTable;
+#define SG_BYTE_PORT(obj) ((SgBytePort *)obj)
 
-typedef struct SgTextualPortRec
+typedef struct SgStringPortRec
 {
-  SgTextualPortTable *vtbl;
-  enum SgTextualPortType type;
-  /* 
-     for string port
-     it's better to be union
-  */
+  SgPort parent;
   union {
-    /* transcoded port uses port and transcoder */
-    struct {
-      SgTranscoder *transcoder;
-      SgPort       *port;
-      /* Assume we only need one buffer. */
-      SgChar        ungetBuffer;
-      int           lineNo;
-    } transcoded;
-    /* string oport uses char_buffer */
     struct {
       char_buffer *start;
       char_buffer *current;
-      /* oh crap... */
-      int64_t  position;		/* current position */
-    } ostr;
-    /* string iport uses string as src */
+      int64_t  position;
+    } /* out */ ;
     struct {
-      SgChar  *start;
-      SgChar  *end;
-      size_t   index;
-      int      lineNo;		/* for input */
-    } buffer;
-    void        *data;		/* for custom */
-  } src;
-} SgTextualPort;
+      SgChar *buf;
+      SgChar *end;
+      size_t  index;
+    } /* in */ ;
+  } buffer;
+} SgStringPort;
 
-typedef struct SgCustomPortRec
+#define SG_STRING_PORT(obj) ((SgStringPort *)obj)
+
+
+/* to create fresh port by transcoded-port
+   it's rather silly but no choice.
+ */
+typedef struct SgTranscodedPortRec
 {
+  SgPort parent;
+  SgPort *port;
+} SgTranscodedPort;
+#define SG_TRANSCODED_PORT(o) ((SgTranscodedPort *)o)
+#define SG_TRANSCODED_PORT_UNGET(o) SG_PORT(o)->peek
+#define SG_TRANSCODED_PORT_PORT(o)  SG_TRANSCODED_PORT(o)->port
+#define SG_TRANSCODED_PORT_LINE_NO(o)  SG_PORT(o)->lineNo
+#define SG_TRANSCODED_PORT_TRANSCODER(o) SG_PORT(o)->transcoder
+
+#define SG_PORT_DEFAULT_BUFFER_SIZE 8196
+
+typedef enum {
+  SG_BUFFER_MODE_NONE = 0x01,
+  SG_BUFFER_MODE_LINE = 0x02,
+  SG_BUFFER_MODE_BLOCK = 0x03
+} SgBufferMode;
+
+typedef struct SgBufferedPortRec
+{
+  SgPort parent;
+  SgPort *src;			/* src port */
+  SgBufferMode mode;		/* mode */
+  uint8_t *buffer;		/* buffer */
+  size_t   size;		/* allocated buffer size */
+  int64_t  bufferSize;		/* read buffer size */
+  int64_t  index;		/* buffer index */
+  int      dirty;		/* TRUE if port position is changed */
+} SgBufferedPort;
+#define SG_BUFFERED_PORT(obj) ((SgBufferedPort *)obj)
+
+#define SG_CUSTOM_PORT_TYPE_BINARY  0
+#define SG_CUSTOM_PORT_TYPE_TEXTUAL 1
+typedef struct SgCustomPortSpecRec
+{
+  int       type;		/* type. binary or texual */
+  int       direction;
   SgString *id;			/* id must be string */
   /* common procs */
   SgObject  getPosition;	/* get-position */
@@ -283,132 +356,55 @@ typedef struct SgCustomPortRec
   /* for output port */
   SgObject  write;		/* write */
   SgObject  ready;		/* u8 or char ready */
+  SgObject  flush;		/* flush */
+  /* vtable, if this is NULL, then get from type */
+  SgPortTable *table;
+  int wrap;			/* wrap set position */
+} SgCustomPortSpec;
 
-  /* custom port utility */
-  int       type;		/* port type: binary or textual */
-  /* these are for custom textual port */
+typedef struct SgCustomPortRec
+{
+  SgPort    parent;
+  SgString *id;			/* id must be string */
+  /* common procs */
+  SgObject  getPosition;	/* get-position */
+  SgObject  setPosition;	/* set-position! */
+  SgObject  close;		/* close */
+  /* for input port */
+  SgObject  read;		/* read */
+  /* for output port */
+  SgObject  write;		/* write */
+  SgObject  ready;		/* u8 or char ready */
+  SgObject  flush;		/* flush */
+
+  /* custom port buffer */
   union {
-    struct {
-      SgChar   *buffer;		/* custom textual port buffer */
-      int       index;		/* buffer index */
-      int       size;		/* buffer size */
-      int       line;		/* line number */
-    };
+    SgString     *textualBuffer; /* buffer for custom textual port */
     SgByteVector *binaryBuffer;	/* buffer for custom binary port */
   };
-  /* We share port interface */
-  union {
-    SgBinaryPort  *bport;
-    SgTextualPort *tport;
-  } impl;
 } SgCustomPort;
+#define SG_CUSTOM_PORT(obj) ((SgCustomPort *)obj)
 
-SG_CLASS_DECL(Sg_PortClass);
-#define SG_CLASS_PORT (&Sg_PortClass)
+SG_CLASS_DECL(Sg_FilePortClass);
+SG_CLASS_DECL(Sg_BytePortClass);
+SG_CLASS_DECL(Sg_StringPortClass);
+SG_CLASS_DECL(Sg_CustomPortClass);
+SG_CLASS_DECL(Sg_BufferedPortClass);
+SG_CLASS_DECL(Sg_TranscodedPortClass);
 
-typedef struct SgPortTableRec 
-{
-  void (*flush)(SgObject);
-  int  (*close)(SgObject);
-  int  (*ready)(SgObject);
-  int  (*lockPort)(SgObject, SgPortLockType);
-  int  (*unlockPort)(SgObject);
-  /* these 2 are needed for custom ports */
-  int  (*hasPortPosition)(SgObject);
-  int  (*hasSetPortPosition)(SgObject);
-  /* port position operators. it takes extra argument, whence */
-  int64_t  (*portPosition)(SgObject, Whence);
-  void     (*setPortPosition)(SgObject, int64_t, Whence);
-} SgPortTable;
+#define SG_CLASS_FILE_PORT (&Sg_FilePortClass)
+#define SG_CLASS_BYTE_PORT (&Sg_BytePortClass)
+#define SG_CLASS_STRING_PORT (&Sg_StringPortClass)
+#define SG_CLASS_CUSTOM_PORT (&Sg_CustomPortClass)
+#define SG_CLASS_BUFFERED_PORT (&Sg_CustomPortClass)
+#define SG_CLASS_TRANSCODED_PORT (&Sg_TranscodedPortClass)
 
-struct SgPortRec
-{
-  SG_HEADER;
-  enum SgPortDirection direction;
-  enum SgPortType      type;
-  enum SgBufferMode    bufferMode;
-  unsigned int closed 	   : 1;
-  unsigned int error  	   : 1;
-  unsigned int reserved    : 30;
-  /* using system lock is heavy so make it a bit lighter */
-  unsigned int readLockCount;
-  unsigned int writeLockCount;
-  SgVM        *readLockOwner;
-  SgVM        *writeLockOwner;
-
-  readtable_t *readtable;
-  SgObject     reader;
-  SgObject     data;		/* alist of port data */
-
-  /* unlike the other object, lock is a pointer. 
-     port has 2 lock, one is read lock the other one is write lock.
-     on the normal case these 2 are basically the same.
-     however there is one case these 2 need to be different which
-     is socket port. even though socket support is out side of
-     main component but it needs to have a way to make input/output
-     port bidirectional.
-   */
-  SgInternalMutex lock;
-
-  /* common methods */
-  SgPortTable *vtbl;
-
-  union {
-    SgBinaryPort  *bport;
-    SgTextualPort *tport;
-    SgCustomPort  *cport;
-  } impl;
-};
-
-#define SG_PORTP(obj) 	      SG_XTYPEP(obj, SG_CLASS_PORT)
-#define SG_PORT(obj)  	      ((SgPort*)obj)
-#define SG_INPORTP(obj)						\
-  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_INPUT_PORT)
-#define SG_OUTPORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_OUTPUT_PORT)
-#define SG_INOUTPORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_IN_OUT_PORT)
-#define SG_BIDIRECT_PORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->direction == SG_BIDIRECTIONAL_PORT)
-
-#define SG_PORT_READTABLE(obj) (SG_PORT(obj)->readtable)
-#define SG_PORT_READER(obj)    (SG_PORT(obj)->reader)
-#define SG_PORT_DATA(obj)      (SG_PORT(obj)->data)
-
-#define SG_PORT_VTABLE(obj)    (SG_PORT(obj)->vtbl)
-
-#define SG_BINARY_PORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_BINARY_PORT_TYPE)
-#define SG_BINARY_PORT(obj)   (SG_PORT(obj)->impl.bport)
-
-#define SG_BINARY_PORT_VTABLE(bp)  ((bp)->vtbl)
-/* for less confusing, we defined macro */
-#define SG_PORT_HAS_U8_AHEAD(port) (SG_BINARY_PORT(port)->dirty != EOF)
-#define SG_PORT_U8_AHEAD(port)     (SG_BINARY_PORT(port)->dirty)
-
-#define SG_TEXTUAL_PORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_TEXTUAL_PORT_TYPE)
-#define SG_TEXTUAL_PORT(obj)  (SG_PORT(obj)->impl.tport)
-#define SG_TEXTUAL_PORT_VTABLE(tp)  ((tp)->vtbl)
-
-#define SG_TRANSCODED_PORT_TRANSCODER(obj)	\
-  (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder)
-#define SG_TRANSCODED_PORT_BUFFER(obj)	\
-  (SG_TEXTUAL_PORT(obj)->src.transcoded.ungetBuffer)
-#define SG_TRANSCODED_PORT_SRC_PORT(obj)	\
-  (SG_TEXTUAL_PORT(obj)->src.transcoded.port)
-#define SG_TRANSCODED_PORT_LINE_NO(obj)		\
-  (SG_TEXTUAL_PORT(obj)->src.transcoded.lineNo)
-#define SG_TRNASCODED_PORT_MODE(obj)		\
-  (SG_TEXTUAL_PORT(obj)->src.transcoded.transcoder->mode)
-
-#define SG_CUSTOM_PORTP(obj)					\
-  (SG_PORTP(obj) && SG_PORT(obj)->type == SG_CUSTOM_PORT_TYPE)
-#define SG_CUSTOM_PORT(obj)   (SG_PORT(obj)->impl.cport)
-
-/* convenient macro */
-#define SG_CUSTOM_BINARY_PORT(obj)  (SG_CUSTOM_PORT(obj)->impl.bport)
-#define SG_CUSTOM_TEXTUAL_PORT(obj) (SG_CUSTOM_PORT(obj)->impl.tport)
+#define SG_FILE_PORTP(o)       SG_ISA(o, SG_CLASS_FILE_PORT)
+#define SG_BYTE_PORTP(o)       SG_ISA(o, SG_CLASS_BYTE_PORT)
+#define SG_STRING_PORTP(o)     SG_ISA(o, SG_CLASS_STRING_PORT)
+#define SG_CUSTOM_PORTP(o)     SG_ISA(o, SG_CLASS_CUSTOM_PORT)
+#define SG_BUFFERED_PORTP(o)   SG_ISA(o, SG_CLASS_BUFFERED_PORT)
+#define SG_TRANSCODED_PORTP(o) SG_ISA(o, SG_CLASS_TRANSCODED_PORT)
 
 /* from Gauche but we need to manage both read and write lock */
 #define SG_PORT_LOCK_REC(port, owner__, counter__)		\
@@ -441,39 +437,40 @@ struct SgPortRec
 
 #define SG_PORT_LOCK_WRITE(port)				\
   do {								\
-      if ((port)->direction == SG_BIDIRECTIONAL_PORT) {		\
+    if (SG_BIDIRECTIONAL_PORTP(port)) {				\
 	SG_PORT_LOCK_REC(port, writeLockOwner, writeLockCount);	\
       } else {							\
 	SG_PORT_LOCK_READ(port);				\
       }								\
   } while (0)
-  
+
 #define SG_PORT_UNLOCK_WRITE(port)				\
   do {								\
-    if ((port)->direction == SG_BIDIRECTIONAL_PORT) {		\
+    if (SG_BIDIRECTIONAL_PORTP(port)) {				\
       SG_PORT_UNLOCK_REC(port, writeLockOwner, writeLockCount);	\
     } else {							\
       SG_PORT_UNLOCK_READ(port);				\
     }								\
   } while (0)
 
-#define SG_INIT_PORT(port, d, t, m)			\
+#define SG_INIT_PORT(port, clazz, d, tbl, tr)		\
   do {							\
-    SG_SET_CLASS((port), SG_CLASS_PORT);		\
-    (port)->direction = (d);				\
-    (port)->type = (t);					\
-    (port)->bufferMode = (m);				\
-    (port)->reader = SG_FALSE;				\
-    (port)->closed = FALSE;				\
-    (port)->data = SG_NIL;				\
-    (port)->readLockCount = 0;				\
-    (port)->readLockOwner = NULL;			\
-    (port)->writeLockCount = 0;				\
-    (port)->writeLockOwner = NULL;			\
-    Sg_InitMutex(&(port)->lock, TRUE);			\
+    SG_SET_CLASS((port), (clazz));			\
+    SG_PORT(port)->direction = (d);			\
+    SG_PORT(port)->position = 0;			\
+    SG_PORT(port)->vtbl = (tbl);			\
+    SG_PORT(port)->transcoder = (tr);			\
+    SG_PORT(port)->reader = SG_FALSE;			\
+    SG_PORT(port)->closed = SG_PORT_OPEN;		\
+    SG_PORT(port)->data = SG_NIL;			\
+    SG_PORT(port)->readLockCount = 0;			\
+    SG_PORT(port)->readLockOwner = NULL;		\
+    SG_PORT(port)->writeLockCount = 0;			\
+    SG_PORT(port)->writeLockOwner = NULL;		\
+    SG_PORT(port)->lineNo = -1;				\
+    SG_PORT(port)->peek = EOF;				\
+    Sg_InitMutex(&SG_PORT(port)->lock, TRUE);		\
   } while (0)
-
-#define SG_INIT_WRITE_LOCK(port) /* do nothing */
 
 #define SG_INIT_BINARY_PORT(bp, t)		\
   do {						\
@@ -486,10 +483,6 @@ struct SgPortRec
     (bp)->closed = SG_BPORT_OPEN;		\
   } while (0)
 
-#define SG_INIT_TEXTUAL_PORT(tp, t)		\
-  do {						\
-    (tp)->type = (t);				\
-  } while (0)
 
 #define SG_CLEAN_PORT_LOCK(port)			\
   do {							\
@@ -498,16 +491,20 @@ struct SgPortRec
 
 /* for GC friendliness */
 /* The src is union so it is enough to make first 2 words NULL */
-#define SG_CLEAN_BINARY_PORT(bp)		\
+#define SG_CLEAN_BYTE_PORT(bp)			\
   do {						\
-    (bp)->src.obuf.start = NULL;		\
-    (bp)->src.obuf.current = NULL;		\
-    (bp)->buffer = NULL;			\
+    SG_BYTE_PORT(bp)->buffer.start = NULL;	\
+    SG_BYTE_PORT(bp)->buffer.current = NULL;	\
   } while (0)
-#define SG_CLEAN_TEXTUAL_PORT(tp)		\
-  do {						\
-    (tp)->src.transcoded.transcoder = NULL;	\
-    (tp)->src.transcoded.port = NULL;		\
+#define SG_CLEAN_TRANSCODED_PORT(tp)		\
+    do {					\
+    SG_TRANSCODED_PORT(tp)->port = NULL;	\
+    SG_PORT(tp)->transcoder = SG_TRUE;		\
+  } while (0)
+#define SG_CLEAN_STRING_PORT(tp)		\
+    do {					\
+      (tp)->buffer.start = NULL;		\
+      (tp)->buffer.current = NULL;		\
   } while (0)
 
 SG_CDECL_BEGIN
@@ -516,11 +513,11 @@ SG_EXTERN SgObject Sg_MakeFileBinaryInputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryOutputPort(SgFile *file, int bufferMode);
 SG_EXTERN SgObject Sg_MakeFileBinaryInputOutputPort(SgFile *file,
 						    int bufferMode);
-SG_EXTERN SgObject Sg_InitFileBinaryPort(SgPort *port,
-					 SgBinaryPort *bp,
+SG_EXTERN SgObject Sg_InitFileBinaryPort(SgFilePort *port, 
 					 SgFile *file,
-					 enum SgPortDirection direction,
-					 int bufferMode,
+					 SgPortDirection d,
+					 SgBufferedPort *bufferedPort, 
+					 SgBufferMode mode,
 					 uint8_t *buffer,
 					 size_t bufferSize);
 /* Sg_MakeByteVectorInputPort is just for bytevector->string to avoid an
@@ -530,29 +527,12 @@ SG_EXTERN SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv,
 					      int64_t start, int64_t end);
 SG_EXTERN SgObject Sg_MakeByteArrayInputPort(uint8_t *src, int64_t size);
 /* We can't make common byte array initialisation function... */
-SG_EXTERN SgObject Sg_InitByteArrayInputPort(SgPort *port, SgBinaryPort *bp,
-					     uint8_t *src, 
+SG_EXTERN SgObject Sg_InitByteArrayInputPort(SgBytePort *port,
+					     uint8_t *src,
 					     size_t start, size_t end);
 SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
-SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgPort *port, SgBinaryPort *bp,
+SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgBytePort *port,
 					      int bufferSize);
-
-/* make binary port. 
-   
-   if the `direction` is SG_BIDIRECTIONAL_PORT then it is users 
-   responsibility to make sure reading and writing are separated
-   completely.
-   e.g. buffering
-
-   keep in mind, file port will never be bidirectional.
-   NOTE: this is only creates 2 locks for port so that the port APIs
-         will lock separate locks.
-   NOTE: currently this is only used to make socket port...
- */
-SG_EXTERN SgObject Sg_MakeBinaryPort(enum SgPortDirection direction,
-				     SgPortTable *portTable,
-				     SgBinaryPortTable *binaryPortTable,
-				     void *data);
 
 SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port,
 					      SgTranscoder *transcoder);
@@ -562,15 +542,16 @@ SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
 						    SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port,
 						     SgTranscoder *transcoder);
-SG_EXTERN SgObject Sg_InitTranscodedPort(SgPort *port, SgTextualPort *tp,
-					 SgPort *src, SgTranscoder *transcoder,
-					 enum SgPortDirection direction);
+SG_EXTERN SgObject Sg_InitTranscodedPort(SgTranscodedPort *port,
+					 SgPort *src, 
+					 SgTranscoder *transcoder,
+					 SgPortDirection direction);
 
 /* buffer size is not used yet */
 SG_EXTERN SgObject Sg_MakeStringOutputPort(int bufferSize);
-SG_EXTERN SgObject Sg_InitStringOutputPort(SgPort *port, SgTextualPort *tp,
+SG_EXTERN SgObject Sg_InitStringOutputPort(SgStringPort *port,
 					   int bufferSize);
-SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in, 
+SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in,
 					  int64_t start, int64_t end);
 /* For convenience and future improvement */
 SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);
@@ -592,10 +573,19 @@ SG_EXTERN SgObject Sg_MakeCustomTextualPort(SgString *id,
 					    SgObject setPosition,
 					    SgObject close,
 					    SgObject ready);
+/* easier */
+SG_EXTERN SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec);
 
-SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgPort *port);
-SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgPort *port);
-SG_EXTERN SgObject Sg_GetStringFromStringPort(SgPort *port);
+/* buffered port */
+SG_EXTERN SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
+				       uint8_t *buffer, size_t size);
+SG_EXTERN SgObject Sg_InitBufferedPort(SgBufferedPort *port, 
+				       SgBufferMode mode, SgPort *src, 
+				       uint8_t *buffer, size_t size);
+
+SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgBytePort *port);
+SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgBytePort *port);
+SG_EXTERN SgObject Sg_GetStringFromStringPort(SgStringPort *port);
 
 SG_EXTERN void     Sg_ClosePort(SgPort *port);
 SG_EXTERN void     Sg_PseudoClosePort(SgPort *port);
