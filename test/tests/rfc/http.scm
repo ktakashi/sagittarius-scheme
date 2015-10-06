@@ -69,7 +69,7 @@
 (define (http-server socket)
   (let loop ()
     (let* ([client  (socket-accept socket)]
-	   [in/out  (transcoded-port (socket-port client)
+	   [in/out  (transcoded-port (buffered-port (socket-port client))
 				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
       (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)

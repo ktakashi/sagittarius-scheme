@@ -787,6 +787,26 @@
 	     (Sg_Format out p rest TRUE)
 	     (result (Sg_GetStringFromStringPort out))))))
 
+  ;; let user handle buffer as well
+  (define-c-proc buffered-port 
+    (port::<port> :key buffer-mode::<symbol> buffer::<bytevector>)
+    (unless (SG_BINARY_PORTP port)
+      (wrong-type-of-argument-violation 'buffered-port "binary port" port))
+    (when (Sg_PortClosedP port)
+      (wrong-type-of-argument-violation 'buffered-port "opened port" port))
+    (let ((mode::int SG_BUFFER_MODE_BLOCK)
+	  (buf::uint8_t* NULL)
+	  (size::size_t 0))
+      (cond ((SG_EQ buffer-mode 'none) (return port))
+	    ((SG_EQ buffer-mode 'line) (set! mode SG_BUFFER_MODE_LINE)))
+      (when (SG_BVECTORP buffer) 
+	(set! buf (SG_BVECTOR_ELEMENTS buffer)
+	      size (SG_BVECTOR_SIZE buffer)))
+      (Sg_PseudoClosePort port)
+      (result (Sg_MakeBufferedPort port mode buf size))))
+
+  ;; codec
+
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
     :no-side-effect
     Sg_MakeCustomCodecSimple)
