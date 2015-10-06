@@ -1195,14 +1195,14 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
   if (size == 0) return readSize;
 
   for (;;) {
-    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
-			       (int)size, 0);
-    int ready;
     struct timeval tm = {0, 10000};	/* wait a bit in case of retry (10ms?)*/
+    int now, ready;
+    now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
+			   (int)size, 0);
     if (-1 == now) {
+      int e = SG_PORT_SOCKET(self)->lastError;
       Sg_IOReadError(SG_INTERN("read-u8"),
-		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self,
+		     Sg_GetLastErrorMessageWithErrorCode(e), self,
 		     SG_NIL);
       return -1;
     }
@@ -1210,6 +1210,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     readSize += now;
     if (now == 0) break;
     if (size == 0) break;
+
     /* now how could we know if this socket still have some data ready
        or it's already ended. for now we use select if the socket has
        something to be read.
@@ -1219,7 +1220,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
       /* most likely nothing is waiting. i hope... */
       break;
     }
-    /* ok something is there keep reading*/
+    /* ok something is still there, read*/
   }
   SG_PORT(self)->position += readSize;
   return readSize;
@@ -1316,9 +1317,6 @@ static inline SgObject make_socket_port(SgSocket *socket,
   SG_INIT_PORT(port, SG_CLASS_SOCKET_PORT, d,
 	       (closeP)? &socket_close_table: &socket_table, SG_FALSE);
   port->socket = socket;
-  if (SG_OUTPUT_PORTP(port)) {
-    Sg_RegisterBufferedPort(SG_PORT(port));
-  }
   return SG_OBJ(port);
 }
 

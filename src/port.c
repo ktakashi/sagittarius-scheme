@@ -150,7 +150,17 @@ SG_DEFINE_BUILTIN_CLASS(Sg_TranscodedPortClass,
 			port_print, NULL, NULL, NULL,
 			trans_port_cpl);
 
-/* custom and buffered can be extended */
+static SgClass *buffered_port_cpl[] = {
+  SG_CLASS_BUFFERED_PORT,
+  SG_CLASS_PORT,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BUILTIN_CLASS(Sg_BufferedPortClass,
+			port_print, NULL, NULL, NULL,
+			buffered_port_cpl);
+
+/* custom can be extended */
 static SgClass *custom_port_cpl[] = {
   SG_CLASS_CUSTOM_PORT,
   SG_CLASS_PORT,
@@ -160,16 +170,6 @@ static SgClass *custom_port_cpl[] = {
 SG_DEFINE_BASE_CLASS(Sg_CustomPortClass, SgCustomPort,
 		     port_print, NULL, NULL, NULL,
 		     custom_port_cpl);
-
-static SgClass *buffered_port_cpl[] = {
-  SG_CLASS_BUFFERED_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
-SG_DEFINE_BASE_CLASS(Sg_BufferedPortClass, SgBufferedPort,
-		     port_print, NULL, NULL, NULL,
-		     buffered_port_cpl);
 
 #define PORT_DEFAULT_BUF_SIZE SG_PORT_DEFAULT_BUFFER_SIZE
 
@@ -346,7 +346,7 @@ static void buffered_flush(SgObject self)
 
 static void buffered_fill_buffer(SgObject self)
 {
-  int64_t read_size = 0;
+  int64_t read_size = 0, result;
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
   const size_t buffer_size = bp->size;
@@ -354,8 +354,8 @@ static void buffered_fill_buffer(SgObject self)
   if (bp->dirty && SG_IN_OUT_PORTP(self)) {
     buffered_flush(self);
   }
-  while (read_size < (int64_t)buffer_size) {
-    int64_t result =
+  /* while (read_size < (int64_t)buffer_size) { */
+    result =
       SG_PORT_VTABLE(src)->readb(src,
 				 bp->buffer + read_size,
 				 buffer_size - read_size);
@@ -364,12 +364,12 @@ static void buffered_fill_buffer(SgObject self)
 		 SG_MAKE_STRING("underlying reader returned invalid value"),
 		 SG_FALSE, self);
     }
-    if (result == 0) {
-      break;			/* EOF */
-    } else {
-      read_size += result;
-    }
-  }
+    /* if (result == 0) { */
+    /*   break;			/\* EOF *\/ */
+    /* } else { */
+    read_size += result;
+    /* } */
+    /*   } */
   /* ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE); */
   bp->bufferSize = read_size;
   bp->index = 0;
@@ -588,23 +588,83 @@ static SgPortTable block_buffer_table = {
   NULL
 };
 
-SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
-			     uint8_t *buffer, size_t size)
+
+/* internal */
+typedef struct SgBiDirectionalBufferedPortRec
 {
-  SgBufferedPort *p = SG_NEW(SgBufferedPort);
-  return Sg_InitBufferedPort(p, mode, src, buffer, size);
+  SgBufferedPort in;		/* for my convenience */
+  SgBufferedPort out;
+} SgBiDirectionalBufferedPort;
+#define BI_PORT(obj) ((SgBiDirectionalBufferedPort*)obj)
+
+static int bi_buffered_close(SgObject self)
+{
+  if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
+    /* close out side, this closes source port as well
+       NB: no need to do input side. we don't want to flush it
+    */
+    buffered_close(SG_OBJ(&BI_PORT(self)->out));
+    SG_PORT(self)->closed = SG_PORT_CLOSED;
+  }
+  return TRUE;
 }
-SgObject Sg_InitBufferedPort(SgBufferedPort *bp, 
-			     SgBufferMode mode, SgPort *src, 
-			     uint8_t *buffer, size_t size)
+static void bi_buffered_flush(SgObject self)
+{
+  buffered_flush(SG_OBJ(&BI_PORT(self)->out));
+}
+static int64_t bi_buffered_write_to_line_buffer(SgObject self, uint8_t *v,
+					     int64_t req_size)
+{
+  return buffered_write_to_line_buffer(&BI_PORT(self)->out, v, req_size);
+}
+static int64_t bi_buffered_write_to_block_buffer(SgObject self, uint8_t *v,
+					     int64_t req_size)
+{
+  return buffered_write_to_block_buffer(&BI_PORT(self)->out, v, req_size);
+}
+static SgPortTable bi_line_buffer_table = {
+  bi_buffered_flush,
+  bi_buffered_close,
+  buffered_ready,
+  buffered_lock,
+  buffered_unlock,
+  NULL,				/* impossible... */
+  NULL,				/* ditto */
+  NULL,
+  buffered_readb,
+  buffered_readb_all,
+  bi_buffered_write_to_line_buffer,
+  NULL,
+  NULL
+};
+
+static SgPortTable bi_block_buffer_table = {
+  bi_buffered_flush,
+  bi_buffered_close,
+  buffered_ready,
+  buffered_lock,
+  buffered_unlock,
+  NULL,				/* impossible */
+  NULL,				/* ditto */
+  NULL,
+  buffered_readb,
+  buffered_readb_all,
+  bi_buffered_write_to_block_buffer,
+  NULL,
+  NULL
+};
+
+static SgObject init_buffered_port(SgBufferedPort *bp, 
+				   SgBufferMode mode, SgPort *src, 
+				   uint8_t *buffer, size_t size, 
+				   int registerP)
 {
   /* TODO should we close here? */
   /* Sg_PseudoClosePort(src); */
   /* for now only binary port */
-  SG_INIT_PORT(bp, SG_CLASS_BUFFERED_PORT, src->direction,
-	       (mode == SG_BUFFER_MODE_LINE) 
-	       ? &line_buffer_table: &block_buffer_table,
-	       SG_FALSE);
+  SgPortTable *tbl;
+  tbl = (mode == SG_BUFFER_MODE_LINE)? &line_buffer_table: &block_buffer_table;
+  SG_INIT_PORT(bp, SG_CLASS_BUFFERED_PORT, src->direction, tbl, SG_FALSE);
   if (buffer != NULL) {
     bp->buffer = buffer;
     bp->size = size;
@@ -617,10 +677,36 @@ SgObject Sg_InitBufferedPort(SgBufferedPort *bp,
   bp->dirty = FALSE;
   bp->src = src;
   bp->mode = mode;
-  if (SG_OUTPUT_PORTP(SG_PORT(bp))) {
+  if (registerP) {
     register_buffered_port(SG_PORT(bp));
   }
   return SG_OBJ(bp);
+}
+
+SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
+			     uint8_t *buffer, size_t size)
+{
+  if (SG_BIDIRECTIONAL_PORTP(src)) {
+    SgObject r;
+    SgBiDirectionalBufferedPort *p =SG_NEW(SgBiDirectionalBufferedPort);
+    r = init_buffered_port(&BI_PORT(p)->in, mode, src, buffer, size, FALSE);
+    SG_PORT_VTABLE(r) = (mode == SG_BUFFER_MODE_LINE) 
+      ? &bi_line_buffer_table: &bi_block_buffer_table;
+    /* out side is excess so won't be used */
+    init_buffered_port(&BI_PORT(p)->out, mode, src, NULL, 0, TRUE);
+    return r;
+  } else {
+      SgBufferedPort *p = SG_NEW(SgBufferedPort);
+    return Sg_InitBufferedPort(p, mode, src, buffer, size);
+  }
+}
+
+SgObject Sg_InitBufferedPort(SgBufferedPort *bp, 
+			     SgBufferMode mode, SgPort *src, 
+			     uint8_t *buffer, size_t size)
+{
+  return init_buffered_port(bp, mode, src, buffer, size,
+			    SG_OUTPUT_PORTP(SG_PORT(bp)));
 }
 
 

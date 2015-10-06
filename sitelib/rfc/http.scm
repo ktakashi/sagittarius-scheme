@@ -192,11 +192,13 @@
     (let* ((secure? (http-connection-secure conn))
 	   (make-socket (if secure? make-client-tls-socket make-client-socket))
 	   (port (if secure? "443" "80")))
-      (let1 s (server->socket (or (http-connection-proxy conn)
-				  (http-connection-server conn))
-			      port make-socket)
+      (let* ((s (server->socket (or (http-connection-proxy conn)
+				    (http-connection-server conn))
+				port make-socket))
+	     (p (buffered-port (socket-port s #f))))
 	(unwind-protect
-	    (proc (socket-port s #f) (http-connection-extra-headers conn))
+	    (proc p (http-connection-extra-headers conn))
+	  (close-port p)
 	  (socket-shutdown s SHUT_RDWR)
 	  (socket-close s)))))
 
@@ -276,6 +278,7 @@
 	 (lambda (in/out ext-header)
 	   (send-request in/out method host uri sender ext-header options enc
 			 auth-header)
+	   (flush-output-port in/out)
 	   (receive (code headers) (receive-header in/out)
 	     (or (handle-redirect in/out code headers)
 		 (handle-authentication in/out code headers 
