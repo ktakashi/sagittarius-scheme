@@ -250,13 +250,15 @@ struct SgPortRec
 
 /* port direction */
 #define SG_INPUT_PORTP(obj)					\
-  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_INPUT_PORT))
+  (SG_PORTP(obj) && SG_PORT(obj)->direction & SG_INPUT_PORT)
 #define SG_OUTPUT_PORTP(obj)					\
-  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_OUTPUT_PORT))
+  (SG_PORTP(obj) && SG_PORT(obj)->direction & SG_OUTPUT_PORT)
 #define SG_IN_OUT_PORTP(obj)					\
-  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_IN_OUT_PORT))
+  (SG_PORTP(obj) &&						\
+   (SG_PORT(obj)->direction & SG_IN_OUT_PORT) == SG_IN_OUT_PORT)
 #define SG_BIDIRECTIONAL_PORTP(obj)					\
-  ((SG_PORTP(obj) && SG_PORT(obj)->direction & SG_BIDIRECTIONAL_PORT))
+  (SG_PORTP(obj) &&							\
+   (SG_PORT(obj)->direction & SG_BIDIRECTIONAL_PORT) == SG_BIDIRECTIONAL_PORT)
 
 
 typedef struct SgFilePortRec
@@ -292,7 +294,6 @@ typedef struct SgStringPortRec
     struct {
       char_buffer *start;
       char_buffer *current;
-      int64_t  position;
     } /* out */ ;
     struct {
       SgChar *buf;
@@ -396,7 +397,7 @@ SG_CLASS_DECL(Sg_TranscodedPortClass);
 #define SG_CLASS_BYTE_PORT (&Sg_BytePortClass)
 #define SG_CLASS_STRING_PORT (&Sg_StringPortClass)
 #define SG_CLASS_CUSTOM_PORT (&Sg_CustomPortClass)
-#define SG_CLASS_BUFFERED_PORT (&Sg_CustomPortClass)
+#define SG_CLASS_BUFFERED_PORT (&Sg_BufferedPortClass)
 #define SG_CLASS_TRANSCODED_PORT (&Sg_TranscodedPortClass)
 
 #define SG_FILE_PORTP(o)       SG_ISA(o, SG_CLASS_FILE_PORT)
