@@ -1794,14 +1794,14 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
 
 static int custom_close(SgObject self)
 {
-  if (SG_PORT(self)->closed == SG_PORT_CLOSED) {
+  if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
     if (!SG_FALSEP(SG_CUSTOM_PORT(self)->close)) {
       Sg_Apply0(SG_CUSTOM_PORT(self)->close);
     }
     Sg_UnregisterFinalizer(self);
     SG_PORT(self)->closed = SG_PORT_CLOSED;
   }
-  return SG_PORT(self)->closed == SG_PORT_CLOSED;
+  return TRUE;
 }
 
 static int custom_ready(SgObject self)
