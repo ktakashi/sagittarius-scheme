@@ -45,15 +45,15 @@ static const wchar_t* utf32ToUtf16(SgString *path)
   int size = SG_STRING_SIZE(path);
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16LE);
   SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  SgPort out, tout;
-  SgBinaryPort bp;
-  SgTextualPort tp;
-  Sg_InitByteArrayOutputPort(&out, &bp, sizeof(wchar_t) * (size + 1));
-  Sg_InitTranscodedPort(&tout, &tp, &out, tcoder, SG_OUTPUT_PORT);
-  Sg_TranscoderWrite(tcoder, &tout, SG_STRING_VALUE(path),
+  SgPort *out, *tout;
+  SgBytePort bp;
+  SgTranscodedPort tp;
+  out = Sg_InitByteArrayOutputPort(&bp, sizeof(wchar_t) * (size + 1));
+  tout = Sg_InitTranscodedPort(&tp, out, tcoder, SG_OUTPUT_PORT);
+  Sg_TranscoderWrite(tcoder, tout, SG_STRING_VALUE(path),
 		     SG_STRING_SIZE(path));
-  Sg_TranscoderPutc(tcoder, &tout, '\0');
-  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(&out);
+  Sg_TranscoderPutc(tcoder, tout, '\0');
+  return (const wchar_t*)Sg_GetByteArrayFromBinaryPort(&bp);
 }
 
 static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
@@ -62,10 +62,11 @@ static SgString* utf16ToUtf32(wchar_t *s)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
   size_t i = 0, n = wcslen(s);
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject r;
-  Sg_InitStringOutputPort(&out, &tp, (int)n);
+
+  out = Sg_InitStringOutputPort(&tp, (int)n);
   while (i < n) {
     SgChar c0 = s[i++];
     if (isLead(c0)) {
@@ -77,20 +78,21 @@ static SgString* utf16ToUtf32(wchar_t *s)
 	return SG_MAKE_STRING("bad char");
       }
     }
-    Sg_PutcUnsafe(&out, c0);
+    Sg_PutcUnsafe(out, c0);
   }
-  r = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  r = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return r;
 }
 
 static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject r;
-  Sg_InitStringOutputPort(&out, &tp, (int)((e - s) * 2));
+
+  out = Sg_InitStringOutputPort(&tp, (int)((e - s) * 2));
   while (s < e) {
     SgChar c0 = *s++;
     if (isLead(c0)) {
@@ -102,10 +104,10 @@ static SgString* utf16ToUtf32WithRegion(wchar_t *s, wchar_t *e)
 	return SG_MAKE_STRING("bad char");
       }
     }
-    Sg_PutcUnsafe(&out, c0);
+    Sg_PutcUnsafe(out, c0);
   }
-  r = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  r = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return r;
 }
 

@@ -1220,7 +1220,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
   int b;
 #ifdef _MSC_VER
   /* I have no idea why this happens on Windows, I'm suspecting GC's bug */
-  if (!SG_BINARY_PORT(in)->src.file) {
+  if (!SG_FILE_PORT(in)->file) {
     ESCAPE(ctx, "invalid binary port %S appeared.", in);
   }
 #endif
