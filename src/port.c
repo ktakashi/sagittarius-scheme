@@ -87,6 +87,22 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutcUnsafe(port, ' ');
     Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
   }
+  if (SG_BUFFERED_PORTP(p)) {
+    Sg_PutcUnsafe(port, ' ');
+    switch (SG_BUFFERED_PORT(p)->mode) {
+    case SG_BUFFER_MODE_LINE:
+      Sg_PutuzUnsafe(port, UC("line"));
+      break;
+    case SG_BUFFER_MODE_BLOCK:
+      Sg_PutuzUnsafe(port, UC("block"));
+      break;
+    case SG_BUFFER_MODE_NONE:
+      /* never be here but make compiler shut */
+      Sg_PutuzUnsafe(port, UC("none"));
+      break;
+    }
+  }
+
   file = Sg_FileName(p);
   if (!SG_FALSEP(file)) {
     Sg_PutcUnsafe(port, ' ');
@@ -534,13 +550,9 @@ static int buffered_unlock(SgObject self)
 
 static int64_t buffered_position(SgObject self, Whence where)
 {
-  SgBufferedPort *bp = SG_BUFFERED_PORT(self);
-  SgPort *src = bp->src;
-  if (SG_PORT_VTABLE(src)->portPosition) {
-    return SG_PORT_VTABLE(src)->portPosition(src, where);
-  }
-  Sg_Error(UC("Given port does not support port-position: %S"), self);
-  return -1;
+  /* underlying port position is changed by filling buffer.
+     so just return this port's position. */
+  return SG_PORT(self)->position;
 }
 
 static void buffered_set_position(SgObject self, int64_t off, Whence where)
@@ -548,9 +560,12 @@ static void buffered_set_position(SgObject self, int64_t off, Whence where)
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
   if (SG_PORT_VTABLE(src)->setPortPosition) {
+    /* flush current buffer */
+    buffered_flush(self);
     bp->index = 0;
     bp->bufferSize = 0;
     SG_PORT_VTABLE(src)->setPortPosition(src, off, where);
+    SG_PORT(self)->position = src->position;
     return;
   }
   Sg_Error(UC("Given port does not support set-port-position!: %S"), self);
@@ -855,17 +870,12 @@ static int64_t file_port_position(SgObject self, Whence whence)
   }
 }
 
-#define INIT_FILE_PORT_COMMON(z)				\
-  do {								\
-    (z)->closed = FALSE;					\
-  } while (0)
-
 static void file_set_port_position(SgObject self, int64_t offset,
 					 Whence whence)
 {
   SgFile *file = SG_PORT_FILE(self);
   /* if flush is there, then flush it */
-  if (SG_PORT_VTABLE(self)->flush) {
+  if (SG_OUTPUT_PORTP(self) && SG_PORT_VTABLE(self)->flush) {
     SG_PORT_VTABLE(self)->flush(self);
   }
   if (SG_FILE_VTABLE(file)->seek) {
