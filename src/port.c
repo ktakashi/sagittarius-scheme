@@ -1269,8 +1269,14 @@ static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
 {
   int64_t readSize;
   if (size == 0) return 0;	/* short cut */
-  readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
-			       self, buf, size);
+  /* need special treatment when the size is 1 to handle EOL properly */
+  if (size == 1) {
+    buf[0] = Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+    readSize = 1;
+  } else {
+    readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
+				 self, buf, size);
+  }
   return readSize;
 }
 
