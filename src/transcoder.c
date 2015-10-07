@@ -114,7 +114,10 @@ static SgObject get_mode(int mode)
   } while (0);
 
 #define SAVE_CLOSED(port, save)				\
-  do { (save) = SG_PORT(port)->closed; } while (0)
+  do {							\
+    (save) = SG_PORT(port)->closed;			\
+    SG_PORT(port)->closed = SG_PORT_OPEN;		\
+} while (0)
 #define RESTORE_CLOSED(port, prev)			\
   do { SG_PORT(port)->closed = (prev); } while (0)
 

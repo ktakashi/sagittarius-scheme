@@ -145,7 +145,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_BytePortClass,
 			byte_port_cpl);
 
 static SgClass *string_port_cpl[] = {
-  SG_CLASS_BYTE_PORT,
+  SG_CLASS_STRING_PORT,
   SG_CLASS_PORT,
   SG_CLASS_TOP,
   NULL
@@ -564,6 +564,8 @@ static void buffered_set_position(SgObject self, int64_t off, Whence where)
     buffered_flush(self);
     bp->index = 0;
     bp->bufferSize = 0;
+    /* sync source position to buffered position */
+    src->position = SG_PORT(self)->position;
     SG_PORT_VTABLE(src)->setPortPosition(src, off, where);
     SG_PORT(self)->position = src->position;
     return;
@@ -692,6 +694,11 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
   bp->dirty = FALSE;
   bp->src = src;
   bp->mode = mode;
+  /* If the source port is converted to buffered port after some
+     data is read, we still need to track the position. to do it
+     we need to get the position from source port.
+   */
+  SG_PORT(bp)->position = src->position;
   if (registerP) {
     register_buffered_port(SG_PORT(bp));
   }
@@ -995,6 +1002,10 @@ static SgObject make_file_port(SgFile *file, int bufferMode,
 					  tbl, 
 					  SG_FALSE);
   z->file = file;
+  /* set file position */
+  if (SG_FILE_VTABLE(file)->tell)
+    SG_PORT(z)->position = SG_FILE_VTABLE(file)->tell(file);
+
   switch (bufferMode) {
   case SG_BUFFER_MODE_LINE:
   case SG_BUFFER_MODE_BLOCK:
