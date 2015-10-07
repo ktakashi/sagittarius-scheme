@@ -557,24 +557,17 @@
   ;; io
   (define-cise-stmt check-binary-port
     ((_ name p)
-     `(unless (or (SG_BINARY_PORTP ,p)
-		  (and (SG_CUSTOM_PORTP ,p)
-		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
-			      SG_BINARY_CUSTOM_PORT_TYPE)))
+     `(unless (SG_BINARY_PORTP ,p)
 	(wrong-type-of-argument-violation ',name "binary-port" ,p))))
   (define-cise-stmt check-input-port
     ((_ name p)
-     `(unless (or (SG_INPORTP ,p)
-		  (SG_INOUTPORTP ,p)
-		  (SG_BIDIRECT_PORTP ,p))
+     `(unless (SG_INPUT_PORTP ,p)
 	(wrong-type-of-argument-violation ',name
 					  "input port"
 					  ,p))))
   (define-cise-stmt check-output-port
     ((_ name p)
-     `(unless (or (SG_OUTPORTP ,p)
-		  (SG_INOUTPORTP ,p)
-		  (SG_BIDIRECT_PORTP ,p))
+     `(unless (SG_OUTPUT_PORTP ,p)
 	(wrong-type-of-argument-violation ',name
 					  "output port"
 					  ,p))))
@@ -743,13 +736,13 @@
       (result (Sg_ReadWithContext p (& ctx)))))
 
   (define-cfn string-format (fmt objs) :static
-    (let ((out::SgPort)
-	  (tp::SgTextualPort)
+    (let ((out::SgPort*)
+	  (tp::SgStringPort)
 	  (r))
-      (Sg_InitStringOutputPort (& out) (& tp) 16)
-      (Sg_Format (& out) fmt objs FALSE)
-      (set! r (Sg_GetStringFromStringPort (& out)))
-      (SG_CLEAN_TEXTUAL_PORT (& tp))
+      (set! out (Sg_InitStringOutputPort (& tp) 16))
+      (Sg_Format out fmt objs FALSE)
+      (set! r (Sg_GetStringFromStringPort (& tp)))
+      (SG_CLEAN_STRING_PORT (& tp))
       (return r)))
 
   (define-c-proc format (p :rest rest)
@@ -793,6 +786,26 @@
 	   (let ((out (Sg_MakeStringOutputPort 16)))
 	     (Sg_Format out p rest TRUE)
 	     (result (Sg_GetStringFromStringPort out))))))
+
+  ;; let user handle buffer as well
+  (define-c-proc buffered-port 
+    (port::<port> :key buffer-mode::<symbol> buffer::<bytevector>)
+    (unless (SG_BINARY_PORTP port)
+      (wrong-type-of-argument-violation 'buffered-port "binary port" port))
+    (when (Sg_PortClosedP port)
+      (wrong-type-of-argument-violation 'buffered-port "opened port" port))
+    (let ((mode::int SG_BUFFER_MODE_BLOCK)
+	  (buf::uint8_t* NULL)
+	  (size::size_t 0))
+      (cond ((SG_EQ buffer-mode 'none) (return port))
+	    ((SG_EQ buffer-mode 'line) (set! mode SG_BUFFER_MODE_LINE)))
+      (when (SG_BVECTORP buffer) 
+	(set! buf (SG_BVECTOR_ELEMENTS buffer)
+	      size (SG_BVECTOR_SIZE buffer)))
+      (Sg_PseudoClosePort port)
+      (result (Sg_MakeBufferedPort port mode buf size))))
+
+  ;; codec
 
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)
     :no-side-effect
@@ -854,14 +867,12 @@
   (define-c-proc get-output-bytevector (p::<port>)
     (check-port-closed? get-output-bytevector p)
     (check-output-port get-output-bytevector p)
-    (cond ((SG_BINARY_PORTP p)
-	   (result (Sg_GetByteVectorFromBinaryPort p)))
-	  ((and (SG_TEXTUAL_PORTP p)
-		(== (-> (SG_TEXTUAL_PORT p) type)
-		    SG_TRANSCODED_TEXTUAL_PORT_TYPE))
+    (cond ((SG_BYTE_PORTP p)
+	   (result (Sg_GetByteVectorFromBinaryPort (SG_BYTE_PORT p))))
+	  ((and (SG_TRANSCODED_PORTP p)
+		(SG_BYTE_PORTP (SG_TRANSCODED_PORT_PORT p)))
 	   (result (Sg_GetByteVectorFromBinaryPort 
-		    (ref (pointer (SG_TEXTUAL_PORT p))
-			 src transcoded port))))
+		    (SG_BYTE_PORT (SG_TRANSCODED_PORT_PORT p)))))
 	  (else
 	   (wrong-type-of-argument-violation 'get-output-bytevector
 					     "binary or transcoded texutal port"
@@ -872,21 +883,26 @@
     (check-output-port extract-output-bytevector p)
     ;; I'm not quite sure if I should reset the port position
     ;; if it's textual port.
-    (cond ((SG_BINARY_PORTP p)
-	   (result (Sg_GetByteVectorFromBinaryPort p))
+    (cond ((SG_BYTE_PORTP p)
+	   (result (Sg_GetByteVectorFromBinaryPort (SG_BYTE_PORT p)))
 	   (Sg_SetPortPosition p 0 SG_BEGIN)
-	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf start)
+	   (set! (ref (pointer (SG_BYTE_PORT p)) buffer start)
 		 (SG_NEW byte_buffer))
-	   (set! (ref (pointer (SG_BINARY_PORT p)) src obuf current)
-		 (ref (pointer (SG_BINARY_PORT p)) src obuf start)))
-	  ((and (SG_TEXTUAL_PORTP p)
-		(== (-> (SG_TEXTUAL_PORT p) type)
-		    SG_TRANSCODED_TEXTUAL_PORT_TYPE))
+	   (set! (ref (pointer (SG_BYTE_PORT p)) buffer current)
+		 (ref (pointer (SG_BYTE_PORT p)) buffer start)))
+	  ((and (SG_TRANSCODED_PORTP p)
+		(SG_BYTE_PORTP (SG_TRANSCODED_PORT_PORT p)))
 	   (result (Sg_GetByteVectorFromBinaryPort 
-		    (ref (pointer (SG_TEXTUAL_PORT p))
-			 src transcoded port)))
-	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_SRC_PORT p) 0 SG_BEGIN)
-	   (set! (SG_TRANSCODED_PORT_BUFFER p) EOF))
+		    (SG_BYTE_PORT (SG_TRANSCODED_PORT_PORT p))))
+	   (Sg_SetPortPosition (SG_TRANSCODED_PORT_PORT p) 0 SG_BEGIN)
+	   (set! (ref (pointer (SG_BYTE_PORT (SG_TRANSCODED_PORT_PORT p)))
+		      buffer start)
+		 (SG_NEW byte_buffer))
+	   (set! (ref (pointer (SG_BYTE_PORT (SG_TRANSCODED_PORT_PORT p)))
+		      buffer current)
+		 (ref (pointer (SG_BYTE_PORT (SG_TRANSCODED_PORT_PORT p)))
+		      buffer start))
+	   (set! (SG_TRANSCODED_PORT_UNGET p) EOF))
 	  (else
 	   (wrong-type-of-argument-violation 'extract-output-bytevector
 					     "binary or transcoded texutal port"
@@ -897,10 +913,7 @@
 
   (define-cise-stmt check-textual-port
     ((_ name p)
-     `(unless (or (SG_TEXTUAL_PORTP ,p)
-		  (and (SG_CUSTOM_PORTP ,p)
-		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
-			      SG_TEXTUAL_CUSTOM_PORT_TYPE)))
+     `(unless (SG_TEXTUAL_PORTP ,p)
 	(wrong-type-of-argument-violation ',name "textual-port" ,p))))
 
   ;; SRFI-6
@@ -908,25 +921,23 @@
     (check-port-open get-output-string p)
     (check-output-port get-output-string p)
     (check-textual-port get-output-string p)
-    (unless (SG_EQ (-> (SG_TEXTUAL_PORT p) type)
-		   SG_STRING_TEXTUAL_PORT_TYPE)
+    (unless (SG_STRING_PORTP p)
       (wrong-type-of-argument-violation 'get-output-string "string port" p))
-    (result (Sg_GetStringFromStringPort p)))
+    (result (Sg_GetStringFromStringPort (SG_STRING_PORT p))))
 
   (define-c-proc extract-output-string (p::<port>)
     (check-port-open get-output-string p)
     (check-output-port get-output-string p)
     (check-textual-port get-output-string p)
-    (unless (SG_EQ (-> (SG_TEXTUAL_PORT p) type)
-		   SG_STRING_TEXTUAL_PORT_TYPE)
+    (unless (SG_STRING_PORTP p)
       (wrong-type-of-argument-violation 'get-output-string "string port" p))
-    (result (Sg_GetStringFromStringPort p))
+    (result (Sg_GetStringFromStringPort (SG_STRING_PORT p)))
     (Sg_SetPortPosition p 0 SG_BEGIN)
     ;; reset
-    (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)
+    (set! (ref (pointer (SG_STRING_PORT p)) buffer start)
 	  (SG_NEW char_buffer))
-    (set! (ref (pointer (SG_TEXTUAL_PORT p)) src ostr current)
-	  (ref (pointer (SG_TEXTUAL_PORT p)) src ostr start)))
+    (set! (ref (pointer (SG_STRING_PORT p)) buffer current)
+	  (ref (pointer (SG_STRING_PORT p)) buffer start)))
 
   ;; we don't check the port type
   (define-c-proc port-ready? (:optional (p (Sg_CurrentInputPort))) ::<boolean>

@@ -179,7 +179,7 @@ SgObject Sg_VMLoad(SgString *path)
 	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
 	       path, SG_FALSE);
   }
-  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
   
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {

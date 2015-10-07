@@ -182,13 +182,13 @@ static SgObject brace_expand(SgString *str, int flags)
   /* make "foo/{a,b}" to ("foo/a" "foo/b") */
   if (haslb && hasrb) {
     SgObject h = SG_NIL, t = SG_NIL;
-    SgPort out;
-    SgTextualPort tp;
+    SgPort *out;
+    SgStringPort tp;
     int i;
     /* copy value until the first '{' */
-    Sg_InitStringOutputPort(&out, &tp, 255);
+    out = Sg_InitStringOutputPort(&tp, 255);
     for (i = 0; i < lbrace; i++) {
-      Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, i));
+      Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(str, i));
     }
     /* skip '{' */
     i++;
@@ -204,20 +204,20 @@ static SgObject brace_expand(SgString *str, int flags)
   	if (SG_STRING_VALUE_AT(str, i) == '\\' && escape) {
   	  if (++i == rbrace) break;
   	}
-  	Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, i));
+  	Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(str, i));
       }
       /* skip ',' */
       i++;
       /* copy after the '}' */
       for (j = rbrace+1; j < SG_STRING_SIZE(str); j++) {
-  	Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, j));
+  	Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(str, j));
       }
-      tmp = Sg_GetStringFromStringPort(&out);
+      tmp = Sg_GetStringFromStringPort(&tp);
       SG_APPEND(h, t, brace_expand(tmp, flags));
       /* back to the starting position */
-      Sg_SetPortPosition(&out, lbrace, SG_BEGIN);
+      Sg_SetPortPosition(out, lbrace, SG_BEGIN);
     }
-    SG_CLEAN_TEXTUAL_PORT(&tp);
+    SG_CLEAN_STRING_PORT(&tp);
     return h;
   } else {
     return SG_LIST1(str);
@@ -287,27 +287,27 @@ static SgObject convert_star(SgObject p)
   }
   if (has_star) {
     /* TODO should we use AST directly to save some memory? */
-    SgPort out;
-    SgTextualPort tp;
+    SgPort *out;
+    SgStringPort tp;
 
     /* copy value until the first '{' */
-    Sg_InitStringOutputPort(&out, &tp, 255);
-    Sg_PutzUnsafe(&out, ".*");
+    out = Sg_InitStringOutputPort(&tp, 255);
+    Sg_PutzUnsafe(out, ".*");
     SG_FOR_EACH(p, SG_CDR(p)) {
       if (SG_STRINGP(SG_CAR(p))) {
-	Sg_PutsUnsafe(&out, SG_STRING(SG_CAR(p)));
+	Sg_PutsUnsafe(out, SG_STRING(SG_CAR(p)));
       } else if (SG_CHAR_SET_P(SG_CAR(p))) {
-	Sg_PutsUnsafe(&out, Sg_CharSetToRegexString(SG_CAR(p), FALSE));
+	Sg_PutsUnsafe(out, Sg_CharSetToRegexString(SG_CAR(p), FALSE));
       } else if (SG_EQ(SG_CAR(p), STAR)) {
-	Sg_PutzUnsafe(&out, ".*");
+	Sg_PutzUnsafe(out, ".*");
       } else {
 	Sg_Error(UC("[Internal] Unknown pattern '%S'"), SG_CAR(p));
       }
     }
-    Sg_PutcUnsafe(&out, '$');
-    SG_APPEND1(h, t, Sg_CompileRegex(Sg_GetStringFromStringPort(&out), 0,
+    Sg_PutcUnsafe(out, '$');
+    SG_APPEND1(h, t, Sg_CompileRegex(Sg_GetStringFromStringPort(&tp), 0,
 				     FALSE));
-    SG_CLEAN_TEXTUAL_PORT(&tp);
+    SG_CLEAN_STRING_PORT(&tp);
     return h;
   }
   /* FIXME: we don't want to allocate memory in this case */

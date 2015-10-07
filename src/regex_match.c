@@ -66,11 +66,11 @@
   #define WRITES Sg_WritebUnsafe
   #define SUB_TEXT Sg_ByteVectorCopy
   #define DECL_BUFFER(p, tp, size)		\
-    SgPort p;					\
-    SgBinaryPort tp;				\
-    Sg_InitByteArrayOutputPort(&(p), &(tp), size)
+    SgPort *p;					\
+    SgBytePort tp;				\
+    p = Sg_InitByteArrayOutputPort(&(tp), size)
   #define GET_BUFFER Sg_GetByteVectorFromBinaryPort
-  #define CLEAN_BUFFER SG_CLEAN_BINARY_PORT
+  #define CLEAN_BUFFER SG_CLEAN_BYTE_PORT
   #define ALLOC_TEXT Sg_MakeByteVector
 #else
 /* string */
@@ -98,11 +98,11 @@
   #define WRITES(p, s, start, count) Sg_WritesUnsafe(p, (s)+(start), count)
   #define SUB_TEXT Sg_Substring
   #define DECL_BUFFER(p, tp, size)		\
-    SgPort p;					\
-    SgTextualPort tp;				\
-    Sg_InitStringOutputPort(&(p), &(tp), size)
+    SgPort *p;					\
+    SgStringPort tp;				\
+    p = Sg_InitStringOutputPort(&(tp), size)
   #define GET_BUFFER Sg_GetStringFromStringPort
-  #define CLEAN_BUFFER SG_CLEAN_TEXTUAL_PORT
+  #define CLEAN_BUFFER SG_CLEAN_STRING_PORT
   #define ALLOC_TEXT Sg_ReserveString
 #endif
 
@@ -1168,11 +1168,11 @@ text_t* DECL_FUNC_NAME(ReplaceAll)(matcher_t *mt, SgObject replacement)
     text_t *r;
     DECL_BUFFER(p, tp, TEXT_SIZE(MATCHER(m)->text) * 2);
     do {
-      append_replacement(m, &p, replacement);
+      append_replacement(m, p, replacement);
       result = Sg_RegexFind(m, -1);
     } while (result);
-    append_tail(m, &p);
-    r = TEXT(GET_BUFFER(&p));
+    append_tail(m, p);
+    r = TEXT(GET_BUFFER(&tp));
     CLEAN_BUFFER(&tp);
     return r;
   }
@@ -1190,9 +1190,9 @@ text_t* DECL_FUNC_NAME(Replace)(matcher_t *mt, SgObject replacement, int count)
   if (result) {
     text_t *r;
     DECL_BUFFER(p, tp, TEXT_SIZE(MATCHER(m)->text) * 2);
-    append_replacement(m, &p, replacement);
-    append_tail(m, &p);
-    r = TEXT(GET_BUFFER(&p));
+    append_replacement(m, p, replacement);
+    append_tail(m, p);
+    r = TEXT(GET_BUFFER(&tp));
     CLEAN_BUFFER(&tp);
     return r;
   }

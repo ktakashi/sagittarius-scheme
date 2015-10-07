@@ -1073,8 +1073,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgVM *vm = Sg_VM();
   SgString *cache_path = id_to_filename(id);
   SgFile file, tagfile;
-  SgPort out;
-  SgBinaryPort bp;
+  SgPort *out;
+  SgFilePort bp;
   SgObject cache, size;
   int index = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
@@ -1095,21 +1095,22 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_CloseFile(&file);
     return TRUE;
   }
-  Sg_InitFileBinaryPort(&out, &bp, &file, SG_OUTPUT_PORT, SG_BUFMODE_BLOCK,
-			portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
+  out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, NULL, 
+			      SG_BUFFER_MODE_BLOCK,
+			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
   SG_FOR_EACH(cache, caches) {
     if (SG_VM_LOG_LEVEL(vm, SG_TRACE_LEVEL)) {
       Sg_VMDumpCode(SG_CAR(cache));
     }
     if ((index = write_cache(name, SG_CODE_BUILDER(SG_CAR(cache)),
-			     &out, index)) < 0) {
+			     out, index)) < 0) {
       return FALSE;
     }
   }
-  Sg_FlushPort(&out);
+  Sg_FlushPort(out);
   Sg_UnlockFile(&file);
-  Sg_ClosePort(&out);
+  Sg_ClosePort(out);
 
   size = Sg_FileSize(cache_path);
   if (SG_EXACT_INTP(size)) {
@@ -1122,15 +1123,17 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
-  Sg_InitFileBinaryPort(&out, &bp, &tagfile, SG_OUTPUT_PORT, SG_BUFMODE_NONE,
-			NULL, 0);
-  /* put validate tag */
-  Sg_WritebUnsafe(&out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
-  Sg_WritebUnsafe(&out, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
-  Sg_FlushPort(&out);
-  Sg_ClosePort(&out);
+  out = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, NULL, 
+			      SG_BUFFER_MODE_NONE,
+			      NULL, 0);
 
-  SG_CLEAN_BINARY_PORT(&bp);
+  /* put validate tag */
+  Sg_WritebUnsafe(out, (uint8_t *)VALIDATE_TAG, 0, (int)TAG_LENGTH);
+  Sg_WritebUnsafe(out, (uint8_t *)&cacheSize, 0, sizeof(int64_t));
+  Sg_FlushPort(out);
+  Sg_ClosePort(out);
+
+  /* SG_CLEAN_FILE_PORT(&bp); */
   Sg_UnlockFile(&tagfile);
 
   return TRUE;
@@ -1991,8 +1994,8 @@ int Sg_ReadCache(SgString *id)
   SgVM *vm = Sg_VM();
   SgString *cache_path = id_to_filename(id);
   SgFile file;
-  SgPort in;
-  SgBinaryPort bp;
+  SgPort *in;
+  SgFilePort bp;
   SgObject obj;
   SgHashTable seen, shared;
   SgLibrary * volatile save = vm->currentLibrary;
@@ -2023,8 +2026,9 @@ int Sg_ReadCache(SgString *id)
   Sg_LockFile(&file, SG_SHARED);
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
-  Sg_InitFileBinaryPort(&in, &bp, &file, SG_INPUT_PORT, SG_BUFMODE_BLOCK,
-			portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
+  in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
+			     NULL, SG_BUFFER_MODE_BLOCK,
+			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
@@ -2039,16 +2043,16 @@ int Sg_ReadCache(SgString *id)
   ctx.isLinkNeeded = FALSE;
   ctx.file = cache_path;
   ctx.links = SG_NIL;
-  SG_PORT_LOCK_READ(&in);
+  SG_PORT_LOCK_READ(in);
   /* check if it's invalid cache or not */
-  b = Sg_PeekbUnsafe(&in);
+  b = Sg_PeekbUnsafe(in);
   if (b == INVALID_CACHE_TAG) {
     ret = INVALID_CACHE;
     goto end;
   }
 
   if (setjmp(ctx.escape) == 0) {
-    while ((obj = read_toplevel(&in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
+    while ((obj = read_toplevel(in, MACRO_SECTION_TAG, &ctx)) != SG_EOF) {
       /* toplevel cache never be #f */
       if (SG_FALSEP(obj)) {
 	ret = RE_CACHE_NEEDED;
@@ -2107,10 +2111,10 @@ int Sg_ReadCache(SgString *id)
   }
  end:
   vm->currentLibrary = save;
-  SG_PORT_UNLOCK_READ(&in);
+  SG_PORT_UNLOCK_READ(in);
   Sg_UnlockFile(&file);
-  Sg_ClosePort(&in);
-  SG_CLEAN_BINARY_PORT(&bp);
+  Sg_ClosePort(in);
+  /* SG_CLEAN_BINARY_PORT(&bp); */
   if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
     uint64_t end_real;
     Sg_TimeUsage(&end_real, NULL, NULL);

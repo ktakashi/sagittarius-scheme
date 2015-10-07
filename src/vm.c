@@ -648,7 +648,8 @@ static inline void report_error(SgObject error, SgObject out)
      be NULL.
      NB: in the case, it's an unrecoverable error, so just dump
          native stack trace.*/
-  Sg_Write(Sg_GetStringFromStringPort(buf), out, SG_WRITE_DISPLAY);
+  Sg_Write(Sg_GetStringFromStringPort(SG_STRING_PORT(buf)), 
+	   out, SG_WRITE_DISPLAY);
   Sg_FlushAllPort(FALSE);
 }
 
@@ -727,7 +728,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
       /* for now insn argument is only one */
       SgObject arg = SG_OBJ(code[i + 1]);
       if (!info->label && SG_CODE_BUILDERP(arg)) {
-	s = Sg_GetStringFromStringPort(out);
+	s = Sg_GetStringFromStringPort(SG_STRING_PORT(out));
 	Sg_Puts(vm->logPort, SG_STRING(s));
 	Sg_Printf(vm->logPort, UC(" %S\n"), arg);
 	vm_dump_code_rec(SG_CODE_BUILDER(arg), indent + 2);
@@ -735,7 +736,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
       } else {
 	if (info->label) Sg_Printf(out, UC(" %d"), arg);
 	else Sg_Printf(out, UC(" %#S"), arg);
-	s = Sg_GetStringFromStringPort(out);
+	s = Sg_GetStringFromStringPort(SG_STRING_PORT(out));
 	Sg_Puts(vm->logPort, SG_STRING(s));
 	if (info->hasSrc) {
 	  if (SG_PAIRP(cb->src)) {
@@ -752,7 +753,7 @@ static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
 	}
       }
     } else {
-      s = Sg_GetStringFromStringPort(out);
+      s = Sg_GetStringFromStringPort(SG_STRING_PORT(out));
       Sg_Puts(vm->logPort, SG_STRING(s));
     }
     if (need_line_break) {
@@ -1784,7 +1785,7 @@ static SgString* replace_file_separator(SgString *path)
       break;
     }
   }
-  return SG_STRING(Sg_GetStringFromStringPort(ret));
+  return SG_STRING(Sg_GetStringFromStringPort(SG_STRING_PORT(ret)));
 }
 
 SgObject Sg_AddLoadPath(SgString *path, int appendP)

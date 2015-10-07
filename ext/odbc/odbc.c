@@ -502,7 +502,7 @@ static SgObject make_blob_input_port(SQLHSTMT stmt, int index, int stringP)
   data->index = index;
   data->stringP = stringP;
   data->openP = TRUE;
-  return Sg_MakeFileBinaryInputPort(make_blob_file(data), SG_BUFMODE_NONE);
+  return Sg_MakeFileBinaryInputPort(make_blob_file(data), SG_BUFFER_MODE_NONE);
 }
 
 static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
@@ -524,7 +524,7 @@ static SgObject read_var_data_impl(SQLHSTMT stmt, int index,
 		    (ind > (SQLLEN)sizeof(buf) || ind==SQL_NO_TOTAL) 
 		    ? sizeof(buf) : ind);
   }
-  bv = Sg_GetByteVectorFromBinaryPort(SG_PORT(port));
+  bv = Sg_GetByteVectorFromBinaryPort(SG_BYTE_PORT(port));
 
 #if 0
   if (asPortP) {

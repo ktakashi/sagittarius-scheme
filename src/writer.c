@@ -92,12 +92,10 @@ void Sg_Write(SgObject obj, SgObject p, int mode)
   SgWriteContext ctx;
   SgPort *port;
 
-  if (!SG_OUTPORTP(p) && !SG_INOUTPORTP(p) && !SG_BIDIRECT_PORTP(p)) {
+  if (!SG_OUTPUT_PORTP(p)) {
     Sg_Error(UC("output port required, but got %S"), p);
   }
-  if (!(SG_TEXTUAL_PORTP(p) || 
-	(SG_CUSTOM_PORTP(p) && 
-	 SG_CUSTOM_PORT(p)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
+  if (SG_BINARY_PORTP(p)) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(p)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
@@ -122,12 +120,12 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
 {
   SgWriteContext ctx;
   SgString *str;
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgHashTable seen;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
+  if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 8);
@@ -149,11 +147,11 @@ int Sg_WriteCircular(SgObject obj, SgObject port, int mode, int width)
     return 0;
   }
 
-  Sg_InitStringOutputPort(&out, &tp, 0);
+  out = Sg_InitStringOutputPort(&tp, 0);
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
-  format_write(obj, &out, &ctx, sharedp);
-  str = SG_STRING(Sg_GetStringFromStringPort(&out));
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  format_write(obj, out, &ctx, sharedp);
+  str = SG_STRING(Sg_GetStringFromStringPort(&tp));
+  SG_CLEAN_STRING_PORT(&tp);
   nc = str->size;
   if (nc > width) {
     SgObject sub = Sg_Substring(str, 0, width);
@@ -169,14 +167,14 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
 {
   SgWriteContext ctx;
   SgString *str;
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   int nc, sharedp = FALSE;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
+  if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  Sg_InitStringOutputPort(&out, &tp, 0);
+  out = Sg_InitStringOutputPort(&tp, 0);
   ctx.mode = mode;
   ctx.flags = WRITE_LIMITED;
   ctx.limit = width;
@@ -185,9 +183,9 @@ int Sg_WriteLimited(SgObject obj, SgObject port, int mode, int width)
   SET_STACK_SIZE(&ctx);
 
   sharedp = SG_WRITE_MODE(&ctx) == SG_WRITE_SHARED;
-  format_write(obj, &out, &ctx, sharedp);
-  str = SG_STRING(Sg_GetStringFromStringPort(&out));
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  format_write(obj, out, &ctx, sharedp);
+  str = SG_STRING(Sg_GetStringFromStringPort(&tp));
+  SG_CLEAN_STRING_PORT(&tp);
   nc = str->size;
   if (nc > width) {
     SgObject sub = Sg_Substring(str, 0, width);
@@ -241,8 +239,8 @@ static void format_sexp(SgPort *out, SgObject arg,
 {
   int mincol = 0, colinc = 1, minpad = 0, maxcol = -1, nwritten = 0, i;
   SgChar padchar = ' ';
-  SgPort tmpout;
-  SgTextualPort tp;
+  SgPort *tmpout;
+  SgStringPort tp;
   SgString *tmpstr;
   
   if (nparams > 0 && SG_INTP(params[0])) mincol = SG_INT_VALUE(params[0]);
@@ -251,21 +249,21 @@ static void format_sexp(SgPort *out, SgObject arg,
   if (nparams > 3 && SG_CHARP(params[3])) padchar = SG_CHAR_VALUE(params[3]);
   if (nparams > 4 && SG_INTP(params[4])) maxcol = SG_INT_VALUE(params[4]);
 
-  Sg_InitStringOutputPort(&tmpout, &tp,
-			  (maxcol > 0) ? maxcol : (minpad > 0) ? minpad : 0);
+  tmpout = Sg_InitStringOutputPort(&tp,
+		   (maxcol > 0) ? maxcol : (minpad > 0) ? minpad : 0);
   if (minpad > 0 && rightalign) {
-    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(&tmpout, padchar);
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
   }
   if (maxcol > 0) {
-    nwritten = Sg_WriteLimited(arg, &tmpout, mode, maxcol);
+    nwritten = Sg_WriteLimited(arg, tmpout, mode, maxcol);
   } else {
-    Sg_Write(arg, &tmpout, mode);
+    Sg_Write(arg, tmpout, mode);
   }
   if (minpad > 0 && !rightalign) {
-    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(&tmpout, padchar);
+    for (i = 0; i < minpad; i++) Sg_PutcUnsafe(tmpout, padchar);
   }
-  tmpstr = SG_STRING(Sg_GetStringFromStringPort(&tmpout));
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  tmpstr = SG_STRING(Sg_GetStringFromStringPort(&tp));
+  SG_CLEAN_STRING_PORT(&tp);
 
   if (maxcol > 0 && nwritten < 0) {
     const SgChar *s = SG_STRING_VALUE(tmpstr);
@@ -315,31 +313,31 @@ static void format_integer(SgPort *out, SgObject arg, SgObject *params,
     int i;
     const SgChar *ptr = SG_STRING_VALUE(str);
     unsigned int num_digits = SG_STRING_SIZE(str), colcnt;
-    SgPort strout;
-    SgTextualPort tp;
+    SgPort *strout;
+    SgStringPort tp;
 
-    Sg_InitStringOutputPort(&strout, &tp,
-			    num_digits + (num_digits % commainterval));
+    strout = Sg_InitStringOutputPort(&tp,
+				     num_digits + (num_digits % commainterval));
     if (*ptr == '-' || *ptr == '+') {
-      Sg_PutcUnsafe(&strout, *ptr);
+      Sg_PutcUnsafe(strout, *ptr);
       ptr++;
       num_digits--;
     }
     colcnt = num_digits % commainterval;
     if (colcnt != 0) {
       for (i = 0; (unsigned int)i < colcnt; i++) {
-	Sg_Putc(&strout, *(ptr + i));
+	Sg_Putc(strout, *(ptr + i));
       }
     }
     while (colcnt < num_digits) {
-      if (colcnt != 0) Sg_PutcUnsafe(&strout, commachar);
+      if (colcnt != 0) Sg_PutcUnsafe(strout, commachar);
       for (i = 0; i < commainterval; i++) {
-	Sg_Putc(&strout, *(ptr + colcnt + i));
+	Sg_Putc(strout, *(ptr + colcnt + i));
       }
       colcnt += commainterval;
     }
-    str = Sg_GetStringFromStringPort(&strout);
-    SG_CLEAN_TEXTUAL_PORT(&tp);
+    str = Sg_GetStringFromStringPort(&tp);
+    SG_CLEAN_STRING_PORT(&tp);
   }
   format_pad(out, SG_STRING(str), mincol, 1, padchar, TRUE);
 }
@@ -601,12 +599,10 @@ void Sg_Format(SgPort *port, SgString *fmt, SgObject args, int ss)
 {
   SgPort *out;
 
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
+  if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  if (!(SG_TEXTUAL_PORTP(port) ||
-	(SG_CUSTOM_PORTP(port) && 
-	 SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
+  if (SG_BINARY_PORTP(port)) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
@@ -725,10 +721,7 @@ static void write_object(SgObject obj, SgPort *port, SgWriteContext *ctx)
 static SgObject write_object_fallback(SgObject *args, int argc, SgGeneric *gf)
 {
   SgClass *klass;
-  if (argc != 2 || (argc == 2 && 
-		    !(SG_OUTPORTP(args[1]) || 
-		      SG_INOUTPORTP(args[1]) ||
-		      SG_BIDIRECT_PORTP(args[1])))) {
+  if (argc != 2 || (argc == 2 && !SG_OUTPUT_PORTP(args[1]))) {
     Sg_Error(UC("no applicable method for write-object with %S"),
 	     Sg_ArrayToList(args, argc));
   }
@@ -820,9 +813,10 @@ void write_ss_rec(SgObject obj, SgPort *port, SgWriteContext *ctx)
     /*
       if the flag has WRITE_LIMITED, then output port must be
       string output port
+      TODO: move this to port.c
     */
-    char_buffer *start = SG_TEXTUAL_PORT(port)->src.ostr.start;
-    char_buffer *current = SG_TEXTUAL_PORT(port)->src.ostr.current;
+    char_buffer *start = SG_STRING_PORT(port)->buffer.start;
+    char_buffer *current = SG_STRING_PORT(port)->buffer.current;
     size_t count = 0;
     for (; start != current; start = start->next) count++;
     if (count >= ctx->limit) return;
@@ -1329,12 +1323,10 @@ void Sg_Vprintf(SgPort *port, const SgChar *fmt, va_list sp, int sharedp)
   SgPort *out;
   const SgChar *fmtp = fmt;
   int c;
-  if (!SG_OUTPORTP(port) && !SG_INOUTPORTP(port) && !SG_BIDIRECT_PORTP(port)) {
+  if (!SG_OUTPUT_PORTP(port)) {
     Sg_Error(UC("output port required, but got %S"), port);
   }
-  if (!(SG_TEXTUAL_PORTP(port) ||
-	(SG_CUSTOM_PORTP(port) && 
-	 SG_CUSTOM_PORT(port)->type == SG_TEXTUAL_CUSTOM_PORT_TYPE))) {
+  if (SG_BINARY_PORTP(port)) {
     /* for now I asuume it's a binary port. */
     SgTranscoder *trans = Sg_UTF16ConsolePortP(port)
       ? SG_TRANSCODER(Sg_MakeNativeConsoleTranscoder())
@@ -1432,14 +1424,14 @@ SgObject Sg_SprintfShared(const SgChar *fmt, ...)
 SgObject Sg_Vsprintf(const SgChar *fmt, va_list args, int sharedp)
 {
   /* use default size */
-  SgPort port;
-  SgTextualPort tp;
+  SgPort *port;
+  SgStringPort tp;
   SgObject r;
 
-  Sg_InitStringOutputPort(&port, &tp, 0);
-  Sg_Vprintf(&port, fmt, args, sharedp);
-  r = Sg_GetStringFromStringPort(&port);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  port = Sg_InitStringOutputPort(&tp, 0);
+  Sg_Vprintf(port, fmt, args, sharedp);
+  r = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return r;
 }
 

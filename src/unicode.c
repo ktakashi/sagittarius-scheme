@@ -511,7 +511,7 @@ wchar_t* Sg_StringToWCharTs(SgObject s)
 
   Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
   Sg_TranscoderPutc(tcoder, tp, '\0');
-  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(out);
+  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(SG_BYTE_PORT(out));
 }
 
 SgObject Sg_WCharTsToString(wchar_t *s)
@@ -957,11 +957,12 @@ static int final_sigma_p(int index, SgString *in, SgPort *out)
 SgObject Sg_StringUpCase(SgString *str)
 {
   int i, size = SG_STRING_SIZE(str);
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject newS;
 
-  Sg_InitStringOutputPort(&out, &tp, size);
+  Sg_InitStringOutputPort(&tp, size);
+  out = SG_PORT(&tp);
   for (i = 0; i < size; i++) {
     int r = special_casing_upper(SG_STRING_VALUE_AT(str, i));
     if (r >= 0) {
@@ -969,14 +970,14 @@ SgObject Sg_StringUpCase(SgString *str)
       int j;
       for (j = 0; j < up_size; j++) {
 	if (s_special_casing_upper[r].out[j] == 0) break;
-	Sg_PutcUnsafe(&out, Sg_CharUpCase(s_special_casing_upper[r].out[j]));
+	Sg_PutcUnsafe(out, Sg_CharUpCase(s_special_casing_upper[r].out[j]));
       } 
     } else {
-      Sg_PutcUnsafe(&out, Sg_CharUpCase(SG_STRING_VALUE_AT(str, i)));
+      Sg_PutcUnsafe(out, Sg_CharUpCase(SG_STRING_VALUE_AT(str, i)));
     }
   }
-  newS = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  newS = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   if (Sg_StringEqual(str, newS)) {
     newS = NULL;
     return str;
@@ -988,23 +989,24 @@ SgObject Sg_StringUpCase(SgString *str)
 SgObject Sg_StringDownCase(SgString *str)
 {
   int i, size = SG_STRING_SIZE(str), r;
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject newS;
   SgChar ch, lastCh = ' ';
 
-  Sg_InitStringOutputPort(&out, &tp, size);
+  Sg_InitStringOutputPort(&tp, size);
+  out = SG_PORT(&tp);
   for (i = 0; i < size; i++, lastCh = ch) {
     ch = SG_STRING_VALUE_AT(str, i);
     
     if (ch == 0x03A3) { 	/* greek capital letter sigma */
       if (Sg_Ucs4WhiteSpaceP(lastCh)) {
-	Sg_PutcUnsafe(&out, 0x03C3);
+	Sg_PutcUnsafe(out, 0x03C3);
       } else {
-	if (final_sigma_p(i, str, &out)) {
-	  Sg_PutcUnsafe(&out, 0x03C2); /* greek small letter final sigma */
+	if (final_sigma_p(i, str, out)) {
+	  Sg_PutcUnsafe(out, 0x03C2); /* greek small letter final sigma */
 	} else {
-	  Sg_PutcUnsafe(&out, 0x03C3); /* greek small letter sigma */
+	  Sg_PutcUnsafe(out, 0x03C3); /* greek small letter sigma */
 	}
       }
     } else {
@@ -1014,16 +1016,16 @@ SgObject Sg_StringDownCase(SgString *str)
 	int j;
 	for (j = 0; j < up_size; j++) {
 	  if (s_special_casing_lower[r].out[j] == 0) break;
-	  Sg_PutcUnsafe(&out, 
+	  Sg_PutcUnsafe(out, 
 			Sg_CharDownCase(s_special_casing_lower[r].out[j]));
 	} 
       } else {
-	Sg_PutcUnsafe(&out, Sg_CharDownCase(ch));
+	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
       }
     }
   }
-  newS = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  newS = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   if (Sg_StringEqual(str, newS)) {
     newS = NULL;
     return str;
@@ -1093,15 +1095,16 @@ static int titlecase_first_char(int index, SgString *in, SgPort *out)
 SgObject Sg_StringTitleCase(SgString *str)
 {
   int size = SG_STRING_SIZE(str);
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject newS;
 
-  Sg_InitStringOutputPort(&out, &tp, size);
-  titlecase_first_char(0, str, &out);
+  Sg_InitStringOutputPort(&tp, size);
+  out = SG_PORT(&tp);
+  titlecase_first_char(0, str, out);
 
-  newS = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  newS = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   if (Sg_StringEqual(str, newS)) {
     newS = NULL;
     return str;
@@ -1113,11 +1116,12 @@ SgObject Sg_StringTitleCase(SgString *str)
 SgObject Sg_StringFoldCase(SgString *str)
 {
   int i, size = SG_STRING_SIZE(str);
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject newS;
 
-  Sg_InitStringOutputPort(&out, &tp, size);
+  Sg_InitStringOutputPort(&tp, size);
+  out = SG_PORT(&tp);
   for (i = 0; i < size; i++) {
     int r = case_folding(SG_STRING_VALUE_AT(str, i));
     if (r >= 0) {
@@ -1125,14 +1129,14 @@ SgObject Sg_StringFoldCase(SgString *str)
       int j;
       for (j = 0; j < up_size; j++) {
 	if (s_case_folding[r].out[j] == 0) break;
-	Sg_PutcUnsafe(&out, s_case_folding[r].out[j]);
+	Sg_PutcUnsafe(out, s_case_folding[r].out[j]);
       } 
     } else {
-      Sg_PutcUnsafe(&out, SG_STRING_VALUE_AT(str, i));
+      Sg_PutcUnsafe(out, SG_STRING_VALUE_AT(str, i));
     }
   }
-  newS = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  newS = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   if (Sg_StringEqual(str, newS)) {
     newS = NULL;
     return str;
@@ -1202,16 +1206,17 @@ static void recursive_decomposition(int canonicalP, SgChar sv, SgPort *out)
 static SgByteVector* decompose_rec(SgString *in, int canonicalP)
 {
   int i, size = SG_STRING_SIZE(in);
-  SgPort out;
-  SgTextualPort tp;
+  SgPort *out;
+  SgStringPort tp;
   SgObject r;
-  Sg_InitStringOutputPort(&out, &tp, size);
+  Sg_InitStringOutputPort(&tp, size);
+  out = SG_PORT(&tp);
   for (i = 0; i < size; i++) {
     SgChar ch = SG_STRING_VALUE_AT(in, i);
-    recursive_decomposition(canonicalP, ch, &out);
+    recursive_decomposition(canonicalP, ch, out);
   }
-  r = Sg_GetStringFromStringPort(&out);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  r = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return string2bytevector(r);
 }
 

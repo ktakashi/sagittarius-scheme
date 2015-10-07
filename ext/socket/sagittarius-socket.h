@@ -151,6 +151,19 @@ SG_CLASS_DECL(Sg_FdSetClass);
 #define SG_FDSET(obj)  ((SgFdSet*)obj)
 #define SG_FDSETP(obj) SG_XTYPEP(obj, SG_CLASS_FD_SET)
 
+/* socket port */
+typedef struct SgSocketPortRec
+{
+  SgPort parent;
+  SgSocket *socket;
+} SgSocketPort;
+
+SG_CLASS_DECL(Sg_SocketPortClass);
+#define SG_CLASS_SOCKET_PORT (&Sg_SocketPortClass)
+#define SG_SOCKET_PORT(obj)  ((SgSocketPort*)obj)
+#define SG_SOCKET_PORTP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET_PORT)
+#define SG_SOCKET_PORT_SOCKET(obj) (SG_SOCKET_PORT(obj)->socket)
+
 #ifdef _WIN32
 /* for abortable socket */
 # define SG_SET_SOCKET_EVENT(sock, hEvent, flags)		\

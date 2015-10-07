@@ -147,21 +147,21 @@ static SgObject bytevector_to_v6_string(SgObject bv)
 {
   static const char table[] = "0123456789abcdef";
   SgObject r;
-  SgPort sp;
-  SgTextualPort tp;
+  SgPort *sp;
+  SgStringPort tp;
   int i;
-  Sg_InitStringOutputPort(&sp, &tp, 39);
+  sp = SG_PORT(Sg_InitStringOutputPort(&tp, 39));
   for (i = 0; i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE); i++) {
     int hi = SG_BVECTOR_ELEMENT(bv, (i<<1));
     int lo = SG_BVECTOR_ELEMENT(bv, ((i<<1)+1));
-    Sg_PutcUnsafe(&sp, table[hi]);
-    Sg_PutcUnsafe(&sp, table[lo]);
+    Sg_PutcUnsafe(sp, table[hi]);
+    Sg_PutcUnsafe(sp, table[lo]);
     if (i < (IPv6_INADDER_SIZE / IPv6_INT16_SIZE) - 1) {
-      Sg_PutcUnsafe(&sp, ':');
+      Sg_PutcUnsafe(sp, ':');
     }
   }
-  r = Sg_GetStringFromStringPort(&sp);
-  SG_CLEAN_TEXTUAL_PORT(&tp);
+  r = Sg_GetStringFromStringPort(&tp);
+  SG_CLEAN_STRING_PORT(&tp);
   return r;
 }
 
@@ -1114,7 +1114,19 @@ SgObject Sg_SocketErrorMessage(SgSocket *socket)
   return Sg_GetLastErrorMessageWithErrorCode(socket->lastError);
 }
 
-#define SG_PORT_SOCKET(p) SG_SOCKET(SG_BINARY_PORT(p)->src.data)
+/* socket port */
+#define SG_PORT_SOCKET SG_SOCKET_PORT_SOCKET
+
+static SgClass *port_cpl[] = {
+  SG_CLASS_SOCKET_PORT,
+  SG_CLASS_PORT,
+  SG_CLASS_TOP,
+  NULL
+};
+SG_DEFINE_BUILTIN_CLASS(Sg_SocketPortClass,
+			Sg_DefaultPortPrinter, NULL, NULL, NULL,
+			port_cpl);
+
 
 static void socket_flush(SgObject self)
 {
@@ -1151,51 +1163,19 @@ static int socket_open(SgObject self)
 static int socket_close(SgObject self)
 {
   if (!SG_PORT(self)->closed) {
-    SG_PORT(self)->closed = TRUE;
-    SG_BINARY_PORT(self)->closed = SG_BPORT_CLOSED;
+    SG_PORT(self)->closed = SG_PORT_CLOSED;
     Sg_SocketShutdown(SG_PORT_SOCKET(self), SHUT_RDWR);
     Sg_SocketClose(SG_PORT_SOCKET(self));
   }
-  return SG_PORT(self)->closed;
+  return TRUE;
 }
 
 static int socket_close_only_port(SgObject self)
 {
   if (!SG_PORT(self)->closed) {
-    SG_PORT(self)->closed = TRUE;
+    SG_PORT(self)->closed = SG_PORT_CLOSED;
   }
-  return SG_PORT(self)->closed;
-}
-
-static int socket_get_u8(SgObject self)
-{
-  if (SG_PORT_HAS_U8_AHEAD(self)) {
-    uint8_t buf = SG_PORT_U8_AHEAD(self);
-    SG_PORT_U8_AHEAD(self) = EOF;
-    return buf;
-  } else {
-    uint8_t c;
-    const int ret = Sg_SocketReceive(SG_PORT_SOCKET(self), &c, 1, 0);
-    if (0 == ret) {
-      return EOF;
-    } else if (-1 == ret) {
-      Sg_IOReadError(SG_INTERN("get-u8"),
-		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self,
-		     SG_NIL);
-      return -1;
-    } else {
-      SG_BINARY_PORT(self)->position += ret;
-      return c;
-    }
-  }
-}
-
-static int socket_look_ahead_u8(SgObject self)
-{
-  const uint8_t ret = socket_get_u8(self);
-  SG_PORT_U8_AHEAD(self) = ret;
-  return ret;
+  return TRUE;
 }
 
 static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
@@ -1212,15 +1192,17 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     size--;
     readSize++;
   }
+  if (size == 0) return readSize;
+
   for (;;) {
-    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
-			       (int)size, 0);
-    int ready;
     struct timeval tm = {0, 10000};	/* wait a bit in case of retry (10ms?)*/
+    int now, ready;
+    now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
+			   (int)size, 0);
     if (-1 == now) {
+      int e = SG_PORT_SOCKET(self)->lastError;
       Sg_IOReadError(SG_INTERN("read-u8"),
-		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self,
+		     Sg_GetLastErrorMessageWithErrorCode(e), self,
 		     SG_NIL);
       return -1;
     }
@@ -1228,6 +1210,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
     readSize += now;
     if (now == 0) break;
     if (size == 0) break;
+
     /* now how could we know if this socket still have some data ready
        or it's already ended. for now we use select if the socket has
        something to be read.
@@ -1237,19 +1220,19 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
       /* most likely nothing is waiting. i hope... */
       break;
     }
-    /* ok something is there keep reading*/
+    /* ok something is still there, read*/
   }
-  SG_BINARY_PORT(self)->position += readSize;
+  SG_PORT(self)->position += readSize;
   return readSize;
 }
 
 static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 {
   uint8_t read_buf[1024];
-  SgPort buffer;
-  SgBinaryPort bp;
+  SgPort *buffer;
+  SgBytePort bp;
   int mark = 0;
-  Sg_InitByteArrayOutputPort(&buffer, &bp, 1024);
+  buffer = SG_PORT(Sg_InitByteArrayOutputPort(&bp, 1024));
   for (;;) {
     int read_size = Sg_SocketReceive(SG_PORT_SOCKET(self), read_buf, 1024, 0);
     if (-1 == read_size) {
@@ -1259,7 +1242,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 		     SG_NIL);
       return -1;
     } else {
-      Sg_WritebUnsafe(&buffer, read_buf, 0, read_size);
+      Sg_WritebUnsafe(buffer, read_buf, 0, read_size);
       if (1024 != read_size) {
 	mark += read_size;
 	break;
@@ -1268,9 +1251,9 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
       }
     }
   }
-  SG_BINARY_PORT(self)->position += mark;
-  *buf = Sg_GetByteArrayFromBinaryPort(&buffer);
-  SG_CLEAN_BINARY_PORT(&bp);
+  SG_PORT(self)->position += mark;
+  *buf = Sg_GetByteArrayFromBinaryPort(&bp);
+  SG_CLEAN_BYTE_PORT(&bp);
   return mark;
 }
 
@@ -1288,12 +1271,6 @@ static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
   return written_size;
 }
 
-
-static int64_t socket_put_u8(SgObject self, uint8_t v)
-{
-  return socket_put_u8_array(self, &v, 1);
-}
-
 static int socket_ready(SgObject self)
 {
   SgObject socket = SG_PORT_SOCKET(self);
@@ -1305,47 +1282,42 @@ static SgPortTable socket_close_table = {
   socket_flush,
   socket_close,
   socket_ready,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
+  NULL,				/* lock */
+  NULL,				/* unlock */
+  NULL,				/* position */
+  NULL,				/* set position */
+  socket_open,
+  socket_read_u8,
+  socket_read_u8_all,
+  socket_put_u8_array,
+  NULL,				/* reads */
+  NULL,				/* writes */
 };
 static SgPortTable socket_table = {
   socket_flush,
   socket_close_only_port,
   socket_ready,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-};
-
-static SgBinaryPortTable socket_binary_table = {
+  NULL,				/* lock */
+  NULL,				/* unlock */
+  NULL,				/* position */
+  NULL,				/* set position */
   socket_open,
-  socket_get_u8,
-  socket_look_ahead_u8,
   socket_read_u8,
   socket_read_u8_all,
-  socket_put_u8,
   socket_put_u8_array,
-  NULL
+  NULL,				/* reads */
+  NULL,				/* writes */
 };
 
 static inline SgObject make_socket_port(SgSocket *socket,
-					enum SgPortDirection d, 
+					SgPortDirection d, 
 					int closeP)
 {
-  if (closeP) {
-    return Sg_MakeBinaryPort(d, &socket_close_table, 
-			     &socket_binary_table, (void*)socket);
-  } else {
-    return Sg_MakeBinaryPort(d, &socket_table, 
-			     &socket_binary_table, (void*)socket);
-  }
+  SgSocketPort *port = SG_NEW(SgSocketPort);
+  SG_INIT_PORT(port, SG_CLASS_SOCKET_PORT, d,
+	       (closeP)? &socket_close_table: &socket_table, SG_FALSE);
+  port->socket = socket;
+  return SG_OBJ(port);
 }
 
 SgObject Sg_MakeSocketPort(SgSocket *socket, int closeP)
@@ -1367,9 +1339,10 @@ SgObject  Sg_MakeSocketOutputPort(SgSocket *socket)
 void Sg_ShutdownPort(SgPort *port, int how)
 {
   /* TODO should we handle transcoded port? */
-  if (!(SG_PORT(port)->type == SG_BINARY_PORT_TYPE &&
-	SG_BINARY_PORT(port)->type == SG_CUSTOM_BINARY_PORT_TYPE) ||
-      !SG_SOCKETP(SG_PORT_SOCKET(port))) {
+  if (SG_BUFFERED_PORTP(port))
+    return Sg_ShutdownPort(SG_BUFFERED_PORT_SRC(port), how);
+
+  if (!SG_SOCKET_PORTP(port) || !SG_SOCKETP(SG_PORT_SOCKET(port))) {
     Sg_Error(UC("socket port required but got %S"), port);
   }
   if (!Sg_PortClosedP(port)) {
@@ -1413,6 +1386,8 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 			     NULL, SG_FALSE, si_slots, 0);
   Sg_InitStaticClassWithMeta(SG_CLASS_FD_SET, UC("<fdset>"), lib, NULL,
 			     SG_FALSE, NULL, 0);
+  /* TODO should we add socket slot? */
+  Sg_InitStaticClass(SG_CLASS_SOCKET_PORT, UC("<socket-port>"), lib, NULL, 0);
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)

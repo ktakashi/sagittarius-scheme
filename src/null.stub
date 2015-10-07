@@ -1703,39 +1703,17 @@
 
   (define-cise-stmt check-binary-port
     ((_ name p)
-     `(unless (or (SG_BINARY_PORTP ,p)
-		  (and (SG_CUSTOM_PORTP ,p)
-		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
-			      SG_BINARY_CUSTOM_PORT_TYPE)))
+     `(unless (SG_BINARY_PORTP ,p)
 	(wrong-type-of-argument-violation ',name "binary-port" ,p))))
 
   (define-c-proc port? (obj) ::<boolean> :constant SG_PORTP)
 
   (define-c-proc port-transcoder (p::<port>) :no-side-effect
-    (cond ((SG_BINARY_PORTP p)
-	   (result #f))
-	  ((SG_TEXTUAL_PORTP p)
-	   (if (== (-> (SG_TEXTUAL_PORT p) type)
-		   SG_TRANSCODED_TEXTUAL_PORT_TYPE)
-	       (result (SG_TRANSCODED_PORT_TRANSCODER p))
-	       (result #f)))
-	  (else
-	   ;; TODO custom port
-	   (result #f))))
+    Sg_PortTranscoder)
 
-  (define-c-proc textual-port? (p) ::<boolean> :constant
-    (result (and (SG_PORTP p) 
-		 (or (SG_TEXTUAL_PORTP p)
-		     (and (SG_CUSTOM_PORTP p)
-			  (== (-> (SG_CUSTOM_PORT p) type)
-			      SG_TEXTUAL_CUSTOM_PORT_TYPE))))))
+  (define-c-proc textual-port? (p) ::<boolean> :constant SG_TEXTUAL_PORTP)
 
-  (define-c-proc binary-port? (p) ::<boolean> :constant
-    (result (and (SG_PORTP p) 
-		 (or (SG_BINARY_PORTP p)
-		     (and (SG_CUSTOM_PORTP p)
-			  (== (-> (SG_CUSTOM_PORT p) type)
-			      SG_BINARY_CUSTOM_PORT_TYPE))))))
+  (define-c-proc binary-port? (p) ::<boolean> :constant SG_BINARY_PORTP)
 
   (define-c-proc transcoded-port (p::<port> t::<transcoder>) 
     (check-binary-port transcoded-port p)
@@ -1789,28 +1767,17 @@
   ;; 8.2.7 input port
   (define-cise-stmt check-input-port
     ((_ name p)
-     `(unless (or (SG_INPORTP ,p)
-		  (SG_INOUTPORTP ,p)
-		  (SG_BIDIRECT_PORTP ,p))
+     `(unless (SG_INPUT_PORTP ,p)
 	(wrong-type-of-argument-violation ',name "input port" ,p))))
 
-  (define-c-proc input-port? (obj) ::<boolean> :constant
-    (result (or (SG_INPORTP obj) (SG_INOUTPORTP obj)
-		(SG_BIDIRECT_PORTP obj))))
+  (define-c-proc input-port? (obj) ::<boolean> :constant SG_INPUT_PORTP)
 
   (define-c-proc port-eof? (p::<port>) ::<boolean> :no-side-effect
-    (cond ((SG_BINARY_PORTP p)
-	   (let ((ch::int (Sg_Peekb p)))
-	     (result (== ch EOF))))
-	  ((SG_TEXTUAL_PORTP p)
-	   (let ((ch::SgChar (Sg_Peekc p)))
-	     (result (== ch EOF))))
-	  (else
-	   (if (== (-> (SG_CUSTOM_PORT p) type) SG_BINARY_CUSTOM_PORT_TYPE)
-	       (let ((ch::int (Sg_Peekb p)))
-		 (result (== ch EOF)))
-	       (let ((ch::int (Sg_Peekc p)))
-		 (result (== ch EOF)))))))
+    (if (SG_BINARY_PORTP p)
+	(let ((ch::int (Sg_Peekb p)))
+	     (result (== ch EOF)))
+	(let ((ch::SgChar (Sg_Peekc p)))
+	     (result (== ch EOF)))))
 
   (define-c-proc open-file-input-port (file::<string> 
 				       :optional (option #f)
@@ -1820,13 +1787,13 @@
     (when (SG_UNBOUNDP mode)
       (set! mode 'block))
     (let ((fo (Sg_OpenFile file SG_READ))
-	  (bufferMode::int SG_BUFMODE_BLOCK))
+	  (bufferMode::int SG_BUFFER_MODE_BLOCK))
       (unless (SG_FILEP fo)
 	(Sg_IOError SG_IO_FILE_NOT_EXIST_ERROR
 		    'open-file-input-port fo file SG_UNDEF))
       ;; we only support 'block or none for now.
       (if (SG_EQ mode 'none)
-	  (set! bufferMode SG_BUFMODE_NONE))
+	  (set! bufferMode SG_BUFFER_MODE_NONE))
       (if (SG_FALSEP transcoder)
 	  (result (Sg_MakeFileBinaryInputPort fo bufferMode))
 	  (let ((in (Sg_MakeFileBinaryInputPort fo bufferMode)))
@@ -1995,17 +1962,14 @@
   ;; 8.2.9 textual port
   (define-cise-stmt check-textual-port
     ((_ name p)
-     `(unless (or (SG_TEXTUAL_PORTP ,p)
-		  (and (SG_CUSTOM_PORTP ,p)
-		       (SG_EQ (-> (SG_CUSTOM_PORT ,p) type)
-			      SG_TEXTUAL_CUSTOM_PORT_TYPE)))
+     `(unless (SG_TEXTUAL_PORTP ,p)
 	(wrong-type-of-argument-violation ',name
 					  "textual-port"
 					  ,p))))
 
   (define-cise-expr string-port?
     ((_ p)
-     `(== SG_STRING_TEXTUAL_PORT_TYPE (-> (SG_TEXTUAL_PORT ,p) type))))
+     `(SG_STRING_PORTP ,p)))
   ;; If it's transcoded port there is always a chance to read more then
   ;; one byte and if that happens in multi thread script it would not
   ;; read a char properly. in case of the we need lock
@@ -2131,29 +2095,28 @@
   ;; 8.2.10 output port
   (define-cise-stmt check-output-port
     ((_ name p)
-     `(unless (or (SG_OUTPORTP ,p) (SG_INOUTPORTP ,p) (SG_BIDIRECT_PORTP ,p))
+     `(unless (SG_OUTPUT_PORTP ,p)
 	(wrong-type-of-argument-violation ',name "output port" ,p))))
 
-  (define-c-proc output-port? (obj) ::<boolean> :constant
-    (result (or (SG_OUTPORTP obj)
-		(SG_INOUTPORTP obj)
-		(SG_BIDIRECT_PORTP obj))))
+  (define-c-proc output-port? (obj) ::<boolean> :constant SG_OUTPUT_PORTP)
 
   (define-c-proc flush-output-port 
     (:optional (p::<port> (Sg_CurrentOutputPort))) ::<void>
     Sg_FlushPort)
 
   (define-c-proc output-port-buffer-mode (p::<port>)
-    (cond ((SG_EQ (-> p bufferMode) SG_BUFMODE_NONE)
-	   (result 'none))
-	  ((SG_EQ (-> p bufferMode) SG_BUFMODE_LINE)
-	   (result 'line))
-	  ((SG_EQ (-> p bufferMode) SG_BUFMODE_BLOCK)
-	   (result 'block))
-	  (else
-	   (assertion-violation 'output-port-buffer-mode
-				"port has invalid buffer mode. may be bug?"
-				p))))
+    (if (SG_BUFFERED_PORTP p)
+	(cond ((SG_EQ (-> (SG_BUFFERED_PORT p) mode) SG_BUFFER_MODE_NONE)
+	       (result 'none))
+	      ((SG_EQ (-> (SG_BUFFERED_PORT p) mode) SG_BUFFER_MODE_LINE)
+	       (result 'line))
+	      ((SG_EQ (-> (SG_BUFFERED_PORT p) mode) SG_BUFFER_MODE_BLOCK)
+	       (result 'block))
+	      (else
+	       (assertion-violation 'output-port-buffer-mode
+				    "port has invalid buffer mode. may be bug?"
+				    p)))
+	(result 'none)))
 
   (define-cfn get-open-flags 
     (option oflags::int file exists?::int rappend::int*)
@@ -2208,11 +2171,11 @@
     (let ((fo SG_UNDEF)
 	  (isFileExist::int (Sg_FileExistP file))
 	  (openFlags::int (logior SG_WRITE SG_CREATE))
-	  (bufferMode::int SG_BUFMODE_BLOCK))
+	  (bufferMode::int SG_BUFFER_MODE_BLOCK))
       (cond ((SG_EQ mode 'none)
-	     (set! bufferMode SG_BUFMODE_NONE))
+	     (set! bufferMode SG_BUFFER_MODE_NONE))
 	    ((SG_EQ mode 'line)
-	     (set! bufferMode SG_BUFMODE_LINE)))
+	     (set! bufferMode SG_BUFFER_MODE_LINE)))
       (cond ((SG_FALSEP option)
 	     (if isFileExist
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
@@ -2345,11 +2308,11 @@
     (let ((fo SG_UNDEF)
 	  (isFileExist::int (Sg_FileExistP file))
 	  (openFlags::int (logior SG_READ (logior SG_WRITE SG_CREATE)))
-	  (bufferMode::int SG_BUFMODE_BLOCK))
+	  (bufferMode::int SG_BUFFER_MODE_BLOCK))
       (cond ((SG_EQ mode 'none)
-	     (set! bufferMode SG_BUFMODE_NONE))
+	     (set! bufferMode SG_BUFFER_MODE_NONE))
 	    ((SG_EQ mode 'line)
-	     (set! bufferMode SG_BUFMODE_LINE)))
+	     (set! bufferMode SG_BUFFER_MODE_LINE)))
       (cond ((SG_FALSEP option)
 	     (if isFileExist
 		 (throw-i/o-error SG_IO_FILE_ALREADY_EXIST_ERROR
@@ -2399,12 +2362,12 @@
 
   ;; 8.3 simple i/o
   (define-c-proc close-input-port (p::<port>) ::<void>
-    (unless (SG_INPORTP p)
+    (unless (SG_INPUT_PORTP p)
       (wrong-type-of-argument-violation 'close-input-port "input port" p))
     (Sg_ClosePort p))
 
   (define-c-proc close-output-port (p::<port>) ::<void>
-    (unless (SG_OUTPORTP p)
+    (unless (SG_OUTPUT_PORTP p)
       (wrong-type-of-argument-violation 'close-output-port "output port" p))
     (Sg_ClosePort p))
 

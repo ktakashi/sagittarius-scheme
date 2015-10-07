@@ -363,7 +363,7 @@ static SgObject open_file_port(SgVM *vm, SgString *path)
   tran = SG_TRANSCODER(Sg_MakeTranscoder(Sg_MakeUtf8Codec(),
 					 Sg_NativeEol(),
 					 SG_RAISE_ERROR));
-  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFMODE_BLOCK);
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
   return Sg_MakeTranscodedInputPort(SG_PORT(bport), tran);
 }
 
@@ -727,7 +727,7 @@ int real_main(int argc, tchar **argv)
 	if (!SG_FILEP(log)) {
 	  Sg_Warn(UC("given log file could not open. log port was not set!"));
 	} else {
-	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFMODE_NONE);
+	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFFER_MODE_NONE);
 	  vm->logPort = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(bp),
 				    SG_TRANSCODER(Sg_MakeNativeTranscoder())));
 	}

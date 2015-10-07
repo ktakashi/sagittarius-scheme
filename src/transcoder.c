@@ -99,19 +99,14 @@ static SgObject get_mode(int mode)
   return SG_UNDEF;		/* dummy */
 }
 
-#define SRC_PORT(src_port, port)					\
-  do {									\
-    src_port = SG_TRANSCODED_PORT_SRC_PORT(port);			\
-  } while (0)
+#define SRC_PORT(src_port, port)				\
+  do { src_port = SG_TRANSCODED_PORT_PORT(port); } while (0)
 
 #define PORT_MARK(mark, src_port, port)					\
   do {									\
     SRC_PORT(src_port, port);						\
     if (SG_BINARY_PORTP(src_port)) {					\
-      (mark) = SG_BINARY_PORT(src_port)->position;			\
-    } else if (SG_CUSTOM_PORTP(src_port)) {				\
-      ASSERT(SG_CUSTOM_PORT(src_port)->type == SG_BINARY_CUSTOM_PORT_TYPE); \
-      (mark) = SG_CUSTOM_PORT(src_port)->impl.bport->position;		\
+      (mark) = SG_PORT(src_port)->position;				\
     } else {								\
       Sg_Panic("[internal error] transcoder got textual port");		\
       (mark) = -1;		/* dummy */				\
@@ -120,39 +115,11 @@ static SgObject get_mode(int mode)
 
 #define SAVE_CLOSED(port, save)				\
   do {							\
-    switch (SG_PORT(port)->type) {			\
-    case SG_BINARY_PORT_TYPE:				\
-      (save) = SG_BINARY_PORT(port)->closed;		\
-      SG_BINARY_PORT(port)->closed = FALSE;		\
-      break;						\
-    case SG_CUSTOM_PORT_TYPE:				\
-      switch (SG_CUSTOM_PORT(port)->type) {		\
-      case SG_BINARY_CUSTOM_PORT_TYPE:			\
-	(save) = SG_CUSTOM_BINARY_PORT(port)->closed;	\
-	SG_CUSTOM_BINARY_PORT(port)->closed = FALSE;	\
-	break;						\
-      default: break;					\
-      }							\
-    default: break;					\
-    }							\
-  } while (0)
-
+    (save) = SG_PORT(port)->closed;			\
+    SG_PORT(port)->closed = SG_PORT_OPEN;		\
+} while (0)
 #define RESTORE_CLOSED(port, prev)			\
-  do{							\
-    switch (SG_PORT(port)->type) {			\
-    case SG_BINARY_PORT_TYPE:				\
-      SG_BINARY_PORT(port)->closed = (prev);		\
-      break;						\
-    case SG_CUSTOM_PORT_TYPE:				\
-      switch (SG_CUSTOM_PORT(port)->type) {		\
-      case SG_BINARY_CUSTOM_PORT_TYPE:			\
-	SG_CUSTOM_BINARY_PORT(port)->closed = (prev);	\
-	break;						\
-      default: break;					\
-      }							\
-    default: break;					\
-    }							\
-  } while (0)
+  do { SG_PORT(port)->closed = (prev); } while (0)
 
 static SgChar get_char_internal(SgObject self, SgPort *port)
 {
@@ -425,34 +392,35 @@ int64_t Sg_TranscoderWrite(SgObject self, SgPort *tport,
    */
   if (tran->eolStyle != E_NONE) {
     int64_t i;
-    SgPort out;
-    SgTextualPort tp;
-    Sg_InitStringOutputPort(&out, &tp, -1);
+    SgPort *out;
+    SgStringPort tp;
+    Sg_InitStringOutputPort(&tp, -1);
+    out = SG_PORT(&tp);
     for (i = 0; i < count; i++) {
       SgChar c = s[i];
       if (c == LF) {
 	switch (tran->eolStyle) {
 	case LF: case NEL: case LS: case CR:
-	  Sg_PutcUnsafe(&out, tran->eolStyle);
+	  Sg_PutcUnsafe(out, tran->eolStyle);
 	  break;
 	case E_NONE:
-	  Sg_PutcUnsafe(&out, c);
+	  Sg_PutcUnsafe(out, c);
 	  break;
 	case CRLF:
-	  Sg_PutcUnsafe(&out, CR);
-	  Sg_PutcUnsafe(&out, LF);
+	  Sg_PutcUnsafe(out, CR);
+	  Sg_PutcUnsafe(out, LF);
 	  break;
 	case CRNEL:
-	  Sg_PutcUnsafe(&out, CR);
-	  Sg_PutcUnsafe(&out, NEL);
+	  Sg_PutcUnsafe(out, CR);
+	  Sg_PutcUnsafe(out, NEL);
 	  break;
 	}
       } else {
-	Sg_PutcUnsafe(&out, c);
+	Sg_PutcUnsafe(out, c);
       }
     }
-    new_s = Sg_GetStringFromStringPort(&out);
-    SG_CLEAN_TEXTUAL_PORT(&tp);
+    new_s = Sg_GetStringFromStringPort(&tp);
+    SG_CLEAN_STRING_PORT(&tp);
     s = SG_STRING_VALUE(new_s);
     count = SG_STRING_SIZE(new_s);
   }

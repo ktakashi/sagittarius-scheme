@@ -66,10 +66,12 @@
 
 (define server-up? #f)
 (define server-done? #f)
+(define buf (make-bytevector 8196))
 (define (http-server socket)
   (let loop ()
     (let* ([client  (socket-accept socket)]
-	   [in/out  (transcoded-port (socket-port client)
+	   [in/out  (transcoded-port (buffered-port (socket-port client)
+						    :buffer buf)
 				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
       (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
@@ -88,11 +90,13 @@
 		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 		      (display "exit" in/out)
 		      (set! server-done? #t)
+		      (close-port in/out)
 		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)]
 		     [(hashtable-ref %predefined-contents request-uri #f)
 		      => (lambda (x)
 			   (for-each (cut display <> in/out) x)
+			   (close-port in/out)
 			   (socket-shutdown client SHUT_RDWR)
 			   (socket-close client)
 			   (loop))]
@@ -105,6 +109,7 @@
 				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
+		      (close-port in/out)
 		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)
 		      (loop)]))))

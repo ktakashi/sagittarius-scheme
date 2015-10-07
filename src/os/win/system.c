@@ -521,9 +521,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   err->name = UC("process-stderr");
   /* port closes the handle, so we don't need these */
 
-  *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFMODE_NONE);
-  *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFMODE_NONE);
-  *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFMODE_NONE);
+  *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFFER_MODE_NONE);
+  *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFFER_MODE_NONE);
+  *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFFER_MODE_NONE);
   CloseHandle(process.hThread);
   return (uintptr_t)make_win_process(process.hProcess);
  pipe_fail:
