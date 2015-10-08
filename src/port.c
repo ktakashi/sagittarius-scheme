@@ -37,6 +37,7 @@
 #include "sagittarius/library.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/file.h"
+#include "sagittarius/keyword.h"
 #include "sagittarius/transcoder.h"
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
@@ -56,7 +57,7 @@ static SgClass *port_cpl[] = {
 static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx);
 SG_DEFINE_BASE_CLASS(Sg_PortClass, SgPort,
 		     port_print, NULL, NULL, Sg_ObjectAllocate,
-		     port_cpl);
+		     port_cpl+1);
 
 static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -85,7 +86,7 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   }
   if (SG_CUSTOM_PORTP(p)) {
     Sg_PutcUnsafe(port, ' ');
-    Sg_PutsUnsafe(port, SG_CUSTOM_PORT(p)->id);
+    Sg_Write(SG_CUSTOM_PORT(p)->id, port, SG_WRITE_DISPLAY);
   }
   if (SG_BUFFERED_PORTP(p)) {
     Sg_PutcUnsafe(port, ' ');
@@ -129,70 +130,59 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 }
 
 /* file, byte, string and transcoded ports are final */
-static SgClass *file_port_cpl[] = {
-  SG_CLASS_FILE_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
-
 SG_DEFINE_BUILTIN_CLASS(Sg_FilePortClass,
 			port_print, NULL, NULL, NULL,
-			file_port_cpl);
-
-static SgClass *byte_port_cpl[] = {
-  SG_CLASS_BYTE_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
+			port_cpl);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_BytePortClass,
 			port_print, NULL, NULL, NULL,
-			byte_port_cpl);
-
-static SgClass *string_port_cpl[] = {
-  SG_CLASS_STRING_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
+			port_cpl);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_StringPortClass,
 			port_print, NULL, NULL, NULL,
-			string_port_cpl);
-
-static SgClass *trans_port_cpl[] = {
-  SG_CLASS_TRANSCODED_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
+			port_cpl);
 
 SG_DEFINE_BUILTIN_CLASS(Sg_TranscodedPortClass,
 			port_print, NULL, NULL, NULL,
-			trans_port_cpl);
+			port_cpl);
 
-static SgClass *buffered_port_cpl[] = {
-  SG_CLASS_BUFFERED_PORT,
-  SG_CLASS_PORT,
-  SG_CLASS_TOP,
-  NULL
-};
 SG_DEFINE_BUILTIN_CLASS(Sg_BufferedPortClass,
 			port_print, NULL, NULL, NULL,
-			buffered_port_cpl);
+			port_cpl);
 
 /* custom can be extended */
+static SgObject custom_port_allocate(SgClass *klass, SgObject initargs);
+/* we don't need them in C level, so just declare here  */
+SG_CLASS_DECL(Sg_CustomBinaryPortClass);
+SG_CLASS_DECL(Sg_CustomTextualPortClass);
+#define SG_CLASS_CUSTOM_BINARY_PORT (&Sg_CustomBinaryPortClass)
+#define SG_CLASS_CUSTOM_TEXTUAL_PORT (&Sg_CustomTextualPortClass)
+
 static SgClass *custom_port_cpl[] = {
   SG_CLASS_CUSTOM_PORT,
   SG_CLASS_PORT,
   SG_CLASS_TOP,
   NULL
 };
+
 SG_DEFINE_BASE_CLASS(Sg_CustomPortClass, SgCustomPort,
-		     port_print, NULL, NULL, NULL,
+		     port_print, NULL, NULL, custom_port_allocate,
+		     port_cpl);
+SG_DEFINE_BASE_CLASS(Sg_CustomBinaryPortClass, SgCustomPort,
+		     port_print, NULL, NULL, custom_port_allocate,
 		     custom_port_cpl);
+SG_DEFINE_BASE_CLASS(Sg_CustomTextualPortClass, SgCustomPort,
+		     port_print, NULL, NULL, custom_port_allocate,
+		     custom_port_cpl);
+
+/* abstract interfaces */
+SG_CLASS_DECL(Sg_InputPortClass);
+SG_CLASS_DECL(Sg_OutputPortClass);
+#define SG_CLASS_INPUT_PORT (&Sg_InputPortClass)
+#define SG_CLASS_OUTPUT_PORT (&Sg_OutputPortClass)
+
+SG_DEFINE_ABSTRACT_CLASS(Sg_InputPortClass, port_cpl);
+SG_DEFINE_ABSTRACT_CLASS(Sg_OutputPortClass, port_cpl);
 
 #define PORT_DEFAULT_BUF_SIZE SG_PORT_DEFAULT_BUFFER_SIZE
 
@@ -369,7 +359,7 @@ static void buffered_flush(SgObject self)
 
 static void buffered_fill_buffer(SgObject self)
 {
-  int64_t read_size = 0, result;
+  int64_t read_size = 0;
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
   const size_t buffer_size = bp->size;
@@ -377,22 +367,22 @@ static void buffered_fill_buffer(SgObject self)
   if (bp->dirty && SG_IN_OUT_PORTP(self)) {
     buffered_flush(self);
   }
-  /* while (read_size < (int64_t)buffer_size) { */
-    result =
-      SG_PORT_VTABLE(src)->readb(src,
-				 bp->buffer + read_size,
-				 buffer_size - read_size);
+  do {
+    int64_t result = SG_PORT_VTABLE(src)->readb(src,
+						bp->buffer + read_size,
+						buffer_size - read_size);
     if (result < 0) {
       Sg_IOError(-1, SG_INTERN("fill buffer"),
 		 SG_MAKE_STRING("underlying reader returned invalid value"),
 		 SG_FALSE, self);
     }
-    /* if (result == 0) { */
-    /*   break;			/\* EOF *\/ */
-    /* } else { */
-    read_size += result;
-    /* } */
-    /*   } */
+    if (result == 0) {
+      break;			/* EOF */
+    } else {
+      read_size += result;
+    }
+    /* for socket port we need to allow less reading  */
+  } while (FALSE) /* (read_size < (int64_t)buffer_size) */;
   /* ASSERT(read_size <= PORT_DEFAULT_BUF_SIZE); */
   bp->bufferSize = read_size;
   bp->index = 0;
@@ -1940,55 +1930,6 @@ static SgPortTable custom_binary_table = {
   NULL				/* writes */
 };
 
-/* do silly game again */
-static SgPortTable custom_binary_table_no_get_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  NULL,
-  custom_binary_set_port_position,
-  custom_binary_open,
-  custom_binary_read,
-  custom_binary_read_all,
-  custom_binary_put_u8_array,
-  NULL,				/* reads */
-  NULL				/* writes */
-};
-
-static SgPortTable custom_binary_table_no_set_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  custom_port_position,
-  NULL,
-  custom_binary_open,
-  custom_binary_read,
-  custom_binary_read_all,
-  custom_binary_put_u8_array,
-  NULL,				/* reads */
-  NULL				/* writes */
-};
-
-static SgPortTable custom_binary_table_no_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  custom_binary_open,
-  custom_binary_read,
-  custom_binary_read_all,
-  custom_binary_put_u8_array,
-  NULL,				/* reads */
-  NULL				/* writes */
-};
-
 
 /*
   For future we may provide non R6RS custom port generator which
@@ -2136,56 +2077,6 @@ static SgPortTable custom_textual_table = {
   custom_textual_put_string
 };
 
-/* ok again */
-static SgPortTable custom_textual_table_no_get_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  NULL,
-  custom_textual_set_port_position,
-  NULL,				/* open */
-  NULL,				/* readb */
-  NULL,				/* readbAll */
-  NULL,				/* writeb */
-  custom_textual_get_string,
-  custom_textual_put_string
-};
-
-static SgPortTable custom_textual_table_no_set_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  custom_port_position,
-  NULL,
-  NULL,				/* open */
-  NULL,				/* readb */
-  NULL,				/* readbAll */
-  NULL,				/* writeb */
-  custom_textual_get_string,
-  custom_textual_put_string
-};
-
-static SgPortTable custom_textual_table_no_pos = {
-  NULL,
-  custom_close,
-  custom_ready,
-  NULL,
-  NULL,
-  NULL,
-  NULL,
-  NULL,				/* open */
-  NULL,				/* readb */
-  NULL,				/* readbAll */
-  NULL,				/* writeb */
-  custom_textual_get_string,
-  custom_textual_put_string
-};
-
-
 SgObject Sg_MakeCustomTextualPort(SgString *id,
 				  int direction,
 				  SgObject read,
@@ -2214,25 +2105,9 @@ SgObject Sg_MakeCustomTextualPort(SgString *id,
 
 static SgPortTable* get_custom_table(SgCustomPortSpec *spec)
 {
-  int setP = SG_PROCEDUREP(spec->setPosition);
-  int getP = SG_PROCEDUREP(spec->getPosition);
   int binaryP = SG_CUSTOM_PORT_TYPE_BINARY == spec->type;
 
-  if (setP && getP) {
-    return binaryP ? &custom_binary_table : &custom_textual_table;
-  } else if (setP) {
-    return binaryP 
-      ? &custom_binary_table_no_get_pos
-      : &custom_textual_table_no_get_pos;
-  } else if (getP) {
-    return binaryP 
-      ? &custom_binary_table_no_set_pos
-      : &custom_textual_table_no_set_pos;
-  } else {
-    return binaryP 
-      ? &custom_binary_table_no_pos
-      : &custom_textual_table_no_pos;
-  }
+  return binaryP ? &custom_binary_table : &custom_textual_table;
 }
 
 SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
@@ -2265,6 +2140,90 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   }
   return SG_OBJ(port);
 }
+
+#define MAKE_CUSTOM_SLOT_ACC(name, type, pred)				\
+  static SgObject SG_CPP_CAT3(custom_, name, _get)(SgCustomPort *p)	\
+  {									\
+    return p-> name;							\
+  }									\
+  static void SG_CPP_CAT3(custom_, name, _set)(SgCustomPort *p, SgObject v) \
+  {									\
+    if (!pred(v)) {							\
+      Sg_WrongTypeOfArgumentViolation(SG_INTERN(#name),			\
+				      SG_INTERN(#type),			\
+				      v, SG_NIL);			\
+    }									\
+    p-> name = v;							\
+  }
+
+#define PROC_OR_FALSE(o) (SG_FALSEP(o) || SG_PROCEDUREP(o))
+MAKE_CUSTOM_SLOT_ACC(id, "string", SG_STRINGP)
+MAKE_CUSTOM_SLOT_ACC(getPosition, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(setPosition, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(read, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(write, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(ready, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(flush, "procedure or #f", PROC_OR_FALSE)
+
+static SgSlotAccessor custom_slots[] = {
+  SG_CLASS_SLOT_SPEC("id",           0, custom_id_get, custom_id_set),
+  SG_CLASS_SLOT_SPEC("position",     1, custom_getPosition_get,
+		     custom_getPosition_set),
+  SG_CLASS_SLOT_SPEC("set-position", 2, custom_setPosition_get,
+		     custom_setPosition_set),
+  SG_CLASS_SLOT_SPEC("read",         3, custom_read_get, custom_read_set),
+  SG_CLASS_SLOT_SPEC("write",        4, custom_write_get, custom_write_set),
+  SG_CLASS_SLOT_SPEC("ready",        5, custom_ready_get, custom_ready_set),
+  SG_CLASS_SLOT_SPEC("flush",        6, custom_flush_get, custom_flush_set),
+  { { NULL } }
+};
+
+static SgObject SG_KEYWORD_ID = SG_FALSE;
+static SgObject SG_KEYWORD_POSITION = SG_FALSE;
+static SgObject SG_KEYWORD_SET_POSITION = SG_FALSE;
+static SgObject SG_KEYWORD_READ = SG_FALSE;
+static SgObject SG_KEYWORD_WRITE = SG_FALSE;
+static SgObject SG_KEYWORD_READY = SG_FALSE;
+static SgObject SG_KEYWORD_FLUSH = SG_FALSE;
+
+static SgObject custom_port_allocate(SgClass *klass, SgObject initargs)
+{
+  SgPortTable *tbl;
+  SgObject trans = SG_FALSE;	/* default binary */
+  SgCustomPort *port;
+  int flags = 0;
+  if (Sg_SubtypeP(klass, SG_CLASS_CUSTOM_TEXTUAL_PORT)) {
+    tbl = &custom_textual_table;
+    trans = SG_TRUE;
+  } else {
+    /* if users allocate with <custom-port> then it's binary */
+    tbl = &custom_binary_table;
+  }
+  if (Sg_SubtypeP(klass, SG_CLASS_INPUT_PORT)) flags |= SG_INPUT_PORT;
+  if (Sg_SubtypeP(klass, SG_CLASS_OUTPUT_PORT)) flags |= SG_OUTPUT_PORT;
+
+  if (!flags) Sg_Error(UC("custom port must inherit input or output port"));
+
+  port = (SgCustomPort *)Sg_AllocateInstance(klass);
+  SG_INIT_PORT(port, klass, flags, tbl, trans);
+  /* initialize slots */
+  port->id = Sg_GetKeyword(SG_KEYWORD_ID, initargs, SG_FALSE);
+  port->getPosition = Sg_GetKeyword(SG_KEYWORD_POSITION, initargs, SG_FALSE);
+  port->setPosition = Sg_GetKeyword(SG_KEYWORD_SET_POSITION,initargs, SG_FALSE);
+  port->read = Sg_GetKeyword(SG_KEYWORD_READ, initargs, SG_FALSE);
+  port->write = Sg_GetKeyword(SG_KEYWORD_WRITE, initargs, SG_FALSE);
+  port->ready = Sg_GetKeyword(SG_KEYWORD_READY, initargs, SG_FALSE);
+  port->flush = Sg_GetKeyword(SG_KEYWORD_FLUSH, initargs, SG_FALSE);
+  if (SG_FALSEP(trans)) {
+    port->binaryBuffer = Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
+  } else {
+    port->textualBuffer = Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
+  }
+  Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
+  return SG_OBJ(port);
+}
+
+/* Port APIs */
 
 SgObject Sg_GetByteVectorFromBinaryPort(SgBytePort *port)
 {
@@ -2874,11 +2833,17 @@ SgObject Sg_ReadbUntil(SgPort *port, SgByteVector *eol)
 
 int Sg_HasPortPosition(SgPort *port)
 {
+  /* a bit awkard solution but this saves me from lots of crap*/
+  if (SG_CUSTOM_PORTP(port))
+    return SG_PROCEDUREP(SG_CUSTOM_PORT(port)->getPosition);
   return SG_PORT_VTABLE(port)->portPosition != NULL;
 }
 
 int Sg_HasSetPortPosition(SgPort *port)
 {
+  /* a bit awkard solution */
+  if (SG_CUSTOM_PORTP(port))
+    return SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition);
   return SG_PORT_VTABLE(port)->setPortPosition != NULL;
 }
 
@@ -3033,10 +2998,24 @@ void Sg__InitPort()
   BINIT(SG_CLASS_FILE_PORT,   "<file-port>", NULL);
   BINIT(SG_CLASS_BYTE_PORT,   "<byte-port>", NULL);
   BINIT(SG_CLASS_STRING_PORT, "<string-port>", NULL);
-  /* TODO slot for custom port */
-  BINIT(SG_CLASS_CUSTOM_PORT, "<custom-port>", NULL);
+  BINIT(SG_CLASS_CUSTOM_PORT, "<custom-port>", custom_slots);
+  BINIT(SG_CLASS_CUSTOM_BINARY_PORT, "<custom-binary-port>", NULL);
+  BINIT(SG_CLASS_CUSTOM_TEXTUAL_PORT, "<custom-textual-port>", NULL);
   BINIT(SG_CLASS_BUFFERED_PORT, "<buffered-port>", NULL);
   BINIT(SG_CLASS_TRANSCODED_PORT, "<transcoded-port>", NULL);
+  /* dummy but needed */
+  BINIT(SG_CLASS_INPUT_PORT, "<input-port>", NULL);
+  BINIT(SG_CLASS_OUTPUT_PORT, "<output-port>", NULL);
+
+#define KEYWORD(k) Sg_MakeKeyword(SG_MAKE_STRING(k))
+  SG_KEYWORD_ID = KEYWORD("id");
+  SG_KEYWORD_POSITION = KEYWORD("position");
+  SG_KEYWORD_SET_POSITION = KEYWORD("set-position");
+  SG_KEYWORD_READ = KEYWORD("read");
+  SG_KEYWORD_WRITE = KEYWORD("write");
+  SG_KEYWORD_READY = KEYWORD("ready");
+  SG_KEYWORD_FLUSH = KEYWORD("flush");
+
 }
   
 /*

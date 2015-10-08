@@ -50,7 +50,6 @@
 	    ;; etc
 	    <identifier> <code-builder> <time> <char-set> <comparator>
 
-
 	    ;; builtin generic
 	    write-object allocate-instance compute-applicable-methods
 	    compute-apply-methods
