@@ -393,6 +393,28 @@ always returns #t;
 
 }
 
+@define[Function]{@name{buffered-port} @args{port :key buffer-mode buffer}}
+@desc{@var{port} must be binary port.
+
+Converts given @var{port} to buffered port if the @var{port} is not
+buffered port.
+
+Buffered port is a type of port which does not read or write immediately
+but uses internal buffer. For example, file port with 
+@code{(buffer-mode block)} or @code{(buffer-mode line)} uses the buffered
+port. This is useful when actual I/O is more expensive than memory access.
+
+If the keyword argument @var{buffer-mode} is specified, it must be
+a symbol the macro @code{buffer-mode} can return, then converted port
+uses the specified buffer. If the @code{buffer-mode} is @code{none}, 
+then the procedure does not convert the given @var{port}.
+
+If the keyword argument @var{buffer} is specified, it must be
+a bytevector, then the converted buffered port uses specified bytevector
+as its internal buffer. If the bytevector size is zero or literal bytevector
+then @code{&assertion} is raised.
+}
+
 @define[Function]{@name{make-codec} @args{symbol getc putc data}}
 @desc{Creates a custom codec. @var{Symbol} is the name of the codec. @var{Getc}
 and @var{putc} must be procedures. @var{Data} is an user data used in @var{getc}

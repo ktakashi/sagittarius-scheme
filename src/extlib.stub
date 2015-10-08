@@ -794,14 +794,24 @@
       (wrong-type-of-argument-violation 'buffered-port "binary port" port))
     (when (Sg_PortClosedP port)
       (wrong-type-of-argument-violation 'buffered-port "opened port" port))
+    ;; already buffered port
+    ;; TODO should we allow this so that user can do something like
+    ;;      line buffer <-> block buffe?
+    (when (SG_BUFFERED_PORTP port) (return port))
     (let ((mode::int SG_BUFFER_MODE_BLOCK)
 	  (buf::uint8_t* NULL)
 	  (size::size_t 0))
       (cond ((SG_EQ buffer-mode 'none) (return port))
 	    ((SG_EQ buffer-mode 'line) (set! mode SG_BUFFER_MODE_LINE)))
       (when (SG_BVECTORP buffer) 
+	(when (SG_LITERAL_BVECTORP buffer)
+	  (assertion-violation 'buffered-port 
+		       "literal bytevector can not be used as a buffer"))
 	(set! buf (SG_BVECTOR_ELEMENTS buffer)
-	      size (SG_BVECTOR_SIZE buffer)))
+	      size (SG_BVECTOR_SIZE buffer))
+	(when (== size 0)
+	  (assertion-violation 'buffered-port
+			       "given bytevector size is zero")))
       (Sg_PseudoClosePort port)
       (result (Sg_MakeBufferedPort port mode buf size))))
 

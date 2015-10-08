@@ -1874,4 +1874,13 @@
 	     (not (eval '(cachable? *bar2*)
 			(environment '(sagittarius) '(closure-cache)))))
 
+;; buffered-port
+(let ((in (open-bytevector-input-port #vu8())))
+  (test-error "literal buffer" assertion-violation? 
+	      (buffered-port in :buffer #vu8(0 0 0 0)))
+  (test-error "zero length buffer" assertion-violation? 
+	      (buffered-port in :buffer (make-bytevector 0)))
+  (test-assert "buffered-port" (port? (buffered-port in )))
+  (test-assert "source closed" (port-closed? in)))
+
 (test-end)
