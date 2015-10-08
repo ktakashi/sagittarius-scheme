@@ -113,9 +113,16 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     Sg_PutcUnsafe(port, ' ');
     Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
   }
-  if (Sg_PortClosedP(p)) {
+  switch (SG_PORT(p)->closed) {
+  case SG_PORT_CLOSED:
     Sg_PutcUnsafe(port, ' ');
     Sg_PutuzUnsafe(port, UC("closed"));
+    break;
+  case SG_PORT_PSEUDO:
+    Sg_PutcUnsafe(port, ' ');
+    Sg_PutuzUnsafe(port, UC("pseudo-closed"));
+    break;
+  default: break;
   }
   Sg_PutcUnsafe(port, '>');
   SG_PORT_UNLOCK_WRITE(port);
@@ -742,7 +749,7 @@ static int file_open(SgObject self)
 
 static int file_close(SgObject self)
 {
-  if (!SG_PORT(self)->closed) {
+  if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
     if (
 #ifdef _MSC_VER
 	/* again I have no idea, but this happens... */
@@ -754,7 +761,7 @@ static int file_close(SgObject self)
       Sg_UnregisterFinalizer(self);
     }
   }
-  return SG_PORT(self)->closed;
+  return TRUE;
 }
 
 static int file_ready(SgObject self)
@@ -1228,23 +1235,13 @@ SgObject Sg_MakeByteVectorInputPort(SgByteVector *bv, int64_t start, int64_t end
 
 SgObject Sg_MakeByteArrayInputPort(uint8_t *src, int64_t size)
 {
-  SgBytePort *z = (SgBytePort*)make_port_rec(SgBytePort, 
-					     SG_INPUT_PORT, 
-					     SG_CLASS_BYTE_PORT,
-					     &bt_inputs,
-					     SG_FALSE,
-					     FALSE);
+  SgBytePort *z = SG_NEW(SgBytePort);
   return Sg_InitByteArrayInputPort(z, src, 0, size);
 }
 
 SgObject Sg_MakeByteArrayOutputPort(int size)
 {
-  SgBytePort *z = (SgBytePort *)make_port_rec(SgBytePort, 
-					      SG_OUTPUT_PORT, 
-					      SG_CLASS_BYTE_PORT,
-					      &bt_outputs,
-					      SG_FALSE,
-					      FALSE);
+  SgBytePort *z = SG_NEW(SgBytePort);
   return Sg_InitByteArrayOutputPort(z, size);
 }
 
@@ -1664,11 +1661,12 @@ SgObject Sg_MakeStringInputPort(SgString *s, int64_t start, int64_t end)
   int64_t len = SG_STRING_SIZE(s);
   SG_CHECK_START_END(start, end, len);
 
-  z = (SgStringPort *)make_port(SgStringPort,
-				SG_INPUT_PORT,
-				SG_CLASS_STRING_PORT,
-				&str_inputs,
-				SG_TRUE);
+  z = (SgStringPort *)make_port_rec(SgStringPort,
+				    SG_INPUT_PORT,
+				    SG_CLASS_STRING_PORT,
+				    &str_inputs,
+				    SG_TRUE,
+				    FALSE);
 
   z->buffer.buf = SG_STRING_VALUE(s);
   z->buffer.end = SG_STRING_VALUE(s) + end;
@@ -2309,7 +2307,7 @@ SgObject Sg_GetStringFromStringPort(SgStringPort *port)
 void Sg_ClosePort(SgPort *port)
 {
   SG_PORT_VTABLE(port)->close(port);
-  if (port->closed) {
+  if (port->closed == SG_PORT_CLOSED) {
     /* destroy mutex */
     SG_CLEAN_PORT_LOCK(port);
     /* following must be useless */

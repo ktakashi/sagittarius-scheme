@@ -430,8 +430,14 @@
 		  (begin
 		    (bytevector-u8-set! bv ind b)
 		    (loop (+ ind 1))))))))
-
-    (define (close) (close-input-port srcport))
+    ;; don't close source port when this is GCed
+    ;; [background]
+    ;; Since 0.6.9, port structure has been changed a bit
+    ;; and this made the close procedure be called properly
+    ;; (Seems it didn't release this mime port). Closing
+    ;; source port was potentially a bug just never invoked
+    ;; by now.
+    (define (close) #;(close-input-port srcport) #t)
     (define (ready?) (port-ready? srcport))
     (make-custom-binary-input-port "mime-port" read! #f #f close ready?))
 
