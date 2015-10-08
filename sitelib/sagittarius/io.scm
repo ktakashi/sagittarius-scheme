@@ -60,7 +60,7 @@
       (get-output-string port)))
 
   (define (with-input-from-string str thunk)
-    (with-input-from-port (open-input-string str) thunk))
+    (with-input-from-port (open-string-input-port str) thunk))
 
   (define (with-input-from-port port thunk)
     (parameterize ((current-input-port port))
