@@ -411,5 +411,34 @@
 
 (test-error "datum->syntax refered incorrectly" undefined-violation?  n1-n2)
 
+;; call #154
+;; uncomment out when it's fixed
+#|
+(let ()
+  (define-syntax bar
+    (lambda (x)
+      (syntax-case x ()
+	((_ (ts ...) (b ...))
+	 #'(let-syntax ((buz (lambda (x)
+			       (syntax-case x ()
+				 ((_ ts ...) #'(list ts ...))))))
+	     (buz b ...)))
+	((_ (t* ...) (b ...) a as ...)
+	 #'(bar (t* ... t) (b ...) as ...)))))
+  (test-equal "incorrect free-identifier=? check (1)" '(1 2 3)
+	      (bar () (1 2 3) 1 2 3)))
+
+(let ()
+  (define-syntax bar
+    (syntax-rules ()
+      ((_ (ts ...) (b ...))
+       (let-syntax ((buz (syntax-rules ()
+			   ((_ ts ...) (list ts ...)))))
+	 (buz b ...)))
+      ((_ (ts ...) (b ...) a as ...)
+       (bar (ts ... t) (b ...) as ...))))
+  (test-equal "incorrect free-identifier=? check (1)" '(1 2 3)
+	      (bar () (1 2 3) 1 2 3)))
+|#
 
 (test-end)

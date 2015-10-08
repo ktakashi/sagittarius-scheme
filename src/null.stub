@@ -3305,6 +3305,19 @@
   (define-cfn variable? (o) ::int :static
     (return (or (SG_IDENTIFIERP o) (SG_SYMBOLP o))))
 
+  ;; FIXME this is also in vmlib.stub
+  (define-cfn list-eq? (l1 l2) ::int :static
+    (while (and (SG_PAIRP l1) (SG_PAIRP l2))
+      (unless (SG_EQ (SG_CAR l1) (SG_CAR l2)) (return FALSE))
+      (set! l1 (SG_CDR l1))
+      (set! l2 (SG_CDR l2)))
+    (return (SG_EQ l1 l2)))
+  (define-cfn identity-eq? (identity1 identity2) ::int :static
+    (cond ((SG_EQ identity1 identity2) (return TRUE))
+	  ((or (SG_FALSEP identity1) (SG_FALSEP identity2))
+	   (return FALSE))
+	  (else (return (list-eq? identity1 identity2)))))
+
   (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
     ::int :static
     (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
@@ -3347,20 +3360,6 @@
   ;; TODO
   ;; bound-identifier=? must compare if it's the same syntax object or not
   ;; otherwise it won't work properly.
-
-  ;; FIXME this is also in vmlib.stub
-  (define-cfn list-eq? (l1 l2) ::int :static
-    (while (and (SG_PAIRP l1) (SG_PAIRP l2))
-      (unless (SG_EQ (SG_CAR l1) (SG_CAR l2)) (return FALSE))
-      (set! l1 (SG_CDR l1))
-      (set! l2 (SG_CDR l2)))
-    (return (SG_EQ l1 l2)))
-  (define-cfn identity-eq? (identity1 identity2) ::int :static
-    (cond ((SG_EQ identity1 identity2) (return TRUE))
-	  ((or (SG_FALSEP identity1) (SG_FALSEP identity2))
-	   (return FALSE))
-	  (else (return (list-eq? identity1 identity2)))))
-
   (define-c-proc bound-identifier=? (id1::<identifier> id2::<identifier>)
     ::<boolean>
     (result 
