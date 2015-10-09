@@ -1038,8 +1038,8 @@ SgObject Sg_InitFileBinaryPort(SgFilePort *port,
   SG_INIT_PORT(port, SG_CLASS_FILE_PORT, d, get_file_table(file), SG_FALSE);
   port->file = file;
   if (bufferedPort) {
-    Sg_InitBufferedPort(bufferedPort, mode, SG_PORT(port), buffer, bufferSize);
-    return SG_OBJ(port);
+    return Sg_InitBufferedPort(bufferedPort, mode, SG_PORT(port),
+			       buffer, bufferSize);
   } else if (mode != SG_BUFFER_MODE_NONE) {
     return Sg_MakeBufferedPort(SG_PORT(port), mode, buffer, bufferSize);
   }
