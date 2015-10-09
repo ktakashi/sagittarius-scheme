@@ -1075,7 +1075,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFile file, tagfile;
   SgPort *out;
   SgFilePort bp;
-  SgBufferedPort bfp;
+  /* SgBufferedPort bfp; */
   SgObject cache, size;
   int index = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
@@ -1096,7 +1096,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_CloseFile(&file);
     return TRUE;
   }
-  out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, &bfp, 
+  out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, NULL, 
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
@@ -1997,7 +1997,7 @@ int Sg_ReadCache(SgString *id)
   SgFile file;
   SgPort *in;
   SgFilePort bp;
-  SgBufferedPort bfp;
+  /* SgBufferedPort bfp; */
   SgObject obj;
   SgHashTable seen, shared;
   SgLibrary * volatile save = vm->currentLibrary;
@@ -2029,7 +2029,7 @@ int Sg_ReadCache(SgString *id)
   /* Now I/O is not so slow so we can use file input port.
      This uses less memory :) */
   in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
-			     &bfp, SG_BUFFER_MODE_BLOCK,
+			     NULL, SG_BUFFER_MODE_BLOCK,
 			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
