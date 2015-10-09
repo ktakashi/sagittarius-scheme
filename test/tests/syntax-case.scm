@@ -447,4 +447,22 @@
 			((_ a b c) 'ok))))
       (test-equal "locally bound ellipsis" 'ok (foo 1 2 3)))))
 
+
+;; there's a simplar test in R6RS test suite but adding one more
+;; wouldn't hurt me.
+(let ()
+  (define-syntax foo
+    (lambda (x)
+      (syntax-case x ()
+	((_ (t1 t2))
+	 #`(list #,(free-identifier=? #'t1 #'t2)
+		 #,(bound-identifier=? #'t1 #'t2)))
+	((_ (t* ...) a b ...)
+	 #'(foo (t* ... t) b ...))
+	((_ a ...)
+	 #'(foo () a ...)))))
+  (test-equal "free or bound" '(#t #f) (foo 1 2)))
+
+
+
 (test-end)
