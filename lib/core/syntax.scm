@@ -50,8 +50,8 @@
 	((_ (k ...) cl ...)
 	 (for-all identifier? (syntax (k ...)))
 	 (with-syntax (((cl ...) (map clause (syntax (cl ...)))))
-		      (syntax
-		       (lambda (x) (syntax-case x (k ...) cl ...))))))))
+	   (syntax
+	    (lambda (x) (syntax-case x (k ...) cl ...))))))))
 
   (define-syntax datum
     (syntax-rules ()

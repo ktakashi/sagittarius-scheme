@@ -168,13 +168,20 @@
 	  ((symbol? expr) (seen-or-gen expr env library))
 	  (else expr))))
 
+(define (pattern-identifier? id p1env)
+  (number? (p1env-lookup p1env id PATTERN)))
+
 ;; syntax-case compiler
 (define compile-syntax-case
   (lambda (exp-name expr literals clauses library env mac-env make-p1env)
-    (define (rewrite oexpr patvars)
+    (define (rewrite oexpr patvars p1env)
       (define seen (make-eq-hashtable))
-      (for-each (lambda (pvar) (hashtable-set! seen (car pvar) (cdr pvar)))
-		patvars)
+      ;; can be for-each but it won't be inlined so this is faster.
+      (let loop ((patvars patvars))
+	(unless (null? patvars)
+	  (let ((pvar (car patvars)))
+	    (hashtable-set! seen (car pvar) (cdr pvar))
+	    (loop (cdr patvars)))))
       (rewrite-form oexpr seen env library
 		    ;; at this stage, symbol must be converted to
 		    ;; the same meaning of identifier
@@ -182,7 +189,8 @@
 		      (make-identifier name (if (symbol? name) '() env)
 				       library))
 		    (lambda (id) 
-		      (not (pending-identifier? id)))))
+		      (and (not (pending-identifier? id))
+			   (not (pattern-identifier? id p1env))))))
     (define (extend-env newframe env) (acons PATTERN newframe env))
     
     (define mac-save (current-macro-env))
@@ -191,7 +199,7 @@
     ;; use this env for compilation
     (%set-current-macro-env! mac-env)
     (%set-current-usage-env! mac-env)
-    (let ((lites (rewrite literals '())))
+    (let ((lites (rewrite literals '() mac-env)))
       
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
@@ -204,9 +212,9 @@
 	(check-pattern pattern lites)
 	(let* ((ranks (collect-vars-ranks pattern lites 0 '()))
 	       (pvars (map gen-patvar ranks)))
-	  (values (rewrite pattern pvars)
+	  (values (rewrite pattern pvars mac-env)
 		  (make-p1env mac-env 
-			      (extend-env (rewrite ranks pvars) env))
+			      (extend-env (rewrite ranks pvars mac-env) env))
 		  pvars)))
 
       (or (and (list? lites) (for-all identifier? lites))
@@ -225,15 +233,15 @@
 			   (cons `(,.list (,syntax-quote. ,pattern)
 					  #f
 					  (,.lambda (,.vars)
-						    ,(rewrite expr patvars)))
+					    ,(rewrite expr patvars env)))
 				 env)))
 			((p fender expr)
 			 (receive (pattern env patvars) (parse-pattern p)
 			   (cons `(,.list (,syntax-quote. ,pattern)
 					  (,.lambda (,.vars)
-						    ,(rewrite fender patvars))
+					    ,(rewrite fender patvars env))
 					  (,.lambda (,.vars)
-						    ,(rewrite expr patvars)))
+					    ,(rewrite expr patvars env)))
 				 env)))))
 		    clauses)))
 	;; restore it
@@ -508,7 +516,10 @@
 			     ;; FIXME 
 			     (not (identifier?
 				   (p1env-lookup mac-env id LEXICAL))))
-			 (not (assoc id ranks free-identifier=?))))))
+			 ;; 'ranks' contains pattern variables so 
+			 ;; not need for this
+			 ;; (not (pattern-identifier? id mac-env))
+			 (not (assoc id ranks bound-identifier=?))))))
   (let* ((ids (collect-unique-ids tmpl))
 	 (ranks (filter-map (lambda (id)
 			      (let ((p (p1env-lookup mac-env id PATTERN)))
@@ -598,7 +609,9 @@
 		    ;; pattern variables
 		    (lambda (id)
 		      (and (not (pending-identifier? id))
-			   (not (assoc id ranks free-identifier=?))))))
+			   ;; 'ranks' contains pattern variables
+			   ;; so not need to call pattern-identifier?
+			   (not (assoc id ranks bound-identifier=?))))))
     (if (null? template)
 	'()
 	(let ((form (transcribe-template (rewrite template) ranks vars)))
@@ -766,7 +779,7 @@
 		  (adapt-to-rank-moved-vars in-form in-ranks in-vars)))
 
       (define (expand-var tmpl vars)
-	(cond ((assoc tmpl vars free-identifier=?)
+	(cond ((assoc tmpl vars bound-identifier=?)
 	       => (lambda (slot)
 		    (cond ((null? (cdr slot)) '())
 			  (else (cadr slot)))))
@@ -780,7 +793,7 @@
 						(unwrap-syntax (cdr var)))
 					      vars)))))))
       (define (expand-ellipsis-var tmpl vars)
-	(cond ((assoc tmpl vars free-identifier=?)
+	(cond ((assoc tmpl vars bound-identifier=?)
 	       => (lambda (slot)
 		    (cond ((null? (cdr slot)) '())
 			  (else (cadr slot)))))

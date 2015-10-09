@@ -413,7 +413,6 @@
 
 ;; call #154
 ;; uncomment out when it's fixed
-#|
 (let ()
   (define-syntax bar
     (lambda (x)
@@ -425,7 +424,7 @@
 	     (buz b ...)))
 	((_ (t* ...) (b ...) a as ...)
 	 #'(bar (t* ... t) (b ...) as ...)))))
-  (test-equal "incorrect free-identifier=? check (1)" '(1 2 3)
+  (test-equal "template variable expand (1)" '(1 2 3)
 	      (bar () (1 2 3) 1 2 3)))
 
 (let ()
@@ -437,8 +436,15 @@
 	 (buz b ...)))
       ((_ (ts ...) (b ...) a as ...)
        (bar (ts ... t) (b ...) as ...))))
-  (test-equal "incorrect free-identifier=? check (1)" '(1 2 3)
+  (test-equal "template variable expand (2)" '(1 2 3)
 	      (bar () (1 2 3) 1 2 3)))
-|#
+
+;; this is extra
+(let ()
+  (let-syntax ((... (syntax-rules ())))
+    (let-syntax ((foo (syntax-rules ()
+			((_ a ...) 'ng)
+			((_ a b c) 'ok))))
+      (test-equal "locally bound ellipsis" 'ok (foo 1 2 3)))))
 
 (test-end)

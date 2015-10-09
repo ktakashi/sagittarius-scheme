@@ -14,7 +14,7 @@
 	    ;;(core record procedural)
 	    ;;(except (rnrs) syntax-rules)
 	    ;;(rnrs mutable-pairs)
-	    (sagittarius record)
+	    ;; (sagittarius record)
 	    ;; we need to use R7RS syntax-rules to support
 	    ;; '_' as literals. but it makes macro *really* slow.
 	    (compat r7rs))
