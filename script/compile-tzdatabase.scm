@@ -87,6 +87,9 @@ zoneinfo2tdf.pl
     "backzone"
     ))
 
+(define-constant +leap.list+ "leap-seconds.list")
+(define leap-port (open-chunked-binary-input/output-port))
+
 (define (ftp-sized-file-receiver file size)
   (lambda (in)
     (call-with-output-file file
@@ -365,15 +368,19 @@ zoneinfo2tdf.pl
         (call-with-input-archive-port 'tar in
 	  (lambda (ain)
 	    (do-entry (e ain)
-	      (when (member (archive-entry-name e) +targets+)
-		(let ((in/out (open-chunked-binary-input/output-port)))
-		  (extract-entry e in/out)
-		  (set-port-position! in/out 0)
-		  ;; returns rules so append it
-		  (let ((r (parse&collect (transcoded-port in/out 
-							   (native-transcoder))
-					  zones aliases)))
-		    (set! rules (append! rules r)))))))))))
+	      (cond ((member (archive-entry-name e) +targets+)
+		     (let ((in/out (open-chunked-binary-input/output-port)))
+		       (extract-entry e in/out)
+		       (set-port-position! in/out 0)
+		       ;; returns rules so append it
+		       (let ((r (parse&collect (transcoded-port in/out 
+							(native-transcoder))
+					       zones aliases)))
+			 (set! rules (append! rules r)))))
+		    ((string=? (archive-entry-name e) +leap.list+)
+		     ;; extract to global port...
+		     (extract-entry e leap-port)
+		     (set-port-position! leap-port 0)))))))))
   (define (compile)
     (define (sort&->vector l)
       (list->vector (list-sort (lambda (a b) (string< (car a) (car b)))
@@ -434,72 +441,33 @@ zoneinfo2tdf.pl
     ;; territory=country name (2 letter or 3 digits)
     (emit (filter-map compile-map-zone map-zones))))
 
-
-(define open-input-string open-string-input-port)
-;; From SRFI-19
-;; Copyright (C) I/NET, Inc. (2000, 2002, 2003). All Rights Reserved. 
-;; 
-;; Permission is hereby granted, free of charge, to any person obtaining
-;; a copy of this software and associated documentation files (the
-;; "Software"), to deal in the Software without restriction, including
-;; without limitation the rights to use, copy, modify, merge, publish,
-;; distribute, sublicense, and/or sell copies of the Software, and to
-;; permit persons to whom the Software is furnished to do so, subject to
-;; the following conditions:
-;; 
-;; The above copyright notice and this permission notice shall be
-;; included in all copies or substantial portions of the Software.
-;; 
-;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
-;; LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-;; OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-(define tm:sid  86400)    ; seconds in a day
-(define tm:tai-epoch-in-jd 4881175/2) ; julian day number for 'the epoch'
-
-;; A table of leap seconds
-;; See ftp://maia.usno.navy.mil/ser7/tai-utc.dat
-;; and update as necessary.
-;; this procedures reads the file in the abover
-;; format and creates the leap second table
-;; it also calls the almost standard, but not R5 procedures read-line
-;; & open-input-string
-;; ie (set! tm:leap-second-table (tm:read-tai-utc-date "tai-utc.dat"))
-(define (tm:read-tai-utc-data filename)
-  (define (convert-jd jd)
-    (* (- (exact jd) tm:tai-epoch-in-jd) tm:sid))
-  (define convert-sec exact)
-  (let ((port (open-input-file filename))
-	(table '()))
-    (let loop ((line (get-line port)))
-      (if (not (eof-object? line))
-	  (let* ((data (read (open-input-string 
-			      (string-append "(" line ")"))))
-		 (year (car data))
-		 (jd   (cadddr (cdr data)))
-		 (secs (cadddr (cdddr data))))
-	    (if (>= year 1972)
-		(set! table (acons (convert-jd jd) (convert-sec secs) table)))
-	    (loop (get-line port)))))
-    (close-input-port port)
-    table))
-;; From SRFI-19 end
-
-(define (create-leap-file leap)
-  (define outfile (build-path +work-dir+ "tai-utc.dat"))
-  ;; (when (file-exists? "tai-utc.dat") (delete-file "tai-utc.dat"))
-  (let* ((file (if (file-exists? outfile)
-		   outfile
-		   (download-ftp "maia.usno.navy.mil"
-				 "/ser7/tai-utc.dat"
-				 outfile)))
-	 (table (tm:read-tai-utc-data file)))
+(define (create-leap-file leap)      
+  ;; TZ leap-seconds.list uses the date from 1900/1/1 00:00:00 so
+  ;; we need to consider the offset between UTC (1972/1/1 00:00:00)
+  ;;
+  ;;(define date-1900/1/1 (make-date 0 0 0 0 1 1 1900 0))
+  ;;(define time-1900/1/1 (date->time-utc date-1900/1/1))
+  ;;(define offset (- (time-second time-1900/1/1)))
+  ;; 
+  ;; the following can be retrieved from above but it's constant
+  ;; so hey use this
+  (define offset 2208988800)
+  ;; using stored list
+  (define (read-leap-second)
+    (define in (transcoded-port leap-port (native-transcoder)))
+    (let loop ((r '()))
+      (let ((line (read-line in)))
+	(cond ((eof-object? line) r)
+	      ((#/^(\d+)\s+(\d+)\s+/ line) =>
+	       (lambda (m)
+		 (let ((epoch (string->number (m 1)))
+		       (sec   (string->number (m 2))))
+		   (loop (acons (- epoch offset) sec r)))))
+	      (else (loop r))))))
+  (let ((table (read-leap-second)))
     (when (file-exists? leap) (delete-file leap))
     (call-with-output-file leap (lambda (out) (pp `(quote ,table) out)))))
-      
+	       
 
 (define (usage)
   (print "compile-tzdatabase.scm -o output -w windows-mappings -l leap-file [-r|--remove]")

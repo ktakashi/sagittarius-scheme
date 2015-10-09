@@ -78,7 +78,6 @@ can create them manually.
 
 - tzdata-latest.tar.gz [Download](ftp://iana.org/tz/tzdata-latest.tar.gz)
 - windowsZones.xml [Download](http://unicode.org/repos/cldr/trunk/common/supplemental/windowsZones.xml)
-- tai-utc.dat [Download](ftp://maia.usno.navy.mil/ser7/tai-utc.dat)
 
 NOTE: all  of above files are  removed when `./dist.sh tz`  command is
 executed. If  you want to reuse  them, make sure you  copy them before
