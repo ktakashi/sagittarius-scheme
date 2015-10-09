@@ -471,6 +471,7 @@ SG_CLASS_DECL(Sg_TranscodedPortClass);
     SG_PORT(port)->reader = SG_FALSE;			\
     SG_PORT(port)->closed = SG_PORT_OPEN;		\
     SG_PORT(port)->data = SG_NIL;			\
+    SG_PORT(port)->readtable = NULL;			\
     SG_PORT(port)->readLockCount = 0;			\
     SG_PORT(port)->readLockOwner = NULL;		\
     SG_PORT(port)->writeLockCount = 0;			\
