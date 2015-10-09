@@ -510,7 +510,11 @@ static int buffered_close(SgObject self)
     buffered_flush(self);
     SG_PORT_VTABLE(src)->close(src);
     SG_PORT(self)->closed = SG_PORT_CLOSED;
-    unregister_buffered_port(SG_PORT(self));
+    /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
+       non GC pointer is safe. But just in case. */
+    if (Sg_GCBase(self)) {
+      unregister_buffered_port(SG_PORT(self));
+    }
   }
   return TRUE;
 }
@@ -696,7 +700,8 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
      we need to get the position from source port.
    */
   SG_PORT(bp)->position = src->position;
-  if (registerP) {
+  /* we don't want to add stack allocated ones */
+  if (registerP && Sg_GCBase(bp)) {
     register_buffered_port(SG_PORT(bp));
   }
   return SG_OBJ(bp);

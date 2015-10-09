@@ -218,13 +218,14 @@ struct SgPortRec
   SgObject     reader;
   SgObject     data;		/* alist of port data */
 
-  /* unlike the other object, lock is a pointer.
-     port has 2 lock, one is read lock the other one is write lock.
-     on the normal case these 2 are basically the same.
-     however there is one case these 2 need to be different which
-     is socket port. even though socket support is out side of
-     main component but it needs to have a way to make input/output
-     port bidirectional.
+  /* 
+     The actual locks are emulated by above VM instances.
+     This mutex is the actual lock to obtain them. Unlike
+     the emulated locks, the actual lock can only be one
+     since the port lock macro always releases the mutex
+     in very short time (only just setting VM instances).
+     Thus holding 2 mutex would more cost than waiting
+     the period.
    */
   SgInternalMutex lock;
   int64_t      position;	/* current position */
