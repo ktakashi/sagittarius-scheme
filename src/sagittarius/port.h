@@ -35,6 +35,7 @@
 #include "clos.h"
 #include "file.h"
 #include "vm.h"
+#include "system.h"
 
 typedef enum SgFileLockType SgPortLockType;
 
@@ -413,15 +414,19 @@ SG_CLASS_DECL(Sg_TranscodedPortClass);
   do {								\
     SgVM *vm = Sg_VM();						\
     if ((port)-> owner__ != vm) {				\
-      SgVM *owner_;						\
-      Sg_LockMutex(&(port)->lock);				\
-      owner_ = (port)-> owner__;				\
-      if (owner_ == NULL					\
-	  || (owner_->threadState == SG_VM_TERMINATED)) {	\
-	(port)-> owner__ = vm;					\
-	(port)-> counter__ = 1;					\
+      for (;;) {						\
+	SgVM *owner_;						\
+	Sg_LockMutex(&(port)->lock);				\
+	owner_ = (port)-> owner__;				\
+	if (owner_ == NULL					\
+	    || (owner_->threadState == SG_VM_TERMINATED)) {	\
+	  (port)-> owner__ = vm;				\
+	  (port)-> counter__ = 1;				\
+	}							\
+	Sg_UnlockMutex(&(port)->lock);				\
+	if ((port)-> owner__ == vm) break;			\
+	Sg_YieldCPU();						\
       }								\
-      Sg_UnlockMutex(&(port)->lock);				\
     } else {							\
       (port)-> counter__ ++;					\
     }								\
