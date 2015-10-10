@@ -191,11 +191,15 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 static struct
 {
   SgHashTable *libraries;
+  SgVM *owner;
+  int count;
   SgInternalMutex mutex;
-} libraries = { SG_OBJ(SG_UNDEF), };
+} libraries = { SG_OBJ(SG_UNDEF), NULL, 0,};
 
 #define ALL_LIBRARIES      libraries.libraries
 #define MUTEX              libraries.mutex
+#define OWNER              libraries.owner
+#define COUNT              libraries.count
 /* #ifdef HAVE_SEMAPHORE_H */
 /* this actually doesn't solve the problem plus causes dead lock.  */
 #if 0
@@ -215,10 +219,37 @@ static sem_t *process_lock = NULL;
     sem_unlink(SEMAPHORE_NAME);			\
   } while (0)
 #else
-/* Most definitely Windows and its mutex can lock process,
-   if I understand correctly. */
-# define LOCK_LIBRARIES()   Sg_LockMutex(&MUTEX)
+#if 0
+/* We're using lock too many place so make it a bit light weight. 
+   According to the simple benchmark this wasn't fast at all.
+   So let's use mutex locking.
+ */
+# define LOCK_LIBRARIES()				\
+  do {							\
+    SgVM *vm_ = Sg_VM();				\
+    if (OWNER != vm_)					\
+      for (;;) {					\
+	SgVM *owner_;					\
+	Sg_LockMutex(&MUTEX);				\
+	owner_ = OWNER;					\
+	if (owner_ == NULL ||				\
+	    owner_->threadState == SG_VM_TERMINATED) {	\
+	  OWNER = vm_;					\
+	  COUNT = 1;					\
+	}						\
+	Sg_UnlockMutex(&MUTEX);				\
+	if (OWNER == vm_) break;			\
+	Sg_YieldCPU();					\
+      }							\
+  } while (0)
+# define UNLOCK_LIBRARIES()			\
+  do {						\
+    if (--COUNT <= 0) OWNER = NULL;		\
+  } while (0)
+#else
+# define LOCK_LIBRARIES() Sg_LockMutex(&MUTEX)
 # define UNLOCK_LIBRARIES() Sg_UnlockMutex(&MUTEX)
+#endif
 #endif
 
 
@@ -515,7 +546,8 @@ static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
   paths = get_possible_paths(vm, name);
   if (onlyPath) return paths;
 
-  libname = convert_name_to_symbol(name);  
+  /* stupid to do twice */
+  /* libname = convert_name_to_symbol(name); */
   SG_FOR_EACH(paths, paths) {
     SgObject r;
     SgObject path = SG_STRING(SG_CAR(paths));
@@ -596,8 +628,10 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     return name;
   }
   id_version = library_name_to_id_version(name);
+  LOCK_LIBRARIES();
   lib = Sg_HashTableRef(ALL_LIBRARIES,
 			convert_name_to_symbol(SG_CAR(id_version)), SG_FALSE);
+  UNLOCK_LIBRARIES();
   /* TODO check version number */
   if (SG_FALSEP(lib)) {
     /* shouldn't this first search then create? */
