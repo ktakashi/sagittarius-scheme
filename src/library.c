@@ -188,13 +188,20 @@ static SgSymbol* convert_name_to_symbol(SgObject name)
 /* 
    All libraries are stored here.
  */
+#define LIGHT_WEIGHT_LOCK 1
 static struct
 {
   SgHashTable *libraries;
+#ifdef LIGHT_WEIGHT_LOCK
   SgVM *owner;
   int count;
+#endif
   SgInternalMutex mutex;
-} libraries = { SG_OBJ(SG_UNDEF), NULL, 0,};
+} libraries = { SG_OBJ(SG_UNDEF), 
+#ifdef LIGHT_WEIGHT_LOCK
+		NULL, 0,
+#endif
+};
 
 #define ALL_LIBRARIES      libraries.libraries
 #define MUTEX              libraries.mutex
@@ -219,10 +226,11 @@ static sem_t *process_lock = NULL;
     sem_unlink(SEMAPHORE_NAME);			\
   } while (0)
 #else
-#if 0
-/* We're using lock too many place so make it a bit light weight. 
-   According to the simple benchmark this wasn't fast at all.
-   So let's use mutex locking.
+#ifdef LIGHT_WEIGHT_LOCK
+/* The small benchmark after the refactoring of library searching
+   it seems a bit faster on multi threading environment to load
+   libraries. This is not really practial but running test requires
+   this thing so not too bad.
  */
 # define LOCK_LIBRARIES()				\
   do {							\
@@ -526,28 +534,23 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name)
   return paths;
 }
 
-static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
+static SgObject search_library_unsafe(SgObject name, SgObject olibname,
+				      int *loadedp)
 {
   SgObject libname, lib, paths;
   SgVM *vm = Sg_VM();
 
   /* pre-check if the library is already compiled, then we don't
      want to search real path */
-  if (!onlyPath) {
-    libname = convert_name_to_symbol(name);
-    LOCK_LIBRARIES();
-    lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
-    if (!SG_FALSEP(lib)) {
-      UNLOCK_LIBRARIES();
-      return lib;
-    }
-    UNLOCK_LIBRARIES();
+  libname = convert_name_to_symbol(name);
+  lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
+  if (!SG_FALSEP(lib)) {
+    return lib;
+  } else if (olibname) {
+    /* if not threre then create, don't search */
+    return Sg_MakeLibrary(olibname);
   }
   paths = get_possible_paths(vm, name);
-  if (onlyPath) return paths;
-
-  /* stupid to do twice */
-  /* libname = convert_name_to_symbol(name); */
   SG_FOR_EACH(paths, paths) {
     SgObject r;
     SgObject path = SG_STRING(SG_CAR(paths));
@@ -556,10 +559,8 @@ static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
       int state, save;
       /* once library is created, then it must not be re-created.
 	 so we need to get lock for reading cache. */
-      LOCK_LIBRARIES();
       lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
       if (!SG_FALSEP(lib)) {
-	UNLOCK_LIBRARIES();
 	return lib;
       }
       save = vm->state;
@@ -592,7 +593,6 @@ static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
 	if (loadedp) *loadedp = FALSE;
       }
       vm->state = save;
-      UNLOCK_LIBRARIES();
     } else {
       /* first creation or no file. */
       return SG_FALSE;
@@ -607,20 +607,28 @@ static SgObject search_library(SgObject name, int onlyPath, int *loadedp)
       return r;
     }
   }
-  return SG_FALSE;
+  return SG_FALSE;  
+}
+
+static SgObject search_library(SgObject name, SgObject libname, int *loadedp)
+{
+  /* TODO should we use unwind_protect? */
+  SgObject r;
+  LOCK_LIBRARIES();
+  r = search_library_unsafe(name, libname, loadedp);
+  UNLOCK_LIBRARIES();
+  return r;
 }
 
 /* for cache */
 SgObject Sg_SearchLibraryPath(SgObject name)
 {
   SgObject id_version = library_name_to_id_version(name);
-  SgObject path = search_library(SG_CAR(id_version), TRUE, NULL);
-  return path;
+  return get_possible_paths(Sg_VM(), SG_CAR(id_version));
 }
 
 SgObject Sg_FindLibrary(SgObject name, int createp)
 {
-  SgObject lib;
   SgObject id_version;
 
   /* fast path. for define-syntax. see compiler.scm */
@@ -628,20 +636,7 @@ SgObject Sg_FindLibrary(SgObject name, int createp)
     return name;
   }
   id_version = library_name_to_id_version(name);
-  LOCK_LIBRARIES();
-  lib = Sg_HashTableRef(ALL_LIBRARIES,
-			convert_name_to_symbol(SG_CAR(id_version)), SG_FALSE);
-  UNLOCK_LIBRARIES();
-  /* TODO check version number */
-  if (SG_FALSEP(lib)) {
-    /* shouldn't this first search then create? */
-    if (createp) {
-      return Sg_MakeLibrary(name);
-    } else {
-      lib = search_library(SG_CAR(id_version), FALSE, NULL);
-    }
-  }
-  return lib;
+  return search_library(SG_CAR(id_version), (createp)? name: NULL,  NULL);
 }
 
 
@@ -653,7 +648,7 @@ SgObject Sg_SearchLibrary(SgObject lib, int *loadedp)
     return lib;
   }
   id_version = library_name_to_id_version(lib);
-  return search_library(SG_CAR(id_version), FALSE, loadedp);
+  return search_library(SG_CAR(id_version), NULL, loadedp);
 }
 
 #define ENSURE_LIBRARY(o, e)						\
