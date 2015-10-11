@@ -2581,7 +2581,7 @@ void Sg__InitVM()
 #endif
   Sg_SetCurrentThread(&rootVM->thread);
   rootVM->threadState = SG_VM_RUNNABLE;
-  rootVM->currentLibrary = Sg_MakeMutableLibrary(SG_INTERN("user"));
+  rootVM->currentLibrary = Sg_FindLibrary(SG_INTERN("user"), FALSE);
   /* mark as this is toplevel library. */
   SG_LIBRARY_DEFINEED(rootVM->currentLibrary) = SG_FALSE;
   

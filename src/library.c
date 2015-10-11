@@ -235,7 +235,7 @@ static sem_t *process_lock = NULL;
 # define LOCK_LIBRARIES()				\
   do {							\
     SgVM *vm_ = Sg_VM();				\
-    if (OWNER != vm_)					\
+    if (OWNER != vm_) {					\
       for (;;) {					\
 	SgVM *owner_;					\
 	Sg_LockMutex(&MUTEX);				\
@@ -249,6 +249,9 @@ static sem_t *process_lock = NULL;
 	if (OWNER == vm_) break;			\
 	Sg_YieldCPU();					\
       }							\
+    } else {						\
+      COUNT++;						\
+    }							\
   } while (0)
 # define UNLOCK_LIBRARIES()			\
   do {						\
@@ -261,12 +264,13 @@ static sem_t *process_lock = NULL;
 #endif
 
 
-static void add_library(SgLibrary *lib)
+static SgLibrary * add_library(SgLibrary *lib)
 {
   LOCK_LIBRARIES();
   Sg_HashTableSet(ALL_LIBRARIES, SG_LIBRARY_NAME(lib), lib, 
 		  SG_HASH_NO_OVERWRITE);
   UNLOCK_LIBRARIES();
+  return lib;
 }
 
 static void remove_library(SgLibrary *lib)
@@ -286,9 +290,7 @@ static SgLibrary* make_library_rec(SgObject name)
   z->name = convert_name_to_symbol(SG_CAR(id_version));
   z->version = SG_CDR(id_version);
 
-  add_library(z);
-
-  return z;
+  return SG_OBJ(add_library(z));
 }
 
 SgObject Sg_MakeLibrary(SgObject name)
@@ -568,9 +570,6 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
 	SgObject saveLib = vm->currentLibrary;
-	if (userlib == NULL) {
-	  userlib = Sg_FindLibrary(SG_INTERN("user"), FALSE);
-	}
 	/* creates new cache */
 	vm->cache = Sg_Cons(SG_NIL, vm->cache);
 	/* if find-library called inside of library and the library does not
@@ -986,6 +985,7 @@ void Sg__InitLibrary()
 			SG_MAKE_STRING(".sld"),
 			SG_MAKE_STRING(".scm"));
   extensions = Sg_AddConstantLiteral(extensions);
+  userlib = Sg_MakeMutableLibrary(SG_INTERN("user"));
 }
 
 /*
