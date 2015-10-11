@@ -2938,7 +2938,9 @@ int Sg_PortReady(SgPort *port)
 
 int Sg_UTF16ConsolePortP(SgPort *port)
 {
-  if (SG_FILE_PORTP(port)) {
+  if (SG_BUFFERED_PORTP(port)) {
+    return Sg_UTF16ConsolePortP(SG_BUFFERED_PORT_SRC(port));
+  } else if (SG_FILE_PORTP(port)) {
     return Sg_IsUTF16Console(SG_FILE_PORT(port)->file);
   }
   return FALSE;

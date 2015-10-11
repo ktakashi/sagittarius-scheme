@@ -132,8 +132,9 @@
     Sg_MacroExpand)
 
   ;; library
-  (define-c-proc make-library (name) Sg_MakeLibrary)
-
+  ;; it's not used anyway
+  ;; (define-c-proc make-library (name) Sg_MakeLibrary)
+  
   (define-c-proc library? (arg0) ::<boolean> SG_LIBRARYP)
   (define-c-proc library-name (arg0::<library>) SG_LIBRARY_NAME)
   (define-c-proc library-imported (arg0::<library>) SG_LIBRARY_IMPORTED)
