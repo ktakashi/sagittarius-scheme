@@ -721,7 +721,7 @@ SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
     init_buffered_port(&BI_PORT(p)->out, mode, src, NULL, 0, TRUE);
     return r;
   } else {
-      SgBufferedPort *p = SG_NEW(SgBufferedPort);
+    SgBufferedPort *p = SG_NEW(SgBufferedPort);
     return Sg_InitBufferedPort(p, mode, src, buffer, size);
   }
 }
@@ -731,7 +731,7 @@ SgObject Sg_InitBufferedPort(SgBufferedPort *bp,
 			     uint8_t *buffer, size_t size)
 {
   return init_buffered_port(bp, mode, src, buffer, size,
-			    SG_OUTPUT_PORTP(SG_PORT(bp)));
+			    SG_OUTPUT_PORTP(SG_PORT(src)));
 }
 
 

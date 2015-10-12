@@ -54,6 +54,21 @@
 		  (put-bytevector out (string->utf8 "hello\n"))
 		  (extract)))))
 
+(define test-file "io-test")
+(when (file-exists? test-file) (delete-file test-file))
+;; create
+(let ((out (open-file-output-port test-file (file-options no-fail)
+				  (buffer-mode block) (native-transcoder))))
+  (put-string out "hello")
+  ;; no flush
+  (close-port out)
+  )
+(let ((in (open-file-input-port test-file (file-options no-fail)
+				(buffer-mode block) (native-transcoder))))
+  (test-equal "buffered-port without flush" "hello" (get-string-all in))
+  (close-port in))
+
+(when (file-exists? test-file) (delete-file test-file))
 ;; seems R6RS doesn't specify which condition should be raised
 ;; but we raise &assertion
 (test-error "buffered-port (pseudo closed)" assertion-violation?
@@ -147,6 +162,5 @@
     (put-bytevector out #vu8(1 2 3 4 5))
     (test-equal "custom port sub class" #vu8(1 2 3 4 5)
 		(slot-ref out 'buffer))))
-
 
 (test-end)
