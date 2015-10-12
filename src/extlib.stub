@@ -815,6 +815,17 @@
       (Sg_PseudoClosePort port)
       (result (Sg_MakeBufferedPort port mode buf size))))
 
+  ;; extra port predicates
+  ;; it's rather useless because we don't get source port buffered-port
+  ;; from.
+  #|
+  (define-c-proc file-port? (o) ::<boolean> :constant SG_FILE_PORTP)
+  (define-c-proc byte-port? (o) ::<boolean> :constant SG_BYTE_PORTP)
+  (define-c-proc string-port? (o) ::<boolean> :constant SG_STRING_PORTP)
+  (define-c-proc custom-port? (o) ::<boolean> :constant SG_CUSTOM_PORTP)
+  (define-c-proc buffered-port? (o) ::<boolean> :constant SG_BUFFERED_PORTP)
+  (define-c-proc transcoded-port? (o) ::<boolean> :constant SG_TRANSCODED_PORTP)
+  |#
   ;; codec
 
   (define-c-proc make-codec (name::<symbol> g::<procedure> p::<procedure> data)

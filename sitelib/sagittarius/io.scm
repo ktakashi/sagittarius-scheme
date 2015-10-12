@@ -37,6 +37,35 @@
 	    with-output-to-port
 	    with-error-to-port
 
+	    ;; port predicates
+	    ;; we might want to re-export them when
+	    ;; extra predicates are useful to be exported
+	    ;; 
+	    ;; port?
+	    ;; input-port?
+	    ;; output-port?
+	    ;; binary-port?
+	    ;; textual-port?
+
+	    ;; extra predicates
+	    ;; it's kinda useless since we don't expose
+	    ;; source port retrieval from buffered-port
+	    ;; e.g. file-port? returns #f if the port is
+	    ;;      converted to buffered port.
+	    ;; we can resolve this but should we?
+	    ;; 
+	    ;; file-port?
+	    ;; byte-port?
+	    ;; string-port?
+	    ;; custom-port?
+	    ;; buffered-port?
+	    ;; transcoded-port?
+
+	    ;; port conversion
+	    buffered-port   ;; re-export
+	    transcoded-port ;; re-export
+
+	    ;; for port customisation
 	    <custom-binary-input-port>
 	    <custom-textual-input-port>
 	    <custom-binary-output-port>

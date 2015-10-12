@@ -54,10 +54,11 @@ static SgClass *port_cpl[] = {
   NULL
 };
 
+/* <port> must be an abstract class so that users can't do
+   (make <port>) or something.
+ */
 static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx);
-SG_DEFINE_BASE_CLASS(Sg_PortClass, SgPort,
-		     port_print, NULL, NULL, Sg_ObjectAllocate,
-		     port_cpl+1);
+SG_DEFINE_ABSTRACT_CLASS(Sg_PortClass, port_cpl+1);
 
 static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -2190,6 +2191,7 @@ static SgObject SG_KEYWORD_READ = SG_FALSE;
 static SgObject SG_KEYWORD_WRITE = SG_FALSE;
 static SgObject SG_KEYWORD_READY = SG_FALSE;
 static SgObject SG_KEYWORD_FLUSH = SG_FALSE;
+static SgObject SG_KEYWORD_CLOSE = SG_FALSE;
 
 static SgObject custom_port_allocate(SgClass *klass, SgObject initargs)
 {
@@ -2219,6 +2221,7 @@ static SgObject custom_port_allocate(SgClass *klass, SgObject initargs)
   port->write = Sg_GetKeyword(SG_KEYWORD_WRITE, initargs, SG_FALSE);
   port->ready = Sg_GetKeyword(SG_KEYWORD_READY, initargs, SG_FALSE);
   port->flush = Sg_GetKeyword(SG_KEYWORD_FLUSH, initargs, SG_FALSE);
+  port->close = Sg_GetKeyword(SG_KEYWORD_CLOSE, initargs, SG_FALSE);
   if (SG_FALSEP(trans)) {
     port->binaryBuffer = Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
   } else {
@@ -3022,6 +3025,7 @@ void Sg__InitPort()
   SG_KEYWORD_WRITE = KEYWORD("write");
   SG_KEYWORD_READY = KEYWORD("ready");
   SG_KEYWORD_FLUSH = KEYWORD("flush");
+  SG_KEYWORD_FLUSH = KEYWORD("close");
 
 }
   
