@@ -136,5 +136,17 @@
 (test-error "get-char(4)" condition? 
 	    (get-char (make <custom-textual-input-port>)))
 
+(let ()
+  (define-class <my-port> (<custom-binary-output-port>) 
+    ((buffer :init-form (make-bytevector 5))))
+  (let ((out (make <my-port>)))
+    (slot-set! out 'write
+	       (lambda (bv start count)
+		 (bytevector-copy! bv start (slot-ref out 'buffer) 0 count)
+		 count))
+    (put-bytevector out #vu8(1 2 3 4 5))
+    (test-equal "custom port sub class" #vu8(1 2 3 4 5)
+		(slot-ref out 'buffer))))
+
 
 (test-end)
