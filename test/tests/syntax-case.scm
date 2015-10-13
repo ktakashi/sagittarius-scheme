@@ -412,7 +412,6 @@
 (test-error "datum->syntax refered incorrectly" undefined-violation?  n1-n2)
 
 ;; call #154
-;; uncomment out when it's fixed
 (let ()
   (define-syntax bar
     (lambda (x)
@@ -463,6 +462,33 @@
 	 #'(foo () a ...)))))
   (test-equal "free or bound" '(#t #f) (foo 1 2)))
 
+;; reported by @SaitoAtsushi
+;; call #155
+(let ()
+  (define-syntax foo
+    (syntax-rules ()
+      ((_ a b)
+       (let-syntax ((bar (syntax-rules (a)
+                           ((_ b) 'ok)
+                           ((_ d) 'ng))))
+         (bar d)))
+      ((_ x ...)
+       (foo x ... t))))
+  (test-equal "pattern variable in literal" 'ok (foo)))
 
+(let ()
+  ;; syntax-case version
+  (define-syntax foo*
+    (lambda (x)
+      (syntax-case x ()
+	((_ a b)
+	 #'(let-syntax ((bar (lambda (x)
+			       (syntax-case x (a)
+				 ((_ b) #''ok)
+				 ((_ d) #''ng)))))
+	     (bar d)))
+	((_ x ...)
+	 #'(foo* x ... tt*)))))
+  (test-equal "pattern variable in literal" 'ok (foo*)))
 
 (test-end)

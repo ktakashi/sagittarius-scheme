@@ -65,7 +65,9 @@
 	  (or (pred pat (car lites))
 	      (loop (cdr lites))))))
   (if (identifier? pat)
-      (cmp free-identifier=? pat lites)
+      ;; literal comparison must be done in sense of
+      ;; bound-identifier=?
+      (cmp bound-identifier=? pat lites)
       (cmp (lambda (pat lite) (eq? pat (id-name lite))) pat lites)))
 
 (define (bar? expr)
@@ -219,14 +221,14 @@
 ;; syntax-case compiler
 (define compile-syntax-case
   (lambda (exp-name expr literals clauses library env mac-env make-p1env)
-    (define (rewrite oexpr patvars p1env)
+
+    (define (extend-env newframe env) (acons PATTERN newframe env))
+    
+    (define mac-save (current-macro-env))
+    (define use-save (current-usage-env))
+
+    (define (rewrite-literals oexpr p1env)
       (define seen (make-eq-hashtable))
-      ;; can be for-each but it won't be inlined so this is faster.
-      (let loop ((patvars patvars))
-	(unless (null? patvars)
-	  (let ((pvar (car patvars)))
-	    (hashtable-set! seen (car pvar) (cdr pvar))
-	    (loop (cdr patvars)))))
       (rewrite-form oexpr seen env library
 		    ;; at this stage, symbol must be converted to
 		    ;; the same meaning of identifier
@@ -234,18 +236,32 @@
 		      (make-identifier name (if (symbol? name) '() env)
 				       library))
 		    (lambda (id) 
-		      (and (not (pending-identifier? id))
-			   (not (pattern-identifier? id p1env))))))
-    (define (extend-env newframe env) (acons PATTERN newframe env))
-    
-    (define mac-save (current-macro-env))
-    (define use-save (current-usage-env))
+		      ;; if it's identifier then don't
+		      (not (identifier? id)))))
     ;; set both macro and usage env so that free-identifier=? can
     ;; use this env for compilation
     (%set-current-macro-env! mac-env)
     (%set-current-usage-env! mac-env)
-    (let ((lites (rewrite literals '() mac-env)))
-      
+    (let ((lites (rewrite-literals literals mac-env)))
+      (define (rewrite oexpr patvars p1env)
+	(define seen (make-eq-hashtable))
+	;; can be for-each but it won't be inlined so this is faster.
+	(let loop ((patvars patvars))
+	  (unless (null? patvars)
+	    (let ((pvar (car patvars)))
+	      (hashtable-set! seen (car pvar) (cdr pvar))
+	      (loop (cdr patvars)))))
+	(for-each (lambda (literal lite)
+		    (hashtable-set! seen literal lite)) literals lites)
+	(rewrite-form oexpr seen env library
+		      ;; at this stage, symbol must be converted to
+		      ;; the same meaning of identifier
+		      (lambda (name env library)
+			(make-identifier name (if (symbol? name) '() env)
+					 library))
+		      (lambda (id) 
+			(and (not (pending-identifier? id))
+			     (not (pattern-identifier? id p1env))))))      
       (define (parse-pattern pattern)
 	(define (gen-patvar p)
 	  (let ((p (car p)))
