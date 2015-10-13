@@ -6,6 +6,17 @@
 
 (test-begin "Sagittarius - Extra I/O")
 
+;; buffered-port
+(let ((in (open-bytevector-input-port #vu8())))
+  (test-error "literal buffer" assertion-violation? 
+	      (buffered-port in (buffer-mode block)
+			     :buffer #vu8(0 0 0 0)))
+  (test-error "zero length buffer" assertion-violation? 
+	      (buffered-port in (buffer-mode block) 
+			     :buffer (make-bytevector 0)))
+  (test-assert "buffered-port" (port? (buffered-port in (buffer-mode block))))
+  (test-assert "source closed" (port-closed? in)))
+
 (test-equal "buffered-port (read)" #vu8(1 2 3 4 5)
 	    (call-with-port
 	     (buffered-port (open-bytevector-input-port #vu8(1 2 3 4 5))
