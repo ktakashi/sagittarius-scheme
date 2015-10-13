@@ -567,7 +567,17 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
       }
       save = vm->state;
       vm->state = IMPORTING;	/* reading cache is also importing now */
-      /* creates new cache */
+      /* creates new cache store
+	 NOTE: 
+	 Basically only reading cache doesn't necessarily require
+	 fresh cache store. However if the library file contains
+	 'load', which loads other library files, outside of the
+	 library definition like this:
+	 (define-library ...) (load "other/library.sld")
+	 Then this calls compile procedure with VM state IMPORTING
+	 and causes SEGV (in worst case senario). That's something
+	 we don't want to have. To avoid it, add cache store here.
+       */
       vm->cache = Sg_Cons(SG_NIL, vm->cache);
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
