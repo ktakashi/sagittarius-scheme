@@ -567,11 +567,11 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
       }
       save = vm->state;
       vm->state = IMPORTING;	/* reading cache is also importing now */
+      /* creates new cache */
+      vm->cache = Sg_Cons(SG_NIL, vm->cache);
       state = Sg_ReadCache(path);
       if (state != CACHE_READ) {
 	SgObject saveLib = vm->currentLibrary;
-	/* creates new cache */
-	vm->cache = Sg_Cons(SG_NIL, vm->cache);
 	/* if find-library called inside of library and the library does not
 	   import (sagittarius) it can not compile.*/
 	vm->currentLibrary = userlib;
@@ -584,13 +584,13 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
 	  /* write cache */
 	  Sg_WriteCache(name, path, Sg_ReverseX(SG_CAR(vm->cache)));
 	}
-	/* we don't need the first cache, so discard it */
-	vm->cache = SG_CDR(vm->cache);
 	/* restore state */
 	if (loadedp) *loadedp = TRUE;
       } else {
 	if (loadedp) *loadedp = FALSE;
       }
+      /* we don't need the first cache, so discard it */
+      vm->cache = SG_CDR(vm->cache);
       vm->state = save;
     } else {
       /* first creation or no file. */
