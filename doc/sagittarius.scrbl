@@ -393,7 +393,7 @@ always returns #t;
 
 }
 
-@define[Function]{@name{buffered-port} @args{port :key buffer-mode buffer}}
+@define[Function]{@name{buffered-port} @args{port buffer-mode :key buffer}}
 @desc{@var{port} must be binary port.
 
 Converts given @var{port} to buffered port if the @var{port} is not
@@ -404,10 +404,9 @@ but uses internal buffer. For example, file port with
 @code{(buffer-mode block)} or @code{(buffer-mode line)} uses the buffered
 port. This is useful when actual I/O is more expensive than memory access.
 
-If the keyword argument @var{buffer-mode} is specified, it must be
-a symbol the macro @code{buffer-mode} can return, then converted port
-uses the specified buffer. If the @code{buffer-mode} is @code{none}, 
-then the procedure does not convert the given @var{port}.
+The @var{buffer-mode} must be a symbol the macro @code{buffer-mode} can
+return. Converted port uses the specified buffer. If the @code{buffer-mode}
+is @code{none}, then the procedure does not convert the given @var{port}.
 
 If the keyword argument @var{buffer} is specified, it must be
 a bytevector, then the converted buffered port uses specified bytevector

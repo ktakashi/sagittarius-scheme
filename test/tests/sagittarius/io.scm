@@ -8,12 +8,13 @@
 
 (test-equal "buffered-port (read)" #vu8(1 2 3 4 5)
 	    (call-with-port
-	     (buffered-port (open-bytevector-input-port #vu8(1 2 3 4 5)))
+	     (buffered-port (open-bytevector-input-port #vu8(1 2 3 4 5))
+			    (buffer-mode block))
 	     get-bytevector-all))
 
 (test-equal "buffered-port (write)" #vu8(1 2 3 4 5)
 	    (let-values (((out extract) (open-bytevector-output-port)))
-	      (call-with-port (buffered-port out)
+	      (call-with-port (buffered-port out (buffer-mode block))
 	        (lambda (out) 
 		  (put-bytevector out #vu8(1 2 3 4 5))
 		  ;; it's buffered so flush it
@@ -23,7 +24,8 @@
 (test-equal "buffered-port write with buffer(1)" #vu8(1 2 3 4 5)
 	    (let-values (((buf) (make-bytevector 5))
 			 ((out extract) (open-bytevector-output-port)))
-	      (call-with-port (buffered-port out :buffer buf)
+	      (call-with-port (buffered-port out (buffer-mode block) 
+					     :buffer buf)
 	        (lambda (out) 
 		  (put-bytevector out #vu8(1 2 3 4 5))))
 	      buf))
@@ -32,7 +34,8 @@
 (test-equal "buffered-port write with buffer(2)" #vu8(5 2 3 4)
 	    (let-values (((buf) (make-bytevector 4))
 			 ((out extract) (open-bytevector-output-port)))
-	      (call-with-port (buffered-port out :buffer buf)
+	      (call-with-port (buffered-port out (buffer-mode block)
+					     :buffer buf)
 	        (lambda (out) 
 		  (put-bytevector out #vu8(1 2 3 4 5))))
 	      buf))
@@ -40,16 +43,14 @@
 ;; depending on default buffer size (8196)
 (test-equal "buffered-port write with mode (1)" #vu8()
 	    (let-values (((out extract) (open-bytevector-output-port)))
-	      (call-with-port (buffered-port out
-					     :buffer-mode (buffer-mode block))
+	      (call-with-port (buffered-port out (buffer-mode block))
 	        (lambda (out) 
 		  (put-bytevector out #vu8(1 2 3 4 5))
 		  (extract)))))
 ;; line mode should flush after EOL
 (test-equal "buffered-port write with mode (2)" (string->utf8 "hello\n")
 	    (let-values (((out extract) (open-bytevector-output-port)))
-	      (call-with-port (buffered-port out
-					     :buffer-mode (buffer-mode line))
+	      (call-with-port (buffered-port out (buffer-mode line))
 	        (lambda (out) 
 		  (put-bytevector out (string->utf8 "hello\n"))
 		  (extract)))))
@@ -78,7 +79,8 @@
 
 ;; NB: this is temporary decision to make my life easier
 (test-error "buffered-port (error)" assertion-violation?
-	    (buffered-port (open-string-input-port "abcde")))
+	    (buffered-port (open-string-input-port "abcde")
+			   (buffer-mode block)))
 
 ;; we don't test transcoded-port here. It's tested on R6RS test suite
 
@@ -162,5 +164,75 @@
     (put-bytevector out #vu8(1 2 3 4 5))
     (test-equal "custom port sub class" #vu8(1 2 3 4 5)
 		(slot-ref out 'buffer))))
+
+
+(define (test-port-slots class)
+  (define read #f)
+  (define write #f)
+  (define position #f)
+  (define set-position #f)
+  (define ready #f)
+  (define flush #f)
+  (define close #f)
+  (let ((port (make class 
+		:read (lambda (bs s c) (set! read #t) c)
+		:write (lambda (bs s c) (set! write #t) c)
+		:position (lambda (whence) (set! position whence) 0)
+		:set-position (lambda (o w) (set! set-position (list o w)))
+		:ready (lambda () (set! ready #t) #f)
+		:flush (lambda () (set! flush #t))
+		:close (lambda () (set! close #t)))))
+    (when (input-port? port)
+      (if (binary-port? port)
+	  (get-u8 port)
+	  (get-char port))
+      (test-assert (format "read ~a" class) read))
+    (when (output-port? port)
+      (if (binary-port? port)
+	  (put-u8 port 1)
+	  (put-char port #\a))
+      (test-assert (format "write ~a" class) write))
+    ;; position
+    (test-equal (format "port-position: ~a(1)" class) 0 (port-position port))
+    (test-equal (format "port-position: ~a (begin)" class) 'begin position)
+    (test-equal (format "port-position: ~a(2)" class) 0 
+		(port-position port 'current))
+    (test-equal (format "port-position: ~a (current)" class) 'current position)
+    (test-equal (format "port-position: ~a(3)" class) 0 
+		(port-position port 'end))
+    (test-equal (format "port-position: ~a (end)" class) 'end position)
+
+    (test-assert (format "set-port-position!: ~a (1)" class)
+		 (set-port-position! port 0 'begin))
+    (test-equal (format "set-port-position!: ~a (0 begin)" class)
+		'(0 begin) set-position)
+    (test-assert (format "set-port-position!: ~a (2)" class)
+		 (set-port-position! port 1 'current))
+    (test-equal (format "set-port-position!: ~a (1 current)" class)
+		'(1 current) set-position)
+    (test-assert (format "set-port-position!: ~a (3)" class)
+		 (set-port-position! port -3 'end))
+    (test-equal (format "set-port-position!: ~a (-3 end)" class)
+		'(-3 end) set-position)
+    
+    (when (input-port? port)
+      (test-assert (format "ready ~a" class) (not (port-ready? port)))
+      (test-assert (format "ready ~a" class) ready))
+
+    (when (output-port? port)
+      (test-assert (format "flush ~a" class) (flush-output-port port))
+      (test-assert (format "flush ~a" class) flush))
+
+    (test-assert (format "close ~a" class) (close-port port))
+    (test-assert (format "close ~a" class) close)
+    ))
+
+(test-port-slots <custom-binary-input-port>)
+(test-port-slots <custom-textual-input-port>)
+(test-port-slots <custom-binary-output-port>)
+(test-port-slots <custom-textual-output-port>)
+(test-port-slots <custom-binary-input/output-port>)
+(test-port-slots <custom-textual-input/output-port>)
+
 
 (test-end)

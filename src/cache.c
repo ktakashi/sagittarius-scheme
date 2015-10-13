@@ -987,7 +987,7 @@ static void write_cache_pass2(SgPort *out, SgCodeBuilder *cb, SgObject cbs,
   put_4byte(SG_INT_VALUE(SG_CDR(this_slot)));
   write_object_cache(out, name, cbs, ctx);
   debug_print("written code builder length: %d, pos: %d\n", len,
-	      Sg_PortPosition(out));
+	      Sg_PortPosition(out, SG_BEGIN));
   for (i = 0; i < len;) {
     InsnInfo *info = Sg_LookupInsnName(INSN(code[i]));
     int j;
@@ -1174,7 +1174,7 @@ static SgWord read_word_rec(SgPort *in, int tag_type, int size, read_ctx *ctx)
   if (tag != tag_type) {
     ESCAPE(ctx,
 	   "unexpected cache tag appeared. (expected %d, got %d)[pos=%d]\n",
-	   tag_type, tag, Sg_PortPosition(in));
+	   tag_type, tag, Sg_PortPosition(in, SG_BEGIN));
   }
   /* dd cc bb aa -> aa bb cc dd */
   for (i = 0; i < size; i++) {
@@ -1744,7 +1744,7 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return read_user_defined_object(in, ctx);
   default:
     ESCAPE(ctx, "unknown tag appeared. tag: %d, file: %A, pos: %d\n",
-	   tag, ctx->file, Sg_PortPosition(in));
+	   tag, ctx->file, Sg_PortPosition(in, SG_BEGIN));
     return SG_FALSE;
   }
 }
@@ -1889,7 +1889,7 @@ static SgObject read_code(SgPort *in, read_ctx *ctx)
   name = read_object(in, ctx);
   code = SG_NEW_ARRAY(SgWord, len);
   debug_print("read code builder length: %d, pos: %d\n", len,
-	      Sg_PortPosition(in));
+	      Sg_PortPosition(in, SG_BEGIN));
   /* now we need to construct code builder */
   /*
   i = 0;

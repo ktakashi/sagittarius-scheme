@@ -47,6 +47,7 @@
 #include "sagittarius/symbol.h"
 #include "sagittarius/writer.h"
 #include "sagittarius/number.h"
+#include "sagittarius/builtin-symbols.h"
 
 static SgClass *port_cpl[] = {
   SG_CLASS_PORT,
@@ -1341,7 +1342,7 @@ static int64_t trans_port_position(SgObject self, Whence whence)
 {
   SgPort *p = SG_TPORT_PORT(self);
   /* FIXME consider the whence*/
-  int64_t pos = Sg_PortPosition(p);
+  int64_t pos = Sg_PortPosition(p, whence);
   /* count the peeked char bytes if exists */
   if (SG_TRANSCODED_PORT_UNGET(self) != EOF) {
     SgBytePort bp;
@@ -1807,6 +1808,13 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
   return written;
 }
 
+static void custom_flush(SgObject self)
+{
+  if (!SG_FALSEP(SG_CUSTOM_PORT(self)->flush)) {
+    Sg_Apply0(SG_CUSTOM_PORT(self)->flush);
+  }
+}
+
 static int custom_close(SgObject self)
 {
   if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
@@ -1830,7 +1838,7 @@ static int custom_ready(SgObject self)
 
 static int64_t custom_port_position(SgObject self, Whence whence)
 {
-  SgObject ret;
+  SgObject ret, sym = SG_SYMBOL_BEGIN;
   int64_t pos;
   if (SG_FALSEP(SG_CUSTOM_PORT(self)->getPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
@@ -1838,7 +1846,12 @@ static int64_t custom_port_position(SgObject self, Whence whence)
 				    self, SG_NIL);
     return -1;
   }
-  ret = Sg_Apply0(SG_CUSTOM_PORT(self)->getPosition);
+  switch (whence) {
+  case SG_BEGIN:   sym = SG_SYMBOL_BEGIN; break;
+  case SG_CURRENT: sym = SG_INTERN("current"); break;
+  case SG_END:     sym = SG_INTERN("end"); break;
+  }
+  ret = Sg_Apply1(SG_CUSTOM_PORT(self)->getPosition, sym);
   if (!SG_EXACT_INTP(ret)) {
     Sg_AssertionViolation(SG_INTERN("port-position"),
 			  Sg_Sprintf(UC("invalid result %S from %S"), 
@@ -1869,7 +1882,7 @@ static void custom_binary_set_port_position(SgObject port, int64_t offset,
   sym = SG_FALSE;
   switch (whence) {
     case SG_BEGIN:
-      sym = SG_INTERN("begin"); 
+      sym = SG_SYMBOL_BEGIN;
       SG_PORT(port)->position = offset;
       break;
     case SG_CURRENT:
@@ -1903,12 +1916,8 @@ static void custom_textual_set_port_position(SgObject port, int64_t offset,
   proc = SG_CUSTOM_PORT(port)->setPosition;
 
   switch (whence) {
-  case SG_BEGIN:
-    sym = SG_INTERN("begin"); 
-    break;
-  case SG_CURRENT:
-    sym = SG_INTERN("current"); 
-    break;
+  case SG_BEGIN:   sym = SG_SYMBOL_BEGIN; break;
+  case SG_CURRENT: sym = SG_INTERN("current"); break;
   case SG_END:
     if (offset > 0) {
       Sg_Error(UC("end whence requires zero or negative offset %d"),
@@ -1921,7 +1930,7 @@ static void custom_textual_set_port_position(SgObject port, int64_t offset,
 }
 
 static SgPortTable custom_binary_table = {
-  NULL,
+  custom_flush,
   custom_close,
   custom_ready,
   NULL,
@@ -1961,6 +1970,21 @@ static SgObject wrap_custom_set_procedure(SgPort *p, SgObject proc)
   if (SG_PROCEDUREP(proc)) {
     SgObject data = Sg_Cons(p, proc);
     return Sg_MakeSubr(wrapped_custom_set_position, data, 2, 0, 
+		       SG_PROCEDURE_NAME(proc));
+  }
+  return SG_FALSE;
+}
+
+static SgObject wrapped_custom_position(SgObject *args, int argc,
+					void *data)
+{
+  return Sg_VMApply0(SG_OBJ(data));
+}
+
+static SgObject wrap_custom_procedure(SgObject proc)
+{
+  if (SG_PROCEDUREP(proc)) {
+    return Sg_MakeSubr(wrapped_custom_position, proc, 1, 0, 
 		       SG_PROCEDURE_NAME(proc));
   }
   return SG_FALSE;
@@ -2068,7 +2092,7 @@ static int64_t custom_textual_put_string(SgObject self, SgChar *str,
 }
 
 static SgPortTable custom_textual_table = {
-  NULL,
+  custom_flush,
   custom_close,
   custom_ready,
   NULL,
@@ -2129,9 +2153,12 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   SgObject setPosition = (spec->wrap)
     ? wrap_custom_set_procedure(SG_PORT(port), spec->setPosition)
     : spec->setPosition;
+  SgObject getPosition = (spec->wrap)
+    ? wrap_custom_procedure(spec->getPosition)
+    : spec->getPosition;
 
   port->id = spec->id;
-  port->getPosition = spec->getPosition;
+  port->getPosition = getPosition;
   port->setPosition = setPosition;
   port->close = spec->close;
   port->read = spec->read;
@@ -2170,6 +2197,7 @@ MAKE_CUSTOM_SLOT_ACC(read, "procedure or #f", PROC_OR_FALSE)
 MAKE_CUSTOM_SLOT_ACC(write, "procedure or #f", PROC_OR_FALSE)
 MAKE_CUSTOM_SLOT_ACC(ready, "procedure or #f", PROC_OR_FALSE)
 MAKE_CUSTOM_SLOT_ACC(flush, "procedure or #f", PROC_OR_FALSE)
+MAKE_CUSTOM_SLOT_ACC(close, "procedure or #f", PROC_OR_FALSE)
 
 static SgSlotAccessor custom_slots[] = {
   SG_CLASS_SLOT_SPEC("id",           0, custom_id_get, custom_id_set),
@@ -2181,6 +2209,7 @@ static SgSlotAccessor custom_slots[] = {
   SG_CLASS_SLOT_SPEC("write",        4, custom_write_get, custom_write_set),
   SG_CLASS_SLOT_SPEC("ready",        5, custom_ready_get, custom_ready_set),
   SG_CLASS_SLOT_SPEC("flush",        6, custom_flush_get, custom_flush_set),
+  SG_CLASS_SLOT_SPEC("close",        7, custom_close_get, custom_close_set),
   { { NULL } }
 };
 
@@ -2855,12 +2884,12 @@ int Sg_HasSetPortPosition(SgPort *port)
   return SG_PORT_VTABLE(port)->setPortPosition != NULL;
 }
 
-int64_t Sg_PortPosition(SgPort *port)
+int64_t Sg_PortPosition(SgPort *port, Whence whence)
 {
   if (!SG_PORT_VTABLE(port)->portPosition) {
     Sg_Error(UC("Given port does not support port-position: %S"), port);
   }
-  return SG_PORT_VTABLE(port)->portPosition(port, SG_BEGIN);
+  return SG_PORT_VTABLE(port)->portPosition(port, whence);
 }
 
 void Sg_SetPortPosition(SgPort *port, int64_t offset, Whence whence)
@@ -3025,7 +3054,7 @@ void Sg__InitPort()
   SG_KEYWORD_WRITE = KEYWORD("write");
   SG_KEYWORD_READY = KEYWORD("ready");
   SG_KEYWORD_FLUSH = KEYWORD("flush");
-  SG_KEYWORD_FLUSH = KEYWORD("close");
+  SG_KEYWORD_CLOSE = KEYWORD("close");
 
 }
   

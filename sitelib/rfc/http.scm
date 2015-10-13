@@ -195,7 +195,7 @@
       (let* ((s (server->socket (or (http-connection-proxy conn)
 				    (http-connection-server conn))
 				port make-socket))
-	     (p (buffered-port (socket-port s #f))))
+	     (p (buffered-port (socket-port s #f) (buffer-mode block))))
 	(unwind-protect
 	    (proc p (http-connection-extra-headers conn))
 	  (close-port p)

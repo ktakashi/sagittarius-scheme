@@ -789,7 +789,7 @@
 
   ;; let user handle buffer as well
   (define-c-proc buffered-port 
-    (port::<port> :key buffer-mode::<symbol> buffer::<bytevector>)
+    (port::<port> buffer-mode::<symbol> :key buffer::<bytevector>)
     (unless (SG_BINARY_PORTP port)
       (wrong-type-of-argument-violation 'buffered-port "binary port" port))
     (when (Sg_PortClosedP port)
@@ -802,7 +802,11 @@
 	  (buf::uint8_t* NULL)
 	  (size::size_t 0))
       (cond ((SG_EQ buffer-mode 'none) (return port))
-	    ((SG_EQ buffer-mode 'line) (set! mode SG_BUFFER_MODE_LINE)))
+	    ((SG_EQ buffer-mode 'line) (set! mode SG_BUFFER_MODE_LINE))
+	    ((SG_EQ buffer-mode 'block) (set! mode SG_BUFFER_MODE_BLOCK))
+	    (else (assertion-violation 'buffered-port
+				       "unknown buffer mode is given"
+				       buffer-mode)))
       (when (SG_BVECTORP buffer) 
 	(when (SG_LITERAL_BVECTORP buffer)
 	  (assertion-violation 'buffered-port 
@@ -851,7 +855,7 @@
       (when (SG_TEXTUAL_PORTP p)
 	(set! line (SG_MAKE_INT (Sg_LineNo p))))
       (when (Sg_HasPortPosition p)
-	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
+	(set! pos (SG_MAKE_INT (Sg_PortPosition p SG_BEGIN))))
       (result (SG_LIST3 file line pos))))
 
   (define-c-proc read-with-context (p::<port> ctx::<read-context>)

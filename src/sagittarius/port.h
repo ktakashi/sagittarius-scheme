@@ -656,7 +656,7 @@ SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 /* seek/tell */
 SG_EXTERN int      Sg_HasPortPosition(SgPort *port);
 SG_EXTERN int      Sg_HasSetPortPosition(SgPort *port);
-SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
+SG_EXTERN int64_t  Sg_PortPosition(SgPort *port, Whence whence);
 SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
 				      Whence whence);
 

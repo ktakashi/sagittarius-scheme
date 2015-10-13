@@ -66,12 +66,11 @@
 
 (define server-up? #f)
 (define server-done? #f)
-(define buf (make-bytevector 8196))
 (define (http-server socket)
   (let loop ()
     (let* ([client  (socket-accept socket)]
 	   [in/out  (transcoded-port (buffered-port (socket-port client)
-						    :buffer buf)
+						    (buffer-mode block))
 				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
       (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
