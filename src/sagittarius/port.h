@@ -172,8 +172,13 @@ typedef struct SgPortTableRec
   int  (*ready)(SgObject);
   int  (*lockPort)(SgObject, SgPortLockType);
   int  (*unlockPort)(SgObject);
-  /* port position operators. it takes extra argument, whence */
-  int64_t  (*portPosition)(SgObject, Whence);
+  /* 
+     portPosition used to have whence however it's rather useless.
+     say whence is current then it always return 0.
+     if the whence is end, where should it be especially the
+     port is input port and contains infinite data.
+   */
+  int64_t  (*portPosition)(SgObject);
   void     (*setPortPosition)(SgObject, int64_t, Whence);
   /* port operations */
   int     (*open)(SgObject);
@@ -656,7 +661,7 @@ SG_EXTERN SgChar   Sg_PeekcUnsafe(SgPort *port);
 /* seek/tell */
 SG_EXTERN int      Sg_HasPortPosition(SgPort *port);
 SG_EXTERN int      Sg_HasSetPortPosition(SgPort *port);
-SG_EXTERN int64_t  Sg_PortPosition(SgPort *port, Whence whence);
+SG_EXTERN int64_t  Sg_PortPosition(SgPort *port);
 SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
 				      Whence whence);
 

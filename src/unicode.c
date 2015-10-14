@@ -936,7 +936,7 @@ static int final_sigma_p(int index, SgString *in, SgPort *out)
   SgChar ch;
   int size = SG_STRING_SIZE(in);
   if (size <= index + 1) {
-    return Sg_PortPosition(out, SG_BEGIN) != 0;
+    return Sg_PortPosition(out) != 0;
   }
   ch = SG_STRING_VALUE_AT(in, index + 1);
   if (Sg_CharAlphabeticP(ch)) return FALSE;
@@ -950,7 +950,7 @@ static int final_sigma_p(int index, SgString *in, SgPort *out)
       else if (Sg_Ucs4WhiteSpaceP(ch)) return TRUE;
       else if (Sg_CharGeneralCategory(ch) == Pd) return TRUE;
     }
-    return Sg_PortPosition(out, SG_BEGIN) != 0;
+    return Sg_PortPosition(out) != 0;
   }
 }
 

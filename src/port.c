@@ -551,7 +551,7 @@ static int buffered_unlock(SgObject self)
   return TRUE;
 }
 
-static int64_t buffered_position(SgObject self, Whence where)
+static int64_t buffered_position(SgObject self)
 {
   /* underlying port position is changed by filling buffer.
      so just return this port's position. */
@@ -871,7 +871,7 @@ static int file_unlock(SgObject self)
   return Sg_UnlockFile(file);
 }
 
-static int64_t file_port_position(SgObject self, Whence whence)
+static int64_t file_port_position(SgObject self)
 {
   SgFile *file = SG_PORT_FILE(self);
   if (SG_FILE_VTABLE(file)->tell) {
@@ -882,7 +882,7 @@ static int64_t file_port_position(SgObject self, Whence whence)
 }
 
 static void file_set_port_position(SgObject self, int64_t offset,
-					 Whence whence)
+				   Whence whence)
 {
   SgFile *file = SG_PORT_FILE(self);
   /* if flush is there, then flush it */
@@ -1100,7 +1100,7 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
   return byte_array_read_u8(self, *buf, rest_size);
 }
 
-static int64_t input_byte_array_port_position(SgObject self, Whence whence)
+static int64_t input_byte_array_port_position(SgObject self)
 {
   /* todo check whence */
   return (int64_t)SG_BINARY_PORT_BUFFER(self)->index;
@@ -1152,7 +1152,7 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *ba,
   return size;
 }
 
-static int64_t output_byte_array_port_position(SgObject self, Whence whence)
+static int64_t output_byte_array_port_position(SgObject self)
 {
   /* todo check whence */
   return SG_PORT(self)->position;
@@ -1338,11 +1338,10 @@ static void trans_flush(SgObject self)
   }
 }
 
-static int64_t trans_port_position(SgObject self, Whence whence)
+static int64_t trans_port_position(SgObject self)
 {
   SgPort *p = SG_TPORT_PORT(self);
-  /* FIXME consider the whence*/
-  int64_t pos = Sg_PortPosition(p, whence);
+  int64_t pos = Sg_PortPosition(p);
   /* count the peeked char bytes if exists */
   if (SG_TRANSCODED_PORT_UNGET(self) != EOF) {
     SgBytePort bp;
@@ -1546,7 +1545,7 @@ static int64_t string_iport_get_string(SgObject self, SgChar *buf, int64_t size)
   return i;
 }
 
-static int64_t input_string_port_position(SgObject self, Whence whence)
+static int64_t input_string_port_position(SgObject self)
 {
   return (int64_t)SG_STRING_PORT(self)->buffer.index;
 }
@@ -1571,9 +1570,8 @@ static void input_string_set_port_position(SgObject self, int64_t offset,
   tp->buffer.index = (size_t)realoff;
 }
 
-static int64_t output_string_port_position(SgObject self, Whence whence)
+static int64_t output_string_port_position(SgObject self)
 {
-  /* TODO whence */
   return SG_PORT(self)->position;
 }
 
@@ -1585,7 +1583,7 @@ static void output_string_set_port_position(SgObject self, int64_t offset,
   switch (whence) {
   case SG_BEGIN:   realoff = offset; break;
   case SG_CURRENT: 
-    realoff = output_string_port_position(self, SG_CURRENT) + offset;
+    realoff = output_string_port_position(self) + offset;
     break;
   case SG_END: 
     SG_STREAM_BUFFER_COUNTC(realoff, tp->buffer.start);
@@ -1836,9 +1834,9 @@ static int custom_ready(SgObject self)
   return TRUE;
 }
 
-static int64_t custom_port_position(SgObject self, Whence whence)
+static int64_t custom_port_position(SgObject self)
 {
-  SgObject ret, sym = SG_SYMBOL_BEGIN;
+  SgObject ret;
   int64_t pos;
   if (SG_FALSEP(SG_CUSTOM_PORT(self)->getPosition)) {
     Sg_WrongTypeOfArgumentViolation(SG_INTERN("port-position"),
@@ -1846,12 +1844,7 @@ static int64_t custom_port_position(SgObject self, Whence whence)
 				    self, SG_NIL);
     return -1;
   }
-  switch (whence) {
-  case SG_BEGIN:   sym = SG_SYMBOL_BEGIN; break;
-  case SG_CURRENT: sym = SG_INTERN("current"); break;
-  case SG_END:     sym = SG_INTERN("end"); break;
-  }
-  ret = Sg_Apply1(SG_CUSTOM_PORT(self)->getPosition, sym);
+  ret = Sg_Apply0(SG_CUSTOM_PORT(self)->getPosition);
   if (!SG_EXACT_INTP(ret)) {
     Sg_AssertionViolation(SG_INTERN("port-position"),
 			  Sg_Sprintf(UC("invalid result %S from %S"), 
@@ -1970,21 +1963,6 @@ static SgObject wrap_custom_set_procedure(SgPort *p, SgObject proc)
   if (SG_PROCEDUREP(proc)) {
     SgObject data = Sg_Cons(p, proc);
     return Sg_MakeSubr(wrapped_custom_set_position, data, 2, 0, 
-		       SG_PROCEDURE_NAME(proc));
-  }
-  return SG_FALSE;
-}
-
-static SgObject wrapped_custom_position(SgObject *args, int argc,
-					void *data)
-{
-  return Sg_VMApply0(SG_OBJ(data));
-}
-
-static SgObject wrap_custom_procedure(SgObject proc)
-{
-  if (SG_PROCEDUREP(proc)) {
-    return Sg_MakeSubr(wrapped_custom_position, proc, 1, 0, 
 		       SG_PROCEDURE_NAME(proc));
   }
   return SG_FALSE;
@@ -2153,9 +2131,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   SgObject setPosition = (spec->wrap)
     ? wrap_custom_set_procedure(SG_PORT(port), spec->setPosition)
     : spec->setPosition;
-  SgObject getPosition = (spec->wrap)
-    ? wrap_custom_procedure(spec->getPosition)
-    : spec->getPosition;
+  SgObject getPosition = spec->getPosition;
 
   port->id = spec->id;
   port->getPosition = getPosition;
@@ -2884,12 +2860,12 @@ int Sg_HasSetPortPosition(SgPort *port)
   return SG_PORT_VTABLE(port)->setPortPosition != NULL;
 }
 
-int64_t Sg_PortPosition(SgPort *port, Whence whence)
+int64_t Sg_PortPosition(SgPort *port)
 {
   if (!SG_PORT_VTABLE(port)->portPosition) {
     Sg_Error(UC("Given port does not support port-position: %S"), port);
   }
-  return SG_PORT_VTABLE(port)->portPosition(port, whence);
+  return SG_PORT_VTABLE(port)->portPosition(port);
 }
 
 void Sg_SetPortPosition(SgPort *port, int64_t offset, Whence whence)

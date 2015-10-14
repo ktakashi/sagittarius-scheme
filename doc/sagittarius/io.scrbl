@@ -103,10 +103,8 @@ port class. The followings show how to extend it.
 @define[Slot]{@name{close}}
 @desc{All of them must be either procedure or #f.
 
-@code{position} procedure must accept 1 argument, @var{whence}. 
-@var{Whence} shall be a symbol of @code{begin}, @code{current} or
-@code{end}. The procedure should return the position of the port
-according to the given @var{whence}.
+@code{position} procedure must accept 0 argument. The procedure should
+return the position of the port.
 
 @code{set-position} procedure must accept 2 argument, @var{position}
 and@var{whence}. @var{Whence} shall be a symbol of @code{begin}, 

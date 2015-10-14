@@ -1739,16 +1739,9 @@
     :no-side-effect
     Sg_HasSetPortPosition)
 
-  (define-c-proc port-position (p::<port> :optional (whence::<symbol> 'begin))
-    :no-side-effect
+  (define-c-proc port-position (p::<port>) :no-side-effect
     (check-port-open port-position p)
-    (let ((w::Whence SG_BEGIN))
-      (cond ((SG_EQ whence 'begin)   (set! w SG_BEGIN))
-	    ((SG_EQ whence 'current) (set! w SG_CURRENT))
-	    ((SG_EQ whence 'end)     (set! w SG_END))
-	    (else (assertion-violation 'port-position
-				       "unknown whence" whence)))
-      (result (Sg_MakeIntegerFromS64 (Sg_PortPosition p w)))))
+    (result (Sg_MakeIntegerFromS64 (Sg_PortPosition p))))
 
   (define-c-proc set-port-position! 
     (p::<port> off::<number> :optional (whence::<symbol> 'begin))

@@ -855,7 +855,7 @@
       (when (SG_TEXTUAL_PORTP p)
 	(set! line (SG_MAKE_INT (Sg_LineNo p))))
       (when (Sg_HasPortPosition p)
-	(set! pos (SG_MAKE_INT (Sg_PortPosition p SG_BEGIN))))
+	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
       (result (SG_LIST3 file line pos))))
 
   (define-c-proc read-with-context (p::<port> ctx::<read-context>)

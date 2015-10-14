@@ -188,7 +188,7 @@
   (let ((port (make class 
 		:read (lambda (bs s c) (set! read #t) c)
 		:write (lambda (bs s c) (set! write #t) c)
-		:position (lambda (whence) (set! position whence) 0)
+		:position (lambda () (set! position #t) 0)
 		:set-position (lambda (o w) (set! set-position (list o w)))
 		:ready (lambda () (set! ready #t) #f)
 		:flush (lambda () (set! flush #t))
@@ -205,13 +205,7 @@
       (test-assert (format "write ~a" class) write))
     ;; position
     (test-equal (format "port-position: ~a(1)" class) 0 (port-position port))
-    (test-equal (format "port-position: ~a (begin)" class) 'begin position)
-    (test-equal (format "port-position: ~a(2)" class) 0 
-		(port-position port 'current))
-    (test-equal (format "port-position: ~a (current)" class) 'current position)
-    (test-equal (format "port-position: ~a(3)" class) 0 
-		(port-position port 'end))
-    (test-equal (format "port-position: ~a (end)" class) 'end position)
+    (test-assert (format "port-position: ~a(2)" class) position)
 
     (test-assert (format "set-port-position!: ~a (1)" class)
 		 (set-port-position! port 0 'begin))
