@@ -29,3 +29,22 @@ Following example shows how to enable this;
 
 @code{#!debug} enables the debug print.
 }
+
+@define[Function]{@name{macroexpand} @args{expr}}
+@desc{Expands given @var{expr}. The returning value may or may not be used
+as proper Scheme expression.
+}
+
+@define[Function]{@name{macroexpand-1} @args{expr}}
+@define[Function]{@name{macroexpand-n} @args{expr n}}
+@desc{Expands given @var{expr} @var{n} times. The first form's @var{n} is 1.
+
+This procedure expands only globally defined macro and the result of expansion
+is other macro such as next rule of @code{syntax-rules}. It doesn't consider
+locally bound macros.
+
+The returning value may or may not be used as proper Scheme expression.
+}
+
+Above 2 procedures are no more than debug aid. Depending on the result of
+expansion is not guaranteed to work.

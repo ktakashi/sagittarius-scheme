@@ -30,7 +30,7 @@
 
 (library (sagittarius debug)
     (export unbound-variable
-	    macroexpand macroexpand-1
+	    macroexpand macroexpand-1 macroexpand-n
 	    :export-reader-macro)
     (import (rnrs)
 	    (rnrs eval)
@@ -40,12 +40,52 @@
 	    (sagittarius reader)
 	    (only (sagittarius clos) unbound-variable)
 	    (srfi :39 parameters)
+	    (sagittarius vm) ;; need this
 	    (util port))
 
+  ;; TODO find import
+  (define (load-expander library name)
+    (eval `(import (only (sagittarius) ,name)) library))
+
+  ;; this expands all
   (define (macroexpand expr :optional (library (current-library)))
+    ;; import %macroexpand into given library
+    (load-expander library '%macroexpand)
     (eval `(%macroexpand ,expr) library))
-  (define (macroexpand-1 expr :optional (library (current-library)))
-    (eval `(%macroexpand-1 ,expr) library))
+
+  ;; these variants expand only top level macro
+  (define (macroexpand-1 expr . opt) (apply macroexpand-n expr 1 opt))
+
+  (define (macroexpand-n expr n :optional (library (current-library))
+			 (strip? #t))
+    (define (expand expr library) (eval `(%macroexpand-1 ,expr) library))
+    (define (strip expr)
+      (define seen (make-eq-hashtable))
+      (define count 0)
+      (let loop ((expr expr))
+	(cond ((pair? expr)
+	       (let ((a (loop (car expr)))
+		     (d (loop (cdr expr))))
+		 (if (and (eq? a (car expr)) (eq? d (cdr expr)))
+		     expr
+		     (cons a d))))
+	      ((vector? expr) (list->vector (loop (vector->list expr))))
+	      ((identifier? expr)
+	       (cond ((hashtable-ref seen expr #f))
+		     ((find-binding (id-library expr) (id-name expr) #f)
+		      (syntax->datum expr))
+		     (else
+		      (let ((name (string->symbol
+				   (format "~a.~a"
+					   (syntax->datum expr) count))))
+			(set! count (+ count 1))
+			(hashtable-set! seen expr name)
+			name))))
+	      (else expr))))
+    (load-expander library '%macroexpand-1)
+    (do ((i 0 (+ i 1)) (expr (expand expr library) (expand expr library)))
+	((= i n) (if strip? (strip expr) expr))))
+
 
   ;; save the original reader
   (define sh-bang-reader (get-dispatch-macro-character #\# #\!))
