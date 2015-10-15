@@ -191,6 +191,16 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{timer} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-123/srfi-123.html"]{SRFI-123}}
+    @td{(srfi :123 generic-ref)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :123)}. So for the portability it's better to use the
+    @code{(srfi :123)}.
+
+    The name @code{generic-ref} is taken from the SRFI discussion.
+    @hyperlink[:href "http://srfi-email.schemers.org/srfi-123/msg/2905143"]{Re: SRFI-97 name}
+    }}
 
 }
 
