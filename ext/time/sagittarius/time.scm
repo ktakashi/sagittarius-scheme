@@ -1176,6 +1176,11 @@
 
   (define (string->date input-string template-string)
     (define (tm:date-ok? date)
+      (unless (date-zone-offset date)
+	;; rather incomplete but better than nothing
+	(set-date-zone-offset! date 0)
+	(let ((off (timezone-offset (local-timezone) (date->time-utc date))))
+	  (set-date-zone-offset! date off)))
       (and (date-nanosecond date)
            (date-second date)
            (date-minute date)
@@ -1184,7 +1189,7 @@
            (date-month date)
            (date-year date)
            (date-zone-offset date)))
-    (let ( (newdate (make-date 0 0 0 0 0 0 0 (local-tz-offset))) )
+    (let ( (newdate (make-date 0 0 0 0 0 0 0 #f)) )
       (tm:string->date newdate
                        0
                        template-string

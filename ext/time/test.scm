@@ -305,5 +305,14 @@
 ;; (I don't know why then they put such a stupid rule but anyway).
 (test-equal "Asia/Tokyo" 32400 (timezone-offset (timezone "Asia/Tokyo")))
 
+
+;; string->date doesn't consider timezone properly
+(let* ((d (string->date "2016/3/26 15:00:00" "~Y/~m/~d ~H:~M:~S"))
+       (ams (timezone "Europe/Amsterdam"))
+       (off (timezone-offset ams (date->time-utc d))))
+  (when (equal? (timezone-name (local-timezone)) (timezone-name ams))
+    (test-equal "timezone offset" off (date-zone-offset d))))
+
+
 (test-end)
   
