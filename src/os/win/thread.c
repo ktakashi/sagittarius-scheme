@@ -319,7 +319,14 @@ int Sg_WaitWithTimeout(SgInternalCond *cond, SgInternalMutex *mutex,
 
 void Sg_ExitThread(SgInternalThread *thread, void *ret)
 {
-  thread->thread = NULL;	/* make it a bit safer */
+  /* If Sg_TerminateThread is called here, then thread context
+     is still there and next PC would be cancel_self, so must 
+     be OK. */
+  thread->thread = NULL;
+  /* If Sg_TerminateThread is called here, then thread context
+     is gone, thus it can't swap PC to cancel_self, so should
+     be OK. We may only want to disable GC to avoid that thread
+     context is GCed. */
   thread->returnValue = ret;
   _endthreadex((unsigned int)ret);
 }
@@ -350,7 +357,14 @@ static void cancel_self(uintptr_t unused)
      means _endthreadex is not called yet.
   */
   SgVM *vm = Sg_VM();
-  longjmp(vm->thread.jbuf, 1);
+
+  if (vm && vm->thread) {
+    longjmp(vm->thread.jbuf, 1);
+  }
+  /* shouldn't reach here */
+  /* FIXME: maybe revert back to where we are? Otherwise this goes
+            nowhere...
+   */
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
@@ -367,7 +381,12 @@ void Sg_TerminateThread(SgInternalThread *thread)
     return;
   }
   if (!threadH) return;
-  SuspendThread(threadH);
+
+  /* failed to suspend the thread, this may cause atomic issue
+     so don't proceed.
+     FIXME: should we raise an error for this? */
+  if (SuspendThread(threadH) < 0) return;
+
   if (WaitForSingleObject(threadH, 0) != WAIT_OBJECT_0) {
     CONTEXT context;
     context.ContextFlags = CONTEXT_CONTROL;
