@@ -136,6 +136,8 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
   params->me = thread;
   params->start = entry;
   params->arg = param;
+  /* set return value in case */
+  thread->returnValue = SG_UNDEF;
   thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
 					  params, 0, NULL);
   return TRUE;
@@ -362,9 +364,11 @@ static void cancel_self(uintptr_t unused)
     longjmp(vm->thread.jbuf, 1);
   }
   /* shouldn't reach here */
-  /* FIXME: maybe revert back to where we are? Otherwise this goes
-            nowhere...
-   */
+  /* FIXME: remove this */
+  fputs("*WARNING* Cancelling the thread unsafely!\n", stderr);
+  /* FIXME: revert back to where we are? Otherwise this goes nowhere.
+            but how? */
+  _endthreadex((unsigned int)-1);
 }
 
 void Sg_TerminateThread(SgInternalThread *thread)
