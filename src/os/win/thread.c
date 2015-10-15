@@ -358,7 +358,7 @@ static void cancel_self(uintptr_t unused)
   */
   SgVM *vm = Sg_VM();
 
-  if (vm && vm->thread) {
+  if (vm && vm->thread.thread) {
     longjmp(vm->thread.jbuf, 1);
   }
   /* shouldn't reach here */
