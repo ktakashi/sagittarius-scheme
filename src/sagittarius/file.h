@@ -107,6 +107,12 @@ SG_EXTERN int      Sg_UnlockFile(SgObject file);
 /* wrappers */
 SG_EXTERN int64_t  Sg_FileSeek(SgObject file, int64_t off, Whence whence);
 
+/* 
+   On Windows the returning FD is HANDLE
+   (the same as Sg_MakeFileFromFD, it takes HANDLE)
+ */
+SG_EXTERN uintptr_t Sg_FileFD(SgObject file);
+
 /* These methods are just creating wraps for stdout, stdin, stderr */
 SG_EXTERN SgObject Sg_StandardOut();
 SG_EXTERN SgObject Sg_StandardIn();

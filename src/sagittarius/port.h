@@ -667,6 +667,7 @@ SG_EXTERN void     Sg_SetPortPosition(SgPort *port, int64_t offset,
 
 SG_EXTERN int      Sg_LineNo(SgPort *port);
 SG_EXTERN SgObject Sg_FileName(SgPort *port);
+SG_EXTERN SgObject Sg_PortFile(SgPort *port);
 
 /* for user defined port */
 SG_EXTERN int      Sg_AddPortCleanup(SgPort *port);
