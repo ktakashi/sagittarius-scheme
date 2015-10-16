@@ -342,7 +342,7 @@ static void buffered_flush(SgObject self)
     SgBufferedPort *bp = SG_BUFFERED_PORT(self);
     uint8_t *buf = bp->buffer;
     /* restore position, if possible */
-    if (SG_PORT_VTABLE(bp->src)->setPortPosition) {
+    if (Sg_HasSetPortPosition(bp->src)) {
       SG_PORT_VTABLE(bp->src)->setPortPosition(bp->src,
 					       bp->src->position, SG_BEGIN);
     }
@@ -425,7 +425,7 @@ static int64_t buffered_readb(SgObject self, uint8_t *dest, int64_t req_size)
      so filling buffer won't affect writing position.
   */
   if (need_unwind && SG_IN_OUT_PORTP(self)) {
-    if (SG_PORT_VTABLE(src)->setPortPosition) {
+    if (Sg_HasSetPortPosition(src)) {
       /* should accept please! */
       SG_PORT_VTABLE(src)->setPortPosition(src, opos, SG_BEGIN);
     }
@@ -562,7 +562,7 @@ static void buffered_set_position(SgObject self, int64_t off, Whence where)
 {
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   SgPort *src = bp->src;
-  if (SG_PORT_VTABLE(src)->setPortPosition) {
+  if (Sg_HasSetPortPosition(src)) {
     /* flush current buffer */
     buffered_flush(self);
     bp->index = 0;
@@ -1438,12 +1438,11 @@ static SgPortTable trans_table_no_pos = {
 
 static SgPortTable* get_transe_table(SgPort *port)
 {
-  if (SG_PORT_VTABLE(port)->portPosition && 
-      SG_PORT_VTABLE(port)->setPortPosition) {
+  if (Sg_HasPortPosition(port) && Sg_HasSetPortPosition(port)) {
    return &trans_table;
-  } else if (SG_PORT_VTABLE(port)->portPosition) {
+  } else if (Sg_HasPortPosition(port)) {
     return &trans_table_no_set_pos;
-  } else if (SG_PORT_VTABLE(port)->setPortPosition) {
+  } else if (Sg_HasSetPortPosition(port)) {
     return &trans_table_no_get_pos;
   } else {
    return &trans_table_no_pos;

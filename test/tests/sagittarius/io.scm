@@ -239,5 +239,11 @@
 (test-port-slots <custom-binary-input/output-port>)
 (test-port-slots <custom-textual-input/output-port>)
 
+(let ((buffered-custom 
+       (buffered-port (make <custom-binary-input/output-port>)
+		      (buffer-mode block))))
+  (test-assert "flush called set-port-position!"
+	       (flush-output-port buffered-custom)))
+
 
 (test-end)

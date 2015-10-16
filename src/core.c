@@ -439,7 +439,7 @@ void Sg_Abort(const char* msg)
   }
 #else
   DWORD n;
-  WriteConsole(GetStdHandle(STD_ERROR_HANDLE), msg, size, &n, NULL);
+  WriteConsoleA(GetStdHandle(STD_ERROR_HANDLE), msg, size, &n, NULL);
 #endif
   _exit(EXIT_CODE(1));
 }
