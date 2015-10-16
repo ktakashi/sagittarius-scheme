@@ -2886,23 +2886,26 @@ int Sg_LineNo(SgPort *port)
 
 SgObject Sg_FileName(SgPort *port)
 {
-  SgFile *file = NULL;
-  if (!SG_PORTP(port)) {
-    Sg_Error(UC("port required, but got %S"), port);
+  SgFile *file = SG_FILE(Sg_PortFile(port));
+
+  if (file != NULL) {
+    return Sg_String(file->name);
   }
+  return SG_FALSE;
+}
+
+SgObject Sg_PortFile(SgPort *port)
+{
+  SgFile *file = NULL;
 
   if (SG_FILE_PORTP(port)) {
     file = SG_FILE_PORT(port)->file;
   } else if (SG_TRANSCODED_PORTP(port)) {
-    return Sg_FileName(SG_TPORT_PORT(port));
+    return Sg_PortFile(SG_TPORT_PORT(port));
   } else if (SG_BUFFERED_PORTP(port)) {
-    return Sg_FileName(SG_BUFFERED_PORT(port)->src);
+    return Sg_PortFile(SG_BUFFERED_PORT(port)->src);
   }
-  if (file != NULL) {
-    return Sg_String(file->name);
-  }
-
-  return SG_FALSE;
+  return file;
 }
 
 SgObject Sg_PortTranscoder(SgObject port)

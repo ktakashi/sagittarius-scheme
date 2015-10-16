@@ -308,6 +308,11 @@ int Sg_UnlockFile(SgObject file)
   return TRUE;
 }
 
+uintptr_t Sg_FileFD(SgObject file)
+{
+  return (uintptr_t)SG_FD(file)->fd;
+}
+
 static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;
