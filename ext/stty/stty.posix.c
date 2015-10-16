@@ -38,6 +38,7 @@ void Sg_SetConsoleMode(SgObject port, int mode)
   struct termios ti;
 
   tcgetattr(fd, &ti);		/* call this first to retrieve others. */
+  /* set the c_lflag (local) */
   ti.c_lflag = mode;
   if (tcsetattr(fd, TCSANOW, &ti) < 0) {
     int e = errno;
@@ -61,7 +62,11 @@ SgObject Sg_GetConsoleMode(SgObject port)
 int Sg_GetConsoleModeFlag(int mode)
 {
   switch (mode) {
-  case SG_CONSOLE_CANON: return ICANON;
+    /* Windows ENABLE_PROCESSED_OUTPUT / ENABLE_PROCESSED_INPUT
+       does the same as ICANON | ISIG. (Ctrl+C won't be send to
+       the system without it). So CANON shold do like this.
+     */
+  case SG_CONSOLE_CANON: return ICANON | ISIG;
   case SG_CONSOLE_ECHO: return ECHO;
   }
   return 0;

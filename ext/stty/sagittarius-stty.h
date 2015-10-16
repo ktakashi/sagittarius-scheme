@@ -41,6 +41,11 @@
    NB: this must be done on the greatest common divisor
        between Windows and POSIX. Seems Windows has a
        lot less than POSIX.
+   
+   On Windows we might use DCB to make termios compatible
+   functionalities. However it's a bit (or a lot) pain in
+   the ass since `I' don't use baud width control and so.
+   Until we get enough demand, we only support what we need.
  */
 enum SgConsoleMode {
   /* Process control character on system.
