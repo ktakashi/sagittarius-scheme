@@ -63,19 +63,26 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   int isOK;
   /* check console */
   if (Sg_IsUTF16Console(self)) {
-    ASSERT(size == 1);
+    DWORD req = size>>1, tmp;
     if (SG_FD(self)->prevChar != -1) {
-      isOK = TRUE;
-      readSize = 1;
+      size--;
       *buf = (uint8_t)(SG_FD(self)->prevChar);
-      SG_FD(self)->prevChar = -1;
-    } else {
-      wchar_t wc = 0;
-      isOK = ReadConsoleW(SG_FD(self)->desc, &wc, 1, &readSize, NULL);
-      if (isOK) {
-	readSize = 1;
-	*buf = (uint8_t)(wc);
-	SG_FD(self)->prevChar = wc >> 8;
+      readSize++;
+      buf++;
+    }
+    isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
+			&tmp, NULL);
+    readSize += (tmp<<1);
+    if (isOK) {
+      if (size&1) {
+	/* odd number we need to read one more */
+	wchar_t wc;
+	isOK = ReadConsoleW(SG_FD(self)->desc, &wc, 1, &tmp, NULL);
+	if (isOK) {
+	  buf[size-1] = (uint8_t)(wc);
+	  SG_FD(self)->prevChar = wc >> 8;
+	  readSize++;
+	}
       }
     }
   } else {
