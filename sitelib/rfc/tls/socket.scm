@@ -1515,7 +1515,7 @@
   (define (tls-socket-send socket data :optional (flags 0))
     (when (tls-socket-closed? socket)
       (assertion-violation 'tls-socket-send
-			   "tls socket is alresy closed"))
+			   "tls socket is alredy closed"))
     (tls-socket-send-inner socket data flags *application-data* #t)
     (bytevector-length data))
 
