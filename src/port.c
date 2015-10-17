@@ -76,16 +76,16 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   } else { /* never happen */
     Sg_PutuzUnsafe(port, UC("-unknown"));
   }
-  if (SG_INPUT_PORTP(p)) {
+  if (SG_BIDIRECTIONAL_PORTP(p)) {
+    /* it's debug purpose anyway */
+    Sg_PutuzUnsafe(port, UC("-bidirectional-port"));
+  } else if (SG_IN_OUT_PORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input/output-port"));
+  } else if (SG_INPUT_PORTP(p)) {
     Sg_PutuzUnsafe(port, UC("-input-port"));
   } else if (SG_OUTPUT_PORTP(p)) {
     Sg_PutuzUnsafe(port, UC("-output-port"));
-  } else if (SG_IN_OUT_PORTP(p)) {
-    Sg_PutuzUnsafe(port, UC("-input/output-port"));
-  } else if (SG_BIDIRECTIONAL_PORTP(p)) {
-    /* it's debug purpose anyway */
-    Sg_PutuzUnsafe(port, UC("-bidirection-port"));
-  }
+  } 
   if (SG_CUSTOM_PORTP(p)) {
     Sg_PutcUnsafe(port, ' ');
     Sg_Write(SG_CUSTOM_PORT(p)->id, port, SG_WRITE_DISPLAY);
@@ -1725,7 +1725,7 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
     int count = (size < bvsize)? (int)size: bvsize;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
 		       SG_MAKE_INT(0), SG_MAKE_INT(count));
-    
+
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-bytevector"),
 		     Sg_Sprintf(UC("custom port read! "
