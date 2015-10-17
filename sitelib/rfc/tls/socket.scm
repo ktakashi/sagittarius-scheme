@@ -1592,6 +1592,7 @@
     (let* ((bv (make-bytevector size))
 	   (r (tls-socket-recv! socket bv 0 size flags)))
       (cond ((not r) r) ;; non blocking socket
+	    ((eof-object? r) #vu8()) ;; get-bytevector-n! may return EOF
 	    ((= r size) bv)
 	    ((< r 0) #f) ;; non blocking?
 	    (else (bytevector-copy bv 0 r)))))

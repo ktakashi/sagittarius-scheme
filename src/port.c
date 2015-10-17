@@ -346,13 +346,15 @@ static void buffered_flush(SgObject self)
       SG_PORT_VTABLE(bp->src)->setPortPosition(bp->src,
 					       bp->src->position, SG_BEGIN);
     }
-    while (bp->index > 0) {
+    /* Only if there's something to flush  */
+    while (bp->index > 0 && bp->index != bp->bufferSize) {
       int64_t w = SG_PORT_VTABLE(bp->src)->writeb(bp->src, buf, bp->index);
       buf += w;
       bp->index -= w;
     }
     bp->index = 0;
     bp->bufferSize = 0;
+    bp->dirty = FALSE;
     if (SG_PORT_VTABLE(bp->src)->flush) {
       SG_PORT_VTABLE(bp->src)->flush(bp->src);
     }
@@ -450,7 +452,9 @@ static int64_t buffered_write_to_block_buffer(SgObject self, uint8_t *v,
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   const size_t buffer_size = bp->size;
 
-  bp->dirty = req_size > 0;
+  if (!bp->dirty) {
+    bp->dirty = req_size > 0;
+  }
 
   while (write_size < req_size) {
     int64_t buf_diff = buffer_size - bp->index;
@@ -478,7 +482,9 @@ static int64_t buffered_write_to_line_buffer(SgObject self, uint8_t *v,
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
   const size_t buffer_size = bp->size;
 
-  bp->dirty = req_size > 0;
+  if (!bp->dirty) {
+    bp->dirty = req_size > 0;
+  }
 
   while (write_size < req_size) {
     int64_t buf_diff =  buffer_size - bp->index;
