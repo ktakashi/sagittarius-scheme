@@ -1604,20 +1604,13 @@
 
   (define (%tls-socket-recv socket bv start len flags)
     (or (and-let* ((in (~ socket 'buffer))
-		   (r  (get-bytevector-n! in bv start len)))
-	  ;; if there's no data on this record then return 0
-	  ;; it's socket so don't expect to receive how much
-	  ;; you want.
-	  (cond ((eof-object? r)
-		 (set! (~ socket 'buffer) #f)
-		 0)
-		;; if the actual read size was equal or less than the
-		;; requires size the buffer is now empty so, we need 
-		;;to set the slot #f
-		((< r len)
-		 (set! (~ socket 'buffer) #f)
-		 r)
-		(else r)))
+		   (r  (get-bytevector-n! in bv start len))
+		   ( (not (eof-object? r)) ))
+	  ;; if the actual read size was equal or less than the
+	  ;; requires size the buffer is now empty so, we need 
+	  ;;to set the slot #f
+	  (when (< r len) (set! (~ socket 'buffer) #f))
+	  r)
 	(and-let* ((record (read-record socket flags))
 		   ( (bytevector? record) )
 		   (in (open-bytevector-input-port record)))

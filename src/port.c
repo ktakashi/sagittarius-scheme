@@ -1295,7 +1295,9 @@ static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
   if (size == 0) return 0;	/* short cut */
   /* need special treatment when the size is 1 to handle EOL properly */
   if (size == 1) {
-    buf[0] = Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+    SgChar c = Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+    if (c == EOF) return 0;
+    buf[0] = c;
     readSize = 1;
   } else {
     readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
@@ -1735,7 +1737,7 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
   bvsize = SG_BVECTOR_SIZE(bv);
   /* input/output port is *not* a bidirectional port so we can use the
      same buffer as write. so re-use it.*/
-  for (; size; ) {
+  do {
     int r;
     int count = (size < bvsize)? (int)size: bvsize;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
@@ -1754,11 +1756,11 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
     r = SG_INT_VALUE(result);
     memcpy(buf+read, SG_BVECTOR_ELEMENTS(bv), r);
     read += r;
-    size -= r;
+    /* size -= r; */
 
     /* make things stop */
-    if (allP && size != SG_INT_VALUE(result)) break;
-  }
+    /* if (allP && size != SG_INT_VALUE(result)) break; */
+  } while (0);
   if (read == 0) return 0;	/* short cut */
   SG_PORT(self)->position += read;
   /* memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read); */
@@ -2040,16 +2042,16 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
 					 int64_t size)
 {
   SgObject s, result;
-  int start;
+  /* int start; */
   int64_t read = 0, i;
   
   if (size == 0) return 0;
 
-  s = Sg_ReserveString((int)size, 0);
-  for (start = 0; size; ) {
+  s = SG_CUSTOM_PORT(self)->textualBuffer;
+  do {
     int r;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, s, 
-		       SG_MAKE_INT(start), 
+		       SG_MAKE_INT(0), 
 		       SG_MAKE_INT(size));
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-char"),
@@ -2062,15 +2064,16 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
       break;
     }
     r = SG_INT_VALUE(result);
+    for (i = 0; i < r; i++) {
+      buf[i] = SG_STRING_VALUE_AT(s, i);
+    }
     read += r;
-    size -= r;
-    start += r;
-  }
+    /* size -= r; */
+    /* start += r; */
+  } while (0);
 
   if (read == 0) return 0;	/* short cut */
-  for (i = 0; i < read; i++) {
-    buf[i] = SG_STRING_VALUE_AT(s, i);
-  }
+  SG_PORT(self)->position += read;
   return read;
 }
 
