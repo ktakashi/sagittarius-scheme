@@ -1695,6 +1695,18 @@ SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize)
 #define SG_CUSTOM_HAS_U8_AHEAD(obj) (SG_PORT(obj)->peek != EOF)
 #define SG_CUSTOM_U8_AHEAD(obj)     (SG_PORT(obj)->peek)
 
+/* 
+   The same trick as buffered port.
+   TODO should we expose this? 
+*/
+typedef struct {
+  SgCustomPort in;
+  SgCustomPort out;
+} SgCustomBiPort;
+
+#define BI_CUSTOM_OUT(p) (&((SgCustomBiPort *)p)->out)
+
+
 /* I'm not sure if we still need this method. */
 static int custom_binary_open(SgObject self)
 {
@@ -1809,6 +1821,12 @@ static int64_t custom_binary_put_u8_array(SgObject self, uint8_t *v,
     c -= t;
   }
   return written;
+}
+
+static int64_t custom_bi_binary_put_u8_array(SgObject self, uint8_t *v,
+					     int64_t size)
+{
+  return custom_binary_put_u8_array(BI_CUSTOM_OUT(self), v,  size);
 }
 
 static void custom_flush(SgObject self)
@@ -1935,6 +1953,22 @@ static SgPortTable custom_binary_table = {
   NULL,
   custom_port_position,
   custom_binary_set_port_position,
+  custom_binary_open,
+  custom_binary_read,
+  custom_binary_read_all,
+  custom_bi_binary_put_u8_array,
+  NULL,				/* reads */
+  NULL				/* writes */
+};
+
+static SgPortTable custom_bi_binary_table = {
+  custom_flush,
+  custom_close,
+  custom_ready,
+  NULL,
+  NULL,
+  NULL,
+  NULL,
   custom_binary_open,
   custom_binary_read,
   custom_binary_read_all,
@@ -2074,6 +2108,12 @@ static int64_t custom_textual_put_string(SgObject self, SgChar *str,
   return written;
 }
 
+static int64_t custom_bi_textual_put_string(SgObject self, SgChar *str,
+					    int64_t count)
+{
+  return custom_textual_put_string(BI_CUSTOM_OUT(self), str, count);
+}
+
 static SgPortTable custom_textual_table = {
   custom_flush,
   custom_close,
@@ -2089,6 +2129,23 @@ static SgPortTable custom_textual_table = {
   custom_textual_get_string,
   custom_textual_put_string
 };
+
+static SgPortTable custom_bi_textual_table = {
+  custom_flush,
+  custom_close,
+  custom_ready,
+  NULL,
+  NULL,
+  NULL,				/* no positioning */
+  NULL,				/* no positioning */
+  NULL,				/* open */
+  NULL,				/* readb */
+  NULL,				/* readbAll */
+  NULL,				/* writeb */
+  custom_textual_get_string,
+  custom_bi_textual_put_string
+};
+
 
 SgObject Sg_MakeCustomTextualPort(SgString *id,
 				  int direction,
@@ -2120,7 +2177,11 @@ static SgPortTable* get_custom_table(SgCustomPortSpec *spec)
 {
   int binaryP = SG_CUSTOM_PORT_TYPE_BINARY == spec->type;
 
-  return binaryP ? &custom_binary_table : &custom_textual_table;
+  if (SG_BIDIRECTIONAL_PORT == spec->direction) {
+    return binaryP ? &custom_bi_binary_table : &custom_bi_textual_table;
+  } else {
+    return binaryP ? &custom_binary_table : &custom_textual_table;
+  }
 }
 
 SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
@@ -2128,15 +2189,34 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   SgPortTable *tbl = (spec->table)? spec->table: get_custom_table(spec);
   SgObject trans = (spec->type == SG_CUSTOM_PORT_TYPE_BINARY)
     ? SG_FALSE: SG_TRUE;
-  SgCustomPort *port = (SgCustomPort *)make_port(SgCustomPort,
-						 spec->direction,
-						 SG_CLASS_CUSTOM_PORT,
-						 tbl,
-						 trans);
-  SgObject setPosition = (spec->wrap)
+  SgCustomPort *port;
+  SgObject setPosition, getPosition;
+
+  if (spec->direction == SG_BIDIRECTIONAL_PORT) {
+    port = (SgCustomPort *)make_port(SgCustomBiPort,
+				     spec->direction,
+				     SG_CLASS_CUSTOM_PORT,
+				     tbl,
+				     trans);
+    if (SG_FALSEP(trans)) {
+      BI_CUSTOM_OUT(port)->binaryBuffer
+	= Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
+    } else {
+      BI_CUSTOM_OUT(port)->textualBuffer
+	= Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
+    }
+  } else {
+    port = (SgCustomPort *)make_port(SgCustomPort,
+				     spec->direction,
+				     SG_CLASS_CUSTOM_PORT,
+				     tbl,
+				     trans);
+  }
+
+  setPosition = (spec->wrap)
     ? wrap_custom_set_procedure(SG_PORT(port), spec->setPosition)
     : spec->setPosition;
-  SgObject getPosition = spec->getPosition;
+  getPosition = spec->getPosition;
 
   port->id = spec->id;
   port->getPosition = getPosition;
@@ -2853,7 +2933,8 @@ int Sg_HasPortPosition(SgPort *port)
 {
   /* a bit awkard solution but this saves me from lots of crap*/
   if (SG_CUSTOM_PORTP(port))
-    return SG_PROCEDUREP(SG_CUSTOM_PORT(port)->getPosition);
+    return SG_PORT_VTABLE(port)->portPosition != NULL &&
+      SG_PROCEDUREP(SG_CUSTOM_PORT(port)->getPosition);
   return SG_PORT_VTABLE(port)->portPosition != NULL;
 }
 
@@ -2861,7 +2942,8 @@ int Sg_HasSetPortPosition(SgPort *port)
 {
   /* a bit awkard solution */
   if (SG_CUSTOM_PORTP(port))
-    return SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition);
+    return SG_PORT_VTABLE(port)->setPortPosition != NULL &&
+      SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition);
   return SG_PORT_VTABLE(port)->setPortPosition != NULL;
 }
 

@@ -64,7 +64,7 @@
 		      (lambda (read! write! close ready?)
 			(make-custom-binary-bidirectional-port
 			 "tls-socket-port"
-			 read! write! #f #f (and close? close) ready?))))
+			 read! write! (and close? close) ready?))))
 
   (define (tls-socket-input-port socket)
     (%tls-socket-port socket

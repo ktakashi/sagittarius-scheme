@@ -826,24 +826,20 @@
      `(unless (or (SG_FALSEP ,proc) (SG_PROCEDUREP ,proc))
 	(wrong-type-of-argument-violation ',name "procedure or #f" ,proc))))
   (define-c-proc make-custom-binary-bidirectional-port
-    (id::<string> read::<procedure> write::<procedure> getter setter close
+    (id::<string> read::<procedure> write::<procedure> close 
 		  :optional (ready #f))
-    (check-procedure-or-false make-custom-binary-bidirectional-port getter)
-    (check-procedure-or-false make-custom-binary-bidirectional-port setter)
     (check-procedure-or-false make-custom-binary-bidirectional-port close)
     (check-procedure-or-false make-custom-binary-bidirectional-port ready)
     (result (Sg_MakeCustomBinaryPort id SG_BIDIRECTIONAL_PORT read write
-				     getter setter close ready)))
+				     SG_FALSE SG_FALSE close ready)))
 
   (define-c-proc make-custom-textual-bidirectional-port
-    (id::<string> read::<procedure> write::<procedure> getter setter close
+    (id::<string> read::<procedure> write::<procedure> close
 		  :optional (ready #f))
-    (check-procedure-or-false make-custom-textual-bidirectional-port getter)
-    (check-procedure-or-false make-custom-textual-bidirectional-port setter)
     (check-procedure-or-false make-custom-textual-bidirectional-port close)
     (check-procedure-or-false make-custom-textual-bidirectional-port ready)
     (result (Sg_MakeCustomTextualPort id SG_BIDIRECTIONAL_PORT read write
-				      getter setter close ready)))
+				      SG_FALSE SG_FALSE close ready)))
 
   ;; extra port predicates
   ;; it's rather useless because we don't get source port buffered-port
