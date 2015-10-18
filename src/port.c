@@ -737,6 +737,9 @@ SgObject Sg_InitBufferedPort(SgBufferedPort *bp,
 			     SgBufferMode mode, SgPort *src, 
 			     uint8_t *buffer, size_t size)
 {
+  if (SG_BIDIRECTIONAL_PORTP(src)) {
+    Sg_Error(UC("[Internal] Bidirectional port can't be used"));
+  }
   return init_buffered_port(bp, mode, src, buffer, size,
 			    SG_OUTPUT_PORTP(SG_PORT(src)));
 }
@@ -1956,7 +1959,7 @@ static SgPortTable custom_binary_table = {
   custom_binary_open,
   custom_binary_read,
   custom_binary_read_all,
-  custom_bi_binary_put_u8_array,
+  custom_binary_put_u8_array,
   NULL,				/* reads */
   NULL				/* writes */
 };
@@ -1972,7 +1975,7 @@ static SgPortTable custom_bi_binary_table = {
   custom_binary_open,
   custom_binary_read,
   custom_binary_read_all,
-  custom_binary_put_u8_array,
+  custom_bi_binary_put_u8_array,
   NULL,				/* reads */
   NULL				/* writes */
 };
@@ -2193,6 +2196,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   SgObject setPosition, getPosition;
 
   if (spec->direction == SG_BIDIRECTIONAL_PORT) {
+    /* the excess part initialisation. */
     port = (SgCustomPort *)make_port(SgCustomBiPort,
 				     spec->direction,
 				     SG_CLASS_CUSTOM_PORT,
@@ -2205,6 +2209,9 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
       BI_CUSTOM_OUT(port)->textualBuffer
 	= Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
     }
+    /* we only need this one since writeb or writes is relative
+       to be bidireational. */
+    BI_CUSTOM_OUT(port)->write = port->write = spec->write;
   } else {
     port = (SgCustomPort *)make_port(SgCustomPort,
 				     spec->direction,

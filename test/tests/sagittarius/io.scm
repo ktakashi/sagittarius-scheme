@@ -2,7 +2,11 @@
 	(rnrs mutable-strings)
 	(sagittarius io)
 	(clos user)
-	(srfi :64))
+	(srfi :64)
+	;; maybe we should move the bidirectional port test
+	;; to somewhere
+	(srfi :18)
+	(util concurrent))
 
 (test-begin "Sagittarius - Extra I/O")
 
@@ -245,5 +249,32 @@
   (test-assert "flush called set-port-position!"
 	       (flush-output-port buffered-custom)))
 
+(let* ((text "bidirectional port\r\n")
+       (dst  (make-shared-queue))
+       (port (make-custom-binary-bidirectional-port
+	      "test" 
+	      (lambda (bv start count)
+		(let ((b (shared-queue-get! dst)))
+		  (bytevector-copy! b 0 bv start count))
+		count)
+	      (lambda (bv start count)
+		(shared-queue-put! dst (bytevector-copy bv start count))
+		count)
+	      #f #f)))
+  (define recv-thread
+    (make-thread
+     (lambda ()
+       (get-bytevector-n port (string-length text)))))
+  (define send-thread
+    (make-thread
+     (lambda ()
+       (put-bytevector port (string->utf8 text)))))
+  ;; it's not a good test case because it's assuming it works properly.
+  (thread-start! recv-thread)
+  (thread-sleep! 0.1)
+  (thread-start! send-thread)
+  (test-equal "bidirectional port" text 
+	      (utf8->string (thread-join! recv-thread)))
+  )
 
 (test-end)
