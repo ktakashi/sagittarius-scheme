@@ -2323,7 +2323,7 @@ static SgCustomPort * custom_port_allocate_rec(int type,
     ready,
     flush,
     NULL,
-    TRUE
+    FALSE,
   };
   return (SgCustomPort *)Sg_MakeCustomPort(&spec);
 }
@@ -2361,6 +2361,7 @@ static SgObject custom_port_allocate(SgClass *klass, SgObject initargs)
 	   Sg_GetKeyword(SG_KEYWORD_CLOSE, initargs, SG_FALSE),
 	   Sg_GetKeyword(SG_KEYWORD_READY, initargs, SG_FALSE),
 	   Sg_GetKeyword(SG_KEYWORD_FLUSH, initargs, SG_FALSE));
+  SG_SET_CLASS(port, klass);
 
   /* TODO maybe we shouldn't do it here */
   slots = SG_NEW_ARRAY(SgObject, klass->nfields);
