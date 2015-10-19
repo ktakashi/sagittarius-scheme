@@ -61,6 +61,7 @@ char *alloca ();
 #include <ctype.h>
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/library.h"
+#include "sagittarius/core.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/file.h"
 #include "sagittarius/hashtable.h"
@@ -622,9 +623,14 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
 static SgObject search_library(SgObject name, SgObject libname, int *loadedp)
 {
   /* TODO should we use unwind_protect? */
-  SgObject r;
+  volatile SgObject r;
   LOCK_LIBRARIES();
-  r = search_library_unsafe(name, libname, loadedp);
+  SG_UNWIND_PROTECT {
+    r = search_library_unsafe(name, libname, loadedp);
+  } SG_WHEN_ERROR {
+    UNLOCK_LIBRARIES();
+    SG_NEXT_HANDLER;
+  } SG_END_PROTECT;
   UNLOCK_LIBRARIES();
   return r;
 }
