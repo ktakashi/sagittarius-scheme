@@ -40,6 +40,7 @@
 	    (sagittarius object)
 	    (sagittarius socket)
 	    (sagittarius vm)
+	    (sagittarius stty)
 	    (rfc tls)
 	    (srfi :18 multithreading)
 	    (srfi :26 cut)
@@ -116,11 +117,21 @@
 	    (case (car command)
 	      ((:response-authenticate) (cadr command))
 	      ((:alert) (display (cadr command)) (newline) (loop))
-	      ((:prompt)
-	       (display (cadr command))
-	       (flush-output-port)
-	       (send-packed-data socket :user-input (read/ss))
-	       (loop))))))
+	      ((:prompt :prompt-noecho) =>
+	       (lambda (type)
+		 ;; TODO should we use read/ss? get-line seems good enough
+		 (define (read-input type)
+		   (case type
+		     ((:prompt-noecho)
+		      (let ((r (with-stty '(not echo) (lambda () (read/ss)))))
+			;; make a bit nicer
+			(newline (current-output-port))
+			r))
+		     (else (read/ss))))
+		 (display (cadr command))
+		 (flush-output-port)
+		 (send-packed-data socket :user-input (read-input type))
+		 (loop)))))))
       (let ((command (read/ss in/out)))
 	(case (car command)
 	  ((:request-authenticate) (wait-response))
@@ -168,7 +179,7 @@
 	(let loop ((count 1))
 	  (send-packed-data socket :prompt "username> ")
 	  (let1 input-username (read-response socket)
-	    (send-packed-data socket :prompt "password> ")
+	    (send-packed-data socket :prompt-noecho "password> ")
 	    (let* ((input-password (read-response socket))
 		   (input (string->utf8 
 			   (string-append (->string input-username) "&"
