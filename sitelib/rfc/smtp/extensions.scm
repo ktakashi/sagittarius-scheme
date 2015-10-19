@@ -31,8 +31,7 @@
 ;; This library only supports SMTP extensions what I need for now
 (library (rfc smtp extensions)
     (export smtp-starttls
-	    smtp-auth
-	    smtp-plain-authentication)
+	    smtp-auth)
     (import (rnrs)
 	    (rfc tls)
 	    (rfc smtp commands)
@@ -93,14 +92,5 @@
 		 (make-who-condition 'smtp-auth)
 		 (make-message-condition content)
 		 (make-irritants-condition status))))))))
-
-;; SASL PLAIN thing
-;; TODO move to somewhere
-(define (smtp-plain-authentication userid password)
-  (lambda ()
-    (values "PLAIN"
-	    (base64-encode-string (string-append userid "\x0;"
-						 userid "\x0;"
-						 password)))))
 
 )

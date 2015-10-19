@@ -61,6 +61,7 @@
 
 	    ;; re-export
 	    smtp-plain-authentication
+	    smtp-login-authentication
 
 	    ;; mail modification
 	    smtp-mail-add-recipent!
@@ -78,6 +79,7 @@
 	    (rfc smtp commands)
 	    (rfc smtp extensions)
 	    (rfc smtp conditions)
+	    (rfc smtp authentications)
 	    (srfi :1) ;; for alist-delete
 	    (srfi :13)
 	    (srfi :14)
