@@ -112,6 +112,7 @@
 				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
+		      (flush-output-port in/out)
 		      (close-port in/out)
 		      (loop)]))))
 	    (else
