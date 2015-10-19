@@ -11,7 +11,8 @@
 	(sagittarius socket)
 	(sagittarius) ;; for format
 	;; use thread for testing
-	(sagittarius threads))
+	(sagittarius threads)
+	(srfi :106))
 
 (define (shutdown&close s)
   (socket-shutdown s SHUT_RDWR)
@@ -42,7 +43,7 @@
 			     (lp2 (get-line p)))))))))))))))
 (define server-thread (make-thread server-run))
 
-(test-begin "(run-socket-test)")
+(test-begin "Sagittarius socket")
 ;; start echo server
 (thread-start! server-thread)
 
@@ -198,9 +199,6 @@
 		(socket-sendto s #vu8(1 2 3 4) (addrinfo-sockaddr info)))))
 
 ;; TODO test for socket-recvfrom and socket-recvfrom!
-
-;; srfi 106
-(import (srfi :106))
 
 (test-equal "msg-peek"    MSG_PEEK *msg-peek*)
 (test-equal "msg-oob"     MSG_OOB *msg-oob*)

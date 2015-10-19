@@ -112,6 +112,7 @@
 				 ("request-body" ,(utf8->string body))
 				 ,@headers)
 			       in/out))
+		      (flush-output-port in/out)
 		      (close-port in/out)
 		      (loop)]))))
 	    (else
@@ -148,6 +149,11 @@
       [host (format "localhost:~a" *http-port*)])
   (define (req-body . args)
     (receive (s h b) (apply http-request args) b))
+(receive (code headers body)
+		    (http-request 'GET host "/get" :secure #t :my-header "foo")
+		  (and (equal? code "200")
+		       (equal? headers '(("content-type" "text/plain")))
+		       (read-from-string body)))
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
 		expected

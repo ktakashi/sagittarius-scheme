@@ -1153,31 +1153,35 @@
 	  (and-let* ((raw-socket (~ socket 'raw-socket))
 		     ;; the first 5 octets must be record header
 		     (buf (socket-recv raw-socket 5 flags)))
-	    (unless (= (bytevector-length buf) 5)
-	      (tls-error 'read-record "invalid record header"
-			 *unexpected-message* buf))
-	    (or
-	     (and-let* ((type (bytevector-u8-ref buf 0))
-			(version (bytevector-u16-ref buf 1 'big))
-			(size-bv (bytevector-copy buf 3))
-			(size    (bytevector->integer size-bv))
-			(message (recv-n size raw-socket)))
-	       (unless (= size (bytevector-length message))
-		 (tls-error 'read-record
-			    "given size and actual data size is different"
-			    *unexpected-message*
-			    size (bytevector-length message)))
-	       (when (~ session 'session-encrypted?)
-		 ;; okey now we are in the secured session
-		 (set! message (decrypt-data session message type))
-		 ;; we finally read all message from the server now is the
-		 ;; time to maintain read sequence number
-		 (set! (~ session 'read-sequence)
-		       (+ (~ session 'read-sequence) 1)))
-	       (if (= type *application-data*)
-		   message
-		   (let1 in (open-bytevector-input-port message)
-		     (read-record-rec session type in))))
+	    (define (check-length buf)
+	      (or (= (bytevector-length buf) 5)
+		  (tls-error 'read-record "invalid record header"
+			     *unexpected-message* buf)))
+	    ;; socket-recv may return zero length bytevector
+	    ;; to indicate end of stream. we need to check it
+	    (or (and-let* (( (not (zero? (bytevector-length buf))) )
+			   ( (check-length buf) )
+			   (type (bytevector-u8-ref buf 0))
+			   (version (bytevector-u16-ref buf 1 'big))
+			   (size-bv (bytevector-copy buf 3))
+			   (size    (bytevector->integer size-bv))
+			   (message (recv-n size raw-socket)))
+		  (unless (= size (bytevector-length message))
+		    (tls-error 'read-record
+			       "given size and actual data size is different"
+			       *unexpected-message*
+			       size (bytevector-length message)))
+		  (when (~ session 'session-encrypted?)
+		    ;; okey now we are in the secured session
+		    (set! message (decrypt-data session message type))
+		    ;; we finally read all message from the server now is the
+		    ;; time to maintain read sequence number
+		    (set! (~ session 'read-sequence)
+			  (+ (~ session 'read-sequence) 1)))
+		  (if (= type *application-data*)
+		      message
+		      (let1 in (open-bytevector-input-port message)
+			(read-record-rec session type in))))
 	     #vu8())))))
 
   (define (read-variable-vector in n)
@@ -1604,20 +1608,13 @@
 
   (define (%tls-socket-recv socket bv start len flags)
     (or (and-let* ((in (~ socket 'buffer))
-		   (r  (get-bytevector-n! in bv start len)))
-	  ;; if there's no data on this record then return 0
-	  ;; it's socket so don't expect to receive how much
-	  ;; you want.
-	  (cond ((eof-object? r)
-		 (set! (~ socket 'buffer) #f)
-		 0)
-		;; if the actual read size was equal or less than the
-		;; requires size the buffer is now empty so, we need 
-		;;to set the slot #f
-		((< r len)
-		 (set! (~ socket 'buffer) #f)
-		 r)
-		(else r)))
+		   (r  (get-bytevector-n! in bv start len))
+		   ( (not (eof-object? r)) ))
+	  ;; if the actual read size was equal or less than the
+	  ;; requires size the buffer is now empty so, we need 
+	  ;;to set the slot #f
+	  (when (< r len) (set! (~ socket 'buffer) #f))
+	  r)
 	(and-let* ((record (read-record socket flags))
 		   ( (bytevector? record) )
 		   (in (open-bytevector-input-port record)))

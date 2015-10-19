@@ -400,6 +400,12 @@ SG_CLASS_DECL(Sg_StringPortClass);
 SG_CLASS_DECL(Sg_CustomPortClass);
 SG_CLASS_DECL(Sg_BufferedPortClass);
 SG_CLASS_DECL(Sg_TranscodedPortClass);
+/* This is not a real port but only marking to make get-bytevector-n
+   or get-string-n related procedure read only once even though the
+   port isn't reached to EOF. This is useful when the port has an 
+   indefinite stream source such socket.
+ */
+SG_CLASS_DECL(Sg_ReadOncePortClass);
 
 #define SG_CLASS_FILE_PORT (&Sg_FilePortClass)
 #define SG_CLASS_BYTE_PORT (&Sg_BytePortClass)
@@ -407,6 +413,7 @@ SG_CLASS_DECL(Sg_TranscodedPortClass);
 #define SG_CLASS_CUSTOM_PORT (&Sg_CustomPortClass)
 #define SG_CLASS_BUFFERED_PORT (&Sg_BufferedPortClass)
 #define SG_CLASS_TRANSCODED_PORT (&Sg_TranscodedPortClass)
+#define SG_CLASS_READ_ONCE_PORT (&Sg_ReadOncePortClass)
 
 #define SG_FILE_PORTP(o)       SG_ISA(o, SG_CLASS_FILE_PORT)
 #define SG_BYTE_PORTP(o)       SG_ISA(o, SG_CLASS_BYTE_PORT)
@@ -612,6 +619,8 @@ SG_EXTERN SgObject Sg_StandardErrorPort();
 
 /* accessor */
 SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
+
+SG_EXTERN int      Sg_ReadOncePortP(SgPort *port);
 
 /* utility methods */
 SG_EXTERN int      Sg_LockPort(SgPort *port, SgPortLockType lockType);

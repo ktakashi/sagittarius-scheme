@@ -180,13 +180,19 @@ SG_DEFINE_BASE_CLASS(Sg_CustomTextualPortClass, SgCustomPort,
 /* abstract interfaces */
 SG_CLASS_DECL(Sg_InputPortClass);
 SG_CLASS_DECL(Sg_OutputPortClass);
+SG_CLASS_DECL(Sg_BidirectionalPortClass);
 #define SG_CLASS_INPUT_PORT (&Sg_InputPortClass)
 #define SG_CLASS_OUTPUT_PORT (&Sg_OutputPortClass)
+#define SG_CLASS_BIDIRECTIONAL_PORT (&Sg_BidirectionalPortClass)
 
 SG_DEFINE_ABSTRACT_CLASS(Sg_InputPortClass, port_cpl);
 SG_DEFINE_ABSTRACT_CLASS(Sg_OutputPortClass, port_cpl);
+SG_DEFINE_ABSTRACT_CLASS(Sg_BidirectionalPortClass, port_cpl);
 
 #define PORT_DEFAULT_BUF_SIZE SG_PORT_DEFAULT_BUFFER_SIZE
+
+/* inteface... sigh */
+SG_DEFINE_ABSTRACT_CLASS(Sg_ReadOncePortClass, port_cpl);
 
 static void port_cleanup(SgPort *port)
 {
@@ -1295,7 +1301,9 @@ static int64_t trans_get_string(SgObject self, SgChar *buf, int64_t size)
   if (size == 0) return 0;	/* short cut */
   /* need special treatment when the size is 1 to handle EOL properly */
   if (size == 1) {
-    buf[0] = Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+    SgChar c = Sg_TranscoderGetc(SG_TPORT_TRANSCODER(self), self);
+    if (c == EOF) return 0;
+    buf[0] = c;
     readSize = 1;
   } else {
     readSize = Sg_TranscoderRead(SG_TPORT_TRANSCODER(self), 
@@ -1735,7 +1743,7 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
   bvsize = SG_BVECTOR_SIZE(bv);
   /* input/output port is *not* a bidirectional port so we can use the
      same buffer as write. so re-use it.*/
-  for (; size; ) {
+  do {
     int r;
     int count = (size < bvsize)? (int)size: bvsize;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, bv,
@@ -1754,11 +1762,11 @@ static int64_t custom_binary_read_inner(SgObject self, uint8_t *buf,
     r = SG_INT_VALUE(result);
     memcpy(buf+read, SG_BVECTOR_ELEMENTS(bv), r);
     read += r;
-    size -= r;
+    /* size -= r; */
 
     /* make things stop */
-    if (allP && size != SG_INT_VALUE(result)) break;
-  }
+    /* if (allP && size != SG_INT_VALUE(result)) break; */
+  } while (0);
   if (read == 0) return 0;	/* short cut */
   SG_PORT(self)->position += read;
   /* memcpy(buf, SG_BVECTOR_ELEMENTS(bv), read); */
@@ -2040,16 +2048,16 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
 					 int64_t size)
 {
   SgObject s, result;
-  int start;
+  /* int start; */
   int64_t read = 0, i;
   
   if (size == 0) return 0;
 
-  s = Sg_ReserveString((int)size, 0);
-  for (start = 0; size; ) {
+  s = SG_CUSTOM_PORT(self)->textualBuffer;
+  do {
     int r;
     result = Sg_Apply3(SG_CUSTOM_PORT(self)->read, s, 
-		       SG_MAKE_INT(start), 
+		       SG_MAKE_INT(0), 
 		       SG_MAKE_INT(size));
     if (!SG_INTP(result)) {
       Sg_IOReadError(SG_INTERN("get-char"),
@@ -2062,15 +2070,16 @@ static int64_t custom_textual_get_string(SgObject self, SgChar *buf,
       break;
     }
     r = SG_INT_VALUE(result);
+    for (i = 0; i < r; i++) {
+      buf[i] = SG_STRING_VALUE_AT(s, i);
+    }
     read += r;
-    size -= r;
-    start += r;
-  }
+    /* size -= r; */
+    /* start += r; */
+  } while (0);
 
   if (read == 0) return 0;	/* short cut */
-  for (i = 0; i < read; i++) {
-    buf[i] = SG_STRING_VALUE_AT(s, i);
-  }
+  SG_PORT(self)->position += read;
   return read;
 }
 
@@ -2239,6 +2248,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
   } else {
     port->textualBuffer = Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
   }
+  Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
   return SG_OBJ(port);
 }
 
@@ -2290,41 +2300,80 @@ static SgObject SG_KEYWORD_READY = SG_FALSE;
 static SgObject SG_KEYWORD_FLUSH = SG_FALSE;
 static SgObject SG_KEYWORD_CLOSE = SG_FALSE;
 
+static SgCustomPort * custom_port_allocate_rec(int type,
+					       SgString *id,
+					       int direction,
+					       SgObject read,
+					       SgObject write,
+					       SgObject getPosition,
+					       SgObject setPosition,
+					       SgObject close,
+					       SgObject ready,
+					       SgObject flush)
+{
+  SgCustomPortSpec spec = {
+    type,
+    direction,
+    id,
+    getPosition,
+    setPosition,
+    close,
+    read,
+    write,
+    ready,
+    flush,
+    NULL,
+    FALSE,
+  };
+  return (SgCustomPort *)Sg_MakeCustomPort(&spec);
+}
+
 static SgObject custom_port_allocate(SgClass *klass, SgObject initargs)
 {
-  SgPortTable *tbl;
-  SgObject trans = SG_FALSE;	/* default binary */
+  int type, flags = 0, i;
   SgCustomPort *port;
-  int flags = 0;
+  SgObject *slots;
+
   if (Sg_SubtypeP(klass, SG_CLASS_CUSTOM_TEXTUAL_PORT)) {
-    tbl = &custom_textual_table;
-    trans = SG_TRUE;
+    type = SG_CUSTOM_PORT_TYPE_TEXTUAL;
   } else {
     /* if users allocate with <custom-port> then it's binary */
-    tbl = &custom_binary_table;
+    type = SG_CUSTOM_PORT_TYPE_BINARY;
   }
-  if (Sg_SubtypeP(klass, SG_CLASS_INPUT_PORT)) flags |= SG_INPUT_PORT;
-  if (Sg_SubtypeP(klass, SG_CLASS_OUTPUT_PORT)) flags |= SG_OUTPUT_PORT;
+  if (Sg_SubtypeP(klass, SG_CLASS_BIDIRECTIONAL_PORT)) {
+    flags = SG_BIDIRECTIONAL_PORT;
+  } else {
+    if (Sg_SubtypeP(klass, SG_CLASS_INPUT_PORT)) flags |= SG_INPUT_PORT;
+    if (Sg_SubtypeP(klass, SG_CLASS_OUTPUT_PORT)) flags |= SG_OUTPUT_PORT;
+  }
 
   if (!flags) Sg_Error(UC("custom port must inherit input or output port"));
 
-  port = (SgCustomPort *)Sg_AllocateInstance(klass);
-  SG_INIT_PORT(port, klass, flags, tbl, trans);
-  /* initialize slots */
-  port->id = Sg_GetKeyword(SG_KEYWORD_ID, initargs, SG_FALSE);
-  port->getPosition = Sg_GetKeyword(SG_KEYWORD_POSITION, initargs, SG_FALSE);
-  port->setPosition = Sg_GetKeyword(SG_KEYWORD_SET_POSITION,initargs, SG_FALSE);
-  port->read = Sg_GetKeyword(SG_KEYWORD_READ, initargs, SG_FALSE);
-  port->write = Sg_GetKeyword(SG_KEYWORD_WRITE, initargs, SG_FALSE);
-  port->ready = Sg_GetKeyword(SG_KEYWORD_READY, initargs, SG_FALSE);
-  port->flush = Sg_GetKeyword(SG_KEYWORD_FLUSH, initargs, SG_FALSE);
-  port->close = Sg_GetKeyword(SG_KEYWORD_CLOSE, initargs, SG_FALSE);
-  if (SG_FALSEP(trans)) {
-    port->binaryBuffer = Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
-  } else {
-    port->textualBuffer = Sg_ReserveString(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
+  /* initialize slots */  
+  port = custom_port_allocate_rec(
+	   type,
+	   Sg_GetKeyword(SG_KEYWORD_ID, initargs, SG_FALSE),
+	   flags,
+	   Sg_GetKeyword(SG_KEYWORD_READ, initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_WRITE, initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_POSITION, initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_SET_POSITION,initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_CLOSE, initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_READY, initargs, SG_FALSE),
+	   Sg_GetKeyword(SG_KEYWORD_FLUSH, initargs, SG_FALSE));
+  SG_SET_CLASS(port, klass);
+
+  /* TODO maybe we shouldn't do it here */
+  slots = SG_NEW_ARRAY(SgObject, klass->nfields);
+  for (i = 0; i < klass->nfields; i++) {
+    slots[i] = SG_UNBOUND;
   }
-  Sg_RegisterFinalizer(SG_OBJ(port), port_finalize, NULL);
+  SG_INSTANCE(port)->slots = slots;
+  if (flags == SG_BIDIRECTIONAL_PORT) {
+    /* 'out' side of port should have the same slot */
+    SG_INSTANCE(BI_CUSTOM_OUT(port))->slots = slots;
+  }
+
   return SG_OBJ(port);
 }
 
@@ -3011,6 +3060,17 @@ SgObject Sg_PortTranscoder(SgObject port)
   return SG_FALSE;
 }
 
+int Sg_ReadOncePortP(SgPort *port)
+{
+  if (SG_BUFFERED_PORTP(port)) {
+    return Sg_ReadOncePortP(SG_BUFFERED_PORT(port)->src);
+  } else if (SG_TRANSCODED_PORTP(port)) {
+    return Sg_ReadOncePortP(SG_TPORT_PORT(port));
+  } else {
+    return SG_ISA(port, SG_CLASS_READ_ONCE_PORT);
+  }
+}
+
 int Sg_LockPort(SgPort *port, SgPortLockType lockType)
 {
   if (SG_PORT_VTABLE(port)->lockPort) {
@@ -3118,6 +3178,8 @@ void Sg__InitPort()
   /* dummy but needed */
   BINIT(SG_CLASS_INPUT_PORT, "<input-port>", NULL);
   BINIT(SG_CLASS_OUTPUT_PORT, "<output-port>", NULL);
+  BINIT(SG_CLASS_BIDIRECTIONAL_PORT, "<bidirectional-port>", NULL);
+  BINIT(SG_CLASS_READ_ONCE_PORT, "<read-once-port>", NULL);
 
 #define KEYWORD(k) Sg_MakeKeyword(SG_MAKE_STRING(k))
   SG_KEYWORD_ID = KEYWORD("id");

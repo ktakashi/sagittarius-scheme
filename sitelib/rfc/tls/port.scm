@@ -39,7 +39,11 @@
 	    (sagittarius socket)
 	    (sagittarius object)
 	    (sagittarius control)
+	    (sagittarius io)
 	    (clos user))
+
+  (define-class <one-shot-port> (<custom-binary-bidirectional-port> 
+				 <read-once-port>) ())
 
   ;; make custom port
   (define (%tls-socket-port socket ctr)
@@ -62,9 +66,12 @@
   (define (tls-socket-port socket :optional (close? #t))
     (%tls-socket-port socket
 		      (lambda (read! write! close ready?)
-			(make-custom-binary-bidirectional-port
-			 "tls-socket-port"
-			 read! write! (and close? close) ready?))))
+			(make <one-shot-port>
+			  :id "tls-socket-port"
+			  :read read!
+			  :write write! 
+			  :close (and close? close)
+			  :ready ready?))))
 
   (define (tls-socket-input-port socket)
     (%tls-socket-port socket
