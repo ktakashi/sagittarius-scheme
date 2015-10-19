@@ -1194,11 +1194,12 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
   }
   if (size == 0) return readSize;
 
-  for (;;) {
-    struct timeval tm = {0, 10000};	/* wait a bit in case of retry (10ms?)*/
-    int now, ready;
-    now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
-			   (int)size, 0);
+  do {
+    /* wait a bit in case of retry (10ms?)*/
+    /* struct timeval tm = {0, 10000}; */
+    /* int ready; */
+    int now = Sg_SocketReceive(SG_PORT_SOCKET(self), buf + readSize, 
+			       (int)size, 0);
     if (-1 == now) {
       int e = SG_PORT_SOCKET(self)->lastError;
       Sg_IOReadError(SG_INTERN("read-u8"),
@@ -1206,7 +1207,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
 		     SG_NIL);
       return -1;
     }
-    size -= now;
+    /* size -= now; */
     readSize += now;
     if (now == 0) break;
     if (size == 0) break;
@@ -1215,13 +1216,15 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
        or it's already ended. for now we use select if the socket has
        something to be read.
        FIXME: this may cause issue on TLS socket... */
+#if 0
     ready = socket_ready_int(SG_PORT_SOCKET(self), &tm);
     if (!ready) {
       /* most likely nothing is waiting. i hope... */
       break;
     }
+#endif
     /* ok something is still there, read*/
-  }
+  } while (0);
   SG_PORT(self)->position += readSize;
   return readSize;
 }
