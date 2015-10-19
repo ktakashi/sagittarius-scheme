@@ -239,4 +239,12 @@
                      :my-header :foo)))
   )
 
+(test-equal "exit" "exit"
+	    (receive (s h b) 
+		(http-request 'GET (format "localhost:~a" *http-port*) "/exit"
+			      :secure #t)
+	      b))
+(test-assert (thread-join! server-thread 10))
+
+
 (test-end)
