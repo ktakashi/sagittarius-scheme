@@ -1906,6 +1906,7 @@
 	  (set! ,result (+ ,r ,result))
 	  ;; (when (< ,r ,c) (break))
 	  (when (== ,r 0) (break))
+	  (when (Sg_ReadOncePortP ,port) (break))
 	  (set! ,c (- ,c ,r))
 	  (set! ,i (+ ,i ,r)))))))
 

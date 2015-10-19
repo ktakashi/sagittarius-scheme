@@ -66,12 +66,15 @@
 	    transcoded-port ;; re-export
 
 	    ;; for port customisation
+	    <read-once-port> ;; to make get-bytevector-n read once
 	    <custom-binary-input-port>
 	    <custom-textual-input-port>
 	    <custom-binary-output-port>
 	    <custom-textual-output-port>
 	    <custom-binary-input/output-port>
 	    <custom-textual-input/output-port>
+	    <custom-binary-bidirectional-port>
+	    <custom-textual-bidirectional-port>
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -128,5 +131,6 @@
   (define-ports input)
   (define-ports output)
   (define-ports input/output)
+  (define-ports bidirectional)
 
 )

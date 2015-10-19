@@ -11,7 +11,8 @@
 	(sagittarius socket)
 	(sagittarius) ;; for format
 	;; use thread for testing
-	(sagittarius threads))
+	(sagittarius threads)
+	(srfi :106))
 
 (define (shutdown&close s)
   (socket-shutdown s SHUT_RDWR)
@@ -42,7 +43,7 @@
 			     (lp2 (get-line p)))))))))))))))
 (define server-thread (make-thread server-run))
 
-(test-begin "(run-socket-test)")
+(test-begin "Sagittarius socket")
 ;; start echo server
 (thread-start! server-thread)
 
@@ -199,36 +200,27 @@
 
 ;; TODO test for socket-recvfrom and socket-recvfrom!
 
-;; srfi 106
-(import (srfi :106))
-
 (test-equal "msg-peek"    MSG_PEEK *msg-peek*)
 (test-equal "msg-oob"     MSG_OOB *msg-oob*)
 (test-equal "msg-waitall" MSG_WAITALL *msg-waitall*)
 
 ;; blocking retry of get-bytevector-n
-;; disable this for now. this test considers socket as finite stream
-;; but on Sagittarius it's more infinite stream until the connection
-;; is lost. so get-bytevector-n wouldn't return until it's got 
-;; disconnected. 
-;; FIXME: above breaks backward compatibility. so we may need to do
-;;        something.
-;; (let ()
-;;   (define server (make-server-socket "5001"))
-;;   
-;;   (define t (make-thread
-;; 	     (lambda ()
-;; 	       (let ((s (socket-accept server)))
-;; 		 (socket-send s #vu8(0 1 2 3 4))))))
-;;   (thread-start! t)
-;;   (let ()
-;;     (define client (make-client-socket "localhost" "5001"))
-;;     (define in (socket-input-port client))
-;;     (define buf (make-bytevector 10))
-;;     (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
-;; 		(get-bytevector-n in 10))
-;;     (shutdown&close client)
-;;     (shutdown&close server)))
+(let ()
+  (define server (make-server-socket "5001"))
+  
+  (define t (make-thread
+	     (lambda ()
+	       (let ((s (socket-accept server)))
+		 (socket-send s #vu8(0 1 2 3 4))))))
+  (thread-start! t)
+  (let ()
+    (define client (make-client-socket "localhost" "5001"))
+    (define in (socket-input-port client))
+    (define buf (make-bytevector 10))
+    (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
+		(get-bytevector-n in 10))
+    (shutdown&close client)
+    (shutdown&close server)))
 
 ;; thread-interrupt!
 ;; cancelling blocking socket operation in other threads
