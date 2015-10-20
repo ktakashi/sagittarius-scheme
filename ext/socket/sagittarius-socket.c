@@ -1232,26 +1232,33 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
 
 static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
 {
-  uint8_t read_buf[1024];
+  uint8_t read_buf[1024]; 
   SgPort *buffer;
   SgBytePort bp;
-  int mark = 0;
+  int mark = 0, ready;
+  struct timeval tm = {0, 10000};
+  
   buffer = SG_PORT(Sg_InitByteArrayOutputPort(&bp, 1024));
-  for (;;) {
-    int read_size = Sg_SocketReceive(SG_PORT_SOCKET(self), read_buf, 1024, 0);
-    if (-1 == read_size) {
-      Sg_IOReadError(SG_INTERN("read-u8-all"),
-		     Sg_GetLastErrorMessageWithErrorCode(SG_PORT_SOCKET(self)->lastError),
-		     self,
-		     SG_NIL);
-      return -1;
-    } else {
-      Sg_WritebUnsafe(buffer, read_buf, 0, read_size);
-      if (1024 != read_size) {
-	mark += read_size;
-	break;
+
+  ready = socket_ready_int(SG_PORT_SOCKET(self), &tm);
+  if (ready) {
+    for (;;) {
+      SgSocket *sock = SG_PORT_SOCKET(self);
+      int read_size = Sg_SocketReceive(sock, read_buf, 1024, 0);
+      if (-1 == read_size) {
+	Sg_IOReadError(SG_INTERN("read-u8-all"),
+		       Sg_GetLastErrorMessageWithErrorCode(sock->lastError),
+		       self,
+		       SG_NIL);
+	return -1;
       } else {
-	mark += read_size;
+	Sg_WritebUnsafe(buffer, read_buf, 0, read_size);
+	if (1024 != read_size) {
+	  mark += read_size;
+	  break;
+	} else {
+	  mark += read_size;
+	}
       }
     }
   }

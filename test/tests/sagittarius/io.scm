@@ -277,4 +277,12 @@
 	      (utf8->string (thread-join! recv-thread)))
   )
 
+;; call #160
+(let ((in (buffered-port (open-bytevector-input-port #vu8(1 2 3 4 5))
+			 (buffer-mode block))))
+  (get-u8 in)
+  (test-equal "buffered get-bytevector-all" #vu8(2 3 4 5)
+	      (get-bytevector-all in)) ;; #vu8(2 3 4 5)
+  (close-port in))
+
 (test-end)

@@ -446,6 +446,23 @@ static int64_t buffered_readb(SgObject self, uint8_t *dest, int64_t req_size)
 static int64_t buffered_readb_all(SgObject self, uint8_t **buf)
 {
   SgBufferedPort *bp = SG_BUFFERED_PORT(self);
+  if (bp->index != bp->bufferSize) {
+    SgPort *buffer;
+    SgBytePort byp;
+    uint8_t *tmp;
+    int64_t size = bp->bufferSize - bp->index, tsize;
+
+    buffer = SG_PORT(Sg_InitByteArrayOutputPort(&byp, 1024));
+    Sg_WritebUnsafe(SG_PORT(buffer), bp->buffer, bp->index, size);
+
+    tsize = SG_PORT_VTABLE(bp->src)->readbAll(bp->src, &tmp);
+    Sg_WritebUnsafe(SG_PORT(buffer), tmp, 0, tsize);
+
+    *buf = Sg_GetByteArrayFromBinaryPort(&byp);
+    bp->index = 0;
+    bp->bufferSize = 0;
+    return size+tsize;
+  }
   bp->index = 0;
   bp->bufferSize = 0;
   return SG_PORT_VTABLE(bp->src)->readbAll(bp->src, buf);
