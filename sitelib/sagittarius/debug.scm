@@ -45,7 +45,7 @@
 
   ;; TODO find import
   (define (load-expander library name)
-    (eval `(import (only (sagittarius) ,name)) library))
+    (import-library library '(sagittarius) `(only (sagittarius) ,name) #t))
 
   ;; this expands all
   (define (macroexpand expr :optional (library (current-library)))
