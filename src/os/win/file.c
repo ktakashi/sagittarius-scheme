@@ -69,17 +69,18 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
 {
   DWORD readSize = 0;
   int isOK;
+
+  if (SG_FD(self)->prevChar != -1) {
+    size--;
+    *buf = (uint8_t)(SG_FD(self)->prevChar);
+    readSize++;
+    buf++;
+    SG_FD(self)->prevChar = -1;
+    if (!size) return 1;	/* short cut */
+  }
   /* check console */
   if (Sg_IsUTF16Console(self)) {
     DWORD req = size>>1, tmp;
-    if (SG_FD(self)->prevChar != -1) {
-      size--;
-      *buf = (uint8_t)(SG_FD(self)->prevChar);
-      readSize++;
-      buf++;
-      SG_FD(self)->prevChar = -1;
-      if (!size) return 1;	/* short cut */
-    }
     isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
 			&tmp, NULL);
     if (isOK) {
@@ -96,7 +97,19 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       }
     }
   } else {
-    isOK = ReadFile(SG_FD(self)->desc, buf, (DWORD)size, &readSize, NULL);
+    /* block if it's serial port */
+    if (SG_FD(self)->type == SERIAL) {
+      DWORD mask, eventMask;
+      GetCommMask(SG_FD(self)->desc, &mask);
+      SetCommMask(SG_FD(self)->desc, mask | EV_RXCHAR);
+      if ((isOK = WaitCommEvent(SG_FD(self)->desc, &eventMask, NULL))) {
+	isOK = ReadFile(SG_FD(self)->desc, buf, (DWORD)size, &readSize, NULL);
+      }
+      /* reset it? */
+      SetCommMask(SG_FD(self)->desc, mask);
+    } else {
+      isOK = ReadFile(SG_FD(self)->desc, buf, (DWORD)size, &readSize, NULL);
+    }
     if (!isOK) {
       DWORD err = GetLastError();
       switch (err) {
@@ -201,6 +214,7 @@ static void check_type(SgFile *file)
   case FILE_TYPE_CHAR: {
     /* check if this is console or serial */
     DCB dcb;
+    dcb.DCBlength = sizeof(DCB);
     if (GetCommState(SG_FD(file)->desc, &dcb)) {
       SG_FD(file)->type = SERIAL;
     } else {
@@ -235,6 +249,7 @@ static int win_open(SgObject self, SgString *path, int flags)
     DWORD access = 0, disposition = 0;
     DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE;
     const wchar_t *u16path;
+
     switch (flags) {
     case SG_READ | SG_WRITE | SG_CREATE:
         access = GENERIC_READ | GENERIC_WRITE;
@@ -263,6 +278,16 @@ static int win_open(SgObject self, SgString *path, int flags)
     SG_FD(file)->desc = CreateFileW(u16path, access, share, NULL,
 				    disposition, FILE_ATTRIBUTE_NORMAL, NULL);
     check_type(file);
+    /* if it's serial port, then set timeout */
+    if (SG_FD(file)->type == SERIAL) {
+      COMMTIMEOUTS timeouts;
+      timeouts.ReadIntervalTimeout = 1;
+      timeouts.ReadTotalTimeoutMultiplier = 1;
+      timeouts.ReadTotalTimeoutConstant = 1;
+      timeouts.WriteTotalTimeoutMultiplier = 1;
+      timeouts.WriteTotalTimeoutConstant = 1;
+      SetCommTimeouts(SG_FD(file)->desc, &timeouts);
+    }
   }
   setLastError(file);
   return SG_FILE_VTABLE(file)->isOpen(file);
@@ -329,14 +354,37 @@ static int check_pipe_type(SgObject self)
   }
 }
 
+/*
+  Serial port's timeout is set to 1, so it returns immediately if there
+  is no data available.
+ */
+static int check_serial_type(SgObject self)
+{
+  uint8_t b;
+  DWORD read;
+  BOOL ok;
+
+  if (SG_FD(self)->prevChar != -1) return TRUE; /* something to read :) */
+
+  read = 0;
+  ok = ReadFile(SG_FD(self)->desc, &b, 1, &read, NULL);
+  if (read) {
+    SG_FD(self)->prevChar = b;
+    return TRUE;
+  }
+  return FALSE;
+}
+
+
 static int win_ready(SgObject self)
 {
   if (SG_FD(self)->desc != INVALID_HANDLE_VALUE) {
-    switch (GetFileType(SG_FD(self)->desc)) {
-    case FILE_TYPE_CHAR: return check_char_type(self);
-    case FILE_TYPE_PIPE: return check_pipe_type(self);
+    switch (SG_FD(self)->type) {
+    case CONSOLE: return check_char_type(self);
+    case PIPE: return check_pipe_type(self);
+    case SERIAL: return check_serial_type(self);
     }
-    /* should not reach here, but default is default ... */
+    /* DISK is always ready. */
     return TRUE;
   } else {
     return FALSE;
