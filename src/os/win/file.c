@@ -44,11 +44,19 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/number.h>
 
+enum HandleType {
+  DISK,				/* regular file */
+  PIPE,				/* pipe */
+  CONSOLE,			/* console */
+  SERIAL,			/* serial port */
+};
+
 typedef struct FD_tag
 {
   HANDLE desc;
   DWORD  lastError;
   int    prevChar;
+  enum HandleType type;    
 } FD;
 
 #define SG_FILE_DEP(f) (SG_FILE(f)->osdependance)
@@ -69,11 +77,13 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
       *buf = (uint8_t)(SG_FD(self)->prevChar);
       readSize++;
       buf++;
+      SG_FD(self)->prevChar = -1;
+      if (!size) return 1;	/* short cut */
     }
     isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
 			&tmp, NULL);
-    readSize += (tmp<<1);
     if (isOK) {
+      readSize += (tmp<<1);
       if (size&1) {
 	/* odd number we need to read one more */
 	wchar_t wc;
@@ -99,7 +109,9 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   if (isOK) {
     return readSize;
   } else {
-    return -1;
+    Sg_IOReadError(SG_INTERN("read"), Sg_GetLastErrorMessage(), 
+		   SG_FALSE, self);
+    return -1;			/* dummy */
   }
 }
 
@@ -183,6 +195,36 @@ static int win_is_open(SgObject self)
   return SG_FD(file)->desc != INVALID_HANDLE_VALUE;
 }
 
+static void check_type(SgFile *file)
+{
+  switch (GetFileType(SG_FD(file)->desc)) {
+  case FILE_TYPE_CHAR: {
+    /* check if this is console or serial */
+    DCB dcb;
+    if (GetCommState(SG_FD(file)->desc, &dcb)) {
+      SG_FD(file)->type = SERIAL;
+    } else {
+      SG_FD(file)->type = CONSOLE;
+    }
+    break;
+  }
+  case FILE_TYPE_DISK: SG_FD(file)->type = DISK; break;
+  case FILE_TYPE_PIPE: SG_FD(file)->type = PIPE; break;
+  case FILE_TYPE_UNKNOWN:
+    if (GetLastError() == 0) {
+      /* go safe way */
+      SG_FD(file)->type = DISK;
+      break;
+    }
+    /* fall through */
+  default:
+    /* error */
+    CloseHandle(SG_FD(file)->desc);
+    SG_FD(file)->desc = INVALID_HANDLE_VALUE;
+    break;
+  }
+}
+
 static int win_open(SgObject self, SgString *path, int flags)
 {
   SgFile *file = SG_FILE(self);
@@ -220,6 +262,7 @@ static int win_open(SgObject self, SgString *path, int flags)
     u16path = utf32ToUtf16(path);
     SG_FD(file)->desc = CreateFileW(u16path, access, share, NULL,
 				    disposition, FILE_ATTRIBUTE_NORMAL, NULL);
+    check_type(file);
   }
   setLastError(file);
   return SG_FILE_VTABLE(file)->isOpen(file);
@@ -424,12 +467,13 @@ SgObject Sg_MakeFileFromFD(uintptr_t handle)
   init_file(f, (HANDLE)handle);
   f->name = UC("fd");
   SG_FILE_VTABLE(f) = &vtable;
+  check_type(f);
   return SG_OBJ(f);
 }
 
 int Sg_IsUTF16Console(SgObject file)
 {
-  return GetFileType(SG_FD(file)->desc) == FILE_TYPE_CHAR;
+  return SG_FD(file)->type == CONSOLE;
 }
 
 /* system.h
