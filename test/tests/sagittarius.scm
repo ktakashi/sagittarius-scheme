@@ -1874,4 +1874,14 @@
 	     (not (eval '(cachable? *bar2*)
 			(environment '(sagittarius) '(closure-cache)))))
 
+;; test from Gauche
+(let ([a 1] [b 2])
+  (let-syntax ([foo (er-macro-transformer
+                     (lambda (f r c)
+                       (r '(cons (list a b) `#(,a ,b)))))])
+    (let ([a -1] [b -2] [list *])
+      (test-equal "list arg for rename procedure"
+		  '((1 2) . #(1 2))
+		  (foo)))))
+
 (test-end)
