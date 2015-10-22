@@ -2003,7 +2003,7 @@ SgObject Sg_Sub(SgObject x, SgObject y)
       return Sg_BignumSub(SG_BIGNUM(big), SG_BIGNUM(y));
     }
     else if (SG_RATIONALP(y)) {
-      if (x == SG_MAKE_INT(0)) return y;
+      if (x == SG_MAKE_INT(0)) return Sg_Negate(y);
       else return Sg_RationalSub(x, y);
     }
     else if (SG_FLONUMP(y)) {

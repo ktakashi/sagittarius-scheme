@@ -1895,4 +1895,7 @@
 	       (and (eq? (vector-ref v 0) (car e))
 		    (eq? (vector-ref v 1) (cadr e)))))
 
+;; call #161
+(test-equal "(- 0 1/3)" -1/3 (- 0 1/3))
+
 (test-end)
