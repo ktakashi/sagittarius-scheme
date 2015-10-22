@@ -1,6 +1,6 @@
 # Sagittarius extensions -*- CMake -*-
 # 
-# Build file for stty
+# Build file for termios
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 
