@@ -3,7 +3,12 @@
 (import (rnrs) 
 	(rnrs r5rs)
 	(srfi :1 lists)
-	(srfi :64 testing))
+	(rename (srfi :64 testing) (test-assert srfi:test-assert)))
+
+(define-syntax test-assert
+  (syntax-rules ()
+    ((_ e) (srfi:test-assert 'e e))
+    ((_ name e) (srfi:test-assert name e))))
 
 (define (ref-delete x lst . proc)
   (set! proc (if (null? proc) equal? (car proc)))
@@ -177,19 +182,19 @@
 (test-error "too many args (3)" (append-reverse! '() '() #f))
 
 (test-assert (equal? '()      (append-reverse! '() '())))
-(test-assert (equal? '(1 2 3) (append-reverse! '() '(1 2 3))))
+(test-assert (equal? '(1 2 3) (append-reverse! '() (list 1 2 3))))
 
-(test-assert (equal? '(1)     (append-reverse! '(1) '())))
-(test-assert (equal? '(1 2)   (append-reverse! '(1) '(2))))
-(test-assert (equal? '(1 2 3) (append-reverse! '(1) '(2 3))))
+(test-assert (equal? '(1)     (append-reverse! (list 1) '())))
+(test-assert (equal? '(1 2)   (append-reverse! (list 1) '(2))))
+(test-assert (equal? '(1 2 3) (append-reverse! (list 1) '(2 3))))
 
-(test-assert (equal? '(2 1)     (append-reverse! '(1 2) '())))
-(test-assert (equal? '(2 1 3)   (append-reverse! '(1 2) '(3))))
-(test-assert (equal? '(2 1 3 4) (append-reverse! '(1 2) '(3 4))))
+(test-assert (equal? '(2 1)     (append-reverse! (list 1 2) '())))
+(test-assert (equal? '(2 1 3)   (append-reverse! (list 1 2) '(3))))
+(test-assert (equal? '(2 1 3 4) (append-reverse! (list 1 2) '(3 4))))
 
-(test-assert (equal? '(3 2 1)     (append-reverse! '(1 2 3) '())))
-(test-assert (equal? '(3 2 1 4)   (append-reverse! '(1 2 3) '(4))))
-(test-assert (equal? '(3 2 1 4 5) (append-reverse! '(1 2 3) '(4 5))))
+(test-assert (equal? '(3 2 1)     (append-reverse! (list 1 2 3) '())))
+(test-assert (equal? '(3 2 1 4)   (append-reverse! (list 1 2 3) '(4))))
+(test-assert (equal? '(3 2 1 4 5) (append-reverse! (list 1 2 3) '(4 5))))
 
 ;;
 ;; assoc
@@ -366,9 +371,11 @@
 				  (loop (cdr tree))))
 	      (else tree))))
 
-    (define (try lstlst want)
-      (let ((lstlst-copy (copy-tree lstlst))
-	    (got         (concatenate-proc lstlst)))
+    (define (try olstlst want)
+      ;; make sure literal list won't be used
+      (let* ((lstlst (copy-tree olstlst))
+	     (lstlst-copy (copy-tree lstlst))
+	     (got         (concatenate-proc lstlst)))
 	(if unmodified?
 	    (if (not (equal? lstlst lstlst-copy))
 		(error "input lists modified")))
@@ -573,15 +580,15 @@
     
     (test-assert "equal?"
       (equal? '((1) (3))
-	      (delete-proc '(2) '((1) (2) (3)) equal?)))
-    
+	      (delete-proc '(2) (list '(1) '(2) '(3)) equal?)))
+
     (test-assert "eq?"
       (equal? '((1) (2) (3))
-	      (delete-proc '(2) '((1) (2) (3)) eq?)))
+	      (delete-proc '(2) (list (list 1) (list 2) (list 3)) eq?)))
     
     (test-assert "called arg order"
       (equal? '(1 2 3)
-	      (delete-proc 3 '(1 2 3 4 5) <))))
+	      (delete-proc 3 (list 1 2 3 4 5) <))))
 
   (common-tests delete)  
   (test-lists
@@ -632,11 +639,11 @@
     
     (test-assert "equal? (the default)"
       (equal? '((2))
-	      (delete-duplicates-proc '((2) (2) (2)))))
+	      (delete-duplicates-proc (list '(2) '(2) '(2)))))
     
     (test-assert "eq?"
       (equal? '((2) (2) (2))
-	      (delete-duplicates-proc '((2) (2) (2)) eq?)))
+	      (delete-duplicates-proc (list (list 2) (list 2) (list 2)) eq?)))
 
     (test-assert "called arg order"
       (let ((ok #t))
@@ -2033,21 +2040,22 @@
 (test-error "() -1" (take! '() -1))
 (test-assert (equal? '() (take! '() 0)))
 (test-error "() 1" (take! '() 1))
-(test-error "(1) -1" (take! '(1) -1))
-(test-assert (equal? '() (take! '(1) 0)))
-(test-assert (equal? '(1) (take! '(1) 1)))
-(test-error "(1) 2" (take! '(1) 2))
-(test-error "(4 5) -1" (take! '(4 5) -1))
-(test-assert (equal? '() (take! '(4 5) 0)))
-(test-assert (equal? '(4) (take! '(4 5) 1)))
-(test-assert (equal? '(4 5) (take! '(4 5) 2)))
-(test-error "(4 5) 3" (take! '(4 5) 3))
-(test-error "(4 5 6) -1" (take! '(4 5 6) -1))
-(test-assert (equal? '() (take! '(4 5 6) 0)))
-(test-assert (equal? '(4) (take! '(4 5 6) 1)))
-(test-assert (equal? '(4 5) (take! '(4 5 6) 2)))
-(test-assert (equal? '(4 5 6) (take! '(4 5 6) 3)))
-(test-error "(4 5 6) 4" (take! '(4 5 6) 4))
+(test-error "(1) -1" (take! (list 1) -1))
+(test-error "(1) -1" (take! '(1) 1)) ;; literal
+(test-assert (equal? '() (take! (list 1) 0)))
+(test-assert (equal? '(1) (take! (list 1) 1)))
+(test-error "(1) 2" (take! (list 1) 2))
+(test-error "(4 5) -1" (take! (list 4 5) -1))
+(test-assert (equal? '() (take! (list 4 5) 0)))
+(test-assert (equal? '(4) (take! (list 4 5) 1)))
+(test-assert (equal? '(4 5) (take! (list 4 5) 2)))
+(test-error "(4 5) 3" (take! (list 4 5) 3))
+(test-error "(4 5 6) -1" (take! (list 4 5 6) -1))
+(test-assert (equal? '() (take! (list 4 5 6) 0)))
+(test-assert (equal? '(4) (take! (list 4 5 6) 1)))
+(test-assert (equal? '(4 5) (take! (list 4 5 6) 2)))
+(test-assert (equal? '(4 5 6) (take! (list 4 5 6) 3)))
+(test-error "(4 5 6) 4" (take! (list 4 5 6) 4))
 
 ;;
 ;; take-right

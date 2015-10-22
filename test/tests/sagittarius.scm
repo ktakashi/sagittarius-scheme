@@ -1884,4 +1884,15 @@
 		  '((1 2) . #(1 2))
 		  (foo)))))
 
+;; use input
+(let* ((e '(("a" "b") #("c") a))
+       (v (eval `(let-syntax ((foo (lambda (x)
+				     (syntax-case x ()
+				       ((_ (a v c)) #'#(a v c))))))
+		   (foo ,e))
+		(environment '(rnrs)))))
+  (test-assert "no reconstruct after macro expansion"
+	       (and (eq? (vector-ref v 0) (car e))
+		    (eq? (vector-ref v 1) (cadr e)))))
+
 (test-end)
