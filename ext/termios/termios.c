@@ -128,6 +128,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__termios()
 #define TERMIOS_VAR(name)						\
   Sg_MakeBinding(lib, SG_INTERN(#name), SG_MAKE_INT(name), FALSE)
 
+  /* commented out variables are not supported on OSX */
+
   TERMIOS_VAR(BRKINT);
   TERMIOS_VAR(ICRNL);
   TERMIOS_VAR(IGNBRK);
@@ -136,13 +138,13 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__termios()
   TERMIOS_VAR(INLCR);
   TERMIOS_VAR(INPCK);
   TERMIOS_VAR(ISTRIP);
-  TERMIOS_VAR(IUCLC);
+  /* TERMIOS_VAR(IUCLC); */
   TERMIOS_VAR(IXANY);
   TERMIOS_VAR(IXOFF);
   TERMIOS_VAR(IXON);
   TERMIOS_VAR(PARMRK);
   TERMIOS_VAR(OPOST);
-  TERMIOS_VAR(OLCUC);
+  /* TERMIOS_VAR(OLCUC); */
   TERMIOS_VAR(ONLCR);
   TERMIOS_VAR(OCRNL);
   TERMIOS_VAR(ONOCR);

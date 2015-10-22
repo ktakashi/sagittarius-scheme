@@ -57,13 +57,13 @@
 	    INLCR
 	    INPCK
 	    ISTRIP
-	    IUCLC
+	    ;; IUCLC ;; OSX
 	    IXANY
 	    IXOFF
 	    IXON
 	    PARMRK
 	    OPOST
-	    OLCUC
+	    ;; OLCUC ;; OSX
 	    ONLCR
 	    OCRNL
 	    ONOCR

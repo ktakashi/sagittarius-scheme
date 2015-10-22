@@ -158,7 +158,7 @@
        (ek       combine  ()) ; erase and kill characters to their default values
        (evenp    combine  (parenb (not parodd) cs7))
        ;;(-evenp combine  #f) ; same as -parenb cs8
-       (lcase    combine  (xcase iuclc olcuc))
+       ;; (lcase    combine  (xcase iuclc olcuc))
        (litout   combine  (cs8 (not parenb istrip opost)))
        ;;(-litout  combine  #f) ; same as parenb istrip opost cs7
        (nl       combine  (not icrnl onlcr))
