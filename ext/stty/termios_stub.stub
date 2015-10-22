@@ -1,0 +1,58 @@
+;; -*- mode:scheme; coding: utf-8 -*-
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   <sagittarius-termios.h>
+	   <errno.h>))
+
+(decl-code
+ (.if "_WIN32" (.include <windows.h>))
+ (.if "_WIN32" (.include <fcntl.h>))
+ (.if "_WIN32" (.include <io.h>)))
+
+(define-type <termios> "SgTermios*")
+
+(define-c-proc make-termios () Sg_MakeTermios)
+(define-c-proc termios? (o) ::<boolean> SG_TERMIOSP)
+
+(define-c-proc sys-cfgetispeed (tios::<termios>) ::<fixnum>
+  (result (cfgetispeed (SG_TERMIOS_TERMIOS tios))))
+(define-c-proc sys-cfgetospeed (tios::<termios>) ::<fixnum>
+  (result (cfgetospeed (SG_TERMIOS_TERMIOS tios))))
+
+(define-cise-stmt $result
+  ((_ who expr)
+   `(let ((r::int ,expr))
+      (result (SG_MAKE_BOOL (== r 0))))))
+
+(define-c-proc sys-cfsetispeed (tios::<termios> ispeed::<fixnum>)
+  ($result sys-cfsetispeed (cfsetispeed (SG_TERMIOS_TERMIOS tios) ispeed)))
+(define-c-proc sys-cfsetospeed (tios::<termios> ospeed::<fixnum>)
+  ($result sys-cfsetospeed (cfsetospeed (SG_TERMIOS_TERMIOS tios) ospeed)))
+
+(define-cfn port->fd (p::SgPort*) ::int :static
+  (let ((file (Sg_PortFile p)))
+    (.if "_WIN32"
+	 (let ((h::intptr_t (Sg_FileFD file)))
+	   ;; TODO is this correct?
+	   (return (_open_osfhandle h (logior _O_APPEND _O_RDONLY))))
+	 (return (cast int (Sg_FileFD file))))))
+
+(define-c-proc sys-tcdrain (port::<port>)
+  ($result sys-tcdrain (tcdrain (port->fd port))))
+(define-c-proc sys-tcflow (port::<port> action::<fixnum>)
+  ($result sys-tcflow (tcflow (port->fd port) action)))
+(define-c-proc sys-tcflush (port::<port> queue-selector::<fixnum>)
+  ($result sys-tcflush (tcflush (port->fd port) queue-selector)))
+
+(define-c-proc sys-tcgetattr! (port::<port> tios::<termios>)
+  ($result sys-tcgetattr (tcgetattr (port->fd port) (SG_TERMIOS_TERMIOS tios))))
+
+(define-c-proc sys-tcsendbreak (port::<port> duration::<fixnum>)
+  ($result sys-tcsendbreak (tcsendbreak (port->fd port) duration)))
+
+(define-c-proc sys-tcsetattr! (port::<port> action::<fixnum> tios::<termios>)
+  ($result sys-tcsetattr
+	   (tcsetattr (port->fd port) action (SG_TERMIOS_TERMIOS tios))))
+

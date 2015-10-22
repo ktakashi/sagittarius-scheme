@@ -1,4 +1,4 @@
-/* stty.win.c                                    -*- mode: c; coding: utf-8; -*-
+/* sagittarius-termios.h                         -*- mode: c; coding: utf-8; -*-
  *
  *   Copyright (c) 2015  Takashi Kato <ktakashi@ymail.com>
  *
@@ -25,39 +25,33 @@
  *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  *   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <windows.h>
+
+#ifndef SAGITTARIUS_TERMIOS_H_
+#define SAGITTARIUS_TERMIOS_H_
+
 #include <sagittarius.h>
-#define LIBSAGITTARIUS_EXT_BODY
-#include <sagittarius/extend.h>
-#include "sagittarius-stty.h"
 
-void Sg_SetConsoleMode(SgObject port, int mode)
-{
-  SgObject file = Sg_PortFile(SG_PORT(port));
-  HANDLE h = (HANDLE)Sg_FileFD(file);
-  if (!SetConsoleMode(h, mode)) {
-    int e = GetLastError();
-    Sg_SystemError(e, UC("Failed to set console mode: %A"),
-		   Sg_GetLastErrorMessageWithErrorCode(e));
-  }
-}
+#ifdef _WIN32
+# include "win_termios.h"
+#else
+# include <termios.h>
+#endif
 
-SgObject Sg_GetConsoleMode(SgObject port)
-{
-  SgObject file = Sg_PortFile(SG_PORT(port));
-  HANDLE h = (HANDLE)Sg_FileFD(file);
-  DWORD mode;
-  if (!GetConsoleMode(h, &mode)) {
-    return SG_FALSE;
-  }
-  return SG_MAKE_INT(mode);
-}
+SG_CLASS_DECL(Sg_TermiosClass);
+#define SG_CLASS_TERMIOS (&Sg_TermiosClass)
 
-int Sg_GetConsoleModeFlag(int mode)
-{
-  switch (mode) {
-  case SG_CONSOLE_CANON: return ENABLE_PROCESSED_INPUT | ENABLE_LINE_INPUT;
-  case SG_CONSOLE_ECHO: return ENABLE_ECHO_INPUT;
-  }
-  return 0;
-}
+typedef struct {
+  SG_HEADER;
+  struct termios term;
+} SgTermios;
+#define SG_TERMIOS(o) ((SgTermios *)o)
+#define SG_TERMIOSP(o) SG_XTYPEP(o, SG_CLASS_TERMIOS)
+
+#define SG_TERMIOS_TERMIOS(o) (&(SG_TERMIOS(o)->term))
+
+SG_CDECL_BEGIN
+
+SgObject Sg_MakeTermios();
+
+SG_CDECL_END
+#endif

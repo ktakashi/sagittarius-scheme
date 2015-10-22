@@ -2,37 +2,43 @@
 # 
 # Build file for stty
 
+INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
+
+# termios
 IF (WIN32 AND NOT CYGWIN)
-  SET(OS_SRC stty.win.c)
-ELSE()
-  SET(OS_SRC stty.posix.c)
+  SET(OS_SRC win_termios.c)
 ENDIF()
 
-ADD_LIBRARY(sagittarius--stty MODULE
-  stty.c 
+ADD_LIBRARY(sagittarius--termios MODULE
+  termios.c
   ${OS_SRC}
-  ${CMAKE_CURRENT_BINARY_DIR}/stty_stub.c)
+  ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c)
 
-INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
-ADD_STUBS(sagittarius--stty
+ADD_STUBS(sagittarius--termios
   COMMAND ${GENSTUB}
-  FILES stty_stub.stub)
+  FILES termios_stub.stub
+  OUTTREE)
 
 IF (MSVC OR CYGWIN)
   # ugly solution
-  SET_SOURCE_FILES_PROPERTIES(stty.c
-    ${CMAKE_CURRENT_BINARY_DIR}/stty_stub.c 
-    ${OS_SRC}
+  SET_SOURCE_FILES_PROPERTIES(
+    termios.c
+    ${CMAKE_CURRENT_BINARY_DIR}/termios_stub.c
     PROPERTIES LANGUAGE CXX)
 ENDIF()
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 
-SET_TARGET_PROPERTIES(sagittarius--stty PROPERTIES PREFIX "")
-TARGET_LINK_LIBRARIES(sagittarius--stty sagittarius)
+SET_TARGET_PROPERTIES(sagittarius--termios PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--termios PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--termios sagittarius)
 
-INSTALL(TARGETS sagittarius--stty
+INSTALL(TARGETS sagittarius--termios
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(FILES sagittarius/termios.scm
+  DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 INSTALL(FILES sagittarius/stty.scm
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH}/sagittarius)
 
