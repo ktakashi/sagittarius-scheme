@@ -2220,18 +2220,60 @@ void Sg_VMExecute(SgObject toplevel)
 		SG_CODE_BUILDER(toplevel)->code);
 }
 
+/*
+  Shifts argument frame
+
+  from
+  fp          m       sp
+  +---+---+---+---+---+
+  | r | g | g | a | a |
+  +---+---+---+---+---+
+  r = remain, g = garbage, a = argument
+
+  to
+  fp         sp/m
+  +---+---+---+
+  | r | a | a |
+  +---+---+---+
+
+  return SP = fp+m
+ */
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
+#if 1
   int i;
   SgObject *f = fp + m;
   for (i = m - 1; 0 <= i; i--) {
     INDEX_SET(f, i, INDEX(sp, i));
   }
-  /* memmove(fp, sp-m, m*sizeof(SgObject)); */
   return f;
+#else
+  /* seems this is slower */
+  memmove(fp, sp-m, m*sizeof(SgObject));
+  return fp+m;
+#endif
 }
 
-/* for call-next-method. is there not a better way? */
+/* for call-next-method. is there not a better way? 
+   
+  Shifts stack frame.
+
+  from
+  sp      
+  +---+---+
+  | a | a |
+  +---+---+
+  a = argument
+
+  to
+  sp
+  +---+---+---+
+  | r | a | a |
+  +---+---+---+
+  r = will next method
+
+  return SP
+ */
 static inline SgObject* shift_one_args(SgObject *sp, int m)
 {
   int i;
