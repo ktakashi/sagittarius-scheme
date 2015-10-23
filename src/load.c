@@ -501,7 +501,7 @@ SgObject Sg_GetSharedError()
   return SG_OBJ(dl_error());
 }
 
-static void cleanup_shared_objects(void *data)
+static void real_cleanup()
 {
   dlobj *z;
   for (z = dynldinfo.dso_list; z; z = z->next) {
@@ -510,6 +510,14 @@ static void cleanup_shared_objects(void *data)
       z->handle = NULL;
     }
   }
+}
+
+/* to avoid invalid class reference during port flushing
+   e.g. socket port, we need to delay the cleanup.
+ */
+static void cleanup_shared_objects(void *data)
+{
+  atexit(real_cleanup);
 }
 
 void Sg__InitLoad()

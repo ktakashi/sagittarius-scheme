@@ -2474,11 +2474,12 @@ void Sg_FlushPort(SgPort *port)
 void Sg_FlushAllPort(int exitting)
 {
   SgWeakVector *ports;
-  SgVector *save;
+  SgObject save[PORT_VECTOR_SIZE];
   SgObject p = SG_FALSE;
   int i, saved = 0;
 
-  save = SG_VECTOR(Sg_MakeVector(PORT_VECTOR_SIZE, SG_FALSE));
+  /* save = SG_VECTOR(Sg_MakeVector(PORT_VECTOR_SIZE, SG_FALSE)); */
+  for (i = 0; i < PORT_VECTOR_SIZE; i++) save[i] = SG_FALSE;
   ports = active_buffered_ports.ports;
 
   for (i = 0; i < PORT_VECTOR_SIZE;) {
@@ -2486,7 +2487,8 @@ void Sg_FlushAllPort(int exitting)
     for (; i < PORT_VECTOR_SIZE; i++) {
       p = Sg_WeakVectorRef(ports, i, SG_FALSE);
       if (SG_PORTP(p)) {
-	Sg_VectorSet(save, i, p);
+	/* Sg_VectorSet(save, i, p); */
+	save[i] = p;
 	Sg_WeakVectorSet(ports, i, SG_TRUE);
 	saved++;
 	break;
@@ -2502,7 +2504,8 @@ void Sg_FlushAllPort(int exitting)
   if (!exitting && saved) {
     Sg_LockMutex(&active_buffered_ports.lock);
     for (i = 0; i < PORT_VECTOR_SIZE; i++) {
-      p = Sg_VectorRef(save, i, SG_FALSE);
+      /* p = Sg_VectorRef(save, i, SG_FALSE); */
+      p = save[i];
       if (SG_PORTP(p)) Sg_WeakVectorSet(ports, i, p);
     }
     Sg_UnlockMutex(&active_buffered_ports.lock);

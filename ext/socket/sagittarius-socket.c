@@ -1118,7 +1118,6 @@ SgObject Sg_SocketErrorMessage(SgSocket *socket)
 #define SG_PORT_SOCKET SG_SOCKET_PORT_SOCKET
 
 static SgClass *port_cpl[] = {
-  SG_CLASS_SOCKET_PORT,
   SG_CLASS_READ_ONCE_PORT,	/* marker */
   SG_CLASS_PORT,
   SG_CLASS_TOP,
