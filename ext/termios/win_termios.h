@@ -42,7 +42,7 @@
 #endif
 
 /* termios.h on Windows 
-   We support only POSIX defines */
+   We support only POSIX-2004 defines */
 
 /* iflag bits */
 #define BRKINT  0x0001 /* Signal interrupt on break. */

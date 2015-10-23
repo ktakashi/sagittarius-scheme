@@ -31,6 +31,7 @@
 #include <sagittarius/extend.h>
 #include "sagittarius-termios.h"
 
+static SgObject termios_c_cc(SgTermios *o);
 static void termios_print(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
   Sg_Printf(p, UC("#<termios iflag:%x, oflag:%x, cflag:%x, lflag:%x>"),
@@ -71,6 +72,10 @@ static SgObject termios_c_cc(SgTermios *o)
   }
   return v;
 }
+
+/* I hope cc_t is max int */
+static const long MAX_CC_T = (1<<(sizeof(cc_t)*8))-1;
+
 static void termios_c_cc_set(SgTermios *o, SgObject v)
 {
   int i;
@@ -83,7 +88,7 @@ static void termios_c_cc_set(SgTermios *o, SgObject v)
   /* precheck */
   for (i = 0; i < NCCS; i++) {
     if (!SG_CHARP(SG_VECTOR_ELEMENT(v, i)) ||
-	SG_CHAR_VALUE(SG_VECTOR_ELEMENT(v, i)) > 128) {
+	SG_CHAR_VALUE(SG_VECTOR_ELEMENT(v, i)) > MAX_CC_T) {
       Sg_WrongTypeOfArgumentViolation(SG_INTERN("c_cc"),
 	SG_MAKE_STRING("vector of ascii character"),
 	v, SG_VECTOR_ELEMENT(v, i));
