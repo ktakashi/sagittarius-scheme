@@ -40,6 +40,7 @@
 #include "sagittarius/bits.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/string.h"
+#include "sagittarius/vm.h"
 
 #undef min
 #define min(x, y)   (((x) < (y))? (x) : (y))
@@ -1584,6 +1585,21 @@ static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
 }
 #endif
 
+/*
+  Memo for future:
+  If the number is too big then stack area would be run out.
+  e.g. (expt 5 100000000) ;; SEGV
+  There are couple of more algorithms to be implemented.
+
+  - Schönhage–Strassen algorithm (from 1720 to 7808 64 bit words)
+    https://en.wikipedia.org/wiki/Sch%C3%B6nhage%E2%80%93Strassen_algorithm
+  - Fürer's algorithm (not practical)
+    https://en.wikipedia.org/wiki/F%C3%BCrer's_algorithm
+
+  Toom-3 would also be a alternative but basic idea is the same as
+  Karatsuba. Thus it may consume the same or more amount of stack area.
+ */
+
 static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
 {
   int xlen = SG_BIGNUM_GET_COUNT(bx);
@@ -3096,6 +3112,14 @@ static int compute_sw_size(long l, long e, long n, SgBignum **table)
   return z;
 }
 
+#define MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
+#define CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
+
+#define check_stack_size(size)			\
+  ((Sg_MainThreadP())				\
+   ? (size) < MAIN_THREAD_STACK_SIZE_LIMIT	\
+   : (size) < CHILD_THREAD_STACK_SIZE_LIMIT)
+
 /* unfortunately, this wasn't rgith from the begining
    but didn't come up so that never reached here... */
 static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
@@ -3113,7 +3137,11 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   SG_BIGNUM_SET_SIGN(r, 1);
 
   prod1 = r;
-  ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
+  if (check_stack_size(zsize)) {
+    ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
+  } else {
+    prod2 = make_bignum_rec(zsize, FALSE);
+  }
 
   while (l >= 0) {
     int index;
