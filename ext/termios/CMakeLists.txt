@@ -18,6 +18,7 @@ ADD_STUBS(sagittarius--termios
   COMMAND ${GENSTUB}
   FILES termios_stub.stub
   OUTTREE)
+ADD_FEATURE(termios)
 
 IF (MSVC OR CYGWIN)
   # ugly solution

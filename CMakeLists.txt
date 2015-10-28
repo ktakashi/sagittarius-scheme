@@ -412,6 +412,8 @@ void Sg__InitExtFeatures()
 MACRO(ADD_FEATURE feature)
   FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
     "Sg_AddCondFeature(UC(\"${feature}\"));\n")
+  FILE(APPEND ${SAGITTARIUS_EXT_FEATURES} 
+    "Sg_AddCondFeature(UC(\"sagittarius.${feature}\"));\n")
 ENDMACRO()
 
 # Issue #37: Name conflictin with other 'sash'.
