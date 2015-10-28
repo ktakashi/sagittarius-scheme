@@ -3007,7 +3007,7 @@ SgObject Sg_ReadbUntil(SgPort *port, SgByteVector *eol)
 
 int Sg_HasPortPosition(SgPort *port)
 {
-  /* a bit awkard solution but this saves me from lots of crap*/
+  /* a bit awkward solution but this saves me from lots of crap*/
   if (SG_CUSTOM_PORTP(port))
     return SG_PORT_VTABLE(port)->portPosition != NULL &&
       SG_PROCEDUREP(SG_CUSTOM_PORT(port)->getPosition);
@@ -3016,7 +3016,7 @@ int Sg_HasPortPosition(SgPort *port)
 
 int Sg_HasSetPortPosition(SgPort *port)
 {
-  /* a bit awkard solution */
+  /* a bit awkward solution */
   if (SG_CUSTOM_PORTP(port))
     return SG_PORT_VTABLE(port)->setPortPosition != NULL &&
       SG_PROCEDUREP(SG_CUSTOM_PORT(port)->setPosition);
