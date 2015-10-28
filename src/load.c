@@ -501,6 +501,7 @@ SgObject Sg_GetSharedError()
   return SG_OBJ(dl_error());
 }
 
+#ifndef __CYGWIN__
 static void real_cleanup()
 {
   dlobj *z;
@@ -511,13 +512,24 @@ static void real_cleanup()
     }
   }
 }
+#endif
 
 /* to avoid invalid class reference during port flushing
+   (it calls Sg_HasPortPosition which reads class cpa and
+   if the shared object is already detached, it crashes).
    e.g. socket port, we need to delay the cleanup.
  */
 static void cleanup_shared_objects(void *data)
 {
+  /* Not sure if this is only Cygwin issue but at least on
+     Cygwin atexit is called *after* all resources are released.
+     (haven't seen any official document for this but if I check
+     with GDB it seems like that.) At that moment, there is no
+     DLL is atached on the process and Win32 API tries to release
+     it with invalid handle or something. Then it causes SEGV.*/
+#ifndef __CYGWIN__
   atexit(real_cleanup);
+#endif
 }
 
 void Sg__InitLoad()
