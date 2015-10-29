@@ -712,7 +712,7 @@
 
 (define (rank-of name ranks)
   (define (id=? slot)
-    (and (free-identifier=? name (car slot))
+    (and (bound-identifier=? name (car slot))
 	 slot))
   (let ((slot (exists id=? ranks)))
     (if slot (cdr slot) -1)))
@@ -722,9 +722,9 @@
 (define (collect-ellipsis-vars tmpl ranks depth vars)
   (let ((ids (collect-unique-ids tmpl)))
     (filter-map (lambda (slot)
-		  (and (member (car slot) ids free-identifier=?)
+		  (and (member (car slot) ids bound-identifier=?)
 		       (let ((rank (cdr (assoc (car slot) ranks
-					       free-identifier=?))))
+					       bound-identifier=?))))
 			 (cond ((< rank depth) slot)
 			       ((null? (cdr slot)) slot)
 			       (else (cons (car slot) (cadr slot)))))))
