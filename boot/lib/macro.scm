@@ -244,9 +244,8 @@
 		    (lambda (name env library)
 		      (make-identifier name (if (symbol? name) '() env)
 				       library))
-		    (lambda (id) 
-		      ;; if it's identifier then don't
-		      (not (identifier? id)))))
+		    ;; if it's identifier then don't
+		    (lambda (id) #f)))
     ;; set both macro and usage env so that free-identifier=? can
     ;; use this env for compilation
     (%set-current-macro-env! mac-env)
@@ -688,13 +687,12 @@
 			     (let* ((env (if (null? env) `((,LEXICAL)) env))
 				    (id (make-pending-identifier name env lib)))
 			       (add-to-transformer-env! name id)))))
-		    ;; preserve template variables and
-		    ;; pattern variables
+		    ;; preserve pattern variables
+		    ;; all template variables must be renamed here
 		    (lambda (id)
-		      (and (not (pending-identifier? id))
-			   ;; 'ranks' contains pattern variables
-			   ;; so not need to call pattern-identifier?
-			   (not (assoc id ranks bound-identifier=?))))))
+		      ;; 'ranks' contains pattern variables
+		      ;; so not need to call pattern-identifier?
+		      (not (assoc id ranks bound-identifier=?)))))
     (if (null? template)
 	'()
 	(let ((form (transcribe-template (rewrite template) ranks vars)))
@@ -1002,7 +1000,9 @@
 				  (make-identifier name
 						   (if (symbol? name) '() env)
 						   library))
-				(lambda (id) (not (pending-identifier? id)))))
+				(lambda (id) 
+				  (and (not (pending-identifier? id))
+				       (not (pattern-identifier? id p1env))))))
 		;; use current usage env, issue 93
 		(proc (rewrite expr (current-usage-env))))
 	      '()
