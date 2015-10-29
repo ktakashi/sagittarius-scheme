@@ -19,7 +19,7 @@
 	#f))
 
   ;; syntax-violation
-  (define (error msg . irr) (apply syntax-violation 'syntax-rules msg irr))
+  (define (error msg . irr) (apply syntax-violation 'syntax-rules msg #f irr))
 
   ;; Chibi's length* returns element count of car parts of inproper list
   ;; e.g) (length* '(1 2 3 . 4)) ;; => 3
