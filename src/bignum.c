@@ -1179,7 +1179,6 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 }
 
 /* forward declaration */
-static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
 static ulong* square_to_len(ulong *num, int len, ulong *prod);
 static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
@@ -2277,29 +2276,6 @@ static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 }
 #endif
 
-static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
-{
-  /* multiply first word */
-  /* mul_n1(z, x, xlen, *y++); */
-  int i;
-  ulong k = *y;
-  dlong p = (dlong)*x * k;
-  *z = (ulong)p;
-
-  for (i = 1; i < xlen; i++) {
-    p = (dlong)x[i] * k + (ulong)(p >> WORD_BITS);
-    z[i] = (ulong)p;
-  }
-  z[i] = (ulong)(p >> WORD_BITS);
-
-  /* add in subsequent words, storing the most significant word which is new
-     each time */
-  for (i = 1; i < ylen; i++) {
-    z[xlen + i] = mul_add((z+i), x, xlen, y[i]);
-  }
-  return z; 
-}
-
 static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 				ulong inv, ulong *a, ulong *b)
 {
@@ -2347,7 +2323,8 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   /* Fill int the table with odd powers of the base */
   for (i = 1; i < tblmask; i++) {
     ALLOC_TEMP_BUFFER(prod, ulong, modlen);
-    multiply_to_len(t, modlen, table[i-1], modlen, a);
+    /* alen = modlen<<1 */
+    mp_mul(a, modlen<<1, t, modlen, table[1-1], modlen);
     mont_reduce(a, mod, modlen, inv);
 
     for (j = 0; j < modlen; j++) {
@@ -2412,7 +2389,8 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 	}
 	isone = FALSE;
       } else {
-	multiply_to_len(t, modlen, mult, modlen, a);
+	/* alen = modlen<<1 */
+	mp_mul(a, modlen<<1, t, modlen, mult, modlen);
 	mont_reduce(a, mod, modlen, inv);
 	t = a; a = b; b = t;
       }
@@ -2647,7 +2625,7 @@ static SgBignum * bignum_expt(SgBignum *b, int exponent)
   base_size = b_size;
   while (exponent != 0) {
     if ((exponent & 1)) {
-      multiply_to_len(result, result_size, base, base_size, result_prod);
+      mp_mul(result_prod, br->size, result, result_size, base, base_size);
       result_size += base_size;
       for (i = 0; i < result_size; i++) {
 	result[i] = result_prod[i];

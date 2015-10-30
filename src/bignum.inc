@@ -356,13 +356,13 @@ static void karatsuba(ulong *rp, uint rsize,
 
   /* split given argument into 2 parts
      it's little endian so the last is the most significant */
+  alen = xsize-n;
+  clen = ysize-n;
   a = xp + n;
   b = xp;			/* until n words */
   c = yp + n;
   d = yp;			/* until n words */
 
-  alen = xsize-n;
-  clen = ysize-n;
   apblen = mp_safe_size_for_add(a, alen, b, n);
   cpdlen = mp_safe_size_for_add(c, clen, d, n);
 
@@ -385,13 +385,25 @@ static void karatsuba(ulong *rp, uint rsize,
      nb. that's the part for carry. */
   apb[apblen-1] = 0L;
   cpd[cpdlen-1] = 0L;
-
-  mp_add(apb, apblen, a, alen, b, n); /* prepare for 3 (a + b) */
-  mp_add(cpd, cpdlen, c, clen, d, n); /* prepare for 3 (c + d) */
+  
+  /* prepare for 3 (a + b) */
+  if (alen >= n)
+    mp_add(apb, apblen, a, alen, b, n);
+  else
+    mp_add(apb, apblen, b, n, a, alen);
+  /* prepare for 3 (c + d) */
+  if (clen >= n)
+    mp_add(cpd, cpdlen, c, clen, d, n);
+  else 
+    mp_add(cpd, cpdlen, d, n, c, clen);
+  /* dump_xarray(cpd, cpdlen); */
 
   mp_mul(ac+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
+  /* dump_xarray(ac+n2, aclen); */
   mp_mul(bd, n2, b, n, d, n);			     /* recursive 2 */
+  /* dump_xarray(bd, n2); */
   mp_mul(adbc+n, adbclen, apb, apblen, cpd, cpdlen); /* recursive 3 */
+  /* dump_xarray(adbc+n, adbclen); */
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, ac+n2, aclen);
