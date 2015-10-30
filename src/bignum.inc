@@ -116,7 +116,7 @@ static int mp_add(ulong *rp, uint rsize,
     rp[xindex] = xp[xindex];
   }
   if (c) {
-    rp[rsize-1] = 1L;
+    rp[xindex] = 1L;
   }
 #else
   int i;
