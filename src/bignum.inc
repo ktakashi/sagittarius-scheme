@@ -416,6 +416,7 @@ static void karatsuba(ulong *rp, uint rsize,
 }
 #endif	/* USE_KARATSUBA */
 
+/* TODO implement non USE_DLONG version */
 static ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
 {
   int i;
