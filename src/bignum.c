@@ -47,21 +47,29 @@
 #undef max
 #define max(x, y)   (((x) > (y))? (x) : (y))
 
+/* will be used in bignum.inc
+   TODO move to bignum.inc
+ */
+#define clear_buffer(v, size)				\
+  do {							\
+    int __i, __size = (size);				\
+    for (__i = 0; __i < __size; __i++) (v)[__i] = 0L;	\
+  } while (0)
 
-/* MSVC doesn't allow us to typedef in bottom. Well, that's how it suppose to be
-   I think... */
-typedef unsigned long ulong;
-#if SIZEOF_LONG == 8
-#ifdef __GNUC__
-typedef unsigned int dlong __attribute__((__mode__(TI)));
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_BUFFER_REC(v, type, size)		\
+    (v) = (type *)alloca(sizeof(type) * (size));
 #else
-# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#define ALLOC_TEMP_BUFFER_REC(v, type, size)			\
+    (v) = SG_NEW_ATOMIC2(type *, sizeof(type) * (size));
 #endif
-#define SHIFT_MAGIC 6
-#else
-typedef uint64_t dlong;
-#define SHIFT_MAGIC 5
-#endif
+
+#define ALLOC_TEMP_BUFFER(v, type, size)	\
+  do {						\
+    ALLOC_TEMP_BUFFER_REC(v, type, size)	\
+    clear_buffer(v, size);			\
+  } while (0)
+
 
 /* debug utility macro */
 #define dump_array_rec(flag, array, size)	\
@@ -76,7 +84,7 @@ typedef uint64_t dlong;
 
 #define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
 #define dump_uarray(array, size) dump_array_rec("%lu ", array, size)
-#define dump_xarray(array, size) dump_array_rec("%08lx ", array, size)
+#define dump_xarray(array, size) dump_array_rec("%016lx ", array, size)
 
 #define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
 #define dump_s(v) dump_rec("%ld\n", v)
@@ -86,6 +94,7 @@ typedef uint64_t dlong;
 #define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
 #define dump_bignum_x(b) dump_xarray((b)->elements, (b)->size)
 
+#include "bignum.inc"
 
 static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
@@ -93,7 +102,7 @@ static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 static SgBignum* bignum_clear(SgBignum *b, int size)
 {
   int i;
-  for (i = 0; i < size; i++) b->elements[i] = 0;
+  for (i = 0; i < size; i++) b->elements[i] = 0L;
   return b;
 }
 
@@ -620,12 +629,7 @@ uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor)
 
 static inline SgBignum* bignum_2scmpl(SgBignum *br)
 {
-  int rsize = SG_BIGNUM_GET_COUNT(br);
-  int i, c;
-  for (i = 0, c = 1; i < rsize; i++) {
-    unsigned long x = ~br->elements[i];
-    UADD(br->elements[i], c, x, 0);
-  }
+  mp_2scmpl(br->elements, br->size);
   return br;
 }
 
@@ -1024,15 +1028,7 @@ static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y)
 {
   int xsize = SG_BIGNUM_GET_COUNT(x);
   int ysize = SG_BIGNUM_GET_COUNT(y);
-  if (xsize > ysize) {
-    if (x->elements[xsize - 1] == SG_ULONG_MAX) return xsize + 1;
-    else return xsize;
-  } else if (xsize < ysize) {
-    if (y->elements[ysize - 1] == SG_ULONG_MAX) return ysize + 1;
-    else return ysize;
-  } else {
-    return xsize + 1;
-  }
+  return mp_safe_size_for_add(x->elements, xsize, y->elements, ysize);
 }
 
 static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
@@ -1040,7 +1036,7 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int rsize = SG_BIGNUM_GET_COUNT(br);
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
-  int i, c;
+  int i;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1058,57 +1054,14 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 1
-    /* this is faster */
-    dlong sum = 0L;
-    int xindex, yindex;
-    /* if x is shorter, swap it */
+      /* if x is shorter, swap it */
     if (xsize < ysize) {
       SgBignum *t = bx;
-      int tsize = xsize;
+      uint tsize = xsize;
       bx = by; by = t;
       xsize = ysize; ysize = tsize;
     }
-    for (xindex = 0, yindex = 0; yindex < ysize; xindex++, yindex++) {
-      c = (int)(sum >> WORD_BITS);
-      sum = (dlong)bx->elements[xindex] + by->elements[yindex] + c;
-      br->elements[xindex] = (ulong)sum;
-    }
-    /* copy remainder of longer number while carry propagation is required */
-    c = (int)(sum >> WORD_BITS);
-    for (; xindex < xsize && c; xindex++) {
-      br->elements[xindex] = bx->elements[xindex] + 1;
-      c = (br->elements[xindex] == 0);
-    }
-    /* copy remainder of longer number */
-    for (; xindex < xsize; xindex++) {
-      br->elements[xindex] = bx->elements[xindex];
-    }
-    if (c) {
-      br->elements[rsize-1] = 1;
-    }
-#else
-    unsigned long x, y;
-    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-      if (xsize <= 0) {
-	if (ysize <= 0) {
-	  UADD(br->elements[i], c, 0, 0);
-	  continue;
-	}
-	y = by->elements[i];
-	UADD(br->elements[i], c, 0, y);
-	continue;
-      }
-      if (ysize <= 0) {
-	x = bx->elements[i];
-	UADD(br->elements[i], c, x, 0);
-	continue;
-      }
-      x = bx->elements[i];
-      y = by->elements[i];
-      UADD(br->elements[i], c, x, y);
-    }
-#endif
+    mp_add(br->elements, rsize, bx->elements, xsize, by->elements, ysize);
   }
   return br;
 }
@@ -1118,7 +1071,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int rsize = SG_BIGNUM_GET_COUNT(br);
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
-  int i, c = 0;
+  int i;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1137,10 +1090,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 1
-    dlong diff = 0L;
-    int xindex, yindex, flip = FALSE;
-    /* if x is shorter, swap it */
+    int flip = FALSE, c;
     if (xsize < ysize) {
       SgBignum *t = bx;
       bx = by; by = t;
@@ -1148,53 +1098,11 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
       ysize = SG_BIGNUM_GET_COUNT(by);
       flip = TRUE;
     }
-    for (yindex = 0, xindex = 0; yindex < ysize; xindex++, yindex++) {
-      c = (int)(diff >> WORD_BITS);
-      diff = (dlong)bx->elements[xindex] - by->elements[yindex] + c;
-      br->elements[xindex] = (ulong)diff;
-    }
-    c = (int)(diff >> WORD_BITS);
-    for (;xindex < xsize && c; xindex++) {
-      br->elements[xindex] = bx->elements[xindex] - 1;
-      c = (br->elements[xindex] == (ulong)-1L) ? -1 : 0;
-    }
-    for (;xindex < xsize; xindex++) {
-      br->elements[xindex] = bx->elements[xindex];
-    }
-    /* padding carry */
-    for (;xindex < rsize; xindex++) {
-      br->elements[xindex] = c;
-    }
+    c = mp_sub(br->elements, rsize, bx->elements, xsize, by->elements, ysize);
     if (flip || c) {
       if (c) bignum_2scmpl(br);
-      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
+      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br));
     }
-#else
-    unsigned long x, y;
-    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-      if (xsize <= 0) {
-	if (ysize <= 0) {
-	  USUB(br->elements[i], c, 0, 0);
-	  continue;
-	}
-	y = by->elements[i];
-	USUB(br->elements[i], c, 0, y);
-	continue;
-      }
-      if (ysize <= 0) {
-	x = bx->elements[i];
-	USUB(br->elements[i], c, x, 0);
-	continue;
-      }
-      x = bx->elements[i];
-      y = by->elements[i];
-      USUB(br->elements[i], c, x, y);
-    }
-    if (c != 0) {
-      bignum_2scmpl(br);
-      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
-    }
-#endif
   }
   return br;
 }
@@ -1230,27 +1138,22 @@ static SgBignum* bignum_sub(SgBignum *bx, SgBignum *by)
 
 static SgBignum* bignum_add_si(SgBignum *bx, long y)
 {
-  long c;
-  unsigned int i, rsize = SG_BIGNUM_GET_COUNT(bx) + 1;
-  unsigned long yabs = ((y < 0) ? -y : y);
-  int ysign = ((y < 0) ? -1: 1);
+  ulong yabs;
+  int ysign;
   SgBignum *br;
-  if (y == 0) return bx;
 
-  br = make_bignum(rsize);
+  if (y == 0) return bx;	/* short cut */
+
+  yabs =  ((y < 0) ? -y : y);
+  ysign = ((y < 0) ? -1: 1);
+  br = make_bignum(bx->size + 1);
   SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
+  /* dispatch here */
   if (SG_BIGNUM_GET_SIGN(bx) == ysign) {
-    for (c = 0, i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-      UADD(br->elements[i], c, bx->elements[i], yabs);
-      yabs = 0;
-    }
+    mp_add_ul(br->elements, br->size, bx->elements, bx->size, yabs);
   } else {
-    for (c = 0, i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-      USUB(br->elements[i], c, bx->elements[i], yabs);
-      yabs = 0;
-    }
+    mp_sub_ul(br->elements, br->size, bx->elements, bx->size, yabs);
   }
-  br->elements[rsize - 1] = c;
   return br;
 }
 
@@ -1424,164 +1327,8 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 					unsigned long y)
 {
-  int i;
-  register dlong p;
-  p = (dlong)bx->elements[0] * y;
-  br->elements[0] = (ulong)p;
-  for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-    p = (dlong)bx->elements[i] * y + (ulong)(p >> WORD_BITS);
-    br->elements[i] = (ulong)p;
-  }
-  br->elements[i] = (ulong)(p >> WORD_BITS);
+  mp_mul_ul(br->elements, br->size, bx->elements, bx->size, y);
   return br;
-}
-#endif
-
-static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
-
-#define USE_KARATSUBA
-#ifdef USE_KARATSUBA
-/* if the bignum length is less than this then we do 
-   usual computation. */
-/* according to Wikipedia karatsuba is faster when the numbers are
-   bigger than 320-640 bits. */
-#define KARATSUBA_LOW_LIMIT ((640>>3)/SIZEOF_LONG)
-
-/*
-  basic algorithm
-  compute x*y 
-  
-  x = a*B^(n/2) + b
-  y = c*B^(n/2) + d
-  B = 16 (hex)
-  n = max(xlen, ylen), if diff is small enough then we can always split :)
-  x*y = (a*B^(n/2) + b) * (c*B^(n/2) + d)
-      = B^n*ac + B^(n/2)*(ad + bc) + bd
-      = 16^n*ac + 16^(n/2)*(ad + bc) + bd
- 
-  recursive computation
-  1 ac
-  2 bd
-  3 (a + b)(c + d) = ac + ad + bc + bd
-  now 3 - 1 - 2 = ad + bc
-
-  Image in Scheme
-  (define x #x123456789)
-  (define y #x908765432)
-  (define B 16)
-  (define n 9)
-  (define a #x12345)
-  (define b #x6789)
-  (define c #x90876)
-  (define d #x5432)
-  (let ((ac (* a c))
-        (bd (* b d))
-        (xx (+ (* a d) (* b c))))
-    ;; 16^n * ac where n = length of b and d 
-    (+ (* (expt B (* (div n 2) 2)) ac) 
-       (* (expt B (div n 2)) xx)
-       bd))
- */
-
-#define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
-  do {									\
-    int i, off = (start), end = (len);					\
-    /* copy doesn't need clear */					\
-    ALLOC_TEMP_BIGNUM_REC(dst, len);					\
-    for (i = 0; i < end; i++) {						\
-      (dst)->elements[i] = (src)->elements[off+i];			\
-    }									\
-  } while (0)
-
-#define BIGNUM_WORD_SHIFT(dst, src, words)				\
-  do {									\
-    int i, nwords = (words);						\
-    for (i=SG_BIGNUM_GET_COUNT(src)-1; i>=0; i--) {			\
-      (dst)->elements[i+nwords] = (src)->elements[i];			\
-    }									\
-  } while (0)
-  
-#define BIGNUM_CLEAR_LEFT(bn, size)				\
-  do {								\
-    int i, len = (size);					\
-    int off = SG_BIGNUM_GET_COUNT(bn)-1;			\
-    for (i = 0; i < len; i++) (bn)->elements[off-i] = 0;	\
-  } while (0)
-#define BIGNUM_CLEAR_RIGHT(bn, size)				\
-  do {								\
-    int i, len = (size);					\
-    for (i = 0; i < len; i++) (bn)->elements[i] = 0;		\
-  } while (0)
-
-static int can_karatsuba(SgBignum *bx, SgBignum *by)
-{
-  int xlen = SG_BIGNUM_GET_COUNT(bx);
-  int ylen = SG_BIGNUM_GET_COUNT(by);
-  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT) {
-    return FALSE;
-  } else {
-    int n = max(xlen, ylen)/2;
-    return n < xlen && n < ylen;
-  }
-}
-
-static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
-{
-  int xlen = SG_BIGNUM_GET_COUNT(bx);
-  int ylen = SG_BIGNUM_GET_COUNT(by);
-  int n = max(xlen, ylen)/2, apblen, cpdlen, adbclen;
-  int n2 = n<<1;
-  SgBignum *a, *b, *c, *d, *ac, *bd, *apb, *cpd, *adbc;
-  /* prepare temporary buffers */
-  /* it's little endian so the last is the most significant */
-  BIGNUM_SPLIT_COPY(a, bx, n, xlen-n);
-  BIGNUM_SPLIT_COPY(b, bx, 0, n);
-  BIGNUM_SPLIT_COPY(c, by, n, ylen-n);
-  BIGNUM_SPLIT_COPY(d, by, 0, n);
-
-  apblen = bignum_safe_size_for_add(a, b);
-  cpdlen = bignum_safe_size_for_add(c, d);
-  ALLOC_TEMP_BIGNUM_REC(apb, apblen);
-  ALLOC_TEMP_BIGNUM_REC(cpd, cpdlen);
-  /* we just need to clear most significant byte */
-  BIGNUM_CLEAR_LEFT(apb, 1);
-  BIGNUM_CLEAR_LEFT(cpd, 1);
-  apb = bignum_add_int(apb, a, b); /* prepare for 3 (a + b) */
-  cpd = bignum_add_int(cpd, c, d); /* prepare for 3 (c + d) */
-
-  adbclen = apblen + cpdlen;
-  ALLOC_TEMP_BIGNUM_REC(adbc, adbclen);
-
-  ALLOC_TEMP_BIGNUM_REC(ac, SG_BIGNUM_GET_COUNT(a) + SG_BIGNUM_GET_COUNT(c));
-  ALLOC_TEMP_BIGNUM_REC(bd, n2);
-  BIGNUM_CLEAR_LEFT(ac, 4);	/* more than enough? */
-  BIGNUM_CLEAR_LEFT(bd, 4);
-  ac = bignum_mul_int(ac, a, c); /* recursive 1 */
-  bd = bignum_mul_int(bd, b, d); /* recursive 2 */
-  adbc = bignum_mul_int(adbc, apb, cpd); /* recursive 3 */
-  /* 3 - 1 - 2 */
-  adbc = bignum_sub_int(adbc, adbc, ac);
-  adbc = bignum_sub_int(adbc, adbc, bd);
-
-  /* I hate C89 */
-  {
-    /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
-    /* shift n words */
-    SgBignum *lac, *ladbc;
-    int laclen = SG_BIGNUM_GET_COUNT(ac) + n2;
-    int ladbclen = SG_BIGNUM_GET_COUNT(adbc) + n;
-    ALLOC_TEMP_BIGNUM_REC(lac, laclen);
-    ALLOC_TEMP_BIGNUM_REC(ladbc, ladbclen);
-    BIGNUM_CLEAR_RIGHT(lac, n2);
-    BIGNUM_CLEAR_RIGHT(ladbc, n);
-    /* to reduce unnecessary calculation */
-    BIGNUM_WORD_SHIFT(lac, ac, n2);
-    BIGNUM_WORD_SHIFT(ladbc, adbc, n);
-
-    /* now br must have sufficient size to put */
-    br = bignum_add_int(br, lac, ladbc);
-    return bignum_add_int(br, br, bd);
-  }
 }
 #endif
 
@@ -1605,22 +1352,9 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int xlen = SG_BIGNUM_GET_COUNT(bx);
   int ylen = SG_BIGNUM_GET_COUNT(by);
   /* early check */
-#ifdef USE_KARATSUBA
-  if (can_karatsuba(bx, by)) {
-    /* ok do it */
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-    return karatsuba(br, bx, by);
-  } else {
-#endif
-
-    multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
-    return br;
-
-#ifdef USE_KARATSUBA
-  }
-#endif
+  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
+  mp_mul(br->elements, br->size, bx->elements, xlen, by->elements, ylen);
+  return br;
 }
 
 static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
@@ -2566,27 +2300,6 @@ static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
   return z; 
 }
 
-
-#define clear_buffer(v, size)				\
-  do {							\
-    int __i, __size = (size);				\
-    for (__i = 0; __i < __size; __i++) (v)[__i] = 0;	\
-  } while (0)
-
-#ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_BUFFER_REC(v, type, size)		\
-    (v) = (type *)alloca(sizeof(type) * (size));
-#else
-#define ALLOC_TEMP_BUFFER_REC(v, type, size)			\
-    (v) = SG_NEW_ATOMIC2(type *, sizeof(type) * (size));
-#endif
-
-#define ALLOC_TEMP_BUFFER(v, type, size)	\
-  do {						\
-    ALLOC_TEMP_BUFFER_REC(v, type, size)	\
-    clear_buffer(v, size);			\
-  } while (0)
-
 static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 				ulong inv, ulong *a, ulong *b)
 {
@@ -3065,6 +2778,12 @@ static void setup_square(ulong *dst, ulong *src, int slen)
   copy_element(dst, prod, size);
 }
 
+#define BIGNUM_CLEAR_LEFT(bn, size)                            \
+  do {                                                         \
+    int i, len = (size);                                       \
+    int off = SG_BIGNUM_GET_COUNT(bn)-1;                       \
+    for (i = 0; i < len; i++) (bn)->elements[off-i] = 0;       \
+  } while (0)
 /* I'm not sure if I can write this as a static function since
    it's using alloca to setup table. */
 #define setup_table(table, u, b)					\
