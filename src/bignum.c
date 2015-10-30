@@ -1180,7 +1180,6 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 
 /* forward declaration */
 static ulong* square_to_len(ulong *num, int len, ulong *prod);
-static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
 /* whatever i did, it's slow. */
 #if 0
@@ -1708,7 +1707,8 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
   unsigned long carry;
   ALLOC_TEMP_BIGNUM(r, rsize);
   r->elements[0] = c;
-  carry = mul_add(r->elements, acc->elements, SG_BIGNUM_GET_COUNT(acc), coef);
+  carry = mp_mul_add(r->elements, acc->elements, 
+		     SG_BIGNUM_GET_COUNT(acc), coef);
   r->elements[SG_BIGNUM_GET_COUNT(acc)] = carry;
 
   if (r->elements[rsize - 1] == 0) {
@@ -2161,19 +2161,6 @@ static ulong sub_n(ulong *num1, ulong *num2, int len)
   return -(ulong)(t >> WORD_BITS);
 }
 
-static ulong mul_add(ulong *out, ulong *in, int len, ulong k)
-{
-  int i;
-  dlong p = (dlong)*in * k + *out;
-  *out = (ulong)p;
-
-  for (i = 1; i < len; i++) {
-    p = (dlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
-    out[i] = (ulong)p;
-  }
-  return (ulong)(p >> WORD_BITS);
-}
-
 static int add_one(ulong *num, int len, ulong carry)
 {
   dlong t = (dlong)*num + carry;
@@ -2235,7 +2222,7 @@ static ulong* square_to_len(ulong *num, int len, ulong *prod)
     /* then add in the off diagonal sums */
     for (i = 0, j = 1, lenx = len - 1; lenx; i++, j += 2, lenx--) {
       ulong t = num[i];
-      t = mul_add(prod + j, num + i + 1, lenx, t);
+      t = mp_mul_add(prod + j, num + i + 1, lenx, t);
       add_one(prod + lenx + j, lenx + 1, t);
     }
     primitive_left_shift(prod, 2*len, 1);
@@ -2250,7 +2237,7 @@ static ulong* mont_reduce(ulong *n, SgBignum *mod, int mlen, ulong inv)
   int len = mlen;
 
   do {
-    ulong carry = mul_add(n, mod->elements, mlen, inv * n[0]);
+    ulong carry = mp_mul_add(n, mod->elements, mlen, inv * n[0]);
     c += add_one(n+mlen, len, carry);
     ++n;
   } while (--len);
@@ -2324,7 +2311,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   for (i = 1; i < tblmask; i++) {
     ALLOC_TEMP_BUFFER(prod, ulong, modlen);
     /* alen = modlen<<1 */
-    mp_mul(a, modlen<<1, t, modlen, table[1-1], modlen);
+    mp_mul(a, modlen<<1, t, modlen, table[i-1], modlen);
     mont_reduce(a, mod, modlen, inv);
 
     for (j = 0; j < modlen; j++) {

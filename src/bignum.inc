@@ -386,18 +386,22 @@ static void karatsuba(ulong *rp, uint rsize,
   apb[apblen-1] = 0L;
   cpd[cpdlen-1] = 0L;
   
-  /* prepare for 3 (a + b) */
-  if (alen >= n)
-    mp_add(apb, apblen, a, alen, b, n);
-  else
-    mp_add(apb, apblen, b, n, a, alen);
-  /* prepare for 3 (c + d) */
-  if (clen >= n)
-    mp_add(cpd, cpdlen, c, clen, d, n);
-  else 
-    mp_add(cpd, cpdlen, d, n, c, clen);
-  /* dump_xarray(cpd, cpdlen); */
+  /* prepare for 3 (a + b) and  (c + d) 
 
+     if alen is greater or equal to n, then clen must be less than or
+     equal to n since n is max of xsize or ysize divided by 2.
+     c.f) x = 10 and y = 8 then n = 5. length of a = 5, b = 3
+          x = 9  and y = 10 then n = 5. length of a = 4, b = 5
+  */
+  if (alen >= n) {
+    mp_add(apb, apblen, a, alen, b, n);
+    mp_add(cpd, cpdlen, d, n, c, clen);
+  } else {
+    mp_add(apb, apblen, b, n, a, alen);
+    mp_add(cpd, cpdlen, c, clen, d, n);
+  }
+    
+  /* dump_xarray(cpd, cpdlen); */
   mp_mul(ac+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
   /* dump_xarray(ac+n2, aclen); */
   mp_mul(bd, n2, b, n, d, n);			     /* recursive 2 */
@@ -411,6 +415,7 @@ static void karatsuba(ulong *rp, uint rsize,
 
   /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
   /* now br must have sufficient size to put */
+  /* (should always be) aclen+n2 > adbclen+n */
   mp_add(rp, rsize, ac, aclen+n2, adbc, adbclen+n);
   mp_add(rp, rsize, rp, rsize, bd, n2);
 }
