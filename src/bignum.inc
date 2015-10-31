@@ -116,7 +116,7 @@ static int mp_add(ulong *rp, uint rsize,
     rp[xindex] = xp[xindex];
   }
   if (c) {
-    rp[xindex] = 1L;
+    rp[rsize-1] = 1L;
   }
 #else
   int i;
@@ -144,13 +144,28 @@ static int mp_add(ulong *rp, uint rsize,
   return c;
 }
 
-/* xp + y -> rp (xzise > 1)
-   returns carry (0 or 1)
-*/   
+/*
+  xp + y -> rp (xzise > 1)
+  returns carry (0 or 1)
+*/
 static int mp_add_ul(ulong *rp, uint rsize, 
 		     ulong *xp, uint xsize,
 		     ulong y)
 {
+#ifdef USE_DLONG
+  dlong t = (dlong)xp[0] + y;
+  int i;
+  rp[0] = (ulong)t;
+  /* copy if this is not self destructive operation */
+  if (rp != xp) for (i = 1; i < xsize; i++) rp[i] = xp[i];
+
+  if ((t >> WORD_BITS) == 0) return 0;
+  for (i = 1; i < xsize; i++) {
+    if (++rp[i] != 0) return 0;
+  }
+  rp[rsize-1] = 1;
+  return 1;
+#else
   long c = 0;
   uint i;
 
@@ -158,8 +173,9 @@ static int mp_add_ul(ulong *rp, uint rsize,
   for (i = 1; i < xsize; i++) {
     UADD(rp[i], c, xp[i], 0);
   }
-  rp[rsize - 1] = c;
+  rp[rsize-1] = c;
   return c;
+#endif
 }
 
 /* Subtraction */
@@ -232,7 +248,7 @@ static int mp_sub_ul(ulong *rp, uint rsize,
   for (i = 1; i < xsize; i++) {
     USUB(rp[i], c, xp[i], 0);
   }
-  rp[rsize - 1] = c;
+  rp[rsize-1] = c;
   return c;
 }
 
@@ -283,6 +299,79 @@ static void mp_mul_ul(ulong *rp, uint rsize,
   return br;
 #endif
 
+}
+
+/* shift operations */
+static void mp_lshift(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize,
+		      long amount)
+{
+  long nwords, nbits;
+  int i;
+
+  nwords = amount / WORD_BITS;
+  nbits = amount % WORD_BITS;
+  if (nbits == 0) {
+    for (i = xsize - 1; i >= 0; i--) {
+      if (rsize > i + nwords)
+	rp[i + nwords] = xp[i];
+    }
+    for (i = nwords - 1; i >= 0; i--) rp[i] = 0;
+  } else {
+    if (rsize > xsize + nwords) {
+      rp[xsize+nwords] = xp[xsize-1]>>(WORD_BITS-nbits);
+    }
+    for (i = xsize - 1; i > 0; i--) {
+      ulong x = (xp[i]<<nbits)|(xp[i-1]>>(WORD_BITS-nbits));
+      if (rsize > i+nwords) rp[i+nwords] = x;
+    }
+    rp[nwords] = xp[0] << nbits;
+    for (i = nwords - 1; i >= 0; i--) rp[i] = 0;
+  }
+}
+
+/* returns effect size of the result 
+   x >> 1
+   +---+---+---+---+
+   | 4 | 3 | 2 | 1 |
+   +---+---+---+---+
+        /   /   /
+       /   /   /
+   r  /   /   /
+   +---+---+---+---+
+   | 3 | 2 | 1 | 0 |
+   +---+---+---+---+
+              i-nwords
+   For performance, we don't fill 0. it is callers responsibility
+   to make sure the size and content if needed.
+ */
+static uint mp_rshift(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize,
+		      long amount)
+{
+  ulong nwords = amount / WORD_BITS;
+  ulong nbits = amount % WORD_BITS;
+  int i;
+  if (xsize <= nwords) {
+    /* TODO should we do this? */
+    /* for (i = i; i < rsize; i++) rp[i] = 0; */
+    rp[0] = 0;
+    return 0;
+  } else if (nbits == 0) {
+    for (i = nwords; i < xsize; i++) {
+      rp[i - nwords] = xp[i];
+    }
+    /* for (i -= nwords; i < rsize; i++) rp[i] = 0; */
+    return xsize - nwords;
+  } else {
+    for (i = nwords; i < xsize - 1; i++) {
+      ulong x = (xp[i+1] << (WORD_BITS - nbits))|(xp[i] >> nbits);
+      rp[i - nwords] = x;
+    }
+    rp[i - nwords] = xp[i] >> nbits;
+    /* for (i -= nwords; i < rsize; i++) rp[i] = 0; */
+    return xsize - nwords;
+  }
 }
 
 /* forward declaration */
@@ -386,21 +475,19 @@ static void karatsuba(ulong *rp, uint rsize,
   apb[apblen-1] = 0L;
   cpd[cpdlen-1] = 0L;
   
-  /* prepare for 3 (a + b) and  (c + d) 
-
-     if alen is greater or equal to n, then clen must be less than or
-     equal to n since n is max of xsize or ysize divided by 2.
-     c.f) x = 10 and y = 8 then n = 5. length of a = 5, b = 3
-          x = 9  and y = 10 then n = 5. length of a = 4, b = 5
-  */
+  /* prepare for 3 (a + b) and  (c + d) */
+  /* these check are necessary. there's a condition both a and c are
+     greater than n. e.g.) xsize = 33, ysize = 33 */
   if (alen >= n) {
     mp_add(apb, apblen, a, alen, b, n);
-    mp_add(cpd, cpdlen, d, n, c, clen);
   } else {
     mp_add(apb, apblen, b, n, a, alen);
-    mp_add(cpd, cpdlen, c, clen, d, n);
   }
-    
+  if (clen >= n) {
+    mp_add(cpd, cpdlen, c, clen, d, n);
+  } else {
+    mp_add(cpd, cpdlen, d, n, c, clen);
+  }
   /* dump_xarray(cpd, cpdlen); */
   mp_mul(ac+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
   /* dump_xarray(ac+n2, aclen); */
@@ -472,3 +559,152 @@ static void mp_mul(ulong *rp, uint rsize,
 #endif
   long_mul(rp, rsize, xp, xsize, yp, ysize);
 }
+
+/* xp^2 -> rp */
+/* static int add_one(ulong *num, int len, ulong carry); */
+static void mp_base_square(ulong *rp, uint rsize,
+			   ulong *xp, uint xsize)
+{
+  /* TODO version for not using dlong */
+#ifdef USE_DLONG
+  int i, j, xlen;
+  ulong last = 0;
+
+  /* store the squares, right shifted one bit */
+  for (i = xsize - 1, j = xsize<<1; i >= 0; i--) {
+    dlong t = xp[i];
+    dlong p = t * t;
+    rp[--j] = (last<<(WORD_BITS-1))|(ulong)(p>>(WORD_BITS+1));
+    rp[--j] = (ulong)(p>>1);
+    last = p&1;
+  }
+  /* then add in the off diagonal sums */
+  for (i = 0, j = 1, xlen = xsize - 1; xlen; i++, j+= 2, xlen--) {
+    ulong t = xp[i];
+    uint ts = xlen+j;
+    t = mp_mul_add(rp+j, xp+i+1, xlen, t);
+    /* add_one(rp + xlen + j, xlen + 1, t); */
+    mp_add_ul(rp+ts, rsize-ts, rp+ts, xlen+1, t);
+  }
+  /* primitive_left_shift(rp, 2*xsize, 1); */
+  mp_lshift(rp, rsize, rp, xsize<<1, 1);
+  rp[0] |= xp[0] & 1;
+#else
+#endif
+}
+static void mp_square(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize)
+{
+  /* handle special case */
+  if (!xsize) return;
+#ifdef USE_KARATSUBA
+  
+#endif
+  /* normal */
+  mp_base_square(rp, rsize, xp, xsize);
+}
+
+/* divide */
+
+static inline int div_normalization_factor(unsigned long w)
+{
+  unsigned long b = (1L << (WORD_BITS - 1)), c = 0;
+  for (; b > 0; b >>= 1, c++) {
+    if (w & b) return c;
+  }
+  FATAL("bignum.c: div_normalization_factor: can't be here");
+  return 0;
+}
+
+/*  
+    xp / yp -> dp
+    xp % yp -> rem
+    return size of remainder
+ */
+static uint mp_div_rem(ulong *dp, ulong *rem,
+		       ulong *xp, uint xsize,
+		       ulong *yp, uint ysize)
+{
+  ulong *u, *v;
+  uint de_size = xsize;
+  uint ds_size = ysize;
+  int d = div_normalization_factor(yp[ds_size - 1]);
+  int j, k, n, m;
+  ulong vn_1, vn_2, vv, uj, uj2, cy;
+
+#define DIGIT(num, n)							\
+  (((n)%2)? HI((num)[(n)/2]) : LO((num)[(n)/2]))
+#define DIGIT2(num, n)							\
+  (((n)%2)?								\
+   ((LO((num)[(n)/2+1])<<HALF_BITS)|HI((num)[(n)/2])):			\
+   (num)[(n)/2])
+#define SETDIGIT(num, n, v)						\
+  (((n)%2)?								\
+   (num[(n)/2]=(num[(n)/2] & LOMASK)|((v) << HALF_BITS)):		\
+   (num[(n)/2]=(num[(n)/2] & HIMASK)|((v) & LOMASK)))
+#define SETDIGIT2(num, n, v)						\
+  (((n)%2)?								\
+   ((num[(n)/2] = LO(num[(n)/2])|((v)<<HALF_BITS)),	\
+    (num[(n)/2+1] = (num[(n)/2+1] & HIMASK)|HI(v))) : \
+   (num[(n)/2] = (v)))
+  
+  if (rem) {
+    u = rem;
+  } else {
+    ALLOC_TEMP_BUFFER(u, ulong, de_size+1);
+  }
+  ALLOC_TEMP_BUFFER(v, ulong, ds_size);
+  if (d >= HALF_BITS) {
+    d -= HALF_BITS;
+    n = ds_size * 2 - 1;
+    m = de_size * 2 - n;
+  } else {
+    n = ds_size * 2;
+    m = de_size * 2 - n;
+  }
+  mp_lshift(u, de_size+1, xp, xsize, d);
+  mp_lshift(v, ds_size, yp, ysize, d);
+  vn_1 = DIGIT(v, n - 1);
+  vn_2 = DIGIT(v, n - 2);
+
+  for (j = m; j >= 0; j--) {
+    unsigned long uu = (DIGIT(u, j+n) << HALF_BITS) + DIGIT(u, j+n-1);
+    unsigned long qq = uu / vn_1;
+    unsigned long rr = uu % vn_1;
+
+    while (qq >= HALF_WORD) { qq--; rr += vn_1; }
+    while ((qq * vn_2 > (rr << HALF_BITS) + DIGIT(u, j + n - 2))
+	   && (rr < HALF_WORD)) {
+      qq--;
+      rr += vn_1;
+    }
+    cy = 0;
+    for (k = 0; k < n; k++) {
+      vv = qq * DIGIT(v, k);
+      uj = DIGIT2(u, j + k);
+      uj2 = uj - vv - cy;
+      cy =  (uj2 > uj) ? HALF_WORD : 0;
+      SETDIGIT2(u, j + k, uj2);
+    }
+    if (cy) {
+      qq--;
+      cy = 0;
+      for (k = 0; k < n; k++) {
+	vv = DIGIT(v, k);
+	uj = DIGIT(u, j + k) + vv + cy;
+	cy = (uj >= HALF_WORD)? 1 : 0;
+	SETDIGIT(u, j +k, uj);
+      }
+      uj = DIGIT(u, j + n) + cy;
+      SETDIGIT(u, j + n, uj);
+    }
+    if (dp) 
+      SETDIGIT(dp, j, qq);
+  }
+  return mp_rshift(u, de_size+1, u, de_size+1, d);
+#undef DIGIT
+#undef DIGIT2
+#undef SETDIGIT
+#undef SETDIGIT2
+}
+
