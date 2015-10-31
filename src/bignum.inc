@@ -45,6 +45,10 @@
 typedef unsigned int uint;
 typedef unsigned long ulong;
 
+/* in case of platform whose long size if 8 but no 128 bit storage.
+   we put this. however, it's not tested at all. so most likely doesn't
+   work at all.
+ */
 #define USE_DLONG
 
 #if SIZEOF_LONG == 8
@@ -287,23 +291,22 @@ static void mp_mul_ul(ulong *rp, uint rsize,
     ulong hi, lo, r1;
     ulong x = xp[i];
     ulong c = 0;
-    ulong r0 = rp[i+off];
+    ulong r0 = rp[i];
 
     UMUL(hi, lo, x, y);
     UADD(r1, c, r0, lo);
-    rp[i+off] = r1;
+    rp[i] = r1;
 
-    r0 = rp[i+off+1];
+    r0 = rp[i+1];
     UADD(r1, c, r0, hi);
-    rp[i+off+1] = r1;
+    rp[i+1] = r1;
 
-    for (j = i + off + 2; c && j < rsize; j++) {
+    for (j = i + 2; c && j < rsize; j++) {
       r0 = rp[j];
       UADD(r1, c, r0, 0);
       rp[j] = r1;
     }
   }
-  return br;
 #endif
 
 }
@@ -515,18 +518,40 @@ static void karatsuba(ulong *rp, uint rsize,
 }
 #endif	/* USE_KARATSUBA */
 
-/* TODO implement non USE_DLONG version */
+/* 
+   out += in * k
+ */
 static inline ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
 {
   int i;
-  dlong p = (dlong)*in * k + *out;
-  *out = (ulong)p;
+#ifdef USE_DLONG
+  dlong p = (dlong)in[0] * k + out[0];
+  out[0] = (ulong)p;
 
   for (i = 1; i < len; i++) {
     p = (dlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
     out[i] = (ulong)p;
   }
   return (ulong)(p >> WORD_BITS);
+#else
+  /* FIXME this doesn't work properly yet. */
+  ulong hi, lo, c = 0;
+  UMUL(hi, lo, in[0], k); 	/* hi,lo = in[0] * k  ; in[0]*k (1)*/
+  UADD(lo, c, out[0], lo);	/* r1(c) = out[0] + lo; (1)+out[0] */
+  UADD(hi, c, hi, 0);		/* add carry to hi */
+  out[0] = lo;			/* r1 = (ulong)p */
+
+  for (i = 1; i < len; i++) {
+    ulong t = hi, lo2, c2 = 0;
+    c = 0;
+    UMUL(hi, lo, in[i], k);	/* in[i]*k (1) */
+    UADD(lo2, c, lo, t);	/* (1) + p>>WORD_BITS (2) */
+    UADD(lo, c2, lo2, out[i]);	/* (2) + out[i] */
+    UADD(hi, c, hi, c2);	/* add carry */
+    out[i] = lo;
+  }
+  return hi;
+#endif
 }
 /* grade-school  */
 static ulong* long_mul(ulong *rp, uint rsize,
@@ -541,6 +566,7 @@ static ulong* long_mul(ulong *rp, uint rsize,
   for (i = 1; i < ysize; i++) {
     rp[xsize + i] = mp_mul_add((rp+i), xp, xsize, yp[i]);
   }
+  return rp;
 }
 
 static void mp_mul(ulong *rp, uint rsize,
@@ -604,7 +630,7 @@ static void mp_square(ulong *rp, uint rsize,
 
 static inline int div_normalization_factor(unsigned long w)
 {
-  unsigned long b = (1L << (WORD_BITS - 1)), c = 0;
+  ulong b = (1L << (WORD_BITS - 1)), c = 0;
   for (; b > 0; b >>= 1, c++) {
     if (w & b) return c;
   }
@@ -705,9 +731,9 @@ static uint mp_div_rem(ulong *dp, ulong *rem,
 }
 
 /* others */
-/* TODO no dlong one */
 static long sub_n(ulong *num1, ulong *num2, int len)
 {
+#ifdef USE_DLONG
   dlong t = (dlong)num1[0] - num2[0];
   int i;
   num1[0] = (ulong)t;
@@ -716,6 +742,21 @@ static long sub_n(ulong *num1, ulong *num2, int len)
     num1[i] = (ulong)t;
   }
   return (long)(t >> WORD_BITS);
+#else
+  ulong x;
+  long c = 0;
+  int i;
+  x = num2[0];
+  c += (num1[0] -= x) > ~x;
+  for (i = 0; i < len; i++) {
+    x = num2[i];
+    x += c;
+    c = x < c;
+    num1[i] -= x;
+    c += num1[i] > ~x;
+  }
+  return c;
+#endif
 }
 
 static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
