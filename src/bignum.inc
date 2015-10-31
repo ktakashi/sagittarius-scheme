@@ -148,9 +148,10 @@ static int mp_add(ulong *rp, uint rsize,
   xp + y -> rp (xzise > 1)
   returns carry (0 or 1)
 */
-static int mp_add_ul(ulong *rp, uint rsize, 
-		     ulong *xp, uint xsize,
-		     ulong y)
+/* mp_add_one doesn't add carry to the end */
+static int mp_add_one(ulong *rp, uint rsize, 
+		      ulong *xp, uint xsize,
+		      ulong y)
 {
 #ifdef USE_DLONG
   dlong t = (dlong)xp[0] + y;
@@ -163,7 +164,6 @@ static int mp_add_ul(ulong *rp, uint rsize,
   for (i = 1; i < xsize; i++) {
     if (++rp[i] != 0) return 0;
   }
-  rp[rsize-1] = 1;
   return 1;
 #else
   long c = 0;
@@ -173,9 +173,16 @@ static int mp_add_ul(ulong *rp, uint rsize,
   for (i = 1; i < xsize; i++) {
     UADD(rp[i], c, xp[i], 0);
   }
-  rp[rsize-1] = c;
   return c;
-#endif
+#endif  
+}
+static int mp_add_ul(ulong *rp, uint rsize, 
+		     ulong *xp, uint xsize,
+		     ulong y)
+{
+  int c = mp_add_one(rp, rsize, xp, xsize, y);
+  if (c) rp[rsize-1] = c;
+  return c;
 }
 
 /* Subtraction */
@@ -509,7 +516,7 @@ static void karatsuba(ulong *rp, uint rsize,
 #endif	/* USE_KARATSUBA */
 
 /* TODO implement non USE_DLONG version */
-static ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
+static inline ulong mp_mul_add(ulong *out, ulong *in, int len, ulong k)
 {
   int i;
   dlong p = (dlong)*in * k + *out;
@@ -526,25 +533,14 @@ static ulong* long_mul(ulong *rp, uint rsize,
 		       ulong *xp, uint xsize,
 		       ulong *yp, uint ysize)
 {
-  /* multiply first word */
-  /* mul_n1(z, x, xlen, *y++); */
   int i;
-  ulong k = yp[0];
-  dlong p = (dlong)xp[0] * k;
-  rp[0] = (ulong)p;
-
-  for (i = 1; i < xsize; i++) {
-    p = (dlong)xp[i] * k + (ulong)(p >> WORD_BITS);
-    rp[i] = (ulong)p;
-  }
-  rp[i] = (ulong)(p >> WORD_BITS);
-
+  /* multiply first word */
+  mp_mul_ul(rp, rsize, xp, xsize, yp[0]);
   /* add in subsequent words, storing the most significant word which is new
      each time */
   for (i = 1; i < ysize; i++) {
     rp[xsize + i] = mp_mul_add((rp+i), xp, xsize, yp[i]);
   }
-  return rp; 
 }
 
 static void mp_mul(ulong *rp, uint rsize,
@@ -668,9 +664,9 @@ static uint mp_div_rem(ulong *dp, ulong *rem,
   vn_2 = DIGIT(v, n - 2);
 
   for (j = m; j >= 0; j--) {
-    unsigned long uu = (DIGIT(u, j+n) << HALF_BITS) + DIGIT(u, j+n-1);
-    unsigned long qq = uu / vn_1;
-    unsigned long rr = uu % vn_1;
+    ulong uu = (DIGIT(u, j+n) << HALF_BITS) + DIGIT(u, j+n-1);
+    ulong qq = uu / vn_1;
+    ulong rr = uu % vn_1;
 
     while (qq >= HALF_WORD) { qq--; rr += vn_1; }
     while ((qq * vn_2 > (rr << HALF_BITS) + DIGIT(u, j + n - 2))
@@ -708,3 +704,49 @@ static uint mp_div_rem(ulong *dp, ulong *rem,
 #undef SETDIGIT2
 }
 
+/* others */
+/* TODO no dlong one */
+static long sub_n(ulong *num1, ulong *num2, int len)
+{
+  dlong t = (dlong)num1[0] - num2[0];
+  int i;
+  num1[0] = (ulong)t;
+  for (i = 1; i < len; i++) {
+    t = (dlong)num1[i] - (dlong)num2[i] - (ulong)-(t >> WORD_BITS);
+    num1[i] = (ulong)t;
+  }
+  return (long)(t >> WORD_BITS);
+}
+
+static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
+{
+  int i;
+  for (i = len-1; i >= 0; i--) {
+    if (arg1[i] != arg2[i]) {
+      if (arg1[i] < arg2[i]) return -1;
+      else return 1;
+    }
+  }
+  return 0;
+}
+
+static ulong* mp_mont_reduce(ulong *n, uint nlen,
+			     ulong *mod, int mlen,
+			     ulong inv)
+{
+  ulong c = 0;
+  int len = mlen;
+  
+  do {
+    ulong carry = mp_mul_add(n, mod, mlen, inv * n[0]);
+    c += mp_add_one(n+mlen, len, n+mlen, len, carry);
+    ++n;
+  } while (--len);
+  while (c) {
+    c += sub_n(n, mod, mlen);
+  }
+  while (ulong_array_cmp_to_len(n, mod, mlen) >= 0) {
+    sub_n(n, mod, mlen);
+  }
+  return n;
+}

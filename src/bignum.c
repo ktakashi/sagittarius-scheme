@@ -2020,62 +2020,6 @@ static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
   7, 25, 81, 241, 673, 1793, (ulong)-1L
 };
 
-static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
-{
-  int i;
-  for (i = len-1; i >= 0; i--) {
-    if (arg1[i] != arg2[i]) {
-      if (arg1[i] < arg2[i]) return -1;
-      else return 1;
-    }
-  }
-  return 0;
-}
-
-static ulong sub_n(ulong *num1, ulong *num2, int len)
-{
-  dlong t = (dlong)*num1 - *num2;
-  int i;
-  *num1 = (ulong)t;
-  for (i = 1; i < len; i++) {
-    t = (dlong)num1[i] - (dlong)num2[i] - (ulong)-(t >> WORD_BITS);
-    num1[i] = (ulong)t;
-  }
-  return -(ulong)(t >> WORD_BITS);
-}
-
-
-static int add_one(ulong *num, int len, ulong carry)
-{  
-  dlong t = (dlong)*num + carry;
-  int i;
-  *num = (ulong)t;
-  if ((t >> WORD_BITS) == 0) return 0;
-  for (i = 1; i < len; i++) {
-    if (++num[i] != 0) return 0;
-  }
-  return 1;
-}
-
-static ulong* mont_reduce(ulong *n, SgBignum *mod, int mlen, ulong inv)
-{
-  ulong c = 0;
-  int len = mlen;
-
-  do {
-    ulong carry = mp_mul_add(n, mod->elements, mlen, inv * n[0]);
-    c += add_one(n+mlen, len, carry);
-    ++n;
-  } while (--len);
-  while (c) {
-    c -= sub_n(n, mod->elements, mlen);
-  }
-  while (ulong_array_cmp_to_len(n, mod->elements, mlen) >= 0) {
-    sub_n(n, mod->elements, mlen);
-  }
-  return n;
-}
-
 #if 0
 static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 {
@@ -2132,7 +2076,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   /* blen = modlen<<1 */
   /* square_to_len(table[0], modlen, b); */
   mp_square(b, modlen2, table[0], modlen);
-  mont_reduce(b, mod, modlen, inv);
+  mp_mont_reduce(b, modlen2, mod->elements, modlen, inv);
   /* Use high hald of b to initialise the table */
   t = b+modlen;
 
@@ -2141,7 +2085,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
     ALLOC_TEMP_BUFFER(prod, ulong, modlen);
     /* alen = modlen<<1 */
     mp_mul(a, modlen2, t, modlen, table[i-1], modlen);
-    mont_reduce(a, mod, modlen, inv);
+    mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
 
     for (j = 0; j < modlen; j++) {
       prod[j] = a[j+modlen];
@@ -2207,7 +2151,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
       } else {
 	/* alen = modlen<<1 */
 	mp_mul(a, modlen2, t, modlen, mult, modlen);
-	mont_reduce(a, mod, modlen, inv);
+	mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
 	t = a; a = b; b = t;
       }
     }
@@ -2218,7 +2162,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
       t = b+modlen;
       /* square_to_len(t, modlen, a); */
       mp_square(a, modlen2, t, modlen);
-      mont_reduce(a, mod, modlen, inv);
+      mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
       t = a; a = b; b = t;
     }
   }
@@ -2252,7 +2196,7 @@ static SgObject odd_mod_expt(SgBignum *x, SgBignum *exp, SgBignum *mod)
     b[i] = t[i];
     t[i] = 0;
   }
-  mont_reduce(b, mod, modlen, inv);
+  mp_mont_reduce(b, buflen, mod->elements, modlen, inv);
 
   for (i = 0; i < modlen; i++) {
     r->elements[i] = t[i];
