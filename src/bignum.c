@@ -2020,19 +2020,6 @@ static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
   7, 25, 81, 241, 673, 1793, (ulong)-1L
 };
 
-#if 0
-static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
-{
-  dlong p = (dlong)*in++ * k;
-  *out++ = (ulong)p;
-  while (--nlen) {
-    p = (dlong)*in++ * k + (ulong)(p >> WORD_BITS);
-    *out++ = (ulong)p;
-  }
-  *out = (ulong)(p >> WORD_BITS);
-}
-#endif
-
 static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 				ulong inv, ulong *a, ulong *b)
 {

@@ -731,7 +731,22 @@ static uint mp_div_rem(ulong *dp, ulong *rem,
 }
 
 /* others */
-static long sub_n(ulong *num1, ulong *num2, int len)
+/* this is not used */
+#if 0
+static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
+{
+  dlong p = (dlong)*in++ * k;
+  *out++ = (ulong)p;
+  while (--nlen) {
+    p = (dlong)*in++ * k + (ulong)(p >> WORD_BITS);
+    *out++ = (ulong)p;
+  }
+  *out = (ulong)(p >> WORD_BITS);
+}
+#endif
+
+/* TODO merge into mp_sub */
+static long mp_sub_n(ulong *num1, ulong *num2, int len)
 {
 #ifdef USE_DLONG
   dlong t = (dlong)num1[0] - num2[0];
@@ -759,6 +774,7 @@ static long sub_n(ulong *num1, ulong *num2, int len)
 #endif
 }
 
+/* compare 2 array whose length are the same. */
 static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
 {
   int i;
@@ -784,10 +800,10 @@ static ulong* mp_mont_reduce(ulong *n, uint nlen,
     ++n;
   } while (--len);
   while (c) {
-    c += sub_n(n, mod, mlen);
+    c += mp_sub_n(n, mod, mlen);
   }
   while (ulong_array_cmp_to_len(n, mod, mlen) >= 0) {
-    sub_n(n, mod, mlen);
+    mp_sub_n(n, mod, mlen);
   }
   return n;
 }
