@@ -47,21 +47,29 @@
 #undef max
 #define max(x, y)   (((x) > (y))? (x) : (y))
 
+/* will be used in bignum.inc
+   TODO move to bignum.inc
+ */
+#define clear_buffer(v, size)				\
+  do {							\
+    int __i, __size = (size);				\
+    for (__i = 0; __i < __size; __i++) (v)[__i] = 0L;	\
+  } while (0)
 
-/* MSVC doesn't allow us to typedef in bottom. Well, that's how it suppose to be
-   I think... */
-typedef unsigned long ulong;
-#if SIZEOF_LONG == 8
-#ifdef __GNUC__
-typedef unsigned int dlong __attribute__((__mode__(TI)));
+#ifdef HAVE_ALLOCA
+#define ALLOC_TEMP_BUFFER_REC(v, type, size)		\
+    (v) = (type *)alloca(sizeof(type) * (size));
 #else
-# error "sizeof(long) == 8 but not GCC (not supported yet)"
+#define ALLOC_TEMP_BUFFER_REC(v, type, size)			\
+    (v) = SG_NEW_ATOMIC2(type *, sizeof(type) * (size));
 #endif
-#define SHIFT_MAGIC 6
-#else
-typedef uint64_t dlong;
-#define SHIFT_MAGIC 5
-#endif
+
+#define ALLOC_TEMP_BUFFER(v, type, size)	\
+  do {						\
+    ALLOC_TEMP_BUFFER_REC(v, type, size)	\
+    clear_buffer(v, size);			\
+  } while (0)
+
 
 /* debug utility macro */
 #define dump_array_rec(flag, array, size)	\
@@ -76,7 +84,11 @@ typedef uint64_t dlong;
 
 #define dump_sarray(array, size) dump_array_rec("%ld ", array, size)
 #define dump_uarray(array, size) dump_array_rec("%lu ", array, size)
+#if SIZEOF_LONG == 8
+#define dump_xarray(array, size) dump_array_rec("%016lx ", array, size)
+#else
 #define dump_xarray(array, size) dump_array_rec("%08lx ", array, size)
+#endif
 
 #define dump_rec(flag, v) fprintf(stderr, #v" "flag, v)
 #define dump_s(v) dump_rec("%ld\n", v)
@@ -86,6 +98,7 @@ typedef uint64_t dlong;
 #define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
 #define dump_bignum_x(b) dump_xarray((b)->elements, (b)->size)
 
+#include "bignum.inc"
 
 static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
 static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
@@ -93,7 +106,7 @@ static SgBignum *bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by);
 static SgBignum* bignum_clear(SgBignum *b, int size)
 {
   int i;
-  for (i = 0; i < size; i++) b->elements[i] = 0;
+  for (i = 0; i < size; i++) b->elements[i] = 0L;
   return b;
 }
 
@@ -113,7 +126,7 @@ static SgBignum* make_bignum_rec(int size, int need_clear)
     SG_BIGNUM_SET_SIGN(b, 1);
   }
   if (need_clear)
-    return bignum_clear(b, size);
+    return bignum_clear(b, real_size);
   else
     return b;
 }
@@ -620,12 +633,7 @@ uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor)
 
 static inline SgBignum* bignum_2scmpl(SgBignum *br)
 {
-  int rsize = SG_BIGNUM_GET_COUNT(br);
-  int i, c;
-  for (i = 0, c = 1; i < rsize; i++) {
-    unsigned long x = ~br->elements[i];
-    UADD(br->elements[i], c, x, 0);
-  }
+  mp_2scmpl(br->elements, br->size);
   return br;
 }
 
@@ -720,34 +728,9 @@ SgObject Sg_BignumAsh(SgBignum *b, long count)
   else return Sg_BignumShiftRight(b, -count);
 }
 
-static SgBignum* bignum_lshift(SgBignum *br, SgBignum const *bx, long amount)
+static SgBignum* bignum_lshift(SgBignum *br, SgBignum *bx, long amount)
 {
-  long nwords, nbits, i;
-  unsigned long x;
-
-  nwords = amount / WORD_BITS;
-  nbits = amount % WORD_BITS;
-  if (nbits == 0) {
-    for (i = (int)SG_BIGNUM_GET_COUNT(bx) - 1; i >= 0; i--) {
-      if ((int)SG_BIGNUM_GET_COUNT(br) > i + nwords)
-	br->elements[i + nwords] = bx->elements[i];
-    }
-    /* ASSERT(SG_BIGNUM_GET_COUNT(br) >= nwords); */
-    for (i = nwords - 1; i >= 0; i--) br->elements[i] = 0;
-  } else {
-    int bxsize = SG_BIGNUM_GET_COUNT(bx);
-    int brsize = SG_BIGNUM_GET_COUNT(br);
-    if (brsize > bxsize + nwords) {
-      br->elements[bxsize+nwords] = bx->elements[bxsize-1]>>(WORD_BITS-nbits);
-    }
-    for (i = bxsize - 1; i > 0; i--) {
-      x = (bx->elements[i]<<nbits)|(bx->elements[i-1]>>(WORD_BITS-nbits));
-      if (brsize > i+nwords) br->elements[i+nwords] = x;
-    }
-    /* ASSERT(brsize > nwords); */
-    br->elements[nwords] = bx->elements[0] << nbits;
-    for (i = nwords - 1; i >= 0; i--) br->elements[i] = 0;
-  }
+  mp_lshift(br->elements, br->size, bx->elements, bx->size, amount);
   if (br != bx) {
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   }
@@ -761,32 +744,12 @@ SgObject Sg_BignumShiftLeft(SgBignum *b, long shift)
   return Sg_NormalizeBignum(bignum_lshift(r, b, shift));
 }
 
-static SgBignum* bignum_rshift(SgBignum *br, SgBignum const *bx, long amount)
+static SgBignum* bignum_rshift(SgBignum *br, SgBignum *bx, long amount)
 {
-  unsigned long nwords = amount / WORD_BITS;
-  unsigned long nbits = amount % WORD_BITS;
-  unsigned long i;
-  if (SG_BIGNUM_GET_COUNT(bx) <= nwords) {
-    SG_BIGNUM_SET_COUNT(br, 0);
-    br->elements[0] = 0;
-  } else if (nbits == 0) {
-    for (i = nwords; (int)i < (int)SG_BIGNUM_GET_COUNT(bx); i++) {
-      br->elements[i - nwords] = bx->elements[i];
-    }
-    SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
-  } else {
-    unsigned long x;
-    int bxsize = SG_BIGNUM_GET_COUNT(bx);
-    for (i = nwords; (int)i < bxsize - 1; i++) {
-      x = (bx->elements[i+1] << (WORD_BITS - nbits))|(bx->elements[i] >> nbits);
-      br->elements[i - nwords] = x;
-    }
-    /* ASSERT(SG_BIGNUM_GET_COUNT(br) > i-nwords); */
-    br->elements[i - nwords] = bx->elements[i] >> nbits;
-    SG_BIGNUM_SET_COUNT(br, SG_BIGNUM_GET_COUNT(bx) - nwords);
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
-  }
+  uint size = mp_rshift(br->elements, br->size, bx->elements, bx->size, amount);
+  
+  SG_BIGNUM_SET_COUNT(br, size);
+  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   return br;
 }
 
@@ -1024,15 +987,7 @@ static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y)
 {
   int xsize = SG_BIGNUM_GET_COUNT(x);
   int ysize = SG_BIGNUM_GET_COUNT(y);
-  if (xsize > ysize) {
-    if (x->elements[xsize - 1] == SG_ULONG_MAX) return xsize + 1;
-    else return xsize;
-  } else if (xsize < ysize) {
-    if (y->elements[ysize - 1] == SG_ULONG_MAX) return ysize + 1;
-    else return ysize;
-  } else {
-    return xsize + 1;
-  }
+  return mp_safe_size_for_add(x->elements, xsize, y->elements, ysize);
 }
 
 static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
@@ -1040,7 +995,7 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int rsize = SG_BIGNUM_GET_COUNT(br);
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
-  int i, c;
+  int i;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1058,57 +1013,14 @@ static SgBignum* bignum_add_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 1
-    /* this is faster */
-    dlong sum = 0L;
-    int xindex, yindex;
-    /* if x is shorter, swap it */
+      /* if x is shorter, swap it */
     if (xsize < ysize) {
       SgBignum *t = bx;
-      int tsize = xsize;
+      uint tsize = xsize;
       bx = by; by = t;
       xsize = ysize; ysize = tsize;
     }
-    for (xindex = 0, yindex = 0; yindex < ysize; xindex++, yindex++) {
-      c = (int)(sum >> WORD_BITS);
-      sum = (dlong)bx->elements[xindex] + by->elements[yindex] + c;
-      br->elements[xindex] = (ulong)sum;
-    }
-    /* copy remainder of longer number while carry propagation is required */
-    c = (int)(sum >> WORD_BITS);
-    for (; xindex < xsize && c; xindex++) {
-      br->elements[xindex] = bx->elements[xindex] + 1;
-      c = (br->elements[xindex] == 0);
-    }
-    /* copy remainder of longer number */
-    for (; xindex < xsize; xindex++) {
-      br->elements[xindex] = bx->elements[xindex];
-    }
-    if (c) {
-      br->elements[rsize-1] = 1;
-    }
-#else
-    unsigned long x, y;
-    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-      if (xsize <= 0) {
-	if (ysize <= 0) {
-	  UADD(br->elements[i], c, 0, 0);
-	  continue;
-	}
-	y = by->elements[i];
-	UADD(br->elements[i], c, 0, y);
-	continue;
-      }
-      if (ysize <= 0) {
-	x = bx->elements[i];
-	UADD(br->elements[i], c, x, 0);
-	continue;
-      }
-      x = bx->elements[i];
-      y = by->elements[i];
-      UADD(br->elements[i], c, x, y);
-    }
-#endif
+    mp_add(br->elements, rsize, bx->elements, xsize, by->elements, ysize);
   }
   return br;
 }
@@ -1118,7 +1030,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int rsize = SG_BIGNUM_GET_COUNT(br);
   int xsize = SG_BIGNUM_GET_COUNT(bx);
   int ysize = SG_BIGNUM_GET_COUNT(by);
-  int i, c = 0;
+  int i;
 
   /* handle 0 first */
   if (xsize == 0) {
@@ -1137,10 +1049,7 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
     }
     SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
   } else {
-#if 1
-    dlong diff = 0L;
-    int xindex, yindex, flip = FALSE;
-    /* if x is shorter, swap it */
+    int flip = FALSE, c;
     if (xsize < ysize) {
       SgBignum *t = bx;
       bx = by; by = t;
@@ -1148,53 +1057,11 @@ static SgBignum* bignum_sub_int(SgBignum *br, SgBignum *bx, SgBignum *by)
       ysize = SG_BIGNUM_GET_COUNT(by);
       flip = TRUE;
     }
-    for (yindex = 0, xindex = 0; yindex < ysize; xindex++, yindex++) {
-      c = (int)(diff >> WORD_BITS);
-      diff = (dlong)bx->elements[xindex] - by->elements[yindex] + c;
-      br->elements[xindex] = (ulong)diff;
-    }
-    c = (int)(diff >> WORD_BITS);
-    for (;xindex < xsize && c; xindex++) {
-      br->elements[xindex] = bx->elements[xindex] - 1;
-      c = (br->elements[xindex] == (ulong)-1L) ? -1 : 0;
-    }
-    for (;xindex < xsize; xindex++) {
-      br->elements[xindex] = bx->elements[xindex];
-    }
-    /* padding carry */
-    for (;xindex < rsize; xindex++) {
-      br->elements[xindex] = c;
-    }
+    c = mp_sub(br->elements, rsize, bx->elements, xsize, by->elements, ysize);
     if (flip || c) {
       if (c) bignum_2scmpl(br);
-      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
+      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br));
     }
-#else
-    unsigned long x, y;
-    for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-      if (xsize <= 0) {
-	if (ysize <= 0) {
-	  USUB(br->elements[i], c, 0, 0);
-	  continue;
-	}
-	y = by->elements[i];
-	USUB(br->elements[i], c, 0, y);
-	continue;
-      }
-      if (ysize <= 0) {
-	x = bx->elements[i];
-	USUB(br->elements[i], c, x, 0);
-	continue;
-      }
-      x = bx->elements[i];
-      y = by->elements[i];
-      USUB(br->elements[i], c, x, y);
-    }
-    if (c != 0) {
-      bignum_2scmpl(br);
-      SG_BIGNUM_SET_SIGN(br, -SG_BIGNUM_GET_SIGN(br)); /* flip sign */
-    }
-#endif
   }
   return br;
 }
@@ -1230,27 +1097,22 @@ static SgBignum* bignum_sub(SgBignum *bx, SgBignum *by)
 
 static SgBignum* bignum_add_si(SgBignum *bx, long y)
 {
-  long c;
-  unsigned int i, rsize = SG_BIGNUM_GET_COUNT(bx) + 1;
-  unsigned long yabs = ((y < 0) ? -y : y);
-  int ysign = ((y < 0) ? -1: 1);
+  ulong yabs;
+  int ysign;
   SgBignum *br;
-  if (y == 0) return bx;
 
-  br = make_bignum(rsize);
+  if (y == 0) return bx;	/* short cut */
+
+  yabs =  ((y < 0) ? -y : y);
+  ysign = ((y < 0) ? -1: 1);
+  br = make_bignum(bx->size + 1);
   SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx));
+  /* dispatch here */
   if (SG_BIGNUM_GET_SIGN(bx) == ysign) {
-    for (c = 0, i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-      UADD(br->elements[i], c, bx->elements[i], yabs);
-      yabs = 0;
-    }
+    mp_add_ul(br->elements, br->size, bx->elements, bx->size, yabs);
   } else {
-    for (c = 0, i = 0; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-      USUB(br->elements[i], c, bx->elements[i], yabs);
-      yabs = 0;
-    }
+    mp_sub_ul(br->elements, br->size, bx->elements, bx->size, yabs);
   }
-  br->elements[rsize - 1] = c;
   return br;
 }
 
@@ -1274,11 +1136,6 @@ SgObject Sg_BignumSubSI(SgBignum *a, long b)
 {
   return Sg_NormalizeBignum(bignum_add_si(a, -b));
 }
-
-/* forward declaration */
-static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z);
-static ulong* square_to_len(ulong *num, int len, ulong *prod);
-static ulong mul_add(ulong *out, ulong *in, int len, ulong k);
 
 /* whatever i did, it's slow. */
 #if 0
@@ -1424,164 +1281,8 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 					unsigned long y)
 {
-  int i;
-  register dlong p;
-  p = (dlong)bx->elements[0] * y;
-  br->elements[0] = (ulong)p;
-  for (i = 1; i < SG_BIGNUM_GET_COUNT(bx); i++) {
-    p = (dlong)bx->elements[i] * y + (ulong)(p >> WORD_BITS);
-    br->elements[i] = (ulong)p;
-  }
-  br->elements[i] = (ulong)(p >> WORD_BITS);
+  mp_mul_ul(br->elements, br->size, bx->elements, bx->size, y);
   return br;
-}
-#endif
-
-static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by);
-
-#define USE_KARATSUBA
-#ifdef USE_KARATSUBA
-/* if the bignum length is less than this then we do 
-   usual computation. */
-/* according to Wikipedia karatsuba is faster when the numbers are
-   bigger than 320-640 bits. */
-#define KARATSUBA_LOW_LIMIT ((640>>3)/SIZEOF_LONG)
-
-/*
-  basic algorithm
-  compute x*y 
-  
-  x = a*B^(n/2) + b
-  y = c*B^(n/2) + d
-  B = 16 (hex)
-  n = max(xlen, ylen), if diff is small enough then we can always split :)
-  x*y = (a*B^(n/2) + b) * (c*B^(n/2) + d)
-      = B^n*ac + B^(n/2)*(ad + bc) + bd
-      = 16^n*ac + 16^(n/2)*(ad + bc) + bd
- 
-  recursive computation
-  1 ac
-  2 bd
-  3 (a + b)(c + d) = ac + ad + bc + bd
-  now 3 - 1 - 2 = ad + bc
-
-  Image in Scheme
-  (define x #x123456789)
-  (define y #x908765432)
-  (define B 16)
-  (define n 9)
-  (define a #x12345)
-  (define b #x6789)
-  (define c #x90876)
-  (define d #x5432)
-  (let ((ac (* a c))
-        (bd (* b d))
-        (xx (+ (* a d) (* b c))))
-    ;; 16^n * ac where n = length of b and d 
-    (+ (* (expt B (* (div n 2) 2)) ac) 
-       (* (expt B (div n 2)) xx)
-       bd))
- */
-
-#define BIGNUM_SPLIT_COPY(dst, src, start, len)				\
-  do {									\
-    int i, off = (start), end = (len);					\
-    /* copy doesn't need clear */					\
-    ALLOC_TEMP_BIGNUM_REC(dst, len);					\
-    for (i = 0; i < end; i++) {						\
-      (dst)->elements[i] = (src)->elements[off+i];			\
-    }									\
-  } while (0)
-
-#define BIGNUM_WORD_SHIFT(dst, src, words)				\
-  do {									\
-    int i, nwords = (words);						\
-    for (i=SG_BIGNUM_GET_COUNT(src)-1; i>=0; i--) {			\
-      (dst)->elements[i+nwords] = (src)->elements[i];			\
-    }									\
-  } while (0)
-  
-#define BIGNUM_CLEAR_LEFT(bn, size)				\
-  do {								\
-    int i, len = (size);					\
-    int off = SG_BIGNUM_GET_COUNT(bn)-1;			\
-    for (i = 0; i < len; i++) (bn)->elements[off-i] = 0;	\
-  } while (0)
-#define BIGNUM_CLEAR_RIGHT(bn, size)				\
-  do {								\
-    int i, len = (size);					\
-    for (i = 0; i < len; i++) (bn)->elements[i] = 0;		\
-  } while (0)
-
-static int can_karatsuba(SgBignum *bx, SgBignum *by)
-{
-  int xlen = SG_BIGNUM_GET_COUNT(bx);
-  int ylen = SG_BIGNUM_GET_COUNT(by);
-  if (xlen < KARATSUBA_LOW_LIMIT || ylen < KARATSUBA_LOW_LIMIT) {
-    return FALSE;
-  } else {
-    int n = max(xlen, ylen)/2;
-    return n < xlen && n < ylen;
-  }
-}
-
-static SgBignum* karatsuba(SgBignum *br, SgBignum *bx, SgBignum *by)
-{
-  int xlen = SG_BIGNUM_GET_COUNT(bx);
-  int ylen = SG_BIGNUM_GET_COUNT(by);
-  int n = max(xlen, ylen)/2, apblen, cpdlen, adbclen;
-  int n2 = n<<1;
-  SgBignum *a, *b, *c, *d, *ac, *bd, *apb, *cpd, *adbc;
-  /* prepare temporary buffers */
-  /* it's little endian so the last is the most significant */
-  BIGNUM_SPLIT_COPY(a, bx, n, xlen-n);
-  BIGNUM_SPLIT_COPY(b, bx, 0, n);
-  BIGNUM_SPLIT_COPY(c, by, n, ylen-n);
-  BIGNUM_SPLIT_COPY(d, by, 0, n);
-
-  apblen = bignum_safe_size_for_add(a, b);
-  cpdlen = bignum_safe_size_for_add(c, d);
-  ALLOC_TEMP_BIGNUM_REC(apb, apblen);
-  ALLOC_TEMP_BIGNUM_REC(cpd, cpdlen);
-  /* we just need to clear most significant byte */
-  BIGNUM_CLEAR_LEFT(apb, 1);
-  BIGNUM_CLEAR_LEFT(cpd, 1);
-  apb = bignum_add_int(apb, a, b); /* prepare for 3 (a + b) */
-  cpd = bignum_add_int(cpd, c, d); /* prepare for 3 (c + d) */
-
-  adbclen = apblen + cpdlen;
-  ALLOC_TEMP_BIGNUM_REC(adbc, adbclen);
-
-  ALLOC_TEMP_BIGNUM_REC(ac, SG_BIGNUM_GET_COUNT(a) + SG_BIGNUM_GET_COUNT(c));
-  ALLOC_TEMP_BIGNUM_REC(bd, n2);
-  BIGNUM_CLEAR_LEFT(ac, 4);	/* more than enough? */
-  BIGNUM_CLEAR_LEFT(bd, 4);
-  ac = bignum_mul_int(ac, a, c); /* recursive 1 */
-  bd = bignum_mul_int(bd, b, d); /* recursive 2 */
-  adbc = bignum_mul_int(adbc, apb, cpd); /* recursive 3 */
-  /* 3 - 1 - 2 */
-  adbc = bignum_sub_int(adbc, adbc, ac);
-  adbc = bignum_sub_int(adbc, adbc, bd);
-
-  /* I hate C89 */
-  {
-    /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
-    /* shift n words */
-    SgBignum *lac, *ladbc;
-    int laclen = SG_BIGNUM_GET_COUNT(ac) + n2;
-    int ladbclen = SG_BIGNUM_GET_COUNT(adbc) + n;
-    ALLOC_TEMP_BIGNUM_REC(lac, laclen);
-    ALLOC_TEMP_BIGNUM_REC(ladbc, ladbclen);
-    BIGNUM_CLEAR_RIGHT(lac, n2);
-    BIGNUM_CLEAR_RIGHT(ladbc, n);
-    /* to reduce unnecessary calculation */
-    BIGNUM_WORD_SHIFT(lac, ac, n2);
-    BIGNUM_WORD_SHIFT(ladbc, adbc, n);
-
-    /* now br must have sufficient size to put */
-    br = bignum_add_int(br, lac, ladbc);
-    return bignum_add_int(br, br, bd);
-  }
 }
 #endif
 
@@ -1605,22 +1306,9 @@ static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
   int xlen = SG_BIGNUM_GET_COUNT(bx);
   int ylen = SG_BIGNUM_GET_COUNT(by);
   /* early check */
-#ifdef USE_KARATSUBA
-  if (can_karatsuba(bx, by)) {
-    /* ok do it */
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-    return karatsuba(br, bx, by);
-  } else {
-#endif
-
-    multiply_to_len(bx->elements, xlen, by->elements, ylen, br->elements);
-    SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("%S x %S = %S\n"), bx, by, br); */
-    return br;
-
-#ifdef USE_KARATSUBA
-  }
-#endif
+  SG_BIGNUM_SET_SIGN(br, SG_BIGNUM_GET_SIGN(bx) * SG_BIGNUM_GET_SIGN(by));
+  mp_mul(br->elements, br->size, bx->elements, xlen, by->elements, ylen);
+  return br;
 }
 
 static SgBignum* bignum_mul(SgBignum *bx, SgBignum *by)
@@ -1676,102 +1364,28 @@ SgObject Sg_BignumSquare(SgBignum *bx)
 {
   int len = SG_BIGNUM_GET_COUNT(bx);  
   SgBignum *br = make_bignum(len<<1);
-  square_to_len(bx->elements, len, br->elements);
+  /* square_to_len(bx->elements, len, br->elements); */
+  mp_square(br->elements, br->size, bx->elements, len);
   SG_BIGNUM_SET_SIGN(br, 1);
   return Sg_NormalizeBignum(br);
-}
-
-static inline int div_normalization_factor(unsigned long w)
-{
-  unsigned long b = (1L << (WORD_BITS - 1)), c = 0;
-  for (; b > 0; b >>= 1, c++) {
-    if (w & b) return c;
-  }
-  FATAL("bignum.c: div_normalization_factor: can't be here");
-  return 0;
 }
 
 static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
 				 SgBignum *quotient, int remainderp)
 {
-  SgBignum *u, *v;
-  unsigned int ds_size = SG_BIGNUM_GET_COUNT(divisor);
-  unsigned int de_size = SG_BIGNUM_GET_COUNT(dividend);
-  int d = div_normalization_factor(divisor->elements[ds_size - 1]);
-  int j, k, n, m;
-  unsigned long vn_1, vn_2, vv, uj, uj2, cy;
-
-#define DIGIT(num, n)							\
-  (((n)%2)? HI((num)->elements[(n)/2]) : LO((num)->elements[(n)/2]))
-#define DIGIT2(num, n)							\
-  (((n)%2)?								\
-   ((LO((num)->elements[(n)/2+1])<<HALF_BITS)|HI((num)->elements[(n)/2])): \
-   (num)->elements[(n)/2])
-#define SETDIGIT(num, n, v)						\
-  (((n)%2)?								\
-   (num->elements[(n)/2]=(num->elements[(n)/2] & LOMASK)|((v) << HALF_BITS)): \
-   (num->elements[(n)/2]=(num->elements[(n)/2] & HIMASK)|((v) & LOMASK)))
-#define SETDIGIT2(num, n, v)						\
-  (((n)%2)?								\
-   ((num->elements[(n)/2] = LO(num->elements[(n)/2])|((v)<<HALF_BITS)),	\
-    (num->elements[(n)/2+1] = (num->elements[(n)/2+1] & HIMASK)|HI(v))) : \
-   (num->elements[(n)/2] = (v)))
-  
+  SgBignum *u = NULL;
+  uint de_size = dividend->size, rsize;
   if (remainderp) {
-    u = make_bignum(de_size + 1);
-  } else {
-    ALLOC_TEMP_BIGNUM(u, de_size+1);
+    u = make_bignum(de_size + 1); 
   }
-  ALLOC_TEMP_BIGNUM(v, ds_size);
-  if (d >= HALF_BITS) {
-    d -= HALF_BITS;
-    n = ds_size * 2 - 1;
-    m = de_size * 2 - n;
-  } else {
-    n = ds_size * 2;
-    m = de_size * 2 - n;
-  }
-  bignum_lshift(u, dividend, d);
-  bignum_lshift(v, divisor, d);
-  vn_1 = DIGIT(v, n - 1);
-  vn_2 = DIGIT(v, n - 2);
+  rsize = mp_div_rem((quotient) ? quotient->elements : NULL,
+		     (u) ? u->elements : NULL,
+		     dividend->elements, dividend->size,
+		     divisor->elements, divisor->size);
 
-  for (j = m; j >= 0; j--) {
-    unsigned long uu = (DIGIT(u, j+n) << HALF_BITS) + DIGIT(u, j+n-1);
-    unsigned long qq = uu / vn_1;
-    unsigned long rr = uu % vn_1;
-
-    while (qq >= HALF_WORD) { qq--; rr += vn_1; }
-    while ((qq * vn_2 > (rr << HALF_BITS) + DIGIT(u, j + n - 2))
-	   && (rr < HALF_WORD)) {
-      qq--;
-      rr += vn_1;
-    }
-    cy = 0;
-    for (k = 0; k < n; k++) {
-      vv = qq * DIGIT(v, k);
-      uj = DIGIT2(u, j + k);
-      uj2 = uj - vv - cy;
-      cy =  (uj2 > uj) ? HALF_WORD : 0;
-      SETDIGIT2(u, j + k, uj2);
-    }
-    if (cy) {
-      qq--;
-      cy = 0;
-      for (k = 0; k < n; k++) {
-	vv = DIGIT(v, k);
-	uj = DIGIT(u, j + k) + vv + cy;
-	cy = (uj >= HALF_WORD)? 1 : 0;
-	SETDIGIT(u, j +k, uj);
-      }
-      uj = DIGIT(u, j + n) + cy;
-      SETDIGIT(u, j + n, uj);
-    }
-    if (quotient) 
-      SETDIGIT(quotient, j, qq);
-  }
-  bignum_rshift(u, u, d);
   if (remainderp) {
+    u->size = rsize;
+    u->sign = dividend->sign;
     return u;
   } else {
     return NULL;
@@ -1931,7 +1545,8 @@ SgObject Sg_BignumSqrt(SgBignum *bn)
   if (bn->elements[0] == pad->elements[0] * pad->elements[0]) {
     SgBignum *s2;
     ALLOC_TEMP_BIGNUM_REC(s2, SG_BIGNUM_GET_COUNT(pad)<<1);
-    square_to_len(pad->elements, SG_BIGNUM_GET_COUNT(pad), s2->elements);
+    /* square_to_len(pad->elements, pad->size, s2->elements); */
+    mp_square(s2->elements, pad->size<<1, pad->elements, pad->size);
     bignum_normalize(s2);
     /* set the same sign for temp otherwise cmp returns non 0 even the
        value is the same. */
@@ -1975,7 +1590,8 @@ SgObject Sg_BignumAccMultAddUI(SgBignum *acc, unsigned long coef,
   unsigned long carry;
   ALLOC_TEMP_BIGNUM(r, rsize);
   r->elements[0] = c;
-  carry = mul_add(r->elements, acc->elements, SG_BIGNUM_GET_COUNT(acc), coef);
+  carry = mp_mul_add(r->elements, acc->elements, 
+		     SG_BIGNUM_GET_COUNT(acc), coef);
   r->elements[SG_BIGNUM_GET_COUNT(acc)] = carry;
 
   if (r->elements[rsize - 1] == 0) {
@@ -2404,189 +2020,6 @@ static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
   7, 25, 81, 241, 673, 1793, (ulong)-1L
 };
 
-static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
-{
-  int i;
-  for (i = len-1; i >= 0; i--) {
-    if (arg1[i] != arg2[i]) {
-      if (arg1[i] < arg2[i]) return -1;
-      else return 1;
-    }
-  }
-  return 0;
-}
-
-static ulong sub_n(ulong *num1, ulong *num2, int len)
-{
-  dlong t = (dlong)*num1 - *num2;
-  int i;
-  *num1 = (ulong)t;
-  for (i = 1; i < len; i++) {
-    t = (dlong)num1[i] - (dlong)num2[i] - (ulong)-(t >> WORD_BITS);
-    num1[i] = (ulong)t;
-  }
-  return -(ulong)(t >> WORD_BITS);
-}
-
-static ulong mul_add(ulong *out, ulong *in, int len, ulong k)
-{
-  int i;
-  dlong p = (dlong)*in * k + *out;
-  *out = (ulong)p;
-
-  for (i = 1; i < len; i++) {
-    p = (dlong)in[i] * k + (ulong)(p >> WORD_BITS) + out[i];
-    out[i] = (ulong)p;
-  }
-  return (ulong)(p >> WORD_BITS);
-}
-
-static int add_one(ulong *num, int len, ulong carry)
-{
-  dlong t = (dlong)*num + carry;
-  int i;
-  *num = (ulong)t;
-  if ((t >> WORD_BITS) == 0) return 0;
-  for (i = 1; i < len; i++) {
-    if (++num[i] != 0) return 0;
-  }
-  return 1;
-}
-
-static ulong primitive_left_shift(ulong *a, int len, ulong n)
-{
-  int i;
-  ulong x, carry = 0;
-  for (i = 0; i < len; i++) {
-    x = a[i];
-    a[i] = (x<<n) | carry;
-    carry = x >> (WORD_BITS-n);
-  }
-  return carry;
-}
-
-#if 0
-static ulong primitive_right_shift(ulong *a, int len, ulong n)
-{
-  ulong x, carry = 0;
-  a += len;
-  while (len--) {
-    a--;
-    x = *a;
-    *a = (x>>n) | carry;
-    carry = x << (WORD_BITS-n);
-  }
-  return carry >> (WORD_BITS-n);
-}
-#endif
-
-static ulong* square_to_len(ulong *num, int len, ulong *prod)
-{
-  if (!len) {
-    /* special case of zero */
-    return prod;
-  } else {
-    int lenx;
-    ulong last_low = 0;
-    /* Store the squares, right shifted one bit */
-    int i, j;
-
-    for (i = len-1, j = len << 1; i >= 0; i--) {
-      dlong t = num[i];
-      dlong p = t * t;
-      prod[--j] = (last_low << (WORD_BITS-1))|(ulong)(p >> (WORD_BITS+1));
-      prod[--j] = (ulong)(p >> 1);
-      last_low = p & 1;
-    }
-
-    /* then add in the off diagonal sums */
-    for (i = 0, j = 1, lenx = len - 1; lenx; i++, j += 2, lenx--) {
-      ulong t = num[i];
-      t = mul_add(prod + j, num + i + 1, lenx, t);
-      add_one(prod + lenx + j, lenx + 1, t);
-    }
-    primitive_left_shift(prod, 2*len, 1);
-    prod[0] |= num[0] & 1;
-    return prod;
-  }
-}
-
-static ulong* mont_reduce(ulong *n, SgBignum *mod, int mlen, ulong inv)
-{
-  ulong c = 0;
-  int len = mlen;
-
-  do {
-    ulong carry = mul_add(n, mod->elements, mlen, inv * n[0]);
-    c += add_one(n+mlen, len, carry);
-    ++n;
-  } while (--len);
-  while (c) {
-    c -= sub_n(n, mod->elements, mlen);
-  }
-  while (ulong_array_cmp_to_len(n, mod->elements, mlen) >= 0) {
-    sub_n(n, mod->elements, mlen);
-  }
-  return n;
-}
-
-#if 0
-static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
-{
-  dlong p = (dlong)*in++ * k;
-  *out++ = (ulong)p;
-  while (--nlen) {
-    p = (dlong)*in++ * k + (ulong)(p >> WORD_BITS);
-    *out++ = (ulong)p;
-  }
-  *out = (ulong)(p >> WORD_BITS);
-}
-#endif
-
-static ulong* multiply_to_len(ulong *x, int xlen, ulong *y, int ylen, ulong *z)
-{
-  /* multiply first word */
-  /* mul_n1(z, x, xlen, *y++); */
-  int i;
-  ulong k = *y;
-  dlong p = (dlong)*x * k;
-  *z = (ulong)p;
-
-  for (i = 1; i < xlen; i++) {
-    p = (dlong)x[i] * k + (ulong)(p >> WORD_BITS);
-    z[i] = (ulong)p;
-  }
-  z[i] = (ulong)(p >> WORD_BITS);
-
-  /* add in subsequent words, storing the most significant word which is new
-     each time */
-  for (i = 1; i < ylen; i++) {
-    z[xlen + i] = mul_add((z+i), x, xlen, y[i]);
-  }
-  return z; 
-}
-
-
-#define clear_buffer(v, size)				\
-  do {							\
-    int __i, __size = (size);				\
-    for (__i = 0; __i < __size; __i++) (v)[__i] = 0;	\
-  } while (0)
-
-#ifdef HAVE_ALLOCA
-#define ALLOC_TEMP_BUFFER_REC(v, type, size)		\
-    (v) = (type *)alloca(sizeof(type) * (size));
-#else
-#define ALLOC_TEMP_BUFFER_REC(v, type, size)			\
-    (v) = SG_NEW_ATOMIC2(type *, sizeof(type) * (size));
-#endif
-
-#define ALLOC_TEMP_BUFFER(v, type, size)	\
-  do {						\
-    ALLOC_TEMP_BUFFER_REC(v, type, size)	\
-    clear_buffer(v, size);			\
-  } while (0)
-
 static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 				ulong inv, ulong *a, ulong *b)
 {
@@ -2597,6 +2030,7 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
   unsigned int buf = 0, multpos;
   ulong *mult, *e = exp->elements + elen -1;
   ulong bitpos;
+  int modlen2 = modlen<<1;
 
   wbits = 0;
   ebits = Sg_BignumBitSize(exp);
@@ -2626,16 +2060,19 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
     table[0] = tr->elements;
   }
   /* set b to the square of the base */
-  square_to_len(table[0], modlen, b);
-  mont_reduce(b, mod, modlen, inv);
+  /* blen = modlen<<1 */
+  /* square_to_len(table[0], modlen, b); */
+  mp_square(b, modlen2, table[0], modlen);
+  mp_mont_reduce(b, modlen2, mod->elements, modlen, inv);
   /* Use high hald of b to initialise the table */
   t = b+modlen;
 
   /* Fill int the table with odd powers of the base */
   for (i = 1; i < tblmask; i++) {
     ALLOC_TEMP_BUFFER(prod, ulong, modlen);
-    multiply_to_len(t, modlen, table[i-1], modlen, a);
-    mont_reduce(a, mod, modlen, inv);
+    /* alen = modlen<<1 */
+    mp_mul(a, modlen2, t, modlen, table[i-1], modlen);
+    mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
 
     for (j = 0; j < modlen; j++) {
       prod[j] = a[j+modlen];
@@ -2699,8 +2136,9 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
 	}
 	isone = FALSE;
       } else {
-	multiply_to_len(t, modlen, mult, modlen, a);
-	mont_reduce(a, mod, modlen, inv);
+	/* alen = modlen<<1 */
+	mp_mul(a, modlen2, t, modlen, mult, modlen);
+	mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
 	t = a; a = b; b = t;
       }
     }
@@ -2709,8 +2147,9 @@ static ulong * odd_mod_expt_rec(SgBignum *x, SgBignum *exp, SgBignum *mod,
     /* square the input */
     if (!isone) {
       t = b+modlen;
-      square_to_len(t, modlen, a);
-      mont_reduce(a, mod, modlen, inv);
+      /* square_to_len(t, modlen, a); */
+      mp_square(a, modlen2, t, modlen);
+      mp_mont_reduce(a, modlen2, mod->elements, modlen, inv);
       t = a; a = b; b = t;
     }
   }
@@ -2744,7 +2183,7 @@ static SgObject odd_mod_expt(SgBignum *x, SgBignum *exp, SgBignum *mod)
     b[i] = t[i];
     t[i] = 0;
   }
-  mont_reduce(b, mod, modlen, inv);
+  mp_mont_reduce(b, buflen, mod->elements, modlen, inv);
 
   for (i = 0; i < modlen; i++) {
     r->elements[i] = t[i];
@@ -2892,69 +2331,7 @@ SgObject Sg_BignumModInverse(SgBignum *bx, SgBignum *bm)
   return Sg_NormalizeBignum(bignum_mod_inverse(bx, bm));
 }
 
-#if 0
-static void compute_buffer_size(int e, int *rr, int base_size, int *br)
-{
-  int result_size = 1;		/* it's always start with 1 */
-  while (e != 0) {
-    if (e & 1) {
-      result_size += base_size;
-    }
-    e >>= 1;
-    if (e) {
-      base_size <<= 1;
-    }
-  }
-  *rr = result_size;
-  *br = base_size;
-}
 
-static SgBignum * bignum_expt(SgBignum *b, int exponent)
-{
-  SgBignum *br;
-  ulong *base, *result, *base_prod, *result_prod;
-  int base_size, result_size, i, sign, b_size = SG_BIGNUM_GET_COUNT(b);
-
-  sign = (SG_BIGNUM_GET_SIGN(b) < 0 && (exponent & 1)) ? -1 : 1;
-  compute_buffer_size(exponent, &result_size, b_size, &base_size);
-  /* set up result */
-  br = make_bignum(result_size);
-  result_prod = br->elements;
-  ALLOC_TEMP_BUFFER_REC(result, ulong, result_size);
-  result[0] = 1;
-  /* set up base */
-  ALLOC_TEMP_BUFFER_REC(base, ulong, base_size);
-  ALLOC_TEMP_BUFFER_REC(base_prod, ulong, base_size);
-
-  for (i = 0; i < b_size; i++) {
-    base[i] = b->elements[i];
-  }
-  /* reset computed size */
-  result_size = 1;
-  base_size = b_size;
-  while (exponent != 0) {
-    if ((exponent & 1)) {
-      multiply_to_len(result, result_size, base, base_size, result_prod);
-      result_size += base_size;
-      for (i = 0; i < result_size; i++) {
-	result[i] = result_prod[i];
-      }
-    }
-    exponent >>= 1;
-    if (exponent) {
-      ulong *tmp;
-      square_to_len(base, base_size, base_prod);
-      /* swich */
-      tmp = base;
-      base = base_prod;
-      base_prod = tmp;
-      base_size <<= 1;
-    }
-  }
-  SG_BIGNUM_SET_SIGN(br, sign);
-  return br;
-}
-#else
 /* using slide window algorithm. */
 static int bfffo(ulong x)
 {
@@ -3007,7 +2384,8 @@ static SgBignum * leftright_binray_expt(SgBignum *b, long e)
   for (; j; m <<= 1, j--) {
     /* y = bignum_mul(y, y); */
     /* TODO make this for bignum */
-    square_to_len(ye->elements, ylen, prod->elements);
+    /* square_to_len(ye->elements, ylen, prod->elements); */
+    mp_square(prod->elements, ylen<<1, ye->elements, ylen);
     ylen <<= 1;
     t = ye;
     ye = prod;
@@ -3056,15 +2434,12 @@ static long vals(ulong z)
 #endif
 }
 
-static void setup_square(ulong *dst, ulong *src, int slen)
-{
-  int size = slen<<1;
-  ulong *prod;
-  ALLOC_TEMP_BUFFER_REC(prod, ulong, size);
-  square_to_len(src, slen, prod);
-  copy_element(dst, prod, size);
-}
-
+#define BIGNUM_CLEAR_LEFT(bn, size)                            \
+  do {                                                         \
+    int i, len = (size);                                       \
+    int off = SG_BIGNUM_GET_COUNT(bn)-1;                       \
+    for (i = 0; i < len; i++) (bn)->elements[off-i] = 0;       \
+  } while (0)
 /* I'm not sure if I can write this as a static function since
    it's using alloca to setup table. */
 #define setup_table(table, u, b)					\
@@ -3074,7 +2449,7 @@ static void setup_square(ulong *dst, ulong *src, int slen)
     table[0] = b;							\
     ALLOC_TEMP_BIGNUM_REC(x2, x2len);					\
     BIGNUM_CLEAR_LEFT(x2, 2);						\
-    setup_square(x2->elements, b->elements, SG_BIGNUM_GET_COUNT(b));	\
+    mp_square(x2->elements, b->size<<1, b->elements, b->size);		\
     for (i_ = 1; i_ < (u); i_++) {					\
       int size = SG_BIGNUM_GET_COUNT(table[i_-1]) + x2len;		\
       ALLOC_TEMP_BIGNUM_REC(table[i_], size);				\
@@ -3156,7 +2531,8 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
       ulong len = e-v;
       for (i = 1; i <= len; i++) {
 	/* z = bignum_mul(z, z); */
-	square_to_len(z->elements, zlen, prod1->elements);
+	/* square_to_len(z->elements, zlen, prod1->elements); */
+	mp_square(prod1->elements, zlen<<1, z->elements, zlen);
 	zlen <<= 1;
 	/* swap buffer */
 	t = z;
@@ -3183,7 +2559,8 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
     }
     for (i = 1; i <= v; i++) {
       SgBignum *t;
-      square_to_len(z->elements, zlen, prod1->elements);
+      /* square_to_len(z->elements, zlen, prod1->elements); */
+      mp_square(prod1->elements, zlen<<1, z->elements, zlen);
       zlen <<= 1;
       t = z;
       z = prod1;
@@ -3194,7 +2571,8 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
       SgBignum *t;
       if (n & (1UL<<l)) break;
       /* z = bignum_mul(z, z); */
-      square_to_len(z->elements, zlen, prod1->elements);
+      /* square_to_len(z->elements, zlen, prod1->elements); */
+      mp_square(prod1->elements, zlen<<1, z->elements, zlen);
       zlen <<= 1;
       /* swap buffer */
       t = z;
@@ -3219,7 +2597,6 @@ static SgBignum * bignum_expt(SgBignum *b, long exponent)
   else if (l <= 24) return sliding_window_expt(b, exponent, 2);
   else return sliding_window_expt(b, exponent, 3);
 }
-#endif
 
 
 SgObject Sg_BignumExpt(SgBignum *b, long exponent)
