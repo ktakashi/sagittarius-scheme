@@ -393,8 +393,11 @@ static void mp_square(ulong *rp, uint rsize,
 /* if the bignum length is less than this then we do 
    usual computation. */
 /* according to Wikipedia karatsuba is faster when the numbers are
-   bigger than 320-640 bits. */
-#define KARATSUBA_LOW_LIMIT ((640>>3)/SIZEOF_LONG)
+   bigger than 320-640 bits. 
+   even though it says 320-640 bits however according to the benchmark
+   it showed the boundary is around 1600 bits
+*/
+#define KARATSUBA_LOW_LIMIT ((1600>>3)/SIZEOF_LONG)
 
 static int can_karatsuba(uint xlen, uint ylen)
 {
