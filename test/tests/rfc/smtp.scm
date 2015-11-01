@@ -1,5 +1,7 @@
 ;; -*- mode:scheme; coding:utf-8; -*-
 (import (rnrs)
+	(rnrs mutable-strings)
+	(rnrs eval)
 	(rfc smtp commands)
 	(rfc smtp extensions)
 	(rfc smtp conditions)
