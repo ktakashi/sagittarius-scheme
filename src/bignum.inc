@@ -93,6 +93,35 @@ static int mp_safe_size_for_add(ulong *xp, uint xsize,
   }
 }
 
+/* 
+   xp + yp -> rp
+   assume both num1 and num2 have the same length and rp has 
+   at least 'len' length
+   returns carry
+
+   NB: to make better performance, this part should be written in
+       assembly. but for now it's ok
+ */
+static long mp_add_n(ulong *rp, ulong *xp, ulong *yp, int len)
+{
+  int i;
+#ifdef USE_DLONG
+  dlong t = (dlong)xp[0] + yp[0];
+  rp[0] = (ulong)t;
+  for (i = 1; i < len; i++) {
+    t = (dlong)xp[i] + (dlong)yp[i] + (ulong)(t >> WORD_BITS);
+    rp[i] = (ulong)t;
+  }
+  return (long)(t >> WORD_BITS);
+#else
+  int c = 0;
+  for (i = 0; i < len; i++) {
+    UADD(rp[i], c, xp[i], yp[i]);
+  }
+  return c;
+#endif
+}
+
 /* xp + yp -> rp (xsize >= ysize)
    returns carry (0 or 1)
 */
@@ -100,51 +129,18 @@ static int mp_add(ulong *rp, uint rsize,
 		  ulong *xp, uint xsize,
 		  ulong *yp, uint ysize)
 {
-  int c;
-#ifdef USE_DLONG
-  dlong sum = 0L;
-  int xindex, yindex;
-  for (xindex = 0, yindex = 0; yindex < ysize; xindex++, yindex++) {
-    c = (int)(sum >> WORD_BITS);
-    sum = (dlong)xp[xindex] + yp[yindex] + c;
-    rp[xindex] = (ulong)sum;
-  }
-  /* copy remainder of longer number while carry propagation is required */
-  c = (int)(sum >> WORD_BITS);
-  for (; xindex < xsize && c; xindex++) {
-    rp[xindex] = xp[xindex] + 1;
-    c = (rp[xindex] == 0);
-  }
-  /* copy remainder of longer number */
-  for (; xindex < xsize; xindex++) {
-    rp[xindex] = xp[xindex];
-  }
-  if (c) {
-    rp[rsize-1] = 1L;
-  }
-#else
   int i;
-  unsigned long x, y;
-  for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-    if (xsize <= 0) {
-      if (ysize <= 0) {
-	UADD(rp[i], c, 0, 0);
-	continue;
-      }
-      y = yp[i];
-      UADD(rp[i], c, 0, y);
-      continue;
-    }
-    if (ysize <= 0) {
-      x = xp[i];
-      UADD(rp[i], c, x, 0);
-      continue;
-    }
-    x = xp[i];
-    y = yp[i];
-    UADD(rp[i], c, x, y);
+  int c = mp_add_n(rp, xp, yp, ysize);
+  /* do the rest */
+  for (i = ysize; i < xsize && c; i++) {
+    rp[i] = xp[i] + 1;
+    c = (rp[i] == 0);
   }
-#endif
+  /* copy remainder */
+  for (; i < xsize; i++) {
+    rp[i] = xp[i];
+  }
+  if (c) rp[rsize-1] = 1L;
   return c;
 }
 
@@ -191,6 +187,35 @@ static int mp_add_ul(ulong *rp, uint rsize,
 
 /* Subtraction */
 
+/* 
+   xp - yp -> rp
+   assume both num1 and num2 have the same length and rp has 
+   at least 'len' length
+   returns carry
+
+   NB: to make better performance, this part should be written in
+       assembly. but for now it's ok
+ */
+static long mp_sub_n(ulong *rp, ulong *xp, ulong *yp, int len)
+{
+  int i;
+#ifdef USE_DLONG
+  dlong t = (dlong)xp[0] - yp[0];
+  rp[0] = (ulong)t;
+  for (i = 1; i < len; i++) {
+    t = (dlong)xp[i] - (dlong)yp[i] - (ulong)-(t >> WORD_BITS);
+    rp[i] = (ulong)t;
+  }
+  return (long)(t >> WORD_BITS);
+#else
+  int c = 0;
+  for (i = 0; i < len; i++) {
+    USUB(rp[i], c, xp[i], yp[i]);
+  }
+  return c;
+#endif
+}
+
 /* xp - yp -> rp (xsize >= ysize)
    returns carry (0 or 1)
 */
@@ -198,50 +223,20 @@ static int mp_sub(ulong *rp, uint rsize,
 		  ulong *xp, uint xsize,
 		  ulong *yp, uint ysize)
 {
-  int c;
-#ifdef USE_DLONG
-  dlong diff = 0L;
-  int xindex, yindex;
-  for (yindex = 0, xindex = 0; yindex < ysize; xindex++, yindex++) {
-    c = (int)(diff >> WORD_BITS);
-    diff = (dlong)xp[xindex] - yp[yindex] + c;
-    rp[xindex] = (ulong)diff;
+  int i;
+  int c = mp_sub_n(rp, xp, yp, ysize);
+  /* do the rest */
+  for (i = ysize; i < xsize && c; i++) {
+    rp[i] = xp[i] - 1;
+    c = (rp[i] == (ulong)-1L) ? -1 : 0;
   }
-  c = (int)(diff >> WORD_BITS);
-  for (;xindex < xsize && c; xindex++) {
-    rp[xindex] = xp[xindex] - 1;
-    c = (rp[xindex] == (ulong)-1L) ? -1 : 0;
-  }
-  for (;xindex < xsize; xindex++) {
-    rp[xindex] = xp[xindex];
+  for (; i < xsize; i++) {
+    rp[i] = xp[i];
   }
   /* padding carry */
-  for (;xindex < rsize; xindex++) {
-    rp[xindex] = (ulong)c;
+  for (; i < rsize; i++) {
+    rp[i] = (ulong)c;
   }
-#else
-  int i;
-  unsigned long x, y;
-  for (i = 0, c = 0; i < rsize; i++, xsize--, ysize--) {
-    if (xsize <= 0) {
-      if (ysize <= 0) {
-	USUB(rp[i], c, 0, 0);
-	continue;
-      }
-      y = yp[i];
-      USUB(rp[i], c, 0, y);
-      continue;
-    }
-    if (ysize <= 0) {
-      x = xp[i];
-      USUB(rp[i], c, x, 0);
-      continue;
-    }
-    x = xp[i];
-    y = yp[i];
-    USUB(rp[i], c, x, y);
-  }
-#endif
   return c;
 }
 
@@ -261,54 +256,6 @@ static int mp_sub_ul(ulong *rp, uint rsize,
   }
   rp[rsize-1] = c;
   return c;
-}
-
-/* Multiplication */
-/* xp * y -> rp (xsize > 1)
-   assumes rp has sufficient size.
- */
-static void mp_mul_ul(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize,
-		      ulong y)
-{
-  uint i;
-
-#ifdef USE_DLONG
-  register dlong p;
-
-  p = (dlong)xp[0] * y;
-  rp[0] = (ulong)p;
-  for (i = 1; i < xsize; i++) {
-    p = (dlong)xp[i] * y + (ulong)(p >> WORD_BITS);
-    rp[i] = (ulong)p;
-  }
-  rp[i] = (ulong)(p >> WORD_BITS);
-
-#else
-
-  for (i = 0; i < xsize; i++) {
-    uint j;
-    ulong hi, lo, r1;
-    ulong x = xp[i];
-    ulong c = 0;
-    ulong r0 = rp[i];
-
-    UMUL(hi, lo, x, y);
-    UADD(r1, c, r0, lo);
-    rp[i] = r1;
-
-    r0 = rp[i+1];
-    UADD(r1, c, r0, hi);
-    rp[i+1] = r1;
-
-    for (j = i + 2; c && j < rsize; j++) {
-      r0 = rp[j];
-      UADD(r1, c, r0, 0);
-      rp[j] = r1;
-    }
-  }
-#endif
-
 }
 
 /* shift operations */
@@ -385,6 +332,53 @@ static uint mp_rshift(ulong *rp, uint rsize,
     /* for (i -= nwords; i < rsize; i++) rp[i] = 0; */
     return xsize - nwords;
   }
+}
+
+/* Multiplication */
+/* xp * y -> rp (xsize > 1)
+   assumes rp has sufficient size.
+ */
+static void mp_mul_ul(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize,
+		      ulong y)
+{
+  uint i;
+
+#ifdef USE_DLONG
+  register dlong p;
+
+  p = (dlong)xp[0] * y;
+  rp[0] = (ulong)p;
+  for (i = 1; i < xsize; i++) {
+    p = (dlong)xp[i] * y + (ulong)(p >> WORD_BITS);
+    rp[i] = (ulong)p;
+  }
+  rp[i] = (ulong)(p >> WORD_BITS);
+
+#else
+
+  for (i = 0; i < xsize; i++) {
+    uint j;
+    ulong hi, lo, r1;
+    ulong x = xp[i];
+    ulong c = 0;
+    ulong r0 = rp[i];
+
+    UMUL(hi, lo, x, y);
+    UADD(r1, c, r0, lo);
+    rp[i] = r1;
+
+    r0 = rp[i+1];
+    UADD(r1, c, r0, hi);
+    rp[i+1] = r1;
+
+    for (j = i + 2; c && j < rsize; j++) {
+      r0 = rp[j];
+      UADD(r1, c, r0, 0);
+      rp[j] = r1;
+    }
+  }
+#endif
 }
 
 /* forward declaration */
@@ -748,35 +742,6 @@ static void mul_n1(ulong *out, ulong *in, int nlen, ulong k)
 }
 #endif
 
-/* TODO merge into mp_sub */
-static long mp_sub_n(ulong *num1, ulong *num2, int len)
-{
-#ifdef USE_DLONG
-  dlong t = (dlong)num1[0] - num2[0];
-  int i;
-  num1[0] = (ulong)t;
-  for (i = 1; i < len; i++) {
-    t = (dlong)num1[i] - (dlong)num2[i] - (ulong)-(t >> WORD_BITS);
-    num1[i] = (ulong)t;
-  }
-  return (long)(t >> WORD_BITS);
-#else
-  ulong x;
-  long c = 0;
-  int i;
-  x = num2[0];
-  c += (num1[0] -= x) > ~x;
-  for (i = 0; i < len; i++) {
-    x = num2[i];
-    x += c;
-    c = x < c;
-    num1[i] -= x;
-    c += num1[i] > ~x;
-  }
-  return c;
-#endif
-}
-
 /* compare 2 array whose length are the same. */
 static int ulong_array_cmp_to_len(ulong *arg1, ulong *arg2, int len)
 {
@@ -803,10 +768,10 @@ static ulong* mp_mont_reduce(ulong *n, uint nlen,
     ++n;
   } while (--len);
   while (c) {
-    c += mp_sub_n(n, mod, mlen);
+    c += mp_sub_n(n, n, mod, mlen);
   }
   while (ulong_array_cmp_to_len(n, mod, mlen) >= 0) {
-    mp_sub_n(n, mod, mlen);
+    mp_sub_n(n, n, mod, mlen);
   }
   return n;
 }
