@@ -319,6 +319,9 @@ static void mp_lshift(ulong *rp, uint rsize,
   long nwords, nbits;
   int i;
 
+  /* simple check */
+  if (xsize == 0) return;	/* 0<<n is always 0 */
+  
   nwords = amount / WORD_BITS;
   nbits = amount % WORD_BITS;
   if (nbits == 0) {
