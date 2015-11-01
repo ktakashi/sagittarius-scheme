@@ -2153,6 +2153,9 @@ SgObject Sg_Mul(SgObject x, SgObject y)
       if (y == SG_MAKE_INT(0)) return y;
       return Sg_BignumMulSI(SG_BIGNUM(x), SG_INT_VALUE(y));
     } else if (SG_BIGNUMP(y)) {
+      /* squaring is faster than multiplication so if given arguments
+	 are the same object, then do it with square. */
+      if (SG_EQ(x, y)) return Sg_BignumSquare(x);
       return Sg_BignumMul(SG_BIGNUM(x), SG_BIGNUM(y));
     } else if (SG_RATIONALP(y)) {
       return Sg_RationalMul(x, y);
