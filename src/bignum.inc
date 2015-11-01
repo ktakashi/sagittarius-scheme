@@ -386,6 +386,8 @@ static void mp_mul(ulong *rp, uint rsize,
 		   ulong *xp, uint xsize,
 		   ulong *yp, uint ysize);
 
+static void mp_square(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize);
 #define USE_KARATSUBA
 #ifdef USE_KARATSUBA
 /* if the bignum length is less than this then we do 
@@ -408,6 +410,9 @@ static int can_karatsuba(uint xlen, uint ylen)
 /*
   basic karatsuba algorithm
   compute x*y 
+
+  From Wikipedia
+  xy = (b^2 + b)x1y1 - b(x1 - x0)(y1 - y0) + (b + 1)x0y0
   
   x = a*B^(n/2) + b
   y = c*B^(n/2) + d
@@ -513,6 +518,87 @@ static void karatsuba(ulong *rp, uint rsize,
   mp_add(rp, rsize, ac, aclen+n2, adbc, adbclen+n);
   mp_add(rp, rsize, rp, rsize, bd, n2);
 }
+
+/* the value is found experimentally. */
+#define KARATSUBA_SQUARE_LOW_LIMIT ((2880>>3)/SIZEOF_LONG)
+
+static int can_karatsuba_square(uint len)
+{
+  return len >= KARATSUBA_SQUARE_LOW_LIMIT;
+}
+
+/*
+  karatsuba square
+  compute x*x
+
+  x = a*B^(n/2) + b
+  n = xsize
+  B = WORD_BITS
+  x*y = (a*B^(n/2) + b) * (a*B^(n/2) + b)
+      = B^n*a^2 + B^(n/2)*2ab + b^2
+
+  2ab = (a+b)^2 - (a^2 + b^2)  
+  x*y = B^n*a^2 + B^(n/2)*((a+b)^ - (a^2 + b^2)) + b^2
+      = B^(n/2)(B^(n/2)*a^2 + ((a+b)^ - (a^2 + b^2))) + b^2
+*/
+static void karatsuba_square(ulong *rp, uint rsize,
+			     ulong *xp, uint xsize)
+{
+  int n = xsize/2;
+  ulong *a, *b;
+  ulong *b2, *apb, *a2pb2, *apb2;
+  uint alen, a2len, apblen, a2pb2len, apb2len;
+  uint a2_ext, apb2_ext, rlen;
+  int n2 = n<<1;
+ 
+  alen = xsize - n;
+  a = xp + n;
+  b = xp;
+  /* space for shift */
+  a2_ext = ((n*WORD_BITS)+WORD_BITS-1)/WORD_BITS; /* shift size of *1 */
+  apb2_ext = ((n*WORD_BITS)+WORD_BITS-1)/WORD_BITS; /* shift size of *2 */
+  a2len = alen<<1;
+  apblen = mp_safe_size_for_add(a, alen, b, n);
+  apb2len = apblen<<1;
+  
+  /* we can use rp for a^2 storage */
+  ALLOC_TEMP_BUFFER_REC(b2, ulong, n2);
+  ALLOC_TEMP_BUFFER_REC(apb, ulong, apblen);
+  ALLOC_TEMP_BUFFER_REC(apb2, ulong, apb2len); /* (a+b)^2 */
+
+  /* clear possible carry byte on stack */
+  apb[apblen-1] = 0;
+
+  /* a^2 */
+  mp_square(rp, a2len, a, alen);
+  /* b^2 */
+  mp_square(b2, n2, b, n);
+
+  /* allocate a2pb2 */
+  a2pb2len = mp_safe_size_for_add(rp, a2len, b2, n2);
+  ALLOC_TEMP_BUFFER_REC(a2pb2, ulong, a2pb2len);
+  /* clear possible carry byte on stack */
+  a2pb2[a2pb2len-1] = 0;
+  
+  mp_add(apb, apblen, a, alen, b, n);	 /* a+b */
+  mp_square(apb2, apb2len, apb, apblen); /* (a+b)^2 */
+  mp_add(a2pb2, a2pb2len, rp, a2len, b2, n2); /* (a^2 + b^2) */
+
+  /* (a+b)^2 > (a^2 + b^2) */
+  ASSERT(apb2len >= a2pb2len);
+  mp_sub(apb2, apb2len, apb2, apb2len, a2pb2, a2pb2len);
+
+  /* B^(n/2)*a^2 */
+  mp_lshift(rp, a2len+a2_ext, rp, a2len, n*WORD_BITS);
+  /* B^(n/2)*a^2 + 2ab */
+  mp_add(rp, rsize, rp, a2len+a2_ext, apb2, apb2len);
+  /* +1 in case of carry, don't worry won't bite */
+  rlen = a2len+a2_ext;
+  rlen = (rsize == rlen) ? rlen : rlen+1;
+  mp_lshift(rp, rsize, rp, rlen, n*WORD_BITS);
+  mp_add(rp, rsize, rp, rlen+apb2_ext, b2, n2);
+}
+
 #endif	/* USE_KARATSUBA */
 
 /* 
@@ -611,13 +697,17 @@ static void mp_base_square(ulong *rp, uint rsize,
 #else
 #endif
 }
+
 static void mp_square(ulong *rp, uint rsize,
 		      ulong *xp, uint xsize)
 {
   /* handle special case */
   if (!xsize) return;
 #ifdef USE_KARATSUBA
-  
+  if (can_karatsuba_square(xsize)) {
+    karatsuba_square(rp, rsize, xp, xsize);
+    return;
+  }
 #endif
   /* normal */
   mp_base_square(rp, rsize, xp, xsize);
