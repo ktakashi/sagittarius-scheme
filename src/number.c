@@ -1740,7 +1740,7 @@ SgObject Sg_Ash(SgObject x, long count)
 	ix >>= -count;
       }
       return Sg_MakeInteger(ix);
-    } else if (count < SG_INT_MIN) {
+    } else if (count < SG_INT_SIZE) {
       if (ix < 0) {
 	if (-ix < (SG_INT_MAX >> count)) {
 	  ix <<= count;
