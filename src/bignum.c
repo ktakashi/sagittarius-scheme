@@ -39,7 +39,6 @@
 #include "sagittarius/arith.h"
 #include "sagittarius/bits.h"
 #include "sagittarius/pair.h"
-#include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vm.h"
 
@@ -1643,8 +1642,6 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   if (radix == 16) {
     /* if the radix is 16 then we can simply dump the elements */
     char buf[((WORD_BITS/SIZEOF_LONG)<<1)+1];
-    SgPort *out;
-    SgStringPort sp;
     SgObject r;
 #if SIZEOF_LONG == 8
     char *fmt = (use_upper)? "%016lX": "%016lx";
@@ -1652,17 +1649,29 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
     char *fmt = (use_upper)? "%08lX": "%08lx";
 #endif
     char *first_fmt = (use_upper)? "%lX": "%lx";
-    out = Sg_InitStringOutputPort(&sp, b->size * ((WORD_BITS/SIZEOF_LONG)<<1));
-    if (b->sign < 0) Sg_PutcUnsafe(out, '-');
+    int n, off = 0, j;
+    /* this is the very first time I'm using the return value of
+       printf related procedure...
+     */
+    count = n = snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
+    if (b->sign < 0) count++;
+    /* calculate the rest of words */
+    if (b->size > 1) {
+      count += (b->size-1) * ((WORD_BITS/SIZEOF_LONG)<<1);
+    }
+    r = Sg_ReserveString(count, 0);
+    /* set the first word */
+    if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';
+    for (i = 0; i < n; i++) {
+      SG_STRING_VALUE_AT(r, off++) = buf[i];
+    }
 
-    snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
-    Sg_PutzUnsafe(out, buf);
     for (i = b->size-2; i >= 0; i--) {
       snprintf(buf, sizeof(buf), fmt, b->elements[i]);
-      Sg_PutzUnsafe(out, buf);
+      for (j = 0; j < sizeof(buf)-1; j++) {
+	SG_STRING_VALUE_AT(r, off++) = buf[j];
+      }
     }
-    r = Sg_GetStringFromStringPort(&sp);
-    SG_CLEAN_STRING_PORT(&sp);
     return r;
   }
 
