@@ -39,6 +39,7 @@
 #include "sagittarius/arith.h"
 #include "sagittarius/bits.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vm.h"
 
@@ -1637,6 +1638,33 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   }
   /* special case 0 */
   if (SG_BIGNUM_GET_SIGN(b) == 0) return SG_MAKE_STRING("0");
+
+  /* special case radix 16 */
+  if (radix == 16) {
+    /* if the radix is 16 then we can simply dump the elements */
+    char buf[((WORD_BITS/SIZEOF_LONG)<<1)+1];
+    SgPort *out;
+    SgStringPort sp;
+    SgObject r;
+#if SIZEOF_LONG == 8
+    char *fmt = (use_upper)? "%016lX": "%016lx";
+#else
+    char *fmt = (use_upper)? "%08lX": "%08lx";
+#endif
+    char *first_fmt = (use_upper)? "%lX": "%lx";
+    out = Sg_InitStringOutputPort(&sp, b->size * ((WORD_BITS/SIZEOF_LONG)<<1));
+    if (b->sign < 0) Sg_PutcUnsafe(out, '-');
+
+    snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
+    Sg_PutzUnsafe(out, buf);
+    for (i = b->size-2; i >= 0; i--) {
+      snprintf(buf, sizeof(buf), fmt, b->elements[i]);
+      Sg_PutzUnsafe(out, buf);
+    }
+    r = Sg_GetStringFromStringPort(&sp);
+    SG_CLEAN_STRING_PORT(&sp);
+    return r;
+  }
 
   q = SG_BIGNUM(Sg_BignumCopy(b));
   size = SG_BIGNUM_GET_COUNT(q);

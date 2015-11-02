@@ -1898,4 +1898,18 @@
 ;; call #161
 (test-equal "(- 0 1/3)" -1/3 (- 0 1/3))
 
+;; radix optimisation for bignum
+(test-equal "fast number->string on radix 16"
+	    (expt 2 10000) 
+	    (string->number (number->string (expt 2 10000) 16) 16))
+(test-equal "fast number->string on radix 16"
+	    (expt 3 10000) 
+	    (string->number (number->string (expt 3 10000) 16) 16))
+(test-equal "fast number->string on radix 16"
+	    (expt 5 10000) 
+	    (string->number (number->string (expt 5 10000) 16) 16))
+(test-equal "fast number->string on radix 16"
+	    (expt 7 10000) 
+	    (string->number (number->string (expt 7 10000) 16) 16))
+
 (test-end)
