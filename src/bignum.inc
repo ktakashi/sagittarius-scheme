@@ -724,7 +724,7 @@ static inline int div_normalization_factor(unsigned long w)
   for (; b > 0; b >>= 1, c++) {
     if (w & b) return c;
   }
-  FATAL("bignum.c: div_normalization_factor: can't be here");
+  Sg_Panic("bignum.c: div_normalization_factor: can't be here. %lu", w);
   return 0;
 }
 

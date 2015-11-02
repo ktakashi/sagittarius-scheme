@@ -34,6 +34,7 @@
 #define NO_NBITS
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/bignum.h"
+#include "sagittarius/core.h"
 #include "sagittarius/number.h"
 #include "sagittarius/error.h"
 #include "sagittarius/arith.h"
@@ -1818,7 +1819,7 @@ static SgBignum * bignum_expt(SgBignum *b, long exponent);
 /* returns radix^2^exponent */
 static SgObject radix_conversion(int radix, int exponent)
 {
-  static SgBignum *radixes[32] = {NULL,};
+  static SgBignum *radixes[33] = {NULL,};
   SgObject c = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
   if (!radixes[radix]) {
     radixes[radix] = Sg_MakeBignumFromSI(radix);

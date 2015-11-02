@@ -1901,25 +1901,24 @@
 ;; radix optimisation for bignum
 (define (radix-test radix)
   (define (do-test bases)
+    (define exponent 1000)
     (for-each
      (lambda (base)
        (test-equal (format "fast number->string on radix ~a(~a)" radix base)
-		   (expt base 10000) 
+		   (expt base exponent) 
 		   (string->number (number->string
-				    (expt base 10000) radix)
+				    (expt base exponent) radix)
 				   radix))
        (test-equal (format "fast number->string on radix ~a(~a)(neg)"
 			   radix base)
-		   (- (expt base 10000) )
+		   (- (expt base 1000) )
 		   (string->number (number->string
-				    (- (expt base 10000)) radix)
+				    (- (expt base exponent)) radix)
 				   radix)))
      bases))
   (do-test '(2 3 5 7)))
-(radix-test 2)
-(radix-test 8)
-(radix-test 10)
-(radix-test 16)
+
+(for-each radix-test (iota 31 2))
 
 ;; er-macro-transformer comparison procedure
 (let ()
