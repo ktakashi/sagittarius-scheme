@@ -1666,6 +1666,65 @@ static SgObject radix2_string(SgBignum *b)
   return r;
 }
 
+/* radix 8 is a bit tricky
+   we need to split each elements 3 bit each however the word
+   length is either 32 or 64, none of them are multiple of 3.
+   so first we need to calculate offset of the first word then
+   proceed.
+ */
+static SgObject radix8_string(SgBignum *b)
+{
+  static const char tab[] = "012345678";
+  int bits = Sg_BignumBitSize(b);
+  int ob = bits % 3;		/* offset bit */
+  int off = 0, i, fb, times, c;
+  ulong e;
+  SgObject r = Sg_ReserveString((bits/3)+((ob)?1:0)+((b->sign<0)?1:0), 0);
+
+  if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';
+  /*
+    e.g
+    word = 4, bits 
+    first word (fb = 7)
+    1000100 0..0 0..0 (2 words + fb = 71)
+    ob = 2
+    we need to use offset -1 from first word to make total bit
+    multiple of 3.
+    
+    so not the first word is
+    01000100 (fb 8)
+  */
+  /* handle first element */
+  ob = (ob)? (3-ob) : 0;
+  fb = WORD_BITS - nlz(b->elements[b->size-1]) + ob;
+  times = fb / 3;
+  c = fb % 3;			/* for next iteration */
+  e = b->elements[b->size-1];
+
+  for (i = 0; i < times; i++) {
+    int t = (e >> ((fb-3)-(i*3))) & 7;
+    SG_STRING_VALUE_AT(r, off++) = tab[t];
+  }
+  e = (e <<(3-c))&7;		/* gets carry bits */
+
+  /* do the rest */
+  for (i = b->size-2; i >= 0; i--) {
+    ulong re = b->elements[i];
+    int j;
+
+    times = (WORD_BITS+c)/3;
+    for (j = 0; j < times; j++) {
+      int t = ((re >> ((WORD_BITS-(3-c))-(j*3)))|e)&7;
+      SG_STRING_VALUE_AT(r, off++) = tab[t];
+      if (e) e = 0;		/* clear carry */
+    }
+    c = (WORD_BITS+c)%3;	/* next carry */
+    /* only if the c is not 0, otherwise we'll get garbage */
+    if (c) e = (re <<(3-c))&7;		/* gets carry bits */
+  }
+  return r;
+}
+
 static SgObject radix16_string(SgBignum *b, int use_upper)
 {
   /* if the radix is 16 then we can simply dump the elements */
@@ -1807,6 +1866,7 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
 
   /* handle easily converted case */
   if (radix == 2)  return radix2_string(b);
+  if (radix == 8)  return radix8_string(b);
   if (radix == 16) return radix16_string(b, use_upper);
 
   /* The Art of Computer Programming Vol2 4.4 (Q 14) answer*/
