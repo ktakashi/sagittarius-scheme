@@ -1622,6 +1622,72 @@ static long calc_string_size(SgBignum *q, int radix)
   return count;
 }
 
+static int radix2_string_helper(SgObject r, ulong e, int size, int off)
+{
+  int i;
+  for (i = size-1; i >= 0; i--) {
+    int b = (e>>i) & 1;
+    SG_STRING_VALUE_AT(r, off++) = (b) ? '1' : '0';
+  }
+  return off;
+}
+static SgObject radix2_string(SgBignum *b)
+{
+  /* if the radix is 2, we can convert bit by bit */
+  SgObject r;
+  int count, n, off = 0, i;
+  /* we only need to care the first element's bit size */
+  count = n = WORD_BITS - nlz(b->elements[b->size-1]);
+  if (b->sign < 0) count++;
+  /* compute the rest of elements bit */
+  count += (b->size-1)*WORD_BITS;
+  /* allocate string */
+  r = Sg_ReserveString(count, 0);
+  if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';
+
+  off = radix2_string_helper(r, b->elements[b->size-1], n, off);
+  for (i = b->size-2; i >= 0; i--) {
+    off = radix2_string_helper(r, b->elements[i], WORD_BITS, off);
+  }
+  return r;
+}
+
+static SgObject radix16_string(SgBignum *b, int use_upper)
+{
+  /* if the radix is 16 then we can simply dump the elements */
+  char buf[((WORD_BITS/SIZEOF_LONG)<<1)+1];
+  SgObject r;
+#if SIZEOF_LONG == 8
+  char *fmt = (use_upper)? "%016lX": "%016lx";
+#else
+  char *fmt = (use_upper)? "%08lX": "%08lx";
+#endif
+  char *first_fmt = (use_upper)? "%lX": "%lx";
+  int count, n, off = 0, i, j;
+  /* this is the very first time I'm using the return value of
+     printf related procedure...
+  */
+  count = n = snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
+  if (b->sign < 0) count++;
+  /* calculate the rest of words */
+  count += (b->size-1) * ((WORD_BITS/SIZEOF_LONG)<<1);
+
+  r = Sg_ReserveString(count, 0);
+  /* set the first word */
+  if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';
+  for (i = 0; i < n; i++) {
+    SG_STRING_VALUE_AT(r, off++) = buf[i];
+  }
+
+  for (i = b->size-2; i >= 0; i--) {
+    snprintf(buf, sizeof(buf), fmt, b->elements[i]);
+    for (j = 0; j < sizeof(buf)-1; j++) {
+      SG_STRING_VALUE_AT(r, off++) = buf[j];
+    }
+  }
+  return r;
+}
+
 SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
 {
   static const char ltab[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -1636,44 +1702,11 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
     Sg_Error(UC("radix out of range: %d"), radix);
   }
   /* special case 0 */
-  if (SG_BIGNUM_GET_SIGN(b) == 0) return SG_MAKE_STRING("0");
+  if (b->sign == 0 || b->size == 0) return SG_MAKE_STRING("0");
 
-  /* special case radix 16 */
-  if (radix == 16) {
-    /* if the radix is 16 then we can simply dump the elements */
-    char buf[((WORD_BITS/SIZEOF_LONG)<<1)+1];
-    SgObject r;
-#if SIZEOF_LONG == 8
-    char *fmt = (use_upper)? "%016lX": "%016lx";
-#else
-    char *fmt = (use_upper)? "%08lX": "%08lx";
-#endif
-    char *first_fmt = (use_upper)? "%lX": "%lx";
-    int n, off = 0, j;
-    /* this is the very first time I'm using the return value of
-       printf related procedure...
-     */
-    count = n = snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
-    if (b->sign < 0) count++;
-    /* calculate the rest of words */
-    if (b->size > 1) {
-      count += (b->size-1) * ((WORD_BITS/SIZEOF_LONG)<<1);
-    }
-    r = Sg_ReserveString(count, 0);
-    /* set the first word */
-    if (b->sign < 0) SG_STRING_VALUE_AT(r, off++) = '-';
-    for (i = 0; i < n; i++) {
-      SG_STRING_VALUE_AT(r, off++) = buf[i];
-    }
-
-    for (i = b->size-2; i >= 0; i--) {
-      snprintf(buf, sizeof(buf), fmt, b->elements[i]);
-      for (j = 0; j < sizeof(buf)-1; j++) {
-	SG_STRING_VALUE_AT(r, off++) = buf[j];
-      }
-    }
-    return r;
-  }
+  /* handle easily converted case */
+  if (radix == 2)  return radix2_string(b);
+  if (radix == 16) return radix16_string(b, use_upper);
 
   q = SG_BIGNUM(Sg_BignumCopy(b));
   size = SG_BIGNUM_GET_COUNT(q);
