@@ -39,6 +39,7 @@
 #include "sagittarius/arith.h"
 #include "sagittarius/bits.h"
 #include "sagittarius/pair.h"
+#include "sagittarius/port.h"
 #include "sagittarius/string.h"
 #include "sagittarius/vm.h"
 
@@ -1414,17 +1415,30 @@ static unsigned long bignum_sdiv(SgBignum *dividend, unsigned long divisor)
   return r1;
 }
 
-SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
+static SgBignum *ZERO = NULL;
+
+static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
 {
   SgBignum *q, *r;
   if (Sg_BignumAbsCmp(a, b) < 0) {
-    return Sg_Cons(SG_MAKE_INT(0), SG_OBJ(a));
+    rr[0] = ZERO;
+    rr[1] = a;
+    return rr;
   }
   q = make_bignum(SG_BIGNUM_GET_COUNT(a) - SG_BIGNUM_GET_COUNT(b) + 1);
   r = bignum_gdiv(a, b, q);
   SG_BIGNUM_SET_SIGN(q, SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b));
   SG_BIGNUM_SET_SIGN(r, SG_BIGNUM_GET_SIGN(a));
-  return Sg_Cons(Sg_NormalizeBignum(q), Sg_NormalizeBignum(r));
+  rr[0] = bignum_normalize_rec(q, FALSE);
+  rr[1] = bignum_normalize_rec(r, FALSE);
+  return rr;
+}
+
+SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
+{
+  SgBignum *rr[2];
+  bignum_div_rem(a, b, rr);
+  return Sg_Cons(Sg_NormalizeBignum(rr[0]), Sg_NormalizeBignum(rr[1]));
 }
 
 SgObject Sg_BignumModulo(SgBignum *a, SgBignum *b, int remp)
@@ -1688,7 +1702,9 @@ static SgObject radix16_string(SgBignum *b, int use_upper)
   return r;
 }
 
-SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
+#define SCHONEHAGE_BASE_CONVERSION_THRESHOLD 20
+
+static SgObject small_bignum(SgBignum *b, int radix, int use_upper)
 {
   static const char ltab[] = "0123456789abcdefghijklmnopqrstuvwxyz";
   static const char utab[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1698,24 +1714,14 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   SgBignum *q;
   long rem, size, count;
   int i;
-  if (radix < 2 || radix > 36) {
-    Sg_Error(UC("radix out of range: %d"), radix);
-  }
-  /* special case 0 */
-  if (b->sign == 0 || b->size == 0) return SG_MAKE_STRING("0");
-
-  /* handle easily converted case */
-  if (radix == 2)  return radix2_string(b);
-  if (radix == 16) return radix16_string(b, use_upper);
-
   q = SG_BIGNUM(Sg_BignumCopy(b));
   size = SG_BIGNUM_GET_COUNT(q);
-
+    
   count = calc_string_size(q, radix);
   if (SG_BIGNUM_GET_SIGN(q) < 0) count++;
   for (i = 0; i < size; i++) q->elements[i] = b->elements[i];
   rs = Sg_ReserveString(count, 0);
-
+    
   for (i = count-1; size > 0; i--) {
     rem = bignum_sdiv(q, radix);
     /* SG_APPEND1(h, t, SG_MAKE_CHAR(tab[rem])); */
@@ -1728,6 +1734,95 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   }
   /* return Sg_ListToString(Sg_ReverseX(h), 0, -1); */
   return rs;
+}
+
+/* FIXME this is also in number.c */
+static inline double roundeven(double v)
+{
+  double r;
+  double frac = modf(v, &r);
+  if (v > 0.0) {
+    if (frac > 0.5) r += 1.0;
+    else if (frac == 0.5) {
+      if (fmod(r, 2.0) != 0.0) r += 1.0;
+    }
+  } else {
+    if (frac < -0.5) r -= 1.0;
+    else if (frac == -0.5) {
+      if (fmod(r, 2.0) != 0.0) r -= 1.0;
+    }
+  }
+  return r;
+}
+/* this is used here */
+static SgBignum * bignum_expt(SgBignum *b, long exponent);
+/* returns radix^2^exponent */
+static SgObject radix_conversion(int radix, int exponent)
+{
+  static SgBignum *radixes[32] = {NULL,};
+  SgObject c = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
+  if (!radixes[radix]) {
+    radixes[radix] = Sg_MakeBignumFromSI(radix);
+  }
+  if (!SG_INTP(c)) Sg_Error(UC("big num is too big to show"));
+  return bignum_normalize_rec(bignum_expt(radixes[radix], SG_INT_VALUE(c)),
+			      FALSE);
+}
+
+static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
+				 int count, int use_upper)
+{
+  int bits, n, e;
+  SgObject v;
+  SgBignum *result[2];
+  double l2, lr;
+
+  if (b->size < SCHONEHAGE_BASE_CONVERSION_THRESHOLD) {
+    SgObject r = small_bignum(b, radix, use_upper);
+    int i;
+    if (SG_STRING_SIZE(r) < count && Sg_PortPosition(out) > 0) {
+      for (i = SG_STRING_SIZE(r); i < count; i++) Sg_PutcUnsafe(out, '0');
+    }
+    Sg_PutsUnsafe(out, r);
+    return;
+  }
+  bits = Sg_BitSize(b);
+  l2 = log(2);
+  lr = log(radix);
+  n = (int)roundeven(log(bits * l2 / lr) / lr - 1.0);
+  v = radix_conversion(radix, n);
+  bignum_div_rem(b, v, result);
+  e = 1<<n;
+  schonehage_to_string(result[0], out, radix, count-e, use_upper);
+  schonehage_to_string(result[1], out, radix,e, use_upper);
+}
+
+SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
+{
+  if (radix < 2 || radix > 36) {
+    Sg_Error(UC("radix out of range: %d"), radix);
+  }
+  /* special case 0 */
+  if (b->sign == 0 || b->size == 0) return SG_MAKE_STRING("0");
+
+  /* handle easily converted case */
+  if (radix == 2)  return radix2_string(b);
+  if (radix == 16) return radix16_string(b, use_upper);
+
+  /* The Art of Computer Programming Vol2 4.4 (Q 14) answer*/
+  if (b->size < SCHONEHAGE_BASE_CONVERSION_THRESHOLD) {
+    return small_bignum(b, radix, use_upper);
+  } else {
+    SgPort *out;
+    SgStringPort sp;
+    out = Sg_InitStringOutputPort(&sp, 1024);
+    if (b->sign < 0) {
+      b = SG_BIGNUM(Sg_Negate(SG_OBJ(b)));
+      Sg_PutcUnsafe(out, '-');
+    }
+    schonehage_to_string(b, out, radix, 0, use_upper);
+    return Sg_GetStringFromStringPort(&sp);
+  }
 }
 
 /* we do this destructively */
@@ -2687,6 +2782,7 @@ SgObject Sg_BignumExpt(SgBignum *b, long exponent)
 
 void Sg__InitBignum()
 {
+  ZERO = Sg_MakeBignumFromSI(0);
 }
 
 

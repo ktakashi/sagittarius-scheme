@@ -1925,6 +1925,19 @@
 	    (expt 7 10000) 
 	    (string->number (number->string (expt 7 10000) 16) 16))
 
+(test-equal "fast number->string on radix 10"
+	    (expt 2 10000) 
+	    (string->number (number->string (expt 2 10000) 10) 10))
+(test-equal "fast number->string on radix 10"
+	    (expt 3 10000) 
+	    (string->number (number->string (expt 3 10000) 10) 10))
+(test-equal "fast number->string on radix 10"
+	    (expt 5 10000) 
+	    (string->number (number->string (expt 5 10000) 10) 10))
+(test-equal "fast number->string on radix 10"
+	    (expt 7 10000) 
+	    (string->number (number->string (expt 7 10000) 10) 10))
+
 ;; er-macro-transformer comparison procedure
 (let ()
   (define-syntax foo
