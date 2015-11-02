@@ -1925,4 +1925,13 @@
 	    (expt 7 10000) 
 	    (string->number (number->string (expt 7 10000) 16) 16))
 
+;; er-macro-transformer comparison procedure
+(let ()
+  (define-syntax foo
+    (er-macro-transformer
+     (lambda (f r c)
+       (c f (r f)))))
+  (test-assert "er compare vector" (foo #(a b c))))
+
+
 (test-end)
