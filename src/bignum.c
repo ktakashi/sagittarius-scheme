@@ -1669,7 +1669,7 @@ static SgObject radix2_string(SgBignum *b)
 static SgObject radix16_string(SgBignum *b, int use_upper)
 {
   /* if the radix is 16 then we can simply dump the elements */
-  char buf[((WORD_BITS/SIZEOF_LONG)<<1)+1];
+  char buf[(SIZEOF_LONG<<1)+1];
   SgObject r;
 #if SIZEOF_LONG == 8
   char *fmt = (use_upper)? "%016lX": "%016lx";
@@ -1684,7 +1684,7 @@ static SgObject radix16_string(SgBignum *b, int use_upper)
   count = n = snprintf(buf, sizeof(buf), first_fmt, b->elements[b->size-1]);
   if (b->sign < 0) count++;
   /* calculate the rest of words */
-  count += (b->size-1) * ((WORD_BITS/SIZEOF_LONG)<<1);
+  count += (b->size-1) * (SIZEOF_LONG<<1);
 
   r = Sg_ReserveString(count, 0);
   /* set the first word */
