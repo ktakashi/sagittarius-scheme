@@ -1817,6 +1817,7 @@ static inline double roundeven(double v)
 /* this is used here */
 static SgBignum * bignum_expt(SgBignum *b, long exponent);
 
+static SgBignum *RADIXES[33] = {NULL,};
 /* returns radix^2^exponent 
    the exponent is usually not so big (unless the number is extremely huge,
    but such numbers can't be create on Sagittarius due to the memory 
@@ -1826,12 +1827,9 @@ static SgBignum * bignum_expt(SgBignum *b, long exponent);
  */
 static SgObject radix_conversion(int radix, int exponent, SgBignum ***two_exps)
 {
-  static SgBignum *radixes[33] = {NULL,};
   SgObject c = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
   SgBignum *r;
-  if (!radixes[radix]) {
-    radixes[radix] = Sg_MakeBignumFromSI(radix);
-  }
+
   if (!SG_INTP(c)) Sg_Error(UC("big num is too big to show"));
   if (!*two_exps) {
     /* the first time, then create the array with exponent. don't worry,
@@ -1840,7 +1838,7 @@ static SgObject radix_conversion(int radix, int exponent, SgBignum ***two_exps)
   }
   r = (*two_exps)[exponent];
   if (r) return r;
-  r = bignum_normalize_rec(bignum_expt(radixes[radix], SG_INT_VALUE(c)),
+  r = bignum_normalize_rec(bignum_expt(RADIXES[radix], SG_INT_VALUE(c)),
 			   FALSE);
   (*two_exps)[exponent] = r;
   return r;
@@ -2863,7 +2861,12 @@ SgObject Sg_BignumExpt(SgBignum *b, long exponent)
 
 void Sg__InitBignum()
 {
+  int i;
   ZERO = Sg_MakeBignumFromSI(0);
+  RADIXES[0] = ZERO;
+  for (i = 1; i < array_sizeof(RADIXES); i++) {
+    RADIXES[i] = Sg_MakeBignumFromSI(i);
+  }
 }
 
 
