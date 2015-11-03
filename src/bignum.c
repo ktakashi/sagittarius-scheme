@@ -1816,21 +1816,40 @@ static inline double roundeven(double v)
 }
 /* this is used here */
 static SgBignum * bignum_expt(SgBignum *b, long exponent);
-/* returns radix^2^exponent */
-static SgObject radix_conversion(int radix, int exponent)
+
+/* returns radix^2^exponent 
+   the exponent is usually not so big (unless the number is extremely huge,
+   but such numbers can't be create on Sagittarius due to the memory 
+   limitation). So caluculating it each time is more expensive than
+   allocating small space for cache.
+   Unfortunately, this doesn't make noticeable performance change.
+ */
+static SgObject radix_conversion(int radix, int exponent, SgBignum ***two_exps)
 {
   static SgBignum *radixes[33] = {NULL,};
   SgObject c = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
+  SgBignum *r;
   if (!radixes[radix]) {
     radixes[radix] = Sg_MakeBignumFromSI(radix);
   }
   if (!SG_INTP(c)) Sg_Error(UC("big num is too big to show"));
-  return bignum_normalize_rec(bignum_expt(radixes[radix], SG_INT_VALUE(c)),
-			      FALSE);
+  if (!*two_exps) {
+    /* the first time, then create the array with exponent. don't worry,
+       it's not so big */
+    *two_exps = SG_NEW_ARRAY(SgBignum *, exponent+1);
+  }
+  r = (*two_exps)[exponent];
+  if (r) return r;
+  r = bignum_normalize_rec(bignum_expt(radixes[radix], SG_INT_VALUE(c)),
+			   FALSE);
+  (*two_exps)[exponent] = r;
+  return r;
 }
 
 static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
-				 int count, int use_upper)
+				 int count, int use_upper, 
+				 /* r^2^e cache */
+				 SgBignum ***two_exps)
 {
   int bits, n, e;
   SgObject v;
@@ -1850,11 +1869,11 @@ static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
   l2 = log(2);
   lr = log(radix);
   n = (int)roundeven(log(bits * l2 / lr) / lr - 1.0);
-  v = radix_conversion(radix, n);
+  v = radix_conversion(radix, n, two_exps);
   bignum_div_rem(b, v, result);
   e = 1<<n;
-  schonehage_to_string(result[0], out, radix, count-e, use_upper);
-  schonehage_to_string(result[1], out, radix,e, use_upper);
+  schonehage_to_string(result[0], out, radix, count-e, use_upper, two_exps);
+  schonehage_to_string(result[1], out, radix,e, use_upper, two_exps);
 }
 
 SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
@@ -1876,12 +1895,13 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
   } else {
     SgPort *out;
     SgStringPort sp;
+    SgBignum **two_exponents = NULL;
     out = Sg_InitStringOutputPort(&sp, 1024);
     if (b->sign < 0) {
       b = SG_BIGNUM(Sg_Negate(SG_OBJ(b)));
       Sg_PutcUnsafe(out, '-');
     }
-    schonehage_to_string(b, out, radix, 0, use_upper);
+    schonehage_to_string(b, out, radix, 0, use_upper, &two_exponents);
     return Sg_GetStringFromStringPort(&sp);
   }
 }
