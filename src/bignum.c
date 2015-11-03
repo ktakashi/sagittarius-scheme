@@ -1890,7 +1890,7 @@ static inline double roundeven(double v)
 /* this is used here */
 static SgBignum * bignum_expt(SgBignum *b, long exponent);
 
-#define MAX_RADIX 32
+#define MAX_RADIX 36
 static SgBignum *RADIXES[MAX_RADIX+1] = {NULL,};
 /* returns radix^2^exponent 
    the exponent is usually not so big (unless the number is extremely huge,

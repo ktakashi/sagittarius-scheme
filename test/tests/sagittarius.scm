@@ -1918,7 +1918,7 @@
      bases))
   (do-test '(2 3 5 7)))
 
-(for-each radix-test (iota 31 2))
+(for-each radix-test (iota 35 2))
 
 ;; er-macro-transformer comparison procedure
 (let ()
