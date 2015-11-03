@@ -76,6 +76,30 @@ static inline ulong* mp_2scmpl(ulong *p, uint s)
   return p;
 }
 
+static int mp_bit_size(ulong *x, uint s)
+{
+  int last = s - 1;
+  int bitsize = WORD_BITS * last;
+  if (s == 0) return 0;
+  return bitsize + WORD_BITS - nlz(x[last]);
+}
+
+/* this doesn't consider signess */
+static int mp_compare(ulong *lhs, uint lhs_count, ulong *rhs, uint rhs_count)
+{
+  int i;
+  /* compare size */
+  if (lhs_count < rhs_count) return  -1;
+  if (lhs_count > rhs_count) return  1;
+  /* elements */
+  for (i = lhs_count - 1; i >= 0; i--) {
+    if (lhs[i] < rhs[i]) return  -1;
+    if (lhs[i] > rhs[i]) return  1;
+  }
+  return 0;
+}
+
+
 /* Addition */
 
 /* helper */
@@ -733,9 +757,10 @@ static inline int div_normalization_factor(unsigned long w)
     xp % yp -> rem
     return size of remainder
  */
-static uint mp_div_rem(ulong *dp, ulong *rem,
-		       ulong *xp, uint xsize,
-		       ulong *yp, uint ysize)
+static uint mp_div_rem_kunuth(ulong *dp, uint qlen,
+			      ulong *rem, uint rlen,
+			      ulong *xp, uint xsize,
+			      ulong *yp, uint ysize)
 {
   ulong *u, *v;
   uint de_size = xsize;
@@ -818,6 +843,275 @@ static uint mp_div_rem(ulong *dp, ulong *rem,
 #undef DIGIT2
 #undef SETDIGIT
 #undef SETDIGIT2
+}
+
+/* for now disable it */
+#undef USE_BURNIKEL_ZIEGLER
+#ifdef USE_BURNIKEL_ZIEGLER
+/* the same as karatsuba since we need to multiply with karatsuba according
+   to the paper.
+   TODO how much? */
+#define BURNIKEL_ZIEGLER_BITS      1600
+#define BURNIKEL_ZIEGLER_THRESHOLD ((BURNIKEL_ZIEGLER_BITS>>3)/WORD_BITS)
+
+#define BURNIKEL_ZIEGLER_OFFSET    40
+
+static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
+				     ulong *r, uint rn,
+				     ulong *a, uint an,
+				     ulong *b, uint bn);
+/*
+   From Section 2, Algorithm 2. (D 3n/2n)
+   Let A and B be non negative integers, and let A < β^n*B and 
+   β^(n/2) <= B < β^(2n). Algorithm D3n/2n computes the quotient
+   Q = ⌊A/B⌋ with remainder R = A-Q*B
+   1. Split A into three parts A = [A1,A2,A3] with Ai < β^n
+   2. Split B into two parts = B = [B1,B2] with Bi < β^n
+   3. Distinguish the cases A1 < B1 or A1 >= B1.
+      (a) If A1 < B1, compute Ô = ⌊[A1,A2]/B1⌋ with remainder R1 using 
+          algorithm D2n/1n
+      (b) If A1 >= B1, set Ô = β^n - 1 and set R1 = [A1,A2] - [B1,0] + [0,B1]
+          (= [A1,A2] - ÔB1)
+   4. Compute D = Ô * B2 using Karatsuba multiplication.
+   5. Compute R̂ = R1β^n + A4 - D
+   6. As lon as R̂ < 0, repeat
+      (a) R̂ = R̂ + B
+      (b) Ô = Ô -1
+   7. Return R = R̂, Q = Ô
+
+   NB: the procedure returns size of quotient
+*/
+static int mp_burnikel_ziegler_d3n2n(ulong *q, uint qn,
+				     ulong *r, uint rn,
+				     ulong *a, uint an,
+				     ulong *b, uint bn)
+{
+  int n = bn/2;
+  int n2 = n<<1;
+  ulong *a12, *a3;
+  ulong *b1, *b2;
+  ulong *rh, *d;
+  uint rh_size, qs, i;
+  /* step 1 */
+  a12 = a;
+  a3 = a+n2;
+  /* step 2 */
+  b1 = b;
+  b2 = b+n;
+  /* hope we q has sufficient size... */
+  /* step 3 */
+  
+  if (mp_compare(a, n, b, n) < 0) {
+    qs = mp_burnikel_ziegler_d2n1n(q, qn, r, rn, a12, n2, b1, n);
+  } else {
+    int i;
+    ulong *b10;
+    for (i = 0; i < n ; i++) {
+      q[i] = (ulong)-1L;
+    }
+    qs = n;
+    ALLOC_TEMP_BUFFER(b10, ulong, n2);
+    mp_lshift(b10, n2, b1, n, WORD_BITS);
+    mp_sub(r, rn, a12, n2, b10, n2);
+    mp_add(r, rn, r, n2, b1, n);
+  }
+  /* step4 */
+  ALLOC_TEMP_BUFFER(d, ulong, n+qs);
+  mp_mul(d, n+qs, q, qs, b2, n);
+
+  /* step5 
+     though we don't want negative value so a bit different
+   */
+  /* TODO size of R1 (at least this is safe, though) */
+  rh_size = SG_LEFT_SHIFT_SPACE(rn, WORD_BITS*n);
+  ALLOC_TEMP_BUFFER(rh, ulong, rh_size);
+  mp_lshift(rh, rh_size, r, rn, n);
+  /* there is no A4, use A3 */
+  mp_add(rh, rh_size, rh, rh_size, a3, n);
+  while (mp_compare(rh, rh_size, d, n+qs) < 0) {
+    mp_sub(rh, rh_size, rh, rh_size, d, n+qs);
+    mp_add_ul(q, qn, q, qn, 1);
+  }
+  /* return */
+  for (i = 0; i < rn; i++) r[i] = rh[i];
+
+  return qs;
+}
+/* 
+   Reference: http://cr.yp.to/bib/1998/burnikel.ps
+
+   From Section 2, Algorithm 1. (D 2n/1n)
+   Let A and B be non negative integers, and let A < β^n*B and 
+   β^(n/2) <= B < β^n. Algorithm D 2n/1n computes the quotient
+   Q = ⌊A/B⌋ with remainder R = A-Q*B
+   1. If n is odd or smallar than some convenient constant, compute Q
+      and R by school division and return.
+   2. Split A into four parts A = [A1, ..., A4] with Ai < β^(n/2). Split
+      B into two parts B = [B1,B2] with Bi < β^(n/2).
+   3. Compute the high part Q1 of ⌊A/B⌋ as Q1 = ⌊[A1,A2,A3]/[B1,B2]⌋ with
+      remainder R1 = [R1.1,R1.2] using algorithm D3n/2n
+   4. Compute the low part Q2 of ⌊A/B⌋ as Q2 = ⌊[R1.1,R1.2,A4]/[B1,B2]⌋ with
+      remainder R using algorithm D3n/2n
+   5. Return Q = [Q1,Q2]
+
+   this procedure return size of quotient
+*/
+static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
+				     ulong *r, uint rn,
+				     ulong *a, uint an,
+				     ulong *b, uint bn)
+{
+  int n = bn, i;
+  ulong *a123, *a4, *r12a4;
+  uint a123_len, q1, q2;
+  /* step 1 */
+  if (n & 1 || n < BURNIKEL_ZIEGLER_THRESHOLD) {
+    mp_div_rem_kunuth(q, qn, r, rn, a, an, b, bn);
+    return qn;			/* FIXME */
+  }
+  /* step 2 */
+  a123_len = an - n/2;
+  a123 = a;
+  a4 = a + a123_len;
+
+  /* step 3 */
+  q1 = mp_burnikel_ziegler_d3n2n(q, qn, r, rn, a123, a123_len, b, bn);
+  ALLOC_TEMP_BUFFER_REC(r12a4, ulong, n*3);
+  for (i = 0; i < n; i++) {
+    r12a4[i] = r[i];
+    r12a4[i+n] = r[i+n];
+    r12a4[i+n+n] = a4[i];
+  }
+  /* step 4 */
+  q2 = mp_burnikel_ziegler_d3n2n(q+q1, qn-q1, NULL, 0, r12a4, n*3, b, bn);
+  return q1 + q2;
+}
+
+/*
+   From Section 2, Algorithm 3. (D r/s)
+   LET A and B be non negative integer such that A < β^r, B < β^s.
+   the quotient Q = ⌊A/B⌋ with remainder R = A - Q*B
+   1. Set m = min{2^k|(2^k) * DIV_LIMIT) > s}
+   2. Set j = ⌈s/m⌉ and n = j*m
+   3. Set σ = max{r|2^r * B < β^n}
+   4. (a) Set B = B*2^σ to normalize B
+      (b) Set A = A*2^σ to shift A by the same amount as B
+   5. Set t = min{l >= 2|A < (β^l-n) / 2}
+   6. Split A conceptually into t blocks [At-1, ..., A0]β^n = A. Note that
+      leftmost bit of At-1 is 0 by our choice of t.
+   7. Set Zt-2 = [At-1,At-2]
+   8. For i from t-2 downto 0 do
+      (a) Using algorithm D2n/1n compute Qi, Ri such that Zi = B*Qi+Ri
+      (b) If i > 0, set Zi-1 = [Ri, Ai-i]
+   9. Return Q=[Qt-2, ..., Q0] and R = R0*2^-σ
+
+   k = WORD_BITS
+   DIV_LIMIT = threshold
+   
+   β/2 
+   (this amounts to say that it has a leading 1 in its binary representation;
+    if this is not the case we can shift B and A to the left)
+    
+ */
+static uint mp_div_rem_burnikel_zeigler(ulong *qp, uint qlen,
+					ulong *rp, uint rlen,
+					ulong *xp, uint xsize,
+					ulong *yp, uint ysize)
+{
+  /* make things easier for me... */
+  ulong *a = xp, *b = yp;
+  ulong r = xsize, s = ysize;
+
+  int bbits = mp_bit_size(b, s);
+  /* step 1 */
+  ulong m = 1 << (nlz(s/BURNIKEL_ZIEGLER_THRESHOLD));
+  /* step 2 */
+  ulong j = (s+m-1)/m;
+  ulong n = j*m;
+  dlong nb = WORD_BITS * n;	/* n block in bits */
+  /* step 3 */
+  int sigma = max(0, nb - bbits), t;
+  /* step 4 */
+  ulong *bshift, *ashift;
+  uint bshift_size = SG_LEFT_SHIFT_SPACE(s, sigma),
+    ashift_size = SG_LEFT_SHIFT_SPACE(r, sigma);
+  /* others */
+  ulong *zi, *ri, *ai;
+  int i;
+  /* shift amount is sigma */
+  ALLOC_TEMP_BUFFER_REC(bshift, ulong, bshift_size);
+  ALLOC_TEMP_BUFFER_REC(ashift, ulong, ashift_size);
+  mp_lshift(bshift, bshift_size, b, s, sigma);
+  mp_lshift(ashift, ashift_size, a, r, sigma);
+  
+  /* step 5 
+     A = ashift
+     B = bshift
+                     A
+     +-----------+-----------+-----------+
+     |     |     |           |  |  |  |  |
+     +-----------+-----------+-----------+
+                             <--   n   -->
+           <--             r           -->
+     <--              t*n              -->
+
+              B
+     +----+-----------+
+     |    |  |  |  |  |
+     +----+-----------+
+          <--   s   -->
+     <--  n = m*j   -->
+     NB: t*n needs to cover extra space so make t a bit bigger.
+   */
+  t = (mp_bit_size(ashift, ashift_size) + nb)/nb;
+  if (t < 2) t = 2;		/* l >= 2 */
+  
+  /* step 6 
+     numbers on the paper are big endian thus, at_1 is the
+     first element of our bignum. easy peasy.
+   */
+  /* step 7 zt_2 = [At1, At2]*/
+  ALLOC_TEMP_BUFFER_REC(zi, ulong, n<<1);
+  for (i = 0; i < n<<1; i++) zi[i] = ashift[i];
+
+  /* step 8 */
+  /* max Ri size is n */
+  ALLOC_TEMP_BUFFER(ri, ulong, n);
+  /* reverse order */
+  ai = ashift + (n<<1);
+  for (i = 2; i < t-3; i++, ai+=n) {
+    int j;
+    /* d2n1n */
+    mp_burnikel_ziegler_d2n1n(qp+(n*i), n, ri, n, zi, n<<1, bshift, bshift_size);
+    for (j = 0; j < n; j++) {
+      zi[j] = ri[j];
+      zi[j+n] = ai[j];
+    }
+  }
+  /* last iteration of step 8 */
+  mp_burnikel_ziegler_d2n1n(qp+(n*i), n, ri, n, zi, n<<1, bshift, bshift_size);
+  return mp_rshift(rp, rlen, ri, n, sigma);
+}
+#endif
+
+/* 
+    xp / yp -> dp
+    xp % yp -> rem
+    return size of remainder
+*/
+static uint mp_div_rem(ulong *qp, uint qlen,
+		       ulong *rp, uint rlen,
+		       ulong *xp, uint xsize,
+		       ulong *yp, uint ysize)
+{
+#ifdef USE_BURNIKEL_ZIEGLER
+  if (xsize < BURNIKEL_ZIEGLER_THRESHOLD &&
+      (xsize - ysize) < BURNIKEL_ZIEGLER_OFFSET) {
+    return mp_div_rem_burnikel_zeigler(qp, qlen, rp, rlen, 
+				       xp, xsize, yp, ysize);
+  }
+#endif
+  return mp_div_rem_kunuth(qp, qlen, rp, rlen, xp, xsize, yp, ysize);
 }
 
 /* others */

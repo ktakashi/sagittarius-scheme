@@ -100,6 +100,9 @@
 #define dump_bignum_u(b) dump_uarray((b)->elements, (b)->size)
 #define dump_bignum_x(b) dump_xarray((b)->elements, (b)->size)
 
+/* TODO maybe we want to put this in header file? */
+#define SG_LEFT_SHIFT_SPACE(size, amount)		\
+  (int)((size) + ((amount) + WORD_BITS -1)/WORD_BITS) 
 #include "bignum.inc"
 
 static int bignum_safe_size_for_add(SgBignum *x, SgBignum *y);
@@ -741,7 +744,7 @@ static SgBignum* bignum_lshift(SgBignum *br, SgBignum *bx, long amount)
 
 SgObject Sg_BignumShiftLeft(SgBignum *b, long shift)
 {
-  int rsize = SG_BIGNUM_GET_COUNT(b) + (shift + WORD_BITS - 1) / WORD_BITS;
+  int rsize = SG_LEFT_SHIFT_SPACE(b->size, shift);
   SgBignum *r = make_bignum(rsize);
   return Sg_NormalizeBignum(bignum_lshift(r, b, shift));
 }
@@ -1377,11 +1380,19 @@ static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
 {
   SgBignum *u = NULL;
   uint de_size = dividend->size, rsize;
+  ulong *q = NULL, *r = NULL;
+  uint qs = 0, rs = 0;
   if (remainderp) {
     u = make_bignum(de_size + 1); 
+    rs = de_size + 1;
+    r = u->elements;
   }
-  rsize = mp_div_rem((quotient) ? quotient->elements : NULL,
-		     (u) ? u->elements : NULL,
+  if (quotient) {
+    q = quotient->elements;
+    qs = quotient->size;
+  }
+  rsize = mp_div_rem(q, qs,
+		     r, rs,
 		     dividend->elements, dividend->size,
 		     divisor->elements, divisor->size);
 
@@ -1396,24 +1407,70 @@ static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
 
 #define bignum_gdiv(dend, dvis, quo) bignum_gdiv_rec(dend, dvis, quo, TRUE)
 
-static unsigned long bignum_sdiv(SgBignum *dividend, unsigned long divisor)
-{
-  int n = SG_BIGNUM_GET_COUNT(dividend) - 1;
-  unsigned long *pu = dividend->elements;
-  unsigned long q0 = 0, r0 = 0, q1, r1;
 
-  for (; n > 0; n--) {
-    q1 = pu[n] / divisor + q0;
-    r1 = ((pu[n] % divisor) << HALF_BITS) + HI(pu[n - 1]);
-    q0 = ((r1 / divisor) << HALF_BITS);
-    r0 = r1 % divisor;
-    pu[n] = q1;
-    pu[n - 1] = (r0 << HALF_BITS) + LO(pu[n - 1]);
+static ulong bignum_sdiv(SgBignum *dividend, ulong divisor)
+{
+#if 1
+  if (dividend->size == 1) {
+    dlong de = dividend->elements[0];
+    ulong q = (ulong) (de / divisor);
+    ulong r = (ulong) (de - q * divisor);
+    dividend->elements[0] = q;
+    return r;
+  } else {
+    int n = dividend->size - 1;
+    ulong *pu = dividend->elements;
+    int shift = nlz(divisor);
+    dlong rem = pu[n];
+    
+    if (rem < divisor) {
+      pu[n] = 0;
+    } else {
+      pu[n] = (ulong)(rem / divisor);
+      rem = (ulong)(rem - ((dlong)pu[n] * divisor));
+    }
+    n--;
+    for (; n >= 0; n--) {
+      dlong e = (rem << WORD_BITS) | pu[n];
+      ulong q;
+      q = (ulong)(e/divisor);
+      rem = (ulong)(e - ((dlong)q * divisor));
+      pu[n] = q;
+    }
+    return (shift>0) ? rem % divisor: rem;
   }
-  q1 = pu[0] / divisor + q0;
-  r1 = pu[0] % divisor;
-  pu[0] = q1;
-  return r1;
+#else
+  /* only HALF_WORD */
+  if (divisor < HALF_WORD) {
+    int n = dividend->size - 1;
+    unsigned long *pu = dividend->elements;
+    ulong q0 = 0, r0 = 0, q1, r1;
+    
+    for (; n > 0; n--) {
+      q1 = pu[n] / divisor + q0;
+      r1 = ((pu[n] % divisor) << HALF_BITS) + HI(pu[n - 1]);
+      q0 = ((r1 / divisor) << HALF_BITS);
+      r0 = r1 % divisor;
+      pu[n] = q1;
+      pu[n - 1] = (r0 << HALF_BITS) + LO(pu[n - 1]);
+    }
+    q1 = pu[0] / divisor + q0;
+    r1 = pu[0] % divisor;
+    pu[0] = q1;
+    return r1;
+  } else {
+    /* FIXME this doesn't work */
+    SgBignum *bv = SG_BIGNUM(Sg_MakeBignumFromSI(divisor));
+    SgBignum *br, *q;
+    int i;
+    q = make_bignum(dividend->size + 1);
+    br = bignum_gdiv(dividend, bv, q);
+    for (i = 0; i < q->size; i++) {
+      dividend->elements[i] = q->elements[i];
+    }
+    return br->elements[0];
+  }
+#endif
 }
 
 static SgBignum *ZERO = NULL;
@@ -1427,7 +1484,15 @@ static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
     return rr;
   }
   q = make_bignum(SG_BIGNUM_GET_COUNT(a) - SG_BIGNUM_GET_COUNT(b) + 1);
-  r = bignum_gdiv(a, b, q);
+  /* this would help alot on sizeof(long) == 8 environment */
+  if (b->size == 1) {
+    ulong ur;
+    bignum_copy(q, a);
+    ur = bignum_sdiv(q, b->elements[0]);
+    r = Sg_MakeBignumFromUI(ur);
+  } else {
+    r = bignum_gdiv(a, b, q);
+  }
   SG_BIGNUM_SET_SIGN(q, SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b));
   SG_BIGNUM_SET_SIGN(r, SG_BIGNUM_GET_SIGN(a));
   rr[0] = bignum_normalize_rec(q, FALSE);
@@ -1485,16 +1550,9 @@ SgObject Sg_BignumDivSI(SgBignum *a, long b, long *rem)
   int d_sign = (b < 0) ? -1 : 1;
   SgBignum *q;
 
-  if (dd < HALF_WORD) {
-    q = SG_BIGNUM(Sg_BignumCopy(a));
-    rr = bignum_sdiv(q, dd);
-  } else {
-    SgBignum *bv = SG_BIGNUM(Sg_MakeBignumFromSI(dd));
-    SgBignum *br;
-    q = make_bignum(SG_BIGNUM_GET_COUNT(a) + 1);
-    br = bignum_gdiv(a, bv, q);
-    rr = br->elements[0];
-  }
+  q = SG_BIGNUM(Sg_BignumCopy(a));
+  rr = bignum_sdiv(q, dd);
+
   if (rem) {
     *rem = ((SG_BIGNUM_GET_SIGN(a) < 0) ? -(signed long)rr : (signed long)rr);
   }
