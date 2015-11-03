@@ -1370,17 +1370,15 @@ SgObject Sg_BignumSquare(SgBignum *bx)
   return Sg_NormalizeBignum(br);
 }
 
-static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
-				 SgBignum *quotient, int remainderp)
+static void bignum_gdiv_rem(SgBignum *dividend, SgBignum *divisor,
+			    SgBignum *quotient, SgBignum *remainder)
 {
-  SgBignum *u = NULL;
-  uint de_size = dividend->size, rsize;
+  uint rsize;
   ulong *q = NULL, *r = NULL;
   uint qs = 0, rs = 0;
-  if (remainderp) {
-    u = make_bignum(de_size + 1); 
-    rs = de_size + 1;
-    r = u->elements;
+  if (remainder) {
+    rs = remainder->size;
+    r =  remainder->elements;
   }
   if (quotient) {
     q = quotient->elements;
@@ -1390,39 +1388,48 @@ static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
 		     r, rs,
 		     dividend->elements, dividend->size,
 		     divisor->elements, divisor->size);
-
-  if (remainderp) {
-    u->size = rsize;
-    u->sign = dividend->sign;
-    return u;
-  } else {
-    return NULL;
+  if (remainder) {
+    remainder->size = rsize;
+    remainder->sign = dividend->sign;
   }
+}
+
+static SgBignum* bignum_gdiv_rec(SgBignum *dividend, SgBignum *divisor,
+				 SgBignum *quotient, int remainderp)
+{
+  SgBignum *u = NULL;
+  if (remainderp) {
+    u = make_bignum(dividend->size + 1); 
+  }
+  bignum_gdiv_rem(dividend, divisor, quotient, u);
+  return u;
 }
 
 #define bignum_gdiv(dend, dvis, quo) bignum_gdiv_rec(dend, dvis, quo, TRUE)
 
 
-static ulong bignum_sdiv(SgBignum *dividend, ulong divisor)
+static ulong bignum_sdiv_rec(SgBignum *quotient, 
+			     SgBignum *dividend, ulong divisor)
 {
-#if 1
+#ifdef USE_DLONG
   if (dividend->size == 1) {
     dlong de = dividend->elements[0];
     ulong q = (ulong) (de / divisor);
     ulong r = (ulong) (de - q * divisor);
-    dividend->elements[0] = q;
+    quotient->elements[0] = q;
     return r;
   } else {
     int n = dividend->size - 1;
     ulong *pu = dividend->elements;
+    ulong *qu = quotient->elements;
     int shift = nlz(divisor);
     dlong rem = pu[n];
     
     if (rem < divisor) {
-      pu[n] = 0;
+      qu[n] = 0;
     } else {
-      pu[n] = (ulong)(rem / divisor);
-      rem = (ulong)(rem - ((dlong)pu[n] * divisor));
+      qu[n] = (ulong)(rem / divisor);
+      rem = (ulong)(rem - ((dlong)qu[n] * divisor));
     }
     n--;
     for (; n >= 0; n--) {
@@ -1430,7 +1437,7 @@ static ulong bignum_sdiv(SgBignum *dividend, ulong divisor)
       ulong q;
       q = (ulong)(e/divisor);
       rem = (ulong)(e - ((dlong)q * divisor));
-      pu[n] = q;
+      qu[n] = q;
     }
     return (shift>0) ? rem % divisor: rem;
   }
@@ -1468,25 +1475,38 @@ static ulong bignum_sdiv(SgBignum *dividend, ulong divisor)
 #endif
 }
 
+#define bignum_sdiv(a, si) bignum_sdiv_rec(a, a, si)
+
 static SgBignum *ZERO = NULL;
 
 static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
 {
   SgBignum *q, *r;
+  uint qsize = a->size - b->size + 1;
   if (Sg_BignumAbsCmp(a, b) < 0) {
     rr[0] = ZERO;
     rr[1] = a;
     return rr;
   }
-  q = make_bignum(SG_BIGNUM_GET_COUNT(a) - SG_BIGNUM_GET_COUNT(b) + 1);
+  if (rr[0] && rr[0]->size >= qsize ) {
+    q = rr[0];
+  } else {
+    q = make_bignum(qsize);
+  }
+  if (rr[1] && rr[1]->size >= a->size+1) {
+    r = rr[1];
+  } else {
+    r = make_bignum(a->size+1);
+  }
   /* this would help alot on sizeof(long) == 8 environment */
   if (b->size == 1) {
     ulong ur;
-    bignum_copy(q, a);
-    ur = bignum_sdiv(q, b->elements[0]);
-    r = Sg_MakeBignumFromUI(ur);
+    ur = bignum_sdiv_rec(q, a, b->elements[0]);
+    r->elements[0] = ur;
+    r->size = 1;
+    r->sign = a->sign;
   } else {
-    r = bignum_gdiv(a, b, q);
+    bignum_gdiv_rem(a, b, q, r);
   }
   SG_BIGNUM_SET_SIGN(q, SG_BIGNUM_GET_SIGN(a) * SG_BIGNUM_GET_SIGN(b));
   SG_BIGNUM_SET_SIGN(r, SG_BIGNUM_GET_SIGN(a));
@@ -1497,7 +1517,7 @@ static SgBignum ** bignum_div_rem(SgBignum *a, SgBignum *b, SgBignum **rr)
 
 SgObject Sg_BignumDivRem(SgBignum *a, SgBignum *b)
 {
-  SgBignum *rr[2];
+  SgBignum *rr[2] = {NULL, };
   bignum_div_rem(a, b, rr);
   return Sg_Cons(Sg_NormalizeBignum(rr[0]), Sg_NormalizeBignum(rr[1]));
 }
@@ -1817,7 +1837,7 @@ static SgObject radix16_string(SgBignum *b, int use_upper)
 
 #define SCHONEHAGE_BASE_CONVERSION_THRESHOLD 20
 
-static SgObject small_bignum(SgBignum *b, int radix, int use_upper)
+static SgObject small_bignum_to_string(SgBignum *b, int radix, int use_upper)
 {
   static const char ltab[] = "0123456789abcdefghijklmnopqrstuvwxyz";
   static const char utab[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -1870,20 +1890,19 @@ static inline double roundeven(double v)
 /* this is used here */
 static SgBignum * bignum_expt(SgBignum *b, long exponent);
 
-static SgBignum *RADIXES[33] = {NULL,};
+#define MAX_RADIX 32
+static SgBignum *RADIXES[MAX_RADIX+1] = {NULL,};
 /* returns radix^2^exponent 
    the exponent is usually not so big (unless the number is extremely huge,
    but such numbers can't be create on Sagittarius due to the memory 
    limitation). So caluculating it each time is more expensive than
    allocating small space for cache.
-   Unfortunately, this doesn't make noticeable performance change.
  */
-static SgObject radix_conversion(int radix, int exponent, SgBignum ***two_exps)
+static SgBignum* radix_conversion(int radix, int exponent, SgBignum ***two_exps)
 {
-  SgObject c = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
+  SgObject c;
   SgBignum *r;
 
-  if (!SG_INTP(c)) Sg_Error(UC("big num is too big to show"));
   if (!*two_exps) {
     /* the first time, then create the array with exponent. don't worry,
        it's not so big */
@@ -1891,24 +1910,70 @@ static SgObject radix_conversion(int radix, int exponent, SgBignum ***two_exps)
   }
   r = (*two_exps)[exponent];
   if (r) return r;
+
+  c  = Sg_Expt(SG_MAKE_INT(2), SG_MAKE_INT(exponent));
+  if (!SG_INTP(c)) Sg_Error(UC("big num is too big to show"));
+  /* keep it as bignum */
   r = bignum_normalize_rec(bignum_expt(RADIXES[radix], SG_INT_VALUE(c)),
 			   FALSE);
   (*two_exps)[exponent] = r;
   return r;
 }
 
+/*
+  it does improve the performance as long as the number is small
+  however once it consumed all stack then the GC would get affected
+  by the large grown stack area. I believe, this impacted performance.
+  c.f)
+  with stack
+  ;;  (string->number (number->string (expt 2 (vector-ref v 0))))
+  ;;  -6.915366 real    2.154000 user    0.218000 sys
+  11.53s user 0.31s system 103% cpu 11.410 total
+
+  without stack
+  ;;  (string->number (number->string (expt 2 (vector-ref v 0))))
+  ;;  0.337534 real    9.266000 user    0.437000 sys
+  9.67s user 0.50s system 105% cpu 9.657 total
+
+  2 seconds are not negligible difference.
+ */
+#undef USE_STACK_FOR_SCHONEHAGE
+
+/* cache constant log values */
+/* static double DBL_LOG2 = 0.0; */
+#define DBL_LOG2 0.6931471805599453
+static double DBL_RADIXES[MAX_RADIX+1];
+/*
+  Using Schonehage base conversion
+
+  This is much faster than before (it's now named small_bignum_to_string),
+  however the implementation uses considerable memory if the bignum is
+  huge. In that case it's more fight against GC than small performance
+  tuning such as caching.
+  
+  For future note.
+  There's couple of things I can try to squeeze performance.
+   - rope: string port isn't that bad but calling overhead would be redueced
+   - non recursive conversion: then we can use stack instead of heap
+  The second one would be a challenge.
+ */
 static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
 				 int count, int use_upper, 
 				 /* r^2^e cache */
-				 SgBignum ***two_exps)
+				 SgBignum ***two_exps
+				 /*, int use_stack */)
 {
-  int bits, n, e;
-  SgObject v;
-  SgBignum *result[2];
-  double l2, lr;
-
+  int bits;
+  int n, e;
+  SgBignum *v;
+  SgBignum *result[2] = {NULL, };
+  double lr, l2;
+#ifdef USE_STACK_FOR_SCHONEHAGE
+  intptr_t stack_size;
+  uint qsize, rsize;
+#endif
   if (b->size < SCHONEHAGE_BASE_CONVERSION_THRESHOLD) {
-    SgObject r = small_bignum(b, radix, use_upper);
+    SgObject r = small_bignum_to_string(b, radix, use_upper);
     int i;
     if (SG_STRING_SIZE(r) < count && Sg_PortPosition(out) > 0) {
       for (i = SG_STRING_SIZE(r); i < count; i++) Sg_PutcUnsafe(out, '0');
@@ -1917,14 +1982,35 @@ static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
     return;
   }
   bits = Sg_BitSize(b);
-  l2 = log(2);
-  lr = log(radix);
+  l2 = DBL_LOG2;
+  lr = DBL_RADIXES[radix];
+
   n = (int)roundeven(log(bits * l2 / lr) / lr - 1.0);
   v = radix_conversion(radix, n, two_exps);
+
+#ifdef USE_STACK_FOR_SCHONEHAGE
+  if (use_stack) {
+    stack_size = Sg_AvailableStackSize((uintptr_t)&bits);
+    qsize = b->size - v->size + 1;
+    rsize = b->size+1;
+    if (stack_size > 0 && stack_size > BIGNUM_SIZE(qsize)) {
+      stack_size -= BIGNUM_SIZE(qsize);
+      ALLOC_TEMP_BIGNUM(result[0], qsize);
+    } else {
+      use_stack = FALSE;
+    }
+    if (stack_size > 0 && stack_size > BIGNUM_SIZE(rsize)) {
+      ALLOC_TEMP_BIGNUM(result[1], rsize);
+    } else {
+      use_stack = FALSE;
+    }
+  }
+#endif
+
   bignum_div_rem(b, v, result);
   e = 1<<n;
   schonehage_to_string(result[0], out, radix, count-e, use_upper, two_exps);
-  schonehage_to_string(result[1], out, radix,e, use_upper, two_exps);
+  schonehage_to_string(result[1], out, radix, e, use_upper, two_exps);
 }
 
 SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
@@ -1942,7 +2028,7 @@ SgObject Sg_BignumToString(SgBignum *b, int radix, int use_upper)
 
   /* The Art of Computer Programming Vol2 4.4 (Q 14) answer*/
   if (b->size < SCHONEHAGE_BASE_CONVERSION_THRESHOLD) {
-    return small_bignum(b, radix, use_upper);
+    return small_bignum_to_string(b, radix, use_upper);
   } else {
     SgPort *out;
     SgStringPort sp;
@@ -2784,20 +2870,12 @@ static int compute_sw_size(long l, long e, long n, SgBignum **table)
   return z;
 }
 
-#define MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
-#define CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
-
-#define check_stack_size(size)			\
-  ((Sg_MainThreadP())				\
-   ? (size) < MAIN_THREAD_STACK_SIZE_LIMIT	\
-   : (size) < CHILD_THREAD_STACK_SIZE_LIMIT)
-
 /* unfortunately, this wasn't rgith from the begining
    but didn't come up so that never reached here... */
 static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
 {
   /* max must be 4 */
-  int zsize, zlen = 0;
+  int volatile zsize, zlen = 0;
   long i, l = (WORD_BITS-1) - (long)bfffo(n), u = 1UL<<(e-1);
   long w, v;
   SgBignum *r, *table[1UL<<(3-1)], *tw, *z = NULL, *prod1, *prod2;
@@ -2809,7 +2887,7 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   SG_BIGNUM_SET_SIGN(r, 1);
 
   prod1 = r;
-  if (check_stack_size(zsize)) {
+  if (Sg_AvailableStackSize((uintptr_t)&zsize) >= zsize) {
     ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
   } else {
     prod2 = make_bignum_rec(zsize, FALSE);
@@ -2917,9 +2995,12 @@ void Sg__InitBignum()
   int i;
   ZERO = Sg_MakeBignumFromSI(0);
   RADIXES[0] = ZERO;
-  for (i = 1; i < array_sizeof(RADIXES); i++) {
+  DBL_RADIXES[0] = log(0);
+  for (i = 1; i <= MAX_RADIX; i++) {
     RADIXES[i] = Sg_MakeBignumFromSI(i);
+    DBL_RADIXES[i] = log(i);
   }
+  /* DBL_LOG2 = DBL_RADIXES[2]; */
 }
 
 
