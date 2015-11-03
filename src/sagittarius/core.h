@@ -59,6 +59,7 @@ SG_EXTERN void* Sg_GCBase(void *value);
 SG_EXTERN size_t Sg_GetHeapSize();
 SG_EXTERN size_t Sg_GetTotalBytes();
 SG_EXTERN uintptr_t Sg_GcCount();
+SG_EXTERN void  Sg_GCSetPrintWarning(int onP);
 
 /* experimental */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);

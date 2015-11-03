@@ -265,6 +265,7 @@ static void show_usage()
 	  "     This option only imports 'import', 'library' and 'define-library'\n"
 	  "     to interaction environment by default.\n"
 	  "  -n,--no-main                   Do not call main procedure.\n"
+	  "  -G,--gc-warning                Show GC warning on stderr.\n"
 	  "\n"
 	  "environment variables:\n"
 	  "  SAGITTARIUS_LOADPATH\n"
@@ -599,8 +600,9 @@ int real_main(int argc, tchar **argv)
     {t("no-main"), 0, 0, 'n'},
     {t("toplevel-only"), 0, 0, 't'},
     {t("expr"), optional_argument, 0, 'e'},
+    {t("gc-warning"), 0, 0, 'G'},
 #ifdef SAGITTARIUS_PROFILE
-     {t("profile"), optional_argument, 0, 'P'},
+    {t("profile"), optional_argument, 0, 'P'},
 #endif
     {0, 0, 0, 0}
    };
@@ -609,7 +611,9 @@ int real_main(int argc, tchar **argv)
   Sg_Init();
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
-  while ((opt = getopt_long(argc, argv, t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:"),
+  Sg_GCSetPrintWarning(FALSE);	/* default off */
+  while ((opt = getopt_long(argc, argv, 
+			    t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:G"),
 			    long_options, &optionIndex)) != -1) {
     switch (opt) {
     case 't': load_base_library = FALSE; break;
@@ -768,6 +772,9 @@ int real_main(int argc, tchar **argv)
       break;
     case 'n':
       noMainP = TRUE;
+      break;
+    case 'G':
+      Sg_GCSetPrintWarning(TRUE);
       break;
     default:
 #ifdef SAGITTARIUS_PROFILE
