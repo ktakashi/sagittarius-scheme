@@ -98,16 +98,19 @@ extern void Sg__InitExtFeatures();
 extern void Sg__InitComparator();
 
 #ifdef USE_BOEHM_GC
-static GC_warn_proc warn_proc;
+static GC_warn_proc warn_proc = NULL;
 static void no_warning(char * msg, GC_word arg)
 {
   /* do nothing */
 }
+
 void Sg_GCSetPrintWarning(int onP)
 {
   /*  */
   if (onP) {
+#if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
     GC_set_warn_proc(warn_proc);
+#endif
   } else {
     GC_set_warn_proc(no_warning);
   }
@@ -120,11 +123,12 @@ void Sg_Init()
   SgObject nullsym, coreBase, compsym, sgsym;
 #ifdef USE_BOEHM_GC
   GC_INIT();
-  warn_proc = GC_get_warn_proc();
 #if GC_VERSION_MAJOR >= 7 && GC_VERSION_MINOR >= 2
   GC_set_oom_fn(oom_handler);
   GC_set_finalize_on_demand(TRUE);
   GC_set_finalizer_notifier(finalizable);
+  /* GC_get_warn_proc is after 7.2 */
+  warn_proc = GC_get_warn_proc();
 #else
   GC_oom_fn = oom_handler;
   GC_finalize_on_demand = TRUE;
