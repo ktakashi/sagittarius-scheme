@@ -271,6 +271,48 @@ uintptr_t Sg_GcCount()
 #endif
 }
 
+int Sg_GCSStackBase(uintptr_t *base)
+{
+  /* may fail on some platform */
+  struct GC_stack_base b;
+  int ok = GC_get_stack_base(&b);
+  if (ok == GC_SUCCESS) {
+    *base = (uintptr_t)b.mem_base;
+    return TRUE;
+  }
+  *base = (uintptr_t)-1;
+  return FALSE;
+}
+
+/* not sure if we need to do this but just in case
+   this saves some stack space to execute.
+ */
+#define CONTROL_AREA 0x1000
+static intptr_t stack_limit()
+{
+  if (Sg_MainThreadP()) {
+    return SG_MAIN_THREAD_STACK_SIZE_LIMIT - CONTROL_AREA;
+  } else {
+    return SG_CHILD_THREAD_STACK_SIZE_LIMIT - CONTROL_AREA;
+  }
+}
+/* 
+   usage:
+   volatile char current_stack;
+   intptr_t size = Sg_AvailableStackSize(&current_stack);
+ */
+intptr_t Sg_AvailableStackSize(uintptr_t csp)
+{
+  uintptr_t base;
+  intptr_t limit = stack_limit();
+  if (Sg_GCSStackBase(&base)) {
+    /* TODO it's assume stack grows downward */
+    return limit - (base - csp);
+  }
+  /* sorry we just return max size. don't blame me... */
+  return limit;
+}
+
 void Sg_GC()
 {
 #ifdef USE_BOEHM_GC

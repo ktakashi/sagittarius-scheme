@@ -35,6 +35,16 @@
 /* finalizer proc */
 typedef void (*SgFinalizerProc)(SgObject z, void *data);
 
+/* 
+   Main ans child thread must have different stack size
+   (At least on Cygwin it does)
+   Main  1M
+   Child 64KB
+ */
+#define SG_MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
+#define SG_CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
+
+
 SG_CDECL_BEGIN
 
 SG_EXTERN void  Sg_Init();
@@ -60,6 +70,9 @@ SG_EXTERN size_t Sg_GetHeapSize();
 SG_EXTERN size_t Sg_GetTotalBytes();
 SG_EXTERN uintptr_t Sg_GcCount();
 SG_EXTERN void  Sg_GCSetPrintWarning(int onP);
+SG_EXTERN int   Sg_GCSStackBase(uintptr_t *base);
+/* this is intptr_t to return -1 */
+SG_EXTERN intptr_t   Sg_AvailableStackSize(uintptr_t csp);
 
 /* experimental */
 SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);

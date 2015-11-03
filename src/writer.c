@@ -68,14 +68,8 @@ static SgObject write_object_fallback(SgObject *args, int nargs, SgGeneric *gf);
 
 SG_DEFINE_GENERIC(Sg_GenericWriteObject, write_object_fallback, NULL);
 
-/* 
-   Main ans child thread must have different stack size
-   (At least on Cygwin it does)
-   Main  1M
-   Child 64KB
- */
-#define MAIN_THREAD_STACK_SIZE_LIMIT  0x100000
-#define CHILD_THREAD_STACK_SIZE_LIMIT 0x10000
+#define MAIN_THREAD_STACK_SIZE_LIMIT  SG_MAIN_THREAD_STACK_SIZE_LIMIT
+#define CHILD_THREAD_STACK_SIZE_LIMIT SG_CHILD_THREAD_STACK_SIZE_LIMIT 
 
 
 #define SET_STACK_SIZE(ctx)				\
