@@ -84,21 +84,6 @@ static int mp_bit_size(ulong *x, uint s)
   return bitsize + WORD_BITS - nlz(x[last]);
 }
 
-/* this doesn't consider signess */
-static int mp_compare(ulong *lhs, uint lhs_count, ulong *rhs, uint rhs_count)
-{
-  int i;
-  /* compare size */
-  if (lhs_count < rhs_count) return  -1;
-  if (lhs_count > rhs_count) return  1;
-  /* elements */
-  for (i = lhs_count - 1; i >= 0; i--) {
-    if (lhs[i] < rhs[i]) return  -1;
-    if (lhs[i] > rhs[i]) return  1;
-  }
-  return 0;
-}
-
 
 /* Addition */
 
@@ -855,6 +840,21 @@ static uint mp_div_rem_kunuth(ulong *dp, uint qlen,
 #define BURNIKEL_ZIEGLER_THRESHOLD ((BURNIKEL_ZIEGLER_BITS>>3)/WORD_BITS)
 
 #define BURNIKEL_ZIEGLER_OFFSET    40
+
+/* this doesn't consider signess */
+static int mp_compare(ulong *lhs, uint lhs_count, ulong *rhs, uint rhs_count)
+{
+  int i;
+  /* compare size */
+  if (lhs_count < rhs_count) return  -1;
+  if (lhs_count > rhs_count) return  1;
+  /* elements */
+  for (i = lhs_count - 1; i >= 0; i--) {
+    if (lhs[i] < rhs[i]) return  -1;
+    if (lhs[i] > rhs[i]) return  1;
+  }
+  return 0;
+}
 
 static int mp_burnikel_ziegler_d2n1n(ulong *q, uint qn,
 				     ulong *r, uint rn,

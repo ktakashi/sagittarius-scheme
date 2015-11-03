@@ -676,13 +676,8 @@ int Sg_BignumBitCount(SgBignum *b)
 
 int Sg_BignumBitSize(SgBignum *b)
 {
-  int last = SG_BIGNUM_GET_COUNT(b) - 1;
-  int bitsize;
   if (SG_BIGNUM_GET_SIGN(b) == 0) return 0;
-  ASSERT(last >= 0);
-  ASSERT(b->elements[last]);
-  bitsize = WORD_BITS * last;
-  return bitsize + WORD_BITS - nlz((long)b->elements[last]);
+  return mp_bit_size(b->elements, b->size);
 }
 
 int Sg_BignumFirstBitSet(SgBignum *b)
