@@ -464,7 +464,7 @@ static void karatsuba(ulong *rp, uint rsize,
   uint n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
   uint n2 = n<<1;
   ulong *a, *b, *c, *d;
-  ulong *ac, *bd, *apb, *cpd, *adbc;
+  ulong *bd, *apb, *cpd, *adbc;
   uint alen, clen, aclen;
 
   /* split given argument into 2 parts
@@ -486,9 +486,9 @@ static void karatsuba(ulong *rp, uint rsize,
   /* allocate adbc with extra space (n) so that combination can
      use this without allocating extra memory. */
   ALLOC_TEMP_BUFFER(adbc, ulong, adbclen+n);
-  /* allocate ac with extra space (n2) so that combination can
-     use this without allocating extra memory. */
-  ALLOC_TEMP_BUFFER(ac, ulong, aclen+n2);
+  /* we can reuse rp as ac since rp must have enough space to hold
+     the entire result. */
+  /* ALLOC_TEMP_BUFFER(ac, ulong, aclen+n2); */
   ALLOC_TEMP_BUFFER(bd, ulong, n2);
 
   /* these can be intact during allocation. */
@@ -513,7 +513,7 @@ static void karatsuba(ulong *rp, uint rsize,
     mp_add(cpd, cpdlen, d, n, c, clen);
   }
   /* dump_xarray(cpd, cpdlen); */
-  mp_mul(ac+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
+  mp_mul(rp+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
   /* dump_xarray(ac+n2, aclen); */
   mp_mul(bd, n2, b, n, d, n);			     /* recursive 2 */
   /* dump_xarray(bd, n2); */
@@ -521,13 +521,13 @@ static void karatsuba(ulong *rp, uint rsize,
   /* dump_xarray(adbc+n, adbclen); */
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
-  mp_sub(adbc+n, adbclen, adbc+n, adbclen, ac+n2, aclen);
+  mp_sub(adbc+n, adbclen, adbc+n, adbclen, rp+n2, aclen);
   mp_sub(adbc+n, adbclen, adbc+n, adbclen, bd, n2);
 
   /* combine 16^n*ac + 16^(n/2)*(ad + bc) + bd */
   /* now br must have sufficient size to put */
   /* (should always be) aclen+n2 > adbclen+n */
-  mp_add(rp, rsize, ac, aclen+n2, adbc, adbclen+n);
+  mp_add(rp, rsize, rp, aclen+n2, adbc, adbclen+n);
   mp_add(rp, rsize, rp, rsize, bd, n2);
 }
 
