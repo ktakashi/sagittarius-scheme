@@ -391,12 +391,30 @@ static void mp_mul_ul(ulong *rp, uint rsize,
 }
 
 /* forward declaration */
-static void mp_mul(ulong *rp, uint rsize,
-		   ulong *xp, uint xsize,
-		   ulong *yp, uint ysize);
+static void mp_mul_rec(ulong *rp, uint rsize,
+		       ulong *xp, uint xsize,
+		       ulong *yp, uint ysize,
+		       intptr_t stack_size);
 
-static void mp_square(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize);
+static void mp_square_rec(ulong *rp, uint rsize,
+			  ulong *xp, uint xsize,
+			  intptr_t stack_size);
+
+/*
+  TODO better stack overflow detection.
+
+  Whatever the algorithm used here uses recursive multiplication.
+  Karatsuba reduces number of multiplications to 3 times so it
+  makes its total order to O(N^lg(3)) or O(N^1.584) (N = number of
+  elements). However this may consume C stack area as close as its
+  boundary if the given N is huge.
+  This introduces the same issue as Sg_BignumToString which is 
+  basically fight against GC time because of too deeply used stack
+  area. (memory allocation of huge array would also be an issue.)
+
+  If there's a better way such as iterative operation of karatsuba,
+  we should definitely use it.
+ */
 #define USE_KARATSUBA
 #ifdef USE_KARATSUBA
 /* if the bignum length is less than this then we do 
@@ -457,9 +475,26 @@ static int can_karatsuba(uint xlen, uint ylen)
        (* (expt B (div n 2)) xx)
        bd))
  */
+#define ALLOC_BUFFER_REC(r, type, size, stack)			\
+  do {								\
+    uint s__ = (size);						\
+    if ((stack) > 0 && (s__)*sizeof(type*) <= (stack)) {	\
+      ALLOC_TEMP_BUFFER_REC(r, type, s__);			\
+      (stack) -= s__;						\
+    } else {							\
+      (r) = SG_NEW_ATOMIC2(type*, sizeof(type*) * s__);		\
+    }								\
+  } while (0)
+#define ALLOC_BUFFER(r, type, size, stack)		\
+  do {							\
+    ALLOC_BUFFER_REC(r, type, size, stack);		\
+    clear_buffer(r, size);				\
+  } while (0)
+
 static void karatsuba(ulong *rp, uint rsize,
 		      ulong *xp, uint xsize,
-		      ulong *yp, uint ysize)
+		      ulong *yp, uint ysize,
+		      intptr_t stack_size)
 {
   uint n = max(xsize, ysize)/2, apblen, cpdlen, adbclen;
   uint n2 = n<<1;
@@ -485,15 +520,16 @@ static void karatsuba(ulong *rp, uint rsize,
   /* initialise termpoary buffer */
   /* allocate adbc with extra space (n) so that combination can
      use this without allocating extra memory. */
-  ALLOC_TEMP_BUFFER(adbc, ulong, adbclen+n);
+  ALLOC_BUFFER(adbc, ulong, adbclen+n, stack_size);
   /* we can reuse rp as ac since rp must have enough space to hold
      the entire result. */
   /* ALLOC_TEMP_BUFFER(ac, ulong, aclen+n2); */
-  ALLOC_TEMP_BUFFER(bd, ulong, n2);
+  ALLOC_BUFFER(bd, ulong, n2, stack_size);
 
   /* these can be intact during allocation. */
-  ALLOC_TEMP_BUFFER_REC(apb, ulong, apblen);
-  ALLOC_TEMP_BUFFER_REC(cpd, ulong, cpdlen);
+  ALLOC_BUFFER_REC(apb, ulong, apblen, stack_size);
+  ALLOC_BUFFER_REC(cpd, ulong, cpdlen, stack_size);
+
   /* we just need to clear most significant byte for addition buffer 
      nb. that's the part for carry. */
   apb[apblen-1] = 0L;
@@ -513,11 +549,12 @@ static void karatsuba(ulong *rp, uint rsize,
     mp_add(cpd, cpdlen, d, n, c, clen);
   }
   /* dump_xarray(cpd, cpdlen); */
-  mp_mul(rp+n2, aclen, a, alen, c, clen);	     /* recursive 1 */
+  mp_mul_rec(rp+n2, aclen, a, alen, c, clen, stack_size); /* recursive 1 */
   /* dump_xarray(ac+n2, aclen); */
-  mp_mul(bd, n2, b, n, d, n);			     /* recursive 2 */
+  mp_mul_rec(bd, n2, b, n, d, n, stack_size); /* recursive 2 */
   /* dump_xarray(bd, n2); */
-  mp_mul(adbc+n, adbclen, apb, apblen, cpd, cpdlen); /* recursive 3 */
+  /* recursive 3 */
+  mp_mul_rec(adbc+n, adbclen, apb, apblen, cpd, cpdlen, stack_size);
   /* dump_xarray(adbc+n, adbclen); */
   /* 3 - 1 - 2 */
   /* abdc > ac so carry won't happen */
@@ -554,7 +591,8 @@ static int can_karatsuba_square(uint len)
       = B^(n/2)(B^(n/2)*a^2 + ((a+b)^ - (a^2 + b^2))) + b^2
 */
 static void karatsuba_square(ulong *rp, uint rsize,
-			     ulong *xp, uint xsize)
+			     ulong *xp, uint xsize,
+			     intptr_t stack_size)
 {
   int n = xsize/2;
   ulong *a, *b;
@@ -574,17 +612,17 @@ static void karatsuba_square(ulong *rp, uint rsize,
   apb2len = apblen<<1;
   
   /* we can use rp for a^2 storage */
-  ALLOC_TEMP_BUFFER_REC(b2, ulong, n2);
-  ALLOC_TEMP_BUFFER_REC(apb, ulong, apblen);
-  ALLOC_TEMP_BUFFER_REC(apb2, ulong, apb2len); /* (a+b)^2 */
+  ALLOC_BUFFER_REC(b2, ulong, n2, stack_size);
+  ALLOC_BUFFER_REC(apb, ulong, apblen, stack_size);
+  ALLOC_BUFFER_REC(apb2, ulong, apb2len, stack_size); /* (a+b)^2 */
 
   /* clear possible carry byte on stack */
   apb[apblen-1] = 0;
 
   /* a^2 */
-  mp_square(rp, a2len, a, alen);
+  mp_square_rec(rp, a2len, a, alen, stack_size);
   /* b^2 */
-  mp_square(b2, n2, b, n);
+  mp_square_rec(b2, n2, b, n, stack_size);
 
   /* allocate a2pb2 */
   a2pb2len = mp_safe_size_for_add(rp, a2len, b2, n2);
@@ -593,7 +631,7 @@ static void karatsuba_square(ulong *rp, uint rsize,
   a2pb2[a2pb2len-1] = 0;
   
   mp_add(apb, apblen, a, alen, b, n);	 /* a+b */
-  mp_square(apb2, apb2len, apb, apblen); /* (a+b)^2 */
+  mp_square_rec(apb2, apb2len, apb, apblen, stack_size); /* (a+b)^2 */
   mp_add(a2pb2, a2pb2len, rp, a2len, b2, n2); /* (a^2 + b^2) */
 
   /* (a+b)^2 > (a^2 + b^2) */
@@ -612,6 +650,36 @@ static void karatsuba_square(ulong *rp, uint rsize,
 }
 
 #endif	/* USE_KARATSUBA */
+
+/*
+  Memo for future:
+  There are couple of more algorithms to be implemented.
+
+  - Schönhage–Strassen algorithm (from 1720 to 7808 64 bit words)
+    https://en.wikipedia.org/wiki/Sch%C3%B6nhage%E2%80%93Strassen_algorithm
+  - Fürer's algorithm (not practical)
+    https://en.wikipedia.org/wiki/F%C3%BCrer's_algorithm
+
+  Toom-3 would also be a alternative but basic idea is the same as
+  Karatsuba. Thus it may consume the same or more amount of stack area.
+
+  The following papre describes Schoenehage-Strassen very well and
+  their optimisation.
+  - A GMP-based Implementation of Schönhage-Strassen’s Large Integer 
+    Multiplication Algorithm
+    http://www.loria.fr/~gaudry/publis/issac07.pdf
+ */
+#undef USE_SCHOENEHAGE_STRASSEN
+#ifdef USE_SCHOENEHAGE_STRASSEN
+static void schoenhage_strassen(ulong *rp, uint rsize,
+				ulong *xp, uint xsize,
+				ulong *yp, uint ysize)
+{
+  /* TBD */
+}
+
+#endif	/*  USE_SCHOENEHAGE_STRASSEN */
+
 
 /* 
    out += in * k
@@ -664,17 +732,27 @@ static ulong* long_mul(ulong *rp, uint rsize,
   return rp;
 }
 
-static void mp_mul(ulong *rp, uint rsize,
-		   ulong *xp, uint xsize,
-		   ulong *yp, uint ysize)
+static void mp_mul_rec(ulong *rp, uint rsize,
+		       ulong *xp, uint xsize,
+		       ulong *yp, uint ysize,
+		       intptr_t stack_size)
 {
 #ifdef USE_KARATSUBA
   if (can_karatsuba(xsize, ysize)) {
-    karatsuba(rp, rsize, xp, xsize, yp, ysize);
+    karatsuba(rp, rsize, xp, xsize, yp, ysize, stack_size);
     return;
   }
 #endif
   long_mul(rp, rsize, xp, xsize, yp, ysize);
+}
+
+static void mp_mul(ulong *rp, uint rsize,
+		   ulong *xp, uint xsize,
+		   ulong *yp, uint ysize)
+{
+  volatile char t = 'a';	/* don't let compiler erase this */
+  intptr_t stack_size = Sg_AvailableStackSize((volatile uintptr_t)&t);
+  mp_mul_rec(rp, rsize, xp, xsize, yp, ysize, stack_size);
 }
 
 /* xp^2 -> rp */
@@ -710,19 +788,28 @@ static void mp_base_square(ulong *rp, uint rsize,
 #endif
 }
 
-static void mp_square(ulong *rp, uint rsize,
-		      ulong *xp, uint xsize)
+static void mp_square_rec(ulong *rp, uint rsize,
+			  ulong *xp, uint xsize,
+			  intptr_t stack_size)
 {
   /* handle special case */
   if (!xsize) return;
 #ifdef USE_KARATSUBA
   if (can_karatsuba_square(xsize)) {
-    karatsuba_square(rp, rsize, xp, xsize);
+    karatsuba_square(rp, rsize, xp, xsize, stack_size);
     return;
   }
 #endif
   /* normal */
   mp_base_square(rp, rsize, xp, xsize);
+}
+
+static void mp_square(ulong *rp, uint rsize,
+		      ulong *xp, uint xsize)
+{
+  volatile char t = 'a';	/* don't let compiler erase this */
+  intptr_t stack_size = Sg_AvailableStackSize((volatile uintptr_t)&t);
+  mp_square_rec(rp, rsize, xp, xsize, stack_size);
 }
 
 /* divide */

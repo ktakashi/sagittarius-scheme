@@ -1286,21 +1286,6 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 }
 #endif
 
-/*
-  Memo for future:
-  If the number is too big then stack area would be run out.
-  e.g. (expt 5 100000000) ;; SEGV
-  There are couple of more algorithms to be implemented.
-
-  - Schönhage–Strassen algorithm (from 1720 to 7808 64 bit words)
-    https://en.wikipedia.org/wiki/Sch%C3%B6nhage%E2%80%93Strassen_algorithm
-  - Fürer's algorithm (not practical)
-    https://en.wikipedia.org/wiki/F%C3%BCrer's_algorithm
-
-  Toom-3 would also be a alternative but basic idea is the same as
-  Karatsuba. Thus it may consume the same or more amount of stack area.
- */
-
 static SgBignum* bignum_mul_int(SgBignum *br, SgBignum *bx, SgBignum *by)
 {
   int xlen = SG_BIGNUM_GET_COUNT(bx);
@@ -1990,7 +1975,7 @@ static void schonehage_to_string(SgBignum *b, SgObject out, int radix,
 
 #ifdef USE_STACK_FOR_SCHONEHAGE
   if (use_stack) {
-    stack_size = Sg_AvailableStackSize((uintptr_t)&bits);
+    stack_size = Sg_AvailableStackSize((volatile uintptr_t)&bits);
     qsize = b->size - v->size + 1;
     rsize = b->size+1;
     if (stack_size > 0 && stack_size > BIGNUM_SIZE(qsize)) {
@@ -2887,7 +2872,7 @@ static SgBignum * sliding_window_expt(SgBignum *b, long n, long e)
   SG_BIGNUM_SET_SIGN(r, 1);
 
   prod1 = r;
-  if (Sg_AvailableStackSize((uintptr_t)&zsize) >= zsize) {
+  if (Sg_AvailableStackSize((volatile uintptr_t)&zsize) >= zsize) {
     ALLOC_TEMP_BIGNUM_REC(prod2, zsize);
   } else {
     prod2 = make_bignum_rec(zsize, FALSE);
