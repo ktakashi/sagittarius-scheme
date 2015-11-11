@@ -66,10 +66,12 @@ Possible @var{feature-identifier}s are @code{sagittarius} and
 
 @dl-list[
 @dl-item[@var{form}]{The input form of this macro. It is mere s-expression.}
-@dl-item[@var{rename}]{A procedure. It takes a symbol for its argument and
-convert it to a syntax object.}
-@dl-item[@var{compare}]{A procedure. It take 2 arguments and compare if it
-refer the same object. Almost the same as @code{free-identifier=?}.}
+@dl-item[@var{rename}]{A procedure. It takes an object as its argument and
+convert it to a syntax object. The procedure is similar with 
+@code{datum->syntax}, it doesn't require template identifier.}
+@dl-item[@var{compare}]{A procedure. It takes 2 arguments and compares if they
+are the same object in sense of @code{free-identifier=?}. If the given
+arguments are list or vector, then the procedure checks its elements.}
 ]
 
 The @code{er-macro-transformer} returns explicit renaming macro transformer, so
