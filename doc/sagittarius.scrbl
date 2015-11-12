@@ -319,7 +319,7 @@ are written and a string @code{" @dots{}"} is attached after it.
 @snipet[=> "|oops|"       ]{(format #f "|~a|" "oops")}
 @snipet[=> "|oops      |" ]{(format #f "|~10a|" "oops")}
 @snipet[=> "|      oops|" ]{(format #f "|~10@atmark{}a|" "oops")}
-@snipet[=> "|******oops|" ]{(format #f "|~10,,,'*@atmatk{}a|" "oops")}
+@snipet[=> "|******oops|" ]{(format #f "|~10,,,'*@atmark{}a|" "oops")}
 @snipet[=> "|abc def gh|" ]{(format #f "|~,,,,10a|" '(abc def ghi jkl))}
 @snipet[=> "|abc de ...|" ]{(format #f "|~,,,,10:a|" '(abc def ghi jkl))}
 }
@@ -330,7 +330,7 @@ semantics of parameters and flags are the same as @b{~A} directive.
 @snipet[=> "|\"oops\"|"	   ]{(format #f "|~s|" "oops")}
 @snipet[=> "|\"oops\"    |"]{(format #f "|~10s|" "oops")}
 @snipet[=> "|    \"oops\"|"]{(format #f "|~10@atmark{}s|" "oops")}
-@snipet[=> "|****\"oops\"|"]{(format #f "|~10,,,'*@atmatk{}s|" "oops")}
+@snipet[=> "|****\"oops\"|"]{(format #f "|~10,,,'*@atmark{}s|" "oops")}
 }
 
 @dl-item[@string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{D}}]{
