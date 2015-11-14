@@ -183,6 +183,16 @@ The closed SMTP connection can be re-used.
 for PLAIN authentication.
 }
 
+@define[Function]{@name{smtp-login-authentication} @args{:rest data}}
+@desc{Returns a thunk that can be used @code{smtp-authenticate!} procedure
+for LOGIN authentication.
+
+The rest argument @var{date} is given, all of the values must be string, 
+then each authentication prompt uses the given data as if it's typed by
+user. If there is no data or sufficient date, then input prompt will be
+shown and let user type the authentication information.
+}
+
 @define[Macro]{@name{smtp:mail} @args{from message-elements ...}}
 @define["Auxiliary Syntax"]{@name{smtp:from}}
 @define["Auxiliary Syntax"]{@name{smtp:subject}}
