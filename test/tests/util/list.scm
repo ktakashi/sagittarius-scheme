@@ -1,5 +1,6 @@
 (import (rnrs)
 	(util list)
+	(sagittarius control)
 	(srfi :1 lists)
 	(srfi :64 testing))
 
@@ -64,5 +65,50 @@
 (test-equal "cond-list" '(a b c d x)
 	    (cond-list (#t @ '(a b)) (#t @ '(c d)) (#f @ '(e f))
 		       ('x => @ list)))
+
+(define-syntax values->list
+  (syntax-rules ()
+    ((_ expr) (let-values ((r expr)) r))))
+;; tests from Gauche
+;; fold2
+(test-equal "fold2" '(21 (6 5 4 3 2 1))
+	    (values->list
+	     (fold2 (^[n s m] (values (+ n s) (cons n m)))
+		    0 '() '(1 2 3 4 5 6))))
+(test-equal "fold2 (n-ary)" '(195 (5 15 25 4 14 24 3 13 23 2 12 22 1 11 21))
+	    (values->list
+	     (fold2 (^[n0 n1 n2 s m]
+		      (values (+ n0 n1 n2 s)
+			      (cons* n0 n1 n2 m)))
+		    0 '() '(1 2 3 4 5 6) 
+		    '(11 12 13 14 15) '(21 22 23 24 25 26))))
+
+;; fold3
+(test-equal "fold3" '(21 720 (6 5 4 3 2 1))
+	    (values->list
+	     (fold3 (^[n s m l] (values (+ n s) (* n m) (cons n l)))
+		    0 1 '() '(1 2 3 4 5 6))))
+(test-equal "fold3 (n-ary)" '(195 275701345920000
+				  (5 15 25 4 14 24 3 13 23 2 12 22 1 11 21))
+	    (values->list
+	     (fold3 (^[n0 n1 n2 s m l]
+		      (values (+ n0 n1 n2 s)
+			      (* n0 n1 n2 m)
+			      (cons* n0 n1 n2 l)))
+		    0 1 '()
+		    '(1 2 3 4 5 6) '(11 12 13 14 15) '(21 22 23 24 25 26))))
+
+(test-equal "combine" '((45 30 15) 5)
+       (values->list
+        (combine (^[elt seed] (values (* elt seed) seed))
+                   5 '(9 6 3))))
+(test-equal "combine" '((10 28 88) 19)
+       (values->list
+        (combine (^[elt seed] (values (* elt seed) (+ elt seed)))
+                   5 '(2 4 8))))
+(test-equal "combine (nary)" '((10 11 16) 15)
+       (values->list
+        (combine (^[x y seed] (values (+ x y seed) (+ x seed)))
+                   1 '(2 4 8) '(7 4 1))))
 
 (test-end)

@@ -37,6 +37,9 @@
 	    split-at*
 	    take*
 	    drop*
+	    combine
+	    fold2
+	    fold3
 	    cond-list)
     (import (rnrs)
 	    (core base)
@@ -153,4 +156,44 @@
 	      (r (cond-list . rest)))
 	 (if tmp (cons (begin . expr) r) r)))
       ))
+
+  (define-syntax define-fold-k
+    (syntax-rules ()
+      ((_ name (seed ...))
+       (define (name proc seed ... lis . more)
+	 (if (null? more)
+	     (let loop ((lis lis) (seed seed) ...)
+	       (if (null? lis)
+		   (values seed ...)
+		   (let-values (((seed ...) (proc (car lis) seed ...)))
+		     (loop (cdr lis) seed ...))))
+	     (let loop ((lis (apply list-transpose* lis more)) 
+			(seed seed) ...)
+	       (if (null? lis)
+		   (values seed ...)
+		   (let-values (((seed ...) 
+				 (apply proc (append (car lis) 
+						     (list seed ...)))))
+		     (loop (cdr lis) seed ...)))))))))
+  (define-fold-k fold2 (knil1 knil2))
+  (define-fold-k fold3 (knil1 knil2 knil3))
+
+  ;; map-accum in Gauche
+  ;; the name is adjusted to SRFI-121 gcombine
+  (define (combine proc knil lis . more)
+    (if (null? more)
+	(let-values (((res knil) 
+		      (fold2 (lambda (elt lis knil)
+			       (let-values (((res knil) (proc elt knil)))
+				 (values (cons res lis) knil)))
+			     '() knil lis)))
+	  (values (reverse! res) knil))
+	(let loop ((lis (apply list-transpose* lis more)) 
+		   (res '())
+		   (knil knil))
+	  (if (null? lis)
+	      (values (reverse! res) knil)
+	      (let-values (((r knil) 
+			    (apply proc (append (car lis) (list knil)))))
+		(loop (cdr lis) (cons r res) knil))))))
 )
