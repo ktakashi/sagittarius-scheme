@@ -1,6 +1,7 @@
 (import (rnrs)
+	(rnrs r5rs)	 ;; for quotient
 	(sagittarius io) ;; for with-input-from-string
-	(srfi :1 lists) ;; for unfold
+	(srfi :1 lists)	 ;; for unfold
 	(srfi :121 generators)
 	(prefix (srfi :64) srfi:))
 
