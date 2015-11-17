@@ -4,7 +4,8 @@
     (export prime? ;; this is Scheme way, isn't it?
 	    (rename (prime? is-prime?)) ;; backward compatibility
 	    random-prime
-	    lucas-lehmer?)
+	    lucas-lehmer?
+	    miller-rabin?)
     (import (rnrs)
 	    (sagittarius control)
 	    (sagittarius)
@@ -38,7 +39,7 @@
 	      (loop (fxarithmetic-shift-right p 2))
 	      p)))
       (let ((p (shift-p p)))
-	(if (zero? (fxand p 1))
+	(if (even? p)
 	    (let ((p (fxarithmetic-shift-right p 1)))
 	      (values p (if (zero? (fxand 
 				    (fxxor u (fxarithmetic-shift-right u 1))
@@ -65,7 +66,7 @@
 		;; apply quadratic reciprocity (p = u = 3 (mod 4)
 		(let ((j (if (zero? (fxand p u 2)) j (- j)))
 		      ;; reduce u mod p
-		      (u (mod u p)))
+		      (u (mod n p)))
 		  ;; compute jacobi(u, p), u < p
 		  (let loop ((u u) (p p) (j j))
 		    (if (zero? u)
@@ -79,8 +80,8 @@
 					    (if (< u p)
 						(values p u (if (zero? 
 								 (fxand u p 2))
-								(- j)
-								j))
+								j
+								(- j)))
 						(values u p j))))
 				(loop (mod u p) p j))))))))))))
 
