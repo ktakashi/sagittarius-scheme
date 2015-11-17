@@ -132,21 +132,21 @@
 	       (let loop ((i 0))
 		 (if (= i k)
 		     #t
-		     (let* ((a (+ (random rand (- q 2)) 1))
-			    (t d)
-			    (y (mod-expt a t q)))
-		       ;; check 0, ..., q - 1
-		       (let loop2 ()
-			 (when (and (not (= t (- q 1)))
+		     (let ((a (+ (random rand (- q 2)) 1)))
+		       (define (find-ty q t y)
+			 ;; check 0, ..., q - 1
+			 (let loop2 ((t t) (y y))
+			   (if (and (not (= t (- q 1)))
 				    (not (= y 1))
 				    (not (= y (- q 1))))
-			   (set! y (mod (* y y) q))
-			   (set! t (bitwise-arithmetic-shift-left t 1))
-			   (loop2)))
-		       (if (and (not (= y (- q 1)))
-				(zero? (bitwise-and t 1)))
-			   #f
-			   (loop (+ i 1)))))))))))
+			       (loop2 (bitwise-arithmetic-shift-left t 1)
+				      (mod-expt y 2 q))
+			       (values t y))))
+		       (let-values (((t y) (find-ty q d (mod-expt a t q))))
+			 (if (and (not (= y (- q 1)))
+				  (zero? (bitwise-and t 1)))
+			     #f
+			     (loop (+ i 1))))))))))))
 
   ;; Miller Rabin primality test
   (define (prime? q :optional (k 50) (rand (secure-random System)))
