@@ -2699,6 +2699,8 @@
 					   (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxand "fixnum" fx1 fx2))))
 	  (else
+	   (unless (and (SG_INTP fx1) (SG_INTP fx2))
+	     (wrong-type-of-argument-violation 'fxand "fixnum" fx1 fx2))
 	   (let ((ret (SG_OBJ (logand (cast intptr_t fx1)
 				      (cast intptr_t fx2)))))
 	     (fxlogop fxand ret logand rest)
@@ -2717,6 +2719,8 @@
 					   (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxior "fixnum" fx1 fx2))))
 	  (else
+	   (unless (and (SG_INTP fx1) (SG_INTP fx2))
+	     (wrong-type-of-argument-violation 'fxior "fixnum" fx1 fx2))
 	   (let ((ret (SG_OBJ (logior (cast intptr_t fx1) 
 				      (cast intptr_t fx2)))))
 	     (fxlogop fxior ret logior rest)
@@ -2735,6 +2739,8 @@
 			    (logxor (cast intptr_t fx1) (cast intptr_t fx2))))
 		   (wrong-type-of-argument-violation 'fxxor "fixnum" fx1 fx2))))
 	  (else
+	   (unless (and (SG_INTP fx1) (SG_INTP fx2))
+	     (wrong-type-of-argument-violation 'fxxor "fixnum" fx1 fx2))
 	   (let ((ret (SG_OBJ (logxor (cast intptr_t fx1) 
 				      (cast intptr_t fx2)))))
 	     (fxlogop fxxor ret logxor rest)
