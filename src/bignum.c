@@ -706,6 +706,25 @@ int Sg_BignumFirstBitSet(SgBignum *b)
   return -1;			/* dummy */
 }
 
+static inline int bignum_test_bit(SgBignum *b, int p)
+{
+  int pos = p >> SHIFT_MAGIC;
+  ulong v;
+  if (pos >= (int)SG_BIGNUM_GET_COUNT(b)) {
+    return FALSE;
+  }
+  v = b->elements[pos];
+  if (pos) {
+    p %= WORD_BITS;
+  }
+  return (v & (1L << p)) != 0;
+}
+
+int Sg_BignumBitSetP(SgBignum *b, int n)
+{
+  return bignum_test_bit(b, n);
+}
+
 int Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by)
 {
   int i;
@@ -2573,21 +2592,6 @@ static SgBignum * bignum_mod2(SgBignum *x, int p)
   excessBits = (numInts << SHIFT_MAGIC) - p;
   r->elements[numInts - 1] &= (1UL << (WORD_BITS - excessBits)) - 1;
   return bignum_normalize(r);
-}
-
-/* bit-set? */
-static int bignum_test_bit(SgBignum *b, int p)
-{
-  int pos = p >> SHIFT_MAGIC;
-  ulong v;
-  if (pos >= (int)SG_BIGNUM_GET_COUNT(b)) {
-    return FALSE;
-  }
-  v = b->elements[pos];
-  if (pos) {
-    p %= WORD_BITS;
-  }
-  return (v & (1L << p)) != 0;
 }
 
 static SgBignum * bignum_mod_expt2(SgBignum *x, SgBignum *e, int p)

@@ -219,6 +219,7 @@ SG_EXTERN SgObject Sg_LogXor(SgObject x, SgObject y);
 SG_EXTERN int      Sg_BitCount(SgObject x);
 SG_EXTERN int      Sg_BitSize(SgObject x);
 SG_EXTERN int      Sg_FirstBitSet(SgObject x);
+SG_EXTERN int      Sg_BitSetP(SgObject x, int n);
 
 SG_EXTERN SgObject Sg_Add(SgObject x, SgObject y);
 SG_EXTERN SgObject Sg_Sub(SgObject x, SgObject y);

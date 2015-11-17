@@ -54,6 +54,7 @@ SG_EXTERN unsigned long Sg_BignumToUI(SgBignum *b, int clamp, int *oor);
 SG_EXTERN int      Sg_BignumBitCount(SgBignum *b);
 SG_EXTERN int      Sg_BignumBitSize(SgBignum *b);
 SG_EXTERN int      Sg_BignumFirstBitSet(SgBignum *b);
+SG_EXTERN int      Sg_BignumBitSetP(SgBignum *b, int n);
 SG_EXTERN int      Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by);
 SG_EXTERN int      Sg_BignumCmp3U(SgBignum *bx, SgBignum *off, SgBignum *by);
 

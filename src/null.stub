@@ -3295,7 +3295,7 @@
 
   (define-c-proc bitwise-bit-set? (ei1::<number> ei2::<fixnum>)
     ::<boolean> :constant
-    (result (not (Sg_ZeroP (Sg_LogAnd (Sg_Ash (SG_MAKE_INT 1) ei2) ei1)))))
+    Sg_BitSetP)
 
   (define-c-proc bitwise-copy-bit (ei1::<number> ei2::<fixnum> ei3::<number>) 
     :constant

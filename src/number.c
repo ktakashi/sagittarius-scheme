@@ -1876,7 +1876,9 @@ int Sg_BitSize(SgObject x)
 
 int Sg_FirstBitSet(SgObject x)
 {
-  if (!SG_EXACT_INTP(x)) wte(SG_INTERN("bitwise-first-bit-set"), "exact integer", x);
+  if (!SG_EXACT_INTP(x)) {
+    wte(SG_INTERN("bitwise-first-bit-set"), "exact integer", x);
+  }
   if (SG_INTP(x)) {
     long n = SG_INT_VALUE(x);
     int bit;
@@ -1887,6 +1889,26 @@ int Sg_FirstBitSet(SgObject x)
   } else {
     return Sg_BignumFirstBitSet(SG_BIGNUM(x));
   }
+}
+
+int Sg_BitSetP(SgObject x, int n)
+  
+{
+  if (!SG_EXACT_INTP(x)) {
+    wte(SG_INTERN("bitwise-bit-set?"), "exact integer", x);
+  }
+  if (n < 0) {
+    wte(SG_INTERN("bitwise-bit-set?"), "non negative integer", SG_MAKE_INT(n));
+  }
+
+  if (SG_INTP(x)) {
+    long ix = SG_INT_VALUE(x);
+    if (n >= SG_INT_SIZE) {
+      return (ix < 0);
+    }
+    return (ix>>n)&1;
+  }
+  return Sg_BignumBitSetP(SG_BIGNUM(x), n);
 }
 
 SgObject Sg_Add(SgObject x, SgObject y)
