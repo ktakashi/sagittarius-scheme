@@ -53,8 +53,8 @@
 	    (sagittarius generators))
 
   (define (make-generator . args) (list->generator args))
-  (define make-iota-generator giota)
-  (define make-range-generator grange)
+  (define (make-iota-generator count . args) (apply giota count args))
+  (define (make-range-generator start . args) (apply grange start args))
   (define make-coroutine-generator generate)
   (define (make-bits-generator n)
     (let ((k 0)
