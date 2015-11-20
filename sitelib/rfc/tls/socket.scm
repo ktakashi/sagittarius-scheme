@@ -342,9 +342,10 @@
 	    (else (%tls-socket-close socket) socket)))
     (cond ((tls-alert? e) (finish socket e))
 	  (else
-	   (tls-socket-send-inner socket
-	    (make-tls-alert *fatal* *internal-error*)
-	    0 *alert* #f)
+	   (when (~ socket 'raw-socket)
+	     (tls-socket-send-inner socket
+	       (make-tls-alert *fatal* *internal-error*)
+	       0 *alert* #f))
 	   (finish socket e))))
 
   (define (verify-message socket message signature)
@@ -1630,7 +1631,8 @@
 			     (~ socket 'session 'session-encrypted?))))
 
   (define (%tls-socket-close socket)
-    (socket-close (~ socket 'raw-socket))
+    (when (~ socket 'raw-socket)
+      (socket-close (~ socket 'raw-socket)))
     ;; if we don't have any socket, we can't reconnect
     (set! (~ socket 'raw-socket) #f)
     (set! (~ socket 'session 'closed?) #t))
