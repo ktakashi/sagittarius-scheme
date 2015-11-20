@@ -545,6 +545,9 @@ static int buffered_close(SgObject self)
        non GC pointer is safe. But just in case. */
     if (Sg_GCBase(self)) {
       unregister_buffered_port(SG_PORT(self));
+      if (Sg_FinalizerRegisteredP(self)) {
+	Sg_UnregisterFinalizer(self);
+      }
     }
   }
   return TRUE;
@@ -734,6 +737,24 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
   /* we don't want to add stack allocated ones */
   if (registerP && Sg_GCBase(bp)) {
     register_buffered_port(SG_PORT(bp));
+    /* 
+       If the source port has finalizer registered, then we
+       first remove it then register this buffered port.
+       This makes GCed buffered port force to flush its
+       content.
+       NB: removing registered finalizer wouldn't be a problem
+           unless C extended port do something other than closing
+	   the port. if we ever document how to write C extension
+	   then we must specify this fact, such as finalizing
+	   port must not do anything other than 'flush' or 'close'.
+       NB2: removing source port finalizer (I believe) saves some
+            memory space on GC. Not totally sure how it works
+	    exactly, but it's better to do this for my sanity.
+     */
+    if (Sg_GCBase(bp->src) && Sg_FinalizerRegisteredP(bp->src)) {
+      Sg_UnregisterFinalizer(bp->src);
+      Sg_RegisterFinalizer(bp, port_finalize, NULL);
+    }
   }
   return SG_OBJ(bp);
 }
@@ -1032,11 +1053,13 @@ static SgObject make_file_port(SgFile *file, int bufferMode,
 			       SgPortDirection direction)
 {
   SgPortTable *tbl = get_file_table(file);
-  SgFilePort *z = (SgFilePort *)make_port(SgFilePort, 
-					  direction,
-					  SG_CLASS_FILE_PORT, 
-					  tbl, 
-					  SG_FALSE);
+  int registerP = SG_FILE_VTABLE(file)->canClose(file);
+  SgFilePort *z = (SgFilePort *)make_port_rec(SgFilePort, 
+					      direction,
+					      SG_CLASS_FILE_PORT, 
+					      tbl, 
+					      SG_FALSE, 
+					      registerP);
   z->file = file;
   /* set file position */
   if (SG_FILE_VTABLE(file)->tell)

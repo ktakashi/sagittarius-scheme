@@ -344,6 +344,21 @@ void Sg_UnregisterFinalizer(SgObject z)
 #endif
 }
 
+int Sg_FinalizerRegisteredP(SgObject z)
+{
+#ifdef USE_BOEHM_GC
+  GC_finalization_proc ofn, dfn; 
+  void *ocd, *dcd;
+  /* it's a bit ugly to do it but we need this unfortunately... */
+  GC_REGISTER_FINALIZER_NO_ORDER(z, (GC_finalization_proc)NULL,
+				 NULL, &ofn, &ocd);
+  GC_REGISTER_FINALIZER_NO_ORDER(z, ofn, ocd, &dfn, &dcd);
+  return (void *)ofn != NULL;
+#else
+  /* for now do nothing */
+#endif
+}
+
 void Sg_RegisterDisappearingLink(void **p, void *value)
 {
 #ifdef USE_BOEHM_GC
