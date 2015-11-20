@@ -35,11 +35,16 @@
   ((_ expr)
    `(begin
       ,@(case (result-type)
-	  ((reg) `((set! (AC vm) ,expr) NEXT1))
-	  ((push) `((PUSH (SP vm) ,expr) NEXT1))
+	  ((reg) `((set! (AC vm) ,expr
+			 (-> vm valuesCount) 1)
+		   NEXT))
+	  ((push) `((PUSH (SP vm) ,expr)
+		    (set! (-> vm valuesCount) 1)
+		    NEXT))
 	  ((call comb) `((set! (AC vm) ,expr)))
 	  ((ret) `((set! (AC vm) ,expr)
 		   (RET_INSN)
+		   CHECK_ATTENTION
 		   NEXT))))))
 
 (define-cise-stmt $result:n
@@ -84,8 +89,9 @@
 (define-inst LSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm)
-	(AC vm) SG_UNDEF)
-  NEXT1)
+	(AC vm) SG_UNDEF
+	(-> vm valuesCount) 1)
+  NEXT)
 
 (define-inst FREF (1 0 #t)
   (INSN_VAL1 val1 c)
@@ -94,7 +100,8 @@
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
   (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)
-	(AC vm) SG_UNDEF)
+	(AC vm) SG_UNDEF
+	(-> vm valuesCount) 1)
   NEXT)
 
 (define-inst GREF (0 1 #t)
@@ -113,8 +120,9 @@
 				   (AC vm)
 				   0)))
 	    (set! (pointer (- (PC vm) 1)) (SG_WORD g))))))
-  (set! (AC vm) SG_UNDEF)
-  NEXT1)
+  (set! (AC vm) SG_UNDEF
+	(-> vm valuesCount) 1)
+  NEXT)
 
 (define-inst PUSH (0 0 #f)
   (PUSH (SP vm) (AC vm))
@@ -123,6 +131,8 @@
 (define-inst BOX (1 0 #f)
   (INSN_VAL1 val1 c)
   (INDEX_SET (SP vm) val1 (make_box (INDEX (SP vm) val1)))
+  ;; make_box uses memory so needs to be checked
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst UNBOX (0 0 #f)
@@ -210,10 +220,12 @@
 	 (+= (PC vm) (PEEK_OPERAND (PC vm))))
 	(else
 	 (post++ (PC vm))))
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst JUMP (0 1 #t) :label
   (+= (PC vm) (PEEK_OPERAND (PC vm)))
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst SHIFTJ (2 0 #f)
@@ -246,6 +258,7 @@
 	     (if (,func s (AC vm))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm))))))
+      CHECK_ATTENTION
       NEXT)))
 
 (define-inst BNNUME (0 1 #t) :label
@@ -273,6 +286,7 @@
 	  (begin
 	    (set! (AC vm) SG_FALSE)
 	    (+= (PC vm) (PEEK_OPERAND (PC vm)))))
+      CHECK_ATTENTION
       NEXT)))
 
 (define-inst BNEQ (0 1 #t) :label
@@ -291,6 +305,7 @@
 	  (begin
 	    (set! (AC vm) SG_FALSE)
 	    (+= (PC vm) (PEEK_OPERAND (PC vm)))))
+      CHECK_ATTENTION
       NEXT)))
 
 (define-inst BNNULL (0 1 #t) :label
@@ -354,7 +369,8 @@
 		      (PUSH (SP vm) (SG_VALUES_REF vm i))
 		      (SG_APPEND1 h t (SG_VALUES_REF vm i))))
 	     (PUSH (SP vm) h)))))
-  NEXT1)
+  (set! (-> vm valuesCount) 1)
+  NEXT)
 
 ;; CLOSURE(n) cb
 ;;  * if n is non zero value then created closure will have self reference
@@ -435,6 +451,7 @@
 (define-inst LOCAL_CALL (1 0 #t)
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
   (local-call-process c)
+  CHECK_ATTENTION
   NEXT)
 
 (define-cise-stmt tail-call-process
@@ -451,15 +468,18 @@
   (CHECK_STACK (SG_CLOSURE_MAX_STACK (AC vm)) vm)
   (tail-call-process c)
   (local-call-process c)
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst RET (0 0 #f)
   (RET_INSN)
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst FRAME (0 1 #f) :label
   (let ((n::intptr_t (cast intptr_t (FETCH_OPERAND (PC vm)))))
     (PUSH_CONT vm (+ (PC vm) (- n 1))))
+  CHECK_ATTENTION
   NEXT)
 
 ;; INST_STACK(n)
@@ -483,6 +503,7 @@
 		    (AC vm)
 		    val1)
     (set! (AC vm) SG_UNDEF))
+  CHECK_ATTENTION
   NEXT)
 
 ;; This instruction is just mark for compiled cache.
@@ -491,6 +512,7 @@
   ;; discards library and move to next.
   (let ((lib (Sg_FindLibrary (FETCH_OPERAND (PC vm)) FALSE)))
     (set! (-> vm currentLibrary) (cast SgLibrary* lib)))
+  CHECK_ATTENTION
   NEXT)
 
 (define-inst CAR (0 0 #t)

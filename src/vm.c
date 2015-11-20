@@ -2095,6 +2095,18 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     }									\
   } while (0)
 
+/* 
+   Finalizers also occupy memory space and if we don't invoke
+   them, then it only grows. This case only happens only on
+   multi thread environment and the execution raised an error
+   or numbers of GC happened after returning from run_loop (
+   not even sure this would happen though).
+ */
+#define RUN_FINALIZER(vm)				\
+  do {							\
+    if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
+  } while (0)
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;
@@ -2124,6 +2136,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   if (setjmp(cstack.jbuf) == 0) {
     run_loop();
     AC(vm) = vm->ac;
+    RUN_FINALIZER(vm);
     if (vm->cont == cstack.cont) {
       POP_CONT();
       PC(vm) = prev_pc;
@@ -2159,6 +2172,8 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     }
     
   } else {
+    /* error, let finalizer run first here */
+    RUN_FINALIZER(vm);
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
       if (c->cstack == vm->cstack) {
@@ -2538,7 +2553,6 @@ static void show_inst_count(void *data)
 # define DISPATCH		/* empty */
 # define NEXT							\
   do {								\
-    if (vm->attentionRequest) goto process_queue;		\
     c = (SgWord)FETCH_OPERAND(PC(vm));				\
     COUNT_INSN(c);						\
     goto *dispatch_table[INSN(c)];				\
@@ -2552,11 +2566,17 @@ static void show_inst_count(void *data)
 # define DEFAULT            default:
 #endif
 
-#define NEXT1					\
-  do {						\
-    vm->valuesCount = 1;			\
-    NEXT;					\
-  } while (0)
+/* 
+   VM interruption happens only certain situation like the followings:
+    - GC
+    - Thread interrpution (only POSIX)
+    - Thread stop/termination
+   Thread related thing does not really matter since it just proceed the
+   process. So what we need to care is GC. Thus just referring variable
+   doesn't have to check such as LREF.   
+ */
+#define CHECK_ATTENTION							\
+  do { if (vm->attentionRequest) goto process_queue; } while (0)
 
 #ifdef _MSC_VER
 # pragma warning( push )
@@ -2579,7 +2599,7 @@ SgObject run_loop()
     SgWord c;
 
     DISPATCH;
-    if (vm->attentionRequest) goto process_queue;
+    /* if (vm->attentionRequest) goto process_queue; */
     c = (SgWord)FETCH_OPERAND(PC(vm));
     COUNT_INSN(c);
     SWITCH(INSN(c)) {

@@ -166,6 +166,7 @@
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_SUBR_FUNC(AC(vm))(FP(vm), argc, SG_SUBR_DATA(AC(vm)));
     if (TAIL_POS(vm)) RET_INSN();
+    CHECK_ATTENTION;
     NEXT;
   } break;
     
@@ -291,6 +292,7 @@
     SG_PROF_COUNT_CALL(vm, AC(vm));
     AC(vm) = SG_GENERIC(AC(vm))->fallback(FP(vm), argc, SG_GENERIC(AC(vm)));
     if (TAIL_POS(vm)) RET_INSN();
+    CHECK_ATTENTION;
     NEXT;
   }
 
@@ -305,6 +307,7 @@
     SG_PROF_COUNT_CALL(vm, subr);
     AC(vm) = SG_SUBR_FUNC(subr)(FP(vm), argc, SG_SUBR_DATA(subr));
     if (TAIL_POS(vm)) RET_INSN();
+    CHECK_ATTENTION;
   } else {
     /* closure */
     SgClosure *cls = SG_CLOSURE(SG_METHOD_PROCEDURE(AC(vm)));
