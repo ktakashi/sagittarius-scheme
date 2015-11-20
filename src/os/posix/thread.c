@@ -27,12 +27,18 @@
  *
  *  $Id: $
  */
+
+#define LIBSAGITTARIUS_BODY
+
+#include <sagittarius/config.h>
+/* to make pthread redirect happen */
+#include "../../gc-incl.inc"
 #include <pthread.h>
 #include <sys/time.h>
 #include <signal.h>
 #include <string.h>
 #include <fcntl.h>
-#define LIBSAGITTARIUS_BODY
+
 #include <sagittarius/thread.h>
 #include <sagittarius/core.h>
 #include <sagittarius/error.h>
@@ -41,8 +47,6 @@
 #include <sagittarius/symbol.h>
 #include <sagittarius/vm.h>
 #include <sagittarius/unicode.h>
-
-#include "../../gc-incl.inc"
 
 /* Thank you Debian, we need this stupid kludge */
 #ifndef HAVE_MUTEX_RECURSIVE

@@ -30,12 +30,19 @@
 
 /* GC selector */
 #if defined(USE_BOEHM_GC)
+
+/* from Boehm GC doc/README.linux */
+#ifdef __linux__
+# define _REENTRANT
+#endif
+
+# define GC_THREADS
 /* for win32 multi thread. see boehm gc README.win */
 /* TODO 64 bits */
 # if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 #  define GC_WIN32_THREADS
 # else
-#  define GC_THREADS
+#  define GC_PTHREADS
 # endif	 /* _MSC_VER */
 # if defined(HAVE_GC_H)
 #  include <gc.h>

@@ -1719,18 +1719,7 @@
     (check-binary-port transcoded-port p)
     (check-port-open transcoded-port p)
     (Sg_PseudoClosePort p)
-    (cond ((SG_EQ (-> p direction) SG_INPUT_PORT)
-	   (result (Sg_MakeTranscodedInputPort p t)))
-	  ((SG_EQ (-> p direction) SG_OUTPUT_PORT)
-	   (result (Sg_MakeTranscodedOutputPort p t)))
-	  ((SG_EQ (-> p direction) SG_IN_OUT_PORT)
-	   (result (Sg_MakeTranscodedInputOutputPort p t)))
-	  ((SG_EQ (-> p direction) SG_BIDIRECTIONAL_PORT)
-	   (result (Sg_MakeTranscodedBidrectionalPort p t)))
-	  (else
-	   (assertion-violation 'transcoded-port
-				"port had unknown direction. this must be a bug, please report it"
-				  '()))))
+    (result (Sg_TranscodedPort p t)))
 
   (define-c-proc port-has-port-position? (p::<port>) ::<boolean> :no-side-effect
     Sg_HasPortPosition)

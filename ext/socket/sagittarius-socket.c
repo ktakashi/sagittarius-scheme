@@ -477,7 +477,7 @@ SgObject Sg_SocketListen(SgSocket *socket, int backlog)
     if (!Sg_SocketOpenP(socket))			\
       Sg_IOError((SgIOErrorType)-1, SG_INTERN(who),	\
 		 SG_MAKE_STRING("socket is closed"),	\
-		 SG_FALSE, SG_NIL);			\
+		 SG_FALSE, socket);			\
   } while (0)
 
 

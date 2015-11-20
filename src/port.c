@@ -226,20 +226,15 @@ static SgPort* make_port_raw(size_t size,
 			     SgPortDirection d, 
 			     SgClass *clazz,
 			     SgPortTable *vtbl,
-			     SgObject transcoder,
-			     int registerP)
+			     SgObject transcoder)
 {
   SgPort *z = SG_NEW2(SgPort *, size);
   SG_INIT_PORT(z, clazz, d, vtbl, transcoder);
-
-  if (registerP) {
-    Sg_RegisterFinalizer(SG_OBJ(z), port_finalize, NULL);
-  }
   return z;
 }
 
-#define make_port(type, d, c, v, t, r)		\
-  make_port_raw(sizeof(type), d, c, v, t, r)
+#define make_port(type, d, c, v, t)		\
+  make_port_raw(sizeof(type), d, c, v, t)
 
 /* from Gauche */
 /* Tracking buffered ports */
@@ -748,8 +743,8 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
             memory space on GC. Not totally sure how it works
 	    exactly, but it's better to do this for my sanity.
      */
-    if (Sg_GCBase(bp->src) && Sg_FinalizerRegisteredP(bp->src)) {
-      Sg_UnregisterFinalizer(bp->src);
+    if (Sg_GCBase(src) && Sg_FinalizerRegisteredP(src)) {
+      Sg_UnregisterFinalizer(src);
       Sg_RegisterFinalizer(bp, port_finalize, NULL);
     }
   }
@@ -1050,13 +1045,16 @@ static SgObject make_file_port(SgFile *file, int bufferMode,
 			       SgPortDirection direction)
 {
   SgPortTable *tbl = get_file_table(file);
-  int registerP = SG_FILE_VTABLE(file)->canClose(file);
   SgFilePort *z = (SgFilePort *)make_port(SgFilePort, 
 					  direction,
 					  SG_CLASS_FILE_PORT, 
 					  tbl, 
-					  SG_FALSE, 
-					  registerP);
+					  SG_FALSE);
+
+  if (SG_FILE_VTABLE(file)->canClose(file)) {
+    Sg_RegisterFinalizer(SG_OBJ(z), port_finalize, NULL);
+  }
+
   z->file = file;
   /* set file position */
   if (SG_FILE_VTABLE(file)->tell)
@@ -1510,8 +1508,7 @@ static SgObject make_trans_port(SgPort *port, SgTranscoder *transcoder,
 						      d,
 						      SG_CLASS_TRANSCODED_PORT,
 						      get_transe_table(port),
-						      transcoder, 
-						      FALSE);
+						      transcoder);
   z->port = port;
   SG_PORT(z)->lineNo = 1;
   return SG_OBJ(z);
@@ -1538,6 +1535,11 @@ SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port,
 					   SgTranscoder *transcoder)
 {
   return make_trans_port(port, transcoder, SG_BIDIRECTIONAL_PORT);
+}
+
+SgObject Sg_TranscodedPort(SgPort *port, SgTranscoder *transcoder)
+{
+  return make_trans_port(port, transcoder, port->direction);
 }
 
 SgObject Sg_InitTranscodedPort(SgTranscodedPort *port,
@@ -1714,8 +1716,7 @@ SgObject Sg_MakeStringInputPort(SgString *s, int64_t start, int64_t end)
 				SG_INPUT_PORT,
 				SG_CLASS_STRING_PORT,
 				&str_inputs,
-				SG_TRUE,
-				FALSE);
+				SG_TRUE);
 
   z->buffer.buf = SG_STRING_VALUE(s);
   z->buffer.end = SG_STRING_VALUE(s) + end;
@@ -2248,8 +2249,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
 				     spec->direction,
 				     SG_CLASS_CUSTOM_PORT,
 				     tbl,
-				     trans,
-				     FALSE);
+				     trans);
     if (SG_FALSEP(trans)) {
       BI_CUSTOM_OUT(port)->binaryBuffer
 	= Sg_MakeByteVector(SG_PORT_DEFAULT_BUFFER_SIZE, 0);
@@ -2265,8 +2265,7 @@ SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec)
 				     spec->direction,
 				     SG_CLASS_CUSTOM_PORT,
 				     tbl,
-				     trans,
-				     FALSE);
+				     trans);
   }
 
   setPosition = (spec->wrap)

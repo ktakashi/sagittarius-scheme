@@ -209,8 +209,7 @@
 	      (if (~ session 'closed?)
 		  " session-closed"
 		  "")
-	      (if (~ o 'raw-socket)
-		  ""
+	      (or (~ o 'raw-socket)
 		  " closed"))))
   (define (tls-socket? o) (is-a? o <tls-socket>))
   (define (tls-socket-closed? socket) (~ socket 'session 'closed?))
