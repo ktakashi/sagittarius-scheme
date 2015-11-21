@@ -22,50 +22,66 @@
 (test-equal "base64 decode long"
 	    *long-string* (base64-decode-string *encoded-long-string*))
 
-;; from Gauche
-(test-equal "encode" "" (base64-encode-string ""))
-(test-equal "encode" "YQ==" (base64-encode-string "a"))
-(test-equal "encode" "MA==" (base64-encode-string "0"))
-(test-equal "encode" "Cg==" (base64-encode-string "\n"))
-(test-equal "encode" "YTA=" (base64-encode-string "a0"))
-(test-equal "encode" "YTAK" (base64-encode-string "a0\n"))
-(test-equal "encode" "PQk0" (base64-encode-string "=\t4"))
-(test-equal "encode" "eTQ5YQ==" (base64-encode-string "y49a"))
-(test-equal "encode" "RWdqYWk=" (base64-encode-string "Egjai"))
-(test-equal "encode" "OTNiamFl" (base64-encode-string "93bjae"))
-(test-equal "encode" "QkFSMGVyOQ==" (base64-encode-string "BAR0er9"))
+(define (test-encode-port name expect v . opt)
+  (define out (open-output-bytevector))
+  (define bout (apply open-base64-encode-port out opt))
+  (put-bytevector bout (string->utf8 v))
+  (close-port bout)
+  (test-equal (format "~a (port)" name) expect 
+	      (utf8->string (get-output-bytevector out))))
 
+(define-syntax test-encode
+  (syntax-rules (base64-encode-string)
+    ((_ name expect (base64-encode-string v opt ...))
+     (begin
+       (test-equal name expect (base64-encode-string v opt ...))
+       (test-encode-port name expect v opt ...)))))
+
+(test-encode "encode" "" (base64-encode-string ""))
+(test-encode "encode" "YQ==" (base64-encode-string "a"))
+(test-encode "encode" "MA==" (base64-encode-string "0"))
+(test-encode "encode" "Cg==" (base64-encode-string "\n"))
+(test-encode "encode" "YTA=" (base64-encode-string "a0"))
+(test-encode "encode" "YTAK" (base64-encode-string "a0\n"))
+(test-encode "encode" "PQk0" (base64-encode-string "=\t4"))
+(test-encode "encode" "eTQ5YQ==" (base64-encode-string "y49a"))
+(test-encode "encode" "RWdqYWk=" (base64-encode-string "Egjai"))
+(test-encode "encode" "OTNiamFl" (base64-encode-string "93bjae"))
+(test-encode "encode" "QkFSMGVyOQ==" (base64-encode-string "BAR0er9"))
+
+;; there is no default line-width on encode port, so this
+;; test must be done with test-equal
 (test-equal "encode w/ line width (default)"
        "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2\n"
        (base64-encode-string "012345678901234567890123456789012345678901234567890123456"))
-(test-equal "encode w/ line width 10, e1"
+(test-encode "encode w/ line width 10, e1"
        "MDEyMzQ1Ng\n=="
        (base64-encode-string "0123456" :line-width 10))
-(test-equal "encode w/ line width 11, e1"
+(test-encode "encode w/ line width 11, e1"
        "MDEyMzQ1Ng=\n="
        (base64-encode-string "0123456" :line-width 11))
-(test-equal "encode w/ line width 12, e1"
+(test-encode "encode w/ line width 12, e1"
        "MDEyMzQ1Ng==\n"
        (base64-encode-string "0123456" :line-width 12))
-(test-equal "encode w/ line width 11, e2"
+(test-encode "encode w/ line width 11, e2"
        "MDEyMzQ1Njc\n="
        (base64-encode-string "01234567" :line-width 11))
-(test-equal "encode w/ line width 12, e2"
+(test-encode "encode w/ line width 12, e2"
        "MDEyMzQ1Njc=\n"
        (base64-encode-string "01234567" :line-width 12))
-(test-equal "encode w/ line width 4"
+(test-encode "encode w/ line width 4"
        "MDEy\nMzQ=\n"
        (base64-encode-string "01234" :line-width 4))
-(test-equal "encode w/ line width 3"
+(test-encode "encode w/ line width 3"
        "MDE\nyMz\nQ="
        (base64-encode-string "01234" :line-width 3))
-(test-equal "encode w/ line width 2"
+(test-encode "encode w/ line width 2"
        "MD\nEy\nMz\nQ=\n"
        (base64-encode-string "01234" :line-width 2))
-(test-equal "encode w/ line width 1"
+(test-encode "encode w/ line width 1"
        "M\nD\nE\ny\nM\nz\nQ\n=\n"
        (base64-encode-string "01234" :line-width 1))
-(test-equal "encode w/ line width 0"
+(test-encode "encode w/ line width 0"
        "MDEyMzQ="
        (base64-encode-string "01234" :line-width 0))
 

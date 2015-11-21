@@ -2,7 +2,7 @@
 ;;;
 ;;; base64.scm - base64 encoding/decoding routine
 ;;;  
-;;;   Copyright (c) 2010-2012  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -30,7 +30,9 @@
 #!core
 (library (rfc base64)
     (export base64-encode base64-encode-string
-	    base64-decode base64-decode-string)
+	    base64-decode base64-decode-string
+
+	    open-base64-encode-port)
     (import (rnrs) (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius control))
@@ -51,17 +53,18 @@
       ))
 
   (define *encode-table*
-    ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
-    #(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P
-    ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
-      #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z #\a #\b #\c #\d #\e #\f
-    ;;32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47
-      #\g #\h #\i #\j #\k #\l #\m #\n #\o #\p #\q #\r #\s #\t #\u #\v
-    ;;48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
-      #\w #\x #\y #\z #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\/
-    ;;pad
-      #\=
-    ))
+    (vector-map char->integer
+     ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+     #(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P
+       ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+       #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z #\a #\b #\c #\d #\e #\f
+       ;;32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47
+       #\g #\h #\i #\j #\k #\l #\m #\n #\o #\p #\q #\r #\s #\t #\u #\v
+       ;;48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
+       #\w #\x #\y #\z #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\/
+       ;;pad
+       #\=
+       )))
 
   (define (base64-decode-string string
 				:key (transcoder (make-transcoder 
@@ -145,9 +148,10 @@
 			     ((_ col) col)
 			     ((_ col idx idx2 ...)
 			      (begin
-				(put-u8 out (char->integer (vector-ref *encode-table* idx)))
+				(put-u8 out (vector-ref *encode-table* idx))
 				(let ((col2 (cond ((eqv? col max-col)
-						   (put-u8 out #x0a) 0) ;; newline
+						   ;; newline
+						   (put-u8 out #x0a) 0)
 						  (else (+ col 1)))))
 				  (emit* col2 idx2 ...)))))))
       (define (e0 c col)
@@ -170,5 +174,79 @@
 		   (emit* col (+ (* hi 4) (quotient c 64)) (modulo c 64))))))
 
       (e0 (get-u8 in) 0)))
+
+  ;; basically the same as above but it input length is unknown
+  (define (open-base64-encode-port sink :key (owner? #f) (line-width #f))
+    (define max-col (and line-width
+			 (> line-width 0)
+			 (- line-width 1)))
+    (define buffer (make-bytevector 3 0))
+    (define buffer-count 0)
+    (define col 0)
+
+    (define (fill-buffer bv start count)
+      (define size (min (- 3 buffer-count) count))
+      (bytevector-copy! bv start buffer buffer-count size)
+      (set! buffer-count (+ buffer-count size))
+      size)
+    (define (check-col)
+      (if (eqv? col max-col)
+	  (begin
+	    (put-u8 sink #x0a)
+	    (set! col 0))
+	  (set! col (+ col 1))))
+    (define (put i) 
+      (put-u8 sink (vector-ref *encode-table* i))
+      (check-col))
+
+    (define (process-encode)
+      (define b0 (bytevector-u8-ref buffer 0))
+      (define b1 (bytevector-u8-ref buffer 1))
+      (define b2 (bytevector-u8-ref buffer 2))
+
+      (put (bitwise-arithmetic-shift-right (bitwise-and #xFC b0) 2))
+      (put (bitwise-ior
+	       (bitwise-arithmetic-shift-left (bitwise-and #x03 b0) 4)
+	       (bitwise-arithmetic-shift-right (bitwise-and #xF0 b1) 4)))
+      (put (bitwise-ior
+	       (bitwise-arithmetic-shift-left (bitwise-and #x0F b1) 2)
+	       (bitwise-arithmetic-shift-right (bitwise-and #xC0 b2) 6)))
+      (put (bitwise-and #x3F b2))
+      (set! buffer-count 0))
+
+    (define (write! bv start count) 
+      (let loop ((start start) (rest count))
+	(if (zero? rest)
+	    count
+	    (let ((n (fill-buffer bv start rest)))
+	      (when (= buffer-count 3) (process-encode))
+	      (loop (+ start n) (- rest n))))))
+    
+    (define (process-encode-last)
+      (define b0 (bytevector-u8-ref buffer 0))
+      (define b1 (bytevector-u8-ref buffer 1))
+      (define b2 (bytevector-u8-ref buffer 2))
+
+      (define lshift bitwise-arithmetic-shift-left)
+      (define rshift bitwise-arithmetic-shift-right)
+
+      (unless (zero? buffer-count)
+	(put (rshift (bitwise-and #xFC b0) 2))
+	(let ((b (lshift (bitwise-and #x03 b0) 4)))
+	  (if (= buffer-count 1)
+	      (begin (put b) (put 64) (put 64))
+	      (begin
+		(put (bitwise-ior b (rshift (bitwise-and #xF0 b1) 4)))
+		(let ((b (lshift (bitwise-and #x0F b1) 2)))
+		  (if (= buffer-count 2)
+		      (begin (put b) (put 64))
+		      (begin
+			(put (bitwise-ior b (rshift (bitwise-and #xC0 b2) 6)))
+			(put (bitwise-and #x3F b2))))))))))
+
+    (define (close) 
+      (process-encode-last)
+      (when owner? (close-port sink)))
+    (make-custom-binary-output-port "base64-encode-port" write! #f #f close))
       
 )
