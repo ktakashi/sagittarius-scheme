@@ -32,7 +32,7 @@
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string
 
-	    open-base64-encode-port)
+	    open-base64-encode-output-port)
     (import (rnrs) (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius control))
@@ -176,7 +176,7 @@
       (e0 (get-u8 in) 0)))
 
   ;; basically the same as above but it input length is unknown
-  (define (open-base64-encode-port sink :key (owner? #f) (line-width #f))
+  (define (open-base64-encode-output-port sink :key (owner? #f) (line-width #f))
     (define max-col (and line-width
 			 (> line-width 0)
 			 (- line-width 1)))

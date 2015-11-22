@@ -24,7 +24,7 @@
 
 (define (test-encode-port name expect v . opt)
   (define out (open-output-bytevector))
-  (define bout (apply open-base64-encode-port out opt))
+  (define bout (apply open-base64-encode-output-port out opt))
   (put-bytevector bout (string->utf8 v))
   (close-port bout)
   (test-equal (format "~a (port)" name) expect 
