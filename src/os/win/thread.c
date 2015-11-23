@@ -101,6 +101,8 @@ static unsigned int __stdcall win32_thread_entry_innter(void *params)
   me = threadParams->me;
   start = threadParams->start;
   arg = threadParams->arg;
+  /* temporary storage is no longer needed. */
+  free(params);
   me->stackBase = (uintptr_t)&threadParams;
   if (setjmp(me->jbuf) == 0) {
     status = (*start)(arg);
@@ -130,14 +132,14 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
 			   void *param)
 {
   /* this heap must be freed in win32_thread_entry */
-  ThreadParams params;
-  params.me = thread;
-  params.start = entry;
-  params.arg = param;
+  ThreadParams params = (ThreadParams*)malloc(sizeof(ThreadParams));
+  params->me = thread;
+  params->start = entry;
+  params->arg = param;
   /* set return value in case */
   thread->returnValue = SG_UNDEF;
   thread->thread = (HANDLE)_beginthreadex(NULL, 0, win32_thread_entry,
-					  &params, 0, NULL);
+					  params, 0, NULL);
   return TRUE;
 }
 
