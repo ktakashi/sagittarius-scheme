@@ -50,6 +50,9 @@
 #include "sagittarius/thread.h"
 #include "sagittarius/unicode.h"
 
+/* need to redirect dlopen */
+#include "gc-incl.inc"
+
 /* load context to keep load info */
 struct load_ctx
 {
