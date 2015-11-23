@@ -132,7 +132,7 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
 			   void *param)
 {
   /* this heap must be freed in win32_thread_entry */
-  ThreadParams params = (ThreadParams*)malloc(sizeof(ThreadParams));
+  ThreadParams *params = (ThreadParams*)malloc(sizeof(ThreadParams));
   params->me = thread;
   params->start = entry;
   params->arg = param;
