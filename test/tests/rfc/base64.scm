@@ -85,17 +85,49 @@
        "MDEyMzQ="
        (base64-encode-string "01234" :line-width 0))
 
-(test-equal "decode" "" (base64-decode-string ""))
-(test-equal "decode" "a" (base64-decode-string "YQ=="))
-(test-equal "decode" "a" (base64-decode-string "YQ="))
-(test-equal "decode" "a" (base64-decode-string "YQ"))
-(test-equal "decode" "a0" (base64-decode-string "YTA="))
-(test-equal "decode" "a0" (base64-decode-string "YTA"))
-(test-equal "decode" "a0\n" (base64-decode-string "YTAK"))
-(test-equal "decode" "y49a" (base64-decode-string "eTQ5YQ=="))
-(test-equal "decode" "Egjai" (base64-decode-string "RWdqYWk="))
-(test-equal "decode" "93bjae" (base64-decode-string "OTNiamFl"))
-(test-equal "decode" "BAR0er9" (base64-decode-string "QkFSMGVyOQ=="))
-(test-equal "decode" "BAR0er9" (base64-decode-string "QkFS\r\nMGVyOQ\r\n=="))
+(define (test-decode-port name expect v)
+  (define (test-all)
+    (define in (open-bytevector-input-port (string->utf8 v)))
+    (define bin (open-base64-decode-input-port in))
+    (let ((e (get-bytevector-all bin)))
+      (unless (eof-object? e)
+	(test-equal (format "~a (port all)" name) expect 
+		    (utf8->string e))))
+    (close-port bin)) ;; just for GC friendliness...
+  (define (test1)
+    (define in (open-bytevector-input-port (string->utf8 v)))
+    (define bin (open-base64-decode-input-port in))
+    (let-values (((out extract) (open-string-output-port)))
+      (let loop ()
+	(let ((b (get-u8 bin)))
+	  (if (eof-object? b)
+	      (test-equal (format "~a (port)" name) expect 
+			  (extract))
+	      (let ((c (integer->char b)))
+		(put-char out c)
+		(loop))))))
+    (close-port bin)) ;; just for GC friendliness...
+  (test-all)
+  (test1))
+
+(define-syntax test-decode
+  (syntax-rules (base64-decode-string)
+    ((_ name expect (base64-decode-string v))
+     (begin
+       (test-equal name expect (base64-decode-string v))
+       (test-decode-port name expect v)))))
+
+(test-decode "decode" "" (base64-decode-string ""))
+(test-decode "decode" "a" (base64-decode-string "YQ=="))
+(test-decode "decode" "a" (base64-decode-string "YQ="))
+(test-decode "decode" "a" (base64-decode-string "YQ"))
+(test-decode "decode" "a0" (base64-decode-string "YTA="))
+(test-decode "decode" "a0" (base64-decode-string "YTA"))
+(test-decode "decode" "a0\n" (base64-decode-string "YTAK"))
+(test-decode "decode" "y49a" (base64-decode-string "eTQ5YQ=="))
+(test-decode "decode" "Egjai" (base64-decode-string "RWdqYWk="))
+(test-decode "decode" "93bjae" (base64-decode-string "OTNiamFl"))
+(test-decode "decode" "BAR0er9" (base64-decode-string "QkFSMGVyOQ=="))
+(test-decode "decode" "BAR0er9" (base64-decode-string "QkFS\r\nMGVyOQ\r\n=="))
 
 (test-end)

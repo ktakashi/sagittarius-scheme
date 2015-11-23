@@ -32,7 +32,8 @@
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string
 
-	    open-base64-encode-output-port)
+	    open-base64-encode-output-port
+	    open-base64-decode-input-port)
     (import (rnrs) (rnrs r5rs)
 	    (sagittarius)
 	    (sagittarius control))
@@ -248,5 +249,69 @@
       (process-encode-last)
       (when owner? (close-port sink)))
     (make-custom-binary-output-port "base64-encode-port" write! #f #f close))
+
+  ;; decode port
+  ;; TODO maybe we want to make buffer size bigger for performance?
+  (define (open-base64-decode-input-port source :key (owner? #f))
+    (define output-buffer (make-bytevector 3))
+    (define output-buffer-size 0)
+
+    ;; Should we raise an error if the input is not multiple of 4?
+    (define (decode1)
+      (define (get)
+	(let ((b (get-u8 source)))
+	  (cond ((eof-object? b) b)
+		((and (< 32 b 128) (vector-ref *decode-table* (- b 32))))
+		(else (get)))))
+      (define b0 (get))
+      (define b1 (get))
+      (define b2 (get))
+      (define b3 (get))
+      
+      (define (check b) (not (eof-object? b)))
+      (define lshift bitwise-arithmetic-shift-left)
+      (define rshift bitwise-arithmetic-shift-right)
+      
+      (cond ((and (check b0) (check b1))
+	     (bytevector-u8-set! output-buffer 0
+	      (bitwise-and (bitwise-ior (lshift b0 2) (rshift b1 4)) #xFF))
+	     (cond ((check b2)
+		    (bytevector-u8-set! output-buffer 1
+		     (bitwise-and (bitwise-ior (lshift b1 4) (rshift b2 2))
+				  #xFF))
+		    (cond ((check b3)
+			   (bytevector-u8-set! output-buffer 2
+			    (bitwise-and (bitwise-ior (lshift b2 6)  b3) #xFF))
+			   (set! output-buffer-size 3)
+			   3)
+			  (else 
+			   (set! output-buffer-size 2) 2)))
+		   (else (set! output-buffer-size 1) 1)))
+	    (else (set! output-buffer-size 0) 0)))
+
+    (define (read! bv start count)
+      (define (copy-buffer! i n)
+	(let ((size (min n count)))
+	  (bytevector-copy! output-buffer 0 bv i size)
+	  (set! output-buffer-size (- output-buffer-size size))
+	  ;; TODO should we manage position instead of sliding?
+	  (bytevector-copy! output-buffer size
+			    output-buffer 0 output-buffer-size)
+	  size))
+      (let loop ((i start) (set 0))
+	(cond ((= set count) count)
+	      ((not (zero? output-buffer-size))
+	       (let ((size (copy-buffer! i output-buffer-size)))
+		 (loop (+ i size) (+ set size))))
+	      (else
+	       (let ((n (decode1)))
+		 (if (zero? n)
+		     set
+		     (let ((size (copy-buffer! i n)))
+		       (loop (+ i size) (+ set size)))))))))
+
+    (define (close) (when owner? (close-port source)))
+
+    (make-custom-binary-input-port "base64-decode-port" read! #f #f close))
       
 )
