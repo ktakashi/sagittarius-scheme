@@ -33,6 +33,8 @@
 	    base64-decode base64-decode-string
 
 	    open-base64-encode-output-port
+	    open-base64-encode-input-port
+
 	    open-base64-decode-input-port)
     (import (rnrs) (rnrs r5rs)
 	    (sagittarius)
@@ -63,9 +65,8 @@
        #\g #\h #\i #\j #\k #\l #\m #\n #\o #\p #\q #\r #\s #\t #\u #\v
        ;;48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
        #\w #\x #\y #\z #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\/
-       ;;pad
-       #\=
-       )))
+       ;;pad 
+       #\= )))
 
   (define (base64-decode-string string
 				:key (transcoder (make-transcoder 
@@ -177,42 +178,62 @@
       (e0 (get-u8 in) 0)))
 
   ;; basically the same as above but it input length is unknown
+  ;; always encode 3 bytes to 4 bytes
+  (define (make-base64-encoder real-put line-width)
+    (define max-col (and line-width (> line-width 0) (- line-width 1)))
+    (define col 0)
+    (define (check-col)
+      (when max-col
+	(if (= col max-col)
+	    (begin
+	      (real-put -1) ;; so that implementation may choose end line
+	      (set! col 0))
+	    (set! col (+ col 1)))))
+    (define (put i)
+      (real-put i)
+      (check-col))
+
+    (lambda (b0 b1 b2)
+      (define lshift bitwise-arithmetic-shift-left)
+      (define rshift bitwise-arithmetic-shift-right)
+
+      (when (positive? b0)
+	(put (rshift (bitwise-and #xFC b0) 2))
+	(let ((b (lshift (bitwise-and #x03 b0) 4)))
+	  (cond ((negative? b1)
+		 (put b) (put 64) (put 64))
+		(else
+		 (put (bitwise-ior b (rshift (bitwise-and #xF0 b1) 4)))
+		 (let ((b (lshift (bitwise-and #x0F b1) 2)))
+		   (cond ((negative? b2)
+			  (put b) (put 64))
+			 (else
+			  (put (bitwise-ior b (rshift (bitwise-and #xC0 b2) 6)))
+			  (put (bitwise-and #x3F b2)))))))))))
+
   (define (open-base64-encode-output-port sink :key (owner? #f) (line-width #f))
-    (define max-col (and line-width
-			 (> line-width 0)
-			 (- line-width 1)))
     (define buffer (make-bytevector 3 0))
     (define buffer-count 0)
-    (define col 0)
 
     (define (fill-buffer bv start count)
       (define size (min (- 3 buffer-count) count))
       (bytevector-copy! bv start buffer buffer-count size)
       (set! buffer-count (+ buffer-count size))
       size)
-    (define (check-col)
-      (if (eqv? col max-col)
-	  (begin
-	    (put-u8 sink #x0a)
-	    (set! col 0))
-	  (set! col (+ col 1))))
+
     (define (put i) 
-      (put-u8 sink (vector-ref *encode-table* i))
-      (check-col))
+      (if (negative? i)
+	  (put-u8 sink #x0a)
+	  (put-u8 sink (vector-ref *encode-table* i))))
+    (define encoder (make-base64-encoder put line-width))
 
     (define (process-encode)
-      (define b0 (bytevector-u8-ref buffer 0))
-      (define b1 (bytevector-u8-ref buffer 1))
-      (define b2 (bytevector-u8-ref buffer 2))
-
-      (put (bitwise-arithmetic-shift-right (bitwise-and #xFC b0) 2))
-      (put (bitwise-ior
-	       (bitwise-arithmetic-shift-left (bitwise-and #x03 b0) 4)
-	       (bitwise-arithmetic-shift-right (bitwise-and #xF0 b1) 4)))
-      (put (bitwise-ior
-	       (bitwise-arithmetic-shift-left (bitwise-and #x0F b1) 2)
-	       (bitwise-arithmetic-shift-right (bitwise-and #xC0 b2) 6)))
-      (put (bitwise-and #x3F b2))
+      (define (get n)
+	(or (and (> buffer-count n) (bytevector-u8-ref buffer n)) -1))
+      (define b0 (get 0))
+      (define b1 (get 1))
+      (define b2 (get 2))
+      (encoder b0 b1 b2)
       (set! buffer-count 0))
 
     (define (write! bv start count) 
@@ -223,32 +244,65 @@
 	      (when (= buffer-count 3) (process-encode))
 	      (loop (+ start n) (- rest n))))))
     
-    (define (process-encode-last)
-      (define b0 (bytevector-u8-ref buffer 0))
-      (define b1 (bytevector-u8-ref buffer 1))
-      (define b2 (bytevector-u8-ref buffer 2))
-
-      (define lshift bitwise-arithmetic-shift-left)
-      (define rshift bitwise-arithmetic-shift-right)
-
-      (unless (zero? buffer-count)
-	(put (rshift (bitwise-and #xFC b0) 2))
-	(let ((b (lshift (bitwise-and #x03 b0) 4)))
-	  (if (= buffer-count 1)
-	      (begin (put b) (put 64) (put 64))
-	      (begin
-		(put (bitwise-ior b (rshift (bitwise-and #xF0 b1) 4)))
-		(let ((b (lshift (bitwise-and #x0F b1) 2)))
-		  (if (= buffer-count 2)
-		      (begin (put b) (put 64))
-		      (begin
-			(put (bitwise-ior b (rshift (bitwise-and #xC0 b2) 6)))
-			(put (bitwise-and #x3F b2))))))))))
-
     (define (close) 
-      (process-encode-last)
+      ;; do the last
+      (process-encode)
       (when owner? (close-port sink)))
-    (make-custom-binary-output-port "base64-encode-port" write! #f #f close))
+    (make-custom-binary-output-port "base64-encode-output-port"
+				    write! #f #f close))
+
+  ;; TODO I don't think this has good performance
+  (define (open-base64-encode-input-port source
+					 :key (owner? #f) (line-width #f))
+    ;; max length = when line-width is 1
+    (define buffer (make-bytevector 8 0))
+    (define buffer-count 0)
+
+    (define (fill-buffer! bv start count)
+      (define size (min buffer-count count))
+      (bytevector-copy! buffer 0 bv start size)
+      (set! buffer-count (- buffer-count size))
+      (bytevector-copy! buffer size buffer 0 buffer-count)
+      size)
+
+    (define (put i)
+      (bytevector-u8-set! buffer buffer-count 
+			  (if (negative? i)
+			      #x0a
+			      (vector-ref *encode-table* i)))
+      (set! buffer-count (+ buffer-count 1)))
+
+    (define encoder (make-base64-encoder put line-width))
+
+    (define (process-encode)
+      (define (get prev) 
+	(if (negative? prev)
+	    -1
+	    (let ((b (get-u8 source)))
+	      (if (eof-object? b)
+		  -1
+		  b))))
+      (define b0 (get 0))
+      (define b1 (get b0))
+      (define b2 (get b1))
+      (encoder b0 b1 b2))
+
+    (define (read! bv start count) 
+      (let loop ((start start) (set 0))
+	(cond ((= set count) count)
+	      ((not (zero? buffer-count))
+	       (let ((n (fill-buffer! bv start (- count set))))
+		 (loop (+ start n) (+ set n))))
+	      (else
+	       (process-encode)
+	       (let ((n (fill-buffer! bv start (- count set))))
+		 (if (zero? n)
+		     set
+		     (loop (+ start n) (+ set n))))))))
+    
+    (define (close) (when owner? (close-port source)))
+    (make-custom-binary-input-port "base64-encode-input-port"
+				   read! #f #f close))
 
   ;; decode port
   ;; TODO maybe we want to make buffer size bigger for performance?
