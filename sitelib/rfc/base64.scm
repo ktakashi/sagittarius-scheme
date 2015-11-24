@@ -35,6 +35,7 @@
 	    open-base64-encode-output-port
 	    open-base64-encode-input-port
 
+	    open-base64-decode-output-port
 	    open-base64-decode-input-port)
     (import (rnrs) (rnrs r5rs)
 	    (sagittarius)
@@ -247,6 +248,7 @@
     (define (close) 
       ;; do the last
       (process-encode)
+      (flush-output-port sink)
       (when owner? (close-port sink)))
     (make-custom-binary-output-port "base64-encode-output-port"
 				    write! #f #f close))
@@ -305,43 +307,40 @@
 				   read! #f #f close))
 
   ;; decode port
+  (define (make-base64-decoder put)
+    (lambda (b0 b1 b2 b3)
+      (define (check b) (>= b 0))
+      (define lshift bitwise-arithmetic-shift-left)
+      (define rshift bitwise-arithmetic-shift-right)
+      
+      (when (and (check b0) (check b1))
+	(put (bitwise-and (bitwise-ior (lshift b0 2) (rshift b1 4)) #xFF))
+	(when (check b2)
+	  (put (bitwise-and (bitwise-ior (lshift b1 4) (rshift b2 2)) #xFF))
+	  (when (check b3)
+	    (put (bitwise-and (bitwise-ior (lshift b2 6)  b3) #xFF)))))))
+      
   ;; TODO maybe we want to make buffer size bigger for performance?
   (define (open-base64-decode-input-port source :key (owner? #f))
     (define output-buffer (make-bytevector 3))
     (define output-buffer-size 0)
-
+    (define (put b)
+      (bytevector-u8-set! output-buffer output-buffer-size b)
+      (set! output-buffer-size (+ output-buffer-size 1)))
+    (define decoder (make-base64-decoder put))
     ;; Should we raise an error if the input is not multiple of 4?
     (define (decode1)
       (define (get)
 	(let ((b (get-u8 source)))
-	  (cond ((eof-object? b) b)
+	  (cond ((eof-object? b) -1)
 		((and (< 32 b 128) (vector-ref *decode-table* (- b 32))))
 		(else (get)))))
       (define b0 (get))
       (define b1 (get))
       (define b2 (get))
       (define b3 (get))
-      
-      (define (check b) (not (eof-object? b)))
-      (define lshift bitwise-arithmetic-shift-left)
-      (define rshift bitwise-arithmetic-shift-right)
-      
-      (cond ((and (check b0) (check b1))
-	     (bytevector-u8-set! output-buffer 0
-	      (bitwise-and (bitwise-ior (lshift b0 2) (rshift b1 4)) #xFF))
-	     (cond ((check b2)
-		    (bytevector-u8-set! output-buffer 1
-		     (bitwise-and (bitwise-ior (lshift b1 4) (rshift b2 2))
-				  #xFF))
-		    (cond ((check b3)
-			   (bytevector-u8-set! output-buffer 2
-			    (bitwise-and (bitwise-ior (lshift b2 6)  b3) #xFF))
-			   (set! output-buffer-size 3)
-			   3)
-			  (else 
-			   (set! output-buffer-size 2) 2)))
-		   (else (set! output-buffer-size 1) 1)))
-	    (else (set! output-buffer-size 0) 0)))
+      (decoder b0 b1 b2 b3)
+      output-buffer-size)
 
     (define (read! bv start count)
       (define (copy-buffer! i n)
@@ -366,6 +365,50 @@
 
     (define (close) (when owner? (close-port source)))
 
-    (make-custom-binary-input-port "base64-decode-port" read! #f #f close))
-      
+    (make-custom-binary-input-port "base64-decode-input-port"
+				   read! #f #f close))
+  
+  (define (open-base64-decode-output-port sink :key (owner? #f))
+    (define (put b) (put-u8 sink b))
+    (define decoder (make-base64-decoder put))
+    
+    (define buffer (make-bytevector 4))
+    (define buffer-size 0)
+    (define (fill-buffer bv start count)
+      (define size (min (- 4 buffer-size) count))
+      (let loop ((i 0))
+	(if (= i size)
+	    size
+	    (let ((b (bytevector-u8-ref bv (+ start i))))
+	      (cond ((and (< 32 b 128) (vector-ref *decode-table* (- b 32))) =>
+		     (lambda (b) 
+		       (bytevector-u8-set! buffer buffer-size b)
+		       (set! buffer-size (+ buffer-size 1)))))
+	      (loop (+ i 1))))))
+
+    (define (write! bv start count)
+      (let loop ((i start) (set 0))
+	(cond ((= buffer-size 4)
+	       (decoder (bytevector-u8-ref buffer 0)
+			(bytevector-u8-ref buffer 1)
+			(bytevector-u8-ref buffer 2)
+			(bytevector-u8-ref buffer 3))
+	       (set! buffer-size 0)
+	       (loop i set))
+	      ((= set count) count)
+	      (else
+	       (let ((n (fill-buffer bv i (- count set))))
+		 (loop (+ i n) (+ set n)))))))
+
+    (define (close) 
+      (define (get n)
+	(or (and (> buffer-size n) (bytevector-u8-ref buffer n)) -1))
+      (unless (zero? buffer-size)
+	(decoder (get 0) (get 1) (get 2) (get 3)))
+      (flush-output-port sink)
+      (when owner? (close-port source)))
+
+    (make-custom-binary-output-port "base64-decode-output-port"
+				    write! #f #f close))
+
 )

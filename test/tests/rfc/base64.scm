@@ -122,29 +122,53 @@
        (base64-encode-string "01234" :line-width 0))
 
 (define (test-decode-port name expect v)
-  (define (test-all)
-    (define in (open-bytevector-input-port (string->utf8 v)))
-    (define bin (open-base64-decode-input-port in))
-    (let ((e (get-bytevector-all bin)))
-      (unless (eof-object? e)
-	(test-equal (format "~a (port all)" name) expect 
-		    (utf8->string e))))
-    (close-port bin)) ;; just for GC friendliness...
-  (define (test1)
-    (define in (open-bytevector-input-port (string->utf8 v)))
-    (define bin (open-base64-decode-input-port in))
-    (let-values (((out extract) (open-string-output-port)))
-      (let loop ()
-	(let ((b (get-u8 bin)))
-	  (if (eof-object? b)
-	      (test-equal (format "~a (port)" name) expect 
-			  (extract))
-	      (let ((c (integer->char b)))
-		(put-char out c)
-		(loop))))))
-    (close-port bin)) ;; just for GC friendliness...
-  (test-all)
-  (test1))
+  (define (test-input)
+    (define (test-all)
+      (define in (open-bytevector-input-port (string->utf8 v)))
+      (define bin (open-base64-decode-input-port in))
+      (let ((e (get-bytevector-all bin)))
+	(unless (eof-object? e)
+	  (test-equal (format "~a (input port all)" name) expect 
+		      (utf8->string e))))
+      (close-port bin)) ;; just for GC friendliness...
+    (define (test1)
+      (define in (open-bytevector-input-port (string->utf8 v)))
+      (define bin (open-base64-decode-input-port in))
+      (let-values (((out extract) (open-string-output-port)))
+	(let loop ()
+	  (let ((b (get-u8 bin)))
+	    (if (eof-object? b)
+		(test-equal (format "~a (input port one)" name) expect 
+			    (extract))
+		(let ((c (integer->char b)))
+		  (put-char out c)
+		  (loop))))))
+      (close-port bin)) ;; just for GC friendliness...
+    (test-all)
+    (test1))
+  (define (test-output)
+    (define (test-all)
+      (define out (open-output-bytevector))
+      (define bout (open-base64-decode-output-port out))
+      (put-bytevector bout (string->utf8 v))
+      (close-port bout)
+      (test-equal (format "~a (output port all)" name) expect 
+		  (utf8->string (get-output-bytevector out))))
+    (define (test1)
+      (define out (open-output-bytevector))
+      (define bout (open-base64-decode-output-port out))
+      (let ((bv (string->utf8 v)))
+	(do ((len (bytevector-length bv))
+	     (i 0 (+ i 1)))
+	    ((= i len) (close-port bout))
+	  (put-u8 bout (bytevector-u8-ref bv i)))) 
+      (test-equal (format "~a (output port one)" name) expect 
+		  (utf8->string (get-output-bytevector out))))
+
+    (test-all)
+    (test1))
+  (test-input)
+  (test-output))
 
 (define-syntax test-decode
   (syntax-rules (base64-decode-string)
