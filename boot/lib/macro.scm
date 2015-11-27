@@ -697,15 +697,15 @@
 	'()
 	(let ((form (transcribe-template (rewrite template) ranks vars)))
 	  (cond ((null? form) '())
-		((identifier? form) form)
-		((symbol? form)
-		 (cond ((lookup-transformer-env form))
-		       (else (wrap-symbol form))))
 		;; this causes
 		;; (syntax-case '(a b c) () ((a b c) (list #'a #'b #'c)))
 		;; results (#<id a> #<id b> #<id c>) but I don't know
 		;; how to deal with it...
 		((eq? use-env mac-env) form) ; we don't wrap toplevel form
+		((identifier? form) form)
+		((symbol? form)
+		 (cond ((lookup-transformer-env form))
+		       (else (wrap-symbol form))))
 		(else (partial-identifier form)))))))
 
 (define (rank-of name ranks)

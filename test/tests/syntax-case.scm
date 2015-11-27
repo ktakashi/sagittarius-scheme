@@ -491,4 +491,11 @@
 	 #'(foo* x ... tt*)))))
   (test-equal "pattern variable in literal" 'ok (foo*)))
 
+(let ()
+  (define (match lis)
+    (syntax-case lis ()
+      ((a b c) #'a)
+      (_ 'ng)))
+  (test-assert "syntax-case returned identifier" (symbol? (match '(a b c)))))
+
 (test-end)
