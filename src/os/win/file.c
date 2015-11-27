@@ -535,7 +535,7 @@ int Sg_FileExistP(SgString *path)
 int Sg_DeleteFile(SgString *path)
 {
   /* for posix remove, it need to return 0 when succeed */
-  return DeleteFileW(utf32ToUtf16(path)) ? 0 : -1;
+  return DeleteFileW(utf32ToUtf16(path)) ? 0 : GetLastError();
 }
 
 int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
