@@ -2452,10 +2452,11 @@
     Sg_FileExistP)
 
   (define-c-proc delete-file (filename::<string>) ::<void>
-    (unless (== (Sg_DeleteFile filename) 0)
-      (Sg_IOError SG_IO_FILENAME_ERROR 'delete-file
-		  (SG_MAKE_STRING "can't delete file")
-		  filename SG_UNDEF)))
+    (let ((r::int (Sg_DeleteFile filename)))
+      (unless (== r 0)
+	(Sg_IOError SG_IO_FILENAME_ERROR 'delete-file
+		    (Sg_GetLastErrorMessageWithErrorCode r)
+		    filename SG_UNDEF))))
 
   ;; 10 Command-line access and exit values
   (define-c-proc command-line (:optional args)

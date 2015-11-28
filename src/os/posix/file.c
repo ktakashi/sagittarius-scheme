@@ -366,7 +366,10 @@ int Sg_FileExistP(SgString *path)
 
 int Sg_DeleteFile(SgString *path)
 {
-  return remove(Sg_Utf32sToUtf8s(path));
+  if (remove(Sg_Utf32sToUtf8s(path))) {
+    return errno;
+  }
+  return 0;
 }
 
 int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
