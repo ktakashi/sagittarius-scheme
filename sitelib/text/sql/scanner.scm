@@ -53,8 +53,8 @@
 		    (set! pos new-pos)
 		    (values old-pos token)))))))))
 
-(define self     #[,()\[\].\;:+-*%^<>=/])
-(define op-chars #[~!@#^&\|`?+-*/%<>=])
+(define specials #[\"%&'*+,-:\;<=>?/^])
+(define as-char-specials #[.()\[\]_\|{}])
 
 (define (read-comment port pos)
   (let loop ((ch (get-char port)) (pos pos))
@@ -84,21 +84,6 @@
 (define (read-string port pos unicode?) (error 'read-string "not yet"))
 
 (define (scanner-dispatch ch port pos)
-  ;; for may convenience we use local case which handles EOF
-  (define-syntax case
-    (syntax-rules (else)
-      ((_ check ((value) expr ...) ...)
-       (let ((ch check))
-	 (cond ((eof-object? ch) (error 'sql-scanner "unexpected EOF"))
-	       ((char=? ch value) expr ...)
-	       ...)))
-      ((_ check ((value) expr ...) ... (else last))
-       (let ((ch check))
-	 (cond ((eof-object? ch) (error 'sql-scanner "unexpected EOF"))
-	       ((char=? ch value) expr ...)
-	       ...
-	       (else last))))))
-
   (define (next ch port pos)
     (cond ((eof-object? ch) (values pos #f))
 	  ;; handle comment first
@@ -137,7 +122,43 @@
 		((#\") (read-delimited-identifier port pos #t))
 		(else (error 'sql-scanner "invalid unicode escpape"))))
 	     (else (read-identifier ch port pos))))
-	  ;; TODO more
+	  ;; <delimiter token>
+	  ((char=? #\< ch)
+	   (case (lookahead-char port)
+	     ((#\=) (get-char port) (values pos (cons '<= '<=)))
+	     ((#\>) (get-char port) (values pos (cons '<> '<>)))
+	     (else (values pos (cons '< '<)))))
+	  ((char=? #\> ch)
+	   (case (lookahead-char port)
+	     ((#\=) (get-char port) (values pos (cons '>= '>=)))
+	     (else (values pos (cons '> '>)))))
+	  ((char=? #\: ch)
+	   ;; TODO should we make sure these are symbols?
+	   (case (lookahead-char port)
+	     ((#\:) (get-char port) (values pos (cons ':: '::)))
+	     (else  (values pos (cons ': ':)))))
+	  ((char=? #\. ch)
+	   ;; we can do |.| but i don't like vertical bar
+	   (case (lookahead-char port)
+	     ((#\.) (get-char port) (values pos (cons '.. '..)))
+	     (else  (values pos (cons 'dot ch)))))
+	  ((char=? #\- ch)
+	   ;; we can do |.| but i don't like vertical bar
+	   (case (lookahead-char port)
+	     ((#\>) (get-char port) (values pos (cons '-> '->)))
+	     (else  (values pos (cons '- '-)))))
+	  ((char=? #\| ch)
+	   ;; ^ for concatenation (||) 
+	   ;; TODO what should we use for concatenation mark?
+	   (case (lookahead-char port)
+	     ((#\|) (get-char port) (values pos (cons 'concat '^)))
+	     (else  (values pos (cons 'vertical-bar ch)))))
+	  ((char-set-contains? specials ch) 
+	   (let ((s (string->symbol (string ch))))
+	     (values pos (cons s s))))
+	  ;; ()[]{}, . and | are handled above.
+	  ((char-set-contains? as-char-specials ch) (values pos (cons ch ch)))
+	  
 	  ))
   ;; skip continuous white spaces.
   (define (skip-whitespace ch port pos)
@@ -146,7 +167,7 @@
 	  (let ((pos (case ch 
 		       ((#\newline) (update-parse-position pos ch))
 		       (else pos))))
-	    (loop (get-char ch) pos))
+	    (loop (get-char port) pos))
 	  (values ch pos))))
   (let-values (((ch pos) (skip-whitespace ch port pos)))
     (next ch port pos)))
