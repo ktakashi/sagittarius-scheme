@@ -396,9 +396,16 @@ void finalizable()
 
 SgObject Sg_VMFinalizerRun(SgVM *vm)
 {
+  /* reset here before invoking finalizers.
+     this is beause finalizer may invoke Scheme procedures
+     and when it returns it would invoke finalizer again.
+   */
+  vm->finalizerPending = FALSE;
   /* for future we want to use own gc implementation */
 #ifdef USE_BOEHM_GC
   GC_invoke_finalizers();
+  /* do it here again in case Scheme finalizer set finalizer 
+     pending flag. */
   vm->finalizerPending = FALSE;
   return SG_UNDEF;
 #else
