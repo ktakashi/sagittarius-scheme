@@ -620,7 +620,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
     (position markdown-parser-position)
     (expected markdown-parser-expected))
 
-  (define (raise-markdown-perser-error who msg position expected)
+  (define (raise-markdown-parser-error who msg position expected)
     (raise
      (condition (make-parser-error position expected)
 		(make-who-condition who)
@@ -709,7 +709,7 @@ Compatible with peg-markdown: https://github.com/jgm/peg-markdown
 	(if (parse-result-successful? result)
 	    (fixup-label (parse-result-semantic-value result))
 	    (let ((e (parse-result-error result)))
-	      (raise-markdown-perser-error 'parse-markdown
+	      (raise-markdown-parser-error 'parse-markdown
 					   (parse-error-messages e)
 					   (parse-error-position e)
 					   (parse-error-expected e)))))))
