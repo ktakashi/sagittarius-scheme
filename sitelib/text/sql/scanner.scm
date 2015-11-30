@@ -83,7 +83,7 @@
 		       (token (scanner-dispatch c ctx)))
 		  (values token old-pos old-line))))))))
 
-(define specials #[\"%&'*+,-:\;<=>?/^.()\[\]_\|{}])
+(define specials #[\"%&'*+,\-:\;<=>?/^.()\[\]_\|{}])
 
 (define (read-comment port)
   (let loop ((ch (scanner-get-char port)))
@@ -103,7 +103,28 @@
   (error 'read-national-character "not yet"))
 
 ;; normal identifier
-(define (read-identifier ch port) (error 'read-identifier "not yet"))
+(define *sql:keywords* '())
+(define (%read-identifier ch port) 
+  (let-values (((out extract) (open-string-output-port)))
+    (put-char out ch)
+    (let loop ((ch (scanner-peek-char port)))
+      (if (or (eof-object? ch)
+	      (char-whitespace? ch) 
+	      (char-set-contains? specials ch))
+	  (extract)
+	  (begin 
+	    (put-char out (scanner-get-char port)) 
+	    (loop (scanner-peek-char port)))))))
+
+(define (resolve-identifier s)
+  (let ((id (string->symbol (string-downcase s))))
+    (cond ((memq id *sql:keywords*) => 
+	   (lambda (m) (cons (car m) s)))
+	  (else (cons 'identifier s)))))
+  
+(define (read-identifier ch port) 
+  (let ((id (%read-identifier ch port)))
+    (resolve-identifier id)))
 
 ;; unicode escape can be determined by UESCAPE clause which is after
 ;; the string. Thus we can't construct unicode character here since
@@ -145,6 +166,14 @@
 	     ;; end
 	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
 	(else (put-char out ch) (loop (scanner-get-char port)))))))
+
+;; NB: this allow some Scheme number inside of SQL but
+;;     we don't validate it
+;;     if there's enough demand, then consider otherwise no issue.
+(define (read-identifier/number ch port)
+  (let ((id (%read-identifier ch port)))
+    (let ((n (string->number id)))
+      (if n (cons 'number n) (resolve-identifier id)))))
 
 (define (scanner-dispatch ch port)
   ;; TODO maybe we should make ASCII table to dispatch
@@ -218,9 +247,8 @@
 	     ((#\|) (scanner-get-char port) (cons 'concat "||"))
 	     (else  (cons ch ch))))
 	  ((char-set-contains? specials ch) (string ch))
-	  
+	  (else (read-identifier/number ch port))
 	  ))
-  (let ((ch (skip-whitespace ch port)))
-    (next ch port)))
+  (next (skip-whitespace ch port) port))
 	
 )
