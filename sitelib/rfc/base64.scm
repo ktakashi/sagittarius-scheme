@@ -406,7 +406,7 @@
       (unless (zero? buffer-size)
 	(decoder (get 0) (get 1) (get 2) (get 3)))
       (flush-output-port sink)
-      (when owner? (close-port source)))
+      (when owner? (close-port sink)))
 
     (make-custom-binary-output-port "base64-decode-output-port"
 				    write! #f #f close))
