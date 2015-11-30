@@ -33,7 +33,8 @@
     (import (rnrs) 
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
-	    (srfi :117 list-queues))
+	    (srfi :117 list-queues)
+	    (sagittarius)) ;; for integer->bytevector
 
 (define-record-type (<scanner-context> make-scanner-context scanner-context?)
   (fields (immutable input-port scanner-input)
@@ -100,8 +101,32 @@
 		 (else (put-char out #\*) (put-char out nc) (loop nc)))))
 	    (else (put-char out ch) (loop (scanner-get-char port)))))))
 
-;; b'' | B''
-(define (read-bit-string port) (error 'read-bit-string "not yet"))
+(define (read-bytevector-string port charset radix)
+  (let-values (((out extract) (open-string-output-port)))
+    (let loop ((ch (scanner-get-char port)))
+      (cond ((eof-object? ch)
+	     (error 'sql-scanner "unexpected EOF during reading bit string"))
+	    ((char-set-contains? charset ch)
+	     (put-char out ch) 
+	     (loop (scanner-get-char port)))
+	    ((char=? #\' ch) 
+	     (cons 'bit-string
+		   (integer->bytevector (string->number (extract) radix))))
+	    (else
+	     (error 'sql-scanner "unexpected character in bit string" ch))))))
+
+;; 'b' and 'x' prefix return bytevector.
+;; b'bits' | B'bits'
+;; bits= 0 | 1
+(define bit-set (string->char-set "01"))
+(define (read-bit-string port) (read-bytevector-string port bit-set 2))
+
+;; x'hexit' | x'hexit'
+;; hexit = #[0-9A-Fa-f]
+;; NB: must be x'{hexit hexit} ...' but we are lazy.
+;; NB2: is this hex string literal or binary string literal?
+(define hex-set (string->char-set "0123456789abcdefABCDEF"))
+(define (read-hex-string port) (read-bytevector-string port hex-set 16))
 
 ;; n'' | N''
 (define (read-national-character port) 
@@ -212,10 +237,15 @@
 	     ((#\-)
 	      (cons 'comment (get-line (scanner-input port))))
 	     (else (cons ch ch))))
-	  ;; bit string?
+	  ;; bit string
 	  ((char-ci=? #\b ch)
 	   (case (scanner-peek-char port)
 	     ((#\') (scanner-get-char port) (read-bit-string port))
+	     (else (read-identifier ch port))))
+	  ;; hex string
+	  ((char-ci=? #\x ch)
+	   (case (scanner-peek-char port)
+	     ((#\') (scanner-get-char port) (read-hex-string port))
 	     (else (read-identifier ch port))))
 	  ;; National character
 	  ((char-ci=? #\n ch)
