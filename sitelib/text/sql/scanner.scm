@@ -28,13 +28,11 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-#!read-macro=char-set
 (library (text sql scanner)
     (export make-sql-scanner)
     (import (rnrs) 
 	    (srfi :14 char-sets)
-	    (srfi :39 parameters)
-	    (sagittarius))
+	    (srfi :39 parameters))
 
 (define-record-type (<scanner-context> make-scanner-context scanner-context?)
   (fields (immutable input-port scanner-input)
@@ -83,7 +81,7 @@
 		       (token (scanner-dispatch c ctx)))
 		  (values token old-pos old-line))))))))
 
-(define specials #[\"%&'*+,\-:\;<=>?/^.()\[\]_\|{}])
+(define specials (string->char-set "\"%&'*+,-:;<=>?/^.()[]_|{}]"))
 
 (define (read-comment port)
   (let loop ((ch (scanner-get-char port)))
