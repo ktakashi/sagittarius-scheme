@@ -178,9 +178,23 @@
 ;;     we don't validate it
 ;;     if there's enough demand, then consider otherwise no issue.
 (define (read-identifier/number ch port)
+  ;; converts 1K -> 1024
+  ;; this should only be happen in large object length or
+  ;; large object length token but we convert wherever.
+  ;; NB: this feature seems *not* widely supported
+  (define (check-multiplier id)
+    (case (string-ref id (- (string-length id) 1))
+      ((#\K #\k)
+       (values (substring id 0 (- (string-length id) 1)) 1024))
+      ((#\M #\m)
+       (values (substring id 0 (- (string-length id) 1)) (* 1024 1024)))
+      ((#\G #\g)
+       (values (substring id 0 (- (string-length id) 1)) (* 1024 1024 1024)))
+      (else (values id 1))))
   (let ((id (%read-identifier ch port)))
-    (let ((n (string->number id)))
-      (if n (cons 'number n) (resolve-identifier id)))))
+    (let-values (((maybe-number multiple) (check-multiplier id)))
+      (let ((n (string->number maybe-number)))
+	(if n (cons 'number (* n multiple)) (resolve-identifier id))))))
 
 (define (scanner-dispatch ch port)
   ;; TODO maybe we should make ASCII table to dispatch
