@@ -32,7 +32,7 @@
     (export make-sql-scanner)
     (import (rnrs) 
 	    (srfi :14 char-sets)
-	    (srfi :39 parameters)
+	    ;; (srfi :39 parameters)
 	    (srfi :117 list-queues)
 	    (sagittarius)) ;; for integer->bytevector
 
@@ -43,7 +43,7 @@
 	  (mutable   line       scanner-line     scanner-line-set!))
   (protocol (lambda (p)
 	      (lambda (in)
-		(p in (list-queue) 0 0)))))
+		(p in (list-queue) 0 1)))))
 
 (define (scanner-get-char ctx) 
   (define unget-buffer (scanner-unget-buffer ctx))
@@ -58,7 +58,7 @@
 	   (scanner-position-set! ctx (+ (scanner-position ctx) 1))))
     c))
 (define (scanner-peek-char ctx) (lookahead-char (scanner-input ctx)))
-;; TODO implement it
+
 (define (scanner-unget-char ctx ch)
   (let ((unget-buffer (scanner-unget-buffer ctx)))
     (scanner-position-set! ctx (- (scanner-position ctx) 1))
@@ -71,7 +71,7 @@
 	(loop (scanner-get-char port))
 	ch)))
 
-(define (make-sql-scanner p)
+(define (make-sql-scanner p :optional (ignore-comment #t))
   (let ((eof #f)
 	(ctx (make-scanner-context p)))
     (lambda ()
@@ -83,10 +83,13 @@
 		  (set! eof #t)
 		  (values #f (scanner-position ctx) (scanner-line ctx)))
 		;; TODO this doesn't reflect position of after comment
-		(let* ((old-pos (scanner-position ctx))
-		       (old-line (scanner-line ctx))
-		       (token (scanner-dispatch c ctx)))
-		  (values token old-pos old-line))))))))
+		(let loop ((c c))
+		  (let* ((old-pos (scanner-position ctx))
+			 (old-line (scanner-line ctx))
+			 (token (scanner-dispatch c ctx)))
+		    (if (and ignore-comment (eq? (car token) 'comment))
+			(loop (skip-whitespace (scanner-get-char ctx) ctx))
+			(values token old-pos old-line))))))))))
 
 (define specials (string->char-set "\"%&'*+,-:;<=>?/^.()[]_|{}]"))
 
@@ -180,8 +183,8 @@
 (define (resolve-identifier s)
   (let ((id (string->symbol (string-downcase s))))
     (cond ((memq id *sql:keywords*) => 
-	   (lambda (m) (cons (car m) s)))
-	  (else (cons 'identifier s)))))
+	   (lambda (m) (cons (car m) id)))
+	  (else (cons 'identifier id)))))
   
 (define (read-identifier ch port) 
   (let ((id (%read-identifier ch port)))
@@ -210,8 +213,9 @@
 	      (loop (scanner-get-char port)))
 	     ;; end
 	     (else 
-	      (let ((r (extract))) 
-		(cons 'identifier (if unicode? (cons 'unicode r) r)))))))
+	      (let ((r (list '! (extract))))
+		(cons 'identifier 
+		      (if unicode? (list 'unicode r) r)))))))
 	(else (put-char out ch) (loop (scanner-get-char port)))))))
 ;; read string
 (define (read-string port unicode?)
@@ -227,7 +231,8 @@
 	      (put-char out (scanner-get-char port))
 	      (loop (scanner-get-char port)))
 	     ;; end
-	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
+	     (else (let ((r (extract))) 
+		     (cons 'string (if unicode? (list 'unicode r) r)))))))
 	(else (put-char out ch) (loop (scanner-get-char port)))))))
 
 ;; NB: this allow some Scheme number inside of SQL but
