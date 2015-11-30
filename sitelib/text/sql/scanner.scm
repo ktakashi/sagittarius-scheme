@@ -32,7 +32,8 @@
     (export make-sql-scanner)
     (import (rnrs) 
 	    (srfi :14 char-sets)
-	    (srfi :39 parameters))
+	    (srfi :39 parameters)
+	    (srfi :117 list-queues))
 
 (define-record-type (<scanner-context> make-scanner-context scanner-context?)
   (fields (immutable input-port scanner-input)
@@ -41,12 +42,14 @@
 	  (mutable   line       scanner-line     scanner-line-set!))
   (protocol (lambda (p)
 	      (lambda (in)
-		(p in #f ;; TODO list queue
-		   0 0)))))
+		(p in (list-queue) 0 0)))))
 
 (define (scanner-get-char ctx) 
+  (define unget-buffer (scanner-unget-buffer ctx))
   ;; maybe this is a bit too much
-  (let ((c (get-char (scanner-input ctx))))
+  (let ((c (if (list-queue-empty? unget-buffer) 
+	       (get-char (scanner-input ctx))
+	       (list-queue-remove-front! unget-buffer))))
     (cond ((eqv? c #\newline)
 	   (scanner-line-set! ctx (+ (scanner-line ctx) 1))
 	   (scanner-position-set! ctx 0))
@@ -55,7 +58,10 @@
     c))
 (define (scanner-peek-char ctx) (lookahead-char (scanner-input ctx)))
 ;; TODO implement it
-(define (scanner-unget-char ctx ch) #f)
+(define (scanner-unget-char ctx ch)
+  (let ((unget-buffer (scanner-unget-buffer ctx)))
+    (scanner-position-set! ctx (- (scanner-position ctx) 1))
+    (list-queue-add-front! unget-buffer ch)))
 
 ;; skip continuous white spaces.
 (define (skip-whitespace ch port)
@@ -84,14 +90,15 @@
 (define specials (string->char-set "\"%&'*+,-:;<=>?/^.()[]_|{}]"))
 
 (define (read-comment port)
-  (let loop ((ch (scanner-get-char port)))
-    (cond ((eof-object? ch) (error 'sql-scanner "unexpected EOF"))
-	  ((char=? #\* ch)
-	   (let ((nc (scanner-get-char port)))
-	     (case nc
-	       ((#\/) (scanner-dispatch (scanner-get-char port) port))
-	       (else (loop nc)))))
-	  (else (loop (scanner-get-char port))))))
+  (let-values (((out extract) (open-string-output-port)))
+    (let loop ((ch (scanner-get-char port)))
+      (cond ((eof-object? ch) (error 'sql-scanner "unexpected EOF"))
+	    ((char=? #\* ch)
+	     (let ((nc (scanner-get-char port)))
+	       (case nc
+		 ((#\/) (cons 'comment (extract)))
+		 (else (put-char out #\*) (put-char out nc) (loop nc)))))
+	    (else (put-char out ch) (loop (scanner-get-char port)))))))
 
 ;; b'' | B''
 (define (read-bit-string port) (error 'read-bit-string "not yet"))
@@ -146,7 +153,9 @@
 	      (put-char out (scanner-get-char port))
 	      (loop (scanner-get-char port)))
 	     ;; end
-	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
+	     (else 
+	      (let ((r (extract))) 
+		(cons 'identifier (if unicode? (cons 'unicode r) r)))))))
 	(else (put-char out ch) (loop (scanner-get-char port)))))))
 ;; read string
 (define (read-string port unicode?)
@@ -186,9 +195,8 @@
 	     (else (cons ch ch))))
 	  ((char=? #\- ch)
 	   (case (scanner-peek-char port)
-	     ((#\-) 
-	      (get-line (scanner-input port))
-	      (scanner-dispatch (scanner-get-char port) port))
+	     ((#\-)
+	      (cons 'comment (get-line (scanner-input port))))
 	     (else (cons ch ch))))
 	  ;; bit string?
 	  ((char-ci=? #\b ch)
@@ -207,13 +215,16 @@
 	  ((char-ci=? #\u ch)
 	   (case (scanner-peek-char port)
 	     ((#\&) (scanner-get-char port)
-	      (let ((nc (scanner-get-char port)))
+	      (let ((nc (scanner-peek-char port)))
 		(case nc
-		  ((#\') (read-string port #t))
-		  ((#\") (read-delimited-identifier port #t))
+		  ((#\') (scanner-get-char port) (read-string port #t))
+		  ((#\")
+		   (scanner-get-char port) 
+		   (read-delimited-identifier port #t))
 		  (else 
-		   (scanner-unget-char port nc)
-		   (error 'sql-scanner "invalid unicode escpape")))))
+		   (scanner-unget-char port #\&)
+		   ;; we know this is an identifier so short cut
+		   (cons 'identifier (string ch))))))
 	     (else (read-identifier ch port))))
 	  ;; <delimiter token>
 	  ;; returns token value as string
