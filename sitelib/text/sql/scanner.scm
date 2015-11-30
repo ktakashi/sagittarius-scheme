@@ -34,43 +34,54 @@
     (import (rnrs) 
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
-	    (packrat)
 	    (sagittarius))
 
 (define-record-type (<scanner-context> make-scanner-context scanner-context?)
   (fields (immutable input-port scanner-input)
 	  (immutable buffer     scanner-unget-buffer)
-	  (mutable   position   scanner-position scanner-position-set!))
+	  (mutable   position   scanner-position scanner-position-set!)
+	  (mutable   line       scanner-line     scanner-line-set!))
   (protocol (lambda (p)
 	      (lambda (in)
-		(p in 
-		   #f ;; TODO list queue
-		   (top-parse-position (cond ((car (port-info in)))
-					     (else "<?>"))))))))
+		(p in #f ;; TODO list queue
+		   0 0)))))
 
-(define (scanner-get-char ctx) (get-char (scanner-input ctx)))
+(define (scanner-get-char ctx) 
+  ;; maybe this is a bit too much
+  (let ((c (get-char (scanner-input ctx))))
+    (cond ((eqv? c #\newline)
+	   (scanner-line-set! ctx (+ (scanner-line ctx) 1))
+	   (scanner-position-set! ctx 0))
+	  (else
+	   (scanner-position-set! ctx (+ (scanner-position ctx) 1))))
+    c))
 (define (scanner-peek-char ctx) (lookahead-char (scanner-input ctx)))
 ;; TODO implement it
 (define (scanner-unget-char ctx ch) #f)
-(define (update-scanner-position! ctx)
-  (let ((pos (scanner-position ctx)))
-    (scanner-position-set! ctx (update-parse-position pos #\newline))))
+
+;; skip continuous white spaces.
+(define (skip-whitespace ch port)
+  (let loop ((ch ch))
+    (if (and (char? ch) (char-whitespace? ch))
+	(loop (scanner-get-char port))
+	ch)))
 
 (define (make-sql-scanner p)
   (let ((eof #f)
 	(ctx (make-scanner-context p)))
     (lambda ()
       (if eof
-	  (values (scanner-position ctx) #f)
-	  (let ((c (scanner-get-char ctx)))
+	  (values #f (scanner-position ctx) (scanner-line ctx))
+	  (let ((c (skip-whitespace (scanner-get-char ctx) ctx)))
 	    (if (eof-object? c)
 		(begin
 		  (set! eof #t)
-		  (values (scanner-position ctx) #f))
+		  (values #f (scanner-position ctx) (scanner-line ctx)))
 		;; TODO this doesn't reflect position of after comment
 		(let* ((old-pos (scanner-position ctx))
+		       (old-line (scanner-line ctx))
 		       (token (scanner-dispatch c ctx)))
-		  (values old-pos token))))))))
+		  (values token old-pos old-line))))))))
 
 (define specials #[\"%&'*+,-:\;<=>?/^.()\[\]_\|{}])
 
@@ -82,9 +93,6 @@
 	     (case nc
 	       ((#\/) (scanner-dispatch (scanner-get-char port) port))
 	       (else (loop nc)))))
-	  ((char=? #\newline ch)
-	   (update-scanner-position! port)
-	   (loop (scanner-get-char port)))
 	  (else (loop (scanner-get-char port))))))
 
 ;; b'' | B''
@@ -121,7 +129,7 @@
 	     ;; end
 	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
 	(else (put-char out ch) (loop (scanner-get-char port)))))))
-
+;; read string
 (define (read-string port unicode?)
   (let-values (((out extract) (open-string-output-port)))
     (let loop ((ch (scanner-get-char port)))
@@ -153,7 +161,6 @@
 	   (case (scanner-peek-char port)
 	     ((#\-) 
 	      (get-line (scanner-input port))
-	      (update-scanner-position! port)
 	      (scanner-dispatch (scanner-get-char port) port))
 	     (else (cons ch ch))))
 	  ;; bit string?
@@ -213,16 +220,6 @@
 	  ((char-set-contains? specials ch) (string ch))
 	  
 	  ))
-  ;; skip continuous white spaces.
-  (define (skip-whitespace ch port)
-    (let loop ((ch ch))
-      (if (and (char? ch) (char-whitespace? ch))
-	  (case ch 
-	    ((#\newline) 
-	     (update-scanner-position! port)
-	     (loop (scanner-get-char port)))
-	    (else (loop (scanner-get-char port))))
-	  ch)))
   (let ((ch (skip-whitespace ch port)))
     (next ch port)))
 	
