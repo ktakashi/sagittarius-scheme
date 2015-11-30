@@ -32,144 +32,198 @@
 (library (text sql scanner)
     (export make-sql-scanner)
     (import (rnrs) 
-	    (srfi :14)
+	    (srfi :14 char-sets)
+	    (srfi :39 parameters)
 	    (packrat)
 	    (sagittarius))
 
+(define-record-type (<scanner-context> make-scanner-context scanner-context?)
+  (fields (immutable input-port scanner-input)
+	  (immutable buffer     scanner-unget-buffer)
+	  (mutable   position   scanner-position scanner-position-set!))
+  (protocol (lambda (p)
+	      (lambda (in)
+		(p in 
+		   #f ;; TODO list queue
+		   (top-parse-position (cond ((car (port-info in)))
+					     (else "<?>"))))))))
+
+(define (scanner-get-char ctx) (get-char (scanner-input ctx)))
+(define (scanner-peek-char ctx) (lookahead-char (scanner-input ctx)))
+;; TODO implement it
+(define (scanner-unget-char ctx ch) #f)
+(define (update-scanner-position! ctx)
+  (let ((pos (scanner-position ctx)))
+    (scanner-position-set! ctx (update-parse-position pos #\newline))))
+
 (define (make-sql-scanner p)
   (let ((eof #f)
-	(pos (top-parse-position (cond ((car (port-info p)))
-				       (else "<?>")))))
+	(ctx (make-scanner-context p)))
     (lambda ()
       (if eof
-	  (values pos #f)
-	  (let ((c (get-char p)))
+	  (values (scanner-position ctx) #f)
+	  (let ((c (scanner-get-char ctx)))
 	    (if (eof-object? c)
 		(begin
 		  (set! eof #t)
-		  (values pos #f))
-		(let ((old-pos pos))
-		  (let-values (((new-pos token) (scanner-dispatch c p pos)))
-		    (set! pos new-pos)
-		    (values old-pos token)))))))))
+		  (values (scanner-position ctx) #f))
+		;; TODO this doesn't reflect position of after comment
+		(let* ((old-pos (scanner-position ctx))
+		       (token (scanner-dispatch c ctx)))
+		  (values old-pos token))))))))
 
-(define specials #[\"%&'*+,-:\;<=>?/^])
-(define as-char-specials #[.()\[\]_\|{}])
+(define specials #[\"%&'*+,-:\;<=>?/^.()\[\]_\|{}])
 
-(define (read-comment port pos)
-  (let loop ((ch (get-char port)) (pos pos))
+(define (read-comment port)
+  (let loop ((ch (scanner-get-char port)))
     (cond ((eof-object? ch) (error 'sql-scanner "unexpected EOF"))
 	  ((char=? #\* ch)
-	   (let ((nc (get-char port)))
+	   (let ((nc (scanner-get-char port)))
 	     (case nc
-	       ((#\/) (scanner-dispatch (get-char port) port pos))
-	       (else (loop nc pos)))))
+	       ((#\/) (scanner-dispatch (scanner-get-char port) port))
+	       (else (loop nc)))))
 	  ((char=? #\newline ch)
-	   (loop (get-char port) (update-parse-position pos #\newline)))
-	  (else (loop (get-char port) pos)))))
+	   (update-scanner-position! port)
+	   (loop (scanner-get-char port)))
+	  (else (loop (scanner-get-char port))))))
 
 ;; b'' | B''
-(define (read-bit-string port pos) (error 'read-bit-string "not yet"))
+(define (read-bit-string port) (error 'read-bit-string "not yet"))
 
 ;; n'' | N''
-(define (read-national-character port pos) 
+(define (read-national-character port) 
   (error 'read-national-character "not yet"))
 
 ;; normal identifier
-(define (read-identifier ch port pos) (error 'read-identifier "not yet"))
+(define (read-identifier ch port) (error 'read-identifier "not yet"))
+
+;; unicode escape can be determined by UESCAPE clause which is after
+;; the string. Thus we can't construct unicode character here since
+;; we don't know which character would be unicode escape character
+;; so if unicode? is #t then we just return (unicode "string")
+;; and let parser handle
+
 ;; delimited identifier
-(define (read-delimited-identifier port pos unicode?)
-  (error 'read-delimited-identifier "not yet"))
+(define (read-delimited-identifier port unicode?)
+  ;; "" is escape
+  (let-values (((out extract) (open-string-output-port)))
+    (let loop ((ch (scanner-get-char port)))
+      (when (eof-object? ch)
+	(error 'sql-scanner
+	       "unexpected EOF during reading delimited identifier"))
+      (case ch
+	((#\")
+	 (let ((nc (scanner-peek-char port)))
+	   (case nc
+	     ((#\") 
+	      (put-char out (scanner-get-char port))
+	      (loop (scanner-get-char port)))
+	     ;; end
+	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
+	(else (put-char out ch) (loop (scanner-get-char port)))))))
 
-(define (read-string port pos unicode?) (error 'read-string "not yet"))
+(define (read-string port unicode?)
+  (let-values (((out extract) (open-string-output-port)))
+    (let loop ((ch (scanner-get-char port)))
+      (when (eof-object? ch)
+	(error 'sql-scanner "unexpected EOF during reading string"))
+      (case ch
+	((#\')
+	 (let ((nc (scanner-peek-char port)))
+	   (case nc
+	     ((#\') 
+	      (put-char out (scanner-get-char port))
+	      (loop (scanner-get-char port)))
+	     ;; end
+	     (else (let ((r (extract))) (if unicode? (list 'unicode r) r))))))
+	(else (put-char out ch) (loop (scanner-get-char port)))))))
 
-(define (scanner-dispatch ch port pos)
-  (define (next ch port pos)
-    (cond ((eof-object? ch) (values pos #f))
+(define (scanner-dispatch ch port)
+  ;; TODO maybe we should make ASCII table to dispatch
+  ;;      the process for performance.
+  (define (next ch port)
+    (cond ((eof-object? ch) #f)
 	  ;; handle comment first
 	  ;; NB: / and - are self standing chars
 	  ((char=? #\/ ch)
-	   (case (lookahead-char port)
-	     ((#\*) (get-char port) (read-comment port pos))
-	     (else (values pos (cons ch ch)))))
+	   (case (scanner-peek-char port)
+	     ((#\*) (scanner-get-char port) (read-comment port))
+	     (else (cons ch ch))))
 	  ((char=? #\- ch)
-	   (case (lookahead-char port)
+	   (case (scanner-peek-char port)
 	     ((#\-) 
-	      (get-line port) 
-	      (scanner-dispatch (get-char port) port 
-				(update-parse-position pos #\newline)))
-	     (else (values pos (cons ch ch)))))
+	      (get-line (scanner-input port))
+	      (update-scanner-position! port)
+	      (scanner-dispatch (scanner-get-char port) port))
+	     (else (cons ch ch))))
 	  ;; bit string?
 	  ((char-ci=? #\b ch)
-	   (case (lookahead-char port)
-	     ((#\') (get-char port) (read-bit-string port pos))
-	     (else (read-identifier ch port pos))))
+	   (case (scanner-peek-char port)
+	     ((#\') (scanner-get-char port) (read-bit-string port))
+	     (else (read-identifier ch port))))
 	  ;; National character
 	  ((char-ci=? #\n ch)
-	   (case (lookahead-char port)
-	     ((#\') (get-char port) (read-national-character port pos))
-	     (else (read-identifier ch port pos))))
+	   (case (scanner-peek-char port)
+	     ((#\') (scanner-get-char port) (read-national-character port))
+	     (else (read-identifier ch port))))
 	  ;; quote
-	  ((char=? #\' ch) (read-string port pos #f))
+	  ((char=? #\' ch) (read-string port #f))
+	  ((char=? #\" ch) (read-delimited-identifier port #f))
 	  ;; unicode escape
 	  ((char-ci=? #\u ch)
-	   ;; FIXME this doesn't allow U&foo
-	   ;; not sure if that's actually allowed by SQL though
-	   (case (lookahead-char port)
-	     ((#\&) (get-char port)
-	      (case (get-char port)
-		((#\') (read-string port pos #t))
-		((#\") (read-delimited-identifier port pos #t))
-		(else (error 'sql-scanner "invalid unicode escpape"))))
-	     (else (read-identifier ch port pos))))
+	   (case (scanner-peek-char port)
+	     ((#\&) (scanner-get-char port)
+	      (let ((nc (scanner-get-char port)))
+		(case nc
+		  ((#\') (read-string port #t))
+		  ((#\") (read-delimited-identifier port #t))
+		  (else 
+		   (scanner-unget-char port nc)
+		   (error 'sql-scanner "invalid unicode escpape")))))
+	     (else (read-identifier ch port))))
 	  ;; <delimiter token>
+	  ;; returns token value as string
+	  ;; token kind either symbol (more than one letter) or character.
 	  ((char=? #\< ch)
-	   (case (lookahead-char port)
-	     ((#\=) (get-char port) (values pos (cons '<= '<=)))
-	     ((#\>) (get-char port) (values pos (cons '<> '<>)))
-	     (else (values pos (cons '< '<)))))
+	   (case (scanner-peek-char port)
+	     ((#\=) (scanner-get-char port) (cons '<= "<="))
+	     ((#\>) (scanner-get-char port) (cons '<> "<>"))
+	     (else  (cons ch "<"))))
 	  ((char=? #\> ch)
-	   (case (lookahead-char port)
-	     ((#\=) (get-char port) (values pos (cons '>= '>=)))
-	     (else (values pos (cons '> '>)))))
+	   (case (scanner-peek-char port)
+	     ((#\=) (scanner-get-char port) (cons '>= ">="))
+	     (else  (cons ch ">"))))
 	  ((char=? #\: ch)
-	   ;; TODO should we make sure these are symbols?
-	   (case (lookahead-char port)
-	     ((#\:) (get-char port) (values pos (cons ':: '::)))
-	     (else  (values pos (cons ': ':)))))
+	   ;; TODO should we make sure :: is symbols?
+	   (case (scanner-peek-char port)
+	     ((#\:) (scanner-get-char port) (cons ':: "::"))
+	     (else  (cons ch ":"))))
 	  ((char=? #\. ch)
-	   ;; we can do |.| but i don't like vertical bar
-	   (case (lookahead-char port)
-	     ((#\.) (get-char port) (values pos (cons '.. '..)))
-	     (else  (values pos (cons 'dot ch)))))
+	   (case (scanner-peek-char port)
+	     ((#\.) (scanner-get-char port) (cons '.. ".."))
+	     (else  (cons ch (string ch)))))
 	  ((char=? #\- ch)
-	   ;; we can do |.| but i don't like vertical bar
-	   (case (lookahead-char port)
-	     ((#\>) (get-char port) (values pos (cons '-> '->)))
-	     (else  (values pos (cons '- '-)))))
+	   (case (scanner-peek-char port)
+	     ((#\>) (scanner-get-char port) (cons '-> "->"))
+	     (else  (cons ch "-"))))
 	  ((char=? #\| ch)
-	   ;; ^ for concatenation (||) 
-	   ;; TODO what should we use for concatenation mark?
-	   (case (lookahead-char port)
-	     ((#\|) (get-char port) (values pos (cons 'concat '^)))
-	     (else  (values pos (cons 'vertical-bar ch)))))
-	  ((char-set-contains? specials ch) 
-	   (let ((s (string->symbol (string ch))))
-	     (values pos (cons s s))))
-	  ;; ()[]{}, . and | are handled above.
-	  ((char-set-contains? as-char-specials ch) (values pos (cons ch ch)))
+	   (case (scanner-peek-char port)
+	     ((#\|) (scanner-get-char port) (cons 'concat "||"))
+	     (else  (cons ch ch))))
+	  ((char-set-contains? specials ch) (string ch))
 	  
 	  ))
   ;; skip continuous white spaces.
-  (define (skip-whitespace ch port pos)
-    (let loop ((ch ch) (pos pos))
+  (define (skip-whitespace ch port)
+    (let loop ((ch ch))
       (if (and (char? ch) (char-whitespace? ch))
-	  (let ((pos (case ch 
-		       ((#\newline) (update-parse-position pos ch))
-		       (else pos))))
-	    (loop (get-char port) pos))
-	  (values ch pos))))
-  (let-values (((ch pos) (skip-whitespace ch port pos)))
-    (next ch port pos)))
+	  (case ch 
+	    ((#\newline) 
+	     (update-scanner-position! port)
+	     (loop (scanner-get-char port)))
+	    (else (loop (scanner-get-char port))))
+	  ch)))
+  (let ((ch (skip-whitespace ch port)))
+    (next ch port)))
 	
 )
