@@ -54,40 +54,63 @@
 ;; contain. so those qualified identifiers need to be
 ;; a list with prefix value (can't concatenate)
 ;;
-;; for now use '@ to represents qualifier
-;; e.g. 'foo.bar' = (@ foo bar)
-;; TODO should we use other? (of cource '.' would be the best if we can)
-;;      or should we make like (foo @ bar)?
+;; use '~ to represents qualifier because it seems slot access
+;; e.g. 'foo.bar' = (~ foo bar)
+;; 
 (define (concate-identifier base follow)
-  (if (eq? (car follow) '@)
-      `(@ ,base ,(cdr follow))
-      `(@ ,base ,follow)))
+  (if (eq? (car follow) '~)
+      `(~ ,base ,(cdr follow))
+      `(~ ,base ,follow)))
+
+(define (construct-table name as&cols)
+  (if as&cols
+      (let ((as (car as&cols))
+	    (cols (cadr as&cols)))
+	(if (null? cols)
+	    `(as ,name ,as)
+	    ;; `from` foo f(a b) -> (as foo (f a b))
+	    `(as ,name (,as ,@cols))))
+      name))
+
+;; I think '^' is common enough for string concatenation.
+;; we can't use '||'
+(define (concate-character f c)
+  (if (pair? c) 
+      `(^ ,f ,@(cdr c))
+      `(^ ,f ,c)))
 
 (define sql-parser
   (packrat-parser
    (begin
      stmt)
-   (stmt ((s <- select-stmt) s)
+   (stmt ((s <- query-specification) s)
 	 ;; TODO more
 	 )
-   (select-stmt (('select c <- select-list t <- table-expression) 
-		 (cons* 'select c t))
-		;; select (distinct|all) column from table
-		(('select q <- set-qualifier 
-			  c <- select-list 
-			  t <- table-expression) 
-		 (cons* 'select q c t))
-		;; extension: select 1+1; or so
-		(('select c <- select-list) (list 'select c)))
+   ;; 7.12 query specification
+   (query-specification (('select c <- select-list t <- table-expression) 
+			 (cons* 'select c t))
+			;; select (distinct|all) column from table
+			(('select q <- set-qualifier 
+				  c <- select-list 
+				  t <- table-expression) 
+			 (cons* 'select q c t))
+			;; extension: select 1+1; or so
+			(('select c <- select-list) (list 'select c)))
    (select-list (('#\*) '*)
-		((s <- select-sublist s* <- select-sublist*) (cons s s*)))
-   (select-sublist ((d <- derived-column) d)
-		   ((q <- qualified-asterisk) q))
+		((s <- select-sublist) s))
+   (select-sublist ((d <- derived-column s* <- select-sublist*) (cons d s*))
+		   ((q <- qualified-asterisk s* <- select-sublist*) 
+		    (cons q s*)))
    (select-sublist* (('#\, s <- select-sublist) s)
 		    (() '()))
    ;; TODO 'select foo.*' or so
    (qualified-asterisk ((c <- identifier-chain '#\. '#\*) 
 			(concate-identifier c '(*))))
+
+   (derived-column ((v <- value-expression) v)
+		   ((v <- value-expression 'as c <- column-name) 
+		    (list 'as v c)))
+   ;; qualified-identifier
    (identifier-chain  ((i <- identifier i* <- identifier-chain*)
 		       (if (null? i*)
 			   i
@@ -95,21 +118,14 @@
    (identifier-chain* (('#\. i <- identifier-chain) i)
 		      (() '()))
 
-   (derived-column ((v <- value-expression) v)
-		   ((v <- value-expression 'as c <- column-name) 
-		    (list 'as v c)))
    (column-name ((i <- identifier) i))
-   ;; value
-   (value-expression ((n <- 'number) n)
-		     ((s <- 'string) s) ;; TODO ESCAPE+unicode
-		     ((b <- 'bit-string) b)
-		     ;; TODO more
-		     ((c <- column-reference) c))
 
    (set-qualifier (('distinct) 'distinct)
 		  (('all) 'all))
 
-   (column-reference ((i <- identifier-chain) i))
+   (column-reference ((i <- identifier-chain) i)
+		     (('module '#\. i <- identifer '#\. m <- column-name)
+		      `(module ,i ,m)))
 
    ;; table
    (table-expression ((f <- from-clause 
@@ -117,39 +133,331 @@
 		       g <- group-by-clause
 		       h <- having-clause
 		       wd <- window-clause)
-		      `(,f ,w ,g ,h wd)))
-   (from-clause (('from t <- table-reference-list) (list 'from t)))
+		      `(,f ,@w ,@g ,@h ,@wd)))
+   (from-clause (('from t <- table-reference-list) (cons 'from t)))
+
    (table-reference-list ((t <- table-reference t* <- table-reference-list*)
-			  (cons t t*))
-			 )
-   (table-reference-list* (('#\, t <- table-reference) t)
+			  (cons t t*)))
+   (table-reference-list* (('#\, t <- table-reference-list) t)
 			  (() '()))
    ;; TODO sample clause
-   (table-reference ((t <- table-primary-or-join) t))
+   (table-reference #;((t <- table-primary-or-join s <- sample-clause) 
+		     (cons t s))
+		    ((t <- table-primary-or-join) t))
    (table-primary-or-join ((t <- table-primary) t)
 			  #;((j <- join-clause) j))
    ;; TODO properly done
-   (table-primary ((t <- identifier) t))
+   ;; helper for AS alias(col ...)
+   (table-as-expr (('as n <- correlation-name 
+		    '#\( l <- derived-column-list '#\))
+		   (list n l))
+		  (('as n <- correlation-name) (list n '()))
+		  ((n <- correlation-name '#\( l <- derived-column-list '#\))
+		   (list n l))
+		  ((n <- correlation-name) (list n '()))
+		  )
+   (table-as-expr* ((as <- table-as-expr) as)
+		   (() #f))
+   (correlation-name ((n <- identifier) n))
+   
+   (table-primary ((t <- tables as <- table-as-expr*) 
+		   (construct-table t as))
+		  ((t <- alias-tables as <- table-as-expr)
+		   (construct-table t as))
+		  (('#\( t <- joined-table '#\)) t))
+   (tables ((t <- table-or-query-name) t)
+	   ((t <- only-spec) t))
+   (alias-tables ((t <- derived-table) t)
+		 ((t <- lateral-derived-table) t)
+		 ((t <- collection-derived-table) t)
+		 ((t <- table-function-derived-table) t))
+   
+   (only-spec (('only '#\( t <- table-or-query-name '#\)) `(only ,t)))
+   (lateral-derived-table (('lateral t <- table-subquery) `(lateral ,t)))
+   (collection-derived-table 
+    (('unnest '#\( v <- collection-value-expression '#\) 'with 'ordinality)
+     ;; TODO what's this?
+     `(unnest/ordinality ,t))
+    (('unnest '#\( v <- collection-value-expression '#\)) `(unnest ,t)))
+   (table-function-derived-table 
+    (('table '#\( v <- collection-value-expression '#\)) `(table ,t)))
+   (derived-table ((d <- table-subquery) d))
 
+   (table-or-query-name ((t <- table-name) t)
+			((q <- query-name) q))
+   (derived-column-list ((l <- column-name-list) l))
+   (column-name-list ((c <- column-name c* <- column-name-list*) (cons c c*)))
+   (column-name-list* (('#\, c <- column-name-list) c)
+		      (() '()))
+   (table-name ((l <- local-or-schema-qualified-name) l))
+   (query-name ((i <- identifier) l))
+   
    ;; where
-   (where-clause (('where s <- search-condition) (cons w s)))
+   (where-clause (('where s <- search-condition) (list (cons w s)))
+		 (() '()))
 
    (search-condition ((b <- boolean-value-expression) b))
-   ;; FIXME
-   (boolean-value-expression (() '()))
+
    (group-by-clause (('group 'by g* group-by-element-list)
-		     (list 'group-by g*))
+		     (list (list 'group-by g*)))
 		    (('group 'by s <- set-qualifier g* <- group-by-element-list)
-		     (list 'group-by s g*)))
+		     (list (list 'group-by s g*)))
+		    (() '()))
    ;; TODO 
    (group-by-element-list (() '()))
    ;; having
-   (having-clause (('having s <- search-condition) (cons 'having s)))
+   (having-clause (('having s <- search-condition) (list (cons 'having s)))
+		  (() '()))
    ;; window
-   (window-clause (('windows w* <- window-definition-list) (cons 'windows w*)))
+   (window-clause (('windows w* <- window-definition-list) 
+		   (list (cons 'windows w*)))
+		  (() '()))
    ;; TODO
    (window-definition-list (() '()))
 
+   ;; 6.25 value expression
+   ;; value
+   (value-expression ((c <- common-value-expression) c)
+		     ((b <- boolean-value-expression) b)
+		     ((r <- row-value-expression) r))
+
+   (common-value-expression ((n <- numeric-value-expression) n)
+			    ((s <- string-value-expression)  s)
+			    ;;((d <- datetime-value-expression) d)
+			    ;;((i <- interval-value-expression) i)
+			    ;;((u <- user-define-type-value-expression) u)
+			    ;;((r <- reference-value-expression) r)
+			    ((v <- value-expression-primary) v)
+			    #;((c <- collection-value-expression) c))
+   ;; these 2 are the same so we don't need it
+   ;; (user-define-type-value-expression ((v <- value-expression-primary) v)
+   ;; (reference-value-expression ((v <- value-expression-primary) v)
+   (collection-value-expression ((a <- array-value-expression) a)
+				((m <- multiset-value-expression) m))
+   ;; 6.26 numeric value expression
+   ;; TODO flatten
+   (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
+			      (cons t n*)))
+   (numeric-value-expression* (('#\+ n <- numeric-value-expression) (list '+ n))
+			      (('#\- n <- numeric-value-expression) (list '- n))
+			      (() '()))
+   (term ((f <- factor t <- term*) (cons f t)))
+   (term* (('#\* t <- term) (list '* t))
+	  (('#\/ t <- term) (list '/ t)))
+
+   (factor ((s <- sign n <- numeric-primary) (cons s n))
+	   ((n <- numeric-primary) n))
+   (sign (('#\+) '+)
+	 (('#\-) '-))
+   (numeric-primary ((v <- value-expression-primary) v)
+		    #;((f <- numeric-value-function) f))
+
+   ;; 6.3
+   (value-expression-primary ((p <- parenthesized-value-expression) p)
+			     ((n <- nonparenthesized-value-expression) n))
+   (parenthesized-value-expression (('#\( v <- value-expression '#\)) (list v)))
+   (nonparenthesized-value-expression ((n <- 'number) n)
+				      ((b <- 'bit-string) b)
+				      ((c <- column-reference) c)
+				      ;;((s <- set-function-specification) s)
+				      ;;((w <- window-function) w)
+				      ((s <- scalar-subquery) s)
+				      ;;((c <- case-expression) c)
+				      ;;((c <- cast-specification) c)
+				      ;;((f <- field-reference) f)
+				      ;;((s <- subtype-treatment) s)
+				      ;;((m <- method-invocation) m)
+				      ;;((s <- static-method-invocation) s)
+				      ;;((a <- attribute-or-method-reference) a)
+				      ;;((r <- reference-resolution) r)
+				      ;;((c <- collection-value-constructor) c)
+				      ;;((a <- array-element-reference) a)
+				      ;;((m <- multiset-element-reference) m)
+				      ;;((r <- routine-invocation) r)
+				      ;;((n <- next-value-expression) n)
+				      )
+   ;; 6.29 string value expression
+   (string-value-expression ((c <- character-value-expression) c)
+			    #;((b <- blob-value-expression) b))
+   (character-value-expression ((f <- character-factor c <- concatenation)
+				(if (null? c)
+				    f
+				    (concate-character f c))))
+   (concatenation (('concat f <- character-value-expression) f)
+		  (() '()))
+   (character-factor ((c <- character-primary cl <- collate-clause)
+		      (cons c cl))
+		     ((c <- character-primary) c))
+   (character-primary ((v <- value-expression-primary) v)
+		      #;((s <- string-value-function) s))
+   
+   ;; no difference between character and blob so we don't care
+#|
+   (blob-value-expression ((b <- blob-concatenation) b)
+			 ((b <- blob-primary) b))
+   (blob-primary ((v <- value-expression-primary) v)
+		 #;((s <- string-value-function) s))
+   (blob-concatenation ((b <- blob-value-expression
+			 'concat
+			 f <- blob-primary)
+			(concate-character b f)))
+ |#
+#|
+			    ((s <- 'string) s) ;; TODO ESCAPE+unicode
+			    ((b <- 'bit-string) b)
+			    ;; TODO more
+			    ((c <- column-reference) c))
+|#
+   ;; 7.1 row value constructor
+   (row-value-constructor-predicant ((c <- common-value-expression) c)
+				    ((b <- boolean-predicand) b)
+				    #;((e <- explicit-row-value-constructor) e))
+   ;; 7.2 row value expression
+   (row-value-expression ((n <- nonparenthesized-value-expression) n)
+			 #;((e <- explicit-row-value-constructor) e))
+   (row-value-predicand ((n <- nonparenthesized-value-expression) n)
+			((r <- row-value-constructor-predicant) r))
+
+   ;; 
+   (boolean-value-expression ((t <- boolean-term 
+			       b* <- boolean-value-expression*) 
+			      ;; TODO handle 'or
+			      (cons t b*)))
+   (boolean-value-expression* (('or b <- boolean-term) (list 'or b))
+			      (() '()))
+   (boolean-term ((f <- boolean-factor t* <- boolean-term*) (cons f t*)))
+   (boolean-term* (('and b <- boolean-term) (list 'and b))
+		  (() ()))
+   (boolean-factor (('not t <- boolean-test) (list 'not t))
+		   ((t <- boolean-test) t))
+   (boolean-test ((b <- boolean-primary 'is 'not t <- truth-value)
+		  `(not (= ,b ,t)))
+		 ((b <- boolean-primary 'is t <- truth-value) `(= ,b ,t))
+		 ((b <- boolean-primary) b))
+   (truth-value (('true) #t)
+		(('false) #f)
+		(('unknown) 'unknown))
+   (boolean-primary ((b <- boolean-predicand) b)
+		    ((p <- predicate) p))
+   (boolean-predicand ((p <- parenthesized-boolean-value-expression) p)
+		      ((n <- nonparenthesized-value-expression) n))
+   (parenthesized-boolean-value-expression
+    (('#\( b <- boolean-value-expression '#\)) (list b)))
+
+
+   ;; 7.13 query expression
+   (query-expression ((w <- with-clause q <- query-expression-body)
+		      ;; -> (with ((as name query cols ...) ...) body)
+		      `(,@w ,q))
+		     ((q <- query-expression-body) q))
+   (with-clause (('with 'recursive l <- with-list) `(with recursive ,l))
+		(('with l <- with-list) `(with ,l)))
+   (with-list ((w <- with-list-element w* <- with-list-element*) (cons w w*)))
+   (with-list-element ((n <- query-name '#\( c <- column-name-list '#\)
+			'as '#\( q <- query-expression '#\) 
+			s <- search-or-cycle-clause)
+		       ;; TODO search or cycle clause
+		       `(as ,n ,q ,@c))
+		      ((n <- query-name
+			'as '#\( q <- query-expression '#\) 
+			s <- search-or-cycle-clause)
+		       ;; TODO search or cycle clause
+		       `(as ,n ,q ,@c)))
+   (with-list-element* (('#\, w <- with-list-element) w)
+		       (() '()))
+   (query-expression-body ((q <- non-join-query-expression) q)
+			  ((j <- joined-table) j))
+   ;; TODO 
+   (non-join-query-expression 
+    ((t <- non-join-query-term t* <- non-join-query-expression*) 
+     (if t*
+	 (cons t t*) ;; todo merge union and except
+	 t)))
+   (non-join-query-expression* ((u <- union-or-except s <- set-qualifier* 
+				 c <- corresponding-spec
+				 q <- query-term)
+				`(,u ,@s ,@c ,q))
+			       (() #f))
+   (union-or-except (('union) 'union)
+		    (('except) 'except))
+   (set-qualifier*  ((s <- set-qualifier) (list s))
+		    (() '()))
+   (corresponding-spec (('corresponding) (list 'corresponding))
+		       (('corresponding 'by '#\( c <- column-name-list '#\))
+			;; TODO should we put 'by'?
+			`((corresponding ,@c)))
+		       (() '()))
+   (query-term ((q <- non-join-query-term) q)
+	       ((j <- joined-table) j))
+   (non-join-query-term ((q <- non-join-query-primary) q)
+			((q <- query-term 'intersect s <- set-qualifier*
+			  c <- corresponding-spec qp <- query-primary)
+			 ;; TODO should this be like this?
+			 `(intersect ,@s ,q ,@c ,qp)))
+   (query-primary ((q <- non-join-query-primary) q)
+		  ((j <- joined-table) j))
+   (non-join-query-primary ((s <- simple-table) s)
+			   (('#\( q <- non-join-query-expression '#\))
+			    (list q)))
+   (simple-table ((q <- query-specification) q)
+		 ;; ((t <- table-value-constructor) t)
+		 ((t <- explicit-table) t))
+   (explicit-table (('table t <- table-or-query-name) `(table ,t)))
+
+   ;; 7.7 joine table
+   ;; TODO 
+   (joined-table (() '()))
+
+   ;; subquery
+   (scalar-subquery ((s <- subquery) s))
+   (row-subquery ((s <- subquery) s))
+   (table-subquery ((s <- subquery) s))
+   ;; TODO how to represents?
+   (subquery (('#\( q <- query-expression '#\)) q))
+
+   ;; 8.1 predicate
+   (predicate ((c <- comparison-predicate) c)
+	      ;;((b <- between-predicate) b)
+	      ;;((i <- in-predicate) i)
+	      ;;((p <- like-predicate) p)
+	      ;;((p <- similar-predicate) p)
+	      ;;((p <- null-predicate) p)
+	      ;;((p <- qualified-comparison-predicate) p)
+	      ;;((p <- exists-predicate) p)
+	      ;;((p <- unique-predicate) p)
+	      ;;((p <- normalized-predicate) p)
+	      ;;((p <- match-predicate) p)
+	      ;;((p <- overlaps-predicate) p)
+	      ;;((p <- distinct-predicate) p)
+	      ;;((p <- member-predicate) p)
+	      ;;((p <- submultiset-predicate) p)
+	      ;;((p <- set-predicate) p)
+	      ;;((p <- type-predicate) p)
+	      )
+   (comparison-predicate ((r1 <- row-value-predicand
+			   op <- comp-op
+			   r2 <- row-value-predicand)
+			  (list op r1 r2)))
+   (comp-op (('#\=) '=)
+	    (('<>) '<>)
+	    (('#\<) '<)
+	    (('#\>) '>)
+	    (('<=) '<=)
+	    (('>=) '>=))
+
+   ;; 10.7 collate
+   (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
+
+
+   (local-or-schema-qualified-name ((l <- local-or-schema-qualifier '#\. 
+				     i <- identifier)
+				    (if (eq? l 'module)
+					`(module ,i)
+					(concate-identifier l i)))
+				   ((i <- identifier) 
+				    i))
+   (local-or-schema-qualifier (('module) 'module)
+			      ((i <- identifier-chain) i))
    ;; identifier
    ;; we need to resolve unicode here as well
    (identifier ((i <- 'identifier 'uescape c <- 'string)
