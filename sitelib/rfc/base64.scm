@@ -198,7 +198,7 @@
       (define lshift bitwise-arithmetic-shift-left)
       (define rshift bitwise-arithmetic-shift-right)
 
-      (when (positive? b0)
+      (when (>= b0 0)
 	(put (rshift (bitwise-and #xFC b0) 2))
 	(let ((b (lshift (bitwise-and #x03 b0) 4)))
 	  (cond ((negative? b1)
@@ -287,6 +287,7 @@
       (define b0 (get 0))
       (define b1 (get b0))
       (define b2 (get b1))
+		    
       (encoder b0 b1 b2))
 
     (define (read! bv start count) 
