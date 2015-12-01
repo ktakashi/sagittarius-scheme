@@ -41,4 +41,19 @@
 (test-parse "select U&'a'" '(select ((unicode "a"))))
 (test-parse "select U&'a' uescape '$'" '(select ((unicode "a" uescape "$"))))
 
+;; multiset
+(test-parse "SELECT ntab MULTISET EXCEPT DISTINCT ntab2 mset_except;"
+	    '(select ((as (multiset except distinct ntab ntab2) mset_except))))
+(test-parse "SELECT ntab MULTISET UNION DISTINCT ntab2 mset_union;"
+	    '(select ((as (multiset union distinct ntab ntab2) mset_union))))
+(test-parse "SELECT ntab MULTISET INTERSECT DISTINCT ntab2 mset;"
+	    '(select ((as (multiset intersect distinct ntab ntab2) mset))))
+;; nested
+;; NB: the nested order may change in future such as inner most would be
+;;     outer most. (in this case intersect would be the first multiset)
+;;     so don't document how it would be yet.
+(test-parse "SELECT ntab MULTISET UNION ntab2 MULTISET INTERSECT ntab3 mset;"
+	    '(select ((as (multiset union ntab (multiset intersect ntab2 ntab3))
+			  mset))))
+
 (test-end)

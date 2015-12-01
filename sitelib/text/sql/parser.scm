@@ -254,6 +254,7 @@
 			    ((s <- string-value-expression)  s)
 			    ;;((d <- datetime-value-expression) d)
 			    ;;((i <- interval-value-expression) i)
+			    ;; these 2 are not needed at all.
 			    ;;((u <- user-define-type-value-expression) u)
 			    ;;((r <- reference-value-expression) r)
 			    ((c <- collection-value-expression) c)
@@ -274,24 +275,45 @@
 			(() '()))
    (array-factor ((v <- value-expression-primary) v))
 
-   (multiset-value-expression ((t <- multiset-term m <- multiset-term*)
-			       (cons t m)))
-   (multiset-term ((v <- multiset-primary m <- multiset-term**) (cons v m)))
+   ;; TODO nested MULTISET handling
+   ;; NB: Not even sure which RDBMS supports MULTISET so can't determine
+   ;;     how it should be nested. For now, first one is the outer most
+   ;;     then second one, so on.
+   ;;     (PostgreSQL and SQLite3 don't support it).
+   (multiset-value-expression 
+    ((t <- multiset-term m <- multiset-term*)
+     ;; i don't think there's a chance that m is null but
+     ;; just in case
+     ;; NB in such a case, then input should already be
+     ;;    consumed by string or numeric value expression.
+     (if (null? m)
+	 t
+	 `(multiset ,(car m) ,@(cadr m) ,t ,(caddr m)))))
+   (multiset-term ((v <- multiset-primary m <- multiset-term**)
+		   ;; same as above comment
+		   (if (null? m)
+		       v
+		       `(multiset ,(car m) ,@(cadr m) ,v ,(caddr m)))))
    (multiset-term* (('multiset u <- union-or-except s <- set-qualifier*
 		     m <- multiset-term)
-		    `(multiset ,u ,s ,m))
-		   (() '()))
+		    `(,u ,s ,m))
+		   ;; avoid ||
+		   ;; TODO do we need this?
+		   (((! 'concat)) '()))
    (multiset-term** (('multiset 'intersect s <- set-qualifier* 
 		      m <- multiset-term)
-		    `(multiset intersect ,s ,m))
-		   (() '()))
+		     `(intersect ,s ,m))
+		    (((! 'concat)) '()))
 
    (multiset-primary ((v <- value-expression-primary) v)
 		     ((m <- mutiset-value-function) m))
-   (mutiset-value-function (('set '#\( m <- multiset-value-expression '#\))
-			    m))
+   (mutiset-value-function (('set '#\( m <- multiset-value-expression '#\)) m))
 
    ;; 6.26 numeric value expression
+   ;; to determine if empty set can be return as numeric value
+   (concat-or-multiset (('concat) 'concat)
+		       (('multiset) 'multiset))
+
    (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
 			      (if (null? n*)
 				  t
@@ -301,12 +323,12 @@
 			      (('#\- n <- numeric-value-expression)
 			       (resolve-term* '- n))
 			      ;; rather ugly
-			      (((! 'concat)) '()))
+			      (((! concat-or-multiset)) '()))
    (term ((f <- factor t <- term*) (if (null? t) f (resolve-numeric-term f t))))
    (term* (('#\* t <- term) (resolve-term* '* t))
 	  (('#\/ t <- term) (resolve-term* '/ t))
 	  ;; rather ugly
-	  (((! 'concat)) '()))
+	  (((! concat-or-multiset)) '()))
 
    (factor ((s <- sign n <- numeric-primary) (list s n))
 	   ((n <- numeric-primary) n))
@@ -324,7 +346,9 @@
 				    f
 				    (concate-character f c))))
    (concatenation (('concat f <- character-value-expression) f)
-		  (() '()))
+		  ;; if there's multiset keyword following then
+		  ;; we musn't proceed
+		  (((! 'multiset)) '()))
    (character-factor ((c <- character-primary cl <- collate-clause)
 		      (cons c cl))
 		     ((c <- character-primary) c))
