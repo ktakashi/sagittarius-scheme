@@ -112,14 +112,16 @@
 			(('select c <- select-list) (list 'select c)))
    (select-list (('#\*) '*)
 		((s <- select-sublist) s))
-   (select-sublist ((d <- derived-column s* <- select-sublist*) (cons d s*))
-		   ((q <- qualified-asterisk s* <- select-sublist*) 
-		    (cons q s*)))
+   (select-sublist ((q <- qualified-asterisk s* <- select-sublist*) 
+		    (cons q s*))
+		   ((d <- derived-column s* <- select-sublist*) (cons d s*))
+		   )
    (select-sublist* (('#\, s <- select-sublist) s)
 		    (() '()))
    ;; TODO 'select foo.*' or so
-   (qualified-asterisk ((c <- identifier-chain '#\. '#\*) 
-			(concate-identifier c '(*))))
+   (qualified-asterisk ((a <- all-field-reference) a)
+		       ((c <- identifier-chain '#\. '#\*)
+			(concate-identifier c '*)))
 
    (derived-column ((v <- value-expression 'as c <- column-name) 
 		    (list 'as v c))
@@ -138,6 +140,15 @@
 
    (set-qualifier (('distinct) 'distinct)
 		  (('all) 'all))
+
+   ;; didn't know 'select (select * from foo).*;' is valid...
+   (all-field-reference ((c <- value-expression-primary '#\. '#\*
+			  'as '#\( c* <- column-name-list '#\))
+			 ;; (as (~ (select * from foo) *) (#f a b c))
+			 (list 'as (concate-identifier c '*)
+			       (cons #f c*)))
+			((c <- value-expression-primary '#\. '#\*)
+			 (concate-identifier c '*)))
 
    (column-reference ((i <- identifier-chain) i)
 		     (('module '#\. i <- identifer '#\. m <- column-name)
@@ -296,7 +307,7 @@
    (parenthesized-value-expression (('#\( v <- value-expression '#\)) (list v)))
    (nonparenthesized-value-expression ((n <- 'number) n)
 				      ((b <- 'bit-string) b)
-				      ((s <- 'string) s)
+				      ((s <- string) s)
 				      ((c <- column-reference) c)
 				      ;;((s <- set-function-specification) s)
 				      ;;((w <- window-function) w)
@@ -475,7 +486,14 @@
 		;; (unicode (! "foo") uescape "c")
 		`(,@i uescape ,c))
 	       ((i <- 'identifier) i))
-   
+
+   ;; string the same as above trick
+   (string ((s <- 'string 'uescape c <- 'string)
+	    (unless (and (pair? s) (eq? (car s) 'unicode))
+		  (raise-sql-parse-error 'parse-sql 
+					 "invalid use of UESCAPE" #f #f))
+	    `(,@s uescape ,c))
+	   ((s <- 'string) s))
    ))
 
 ;; almost the same as &markdown-parser-error

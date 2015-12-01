@@ -15,6 +15,7 @@
 (test-parse "select +1,a||b||c from (select 1,2 from bar) as f(a,b)"
 	    '(select ((+ 1) (^ a b c)) 
 		     (from (as (select (1 2) (from bar)) (f a b)))))
+;; numeric operation
 (test-parse "select 1*1+2/2+3" '(select ((+ (* 1 1) (/ 2 2) 3))))
 (test-parse "select 1*1+2/2-3" '(select ((+ (* 1 1) (- (/ 2 2) 3)))))
 
@@ -26,5 +27,18 @@
 
 (test-parse "select 'a' as a" '(select ((as "a" a))))
 (test-parse "select 'a' a" '(select ((as "a" a))))
+
+;; *
+(test-parse "select *" '(select *))
+(test-parse "select foo.*" '(select ((~ foo *))))
+;; weird ones
+(test-parse "select foo.* as (a, b, c)" '(select ((as (~ foo *) (#f a b c)))))
+(test-parse "select (select *).* as (a, b, c)" 
+	    '(select ((as (~ (select *) *) (#f a b c)))))
+
+;; string
+(test-parse "select 'a'" '(select ("a")))
+(test-parse "select U&'a'" '(select ((unicode "a"))))
+(test-parse "select U&'a' uescape '$'" '(select ((unicode "a" uescape "$"))))
 
 (test-end)
