@@ -18,5 +18,7 @@
 (test-parse "select 1*1+2/2+3" '(select ((+ (* 1 1) (/ 2 2) 3))))
 (test-parse "select 1*1+2/2-3" '(select ((+ (* 1 1) (- (/ 2 2) 3)))))
 
+;; as
+(test-parse "select f.a as a" '(select ((as (~ f a) a))))
 
 (test-end)

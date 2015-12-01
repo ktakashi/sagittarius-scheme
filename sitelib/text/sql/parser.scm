@@ -58,7 +58,7 @@
 ;; e.g. 'foo.bar' = (~ foo bar)
 ;; 
 (define (concate-identifier base follow)
-  (if (eq? (car follow) '~)
+  (if (and (pair? follow) (eq? (car follow) '~))
       `(~ ,base ,(cdr follow))
       `(~ ,base ,follow)))
 
@@ -121,9 +121,11 @@
    (qualified-asterisk ((c <- identifier-chain '#\. '#\*) 
 			(concate-identifier c '(*))))
 
-   (derived-column ((v <- value-expression) v)
-		   ((v <- value-expression 'as c <- column-name) 
-		    (list 'as v c)))
+   (derived-column ((v <- value-expression 'as c <- column-name) 
+		    (list 'as v c))
+		   ((v <- value-expression c <- column-name) 
+		    (list 'as v c))
+		   ((v <- value-expression) v))
    ;; qualified-identifier
    (identifier-chain  ((i <- identifier i* <- identifier-chain*)
 		       (if (null? i*)
