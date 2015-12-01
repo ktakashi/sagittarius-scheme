@@ -19,6 +19,12 @@
 (test-parse "select 1*1+2/2-3" '(select ((+ (* 1 1) (- (/ 2 2) 3)))))
 
 ;; as
+(test-parse "select a as b" '(select ((as a b))))
+(test-parse "select a b" '(select ((as a b))))
 (test-parse "select f.a as a" '(select ((as (~ f a) a))))
+(test-parse "select f.a a" '(select ((as (~ f a) a))))
+
+(test-parse "select 'a' as a" '(select ((as "a" a))))
+(test-parse "select 'a' a" '(select ((as "a" a))))
 
 (test-end)

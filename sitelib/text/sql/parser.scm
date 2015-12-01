@@ -296,6 +296,7 @@
    (parenthesized-value-expression (('#\( v <- value-expression '#\)) (list v)))
    (nonparenthesized-value-expression ((n <- 'number) n)
 				      ((b <- 'bit-string) b)
+				      ((s <- 'string) s)
 				      ((c <- column-reference) c)
 				      ;;((s <- set-function-specification) s)
 				      ;;((w <- window-function) w)
