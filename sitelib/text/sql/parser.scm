@@ -249,7 +249,6 @@
    (collection-value-expression ((a <- array-value-expression) a)
 				((m <- multiset-value-expression) m))
    ;; 6.26 numeric value expression
-   ;; TODO flatten
    (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
 			      (if (null? n*)
 				  t
@@ -258,11 +257,13 @@
 			       (resolve-term* '+ n))
 			      (('#\- n <- numeric-value-expression)
 			       (resolve-term* '- n))
-			      (() '()))
+			      ;; rather ugly
+			      (((! 'concat)) '()))
    (term ((f <- factor t <- term*) (if (null? t) f (resolve-numeric-term f t))))
    (term* (('#\* t <- term) (resolve-term* '* t))
 	  (('#\/ t <- term) (resolve-term* '/ t))
-	  (() '()))
+	  ;; rather ugly
+	  (((! 'concat)) '()))
 
    (factor ((s <- sign n <- numeric-primary) (list s n))
 	   ((n <- numeric-primary) n))
@@ -270,6 +271,22 @@
 	 (('#\-) '-))
    (numeric-primary ((v <- value-expression-primary) v)
 		    #;((f <- numeric-value-function) f))
+
+   ;; 6.29 string value expression
+   (string-value-expression ((c <- character-value-expression) c)
+			    ;; no blob, it's the same
+			    #;((b <- blob-value-expression) b))
+   (character-value-expression ((f <- character-factor c <- concatenation)
+				(if (null? c)
+				    f
+				    (concate-character f c))))
+   (concatenation (('concat f <- character-value-expression) f)
+		  (() '()))
+   (character-factor ((c <- character-primary cl <- collate-clause)
+		      (cons c cl))
+		     ((c <- character-primary) c))
+   (character-primary ((v <- value-expression-primary) v)
+		      #;((s <- string-value-function) s))
 
    ;; 6.3
    (value-expression-primary ((p <- parenthesized-value-expression) p)
@@ -295,38 +312,7 @@
 				      ;;((r <- routine-invocation) r)
 				      ;;((n <- next-value-expression) n)
 				      )
-   ;; 6.29 string value expression
-   (string-value-expression ((c <- character-value-expression) c)
-			    #;((b <- blob-value-expression) b))
-   (character-value-expression ((f <- character-factor c <- concatenation)
-				(if (null? c)
-				    f
-				    (concate-character f c))))
-   (concatenation (('concat f <- character-value-expression) f)
-		  (() '()))
-   (character-factor ((c <- character-primary cl <- collate-clause)
-		      (cons c cl))
-		     ((c <- character-primary) c))
-   (character-primary ((v <- value-expression-primary) v)
-		      #;((s <- string-value-function) s))
    
-   ;; no difference between character and blob so we don't care
-#|
-   (blob-value-expression ((b <- blob-concatenation) b)
-			 ((b <- blob-primary) b))
-   (blob-primary ((v <- value-expression-primary) v)
-		 #;((s <- string-value-function) s))
-   (blob-concatenation ((b <- blob-value-expression
-			 'concat
-			 f <- blob-primary)
-			(concate-character b f)))
- |#
-#|
-			    ((s <- 'string) s) ;; TODO ESCAPE+unicode
-			    ((b <- 'bit-string) b)
-			    ;; TODO more
-			    ((c <- column-reference) c))
-|#
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)
 				    ((b <- boolean-predicand) b)
@@ -484,7 +470,7 @@
 		  (raise-sql-parse-error 'parse-sql 
 					 "invalid use of UESCAPE" #f #f))
 		;; (unicode (! "foo") uescape "c")
-		`(,@i 'uescape ,c))
+		`(,@i uescape ,c))
 	       ((i <- 'identifier) i))
    
    ))
