@@ -79,6 +79,20 @@
       `(^ ,f ,@(cdr c))
       `(^ ,f ,c)))
 
+(define (resolve-term* op term)
+  (if (and (pair? term) (eq? op (car term)))
+      term
+      `(,op ,term)))
+;; handling numeric operators
+;; 1*1 -> (* 1 1)
+;; term  ::= factor
+;; term* ::= (/ term) | (* term)
+;; factor ::= value | (+ value) | (- value)
+;; value is value expression so can be column, string, number, etc.
+(define (resolve-numeric-term factor term*)
+  (let ((expr (car term*)))
+    `(,expr ,factor ,@(cdr term*))))
+
 (define sql-parser
   (packrat-parser
    (begin
@@ -237,15 +251,20 @@
    ;; 6.26 numeric value expression
    ;; TODO flatten
    (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
-			      (cons t n*)))
-   (numeric-value-expression* (('#\+ n <- numeric-value-expression) (list '+ n))
-			      (('#\- n <- numeric-value-expression) (list '- n))
+			      (if (null? n*)
+				  t
+				  (resolve-numeric-term t n*))))
+   (numeric-value-expression* (('#\+ n <- numeric-value-expression) 
+			       (resolve-term* '+ n))
+			      (('#\- n <- numeric-value-expression)
+			       (resolve-term* '- n))
 			      (() '()))
-   (term ((f <- factor t <- term*) (cons f t)))
-   (term* (('#\* t <- term) (list '* t))
-	  (('#\/ t <- term) (list '/ t)))
+   (term ((f <- factor t <- term*) (if (null? t) f (resolve-numeric-term f t))))
+   (term* (('#\* t <- term) (resolve-term* '* t))
+	  (('#\/ t <- term) (resolve-term* '/ t))
+	  (() '()))
 
-   (factor ((s <- sign n <- numeric-primary) (cons s n))
+   (factor ((s <- sign n <- numeric-primary) (list s n))
 	   ((n <- numeric-primary) n))
    (sign (('#\+) '+)
 	 (('#\-) '-))
