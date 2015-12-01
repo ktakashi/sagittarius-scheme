@@ -176,7 +176,11 @@
     (let loop ((ch (scanner-peek-char port)))
       (if (or (eof-object? ch)
 	      (char-whitespace? ch) 
-	      (char-set-contains? specials ch))
+	      ;; _ can be in identifier but must also be 
+	      ;; special character. if this is the beginning
+	      ;; of identifier then it'll be an token.
+	      (and (not (char=? ch #\_)) 
+		   (char-set-contains? specials ch)))
 	  (extract)
 	  (begin 
 	    (put-char out (scanner-get-char port)) 

@@ -248,19 +248,49 @@
 		     ((b <- boolean-value-expression) b)
 		     ((r <- row-value-expression) r))
 
+   ;; FIXME this doens't work properly since alots of things are
+   ;;       in common on underlying expressions.
    (common-value-expression ((n <- numeric-value-expression) n)
 			    ((s <- string-value-expression)  s)
 			    ;;((d <- datetime-value-expression) d)
 			    ;;((i <- interval-value-expression) i)
 			    ;;((u <- user-define-type-value-expression) u)
 			    ;;((r <- reference-value-expression) r)
-			    ((v <- value-expression-primary) v)
-			    #;((c <- collection-value-expression) c))
+			    ((c <- collection-value-expression) c)
+			    ((v <- value-expression-primary) v))
    ;; these 2 are the same so we don't need it
    ;; (user-define-type-value-expression ((v <- value-expression-primary) v)
    ;; (reference-value-expression ((v <- value-expression-primary) v)
-   (collection-value-expression ((a <- array-value-expression) a)
-				((m <- multiset-value-expression) m))
+   (collection-value-expression ((m <- multiset-value-expression) m)
+				((a <- array-value-expression) a))
+   ;; 6.35 array value expression
+   ;; I think this won't reach since string-value-expression has the
+   ;; same expression.
+   (array-value-expression ((f <- array-factor a* <- array-concatenation)
+			    (if (null? a*)
+				f
+				(concate-character f a*))))
+   (array-concatenation (('concat f <- array-factor) f)
+			(() '()))
+   (array-factor ((v <- value-expression-primary) v))
+
+   (multiset-value-expression ((t <- multiset-term m <- multiset-term*)
+			       (cons t m)))
+   (multiset-term ((v <- multiset-primary m <- multiset-term**) (cons v m)))
+   (multiset-term* (('multiset u <- union-or-except s <- set-qualifier*
+		     m <- multiset-term)
+		    `(multiset ,u ,s ,m))
+		   (() '()))
+   (multiset-term** (('multiset 'intersect s <- set-qualifier* 
+		      m <- multiset-term)
+		    `(multiset intersect ,s ,m))
+		   (() '()))
+
+   (multiset-primary ((v <- value-expression-primary) v)
+		     ((m <- mutiset-value-function) m))
+   (mutiset-value-function (('set '#\( m <- multiset-value-expression '#\))
+			    m))
+
    ;; 6.26 numeric value expression
    (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
 			      (if (null? n*)
