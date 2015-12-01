@@ -114,7 +114,9 @@
 	     (loop (scanner-get-char port)))
 	    ((char=? #\' ch) 
 	     (cons 'bit-string
-		   (integer->bytevector (string->number (extract) radix))))
+		   (list (if (= radix 2) 'bit 'hex) ;; then can be restored
+			 (integer->bytevector 
+			  (string->number (extract) radix)))))
 	    (else
 	     (error 'sql-scanner "unexpected character in bit string" ch))))))
 
@@ -335,7 +337,7 @@
 	   (case (scanner-peek-char port)
 	     ((#\|) (scanner-get-char port) (cons 'concat "||"))
 	     (else  (cons ch ch))))
-	  ((char-set-contains? specials ch) (string ch))
+	  ((char-set-contains? specials ch) (cons ch (string ch)))
 	  (else (read-identifier/number ch port))
 	  ))
   (next (skip-whitespace ch port) port))
