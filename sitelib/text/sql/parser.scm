@@ -104,7 +104,7 @@
    (query-specification (('select c <- select-list t <- table-expression) 
 			 (cons* 'select c t))
 			;; select (distinct|all) column from table
-			(('select q <- set-qualifier 
+			(('select q <- set-quantifiler 
 				  c <- select-list 
 				  t <- table-expression) 
 			 (cons* 'select q c t))
@@ -138,8 +138,8 @@
 
    (column-name ((i <- identifier) i))
 
-   (set-qualifier (('distinct) 'distinct)
-		  (('all) 'all))
+   (set-quantifiler (('distinct) 'distinct)
+		    (('all) 'all))
 
    ;; didn't know 'select (select * from foo).*;' is valid...
    (all-field-reference ((c <- value-expression-primary '#\. '#\*
@@ -227,7 +227,8 @@
 
    (group-by-clause (('group 'by g* group-by-element-list)
 		     (list (list 'group-by g*)))
-		    (('group 'by s <- set-qualifier g* <- group-by-element-list)
+		    (('group 'by s <- set-quantifiler
+		      g* <- group-by-element-list)
 		     (list (list 'group-by s g*)))
 		    (() '()))
    ;; TODO 
@@ -294,13 +295,13 @@
 		   (if (null? m)
 		       v
 		       `(multiset ,(car m) ,@(cadr m) ,v ,(caddr m)))))
-   (multiset-term* (('multiset u <- union-or-except s <- set-qualifier*
+   (multiset-term* (('multiset u <- union-or-except s <- set-quantifiler*
 		     m <- multiset-term)
 		    `(,u ,s ,m))
 		   ;; avoid ||
 		   ;; TODO do we need this?
 		   (((! 'concat)) '()))
-   (multiset-term** (('multiset 'intersect s <- set-qualifier* 
+   (multiset-term** (('multiset 'intersect s <- set-quantifiler* 
 		      m <- multiset-term)
 		     `(intersect ,s ,m))
 		    (((! 'concat)) '()))
@@ -446,14 +447,14 @@
      (if t*
 	 (cons t t*) ;; todo merge union and except
 	 t)))
-   (non-join-query-expression* ((u <- union-or-except s <- set-qualifier* 
+   (non-join-query-expression* ((u <- union-or-except s <- set-quantifiler* 
 				 c <- corresponding-spec
 				 q <- query-term)
 				`(,u ,@s ,@c ,q))
 			       (() #f))
    (union-or-except (('union) 'union)
 		    (('except) 'except))
-   (set-qualifier*  ((s <- set-qualifier) (list s))
+   (set-quantifiler*  ((s <- set-quantifiler) (list s))
 		    (() '()))
    (corresponding-spec (('corresponding) (list 'corresponding))
 		       (('corresponding 'by '#\( c <- column-name-list '#\))
@@ -463,7 +464,7 @@
    (query-term ((q <- non-join-query-term) q)
 	       ((j <- joined-table) j))
    (non-join-query-term ((q <- non-join-query-primary) q)
-			((q <- query-term 'intersect s <- set-qualifier*
+			((q <- query-term 'intersect s <- set-quantifiler*
 			  c <- corresponding-spec qp <- query-primary)
 			 ;; TODO should this be like this?
 			 `(intersect ,@s ,q ,@c ,qp)))
