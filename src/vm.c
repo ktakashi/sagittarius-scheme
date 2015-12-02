@@ -2101,6 +2101,8 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
    multi thread environment and the execution raised an error
    or numbers of GC happened after returning from run_loop (
    not even sure this would happen though).
+
+   Seems this would cause more problem than profit.
  */
 #define RUN_FINALIZER(vm)				\
   do {							\
@@ -2136,7 +2138,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   if (setjmp(cstack.jbuf) == 0) {
     run_loop();
     AC(vm) = vm->ac;
-    RUN_FINALIZER(vm);
+    /* RUN_FINALIZER(vm); */
     if (vm->cont == cstack.cont) {
       POP_CONT();
       PC(vm) = prev_pc;
@@ -2173,7 +2175,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     
   } else {
     /* error, let finalizer run first here */
-    RUN_FINALIZER(vm);
+    /* RUN_FINALIZER(vm); */
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
       if (c->cstack == vm->cstack) {
@@ -2331,6 +2333,8 @@ static void process_queued_requests(SgVM *vm)
       SG_APPEND1(h, t, SG_VALUES_REF(vm, i));
     }
     data[2] = h;
+  } else {
+    data[2] = SG_NIL;
   }
 
   Sg_VMPushCC(process_queued_requests_cc, data, 3);

@@ -396,16 +396,19 @@ void finalizable()
 
 SgObject Sg_VMFinalizerRun(SgVM *vm)
 {
-  /* reset here before invoking finalizers.
-     this is beause finalizer may invoke Scheme procedures
-     and when it returns it would invoke finalizer again.
-   */
-  vm->finalizerPending = FALSE;
   /* for future we want to use own gc implementation */
 #ifdef USE_BOEHM_GC
+ retry:
+  vm->finalizerPending = FALSE;
   GC_invoke_finalizers();
-  /* do it here again in case Scheme finalizer set finalizer 
-     pending flag. */
+  /* If finalizers consumes memory and GC is invoked during
+     calling finalizer, then the pending flag is set to TRUE
+     and finalizers need to be called again.
+
+     NB: not sure if we need to do this much.
+  */
+  if (vm->finalizerPending) goto retry;
+  
   vm->finalizerPending = FALSE;
   return SG_UNDEF;
 #else
