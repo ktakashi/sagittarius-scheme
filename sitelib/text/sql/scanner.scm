@@ -169,6 +169,7 @@
     unnest update upper user using value values var_pop var_samp varchar
     varying when whenever where width_bucket window with within without
     year))
+
 ;; normal identifier
 (define (%read-identifier ch port) 
   (let-values (((out extract) (open-string-output-port)))
@@ -188,8 +189,8 @@
 
 (define (resolve-identifier s)
   (let ((id (string->symbol (string-downcase s))))
-    (cond ((memq id *sql:keywords*) => 
-	   (lambda (m) (cons (car m) id)))
+    (cond ((memq id *sql:keywords*)
+	   (cons id id))
 	  (else (cons 'identifier id)))))
   
 (define (read-identifier ch port) 

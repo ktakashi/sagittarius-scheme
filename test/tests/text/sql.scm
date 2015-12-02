@@ -56,4 +56,8 @@
 	    '(select ((as (multiset union ntab (multiset intersect ntab2 ntab3))
 			  mset))))
 
+(test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
+	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
+
+
 (test-end)

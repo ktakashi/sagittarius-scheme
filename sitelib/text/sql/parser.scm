@@ -96,6 +96,17 @@
 (define sql-parser
   (packrat-parser
    (begin
+     ;; some keyword looks like symbols are not reserved keyword
+     ;; e.g.) SETS, used by GROUPING SETS
+     ;; to avoid adding unnecessary keyword in scanner, we need to
+     ;; check value of the identifier.
+     (define (=? sym)
+       (lambda (results)
+	 (let ((s (parse-results-token-value results)))
+	   (if (eq? s sym)
+	       (make-result sym (parse-results-next results))
+	       (make-expected-result
+		(parse-results-position results) sym)))))
      stmt)
    (stmt ((s <- query-specification) s)
 	 ;; TODO more
@@ -225,14 +236,63 @@
 
    (search-condition ((b <- boolean-value-expression) b))
 
-   (group-by-clause (('group 'by g* group-by-element-list)
-		     (list (list 'group-by g*)))
+   (group-by-clause (('group 'by g* <- grouping-element-list)
+		     (list (cons 'group-by g*)))
 		    (('group 'by s <- set-quantifiler
-		      g* <- group-by-element-list)
-		     (list (list 'group-by s g*)))
+		      g* <- grouping-element-list)
+		     (list (cons* 'group-by s g*)))
 		    (() '()))
    ;; TODO 
-   (group-by-element-list (() '()))
+   (grouping-element-list ((g <- grouping-element g* <- grouping-element-list*)
+			   (cons g g*)))
+   (grouping-element-list* (('#\, g <- grouping-element-list) g)
+			   (() '()))
+   (grouping-element ((o <- ordinary-grouping-set) o)
+		     ((o <- rollup-list) o)
+		     ((o <- cube-list) o)
+		     ((o <- grouping-sets-specification) o)
+		     ((o <- empty-grouping-set) o))
+   
+   (ordinary-grouping-set ((g <- grouping-column-reference) g)
+			  (('#\( g <- grouping-column-reference-list '#\)) g))
+   (grouping-column-reference ((r <- column-reference c <- collate-clause)
+			       (cons r c))
+			      ((c <- column-reference) c))
+   (grouping-column-reference-list ((g <- grouping-column-reference
+				     g* <- grouping-column-reference-list*)
+				    (cons g g*)))
+   (grouping-column-reference-list* (('#\, g* <- grouping-column-reference-list)
+				     g*)
+				    (() '()))
+   ;; rollup
+   (rollup-list (('rollup '#\( l <- ordinary-grouping-set-list '#\))
+		 (cons 'rollup l)))
+   (ordinary-grouping-set-list 
+    ((o <- ordinary-grouping-set o* <- ordinary-grouping-set-list*) 
+     (cons o o*)))
+   (ordinary-grouping-set-list* (('#\, o <- ordinary-grouping-set-list) o)
+				(() '()))
+
+   ;; cube list
+   (cube-list (('cube '#\( o <- ordinary-grouping-set-list '#\)) 
+	       (cons 'cube o)))
+   
+   ;; grouping sets specification
+   (grouping-sets-specification
+    (('grouping (=? 'sets)
+      '#\( g <- grouping-set-list '#\)) (cons 'grouping-sets g)))
+   (grouping-set-list ((g <- grouping-set g* <- grouping-set-list*)
+		       (cons g g*)))
+   (grouping-set-list* (('#\, g <- grouping-set-list) g)
+		       (() '()))
+   (grouping-set ((o <- ordinary-grouping-set) o)
+		 ((o <- rollup-list) o)
+		 ((o <- cube-list) o)
+		 ((o <- grouping-sets-specification) o)
+		 ((o <- empty-grouping-set) o))
+   ;; empty grouping set
+   (empty-grouping-set (('#\( '#\)) '()))
+
    ;; having
    (having-clause (('having s <- search-condition) (list (cons 'having s)))
 		  (() '()))
