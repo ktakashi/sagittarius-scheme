@@ -131,12 +131,12 @@
    (query-specification ((s <- select-clause q <- query-specification*)
 			 (resolve-term s q))
 			((s <- select-clause) s))
-   (query-specification* ((u <- union-or-except s <- set-quantifiler*
+   (query-specification* ((u <- union-or-except s <- set-quantifier*
 			   q <- query-specification)
 			  (if (null? s)
 			      `(,u ,q)
 			      `(,(symbol-append u '- (car s)) ,q)))
-			 (('intersect s <- set-quantifiler*
+			 (('intersect s <- set-quantifier*
 			   q <- query-specification)
 			  (if (null? s)
 			      `(intersect ,q)
@@ -146,7 +146,7 @@
    (select-clause (('select c <- select-list t <- table-expression) 
 		   (cons* 'select c t))
 		  ;; select (distinct|all) column from table
-		  (('select q <- set-quantifiler 
+		  (('select q <- set-quantifier 
 			    c <- select-list 
 			    t <- table-expression) 
 		   (cons* 'select q c t))
@@ -180,7 +180,7 @@
 
    (column-name ((i <- identifier) i))
 
-   (set-quantifiler (('distinct) 'distinct)
+   (set-quantifier (('distinct) 'distinct)
 		    (('all) 'all))
 
    ;; didn't know 'select (select * from foo).*;' is valid...
@@ -269,7 +269,7 @@
 
    (group-by-clause (('group 'by g* <- grouping-element-list)
 		     (list (cons 'group-by g*)))
-		    (('group 'by s <- set-quantifiler
+		    (('group 'by s <- set-quantifier
 		      g* <- grouping-element-list)
 		     (list (cons* 'group-by s g*)))
 		    (() '()))
@@ -380,21 +380,25 @@
      ;;    consumed by string or numeric value expression.
      (if (null? m)
 	 t
-	 `(multiset ,(car m) ,@(cadr m) ,t ,(caddr m)))))
+	 `(,(car m) ,t ,(cadr m)))))
    (multiset-term ((v <- multiset-primary m <- multiset-term**)
 		   ;; same as above comment
 		   (if (null? m)
 		       v
-		       `(multiset ,(car m) ,@(cadr m) ,v ,(caddr m)))))
-   (multiset-term* (('multiset u <- union-or-except s <- set-quantifiler*
+		       `(,(car m) ,v ,(cadr m)))))
+   (multiset-term* (('multiset u <- union-or-except s <- set-quantifier*
 		     m <- multiset-term)
-		    `(,u ,s ,m))
+		    (if (null? s)
+			`(,(symbol-append 'multiset- u) ,m)
+			`(,(symbol-append 'multiset- u '- (car s)) ,m)))
 		   ;; avoid ||
 		   ;; TODO do we need this?
 		   (((! 'concat)) '()))
-   (multiset-term** (('multiset 'intersect s <- set-quantifiler* 
+   (multiset-term** (('multiset 'intersect s <- set-quantifier* 
 		      m <- multiset-term)
-		     `(intersect ,s ,m))
+		     (if (null? s)
+			 `(multiset-intersect ,m)
+			 `(,(symbol-append 'multiset-intersect '- (car s)) ,m)))
 		    (((! 'concat)) '()))
 
    (multiset-primary ((v <- value-expression-primary) v)
@@ -540,19 +544,18 @@
      (if (null? t*)
 	 t ;; todo merge union and except
 	 (cons t t*))))
-   (non-join-query-expression* ((u <- union-or-except s <- set-quantifiler* 
+   (non-join-query-expression* ((u <- union-or-except s <- set-quantifier* 
 				 c <- corresponding-spec
 				 q <- query-term)
 				`(,u ,@s ,@c ,q))
 			       (() '()))
    (union-or-except (('union) 'union)
 		    (('except) 'except))
-   (set-quantifiler*  ((s <- set-quantifiler) (list s))
+   (set-quantifier*  ((s <- set-quantifier) (list s))
 		      (() '()))
    (corresponding-spec (('corresponding) (list 'corresponding))
 		       (('corresponding 'by '#\( c <- column-name-list '#\))
-			;; TODO should we put 'by'?
-			`((corresponding ,@c)))
+			`((corresponding-by ,@c)))
 		       (() '()))
    ;; differ from SQL 2003 BNF becuase of removing left side recursion.
    (query-term ((q <- non-join-query-term q* <- non-join-query-term*)
@@ -562,7 +565,7 @@
 		    (cons q q*)))
 	       ((j <- joined-table) j))
    (non-join-query-term ((q <- non-join-query-primary) q))
-   (non-join-query-term* (('intersect s <- set-quantifiler*
+   (non-join-query-term* (('intersect s <- set-quantifier*
 			    c <- corresponding-spec qp <- query-primary)
 			  ;; TODO should this be like this?
 			  `(intersect ,@s ,q ,@c ,qp)))
@@ -619,7 +622,7 @@
    ;; 8.1 predicate
    (predicate ((c <- comparison-predicate) c)
 	      ((b <- between-predicate) b)
-	      ;;((i <- in-predicate) i)
+	      ((i <- in-predicate) i)
 	      ;;((p <- like-predicate) p)
 	      ;;((p <- similar-predicate) p)
 	      ;;((p <- null-predicate) p)
@@ -652,7 +655,7 @@
 			r1 <- row-value-predicand
 			'and
 			r2 <- row-value-predicand)
-		       `(not (,t ,r0 ,r1 ,r2)))
+		       `(,(symbol-append 'not- t) ,r0 ,r1 ,r2))
 		      ((r0 <- row-value-predicand 
 			t <- between-type
 			r1 <- row-value-predicand
@@ -662,6 +665,18 @@
    (between-type (('between 'asymmetric) 'between-asymmetric)
 		 (('between 'symmetric)  'between-symmetric)
 		 (('between)             'between))
+
+   ;; 8.4 in predicate
+   (in-predicate ((r <- row-value-predicand 'not 'in v <- in-predicate-value)
+		  `(not-in ,r ,v))
+		 ((r <- row-value-predicand 'in v <- in-predicate-value)
+		  `(in ,r ,v)))
+   (in-predicate-value ((t <- table-subquery) t)
+		       (('#\( v <- in-value-list '#\)) v))
+   (in-value-list ((v <- row-value-expression v* <- in-value-list*)
+		   (cons v v*)))
+   (in-value-list* (('#\, v <- in-value-list) v)
+		   (() '()))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))

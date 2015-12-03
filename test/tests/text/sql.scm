@@ -43,17 +43,18 @@
 
 ;; multiset
 (test-parse "SELECT ntab MULTISET EXCEPT DISTINCT ntab2 mset_except;"
-	    '(select ((as (multiset except distinct ntab ntab2) mset_except))))
+	    '(select ((as (multiset-except-distinct ntab ntab2) mset_except))))
 (test-parse "SELECT ntab MULTISET UNION DISTINCT ntab2 mset_union;"
-	    '(select ((as (multiset union distinct ntab ntab2) mset_union))))
+	    '(select ((as (multiset-union-distinct ntab ntab2) mset_union))))
 (test-parse "SELECT ntab MULTISET INTERSECT DISTINCT ntab2 mset;"
-	    '(select ((as (multiset intersect distinct ntab ntab2) mset))))
+	    '(select ((as (multiset-intersect-distinct ntab ntab2) mset))))
+
 ;; nested
 ;; NB: the nested order may change in future such as inner most would be
 ;;     outer most. (in this case intersect would be the first multiset)
 ;;     so don't document how it would be yet.
 (test-parse "SELECT ntab MULTISET UNION ntab2 MULTISET INTERSECT ntab3 mset;"
-	    '(select ((as (multiset union ntab (multiset intersect ntab2 ntab3))
+	    '(select ((as (multiset-union ntab (multiset-intersect ntab2 ntab3))
 			  mset))))
 
 ;; join
@@ -85,11 +86,35 @@
 (test-parse "select * from t where 1=1 and (2=2 or 3=3)" 
 	    '(select * (from t) (where (and (= 1 1) (or (= 2 2) (= 3 3))))))
 
+;; between
+(test-parse "select * from t where a between 1 and 2" 
+	    '(select * (from t) (where (between a 1 2))))
+(test-parse "select * from t where a between asymmetric 1 and 2" 
+	    '(select * (from t) (where (between-asymmetric a 1 2))))
+(test-parse "select * from t where a between symmetric 1 and 2" 
+	    '(select * (from t) (where (between-symmetric a 1 2))))
+(test-parse "select * from t where a not between 1 and 2" 
+	    '(select * (from t) (where (not-between a 1 2))))
+(test-parse "select * from t where a not between asymmetric 1 and 2" 
+	    '(select * (from t) (where (not-between-asymmetric a 1 2))))
+(test-parse "select * from t where a not between symmetric 1 and 2" 
+	    '(select * (from t) (where (not-between-symmetric a 1 2))))
+
+;; in
+(test-parse "select * from t where a in (1, 2)" 
+	    '(select * (from t) (where (in a (1 2)))))
+(test-parse "select * from t where a not in (1, 2)" 
+	    '(select * (from t) (where (not-in a (1 2)))))
+(test-parse "select * from t where a in (select 1)" 
+	    '(select * (from t) (where (in a (select (1))))))
+
 ;; union, except and intersect
 (test-parse "select * from t union select * from w" 
 	    '(union (select * (from t)) (select * (from w))))
 (test-parse "select * from t union all select * from w" 
 	    '(union-all (select * (from t)) (select * (from w))))
+(test-parse "select * from t union distinct select * from w" 
+	    '(union-distinct (select * (from t)) (select * (from w))))
 (test-parse "select * from t except select * from w" 
 	    '(except (select * (from t)) (select * (from w))))
 (test-parse "select * from t except all select * from w" 
