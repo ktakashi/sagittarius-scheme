@@ -541,13 +541,13 @@
    ;; TODO 
    (non-join-query-expression 
     ((t <- non-join-query-term t* <- non-join-query-expression*) 
-     (if (null? t*)
-	 t ;; todo merge union and except
-	 (cons t t*))))
+     (resolve-term t t*)))
    (non-join-query-expression* ((u <- union-or-except s <- set-quantifier* 
 				 c <- corresponding-spec
 				 q <- query-term)
-				`(,u ,@s ,@c ,q))
+				(if (null? s)
+				    `(,u ,@c ,q)
+				    `(,(symbol-append u '- (car s)) ,@c ,q)))
 			       (() '()))
    (union-or-except (('union) 'union)
 		    (('except) 'except))
@@ -558,17 +558,20 @@
 			`((corresponding-by ,@c)))
 		       (() '()))
    ;; differ from SQL 2003 BNF becuase of removing left side recursion.
-   (query-term ((q <- non-join-query-term q* <- non-join-query-term*)
-		(if (null? q*)
-		    q
-		    ;; TODO handle INTERSECT properly 
-		    (cons q q*)))
+   ;; TODO may not be correct
+   (query-term ((q <- non-join-query-term) q)
 	       ((j <- joined-table) j))
-   (non-join-query-term ((q <- non-join-query-primary) q))
+   (non-join-query-term ((q <- non-join-query-primary
+			  q* <- non-join-query-term*)
+			 (resolve-term q q*)))
    (non-join-query-term* (('intersect s <- set-quantifier*
 			    c <- corresponding-spec qp <- query-primary)
 			  ;; TODO should this be like this?
-			  `(intersect ,@s ,q ,@c ,qp)))
+			  (if (null? s)
+			      `(intersect ,@c ,qp)
+			      `(,(symbol-append 'intersect- (car s))
+				,@c ,qp)))
+			 (() '()))
    (query-primary ((q <- non-join-query-primary) q)
 		  ((j <- joined-table) j))
    (non-join-query-primary ((s <- simple-table) s)

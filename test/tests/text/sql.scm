@@ -128,4 +128,22 @@
 	    '(select * (from (as (union (select * (from t)) 
 					(select * (from w))) t))))
 
+(test-parse "select (select * from t union select * from w)"
+	    '(select ((union (select * (from t)) (select * (from w))))))
+(test-parse "select (select * from t union all select * from w)"
+	    '(select ((union-all (select * (from t)) (select * (from w))))))
+(test-parse "select (select * from t intersect select * from w)"
+	    '(select ((intersect (select * (from t)) (select * (from w))))))
+(test-parse "select (select * from t intersect all select * from w)"
+	    '(select ((intersect-all (select * (from t)) (select * (from w))))))
+
+(test-parse "select ((select a from t) union (select b from w))"
+	    '(select ((union (select (a) (from t)) (select (b) (from w))))))
+(test-parse "select ((select a from t) intersect (select b from w))"
+	    '(select ((intersect (select (a) (from t)) (select (b) (from w))))))
+(test-parse "select ((select 1) union (select 2) intersect (select 3))"
+	    '(select ((union (select (1)) 
+			     (intersect (select (2)) (select (3)))))))
+
+
 (test-end)
