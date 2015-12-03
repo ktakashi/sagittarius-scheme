@@ -84,6 +84,9 @@
       term
       `(,op ,term)))
 
+(define (symbol-append . args)
+  (string->symbol (string-concatenate (map symbol->string args))))
+
 ;; handling operators
 ;;
 ;; form numeric 
@@ -189,11 +192,11 @@
    (table-reference-list* (('#\, t <- table-reference-list) t)
 			  (() '()))
    ;; TODO sample clause
-   (table-reference #;((t <- table-primary-or-join s <- sample-clause) 
+   (table-reference #;((t <- table-primary-or-joined-table s <- sample-clause) 
 		     (cons t s))
-		    ((t <- table-primary-or-join) t))
-   (table-primary-or-join ((t <- table-primary) t)
-			  #;((j <- join-clause) j))
+		    ((t <- table-primary-or-joined-table) t))
+   (table-primary-or-joined-table ((j <- joined-table)  j)
+				  ((t <- table-primary) t))
    ;; TODO properly done
    ;; helper for AS alias(col ...)
    (table-as-expr (('as n <- correlation-name 
@@ -556,8 +559,38 @@
    (explicit-table (('table t <- table-or-query-name) `(table ,t)))
 
    ;; 7.7 joine table
-   ;; TODO 
-   (joined-table (() '()))
+   (joined-table ((j <- cross-join) j)
+		 ((j <- qualified-join) j)
+		 ((j <- natural-join) j)
+		 ((j <- union-join) j))
+
+   (cross-join ((t1 <- table-primary 'cross 'join t2 <- table-primary)
+		`(cross-join ,t1 ,t2)))
+   (qualified-join ((t1 <- table-primary j <- join-type
+		    'join t2 <- table-reference js <- join-specification)
+		    `(,(symbol-append j '- 'join) ,t1 ,t2 ,js))
+		   ((t1 <- table-primary 'join t2 <- table-reference
+		     j <- join-specification)
+		    `(join ,t1 ,t2 ,j)))
+   (natural-join ((t1 <- table-primary 'natural j <- join-type
+		   'join t2 <- table-primary)
+		  `(,(symbol-append 'natural '- j '- 'join) ,t1 ,t2))
+		 ((t1 <- table-primary 'natural 'join t2 <- table-primary)
+		    `(natural-join ,t1 ,t2)))
+   (union-join ((t1 <- table-primary 'union 'join t2 <- table-primary)
+		`(union-join ,t1 ,t2)))
+   (join-specification ((c <- join-condition) c)
+		       ((c <- named-columns-join) c))
+   (join-condition (('on s <- search-condition) `(on ,s)))
+   (named-columns-join (('using '#\( c <- column-name-list '#\)) 
+			(cons 'using c)))
+
+   (join-type (('inner) 'inner)
+	      ((o <- outer-join-type 'outer) (symbol-append o '- 'outer))
+	      ((o <- outer-join-type) o))
+   (outer-join-type (('left) 'left)
+		    (('right) 'right)
+		    (('full) 'full))
 
    ;; subquery
    (scalar-subquery ((s <- subquery) s))
