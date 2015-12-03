@@ -344,7 +344,7 @@
       output-buffer-size)
 
     (define (read! bv start count)
-      (define (copy-buffer! i n)
+      (define (copy-buffer! i n count)
 	(let ((size (min n count)))
 	  (bytevector-copy! output-buffer 0 bv i size)
 	  (set! output-buffer-size (- output-buffer-size size))
@@ -355,13 +355,13 @@
       (let loop ((i start) (set 0))
 	(cond ((= set count) count)
 	      ((not (zero? output-buffer-size))
-	       (let ((size (copy-buffer! i output-buffer-size)))
+	       (let ((size (copy-buffer! i output-buffer-size (- count set))))
 		 (loop (+ i size) (+ set size))))
 	      (else
 	       (let ((n (decode1)))
 		 (if (zero? n)
 		     set
-		     (let ((size (copy-buffer! i n)))
+		     (let ((size (copy-buffer! i n (- count set))))
 		       (loop (+ i size) (+ set size)))))))))
 
     (define (close) (when owner? (close-port source)))
