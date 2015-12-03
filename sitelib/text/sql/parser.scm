@@ -618,7 +618,7 @@
 
    ;; 8.1 predicate
    (predicate ((c <- comparison-predicate) c)
-	      ;;((b <- between-predicate) b)
+	      ((b <- between-predicate) b)
 	      ;;((i <- in-predicate) i)
 	      ;;((p <- like-predicate) p)
 	      ;;((p <- similar-predicate) p)
@@ -645,6 +645,23 @@
 	    (('#\>) '>)
 	    (('<=) '<=)
 	    (('>=) '>=))
+
+   ;; 8.3 between predicate
+   (between-predicate ((r0 <- row-value-predicand 
+			'not t <- between-type
+			r1 <- row-value-predicand
+			'and
+			r2 <- row-value-predicand)
+		       `(not (,t ,r0 ,r1 ,r2)))
+		      ((r0 <- row-value-predicand 
+			t <- between-type
+			r1 <- row-value-predicand
+			'and
+			r2 <- row-value-predicand)
+		       `(,t ,r0 ,r1 ,r2)))
+   (between-type (('between 'asymmetric) 'between-asymmetric)
+		 (('between 'symmetric)  'between-symmetric)
+		 (('between)             'between))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
