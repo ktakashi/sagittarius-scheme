@@ -124,16 +124,34 @@
    (stmt ((s <- query-specification) s)
 	 ;; TODO more
 	 )
+   ;; SQL 2003 BND seems not allow to connect SELECT with UNION
+   ;; I don't know if this is oversight or proper specification
+   ;; but restricting like that is very inconvenient. so we
+   ;; need to do like this
+   (query-specification ((s <- select-clause q <- query-specification*)
+			 (resolve-term s q))
+			((s <- select-clause) s))
+   (query-specification* ((u <- union-or-except s <- set-quantifiler*
+			   q <- query-specification)
+			  (if (null? s)
+			      `(,u ,q)
+			      `(,(symbol-append u '- (car s)) ,q)))
+			 (('intersect s <- set-quantifiler*
+			   q <- query-specification)
+			  (if (null? s)
+			      `(intersect ,q)
+			      `(,(symbol-append 'intersect '- (car s)) ,q))))
+
    ;; 7.12 query specification
-   (query-specification (('select c <- select-list t <- table-expression) 
-			 (cons* 'select c t))
-			;; select (distinct|all) column from table
-			(('select q <- set-quantifiler 
-				  c <- select-list 
-				  t <- table-expression) 
-			 (cons* 'select q c t))
-			;; extension: select 1+1; or so
-			(('select c <- select-list) (list 'select c)))
+   (select-clause (('select c <- select-list t <- table-expression) 
+		   (cons* 'select c t))
+		  ;; select (distinct|all) column from table
+		  (('select q <- set-quantifiler 
+			    c <- select-list 
+			    t <- table-expression) 
+		   (cons* 'select q c t))
+		  ;; extension: select 1+1; or so
+		  (('select c <- select-list) (list 'select c)))
    (select-list (('#\*) '*)
 		((s <- select-sublist) s))
    (select-sublist ((q <- qualified-asterisk s* <- select-sublist*) 
@@ -530,7 +548,7 @@
    (union-or-except (('union) 'union)
 		    (('except) 'except))
    (set-quantifiler*  ((s <- set-quantifiler) (list s))
-		    (() '()))
+		      (() '()))
    (corresponding-spec (('corresponding) (list 'corresponding))
 		       (('corresponding 'by '#\( c <- column-name-list '#\))
 			;; TODO should we put 'by'?

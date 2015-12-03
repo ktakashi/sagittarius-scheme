@@ -85,4 +85,22 @@
 (test-parse "select * from t where 1=1 and (2=2 or 3=3)" 
 	    '(select * (from t) (where (and (= 1 1) (or (= 2 2) (= 3 3))))))
 
+;; union, except and intersect
+(test-parse "select * from t union select * from w" 
+	    '(union (select * (from t)) (select * (from w))))
+(test-parse "select * from t union all select * from w" 
+	    '(union-all (select * (from t)) (select * (from w))))
+(test-parse "select * from t except select * from w" 
+	    '(except (select * (from t)) (select * (from w))))
+(test-parse "select * from t except all select * from w" 
+	    '(except-all (select * (from t)) (select * (from w))))
+(test-parse "select * from t intersect select * from w" 
+	    '(intersect (select * (from t)) (select * (from w))))
+(test-parse "select * from t intersect all select * from w" 
+	    '(intersect-all (select * (from t)) (select * (from w))))
+
+(test-parse "select * from (select * from t union select * from w) as t" 
+	    '(select * (from (as (union (select * (from t)) 
+					(select * (from w))) t))))
+
 (test-end)
