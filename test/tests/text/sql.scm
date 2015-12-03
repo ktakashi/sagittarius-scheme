@@ -59,5 +59,15 @@
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
 	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
 
+;; where
+(test-parse "select * from t where 1=1" '(select * (from t) (where (= 1 1))))
+(test-parse "select * from t where 1=1 or 2=2" 
+	    '(select * (from t) (where (or (= 1 1) (= 2 2)))))
+(test-parse "select * from t where 1=1 and 2=2" 
+	    '(select * (from t) (where (and (= 1 1) (= 2 2)))))
+(test-parse "select * from t where 1=1 and 2=2 or 3=3" 
+	    '(select * (from t) (where (or (and (= 1 1) (= 2 2)) (= 3 3)))))
+(test-parse "select * from t where 1=1 and (2=2 or 3=3)" 
+	    '(select * (from t) (where (and (= 1 1) (or (= 2 2) (= 3 3))))))
 
 (test-end)

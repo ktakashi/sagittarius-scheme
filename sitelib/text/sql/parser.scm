@@ -83,15 +83,25 @@
   (if (and (pair? term) (eq? op (car term)))
       term
       `(,op ,term)))
-;; handling numeric operators
+
+;; handling operators
+;;
+;; form numeric 
 ;; 1*1 -> (* 1 1)
 ;; term  ::= factor
 ;; term* ::= (/ term) | (* term)
 ;; factor ::= value | (+ value) | (- value)
 ;; value is value expression so can be column, string, number, etc.
-(define (resolve-numeric-term factor term*)
-  (let ((expr (car term*)))
-    `(,expr ,factor ,@(cdr term*))))
+;;
+;; for boolean 
+;; term   :: = factor
+;; term*  :: = (and term)
+;; factor :: = value | (or value)
+(define (resolve-term factor term*)
+  (if (null? term*)
+      factor
+      (let ((expr (car term*)))
+	`(,expr ,factor ,@(cdr term*)))))
 
 (define sql-parser
   (packrat-parser
@@ -231,7 +241,7 @@
    (query-name ((i <- identifier) l))
    
    ;; where
-   (where-clause (('where s <- search-condition) (list (cons w s)))
+   (where-clause (('where s <- search-condition) (list (list 'where s)))
 		 (() '()))
 
    (search-condition ((b <- boolean-value-expression) b))
@@ -376,16 +386,14 @@
 		       (('multiset) 'multiset))
 
    (numeric-value-expression ((t <- term n* <- numeric-value-expression*)
-			      (if (null? n*)
-				  t
-				  (resolve-numeric-term t n*))))
+			      (resolve-term t n*)))
    (numeric-value-expression* (('#\+ n <- numeric-value-expression) 
 			       (resolve-term* '+ n))
 			      (('#\- n <- numeric-value-expression)
 			       (resolve-term* '- n))
 			      ;; rather ugly
 			      (((! concat-or-multiset)) '()))
-   (term ((f <- factor t <- term*) (if (null? t) f (resolve-numeric-term f t))))
+   (term ((f <- factor t <- term*) (resolve-term f t)))
    (term* (('#\* t <- term) (resolve-term* '* t))
 	  (('#\/ t <- term) (resolve-term* '/ t))
 	  ;; rather ugly
@@ -419,10 +427,13 @@
    ;; 6.3
    (value-expression-primary ((p <- parenthesized-value-expression) p)
 			     ((n <- nonparenthesized-value-expression) n))
-   (parenthesized-value-expression (('#\( v <- value-expression '#\)) (list v)))
+   (parenthesized-value-expression (('#\( v <- value-expression '#\)) v))
    (nonparenthesized-value-expression ((n <- 'number) n)
 				      ((b <- 'bit-string) b)
 				      ((s <- string) s)
+				      ;;TODO should we allow 'where true'?
+				      ;;(('true) #t)
+				      ;;(('false) #f)
 				      ((c <- column-reference) c)
 				      ;;((s <- set-function-specification) s)
 				      ;;((w <- window-function) w)
@@ -452,16 +463,17 @@
    (row-value-predicand ((n <- nonparenthesized-value-expression) n)
 			((r <- row-value-constructor-predicant) r))
 
-   ;; 
+   ;; boolean value expression
    (boolean-value-expression ((t <- boolean-term 
-			       b* <- boolean-value-expression*) 
-			      ;; TODO handle 'or
-			      (cons t b*)))
+			       b* <- boolean-value-expression*)
+			      (resolve-term t b*)))
    (boolean-value-expression* (('or b <- boolean-term) (list 'or b))
 			      (() '()))
-   (boolean-term ((f <- boolean-factor t* <- boolean-term*) (cons f t*)))
-   (boolean-term* (('and b <- boolean-term) (list 'and b))
-		  (() ()))
+   (boolean-term ((f <- boolean-factor t* <- boolean-term*) 
+		  (resolve-term f t*)))
+   (boolean-term* (('and b <- boolean-term) 
+		   (list 'and b))
+		  (() '()))
    (boolean-factor (('not t <- boolean-test) (list 'not t))
 		   ((t <- boolean-test) t))
    (boolean-test ((b <- boolean-primary 'is 'not t <- truth-value)
@@ -471,12 +483,12 @@
    (truth-value (('true) #t)
 		(('false) #f)
 		(('unknown) 'unknown))
-   (boolean-primary ((b <- boolean-predicand) b)
-		    ((p <- predicate) p))
+   (boolean-primary ((p <- predicate) p)
+		    ((b <- boolean-predicand) b))
    (boolean-predicand ((p <- parenthesized-boolean-value-expression) p)
 		      ((n <- nonparenthesized-value-expression) n))
    (parenthesized-boolean-value-expression
-    (('#\( b <- boolean-value-expression '#\)) (list b)))
+    (('#\( b <- boolean-value-expression '#\)) b))
 
 
    ;; 7.13 query expression
@@ -504,14 +516,14 @@
    ;; TODO 
    (non-join-query-expression 
     ((t <- non-join-query-term t* <- non-join-query-expression*) 
-     (if t*
-	 (cons t t*) ;; todo merge union and except
-	 t)))
+     (if (null? t*)
+	 t ;; todo merge union and except
+	 (cons t t*))))
    (non-join-query-expression* ((u <- union-or-except s <- set-quantifiler* 
 				 c <- corresponding-spec
 				 q <- query-term)
 				`(,u ,@s ,@c ,q))
-			       (() #f))
+			       (() '()))
    (union-or-except (('union) 'union)
 		    (('except) 'except))
    (set-quantifiler*  ((s <- set-quantifiler) (list s))
@@ -521,19 +533,24 @@
 			;; TODO should we put 'by'?
 			`((corresponding ,@c)))
 		       (() '()))
-   (query-term ((q <- non-join-query-term) q)
+   ;; differ from SQL 2003 BNF becuase of removing left side recursion.
+   (query-term ((q <- non-join-query-term q* <- non-join-query-term*)
+		(if (null? q*)
+		    q
+		    ;; TODO handle INTERSECT properly 
+		    (cons q q*)))
 	       ((j <- joined-table) j))
-   (non-join-query-term ((q <- non-join-query-primary) q)
-			((q <- query-term 'intersect s <- set-quantifiler*
-			  c <- corresponding-spec qp <- query-primary)
-			 ;; TODO should this be like this?
-			 `(intersect ,@s ,q ,@c ,qp)))
+   (non-join-query-term ((q <- non-join-query-primary) q))
+   (non-join-query-term* (('intersect s <- set-quantifiler*
+			    c <- corresponding-spec qp <- query-primary)
+			  ;; TODO should this be like this?
+			  `(intersect ,@s ,q ,@c ,qp)))
    (query-primary ((q <- non-join-query-primary) q)
 		  ((j <- joined-table) j))
    (non-join-query-primary ((s <- simple-table) s)
-			   (('#\( q <- non-join-query-expression '#\))
-			    (list q)))
+			   (('#\( q <- non-join-query-expression '#\)) q))
    (simple-table ((q <- query-specification) q)
+		 ;; TODO
 		 ;; ((t <- table-value-constructor) t)
 		 ((t <- explicit-table) t))
    (explicit-table (('table t <- table-or-query-name) `(table ,t)))
@@ -546,7 +563,6 @@
    (scalar-subquery ((s <- subquery) s))
    (row-subquery ((s <- subquery) s))
    (table-subquery ((s <- subquery) s))
-   ;; TODO how to represents?
    (subquery (('#\( q <- query-expression '#\)) q))
 
    ;; 8.1 predicate
