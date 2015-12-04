@@ -108,6 +108,25 @@
 (test-parse "select * from t where a in (select 1)" 
 	    '(select * (from t) (where (in a (select (1))))))
 
+;; like
+(test-parse "select * from t where a like 'a'" 
+	    '(select * (from t) (where (like a "a"))))
+(test-parse "select * from t where a like 'a$_' escape '$'" 
+	    '(select * (from t) (where (like a "a$_" (escape "$")))))
+(test-parse "select * from t where a not like 'a'" 
+	    '(select * (from t) (where (not-like a "a"))))
+(test-parse "select * from t where a not like 'a$_' escape '$'" 
+	    '(select * (from t) (where (not-like a "a$_" (escape "$")))))
+(test-parse "select * from t where a ilike 'a'" 
+	    '(select * (from t) (where (ilike a "a"))))
+(test-parse "select * from t where a ilike 'a$_' escape '$'" 
+	    '(select * (from t) (where (ilike a "a$_" (escape "$")))))
+(test-parse "select * from t where a not ilike 'a'" 
+	    '(select * (from t) (where (not-ilike a "a"))))
+(test-parse "select * from t where a not ilike 'a$_' escape '$'" 
+	    '(select * (from t) (where (not-ilike a "a$_" (escape "$")))))
+
+
 ;; union, except and intersect
 (test-parse "select * from t union select * from w" 
 	    '(union (select * (from t)) (select * (from w))))

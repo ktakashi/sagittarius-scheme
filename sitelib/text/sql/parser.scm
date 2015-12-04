@@ -124,7 +124,7 @@
    (stmt ((s <- query-specification) s)
 	 ;; TODO more
 	 )
-   ;; SQL 2003 BND seems not allow to connect SELECT with UNION
+   ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
    ;; I don't know if this is oversight or proper specification
    ;; but restricting like that is very inconvenient. so we
    ;; need to do like this
@@ -626,7 +626,7 @@
    (predicate ((c <- comparison-predicate) c)
 	      ((b <- between-predicate) b)
 	      ((i <- in-predicate) i)
-	      ;;((p <- like-predicate) p)
+	      ((p <- like-predicate) p)
 	      ;;((p <- similar-predicate) p)
 	      ;;((p <- null-predicate) p)
 	      ;;((p <- qualified-comparison-predicate) p)
@@ -641,6 +641,8 @@
 	      ;;((p <- set-predicate) p)
 	      ;;((p <- type-predicate) p)
 	      )
+
+   ;; 8.2 comparison predicate
    (comparison-predicate ((r1 <- row-value-predicand
 			   op <- comp-op
 			   r2 <- row-value-predicand)
@@ -681,6 +683,23 @@
    (in-value-list* (('#\, v <- in-value-list) v)
 		   (() '()))
 
+
+   ;; 8.5 like predicate
+   ;; NB: we don't make difference between character and blob
+   (like-predicate ((r0 <- row-value-predicand
+		     'not l <- like-operator 
+		     r1 <- character-value-expression 
+		     e <- character-escape)
+		    `(,(symbol-append 'not- l) ,r0 ,r1 ,@e))
+		   ((r0 <- row-value-predicand
+		     l <- like-operator
+		     r1 <- character-value-expression
+		     e <- character-escape)
+		    `(,l ,r0 ,r1 ,@e)))
+   (like-operator (('like) 'like)
+		  ;; ilike is *not* a keyword so compare with value.
+		  (((=? 'ilike)) 'ilike)) ;; for PostgreSQL
+
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
 
@@ -711,6 +730,10 @@
 					 "invalid use of UESCAPE" #f #f))
 	    `(,@s uescape ,c))
 	   ((s <- 'string) s))
+   ;; escape
+   (character-escape (('escape s <- 'string) `((escape ,s)))
+		     (() '()))
+		      
    ))
 
 ;; almost the same as &markdown-parser-error
