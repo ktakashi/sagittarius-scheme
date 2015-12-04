@@ -344,13 +344,106 @@
    ;;       in common on underlying expressions.
    (common-value-expression ((n <- numeric-value-expression) n)
 			    ((s <- string-value-expression)  s)
-			    ;;((d <- datetime-value-expression) d)
-			    ;;((i <- interval-value-expression) i)
+			    ((d <- datetime-value-expression) d)
+			    ((i <- interval-value-expression) i)
 			    ;; these 2 are not needed at all.
 			    ;;((u <- user-define-type-value-expression) u)
 			    ;;((r <- reference-value-expression) r)
 			    ((c <- collection-value-expression) c)
 			    ((v <- value-expression-primary) v))
+
+   ;; 6.30  datetime value expression
+   (datetime-value-expression 
+    ((d <- datetime-term d* <- datetime-value-expression*) (cons d d*))
+    ;; TODO this may be left side recursion
+    ((i <- interval-value-expression '#\+ d <- datetime-term) (cons i d)))
+
+   (datetime-value-expression* (('#\+ i <- interval-term) (list '+ i))
+			       (('#\- i <- interval-term) (list '- i))
+			       (((! concat-or-multiset)) '()))
+   (datetime-term ((d <- datetime-factor) d))
+   (datetime-factor ((p <- datetime-primary t <- timezone) (list p t))
+		    ((p <- datetime-primary) p))
+   (datetime-primary ((v <- value-expression-primary) v)
+		     ((f <- datetime-value-function) f))
+   (timezone (('at 'local i <- interval-primary) `(at local ,i))
+	     (('at 'time (=? 'zone) i <- interval-primary) `(at time-zone ,i)))
+
+   ;; 6.31  datetime value function
+   (datetime-value-function ((c <- 'current_date) 'current_date)
+			    ((c <- current-time-value-function) c)
+			    ((c <- current-timestamp-value-function) c)
+			    ((c <- current-local-time-value-function) c)
+			    ((c <- current-local-timestamp-value-function) c))
+   (current-time-value-function (('current_time '#\( p <- time-precision '#\))
+				 `(current_time ,p))
+				(('current_time) 'current_time))
+   (current-timestamp-value-function 
+    (('current_timestamp '#\( p <- time-precision '#\))
+     `(current_timestamp ,p))
+    (('current_timestamp) 'current_timestamp))
+   (current-local-time-value-function 
+    (('localtime '#\( p <- time-precision '#\))
+     `(localtime ,p))
+    (('localtime) 'localtime))
+   (current-local-timestamp-value-function 
+    (('localtimestamp '#\( p <- time-precision '#\))
+     `(localtimestamp ,p))
+    (('localtimestamp) 'localtimestamp))
+
+   ;; 6.32 interval value expression
+   (interval-value-expression 
+    ((i <- interval-term i* <- interval-value-expression*) (cons i i*))
+    (('#\( d <- datetime-value-expression '#\- t <- datetime-term '#\) 
+      q <- interval-qualifier)
+     `(,q (- ,d ,t))))
+   (interval-term ((i <- interval-factor i* <- interval-term*) (cons i i*))
+		  ((t <- term '#\* f <- interval-factor) (list '* t f)))
+   (interval-term* ((#'* f <- factor) (list '* f))
+		   ((#'/ f <- factor) (list '* f)))
+   (interval-factor ((s <- sign f <- interval-primary) (list s f))
+		    ((f <- interval-primary) f))
+   (interval-primary ((v <- value-expression-primary q <- interval-qualifier)
+		      (cons v q))
+		     ((v <- value-expression-primary) v)
+		     ((v <- interval-value-function) v))
+
+   ;; 6.33 interval value function
+   (interval-value-function (('abs '#\( e <- interval-value-expression '#\))
+			     `(abs ,e)))
+   ;; 10.1 interval quelifier
+   ;; TODO better representation
+   (interval-qualifier ((s <- start-field 'to e <- end-field)
+			`(to ,s ,e))
+		       ((d <- single-datetime-field) d))
+   (start-field ((n <- non-second-primary-datatime-field
+		  '#\( i <- interval-leading-field-precision '#\))
+		 (list n i))
+		((n <- non-second-primary-datatime-field) n))
+   (end-field ((n <- non-second-primary-datatime-field) n)
+	      (('second '#\( i <- interval-fractional-seconds-precision '#\))
+	       `(second ,i)))
+   (single-datetime-field 
+    ((n <- non-second-primary-datatime-field 
+      '#\( i <- interval-leading-field-precision '#\)) (list n i))
+    ((n <- non-second-primary-datatime-field) n)
+    (('second 
+      '#\( i <- interval-leading-field-precision
+         '#\, s <- interval-fractional-seconds-precision
+      '#\))
+     (list 'second (list i s)))
+    (('second '#\( i <- interval-leading-field-precision '#\))
+     (list 'second i))
+    (('second) 'second))
+   (non-second-primary-datatime-field (('year) 'year)
+				      (('month) 'month)
+				      (('day) 'day)
+				      (('hour) 'hour)
+				      (('minute) 'minute))
+   ;; TODO we should make sure this is unsigned integer
+   (interval-leading-field-precision ((n <- 'number) n))
+   (interval-fractional-seconds-precision ((n <- 'number) n))
+
    ;; these 2 are the same so we don't need it
    ;; (user-define-type-value-expression ((v <- value-expression-primary) v)
    ;; (reference-value-expression ((v <- value-expression-primary) v)
