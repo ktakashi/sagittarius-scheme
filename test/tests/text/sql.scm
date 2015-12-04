@@ -75,6 +75,23 @@
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
 	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
 
+;; order by
+(test-parse "select * from f order by a" '(select * (from f) (order-by a)))
+(test-parse "select * from f order by 1" '(select * (from f) (order-by 1)))
+(test-parse "select * from f order by a asc"
+	    '(select * (from f) (order-by (a asc))))
+(test-parse "select * from f order by a desc"
+	    '(select * (from f) (order-by (a desc))))
+(test-parse "select * from f order by a desc, b"
+	    '(select * (from f) (order-by (a desc) b)))
+(test-parse "select * from f order by a desc, b nulls first"
+	    '(select * (from f) (order-by (a desc) (b nulls-first))))
+(test-parse "select * from f order by a desc, b nulls last"
+	    '(select * (from f) (order-by (a desc) (b nulls-last))))
+(test-parse "select * from f order by a desc, b asc nulls last"
+	    '(select * (from f) (order-by (a desc) (b asc nulls-last))))
+
+
 ;; where
 (test-parse "select * from t where 1=1" '(select * (from t) (where (= 1 1))))
 (test-parse "select * from t where 1=1 or 2=2" 

@@ -124,6 +124,7 @@
    (stmt ((s <- query-specification) s)
 	 ;; TODO more
 	 )
+   ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
    ;; I don't know if this is oversight or proper specification
    ;; but restricting like that is very inconvenient. so we
@@ -142,16 +143,46 @@
 			      `(intersect ,q)
 			      `(,(symbol-append 'intersect '- (car s)) ,q))))
 
+   ;; NOTE:
+   ;; SQL 2003 BNF doesn't allow SELECT to have ORDER BY. This may
+   ;; be specified in the specification itself but not in BNF. So
+   ;; we just need to put like this.
+   ;; TODO: should we put this in `table-expression`?
+   (select-clause ((s <- select-w/o-order o <- order-by-clause)
+		   `(,@s ,o))
+		  ((s <- select-w/o-order) s))
+
+   ;; 14.1 order by clause
+   (order-by-clause (('order 'by s <- sort-specification-list) 
+		     (cons 'order-by s)))
+   (sort-specification-list 
+    ((s <- sort-specification s* <- sort-specification-list*) (cons s s*)))
+   (sort-specification-list* (('#\, s <- sort-specification-list) s)
+			     (() '()))
+   (sort-specification ((s <- sort-key o <- ordering-specification
+			 n <- null-ordering)
+			(if (and (null? o) (null? n))
+			    s
+			    `(,s ,@o ,@n))))
+   (sort-key ((v <- value-expression) v))
+   ;; interestingly, these are *not* reserved keyword
+   (ordering-specification (((=? 'asc)) '(asc))
+			   (((=? 'desc)) '(desc))
+			   (() '()))
+   (null-ordering (((=? 'nulls) (=? 'first)) '(nulls-first))
+		  (((=? 'nulls) (=? 'last)) '(nulls-last))
+		  (() '()))
+
    ;; 7.12 query specification
-   (select-clause (('select c <- select-list t <- table-expression) 
-		   (cons* 'select c t))
-		  ;; select (distinct|all) column from table
-		  (('select q <- set-quantifier 
-			    c <- select-list 
-			    t <- table-expression) 
-		   (cons* 'select q c t))
-		  ;; extension: select 1+1; or so
-		  (('select c <- select-list) (list 'select c)))
+   (select-w/o-order (('select c <- select-list t <- table-expression) 
+		      (cons* 'select c t))
+		     ;; select (distinct|all) column from table
+		     (('select q <- set-quantifier 
+			       c <- select-list 
+			       t <- table-expression) 
+		      (cons* 'select q c t))
+		     ;; extension: select 1+1; or so
+		     (('select c <- select-list) (list 'select c)))
    (select-list (('#\*) '*)
 		((s <- select-sublist) s))
    (select-sublist ((q <- qualified-asterisk s* <- select-sublist*) 
@@ -399,8 +430,8 @@
      `(,q (- ,d ,t))))
    (interval-term ((i <- interval-factor i* <- interval-term*) (cons i i*))
 		  ((t <- term '#\* f <- interval-factor) (list '* t f)))
-   (interval-term* ((#'* f <- factor) (list '* f))
-		   ((#'/ f <- factor) (list '* f)))
+   (interval-term* (('#\* f <- factor) (list '* f))
+		   (('#\/ f <- factor) (list '* f)))
    (interval-factor ((s <- sign f <- interval-primary) (list s f))
 		    ((f <- interval-primary) f))
    (interval-primary ((v <- value-expression-primary q <- interval-qualifier)
