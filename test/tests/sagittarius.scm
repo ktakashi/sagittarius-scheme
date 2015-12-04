@@ -1929,4 +1929,36 @@
   (test-assert "er compare vector" (foo #(a b c))))
 
 
+;; titlecase with special casing
+
+(let ()
+  (define Floo "\xFB02;oo")
+  (define Floo-bar "\xFB02;oo bar")
+  (define Baffle "Ba\xFB04;e")
+  (define LJUBLJANA "\x01C7;ub\x01C7;ana")
+  (define Ljubljana "\x01C8;ub\x01C9;ana")
+  (define ljubljana "\x01C9;ub\x01C9;ana")
+
+  (define-syntax test
+    (syntax-rules ()
+      ((_ expect expr)
+       (test-equal expect expect expr))))
+
+  (test "\x01C5;" (string-titlecase/special-casing "\x01C5;"))
+  (test "\x01C5;" (string-titlecase/special-casing "\x01C4;"))
+  (test "Ss" (string-titlecase/special-casing "\x00DF;"))
+  (test "Xi\x0307;" (string-titlecase/special-casing "x\x0130;"))
+  (test "\x1F88;" (string-titlecase/special-casing "\x1F80;"))
+  (test "Bar Baz" (string-titlecase/special-casing "bAr baZ"))
+  (test "Floo" (string-titlecase/special-casing "floo"))
+  (test "Floo" (string-titlecase/special-casing "FLOO"))
+  (test "Floo" (string-titlecase/special-casing Floo))
+  (test "Floo Bar" (string-titlecase/special-casing"floo bar"))
+  (test "Floo Bar" (string-titlecase/special-casing "FLOO BAR"))
+  (test "Floo Bar" (string-titlecase/special-casing Floo-bar))
+  (test Baffle (string-titlecase/special-casing Baffle))
+  (test Ljubljana (string-titlecase/special-casing LJUBLJANA))
+  (test Ljubljana (string-titlecase/special-casing Ljubljana))
+  (test Ljubljana (string-titlecase/special-casing ljubljana)))
+
 (test-end)

@@ -454,6 +454,13 @@
     :no-side-effect
     Sg_MaybeSubstring)
 
+  ;; for SRFI-129
+  (define-c-proc string-titlecase/special-casing
+    (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
+    :no-side-effect
+    (result (Sg_StringTitleCase (Sg_MaybeSubstring s start end) TRUE)))
+
+
   ;; hashtable
   (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
     :no-side-effect

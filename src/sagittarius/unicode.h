@@ -119,7 +119,7 @@ SG_EXTERN int      Sg_CharTitleCaseP(SgChar ch);
 /* string */
 SG_EXTERN SgObject Sg_StringUpCase(SgString *str);
 SG_EXTERN SgObject Sg_StringDownCase(SgString *str);
-SG_EXTERN SgObject Sg_StringTitleCase(SgString *str);
+SG_EXTERN SgObject Sg_StringTitleCase(SgString *str, int useSpecialCasing);
 SG_EXTERN SgObject Sg_StringFoldCase(SgString *str);
 
 SG_EXTERN SgObject Sg_StringNormalizeNfd(SgString *str);

@@ -631,7 +631,7 @@ size_t ustrlen(const SgChar *value)
 #include "../unicode/special-casing-lower.inc"
 #include "../unicode/special-casing-upper.inc"
 /* not used so for now make compiler shut */
-/* #include "../unicode/special-casing-title.inc" */
+#include "../unicode/special-casing-title.inc"
 #include "../unicode/decompose.inc"
 
 #define DECLARE_SIMPLE_CASE(name, how)				\
@@ -926,8 +926,7 @@ SgObject Sg_CategroyToSymbol(GeneralCategory cate)
 
 DECLARE_SPECIAL_CASING(special_casing_upper);
 DECLARE_SPECIAL_CASING(special_casing_lower);
-/* not used, so for now make compiler shut... */
-/* DECLARE_SPECIAL_CASING(special_casing_title); */
+DECLARE_SPECIAL_CASING(special_casing_title);
 DECLARE_SPECIAL_CASING(case_folding);
 DECLARE_SPECIAL_CASING(decompose);
 
@@ -970,7 +969,7 @@ SgObject Sg_StringUpCase(SgString *str)
       int j;
       for (j = 0; j < up_size; j++) {
 	if (s_special_casing_upper[r].out[j] == 0) break;
-	Sg_PutcUnsafe(out, Sg_CharUpCase(s_special_casing_upper[r].out[j]));
+	Sg_PutcUnsafe(out, s_special_casing_upper[r].out[j]);
       } 
     } else {
       Sg_PutcUnsafe(out, Sg_CharUpCase(SG_STRING_VALUE_AT(str, i)));
@@ -986,9 +985,37 @@ SgObject Sg_StringUpCase(SgString *str)
   }
 }
 
+static void special_casing_char_downcase(SgPort *out, SgChar ch, SgChar lastCh,
+					 int finalSigmaP)
+{
+  if (ch == 0x03A3) { 	/* greek capital letter sigma */
+    if (Sg_Ucs4WhiteSpaceP(lastCh)) {
+      Sg_PutcUnsafe(out, 0x03C3);
+    } else {
+      if (finalSigmaP) {
+	Sg_PutcUnsafe(out, 0x03C2); /* greek small letter final sigma */
+      } else {
+	Sg_PutcUnsafe(out, 0x03C3); /* greek small letter sigma */
+      }
+    }
+  } else {
+    int r = special_casing_lower(ch);
+    if (r >= 0) {
+      const int up_size = array_sizeof(s_special_casing_lower[r].out);
+      int j;
+      for (j = 0; j < up_size; j++) {
+	if (s_special_casing_lower[r].out[j] == 0) break;
+	Sg_PutcUnsafe(out, s_special_casing_lower[r].out[j]);
+      }
+    } else {
+      Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
+    }
+  }
+}
+
 SgObject Sg_StringDownCase(SgString *str)
 {
-  int i, size = SG_STRING_SIZE(str), r;
+  int i, size = SG_STRING_SIZE(str);
   SgPort *out;
   SgStringPort tp;
   SgObject newS;
@@ -998,31 +1025,7 @@ SgObject Sg_StringDownCase(SgString *str)
   out = SG_PORT(&tp);
   for (i = 0; i < size; i++, lastCh = ch) {
     ch = SG_STRING_VALUE_AT(str, i);
-    
-    if (ch == 0x03A3) { 	/* greek capital letter sigma */
-      if (Sg_Ucs4WhiteSpaceP(lastCh)) {
-	Sg_PutcUnsafe(out, 0x03C3);
-      } else {
-	if (final_sigma_p(i, str, out)) {
-	  Sg_PutcUnsafe(out, 0x03C2); /* greek small letter final sigma */
-	} else {
-	  Sg_PutcUnsafe(out, 0x03C3); /* greek small letter sigma */
-	}
-      }
-    } else {
-      r = special_casing_lower(ch);
-      if (r >= 0) {
-	const int up_size = array_sizeof(s_special_casing_lower[r].out);
-	int j;
-	for (j = 0; j < up_size; j++) {
-	  if (s_special_casing_lower[r].out[j] == 0) break;
-	  Sg_PutcUnsafe(out, 
-			Sg_CharDownCase(s_special_casing_lower[r].out[j]));
-	} 
-      } else {
-	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
-      }
-    }
+    special_casing_char_downcase(out, ch, lastCh, final_sigma_p(i, str, out));
   }
   newS = Sg_GetStringFromStringPort(&tp);
   SG_CLEAN_STRING_PORT(&tp);
@@ -1034,17 +1037,24 @@ SgObject Sg_StringDownCase(SgString *str)
   }
 }
 
-static int titlecase_first_char(int index, SgString *in, SgPort *out);
+static int titlecase_first_char(int index, SgString *in, SgPort *out,
+				int useSpecialCasing);
 
-static int downcase_subsequence(int index, SgString *in, SgPort *out)
+static int downcase_subsequence(int index, SgString *in, SgPort *out,
+				int useSpecialCasing)
 {
   int i, size = SG_STRING_SIZE(in);
-  SgChar ch;
-  for (i = index; i < size; i++) {
+  SgChar ch, lastCh = ' ';
+  for (i = index; i < size; i++, lastCh = ch) {
     ch = SG_STRING_VALUE_AT(in, i);
     switch (Sg_CharGeneralCategory(ch)) {
       case Ll: case Lu: case Lt:
-	Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
+	if (useSpecialCasing) {
+	  special_casing_char_downcase(out, ch, lastCh, 
+				       final_sigma_p(i, in, out));
+	} else {
+	  Sg_PutcUnsafe(out, Sg_CharDownCase(ch));
+	}
 	break;
     case Po: case Pf:
       if (ch == 0x0027 ||   /* mid letter # Po apostrophe */
@@ -1057,7 +1067,7 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out)
       } else {
 	Sg_PutcUnsafe(out, ch);
 	i++;
-	i += titlecase_first_char(i, in, out);
+	i += titlecase_first_char(i, in, out, useSpecialCasing);
       }
       break;
     case Nd:
@@ -1066,13 +1076,14 @@ static int downcase_subsequence(int index, SgString *in, SgPort *out)
     default:
       Sg_PutcUnsafe(out, ch);
       i++;
-      i += titlecase_first_char(i, in, out);
+      i += titlecase_first_char(i, in, out, useSpecialCasing);
     }
   }
   return i - index;
 }
 
-static int titlecase_first_char(int index, SgString *in, SgPort *out)
+static int titlecase_first_char(int index, SgString *in, SgPort *out,
+				int useSpecialCasing)
 {
   int i, size = SG_STRING_SIZE(in);
   SgChar ch;
@@ -1080,9 +1091,23 @@ static int titlecase_first_char(int index, SgString *in, SgPort *out)
     ch = SG_STRING_VALUE_AT(in, i);
     switch (Sg_CharGeneralCategory(ch)) {
     case Ll: case Lu: case Lt:
-      Sg_PutcUnsafe(out, Sg_CharTitleCase(ch));
+      if (useSpecialCasing) {
+	int r = special_casing_title(ch);
+	if (r >= 0) {
+	  const int title_size = array_sizeof(s_special_casing_title[r].out);
+	  int j;
+	  for (j = 0; j < title_size; j++) {
+	    if (s_special_casing_title[r].out[j] == 0) break;
+	    Sg_PutcUnsafe(out, s_special_casing_title[r].out[j]);
+	  }
+	} else {
+	  Sg_PutcUnsafe(out, Sg_CharTitleCase(ch));
+	}
+      } else {
+	Sg_PutcUnsafe(out, Sg_CharTitleCase(ch));
+      }
       i++;
-      i += downcase_subsequence(i, in, out);
+      i += downcase_subsequence(i, in, out, useSpecialCasing);
       break;
     default:
       Sg_PutcUnsafe(out, ch);
@@ -1092,7 +1117,7 @@ static int titlecase_first_char(int index, SgString *in, SgPort *out)
   return i - index;
 }
 
-SgObject Sg_StringTitleCase(SgString *str)
+SgObject Sg_StringTitleCase(SgString *str, int useSpecialCasing)
 {
   int size = SG_STRING_SIZE(str);
   SgPort *out;
@@ -1101,7 +1126,7 @@ SgObject Sg_StringTitleCase(SgString *str)
 
   Sg_InitStringOutputPort(&tp, size);
   out = SG_PORT(&tp);
-  titlecase_first_char(0, str, out);
+  titlecase_first_char(0, str, out, useSpecialCasing);
 
   newS = Sg_GetStringFromStringPort(&tp);
   SG_CLEAN_STRING_PORT(&tp);
