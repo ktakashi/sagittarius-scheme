@@ -143,6 +143,11 @@
 (test-parse "select * from t where a not ilike 'a$_' escape '$'" 
 	    '(select * (from t) (where (not-ilike a "a$_" (escape "$")))))
 
+;; is null
+(test-parse "select * from t where a is null"  
+	    '(select * (from t) (where (null? a))))
+(test-parse "select * from t where a is not null"  
+	    '(select * (from t) (where (not-null? a))))
 
 ;; union, except and intersect
 (test-parse "select * from t union select * from w" 

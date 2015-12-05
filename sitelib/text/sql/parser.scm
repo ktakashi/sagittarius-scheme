@@ -752,7 +752,7 @@
 	      ((i <- in-predicate) i)
 	      ((p <- like-predicate) p)
 	      ;;((p <- similar-predicate) p)
-	      ;;((p <- null-predicate) p)
+	      ((p <- null-predicate) p)
 	      ;;((p <- qualified-comparison-predicate) p)
 	      ;;((p <- exists-predicate) p)
 	      ;;((p <- unique-predicate) p)
@@ -823,6 +823,12 @@
    (like-operator (('like) 'like)
 		  ;; ilike is *not* a keyword so compare with value.
 		  (((=? 'ilike)) 'ilike)) ;; for PostgreSQL
+
+   ;; 8.7 null predicate
+   (null-predicate ((r <- row-value-predicand r2 <- null-predicate-2)
+		    `(,r2 ,r)))
+   (null-predicate-2 (('is 'not 'null) 'not-null?)
+		     (('is 'null) 'null?))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
