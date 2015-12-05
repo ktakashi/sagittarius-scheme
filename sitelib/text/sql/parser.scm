@@ -766,11 +766,15 @@
 	      ;;((p <- type-predicate) p)
 	      )
 
+   ;; NB: predicate-2 suffix thing seems needed for when operand
+   ;;     so it's deliberately there.
    ;; 8.2 comparison predicate
    (comparison-predicate ((r1 <- row-value-predicand
-			   op <- comp-op
-			   r2 <- row-value-predicand)
-			  (list op r1 r2)))
+			   r2 <- comparison-predicate-2)
+			  (cons* (car r2) r1 (cdr r2))))
+   (comparison-predicate-2 ((op <- comp-op
+			     r2 <- row-value-predicand)
+			    (list op r2)))
    (comp-op (('#\=) '=)
 	    (('<>) '<>)
 	    (('#\<) '<)
@@ -779,27 +783,30 @@
 	    (('>=) '>=))
 
    ;; 8.3 between predicate
-   (between-predicate ((r0 <- row-value-predicand 
-			'not t <- between-type
-			r1 <- row-value-predicand
-			'and
-			r2 <- row-value-predicand)
-		       `(,(symbol-append 'not- t) ,r0 ,r1 ,r2))
-		      ((r0 <- row-value-predicand 
-			t <- between-type
-			r1 <- row-value-predicand
-			'and
-			r2 <- row-value-predicand)
-		       `(,t ,r0 ,r1 ,r2)))
+   (between-predicate ((r0 <- row-value-predicand r1 <- between-predicate-2)
+		       `(,(car r1) ,r0 ,@(cdr r1))))
+
+   (between-predicate-2 (('not t <- between-type
+			  r1 <- row-value-predicand
+			  'and
+			  r2 <- row-value-predicand)
+			 `(,(symbol-append 'not- t) ,r1 ,r2))
+			((t <- between-type
+			  r1 <- row-value-predicand
+			  'and
+			  r2 <- row-value-predicand)
+			 `(,t ,r1 ,r2)))
    (between-type (('between 'asymmetric) 'between-asymmetric)
 		 (('between 'symmetric)  'between-symmetric)
 		 (('between)             'between))
 
    ;; 8.4 in predicate
-   (in-predicate ((r <- row-value-predicand 'not 'in v <- in-predicate-value)
-		  `(not-in ,r ,v))
-		 ((r <- row-value-predicand 'in v <- in-predicate-value)
-		  `(in ,r ,v)))
+   (in-predicate ((r <- row-value-predicand r1 <- in-predicate-2)
+		  `(,(car r1) ,r ,@(cdr r1))))
+   (in-predicate-2 (('not 'in v <- in-predicate-value)
+		    `(not-in ,v))
+		   (('in v <- in-predicate-value)
+		    `(in ,v)))
    (in-predicate-value ((t <- table-subquery) t)
 		       (('#\( v <- in-value-list '#\)) v))
    (in-value-list ((v <- row-value-expression v* <- in-value-list*)
@@ -810,16 +817,16 @@
 
    ;; 8.5 like predicate
    ;; NB: we don't make difference between character and blob
-   (like-predicate ((r0 <- row-value-predicand
-		     'not l <- like-operator 
-		     r1 <- character-value-expression 
-		     e <- character-escape)
-		    `(,(symbol-append 'not- l) ,r0 ,r1 ,@e))
-		   ((r0 <- row-value-predicand
-		     l <- like-operator
-		     r1 <- character-value-expression
-		     e <- character-escape)
-		    `(,l ,r0 ,r1 ,@e)))
+   (like-predicate ((r0 <- row-value-predicand r1 <- like-predicate-2)
+		    `(,(car r1) ,r0 ,@(cdr r1))))
+   (like-predicate-2 (('not l <- like-operator 
+			r1 <- character-value-expression 
+			e <- character-escape)
+		      `(,(symbol-append 'not- l) ,r1 ,@e))
+		     ((l <- like-operator
+		       r1 <- character-value-expression
+		       e <- character-escape)
+		      `(,l ,r1 ,@e)))
    (like-operator (('like) 'like)
 		  ;; ilike is *not* a keyword so compare with value.
 		  (((=? 'ilike)) 'ilike)) ;; for PostgreSQL
