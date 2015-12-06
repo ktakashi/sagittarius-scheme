@@ -754,8 +754,8 @@
 	      ;;((p <- similar-predicate) p)
 	      ((p <- null-predicate) p)
 	      ;;((p <- qualified-comparison-predicate) p)
-	      ;;((p <- exists-predicate) p)
-	      ;;((p <- unique-predicate) p)
+	      ((p <- exists-predicate) p)
+	      ((p <- unique-predicate) p)
 	      ;;((p <- normalized-predicate) p)
 	      ;;((p <- match-predicate) p)
 	      ;;((p <- overlaps-predicate) p)
@@ -836,6 +836,12 @@
 		    `(,r2 ,r)))
    (null-predicate-2 (('is 'not 'null) 'not-null?)
 		     (('is 'null) 'null?))
+
+   ;; 8.9 exists predicate
+   (exists-predicate (('exists s <- table-subquery) (list 'exists s)))
+
+   ;; 8.10 unique predicate
+   (unique-predicate (('unique s <- table-subquery) (list 'unique s)))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))

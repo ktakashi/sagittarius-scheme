@@ -149,6 +149,14 @@
 (test-parse "select * from t where a is not null"  
 	    '(select * (from t) (where (not-null? a))))
 
+;; exists
+(test-parse "select * from t where exists (select * from f);"
+	    '(select * (from t) (where (exists (select * (from f))))))
+
+;; unique
+(test-parse "select * from t where unique (select * from f);"
+	    '(select * (from t) (where (unique (select * (from f))))))
+
 ;; union, except and intersect
 (test-parse "select * from t union select * from w" 
 	    '(union (select * (from t)) (select * (from w))))
