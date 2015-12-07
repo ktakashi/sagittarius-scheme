@@ -753,11 +753,11 @@
 	      ((p <- like-predicate) p)
 	      ((p <- similar-predicate) p)
 	      ((p <- null-predicate) p)
-	      ;;((p <- qualified-comparison-predicate) p)
+	      ((p <- quantified-comparison-predicate) p)
 	      ((p <- exists-predicate) p)
 	      ((p <- unique-predicate) p)
-	      ;;((p <- normalized-predicate) p)
-	      ;;((p <- match-predicate) p)
+	      ((p <- normalized-predicate) p)
+	      ((p <- match-predicate) p)
 	      ;;((p <- overlaps-predicate) p)
 	      ;;((p <- distinct-predicate) p)
 	      ;;((p <- member-predicate) p)
@@ -849,11 +849,48 @@
    (null-predicate-2 (('is 'not 'null) 'not-null?)
 		     (('is 'null) 'null?))
 
+   ;; 8.8 quantified comparison predicate
+   (quantified-comparison-predicate ((r0 <- row-value-predicand
+				      r1 <- quantified-comparison-predicate-2)
+				     (cons* (car r1) r0 (cdr r1))))
+   (quantified-comparison-predicate-2 ((o <- comp-op
+					q <- quantifier
+					s <- table-subquery)
+				       `(,(symbol-append o '- q) ,s)))
+   (quantifier (('all) 'all)
+	       (('some) 'some)
+	       (('any) 'any))
+
    ;; 8.9 exists predicate
    (exists-predicate (('exists s <- table-subquery) (list 'exists s)))
 
    ;; 8.10 unique predicate
    (unique-predicate (('unique s <- table-subquery) (list 'unique s)))
+
+   ;; 8.11 normalized predicate
+   (normalized-predicate ((s <- string-value-expression 'is 'not 
+			     (=? 'normalized))
+			  `(not-normalized? ,s))
+			 ((s <- string-value-expression 'is (=? 'normalized))
+			  `(normalized? ,s)))
+
+   ;; 8.12 match predicate
+   (match-predicate ((r0 <- row-value-predicand r1 <- match-predicate-2)
+		     (cons* (car r1) r0 (cdr r1))))
+   (match-predicate-2 (('match 'unique m <- match-type t <- table-subquery)
+		       `(,(if (null? m)
+			      'match-unique
+			      (symbol-append 'match-unique- (car m)))
+			 ,t))
+		      (('match m <- match-type t <- table-subquery)
+		       `(,(if (null? m)
+			      'match
+			      (symbol-append 'match- (car m))) ,t)))
+   (match-type (((=? 'simple)) '(simple))
+	       (((=? 'partial)) '(partial))
+	       (((=? 'full)) '(full))
+	       (() '()))
+   
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))

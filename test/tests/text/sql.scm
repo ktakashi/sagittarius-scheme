@@ -155,6 +155,42 @@
 (test-parse "select * from t where a is not null"  
 	    '(select * (from t) (where (not-null? a))))
 
+;; quantifier
+(test-parse "select * from t where a = all (select b from f)"
+	    '(select * (from t) (where (=-all a (select (b) (from f))))))
+(test-parse "select * from t where a = some (select b from f)"
+	    '(select * (from t) (where (=-some a (select (b) (from f))))))
+(test-parse "select * from t where a = any (select b from f)"
+	    '(select * (from t) (where (=-any a (select (b) (from f))))))
+
+;; normalized
+(test-parse "select * from t where a is normalized"
+	    '(select * (from t) (where (normalized? a))))
+(test-parse "select * from t where a is not normalized"
+	    '(select * (from t) (where (not-normalized? a))))
+
+;; match
+(test-parse "select * from t where a match (select * from t)"
+	    '(select * (from t) (where (match a (select * (from t))))))
+(test-parse "select * from t where a match simple (select * from t)"
+	    '(select * (from t) (where (match-simple a (select * (from t))))))
+(test-parse "select * from t where a match partial (select * from t)"
+	    '(select * (from t) (where (match-partial a (select * (from t))))))
+(test-parse "select * from t where a match full (select * from t)"
+	    '(select * (from t) (where (match-full a (select * (from t))))))
+(test-parse "select * from t where a match unique (select * from t)"
+	    '(select * (from t) (where (match-unique a (select * (from t))))))
+(test-parse "select * from t where a match unique simple (select * from t)"
+	    '(select * (from t) 
+		     (where (match-unique-simple a (select * (from t))))))
+(test-parse "select * from t where a match unique partial (select * from t)"
+	    '(select * (from t) 
+		     (where (match-unique-partial a (select * (from t))))))
+(test-parse "select * from t where a match unique full (select * from t)"
+	    '(select * (from t) 
+		     (where (match-unique-full a (select * (from t))))))
+
+
 ;; exists
 (test-parse "select * from t where exists (select * from f);"
 	    '(select * (from t) (where (exists (select * (from f))))))
