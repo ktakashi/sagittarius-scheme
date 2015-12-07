@@ -190,6 +190,45 @@
 	    '(select * (from t) 
 		     (where (match-unique-full a (select * (from t))))))
 
+;; overlaps
+(test-parse "select * from t where a overlaps b"
+	    '(select * (from t) (where (overlaps a b))))
+
+;; distinct
+(test-parse "select * from t where a is distinct from b"
+	    '(select * (from t) (where (distinct-from? a b))))
+
+;; member
+(test-parse "select * from t where a not member of b"
+	    '(select * (from t) (where (not-member-of a b))))
+(test-parse "select * from t where a not member b"
+	    '(select * (from t) (where (not-member-of a b))))
+(test-parse "select * from t where a member of b"
+	    '(select * (from t) (where (member-of a b))))
+(test-parse "select * from t where a member b"
+	    '(select * (from t) (where (member-of a b))))
+
+;; submultiset
+(test-parse "select * from t where a not submultiset of b"
+	    '(select * (from t) (where (not-submultiset-of a b))))
+(test-parse "select * from t where a not submultiset b"
+	    '(select * (from t) (where (not-submultiset-of a b))))
+(test-parse "select * from t where a submultiset of b"
+	    '(select * (from t) (where (submultiset-of a b))))
+(test-parse "select * from t where a submultiset b"
+	    '(select * (from t) (where (submultiset-of a b))))
+
+;; set
+(test-parse "select * from t where a is a set"
+	    '(select * (from t) (where (a-set? a))))
+(test-parse "select * from t where a is not a set b"
+	    '(select * (from t) (where (not-a-set? a))))
+
+;; type
+(test-parse "select * from t where a is of (ta, only tb)"
+	    '(select * (from t) (where (of? a ta (only tb)))))
+(test-parse "select * from t where a is not of (ta, only tb)"
+	    '(select * (from t) (where (not-of? a ta (only tb)))))
 
 ;; exists
 (test-parse "select * from t where exists (select * from f);"

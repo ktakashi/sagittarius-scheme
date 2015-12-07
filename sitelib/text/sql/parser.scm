@@ -758,12 +758,12 @@
 	      ((p <- unique-predicate) p)
 	      ((p <- normalized-predicate) p)
 	      ((p <- match-predicate) p)
-	      ;;((p <- overlaps-predicate) p)
-	      ;;((p <- distinct-predicate) p)
-	      ;;((p <- member-predicate) p)
-	      ;;((p <- submultiset-predicate) p)
-	      ;;((p <- set-predicate) p)
-	      ;;((p <- type-predicate) p)
+	      ((p <- overlaps-predicate) p)
+	      ((p <- distinct-predicate) p)
+	      ((p <- member-predicate) p)
+	      ((p <- submultiset-predicate) p)
+	      ((p <- set-predicate) p)
+	      ((p <- type-predicate) p)
 	      )
 
    ;; NB: predicate-2 suffix thing seems needed for when operand
@@ -891,6 +891,65 @@
 	       (((=? 'full)) '(full))
 	       (() '()))
    
+   ;; 8.13 overlaps predicate
+   (overlaps-predicate ((r0 <- row-value-predicand r1 <- overlaps-predicate-2)
+			(cons* (car r1) r0 (cdr r1))))
+   (overlaps-predicate-2 (('overlaps r <- row-value-predicand) 
+			  (list 'overlaps r)))
+
+   ;; 8.14 distinct predicate
+   (distinct-predicate ((r0 <- row-value-predicand r1 <- distinct-predicate-2)
+			(cons* (car r1) r0 (cdr r1))))
+   (distinct-predicate-2 (('is 'distinct 'from r <- row-value-predicand) 
+			  (list 'distinct-from? r)))
+
+   ;; 8.15 member predicate
+   (member-predicate ((r0 <- row-value-predicand r1 <- member-predicate-2)
+			(cons* (car r1) r0 (cdr r1))))
+   ;; TODO should we preserve lacking 'of' keyword?
+   (member-predicate-2 (('not 'member 'of r <- multiset-value-expression) 
+			(list 'not-member-of r))
+		       (('not 'member r <- multiset-value-expression) 
+			(list 'not-member-of r))
+		       (('member 'of r <- multiset-value-expression) 
+			(list 'member-of r))
+		       (('member r <- multiset-value-expression) 
+			(list 'member-of r)))
+
+   ;; 8.16 submultiset predicate
+   (submultiset-predicate ((r0 <- row-value-predicand 
+			    r1 <- submultiset-predicate-2)
+		      (cons* (car r1) r0 (cdr r1))))
+   ;; TODO should we preserve lacking 'of' keyword?
+   (submultiset-predicate-2
+    (('not 'submultiset 'of r <- multiset-value-expression) 
+     (list 'not-submultiset-of r))
+    (('not 'submultiset r <- multiset-value-expression) 
+     (list 'not-submultiset-of r))
+    (('submultiset 'of r <- multiset-value-expression) 
+     (list 'submultiset-of r))
+    (('submultiset r <- multiset-value-expression) 
+     (list 'submultiset-of r)))
+
+   ;; 8.17 set predicate
+   (set-predicate ((r0 <- row-value-predicand r1 <- set-predicate-2)
+		   (cons* (car r1) r0 (cdr r1))))
+   (set-predicate-2 (('is 'not (=? 'a) 'set) '(not-a-set?))
+		    (('is (=? 'a) 'set) '(a-set?)))
+
+   ;; 8.18 type predicate
+   (type-predicate ((r0 <- row-value-predicand r1 <- type-predicate-2)
+		    (cons* (car r1) r0 (cdr r1))))
+   (type-predicate-2 (('is 'not 'of '#\( l <- type-list '#\))
+		      (cons 'not-of? l))
+		     (('is 'of '#\( l <- type-list '#\)) (cons 'of? l)))
+   (type-list ((u <- user-define-type-specification u* <- type-list*) 
+	       (cons u u*)))
+   (type-list* (('#\, l <- type-list) l)
+	       (() '()))
+   (user-define-type-specification (('only i <- identifier-chain) 
+				    (list 'only i))
+				   ((i <- identifier-chain) i))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
