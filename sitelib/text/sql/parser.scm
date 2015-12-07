@@ -751,7 +751,7 @@
 	      ((b <- between-predicate) b)
 	      ((i <- in-predicate) i)
 	      ((p <- like-predicate) p)
-	      ;;((p <- similar-predicate) p)
+	      ((p <- similar-predicate) p)
 	      ((p <- null-predicate) p)
 	      ;;((p <- qualified-comparison-predicate) p)
 	      ((p <- exists-predicate) p)
@@ -830,6 +830,18 @@
    (like-operator (('like) 'like)
 		  ;; ilike is *not* a keyword so compare with value.
 		  (((=? 'ilike)) 'ilike)) ;; for PostgreSQL
+
+   ;; 8.6 similar predicate
+   (similar-predicate ((r0 <- row-value-predicand r1 <- similar-predicate-2)
+		       (cons* (car r1) r0 (cdr r1))))
+   (similar-predicate-2 (('not 'similar 'to p <- similar-pattern 
+			  e <- character-escape)
+			 `(not-similar-to ,p ,@e))
+			(('similar 'to p <- similar-pattern 
+			  e <- character-escape)
+			 `(similar-to ,p ,@e)))
+   (similar-pattern ((p <- character-value-expression) p))
+   ;; NB: we don't need BNF of regular expression.
 
    ;; 8.7 null predicate
    (null-predicate ((r <- row-value-predicand r2 <- null-predicate-2)

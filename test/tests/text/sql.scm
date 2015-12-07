@@ -143,6 +143,12 @@
 (test-parse "select * from t where a not ilike 'a$_' escape '$'" 
 	    '(select * (from t) (where (not-ilike a "a$_" (escape "$")))))
 
+;; similar to
+(test-parse "select * from t where a similar to 'b';"
+	    '(select * (from t) (where (similar-to a "b"))))
+(test-parse "select * from t where a not similar to 'b';"
+	    '(select * (from t) (where (not-similar-to a "b"))))
+
 ;; is null
 (test-parse "select * from t where a is null"  
 	    '(select * (from t) (where (null? a))))
