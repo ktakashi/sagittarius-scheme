@@ -776,6 +776,7 @@
 				      ;; This shouldn't be uncommented
 				      ;; see the comment on the definition
 				      ;;((f <- field-reference) f)
+				      ((n <- next-value-expression) n)
 				      ;;((s <- subtype-treatment) s)
 				      ;;((m <- method-invocation) m)
 				      ;;((s <- static-method-invocation) s)
@@ -785,7 +786,6 @@
 				      ;;((a <- array-element-reference) a)
 				      ;;((m <- multiset-element-reference) m)
 				      ;;((r <- routine-invocation) r)
-				      ;;((n <- next-value-expression) n)
 				      
 				      ;; these 2 must be the last
 				      ;; otherwise it'd take all expressions
@@ -926,6 +926,10 @@
 		 ((v <- implicitly-typed-value-specification) v))
    (cast-target ((d <- data-type) d)
 		((d <- identifier-chain) d))
+
+   ;; 6.13 next value expression
+   (next-value-expression (((=? 'next) 'value 'for s <- identifier-chain)
+			   (list 'next-value-for s)))
 
    ;; 6.14 field reference
    ;; this is implicit left side recursion which (packrat) can't handle.

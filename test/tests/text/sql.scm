@@ -75,6 +75,9 @@
 (test-parse "select cast(array[] as int)" '(select ((cast (array) int))))
 (test-parse "select cast(multiset[] as int)" '(select ((cast (multiset) int))))
 
+;; next value
+(test-parse "select next value for seq" '(select ((next-value-for seq))))
+
 ;; field reference
 (test-parse "select (1+1) . foo" '(select ((~ (+ 1 1) foo))))
 
