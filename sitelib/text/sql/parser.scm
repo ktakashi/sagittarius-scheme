@@ -642,9 +642,12 @@
    (nonparenthesized-value-expression ((s <- set-function-specification) s)
 				      ((w <- window-function) w)
 				      ((s <- scalar-subquery) s)
+				      ((c <- case-expression) c)
+				      ;; these 2 must be the last
+				      ;; otherwise it'd take all expressions
 				      ((c <- column-reference) c)
 				      ((u <- unsigned-value-specification) u)
-				      ;;((c <- case-expression) c)
+				      
 				      ;;((c <- cast-specification) c)
 				      ;;((f <- field-reference) f)
 				      ;;((s <- subtype-treatment) s)
@@ -715,6 +718,63 @@
    (window-name-or-specification ((w <- identifier) w)
 				 ((w <- window-specification) w))
 
+   ;; 6.11 case expression
+   (case-expression ((a <- case-abbreviation) a)
+		    ((s <- case-specification) s))
+   (case-abbreviation (((=? 'nullif) 
+			'#\( v1 <- value-expression '#\, 
+			     v2 <- value-expression '#\))
+		       (list 'nullif v1 v2))
+		      (((=? 'coalesce) 
+			'#\( v <- value-expression-list '#\))
+		       (cons 'coalesce v)))
+   (case-specification ((s <- simple-case) s)
+		       ((s <- searched-case) s))
+   (simple-case (('case 
+		     o <- case-operand 
+		     w <- simple-when-clause-list
+		     e <- else-clause?
+		  'end)
+		 `(case ,o ,@w ,@e)))
+   (searched-case (('case w <- searched-when-clause-list e <- else-clause? 'end)
+		   `(case ,@w ,@e)))
+
+   (simple-when-clause-list ((w <- simple-when-clause 
+			      w* <- simple-when-clause-list)
+			     (cons w w*))
+			    (() '()))
+   (simple-when-clause (('when w <- when-operand 'then r <- result)
+			`(when ,w ,r)))
+   (searched-when-clause-list ((w <- searched-when-clause 
+				w* <- searched-when-clause-list)
+			       (cons w w*))
+			      (() '()))
+   (searched-when-clause (('when w <- search-condition 'then r <- result)
+			  `(when ,w ,r)))
+   (else-clause? (('else r <- result) `(else ,r))
+		 (() '()))
+
+   (case-operand ((r <- row-value-predicand) r))
+   ;; NB: seems not all RDBMS supports this
+   ;;     (e.g. seems PostgreSQL and SQLite3 support only row-value-predicand)
+   (when-operand ((w <- comparison-predicate-2) w)
+		 ((w <- between-predicate-2) w)
+		 ((w <- in-predicate-2) w)
+		 ((w <- like-predicate-2) w)
+		 ((w <- similar-predicate-2) w)
+		 ((w <- null-predicate-2) w)
+		 ((w <- quantified-comparison-predicate-2) w)
+		 ((w <- match-predicate-2) w)
+		 ((w <- overlaps-predicate-2) w)
+		 ((w <- distinct-predicate-2) w)
+		 ((w <- member-predicate-2) w)
+		 ((w <- submultiset-predicate-2) w)
+		 ((w <- set-predicate-2) w)
+		 ((w <- type-predicate-2) w)
+		 ((w <- row-value-predicand) w))
+
+   (result ((r <- value-expression) r)
+	   (('null) 'null))
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)
 				    ((b <- boolean-predicand) b)
@@ -958,9 +1018,9 @@
 
    ;; 8.7 null predicate
    (null-predicate ((r <- row-value-predicand r2 <- null-predicate-2)
-		    `(,r2 ,r)))
-   (null-predicate-2 (('is 'not 'null) 'not-null?)
-		     (('is 'null) 'null?))
+		    `(,(car r2) ,r)))
+   (null-predicate-2 (('is 'not 'null) '(not-null?))
+		     (('is 'null) '(null?)))
 
    ;; 8.8 quantified comparison predicate
    (quantified-comparison-predicate ((r0 <- row-value-predicand
