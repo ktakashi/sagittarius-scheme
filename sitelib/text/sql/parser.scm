@@ -785,7 +785,7 @@
 				      ;;((c <- collection-value-constructor) c)
 				      ;;((a <- array-element-reference) a)
 				      ;;((m <- multiset-element-reference) m)
-				      ;;((r <- routine-invocation) r)
+				      ((r <- routine-invocation) r)
 				      
 				      ;; these 2 must be the last
 				      ;; otherwise it'd take all expressions
@@ -818,12 +818,23 @@
    (simple-value-specification ((l <- literal) l)
 			       ((s <- host-parameter-specification) s)
 			       ((s <- identifier) s)) ;; SQL parameter
-   ;; TODO
-   ;; (target-value-specification (() '()))
+   
+   (target-specification
+    ((s <- host-parameter-specification) s)
+    (('#\?) '?) ;; dynamic parameter specification
+    ((s <- target-array-element-specification) s)
+    ((s <- column-reference) s)
+    ((s <- identifier) s)) ;; SQL parameter
 
    (current-collation-specification (((=? 'current-collation)
 				      '#\( s <- string-value-expression '#\))
 				     (list 'current-collation s)))
+
+   (target-array-element-specification
+    ((t <- target-array-reference '#\[ s <- simple-value-specification '#\])
+     `(array-ref ,t ,s)))
+   (target-array-reference ((c <- column-reference) c)
+			   ((i <- identifier) i))
 
    ;; 6.5 contextually typed value specification
    (contextually-typed-value-specification
@@ -1297,6 +1308,23 @@
    (user-define-type-specification (('only i <- identifier-chain) 
 				    (list 'only i))
 				   ((i <- identifier-chain) i))
+
+   ;; 10.4 routine invocation
+   ;; TODO if we have this then we don't need other procedure invocation
+   ;;      looks like things, do we?
+   (routine-invocation ((n <- identifier-chain a <- sql-argument-list)
+			(cons n a)))
+   (sql-argument-list (('#\( a* <- sql-argument-list* '#\)) a*))
+   (sql-argument-list* ((s <- sql-argument s* <- sql-argument-list**)
+			(cons s s*)))
+   (sql-argument-list** (('#\, s <- sql-argument-list*) s)
+			(() '()))
+
+   (sql-argument ((g <- generalized-expression) g)
+		 ((v <- value-expression) v)
+		 ((t <- target-specification) t))
+   (generalized-expression ((v <- value-expression 'as i <- identifier-chain)
+			    (list 'as v i)))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))

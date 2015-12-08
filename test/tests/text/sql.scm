@@ -84,6 +84,9 @@
 ;; subtype treatment
 (test-parse "select treat(a as ref(t.b))" '(select ((treat a (ref (~ t b))))))
 
+;; routine invocation
+(test-parse "select foo(a)" '(select ((foo a))))
+
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
 	    '(select * (from (join t a (on (= (~ t id) (~ a id)))))))
