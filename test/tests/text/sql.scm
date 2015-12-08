@@ -60,6 +60,22 @@
 ;; set function
 (test-parse "select grouping(a,b,c)" '(select ((grouping a b c))))
 
+;; cast
+(test-parse "select cast(a as int)" '(select ((cast a int))))
+(test-parse "select cast(a as int array)" '(select ((cast a (int array)))))
+(test-parse "select cast(a as int array[1])" '(select ((cast a (int array 1)))))
+(test-parse "select cast(a as blob(1K octets))" 
+	    '(select ((cast a (blob 1024 octets)))))
+(test-parse "select cast(a as ref(t.foo))" 
+	    '(select ((cast a (ref (~ t foo))))))
+;; TODO more data type tests
+
+;; implicitly typed
+(test-parse "select cast(null as int)" '(select ((cast null int))))
+(test-parse "select cast(array[] as int)" '(select ((cast (array) int))))
+(test-parse "select cast(multiset[] as int)" '(select ((cast (multiset) int))))
+
+
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
 	    '(select * (from (join t a (on (= (~ t id) (~ a id)))))))

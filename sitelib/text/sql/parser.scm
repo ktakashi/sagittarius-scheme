@@ -509,17 +509,17 @@
    (interval-qualifier ((s <- start-field 'to e <- end-field)
 			`(to ,s ,e))
 		       ((d <- single-datetime-field) d))
-   (start-field ((n <- non-second-primary-datatime-field
+   (start-field ((n <- non-second-primary-datetime-field
 		  '#\( i <- interval-leading-field-precision '#\))
 		 (list n i))
-		((n <- non-second-primary-datatime-field) n))
-   (end-field ((n <- non-second-primary-datatime-field) n)
+		((n <- non-second-primary-datetime-field) n))
+   (end-field ((n <- non-second-primary-datetime-field) n)
 	      (('second '#\( i <- interval-fractional-seconds-precision '#\))
 	       `(second ,i)))
    (single-datetime-field 
-    ((n <- non-second-primary-datatime-field 
+    ((n <- non-second-primary-datetime-field 
       '#\( i <- interval-leading-field-precision '#\)) (list n i))
-    ((n <- non-second-primary-datatime-field) n)
+    ((n <- non-second-primary-datetime-field) n)
     (('second 
       '#\( i <- interval-leading-field-precision
          '#\, s <- interval-fractional-seconds-precision
@@ -528,7 +528,7 @@
     (('second '#\( i <- interval-leading-field-precision '#\))
      (list 'second i))
     (('second) 'second))
-   (non-second-primary-datatime-field (('year) 'year)
+   (non-second-primary-datetime-field (('year) 'year)
 				      (('month) 'month)
 				      (('day) 'day)
 				      (('hour) 'hour)
@@ -635,6 +635,126 @@
    (character-primary ((v <- value-expression-primary) v)
 		      #;((s <- string-value-function) s))
 
+   ;; 6.1 data type
+   (data-type ((c <- collection-type) c)
+	      ((p <- predefined-type) p)
+	      ((r <- row-type) r)
+	      ((r <- reference-type) r)
+	      ((i <- identifier-chain) i))
+   (predefined-type ((t <- character-string-type 
+		      s <- charset? c <- collate-clause?)
+		     `(,t ,@s ,@c))
+		    ((t <- national-character-string-type c <- collate-clause?)
+		     `(,t ,@c))
+		    ((t <- binary-larget-object-string-type) t)
+		    ((t <- numeric-type) t)
+		    ((t <- boolean-type) t)
+		    ((t <- datetime-type) t)
+		    ((t <- interval-type) t))
+   ;; i'm lazy...
+   (length? (('#\( n <- 'number u <- large-length-units'#\)) (list n u))
+	    (('#\( n <- 'number '#\)) (list n))
+	    (() '()))
+   (large-length-units (((=? 'characters)) 'characters)
+		       (((=? 'code_units)) 'code_units)
+		       (((=? 'octets))     'octets))
+
+   (character-string-type ((c <- ctype l <- length?) (cons c l)))
+   (ctype (('character)                     'character)
+	  (('char)                          'char)
+	  (('character 'varying)            'character-varying)
+	  (('char 'varying)                 'char-varying)
+	  (('varchar)                       'varchar)
+	  (('character 'large (=? 'object)) 'character-large-object)
+	  (('char 'large (=? 'object))      'char-large-object)
+	  (('clob)                          'clob))
+
+   (national-character-string-type ((c <- nctype l <- length?) (cons c l)))
+   (nctype (('national 'character)           'national-character)
+	   (('national 'char)                'national-char)
+	   (('nchar)                         'nchar)
+	   (('national 'character 'varying)  'national-character-varying)
+	   (('national 'char 'varying)       'national-char-varying)
+	   (('nchar 'varying)                'nchar-varying)
+	   (('national-char-varying 'character 'large (=? 'object)) 
+	    'national-character-large-object)
+	   (('nchar 'large (=? 'object))     'nchar-large-object)
+	   (('nclob)                         'nclob))
+
+   (binary-larget-object-string-type
+    (('binary 'large (=? 'object) l <- length?) (cons 'binary-large-object l))
+    (('blob l <- length?)                       (cons 'blob l)))
+
+   (numeric-type ((e <- exact-numeric-type) e)
+		 ((i <- approximate-numeric-type) i))
+   (precision-scale? (('#\( p <- 'number '#\, s <- scale '#\)) (list p s))
+		     (('#\( p <- 'number '#\))                 (list p))
+		     (()                                       '()))
+   (exact-numeric-type (('numeric l <- precision-scale?) (cons 'numeric l))
+		       (('decimal l <- precision-scale?) (cons 'decimal l))
+		       (('dec l <- precision-scale?)     (cons 'dec l))
+		       (('smallint)                      'smallint)
+		       (('integer)                       'integer)
+		       (('int)                           'int)
+		       (('bigint)                        'bigint)
+		       ;; TODO need more?
+		       )
+   (approximate-numeric-type (('float '#\( p <- 'number '#\)) (list 'float p))
+			     (('float) 'float)
+			     (('real)  'real)
+			     (('double 'precision) 'double-precision)
+			     ;; TODO need more?
+			     )
+   (boolean-type (('boolean) 'boolean))
+   (datetime-type (('date) 'date)
+		  (('time s <- time-spec?) (if (null? s) 'time (cons 'time s)))
+		  (('timestamp s <- time-spec?) 
+		   (if (null? s) 'timestamp (cons 'timestamp s))))
+   (time-spec? (('#\( n <- 'number w <- with-or-without-timezone) (list n w))
+	       (('#\( n <- 'number) (list n))
+	       (() '()))
+   (with-or-without-timezone (('with 'time (=? 'zone)) 'with-time-zone)
+			     (('without 'time (=? 'zone)) 'without-time-zone))
+
+   (interval-type (('interval q <- interval-qualifier) (list 'interval q)))
+   (row-type (('row r <- row-type-body) (cons 'row r)))
+   (row-type-body (('#\( f <- field-definition-list '#\)) f))
+   (field-definition-list ((f <- field-definition f* <- field-definition-list*)
+			   (cons f f*)))
+   (field-definition-list* (('#\, f <- field-definition-list) f)
+			   (() '()))
+
+   (reference-type (('ref '#\( t <- referenced-type '#\) s <- scope-clause?)
+		    (cons* 'ref t s)))
+   (scope-clause? ((s <- scope-clause) (list s))
+		  (() '()))
+   (scope-clause (('scope t <- local-or-schema-qualified-name) (list 'scope t)))
+   (referenced-type ((i <- identifier-chain) i))
+
+   (collection-type ((a <- array-type) a)
+		    ((m <- multiset-type) m))
+   ;; auxiliary without collection-type
+   (simple-data-type ((p <- predefined-type) p)
+		     ((r <- row-type) r)
+		     ((r <- reference-type) r)
+		     ((i <- identifier-chain) i))
+   ;; FIXME for now we assume int array[1] int array[1] is invalid SQL
+   ;;       thus no nested array.
+   ;; NB: PostgreSQL allow users to do int array[][] to create multi
+   ;;     dimention array.
+   ;; TODO should we do (array data-type) format?
+   (array-type ((d <- simple-data-type 'array '#\[ n <- 'number '#\])
+		`(,d array ,n))
+	       ((d <- simple-data-type 'array)
+		`(,d array)))
+   (multiset-type ((d <- simple-data-type 'multiset) `(,d multiset)))
+
+   ;; 6.2 field definition
+   (field-definition 
+    ;; TODO better representation
+    ;;((n <- identifier t <- data-type r <- reference-scope-check) (list n t r))
+    ((n <- identifier t <- data-type) (list n t)))
+
    ;; 6.3 value expression primary
    (value-expression-primary ((p <- parenthesized-value-expression) p)
 			     ((n <- nonparenthesized-value-expression) n))
@@ -643,12 +763,11 @@
 				      ((w <- window-function) w)
 				      ((s <- scalar-subquery) s)
 				      ((c <- case-expression) c)
+				      ((c <- cast-specification) c)
 				      ;; these 2 must be the last
 				      ;; otherwise it'd take all expressions
 				      ((c <- column-reference) c)
 				      ((u <- unsigned-value-specification) u)
-				      
-				      ;;((c <- cast-specification) c)
 				      ;;((f <- field-reference) f)
 				      ;;((s <- subtype-treatment) s)
 				      ;;((m <- method-invocation) m)
@@ -692,6 +811,17 @@
    (current-collation-specification (((=? 'current-collation)
 				      '#\( s <- string-value-expression '#\))
 				     (list 'current-collation s)))
+
+   ;; 6.5 contextually typed value specification
+   (contextually-typed-value-specification
+    ((i <- implicitly-typed-value-specification) i)
+    ((d <- default-specification) d))
+   (implicitly-typed-value-specification ((n <- null-specification) n)
+					 ((a <- empty-specification) a))
+   (null-specification (('null) 'null))
+   (empty-specification (('array '#\[ '#\]) '(array))
+			(('multiset '#\[ '#\]) '(multiset)))
+   (default-specification (('default) 'default))
 
    ;; 6.9 set function specification
    (set-function-specification ((a <- aggregate-function) a)
@@ -775,6 +905,15 @@
 
    (result ((r <- value-expression) r)
 	   (('null) 'null))
+
+   ;; 6.12 cast specification
+   (cast-specification (('cast '#\( o <- cast-operand 'as t <- cast-target '#\))
+			`(cast ,o ,t)))
+   (cast-operand ((v <- value-expression) v)
+		 ((v <- implicitly-typed-value-specification) v))
+   (cast-target ((d <- data-type) d)
+		((d <- identifier-chain) d))
+
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)
 				    ((b <- boolean-predicand) b)
@@ -1126,6 +1265,8 @@
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
+   (collate-clause? ((c <- collate-clause) (list c))
+		    (() '()))
 
    ;; 10.9 aggregate function
    (aggregate-function (('count '#\( '#\* '#\) f <- filter-clause?)
