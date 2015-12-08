@@ -57,6 +57,9 @@
 	    '(select ((as (multiset-union ntab (multiset-intersect ntab2 ntab3))
 			  mset))))
 
+;; set function
+(test-parse "select grouping(a,b,c)" '(select ((grouping a b c))))
+
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
 	    '(select * (from (join t a (on (= (~ t id) (~ a id)))))))

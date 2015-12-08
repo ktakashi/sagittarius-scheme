@@ -122,6 +122,7 @@
 		(parse-results-position results) sym)))))
      stmt)
    (stmt ((s <- query-specification) s)
+	 ((s <- query-expression) s) ;; for 'with x as ...' thing
 	 ;; TODO more
 	 )
    ;; NOTE:
@@ -132,12 +133,12 @@
    (query-specification ((s <- select-clause q <- query-specification*)
 			 (resolve-term s q))
 			((s <- select-clause) s))
-   (query-specification* ((u <- union-or-except s <- set-quantifier*
+   (query-specification* ((u <- union-or-except s <- set-quantifier?
 			   q <- query-specification)
 			  (if (null? s)
 			      `(,u ,q)
 			      `(,(symbol-append u '- (car s)) ,q)))
-			 (('intersect s <- set-quantifier*
+			 (('intersect s <- set-quantifier?
 			   q <- query-specification)
 			  (if (null? s)
 			      `(intersect ,q)
@@ -290,7 +291,7 @@
    (column-name-list* (('#\, c <- column-name-list) c)
 		      (() '()))
    (table-name ((l <- local-or-schema-qualified-name) l))
-   (query-name ((i <- identifier) l))
+   (query-name ((i <- identifier) i))
    
    ;; where
    (where-clause (('where s <- search-condition) (list (list 'where s)))
@@ -359,11 +360,72 @@
    (having-clause (('having s <- search-condition) (list (cons 'having s)))
 		  (() '()))
    ;; window
-   (window-clause (('windows w* <- window-definition-list) 
-		   (list (cons 'windows w*)))
+   (window-clause (('window w* <- window-definition-list)
+		   (list (cons 'window w*)))
 		  (() '()))
-   ;; TODO
-   (window-definition-list (() '()))
+
+   (window-definition ((n <- identifier 'as w <- window-specification)
+		       (list 'as n w)))
+   (window-definition-list ((w <- window-definition
+			     w* <- window-definition-list*)
+			    (cons w w*)))
+   (window-definition-list* (('#\, w <- window-definition-list) w)
+			    (() '()))
+
+   (window-specification (('#\( w <- window-specification-details '#\)) w))
+   (window-specification-details ((e <- identifier?
+				   p <- window-partition-clause?
+				   o <- window-order-clause?
+				   f <- window-frame-caluse?)
+				  `(,@e ,@p ,@o ,@f)))
+   (identifier? ((i <- identifier) (list i))
+		(() '()))
+   (window-partition-clause? (('partition 'by
+			       c <- window-partition-column-reference-list)
+			      `((partition-by ,@c)))
+			     (() '()))
+
+   (window-partition-column-reference-list 
+    ((w <- window-partition-column-reference 
+      w* <- window-partition-column-reference-list*)
+     (cons w w*)))
+   (window-partition-column-reference-list*
+    (('#\, w <- window-partition-column-reference-list) w)
+    (() '()))
+   (window-partition-column-reference 
+    ((c <- column-reference l <- collate-clause) (cons c l))
+    ((c <- column-reference) c))
+
+   (window-order-clause? (('order 'by s <- sort-specification-list)
+			  (list (cons 'order-by s)))
+			 (() '()))
+
+   (window-frame-caluse? ((u <- window-frame-units
+			   e <- window-frame-extent
+			   w <- window-frame-exclusion)
+			  (cons* u e w)))
+   (window-frame-units (('rows) 'rows)
+		       (('range) 'range))
+   (window-frame-extent ((s <- window-frame-start) s)
+			((b <- window-frame-between) b))
+   (window-frame-start (((=? 'unbounded) (=? 'preceding)) 'unbounded-preceding)
+		       ((w <- window-frame-preceding) w)
+		       (('current 'row) 'current-row))
+   (window-frame-preceding ((u <- unsigned-value-specification (=? 'preceding))
+			    (list 'preceding u)))
+   (window-frame-between (('between w1 <- window-frame-bound 
+			   'and w2 <- window-frame-bound)
+			  (list 'between w1 w2)))
+   (window-frame-bound ((w <- window-frame-start) w)
+		       (((=? 'unbounded) (=? 'following)) 'unbounded-following)
+		       ((w <- window-frame-following) w))
+   (window-frame-following ((u <- unsigned-value-specification (=? 'following))
+			    (list 'following u)))
+   (window-frame-exclusion (((=? 'exclude) 'current 'row) 'exclude-current-row)
+			   (((=? 'exclude) 'group)        'exclude-group)
+			   (((=? 'exclude) 'ties)         'exclude-group)
+			   (((=? 'exclude) 'no (=? 'others))
+			    'exclude-no-others))
 
    ;; 6.25 value expression
    ;; value
@@ -510,7 +572,7 @@
 		   (if (null? m)
 		       v
 		       `(,(car m) ,v ,(cadr m)))))
-   (multiset-term* (('multiset u <- union-or-except s <- set-quantifier*
+   (multiset-term* (('multiset u <- union-or-except s <- set-quantifier?
 		     m <- multiset-term)
 		    (if (null? s)
 			`(,(symbol-append 'multiset- u) ,m)
@@ -518,7 +580,7 @@
 		   ;; avoid ||
 		   ;; TODO do we need this?
 		   (((! 'concat)) '()))
-   (multiset-term** (('multiset 'intersect s <- set-quantifier* 
+   (multiset-term** (('multiset 'intersect s <- set-quantifier?
 		      m <- multiset-term)
 		     (if (null? s)
 			 `(multiset-intersect ,m)
@@ -573,20 +635,15 @@
    (character-primary ((v <- value-expression-primary) v)
 		      #;((s <- string-value-function) s))
 
-   ;; 6.3
+   ;; 6.3 value expression primary
    (value-expression-primary ((p <- parenthesized-value-expression) p)
 			     ((n <- nonparenthesized-value-expression) n))
    (parenthesized-value-expression (('#\( v <- value-expression '#\)) v))
-   (nonparenthesized-value-expression ((n <- 'number) n)
-				      ((b <- 'bit-string) b)
-				      ((s <- string) s)
-				      ;;TODO should we allow 'where true'?
-				      ;;(('true) #t)
-				      ;;(('false) #f)
-				      ((c <- column-reference) c)
-				      ;;((s <- set-function-specification) s)
-				      ;;((w <- window-function) w)
+   (nonparenthesized-value-expression ((s <- set-function-specification) s)
+				      ((w <- window-function) w)
 				      ((s <- scalar-subquery) s)
+				      ((c <- column-reference) c)
+				      ((u <- unsigned-value-specification) u)
 				      ;;((c <- case-expression) c)
 				      ;;((c <- cast-specification) c)
 				      ;;((f <- field-reference) f)
@@ -602,6 +659,62 @@
 				      ;;((n <- next-value-expression) n)
 				      )
    
+   ;; 6.4 value specification and taget specification
+   (value-specification ((l <- literal) l)
+			((v <- general-value-specification) v))
+   (unsigned-value-specification ((u <- unsigned-literal) u)
+				 ((g <- general-value-specification) g))
+   (general-value-specification
+    ((s <- host-parameter-specification) s)
+    ((s <- identifier) s) ;; SQL parameter
+    (('#\?) '?) ;; dynamic parameter specification
+    ;; NB we don't care embedded variables
+    ((s <- current-collation-specification) s)
+    (('current_default_transform_group) 'current_default_transform_group)
+    (('current_path) 'current_path)
+    (('current_role) 'current_role)
+    (('current_transform_group_for_type p <- identifier-chain)
+     (cons 'current_transform_group_for_type p))
+    (('current_user) 'current_user)
+    (('session_user) 'session_user)
+    (('system_user) 'system_user)
+    (('user) 'user)
+    (('value) 'value))
+   (simple-value-specification ((l <- literal) l)
+			       ((s <- host-parameter-specification) s)
+			       ((s <- identifier) s)) ;; SQL parameter
+   ;; TODO
+   ;; (target-value-specification (() '()))
+
+   (current-collation-specification (((=? 'current-collation)
+				      '#\( s <- string-value-expression '#\))
+				     (list 'current-collation s)))
+
+   ;; 6.9 set function specification
+   (set-function-specification ((a <- aggregate-function) a)
+			       ((g <- grouping-operation) g))
+   (grouping-operation (('grouping '#\( c <- column-reference-list '#\))
+			(cons 'grouping c)))
+   (column-reference-list ((c <- column-reference c* <- column-reference-list*)
+			   (cons c c*)))
+   (column-reference-list* (('#\, c <- column-reference-list) c)
+			   (() '()))
+
+   ;; 6.10 window function
+   (window-function ((t <- window-function-type 'over 
+		      w <- window-name-or-specification)
+		     ;; TODO should we do like this?
+		     `(,t 'over ,w)))
+   (window-function-type ((t <- rank-function-type '#\( '#\)) (list t))
+			 (((=? 'row_number)) (list 'row_number))
+			 ((a <- aggregate-function) a))
+   (rank-function-type (((=? 'rank))         'rank)
+		       (((=? 'dense_rank))   'dense_rank)
+		       (((=? 'percent_rank)) 'percent_rank)
+		       (((=? 'cume_dist))    'cume_dist))
+   (window-name-or-specification ((w <- identifier) w)
+				 ((w <- window-specification) w))
+
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)
 				    ((b <- boolean-predicand) b)
@@ -649,24 +762,24 @@
 		(('with l <- with-list) `(with ,l)))
    (with-list ((w <- with-list-element w* <- with-list-element*) (cons w w*)))
    (with-list-element ((n <- query-name '#\( c <- column-name-list '#\)
-			'as '#\( q <- query-expression '#\) 
+			'as '#\( q <- query-expression '#\)
 			s <- search-or-cycle-clause)
-		       ;; TODO search or cycle clause
 		       `(as ,n ,q ,@c))
 		      ((n <- query-name
 			'as '#\( q <- query-expression '#\) 
 			s <- search-or-cycle-clause)
-		       ;; TODO search or cycle clause
-		       `(as ,n ,q ,@c)))
+		       `(as ,n ,q)))
    (with-list-element* (('#\, w <- with-list-element) w)
 		       (() '()))
+   ;; TODO 
+   (search-or-cycle-clause (() '()))
    (query-expression-body ((q <- non-join-query-expression) q)
 			  ((j <- joined-table) j))
    ;; TODO 
    (non-join-query-expression 
     ((t <- non-join-query-term t* <- non-join-query-expression*) 
      (resolve-term t t*)))
-   (non-join-query-expression* ((u <- union-or-except s <- set-quantifier* 
+   (non-join-query-expression* ((u <- union-or-except s <- set-quantifier? 
 				 c <- corresponding-spec
 				 q <- query-term)
 				(if (null? s)
@@ -675,7 +788,7 @@
 			       (() '()))
    (union-or-except (('union) 'union)
 		    (('except) 'except))
-   (set-quantifier*  ((s <- set-quantifier) (list s))
+   (set-quantifier?  ((s <- set-quantifier) (list s))
 		      (() '()))
    (corresponding-spec (('corresponding) (list 'corresponding))
 		       (('corresponding 'by '#\( c <- column-name-list '#\))
@@ -688,7 +801,7 @@
    (non-join-query-term ((q <- non-join-query-primary
 			  q* <- non-join-query-term*)
 			 (resolve-term q q*)))
-   (non-join-query-term* (('intersect s <- set-quantifier*
+   (non-join-query-term* (('intersect s <- set-quantifier?
 			    c <- corresponding-spec qp <- query-primary)
 			  ;; TODO should this be like this?
 			  (if (null? s)
@@ -698,7 +811,7 @@
 			 (() '()))
    (query-primary ((q <- non-join-query-primary) q)
 		  ((j <- joined-table) j))
-   (non-join-query-primary ((s <- simple-table) s)
+   (non-join-query-primary ((s <- simple-table)  s)
 			   (('#\( q <- non-join-query-expression '#\)) q))
    (simple-table ((q <- query-specification) q)
 		 ;; TODO
@@ -954,6 +1067,75 @@
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
 
+   ;; 10.9 aggregate function
+   (aggregate-function (('count '#\( '#\* '#\) f <- filter-clause?)
+			(if (null? f)
+			    '(count *)
+			    `(count * ,@f)))
+		       ((s <- general-set-function f <- filter-clause?)
+			`(,@s ,@f))
+		       ((b <- binary-set-function f <- filter-clause?)
+			`(,@b ,@f))
+		       ((o <- ordered-set-function f <- filter-clause?)
+			`(,@o ,@f)))
+   (general-set-function ((t <- set-function-type
+			   '#\( q <- set-quantifier? e <- value-expression '#\))
+			  ;; should it be like this?
+			  `(,t ,@q ,e)))
+   (set-function-type ((c <- computational-operation) c))
+   (computational-operation (((=? 'avg))          'avg)
+			    (((=? 'max))          'max)
+			    (((=? 'min))          'min)
+			    (((=? 'sum))          'sum)
+			    (((=? 'every))        'every)
+			    (((=? 'any))          'any)
+			    (((=? 'some))         'some)
+			    (((=? 'count))        'count)
+			    (((=? 'stddev_pop))   'stddev_pop)
+			    (((=? 'stddev_samp))  'stddev_samp)
+			    (((=? 'var_pop))      'var_pop)
+			    (((=? 'var_samp))     'var_samp)
+			    (((=? 'collect))      'collect)
+			    (((=? 'fusion))       'fusion)
+			    (((=? 'intersection)) 'intersection))
+   (filter-clause? ((f <- filter-clause) (list f))
+		   (() '()))
+   (filter-clause (('filter '#\( 'where c <- search-condition '#\))
+		   (list 'filter c)))
+   (binary-set-function ((t <- binary-set-function-type 
+			  '#\( d <- numeric-value-expression '#\,
+			       i <- numeric-value-expression '#\))
+			 (list t d i)))
+   (binary-set-function-type (((=? 'covar_pop))      'covar_pop)
+			     (((=? 'covar_samp))     'covar_samp)
+			     (((=? 'corr))           'corr)
+			     (((=? 'regr_slope))     'regr_slope)
+			     (((=? 'regr_intercept)) 'regr_intercept)
+			     (((=? 'reger_count))    'reger_count)
+			     (((=? 'regr_r2))        'regr_r2)
+			     (((=? 'regr_avgx))      'regr_avgx)
+			     (((=? 'regr_avgy))      'regr_avgy)
+			     (((=? 'regr_sxx))       'regr_sxx)
+			     (((=? 'regr_syy))       'regr_syy)
+			     (((=? 'regr_sxy))       'regr_sxy))
+   (ordered-set-function ((h <- hypothetical-set-function) h)
+			 ((i <- inverse-distribution-function) i))
+   (hypothetical-set-function ((t <- rank-function-type 
+				'#\( v <- value-expression-list '#\)
+				w <- within-group-specification)
+			       (cons* t w v)))
+   (inverse-distribution-function ((t <- inverse-distribution-function-type
+				    '#\( v <- numeric-value-expression '#\)
+				    w <- within-group-specification)
+				   (list t w v)))
+   (inverse-distribution-function-type 
+    (((=? 'precentile_cont)) 'precentile_cont)
+    (((=? 'precentile_disc)) 'precentile_disc))
+
+   (value-expression-list ((v <- value-expression v* <- value-expression-list*)
+			   (cons v v*)))
+   (value-expression-list* (('#\, v <- value-expression-list) v)
+			   (() '()))
 
    (local-or-schema-qualified-name ((l <- local-or-schema-qualifier '#\. 
 				     i <- identifier)
@@ -984,7 +1166,30 @@
    ;; escape
    (character-escape (('escape s <- 'string) `((escape ,s)))
 		     (() '()))
-		      
+   (host-parameter-specification (('#\: i <- identifier) (cons ': i)))
+   
+   ;; 5.3 literal
+   (literal ((s <- signed-numeric-literal) s)
+	    ((g <- general-literal) g))
+   (unsigned-literal ((u <- 'number) u)
+		     ((g <- general-literal) g))
+   (general-literal ((s <- character-string-literal) s)
+		    ((b <- 'bit-string) b)
+		    ((d <- datetime-literal) d)
+		    ((i <- interval-literal) i)
+		    ((t <- 'true) t)
+		    ((f <- 'false) f))
+   ;; TODO check date string?
+   (datetime-literal (('date s <- string) (list 'date s))
+		     (('time s <- string) (list 'time s))
+		     (('timestamp s <- string) (list 'timestamp s)))
+   ;; TODO better representation
+   (interval-literal (('interval s <- sign i <- string q <- interval-qualifier)
+		      (list 'interval (list q s i)))
+		     (('interval i <- string q <- interval-qualifier)
+		      (list 'interval (list q i))))
+   ;; TODO introducer thing
+   (character-string-literal ((s <- string) s))
    ))
 
 ;; almost the same as &markdown-parser-error
