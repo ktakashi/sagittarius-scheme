@@ -756,18 +756,25 @@
     ((n <- identifier t <- data-type) (list n t)))
 
    ;; 6.3 value expression primary
-   (value-expression-primary ((p <- parenthesized-value-expression) p)
+   ;; we do it like this to do field reference without left side recursion.
+   (value-expression-primary ((v <- no-field-reference-value
+			       v* <- value-expression-primary*)
+			      (if (null? v*)
+				  v
+				  (concate-identifier v v*))))
+   (value-expression-primary* (('#\. v <- value-expression-primary) v)
+			      (() '()))
+   (no-field-reference-value ((p <- parenthesized-value-expression) p)
 			     ((n <- nonparenthesized-value-expression) n))
+
    (parenthesized-value-expression (('#\( v <- value-expression '#\)) v))
    (nonparenthesized-value-expression ((s <- set-function-specification) s)
 				      ((w <- window-function) w)
 				      ((s <- scalar-subquery) s)
 				      ((c <- case-expression) c)
 				      ((c <- cast-specification) c)
-				      ;; these 2 must be the last
-				      ;; otherwise it'd take all expressions
-				      ((c <- column-reference) c)
-				      ((u <- unsigned-value-specification) u)
+				      ;; This shouldn't be uncommented
+				      ;; see the comment on the definition
 				      ;;((f <- field-reference) f)
 				      ;;((s <- subtype-treatment) s)
 				      ;;((m <- method-invocation) m)
@@ -779,6 +786,12 @@
 				      ;;((m <- multiset-element-reference) m)
 				      ;;((r <- routine-invocation) r)
 				      ;;((n <- next-value-expression) n)
+				      
+				      ;; these 2 must be the last
+				      ;; otherwise it'd take all expressions
+				      ((c <- column-reference) c)
+				      ((u <- unsigned-value-specification) u)
+
 				      )
    
    ;; 6.4 value specification and taget specification
@@ -913,6 +926,16 @@
 		 ((v <- implicitly-typed-value-specification) v))
    (cast-target ((d <- data-type) d)
 		((d <- identifier-chain) d))
+
+   ;; 6.14 field reference
+   ;; this is implicit left side recursion which (packrat) can't handle.
+   ;; the purpose (i believe) of this is allowing this type of this:
+   ;;  select cast(a as user_type) . its_member;
+   ;; the `user_type` is (i believe) should be a user defined type which
+   ;; has `its_member` as its slot. so the SQL can access the slot value.
+   ;; we do this in value-expression-primary level.
+;;    (field-reference ((v <- value-expression-primary '#\. i <- identifier)
+;; 		     (concate-identifier v i)))
 
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)

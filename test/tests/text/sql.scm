@@ -75,6 +75,8 @@
 (test-parse "select cast(array[] as int)" '(select ((cast (array) int))))
 (test-parse "select cast(multiset[] as int)" '(select ((cast (multiset) int))))
 
+;; field reference
+(test-parse "select (1+1) . foo" '(select ((~ (+ 1 1) foo))))
 
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
