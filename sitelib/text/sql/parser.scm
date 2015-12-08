@@ -777,7 +777,7 @@
 				      ;; see the comment on the definition
 				      ;;((f <- field-reference) f)
 				      ((n <- next-value-expression) n)
-				      ;;((s <- subtype-treatment) s)
+				      ((s <- subtype-treatment) s)
 				      ;;((m <- method-invocation) m)
 				      ;;((s <- static-method-invocation) s)
 				      ;;((a <- attribute-or-method-reference) a)
@@ -940,6 +940,14 @@
    ;; we do this in value-expression-primary level.
 ;;    (field-reference ((v <- value-expression-primary '#\. i <- identifier)
 ;; 		     (concate-identifier v i)))
+
+   ;; 6.15 subtype treatment
+   (subtype-treatment (('treat 
+			'#\( o <- subtype-operand 'as t <- target-subtype '#\))
+		       `(treat ,o ,t)))
+   (subtype-operand ((v <- value-expression) v))
+   (target-subtype ((r <- reference-type) r)
+		   ((i <- identifier-chain) i))
 
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)

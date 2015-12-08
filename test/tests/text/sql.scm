@@ -81,6 +81,9 @@
 ;; field reference
 (test-parse "select (1+1) . foo" '(select ((~ (+ 1 1) foo))))
 
+;; subtype treatment
+(test-parse "select treat(a as ref(t.b))" '(select ((treat a (ref (~ t b))))))
+
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
 	    '(select * (from (join t a (on (= (~ t id) (~ a id)))))))
