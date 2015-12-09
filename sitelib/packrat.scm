@@ -96,6 +96,7 @@
 	    ;; for format
 	    (sagittarius)
 	    (sagittarius control) ;; for define-inline
+	    (clos user) ;; to print parse-position better
 	    (pp))
 ;; Packrat Parser Library
 ;;
@@ -162,6 +163,12 @@
    (immutable line parse-position-line)
    (immutable column parse-position-column))
   )
+
+(define-method write-object ((o parse-position) out)
+  (format out "#<parse-position ~a[~a:~a]>" 
+	  (parse-position-file o)
+	  (parse-position-line o)
+	  (parse-position-column o)))
 
 (define (top-parse-position filename)
   (make-parse-position filename 1 0))

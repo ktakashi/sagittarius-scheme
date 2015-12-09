@@ -762,7 +762,9 @@
 			      (if (null? v*)
 				  v
 				  (concate-identifier v v*))))
-   (value-expression-primary* (('#\. v <- value-expression-primary) v)
+   (value-expression-primary* (('#\. v <- value-expression-primary
+				s <- sql-argument-list) (cons v s))
+			      (('#\. v <- value-expression-primary) v)
 			      (() '()))
    (no-field-reference-value ((p <- parenthesized-value-expression) p)
 			     ((n <- nonparenthesized-value-expression) n))
@@ -778,7 +780,7 @@
 				      ;;((f <- field-reference) f)
 				      ((n <- next-value-expression) n)
 				      ((s <- subtype-treatment) s)
-				      ;;((m <- method-invocation) m)
+				      ((m <- method-invocation) m)
 				      ;;((s <- static-method-invocation) s)
 				      ;;((a <- attribute-or-method-reference) a)
 				      ;;((r <- reference-resolution) r)
@@ -959,6 +961,33 @@
    (subtype-operand ((v <- value-expression) v))
    (target-subtype ((r <- reference-type) r)
 		   ((i <- identifier-chain) i))
+
+   ;; 6.16 method invocation
+   ;; I believe something like this according to the BNF
+   ;;    (1+1).method
+   ;;  | (1+1).method(args, ...)
+   ;;  | (1+1 as int).method
+   ;;  | (1+1 as int).method(args, ...)
+   ;; NB: 1+1 doesn't have any method so it's invalid but the idea 
+   ;;     is like this
+   ;; not sure how it should be handled in s-expr but for now like 
+   ;; this would be fine
+   ;; (~ (+ 1 1) method)                     - without argument
+   ;; ((~ (+ 1 1) method) args ...)          - with argument
+   ;; (~ (as (+ 1 1) int) method)            - without argument
+   ;; ((~ (as (+ 1 1) int) method) args ...) - with argument
+   ;; NB: without argument should look like the same as normal identifier
+   ;;     chain. 'a.b()' -> ((~ a b)), 'a.b' -> (~ a b)
+   (method-invocation ((g <- generalized-invocation) g))
+   ;; NB: direct invocation is the same as 6.14 field reference issue
+   ;;     so it's resolved above
+   (generalized-invocation 
+    (('#\( v <- value-expression-primary 'as t <- data-type '#\) 
+      '#\. n <- identifier args <- sql-argument-list)
+     `((~ (as ,v ,t) ,n) ,@args))
+    (('#\( v <- value-expression-primary 'as t <- data-type '#\)
+      '#\. n <- identifier)
+     `((~ (as ,v ,t) ,n))))
 
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)
@@ -1314,7 +1343,8 @@
    ;;      looks like things, do we?
    (routine-invocation ((n <- identifier-chain a <- sql-argument-list)
 			(cons n a)))
-   (sql-argument-list (('#\( a* <- sql-argument-list* '#\)) a*))
+   (sql-argument-list (('#\( a* <- sql-argument-list* '#\)) a*)
+		      (('#\( '#\)) '()))
    (sql-argument-list* ((s <- sql-argument s* <- sql-argument-list**)
 			(cons s s*)))
    (sql-argument-list** (('#\, s <- sql-argument-list*) s)

@@ -84,6 +84,20 @@
 ;; subtype treatment
 (test-parse "select treat(a as ref(t.b))" '(select ((treat a (ref (~ t b))))))
 
+;; method invocation
+;; direct
+(test-parse "select a.m" '(select ((~ a m)))) ;; the same as identifier chain
+(test-parse "select a.m()" '(select (((~ a m)))))
+(test-parse "select a.m(b,c)" '(select (((~ a m) b c))))
+;; generalized
+(test-parse "select (a as int).m" '(select (((~ (as a int) m)))))
+(test-parse "select (a as int).m()" '(select (((~ (as a int) m)))))
+(test-parse "select (a as int).m(b,c)" '(select (((~ (as a int) m) b c))))
+
+;; FIXME very unfortunate case
+;; this is because the first (a) is something else...
+(test-parse "select (a).m()" '(select ((~ a (m)))))
+
 ;; routine invocation
 (test-parse "select foo(a)" '(select ((foo a))))
 
