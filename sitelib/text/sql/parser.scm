@@ -123,9 +123,37 @@
      stmt)
    (stmt ((s <- query-specification) s)
 	 ((s <- query-expression) s) ;; for 'with x as ...' thing
+	 ((i <- insert-statement) i)
 	 ((d <- delete-statement) d)
 	 ;; TODO more
 	 )
+
+   ;; 14.8 insert statement
+   (insert-statement 
+    (('insert 'into t <- table-name s <- insert-columns-and-source)
+     `(insert-into ,t ,@s)))
+   (insert-columns-and-source ((d <- from-default) d)
+			      ((c <- from-constructor) c)
+			      ((s <- from-subquery) s))
+   (from-subquery (('#\( i <- insert-column-list '#\)
+		    o <- override-clause?
+		    q <- query-expression)
+		   `(,i ,@o ,q))
+		  ((o <- override-clause? q <- query-expression) `(,@o ,q)))
+   (from-constructor (('#\( i <- insert-column-list '#\)
+		       o <- override-clause?
+		       c <- contextually-typed-table-value-constructor)
+		      `(,i ,@o ,c))
+		     ((o <- override-clause?
+		       c <- contextually-typed-table-value-constructor)
+		      `(,@o ,c)))
+   (override-clause? (((=? 'overriding) 'user 'value) '(overriding-user-value))
+		     (((=? 'overriding) 'system 'value)
+		      '(overriding-system-value))
+		     (() '()))
+   (from-default (('default 'values) '(default-values)))
+   (insert-column-list ((c <- column-name-list) c))
+   
 
    ;; delete statement
    (delete-statement ((p <- delete-statement:positioned) p)
@@ -1081,16 +1109,6 @@
    (multiset-element-reference 
     (('element '#\( m <- multiset-value-expression '#\)) (list element m)))
 
-   ;; 7.1 row value constructor
-   (row-value-constructor-predicant ((c <- common-value-expression) c)
-				    ((b <- boolean-predicand) b)
-				    #;((e <- explicit-row-value-constructor) e))
-   ;; 7.2 row value expression
-   (row-value-expression ((n <- nonparenthesized-value-expression) n)
-			 #;((e <- explicit-row-value-constructor) e))
-   (row-value-predicand ((n <- nonparenthesized-value-expression) n)
-			((r <- row-value-constructor-predicant) r))
-
    ;; boolean value expression
    (boolean-value-expression ((t <- boolean-term 
 			       b* <- boolean-value-expression*)
@@ -1179,11 +1197,83 @@
 		  ((j <- joined-table) j))
    (non-join-query-primary ((s <- simple-table)  s)
 			   (('#\( q <- non-join-query-expression '#\)) q))
-   (simple-table ((q <- query-specification) q)
-		 ;; TODO
-		 ;; ((t <- table-value-constructor) t)
+   (simple-table ((t <- table-value-constructor) t)
+		 ((q <- query-specification) q)
 		 ((t <- explicit-table) t))
    (explicit-table (('table t <- table-or-query-name) `(table ,t)))
+
+   ;; 7.1 row value constructor
+   (row-value-constructor ((e <- explicit-row-value-constructor) e)
+			  ((c <- common-value-expression) c)
+			  ((b <- boolean-value-expression) b))
+   (explicit-row-value-constructor 
+    (('#\( r <- row-value-constructor-element-list '#\)) r)
+    (('row '#\( r <- row-value-constructor-element-list '#\)) (cons 'row r))
+    ((r <- row-subquery) r))
+   (row-value-constructor-element-list
+    ((r <- row-value-constructor-element 
+      r* <- row-value-constructor-element-list*) (cons r r*)))
+   (row-value-constructor-element-list* 
+    (('#\, r <- row-value-constructor-element-list) r)
+    (() '()))
+   (row-value-constructor-element ((v <- value-expression) v))
+
+   (row-value-constructor-predicant ((e <- explicit-row-value-constructor) e)
+				    ((c <- common-value-expression) c)
+				    ((b <- boolean-predicand) b))
+
+   (contextually-typed-row-value-constructor
+    (('row '#\( c <- contextually-typed-row-value-constructor-element-list '#\))
+     (cons 'row c))
+    (('#\( c <- contextually-typed-row-value-constructor-element-list '#\)) c)
+    ((c <- contextually-typed-value-specification) c)
+    ((c <- common-value-expression) c)
+    ((b <- boolean-value-expression) b))
+
+   (contextually-typed-row-value-constructor-element-list
+    ((e <- contextually-typed-row-value-constructor-element
+      e* <- contextually-typed-row-value-constructor-element-list*)
+     (cons e e*)))
+
+   (contextually-typed-row-value-constructor-element-list*
+    (('#\, e <- contextually-typed-row-value-constructor-element-list) e)
+    (() '()))
+
+   (contextually-typed-row-value-constructor-element
+    ((c <- contextually-typed-value-specification) c)
+    ((v <- value-expression) v))
+     
+   ;; 7.2 row value expression
+   (row-value-expression ((e <- explicit-row-value-constructor) e)
+			 ((n <- nonparenthesized-value-expression) n))
+   (row-value-predicand ((n <- nonparenthesized-value-expression) n)
+			((r <- row-value-constructor-predicant) r))
+
+   (table-row-value-expression ((p <- row-value-constructor) p)
+			       ((n <- nonparenthesized-value-expression) n))
+
+   (contextually-typed-row-value-expression
+    ((c <- contextually-typed-row-value-constructor) c)
+    ((n <- nonparenthesized-value-expression) n))
+   ;; 7.3 table value constructor
+   (table-value-constructor (('values r <- row-value-expression-list)
+			     `(values ,@r)))
+   (row-value-expression-list ((t <- table-row-value-expression
+				t* <- row-value-expression-list*)
+			       (cons t t*)))
+   (row-value-expression-list* (('#\, t <- row-value-expression-list) t)
+			       (() '()))
+
+   (contextually-typed-table-value-constructor 
+    (('values c <- contextually-typed-row-value-expression-list)
+     (cons 'values c)))
+   (contextually-typed-row-value-expression-list
+    ((c <- contextually-typed-row-value-expression
+      c* <- contextually-typed-row-value-expression-list*)
+     (cons c c*)))
+   (contextually-typed-row-value-expression-list*
+    (('#\, c <- contextually-typed-row-value-expression-list) c)
+    (() '()))
 
    ;; 7.7 joine table
    (joined-table ((j <- cross-join) j)

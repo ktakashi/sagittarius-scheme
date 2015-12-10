@@ -349,4 +349,17 @@
 	    '(delete (from t) (where (current-of (global a)))))
 (test-parse "delete from t where current of local a" 
 	    '(delete (from t) (where (current-of (local a)))))
+
+;; insert into
+(test-parse "insert into t (a) values (1)" '(insert-into t (a) (values (1))))
+(test-parse "insert into t (a) values (1),(2)"
+	    '(insert-into t (a) (values (1) (2))))
+(test-parse "insert into t (a) overriding user value values (1),(2)"
+	    '(insert-into t (a) overriding-user-value (values (1) (2))))
+(test-parse "insert into t (a) overriding system value values (1),(2)"
+	    '(insert-into t (a) overriding-system-value (values (1) (2))))
+(test-parse "insert into t (a) select b from f"
+	    '(insert-into t (a) (select (b) (from f))))
+(test-parse "insert into t default values"
+	    '(insert-into t default-values))
 (test-end)
