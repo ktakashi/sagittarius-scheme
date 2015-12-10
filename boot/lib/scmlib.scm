@@ -892,12 +892,45 @@
 		   (r (do-sort lst2 (length lst2) head)))
 	      (merge-list! proc head (list-head lst n) r head))))))
 
-(define (vector-sort proc vect)
-  (let ((lst (vector->list vect)))
-    (let ((lst2 (list-sort proc lst)))
-      (cond ((eq? lst lst2) vect)
-            (else
-             (list->vector lst2))))))
+(define (vector-sort proc vect :optional (start 0) (maybe-end #f))
+  (define len (vector-length vect))
+  (define end (or maybe-end len))
+  ;; TODO should we expose this?
+  (define (vector-copy! src src-from dst dst-from size)
+    (if (<= dst-from src-from)
+	(do ((i 0 (+ i 1)) (s src-from (+ s 1)) (d dst-from (+ d 1)))
+	    ((= i size) dst)
+	  (vector-set! dst d (vector-ref src s)))
+	(do ((i 0 (+ i 1)) 
+	     (s (+ src-from size) (- s 1)) 
+	     (d (+ dst-from size) (- d 1)))
+	    ((= i size) dst)
+	  (vector-set! dst d (vector-ref src s)))))
+
+  (when (or (negative? start) (negative? end))
+    (assertion-violation 'vector-sort! "start and end must be positive" start
+			 vect))
+  (when (or (> start len) (> end len))
+    (assertion-violation 'vector-sort! "out of range" 
+			 (list (list start end) len)
+			 vect))
+  (when (> start end)
+    (assertion-violation 'vector-sort! "start is greater than end" 
+			 (list start end)
+			 vect))
+  
+  (let* ((lst (vector->list vect start end))
+	 (lst2 (list-sort proc lst)))
+    (cond ((eq? lst lst2) vect)
+	  ((= (- end start) len)
+	   (list->vector lst2))
+	  (else
+	   (let ((v (make-vector len)))
+	     (vector-copy! vect 0 v 0 start)
+	     (do ((i start (+ i 1)) (l lst2 (cdr l)))
+		 ((null? l))
+	       (vector-set! v i (car l)))
+	     (vector-copy! vect end v end (- len end)))))))
 
 (define (vector-sort! proc vect :optional (start 0) (maybe-end #f))
   (define len (vector-length vect))

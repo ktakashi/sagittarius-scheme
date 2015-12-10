@@ -7,11 +7,11 @@
 and vectors.}
 
 @define[Function]{@name{list-sort} @args{proc list}}
-@define[Function]{@name{vector-sort} @args{proc vector}}
-@desc{[R6RS] @var{Proc} should accept any two elements of @var{list} or
-@var{vector}, and should not have any side effects. @var{Proc} should return a
-true value when its first argument is strictly less than its second, and #f
-otherwise.
+@define[Function]{@name{vector-sort}
+ @args{proc vector :optional (start 0) (end (vector-length vector))}}
+@desc{[R6RS+][SRFI-132] @var{Proc} should accept any two elements of 
+@var{list} or @var{vector}. @var{Proc} should return a true value when
+its first argument is strictly less than its second, and #f otherwise.
 
 The @code{list-sort} and @code{vector-sort} procedures perform a stable sort
 of @var{list} or @var{vector} in ascending order according to @var{proc}, without
@@ -20,11 +20,15 @@ returns a list, and @code{vector-sort} returns a vector. The results may be
 @code{eq?} to the argument when the argument is already sorted, and the result
 of @code{list-sort} may share structure with a tail of the original list. The
 sorting algorithm performs O(n lg n) calls to @var{proc} where n is the length
-of @var{list} or @var{vector}, and all arguments passed to @var{proc} are elements
-of the @var{list} or @var{vector} being sorted, but the pairing of arguments and
-the sequencing of calls to @var{proc} are not specified. If multiple returns
-occur from @code{list-sort} or @code{vector-sort}, the return values returned by
-earlier returns are not mutated.
+of @var{list} or @var{vector}, and all arguments passed to @var{proc} are 
+elements of the @var{list} or @var{vector} being sorted, but the pairing of
+arguments and the sequencing of calls to @var{proc} are not specified. If 
+multiple returns occur from @code{list-sort} or @code{vector-sort}, the 
+return values returned by earlier returns are not mutated.
+
+If the optional argument @var{start} and @var{end} for @code{vector-sort}
+is specified, then the sorting range is restricted by the given @var{start}
+(inclusive) and @var{end} (exclusive).
 }
 
 @define[Function]{@name{vector-sort!}

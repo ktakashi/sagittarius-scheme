@@ -1985,5 +1985,30 @@
   (define (abs< a b) (< (abs a) (abs b)))
   (test-assert "vector-sort! stable" (vector-sort! abs< v))
   (test-equal "vector-sort! stable" '#(-1 1 -3 3) v))
+(let ((v (vector -3 3 -1 1)))
+  (define (abs< a b) (< (abs a) (abs b)))
+  (test-assert "vector-sort! stable" (vector-sort! abs< v 2))
+  (test-equal "vector-sort! stable" '#(-3 3 -1 1) v))
+
+(let ((v (vector 0 3 5 2 1 0)))
+  (test-error "vector-sort (err1)" assertion-violation? (vector-sort < v -1))
+  (test-error "vector-sort (err2)" assertion-violation? (vector-sort < v 10))
+  (test-error "vector-sort (err3)" assertion-violation? (vector-sort < v 5 2))
+  (test-error "vector-sort (err4)" assertion-violation? 
+	      (vector-sort < v 0 -2))
+
+  (test-equal "vector-sort (start)" '#(0 0 1 2 3 5) (vector-sort < v 1))
+
+  (test-equal "vector-sort start end" '#(0 1 2 3 5 0) (vector-sort < v 1 5))
+
+  (test-equal "vector-sort start end (same)" '#(0 3 5 2 1 0)
+	      (vector-sort < v 0 0))
+  (test-equal "vector-sort start end (same)" '#(0 3 5 2 1 0) 
+	      (vector-sort < v 6 6)))
+
+(let ((v (vector -3 3 -1 1)))
+  (define (abs< a b) (< (abs a) (abs b)))
+  (test-equal "vector-sort stable" '#(-1 1 -3 3) (vector-sort abs< v))
+  (test-equal "vector-sort stable" '#(-3 3 -1 1) (vector-sort abs< v 2)))
 
 (test-end)
