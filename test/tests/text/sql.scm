@@ -168,6 +168,9 @@
 (test-parse "select * from t where 1=1 and (2=2 or 3=3)" 
 	    '(select * (from t) (where (and (= 1 1) (or (= 2 2) (= 3 3))))))
 
+(test-parse "select * from f where a = b||c)"
+	    '(select * (from f) (where (= a (^ b c)))))
+
 ;; between
 (test-parse "select * from t where a between 1 and 2" 
 	    '(select * (from t) (where (between a 1 2))))

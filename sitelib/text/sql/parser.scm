@@ -1246,8 +1246,8 @@
    ;; 7.2 row value expression
    (row-value-expression ((e <- explicit-row-value-constructor) e)
 			 ((n <- nonparenthesized-value-expression) n))
-   (row-value-predicand ((n <- nonparenthesized-value-expression) n)
-			((r <- row-value-constructor-predicant) r))
+   (row-value-predicand ((r <- row-value-constructor-predicant) r)
+			((n <- nonparenthesized-value-expression) n))
 
    (table-row-value-expression ((p <- row-value-constructor) p)
 			       ((n <- nonparenthesized-value-expression) n))
