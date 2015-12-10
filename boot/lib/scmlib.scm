@@ -899,8 +899,24 @@
             (else
              (list->vector lst2))))))
 
-(define (vector-sort! proc vect)
-  (let* ((n (vector-length vect)) (work (make-vector (+ (div n 2) 1))))
+(define (vector-sort! proc vect :optional (start 0) (maybe-end #f))
+  (define len (vector-length vect))
+  (define end (or maybe-end len))
+
+  (when (or (negative? start) (negative? end))
+    (assertion-violation 'vector-sort! "start and end must be positive" start
+			 vect))
+  (when (or (> start len) (> end len))
+    (assertion-violation 'vector-sort! "out of range" 
+			 (list (list start end) len)
+			 vect))
+  (when (> start end)
+    (assertion-violation 'vector-sort! "start is greater than end" 
+			 (list start end)
+			 vect))
+  
+  (let* ((n (- end start)) 
+	 (work (make-vector (+ (div n 2) 1))))
 
     (define (simple-sort! first last)
       (let loop1 ((i first))
@@ -943,8 +959,8 @@
                         (loop (+ i 1) (+ p2size 1)))))))
             (else
              (simple-sort! first last))))
-
-    (sort! 0 (- n 1))))
+    ;; the end is exclusive
+    (sort! start (- end 1))))
 
 ;;;;
 ;; 8 I/O

@@ -27,15 +27,17 @@ occur from @code{list-sort} or @code{vector-sort}, the return values returned by
 earlier returns are not mutated.
 }
 
-@define[Function]{@name{vector-sort!} @args{proc vector}}
-@desc{[R6RS] @var{Proc} should accept any two elements of the @var{vector}, and
-should not have any side effects. @var{Proc} should return a true value when its
-first argument is strictly less than its second, and #f otherwise.
+@define[Function]{@name{vector-sort!}
+ @args{proc vector :optional (start 0) (end (vector-length vector))}}
+@desc{[R6RS+][SRFI-132] @var{Proc} should accept any two elements of 
+the @var{vector}, and should not have any side effects. @var{Proc} 
+should return a true value when its first argument is strictly less
+than its second, and #f otherwise.
 
-The @code{vector-sort!} procedure destructively sorts vector in ascending order
-according to @var{proc}. The sorting algorithm performs O(n2) calls to @var{proc}
-where n is the length of @var{vector}, and all arguments passed to @var{proc}
-are elements of the @var{vector} being sorted, but the pairing of arguments and
-the sequencing of calls to @var{proc} are not specified. The sorting algorithm
-may be unstable. The procedure returns unspecified values.
+The @code{vector-sort!} procedure destructively sorts vector in 
+ascending order according to @var{proc}. 
+
+If the optional argument @var{start} and @var{end} is specified, then
+the sorting range is restricted by the given @var{start} (inclusive)
+and @var{end} (exclusive).
 }

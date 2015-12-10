@@ -1961,4 +1961,29 @@
   (test Ljubljana (string-titlecase/special-casing Ljubljana))
   (test Ljubljana (string-titlecase/special-casing ljubljana)))
 
+(let ((v (vector 0 3 5 2 1 0)))
+  (test-error "vector-sort! (err1)" assertion-violation? (vector-sort! < v -1))
+  (test-error "vector-sort! (err2)" assertion-violation? (vector-sort! < v 10))
+  (test-error "vector-sort! (err3)" assertion-violation? (vector-sort! < v 5 2))
+  (test-error "vector-sort! (err4)" assertion-violation? 
+	      (vector-sort! < v 0 -2))
+
+  (test-assert "vector-sort! start" (vector-sort! < v 1))
+  (test-equal "vector-sort! (start)" '#(0 0 1 2 3 5) v))
+
+(let ((v (vector 0 3 5 2 1 0)))
+  (test-assert "vector-sort! start end" (vector-sort! < v 1 5))
+  (test-equal "vector-sort! start end" '#(0 1 2 3 5 0) v))
+
+(let ((v (vector 0 3 5 2 1 0)))
+  (test-assert "vector-sort! start end (same)" (vector-sort! < v 0 0))
+  (test-equal "vector-sort! start end (same)" '#(0 3 5 2 1 0) v)
+  (test-assert "vector-sort! start end (same)" (vector-sort! < v 6 6))
+  (test-equal "vector-sort! start end (same)" '#(0 3 5 2 1 0) v))
+
+(let ((v (vector -3 3 -1 1)))
+  (define (abs< a b) (< (abs a) (abs b)))
+  (test-assert "vector-sort! stable" (vector-sort! abs< v))
+  (test-equal "vector-sort! stable" '#(-1 1 -3 3) v))
+
 (test-end)
