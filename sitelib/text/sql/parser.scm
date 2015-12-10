@@ -123,8 +123,29 @@
      stmt)
    (stmt ((s <- query-specification) s)
 	 ((s <- query-expression) s) ;; for 'with x as ...' thing
+	 ((d <- delete-statement) d)
 	 ;; TODO more
 	 )
+
+   ;; delete statement
+   (delete-statement ((p <- delete-statement:positioned) p)
+		     ((s <- delete-statement:searched) s))
+   ;; We do (delete (from ...) ..) rather than (delete-from t ...)
+   ;; Rationale: this would make s-expr -> string more simple. though
+   ;;            it'd be only a matter of one line...
+   ;; TODO should we use 'delete-from'?
+   (delete-statement:positioned
+    (('delete 'from t <- target-table 'where 'current 'of c <- cursor-name)
+     `(delete (from ,t) (where (current-of ,c)))))
+   (delete-statement:searched
+    (('delete 'from t <- target-table w <- where-clause)
+     `(delete (from ,t) ,@w)))
+   (target-table (('only '#\( t <- table-name '#\)) (list 'only t))
+		 ((t <- table-name) t))
+   (cursor-name (('global v <- simple-value-specification) (list 'global v))
+		(('local v <- simple-value-specification) (list 'local v))
+		((i <- local-or-schema-qualified-name) i))
+
    ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
    ;; I don't know if this is oversight or proper specification
@@ -1536,6 +1557,8 @@
    ;; 5.3 literal
    (literal ((s <- signed-numeric-literal) s)
 	    ((g <- general-literal) g))
+   (signed-numeric-literal ((s <- sign u <- 'number) (cons s u))
+			   ((u <- 'number) u))
    (unsigned-literal ((u <- 'number) u)
 		     ((g <- general-literal) g))
    (general-literal ((s <- character-string-literal) s)

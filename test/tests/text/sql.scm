@@ -340,5 +340,13 @@
 	    '(select ((union (select (1)) 
 			     (intersect (select (2)) (select (3)))))))
 
-
+;; delete from
+(test-parse "delete from t" '(delete (from t)))
+(test-parse "delete from t where a = 1" '(delete (from t) (where (= a 1))))
+(test-parse "delete from t where current of a" 
+	    '(delete (from t) (where (current-of a))))
+(test-parse "delete from t where current of global a" 
+	    '(delete (from t) (where (current-of (global a)))))
+(test-parse "delete from t where current of local a" 
+	    '(delete (from t) (where (current-of (local a)))))
 (test-end)
