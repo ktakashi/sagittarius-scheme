@@ -58,9 +58,9 @@
 ;; e.g. 'foo.bar' = (~ foo bar)
 ;; 
 (define (concate-identifier base follow)
-  (if (and (pair? follow) (eq? (car follow) '~))
-      `(~ ,base ,(cdr follow))
-      `(~ ,base ,follow)))
+  (cond ((null? follow) base)
+	((and (pair? follow) (eq? (car follow) '~)) `(~ ,base ,(cdr follow)))
+	(else `(~ ,base ,follow))))
 
 (define (construct-table name as&cols)
   (if as&cols
@@ -204,9 +204,7 @@
 		   ((v <- value-expression) v))
    ;; qualified-identifier
    (identifier-chain  ((i <- identifier i* <- identifier-chain*)
-		       (if (null? i*)
-			   i
-			   (concate-identifier i i*))))
+		       (concate-identifier i i*)))
    (identifier-chain* (('#\. i <- identifier-chain) i)
 		      (() '()))
 
@@ -445,6 +443,15 @@
 			    ((c <- collection-value-expression) c)
 			    ((v <- value-expression-primary) v))
 
+   ;; these 2 are the same so we don't need it
+   ;; (user-define-type-value-expression ((v <- value-expression-primary) v)
+   ;; (reference-value-expression ((v <- value-expression-primary) v)
+   (collection-value-expression ((m <- multiset-value-expression) m)
+				((a <- array-value-expression) a))
+
+   (collection-value-constructor ((m <- multiset-value-constructor) m)
+				 ((a <- array-value-constructor) a))
+
    ;; 6.30  datetime value expression
    (datetime-value-expression 
     ((d <- datetime-term d* <- datetime-value-expression*) (cons d d*))
@@ -537,11 +544,6 @@
    (interval-leading-field-precision ((n <- 'number) n))
    (interval-fractional-seconds-precision ((n <- 'number) n))
 
-   ;; these 2 are the same so we don't need it
-   ;; (user-define-type-value-expression ((v <- value-expression-primary) v)
-   ;; (reference-value-expression ((v <- value-expression-primary) v)
-   (collection-value-expression ((m <- multiset-value-expression) m)
-				((a <- array-value-expression) a))
    ;; 6.35 array value expression
    ;; I think this won't reach since string-value-expression has the
    ;; same expression.
@@ -553,6 +555,21 @@
 			(() '()))
    (array-factor ((v <- value-expression-primary) v))
 
+   ;; 6.36 array value constructor
+   (array-value-constructor ((e <- array-value-constructor-by-enumeration) e)
+			    ((q <- array-value-constructor-by-query) q))
+   (array-value-constructor-by-enumeration 
+    (('array '#\[ e <- array-element-list '#\]) (cons 'array e)))
+   (array-element-list ((e <- array-element e* <- array-element-list*)
+			(cons e e*)))
+   (array-element-list* (('#\, e <- array-element-list) e)
+			(() '()))
+   (array-element ((e <- value-expression) e))
+
+   (array-value-constructor-by-query 
+    (('array '#\( q <- query-expression '#\)) (list 'array q)))
+
+   ;; 6.37 multiset value expression
    ;; TODO nested MULTISET handling
    ;; NB: Not even sure which RDBMS supports MULTISET so can't determine
    ;;     how it should be nested. For now, first one is the outer most
@@ -588,8 +605,15 @@
 		    (((! 'concat)) '()))
 
    (multiset-primary ((v <- value-expression-primary) v)
-		     ((m <- mutiset-value-function) m))
-   (mutiset-value-function (('set '#\( m <- multiset-value-expression '#\)) m))
+		     ((m <- multiset-value-function) m))
+   ;; 6.38 multiset value function
+   (multiset-value-function (('set '#\( m <- multiset-value-expression '#\)) m))
+
+   ;; 6.39 multiset value constructor
+   (multiset-value-constructor
+    (('multiset '#\[ a <- array-element-list '#\]) (cons 'multiset a))
+    (('multiset '#\( q <- query-expression '#\)) (list 'multiset q))
+    (('table '#\( q <- query-expression '#\)) (list 'table q)))
 
    ;; 6.26 numeric value expression
    ;; to determine if empty set can be return as numeric value
@@ -757,11 +781,24 @@
 
    ;; 6.3 value expression primary
    ;; we do it like this to do field reference without left side recursion.
-   (value-expression-primary ((v <- no-field-reference-value
-			       v* <- value-expression-primary*)
-			      (if (null? v*)
-				  v
-				  (concate-identifier v v*))))
+   (value-expression-primary 
+    ;; attribute reference
+    ((v <- no-field-reference-value
+      v* <- value-expression-primary*
+      '-> n <- identifier a <- sql-argument-list)
+     `((-> ,(concate-identifier v v*) ,n) ,@a))
+    ((v <- no-field-reference-value
+      v* <- value-expression-primary*
+      '-> n <- identifier)
+     `(-> ,(concate-identifier v v*) ,n))
+    ;; array reference
+    ((v <- no-field-reference-value
+      v* <- value-expression-primary*
+      '#\[ n <- numeric-value-expression '#\])
+     `(array-ref ,(concate-identifier v v*) ,n))
+    ((v <- no-field-reference-value
+      v* <- value-expression-primary*)
+     (concate-identifier v v*)))
    (value-expression-primary* (('#\. v <- value-expression-primary
 				s <- sql-argument-list) (cons v s))
 			      (('#\. v <- value-expression-primary) v)
@@ -775,18 +812,20 @@
 				      ((s <- scalar-subquery) s)
 				      ((c <- case-expression) c)
 				      ((c <- cast-specification) c)
-				      ;; This shouldn't be uncommented
+				      ;; These shouldn't be uncommented
 				      ;; see the comment on the definition
 				      ;;((f <- field-reference) f)
+				      ;;((a <- array-element-reference) a)
+				      ;;((a <- attribute-or-method-reference) a)
 				      ((n <- next-value-expression) n)
 				      ((s <- subtype-treatment) s)
 				      ((m <- method-invocation) m)
-				      ;;((s <- static-method-invocation) s)
-				      ;;((a <- attribute-or-method-reference) a)
-				      ;;((r <- reference-resolution) r)
-				      ;;((c <- collection-value-constructor) c)
-				      ;;((a <- array-element-reference) a)
-				      ;;((m <- multiset-element-reference) m)
+				      ((s <- static-method-invocation) s)
+				      ((n <- new-specification) n)
+				      ((r <- reference-resolution) r)
+				      ((c <- collection-value-constructor) c)
+				      
+				      ((m <- multiset-element-reference) m)
 				      ((r <- routine-invocation) r)
 				      
 				      ;; these 2 must be the last
@@ -988,6 +1027,38 @@
     (('#\( v <- value-expression-primary 'as t <- data-type '#\)
       '#\. n <- identifier)
      `((~ (as ,v ,t) ,n))))
+
+   ;; 6.17 static method invocation
+   ;; TODO should we use :: for this? using keyword often causes
+   ;;      serialization issue...
+   (static-method-invocation 
+    ((n <- identifier-chain ':: m <- identifier a <- sql-argument-list)
+     `((:: ,n ,m) ,@a))
+    ((n <- identifier-chain ':: m <- identifier)
+     `(:: ,n ,m)))
+
+   ;; 6.18 new specification
+   (new-specification (('new r <- routine-invocation) `(new ,r)))
+
+   ;; 6.19 attribute or method reference
+   ;; the famous left side recursion issue...
+;;    (attribute-or-method-reference 
+;;     ((v <- value-expression-primary '-> n <- identifier) `(-> ,v ,n)))
+
+   ;; 6.22 reference resolution
+   (reference-resolution (('deref '#\( r <- value-expression-primary '#\))
+			  `(deref ,r)))
+
+   ;; 6.23 array element reference
+   ;; the famous left side recursion issue...
+;;    (array-element-reference 
+;;     ((v <- array-value-expression '#\[ n <- numeric-value-expression '#\]) 
+;;      (list 'array-ref v n)))
+
+   ;; 6.24 multiset element reference
+   ;; the famous left side recursion issue...
+   (multiset-element-reference 
+    (('element '#\( m <- multiset-value-expression '#\)) (list element m)))
 
    ;; 7.1 row value constructor
    (row-value-constructor-predicant ((c <- common-value-expression) c)

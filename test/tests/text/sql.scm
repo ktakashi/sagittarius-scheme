@@ -98,6 +98,27 @@
 ;; this is because the first (a) is something else...
 (test-parse "select (a).m()" '(select ((~ a (m)))))
 
+;; static method invocation
+(test-parse "select foo::m" '(select ((:: foo m))))
+(test-parse "select foo::m()" '(select (((:: foo m)))))
+(test-parse "select foo.bar::m" '(select ((:: (~ foo bar) m))))
+(test-parse "select foo.bar::m()" '(select (((:: (~ foo bar) m)))))
+
+;; new specification
+(test-parse "select new m()" '(select ((new (m)))))
+
+;; attribute or method reference
+(test-parse "select foo->m" '(select ((-> foo m))))
+(test-parse "select foo->m()" '(select (((-> foo m)))))
+(test-parse "select foo.bar->m()" '(select (((-> (~ foo bar) m)))))
+
+;; array value constructor
+(test-parse "select array[1,2,3]" '(select ((array 1 2 3))))
+(test-parse "select array(select 1)" '(select ((array (select (1))))))
+(test-parse "select multiset[1,2,3]" '(select ((multiset 1 2 3))))
+(test-parse "select multiset(select 1)" '(select ((multiset (select (1))))))
+(test-parse "select table(select 1)" '(select ((table (select (1))))))
+
 ;; routine invocation
 (test-parse "select foo(a)" '(select ((foo a))))
 
