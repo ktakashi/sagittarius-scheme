@@ -87,6 +87,11 @@
 (define (symbol-append . args)
   (string->symbol (string-concatenate (map symbol->string args))))
 
+(define (merge-escape v e)
+  (if (null? e)
+      v
+      `(,(car e) ,v ,(cadr e))))
+
 ;; handling operators
 ;;
 ;; form numeric 
@@ -1423,11 +1428,11 @@
    (like-predicate-2 (('not l <- like-operator 
 			r1 <- character-value-expression 
 			e <- character-escape)
-		      `(,(symbol-append 'not- l) ,r1 ,@e))
+		      `(,(symbol-append 'not- l) ,(merge-escape r1 e)))
 		     ((l <- like-operator
 		       r1 <- character-value-expression
 		       e <- character-escape)
-		      `(,l ,r1 ,@e)))
+		      `(,l ,(merge-escape r1 e))))
    (like-operator (('like) 'like)
 		  ;; ilike is *not* a keyword so compare with value.
 		  (((=? 'ilike)) 'ilike)) ;; for PostgreSQL
@@ -1437,10 +1442,10 @@
 		       (cons* (car r1) r0 (cdr r1))))
    (similar-predicate-2 (('not 'similar 'to p <- similar-pattern 
 			  e <- character-escape)
-			 `(not-similar-to ,p ,@e))
+			 `(not-similar-to ,(merge-escape p e)))
 			(('similar 'to p <- similar-pattern 
 			  e <- character-escape)
-			 `(similar-to ,p ,@e)))
+			 `(similar-to ,(merge-escape p e))))
    (similar-pattern ((p <- character-value-expression) p))
    ;; NB: we don't need BNF of regular expression.
 
@@ -1672,7 +1677,7 @@
 	    `(,@s uescape ,c))
 	   ((s <- 'string) s))
    ;; escape
-   (character-escape (('escape s <- 'string) `((escape ,s)))
+   (character-escape (('escape s <- 'string) (list 'escape s))
 		     (() '()))
    (host-parameter-specification (('#\: i <- identifier) (cons ': i)))
    

@@ -2,6 +2,7 @@
 	(text sql)
 	(text sql scanner)
 	(text sql parser)
+	(text sql simplifier)
 	(srfi :64))
 
 (test-begin "SQL")
@@ -197,19 +198,19 @@
 (test-parse "select * from t where a like 'a'" 
 	    '(select * (from t) (where (like a "a"))))
 (test-parse "select * from t where a like 'a$_' escape '$'" 
-	    '(select * (from t) (where (like a "a$_" (escape "$")))))
+	    '(select * (from t) (where (like a (escape "a$_" "$")))))
 (test-parse "select * from t where a not like 'a'" 
 	    '(select * (from t) (where (not-like a "a"))))
 (test-parse "select * from t where a not like 'a$_' escape '$'" 
-	    '(select * (from t) (where (not-like a "a$_" (escape "$")))))
+	    '(select * (from t) (where (not-like a (escape "a$_" "$")))))
 (test-parse "select * from t where a ilike 'a'" 
 	    '(select * (from t) (where (ilike a "a"))))
 (test-parse "select * from t where a ilike 'a$_' escape '$'" 
-	    '(select * (from t) (where (ilike a "a$_" (escape "$")))))
+	    '(select * (from t) (where (ilike a (escape "a$_" "$")))))
 (test-parse "select * from t where a not ilike 'a'" 
 	    '(select * (from t) (where (not-ilike a "a"))))
 (test-parse "select * from t where a not ilike 'a$_' escape '$'" 
-	    '(select * (from t) (where (not-ilike a "a$_" (escape "$")))))
+	    '(select * (from t) (where (not-ilike a (escape "a$_" "$")))))
 
 ;; similar to
 (test-parse "select * from t where a similar to 'b';"
@@ -375,4 +376,25 @@
 	    '(update f (set! (= (~ a m) 1) (= b 2)) (where (= i 0))))
 (test-parse "update f set a=null where i=0" 
 	    '(update f (set! (= a null)) (where (= i 0))))
+
+;; simplifier
+(define (test-simplify ssql expected)
+  (test-equal ssql (simplify-ssql ssql) expected))
+
+;; one identifier if possible
+(test-simplify '(~ a b) 'a.b)
+(test-simplify '(~ a b (! "c")) 'a.b.c)
+(test-simplify '(~ a b (! "c.d")) '(~ a.b (! "c.d")))
+
+;; unicode escape
+(test-simplify '(~ a (unicode (! "\\0042"))) 'a.B)
+(test-simplify '(~ a (unicode (! "$0042") uescape "$")) 'a.B)
+(test-simplify '(~ a (unicode (! "$0042\\") uescape "$")) '|a.B\\\\|)
+
+;; escape (for like or similar operator)
+(test-simplify '(escape "%_" "%") "\\_")
+;; error case
+(test-simplify '(escape "%_") '(escape "%_"))
+(test-simplify '(escape) '(escape))
+
 (test-end)
