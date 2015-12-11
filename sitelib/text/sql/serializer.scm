@@ -340,6 +340,44 @@
 	       (put-string out "||")
 	       (apply write-ssql id out opt)) ids)))
 
+;; unicode and delimited
+;; at this moment, we just need to dump the string
+   ;; just make sure #\" will be escaped
+(define (write-escaped-delimited s out)
+  (string-for-each (lambda (ch)
+		     (case ch
+		       ((#\") (put-string out "\"\""))
+		       (else (put-char out ch)))) s))
+(define (write-escaped-string s out)
+  (string-for-each (lambda (ch)
+		     (case ch
+		       ((#\') (put-string out "''"))
+		       (else (put-char out ch)))) s))
+
+(define-sql-writer (! ssql out . opt)
+  (('! id)
+   (put-char out #\")
+   (write-escaped-delimited id out)
+   (put-char out #\")))
+
+(define-sql-writer (unicode ssql out . opt)
+  (('unicode (! id) 'uescape e)
+   (put-char out #\space)
+   (parameterize ((*unicode-escape* (string-ref e 0)))
+     (handle-identifier id out :delimited #t :uescape #t)))
+  (('unicode (! id))
+   (put-char out #\space)
+   (parameterize ((*unicode-escape* #\\))
+     (handle-identifier id out :delimited #t :uescape #t)))
+  (('unicode (? string? s) 'uescape e)
+   (put-char out #\space)
+   (parameterize ((*unicode-escape* (string-ref e 0)))
+     (handle-string s out :uescape #t)))
+  (('unicode (? string? s))
+   (put-char out #\space)
+   (parameterize ((*unicode-escape* #\\))
+     (handle-string s out :uescape #t))))
+
 ;; a bit ugly...
 (define-raw-sql-writer (binary-op ssql out . opt)
   (apply infix-operator-writer ssql out opt))
@@ -444,14 +482,15 @@
 ;;  - delimited if needed
 ;;  - detect unicode
 (define not-dot-set (char-set-complement! (string->char-set ".")))
-(define (handle-identifier ssql out)
+(define (handle-identifier ssql out :key (delimited #f) (uescape #f))
   (define charset (*non-unicode-charset*))
   (define escape (*unicode-escape*))
   (define converter (*character-converter*))
   (define (write/uescape s out)
     (let ((in (open-string-input-port s))
-	  (uescape? (and charset (not (string-every charset s))))
-	  (delimited? (string-any +sql-special-character-set+ s)))
+	  (uescape? (or uescape (and charset (not (string-every charset s)))))
+	  (delimited? (or delimited 
+			  (string-any +sql-special-character-set+ s))))
       (when uescape? (write/case "U&\"" out))
       (when (and (not uescape?) delimited?) (put-char out #\"))
       (let-values (((sout extract) (open-string-output-port)))
@@ -476,13 +515,15 @@
 
       (when (or uescape? delimited?) (put-char out #\"))
       (when (and uescape? escape (not (eqv? escape #\\)))
-	(write/case " uescape '" out)
+	(write/case " UESCAPE '" out)
 	(if (eqv? escape #\')
 	    (put-string out "''")
 	    (put-char out escape))
 	(put-char out #\'))))
-
-  (let ((fragments (string-tokenize (symbol->string ssql) not-dot-set)))
+  ;; ugly...
+  (let ((fragments (if delimited
+		       (list ssql)
+		       (string-tokenize (symbol->string ssql) not-dot-set))))
     (write/uescape (car fragments) out)
     (for-each (lambda (f) (put-char out #\.) (write/uescape f out))
 	      (cdr fragments))))
@@ -491,14 +532,14 @@
 ;; Do the followings:
 ;;  - escape quote(')
 ;;  - detect unicode
-(define (handle-string ssql out)
+(define (handle-string ssql out :key (uescape #f))
   (define escape (*unicode-escape*))
   (define (escape-quote s)
     (define charset (*non-unicode-charset*))
     (define converter (*character-converter*))
     (let-values (((out extract) (open-string-output-port))
 		 ((in) (open-string-input-port s)))
-      (let loop ((uescape? #f))
+      (let loop ((uescape? uescape))
 	(let ((ch (get-char in)))
 	  (cond ((eof-object? ch) (values (extract) uescape?))
 		((char=? ch #\') (put-string out "''") (loop uescape?))
@@ -516,12 +557,12 @@
 		   (loop #t))))))))
 
   (let-values (((s uescape?) (escape-quote ssql)))
-    (when uescape? (write/case "u&" out))
+    (when uescape? (write/case "U&" out))
     (put-char out #\') 
     (put-string out s)
     (put-char out #\')
     (when (and uescape? escape (not (eqv? escape #\\)))
-      (write/case " uescape '" out)
+      (write/case " UESCAPE '" out)
       ;; how stupid is this?
       (if (eqv? escape #\')
 	  (put-string out "''")
