@@ -29,7 +29,8 @@
 ;;;  
 
 (library (text sql scanner)
-    (export make-sql-scanner)
+    (export make-sql-scanner
+	    (rename specials +sql-special-character-set+))
     (import (rnrs) 
 	    (srfi :14 char-sets)
 	    ;; (srfi :39 parameters)

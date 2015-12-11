@@ -56,7 +56,7 @@
 
 (define (simplify-identifier ssql)
   (define (handle-identifier ssql)
-    (define (has-dot? s) (string-any (lambda (c) (char=? c #\.)) s))
+    (define (has-dot? s) (string-any #\. s))
     (cond ((symbol? ssql) (symbol->string ssql))
 	  ((pair? ssql)
 	   (case (car ssql)

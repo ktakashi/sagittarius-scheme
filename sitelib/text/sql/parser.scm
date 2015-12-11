@@ -1142,9 +1142,8 @@
 ;;      (list 'array-ref v n)))
 
    ;; 6.24 multiset element reference
-   ;; the famous left side recursion issue...
    (multiset-element-reference 
-    (('element '#\( m <- multiset-value-expression '#\)) (list element m)))
+    (('element '#\( m <- multiset-value-expression '#\)) (list 'element m)))
 
    ;; boolean value expression
    (boolean-value-expression ((t <- boolean-term 
@@ -1313,26 +1312,40 @@
     (() '()))
 
    ;; 7.7 joine table
-   (joined-table ((j <- cross-join) j)
-		 ((j <- qualified-join) j)
-		 ((j <- natural-join) j)
-		 ((j <- union-join) j))
+   (joined-table ((t1 <- table-primary j <- cross-join)     (cons t1 j))
+		 ((t1 <- table-primary j <- qualified-join) (cons t1 j))
+		 ((t1 <- table-primary j <- natural-join)   (cons t1 j))
+		 ((t1 <- table-primary j <- union-join)     (cons t1 j)))
 
-   (cross-join ((t1 <- table-primary 'cross 'join t2 <- table-primary)
-		`(cross-join ,t1 ,t2)))
-   (qualified-join ((t1 <- table-primary j <- join-type
-		    'join t2 <- table-reference js <- join-specification)
-		    `(,(symbol-append j '- 'join) ,t1 ,t2 ,js))
-		   ((t1 <- table-primary 'join t2 <- table-reference
-		     j <- join-specification)
-		    `(join ,t1 ,t2 ,j)))
-   (natural-join ((t1 <- table-primary 'natural j <- join-type
-		   'join t2 <- table-primary)
-		  `(,(symbol-append 'natural '- j '- 'join) ,t1 ,t2))
-		 ((t1 <- table-primary 'natural 'join t2 <- table-primary)
-		    `(natural-join ,t1 ,t2)))
-   (union-join ((t1 <- table-primary 'union 'join t2 <- table-primary)
-		`(union-join ,t1 ,t2)))
+   (joined-table* ((j <- cross-join) j)
+		  ((j <- qualified-join) j)
+		  ((j <- natural-join) j)
+		  ((j <- union-join) j)
+		  (() '()))
+
+   (cross-join (('cross 'join t2 <- table-primary
+		 t3 <- joined-table*)
+		(cons `(cross-join ,t2) t3)))
+
+   (qualified-join ((j <- join-type
+		    'join t2 <- table-reference js <- join-specification
+		    t3 <- joined-table*)
+		    (cons `(,(symbol-append j '- 'join) ,t2 ,js) t3))
+		   (('join t2 <- table-reference
+		     j <- join-specification
+		     t3 <- joined-table*)
+		    (cons `(join ,t2 ,j) t3)))
+
+   (natural-join (('natural j <- join-type
+		   'join t2 <- table-primary
+		   t3 <- joined-table*)
+		  (cons `(,(symbol-append 'natural '- j '- 'join) ,t1 ,t2) t3))
+		 (('natural 'join t2 <- table-primary t3 <- joined-table*)
+		  (cons `(natural-join ,t1 ,t2) t3)))
+   
+   (union-join (('union 'join t2 <- table-primary  t3 <- joined-table*)
+		(cons `(union-join ,t1 ,t2) t3)))
+
    (join-specification ((c <- join-condition) c)
 		       ((c <- named-columns-join) c))
    (join-condition (('on s <- search-condition) `(on ,s)))

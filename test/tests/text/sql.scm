@@ -125,17 +125,22 @@
 
 ;; join
 (test-parse "select * from t join a on t.id = a.id"
-	    '(select * (from (join t a (on (= (~ t id) (~ a id)))))))
+	    '(select * (from (t (join a (on (= (~ t id) (~ a id))))))))
 (test-parse "select * from t left join a on t.id = a.id"
-	    '(select * (from (left-join t a (on (= (~ t id) (~ a id)))))))
+	    '(select * (from (t (left-join a (on (= (~ t id) (~ a id))))))))
 (test-parse "select * from t right join a on t.id = a.id"
-	    '(select * (from (right-join t a (on (= (~ t id) (~ a id)))))))
+	    '(select * (from (t (right-join a (on (= (~ t id) (~ a id))))))))
 (test-parse "select * from t full join a on t.id = a.id"
-	    '(select * (from (full-join t a (on (= (~ t id) (~ a id)))))))
+	    '(select * (from (t (full-join a (on (= (~ t id) (~ a id))))))))
+(test-parse "select * \
+             from t inner join a on t.id = a.id \
+             left join b on t.id = b.id"
+	    '(select * (from (t (inner-join a (on (= (~ t id) (~ a id))))
+				(left-join b  (on (= (~ t id) (~ b id))))))))
 ;; very rare case but it's valid.
-;; NB: because of this, join clause contains left handed side.
+;; NB: because of this, join clause looks a bit weird
 (test-parse "select * from t join a on t.id = a.id, w"
-	    '(select * (from (join t a (on (= (~ t id) (~ a id)))) w)))
+	    '(select * (from (t (join a (on (= (~ t id) (~ a id))))) w)))
 
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
