@@ -365,4 +365,14 @@
 	    '(insert-into t (a) (select (b) (from f))))
 (test-parse "insert into t default values"
 	    '(insert-into t default-values))
+
+;; update
+(test-parse "update f set a=1,b=2 where i=0" 
+	    '(update f (set! (= a 1) (= b 2)) (where (= i 0))))
+(test-parse "update f set a[0]=1,b=2 where i=0" 
+	    '(update f (set! (= (array-ref a 0) 1) (= b 2)) (where (= i 0))))
+(test-parse "update f set a.m=1,b=2 where i=0" 
+	    '(update f (set! (= (~ a m) 1) (= b 2)) (where (= i 0))))
+(test-parse "update f set a=null where i=0" 
+	    '(update f (set! (= a null)) (where (= i 0))))
 (test-end)

@@ -125,6 +125,7 @@
 	 ((s <- query-expression) s) ;; for 'with x as ...' thing
 	 ((i <- insert-statement) i)
 	 ((d <- delete-statement) d)
+	 ((u <- update-statement) u)
 	 ;; TODO more
 	 )
 
@@ -154,6 +155,37 @@
    (from-default (('default 'values) '(default-values)))
    (insert-column-list ((c <- column-name-list) c))
    
+   ;; 14.10, 14.11 update statement positioned, searched
+   (update-statement (('update t <- table-name 'set s <- set-clause-list
+		       'where 'current 'of c <- cursor-name)
+		      `(update ,t (set! ,@s) (where (current-of ,c))))
+		     (('update t <- table-name 'set s <- set-clause-list
+		       w <- where-clause)
+		      `(update ,t (set! ,@s) ,@w)))
+   ;; 14.12 set clause
+   (set-clause-list ((s <- set-clause s* <- set-clause-list*) (cons s s*)))
+   (set-clause-list* (('#\, s <- set-clause-list) s)
+		     (() '()))
+   (set-clause ((m <- multiple-column-assignment) m)
+	       ;; TODO (= s u) is good?
+	       ((s <- set-target '#\= u <- update-source) `(= ,s ,u)))
+   ;; NB: we can't make both update-target and mutated-set-clause
+   ;;     satisfy. so what we can do here is make object-column
+   ;;     identifier-chain.
+   (set-target ((u <- update-target) u))
+   (multiple-column-assignment 
+    (('#\( s <- set-target s* <- set-target-list '#\) 
+      '#\= r <- contextually-typed-row-value-expression) `(= ,(cons s s*) ,r)))
+   (set-target-list ((s <- set-target s* <- set-target-list*) (cons s s*)))
+   (set-target-list* (('#\, s <- set-target-list) s)
+		     (() '()))
+   (update-target ((c <- identifier-chain
+		    '#\[ s <- simple-value-specification '#\])
+		   ;; TODO array-ref?
+		   (list 'array-ref c s))
+		  ((c <- identifier-chain) c))
+   (update-source ((c <- contextually-typed-value-specification) c)
+		  ((v <- value-expression) v))
 
    ;; delete statement
    (delete-statement ((p <- delete-statement:positioned) p)
