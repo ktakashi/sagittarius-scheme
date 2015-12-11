@@ -124,7 +124,7 @@
 		    (if first c (extract)))
 		   (else (put-char out c) (loop #f)))))))))
 
-  (define (sql->ssql in :key (comment 'top) (strict? #t))
+  (define (sql->ssql in :key (comment 'top) (strict? #t) (simplify #t))
     (let loop ((r '()))
       (let ((sql (read-sql in :comment comment)))
 	(if (eof-object? sql)
@@ -135,6 +135,6 @@
 	      ;; TODO better condition
 	      (when (and strict? (not (eof-object? (get-char sin))))
 		(error 'sql->ssql "Parser couldn't consume the SQL" sql))
-	      (loop (cons ssql r)))))))
+	      (loop (cons (if simplify (simplify-ssql ssql) ssql) r)))))))
 
 )

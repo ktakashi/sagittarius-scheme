@@ -192,8 +192,10 @@
   (let ((id (string->symbol (string-downcase s))))
     (cond ((memq id *sql:keywords*)
 	   (cons id id))
+	  ;; TODO should we make identifier lower case?
+	  ;;      it doesn't matter on SQL but user input is lost
 	  (else (cons 'identifier id)))))
-  
+
 (define (read-identifier ch port) 
   (let ((id (%read-identifier ch port)))
     (resolve-identifier id)))
