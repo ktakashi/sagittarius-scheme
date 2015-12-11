@@ -277,6 +277,7 @@
 (define-sql-writer right-outer-join join)
 (define-sql-writer union-join join)
 ;; thank you very much!!
+(define-sql-writer natural-join join)
 (define-sql-writer natural-inner-join join)
 (define-sql-writer natural-full-join join)
 (define-sql-writer natural-full-outer-join join)
