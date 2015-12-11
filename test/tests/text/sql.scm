@@ -415,6 +415,7 @@
 (test-serializer '(unicode "s") " U&'s'")
 (test-serializer '(unicode (! "s") uescape "$") " U&\"s\" UESCAPE '$'")
 (test-serializer '(unicode (! "s")) " U&\"s\"")
+(test-serializer '(unicode (! "s\"")) " U&\"s\"\"\"")
 
 ;; from clause
 ;; FIXME this is not a good way to test. it depends on the implementation
