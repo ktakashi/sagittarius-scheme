@@ -142,6 +142,9 @@
 (test-parse "select * from t join a on t.id = a.id, w"
 	    '(select * (from (t (join a (on (= (~ t id) (~ a id))))) w)))
 
+(test-parse "select * from t full join a using (a, b, c)"
+	    '(select * (from (t (full-join a (using a b c))))))
+
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
 	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
@@ -276,21 +279,21 @@
 (test-parse "select * from t where a not member of b"
 	    '(select * (from t) (where (not-member-of a b))))
 (test-parse "select * from t where a not member b"
-	    '(select * (from t) (where (not-member-of a b))))
+	    '(select * (from t) (where (not-member a b))))
 (test-parse "select * from t where a member of b"
 	    '(select * (from t) (where (member-of a b))))
 (test-parse "select * from t where a member b"
-	    '(select * (from t) (where (member-of a b))))
+	    '(select * (from t) (where (member a b))))
 
 ;; submultiset
 (test-parse "select * from t where a not submultiset of b"
 	    '(select * (from t) (where (not-submultiset-of a b))))
 (test-parse "select * from t where a not submultiset b"
-	    '(select * (from t) (where (not-submultiset-of a b))))
+	    '(select * (from t) (where (not-submultiset a b))))
 (test-parse "select * from t where a submultiset of b"
 	    '(select * (from t) (where (submultiset-of a b))))
 (test-parse "select * from t where a submultiset b"
-	    '(select * (from t) (where (submultiset-of a b))))
+	    '(select * (from t) (where (submultiset a b))))
 
 ;; set
 (test-parse "select * from t where a is a set"

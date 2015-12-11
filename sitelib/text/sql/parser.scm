@@ -1525,30 +1525,30 @@
    ;; 8.15 member predicate
    (member-predicate ((r0 <- row-value-predicand r1 <- member-predicate-2)
 			(cons* (car r1) r0 (cdr r1))))
-   ;; TODO should we preserve lacking 'of' keyword?
+   ;; preserve lacking of 'of'
    (member-predicate-2 (('not 'member 'of r <- multiset-value-expression) 
 			(list 'not-member-of r))
 		       (('not 'member r <- multiset-value-expression) 
-			(list 'not-member-of r))
+			(list 'not-member r))
 		       (('member 'of r <- multiset-value-expression) 
 			(list 'member-of r))
 		       (('member r <- multiset-value-expression) 
-			(list 'member-of r)))
+			(list 'member r)))
 
    ;; 8.16 submultiset predicate
    (submultiset-predicate ((r0 <- row-value-predicand 
 			    r1 <- submultiset-predicate-2)
 		      (cons* (car r1) r0 (cdr r1))))
-   ;; TODO should we preserve lacking 'of' keyword?
+   ;; preserve lacking 'of' keyword
    (submultiset-predicate-2
     (('not 'submultiset 'of r <- multiset-value-expression) 
      (list 'not-submultiset-of r))
     (('not 'submultiset r <- multiset-value-expression) 
-     (list 'not-submultiset-of r))
+     (list 'not-submultiset r))
     (('submultiset 'of r <- multiset-value-expression) 
      (list 'submultiset-of r))
     (('submultiset r <- multiset-value-expression) 
-     (list 'submultiset-of r)))
+     (list 'submultiset r)))
 
    ;; 8.17 set predicate
    (set-predicate ((r0 <- row-value-predicand r1 <- set-predicate-2)
