@@ -40,9 +40,9 @@
 	    (sagittarius)) ;; for port-info
 
 ;; packrat specific tokenizer
-(define (make-generator p)
+(define (make-generator p :optional (ignore-comment #t))
   (let ((file (cond ((car (port-info p))) (else "<?>")))
-	(scanner (make-sql-scanner p)))
+	(scanner (make-sql-scanner p ignore-comment)))
     (lambda ()
       (let-values (((token pos line) (scanner)))
 	(values (make-parse-position file line pos) token)))))
@@ -131,6 +131,7 @@
 	 ((i <- insert-statement) i)
 	 ((d <- delete-statement) d)
 	 ((u <- update-statement) u)
+	 ((c <- 'comment)         (list '*COMMENT* c))
 	 ;; TODO more
 	 )
 
@@ -1731,8 +1732,9 @@
   (raise (condition (make-parser-error pos expected)
 		    (make-who-condition who)
 		    (make-message-condition msg))))
-(define (parse-sql in)
-  (let ((result (sql-parser (base-generator->results (make-generator in)))))
+(define (parse-sql in :optional (ignore-comment #t))
+  (let ((result (sql-parser (base-generator->results
+			     (make-generator in ignore-comment)))))
     (if (parse-result-successful? result)
 	(parse-result-semantic-value result)
 	(let ((e (parse-result-error result)))

@@ -473,6 +473,17 @@
 
 ;; TBD lot more to go...
 
+;; meta values
+(define-sql-writer (*TOP* ssql out . opt)
+  ((_ s ...)
+   (for-each (lambda (ssql) (apply write-ssql ssql out opt) (newline out)) s)))
+(define-sql-writer (*COMMENT* ssql out . opt)
+  ((_ comment)
+   ;; we don't know if it's line or block so make it all block
+   (put-string out "/*")
+   (put-string out comment)
+   (put-string out "*/")))
+
 ;;; atom value
 (define (write-value ssql out)
   (cond ((symbol? ssql) (handle-identifier ssql out))

@@ -32,43 +32,60 @@
 ;;  for now, we only have reading SQL string from port.
 
 (library (text sql)
-    (export read-sql)
+    (export read-sql
+	    sql->ssql
+	    ssql->sql)
     (import (rnrs)
-	    (text parse))
+	    (srfi :1 lists)
+	    (text parse)
+	    (text sql parser)
+	    (text sql simplifier)
+	    (text sql serializer))
 
   ;; reads one SQL. it's separated by #\; so reads until there
   ;; comments are stripped out.
   ;; NOTE: this doesn't check grammar of SQL so "foo" is valid
   ;; and will be returned.
-  (define (read-sql in)
+  ;; 
+  ;; key:
+  ;;  :comment : skip - skips all comment (default)
+  ;;             top  - returns comment if it's top level
+  (define (read-sql in :key (comment 'skip))
     (define (white? c) (and (char? c) (char-whitespace? c)))
+
     (let-values (((out extract) (open-string-output-port)))
       ;; ignore white space until it gets something part of SQL
       (skip-while white? in)
+
       (let loop ((first #t))
-	(define (handle-comment in first)
+
+	(define (handle-comment in first comment? k)
 	  (get-char in)
+	  (when comment? (put-string out "/*"))
 	  (let lp ()
 	    (case (get-char in)
 	      ((#\*) 
 	       (case (get-char in)
-		 ((#\/) (loop first))
-		 (else (lp))))
-	      (else (lp)))))
-	(define (handle-quote in)
+		 ((#\/) (when comment? (put-string out "*/")) (k))
+		 (else => (lambda (c) 
+			    (when comment? (put-char out #\*) (put-char out c))
+			    (lp)))))
+	      (else => (lambda (c) (when comment? (put-char out c)) (lp))))))
+
+	(define (handle-quote in e)
 	  (let lp ()
 	    (let ((c (get-char in)))
 	      (when (eof-object? c) (error 'read-sql "unexpected EOF"))
 	      (put-char out c)
-	      (case c
-		((#\')
-		 (let ((nc (peek-char in)))
-		   (case nc
-		     ((#\') ;; escapse
-		      (put-char out (get-char in))
-		      (lp))
-		     (else))))
-		(else (lp))))))
+	      (cond ((char=? c e)
+		     (let ((nc (peek-char in)))
+		       (cond ((eqv? nc e)
+			      ;; escape
+			      (put-char out (get-char in))
+			      (lp))
+			     ;; end
+			     (else))))
+		    (else (lp))))))
 	(let ((c (get-char in)))
 	  (case c
 	    ((#\;)
@@ -77,20 +94,47 @@
 	    ((#\-)
 	     ;; could be comment
 	     (case (peek-char in)
-	       ((#\-) (get-line in)    (loop first))
+	       ((#\-) 
+		(if (and first (eq? comment 'top))
+		    (begin (put-char out #\-)
+			   (put-string out (get-line in))
+			   (extract))
+		    (begin (get-line in) (loop first))))
 	       (else  (put-char out c) (loop #f))))
 	    ((#\/)
 	     (case (peek-char in)
-	       ((#\*) (handle-comment in first) (loop first))
+	       ((#\*)
+		(let ((preserve? (and first (eq? comment 'top))))
+		(handle-comment in first preserve?
+				(if preserve?
+				    (lambda () (extract))
+				    (lambda () (loop first))))))
 	       (else  (put-char out c)          (loop #f))))
+	    ;; ';' or ";" is a valid SQL so make it special
+	    ((#\")
+	     (put-char out c)
+	     (handle-quote in #\")
+	     (loop #f))
 	    ((#\')
 	     (put-char out c)
-	     (handle-quote in)
+	     (handle-quote in #\')
 	     (loop #f))
 	    (else
 	     (cond ((eof-object? c) 
 		    (if first c (extract)))
 		   (else (put-char out c) (loop #f)))))))))
 
+  (define (sql->ssql in :key (comment 'top) (strict? #t))
+    (let loop ((r '()))
+      (let ((sql (read-sql in :comment comment)))
+	(if (eof-object? sql)
+	    ;; kind of SSAX style
+	    (cons '*TOP* (reverse! r))
+	    (let* ((sin  (open-string-input-port sql))
+		   (ssql (parse-sql sin (not (eq? comment 'top)))))
+	      ;; TODO better condition
+	      (when (and strict? (not (eof-object? (get-char sin))))
+		(error 'sql->ssql "Parser couldn't consume the SQL" sql))
+	      (loop (cons ssql r)))))))
 
 )
