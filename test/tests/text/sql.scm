@@ -3,6 +3,7 @@
 	(text sql scanner)
 	(text sql parser)
 	(text sql simplifier)
+	(text sql serializer)
 	(srfi :64))
 
 (test-begin "SQL")
@@ -387,7 +388,7 @@
 
 ;; simplifier
 (define (test-simplify ssql expected)
-  (test-equal ssql (simplify-ssql ssql) expected))
+  (test-equal ssql expected (simplify-ssql ssql)))
 
 ;; one identifier if possible
 (test-simplify '(~ a b) 'a.b)
@@ -404,5 +405,23 @@
 ;; error case
 (test-simplify '(escape "%_") '(escape "%_"))
 (test-simplify '(escape) '(escape))
+
+;; serializer
+(define (test-serializer ssql expected)
+  (test-equal ssql expected (ssql->sql ssql)))
+
+;; from clause
+;; FIXME this is not a good way to test. it depends on the implementation
+;;       detail. if i change some of values then it would easily break.
+;;       the best way would be comparing result of S-SQL -> SQL -> S-SQL
+;;       however, then the partial clause won't be able to test. dilemma.
+(test-serializer '(from t) " FROM T")
+(test-serializer '(from t a) " FROM T,A")
+(test-serializer '(from (t (join a (using id))))
+		 " FROM T JOIN A USING (ID)")
+(test-serializer '(from (t (join a (using id))) b)
+		 " FROM T JOIN A USING (ID),B")
+
+;; TBD more
 
 (test-end)

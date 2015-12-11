@@ -242,19 +242,24 @@
    (write/case " AS " out)
    (apply write-ssql b out opt)))
 
+(define (write-table-reference table out opt)
+  (if (and (pair? table) (not (eq? (car table) 'as)))
+      ;; join
+      (begin 
+	(apply write-ssql (car table) out opt)
+	(for-each (lambda (join)
+		    (put-char out #\space)
+		    (apply write-ssql join out opt)) (cdr table)))
+      ;; normal or query
+      (apply write-ssql table out opt)))
+
 (define-sql-writer (from ssql out . opt)
   (('from table rest ...)
    (write/case " FROM " out)
-   (if (and (pair? table) (not (eq? (car table) 'as)))
-       ;; join
-       (begin 
-	 (apply write-ssql (car table) out opt)
-	 (for-each (lambda (join)
-		     (put-char out #\space)
-		     (apply write-ssql join out opt)) (cdr table)))
-       ;; normal or query
-       (apply write-ssql table out opt))
-   (write/comma* out rest opt)))
+   (write-table-reference table out opt)
+   (for-each (lambda (table) 
+	       (put-char out #\,)
+	       (write-table-reference table out opt)) rest)))
 
 ;; we don't check join type for alias
 (define-sql-writer (join ssql out . opt)
@@ -263,7 +268,6 @@
    (put-char out #\space)
    (apply write-ssql table out opt)
    (unless (null? condition)
-     (put-char out #\space)
      ;; must only be one condition
      (apply write-ssql (car condition) out opt))))
 
@@ -288,12 +292,12 @@
 
 (define-sql-writer (on ssql out . opt)
   (('on condition)
-   (write/case "ON " out)
+   (write/case " ON " out)
    (apply write-ssql condition out opt)))
 
 (define-sql-writer (using ssql out . opt)
   (('using columns ...)
-   (write/case "USING(" out)
+   (write/case " USING (" out)
    (unless (null? columns)
      (apply write-ssql (car columns) out opt)
      (for-each (lambda (column) 
