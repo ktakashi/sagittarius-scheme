@@ -407,8 +407,18 @@
 (test-simplify '(escape) '(escape))
 
 ;; serializer
+;; if the serialized SQL is has the same token as expected SQL
+;; then it can be parsed by parser. assume this is good enough
+;; for tests.
 (define (test-serializer ssql expected)
-  (test-equal ssql expected (ssql->sql ssql)))
+  (define (scan-all sql)
+    (define scanner (make-sql-scanner (open-string-input-port sql)))
+    (let loop ((r '()))
+      (let-values (((token p l) (scanner)))
+	(if token
+	    (loop (cons token r))
+	    r))))
+  (test-equal ssql (scan-all expected) (scan-all (ssql->sql ssql))))
 
 ;; unicode identifier
 (test-serializer '(unicode "s" uescape "$") " U&'s' UESCAPE '$'")
@@ -418,10 +428,6 @@
 (test-serializer '(unicode (! "s\"")) " U&\"s\"\"\"")
 
 ;; from clause
-;; FIXME this is not a good way to test. it depends on the implementation
-;;       detail. if i change some of values then it would easily break.
-;;       the best way would be comparing result of S-SQL -> SQL -> S-SQL
-;;       however, then the partial clause won't be able to test. dilemma.
 (test-serializer '(from t) " FROM T")
 (test-serializer '(from t a) " FROM T,A")
 (test-serializer '(from (t (join a (using id))))

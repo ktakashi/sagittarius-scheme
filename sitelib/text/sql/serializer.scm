@@ -186,7 +186,7 @@
    (write/case "SELECT *" out)
    (for-each (lambda (clause) (apply write-ssql clause out opt)) rest))
   (('select (column columns ...) rest ...)
-   (write/case "SELECT " out)
+   (write/case "SELECT" out)
    (write/comma out column columns opt)
    (for-each (lambda (clause) (apply write-ssql clause out opt)) rest)))
 
@@ -239,7 +239,7 @@
    (put-char out #\()
    (apply write-ssql a out opt)
    (put-char out #\))
-   (write/case " AS " out)
+   (write/case " AS" out)
    (apply write-ssql b out opt)))
 
 (define (write-table-reference table out opt)
@@ -255,7 +255,7 @@
 
 (define-sql-writer (from ssql out . opt)
   (('from table rest ...)
-   (write/case " FROM " out)
+   (write/case " FROM" out)
    (write-table-reference table out opt)
    (for-each (lambda (table) 
 	       (put-char out #\,)
@@ -486,6 +486,7 @@
 
 ;;; atom value
 (define (write-value ssql out)
+  (put-char out #\space)
   (cond ((symbol? ssql) (handle-identifier ssql out))
 	((string? ssql) (handle-string ssql out))
 	((number? ssql) (display ssql out))
