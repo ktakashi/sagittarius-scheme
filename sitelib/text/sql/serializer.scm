@@ -119,7 +119,6 @@
     (apply write-ssql (car args) out opt)
     (put-char out #\space)
     (write/case name out)
-    (put-char out #\space)
     (apply write-ssql (cadr args) out opt)))
 
 (define (write-args args out . opt)
@@ -232,10 +231,42 @@
    (query-insert out opt table #f #f query))
   (('insert-into table symbol query)
    (query-insert out opt table #f symbol query)))
-   
+
+(define (write-update out opt table lhs rhs where)
+  (write/case "UPDATE" out)
+  (apply write-ssql table out opt)
+  (write/case " SET" out)
+  (apply write-ssql (car lhs) out opt)
+  (put-string out " =")
+  (apply write-ssql (car rhs) out opt)
+  (for-each (lambda (lhs rhs) 
+	      (put-char out #\,)
+	      (apply write-ssql lhs out opt)
+	      (put-string out " =")
+	      (apply write-ssql rhs out opt))
+	    (cdr lhs) (cdr rhs))
+  (when where (apply write-ssql where out opt)))
+
+(define-sql-writer (update ssql out . opt)
+  (('update table ('set! ('= lhs rhs) ...))
+   (write-update out opt table lhs rhs #f))
+  (('update table ('set! ('= lhs rhs) ...) ('where condition))
+   (write-update out opt table lhs rhs (list 'where condition))))
+
+(define (write-delete out opt table where)
+  (write/case "DELETE FROM" out)
+  (apply write-ssql table out opt)
+  (when where (apply write-ssql where out opt)))
+
+(define-sql-writer (delete-from ssql out . opt)
+  (('delete-from table)
+   (write-delete out opt table #f))
+  (('delete-from table ('where condition))
+   (write-delete out opt table (list 'where condition))))
    
 (define-sql-writer (as ssql out . opt)
   (('as a b)
+   ;; FIXME we don't want to put unnecessary parenthesis
    (put-char out #\()
    (apply write-ssql a out opt)
    (put-char out #\))
@@ -292,7 +323,7 @@
 
 (define-sql-writer (on ssql out . opt)
   (('on condition)
-   (write/case " ON " out)
+   (write/case " ON" out)
    (apply write-ssql condition out opt)))
 
 (define-sql-writer (using ssql out . opt)
@@ -308,7 +339,7 @@
 
 (define-sql-writer (where ssql out . opt)
   (('where condition)
-   (write/case " WHERE " out)
+   (write/case " WHERE" out)
    (apply write-ssql condition out opt)))
 
 
@@ -316,14 +347,14 @@
   (('and condition conditions ...)
    (apply write-ssql condition out opt)
    (for-each (lambda (condition) 
-	       (write/case " AND " out)
+	       (write/case " AND" out)
 	       (apply write-ssql condition out opt)) conditions)))
 
 (define-sql-writer (or ssql out . opt)
   (('or condition conditions ...)
    (apply write-ssql condition out opt)
    (for-each (lambda (condition) 
-	       (write/case " OR " out)
+	       (write/case " OR" out)
 	       (apply write-ssql condition out opt)) conditions)))
 
 (define-sql-writer (~ ssql out . opt)
@@ -470,6 +501,15 @@
    (write/case " AS " out)
    (apply write-ssql b out opt)
    (put-char out #\))))
+
+(define-sql-writer (unary-op ssql out . opt)
+  ((name operand)
+   (put-char out #\space)
+   (write/case name out)
+   (apply write-ssql operand out opt)))
+(define-sql-writer current-of unary-op)
+(define-sql-writer local unary-op)
+(define-sql-writer global unary-op)
 
 ;; TBD lot more to go...
 

@@ -196,16 +196,12 @@
    ;; delete statement
    (delete-statement ((p <- delete-statement:positioned) p)
 		     ((s <- delete-statement:searched) s))
-   ;; We do (delete (from ...) ..) rather than (delete-from t ...)
-   ;; Rationale: this would make s-expr -> string more simple. though
-   ;;            it'd be only a matter of one line...
-   ;; TODO should we use 'delete-from'?
    (delete-statement:positioned
     (('delete 'from t <- target-table 'where 'current 'of c <- cursor-name)
-     `(delete (from ,t) (where (current-of ,c)))))
+     `(delete-from ,t (where (current-of ,c)))))
    (delete-statement:searched
     (('delete 'from t <- target-table w <- where-clause)
-     `(delete (from ,t) ,@w)))
+     `(delete-from ,t ,@w)))
    (target-table (('only '#\( t <- table-name '#\)) (list 'only t))
 		 ((t <- table-name) t))
    (cursor-name (('global v <- simple-value-specification) (list 'global v))
