@@ -428,12 +428,36 @@
 (test-serializer '(unicode (! "s\"")) " U&\"s\"\"\"")
 
 ;; from clause
-(test-serializer '(from t) " FROM T")
-(test-serializer '(from t a) " FROM T,A")
-(test-serializer '(from (t (join a (using id))))
-		 " FROM T JOIN A USING (ID)")
-(test-serializer '(from (t (join a (using id))) b)
-		 " FROM T JOIN A USING (ID),B")
+(test-serializer '(from t) "FROM T")
+(test-serializer '(from t a) "FROM T,A")
+(test-serializer '(from (t (join a (using id)))) "FROM T JOIN A USING (ID)")
+(test-serializer '(from (t (join a (using id))) b) "FROM T JOIN A USING (ID),B")
+
+;; where clause
+(test-serializer '(where (= a 1)) "WHERE a = 1")
+(test-serializer '(where (and (= a 1) (= b 1))) "WHERE A = 1 AND B = 1")
+
+;; select
+(test-serializer '(select *) "SELECT *")
+(test-serializer '(select * (from t)) "SELECT * FROM T")
+(test-serializer '(select (a) (from t)) "SELECT A FROM T")
+
+;; insert
+(test-serializer '(insert-into t (values (1))) "INSERT INTO T VALUES (1)")
+(test-serializer '(insert-into t (values (1) (2))) 
+		 "INSERT INTO T VALUES (1),(2)")
+(test-serializer '(insert-into t (a) (values (1))) 
+		 "INSERT INTO T (A) VALUES (1)")
+
+;; update
+(test-serializer '(update t (set! (= a 1))) "UPDATE T SET A = 1")
+(test-serializer '(update t (set! (= a 1) (= b 1))) "UPDATE T SET A = 1, B = 1")
+(test-serializer '(update t (set! (= a 1) (= b 1)) (where (= c 1)))
+		 "UPDATE T SET A = 1, B = 1 WHERE c = 1")
+
+;; delete
+(test-serializer '(delete-from t) "DELETE FROM T")
+(test-serializer '(delete-from t (where (= a 1))) "DELETE FROM T WHERE A = 1")
 
 ;; TBD more
 
