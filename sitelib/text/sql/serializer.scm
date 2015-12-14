@@ -113,13 +113,17 @@
 	   (write/case name out)
 	   (apply write-args args out opt)))))
 
+(define (maybe-with-parenthesis ssql out . opt)
+  (if (pair? ssql)
+      (with-parenthesis out (apply write-ssql ssql out opt))
+      (apply write-ssql ssql out opt)))
 (define (infix-operator-writer ssql out . opt)
   (let ((name (car ssql))
 	(args (cdr ssql)))
-    (apply write-ssql (car args) out opt)
+    (apply maybe-with-parenthesis (car args) out opt)
     (put-char out #\space)
     (write/case name out)
-    (apply write-ssql (cadr args) out opt)))
+    (apply maybe-with-parenthesis (cadr args) out opt)))
 
 (define (write-args args out . opt)
   (put-char out '#\()
@@ -266,12 +270,10 @@
    
 (define-sql-writer (as ssql out . opt)
   (('as a b)
-   ;; FIXME we don't want to put unnecessary parenthesis
-   (put-char out #\()
-   (apply write-ssql a out opt)
+   (apply maybe-with-parenthesis out a out opt)
    (put-char out #\))
    (write/case " AS" out)
-   (apply write-ssql b out opt)))
+   (apply maybe-with-parenthesis out b out opt)))
 
 (define (write-table-reference table out opt)
   (if (and (pair? table) (not (eq? (car table) 'as)))
@@ -528,6 +530,8 @@
 (define (write-value ssql out)
   (put-char out #\space)
   (cond ((symbol? ssql) (handle-identifier ssql out))
+	;; :key maybe the same as ? in some RDBMS
+	((keyword? ssql) (write ssql out))
 	((string? ssql) (handle-string ssql out))
 	((number? ssql) (display ssql out))
 	((bytevector? ssql) (handle-bit-string ssql out))
@@ -581,9 +585,13 @@
   (let ((fragments (if delimited
 		       (list ssql)
 		       (string-tokenize (symbol->string ssql) not-dot-set))))
-    (write/uescape (car fragments) out)
-    (for-each (lambda (f) (put-char out #\.) (write/uescape f out))
-	      (cdr fragments))))
+    ;; handle '?'
+    (cond ((and (null? (cdr fragments)) (string=? (car fragments) "?"))
+	   (put-char out #\?))
+	  ;; maybe we need to treat more specially? such as :foo thing?
+	  (else (write/uescape (car fragments) out)
+		(for-each (lambda (f) (put-char out #\.) (write/uescape f out))
+			  (cdr fragments))))))
 
 ;; write SQL string
 ;; Do the followings:
