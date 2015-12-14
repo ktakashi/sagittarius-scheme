@@ -4091,39 +4091,29 @@
 		    ($asm-args iform))))
     (pass2/check-constant-asm iform args)))      
 
-;; list and vector might be for new instance
-;; ;; for bootstrap we can not use inlined vector
-;; (cond-expand
-;;  (gauche
-;;   (define not-boot? #f))
-;;  (sagittarius
-;;   (define not-boot? #t))
-;; )
-
 (define (pass2/check-constant-asm iform args)
   (or (and (for-all $const? args)
-	   (case/unquote
-	    (car ($asm-insn iform))
-	    ((NOT)     (pass2/const-pred not args))
-	    ((NULLP)   (pass2/const-pred null? args))
-	    ((PAIRP)   (pass2/const-pred pair? args))
-	    ((SYMBOLP) (pass2/const-pred symbol? args))
-	    ((VECTORP) (pass2/const-pred vector? args))
-	    ((CAR)     (pass2/const-cxr car args))
-	    ((CDR)     (pass2/const-cxr cdr args))
-	    ((CAAR)    (pass2/const-cxxr car caar args))
-	    ((CADR)    (pass2/const-cxxr cdr cadr args))
-	    ((CDAR)    (pass2/const-cxxr car cdar args))
-	    ((CDDR)    (pass2/const-cxxr cdr cddr args))
-	    ((VEC_REF) (pass2/const-vecref args))
-	    ((VEC_LEN) (pass2/const-veclen args))
-	    ((EQ)      (pass2/const-op2 eq? args))
-	    ((EQV)     (pass2/const-op2 eqv? args))
-	    ((ADD)     (pass2/const-numop2 + args))
-	    ((SUB)     (pass2/const-numop2 - args))
-	    ((MUL)     (pass2/const-numop2 * args))
-	    ((DIV)     (pass2/const-numop2 / args #t))
-	    ((NEG)     (pass2/const-numop1 - args))
+	   (case/unquote (car ($asm-insn iform))
+	    ((NOT)     (pass2/const-pred   ($asm-src iform) not args))
+	    ((NULLP)   (pass2/const-pred   ($asm-src iform) null? args))
+	    ((PAIRP)   (pass2/const-pred   ($asm-src iform) pair? args))
+	    ((SYMBOLP) (pass2/const-pred   ($asm-src iform) symbol? args))
+	    ((VECTORP) (pass2/const-pred   ($asm-src iform) vector? args))
+	    ((CAR)     (pass2/const-cxr    ($asm-src iform) car args))
+	    ((CDR)     (pass2/const-cxr    ($asm-src iform) cdr args))
+	    ((CAAR)    (pass2/const-cxxr   ($asm-src iform) car caar args))
+	    ((CADR)    (pass2/const-cxxr   ($asm-src iform) cdr cadr args))
+	    ((CDAR)    (pass2/const-cxxr   ($asm-src iform) car cdar args))
+	    ((CDDR)    (pass2/const-cxxr   ($asm-src iform) cdr cddr args))
+	    ((VEC_REF) (pass2/const-vecref ($asm-src iform) args))
+	    ((VEC_LEN) (pass2/const-veclen ($asm-src iform) args))
+	    ((EQ)      (pass2/const-op2    ($asm-src iform) eq? args))
+	    ((EQV)     (pass2/const-op2    ($asm-src iform) eqv? args))
+	    ((ADD)     (pass2/const-numop2 ($asm-src iform) + args))
+	    ((SUB)     (pass2/const-numop2 ($asm-src iform) - args))
+	    ((MUL)     (pass2/const-numop2 ($asm-src iform) * args))
+	    ((DIV)     (pass2/const-numop2 ($asm-src iform) / args #t))
+	    ((NEG)     (pass2/const-numop1 ($asm-src iform) - args))
 	    ;; list and vector might be for new instance
 	    ;;((LIST)    (pass2/const-xargs list args))
 	    ;;((VECTOR)  (and not-boot? (pass2/const-xargs vector args)))
@@ -4131,39 +4121,41 @@
       (begin ($asm-args-set! iform args) iform)))
 
 ;; args must be a list of $const node.
-(define (constant-folding-warning who args)
-  (vm-warn (format "~s: gave up constant folding with given argument(s)."
-		   `(,(if (symbol? who)
-			  who
-			  (string->symbol (format "~a" who)))
-		     ,@(imap $const-value args))))
+(define (constant-folding-warning src who args)
+  (vm-warn (format/ss "~s: gave up constant folding with given argument(s)."
+		      ;; should be fine right?
+		      (if (circular-list? src) src (unwrap-syntax src))
+		      #;`(,(if (symbol? who)
+			     who
+			     (string->symbol (format "~a" who)))
+			,@(imap $const-value args))))
   ;; for convenience
   #f)
 
-(define (pass2/const-pred pred args)
+(define (pass2/const-pred src pred args)
   (if (pred ($const-value (car args))) ($const #t) ($const #f)))
 
-(define (pass2/const-cxr proc args)
+(define (pass2/const-cxr src proc args)
   (let ((v ($const-value (car args))))
     (or (and (pair? v) ($const (proc v)))
-	(constant-folding-warning (procedure-name proc) args))))
+	(constant-folding-warning src (procedure-name proc) args))))
 
-(define (pass2/const-cxxr proc0 proc args)
+(define (pass2/const-cxxr src proc0 proc args)
   (let ((v ($const-value (car args))))
     (or (and (pair? v)
 	     (pair? (proc0 v))
 	     ($const (proc v)))
-	(constant-folding-warning (procedure-name proc) args))))
+	(constant-folding-warning src (procedure-name proc) args))))
 
-(define (pass2/const-op2 proc args)
+(define (pass2/const-op2 src proc args)
   ($const (proc ($const-value (car args)) ($const-value (cadr args)))))
 
-(define (pass2/const-numop1 proc args)
+(define (pass2/const-numop1 src proc args)
   (let ((x ($const-value (car args))))
     (or (and (number? x) ($const (proc x)))
-	(constant-folding-warning (procedure-name proc) args))))
+	(constant-folding-warning src (procedure-name proc) args))))
 
-(define (pass2/const-numop2 proc args . check-zero?)
+(define (pass2/const-numop2 src proc args . check-zero?)
   (let ((x ($const-value (car args)))
 	(y ($const-value (cadr args))))
     (or (and (number? x) (number? y)
@@ -4171,21 +4163,21 @@
 		 (inexact? x)
 		 (not (and (exact? y) (zero? y))))
 	     ($const (proc x y)))
-	(constant-folding-warning (procedure-name proc) args))))
+	(constant-folding-warning src (procedure-name proc) args))))
 
-(define (pass2/const-vecref args)
+(define (pass2/const-vecref src args)
   (let ((v ($const-value (car args)))
 	(i ($const-value (cadr args))))
     (or (and (vector? v) (fixnum? i)
 	     (< -1 i (vector-length v))
 	     ($const (vector-ref v i)))
-	(constant-folding-warning 'vector-ref args))))
+	(constant-folding-warning src 'vector-ref args))))
 
-(define (pass2/const-veclen args)
+(define (pass2/const-veclen src args)
   (let ((v ($const-value (car args))))
     (or (and (vector? v)
 	     ($const (vector-length v)))
-	(constant-folding-warning 'vector-length args))))
+	(constant-folding-warning src 'vector-length args))))
 
 ;; (define (pass2/const-xargs proc args)
 ;;   (let ((args-values (map (lambda (arg) ($const-value arg)) args)))
@@ -4477,15 +4469,15 @@
 	  ((and-let* (( ($gref? proc) )
 		      ( (for-all $const? args) )
 		      (p (inlinable-binding? ($gref-id proc) #f)))
-	     (pass3/precompute-procedure p args)))
+	     (pass3/precompute-procedure ($call-src iform) p args)))
 	  ((has-tag? proc $LAMBDA)
 	   ;; ($call ($lambda (...) body) args ...)
 	   ;; -> inline it
 	   (pass3/inline-call iform proc args labels))
 	  (else ($call-proc-set! iform proc) iform))))
 
-(define (pass3/precompute-procedure p args)
-  (guard (e (else (constant-folding-warning (procedure-name p) args)))
+(define (pass3/precompute-procedure src p args)
+  (guard (e (else (constant-folding-warning src (procedure-name p) args)))
     (let-values ((r (apply p (imap $const-value args))))
       (smatch r
 	(()  ($const-undef))
