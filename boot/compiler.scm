@@ -3197,93 +3197,98 @@
       p1env))
   (smatch exprs
     ((((op . args) . env/path) . rest)
-     (or (and-let* (( (not (assq op intdefs)) )
-		    (env (if (string? env/path) p1env env/path))
-		    (head (pass1/lookup-head op env)))
-	   (cond ((lvar? head)
-		  (pass1/body-finish intdefs intmacros exprs env))
-		 ((macro? head)
-		  (let ((e (call-macro-expander head (caar exprs) env)))
-		    (pass1/body-rec `((,e . ,env) . ,rest)
-				    intdefs intmacros p1env)))
-		 ;; when (let-syntax ((xif if) (xif ...)) etc.
-		 ((syntax? head) (pass1/body-finish intdefs exprs env))
-		 ((global-eq? head 'define p1env)
-		  (let* ((def (smatch args
-				(((name . formals) . body)
-				 ($src `(,name (,lambda. ,formals ,@body))
-				       (caar exprs)))
-				((var . init)
-				 ($src `(,var ,(if (null? init)
-						   (undefined)
-						   (car init)))
-				       (caar exprs)))
-				(- (syntax-error "malformed internal define"
-						 (caar exprs)))))
-			 (frame (cons (car def) (make-lvar (car def)))))
-		    (pass1/body-rec rest 
-				    (cons (cons* def frame env) intdefs)
-				    intmacros
-				    ;; we initialise internal define later
-				    (p1env-extend! p1env frame))))
-		 ((global-eq? head 'begin p1env)
-		  (pass1/body-rec (append! (imap (lambda (x) (cons x env)) args)
-					  rest)
-				  intdefs intmacros p1env))
-		 ((or (and (global-eq? head 'include p1env) 'include)
-		      (and (global-eq? head 'include-ci p1env) 'include-ci)) =>
-		  (lambda (type)
-		    (let ((expr&path 
-			   (pass1/include args p1env (eq? type 'include-ci))))
-		      (ifor-each (lambda (e&p)
-				   (let ((p (directory-name (cdr e&p))))
-				     (set-cdr! e&p (p1env-swap-source env p))))
-				 expr&path)
-		      (pass1/body-rec (append! expr&path rest)
-				      intdefs intmacros p1env))))
-		 ;; 11.2.2 syntax definition (R6RS)
-		 ;; 5.3 Syntax definition (R7RS)
-		 ((global-eq? head 'define-syntax p1env)
-		  ;; for now we compile the macro immediately
-		  ;; however this is not a good solution.
-		  ;; to avoid lookup error
-		  (let* ((m (smatch args
-			      ((name expr) 
-			       (pass1/eval-macro-rhs 'define-syntax 
-				(variable-name name) expr 
-				(p1env-add-name env (variable-name name))))
-			      (- (syntax-error 
-				  "malformed internal define-syntax"
-				  (caar exprs)))))
-			 (frame (cons (car args) m)))
-		    (pass1/body-rec rest intdefs intmacros
-				    ;;(cons (cons* m frame env) intmacros)
-				    ;; this can see from meta-env as well
-				    (p1env-extend! p1env frame))))
-		 ;; 11.18 binding constructs for syntactic keywords
-		 ((or (and (global-eq? head 'let-syntax p1env '|(core)|)
-			   pass1/compile-let-syntax)
-		      (and (global-eq? head 'letrec-syntax p1env '|(core)|)
-			   pass1/compile-letrec-syntax))
-		  => (lambda (compile)
-		       (receive (new body) (compile (caar exprs) env)
-			 (pass1/body-rec `(((,begin. ,@body) . ,new) . ,rest)
-			  intdefs intmacros p1env))))
-		 ((identifier? head)
-		  (or (and-let* ((gloc (id->bound-gloc head))
-				 (gval (gloc-ref gloc))
-				 ( (macro? gval) ))
-			(let ((expr (call-macro-expander gval (caar exprs) 
-							 env)))
-			  (pass1/body-rec `((,expr . ,env) . ,rest)
-					  intdefs intmacros p1env)))
-		      (pass1/body-finish intdefs intmacros exprs env)))
-		 (else
-		  (error 'pass1/body 
-			 "[internal] p1env-lookup returned weird obj"
-			 head `(,op . ,args)))))
-	 (pass1/body-finish intdefs intmacros exprs
-			    (if (string? env/path) p1env env/path))))
+     (let ((env (if (string? env/path) p1env env/path)))
+       (cond ((and (not (assq op intdefs)) (pass1/lookup-head op env)) =>
+	      (lambda (head)
+		(cond ((lvar? head)
+		       (pass1/body-finish intdefs intmacros exprs env))
+		      ((macro? head)
+		       (let ((e (call-macro-expander head (caar exprs) env)))
+			 (pass1/body-rec `((,e . ,env) . ,rest)
+					 intdefs intmacros p1env)))
+		      ;; when (let-syntax ((xif if) (xif ...)) etc.
+		      ((syntax? head) (pass1/body-finish intdefs exprs env))
+		      ((global-eq? head 'define p1env)
+		       (let* ((def (smatch args
+				     (((name . formals) . body)
+				      ($src `(,name (,lambda. ,formals ,@body))
+					    (caar exprs)))
+				     ((var . init)
+				      ($src `(,var ,(if (null? init)
+							(undefined)
+							(car init)))
+					    (caar exprs)))
+				     (- (syntax-error 
+					 "malformed internal define"
+					 (caar exprs)))))
+			      (frame (cons (car def) (make-lvar (car def)))))
+			 (pass1/body-rec rest 
+					 (cons (cons* def frame env) intdefs)
+					 intmacros
+					 ;; we initialise internal define later
+					 (p1env-extend! p1env frame))))
+		      ((global-eq? head 'begin p1env)
+		       (pass1/body-rec 
+			(append! (imap (lambda (x) (cons x env)) args)
+				 rest)
+			intdefs intmacros p1env))
+		      ((or (and (global-eq? head 'include-ci p1env) 'include-ci)
+			   (and (global-eq? head 'include p1env) 'include)) =>
+			   (lambda (type)
+			     (let ((expr&path 
+				    (pass1/include args p1env 
+						   (eq? type 'include-ci))))
+			       (ifor-each (lambda (e&p)
+					    (let ((p (directory-name 
+						      (cdr e&p))))
+					      (set-cdr! e&p (p1env-swap-source
+							     env p))))
+					  expr&path)
+			       (pass1/body-rec (append! expr&path rest)
+					       intdefs intmacros p1env))))
+		      ;; 11.2.2 syntax definition (R6RS)
+		      ;; 5.3 Syntax definition (R7RS)
+		      ((global-eq? head 'define-syntax p1env)
+		       ;; for now we compile the macro immediately
+		       ;; however this is not a good solution.
+		       ;; to avoid lookup error
+		       (let* ((m (smatch args
+				   ((name expr) 
+				    (pass1/eval-macro-rhs 'define-syntax 
+				     (variable-name name) expr 
+				     (p1env-add-name env (variable-name name))))
+				   (- (syntax-error 
+				       "malformed internal define-syntax"
+				       (caar exprs)))))
+			      (frame (cons (car args) m)))
+			 (pass1/body-rec rest intdefs intmacros
+					 ;;(cons (cons* m frame env) intmacros)
+					 ;; this can see from meta-env as well
+					 (p1env-extend! p1env frame))))
+		      ;; 11.18 binding constructs for syntactic keywords
+		      ((or (and (global-eq? head 'let-syntax p1env '|(core)|)
+				pass1/compile-let-syntax)
+			   (and (global-eq? head 'letrec-syntax p1env '|(core)|)
+				pass1/compile-letrec-syntax))
+		       => (lambda (compile)
+			    (receive (new body) (compile (caar exprs) env)
+			      (pass1/body-rec 
+			       `(((,begin. ,@body) . ,new) . ,rest)
+			       intdefs intmacros p1env))))
+		      ((identifier? head)
+		       (or (and-let* ((gloc (id->bound-gloc head))
+				      (gval (gloc-ref gloc))
+				      ( (macro? gval) ))
+			     (let ((expr (call-macro-expander gval (caar exprs) 
+							      env)))
+			       (pass1/body-rec `((,expr . ,env) . ,rest)
+					       intdefs intmacros p1env)))
+			   (pass1/body-finish intdefs intmacros exprs env)))
+		      (else
+		       (error 'pass1/body 
+			      "[internal] p1env-lookup returned weird obj"
+			      head `(,op . ,args))))))
+	     (else (pass1/body-finish intdefs intmacros exprs env)))))
     (- (pass1/body-finish intdefs intmacros exprs p1env))))
 
 (define (pass1/body-finish intdefs intmacros exprs p1env)
