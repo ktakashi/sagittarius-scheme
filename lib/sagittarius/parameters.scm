@@ -75,17 +75,17 @@
     (if (is-a? p <parameter>)
 	(set! (~ (current-dynamic-environment) p) v)
 	(p v)))
-#;
-  (define-syntax parameterize-aux
-    (syntax-rules ()
-      ((_ () ((save new param value) ...) body ...)
-       (let ((save #f) ... (new value) ...)
-         (dynamic-wind
-	     (lambda () (set! save (param)) ... (param new) ...)
-	     (lambda () body ...)
-	     (lambda () (%parameter-value-set! param save) ...))))
-      ((_ ((e1 e2) . more) (stash ...) body ...)
-       (parameterize-aux more (stash ... (tmp1 tmp2 e1 e2)) body ...))))
+
+  (define (parameter-convert p v)
+    (if (is-a? p <parameter>)
+	(let ((conv (~ p 'converter)))
+	  (if (procedure? conv)
+	      (conv v)
+	      v))
+	;; if the parameter is procedure, e.g) current-input-port
+	;; then there's not value converter. so just return given
+	;; value.
+	v))
 
   (define-syntax parameterize-aux
     (syntax-rules ()
@@ -95,15 +95,23 @@
       ;;   L - keeps "local" value during dynamic enviornment of body.
       ;;   S - keeps "saved" value outside of parameterize.
       ((_ (param ...) (val ...) ((P L S) ...) () body)
-       (let ((P param) ... (L val) ... (S #f) ...)
-	 (dynamic-wind
-	     (lambda () (let ((t (P))) (P L) (set! S t)) ...)
-	     (lambda () . body)
-	     (lambda () 
-	       (let ((t (P)))
-		 (%parameter-value-set! P S)
-		 (set! L t))
-	       ...))))
+       (let ((P param) ...)
+	 ;; convert all parameter here and if it's an error
+	 ;; let it raise here.
+	 (let ((L (parameter-convert P val)) ... 
+	       (S #f) ...)
+	   (dynamic-wind
+	       (lambda () (let ((t (P))) 
+			    ;; the value is converted so we just need
+			    ;; to set as it is
+			    (%parameter-value-set! P L) 
+			    (set! S t)) ...)
+	       (lambda () . body)
+	       (lambda () 
+		 (let ((t (P)))
+		   (%parameter-value-set! P S)
+		   (set! L t))
+		 ...)))))
       ((_ (param ...) (val ...) (tmps ...) ((p v) . more) body)
        (parameterize-aux (param ... p) (val ... v) (tmps ... (P L S))
 			 more body))))

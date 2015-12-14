@@ -79,5 +79,12 @@
          (add-init (list (a) (b)))
          (reverse init)))
 
+(test* "Error in filter proc and rewinding"
+       '("1" "2")
+       (let ([a (make-parameter 1 number->string)]
+             [b (make-parameter 2 number->string)])
+         (guard [e (else (list (a) (b)))]
+           (parameterize ([a 10] [b 'bad])
+             'notreached))))
 
 (test-end)
