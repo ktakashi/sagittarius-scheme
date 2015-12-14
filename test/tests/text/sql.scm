@@ -386,6 +386,13 @@
 (test-parse "update f set a=null where i=0" 
 	    '(update f (set! (= a null)) (where (= i 0))))
 
+;; create table
+(test-parse "create table t (a int)" '(create-table t ((a int))))
+(test-parse "create table t (a int primary key)"
+	    '(create-table t ((a int primary-key))))
+(test-parse "create table t (a int primary key, b varchar)"
+	    '(create-table t ((a int primary-key) (b varchar))))
+
 ;; simplifier
 (define (test-simplify ssql expected)
   (test-equal ssql expected (simplify-ssql ssql)))

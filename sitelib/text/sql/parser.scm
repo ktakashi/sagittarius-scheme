@@ -131,6 +131,7 @@
 	 ((i <- insert-statement) i)
 	 ((d <- delete-statement) d)
 	 ((u <- update-statement) u)
+	 ((t <- table-definition) t) ;; create table
 	 ((c <- 'comment)         (list '*COMMENT* c))
 	 ;; TODO more
 	 )
@@ -207,6 +208,213 @@
    (cursor-name (('global v <- simple-value-specification) (list 'global v))
 		(('local v <- simple-value-specification) (list 'local v))
 		((i <- local-or-schema-qualified-name) i))
+
+   ;; 11.3 table definition
+   (table-definition (('create s <- table-scope? 'table t <- table-name
+		       c <- table-content-source
+		       'on 'commit a <- table-commit-action 'rows)
+		      `(,(if (null? s)
+			     'create-table
+			     (symbol-append 'create- (car s) '-table))
+			,t ,c (on-commit ,a)))
+		     (('create s <- table-scope? 'table t <- table-name
+		       c <- table-content-source)
+		      `(,(if (null? s)
+			     'create-table
+			     (symbol-append 'create- (car s) '-table))
+			,t ,c)))
+   (table-content-source (('of n <- identifier-chain 
+			   s <- subtable-clause?
+			   t <- table-element-list?)
+			  `(of ,n ,@s ,@t))
+			 ((a <- as-subquery-clause) a)
+			 ((e <- table-element-list) e))
+   ;; TODO should we also add 'temp for PostgreSQL?
+   (table-scope? ((g <- global/local (=? 'temporary)) 
+		  (if (null? g)
+		      'temporary
+		      (list (symbol-append (car g) '-temporary))))
+		 (() '()))
+   ;; this can be optional (at least on PostgreSQL)
+   (global/local (('global) '(global))
+		 (('local)  '(local))
+		 (() '()))
+   (table-commit-action (((=? 'preserve)) 'preserve)
+			(('delete) 'delete))
+   (table-element-list (('#\( e <- table-element-list* '#\)) e))
+   (table-element-list? ((e <- table-element-list) (list e))
+			(() '()))
+   (table-element-list* ((e <- table-element e* <- table-element-list**)
+			 (cons e e*)))
+   (table-element-list** (('#\, e <- table-element-list*) e)
+			 (() '()))
+   (table-element ((c <- table-constraint-definition) c)
+		  ((l <- like-clause) l)
+		  ((s <- self-referencing-column-specification) s)
+		  ((c <- column-options) c)
+		  ((c <- column-definition) c))
+   (self-referencing-column-specification
+    (('ref 'is n <- column-name g <- reference-generation) `(ref-is ,n ,q)))
+   (reference-generation (('system (=? 'generated)) 'system-generated)
+			 (('user   (=? 'generated)) 'user-generated)
+			 (((=? 'derived))           'derived))
+
+   (column-options ((c <- column-name 'with (=? 'options)
+		     o <- column-option-list)
+		    `(with-options ,c ,@o)))
+   (column-option-list ((s <- scope-clause? d <- default-clause? 
+			 c <- column-constraint-definition?)
+			`(,@s ,@d ,@c)))
+   (subtable-clause? (('under n <- table-name) `((under ,n)))
+		     (() '()))
+   (like-clause (('like n <- table-name o <- like-options?) (cons* 'like n o)))
+   (like-options? (((=? 'including) 'identity) '(including-identity))
+		  (((=? 'excluding) 'identity) '(excluding-identity))
+		  (((=? 'including) (=? 'defaults)) '(including-defaults))
+		  (((=? 'excluding) (=? 'defaults)) '(excluding-defaults))
+		  (() '()))
+
+   ;;   create table t (a b c) as ... with ...
+   ;; | create table t as ... with ...
+   ;; -> (create-table t (as (a b c) ... with ...))
+   ;; FIXME this definition doesn't work on PostgreSQL whose create table as
+   ;;       statement definition is following:
+   ;; 
+   ;; CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE name
+   ;;  [ (column_name [, ...] ) ]
+   ;;  [ WITH ( storage_param [= value] [, ... ] ) | WITH OIDS | WITHOUT OIDS ]
+   ;;  [ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]
+   ;;  [ TABLESPACE tablespace ]
+   ;;  AS query
+   ;;  [ WITH [ NO ] DATA ]
+   ;;
+   (as-subquery-clause (('#\( l <- column-name-list '#\) 'as q <- subquery
+			 w <- with/without-data)
+			`(as ,l ,q ,w))
+		       (('as q <- subquery w <- with/without-data)
+			`(as #f ,q ,w)))
+   (with/without-data (('with 'no (=? 'data)) 'with-no-data)
+		      (('with (=? 'data)) 'with-data))
+
+   ;; 11.4 column definition
+   (column-definition ((n <- column-name
+			t <- data-type/domain-name?
+			r <- reference-scope-check?
+			d <- default-clause/identity-column-specification?
+			g <- generation-clause?
+			c <- column-constraint-definition?
+			o <- collate-clause?)
+		       `(,n ,@t ,@r ,@d ,@g ,@c ,@o)))
+   (data-type/domain-name? ((d <- data-type) (list d))
+			   ((i <- identifier-chain) (list i))
+			   (() '()))
+
+   (column-constraint-definition? ((c <- column-constraint-definition) (list c))
+				  (() '()))
+   (column-constraint-definition ((n <- constraint-name-definition?
+				   c <- column-constraint
+				   r <- constraint-characteristics?)
+				  (if (and (null? n) (null? r))
+				      c
+				      `(,c ,@n ,@r))))
+   (column-constraint (('not 'null) 'not-null)
+		      ((u <- unique-specification) u)
+		      ((r <- references-specification) r)
+		      ((c <- check-constraint-definition) c))
+
+   (reference-scope-check? ((r <- reference-scope-check) r)
+			   (() '()))
+   (reference-scope-check (('references 'are 'not (=? 'checked)
+			    a <- reference-scope-check-action?)
+			   (cons 'references-are-not-check a))
+			  (('references 'are (=? 'checked)
+			    a <- reference-scope-check-action?)
+			   (cons 'references-are-check a)))
+   
+   (reference-scope-check-action? ((a <- referential-action) (list a))
+				  (() '()))
+   
+   (default-clause/identity-column-specification?
+     ((d <- default-clause) d)
+     ((i <- identity-column-specification) i)
+     (() '()))
+   (identity-column-specification (('generated (=? 'always) 'as 'identity
+				    o <- common-sequence-generator-option?)
+				   (cons 'generated-always-as-identity o))
+				  (('generated 'by 'default 'as 'identity
+				    o <- common-sequence-generator-option?)
+				   (cons 'generated-always-as-identity o)))
+   (common-sequence-generator-option? 
+    (('#\( c <- common-sequence-generator-option '#\)) (list c))
+    (() '()))
+   (generation-clause? ((r <- generation-rule 'as e <- generation-expression)
+			`((as ,r ,e)))
+		       (() '()))
+   (generation-rule (('generated (=? 'always)) 'generated-always))
+   (generation-expression (('#\( v <- value-expression '#\)) v))
+			
+   ;; 11.5 default clause
+   (default-clause? ((d <- default-clause) d)
+		    (() '()))
+   (default-clause (('default o <- default-option) (list 'default o)))
+   (default-option (('current_path) 'current_path)
+		   (('current_role) 'current_role)
+		   (('current_user) 'current_user)
+		   (('session_user) 'session_user)
+		   (('system_user) 'system_user)
+		   (('user) 'user)
+		   ((l <- literal) l)
+		   ((d <- datetime-value-function) d)
+		   ((i <- implicitly-typed-value-specification) i))
+
+   ;; 11.6 table constraint definition
+   (table-constraint-definition ((d <- constraint-name-definition?
+				  t <- table-constraint
+				  c <- constraint-characteristics?)
+				 `(,@d ,t ,@c)))
+   (table-constraint ((u <- unique-constraint-definition) u)
+		     ((r <- referential-constraint-definition) r)
+		     ((c <- check-constraint-definition) c))
+   ;; 11.7 unique constraint definition
+   ;; NB i don't know what UNIQUE(VALUE) means, so ignore it for now
+   (unique-constraint-definition ((s <- unique-specification 
+				   '#\( c <- column-name-list '#\))
+				  (cons s c)))
+   (unique-specification (('unique) 'unique)
+			 (('primary (=? 'key)) 'primary-key))
+
+   ;; 11.8 referential constraint definition
+   (referential-constraint-definition 
+    (('foreign (=? 'key) '#\( c <- column-name-list '#\) 
+      s <- references-specification)
+     `(foreing-key ,c ,s)))
+   (references-specification (('references t <- referenced-table-and-columns
+			       m <- match-type?
+			       t <- referential-triggered-action?)
+			      `(references ,t ,@m ,@t)))
+   (match-type? (('match (=? 'full))    '(match-full))
+		(('match (=? 'partial)) '(match-partial))
+		(('match (=? 'simple))  '(match-simple))
+		(() '()))
+   (referential-triggered-action? 
+    ((u <- update-rule d <- delete-rule?) (cons u d))
+    ((d <- delete-rule u <- update-rule?) (cons d u)))
+   (update-rule? ((u <- update-rule) (list u))
+		 (() '()))
+   (delete-rule? ((d <- delete-rule) (list d))
+		 (() '()))
+   (update-rule (('on 'update r <- referential-action) (list 'on-update r)))
+   (delete-rule (('on 'delete r <- referential-action) (list 'on-delete r)))
+
+   (referential-action (((=? 'cascade))    'cascade)
+		       (('set 'null)       'set-null)
+		       (('set 'default)    'set-default)
+		       (((=? 'restrict))   'restrict)
+		       (('no (=? 'action)) 'no-action))
+
+   ;; 11.9 check constraint definition
+   (check-constraint-definition (('check '#\( s <- search-condition '#\))
+				 (list 'check s)))
 
    ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
@@ -306,7 +514,7 @@
 			 (concate-identifier c '*)))
 
    (column-reference ((i <- identifier-chain) i)
-		     (('module '#\. i <- identifer '#\. m <- column-name)
+		     (('module '#\. i <- identifier '#\. m <- column-name)
 		      `(module ,i ,m)))
 
    ;; table
@@ -750,14 +958,21 @@
 	      ((i <- identifier-chain) i))
    (predefined-type ((t <- character-string-type 
 		      s <- charset? c <- collate-clause?)
-		     `(,t ,@s ,@c))
+		     (if (and (null? s) (null? c))
+			 t
+			 `(,t ,@s ,@c)))
 		    ((t <- national-character-string-type c <- collate-clause?)
-		     `(,t ,@c))
+		     (if (null? c)
+			 t
+			 (cons t c)))
 		    ((t <- binary-larget-object-string-type) t)
 		    ((t <- numeric-type) t)
 		    ((t <- boolean-type) t)
 		    ((t <- datetime-type) t)
 		    ((t <- interval-type) t))
+   (charset? (('character 'set s <- character-set-specification)
+	      (list 'character-set s))
+	     (() '()))
    ;; i'm lazy...
    (length? (('#\( n <- 'number u <- large-length-units'#\)) (list n u))
 	    (('#\( n <- 'number '#\)) (list n))
@@ -766,7 +981,8 @@
 		       (((=? 'code_units)) 'code_units)
 		       (((=? 'octets))     'octets))
 
-   (character-string-type ((c <- ctype l <- length?) (cons c l)))
+   (character-string-type ((c <- ctype l <- length?) 
+			   (if (null? l) c (cons c l))))
    (ctype (('character)                     'character)
 	  (('char)                          'char)
 	  (('character 'varying)            'character-varying)
@@ -859,8 +1075,8 @@
    ;; 6.2 field definition
    (field-definition 
     ;; TODO better representation
-    ;;((n <- identifier t <- data-type r <- reference-scope-check) (list n t r))
-    ((n <- identifier t <- data-type) (list n t)))
+    ((n <- identifier t <- data-type r <- reference-scope-check?) 
+     (cons* n t r)))
 
    ;; 6.3 value expression primary
    ;; we do it like this to do field reference without left side recursion.
@@ -1336,12 +1552,12 @@
    (natural-join (('natural j <- join-type
 		   'join t2 <- table-primary
 		   t3 <- joined-table*)
-		  (cons `(,(symbol-append 'natural '- j '- 'join) ,t1 ,t2) t3))
+		  (cons `(,(symbol-append 'natural '- j '- 'join) ,t2) t3))
 		 (('natural 'join t2 <- table-primary t3 <- joined-table*)
-		  (cons `(natural-join ,t1 ,t2) t3)))
+		  (cons `(natural-join ,t2) t3)))
    
    (union-join (('union 'join t2 <- table-primary  t3 <- joined-table*)
-		(cons `(union-join ,t1 ,t2) t3)))
+		(cons `(union-join ,t2) t3)))
 
    (join-specification ((c <- join-condition) c)
 		       ((c <- named-columns-join) c))
@@ -1585,10 +1801,35 @@
    (generalized-expression ((v <- value-expression 'as i <- identifier-chain)
 			    (list 'as v i)))
 
+   ;; 10.5 character set specification
+   ;; <character set name> is identifier-chain
+   (character-set-specification ((n <- identifier-chain) n))
+
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))
    (collate-clause? ((c <- collate-clause) (list c))
 		    (() '()))
+
+   ;; 10.8 constraint name definition
+   (constraint-name-definition? ((c <- constraint-name-definition) (list c))
+				(() '()))
+   (constraint-name-definition (('constraint n <- identifier-chain)
+				(list 'constraint n)))
+   (constraint-characteristics? ((c <- constraint-characteristics) (list c))
+				(() '()))
+   (constraint-characteristics ((t <- constraint-check-time d <- deferrable?)
+				(cons t d))
+			       ((d <- deferrable t <- constraint-check-time?)
+				(cons d t)))
+   (deferrable? ((d <- deferrable) (list d))
+	     	(() '()))
+   (deferrable (('not (=? 'deferrable)) 'not-deferrable)
+	       (((=? 'deferrable))      'deferrable))
+   (constraint-check-time? ((c <- constraint-check-time) c)
+			   (() '()))
+   (constraint-check-time (((=? 'initially) (=? 'deferred)) 'initially-deferred)
+			  (((=? 'initially) 'immediate) 'initially-immediate))
+
 
    ;; 10.9 aggregate function
    (aggregate-function (('count '#\( '#\* '#\) f <- filter-clause?)

@@ -170,10 +170,10 @@
     ((_ keyword alias) (define-raw-sql-writer keyword alias))))
 
 (define (write/comma out column columns opt)
-  (apply write-ssql column out opt)
+  (apply maybe-with-parenthesis column out opt)
   (for-each (lambda (column) 
 	      (put-char out #\,) 
-	      (apply write-ssql column out opt)) columns))
+	      (apply maybe-with-parenthesis column out opt)) columns))
 (define (write/comma* out columns opt)
   (unless (null? columns)
     (write/comma out (car columns) (cdr columns) opt)))
@@ -194,7 +194,7 @@
    (for-each (lambda (clause) (apply write-ssql clause out opt)) rest)))
 
 (define (basic-insert out opt table cols override? vals)
-  (write/case "INSERT INTO " out)
+  (write/case "INSERT INTO" out)
   (apply write-ssql table out opt)
   (when cols (with-parenthesis out (write/comma* out cols opt)))
   (when override? (put-char out #\space) (write/case override? out))
@@ -206,7 +206,7 @@
 		(with-parenthesis out (write/comma* out v opt)))
 	      (cdr vals))))
 (define (query-insert out opt table cols overriding? query)
-  (write/case "INSERT INTO " out)
+  (write/case "INSERT INTO" out)
   (apply write-ssql table out opt)
   (when cols (with-parenthesis out (write/comma* out cols opt)))
   (when overriding? (put-char out #\space) (write/case override? out))
@@ -242,12 +242,12 @@
   (write/case " SET" out)
   (apply write-ssql (car lhs) out opt)
   (put-string out " =")
-  (apply write-ssql (car rhs) out opt)
+  (apply maybe-with-parenthesis (car rhs) out opt)
   (for-each (lambda (lhs rhs) 
 	      (put-char out #\,)
 	      (apply write-ssql lhs out opt)
 	      (put-string out " =")
-	      (apply write-ssql rhs out opt))
+	      (apply maybe-with-parenthesis rhs out opt))
 	    (cdr lhs) (cdr rhs))
   (when where (apply write-ssql where out opt)))
 
@@ -267,6 +267,26 @@
    (write-delete out opt table #f))
   (('delete-from table ('where condition))
    (write-delete out opt table (list 'where condition))))
+
+(define (write-columns ssql out . opt)
+  (define (write-column col out . opt)
+    (match col
+      ((name type)
+       (apply write-ssql name out opt)
+       (apply write-ssql type out opt))))
+  (unless (null? ssql)
+    (apply write-column (car ssql) out opt)
+    (for-each (lambda (column)
+		(put-char out #\,)
+		(apply write-column column out opt)) (cdr ssql))))
+;; create table
+;; not complete this is only for my testing sake
+(define-sql-writer (create-table ssql out . opt)
+  (('create-table table (columns ...))
+   (write/case "CREATE TABLE" out)
+   (apply write-ssql table out opt)
+   (with-parenthesis out
+    (apply write-columns columns out opt))))
    
 (define-sql-writer (as ssql out . opt)
   (('as a b)
@@ -345,33 +365,27 @@
    (apply write-ssql condition out opt)))
 
 
-(define-sql-writer (and ssql out . opt)
-  (('and condition conditions ...)
-   (apply write-ssql condition out opt)
-   (for-each (lambda (condition) 
-	       (write/case " AND" out)
-	       (apply write-ssql condition out opt)) conditions)))
+(define-syntax define-sql-variable-operator
+  (syntax-rules ()
+    ((_ name op)
+     (define-sql-writer (name ssql out . opt)
+       (('name a b* (... ...))
+	(apply write-ssql a out opt)
+	(for-each (lambda (condition) 
+		    (write/case op out)
+		    (apply write-ssql condition out opt)) b*))))))
+	
+(define-sql-variable-operator and " AND")
+(define-sql-variable-operator or  " OR")
+(define-sql-variable-operator ~   ".")
+(define-sql-variable-operator ^   "||")
 
-(define-sql-writer (or ssql out . opt)
-  (('or condition conditions ...)
-   (apply write-ssql condition out opt)
-   (for-each (lambda (condition) 
-	       (write/case " OR" out)
-	       (apply write-ssql condition out opt)) conditions)))
+(define-sql-variable-operator +   " +")
+(define-sql-variable-operator -   " -")
+(define-sql-variable-operator *   " *")
+(define-sql-variable-operator /   " /")
+(define-sql-variable-operator %   " %")
 
-(define-sql-writer (~ ssql out . opt)
-  (('~ id ids ...)
-   (apply write-ssql id out opt)
-   (for-each (lambda (id) 
-	       (put-char out #\.)
-	       (apply write-ssql id out opt)) ids)))
-
-(define-sql-writer (^ ssql out . opt)
-  (('^ id ids ...)
-   (apply write-ssql id out opt)
-   (for-each (lambda (id) 
-	       (put-string out "||")
-	       (apply write-ssql id out opt)) ids)))
 
 ;; unicode and delimited
 ;; at this moment, we just need to dump the string
