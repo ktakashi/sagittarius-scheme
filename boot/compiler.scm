@@ -4812,11 +4812,10 @@
 (define-simple-struct renv #f make-renv
   (locals '())
   (frees '())
-  ;; for compiled cache, we can not use hashtable for this purpose
-  ;;(sets (make-eq-hashtable))
   (sets '())
   (can-free '())
-  (display 0))
+  (display 0)
+  (source '()))
 
 (define (add-backtrace c src) (make-trace-condition (truncate-program src)))
 
@@ -4829,7 +4828,16 @@
        (lambda (iform cb renv ctx)
 	 (guard (e (else
 		    (raise (condition e (add-backtrace e ($*-src iform))))))
-	   (expr iform cb renv ctx)))))))
+	   (expr iform cb 
+		 (make-renv (renv-locals renv)
+			    (renv-frees renv)
+			    (renv-sets renv)
+			    (renv-can-free renv)
+			    (renv-display renv)
+			    ;; we want to track undefined variable
+			    ;; source on warning level
+			    (cons ($*-src iform) (renv-source renv)))
+		 ctx)))))))
 
 (define make-new-renv
   (lambda (renv locals free sets can-free add-display?)
@@ -4839,20 +4847,9 @@
 	       (if (null? can-free)
 		   (renv-can-free renv)
 		   (append (renv-can-free renv) (list can-free)))
-	       (+ (renv-display renv) (if add-display? 1 0))
-	       )))
+	       (+ (renv-display renv) (if add-display? 1 0)))))
 
-(define renv-add-can-free1
-  (lambda (renv vars)
-    (make-renv (renv-locals renv)
-	       (renv-frees renv)
-	       (renv-sets renv)
-	       (append (renv-can-free renv)
-		       (list vars))
-	       (renv-display renv)
-	       )))
-
-(define renv-add-can-free2
+(define renv-add-can-free
   (lambda (renv vars1 vars2)
     (make-renv (renv-locals renv)
 	       (renv-frees renv)
@@ -4869,8 +4866,7 @@
 	       (renv-frees renv)
 	       (renv-sets renv)
 	       (renv-can-free renv)
-	       (renv-display renv)
-	       )))
+	       (renv-display renv))))
 
 (define (renv-add-dummy renv)
   (let ((r (renv-copy renv)))
@@ -5135,7 +5131,14 @@
 	(var-stack-size (pass5/compile-assign ($lset-lvar iform) cb renv)))
     (+ val-stack-size var-stack-size)))
 
-(define (check-bound-identifier id)
+(define (check-bound-identifier id renv)
+  (define (retrieve-first-source renv)
+    (let loop ((source (renv-source renv)))
+      (cond ((null? source) #f)
+	    ((null? (car source)) (loop (cdr source)))
+	    ((circular-list? (car source)) (car source))
+	    (else (unwrap-syntax (car source))))))
+
   (let ((lib (id-library id))
 	(name (id-name id)))
     (unless (or (find-binding lib name #f)
@@ -5143,18 +5146,21 @@
 		(memq name (library-defined lib)))
       (if (vm-error-unbound?)
 	  (undefined-violation name "unbound identifier")
-	  (vm-warn (format "reference to undefined variable: '~a' in ~a"
-			   name (library-name lib)))))))
+	  (vm-warn (format 
+		    "reference to undefined variable: '~a' in ~a (source: ~a)"
+		    name 
+		    (library-name lib)
+		    (retrieve-first-source renv)))))))
 
 (define (pass5/$GREF iform cb renv ctx)
   (let ((id ($gref-id iform)))
-    (check-bound-identifier id)
+    (check-bound-identifier id renv)
     (cb-emit0oi! cb GREF id id)
     0))
 
 (define (pass5/$GSET iform cb renv ctx)
   (let ((id ($gset-id iform)))
-    (check-bound-identifier id)
+    (check-bound-identifier id renv)
     (let ((val-stack-size (pass5/rec ($gset-expr iform) cb renv
 				     (normal-context ctx))))
       (cb-emit0oi! cb GSET id id)
@@ -5271,7 +5277,7 @@
   (let* ((vars ($lambda-lvars iform))
 	 (body ($lambda-body iform))
 	 (free (pass5/find-free body vars 
-		(renv-add-can-free2 renv (renv-locals renv) (renv-frees renv))
+		(renv-add-can-free renv (renv-locals renv) (renv-frees renv))
 		cb))
 	 (sets (pass5/find-sets body vars))
 	 (lambda-cb (make-code-builder))
@@ -5395,7 +5401,7 @@
 	 (body ($let-body iform))
 	 (args ($let-inits iform))
 	 (cross-vars (collect-cross-reference 
-		      vars (renv-add-can-free2 renv vars (renv-frees renv))))
+		      vars (renv-add-can-free renv vars (renv-frees renv))))
 	 (sets (append cross-vars
 		       (pass5/find-sets body vars)
 		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
@@ -5475,7 +5481,6 @@
 							  #f)
 					   ctx)))
 	(pass5/make-boxes cb sets vars)
-	;;(cb-emit1! cb ENTER total)
 	(let* ((new-renv (make-new-renv renv
 					(append (renv-locals renv) vars)
 					(renv-frees renv) sets vars #f))

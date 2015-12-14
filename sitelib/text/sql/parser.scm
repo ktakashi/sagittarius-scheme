@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (text sql parser)
     (export parse-sql
 	    sql-parser-error?
@@ -254,7 +255,7 @@
 		  ((c <- column-options) c)
 		  ((c <- column-definition) c))
    (self-referencing-column-specification
-    (('ref 'is n <- column-name g <- reference-generation) `(ref-is ,n ,q)))
+    (('ref 'is n <- column-name g <- reference-generation) `(ref-is ,n ,g)))
    (reference-generation (('system (=? 'generated)) 'system-generated)
 			 (('user   (=? 'generated)) 'user-generated)
 			 (((=? 'derived))           'derived))
@@ -339,13 +340,13 @@
      ((i <- identity-column-specification) i)
      (() '()))
    (identity-column-specification (('generated (=? 'always) 'as 'identity
-				    o <- common-sequence-generator-option?)
+				    o <- common-sequence-generator-options?)
 				   (cons 'generated-always-as-identity o))
 				  (('generated 'by 'default 'as 'identity
-				    o <- common-sequence-generator-option?)
+				    o <- common-sequence-generator-options?)
 				   (cons 'generated-always-as-identity o)))
-   (common-sequence-generator-option? 
-    (('#\( c <- common-sequence-generator-option '#\)) (list c))
+   (common-sequence-generator-options? 
+    (('#\( c <- common-sequence-generator-options '#\)) (list c))
     (() '()))
    (generation-clause? ((r <- generation-rule 'as e <- generation-expression)
 			`((as ,r ,e)))
@@ -392,6 +393,9 @@
 			       m <- match-type?
 			       t <- referential-triggered-action?)
 			      `(references ,t ,@m ,@t)))
+   (referenced-table-and-columns 
+    ((t <- table-name '#\( c <- column-name-list '#\)) (cons t c))
+    ((t <- table-name) t))
    (match-type? (('match (=? 'full))    '(match-full))
 		(('match (=? 'partial)) '(match-partial))
 		(('match (=? 'simple))  '(match-simple))
@@ -415,6 +419,32 @@
    ;; 11.9 check constraint definition
    (check-constraint-definition (('check '#\( s <- search-condition '#\))
 				 (list 'check s)))
+
+   ;; 11.62 sequence generator definition
+   (common-sequence-generator-options ((c <- common-sequence-generator-option
+				        c* <- common-sequence-generator-options)
+				       (cons c c*)))
+   (common-sequence-generator-option 
+    ((s <- sequence-generator-start-with-option) s)
+    ((b <- basic-sequence-generator-option) b))
+   (sequence-generator-start-with-option
+    (('start 'with s <- signed-numeric-literal) (list 'start-with s)))
+
+   (basic-sequence-generator-option 
+    ((i <- sequence-generator-increment-by-option) i)
+    ((m <- sequence-generator-maxvalue-option) m)
+    ((m <- sequence-generator-minvalue-option) m)
+    ((c <- sequence-generator-cycle-option) c))
+   (sequence-generator-increment-by-option
+    (((=? 'increment) 'by s <- signed-numeric-literal) (list 'increment-by s)))
+   (sequence-generator-maxvalue-option
+    (((=? 'maxvalue) s <- signed-numeric-literal) (list 'maxvalue s))
+    (('no (=? 'maxvalue)) 'no-maxvalue))
+   (sequence-generator-minvalue-option
+    (((=? 'minvalue) s <- signed-numeric-literal) (list 'minvalue s))
+    (('no (=? 'minvalue)) 'no-minvalue))
+   (sequence-generator-cycle-option (('cycle) 'cycle)
+				    (('no 'cycle) 'no-cycle))
 
    ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
@@ -567,10 +597,10 @@
    (collection-derived-table 
     (('unnest '#\( v <- collection-value-expression '#\) 'with 'ordinality)
      ;; TODO what's this?
-     `(unnest/ordinality ,t))
-    (('unnest '#\( v <- collection-value-expression '#\)) `(unnest ,t)))
+     `(unnest/ordinality ,v))
+    (('unnest '#\( v <- collection-value-expression '#\)) `(unnest ,v)))
    (table-function-derived-table 
-    (('table '#\( v <- collection-value-expression '#\)) `(table ,t)))
+    (('table '#\( v <- collection-value-expression '#\)) `(table ,v)))
    (derived-table ((d <- table-subquery) d))
 
    (table-or-query-name ((t <- table-name) t)
@@ -781,13 +811,18 @@
     (('localtimestamp '#\( p <- time-precision '#\))
      `(localtimestamp ,p))
     (('localtimestamp) 'localtimestamp))
+   (time-precision ((n <- 'number) n))
 
    ;; 6.32 interval value expression
    (interval-value-expression 
-    ((i <- interval-term i* <- interval-value-expression*) (cons i i*))
+    ((i <- interval-term i* <- interval-value-expression*) (resolve-term i i*))
     (('#\( d <- datetime-value-expression '#\- t <- datetime-term '#\) 
       q <- interval-qualifier)
      `(,q (- ,d ,t))))
+   (interval-value-expression* 
+    (('#\+ i <- interval-value-expression) (list '+ i))
+    (('#\- i <- interval-value-expression) (list '- i))
+    (() '()))
    (interval-term ((i <- interval-factor i* <- interval-term*) (cons i i*))
 		  ((t <- term '#\* f <- interval-factor) (list '* t f)))
    (interval-term* (('#\* f <- factor) (list '* f))
@@ -1010,7 +1045,7 @@
 
    (numeric-type ((e <- exact-numeric-type) e)
 		 ((i <- approximate-numeric-type) i))
-   (precision-scale? (('#\( p <- 'number '#\, s <- scale '#\)) (list p s))
+   (precision-scale? (('#\( p <- 'number '#\, s <- 'number '#\)) (list p s))
 		     (('#\( p <- 'number '#\))                 (list p))
 		     (()                                       '()))
    (exact-numeric-type (('numeric l <- precision-scale?) (cons 'numeric l))
@@ -1892,6 +1927,9 @@
 				    '#\( v <- numeric-value-expression '#\)
 				    w <- within-group-specification)
 				   (list t w v)))
+   (within-group-specification (('within 'group '#\(
+				 'order 'by s <- sort-specification-list '#\))
+				`(within-group (order-by ,@s))))
    (inverse-distribution-function-type 
     (((=? 'precentile_cont)) 'precentile_cont)
     (((=? 'precentile_disc)) 'precentile_disc))
