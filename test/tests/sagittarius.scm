@@ -2011,4 +2011,8 @@
   (test-equal "vector-sort stable" '#(-1 1 -3 3) (vector-sort abs< v))
   (test-equal "vector-sort stable" '#(-3 3 -1 1) (vector-sort abs< v 2)))
 
+;; asin and acos
+(test-eqv "(asin 0)" 0 (asin 0))
+(test-eqv "(acos 1)" 0 (acos 1))
+
 (test-end)
