@@ -106,6 +106,7 @@
 (define (default-sql-writer ssql out . opt)
   (let ((name (car ssql))
 	(args (cdr ssql)))
+    (put-char out #\space)
     (cond ((pair? name)
 	   (apply write-ssql name out opt)
 	   (apply write-args args out opt))
@@ -161,12 +162,19 @@
 	       keyword)))))))
 
 (define-syntax define-sql-writer
-  (syntax-rules ()
-    ((_ (keyword ssql out . opt) (pattern exprs ...) ...)
+  (syntax-rules (define)
+    ;; allow internal define
+    ((_ args "define" (d* ...) ((define expr ...) rest ...))
+     (define-sql-writer args "define" (d* ... (define expr ...)) (rest ...)))
+    ((_ (keyword ssql out . opt) "define" (defs ...) ((pattern exprs ...) ...))
      (define-raw-sql-writer (keyword ssql out . opt)
+       defs ...
        (match ssql
 	 (pattern exprs ...) ...
 	 (else (assertion-violation 'keyword "incorrect input" ssql)))))
+    ;; entry point
+    ((_ (keyword ssql out . opt) clauses ...)
+     (define-sql-writer (keyword ssql out . opt) "define" () (clauses ...)))
     ((_ keyword alias) (define-raw-sql-writer keyword alias))))
 
 (define (write/comma out column columns opt)
@@ -364,6 +372,19 @@
    (write/case " WHERE" out)
    (apply write-ssql condition out opt)))
 
+(define-sql-writer (order-by ssql out . opt)
+  (define (write-column column out opt)
+    (if (pair? column)
+	(let ((name (car column))
+	      (attrs (cdr column)))
+	  (apply write-ssql name out opt)
+	  (for-each (lambda (attr) (apply write-ssql attr out opt)) attrs))
+	(apply write-ssql column out opt)))
+  (('order-by column columns ...)
+   (write/case " ORDER BY" out)
+   (write-column column out opt)
+   (for-each (lambda (column) (put-char out #\,) (write-column column out opt))
+	     columns)))
 
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
