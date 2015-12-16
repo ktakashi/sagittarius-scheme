@@ -2805,6 +2805,8 @@ SgObject Sg_Asin(SgObject obj)
 {
   SgComplex *cn;
   SgObject ans;
+  if (SG_EQ(obj, SG_MAKE_INT(0))) return obj;
+
   if (SG_REALP(obj) || (SG_COMPLEXP(obj) && Sg_ZeroP(SG_COMPLEX(obj)->imag))) {
     double x = Sg_GetDouble(obj);
     if (x >= -1.0 && x <= 1.0) return Sg_MakeFlonum(asin(Sg_GetDouble(obj)));
@@ -2831,6 +2833,8 @@ SgObject Sg_Asin(SgObject obj)
 
 SgObject Sg_Acos(SgObject obj)
 {
+  if (SG_EQ(obj, SG_MAKE_INT(1))) return SG_MAKE_INT(0);
+
   if (SG_REALP(obj) || (SG_COMPLEXP(obj) && Sg_ZeroP(SG_COMPLEX(obj)->imag))) {
     double x = Sg_GetDouble(obj);
     if (x >= -1.0 && x <= 1.0) return Sg_MakeFlonum(acos(Sg_GetDouble(obj)));
