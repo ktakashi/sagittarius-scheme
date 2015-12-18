@@ -1434,7 +1434,7 @@
 		      ;; -> (with ((as name query cols ...) ...) body)
 		      `(,@w ,q))
 		     ((q <- query-expression-body) q))
-   (with-clause (('with 'recursive l <- with-list) `(with recursive ,l))
+   (with-clause (('with 'recursive l <- with-list) `(with-recursive ,l))
 		(('with l <- with-list) `(with ,l)))
    (with-list ((w <- with-list-element w* <- with-list-element*) (cons w w*)))
    (with-list-element ((n <- query-name '#\( c <- column-name-list '#\)
@@ -1442,10 +1442,10 @@
 			s <- search-or-cycle-clause)
 		       `(as ,n ,q ,@c))
 		      ((n <- query-name
-			'as '#\( q <- query-expression '#\) 
+			'as '#\( q <- query-expression '#\)
 			s <- search-or-cycle-clause)
 		       `(as ,n ,q)))
-   (with-list-element* (('#\, w <- with-list-element) w)
+   (with-list-element* (('#\, w <- with-list) w)
 		       (() '()))
    ;; TODO 
    (search-or-cycle-clause (() '()))

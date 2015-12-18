@@ -123,10 +123,14 @@
 	   (write/case name out)
 	   (apply write-args args out opt)))))
 
+;; basically statement 
+(define parenthesis-keywords '(select insert update delete))
+  
 (define (maybe-with-parenthesis ssql out :key (indent #f) :allow-other-keys opt)
-  (put-indent out indent)
-  (if (and (pair? ssql) (not (eq? (car ssql) '~))) ;; identifier
-      (with-parenthesis out (apply write-ssql ssql out :indent indent opt))
+  (if (and (pair? ssql) (memq (car ssql) parenthesis-keywords))
+      (begin
+	(put-char out #\space)
+	(with-parenthesis out (apply write-ssql ssql out :indent indent opt)))
       (apply write-ssql ssql out :indent indent opt)))
 (define (infix-operator-writer ssql out :key (indent #f) :allow-other-keys opt)
   (let ((name (car ssql))
@@ -142,8 +146,11 @@
   (let loop ((args args) (first #t))
     (cond ((null? args) (put-char out '#\)))
 	  (else
-	   (unless first (put-char out '#\,))
-	   (apply write-ssql (car args) out opt)
+	   (unless first (put-string out ", "))
+	   (let ((arg (car args)))
+	     (if (pair? arg)
+		 (apply write-ssql arg out opt)
+		 (write-value arg out :value-space #f)))
 	   (loop (cdr args) #f)))))
 
 
@@ -189,31 +196,37 @@
     ((_ keyword alias) (define-raw-sql-writer keyword alias))))
 
 (define (next-indent indent) (and indent (+ indent 1)))
-(define (write/comma out column columns :key (indent #f) :allow-other-keys
-		     :rest opt)
-  (apply maybe-with-parenthesis column out opt)
+(define (write/comma out column columns :key (indent #f) :allow-other-keys opt)
+  (put-newline/space out indent)
+  (apply maybe-with-parenthesis column out :indent indent opt)
   (for-each (lambda (column)
 	      (put-char out #\,)
-	      (put-newline out indent)
-	      (apply maybe-with-parenthesis column out opt)) columns))
+	      (put-newline/space out indent)
+	      (apply maybe-with-parenthesis column out :indent indent opt))
+	    columns))
 (define (write/comma* out columns . opt)
   (unless (null? columns)
     (apply write/comma out (car columns) (cdr columns) opt)))
 
+;; ugly...
+(define *in-parenthesis* (make-parameter #f))
 (define-syntax with-parenthesis
   (syntax-rules ()
     ((_ out expr ...)
-     (begin (put-char out #\() expr ...  (put-char out #\))))))
+     (parameterize ((*in-parenthesis* #t))
+       (put-char out #\() 
+       expr ...  
+       (put-char out #\))))))
 
 ;; select
 (define-sql-writer (select ssql out :key (indent #f) :allow-other-keys opt)
+  (define first-indent (if (*in-parenthesis*) 0 indent))
   (('select '* rest ...)
-   (write/case "SELECT *" out :indent indent)
+   (write/case "SELECT *" out :indent first-indent)
    (for-each (lambda (clause) 
 	       (apply write-ssql clause out :indent indent opt)) rest))
   (('select (column columns ...) rest ...)
-   (write/case "SELECT" out :indent indent)
-   (put-newline out indent)
+   (write/case "SELECT" out :indent first-indent)
    (apply write/comma out column columns :indent (next-indent indent) opt)
    (for-each (lambda (clause)
 	       (apply write-ssql clause out :indent indent opt))
@@ -320,12 +333,34 @@
    (apply write-ssql table out opt)
    (with-parenthesis out
     (apply write-columns columns out opt))))
+
+;; with
+(define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)
+  (define (size type) (string-length (symbol->string type)))
+  ((type (c c* ...) query)
+   (let ((len (size type)))
+     (define nl1 (next-indent indent))
+     (define nl2 (next-indent nl1))
+
+     (write/case (symbol-upcase type) out :indent indent)
+     (apply write-ssql c out :indent nl2 opt)
+     (for-each (lambda (as) 
+		 (put-newline out indent)
+		 (do ((i 0 (+ i 1))) ((= i len)) (put-char out #\space))
+		 (apply write-ssql as out :indent nl2 opt))
+	       c*)
+     (put-newline/space out indent)
+     (apply write-ssql query out :indent nl1 opt))))
    
-(define-sql-writer (as ssql out . opt)
+(define-sql-writer with-recursive with)
+
+(define-sql-writer (as ssql out :key (indent #f) :allow-other-keys opt)
+  (define nl (next-indent indent))
   (('as a b)
-   (apply maybe-with-parenthesis a out opt)
+   ;; (put-newline/space out indent)
+   (apply maybe-with-parenthesis a out :indent indent opt)
    (write/case " AS" out)
-   (apply maybe-with-parenthesis b out opt)))
+   (apply maybe-with-parenthesis b out :indent indent opt)))
 
 (define (write-table-reference table out opt)
   (if (and (pair? table) (not (eq? (car table) 'as)))
@@ -399,8 +434,8 @@
    (write/case "WHERE" out)
    (apply write-ssql condition out :indent (next-indent indent) opt)))
 
-(define-sql-writer (order-by ssql out . opt)
-  (define (write-column column out opt)
+(define-sql-writer (order-by ssql out :key (indent #f) :allow-other-keys opt)
+  (define (write-column column out)
     (if (pair? column)
 	(let ((name (car column))
 	      (attrs (cdr column)))
@@ -408,10 +443,34 @@
 	  (for-each (lambda (attr) (apply write-ssql attr out opt)) attrs))
 	(apply write-ssql column out opt)))
   (('order-by column columns ...)
-   (write/case " ORDER BY" out)
-   (write-column column out opt)
-   (for-each (lambda (column) (put-char out #\,) (write-column column out opt))
+   (put-newline/space out indent)
+   (write/case "ORDER BY" out)
+   (put-newline/space out indent)
+   (write-column column out)
+   (for-each (lambda (column) 
+	       (put-char out #\,) 
+	       (put-newline/space out indent)
+	       (write-column column out))
 	     columns)))
+
+(define (set-quantifier? x) (or (eq? x 'distinct) (eq? x 'all)))
+
+(define-sql-writer (group-by ssql out :key (indent #f) :allow-other-keys opt)
+  (define (write-group-by set? column columns)
+    (define nl (next-indent indent))
+    (put-newline/space out indent)
+    (write/case "GROUP BY" out)
+    (when set? (put-char out #\space) (write/case (symbol-upcase set?) out))
+    (put-newline/space out indent)
+    (apply write-ssql column out :indent nl opt)
+    (for-each (lambda (column)
+		(put-char out #\,)
+		(put-newline/space out indent)
+		(apply write-ssql column out :indent nl opt)) columns))
+  (('group-by  (? set-quantifier? x) column columns ...)
+   (write-group-by x column columns))
+  (('group-by  column columns ...)
+   (write-group-by #f column columns)))
 
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
@@ -591,7 +650,8 @@
    (put-string out "*/")))
 
 ;;; atom value
-(define (write-value ssql out :key (value-space #t) :allow-other-keys opt)
+(define (write-value ssql out :key (value-space #t) (indent #f) 
+		     :allow-other-keys opt)
   (when value-space (put-char out #\space))
   (cond ((symbol? ssql) (handle-identifier ssql out))
 	;; :key maybe the same as ? in some RDBMS
