@@ -168,8 +168,13 @@
 		       'where 'current 'of c <- cursor-name)
 		      `(update ,t (set! ,@s) (where (current-of ,c))))
 		     (('update t <- table-name 'set s <- set-clause-list
+		       ;; NB: FROM in UPDATE isn't in any SQL standard but
+		       ;;     used commonly. so need to support. Sucks!!!!
+		       f <- from-clause?
 		       w <- where-clause)
-		      `(update ,t (set! ,@s) ,@w)))
+		      `(update ,t (set! ,@s) ,@f ,@w)))
+   (from-clause? ((f <- from-clause) (list f))
+		 (() '()))
    ;; 14.12 set clause
    (set-clause-list ((s <- set-clause s* <- set-clause-list*) (cons s s*)))
    (set-clause-list* (('#\, s <- set-clause-list) s)

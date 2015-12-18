@@ -94,7 +94,7 @@
 (define (write-ssql ssql out . opt)
   (if (pair? ssql)
       (apply (lookup-writer (car ssql)) ssql out opt)
-      (write-value ssql out)))
+      (apply write-value ssql out opt)))
 
 (define *sql-writers* (make-eq-hashtable))
 (define (lookup-writer name)
@@ -115,7 +115,7 @@
 	   (apply write-args args out opt)))))
 
 (define (maybe-with-parenthesis ssql out . opt)
-  (if (pair? ssql)
+  (if (and (pair? ssql) (not (eq? (car ssql) '~))) ;; identifier
       (with-parenthesis out (apply write-ssql ssql out opt))
       (apply write-ssql ssql out opt)))
 (define (infix-operator-writer ssql out . opt)
@@ -244,26 +244,21 @@
   (('insert-into table symbol query)
    (query-insert out opt table #f symbol query)))
 
-(define (write-update out opt table lhs rhs where)
-  (write/case "UPDATE" out)
-  (apply write-ssql table out opt)
-  (write/case " SET" out)
-  (apply write-ssql (car lhs) out opt)
-  (put-string out " =")
-  (apply maybe-with-parenthesis (car rhs) out opt)
-  (for-each (lambda (lhs rhs) 
-	      (put-char out #\,)
-	      (apply write-ssql lhs out opt)
-	      (put-string out " =")
-	      (apply maybe-with-parenthesis rhs out opt))
-	    (cdr lhs) (cdr rhs))
-  (when where (apply write-ssql where out opt)))
-
 (define-sql-writer (update ssql out . opt)
-  (('update table ('set! ('= lhs rhs) ...))
-   (write-update out opt table lhs rhs #f))
-  (('update table ('set! ('= lhs rhs) ...) ('where condition))
-   (write-update out opt table lhs rhs (list 'where condition))))
+  (('update table ('set! ('= lhs rhs) ...) clauses ...)
+   (write/case "UPDATE" out)
+   (apply write-ssql table out opt)
+   (write/case " SET" out)
+   (apply write-ssql (car lhs) out opt)
+   (put-string out " =")
+   (apply maybe-with-parenthesis (car rhs) out opt)
+   (for-each (lambda (lhs rhs) 
+	       (put-char out #\,)
+	       (apply write-ssql lhs out opt)
+	       (put-string out " =")
+	       (apply maybe-with-parenthesis rhs out opt))
+	     (cdr lhs) (cdr rhs))
+   (for-each (lambda (clause) (apply write-ssql clause out opt)) clauses)))
 
 (define (write-delete out opt table where)
   (write/case "DELETE FROM" out)
@@ -298,10 +293,9 @@
    
 (define-sql-writer (as ssql out . opt)
   (('as a b)
-   (apply maybe-with-parenthesis out a out opt)
-   (put-char out #\))
+   (apply maybe-with-parenthesis a out opt)
    (write/case " AS" out)
-   (apply maybe-with-parenthesis out b out opt)))
+   (apply maybe-with-parenthesis b out opt)))
 
 (define (write-table-reference table out opt)
   (if (and (pair? table) (not (eq? (car table) 'as)))
@@ -388,18 +382,18 @@
 
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
-    ((_ name op)
+    ((_ name op keys ...)
      (define-sql-writer (name ssql out . opt)
        (('name a b* (... ...))
 	(apply write-ssql a out opt)
 	(for-each (lambda (condition) 
 		    (write/case op out)
-		    (apply write-ssql condition out opt)) b*))))))
+		    (apply write-ssql condition out keys ... opt)) b*))))))
 	
 (define-sql-variable-operator and " AND")
 (define-sql-variable-operator or  " OR")
-(define-sql-variable-operator ~   ".")
-(define-sql-variable-operator ^   "||")
+(define-sql-variable-operator ~   "." :value-space #f)
+(define-sql-variable-operator ^   " ||")
 
 (define-sql-variable-operator +   " +")
 (define-sql-variable-operator -   " -")
@@ -562,8 +556,8 @@
    (put-string out "*/")))
 
 ;;; atom value
-(define (write-value ssql out)
-  (put-char out #\space)
+(define (write-value ssql out :key (value-space #t) :allow-other-keys opt)
+  (when value-space (put-char out #\space))
   (cond ((symbol? ssql) (handle-identifier ssql out))
 	;; :key maybe the same as ? in some RDBMS
 	((keyword? ssql) (write ssql out))
@@ -578,6 +572,8 @@
 ;;  - delimited if needed
 ;;  - detect unicode
 (define not-dot-set (char-set-complement! (string->char-set ".")))
+;; _ is a valid identifier
+(define non-identifier-chars (char-set-delete +sql-special-character-set+ #\_))
 (define (handle-identifier ssql out :key (delimited #f) (uescape #f))
   (define charset (*non-unicode-charset*))
   (define escape (*unicode-escape*))
@@ -586,7 +582,7 @@
     (let ((in (open-string-input-port s))
 	  (uescape? (or uescape (and charset (not (string-every charset s)))))
 	  (delimited? (or delimited 
-			  (string-any +sql-special-character-set+ s))))
+			  (string-any non-identifier-chars s))))
       (when uescape? (write/case "U&\"" out))
       (when (and (not uescape?) delimited?) (put-char out #\"))
       (let-values (((sout extract) (open-string-output-port)))
