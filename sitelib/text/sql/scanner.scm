@@ -30,10 +30,11 @@
 
 (library (text sql scanner)
     (export make-sql-scanner
+	    *preserve-case*
 	    (rename specials +sql-special-character-set+))
     (import (rnrs) 
 	    (srfi :14 char-sets)
-	    ;; (srfi :39 parameters)
+	    (srfi :39 parameters)
 	    (srfi :117 list-queues)
 	    (sagittarius)) ;; for integer->bytevector
 
@@ -45,6 +46,8 @@
   (protocol (lambda (p)
 	      (lambda (in)
 		(p in (list-queue) 0 1)))))
+
+(define *preserve-case* (make-parameter #f))
 
 (define (scanner-get-char ctx) 
   (define unget-buffer (scanner-unget-buffer ctx))
@@ -192,9 +195,9 @@
   (let ((id (string->symbol (string-downcase s))))
     (cond ((memq id *sql:keywords*)
 	   (cons id id))
-	  ;; TODO should we make identifier lower case?
-	  ;;      it doesn't matter on SQL but user input is lost
-	  (else (cons 'identifier id)))))
+	  (else 
+	   ;; if user wants to then we can preserve it
+	   (cons 'identifier (if (*preserve-case*) (string->symbol s) id))))))
 
 (define (read-identifier ch port) 
   (let ((id (%read-identifier ch port)))

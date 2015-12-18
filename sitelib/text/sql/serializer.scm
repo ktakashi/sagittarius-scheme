@@ -30,12 +30,12 @@
 
 (library (text sql serializer)
     (export ssql->sql
-	    ;; ssql->sql-indent ;; TODO
+	    ssql->sql-indent ;; TODO
 
 	    ;; parameters
 	    *non-unicode-charset*
 	    *unicode-escape*
-	    *use-upper?*
+	    *identifier-case*
 	    *character-converter*
 	    )
     (import (rnrs)
@@ -79,9 +79,12 @@
 			     ((char? v) v)
 			     (else (assertion-violation '*unicode-escape*
 				    "char or #f is required" v))))))
-;; writes SQL with upper case or not
-;; default #f
-(define *use-upper?* (make-parameter #t))
+;; how to treat identifier case
+;; - lower: converts to lower case
+;; - upper: converts to upper case
+;; - title: converts to title case
+;; - #f   : preserve
+(define *identifier-case* (make-parameter #f))
 
 (define *character-converter* (make-parameter default-converter))
 
@@ -90,6 +93,12 @@
   (if port
       (write-ssql ssql port)
       (call-with-string-output-port (lambda (out) (write-ssql ssql out)))))
+
+(define (ssql->sql-indent ssql :optional (port #f))
+  (if port
+      (write-ssql ssql port :indent 0)
+      (call-with-string-output-port
+       (lambda (out) (write-ssql ssql out :indent 0)))))
 
 (define (write-ssql ssql out . opt)
   (if (pair? ssql)
@@ -114,17 +123,19 @@
 	   (write/case name out)
 	   (apply write-args args out opt)))))
 
-(define (maybe-with-parenthesis ssql out . opt)
+(define (maybe-with-parenthesis ssql out :key (indent #f) :allow-other-keys opt)
+  (put-indent out indent)
   (if (and (pair? ssql) (not (eq? (car ssql) '~))) ;; identifier
-      (with-parenthesis out (apply write-ssql ssql out opt))
-      (apply write-ssql ssql out opt)))
-(define (infix-operator-writer ssql out . opt)
+      (with-parenthesis out (apply write-ssql ssql out :indent indent opt))
+      (apply write-ssql ssql out :indent indent opt)))
+(define (infix-operator-writer ssql out :key (indent #f) :allow-other-keys opt)
   (let ((name (car ssql))
 	(args (cdr ssql)))
-    (apply maybe-with-parenthesis (car args) out opt)
+    ;; reset indent to 0 so that it values won't get too many spaces
+    (apply maybe-with-parenthesis (car args) out :indent 0 opt)
     (put-char out #\space)
     (write/case name out)
-    (apply maybe-with-parenthesis (cadr args) out opt)))
+    (apply maybe-with-parenthesis (cadr args) out :indent 0 opt)))
 
 (define (write-args args out . opt)
   (put-char out '#\()
@@ -177,14 +188,17 @@
      (define-sql-writer (keyword ssql out . opt) "define" () (clauses ...)))
     ((_ keyword alias) (define-raw-sql-writer keyword alias))))
 
-(define (write/comma out column columns opt)
+(define (next-indent indent) (and indent (+ indent 1)))
+(define (write/comma out column columns :key (indent #f) :allow-other-keys
+		     :rest opt)
   (apply maybe-with-parenthesis column out opt)
-  (for-each (lambda (column) 
-	      (put-char out #\,) 
+  (for-each (lambda (column)
+	      (put-char out #\,)
+	      (put-newline out indent)
 	      (apply maybe-with-parenthesis column out opt)) columns))
-(define (write/comma* out columns opt)
+(define (write/comma* out columns . opt)
   (unless (null? columns)
-    (write/comma out (car columns) (cdr columns) opt)))
+    (apply write/comma out (car columns) (cdr columns) opt)))
 
 (define-syntax with-parenthesis
   (syntax-rules ()
@@ -192,28 +206,39 @@
      (begin (put-char out #\() expr ...  (put-char out #\))))))
 
 ;; select
-(define-sql-writer (select ssql out . opt)
+(define-sql-writer (select ssql out :key (indent #f) :allow-other-keys opt)
   (('select '* rest ...)
-   (write/case "SELECT *" out)
-   (for-each (lambda (clause) (apply write-ssql clause out opt)) rest))
+   (write/case "SELECT *" out :indent indent)
+   (for-each (lambda (clause) 
+	       (apply write-ssql clause out :indent indent opt)) rest))
   (('select (column columns ...) rest ...)
-   (write/case "SELECT" out)
-   (write/comma out column columns opt)
-   (for-each (lambda (clause) (apply write-ssql clause out opt)) rest)))
+   (write/case "SELECT" out :indent indent)
+   (put-newline out indent)
+   (apply write/comma out column columns :indent (next-indent indent) opt)
+   (for-each (lambda (clause)
+	       (apply write-ssql clause out :indent indent opt))
+	     rest)))
 
-(define (basic-insert out opt table cols override? vals)
-  (write/case "INSERT INTO" out)
-  (apply write-ssql table out opt)
-  (when cols (with-parenthesis out (write/comma* out cols opt)))
+(define (basic-insert out table cols override? vals :key (indent #f)
+		      :allow-other-keys opt)
+  (define ni (next-indent indent))
+  (write/case "INSERT INTO" out :indent indent)
+  (apply write-ssql table out :indent #f opt)
+  (when cols 
+    (with-parenthesis out 
+      (apply write/comma* out cols :indent ni opt)))
   (when override? (put-char out #\space) (write/case override? out))
   (when vals
-    (write/case " VALUES" out)
-    (with-parenthesis out (write/comma* out (car vals) opt))
+    (put-newline/space out indent)
+    (write/case "VALUES" out)
+    (with-parenthesis out (apply write/comma* out (car vals) :indent ni opt))
     (for-each (lambda (v) 
 		(put-char out #\,)
-		(with-parenthesis out (write/comma* out v opt)))
+		(put-newline out indent)
+		(with-parenthesis out 
+		  (apply write/comma* out v :indent ni opt)))
 	      (cdr vals))))
-(define (query-insert out opt table cols overriding? query)
+(define (query-insert out table cols overriding? query . opt)
   (write/case "INSERT INTO" out)
   (apply write-ssql table out opt)
   (when cols (with-parenthesis out (write/comma* out cols opt)))
@@ -223,26 +248,26 @@
 
 (define-sql-writer (insert-into ssql out . opt)
   (('insert-into table (cols ...) ('values vals ...))
-   (basic-insert out opt table cols #f vals))
+   (apply basic-insert out table cols #f vals opt))
   ;; overriding
   (('insert-into table (cols ...) symbol ('values vals ...))
-   (basic-insert out opt table cols symbol vals))
+   (apply basic-insert out table cols symbol vals opt))
   (('insert-into table ('values vals ...))
-   (basic-insert out opt table #f #f vals))
+   (apply basic-insert out table #f #f vals opt))
   (('insert-into table symbol ('values vals ...))
    ;; overriding
-   (basic-insert out opt table #f symbol vals))
+   (apply basic-insert out table #f symbol vals opt))
   (('insert-into table 'default-values)
-   (basic-insert out opt table #f 'default-values #f))
+   (apply basic-insert out table #f 'default-values #f opt))
   ;; insert select
   (('insert-into table (cols ...) query) 
-   (query-insert out opt table cols #f query))
+   (apply query-insert out table cols #f query opt))
   (('insert-into table (cols ...) symbol query) 
-   (query-insert out opt table cols symbol query))
+   (apply query-insert out table cols symbol query opt))
   (('insert-into table query)
-   (query-insert out opt table #f #f query))
+   (apply query-insert out table #f #f query opt))
   (('insert-into table symbol query)
-   (query-insert out opt table #f symbol query)))
+   (apply query-insert out table #f symbol query opt)))
 
 (define-sql-writer (update ssql out . opt)
   (('update table ('set! ('= lhs rhs) ...) clauses ...)
@@ -308,9 +333,10 @@
       ;; normal or query
       (apply write-ssql table out opt)))
 
-(define-sql-writer (from ssql out . opt)
+(define-sql-writer (from ssql out :key (indent #f) :allow-other-keys :rest opt)
   (('from table rest ...)
-   (write/case " FROM" out)
+   (put-newline/space out indent)
+   (write/case "FROM" out)
    (write-table-reference table out opt)
    (for-each (lambda (table) 
 	       (put-char out #\,)
@@ -361,10 +387,11 @@
 	       (cdr columns)))
    (put-char out #\))))
 
-(define-sql-writer (where ssql out . opt)
+(define-sql-writer (where ssql out :key (indent #f) :allow-other-keys opt)
   (('where condition)
-   (write/case " WHERE" out)
-   (apply write-ssql condition out opt)))
+   (put-newline/space out indent)
+   (write/case "WHERE" out)
+   (apply write-ssql condition out :indent (next-indent indent) opt)))
 
 (define-sql-writer (order-by ssql out . opt)
   (define (write-column column out opt)
@@ -382,24 +409,26 @@
 
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
-    ((_ name op keys ...)
-     (define-sql-writer (name ssql out . opt)
+    ((_ name op nl keys ...)
+     (define-sql-writer (name ssql out :key (indent #f) :allow-other-keys opt)
        (('name a b* (... ...))
-	(apply write-ssql a out opt)
+	(apply write-ssql a out :indent indent opt)
 	(for-each (lambda (condition) 
+		    (when nl (put-newline/space out indent))
 		    (write/case op out)
-		    (apply write-ssql condition out keys ... opt)) b*))))))
+		    (apply write-ssql condition out 
+			   keys ... :indent indent opt)) b*))))))
 	
-(define-sql-variable-operator and " AND")
-(define-sql-variable-operator or  " OR")
-(define-sql-variable-operator ~   "." :value-space #f)
-(define-sql-variable-operator ^   " ||")
+(define-sql-variable-operator and "AND" #t)
+(define-sql-variable-operator or  "OR"  #t)
+(define-sql-variable-operator ~   "."   #f :value-space #f)
+(define-sql-variable-operator ^   " ||" #f)
 
-(define-sql-variable-operator +   " +")
-(define-sql-variable-operator -   " -")
-(define-sql-variable-operator *   " *")
-(define-sql-variable-operator /   " /")
-(define-sql-variable-operator %   " %")
+(define-sql-variable-operator +   " +" #f)
+(define-sql-variable-operator -   " -" #f)
+(define-sql-variable-operator *   " *" #f)
+(define-sql-variable-operator /   " /" #f)
+(define-sql-variable-operator %   " %" #f)
 
 
 ;; unicode and delimited
@@ -673,18 +702,32 @@
 
 ;; write with case
 (define not-minus-set (char-set-complement! (string->char-set "-")))
-(define (write/case v out)
+
+(define (write/case v out :key (indent #f) :allow-other-keys)
+  (put-indent out indent)
   (cond ((string? v)
-	 (if (*use-upper?*)
-	     (put-string out (string-upcase v))
-	     (put-string out (string-downcase v))))
+	 (case (*identifier-case*)
+	   ((upper) (put-string out (string-upcase v)))
+	   ((lower) (put-string out (string-downcase v)))
+	   ((title) (put-string out (string-titlecase v)))
+	   (else    (put-string out v))))
 	((symbol? v)
 	 ;; 'sym-sym' would be printed 'sym sym'
 	 (let ((s (string-tokenize (symbol->string v) not-minus-set)))
 	   (write/case (car s) out)
-	   (for-each (lambda (s) (put-char out #\space) (write/case s out))
+	   (for-each (lambda (s) 
+		       (put-char out #\space) (write/case s out :indent #f))
 		     (cdr s))))
 	;; numbers?
 	(else (display v out))))
 
+(define (put-indent out indent) 
+  (when indent
+    (do ((times (* indent 2)) (i 0 (+ i 1)))
+	((= i times))
+      (put-char out #\space))))
+(define (put-newline out indent) (when indent (newline out)))
+(define (put-newline/space out indent) 
+  (if indent (newline out) (put-char out #\space))
+  (put-indent out indent))
 )

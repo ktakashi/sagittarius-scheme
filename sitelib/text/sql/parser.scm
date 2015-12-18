@@ -121,8 +121,11 @@
      ;; check value of the identifier.
      (define (=? sym)
        (lambda (results)
+	 ;; in case of preserved symbol, we need to compare case
+	 ;; insensitive way.
 	 (let ((s (parse-results-token-value results)))
-	   (if (eq? s sym)
+	   (if (and (symbol? s) 
+		    (string-ci=? (symbol->string s) (symbol->string sym)))
 	       (make-result sym (parse-results-next results))
 	       (make-expected-result
 		(parse-results-position results) sym)))))

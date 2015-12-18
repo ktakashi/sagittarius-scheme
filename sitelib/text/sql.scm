@@ -2,7 +2,7 @@
 ;;;
 ;;; text/sql.scm - SQL utilities
 ;;;  
-;;;   Copyright (c) 2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2014-2015  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,13 +28,18 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-;; SQL utility
-;;  for now, we only have reading SQL string from port.
-
 (library (text sql)
     (export read-sql
 	    sql->ssql
-	    ssql->sql)
+	    ssql->sql
+
+	    ;; parameters
+	    *preserve-case*
+	    *non-unicode-charset*
+	    *unicode-escape*
+	    *identifier-case*
+	    *character-converter*
+	    )
     (import (rnrs)
 	    (srfi :1 lists)
 	    (text parse)
