@@ -488,17 +488,30 @@
 (define-sql-variable-operator or  "OR"  #t)
 (define-sql-variable-operator ~   "."   #f :value-space #f)
 (define-sql-variable-operator ^   " ||" #f)
-
-(define-sql-variable-operator +   " +" #f)
-(define-sql-variable-operator -   " -" #f)
 (define-sql-variable-operator *   " *" #f)
 (define-sql-variable-operator /   " /" #f)
 (define-sql-variable-operator %   " %" #f)
 
+;; (+ 1) -> +1
+(define-sql-writer (variable/unary-operator ssql out :key (indent #f)
+					    :allow-other-keys opt)
+  ((name a b* ...)
+   (if (null? b*)
+       (begin 
+	 (write/case name out :indent indent)
+	 (apply write-ssql a out :indent #f opt))
+       (begin 
+	 (apply write-ssql a out :indent indent opt)
+	 (for-each (lambda (c)
+		     (write/case name out)
+		     (apply write-ssql c out :indent indent opt)) b*)))))
+(define-sql-writer + variable/unary-operator)
+(define-sql-writer - variable/unary-operator)
+
 
 ;; unicode and delimited
 ;; at this moment, we just need to dump the string
-   ;; just make sure #\" will be escaped
+;; just make sure #\" will be escaped
 (define (write-escaped-delimited s out)
   (string-for-each (lambda (ch)
 		     (case ch
@@ -778,12 +791,14 @@
 	   ((title) (put-string out (string-titlecase v)))
 	   (else    (put-string out v))))
 	((symbol? v)
-	 ;; 'sym-sym' would be printed 'sym sym'
-	 (let ((s (string-tokenize (symbol->string v) not-minus-set)))
-	   (write/case (car s) out)
-	   (for-each (lambda (s) 
-		       (put-char out #\space) (write/case s out :indent #f))
-		     (cdr s))))
+	 (if (eq? v '-) ;; handle special case...
+	     (display v out)
+	     ;; 'sym-sym' would be printed 'sym sym'
+	     (let ((s (string-tokenize (symbol->string v) not-minus-set)))
+	       (write/case (car s) out)
+	       (for-each (lambda (s) 
+			   (put-char out #\space) (write/case s out :indent #f))
+			 (cdr s)))))
 	;; numbers?
 	(else (display v out))))
 
