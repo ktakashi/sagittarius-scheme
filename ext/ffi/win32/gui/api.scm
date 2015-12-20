@@ -32,7 +32,8 @@
 (library (win32 gui api)
     (export win32-create win32-show
 	    win32-register-class
-	    
+	    win32-message-loop
+
 	    <win32-window-class> win32-window-class?
 	    <win32-event>        win32-event?
 	    <win32-event-aware>  win32-event-aware?
@@ -72,6 +73,15 @@
       (when (zero? (register-class-ex wnd))
 	(error 'win32-register-class "Failed to register WNDCLASS"))
       window-class)))
+
+(define (win32-message-loop)
+  (let ((msg (allocate-c-struct MSG)))
+    (let loop ((m (get-message msg null-pointer 0 0)))
+      (when (> m 0)
+	(translate-message msg)
+	(dispatch-message msg)
+	(loop (get-message msg null-pointer 0 0))))
+    (c-struct-ref msg MSG 'wParam)))
 
 (define-class <win32-window-class> ()
   ((window-proc :init-keyword :window-proc) ;; these 2 are required

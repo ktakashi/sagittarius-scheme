@@ -60,12 +60,25 @@
 (define (win32-window? o) (is-a? o <win32-window>))
 
 ;; TODO better dispatch method
+(define (get-window hwnd)
+  (let ((p (get-window-long-ptr hwnd GWLP_USERDATA)))
+    (if (null-pointer? p)
+	#f
+	(pointer->object p))))
+
 (define (default-window-proc hwnd imsg wparam lparam)
   (cond ((= imsg WM_CREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
-	 (let1 w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)
+	 (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 	   (set-window-long-ptr hwnd GWLP_USERDATA w)
 	   1))
+	((= imsg WM_CLOSE) (destroy-window hwnd))
+	((= imsg WM_DESTROY)
+	 (let ((w (get-window hwnd)))
+	   (cond ((null-pointer? (~ w 'owner))
+		  (post-quit-message 0) 
+		  0)
+		 (else 1))))
 	(else (def-window-proc hwnd imsg wparam lparam))))
 
 (define *window-proc*
@@ -75,4 +88,9 @@
 	     :name "sagittarius-default-window-class"
 	     :window-proc *window-proc*)))
     (win32-register-class c)))
+
+(define-method object-apply ((o <win32-window>))
+  (win32-show o)
+  (win32-message-loop))
+
 )
