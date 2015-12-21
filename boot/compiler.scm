@@ -124,6 +124,15 @@
 	     (cond ((p (car l)) => (lambda (x) (loop (cdr l) (cons x r))))
 		   (else (loop (cdr l) r)))))))))
 
+(define-syntax iany
+  (syntax-rules ()
+    ((_ pred lis)
+     (let ((p pred))
+       (let loop ((l lis))
+	 (cond ((null? l) #f)
+	       ((p (car l)))
+	       (else (loop (cdr l)))))))))
+
 (define-syntax $append-map1
   (syntax-rules ()
     ((_ f l)
@@ -3685,18 +3694,18 @@
 		 (loop ($if-then iform))
 		 (loop ($if-else iform))))
 	    (($let? iform)
-	     (or (exists loop ($let-inits iform))
+	     (or (iany loop ($let-inits iform))
 		 (loop ($let-body iform))))
 	    (($receive? iform)
 	     (or (loop ($receive-expr iform))
 		 (loop ($receive-body iform))))
-	    (($seq? iform) (exists loop ($seq-body iform)))
+	    (($seq? iform) (iany loop ($seq-body iform)))
 	    (($call? iform)
-	     (or (exists loop ($call-args iform))
+	     (or (iany loop ($call-args iform))
 		 (and ($lambda? ($call-proc iform))
 		      (loop ($lambda-body ($call-proc iform))))))
-	    (($asm? iform) (exists loop ($asm-args iform)))
-	    (($list? iform) (exists loop ($list-args iform)))
+	    (($asm? iform) (iany loop ($asm-args iform)))
+	    (($list? iform) (iany loop ($list-args iform)))
 	    (else #f))))
   ;; to avoid unwanted behaviour, we check uninitialised variable here
   ;; what we need to do is that check init with following ruls:
@@ -4337,9 +4346,9 @@
 	    (else #t)))) ;; both non $const
    ((ADD SUB MUL DIV NUM_EQ NUM_LT NUM_LE NUM_GT NUM_GE) 
     ;; check if there is non number constant
-    (not (exists (lambda (arg)
-		   (and ($const arg) (not (number? ($const-value arg)))))
-		 args)))
+    (not (iany (lambda (arg)
+		 (and ($const arg) (not (number? ($const-value arg)))))
+	       args)))
    (else #f))
 )
 
@@ -4822,6 +4831,17 @@
   (display 0)
   (source '()))
 
+;; for better performance
+;; exists procedure used in lset-union (defined in (core base) library) took
+;; rather large amount of time. we know this union procedure only takes 2
+;; arguments and this is sufficient for compiler usage. 
+;; NB: exists took 600ms for compiling (text sql parser).
+(define (lset-eq-union2 set1 set2)
+  (let loop ((r set1) (t set2))
+    (cond ((null? t) r)
+	  ((memq (car t) r) (loop r (cdr t)))
+	  (else (loop (cons (car t) r) (cdr t))))))
+
 (define (add-backtrace c src) (make-trace-condition (truncate-program src)))
 
 (define-syntax define-backtracible
@@ -4848,7 +4868,7 @@
   (lambda (renv locals free sets can-free add-display?)
     (make-renv locals
 	       free
-	       (pass5/add-sets (renv-sets renv) sets)
+	       (lset-eq-union2 (renv-sets renv) sets)
 	       (if (null? can-free)
 		   (renv-can-free renv)
 		   (append (renv-can-free renv) (list can-free)))
@@ -4890,29 +4910,6 @@
 
 (define (renv-add-frame-dummy renv)
   (renv-add-dummy-n renv (vm-frame-size)))
-
-;; (define eq-hashtable-copy 
-;;   (lambda (ht)
-;;     (let ((ret (make-eq-hashtable)))
-;;       (hashtable-for-each
-;;        (lambda (key value)
-;; 	 (hashtable-set! ret key value))
-;;        ht)
-;;       ret)))
-;; 
-;; (define hashtable-set-true!
-;;   (lambda (ht keys)
-;;     (let loop ((keys keys))
-;;       (cond
-;;        ((null? keys) ht)
-;;        (else
-;; 	(hashtable-set! ht (car keys) #t)
-;; 	(loop (cdr keys)))))))
-
-(define (pass5/add-sets sets new-sets)
-  (if (null? new-sets)
-      sets
-      (lset-union eq? sets new-sets)))
 
 (define (pass5/rec iform cb renv ctx)
   ((vector-ref *pass5-dispatch-table* (iform-tag iform))
@@ -5343,14 +5340,21 @@
 		 (acc '()))
 	(if (or (null? vars) (null? all-frees))
 	    ;; merge non-lambda
-	    (lset-union eq? non-lambdas acc)
+	    (lset-eq-union2 non-lambdas acc)
 	    ;; we don't need self
+	    ;; NB: we use lset-intersection from (core base) unlike lset-union
+	    ;;     this is because, exists procedure used in lset-union took
+	    ;;     rather large amount of time and lset-intersection itself
+	    ;;     isn't called that much (1/10 of lset-union)
+	    ;;     so for now, don't get bother. if we faced other performance
+	    ;;     issue because of this, then we can always make specific
+	    ;;     version of this.
 	    (let ((frees (lset-intersection eq? (cdr vars) (car all-frees))))
 	      ;; if one or more vars are in the frees then it needs
 	      ;; to be boxed
 	      (loop (cdr all-frees)
 		    (cdr vars)
-		    (lset-union eq? frees acc)))))))
+		    (lset-eq-union2 frees acc)))))))
   (define (compile-inits renv args vars sets locals)
     (define (handle-lambda lm cb renv sets var)
       (if ($lambda? lm)

@@ -709,11 +709,15 @@
 		(else (partial-identifier form)))))))
 
 (define (rank-of name ranks)
-  (define (id=? slot)
-    (and (bound-identifier=? name (car slot))
-	 slot))
-  (let ((slot (exists id=? ranks)))
-    (if slot (cdr slot) -1)))
+  (define (find-rank ranks)
+    (let loop ((ranks ranks))
+      (if (null? ranks)
+	  -1
+	  (let ((slot (car ranks)))
+	    (if (bound-identifier=? name (car slot))
+		(cdr slot)
+		(loop (cdr ranks)))))))
+  (find-rank ranks))
 
 (define (subform-of name vars) (cdr (assq name vars)))
 
