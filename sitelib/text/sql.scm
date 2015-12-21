@@ -32,6 +32,7 @@
     (export read-sql
 	    sql->ssql
 	    ssql->sql
+	    ssql->sql-indent
 
 	    ;; parameters
 	    *preserve-case*

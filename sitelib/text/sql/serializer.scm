@@ -472,25 +472,48 @@
   (('group-by  column columns ...)
    (write-group-by #f column columns)))
 
+;; and/or needs to cooporate in this case
+;; (or (and (or e1 e1' ...) e2 ...) e3 ...)
+;; this must be like this
+;; (e1 OR e1') AND e2 OR e3
+
+(define-syntax define-sql/priority
+  (syntax-rules ()
+    ((_ name (op ...) sql-name indent?)
+     (define-sql-writer (name ssql out :key (indent #f) :allow-other-keys opt)
+       (define (write/check a)
+	 (if (and (pair? a) (memq (car a) '(op ...)))
+	     (begin
+	       (put-char out #\space)
+	       (with-parenthesis out 
+		(apply write-ssql a out :indent indent opt)))
+	     (apply write-ssql a out :indent indent opt)))
+       (('name a b* (... ...))
+	(write/check a)
+	(for-each (lambda (condition)
+		    (when indent? (put-newline/space out indent))
+		    (write/case sql-name out)
+		    (write/check condition)) b*))))))
+
+(define-sql/priority and (or)  "AND" #t)
+(define-sql/priority or  (and) "OR"  #t)
+(define-sql/priority *   (+ -) " *"  #f)
+(define-sql/priority /   (+ -) " /"  #f)
+(define-sql/priority %   (+ -) " %"  #f)
+
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
-    ((_ name op nl keys ...)
+    ((_ name op keys ...)
      (define-sql-writer (name ssql out :key (indent #f) :allow-other-keys opt)
        (('name a b* (... ...))
 	(apply write-ssql a out :indent indent opt)
 	(for-each (lambda (condition) 
-		    (when nl (put-newline/space out indent))
 		    (write/case op out)
 		    (apply write-ssql condition out 
 			   keys ... :indent indent opt)) b*))))))
-	
-(define-sql-variable-operator and "AND" #t)
-(define-sql-variable-operator or  "OR"  #t)
-(define-sql-variable-operator ~   "."   #f :value-space #f)
-(define-sql-variable-operator ^   " ||" #f)
-(define-sql-variable-operator *   " *" #f)
-(define-sql-variable-operator /   " /" #f)
-(define-sql-variable-operator %   " %" #f)
+
+(define-sql-variable-operator ~   "."  :value-space #f)
+(define-sql-variable-operator ^   " ||")
 
 ;; (+ 1) -> +1
 (define-sql-writer (variable/unary-operator ssql out :key (indent #f)

@@ -472,4 +472,13 @@
 
 ;; TBD more
 
+;; tests for operator priority
+;; parse -> serialize -> parse must be the same result.
+(define (test-validity sql)
+  (let ((p (parse-sql (open-string-input-port sql))))
+    (test-equal sql p (parse-sql (open-string-input-port (ssql->sql p))))))
+
+(test-validity "select * from t where (1<>1 or 2=2) and 3=3 or 4<>4")
+(test-validity "select 1+(1+2)*3+1")
+
 (test-end)
