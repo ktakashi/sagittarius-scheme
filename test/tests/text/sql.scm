@@ -171,8 +171,12 @@
 (test-parse "select * from t where 1=1" '(select * (from t) (where (= 1 1))))
 (test-parse "select * from t where 1=1 or 2=2" 
 	    '(select * (from t) (where (or (= 1 1) (= 2 2)))))
+(test-parse "select * from t where 1=1 or 2=2 or 3=3" 
+	    '(select * (from t) (where (or (= 1 1) (= 2 2) (= 3 3)))))
 (test-parse "select * from t where 1=1 and 2=2" 
 	    '(select * (from t) (where (and (= 1 1) (= 2 2)))))
+(test-parse "select * from t where 1=1 and 2=2 and 3=3" 
+	    '(select * (from t) (where (and (= 1 1) (= 2 2) (= 3 3)))))
 (test-parse "select * from t where 1=1 and 2=2 or 3=3" 
 	    '(select * (from t) (where (or (and (= 1 1) (= 2 2)) (= 3 3)))))
 (test-parse "select * from t where 1=1 and (2=2 or 3=3)" 
