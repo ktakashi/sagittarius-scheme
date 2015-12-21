@@ -311,16 +311,9 @@
 	(set! l2 (SG_CDR l2)))
       (result h)))
  
-  ;; I have no idea why this doesn't break anything
-  ;; basica idea is that if 2 identifiers share the
-  ;; same identity then it can be considered as the
-  ;; same identifiers. 
-  ;; the `id1` is outside of compile time environment
-  ;; and it can be compared either its identity itself
-  ;; or the cdr part of its identity. again, I HAVE NO
-  ;; IDEA WHY THIS WORKS.
-  ;; FIXME: this must be wrong, so implement identifier
-  ;;        identity properly (but how?)
+  ;; compare all identity element in sense of eq?
+  ;; identifiers bound in the same macro expansion must share
+  ;; the same identity.
   (define-cfn list-eq? (l1 l2) ::int :static
     (while (and (SG_PAIRP l1) (SG_PAIRP l2))
       (unless (SG_EQ (SG_CAR l1) (SG_CAR l2)) (return FALSE))
