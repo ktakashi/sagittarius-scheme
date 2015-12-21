@@ -941,25 +941,19 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject oname, SgObject callback)
 	      ret = Sg_FindBinding(plib, unrenamed, callback);
 	      if (ret != callback) {
 		/* 
-		   -- Informational comment (not really valid) --
-		   Rather unwanted but for better performance.
 		   Originally we implmeneted library more statically means
 		   all imported variables are resolved in compile time.
 		   then I thought it's rather waste of memory to keep
 		   all binding which can be refer by following the
-		   imported libraries. However this process may cost
-		   more than we thought. For example, free-identifier=?
-		   calls this internally to check if the binding is
-		   the same or not and is heavily used during macro
-		   expansion. So this may cost more.
-		   To reduce some of the time, we cache the resolved
-		   variable here so that next time it won't do it.
+		   imported libraries. This is a really trade off
+		   of memory and speed. Storing all bindings into one
+		   single hashtable isn't good for memory usage.
 		   
-		   NB: calling find-binding 74757 times: 120ms -> 20ms
-		   NB2: free-identifier=? itself wasn't improved at all.
-
-		   better than nothing but should we do it?
-		   for now save some memory.
+		   NB: enabling below commented out code improves
+		       calling find-binding 74757 times: 120ms -> 20ms
+		   
+		   If this bothers me alot in future, we can always
+		   enable this for a bit of performance.
 		 */
 		/* Sg_HashTableSet(SG_LIBRARY_TABLE(olib), oname, ret, */
 		/* 		SG_HASH_NO_OVERWRITE); */
