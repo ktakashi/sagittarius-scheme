@@ -37,7 +37,8 @@
 		     (show-stats result sort-by max-rows)))
 	      (else
 	       (print "No profiling data has been gathered.")))
-	(print "No profiling data has been gathered.")))
+	;; assume the result is alist
+	(show-stats results sort-by max-rows)))
 
   (define (show-stats stat sort-by max-rows)
     (let* ((num-samples (fold (lambda (entry cnt) (+ (cddr entry) cnt)) 0 stat))
