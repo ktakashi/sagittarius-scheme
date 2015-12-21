@@ -3355,35 +3355,29 @@
   (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
     ::int :static
     (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
-    (let* ((vm::SgVM* (Sg_VM))
-	   (v1 (p1env-lookup-rec (-> vm usageEnv)
-				 id1 (SG_MAKE_INT 0)))
-	   (v2 (p1env-lookup-rec (-> vm usageEnv)
-				 id2 (SG_MAKE_INT 0))))
-      (cond ((SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-	     ;; if local variable is found then it must be lvar
-	     ;; recent change made lookup might return symbol if the
-	     ;; identifier contains ((0)) env.
-	     (if (and (variable? v1) (variable? v2))
-		 ;; not locally bounded, so if the name are the same
-		 ;; it might be globally equal
-		 (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
-					   (SG_IDENTIFIER_NAME id1) #f))
-		       (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
-					   (SG_IDENTIFIER_NAME id2) #f)))
-		   (return (SG_EQ g1 g2)))
-		 (return (SG_EQ v1 v2))))
-	    ((or (not (variable? v1)) (not (variable? v2)))
-	     ;; locally bounded
-	     (return FALSE))
-	    (else
-	     (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
-				       (SG_IDENTIFIER_NAME id1) #f))
-		   (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
-				       (SG_IDENTIFIER_NAME id2) #f)))
-	       (if (or (SG_FALSEP g1) (SG_FALSEP g2))
-		   (return FALSE)
-		   (return (SG_EQ g1 g2))))))))
+    (let ((vm::SgVM* (Sg_VM)))
+      (if (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+	  (let ((v1 (p1env-lookup-rec (-> vm usageEnv)
+				      id1 (SG_MAKE_INT 0)))
+		(v2 (p1env-lookup-rec (-> vm usageEnv)
+				      id2 (SG_MAKE_INT 0))))
+	    ;; if local variable is found then it must be lvar
+	    (if (and (variable? v1) (variable? v2))
+		;; both identifiers are not locally bounded, 
+		;; check if they have the same bindings
+		(let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+					  (SG_IDENTIFIER_NAME id1) #f))
+		      (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+					  (SG_IDENTIFIER_NAME id2) #f)))
+		  (return (SG_EQ g1 g2)))
+		(return (SG_EQ v1 v2))))
+	  (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+				    (SG_IDENTIFIER_NAME id1) #f))
+		(g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+				    (SG_IDENTIFIER_NAME id2) #f)))
+	    (if (or (SG_FALSEP g1) (SG_FALSEP g2))
+		(return FALSE)
+		(return (SG_EQ g1 g2)))))))
 
   ;; free-identifier=? compares if the given 2 identifier indicates the
   ;; same object.

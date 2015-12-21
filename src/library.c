@@ -897,10 +897,10 @@ static SgObject unrename_variable(SgObject key, SgObject specs)
   return key;
 }
 
-SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
+SgGloc* Sg_FindBinding(SgObject library, SgObject oname, SgObject callback)
 {
-  SgLibrary *lib;
-  SgObject ret;
+  SgLibrary *lib, *olib;
+  SgObject ret, name = oname;
   ASSERT(SG_SYMBOLP(name));
 
   if (SG_LIBRARYP(library)) lib = SG_LIBRARY(library);
@@ -908,6 +908,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
 
+  olib = lib;			/* keep it */
  reent:
   /* first look up from library table */
   ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);
@@ -938,7 +939,32 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject name, SgObject callback)
 	       so we need to keep searching. */
 	    if (SG_FALSEP(pexport) || SG_EQ(SG_KEYWORD_ALL, mq)) {
 	      ret = Sg_FindBinding(plib, unrenamed, callback);
-	      if (ret != callback) goto out;
+	      if (ret != callback) {
+		/* 
+		   -- Informational comment (not really valid) --
+		   Rather unwanted but for better performance.
+		   Originally we implmeneted library more statically means
+		   all imported variables are resolved in compile time.
+		   then I thought it's rather waste of memory to keep
+		   all binding which can be refer by following the
+		   imported libraries. However this process may cost
+		   more than we thought. For example, free-identifier=?
+		   calls this internally to check if the binding is
+		   the same or not and is heavily used during macro
+		   expansion. So this may cost more.
+		   To reduce some of the time, we cache the resolved
+		   variable here so that next time it won't do it.
+		   
+		   NB: calling find-binding 74757 times: 120ms -> 20ms
+		   NB2: free-identifier=? itself wasn't improved at all.
+
+		   better than nothing but should we do it?
+		   for now save some memory.
+		 */
+		/* Sg_HashTableSet(SG_LIBRARY_TABLE(olib), oname, ret, */
+		/* 		SG_HASH_NO_OVERWRITE); */
+		goto out;
+	      }
 	    } else {
 	      lib = plib; name = unrenamed;
 	      goto reent;
