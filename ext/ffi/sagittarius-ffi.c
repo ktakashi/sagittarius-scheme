@@ -838,6 +838,7 @@ static int push_ffi_type_value(SgFuncInfo *info,
   } else if (SG_POINTERP(obj)) {
     switch (signature) {
     case FFI_SIGNATURE_POINTER:
+    case FFI_SIGNATURE_WCHAR_STR:
       storage->ptr = (void*)SG_POINTER(obj)->pointer;
       return TRUE;
     default:
