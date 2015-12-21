@@ -684,12 +684,12 @@
 
   (define message-box
     (c-function user32
-		int MessageBoxA (HWND LPCSTR LPCSTR UINT)))
+		int MessageBoxW (HWND LPCWSTR LPCWSTR UINT)))
 
   (define create-window-ex
     (c-function user32
-		HWND CreateWindowExA
-		(DWORD LPCSTR LPCSTR DWORD UINT UINT UINT
+		HWND CreateWindowExW
+		(DWORD LPCWSTR LPCWSTR DWORD UINT UINT UINT
 		       UINT HWND HMENU HINSTANCE LPVOID)))
 
   (define (create-window a b c d e f g h i j k)
@@ -697,15 +697,15 @@
 
   (define load-icon
     (c-function user32
-		HICON LoadIconA (HINSTANCE LPCSTR)))
+		HICON LoadIconW (HINSTANCE LPCWSTR)))
 
   (define load-cursor
     (c-function user32
-		HCURSOR LoadCursorA (HINSTANCE LPCSTR)))
+		HCURSOR LoadCursorW (HINSTANCE LPCWSTR)))
 
   (define load-image
     (c-function user32
-		HANDLE LoadImageA (HINSTANCE LPCSTR UINT int int UINT)))
+		HANDLE LoadImageW (HINSTANCE LPCWSTR UINT int int UINT)))
 
   (define register-class-ex
     (c-function user32
