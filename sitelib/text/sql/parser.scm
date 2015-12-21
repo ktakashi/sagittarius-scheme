@@ -762,10 +762,11 @@
 
    ;; FIXME this doens't work properly since alots of things are
    ;;       in common on underlying expressions.
-   (common-value-expression ((n <- numeric-value-expression) n)
-			    ((s <- string-value-expression)  s)
+   ;; seems interval-value-expression is the weakest
+   (common-value-expression ((i <- interval-value-expression) i)
+			    ((n <- numeric-value-expression)  n)
+			    ((s <- string-value-expression)   s)
 			    ((d <- datetime-value-expression) d)
-			    ((i <- interval-value-expression) i)
 			    ;; these 2 are not needed at all.
 			    ;;((u <- user-define-type-value-expression) u)
 			    ;;((r <- reference-value-expression) r)
@@ -783,12 +784,14 @@
 
    ;; 6.30  datetime value expression
    (datetime-value-expression 
-    ((d <- datetime-term d* <- datetime-value-expression*) (cons d d*))
+    ((d <- datetime-term d* <- datetime-value-expression*) 
+     (resolve-term d d*))
     ;; TODO this may be left side recursion
-    ((i <- interval-value-expression '#\+ d <- datetime-term) (cons i d)))
+    ((i <- interval-value-expression '#\+ d <- datetime-term)
+     (resolve-term i d)))
 
-   (datetime-value-expression* (('#\+ i <- interval-term) (list '+ i))
-			       (('#\- i <- interval-term) (list '- i))
+   (datetime-value-expression* (('#\+ i <- interval-term) (resolve-term* '+ i))
+			       (('#\- i <- interval-term) (resolve-term* '- i))
 			       (((! concat-or-multiset)) '()))
    (datetime-term ((d <- datetime-factor) d))
    (datetime-factor ((p <- datetime-primary t <- timezone) (list p t))
@@ -824,29 +827,37 @@
    ;; 6.32 interval value expression
    (interval-value-expression 
     ((i <- interval-term i* <- interval-value-expression*) (resolve-term i i*))
-    (('#\( d <- datetime-value-expression '#\- t <- datetime-term '#\) 
+    (('#\( d <- datetime-value-expression s <- sign t <- datetime-term '#\) 
       q <- interval-qualifier)
-     `(,q (- ,d ,t))))
+     `(,q (,s ,d ,t))))
    (interval-value-expression* 
-    (('#\+ i <- interval-value-expression) (list '+ i))
-    (('#\- i <- interval-value-expression) (list '- i))
-    (() '()))
-   (interval-term ((i <- interval-factor i* <- interval-term*) (cons i i*))
+    (('#\+ i <- interval-value-expression) (resolve-term* '+ i))
+    (('#\- i <- interval-value-expression) (resolve-term* '- i))
+    ;; rather ugly
+    (((! concat-or-multiset)) '()))
+   (interval-term ((i <- interval-factor i* <- interval-term*) 
+		   (resolve-term i i*))
 		  ((t <- term '#\* f <- interval-factor) (list '* t f)))
-   (interval-term* (('#\* f <- factor) (list '* f))
-		   (('#\/ f <- factor) (list '* f)))
+   (interval-term* (('#\* f <- factor) (resolve-term* '* f))
+		   (('#\/ f <- factor) (resolve-term* '/ f))
+		   ;; rather ugly
+		   (((! concat-or-multiset)) '()))
    (interval-factor ((s <- sign f <- interval-primary) (list s f))
 		    ((f <- interval-primary) f))
    (interval-primary ((v <- value-expression-primary q <- interval-qualifier)
-		      (cons v q))
-		     ((v <- value-expression-primary) v)
-		     ((v <- interval-value-function) v))
+		      (if (symbol? q)
+			  `(,q ,v)
+			  (cons* (car q) v (cdr q))))
+		     ((v <- interval-value-function) v)
+		     ((v <- value-expression-primary) v))
 
    ;; 6.33 interval value function
    (interval-value-function (('abs '#\( e <- interval-value-expression '#\))
 			     `(abs ,e)))
    ;; 10.1 interval quelifier
    ;; TODO better representation
+   ;; NB: I've never seen RDBMS accepts 'TO keyword for interval
+   ;;     do we need to consider this?
    (interval-qualifier ((s <- start-field 'to e <- end-field)
 			`(to ,s ,e))
 		       ((d <- single-datetime-field) d))
