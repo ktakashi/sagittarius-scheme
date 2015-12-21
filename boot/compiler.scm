@@ -4253,7 +4253,7 @@
   (case/unquote (iform-tag iform)
    (($LREF   ) (zero? (lvar-set-count ($lref-lvar iform))))
    (($GREF   ) (inlinable-binding? ($gref-id iform) #t))
-   (($CONST $LAMBDA $IT) #t)
+   (($CONST $LAMBDA $IT $UNDEF) #t)
    (($IF     ) (and (transparent?/rec ($if-test iform) labels)
 		    (transparent?/rec ($if-then iform) labels)
 		    (transparent?/rec ($if-else iform) labels)))
