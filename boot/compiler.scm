@@ -4485,7 +4485,7 @@
   (guard (e (else (constant-folding-warning src (procedure-name p) args)))
     (let-values ((r (apply p (imap $const-value args))))
       (smatch r
-	(()  ($const-undef))
+	(()  ($undef))
 	((r) ($const r))
 	(_   ;; return as $ASM better than calling procedure
 	 ($asm #f `(,VALUES ,(length r))
