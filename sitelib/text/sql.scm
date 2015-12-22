@@ -130,17 +130,14 @@
 		    (if first c (extract)))
 		   (else (put-char out c) (loop #f)))))))))
 
-  (define (sql->ssql in :key (comment 'top) (strict? #t) (simplify #t))
+  (define (sql->ssql in :key (comment 'top) (strict? #t) (simplify #f))
     (let loop ((r '()))
       (let ((sql (read-sql in :comment comment)))
 	(if (eof-object? sql)
 	    ;; kind of SSAX style
 	    (cons '*TOP* (reverse! r))
 	    (let* ((sin  (open-string-input-port sql))
-		   (ssql (parse-sql sin (not (eq? comment 'top)))))
-	      ;; TODO better condition
-	      (when (and strict? (not (eof-object? (get-char sin))))
-		(error 'sql->ssql "Parser couldn't consume the SQL" sql))
+		   (ssql (parse-sql sin (not (eq? comment 'top)) strict?)))
 	      (loop (cons (if simplify (simplify-ssql ssql) ssql) r)))))))
 
 )

@@ -949,7 +949,10 @@
 ;; meta values
 (define-sql-writer (*TOP* ssql out . opt)
   ((_ s ...)
-   (for-each (lambda (ssql) (apply write-ssql ssql out opt) (newline out)) s)))
+   (for-each (lambda (ssql) 
+	       (apply write-ssql ssql out opt)
+	       (put-char out #\;)
+	       (newline out)) s)))
 (define-sql-writer (*COMMENT* ssql out . opt)
   ((_ comment)
    ;; we don't know if it's line or block so make it all block

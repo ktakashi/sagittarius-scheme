@@ -2023,15 +2023,28 @@
   (position sql-parser-position)
   (expected sql-parser-expected))
 
-(define (raise-sql-parse-error who msg pos expected)
+(define (raise-sql-parse-error who msg pos expected . irr)
   (raise (condition (make-parser-error pos expected)
 		    (make-who-condition who)
-		    (make-message-condition msg))))
-(define (parse-sql in :optional (ignore-comment #t))
+		    (make-message-condition msg)
+		    (make-irritants-condition irr))))
+(define (parse-sql in :optional (ignore-comment #t) (strict? #f))
   (let ((result (sql-parser (base-generator->results
 			     (make-generator in ignore-comment)))))
     (if (parse-result-successful? result)
-	(parse-result-semantic-value result)
+	(begin
+	  (when (and strict? 
+		     ;; if token kind isn't #f, then there's still
+		     ;; something to read
+		     (parse-results-token-kind (parse-result-next result)))
+	    (let ((results (parse-result-next result)))
+	      (raise-sql-parse-error 'parse-sql
+				     "Parsed SQL did not reached to EOF"
+				     (parse-results-position results)
+				     "EOF"
+				     (parse-results-token-kind results)
+				     (parse-results-token-value results))))
+	  (parse-result-semantic-value result))
 	(let ((e (parse-result-error result)))
 	  (raise-sql-parse-error 'parse-sql
 				 (parse-error-messages e)

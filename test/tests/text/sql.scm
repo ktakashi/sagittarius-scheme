@@ -487,4 +487,12 @@
 (test-validity "select * from t where (1<>1 or 2=2) and 3=3 or 4<>4")
 (test-validity "select 1+(1+2)*3+1")
 
+;; others
+(test-error "parse error" sql-parser-error?
+	    (sql->ssql (open-string-input-port "select * from")))
+(test-equal "non strict" 
+	    ;; sql->ssql returns with *TOP*
+	    '(*TOP* (select *))
+	    (sql->ssql (open-string-input-port "select * from") :strict? #f))
+
 (test-end)
