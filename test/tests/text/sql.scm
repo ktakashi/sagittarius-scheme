@@ -9,7 +9,11 @@
 (test-begin "SQL")
 
 (define (test-parse sql expected)
-  (test-equal sql expected (parse-sql (open-string-input-port sql))))
+  (let ((p (parse-sql (open-string-input-port sql))))
+    (test-equal sql expected p)
+    (test-equal (format "~a (validate)" sql)
+		expected
+		(parse-sql (open-string-input-port (ssql->sql p))))))
 
 (test-parse "/* comment */ select b.U&\"$42\" uescape '$' from a,b as b1(a,b)"
 	    '(select ((~ b (unicode (! "$42") uescape "$")))
@@ -149,6 +153,8 @@
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
 	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
+(test-parse "select * from t group by ()"
+	    '(select * (from t) (group-by ())))
 
 ;; order by
 (test-parse "select * from f order by a" '(select * (from f) (order-by a)))
