@@ -262,7 +262,7 @@
   (write/case "INSERT INTO" out)
   (apply write-ssql table out opt)
   (when cols (with-parenthesis out (write/comma* out cols opt)))
-  (when overriding? (put-char out #\space) (write/case override? out))
+  (when overriding? (put-char out #\space) (write/case overriding? out))
   (put-char out #\space)
   (apply write-ssql query out opt))
 
@@ -900,7 +900,7 @@
     (write/case (symbol-upcase name) out)
     (with-parenthesis out
       (when quantifier? 
-	(write/case (symbol-upcase quantifier) out)
+	(write/case (symbol-upcase quantifier?) out)
 	(put-char out #\space))
       (apply write-ssql v out opt))
     (unless (null? maybe-filter)
@@ -970,6 +970,8 @@
 	((string? ssql) (handle-string ssql out))
 	((number? ssql) (display ssql out))
 	((bytevector? ssql) (handle-bit-string ssql out))
+	((boolean? ssql) 
+	 (if ssql (write/case "TRUE" out) (write/case "FALSE" out)))
 	(else (error 'ssql->sql "unknown value" ssql))))
 
 ;;; value writers

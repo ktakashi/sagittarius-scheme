@@ -44,6 +44,7 @@
     (import (rnrs)
 	    (srfi :1 lists)
 	    (text parse)
+	    (text sql scanner)
 	    (text sql parser)
 	    (text sql simplifier)
 	    (text sql serializer))
