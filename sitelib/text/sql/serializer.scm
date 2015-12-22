@@ -478,6 +478,29 @@
   (('group-by  column columns ...)
    (write-group-by #f column columns)))
 
+(define-sql-writer (case ssql out :key (indent #f) :allow-other-keys opt)
+  (define nl (next-indent indent))
+  (define write-when
+    (match-lambda
+     (('when condition then)
+      (put-newline/space out nl)
+      (write/case "WHEN" out)
+      (apply write-ssql condition out :indent nl opt)
+      (write/case " THEN" out)
+      (apply write-ssql then out :indent nl opt))))
+  (('case (? symbol? a) when* ...)
+   (write/case "CASE" out)
+   (apply write-ssql a out :indent #f opt)
+   (put-char out #\space)
+   (for-each write-when when*)
+   (put-newline/space out indent)
+   (write/case "END" out))
+  (('case when* ...)
+   (write/case "CASE" out)
+   (for-each write-when when*)
+   (put-newline/space out indent)
+   (write/case "END" out)))
+
 ;; and/or needs to cooporate in this case
 ;; (or (and (or e1 e1' ...) e2 ...) e3 ...)
 ;; this must be like this
@@ -512,11 +535,16 @@
     ((_ name op keys ...)
      (define-sql-writer (name ssql out :key (indent #f) :allow-other-keys opt)
        (('name a b* (... ...))
-	(apply write-ssql a out :indent indent opt)
-	(for-each (lambda (condition) 
+	(if (pair? a)
+	    (with-parenthesis out (apply write-ssql a out :indent indent opt))
+	    (apply write-ssql a out :indent indent opt))
+	(for-each (lambda (c) 
 		    (write/case op out)
-		    (apply write-ssql condition out 
-			   keys ... :indent indent opt)) b*))))))
+		    (if (pair? c)
+			(with-parenthesis out
+			 (apply write-ssql c out keys ... :indent indent opt))
+			(apply write-ssql c out keys ... :indent indent opt)))
+		    b*))))))
 
 (define-sql-variable-operator ~   "."  :value-space #f)
 (define-sql-variable-operator ^   " ||")
@@ -582,8 +610,13 @@
      (handle-string s out :uescape #t))))
 
 ;; a bit ugly...
-(define-raw-sql-writer (binary-op ssql out . opt)
-  (apply infix-operator-writer ssql out opt))
+(define-sql-writer (binary-op ssql out . opt)
+  ((name a)
+   (put-char out #\space)
+   (write/case (symbol-upcase name) out)
+   (apply write-ssql a out opt))
+  (_
+   (apply infix-operator-writer ssql out opt)))
 (define-sql-writer = binary-op)
 (define-sql-writer <> binary-op)
 (define-sql-writer >= binary-op)
@@ -636,27 +669,22 @@
 (define-sql-writer not-submultiset binary-op)
 
 ;; special cases
-(define-sql-writer (null? ssql out . opt)
-  (('null? c1 c2)
-   (apply write-ssql c1 out opt)
-   (write/case " IS NULL " out)
-   (apply write-ssql c2 out opt)))
-(define-sql-writer (not-null? ssql out . opt)
-  (('not-null? c1 c2)
-   (apply write-ssql c1 out opt)
-   (write/case " IS NOT NULL " out)
-   (apply write-ssql c2 out opt)))
+(define-syntax define-is-predicate
+  (syntax-rules ()
+    ((_ type op not?)
+     (define-sql-writer (type ssql out :key (indent #f) :allow-other-keys opt)
+       (define (write-it c1)
+	 (when c1 (apply write-ssql c1 out :indent indent opt))
+	 (write/case " IS " out)
+	 (when not? (write/case "NOT " out))
+	 (write/case op out))
+       (('type) (write-it #f))
+       (('type c) (write-it c))))))
 
-(define-sql-writer (normalized? ssql out . opt)
-  (('normalized? c1 c2)
-   (apply write-ssql c1 out opt)
-   (write/case " IS NORMALIZED " out)
-   (apply write-ssql c2 out opt)))
-(define-sql-writer (not-normalized? ssql out . opt)
-  (('not-normalized? c1 c2)
-   (apply write-ssql c1 out opt)
-   (write/case " IS NOT NORMALIZED " out)
-   (apply write-ssql c2 out opt)))
+(define-is-predicate null? "NULL" #f)
+(define-is-predicate not-null? "NULL" #f)
+(define-is-predicate normalized? "NORMALIZED" #f)
+(define-is-predicate not-normalized? "NORMALIZED" #t)
 
 (define-sql-writer (distinct-from? ssql out . opt)
   (('distinct-from? c1 c2)
@@ -681,12 +709,24 @@
 (define-sql-writer in set-op)
 (define-sql-writer not-in set-op)
 
+(define (write-sql-type ssql out . opt)
+  (match ssql 
+    ((type)
+     (write/case type out))
+    ((type 'array n)
+     (write/case type out)
+     (put-char out #\space)
+     (write/case "ARRAY[" out)
+     (apply write-ssql n out opt)
+     (put-char out #\]))))
+
+
 (define-sql-writer (cast ssql out . opt)
   (('cast a b)
    (write/case " CAST(" out)
    (apply write-ssql a out opt)
    (write/case " AS " out)
-   (apply write-ssql b out opt)
+   (apply write-sql-type b out opt)
    (put-char out #\))))
 
 (define-sql-writer (unary-op ssql out . opt)
