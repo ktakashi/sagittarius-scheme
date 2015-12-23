@@ -30,25 +30,23 @@
 
 (library (win32 gui window)
     (export make-win32-window
-	    <win32-window>)
+	    <win32-window> win32-window?)
     (import (rnrs)
 	    (sagittarius ffi)
 	    (win32 user)
 	    (win32 defs)
 	    (win32 gui api)
 	    (clos user)
-	    (sagittarius object)
-	    (srfi :39 parameters))
+	    (sagittarius object))
 
-(define *win32-default-window-class-name* 
-  (make-parameter "sagittarius-default-window-class"))
+(define *win32-default-window-class-name* "sagittarius-default-window-class")
 
 (define-class <win32-window> (<win32-container>) ())
 (define-method initialize ((o <win32-window>) initargs)
   (call-next-method)
   ;; maybe custom window proc?
   (unless (slot-bound? o 'class-name)
-    (set! (~ o 'class-name) (*win32-default-window-class-name*)))
+    (set! (~ o 'class-name) *win32-default-window-class-name*))
   ;; if user didn't specify
   (when (zero? (~ o 'window-style)) (set! (~ o 'window-style) WS_EX_APPWINDOW))
   (let ((s (~ o 'style)))
@@ -75,9 +73,9 @@
 	((= imsg WM_CLOSE) (destroy-window hwnd))
 	((= imsg WM_DESTROY)
 	 (let ((w (get-window hwnd)))
-	   (cond ((null-pointer? (~ w 'owner))
-		  (post-quit-message 0) 
-		  0)
+	   (cond ((or (not (win32-window? w)) ;; why this happens?
+		      (not (~ w 'owner))) 
+		  (post-quit-message 0) 0)
 		 (else 1))))
 	(else (def-window-proc hwnd imsg wparam lparam))))
 
@@ -85,7 +83,7 @@
   (c-callback void* (HWND unsigned-int WPARAM LPARAM) default-window-proc))
 (define win32-default-window-class
   (let ((c (make <win32-window-class>
-	     :name "sagittarius-default-window-class"
+	     :name *win32-default-window-class-name*
 	     :window-proc *window-proc*)))
     (win32-register-class c)))
 

@@ -51,8 +51,10 @@
 	    load-cursor
 	    load-image
 	    register-class-ex
+	    get-class-info-ex
 	    post-quit-message
 	    def-window-proc
+	    call-window-proc
 	    show-window
 	    update-window
 	    get-message
@@ -626,8 +628,8 @@
     (HICON        hIcon)
     (HCURSOR      hCursor)
     (HBRUSH       hbrBackground)
-    (LPCSTR       lpszMenuName)
-    (LPCSTR       lpszClassName)
+    (LPCWSTR      lpszMenuName)
+    (LPCWSTR      lpszClassName)
     (HICON        hIconSm))
 
   (define-constant LPWNDCLASSEX void*)
@@ -709,26 +711,34 @@
 
   (define register-class-ex
     (c-function user32
-		ATOM RegisterClassExA (void*)))
+		ATOM RegisterClassExW (void*)))
+
+  (define get-class-info-ex
+    (c-function user32
+		BOOL GetClassInfoExW (void* LPCWSTR void*)))
 
   (define post-quit-message (c-function user32 void PostQuitMessage (int)))
 
   (define def-window-proc
-    (c-function user32 void* DefWindowProcA (HWND UINT WPARAM LPARAM)))
+    (c-function user32 LRESULT DefWindowProcW (HWND UINT WPARAM LPARAM)))
+
+  (define call-window-proc
+    (c-function user32 
+		LRESULT CallWindowProcW (WNDPROC HWND UINT WPARAM LPARAM)))
 
   (define show-window (c-function user32 BOOL ShowWindow (HWND int)))
 
   (define update-window (c-function user32 BOOL UpdateWindow (HWND)))
 
   (define get-message 
-    (c-function user32 int GetMessageA (LPMSG HWND UINT UINT)))
+    (c-function user32 int GetMessageW (LPMSG HWND UINT UINT)))
 
   (define peek-message 
-    (c-function user32 BOOL GetMessageA (LPMSG HWND UINT UINT UINT)))
+    (c-function user32 BOOL GetMessageW (LPMSG HWND UINT UINT UINT)))
 
   (define translate-message (c-function user32 BOOL TranslateMessage (void*)))
 
-  (define dispatch-message (c-function user32 LONG DispatchMessageA (void*)))
+  (define dispatch-message (c-function user32 LONG DispatchMessageW (void*)))
 
   (define get-dc (c-function user32 HDC GetDC (HWND)))
 

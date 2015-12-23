@@ -496,7 +496,8 @@ char* Sg_Utf32sToUtf8s(const SgString *s)
 wchar_t* Sg_StringToWCharTs(SgObject s)
 {
   int size = SG_STRING_SIZE(s);
-  SgPort *out = Sg_MakeByteArrayOutputPort(sizeof(wchar_t) * (size + 1));
+  SgBytePort out;
+  SgTranscodedPort tp;
 #if SIZEOF_WCHAR_T == 2
 # if WORDS_BIGENDIAN
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16BE);
@@ -507,11 +508,14 @@ wchar_t* Sg_StringToWCharTs(SgObject s)
   SgCodec *codec = Sg_MakeUtf32Codec(UTF_32USE_NATIVE_ENDIAN);
 #endif
   SgTranscoder *tcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
-  SgPort *tp = Sg_MakeTranscodedOutputPort(out, tcoder);
 
-  Sg_TranscoderWrite(tcoder, tp, SG_STRING_VALUE(s), SG_STRING_SIZE(s));
-  Sg_TranscoderPutc(tcoder, tp, '\0');
-  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(SG_BYTE_PORT(out));
+  Sg_InitByteArrayOutputPort(&out, sizeof(wchar_t) * (size + 1));
+  Sg_InitTranscodedPort(&tp, SG_PORT(&out), tcoder, SG_OUTPUT_PORT);
+
+  Sg_TranscoderWrite(tcoder, SG_PORT(&tp), 
+		     SG_STRING_VALUE(s), SG_STRING_SIZE(s));
+  Sg_TranscoderPutc(tcoder, SG_PORT(&tp), '\0');
+  return (wchar_t*)Sg_GetByteArrayFromBinaryPort(&out);
 }
 
 SgObject Sg_WCharTsToString(wchar_t *s)

@@ -224,7 +224,9 @@ SgObject Sg_CreateCFunction(SgPointer *handle, SgObject name, int rettype,
 /* callback */
 static void callback_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<c-callback %A>"), SG_CALLBACK(self)->signatures);
+  SgString *sig = SG_CALLBACK(self)->signatures;
+  Sg_Printf(port, UC("#<c-callback %A>"), 
+	    (sig)? sig : SG_CALLBACK(self)->proc);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_CallbackClass, callback_printer);
@@ -246,34 +248,47 @@ static SgHashTable *callbacks = NULL;
 
 static void release_callback(SgCallback *callback)
 {
-  Sg_HashTableDelete(callbacks, callback->code);
-  ffi_closure_free(callback->closure);
+  /* if the proc isn't procedure (then must be a pointer),
+     we don't have to release anything. */
+  if (SG_PROCEDUREP(callback->proc)) {
+    Sg_HashTableDelete(callbacks, callback->code);
+    ffi_closure_free(callback->closure);
+  }
 }
+
+#if 0
 static void callback_finalize(SgObject callback, void *data)
 {
   release_callback(SG_CALLBACK(callback));
 }
+#endif
 
-
-SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
+static SgCallback *make_callback(int rettype, SgString *sig, SgObject proc)
 {
   SgCallback *c = SG_NEW(SgCallback);
   SG_SET_CLASS(c, SG_CLASS_CALLBACK);
   c->returnType = rettype;
-  c->signatures = signatures;
-  c->proc = proc;
+  c->signatures = sig;
+  c->proc = proc;  
+  return c;
+}
+
+SgObject Sg_CreateCallback(int rettype, SgString *signatures, SgObject proc)
+{
+  SgCallback *c = make_callback(rettype, signatures, proc);
   c->closure = (ffi_closure*)ffi_closure_alloc(sizeof(ffi_closure), &c->code);
   c->parameterTypes = NULL;
   /* store callback to static area to avoid GC. */
   Sg_HashTableSet(callbacks, c->code, c, 0);
-  Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL);
+  /* if this won't be GCed then no need to register finalizer */
+  /* Sg_RegisterFinalizer(SG_OBJ(c), callback_finalize, NULL); */
   return SG_OBJ(c);
 }
 
 void Sg_ReleaseCallback(SgCallback *callback)
 {
   release_callback(callback);
-  Sg_UnregisterFinalizer(SG_OBJ(callback));
+  /* Sg_UnregisterFinalizer(SG_OBJ(callback)); */
 }
 
 /* cstruct */
@@ -528,6 +543,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
     return Sg_MakeFlonum(POINTER_REF(double, p, align));
   case FFI_RETURN_TYPE_STRING  : {
     char *s = POINTER_REF(char*, p, align);
+    if (!s) return Sg_MakePointer(s);
     return Sg_Utf8sToUtf32s(s, (int)strlen(s));
   }
   case FFI_RETURN_TYPE_INT64_T :
@@ -538,10 +554,26 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
     return make_pointer(POINTER_REF(uintptr_t, p, align));
   case FFI_RETURN_TYPE_STRUCT  :
     return make_pointer((uintptr_t)&POINTER_REF(uintptr_t, p, align));
-  case FFI_RETURN_TYPE_CALLBACK:
-    return Sg_HashTableRef(callbacks, (POINTER_REF(void*, p, align)), SG_FALSE);
-  case FFI_RETURN_TYPE_WCHAR_STR:
-    return Sg_WCharTsToString((wchar_t*)POINTER_REF(wchar_t*, p, align));
+  case FFI_RETURN_TYPE_CALLBACK: {
+    void *pp = POINTER_REF(void*, p, align);
+    SgObject r;
+    /* TODO should we return pointer? */
+    if (!pp) return SG_FALSE;
+
+    r = Sg_HashTableRef(callbacks, pp, SG_FALSE);
+    if (SG_FALSEP(r)) {
+      /* wrap with call back
+	 NB: no finalizer is needed, it doesn't have libffi thing
+       */
+      return make_callback(-1, NULL, Sg_MakePointer(pp));
+    }
+    return r;
+  }
+  case FFI_RETURN_TYPE_WCHAR_STR: {
+    wchar_t *s = POINTER_REF(wchar_t*, p, align);
+    if (!s) return Sg_MakePointer(s);
+    return Sg_WCharTsToString(s);
+  }
   default:
     Sg_Error(UC("unknown FFI return type: %d"), rettype);
     return NULL;
@@ -858,13 +890,22 @@ static int push_ffi_type_value(SgFuncInfo *info,
     switch (signature) {
     case FFI_SIGNATURE_CALLBACK:
       /* prepare closure here */
-      if (!prep_method_handler(SG_CALLBACK(obj))) {
-	*lastError = Sg_Sprintf(UC("failed to prepare the callback."));
+      if (SG_PROCEDUREP(SG_CALLBACK(obj)->proc)) {
+	if (!prep_method_handler(SG_CALLBACK(obj))) {
+	  *lastError = Sg_Sprintf(UC("failed to prepare the callback."));
+	  return FALSE;
+	}
+	
+	storage->ptr = SG_CALLBACK(obj)->code;
+	return TRUE;
+      } else if (SG_POINTERP(SG_CALLBACK(obj)->proc)) {
+	/* the pointer should contain function pointer */
+	storage->ptr = (void *)SG_POINTER(SG_CALLBACK(obj)->proc)->pointer;
+	return TRUE;
+      } else {
+	*lastError = SG_MAKE_STRING("invalid callback.");
 	return FALSE;
       }
-
-      storage->ptr = SG_CALLBACK(obj)->code;
-      return TRUE;
     default:
       *lastError = get_error_message(signature, obj);
       return FALSE;

@@ -41,6 +41,10 @@
 	    <win32-sizable>
 	    <win32-component>    win32-component?
 	    <win32-container>    win32-container?
+	    win32-add-component!
+
+	    ;; don't use it casually
+	    (rename +hinstance+ +the-win32-process+)
 	    )
     (import (rnrs)
 	    (clos user)
@@ -68,6 +72,7 @@
       (wnd-set! hCursor (~ window-class 'cursor))
       (wnd-set! hbrBackground (~ window-class 'background))
       (wnd-set! lpszClassName (~ window-class 'name))
+      (wnd-set! lpszMenuName  (~ window-class 'menu-name))
       (wnd-set! hIconSm (~ window-class 'small-icon))
       ;; TODO more
       (when (zero? (register-class-ex wnd))
@@ -95,6 +100,8 @@
 		:init-value (load-cursor null-pointer IDC_ARROW))
    (background  :init-keyword :background
 		:init-value (get-stock-object WHITE_BRUSH))
+   (menu-name   :init-keyword :menu-name
+		:init-value null-pointer)
    (small-icon  :init-keyword :small-icon :init-value null-pointer)
    ;; TODO more
    ))
@@ -133,12 +140,12 @@
 (define-class <win32-component> (<win32-positionable> <win32-sizable>)
   ((name :init-keyword :name :init-value "undefined")
    (hwnd  :init-keyword :hwnd :init-value #f)
-   (owner :init-keyword :owner :init-value null-pointer)
+   (owner :init-keyword :owner :init-value #f)
    (class-name :init-keyword :class-name)
    (window-style :init-keyword :window-style :init-value 0)
    (style :init-keyword :style :init-value WS_VISIBLE)
    (hinstance :init-keyword :hinstance :init-value +hinstance+)
-   (hmenu :init-keyword :hmenu :init-value null-pointer)
+   (hmenu :init-keyword :hmenu :init-value #f)
    (lock  :init-form (make-mutex))))
 
 (define (win32-component? o) (is-a? o <win32-component>))
@@ -151,14 +158,14 @@
 		 (~ o 'window-style)
 		 (~ o 'class-name)
 		 (~ o 'name)
-		 (bitwise-ior (if (null-pointer? owner) 0 WS_CHILD)
-			      (~ o 'style))
+		 ;; win32-add-component! adds WS_CHILD
+		 (~ o 'style)
 		 (~ o 'x)
 		 (~ o 'y)
 		 (~ o 'width)
 		 (~ o 'height)
-		 owner
-		 (~ o 'hmenu)
+		 (if owner (~ owner 'hwnd) null-pointer)
+		 (or (~ o 'hmenu) null-pointer)
 		 (~ o 'hinstance)
 		 ;; pass self to wndproc's lparam
 		 (object->pointer o))))
@@ -177,13 +184,16 @@
 (define-class <win32-container> (<win32-component>)
   ((components :init-keyword :components :init-value '())))
 (define (win32-container? o) (is-a? o <win32-container>))
+(define (win32-add-component! container component)
+  (set! (~ component 'owner) container)
+  (set! (~ component 'style) (bitwise-ior (~ component 'style) WS_CHILD))
+  (unless (~ component 'hmenu) 
+    (set! (~ component 'hmenu) (integer->pointer (generate-unique-id))))
+  (set! (~ container 'components) (cons component (~ container 'components))))
 
 (define-method win32-create ((o <win32-container>))
   (call-next-method) ;; create myself
-  (for-each (lambda (c)
-	      (set! (~ c 'owner) (~ o 'hwnd))
-	      (win32-create c))
-	    (~ o 'components)))
+  (for-each win32-create (~ o 'components)))
 
 (define-method win32-show ((o <win32-container>))
   (call-next-method)
