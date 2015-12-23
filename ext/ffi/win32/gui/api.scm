@@ -35,6 +35,9 @@
 	    win32-message-loop
 
 	    <win32-window-class> win32-window-class?
+	    make-win32-window-class
+	    wndclassex->win32-window-class
+
 	    <win32-event>        win32-event?
 	    <win32-event-aware>  win32-event-aware?
 	    <win32-positionable>
@@ -70,11 +73,12 @@
       (wnd-set! hInstance (~ window-class 'instance))
       (wnd-set! hIcon (~ window-class 'icon))
       (wnd-set! hCursor (~ window-class 'cursor))
+      (wnd-set! cbClsExtra (~ window-class 'class-extra))
+      (wnd-set! cbWndExtra (~ window-class 'window-extra))
       (wnd-set! hbrBackground (~ window-class 'background))
       (wnd-set! lpszClassName (~ window-class 'name))
       (wnd-set! lpszMenuName  (~ window-class 'menu-name))
       (wnd-set! hIconSm (~ window-class 'small-icon))
-      ;; TODO more
       (when (zero? (register-class-ex wnd))
 	(error 'win32-register-class "Failed to register WNDCLASS"))
       window-class)))
@@ -94,6 +98,8 @@
    (style       :init-keyword :style 
 		:init-value (bitwise-ior CS_HREDRAW CS_VREDRAW))
    (instance    :init-keyword :instance :init-value +hinstance+)
+   (class-extra :init-keyword :class-extra :init-value 0)
+   (window-extra :init-keyword :window-extra :init-value 0)
    (icon        :init-keyword :icon
 		:init-value (load-icon null-pointer IDI_APPLICATION))
    (cursor      :init-keyword :cursor
@@ -106,6 +112,21 @@
    ;; TODO more
    ))
 (define (win32-window-class? o) (is-a? o <win32-window-class>))
+(define (make-win32-window-class . opt) (apply make <win32-window-class> opt))
+;; name and callback is required
+(define (wndclassex->win32-window-class name callback wndclass)
+  (make <win32-window-class>
+    :name name
+    :window-proc callback
+;;    :instance null-pointer ;; use default value (this hInstance)
+    :class-extra (c-struct-ref wndclass WNDCLASSEX 'cbClsExtra)
+    :window-extra (c-struct-ref wndclass WNDCLASSEX 'cbWndExtra)
+    :style  (c-struct-ref wndclass WNDCLASSEX 'style)
+    :icon   (c-struct-ref wndclass WNDCLASSEX 'hIcon)
+    :cursor (c-struct-ref wndclass WNDCLASSEX 'hCursor)
+    :background (c-struct-ref wndclass WNDCLASSEX 'hbrBackground)
+    :menu-name  (c-struct-ref wndclass WNDCLASSEX 'lpszMenuName)
+    :small-icon (c-struct-ref wndclass WNDCLASSEX 'hIconSm)))
 
 (define-class <win32-event> ()
   ((control :init-keyword :control :init-value #f)

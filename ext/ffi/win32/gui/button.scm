@@ -58,18 +58,19 @@
 (define (make-win32-button . opt) (apply make <win32-button> opt))
 (define (win32-button? o) (is-a? o <win32-button>))
 
+;; TODO make macro for this
 (define win32-default-button-class
   (let ()
     (define (default-button-proc hwnd imsg wparam lparam)
-      (cond #;((= imsg WM_NCCREATE)
+      (define (call-next) 
+	(call-window-proc system-callback hwnd imsg wparam lparam))
+      (cond ((= imsg WM_NCCREATE)
 	     ;; save the lpCreateParams of CREATESTRUCT
 	     (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 	       (set-window-long-ptr hwnd GWLP_USERDATA w)
-	       1))
+	       (call-next)))
 	    ;; handle user defined message
-	    (else
-	     ;; go to default
-	     (call-window-proc system-callback hwnd imsg wparam lparam))))
+	    (else (call-next))))
     (define-values (system-callback window-class)
       (let ((w (allocate-c-struct WNDCLASSEX)))
 	(c-struct-set! w WNDCLASSEX 'cbSize (size-of-c-struct WNDCLASSEX))
@@ -81,23 +82,16 @@
 	       (c-callback LRESULT 
 		 (HWND UINT WPARAM LPARAM) default-button-proc))
 	      (orig (c-struct-ref w WNDCLASSEX 'lpfnWndProc)))
-	  (c-struct-set! w WNDCLASSEX 'lpfnWndProc callback)
-	  (c-struct-set! w WNDCLASSEX 'lpszClassName *win32-default-button-class-name*)
-	  (register-class-ex w)
-	  (values orig #f)
-	  #;
+	  ;;(c-struct-set! w WNDCLASSEX 'lpfnWndProc callback)
+	  ;;(c-struct-set! w WNDCLASSEX 'lpszClassName *win32-default-button-class-name*)
+	  ;;(register-class-ex w)
+	  ;;(values orig #f)
+	  ;; TODO should we do like above for efficiency?
 	  (values 
 	   (c-struct-ref w WNDCLASSEX 'lpfnWndProc)
-	   (make <win32-window-class>
-	     :name *win32-default-button-class-name*
-	     :window-proc callback
-	     :instance null-pointer
-	     :style  (c-struct-ref w WNDCLASSEX 'style)
-	     :icon   (c-struct-ref w WNDCLASSEX 'hIcon)
-	     :cursor (c-struct-ref w WNDCLASSEX 'hCursor)
-	     :background (c-struct-ref w WNDCLASSEX 'hbrBackground)
-	     :menu-name  (c-struct-ref w WNDCLASSEX 'lpszMenuName)
-	     :small-icon (c-struct-ref w WNDCLASSEX 'hIconSm))))))
-    #;(win32-register-class window-class)))
+	   (wndclassex->win32-window-class *win32-default-button-class-name*
+					   callback
+					   w)))))
+    (win32-register-class window-class)))
 
 )
