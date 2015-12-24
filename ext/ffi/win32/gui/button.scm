@@ -58,40 +58,6 @@
 (define (make-win32-button . opt) (apply make <win32-button> opt))
 (define (win32-button? o) (is-a? o <win32-button>))
 
-;; TODO make macro for this
-(define win32-default-button-class
-  (let ()
-    (define (default-button-proc hwnd imsg wparam lparam)
-      (define (call-next) 
-	(call-window-proc system-callback hwnd imsg wparam lparam))
-      (cond ((= imsg WM_NCCREATE)
-	     ;; save the lpCreateParams of CREATESTRUCT
-	     (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
-	       (set-window-long-ptr hwnd GWLP_USERDATA w)
-	       (call-next)))
-	    ;; handle user defined message
-	    (else (call-next))))
-    (define-values (system-callback window-class)
-      (let ((w (allocate-c-struct WNDCLASSEX)))
-	(c-struct-set! w WNDCLASSEX 'cbSize (size-of-c-struct WNDCLASSEX))
-	(unless (get-class-info-ex +the-win32-process+ "BUTTON" w)
-	  (error 'win32-default-button-class
-		 "Failed to retrieve system class info BUTTON"
-		 (get-last-error)))
-	(let ((callback
-	       (c-callback LRESULT 
-		 (HWND UINT WPARAM LPARAM) default-button-proc))
-	      (orig (c-struct-ref w WNDCLASSEX 'lpfnWndProc)))
-	  ;;(c-struct-set! w WNDCLASSEX 'lpfnWndProc callback)
-	  ;;(c-struct-set! w WNDCLASSEX 'lpszClassName *win32-default-button-class-name*)
-	  ;;(register-class-ex w)
-	  ;;(values orig #f)
-	  ;; TODO should we do like above for efficiency?
-	  (values 
-	   (c-struct-ref w WNDCLASSEX 'lpfnWndProc)
-	   (wndclassex->win32-window-class *win32-default-button-class-name*
-					   callback
-					   w)))))
-    (win32-register-class window-class)))
+(inherit-window-class "BUTTON" *win32-default-button-class-name* WM_NCCREATE)
 
 )

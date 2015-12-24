@@ -46,6 +46,7 @@
 	    <win32-container>    win32-container?
 	    win32-add-component!
 
+	    inherit-window-class
 	    ;; don't use it casually
 	    (rename +hinstance+ +the-win32-process+)
 	    )
@@ -54,8 +55,10 @@
 	    (win32 user)
 	    (win32 kernel)
 	    (win32 gdi)
+	    (win32 defs)
 	    (sagittarius ffi)
 	    (sagittarius object)
+	    (sagittarius control)
 	    (sagittarius threads))
 
 (define-generic win32-show)
@@ -220,5 +223,41 @@
   (call-next-method)
   (for-each win32-show (~ o 'components)))
 
-
+;; TODO handling control specific event
+(define-syntax inherit-window-class
+  (syntax-rules ()
+    ((_ name new-name wm_create)
+     (define dummy
+       (let ()
+	 (define (default-button-proc hwnd imsg wparam lparam)
+	   (define (call-next) 
+	     (call-window-proc system-callback hwnd imsg wparam lparam))
+	   (cond ((= imsg wm_create)
+		  ;; save the lpCreateParams of CREATESTRUCT
+		  (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
+		    (set-window-long-ptr hwnd GWLP_USERDATA w)
+		    (call-next)))
+		 ;; handle user defined message
+		 (else (call-next))))
+	 (define-values (system-callback window-class)
+	   (let ((w (allocate-c-struct WNDCLASSEX)))
+	     (c-struct-set! w WNDCLASSEX 'cbSize (size-of-c-struct WNDCLASSEX))
+	     (unless (get-class-info-ex +hinstance+ name w)
+	       (error 'win32-default-button-class
+		      "Failed to retrieve system class info"
+		      (get-last-error)
+		      name))
+	     (let ((callback
+		    (c-callback LRESULT 
+				(HWND UINT WPARAM LPARAM) default-button-proc))
+		   (orig (c-struct-ref w WNDCLASSEX 'lpfnWndProc)))
+	       ;;(c-struct-set! w WNDCLASSEX 'lpfnWndProc callback)
+	       ;;(c-struct-set! w WNDCLASSEX 'lpszClassName *win32-default-button-class-name*)
+	       ;;(register-class-ex w)
+	       ;;(values orig #f)
+	       ;; TODO should we do like above for efficiency?
+	       (values 
+		(c-struct-ref w WNDCLASSEX 'lpfnWndProc)
+		(wndclassex->win32-window-class new-name callback w)))))
+	 (win32-register-class window-class))))))
 )
