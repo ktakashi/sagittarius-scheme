@@ -476,6 +476,8 @@
 			((double) #\d)
 			((callback) #\c)
 			((wchar_t*) #\w)
+			((intptr_t) (if (= size-of-intptr_t 4) #\i #\x))
+			((uintptr_t) (if (= size-of-intptr_t 4) #\u #\U))
 			((___)
 			 ;; varargs must be the last
 			 (unless (null? (cdr arg-types))

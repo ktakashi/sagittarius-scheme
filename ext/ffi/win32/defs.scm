@@ -91,8 +91,8 @@
   ;; int
   (define-c-typedef int INT (* PINT) (* LPINT))
   (define-c-typedef unsigned-int UINT (* PUINT) (* LPUINT))
-  (define-c-typedef void* INT_PTR (* PINT_PTR))
-  (define-c-typedef unsigned-int UINT_PTR (* PUINT_PTR))
+  (define-c-typedef intptr_t INT_PTR (* PINT_PTR))
+  (define-c-typedef uintptr_t UINT_PTR (* PUINT_PTR))
   ;; dword
   (define-c-typedef unsigned-long DWORD (* PDWORD) (* LPDWORD))
   ;; VOID
