@@ -33,6 +33,9 @@
     (export win32-create win32-show
 	    win32-register-class
 	    win32-message-loop
+	    win32-get-component
+	    win32-common-dispatch
+	    win32-translate-notification
 
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
@@ -40,6 +43,8 @@
 
 	    <win32-event>        win32-event?
 	    <win32-event-aware>  win32-event-aware?
+	    win32-set-event-handler!
+
 	    <win32-positionable>
 	    <win32-sizable>
 	    <win32-component>    win32-component?
@@ -138,10 +143,28 @@
    (lparam  :init-keyword :lparam)  ;; forth (= LONG_PTR)
    ))
 (define (win32-event? o) (is-a? o <win32-event>))
+(define (make-win32-event c type wparam lparam)
+  (make <win32-event> :control c :message type :wparam wparam :lparam lparam))
+
+(define (win32-handle-event e)
+  (let ((c (~ e 'control))
+	(m (~ e 'message)))
+    (when (win32-event-aware? c)
+      (let ((handlers (~ c 'handlers)))
+	(cond ((hashtable-ref handlers m #f) =>
+	       ;; TODO should we pass event object itself?
+	       (lambda (p) (p c m (~ e 'wparam) (~ e 'lparam)))))))))
 
 ;; interface
-(define-class <win32-event-aware> () ())
+(define-class <win32-event-aware> () 
+  ((handlers :init-form (make-eq-hashtable))))
 (define (win32-event-aware? o) (is-a? o <win32-event-aware>))
+(define (win32-push-event! component event)
+  ;; TODO
+  )
+
+(define (win32-set-event-handler! event-aware event handler)
+  (hashtable-set! (~ event-aware 'handlers) event handler))
 
 (define-class <win32-positionable> ()
   ((x :init-keyword :x :init-value 0)
@@ -161,7 +184,8 @@
 	(mutex-unlock! lock)
 	r))))
 
-(define-class <win32-component> (<win32-positionable> <win32-sizable>)
+(define-class <win32-component> 
+  (<win32-positionable> <win32-sizable> <win32-event-aware>)
   ((name :init-keyword :name :init-value "undefined")
    (hwnd  :init-keyword :hwnd :init-value #f)
    (owner :init-keyword :owner :init-value #f)
@@ -223,9 +247,45 @@
   (call-next-method)
   (for-each win32-show (~ o 'components)))
 
+(define (win32-get-component hwnd)
+  (let ((p (get-window-long-ptr hwnd GWLP_USERDATA)))
+    (if (null-pointer? p)
+	#f
+	(pointer->object p))))
+
+(define-generic win32-translate-notification)
+
+;; from minwindef.h
+;; seems doesn't matter the size of wparam
+(define-syntax win32-loword
+  (syntax-rules ()
+    ((_ word) (bitwise-and word #xFFFF))))
+(define-syntax win32-hiword
+  (syntax-rules ()
+    ((_ word) (bitwise-and (bitwise-arithmetic-shift-right word 16) #xFFFF))))
+
+(define (win32-common-dispatch hwnd imsg wparam lparam)
+  (define (handle-menu id) #f)
+  (define (handle-accelerator id) #f)
+  (cond ((= imsg WM_COMMAND)
+	 (let ((id (win32-loword wparam))
+	       (op (win32-hiword wparam)))
+	   (if (null-pointer? lparam) ;; lparam is a pointer 
+	       (cond ((= op 0) (handle-menu id))
+		     ((= op 1) (handle-accelerator id))
+		     ;; I don't know what
+		     (else #f))
+	       (let ((b (win32-get-component lparam)))
+		 (when b 
+		   (win32-handle-event
+		    (make-win32-event b
+		     (win32-translate-notification b op) #f #f)))
+		 #t))))
+	(else #f)))
+
 ;; TODO handling control specific event
 (define-syntax inherit-window-class
-  (syntax-rules ()
+  (syntax-rules (events)
     ((_ name new-name wm_create)
      (define dummy
        (let ()
@@ -237,8 +297,18 @@
 		  (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 		    (set-window-long-ptr hwnd GWLP_USERDATA w)
 		    (call-next)))
+		 ((= imsg WM_APP)
+		  (let ((sym (pointer->object wparam))
+			(w (win32-get-component hwnd)))
+		    ;; wparam must be a symbol
+		    ;; lparam can be data for this event.
+		    (when w (win32-handle-event w sym lparam))
+		    ;; I think we can simply return 1 here but in case.
+		    (call-next)))
 		 ;; handle user defined message
-		 (else (call-next))))
+		 (else 
+		  (win32-common-dispatch hwnd imsg wparam lparam)
+		  (call-next))))
 	 (define-values (system-callback window-class)
 	   (let ((w (allocate-c-struct WNDCLASSEX)))
 	     (c-struct-set! w WNDCLASSEX 'cbSize (size-of-c-struct WNDCLASSEX))

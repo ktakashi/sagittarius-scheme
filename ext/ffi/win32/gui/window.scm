@@ -58,12 +58,6 @@
 (define (win32-window? o) (is-a? o <win32-window>))
 
 ;; TODO better dispatch method
-(define (get-window hwnd)
-  (let ((p (get-window-long-ptr hwnd GWLP_USERDATA)))
-    (if (null-pointer? p)
-	#f
-	(pointer->object p))))
-
 (define (default-window-proc hwnd imsg wparam lparam)
   (cond ((= imsg WM_CREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
@@ -72,11 +66,12 @@
 	   1))
 	((= imsg WM_CLOSE) (destroy-window hwnd))
 	((= imsg WM_DESTROY)
-	 (let ((w (get-window hwnd)))
+	 (let ((w (win32-get-component hwnd)))
 	   (cond ((or (not (win32-window? w)) ;; why this happens?
 		      (not (~ w 'owner))) 
 		  (post-quit-message 0) 0)
 		 (else 1))))
+	((win32-common-dispatch hwnd imsg wparam lparam) 1)
 	(else (def-window-proc hwnd imsg wparam lparam))))
 
 (define *window-proc*

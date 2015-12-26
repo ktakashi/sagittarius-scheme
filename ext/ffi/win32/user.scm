@@ -859,15 +859,15 @@
   (cond-expand
    (64bit
     (define set-window-long-ptr
-      (c-function user32 LONG SetWindowLongPtrA (HWND int LONG_PTR)))
+      (c-function user32 LONG SetWindowLongPtrW (HWND int LONG_PTR)))
     (define get-window-long-ptr
-      (c-function user32 LONG_PTR GetWindowLongPtrA (HWND int))))
+      (c-function user32 LONG_PTR GetWindowLongPtrW (HWND int))))
    (32bit
     ;; I want the signature the same like we can pass the pointer object
     (define set-window-long-ptr
-      (c-function user32 LONG SetWindowLongA (HWND int LONG_PTR)))
+      (c-function user32 LONG SetWindowLongW (HWND int LONG_PTR)))
     (define get-window-long-ptr
-      (c-function user32 LONG_PTR GetWindowLongA (HWND int)))))
+      (c-function user32 LONG_PTR GetWindowLongW (HWND int)))))
 
   (define-constant GWL_STYLE -16)
   (define-constant GWL_EXSTYLE -20)

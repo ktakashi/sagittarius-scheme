@@ -58,6 +58,13 @@
 (define (make-win32-button . opt) (apply make <win32-button> opt))
 (define (win32-button? o) (is-a? o <win32-button>))
 
-(inherit-window-class "BUTTON" *win32-default-button-class-name* WM_NCCREATE)
+(define-method win32-translate-notification ((b <win32-button>) code)
+  (cond ((= code BN_CLICKED) 'click)
+	((= code BN_DOUBLECLICKED) 'double-click)
+	((= code BN_SETFOCUS) 'focus)
+	((= code BN_KILLFOCUS) 'blur)
+	(else code)))
+
+(inherit-window-class  "BUTTON" *win32-default-button-class-name* WM_NCCREATE)
 
 )
