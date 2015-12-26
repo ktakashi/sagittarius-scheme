@@ -41,9 +41,10 @@
 	    make-win32-window-class
 	    wndclassex->win32-window-class
 
-	    <win32-event>        win32-event?
+	    <win32-event>        win32-event?  make-win32-event
+	    win32-push-event!
 	    <win32-event-aware>  win32-event-aware?
-	    win32-set-event-handler!
+	    win32-set-event-handler! win32-handle-event
 
 	    <win32-positionable>
 	    <win32-sizable>
@@ -52,6 +53,7 @@
 	    win32-add-component!
 
 	    inherit-window-class
+	    (rename WM_APP +win32-application-message+)
 	    ;; don't use it casually
 	    (rename +hinstance+ +the-win32-process+)
 	    )
@@ -144,24 +146,51 @@
    ))
 (define (win32-event? o) (is-a? o <win32-event>))
 (define (make-win32-event c type wparam lparam)
+  (when (and (number? type) (= type WM_APP) (not (symbol? wparam)))
+    (assertion-violation 'make-win32-event 
+      "wparam must be a symbol for application window message" wparam lparam))
   (make <win32-event> :control c :message type :wparam wparam :lparam lparam))
 
 (define (win32-handle-event e)
   (let ((c (~ e 'control))
 	(m (~ e 'message)))
-    (when (win32-event-aware? c)
-      (let ((handlers (~ c 'handlers)))
-	(cond ((hashtable-ref handlers m #f) =>
-	       ;; TODO should we pass event object itself?
-	       (lambda (p) (p c m (~ e 'wparam) (~ e 'lparam)))))))))
+    (if (win32-event-aware? c)
+	(let ((handlers (~ c 'handlers)))
+	  (cond ((hashtable-ref handlers m #f) =>
+		 ;; TODO should we pass event object itself?
+		 ;; we pass wparam and lparam as it is
+		 ;; this is because we don't know if lparam is
+		 ;; Scheme world's pointer or Windows pointer.
+		 ;; so make it users responsibility.
+		 (lambda (p) (p c m (~ e 'wparam) (~ e 'lparam))))
+		(else #f)))
+	#f)))
 
 ;; interface
+;; the registering event can be both message itself or symbol
+;; symbols are prefered way however we can't cover all the messages
+;; so for in such cases we need to support both.
+;; e.g. WM_CLOSE can be sent directly by win32-push-event!
+;;      however this message may or may not be translated
+;;      to name ('close would be the one but this would 
+;;      only happen on <win32-window> not other components)
 (define-class <win32-event-aware> () 
-  ((handlers :init-form (make-eq-hashtable))))
+  ((handlers :init-form (make-eqv-hashtable))))
 (define (win32-event-aware? o) (is-a? o <win32-event-aware>))
-(define (win32-push-event! component event)
-  ;; TODO
-  )
+(define (win32-push-event! event)
+  (define (->win32-wparam wparam)
+    (if wparam
+	(pointer->integer (object->pointer wparam))
+	0))
+  (define (->win32-lparam lparam)
+    (if lparam
+	(object->pointer lparam)
+	null-pointer))
+  ;; now using send-message to send application specific message.
+  (send-message (~ event 'control 'hwnd) 
+		(~ event 'message)
+		(->win32-wparam (~ event 'wparam))
+		(->win32-lparam (~ event 'lparam))))
 
 (define (win32-set-event-handler! event-aware event handler)
   (hashtable-set! (~ event-aware 'handlers) event handler))
@@ -265,8 +294,8 @@
     ((_ word) (bitwise-and (bitwise-arithmetic-shift-right word 16) #xFFFF))))
 
 (define (win32-common-dispatch hwnd imsg wparam lparam)
-  (define (handle-menu id) #f)
-  (define (handle-accelerator id) #f)
+  (define (handle-menu id) #f) ;; TODO 
+  (define (handle-accelerator id) #f) ;; TODO
   (cond ((= imsg WM_COMMAND)
 	 (let ((id (win32-loword wparam))
 	       (op (win32-hiword wparam)))
@@ -276,11 +305,18 @@
 		     ;; I don't know what
 		     (else #f))
 	       (let ((b (win32-get-component lparam)))
-		 (when b 
-		   (win32-handle-event
-		    (make-win32-event b
-		     (win32-translate-notification b op) #f #f)))
-		 #t))))
+		 (and b 
+		     (win32-handle-event
+		      (make-win32-event b
+		       (win32-translate-notification b op) #f #f)))))))
+	((= imsg WM_APP)
+	 ;; wparam must be a symbol to indicate which action it is
+	 ;; e.g. 'redo or so
+	 (let ((sym (pointer->object (integer->pointer wparam)))
+	       (w (win32-get-component hwnd)))
+	   ;; lparam can be data for this event.
+	   (and w (win32-handle-event (make-win32-event w sym #f lparam)))))
+	;; TODO add more
 	(else #f)))
 
 ;; TODO handling control specific event
@@ -296,14 +332,6 @@
 		  ;; save the lpCreateParams of CREATESTRUCT
 		  (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 		    (set-window-long-ptr hwnd GWLP_USERDATA w)
-		    (call-next)))
-		 ((= imsg WM_APP)
-		  (let ((sym (pointer->object wparam))
-			(w (win32-get-component hwnd)))
-		    ;; wparam must be a symbol
-		    ;; lparam can be data for this event.
-		    (when w (win32-handle-event w sym lparam))
-		    ;; I think we can simply return 1 here but in case.
 		    (call-next)))
 		 ;; handle user defined message
 		 (else 

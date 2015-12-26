@@ -64,7 +64,12 @@
 	 (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 	   (set-window-long-ptr hwnd GWLP_USERDATA w)
 	   1))
-	((= imsg WM_CLOSE) (destroy-window hwnd))
+	((= imsg WM_CLOSE) 
+	 (let ((w (win32-get-component hwnd)))
+	   (if (and w (win32-handle-event 
+		       (make-win32-event w 'close wparam lparam)))
+	       (destroy-window hwnd)
+	       1)))
 	((= imsg WM_DESTROY)
 	 (let ((w (win32-get-component hwnd)))
 	   (cond ((or (not (win32-window? w)) ;; why this happens?
