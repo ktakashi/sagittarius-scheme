@@ -36,6 +36,7 @@
 	    win32-get-component
 	    win32-common-dispatch
 	    win32-translate-notification
+	    win32-generate-unique-id ;; util
 
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
@@ -56,6 +57,9 @@
 	    (rename WM_APP +win32-application-message+)
 	    ;; don't use it casually
 	    (rename +hinstance+ +the-win32-process+)
+
+	    ;; for sub classes
+	    win32-find-menu-control
 	    )
     (import (rnrs)
 	    (clos user)
@@ -63,6 +67,7 @@
 	    (win32 kernel)
 	    (win32 gdi)
 	    (win32 defs)
+	    (sagittarius)
 	    (sagittarius ffi)
 	    (sagittarius object)
 	    (sagittarius control)
@@ -203,7 +208,7 @@
   ((width  :init-keyword :width  :init-value CW_USEDEFAULT)
    (height :init-keyword :height :init-value CW_USEDEFAULT)))
 
-(define generate-unique-id
+(define win32-generate-unique-id
   (let ((id 0)
 	(lock (make-mutex)))
     (lambda ()
@@ -261,11 +266,11 @@
 (define-class <win32-container> (<win32-component>)
   ((components :init-keyword :components :init-value '())))
 (define (win32-container? o) (is-a? o <win32-container>))
-(define (win32-add-component! container component)
+(define-method win32-add-component! ((container <win32-container>) component)
   (set! (~ component 'owner) container)
   (set! (~ component 'style) (bitwise-ior (~ component 'style) WS_CHILD))
   (unless (~ component 'hmenu) 
-    (set! (~ component 'hmenu) (integer->pointer (generate-unique-id))))
+    (set! (~ component 'hmenu) (integer->pointer (win32-generate-unique-id))))
   (set! (~ container 'components) (cons component (~ container 'components))))
 
 (define-method win32-create ((o <win32-container>))
@@ -293,8 +298,12 @@
   (syntax-rules ()
     ((_ word) (bitwise-and (bitwise-arithmetic-shift-right word 16) #xFFFF))))
 
+(define-method win32-find-menu-control (w id) #f)
+
 (define (win32-common-dispatch hwnd imsg wparam lparam)
-  (define (handle-menu id) #f) ;; TODO 
+  (define (handle-menu id)
+    (and-let* ((c (win32-find-menu-control (win32-get-component hwnd) id)))
+      (win32-handle-event (make-win32-event c 'click #f #f))))
   (define (handle-accelerator id) #f) ;; TODO
   (cond ((= imsg WM_COMMAND)
 	 (let ((id (win32-loword wparam))
@@ -358,4 +367,5 @@
 		(c-struct-ref w WNDCLASSEX 'lpfnWndProc)
 		(wndclassex->win32-window-class new-name callback w)))))
 	 (win32-register-class window-class))))))
+
 )
