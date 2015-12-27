@@ -826,18 +826,35 @@ static int push_ffi_type_value(SgFuncInfo *info,
       return FALSE;
     }
   } else if (SG_BIGNUMP(obj)) {
+    int oor = FALSE;
     switch (signature) {
     case FFI_SIGNATURE_UINT:
-      storage->ul = Sg_GetUIntegerClamp(obj, SG_CLAMP_NONE, NULL);
+      storage->ul = Sg_GetUIntegerClamp(obj, SG_CLAMP_NONE, &oor);
+      if (oor) {
+	*lastError = SG_MAKE_STRING("out of range");
+	return FALSE;
+      }
       return TRUE;
     case FFI_SIGNATURE_INT:
-      storage->sl = Sg_GetIntegerClamp(obj, SG_CLAMP_NONE, NULL);
+      storage->sl = Sg_GetIntegerClamp(obj, SG_CLAMP_NONE, &oor);
+      if (oor) {
+	*lastError = SG_MAKE_STRING("out of range");
+	return FALSE;
+      }
       return TRUE;
     case FFI_SIGNATURE_INT64:
-      storage->s64 = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, NULL);
+      storage->s64 = Sg_GetIntegerS64Clamp(obj, SG_CLAMP_NONE, &oor);
+      if (oor) {
+	*lastError = SG_MAKE_STRING("out of range");
+	return FALSE;
+      }
       return TRUE;
     case FFI_SIGNATURE_UINT64:
-      storage->u64 = Sg_GetIntegerU64Clamp(obj, SG_CLAMP_NONE, NULL);
+      storage->u64 = Sg_GetIntegerU64Clamp(obj, SG_CLAMP_NONE, &oor);
+      if (oor) {
+	*lastError = SG_MAKE_STRING("out of range");
+	return FALSE;
+      }
       return TRUE;
     default:
       *lastError = get_error_message(signature, obj);
@@ -1027,6 +1044,12 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
 #define BCONVERT(type) *((intptr_t *)result) = !SG_FALSEP(v)
 #define S64CONVERT(type) CONVERT(type, Sg_GetIntegerS64Clamp)
 #define U64CONVERT(type) CONVERT(type, Sg_GetIntegerU64Clamp)
+#if SIZEOF_VOIDP == 4
+# define INT2IP Sg_GetIntegerClamp
+#else
+# define INT2IP Sg_GetIntegerS64Clamp
+#endif
+
 #define FCONVERT(type)					\
   do {							\
     if (!SG_REALP(v)) *((type *)result) = 0.0;		\
@@ -1038,7 +1061,7 @@ static int convert_scheme_to_c_value(SgObject v, int type, void **result)
       if (SG_INTP(v)) {							\
 	*((type *)result) = SG_INT_VALUE(v);				\
       } else {								\
-	*((type *)result) = Sg_GetIntegerClamp(v, SG_CLAMP_NONE, NULL); \
+	*((type *)result) = INT2IP(v, SG_CLAMP_NONE, NULL);		\
       }									\
     } else if (SG_POINTERP(v)) {					\
       *((type *)result) = SG_POINTER(v)->pointer;			\
@@ -1356,7 +1379,8 @@ static void** get_fixed_size_ffi_values(SgFuncInfo *func, SgObject args)
 			     SG_CAR(cp),
 			     params + i,
 			     &lastError)) {
-      Sg_Error(UC("argument error %A on index %d: %S"), func, i, lastError);
+      Sg_Error(UC("argument error %A on index %d[%S]: %S"), func, i,
+	       SG_CAR(cp), lastError);
       return NULL;
     }
     ffi_values[i] = (params + i);

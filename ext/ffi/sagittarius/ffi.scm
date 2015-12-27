@@ -784,7 +784,7 @@
       (unsigned-int       . ,(if (= size-of-int 4) #\W #\Q))
       (unsigned-long      . ,(if (= size-of-long 4) #\W #\Q))
       (unsigned-long-long . #\Q)
-      (uintptr_t          . ,(if (= size-of-uintptr_t 4) #\w #\q))
+      (uintptr_t          . ,(if (= size-of-uintptr_t 4) #\W #\Q))
       (int8_t             . #\b)
       (int16_t            . #\h)
       (int32_t            . #\w)
