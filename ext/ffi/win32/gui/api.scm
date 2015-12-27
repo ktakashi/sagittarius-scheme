@@ -185,7 +185,7 @@
 (define (win32-push-event! event)
   (define (->win32-wparam wparam)
     (if wparam
-	(pointer->integer (object->pointer wparam))
+	(pointer->uinteger (object->pointer wparam))
 	0))
   (define (->win32-lparam lparam)
     (if lparam

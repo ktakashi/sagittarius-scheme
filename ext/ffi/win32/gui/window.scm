@@ -139,7 +139,7 @@
     ;; TODO handle menu style
     (append-menu (~ owner 'hwnd)
 		 (bitwise-ior MF_POPUP MF_STRING)
-		 (pointer->integer hwnd)
+		 (pointer->uinteger hwnd)
 		 (~ o 'name))))
 
 (define-method win32-show ((o <win32-menu>))
@@ -164,7 +164,7 @@
     ;; assume owner is there
   (let ((owner (~ o 'owner 'hwnd)))
     ;; TODO handle menu style
-    (append-menu owner MF_STRING (pointer->integer (~ o 'hmenu)) (~ o 'name))))
+    (append-menu owner MF_STRING (pointer->uinteger (~ o 'hmenu)) (~ o 'name))))
 (define-method win32-show ((o <win32-menu-item>)) #t)
 
 (define (make-win32-menu-item . opt) (apply make <win32-menu-item> opt))

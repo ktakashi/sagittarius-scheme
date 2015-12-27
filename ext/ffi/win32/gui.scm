@@ -36,4 +36,5 @@
     (export :all)
     (import (win32 gui api)
 	    (win32 gui window)
-	    (win32 gui button)))
+	    (win32 gui button)
+	    (win32 gui file-select)))
