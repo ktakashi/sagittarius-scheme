@@ -33,10 +33,42 @@
     (export LPOFNHOOKPROC
 	    OPENFILENAME LPOPENFILENAME
 	    OPENFILENAME_SIZE_VERSION_400
-	    OFN_FILEMUSTEXIST OFN_HIDEREADONLY OFN_OVERWRITEPROMPT OFN_READONLY
+
+	    OFN_READONLY
+	    OFN_OVERWRITEPROMPT
+	    OFN_HIDEREADONLY
+	    OFN_NOCHANGEDIR
+	    OFN_SHOWHELP
+	    OFN_ENABLEHOOK
+	    OFN_ENABLETEMPLATE
+	    OFN_ENABLETEMPLATEHANDLE
+	    OFN_NOVALIDATE
+	    OFN_ALLOWMULTISELECT
+	    OFN_EXTENSIONDIFFERENT
+	    OFN_PATHMUSTEXIST
+	    OFN_FILEMUSTEXIST
+	    OFN_CREATEPROMPT
+	    OFN_SHAREAWARE
+	    OFN_NOREADONLYRETURN
+	    OFN_NOTESTFILECREATE
+	    OFN_NONETWORKBUTTON
+	    OFN_NOLONGNAMES
+	    OFN_EXPLORER
+	    OFN_NODEREFERENCELINKS
+	    OFN_LONGNAMES
+	    OFN_ENABLEINCLUDENOTIFY
+	    OFN_ENABLESIZING
+	    OFN_DONTADDTORECENT
+	    OFN_FORCESHOWHIDDEN
+	    OFN_EX_NOPLACESBAR
+	    OFN_SHAREFALLTHROUGH
+	    OFN_SHARENOWARN
+	    OFN_SHAREWARN
+
 	    get-open-file-name
 	    get-save-file-name)
     (import (core)
+	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 defs))
   (define comdlg32 (open-shared-library "comdlg32.dll"))
@@ -48,40 +80,67 @@
     (DWORD lStructSize)
     (HWND hwndOwner)
     (HINSTANCE hInstance)
-    (LPCSTR lpstrFilter)
-    (LPSTR lpstrCustomFilter)
+    (LPCWSTR lpstrFilter)
+    (LPWSTR lpstrCustomFilter)
     (DWORD nMaxCustFilter)
     (DWORD nFilterIndex)
-    (LPSTR lpstrFile)
+    (LPWSTR lpstrFile)
     (DWORD nMaxFile)
-    (LPSTR lpstrFileTitle)
+    (LPWSTR lpstrFileTitle)
     (DWORD nMaxFileTitle)
-    (LPCSTR lpstrInitialDir)
-    (LPCSTR lpstrTitle)
+    (LPCWSTR lpstrInitialDir)
+    (LPCWSTR lpstrTitle)
     (DWORD Flags)
     (WORD nFileOffset)
     (WORD nFileExtension)
-    (LPCSTR lpstrDefExt)
+    (LPCWSTR lpstrDefExt)
     (DWORD lCustData)
     (LPOFNHOOKPROC lpfnHook)
-    (LPCSTR lpTemplateName)
+    (LPCWSTR lpTemplateName)
     (void* pvReserved)
     (DWORD dwReserved)
     (DWORD FlagsEx))
   (define LPOPENFILENAME void*)
 
+  ;; BROKEN! DON'T USE IT!
   (define OPENFILENAME_SIZE_VERSION_400 76)
   
   (define get-open-file-name
     (c-function comdlg32
-		BOOL GetOpenFileNameA (LPOPENFILENAME)))
+		BOOL GetOpenFileNameW (LPOPENFILENAME)))
 
   (define get-save-file-name
     (c-function comdlg32
-		BOOL GetSaveFileNameA (LPOPENFILENAME)))
+		BOOL GetSaveFileNameW (LPOPENFILENAME)))
 
-  (define OFN_FILEMUSTEXIST #x1000)
-  (define OFN_READONLY 1)
-  (define OFN_OVERWRITEPROMPT 2)
-  (define OFN_HIDEREADONLY 4)
+  (define-constant OFN_READONLY #x1)
+  (define-constant OFN_OVERWRITEPROMPT #x2)
+  (define-constant OFN_HIDEREADONLY #x4)
+  (define-constant OFN_NOCHANGEDIR #x8)
+  (define-constant OFN_SHOWHELP #x10)
+  (define-constant OFN_ENABLEHOOK #x20)
+  (define-constant OFN_ENABLETEMPLATE #x40)
+  (define-constant OFN_ENABLETEMPLATEHANDLE #x80)
+  (define-constant OFN_NOVALIDATE #x100)
+  (define-constant OFN_ALLOWMULTISELECT #x200)
+  (define-constant OFN_EXTENSIONDIFFERENT #x400)
+  (define-constant OFN_PATHMUSTEXIST #x800)
+  (define-constant OFN_FILEMUSTEXIST #x1000)
+  (define-constant OFN_CREATEPROMPT #x2000)
+  (define-constant OFN_SHAREAWARE #x4000)
+  (define-constant OFN_NOREADONLYRETURN #x8000)
+  (define-constant OFN_NOTESTFILECREATE #x10000)
+  (define-constant OFN_NONETWORKBUTTON #x20000)
+  (define-constant OFN_NOLONGNAMES #x40000)
+  (define-constant OFN_EXPLORER #x80000)
+  (define-constant OFN_NODEREFERENCELINKS #x100000)
+  (define-constant OFN_LONGNAMES #x200000)
+  (define-constant OFN_ENABLEINCLUDENOTIFY #x400000)
+  (define-constant OFN_ENABLESIZING #x800000)
+  (define-constant OFN_DONTADDTORECENT #x2000000)
+  (define-constant OFN_FORCESHOWHIDDEN #x10000000)
+  (define-constant OFN_EX_NOPLACESBAR #x1)
+  (define-constant OFN_SHAREFALLTHROUGH 2)
+  (define-constant OFN_SHARENOWARN 1)
+  (define-constant OFN_SHAREWARN 0)
 )
