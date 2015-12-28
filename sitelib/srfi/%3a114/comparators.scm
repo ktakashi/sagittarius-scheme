@@ -272,7 +272,6 @@
   (define string-ci-comparator
     (make-comparator string? string-ci=? string-ci-comparison string-ci-hash))
 
-  (define (symbol<? a b) (string<? (symbol->string a) (symbol->string b)))
   (define symbol-comparison (make-comparison=/< symbol=? symbol<?))
   (define symbol-comparator
     (make-comparator symbol? symbol=? symbol-comparison symbol-hash))

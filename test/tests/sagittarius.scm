@@ -2015,4 +2015,34 @@
 (test-eqv "(asin 0)" 0 (asin 0))
 (test-eqv "(acos 1)" 0 (acos 1))
 
+;; symbol comparison
+(let ()
+  (define-syntax test
+    (syntax-rules ()
+      ((_ expr expected)
+       (test-equal 'expr expected expr))))
+
+  (test (symbol<? 'z 'z) #f)
+  (test (symbol<? 'z '\xDF;) #t)
+  (test (symbol<? '\xDF; 'z) #f)
+  (test (symbol<? 'z 'zz) #t)
+  (test (symbol<? 'z 'Z) #f)
+  (test (symbol<=? 'z '\xDF;) #t)
+  (test (symbol<=? '\xDF; 'z) #f)
+  (test (symbol<=? 'z 'zz) #t)
+  (test (symbol<=? 'z 'Z) #f)
+  (test (symbol<=? 'z 'z) #t)
+
+  (test (symbol<? 'z 'z) #f)
+  (test (symbol>? 'z '\xDF;) #f)
+  (test (symbol>? '\xDF; 'z) #t)
+  (test (symbol>? 'z 'zz) #f)
+  (test (symbol>? 'z 'Z) #t)
+  (test (symbol>=? 'z '\xDF;) #f)
+  (test (symbol>=? '\xDF; 'z) #t)
+  (test (symbol>=? 'z 'zz) #f)
+  (test (symbol>=? 'z 'Z) #t)
+  (test (symbol>=? 'z 'z) #t)
+  )
+
 (test-end)

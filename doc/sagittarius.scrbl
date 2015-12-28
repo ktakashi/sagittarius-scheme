@@ -447,6 +447,25 @@ For sample implementation, see sitelib/encoding directory. You can find some
 custom codecs.
 }
 
+@subsubsection{Symbols}
+
+@define[Function]{@name{symbol<?} @args{symbol1 symbol2 symbols @dots{}}}
+@define[Function]{@name{symbol<=?} @args{symbol1 symbol2 symbols @dots{}}}
+@define[Function]{@name{symbol>?} @args{symbol1 symbol2 symbols @dots{}}}
+@define[Function]{@name{symbol>=?} @args{symbol1 symbol2 symbols @dots{}}}
+@desc{Return #t if given @var{symbol1} is less than, less than or equal to,
+greater than or greater than or equal to @var{symbol2}. If @var{symbols} are
+not null, then the procedures continue to compare until the given arguments
+are exhausted.
+
+These procedures are analogy of @code{string<?}, @code{string<=?},
+@code{string>?} and @code{string>=?}.
+
+These can also be implemented as follows:
+@snipet{(define (symbol<? . syms) (apply string<? (map symbol->string syms)))}
+However, this build-in version won't converts given symbols to strings.
+}
+
 @subsubsection{Keywords}
 
 Sagittarius has keyword objects which starts with @code{':'}. It has almost the

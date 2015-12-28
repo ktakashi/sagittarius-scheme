@@ -244,8 +244,49 @@
 
   (define-c-proc describe-condition (e) Sg_DescribeCondition)
 
+  ;; symbol
   (define-c-proc interned-symbol? (s) ::<boolean> :no-side-effect
     SG_INTERNED_SYMBOL)
+
+  (define-cise-stmt check-symbol
+    ((_ name s)
+     `(unless (SG_SYMBOLP ,s)
+	(wrong-type-of-argument-violation ',name "symbol" ,s))))
+
+  (define-cise-stmt symbol-compare
+    ((_ compare value name first second rest)
+     `(begin
+	(cond ((SG_NULLP ,rest)
+	       (result (,compare (Sg_StringCompare (SG_SYMBOL_NAME ,first)
+						   (SG_SYMBOL_NAME ,second))
+				 ,value)))
+	      ((not (,compare (Sg_StringCompare (SG_SYMBOL_NAME ,first)
+						(SG_SYMBOL_NAME ,second)) 
+			      ,value))
+	       (result FALSE))
+	      (else
+	       (let ((prev ,second))
+		 (dolist (p ,rest)
+		   (check-symbol ,name p)
+		   (unless (,compare (Sg_StringCompare (SG_SYMBOL_NAME prev)
+						       (SG_SYMBOL_NAME p))
+				     ,value)
+		     (return #f))
+		   (set! prev p))
+		 (result TRUE)))))))
+
+  (define-c-proc symbol<? (s1::<symbol> s2::<symbol> :rest rest)
+    ::<boolean> :constant
+    (symbol-compare == -1 symbol<? s1 s2 rest))
+  (define-c-proc symbol>? (s1::<symbol> s2::<symbol> :rest rest)
+    ::<boolean> :constant
+    (symbol-compare == 1 symbol>? s1 s2 rest))
+  (define-c-proc symbol<=? (s1::<symbol> s2::<symbol> :rest rest)
+    ::<boolean> :constant
+    (symbol-compare <= 0 symbol<=? s1 s2 rest))
+  (define-c-proc symbol>=? (s1::<symbol> s2::<symbol> :rest rest)
+    ::<boolean> :constant
+    (symbol-compare >= 0 symbol>=? s1 s2 rest))
 
   ;; SRFI-17
   (define-c-proc setter (proc) :no-side-effect
