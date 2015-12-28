@@ -472,6 +472,10 @@ Sagittarius has keyword objects which starts with @code{':'}. It has almost the
 same feature as symbol, however it can not be bounded with any values. The 
 keyword objects are self quoting so users don't have to put @code{'} explicitly.
 
+The keyword notation is *NOT* available on R6RS or R7RS reader mode. Thus
+@code{#!r6rs} or @code{#!r7rs} directive and @code{-r6} or @code{-r7}
+command line option disable it.
+
 @define[Function]{@name{make-keyword} @args{symbol}}
 @define[Function]{@name{symbol->keyword} @args{symbol}}
 @desc{Creates a new keyword from @var{symbol}.}
