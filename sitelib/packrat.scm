@@ -95,9 +95,22 @@
 	    (srfi :1)
 	    ;; for format
 	    (sagittarius)
-	    (sagittarius control) ;; for define-inline
+	    ;; (sagittarius control) ;; for define-inline
 	    (clos user) ;; to print parse-position better
 	    (pp))
+
+;; ****WARNING****
+;; using define-inline for packrat-* procedure is very attempting
+;; however the result wouldn't be so stunning. the inlining indeed
+;; improves a bit of runtime performance however it also increase
+;; a huge amount of compile time. as the concrete example, 
+;; (text sql parser) uses (packrat) heavily and it's LoC is close
+;; to 2000 (it'll be more in very near future). to compile this
+;; library took 3.5 sec without inlining and over 8 sec with
+;; inlining. the improvements of runtime performance is only
+;; 1 sec for running its test (see test/tests/text/sql.scm).
+;; so in total 7 sec loss if it's the first shot.
+
 ;; Packrat Parser Library
 ;;
 ;; Copyright (c) 2004, 2005 Tony Garnock-Jones <tonyg@kcbbs.gen.nz>
