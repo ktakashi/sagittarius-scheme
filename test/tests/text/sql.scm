@@ -403,6 +403,24 @@
 (test-parse "create table t (a int primary key, b varchar)"
 	    '(create-table t ((a int primary-key) (b varchar))))
 
+;; commit
+(test-parse "commit" '(commit))
+;; Should we make and-chain appended to commit?
+(test-parse "commit and chain" '(commit and-chain))
+(test-parse "commit and no chain" '(commit and-no-chain))
+(test-parse "commit work" '(commit-work))
+(test-parse "commit work and chain" '(commit-work and-chain))
+(test-parse "commit work and no chain" '(commit-work and-no-chain))
+
+(test-parse "rollback" '(rollback))
+;; Should we make and-chain appended to rollback?
+(test-parse "rollback and chain" '(rollback and-chain))
+(test-parse "rollback and no chain" '(rollback and-no-chain))
+(test-parse "rollback work" '(rollback-work))
+(test-parse "rollback work and chain" '(rollback-work and-chain))
+(test-parse "rollback work and no chain" '(rollback-work and-no-chain))
+(test-parse "rollback to savepoint foo" '(rollback (to-savepoint foo)))
+
 ;; simplifier
 (define (test-simplify ssql expected)
   (test-equal ssql expected (simplify-ssql ssql)))

@@ -943,7 +943,27 @@
   (('module a)
    (write/case " MODULE." out)
    (apply write-ssql a out :value-space #f opt)))
-    
+
+;; commit
+;; it's not really good one but for laziness
+(define-sql-writer (commit ssql out . opt)
+  (define (emit-extra e)
+    (put-char out #\space)
+    (if (pair? e)
+	(apply write-ssql e out opt)
+	(write/case (symbol-upcase e) out)))
+  ((name rest ...)
+   (write/case (symbol-upcase name) out)
+   (for-each emit-extra rest)))
+(define-sql-writer commit-work commit)
+(define-sql-writer rollback commit)
+(define-sql-writer rollback-work commit)
+
+(define-sql-writer (to-savepoint ssql out . opt)
+  (('to-savepoint name)
+   (write/case "TO SAVEPOINT " out)
+   (write/case name out)))
+
 ;; TBD lot more to go...
 
 ;; meta values

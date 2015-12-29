@@ -129,16 +129,40 @@
 	       (make-result sym (parse-results-next results))
 	       (make-expected-result
 		(parse-results-position results) sym)))))
-     stmt)
+     sql)
+   (sql ((s <- stmt '#\;) s)
+	((s <- stmt) s))
    (stmt ((s <- query-specification) s)
 	 ((s <- query-expression) s) ;; for 'with x as ...' thing
 	 ((i <- insert-statement) i)
 	 ((d <- delete-statement) d)
 	 ((u <- update-statement) u)
 	 ((t <- table-definition) t) ;; create table
+	 ((c <- commit-statement) c) 
+	 ((r <- rollback-statement) r) 
 	 ((c <- 'comment)         (list '*COMMENT* c))
 	 ;; TODO more
 	 )
+
+   ;; 16.6 commit statement
+   (commit-statement (('commit w <- work? a <- and-no-chain?)
+		      (if (null? w)
+			  `(commit ,@a)
+			  `(,(symbol-append 'commit- (car w)) ,@a))))
+   ;; 16.7 rollback statement
+   (rollback-statement (('rollback  w <- work? a <- and-no-chain? 
+				    s <- savepoint-clause?)
+			(if (null? w)
+			    `(rollback ,@a ,@s)
+			    `(,(symbol-append 'rollback- (car w)) ,@a ,@s))))
+   (savepoint-clause? (('to 'savepoint n <- identifier)
+		       (list (list 'to-savepoint n)))
+		      (() '()))
+   (work? (((=? 'work)) '(work))
+	  (() '()))
+   (and-no-chain? (('and 'no (=? 'chain)) '(and-no-chain))
+		  (('and (=? 'chain)) '(and-chain))
+		  (() '()))
 
    ;; 14.8 insert statement
    (insert-statement 
