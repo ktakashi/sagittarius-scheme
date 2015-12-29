@@ -2045,4 +2045,13 @@
   (test (symbol>=? 'z 'z) #t)
   )
 
+;; issue #168
+(let ()
+  (define s (string #\a))
+  (define sm (string->symbol s))
+  (test-error "modifying string from symbol->string"
+	      assertion-violation?
+	      (string-set! (symbol->string sm) 0 #\b)))
+
+
 (test-end)

@@ -95,11 +95,10 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
   if (SG_LITERAL_STRINGP(name)) {
     sname = name;
   } else {
-    /* TODO we probably want to immutable string
-       which is not mutable nor literal.
-    */
 #ifdef USE_WEAK_SYMBOL
     sname = Sg_CopyString(name);
+    /* FIXME: we only want immutable flag. */
+    SG_STRING(sname)->literalp = TRUE;
 #else
     sname = Sg_MakeString(SG_STRING_VALUE(name), SG_LITERAL_STRING,
 			  SG_STRING_SIZE(name));
