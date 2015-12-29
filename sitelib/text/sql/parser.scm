@@ -140,9 +140,17 @@
 	 ((t <- table-definition) t) ;; create table
 	 ((c <- commit-statement) c) 
 	 ((r <- rollback-statement) r) 
+	 ((s <- savepoint-statement) s)
+	 ((s <- release-savepoint-statement) s)
 	 ((c <- 'comment)         (list '*COMMENT* c))
 	 ;; TODO more
 	 )
+
+   ;; 16.4 savepoint statement
+   (savepoint-statement (('savepoint n <- identifier) (list 'savepoint n)))
+   ;; 16.5 release savepoint statement
+   (release-savepoint-statement (('release 'savepoint n <- identifier) 
+				 (list 'release-savepoint n)))
 
    ;; 16.6 commit statement
    (commit-statement (('commit w <- work? a <- and-no-chain?)

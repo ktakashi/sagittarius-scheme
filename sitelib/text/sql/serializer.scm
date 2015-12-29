@@ -960,9 +960,12 @@
 (define-sql-writer rollback-work commit)
 
 (define-sql-writer (to-savepoint ssql out . opt)
-  (('to-savepoint name)
-   (write/case "TO SAVEPOINT " out)
+  ((type name)
+   (write/case (symbol-upcase type) out)
+   (put-char out #\space)
    (write/case name out)))
+(define-sql-writer savepoint to-savepoint)
+(define-sql-writer release-savepoint to-savepoint)
 
 ;; TBD lot more to go...
 

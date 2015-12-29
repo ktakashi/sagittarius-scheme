@@ -421,6 +421,10 @@
 (test-parse "rollback work and no chain" '(rollback-work and-no-chain))
 (test-parse "rollback to savepoint foo" '(rollback (to-savepoint foo)))
 
+;; savepoint
+(test-parse "savepoint foo" '(savepoint foo))
+(test-parse "release savepoint foo" '(release-savepoint foo))
+
 ;; simplifier
 (define (test-simplify ssql expected)
   (test-equal ssql expected (simplify-ssql ssql)))
