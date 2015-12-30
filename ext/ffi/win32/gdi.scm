@@ -30,8 +30,27 @@
 
 ;; based on Cygwin's wingdi.h
 (library (win32 gdi)
-    (export WHITE_BRUSH LTGRAY_BRUSH GRAY_BRUSH DKGRAY_BRUSH BLACK_BRUSH
-	    HOLLOW_BRUSH NULL_BRUSH
+    (export WHITE_BRUSH
+	    LTGRAY_BRUSH
+	    GRAY_BRUSH
+	    DKGRAY_BRUSH
+	    BLACK_BRUSH
+	    NULL_BRUSH
+	    HOLLOW_BRUSH
+	    WHITE_PEN
+	    BLACK_PEN
+	    NULL_PEN
+	    OEM_FIXED_FONT
+	    ANSI_FIXED_FONT
+	    ANSI_VAR_FONT
+	    SYSTEM_FONT
+	    DEVICE_DEFAULT_FONT
+	    DEFAULT_PALETTE
+	    SYSTEM_FIXED_FONT
+	    DEFAULT_GUI_FONT
+	    DC_BRUSH
+	    DC_PEN
+
 	    ;; struct
 	    TEXTMETRIC
 	    ;; macro
@@ -41,6 +60,7 @@
 	    get-stock-object
 	    get-text-metrics
 	    set-text-color
+	    select-object
 
 	    create-solid-brush
 
@@ -82,17 +102,30 @@
 
   (define gdi32 (open-shared-library "gdi32.dll"))
 
-  (define WHITE_BRUSH 0)
-  (define LTGRAY_BRUSH 1)
-  (define GRAY_BRUSH 2)
-  (define DKGRAY_BRUSH 3)
-  (define BLACK_BRUSH 4)
-  (define HOLLOW_BRUSH 5)
-  (define NULL_BRUSH 5)
+  (define-constant WHITE_BRUSH 0)
+  (define-constant LTGRAY_BRUSH 1)
+  (define-constant GRAY_BRUSH 2)
+  (define-constant DKGRAY_BRUSH 3)
+  (define-constant BLACK_BRUSH 4)
+  (define-constant NULL_BRUSH 5)
+  (define-constant HOLLOW_BRUSH NULL_BRUSH)
+  (define-constant WHITE_PEN 6)
+  (define-constant BLACK_PEN 7)
+  (define-constant NULL_PEN 8)
+  (define-constant OEM_FIXED_FONT 10)
+  (define-constant ANSI_FIXED_FONT 11)
+  (define-constant ANSI_VAR_FONT 12)
+  (define-constant SYSTEM_FONT 13)
+  (define-constant DEVICE_DEFAULT_FONT 14)
+  (define-constant DEFAULT_PALETTE 15)
+  (define-constant SYSTEM_FIXED_FONT 16)
+  (define-constant DEFAULT_GUI_FONT 17)
+  (define-constant DC_BRUSH 18)
+  (define-constant DC_PEN 19)
 
   (define text-out
     (c-function gdi32
-		BOOL TextOutA (HDC int int LPCSTR int)))
+		BOOL TextOutW (HDC int int LPCWSTR int)))
 
   (define get-stock-object
     (c-function gdi32
@@ -100,7 +133,7 @@
 
   (define get-text-metrics
     (c-function gdi32
-		BOOL GetTextMetricsA (HDC LPTEXTMETRIC)))
+		BOOL GetTextMetricsW (HDC LPTEXTMETRIC)))
 
   (define-syntax rgb
     (syntax-rules ()
@@ -128,6 +161,8 @@
 
   (define set-bk-mode (c-function gdi32 int SetBkMode (HDC int)))
   (define set-bk-color (c-function gdi32 int SetBkColor (HDC COLORREF)))
+
+  (define select-object (c-function gdi32 HGDIOBJ SelectObject (HDC HGDIOBJ)))
 
   (define-constant TRANSPARENT 1)
   (define-constant OPAQUE 2)
