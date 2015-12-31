@@ -36,6 +36,7 @@
 	    win32-get-component
 	    win32-common-dispatch
 	    win32-translate-notification
+	    win32-before-drawing
 	    win32-generate-unique-id ;; util
 
 	    <win32-window-class> win32-window-class?
@@ -287,7 +288,8 @@
 	#f
 	(pointer->object p))))
 
-(define-generic win32-translate-notification)
+(define-method win32-translate-notification ((w <win32-component>) code) code)
+(define-method win32-before-drawing ((w <win32-component>) hdc) #f)
 
 ;; from minwindef.h
 ;; seems doesn't matter the size of wparam
@@ -305,6 +307,16 @@
     (and-let* ((c (win32-find-menu-control (win32-get-component hwnd) id)))
       (win32-handle-event (make-win32-event c 'click #f #f))))
   (define (handle-accelerator id) #f) ;; TODO
+  (define (lookup-control comp id)
+    (if (win32-container? comp)
+	(let loop ((cs (~ comp 'components)))
+	  (if (null? cs)
+	      #f
+	      (let ((c (car cs)))
+		(if (and (~ c 'hmenu) (= id (pointer->integer (~ c 'hmenu))))
+		    c
+		    (loop (cdr cs))))))
+	#f))
   (cond ((= imsg WM_COMMAND)
 	 (let ((id (win32-loword wparam))
 	       (op (win32-hiword wparam)))
@@ -318,6 +330,13 @@
 		     (win32-handle-event
 		      (make-win32-event b
 		       (win32-translate-notification b op) #f #f)))))))
+	((= imsg WM_ERASEBKGND) #t)
+	((= imsg WM_CTLCOLOREDIT)
+	 (let* ((w (win32-get-component hwnd))
+		(id (get-window-long-ptr lparam GWLP_ID))
+		(e (lookup-control w (pointer->integer id)))
+		(hdc (integer->pointer wparam)))
+	   (and e (win32-before-drawing e hdc))))
 	((= imsg WM_APP)
 	 ;; wparam must be a symbol to indicate which action it is
 	 ;; e.g. 'redo or so
