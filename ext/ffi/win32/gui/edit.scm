@@ -29,7 +29,8 @@
 ;;;  
 
 (library (win32 gui edit)
-    (export <win32-text-edit> win32-text-edit?
+    (export <win32-edit>
+	    <win32-text-edit> win32-text-edit?
 	    make-win32-text-edit
 	    <win32-multi-text-edit> win32-multi-text-edit?
 	    make-win32-multi-text-edit

@@ -61,6 +61,7 @@
 	    peek-message
 	    translate-message
 	    dispatch-message
+	    tabbed-text-out
 	    get-dc
 	    get-dc-ex
 	    release-dc
@@ -91,6 +92,10 @@
 
 	    set-window-long-ptr
 	    get-window-long-ptr
+
+	    get-sys-color
+	    get-sys-color-brush
+	    set-sys-colors
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -740,6 +745,10 @@
 
   (define dispatch-message (c-function user32 LONG DispatchMessageW (void*)))
 
+  (define tabbed-text-out 
+    (c-function user32 LONG TabbedTextOutW
+		(HDC int int LPCWSTR int int LPINT int)))
+
   (define get-dc (c-function user32 HDC GetDC (HWND)))
 
   (define get-dc-ex (c-function user32 HDC GetDCEx (HWND HRGN DWORD)))
@@ -1128,4 +1137,49 @@
   (define-constant VK_PA1 #xFD)
   (define-constant VK_OEM_CLEAR #xFE)
 
+  (define-constant COLOR_SCROLLBAR 0)
+  (define-constant COLOR_BACKGROUND 1)
+  (define-constant COLOR_ACTIVECAPTION 2)
+  (define-constant COLOR_INACTIVECAPTION 3)
+  (define-constant COLOR_MENU 4)
+  (define-constant COLOR_WINDOW 5)
+  (define-constant COLOR_WINDOWFRAME 6)
+  (define-constant COLOR_MENUTEXT 7)
+  (define-constant COLOR_WINDOWTEXT 8)
+  (define-constant COLOR_CAPTIONTEXT 9)
+  (define-constant COLOR_ACTIVEBORDER 10)
+  (define-constant COLOR_INACTIVEBORDER 11)
+  (define-constant COLOR_APPWORKSPACE 12)
+  (define-constant COLOR_HIGHLIGHT 13)
+  (define-constant COLOR_HIGHLIGHTTEXT 14)
+  (define-constant COLOR_BTNFACE 15)
+  (define-constant COLOR_BTNSHADOW 16)
+  (define-constant COLOR_GRAYTEXT 17)
+  (define-constant COLOR_BTNTEXT 18)
+  (define-constant COLOR_INACTIVECAPTIONTEXT 19)
+  (define-constant COLOR_BTNHIGHLIGHT 20)
+
+  (define-constant COLOR_3DDKSHADOW 21)
+  (define-constant COLOR_3DLIGHT 22)
+  (define-constant COLOR_INFOTEXT 23)
+  (define-constant COLOR_INFOBK 24)
+  (define-constant COLOR_HOTLIGHT 26)
+  (define-constant COLOR_GRADIENTACTIVECAPTION 27)
+  (define-constant COLOR_GRADIENTINACTIVECAPTION 28)
+  (define-constant COLOR_MENUHILIGHT 29)
+  (define-constant COLOR_MENUBAR 30)
+
+  (define-constant COLOR_DESKTOP COLOR_BACKGROUND)
+  (define-constant COLOR_3DFACE COLOR_BTNFACE)
+  (define-constant COLOR_3DSHADOW COLOR_BTNSHADOW)
+  (define-constant COLOR_3DHIGHLIGHT COLOR_BTNHIGHLIGHT)
+  (define-constant COLOR_3DHILIGHT COLOR_BTNHIGHLIGHT)
+  (define-constant COLOR_BTNHILIGHT COLOR_BTNHIGHLIGHT)
+
+  (define get-sys-color (c-function user32 DWORD GetSysColor (int)))  
+  (define get-sys-color-brush 
+    (c-function user32 HBRUSH GetSysColorBrush (int)))
+  (define set-sys-colors
+    ;; int, CONST INT *, CONST COLORREF *
+    (c-function user32 BOOL SetSysColors (int void* void*)))
 )

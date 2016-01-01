@@ -38,6 +38,7 @@
 	    win32-translate-notification
 	    win32-before-drawing
 	    win32-generate-unique-id ;; util
+	    win32-loword win32-hiword
 
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class

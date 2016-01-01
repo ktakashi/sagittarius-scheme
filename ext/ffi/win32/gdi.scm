@@ -1,20 +1,20 @@
 ;;; -*- mode: scheme; coding: utf-8; -*-
 ;;;
 ;;; gdi.scm - Win32 API wrapper library
-;;;  
+;;;
 ;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; based on Cygwin's wingdi.h
 (library (win32 gdi)
@@ -61,6 +61,17 @@
 	    get-text-metrics
 	    set-text-color
 	    select-object
+
+	    ext-text-out
+	    ETO_OPAQUE
+	    ETO_CLIPPED
+	    ETO_GLYPH_INDEX
+	    ETO_RTLREADING
+	    ETO_NUMERICSLOCAL
+	    ETO_NUMERICSLATIN
+	    ETO_IGNORELANGUAGE
+	    ETO_PDY
+	    ETO_REVERSE_INDEX_MAP
 
 	    create-solid-brush
 
@@ -154,9 +165,9 @@
 	 (bitwise-ior r
 		      (bitwise-arithmetic-shift-left g 8)
 		      (bitwise-arithmetic-shift-left b 16))))))
-	 
 
-  (define set-text-color 
+
+  (define set-text-color
     (c-function gdi32 COLORREF SetTextColor (HDC COLORREF)))
 
   (define set-bk-mode (c-function gdi32 int SetBkMode (HDC int)))
@@ -167,6 +178,19 @@
   (define-constant TRANSPARENT 1)
   (define-constant OPAQUE 2)
 
-  (define create-solid-brush 
+  (define create-solid-brush
     (c-function gdi32 HBRUSH CreateSolidBrush (COLORREF)))
+
+  (define ext-text-out
+    (c-function gdi32 BOOL ExtTextOutW
+		(HDC int int UINT LPCRECT LPCWSTR UINT INT)))
+  (define-constant ETO_OPAQUE #x0002)
+  (define-constant ETO_CLIPPED #x0004)
+  (define-constant ETO_GLYPH_INDEX #x0010)
+  (define-constant ETO_RTLREADING #x0080)
+  (define-constant ETO_NUMERICSLOCAL #x0400)
+  (define-constant ETO_NUMERICSLATIN #x0800)
+  (define-constant ETO_IGNORELANGUAGE #x1000)
+  (define-constant ETO_PDY #x2000)
+  (define-constant ETO_REVERSE_INDEX_MAP #x10000)
 )
