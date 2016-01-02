@@ -56,6 +56,8 @@
 	    <win32-container>    win32-container?
 	    win32-add-component!
 
+	    <win32-auto-resize> win32-auto-resize?
+
 	    inherit-window-class
 	    (rename WM_APP +win32-application-message+)
 	    ;; don't use it casually
@@ -314,6 +316,16 @@
 
 (define-method win32-find-menu-control (w id) #f)
 
+;; interface for auto resizing
+;; all components are *not* auto resizing component.
+;; is users want to make a component auto resizable, then
+;; then need to inherit this.
+;; TODO container can only have one auto resizing component
+;;      we may want to do something about this
+(define-class <win32-auto-resize> () 
+  ((repaint? :init-value #t)))
+(define (win32-auto-resize? o) (is-a? o <win32-auto-resize>))
+
 (define (win32-common-dispatch hwnd imsg wparam lparam)
   (define (handle-menu id)
     (and-let* ((c (win32-find-menu-control (win32-get-component hwnd) id)))
@@ -356,6 +368,24 @@
 	       (w (win32-get-component hwnd)))
 	   ;; lparam can be data for this event.
 	   (and w (win32-handle-event (make-win32-event w sym #f lparam)))))
+	((= imsg WM_SIZE)
+	 (let ((w (win32-get-component hwnd)))
+	   (if (win32-container? w)
+	       (let* ((lp (pointer->integer lparam))
+		      (width (win32-loword lp))
+		      (height (win32-hiword lp)))
+		 (for-each (lambda (c)
+			     (when (and (win32-auto-resize? c) (~ c 'hwnd))
+			       (move-window (~ c 'hwnd)
+					    (~ c 'x)
+					    (~ c 'y)
+					    width
+					    height
+					    (~ c 'repaint?))))
+			   (~ w 'components))
+		 #t)
+	       #f)))
+	;; should we handle WM_MOVE?
 	;; TODO add more
 	(else #f)))
 
@@ -372,6 +402,7 @@
 		  ;; save the lpCreateParams of CREATESTRUCT
 		  (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 		    (set-window-long-ptr hwnd GWLP_USERDATA w)
+		    (let ((c (pointer->object w))) (set! (~ c 'hwnd) hwnd))
 		    (call-next)))
 		 ;; handle user defined message
 		 (else 

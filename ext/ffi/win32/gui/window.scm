@@ -72,10 +72,11 @@
 
 ;; TODO better dispatch method
 (define (default-window-proc hwnd imsg wparam lparam)
-  (cond ((= imsg WM_CREATE)
+  (cond ((= imsg WM_NCCREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
 	 (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 	   (set-window-long-ptr hwnd GWLP_USERDATA w)
+	   (let ((c (pointer->object w))) (set! (~ c 'hwnd) hwnd))
 	   1))
 	((= imsg WM_CLOSE) 
 	 (let ((w (win32-get-component hwnd)))
