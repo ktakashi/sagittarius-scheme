@@ -72,13 +72,16 @@
 (define (win32-open-file-select select window)
   (define hwnd (if window (~ window 'hwnd) null-pointer))
   (define (create-filter args)
-    (let-values (((out extract) (open-bytevector-output-port)))
-      (for-each (lambda (str)
-		  (put-bytevector out (string->utf16 str (endianness little)))
-		  (put-u8 out 0))
-		args)
-      (put-u8 out 0)
-      (extract)))
+    (if (null? args)
+	null-pointer
+	(let-values (((out extract) (open-bytevector-output-port)))
+	  (for-each (lambda (str)
+		      (put-bytevector out 
+				      (string->utf16 str (endianness little)))
+		      (put-u8 out 0))
+		    args)
+	  (put-u8 out 0)
+	  (extract))))
   (define (get-flags select)
     (bitwise-ior (win32-select-flag select)
 		 OFN_EXPLORER

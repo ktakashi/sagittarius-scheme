@@ -36,7 +36,8 @@
 	    make-win32-multi-text-edit
 	    win32-draw-edit
 
-	    win32-edit-set-font
+	    win32-edit-set-font ;; external api
+	    win32-edit-update-font ;; internal api
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -71,16 +72,22 @@
 
 (define-method win32-create ((t <win32-edit>))
   (call-next-method)
+  (win32-edit-update-font t))
+
+(define (win32-edit-update-font t)
   ;; setup font size here
-  (let ((tm (allocate-c-struct TEXTMETRIC))
-	(hdc (get-dc (~ t 'hwnd))))
-    (select-object hdc (~ t 'font))
+  (let* ((tm (allocate-c-struct TEXTMETRIC))
+	 (hdc (get-dc (~ t 'hwnd)))
+	 (old (select-object hdc  (~ t 'font))))
     (get-text-metrics hdc tm)
     (set! (~ t 'font-height) (c-struct-ref tm TEXTMETRIC 'tmHeight))
     (set! (~ t 'font-width) (c-struct-ref tm TEXTMETRIC 'tmAveCharWidth))
+    (select-object hdc old)
     (release-dc (~ t 'hwnd) hdc)))
 
 (define (win32-edit-set-font e font :optional (redraw? #t))
+  (set! (~ e 'font) font)
+  (win32-edit-update-font e) ;; now update font info
   (send-message (~ e 'hwnd) WM_SETFONT font (if redraw? 1 0)))
 
 ;; as the final goal, we provide all edit control from win32 api. however 

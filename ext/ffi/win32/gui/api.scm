@@ -45,7 +45,7 @@
 	    wndclassex->win32-window-class
 
 	    <win32-event>        win32-event?  make-win32-event
-	    win32-push-event!
+	    win32-post-event! win32-send-event!
 	    <win32-event-aware>  win32-event-aware?
 	    win32-set-event-handler! win32-handle-event
 
@@ -177,23 +177,29 @@
 ;; the registering event can be both message itself or symbol
 ;; symbols are prefered way however we can't cover all the messages
 ;; so for in such cases we need to support both.
-;; e.g. WM_CLOSE can be sent directly by win32-push-event!
+;; e.g. WM_CLOSE can be sent directly by win32-post-event!
 ;;      however this message may or may not be translated
 ;;      to name ('close would be the one but this would 
 ;;      only happen on <win32-window> not other components)
 (define-class <win32-event-aware> () 
   ((handlers :init-form (make-eqv-hashtable))))
 (define (win32-event-aware? o) (is-a? o <win32-event-aware>))
-(define (win32-push-event! event)
-  (define (->win32-wparam wparam)
-    (if wparam
-	(pointer->uinteger (object->pointer wparam))
-	0))
-  (define (->win32-lparam lparam)
-    (if lparam
-	(object->pointer lparam)
-	null-pointer))
-  ;; now using send-message to send application specific message.
+(define (->win32-wparam wparam)
+  (if wparam
+      (pointer->uinteger (object->pointer wparam))
+      0))
+(define (->win32-lparam lparam)
+  (if lparam
+      (object->pointer lparam)
+      null-pointer))
+;; async
+(define (win32-post-event! event)
+  (post-message (~ event 'control 'hwnd) 
+		(~ event 'message)
+		(->win32-wparam (~ event 'wparam))
+		(->win32-lparam (~ event 'lparam))))
+;; sync
+(define (win32-send-event! event)
   (send-message (~ event 'control 'hwnd) 
 		(~ event 'message)
 		(->win32-wparam (~ event 'wparam))

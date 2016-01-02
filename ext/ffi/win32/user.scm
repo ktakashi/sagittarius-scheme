@@ -69,6 +69,7 @@
 	    end-paint
 	    get-client-rect
 	    get-update-rect
+	    invalidate-rect
 	    is-rect-empty
 	    fill-rect
 	    move-window
@@ -96,6 +97,11 @@
 	    get-sys-color
 	    get-sys-color-brush
 	    set-sys-colors
+
+	    SCROLLINFO
+	    get-scroll-info
+	    set-scroll-info
+	    scroll-window-ex
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -763,6 +769,9 @@
     (c-function user32 BOOL GetClientRect (HWND LPRECT)))
   (define get-update-rect
     (c-function user32 BOOL GetUpdateRect (HWND LPRECT BOOL)))
+  (define invalidate-rect
+    (c-function user32 BOOL InvalidateRect (HWND LPRECT BOOL)))
+
   (define is-rect-empty (c-function user32 BOOL IsRectEmpty (LPRECT)))
 
   (define fill-rect (c-function user32 int FillRect (HDC LPRECT HBRUSH)))
@@ -1182,4 +1191,40 @@
   (define set-sys-colors
     ;; int, CONST INT *, CONST COLORREF *
     (c-function user32 BOOL SetSysColors (int void* void*)))
+
+  ;; scroll bar
+  (define-c-struct SCROLLINFO
+    (UINT cbSize)
+    (UINT fMask)
+    (int  nMin)
+    (int  nMax)
+    (UINT nPage)
+    (int  nPos)
+    (int  nTrackPos))
+  (define-constant LPCSCROLLINFO void*)
+
+  (define-constant SIF_RANGE #x0001)
+  (define-constant SIF_PAGE #x0002)
+  (define-constant SIF_POS #x0004)
+  (define-constant SIF_DISABLENOSCROLL #x0008)
+  (define-constant SIF_TRACKPOS #x0010)
+  (define-constant SIF_ALL (bitwise-ior SIF_RANGE 
+					SIF_PAGE 
+					SIF_POS 
+					SIF_TRACKPOS))
+
+  (define-constant SW_SCROLLCHILDREN #x0001)
+  (define-constant SW_INVALIDATE #x0002)
+  (define-constant SW_ERASE #x0004)
+  (define-constant SW_SMOOTHSCROLL #x0010)
+
+  (define get-scroll-info 
+    (c-function user32 BOOL GetScrollInfo (HWND int LPCSCROLLINFO)))
+
+  (define set-scroll-info 
+    (c-function user32 int SetScrollInfo (HWND int LPCSCROLLINFO BOOL)))
+  (define scroll-window-ex
+    (c-function user32 int ScrollWindowEx
+		(HWND int int LPRECT LPRECT HRGN LPRECT UINT)))
+
 )
