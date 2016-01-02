@@ -79,8 +79,9 @@
 	   1))
 	((= imsg WM_CLOSE) 
 	 (let ((w (win32-get-component hwnd)))
-	   (if (and w (win32-handle-event 
-		       (make-win32-event w 'close wparam lparam)))
+	   (if (and w (or (not (win32-has-event? w 'close))
+			  (win32-handle-event 
+			   (make-win32-event w 'close wparam lparam))))
 	       (destroy-window hwnd)
 	       1)))
 	((= imsg WM_DESTROY)

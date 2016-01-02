@@ -345,7 +345,8 @@
 (define win32-default-text-view-class
   (let ((c (make <win32-window-class>
 	     :name *win32-default-text-view-class-name*
-	     :window-proc *text-view-proc*)))
+	     :window-proc *text-view-proc*
+	     :cursor (load-cursor null-pointer IDC_IBEAM))))
     (win32-register-class c)))
 
 ;; text-view buffer

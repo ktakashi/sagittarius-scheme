@@ -48,6 +48,7 @@
 	    win32-post-event! win32-send-event!
 	    <win32-event-aware>  win32-event-aware?
 	    win32-set-event-handler! win32-handle-event
+	    win32-has-event?
 
 	    <win32-positionable>
 	    <win32-sizable>
@@ -91,7 +92,8 @@
       (wnd-set! hIcon (~ window-class 'icon))
       (wnd-set! hCursor (~ window-class 'cursor))
       (wnd-set! cbClsExtra (~ window-class 'class-extra))
-      (wnd-set! cbWndExtra (~ window-class 'window-extra))
+      ;; we always store one pointer to window so add extra
+      (wnd-set! cbWndExtra (+ (~ window-class 'window-extra) size-of-void*))
       (wnd-set! hbrBackground (~ window-class 'background))
       (wnd-set! lpszClassName (~ window-class 'name))
       (wnd-set! lpszMenuName  (~ window-class 'menu-name))
@@ -172,6 +174,9 @@
 		 (lambda (p) (p c m (~ e 'wparam) (~ e 'lparam))))
 		(else #f)))
 	#f)))
+(define (win32-has-event? event-aware event)
+  (let ((handlers (~ c 'handlers)))
+    (hashtable-contains c event)))
 
 ;; interface
 ;; the registering event can be both message itself or symbol
@@ -385,10 +390,11 @@
 				(HWND UINT WPARAM LPARAM) default-button-proc))
 		   (orig (c-struct-ref w WNDCLASSEX 'lpfnWndProc)))
 	       ;;(c-struct-set! w WNDCLASSEX 'lpfnWndProc callback)
-	       ;;(c-struct-set! w WNDCLASSEX 'lpszClassName *win32-default-button-class-name*)
+	       ;;(c-struct-set! w WNDCLASSEX 'lpszClassName new-name)
 	       ;;(register-class-ex w)
 	       ;;(values orig #f)
 	       ;; TODO should we do like above for efficiency?
+	       ;;      if we need to do it then cbWndExtra should be increased
 	       (values 
 		(c-struct-ref w WNDCLASSEX 'lpfnWndProc)
 		(wndclassex->win32-window-class new-name callback w)))))
