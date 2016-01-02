@@ -175,8 +175,8 @@
 		(else #f)))
 	#f)))
 (define (win32-has-event? event-aware event)
-  (let ((handlers (~ c 'handlers)))
-    (hashtable-contains c event)))
+  (let ((handlers (~ event-aware 'handlers)))
+    (hashtable-contains? handlers event)))
 
 ;; interface
 ;; the registering event can be both message itself or symbol

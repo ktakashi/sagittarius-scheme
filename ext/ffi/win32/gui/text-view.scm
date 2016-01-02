@@ -173,8 +173,8 @@
       (when (<= first last)
 	(do ((i first (+ i 1)))
 	    ((>= i last))
-	  (paint-line text-view hdc i)))
-      (end-paint hwnd ps))))
+	  (paint-line text-view hdc i))))
+    (end-paint hwnd ps)))
 
 (define (setup-scroll-bars text-view)
   (let ((si (allocate-c-struct SCROLLINFO)))
