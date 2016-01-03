@@ -320,7 +320,6 @@
 (define (->short n)
   ;; FIXME this sucks!
   (let ((bv (uinteger->bytevector n 2)))
-    (display bv) (newline)
     (bytevector-s16-ref bv 0 'big)))
 
 (define (default-text-view-proc hwnd imsg wparam lparam)
