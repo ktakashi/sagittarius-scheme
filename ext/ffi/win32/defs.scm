@@ -43,7 +43,7 @@
 	    INT PINT LPINT UINT PUINT LPUINT
 	    INT_PTR PINT_PTR UINT_PTR PUINT_PTR
 	    DWORD PDWORD LPDWORD
-	    LPVOID PCVOID LPCVOID
+	    LPVOID PCVOID LPCVOID PVOID
 	    LONG PLONG LONG_PTR PLONG_PTR ULONG_PTR PULONG_PTR 
 	    SIZE_T PSIZE_T SSIZE_T PSSIZE_T
 	    DWORD_PTR PDWORD_PTR LONG64 PLONG64
@@ -96,7 +96,7 @@
   ;; dword
   (define-c-typedef unsigned-long DWORD (* PDWORD) (* LPDWORD))
   ;; VOID
-  (define-c-typedef void* (* LPVOID) (* PCVOID) (LPCVOID))
+  (define-c-typedef void* (* LPVOID) (* PCVOID) (LPCVOID) (* PVOID))
   ;; long
   (define-c-typedef long LONG (* PLONG))
   (define-c-typedef void* LONG_PTR (* PLONG_PTR))

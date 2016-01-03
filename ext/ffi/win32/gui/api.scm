@@ -39,6 +39,7 @@
 	    win32-before-drawing
 	    win32-generate-unique-id ;; util
 	    win32-loword win32-hiword
+	    win32-require-hwnd
 
 	    <win32-window-class> win32-window-class?
 	    make-win32-window-class
@@ -243,6 +244,8 @@
    (style :init-keyword :style :init-value WS_VISIBLE)
    (hinstance :init-keyword :hinstance :init-value +hinstance+)
    (hmenu :init-keyword :hmenu :init-value #f)
+   ;; if hwnd is required but called before it's created
+   (action-queue :init-value '())
    (lock  :init-form (make-mutex))))
 
 (define (win32-component? o) (is-a? o <win32-component>))
@@ -266,7 +269,12 @@
 		 (~ o 'hinstance)
 		 ;; pass self to wndproc's lparam
 		 (object->pointer o))))
-    (set! (~ o 'hwnd) hwnd)))
+    (set! (~ o 'hwnd) hwnd)
+    ;; ok invoke queue
+    (let loop ()
+      (unless (null? (~ o 'action-queue))
+	((pop! (~ o 'action-queue)))
+	(loop)))))
 
 (define-method win32-show ((o <win32-component>))
   (let ((hwnd (or (~ o 'hwnd)
@@ -277,6 +285,14 @@
     (update-window hwnd)))
 
 (define-method object-apply ((o <win32-component>)) (win32-show o))
+
+(define-syntax win32-require-hwnd
+  (syntax-rules ()
+    ((_ c expr ...)
+     (let ((cm c))
+       (if (~ cm 'hwnd)
+	   (begin expr ...)
+	   (push! (~ cm 'action-queue) (lambda () expr ...)))))))
 
 (define-class <win32-container> (<win32-component>)
   ((components :init-keyword :components :init-value '())))
@@ -386,6 +402,9 @@
 		 #t)
 	       #f)))
 	;; should we handle WM_MOVE?
+	((= imsg WM_SETFOCUS)
+	 (let ((w (win32-get-component hwnd)))
+	   (win32-handle-event (make-win32-event w 'focus wparam lparam))))
 	;; TODO add more
 	(else #f)))
 

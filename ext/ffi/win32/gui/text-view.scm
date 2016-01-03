@@ -308,6 +308,21 @@
       (setup-scroll-bars text-view))
     0))
 
+(define (handle-mouse-wheel text-view delta)
+  (define wheel-delta 120) ;; from MSDN
+  (let ((scroll-lines (empty-pointer)))
+    (system-parameters-info SPI_GETWHEELSCROLLLINES 0 (address scroll-lines) 0)
+    (let* ((lines (pointer->integer scroll-lines))
+	   (n (if (<= lines 1) 3 lines)))
+      (scroll text-view 0 (* (div (- delta) wheel-delta) n))
+      0)))
+
+(define (->short n)
+  ;; FIXME this sucks!
+  (let ((bv (uinteger->bytevector n 2)))
+    (display bv) (newline)
+    (bytevector-s16-ref bv 0 'big)))
+
 (define (default-text-view-proc hwnd imsg wparam lparam)
   (cond ((= imsg WM_NCCREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
@@ -334,9 +349,12 @@
 	((= imsg WM_HSCROLL)
 	 (handle-hscroll (win32-get-component hwnd)
 			 (win32-loword wparam)
-			 (win32-hiword wparam))
-	 1)
-	((= imsg WM_MOUSEWHEEL) 1)
+			 (win32-hiword wparam)))
+	((= imsg WM_MOUSEWHEEL)
+	 (handle-mouse-wheel (win32-get-component hwnd)
+			     ;; we need to consider negative value
+			     ;; of wparam 
+			     (->short (win32-hiword wparam))))
 	((win32-common-dispatch hwnd imsg wparam lparam) 1)
 	(else (def-window-proc hwnd imsg wparam lparam))))
 
@@ -346,6 +364,7 @@
   (let ((c (make <win32-window-class>
 	     :name *win32-default-text-view-class-name*
 	     :window-proc *text-view-proc*
+	     :background null-pointer ;; no flickering for us
 	     :cursor (load-cursor null-pointer IDC_IBEAM))))
     (win32-register-class c)))
 
