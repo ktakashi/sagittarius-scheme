@@ -62,7 +62,8 @@
    (horizontal-scroll-position :init-value 0)
    (vertical-scroll-position :init-value 0)
    (horizontal-scroll-max :init-value 0)
-   (vertical-scroll-max :init-value 0)))
+   (vertical-scroll-max :init-value 0)
+   (tab-width :init-keyword :tab-width :init-value 8)))
 (define (win32-text-view? o) (is-a? o <win32-text-view>))
 (define (make-win32-text-view . opt) (apply make <win32-text-view> opt))
 
@@ -116,7 +117,7 @@
 
 (define (tabbed-ext-text-out text-view hdc rect buf)
   (define font-width (~ text-view 'font-width))
-  (let ((tab (integer->pointer (* font-width 4))) ;; tab = 4?
+  (let ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
 	(fill (allocate-c-struct RECT))
 	(left (c-struct-ref rect RECT 'left)))
     (c-memcpy fill 0 rect 0 (size-of-c-struct RECT))
@@ -318,9 +319,9 @@
       0)))
 
 (define (->short n)
-  ;; FIXME this sucks!
-  (let ((bv (uinteger->bytevector n 2)))
-    (bytevector-s16-ref bv 0 'big)))
+  (if (> n #x7FFF)
+      (- n #x10000)
+      n))
 
 (define (default-text-view-proc hwnd imsg wparam lparam)
   (cond ((= imsg WM_NCCREATE)
