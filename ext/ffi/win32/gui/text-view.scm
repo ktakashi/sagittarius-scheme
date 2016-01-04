@@ -63,7 +63,8 @@
    (vertical-scroll-position :init-value 0)
    (horizontal-scroll-max :init-value 0)
    (vertical-scroll-max :init-value 0)
-   (tab-width :init-keyword :tab-width :init-value 8)))
+   (tab-width :init-keyword :tab-width :init-value 8)
+   (filename :init-keyword :filename :init-value #f)))
 (define (win32-text-view? o) (is-a? o <win32-text-view>))
 (define (make-win32-text-view . opt) (apply make <win32-text-view> opt))
 
@@ -78,7 +79,7 @@
   (set! (~ t 'name) "")
   (set! (~ t 'value) (make <win32-text-view-buffer>))
   (win32-set-event-handler! t 'file-open handle-open-file)
-  (and-let* ((file (get-keyword :filename initargs #f)))
+  (and-let* ((file (~ t 'filename)))
     (load-file t file))
   t)
 
@@ -115,26 +116,43 @@
 		 (c-struct-ref r RECT 'bottom))
     (refresh-window text-view)))
 
-(define (tabbed-ext-text-out text-view hdc rect buf)
-  (define font-width (~ text-view 'font-width))
-  (let ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
-	(fill (allocate-c-struct RECT))
-	(left (c-struct-ref rect RECT 'left)))
-    (c-memcpy fill 0 rect 0 (size-of-c-struct RECT))
-    ;; draw line and expand tabs
-    (let ((w (tabbed-text-out hdc 
-			      left
-			      (c-struct-ref rect RECT 'top)
-			      buf
-			      (string-length buf)
-			      1
-			      (address tab)
-			      left)))
-      ;; erase the rest of the line with background color
-      (c-struct-set! fill RECT 'left (+ left (win32-loword w)))
-      (ext-text-out hdc 0 0 ETO_OPAQUE fill null-pointer 0 0))))
+(define (get-color text-view type)
+  (case type
+    ((background) (get-sys-color COLOR_WINDOW))
+    ((text) (get-sys-color COLOR_WINDOWTEXT))
+    (else null-pointer)))
 
 (define (handle-paint text-view) 
+  (define (text-out text-view hdc rect chunk attr)
+    (define font-width (~ text-view 'font-width))
+    ;; set colours
+    (set-text-color hdc (get-color text-view 'text))
+    (set-bk-color hdc (get-color text-view 'background))
+    ;; should we do it here?
+    (select-object hdc (~ text-view 'font))
+    (let ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
+	  (left (c-struct-ref rect RECT 'left)))
+      ;; draw line and expand tabs
+      (let ((w (tabbed-text-out hdc
+				left
+				(c-struct-ref rect RECT 'top)
+				chunk
+				(string-length chunk)
+				1
+				(address tab)
+				left)))
+	(+ left (win32-loword w)))))
+  ;; Draw a line of text into the view
+  (define (plain-text text-view hdc line-no rect)
+    ;; TODO chop off the line according to the regex or something
+    ;;      to do syntax highlighting
+    (let ((line (win32-text-view-buffer-line (~ text-view 'value) line-no)))
+      (let ((left (text-out text-view hdc rect line #f))
+	    (fill (allocate-c-struct RECT)))
+	;; erase the rest of the line with background color
+	(c-memcpy fill 0 rect 0 (size-of-c-struct RECT))
+	(c-struct-set! fill RECT 'left left)
+	(ext-text-out hdc 0 0 ETO_OPAQUE fill null-pointer 0 0))))
 
   (define (paint-line text-view hdc line-no)
     (define hwnd (~ text-view 'hwnd))
@@ -152,18 +170,13 @@
       (if (>= line-no (win32-text-view-buffer-size (~ text-view 'value)))
 	  (begin
 	    ;; for now
-	    (set-bk-color hdc (get-sys-color COLOR_WINDOW))
+	    (set-bk-color hdc (get-color text-view 'background))
 	    (ext-text-out hdc 0 0 ETO_OPAQUE rect null-pointer 0 0))
-	  (let ((line (win32-text-view-buffer-line 
-		       (~ text-view 'value) line-no)))
-	    (set-text-color hdc (get-sys-color COLOR_WINDOWTEXT))
-	    (set-bk-color hdc (get-sys-color COLOR_WINDOW))
-	    (tabbed-ext-text-out text-view hdc rect line)))))
+	  (plain-text text-view hdc line-no rect))))
 
   (let ((ps (allocate-c-struct PAINTSTRUCT))
 	(hwnd (~ text-view 'hwnd)))
     (begin-paint hwnd ps)
-    (select-object (c-struct-ref ps PAINTSTRUCT 'hdc) (~ text-view 'font))
     (let* ((height (~ text-view 'font-height))
 	   (hdc (c-struct-ref ps PAINTSTRUCT 'hdc))
 	   (vpos (~ text-view 'vertical-scroll-position))
