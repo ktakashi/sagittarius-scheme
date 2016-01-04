@@ -105,6 +105,12 @@
 	    scroll-window-ex
 
 	    system-parameters-info
+	    create-caret
+	    show-caret
+	    hide-caret
+	    destroy-caret
+	    set-caret-pos
+	    get-caret-pos
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -1492,5 +1498,24 @@
   (define-constant SPI_GETGESTUREVISUALIZATION #x201a)
   (define-constant SPI_SETGESTUREVISUALIZATION #x201b)
   ;; #endif
+
+  (define-constant MA_ACTIVATE 1)
+  (define-constant MA_ACTIVATEANDEAT 2)
+  (define-constant MA_NOACTIVATE 3)
+  (define-constant MA_NOACTIVATEANDEAT 4)
+
+
+  (define create-caret
+    (c-function user32 BOOL CreateCaret (HWND HBITMAP int int)))
+  (define show-caret
+    (c-function user32 BOOL ShowCaret (HWND)))
+  (define hide-caret
+    (c-function user32 BOOL HideCaret (HWND)))
+  (define destroy-caret
+    (c-function user32 BOOL DestroyCaret()))
+  (define set-caret-pos
+    (c-function user32 BOOL SetCaretPos (int int)))
+  (define get-caret-pos
+    (c-function user32 BOOL GetCaretPos (LPPOINT)))
 
 )

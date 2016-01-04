@@ -64,6 +64,10 @@
    (horizontal-scroll-max :init-value 0)
    (vertical-scroll-max :init-value 0)
    (tab-width :init-keyword :tab-width :init-value 8)
+   (mouse-down :init-value #f)
+   (selection-start :init-value 0)
+   (selection-end :init-value 0)
+   (cursor-offset :init-value 0)
    (filename :init-keyword :filename :init-value #f)))
 (define (win32-text-view? o) (is-a? o <win32-text-view>))
 (define (make-win32-text-view . opt) (apply make <win32-text-view> opt))
@@ -90,18 +94,21 @@
   ;; TODO better implementation
   (call-with-input-file file
     (lambda (in)
-      (let loop ((lines '()) (longest 0) (size 0))
+      (let loop ((lines '()) (longest 0) (size 0) (total 0))
 	(let ((line (read-line in)))
 	  (if (eof-object? line)
 	      (let ((buffer (~ text-view 'value)))
-		(set! (~ buffer 'size) size)
+		(set! (~ buffer 'size) total)
+		(set! (~ buffer 'count) size)
 		(set! (~ buffer 'lines) (reverse! lines))
 		(set! (~ buffer 'longest-line) longest)
 		;; :filename can be passed so we need to check this
 		(when (~ text-view 'hwnd) (update-metrics text-view)))
-	      (loop (cons line lines)
-		    (max (string-length line) longest)
-		    (+ size 1))))))))
+	      (let ((len (string-length line)))
+		(loop (cons line lines)
+		      (max len longest)
+		      (+ size 1)
+		      (+ len total)))))))))
 (define (handle-open-file text-view message wparam lparam)
   (when lparam
     (let ((s (pointer->object lparam)))
@@ -167,7 +174,7 @@
 	(c-struct-set! rect RECT 'left (* (- hpos) font-width))
 	(c-struct-set! rect RECT 'top top)
 	(c-struct-set! rect RECT 'bottom (+ top font-height)))
-      (if (>= line-no (win32-text-view-buffer-size (~ text-view 'value)))
+      (if (>= line-no (win32-text-view-buffer-line-count (~ text-view 'value)))
 	  (begin
 	    ;; for now
 	    (set-bk-color hdc (get-color text-view 'background))
@@ -200,7 +207,7 @@
     (c-struct-set! si SCROLLINFO 'nPage (~ text-view 'window-lines))
     (c-struct-set! si SCROLLINFO 'nMin 0)
     (c-struct-set! si SCROLLINFO 'nMax 
-		   (- (win32-text-view-buffer-size (~ text-view 'value)) 1))
+		   (- (win32-text-view-buffer-line-count (~ text-view 'value)) 1))
     (set-scroll-info (~ text-view 'hwnd) SB_VERT si #t)
     ;; horizontal scroll bar
     (c-struct-set! si SCROLLINFO 'nPos 
@@ -213,7 +220,7 @@
     
     ;; adjust
     (set! (~ text-view 'vertical-scroll-max)
-	  (- (win32-text-view-buffer-size (~ text-view 'value)) 
+	  (- (win32-text-view-buffer-line-count (~ text-view 'value)) 
 	     (~ text-view 'window-lines)))
     (set! (~ text-view 'horizontal-scroll-max)
 	  (- (win32-text-view-buffer-longest-line (~ text-view 'value)) 
@@ -226,11 +233,11 @@
 	      (win32-text-view-buffer-longest-line (~ text-view 'value))))
 	  ((> (+ (~ text-view 'vertical-scroll-position)
 		 (~ text-view 'window-lines))
-	      (win32-text-view-buffer-size (~ text-view 'value))))
+	      (win32-text-view-buffer-line-count (~ text-view 'value))))
 	  (else #f)))
   ;; TODO left margin?
   (let ((lines (min (div height (~ text-view 'font-height))
-		    (win32-text-view-buffer-size (~ text-view 'value))))
+		    (win32-text-view-buffer-line-count (~ text-view 'value))))
 	(columns (min (div width (~ text-view 'font-width))
 		      (win32-text-view-buffer-longest-line 
 		       (~ text-view 'value)))))
@@ -336,6 +343,91 @@
       (- n #x10000)
       n))
 
+(define (handle-mouse-activate text-view hwnd hit-test message)
+  (set-focus (~ text-view 'hwnd))
+  MA_ACTIVATE)
+
+(define (mouse-coord-to-file-pos text-view mx my)
+  ;; do it later
+  (values 0 0 0 0)
+  ;;(define font-height (~ text-view 'font-height))
+  #;
+  (let ((rect (allocate-c-struct RECT)))
+    (get-client-rect (~ text-view 'hwnd) rect)
+    (let ((bottom (- (mod (c-struct-ref rect RECT 'bottom) font-height)))
+	  (right (c-struct-ref rect RECT 'right)))
+      ;;(c-struct-set! rect RECT 'bottom bottom)
+      (let ((mx (cond ((> mx right) (- right 1))
+		      ((< mx 0) 0)
+		      (else mx)))
+	    (my (cond ((> my bottom) (- right 1))
+		      ((< my 0) 0)
+		      (else my)))
+	    (buf (~ text-view 'value)))
+	(let-values (((line-no end?)
+		      (let ((n (+ (div my font-height) 
+				  (~ text-view 'vertical-scroll-position)))
+			    (size (win32-text-view-buffer-line-count buf)))
+			(if (>= n size)
+			    (values (if (zero? size) 0 (- size 1)) #t)
+			    (values n #f)))))
+	  (let ((line (win32-text-view-buffer-line buf line-no))
+		(size (allocate-c-struct SIZE))
+		(hdc (get-dc (~ text-view 'hwnd))))
+	    (get-text-extend-point-32 hdc line (string-length line) size)
+	    (let ((cx (c-struct-ref size SIZE 'cx))
+		  (cy (c-struct-ref size SIZE 'cy)))
+	      )))))))
+	  
+    
+
+(define (handle-lbutton-down text-view flags mx my)
+  (let-values (((line-no char-off file-off px) 
+		(mouse-coord-to-file-pos text-view mx my)))
+    (set-caret-pos mx my)
+    #;(set-caret-pos px (* (- line-no (~ text-view 'vertical-scroll-position))
+			 (~ text-view 'font-height)))
+    (set! (~ text-view 'mouse-down) #t)
+    (set! (~ text-view 'selection-start) file-off)
+    (set! (~ text-view 'selection-end) file-off)
+    (set! (~ text-view 'cursor-offset) file-off)
+    (set-capture (~ text-view 'hwnd))
+    (refresh-window text-view)
+    0))
+
+(define (handle-lbutton-up text-view flags mx my)
+  (when (~ text-view 'mouse-down)
+    (set! (~ text-view 'mouse-down) #f)
+    (release-capture)
+    (refresh-window text-view))
+  0)
+
+(define (handle-mouse-move text-view flags mx my)
+  (when (~ text-view 'mouse-down)
+    (let-values (((line-no char-off file-off px) 
+		  (mouse-coord-to-file-pos text-view mx my)))
+      (unless (= (~ text-view 'selection-end) file-off)
+	;; (invalidate-range text-view (~ text-view 'selection-end) file-off)
+	(set-caret-pos px (* (- line-no (~ text-view 'vertical-scroll-position))
+			     (~ text-view 'font-height)))
+	(set! (~ text-view 'selection-end) file-off)
+	(set! (~ text-view 'cursor-offset) file-off))))
+  0)
+
+(define (handle-set-focus text-view hwnd-old)
+  (define hwnd (~ text-view 'hwnd))
+  (create-caret hwnd null-pointer 2 (~ text-view 'font-height))
+  ;; (reposition-caret text-view) ;; TODO
+  (show-caret hwnd)
+  (refresh-window text-view)
+  0)
+
+(define (handle-kill-focus text-view hwnd-old)
+  (hide-caret (~ text-view 'hwnd))
+  (destroy-caret)
+  (refresh-window text-view)
+  0)
+
 (define (default-text-view-proc hwnd imsg wparam lparam)
   (cond ((= imsg WM_NCCREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
@@ -368,6 +460,36 @@
 			     ;; we need to consider negative value
 			     ;; of wparam 
 			     (->short (win32-hiword wparam))))
+	((= imsg WM_MOUSEACTIVATE)
+	 (let ((l (pointer->integer lparam)))
+	   (handle-mouse-activate (win32-get-component hwnd)
+				  (integer->pointer wparam)
+				  (win32-loword l)
+				  (win32-hiword l))))
+	((= imsg WM_SETFOCUS)
+	 (handle-set-focus (win32-get-component hwnd)
+			   (integer->pointer wparam)))
+	((= imsg WM_KILLFOCUS)
+	 (handle-kill-focus (win32-get-component hwnd)
+			   (integer->pointer wparam)))
+	((= imsg WM_LBUTTONDOWN)
+	 (let ((l (pointer->integer lparam)))
+	   (handle-lbutton-down (win32-get-component hwnd)
+				wparam
+				(->short (win32-loword l))
+				(->short (win32-hiword l)))))
+	((= imsg WM_LBUTTONUP)
+	 (let ((l (pointer->integer lparam)))
+	   (handle-lbutton-up (win32-get-component hwnd)
+			      wparam
+			      (->short (win32-loword l))
+			      (->short (win32-hiword l)))))
+	((= imsg WM_MOUSEMOVE)
+	 (let ((l (pointer->integer lparam)))
+	   (handle-mouse-move (win32-get-component hwnd)
+			      wparam
+			      (->short (win32-loword l))
+			      (->short (win32-hiword l)))))
 	((win32-common-dispatch hwnd imsg wparam lparam) 1)
 	(else (def-window-proc hwnd imsg wparam lparam))))
 
@@ -384,11 +506,13 @@
 ;; text-view buffer
 ;; TODO proper implementation
 (define-class <win32-text-view-buffer> ()
-  ((size :init-keyword :size :init-value 0)
+  ((count :init-keyword :count :init-value 0)
    (longest-line :init-keyword :longest-line :init-value 0)
-   (lines :init-keyword :lines :init-value '())))
-(define (win32-text-view-buffer-size b) (~ b 'size))
+   (lines :init-keyword :lines :init-value '())
+   (size :init-keyword :size :init-value 0)))
+(define (win32-text-view-buffer-line-count b) (~ b 'count))
 (define (win32-text-view-buffer-longest-line b) (~ b 'longest-line))
 (define (win32-text-view-buffer-line b n) (list-ref (~ b 'lines) n))
+(define (win32-text-view-buffer-size b) (~ b 'size))
 )
     
