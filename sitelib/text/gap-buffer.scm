@@ -238,8 +238,11 @@
 (define (gap-buffer-delete! gb size)
   (unless (= (gb-point gb) (gap-buffer-gap-start gb))
     (%move-gap-to-point! gb))
-  (gb-gap-end-set! gb (+ (gap-buffer-gap-end gb) size))
-  gb)
+  (let ((newend (+ (gap-buffer-gap-end gb) size)))
+    (when (< (vector-length (gb-buffer gb)) newend)
+      (error 'gap-buffer-delete! "deletion size too big" size))
+    (gb-gap-end-set! gb newend)
+    gb))
 
 ;; change! delete size and insert content
 (define (gap-buffer-raw-change! gb size content)
