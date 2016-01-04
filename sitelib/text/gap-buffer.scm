@@ -179,9 +179,11 @@
        (if (pred content)
 	   (let ((p (gb-point gb))
 		 (s (gap-buffer-gap-start gb))
-		 (e (gap-buffer-gap-end gb)))
+		 (e (gap-buffer-gap-end gb))
+		 (l (length content)))
 	     (cond ((not (= p s)) (name (%move-gap-to-point! gb) content))
-		   ((= s e) (name (%expand-gap! gb (length content)) content))
+		   ((> l (- e s))
+		    (name (%expand-gap! gb (length content)) content))
 		   (else
 		    ;; insert it
 		    (let ((buf (gb-buffer gb))
@@ -236,7 +238,8 @@
 (define (gap-buffer-delete! gb size)
   (unless (= (gb-point gb) (gap-buffer-gap-start gb))
     (%move-gap-to-point! gb))
-  (gb-gap-end-set! gb (+ (gap-buffer-gap-end gb) size)))
+  (gb-gap-end-set! gb (+ (gap-buffer-gap-end gb) size))
+  gb)
 
 ;; change! delete size and insert content
 (define (gap-buffer-raw-change! gb size content)
