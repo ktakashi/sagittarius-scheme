@@ -58,17 +58,19 @@
 (library (text gap-buffer)
     (export <gap-buffer> make-gap-buffer gap-buffer?
 	    gap-buffer-copy
-	    ;; binary-file->gap-buffer ;; need to ponder
-	    text-file->gap-buffer
+	    file->gap-buffer
 	    string->gap-buffer
 
 	    ;; TODO should we export raw procedures?
 	    ;; API names are taken from Gauche
-	    gap-buffer-content-length  ; gap-buffer-raw-content-length
+	    gap-buffer-gap-start
+	    gap-buffer-gap-end
+	    gap-buffer-capacity
+	    gap-buffer-content-length
 	    gap-buffer-ref	  ; gap-buffer-raw-ref
 	    gap-buffer-insert!		; gap-buffer-raw-insert!
-	    gap-buffer-move!		; gap-buffer-raw-move!
-	    gap-buffer-delete!		; gap-buffer-raw-delete!
+	    gap-buffer-move!
+	    gap-buffer-delete!
 	    gap-buffer-change!		; gap-buffer-raw-change!
 	    ;; these doesn't have raw procedure
 	    gap-buffer-clear!
@@ -77,10 +79,12 @@
 	    gap-buffer->string		; gap-buffer->bytevector
 	    )
     (import (rnrs)
-	    (sagittarius))
+	    (sagittarius)
+	    (sagittarius control)
+	    (srfi :43)) ;; for vector-copy!
 
 (define-constant +default-gap-delta+ 8)
-(define (get-delta n) (expt 4 (- (bitwise-length n) 1)))
+(define (get-delta n) (expt 2 (bitwise-length n)))
 
 (define-record-type (<gap-buffer> make-gap-buffer gap-buffer?)
   (fields (immutable gap-delta gb-gap-delta) ;; internal
@@ -92,119 +96,123 @@
 	      (lambda (:optional (initial-capacity +default-gap-delta+)
 				 (gap-delta +default-gap-delta+))
 		;; make sure we have 2^2n buffer size
-		;; NB: creating bytevector is represents u32 thus
-		;;     size is multiple of 4
 		(let ((size (get-delta initial-capacity)))
 		  (p gap-delta 
 		     0
-		     (make-bytevector size)
+		     (make-vector size)
 		     0
 		     size))))))
 
-;; a bit of waste of memory. but for now it's ok
-(define (binary-file->gap-buffer file :optional (gap-delta +default-gap-delta+))
-  (let* ((size (file-size-in-bytes file))
-	(gb (make-gap-buffer size gap-delta)))
-    (let ((in (open-file-input-port file)))
-      (gb-gap-start-set! gb (get-bytevector-n! in (gb-buffer gb) 0 size))
-      (gb-point-set! gb (gap-buffer-gap-start gb))
-      (close-port in))
-    gb))
+;; TODO should we separate binary and text?
+(define (file->gap-buffer file
+			  :optional (pos 0) (whence 'end)
+				    (transcoder (native-transcoder))
+				    (gap-delta +default-gap-delta+))
+  (let-values (((get conv) (if transcoder 
+			       (values get-char char->integer)
+			       (values get-u8 values))))
+    (let* ((size (file-size-in-bytes file))
+	   (gb (make-gap-buffer size gap-delta))
+	   (in (open-file-input-port file (file-options no-fail)
+				     (buffer-mode buffer) transcoder))
+	   (buf (gb-buffer gb)))
+      (let loop ((u (get in)) (i 0))
+	(cond ((eof-object? u) 
+	       (gb-gap-start-set! gb i)
+	       (gb-point-set! gb i))
+	      (else
+	       (vector-set! buf i (conv u))
+	       (loop (get in) (+ i 1)))))
+      (close-port in)
+      (gap-buffer-move! gb pos whence))))
 
-;; TODO this isn't a good implementation.
-(define (text-file->gap-buffer file :optional (transcoder (native-transcoder))
-			       (gap-delta +default-gap-delta+))
-  (let ((s (call-with-input-file file get-string-all :transcoder transcoder)))
-    (string->gap-buffer s gap-delta)))
-
-;; again a bit of memory waste
-;; NB: we put string/character as UTF-32 big
-(define (string->gap-buffer s :optional (gap-delta +default-gap-delta+))
-  ;; this is less memory
-  (let* ((size (string-length s))
-	 (gb (make-gap-buffer (* size 4) gap-delta))
+;; API signature is taken from Gauche
+(define (string->gap-buffer s 
+			    :optional (pos 0) (whence 'end)
+				      (start 0) end
+				      (gap-delta +default-gap-delta+))
+  (let* ((end (if (undefined? end) (string-length s) end))
+	 (size (- end start))
+	 (gb (make-gap-buffer size gap-delta))
 	 (buf (gb-buffer gb)))
     (let loop ((i 0))
       (unless (= i size)
-	(bytevector-u32-set! buf (* i 4) (char->integer (string-ref s i)) 'big)
+	(vector-set! buf i (char->integer (string-ref s (+ i start))))
 	(loop (+ i 1))))
-    (gb-gap-start-set! gb (* size 4))
-    (gb-point-set! gb (gap-buffer-gap-start gb))
-    gb)
-  #;
-  (let* ((bv (string->utf32 s (endianness big)))
-	 (size (bytevector-length bv))
-	 (gb (make-gap-buffer size gap-delta)))
-    (bytevector-copy! bv 0 (gb-buffer gb) 0 size)
     (gb-gap-start-set! gb size)
-    gb))
+    (gb-point-set! gb size)
+    (gap-buffer-move! gb pos whence)))
 
-(define (gap-buffer-raw-content-length gb)
+(define (gap-buffer-capacity gb) (vector-length (gb-buffer gb)))
+
+(define (gap-buffer-content-length gb)
   (let* ((bv (gb-buffer gb))
-	 (len (bytevector-length bv))
+	 (len (vector-length bv))
 	 (start (gap-buffer-gap-start gb))
 	 (end (gap-buffer-gap-end gb)))
     (- len (- end start))))
 
 (define-syntax define-ref
   (syntax-rules ()
-    ((_ name ref offset)
+    ((_ name conv)
      (define (name gb index :optional fallback)
        (define (oob)
 	 (if (undefined? fallback)
 	     (error 'gap-buffer-raw-ref "index out of range" index)
 	     fallback))
-       (define (ret i) (ref (gb-buffer gb) i))
+       (define (ret i) (conv (vector-ref (gb-buffer gb) i)))
        (cond ((< index 0) (oob))
-	     ((< index (/ (gap-buffer-gap-start gb) offset))
-	      (ret (* index offset)))
-	     ((< index (/ (gap-buffer-raw-content-length gb) offset))
-	      ;; the ref procedure should handle offset
-	      (ret (* (+ index 
-			 (- (/ (gap-buffer-gap-end gb) offset)
-			    (/ (gap-buffer-gap-start gb) offset)))
-		      offset)))
+	     ((< index (gap-buffer-gap-start gb))
+	      (ret index))
+	     ((< index (gap-buffer-content-length gb))
+	      (ret (+ index (gap-buffer-gap-size gb))))
 	     (else (oob)))))))
 
-(define-ref gap-buffer-raw-ref bytevector-u8-ref 1)
-(define-ref gap-buffer-ref (lambda (b i) 
-			     (integer->char 
-			      (bytevector-u32-ref b i (endianness big)))) 4)
+(define-ref gap-buffer-raw-ref values)
+(define-ref gap-buffer-ref     integer->char)
 
-(define (gap-buffer-content-length gb) (/ (gap-buffer-raw-content-length gb) 4))
 
-;; content must be a bytevector
-;; TODO maybe we should allow u8 when we expose raw procedures
-(define (gap-buffer-raw-insert! gb content)
-  (let ((p (gb-point gb))
-	(s (gap-buffer-gap-start gb))
-	(e (gap-buffer-gap-end gb)))
-    (cond ((not (= p s))
-	   (gap-buffer-raw-insert! (%move-gap-to-point! gb) content))
-	  ((= s e) 
-	   (gap-buffer-raw-insert! (%expand-gap! gb (bytevector-length content))
-				   content))
-	  (else
-	   ;; insert it
-	   (let ((buf (gb-buffer gb))
-		 (len (bytevector-length content)))
-	     (bytevector-copy! content 0 buf s len)
-	     (gb-gap-start-set! gb (+ s len)))))))
+(define-syntax define-insert!
+  (syntax-rules ()
+    ((_ name pred ctr conv length ref)
+     (define (name gb content)
+       (if (pred content)
+	   (let ((p (gb-point gb))
+		 (s (gap-buffer-gap-start gb))
+		 (e (gap-buffer-gap-end gb)))
+	     (cond ((not (= p s)) (name (%move-gap-to-point! gb) content))
+		   ((= s e) (name (%expand-gap! gb (length content)) content))
+		   (else
+		    ;; insert it
+		    (let ((buf (gb-buffer gb))
+			  (len (length content)))
+		      (let loop ((i 0))
+			(unless (= i len)
+			  (vector-set! buf (+ i s) (conv (ref content i)))
+			  (loop (+ i 1))))
+		      (gb-gap-start-set! gb (+ s len))
+		      (gb-point-set! gb (+ s len))
+		      (%move-gap-to-point! gb)))))
+	   (name gb (ctr content)))))))
+(define (bytevector . args)
+  (let* ((len (length args))
+	 (bv (make-bytevector len 0)))
+    (let loop ((i 0) (args args))
+      (if (= i len)
+	  bv
+	  (let ((u8 (car args)))
+	    (bytevector-u8-set! bv i u8)
+	    (loop (+ i 1) (cdr args)))))))
+(define-insert! gap-buffer-raw-insert! bytevector? bytevector values
+  bytevector-length bytevector-u8-ref)
+(define-insert! gap-buffer-insert! string? string char->integer string-length
+  string-ref)
 
-;; content can be char/string
-;; the content will be UTF32 big
-(define (gap-buffer-insert! gb content)
-  (if (string? content)
-      (gap-buffer-raw-insert! gb (string->utf32 content (endianness big)))
-      ;; assume character
-      (gap-buffer-insert! gb (string content))))
-
-(define (gap-buffer-raw-move! gb offset :optional (whence 'beginning))
+(define (gap-buffer-move! gb offset :optional (whence 'beginning))
   (let ((p (case whence
 	     ((beginning) offset)
-	     ;; is current point?
-	     ((current) (+ (gb-point gb) offset))
-	     ((end) (+ offset (gap-buffer-raw-content-length gb)))
+	     ((current) (+ (gap-buffer-gap-start gb) offset))
+	     ((end) (+ offset (gap-buffer-content-length gb)))
 	     (else (assertion-violation 'gap-buffer-raw-move!
 		    "whence must be one of 'beginning 'current or 'end" 
 		    whence))))
@@ -217,44 +225,40 @@
 			  ;; TODO should we allow this by expanding buffer?
 			  (let* ((e (gap-buffer-gap-end gb))
 				 (r (+ p (- e s))))
-			    (when (> r (bytevector-length (gb-buffer gb)))
-			      (error 'gap-buffer-raw-move! "invalid offset" 
+			    (when (> r (vector-length (gb-buffer gb)))
+			      (error 'gap-buffer-move! "invalid offset" 
 				     offset whence))
 			    r)
-			  p))))
-
-(define (gap-buffer-move! gb offset :optional (whence 'beginning))
-  (gap-buffer-raw-move! gb (* offset 4) whence))
+			  p))
+    (%move-gap-to-point! gb)))
 
 ;; delete
-(define (gap-buffer-raw-delete! gb size)
+(define (gap-buffer-delete! gb size)
   (unless (= (gb-point gb) (gap-buffer-gap-start gb))
     (%move-gap-to-point! gb))
   (gb-gap-end-set! gb (+ (gap-buffer-gap-end gb) size)))
-(define (gap-buffer-delete! gb size) (gap-buffer-raw-delete! gb (* size 4)))
 
 ;; change! delete size and insert content
 (define (gap-buffer-raw-change! gb size content)
-  (gap-buffer-raw-delete! gb size)
+  (gap-buffer-delete! gb size)
   (gap-buffer-raw-insert! gb content))
 (define (gap-buffer-change! gb size content)
-  (if (string? content)
-      (gap-buffer-raw-change! gb size (string->utf32 content (endianness big)))
-      (gap-buffer-change! gb size (string content))))
+  (gap-buffer-delete! gb size)
+  (gap-buffer-insert! gb content))
 
 ;; clear
 (define (gap-buffer-clear! gb) 
   (gb-gap-start-set! gb 0) 
-  (gb-gap-end-set! gb (bytevector-length (gb-buffer gb))))
+  (gb-gap-end-set! gb (vector-length (gb-buffer gb))))
 
 ;; copy
 ;; we do rather awkwardly
 (define (gap-buffer-copy gb)
   (let* ((buf (gb-buffer gb))
-	 (len (bytevector-length buf))
+	 (len (vector-length buf))
 	 (delta (gb-gap-delta gb))
 	 (r (make-gap-buffer len delta)))
-    (bytevector-copy! buf 0 (gb-buffer r) 0 len)
+    (vector-copy! buf 0 (gb-buffer r) 0 len)
     (gb-point-set! r (gb-point gb))
     (gb-gap-start-set! r (gap-buffer-gap-start gb))
     (gb-gap-end-set! r (gap-buffer-gap-end gb))
@@ -263,18 +267,15 @@
 ;; converter
 ;; TODO do we want ->generator like Gauche?
 (define (gap-buffer->string gb :optional (start 0) (end +inf.0))
-  (let ((count (- (min (gap-buffer-content-length gb) end) start))
-	(gap-start (gap-buffer-gap-start gb))
-	(gap-skip (- (gap-buffer-gap-end gb) (gap-buffer-gap-start gb))))
+  (let ((count (- (min (gap-buffer-content-length gb) end) start)))
     (when (< count 0) 
       (assertion-violation 'gap-buffer->string "start is too large" start))
     (let-values (((out extract) (open-string-output-port)))
       (let loop ((index start))
-	(cond ((>= index count) (extract))
-	      ((< index gap-start)
+	(cond ((= index count) (extract))
+	      (else
 	       (put-char out (gap-buffer-ref gb index))
-	       (loop (+ index 1)))
-	      (else (loop (+ index gap-skip))))))))
+	       (loop (+ index 1))))))))
 
 ;; should we expose this?
 (define (gap-buffer-gap-size gb)
@@ -286,19 +287,26 @@
 (define (%expand-gap! gb size)
   (when (> size (gap-buffer-gap-size gb))
     (let* ((n (+ size (gb-gap-delta gb)))
+	   (obuf (vector-length (gb-buffer gb)))
 	   (buf (gb-buffer (%expand-gap-buffer! gb n)))
-	   (e (gap-buffer-gap-end gb)))
-      (bytevector-copy! buf (+ e n) buf e (- (bytevector-length buf) e))
-      (gb-gap-end-set! gb (+ e n))))
+	   (e (gap-buffer-gap-end gb))
+	   (s (gap-buffer-gap-start gb)))
+      ;; gap might be huge...
+      (let loop ((i (- (vector-length buf) 1)) (j (- obuf 1)))
+	(if (< j e)
+	    (gb-gap-end-set! gb (+ i 1))
+	    (begin
+	      (vector-set! buf i (vector-ref buf j))
+	      (loop (- i 1) (- j 1)))))))
   gb)
       
 (define (%expand-gap-buffer! gb size)
   (let* ((bv (gb-buffer gb))
-	 (len (bytevector-length bv)))
-    (when (> (+ len size) (gap-buffer-raw-content-length gb))
-      (let* ((new-size (get-delta (+ len size (gb-gap-delta gb))))
-	     (new-buffer (make-bytevector new-size 0)))
-	(bytevector-copy! new-buffer 0 bv 0 len)
+	 (len (vector-length bv)))
+    (when (> (+ len size) (gap-buffer-content-length gb))
+      (let* ((new-size (+ len size))
+	     (new-buffer (make-vector new-size)))
+	(vector-copy! new-buffer 0 bv 0 len)
 	(gb-buffer-set! gb new-buffer)))
     gb))
 
@@ -311,12 +319,12 @@
 	  ((< p s)
 	   ;; move gap towards the left
 	   (let ((buf (gb-buffer gb)))
-	     (bytevector-copy! buf p buf (+ p (- e s)) (- s p))
+	     (vector-copy! buf (+ p (- e s)) buf p s)
 	     (gb-gap-start-set! gb p)
 	     (gb-gap-end-set! gb (- e (- s p)))))
 	  (else
 	   (let ((buf (gb-buffer gb)))
-	     (bytevector-copy! buf e buf s (- p e))
+	     (vector-copy! buf s buf e p)
 	     (gb-gap-start-set! gb (+ s (- p e)))
 	     (gb-gap-end-set! gb p)
 	     (gb-point-set! gb (gap-buffer-gap-start gb)))))
