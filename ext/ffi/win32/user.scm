@@ -117,7 +117,7 @@
 	    (sagittarius ffi)
 	    (win32 defs))
 
-  (define user32 (open-shared-library "user32.dll"))
+  (define user32 (open-win32-module "user32.dll"))
   (define WNDPROC callback)
   (define-syntax define-constant
     (syntax-rules ()

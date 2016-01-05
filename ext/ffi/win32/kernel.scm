@@ -39,7 +39,7 @@
 	    (sagittarius ffi)
 	    (win32 defs))
 
-  (define kernel32 (open-shared-library "kernel32.dll"))
+  (define kernel32 (open-win32-module "kernel32.dll"))
 
   (define-c-struct FILETIME
     (DWORD dwLowDateTime)

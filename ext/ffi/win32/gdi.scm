@@ -111,7 +111,7 @@
   (define PTEXTMETRIC void*)
   (define LPTEXTMETRIC void*)
 
-  (define gdi32 (open-shared-library "gdi32.dll"))
+  (define gdi32 (open-win32-module "gdi32.dll"))
 
   (define-constant WHITE_BRUSH 0)
   (define-constant LTGRAY_BRUSH 1)

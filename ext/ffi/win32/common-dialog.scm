@@ -71,7 +71,7 @@
 	    (sagittarius)
 	    (sagittarius ffi)
 	    (win32 defs))
-  (define comdlg32 (open-shared-library "comdlg32.dll"))
+  (define comdlg32 (open-win32-module "comdlg32.dll"))
   
   (define __CDHOOKPROC callback)
   (define LPOFNHOOKPROC __CDHOOKPROC)

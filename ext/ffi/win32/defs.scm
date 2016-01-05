@@ -65,8 +65,13 @@
 	    POINTL PPOINTL LPPOINTL
 	    SIZE PSIZE LPSIZE
 	    SIZEL PSIZEL LPSIZEL
-	    POINTS PPOINTS LPPOINTS)
+	    POINTS PPOINTS LPPOINTS
+
+	    ;; for my sake
+	    open-win32-module
+	    )
     (import (core)
+	    (sagittarius) ;; for cond-expand
 	    (sagittarius ffi))
   ;; bool
   (define-c-typedef bool BOOL (* PBOOL) (* LPBOOL))
@@ -199,4 +204,11 @@
     (SHORT y))
   (define PPOINTS void*)
   (define LPPOINTS void*)
+
+  (define (open-win32-module name)
+    (open-shared-library
+     (cond-expand
+      (windows name)
+      (else (string-append name (shared-object-suffix))))
+     #t))
 )
