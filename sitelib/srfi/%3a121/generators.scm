@@ -29,8 +29,8 @@
 ;;;  
 
 (library (srfi :121 generators)
-    (export make-generator make-iota-generator make-range-generator 
-	    make-coroutine-generator make-bits-generator make-port-generator
+    (export generator make-iota-generator make-range-generator 
+	    make-coroutine-generator make-bits-generator
 	    make-for-each-generator make-unfold-generator
 	    
 
@@ -45,14 +45,14 @@
 	    generator->list generator->reverse-list
 	    generator->vector generator->vector!  generator->string
 	    generator-fold generator-for-each generator-find
-	    generator-length generator-count generator-any generator-every
+	    generator-count generator-any generator-every
 	    generator-unfold
 	    )
     (import (rnrs)
 	    (only (scheme base) read-line)
 	    (sagittarius generators))
 
-  (define (make-generator . args) (list->generator args))
+  (define (generator . args) (list->generator args))
   (define (make-iota-generator count . args) (apply giota count args))
   (define (make-range-generator start . args) (apply grange start args))
   (define make-coroutine-generator generate)
@@ -65,9 +65,6 @@
 	    (let ((set? (bitwise-bit-set? n k)))
 	      (set! k (+ k 1))
 	      set?)))))
-
-  (define (make-port-generator p :optional (reader read-line))
-    (lambda () (reader p)))
 
   (define (make-for-each-generator for-each coll)
     (generate (lambda (y) (for-each y coll))))
