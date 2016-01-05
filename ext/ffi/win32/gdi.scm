@@ -79,6 +79,8 @@
 	    set-bk-color
 	    ;; mode
 	    OPAQUE TRANSPARENT
+
+	    get-text-extend-point-32
 	    )
     (import (core)
 	    (core syntax)
@@ -193,4 +195,7 @@
   (define-constant ETO_IGNORELANGUAGE #x1000)
   (define-constant ETO_PDY #x2000)
   (define-constant ETO_REVERSE_INDEX_MAP #x10000)
+
+  (define get-text-extend-point-32
+    (c-function gdi32 BOOL GetTextExtentPoint32W (HDC LPCWSTR int LPSIZE)))
 )

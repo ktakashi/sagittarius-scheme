@@ -347,20 +347,23 @@
   (set-focus (~ text-view 'hwnd))
   MA_ACTIVATE)
 
+;; FIXME
+;; For now we assume the font has the same width (mono font)
+;; so that we can easily calculate tab width as well
 (define (mouse-coord-to-file-pos text-view mx my)
-  ;; do it later
-  (values 0 0 0 0)
-  ;;(define font-height (~ text-view 'font-height))
-  #;
+  (define font-height (~ text-view 'font-height))
+  (define font-width (~ text-view 'font-width))
+
   (let ((rect (allocate-c-struct RECT)))
     (get-client-rect (~ text-view 'hwnd) rect)
-    (let ((bottom (- (mod (c-struct-ref rect RECT 'bottom) font-height)))
-	  (right (c-struct-ref rect RECT 'right)))
+    (let* ((rb (c-struct-ref rect RECT 'bottom))
+	   (bottom (- rb (mod rb font-height)))
+	   (right (c-struct-ref rect RECT 'right)))
       ;;(c-struct-set! rect RECT 'bottom bottom)
       (let ((mx (cond ((> mx right) (- right 1))
 		      ((< mx 0) 0)
 		      (else mx)))
-	    (my (cond ((> my bottom) (- right 1))
+	    (my (cond ((> my bottom) (- bottom 1))
 		      ((< my 0) 0)
 		      (else my)))
 	    (buf (~ text-view 'value)))
@@ -371,21 +374,54 @@
 			(if (>= n size)
 			    (values (if (zero? size) 0 (- size 1)) #t)
 			    (values n #f)))))
-	  (let ((line (win32-text-view-buffer-line buf line-no))
-		(size (allocate-c-struct SIZE))
-		(hdc (get-dc (~ text-view 'hwnd))))
+	  (define (tab-count line len)
+	    (define (tab i) (if (eqv? #\tab (string-ref line i)) 1 0))
+	    (do ((i 0 (+ i 1)) (c 0 (+ c (tab i))))
+		((= i len) c)))
+	  (let* ((line (win32-text-view-buffer-line buf line-no))
+		 (len (string-length line))
+		 (tabs (tab-count line len))
+		 (cx (+ (* len font-width)
+			(* tabs (- (~ text-view 'tab-width) 1) font-width))))
+	    (if (> mx cx)
+		(values line-no len cx) ;; easy
+		;; need to calculate tab otherwise caret would be
+		;; in the middle of the tab...
+		;; TODO
+		(let ((off (mod mx font-width))
+		      (half (div font-width 2)))
+		  (values line-no 0 
+			  (if (> off half)
+			      (+ mx (- font-width off))
+			      (- mx off))))))
+	  ;; TODO in the end we may need this type of thing
+	  #;
+	  (let* ((line (win32-text-view-buffer-line buf line-no))
+		 (size (allocate-c-struct SIZE))
+		 (hdc (get-dc (~ text-view 'hwnd)))
+		 (old (select-object hdc (~ text-view 'font))))
 	    (get-text-extend-point-32 hdc line (string-length line) size)
+	    (select-object hdc old)
 	    (let ((cx (c-struct-ref size SIZE 'cx))
 		  (cy (c-struct-ref size SIZE 'cy)))
-	      )))))))
+	      (if (> mx cx)
+		  (begin
+		    (display mx) (display ":") (display cx) (newline)
+		    (values line-no 0 cx)
+		    )
+		  (let ((off (mod mx font-width))
+			(half (div font-width 2)))
+		    (values line-no 0 
+			    (if (> off half)
+				(+ mx (- font-width off))
+				(- mx off))))))))))))
 	  
     
 
 (define (handle-lbutton-down text-view flags mx my)
-  (let-values (((line-no char-off file-off px) 
+  (let-values (((line-no file-off px) 
 		(mouse-coord-to-file-pos text-view mx my)))
-    (set-caret-pos mx my)
-    #;(set-caret-pos px (* (- line-no (~ text-view 'vertical-scroll-position))
+    (set-caret-pos px (* (- line-no (~ text-view 'vertical-scroll-position))
 			 (~ text-view 'font-height)))
     (set! (~ text-view 'mouse-down) #t)
     (set! (~ text-view 'selection-start) file-off)
@@ -404,7 +440,7 @@
 
 (define (handle-mouse-move text-view flags mx my)
   (when (~ text-view 'mouse-down)
-    (let-values (((line-no char-off file-off px) 
+    (let-values (((line-no file-off px) 
 		  (mouse-coord-to-file-pos text-view mx my)))
       (unless (= (~ text-view 'selection-end) file-off)
 	;; (invalidate-range text-view (~ text-view 'selection-end) file-off)
