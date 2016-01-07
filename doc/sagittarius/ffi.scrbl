@@ -554,12 +554,14 @@ world.
 (@var{type} @var{name})
 (@var{type} @code{array} @var{size} @var{name})
 (@code{struct} @var{struct-name} @var{name})
+(@code{bit-field} @var{type} (@var{name} @var{bit}) @dots{})
+(@code{bit-field} (@var{type} @var{endian}) (@var{name} @var{bit}) @dots{})
 }
 @var{name} must be a symbol.
 
 The first form is the simple C type form. @var{type} must be a symbol and the
 same as one of the @code{c-function}'s @var{return-types} or @code{callback}.
-Following describes the equivalent C structure is like this;
+Following describes the concrete example and the equivalent C structure:
 @codeblock{
 (define-c-struct st
   (int foo)
@@ -574,7 +576,7 @@ struct st
 }
 
 The second form is defining C @var{type} array with @var{size}.
-Following describes the equivalent C structure is like this;
+Following describes the concrete example and the equivalent C structure:
 @codeblock{
 (define-c-struct st
   (int array 10 foo))
@@ -587,7 +589,7 @@ struct st
 }
 
 The third form is defining internal structure.
-Following describes the equivalent C structure is like this;
+Following describes the concrete example and the equivalent C structure:
 @codeblock{
 (define-c-struct st1
   (int array 10 foo))
@@ -608,6 +610,32 @@ struct st2
 }
 So far, we don't support direct internal structure so users always need to
 extract internal structures.
+
+The forth and fifth forms are bit fields. @var{type} must be an integer
+type such as @code{unsigned-int}. If the given @var{type} is not an integer,
+then @code{&assertion} is raised.
+
+Following describes the concrete example and the equivalent C structure:
+@codeblock{
+(define-c-struct st1
+  (bit-field unsigned-int (a 10) (b 20)))
+#|
+struct st1
+{
+  unsigned int a : 10;
+  unsigned int b : 20;
+};
+|#
+}
+If the fifth form is used, then @var{endian} must be an identifier which has
+valid name for @code{endianness} macro. Then the created structure packs
+the value according to the given @var{endian}.
+
+If the total amount of bits is greater than given @var{type}, then 
+@code{&assertion} is raised.
+
+NOTE: Even though, this can accept signed integer the returning value would
+not be signed. It is safe to specify unsigned type.
 
 @; If @var{:packed} keyword is given, then defined structure is packed (without
 @; padding).

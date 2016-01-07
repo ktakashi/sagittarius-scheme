@@ -593,6 +593,10 @@
 			     (d 4)
 			     (d 4)
 			     ))))
+  (test-error "not an integer" assertion-violation?
+	      (let ()
+		(define-c-struct foo
+		  (bit-field void* (a 10)))))
 
   (close-shared-library ffi-test-lib)
   )

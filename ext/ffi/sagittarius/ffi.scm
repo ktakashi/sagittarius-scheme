@@ -185,7 +185,7 @@
 
 	    ;; c-primitives
 	    void
-	    char short int long 
+	    char short int long
 	    ;; for some convenience
 	    (rename (short short-int)
 		    (char  unsigned-char)
@@ -320,12 +320,12 @@
       (wchar_t*           . #(,pointer-ref-c-wchar_t*           ,pointer-set-c-wchar_t*!            ,size-of-void*              ,align-of-void*             ))))
 
   (define (%type-procedure type pos)
-    (cond ((assq type %type-proc-table) => 
+    (cond ((assq type %type-proc-table) =>
 	   (lambda (v) (vector-ref (cdr v) pos)))
 	  ((c-struct? type)
 	   (case pos
-	     ((0 1 3) 
-	      (error 'type-procecure 
+	     ((0 1 3)
+	      (error 'type-procecure
 		     "ref/set!/align-of for c-struct is not supported" type))
 	     ((2) (size-of-c-struct type))
 	     (else (error 'type-procecure "invalid position" pos))))
@@ -424,7 +424,7 @@
       ;; underling process can handle 2 elements list as well
       ;; to avoid unnecessary allocation, we do like this.
       ((_ p) (list 'address p))
-      ((_ p offset) 
+      ((_ p offset)
        (if (and (fixnum? offset) (>= offset 0))
 	   (list 'address p offset)
 	   (error 'address "offset must be zero or positive fixnum" offset)))))
@@ -561,6 +561,7 @@
 		   ((and (eq? 'bit-field (car def))
 			 (memq (caddr def) '(big little))
 			 (bit-field-check (cdddr def))
+			 (memq (cadr def) c-function-integers)
 			 (assq (cadr def) c-function-return-type-alist))
 		    => (lambda (type)
 			 `(bit-field ,(cdr type) ,@(cddr def))))
@@ -602,19 +603,19 @@
 
 	  (((bit-field (type endian) (member bit) ...) rest ...)
 	   (build #'(rest ...)
-		  (cons (cons* #'list 'bit-field #'type 
+		  (cons (cons* #'list 'bit-field #'type
 			       #'(endianness endian)
 			       #'((list 'member bit) ...))
 			r)))
 	  (((bit-field type (member bit) ...) rest ...)
 	   (identifier? #'type)
 	   (build #'(rest ...)
-		  (cons (cons* #'list 'bit-field #'type 
+		  (cons (cons* #'list 'bit-field #'type
 			       #'(native-endianness)
 			       #'((list 'member bit) ...))
 			r)))
 	  (((type array n args ...) rest ...)
-	   (build #'(rest ...) 
+	   (build #'(rest ...)
 		  (cons (cons* #'list #'type 'array #'n #'('args ...)) r)))
 	  (((type args ...) rest ...)
 	   (build #'(rest ...) (cons (cons* #'list #'type #'('args ...)) r)))))
@@ -668,7 +669,7 @@
 	(define (continue members rest struct?)
 	  (with-syntax (((getters ...) (gen-getters members struct?))
 			((setters ...) (gen-setters members struct?)))
-	    
+
 	    (generate-accessors name rest
 	     (cons #'(begin
 		       getters ...
@@ -704,16 +705,16 @@
 	       accessors ...))))))
 
 
-  (define (find-max-size types) 
+  (define (find-max-size types)
     (define (find-size type n) (* (size-of-of type) n))
-    (apply max 
+    (apply max
 	   (map (lambda (spec)
 		  (cond ((eq? (car spec) 'struct)
 			 (size-of-c-struct (cadr spec)))
 			((eq? (cadr spec) 'array)
 			 (or (find-size (car spec) (caddr spec)) 0))
 			(else (or (find-size (car spec) 1) 0)))) types)))
-  
+
   ;; the union is a type of c-struct which has uninterned symbol
   ;; member (thus not accessible), and provides bunch of procedures
   ;; which manipulate the member memory storage.
@@ -735,7 +736,7 @@
 			(setter (gen member "set!"))
 			(?t     type)
 			(?n     n))
-	    (generate-accessors 
+	    (generate-accessors
 	     #'name rest
 	     (cons (case struct-type
 		     ((struct)
@@ -789,13 +790,35 @@
 					    #'((type rest ...) ...)
 					    '())))
 	   #'(begin
-	       (define name 
+	       (define name
 		 (let* ((types (type-list (type rest ...) ...))
 			(max (find-max-size types)))
 		   (make-c-struct 'name
 				  (list (list uint8_t 'array max (gensym)))
 				  #f)))
 	       accessors ...))))))
+
+  (define c-function-integers
+    `(char
+      short
+      int
+      long
+      long-long
+      intptr_t
+      unsigned-short
+      unsigned-int
+      unsigned-long
+      unsigned-long-long
+      uintptr_t
+      size_t
+      int8_t
+      uint8_t
+      int16_t
+      uint16_t
+      int32_t
+      uint32_t
+      int64_t
+      uint64_t))
 
   (define c-function-return-type-alist
     `((void               . ,FFI_RETURN_TYPE_VOID    )
