@@ -595,7 +595,7 @@
   (define-syntax type-list
     (lambda (x)
       (define (build type* r)
-	(syntax-case type* (struct array bit-field)
+	(syntax-case type* (struct array bit-field *)
 	  (() (reverse! r))
 	  (((struct type member) rest ...)
 	   (build #'(rest ...)
@@ -617,6 +617,8 @@
 	  (((type array n args ...) rest ...)
 	   (build #'(rest ...)
 		  (cons (cons* #'list #'type 'array #'n #'('args ...)) r)))
+	  ((((type *) args ...) rest ...)
+	   (build #'(rest ...) (cons (cons* #'list #'void* #'('args ...)) r)))
 	  (((type args ...) rest ...)
 	   (build #'(rest ...) (cons (cons* #'list #'type #'('args ...)) r)))))
       (syntax-case x ()

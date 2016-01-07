@@ -76,6 +76,37 @@
 	    script-apply-logical-width
 
 	    SGCM_RTL
+	    script-get-c-map
+	    script-get-glyph-abc-width
+
+	    SCRIPT_PROPERTIES LPSCRIPT_PROPERTIES
+	    script-get-properties
+
+	    SCRIPT_FONTPROPERTIES LPSCRIPT_FONTPROPERTIES
+	    script-get-font-properties
+	    script-cache-get-height
+
+	    SSA_PASSWORD
+	    SSA_TAB
+	    SSA_CLIP
+	    SSA_FIT
+	    SSA_DZWG
+	    SSA_FALLBACK
+	    SSA_BREAK
+	    SSA_GLYPHS
+	    SSA_RTL
+	    SSA_GCP
+	    SSA_HOTKEY
+	    SSA_METAFILE
+	    SSA_LINK
+	    SSA_HIDEHOTKEY
+	    SSA_HOTKEYONLY
+	    SSA_FULLMEASURE
+	    SSA_LPKANSIFALLBACK
+	    SSA_PIDX
+	    SSA_LAYOUTRTL
+	    SSA_DONTGLYPH
+	    SSA_NOKASHIDA
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -292,8 +323,8 @@
 ;;     __out_ecount_full_opt(cGlyphs) GOFFSET      *pGoffset,
 ;;     __out_ecount(1) ABC                         *pABC);
 (define script-place
-  (c-function usp10 HRESULT ScriptPlace 
-	      (HDC LPSCRIPT_CACHE LPWORD int 
+  (c-function usp10 HRESULT ScriptPlace
+	      (HDC LPSCRIPT_CACHE LPWORD int
 	       LPSCRIPT_VISATTR LPINT LPGOFFSET LPABC)))
 
 ;; __checkReturn HRESULT WINAPI ScriptTextOut(
@@ -363,7 +394,7 @@
 ;;     int                                         *piX);
 (define script-cp-to-x
   (c-function usp10 HRESULT ScriptCPtoX
-	      (int BOOL int int LPWORD LPSCRIPT_VISATTR LPINT 
+	      (int BOOL int int LPWORD LPSCRIPT_VISATTR LPINT
 	       LPSCRIPT_ANALYSIS PINT)))
 ;; __checkReturn HRESULT WINAPI ScriptXtoCP(
 ;;     int                                         iX,
@@ -404,8 +435,10 @@
   (c-function usp10 HRESULT ScriptApplyLogicalWidth
 	      (LPINT int int LPWORD LPSCRIPT_VISATTR LPINT
 	       LPSCRIPT_ANALYSIS LPABC LPINT)))
+
 ;; #define SGCM_RTL  0x00000001
 (define-constant SGCM_RTL #x00000001)
+
 ;; __checkReturn HRESULT WINAPI ScriptGetCMap(
 ;;     HDC                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
@@ -413,11 +446,18 @@
 ;;     int                                     cChars,
 ;;     DWORD                                   dwFlags,
 ;;     __out_ecount(cChars) WORD               *pwOutGlyphs);
+(define script-get-c-map
+  (c-function usp10 HRESULT ScriptGetCMap
+	      (HDC LPSCRIPT_CACHE LPCWSTR int DWORD LPWORD)))
 ;; __checkReturn HRESULT WINAPI ScriptGetGlyphABCWidth(
 ;;     HDC                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
 ;;     WORD                                    wGlyph,
 ;;     __out_ecount(1) ABC                     *pABC);
+(define script-get-glyph-abc-width
+  (c-function usp10 HRESULT ScriptGetGlyphABCWidth
+	      (HDC LPSCRIPT_CACHE WORD LPABC)))
+
 ;; typedef struct {
 ;;     DWORD   langid                 :16;
 ;;     DWORD   fNumeric               :1;
@@ -435,9 +475,31 @@
 ;;     DWORD   fClusterSizeVaries     :1;
 ;;     DWORD   fRejectInvalid         :1;
 ;; } SCRIPT_PROPERTIES;
+(define-c-struct SCRIPT_PROPERTIES
+  (bit-field DWORD
+	     (langid                 16)
+	     (fNumeric               1)
+	     (fComplex               1)
+	     (fNeedsWordBreaking     1)
+	     (fNeedsCaretInfo        1)
+	     (bCharSet               8)
+	     (fControl               1)
+	     (fPrivateUseArea        1)
+	     (fNeedsCharacterJustify 1)
+	     (fInvalidGlyph          1)
+	     (fInvalidLogAttr        1)
+	     (fCDM                   1)
+	     (fAmbiguousCharSet      1)
+	     (fClusterSizeVaries     1)
+	     (fRejectInvalid         1)))
+(define-c-typedef SCRIPT_PROPERTIES (* LPSCRIPT_PROPERTIES))
+
 ;; __checkReturn HRESULT WINAPI ScriptGetProperties(
 ;;     __deref_out_ecount(1) const SCRIPT_PROPERTIES   ***ppSp,
 ;;     __out_ecount(1) int                             *piNumScripts);
+(define script-get-properties
+  (c-function usp10 HRESULT ScriptGetProperties (LPSCRIPT_PROPERTIES LPINT)))
+
 ;; typedef struct {
 ;;     int     cBytes;
 ;;     WORD    wgBlank;
@@ -446,14 +508,31 @@
 ;;     WORD    wgKashida;
 ;;     int     iKashidaWidth;
 ;; } SCRIPT_FONTPROPERTIES;
+(define-c-struct SCRIPT_FONTPROPERTIES
+  (int     cBytes)
+  (WORD    wgBlank)
+  (WORD    wgDefault)
+  (WORD    wgInvalid)
+  (WORD    wgKashida)
+  (int     iKashidaWidth))
+(define-c-typedef SCRIPT_FONTPROPERTIES (* LPSCRIPT_FONTPROPERTIES))
+
 ;; __checkReturn HRESULT WINAPI ScriptGetFontProperties(
 ;;     HDC                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
 ;;     __out_ecount(1) SCRIPT_FONTPROPERTIES   *sfp);
+(define script-get-font-properties
+  (c-function usp10 HRESULT ScriptGetFontProperties
+	      (HDC LPSCRIPT_CACHE LPSCRIPT_FONTPROPERTIES)))
+
 ;; __checkReturn HRESULT WINAPI ScriptCacheGetHeight(
 ;;     HDC                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
 ;;     __out_ecount(1) long                    *tmHeight);
+(define script-cache-get-height
+  (c-function usp10 HRESULT ScriptCacheGetHeight
+	      (HDC LPSCRIPT_CACHE PLONG)))
+
 ;; #define SSA_PASSWORD         0x00000001
 ;; #define SSA_TAB              0x00000002
 ;; #define SSA_CLIP             0x00000004
@@ -476,12 +555,40 @@
 ;; #define SSA_LAYOUTRTL        0x20000000
 ;; #define SSA_DONTGLYPH        0x40000000
 ;; #define SSA_NOKASHIDA        0x80000000
+
+(define-constant SSA_PASSWORD         #x00000001)
+(define-constant SSA_TAB              #x00000002)
+(define-constant SSA_CLIP             #x00000004)
+(define-constant SSA_FIT              #x00000008)
+(define-constant SSA_DZWG             #x00000010)
+(define-constant SSA_FALLBACK         #x00000020)
+(define-constant SSA_BREAK            #x00000040)
+(define-constant SSA_GLYPHS           #x00000080)
+(define-constant SSA_RTL              #x00000100)
+(define-constant SSA_GCP              #x00000200)
+(define-constant SSA_HOTKEY           #x00000400)
+(define-constant SSA_METAFILE         #x00000800)
+(define-constant SSA_LINK             #x00001000)
+(define-constant SSA_HIDEHOTKEY       #x00002000)
+(define-constant SSA_HOTKEYONLY       #x00002400)
+(define-constant SSA_FULLMEASURE      #x04000000)
+(define-constant SSA_LPKANSIFALLBACK  #x08000000)
+(define-constant SSA_PIDX             #x10000000)
+(define-constant SSA_LAYOUTRTL        #x20000000)
+(define-constant SSA_DONTGLYPH        #x40000000)
+(define-constant SSA_NOKASHIDA        #x80000000)
+
 ;; typedef struct tag_SCRIPT_TABDEF {
 ;;     int   cTabStops;
 ;;     int   iScale;
 ;;     int  *pTabStops;
 ;;     int   iTabOrigin;
 ;; } SCRIPT_TABDEF;
+(define-c-struct SCRIPT_TABDEF
+  (int     cTabStops)
+  (int     iScale)
+  ((int *) pTabStops)
+  (int     iTabOrigin))
 ;; typedef void* SCRIPT_STRING_ANALYSIS;
 ;; __checkReturn HRESULT WINAPI ScriptStringAnalyse(
 ;;     HDC                                             hdc,
