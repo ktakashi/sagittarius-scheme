@@ -316,6 +316,7 @@ static SgCStruct* make_cstruct(size_t size)
 }
 
 static SgObject SYMBOL_STRUCT = SG_UNDEF;
+static SgObject SYMBOL_BIT_FIELD = SG_UNDEF;
 static SgLibrary *impl_lib = NULL;
 
 /* compute offset
@@ -329,6 +330,20 @@ static inline size_t compute_offset(size_t offset, size_t align)
 static inline size_t compute_padding(size_t offset, size_t align)
 {
   return (-offset) & (align - 1);
+}
+
+static inline void check_bif_field_size(SgObject fields, size_t size)
+{
+  size_t sum = 0;
+  SgObject field;
+  SG_FOR_EACH(field, SG_CDR(fields)) {
+    sum += SG_INT_VALUE(SG_CAR(SG_CDAR(field)));
+  }
+  if ((size<<3) < sum) {
+    Sg_AssertionViolation(SG_INTERN("make-c-struct"),
+			  SG_MAKE_STRING("bit field size overflow"),
+			  fields);
+  }
 }
 
 SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
@@ -350,6 +365,8 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
       (name -1   . (struct . struct-name))
       ;; array
       (name type . (size . type-symbol)) ...)
+      ;; bit-field
+      (bit-field type endian (name bit) ...)
    */
   padding = offset = max_type = size = 0;
   SG_FOR_EACH(cp, layouts) {
@@ -384,6 +401,14 @@ SgObject Sg_CreateCStruct(SgObject name, SgObject layouts, int packedp)
 	st->layouts[index].offset = offset;
 	if (SG_CSTRUCT(st2)->type.alignment > max_type) 
 	  max_type = SG_CSTRUCT(st2)->type.alignment;
+      } else if (SG_EQ(SYMBOL_BIT_FIELD, SG_CAR(layout))) {
+	type = SG_INT_VALUE(SG_CADR(layout));
+	ffi = lookup_ffi_return_type(type);
+	/* special case, we save endiann and (member bit) alist */
+	st->layouts[index].name = SG_CDDR(layout);
+	check_bif_field_size(SG_CDDR(layout), ffi->size);
+	size += ffi->size;
+	goto primitive_type;
       } else if (SG_INTP(SG_CAR(SG_CDDR(layout)))) {
 	int asize = SG_INT_VALUE(SG_CAR(SG_CDDR(layout)));
 	type = SG_INT_VALUE(SG_CADR(layout));
@@ -454,8 +479,63 @@ static SgObject parse_member_name(SgSymbol *name)
   return ret;
 }
 
+typedef struct bit_field_info
+{
+  uint64_t mask;
+  int      shifts;
+} bfi;
+
+static int name_match(SgObject name, SgObject names, int size, bfi *mask)
+{
+  if (SG_SYMBOLP(names)) {
+    /* usual member */
+    return SG_EQ(name, names);
+  } else if (SG_PAIRP(names)) {
+    /* bit field */
+    SgObject endian = SG_CAR(names);
+    /* now calculate the offset.
+       here we need to consider endianness. if it's big, then we need to
+       pack MSB -> LSB, otherwise LSB -> MSB
+       See: http://mjfrazer.org/mjfrazer/bitfields/
+    */
+    int big_endianP = SG_EQ(endian, SG_INTERN("big"));
+    int off = 0;
+    int sizebits = size<<3;
+
+    SG_FOR_EACH(names, SG_CDR(names)) {
+      SgObject n = SG_CAR(names);
+      int bit = SG_INT_VALUE(SG_CADR(n));
+      if (SG_EQ(SG_CAR(n), name)) {
+	if (mask) {
+	  uint64_t m;
+	  if (big_endianP) {
+	    /* size = 4, off = 8, bit = 2, 
+	       then we need #b0000 0000 1100 0000 0000 0000 0000 0000
+	    */
+	    m = 1<<(sizebits-off);
+	    mask->mask = m-1;
+	    mask->mask ^= (m>>bit)-1;
+	    mask->shifts = -(sizebits - (off+bit));
+	  } else {
+	    /* off = 8, bit = 2, 
+	       then we need #b1100 0000
+	    */
+	    m = 1<<(bit+off);
+	    mask->mask = m-1;
+	    mask->mask ^= (m>>bit)-1;
+	    mask->shifts = -off;
+	  }
+	}
+	return TRUE;
+      }
+      off += bit;
+    }
+  }
+  return FALSE;
+}
 static size_t calculate_alignment(SgObject names, SgCStruct *st,
-				  int *foundP, int *type, int *array, int *size)
+				  int *foundP, int *type, int *array, int *size,
+				  bfi *bitMask)
 {
   size_t i;
   SgObject name = SG_CAR(names);
@@ -467,7 +547,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
    */
   for (i = 0; i < st->fieldCount; i++) {
     /* property found */
-    if (SG_EQ(name, layouts[i].name)) {
+    if (name_match(name, layouts[i].name, layouts[i].type->size, bitMask)) {
       /* it's this one */
       if (SG_NULLP(SG_CDR(names))) {
 	*foundP = TRUE;
@@ -481,7 +561,7 @@ static size_t calculate_alignment(SgObject names, SgCStruct *st,
 	/* search from here */
 	align += calculate_alignment(SG_CDR(names),
 				     layouts[i].cstruct,
-				     foundP, type, array, size);
+				     foundP, type, array, size, NULL);
 	/* second name was a member of the struct */
 	if (foundP) {
 	  return align;
@@ -584,14 +664,35 @@ SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
 {
   SgObject names = parse_member_name(name);
   int foundP = FALSE, type = 0, array, size;
-  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size);
+  bfi bitMask = {0,};
+  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size,
+				     &bitMask);
 
   if (!foundP || type == 0) {
     Sg_Error(UC("c-struct %A does not have a member named %A"), st->name, name);
     return SG_UNDEF;		/* dummy */
   }
   if (array < 0) {
-    return convert_c_to_scheme(type, p, align);
+    if (bitMask.mask == 0) {
+      return convert_c_to_scheme(type, p, align);
+    } else {
+      SgObject r = convert_c_to_scheme(type, p, align);
+      /* bit field type check must be done by definition so the
+	 returning value should always be exact integer (fixnum or bignum)
+	 we check it here just in case.
+	 Bit field type must have less than 64 bit. it's purely limitation
+	 of Sagittarius FFI...
+       */
+      
+      if (!SG_EXACT_INTP(r) || size > 8) {
+	Sg_Error(UC("c-struct-ref: %A isn't integer"), name);
+      }
+      r = Sg_LogAnd(r, Sg_MakeIntegerFromU64(bitMask.mask));
+      if (bitMask.shifts) {
+	return Sg_Ash(r, bitMask.shifts);
+      }
+      return r;
+    }
   } else {
     /* TODO what should we return for array? so far vector.*/
     SgObject vec;
@@ -599,6 +700,7 @@ SgObject Sg_CStructRef(SgPointer *p, SgCStruct *st, SgSymbol *name)
     array /= size;
     vec = Sg_MakeVector(array, SG_UNDEF);
     for (i = 0; i < array; i++) {
+      /* array won't have bit field*/
       SG_VECTOR_ELEMENT(vec, i) = 
 	convert_c_to_scheme(type, p, align + (i * size));
     }
@@ -610,7 +712,9 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
 {
   SgObject names = parse_member_name(name);
   int foundP = FALSE, type = 0, array, size;
-  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size);
+  bfi bitMask = {0,};
+  size_t align = calculate_alignment(names, st, &foundP, &type, &array, &size,
+				     &bitMask);
 
   if (!foundP || type == 0) {
     Sg_Error(UC("c-struct %A does not have a member named %A"), st->name, name);
@@ -623,7 +727,25 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
       Sg_CMemcpy(p, align, value, 0, size);
       break;
     default:
-      Sg_PointerSet(p, (int)align, type, value);
+      if (bitMask.mask) {
+	SgObject r = convert_c_to_scheme(type, p, align);
+	if (!SG_EXACT_INTP(value)) {
+	  Sg_Error(UC("c-struct-set!: bit field value must be an integer. %S"),
+		   value);
+	}
+	if (!SG_EXACT_INTP(r) || size > 8) {
+	  Sg_Error(UC("c-struct-set!: %A isn't integer"), name);
+	}
+	if (bitMask.shifts) {
+	  value = Sg_Ash(value, -bitMask.shifts);
+	}
+	/* clear current field */
+	r = Sg_LogAnd(r, Sg_MakeIntegerFromU64(~bitMask.mask));
+	value = Sg_LogIor(value, r);
+	Sg_PointerSet(p, (int)align, type, value);
+      } else {
+	Sg_PointerSet(p, (int)align, type, value);
+      }
       break;
     }
   } else {
@@ -1811,6 +1933,7 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__ffi()
   SG_PROCEDURE_NAME(&internal_ffi_call_stub) = name;
 
   SYMBOL_STRUCT = SG_INTERN("struct");
+  SYMBOL_BIT_FIELD = SG_INTERN("bit-field");
   address_mark = SG_INTERN("address");
 
   SG_INIT_EXTENSION(sagittarius__ffi);

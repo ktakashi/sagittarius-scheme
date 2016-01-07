@@ -205,6 +205,7 @@
 	    int64_t uint64_t long-long unsigned-long-long
 	    bool void* char* float double callback struct array
 	    intptr_t uintptr_t wchar_t wchar_t* ___
+	    bit-field
 
 	    ;; utility
 	    null-pointer
@@ -261,6 +262,7 @@
   (define wchar_t            'wchar_t)
   (define wchar_t*           'wchar_t*)
   (define ___                '___)
+  (define bit-field          'bit-field)
 
   ;; helper
   (define (pointer-ref-c-char* p offset)
@@ -533,6 +535,14 @@
 
   ;; c-struct
   (define (make-c-struct name defs packed?)
+    (define (bit-field-check fields)
+      (and (for-all (lambda (field)
+		      (and (pair? field)
+			   (= (length field) 2))) fields)
+	   (or (unique-id-list? (map car fields))
+	       (assertion-violation 'make-c-struct
+				    "bit-field contains duplicate field name(s)"
+				    fields))))
     (let ((layouts
 	   (map (lambda (def)
 		  (cond
@@ -548,6 +558,12 @@
 		    => (lambda (type)
 			 `(,(cadddr def) ,(cdr type)
 			   ,(caddr def) . ,(car type))))
+		   ((and (eq? 'bit-field (car def))
+			 (memq (caddr def) '(big little))
+			 (bit-field-check (cdddr def))
+			 (assq (cadr def) c-function-return-type-alist))
+		    => (lambda (type)
+			 `(bit-field ,(cdr type) ,@(cddr def))))
 		   ((assq (car def) c-function-return-type-alist)
 		    => (lambda (type)
 			 `(,(cadr def) ,(cdr type) . ,(car type))))
@@ -557,7 +573,11 @@
 		     (format "invalid struct declaration ~a" def)
 		     (list name defs)))))
 		defs)))
-      (unless (unique-id-list? (map car layouts))
+      (unless (unique-id-list? (filter-map (lambda (layout)
+					     (let ((name (car layout)))
+					       (and (not (eq? name 'bit-field))
+						    name)))
+					   layouts))
 	(assertion-violation
 	 'make-c-struct
 	 "struct declaration contains duplicated member name"
@@ -574,11 +594,25 @@
   (define-syntax type-list
     (lambda (x)
       (define (build type* r)
-	(syntax-case type* (struct array)
+	(syntax-case type* (struct array bit-field)
 	  (() (reverse! r))
 	  (((struct type member) rest ...)
 	   (build #'(rest ...)
 		  (cons (cons* #'list 'struct #'type #'('member)) r)))
+
+	  (((bit-field (type endian) (member bit) ...) rest ...)
+	   (build #'(rest ...)
+		  (cons (cons* #'list 'bit-field #'type 
+			       #'(endianness endian)
+			       #'((list 'member bit) ...))
+			r)))
+	  (((bit-field type (member bit) ...) rest ...)
+	   (identifier? #'type)
+	   (build #'(rest ...)
+		  (cons (cons* #'list 'bit-field #'type 
+			       #'(native-endianness)
+			       #'((list 'member bit) ...))
+			r)))
 	  (((type array n args ...) rest ...)
 	   (build #'(rest ...) 
 		  (cons (cons* #'list #'type 'array #'n #'('args ...)) r)))
@@ -599,35 +633,57 @@
 				       (syntax->datum name)
 				       (syntax->datum m)
 				       suffix))))
-	;; TODO how to solve struct inner members?
-	(define (continue member rest struct?)
-	  (with-syntax ((name    name)
-			(member  member)
-			(struct? (datum->syntax name struct?))
-			(getter (gen member "ref"))
-			(setter (gen member "set!")))
-	    (generate-accessors #'name rest
+	(define (gen-getters members struct?)
+	  (let loop ((members members) (r '()))
+	    (syntax-case members ()
+	      (() r)
+	      ((member . d)
+	       (with-syntax ((name  name)
+			     (getter (gen #'member "ref"))
+			     (struct? (datum->syntax name struct?)))
+		 (loop #'d
+		  (cons #'(define (getter st . opt)
+			  (if (and struct? (not (null? opt)))
+			      (let ((m (generate-member-name 'member opt)))
+				(c-struct-ref st name m))
+			      (c-struct-ref st name 'member)))
+			r)))))))
+	(define (gen-setters members struct?)
+	  (let loop ((members members) (r '()))
+	    (syntax-case members ()
+	      (() r)
+	      ((member . d)
+	       (with-syntax ((name  name)
+			     (setter (gen #'member "set!"))
+			     (struct? (datum->syntax name struct?)))
+		 (loop #'d
+		  (cons #'(define (setter st v . opt)
+			    ;; the same trick as above
+			    (if (and struct? (not (null? opt)))
+				(let ((m (generate-member-name 'member opt)))
+				  (c-struct-set! st name m v))
+				(c-struct-set! st name 'member v)))
+			r)))))))
+
+	(define (continue members rest struct?)
+	  (with-syntax (((getters ...) (gen-getters members struct?))
+			((setters ...) (gen-setters members struct?)))
+	    
+	    (generate-accessors name rest
 	     (cons #'(begin
-		       (define (getter st . opt)
-			 (if (and struct? (not (null? opt)))
-			     (let ((m (generate-member-name 'member opt)))
-			       (c-struct-ref st name m))
-			     (c-struct-ref st name 'member)))
-		       (define (setter st v . opt)
-			 ;; the same trick as above
-			 (if (and struct? (not (null? opt)))
-			     (let ((m (generate-member-name 'member opt)))
-			       (c-struct-set! st name m v))
-			     (c-struct-set! st name 'member v))))
+		       getters ...
+		       setters ...)
 		   r))))
-	(syntax-case spec (struct array)
+	(syntax-case spec (struct array bit-field)
 	  (() (reverse! r))
 	  (((type member) rest ...)
-	   (continue #'member #'(rest ...) #f))
+	   (continue #'(member) #'(rest ...) #f))
 	  (((struct type member) rest ...)
-	   (continue #'member #'(rest ...) #t))
+	   (continue #'(member) #'(rest ...) #t))
 	  (((type array elements member) rest ...)
-	   (continue #'member #'(rest ...) #f))))
+	   (continue #'(member) #'(rest ...) #f))
+	  (((bit-field type (member bit) ...) rest ...)
+	   (continue #'(member ...) #'(rest ...) #f))))
 
       (syntax-case x ()
 	((_ name (type . rest) ...)

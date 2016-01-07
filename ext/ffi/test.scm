@@ -531,6 +531,69 @@
   ;; make-c-callback is exported now
   (test-assert "make-c-callback" make-c-callback)
 
+  ;; struct endianness
+  (define-syntax test-struct-endian
+    (syntax-rules ()
+      ((_ endian v1 v2)
+       (begin
+	 (let ()
+	   (define-c-struct foo
+	     (bit-field (unsigned-short endian) (a 4) (b 4) (c 4) (d 4)))
+	   (let ((p (allocate-c-struct foo))
+		 (n (allocate-c-struct foo)))
+	     (pointer-set-c-uint16! p 0 v1)
+	     (test-equal "foo-a(p)" 1 (foo-a-ref p))
+	     (test-equal "foo-b(p)" 2 (foo-b-ref p))
+	     (test-equal "foo-c(p)" 3 (foo-c-ref p))
+	     (test-equal "foo-d(p)" 4 (foo-d-ref p))
+
+	     (foo-a-set! n (foo-a-ref p))
+	     (foo-b-set! n (foo-b-ref p))
+	     (foo-c-set! n (foo-c-ref p))
+	     (foo-d-set! n (foo-d-ref p))
+
+	     (test-equal "foo-a(n)" 1 (foo-a-ref n))
+	     (test-equal "foo-b(n)" 2 (foo-b-ref n))
+	     (test-equal "foo-c(n)" 3 (foo-c-ref n))
+	     (test-equal "foo-d(n)" 4 (foo-d-ref n))
+	     (test-equal "foo as short" v1 (pointer-ref-c-uint16 p 0))
+	     ))
+	 (let ()
+	   (define-c-struct foo
+	     (bit-field (unsigned-short endian) (a 1) (b 2) (c 3) (d 4) (e 5)))
+	   (let ((p (allocate-c-struct foo)))
+	     (pointer-set-c-uint16! p 0 v2)
+	     (test-equal "foo-a" 1 (foo-a-ref p))
+	     (test-equal "foo-b" 2 (foo-b-ref p))
+	     (test-equal "foo-c" 3 (foo-c-ref p))
+	     (test-equal "foo-d" 4 (foo-d-ref p))
+	     (test-equal "foo-e" 5 (foo-e-ref p))))))))
+
+  (test-struct-endian big #x1234 #xCD0A)
+  (test-struct-endian little #x4321 #x151D)
+
+  ;; error
+  (test-error "bit field size overflow" assertion-violation?
+	      (let ()
+		(define-c-struct foo
+		  (bit-field unsigned-short
+			     (a 4) 
+			     (b 4) 
+			     (c 4)
+			     (d 4)
+			     (e 4)
+			     ))))
+  (test-error "duplicate name" assertion-violation?
+	      (let ()
+		(define-c-struct foo
+		  (bit-field unsigned-short
+			     (a 4) 
+			     (b 4) 
+			     (c 4)
+			     (d 4)
+			     (d 4)
+			     ))))
+
   (close-shared-library ffi-test-lib)
   )
  (else
