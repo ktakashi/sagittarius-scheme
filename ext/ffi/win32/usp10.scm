@@ -42,7 +42,7 @@
 	    SCRIPT_ITEM LPSCRIPT_ITEM
 	    script-itemize
 
-	    script-leyout
+	    script-layout
 	    SCRIPT_JUSTIFY_NONE
 	    SCRIPT_JUSTIFY_ARABIC_BLANK
 	    SCRIPT_JUSTIFY_CHARACTER
@@ -232,7 +232,7 @@
 ;;     __in_ecount(cRuns) const BYTE   *pbLevel,
 ;;     __out_ecount_full_opt(cRuns) int    *piVisualToLogical,
 ;;     __out_ecount_full_opt(cRuns) int    *piLogicalToVisual);
-(define script-leyout
+(define script-layout
   (c-function usp10 HRESULT ScriptLayout (int LPBYTE LPINT LPINT)))
 
 ;; typedef enum tag_SCRIPT_JUSTIFY {
