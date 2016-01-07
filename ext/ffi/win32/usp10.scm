@@ -69,6 +69,13 @@
 	    script-justify
 
 	    SCRIPT_LOGATTR LPSCRIPT_LOGATTR
+	    script-break
+	    script-cp-to-x
+	    script-x-to-cp
+	    script-get-logical-widths
+	    script-apply-logical-width
+
+	    SGCM_RTL
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -341,6 +348,9 @@
 ;;     int                                         cChars,
 ;;     __in_ecount(1) const SCRIPT_ANALYSIS        *psa,
 ;;     __out_ecount_full(cChars) SCRIPT_LOGATTR    *psla);
+(define script-break
+  (c-function usp10 HRESULT ScriptBreak
+	      (LPCWSTR int LPSCRIPT_ANALYSIS LPSCRIPT_LOGATTR)))
 ;; __checkReturn HRESULT WINAPI ScriptCPtoX(
 ;;     int                                         iCP,
 ;;     BOOL                                        fTrailing,
@@ -351,6 +361,10 @@
 ;;     __in_ecount(cGlyphs) const int              *piAdvance,
 ;;     __in_ecount(1) const SCRIPT_ANALYSIS        *psa,
 ;;     int                                         *piX);
+(define script-cp-to-x
+  (c-function usp10 HRESULT ScriptCPtoX
+	      (int BOOL int int LPWORD LPSCRIPT_VISATTR LPINT 
+	       LPSCRIPT_ANALYSIS PINT)))
 ;; __checkReturn HRESULT WINAPI ScriptXtoCP(
 ;;     int                                         iX,
 ;;     int                                         cChars,
@@ -361,6 +375,10 @@
 ;;     __in_ecount(1) const SCRIPT_ANALYSIS        *psa,
 ;;     __out_ecount(1) int                         *piCP,
 ;;     __out_ecount(1) int                         *piTrailing);
+(define script-x-to-cp
+  (c-function usp10 HRESULT ScriptXtoCP
+	      (int int int LPWORD LPSCRIPT_VISATTR LPINT
+	       LPSCRIPT_ANALYSIS LPINT LPINT)))
 ;; __checkReturn HRESULT WINAPI ScriptGetLogicalWidths(
 ;;     __in_ecount(1) const SCRIPT_ANALYSIS        *psa,
 ;;     int                                         cChars,
@@ -369,6 +387,9 @@
 ;;     __in_ecount(cChars) const WORD              *pwLogClust,
 ;;     __in_ecount(cGlyphs) const SCRIPT_VISATTR   *psva,
 ;;     __in_ecount(cChars) int                     *piDx);
+(define script-get-logical-widths
+  (c-function usp10 HRESULT ScriptGetLogicalWidths
+	      (LPSCRIPT_ANALYSIS int int LPINT LPWORD LPSCRIPT_VISATTR LPINT)))
 ;; __checkReturn HRESULT WINAPI ScriptApplyLogicalWidth(
 ;;     __in_ecount(cChars) const int               *piDx,
 ;;     int                                         cChars,
@@ -379,7 +400,12 @@
 ;;     __in_ecount(1) const SCRIPT_ANALYSIS        *psa,
 ;;     __inout_ecount_opt(1) ABC                   *pABC,
 ;;     __out_ecount_full(cGlyphs) int              *piJustify);
+(define script-apply-logical-width
+  (c-function usp10 HRESULT ScriptApplyLogicalWidth
+	      (LPINT int int LPWORD LPSCRIPT_VISATTR LPINT
+	       LPSCRIPT_ANALYSIS LPABC LPINT)))
 ;; #define SGCM_RTL  0x00000001
+(define-constant SGCM_RTL #x00000001)
 ;; __checkReturn HRESULT WINAPI ScriptGetCMap(
 ;;     HDC                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
