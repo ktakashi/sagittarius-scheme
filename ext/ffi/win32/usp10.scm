@@ -107,6 +107,14 @@
 	    SSA_LAYOUTRTL
 	    SSA_DONTGLYPH
 	    SSA_NOKASHIDA
+
+	    SCRIPT_TABDEF LPSCRIPT_TABDEF
+	    script-string-analyse
+	    script-string-free
+	    script-string-psize
+	    script-string-pcoutchars
+	    script-string-plogattr
+	    script-string-get-order
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -475,8 +483,9 @@
 ;;     DWORD   fClusterSizeVaries     :1;
 ;;     DWORD   fRejectInvalid         :1;
 ;; } SCRIPT_PROPERTIES;
+;; the definition overflows so we use int64_t (QWORD) instread
 (define-c-struct SCRIPT_PROPERTIES
-  (bit-field DWORD
+  (bit-field int64_t
 	     (langid                 16)
 	     (fNumeric               1)
 	     (fComplex               1)
@@ -589,7 +598,11 @@
   (int     iScale)
   ((int *) pTabStops)
   (int     iTabOrigin))
+(define-c-typedef SCRIPT_TABDEF (* LPSCRIPT_TABDEF))
+
 ;; typedef void* SCRIPT_STRING_ANALYSIS;
+(define-c-typedef void* SCRIPT_STRING_ANALYSIS LPSCRIPT_STRING_ANALYSIS)
+
 ;; __checkReturn HRESULT WINAPI ScriptStringAnalyse(
 ;;     HDC                                             hdc,
 ;;     const void                                      *pString,
@@ -604,17 +617,41 @@
 ;;     __in_ecount_opt(1) SCRIPT_TABDEF                *pTabdef,
 ;;     const BYTE                                      *pbInClass,
 ;;     __deref_out_ecount(1) SCRIPT_STRING_ANALYSIS    *pssa);
+(define script-string-analyse
+  (c-function usp10 HRESULT ScriptStringAnalyse
+	      (HDC void* int int int DWORD int LPSCRIPT_CONTROL
+	       LPSCRIPT_STATE LPINT LPSCRIPT_TABDEF LPBYTE 
+	       LPSCRIPT_STRING_ANALYSIS)))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringFree(
 ;;     __deref_inout_ecount(1) SCRIPT_STRING_ANALYSIS  *pssa);
+(define script-string-free
+  (c-function usp10 HRESULT ScriptStringFree
+	      (LPSCRIPT_STRING_ANALYSIS)))
+
 ;; const SIZE* WINAPI ScriptString_pSize(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa);
+(define script-string-psize
+  (c-function usp10 (SIZE *) ScriptString_pSize (SCRIPT_STRING_ANALYSIS)))
+
 ;; const int* WINAPI ScriptString_pcOutChars(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa);
+(define script-string-pcoutchars
+  (c-function usp10 (int *) ScriptString_pcOutChars (SCRIPT_STRING_ANALYSIS)))
+
 ;; const SCRIPT_LOGATTR* WINAPI ScriptString_pLogAttr(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa);
+(define script-string-plogattr
+  (c-function usp10 (SCRIPT_LOGATTR *) ScriptString_pLogAttr
+	      (SCRIPT_STRING_ANALYSIS)))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringGetOrder(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa,
 ;;     UINT                                    *puOrder);
+(define script-string-get-order
+  (c-function usp10 HRESULT ScriptStringGetOrder
+	      (SCRIPT_STRING_ANALYSIS (UINT *))))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringCPtoX(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa,
 ;;     int                                     icp,

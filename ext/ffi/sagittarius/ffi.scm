@@ -434,7 +434,7 @@
       (unless stub-ret-type
 	(assertion-violation 'c-function "wrong return type" ret-type))
       (let* ((ret-type (cdr stub-ret-type))
-	     (signatures (list->string (make-sigunatures arg-types)))
+	     (signatures (list->string (make-signatures arg-types)))
 	     (function (create-function-info pointer name ret-type
 					    signatures
 					    (car stub-ret-type) arg-types)))
@@ -457,7 +457,7 @@
 			   args-length) args))))
 	  (apply %ffi-call ret-type function args)))))
 
-  (define (make-sigunatures arg-types)
+  (define (make-signatures arg-types)
     (let loop ((arg-types arg-types) (r '()))
       (if (null? arg-types)
 	  (reverse! r)
@@ -483,21 +483,36 @@
 			((___)
 			 ;; varargs must be the last
 			 (unless (null? (cdr arg-types))
-			   (assertion-violation 'make-sigunatures
+			   (assertion-violation 'make-signatures
 						"___ must be the last"
 						arg-types))
 			 #\v)
-			(else
-			 (assertion-violation 'make-sigunatures
-					      "invalid argument type"
-					      arg-types)))
+			(else =>
+			  (lambda (arg-type)
+			    (if (and (pair? arg-type) 
+				     (not (null? (cdr arg-type)))
+				     (eq? (cadr arg-type) '*))
+				#\p
+				(assertion-violation 'make-signatures
+						     "invalid argument type"
+						     arg-types)))))
 		      r)))))
 
+  (define-syntax arg-list
+    (syntax-rules (*)
+      ((_ "next" (arg *) args ...)
+       (cons (list arg '*) (arg-list "next" args ...)))
+      ((_ "next" arg args ...)
+       (cons arg (arg-list "next" args ...)))
+      ((_ "next") '())
+      ((_ args ...) (arg-list "next" args ...))))
+
   (define-syntax c-function
-    (lambda (x)
-      (syntax-case x ()
-	((_ lib ret func (args ...))
-	 #'(make-c-function lib ret 'func (list args ...))))))
+    (syntax-rules (*)
+      ((_ lib (ret *) func (args ...))
+       (make-c-function lib void* 'func (arg-list args ...)))
+      ((_ lib ret func (args ...))
+       (make-c-function lib ret 'func (arg-list args ...)))))
 
   (define (make-c-function lib ret-type name arg-types)
     (let ((func (lookup-shared-library lib (symbol->string name))))

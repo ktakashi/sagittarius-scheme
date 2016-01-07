@@ -208,7 +208,7 @@
   (define (open-win32-module name)
     (open-shared-library
      (cond-expand
-      (windows name)
+      ((or windows cygwin) name)
       (else (string-append name (shared-object-suffix))))
      #t))
 )
