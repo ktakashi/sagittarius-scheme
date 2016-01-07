@@ -62,7 +62,7 @@
 
   (define get-module-handle
     (c-function kernel32
-		HMODULE GetModuleHandleA (LPCSTR)))
+		HMODULE GetModuleHandleW (LPCWSTR)))
 
   (define get-last-error
     (c-function kernel32 DWORD GetLastError ()))
