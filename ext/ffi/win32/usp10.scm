@@ -34,10 +34,10 @@
 
 	    script-free-cache
 
-	    LPSCRIPT_CONTROL
-	    LPSCRIPT_STATE
-	    LPSCRIPT_ANALYSIS
-	    LPSCRIPT_ITEM
+	    SCRIPT_CONTROL LPSCRIPT_CONTROL
+	    SCRIPT_STATE   LPSCRIPT_STATE
+	    SCRIPT_ANALYSIS LPSCRIPT_ANALYSIS
+	    SCRIPT_ITEM LPSCRIPT_ITEM
 	    script-itemize
 	    )
     (import (rnrs)
@@ -57,12 +57,10 @@
 ;; __checkReturn HRESULT WINAPI ScriptFreeCache(
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE   *psc);
 (define script-free-cache
-  (c-function usp10 HRESULT WINAPI ScriptFreeCache (SCRIPT_CACHE)))
+  (c-function usp10 HRESULT ScriptFreeCache (SCRIPT_CACHE)))
 ;; typedef struct tag_SCRIPT_CONTROL {
 ;;     DWORD   uDefaultLanguage    :16;
 ;;     DWORD   fContextDigits      :1;
-;;
-;;
 ;;     DWORD   fInvertPreBoundDir  :1;
 ;;     DWORD   fInvertPostBoundDir :1;
 ;;     DWORD   fLinkStringBefore   :1;
@@ -71,9 +69,24 @@
 ;;     DWORD   fNumericOverride    :1;
 ;;     DWORD   fLegacyBidiClass    :1;
 ;;     DWORD   fMergeNeutralItems  :1;
-;;     DWORD   fReserved           :7;
+;;     DWORD   fUseStandardBidi    :1; // From MSDN not usp10.h
+;;     DWORD   fReserved           :6;
 ;; } SCRIPT_CONTROL;
-(define-c-typedef void* (* LPSCRIPT_CONTROL))
+(define-c-struct SCRIPT_CONTROL
+  (bit-field DWORD
+	     (uDefaultLanguage    16)
+	     (fContextDigits      1)
+	     (fInvertPreBoundDir  1)
+	     (fInvertPostBoundDir 1)
+	     (fLinkStringBefore   1)
+	     (fLinkStringAfter    1)
+	     (fNeutralOverride    1)
+	     (fNumericOverride    1)
+	     (fLegacyBidiClass    1)
+	     (fMergeNeutralItems  1)
+	     (fUseStandardBidi    1)
+	     (fReserved           6)))
+(define-c-typedef SCRIPT_CONTROL (* LPSCRIPT_CONTROL))
 
 ;; typedef struct tag_SCRIPT_STATE {
 ;;     WORD    uBidiLevel         :5;
@@ -88,7 +101,20 @@
 ;;     WORD    fReserved          :1;
 ;;     WORD    fEngineReserved    :2;
 ;; } SCRIPT_STATE;
-(define-c-typedef void* (* LPSCRIPT_STATE))
+(define-c-struct SCRIPT_STATE
+  (bit-field WORD
+	     (uBidiLevel         5)
+	     (fOverrideDirection 1)
+	     (fInhibitSymSwap    1)
+	     (fCharShape         1)
+	     (fDigitSubstitute   1)
+	     (fInhibitLigate     1)
+	     (fDisplayZWG        1)
+	     (fArabicNumContext  1)
+	     (fGcpClusters       1)
+	     (fReserved          1)
+	     (fEngineReserved    2)))
+(define-c-typedef SCRIPT_STATE (* LPSCRIPT_STATE))
 
 ;; typedef struct tag_SCRIPT_ANALYSIS {
 ;;     WORD    eScript         :10;
@@ -100,13 +126,26 @@
 ;;     WORD    fNoGlyphIndex   :1;
 ;;     SCRIPT_STATE s;
 ;; } SCRIPT_ANALYSIS;
-(define-c-typedef void* (* LPSCRIPT_ANALYSIS))
+(define-c-struct SCRIPT_ANALYSIS
+  (bit-field WORD
+	     (eScript         10)
+	     (fRTL            1)
+	     (fLayoutRTL      1)
+	     (fLinkBefore     1)
+	     (fLinkAfter      1)
+	     (fLogicalOrder   1)
+	     (fNoGlyphIndex   1))
+  (struct SCRIPT_STATE s))
+(define-c-typedef SCRIPT_ANALYSIS (* LPSCRIPT_ANALYSIS))
 
 ;; typedef struct tag_SCRIPT_ITEM {
 ;;     int              iCharPos;
 ;;     SCRIPT_ANALYSIS  a;
 ;; } SCRIPT_ITEM;
-(define-c-typedef void* (* LPSCRIPT_ITEM))
+(define-c-struct SCRIPT_ITEM
+  (int                    iCharPos)
+  (struct SCRIPT_ANALYSIS a))
+(define-c-typedef SCRIPT_ITEM (* LPSCRIPT_ITEM))
 ;; __checkReturn HRESULT WINAPI ScriptItemize(
 ;;     __in_ecount(cInChars) const WCHAR                   *pwcInChars,
 ;;     int                                                 cInChars,
@@ -116,7 +155,7 @@
 ;;     __out_ecount_part(cMaxItems, *pcItems) SCRIPT_ITEM  *pItems,
 ;;     __out_ecount(1) int                                 *pcItems);
 (define script-itemize
-  (c-function HRESULT WINAPI ScriptItemize
+  (c-function usp10 HRESULT ScriptItemize
 	      (LPCWSTR int int LPSCRIPT_CONTROL LPSCRIPT_STATE
 		       LPSCRIPT_ITEM LPINT)))
 ;; __checkReturn HRESULT WINAPI ScriptLayout(
