@@ -81,6 +81,8 @@
 	    OPAQUE TRANSPARENT
 
 	    get-text-extend-point-32
+
+	    ABC PABC LPABC
 	    )
     (import (core)
 	    (core syntax)
@@ -198,4 +200,11 @@
 
   (define get-text-extend-point-32
     (c-function gdi32 BOOL GetTextExtentPoint32W (HDC LPCWSTR int LPSIZE)))
+
+  ;; ABC
+  (define-c-struct ABC
+    (INT  abcA)
+    (UINT abcB)
+    (INT  abcC))
+  (define-c-typedef ABC (* PABC) (* LPABC))
 )

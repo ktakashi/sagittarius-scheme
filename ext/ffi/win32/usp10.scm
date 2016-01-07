@@ -29,8 +29,10 @@
 ;;;
 
 (library (win32 usp10)
+    ;; LP prefixed struct/typedefs are only for convenient.
+    ;; it can also be void* however better to have guessable name
     (export SCRIPT_UNDEFINED
-	    SCRIPT_CACHE
+	    SCRIPT_CACHE LPSCRIPT_CACHE
 
 	    script-free-cache
 
@@ -39,11 +41,40 @@
 	    SCRIPT_ANALYSIS LPSCRIPT_ANALYSIS
 	    SCRIPT_ITEM LPSCRIPT_ITEM
 	    script-itemize
+
+	    script-leyout
+	    SCRIPT_JUSTIFY_NONE
+	    SCRIPT_JUSTIFY_ARABIC_BLANK
+	    SCRIPT_JUSTIFY_CHARACTER
+	    SCRIPT_JUSTIFY_RESERVED1
+	    SCRIPT_JUSTIFY_BLANK
+	    SCRIPT_JUSTIFY_RESERVED2
+	    SCRIPT_JUSTIFY_RESERVED3
+	    SCRIPT_JUSTIFY_ARABIC_NORMAL
+	    SCRIPT_JUSTIFY_ARABIC_KASHIDA
+	    SCRIPT_JUSTIFY_ARABIC_ALEF
+	    SCRIPT_JUSTIFY_ARABIC_HA
+	    SCRIPT_JUSTIFY_ARABIC_RA
+	    SCRIPT_JUSTIFY_ARABIC_BA
+	    SCRIPT_JUSTIFY_ARABIC_BARA
+	    SCRIPT_JUSTIFY_ARABIC_SEEN
+	    SCRIPT_JUSTIFY_ARABIC_SEEN_M
+
+	    SCRIPT_VISATTR LPSCRIPT_VISATTR
+	    script-shape
+
+	    GOFFSET LPGOFFSET
+	    script-place
+	    script-text-out
+	    script-justify
+
+	    SCRIPT_LOGATTR LPSCRIPT_LOGATTR
 	    )
     (import (rnrs)
 	    (sagittarius)
 	    (sagittarius ffi)
-	    (win32 defs))
+	    (win32 defs)
+	    (win32 gdi))
 (define usp10 (open-win32-module "usp10.dll"))
 
 ;; from usp10.h of Windows SDK
@@ -53,7 +84,7 @@
 ;; #define USP_E_SCRIPT_NOT_IN_FONT   \
 ;;         MAKE_HRESULT(SEVERITY_ERROR,FACILITY_ITF,0x200)
 ;; typedef void *SCRIPT_CACHE;
-(define-c-typedef void* SCRIPT_CACHE)
+(define-c-typedef void* SCRIPT_CACHE (* LPSCRIPT_CACHE))
 ;; __checkReturn HRESULT WINAPI ScriptFreeCache(
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE   *psc);
 (define script-free-cache
@@ -163,6 +194,9 @@
 ;;     __in_ecount(cRuns) const BYTE   *pbLevel,
 ;;     __out_ecount_full_opt(cRuns) int    *piVisualToLogical,
 ;;     __out_ecount_full_opt(cRuns) int    *piLogicalToVisual);
+(define script-leyout
+  (c-function usp10 HRESULT ScriptLayout (int LPBYTE LPINT LPINT)))
+
 ;; typedef enum tag_SCRIPT_JUSTIFY {
 ;;     SCRIPT_JUSTIFY_NONE           = 0,
 ;;     SCRIPT_JUSTIFY_ARABIC_BLANK   = 1,
@@ -181,6 +215,23 @@
 ;;     SCRIPT_JUSTIFY_ARABIC_SEEN    = 14,
 ;;     SCRIPT_JUSTIFY_ARABIC_SEEN_M  = 15,
 ;; } SCRIPT_JUSTIFY;
+(define-constant SCRIPT_JUSTIFY_NONE            0)
+(define-constant SCRIPT_JUSTIFY_ARABIC_BLANK    1)
+(define-constant SCRIPT_JUSTIFY_CHARACTER       2)
+(define-constant SCRIPT_JUSTIFY_RESERVED1       3)
+(define-constant SCRIPT_JUSTIFY_BLANK           4)
+(define-constant SCRIPT_JUSTIFY_RESERVED2       5)
+(define-constant SCRIPT_JUSTIFY_RESERVED3       6)
+(define-constant SCRIPT_JUSTIFY_ARABIC_NORMAL   7)
+(define-constant SCRIPT_JUSTIFY_ARABIC_KASHIDA  8)
+(define-constant SCRIPT_JUSTIFY_ARABIC_ALEF     9)
+(define-constant SCRIPT_JUSTIFY_ARABIC_HA       10)
+(define-constant SCRIPT_JUSTIFY_ARABIC_RA       11)
+(define-constant SCRIPT_JUSTIFY_ARABIC_BA       12)
+(define-constant SCRIPT_JUSTIFY_ARABIC_BARA     13)
+(define-constant SCRIPT_JUSTIFY_ARABIC_SEEN     14)
+(define-constant SCRIPT_JUSTIFY_ARABIC_SEEN_M   15)
+
 ;; typedef struct tag_SCRIPT_VISATTR {
 ;;     WORD           uJustification   :4;
 ;;     WORD           fClusterStart    :1;
@@ -189,6 +240,16 @@
 ;;     WORD           fReserved        :1;
 ;;     WORD           fShapeReserved   :8;
 ;; } SCRIPT_VISATTR;
+(define-c-struct SCRIPT_VISATTR
+  (bit-field WORD
+	     (uJustification   4)
+	     (fClusterStart    1)
+	     (fDiacritic       1)
+	     (fZeroWidth       1)
+	     (fReserved        1)
+	     (fShapeReserved   8)))
+(define-c-typedef SCRIPT_VISATTR (* LPSCRIPT_VISATTR))
+
 ;; __checkReturn HRESULT WINAPI ScriptShape(
 ;;     HDC                                                     hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE                    *psc,
@@ -200,10 +261,19 @@
 ;;     __out_ecount_full(cChars) WORD                          *pwLogClust,
 ;;     __out_ecount_part(cMaxGlyphs, *pcGlyphs) SCRIPT_VISATTR *psva,
 ;;     __out_ecount(1) int                                     *pcGlyphs);
+(define script-shape
+  (c-function usp10 HRESULT ScriptShape
+	      (HDC LPSCRIPT_CACHE LPCWSTR int int LPSCRIPT_ANALYSIS
+	       LPWORD LPWORD LPSCRIPT_VISATTR LPINT)))
+
 ;; typedef struct tagGOFFSET {
 ;;     LONG  du;
 ;;     LONG  dv;
 ;; } GOFFSET;
+(define-c-struct GOFFSET
+  (LONG du)
+  (LONG dv))
+(define-c-typedef GOFFSET (* LPGOFFSET))
 ;; __checkReturn HRESULT WINAPI ScriptPlace(
 ;;     HDC                                         hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE        *psc,
@@ -214,6 +284,11 @@
 ;;     __out_ecount_full(cGlyphs) int              *piAdvance,
 ;;     __out_ecount_full_opt(cGlyphs) GOFFSET      *pGoffset,
 ;;     __out_ecount(1) ABC                         *pABC);
+(define script-place
+  (c-function usp10 HRESULT ScriptPlace 
+	      (HDC LPSCRIPT_CACHE LPWORD int 
+	       LPSCRIPT_VISATTR LPINT LPGOFFSET LPABC)))
+
 ;; __checkReturn HRESULT WINAPI ScriptTextOut(
 ;;     const HDC                               hdc,
 ;;     __deref_inout_ecount(1) SCRIPT_CACHE    *psc,
@@ -229,6 +304,11 @@
 ;;     __in_ecount(cGlyphs) const int          *piAdvance,
 ;;     __in_ecount_opt(cGlyphs) const int      *piJustify,
 ;;     __in_ecount(cGlyphs) const GOFFSET      *pGoffset);
+(define script-text-out
+  (c-function usp10 HRESULT ScriptTextOut
+	      (HDC LPSCRIPT_CACHE int int UINT LPRECT LPSCRIPT_ANALYSIS
+	       LPCWSTR int LPWORD int LPINT LPINT LPGOFFSET)))
+
 ;; __checkReturn HRESULT WINAPI ScriptJustify(
 ;;     __in_ecount(cGlyphs) const SCRIPT_VISATTR   *psva,
 ;;     __in_ecount(cGlyphs) const int              *piAdvance,
@@ -236,6 +316,9 @@
 ;;     int                                         iDx,
 ;;     int                                         iMinKashida,
 ;;     __out_ecount_full(cGlyphs) int              *piJustify);
+(define script-justify
+  (c-function usp10 HRESULT ScriptJustify
+	      (LPSCRIPT_VISATTR LPINT int int int LPINT)))
 ;; typedef struct tag_SCRIPT_LOGATTR {
 ;;     BYTE    fSoftBreak      :1;
 ;;     BYTE    fWhiteSpace     :1;
@@ -244,6 +327,15 @@
 ;;     BYTE    fInvalid        :1;
 ;;     BYTE    fReserved       :3;
 ;; } SCRIPT_LOGATTR;
+(define-c-struct SCRIPT_LOGATTR
+  (bit-field BYTE
+	     (fSoftBreak      1)
+	     (fWhiteSpace     1)
+	     (fCharStop       1)
+	     (fWordStop       1)
+	     (fInvalid        1)
+	     (fReserved       3)))
+(define-c-typedef SCRIPT_LOGATTR (* LPSCRIPT_LOGATTR))
 ;; __checkReturn HRESULT WINAPI ScriptBreak(
 ;;     __in_ecount(cChars) const WCHAR             *pwcChars,
 ;;     int                                         cChars,
