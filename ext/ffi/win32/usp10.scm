@@ -115,6 +115,17 @@
 	    script-string-pcoutchars
 	    script-string-plogattr
 	    script-string-get-order
+	    script-string-cp-to-x
+	    script-string-x-to-cp
+	    script-string-get-logical-widths
+	    script-string-validate
+	    script-string-out
+
+	    SIC_COMPLEX
+	    SIC_ASCIIDIGIT
+	    SIC_NEUTRAL
+
+	    script-is-complex
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -620,7 +631,7 @@
 (define script-string-analyse
   (c-function usp10 HRESULT ScriptStringAnalyse
 	      (HDC void* int int int DWORD int LPSCRIPT_CONTROL
-	       LPSCRIPT_STATE LPINT LPSCRIPT_TABDEF LPBYTE 
+	       LPSCRIPT_STATE LPINT LPSCRIPT_TABDEF LPBYTE
 	       LPSCRIPT_STRING_ANALYSIS)))
 
 ;; __checkReturn HRESULT WINAPI ScriptStringFree(
@@ -657,16 +668,31 @@
 ;;     int                                     icp,
 ;;     BOOL                                    fTrailing,
 ;;     __out_ecount(1) int                     *pX);
+(define script-string-cp-to-x
+  (c-function usp10 HRESULT ScriptStringCPtoX
+	      (SCRIPT_STRING_ANALYSIS int BOOL (int *))))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringXtoCP(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa,
 ;;     int                                     iX,
 ;;     __out_ecount(1) int                     *piCh,
 ;;     __out_ecount(1) int                     *piTrailing);
+(define script-string-x-to-cp
+  (c-function usp10 HRESULT ScriptStringXtoCP
+	      (SCRIPT_STRING_ANALYSIS int (int *) (int *))))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringGetLogicalWidths(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa,
 ;;     int                                     *piDx);
+(define script-string-get-logical-widths
+  (c-function usp10 HRESULT ScriptStringGetLogicalWidths
+	      (SCRIPT_STRING_ANALYSIS (int *))))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringValidate(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa);
+(define script-string-validate
+  (c-function usp10 HRESULT ScriptStringValidate (SCRIPT_STRING_ANALYSIS)))
+
 ;; __checkReturn HRESULT WINAPI ScriptStringOut(
 ;;     __in_ecount(1) SCRIPT_STRING_ANALYSIS   ssa,
 ;;     int                                     iX,
@@ -676,13 +702,24 @@
 ;;     int                                     iMinSel,
 ;;     int                                     iMaxSel,
 ;;     BOOL                                    fDisabled);
+(define script-string-out
+  (c-function usp10 HRESULT ScriptStringOut
+	      (SCRIPT_STRING_ANALYSIS int int UINT (RECT *) int int BOOL)))
+
 ;; #define SIC_COMPLEX     1
 ;; #define SIC_ASCIIDIGIT  2
 ;; #define SIC_NEUTRAL     4
+(define-constant SIC_COMPLEX     1)
+(define-constant SIC_ASCIIDIGIT  2)
+(define-constant SIC_NEUTRAL     4)
+
 ;; __checkReturn HRESULT WINAPI ScriptIsComplex(
 ;;     __in_ecount(cInChars) const WCHAR   *pwcInChars,
 ;;     int                                 cInChars,
 ;;     DWORD                               dwFlags);
+(define script-is-complex
+  (c-function usp10 HRESULT ScriptIsComplex (LPCWSTR int DWORD)))
+
 ;; typedef struct tag_SCRIPT_DIGITSUBSTITUTE {
 ;;     DWORD  NationalDigitLanguage    :16;
 ;;     DWORD  TraditionalDigitLanguage :16;

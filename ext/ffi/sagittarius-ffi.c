@@ -512,7 +512,11 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	    /* size = 4, off = 8, bit = 2, 
 	       then we need #b0000 0000 1100 0000 0000 0000 0000 0000
 	    */
-	    m = 1<<(sizebits-off);
+	    if (sizebits-off == sizeof(uint64_t)) {
+	      m = -1ULL;
+	    } else {
+	      m = 1ULL<<(sizebits-off);
+	    }
 	    mask->mask = m-1;
 	    mask->mask ^= (m>>bit)-1;
 	    mask->shifts = -(sizebits - (off+bit));
@@ -520,7 +524,11 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	    /* off = 8, bit = 2, 
 	       then we need #b1100 0000
 	    */
-	    m = 1<<(bit+off);
+	    if (bit+off == sizeof(uint64_t)) {
+	      m = -1ULL;
+	    } else {
+	      m = 1ULL<<(bit+off);
+	    }
 	    mask->mask = m-1;
 	    mask->mask ^= (m>>bit)-1;
 	    mask->shifts = -off;
@@ -758,6 +766,7 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
     array /= size;
     for (i = 0; i < array && i < SG_VECTOR_SIZE(value); i++) {
       switch (type) {
+
       case FFI_RETURN_TYPE_STRUCT:
 	Sg_Error(UC("array of struct is not supported. %S"), st);
 	break;
