@@ -429,8 +429,18 @@
 	   (list 'address p offset)
 	   (error 'address "offset must be zero or positive fixnum" offset)))))
 
+  (define (convert-return-type ret-type)
+    (if (and (pair? ret-type)
+	     (not (null? (cdr ret-type)))
+	     (eq? (cadr ret-type) '*))
+	(case (car ret-type)
+	  ((wchar_t) wchar_t*)
+	  ((char)    char*)
+	  (else      void*))
+	ret-type))
   (define (pointer->c-function pointer ret-type name arg-types)
-    (let ((stub-ret-type (assoc ret-type c-function-return-type-alist)))
+    (let* ((rtype (convert-return-type ret-type))
+	   (stub-ret-type (assoc rtype c-function-return-type-alist)))
       (unless stub-ret-type
 	(assertion-violation 'c-function "wrong return type" ret-type))
       (let* ((ret-type (cdr stub-ret-type))
@@ -492,7 +502,11 @@
 			    (if (and (pair? arg-type) 
 				     (not (null? (cdr arg-type)))
 				     (eq? (cadr arg-type) '*))
-				#\p
+				(case (car arg-type)
+				  ;; there is no wchar_t above but
+				  ;; just for convenience
+				  ((wchar_t)  #\w)
+				  (else #\p))
 				(assertion-violation 'make-signatures
 						     "invalid argument type"
 						     arg-types)))))
@@ -510,7 +524,7 @@
   (define-syntax c-function
     (syntax-rules (*)
       ((_ lib (ret *) func (args ...))
-       (make-c-function lib void* 'func (arg-list args ...)))
+       (make-c-function lib (list ret '*) 'func (arg-list args ...)))
       ((_ lib ret func (args ...))
        (make-c-function lib ret 'func (arg-list args ...)))))
 
@@ -525,18 +539,27 @@
   (define (make-callback-signature name ret args)
     (apply string
 	   (map (lambda (a)
-		  (cond ((assq a callback-argument-type-class) => cdr)
-			(else (assertion-violation name (format "invalid argument type ~a" a)
-						   (list ret args)))))
-		args)))
+		  (let ((a (if (and (pair? a)
+				    (not (null? (cdr a)))
+				    (eq? (cadr a) '*))
+			       void*
+			       a)))
+		    (cond ((assq a callback-argument-type-class) => cdr)
+			  (else (assertion-violation name
+				  (format "invalid argument type ~a" a)
+				  (list ret args))))))
+		  args)))
 
   (define-syntax c-callback
     (lambda (x)
-      (syntax-case x ()
+      (syntax-case x (*)
+	((_ (ret *) (args ...) proc)
+	 #'(make-c-callback (ret *) (arg-list args ...) proc))
 	((_ ret (args ...) proc)
-	 #'(make-c-callback ret (list args ...) proc)))))
+	 #'(make-c-callback ret (arg-list args ...) proc)))))
 
-  (define (make-c-callback ret args proc)
+  (define (make-c-callback ret-type args proc)
+    (define ret (convert-return-type ret-type))
     (cond ((assq ret c-function-return-type-alist)
 	   => (lambda (type)
 		(create-c-callback (cdr type)

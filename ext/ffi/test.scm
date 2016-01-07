@@ -124,6 +124,18 @@
 		(free-c-callback compare)
 		bv-array))
 
+  (test-equal "new argument style"
+	      #vu8(1 2 3 4 6 6 7 9)
+	      (let ((qsort (c-function ffi-test-lib void quicksort
+				       ((void *) size_t size_t callback)))
+		    (compare (c-callback int ((void *) (void *))
+					 (lambda (x y)
+					   (- (pointer-ref-c-int8 x 0)
+					      (pointer-ref-c-int8 y 0))))))
+		(qsort bv-array (bytevector-length bv-array) 1 compare)
+		(free-c-callback compare)
+		bv-array))
+
   ;; pointer address
   (test-equal "address passing"
 	      #\a
@@ -314,6 +326,13 @@
   ;; wchar_t*
   (let ()
     (define wide-fn (c-function ffi-test-lib wchar_t* wide_fn (wchar_t*)))
+    (define input "wide string")
+    (test-assert "size-of-wchar_t" size-of-wchar_t)
+    (test-assert "align-of-wchar_t" align-of-wchar_t)
+    (test-equal "wchar_t*" input (wide-fn input)))
+
+  (let ()
+    (define wide-fn (c-function ffi-test-lib (wchar_t *) wide_fn ((wchar_t *))))
     (define input "wide string")
     (test-assert "size-of-wchar_t" size-of-wchar_t)
     (test-assert "align-of-wchar_t" align-of-wchar_t)

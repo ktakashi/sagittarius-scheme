@@ -512,7 +512,7 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	    /* size = 4, off = 8, bit = 2, 
 	       then we need #b0000 0000 1100 0000 0000 0000 0000 0000
 	    */
-	    if (sizebits-off == sizeof(uint64_t)) {
+	    if (sizebits-off == sizeof(uint64_t)<<3) {
 	      m = -1ULL;
 	    } else {
 	      m = 1ULL<<(sizebits-off);
@@ -524,7 +524,7 @@ static int name_match(SgObject name, SgObject names, int size, bfi *mask)
 	    /* off = 8, bit = 2, 
 	       then we need #b1100 0000
 	    */
-	    if (bit+off == sizeof(uint64_t)) {
+	    if (bit+off == sizeof(uint64_t)<<3) {
 	      m = -1ULL;
 	    } else {
 	      m = 1ULL<<(bit+off);
