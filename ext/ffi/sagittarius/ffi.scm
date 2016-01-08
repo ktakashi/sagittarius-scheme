@@ -581,6 +581,7 @@
 	       (assertion-violation 'make-c-struct
 				    "bit-field contains duplicate field name(s)"
 				    fields))))
+
     (let ((layouts
 	   (map (lambda (def)
 		  (cond
@@ -603,7 +604,8 @@
 			 (assq (cadr def) c-function-return-type-alist))
 		    => (lambda (type)
 			 `(bit-field ,(cdr type) ,@(cddr def))))
-		   ((assq (car def) c-function-return-type-alist)
+		   ((assq (convert-return-type (car def))
+			  c-function-return-type-alist)
 		    => (lambda (type)
 			 `(,(cadr def) ,(cdr type) . ,(car type))))
 		   (else
@@ -633,6 +635,7 @@
   (define-syntax type-list
     (lambda (x)
       (define (build type* r)
+	;; FIXME clean up, it's getting unreadable...
 	(syntax-case type* (struct array bit-field *)
 	  (() (reverse! r))
 	  (((struct type member) rest ...)
@@ -656,7 +659,8 @@
 	   (build #'(rest ...)
 		  (cons (cons* #'list #'type 'array #'n #'('args ...)) r)))
 	  ((((type *) args ...) rest ...)
-	   (build #'(rest ...) (cons (cons* #'list #'void* #'('args ...)) r)))
+	   (build #'(rest ...) (cons (cons* #'list (list #'list #'type #''*)
+					    #'('args ...)) r)))
 	  (((type args ...) rest ...)
 	   (build #'(rest ...) (cons (cons* #'list #'type #'('args ...)) r)))))
       (syntax-case x ()
