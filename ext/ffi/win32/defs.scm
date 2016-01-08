@@ -58,6 +58,9 @@
 	    HPALETTE HPEN HRGN HRSRC HSTR HTASK
 	    HWND HWINSTA HKL HFILE HCURSOR COLORREF
 	    FARPROC NEARPROC PROC
+
+	    LCID PLCID
+
 	    ;; structs
 	    RECT PRECT LPRECT LPCRECT
 	    RECTL PRECTL LPRECTL LPCRECTL
@@ -99,7 +102,10 @@
   (define-c-typedef intptr_t INT_PTR (* PINT_PTR))
   (define-c-typedef uintptr_t UINT_PTR (* PUINT_PTR))
   ;; dword
-  (define-c-typedef unsigned-long DWORD (* PDWORD) (* LPDWORD))
+  ;;(define-c-typedef unsigned-long DWORD (* PDWORD) (* LPDWORD))
+  ;; on Wine environment unsigned long can be 64 bit long
+  ;; and MSDN says it's 32 bit long integer. so make sure it's 32 bit
+  (define-c-typedef uint32_t DWORD (* PDWORD) (* LPDWORD))
   ;; VOID
   (define-c-typedef void* (* LPVOID) (* PCVOID) (LPCVOID) (* PVOID))
   ;; long
@@ -120,6 +126,7 @@
   (define-c-typedef LONG HRESULT)
 
   (define-c-typedef WORD ATOM)
+  (define-c-typedef DWORD LCID (* PLCID))
   
   ;; i'm lazy to do this. it's the same anyway.
   (define HANDLE void*)

@@ -126,6 +126,17 @@
 	    SIC_NEUTRAL
 
 	    script-is-complex
+
+	    SCRIPT_DIGITSUBSTITUTE LPSCRIPT_DIGITSUBSTITUTE
+	    script-record-digit-substitution
+
+	    SCRIPT_DIGITSUBSTITUTE_CONTEXT
+	    SCRIPT_DIGITSUBSTITUTE_NONE
+	    SCRIPT_DIGITSUBSTITUTE_NATIONAL
+	    SCRIPT_DIGITSUBSTITUTE_TRADITIONAL
+
+	    script-apply-digit-substitution
+
 	    )
     (import (rnrs)
 	    (sagittarius)
@@ -494,9 +505,8 @@
 ;;     DWORD   fClusterSizeVaries     :1;
 ;;     DWORD   fRejectInvalid         :1;
 ;; } SCRIPT_PROPERTIES;
-;; the definition overflows so we use int64_t (QWORD) instread
 (define-c-struct SCRIPT_PROPERTIES
-  (bit-field int64_t
+  (bit-field DWORD
 	     (langid                 16)
 	     (fNumeric               1)
 	     (fComplex               1)
@@ -506,7 +516,9 @@
 	     (fControl               1)
 	     (fPrivateUseArea        1)
 	     (fNeedsCharacterJustify 1)
-	     (fInvalidGlyph          1)
+	     (fInvalidGlyph          1))
+  ;; TODO Does this work properly?
+  (bit-field DWORD
 	     (fInvalidLogAttr        1)
 	     (fCDM                   1)
 	     (fAmbiguousCharSet      1)
@@ -726,17 +738,39 @@
 ;;     DWORD  DigitSubstitute          :8;
 ;;     DWORD  dwReserved;
 ;; } SCRIPT_DIGITSUBSTITUTE;
+(define-c-struct SCRIPT_DIGITSUBSTITUTE
+  (bit-field DWORD
+	     (NationalDigitLanguage    16)
+	     (TraditionalDigitLanguage 16))
+  (bit-field DWORD
+	     (DigitSubstitute          8))
+  (DWORD dwReserved))
+(define-c-typedef SCRIPT_DIGITSUBSTITUTE (* LPSCRIPT_DIGITSUBSTITUTE))
+
 ;; __checkReturn HRESULT WINAPI ScriptRecordDigitSubstitution(
 ;;     LCID                                    Locale,
 ;;     __out_ecount(1) SCRIPT_DIGITSUBSTITUTE  *psds);
+(define script-record-digit-substitution
+  (c-function usp10 HRESULT ScriptRecordDigitSubstitution
+	      (LCID (SCRIPT_DIGITSUBSTITUTE *))))
+
 ;; #define SCRIPT_DIGITSUBSTITUTE_CONTEXT      0
 ;; #define SCRIPT_DIGITSUBSTITUTE_NONE         1
 ;; #define SCRIPT_DIGITSUBSTITUTE_NATIONAL     2
 ;; #define SCRIPT_DIGITSUBSTITUTE_TRADITIONAL  3
+(define-constant SCRIPT_DIGITSUBSTITUTE_CONTEXT      0)
+(define-constant SCRIPT_DIGITSUBSTITUTE_NONE         1)
+(define-constant SCRIPT_DIGITSUBSTITUTE_NATIONAL     2)
+(define-constant SCRIPT_DIGITSUBSTITUTE_TRADITIONAL  3)
+
 ;; __checkReturn HRESULT WINAPI ScriptApplyDigitSubstitution(
 ;;     __in_ecount(1) const SCRIPT_DIGITSUBSTITUTE *psds,
 ;;     __out_ecount(1) SCRIPT_CONTROL              *psc,
 ;;     __out_ecount(1) SCRIPT_STATE                *pss);
+(define script-apply-digit-substitution
+  (c-function usp10 HRESULT ScriptApplyDigitSubstitution
+	      ((SCRIPT_DIGITSUBSTITUTE *) (SCRIPT_CONTROL *) (SCRIPT_STATE *))))
+
 ;; #ifndef UNISCRIBE_OPENTYPE
 ;; #if (_WIN32_WINNT >= 0x0600)
 ;; #define UNISCRIBE_OPENTYPE 0x0100
