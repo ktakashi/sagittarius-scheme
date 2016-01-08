@@ -209,7 +209,8 @@
   (for-each (lambda (column)
 	      (put-char out #\,)
 	      (put-newline/space out indent)
-	      (apply maybe-with-parenthesis column out :indent indent opt))
+	      (apply maybe-with-parenthesis column out
+		     :indent indent opt))
 	    columns))
 (define (write/comma* out columns . opt)
   (unless (null? columns)
@@ -245,26 +246,33 @@
   (write/case "INSERT INTO" out :indent indent)
   (apply write-ssql table out :indent #f opt)
   (when cols 
+    (put-char out #\space)
     (with-parenthesis out 
-      (apply write/comma* out cols :indent ni opt)))
+      (apply write/comma* out cols :indent #f :value-space #f opt)))
   (when override? (put-char out #\space) (write/case override? out))
   (when vals
     (put-newline/space out indent)
     (write/case "VALUES" out)
-    (with-parenthesis out (apply write/comma* out (car vals) :indent ni opt))
+    (put-char out #\space)
+    (with-parenthesis out 
+      (apply write/comma* out (car vals) :indent #f :value-space #f opt))
     (for-each (lambda (v) 
 		(put-char out #\,)
-		(put-newline out indent)
+		(put-newline/space out ni)
 		(with-parenthesis out 
-		  (apply write/comma* out v :indent ni opt)))
+		  (apply write/comma* out v :indent #f :value-space #f opt)))
 	      (cdr vals))))
-(define (query-insert out table cols overriding? query . opt)
+(define (query-insert out table cols overriding? query :key (indent #f) 
+		      :allow-other-keys opt)
   (write/case "INSERT INTO" out)
   (apply write-ssql table out opt)
-  (when cols (with-parenthesis out (write/comma* out cols opt)))
+  (when cols 
+    (put-char out #\space)
+    (with-parenthesis out 
+      (apply write/comma* out cols :indent #f :value-space #f opt)))
   (when overriding? (put-char out #\space) (write/case overriding? out))
-  (put-char out #\space)
-  (apply write-ssql query out opt))
+  (put-newline/space out indent)
+  (apply write-ssql query out :indent indent opt))
 
 (define-sql-writer (insert-into ssql out . opt)
   (('insert-into table (cols ...) ('values vals ...))
@@ -321,29 +329,37 @@
   (('delete-from table ('where condition))
    (write-delete out table (list 'where condition))))
 
-(define (write-columns ssql out . opt)
-  (define (write-column col out . opt)
-    (define (emit type)
+(define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
+  (define (write-column col out)
+    (define (emit type :optional (need-space? #t))
       (if (pair? type)
-	  (apply write-ssql type out opt)
-	  (begin (put-char out #\space) (write/case (symbol-upcase type) out))))
+	  (apply write-ssql type out :indent #f opt)
+	  (begin 
+	    (when need-space? (put-char out #\space))
+	    (write/case (symbol-upcase type) out))))
     (match col
       ((name types ...)
-       (emit name)
+       (emit name #f)
        (for-each emit types))))
   (unless (null? ssql)
-    (apply write-column (car ssql) out opt)
+    (put-indent out indent)
+    (write-column (car ssql) out)
     (for-each (lambda (column)
 		(put-char out #\,)
-		(apply write-column column out opt)) (cdr ssql))))
+		(put-newline/space out indent)
+		(write-column column out)) (cdr ssql))))
 ;; create table
 ;; not complete this is only for my testing sake
-(define-sql-writer (create-table ssql out . opt)
+(define-sql-writer (create-table ssql out :key (indent #f) 
+				 :allow-other-keys opt)
   (('create-table table (columns ...))
    (write/case "CREATE TABLE" out)
    (apply write-ssql table out opt)
+   (put-char out #\space)
    (with-parenthesis out
-    (apply write-columns columns out opt))))
+    (put-newline out indent)
+    (apply write-columns columns out :indent (next-indent indent) opt)
+    (put-newline out indent))))
 
 ;; with
 (define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)
