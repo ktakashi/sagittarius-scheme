@@ -47,6 +47,7 @@
 	    (win32 defs)
 	    (win32 gdi)
 	    (win32 kernel)
+	    (win32 usp10)
 	    (win32 gui api)
 	    (win32 gui edit)
 	    (clos user)
@@ -130,30 +131,64 @@
     (else null-pointer)))
 
 (define (handle-paint text-view) 
+  ;; TODO maybe we want to make an layer to rendering text
   (define (text-out text-view hdc rect chunk attr)
+    ;; TODO chop off the line according to the regex or something
+    ;;      to do syntax highlighting
     (define font-width (~ text-view 'font-width))
+    (define (make-tabdef w)
+      (let ((wp (allocate-pointer size-of-int))
+	    (tb (allocate-c-struct SCRIPT_TABDEF)))
+	(pointer-set-c-int! wp 0 w)
+	(c-struct-set! tb SCRIPT_TABDEF 'cTabStops 1)
+	(c-struct-set! tb SCRIPT_TABDEF 'iScale 0)
+	(c-struct-set! tb SCRIPT_TABDEF 'pTabStops wp)
+	(c-struct-set! tb SCRIPT_TABDEF 'iTabOrigin 0)
+	tb))
     ;; set colours
     (set-text-color hdc (get-color text-view 'text))
     (set-bk-color hdc (get-color text-view 'background))
     ;; should we do it here?
     (select-object hdc (~ text-view 'font))
-    (let ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
-	  (left (c-struct-ref rect RECT 'left)))
-      ;; draw line and expand tabs
-      (let ((w (tabbed-text-out hdc
-				left
-				(c-struct-ref rect RECT 'top)
-				chunk
-				(string-length chunk)
-				1
-				(address tab)
-				left)))
-	(+ left (win32-loword w)))))
+
+    (let* ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
+	   (left (c-struct-ref rect RECT 'left))
+	   (ssa (empty-pointer))
+	   (utf16 (string->utf16 chunk 'little))
+	   (len (bytevector-length utf16))
+	   (tabdef (make-tabdef tab)))
+      ;; TODO do do-it-yourself mode thing
+      ;;      ref: https://maxradi.us/documents/uniscribe/
+      (script-string-analyse hdc 
+			     utf16
+			     (div len 2)
+			     (exact (ceiling (+ (* 1.5 len) 16)))
+			     -1
+			     (bitwise-ior SSA_TAB SSA_GLYPHS)
+			     (- (c-struct-ref rect RECT 'right) left)
+			     null-pointer
+			     null-pointer
+			     null-pointer
+			     tabdef
+			     null-pointer
+			     (address ssa))
+      (script-string-out ssa 
+			 left 
+			 (c-struct-ref rect RECT 'top)
+			 ETO_OPAQUE
+			 rect
+			 0
+			 0
+			 #f)
+      (let ((size (script-string-psize ssa)))
+	(script-string-free (address ssa))
+	(if (null-pointer? size)
+	    left
+	    (+ left (c-struct-ref size SIZE 'cx))))))
   ;; Draw a line of text into the view
   (define (plain-text text-view hdc line-no rect)
-    ;; TODO chop off the line according to the regex or something
-    ;;      to do syntax highlighting
     (let ((line (win32-text-view-buffer-line (~ text-view 'value) line-no)))
+      ;; (text-out text-view hdc rect line #f)
       (let ((left (text-out text-view hdc rect line #f))
 	    (fill (allocate-c-struct RECT)))
 	;; erase the rest of the line with background color
