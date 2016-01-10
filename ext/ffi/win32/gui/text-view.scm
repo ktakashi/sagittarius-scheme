@@ -136,15 +136,6 @@
     ;; TODO chop off the line according to the regex or something
     ;;      to do syntax highlighting
     (define font-width (~ text-view 'font-width))
-    (define (make-tabdef w)
-      (let ((wp (allocate-pointer size-of-int))
-	    (tb (allocate-c-struct SCRIPT_TABDEF)))
-	(pointer-set-c-int! wp 0 w)
-	(c-struct-set! tb SCRIPT_TABDEF 'cTabStops 1)
-	(c-struct-set! tb SCRIPT_TABDEF 'iScale 0)
-	(c-struct-set! tb SCRIPT_TABDEF 'pTabStops wp)
-	(c-struct-set! tb SCRIPT_TABDEF 'iTabOrigin 0)
-	tb))
     ;; set colours
     (set-text-color hdc (get-color text-view 'text))
     (set-bk-color hdc (get-color text-view 'background))
@@ -153,25 +144,8 @@
 
     (let* ((tab (integer->pointer (* font-width (~ text-view 'tab-width))))
 	   (left (c-struct-ref rect RECT 'left))
-	   (ssa (empty-pointer))
-	   (utf16 (string->utf16 chunk 'little))
-	   (len (bytevector-length utf16))
-	   (tabdef (make-tabdef tab)))
-      ;; TODO do do-it-yourself mode thing
-      ;;      ref: https://maxradi.us/documents/uniscribe/
-      (script-string-analyse hdc 
-			     utf16
-			     (div len 2)
-			     (exact (ceiling (+ (* 1.5 len) 16)))
-			     -1
-			     (bitwise-ior SSA_TAB SSA_GLYPHS)
-			     (- (c-struct-ref rect RECT 'right) left)
-			     null-pointer
-			     null-pointer
-			     null-pointer
-			     tabdef
-			     null-pointer
-			     (address ssa))
+	   (ssa (usp-analyse-string text-view hdc chunk 
+				    (- (c-struct-ref rect RECT 'right) left))))
       (script-string-out ssa 
 			 left 
 			 (c-struct-ref rect RECT 'top)
@@ -181,7 +155,7 @@
 			 0
 			 #f)
       (let ((size (script-string-psize ssa)))
-	(script-string-free (address ssa))
+	(usp-free-analysis ssa)
 	(if (null-pointer? size)
 	    left
 	    (+ left (c-struct-ref size SIZE 'cx))))))
@@ -383,8 +357,7 @@
   MA_ACTIVATE)
 
 ;; FIXME
-;; For now we assume the font has the same width (mono font)
-;; so that we can easily calculate tab width as well
+;; we assume rendered font is only one.
 (define (mouse-coord-to-file-pos text-view mx my)
   (define font-height (~ text-view 'font-height))
   (define font-width (~ text-view 'font-width))
@@ -414,44 +387,24 @@
 	    (do ((i 0 (+ i 1)) (c 0 (+ c (tab i))))
 		((= i len) c)))
 	  (let* ((line (win32-text-view-buffer-line buf line-no))
-		 (len (string-length line))
-		 (tabs (tab-count line len))
-		 (cx (+ (* len font-width)
-			(* tabs (- (~ text-view 'tab-width) 1) font-width))))
-	    (if (> mx cx)
-		(values line-no len cx) ;; easy
-		;; need to calculate tab otherwise caret would be
-		;; in the middle of the tab...
-		;; TODO
-		(let ((off (mod mx font-width))
-		      (half (div font-width 2)))
-		  (values line-no 0 
-			  (if (> off half)
-			      (+ mx (- font-width off))
-			      (- mx off))))))
-	  ;; TODO in the end we may need this type of thing
-	  #;
-	  (let* ((line (win32-text-view-buffer-line buf line-no))
-		 (size (allocate-c-struct SIZE))
 		 (hdc (get-dc (~ text-view 'hwnd)))
-		 (old (select-object hdc (~ text-view 'font))))
-	    (get-text-extend-point-32 hdc line (string-length line) size)
-	    (select-object hdc old)
-	    (let ((cx (c-struct-ref size SIZE 'cx))
-		  (cy (c-struct-ref size SIZE 'cy)))
-	      (if (> mx cx)
-		  (begin
-		    (display mx) (display ":") (display cx) (newline)
-		    (values line-no 0 cx)
-		    )
-		  (let ((off (mod mx font-width))
-			(half (div font-width 2)))
-		    (values line-no 0 
-			    (if (> off half)
-				(+ mx (- font-width off))
-				(- mx off))))))))))))
-	  
-    
+		 (old (select-object hdc (~ text-view 'font)))
+		 (ssa (usp-analyse-string text-view hdc line right)))
+	    (define (finish p)
+	      (usp-free-analysis ssa)
+	      (select-object hdc old)
+	      (values line-no 0 p))
+	    (let loop ((mx mx) (retry? #f))
+	      (let*-values (((ch trailing) (usp-x->cp ssa mx))
+			    ((p) (usp-cp->x ssa ch trailing)))
+		(if (and (not retry?) (zero? p) (zero? trailing))
+		    ;; ok clicked somewhere out of line or the very first
+		    (let* ((size (script-string-psize ssa))
+			   (cx (c-struct-ref size SIZE 'cx)))
+		      (if (< mx cx)
+			  (finish p)
+			  (loop (- cx 1) #t)))
+		    (finish p))))))))))
 
 (define (handle-lbutton-down text-view flags mx my)
   (let-values (((line-no file-off px) 
@@ -585,5 +538,52 @@
 (define (win32-text-view-buffer-longest-line b) (~ b 'longest-line))
 (define (win32-text-view-buffer-line b n) (list-ref (~ b 'lines) n))
 (define (win32-text-view-buffer-size b) (~ b 'size))
+
+;; return SCRIPT_STRING_ANALYSIS for now
+;; TODO do do-it-yourself mode thing
+;;      ref: https://maxradi.us/documents/uniscribe/
+(define (usp-analyse-string text-view hdc line width)
+  (define (make-tabdef w)
+    (let ((wp (allocate-pointer size-of-int))
+	  (tb (allocate-c-struct SCRIPT_TABDEF)))
+      (pointer-set-c-int! wp 0 w)
+      (c-struct-set! tb SCRIPT_TABDEF 'cTabStops 1)
+      (c-struct-set! tb SCRIPT_TABDEF 'iScale 0)
+      (c-struct-set! tb SCRIPT_TABDEF 'pTabStops wp)
+      (c-struct-set! tb SCRIPT_TABDEF 'iTabOrigin 0)
+      tb))
+  (let* ((ssa (empty-pointer))
+	 (utf16 (string->utf16 line 'little))
+	 (len (bytevector-length utf16))
+	 (tabdef (make-tabdef (~ text-view 'tab-width))))
+    (script-string-analyse hdc 
+			   utf16
+			   (div len 2)
+			   (exact (ceiling (+ (* 1.5 len) 16)))
+			   -1
+			   (bitwise-ior SSA_TAB SSA_GLYPHS)
+			   width
+			   null-pointer
+			   null-pointer
+			   null-pointer
+			   tabdef
+			   null-pointer
+			   (address ssa))
+    ssa))
+(define (usp-free-analysis ssa) (script-string-free (address ssa)))
+(define (usp-x->cp ssa x) 
+  (let ((ch (empty-pointer))
+	(trailing (empty-pointer)))
+    (script-string-x-to-cp ssa x (address ch) (address trailing))
+    (values (pointer->integer ch) (pointer->integer trailing))))
+(define (usp-cp->x ssa cp trailing) 
+  (let ((p (empty-pointer)))
+    (script-string-cp-to-x ssa cp (not (zero? trailing)) (address p))
+    (pointer->integer p)))
+(define (usp-line-width ssa)
+  (let ((w (empty-pointer)))
+    (script-string-get-logical-widths ssa (address w))
+    (pointer->integer w)))
+
 )
     
