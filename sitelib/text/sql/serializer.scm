@@ -368,6 +368,38 @@
     (apply write-columns columns out :indent (next-indent indent 4) opt)
     (put-newline out indent))))
 
+;; (default something)
+(define-sql-writer (default ssql out . opt)
+  (('default ssql)
+   (write/case "DEFAULT " out)
+   (apply write-ssql ssql out opt)))
+
+(define-sql-writer (generated-always-as-identity ssql out . opt)
+  ((name options ...)
+   (write/case (symbol-upcase name) out)
+   (unless (null? options)
+     (put-char out #\space)
+     (with-parenthesis out
+       (let loop ((options options) (first #t))
+	 (unless (null? options)
+	   (unless first (put-char out #\space))
+	   (if (pair? (car options))
+	       (apply write-ssql (car options) out opt)
+	       (write/case (symbol-upcase (car options)) out))
+	   (loop (cdr options) #f)))))))
+(define-sql-writer generated-by-default-as-identity 
+  generated-always-as-identity)
+
+(define-sql-writer (start-with ssql out . opt)
+  ((name v)
+   (write/case (symbol-upcase name) out)
+   (put-char out #\space)
+   ;; v must be a number so we can actually just write it
+   (apply write-ssql v out opt)))
+(define-sql-writer increment-by start-with)
+(define-sql-writer maxvalue start-with)
+(define-sql-writer minvalue start-with)
+
 ;; with
 (define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)
   (define (size type) (string-length (symbol->string type)))

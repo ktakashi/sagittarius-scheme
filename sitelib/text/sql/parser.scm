@@ -341,11 +341,10 @@
    (column-definition ((n <- column-name
 			t <- data-type/domain-name?
 			r <- reference-scope-check?
-			d <- default-clause/identity-column-specification?
-			g <- generation-clause?
+			d <- default-clause/identity-column-specification/generation-clause?
 			c <- column-constraint-definition?
 			o <- collate-clause?)
-		       `(,n ,@t ,@r ,@d ,@g ,@c ,@o)))
+		       `(,n ,@t ,@r ,@d ,@c ,@o)))
    (data-type/domain-name? ((d <- data-type) (list d))
 			   ((i <- identifier-chain) (list i))
 			   (() '()))
@@ -375,29 +374,29 @@
    (reference-scope-check-action? ((a <- referential-action) (list a))
 				  (() '()))
    
-   (default-clause/identity-column-specification?
-     ((d <- default-clause) d)
-     ((i <- identity-column-specification) i)
+   (default-clause/identity-column-specification/generation-clause?
+     ((d <- default-clause) (list d))
+     ((i <- identity-column-specification) (list i))
+     ((g <- generation-clause) (list g))
      (() '()))
-   (identity-column-specification (('generated (=? 'always) 'as 'identity
+   (identity-column-specification (((=? 'generated) (=? 'always) 'as 'identity
 				    o <- common-sequence-generator-options?)
 				   (cons 'generated-always-as-identity o))
-				  (('generated 'by 'default 'as 'identity
+				  (((=? 'generated) 'by 'default 'as 'identity
 				    o <- common-sequence-generator-options?)
-				   (cons 'generated-always-as-identity o)))
+				   (cons 'generated-by-default-as-identity o)))
    (common-sequence-generator-options? 
-    (('#\( c <- common-sequence-generator-options '#\)) (list c))
+    (('#\( c <- common-sequence-generator-options '#\)) c)
     (() '()))
-   (generation-clause? ((r <- generation-rule 'as e <- generation-expression)
-			`((as ,r ,e)))
-		       (() '()))
-   (generation-rule (('generated (=? 'always)) 'generated-always))
+   (generation-clause ((r <- generation-rule 'as e <- generation-expression)
+		       `(generated-always-as ,e)))
+   (generation-rule (((=? 'generated) (=? 'always)) 'generated-always))
    (generation-expression (('#\( v <- value-expression '#\)) v))
 			
    ;; 11.5 default clause
-   (default-clause? ((d <- default-clause) d)
+   (default-clause? ((d <- default-clause) (list d))
 		    (() '()))
-   (default-clause (('default o <- default-option) (list 'default o)))
+   (default-clause (('default o <- default-option) `(default ,o)))
    (default-option (('current_path) 'current_path)
 		   (('current_role) 'current_role)
 		   (('current_user) 'current_user)
@@ -467,7 +466,8 @@
    ;; 11.62 sequence generator definition
    (common-sequence-generator-options ((c <- common-sequence-generator-option
 				        c* <- common-sequence-generator-options)
-				       (cons c c*)))
+				       (cons c c*))
+				      (() '()))
    (common-sequence-generator-option 
     ((s <- sequence-generator-start-with-option) s)
     ((b <- basic-sequence-generator-option) b))

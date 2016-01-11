@@ -402,6 +402,14 @@
 	    '(create-table t ((a int primary-key))))
 (test-parse "create table t (a int primary key, b varchar)"
 	    '(create-table t ((a int primary-key) (b varchar))))
+(test-parse "create table t (a int default nextval('seq') not null, b varchar)"
+	    '(create-table t ((a int (default (nextval "seq")) not-null)
+			      (b varchar))))
+(test-parse "create table t (id int generated always as identity (start with 1 increment by 1 no cycle))"
+	    '(create-table t ((id int (generated-always-as-identity 
+				       (start-with 1)
+				       (increment-by 1)
+				       no-cycle)))))
 
 ;; commit
 (test-parse "commit" '(commit))
