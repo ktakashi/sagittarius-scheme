@@ -363,7 +363,8 @@
    (put-char out #\space)
    (with-parenthesis out
     (put-newline out indent)
-    (apply write-columns columns out :indent (next-indent indent) opt)
+    ;; indent 4 would be nice, i think
+    (apply write-columns columns out :indent (next-indent indent 4) opt)
     (put-newline out indent))))
 
 ;; with
