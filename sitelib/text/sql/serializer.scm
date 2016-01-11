@@ -336,15 +336,19 @@
 
 (define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
   (define (write-column col out)
-    (define (emit type :optional (need-space? #t))
+    (define (emit type)
       (if (pair? type)
-	  (apply write-ssql type out :indent #f opt)
 	  (begin 
-	    (when need-space? (put-char out #\space))
+	    (put-char out #\space)
+	    (apply write-ssql type out :indent #f opt))
+	  (begin 
+	    (put-char out #\space)
 	    (write/case (symbol-upcase type) out))))
     (match col
       ((name types ...)
-       (emit name #f)
+       ;; assume the first one is always symbol
+       ;;(emit name #f)
+       (write/case name out)
        (for-each emit types))))
   (unless (null? ssql)
     (put-indent out indent)

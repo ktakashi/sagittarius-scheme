@@ -406,7 +406,11 @@
 		   (('user) 'user)
 		   ((l <- literal) l)
 		   ((d <- datetime-value-function) d)
-		   ((i <- implicitly-typed-value-specification) i))
+		   ((i <- implicitly-typed-value-specification) i)
+		   ;; default nextval('foo') or so...
+		   ;; it's out of SQL 2003 spec but for my sake
+		   ;; and probaly better to have it.
+		   ((r <- routine-invocation) r))
 
    ;; 11.6 table constraint definition
    (table-constraint-definition ((d <- constraint-name-definition?
