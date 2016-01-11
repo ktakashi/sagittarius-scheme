@@ -398,7 +398,9 @@
    (apply maybe-with-parenthesis b out :indent indent opt)))
 
 (define (write-table-reference table out :key (indent #f) :allow-other-keys opt)
-  (if (and (pair? table) (not (eq? (car table) 'as)))
+  (if (and (pair? table) 
+	   (not (eq? (car table) 'as))
+	   (not (eq? (car table) '~)))
       ;; join
       (begin 
 	(apply write-ssql (car table) out opt)

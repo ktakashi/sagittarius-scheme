@@ -425,6 +425,9 @@
 (test-parse "savepoint foo" '(savepoint foo))
 (test-parse "release savepoint foo" '(release-savepoint foo))
 
+;; found a bug on local-or-schema-qualified-name
+(test-parse "select * from s.t" '(select * (from (~ s t))))
+
 ;; simplifier
 (define (test-simplify ssql expected)
   (test-equal ssql expected (simplify-ssql ssql)))

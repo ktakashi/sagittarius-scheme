@@ -1996,8 +1996,8 @@
 				    (if (eq? l 'module)
 					`(module ,i)
 					(concate-identifier l i)))
-				   ((i <- identifier) 
-				    i))
+				   ((i <- identifier-chain) i)
+				   ((i <- identifier) i))
    (local-or-schema-qualifier (('module) 'module)
 			      ((i <- identifier-chain) i))
    ;; identifier
