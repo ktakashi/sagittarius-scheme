@@ -337,13 +337,10 @@
 (define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
   (define (write-column col out)
     (define (emit type)
+      (put-char out #\space)
       (if (pair? type)
-	  (begin 
-	    (put-char out #\space)
-	    (apply write-ssql type out :indent #f opt))
-	  (begin 
-	    (put-char out #\space)
-	    (write/case (symbol-upcase type) out))))
+	  (apply write-ssql type out :indent #f opt)
+	  (write/case (symbol-upcase type) out)))
     (match col
       ((name types ...)
        ;; assume the first one is always symbol
