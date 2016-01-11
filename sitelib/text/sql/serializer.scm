@@ -335,13 +335,50 @@
    (write-delete out table (list 'where condition))))
 
 (define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
+  (define (emit-constraint name type column rest)
+    (when name 
+      (write/case "CONSTRAINT " out)
+      (apply write-ssql name out opt)
+      (put-char out #\space))
+    ;; UNIQUE(col), PRIMERY KEY(col) or so
+    ;; default writer can handle it so just do it like this
+    (cond ((null? column)
+	   (write/case (symbol-upcase type) out)) ;; not-null
+	  ((eq? type 'references) ;; sucks!!!
+	   (write/case "REFERENCES " out)
+	   (apply write-ssql (car column) out opt)
+	   (unless (null? (cdr column))
+	     (with-parenthesis out (apply write/comma* out (cdr column) opt))))
+	  (else
+	   (apply write-ssql `(,(symbol-upcase type) ,@column)
+		  out :indent #f opt)))
+    (unless (null? rest)
+      (for-each (lambda (c)
+		  (put-char out #\space)
+		  (write/case (symbol-upcase c) out)) rest)))
   (define (write-column col out)
+    ;; FIXME it's the same as basic one...
     (define (emit type)
       (put-char out #\space)
-      (if (pair? type)
-	  (apply write-ssql type out :indent #f opt)
-	  (write/case (symbol-upcase type) out)))
+      (match type
+	;; references thing
+	(('constraint (type columns ...) rest ...)
+	 (emit-constraint #f type columns rest))
+	(('constraint name (type columns ...) rest ...)
+	 (emit-constraint name type columns rest))
+	;; sucks...
+	(('constraint name single rest ...)
+	 (emit-constraint name single '() rest))
+	(('constraint single rest ...)
+	 (emit-constraint #f single '() rest))
+	;; default
+	((a . d) (apply write-ssql type out :indent #f opt))
+	(_ (write/case (symbol-upcase type) out))))
     (match col
+      (('constraint (type column ...) rest ...)
+       (emit-constraint #f type column rest))
+      (('constraint name (type column ...) rest ...)
+       (emit-constraint name type column rest))
       ((name types ...)
        ;; assume the first one is always symbol
        ;;(emit name #f)

@@ -354,11 +354,13 @@
    (column-constraint-definition ((n <- constraint-name-definition?
 				   c <- column-constraint
 				   r <- constraint-characteristics?)
-				  (if (and (null? n) (null? r))
-				      c
-				      `(,c ,@n ,@r))))
+				  (if (null? n)
+				      `(constraint ,c ,@r)
+				      `(,@(car n) ,c ,@r))))
    (column-constraint (('not 'null) 'not-null)
 		      ((u <- unique-specification) u)
+		      ;; TODO should we accept 'foreign key references'
+		      ;;      as well? not SQL 2003 but seems common.
 		      ((r <- references-specification) r)
 		      ((c <- check-constraint-definition) c))
 
@@ -415,7 +417,9 @@
    (table-constraint-definition ((d <- constraint-name-definition?
 				  t <- table-constraint
 				  c <- constraint-characteristics?)
-				 `(,@d ,t ,@c)))
+				 (if (null? d)
+				     `(constraint ,t ,@c)
+				     `(,@(car d) ,t ,@c))))
    (table-constraint ((u <- unique-constraint-definition) u)
 		     ((r <- referential-constraint-definition) r)
 		     ((c <- check-constraint-definition) c))
@@ -432,20 +436,22 @@
     (('foreign (=? 'key) '#\( c <- column-name-list '#\) 
       s <- references-specification)
      `(foreing-key ,c ,s)))
-   (references-specification (('references t <- referenced-table-and-columns
+   (references-specification (('references 
+			       t <- referenced-table-and-columns
 			       m <- match-type?
-			       t <- referential-triggered-action?)
-			      `(references ,t ,@m ,@t)))
+			       a <- referential-triggered-action?)
+			      `(references ,@t ,@m ,@a)))
    (referenced-table-and-columns 
     ((t <- table-name '#\( c <- column-name-list '#\)) (cons t c))
-    ((t <- table-name) t))
+    ((t <- table-name) (list t)))
    (match-type? (('match (=? 'full))    '(match-full))
 		(('match (=? 'partial)) '(match-partial))
 		(('match (=? 'simple))  '(match-simple))
 		(() '()))
    (referential-triggered-action? 
     ((u <- update-rule d <- delete-rule?) (cons u d))
-    ((d <- delete-rule u <- update-rule?) (cons d u)))
+    ((d <- delete-rule u <- update-rule?) (cons d u))
+    (() '()))
    (update-rule? ((u <- update-rule) (list u))
 		 (() '()))
    (delete-rule? ((d <- delete-rule) (list d))
@@ -1906,7 +1912,7 @@
 				(() '()))
    (constraint-name-definition (('constraint n <- identifier-chain)
 				(list 'constraint n)))
-   (constraint-characteristics? ((c <- constraint-characteristics) (list c))
+   (constraint-characteristics? ((c <- constraint-characteristics) c)
 				(() '()))
    (constraint-characteristics ((t <- constraint-check-time d <- deferrable?)
 				(cons t d))
