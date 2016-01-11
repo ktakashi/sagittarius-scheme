@@ -435,7 +435,7 @@
    (referential-constraint-definition 
     (('foreign (=? 'key) '#\( c <- column-name-list '#\) 
       s <- references-specification)
-     `(foreing-key ,c ,s)))
+     `(foreign-key ,c ,s)))
    (references-specification (('references 
 			       t <- referenced-table-and-columns
 			       m <- match-type?

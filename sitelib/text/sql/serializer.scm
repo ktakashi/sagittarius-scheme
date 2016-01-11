@@ -349,6 +349,11 @@
 	   (apply write-ssql (car column) out opt)
 	   (unless (null? (cdr column))
 	     (with-parenthesis out (apply write/comma* out (cdr column) opt))))
+	  ((eq? type 'foreign-key)
+	   (write/case "FOREIGN KEY " out)
+	   (with-parenthesis out (apply write/comma* out (car column) opt))
+	   (put-char out #\space)
+	   (emit-constraint #f 'references (cdadr column) '()))
 	  (else
 	   (apply write-ssql `(,(symbol-upcase type) ,@column)
 		  out :indent #f opt)))
