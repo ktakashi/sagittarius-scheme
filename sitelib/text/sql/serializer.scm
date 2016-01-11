@@ -115,7 +115,6 @@
 (define (default-sql-writer ssql out . opt)
   (let ((name (car ssql))
 	(args (cdr ssql)))
-    (put-char out #\space)
     (cond ((pair? name)
 	   (apply write-ssql name out opt)
 	   (apply write-args args out opt))
@@ -133,7 +132,6 @@
 (define (maybe-with-parenthesis ssql out :key (indent #f) :allow-other-keys opt)
   (if (and (pair? ssql) (memq (car ssql) parenthesis-keywords))
       (begin
-	(put-char out #\space)
 	(with-parenthesis out (apply write-ssql ssql out :indent indent opt)))
       (apply write-ssql ssql out :indent indent opt)))
 (define (infix-operator-writer ssql out :key (indent #f) :allow-other-keys opt)
@@ -143,6 +141,7 @@
     (apply maybe-with-parenthesis (car args) out :indent 0 opt)
     (put-char out #\space)
     (write/case name out)
+    (put-char out #\space)
     (apply maybe-with-parenthesis (cadr args) out :indent 0 opt)))
 
 (define (write-args args out . opt)
@@ -154,7 +153,7 @@
 	   (let ((arg (car args)))
 	     (if (pair? arg)
 		 (apply write-ssql arg out opt)
-		 (write-value arg out :value-space #f)))
+		 (write-value arg out)))
 	   (loop (cdr args) #f)))))
 
 
@@ -232,44 +231,45 @@
   (('select '* rest ...)
    (write/case "SELECT *" out :indent first-indent)
    (for-each (lambda (clause) 
+	       (put-newline/space out indent)
 	       (apply write-ssql clause out :indent indent opt)) rest))
   (('select (column columns ...) rest ...)
    (write/case "SELECT" out :indent first-indent)
    (apply write/comma out column columns :indent (next-indent indent) opt)
    (for-each (lambda (clause)
+	       (put-newline/space out indent)
 	       (apply write-ssql clause out :indent indent opt))
 	     rest)))
 
 (define (basic-insert out table cols override? vals :key (indent #f)
 		      :allow-other-keys opt)
   (define ni (next-indent indent))
-  (write/case "INSERT INTO" out :indent indent)
+  (write/case "INSERT INTO " out :indent indent)
   (apply write-ssql table out :indent #f opt)
   (when cols 
     (put-char out #\space)
     (with-parenthesis out 
-      (apply write/comma* out cols :indent #f :value-space #f opt)))
+      (apply write/comma* out cols :indent #f opt)))
   (when override? (put-char out #\space) (write/case override? out))
   (when vals
     (put-newline/space out indent)
-    (write/case "VALUES" out)
-    (put-char out #\space)
+    (write/case "VALUES " out)
     (with-parenthesis out 
-      (apply write/comma* out (car vals) :indent #f :value-space #f opt))
+      (apply write/comma* out (car vals) :indent #f opt))
     (for-each (lambda (v) 
 		(put-char out #\,)
 		(put-newline/space out ni)
 		(with-parenthesis out 
-		  (apply write/comma* out v :indent #f :value-space #f opt)))
+		  (apply write/comma* out v :indent #f opt)))
 	      (cdr vals))))
 (define (query-insert out table cols overriding? query :key (indent #f) 
 		      :allow-other-keys opt)
-  (write/case "INSERT INTO" out)
+  (write/case "INSERT INTO " out)
   (apply write-ssql table out opt)
   (when cols 
     (put-char out #\space)
     (with-parenthesis out 
-      (apply write/comma* out cols :indent #f :value-space #f opt)))
+      (apply write/comma* out cols :indent #f opt)))
   (when overriding? (put-char out #\space) (write/case overriding? out))
   (put-newline/space out indent)
   (apply write-ssql query out :indent indent opt))
@@ -301,29 +301,33 @@
   (define ni (next-indent indent))
   (define n0 (and indent 0))
   (('update table ('set! ('= lhs rhs) ...) clauses ...)
-   (write/case "UPDATE" out)
+   (write/case "UPDATE " out)
    (apply write-ssql table out opt)
    (put-newline/space out indent)
    (write/case "SET" out)
-   (put-newline out indent)
+   (put-newline/space out indent)
    (apply write-ssql (car lhs) out :indent ni opt)
-   (put-string out " =")
+   (put-string out " = ")
    (apply maybe-with-parenthesis (car rhs) out :indent n0 opt)
    (for-each (lambda (lhs rhs) 
 	       (put-char out #\,)
-	       (put-newline out indent)
+	       (put-newline/space out indent)
 	       (apply write-ssql lhs out :indent ni opt)
-	       (put-string out " =")
+	       (put-string out " = ")
 	       (apply maybe-with-parenthesis rhs out :indent n0 opt))
 	     (cdr lhs) (cdr rhs))
-   (for-each (lambda (clause) (apply write-ssql clause out :indent indent opt))
+   (for-each (lambda (clause) 
+	       (put-newline/space out indent)
+	       (apply write-ssql clause out :indent indent opt))
 	     clauses)))
 
 (define-sql-writer (delete-from ssql out :key (indent #f) :allow-other-keys opt)
   (define (write-delete out table where)
-    (write/case "DELETE FROM" out)
+    (write/case "DELETE FROM " out)
     (apply write-ssql table out opt)
-    (when where (apply write-ssql where out :indent indent opt)))
+    (when where 
+      (put-newline/space out indent)
+      (apply write-ssql where out :indent indent opt)))
 
   (('delete-from table)
    (write-delete out table #f))
@@ -354,7 +358,7 @@
 (define-sql-writer (create-table ssql out :key (indent #f) 
 				 :allow-other-keys opt)
   (('create-table table (columns ...))
-   (write/case "CREATE TABLE" out)
+   (write/case "CREATE TABLE " out)
    (apply write-ssql table out opt)
    (put-char out #\space)
    (with-parenthesis out
@@ -371,6 +375,7 @@
      (define nl2 (next-indent nl1))
 
      (write/case (symbol-upcase type) out :indent indent)
+     (put-char out #\space)
      (apply write-ssql c out :indent nl2 opt)
      (for-each (lambda (as) 
 		 (put-char out #\,)
@@ -389,24 +394,24 @@
   (('as a b)
    ;; (put-newline/space out indent)
    (apply maybe-with-parenthesis a out :indent indent opt)
-   (write/case " AS" out)
+   (write/case " AS " out)
    (apply maybe-with-parenthesis b out :indent indent opt)))
 
-(define (write-table-reference table out . opt)
+(define (write-table-reference table out :key (indent #f) :allow-other-keys opt)
   (if (and (pair? table) (not (eq? (car table) 'as)))
       ;; join
       (begin 
 	(apply write-ssql (car table) out opt)
 	(for-each (lambda (join)
-		    (put-char out #\space)
-		    (apply write-ssql join out opt)) (cdr table)))
+		    (put-newline/space out indent)
+		    (apply write-ssql join out :indent indent opt))
+		  (cdr table)))
       ;; normal or query
       (apply write-ssql table out opt)))
 
 (define-sql-writer (from ssql out :key (indent #f) :allow-other-keys :rest opt)
   (('from table rest ...)
-   (put-newline/space out indent)
-   (write/case "FROM" out)
+   (write/case "FROM " out)
    (apply write-table-reference table out :indent indent opt)
    (for-each (lambda (table) 
 	       (put-char out #\,)
@@ -416,10 +421,11 @@
 (define (symbol-upcase s) (string->symbol (string-upcase (symbol->string s))))
 (define-sql-writer (join ssql out :key (indent #f) :allow-other-keys opt)
   ((type table . condition)
-   (put-newline out indent)
    (write/case (symbol-upcase type) out)
+   (put-char out #\space)
    (apply write-ssql table out opt)
    (unless (null? condition)
+     (put-char out #\space)
      ;; must only be one condition
      (apply write-ssql (car condition) out opt))))
 
@@ -444,12 +450,12 @@
 
 (define-sql-writer (on ssql out . opt)
   (('on condition)
-   (write/case " ON" out)
+   (write/case "ON " out)
    (apply write-ssql condition out opt)))
 
 (define-sql-writer (using ssql out . opt)
   (('using columns ...)
-   (write/case " USING (" out)
+   (write/case "USING (" out)
    (unless (null? columns)
      (apply write-ssql (car columns) out opt)
      (for-each (lambda (column) 
@@ -460,8 +466,7 @@
 
 (define-sql-writer (where ssql out :key (indent #f) :allow-other-keys opt)
   (('where condition)
-   (put-newline/space out indent)
-   (write/case "WHERE" out)
+   (write/case "WHERE " out)
    (apply write-ssql condition out :indent (next-indent indent) opt)))
 
 (define-sql-writer (order-by ssql out :key (indent #f) :allow-other-keys opt)
@@ -522,19 +527,19 @@
     (match-lambda
      (('when condition then)
       (put-newline/space out nl)
-      (write/case "WHEN" out)
+      (write/case "WHEN " out)
       (apply write-ssql condition out :indent nl opt)
-      (write/case " THEN" out)
+      (write/case " THEN " out)
       (apply write-ssql then out :indent nl opt))))
   (('case (? symbol? a) when* ...)
-   (write/case "CASE" out)
+   (write/case "CASE " out)
    (apply write-ssql a out :indent #f opt)
    (put-char out #\space)
    (for-each write-when when*)
    (put-newline/space out indent)
    (write/case "END" out))
   (('case when* ...)
-   (write/case "CASE" out)
+   (write/case "CASE " out)
    (for-each write-when when*)
    (put-newline/space out indent)
    (write/case "END" out)))
@@ -562,15 +567,15 @@
 		    (write/case sql-name out)
 		    (write/check condition)) b*))))))
 
-(define-sql/priority and (or)  "AND" #t)
-(define-sql/priority or  (and) "OR"  #t)
-(define-sql/priority *   (+ -) " *"  #f)
-(define-sql/priority /   (+ -) " /"  #f)
-(define-sql/priority %   (+ -) " %"  #f)
+(define-sql/priority and (or)  "AND " #t)
+(define-sql/priority or  (and) "OR "  #t)
+(define-sql/priority *   (+ -) "*"  #f)
+(define-sql/priority /   (+ -) "/"  #f)
+(define-sql/priority %   (+ -) "%"  #f)
 
 (define-syntax define-sql-variable-operator
   (syntax-rules ()
-    ((_ name op keys ...)
+    ((_ name op)
      (define-sql-writer (name ssql out :key (indent #f) :allow-other-keys opt)
        (define (need-parenthesis? s)
 	 (and (pair? s) (not (eq? (car s) '~))))
@@ -582,16 +587,16 @@
 		    (write/case op out)
 		    (if (need-parenthesis? c)
 			(with-parenthesis out
-			 (apply write-ssql c out keys ... :indent indent opt))
-			(apply write-ssql c out keys ... :indent indent opt)))
+			 (apply write-ssql c out :indent indent opt))
+			(apply write-ssql c out :indent indent opt)))
 		    b*))))))
 
-(define-sql-variable-operator ~   "."  :value-space #f)
-(define-sql-variable-operator ^   " ||")
-(define-sql-variable-operator ->  "->" :value-space #f)
-(define-sql-variable-operator ::  "::" :value-space #f)
+(define-sql-variable-operator ~   ".")
+(define-sql-variable-operator ^   " || ")
+(define-sql-variable-operator ->  "->")
+(define-sql-variable-operator ::  "::")
 ;; in case it's not keyword
-(define-sql-variable-operator |::|  "::" :value-space #f)
+(define-sql-variable-operator |::|  "::")
 
 ;; (+ 1) -> +1
 (define-sql-writer (variable/unary-operator ssql out :key (indent #f)
@@ -604,7 +609,9 @@
        (begin 
 	 (apply write-ssql a out :indent indent opt)
 	 (for-each (lambda (c)
+		     (put-char out #\space)
 		     (write/case name out)
+		     (put-char out #\space)
 		     (apply write-ssql c out :indent indent opt)) b*)))))
 (define-sql-writer + variable/unary-operator)
 (define-sql-writer - variable/unary-operator)
@@ -656,8 +663,8 @@
 ;; a bit ugly...
 (define-sql-writer (binary-op ssql out . opt)
   ((name a)
-   (put-char out #\space)
    (write/case (symbol-upcase name) out)
+   (put-char out #\space)
    (apply write-ssql a out opt))
   (_
    (apply infix-operator-writer ssql out opt)))
@@ -721,8 +728,9 @@
    (apply write-ssql col out opt)
    (put-char out #\space)
    (write/case (symbol-upcase name) out)
+   (put-char out #\space)
    (apply write-ssql s out opt)
-   (write/case " AND" out)
+   (write/case " AND " out)
    (apply write-ssql e out opt)))
 (define-sql-writer between-symmetric between)
 (define-sql-writer between-asymmetric between)
@@ -816,7 +824,6 @@
 
 (define-sql-writer (cast ssql out . opt)
   ((type a b)
-   (put-char out #\space)
    (write/case (symbol-upcase type) out)
    (put-char out #\()
    (apply write-ssql a out opt)
@@ -827,8 +834,8 @@
 
 (define-sql-writer (unary-op ssql out . opt)
   ((name operand)
-   (put-char out #\space)
    (write/case (symbol-upcase name) out)
+   (put-char out #\space)
    (apply write-ssql operand out opt)))
 (define-sql-writer current-of unary-op)
 (define-sql-writer local unary-op)
@@ -903,7 +910,7 @@
 
 (define-sql-writer (only ssql out . opt)
   (('only id)
-   (write/case " ONLY" out) (apply write-ssql id out opt)))
+   (write/case " ONLY " out) (apply write-ssql id out opt)))
 
 ;; aggregate functions
 ;; this is needed because it can take filter clause...
@@ -959,7 +966,7 @@
 (define-sql-writer (module ssql out . opt)
   (('module a)
    (write/case " MODULE." out)
-   (apply write-ssql a out :value-space #f opt)))
+   (apply write-ssql a out opt)))
 
 ;; commit
 ;; it's not really good one but for laziness
@@ -1001,9 +1008,8 @@
    (put-string out "*/")))
 
 ;;; atom value
-(define (write-value ssql out :key (value-space #t) (indent #f) 
+(define (write-value ssql out :key (indent #f) 
 		     :allow-other-keys opt)
-  (when value-space (put-char out #\space))
   (cond ((symbol? ssql) (handle-identifier ssql out))
 	;; :key maybe the same as ? in some RDBMS
 	((keyword? ssql) (write ssql out))
