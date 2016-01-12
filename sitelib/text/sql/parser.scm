@@ -507,11 +507,17 @@
 			((d <- drop-column-default-clause) d)
 			((a <- add-column-scope-clause) a)
 			((d <- drop-column-scope-clause) d)
+			((s <- set-column-not-null-clause) s)
+			((d <- drop-column-not-null-clause) d)
 			;; we don't support this for now since it seems
 			;; DB2 is the only RDBMS which support this and
 			;; representation of this clause makes me headache.
 			#;((a <- alter-identity-column-specification) a))
    
+   ;; set not null and drop not null (PostgreSQL specific)
+   (set-column-not-null-clause (('set 'not 'null) 'set-not-null))
+   (drop-column-not-null-clause (('drop 'not 'null) 'set-not-null))
+
    ;; 11.13 set column default clause
    ;; with this form we can re-use some code on serializer
    (set-column-default-clause (('set d <- default-clause) 

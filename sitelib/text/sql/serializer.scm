@@ -505,6 +505,10 @@
      (('drop-scope behaviour)
       (write/case " DROP SCOPE " out)
       (write/case (symbol-upcase behaviour) out))
+     ;; PostgreSQL specific...
+     ((? (lambda (s) (memq s '(set-not-null drop-not-null))) x)
+      (put-char out #\space)
+      (write/case (symbol-upcase x) out))
      (('set sequence-option)
       (write/case " SET " out)
       (apply write-ssql sequence-option out opt))))
