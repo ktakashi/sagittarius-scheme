@@ -1021,6 +1021,12 @@ static int push_ffi_type_value(SgFuncInfo *info,
     case FFI_SIGNATURE_WCHAR_STR:
       storage->ptr = (void*)SG_POINTER(obj)->pointer;
       return TRUE;
+    case FFI_SIGNATURE_CALLBACK:
+      /* accept only NULL pointer */
+      if (!SG_POINTER(obj)->pointer) {
+	storage->ptr = (void*)NULL;
+	return TRUE;
+      }
     default:
       *lastError = get_error_message(signature, obj);
       return FALSE;

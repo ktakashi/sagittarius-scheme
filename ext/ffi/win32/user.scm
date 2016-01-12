@@ -88,6 +88,7 @@
 	    get-window-text
 	    get-window-text-length
 	    set-cursor
+	    get-cusor-pos
 	    set-capture
 	    release-capture
 	    set-focus
@@ -111,6 +112,11 @@
 	    destroy-caret
 	    set-caret-pos
 	    get-caret-pos
+
+	    TIMERPROC
+	    set-timer kill-timer
+
+	    screen-to-client
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -824,6 +830,7 @@
     (c-function user32 int GetWindowTextLengthW (HWND)))
 
   (define set-cursor (c-function user32 HCURSOR SetCursor (HCURSOR)))
+  (define get-cusor-pos (c-function user32 BOOL GetCursorPos (LPPOINT)))
   (define set-capture (c-function user32 HWND SetCapture (HWND)))
   (define release-capture (c-function user32 BOOL ReleaseCapture ()))
 
@@ -1518,4 +1525,13 @@
   (define get-caret-pos
     (c-function user32 BOOL GetCaretPos (LPPOINT)))
 
+  (define TIMERPROC callback)
+  (define set-timer
+    (c-function user32 HWND SetTimer (HWND UINT_PTR UINT TIMERPROC)))
+  (define kill-timer
+    (c-function user32 BOOL KillTimer (HWND UINT_PTR)))
+
+  (define screen-to-client
+    (c-function user32 BOOL ScreenToClient (HWND LPPOINT)))
+  
 )

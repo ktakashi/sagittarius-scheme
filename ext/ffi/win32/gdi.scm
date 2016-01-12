@@ -83,6 +83,18 @@
 	    get-text-extend-point-32
 
 	    ABC PABC LPABC
+
+	    delete-object
+	    RGN_AND
+	    RGN_OR
+	    RGN_XOR
+	    RGN_DIFF
+	    RGN_COPY
+	    RGN_MIN
+	    RGN_MAX
+	    create-rect-rgn-indirect
+	    combine-rgn
+	    invalidate-rgn
 	    )
     (import (core)
 	    (core syntax)
@@ -207,4 +219,22 @@
     (UINT abcB)
     (INT  abcC))
   (define-c-typedef ABC (* PABC) (* LPABC))
+
+  (define delete-object
+    (c-function gdi32 BOOL DeleteObject (HGDIOBJ)))
+
+  (define-constant RGN_AND  1)
+  (define-constant RGN_OR   2)
+  (define-constant RGN_XOR  3)
+  (define-constant RGN_DIFF 4)
+  (define-constant RGN_COPY 5)
+  (define-constant RGN_MIN  RGN_AND)
+  (define-constant RGN_MAX  RGN_COPY)
+
+  (define create-rect-rgn-indirect
+    (c-function gdi32 HRGN CreateRectRgnIndirect (LPRECT)))
+  (define combine-rgn
+    (c-function gdi32 int CombineRgn (HRGN HRGN HRGN int)))
+  (define invalidate-rgn
+    (c-function gdi32 BOOL CombineRgn (HRGN HRGN BOOL)))
 )

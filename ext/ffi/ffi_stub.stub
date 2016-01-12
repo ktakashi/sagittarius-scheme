@@ -151,11 +151,13 @@
 
 (define-c-proc c-struct-ref (p::<pointer> st::<cstruct> name::<symbol>)
   :no-side-effect
-  Sg_CStructRef)
+  (check-null-pointer c-struct-ref p)
+  (result (Sg_CStructRef p st name)))
 
 (define-c-proc c-struct-set! 
   (p::<pointer> st::<cstruct> name::<symbol> v) ::<void>
-  Sg_CStructSet)
+  (check-null-pointer c-struct-set! p)
+  (Sg_CStructSet p st name v))
 
 ;; ref
 (define-c-proc pointer-ref-c-uint8 (p::<pointer> offset::<fixnum>)
