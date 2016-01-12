@@ -4,6 +4,7 @@
 	(text sql parser)
 	(text sql simplifier)
 	(text sql serializer)
+	(srfi :39)
 	(srfi :64))
 
 (test-begin "SQL")
@@ -534,7 +535,9 @@
 	(if token
 	    (loop (cons token r))
 	    r))))
-  (test-equal ssql (scan-all expected) (scan-all (ssql->sql ssql))))
+  ;; historical reason...
+  (parameterize ((*preserve-case* #f))
+    (test-equal ssql (scan-all expected) (scan-all (ssql->sql ssql)))))
 
 ;; unicode identifier
 (test-serializer '(unicode "s" uescape "$") " U&'s' UESCAPE '$'")

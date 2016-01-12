@@ -47,7 +47,7 @@
 	      (lambda (in)
 		(p in (list-queue) 0 1)))))
 
-(define *preserve-case* (make-parameter #f))
+(define *preserve-case* (make-parameter #t))
 
 (define (scanner-get-char ctx) 
   (define unget-buffer (scanner-unget-buffer ctx))
