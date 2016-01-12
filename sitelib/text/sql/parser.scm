@@ -138,7 +138,9 @@
 	 ((d <- delete-statement) d)
 	 ((u <- update-statement) u)
 	 ((t <- table-definition) t) ;; create table
+	 ((t <- alter-table-statement) t) ;; alter table
 	 ((s <- sequence-generator-definition) s) ;; create sequence
+	 ((d <- drop-schema-statement) d) ;; drop schema
 	 ((c <- commit-statement) c) 
 	 ((r <- rollback-statement) r) 
 	 ((s <- savepoint-statement) s)
@@ -250,6 +252,15 @@
    (cursor-name (('global v <- simple-value-specification) (list 'global v))
 		(('local v <- simple-value-specification) (list 'local v))
 		((i <- local-or-schema-qualified-name) i))
+
+   ;; 11.2 drop schema statement
+   (drop-schema-statement (('drop (=? 'schema) n <- identifier-chain
+			    b <- drop-behavior?)
+			   `(drop-schema ,n ,@b)))
+   (drop-behavior? ((b <- drop-behavior) (list b))
+		   (() '()))
+   (drop-behavior (((=? 'cascade)) 'cascade)
+		  (((=? 'restrict)) 'restrict))
 
    ;; 11.3 table definition
    (table-definition (('create s <- table-scope? 'table t <- table-name
@@ -470,6 +481,75 @@
    (check-constraint-definition (('check '#\( s <- search-condition '#\))
 				 (list 'check s)))
 
+   ;; 11.10 alter table statement
+   (alter-table-statement (('alter 'table n <- table-name 
+			    a <- alter-table-action)
+			   `(alter-table ,n ,a)))
+   (alter-table-action ((a <- add-column-definition) a)
+		       ((a <- alter-column-definition) a)
+		       ((d <- drop-column-definition) d)
+		       ((a <- add-table-constraint-definition) a)
+		       ((d <- drop-table-constraint-definition) d))
+
+   ;; 11.11 add column definition
+   (add-column-definition (('add 'column d <- column-definition)
+			   `(add-column ,@d))
+			  (('add d <- column-definition)
+			   `(add-column ,@d)))
+
+   ;; 11.12 alter column definition
+   (alter-column-definition (('alter 'column n <- column-name
+			      a <- alter-column-action)
+			     `(alter-column ,n ,a))
+			    (('alter n <- column-name a <- alter-column-action)
+			     `(alter-column ,n ,a)))
+   (alter-column-action ((s <- set-column-default-clause) s)
+			((d <- drop-column-default-clause) d)
+			((a <- add-column-scope-clause) a)
+			((d <- drop-column-scope-clause) d)
+			;; we don't support this for now since it seems
+			;; DB2 is the only RDBMS which support this and
+			;; representation of this clause makes me headache.
+			#;((a <- alter-identity-column-specification) a))
+   
+   ;; 11.13 set column default clause
+   ;; with this form we can re-use some code on serializer
+   (set-column-default-clause (('set d <- default-clause) 
+			       `(set-default ,@(cdr d))))
+   ;; 11.14 drop column default clause
+   (drop-column-default-clause (('drop 'default) 'drop-default))
+   ;; 11.15 add column scope cluase
+   (add-column-scope-clause (('add s <- scope-clause)
+			     `(add-scope ,@(cdr s))))
+   ;; 11.16 drop column scope clause
+   (drop-column-scope-clause (('drop (=? 'scope) b <- drop-behavior?)
+			      (if (null? b)
+				  'drop-scope
+				  `(drop-scope ,@b))))
+   ;; 11.17 alter identity column specification
+   (alter-identity-column-specification 
+    ((o <- alter-identity-column-options) o))
+   (alter-identity-column-options ((o <- alter-identity-column-option
+				    o* <- alter-identity-column-options)
+				   (cons o o*))
+				  (() '()))
+   (alter-identity-column-option 
+    ((s <- alter-sequence-generator-restart-option) s)
+    (('set o <- basic-sequence-generator-option) `(set ,o)))
+
+   ;; 11.18 drop column definition
+   (drop-column-definition (('drop 'column n <- column-name b <- drop-behavior?)
+			    `(drop-column ,n ,@b))
+			   (('drop n <- column-name b <- drop-behavior?)
+			    `(drop-column ,n ,@b)))
+   ;; 11.19 add table constraint definition
+   (add-table-constraint-definition (('add c <- table-constraint-definition)
+				     `(add-constraint ,@(cdr c))))
+   ;; 11.20 drop table constraint definition
+   (drop-table-constraint-definition 
+    (('drop 'constraint n <- identifier-chain b <- drop-behavior?)
+     `(drop-constraint ,n ,@b)))
+
    ;; 11.62 sequence generator definition
    (sequence-generator-definition (('create (=? 'sequence) 
 				    n <- identifier-chain
@@ -506,6 +586,11 @@
     (('no (=? 'minvalue)) 'no-minvalue))
    (sequence-generator-cycle-option (('cycle) 'cycle)
 				    (('no 'cycle) 'no-cycle))
+
+   ;; 11.63
+   ;; TODO others
+   (alter-sequence-generator-restart-option
+    (((=? 'restart) 'with n <- signed-numeric-literal) `(restart-with ,n)))
 
    ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
@@ -1158,7 +1243,8 @@
 		    (cons* 'ref t s)))
    (scope-clause? ((s <- scope-clause) (list s))
 		  (() '()))
-   (scope-clause (('scope t <- local-or-schema-qualified-name) (list 'scope t)))
+   (scope-clause (((=? 'scope) t <- local-or-schema-qualified-name)
+		  (list 'scope t)))
    (referenced-type ((i <- identifier-chain) i))
 
    (collection-type ((a <- array-type) a)

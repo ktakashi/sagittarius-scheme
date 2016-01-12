@@ -334,7 +334,47 @@
   (('delete-from table ('where condition))
    (write-delete out table (list 'where condition))))
 
-(define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
+(define (write-constraint ssql out :key (indent #f) :allow-other-keys opt)
+  (define (emit-constraint name type column rest)
+    (when name 
+      (write/case "CONSTRAINT " out)
+      (apply write-ssql name out opt)
+      (put-char out #\space))
+    ;; UNIQUE(col), PRIMERY KEY(col) or so
+    ;; default writer can handle it so just do it like this
+    (cond ((null? column)
+	   (write/case (symbol-upcase type) out)) ;; not-null
+	  ((eq? type 'references) ;; sucks!!!
+	   (write/case "REFERENCES " out)
+	   (apply write-ssql (car column) out opt)
+	   (unless (null? (cdr column))
+	     (with-parenthesis out (apply write/comma* out (cdr column) opt))))
+	  ((eq? type 'foreign-key)
+	   (write/case "FOREIGN KEY " out)
+	   (with-parenthesis out (apply write/comma* out (car column) opt))
+	   (put-char out #\space)
+	   (emit-constraint #f 'references (cdadr column) '()))
+	  (else
+	   (apply write-ssql `(,(symbol-upcase type) ,@column)
+		  out :indent #f opt)))
+    (unless (null? rest)
+      (for-each (lambda (c)
+		  (put-char out #\space)
+		  (write/case (symbol-upcase c) out)) rest)))
+  (match ssql
+    ;; references thing
+    (('constraint (type columns ...) rest ...)
+     (emit-constraint #f type columns rest))
+    (('constraint name (type columns ...) rest ...)
+     (emit-constraint name type columns rest))
+    ;; sucks...
+    (('constraint name single rest ...)
+     (emit-constraint name single '() rest))
+    (('constraint single rest ...)
+     (emit-constraint #f single '() rest))))
+  
+(define (write-column-definition ssql out :key (indent #f)
+				 :allow-other-keys opt)
   (define (emit-constraint name type column rest)
     (when name 
       (write/case "CONSTRAINT " out)
@@ -367,35 +407,29 @@
       (put-char out #\space)
       (match type
 	;; references thing
-	(('constraint (type columns ...) rest ...)
-	 (emit-constraint #f type columns rest))
-	(('constraint name (type columns ...) rest ...)
-	 (emit-constraint name type columns rest))
-	;; sucks...
-	(('constraint name single rest ...)
-	 (emit-constraint name single '() rest))
-	(('constraint single rest ...)
-	 (emit-constraint #f single '() rest))
+	(('constraint rest ...) (apply write-constraint type out opt))
 	;; default
 	((a . d) (apply write-ssql type out :indent #f opt))
 	(_ (write/case (symbol-upcase type) out))))
     (match col
-      (('constraint (type column ...) rest ...)
-       (emit-constraint #f type column rest))
-      (('constraint name (type column ...) rest ...)
-       (emit-constraint name type column rest))
+      (('constraint rest ...)
+       (apply write-constraint col out opt))
       ((name types ...)
        ;; assume the first one is always symbol
        ;;(emit name #f)
        (write/case name out)
        (for-each emit types))))
+  (write-column ssql out))
+
+(define (write-columns ssql out :key (indent #f) :allow-other-keys opt)
   (unless (null? ssql)
     (put-indent out indent)
-    (write-column (car ssql) out)
+    (apply write-column-definition (car ssql) out :indent indent opt)
     (for-each (lambda (column)
 		(put-char out #\,)
 		(put-newline/space out indent)
-		(write-column column out)) (cdr ssql))))
+		(apply write-column-definition column out :indent indent opt))
+	      (cdr ssql))))
 ;; create table
 ;; not complete this is only for my testing sake
 (define-sql-writer (create-table ssql out :key (indent #f) 
@@ -454,6 +488,49 @@
 		   (apply write-ssql o out :indent #f opt))
 		 options)))))
 				    
+
+(define-sql-writer (alter-table ssql out :key (indent #f) :allow-other-keys opt)
+  (define (add/drop-column? x) 
+    (memq x '(add-column drop-column drop-constraint)))
+  (define write-alter-column-action
+    (match-lambda
+     ('drop-default (write/case " DROP DEFAULT" out))
+     (('set-default v)
+      (write/case " SET DEFAULT " out)
+      (apply write-ssql v out opt))
+     (('add-scope v) 
+      (write/case " ADD SCOPE " out)
+      (apply write-ssql v out opt))
+     ('drop-scope (write/case " DROP SCOPE" out))
+     (('drop-scope behaviour)
+      (write/case " DROP SCOPE " out)
+      (write/case (symbol-upcase behaviour) out))
+     (('set sequence-option)
+      (write/case " SET " out)
+      (apply write-ssql sequence-option out opt))))
+      
+  (('alter-table name ((? add/drop-column? x) definition ...))
+   (write/case "ALTER TABLE " out)
+   (apply write-ssql name out opt)
+   (put-char out #\space)
+   (write/case (symbol-upcase x) out)
+   (put-char out #\space)
+   ;; this works perfectly for drop-column and drop-constraint
+   ;; as well because it considers 'cascade' or 'restrict' as 
+   ;; type. rather abusing though...
+   (write-column-definition definition out))
+  (('alter-table name ('add-constraint rest ...))
+   (write/case "ALTER TABLE " out)
+   (apply write-ssql name out opt)
+   (write/case " ADD " out)
+   (write-constraint (cons 'constraint rest) out))
+  (('alter-table name (alter-column c action))
+   (write/case "ALTER TABLE " out)
+   (apply write-ssql name out opt)
+   (write/case " ALTER COLUMN " out)
+   (apply write-ssql c out opt)
+   (write-alter-column-action action)))
+   
 
 ;; with
 (define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)

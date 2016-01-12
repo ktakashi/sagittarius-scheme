@@ -442,6 +442,41 @@
 (test-parse "create sequence s as integer start with 1" 
 	    '(create-sequence s (as integer) (start-with 1)))
 
+;; alter table
+(test-parse "alter table t add b int" '(alter-table t (add-column b int)))
+(test-parse "alter table t add column b int"
+	    '(alter-table t (add-column b int)))
+(test-parse "alter table t add column b int primary key"
+	    '(alter-table t (add-column b int (constraint primary-key))))
+(test-parse "alter table t drop b" '(alter-table t (drop-column b)))
+(test-parse "alter table t drop column b" '(alter-table t (drop-column b)))
+(test-parse "alter table t drop column b cascade"
+	    '(alter-table t (drop-column b cascade)))
+(test-parse "alter table t drop column b restrict"
+	    '(alter-table t (drop-column b restrict)))
+(test-parse "alter table t add unique (b)"
+	    '(alter-table t (add-constraint (unique b))))
+(test-parse "alter table t add constraint u_b unique (b)"
+	    '(alter-table t (add-constraint u_b (unique b))))
+(test-parse "alter table t drop constraint u_b"
+	    '(alter-table t (drop-constraint u_b)))
+(test-parse "alter table t drop constraint u_b cascade"
+	    '(alter-table t (drop-constraint u_b cascade)))
+(test-parse "alter table t drop constraint u_b restrict"
+	    '(alter-table t (drop-constraint u_b restrict)))
+(test-parse "alter table t alter column b set default 1"
+	    '(alter-table t (alter-column b (set-default 1))))
+(test-parse "alter table t alter column b drop default"
+	    '(alter-table t (alter-column b drop-default)))
+(test-parse "alter table t alter column b add scope s"
+	    '(alter-table t (alter-column b (add-scope s))))
+(test-parse "alter table t alter column b drop scope"
+	    '(alter-table t (alter-column b drop-scope)))
+(test-parse "alter table t alter column b drop scope cascade"
+	    '(alter-table t (alter-column b (drop-scope cascade))))
+(test-parse "alter table t alter column b drop scope restrict"
+	    '(alter-table t (alter-column b (drop-scope restrict))))
+
 ;; commit
 (test-parse "commit" '(commit))
 ;; Should we make and-chain appended to commit?
