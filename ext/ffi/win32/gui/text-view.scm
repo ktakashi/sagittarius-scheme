@@ -135,6 +135,8 @@
     ((text) (get-sys-color COLOR_WINDOWTEXT))
     (else null-pointer)))
 
+(define (key-pressed? code) (< (get-key-state code) 0))
+
 (define (handle-paint text-view) 
   ;; TODO maybe we want to make an layer to rendering text
   (define (text-out text-view hdc rect chunk attr)
@@ -421,6 +423,13 @@
   (let-values (((line-no file-off px) 
 		(mouse-coord-to-file-pos text-view mx my)))
     (update-caret-xy text-view px line-no)
+    (if (key-pressed? VK_SHIFT)
+	(begin
+	  (invalidate-range text-view 
+			    (~ text-view 'selection-start)
+			    (~ text-view 'selection-end))
+	  (set! (~ text-view 'selection-start) file-off))
+	(invalidate-range text-view (~ text-view 'selection-end) file-off))
     (set! (~ text-view 'mouse-down) #t)
     (set! (~ text-view 'selection-start) file-off)
     (set! (~ text-view 'selection-end) file-off)
@@ -456,7 +465,45 @@
   ;;      Y      bottom
   (and (<= left x right) (<= top y bottom)))
 
-(define (invalidate-range text-view start finish) #f)
+(define (invalidate-range text-view start finish) 
+  (define buffer (~ text-view 'value))
+  (unless (= start finish)
+    (let-values (((start finish) (if (< start finish)
+				     (values start finish)
+				     (values finish start))))
+      (let ((line-no (win32-text-view-buffer-offset->line-no buffer start))
+	    (vpos (~ text-view 'vertical-scroll-position))
+	    (hpos (~ text-view 'horizontal-scroll-position)))
+	(let-values (((line-no start off-chars)
+		      (if (< line-no vpos)
+			  (let ((off (win32-text-view-buffer-line-no->offset
+				      buffer vpos)))
+			    (values vpos off off))
+			  (let ((off (win32-text-view-buffer-line-no->offset
+				      buffer line-no)))
+			    (values line-no start off)))))
+	  (unless (>= start finish)
+	    (let* ((font-height (~ text-view 'font-height))
+		   (font-width (~ text-view 'font-width))
+		   (ypos (* (- line-no vpos) font-height))
+		   (hwnd (~ text-view 'hwnd))
+		   (client (allocate-c-struct RECT))
+		   (rect (allocate-c-struct RECT)))
+	      (get-client-rect hwnd client)
+	      (let ((right (c-struct-ref client RECT 'right)))
+		(let loop ((line-no line-no) (ypos ypos) (off-chars off-chars))
+		  (when (< off-chars finish)
+		    (set-rect rect 0 ypos right (+ ypos font-height))
+		    (let ((left (c-struct-ref rect RECT 'left)))
+		      (c-struct-set! rect RECT 'left 
+				     (- left (* hpos font-width)))
+		      (invalidate-rect hwnd rect #f)
+		      (let ((nl (+ line-no 1)))
+			(loop nl 
+			      (+ ypos font-height)
+			      (win32-text-view-buffer-line-no->offset 
+			       buffer nl)))))))))))))
+  0)
 
 ;; Do we need this?
 (define (update-line! text-view line-no)
@@ -697,15 +744,22 @@
 (define (win32-text-view-buffer-longest-line b) (~ b 'longest-line))
 (define (win32-text-view-buffer-line b n) (list-ref (~ b 'lines) n))
 (define (win32-text-view-buffer-size b) (~ b 'size))
-(define (win32-text-view-buffer-offset->line-info b offset)
-  (let loop ((line #f) (lines (~ b 'lines)) (count 0) (line-no 0))
+(define (win32-text-view-buffer-offset->line-no b offset)
+  (let loop ((lines (~ b 'lines)) (count 0) (line-no 0))
     (if (null? lines)
-	(value line line-no count) ;; end or empty buffer
+	line-no ;; end or empty buffer
 	(let* ((line (car lines))
 	       (len (string-length line)))
 	  (if (>= (+ count len) offset)
-	      (values line line-no (+ count offset)) ;; should we?
-	      (loop line (cdr lines) (+ count len) (+ line-no 1)))))))
+	      line-no
+	      (loop (cdr lines) (+ count len) (+ line-no 1)))))))
+
+(define (win32-text-view-buffer-line-no->offset b n)
+  (let loop ((i 0) (lines (~ b 'lines)) (off 0))
+    (cond ((null? lines) off)
+	  ((= i n) off)
+	  (else (loop (+ i 1) (cdr lines)
+		      (+ off (string-length (car lines))))))))
 
 ;; return SCRIPT_STRING_ANALYSIS for now
 ;; TODO do do-it-yourself mode thing

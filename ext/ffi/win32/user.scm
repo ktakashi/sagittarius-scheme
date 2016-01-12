@@ -36,7 +36,7 @@
 
 	    IDC_ARROW IDC_IBEAM IDC_WAIT IDC_CROSS IDC_UPARROW
 	    IDC_SIZE IDC_ICON IDC_SIZENWSE IDC_SIZENESW IDC_SIZEWE
-	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
+v	    IDC_SIZENS IDC_SIZEALL IDC_NO IDC_HAND IDC_APPSTARTING
 	    IDC_HELP
 
 	    WNDCLASSEX
@@ -72,6 +72,7 @@
 	    invalidate-rect
 	    is-rect-empty
 	    fill-rect
+	    set-rect
 	    move-window
 	    destroy-window
 	    send-message
@@ -117,6 +118,7 @@
 	    set-timer kill-timer
 
 	    screen-to-client
+	    get-key-state
 	    )
     (import (rnrs)
 	    (rename (sagittarius) (define-constant defconst))
@@ -790,6 +792,7 @@
   (define is-rect-empty (c-function user32 BOOL IsRectEmpty (LPRECT)))
 
   (define fill-rect (c-function user32 int FillRect (HDC LPRECT HBRUSH)))
+  (define set-rect (c-function user32 BOOL SetRect (LPRECT int int int int)))
 
   (define move-window
     (c-function user32 BOOL MoveWindow (HWND int int int int BOOL)))
@@ -1533,5 +1536,7 @@
 
   (define screen-to-client
     (c-function user32 BOOL ScreenToClient (HWND LPPOINT)))
-  
+
+  (define get-key-state
+    (c-function user32 SHORT GetKeyState (int)))
 )
