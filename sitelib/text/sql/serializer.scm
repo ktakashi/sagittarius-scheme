@@ -442,6 +442,19 @@
 (define-sql-writer maxvalue start-with)
 (define-sql-writer minvalue start-with)
 
+(define-sql-writer (create-sequence ssql out :key (indent #f) 
+				    :allow-other-keys opt)
+  (('create-sequence name options ...)
+   (write/case "CREATE SEQUENCE " out)
+   (apply write-ssql name out :indent #f opt)
+   (unless (null? options)
+     (let ((nl (next-indent indent 4)))
+       (for-each (lambda (o)
+		   (put-newline/space out nl)
+		   (apply write-ssql o out :indent #f opt))
+		 options)))))
+				    
+
 ;; with
 (define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)
   (define (size type) (string-length (symbol->string type)))
@@ -466,6 +479,10 @@
 
 (define-sql-writer (as ssql out :key (indent #f) :allow-other-keys opt)
   (define nl (next-indent indent))
+  (('as a)
+   (write/case "AS " out)
+   ;; should be data type but just in case...
+   (apply maybe-with-parenthesis a out :indent indent opt))
   (('as a b)
    ;; (put-newline/space out indent)
    (apply maybe-with-parenthesis a out :indent indent opt)

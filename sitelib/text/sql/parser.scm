@@ -138,6 +138,7 @@
 	 ((d <- delete-statement) d)
 	 ((u <- update-statement) u)
 	 ((t <- table-definition) t) ;; create table
+	 ((s <- sequence-generator-definition) s) ;; create sequence
 	 ((c <- commit-statement) c) 
 	 ((r <- rollback-statement) r) 
 	 ((s <- savepoint-statement) s)
@@ -470,6 +471,16 @@
 				 (list 'check s)))
 
    ;; 11.62 sequence generator definition
+   (sequence-generator-definition (('create (=? 'sequence) 
+				    n <- identifier-chain
+				    o <- sequence-generator-options)
+				   `(create-sequence ,n ,@o)))
+   (sequence-generator-options ((o <- sequence-generator-option
+				 o* <- sequence-generator-options) (cons o o*))
+			       (() '()))
+   (sequence-generator-option (('as d <- data-type) `(as ,d))
+			      ((o <- common-sequence-generator-option) o))
+
    (common-sequence-generator-options ((c <- common-sequence-generator-option
 				        c* <- common-sequence-generator-options)
 				       (cons c c*))

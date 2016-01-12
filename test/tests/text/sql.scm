@@ -434,6 +434,14 @@
 (test-parse "create table t (id int references b(id))"
 	    '(create-table t ((id int (constraint (references b id))))))
 
+;; create sequence
+(test-parse "create sequence s" '(create-sequence s))
+(test-parse "create sequence p.s" '(create-sequence (~ p s)))
+(test-parse "create sequence s as integer" 
+	    '(create-sequence s (as integer)))
+(test-parse "create sequence s as integer start with 1" 
+	    '(create-sequence s (as integer) (start-with 1)))
+
 ;; commit
 (test-parse "commit" '(commit))
 ;; Should we make and-chain appended to commit?
