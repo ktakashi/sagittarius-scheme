@@ -516,7 +516,7 @@
    
    ;; set not null and drop not null (PostgreSQL specific)
    (set-column-not-null-clause (('set 'not 'null) 'set-not-null))
-   (drop-column-not-null-clause (('drop 'not 'null) 'set-not-null))
+   (drop-column-not-null-clause (('drop 'not 'null) 'drop-not-null))
 
    ;; 11.13 set column default clause
    ;; with this form we can re-use some code on serializer
