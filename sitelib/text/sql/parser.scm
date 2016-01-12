@@ -141,6 +141,7 @@
 	 ((t <- alter-table-statement) t) ;; alter table
 	 ((s <- sequence-generator-definition) s) ;; create sequence
 	 ((d <- drop-schema-statement) d) ;; drop schema
+	 ((g <- grant-statement) g)
 	 ((c <- commit-statement) c) 
 	 ((r <- rollback-statement) r) 
 	 ((s <- savepoint-statement) s)
@@ -597,6 +598,80 @@
    ;; TODO others
    (alter-sequence-generator-restart-option
     (((=? 'restart) 'with n <- signed-numeric-literal) `(restart-with ,n)))
+
+   ;; 12.1 grant statement
+   (grant-statement ((g <- grant-privilege-statement) g)
+		    ((g <- grant-role-statement) g))
+   ;; 12.2 grant privilege statement
+   (grant-privilege-statement (('grant p <- privileges 'to g <- grantees
+			        h <- with-hierarchy-option?
+				w <- with-grant-option?
+				b <- granted-by?)
+			       `(grant ,p (to ,@g) ,@h ,@w ,@b)))
+   (grantees ((g <- grantee g* <- grantee*) (cons g g*)))
+   (grantee (((=? 'public)) 'public)
+	    ((i <- identifier-chain) i))
+   (grantee* (('#\, g <- grantees) g)
+	     (() '()))
+
+   (privileges ((o <- object-privileges 'on n <- object-name)
+		`(on ,o ,n)))
+   (object-name (('table n <- table-name) `(table ,n))
+		(('domain n <- identifier-chain) `(domain ,n))
+		(((=? 'collation) n <- identifier-chain) `(collation ,n))
+		(('character 'set n <- identifier-chain) `(character-set ,n))
+		(('translation n <- identifier-chain) `(translation ,n))
+		(((=? 'type) n <- identifier-chain) `(type ,n))
+		(((=? 'sequence) n <- identifier-chain) `(sequence ,n))
+		((s <- specific-routine-designator) s)
+		;; must be the last
+		((t <- table-name) t))
+
+   (object-privileges (('all (=? 'privileges)) 'all-privileges)
+		      ((a <- action-list) a))
+   (action-list ((a <- action a* <- action-list*) (cons a a*)))
+   (action-list* (('#\, a <- action-list) a)
+		 (() '()))
+
+   (action (('select '#\( c <- method-name-list '#\)) (cons 'select c))
+	   (('select '#\( c <- column-name-list '#\)) (cons 'select c))
+	   (('select) 'select)
+	   (('delete) 'delete)
+	   (('insert '#\( c <- column-name-list '#\)) (cons 'insert c))
+	   (('insert) 'insert)
+	   (('update '#\( c <- column-name-list '#\)) (cons 'update c))
+	   (('update) 'update)
+	   (('references '#\( c <- column-name-list '#\)) (cons 'references c))
+	   (('references) 'references)
+	   (((=? 'usage)) 'usage)
+	   (('trigger) 'trigger)
+	   (((=? 'under)) 'under)
+	   (('execute) 'execute))
+
+   (method-name-list ((s <- specific-routine-designator m* <- method-name-list*)
+		      (cons s m*)))
+   (method-name-list* (('#\, m <- method-name-list) m)
+		      (() '()))
+
+   (with-hierarchy-option? (('with (=? 'hierarchy) (=? 'option))
+			    '((with-hierarchy-option)))
+			   (() '()))
+   (with-grant-option? (('with 'grant (=? 'option)) '((with-grant-option)))
+		       (() '()))
+   (granted-by? (((=? 'granted) 'by g <- grantor) `((granted-by ,g)))
+		(() '()))
+   (grantor (('current_user) 'current_user)
+	    (('current_role) 'current_role))
+
+   ;; 12.5 grant role statement
+   (grant-role-statement (('grant n <- identifier-list 'to g <- grantees
+			   a <- with-admin-option? b <- granted-by?)
+			  `(grant ,n (to ,@g) ,@a ,@b)))
+   (with-admin-option? (('with (=? 'admin) (=? 'option)) '((with-admin-option)))
+		       (() '()))
+   (identifier-list ((i <- identifier i* <- identifier-list*) (cons i i*)))
+   (identifier-list* (('#\, i <- identifier-list) i)
+		     (() '()))
 
    ;; NOTE:
    ;; SQL 2003 BNF seems not allow to connect SELECT with UNION
@@ -2004,6 +2079,30 @@
    ;; 10.5 character set specification
    ;; <character set name> is identifier-chain
    (character-set-specification ((n <- identifier-chain) n))
+
+   ;; 10.6 specific routine designator
+   (specific-routine-designator (('specific t <- routine-type 
+				  n <- identifier-chain)
+				 `(,(symbol-append 'specific- t) ,n))
+				((t <- routine-type m <- member-name)
+				 (list t m)))
+   (routine-type (((=? 'routine)) 'routine)
+		 (('function)     'function)
+		 (('procedure)    'procedure)
+		 ((m <- method-type? 'method)
+		  (if (null? m) 'method (symbol-append (car m) '-method))))
+   (method-type? (((=? 'instance))    '(instance))
+		 (('static)           '(static))
+		 (((=? 'constructor)) '(constructor))
+		 (() '()))
+
+   (member-name ((n <- identifier-chain d <- data-type-list)
+		 (cons n d))
+		((n <- identifier-chain) n))
+   (data-type-list (('#\( l <- data-type-list* '#\)) l))
+   (data-type-list* ((d <- data-type d* <- data-type-list**) (cons d d*)))
+   (data-type-list** (('#\, d <- data-type-list*) d)
+		     (() '()))
 
    ;; 10.7 collate
    (collate-clause (('collate c <- identifier-chain) (list 'collate c)))

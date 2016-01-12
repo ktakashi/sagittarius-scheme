@@ -478,6 +478,31 @@
 (test-parse "alter table t alter column b drop scope restrict"
 	    '(alter-table t (alter-column b (drop-scope restrict))))
 
+;; grant
+(test-parse "grant select on t to role" '(grant (on (select) t) (to role)))
+(test-parse "grant select,insert on t to role"
+	    '(grant (on (select insert) t) (to role)))
+(test-parse "grant select,insert on t to role,role2"
+	    '(grant (on (select insert) t) (to role role2)))
+(test-parse "grant select,insert on t to role with hierarchy option"
+	    '(grant (on (select insert) t) (to role)
+		    (with-hierarchy-option)))
+(test-parse "grant select,insert on t to role with grant option"
+	    '(grant (on (select insert) t) (to role)
+		    (with-grant-option)))
+(test-parse "grant select,insert on t to role granted by current_user"
+	    '(grant (on (select insert) t) (to role)
+		    (granted-by current_user)))
+
+(test-parse "grant role1 to me" '(grant (role1) (to me)))
+(test-parse "grant role1,role2 to me"
+	    '(grant (role1 role2) (to me)))
+(test-parse "grant role1,role2 to me with admin option"
+	    '(grant (role1 role2) (to me) (with-admin-option)))
+(test-parse "grant role1,role2 to me granted by current_user"
+	    '(grant (role1 role2) (to me) (granted-by current_user)))
+
+
 ;; commit
 (test-parse "commit" '(commit))
 ;; Should we make and-chain appended to commit?

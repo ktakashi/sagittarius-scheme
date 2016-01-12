@@ -535,6 +535,52 @@
    (apply write-ssql c out opt)
    (write-alter-column-action action)))
    
+(define-sql-writer (grant ssql out :key (indent #f) :allow-other-keys opt)
+  (define (write-privileges privileges)
+    (let loop ((privileges privileges) (first #t))
+      (unless (null? privileges)
+	(unless first (put-string out ", "))
+	(match (car privileges)
+	  ((action args ...) 
+	   (write/case (symbol-upcase action) out)
+	   (with-parenthesis out (apply write/comma* out args opt)))
+	  (action (write/case (symbol-upcase action) out)))
+	(loop (cdr privileges) #f))))
+  (define (write-object object)
+    (if (or (symbol? object) (eq? (car object) '~))
+	(apply write-ssql object out opt)
+	(begin
+	  (write/case (symbol-upcase (car object)) out)
+	  (put-char out #\space)
+	  (apply write-ssql (cadr object) out opt))))
+
+  (define (write-rest rest)
+    (for-each (lambda (i)
+		(put-char out #\space)
+		(let ((name (car i)))
+		  (write/case (symbol-upcase name) out)
+		  ;; granted-by
+		  (unless (null? (cdr i))
+		    (put-char out #\space)
+		    (write/case (symbol-upcase (cadr i)) out))))
+		  rest))
+
+  ;; privilege
+  (('grant ('on privileges target) ('to grantee ...) rest ...)
+   (write/case "GRANT " out)
+   (write-privileges privileges)
+   (write/case " ON " out)
+   (write-object target)
+   (write/case " TO " out)
+   (apply write/comma* out grantee opt)
+   (write-rest rest))
+  ;; role
+  (('grant roles ('to grantee ...) rest ...)
+   (write/case "GRANT " out)
+   (apply write/comma* out roles opt)
+   (write/case " TO " out)
+   (apply write/comma* out grantee opt)
+   (write-rest rest)))
 
 ;; with
 (define-sql-writer (with ssql out :key (indent #f) :allow-other-keys opt)
