@@ -269,6 +269,9 @@
   (update-metrics text-view))
 
 (define (reposition-caret text-view)
+  ;; TODO calculate proper position from line
+  ;;      if xpos is more than current line then it should be the last
+  ;;      position
   (update-caret-xy text-view
 		   (~ text-view 'caret-xpos) (~ text-view 'caret-ypos)))
 
@@ -361,6 +364,7 @@
     (let* ((lines (pointer->integer scroll-lines))
 	   (n (if (<= lines 1) 3 lines)))
       (scroll text-view 0 (* (div (- delta) wheel-delta) n))
+      (refresh-window text-view)
       0)))
 
 (define (->short n)
@@ -619,7 +623,8 @@
 	(handle-mouse-move text-view 0 p.x p.y)
 	(invalidate-rgn hwnd hrgn #f)
 	(delete-object hrgn)
-	(update-window hwnd))))
+	(refresh-window text-view)
+	#;(update-window hwnd))))
   (set! (~ text-view 'scroll-counter) (+ counter 1)))
 
 (define (default-text-view-proc hwnd imsg wparam lparam)
