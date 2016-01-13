@@ -656,8 +656,61 @@
 	#;(update-window hwnd))))
   (set! (~ text-view 'scroll-counter) (+ counter 1)))
 
+(define (move-char-prev text-view)
+  (let* ((caret-xpos (~ text-view 'caret-xpos))
+	 (w (~ text-view 'font-width))
+	 (off (- caret-xpos w)))
+    (if (negative? off) 
+	(set! (~ text-view 'caret-xpos) 0)
+	(set! (~ text-view 'caret-xpos) off)))
+  ;; TODO for now
+  (unless (zero? (~ text-view 'caret-xpos))
+    (let ((cursor-offset (~ text-view 'cursor-offset)))
+      (set! (~ text-view 'cursor-offset) (- cursor-offset 1)))))
+  
+
+(define (handle-keydown text-view key-code flags)
+  (define (next advancing?)
+    (update-caret-xy text-view (~ text-view 'caret-xpos) 
+		     (~ text-view 'current-line)))
+  (let ((ctrl-down?  (key-pressed? VK_CONTROL))
+	(alt-down?   (key-pressed? VK_MENU))
+	(shift-down? (key-pressed? VK_SHIFT)))
+    ;; TODO in far future we probaby want to do some key map thing
+    (cond ((or (= key-code VK_SHIFT) (= key-code VK_CONTROL)) 0)
+	  ((= key-code VK_LEFT) 
+	   (move-char-prev text-view)
+	   (next #f))
+	  ;; TODO 
+	  (else 0))))
+
+;; TODO insert text..
+(define (enter-text text-view text) 
+  (display text) (newline)
+  #t)
+(define (handle-char text-view ch flags)
+  (define char (integer->char ch))
+  ;; we don't insert control char
+  (cond ((and (< ch 32) (not (memv char '(#\tab #\return #\linefeed)))) 0)
+	(else 
+	 (when (char=? char #\return) 
+	   ;; convert \r to \r\n
+	   ;; NB post message is async so will come after this message is
+	   ;;    processed
+	   (post-message (~ text-view 'hwnd) WM_CHAR #x0A (integer->pointer 1)))
+	 (enter-text text-view (string char))
+	 0)))
+
 (define (default-text-view-proc hwnd imsg wparam lparam)
-  (cond ((= imsg WM_NCCREATE)
+  (cond ((= imsg WM_KEYDOWN) ;; would be the most common one so check first.
+	 (handle-keydown (win32-get-component hwnd) 
+			 wparam
+			 (pointer->integer lparam)))
+	((= imsg WM_CHAR) ;; should be the second most one so check it here
+	 (handle-char (win32-get-component hwnd) 
+		      wparam
+		      (pointer->integer lparam)))
+	((= imsg WM_NCCREATE)
 	 ;; save the lpCreateParams of CREATESTRUCT
 	 (let ((w (c-struct-ref lparam CREATESTRUCT 'lpCreateParams)))
 	   (set-window-long-ptr hwnd GWLP_USERDATA w)
