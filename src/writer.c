@@ -451,6 +451,10 @@ static void format_proc(SgPort *port, SgString *fmt, SgObject args, int sharedp)
 	/* TODO get eol from port */
 	Sg_PutcUnsafe(port, '\n');
 	break;
+      case '!':
+	/* flush */
+	Sg_FlushPort(port);
+	break;
       case 's': case 'S':
 	NEXT_ARG(arg, args);
 	if (numParams == 0) {
