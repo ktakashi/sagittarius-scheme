@@ -566,7 +566,7 @@
 		  rest))
 
   ;; privilege
-  (('grant ('on privileges target) ('to grantee ...) rest ...)
+  (('grant privileges ('on target) ('to grantee ...) rest ...)
    (write/case "GRANT " out)
    (write-privileges privileges)
    (write/case " ON " out)

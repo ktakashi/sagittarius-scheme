@@ -607,7 +607,7 @@
 			        h <- with-hierarchy-option?
 				w <- with-grant-option?
 				b <- granted-by?)
-			       `(grant ,p (to ,@g) ,@h ,@w ,@b)))
+			       `(grant ,@p (to ,@g) ,@h ,@w ,@b)))
    (grantees ((g <- grantee g* <- grantee*) (cons g g*)))
    (grantee (((=? 'public)) 'public)
 	    ((i <- identifier-chain) i))
@@ -615,7 +615,7 @@
 	     (() '()))
 
    (privileges ((o <- object-privileges 'on n <- object-name)
-		`(on ,o ,n)))
+		`(,o (on ,n))))
    (object-name (('table n <- table-name) `(table ,n))
 		(('domain n <- identifier-chain) `(domain ,n))
 		(((=? 'collation) n <- identifier-chain) `(collation ,n))
