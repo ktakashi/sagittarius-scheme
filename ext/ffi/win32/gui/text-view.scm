@@ -2,7 +2,7 @@
 ;;;
 ;;; win32/gui/text-view - Win32 GUI text view
 ;;;  
-;;;   Copyright (c) 2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2016  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -291,6 +291,31 @@
 
 (define (scroll text-view dx dy) (scroll-rgn text-view dx dy #f))
 
+(define (scroll-to-position text-view x line)
+  (let* ((rect (allocate-c-struct RECT))
+	 (hwnd (~ text-view 'hwnd))
+	 (hpos (~ text-view 'horizontal-scroll-position))
+	 (vpos (~ text-view 'vertical-scroll-position))
+	 (font-width (~ text-view 'font-width))
+	 (wlines (~ text-view 'window-lines))
+	 (xpos (* hpos font-width)))
+    (get-client-rect hwnd rect)
+    (let* ((right (c-struct-ref rect RECT 'right))
+	   (refresh-x (and (>= xpos right)
+			   (set! (~ text-view 'horizontal-scroll-position)
+				 (+ hpos (div (- xpos right) font-width) 1))))
+	   (refresh-l (cond ((< line vpos)
+			     (set! (~ text-view 'vertical-scroll-position)
+				   line))
+			    ((> line (- (+ vpos wlines) 1))
+			     (set! (~ text-view 'vertical-scroll-position)
+				   (+ (- line wlines) 1)))
+			    (else #f))))
+      (when (or refresh-x refresh-l)
+	(setup-scroll-bars text-view)
+	(refresh-window text-view)
+	(reposition-caret text-view)))))
+
 (define (get-track-pos text-view bar)
   (let ((si (allocate-c-struct SCROLLINFO)))
     (c-struct-set! si SCROLLINFO 'cbSize (size-of-c-struct SCROLLINFO))
@@ -343,8 +368,7 @@
 	   (refresh-window text-view)))
     (unless (= old (~ text-view 'horizontal-scroll-position))
       (setup-scroll-bars text-view)
-      (reposition-caret text-view)
-      )
+      (reposition-caret text-view))
     0))
 
 (define (handle-mouse-wheel text-view delta)
@@ -657,29 +681,86 @@
   (set! (~ text-view 'scroll-counter) (+ counter 1)))
 
 (define (move-char-prev text-view)
-  (let* ((caret-xpos (~ text-view 'caret-xpos))
-	 (w (~ text-view 'font-width))
-	 (off (- caret-xpos w)))
-    (if (negative? off) 
-	(set! (~ text-view 'caret-xpos) 0)
-	(set! (~ text-view 'caret-xpos) off)))
-  ;; TODO for now
-  (unless (zero? (~ text-view 'caret-xpos))
-    (let ((cursor-offset (~ text-view 'cursor-offset)))
-      (set! (~ text-view 'cursor-offset) (- cursor-offset 1)))))
-  
+  (let ((xpos (~ text-view 'caret-xpos))
+	(ypos (* (- (~ text-view 'current-line)
+		    (~ text-view 'vertical-scroll-position))
+		 (~ text-view 'font-height))))
+    (let-values (((line-no file-off px)
+		  (mouse-coord-to-file-pos text-view
+					   (- xpos (~ text-view 'font-width))
+					   ypos)))
+      ;; TODO for now
+      (display px) (newline)
+      (when (< xpos px)
+	(set! (~ text-view 'caret-xpos) px)
+	(let ((cursor-offset (~ text-view 'cursor-offset)))
+	  (set! (~ text-view 'cursor-offset) (- cursor-offset 1)))))))
+
+(define (move-char-next text-view)
+  (let ((xpos (~ text-view 'caret-xpos))
+	(ypos (* (- (~ text-view 'current-line)
+		    (~ text-view 'vertical-scroll-position))
+		 (~ text-view 'font-height))))
+    (let-values (((line-no file-off px)
+		  (mouse-coord-to-file-pos text-view
+					   (+ xpos (~ text-view 'font-width))
+					   ypos)))
+      ;; TODO for now
+      (when (< xpos px)
+	(set! (~ text-view 'caret-xpos) px)
+	(let ((cursor-offset (~ text-view 'cursor-offset)))
+	  (set! (~ text-view 'cursor-offset) (+ cursor-offset 1)))))))
+
+(define (move-line-up text-view)
+  (let ((xpos (~ text-view 'caret-xpos))
+	(line (~ text-view 'current-line))
+	(ypos (* (- (~ text-view 'current-line)
+		    (~ text-view 'vertical-scroll-position)
+		    1)
+		 (~ text-view 'font-height))))
+    (let-values (((line-no file-off px)
+		  (mouse-coord-to-file-pos text-view xpos ypos)))
+      ;; TODO for now
+      (when (>= line 0)
+	(set! (~ text-view 'caret-xpos) px)
+	(if (and (= line line-no) (>= (- line-no 1) 0))
+	    (set! (~ text-view 'current-line) (- line-no 1))
+	    (set! (~ text-view 'current-line) line-no))))))
+
+(define (move-line-down text-view)
+  (let ((xpos (~ text-view 'caret-xpos))
+	(line (~ text-view 'current-line))
+	(ypos (* (- (+ (~ text-view 'current-line) 1)
+		    (~ text-view 'vertical-scroll-position))
+		 (~ text-view 'font-height))))
+    (let-values (((line-no file-off px)
+		  (mouse-coord-to-file-pos text-view xpos ypos)))
+      ;; TODO for now
+      (set! (~ text-view 'caret-xpos) px)
+      (set! (~ text-view 'current-line) line-no))))
 
 (define (handle-keydown text-view key-code flags)
   (define (next advancing?)
     (update-caret-xy text-view (~ text-view 'caret-xpos) 
-		     (~ text-view 'current-line)))
+		     (~ text-view 'current-line))
+    (scroll-to-position text-view (~ text-view 'caret-xpos)
+			(~ text-view 'current-line)))
   (let ((ctrl-down?  (key-pressed? VK_CONTROL))
 	(alt-down?   (key-pressed? VK_MENU))
 	(shift-down? (key-pressed? VK_SHIFT)))
     ;; TODO in far future we probaby want to do some key map thing
     (cond ((or (= key-code VK_SHIFT) (= key-code VK_CONTROL)) 0)
-	  ((= key-code VK_LEFT) 
+	  ((= key-code VK_LEFT)
 	   (move-char-prev text-view)
+	   (next #f))
+	  ((= key-code VK_RIGHT)
+	   (move-char-next text-view)
+	   (next #f))
+	  ((= key-code VK_UP)
+	   (move-line-up text-view)
+	   (next #f))
+	  ((= key-code VK_DOWN)
+	   (move-line-down text-view)
 	   (next #f))
 	  ;; TODO 
 	  (else 0))))
@@ -861,4 +942,3 @@
     (pointer->integer w)))
 
 )
-    
