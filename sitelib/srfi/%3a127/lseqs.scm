@@ -106,9 +106,9 @@
 
 (define (lseq-drop lseq n) 
   (unless (integer? n)
-    (assertion-violation 'lseq-take "integer is required" i))
+    (assertion-violation 'lseq-take "integer is required" n))
   (when (< n 0)
-    (assertion-violation 'lseq-take "zero or positive integer is required" i))
+    (assertion-violation 'lseq-take "zero or positive integer is required" n))
   (let loop ((i 0) (lseq lseq))
     (if (= i n)
 	lseq
