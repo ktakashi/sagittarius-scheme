@@ -8,6 +8,7 @@
 	(srfi :39)
 	(rnrs)
 	(sagittarius)
+	(sagittarius vm) ;; for vm-current-library
 	(sagittarius io)
 	(sagittarius regex))
 
@@ -38,7 +39,7 @@
     (begin (add-load-path "./test/r7rs-tests")
            (add-load-path "./ext/crypto")))
 
-(define (%call-test-case thunk error-regex)
+(define (%call-test-case thunk error-regex environment?)
   (define no-error? #t)
   (define stdout (current-output-port))
   (define buffer (open-output-string))
@@ -53,14 +54,23 @@
       (put-string stdout str start count)
       count)
     (make-custom-textual-output-port "error check port" write! #f #f #f))
-  (with-output-to-port (error-check-port) thunk)
+  ;; This is needed to avoid confliction of globally defined variables
+  ;; c.f) Both R7RS and SRFI-127 tests have (g) and for some reason
+  ;;      this would make test runner confuse.
+  (if environment?
+      (parameterize ((vm-current-library environment?))
+	(with-output-to-port (error-check-port) thunk))
+      (with-output-to-port (error-check-port) thunk))
   (flush-output-port stdout)
   no-error?)
 
 (define-syntax call-test-case
   (syntax-rules ()
     ((_ expr regex)
-     (%call-test-case (lambda () expr) regex))))
+     (call-test-case expr regex 
+		     (environment '(core) '(core base) '(sagittarius))))
+    ((_ expr regex environment?)
+     (%call-test-case (lambda () expr) regex environment?))))
 
 (define (main args)  
   (let-values (((test) (args-fold (cdr args)
@@ -97,14 +107,20 @@
       (load "./test/tests.scm")
       (call-test-case (run-sitelib-tests :multithread? multithread? 
 					 :pattern pattern)
-		      #/FAIL/))
+		      #/FAIL/
+		      ))
     (define (ext-test)
       ;; for extensions
       (print "testing extensions")
       (flush-output-port (current-output-port))
       (parameterize ((current-directory "ext"))
 	(call-test-case (load "./all-tests.scm")
-			#/FAIL/)))
+			#/FAIL/
+			;; very unfortunately, we can't run this test on
+			;; fresh environment.
+			;; FIXME separate all dependencies defined in
+			;;       'user' library!!
+			#f)))
 
     (let ((r (if (null? test)
 		 (list (r6rs-test)
