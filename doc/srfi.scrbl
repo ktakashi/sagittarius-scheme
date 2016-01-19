@@ -222,6 +222,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     Current implementation of ephemerons has the same issue as the one 
     Chibi has. It is described in the SRFI document.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-127/srfi-127.html"]{SRFI-127}}
+    @td{(srfi :127 lseqs)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :127)}. So for the portability it's better to use the
+    @code{(srfi :127)}.
+
+    The name @code{lseqs} is taken from sample implementation.
+    }}
 }
 
 Each library can be imported like this: 
