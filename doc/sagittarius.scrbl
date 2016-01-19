@@ -887,6 +887,7 @@ The macro return the result of @var{expr}.}
 @include-section["sagittarius/threads.scrbl"]
 @include-section["sagittarius/timezone.scrbl"]
 @include-section["sagittarius/debug.scrbl"]
+@include-section["sagittarius/generators.scrbl"]
 
 @; end of file
 @; Local Variables:

@@ -191,6 +191,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{timer} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-121/srfi-121.html"]{SRFI-121}}
+    @td{(srfi :121 generators)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :121)}. So for the portability it's better to use the
+    @code{(srfi :121)}.
+
+    The name @code{generators} is taken from sample implementation.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-123/srfi-123.html"]{SRFI-123}}
     @td{(srfi :123 generic-ref)
 
@@ -210,8 +219,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{ephemerons} is taken from the example implementation.
 
-    Current implementation of ephemerons has the same issue as Chibi has
-    described in the SRFI document.
+    Current implementation of ephemerons has the same issue as the one 
+    Chibi has. It is described in the SRFI document.
     }}
 }
 
