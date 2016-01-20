@@ -298,7 +298,7 @@
 	 (vpos (~ text-view 'vertical-scroll-position))
 	 (font-width (~ text-view 'font-width))
 	 (wlines (~ text-view 'window-lines))
-	 (xpos (* hpos font-width)))
+	 (xpos (- x (* hpos font-width))))
     (get-client-rect hwnd rect)
     (let* ((right (c-struct-ref rect RECT 'right))
 	   (refresh-x (and (>= xpos right)
@@ -311,6 +311,7 @@
 			     (set! (~ text-view 'vertical-scroll-position)
 				   (+ (- line wlines) 1)))
 			    (else #f))))
+      ;; (format #t "~a:~a [~a >= ~a]~%" refresh-x refresh-l xpos right)
       (when (or refresh-x refresh-l)
 	(setup-scroll-bars text-view)
 	(refresh-window text-view)
@@ -680,34 +681,65 @@
 	#;(update-window hwnd))))
   (set! (~ text-view 'scroll-counter) (+ counter 1)))
 
+
+(define (char-pos->caret-pos text-view x +)
+  (if (< x 0)
+      0
+      (let* ((line (win32-text-view-buffer-line (~ text-view 'value) 
+						(~ text-view 'current-line)))
+	     (hwnd (~ text-view 'hwnd))
+	     (hdc (get-dc hwnd))
+	     (rect (allocate-c-struct RECT))
+	     (old (select-object hdc (~ text-view 'font)))
+	     (hpos (~ text-view 'horizontal-scroll-position))
+	     (font-width (~ text-view 'font-width)))
+	(get-client-rect hwnd rect)
+	(let ((ssa (usp-analyse-string text-view hdc line 
+				       (c-struct-ref rect RECT 'right))))
+	  (let-values (((cp trailing) (usp-x->cp ssa x)))
+	    (define (finish x)
+	      (usp-free-analysis ssa)
+	      (select-object hdc old)
+	      x)
+	    (let loop ((cp cp) (retry? #f))
+	      (let ((r (usp-cp->x ssa cp trailing)))
+		;; (format #t "~a:~a [~a,~a]~%" x r cp trailing)
+		(if (= x r)
+		    (finish r)
+		    ;; handling special cases
+		    ;; TODO is it correct
+		    (cond (retry? (finish r))
+			  ((and (< cp (string-length line))
+				(char=? (string-ref line cp) #\tab))
+			   ;; if tab-width is more than 1 then adding
+			   ;; font-width wouldn't make proper position
+			   ;; so re-calculate it
+			   (loop (+ cp 1) #t))
+			  ((and (zero? r) (zero? trailing))
+			   ;; FIXME this adds extra size for linefeed
+			   ;;       or something
+			   (finish (- (usp-line-width ssa) 
+				      (* hpos font-width))))
+			  ((zero? r) (finish 0))
+			  (else (loop (+ cp 1) #t)))))))))))
+    
 (define (move-char-prev text-view)
   (let ((xpos (~ text-view 'caret-xpos))
-	(ypos (* (- (~ text-view 'current-line)
-		    (~ text-view 'vertical-scroll-position))
-		 (~ text-view 'font-height))))
-    (let-values (((line-no file-off px)
-		  (mouse-coord-to-file-pos text-view
-					   (- xpos (~ text-view 'font-width))
-					   ypos)))
-      ;; TODO for now
-      (display px) (newline)
-      (when (< xpos px)
-	(set! (~ text-view 'caret-xpos) px)
-	(let ((cursor-offset (~ text-view 'cursor-offset)))
+	(font-width (~ text-view 'font-width)))
+    (let ((px (char-pos->caret-pos text-view (- xpos font-width) -)))
+      (set! (~ text-view 'caret-xpos) px)
+      (let ((cursor-offset (~ text-view 'cursor-offset)))
+	(unless (<= cursor-offset 0)
 	  (set! (~ text-view 'cursor-offset) (- cursor-offset 1)))))))
 
 (define (move-char-next text-view)
   (let ((xpos (~ text-view 'caret-xpos))
-	(ypos (* (- (~ text-view 'current-line)
-		    (~ text-view 'vertical-scroll-position))
-		 (~ text-view 'font-height))))
-    (let-values (((line-no file-off px)
-		  (mouse-coord-to-file-pos text-view
-					   (+ xpos (~ text-view 'font-width))
-					   ypos)))
-      ;; TODO for now
-      (when (< xpos px)
-	(set! (~ text-view 'caret-xpos) px)
+	(font-width (~ text-view 'font-width))
+	(hpos (~ text-view 'horizontal-scroll-position)))
+    (let ((px (char-pos->caret-pos text-view (+ xpos font-width) +))
+	  (off (* hpos font-width)))
+      (set! (~ text-view 'caret-xpos) px)
+      (unless (= xpos px)
 	(let ((cursor-offset (~ text-view 'cursor-offset)))
 	  (set! (~ text-view 'cursor-offset) (+ cursor-offset 1)))))))
 
@@ -937,8 +969,7 @@
     (script-string-cp-to-x ssa cp (not (zero? trailing)) (address p))
     (pointer->integer p)))
 (define (usp-line-width ssa)
-  (let ((w (empty-pointer)))
-    (script-string-get-logical-widths ssa (address w))
-    (pointer->integer w)))
+  (let ((s (script-string-psize ssa)))
+    (c-struct-ref s SIZE 'cx)))
 
 )
