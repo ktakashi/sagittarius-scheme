@@ -30,7 +30,7 @@
 
 (library (srfi :121 generators)
     (export generator make-iota-generator make-range-generator 
-	    make-coroutine-generator make-bits-generator
+	    make-coroutine-generator ;; make-bits-generator
 	    make-for-each-generator make-unfold-generator
 	    
 
@@ -56,15 +56,16 @@
   (define (make-iota-generator count . args) (apply giota count args))
   (define (make-range-generator start . args) (apply grange start args))
   (define make-coroutine-generator generate)
-  (define (make-bits-generator n)
-    (let ((k 0)
-	  (len (bitwise-length n)))
-      (lambda ()
-	(if (= k len)
-	    (eof-object)
-	    (let ((set? (bitwise-bit-set? n k)))
-	      (set! k (+ k 1))
-	      set?)))))
+;; it's removed from the SRFI
+;;   (define (make-bits-generator n)
+;;     (let ((k 0)
+;; 	  (len (bitwise-length n)))
+;;       (lambda ()
+;; 	(if (= k len)
+;; 	    (eof-object)
+;; 	    (let ((set? (bitwise-bit-set? n k)))
+;; 	      (set! k (+ k 1))
+;; 	      set?)))))
 
   (define (make-for-each-generator for-each coll)
     (generate (lambda (y) (for-each y coll))))

@@ -51,29 +51,12 @@
     (test '(5 4 3 2 1) (generator->list (reverse-vector->generator '#(1 2 3 4 5))))
     (test '(#\a #\b #\c #\d #\e) (generator->list (string->generator "abcde")))
     (test '(10 20 30) (generator->list (bytevector->generator #u8(10 20 30))))
-    (test '() (generator->list (make-bits-generator 0)))
-    (test '(#t) (generator->list (make-bits-generator 1)))
-    (test '(#f #t) (generator->list (make-bits-generator 2)))
-    (test '(#t #t) (generator->list (make-bits-generator 3)))
-    (test '(#f #f #t) (generator->list (make-bits-generator 4)))
-    (test '() (generator->list (make-bits-generator -1)))
-    (test '(#f) (generator->list (make-bits-generator -2)))
-    (test '(#t #f) (generator->list (make-bits-generator -3)))
-    (test '(#f #f) (generator->list (make-bits-generator -4)))
-    (test '(#t #t #f) (generator->list (make-bits-generator -5)))
-    ;; no test for make-port-generator
-    (test '(1 2 3 4 5) (generator->list
-                         (make-for-each-generator for-each '(1 2 3 4 5))))
-    (define (truncate/ a b)
-      (values (quotient a b) (remainder a b)))
-    ; for-each that generates digits in little-endian order
     (define (for-each-digit proc n)
       (when (> n 0)
         (let-values (((div rem) (truncate/ n 10)))
           (proc rem)
           (for-each-digit proc div))))
-    (test '(5 4 3 2 1) (generator->list
-                         (make-for-each-generator for-each-digit 12345)))
+;    (test '(1 2 3 4 5) (generator-for-each for-each-digit 12345))
     (test '(0 2 4 6 8 10) (generator->list
                             (make-unfold-generator
                               (lambda (s) (> s 5))
@@ -108,18 +91,22 @@
     (test '(1 2) (generator->list (gtake-while small? g)))
     (define g (make-range-generator 1 5))
     (test '(3 4) (generator->list (gdrop-while small? g)))
+    (test '() (generator->list (gdrop-while (lambda args #t) (generator 1 2 3))))
     (test '(0.0 1.0 0 2) (generator->list (gdelete 1
                                                    (generator 0.0 1.0 0 1 2))))
     (test '(0.0 0 2) (generator->list (gdelete 1
-                                               (generator 0.0 1.0 0 1 2) =)))
-
-    (test '(1 2 3 4) (generator->list (gdelete-neighbor-dups
-                                        (generator 1 2 2 3 3 3 4 4 4 4))))
+                                               (generator 0.0 1.0 0 1 2)
+                                               =)))
     (test '(a c e) (generator->list (gindex (list->generator '(a b c d e f))
                                             (list->generator '(0 2 4)))))
     (test '(a d e) (generator->list (gselect (list->generator '(a b c d e f))
                                              (list->generator '(#t #f #f #t #t #f)))))
-
+    (test '(1 2 3) (generator->list (gdelete-neighbor-dups
+                                      (generator 1 1 2 3 3 3)
+                                      =)))
+    #;(test '() (generator->list (gdelete-neighbor-dups
+                                 (generator 1 2 3)
+                                 (lambda args #t))))
   ) ; end "generators/operators"
 
   (test-group "generators/consumers"
@@ -128,9 +115,6 @@
     (test '(5 4 3 2 1) (generator->reverse-list (generator 1 2 3 4 5)))
     (test '#(1 2 3 4 5) (generator->vector (generator 1 2 3 4 5)))
     (test '#(1 2 3) (generator->vector (generator 1 2 3 4 5) 3))
-    (define v (vector 1 2 0 0 0))
-    (generator->vector! v 2 (generator 3 4 5))
-    (test v '#(1 2 3 4 5))
     (test "abc" (generator->string (generator #\a #\b #\c)))
     (test '(e d c b a . z) (with-input-from-string "a b c d e"
                              (lambda () (generator-fold cons 'z read))))
@@ -145,14 +129,9 @@
     (test #t (generator-any odd? g))
     (test '(4) (generator->list g))
     (define g (make-range-generator 2 5))
-    (test 2  (generator-any values g))
-    (test '(3 4) (generator->list g))
-    (define g (make-range-generator 2 5))
     (test #f (generator-every odd? g))
     (test '(3 4) (generator->list g))
-    (test #t (generator-every odd? (generator))) ; boundary case
-    (test 5 (generator-every values (generator 1 3 5)))
-    (test '(0 1 2 3) (generator-unfold (make-range-generator 1 4) unfold 0))
+    (test '(#\a #\b #\c) (generator-unfold (make-for-each-generator string-for-each "abc") unfold))
 
   ) ; end "generators/consumers"
 

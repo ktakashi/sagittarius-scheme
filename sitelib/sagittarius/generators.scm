@@ -497,7 +497,7 @@
 	    (else #f))))
 
   (define (generator-unfold gen unfold . args)
-    (apply unfold eof-object? (lambda (x) x) (lambda (x) (gen)) args))
+    (apply unfold eof-object? (lambda (x) x) (lambda (x) (gen)) (gen) args))
 
   ;; list->generator :: [a ...] -> Generator a
   ;; API signature is taken from Gauche (start and end)
