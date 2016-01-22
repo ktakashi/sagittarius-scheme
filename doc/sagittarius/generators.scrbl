@@ -238,3 +238,61 @@ returning item is filtered if the returning value of @var{proc} is #f.
 It is an analogy of @code{filter-map}.
 }
 
+@define[Function]{@name{generate} @args{proc}}
+@desc{Returns a coroutine generator which return the item returned by 
+@var{proc}.
+
+The given argument @var{proc} must accept one argument, @var{yield} which
+is a procedure accepts variable arguments. The @var{proc} procedure can return
+values via @var{yield} procedure.
+
+@codeblock[=> (0 1 2)]{
+(define g
+  (make-coroutine-generator
+    (lambda (yield) 
+      (let loop ((i 0))
+        (when (< i 3) 
+          (yield i) 
+          (loop (+ i 1)))))))
+
+(generator->list g)
+}
+}
+
+@define[Macro]{@name{glet*} @args{(bindings @dots{}) body1 body2 @dots{}}}
+@desc{@code{glet*} is a macro which is similar to @code{let*}. The difference
+is that @code{glet*} check if the bindings are EOF object or not and if it 
+detects EOF object, then it returns EOF object immediately.
+
+@var{bindings} must be one of the following forms:
+@itemlist{
+  @item{@code{(@var{var} @var{gen-expr})}}
+  @item{@code{( @var{gen-expr} )}}
+}
+If the first form is used, then the @var{gen-expr} is bound to @var{var}. 
+Otherwise the @code{glet*} just check if the value is EOF or not.
+
+@codeblock[=> (1 2 "#<eof>")]{
+(define g (list->generator '(1 2 3)))
+
+(list 
+  (glet* ((a (g))) a)
+  (glet* ((a (g))) (define b 2) (+ a b))
+  (glet* ((a (g)) (b (g))) (+ a b)))
+}
+}
+
+@define[Macro]{@name{glet1} @args{var expr body1 body2 @dots{}}}
+@desc{Convenient macro for only one binding of @code{glet*}. This is defined
+like the following:
+@codeblock{
+(define-syntax glet1
+  (syntax-rules ()
+    ((_ var expr body body1 ...)
+     (glet* ((var expr)) body body1 ...))))
+}
+}
+
+@define[Macro]{@name{do-generator} @args{(var gen-expr) body @dots{}}}
+@desc{Iterates generator of then given @var{gen-expr}.
+}
