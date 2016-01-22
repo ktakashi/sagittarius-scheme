@@ -142,10 +142,10 @@ struct timespec* Sg_GetTimeSpec(SgObject t, struct timespec *spec)
 
 static double usec2double(uint64_t time)
 {
-  /* sec*10000000 + usec */
-  uint64_t sec = time/10000000;
-  uint64_t usec = time%10000000;
-  return sec + usec / 1000000.0;
+  /* sec*1000000 + usec */
+  int64_t sec = time/1000000;
+  int64_t usec = time%1000000;
+  return (double)sec + usec / (double)1000000.0;
 }
 
 SgObject Sg_VMTimeUsage()
