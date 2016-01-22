@@ -272,5 +272,10 @@
        '()
        (generator->list (gdelete-neighbor-dups '())))
 
+(let ()
+  (define g (list->generator '(1 2 3)))
+  (test-equal "glet* (1)" 1 (glet* ((a (g))) a))
+  (test-equal "glet* (2)" 4 (glet* ((a (g))) (define b 2) (+ a b)))
+  (test-assert "glet* (3)" (eof-object? (glet* ((a (g)) (b (g))) (+ a b)))))
 
 (test-end)

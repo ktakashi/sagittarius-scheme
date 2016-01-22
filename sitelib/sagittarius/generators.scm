@@ -102,7 +102,7 @@
   ;; From Gauche's document
   (define-syntax glet*
     (syntax-rules ()
-      ((_ () body body2 ...) (begin body body2 ...))
+      ((_ () body body2 ...) (let () body body2 ...))
       ((_ ((var gen-expr) more-bindings ...) . body)
        (let1 var gen-expr
 	 (if (eof-object? var)
