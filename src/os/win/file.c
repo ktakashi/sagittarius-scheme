@@ -81,11 +81,10 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   /* check console */
   if (Sg_IsUTF16Console(self)) {
     DWORD tmp = 0;
-    /* if the size = 1, then the buffer size wouldn't be sufficient
-       and this may cause read error on Windows 10 (not sure if it's
-       true yet, but most likely). So handle this specially.
-       NB: If this is called from textual port, then this happen on
-           the very first char reading.
+    /* if the size = 1, the reading size is 0 and this may cause read 
+       error on Windows 10. So handle this specially. I think it's kind
+       of regression since MSDN doesn't say if nNumberOfCharsToRead is
+       zero then it would return error. 
      */
     if (size != 1) {
       DWORD req = size>>1;
