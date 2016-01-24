@@ -80,9 +80,22 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   }
   /* check console */
   if (Sg_IsUTF16Console(self)) {
-    DWORD req = size>>1, tmp;
-    isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
-			&tmp, NULL);
+    DWORD tmp = 0;
+    /* if the size = 1, then the buffer size wouldn't be sufficient
+       and this may cause read error on Windows 10 (not sure if it's
+       true yet, but most likely). So handle this specially.
+       NB: If this is called from textual port, then this happen on
+           the very first char reading.
+     */
+    if (size != 1) {
+      DWORD req = size>>1;
+      isOK = ReadConsoleW(SG_FD(self)->desc, (wchar_t *)buf, req,
+			  &tmp, NULL);
+    } else {
+      /* put true, then the odd number handling handles this case 
+	 properly. */
+      isOK = TRUE;
+    }
     if (isOK) {
       readSize += (tmp<<1);
       if (size&1) {
@@ -122,7 +135,7 @@ static int64_t win_read(SgObject self, uint8_t *buf, int64_t size)
   if (isOK) {
     return readSize;
   } else {
-    Sg_IOReadError(SG_INTERN("read"), Sg_GetLastErrorMessage(), 
+    Sg_IOReadError(SG_INTERN("win32-read"), Sg_GetLastErrorMessage(), 
 		   SG_FALSE, self);
     return -1;			/* dummy */
   }
