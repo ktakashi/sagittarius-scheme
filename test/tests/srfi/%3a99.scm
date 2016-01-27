@@ -51,6 +51,9 @@
 (define :cpoint
   (make-rtd 'cpoint '#((mutable rgb)) :point))
 
+(define (color->rgb c)
+  (cons 'rgb c))
+
 (define make-cpoint
   (let ((maker (rtd-constructor :cpoint)))
     (lambda (x y c)
@@ -63,9 +66,6 @@
 
 (define cpoint-rgb
   (rtd-accessor :cpoint 'rgb))
-
-(define (color->rgb c)
-  (cons 'rgb c))
 
 (test-equal '(rgb . red) (cpoint-rgb (make-cpoint -1 -3 'red)))
 (test-equal -1 (point-x (make-cpoint -1 -3 'red)))
