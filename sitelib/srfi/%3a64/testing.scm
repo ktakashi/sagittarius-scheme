@@ -587,7 +587,8 @@
 	 (%test-comp1body r test-expression)))
       ((test-assert test-expression)
        (let ((r (test-runner-get)))
-	 (test-result-alist! r '((source-form . test-expression)))
+	 (test-result-alist! r '((test-name . test-expression)
+				 (source-form . test-expression)))
 	 (%test-comp1body r test-expression)))))
   (define-syntax %test-comp2
     (syntax-rules ()
@@ -598,7 +599,8 @@
 	 (%test-comp2body r comp expected expr)))
       ((%test-comp2 comp expected expr)
        (let ((r (test-runner-get)))
-	 (test-result-alist! r '((source-form . expr)))
+	 (test-result-alist! r '((test-name . expr)
+				 (source-form . expr)))
 	 (%test-comp2body r comp expected expr)))))
   (define-syntax test-equal
     (syntax-rules ()
@@ -642,9 +644,9 @@
       ((test-error name etype expr)
        (test-assert name (%test-error etype expr)))
       ((test-error etype expr)
-       (test-assert (%test-error etype expr)))
+       (test-assert 'expr (%test-error etype expr)))
       ((test-error expr)
-       (test-assert (%test-error #t expr)))))
+       (test-assert 'expr (%test-error #t expr)))))
 
 
   (define (test-apply first . rest)
