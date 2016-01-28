@@ -2054,4 +2054,15 @@
 	      (string-set! (symbol->string sm) 0 #\b)))
 
 
+;; test for SRFI-61
+;; from example
+(test-equal '(#\c)
+	    (let ((in (open-string-input-port "c")))
+	      (cond ((read-char in) char? =>
+		     (lambda (c) (list c))))))
+;; multiple values
+(test-equal '(1 2)
+	    (cond ((values 1 2) (lambda (a b) #t) =>
+		   (lambda (a b) (list a b)))))
+
 (test-end)

@@ -81,6 +81,8 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :78 lightweight-testing)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-86/srfi-86.html"]{SRFI-86}}
     @td{(srfi :86 mu-and-nu)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-87/srfi-87.html"]{SRFI-87}}
+    @td{(srfi :87 case)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-98/srfi-98.html"]{SRFI-98}}
     @td{(srfi :98 os-environment-variables)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-99/srfi-99.html"]{SRFI-99}}
