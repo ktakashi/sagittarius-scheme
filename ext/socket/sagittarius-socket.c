@@ -1,6 +1,6 @@
 /* sagittarius-socket.c                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -59,20 +59,6 @@
 #define AI_V4MAPPED 0
 #endif
 
-static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
-{
-  SgSocket *socket = SG_SOCKET(self);
-  const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
-    ? UC("client") : (socket->type == SG_SOCKET_SERVER)
-    ? UC("server") : (socket->type == SG_SOCKET_CLOSED)
-    ? UC("closed") : UC("unknown");
-  SgObject address = (socket->address != NULL) ? socket->address: SG_FALSE;
-  Sg_Printf(port, UC("#<socket %s:%d %S>"), type, socket->socket, address);
-}
-
-SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
-
-
 static SgString* get_address_string_rec(const struct sockaddr *addr,
 					socklen_t addrlen, int port_p)
 {
@@ -119,6 +105,37 @@ static void addrinfo_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_AddrinfoClass, addrinfo_printer);
+
+static void socket_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
+{
+  SgSocket *socket = SG_SOCKET(self);
+  const SgChar *type = (socket->type == SG_SOCKET_CLIENT)
+    ? UC("client") : (socket->type == SG_SOCKET_SERVER)
+    ? UC("server") : (socket->type == SG_SOCKET_CLOSED)
+    ? UC("closed") : UC("unknown");
+  SgObject address = (socket->address != NULL) 
+    ? get_address_string(socket->address->addr, socket->address->addr_size)
+    : SG_FALSE;
+  Sg_Printf(port, UC("#<socket %s:%d %S>"), type, socket->socket, address);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_SocketClass, socket_printer);
+
+
+static SgSockaddr * make_sockaddr(size_t size, struct sockaddr *addr, int copyP)
+{
+  SgSockaddr *r = SG_NEW(SgSockaddr);
+  SG_SET_CLASS(r, SG_CLASS_SOCKADDR);
+  r->addr_size = size;
+  if (copyP) {
+    struct sockaddr *t = SG_NEW2(struct sockaddr *, size);
+    memcpy(t, addr, size);
+    r->addr = t;
+  } else {
+    r->addr = addr;
+  }
+  return r;
+}
 
 static void sockaddr_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
@@ -284,7 +301,7 @@ static SgSocket* make_socket_inner(SOCKET fd)
   return s;
 }
 
-static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgString *address)
+static SgSocket* make_socket(SOCKET fd, SgSocketType type, SgSockaddr *address)
 {
   SgSocket *s = make_socket_inner(fd);
   s->type = type;
@@ -343,11 +360,7 @@ static void ai_protocol_set(SgAddrinfo *ai, SgObject protocol)
 
 static SgObject ai_addr(SgAddrinfo *ai)
 {
-  SgSockaddr *addr = SG_NEW(SgSockaddr);
-  SG_SET_CLASS(addr, SG_CLASS_SOCKADDR);
-  addr->addr_size = ai->ai->ai_addrlen;
-  addr->addr = ai->ai->ai_addr;
-  return SG_OBJ(addr);
+  return SG_OBJ(make_sockaddr(ai->ai->ai_addrlen, ai->ai->ai_addr, FALSE));
 }
 
 static SgObject ai_next(SgAddrinfo *ai)
@@ -378,6 +391,18 @@ SgAddrinfo* Sg_MakeAddrinfo()
   return info;
 }
 
+static void raise_io_error(SgObject who, int ret, SgObject irr)
+{
+#ifdef _WIN32
+  const char *msg = gai_strerrorA(ret);
+#else
+  const char *msg = gai_strerror(ret);
+#endif
+  Sg_IOError((SgIOErrorType)-1, who,
+	     Sg_Utf8sToUtf32s(msg, (int)strlen(msg)),
+	     SG_FALSE, irr);
+}
+
 SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
 {
   const char * cnode = (!SG_FALSEP(node)) ?
@@ -392,14 +417,8 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
   } while (EAI_AGAIN == ret);
 
   if (ret != 0) {
-#ifdef _WIN32
-    const char *msg = gai_strerrorA(ret);
-#else
-    const char *msg = gai_strerror(ret);
-#endif
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("get-addrinfo"), 
-	       Sg_Utf8sToUtf32s(msg, (int)strlen(msg)),
-	       SG_FALSE, SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
+    raise_io_error(SG_INTERN("get-addrinfo"), ret,
+		   SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
   }
   /* copy addr info */
@@ -444,7 +463,7 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
   struct addrinfo *p = addrinfo->ai;
   if (connect(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
     socket->type = SG_SOCKET_CLIENT;
-    socket->address = get_address_string(p->ai_addr, (socklen_t)p->ai_addrlen);
+    socket->address = ai_addr(addrinfo);
     return socket;
   }
   socket->lastError = last_error;
@@ -455,8 +474,16 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
 {
   struct addrinfo *p = addrinfo->ai;
   if (bind(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
+    struct sockaddr_storage name;
+    socklen_t len = p->ai_addrlen;
+    int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
+    if (r != 0) {
+      raise_io_error(SG_INTERN("socket-connect!"), r, socket);
+      return SG_FALSE;		/* dummy */
+    }
     socket->type = SG_SOCKET_SERVER;
-    socket->address = get_address_string(p->ai_addr, (socklen_t)p->ai_addrlen);
+    socket->address 
+      = make_sockaddr((size_t)len, (struct sockaddr *)&name, TRUE);
     return socket;
   }
   socket->lastError = last_error;
@@ -700,8 +727,8 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
       break;
     }
   }
-  return make_socket(fd, SG_SOCKET_SERVER,
-		     get_address_string((struct sockaddr *)&addr, addrlen));
+  return make_socket(fd, SG_SOCKET_SERVER, 
+		     make_sockaddr(addrlen, (struct sockaddr *)&addr, TRUE));
 }
 
 void Sg_SocketShutdown(SgSocket *socket, int how)

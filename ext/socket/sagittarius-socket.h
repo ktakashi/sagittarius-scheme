@@ -1,6 +1,6 @@
 /* sagittarius-socket.h                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -65,13 +65,15 @@ typedef enum {
 typedef int SOCKET;
 #endif
 
+typedef struct SgSockaddrRec SgSockaddr;
+
 typedef struct SgSocketRec
 {
   SG_HEADER;
   SOCKET socket;		/* fd */
   int lastError;
   SgSocketType type;
-  SgString *address;		/* for print */
+  SgSockaddr *address;		/* for sockaddr */
   SgVM   *thread;		/* for pthread_kill */
 #ifdef _WIN32
   int nonblocking;		/* blocking or not */
@@ -95,12 +97,12 @@ SG_CLASS_DECL(Sg_AddrinfoClass);
 #define SG_ADDRINFOP(obj) SG_XTYPEP(obj, SG_CLASS_ADDRINFO)
 
 
-typedef struct SgSockaddrRec
+struct SgSockaddrRec
 {
   SG_HEADER;
   size_t           addr_size;
   struct sockaddr *addr;
-} SgSockaddr;
+};
 
 SG_CLASS_DECL(Sg_SockaddrClass);
 #define SG_CLASS_SOCKADDR (&Sg_SockaddrClass)
