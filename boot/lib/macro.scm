@@ -721,16 +721,27 @@
 
 (define (subform-of name vars) (cdr (assq name vars)))
 
-(define (collect-ellipsis-vars tmpl ranks depth vars)
-  (let ((ids (collect-unique-ids tmpl)))
-    (filter-map (lambda (slot)
-		  (and (member (car slot) ids bound-identifier=?)
-		       (let ((rank (cdr (assoc (car slot) ranks
-					       bound-identifier=?))))
-			 (cond ((< rank depth) slot)
-			       ((null? (cdr slot)) slot)
-			       (else (cons (car slot) (cadr slot)))))))
-		vars)))
+(define collect-ellipsis-vars
+  (lambda (tmpl ranks depth vars)
+    (let ((ids (collect-unique-ids tmpl)))
+      ;; vars may contains the same pattern identifier more than once.
+      ;; in that case, we need to take only the top most one like usual
+      ;; environment lookup (shadowing).
+      (let loop ((vars vars) (appeared '()) (r '()))
+	(if (null? vars) 
+	    (reverse! r)
+	    (let* ((slot (car vars))
+		   (p    (car slot)))
+	      (if (and (member p ids bound-identifier=?)
+		       (not (member p appeared bound-identifier=?)))
+		  (let ((rank (cdr (assoc p ranks bound-identifier=?))))
+		    (loop (cdr vars)
+			  (cons p appeared)
+			  (cons (cond ((< rank depth) slot)
+				      ((null? (cdr slot)) slot)
+				      (else (cons (car slot) (cadr slot))))
+				r)))
+		  (loop (cdr vars) appeared r))))))))
 
 (define contain-rank-moved-var?
   (lambda (tmpl ranks vars)

@@ -498,4 +498,22 @@
       (_ 'ng)))
   (test-assert "syntax-case returned identifier" (symbol? (match '(a b c)))))
 
+(let ()
+  
+  (define-syntax foo
+    (lambda (x)
+      (define (derive-it k s)
+	(let loop ((r '()) (s s))
+	  (syntax-case s ()
+	    (() (datum->syntax k r))
+	    (((f a b) rest ...)
+	     (loop (cons #'(f a b) (cons #'(f a b) r)) #'(rest ...))))))
+      (syntax-case x ()
+	((k (foo . bar) ...)
+	 (with-syntax ((((foo a b) ...)
+			(derive-it #'k #'((foo . bar) ...))))
+	   #''((foo a b)  ...))))))
+
+  (test-equal '((f a b) (f a b)) (foo (f a b))))
+
 (test-end)
