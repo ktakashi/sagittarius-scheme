@@ -463,7 +463,7 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo)
   struct addrinfo *p = addrinfo->ai;
   if (connect(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
     socket->type = SG_SOCKET_CLIENT;
-    socket->address = ai_addr(addrinfo);
+    socket->address = SG_SOCKADDR(ai_addr(addrinfo));
     return socket;
   }
   socket->lastError = last_error;
