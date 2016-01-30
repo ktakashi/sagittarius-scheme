@@ -76,14 +76,18 @@ for example:
     % cmake ${path to Sagittarius' source directory}
     % make
 
-To  install Sagittarius  non  default location,  you  need to  specify
+To run the tests, specify `test` target.
+
+    % make test
+
+To install Sagittarius non default location, you need to specify
 `CMAKE_INSTALL_PREFIX` variable.
 
     % cmake . -DCMAKE_INSTALL_PREFIX=/path/to/install
 
 On some environment, there are 64 bits runtime specific directories
 such as `lib64`. To install Sagittarius runtime in the directory, then
-you can specify `LIB_DIR` variable as following;
+you can specify `LIB_DIR` variable as the following:
 
     % cmake . -DLIB_DIR=lib64
 
@@ -95,16 +99,9 @@ for the `.pc` files; `BIN_DIR`, `INCLUDE_DIR` `SHARE_DIR`, and
 
 Since 0.5.6, Sagittarius's REPL is renamed to `sagittarius` and legacy
 `sash` is kept as a symbolic link. If you don't need the symbolic link
-then you can put the `INSTALL_SYMLINK` option off as following;
+then you can put the `INSTALL_SYMLINK` option off as the following:
 
     % cmake . -DINSTALL_SYMLINK=0
-
-After installing Boehm GC, go to the directory `gc-7.2` and type
-commands below and re-run `cmake`.  Make sure you delete
-`CMakeCache.txt` to re-run `cmake` command.
-
-    % make
-    % make test
 
 After a successful compilation, it is possible to install Sagittarius
 to the location specified by `CMAKE_INSTALL_PREFIX` or default system
