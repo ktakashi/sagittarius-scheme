@@ -89,6 +89,13 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @td{(srfi :98 os-environment-variables)}}
 @tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-99/srfi-99.html"]{SRFI-99}}
     @td{(srfi :99 records)}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-100/srfi-100.html"]{SRFI-100}}
+    @td{(srfi :100 define-lambda-object)
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :100)}. So for the portability it's better to use the
+    @code{(srfi :100)}.
+
+    The name @code{define-lambda-object} is taken from the SRFI name.}}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-105/srfi-105.html"]{SRFI-105}}
     @td{(srfi :105)
 
