@@ -114,7 +114,7 @@ struct SgHashTableRec
 #define SG_HASH_NO_OVERWRITE SG_DICT_NO_OVERWRITE
 #define SG_HASH_NO_CREATE    SG_DICT_NO_CREATE
 
-#define SG_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_HASHTABLE)
+#define SG_HASHTABLE_P(obj)    SG_ISA(obj, SG_CLASS_HASHTABLE)
 #define SG_HASHTABLE(obj)      ((SgHashTable*)(obj))
 #define SG_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
 #define SG_HASH_ENTRY_KEY      SG_DICT_ENTRY_KEY

@@ -57,8 +57,17 @@ static void whash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   /* dummy */
   Sg_Putuz(port, UC("#<weak-hashtable>"));
 }
+
+static SgClass *weak_hashtable_cpl[] = {
+  SG_CLASS_HASHTABLE,
+  SG_CLASS_DICTIONARY,
+  SG_CLASS_COLLECTION,
+  SG_CLASS_TOP,
+  NULL,
+};
+
 SG_DEFINE_BUILTIN_CLASS(Sg_WeakHashTableClass, whash_print, NULL, NULL, NULL,
-			SG_CLASS_DICTIONARY_CPL);
+			weak_hashtable_cpl);
 
 
 static void weakvector_finalize(SgObject obj, void *data)
@@ -426,12 +435,14 @@ static SgObject weak_hashtable_copy(SgObject table, int mutableP)
   return SG_OBJ(wh);  
 }
 
+extern SgHashEntry * hash_iter_next(SgHashIter *itr, SgObject *key, 
+				    SgObject *value);
 static SgHashEntry * weak_hash_iter_next(SgHashIter *iter, 
 					 SgObject *key, SgObject *value)
 {
   SgWeakHashTable *wh = SG_WEAK_HASHTABLE(iter->table);
   for (;;) {
-    SgHashEntry *e = Sg_HashIterNext(iter, NULL, NULL);
+    SgHashEntry *e = hash_iter_next(iter, NULL, NULL);
     if (e == NULL) return NULL;
     if (wh->weakness & SG_WEAK_KEY) {
       SgWeakBox *box = (SgWeakBox *)e->key;
@@ -444,7 +455,6 @@ static SgHashEntry * weak_hash_iter_next(SgHashIter *iter,
     } else {
       if (key) *key = (SgObject)e->key;
     }
-
     if (wh->weakness & SG_WEAK_VALUE) {
       SgWeakBox *box = (SgWeakBox *)e->value;
       SgObject realval = SG_OBJ(Sg_WeakBoxRef(box));
@@ -460,10 +470,12 @@ static SgHashEntry * weak_hash_iter_next(SgHashIter *iter,
     return e;
   }
 }
-
+/* avoid infinite loop */
+extern void hash_iter_init(SgHashCore *core, SgHashIter *itr);
 static void weak_hashtable_init_iter(SgObject table, SgHashIter *iter)
 {
-  Sg_HashIterInit(table, iter);
+  hash_iter_init(SG_WEAK_HASHTABLE_CORE(table), iter);
+  iter->table = table;
   iter->iter_next = weak_hash_iter_next;
 }
 

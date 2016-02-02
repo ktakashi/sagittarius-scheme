@@ -66,7 +66,7 @@ typedef Entry* SearchProc(SgHashCore *core, intptr_t key,
 			  SgDictOp op, int flags);
 
 static unsigned int round2up(unsigned int val);
-static void hash_iter_init(SgHashCore *core, SgHashIter *itr);
+void hash_iter_init(SgHashCore *core, SgHashIter *itr);
 
 /* hash functions */
 #define STRING_HASH(hv, chars, size)				\
@@ -639,8 +639,7 @@ void Sg_HashCoreClear(SgHashCore *ht, int k)
   }
 }
 
-static SgHashEntry * hash_iter_next(SgHashIter *itr, 
-				    SgObject *key, SgObject *value);
+SgHashEntry * hash_iter_next(SgHashIter *itr, SgObject *key, SgObject *value);
 void hash_iter_init(SgHashCore *core, SgHashIter *itr)
 {
   int i;
@@ -862,8 +861,7 @@ static void hashtable_init_iter(SgObject table, SgHashIter *iter)
   iter->table = table;
 }
 
-static SgHashEntry * hash_iter_next(SgHashIter *itr, 
-				    SgObject *key, SgObject *value)
+SgHashEntry * hash_iter_next(SgHashIter *itr, SgObject *key, SgObject *value)
 {
   Entry *e = (Entry*)itr->next;
   if (e != NULL) {
@@ -1008,11 +1006,10 @@ SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src)
 SgObject Sg_HashTableKeys(SgHashTable *table)
 {
   SgHashIter itr;
-  SgHashEntry *e;
-  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject h = SG_NIL, t = SG_NIL, k;
   Sg_HashIterInit(table, &itr);
-  while ((e = Sg_HashIterNext(&itr, NULL, NULL)) != NULL) {
-    SG_APPEND1(h, t, SG_HASH_ENTRY_KEY(e));
+  while (Sg_HashIterNext(&itr, &k, NULL) != NULL) {
+    SG_APPEND1(h, t, k);
   }
   return h;
 }
@@ -1020,11 +1017,10 @@ SgObject Sg_HashTableKeys(SgHashTable *table)
 SgObject Sg_HashTableValues(SgHashTable *table)
 {
   SgHashIter itr;
-  SgHashEntry *e;
-  SgObject h = SG_NIL, t = SG_NIL;
+  SgObject h = SG_NIL, t = SG_NIL, v;
   Sg_HashIterInit(table, &itr);
-  while ((e = Sg_HashIterNext(&itr, NULL, NULL)) != NULL) {
-    SG_APPEND1(h, t, SG_HASH_ENTRY_VALUE(e));
+  while (Sg_HashIterNext(&itr, NULL, &v) != NULL) {
+    SG_APPEND1(h, t, v);
   }
   return h;
 }
