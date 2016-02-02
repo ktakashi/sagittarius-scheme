@@ -66,7 +66,8 @@ typedef enum SgDictOpRec {
 
 typedef enum {
   SG_DICT_NO_OVERWRITE = (1L<<0), /* do not overwrite the existing entry */
-  SG_DICT_NO_CREATE    = (1L<<1)  /* do not create new one if no match */
+  SG_DICT_NO_CREATE    = (1L<<1), /* do not create new one if no match */
+  SG_DICT_ON_COPY      = (1L<<2)  /* [Internal use only] */
 } SgDictSetFlags;
 
 #define SG_DICT_ENTRY_KEY(e)   SG_OBJ((e)->key)

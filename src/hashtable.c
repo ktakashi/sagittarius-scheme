@@ -600,7 +600,8 @@ void Sg_HashCoreCopy(SgHashTable *dstT, const SgHashTable *srcT)
     while (s) {
       e = SG_NEW(Entry);
       e->key = s->key;
-      SG_HASHTABLE_ENTRY_SET(dstT, (SgHashEntry *)e, SG_OBJ(s->value), 0);
+      SG_HASHTABLE_ENTRY_SET(dstT, (SgHashEntry *)e, SG_OBJ(s->value), 
+			     SG_DICT_ON_COPY);
       /* e->value = s->value; */
       e->next = NULL;
       if (p) p->next = e;

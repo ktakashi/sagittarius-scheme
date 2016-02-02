@@ -324,8 +324,9 @@ static void value_finalizer(SgObject z, void *data)
 
 static SgObject weak_hashtable_set(SgObject table,
 				   SgHashEntry *e, SgObject value, int flags)
-{ 
-  if (SG_WEAK_BOXP(value)) {
+{
+  /* strip out weakbox if this is during copying */
+  if ((flags & SG_DICT_ON_COPY) && SG_WEAK_BOXP(value)) {
     if (Sg_WeakBoxEmptyP(value)) {
       value = SG_WEAK_HASHTABLE_DEFAULT_VALUE(table);
     } else {
