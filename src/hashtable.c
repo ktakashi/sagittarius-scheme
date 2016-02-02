@@ -267,6 +267,9 @@ static Entry *insert_entry(SgHashCore *table,
   Entry *e = SG_NEW(Entry);
   Entry **buckets = BUCKETS(table);
   e->key = key;
+  if (table->create_entry) {
+    table->create_entry(table, (SgHashEntry *)e);
+  }
   e->value = 0;
   e->next = buckets[index];
   e->hashValue = hashval;
@@ -362,6 +365,7 @@ static void hash_core_init(SgHashCore *table,
     table->bucketsLog2Count++;
   }
   for (i = 0; i < initSize; i++) table->buckets[i] = NULL;
+  table->create_entry = NULL;	/* default */
 }
 
 /** accessor function */
@@ -802,26 +806,14 @@ DEFINE_CLASS_WITH_CACHE(Sg_HashTableClass,
 
 static SgHashTable * make_hashtable();
 
-static SgObject hashtable_ref(SgObject table, SgObject key, 
-			      SgObject fallback, int flags)
+static SgObject hashtable_ref(SgObject table, SgHashEntry *e,  int flags)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_GET, flags);
-  if (!e) return fallback;
-  else return SG_HASH_ENTRY_VALUE(e);
+  return SG_HASH_ENTRY_VALUE(e);
 }
 
-static SgObject hashtable_set(SgObject table, SgObject key, SgObject value,
+static SgObject hashtable_set(SgObject table, SgHashEntry *e, SgObject value,
 			      int flags)
 {
-  SgHashEntry *e;
-
-  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
-			(flags & SG_HASH_NO_CREATE)
-			? SG_DICT_GET
-			: SG_DICT_CREATE,
-			0);
-  if (!e) return SG_UNBOUND;
   if (e->value) {
     if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
     else {
@@ -963,17 +955,29 @@ SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 
 SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback)
 {
-  return SG_HASHTABLE_OPTABLE(table)->ref(table, key, fallback, 0);
+  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
+				     (intptr_t)key, SG_DICT_GET, 
+				     0);
+  if (!e) return fallback;
+  return SG_HASHTABLE_OPTABLE(table)->ref(table, e, 0);
 }
 
 SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value,
 			 int flags)
 {
+  SgHashEntry *e;
   if (SG_IMMUTABLE_HASHTABLE_P(table)) {
     Sg_Error(UC("attemp to modify immutable hashtable"));
     return SG_UNDEF;
   }
-  return SG_HASHTABLE_OPTABLE(table)->set(table, key, value, flags);
+
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
+			(flags & SG_HASH_NO_CREATE)
+			? SG_DICT_GET
+			: SG_DICT_CREATE,
+			0);
+  if (!e) return SG_UNBOUND;
+  return SG_HASHTABLE_OPTABLE(table)->set(table, e, value, flags);
 }
 
 SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key)

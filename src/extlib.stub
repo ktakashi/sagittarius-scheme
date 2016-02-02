@@ -552,28 +552,39 @@
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
 
   (define-cise-stmt dict-update!
-    ((_ dict searcher xtractor cc)
+    ((_ dict searcher xtractor cc set unwrap)
      `(let ((e::SgDictEntry*)
-	    (data::(.array void* (1))))
+	    (data::(.array void* (2))))
 	(set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
 			   SG_DICT_CREATE 0))
-	(unless (-> e value) (cast void (SG_DICT_ENTRY_SET_VALUE e default)))
+	(unless (-> e value) (cast void (,set ,dict e default)))
 	(set! (aref data 0) (cast void* e))
-	(Sg_VMPushCC ,cc data 1)
-	(result (Sg_VMApply1 proc (SG_DICT_ENTRY_VALUE e))))))
+	(set! (aref data 1) (cast void* ,dict))
+	(Sg_VMPushCC ,cc data 2)
+	(result (Sg_VMApply1 proc (,unwrap ,dict e))))))
   
   ;; update!
   (define-cfn hashtable-update-cc (result data::void**) :static
-    (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0))))
-      (cast void (SG_DICT_ENTRY_SET_VALUE e result))
+    (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0)))
+	  (ht (aref data 1)))
+      (SG_HASHTABLE_ENTRY_SET ht e result 0)
       (return result)))
+
+  (define-cise-expr hash-entry-set!
+    ((_ dict e value)
+     `(SG_HASHTABLE_ENTRY_SET ,dict ,e ,value 0)))
+  (define-cise-expr hash-entry-value
+    ((_ dict e) 
+     `(SG_HASHTABLE_ENTRY_REF ,dict ,e 0)))
   (define-c-proc hashtable-update! 
     (ht::<hashtable> key proc::<procedure> default)
     (when (SG_IMMUTABLE_HASHTABLE_P ht)
       (assertion-violation 'hashtable-update!
 			   "attemp to modify an immutable hashtable" ht))
     (dict-update! ht Sg_HashCoreSearch SG_HASHTABLE_CORE
-		  hashtable-update-cc))
+		  hashtable-update-cc
+		  hash-entry-set!
+		  hash-entry-value))
 
   ;; from Gauche
   (define-cfn hashtable-itr (args::SgObject* argc::int data::void*) :static
@@ -1575,8 +1586,16 @@
     (let ((e::SgDictEntry* (cast SgDictEntry* (aref data 0))))
       (cast void (SG_DICT_ENTRY_SET_VALUE e result))
       (return result)))
+
+  (define-cise-expr tree-entry-set!
+    ((_ dict e value)
+     `(SG_DICT_ENTRY_SET_VALUE ,e ,value)))
+  (define-cise-expr tree-entry-value
+    ((_ dict e) `(SG_DICT_ENTRY_VALUE ,e)))
+  
   (define-c-proc treemap-update! (tm::<tree-map> key proc::<procedure> default)
-    (dict-update! tm Sg_TreeMapCoreSearch SG_TREEMAP treemap-update-cc))
+    (dict-update! tm Sg_TreeMapCoreSearch SG_TREEMAP treemap-update-cc
+		  tree-entry-set! tree-entry-value))
 
   (define-cfn treemap-itr (args::SgObject* argc::int data::void*) :static
     (let* ((itr::SgTreeIter* (cast SgTreeIter* data))

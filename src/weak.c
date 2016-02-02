@@ -246,14 +246,10 @@ typedef struct gc_value_rec
 static SgWeakHashTable * make_weak_hashtable(SgHashType type,
 					     SgWeakness weakness,
 					     SgObject defaultValue);
+static void weak_hashtable_create_entry(SgHashCore *core, SgHashEntry *e);
 
-static SgObject weak_hashtable_ref(SgObject table,
-				   SgObject key, SgObject fallback,
-				   int flags)
+static SgObject weak_hashtable_ref(SgObject table, SgHashEntry *e, int flags)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_GET, flags);
-  if (!e) return fallback;
   if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_VALUE) {
     /* get value first so that it won't be GCed */
     void *val = Sg_WeakBoxRef((SgWeakBox*)e->value);
@@ -297,9 +293,13 @@ static void value_finalizer(SgObject z, void *data)
   */
   SgWeakHashTable *table = ((gc_value_t *)data)->table;
   intptr_t key = ((gc_value_t *)data)->key;
-  SgObject e = SG_NIL;		/* dummy */
+  SgObject e = NULL;		/* dummy */
+  SgHashEntry *et = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
+				      (intptr_t)key, SG_DICT_GET, 
+				      SG_HASH_NO_ERROR);
 
-  e = weak_hashtable_ref(table, SG_OBJ(key), NULL, SG_HASH_NO_ERROR);
+  if (et) e = weak_hashtable_ref(table, et, 0);
+
   /* ok, it's still there, so delete it */
   if (SG_EQ(e, z)) {
     e = weak_hashtable_delete_rec(table, SG_OBJ(key));
@@ -323,24 +323,8 @@ static void value_finalizer(SgObject z, void *data)
 }
 
 static SgObject weak_hashtable_set(SgObject table,
-				   SgObject key, SgObject value, int flags)
+				   SgHashEntry *e, SgObject value, int flags)
 { 
-  SgHashEntry *e;
-  intptr_t proxy;
-
-  if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_KEY) {
-    proxy = (intptr_t)Sg_MakeWeakBox(key);
-    /* needed for managing entryCount... */
-    Sg_RegisterFinalizer(key, key_finalizer, table);
-  } else {
-    proxy = (intptr_t)key;
-  }
-
-  e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), proxy,
-			(flags & SG_HASH_NO_CREATE)
-			   ? SG_DICT_GET: SG_DICT_CREATE,
-			0);
-  if (!e) return SG_UNBOUND;
   if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_VALUE) {
     if (e->value && (flags & SG_HASH_NO_OVERWRITE)) {
       void *val = Sg_WeakBoxRef((SgWeakBox *)e->value);
@@ -350,7 +334,12 @@ static SgObject weak_hashtable_set(SgObject table,
     }
     if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_REMOVE) {
       gc_value_t *data;
-      void *base = Sg_GCBase(key);
+      intptr_t key = e->key;
+      void *base;
+      if (SG_WEAK_BOXP(key)) {
+	key = (intptr_t)Sg_WeakBoxRef(SG_WEAK_BOX(key));
+      }
+      base = Sg_GCBase(SG_OBJ(key));
       if (e->value) {
 	/* not sure if we need this */
 	void *val = Sg_WeakBoxRef((SgWeakBox *)e->value);
@@ -360,7 +349,7 @@ static SgObject weak_hashtable_set(SgObject table,
       }
       data = SG_NEW(gc_value_t);
       data->table = table;
-      data->key = (intptr_t)key;
+      data->key = key;
       if (base) {
 	Sg_RegisterDisappearingLink((void *)&data->key, base);
       }
@@ -431,7 +420,15 @@ static SgObject weak_hashtable_copy(SgObject table, int mutableP)
 					    src->defaultValue);
   wh->hasher = src->hasher;
   wh->compare = src->compare;
+  /* FIXME maybe we should initialise the core? */
+  SG_WEAK_HASHTABLE_CORE(wh)->create_entry = weak_hashtable_create_entry;
+  /* FIXME this is probably wrong since it just copies entries.
+           the weak boxes would be shared between tables so if
+	   one table is modified then other would also be modified
+   */
   Sg_HashCoreCopy(SG_WEAK_HASHTABLE_CORE(wh), SG_WEAK_HASHTABLE_CORE(src));
+  /* the data must be copied one */
+  SG_WEAK_HASHTABLE_CORE(wh)->data = wh;
   return SG_OBJ(wh);  
 }
 
@@ -501,6 +498,17 @@ static SgWeakHashTable * make_weak_hashtable(SgHashType type,
   return wh;
 }
 
+static void weak_hashtable_create_entry(SgHashCore *core, SgHashEntry *e)
+{
+  SgObject table = SG_OBJ(core->data);
+  if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_KEY) {
+    SgObject key = SG_OBJ(e->key);
+    e->key = (intptr_t)Sg_MakeWeakBox(key);
+    /* needed for managing entryCount... */
+    Sg_RegisterFinalizer(key, key_finalizer, table);
+  }
+}
+
 SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 				    SgWeakness weakness,
 				    int initSize,
@@ -518,6 +526,7 @@ SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
   } else {
     Sg_HashCoreInitSimple(SG_WEAK_HASHTABLE_CORE(wh), type, initSize, wh);
   }
+  SG_WEAK_HASHTABLE_CORE(wh)->create_entry = weak_hashtable_create_entry;
   return SG_OBJ(wh);
 }
 
@@ -545,17 +554,28 @@ SgObject Sg_WeakHashTableCopy(SgWeakHashTable *src)
 SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 			     SgObject key, SgObject fallback)
 {
-  return weak_hashtable_ref(table, key, fallback, 0);
+  SgHashEntry *e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table),
+				     (intptr_t)key, SG_DICT_GET, 0);
+  if (!e) return fallback;
+  return weak_hashtable_ref(table, e, 0);
 }
 
 SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
 			     SgObject key, SgObject value, int flags)
 {
+  SgHashEntry *e;
+
   if (SG_IMMUTABLE_HASHTABLE_P(table)) {
     Sg_Error(UC("attemp to modify immutable hashtable"));
     return SG_UNDEF;
   }
-  return weak_hashtable_set(table, key, value, flags);
+  e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), (intptr_t)key,
+			(flags & SG_HASH_NO_CREATE)
+			   ? SG_DICT_GET: SG_DICT_CREATE,
+			0);
+
+  if (!e) return SG_UNBOUND;
+  return weak_hashtable_set(table, e, value, flags);
 }
 
 SgObject Sg_WeakHashTableDelete(SgWeakHashTable *table,

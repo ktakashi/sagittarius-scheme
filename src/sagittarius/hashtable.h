@@ -51,6 +51,7 @@ typedef uint32_t SgHashProc(const SgHashCore *hc, intptr_t key);
 typedef int      SgHashCompareProc(const SgHashCore *hc, intptr_t key,
 				   intptr_t entryKey);
 
+typedef SgDictEntry SgHashEntry;
 /* 
    TODO use comparator.
  */
@@ -66,9 +67,10 @@ struct SgHashCoreRec
   SgObject generalHasher;	/* for make-hashtable */
   SgObject generalCompare; 	/* ditto */
   void   *data; 
+  /* how to create entry of this hash */
+  void (*create_entry)(SgHashCore *, SgHashEntry *);
 };
 
-typedef SgDictEntry SgHashEntry;
 struct SgHashIterRec
 {
   SgHashCore *core;
@@ -89,10 +91,10 @@ SG_CLASS_DECL(Sg_HashTableClass);
 */
 typedef struct SgHashOpTableRec
 {
-  /* table key fallback */
-  SgObject (*ref)(SgObject, SgObject, SgObject, int);
-  /* table key value flags */
-  SgObject (*set)(SgObject, SgObject, SgObject, int);
+  /* entry ref: table entry flags*/
+  SgObject (*ref)(SgObject, SgHashEntry *, int);
+  /* entry set: table entry value flags */
+  SgObject (*set)(SgObject, SgHashEntry *, SgObject, int);
   /* we can't use delete since it's keyword on C++... */
   /* table key */
   SgObject (*remove)(SgObject, SgObject);
@@ -123,6 +125,10 @@ struct SgHashTableRec
 #define SG_HASHTABLE_OPTABLE(obj) SG_HASHTABLE(obj)->opTable
 #define SG_HASHTABLE_TYPE(obj)    SG_HASHTABLE(obj)->type
 
+#define SG_HASHTABLE_ENTRY_REF(ht, e, f)	\
+  SG_HASHTABLE_OPTABLE(ht)->ref(ht, e, f)
+#define SG_HASHTABLE_ENTRY_SET(ht, e, v, f)	\
+  SG_HASHTABLE_OPTABLE(ht)->set(ht, e, v, f)
 
 #define SG_IMMUTABLE_HASHTABLE_P(obj)					\
   (SG_HASHTABLE_P(obj) && SG_HASHTABLE(obj)->immutablep)

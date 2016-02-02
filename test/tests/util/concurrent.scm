@@ -177,8 +177,8 @@
   (shared-queue-put! client '(withdrow 100))
   (shared-queue-put! client '(deposite 100))
   (shared-queue-put! client '(close))
-  ;; wait until account closed
-  (thread-sleep! 0.1)
+  ;; wait until eager client is done
+  (thread-join! eager-client)
 
   (test-equal "size"  1 (shared-queue-size recepit))
   (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
