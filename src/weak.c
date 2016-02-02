@@ -429,6 +429,10 @@ static SgObject weak_hashtable_copy(SgObject table, int mutableP)
   Sg_HashCoreCopy(SG_WEAK_HASHTABLE_CORE(wh), SG_WEAK_HASHTABLE_CORE(src));
   /* the data must be copied one */
   SG_WEAK_HASHTABLE_CORE(wh)->data = wh;
+  SG_HASHTABLE_TYPE(wh) = SG_HASHTABLE_TYPE(src);
+  if (!mutableP) {
+    SG_HASHTABLE(wh)->immutablep = TRUE;
+  }
   return SG_OBJ(wh);  
 }
 
