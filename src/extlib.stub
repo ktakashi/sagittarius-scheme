@@ -557,7 +557,6 @@
 	    (data::(.array void* (1))))
 	(set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
 			   SG_DICT_CREATE 0))
-	;; FIXME shut up the compiler with case...
 	(unless (-> e value) (cast void (SG_DICT_ENTRY_SET_VALUE e default)))
 	(set! (aref data 0) (cast void* e))
 	(Sg_VMPushCC ,cc data 1)
@@ -579,14 +578,15 @@
   ;; from Gauche
   (define-cfn hashtable-itr (args::SgObject* argc::int data::void*) :static
     (let* ((itr::SgHashIter* (cast SgHashIter* data))
-	   (e::SgHashEntry* (Sg_HashIterNext itr))
+	   (k SG_UNDEF)
+	   (v SG_UNDEF)
 	   (eofval (aref args 0)))
-      (if (== e NULL)
-	  (return (Sg_Values2 eofval eofval))
-	  (return (Sg_Values2 (SG_HASH_ENTRY_KEY e) (SG_HASH_ENTRY_VALUE e))))))
+      (if (Sg_HashIterNext itr (& k) (& v))
+	  (return (Sg_Values2 k v))
+	  (return (Sg_Values2 eofval eofval)))))
   (define-c-proc %hashtable-iter (ht::<hashtable>)
     (let ((itr::SgHashIter* (SG_NEW SgHashIter)))
-      (Sg_HashIterInit (SG_HASHTABLE_CORE ht) itr)
+      (Sg_HashIterInit ht itr)
       (result (Sg_MakeSubr hashtable-itr itr 1 0 
 			   (SG_MAKE_STRING "hashtable-iterator")))))
 
@@ -1364,35 +1364,58 @@
 
   ;; for now until eqv
   ;; TODO ugly copy paste with almost the same...
+  (define-cise-stmt %make-weak-hashtable
+    ((_ who type weakness init-size default)
+     `(let ((w::SgWeakness SG_WEAK_BOTH)
+	    (v SG_UNDEF))
+	(cond ((SG_EQ ,weakness 'key)   (set! w SG_WEAK_KEY))
+	      ((SG_EQ ,weakness 'value) (set! w SG_WEAK_VALUE))
+	      ((SG_EQ ,weakness 'both)  (set! w SG_WEAK_BOTH))
+	      (else (assertion-violation 
+		     'who 
+		     "weakness must be one of 'key, 'value or 'both"
+		     (SG_LIST1 ,weakness))))
+	(unless (SG_UNBOUNDP ,default) (set! v ,default))
+	(result (Sg_MakeWeakHashTableSimple ,type w ,init-size v)))))
+
   (define-c-proc make-weak-eq-hashtable 
     (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
     :no-side-effect
-    (let ((w::SgWeakness SG_WEAK_BOTH)
-	  (v SG_UNDEF))
-      (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
-	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
-	    ((SG_EQ weakness 'both) (set! w SG_WEAK_BOTH))
-	    (else (assertion-violation 
-		   'make-weak-eq-hashtable 
-		   "weakness must be one of 'key, 'value or 'both"
-		   (SG_LIST1 weakness))))
-      (unless (SG_UNBOUNDP default) (set! v default))
-      (result (Sg_MakeWeakHashTableSimple SG_HASH_EQ w init-size v))))
+    (%make-weak-hashtable 'make-weak-eq-hashtable
+			  SG_HASH_EQ weakness init-size default))
 
   (define-c-proc make-weak-eqv-hashtable 
     (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
     :no-side-effect
+    (%make-weak-hashtable 'make-weak-eqv-hashtable
+			  SG_HASH_EQV weakness init-size default))
+  (define-c-proc make-weak-equal-hashtable 
+    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    :no-side-effect
+    (%make-weak-hashtable 'make-weak-equal-hashtable
+			  SG_HASH_EQUAL weakness init-size default))
+  (define-c-proc make-weak-string-hashtable 
+    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    :no-side-effect
+    (%make-weak-hashtable 'make-weak-string-hashtable
+			  SG_HASH_STRING weakness init-size default))
+
+  (define-c-proc make-weak-hashtable 
+    (hasher::<procedure> equiv::<procedure>
+			 :key (init-size::<fixnum> 200)
+			      (weakness::<symbol> both) 
+			      default)
+    :no-side-effect
     (let ((w::SgWeakness SG_WEAK_BOTH)
 	  (v SG_UNDEF))
-      (cond ((SG_EQ weakness 'key) (set! w SG_WEAK_KEY))
+      (cond ((SG_EQ weakness 'key)   (set! w SG_WEAK_KEY))
 	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
-	    ((SG_EQ weakness 'both) (set! w SG_WEAK_BOTH))
-	    (else (assertion-violation 
-		   'make-weak-eqv-hashtable 
+	    ((SG_EQ weakness 'both)  (set! w SG_WEAK_BOTH))
+	    (else (assertion-violation 'make-weak-hashtable
 		   "weakness must be one of 'key, 'value or 'both"
 		   (SG_LIST1 weakness))))
       (unless (SG_UNBOUNDP default) (set! v default))
-      (result (Sg_MakeWeakHashTableSimple SG_HASH_EQV w init-size v))))
+      (result (Sg_MakeWeakHashTable hasher equiv w init-size v))))
 
   (define-c-proc weak-hashtable? (o) ::<boolean> :constant SG_WEAK_HASHTABLE_P)
 

@@ -1037,16 +1037,15 @@ void write_ss(SgObject obj, SgPort *port, SgWriteContext *ctx)
     SgObject seen = Sg_MakeHashTableSimple(SG_HASH_EQ, 64);
     SgHashTable *save = ctx->table;
     SgHashIter iter;
-    SgHashEntry *e;
+    SgObject k, v;
     ctx->table = SG_HASHTABLE(seen);
     write_walk_circular(obj, ctx, TRUE);
     /* extract */
     ctx->table = save;
-    Sg_HashIterInit(SG_HASHTABLE_CORE(seen), &iter);
-    while ((e = Sg_HashIterNext(&iter)) != NULL) {
-      SgObject v = SG_HASH_ENTRY_VALUE(e);
+    Sg_HashIterInit(seen, &iter);
+    while (Sg_HashIterNext(&iter, &k, &v)) {
       if (SG_INT_VALUE(v) > 1) {
-	Sg_HashTableSet(ctx->table, SG_HASH_ENTRY_KEY(e), SG_TRUE, 0);
+	Sg_HashTableSet(ctx->table, k, SG_TRUE, 0);
       }
     }
   } else {

@@ -1,6 +1,6 @@
 /* hashtable.c                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -285,7 +285,7 @@ static Entry *insert_entry(SgHashCore *table,
     for (i = 0; i < newsize; i++) newb[i] = NULL; /* initialize new buckets */
 
     hash_iter_init(table, &itr);
-    while ((f = (Entry*)Sg_HashIterNext(&itr)) != NULL) {
+    while ((f = (Entry*)Sg_HashIterNext(&itr, NULL, NULL)) != NULL) {
       index = HASH2INDEX(newsize, newbits, f->hashValue);
       f->next = newb[index];
       newb[index] = f;
@@ -639,10 +639,13 @@ void Sg_HashCoreClear(SgHashCore *ht, int k)
   }
 }
 
+static SgHashEntry * hash_iter_next(SgHashIter *itr, 
+				    SgObject *key, SgObject *value);
 void hash_iter_init(SgHashCore *core, SgHashIter *itr)
 {
   int i;
   itr->core = core;
+  itr->iter_next = hash_iter_next;
   for (i = 0; i < core->bucketCount; i++) {
     if (core->buckets[i]) {
       itr->bucket = i;
@@ -653,29 +656,14 @@ void hash_iter_init(SgHashCore *core, SgHashIter *itr)
   itr->next = NULL;
 }
 
-void Sg_HashIterInit(SgHashCore *core, SgHashIter *itr)
+void Sg_HashIterInit(SgObject table, SgHashIter *itr)
 {
-  hash_iter_init(core, itr);
+  SG_HASHTABLE_OPTABLE(table)->init_iter(table, itr);
 }
 
-SgHashEntry* Sg_HashIterNext(SgHashIter *itr)
+SgHashEntry* Sg_HashIterNext(SgHashIter *itr, SgObject *key, SgObject *value)
 {
-  Entry *e = (Entry*)itr->next;
-  if (e != NULL) {
-    if (e->next) itr->next = e->next;
-    else {
-      int i = itr->bucket + 1;
-      for (; i < itr->core->bucketCount; i++) {
-	if (itr->core->buckets[i]) {
-	  itr->bucket = i;
-	  itr->next = itr->core->buckets[i];
-	  return (SgHashEntry*)e;
-	}
-      }
-      itr->next = NULL;
-    }
-  }
-  return (SgHashEntry*)e; /*NULL*/
+  return itr->iter_next(itr, key, value);
 }
 
 static void hash_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
@@ -770,8 +758,8 @@ static SgObject hash_cache_scanner(SgObject obj, SgObject cbs,
     cbs = Sg_WriteCacheScanRec(SG_HASHTABLE_CORE(ht)->generalCompare, cbs, ctx);
     break;
   }
-  Sg_HashIterInit(SG_HASHTABLE_CORE(ht), &iter);
-  while ((e = Sg_HashIterNext(&iter)) != NULL) {
+  Sg_HashIterInit(ht, &iter);
+  while ((e = Sg_HashIterNext(&iter, NULL, NULL)) != NULL) {
     cbs = Sg_WriteCacheScanRec(SG_HASH_ENTRY_KEY(e), cbs, ctx);
     cbs = Sg_WriteCacheScanRec(SG_HASH_ENTRY_VALUE(e), cbs, ctx);
   }
@@ -798,8 +786,8 @@ static void hash_cache_writer(SgObject obj, SgPort *port,
     Sg_WriteObjectCache(SG_HASHTABLE_CORE(ht)->generalCompare, port, ctx);
     break;
   }
-  Sg_HashIterInit(SG_HASHTABLE_CORE(ht), &iter);
-  while ((e = Sg_HashIterNext(&iter)) != NULL) {
+  Sg_HashIterInit(ht, &iter);
+  while ((e = Sg_HashIterNext(&iter, NULL, NULL)) != NULL) {
     Sg_WriteObjectCache(SG_HASH_ENTRY_KEY(e), port, ctx);
     Sg_WriteObjectCache(SG_HASH_ENTRY_VALUE(e), port, ctx);
   }
@@ -813,10 +801,111 @@ DEFINE_CLASS_WITH_CACHE(Sg_HashTableClass,
 			hash_print, NULL, NULL, NULL,
 			SG_CLASS_DICTIONARY_CPL);
 
+static SgHashTable * make_hashtable();
+
+static SgObject hashtable_ref(SgObject table, SgObject key, 
+			      SgObject fallback, int flags)
+{
+  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
+				     (intptr_t)key, SG_DICT_GET, flags);
+  if (!e) return fallback;
+  else return SG_HASH_ENTRY_VALUE(e);
+}
+
+static SgObject hashtable_set(SgObject table, SgObject key, SgObject value,
+			      int flags)
+{
+  SgHashEntry *e;
+
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
+			(flags & SG_HASH_NO_CREATE)
+			? SG_DICT_GET
+			: SG_DICT_CREATE,
+			0);
+  if (!e) return SG_UNBOUND;
+  if (e->value) {
+    if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
+    else {
+      return SG_HASH_ENTRY_SET_VALUE(e, value);
+    }
+  } else {
+    return SG_HASH_ENTRY_SET_VALUE(e, value);
+  }
+}
+
+static SgObject hashtable_delete(SgObject table, SgObject key)
+{
+  SgHashEntry *e;
+
+  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
+			(intptr_t)key,
+			SG_DICT_DELETE,
+			0);
+  if (e && e->value) return SG_HASH_ENTRY_VALUE(e);
+  else return SG_UNBOUND;
+}
+
+static SgObject hashtable_copy(SgObject src, int mutableP)
+{
+  SgHashTable *dst = make_hashtable();
+  Sg_HashCoreCopy(SG_HASHTABLE_CORE(dst), SG_HASHTABLE_CORE(src));
+  dst->type = SG_HASHTABLE_TYPE(src);
+  if (!mutableP) {
+    dst->immutablep = TRUE;
+  }
+  return SG_OBJ(dst);
+}
+
+static void hashtable_init_iter(SgObject table, SgHashIter *iter)
+{
+  hash_iter_init(SG_HASHTABLE_CORE(table), iter);
+  iter->table = table;
+}
+
+static SgHashEntry * hash_iter_next(SgHashIter *itr, 
+				    SgObject *key, SgObject *value)
+{
+  Entry *e = (Entry*)itr->next;
+  if (e != NULL) {
+    if (e->next) itr->next = e->next;
+    else {
+      int i = itr->bucket + 1;
+      for (; i < itr->core->bucketCount; i++) {
+	if (itr->core->buckets[i]) {
+	  itr->bucket = i;
+	  itr->next = itr->core->buckets[i];
+	  if (key) *key = SG_HASH_ENTRY_KEY(e);
+	  if (value) *value = SG_HASH_ENTRY_VALUE(e);
+	  return (SgHashEntry*)e;
+	}
+      }
+      itr->next = NULL;
+    }
+    if (key) *key = SG_HASH_ENTRY_KEY(e);
+    if (value) *value = SG_HASH_ENTRY_VALUE(e);
+  }
+  return (SgHashEntry*)e; /*NULL*/
+}
+
+static SgHashOpTable hashtable_operations = {
+  hashtable_ref,
+  hashtable_set,
+  hashtable_delete,
+  hashtable_copy,
+  hashtable_init_iter,
+};
+
+static SgHashTable * make_hashtable()
+{
+  SgHashTable *z = SG_NEW(SgHashTable);
+  SG_SET_CLASS(z, SG_CLASS_HASHTABLE);
+  SG_HASHTABLE_OPTABLE(z) = &hashtable_operations;
+  return z;
+}
 
 SgObject Sg_MakeHashTableSimple(SgHashType type, int initSize)
 {
-  SgHashTable *z = SG_NEW(SgHashTable);
+  SgHashTable *z = make_hashtable();
   return Sg_InitHashTableSimple(z, type, initSize);
 }
 
@@ -827,6 +916,7 @@ SgObject Sg_InitHashTableSimple(SgHashTable *table,
     Sg_Error(UC("Sg_MakeHashTableSimple: wrong type arg: %d"), type);
   }
   SG_SET_CLASS(table, SG_CLASS_HASHTABLE);
+  SG_HASHTABLE_OPTABLE(table) = &hashtable_operations;
   Sg_HashCoreInitSimple(&table->core, type, initSize, NULL);
   table->type = type;
   table->immutablep = FALSE;
@@ -870,65 +960,31 @@ SgObject Sg_MakeHashTableWithComparator(SgObject comparator,
 
 SgObject Sg_HashTableCopy(SgHashTable *src, int mutableP)
 {
-  SgHashTable *dst = SG_NEW(SgHashTable);
-  SG_SET_CLASS(dst, SG_CLASS_HASHTABLE);
-  Sg_HashCoreCopy(SG_HASHTABLE_CORE(dst), SG_HASHTABLE_CORE(src));
-  dst->type = src->type;
-  if (!mutableP) {
-    dst->immutablep = TRUE;
-  }
-  return SG_OBJ(dst);
+  return SG_HASHTABLE_OPTABLE(src)->copy(src, mutableP);
 }
 
 SgObject Sg_HashTableRef(SgHashTable *table, SgObject key, SgObject fallback)
 {
-  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-				     (intptr_t)key, SG_DICT_GET, 0);
-  if (!e) return fallback;
-  else return SG_HASH_ENTRY_VALUE(e);
+  return SG_HASHTABLE_OPTABLE(table)->ref(table, key, fallback, 0);
 }
 
 SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value,
 			 int flags)
 {
-  SgHashEntry *e;
-
   if (SG_IMMUTABLE_HASHTABLE_P(table)) {
     Sg_Error(UC("attemp to modify immutable hashtable"));
     return SG_UNDEF;
   }
-
-  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table), (intptr_t)key,
-			(flags & SG_HASH_NO_CREATE)
-			? SG_DICT_GET
-			: SG_DICT_CREATE,
-			0);
-  if (!e) return SG_UNBOUND;
-  if (e->value) {
-    if (flags & SG_HASH_NO_OVERWRITE) return SG_HASH_ENTRY_VALUE(e);
-    else {
-      return SG_HASH_ENTRY_SET_VALUE(e, value);
-    }
-  } else {
-    return SG_HASH_ENTRY_SET_VALUE(e, value);
-  }
+  return SG_HASHTABLE_OPTABLE(table)->set(table, key, value, flags);
 }
 
 SgObject Sg_HashTableDelete(SgHashTable *table, SgObject key)
 {
-  SgHashEntry *e;
-
   if (SG_IMMUTABLE_HASHTABLE_P(table)) {
     Sg_Error(UC("attemp to modify immutable hashtable"));
     return SG_UNDEF;
   }
-
-  e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(table),
-			(intptr_t)key,
-			SG_DICT_DELETE,
-			0);
-  if (e && e->value) return SG_HASH_ENTRY_VALUE(e);
-  else return SG_UNBOUND;
+  return SG_HASHTABLE_OPTABLE(table)->remove(table, key);
 }
 
 SgObject Sg_HashTableAddAll(SgHashTable *dst, SgHashTable *src)
@@ -954,8 +1010,8 @@ SgObject Sg_HashTableKeys(SgHashTable *table)
   SgHashIter itr;
   SgHashEntry *e;
   SgObject h = SG_NIL, t = SG_NIL;
-  Sg_HashIterInit(SG_HASHTABLE_CORE(table), &itr);
-  while ((e = Sg_HashIterNext(&itr)) != NULL) {
+  Sg_HashIterInit(table, &itr);
+  while ((e = Sg_HashIterNext(&itr, NULL, NULL)) != NULL) {
     SG_APPEND1(h, t, SG_HASH_ENTRY_KEY(e));
   }
   return h;
@@ -966,8 +1022,8 @@ SgObject Sg_HashTableValues(SgHashTable *table)
   SgHashIter itr;
   SgHashEntry *e;
   SgObject h = SG_NIL, t = SG_NIL;
-  Sg_HashIterInit(SG_HASHTABLE_CORE(table), &itr);
-  while ((e = Sg_HashIterNext(&itr)) != NULL) {
+  Sg_HashIterInit(table, &itr);
+  while ((e = Sg_HashIterNext(&itr, NULL, NULL)) != NULL) {
     SG_APPEND1(h, t, SG_HASH_ENTRY_VALUE(e));
   }
   return h;

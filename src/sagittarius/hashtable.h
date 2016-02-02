@@ -1,6 +1,6 @@
 /* hashtable.h                                     -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -68,15 +68,39 @@ struct SgHashCoreRec
   void   *data; 
 };
 
+typedef SgDictEntry SgHashEntry;
 struct SgHashIterRec
 {
   SgHashCore *core;
   int         bucket;
   void       *next;
+  SgObject    table;  /* need for weak hashtable */
+  /* Iterator itself should have next operation */
+  SgHashEntry *(*iter_next)(SgHashIter *, 
+			    SgObject *key /* out */, 
+			    SgObject *val /* out */);
 };
 
 SG_CLASS_DECL(Sg_HashTableClass);
 #define SG_CLASS_HASHTABLE (&Sg_HashTableClass)
+
+/* 
+   To make hashtable and weak-hashtable have the same interface.
+*/
+typedef struct SgHashOpTableRec
+{
+  /* table key fallback */
+  SgObject (*ref)(SgObject, SgObject, SgObject, int);
+  /* table key value flags */
+  SgObject (*set)(SgObject, SgObject, SgObject, int);
+  /* we can't use delete since it's keyword on C++... */
+  /* table key */
+  SgObject (*remove)(SgObject, SgObject);
+  /* table mutableP */
+  SgObject (*copy)(SgObject, int);
+  /* we also need this */
+  void     (*init_iter)(SgObject, SgHashIter *);
+} SgHashOpTable;
 
 struct SgHashTableRec
 {
@@ -84,10 +108,8 @@ struct SgHashTableRec
   char       immutablep;
   SgHashType type;
   SgHashCore core;
+  SgHashOpTable *opTable;
 };
-
-typedef SgDictEntry SgHashEntry;
-
 
 #define SG_HASH_NO_OVERWRITE SG_DICT_NO_OVERWRITE
 #define SG_HASH_NO_CREATE    SG_DICT_NO_CREATE
@@ -98,6 +120,8 @@ typedef SgDictEntry SgHashEntry;
 #define SG_HASH_ENTRY_KEY      SG_DICT_ENTRY_KEY
 #define SG_HASH_ENTRY_VALUE    SG_DICT_ENTRY_VALUE
 #define SG_HASH_ENTRY_SET_VALUE SG_DICT_ENTRY_SET_VALUE
+#define SG_HASHTABLE_OPTABLE(obj) SG_HASHTABLE(obj)->opTable
+#define SG_HASHTABLE_TYPE(obj)    SG_HASHTABLE(obj)->type
 
 
 #define SG_IMMUTABLE_HASHTABLE_P(obj)					\
@@ -130,9 +154,11 @@ SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
 SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, int k);
 
 /* iterator */
-SG_EXTERN void Sg_HashIterInit(SgHashCore *table,
-			       SgHashIter *itr);
-SG_EXTERN SgHashEntry* Sg_HashIterNext(SgHashIter *itr);
+SG_EXTERN void Sg_HashIterInit(SgObject table, SgHashIter *itr);
+/* this return entry itself for convenience */
+SG_EXTERN SgHashEntry* Sg_HashIterNext(SgHashIter *itr,
+				       SgObject *key /* out */,
+				       SgObject *val /* out */);
 
 /* hasher */
 SG_EXTERN uint32_t Sg_EqHash(SgObject obj, uint32_t bound);

@@ -1,6 +1,6 @@
 /* weak.h                                          -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -84,16 +84,15 @@ typedef struct SgWeakHashTableRec
   unsigned int goneEntries;
 } SgWeakHashTable;
 
-typedef struct SgWeakHashIterRec
-{
-  SgHashIter iter;
-  SgWeakHashTable *table;
-} SgWeakHashIter;
+typedef SgHashIter SgWeakHashIter;
 
 #define SG_WEAK_HASHTABLE(obj)      ((SgWeakHashTable*)obj)
 #define SG_WEAK_HASHTABLE_P(obj)    SG_XTYPEP(obj, SG_CLASS_WEAK_HASHTABLE)
 #define SG_WEAK_HASHTABLE_CORE(obj) (&SG_HASHTABLE(obj)->core)
 #define SG_WEAK_HASHTABLE_TYPE(obj) (SG_HASHTABLE(obj)->type)
+#define SG_WEAK_HASHTABLE_WEAKNESS(obj) (SG_WEAK_HASHTABLE(obj)->weakness)
+#define SG_WEAK_HASHTABLE_DEFAULT_VALUE(obj) \
+  (SG_WEAK_HASHTABLE(obj)->defaultValue)
 
 SG_CDECL_BEGIN
 
@@ -113,6 +112,11 @@ SG_EXTERN SgObject Sg_MakeWeakHashTableSimple(SgHashType type,
 					      SgWeakness weakness,
 					      int initSize,
 					      SgObject defaultValue);
+SG_EXTERN SgObject Sg_MakeWeakHashTable(SgObject hasher,
+					SgObject compare,
+					SgWeakness weakness,
+					int initSize,
+					SgObject defaultValue);
 SG_EXTERN SgObject Sg_WeakHashTableCopy(SgWeakHashTable *table);
 SG_EXTERN SgObject Sg_WeakHashTableRef(SgWeakHashTable *table,
 				       SgObject key, SgObject fallback);
