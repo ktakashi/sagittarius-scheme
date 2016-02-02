@@ -154,9 +154,8 @@ SG_EXTERN int Sg_HashCoreTypeToProcs(SgHashType type, SgHashProc **hasher,
 				     SgHashCompareProc **compare);
 SG_EXTERN SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 					 SgDictOp op, int flags);
-SG_EXTERN void Sg_HashCoreCopy(SgHashCore *dst,
-			       const SgHashCore *src);
-
+/* core operation to copy hashtable structure */
+SG_EXTERN void Sg_HashCoreCopy(SgHashTable *dst, const SgHashTable *src);
 SG_EXTERN void Sg_HashCoreClear(SgHashCore *ht, int k);
 
 /* iterator */

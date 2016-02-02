@@ -584,8 +584,11 @@ SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
   return (SgHashEntry*)p(table, key, op, flags);
 }
 
-void Sg_HashCoreCopy(SgHashCore *dst, const SgHashCore *src)
+void Sg_HashCoreCopy(SgHashTable *dstT, const SgHashTable *srcT)
 {
+  SgHashCore *dst = SG_HASHTABLE_CORE(dstT);
+  const SgHashCore *src = SG_HASHTABLE_CORE(srcT);
+
   Entry **b = SG_NEW_ARRAY(Entry*, src->bucketCount);
   int i;
   Entry *e, *p, *s;
@@ -597,7 +600,8 @@ void Sg_HashCoreCopy(SgHashCore *dst, const SgHashCore *src)
     while (s) {
       e = SG_NEW(Entry);
       e->key = s->key;
-      e->value = s->value;
+      SG_HASHTABLE_ENTRY_SET(dstT, (SgHashEntry *)e, SG_OBJ(s->value), 0);
+      /* e->value = s->value; */
       e->next = NULL;
       if (p) p->next = e;
       else b[i] = e;
@@ -839,7 +843,7 @@ static SgObject hashtable_delete(SgObject table, SgObject key)
 static SgObject hashtable_copy(SgObject src, int mutableP)
 {
   SgHashTable *dst = make_hashtable();
-  Sg_HashCoreCopy(SG_HASHTABLE_CORE(dst), SG_HASHTABLE_CORE(src));
+  Sg_HashCoreCopy(dst, src);
   dst->type = SG_HASHTABLE_TYPE(src);
   if (!mutableP) {
     dst->immutablep = TRUE;

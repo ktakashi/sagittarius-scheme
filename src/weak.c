@@ -325,6 +325,14 @@ static void value_finalizer(SgObject z, void *data)
 static SgObject weak_hashtable_set(SgObject table,
 				   SgHashEntry *e, SgObject value, int flags)
 { 
+  if (SG_WEAK_BOXP(value)) {
+    if (Sg_WeakBoxEmptyP(value)) {
+      value = SG_WEAK_HASHTABLE_DEFAULT_VALUE(table);
+    } else {
+      value = Sg_WeakBoxRef(value);
+    }
+  }
+
   if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_VALUE) {
     if (e->value && (flags & SG_HASH_NO_OVERWRITE)) {
       void *val = Sg_WeakBoxRef((SgWeakBox *)e->value);
@@ -422,11 +430,7 @@ static SgObject weak_hashtable_copy(SgObject table, int mutableP)
   wh->compare = src->compare;
   /* FIXME maybe we should initialise the core? */
   SG_WEAK_HASHTABLE_CORE(wh)->create_entry = weak_hashtable_create_entry;
-  /* FIXME this is probably wrong since it just copies entries.
-           the weak boxes would be shared between tables so if
-	   one table is modified then other would also be modified
-   */
-  Sg_HashCoreCopy(SG_WEAK_HASHTABLE_CORE(wh), SG_WEAK_HASHTABLE_CORE(src));
+  Sg_HashCoreCopy(SG_HASHTABLE(wh), SG_HASHTABLE(src));
   /* the data must be copied one */
   SG_WEAK_HASHTABLE_CORE(wh)->data = wh;
   SG_HASHTABLE_TYPE(wh) = SG_HASHTABLE_TYPE(src);
