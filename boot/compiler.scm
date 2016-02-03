@@ -1098,7 +1098,7 @@
     (make-p1env lib bottom-frame)))
 
 ;; pass1 utilities
-(define (global-eq? var sym p1env . maybe-library)
+(define (global-eq? var sym p1env)
   (and (variable? var)
        (let ((v (p1env-lookup p1env var LEXICAL)))
 	 (and (identifier? v)
@@ -1106,12 +1106,12 @@
 	      ;;(eq? (id-name v) sym)
 	      (cond ((find-binding (id-library v) (id-name v) #f)
 		     => (lambda (gloc)
+			  ;; Do *right* way.
+			  (eq? (find-binding '(sagittarius compiler) sym #f)
+			       gloc)
+			  #;
 			  (let ((s (gloc-ref gloc)))
 			    (and (syntax? s)
-				 (or (null? maybe-library)
-				     (and-let* ((lib (gloc-library gloc)))
-				       (eq? (library-name lib) 
-					    (car maybe-library))))
 				 (eq? (syntax-name s) sym)))))
 		    (else #f))))))
 
@@ -1455,15 +1455,14 @@
     (make-macro-transformer name transformer p1env (p1env-library p1env))))
 
 ;; syntax-case
-;; I actually don't want to do this but since I didn't have any idea  to 
-;; implement it without any specific object,  I've decided to make it like this.
-;; NB:
-;; SyntaxCase object contains pattern match result and template infomation.
-;; SyntaxObject retrieve SyntaxCase information from macro-envionment.
+;; `compile-syntax-case` is defined in boot/lib/macro.scm
+;; TODO we want to reduce the size of compiled cache. because identifiers
+;;      has compile time environment, the size of cache would be gigantic.
+;; NB: this is general issue for macro.
 (define-pass1-syntax (syntax-case form p1env) :null
   (smatch form
     ((- expr (literal ___) rule ___)
-     ;; compile-syntax-case returns subr.
+     ;; compile-syntax-case returns match-syntax-case procedure.
      (receive (func lites patvars processes)
 	 (compile-syntax-case (p1env-exp-name p1env)
 			      expr literal rule
@@ -1477,9 +1476,7 @@
 		,(pass1 expr p1env)
 		,@(imap (lambda (expr&env)
 			  (pass1 (car expr&env) (cdr expr&env)))
-			processes)))
-       ;;(pass1 newexpr (p1env-swap-frame p1env newframe))))
-       ))
+			processes)))))
     (- (syntax-error "malformed syntax-case" form))))
 
 (define-pass1-syntax (syntax form p1env) :null
@@ -3275,9 +3272,9 @@
 					 ;; this can see from meta-env as well
 					 (p1env-extend! p1env frame))))
 		      ;; 11.18 binding constructs for syntactic keywords
-		      ((or (and (global-eq? head 'let-syntax p1env '|(core)|)
+		      ((or (and (global-eq? head 'let-syntax p1env)
 				pass1/compile-let-syntax)
-			   (and (global-eq? head 'letrec-syntax p1env '|(core)|)
+			   (and (global-eq? head 'letrec-syntax p1env)
 				pass1/compile-letrec-syntax))
 		       => (lambda (compile)
 			    (receive (new body) (compile (caar exprs) env)
