@@ -55,7 +55,7 @@
 	    hashtable-sum hashtable-map->lset hashtable-find
 	    hashtable-empty? hashtable-pop! hashtable-inc! hashtable-dec!
 	    hashtable-equivalence-function hashtable-hash-function 
-	    hashtable-weakness
+	    (rename (srfi:hashtable-weakness hashtable-weakness))
 	    hashtable-mutable?
 	    hash-salt equal-hash string-hash string-ci-hash symbol-hash)
     (import (rnrs)
@@ -242,6 +242,14 @@
   (hashtable-update! ht key (lambda (v) (+ v num)) 0))
 (define (hashtable-dec! ht key :optional (num 1))
   (hashtable-update! ht key (lambda (v) (- v num)) 0))
+
+(define (srfi:hashtable-weakness ht)
+  (case (hashtable-weakness ht)
+    ((key) 'weak-key)
+    ((value) 'weak-value)
+    ((both) 'weak-key-and-value)
+    ;; must be #f
+    (else #f)))
 
 (define *hash-salt*
   ;; keep it fixnum range

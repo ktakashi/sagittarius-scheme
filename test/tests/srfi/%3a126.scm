@@ -264,6 +264,14 @@
   (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-key))))
   (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-value))))
   (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-key-and-value))))
+
+  (test-equal 'weak-key
+	      (hashtable-weakness (make-eq-hashtable #f (weakness weak-key))))
+  (test-equal 'weak-value
+	      (hashtable-weakness (make-eq-hashtable #f (weakness weak-value))))
+  (test-equal 'weak-key-and-value
+	      (hashtable-weakness (make-eq-hashtable #f (weakness weak-key-and-value))))
+
   (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-key))))
   (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-value))))
   (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-key-and-value))))
