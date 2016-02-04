@@ -60,7 +60,8 @@
     (import (rnrs)
 	    (sagittarius)
 	    (core base)
-	    (srfi :27))
+	    ;; we can't use srfi-27, it returns the same value each time
+	    (math))
 
 (define srfi:make-hashtable
   (case-lambda
@@ -225,7 +226,8 @@
   (hashtable-update! ht key (lambda (v) (- v num)) 0))
 
 (define *hash-salt*
-  (let ((salt (random-integer (greatest-fixnum)))
+  ;; keep it fixnum range
+  (let ((salt (bytevector->uinteger (read-sys-random 30)))
 	(seed (getenv "SRFI_126_HASH_SEED")))
     (if (or (not seed) (string=? seed ""))
         salt
