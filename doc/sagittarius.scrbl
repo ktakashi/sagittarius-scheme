@@ -198,12 +198,11 @@ Concatenate given parameter with platform dependent path separator.
 
 @subsubsection{Hashtables}
 
-@define[Function]{@name{make-equal-hashtable} @args{:optional k}}
-@define[Function]{@name{make-string-hashtable} @args{:optional k}}
+@define[Function]{@name{make-equal-hashtable} @args{:optional k weakness}}
+@define[Function]{@name{make-string-hashtable} @args{:optional k weakness}}
 @desc{Creates a hashtable. The same as @code{make-eq-hashtable} and
-@code{make-eqv-hashtable}. It uses @code{equal?} or @code{string=?} as comparing
-procedure, respectively.
-}
+@code{make-eqv-hashtable}. It uses @code{equal?} or @code{string=?} as
+comparing procedure, respectively.}
 
 @define[Function]{@name{hashtable-values} @args{hashtable}}
 @desc{Returns all @var{hashtable}'s values. This procedure is for consistancy of
@@ -222,6 +221,11 @@ are implemented with these procedures.
 values are @code{eq}, @code{eqv}, @code{equal}, @code{string} and
 @code{general}.
 }
+
+@define[Function]{@name{hashtable-weakness} @args{hashtable}} 
+@desc{Returns @var{hashtable}'s hash weakness as a symbol if the given
+@var{hashtable} is weak hashtable, otherwise #f. The possible return values are
+@code{key}, @code{value} and @code{both}.  }
 
 @subsubsection{I/O}
 

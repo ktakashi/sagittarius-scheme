@@ -2,45 +2,63 @@
 
 @subsection[:tag "rnrs.hashtables.6"]{Hashtables}
 
-The @code{(rnrs hashtables (6))}library provides a set of operations on hashtables.
-A @var{hashtable} is a data structure that associates keys with values. Any object
-can be used as a key, provided a @var{hash function} and a suitable
-@var{equivalence function} is available. A hash function is a procedure that maps
-keys to exact integer objects. It is the programmer's responsibility to ensure 
-that the hash function is compatible with the equivalence function, which is a
-procedure that accepts two keys and returns true if they are equivalent and #f
-otherwise. Standard hashtables for arbitrary objects based on the @code{eq?} and
-@code{eqv?} predicates are provided. Also, hash functions for arbitrary objects,
-strings, and symbols are provided.
+The @code{(rnrs hashtables (6))}library provides a set of operations on
+hashtables. A @var{hashtable} is a data structure that associates keys with
+values. Any object can be used as a key, provided a @var{hash function} and a
+suitable @var{equivalence function} is available. A hash function is a
+procedure that maps keys to exact integer objects. It is the programmer's
+responsibility to ensure that the hash function is compatible with the
+equivalence function, which is a procedure that accepts two keys and returns
+true if they are equivalent and #f otherwise. Standard hashtables for arbitrary
+objects based on the @code{eq?} and @code{eqv?} predicates are provided. Also,
+hash functions for arbitrary objects, strings, and symbols are provided.
 
 This section uses the @var{hashtable} parameter name for arguments that must be
-hashtables, and the @var{key} parameter name for arguments that must be hashtable
-keys.
+hashtables, and the @var{key} parameter name for arguments that must be
+hashtable keys.
 
 @define[Library]{@name{(rnrs hashtable (6))}}
 @desc{[R6RS] This library exports a set of operations on hashtables.}
 
 @subsubsection{Constructors}
 
-@define[Function]{@name{make-eq-hashtable} @args{:optional k}}
-@define[Function]{@name{make-eqv-hashtable} @args{:optional k}}
-@desc{[R6RS] Returns a newly allocated mutable hashtable that accepts arbitrary
-objects as keys, and compares those keys with @code{eq?} (@code{make-eq-hashtable})
-or @code{eqv?} (@code{make-eqv-hashtable}). If an argument is given, the initial
-capacity of the hashtable is set to approximately @var{k} elements.
+@define[Function]{@name{make-eq-hashtable} @args{:optional k weakness}}
+@define[Function]{@name{make-eqv-hashtable} @args{:optional k weakness}}
+@desc{
+
+[R6RS+] Returns a newly allocated mutable hashtable that accepts arbitrary
+objects as keys, and compares those keys with @code{eq?}
+(@code{make-eq-hashtable}) or @code{eqv?} (@code{make-eqv-hashtable}).
+
+If optional argument @var{k} is given, it must be exact non-negative integer or
+@code{#f}. If it's @code{#f}, then the procedure picks up default initial
+capacity, otherwise the initial capacity of the hashtable is set to
+approximately @var{k} elements.
+
+If optional argument @var{weakness} is given, then it must be one of the
+symbols @code{key}, @code{value} or @code{both}, or @code{#f}. If the value is
+one of the symbols, then the procedure creates weak hashtable of given symbol's
+weakness. If the symbol is @code{key}, then entries whose keys are refered only
+from this hashtable might be removed when garbage collection is
+occurred. @code{value} is for entry values. @code{both} is for both.
+
 }
 
-@define[Function]{@name{make-hashtable} @args{hash-function equiv :optional k}}
+@define[Function]{@name{make-hashtable}
+ @args{hash-function equiv :optional k weakness}}
 @desc{[R6RS] @var{Hash-function} and @var{equiv} must be procedures. 
 
-var{Hash-function} should accept a key as an argument and should return a
-non-negative exact integer object. @var{Equiv} should accept two keys as arguments
-and return a single value.
+@var{Hash-function} should accept a key as an argument and should return a
+non-negative exact integer object. @var{Equiv} should accept two keys as
+arguments and return a single value.
 
 The @code{make-hashtable} procedure returns a newly allocated mutable hashtable
-using @var{hash-function} as the hash function and @var{equiv} as the equivalence
-function used to compare keys. If a third argument is given, the initial capacity
-of the hashtable is set to approximately @var{k} elements.
+using @var{hash-function} as the hash function and @var{equiv} as the
+equivalence function used to compare keys. 
+
+If optional argument @var{k} and @var{weakness} are the same as
+@code{make-eq-hashtable} and @code{make-eqv-hashtable}.
+
 }
 
 @subsubsection{Procedures}
@@ -74,34 +92,39 @@ returns unspecified values.
 }
 
 @define[Function]{@name{hashtable-contains?} @args{hashtable key}}
-@desc{[R6RS] Returns #t if @var{hashtable} contains an association for @var{key},
-#f otherwise.
+@desc{
 
-Note: On Sagittarius, @code{hashtable-ref} and @code{hashtable-contains?} do not
-make any difference fot the performance.
+[R6RS] Returns #t if @var{hashtable} contains an association for @var{key}, #f
+otherwise.
+
+Note: On Sagittarius, @code{hashtable-ref} and @code{hashtable-contains?} do
+not make any difference fot the performance.
+
 }
 
 @define[Function]{@name{hashtable-update!} @args{hashtable key proc default}}
-@desc{[R6RS] @var{Proc} should accept one argument, should return a single value.
+desc{[R6RS] @var{Proc} should accept one argument, should return a single
+value.
 
 The @code{hashtable-update!} procedure applies @var{proc} to the value in
-@var{hashtable} associated with @var{key}, or to @var{default} if @var{hashtable}
-does not contain an association for @var{key}. The @var{hashtable} is then changed
-to associate @var{key} with the value returned by @var{proc}.
+@var{hashtable} associated with @var{key}, or to @var{default} if
+@var{hashtable} does not contain an association for @var{key}. The
+@var{hashtable} is then changed to associate @var{key} with the value returned
+by @var{proc}.
 }
 
 @define[Function]{@name{hashtable-copy} @args{hashtable :optional mutable}}
-@desc{[R6RS] Returns a copy of @var{hashtable}. If the @var{mutable} argument is
-provided and is true, the returned hashtable is mutable; otherwise it is immutable.
+@desc{[R6RS] Returns a copy of @var{hashtable}. If the @var{mutable} argument
+is provided and is true, the returned hashtable is mutable; otherwise it is
+immutable.
 }
 
 @define[Function]{@name{hashtable-clear} @args{hashtable :optional k}}
-@desc{[R6RS] Removes all associations from @var{hashtable} and returns unspecified
-values.
+@desc{[R6RS] Removes all associations from @var{hashtable} and returns
+unspecified values.
 
-If a second argument is given, the current capacity of the hashtable is reset to
-approximately @var{k} elements.
-}
+If a second argument is given, the current capacity of the hashtable is reset
+to approximately @var{k} elements.  }
 
 @define[Function]{@name{hashtable-keys} @args{hashtable}}
 @define[Function]{@name{hashtable-entries} @args{hashtable}}

@@ -505,16 +505,14 @@
   ;; hashtable
   ;; FIXME this is also in null.stub but we don't want to make it extern...
   (define-cfn retrieve-weakness (weakness) ::SgWeakness :static
-    (cond ((SG_EQ weakness 'weak-key)        (return SG_WEAK_KEY))
-	  ((SG_EQ weakness 'weak-value)      (return SG_WEAK_VALUE))
-	  ((SG_EQ weakness 'weak-key-and-value)  (return SG_WEAK_BOTH))
+    (cond ((SG_EQ weakness 'key)   (return SG_WEAK_KEY))
+	  ((SG_EQ weakness 'value) (return SG_WEAK_VALUE))
+	  ((SG_EQ weakness 'both)  (return SG_WEAK_BOTH))
 	  ;; NB: we don't support ephemerals
-	  (else (assertion-violation 'who 
-		  "weakness must be one of 'weak-key, 'weak-value or \
-                   'weak-key-and-value" 
-		  weakness)
+	  (else (assertion-violation 'make-hashtable
+		  "weakness must be one of 'key, 'value or 'both" weakness)
 		;; dummy
-	   (return -1))))
+		(return -1))))
   (define-c-proc make-equal-hashtable (:optional (k? #f) (weakness #f))
     :no-side-effect
     (let ((k::long -1))
@@ -1418,7 +1416,7 @@
   ;; TODO ugly copy paste with almost the same...
   (define-cise-stmt %make-weak-hashtable
     ((_ who type weakness init-size default)
-     `(let ((w::SgWeakness SG_WEAK_BOTH)
+     `(let ((w::SgWeakness (retrieve-weakness ,weakness))
 	    (v SG_UNDEF)
 	    (k::long -1))
 	(cond ((SG_INTP ,init-size) (set! k (SG_INT_VALUE ,init-size)))
@@ -1426,13 +1424,6 @@
 	      (else 
 	     (wrong-type-of-argument-violation 'who
 					       "#f or fixnum" ,init-size)))
-	(cond ((SG_EQ ,weakness 'key)   (set! w SG_WEAK_KEY))
-	      ((SG_EQ ,weakness 'value) (set! w SG_WEAK_VALUE))
-	      ((SG_EQ ,weakness 'both)  (set! w SG_WEAK_BOTH))
-	      (else (assertion-violation 
-		     'who 
-		     "weakness must be one of 'key, 'value or 'both"
-		     (SG_LIST1 ,weakness))))
 	(unless (SG_UNBOUNDP ,default) (set! v ,default))
 	(result (Sg_MakeWeakHashTableSimple ,type w k v)))))
 
@@ -1465,7 +1456,7 @@
 			      default)
     :no-side-effect
 
-    (let ((w::SgWeakness SG_WEAK_BOTH)
+    (let ((w::SgWeakness (retrieve-weakness weakness))
 	  (v SG_UNDEF)
 	  (k::long -1))
       (cond ((SG_INTP init-size) (set! k (SG_INT_VALUE init-size)))
@@ -1473,12 +1464,6 @@
 	    (else 
 	     (wrong-type-of-argument-violation 'make-weak-hashtable
 					       "#f or fixnum" init-size)))
-      (cond ((SG_EQ weakness 'key)   (set! w SG_WEAK_KEY))
-	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
-	    ((SG_EQ weakness 'both)  (set! w SG_WEAK_BOTH))
-	    (else (assertion-violation 'make-weak-hashtable
-		   "weakness must be one of 'key, 'value or 'both"
-		   (SG_LIST1 weakness))))
       (unless (SG_UNBOUNDP default) (set! v default))
       (result (Sg_MakeWeakHashTable hasher equiv w k v))))
 

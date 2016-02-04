@@ -29,8 +29,9 @@
 ;;;  
 
 (library (srfi :126 hashtables)
-    (export make-eq-hashtable make-eqv-hashtable 
-	    (rename (srfi:make-hashtable make-hashtable))
+    (export (rename (srfi:make-eq-hashtable make-eq-hashtable)
+		    (srfi:make-eqv-hashtable make-eqv-hashtable)
+		    (srfi:make-hashtable make-hashtable))
 	    alist->eq-hashtable alist->eqv-hashtable alist->hashtable
 	    weakness
 	    hashtable?
@@ -63,6 +64,27 @@
 	    ;; we can't use srfi-27, it returns the same value each time
 	    (math))
 
+;; converts SRFI-126 weakness symbols to builtin symbols
+(define (->weak-key w)
+  (case w
+    ((weak-key) 'key)
+    ((weak-value) 'value)
+    ((weak-key-and-value) 'both)
+    ((#f) #f) ;; no weakness
+    (else 'unsupported)))
+
+(define srfi:make-eq-hashtable
+  (case-lambda
+   (() (make-eq-hashtable #f #f))
+   ((k) (make-eq-hashtable k #f))
+   ((k w) (make-eq-hashtable k (->weak-key w)))))
+
+(define srfi:make-eqv-hashtable
+  (case-lambda
+   (() (make-eqv-hashtable #f #f))
+   ((k) (make-eqv-hashtable k #f))
+   ((k w) (make-eqv-hashtable k (->weak-key w)))))
+
 (define srfi:make-hashtable
   (case-lambda
    ((hash equiv) (srfi:make-hashtable hash equiv #f #f))
@@ -75,21 +97,22 @@
 	     (assertion-violation 'make-hashtable
 				  "procedure or pair of procedure is required"
 				  hash))))
-    (if hash
-	(make-hashtable (->hash-function hash) equiv capacity weakness)
-	(cond ((eq? equiv eq?) (make-eq-hashtable capacity weakness))
-	      ((eq? equiv eqv?) (make-eqv-hashtable capacity weakness))
-	      (else 
-	       (assertion-violation 'make-hashtable
-				    "equiv must be eq? or eqv? for #f hash"
-				    equiv)))))))
+    (let ((weakness (->weak-key weakness)))
+      (if hash
+	  (make-hashtable (->hash-function hash) equiv capacity weakness)
+	  (cond ((eq? equiv eq?) (make-eq-hashtable capacity weakness))
+		((eq? equiv eqv?) (make-eqv-hashtable capacity weakness))
+		(else 
+		 (assertion-violation 'make-hashtable
+				      "equiv must be eq? or eqv? for #f hash"
+				      equiv))))))))
 
 (define alist->eq-hashtable
   (case-lambda
    ((alist) (alist->eq-hashtable (length alist) #f alist))
    ((capacity alist) (alist->eq-hashtable capacity #f alist))
    ((capacity weakness alist) 
-    (let ((ht (make-eq-hashtable capacity weakness)))
+    (let ((ht (make-eq-hashtable capacity (->weak-key weakness))))
       (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v))) alist)
       ht))))
 
@@ -98,7 +121,7 @@
    ((alist) (alist->eqv-hashtable (length alist) #f alist))
    ((capacity alist) (alist->eqv-hashtable capacity #f alist))
    ((capacity weakness alist) 
-    (let ((ht (make-eqv-hashtable capacity weakness)))
+    (let ((ht (make-eqv-hashtable capacity (->weak-key weakness))))
       (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v))) alist)
       ht))))
 
@@ -116,7 +139,7 @@
     (syntax-case x ()
       ((_ s)
        (memq (syntax->datum #'s) '(weak-key weak-value weak-key-and-value))
-       #'s)
+       #''s)
       ;; ok we don't support the rest
       ((_ s) (syntax-violation 'weakness #'s "not supported")))))
 

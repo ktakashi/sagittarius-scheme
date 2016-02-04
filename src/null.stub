@@ -3399,16 +3399,14 @@
   ;; 13 Hashtables
   ;; 13.1 constructors
   (define-cfn retrieve-weakness (weakness) ::SgWeakness :static
-    (cond ((SG_EQ weakness 'weak-key)        (return SG_WEAK_KEY))
-	  ((SG_EQ weakness 'weak-value)      (return SG_WEAK_VALUE))
-	  ((SG_EQ weakness 'weak-key-and-value)  (return SG_WEAK_BOTH))
+    (cond ((SG_EQ weakness 'key)   (return SG_WEAK_KEY))
+	  ((SG_EQ weakness 'value) (return SG_WEAK_VALUE))
+	  ((SG_EQ weakness 'both)  (return SG_WEAK_BOTH))
 	  ;; NB: we don't support ephemerals
-	  (else (assertion-violation 'who 
-		  "weakness must be one of 'weak-key, 'weak-value or \
-                   'weak-key-and-value" 
-		  weakness)
+	  (else (assertion-violation 'make-hashtable
+		  "weakness must be one of 'key, 'value or 'both" weakness)
 		;; dummy
-	   (return -1))))
+		(return -1))))
 
   (define-c-proc make-eq-hashtable (:optional (k? #f) (weakness #f))
     :no-side-effect

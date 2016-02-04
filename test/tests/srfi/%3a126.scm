@@ -252,4 +252,28 @@
   (test-assert (= (symbol-hash (string->symbol "foo"))
                   (symbol-hash (string->symbol "foo")))))
 
+;; extra tests for weakness
+(define r1 (lambda (v) 1))
+(test-group "weak"
+  (test-equal 'weak-key (weakness weak-key))
+  (test-equal 'weak-value (weakness weak-value))
+  (test-equal 'weak-key-and-value (weakness weak-key-and-value))
+  ;; it raises error on macro expansion time
+  (test-error (eval '(weakness unknown) (environment '(srfi :126))))
+
+  (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-key))))
+  (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-value))))
+  (test-assert (hashtable? (make-eq-hashtable #f (weakness weak-key-and-value))))
+  (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-key))))
+  (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-value))))
+  (test-assert (hashtable? (make-eqv-hashtable #f (weakness weak-key-and-value))))
+  (test-assert (hashtable? (make-hashtable r1 eq? #f (weakness weak-key))))
+  (test-assert (hashtable? (make-hashtable r1 eq? #f (weakness weak-value))))
+  (test-assert (hashtable? (make-hashtable r1 eq? #f (weakness weak-key-and-value))))
+
+  (test-assert (hashtable? (alist->eq-hashtable #f (weakness weak-key) '())))
+  (test-assert (hashtable? (alist->eqv-hashtable #f (weakness weak-key) '())))
+)
+  
+
 (test-end "SRFI-126")

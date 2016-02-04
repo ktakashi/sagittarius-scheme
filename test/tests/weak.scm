@@ -103,29 +103,30 @@
 (weak-hashtable-tests (make-weak-hashtable r1 eq? :weakness 'value) 'value)
 (weak-hashtable-tests (make-weak-hashtable r1 eq? :weakness 'both) 'both)
 
-;; SRFI-126 interface
-(test-assert (weak-hashtable? (make-eq-hashtable 10 'weak-key)))
-(test-assert (weak-hashtable? (make-eq-hashtable 10 'weak-value)))
-(test-assert (weak-hashtable? (make-eq-hashtable 10 'weak-key-and-value)))
+;; SRFI-126 interface (builtin uses different name matches with 
+;; builtin weak-hashtable procedures)
+(test-assert (weak-hashtable? (make-eq-hashtable 10 'key)))
+(test-assert (weak-hashtable? (make-eq-hashtable 10 'value)))
+(test-assert (weak-hashtable? (make-eq-hashtable 10 'both)))
 ;; weak-hashtable is now subclass of hashtable
-(test-assert (hashtable? (make-eq-hashtable 10 'weak-key)))
+(test-assert (hashtable? (make-eq-hashtable 10 'key)))
 (test-error  (make-eq-hashtable 10 'unknown))
 
-(test-assert (weak-hashtable? (make-eqv-hashtable 10 'weak-key)))
-(test-assert (weak-hashtable? (make-eqv-hashtable 10 'weak-value)))
-(test-assert (weak-hashtable? (make-eqv-hashtable 10 'weak-key-and-value)))
+(test-assert (weak-hashtable? (make-eqv-hashtable 10 'key)))
+(test-assert (weak-hashtable? (make-eqv-hashtable 10 'value)))
+(test-assert (weak-hashtable? (make-eqv-hashtable 10 'both)))
 
-(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'weak-key)))
-(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'weak-value)))
-(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'weak-key-and-value)))
+(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'key)))
+(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'value)))
+(test-assert (weak-hashtable? (make-hashtable r1 eq? 10 'both)))
 
 ;; extra
-(test-assert (weak-hashtable? (make-equal-hashtable 10 'weak-key)))
-(test-assert (weak-hashtable? (make-equal-hashtable 10 'weak-value)))
-(test-assert (weak-hashtable? (make-equal-hashtable 10 'weak-key-and-value)))
+(test-assert (weak-hashtable? (make-equal-hashtable 10 'key)))
+(test-assert (weak-hashtable? (make-equal-hashtable 10 'value)))
+(test-assert (weak-hashtable? (make-equal-hashtable 10 'both)))
 
-(test-assert (weak-hashtable? (make-string-hashtable 10 'weak-key)))
-(test-assert (weak-hashtable? (make-string-hashtable 10 'weak-value)))
-(test-assert (weak-hashtable? (make-string-hashtable 10 'weak-key-and-value)))
+(test-assert (weak-hashtable? (make-string-hashtable 10 'key)))
+(test-assert (weak-hashtable? (make-string-hashtable 10 'value)))
+(test-assert (weak-hashtable? (make-string-hashtable 10 'both)))
 
 (test-end)
