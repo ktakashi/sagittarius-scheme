@@ -71,8 +71,6 @@
           (test-eq label equal? (hashtable-equivalence-function table))
           (test-eq label #f (hashtable-weakness table))
           (test-assert label (hashtable-mutable? table))))
-      ;; being confirmed
-      #;
       (let ((table (make-hashtable (cons equal-hash equal-hash) equal?)))
         (let ((hash (hashtable-hash-function table)))
           (test-assert (or (eq? equal-hash hash)

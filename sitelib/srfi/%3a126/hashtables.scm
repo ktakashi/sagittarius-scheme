@@ -69,12 +69,7 @@
    ((hash equiv capacity) (srfi:make-hashtable hash equiv capacity #f))
    ((hash equiv capacity weakness)
     (define (->hash-function hash)
-      (cond ((pair? hash)
-	     (lambda (obj)
-	       (fold-left (lambda (val proc) 
-			    (mod (+ val (proc obj)) (greatest-fixnum)))
-			  0
-			  hash)))
+      (cond ((pair? hash) (car hash))
 	    ((procedure? hash) hash)
 	    (else 
 	     (assertion-violation 'make-hashtable
