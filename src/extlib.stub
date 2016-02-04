@@ -503,26 +503,57 @@
 
 
   ;; hashtable
-  (define-c-proc make-equal-hashtable (:optional (k::<fixnum> 200))
+  ;; FIXME this is also in null.stub but we don't want to make it extern...
+  (define-cfn retrieve-weakness (weakness) ::SgWeakness :static
+    (cond ((SG_EQ weakness 'weak-key)        (return SG_WEAK_KEY))
+	  ((SG_EQ weakness 'weak-value)      (return SG_WEAK_VALUE))
+	  ((SG_EQ weakness 'weak-key-and-value)  (return SG_WEAK_BOTH))
+	  ;; NB: we don't support ephemerals
+	  (else (assertion-violation 'who 
+		  "weakness must be one of 'weak-key, 'weak-value or \
+                   'weak-key-and-value" 
+		  weakness)
+		;; dummy
+	   (return -1))))
+  (define-c-proc make-equal-hashtable (:optional (k? #f) (weakness #f))
     :no-side-effect
-    (when (< k 0) 
-      (wrong-type-of-argument-violation 'make-equal-hashtable 
-					"non negative exact integer"
-					(SG_MAKE_INT k)))
-    (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k)))
+    (let ((k::long -1))
+      (cond ((SG_INTP k?) (set! k (SG_INT_VALUE k?)))
+	    ((SG_FALSEP k?) (set! k 200))
+	    (else 
+	     (wrong-type-of-argument-violation 'make-equal-hashtable
+					       "#f or fixnum" k?)))
+      (when (< k 0) 
+	(wrong-type-of-argument-violation 'make-equal-hashtable 
+					  "non negative exact integer"
+					  (SG_MAKE_INT k)))
+      (if (SG_FALSEP weakness)
+	  (result (Sg_MakeHashTableSimple SG_HASH_EQUAL k))
+	  (let ((w::SgWeakness (retrieve-weakness weakness)))
+	    (result (Sg_MakeWeakHashTableSimple SG_HASH_EQUAL w k SG_UNDEF))))))
 
-  (define-c-proc make-string-hashtable (:optional (k::<fixnum> 200))
+  (define-c-proc make-string-hashtable (:optional (k? #f) (weakness #f))
     :no-side-effect
-    (when (< k 0) 
-      (wrong-type-of-argument-violation 'make-string-hashtable 
-					"non negative exact integer"
-					(SG_MAKE_INT k)))
-    (result (Sg_MakeHashTableSimple SG_HASH_STRING k)))
+    (let ((k::long -1))
+      (cond ((SG_INTP k?) (set! k (SG_INT_VALUE k?)))
+	    ((SG_FALSEP k?) (set! k 200))
+	    (else 
+	     (wrong-type-of-argument-violation 'make-string-hashtable
+					       "#f or fixnum" k?)))
+      (when (< k 0) 
+	(wrong-type-of-argument-violation 'make-string-hashtable 
+					  "non negative exact integer"
+					  (SG_MAKE_INT k)))
+      (if (SG_FALSEP weakness)
+	  (result (Sg_MakeHashTableSimple SG_HASH_STRING k))
+	  (let ((w::SgWeakness (retrieve-weakness weakness)))
+	    (result (Sg_MakeWeakHashTableSimple SG_HASH_STRING w k 
+						SG_UNDEF))))))
 
   (define-c-proc hashtable-keys-list (ht::<hashtable>) :no-side-effect
     Sg_HashTableKeys)
 
-  (define-c-proc  hashtable-values-list (ht::<hashtable>) :no-side-effect
+  (define-c-proc hashtable-values-list (ht::<hashtable>) :no-side-effect
     Sg_HashTableValues)
 
   (define-c-proc hashtable-type (ht::<hashtable>) :no-side-effect
@@ -550,6 +581,16 @@
   ;; just for consistancy
   (define-c-proc hashtable-values (ht::<hashtable>) :no-side-effect
     (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
+
+  (define-c-proc hashtable-weakness (ht::<hashtable>) :no-side-effect
+    (if (SG_WEAK_HASHTABLE_P ht)
+	(let* ((w::SgWeakness (-> (SG_WEAK_HASHTABLE ht) weakness))
+	       (k::int (logand w SG_WEAK_KEY))
+	       (v::int (logand w SG_WEAK_VALUE)))
+	  (cond ((and k v) (result 'both))
+		(k (result 'key))
+		(v (result 'value))))
+	(result #f)))
 
   (define-cise-stmt dict-update!
     ((_ dict searcher xtractor cc set unwrap)
@@ -1378,7 +1419,13 @@
   (define-cise-stmt %make-weak-hashtable
     ((_ who type weakness init-size default)
      `(let ((w::SgWeakness SG_WEAK_BOTH)
-	    (v SG_UNDEF))
+	    (v SG_UNDEF)
+	    (k::long -1))
+	(cond ((SG_INTP ,init-size) (set! k (SG_INT_VALUE ,init-size)))
+	      ((SG_FALSEP ,init-size) (set! k 200))
+	      (else 
+	     (wrong-type-of-argument-violation 'who
+					       "#f or fixnum" ,init-size)))
 	(cond ((SG_EQ ,weakness 'key)   (set! w SG_WEAK_KEY))
 	      ((SG_EQ ,weakness 'value) (set! w SG_WEAK_VALUE))
 	      ((SG_EQ ,weakness 'both)  (set! w SG_WEAK_BOTH))
@@ -1387,38 +1434,45 @@
 		     "weakness must be one of 'key, 'value or 'both"
 		     (SG_LIST1 ,weakness))))
 	(unless (SG_UNBOUNDP ,default) (set! v ,default))
-	(result (Sg_MakeWeakHashTableSimple ,type w ,init-size v)))))
+	(result (Sg_MakeWeakHashTableSimple ,type w k v)))))
 
   (define-c-proc make-weak-eq-hashtable 
-    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (:key (init-size #f) (weakness::<symbol> both) default)
     :no-side-effect
     (%make-weak-hashtable 'make-weak-eq-hashtable
 			  SG_HASH_EQ weakness init-size default))
 
   (define-c-proc make-weak-eqv-hashtable 
-    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (:key (init-size #f) (weakness::<symbol> both) default)
     :no-side-effect
     (%make-weak-hashtable 'make-weak-eqv-hashtable
 			  SG_HASH_EQV weakness init-size default))
   (define-c-proc make-weak-equal-hashtable 
-    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (:key (init-size #f) (weakness::<symbol> both) default)
     :no-side-effect
     (%make-weak-hashtable 'make-weak-equal-hashtable
 			  SG_HASH_EQUAL weakness init-size default))
   (define-c-proc make-weak-string-hashtable 
-    (:key (init-size::<fixnum> 200) (weakness::<symbol> both) default)
+    (:key (init-size #f) (weakness::<symbol> both) default)
     :no-side-effect
     (%make-weak-hashtable 'make-weak-string-hashtable
 			  SG_HASH_STRING weakness init-size default))
 
   (define-c-proc make-weak-hashtable 
     (hasher::<procedure> equiv::<procedure>
-			 :key (init-size::<fixnum> 200)
+			 :key (init-size #f)
 			      (weakness::<symbol> both) 
 			      default)
     :no-side-effect
+
     (let ((w::SgWeakness SG_WEAK_BOTH)
-	  (v SG_UNDEF))
+	  (v SG_UNDEF)
+	  (k::long -1))
+      (cond ((SG_INTP init-size) (set! k (SG_INT_VALUE init-size)))
+	    ((SG_FALSEP init-size) (set! k 200))
+	    (else 
+	     (wrong-type-of-argument-violation 'make-weak-hashtable
+					       "#f or fixnum" init-size)))
       (cond ((SG_EQ weakness 'key)   (set! w SG_WEAK_KEY))
 	    ((SG_EQ weakness 'value) (set! w SG_WEAK_VALUE))
 	    ((SG_EQ weakness 'both)  (set! w SG_WEAK_BOTH))
@@ -1426,7 +1480,7 @@
 		   "weakness must be one of 'key, 'value or 'both"
 		   (SG_LIST1 weakness))))
       (unless (SG_UNBOUNDP default) (set! v default))
-      (result (Sg_MakeWeakHashTable hasher equiv w init-size v))))
+      (result (Sg_MakeWeakHashTable hasher equiv w k v))))
 
   (define-c-proc weak-hashtable? (o) ::<boolean> :constant SG_WEAK_HASHTABLE_P)
 
@@ -1593,7 +1647,8 @@
   (define-cise-expr tree-entry-value
     ((_ dict e) `(SG_DICT_ENTRY_VALUE ,e)))
   
-  (define-c-proc treemap-update! (tm::<tree-map> key proc::<procedure> default)
+  (define-c-proc treemap-update! 
+    (tm::<tree-map> key proc::<procedure> default)
     (dict-update! tm Sg_TreeMapCoreSearch SG_TREEMAP treemap-update-cc
 		  tree-entry-set! tree-entry-value))
 
