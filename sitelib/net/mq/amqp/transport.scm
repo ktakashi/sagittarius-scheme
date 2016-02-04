@@ -2,7 +2,7 @@
 ;;;
 ;;; net/mq/amqp/transport.scm - AMQP v1.0 transport
 ;;;  
-;;;   Copyright (c) 2010-2014  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2016  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -281,8 +281,7 @@
   (define (generate-container-id)
     (format "Sagittarius-~a-~a"
 	    (sagittarius-version) 
-	    ;; i don't remember how it should be but 9 bits returns 4 bytes
-	    (bytevector->integer (read-sys-random 9))))
+	    (bytevector->integer (read-sys-random 32))))
 
   ;; TODO make id looks like Sagittarius but unique
   (define (send-open-frame conn :key (id (generate-container-id))
@@ -551,8 +550,9 @@
 			 disposition-handler . opt)
     (define session (~ link 'session))
     (define connection (~ session 'connection))
-    (define delivery-tag (read-sys-random 8))
-    (define first-delivery-id (bytevector->integer (read-sys-random 8)))
+    ;; upto 32 octed = 256 bits
+    (define delivery-tag (read-sys-random 32))
+    (define first-delivery-id (bytevector->integer (read-sys-random 32)))
     (define offset 0)
     (define (make-transfer message . opt)
       ;; id must be unique per message

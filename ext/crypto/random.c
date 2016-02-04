@@ -156,7 +156,7 @@ SgObject Sg_MakeSecureRandom(SgString *name, int bits)
 SgObject Sg_ReadSysRandom(int bits)
 {
   SgObject buf;
-  bits = ((bits/8)+((bits&7)!=0?1:0)) * 2;
+  bits = (bits/8)+((bits%8)!=0?1:0);
   buf = Sg_MakeByteVector(bits, 0);
   if (rng_get_bytes(SG_BVECTOR_ELEMENTS(buf), (unsigned long)bits, NULL) != 
       (unsigned long)bits) {
