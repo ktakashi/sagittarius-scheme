@@ -17,30 +17,7 @@
     (import (core)
 	    (core enums)
 	    (core base)
-	    (core syntax)
-	    (sagittarius))
-
-    ;; we use er-macro-transformer to implement enumeration
-  (define-syntax defset
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (let ((name (cadr form))
-	     (endname (gensym))
-	     (endsname (caddr form))
-	     (symbols (cdddr form))
-	     (_begin (rename 'begin)) (_define (rename 'define))
-	     (_define-syntax (rename 'define-syntax))
-	     (_syntax-rules (rename 'syntax-rules))
-	     (_make-enumeration (rename 'make-enumeration))
-	     (_enum-set-constructor (rename 'enum-set-constructor)))
-	 `(,_begin
-	    (,_define ,endname (,_make-enumeration ',@symbols))
-	    (,_define-syntax ,endsname
-	      (,_syntax-rules ()
-		((_ sym1 ...)
-		 (,_begin
-		   ((,_enum-set-constructor ,endname)
-		    (list (,name sym1) ...)))))))))))
+	    (core syntax))
 
   (define-syntax define-enumeration
     (syntax-rules ()
@@ -48,15 +25,21 @@
        (begin
 	 (define-syntax name
 	   (lambda (x)
-	     (define (err)
-	       (syntax-violation 'name "illigal symbol" (unwrap-syntax (car x))))
 	     (syntax-case x ()
 	       ((_ y)
 		(let ((sym1 (syntax->datum #'y)))
 		  (if (memq sym1 'symbols)
 		      #''y
-		      (err)))))))
-	 (defset name ctr symbols)))))
+		      (syntax-violation 'name "illigal symbol" 
+					(syntax->datum (car x)))))))))
+	 ;; procedural constructor (invisible)
+	 (define endname (make-enumeration 'symbols))
+	 ;; actual constructor
+	 (define-syntax ctr
+	   (syntax-rules ()
+	     ((_ sym1 (... ...))
+	      ((enum-set-constructor endname) 
+	       (list (name sym1) (... ...))))))))))
   
 
 ) ; [end]
