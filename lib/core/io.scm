@@ -1,15 +1,5 @@
 ;; -*- scheme -*-
 #!core
-(library (core io helper)
-    (export make-file-options %file-options)
-    (import (core)
-	    (core enums)
-	    (sagittarius))
-  (define-constant %file-options '(no-create no-fail no-truncate append))
-  (define make-file-options 
-    (enum-set-constructor (make-enumeration %file-options)))
-)
-
 (library (core io)
     (export open-input-file
 	    open-output-file
@@ -24,9 +14,13 @@
 	    format)
     (import (core)
 	    (core base)
+	    (core enums)
 	    (core syntax)
-	    (sagittarius)
-	    (core io helper))
+	    (sagittarius))
+
+  (define make-file-options 
+    (enum-set-constructor 
+     (make-enumeration '(no-create no-fail no-truncate append))))
 
   (define (open-input-file filename :key (transcoder (native-transcoder)))
     (open-file-input-port filename (make-file-options '()) 'block transcoder))
@@ -35,28 +29,8 @@
     (open-file-output-port filename (make-file-options '()) 'block transcoder))
 
   (define-syntax file-options
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (define (unique-id-list? lst)
-	 (and (list? lst)
-	      (not (let loop ((lst lst))
-		     (and (pair? lst)
-			  (or (not (variable? (car lst)))
-			      (id-memq (car lst) (cdr lst))
-			      (loop (cdr lst))))))))
-
-       (let ((args (cdr form)))
-	 (unless (unique-id-list? args)
-	   (assertion-violation 'file-options
-				"given arguments contain duplicate options"
-				form))
-	 (for-each (lambda (arg)
-		     (unless (id-memq arg %file-options)
-		       (assertion-violation 'file-options
-					    "invalid option"
-					    form)))
-		   args)
-	 `(,(rename 'make-file-options) ',args)))))
+    (syntax-rules ()
+      ((_ args ...) (make-file-options '(args ...)))))
 
   (define-syntax error-handling-mode
     (syntax-rules ()
@@ -69,7 +43,6 @@
       ((_ x) (quote x))))
 
   ;; 8.3 simmple i/o
-  ;; originally from Ypsilon
   (define (call-with-input-file filename proc . opt)
     (call-with-port (apply open-input-file filename opt) proc))
 
