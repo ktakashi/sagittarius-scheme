@@ -87,10 +87,10 @@
   (s114:comparator-hash-function? c))
 
 (define (make-comparator type-test equality ordering hash)
-  (unless (or (procedure? type-test) (procedure? equality))
+  (unless (and (procedure? type-test) (procedure? equality))
     (assertion-violation 'make-comparator 
 			 "type-test and equality are required"))
-  (s114:make-comparator type-test #t ;; use compare procedure
+  (s114:make-comparator type-test equality
 			;; convert the ordering to SRFI-114 style
 			(and ordering 
 			     (lambda (x y)
@@ -230,7 +230,7 @@
 	       #f)))))
 
 (define *default-comparator*
-  (make-comparator #t
+  (make-comparator (lambda (o) #t)
 		   default-equality
 		   default-ordering
 		   default-hash))
