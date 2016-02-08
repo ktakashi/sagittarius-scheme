@@ -317,7 +317,13 @@ int Sg_Compare(SgObject x, SgObject y)
   }
   if (SG_BVECTORP(x) && SG_BVECTORP(y)) 
     return Sg_ByteVectorCmp(SG_BVECTOR(x), SG_BVECTOR(y));
-  
+  if (SG_BOOLP(x) && SG_BOOLP(y)) {
+    /* following SRFI-128 */
+    if (SG_EQ(x, y)) return 0;
+    if (SG_FALSEP(x)) return -1;
+    return 1;
+  }
+
   cx = Sg_ClassOf(x);
   cy = Sg_ClassOf(y);
   if (Sg_SubtypeP(cx, cy)) {

@@ -208,7 +208,7 @@
     (define-predicate <?  chain<?)
     (define-predicate >?  chain>?)
     (define-predicate <=? chain<=?)
-    (define-predicate >=? chain<=?))
+    (define-predicate >=? chain>=?))
 
   ;; chain is not easy to define with macro...
   ;; FIXME it's ugly...
@@ -394,16 +394,29 @@
 	      (loop (- index 1) sum))))))
 
   (define (make-listwise-comparator test comparator nil? kar kdr)
+    (define (listwise-check o)
+      (and (test o)
+	   (let loop ((o o))
+	     (or (nil? o)
+		 (and (comparator-test-type comparator (kar o))
+		      (loop (kdr o)))))))
     (make-comparator 
-     test #t
+     listwise-check #t
      (make-listwise-comparison
       (comparator-comparison-procedure comparator) nil? kar kdr)
      (make-listwise-hash
       (comparator-hash-function comparator) nil? kar kdr)))
 
   (define (make-vectorwise-comparator test comparator length ref)
+    (define (vectorwise-check o)
+      (and (test o)
+	   (let ((len (length o)))
+	     (let loop ((i 0))
+	       (or (= i len)
+		   (and (comparator-test-type comparator (ref o i))
+			(loop (+ i 1))))))))
     (make-comparator
-     test #t
+     vectorwise-check #t
      (make-vectorwise-comparison
       (comparator-comparison-procedure comparator) length ref)
      (make-vectorwise-hash
@@ -449,7 +462,11 @@
       (+ (comparator-hash car-comparator (car obj))
 	 (comparator-hash cdr-comparator (cdr obj)))))
   (define (make-pair-comparator car-comparator cdr-comparator)
-    (make-comparator pair? #t
+    (define (pair-check o)
+      (and (pair? o)
+	   (comparator-test-type car-comparator (car o))
+	   (comparator-test-type cdr-comparator (cdr o))))
+    (make-comparator pair-check #t
 		     (make-pair-comparison car-comparator cdr-comparator)
 		     (make-pair-hash car-comparator cdr-comparator)))
   (define pair-comparator
