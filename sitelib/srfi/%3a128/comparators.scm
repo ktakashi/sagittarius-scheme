@@ -280,11 +280,10 @@
      (let ((t1 o1)
 	   (t2 o2)
 	   (c comp))
-       (if (negative? (s114:comparator-compare c t1 t2))
-	   less-than
-	   (if (s114:comparator-equal? c t1 t2)
-	       equal-to
-	       greater-than))))))
+       (let ((r (s114:comparator-compare c t1 t2)))
+	 (cond ((negative? r) less-than)
+	       ((zero? r) equal-to)
+	       (else greater-than)))))))
 
 )
 	    
