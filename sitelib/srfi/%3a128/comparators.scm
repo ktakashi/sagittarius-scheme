@@ -90,7 +90,7 @@
   (unless (or (procedure? type-test) (procedure? equality))
     (assertion-violation 'make-comparator 
 			 "type-test and equality are required"))
-  (s114:make-comparator type-test equality 
+  (s114:make-comparator type-test #t ;; use compare procedure
 			;; convert the ordering to SRFI-114 style
 			(and ordering 
 			     (lambda (x y)
@@ -159,8 +159,8 @@
 	       (loop (combine r (default-hash (vector-ref o i))) (+ i 1)))))
 	((lookup-comparator o) =>
 	 ;; make sure the returning value is upto bound
-	 (lambda (comp) (mod (s114:comparator-hash comp o) (hash-bound)))
-	(else (equal-hash o)))))
+	 (lambda (comp) (mod (s114:comparator-hash comp o) (hash-bound))))
+	(else (equal-hash o))))
 
 (define (pair/null? o) (or (pair? o) (null? o)))
 ;; there must not be an duplicated type comparators
