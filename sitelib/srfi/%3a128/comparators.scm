@@ -71,7 +71,7 @@
 	    (prefix (srfi :114 comparators) s114:)
 	    (only (srfi :126) hash-salt)
 	    (srfi :18) ;; for lock
-	    (sagittarius) ;; for eqv-hash
+	    (sagittarius) ;; for eqv-hash, symbol<? and bytevector<?
 	    )
 
 ;; we build this comparator atop srfi-114 (builtin) comparator
@@ -114,9 +114,13 @@
 (define (boolean-hash x . ignore) (if x 1 0))
 (define (char-hash x . ignore) (char->integer x))
 (define (char-ci-hash x . ignore) (char->integer (char-foldcase x)))
+
 ;; string-hash
 ;; string-ci-hash
 ;; symbol-hash
+
+;; built in eqv-hash computes numbers appropriately
+;; so for my laziness we use it.
 (define (number-hash x . ignore) (eqv-hash x))
 
 ;; NB: internally, hashtable uses hash value of int32_t but it is ok to return
@@ -140,10 +144,9 @@
 	(else #f)))
 
 (define (default-hash o)
-  (define (combine hv1 hv2) (+ (* hv1 5) hv2))
+  (define (combine hv1 hv2) (mod (+ (* hv1 5) hv2) (hash-bound)))
   (cond ((pair? o) 
-	 (mod (combine (default-hash (car o)) (default-hash cdr o)) 
-	      (hash-bound)))
+	 (combine (default-hash (car o)) (default-hash cdr o)))
 	((boolean? o) (boolean-hash o))
 	((char? o) (char-hash o))
 	((string? o) (string-hash o))
@@ -152,11 +155,12 @@
 	((vector? o)
 	 (let loop ((r 0) (i 0))
 	   (if (= i (vector-length o))
-	       r
+	       (hash-bound)
 	       (loop (combine r (default-hash (vector-ref o i))) (+ i 1)))))
 	((lookup-comparator o) =>
-	 (lambda (comp) (s114:comparator-hash comp o)))
-	(else equal-hash)))
+	 ;; make sure the returning value is upto bound
+	 (lambda (comp) (mod (s114:comparator-hash comp o) (hash-bound)))
+	(else (equal-hash o)))))
 
 (define (pair/null? o) (or (pair? o) (null? o)))
 ;; there must not be an duplicated type comparators
@@ -231,7 +235,7 @@
 		   default-ordering
 		   default-hash))
 
-;; we don't need to make it each time since plugged comparaters
+;; we don't need to make it each time since plugged comparators
 ;; are resolved runtime
 (define (make-default-comparator) *default-comparator*)
 
