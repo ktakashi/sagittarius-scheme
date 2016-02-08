@@ -252,7 +252,7 @@
     (else #f)))
 
 ;; keep it fixnum on both 32 and 64 bits environment
-(define *hash-bound* (- (expt 2 30) 1))
+(define *hash-bound* (greatest-fixnum))
 (define *hash-salt*
   ;; keep it fixnum range
   (let ((salt (mod (bytevector->uinteger (read-sys-random 30)) *hash-bound*))
