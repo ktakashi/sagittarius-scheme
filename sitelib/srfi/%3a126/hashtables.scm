@@ -251,16 +251,21 @@
     ;; must be #f
     (else #f)))
 
+;; keep it fixnum on both 32 and 64 bits environment
+(define *hash-bound* (- (expt 2 30) 1))
 (define *hash-salt*
   ;; keep it fixnum range
-  (let ((salt (bytevector->uinteger (read-sys-random 30)))
+  (let ((salt (mod (bytevector->uinteger (read-sys-random 30)) *hash-bound*))
 	(seed (getenv "SRFI_126_HASH_SEED")))
     (if (or (not seed) (string=? seed ""))
-        salt
+	;; for SRFI-128 which requires salt to be less than bound.
+        (if (= salt *hash-bound*)
+	    (- salt 1)
+	    salt)
         (mod (fold-left (lambda (result char) (+ (char->integer char) result))
 			0
 			(string->list seed))
-	     (greatest-fixnum)))))
+	     *hash-bound*))))
 
 (define-syntax hash-salt
   (syntax-rules ()

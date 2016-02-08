@@ -2,7 +2,7 @@
 	(srfi :128 comparators)
 	(prefix (srfi :64) srfi:))
 
-(srfi:test-begin "SRFI-121 Generators")
+(srfi:test-begin "SRFI-128 Comparators")
 
 (define (exact-integer? o) (and (integer? o) (exact? o)))
 

@@ -125,7 +125,8 @@
 
 ;; NB: internally, hashtable uses hash value of int32_t but it is ok to return
 ;;     more than that (it can handle it bigger number). however it's better
-;;     to limit this up to greatest-fixnum
+;;     to limit this up to greatest-fixnum. although, on 64 bit environment
+;;     the value might be 62 bit long (e.g. Linux)
 (define-syntax hash-bound (syntax-rules () ((_) (greatest-fixnum))))
 ;; there's no reason to be separated implementation from SRFI-126 hash-salt
 ;; (in some case it might be even better since it has the mean to specify
