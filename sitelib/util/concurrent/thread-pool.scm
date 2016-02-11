@@ -31,6 +31,7 @@
 (library (util concurrent thread-pool)
   (export make-thread-pool thread-pool? <thread-pool>
 	  thread-pool-size
+	  thread-pool-idling-count
 	  thread-pool-push-task!
 	  thread-pool-wait-all!
 	  thread-pool-release!
@@ -89,6 +90,20 @@
 (define (thread-pool-size tp)
   ;; whatever is fine.
   (vector-length (<thread-pool>-threads tp)))
+
+;; returns approx number of idling thread count
+;; NB: getting exact count requries lock and that's rather useless
+;;     since idling count is usually used to determine if users
+;;     should add task or not. so for now, assume approx number
+;;     is sufficient.
+(define (thread-pool-idling-count tp)
+  (define specific (<thread-pool>-specifics tp))
+  (define len (vector-length specific))
+  (let loop ((i 0) (r 0))
+    (if (= i len) 
+	r
+	(loop (+ i 1)
+	      (+ r (if (eq? (vector-ref specific i) 'idling) 1 0))))))
 
 ;; Optional argument must be a procedure takes one argument.
 ;;  see default-handler
