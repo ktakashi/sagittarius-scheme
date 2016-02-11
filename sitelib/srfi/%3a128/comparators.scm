@@ -240,8 +240,20 @@
 ;; are resolved runtime
 (define (make-default-comparator) *default-comparator*)
 
+(define *predefined-type-tests*
+  (list boolean? char? null? pair? symbol? bytevector? number? string? vector?))
+;; The SRFI says it's an error if any value satisfies both comparator's 
+;; type test and above predicates. R7RS error basically means whatever
+;; happen is fine so it doesn't say when this should be checked. The
+;; best timing we can do without performance loss is when registering
+;; a comparator. However this basically means if a comparator has type
+;; test defined like this: (lambda (o) (boolean? o)) then the check 
+;; doesn't work at all. But, hey, it's an error in sense of R7RS anyway.
 (define (comparator-register-default! comparator) 
   (let ((pred (s114:comparator-type-test-procedure comparator)))
+    (when (memq pred *predefined-type-tests*)
+      (error 'comparator-register-default!
+	     "attempt to overwrite predefined comparator" pred comparator))
     (mutex-lock! *registration-lock*)
     (cond ((assq pred *registered-comparators*)
 	   (mutex-unlock! *registration-lock*)
@@ -278,13 +290,10 @@
 		       less-than equal-to greater-than))
     ((_ comp o1 o2 less-than equal-to greater-than)
      ;; we use SRFI-114 directly thus, -1, 0 or 1
-     (let ((t1 o1)
-	   (t2 o2)
-	   (c comp))
-       (let ((r (s114:comparator-compare c t1 t2)))
-	 (cond ((negative? r) less-than)
-	       ((zero? r) equal-to)
-	       (else greater-than)))))))
+     (let ((r (s114:comparator-compare comp o1 o2)))
+       (cond ((negative? r) less-than)
+	     ((zero? r) equal-to)
+	     (else greater-than))))))
 
 )
 	    
