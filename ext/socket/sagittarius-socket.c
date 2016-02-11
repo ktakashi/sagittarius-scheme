@@ -1062,9 +1062,12 @@ SgObject Sg_SocketPeer(SgObject socket)
 
 SgObject Sg_SocketName(SgObject socket)
 {
-  SgObject address = SG_SOCKET(socket)->address;
-  if (address) return address;
-  else return SG_FALSE;
+  if (SG_SOCKET(socket)->address) {
+    return get_address_string(SG_SOCKET(socket)->address->addr,
+			      SG_SOCKET(socket)->address->addr_size);
+  } else {
+    return SG_FALSE;
+  }
 }
 
 SgObject Sg_SocketInfo(SgObject socket)
