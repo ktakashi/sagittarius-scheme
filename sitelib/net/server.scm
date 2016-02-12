@@ -104,6 +104,84 @@
   (define (server-stopped? server) (not (~ server 'server-sockets)))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
+
+  (define (make-non-blocking-process handler config)
+    (define num-threads (~ config 'max-thread))
+    (define thread-pool (make-thread-pool num-threads raise))
+    (define socket-manager
+      ;; input is (tid . socket-count)
+      ;; tid won't be duplicated
+      (make-shared-priority-queue 
+       (lambda (a b) 
+	 (let ((atid (car a))
+	       (btid (car b)))
+	   (if (= atid btid)
+	       0
+	       (let ((ac (cdr a))
+		     (bc (cdr b)))
+		 (cond ((< ac bc) -1)
+		       ((> ac bc) 1)
+		       (else 0)))))))
+       num-threads)
+    (define manager-channel (make-shared-queue))
+    (define (manager)
+      (let loop ()
+	(let ((info (shared-queue-get! manager-channel)))
+	  (shared-priority-queue-remove! socket-manager info)
+	  (shared-priority-queue-put! socket-manager info))
+	(loop)))
+    (define manager-thread (thread-start! (make-thread manager)))
+    (define (notify-info tid count)
+      (shared-queue-put! manager-channel (cons tid count)))
+    ;; this depends on the thread-pool thread id which is exact integer
+    ;; and less than number of threads
+    (define channels (make-vector num-threads #f))
+
+    (define (make-task server socket)
+      (define channel (make-shared-queue))
+      (define (task)
+	(define (retrieve-sockets init)
+	  (do ((sockets init (cons (shared-queue-get! channel) sockets)))
+	      ((and (shared-queue-empty? channel) (not (null? sockets)))
+	       sockets)))
+	;; get sockets
+	(let loop ((sockets (retrieve-sockets '())))
+	  (let ((read-sockets (apply socket-read-select #f sockets)))
+	    (dolist (socket read-sockets)
+	      (guard (e ((~ config 'exception-handler)
+			 ;; let them handle it
+			 ((~ config 'exception-handler) 
+			  server socket e))
+			;; if exception-handler is not there
+			;; close the socket.
+			(else (socket-shutdown socket SHUT_RDWR)
+			      (socket-close socket)))
+		(handler server socket)))
+	    (let ((active (filter (lambda (o) (not (socket-closed? o))) 
+				  sockets))
+		  (tid (thread-pool-thread-id thread-pool (current-thread))))
+	      (notify-info tid (length active))
+	      (loop (retrieve-sockets active))))))
+
+      (values task channel))
+    ;; process
+    (lambda (server socket)
+      (if (thread-pool-idling? thread-pool)
+	  (let-values (((task channel) (make-task server socket)))
+	    (let ((id (thread-pool-push-task! thread-pool task)))
+	      (notify-info id 1)
+	      (shared-queue-put! channel socket)
+	      (vector-set! channels id channel)))
+
+	  (let* ((info (shared-priority-queue-get! socket-manager))
+		 (thread-id (car info)))
+	    (let ((channel (vector-ref channels thread-id)))
+	      (let ((thread (thread-pool-thread thread-pool thread-id)))
+		(notify-info thread-id (+ (cdr info) 1))
+		(shared-queue-put! channel socket)
+		(thread-interrupt! thread)))))))
+  
+
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
 				   ;; must have default config
@@ -111,96 +189,7 @@
 			      :allow-other-keys rest)
     (define dispatch
       (if (~ config 'non-blocking?)
-	  (let* ((num-threads (~ config 'max-thread))
-		 (thread-pool (make-thread-pool num-threads raise))
-		 (socket-pool (make-vector num-threads))
-		 (mutexes (make-vector num-threads))
-		 ;; silly
-		 (servers (make-vector num-threads))
-		 (thread-ids (make-vector num-threads))
-		 (cvs (make-vector num-threads)))
-	    (define (task i mutex cv)
-	      (lambda ()
-		(let loop ()
-		  ;; unfortunately this is needed for Cygwin.
-		  (mutex-lock! mutex)
-		  (if (null? (vector-ref socket-pool i))
-		      (mutex-unlock! mutex cv)
-		      (mutex-unlock! mutex))
-		  (let ((sockets 
-			 (apply socket-read-select #f
-				(vector-ref socket-pool i)))
-			(server (vector-ref servers i)))
-		    ;; we don't want to get thread-interrupt! here
-		    (mutex-lock! mutex)
-		    (dolist (socket sockets)
-		      (guard (e ((~ config 'exception-handler)
-				 ;; let them handle it
-				 ((~ config 'exception-handler) 
-				  server socket e))
-				;; if exception-handler is not there
-				;; close the socket.
-				(else (socket-shutdown socket SHUT_RDWR)
-				      (socket-close socket)))
-			(handler server socket)))
-		    ;; remove closed sockets
-		    (let-values (((closed sockets)
-				  (partition socket-closed?
-					     (vector-ref socket-pool i))))
-		      (let ((active (apply socket-write-select 0 sockets)))
-			;; non closed active sockets
-			(vector-set! socket-pool i active)
-			;; close non active sockets
-			;; TODO should we?
-			(dolist (s (lset-difference eq? sockets active))
-			  (socket-shutdown s SHUT_RDWR)
-			  (socket-close s))
-			(mutex-unlock! mutex)
-			(loop)))))))
-		
-	    ;; prepare executor
-	    (do ((i 0 (+ i 1)))
-		((= i num-threads))
-	      (vector-set! socket-pool i '())
-	      (let ((mutex (make-mutex))
-		    (cv (make-condition-variable)))
-		(vector-set! mutexes i mutex)
-		(vector-set! cvs i cv)
-		;; keep id
-		(vector-set! thread-ids i
-		 (thread-pool-push-task! thread-pool (task i mutex cv)))))
-	    ;; non blocking requires special coding rule.
-	    ;;  1. handler must always return even the socket is still
-	    ;;     active
-	    ;;  2. handler must close the socket when it's not needed.
-	    (lambda (server socket)
-	      (define (find-min)
-		(if (null? (vector-ref socket-pool 0))
-		    0 ;; shortcut
-		    (let loop ((i 1) 
-			       (index 0)
-			       (pb-len (length (vector-ref socket-pool 0))))
-		      (if (= i num-threads)
-			  index
-			  (let ((pool-a (vector-ref socket-pool i)))
-			    (cond ((null? pool-a) i) ;; shortcut
-				  ((< (length pool-a) pb-len)
-				   (loop (+ i 1) i (length pool-a)))
-				  (else (loop (+ i 1) index pb-len))))))))
-	      ;; TODO may not be a good load balancing
-	      (let ((index (find-min)))
-		(mutex-lock! (vector-ref mutexes index))
-		(let ((sockets (vector-ref socket-pool index))
-		      (tid (vector-ref thread-ids index)))
-		  (vector-set! socket-pool index (cons socket sockets))
-		  (vector-set! servers index server) ;; it's always the same!
-		  (thread-interrupt! (thread-pool-thread thread-pool tid))
-		  ;; notify it
-		  ;; NB: if it's waiting for cv, then socket-read-select
-		  ;;     would return immediately after this. so no need
-		  ;;     to be before thread-interrupt!
-		  (condition-variable-broadcast! (vector-ref cvs index))
-		  (mutex-unlock! (vector-ref mutexes index))))))
+	  (make-non-blocking-process handler config)
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)
 			       (make-thread-pool-executor 

@@ -32,12 +32,14 @@
   (export make-thread-pool thread-pool? <thread-pool>
 	  thread-pool-size
 	  thread-pool-idling-count
+	  thread-pool-idling?
 	  thread-pool-push-task!
 	  thread-pool-wait-all!
 	  thread-pool-release!
 
 	  thread-pool-thread-terminate! ;; hmmmm
 	  thread-pool-thread
+	  thread-pool-thread-id
 	  thread-pool-thread-task-running?
 	  )
   (import (rnrs)
@@ -97,6 +99,17 @@
 
 ;; returns actual thread associated with given thread id
 (define (thread-pool-thread tp id) (vector-ref (<thread-pool>-threads tp) id))
+(define (thread-pool-thread-id tp thread)
+  (define threads (<thread-pool>-threads tp))
+  (define size (vector-length threads))
+  ;; FIXME this takes O(n) but we want it O(1). so use hashtable
+  (let loop ((i 0))
+    (cond ((= i size) 
+	   ;; TODO should we just return #f since managed but terminated thread
+	   ;; can also be a possibility
+	   (error 'thread-pool-thread-id "not a managed thread" thread))
+	  ((eq? (vector-ref threads i) thread) i)
+	  (else (loop (+ i 1))))))
 ;; returns size of pool
 (define (thread-pool-size tp) (vector-length (<thread-pool>-threads tp)))
 
