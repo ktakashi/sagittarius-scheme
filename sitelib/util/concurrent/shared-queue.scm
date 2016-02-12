@@ -40,6 +40,7 @@
 	    shared-queue-overflows?
 	    shared-queue-put! shared-queue-get!
 	    shared-queue-clear!
+	    shared-queue-find
 
 	    ;; shared-priority-queue
 	    ;; even thought the name is queue but it's not a
@@ -147,6 +148,13 @@
     (shared-queue-head-set! sq '())
     (shared-queue-tail-set! sq '())
     (mutex-unlock! (%lock sq)))
+
+  (define (shared-queue-find sq proc)
+    ;; proc may call call/cc thus we need to use dynamic-wind
+    (dynamic-wind
+	(lambda () (mutex-lock! (%lock sq)))
+	(lambda () (find proc (shared-queue-head sq)))
+	(lambda () (mutex-unlock! (%lock sq)))))
 
   ;; priority queue
   ;; we do simply B-tree

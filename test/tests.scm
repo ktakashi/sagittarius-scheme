@@ -93,9 +93,20 @@
 	    (display " ")(display (cdr test-name)))
 	  (newline))
 	(let ((expected (test-result-ref runner 'expected-value))
-	      (actual   (test-result-ref runner 'actual-value)))
-	  (display #\tab)(display "expected value: ")(display expected)(newline)
-	  (display #\tab)(display "  actual value: ")(display actual)(newline)))
+	      (actual   (test-result-ref runner 'actual-value))
+	      (exerr (test-result-ref runner 'expected-error))
+	      (acerr (test-result-ref runner 'actual-error)))
+	  (if exerr
+	      (begin
+		(display #\tab)(display "expected error: ")
+		(display exerr)(newline)
+		(display #\tab)(display "  actual error: ")
+		(display acerr)(newline))
+	      (begin
+		(display #\tab)(display "expected value: ")
+		(display expected)(newline)
+		(display #\tab)(display "  actual value: ")
+		(display actual)(newline)))))
       (when (output-port? log)
 	(display "Test end:" log)
 	(newline log)
