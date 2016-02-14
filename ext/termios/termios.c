@@ -120,6 +120,309 @@ SgObject Sg_MakeTermios()
 
 extern void Sg__Init_termios_stub(SgLibrary *lib);
 
+/* very interestingly, FreeBSD doesn't support all of the variables
+   POSIX defines. (so it's even less POSIX compliant than OSX?). To
+   avoid adding OS specific condition, we define dummy value if the
+   macro is *not* defined.
+   NB: not even sure if the variables shall be macro or not, but
+       I think it's safe to assume otherwise people can't write
+       portable code.
+ */
+#ifndef BRKINT
+#  define BRKINT 0
+#endif
+#ifndef ICRNL
+#  define ICRNL 0
+#endif
+#ifndef IGNBRK
+#  define IGNBRK 0
+#endif
+#ifndef IGNCR
+#  define IGNCR 0
+#endif
+#ifndef IGNPAR
+#  define IGNPAR 0
+#endif
+#ifndef INLCR
+#  define INLCR 0
+#endif
+#ifndef INPCK
+#  define INPCK 0
+#endif
+#ifndef ISTRIP
+#  define ISTRIP 0
+#endif
+#ifndef IXANY
+#  define IXANY 0
+#endif
+#ifndef IXOFF
+#  define IXOFF 0
+#endif
+#ifndef IXON
+#  define IXON 0
+#endif
+#ifndef PARMRK
+#  define PARMRK 0
+#endif
+#ifndef OPOST
+#  define OPOST 0
+#endif
+#ifndef ONLCR
+#  define ONLCR 0
+#endif
+#ifndef OCRNL
+#  define OCRNL 0
+#endif
+#ifndef ONOCR
+#  define ONOCR 0
+#endif
+#ifndef ONLRET
+#  define ONLRET 0
+#endif
+#ifndef OFILL
+#  define OFILL 0
+#endif
+#ifndef NL0
+#  define NL0 0
+#endif
+#ifndef NL1
+#  define NL1 0
+#endif
+#ifndef NLDLY
+#  define NLDLY 0
+#endif
+#ifndef CR0
+#  define CR0 0
+#endif
+#ifndef CR1
+#  define CR1 0
+#endif
+#ifndef CR2
+#  define CR2 0
+#endif
+#ifndef CR3
+#  define CR3 0
+#endif
+#ifndef CRDLY
+#  define CRDLY 0
+#endif
+#ifndef TAB0
+#  define TAB0 0
+#endif
+#ifndef TAB1
+#  define TAB1 0
+#endif
+#ifndef TAB2
+#  define TAB2 0
+#endif
+#ifndef TAB3
+#  define TAB3 0
+#endif
+#ifndef TABDLY
+#  define TABDLY 0
+#endif
+#ifndef BS0
+#  define BS0 0
+#endif
+#ifndef BS1
+#  define BS1 0
+#endif
+#ifndef BSDLY
+#  define BSDLY 0
+#endif
+#ifndef VT0
+#  define VT0 0
+#endif
+#ifndef VT1
+#  define VT1 0
+#endif
+#ifndef VTDLY
+#  define VTDLY 0
+#endif
+#ifndef FF0
+#  define FF0 0
+#endif
+#ifndef FF1
+#  define FF1 0
+#endif
+#ifndef FFDLY
+#  define FFDLY 0
+#endif
+#ifndef B0
+#  define B0 0
+#endif
+#ifndef B50
+#  define B50 0
+#endif
+#ifndef B75
+#  define B75 0
+#endif
+#ifndef B110
+#  define B110 0
+#endif
+#ifndef B134
+#  define B134 0
+#endif
+#ifndef B150
+#  define B150 0
+#endif
+#ifndef B200
+#  define B200 0
+#endif
+#ifndef B300
+#  define B300 0
+#endif
+#ifndef B600
+#  define B600 0
+#endif
+#ifndef B1200
+#  define B1200 0
+#endif
+#ifndef B1800
+#  define B1800 0
+#endif
+#ifndef B2400
+#  define B2400 0
+#endif
+#ifndef B4800
+#  define B4800 0
+#endif
+#ifndef B9600
+#  define B9600 0
+#endif
+#ifndef B19200
+#  define B19200 0
+#endif
+#ifndef B38400
+#  define B38400 0
+#endif
+#ifndef CS5
+#  define CS5 0
+#endif
+#ifndef CS6
+#  define CS6 0
+#endif
+#ifndef CS7
+#  define CS7 0
+#endif
+#ifndef CS8
+#  define CS8 0
+#endif
+#ifndef CSIZE
+#  define CSIZE 0
+#endif
+#ifndef CSTOPB
+#  define CSTOPB 0
+#endif
+#ifndef CREAD
+#  define CREAD 0
+#endif
+#ifndef PARENB
+#  define PARENB 0
+#endif
+#ifndef PARODD
+#  define PARODD 0
+#endif
+#ifndef HUPCL
+#  define HUPCL 0
+#endif
+#ifndef CLOCAL
+#  define CLOCAL 0
+#endif
+#ifndef ECHO
+#  define ECHO 0
+#endif
+#ifndef ECHOE
+#  define ECHOE 0
+#endif
+#ifndef ECHOK
+#  define ECHOK 0
+#endif
+#ifndef ECHONL
+#  define ECHONL 0
+#endif
+#ifndef ICANON
+#  define ICANON 0
+#endif
+#ifndef IEXTEN
+#  define IEXTEN 0
+#endif
+#ifndef ISIG
+#  define ISIG 0
+#endif
+#ifndef NOFLSH
+#  define NOFLSH 0
+#endif
+#ifndef TOSTOP
+#  define TOSTOP 0
+#endif
+#ifndef TCSANOW
+#  define TCSANOW 0
+#endif
+#ifndef TCSADRAIN
+#  define TCSADRAIN 0
+#endif
+#ifndef TCSAFLUSH
+#  define TCSAFLUSH 0
+#endif
+#ifndef TCIFLUSH
+#  define TCIFLUSH 0
+#endif
+#ifndef TCIOFLUSH
+#  define TCIOFLUSH 0
+#endif
+#ifndef TCOFLUSH
+#  define TCOFLUSH 0
+#endif
+#ifndef TCIOFF
+#  define TCIOFF 0
+#endif
+#ifndef TCION
+#  define TCION 0
+#endif
+#ifndef TCOOFF
+#  define TCOOFF 0
+#endif
+#ifndef TCOON
+#  define TCOON 0
+#endif
+#ifndef VEOF
+#  define VEOF 0
+#endif
+#ifndef VEOL
+#  define VEOL 0
+#endif
+#ifndef VERASE
+#  define VERASE 0
+#endif
+#ifndef VINTR
+#  define VINTR 0
+#endif
+#ifndef VKILL
+#  define VKILL 0
+#endif
+#ifndef VMIN
+#  define VMIN 0
+#endif
+#ifndef VQUIT
+#  define VQUIT 0
+#endif
+#ifndef VSTART
+#  define VSTART 0
+#endif
+#ifndef VSTOP
+#  define VSTOP 0
+#endif
+#ifndef VSUSP
+#  define VSUSP 0
+#endif
+#ifndef VTIME
+#  define VTIME 0
+#endif
+#ifndef NCCS
+#  define NCCS 0
+#endif
+
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__termios()
 {
   SgLibrary *lib;
