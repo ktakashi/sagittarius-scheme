@@ -142,7 +142,20 @@ because `/usr/bin/gcc` is identical as `/usr/bin/clang`. In that case,
 export `CC` and `CXX` environment variable with proper GCC and G++
 command path respectively so that CMake can find the command.
 
-## Build on Windows (non Cygwin environment)
+## Building on FreeBSD
+
+FreeBSD has multiple type of Boehm GC system libraries; `gc`,
+`gc-threaded` and `gc-redirect`. Sagittarius requires threaded runtime
+to make thread library works properly. The building process checks if
+`gc` has `GC_get_parallel()` function and if it doesn't then tries to
+use `gc-threaded` library. Please make sure your system has
+`gc-threaded` or `gc` built with multi thread option.
+
+NB: If you install `gc` without build option, then default is without
+thread support. In such a case, you need to install `gc-threaded` as
+well.
+
+## Building on Windows (non Cygwin environment)
 
 On Windows, you need to create an installer and Sagittarius is using
 innosetup for it.  Please install it.
