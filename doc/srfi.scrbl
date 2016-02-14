@@ -251,7 +251,17 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{lseqs} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-131/srfi-131.html"]{SRFI-131}}
+    @td{(srfi :131 records)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :131)}. So for the portability it's better to use the
+    @code{(srfi :131)}.
+
+    The name @code{records} is taken from sample implementation.
+    }}
 }
+
 
 Each library can be imported like this: 
 @snipet{(import (srfi :1))}
