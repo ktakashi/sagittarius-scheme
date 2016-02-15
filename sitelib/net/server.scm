@@ -99,7 +99,9 @@
      ;; will be set
      server-stopper
      (port           :init-keyword :port)
-     (dispatch       :init-keyword :dispatch)))
+     (dispatch       :init-keyword :dispatch)
+     ;; set if non-blocking mode
+     (initialiser    :init-value #f)))
   (define (server? o) (is-a? o <simple-server>))
   (define (server-stopped? server) (not (~ server 'server-sockets)))
 
@@ -164,12 +166,15 @@
 	      (loop (retrieve-sockets active))))))
 
       (values task channel))
+    ;; must be initialised during server-start!
+    (set! (~ server 'initialiser)
+	  (lambda ()
+	    (dotimes (i num-threads)
+	      (let-values (((task channel) (make-task server)))
+		(let ((id (thread-pool-push-task! thread-pool task)))
+		  (notify-info id 0)
+		  (vector-set! channels id channel))))))
 
-    (dotimes (i num-threads)
-      (let-values (((task channel) (make-task server)))
-	(let ((id (thread-pool-push-task! thread-pool task)))
-	  (notify-info id 0)
-	  (vector-set! channels id channel))))
     ;; process
     (lambda (server socket)
       (let* ((info (shared-priority-queue-get! socket-manager))
@@ -210,7 +215,7 @@
 		  (let ((f (future (class <executor-future>) (handle socket))))
 		    (execute-future! executor f))
 		  (handle socket))))))
-    (slot-set! server 'dispatch dispatch)
+    (set! (~ server 'dispatch) dispatch)
     server)
 
   (define (initialise-server! server)
@@ -274,6 +279,9 @@
       (when (null? sockets)
 	(error 'make-simple-server "failed to create server sockets" port))
 
+      (when (~ server 'initialiser) 
+	((~ server 'initialiser))
+	(set! (~ server 'initialiser) #f))
       (set! (~ server 'server-sockets) sockets)
       (set! (~ server 'server-threads) server-threads)
       (set! (~ server 'server-stopper) stop-server)
