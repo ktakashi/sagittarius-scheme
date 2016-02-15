@@ -92,9 +92,10 @@
     (define (get-line port)
       (define (strip-carrige bv)
 	(define len (bytevector-length bv))
-	(if (= #x0d (bytevector-u8-ref bv (- len 1)))
-	    (bytevector-copy bv 0 (- len 1))
-	    bv))
+	(cond ((zero? len) bv)
+	      ((= #x0d (bytevector-u8-ref bv (- len 1)))
+	       (bytevector-copy bv 0 (- len 1)))
+	      (else bv)))
       (if (textual-port? port)
 	  (read-line port) ;; this can handle all known eol
 	  (let ((bv (binary:get-line port)))
