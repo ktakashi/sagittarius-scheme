@@ -41,6 +41,7 @@
 	    shared-queue-put! shared-queue-get!
 	    shared-queue-clear!
 	    shared-queue-find
+	    shared-queue-locked?
 
 	    ;; shared-priority-queue
 	    ;; even thought the name is queue but it's not a
@@ -51,6 +52,7 @@
 	    shared-priority-queue-put! shared-priority-queue-get!
 	    shared-priority-queue-remove!
 	    shared-priority-queue-clear!
+	    shared-priority-queue-locked? ;; for consistency
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -155,6 +157,27 @@
 	(lambda () (mutex-lock! (%lock sq)))
 	(lambda () (find proc (shared-queue-head sq)))
 	(lambda () (mutex-unlock! (%lock sq)))))
+
+  ;; this is rather stupid process but needed.
+  ;; scenario: 
+  ;;  A thread (A) which tries to put an object into shared-queue. Then other
+  ;;  thread (B) tries to terminate the thread (A) with thread-terminate! and
+  ;;  the lock is still held by (A). Then (B) re-uses the shared-queue with
+  ;;  abondaned mutex. To avoid the case, we need to have this procedure to
+  ;;  check if the queue is currently locked or not.
+  ;; I know this is a very very very x 1000 bad scenario.
+  (define (shared-queue-locked? sq . maybe-wait?)
+    (let ((wait? (if (null? maybe-wait?) #f (car maybe-wait?))))
+      (and (thread? (mutex-state (%lock sq)))
+	   ;; it's locked so wait if requires
+	   (if wait?
+	       (begin
+		 ;; we just need to try to get lock :)
+		 (mutex-lock! (%lock sq))
+		 (mutex-unlock! (%lock sq))
+		 #f)
+	       #t))))
+	  
 
   ;; priority queue
   ;; we do simply B-tree
@@ -308,7 +331,18 @@
 	 (%spq-size-set! spq 0)
 	 (mutex-unlock! (%spq-lock spq)))
       (vector-set! es i #f)))
-  
+
+  (define (shared-priority-queue-locked? sq . maybe-wait?)
+    (let ((wait? (if (null? maybe-wait?) #f (car maybe-wait?))))
+      (and (thread? (mutex-state (%spq-lock sq)))
+	   ;; it's locked so wait if requires
+	   (if wait?
+	       (begin
+		 ;; we just need to try to get lock :)
+		 (mutex-lock! (%spq-lock sq))
+		 (mutex-unlock! (%spq-lock sq))
+		 #f)
+	       #t))))  
   )
 
 ;; Local Variables:

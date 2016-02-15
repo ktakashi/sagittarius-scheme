@@ -202,6 +202,7 @@
     ;; clear all pending tasks.
     ;; the thread is terminated, so it's not interesting anymore
     (shared-queue-clear! q)
+    (shared-queue-locked? idlings #t)
     (thread-terminate! t) ;; this is dangerous, don't do it casually!
     (vector-set! queues id nq)
     ;; prepare for next time

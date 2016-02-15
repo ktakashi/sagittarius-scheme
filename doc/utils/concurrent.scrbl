@@ -543,4 +543,14 @@ the @var{timeout}, then @var{timeout-val} is returned.
 @desc{Finds an elements which satisfies @var{pred}. This operations locks the
 given @var{shared-queue}.}
 
+@define[Function]{@name{shared-queue-locked?}
+ @args{shared-queue :optional (wait? #f)}}
+@desc{Returns #t if the given @var{shared-queue} is locked by other thread,
+otherwise #f.
+
+If the optional argument @var{wait?} is given, then the procedure waits
+until the queue is available and returns #f.
+}
+
+
 @; TODO shared priority queue
