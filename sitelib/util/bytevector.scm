@@ -213,7 +213,11 @@
 ;; srfi 13 things
 ;; helper
 (define (u8? n) (and (integer? n) (<= 0 n #xFF)))
-(define (u8-set? o) (and (pair? o) (for-all u8? o)))
+(define (u8-set? o) 
+  (and (pair? o)
+       (let loop ((l o))
+	 (or (null? l)
+	     (and (u8? (car l)) (loop (cdr l)))))))
 (define (string->u8-set s) (map char->integer (string->list s)))
 (define (char-set->u8-set cset)
   (map char->integer
@@ -314,7 +318,7 @@
 ;; search
 
 ;; sort of set operation
-(define (u8-set-contains? set u8) (exists (cut eqv? <> u8) set))
+(define (u8-set-contains? set u8) (memv u8 set))
 
 (define (bytevector-index bv criterion
 	  :optional (start 0) (end (bytevector-length bv)))
