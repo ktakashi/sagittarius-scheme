@@ -1,8 +1,8 @@
 ;;; -*- Scheme -*-
 ;;;
-;;; 5322.scm - RFC5322 Internet Message Format
+;;; rfc/%3a5322.scm - RFC5322 Internet Message Format
 ;;;  
-;;;   Copyright (c) 2009-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2009-2016  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -101,7 +101,44 @@
   (define (rfc5322-read-headers in :optional (strict? #f)
 				     (reader (cut rfc5322-line-reader <>)))
     (define (accum name bodies r)
-      (cons (list name (string-concatenate-reverse bodies)) r))
+      ;; simple optimisation, check length (20% performance improvement)
+      (if (null? (cdr bodies))
+	  (cons (list name (car bodies)) r)
+	  (cons (list name (string-concatenate-reverse bodies)) r)))
+    
+    ;; Couple of simplified SRFI-13 procedures for performance.
+    ;; (50% performace improvement in total)
+    (define (string-every char-set s)
+      (define len (string-length s))
+      (let loop ((i 0))
+	(or (= i 0)
+	    (and (char-set-contains? char-set (string-ref s i))
+		 (loop (+ i 1))))))
+    (define (string-trim-both str)
+      (define len (string-length str))
+      (define (find-start s)
+	(let loop ((i 0))
+	  (cond ((= i len) i) ;; all white space
+		((char-whitespace? (string-ref s i)) (loop (+ i 1)))
+		(else i))))
+      (define (find-end s)
+	(let loop ((i (- len 1)))
+	  (cond ((< i 0) -1) ;; all white space (never reach here)
+		((char-whitespace? (string-ref s i)) (loop (- i 1)))
+		(else (+ i 1)))))
+      (let* ((start (find-start str))
+	     (end   (if (= start len) len (find-end str))))
+	(substring str start end)))
+    (define (string-trim str)
+      (define len (string-length str))
+      (define (find-start s)
+	(let loop ((i 0))
+	  (cond ((= i len) i) ;; all white space
+		((char-whitespace? (string-ref s i)) (loop (+ i 1)))
+		(else i))))
+      (let* ((start (find-start str)))
+	(substring str start len)))
+
     (define drop-leading-fws string-trim)
 
     (let loop ((r '())

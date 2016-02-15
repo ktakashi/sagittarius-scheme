@@ -1,5 +1,5 @@
 ;; -*- mode:scheme; coding:utf-8 -*-
-#< (sagittarius regex) >
+#!read-macro=sagittarius/regex
 (import (rnrs)
 	(rfc :5322)
 	(sagittarius regex)
