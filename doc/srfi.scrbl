@@ -251,6 +251,18 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{lseqs} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-128/srfi-128.html"]{SRFI-128}}
+    @td{(srfi :128 comparators)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :128)}. So for the portability it's better to use the
+    @code{(srfi :128)}.
+
+    The name @code{comparators} is taken from sample implementation.
+
+    The library is implemented on top of SRFI-114. So comparators created
+    by this SRFI's API can be used SRFI-114 APIs. But not other way around.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-131/srfi-131.html"]{SRFI-131}}
     @td{(srfi :131 records)
 
