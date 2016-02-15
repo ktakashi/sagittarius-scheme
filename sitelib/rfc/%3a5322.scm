@@ -90,12 +90,17 @@
 
   (define (rfc5322-line-reader port)
     (define (get-line port)
+      (define (strip-carrige bv)
+	(define len (bytevector-length bv))
+	(if (= #x0d (bytevector-u8-ref bv (- len 1)))
+	    (bytevector-copy bv 0 (- len 1))
+	    bv))
       (if (textual-port? port)
 	  (read-line port) ;; this can handle all known eol
 	  (let ((bv (binary:get-line port)))
 	    (if (eof-object? bv)
 		bv
-		(utf8->string (bytevector-trim-right bv '(#x0d)))))))
+		(utf8->string (strip-carrige bv))))))
     (get-line port))
 
   (define (rfc5322-read-headers in :optional (strict? #f)
@@ -128,7 +133,9 @@
 		(else (+ i 1)))))
       (let* ((start (find-start str))
 	     (end   (if (= start len) len (find-end str))))
-	(substring str start end)))
+	(if (and (zero? start) (= end len)) 
+	    str
+	    (substring str start end))))
     (define (string-trim str)
       (define len (string-length str))
       (define (find-start s)
@@ -137,7 +144,9 @@
 		((char-whitespace? (string-ref s i)) (loop (+ i 1)))
 		(else i))))
       (let* ((start (find-start str)))
-	(substring str start len)))
+	(if (zero? start)
+	    str
+	    (substring str start len))))
 
     (define drop-leading-fws string-trim)
 
