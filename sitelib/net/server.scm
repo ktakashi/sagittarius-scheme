@@ -159,7 +159,7 @@
 		(handler server socket)))
 	    (let ((active (filter (lambda (o) (not (socket-closed? o))) 
 				  sockets))
-		  (tid (*thread-pool-current-thread-id*)))
+		  (tid (thread-pool-current-thread-id)))
 	      (notify-info tid (length active))
 	      (loop (retrieve-sockets active))))))
 

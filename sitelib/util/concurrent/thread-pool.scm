@@ -41,8 +41,7 @@
 	  thread-pool-thread
 	  thread-pool-thread-id
 	  thread-pool-thread-task-running?
-	  ;; parameter for pooled threads
-	  *thread-pool-current-thread-id*
+	  thread-pool-current-thread-id
 	  )
   (import (rnrs)
 	  (srfi :18)
@@ -50,6 +49,8 @@
 	  (util concurrent shared-queue))
 
 (define *thread-pool-current-thread-id* (make-parameter #f))
+;; make it readonly
+(define (thread-pool-current-thread-id) (*thread-pool-current-thread-id*))
 
 (define (make-executor idlings i queue error-handler)
   (lambda ()

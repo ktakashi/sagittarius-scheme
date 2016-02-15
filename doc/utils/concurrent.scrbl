@@ -422,6 +422,25 @@ NOTE: terminating a thread is very dangerous operation, so don't use casually.
 @define[Function]{@name{thread-pool-thread} @args{thread-pool id}}
 @desc{Retrieves the pooled thread associated with given @var{id} from
 given @var{thread-pool}.
+
+It signals an error if the given @var{id} is not a thread id.
+}
+
+@define[Function]{@name{thread-pool-thread-id} @args{thread-pool thread}}
+@desc{Retrieves the pooled thread id associated with given @var{thread} from
+given @var{thread-pool}. The procedure takes O(n) where n is number of threads
+managed by the @var{thread-pool}. It might be better to use
+@code{(thread-pool-current-thread-id)} procedure to retrieve thread id from
+managed threads.
+
+It signals an error if the given @var{thread} is not a managed thread.
+
+NOTE: if the thread is terminated, then the procedure also signals an error.
+}
+
+@define[Function]{@name{(thread-pool-current-thread-id)}}
+@desc{Retrieves thread id of current thread. If the current thread is not
+a managed thread, then #f is returned.
 }
 
 @define[Function]{@name{thread-pool-thread-terminate!} @args{thread-pool id}}
@@ -442,7 +461,7 @@ running. Otherwise #f.
 @desc{A sub library of @code{(util concurrent)}. This library provides
 shared queue APIs.}
 
-A shared queue is a queue which operations are done atomically.
+A shared queue is a queue whose operations are done atomically.
 
 @codeblock[=> 25]{
 (import (rnrs) (util concurrent) (srfi :18))
@@ -519,5 +538,9 @@ the @var{timeout}, then @var{timeout-val} is returned.
 
 @define[Function]{@name{shared-queue-clear!} @args{shared-queue}}
 @desc{Clears all element inside of @var{shared-queue}.}
+
+@define[Function]{@name{shared-queue-find} @args{shared-queue pred}}
+@desc{Finds an elements which satisfies @var{pred}. This operations locks the
+given @var{shared-queue}.}
 
 @; TODO shared priority queue
