@@ -41,13 +41,19 @@
 	  thread-pool-thread
 	  thread-pool-thread-id
 	  thread-pool-thread-task-running?
+	  ;; parameter for pooled threads
+	  *thread-pool-current-thread-id*
 	  )
   (import (rnrs)
 	  (srfi :18)
+	  (srfi :39)
 	  (util concurrent shared-queue))
+
+(define *thread-pool-current-thread-id* (make-parameter #f))
 
 (define (make-executor idlings i queue error-handler)
   (lambda ()
+    (*thread-pool-current-thread-id* i)
     (let loop ()
       (shared-queue-put! idlings i)
       ;; when task is pushed then this thread id is popped from the
