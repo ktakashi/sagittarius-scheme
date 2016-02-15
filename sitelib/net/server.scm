@@ -105,7 +105,7 @@
 
   (define (make-server-config . opt) (apply make <server-config> opt))
 
-  (define (make-non-blocking-process handler config)
+  (define (make-non-blocking-process server handler config)
     (define num-threads (~ config 'max-thread))
     (define thread-pool (make-thread-pool num-threads raise))
     (define socket-manager
@@ -137,7 +137,7 @@
     ;; and less than number of threads
     (define channels (make-vector num-threads #f))
 
-    (define (make-task server socket)
+    (define (make-task server)
       (define channel (make-shared-queue))
       (define (task)
 	(define (retrieve-sockets init)
@@ -164,22 +164,21 @@
 	      (loop (retrieve-sockets active))))))
 
       (values task channel))
+
+    (dotimes (i num-threads)
+      (let-values (((task channel) (make-task server)))
+	(let ((id (thread-pool-push-task! thread-pool task)))
+	  (notify-info id 0)
+	  (vector-set! channels id channel))))
     ;; process
     (lambda (server socket)
-      (if (thread-pool-idling? thread-pool)
-	  (let-values (((task channel) (make-task server socket)))
-	    (let ((id (thread-pool-push-task! thread-pool task)))
-	      (notify-info id 1)
-	      (shared-queue-put! channel socket)
-	      (vector-set! channels id channel)))
-
-	  (let* ((info (shared-priority-queue-get! socket-manager))
-		 (thread-id (car info)))
-	    (let ((channel (vector-ref channels thread-id)))
-	      (let ((thread (thread-pool-thread thread-pool thread-id)))
-		(notify-info thread-id (+ (cdr info) 1))
-		(shared-queue-put! channel socket)
-		(thread-interrupt! thread)))))))
+      (let* ((info (shared-priority-queue-get! socket-manager))
+	     (thread-id (car info)))
+	(let ((channel (vector-ref channels thread-id)))
+	  (let ((thread (thread-pool-thread thread-pool thread-id)))
+	    (notify-info thread-id (+ (cdr info) 1))
+	    (shared-queue-put! channel socket)
+	    (thread-interrupt! thread))))))
   
 
   (define (make-simple-server port handler
@@ -187,9 +186,10 @@
 				   ;; must have default config
 			           (config (make-server-config))
 			      :allow-other-keys rest)
+    (define server (apply make server-class :config config :port port rest))
     (define dispatch
       (if (~ config 'non-blocking?)
-	  (make-non-blocking-process handler config)
+	  (make-non-blocking-process server handler config)
 	  ;; normal one. 
 	  (let ((executor (and (> (~ config 'max-thread) 1)
 			       (make-thread-pool-executor 
@@ -210,7 +210,8 @@
 		  (let ((f (future (class <executor-future>) (handle socket))))
 		    (execute-future! executor f))
 		  (handle socket))))))
-    (apply make server-class :dispatch dispatch :config config :port port rest))
+    (slot-set! server 'dispatch dispatch)
+    server)
 
   (define (initialise-server! server)
     (define config (~ server 'config))
