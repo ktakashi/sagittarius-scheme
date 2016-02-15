@@ -26,7 +26,8 @@
 	  (sagittarius)
 	  (sagittarius regex)
 	  (sagittarius control)
-	  (util hashtables)
+	  (rename (util hashtables) 
+		  (hashtable->alist hashtable->unorderd-alist))
 	  (match))
 
   (define (pregexp-substring s match index)
@@ -57,6 +58,9 @@
 	    (else
 	     (get-line port)))))
 
+  (define (hashtable->alist ht)
+    (list-sort (lambda (e1 e2) (< (car e1) (car e2)))
+	       (hashtable->unorderd-alist ht)))
   (define (for-each-ucd-line proc input)
     (let loop ()
       (let ((line (read-ucd-line input)))

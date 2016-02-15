@@ -19,9 +19,13 @@
 	  (sagittarius regex)
 	  (sagittarius object)
 	  (sagittarius control)
-	  (util hashtables)
+	  (rename (util hashtables)
+		  (hashtable->alist hashtable->unorderd-alist))
 	  (match))
 
+  (define (hashtable->alist ht)
+    (list-sort (lambda (e1 e2) (< (car e1) (car e2)))
+	       (hashtable->unorderd-alist ht)))
   (define (ucd-file filename)
     (string-append (current-directory) "/data/" filename))
 

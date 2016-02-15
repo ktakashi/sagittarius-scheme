@@ -922,6 +922,9 @@ SgObject Sg_CategroyToSymbol(GeneralCategory cate)
   {								\
     const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
     int i;							\
+    if (ch < SG_CPP_CAT(s_, name)[0].in) return -1;		\
+    if (ch > SG_CPP_CAT(s_, name)[size-1].in) return -1;	\
+    /* TODO maybe binary search? */				\
     for (i = 0; i < size; i++) {				\
       if (SG_CPP_CAT(s_, name)[i].in == ch) return i;		\
     }								\
