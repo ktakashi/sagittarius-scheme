@@ -376,26 +376,50 @@
 (define char-ci>=? (lambda lst (apply char>=? (map char-foldcase lst))))
 
 ;; 1.2 strings
-;; from Ypsilon
 (define string-ci=?
-  (lambda strings
-    (apply string=? (map string-foldcase strings))))
+  (lambda (s1 s2 . strings)
+    (let loop ((s1 (string-foldcase s1))
+	       (s2 (string-foldcase s2))
+	       (s* strings))
+      (and (string=? s1 s2)
+	   (or (null? s*)
+	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
 
 (define string-ci<?
-  (lambda strings
-    (apply string<? (map string-foldcase strings))))
+  (lambda (s1 s2 . strings)
+    (let loop ((s1 (string-foldcase s1))
+	       (s2 (string-foldcase s2))
+	       (s* strings))
+      (and (string<? s1 s2)
+	   (or (null? s*)
+	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
 
 (define string-ci>?
-  (lambda strings
-    (apply string>? (map string-foldcase strings))))
+  (lambda (s1 s2 . strings)
+    (let loop ((s1 (string-foldcase s1))
+	       (s2 (string-foldcase s2))
+	       (s* strings))
+      (and (string>? s1 s2)
+	   (or (null? s*)
+	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
 
 (define string-ci<=?
-  (lambda strings
-    (apply string<=? (map string-foldcase strings))))
+  (lambda (s1 s2 . strings)
+    (let loop ((s1 (string-foldcase s1))
+	       (s2 (string-foldcase s2))
+	       (s* strings))
+      (and (string<=? s1 s2)
+	   (or (null? s*)
+	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
 
 (define string-ci>=?
-  (lambda strings
-    (apply string>=? (map string-foldcase strings))))
+  (lambda (s1 s2 . strings)
+    (let loop ((s1 (string-foldcase s1))
+	       (s2 (string-foldcase s2))
+	       (s* strings))
+      (and (string>=? s1 s2)
+	   (or (null? s*)
+	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
 
 ;; 2 Bytevectors
 ;; 2.4 operations on integers of arbitary size
