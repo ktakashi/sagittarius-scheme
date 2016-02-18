@@ -407,6 +407,11 @@
 	    '(create-table t ((a int (default (nextval "seq")) 
 				 (constraint not-null))
 			      (b varchar))))
+(test-parse "create table t (a int default nextval('seq') not null unique, b varchar)"
+	    '(create-table t ((a int (default (nextval "seq")) 
+				 (constraint not-null)
+				 (constraint unique))
+			      (b varchar))))
 (test-parse "create table t (id int generated always as identity (start with 1 increment by 1 no cycle))"
 	    '(create-table t ((id int (generated-always-as-identity 
 				       (start-with 1)

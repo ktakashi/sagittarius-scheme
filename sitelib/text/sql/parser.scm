@@ -317,7 +317,7 @@
 		     o <- column-option-list)
 		    `(with-options ,c ,@o)))
    (column-option-list ((s <- scope-clause? d <- default-clause? 
-			 c <- column-constraint-definition?)
+			 c <- column-constraint-definitions?)
 			`(,@s ,@d ,@c)))
    (subtable-clause? (('under n <- table-name) `((under ,n)))
 		     (() '()))
@@ -355,14 +355,18 @@
 			t <- data-type/domain-name?
 			r <- reference-scope-check?
 			d <- default-clause/identity-column-specification/generation-clause?
-			c <- column-constraint-definition?
+			c <- column-constraint-definitions?
 			o <- collate-clause?)
 		       `(,n ,@t ,@r ,@d ,@c ,@o)))
    (data-type/domain-name? ((d <- data-type) (list d))
 			   ((i <- identifier-chain) (list i))
 			   (() '()))
 
-   (column-constraint-definition? ((c <- column-constraint-definition) (list c))
+   (column-constraint-definitions? ((c <- column-constraint-definitions) c)
+				   (() '()))
+   (column-constraint-definitions ((c <- column-constraint-definition
+				    c* <- column-constraint-definitions)
+				   (cons c c*))
 				  (() '()))
    (column-constraint-definition ((n <- constraint-name-definition?
 				   c <- column-constraint
