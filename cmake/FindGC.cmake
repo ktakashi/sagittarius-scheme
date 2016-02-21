@@ -50,13 +50,14 @@ ELSE()
 ENDIF()
 
 # For FreeBSD we need to use gc-threaded
-IF(${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
+IF (${CMAKE_SYSTEM_NAME} STREQUAL "FreeBSD")
   # checks if 'gc' supports 'GC_get_parallel' and if it does
   # then use it
   INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
   # not sure if this links properly...
   FIND_LIBRARY(BOEHM_GC_LIBRARIES NAMES gc
     HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
+  MESSAGE(STATUS "GC library ${BOEHM_GC_LIBRARIES}")
   SET(CMAKE_REQUIRED_LIBRARIES "gc")
   SET(CMAKE_REQUIRED_DEFINITIONS "-DGC_THREADS")
   SET(CMAKE_REQUIRED_INCLUDES "${BOEHM_GC_INCLUDE_DIR}")
@@ -71,24 +72,16 @@ return 0;
 " GC_GET_PARALLEL_WORKS)
   IF (NOT GC_GET_PARALLEL_WORKS)
     MESSAGE(STATUS "Try gc-threaded")
-    SET(CMAKE_REQUIRED_LIBRARIES "gc-threaded")
-    SET(CMAKE_REQUIRED_DEFINITIONS "-DGC_THREADS")
-    SET(CMAKE_REQUIRED_INCLUDES "${BOEHM_GC_INCLUDE_DIR}")
-    SET(CMAKE_REQUIRED_FLAGS "-L${PC_BDW_GC_LIBRARY_DIRS}")
-    FIND_LIBRARY(BOEHM_GC_LIBRARIES NAMES gc-threaded
-      HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
-    CHECK_C_SOURCE_RUNS(
-      "#include <gc.h>
-int main() {
-int i=GC_get_parallel();
-return 0;
-}
-" GC_GET_THREADED_PARALLEL_WORKS)
-    IF(GC_GET_THREADED_PARALLEL_WORKS)
-      # If non threaded library is installed, then for some reason CMake
-      # would pick the wrong one (libgc.so). To avoid that, we make sure
-      # libgc-threaded.so will be used.
-      SET(BOEHM_GC_LIBRARIES "${PC_BDW_GC_LIBRARY_DIRS}/libgc-threaded.so")
+
+    # bdw-gc-threaded is the proper name for FreeBSD pkg-config
+    PKG_CHECK_MODULES(PC_BDW_GC_THREADED bdw-gc-threaded)
+    FIND_LIBRARY(BOEHM_GC_THREADED_LIBRARIES NAMES gc-threaded
+      HINTS ${PC_BDW_GC_THREADED_LIBDIR} ${PC_BDW_GC_THREADED_THREADED_DIRS})
+
+    MESSAGE(STATUS "GC threaded library ${BOEHM_GC_THREADED_LIBRARIES}")
+    IF (BOEHM_GC_THREADED_LIBRARIES)
+      # OK just use it
+      SET(BOEHM_GC_LIBRARIES "${BOEHM_GC_THREADED_LIBRARIES}")
     ENDIF()
   ENDIF()
 ELSE()
@@ -101,6 +94,8 @@ ELSE()
       HINTS ${PC_BDW_GC_LIBDIR} ${PC_BDW_GC_LIBRARY_DIRS})
   ENDIF()
 ENDIF()
+
+MESSAGE(STATUS "Found GC library: ${BOEHM_GC_LIBRARIES}")
 
 INCLUDE(FindPackageHandleStandardArgs)
 FIND_PACKAGE_HANDLE_STANDARD_ARGS(Boehm_GC DEFAULT_MSG
