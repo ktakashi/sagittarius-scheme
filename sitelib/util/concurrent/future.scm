@@ -117,7 +117,7 @@
 		(future-result-set! future (shared-queue-get! r))
 		(future-result future))
 	       ((and (not (eq? state 'done)) (procedure? r))
-		(future-result-set! (r future))
+		(future-result-set! future (r future))
 		(future-result future))
 	       (else r))))))
   ;; kinda dummy
