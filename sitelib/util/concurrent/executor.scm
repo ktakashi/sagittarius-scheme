@@ -322,10 +322,11 @@
     ;; newly created one
     (when (assq rtd *registered-executors*)
       (mutex-unlock! *register-lock*)
-      (raise (make-duplicate-executor-registration rtd)
-	     (make-who-condition 'register-executor-methods)
-	     (make-message-condition 
-	      "specified predicate is already registered")))
+      (raise (condition
+	      (make-duplicate-executor-registration rtd)
+	      (make-who-condition 'register-executor-methods)
+	      (make-message-condition 
+	       "specified predicate is already registered"))))
     (set! *registered-executors*
 	  (cons (list rtd pred available? execute shutdown)
 		*registered-executors*))
