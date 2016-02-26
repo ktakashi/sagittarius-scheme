@@ -1416,22 +1416,24 @@
 		   oform flags library p1env))
     ((- name . expr)
      (unless (variable? name) (syntax-error "malformed define" oform))
+     (unless (or (null? expr) (null? (cdr expr)))
+       (syntax-error "malformed define" oform))
      (check-direct-variable name p1env oform #f)
-     (let ((vname (variable-name name))
-	   (id (if (identifier? name)
+     (let ((id (if (identifier? name)
 		   ;; this renames all the same identifier
 		   (rename-pending-identifier! name)
-		   (make-identifier name '() library)))
-	   (dummy (gensym)))
+		   (make-identifier name '() library))))
        (library-defined-add! library (id-name id))
        ($define oform flags
 		id
 		(if (null? expr)
 		    ($undef)
-		    (pass1 (caddr form) 
-			   (p1env-extend/name p1env 
-					      `((,dummy . ,(make-lvar dummy)))
-					      LEXICAL vname))))))
+		    (let ((vname (variable-name name))
+			  (dummy (gensym)))
+		      (pass1 (car expr) 
+			     (p1env-extend/name p1env 
+						`((,dummy . ,(make-lvar dummy)))
+						LEXICAL vname)))))))
     (- (syntax-error "malformed define" oform))))
 
 (define-pass1-syntax (define form p1env) :null
