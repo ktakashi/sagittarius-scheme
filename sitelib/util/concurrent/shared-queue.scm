@@ -49,6 +49,8 @@
 	    shared-priority-queue? make-shared-priority-queue
 	    <shared-priority-queue>
 	    shared-priority-queue-empty? shared-priority-queue-size
+	    shared-priority-queue-max-length
+	    shared-priority-queue-overflows?
 	    shared-priority-queue-put! shared-priority-queue-get!
 	    shared-priority-queue-remove!
 	    shared-priority-queue-clear!
@@ -185,27 +187,30 @@
     (<shared-priority-queue> make-shared-priority-queue shared-priority-queue?)
     (fields (mutable elements %spq-es %spq-es-set!)
 	    (mutable size shared-priority-queue-size %spq-size-set!)
+	    (immutable max-length shared-priority-queue-max-length)
 	    ;; procedure return -1, 0 and 1
 	    (immutable compare shared-priority-queue-compare)
 	    ;; synchronisation stuff
 	    (mutable w %spq-w %spq-w-set!)
 	    (immutable lock %spq-lock)
-	    (immutable cv %spq-cv)
+	    (immutable cv %spq-cv) ;; read CV
+	    (immutable write-cv %spq-wcv)
 	    )
     (protocol 
      (lambda (p)
-       (lambda (compare . maybe-capacity)
-	 (let ((capacity (if (pair? maybe-capacity) (car maybe-capacity) 10)))
+       (lambda (compare . maybe-max)
+	 (let* ((max-length (if (pair? maybe-max) (car maybe-max) -1))
+		(capacity (if (>= max-length 0) max-length 10)))
 	   (unless (integer? capacity)
 	     (assertion-violation 'make-shared-priority-queue
 				  "capacity must be an integer" capacity))
-	   (p (make-vector capacity) 0 compare 0 (make-mutex) 
-	      (make-condition-variable)))))))
+	   (p (make-vector capacity) 0 max-length compare 0 (make-mutex) 
+	      (make-condition-variable) (make-condition-variable)))))))
 
   (define (shared-priority-queue-empty? spq) 
     (zero? (shared-priority-queue-size spq)))
 
-  (define (shared-priority-queue-put! spq o)
+  (define (shared-priority-queue-put! spq o . maybe-timeout)
     (define size (shared-priority-queue-size spq))
     (define (grow! spq min-capacity)
       (define old (%spq-es spq))
@@ -218,18 +223,33 @@
 	    ((= i size))
 	  (vector-set! new i (vector-ref old i)))
 	(%spq-es-set! spq new)))
-	      
+    ;; timeout
+    (define timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
+    (define timeout-value (if (and (pair? maybe-timeout)
+				   (pair? (cdr maybe-timeout)))
+			      (cadr maybe-timeout)
+			      #f))
+
     (mutex-lock! (%spq-lock spq))
-    (%spq-w-set! spq (+ (%spq-w spq) 1))
-    (when (>= size (vector-length (%spq-es spq)))
-      (grow! spq (+ size 1)))
-    (if (zero? size)
-	(vector-set! (%spq-es spq) 0 o)
-	(shift-up spq size o))
-    (%spq-size-set! spq (+ size 1))
-    (when (> (%spq-w spq) 0)
-      (condition-variable-broadcast! (%spq-cv spq)))
-    (mutex-unlock! (%spq-lock spq)))
+    (let loop ()
+      (cond ((if (zero? (shared-priority-queue-max-length spq))
+		 (zero? (%spq-w spq))
+		 (shared-priority-queue-overflows? spq 1))
+	     (cond ((mutex-unlock! (%spq-lock spq) (%spq-wcv spq) timeout)
+		    (mutex-lock! (%spq-lock spq))
+		    (loop))
+		   (else timeout-value)))
+	    (else
+	     (when (>= size (vector-length (%spq-es spq)))
+	       (grow! spq (+ size 1)))
+	     (if (zero? size)
+		 (vector-set! (%spq-es spq) 0 o)
+		 (shift-up spq size o))
+	     (%spq-size-set! spq (+ size 1))
+	     (when (> (%spq-w spq) 0)
+	       (condition-variable-broadcast! (%spq-cv spq)))
+	     (mutex-unlock! (%spq-lock spq))
+	     o))))
 
   (define (shared-priority-queue-get! spq . maybe-timeout)
     (let ((timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
@@ -239,6 +259,7 @@
 			     #f)))
       (mutex-lock! (%spq-lock spq))
       (%spq-w-set! spq (+ (%spq-w spq) 1))
+      (condition-variable-broadcast! (%spq-wcv spq))
       (let loop ()
 	(cond ((shared-priority-queue-empty? spq)
 	       (cond ((mutex-unlock! (%spq-lock spq) (%spq-cv spq) timeout)
@@ -320,6 +341,12 @@
 		    (vector-set! es k o)
 		    (loop child)))))
 	  (vector-set! es k x))))
+
+  (define (shared-priority-queue-overflows? spq count)
+    (and (>= (shared-priority-queue-max-length spq) 0)
+	 (> (+ count (shared-priority-queue-size spq)) 
+	    (shared-priority-queue-max-length spq))))
+
 
   (define (shared-priority-queue-clear! spq) 
     (mutex-lock! (%spq-lock spq))

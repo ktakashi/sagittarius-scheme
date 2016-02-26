@@ -13,6 +13,198 @@
 (define executor-pool-size thread-pool-executor-pool-size)
 (define executor-max-pool-size thread-pool-executor-max-pool-size)
 
+;; shared-queue
+(let ()
+  (define (open-account initial-amount out)
+    (define shared-queue (make-shared-queue))
+    (define (process)
+      (define balance initial-amount)
+      (let loop ()
+	(match (shared-queue-get! shared-queue)
+	  (('withdrow how-much)
+	   (if (< balance how-much)
+	       (begin (shared-queue-put! out "invalid amount") (loop))
+	       (begin
+		 (set! balance (- balance how-much))
+		 (shared-queue-put! out (cons how-much balance))
+		 (loop))))
+	  (('deposite a)
+	   (if (negative? a)
+	       (begin (shared-queue-put! out "invalid amount") (loop))
+	       (begin
+		 (set! balance (+ balance a))
+		 (shared-queue-put! out (cons 0 balance))
+		 (loop))))
+	  (('close) #t)
+	  (else "invalid message"0))))
+
+    (let ((t (make-thread process)))
+      (thread-start! t)
+      shared-queue))
+
+  (define recepit (make-shared-queue))
+  (define client (open-account 1000 recepit))
+  (define eager-client
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(test-equal "shared-queue-get (wait)" '(100 . 900)
+		    (shared-queue-get! recepit))))))
+
+  (shared-queue-put! client '(withdrow 100))
+  (shared-queue-put! client '(deposite 100))
+  (shared-queue-put! client '(close))
+  ;; wait until eager client is done
+  (thread-join! eager-client)
+
+  (test-equal "size"  1 (shared-queue-size recepit))
+  (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
+  (test-assert "empty?" (shared-queue-empty? recepit))
+  )
+
+;; max-length test
+(let ()
+  (define shared-queue (make-shared-queue 1))
+  (test-equal "max-length" 1 (shared-queue-max-length shared-queue))
+
+  (test-equal "shared-queue-put!" 1 (shared-queue-put! shared-queue 1))
+  (test-equal "shared-queue-put! (timeout)" 'boom 
+	      (shared-queue-put! shared-queue 1 1 'boom))
+  (test-assert "shared-queue-overflows?" 
+	       (shared-queue-overflows? shared-queue 1))
+  )
+
+;; max-length 0
+(let ()
+  (define shared-queue (make-shared-queue 0))
+  (define results '())
+  (define reader
+    (make-thread
+     (lambda ()
+       (set! results (cons 'r results))
+       (shared-queue-get! shared-queue))))
+
+  (define writer
+    (thread-start!
+     (make-thread
+      (lambda ()
+	(shared-queue-put! shared-queue 'wakeup)
+	(set! results (cons 'w results))
+	'awake))))
+  (test-equal "max-length" 0 (shared-queue-max-length shared-queue))
+  (test-assert "shared-queue-overflows?" 
+	       (shared-queue-overflows? shared-queue 1))
+  ;; queue dosn't have reader
+  (test-equal "shared-queue-put!  (timeout)"
+	      #f (shared-queue-put! shared-queue 1 0 #f))
+  (thread-start! reader)
+  (test-equal "join!" 'wakeup (thread-join! reader))
+  (test-equal "join!" 'awake (thread-join! writer))
+  (test-equal "results" '(w r) results)
+  )
+
+;; shared-priority-queue
+(let ()
+  (define spq (make-shared-priority-queue compare))
+  (define (push . args)
+    (for-each (lambda (arg)
+		(test-equal (format "shared-priority-queue-put! ~a" arg) arg
+			    (shared-priority-queue-put! spq arg)))
+	      args))
+  (define (pop . args)
+    (for-each (lambda (arg)
+		(test-equal (format "shared-priority-queue-get! ~a" arg)
+			    arg
+			    (shared-priority-queue-get! spq)))
+	      args))
+  (push 10 8 1 9 7 5 6)
+  (pop 1 5 6 7 8 9 10)
+
+  (push 9 8 10)
+  (test-assert "shared-priority-queue-remove! (1)"
+	       (shared-priority-queue-remove! spq 9))
+  (test-assert "shared-priority-queue-remove! (2)"
+	       (not (shared-priority-queue-remove! spq 9)))
+  (pop 8 10)
+
+  (let* ((lock (make-mutex))
+	 (cv (make-condition-variable))
+	 (ready? #f)
+	 (f (make-thread
+	      (lambda ()
+		;; wait until ready
+		(unless ready? (mutex-unlock! lock cv))
+		;; get all
+		(let loop ((r '()))
+		  (if (shared-priority-queue-empty? spq)
+		      (reverse! r)
+		      (loop (cons (shared-priority-queue-get! spq) r))))))))
+    (mutex-lock! lock)
+    (thread-start! f)
+    (push 5 1 7 2 8 4 6 3)
+    ;; on single core environment, the thread would be executed after
+    ;; the main thread process is done. so we need to do this trick,
+    ;; otherwise it wait until condition-variable is signaled which
+    ;; is already done by main thread...
+    (set! ready? #t)
+    (condition-variable-broadcast! cv)
+    (mutex-unlock! lock)
+    (test-equal "sync" '(1 2 3 4 5 6 7 8) (thread-join! f))))
+
+(let ()
+  (define spq (make-shared-priority-queue compare 1))
+  (test-equal "max-length" 1 (shared-priority-queue-max-length spq))
+
+  (test-equal "shared-priority-queue-put!" 1 
+	      (shared-priority-queue-put! spq 1))
+  (test-equal "shared-priority-queue-put! (timeout)" 'boom 
+	      (shared-priority-queue-put! spq 1 1 'boom))
+  (test-assert "shared-queue-overflows?" 
+	       (shared-priority-queue-overflows? spq 1))
+  )
+
+;; thread-pool
+(let ((pool (make-thread-pool 5)))
+  (define (crop sq)
+    (let loop ((r '()))
+      (if (shared-queue-empty? sq)
+	  r
+	  (loop (cons (shared-queue-get! sq) r)))))
+  (define (custom-add-to-back n)
+    (if (negative? n)
+	(error 'dummy "failed to add")
+	#f))
+  (test-assert "thread-pool?" (thread-pool? pool))
+  (test-equal "size" 5 (thread-pool-size pool))
+  (test-equal "idling count" 5 (thread-pool-idling-count pool))
+  (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
+  (test-assert "wait!" (thread-pool-wait-all! pool))
+  (let ((sq (make-shared-queue)))
+    (do ((i 0 (+ i 1)))
+	((= i 10)
+	 (thread-pool-wait-all! pool)
+	 (test-equal "result"
+		     '(0 1 2 3 4 5 6 7 8 9)
+		     (list-sort < (crop sq))))
+      (thread-pool-push-task! pool
+			      (lambda ()
+				(thread-sleep! 0.1)
+				(shared-queue-put! sq i)))))
+  (test-error "optional handler" error?
+	      (do ((i 0 (+ i 1)))
+		  ((= i 10) (thread-pool-wait-all! pool) #f)
+		(thread-pool-push-task! pool
+					;; just wait
+					(lambda () (thread-sleep! 1))
+					custom-add-to-back)))
+  )
+
+(let ((pool (make-thread-pool 1 raise)))
+  (test-error "thread-pool error-handler"
+	      error?
+	      (thread-pool-release!
+	       (thread-pool-push-task! pool (lambda () (error 'dummy "msg"))))))
+
 ;; simple future
 (let ((f1 (future 'ok))
       (f2 (future (error 'dummy "dummy"))))
@@ -136,185 +328,5 @@
 	      (begin (thread-join! t1) (thread-join! t2)))
   )
 
-;; shared-queue
-(let ()
-  (define (open-account initial-amount out)
-    (define shared-queue (make-shared-queue))
-    (define (process)
-      (define balance initial-amount)
-      (let loop ()
-	(match (shared-queue-get! shared-queue)
-	  (('withdrow how-much)
-	   (if (< balance how-much)
-	       (begin (shared-queue-put! out "invalid amount") (loop))
-	       (begin
-		 (set! balance (- balance how-much))
-		 (shared-queue-put! out (cons how-much balance))
-		 (loop))))
-	  (('deposite a)
-	   (if (negative? a)
-	       (begin (shared-queue-put! out "invalid amount") (loop))
-	       (begin
-		 (set! balance (+ balance a))
-		 (shared-queue-put! out (cons 0 balance))
-		 (loop))))
-	  (('close) #t)
-	  (else "invalid message"0))))
-
-    (let ((t (make-thread process)))
-      (thread-start! t)
-      shared-queue))
-
-  (define recepit (make-shared-queue))
-  (define client (open-account 1000 recepit))
-  (define eager-client
-    (thread-start!
-     (make-thread
-      (lambda ()
-	(test-equal "shared-queue-get (wait)" '(100 . 900)
-		    (shared-queue-get! recepit))))))
-
-  (shared-queue-put! client '(withdrow 100))
-  (shared-queue-put! client '(deposite 100))
-  (shared-queue-put! client '(close))
-  ;; wait until eager client is done
-  (thread-join! eager-client)
-
-  (test-equal "size"  1 (shared-queue-size recepit))
-  (test-equal "shared-queue-get (2)" '(0 . 1000) (shared-queue-get! recepit))
-  (test-assert "empty?" (shared-queue-empty? recepit))
-  )
-
-;; max-length test
-(let ()
-  (define shared-queue (make-shared-queue 1))
-  (test-equal "max-length" 1 (shared-queue-max-length shared-queue))
-
-  (test-equal "shared-queue-put!" 1 (shared-queue-put! shared-queue 1))
-  (test-equal "shared-queue-put! (timeout)" 'boom 
-	      (shared-queue-put! shared-queue 1 1 'boom))
-  (test-assert "shared-queue-overflows?" 
-	       (shared-queue-overflows? shared-queue 1))
-  )
-
-;; max-length 0
-(let ()
-  (define shared-queue (make-shared-queue 0))
-  (define results '())
-  (define reader
-    (make-thread
-     (lambda ()
-       (set! results (cons 'r results))
-       (shared-queue-get! shared-queue))))
-
-  (define writer
-    (thread-start!
-     (make-thread
-      (lambda ()
-	(shared-queue-put! shared-queue 'wakeup)
-	(set! results (cons 'w results))
-	'awake))))
-  (test-equal "max-length" 0 (shared-queue-max-length shared-queue))
-  (test-assert "shared-queue-overflows?" 
-	       (shared-queue-overflows? shared-queue 1))
-  ;; queue dosn't have reader
-  (test-equal "shared-queue-put!  (timeout)"
-	      #f (shared-queue-put! shared-queue 1 0 #f))
-  (thread-start! reader)
-  (test-equal "join!" 'wakeup (thread-join! reader))
-  (test-equal "join!" 'awake (thread-join! writer))
-  (test-equal "results" '(w r) results)
-  )
-
-;; thread-pool
-(let ((pool (make-thread-pool 5)))
-  (define (crop sq)
-    (let loop ((r '()))
-      (if (shared-queue-empty? sq)
-	  r
-	  (loop (cons (shared-queue-get! sq) r)))))
-  (define (custom-add-to-back n)
-    (if (negative? n)
-	(error 'dummy "failed to add")
-	#f))
-  (test-assert "thread-pool?" (thread-pool? pool))
-  (test-equal "size" 5 (thread-pool-size pool))
-  (test-equal "idling count" 5 (thread-pool-idling-count pool))
-  (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
-  (test-assert "wait!" (thread-pool-wait-all! pool))
-  (let ((sq (make-shared-queue)))
-    (do ((i 0 (+ i 1)))
-	((= i 10)
-	 (thread-pool-wait-all! pool)
-	 (test-equal "result"
-		     '(0 1 2 3 4 5 6 7 8 9)
-		     (list-sort < (crop sq))))
-      (thread-pool-push-task! pool
-			      (lambda ()
-				(thread-sleep! 0.1)
-				(shared-queue-put! sq i)))))
-  (test-error "optional handler" error?
-	      (do ((i 0 (+ i 1)))
-		  ((= i 10) (thread-pool-wait-all! pool) #f)
-		(thread-pool-push-task! pool
-					;; just wait
-					(lambda () (thread-sleep! 1))
-					custom-add-to-back)))
-  )
-
-(let ((pool (make-thread-pool 1 raise)))
-  (test-error "thread-pool error-handler"
-	      error?
-	      (thread-pool-release!
-	       (thread-pool-push-task! pool (lambda () (error 'dummy "msg"))))))
-
-;; shared-priority-queue
-(let ()
-  (define spq (make-shared-priority-queue compare))
-  (define (push . args)
-    (for-each (lambda (arg)
-		(test-assert (format "shared-priority-queue-put! ~a" arg)
-			     (shared-priority-queue-put! spq arg)))
-	      args))
-  (define (pop . args)
-    (for-each (lambda (arg)
-		(test-equal (format "shared-priority-queue-get! ~a" arg)
-			    arg
-			    (shared-priority-queue-get! spq)))
-	      args))
-  (push 10 8 1 9 7 5 6)
-  (pop 1 5 6 7 8 9 10)
-
-  (push 9 8 10)
-  (test-assert "shared-priority-queue-remove! (1)"
-	       (shared-priority-queue-remove! spq 9))
-  (test-assert "shared-priority-queue-remove! (2)"
-	       (not (shared-priority-queue-remove! spq 9)))
-  (pop 8 10)
-
-  (let* ((e (make-thread-pool-executor 1))
-	 (lock (make-mutex))
-	 (cv (make-condition-variable))
-	 (ready? #f)
-	 (f (make-executor-future
-	      (lambda ()
-		;; wait until ready
-		(unless ready? (mutex-unlock! lock cv))
-		;; get all
-		(let loop ((r '()))
-		  (if (shared-priority-queue-empty? spq)
-		      (reverse! r)
-		      (loop (cons (shared-priority-queue-get! spq) r))))))))
-    (mutex-lock! lock)
-    (execute-future! e f)
-    (push 5 1 7 2 8 4 6 3)
-    ;; on single core environment, the thread would be executed after
-    ;; the main thread process is done. so we need to do this trick,
-    ;; otherwise it wait until condition-variable is signaled which
-    ;; is already done by main thread...
-    (set! ready? #t)
-    (condition-variable-broadcast! cv)
-    (mutex-unlock! lock)
-    (test-equal "sync" '(1 2 3 4 5 6 7 8) (future-get f))))
 
 (test-end)
