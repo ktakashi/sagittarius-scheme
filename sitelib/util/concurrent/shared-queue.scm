@@ -347,7 +347,6 @@
 	 (> (+ count (shared-priority-queue-size spq)) 
 	    (shared-priority-queue-max-length spq))))
 
-
   (define (shared-priority-queue-clear! spq) 
     (mutex-lock! (%spq-lock spq))
     ;; clear it

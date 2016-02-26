@@ -50,10 +50,41 @@
 	    future-canceller-set!
 	    ;; implementation specific
 	    <simple-future> make-simple-future simple-future?
+	    
+	    ;; shared-box (not public APIs)
+	    make-shared-box shared-box?
+	    shared-box-put! shared-box-get!
 	    )
     (import (rnrs)
-	    (srfi :18)
-	    (util concurrent shared-queue))
+	    (srfi :18))
+
+  ;; lightweight shared-queue to retrieve future result
+  (define shared-box-mark (list 'shared-box))
+  (define-record-type (<shared-box> make-shared-box shared-box?)
+    (fields (mutable value %sb-value %sb-value-set!)
+	    (immutable lock %sb-lock)
+	    (immutable cv   %sb-cv))
+    (protocol (lambda (p)
+		(lambda ()
+		  (p shared-box-mark (make-mutex) (make-condition-variable))))))
+  (define (shared-box-put! sb o)
+    (mutex-lock! (%sb-lock sb))
+    (%sb-value-set! sb o)
+    ;; TODO do we need count waiter?
+    (condition-variable-broadcast! (%sb-cv sb))
+    (mutex-unlock! (%sb-lock sb)))
+  (define (shared-box-get! sb)
+    (mutex-lock! (%sb-lock sb))
+    (let loop ()
+      (let ((r (%sb-value sb)))
+	(cond ((eq? r shared-box-mark)
+	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb))
+		      (mutex-lock! (%sb-lock sb))
+		      (loop))
+		     (else #f)))
+	      (else 
+	       (mutex-unlock! (%sb-lock sb))
+	       r)))))
 
   (define-condition-type &future-terminated &error
     make-future-terminated future-terminated?
@@ -73,15 +104,15 @@
     (lambda ()
       (guard (e (else (future-canceller-set! f #t)
 		      (future-state-set! f 'finished)
-		      (shared-queue-put! q e)))
+		      (shared-box-put! q e)))
 	(let ((r (thunk)))
 	  (future-state-set! f 'finished)
-	  (shared-queue-put! q r)))))
+	  (shared-box-put! q r)))))
   (define-record-type (<simple-future> make-simple-future simple-future?)
     (parent <future>)
     (protocol (lambda (n)
 		(lambda (thunk)
-		  (let ((q (make-shared-queue)))
+		  (let ((q (make-shared-box)))
 		    (let ((f ((n thunk q))))
 		      (thread-start! (make-thread (simple-invoke thunk f q)))
 		      f))))))
@@ -113,8 +144,8 @@
     (let ((state (future-state future)))
       (let ((r (future-result future)))
 	(finish 
-	 (cond ((and (not (eq? state 'done)) (shared-queue? r))
-		(future-result-set! future (shared-queue-get! r))
+	 (cond ((and (not (eq? state 'done)) (shared-box? r))
+		(future-result-set! future (shared-box-get! r))
 		(future-result future))
 	       ((and (not (eq? state 'done)) (procedure? r))
 		(future-result-set! future (r future))
