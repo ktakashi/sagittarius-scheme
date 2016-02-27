@@ -54,6 +54,10 @@
 
 (define (make-executor idlings i queue error-handler)
   (lambda ()
+    (define last-error #f)
+    (define (call-error-handler e) 
+      (set! last-error e)
+      (guard (ex (else #t)) (error-handler e)))
     (*thread-pool-current-thread-id* i)
     (let loop ()
       (shared-queue-put! idlings i)
@@ -64,11 +68,12 @@
 	;; thread-pool-release!
 	;; in that case, we don't put this thread id to idlings
 	;; queue since it's not even available
-	(when task
-	  (guard (e (else (error-handler e))) (task))
-	  (if (shared-queue-empty? queue)
-	      (loop)
-	      (loop2 (shared-queue-get! queue))))))))
+	(cond (task
+	       (guard (e (else (call-error-handler e))) (task))
+	       (if (shared-queue-empty? queue)
+		   (loop)
+		   (loop2 (shared-queue-get! queue))))
+	      (last-error (raise last-error)))))))
 
 (define (default-error-handler e) #f)
 (define-record-type (<thread-pool> make-thread-pool thread-pool?)

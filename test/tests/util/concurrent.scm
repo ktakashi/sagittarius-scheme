@@ -200,10 +200,9 @@
   )
 
 (let ((pool (make-thread-pool 1 raise)))
-  (test-error "thread-pool error-handler"
-	      error?
-	      (thread-pool-release!
-	       (thread-pool-push-task! pool (lambda () (error 'dummy "msg"))))))
+  (thread-pool-push-task! pool (lambda () (error 'dummy "msg")))
+  (test-assert "wait after error" (thread-pool-wait-all! pool))
+  (test-error "thread-pool error-handler" error? (thread-pool-release! pool)))
 
 ;; simple future
 (let ((f1 (future 'ok))
