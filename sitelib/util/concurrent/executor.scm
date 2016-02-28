@@ -77,7 +77,7 @@
 	    (util concurrent future)
 	    (util concurrent thread-pool))
 
-  (define (not-started dummy)
+  (define (not-started . dummy)
     (assertion-violation 'executor-future "Future is not started yet" dummy))
   (define-record-type (<executor-future> make-executor-future executor-future?)
     (parent <future>)

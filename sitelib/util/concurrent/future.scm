@@ -73,15 +73,20 @@
     ;; TODO do we need count waiter?
     (condition-variable-broadcast! (%sb-cv sb))
     (mutex-unlock! (%sb-lock sb)))
-  (define (shared-box-get! sb)
+  (define (shared-box-get! sb . maybe-timeout)
+    (define timeout (if (pair? maybe-timeout) (car maybe-timeout) #f))
+    (define timeout-value (if (and (pair? maybe-timeout)
+				   (pair? (cdr maybe-timeout)))
+			      (cadr maybe-timeout)
+			      #f))
     (mutex-lock! (%sb-lock sb))
     (let loop ()
       (let ((r (%sb-value sb)))
 	(cond ((eq? r shared-box-mark)
-	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb))
+	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb) timeout)
 		      (mutex-lock! (%sb-lock sb))
 		      (loop))
-		     (else #f)))
+		     (else timeout-value)))
 	      (else 
 	       (mutex-unlock! (%sb-lock sb))
 	       r)))))
@@ -128,7 +133,7 @@
        (make-simple-future (lambda () expr ...)))))
 
   ;; kinda silly
-  (define (future-get future)
+  (define (future-get future . opt)
     (define (finish r)
       ;; now we can change the state shared.
       (future-state-set! future 'done)
@@ -145,10 +150,10 @@
       (let ((r (future-result future)))
 	(finish 
 	 (cond ((and (not (eq? state 'done)) (shared-box? r))
-		(future-result-set! future (shared-box-get! r))
+		(future-result-set! future (apply shared-box-get! r opt))
 		(future-result future))
 	       ((and (not (eq? state 'done)) (procedure? r))
-		(future-result-set! future (r future))
+		(future-result-set! future (apply r future opt))
 		(future-result future))
 	       (else r))))))
   ;; kinda dummy
