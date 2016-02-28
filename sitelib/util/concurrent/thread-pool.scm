@@ -54,10 +54,7 @@
 
 (define (make-executor idlings i queue error-handler)
   (lambda ()
-    (define last-error #f)
-    (define (call-error-handler e) 
-      (set! last-error e)
-      (guard (ex (else #t)) (error-handler e)))
+    (define (call-error-handler e) (guard (ex (else #t)) (error-handler e)))
     (*thread-pool-current-thread-id* i)
     (let loop ()
       (shared-queue-put! idlings i)
@@ -68,12 +65,11 @@
 	;; thread-pool-release!
 	;; in that case, we don't put this thread id to idlings
 	;; queue since it's not even available
-	(cond (task
-	       (guard (e (else (call-error-handler e))) (task))
-	       (if (shared-queue-empty? queue)
-		   (loop)
-		   (loop2 (shared-queue-get! queue))))
-	      (last-error (raise last-error)))))))
+	(when task
+	  (guard (e (else (call-error-handler e))) (task))
+	  (if (shared-queue-empty? queue)
+	      (loop)
+	      (loop2 (shared-queue-get! queue))))))))
 
 (define (default-error-handler e) #f)
 (define-record-type (<thread-pool> make-thread-pool thread-pool?)
@@ -184,18 +180,25 @@
   (wait-queue tp)
   (wait-threads tp))
 
-
 (define (thread-pool-release! tp . opt)
+  (define-syntax dovector
+    (syntax-rules (->)
+      ((_ vec -> v (i e) expr ...)
+       (let ((v vec))
+	 (do ((c (vector-length v)) (i 0 (+ i 1)))
+	     ((= i c))
+	   (let ((e (vector-ref v i)))
+	     expr ...))))))
   (let ((type (if (null? opt) 'join (car opt))))
-    (vector-for-each (lambda (q) (shared-queue-put! q #f))
-		     (<thread-pool>-queues tp))
-    (vector-for-each (lambda (t)
-		       (case type
-			 ;; default join
-			 ;; ((join) (thread-join! t))
-			 ((terminate) (thread-terminate! t))
-			 (else (thread-join! t))))
-		     (<thread-pool>-threads tp))))
+    (dovector (<thread-pool>-queues tp) -> v (i e)
+      (shared-queue-put! e #f)
+      ;; GC friendliness
+      (vector-set! v i #f))
+    (dovector (<thread-pool>-threads tp) -> v (i e)
+      ;; default join
+      (case type ((terminate) (thread-terminate! e)) (else (thread-join! e)))
+      ;; GC friendliness
+      (vector-set! v i #f))))
 
 (define (thread-pool-thread-terminate! tp id)
   (define threads (<thread-pool>-threads tp))
