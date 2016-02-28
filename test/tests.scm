@@ -143,10 +143,22 @@
     ;; 	     (set-cdr! slot (cons file (cdr slot)))))
     ;; 	  (else 
     ;; 	   (set! storage (acons thread (list file) storage)))))
+    (define timeout-value (list 'timeout))
     (define (print-results futures)
       (for-each (lambda (f)
 		  (guard (e (else (report-error e)))
-		    (print (future-get f))))
+		    ;; there seems a bug on concurrent test
+		    ;; https://github.com/okuoku/yunibase/issues/11
+		    ;; it's better to fix it but we don't know what the cuase
+		    ;; is yet. so for the time being, wait only certain amout
+		    ;; of time. In my experience, 2min would be long enough
+		    ;; even those long ones (e.g. RSA key generations)
+		    (let ((r (future-get f 120 timeout-value)))
+		      (cond ((eq? r timeout-value)
+			     (print "Execution timeout: " f)
+			     (future-cancel f))
+			    (else
+			     (print r))))))
 		(reverse! futures)))
     (let loop ((files files) (futures '()))
       (cond ((null? files) 
