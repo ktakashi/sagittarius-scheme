@@ -132,6 +132,13 @@
       ((_ expr ...)
        (make-simple-future (lambda () expr ...)))))
 
+  (define (raise-future-terminated future)
+    (raise (condition
+	    (make-future-terminated future)
+	    (make-who-condition 'future-get)
+	    (make-message-condition "future is terminated")
+	    (make-irritants-condition future))))
+
   ;; kinda silly
   (define (future-get future . opt)
     (define (finish r)
@@ -141,11 +148,7 @@
 	  (raise r)
 	  r))
     (when (eq? (future-state future) 'terminated)
-      (raise (condition
-	      (make-future-terminated future)
-	      (make-who-condition 'future-get)
-	      (make-message-condition "future is terminated")
-	      (make-irritants-condition future))))
+      (raise-future-terminated future))
     (let ((state (future-state future)))
       (let ((r (future-result future)))
 	(finish 
