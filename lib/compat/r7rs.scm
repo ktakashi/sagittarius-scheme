@@ -83,7 +83,7 @@
            (_cons3 (rename 'cons-source))
 	   (_check-length (rename 'check-length))
 	   (_format (rename 'format)))
-       (define ellipsis (rename (if ellipsis-specified? (cadr expr) '...)))
+       (define ellipsis (if ellipsis-specified? (cadr expr) (rename '...)))
        (define lits (if ellipsis-specified? (car (cddr expr)) (cadr expr)))
        (define forms (if ellipsis-specified? (cdr (cddr expr)) (cddr expr)))
        (define (next-symbol s)

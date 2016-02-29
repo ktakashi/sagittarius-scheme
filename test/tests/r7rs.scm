@@ -188,4 +188,21 @@
 		     (zipm (1 2 3) (1 2 3 4)))
 		  (environment '(scheme base))))
 
+;; found on Chibi's repository
+(let ()
+  (define E1 1)
+
+  (define-syntax M
+    (syntax-rules E1 ()
+		  ((M x E1) (quote (x E1)))))
+
+  (test-equal '(1 2 3) (M 1 2 3))
+
+  (let ((E2 2))
+    (define-syntax N
+      (syntax-rules E2 ()
+		    ((N y E2) (quote (y E2)))))
+    (test-equal '(1 2 3) (N 1 2 3)))
+  )
+
 (test-end)
