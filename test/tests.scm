@@ -153,10 +153,10 @@
 		    ;; is yet. so for the time being, wait only certain amout
 		    ;; of time. In my experience, 2min would be long enough
 		    ;; even those long ones (e.g. RSA key generations)
-		    (let ((r (future-get f 120 timeout-value)))
+		    (let ((r (future-get (cdr f) 120 timeout-value)))
 		      (cond ((eq? r timeout-value)
-			     (print "Execution timeout: " f)
-			     (future-cancel f))
+			     (print "FAIL: Execution timeout on " (car f))
+			     (future-cancel (cdr f)))
 			    (else
 			     (print r))))))
 		(reverse! futures)))
@@ -167,16 +167,17 @@
 	    ((executor-available? tests-executor)
 	     (let ((file (car files)))
 	       (loop (cdr files) 
-		     (cons (make-promise
-			    (lambda ()
-			      (with-detailed-runner
-			       (with-output-to-string 
-				 (lambda ()
-				   ;; (push-to-storage (current-thread) file)
-				   (clear-bindings (current-library))
-				   (load file)
-				   (test-runner-reset (test-runner-get)))))))
-			   futures))))
+		     (acons file
+			    (make-promise
+			     (lambda ()
+			       (with-detailed-runner
+				(with-output-to-string 
+				  (lambda ()
+				    ;; (push-to-storage (current-thread) file)
+				    (clear-bindings (current-library))
+				    (load file)
+				    (test-runner-reset (test-runner-get)))))))
+			    futures))))
 	    (else
 	     (print-results futures)
 	     (loop files '())))))
