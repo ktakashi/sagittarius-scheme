@@ -408,6 +408,20 @@
       (match type
 	;; references thing
 	(('constraint rest ...) (apply write-constraint type out opt))
+	;; array
+	((type 'array . rest)
+	 (apply write-ssql type out :indent #f opt)
+	 (write/case " ARRAY" out)
+	 (unless (null? rest)
+	   (unless (and (null? (cdr rest))
+			(integer? (car rest))
+			(exact? (car rest)))
+	     (assertion-violation 'write-column
+				  "array element must be exact integer"
+				  (car rest)))
+	   (put-char out #\[)
+	   (put-string out (number->string (car rest)))
+	   (put-char out #\])))
 	;; default
 	((a . d) (apply write-ssql type out :indent #f opt))
 	(_ (write/case (symbol-upcase type) out))))

@@ -440,6 +440,11 @@
 (test-parse "create table t (id int references b(id))"
 	    '(create-table t ((id int (constraint (references b id))))))
 
+(test-parse "create table t (a varchar array primary key)"
+	    '(create-table t ((a (varchar array) (constraint primary-key)))))
+(test-parse "create table t (a varchar array[1])"
+	    '(create-table t ((a (varchar array 1)))))
+
 ;; create sequence
 (test-parse "create sequence s" '(create-sequence s))
 (test-parse "create sequence p.s" '(create-sequence (~ p s)))
@@ -607,6 +612,11 @@
 ;; delete
 (test-serializer '(delete-from t) "DELETE FROM T")
 (test-serializer '(delete-from t (where (= a 1))) "DELETE FROM T WHERE A = 1")
+
+(test-error assertion-violation?
+	    (ssql->sql '(create-table t ((a (varchar array a))))))
+(test-error assertion-violation?
+	    (ssql->sql '(create-table t ((a (varchar array 1 2 3))))))
 
 ;; TBD more
 
