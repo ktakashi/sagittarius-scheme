@@ -2533,6 +2533,11 @@ void Sg_VMPrintFrame()
   print_frames(Sg_VM(), CONT(Sg_VM()));
 }
 
+void Sg_VMPrintFrameOf(SgVM *vm)
+{
+  print_frames(vm, CONT(vm));
+}
+
 #if PROF_INSN
 #define COUNT_INSN(c)   if (vm->state == RUNNING) called_instructions[INSN(c)]++
 static int called_instructions[INSTRUCTION_COUNT] = {0};

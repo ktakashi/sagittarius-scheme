@@ -417,8 +417,10 @@
   (define-c-proc vm-frame-size () ::<fixnum>
     (result SG_FRAME_SIZE))
 
-  (define-c-proc print-stack-frames () ::<void>
-    (Sg_VMPrintFrame))
+  (define-c-proc print-stack-frames (:optional (vm::<thread> #f)) ::<void>
+    (if (SG_FALSEP vm)
+	(Sg_VMPrintFrame)
+	(Sg_VMPrintFrameOf vm)))
 
   (define-c-proc get-stack-trace-object () Sg_GetStackTrace)
   (define-c-proc format-stack-trace 
