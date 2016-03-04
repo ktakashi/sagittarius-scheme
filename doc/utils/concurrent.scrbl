@@ -190,6 +190,18 @@ The behaviour of the folowing procedures depend on its implementation.
 This procedure may or may not affect the managed futures on the @var{executor}.
 }
 
+@define[Function]{@name{executor-submit!} @args{executor thunk}}
+@desc{Converts @var{thunk} to a future and execute it on given @var{executor},
+then returns the future. This procedure is defined as follows:
+
+@codeblock{
+(define (executor-submit! e thunk)
+  (let ((f (make-executor-future thunk)))
+    (execute-future! e f)
+    f))
+}
+}
+
 @sub*section{Thread pool executor}
 
 Thread pool executor uses @code{(util concurrent thread-pool)} as its
