@@ -41,10 +41,7 @@
 (define-constant max-promise (cpu-count))
 
 (define tests-executor (make-thread-pool-executor max-promise))
-(define (make-promise proc)
-  (let ((f (make-executor-future proc)))
-    (execute-future! tests-executor f)
-    f))
+(define (make-promise proc) (executor-submit! tests-executor proc))
 
 (cond-expand
  (sagittarius.os.windows
