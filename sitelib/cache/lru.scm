@@ -2,7 +2,7 @@
 ;;;
 ;;; cache/lru.scm - LRU cache
 ;;;
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2016  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -48,7 +48,7 @@
     ;; empty mark
     (define empty (list 'empty))
     (unless (and (fixnum? size) (positive? size))
-      (assertion-violation 'make-lru-cache
+      (assertion-violation 'make-simple-lru-cache
 			   "size must be positive fixnum" size))
     (lambda (name)
       ;; put the last object in the first of buffer
@@ -64,7 +64,6 @@
 	      (if (= i size)
 		  empty
 		  (let ((o (vector-ref buffer i)))
-		    
 		    (cond ((eq? o empty) (loop (+ i 1)))
 			  ((has-name? o name)
 			   ;; refresh this expiration period
@@ -82,5 +81,5 @@
 	      (move! buffer index)
 	      o)
 	    cache))))
-    
+
 )
