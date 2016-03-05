@@ -57,6 +57,26 @@
   (test-equal 'fallback (cache-get! cache first 'fallback))
   (test-equal '2nd (cache-get! cache second))
   (test-equal 1 (cache-size cache))
+  (test-equal '2nd (cache-evict! cache second))
+  )
+
+(let ((count 0))
+  (define cache (make <lru-cache> :max-size 2 :comparator eq-comparator
+		      :on-evict (lambda (o) (set! count (+ count 1)))))
+  (define first (list 'ok))
+  (define second (list 'ok))
+  (define third (list 'ok))
+  (cache-put! cache first '1st)
+  (cache-put! cache second '2nd)
+  (cache-put! cache third '3rd)
+  (test-equal 1 count)
+  (test-eq '2nd (cache-evict! cache second))
+  (test-assert (not (cache-evict! cache second)))
+  (test-equal 2 count)
+
+  (cache-put! cache first '1st)
+  (test-assert (cache-clear! cache))
+  (test-equal 4 count)
   )
 
 (test-end)

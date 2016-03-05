@@ -46,7 +46,8 @@
 	    (sagittarius)
 	    (sagittarius object)
 	    (srfi :114 comparators)
-	    (only (srfi :126 hashtables) hashtable-pop!))
+	    (only (srfi :126 hashtables) 
+		  hashtable-pop! hashtable-walk hashtable-lookup))
 
 ;; base class of <cache>
 ;; storage is a hashtable, seems faster than treemap
@@ -57,7 +58,8 @@
 (define-class <cache> ()
   (storage ;; hashtable
    (comparator :init-keyword :comparator :init-value default-comparator)
-   (max-size :init-keyword :max-size :init-value +inf.0)))
+   (max-size :init-keyword :max-size :init-value +inf.0)
+   (on-evict :init-keyword :on-evict :init-value #f)))
 
 (define-method initialize ((o <cache>) initargs)
   (call-next-method)
@@ -68,10 +70,16 @@
     (slot-set! o 'storage (make-hashtable/comparator c (if (fixnum? s) s 10))))
   o)
 
+(define (call-on-evict cache v)
+  (and-let* ((on-evict (slot-ref cache 'on-evict)))
+    (on-evict v))
+  v)
+
 ;; APIs
 (define (cache-put! cache k v)
   (let ((size (cache-size cache)))
-    (when (> (+ size 1) (slot-ref cache 'max-size)) (cache-pop! cache)))
+    (when (> (+ size 1) (slot-ref cache 'max-size)) 
+      (call-on-evict cache (cache-pop! cache))))
   (cache-store! cache k v))
 (define (cache-get! cache k :optional (fallback #f))
   (hashtable-ref (slot-ref cache 'storage) k fallback))
@@ -83,13 +91,20 @@
   (hashtable-values-list (slot-ref cache 'storage)))
 
 (define-method cache-evict! ((o <cache>) k)
-  (hashtable-delete! (slot-ref cache 'storage) k))
+  (let ((storage (slot-ref o 'storage)))
+    (let-values (((v found?) (hashtable-lookup storage k)))
+      (hashtable-delete! storage k)
+      (and found? (call-on-evict o v)))))
+
 (define-method cache-clear! ((o <cache>))
-  (hashtable-clear! (slot-ref cache 'storage)))
+  (when (slot-ref o 'on-evict)
+    (hashtable-walk (slot-ref o 'storage) (lambda (k v) (call-on-evict o v))))
+  (hashtable-clear! (slot-ref o 'storage)))
 
 ;; internal APIs
 ;; To make thing works fine, override this.
-(define-method cache-pop! ((o <cache>)) (hashtable-pop! (slot-ref o 'storage)))
+(define-method cache-pop! ((o <cache>)) 
+  (let-values (((k v) (hashtable-pop! (slot-ref o 'storage)))) v))
 (define-method cache-store! ((o <cache>) k v)
   (hashtable-set! (slot-ref o 'storage) k v))
 )
