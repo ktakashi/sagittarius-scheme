@@ -75,7 +75,7 @@
     (define cache (make <lru-cache> :max-size size :comparator comparator))
     (define mark (list 'not-found))
     (lambda (name)
-      (let ((r (cache-get! cache name mark)))
+      (let ((r (cache-get cache name mark)))
 	(if (eq? r mark)
 	    (let ((o (create name)))
 	      (cache-put! cache name o)

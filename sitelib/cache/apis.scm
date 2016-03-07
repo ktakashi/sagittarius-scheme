@@ -31,7 +31,7 @@
 (library (cache apis)
     (export <cache>
 	    cache-put!
-	    cache-get!
+	    cache-get
 	    cache-evict!
 	    cache-clear!
 	    cache-size
@@ -81,7 +81,7 @@
     (when (> (+ size 1) (slot-ref cache 'max-size)) 
       (call-on-evict cache (cache-pop! cache))))
   (cache-store! cache k v))
-(define (cache-get! cache k :optional (fallback #f))
+(define (cache-get cache k :optional (fallback #f))
   (hashtable-ref (slot-ref cache 'storage) k fallback))
 
 (define (cache-size cache)
