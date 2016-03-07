@@ -39,7 +39,7 @@
 
 	    ;; internal APIs
 	    cache-pop!
-	    cache-store!
+	    cache-access
 	    )
     (import (rnrs)
 	    (clos user)
@@ -80,9 +80,15 @@
   (let ((size (cache-size cache)))
     (when (> (+ size 1) (slot-ref cache 'max-size)) 
       (call-on-evict cache (cache-pop! cache))))
-  (cache-store! cache k v))
+  (hashtable-set! (slot-ref cache 'storage) k v)
+  (cache-access cache :put k v))
 (define (cache-get cache k :optional (fallback #f))
-  (hashtable-ref (slot-ref cache 'storage) k fallback))
+  (let-values (((v found?) (hashtable-lookup (slot-ref cache 'storage) k)))
+    (if found?
+	(begin
+	  (cache-access cache :get k v)
+	  v)
+	fallback)))
 
 (define (cache-size cache)
   (hashtable-size (slot-ref cache 'storage)))
@@ -97,14 +103,12 @@
       (and found? (call-on-evict o v)))))
 
 (define-method cache-clear! ((o <cache>))
-  (when (slot-ref o 'on-evict)
-    (hashtable-walk (slot-ref o 'storage) (lambda (k v) (call-on-evict o v))))
-  (hashtable-clear! (slot-ref o 'storage)))
+  (for-each (lambda (key) (cache-evict! o key))
+	    (hashtable-keys-list (slot-ref o 'storage))))
 
 ;; internal APIs
 ;; To make thing works fine, override this.
 (define-method cache-pop! ((o <cache>)) 
   (let-values (((k v) (hashtable-pop! (slot-ref o 'storage)))) v))
-(define-method cache-store! ((o <cache>) k v)
-  (hashtable-set! (slot-ref o 'storage) k v))
+(define-method cache-access ((o <cache>) on k v) #t)
 )

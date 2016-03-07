@@ -50,13 +50,16 @@
     (slot-set! o 'equal? 
 	       (hashtable-equivalence-function (slot-ref o 'storage))))
 
-  (define-method cache-store! ((o <lru-cache>) k v)
+  (define (re-order o k)
     (let ((storage (slot-ref o 'storage))
 	  (queue (slot-ref o 'queue))
 	  (equal? (slot-ref o 'equal?)))
       ;; FIXME we should manage tail as well to make this O(1)
-      (slot-set! o 'queue `(,@(remove (lambda (o) (equal? o k)) queue) ,k))
-      (call-next-method)))
+      (slot-set! o 'queue `(,@(remove (lambda (o) (equal? o k)) queue) ,k))))
+  (define-method cache-access ((o <lru-cache>) on k v)
+    ;; we need to re-order
+    (re-order o k))
+
   (define-method cache-pop! ((o <lru-cache>))
     (let ((queue (slot-ref o 'queue))
 	  (storage (slot-ref o 'storage)))
