@@ -8,9 +8,6 @@
 (define-record-type employee
   (fields name title))
 
-  ;; syntax-rules implementation problem.
-  ;; (match) uses R7RS syntax-rules however, it really does not coopeate with
-  ;; R6RS syntax-rules. needs to be fixed.
 (test-begin "match test")
 
 (test-assert "match-1" (let ((ls (list 1 2 3))) (match ls ((1 2 3) #t))))
@@ -90,5 +87,14 @@
 		  '(a c f))
 	    (list (match '(a (a (a b))) ((x *** 'b) x))
 		  (match '(a (b) (c (d e) (f g))) ((x *** 'g) x))))
-    
+
+;; on bug-guile.gnu.org
+;; bug#22925: ice-9/match named match-let is not working
+(test-equal 6 (match-let loop (((x . rest) '(1 2 3))
+			       (sum 0))
+		(let ((sum (+ x sum)))
+		  (if (null? rest)
+		      sum
+		      (loop rest sum)))))
+
 (test-end)

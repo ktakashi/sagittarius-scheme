@@ -11,6 +11,7 @@
 	    match-letrec)
     (import (core) (core base) (core errors)
 	    (rename (clos core) (slot-ref clos:slot-ref))
+	    (sagittarius) ;; for cond-expand
 	    ;;(core record procedural)
 	    ;;(except (rnrs) syntax-rules)
 	    ;;(rnrs mutable-pairs)
@@ -34,155 +35,157 @@
 ;; This code is written by Alex Shinn and placed in the
 ;; Public Domain.  All warranties are disclaimed.
 
-;;> @example-import[(srfi 9)]
+;;> \example-import[(srfi 9)]
 
-;;> This is a full superset of the popular @hyperlink[
+;;> A portable hygienic pattern matcher.
+
+;;> This is a full superset of the popular \hyperlink[
 ;;> "http://www.cs.indiana.edu/scheme-repository/code.match.html"]{match}
-;;> package by Andrew Wright, written in fully portable @scheme{syntax-rules}
+;;> package by Andrew Wright, written in fully portable \scheme{syntax-rules}
 ;;> and thus preserving hygiene.
 
-;;> The most notable extensions are the ability to use @emph{non-linear}
+;;> The most notable extensions are the ability to use \emph{non-linear}
 ;;> patterns - patterns in which the same identifier occurs multiple
 ;;> times, tail patterns after ellipsis, and the experimental tree patterns.
 
-;;> @subsubsection{Patterns}
+;;> \section{Patterns}
 
 ;;> Patterns are written to look like the printed representation of
 ;;> the objects they match.  The basic usage is
 
-;;> @scheme{(match expr (pat body ...) ...)}
+;;> \scheme{(match expr (pat body ...) ...)}
 
-;;> where the result of @var{expr} is matched against each pattern in
+;;> where the result of \var{expr} is matched against each pattern in
 ;;> turn, and the corresponding body is evaluated for the first to
 ;;> succeed.  Thus, a list of three elements matches a list of three
 ;;> elements.
 
-;;> @example{(let ((ls (list 1 2 3))) (match ls ((1 2 3) #t)))}
+;;> \example{(let ((ls (list 1 2 3))) (match ls ((1 2 3) #t)))}
 
 ;;> If no patterns match an error is signalled.
 
 ;;> Identifiers will match anything, and make the corresponding
 ;;> binding available in the body.
 
-;;> @example{(match (list 1 2 3) ((a b c) b))}
+;;> \example{(match (list 1 2 3) ((a b c) b))}
 
 ;;> If the same identifier occurs multiple times, the first instance
 ;;> will match anything, but subsequent instances must match a value
-;;> which is @scheme{equal?} to the first.
+;;> which is \scheme{equal?} to the first.
 
-;;> @example{(match (list 1 2 1) ((a a b) 1) ((a b a) 2))}
+;;> \example{(match (list 1 2 1) ((a a b) 1) ((a b a) 2))}
 
-;;> The special identifier @scheme{_} matches anything, no matter how
+;;> The special identifier \scheme{_} matches anything, no matter how
 ;;> many times it is used, and does not bind the result in the body.
 
-;;> @example{(match (list 1 2 1) ((_ _ b) 1) ((a b a) 2))}
+;;> \example{(match (list 1 2 1) ((_ _ b) 1) ((a b a) 2))}
 
 ;;> To match a literal identifier (or list or any other literal), use
-;;> @scheme{quote}.
+;;> \scheme{quote}.
 
-;;> @example{(match 'a ('b 1) ('a 2))}
+;;> \example{(match 'a ('b 1) ('a 2))}
 
-;;> Analogous to its normal usage in scheme, @scheme{quasiquote} can
+;;> Analogous to its normal usage in scheme, \scheme{quasiquote} can
 ;;> be used to quote a mostly literally matching object with selected
 ;;> parts unquoted.
 
-;;> @example|{(match (list 1 2 3) (`(1 ,b ,c) (list b c)))}|
+;;> \example|{(match (list 1 2 3) (`(1 ,b ,c) (list b c)))}|
 
 ;;> Often you want to match any number of a repeated pattern.  Inside
-;;> a list pattern you can append @scheme{...} after an element to
+;;> a list pattern you can append \scheme{...} after an element to
 ;;> match zero or more of that pattern (like a regexp Kleene star).
 
-;;> @example{(match (list 1 2) ((1 2 3 ...) #t))}
-;;> @example{(match (list 1 2 3) ((1 2 3 ...) #t))}
-;;> @example{(match (list 1 2 3 3 3) ((1 2 3 ...) #t))}
+;;> \example{(match (list 1 2) ((1 2 3 ...) #t))}
+;;> \example{(match (list 1 2 3) ((1 2 3 ...) #t))}
+;;> \example{(match (list 1 2 3 3 3) ((1 2 3 ...) #t))}
 
 ;;> Pattern variables matched inside the repeated pattern are bound to
 ;;> a list of each matching instance in the body.
 
-;;> @example{(match (list 1 2) ((a b c ...) c))}
-;;> @example{(match (list 1 2 3) ((a b c ...) c))}
-;;> @example{(match (list 1 2 3 4 5) ((a b c ...) c))}
+;;> \example{(match (list 1 2) ((a b c ...) c))}
+;;> \example{(match (list 1 2 3) ((a b c ...) c))}
+;;> \example{(match (list 1 2 3 4 5) ((a b c ...) c))}
 
-;;> More than one @scheme{...} may not be used in the same list, since
+;;> More than one \scheme{...} may not be used in the same list, since
 ;;> this would require exponential backtracking in the general case.
-;;> However, @scheme{...} need not be the final element in the list,
+;;> However, \scheme{...} need not be the final element in the list,
 ;;> and may be succeeded by a fixed number of patterns.
 
-;;> @example{(match (list 1 2 3 4) ((a b c ... d e) c))}
-;;> @example{(match (list 1 2 3 4 5) ((a b c ... d e) c))}
-;;> @example{(match (list 1 2 3 4 5 6 7) ((a b c ... d e) c))}
+;;> \example{(match (list 1 2 3 4) ((a b c ... d e) c))}
+;;> \example{(match (list 1 2 3 4 5) ((a b c ... d e) c))}
+;;> \example{(match (list 1 2 3 4 5 6 7) ((a b c ... d e) c))}
 
-;;> @scheme{___} is provided as an alias for @scheme{...} when it is
+;;> \scheme{___} is provided as an alias for \scheme{...} when it is
 ;;> inconvenient to use the ellipsis (as in a syntax-rules template).
 
-;;> The @scheme{..1} syntax is exactly like the @scheme{...} except
+;;> The \scheme{..1} syntax is exactly like the \scheme{...} except
 ;;> that it matches one or more repetitions (like a regexp "+").
 
-;;> @example{(match (list 1 2) ((a b c ..1) c))}
-;;> @example{(match (list 1 2 3) ((a b c ..1) c))}
+;;> \example{(match (list 1 2) ((a b c ..1) c))}
+;;> \example{(match (list 1 2 3) ((a b c ..1) c))}
 
-;;> The boolean operators @scheme{and}, @scheme{or} and @scheme{not}
+;;> The boolean operators \scheme{and}, \scheme{or} and \scheme{not}
 ;;> can be used to group and negate patterns analogously to their
 ;;> Scheme counterparts.
 
-;;> The @scheme{and} operator ensures that all subpatterns match.
-;;> This operator is often used with the idiom @scheme{(and x pat)} to
-;;> bind @var{x} to the entire value that matches @var{pat}
+;;> The \scheme{and} operator ensures that all subpatterns match.
+;;> This operator is often used with the idiom \scheme{(and x pat)} to
+;;> bind \var{x} to the entire value that matches \var{pat}
 ;;> (c.f. "as-patterns" in ML or Haskell).  Another common use is in
-;;> conjunction with @scheme{not} patterns to match a general case
+;;> conjunction with \scheme{not} patterns to match a general case
 ;;> with certain exceptions.
 
-;;> @example{(match 1 ((and) #t))}
-;;> @example{(match 1 ((and x) x))}
-;;> @example{(match 1 ((and x 1) x))}
+;;> \example{(match 1 ((and) #t))}
+;;> \example{(match 1 ((and x) x))}
+;;> \example{(match 1 ((and x 1) x))}
 
-;;> The @scheme{or} operator ensures that at least one subpattern
+;;> The \scheme{or} operator ensures that at least one subpattern
 ;;> matches.  If the same identifier occurs in different subpatterns,
 ;;> it is matched independently.  All identifiers from all subpatterns
-;;> are bound if the @scheme{or} operator matches, but the binding is
+;;> are bound if the \scheme{or} operator matches, but the binding is
 ;;> only defined for identifiers from the subpattern which matched.
 
-;;> @example{(match 1 ((or) #t) (else #f))}
-;;> @example{(match 1 ((or x) x))}
-;;> @example{(match 1 ((or x 2) x))}
+;;> \example{(match 1 ((or) #t) (else #f))}
+;;> \example{(match 1 ((or x) x))}
+;;> \example{(match 1 ((or x 2) x))}
 
-;;> The @scheme{not} operator succeeds if the given pattern doesn't
+;;> The \scheme{not} operator succeeds if the given pattern doesn't
 ;;> match.  None of the identifiers used are available in the body.
 
-;;> @example{(match 1 ((not 2) #t))}
+;;> \example{(match 1 ((not 2) #t))}
 
-;;> The more general operator @scheme{?} can be used to provide a
-;;> predicate.  The usage is @scheme{(? predicate pat ...)} where
-;;> @var{predicate} is a Scheme expression evaluating to a predicate
+;;> The more general operator \scheme{?} can be used to provide a
+;;> predicate.  The usage is \scheme{(? predicate pat ...)} where
+;;> \var{predicate} is a Scheme expression evaluating to a predicate
 ;;> called on the value to match, and any optional patterns after the
-;;> predicate are then matched as in an @scheme{and} pattern.
+;;> predicate are then matched as in an \scheme{and} pattern.
 
-;;> @example{(match 1 ((? odd? x) x))}
+;;> \example{(match 1 ((? odd? x) x))}
 
-;;> The field operator @scheme{=} is used to extract an arbitrary
+;;> The field operator \scheme{=} is used to extract an arbitrary
 ;;> field and match against it.  It is useful for more complex or
 ;;> conditional destructuring that can't be more directly expressed in
-;;> the pattern syntax.  The usage is @scheme{(= field pat)}, where
-;;> @var{field} can be any expression, and should result in a
+;;> the pattern syntax.  The usage is \scheme{(= field pat)}, where
+;;> \var{field} can be any expression, and should result in a
 ;;> procedure of one argument, which is applied to the value to match
-;;> to generate a new value to match against @var{pat}.
+;;> to generate a new value to match against \var{pat}.
 
-;;> Thus the pattern @scheme{(and (= car x) (= cdr y))} is equivalent
-;;> to @scheme{(x . y)}, except it will result in an immediate error
+;;> Thus the pattern \scheme{(and (= car x) (= cdr y))} is equivalent
+;;> to \scheme{(x . y)}, except it will result in an immediate error
 ;;> if the value isn't a pair.
 
-;;> @example{(match '(1 . 2) ((= car x) x))}
-;;> @example{(match 4 ((= sqrt x) x))}
+;;> \example{(match '(1 . 2) ((= car x) x))}
+;;> \example{(match 4 ((= square x) x))}
 
-;;> The record operator @scheme{$} is used as a concise way to match
+;;> The record operator \scheme{$} is used as a concise way to match
 ;;> records defined by SRFI-9 (or SRFI-99).  The usage is
-;;> @scheme{($ rtd field ...)}, where @var{rtd} should be the record
+;;> \scheme{($ rtd field ...)}, where \var{rtd} should be the record
 ;;> type descriptor specified as the first argument to
-;;> @scheme{define-record-type}, and each @var{field} is a subpattern
+;;> \scheme{define-record-type}, and each \var{field} is a subpattern
 ;;> matched against the fields of the record in order.  Not all fields
 ;;> must be present.
 
-;;> @example{
+;;> \example{
 ;;> (let ()
 ;;>   (define-record-type employee
 ;;>     (make-employee name title)
@@ -193,29 +196,44 @@
 ;;>     (($ employee n t) (list t n))))
 ;;> }
 
-;;> The @scheme{set!} and @scheme{get!} operators are used to bind an
+;;> For records with more fields it can be helpful to match them by
+;;> name rather than position.  For this you can use the \scheme{@}
+;;> operator, originally a Gauche extension:
+
+;;> \example{
+;;> (let ()
+;;>   (define-record-type employee
+;;>     (make-employee name title)
+;;>     employee?
+;;>     (name get-name)
+;;>     (title get-title))
+;;>   (match (make-employee "Bob" "Doctor")
+;;>     ((@ employee (title t) (name n)) (list t n))))
+;;> }
+
+;;> The \scheme{set!} and \scheme{get!} operators are used to bind an
 ;;> identifier to the setter and getter of a field, respectively.  The
 ;;> setter is a procedure of one argument, which mutates the field to
 ;;> that argument.  The getter is a procedure of no arguments which
 ;;> returns the current value of the field.
 
-;;> @example{(let ((x (cons 1 2))) (match x ((1 . (set! s)) (s 3) x)))}
-;;> @example{(match '(1 . 2) ((1 . (get! g)) (g)))}
+;;> \example{(let ((x (cons 1 2))) (match x ((1 . (set! s)) (s 3) x)))}
+;;> \example{(match '(1 . 2) ((1 . (get! g)) (g)))}
 
-;;> The new operator @scheme{***} can be used to search a tree for
-;;> subpatterns.  A pattern of the form @scheme{(x *** y)} represents
-;;> the subpattern @var{y} located somewhere in a tree where the path
-;;> from the current object to @var{y} can be seen as a list of the
-;;> form @scheme{(x ...)}.  @var{y} can immediately match the current
+;;> The new operator \scheme{***} can be used to search a tree for
+;;> subpatterns.  A pattern of the form \scheme{(x *** y)} represents
+;;> the subpattern \var{y} located somewhere in a tree where the path
+;;> from the current object to \var{y} can be seen as a list of the
+;;> form \scheme{(x ...)}.  \var{y} can immediately match the current
 ;;> object in which case the path is the empty list.  In a sense it's
-;;> a 2-dimensional version of the @scheme{...} pattern.
+;;> a 2-dimensional version of the \scheme{...} pattern.
 
-;;> As a common case the pattern @scheme{(_ *** y)} can be used to
-;;> search for @var{y} anywhere in a tree, regardless of the path
+;;> As a common case the pattern \scheme{(_ *** y)} can be used to
+;;> search for \var{y} anywhere in a tree, regardless of the path
 ;;> used.
 
-;;> @example{(match '(a (a (a b))) ((x *** 'b) x))}
-;;> @example{(match '(a (b) (c (d e) (f g))) ((x *** 'g) x))}
+;;> \example{(match '(a (a (a b))) ((x *** 'b) x))}
+;;> \example{(match '(a (b) (c (d e) (f g))) ((x *** 'g) x))}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Notes
@@ -241,6 +259,12 @@
 ;; performance can be found at
 ;;   http://synthcode.com/scheme/match-cond-expand.scm
 ;;
+;; 2016/03/06 - fixing named match-let (thanks to Stefan Israelsson Tampe)
+;; 2015/05/09 - fixing bug in var extraction of quasiquote patterns
+;; 2014/11/24 - adding Gauche's `@' pattern for named record field matching
+;; 2012/12/26 - wrapping match-let&co body in lexical closure
+;; 2012/11/28 - fixing typo s/vetor/vector in largely unused set! code
+;; 2012/05/23 - fixing combinatorial explosion of code in certain or patterns
 ;; 2011/09/25 - fixing bug when directly matching an identifier repeated in
 ;;              the pattern (thanks to Stefan Israelsson Tampe)
 ;; 2011/01/27 - fixing bug when matching tail patterns against improper lists
@@ -251,8 +275,8 @@
 ;; 2008/03/15 - removing redundant check in vector patterns
 ;; 2008/03/06 - you can use `...' portably now (thanks to Taylor Campbell)
 ;; 2007/09/04 - fixing quasiquote patterns
-;; 2007/07/21 - allowing ellipse patterns in non-final list positions
-;; 2007/04/10 - fixing potential hygiene issue in match-check-ellipse
+;; 2007/07/21 - allowing ellipsis patterns in non-final list positions
+;; 2007/04/10 - fixing potential hygiene issue in match-check-ellipsis
 ;;              (thanks to Taylor Campbell)
 ;; 2007/04/08 - clean up, commenting
 ;; 2006/12/24 - bugfixes
@@ -263,23 +287,23 @@
 
 (define-syntax match-syntax-error
   (syntax-rules ()
-    ((_ msg expr ...) (syntax-error msg expr ...))))
+    ((_) (match-syntax-error "invalid match-syntax-error usage"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;> @subsubsection{Syntax}
+;;> \section{Syntax}
 
-;;> @subsubsubsection{@rawcode{(match expr (pattern . body) ...)@br{}
-;;> (match expr (pattern (=> failure) . body) ...)}}
+;;> \macro{(match expr (pattern . body) ...)\br{}
+;;> (match expr (pattern (=> failure) . body) ...)}
 
-;;> The result of @var{expr} is matched against each @var{pattern} in
+;;> The result of \var{expr} is matched against each \var{pattern} in
 ;;> turn, according to the pattern rules described in the previous
-;;> section, until the the first @var{pattern} matches.  When a match is
-;;> found, the corresponding @var{body}s are evaluated in order,
+;;> section, until the the first \var{pattern} matches.  When a match is
+;;> found, the corresponding \var{body}s are evaluated in order,
 ;;> and the result of the last expression is returned as the result
-;;> of the entire @scheme{match}.  If a @var{failure} is provided,
+;;> of the entire \scheme{match}.  If a \var{failure} is provided,
 ;;> then it is bound to a procedure of no arguments which continues,
-;;> processing at the next @var{pattern}.  If no @var{pattern} matches,
+;;> processing at the next \var{pattern}.  If no \var{pattern} matches,
 ;;> an error is signalled.
 
 ;; The basic interface.  MATCH just performs some basic syntax
@@ -291,9 +315,9 @@
 (define-syntax match
   (syntax-rules ()
     ((match)
-     (match-syntax-error "missing match expression" '(match)))
+     (match-syntax-error "missing match expression"))
     ((match atom)
-     (match-syntax-error "no match clauses" '(match atom)))
+     (match-syntax-error "no match clauses"))
     ((match (app ...) (pat . body) ...)
      (let ((v (app ...)))
        (match-next v ((app ...) (set! (app ...))) (pat . body) ...)))
@@ -324,18 +348,18 @@
     ((match-next v g+s (pat . body) . rest)
      (match-next v g+s (pat (=> failure) . body) . rest))))
 
-;; MATCH-ONE first checks for ellipse patterns, otherwise passes on to
+;; MATCH-ONE first checks for ellipsis patterns, otherwise passes on to
 ;; MATCH-TWO.
 
 (define-syntax match-one
   (syntax-rules ()
     ;; If it's a list of two or more values, check to see if the
-    ;; second one is an ellipse and handle accordingly, otherwise go
+    ;; second one is an ellipsis and handle accordingly, otherwise go
     ;; to MATCH-TWO.
     ((match-one v (p q . r) g+s sk fk i)
-     (match-check-ellipse
+     (match-check-ellipsis
       q
-      (match-extract-vars p (match-gen-ellipses v p r  g+s sk fk i) i ())
+      (match-extract-vars p (match-gen-ellipsis v p r  g+s sk fk i) i ())
       (match-two v (p q . r) g+s sk fk i)))
     ;; Go directly to MATCH-TWO.
     ((match-one . x)
@@ -359,7 +383,7 @@
 ;; pattern so far.
 
 (define-syntax match-two
-  (syntax-rules (_ ___ ..1 *** quote quasiquote ? $ = and or not set! get!)
+  (syntax-rules (_ ___ ..1 *** quote quasiquote ? $ struct @ object = and or not set! get!)
     ((match-two v () g+s (sk ...) fk i)
      (if (null? v) (sk ... i) fk))
     ((match-two v (quote p) g+s (sk ...) fk i)
@@ -385,7 +409,7 @@
     ((match-two v (= proc p) . x)
      (let ((w (proc v))) (match-one w p . x)))
     ((match-two v (p ___ . r) g+s sk fk i)
-     (match-extract-vars p (match-gen-ellipses v p r g+s sk fk i) i ()))
+     (match-extract-vars p (match-gen-ellipsis v p r g+s sk fk i) i ()))
     ((match-two v (p) g+s sk fk i)
      (if (and (pair? v) (null? (cdr v)))
          (let ((w (car v)))
@@ -402,6 +426,18 @@
     ((match-two v ($ rec p ...) g+s sk fk i)
      (if (is-a? v rec)
          (match-record-refs v rec 0 (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (struct rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-refs v rec 0 (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (@ rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-named-refs v rec (p ...) g+s sk fk i)
+         fk))
+    ((match-two v (object rec p ...) g+s sk fk i)
+     (if (is-a? v rec)
+         (match-record-named-refs v rec (p ...) g+s sk fk i)
          fk))
     ((match-two v (p . q) g+s sk fk i)
      (if (pair? v)
@@ -510,7 +546,8 @@
      (match-one v p . x))
     ((_ v (p . q) g+s sk fk i)
      ;; match one and try the remaining on failure
-     (match-one v p g+s sk (match-gen-or-step v q g+s sk fk i) i))
+     (let ((fk2 (lambda () (match-gen-or-step v q g+s sk fk i))))
+       (match-one v p g+s sk (fk2) i)))
     ))
 
 ;; We match a pattern (p ...) by matching the pattern p in a loop on
@@ -524,7 +561,7 @@
 ;; expects to see in the success body) to the reversed accumulated
 ;; list IDs.
 
-(define-syntax match-gen-ellipses
+(define-syntax match-gen-ellipsis
   (syntax-rules ()
     ((_ v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
@@ -548,7 +585,7 @@
     ((_ v p r g+s (sk ...) fk i ((id id-ls) ...))
      ;; general case, trailing patterns to match, keep track of the
      ;; remaining list length so we don't need any backtracking
-     (match-verify-no-ellipses
+     (match-verify-no-ellipsis
       r
       (let* ((tail-len (length 'r))
              (ls v)
@@ -571,30 +608,30 @@
                  fk)))))))))
 
 ;; This is just a safety check.  Although unlike syntax-rules we allow
-;; trailing patterns after an ellipses, we explicitly disable multiple
-;; ellipses at the same level.  This is because in the general case
-;; such patterns are exponential in the number of ellipses, and we
+;; trailing patterns after an ellipsis, we explicitly disable multiple
+;; ellipsis at the same level.  This is because in the general case
+;; such patterns are exponential in the number of ellipsis, and we
 ;; don't want to make it easy to construct very expensive operations
 ;; with simple looking patterns.  For example, it would be O(n^2) for
 ;; patterns like (a ... b ...) because we must consider every trailing
 ;; element for every possible break for the leading "a ...".
 
-(define-syntax match-verify-no-ellipses
+(define-syntax match-verify-no-ellipsis
   (syntax-rules ()
     ((_ (x . y) sk)
-     (match-check-ellipse
+     (match-check-ellipsis
       x
       (match-syntax-error
-       "multiple ellipse patterns not allowed at same level")
-      (match-verify-no-ellipses y sk)))
+       "multiple ellipsis patterns not allowed at same level")
+      (match-verify-no-ellipsis y sk)))
     ((_ () sk)
      sk)
     ((_ x sk)
-     (match-syntax-error "dotted tail not allowed after ellipse" x))))
+     (match-syntax-error "dotted tail not allowed after ellipsis" x))))
 
 ;; To implement the tree search, we use two recursive procedures.  TRY
 ;; attempts to match Y once, and on success it calls the normal SK on
-;; the accumulated list ids as in MATCH-GEN-ELLIPSES.  On failure, we
+;; the accumulated list ids as in MATCH-GEN-ELLIPSIS.  On failure, we
 ;; call NEXT which first checks if the current value is a list
 ;; beginning with X, then calls TRY on each remaining element of the
 ;; list.  Since TRY will recursively call NEXT again on failure, this
@@ -642,11 +679,11 @@
 (define-syntax match-vector
   (syntax-rules (___)
     ((_ v n pats (p q) . x)
-     (match-check-ellipse q
-                          (match-gen-vector-ellipses v n pats p . x)
+     (match-check-ellipsis q
+                          (match-gen-vector-ellipsis v n pats p . x)
                           (match-vector-two v n pats (p q) . x)))
     ((_ v n pats (p ___) sk fk i)
-     (match-gen-vector-ellipses v n pats p sk fk i))
+     (match-gen-vector-ellipsis v n pats p sk fk i))
     ((_ . x)
      (match-vector-two . x))))
 
@@ -673,10 +710,10 @@
                   (match-vector-step v rest sk fk)
                   fk i)))))
 
-;; With a vector ellipse pattern we first check to see if the vector
+;; With a vector ellipsis pattern we first check to see if the vector
 ;; length is at least the required length.
 
-(define-syntax match-gen-vector-ellipses
+(define-syntax match-gen-vector-ellipsis
   (syntax-rules ()
     ((_ v n ((pat index) ...) p sk fk i)
      (if (vector? v)
@@ -713,6 +750,15 @@
     ((_ v rec n () g+s (sk ...) fk i)
      (sk ... i))))
 
+(define-syntax match-record-named-refs
+  (syntax-rules ()
+    ((_ v rec ((f p) . q) g+s sk fk i)
+     (let ((w (slot-ref rec v 'f)))
+       (match-one w p ((slot-ref rec v 'f) (slot-set! rec v 'f))
+                  (match-record-named-refs v rec q g+s sk fk) fk i)))
+    ((_ v rec () g+s (sk ...) fk i)
+     (sk ... i))))
+
 ;; Extract all identifiers in a pattern.  A little more complicated
 ;; than just looking for symbols, we need to ignore special keywords
 ;; and non-pattern forms (such as the predicate expression in ?
@@ -720,17 +766,23 @@
 ;;
 ;; Calls the continuation with all new vars as a list of the form
 ;; ((orig-var tmp-name) ...), where tmp-name can be used to uniquely
-;; pair with the original variable (e.g. it's used in the ellipse
+;; pair with the original variable (e.g. it's used in the ellipsis
 ;; generation for list variables).
 ;;
 ;; (match-extract-vars pattern continuation (ids ...) (new-vars ...))
 
 (define-syntax match-extract-vars
-  (syntax-rules (_ ___ ..1 *** ? $ = quote quasiquote and or not get! set!)
+  (syntax-rules (_ ___ ..1 *** ? $ struct @ object = quote quasiquote and or not get! set!)
     ((match-extract-vars (? pred . p) . x)
      (match-extract-vars p . x))
     ((match-extract-vars ($ rec . p) . x)
      (match-extract-vars p . x))
+    ((match-extract-vars (struct rec . p) . x)
+     (match-extract-vars p . x))
+    ((match-extract-vars (@ rec (f p) ...) . x)
+     (match-extract-vars (p ...) . x))
+    ((match-extract-vars (object rec (f p) ...) . x)
+     (match-extract-vars (p ...) . x))
     ((match-extract-vars (= proc p) . x)
      (match-extract-vars p . x))
     ((match-extract-vars (quote x) (k ...) i v)
@@ -746,7 +798,7 @@
     ;; A non-keyword pair, expand the CAR with a continuation to
     ;; expand the CDR.
     ((match-extract-vars (p q . r) k i v)
-     (match-check-ellipse
+     (match-check-ellipsis
       q
       (match-extract-vars (p . r) k i v)
       (match-extract-vars p (match-extract-vars-step (q . r) k i v) i ())))
@@ -790,13 +842,13 @@
      (match-extract-vars x k i v))
     ((match-extract-quasiquote-vars (unquote x) k i v (#t . d))
      (match-extract-quasiquote-vars x k i v d))
-    ((match-extract-quasiquote-vars (x . y) k i v (#t . d))
+    ((match-extract-quasiquote-vars (x . y) k i v d)
      (match-extract-quasiquote-vars
       x
-      (match-extract-quasiquote-vars-step y k i v d) i ()))
-    ((match-extract-quasiquote-vars #(x ...) k i v (#t . d))
+      (match-extract-quasiquote-vars-step y k i v d) i () d))
+    ((match-extract-quasiquote-vars #(x ...) k i v d)
      (match-extract-quasiquote-vars (x ...) k i v d))
-    ((match-extract-quasiquote-vars x (k ...) i v (#t . d))
+    ((match-extract-quasiquote-vars x (k ...) i v d)
      (k ... v))
     ))
 
@@ -810,7 +862,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Gimme some sugar baby.
 
-;;> Shortcut for @scheme{lambda} + @scheme{match}.  Creates a
+;;> Shortcut for \scheme{lambda} + \scheme{match}.  Creates a
 ;;> procedure of one argument, and matches that argument against each
 ;;> clause.
 
@@ -818,7 +870,7 @@
   (syntax-rules ()
     ((_ (pattern . body) ...) (lambda (expr) (match expr (pattern . body) ...)))))
 
-;;> Similar to @scheme{match-lambda}.  Creates a procedure of any
+;;> Similar to \scheme{match-lambda}.  Creates a procedure of any
 ;;> number of arguments, and matches the argument list against each
 ;;> clause.
 
@@ -830,16 +882,16 @@
 ;;> the body with all match variables in scope.  Raises an error if
 ;;> any of the expressions fail to match.  Syntax analogous to named
 ;;> let can also be used for recursive functions which match on their
-;;> arguments as in @scheme{match-lambda*}.
+;;> arguments as in \scheme{match-lambda*}.
 
 (define-syntax match-let
   (syntax-rules ()
     ((_ ((var value) ...) . body)
      (match-let/helper let () () ((var value) ...) . body))
     ((_ loop ((var init) ...) . body)
-     (match-named-let loop ((var init) ...) . body))))
+     (match-named-let loop () ((var init) ...) . body))))
 
-;;> Similar to @scheme{match-let}, but analogously to @scheme{letrec}
+;;> Similar to \scheme{match-let}, but analogously to \scheme{letrec}
 ;;> matches and binds the variables with all match variables in scope.
 
 (define-syntax match-letrec
@@ -873,16 +925,16 @@
     ((_ loop (v ...) ((pat expr) . rest) . body)
      (match-named-let loop (v ... (pat expr tmp)) rest . body))))
 
-;;> @subsubsubsection{@rawcode{(match-let* ((var value) ...) body ...)}}
+;;> \macro{(match-let* ((var value) ...) body ...)}
 
-;;> Similar to @scheme{match-let}, but analogously to @scheme{let*}
+;;> Similar to \scheme{match-let}, but analogously to \scheme{let*}
 ;;> matches and binds the variables in sequence, with preceding match
 ;;> variables in scope.
 
 (define-syntax match-let*
   (syntax-rules ()
     ((_ () . body)
-     (begin . body))
+     (let () . body))
     ((_ ((pat expr) . rest) . body)
      (match expr (pat (match-let* rest . body))))))
 
@@ -890,49 +942,65 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Otherwise COND-EXPANDed bits.
 
-;; This *should* work, but doesn't :(
-;;   (define-syntax match-check-ellipse
-;;     (syntax-rules (...)
-;;       ((_ ... sk fk) sk)
-;;       ((_ x sk fk) fk)))
+(cond-expand
+ (chibi
+  (define-syntax match-check-ellipsis
+    (er-macro-transformer
+     (lambda (expr rename compare)
+       (if (compare '... (cadr expr))
+           (car (cddr expr))
+           (cadr (cddr expr))))))
+  (define-syntax match-check-identifier
+    (er-macro-transformer
+     (lambda (expr rename compare)
+       (if (identifier? (cadr expr))
+           (car (cddr expr))
+           (cadr (cddr expr)))))))
 
-;; This is a little more complicated, and introduces a new let-syntax,
-;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
-;; originally came up with the idea.
-(define-syntax match-check-ellipse
-  (syntax-rules ()
-    ;; these two aren't necessary but provide fast-case failures
-    ((match-check-ellipse (a . b) success-k failure-k) failure-k)
-    ((match-check-ellipse #(a ...) success-k failure-k) failure-k)
-    ;; matching an atom
-    ((match-check-ellipse id success-k failure-k)
-     (let-syntax ((ellipse? (syntax-rules ()
-                              ;; iff `id' is `...' here then this will
-                              ;; match a list of any length
-                              ((ellipse? (foo id) sk fk) sk)
-                              ((ellipse? other sk fk) fk))))
-       ;; this list of three elements will only many the (foo id) list
-       ;; above if `id' is `...'
-       (ellipse? (a b c) success-k failure-k)))))
+ (else
+  ;; Portable versions
+  ;;
+  ;; This *should* work, but doesn't :(
+  ;;   (define-syntax match-check-ellipsis
+  ;;     (syntax-rules (...)
+  ;;       ((_ ... sk fk) sk)
+  ;;       ((_ x sk fk) fk)))
+  ;;
+  ;; This is a little more complicated, and introduces a new let-syntax,
+  ;; but should work portably in any R[56]RS Scheme.  Taylor Campbell
+  ;; originally came up with the idea.
+  (define-syntax match-check-ellipsis
+    (syntax-rules ()
+      ;; these two aren't necessary but provide fast-case failures
+      ((match-check-ellipsis (a . b) success-k failure-k) failure-k)
+      ((match-check-ellipsis #(a ...) success-k failure-k) failure-k)
+      ;; matching an atom
+      ((match-check-ellipsis id success-k failure-k)
+       (let-syntax ((ellipsis? (syntax-rules ()
+                                 ;; iff `id' is `...' here then this will
+                                 ;; match a list of any length
+                                 ((ellipsis? (foo id) sk fk) sk)
+                                 ((ellipsis? other sk fk) fk))))
+         ;; this list of three elements will only match the (foo id) list
+         ;; above if `id' is `...'
+         (ellipsis? (a b c) success-k failure-k)))))
 
-
-;; This is portable but can be more efficient with non-portable
-;; extensions.  This trick was originally discovered by Oleg Kiselyov.
-
-(define-syntax match-check-identifier
-  (syntax-rules ()
-    ;; fast-case failures, lists and vectors are not identifiers
-    ((_ (x . y) success-k failure-k) failure-k)
-    ((_ #(x ...) success-k failure-k) failure-k)
-    ;; x is an atom
-    ((_ x success-k failure-k)
-     (let-syntax
-         ((sym?
-           (syntax-rules ()
-             ;; if the symbol `abracadabra' matches x, then x is a
-             ;; symbol
-             ((sym? x sk fk) sk)
-             ;; otherwise x is a non-symbol datum
-             ((sym? y sk fk) fk))))
-       (sym? abracadabra success-k failure-k)))))
+  ;; This is portable but can be more efficient with non-portable
+  ;; extensions.  This trick was originally discovered by Oleg Kiselyov.
+  (define-syntax match-check-identifier
+    (syntax-rules ()
+      ;; fast-case failures, lists and vectors are not identifiers
+      ((_ (x . y) success-k failure-k) failure-k)
+      ((_ #(x ...) success-k failure-k) failure-k)
+      ;; x is an atom
+      ((_ x success-k failure-k)
+       (let-syntax
+           ((sym?
+             (syntax-rules ()
+               ;; if the symbol `abracadabra' matches x, then x is a
+               ;; symbol
+               ((sym? x sk fk) sk)
+               ;; otherwise x is a non-symbol datum
+               ((sym? y sk fk) fk))))
+         (sym? abracadabra success-k failure-k)))))))
 )
