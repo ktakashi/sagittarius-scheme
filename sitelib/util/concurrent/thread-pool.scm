@@ -227,7 +227,7 @@
 ;;     as it was before but that requires extra storage. plus the result value
 ;;     would be inaccurate. not sure which is better...
 (define (thread-pool-thread-task-running? tp id)
-  (not (shared-queue-find (<thread-pool>-idlings tp) id)))
+  (not (shared-queue-find (<thread-pool>-idlings tp) (lambda (o) (= o id)))))
 ;; TODO Should we add thread-pool-stop! ?
 
   )

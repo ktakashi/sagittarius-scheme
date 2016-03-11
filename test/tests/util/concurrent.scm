@@ -199,9 +199,12 @@
 					custom-add-to-back)))
   )
 
-(let ((pool (make-thread-pool 1 raise)))
-  (thread-pool-push-task! pool (lambda () (error 'dummy "msg")))
+(let* ((pool (make-thread-pool 1 raise))
+       (id (thread-pool-push-task! pool (lambda () (error 'dummy "msg")))))
+  
   (test-assert "wait after error" (thread-pool-wait-all! pool))
+  (test-assert "no task is running" 
+	       (not (thread-pool-thread-task-running? pool id)))
   ;; no need to re-throw handled exception.
   ;; (test-error "thread-pool error-handler" error? (thread-pool-release! pool))
   )
