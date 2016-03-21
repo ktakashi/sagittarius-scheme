@@ -499,7 +499,7 @@ void Sg_FileTruncate(SgObject file, int64_t size)
     int e = GetLastError();
     Sg_SystemError(e, UC("failed to SetFilePointerEx: %A"), get_last_error(e));
   }
-  if (SetEndOfFile(fd, size) != 0) {
+  if (!SetEndOfFile(fd, size)) {
     int e = GetLastError();
     Sg_SystemError(e, UC("failed to SetEndOfFile: %A"), get_last_error(e));
   }
