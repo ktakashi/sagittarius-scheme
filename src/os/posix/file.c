@@ -313,6 +313,16 @@ uintptr_t Sg_FileFD(SgObject file)
   return (uintptr_t)SG_FD(file)->fd;
 }
 
+void Sg_FileTruncate(SgObject file, int64_t size)
+{
+  int fd = SG_FD(file)->fd;
+  if (ftruncate(fd, size) != 0) {
+    const char *msg = strerror(errno);
+    Sg_SystemError(errno, UC("failed to ftruncate: %A"),
+		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
+  }
+}
+
 static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;

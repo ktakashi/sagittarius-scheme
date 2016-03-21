@@ -1087,7 +1087,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_Printf(vm->logPort, UC(";; caching id=%A\n"
 			      ";;         cache=%A\n"), id, cache_path);
   }
-  SG_OPEN_FILE(&file, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
+  SG_OPEN_FILE(&file, cache_path, SG_CREATE | SG_WRITE);
   /* lock file */
   if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
     /* if locking file fails means there is a already process running to write
@@ -1096,6 +1096,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     Sg_CloseFile(&file);
     return TRUE;
   }
+  /* lock first, then truncate */
+  Sg_FileTruncate(&file, 0);
   out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, NULL, 
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);

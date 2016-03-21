@@ -485,6 +485,28 @@ uintptr_t Sg_FileFD(SgObject file)
   return (uintptr_t)SG_FD(file)->desc;
 }
 
+void Sg_FileTruncate(SgObject file, int64_t size)
+{
+  HANDLE fd = SG_FD(file)->desc;
+  LARGE_INTEGER li;
+  int64_t p = SG_FILE_VTABLE(file)->tell(file);
+
+  li.QuadPart = size;
+  /* ftruncate doesn't accept whence and seems it truncates 
+     files from its beginning. So make it like that.
+   */
+  if (!SetFilePointerEx(fd, li, NULL, FILE_BEGIN)) {
+    int e = GetLastError();
+    Sg_SystemError(e, UC("failed to SetFilePointerEx: %A"), get_last_error(e));
+  }
+  if (SetEndOfFile(fd, size) != 0) {
+    int e = GetLastError();
+    Sg_SystemError(e, UC("failed to SetEndOfFile: %A"), get_last_error(e));
+  }
+  SG_FILE_VTABLE(file)->seek(file, p, SG_BEGIN);
+}
+
+
 static SgFile *stdOut = NULL;
 static SgFile *stdIn = NULL;
 static SgFile *stdError = NULL;

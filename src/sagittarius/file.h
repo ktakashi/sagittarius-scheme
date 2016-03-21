@@ -106,6 +106,7 @@ SG_EXTERN int      Sg_LockFile(SgObject file, enum SgFileLockType mode);
 SG_EXTERN int      Sg_UnlockFile(SgObject file);
 /* wrappers */
 SG_EXTERN int64_t  Sg_FileSeek(SgObject file, int64_t off, Whence whence);
+SG_EXTERN void     Sg_FileTruncate(SgObject file, int64_t size);
 
 /* 
    On Windows the returning FD is HANDLE
@@ -119,8 +120,6 @@ SG_EXTERN SgObject Sg_StandardIn();
 SG_EXTERN SgObject Sg_StandardError();
 
 SG_EXTERN int      Sg_IsUTF16Console(SgObject file);
-
-SG_EXTERN SgObject Sg_MakeFileOptions(SgObject options);
 
 SG_EXTERN SgObject Sg_FindFile(SgString *name, SgObject loadPaths,
 			       SgString *suffix, int quiet);
