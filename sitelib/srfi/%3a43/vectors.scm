@@ -123,7 +123,7 @@
 	     (tabulate! f vec 0 len))
 	    ((null? (cdr seed))
 	     (unfold1!  f vec 0 len (car seed)))
-	    ((null? (cdr seed))
+	    (else
 	     (unfold2+! f vec 0 len seed)))
       vec))
 
@@ -148,7 +148,7 @@
 	     (tabulate! f vec i))
 	    ((null? (cdr seed))
 	     (unfold1!  f vec i (car seed)))
-	    ((null? (cdr seed))
+	    (else
 	     (unfold2+! f vec i seed)))
       vec))
 
