@@ -3,63 +3,61 @@
 #!core
 ;; for unbound variable warning
 (library (compat r7rs helper)
-    (export any length* error cons-source check-length)
-    (import (except (core) error)
-	    (core base)
-	    (rename (core errors) (error core:error))
-	    (only (sagittarius vm debug) source-info-set!))
-  ;; Chibi allow 'ls' to be non pair as its extension.
-  ;; syntax-rules depends on this behaviour so we need to allow it
-  (define (any pred ls)
-    (if (pair? ls)
-	(if (null? (cdr ls)) 
-	    (pred (car ls))
-	    (or (pred (car ls))
-		(any pred (cdr ls))))
-	#f))
-
-  ;; syntax-violation
-  (define (error msg . irr) 
-    (let ((form (if (null? irr) #f (car irr)))
-	  (subform (and (not (null? irr))
-			(not (null? (cdr irr)))
-			(cdr irr))))
-      (syntax-violation 'syntax-rules msg form subform)))
-
-  ;; Chibi's length* returns element count of car parts of inproper list
-  ;; e.g) (length* '(1 2 3 . 4)) ;; => 3
-  ;; And syntax-rules depends on this behaviour. So provide it.
-  ;; it's a bit awkward way to do it
-  (define (length* ls)
-    (let ((r (length ls)))
-      (cond ((positive? r) r)	    ; no worry
-	    ((= r -2) #f)	    ; -2 is circular list so return #f
-	    (else
-	     (let loop ((i 0) (ls ls))
-	       (if (not (pair? ls))
-		   i
-		   (loop (+ i 1) (cdr ls))))))))
-
-  (define (cons-source kar kdr source) (source-info-set! (cons kar kdr) source))
-  (define (check-length tmpl . args)
-    (or (apply = (map length args))
-	(syntax-violation 'syntax-rules
-			  "subforms have different size of matched input"
-			  `(template ,tmpl)
-			  `(input ,args))))
-)
-
-(library (compat r7rs)
-    (export syntax-rules)
-    (import (rename (except (core) identifier?)
+    (export syntax-rules-transformer 
+	    ;; we need to export them so that (compat r7rs) sees it.
+	    ;; NB: the rename is given from (compat r7rs) and renamed
+	    ;;     identifiers belong to the library. if these are not
+	    ;;     exported, then it raises unbound variable.
+	    length* cons-source error check-length)
+    (import (rename (except (core) identifier? error)
 		    (number->string %number->string))
-	    (core base)
 	    (rename (sagittarius)
 		    (unwrap-syntax strip-syntactic-closures)
 		    ;; on chibi-scheme, identifier is either symbol or syntax
 		    ;; object. so we need to provide this.
 		    (variable? identifier?))
-	    (compat r7rs helper))
+	    (core base)
+	    (rename (core errors) (error core:error))
+	    (only (sagittarius vm debug) source-info-set!))
+;; Chibi allow 'ls' to be non pair as its extension.
+;; syntax-rules depends on this behaviour so we need to allow it
+(define (any pred ls)
+  (if (pair? ls)
+      (if (null? (cdr ls)) 
+	  (pred (car ls))
+	  (or (pred (car ls))
+	      (any pred (cdr ls))))
+      #f))
+
+;; syntax-violation
+(define (error msg . irr) 
+  (let ((form (if (null? irr) #f (car irr)))
+	  (subform (and (not (null? irr))
+			(not (null? (cdr irr)))
+			(cdr irr))))
+    (syntax-violation 'syntax-rules msg form subform)))
+
+;; Chibi's length* returns element count of car parts of inproper list
+;; e.g) (length* '(1 2 3 . 4)) ;; => 3
+;; And syntax-rules depends on this behaviour. So provide it.
+;; it's a bit awkward way to do it
+(define (length* ls)
+  (let ((r (length ls)))
+    (cond ((positive? r) r)	    ; no worry
+	  ((= r -2) #f)	    ; -2 is circular list so return #f
+	  (else
+	   (let loop ((i 0) (ls ls))
+	     (if (not (pair? ls))
+		 i
+		 (loop (+ i 1) (cdr ls))))))))
+
+(define (cons-source kar kdr source) (source-info-set! (cons kar kdr) source))
+(define (check-length tmpl . args)
+  (or (apply = (map length args))
+      (syntax-violation 'syntax-rules
+			"subforms have different size of matched input"
+			`(template ,tmpl)
+			`(input ,args))))
 
 ;; from chibi-scheme
 (define (syntax-rules-transformer expr rename compare)
@@ -304,6 +302,13 @@
 				    (list (rename 'strip-syntactic-closures) _expr))
 			      (list (rename 'strip-syntactic-closures) _expr))
                      #f)))))))))
+)
+
+(library (compat r7rs)
+    (export syntax-rules)
+    (import (core)
+	    (core base)
+	    (compat r7rs helper))
 
 (define-syntax syntax-rules-aux
   (er-macro-transformer syntax-rules-transformer))
