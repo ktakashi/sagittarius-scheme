@@ -1,0 +1,25 @@
+;; -*- mode:scheme; coding:utf-8; -*-
+(decl-code
+ (.include <sagittarius.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   <filewatch.h>))
+
+(define-type <file-watch-context> "SgFileWatchContext*")
+
+(define-c-proc make-file-watch-context () Sg_MakeFileWatchContext)
+(define-c-proc file-watch-context? (o) ::<boolean> SG_FILE_WATCH_CONTEXT_P)
+
+(define-c-proc add-monitoring-path 
+  (ctx::<file-watch-context> path::<string> flags handler) ::<void>
+  Sg_AddMonitoringPath)
+(define-c-proc remove-monitoring-path (ctx::<file-watch-context> path::<string>)
+  Sg_RemoveMonitoringPath)
+
+;; this won't return unless thread-interrupt! is called
+(define-c-proc start-monitoring! (ctx::<file-watch-context>) ::<void>
+  Sg_StartMonitoring)
+
+(define-c-proc destroy-file-watch-context! (ctx::<file-watch-context>) ::<void>
+  Sg_DestroyFileWatchContext)
+
