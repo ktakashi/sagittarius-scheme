@@ -63,6 +63,7 @@ SgObject Sg_MakeFileWatchContext()
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
   ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
   ctx->context = ic;
+  ctx->stopRequest = FALSE;
   return SG_OBJ(ctx);
 }
 
@@ -208,11 +209,14 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
   fds[0].events = POLLIN;
 
   while (1) {
-    int poll_num = poll(fds, nfds, -1);
+    int poll_num;
+
+    if (ctx->stopRequest) break;
+    poll_num = poll(fds, nfds, -1);
     if (poll_num < 0) {
       int e = errno;
       char *msg;
-      if (e == EINTR) return;
+      if (e == EINTR) break;
       msg = strerror(e);
       Sg_SystemError(e, UC("failed to poll: %A"), 
 		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
@@ -223,4 +227,5 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
       }
     }
   }
+  ctx->stopRequest = FALSE;
 }

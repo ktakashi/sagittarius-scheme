@@ -40,6 +40,7 @@ SG_CLASS_DECL(Sg_FileWatchContextClass);
 typedef struct {
   SG_HEADER;
   SgObject handlers;
+  int      stopRequest;
   /* platform dependant context */
   void *context;
 } SgFileWatchContext;
@@ -57,6 +58,8 @@ SG_EXTERN void Sg_AddMonitoringPath(SgFileWatchContext *ctx,
 SG_EXTERN SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, 
 					   SgString *path);
 SG_EXTERN void Sg_StartMonitoring(SgFileWatchContext *ctx);
+
+SG_EXTERN void Sg_StopRequest(SgFileWatchContext *ctx);
 
 SG_CDECL_END
 

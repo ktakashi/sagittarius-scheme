@@ -81,6 +81,7 @@
     (unless (thread? thread)
       (assertion-violation 'filesystem-watcher-stop-monitoring!
 			   "watcher is not started yet" watcher))
+    (stop-request! (filesystem-watcher-context watcher))
     (thread-interrupt! thread)
     (thread-join! thread)
     (slot-set! watcher 'thread #f)))

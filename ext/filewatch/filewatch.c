@@ -41,6 +41,11 @@ static void filewatch_ctx_print(SgObject o, SgPort *p, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FileWatchContextClass, filewatch_ctx_print);
 
+void Sg_StopRequest(SgFileWatchContext *ctx)
+{
+  ctx->stopRequest = TRUE;
+}
+
 extern void Sg__Init_filewatch_stub(SgLibrary *lib);
 
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__filewatch()

@@ -20,6 +20,9 @@
 (define-c-proc start-monitoring! (ctx::<file-watch-context>) ::<void>
   Sg_StartMonitoring)
 
+(define-c-proc stop-request! (ctx::<file-watch-context>) ::<void>
+  Sg_StopRequest)
+
 (define-c-proc destroy-file-watch-context! (ctx::<file-watch-context>) ::<void>
   Sg_DestroyFileWatchContext)
 
