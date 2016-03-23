@@ -29,6 +29,7 @@
  *
  *  $Id: $
  */
+#include <windows.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
@@ -159,7 +160,7 @@ SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
   SG_FOR_EACH(cp, wc->mappings) {
     if (Sg_StringEqual(dir, SG_STRING(SG_CAAR(cp)))) {
       SgObject found = SG_CAR(cp);
-      SgObject plst = SG_CADR(found), d = SG_CDR(found);
+      SgObject d = SG_CDR(found);
       SgObject prev = SG_FALSE;
       SG_FOR_EACH(cp, found) {
 	if (Sg_StringEqual(SG_STRING(SG_CAR(cp)), path)) {
