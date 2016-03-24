@@ -49,6 +49,7 @@
 (define-class <filesystem-watcher> ()
   ((context :init-keyword :context :reader filesystem-watcher-context)
    (thread  :init-value #f :reader filesystem-watcher-thread)
+   (background  :init-value #t)
    (error-handler :init-keyword :error-handler
 		  :init-value default-error-handler)))
 
@@ -82,13 +83,18 @@
 (define (filesystem-watcher-remove-path! watcher path)
   (remove-monitoring-path (filesystem-watcher-context watcher) path))
 
-(define (filesystem-watcher-start-monitoring! watcher)
+(define (filesystem-watcher-start-monitoring! watcher :key (background #t))
+  (when (slot-ref watcher 'thread)
+    (assertion-violation 'filesystem-watcher-start-monitoring!
+			 "watcher is already started" watcher))
   (let ((thread (thread-start! 
 		 (make-thread 
 		  (lambda () 
 		    (start-monitoring! 
 		     (filesystem-watcher-context watcher)))))))
-    (slot-set! watcher 'thread thread)))
+    (slot-set! watcher 'thread thread)
+    (slot-set! watcher 'background background)
+    (unless background (thread-join! thread))))
 
 (define (filesystem-watcher-stop-monitoring! watcher)
   (let ((thread (filesystem-watcher-thread watcher)))
@@ -97,7 +103,7 @@
 			   "watcher is not started yet" watcher))
     (stop-request! (filesystem-watcher-context watcher))
     (thread-interrupt! thread)
-    (thread-join! thread)
+    (when (slot-ref watcher 'background) (thread-join! thread))
     (slot-set! watcher 'thread #f)))
 
 )
