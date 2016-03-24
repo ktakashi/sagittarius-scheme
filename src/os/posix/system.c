@@ -596,6 +596,12 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   if (pid == -1) goto fork_fail;
   if (pid == 0) {
     if (flags & SG_PROCESS_DETACH) {
+      /* why double-fork?
+	 We don't know if the detached process tries to open
+	 console (/dev/console) or not. So I need to be paranoid
+	 unfortunately.
+	 http://stackoverflow.com/questions/881388/what-is-the-reason-for-performing-a-double-fork-when-creating-a-daemon
+       */
       pid = fork();
       if (pid < 0) goto fork_fail;
       /* kill intermidiate process */
@@ -644,10 +650,17 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFFER_MODE_NONE);
     *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFFER_MODE_NONE);
   }
-  Sg_LockMutex(&pid_list.mutex);
-  /* manage pid */
-  pid_list.pids = Sg_Cons(SG_MAKE_INT(pid), pid_list.pids);
-  Sg_UnlockMutex(&pid_list.mutex);
+  if (flags & SG_PROCESS_DETACH) {
+    /* the intermidiate process is already exit. so remove the
+       pid from the process list. */
+    int status = 0;
+    waitpid(pid, &status, 0);
+  } else {
+    Sg_LockMutex(&pid_list.mutex);
+    /* manage pid */
+    pid_list.pids = Sg_Cons(SG_MAKE_INT(pid), pid_list.pids);
+    Sg_UnlockMutex(&pid_list.mutex);
+  }
   return (uintptr_t)pid;
  sysconf_fail:
  pipe_fail:
@@ -698,10 +711,10 @@ static void* waiter(void *param)
   pthread_cond_t *cond = (pthread_cond_t *)data[0];
   pid_t pid = (pid_t)data[1];
   int status = 0;
-  data[2] = (void *)waitpid(pid, &status, 0);
-  data[3] = (void *)errno;
+  data[2] = (void *)(uintptr_t)waitpid(pid, &status, 0);
+  data[3] = (void *)(uintptr_t)errno;
   pthread_cond_signal(cond);
-  pthread_exit((void *)status);
+  pthread_exit((void *)(uintptr_t)status);
   return NULL;
 }
 
