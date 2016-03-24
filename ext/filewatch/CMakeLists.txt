@@ -15,12 +15,7 @@ IF (HAVE_SYS_INOTIFY_H)
 # later
 # ELSEIF (HAVE_SYS_EVENT_H)
 #   SET(FILE_WATCH_C kqueue_watch.c)
-ELSEIF (HAVE_WINDOWS_H AND NOT CYGWIN)
-  # On Cygwin, we can't use this yet.
-  # To stop thread requires WaitForMultipleObjects on Windows
-  # implementation however Cygwin uses signal to interrupt
-  # threads like other POSIX implementation. We need some
-  # clever way to handle this dilemma...
+ELSEIF (HAVE_WINDOWS_H)
   SET(FILE_WATCH_C windows_watch.c)
 ELSE()
   SET(FILE_WATCH_C dummy_watch.c)

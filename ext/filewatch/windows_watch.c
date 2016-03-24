@@ -37,6 +37,9 @@
 
 typedef struct {
   SgObject mappings;		/* list of dirs&path&flags */
+#ifdef __CYGWIN__
+  HANDLE event;
+#endif
 } windows_context;
 
 SgObject Sg_MakeFileWatchContext()
@@ -44,6 +47,9 @@ SgObject Sg_MakeFileWatchContext()
   SgFileWatchContext *ctx = SG_NEW(SgFileWatchContext);
   windows_context *wc = SG_NEW(windows_context);
   wc->mappings = SG_NIL;
+#ifdef __CYGWIN__
+  wc->event = INVALID_HANDLE_VALUE;
+#endif
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
 
   ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
@@ -184,7 +190,7 @@ SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 void Sg_StartMonitoring(SgFileWatchContext *ctx)
 {
   windows_context *wc = (windows_context *)ctx->context;
-  int n = Sg_Length(wc->mappings), i, r;
+  int n = Sg_Length(wc->mappings), i;
   SgObject cp;
   OVERLAPPED *ols = SG_NEW_ATOMIC2(OVERLAPPED *, n * sizeof(OVERLAPPED));
   HANDLE *events = SG_NEW_ATOMIC2(HANDLE *, (n + 1) * sizeof(HANDLE));
@@ -193,6 +199,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     SG_NEW_ATOMIC2(FILE_NOTIFY_INFORMATION **, 
 		   n * sizeof(FILE_NOTIFY_INFORMATION *));
   int *filters = SG_NEW_ATOMIC2(int *, n * sizeof(int)), e = 0;
+  DWORD r;
 
   for (i = 0, cp = wc->mappings; i < n; i++, cp = SG_CDR(cp)) {
     wchar_t *dir = Sg_StringToWCharTs(SG_CAAR(cp));
@@ -217,7 +224,11 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     if (!rc) goto err;
   }
   /* now wait */
+#ifdef __CYGWIN__
+  events[n] = wc->event = CreateEvent(NULL, FALSE, FALSE, NULL);
+#else
   events[n] = (&Sg_VM()->thread)->event;
+#endif
   while (1) {
     if (ctx->stopRequest) goto end;
     
@@ -247,8 +258,20 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     if (events[i]) CloseHandle(events[i]);
     if (dirs[i]) CloseHandle(dirs[i]);
   }
+#ifdef __CYGWIN__
+  CloseHandle(wc->event);
+  wc->event = INVALID_HANDLE_VALUE;
+#endif
   ctx->stopRequest = FALSE;
   if (e) {
     Sg_SystemError(e, UC("%A"), Sg_GetLastErrorMessageWithErrorCode(e));
   }
 }
+
+#ifdef __CYGWIN__
+void Sg_InterruptMonitoring(SgFileWatchContext *ctx)
+{
+  windows_context *wc = (windows_context *)ctx->context;
+  if (wc->event != INVALID_HANDLE_VALUE) SetEvent(wc->event);
+}
+#endif

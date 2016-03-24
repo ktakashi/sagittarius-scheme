@@ -38,6 +38,7 @@
 	    filesystem-watcher-start-monitoring!
 	    filesystem-watcher-stop-monitoring!)
     (import (rnrs)
+	    (sagittarius)
 	    (clos user)
 	    (sagittarius threads)
 	    (sagittarius dynamic-module))
@@ -102,7 +103,7 @@
       (assertion-violation 'filesystem-watcher-stop-monitoring!
 			   "watcher is not started yet" watcher))
     (stop-request! (filesystem-watcher-context watcher))
-    (thread-interrupt! thread)
+    (interrupt-monitoring! thread (filesystem-watcher-context watcher))
     (when (slot-ref watcher 'background) (thread-join! thread))
     (slot-set! watcher 'thread #f)))
 

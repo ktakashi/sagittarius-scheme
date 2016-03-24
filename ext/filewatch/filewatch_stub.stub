@@ -26,3 +26,9 @@
 (define-c-proc destroy-file-watch-context! (ctx::<file-watch-context>) ::<void>
   Sg_DestroyFileWatchContext)
 
+(define-c-proc interrupt-monitoring! 
+  (thread::<thread> ctx::<file-watch-context>) ::<void>
+  (.if "defined(__CYGWIN__)"
+       (Sg_InterruptMonitoring ctx)
+       (Sg_InterruptThread (& (-> thread thread)))))
+

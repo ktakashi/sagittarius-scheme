@@ -61,6 +61,10 @@ SG_EXTERN void Sg_StartMonitoring(SgFileWatchContext *ctx);
 
 SG_EXTERN void Sg_StopRequest(SgFileWatchContext *ctx);
 
+#ifdef __CYGWIN__
+SG_EXTERN void Sg_InterruptMonitoring(SgFileWatchContext *ctx);
+#endif
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_FILEWATCH_H_ */
