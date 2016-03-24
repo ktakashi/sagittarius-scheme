@@ -113,24 +113,32 @@ void Sg_AddMonitoringPath(SgFileWatchContext *ctx, SgString *path,
 			  SgObject handler)
 {
   inotify_context *ic = (inotify_context *)ctx->context;
-  char *p = Sg_Utf32sToUtf8s(path);
-  int wd = inotify_add_watch(ic->fd, p, get_flag(flag));
+  SgObject abp = Sg_AbsolutePath(path);
+  char *p;
+  int wd;
+  if (SG_FALSEP(abp)) Sg_Error(UC("Path does not exist: %A"), path);
+
+  p = Sg_Utf32sToUtf8s(abp);
+  wd = inotify_add_watch(ic->fd, p, get_flag(flag));
   if (wd < 0) {
     int e = errno;
     char *msg = strerror(e);
     Sg_SystemError(e, UC("failed to add path: %A"), 
 		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
   }
-  ic->wds = Sg_Acons(path, SG_MAKE_INT(wd), ic->wds);
-  Sg_HashTableSet(ctx->handlers, path, handler, 0);
+  ic->wds = Sg_Acons(abp, SG_MAKE_INT(wd), ic->wds);
+  Sg_HashTableSet(ctx->handlers, abp, handler, 0);
 }
 SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 {
   inotify_context *ic = (inotify_context *)ctx->context;
   int wd = -1;
-  SgObject cp;
+  SgObject cp, abp = Sg_AbsolutePath(path);
+
+  if (SG_FALSEP(abp)) return SG_FALSE;
+
   SG_FOR_EACH(cp, ic->wds) {
-    if (Sg_StringEqual(path, SG_CAAR(cp))) {
+    if (Sg_StringEqual(abp, SG_CAAR(cp))) {
       wd = SG_INT_VALUE(SG_CDAR(cp));
       break;
     }
@@ -142,7 +150,7 @@ SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
     Sg_SystemError(e, UC("failed to remove path: %A"), 
 		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
   }
-  return Sg_HashTableDelete(ctx->handlers, path);
+  return Sg_HashTableDelete(ctx->handlers, abp);
 }
 
 static void handle_events(SgFileWatchContext *ctx)
@@ -188,11 +196,19 @@ static void handle_events(SgFileWatchContext *ctx)
        */
       if (event->mask & IN_ACCESS) flag = SG_INTERN("access");
       if (event->mask & IN_MODIFY) flag = SG_INTERN("modified");
-      if (event->mask & IN_ATTRIB) flag = SG_INTERN("modified");
+      if (event->mask & IN_ATTRIB) flag = SG_INTERN("attribute");
       if (event->mask & IN_DELETE) flag = SG_INTERN("remvoed");
       /* TODO how to handle it? */
       if (event->mask & IN_MOVED_FROM) flag = SG_INTERN("renamed");
       if (event->mask & IN_MOVED_TO)   flag = SG_INTERN("renamed");
+      if (event->len && Sg_DirectoryP(name)) {
+	/* monitoring directory so construct file path 
+	   NB: we don't support IN_OPEN or IN_CLOSE so, i believe, 
+	       event->name wouldn't contain the target directory
+	       itself.
+	*/
+	name = Sg_BuildPath(name, Sg_Utf8sToUtf32s(event->name, event->len));
+      }
       /* now call handler */
       Sg_Apply2(handler, name, flag);
     }

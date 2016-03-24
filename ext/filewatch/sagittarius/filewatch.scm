@@ -44,12 +44,17 @@
 
 (load-dynamic-module "sagittarius--filewatch")
 
+(define (default-error-handler e) #f) ;; do nothing
+
 (define-class <filesystem-watcher> ()
   ((context :init-keyword :context :reader filesystem-watcher-context)
-   (thread  :init-value #f :reader filesystem-watcher-thread)))
+   (thread  :init-value #f :reader filesystem-watcher-thread)
+   (error-handler :init-keyword :error-handler
+		  :init-value default-error-handler)))
 
-(define (make-filesystem-watcher) 
-  (make <filesystem-watcher> :context (make-file-watch-context)))
+(define (make-filesystem-watcher :key (error-handler default-error-handler) )
+  (make <filesystem-watcher> :context (make-file-watch-context)
+	:error-handler error-handler))
 (define (release-filesystem-watcher watcher)
   (let ((thread (filesystem-watcher-thread watcher)))
     (when (thread? thread) (filesystem-watcher-stop-monitoring! watcher)))
@@ -59,10 +64,19 @@
 (define (filesystem-watcher? o) (is-a? o <filesystem-watcher>))
 
 (define (filesystem-watcher-add-path! watcher path flags handler)
+  (define (->safe-handler handler)
+    (lambda (p e)
+      (let loop ()
+	(guard (e (else 
+		   ;; never stop the thread
+		   (guard (e2 (else #t)) 
+		     ((slot-ref watcher 'error-handler) e))))
+	  (handler p e)))))
   (unless (procedure? handler) 
     (assertion-violation 'filesystem-watcher-add-path!
 			 "handler must be a procedure" handler))
-  (add-monitoring-path (filesystem-watcher-context watcher) path flags handler)
+  (add-monitoring-path (filesystem-watcher-context watcher) path flags 
+		       (->safe-handler handler))
   watcher)
 
 (define (filesystem-watcher-remove-path! watcher path)
