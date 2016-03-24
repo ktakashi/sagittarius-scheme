@@ -599,7 +599,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
       pid = fork();
       if (pid < 0) goto fork_fail;
       /* kill intermidiate process */
-      if (pid == 0) exit(0);
+      if (pid > 0) exit(0);
 
       setsid();
     }
