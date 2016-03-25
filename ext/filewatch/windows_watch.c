@@ -67,12 +67,12 @@ void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 static int symbol2flag(SgObject flag)
 {
   /* we support only greatest common things. */
-  if (SG_EQ(SG_INTERN("access"), flag)) return FILE_NOTIFY_CHANGE_LAST_ACCESS;
-  if (SG_EQ(SG_INTERN("modify"), flag)) return FILE_NOTIFY_CHANGE_LAST_WRITE;
-  if (SG_EQ(SG_INTERN("delete"), flag) || SG_EQ(SG_INTERN("move"), flag)) {
+  if (SG_EQ(SG_ACCESS, flag)) return FILE_NOTIFY_CHANGE_LAST_ACCESS;
+  if (SG_EQ(SG_MODIFY, flag)) return FILE_NOTIFY_CHANGE_LAST_WRITE;
+  if (SG_EQ(SG_DELETE, flag) || SG_EQ(SG_MOVE, flag)) {
     return FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
   }
-  if (SG_EQ(SG_INTERN("attribute"), flag)) return FILE_NOTIFY_CHANGE_ATTRIBUTES;
+  if (SG_EQ(SG_ATTRIBUTE, flag)) return FILE_NOTIFY_CHANGE_ATTRIBUTES;
   /* error? */
   return 0;
 }

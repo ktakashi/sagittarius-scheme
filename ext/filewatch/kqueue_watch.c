@@ -92,10 +92,10 @@ static int symbol2flag(SgObject flag)
   /* we support only greatest common things. */
   /* kqueue doesn't have monitoring access */
   /* if (SG_EQ(SG_INTERN("access"), flag)) return 0; */
-  if (SG_EQ(SG_INTERN("modify"), flag)) return NOTE_WRITE;
-  if (SG_EQ(SG_INTERN("delete"), flag)) return NOTE_DELETE;
-  if (SG_EQ(SG_INTERN("move"), flag))   return NOTE_RENAME;
-  if (SG_EQ(SG_INTERN("attribute"), flag))   return NOTE_ATTRIB;
+  if (SG_EQ(SG_MODIFY, flag)) return NOTE_WRITE;
+  if (SG_EQ(SG_DELETE, flag)) return NOTE_DELETE;
+  if (SG_EQ(SG_MOVE, flag))   return NOTE_RENAME;
+  if (SG_EQ(SG_ATTRIBUTE, flag))   return NOTE_ATTRIB;
   /* error? */
   return 0;
 }
@@ -200,10 +200,10 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
       SgObject e = SG_FALSE, h;
       h = Sg_HashTableRef(ctx->handlers, evm[i].udata, SG_FALSE);
       if (SG_FALSEP(h)) continue;
-      if (evm[i].fflags & NOTE_WRITE) e = SG_INTERN("modified");
-      if (evm[i].fflags & NOTE_DELETE) e = SG_INTERN("removed");
-      if (evm[i].fflags & NOTE_RENAME) e = SG_INTERN("renamed");
-      if (evm[i].fflags & NOTE_ATTRIB) e = SG_INTERN("attribute");
+      if (evm[i].fflags & NOTE_WRITE)  e = SG_MODIFIED;
+      if (evm[i].fflags & NOTE_DELETE) e = SG_REMOVED;
+      if (evm[i].fflags & NOTE_RENAME) e = SG_RENAMED;
+      if (evm[i].fflags & NOTE_ATTRIB) e = SG_ATTRIBUTE;
       
       Sg_Apply2(h, evm[i].udata, e);
     }

@@ -48,12 +48,34 @@ void Sg_StopRequest(SgFileWatchContext *ctx)
 
 extern void Sg__Init_filewatch_stub(SgLibrary *lib);
 
+SgObject Sg_FlagSymbols[] = {
+  SG_UNDEF,			/* access */
+  SG_UNDEF,			/* modify */
+  SG_UNDEF,			/* delete */
+  SG_UNDEF,			/* move */
+  SG_UNDEF,			/* attribute */
+  SG_UNDEF,			/* accessed */
+  SG_UNDEF,			/* modified */
+  SG_UNDEF,			/* removed */
+  SG_UNDEF			/* renamed */
+};
+
 SG_EXTENSION_ENTRY void Sg_Init_sagittarius__filewatch()
 {
   SgLibrary *lib;
   SG_INIT_EXTENSION(sagittarius__filewatch);
   lib = SG_LIBRARY(Sg_FindLibrary(SG_INTERN("(sagittarius filewatch)"),
 				  FALSE));
+  
+  SG_ACCESS    = SG_INTERN("access");
+  SG_MODIFY    = SG_INTERN("modify");
+  SG_DELETE    = SG_INTERN("delete");
+  SG_MOVE      = SG_INTERN("move");
+  SG_ATTRIBUTE = SG_INTERN("attribute");
+  SG_ACCESSED  = SG_INTERN("accessed");
+  SG_MODIFIED  = SG_INTERN("modified");
+  SG_REMOVED   = SG_INTERN("removed");
+  SG_RENAMED   = SG_INTERN("renamed");
 
   Sg__Init_filewatch_stub(lib);
   Sg_InitStaticClass(SG_CLASS_FILE_WATCH_CONTEXT, UC("<filewatch-context>"),

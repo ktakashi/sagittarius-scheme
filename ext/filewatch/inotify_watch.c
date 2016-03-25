@@ -69,11 +69,11 @@ void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 static int symbol2flag(SgObject flag)
 {
   /* we support only greatest common things. */
-  if (SG_EQ(SG_INTERN("access"), flag)) return IN_ACCESS;
-  if (SG_EQ(SG_INTERN("modify"), flag)) return IN_MODIFY;
-  if (SG_EQ(SG_INTERN("delete"), flag)) return IN_DELETE;
-  if (SG_EQ(SG_INTERN("move"), flag))   return IN_MOVE;
-  if (SG_EQ(SG_INTERN("attribute"), flag))   return IN_ATTRIB;
+  if (SG_EQ(SG_ACCESS, 	  flag)) return IN_ACCESS;
+  if (SG_EQ(SG_MODIFY, 	  flag)) return IN_MODIFY;
+  if (SG_EQ(SG_DELETE, 	  flag)) return IN_DELETE;
+  if (SG_EQ(SG_MOVE,   	  flag)) return IN_MOVE;
+  if (SG_EQ(SG_ATTRIBUTE, flag)) return IN_ATTRIB;
   /* error? */
   return 0;
 }
@@ -165,13 +165,13 @@ static int handle_events(SgFileWatchContext *ctx, int fd, SgObject wds)
       /* added, removed, modified or renamed are the Windows compatible ones.
 	 for extra, we can also add access.
        */
-      if (event->mask & IN_ACCESS) flag = SG_INTERN("access");
-      if (event->mask & IN_MODIFY) flag = SG_INTERN("modified");
-      if (event->mask & IN_ATTRIB) flag = SG_INTERN("attribute");
-      if (event->mask & IN_DELETE) flag = SG_INTERN("remvoed");
+      if (event->mask & IN_ACCESS) flag = SG_ACCESSED;
+      if (event->mask & IN_MODIFY) flag = SG_MODIFIED;
+      if (event->mask & IN_ATTRIB) flag = SG_ATTRIBUTE;
+      if (event->mask & IN_DELETE) flag = SG_REMOVED;
       /* TODO how to handle it? */
-      if (event->mask & IN_MOVED_FROM) flag = SG_INTERN("renamed");
-      if (event->mask & IN_MOVED_TO)   flag = SG_INTERN("renamed");
+      if (event->mask & IN_MOVED_FROM) flag = SG_RENAMED;
+      if (event->mask & IN_MOVED_TO)   flag = SG_RENAMED;
       if (event->len && Sg_DirectoryP(name)) {
 	/* monitoring directory so construct file path 
 	   NB: we don't support IN_OPEN or IN_CLOSE so, i believe, 

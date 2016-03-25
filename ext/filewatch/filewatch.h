@@ -47,6 +47,19 @@ typedef struct {
 #define SG_FILE_WATCH_CONTEXT(o) ((SgFileWatchContext *)o)
 #define SG_FILE_WATCH_CONTEXT_P(o) SG_XTYPEP(o, SG_CLASS_FILE_WATCH_CONTEXT)
 
+extern SgObject Sg_FlagSymbols[];
+/* flags */
+#define SG_ACCESS    Sg_FlagSymbols[0]
+#define SG_MODIFY    Sg_FlagSymbols[1]
+#define SG_DELETE    Sg_FlagSymbols[2]
+#define SG_MOVE      Sg_FlagSymbols[3]
+#define SG_ATTRIBUTE Sg_FlagSymbols[4]
+/* events 'attribute is in common*/
+#define SG_ACCESSED  Sg_FlagSymbols[5]
+#define SG_MODIFIED  Sg_FlagSymbols[6]
+#define SG_REMOVED   Sg_FlagSymbols[7]
+#define SG_RENAMED   Sg_FlagSymbols[8]
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeFileWatchContext();
