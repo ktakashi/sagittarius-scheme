@@ -10,11 +10,25 @@ CHECK_INCLUDE_FILE(sys/inotify.h    HAVE_SYS_INOTIFY_H)
 CHECK_INCLUDE_FILE(sys/event.h      HAVE_SYS_EVENT_H)
 CHECK_INCLUDE_FILE(windows.h        HAVE_WINDOWS_H)
 
+OPTION(USE_LIBKQUEUE "Use libkqueue if exists" OFF)
+SET(HAVE_LIBKQUEUE) # reset cache
+
 IF (HAVE_SYS_INOTIFY_H)
-  SET(FILE_WATCH_C inotify_watch.c)
-# later
-# ELSEIF (HAVE_SYS_EVENT_H)
-#   SET(FILE_WATCH_C kqueue_watch.c)
+  # for testing kqueue implementation on Linux
+  IF (USE_LIBKQUEUE AND HAVE_SYS_EVENT_H)
+    # check if platform has libkqueue
+    FIND_LIBRARY(HAVE_LIBKQUEUE kqueue)
+    MESSAGE(STATUS "libkqueue ${HAVE_LIBKQUEUE}")
+    IF (HAVE_LIBKQUEUE)
+      SET(FILE_WATCH_C kqueue_watch.c)
+    ELSE()
+      SET(FILE_WATCH_C inotify_watch.c)
+    ENDIF()
+  ELSE()
+    SET(FILE_WATCH_C inotify_watch.c)
+  ENDIF()
+ELSEIF (HAVE_SYS_EVENT_H)
+   SET(FILE_WATCH_C kqueue_watch.c)
 ELSEIF (HAVE_WINDOWS_H)
   SET(FILE_WATCH_C windows_watch.c)
 ELSE()
@@ -36,6 +50,11 @@ IF (MSVC OR CYGWIN)
   SET_SOURCE_FILES_PROPERTIES(${FILE_WATCH_C}
     ${CMAKE_CURRENT_BINARY_DIR}/filewatch_stub.c 
     PROPERTIES LANGUAGE CXX)
+ENDIF()
+
+IF (USE_LIBKQUEUE AND HAVE_LIBKQUEUE)
+  MESSAGE(STATUS "Linking libkqueue")
+  TARGET_LINK_LIBRARIES(sagittarius--filewatch ${HAVE_LIBKQUEUE})
 ENDIF()
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
