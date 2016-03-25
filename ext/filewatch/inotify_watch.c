@@ -43,23 +43,14 @@
 #include "filewatch.h"
 
 typedef struct {
-  int fd;			/* event fd */
-  SgObject wds;
+  SgObject paths;		/* list of path and flags */
 } inotify_context;
 
 SgObject Sg_MakeFileWatchContext()
 {
-  SgFileWatchContext *ctx;
+  SgFileWatchContext *ctx = SG_NEW(SgFileWatchContext);
   inotify_context *ic = SG_NEW(inotify_context);
-  ic->fd = inotify_init1(IN_NONBLOCK);
-  if (ic->fd < 0) {
-    int e = errno;
-    char *msg = strerror(e);
-    Sg_SystemError(e, UC("failed to inotify_init1: %A"), 
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
-  }
-  ic->wds = SG_NIL;		/* TODO should we use hashtable? */
-  ctx = SG_NEW(SgFileWatchContext);
+  ic->paths = SG_NIL;
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
   ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
   ctx->context = ic;
@@ -71,8 +62,7 @@ void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   inotify_context *ic = (inotify_context *)ctx->context;
   ctx->handlers = SG_NIL;
-  close(ic->fd);
-  ic->wds = SG_NIL;
+  ic->paths = SG_NIL;
 }
 
 
@@ -114,64 +104,45 @@ void Sg_AddMonitoringPath(SgFileWatchContext *ctx, SgString *path,
 {
   inotify_context *ic = (inotify_context *)ctx->context;
   SgObject abp = Sg_AbsolutePath(path);
-  char *p;
-  int wd;
-  if (SG_FALSEP(abp)) Sg_Error(UC("Path does not exist: %A"), path);
+  SgObject f = SG_MAKE_INT(get_flag(flag));
 
-  p = Sg_Utf32sToUtf8s(abp);
-  wd = inotify_add_watch(ic->fd, p, get_flag(flag));
-  if (wd < 0) {
-    int e = errno;
-    char *msg = strerror(e);
-    Sg_SystemError(e, UC("failed to add path: %A"), 
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
-  }
-  ic->wds = Sg_Acons(abp, SG_MAKE_INT(wd), ic->wds);
+  if (SG_FALSEP(abp)) Sg_Error(UC("Path does not exist: %A"), path);
+  ic->paths = Sg_Acons(abp, f, ic->paths);
   Sg_HashTableSet(ctx->handlers, abp, handler, 0);
 }
 SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 {
   inotify_context *ic = (inotify_context *)ctx->context;
-  int wd = -1;
-  SgObject cp, abp = Sg_AbsolutePath(path);
+  SgObject cp, abp = Sg_AbsolutePath(path), prev = SG_FALSE;
 
   if (SG_FALSEP(abp)) return SG_FALSE;
 
-  SG_FOR_EACH(cp, ic->wds) {
-    if (Sg_StringEqual(abp, SG_CAAR(cp))) {
-      wd = SG_INT_VALUE(SG_CDAR(cp));
+  SG_FOR_EACH(cp, ic->paths) {
+    if (Sg_StringEqual(abp, SG_STRING(SG_CAAR(cp)))) {
+      if (SG_FALSEP(prev)) {
+	ic->paths = SG_CDR(cp);
+      } else {
+	SG_SET_CDR(prev, SG_CDR(cp));
+      }
       break;
     }
+    prev = cp;
   }
-  if (wd < 0) return SG_FALSE;
-  if (inotify_rm_watch(ic->fd, wd) != 0) {
-    int e = errno;
-    char *msg = strerror(e);
-    Sg_SystemError(e, UC("failed to remove path: %A"), 
-		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
-  }
+
   return Sg_HashTableDelete(ctx->handlers, abp);
 }
 
-static void handle_events(SgFileWatchContext *ctx)
+static int handle_events(SgFileWatchContext *ctx, int fd, SgObject wds)
 {
-  inotify_context *ic = (inotify_context *)ctx->context;
-
   char buf[4096] __attribute__ ((aligned(__alignof__(struct inotify_event))));
   const struct inotify_event *event;
-  int fd = ic->fd;
   ssize_t len;
   char *ptr;
   
   for (;;) {
     len = read(fd, buf, sizeof(buf));
 
-    if (len == -1 && errno != EAGAIN) {
-      int e = errno;
-      char *msg = strerror(e);
-      Sg_SystemError(e, UC("failed to read from inotify_event: %A"), 
-		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
-    }
+    if (len == -1 && errno != EAGAIN) return -1;
     /* nothing to read  */
     if (len <= 0) break;
 
@@ -180,9 +151,9 @@ static void handle_events(SgFileWatchContext *ctx)
       SgObject handler, name = SG_FALSE, flag, cp;
       
       event = (const struct inotify_event *) ptr;
-      SG_FOR_EACH(cp, ic->wds) {
-	if (SG_EQ(SG_MAKE_INT(event->wd), SG_CDAR(cp))) {
-	  name = SG_CAAR(cp);
+      SG_FOR_EACH(cp, wds) {
+	if (SG_EQ(SG_MAKE_INT(event->wd), SG_CAAR(cp))) {
+	  name = SG_CDAR(cp);
 	}
       }
       if (SG_FALSEP(name)) continue;
@@ -212,7 +183,8 @@ static void handle_events(SgFileWatchContext *ctx)
       /* now call handler */
       Sg_Apply2(handler, name, flag);
     }
-  }  
+  }
+  return 0;
 }
 
 void Sg_StartMonitoring(SgFileWatchContext *ctx)
@@ -220,28 +192,46 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
   inotify_context *ic = (inotify_context *)ctx->context;
   struct pollfd fds[1];
   nfds_t nfds = 1;
+  int e = 0;
+  SgObject wds = SG_NIL, cp;
 
-  fds[0].fd = ic->fd;
+  fds[0].fd = inotify_init1(IN_NONBLOCK);
+  if (fds[0].fd < 0) goto err;
   fds[0].events = POLLIN;
+
+  SG_FOR_EACH(cp, ic->paths) {
+    char *p = Sg_Utf32sToUtf8s(SG_CAAR(cp));
+    int wd = inotify_add_watch(fds[0].fd, p, SG_INT_VALUE(SG_CDAR(cp)));
+    if (wd < 0) goto err;
+    wds = Sg_Acons(SG_MAKE_INT(wd), SG_CAAR(cp), wds);
+  }
 
   while (1) {
     int poll_num;
 
-    if (ctx->stopRequest) break;
+    if (ctx->stopRequest) goto end;
     poll_num = poll(fds, nfds, -1);
     if (poll_num < 0) {
-      int e = errno;
-      char *msg;
-      if (e == EINTR) break;
-      msg = strerror(e);
-      Sg_SystemError(e, UC("failed to poll: %A"), 
-		     Sg_Utf8sToUtf32s(msg, strlen(msg)));
+      if (errno == EINTR) goto end;
+      goto err;
     }
     if (poll_num > 0) {
       if (fds[0].revents & POLLIN) {
-	handle_events(ctx);
+	if (handle_events(ctx, fds[0].fd, wds)) goto err;
       }
     }
   }
+
+ err:
+  e = errno;
+ end:
+  /* this should close all watch descriptor */
+  if (fds[0].fd > 0) close(fds[0].fd);
+
   ctx->stopRequest = FALSE;
+  if (e) {
+    char *msg = strerror(e);
+    Sg_SystemError(e, UC("system error: %A"), 
+		   Sg_Utf8sToUtf32s(msg, strlen(msg)));
+  }
 }
