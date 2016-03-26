@@ -35,6 +35,52 @@
 #include <sagittarius/extend.h>
 #include "filewatch.h"
 
+#ifdef __CYGWIN__
+# include <sys/cygwin.h>
+/* should be enough (i hope) */
+# define BUF_SIZE 2048
+static SgObject windows_path(SgString *path)
+{
+  char *p = Sg_Utf32sToUtf8s(path);
+  wchar_t buf[BUF_SIZE], *tmp;
+  ssize_t r, s;
+  s = cygwin_conv_path(CCP_POSIX_TO_WIN_W, p, NULL, 0);
+  if (s < 0) return SG_FALSE;	/* something went wrong */
+  if (s > BUF_SIZE) {
+    tmp = SG_NEW_ATOMIC2(wchar_t *, s);
+  } else {
+    tmp = buf;
+  }
+  r = cygwin_conv_path(CCP_POSIX_TO_WIN_W, p, tmp, s);
+  if (r == 0) {
+    return Sg_WCharTsToString(tmp, s >> 1);
+  }
+  return SG_FALSE;
+}
+static SgObject posix_path(SgObject path)
+{
+  wchar_t *p = Sg_StringToWCharTs(SG_STRING(path));
+  char buf[BUF_SIZE], *tmp;
+  ssize_t r, s;
+  s = cygwin_conv_path(CCP_WIN_W_TO_POSIX, p, NULL, 0);
+  if (s < 0) return SG_FALSE;
+  if (s > BUF_SIZE) {
+    tmp = SG_NEW_ATOMIC2(char *, s);
+  } else {
+    tmp = buf;
+  }
+  r = cygwin_conv_path(CCP_WIN_W_TO_POSIX, p, tmp, s);
+  if (r < 0) return SG_FALSE;
+  /* remove the last null */
+  return Sg_Utf8sToUtf32s(tmp, s-1);
+}
+
+#else
+/* dummy */
+# define windows_path(x) x
+# define posix_path(x)   x
+#endif
+
 typedef struct {
   SgObject mappings;		/* list of dirs&path&flags */
 #ifdef __CYGWIN__
@@ -115,13 +161,21 @@ void Sg_AddMonitoringPath(SgFileWatchContext *ctx, SgString *path,
 {
   windows_context *wc = (windows_context *)ctx->context;
   SgObject f = SG_MAKE_INT(get_flag(flag)), ab;
-  SgObject cp, found = SG_FALSE;
+  SgObject cp, found = SG_FALSE, p;
   SgString *dir;
+  
   ab = Sg_AbsolutePath(path);
+  /* Sg_Printf(SG_PORT(Sg_StandardErrorPort()), UC("file: %A\n"), ab); */
   if (SG_FALSEP(ab)) {
     Sg_Error(UC("path not exists! %A"), path);
   }
-  path = SG_STRING(ab);
+  p = windows_path(SG_STRING(ab));
+#if __CYGWIN__
+  if (SG_FALSEP(p)) {
+    Sg_Error(UC("path conversion failed! %A"), path);
+  }
+#endif
+  path = SG_STRING(p);
   if (Sg_DirectoryP(path)) {
     dir = path;
   } else {
@@ -150,18 +204,22 @@ void Sg_AddMonitoringPath(SgFileWatchContext *ctx, SgString *path,
       SG_SET_CAR(d, Sg_Cons(path, plst));
     }
   }
-  Sg_HashTableSet(SG_HASHTABLE(ctx->handlers), path, handler, 0);
+  /* use absolute path for handler */
+  Sg_HashTableSet(SG_HASHTABLE(ctx->handlers), ab, handler, 0);
 }
 
 SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 {
   windows_context *wc = (windows_context *)ctx->context;
   SgString *dir;
-  SgObject cp;
-  if (Sg_DirectoryP(path)) {
-    dir = path;
+  SgObject cp, ab;
+  ab = Sg_AbsolutePath(path);
+  if (SG_FALSEP(ab)) return SG_FALSE;
+
+  if (Sg_DirectoryP(SG_STRING(ab))) {
+    dir = SG_STRING(ab);
   } else {
-    dir = get_dir(path);
+    dir = get_dir(SG_STRING(path));
   }
   SG_FOR_EACH(cp, wc->mappings) {
     if (Sg_StringEqual(dir, SG_STRING(SG_CAAR(cp)))) {
@@ -183,7 +241,7 @@ SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
       break;
     }
   }
-  return Sg_HashTableDelete(SG_HASHTABLE(ctx->handlers), path);
+  return Sg_HashTableDelete(SG_HASHTABLE(ctx->handlers), ab);
 }
 
 static void handle_event(SgFileWatchContext *ctx, FILE_NOTIFY_INFORMATION *fn,
@@ -215,22 +273,31 @@ static void handle_event(SgFileWatchContext *ctx, FILE_NOTIFY_INFORMATION *fn,
       name = Sg_WCharTsToString(fn->FileName, len);
     }
     switch (fn->Action) {
-    case FILE_ACTION_ADDED: event = SG_ACCESSED; break; /* correct? */
     case FILE_ACTION_REMOVED: event = SG_REMOVED; break;
     case FILE_ACTION_MODIFIED: event = SG_MODIFIED; break;
     case FILE_ACTION_RENAMED_OLD_NAME:
     case FILE_ACTION_RENAMED_NEW_NAME:
       event = SG_RENAMED;
       break;
-    default: break;
+      /* correct? */
+    /* case FILE_ACTION_ADDED: event = SG_ACCESSED; break; */
+    default: event = SG_ACCESSED; break;
     }
     if (!SG_FALSEP(event)) {
       SgObject h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), dir, SG_FALSE);
+      SgObject p;
       name = Sg_BuildPath(SG_STRING(dir), SG_STRING(name));
-      /* we need to check for directory watch */
-      if (!SG_FALSEP(h)) Sg_Apply2(h, name, event);
-      h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), name, SG_FALSE);
-      if (!SG_FALSEP(h)) Sg_Apply2(h, name, event);
+      p = posix_path(name);
+      /* Sg_Printf(SG_PORT(Sg_StandardErrorPort()),  */
+      /* 		UC("path: %S, dir: %S, handler: %A\n"), p, dir, h); */
+      /* Sg_Printf(SG_PORT(Sg_StandardErrorPort()), UC("handlers: %S\n"),  */
+      /* 		Sg_HashTableKeys(SG_HASHTABLE(ctx->handlers))); */
+      if (!SG_FALSEP(p)) {
+	/* we need to check for directory watch */
+	if (!SG_FALSEP(h)) Sg_Apply2(h, p, event);
+	h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), name, SG_FALSE);
+	if (!SG_FALSEP(h)) Sg_Apply2(h, p, event);
+      }
     }
     if (!fn->NextEntryOffset) break;
     fn = (FILE_NOTIFY_INFORMATION *)(((char *)fn) + fn->NextEntryOffset);
@@ -296,7 +363,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
       BOOL b = GetOverlappedResult(dirs[w], &ols[w], &bytes, TRUE); 
       if (b) {
 	FILE_NOTIFY_INFORMATION *fn = (FILE_NOTIFY_INFORMATION *)buf[w];
-	handle_event(ctx, fn, paths[w]);
+	handle_event(ctx, fn, posix_path(paths[w]));
       }
       b = ReadDirectoryChangesW(dirs[w], buf[w], OL_BUFFER_SIZE, FALSE,
 				filters[w], NULL, &ols[w], NULL);
