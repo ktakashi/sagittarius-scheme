@@ -27,6 +27,7 @@
  *
  *  $Id: $
  */
+#include <wchar.h>
 #include <sagittarius.h>
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
@@ -52,7 +53,7 @@ static SgObject make_odbc_error()
 #if defined(__CYGWIN__) || defined(_WIN32)
 #  define SQL_GetDiag    SQLGetDiagRecW
 #  define DIAGCHAR       SQLWCHAR
-#  define make_string    Sg_WCharTsToString
+#  define make_string(s) Sg_WCharTsToString(s, wcslen(s))
 #else
 #  include <string.h>
 #  define SQL_GetDiag    SQLGetDiagRec

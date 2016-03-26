@@ -30,6 +30,7 @@
 #include <string.h>
 #include <errno.h>
 #include <sagittarius.h>
+#include <wchar.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/extend.h>
 #include "sagittarius-ffi.h"
@@ -660,7 +661,7 @@ static SgObject convert_c_to_scheme(int rettype, SgPointer *p, size_t align)
   case FFI_RETURN_TYPE_WCHAR_STR: {
     wchar_t *s = POINTER_REF(wchar_t*, p, align);
     if (!s) return Sg_MakePointer(s);
-    return Sg_WCharTsToString(s);
+    return Sg_WCharTsToString(s, wcslen(s));
   }
   default:
     Sg_Error(UC("unknown FFI return type: %d"), rettype);
@@ -1360,7 +1361,7 @@ static SgObject get_callback_arguments(SgCallback *callback, void **args)
     case 'S':
       {
 	wchar_t *arg = *(wchar_t **)args[i];
-	SG_APPEND1(h, t, Sg_WCharTsToString(arg));
+	SG_APPEND1(h, t, Sg_WCharTsToString(arg, wcslen(arg)));
 	break;
       }
     default:
@@ -1707,7 +1708,7 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
 #define S64_CONV(type)     Sg_MakeIntegerFromS64((type)ret)
 #define U64_CONV(type)     Sg_MakeIntegerFromU64((type)ret)
 #define PTR_CONV(type)     make_pointer((type)ret)
-#define WSTR_CONV(type)    Sg_WCharTsToString((type)ret)
+#define WSTR_CONV(type)    Sg_WCharTsToString((type)ret, wcslen((type)ret))
 
 #define FFI_RET_CASE_REC(type, rettype, return_body)			\
   case type: {								\

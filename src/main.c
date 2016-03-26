@@ -34,6 +34,7 @@
 
 /* should we use _WIN32? */
 #if defined(_MSC_VER)
+#include <wchar.h>
 #define tchar wchar_t
 #define tstrcspn wcscspn
 #define tstrlen  wcslen
@@ -42,7 +43,7 @@
 #define tstrchr  wcschr
 #define tfprintf fwprintf
 #define t(s) L##s
-#define make_scheme_string Sg_WCharTsToString
+#define make_scheme_string(s) Sg_WCharTsToString(s, wcslen(s))
 #define PRIdPTR     "Id"
 #else
 #define tchar char

@@ -899,7 +899,7 @@ static SgObject unrename_variable(SgObject key, SgObject specs)
 
 SgGloc* Sg_FindBinding(SgObject library, SgObject oname, SgObject callback)
 {
-  SgLibrary *lib, *olib;
+  SgLibrary *lib/* , *olib */;
   SgObject ret, name = oname;
   ASSERT(SG_SYMBOLP(name));
 
@@ -908,7 +908,7 @@ SgGloc* Sg_FindBinding(SgObject library, SgObject oname, SgObject callback)
   else lib = Sg_FindLibrary(library, FALSE);
   if (SG_FALSEP(lib)) return callback;
 
-  olib = lib;			/* keep it */
+  /* olib = lib; */			/* keep it */
  reent:
   /* first look up from library table */
   ret = Sg_HashTableRef(SG_LIBRARY_TABLE(lib), name, SG_UNBOUND);

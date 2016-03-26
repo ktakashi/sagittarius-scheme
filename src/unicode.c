@@ -518,11 +518,11 @@ wchar_t* Sg_StringToWCharTs(SgObject s)
   return (wchar_t*)Sg_GetByteArrayFromBinaryPort(&out);
 }
 
-SgObject Sg_WCharTsToString(wchar_t *s)
+SgObject Sg_WCharTsToString(wchar_t *s, int size)
 {
 #define BUF_SIZ 256
   /* TODO this is a bit inefficient */
-  size_t size = wcslen(s);
+  /* size_t size = wcslen(s); */
 #if SIZEOF_WCHAR_T == 2
 # if WORDS_BIGENDIAN
   SgCodec *codec = Sg_MakeUtf16Codec(UTF_16BE);

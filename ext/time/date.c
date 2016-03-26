@@ -46,12 +46,13 @@
 */
 #if defined( _WIN32) || defined(__CYGWIN__)
 #include <windows.h>
+#include <wchar.h>
 SgObject Sg_LocalTimezoneName()
 {
   TIME_ZONE_INFORMATION tz;
   int r = GetTimeZoneInformation(&tz);
   if (r != TIME_ZONE_ID_UNKNOWN) {
-    return Sg_WCharTsToString(tz.StandardName);
+    return Sg_WCharTsToString(tz.StandardName, wcslen(tz.StandardName));
   }
   /* If the timezone doesn't use daylight saving time,
      then the return value is TIME_ZONE_ID_UNKNOWN. To
@@ -59,7 +60,7 @@ SgObject Sg_LocalTimezoneName()
      to call GetLastError().
    */
   if (!GetLastError()) {
-    return Sg_WCharTsToString(tz.StandardName);
+    return Sg_WCharTsToString(tz.StandardName, wcslen(tz.StandardName));
   }
   /* fallback
      This will be Etc/GMT
