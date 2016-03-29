@@ -8,7 +8,8 @@
 	    ;; NB: the rename is given from (compat r7rs) and renamed
 	    ;;     identifiers belong to the library. if these are not
 	    ;;     exported, then it raises unbound variable.
-	    length* cons-source error check-length)
+	    length* cons-source error check-length
+	    format strip-syntactic-closures)
     (import (rename (except (core) identifier? error)
 		    (number->string %number->string))
 	    (rename (sagittarius)
