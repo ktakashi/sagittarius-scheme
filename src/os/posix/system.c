@@ -644,7 +644,7 @@ static int init_fd(int fds[2], SgObject *port,
     return FALSE;		/* dummy */
   }
 
-  if (f) {
+  if (!SG_FALSEP(f)) {
     switch (type) {
     case IN:
       *port = Sg_MakeFileBinaryOutputPort(SG_FILE(f), SG_BUFFER_MODE_NONE);
