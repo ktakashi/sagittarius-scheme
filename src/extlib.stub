@@ -1522,12 +1522,12 @@
   (define-cise-stmt check-redirect
     ((_ val in?)
      `(begin
-	(unless (and (SG_EQ ,val :pipe)
-		     (SG_EQ ,val :stdin)
-		     (SG_EQ ,val :stdout)
-		     (SG_EQ ,val :stderr)
-		     (SG_EQ ,val :null)
-		     (STRINGP ,val))
+	(unless (or (SG_EQ ,val :pipe)
+		    (SG_EQ ,val :stdin)
+		    (SG_EQ ,val :stdout)
+		    (SG_EQ ,val :stderr)
+		    (SG_EQ ,val :null)
+		    (SG_STRINGP ,val))
 	  (assertion-violation 'sys-process-call
 			       "redirect keyword must be one of :pipe, :stdin, :stdout, :stderr or string which must be a file path" ,val))
 	(when (and ,in? (or (SG_EQ ,val :stdout) (SG_EQ ,val :stderr)))

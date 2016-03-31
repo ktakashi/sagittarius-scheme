@@ -86,6 +86,8 @@
 #include <sagittarius/unicode.h>
 #include <sagittarius/string.h>
 #include <sagittarius/pair.h>
+#include <sagittarius/keyword.h>
+#include <sagittarius/builtin-keywords.h>
 #include <sagittarius/port.h>
 #include <sagittarius/error.h>
 #include <sagittarius/values.h>
@@ -550,6 +552,93 @@ static struct {
   SgInternalMutex mutex;
 }  pid_list = { SG_NIL };
 
+typedef enum {
+  IN,
+  OUT,
+  ERR,
+} ProcessRedirect;
+/* TODO it's ugly
+   
+ */
+static int init_fd(int fds[2], SgObject *port, 
+		   ProcessRedirect type, int *closeP)
+{
+  SgFile *f = NULL;
+  if (!port) Sg_Error(UC("[internal] no redirect indication"));
+
+  *closeP = FALSE;
+  if (SG_EQ(*port, SG_KEYWORD_PIPE)) {
+    int fd;
+    const SgChar *name;
+    if (pipe(fds)) return FALSE;
+    switch (type) {
+    case IN: 
+      fd = fds[1]; 
+      name = UC("process-stdin");
+      break;
+    case OUT:
+      fd = fds[0]; 
+      name = UC("process-stdout");
+      break;
+    case ERR:
+      fd = fds[0]; 
+      name = UC("process-stderr");
+      break;
+    }
+    f = SG_FILE(Sg_MakeFileFromFD(fd));
+    f->name = name;
+    *closeP = TRUE;
+  } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
+    fds[0] = 0;
+    /* no creation of port */
+  } else if (SG_EQ(*port, SG_KEYWORD_STDOUT)) {
+    fds[1] = 1;
+  } else if (SG_EQ(*port, SG_KEYWORD_STDERR)) {
+    fds[1] = 2;
+  } else if (SG_STRINGP(*port) || SG_EQ(*port, SG_KEYWORD_NULL)) {
+    int flag = 0;
+    SgObject file;
+    const char *cfile;
+    if (SG_STRINGP(*port)) {
+      file = *port;
+      cfile = Sg_Utf32sToUtf8s(file);
+    } else {
+      file = SG_MAKE_STRING("/dev/null");
+      cfile = "/dev/null";
+    }
+    switch (type) {
+    case IN: 
+      fds[0] = open(cfile, O_RDWR);
+      /* we don't create a file */
+      if (fds[0] < 0) return FALSE;
+      flag = SG_WRITE; 
+      break;
+    default:
+      /* child process should have permission to write so 0666.  */
+      fds[1] = open(cfile, O_RDWR | O_CREAT, 0666);
+      if (fds[1] < 0) return FALSE;
+      flag = SG_READ; 
+      break;
+    }
+    if (SG_STRINGP(*port)) {
+      f = SG_FILE(Sg_OpenFile(file, flag));
+    }
+  } else {
+    Sg_Error(UC("sys-process-call: unknown option %A"), *port);
+    return FALSE;		/* dummy */
+  }
+
+  if (f) {
+    switch (type) {
+    case IN: *port = Sg_MakeFileBinaryOutputPort(f, SG_BUFFER_MODE_NONE); break;
+    default: *port = Sg_MakeFileBinaryInputPort(f, SG_BUFFER_MODE_NONE); break;
+    }
+  } else {
+    *port = SG_FALSE;
+  }
+  return TRUE;
+}
+
 uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 			    SgObject *inp, SgObject *outp, SgObject *errp,
 			    SgString *dir,
@@ -563,7 +652,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   const char *sysfunc = NULL;
   const char *cdir = NULL;
 
-  int count, i;
+  int count, i, closeP[3];
   char *name, **args;
   SgObject cp;
   /* this fails on Cygwin if I put it in the child process thing... */
@@ -587,9 +676,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
 
   sysfunc = "pipe";
-  if (pipe(pipe0)) goto pipe_fail;
-  if (pipe(pipe1)) goto pipe_fail;
-  if (pipe(pipe2)) goto pipe_fail;
+  if (!init_fd(pipe0, inp,  IN,  &closeP[0])) goto pipe_fail;
+  if (!init_fd(pipe1, outp, OUT, &closeP[1])) goto pipe_fail;
+  if (!init_fd(pipe2, errp, ERR, &closeP[2])) goto pipe_fail;
 
   sysfunc = "fork";
   pid = fork();
@@ -615,13 +704,15 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 		 cdir, name, strerror(errno));
       }
     }
-
-    if (close(pipe0[1])) goto close_fail;
-    if (close(pipe1[0])) goto close_fail;
-    if (close(pipe2[0])) goto close_fail;
-    if (dup2(pipe0[0], 0) == -1) goto dup_fail;
-    if (dup2(pipe1[1], 1) == -1) goto dup_fail;
-    if (dup2(pipe2[1], 2) == -1) goto dup_fail;
+    /* might not be pipe so check */
+    sysfunc = "close";
+    if (closeP[0] && close(pipe0[1])) goto close_fail;
+    if (closeP[1] && close(pipe1[0])) goto close_fail;
+    if (closeP[2] && close(pipe2[0])) goto close_fail;
+    sysfunc = "dup2";
+    if (pipe0[0] >= 0 && dup2(pipe0[0], 0) == -1) goto dup_fail;
+    if (pipe1[1] >= 0 && dup2(pipe1[1], 1) == -1) goto dup_fail;
+    if (pipe2[1] >= 0 && dup2(pipe2[1], 2) == -1) goto dup_fail;
 
     for (i = 3; i < open_max; i++) {
       if (i == pipe0[0]) continue;
@@ -631,24 +722,17 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     }
 
     execvp(name, (char * const *)args);
-    goto exec_fail;
+    sysfunc = "execvp";
+    /* failed on child preocess */
+  close_fail:
+  dup_fail:
+    Sg_Panic("%s (%d): %s (%d)\n", sysfunc, errno, strerror(errno), closeP);
+    exit(127);
     /* never reached */
   } else {
-    SgFile *in, *out, *err;
-    close(pipe0[0]);
-    close(pipe1[1]);
-    close(pipe2[1]);
-
-    in  = SG_FILE(Sg_MakeFileFromFD(pipe0[1]));
-    out = SG_FILE(Sg_MakeFileFromFD(pipe1[0]));
-    err = SG_FILE(Sg_MakeFileFromFD(pipe2[0]));
-    in->name  = UC("process-stdin");
-    out->name = UC("process-stdout");
-    err->name = UC("process-stderr");
-
-    *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFFER_MODE_NONE);
-    *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFFER_MODE_NONE);
-    *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFFER_MODE_NONE);
+    if (closeP[0]) close(pipe0[0]);
+    if (closeP[1]) close(pipe1[1]);
+    if (closeP[2]) close(pipe2[1]);
   }
   if (flags & SG_PROCESS_DETACH) {
     /* the intermidiate process is already exit. so remove the
@@ -680,10 +764,6 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 		   sname, sargs, Sg_MakeStringC(message), msg);
     return -1;
   }
- close_fail:
- dup_fail:
- exec_fail:
-  exit(127);
 }
 
 static void remove_pid(pid_t pid)

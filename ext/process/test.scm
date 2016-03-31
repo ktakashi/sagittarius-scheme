@@ -88,4 +88,24 @@
   (process-call p)
   (test-assert "process-active?" (process-active? p))
   (test-equal "process-kill" -1 (process-kill p)))
+
+;; Windows comes later
+(cond-expand
+ ((not windows)
+  (let ((proc (make-process *process-name* '("process"))))
+    (test-assert "call (2)" (integer? (process-call proc :stdout :null)))
+    (test-assert "no output port" (not (process-output-port proc)))
+    (test-equal "process-wait (2)" 0 (process-wait proc)))
+
+  (let ((proc (make-process *process-name* '("process")))
+	(outfile "pout"))
+    (test-assert "call (3)" (integer? (process-call proc :stdout outfile)))
+    (test-equal "process-wait (3)" 0 (process-wait proc))
+    (test-assert "file created" (file-exists? outfile))
+    (let* ((out (process-output-port proc))
+	   (r (get-line (transcoded-port out (native-transcoder)))))
+      (test-equal "output from process" "process" r)))
+  )
+ (else #f))
+
 (test-end)
