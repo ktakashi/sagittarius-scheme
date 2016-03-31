@@ -558,7 +558,7 @@ typedef enum {
   ERR,
 } ProcessRedirect;
 /* FIXME refactor me */
-static int init_fd(int fds[2], SgObject *port, 
+static int init_fd(int *fds, SgObject *port, 
 		   ProcessRedirect type, int *closeP,
 		   SgObject *files)
 {
@@ -567,8 +567,8 @@ static int init_fd(int fds[2], SgObject *port,
 
   *closeP = FALSE;
   if (SG_EQ(*port, SG_KEYWORD_PIPE)) {
-    int fd;
-    const SgChar *name;
+    int fd = -1;
+    const SgChar *name = UC("unknown");
     if (pipe(fds)) return FALSE;
     switch (type) {
     case IN: 
@@ -583,6 +583,7 @@ static int init_fd(int fds[2], SgObject *port,
       fd = fds[0]; 
       name = UC("process-stderr");
       break;
+    default: Sg_Panic("should never happen");
     }
     f = Sg_MakeFileFromFD(fd);
     SG_FILE(f)->name = name;

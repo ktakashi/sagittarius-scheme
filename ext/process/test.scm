@@ -19,7 +19,7 @@
     (test-equal "process-wait" 0 r)
     (let* ((out (process-output-port proc))
 	   (r (get-line (transcoded-port out (native-transcoder)))))
-      (test-equal "output from process" "process" r))))
+      (test-equal "output from process (1)" "process" r))))
 
 ;; error case
 (let ((proc (make-process *process-name* '())))
@@ -33,7 +33,7 @@
      (else (test-equal "process-wait (error)" 255 r)))
     (let* ((out (process-error-port proc))
 	   (r (get-line (transcoded-port out (native-transcoder)))))
-      (test-equal "output from process" "error" r))))
+      (test-equal "output from process (2)" "error" r))))
 
 (test-error "passing non string"
 	    condition?
@@ -89,23 +89,27 @@
   (test-assert "process-active?" (process-active? p))
   (test-equal "process-kill" -1 (process-kill p)))
 
-;; Windows comes later
-(cond-expand
- ((not windows)
-  (let ((proc (make-process *process-name* '("process"))))
-    (test-assert "call (2)" (integer? (process-call proc :stdout :null)))
-    (test-assert "no output port" (not (process-output-port proc)))
-    (test-equal "process-wait (2)" 0 (process-wait proc)))
+(let ((proc (make-process *process-name* '("process"))))
+  (test-assert "call (2)" (integer? (process-call proc :output :null)))
+  (test-assert "no output port" (not (process-output-port proc)))
+  (test-equal "process-wait (2)" 0 (process-wait proc)))
 
-  (let ((proc (make-process *process-name* '("process")))
-	(outfile "pout"))
-    (test-assert "call (3)" (integer? (process-call proc :stdout outfile)))
-    (test-equal "process-wait (3)" 0 (process-wait proc))
-    (test-assert "file created" (file-exists? outfile))
-    (let* ((out (process-output-port proc))
-	   (r (get-line (transcoded-port out (native-transcoder)))))
-      (test-equal "output from process" "process" r)))
-  )
- (else #f))
+(let ((proc (make-process *process-name* '("process")))
+      (outfile "pout"))
+  (test-assert "call (3)" (integer? (process-call proc :output outfile)))
+  (test-equal "process-wait (3)" 0 (process-wait proc))
+  (test-assert "file created" (file-exists? outfile))
+  (let* ((out (process-output-port proc))
+	 (r (get-line (transcoded-port out (native-transcoder)))))
+    (test-equal "output from process (3)" "process" r)))
+
+(let ((proc (make-process *process-name* '()))
+      (outfile "perr"))
+  (test-assert "call (4)" (integer? (process-call proc :error outfile)))
+  (process-wait proc)
+  (test-assert "file created" (file-exists? outfile))
+  (let* ((out (process-error-port proc))
+	 (r (get-line (transcoded-port out (native-transcoder)))))
+    (test-equal "output from process (4)" "error" r)))
 
 (test-end)

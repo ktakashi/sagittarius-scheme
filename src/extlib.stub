@@ -1537,7 +1537,7 @@
 
   (define-c-proc sys-process-call 
     (name::<string> args::<list> :key (directory #f) (detach? #f)
-		    (stdin :pipe) (stdout :pipe) (stderr :pipe))
+		    (input :pipe) (output :pipe) (error :pipe))
     (dolist (arg args)
       (unless (SG_STRINGP arg)
 	(wrong-type-of-argument-violation 'sys-process-call
@@ -1546,10 +1546,10 @@
     (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
       (wrong-type-of-argument-violation 'sys-process-call
 					"string or #f" directory))
-    (check-redirect stdin TRUE)
-    (check-redirect stdout FALSE)
-    (check-redirect stderr FALSE)
-    (let ((in stdin) (out stdout) (err stderr))
+    (check-redirect input TRUE)
+    (check-redirect output FALSE)
+    (check-redirect error FALSE)
+    (let ((in input) (out output) (err error))
       (let* ((flags::int 0)
 	     (d::SgString* NULL)
 	     (handle::uintptr_t 0))

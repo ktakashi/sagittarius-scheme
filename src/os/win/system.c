@@ -46,6 +46,8 @@
 #include "sagittarius/library.h"
 #include "sagittarius/values.h"
 #include "sagittarius/number.h"
+#include "sagittarius/keyword.h"
+#include "sagittarius/builtin-keywords.h"
 #include "sagittarius/bytevector.h"
 #include "sagittarius/vector.h"
 #include "sagittarius/string.h"
@@ -464,6 +466,129 @@ static SgWinProcess * make_win_process(HANDLE p)
   return proc;
 }
 
+typedef enum  {
+  FD_IN,
+  FD_OUT,
+  FD_ERR,
+} ProcessRedirect;
+
+/* FIXME almost the same as the one in os/posix/system.c */
+static int init_fd(HANDLE *fds, SgObject *port, 
+		   ProcessRedirect type, int *closeP,
+		   SgObject *files,
+		   SECURITY_ATTRIBUTES *sa)
+{
+  SgObject f = SG_FALSE, saved = SG_FALSE;
+  if (!port) Sg_Error(UC("[internal] no redirect indication"));
+
+  *closeP = FALSE;
+  if (SG_EQ(*port, SG_KEYWORD_PIPE)) {
+    HANDLE fd = INVALID_HANDLE_VALUE;
+    const SgChar *name = UC("unknown");
+
+    if (CreatePipe(&fds[0], &fds[1], sa, 0) == 0) return FALSE;
+    switch (type) {
+    case FD_IN: 
+      fd = fds[1]; 
+      name = UC("process-stdin");
+      break;
+    case FD_OUT:
+      fd = fds[0]; 
+      name = UC("process-stdout");
+      break;
+    case FD_ERR:
+      fd = fds[0]; 
+      name = UC("process-stderr");
+      break;
+    default: Sg_Panic("should never happen");
+    }
+    f = Sg_MakeFileFromFD((uintptr_t)fd);
+    SG_FILE(f)->name = name;
+    *closeP = TRUE;
+  } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
+    fds[0] = GetStdHandle(STD_INPUT_HANDLE);
+    /* no creation of port */
+  } else if (SG_EQ(*port, SG_KEYWORD_STDOUT)) {
+    fds[1] = GetStdHandle(STD_OUTPUT_HANDLE);
+  } else if (SG_EQ(*port, SG_KEYWORD_STDERR)) {
+    fds[1] = GetStdHandle(STD_ERROR_HANDLE);
+  } else if (SG_STRINGP(*port) || SG_EQ(*port, SG_KEYWORD_NULL)) {
+    int flag = 0;
+    HANDLE fd;
+    SgObject file;
+    const wchar_t *cfile;
+
+    if (SG_STRINGP(*port)) {
+      SgObject cp, abp = Sg_AbsolutePath(*port);
+      if (!SG_FALSEP(abp)) {
+	SG_FOR_EACH(cp, *files) {
+	  SgObject slot = SG_CAR(cp);
+	  if (Sg_StringEqual(abp, SG_CAR(slot))) {
+	    *port = SG_CAR(SG_CDDR(slot));
+	    if (type == FD_IN) {
+	      fds[0] = SG_CADR(slot);
+	    } else {
+	      fds[1] = SG_CADR(slot);
+	    }
+	    return TRUE;
+	  }
+	}
+      }
+      file = *port;
+      cfile = utf32ToUtf16(file);
+    } else {
+      file = SG_MAKE_STRING("NUL");
+      cfile = L"NUL";
+    }
+    switch (type) {
+    case FD_IN: 
+      fd = fds[0] = CreateFileW(cfile, GENERIC_READ,
+				FILE_SHARE_READ | FILE_SHARE_WRITE,
+				sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,
+				NULL);
+      /* we don't create a file */
+      if (fds[0] == INVALID_HANDLE_VALUE) return FALSE;
+      flag = SG_WRITE; 
+      break;
+    default:
+      fd = fds[1] = CreateFileW(cfile, GENERIC_WRITE,
+				FILE_SHARE_READ | FILE_SHARE_WRITE,
+				sa, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL,
+				NULL);
+      if (fds[1] == INVALID_HANDLE_VALUE) return FALSE;
+      flag = SG_READ; 
+      break;
+    }
+    if (SG_STRINGP(*port)) {
+      SgObject abp = Sg_AbsolutePath(file);
+      f = Sg_OpenFile(file, flag);
+      saved = Sg_Cons(abp, fd);
+    }
+  } else {
+    Sg_Error(UC("sys-process-call: unknown option %A"), *port);
+    return FALSE;		/* dummy */
+  }
+
+  if (!SG_FALSEP(f)) {
+    switch (type) {
+    case FD_IN:
+      *port = Sg_MakeFileBinaryOutputPort(SG_FILE(f), SG_BUFFER_MODE_NONE);
+      break;
+    default: 
+      *port = Sg_MakeFileBinaryInputPort(SG_FILE(f), SG_BUFFER_MODE_NONE); 
+      break;
+    }
+    if (!SG_FALSEP(saved)) {
+      SG_SET_CDR(saved, Sg_Cons(SG_CDR(saved), *port));
+      *files = Sg_Cons(saved, *files);
+    }
+  } else {
+    *port = SG_FALSE;
+  }
+  return TRUE;
+}
+
+
 uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
 			    SgObject *inp, SgObject *outp, SgObject *errp,
 			    SgString *dir,
@@ -480,17 +605,18 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
   SECURITY_ATTRIBUTES sa;
   STARTUPINFOW startup;
   PROCESS_INFORMATION process;
-  SgFile *in, *out, *err;
   DWORD flags = 0;
   wchar_t *wcdir = NULL;
+  SgObject files = SG_NIL;
+  int closeP[3];
 
   sa.nLength = sizeof(SECURITY_ATTRIBUTES);
   sa.lpSecurityDescriptor = NULL;
   sa.bInheritHandle = TRUE;
   sysfunc = UC("CreatePipe");
-  if (CreatePipe(&pipe0[0], &pipe0[1], &sa, 0) == 0) goto pipe_fail;
-  if (CreatePipe(&pipe1[0], &pipe1[1], &sa, 0) == 0) goto pipe_fail;
-  if (CreatePipe(&pipe2[0], &pipe2[1], &sa, 0) == 0) goto pipe_fail;
+  if (!init_fd(pipe0, inp,  FD_IN,  &closeP[0], &files, &sa)) goto pipe_fail;
+  if (!init_fd(pipe1, outp, FD_OUT, &closeP[1], &files, &sa)) goto pipe_fail;
+  if (!init_fd(pipe2, errp, FD_ERR, &closeP[2], &files, &sa)) goto pipe_fail;
 
   memset(&startup, 0, sizeof(STARTUPINFO));
   startup.cb = sizeof(STARTUPINFO);
@@ -514,27 +640,16 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
 		     wcdir,
 		     &startup,
 		     &process) == 0) goto create_fail;
-  CloseHandle(pipe0[0]);
-  CloseHandle(pipe1[1]);
-  CloseHandle(pipe2[1]);
+  if (closeP[0]) CloseHandle(pipe0[0]);
+  if (closeP[1]) CloseHandle(pipe1[1]);
+  if (closeP[2]) CloseHandle(pipe2[1]);
 
-  in  = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe0[1]));
-  out = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe1[0]));
-  err = SG_FILE(Sg_MakeFileFromFD((uintptr_t)pipe2[0]));
-
-  in->name = UC("process-stdin");
-  out->name = UC("process-stdout");
-  err->name = UC("process-stderr");
-  /* port closes the handle, so we don't need these */
-
-  *inp  = Sg_MakeFileBinaryOutputPort(in, SG_BUFFER_MODE_NONE);
-  *outp = Sg_MakeFileBinaryInputPort(out, SG_BUFFER_MODE_NONE);
-  *errp = Sg_MakeFileBinaryInputPort(err, SG_BUFFER_MODE_NONE);
   CloseHandle(process.hThread);
   return (uintptr_t)make_win_process(process.hProcess);
  pipe_fail:
  create_fail:
   {
+    DWORD e = GetLastError();
     SgObject msg = Sg_GetLastErrorMessage();
     if (pipe0[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[0]);
     if (pipe0[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe0[1]);
@@ -542,7 +657,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject args,
     if (pipe1[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe1[1]);
     if (pipe2[0] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[0]);
     if (pipe2[1] != INVALID_HANDLE_VALUE) CloseHandle(pipe2[1]);
-    Sg_Error(UC("%s() failed. %A [%A]"), sysfunc, msg, command);
+    Sg_SystemError(e, UC("%s() failed. %A [%A]"), sysfunc, msg, command);
   }
   return -1;			/* dummy */
 }
