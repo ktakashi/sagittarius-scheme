@@ -557,13 +557,12 @@ typedef enum {
   OUT,
   ERR,
 } ProcessRedirect;
-/* TODO it's ugly
-   
- */
+/* FIXME refactor me */
 static int init_fd(int fds[2], SgObject *port, 
-		   ProcessRedirect type, int *closeP)
+		   ProcessRedirect type, int *closeP,
+		   SgObject *files)
 {
-  SgFile *f = NULL;
+  SgObject f = SG_FALSE, saved = SG_FALSE;
   if (!port) Sg_Error(UC("[internal] no redirect indication"));
 
   *closeP = FALSE;
@@ -585,8 +584,8 @@ static int init_fd(int fds[2], SgObject *port,
       name = UC("process-stderr");
       break;
     }
-    f = SG_FILE(Sg_MakeFileFromFD(fd));
-    f->name = name;
+    f = Sg_MakeFileFromFD(fd);
+    SG_FILE(f)->name = name;
     *closeP = TRUE;
   } else if (SG_EQ(*port, SG_KEYWORD_STDIN)) {
     fds[0] = 0;
@@ -596,10 +595,25 @@ static int init_fd(int fds[2], SgObject *port,
   } else if (SG_EQ(*port, SG_KEYWORD_STDERR)) {
     fds[1] = 2;
   } else if (SG_STRINGP(*port) || SG_EQ(*port, SG_KEYWORD_NULL)) {
-    int flag = 0;
+    int flag = 0, fd;
     SgObject file;
     const char *cfile;
     if (SG_STRINGP(*port)) {
+      SgObject cp, abp = Sg_AbsolutePath(*port);
+      if (!SG_FALSEP(abp)) {
+	SG_FOR_EACH(cp, *files) {
+	  SgObject slot = SG_CAR(cp);
+	  if (Sg_StringEqual(abp, SG_CAR(slot))) {
+	    *port = SG_CAR(SG_CDDR(slot));
+	    if (type == IN) {
+	      fds[0] = SG_INT_VALUE(SG_CADR(slot));
+	    } else {
+	      fds[1] = SG_INT_VALUE(SG_CADR(slot));
+	    }
+	    return TRUE;
+	  }
+	}
+      }
       file = *port;
       cfile = Sg_Utf32sToUtf8s(file);
     } else {
@@ -608,20 +622,22 @@ static int init_fd(int fds[2], SgObject *port,
     }
     switch (type) {
     case IN: 
-      fds[0] = open(cfile, O_RDWR);
+      fd = fds[0] = open(cfile, O_RDWR);
       /* we don't create a file */
       if (fds[0] < 0) return FALSE;
       flag = SG_WRITE; 
       break;
     default:
       /* child process should have permission to write so 0666.  */
-      fds[1] = open(cfile, O_RDWR | O_CREAT, 0666);
+      fd = fds[1] = open(cfile, O_RDWR | O_CREAT, 0666);
       if (fds[1] < 0) return FALSE;
       flag = SG_READ; 
       break;
     }
     if (SG_STRINGP(*port)) {
-      f = SG_FILE(Sg_OpenFile(file, flag));
+      SgObject abp = Sg_AbsolutePath(file);
+      f = Sg_OpenFile(file, flag);
+      saved = Sg_Cons(abp, SG_MAKE_INT(fd));
     }
   } else {
     Sg_Error(UC("sys-process-call: unknown option %A"), *port);
@@ -630,8 +646,16 @@ static int init_fd(int fds[2], SgObject *port,
 
   if (f) {
     switch (type) {
-    case IN: *port = Sg_MakeFileBinaryOutputPort(f, SG_BUFFER_MODE_NONE); break;
-    default: *port = Sg_MakeFileBinaryInputPort(f, SG_BUFFER_MODE_NONE); break;
+    case IN:
+      *port = Sg_MakeFileBinaryOutputPort(SG_FILE(f), SG_BUFFER_MODE_NONE);
+      break;
+    default: 
+      *port = Sg_MakeFileBinaryInputPort(SG_FILE(f), SG_BUFFER_MODE_NONE); 
+      break;
+    }
+    if (!SG_FALSEP(saved)) {
+      SG_SET_CDR(saved, Sg_Cons(SG_CDR(saved), *port));
+      *files = Sg_Cons(saved, *files);
     }
   } else {
     *port = SG_FALSE;
@@ -654,7 +678,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
 
   int count, i, closeP[3];
   char *name, **args;
-  SgObject cp;
+  SgObject cp, files = SG_NIL;	/* alist of file and port */
   /* this fails on Cygwin if I put it in the child process thing... */
   name = Sg_Utf32sToUtf8s(sname);
   count = Sg_Length(sargs);
@@ -676,9 +700,9 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
   if ((open_max = sysconf(_SC_OPEN_MAX)) < 0) goto sysconf_fail;
 
   sysfunc = "pipe";
-  if (!init_fd(pipe0, inp,  IN,  &closeP[0])) goto pipe_fail;
-  if (!init_fd(pipe1, outp, OUT, &closeP[1])) goto pipe_fail;
-  if (!init_fd(pipe2, errp, ERR, &closeP[2])) goto pipe_fail;
+  if (!init_fd(pipe0, inp,  IN,  &closeP[0], &files)) goto pipe_fail;
+  if (!init_fd(pipe1, outp, OUT, &closeP[1], &files)) goto pipe_fail;
+  if (!init_fd(pipe2, errp, ERR, &closeP[2], &files)) goto pipe_fail;
 
   sysfunc = "fork";
   pid = fork();
@@ -726,7 +750,7 @@ uintptr_t Sg_SysProcessCall(SgObject sname, SgObject sargs,
     /* failed on child preocess */
   close_fail:
   dup_fail:
-    Sg_Panic("%s (%d): %s (%d)\n", sysfunc, errno, strerror(errno), closeP);
+    Sg_Panic("%s (%d): %s\n", sysfunc, errno, strerror(errno));
     exit(127);
     /* never reached */
   } else {
