@@ -1519,8 +1519,25 @@
     (set! (SG_PORT_DATA p) v))
 
   ;; system call
+  (define-cise-stmt check-redirect
+    ((_ val in?)
+     `(begin
+	(unless (and (SG_EQ ,val :pipe)
+		     (SG_EQ ,val :stdin)
+		     (SG_EQ ,val :stdout)
+		     (SG_EQ ,val :stderr)
+		     (SG_EQ ,val :null)
+		     (STRINGP ,val))
+	  (assertion-violation 'sys-process-call
+			       "redirect keyword must be one of :pipe, :stdin, :stdout, :stderr or string which must be a file path" ,val))
+	(when (and ,in? (or (SG_EQ ,val :stdout) (SG_EQ ,val :stderr)))
+	  (assertion-violation 'sys-process-call
+			       "redirect input must not have :stdout or :stderr"
+			       ,val)))))
+
   (define-c-proc sys-process-call 
-    (name::<string> args::<list> :key (directory #f) (detach? #f))
+    (name::<string> args::<list> :key (directory #f) (detach? #f)
+		    (stdin :pipe) (stdout :pipe) (stderr :pipe))
     (dolist (arg args)
       (unless (SG_STRINGP arg)
 	(wrong-type-of-argument-violation 'sys-process-call
@@ -1529,7 +1546,10 @@
     (unless (or (SG_STRINGP directory) (SG_FALSEP directory))
       (wrong-type-of-argument-violation 'sys-process-call
 					"string or #f" directory))
-    (let ((in  NULL) (out NULL) (err NULL))
+    (check-redirect stdin TRUE)
+    (check-redirect stdout FALSE)
+    (check-redirect stderr FALSE)
+    (let ((in stdin) (out stdout) (err stderr))
       (let* ((flags::int 0)
 	     (d::SgString* NULL)
 	     (handle::uintptr_t 0))

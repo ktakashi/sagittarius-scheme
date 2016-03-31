@@ -661,6 +661,9 @@
       (for-each emit-arg-unbox-rec args)))
 
   ;; boolean handler
-  (define-method render-boolean ((b <boolean>) env)
+  (define-method render-literal ((b <boolean>) env)
     (if b "SG_TRUE" "SG_FALSE"))
+  ;; keyword handler
+  (define-method render-literal ((k <keyword>) env)
+    (cgen-cexpr (cgen-literal k)))
 )

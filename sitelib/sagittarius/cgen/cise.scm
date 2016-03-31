@@ -10,7 +10,7 @@
 
 	    cise-render cise-render-to-string cise-render-identifier
 	    render-rec ;; for syntax
-	    render-boolean
+	    render-literal
 
 	    ensure-stmt-ctx
 	    expr-env
@@ -206,7 +206,7 @@
     (call-with-output-string (cut cise-render form :ctx ctx :port <>)))
 
   ;; To handle boolean
-  (define-generic render-boolean)
+  (define-generic render-literal)
 
   (define (render-finalize stree port)
     (define current-file #f)
@@ -264,7 +264,8 @@
 				  env))
       ((? string?) (wrap-expr (format "~s" form) env))
       ((? real?)   (wrap-expr form env))
-      ((? boolean?) (render-boolean form env))
+      ((? boolean?) (render-literal form env))
+      ((? keyword?) (wrap-expr (render-literal form env) env))
       (()          '())
       (#\'         (wrap-expr "'\\''" env))
       (#\\         (wrap-expr "'\\\\'" env))

@@ -27,7 +27,8 @@ stub()
 {
     echo Generating library from stub
     cd src
-    $SASH ./genstub $1
+    # for 0.7.3, we need head library.
+    $SASH -L../sitelib ./genstub $1
     cd ../
 }
 
