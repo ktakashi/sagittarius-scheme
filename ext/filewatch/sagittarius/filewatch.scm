@@ -49,6 +49,7 @@
 (define-class <filesystem-watcher> ()
   ((context :init-keyword :context :reader filesystem-watcher-context)
    (thread  :init-value #f :reader filesystem-watcher-thread)
+   (lock    :init-form (make-mutex))
    (background  :init-value #t)
    (error-handler :init-keyword :error-handler
 		  :init-value default-error-handler)))
@@ -97,9 +98,10 @@
     ;; set 'thread slot here so that we can avoid a bit of
     ;; race condition risk. (still not perfect but better than
     ;; doing outside of this procedure).
+    (mutex-lock! (slot-ref watcher 'lock))
     (slot-set! watcher 'thread (current-thread))
-    (start-monitoring! 
-     (filesystem-watcher-context watcher)))
+    (start-monitoring! (filesystem-watcher-context watcher))
+    (mutex-unlock! (slot-ref watcher 'lock)))
   (when (slot-ref watcher 'thread)
     (assertion-violation 'filesystem-watcher-start-monitoring!
 			 "watcher is already started" watcher))
@@ -117,6 +119,9 @@
 			   "watcher is not started yet" watcher))
     (stop-request! (filesystem-watcher-context watcher))
     (interrupt-monitoring! thread (filesystem-watcher-context watcher))
+    ;; wait until the process is finished.
+    (mutex-lock! (slot-ref watcher 'lock))
+    (mutex-unlock! (slot-ref watcher 'lock))
     (when (slot-ref watcher 'background) (thread-join! thread))
     (slot-set! watcher 'thread #f)))
 

@@ -63,7 +63,7 @@
 	     (lambda ()
 	       (shared-queue-get! sq1)
 	       (filesystem-watcher-stop-monitoring! w)
-	       (shared-queue-put! sq2)))))
+	       (shared-queue-put! sq2 'done!)))))
        (t2 (make-thread
 	    (lambda ()
 	      (let loop ((o (shared-queue-get! sq2 0 #f)))
@@ -81,6 +81,7 @@
   (thread-start! t2)
   (test-assert (filesystem-watcher?
 		(filesystem-watcher-start-monitoring! w :background #f)))
+  (thread-join! t2)
   (test-assert (release-filesystem-watcher! w)))
 
 (test-end)

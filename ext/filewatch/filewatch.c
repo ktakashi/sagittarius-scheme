@@ -43,7 +43,9 @@ SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FileWatchContextClass, filewatch_ctx_print);
 
 void Sg_StopRequest(SgFileWatchContext *ctx)
 {
+  SG_FILE_WATCH_CONTEXT_LOCK(ctx);
   ctx->stopRequest = TRUE;
+  SG_FILE_WATCH_CONTEXT_UNLOCK(ctx);
 }
 
 extern void Sg__Init_filewatch_stub(SgLibrary *lib);

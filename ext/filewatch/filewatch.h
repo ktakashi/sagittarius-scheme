@@ -39,13 +39,39 @@ SG_CLASS_DECL(Sg_FileWatchContextClass);
 
 typedef struct {
   SG_HEADER;
-  SgObject handlers;
+  SgObject handlers;		/* string hashtable */
   int      stopRequest;
+  SgInternalMutex  lock;
   /* platform dependant context */
   void *context;
 } SgFileWatchContext;
 #define SG_FILE_WATCH_CONTEXT(o) ((SgFileWatchContext *)o)
 #define SG_FILE_WATCH_CONTEXT_P(o) SG_XTYPEP(o, SG_CLASS_FILE_WATCH_CONTEXT)
+
+#define SG_FILE_WATCH_CONTEXT_INIT(ctx, dc)				\
+  do {									\
+    (ctx)->stopRequest = FALSE;						\
+    (ctx)->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);	\
+    (ctx)->context = dc;						\
+    Sg_InitMutex(&(ctx)->lock, TRUE);					\
+  } while (0)
+
+#define SG_FILE_WATCH_CONTEXT_RELESE(ctx)	\
+  do {						\
+    (ctx)->handlers = SG_NIL;			\
+    Sg_DestroyMutex(&(ctx)->lock);		\
+  } while (0)
+
+#define SG_FILE_WATCH_CONTEXT_LOCK(ctx)		\
+  do {						\
+    Sg_LockMutex(&(ctx)->lock);			\
+  } while (0)
+
+#define SG_FILE_WATCH_CONTEXT_UNLOCK(ctx)	\
+  do {						\
+    Sg_UnlockMutex(&(ctx)->lock);		\
+  } while (0)
+
 
 extern SgObject Sg_FlagSymbols[];
 /* flags */

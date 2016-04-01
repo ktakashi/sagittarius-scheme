@@ -52,17 +52,15 @@ SgObject Sg_MakeFileWatchContext()
   inotify_context *ic = SG_NEW(inotify_context);
   ic->paths = SG_NIL;
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
-  ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
-  ctx->context = ic;
-  ctx->stopRequest = FALSE;
+  SG_FILE_WATCH_CONTEXT_INIT(ctx, ic);
   return SG_OBJ(ctx);
 }
 
 void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   inotify_context *ic = (inotify_context *)ctx->context;
-  ctx->handlers = SG_NIL;
   ic->paths = SG_NIL;
+  SG_FILE_WATCH_CONTEXT_RELESE(ctx);
 }
 
 
@@ -217,7 +215,13 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     }
     if (poll_num > 0) {
       if (fds[0].revents & POLLIN) {
-	if (handle_events(ctx, fds[0].fd, wds)) goto err;
+	int r = 0;
+	SG_FILE_WATCH_CONTEXT_LOCK(ctx);
+	if (!ctx->stopRequest) {
+	  r = handle_events(ctx, fds[0].fd, wds);
+	}
+	SG_FILE_WATCH_CONTEXT_UNLOCK(ctx);
+	if (r) goto err;
       }
     }
   }

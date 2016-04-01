@@ -74,17 +74,15 @@ SgObject Sg_MakeFileWatchContext()
   kqueue_context *kc = SG_NEW(kqueue_context);
   kc->paths = SG_NIL;
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
-  ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
-  ctx->context = kc;
-  ctx->stopRequest = FALSE;
+  SG_FILE_WATCH_CONTEXT_INIT(ctx, kc);
   return SG_OBJ(ctx);
 }
 
 void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   kqueue_context *kc = (kqueue_context *)ctx->context;
-  ctx->handlers = SG_NIL;
   kc->paths = SG_NIL;
+  SG_FILE_WATCH_CONTEXT_RELESE(ctx);
 }
 
 static int symbol2flag(SgObject flag)
@@ -190,28 +188,34 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
           first one checks if there's change, second one retrieves the event?
    */
   while (1) {
-    int c = kevent(kq, evm, n, evm, n, NULL);
+    int c;
+    if (ctx->stopRequest) goto end;
+    c = kevent(kq, evm, n, evm, n, NULL);
     if (c == 0) continue;
     if (c < 0) {
       if (errno == EINTR) goto end;
       goto err;
     }
-    for (i = 0; i < c; i++) {
-      SgObject e = SG_FALSE, h;
-      h = Sg_HashTableRef(ctx->handlers, evm[i].udata, SG_FALSE);
-      if (SG_FALSEP(h)) continue;
-      if (evm[i].fflags & NOTE_WRITE)  e = SG_MODIFIED;
-      if (evm[i].fflags & NOTE_DELETE) e = SG_REMOVED;
-      if (evm[i].fflags & NOTE_RENAME) e = SG_RENAMED;
-      if (evm[i].fflags & NOTE_ATTRIB) e = SG_ATTRIBUTE;
-      
-      Sg_Apply2(h, evm[i].udata, e);
+    SG_FILE_WATCH_CONTEXT_LOCK(ctx);
+    if (!ctx->stopRequest) {
+      for (i = 0; i < c; i++) {
+	SgObject e = SG_FALSE, h;
+	h = Sg_HashTableRef(ctx->handlers, evm[i].udata, SG_FALSE);
+	if (SG_FALSEP(h)) continue;
+	if (evm[i].fflags & NOTE_WRITE)  e = SG_MODIFIED;
+	if (evm[i].fflags & NOTE_DELETE) e = SG_REMOVED;
+	if (evm[i].fflags & NOTE_RENAME) e = SG_RENAMED;
+	if (evm[i].fflags & NOTE_ATTRIB) e = SG_ATTRIBUTE;
+	
+	Sg_Apply2(h, evm[i].udata, e);
+      }
+      SG_FOR_EACH(cp, kc->paths) {
+	EV_SET(&evm[i], fds[i], EVFILT_VNODE, EV_ADD | EV_CLEAR,
+	       SG_INT_VALUE(SG_CDAR(cp)), 0, SG_CAAR(cp));
+	i++;
+      }
     }
-    SG_FOR_EACH(cp, kc->paths) {
-      EV_SET(&evm[i], fds[i], EVFILT_VNODE, EV_ADD | EV_CLEAR,
-	     SG_INT_VALUE(SG_CDAR(cp)), 0, SG_CAAR(cp));
-      i++;
-    }
+    SG_FILE_WATCH_CONTEXT_UNLOCK(ctx);
   }
 
  err:

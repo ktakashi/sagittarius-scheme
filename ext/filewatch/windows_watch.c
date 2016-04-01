@@ -97,10 +97,7 @@ SgObject Sg_MakeFileWatchContext()
   wc->event = INVALID_HANDLE_VALUE;
 #endif
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
-
-  ctx->handlers = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
-  ctx->context = wc;
-  ctx->stopRequest = FALSE;
+  SG_FILE_WATCH_CONTEXT_INIT(ctx, wc);
   return SG_OBJ(ctx);
 }
 
@@ -108,6 +105,7 @@ void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   windows_context *wc = (windows_context *)ctx->context;
   wc->mappings = SG_NIL;
+  SG_FILE_WATCH_CONTEXT_RELESE(ctx);
 }
 
 static int symbol2flag(SgObject flag)
@@ -363,7 +361,9 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
       BOOL b = GetOverlappedResult(dirs[w], &ols[w], &bytes, TRUE); 
       if (b) {
 	FILE_NOTIFY_INFORMATION *fn = (FILE_NOTIFY_INFORMATION *)buf[w];
-	handle_event(ctx, fn, posix_path(paths[w]));
+	SG_FILE_WATCH_CONTEXT_LOCK(ctx);
+	if (!ctx->stopRequest) handle_event(ctx, fn, posix_path(paths[w]));
+	SG_FILE_WATCH_CONTEXT_UNLOCK(ctx);
       }
       b = ReadDirectoryChangesW(dirs[w], buf[w], OL_BUFFER_SIZE, FALSE,
 				filters[w], NULL, &ols[w], NULL);
