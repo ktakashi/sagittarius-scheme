@@ -74,6 +74,9 @@
 		   (guard (e2 (else #t)) 
 		     ((slot-ref watcher 'error-handler) e))))
 	  (handler p e)))))
+  (when (filesystem-watcher-thread watcher)
+    (assertion-violation 'filesystem-watcher-add-path!
+			 "attempt to add path to monitoring watcher"))
   (unless (procedure? handler) 
     (assertion-violation 'filesystem-watcher-add-path!
 			 "handler must be a procedure" handler))
@@ -82,6 +85,9 @@
   watcher)
 
 (define (filesystem-watcher-remove-path! watcher path)
+  (when (filesystem-watcher-thread watcher)
+    (assertion-violation 'filesystem-watcher-add-path!
+			 "attempt to remove path to monitoring watcher"))
   (remove-monitoring-path (filesystem-watcher-context watcher) path))
 
 (define (filesystem-watcher-start-monitoring! watcher :key (background #t))
