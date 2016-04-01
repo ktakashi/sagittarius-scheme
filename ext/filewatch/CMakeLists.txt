@@ -4,16 +4,20 @@
 
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFile.cmake)
+INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFiles.cmake)
 
 # check for event
-CHECK_INCLUDE_FILE(sys/inotify.h    HAVE_SYS_INOTIFY_H)
-CHECK_INCLUDE_FILE(sys/event.h      HAVE_SYS_EVENT_H)
-CHECK_INCLUDE_FILE(windows.h        HAVE_WINDOWS_H)
+CHECK_INCLUDE_FILE(sys/inotify.h               HAVE_SYS_INOTIFY_H)
+# needs to be like this, otherwise CMake on FreeBSD doesn't find
+CHECK_INCLUDE_FILES("sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)
+CHECK_INCLUDE_FILE(windows.h                   HAVE_WINDOWS_H)
 
 OPTION(USE_LIBKQUEUE "Use libkqueue if exists" OFF)
 SET(HAVE_LIBKQUEUE) # reset cache
 
-IF (HAVE_SYS_INOTIFY_H)
+# For some reason, there's inotfy on FreeBSD (maybe Linux compatible
+# library) but it doesn't have inotify_init1. So use it only on Linux
+IF (HAVE_SYS_INOTIFY_H AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   # for testing kqueue implementation on Linux
   IF (USE_LIBKQUEUE AND HAVE_SYS_EVENT_H)
     # check if platform has libkqueue
@@ -34,6 +38,8 @@ ELSEIF (HAVE_WINDOWS_H)
 ELSE()
   SET(FILE_WATCH_C dummy_watch.c)
 ENDIF()
+
+MESSAGE(STATUS "Filewatch implementation file: ${FILE_WATCH_C}")
 
 SET(FILE_WATCH_C ${FILE_WATCH_C} filewatch.c)
 
