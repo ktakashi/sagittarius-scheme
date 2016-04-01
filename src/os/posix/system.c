@@ -623,14 +623,14 @@ static int init_fd(int *fds, SgObject *port,
     }
     switch (type) {
     case IN: 
-      fd = fds[0] = open(cfile, O_RDWR);
+      fd = fds[0] = open(cfile, O_RDONLY);
       /* we don't create a file */
       if (fds[0] < 0) return FALSE;
       flag = SG_WRITE; 
       break;
     default:
       /* child process should have permission to write so 0666.  */
-      fd = fds[1] = open(cfile, O_RDWR | O_CREAT, 0666);
+      fd = fds[1] = open(cfile, O_WRONLY | O_CREAT, 0666);
       if (fds[1] < 0) return FALSE;
       flag = SG_READ; 
       break;
