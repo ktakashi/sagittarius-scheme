@@ -42,14 +42,16 @@
   (test-error assertion-violation?
 	      (filesystem-watcher-add-path! w +file+ 'access h))
   (test-error assertion-violation? (filesystem-watcher-remove-path! w +file+))
-  (call-with-port (open-file-output-port +file+ (file-options no-fail)
-					 (buffer-mode block)
-					 (native-transcoder))
-    (lambda (out) (put-string out "modify!")))
+  (let loop ()
+    (call-with-port (open-file-output-port +file+ (file-options no-fail)
+					   (buffer-mode block)
+					   (native-transcoder))
+      (lambda (out) (put-string out "modify!")))
+    ;; retry
+    (when (shared-queue-empty? sq) (loop)))
   (test-equal "monitoring handler result" 
 	      (cons f 'modified) (shared-queue-get! sq))
   (test-assert (filesystem-watcher-stop-monitoring! w))
-
   (test-assert (release-filesystem-watcher! w))
   )
 

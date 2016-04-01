@@ -50,6 +50,7 @@
   ((context :init-keyword :context :reader filesystem-watcher-context)
    (thread  :init-value #f :reader filesystem-watcher-thread)
    (lock    :init-form (make-mutex))
+   (cv      :init-form (make-condition-variable))
    (background  :init-value #t)
    (error-handler :init-keyword :error-handler
 		  :init-value default-error-handler)))
@@ -100,15 +101,23 @@
     ;; doing outside of this procedure).
     (mutex-lock! (slot-ref watcher 'lock))
     (slot-set! watcher 'thread (current-thread))
+    ;; ok it's started, so add/remove is not allowed anymore
+    (condition-variable-broadcast! (slot-ref watcher 'cv))
     (start-monitoring! (filesystem-watcher-context watcher))
     (mutex-unlock! (slot-ref watcher 'lock)))
   (when (slot-ref watcher 'thread)
     (assertion-violation 'filesystem-watcher-start-monitoring!
 			 "watcher is already started" watcher))
+  (mutex-lock! (slot-ref watcher 'lock))
   (slot-set! watcher 'background background)
   (if background
-      (thread-start! (make-thread watch))
-      (watch))
+      (begin
+	(thread-start! (make-thread watch))
+	;; wait until it's started.
+	(mutex-unlock! (slot-ref watcher 'lock) (slot-ref watcher 'cv)))
+      (begin
+	(mutex-unlock! (slot-ref watcher 'lock))
+	(watch)))
   watcher)
 	
 
