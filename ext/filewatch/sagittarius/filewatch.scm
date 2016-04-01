@@ -30,11 +30,10 @@
 
 (library (sagittarius filewatch)
     (export make-filesystem-watcher
-	    release-filesystem-watcher
+	    release-filesystem-watcher!
 	    filesystem-watcher?
 	    filesystem-watcher-add-path!
 	    filesystem-watcher-remove-path!
-	    ;; returns thread
 	    filesystem-watcher-start-monitoring!
 	    filesystem-watcher-stop-monitoring!)
     (import (rnrs)
@@ -57,7 +56,7 @@
 (define (make-filesystem-watcher :key (error-handler default-error-handler) )
   (make <filesystem-watcher> :context (make-file-watch-context)
 	:error-handler error-handler))
-(define (release-filesystem-watcher watcher)
+(define (release-filesystem-watcher! watcher)
   (let ((thread (filesystem-watcher-thread watcher)))
     (when (thread? thread) (filesystem-watcher-stop-monitoring! watcher)))
   (destroy-file-watch-context! (filesystem-watcher-context watcher))
@@ -88,20 +87,28 @@
   (when (filesystem-watcher-thread watcher)
     (assertion-violation 'filesystem-watcher-add-path!
 			 "attempt to remove path to monitoring watcher"))
-  (remove-monitoring-path (filesystem-watcher-context watcher) path))
+  ;; this returns a procedure created by ->safe-handler.
+  ;; so returning handler isn't really useful.
+  (remove-monitoring-path (filesystem-watcher-context watcher) path)
+  watcher)
 
 (define (filesystem-watcher-start-monitoring! watcher :key (background #t))
+  (define (watch)
+    ;; set 'thread slot here so that we can avoid a bit of
+    ;; race condition risk. (still not perfect but better than
+    ;; doing outside of this procedure).
+    (slot-set! watcher 'thread (current-thread))
+    (start-monitoring! 
+     (filesystem-watcher-context watcher)))
   (when (slot-ref watcher 'thread)
     (assertion-violation 'filesystem-watcher-start-monitoring!
 			 "watcher is already started" watcher))
-  (let ((thread (thread-start! 
-		 (make-thread 
-		  (lambda () 
-		    (start-monitoring! 
-		     (filesystem-watcher-context watcher)))))))
-    (slot-set! watcher 'thread thread)
-    (slot-set! watcher 'background background)
-    (unless background (thread-join! thread))))
+  (slot-set! watcher 'background background)
+  (if background
+      (thread-start! (make-thread watch))
+      (watch))
+  watcher)
+	
 
 (define (filesystem-watcher-stop-monitoring! watcher)
   (let ((thread (filesystem-watcher-thread watcher)))
