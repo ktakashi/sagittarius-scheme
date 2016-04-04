@@ -59,7 +59,7 @@
        (f (absolute-path +file+))
        (sq1 (make-shared-queue))
        (sq2 (make-shared-queue))
-       (h (lambda (p e) (shared-queue-put! sq1 'done!)))
+       (h (lambda (p e) (shared-queue-put! sq1 p)))
        (t1 (thread-start!
 	    (make-thread
 	     (lambda ()
@@ -68,14 +68,15 @@
 	       (shared-queue-put! sq2 'done!)))))
        (t2 (make-thread
 	    (lambda ()
-	      (let loop ((o (shared-queue-get! sq2 0 #f)))
-		(unless o
-		  (call-with-port (open-file-output-port +file+
-							 (file-options no-fail)
-							 (buffer-mode block)
-							 (native-transcoder))
-		    (lambda (out) (put-string out "modify!")))
-		  (loop (shared-queue-get! sq2 0 #f))))))))
+	      (let loop ()
+		(let ((o (shared-queue-get! sq2 0 #f)))
+		  (unless o
+		    (call-with-port (open-file-output-port +file+
+				      (file-options no-fail)
+				      (buffer-mode block)
+				      (native-transcoder))
+		      (lambda (out) (put-string out "modify!")))
+		    (loop))))))))
   ;; add or remove
   (test-assert "add path" 
 	       (filesystem-watcher? 
@@ -83,7 +84,36 @@
   (thread-start! t2)
   (test-assert (filesystem-watcher?
 		(filesystem-watcher-start-monitoring! w :background #f)))
+  (thread-join! t1)
   (thread-join! t2)
+  (test-assert (release-filesystem-watcher! w)))
+
+;; finishing watcher from event handler
+(let* ((w (make-filesystem-watcher))
+       (f (absolute-path +file+))
+       (sq1 (make-shared-queue))
+       (h (lambda (p e)
+	    (shared-queue-put! sq1 p)
+	    (filesystem-watcher-stop-monitoring! w)))
+       (t1 (make-thread
+	    (lambda ()
+	      (let loop ()
+		(let ((o (shared-queue-get! sq1 0 #f)))
+		  (unless o
+		    (call-with-port (open-file-output-port +file+
+				      (file-options no-fail)
+				      (buffer-mode block)
+				      (native-transcoder))
+		      (lambda (out) (put-string out "modify!")))
+		    (loop))))))))
+  ;; add or remove
+  (test-assert "add path" 
+	       (filesystem-watcher? 
+		(filesystem-watcher-add-path! w +file+ 'modify h)))
+  (thread-start! t1)
+  (test-assert (filesystem-watcher?
+		(filesystem-watcher-start-monitoring! w :background #f)))
+  (thread-join! t1)
   (test-assert (release-filesystem-watcher! w)))
 
 (test-end)

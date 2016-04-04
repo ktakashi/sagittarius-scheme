@@ -103,8 +103,8 @@
     (slot-set! watcher 'thread (current-thread))
     ;; ok it's started, so add/remove is not allowed anymore
     (condition-variable-broadcast! (slot-ref watcher 'cv))
-    (start-monitoring! (filesystem-watcher-context watcher))
-    (mutex-unlock! (slot-ref watcher 'lock)))
+    (mutex-unlock! (slot-ref watcher 'lock))
+    (start-monitoring! (filesystem-watcher-context watcher)))
   (when (slot-ref watcher 'thread)
     (assertion-violation 'filesystem-watcher-start-monitoring!
 			 "watcher is already started" watcher))
@@ -128,11 +128,11 @@
 			   "watcher is not started yet" watcher))
     (stop-request! (filesystem-watcher-context watcher))
     (interrupt-monitoring! thread (filesystem-watcher-context watcher))
-    ;; wait until the process is finished.
-    (mutex-lock! (slot-ref watcher 'lock))
-    (mutex-unlock! (slot-ref watcher 'lock))
+    ;; NB: don't wait here, the procedure is allowed to be called from
+    ;;     the event handler. thus, if we wait here, it'd be dead lock.
     (when (slot-ref watcher 'background) (thread-join! thread))
-    (slot-set! watcher 'thread #f)))
+    (slot-set! watcher 'thread #f)
+    watcher))
 
 )
 	    
