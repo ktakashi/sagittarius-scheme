@@ -76,8 +76,8 @@ SG_EXTENSION_ENTRY void Sg_Init_sagittarius__filewatch()
   SG_ATTRIBUTE = SG_INTERN("attribute");
   SG_ACCESSED  = SG_INTERN("accessed");
   SG_MODIFIED  = SG_INTERN("modified");
-  SG_REMOVED   = SG_INTERN("removed");
-  SG_RENAMED   = SG_INTERN("renamed");
+  SG_REMOVED   = SG_INTERN("deleted");
+  SG_RENAMED   = SG_INTERN("moved");
 
   Sg__Init_filewatch_stub(lib);
   Sg_InitStaticClass(SG_CLASS_FILE_WATCH_CONTEXT, UC("<filewatch-context>"),

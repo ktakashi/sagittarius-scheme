@@ -880,6 +880,7 @@ The macro return the result of @var{expr}.}
 
 @include-section["sagittarius/control.scrbl"]
 @include-section["sagittarius/ffi.scrbl"]
+@include-section["sagittarius/filewatch.scrbl"]
 @include-section["sagittarius/io.scrbl"]
 @include-section["sagittarius/mop.scrbl"]
 @include-section["sagittarius/object.scrbl"]
