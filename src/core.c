@@ -271,17 +271,38 @@ uintptr_t Sg_GcCount()
 #endif
 }
 
-int Sg_GCSStackBase(uintptr_t *base)
+/* may fail on some platform */
+int Sg_GCStackBase(uintptr_t *base)
 {
-  /* may fail on some platform */
+  /* cache for stack base (for performance) 
+     It seems GC_get_stack_base is really slow on Linux. This affects
+     performance of bignum caluculation (especially cryptographic
+     operation such as RSA key generation). I don't think modern
+     operating system can change stack base of created thread, so
+     we can cache it here.
+     TODO: getting too many rabbish on VM...
+   */
+#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+  static __declspec(thread) uintptr_t cStackBase = (uintptr_t)-1;
+#else
+  /* we go easier way. (hope it works on portably) */
+  static __thread uintptr_t cStackBase = (uintptr_t)-1;
+#endif
   struct GC_stack_base b;
-  int ok = GC_get_stack_base(&b);
-  if (ok == GC_SUCCESS) {
-    *base = (uintptr_t)b.mem_base;
+
+  if (cStackBase != (uintptr_t)-1) {
+    *base = cStackBase;
     return TRUE;
+  } else {
+    int ok = GC_get_stack_base(&b);
+    if (ok == GC_SUCCESS) {
+      cStackBase = (uintptr_t)b.mem_base;
+      *base = cStackBase;
+      return TRUE;
+    }
+    *base = (uintptr_t)-1;
+    return FALSE;
   }
-  *base = (uintptr_t)-1;
-  return FALSE;
 }
 
 /* not sure if we need to do this but just in case
@@ -305,7 +326,7 @@ intptr_t Sg_AvailableStackSize(uintptr_t csp)
 {
   uintptr_t base;
   intptr_t limit = stack_limit();
-  if (Sg_GCSStackBase(&base)) {
+  if (Sg_GCStackBase(&base)) {
     /* TODO it's assume stack grows downward */
     return limit - (base - csp);
   }

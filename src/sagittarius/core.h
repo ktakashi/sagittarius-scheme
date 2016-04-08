@@ -71,7 +71,7 @@ SG_EXTERN size_t Sg_GetHeapSize();
 SG_EXTERN size_t Sg_GetTotalBytes();
 SG_EXTERN uintptr_t Sg_GcCount();
 SG_EXTERN void  Sg_GCSetPrintWarning(int onP);
-SG_EXTERN int   Sg_GCSStackBase(uintptr_t *base);
+SG_EXTERN int   Sg_GCStackBase(uintptr_t *base);
 /* this is intptr_t to return -1 */
 SG_EXTERN intptr_t   Sg_AvailableStackSize(uintptr_t csp);
 
