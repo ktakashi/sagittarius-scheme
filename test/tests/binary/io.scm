@@ -202,4 +202,9 @@
 	)))
   )
 
+(let ()
+  (define in/out (open-chunked-binary-input/output-port))
+  (test-assert "empty chunked input/output port" (set-port-position! in/out 0)))
+
+
 (test-end)
