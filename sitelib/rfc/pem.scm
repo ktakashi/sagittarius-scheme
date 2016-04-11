@@ -91,11 +91,15 @@
    the string "-----END PRIVACY-ENHANCED MESSAGE-----" indicating
    that any text that immediately follows is non-PEM text.
 |#
+  (define (default-pem-decoder content)
+    (base64-decode-string content :transcoder #f))
+  (define pem-transcoder
+    (make-transcoder (utf-8-codec) (eol-style none)))
   (define (parse-pem in :key (multiple #f) (asn1 #f)
-		     (builder #f))
+		     (builder #f) (decoder default-pem-decoder))
     (define (open-input/output-string-port)
       (transcoded-port (open-chunked-binary-input/output-port)
-		       (native-transcoder)))
+		       pem-transcoder))
     (define (parse-header header-string)
       (rfc5322-read-headers (open-string-input-port header-string)))
     (define (read-content p type)
@@ -139,7 +143,8 @@
     (define (rec in type)
       (define (next type)
 	(let-values (((params content type) (read-content in type)))
-	  (let1 base64 (base64-decode-string content :transcoder #f)
+	  ;; NB: PEM content must be US ASCII.
+	  (let1 base64 (if decoder (decoder content) (string->utf8 content))
 	    (values params
 		    (cond (builder (builder base64))
 			  (asn1

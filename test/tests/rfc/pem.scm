@@ -26,10 +26,24 @@
     (test-assert "PEM-2 (multiple) header" (null? (car l)))
     (test-assert "PEM-2 (multiple) content" (is-a? (cdr l) <asn.1-encodable>))))
 
-;; NB: 'foo' 
-(let ((s "-----BEGIN FOO-----\r\nZm9v\r\n-----BEGIN BAR-----\r\nYmFy\r\n-----END BAR-----\r\n"))
+;; NB: 'foo' = 'Zm9v'
+;;     'bar' = 'YmFy'
+(define content
+  "-----BEGIN FOO-----\r\n\
+   Zm9v\r\n\
+   -----BEGIN BAR-----\r\n\
+   YmFy\r\n\
+   -----END BAR-----\r\n")
+(let ((s content))
   (test-equal "multiple values without END"
 	      '((() . "foo") (() . "bar"))
 	      (parse-pem-string s :multiple #t :builder utf8->string)))
+
+(let ((s content))
+  (test-equal "PEM :decoder #f"
+	      ;; decoder #f have crlf even on the last line
+	      '((() . "Zm9v\r\n") (() . "YmFy\r\n"))
+	      (parse-pem-string s :multiple #t :builder utf8->string
+				:decoder #f)))
 
 (test-end)
