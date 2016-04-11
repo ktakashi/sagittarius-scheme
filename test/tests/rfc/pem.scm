@@ -13,7 +13,7 @@
 
 (receive (header content) (parse-pem-file test-file-1)
   (test-assert "PEM-1 header" (not (null? header)))
-  (test-equal "PEM-1 header count" 6 (length header))
+  (test-equal "PEM-1 header count" 8 (length header))
   (test-assert "PEM-1 content" (bytevector? content)))
 
 (receive (header content) (parse-pem-file test-file-2 :asn1 #t)
@@ -25,5 +25,11 @@
   (dolist (l r)
     (test-assert "PEM-2 (multiple) header" (null? (car l)))
     (test-assert "PEM-2 (multiple) content" (is-a? (cdr l) <asn.1-encodable>))))
+
+;; NB: 'foo' 
+(let ((s "-----BEGIN FOO-----\r\nZm9v\r\n-----BEGIN BAR-----\r\nYmFy\r\n-----END BAR-----\r\n"))
+  (test-equal "multiple values without END"
+	      '((() . "foo") (() . "bar"))
+	      (parse-pem-string s :multiple #t :builder utf8->string)))
 
 (test-end)

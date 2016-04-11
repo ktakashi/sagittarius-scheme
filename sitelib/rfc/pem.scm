@@ -40,8 +40,8 @@
 	    (sagittarius)
 	    (sagittarius control)
 	    (sagittarius regex)
+	    (except (binary io) get-line)
 	    (srfi :6 basic-string-ports)
-	    (srfi :8 receive)
 	    (srfi :13 strings)
 	    (srfi :26 cut)
 	    (rfc :5322)
@@ -61,13 +61,60 @@
 				(make-message-condition msg)
 				(make-irritants-condition irr))))))
 
+#|
+   Encapsulated Message
+
+       Pre-Encapsulation Boundary (Pre-EB)
+           -----BEGIN PRIVACY-ENHANCED MESSAGE-----
+
+       Encapsulated Header Portion
+           (Contains encryption control fields inserted in plaintext.
+           Examples include "DEK-Info:" and "Key-Info:".
+           Note that, although these control fields have line-oriented
+           representations similar to RFC 822 header fields, the set
+           of fields valid in this context is disjoint from those used
+           in RFC 822 processing.)
+
+       Blank Line
+           (Separates Encapsulated Header from subsequent
+           Encapsulated Text Portion)
+
+       Encapsulated Text Portion
+           (Contains message data encoded as specified in Section 4.3.)
+
+       Post-Encapsulation Boundary (Post-EB)
+           -----END PRIVACY-ENHANCED MESSAGE-----
+
+   Bounary rule:
+   The pre-EB is the string The post-EB is either (1) another pre-EB
+   indicating that another encapsulated PEM message follows, or (2) 
+   the string "-----END PRIVACY-ENHANCED MESSAGE-----" indicating
+   that any text that immediately follows is non-PEM text.
+|#
   (define (parse-pem in :key (multiple #f) (asn1 #f)
 		     (builder #f))
+    (define (open-input/output-string-port)
+      (transcoded-port (open-chunked-binary-input/output-port)
+		       (native-transcoder)))
     (define (parse-header header-string)
       (rfc5322-read-headers (open-string-input-port header-string)))
     (define (read-content p type)
-      (let ((header-out (open-output-string))
-	    (content-out (open-output-string)))
+      (define (ret content-out type)
+	(set-port-position! content-out 0)
+	(let ((headers (rfc5322-read-headers content-out)))
+	  ;; it doesn't have header so revert the position
+	  (when (null? headers) (set-port-position! content-out 0))
+	  (values headers (get-string-all content-out) type)))
+      (define (put-line out line)
+	(put-string out line)
+	(let ((l (string-length line)))
+	  ;; NB: R6RS get-line doesn't skip \r
+	  (cond ((zero? l) (put-string out "\r\n"))
+		((char=? #\return (string-ref line (- l 1)))
+		 (put-string out "\n"))
+		(else (put-string out "\r\n")))))
+
+      (let ((content-out (open-input/output-string-port)))
 	(let loop ((line (get-line p))
 		   (content? #f))
 	  (if (eof-object? line)
@@ -79,37 +126,40 @@
 			   (raise-pem-error make-invalid-pem-format 'parse-pem
 					    "invalid END clause found"
 					    `(expected ,type) `(got ,(m 1))))
-			 (values (parse-header (get-output-string header-out))
-				 (get-output-string content-out))))
-		    ((and (not content?) (string-scan line #\:))
-		     ;; As far as I know, this parameters are RFC 822 format
-		     (put-string header-out line)
-		     (put-string header-out "\r\n");; for rfc5322-read-headers
-		     (loop (get-line p) content?))
+			 (ret content-out #f)))
+		    ((#/-----BEGIN (.+?)-----/ line)
+		     => (^m
+			 (unless multiple 
+			   (raise-pem-error make-pem-error 'parse-mem
+					    "multiple content without Post-Encapsulation Boundary requires :multiple #t"))
+			 (ret content-out (m 1))))
 		    (else
-		     (put-string content-out line)
+		     (put-line content-out line)
 		     (loop (get-line p) #t)))))))
-    (define (rec in)
-      (let loop ((line (get-line in)))
-	(cond ((eof-object? line)
-	       (raise-pem-error make-invalid-pem-format 'parse-pem
-				"unexpected EOF appeared"))
-	      ((#/-----BEGIN (.+?)-----/ line)
-	       => (^m 
-		   (receive (params content) (read-content in (m 1))
-		     (let1 base64 (base64-decode-string content :transcoder #f)
-		       (values params
-			       (cond (builder (builder base64))
-				     (asn1
-				      (read-asn.1-object 
-				       (open-bytevector-input-port base64)))
-				     (else base64)))))))
-	      (else (loop (get-line in))))))
+    (define (rec in type)
+      (define (next type)
+	(let-values (((params content type) (read-content in type)))
+	  (let1 base64 (base64-decode-string content :transcoder #f)
+	    (values params
+		    (cond (builder (builder base64))
+			  (asn1
+			   (read-asn.1-object 
+			    (open-bytevector-input-port base64)))
+			  (else base64))
+		    type))))
+      (if type
+	  (next type)
+	  (let loop ((line (get-line in)))
+	    (cond ((eof-object? line)
+		   (raise-pem-error make-invalid-pem-format 'parse-pem
+				    "unexpected EOF appeared"))
+		  ((#/-----BEGIN (.+?)-----/ line) => (^m (next (m 1))))
+		  (else (loop (get-line in)))))))
 
-    (let loop ((r '()))
-      (receive (params content) (rec in)
+    (let loop ((r '()) (type #f))
+      (let-values (((params content type) (rec in type)))
 	(cond ((and multiple (not (eof-object? (peek-char in))))
-	       (loop (cons (cons params content) r)))
+	       (loop (cons (cons params content) r) type))
 	      (multiple (reverse! (cons (cons params content) r)))
 	      (else (values params content))))))
 
