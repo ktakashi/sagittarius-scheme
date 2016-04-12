@@ -19,7 +19,7 @@ This library defines these conditions.
 @subsubsection{Operations}
 
 @define[Function]{@name{parse-pem}
- @args{in :key (multiple #f) (builder #f) (asn1 #f)}}
+ @args{in :key (multiple #f) (builder #f) (asn1 #f) decoder}}
 @desc{@var{in} must be textual input port.
 
 Parses given input port @var{in} and returns 2 values, parameter alist and
@@ -46,12 +46,34 @@ Keyword arguments
     When this keyword argument is #t, then the procedure converts BASE64
     bytevector to ASN.1 object defined in @code{(asn.1)} library.
   }
+  @dl-item[@code{decorder}]{
+    When this keyword argument is specified, it must be a procedure which
+    accepts one argument, then the @code{parse-pem} uses the specified
+    procedure to convert body of the PEM content.
+
+    If it's not specified, the procedure uses BASE64 decoding.
+  }
 }
 
-The procedure may raise following condition.
+The procedure may raise following conditions:
 @dl-list{
   @dl-item[@code{&invalid-pem-format}]{
     When given @var{in} contains invalid PEM format.
+  }
+  @dl-item[@code{&pem-error}]{
+    When given @var{in} contains Pre-Encapsulation Boundary as the end of
+    Encapsulated Message and @code{:multiple} is #f.
+
+    For example:
+    @codeblock{
+-----BEGIN FOO-----
+... foo value ...
+-----BEGIN BAR-----
+... bar value...
+-----END BAR-----
+    }
+    parsing PEM like above must specify @code{:multiple} with true value.
+    Otherwise, @code{&pem-error} is signaled.
   }
 }
 }
