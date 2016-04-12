@@ -34,7 +34,11 @@
 (library (rfc pem)
     (export parse-pem
 	    parse-pem-file
-	    parse-pem-string)
+	    parse-pem-string
+
+	    invalid-pem-format?
+	    pre-eb-as-boundary?
+	    )
     (import (rnrs)
 	    (asn.1)
 	    (sagittarius)
@@ -52,6 +56,9 @@
 
   (define-condition-type &invalid-pem-format &pem-error
     make-invalid-pem-format invalid-pem-format?)
+
+  (define-condition-type &pre-eb-as-boundary &pem-error
+    make-pre-eb-as-boundary pre-eb-as-boundary?)
 
   (define (raise-pem-error ctr who msg . irr)
     (raise (apply condition
@@ -134,7 +141,7 @@
 		    ((#/-----BEGIN (.+?)-----/ line)
 		     => (^m
 			 (unless multiple 
-			   (raise-pem-error make-pem-error 'parse-mem
+			   (raise-pem-error make-pre-eb-as-boundary 'parse-mem
 					    "multiple content without Post-Encapsulation Boundary requires :multiple #t"))
 			 (ret content-out (m 1))))
 		    (else

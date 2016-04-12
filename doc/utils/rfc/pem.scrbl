@@ -13,8 +13,20 @@ This library defines these conditions.
 
 @define["Condition Type"]{@name{&pem-error}}
 @desc{Super condition of all PEM file process related conditions.}
+
 @define["Condition Type"]{@name{&invalid-pem-format}}
 @desc{This condition indicates, given PEM file contains invalid format.}
+@define[Function]{@name{invalid-pem-format?} @args{obj}}
+@desc{Returns #t, if the given @var{obj} is @code{&invalid-pem-format},
+otherwise #f.}
+
+@define["Condition Type"]{@name{&pre-eb-as-boundary}}
+@desc{This condition indicates, given PEM file contains Pre-Encapsulation 
+Boundary as the end of Encapsulated Message without specifying 
+@code{:multiple}.}
+@define[Function]{@name{pre-eb-as-boundary?} @args{obj}}
+@desc{Returns #t, if the given @var{obj} is @code{&pre-eb-as-boundary},
+otherwise #f.}
 
 @subsubsection{Operations}
 
@@ -60,7 +72,7 @@ The procedure may raise following conditions:
   @dl-item[@code{&invalid-pem-format}]{
     When given @var{in} contains invalid PEM format.
   }
-  @dl-item[@code{&pem-error}]{
+  @dl-item[@code{&pre-eb-as-boundary}]{
     When given @var{in} contains Pre-Encapsulation Boundary as the end of
     Encapsulated Message and @code{:multiple} is #f.
 
