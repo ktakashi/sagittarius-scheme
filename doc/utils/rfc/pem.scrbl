@@ -85,7 +85,7 @@ The procedure may raise following conditions:
 -----END BAR-----
     }
     parsing PEM like above must specify @code{:multiple} with true value.
-    Otherwise, @code{&pem-error} is signaled.
+    Otherwise, @code{&pre-eb-as-boundary} is signaled.
   }
 }
 }
