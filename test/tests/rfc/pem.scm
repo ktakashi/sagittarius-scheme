@@ -46,4 +46,10 @@
 	      (parse-pem-string s :multiple #t :builder utf8->string
 				:decoder #f)))
 
+;; condition test
+(let ((s content))
+  (test-error "PEM :multiple #f" pre-eb-as-boundary? (parse-pem-string s)))
+(let ((s content))
+  (test-error "PEM invalid format" invalid-pem-format? (parse-pem-string "")))
+
 (test-end)
