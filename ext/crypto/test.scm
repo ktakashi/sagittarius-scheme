@@ -411,6 +411,7 @@
 ;; from example calculation
 ;; https://www.nsa.gov/ia/_files/nist-routines.pdf
 ;; P-192
+(test-assert (ec-parameter? P-192))
 (let ((S (make-ec-point (ec-parameter-curve P-192)
 			#xD458E7D127AE671B0C330266D246769353A012073E97ACF8
 			#x325930500D851F336BDDC050CF7FB11B5673A1645086DF3B))

@@ -25,6 +25,7 @@
 	    P-192
 	    P-224
 
+	    ec-parameter?
 	    ec-parameter-curve
 	    )
     (import (core)
@@ -59,51 +60,70 @@
   ;; curve is a vector which contains type and parameters
   ;; for the curve.
 
+  ;; make my life easier
+  (define-syntax define-vector-type
+    (lambda (x)
+      (define (order-args args fs)
+	(map (lambda (a) 
+	       (cond ((memp (lambda (f) (bound-identifier=? a f)) fs) => car)
+		     (else
+		      (syntax-violation 'define-vector-type "unknown tag" a))))
+	     args))
+      (define (generate-accessor k acc)
+	;; starting from 1 because 0 is type tag
+	(let loop ((r '()) (i 1) (acc acc))
+	  (syntax-case acc ()
+	    ((name rest ...)
+	     (with-syntax ((n (datum->syntax k i)))
+	       (loop (cons #'(define (name o) (vector-ref o n)) r)
+		     (+ i 1)
+		     #'(rest ...))))
+	    (() r))))
+      (syntax-case x ()
+	((k type (ctr args ...) pred
+	    (field accessor) ...)
+	 (and (identifier? #'pred) (identifier? #'type) (identifier? #'ctr))
+	 (with-syntax (((ordered-args ...)
+			(order-args #'(args ...) #'(field ...)))
+		       ((acc ...) (generate-accessor #'k #'(accessor ...))))
+	 #'(begin
+	     (define (ctr args ...) (vector 'type ordered-args ...))
+	     (define (pred o) 
+	       (and (vector? o)
+		    (= (vector-length o) (+ (length #'(field ...)) 1))
+		    (eq? (vector-ref o 0) 'type)))
+	     acc ...))))))
+
+  (define-vector-type fp-curve (make-fp-curve q a b) fp-curve?
+    (q fp-curve-q)
+    (a fp-curve-a)
+    (b fp-curve-b))
+
   ;; Fp curve
-  (define (make-fp-curve q a b) (vector 'fp q a b))
+  ;;(define (make-fp-curve q a b) (vector 'fp q a b))
   ;; TODO F2m curve
   (define (make-f2m-curve m k1 k2 k3 a b n h) 
     (error 'make-f2m-curve "not supported yet"))
 
-  (define-syntax curve-type
-    (syntax-rules ()
-      ((_ o) (vector-ref o 0))))
-  (define-syntax fp-curve-q
-    (syntax-rules ()
-      ((_ o) (vector-ref o 1))))
-  (define-syntax fp-curve-a
-    (syntax-rules ()
-      ((_ o) (vector-ref o 2))))
-  (define-syntax fp-curve-b
-    (syntax-rules ()
-      ((_ o) (vector-ref o 3))))
-
   (define (%curve? o type) (and (vector? o) 
 				(not (zero? (vector-length o)))
 				(eq? (curve-type o) type)))
-  (define (fp-curve? o)  (%curve? o 'fp))
+
   (define (f2m-curve? o) (%curve? o 'f2m))
   (define (ec-curve=? a b) (equal? a b))
 
   ;; EC point
-  (define-inline (make-ec-point curve x y) (vector curve x y))
+  (define-vector-type ec-point (make-ec-point curve x y) %ec-point?
+    (curve ec-point-curve)
+    (x     ec-point-x)
+    (y     ec-point-y))
 
   (define (infinity-point curve) (make-ec-point curve #f #f))
-  (define-syntax ec-point-curve
-    (syntax-rules ()
-      ((_ o) (vector-ref o 0))))
-  (define-syntax ec-point-x
-    (syntax-rules ()
-      ((_ o) (vector-ref o 1))))
-  (define-syntax ec-point-y
-    (syntax-rules ()
-      ((_ o) (vector-ref o 2))))
+
   ;; we don't check x and y, these can be #f for infinite point
   (define (ec-point? o)
-    (and (vector? o)
-	 (= (vector-length o) 3)
-	 (or (fp-curve? (ec-point-curve o))
-	     (f2m-curve? (ec-point-curve o)))))
+    (and (%ec-point? o)
+	 (ec-point-curve o)))
   (define (ec-point-infinity? p)
     (or (not (ec-point-x p))
 	(not (ec-point-y p))))
@@ -206,9 +226,10 @@
   ;;  - h = (l - 1) / 160 where l is bit length of prime p
   ;;  - seed
 
-  (define-syntax ec-parameter-curve
-    (syntax-rules ()
-      ((_ o) (vector-ref o 0))))
+  (define (ec-parameter? o) 
+    (and (vector? o) (= (vector-length o) 6) 
+	 (eq? (vector-ref o 0) 'ec-parameter)))
+  (define (ec-parameter-curve o) (vector-ref o 1))
 
   ;; from https://www.nsa.gov/ia/_files/nist-routines.pdf
   ;;      http://csrc.nist.gov/groups/ST/toolkit/documents/dss/NISTReCur.pdf
@@ -217,7 +238,8 @@
 		  #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF
 		  #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFC
 		  #x64210519E59C80E70FA7E9AB72243049FEB8DEECC146B9B1)))
-      `#(,curve 
+      `#(ec-parameter
+	 ,curve 
 	 ,(make-ec-point curve
 			 #x188DA80EB03090F67CBF20EB43A18800F4FF0AFD82FF1012
 			 #x07192B95FFC8DA78631011ED6B24CDD573F977A11E794811)
@@ -232,7 +254,8 @@
 		  #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000001
 		  #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFE
 		  #xB4050A850C04B3ABF54132565044B0B7D7BFD8BA270B39432355FFB4)))
-      `#(,curve 
+      `#(ec-parameter
+	 ,curve 
 	 ,(make-ec-point 
 	   curve
 	   #xB70E0CBD6BB4BF7F321390B94A03C1D356C21122343280D6115C1D21
