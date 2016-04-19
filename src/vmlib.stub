@@ -520,4 +520,6 @@
   (define-c-proc %set-current-macro-env! (env::<vector>) ::<void>
     (set! (-> (Sg_VM) macroEnv) env))
 
+  ;; this is required on compiler
+  (define-c-proc vm-execute! (cb::<code-builder>) ::<void> Sg_VMExecute)
 )

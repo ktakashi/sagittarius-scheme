@@ -2961,22 +2961,28 @@
 		 (syntax-error "missing import form" programs))))))
     ;; compile
     (let loop ((forms programs) (seq ($seq '())))
-      (smatch (car forms)
-	(((? library? -) rest ___)
-	 (let ((lib-seq (pass1/compile-library (car forms) p1env)))
-	   ($seq-body-set! seq
-			   (append! ($seq-body seq) ($seq-body lib-seq)))
-	   (loop (cdr forms) seq)))
-	(((? import? -) rest ___)
-	 (pass1/import (car forms) exec-lib)
-	 (loop (cdr forms) seq))
-	(- 
-	 ;; program can be considered as one library
-	 ;; so we can do some optimisation
-	 (let ((body-seq (pass1/library forms exec-lib p1env)))
-	   ($seq-body-set! seq
-	     (append! ($seq-body seq) ($seq-body body-seq)))
-	   seq))))))
+      (if (null? forms)
+	  seq
+	  (smatch (car forms)
+	    (((? library? -) rest ___)
+	     ;; suppose we have 2 libraries in one file, and one of them depends
+	     ;; on the other one. now if the dependee contains a macro which
+	     ;; refers bindings of dependency, then we get the problem.
+	     ;; the library is not yet executed; thus, the bindings can't be
+	     ;; found. Therefore, we'd get unbound variable error. to avoid
+	     ;; such a situation, we need to execute all libraries here.
+	     (vm-execute! (compile (car forms) p1env))
+	     (loop (cdr forms) seq))
+	    (((? import? -) rest ___)
+	     (pass1/import (car forms) exec-lib)
+	     (loop (cdr forms) seq))
+	    (- 
+	     ;; program can be considered as one library
+	     ;; so we can do some optimisation
+	     (let ((body-seq (pass1/library forms exec-lib p1env)))
+	       ($seq-body-set! seq
+		  (append! ($seq-body seq) ($seq-body body-seq)))
+	       seq)))))))
 
 ;; R7RS define-library
 ;; the syntax: 
