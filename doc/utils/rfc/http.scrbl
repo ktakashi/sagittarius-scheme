@@ -197,6 +197,23 @@ number value, then the file will be cleaned.
 
 }
 
+@define[Function]{@name{http-gzip-receiver} @args{receiver}}
+@desc{@var{receiver} must be an HTTP receiver.
+
+
+Creates a receiver which handles gzip encoded response. If HTTP response
+contains @code{Content-Encoding} header with value @code{gzip}, then the
+receiver decodes the response and propagates to given @var{receiver}. 
+Otherwise, it simply forwards the response to @var{receiver}.
+
+The following describes how to use it:
+@codeblock{
+(http-get "google.com" "/"
+          :accept-encoding "gzip"
+          :receiver (http-gzip-receiver (http-string-receiver)))
+}
+}
+
 @; TODO
 @; @define[Macro]{@name{http-cond-receiver}
 
