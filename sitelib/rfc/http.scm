@@ -59,6 +59,7 @@
 	    http-null-receiver
 	    http-oport-receiver
 	    http-file-receiver
+	    http-gzip-receiver
 	    http-cond-receiver
 
 	    *http-default-redirect-handler*
@@ -88,6 +89,7 @@
 	    (rfc mime)
 	    (rfc base64)
 	    (rfc tls)
+	    (rfc gzip)
 	    (prefix (binary io) binary:)
 	    (util bytevector))
 
@@ -494,6 +496,34 @@
 		       tmpname
 		       (begin (rename-file tmpname filename) filename)))
 		  (else (close-output-port port) (delete-file tmpname))))))))
+
+  (define (http-gzip-receiver receiver)
+    (lambda (code hdrs total retr)
+      (define (read-all out remote)
+	(let loop ((all 0))
+	  (let-values (((remote size) (retr)))
+	    (if (zero? size)
+		all
+		(begin
+		  (ensured-copy out remote size)
+		  (loop (+ all size)))))))
+      (define (callback in size)
+	(let ((rest size))
+	  (lambda ()
+	    (if (equal? rest 0)
+		(values in 0)
+		(begin (set! rest 0) (values in size))))))
+      ;; convert to gzip port iff content-encoding is specified to gzip
+      ;; otherwise just call given receiver
+      (if (equal? (rfc5322-header-ref hdrs "content-encoding") "gzip")
+	  (let ((in/out (binary:open-chunked-binary-input/output-port)))
+	    ;; read everything to complete gzip input, otherwise
+	    ;; gzip port blocks to read next byte to complete input.
+	    (let ((new-size (read-all in/out retr)))
+	      (set-port-position! in/out 0)
+	      (let ((gin (open-gzip-input-port in/out :owner? #t)))
+		(receiver code hdrs total (callback gin #f)))))
+	  (receiver code hdrs total retr))))
 
   (define-syntax http-cond-receiver
     (syntax-rules (else =>)
