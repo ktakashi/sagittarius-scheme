@@ -845,15 +845,13 @@
 
   ;; comparator
   (define (set-hash set)
-    (let* ((ht (slot-ref set 'hashtable))
-	   (hash (comparator-hash-function (slot-ref set 'comparator))))
+    (let ((hash (comparator-hash-function (slot-ref set 'comparator))))
       (set-fold
        (lambda (element result) (bitwise-xor (hash element) result))
        5381
        set)))
   (define (bag-hash bag)
-    (let* ((ht (slot-ref bag 'hashtable))
-	   (hash (comparator-hash-function (slot-ref bag 'comparator))))
+    (let ((hash (comparator-hash-function (slot-ref bag 'comparator))))
       (bag-fold
        (lambda (element result) (bitwise-xor (hash element) result))
        5381
