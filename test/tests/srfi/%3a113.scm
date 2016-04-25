@@ -280,6 +280,12 @@
       (set eqv-comparator 1 2)
       (set eqv-comparator 1 2)))
   (test 1 (set-size sos))
+
+  (define sos2
+    (set set-comparator
+      (set equal-comparator '(1 . 1) '(2 . 1) '(0 . 0) '(0 . 2))
+      (set equal-comparator '(2 . 1) '(1 . 1) '(0 . 2) '(0 . 0))))
+  (test 1 (set-size sos2))
 ) ; end sets/lowlevel
 
 ) ; end sets
