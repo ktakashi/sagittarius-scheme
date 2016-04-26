@@ -272,6 +272,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{records} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-132/srfi-132.html"]{SRFI-132}}
+    @td{(srfi :132 sorting)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :132)}. So for the portability it's better to use the
+    @code{(srfi :132)}.
+
+    The name @code{sorting} is taken from sample implementation.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-133/srfi-133.html"]{SRFI-133}}
     @td{(srfi :133 vectors)
 
