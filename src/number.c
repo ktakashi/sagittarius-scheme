@@ -729,7 +729,11 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
       str++; len--;
       angle = read_real(&str, &len, &ctx);
       if (SG_FALSEP(angle) || len != 0) return SG_FALSE;
-      return Sg_MakeComplexPolar(realpart, angle);
+      if (IS_INEXACT(&ctx)) {
+	return Sg_MakeComplexPolar(realpart, angle);
+      } else {
+	return Sg_Exact(Sg_MakeComplexPolar(realpart, angle));
+      }
     }
   case '+':
   case '-':

@@ -530,5 +530,7 @@
 			bar))
 		   (environment '(rnrs))))
 
+;; #e1@1
+(test-assert "#e1@1" (exact? (read (open-string-input-port "#e1@1"))))
 
 (test-end)
