@@ -317,7 +317,13 @@
 	    (immutable y kdr)))
   (define a (kons (vector 1 2 3) '(a b c)))
   (define b (kons (vector 1 2 3) '(a b c)))
-  (test-assert "equal? (record)" (equal? a b)))
+  (test-assert "equal? (record)" (equal? a b))
+
+  (let ((a1 (kons 1 2))
+	(b1 (kons 1 2)))
+    (set-kar! a1 a1)
+    (set-kar! b1 b1)
+    (test-assert "eqv? (record)" (not (eqv? a1 b1)))))
 
 ;; vector-append
 (let ((a '#(1 2 3))
