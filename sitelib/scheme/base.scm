@@ -72,7 +72,7 @@
 
      zero?)
   (import (rename (except (rnrs) syntax-rules define-record-type
-			  bytevector-copy!)
+			  bytevector-copy! equal?)
 		  (error r6rs:error)
 		  (let-syntax r6rs:let-syntax)
 		  (letrec-syntax r6rs:letrec-syntax))
@@ -86,6 +86,7 @@
 	  (srfi :9)
 	  (srfi :23)
 	  (srfi :39)
+	  (only (core) equal?)
 	  (only (scheme private) define-values)
 	  ;; for undefined, square and read-line
 	  (sagittarius))

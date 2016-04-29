@@ -79,7 +79,8 @@
      pair->ipair ipair->pair list->ilist ilist->list
      tree->itree itree->tree gtree->itree gtree->tree
      iapply)
-    (import (rnrs)
+    (import (except (rnrs) equal?)
+	    (only (core) equal?)
 	    (core base) ;; wrong-type-argument-message
 	    (sagittarius)
 	    (sagittarius control) ;; for check-arg

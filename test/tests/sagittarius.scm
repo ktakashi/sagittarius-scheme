@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 #!compatible
 
-(import (rnrs)
+(import (except (rnrs) equal?)
 	(rnrs mutable-pairs)
 	(rename (rnrs eval) (eval r6rs:eval))
 	(rnrs r5rs)
@@ -9,7 +9,7 @@
 	(sagittarius vm)
 	(sagittarius conditions)
 	(encoding decoder)
-	(core) ;; for simple-condition?
+	(core) ;; for simple-condition? and equal?
 	(srfi :1)
 	(srfi :39)
 	(srfi :64 testing))

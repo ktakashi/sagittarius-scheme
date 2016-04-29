@@ -11,7 +11,7 @@
      else => ... _
      eq?
      eqv?
-     equal?
+     (rename (r6rs-equal? equal?))
      procedure?
      number? complex? real? rational? integer?
      real-valued? rational-valued? integer-valued?

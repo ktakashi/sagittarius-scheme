@@ -87,10 +87,11 @@
      test-on-bad-count-simple test-on-bad-end-name-simple
      test-on-final-simple test-on-test-end-simple)
     (import
-     (except (rnrs) error)
+     (except (rnrs) error equal?)
      (prefix (only (rnrs eval) eval) rnrs:)
      (only (rnrs eval) environment)
      (rnrs mutable-pairs)
+     (only (core) equal?)
      (only (srfi :1 lists) reverse!)
      (only (srfi :6 basic-string-ports) open-input-string)
      ;;(only (srfi :9 records) define-record-type)

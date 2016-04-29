@@ -47,6 +47,9 @@
 #include "sagittarius/vm.h"	/* for box */
 #include "sagittarius/writer.h"
 
+/* #undef INSPECT_RECORD_FIELD */
+#define INSPECT_RECORD_FIELD
+
 static void comparator_print(SgObject o, SgPort *port, SgWriteContext *ctx)
 {
   SgComparator *c = SG_COMPARATOR(o);
@@ -109,6 +112,9 @@ static SG_DEFINE_SUBR(no_hash_stub, 1, 0, no_hash, SG_FALSE, NULL);
 DEF_EQ_PROC(eq, SG_EQ)
 DEF_EQ_PROC(eqv, Sg_EqvP)
 DEF_EQ_PROC(equal, Sg_EqualP)
+
+static int r6rs_equalp(SgObject x, SgObject y);
+DEF_EQ_PROC(r6rs_equal, r6rs_equalp)
 #undef DEF_EQ_PROC
 
 #define DEF_HASH_PROC(name, proc)					\
@@ -239,7 +245,6 @@ static SgComparator string_comparator =
   DEF_BUILTIN_COMPARATOR(&string_p_stub, &string_eq_stub, &string_cmp_stub,
 			 &string_hash_stub, 0);
 
-
 SgObject Sg_EqComparator()
 {
   return SG_OBJ(&eq_comparator);
@@ -277,6 +282,7 @@ void Sg__InitComparator()
   INSERT_EQ_PROC("eq?", &eq_proc_stub, SG_MAKE_INT(EQ));
   INSERT_EQ_PROC("eqv?", &eqv_proc_stub, SG_MAKE_INT(EQV));
   INSERT_EQ_PROC("equal?", &equal_proc_stub, SG_FALSE);
+  INSERT_EQ_PROC("r6rs-equal?", &r6rs_equal_proc_stub, SG_FALSE);
 #undef INSERT_EQ_PROC
 
 #define INSERT_HASH_PROC(lib, name, stub)				\
@@ -415,29 +421,8 @@ static int eqv_internal(SgObject x, SgObject y, int from_equal_p)
       return FALSE;
     }
   }
+
   if (!SG_HPTRP(x)) return SG_EQ(x, y);
-  /* simple R7RS */
-  if (Sg_RecordP(x)) {
-    if (Sg_RecordP(y)) {
-      SgClass *xklass = Sg_ClassOf(x);
-      SgClass *yklass = Sg_ClassOf(y);
-      if (xklass != yklass) return FALSE; /* obvious */
-      else {
-	SgSlotAccessor **xacc = xklass->gettersNSetters;
-	SgSlotAccessor **yacc = yklass->gettersNSetters;
-	for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
-	  SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
-	  SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
-	  if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return FALSE;
-	  else if (eqv_internal(xe, ye, from_equal_p)) continue;
-	  else return FALSE;
-	}
-	return TRUE;
-      }
-    } else {
-      return FALSE;
-    }
-  }
 
   if (from_equal_p) {
     cx = Sg_ClassOf(x);
@@ -522,9 +507,11 @@ struct equal_context
 {
   SgObject k0;
   SgObject kb;
+  int inspect_record_p;		/* compares record fields or not */
 };
 
-static SgObject pre_p(SgObject x, SgObject y, SgObject k)
+static SgObject pre_p(SgObject x, SgObject y, SgObject k, 
+		      struct equal_context *ctx)
 {
   if (x == y) return k;
   if (SG_PAIRP(x)) {
@@ -536,11 +523,12 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
       return k;
     } else {
       SgObject k2 = pre_p(SG_CAR(x), SG_CAR(y),
-			  SG_MAKE_INT(SG_INT_VALUE(k) - 1));
+			  SG_MAKE_INT(SG_INT_VALUE(k) - 1),
+			  ctx);
       if (SG_FALSEP(k2)) {
 	return SG_FALSE;
       }
-      return pre_p(SG_CDR(x), SG_CDR(y), k2);
+      return pre_p(SG_CDR(x), SG_CDR(y), k2, ctx);
     }
   }
   if (SG_VECTORP(x)) {
@@ -560,7 +548,8 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
 	  } else {
 	    SgObject k2 = pre_p(SG_VECTOR_ELEMENT(x, i),
 				SG_VECTOR_ELEMENT(y, i),
-				SG_MAKE_INT(SG_INT_VALUE(k) - 1));
+				SG_MAKE_INT(SG_INT_VALUE(k) - 1),
+				ctx);
 	    if (SG_FALSEP(k2)) {
 	      return SG_FALSE;
 	    }
@@ -592,32 +581,34 @@ static SgObject pre_p(SgObject x, SgObject y, SgObject k)
     }
   }
 
-  /* R7RS */
-  if (Sg_RecordP(x)) {
-    if (Sg_RecordP(y)) {
-      SgClass *xklass = Sg_ClassOf(x);
-      SgClass *yklass = Sg_ClassOf(y);
-      if (xklass != yklass) return SG_FALSE; /* obvious */
-      else {
-	SgSlotAccessor **xacc = xklass->gettersNSetters;
-	SgSlotAccessor **yacc = yklass->gettersNSetters;
-	for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
-	  SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
-	  SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
-	  SgObject k2;
-	  if (SG_INT_VALUE(k) <= 0) return k;
-	  if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
-	  k2 = pre_p(xe, ye, SG_MAKE_INT(SG_INT_VALUE(k) -1));
-	  if (SG_FALSEP(k2)) {
-	    return SG_FALSE;
+  /* Record inspection */
+  if (ctx->inspect_record_p) {
+    if (Sg_RecordP(x)) {
+      if (Sg_RecordP(y)) {
+	SgClass *xklass = Sg_ClassOf(x);
+	SgClass *yklass = Sg_ClassOf(y);
+	if (xklass != yklass) return SG_FALSE; /* obvious */
+	else {
+	  SgSlotAccessor **xacc = xklass->gettersNSetters;
+	  SgSlotAccessor **yacc = yklass->gettersNSetters;
+	  for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
+	    SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
+	    SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
+	    SgObject k2;
+	    if (SG_INT_VALUE(k) <= 0) return k;
+	    if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	    k2 = pre_p(xe, ye, SG_MAKE_INT(SG_INT_VALUE(k) -1), ctx);
+	    if (SG_FALSEP(k2)) {
+	      return SG_FALSE;
+	    }
+	    k = k2;
 	  }
-	  k = k2;
+	  return k;
 	}
-	return k;
       }
+      return SG_FALSE;
     }
   }
-
   if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
@@ -748,24 +739,27 @@ SgObject fast_p(SgHashTable **pht, SgObject x, SgObject y,
       return SG_FALSE;
     }
   }
-  /* R7RS */
-  if (Sg_RecordP(x)) {
-    if (Sg_RecordP(y)) {
-      SgClass *xklass = Sg_ClassOf(x);
-      SgClass *yklass = Sg_ClassOf(y);
-      if (xklass != yklass) return SG_FALSE; /* obvious */
-      else {
-	SgSlotAccessor **xacc = xklass->gettersNSetters;
-	SgSlotAccessor **yacc = yklass->gettersNSetters;
-	for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
-	  SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
-	  SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
-	  if (SG_INT_VALUE(k) <= 0) return k;
-	  if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
-	  k = eP(pht, xe, ye, k, ctx);
+  /* Record inspection */
+  if (ctx->inspect_record_p) {
+    if (Sg_RecordP(x)) {
+      if (Sg_RecordP(y)) {
+	SgClass *xklass = Sg_ClassOf(x);
+	SgClass *yklass = Sg_ClassOf(y);
+	if (xklass != yklass) return SG_FALSE; /* obvious */
+	else {
+	  SgSlotAccessor **xacc = xklass->gettersNSetters;
+	  SgSlotAccessor **yacc = yklass->gettersNSetters;
+	  for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
+	    SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
+	    SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
+	    if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	    k = eP(pht, xe, ye, k, ctx);
+	    if (SG_FALSEP(k)) return SG_FALSE;
+	  }
+	  return k;
 	}
-	return k;
       }
+      return SG_FALSE;
     }
   }
 
@@ -917,32 +911,33 @@ SgObject slow_p(SgHashTable **pht, SgObject x, SgObject y,
       return SG_FALSE;
     }
   }
-  /* R7RS */
-  if (Sg_RecordP(x)) {
-    if (Sg_RecordP(y)) {
-      SgClass *xklass = Sg_ClassOf(x);
-      SgClass *yklass = Sg_ClassOf(y);
-      if (xklass != yklass) return SG_FALSE; /* obvious */
-      if (!SG_FALSEP(call_union_find(pht, x, y, ctx))) {
-	return SG_MAKE_INT(0);
-      } else {
-	SgSlotAccessor **xacc = xklass->gettersNSetters;
-	SgSlotAccessor **yacc = yklass->gettersNSetters;
-	k = SG_MAKE_INT(SG_INT_VALUE(k) - 1);
-	for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
-	  SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
-	  SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
-	  if (SG_INT_VALUE(k) <= 0) return k;
-	  if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
-	  k = eP(pht, xe, ye, k, ctx);
-	  if (SG_FALSEP(k)) return SG_FALSE;
+  /* inspection */
+  if (ctx->inspect_record_p) {
+    if (Sg_RecordP(x)) {
+      if (Sg_RecordP(y)) {
+	SgClass *xklass = Sg_ClassOf(x);
+	SgClass *yklass = Sg_ClassOf(y);
+	if (xklass != yklass) return SG_FALSE; /* obvious */
+	if (!SG_FALSEP(call_union_find(pht, x, y, ctx))) {
+	  return SG_MAKE_INT(0);
+	} else {
+	  SgSlotAccessor **xacc = xklass->gettersNSetters;
+	  SgSlotAccessor **yacc = yklass->gettersNSetters;
+	  k = SG_MAKE_INT(SG_INT_VALUE(k) - 1);
+	  for (; xacc && *xacc && yacc && *yacc; xacc++, yacc++) {
+	    SgObject xe = Sg_SlotRefUsingAccessor(x, *xacc);
+	    SgObject ye = Sg_SlotRefUsingAccessor(y, *yacc);
+	    if (SG_INT_VALUE(k) <= 0) return k;
+	    if (SG_UNBOUNDP(xe) || SG_UNBOUNDP(ye)) return SG_FALSE;
+	    k = eP(pht, xe, ye, k, ctx);
+	    if (SG_FALSEP(k)) return SG_FALSE;
+	  }
+	  return k;
 	}
-	return k;
       }
+      return SG_FALSE;
     }
-    return SG_FALSE;
   }
-
   if (eqv_internal(x, y, TRUE)) {
     return k;
   } else {
@@ -966,7 +961,7 @@ static int interleave_p(SgObject x, SgObject y, SgObject k, struct equal_context
  */
 static int precheck_interleave_equal_p(SgObject x, SgObject y, struct equal_context *ctx)
 {
-  SgObject k = pre_p(x, y, ctx->k0);
+  SgObject k = pre_p(x, y, ctx->k0, ctx);
   if (SG_FALSEP(k)) {
     return FALSE;
   }
@@ -983,7 +978,13 @@ static int precheck_interleave_equal_p(SgObject x, SgObject y, struct equal_cont
  */
 int Sg_EqualP(SgObject x, SgObject y)
 {
-  struct equal_context ctx = {SG_MAKE_INT(400), SG_MAKE_INT(-40)};
+  struct equal_context ctx = {SG_MAKE_INT(400), SG_MAKE_INT(-40), TRUE};
+  return precheck_interleave_equal_p(x, y, &ctx);
+}
+
+static int r6rs_equalp(SgObject x, SgObject y)
+{
+  struct equal_context ctx = {SG_MAKE_INT(400), SG_MAKE_INT(-40), FALSE};
   return precheck_interleave_equal_p(x, y, &ctx);
 }
 
