@@ -477,8 +477,9 @@ is slightly less discriminating than @code{eq?}.
 @define[Function]{@name{eq?} @args{obj1 obj2}}
 @define[Function]{@name{eqv?} @args{obj1 obj2}}
 @define[Function]{@name{equal?} @args{obj1 obj2}}
-@desc{[R6RS] @code{eq?} only sees if the given two objects are the same object or
-not, @code{eqv?} compares numbers. @code{equal?} compares the values equivalence.
+@desc{[R6RS] @code{eq?} only sees if the given two objects are the same object
+or not, @code{eqv?} compares numbers. @code{equal?} compares the values
+equivalence.
 
 On Sagittarius Scheme interned symbol, keyword(only compatible mode), character,
 literal string, boolean, fixnum, and '() are used as the same objects. If these

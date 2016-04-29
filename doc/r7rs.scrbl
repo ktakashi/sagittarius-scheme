@@ -71,7 +71,7 @@ These procedures/macros are the same as R6RS;
  
  define define-record-type define-syntax denominator do dynamic-wind
 
- else eof-object eof-object? eq? equal? eqv? error even?
+ else eof-object eof-object? eq? eqv? error even?
  exact exact-integer-sqrt exact? expt
 
  floor flush-output-port for-each
@@ -80,8 +80,8 @@ These procedures/macros are the same as R6RS;
 
  if inexact inexact? input-port? integer->char integer?
 
- lambda lcm length let let* let*-values let-syntax let-values
- letrec letrec* letrec-syntax list list->string list->vector
+ lambda lcm length let let* let*-values let-values
+ letrec letrec* list list->string list->vector
  list-ref list-tail list?
 
  make-bytevector make-string make-vector map max member memq memv min
@@ -440,6 +440,55 @@ respectively.
 @define[Function]{@name{features}}
 @desc{Returns a list of the feature identifiers which @code{cond-expand}
 treas as true.
+}
+
+@sub*section{Differ from R6RS}
+
+The following procedures or macros are re-defined to strictly follow either
+R6RS or R7RS. It is users' responsibility to make sure proper ones are used
+in their script.
+
+@define[Function]{@name{equal?} @args{a b}}
+@desc{Returns #t if @var{a} and @var{b} are equivalent.
+
+The difference between the one from @code{(rnrs base)} is that this procedure
+inspect record fields as well. For example:
+
+@codeblock[=> #f]{
+(import (rnrs))
+(define-record-type (<pare> kons pare?)
+  (fields (mutable a kar set-kar!)
+	  (mutable d kdr set-kdr!)))
+
+(let ((a (kons 'a 'b))
+      (b (kons 'a 'b)))
+  (equal? a b))
+}
+
+@codeblock[=> #t]{
+(import (scheme base))
+(define-record-type (<pare> kons pare?)
+  (fields (mutable a kar set-kar!)
+	  (mutable d kdr set-kdr!)))
+
+(let ((a (kons 'a 'b))
+      (b (kons 'a 'b)))
+  (equal? a b))
+}
+}
+
+@define[Macro]{@name{let-syntax} @args{((var trans) @dots{}) expr @dots{}}}
+@define[Macro]{@name{letrec-syntax} @args{((var trans) @dots{}) expr @dots{}}}
+@desc{Binds macro transformer @var{trans} to @var{var}.
+
+The difference between the one from @code{(rnrs base)} and these macros is
+that these macro create scope. Thus the following is unbound variable error:
+@codeblock[=> &undefined]{
+(import (scheme base))
+(let-syntax ()
+  (define foo 'foo))
+foo
+}
 }
 
 @subsubsection{Case-lambda library}
