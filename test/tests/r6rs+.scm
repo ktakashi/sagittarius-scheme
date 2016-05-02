@@ -531,6 +531,7 @@
 		   (environment '(rnrs))))
 
 ;; #e1@1
-(test-assert "#e1@1" (exact? (read (open-string-input-port "#e1@1"))))
+(test-error "#e1@1" implementation-restriction-violation?
+	    (read (open-string-input-port "#e1@1")))
 
 (test-end)

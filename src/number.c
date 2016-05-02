@@ -39,6 +39,7 @@
 #include "sagittarius/pair.h"
 #include "sagittarius/port.h"
 #include "sagittarius/core.h"
+#include "sagittarius/exceptions.h"
 #include "sagittarius/clos.h"
 #include "sagittarius/unicode.h"
 #include "sagittarius/error.h"
@@ -370,8 +371,14 @@ static SgObject number_read_error(const SgChar *msg,
 				  struct numread_packet *context)
 {
   if (context->strict) {
-    Sg_ReadError(UC("bad number format (%s): %A"), msg, 
-		 Sg_HeapString(context->buffer));
+    SgObject irr = Sg_HeapString(context->buffer);
+    SgObject m   = Sg_Sprintf(UC("%s: %A"), msg, irr);
+    /* FIXME wasting memory. */
+    SgObject err = Sg_SimpleConditions(Sg_MakeReaderCondition(m));
+    err = Sg_Cons(Sg_MakeIrritantsCondition(irr), err);
+    err = Sg_Cons(Sg_MakeWhoCondition(SG_INTERN("read")), err);
+    err = Sg_Cons(Sg_MakeImplementationRestrictionViolation(), err);
+    Sg_Raise(Sg_Condition(err), FALSE);
   }
   return SG_FALSE;
 }
@@ -729,10 +736,16 @@ static SgObject read_number(const SgChar *str, int len, int radix, int strict)
       str++; len--;
       angle = read_real(&str, &len, &ctx);
       if (SG_FALSEP(angle) || len != 0) return SG_FALSE;
-      if (IS_INEXACT(&ctx)) {
-	return Sg_MakeComplexPolar(realpart, angle);
+      if (IS_EXACT(&ctx)) {
+	/* follow the decision of Chez, it does make sense. 
+	   c.f. #e1@1 can't be represent as exact number but
+	        it should not return inexact number since the
+		prefix specifies exact number. so just raise
+		an exception.
+	 */
+	return number_read_error(UC("cannot represent given number"), &ctx);
       } else {
-	return Sg_Exact(Sg_MakeComplexPolar(realpart, angle));
+	return Sg_MakeComplexPolar(realpart, angle);
       }
     }
   case '+':
