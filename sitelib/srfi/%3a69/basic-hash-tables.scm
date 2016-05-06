@@ -121,8 +121,7 @@
 	(format "expected ~a, but got ~a" expect got)
 	(format "expected ~a, but got ~a, as argument ~a" expect got
 		(car nth))))
-  (define (hash-table-walk table proc)
-    (hashtable-for-each (lambda (k v) (proc k v)) table))
+  (define (hash-table-walk table proc) (hashtable-for-each proc table))
   (define (hash-table-fold table kons knil) (hashtable-fold kons table knil))
 
   (define (hash-table-copy ht) (hashtable-copy ht #t))
