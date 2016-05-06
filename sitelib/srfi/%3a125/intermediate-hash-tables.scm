@@ -49,7 +49,6 @@
 	    hash-table-update!
 	    ;; the same as R6RS' one
 	    (rename (hashtable-update! hash-table-update!/default))
-	    hash-table-push!
 	    (rename (hashtable-pop! hash-table-pop!))
 	    (rename (hashtable-clear! hash-table-clear!))
 
@@ -255,20 +254,6 @@
 	    :optional (failure (failure-thunk 'hashtable-update! key))
 		      (success values))
   (hash-table-set! ht key (updater (hash-table-ref ht key failure success))))
-
-;; not sure if this is removed or not, so just digged from old
-;; specification..
-;; NB: this doesn't make pair of hash-table-pop!, so it might be
-;;     removed. just need confirmation
-(define hash-table-push!
-  (let ((mark (list 'hash-table-push!)))
-    (lambda (ht key val failure)
-      (let ((v (hashtable-ref ht key mark)))
-	(if (eq? mark v)
-	    ;; I don't understand this, but it says so
-	    ;; NB: shouldn't it (cons val (failure))?
-	    (hashtable-set! ht key (failure))
-	    (hashtable-set! ht key (cons val v)))))))
 
 ;; different from SRFI-126
 (define (hash-table-find ht proc failure)

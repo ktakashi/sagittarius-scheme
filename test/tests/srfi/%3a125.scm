@@ -451,14 +451,15 @@
                   '(169 144 121 0 1 4 9 16 25 36 49 64 81)))
       '(13 12 11 0 1 2 3 4 5 -1 -1 8 -1))
 
-(test (begin (hash-table-push! ht-fixnum 75 '*** (lambda () 8.66))
-             (hash-table-ref/default ht-fixnum 75 -1))
-      8.66)
-
-(test (begin (hash-table-push! ht-fixnum 64 '* (lambda () 'okra))
-             (map (lambda (i) (hash-table-ref/default ht-fixnum i -1))
-                  '(169 144 121 0 1 4 9 16 25 36 49 64 75 81)))
-      '(13 12 11 0 1 2 3 4 5 -1 -1 (* . 8) 8.66 -1))
+;; these 2 are removed from the SRFI
+;; (test (begin (hash-table-push! ht-fixnum 75 '*** (lambda () 8.66))
+;;              (hash-table-ref/default ht-fixnum 75 -1))
+;;       8.66)
+;; 
+;; (test (begin (hash-table-push! ht-fixnum 64 '* (lambda () 'okra))
+;;              (map (lambda (i) (hash-table-ref/default ht-fixnum i -1))
+;;                   '(169 144 121 0 1 4 9 16 25 36 49 64 75 81)))
+;;       '(13 12 11 0 1 2 3 4 5 -1 -1 (* . 8) 8.66 -1))
 
 ;; mis test case
 ;;(test (hash-table-pop! ht-fixnum 64 (lambda () 'whatever)) '*)
@@ -468,10 +469,8 @@
 ;(let-values (((k v) (hash-table-pop! ht-fixnum))) (test (exact-integer? k) #t))
 ;(let-values (((k v) (hash-table-pop! ht-fixnum))) (test (exact-integer? k) #t))
 
-;; make sure there's no 64 and 65...
-(hash-table-delete! ht-fixnum 64 65)
-;; fixup...
-(hash-table-set! ht-fixnum 64 8)
+;; make sure there's no 65...
+(hash-table-delete! ht-fixnum 65)
 
 ;;; FIXME: glass-box (implementations not required to raise an exception here)
 
