@@ -147,7 +147,7 @@
 (define (default-hash o)
   (define (combine hv1 hv2) (mod (+ (* hv1 5) hv2) (hash-bound)))
   (cond ((pair? o) 
-	 (combine (default-hash (car o)) (default-hash cdr o)))
+	 (combine (default-hash (car o)) (default-hash (cdr o))))
 	((boolean? o) (boolean-hash o))
 	((char? o) (char-hash o))
 	((string? o) (string-hash o))

@@ -270,6 +270,8 @@
     ;; (test (hash-salt) (fake-salt-hash #t))
   ) ; end comparators/bound-salt
 
+  (test-group "default-hash"
+    (test-assert (default-hash '(a b))))
 ) ; end comparators
 
 (srfi:test-end)
