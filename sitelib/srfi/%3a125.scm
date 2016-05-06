@@ -30,4 +30,4 @@
 
 (library (srfi :125)
     (export :all)
-    (import (srfi :125 hash-tables)))
+    (import (srfi :125 intermediate-hash-tables)))

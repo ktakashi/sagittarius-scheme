@@ -28,7 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-(library (srfi :125 hash-tables)
+(library (srfi :125 intermediate-hash-tables)
     (export make-hash-table
 	    hash-table
 	    hash-table-unfold
