@@ -156,7 +156,7 @@
 	((vector? o)
 	 (let loop ((r 0) (i 0))
 	   (if (= i (vector-length o))
-	       (hash-bound)
+	       (mod r (hash-bound))
 	       (loop (combine r (default-hash (vector-ref o i))) (+ i 1)))))
 	((lookup-comparator o) =>
 	 ;; make sure the returning value is upto bound
