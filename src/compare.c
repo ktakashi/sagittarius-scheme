@@ -122,7 +122,7 @@ DEF_EQ_PROC(r6rs_equal, r6rs_equalp)
        (SgObject *args, int argc, void *data)				\
   {									\
     uint32_t bound = 0;							\
-    if (argc == 2) {							\
+    if (argc > 2) {							\
       if (!SG_INTP(args[1])) {						\
 	Sg_Error(UC("bound must a fixnum: %S"), args[1]);		\
       }									\
@@ -130,7 +130,7 @@ DEF_EQ_PROC(r6rs_equal, r6rs_equalp)
     }									\
     return Sg_MakeIntegerU(proc(args[0], bound));			\
   }									\
-  static SG_DEFINE_SUBR(SG_CPP_CAT(name, _hash_proc_stub), 1, 0,	\
+  static SG_DEFINE_SUBR(SG_CPP_CAT(name, _hash_proc_stub), 1, 1,	\
 			SG_CPP_CAT(name, _hash_proc), SG_FALSE, NULL);
 DEF_HASH_PROC(eq, Sg_EqHash)
 DEF_HASH_PROC(eqv, Sg_EqvHash)
@@ -160,7 +160,7 @@ static SgObject string_hash(SgObject *args, int argc, void *data)
   return Sg_MakeIntegerU(Sg_StringHash(SG_STRING(args[0]),
 				       (uint32_t)SG_INT_MAX));
 }
-static SG_DEFINE_SUBR(string_hash_stub, 1, 0, string_hash, SG_FALSE, NULL);
+static SG_DEFINE_SUBR(string_hash_stub, 1, 3, string_hash, SG_FALSE, NULL);
 
 static SgObject string_eq(SgObject *args, int argc, void *data)
 {

@@ -3540,7 +3540,7 @@
       (result (Sg_StringHash (Sg_StringFoldCase (Sg_MaybeSubstring o start end))
 			     modulo))))
 
-  (define-c-proc symbol-hash (o::<symbol>) :no-side-effect
+  (define-c-proc symbol-hash (o::<symbol> :optional ignore) :no-side-effect
     (result (Sg_MakeIntegerU (Sg_EqHash o 0))))
 
   ;; 15 composit library
