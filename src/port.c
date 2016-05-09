@@ -1939,10 +1939,7 @@ static int64_t custom_port_position(SgObject self)
     return -1;
   }
   pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
-  /* FIXME: I don't remember why it checks existance of trancoder. It's
-            unnecessary to me since custom port itself can't have it.
-  */
-  if (SG_FALSEP(SG_PORT(self)->transcoder) && SG_CUSTOM_HAS_U8_AHEAD(self)) {
+  if (SG_CUSTOM_HAS_U8_AHEAD(self)) {
     return pos - 1;
   } else {
     return pos;
