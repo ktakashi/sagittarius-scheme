@@ -873,5 +873,16 @@
 
 ;;(exit ultimate-exit-status)
 
+;; extra test for alist->hash-table
+(test (list-sort (lambda (x y) (< (car x) (car y)))
+		 (hash-table->alist
+		  (alist->hash-table
+		   '((1 . 2)
+		     (1 . 1)
+		     (2 . 2)
+		     (2 . 3))
+		   number-comparator)))
+      '((1 . 2) (2 . 2)))
+
 (test-end)
 ; eof

@@ -180,7 +180,12 @@
 (define (alist->hash-table alist comparator . args)
   (let ((ht (apply make-hash-table comparator args)))
     (for-each (lambda (key&value)
-		(hashtable-set! ht (car key&value) (cdr key&value)))
+		;; From the SRFI
+		;;   Associations earlier in the list take precedence 
+		;;   over those that come later.
+		;; so we need to check existance of the key.
+		(unless (hashtable-contains? ht (car key&value))
+		  (hashtable-set! ht (car key&value) (cdr key&value))))
 	      alist)
     ht))
 
