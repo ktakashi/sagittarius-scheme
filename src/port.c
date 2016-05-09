@@ -319,6 +319,18 @@ void Sg_UnregisterBufferedPort(SgPort *port)
   unregister_buffered_port(port);
 }
 
+/* at some point, we changed port implementation strategy and removed
+   peek function pointer from the structure. now we need to calculate
+   port position with peek buffer, otherwise port-position! returns
+   incorrect position after peek.
+
+   NB: SG_PORT_U8_AHEAD and SG_PORT_CHAR_AHEAD points the same member
+       (at least for now).
+ */
+#define CONSIDER_PEEK(pos, port)			\
+  (int64_t)((pos)-((SG_PORT_U8_AHEAD(port)!=EOF)?1:0))
+
+
 /* buffered port */
 static void* memcpy64(void *s1, const void *s2, uint64_t n)
 {
@@ -579,7 +591,7 @@ static int64_t buffered_position(SgObject self)
 {
   /* underlying port position is changed by filling buffer.
      so just return this port's position. */
-  return SG_PORT(self)->position;
+  return CONSIDER_PEEK(SG_PORT(self)->position, self);
 }
 
 static void buffered_set_position(SgObject self, int64_t off, Whence where)
@@ -922,7 +934,7 @@ static int64_t file_port_position(SgObject self)
   if (SG_FILE_VTABLE(file)->tell) {
     return SG_FILE_VTABLE(file)->tell(file);
   } else {
-    return SG_PORT(self)->position;
+    return CONSIDER_PEEK(SG_PORT(self)->position, self);
   }
 }
 
@@ -1153,7 +1165,7 @@ static int64_t byte_array_read_u8_all(SgObject self, uint8_t **buf)
 static int64_t input_byte_array_port_position(SgObject self)
 {
   /* todo check whence */
-  return (int64_t)SG_BINARY_PORT_BUFFER(self)->index;
+  return CONSIDER_PEEK(SG_BINARY_PORT_BUFFER(self)->index, self);
 }
 
 static void input_byte_array_set_port_position(SgObject self, int64_t offset,
@@ -1205,6 +1217,7 @@ static int64_t put_byte_array_u8_array(SgObject self, uint8_t *ba,
 static int64_t output_byte_array_port_position(SgObject self)
 {
   /* todo check whence */
+  /* NB: it's only output, thus no peek operation */
   return SG_PORT(self)->position;
 }
 
@@ -1603,7 +1616,7 @@ static int64_t string_iport_get_string(SgObject self, SgChar *buf, int64_t size)
 
 static int64_t input_string_port_position(SgObject self)
 {
-  return (int64_t)SG_STRING_PORT(self)->buffer.index;
+  return CONSIDER_PEEK(SG_STRING_PORT(self)->buffer.index, self);
 }
 
 static void input_string_set_port_position(SgObject self, int64_t offset,
@@ -1926,6 +1939,9 @@ static int64_t custom_port_position(SgObject self)
     return -1;
   }
   pos = Sg_GetIntegerS64Clamp(ret, SG_CLAMP_NONE, NULL);
+  /* FIXME: I don't remember why it checks existance of trancoder. It's
+            unnecessary to me since custom port itself can't have it.
+  */
   if (SG_FALSEP(SG_PORT(self)->transcoder) && SG_CUSTOM_HAS_U8_AHEAD(self)) {
     return pos - 1;
   } else {
@@ -3059,6 +3075,8 @@ void Sg_SetPortPosition(SgPort *port, int64_t offset, Whence whence)
     Sg_Error(UC("Given port does not support set-port-position! %S"), port);
   }
   SG_PORT_VTABLE(port)->setPortPosition(port, offset, whence);
+  /* reset peek buffer */
+  SG_PORT_CHAR_AHEAD(port) = EOF;
 }
 
 int Sg_LineNo(SgPort *port)

@@ -534,4 +534,34 @@
 (test-error "#e1@1" implementation-restriction-violation?
 	    (read (open-string-input-port "#e1@1")))
 
+;; peek buffer issue
+(define (test-port in peek read expected)
+  (test-equal (format "port position of ~a ~a" in expected)
+	      expected
+	      (let* ((c0 (peek in))
+		     (pos (port-position in))
+		     (c1 (begin
+			   (set-port-position! in 1)
+			   (read in))))
+		(list c0 pos c1)))
+  (close-port in))
+
+(test-port (open-string-input-port "ab") lookahead-char get-char '(#\a 0 #\b))
+(test-port (open-bytevector-input-port #vu8(1 2)) lookahead-u8 get-u8 
+	   '(1 0 2))
+(let ((file "peek.tmp"))
+  (when (file-exists? file) (delete-file file))
+  (call-with-output-file file
+    (lambda (out) (put-string out "abcdefg\n")))
+  (test-port (open-file-input-port file) lookahead-u8 get-u8 
+	     '(97 0 98))
+  (test-port (open-file-input-port file 
+				   (file-options no-fail)
+				   (buffer-mode block)
+				   (native-transcoder))
+	     lookahead-char get-char
+	     '(#\a 0 #\b))
+  (delete-file file))
+
+
 (test-end)
