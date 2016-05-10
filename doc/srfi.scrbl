@@ -235,6 +235,17 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     Current implementation of ephemerons has the same issue as the one 
     Chibi has. It is described in the SRFI document.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-125/srfi-125.html"]{SRFI-125}}
+    @td{(srfi :125 intermediate-hash-tables)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :125)}. So for the portability it's better to use the
+    @code{(srfi :125)}.
+
+    The name @code{intermediate-hash-tables} is taken from the SRFI's
+    description: Intermediate hash tables. It is constructed with the
+    same manner as SRFI-69.
+    }}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-126/srfi-126.html"]{SRFI-126}}
     @td{(srfi :126 hashtables)
 
