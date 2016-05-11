@@ -165,7 +165,9 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 
   if ((kq = kqueue()) < 0) goto err;
 
-#ifdef HAVE_ALLOCA
+  /* It seems allocating this much stack would cause GC issue on OSX.
+     I don't know exact reason, so it might bite me later. */
+#if defined(HAVE_ALLOCA) && !defined(__APPLE__)
   evm = (struct kevent *)alloca(n * sizeof(struct kevent));
   fds = (int *)alloca(n * sizeof(int));
   for (i = 0; i < n; i++) fds[i] = 0;
@@ -206,7 +208,6 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 	if (evm[i].fflags & NOTE_DELETE) e = SG_REMOVED;
 	if (evm[i].fflags & NOTE_RENAME) e = SG_RENAMED;
 	if (evm[i].fflags & NOTE_ATTRIB) e = SG_ATTRIBUTE;
-	
 	Sg_Apply2(h, evm[i].udata, e);
       }
       SG_FOR_EACH(cp, kc->paths) {
@@ -217,7 +218,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     }
     SG_FILE_WATCH_CONTEXT_UNLOCK(ctx);
   }
-
+  goto end;
  err:
   e = errno;
  end:
