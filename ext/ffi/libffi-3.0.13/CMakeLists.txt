@@ -106,7 +106,7 @@ set(host ${CMAKE_SYSTEM_NAME} CACHE STRING "system name")
 set(FFI_EXEC_TRAMPOLINE_TABLE 0)
 if (${SAGITTARIUS_TRIPLE} MATCHES ".*arm.*-apple-darwin.*")
   set(FFI_EXEC_TRAMPOLINE_TABLE 1)
-elseif(${SAGITTARIUS_TRIPLE} MATCHES ".*-apple-darwin1.*" OR
+elseif(${SAGITTARIUS_TRIPLE} MATCHES ".*-apple-darwin.*" OR
     ${SAGITTARIUS_TRIPLE} MATCHES ".*-.*-freebsd.*" OR
     ${SAGITTARIUS_TRIPLE} MATCHES ".*-.*-kfreebsd.*" OR
     ${SAGITTARIUS_TRIPLE} MATCHES ".*-.*-openbsd.*" OR
@@ -114,6 +114,7 @@ elseif(${SAGITTARIUS_TRIPLE} MATCHES ".*-apple-darwin1.*" OR
   set(FFI_MMAP_EXEC_WRIT 1)
 endif()
 
+message(STATUS "Archtecture: ${arch}")
 set(TARGETDIR "unknown")
 if (${arch} MATCHES "^i.86" OR ${arch} STREQUAL "x86")
   set(TARGETDIR "x86")
@@ -132,7 +133,7 @@ if (${arch} MATCHES "^i.86" OR ${arch} STREQUAL "x86")
   endif()
 elseif (${arch} STREQUAL "x86_64")
   set(TARGETDIR "x86")
-  if (${host} MATCHES "darwin.*")
+  if (APPLE)
     set(TARGET "X86_DARWIN")
   elseif (CYGWIN OR WIN32)
     set(TARGET "X86_WIN64")
@@ -146,6 +147,8 @@ if (${TARGET} STREQUAL "X86_DARWIN")
 #if (${arch} STREQUAL "x86_64")
   set(HAVE_LONG_DOUBLE 1)
 endif()
+
+message(STATUS "Target ${TARGET}")
 
 if (${TARGETDIR} STREQUAL "unknown")
   message(STATUS "custom libffi has not been ported to ${host}")
