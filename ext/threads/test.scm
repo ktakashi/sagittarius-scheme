@@ -483,11 +483,13 @@
 ;; semaphore
 ;; OSX doesn't support anonymous semaphore, THANK YOU VERY MUCH!
 (cond-expand
- ((not darwin)
-  (test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
-				   (r (semaphore? s)))
-			      (semaphore-destroy! s))))
- (else #f))
+ (darwin
+  (test-error "anonymous semaphore" implementation-restriction-violation?
+	      (make-semaphore #f 1))
+  )
+ (else (test-assert "semaphore?" (let* ((s (make-semaphore #f 1))
+					(r (semaphore? s)))
+				   (semaphore-destroy! s)))))
 
 ;; error
 (test-error "make semaphore (error)"
