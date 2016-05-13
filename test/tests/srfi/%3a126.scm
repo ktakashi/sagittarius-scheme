@@ -282,6 +282,15 @@
   (test-assert (hashtable? (alist->eq-hashtable #f (weakness weak-key) '())))
   (test-assert (hashtable? (alist->eqv-hashtable #f (weakness weak-key) '())))
 )
-  
+
+;; extra tests for alist->*hashtable
+(let ((alist '((a . 1) (a . 2) (b . 1) (b . 2) (a . 3))))
+  (define (test-alist->*hashtable ht)
+    (test-equal 1 (hashtable-ref ht 'a #f))
+    (test-equal 1 (hashtable-ref ht 'b #f)))
+  (test-alist->*hashtable (alist->eq-hashtable alist))
+  (test-alist->*hashtable (alist->eqv-hashtable alist))
+  (test-alist->*hashtable (alist->hashtable equal-hash symbol=? alist)))
+
 
 (test-end "SRFI-126")

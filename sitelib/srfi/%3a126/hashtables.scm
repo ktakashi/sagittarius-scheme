@@ -107,14 +107,19 @@
 				      "equiv must be eq? or eqv? for #f hash"
 				      equiv))))))))
 
+(define (%alist->hashtable ht alist)
+  (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v)))
+	    ;; From Errata.
+	    (reverse alist))
+  ht)
+
 (define alist->eq-hashtable
   (case-lambda
    ((alist) (alist->eq-hashtable (length alist) #f alist))
    ((capacity alist) (alist->eq-hashtable capacity #f alist))
    ((capacity weakness alist) 
     (let ((ht (make-eq-hashtable capacity (->weak-key weakness))))
-      (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v))) alist)
-      ht))))
+      (%alist->hashtable ht alist)))))
 
 (define alist->eqv-hashtable
   (case-lambda
@@ -122,8 +127,7 @@
    ((capacity alist) (alist->eqv-hashtable capacity #f alist))
    ((capacity weakness alist) 
     (let ((ht (make-eqv-hashtable capacity (->weak-key weakness))))
-      (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v))) alist)
-      ht))))
+      (%alist->hashtable ht alist)))))
 
 (define alist->hashtable
   (case-lambda
@@ -131,8 +135,7 @@
    ((hash eqv capacity alist) (alist->hashtable hash eqv capacity #f alist))
    ((hash eqv capacity weakness alist) 
     (let ((ht (srfi:make-hashtable hash eqv capacity weakness)))
-      (for-each (lambda (v) (hashtable-set! ht (car v) (cdr v))) alist)
-      ht))))
+      (%alist->hashtable ht alist)))))
 
 (define-syntax weakness
   (lambda (x)
