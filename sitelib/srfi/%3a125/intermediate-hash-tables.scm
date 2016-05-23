@@ -261,7 +261,7 @@
   (hash-table-set! ht key (updater (hash-table-ref ht key failure success))))
 
 ;; different from SRFI-126
-(define (hash-table-find ht proc failure)
+(define (hash-table-find proc ht failure)
   (let ((itr (%hashtable-iter ht))
 	(eof (cons #t #t)))
     (let loop ()
@@ -270,7 +270,7 @@
 	      ((proc k v))
 	      (else (loop)))))))
 
-(define (hash-table-count ht proc)
+(define (hash-table-count proc ht)
   (let ((itr (%hashtable-iter ht))
 	(eof (cons #t #t)))
     (let loop ((c 0))
@@ -282,8 +282,8 @@
 ;; TODO expand it when the performance gets an issue.
 (define (hash-table-map proc comparator ht)
   (let ((r (make-hash-table comparator)))
-    (hash-table-find ht
-		     (lambda (k v) (hashtable-set! r k (proc k v)) #f)
+    (hash-table-find (lambda (k v) (hashtable-set! r k (proc v)) #f)
+		     ht
 		     (lambda () r))))
 
 (define (hash-table-map! proc ht)
