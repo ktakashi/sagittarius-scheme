@@ -32,7 +32,12 @@ IF (HAVE_SYS_INOTIFY_H AND ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   ELSE()
     SET(FILE_WATCH_C inotify_watch.c)
   ENDIF()
-ELSEIF(APPLE)
+#ELSEIF(APPLE)
+### Disable this for now. For some reason, FSEvents doesn't pick up any
+### filesystem event in some case (e.g. tail emulator). I might miss
+### something but don't know what yet. Until I figure it out, let's
+### not use this and kqueue implementation works perfectly anyway.
+ELSEIF(FALSE)
   CHECK_C_SOURCE_COMPILES(
     "#include <CoreServices/CoreServices.h>
      int main() { return kFSEventStreamCreateFlagFileEvents; }"

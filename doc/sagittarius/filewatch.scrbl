@@ -161,15 +161,18 @@ enough demands.
 
 @sub*section{OS X}
 
-On OS X, the library is constructed on top of @code{FSEvents}. This
-implementation does not support @code{acces} due to the limitation of OS X
-which doesn't have facility to detect file access.
+On OS X, the library is constructed on top of @code{kqueue}, thus the
+same limitation as @secref["bsd.limitation"]{BSD Unix} is applied.
 
-The implementations uses @code{kFSEventStreamCreateFlagFileEvents} flag which
-is supported after OS X v10.7 (Lion). If your system is older than this
-version, then build script would fallback to @code{kqueue (2)}
-implementation. Thus the limitation of @secref["bsd.limitation"]{BSD Unix} is
-applied.
+@; On OS X, the library is constructed on top of @code{FSEvents}. This
+@; implementation does not support @code{acces} due to the limitation of OS X
+@; which doesn't have facility to detect file access.
+
+@; The implementations uses @code{kFSEventStreamCreateFlagFileEvents} flag 
+@; which is supported after OS X v10.7 (Lion). If your system is older than
+@; this version, then build script would fallback to @code{kqueue (2)}
+@; implementation. Thus the limitation of @secref["bsd.limitation"]{BSD Unix}
+@; is applied.
 
 @sub*section{Windows}
 

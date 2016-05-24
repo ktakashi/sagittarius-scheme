@@ -136,14 +136,13 @@ static void fsevent_callback(ConstFSEventStreamRef stream,
   SgFileWatchContext *ctx = (SgFileWatchContext *)callbackInfo;
   fsevents_context *fc = (fsevents_context *)ctx->context;
   char const **paths = (char const**)evPaths;
-  /* TODO filter out paths only specified events */
   int i;
 
   for (i = 0; i < numEvents; i++) {
     SgObject p = Sg_Utf8sToUtf32s(paths[i], strlen(paths[i]));
     SgObject h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), p, SG_FALSE);
     SgObject flags = Sg_HashTableRef(fc->paths, p, SG_FALSE);
-    
+    /* fprintf(stderr, "Path: %s, %x\n", paths[i], evFlags[i]); */
     /* try directory if handler is #f */
     if (SG_FALSEP(h)) {
       /* NOTE:
@@ -208,11 +207,13 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 
   fc->loop = CFRunLoopGetCurrent();
   FSEventStreamScheduleWithRunLoop(stream, fc->loop, kCFRunLoopDefaultMode);
-  FSEventStreamStart(stream);
+  
+  if (!FSEventStreamStart(stream)) goto err;
 
   CFRunLoopRun();
 
   FSEventStreamStop(stream);
+ err:
   FSEventStreamInvalidate(stream);
   FSEventStreamRelease(stream);
   fc->loop = NULL;
