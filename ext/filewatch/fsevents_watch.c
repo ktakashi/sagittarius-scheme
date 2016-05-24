@@ -47,7 +47,7 @@ SgObject Sg_MakeFileWatchContext()
 {
   SgFileWatchContext *ctx = SG_NEW(SgFileWatchContext);
   fsevents_context *fc = SG_NEW(fsevents_context);
-  fc->paths = SG_NIL;
+  fc->paths = Sg_MakeHashTableSimple(SG_HASH_STRING, 32);
   fc->loop = NULL;
   SG_SET_CLASS(ctx, SG_CLASS_FILE_WATCH_CONTEXT);
   SG_FILE_WATCH_CONTEXT_INIT(ctx, fc);
@@ -57,17 +57,22 @@ SgObject Sg_MakeFileWatchContext()
 void Sg_DestroyFileWatchContext(SgFileWatchContext *ctx)
 {
   fsevents_context *fc = (fsevents_context *)ctx->context;
-  fc->paths = SG_NIL;
+  fc->paths = SG_NIL;		/* not reusable */
   fc->loop = NULL;
   SG_FILE_WATCH_CONTEXT_RELESE(ctx);
 }
+
+#define kFSModifiedEvents			\
+  (kFSEventStreamEventFlagItemModified |	\
+   kFSEventStreamEventFlagItemInodeMetaMod |	\
+   kFSEventStreamEventFlagItemChangeOwner)
 
 static int symbol2flag(SgObject flag)
 {
   /* we support only greatest common things. */
   /* FSEvent seems doesn't have access. */
   /* if (SG_EQ(SG_ACCESS, flag)) return 0; */
-  if (SG_EQ(SG_MODIFY, flag)) return kFSEventStreamEventFlagItemModified;
+  if (SG_EQ(SG_MODIFY, flag)) return kFSModifiedEvents;
   if (SG_EQ(SG_DELETE, flag)) return kFSEventStreamEventFlagItemRemoved;
   if (SG_EQ(SG_MOVE, flag))   return kFSEventStreamEventFlagItemRenamed;
   /* is this correct? */
@@ -107,29 +112,17 @@ void Sg_AddMonitoringPath(SgFileWatchContext *ctx, SgString *path,
   SgObject abp = Sg_AbsolutePath(path);
 
   if (SG_FALSEP(abp)) Sg_Error(UC("Path does not exist: %A"), path);
-  fc->paths = Sg_Acons(abp, f, fc->paths);
-
+  Sg_HashTableSet(fc->paths, abp, SG_MAKE_INT(f), 0);
   Sg_HashTableSet(ctx->handlers, abp, handler, 0);
 }
 
 SgObject Sg_RemoveMonitoringPath(SgFileWatchContext *ctx, SgString *path)
 {
   fsevents_context *fc = (fsevents_context *)ctx->context;
-  SgObject abp = Sg_AbsolutePath(path), cp, prev = SG_FALSE;
+  SgObject abp = Sg_AbsolutePath(path);
 
   if (SG_FALSEP(abp)) return SG_FALSE;
-
-  SG_FOR_EACH(cp, fc->paths) {
-    if (Sg_StringEqual(abp, SG_STRING(SG_CAAR(cp)))) {
-      if (SG_FALSEP(prev)) {
-	fc->paths = SG_CDR(cp);
-      } else {
-	SG_SET_CDR(prev, SG_CDR(cp));
-      }
-      break;
-    }
-    prev = cp;
-  }
+  Sg_HashTableDelete(fc->paths, abp);
   return Sg_HashTableDelete(ctx->handlers, abp);
 }
 
@@ -141,23 +134,40 @@ static void fsevent_callback(ConstFSEventStreamRef stream,
 			     const FSEventStreamEventId evIds[])
 {
   SgFileWatchContext *ctx = (SgFileWatchContext *)callbackInfo;
-  /* fsevents_context *fc = (fsevents_context *)ctx->context; */
+  fsevents_context *fc = (fsevents_context *)ctx->context;
   char const **paths = (char const**)evPaths;
   /* TODO filter out paths only specified events */
-  /* TODO directory watch */
   int i;
+
   for (i = 0; i < numEvents; i++) {
     SgObject p = Sg_Utf8sToUtf32s(paths[i], strlen(paths[i]));
     SgObject h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), p, SG_FALSE);
-    if (!SG_FALSEP(h)) {
+    SgObject flags = Sg_HashTableRef(fc->paths, p, SG_FALSE);
+    
+    /* try directory if handler is #f */
+    if (SG_FALSEP(h)) {
+      /* NOTE:
+	 We don't check directory name recursively. This is because
+	 other implementation doesn't monitor directory recursively.
+       */
+      SgObject dp = Sg_DirectoryName(SG_STRING(p));
+      h = Sg_HashTableRef(SG_HASHTABLE(ctx->handlers), dp, SG_FALSE);
+      flags = Sg_HashTableRef(fc->paths, dp, SG_FALSE);
+    }
+    
+    if (!SG_FALSEP(h) && !SG_FALSEP(flags)) {
       SgObject f = SG_FALSE;
+      
+      /* not specified */
+      if ((evFlags[i] & SG_INT_VALUE(flags)) == 0) continue;
 
-      if (evFlags[i] & kFSEventStreamEventFlagItemModified) f = SG_MODIFIED;
+      if (evFlags[i] & kFSModifiedEvents) f = SG_MODIFIED;
       if (evFlags[i] & kFSEventStreamEventFlagItemRemoved) f = SG_REMOVED;
       if (evFlags[i] & kFSEventStreamEventFlagItemRenamed) f = SG_RENAMED;
       if (evFlags[i] & kFSEventStreamEventFlagItemFinderInfoMod) {
 	f = SG_ATTRIBUTE;
       }
+      if (SG_FALSEP(f)) continue;
       
       Sg_Apply2(h, p, f);
     }
@@ -168,23 +178,33 @@ static void fsevent_callback(ConstFSEventStreamRef stream,
 void Sg_StartMonitoring(SgFileWatchContext *ctx)
 {
   fsevents_context *fc = (fsevents_context *)ctx->context;
-  int n = Sg_Length(fc->paths), i;
-  SgObject cp;
+  SgObject k;
   CFStringRef *arg;
   CFArrayRef p;
   FSEventStreamRef stream;
   CFAbsoluteTime latency = 0;	/* should wait? */
-
+  FSEventStreamContext fsCtx = {0, ctx, NULL, NULL, NULL};
+  SgHashIter itr;
+  int i = 0, n = Sg_HashTableSize(fc->paths);
+ 
   arg = SG_NEW_ARRAY(CFStringRef, n);
-  for (i = 0, cp = fc->paths; i < n; i++, cp = SG_CDR(cp)) {
+  Sg_HashIterInit(fc->paths, &itr);
+  while (Sg_HashIterNext(&itr, &k, NULL) != NULL) {
     arg[i] = CFStringCreateWithCString(kCFAllocatorDefault,
-				       Sg_Utf32sToUtf8s(SG_CAAR(cp)),
+				       Sg_Utf32sToUtf8s(k),
 				       kCFStringEncodingUTF8);
+    i++;
   }
+
   p = CFArrayCreate(NULL, (const void **)arg, n, NULL);
-  stream = FSEventStreamCreate(NULL, &fsevent_callback, ctx,
+  stream = FSEventStreamCreate(NULL, &fsevent_callback, &fsCtx,
 			       p, kFSEventStreamEventIdSinceNow, latency,
-			       kFSEventStreamCreateFlagNone);
+			       /* This flag is supported since OS X 10.7 (Lion)
+				  which support period is ended Octorber 2014.
+			          So nobody should complain since if you're a
+				  Mac user, you should upgrade your Mac 
+				  fanatically. */
+			       kFSEventStreamCreateFlagFileEvents);
 
   fc->loop = CFRunLoopGetCurrent();
   FSEventStreamScheduleWithRunLoop(stream, fc->loop, kCFRunLoopDefaultMode);
@@ -192,6 +212,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 
   CFRunLoopRun();
 
+  FSEventStreamStop(stream);
   FSEventStreamInvalidate(stream);
   FSEventStreamRelease(stream);
   fc->loop = NULL;

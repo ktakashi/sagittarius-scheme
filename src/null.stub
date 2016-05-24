@@ -3463,8 +3463,7 @@
   ;; 13.2 procedures
   (define-c-proc hashtable? (o) ::<boolean> :constant SG_HASHTABLE_P)
 
-  (define-c-proc hashtable-size (ht::<hashtable>) ::<fixnum>
-    (result (-> (SG_HASHTABLE_CORE ht) entryCount)))
+  (define-c-proc hashtable-size (ht::<hashtable>) ::<fixnum> Sg_HashTableSize)
 
   (define-c-proc hashtable-ref (ht::<hashtable> key :optional (fallback #f))
     :no-side-effect (setter hashtable-set!)

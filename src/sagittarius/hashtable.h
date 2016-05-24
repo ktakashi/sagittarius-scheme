@@ -194,6 +194,8 @@ SG_EXTERN SgObject Sg_HashTableValues(SgHashTable *table);
 /* status for hash table */
 SG_EXTERN SgObject Sg_HashTableStat(SgHashTable *table);
 
+SG_EXTERN int      Sg_HashTableSize(SgHashTable *table);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_HASHTABLE_H_ */

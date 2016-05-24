@@ -138,7 +138,7 @@ The @code{IN_MOVED_FROM} and @code{IN_MOVED_TO} flags are passed as
 @code{moved}. So it is users responsibility to detect which file is
 @var{moved from} and which file is @var{moved to}.
 
-@sub*section{BSD Unix}
+@sub*section[:tag "bsd.limitation"]{BSD Unix}
 
 On BSD Unix, the library is constructed on top of @code{kqueue (2)}. This
 implementation contains 3 major issues. Possibility of number of file
@@ -159,11 +159,17 @@ To do it, we need manual management. To keep our code as simple as possible,
 we decided not to do it for now. This decision may be changed if there's
 enough demands.
 
-@sub*section{OSX}
+@sub*section{OS X}
 
-On OSX, the library is contains on top of @code{kqueue (2)} the same as BSD
-Unix. Due to the lack of test environment, the code is not fully tested and
-we already noticed that it may cause SEGV.
+On OS X, the library is constructed on top of @code{FSEvents}. This
+implementation does not support @code{acces} due to the limitation of OS X
+which doesn't have facility to detect file access.
+
+The implementations uses @code{kFSEventStreamCreateFlagFileEvents} flag which
+is supported after OS X v10.7 (Lion). If your system is older than this
+version, then build script would fallback to @code{kqueue (2)}
+implementation. Thus the limitation of @secref["bsd.limitation"]{BSD Unix} is
+applied.
 
 @sub*section{Windows}
 

@@ -1040,6 +1040,11 @@ SgObject Sg_HashTableStat(SgHashTable *table)
   return SG_FALSE;
 }
 
+int Sg_HashTableSize(SgHashTable *table)
+{
+  return SG_HASHTABLE_CORE(table)->entryCount;
+}
+
 unsigned int round2up(unsigned int val)
 {
   unsigned int n = 1;
