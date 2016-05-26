@@ -5,7 +5,17 @@
 	(srfi :18)
 	(srfi :64)
 	(match))
-
+#|
+(define test-begin print)
+(define test-equal print)
+(define test-assert print)
+(define-syntax test-error
+  (syntax-rules ()
+    ((_ expr ...)
+     (guard (e (else (print e)))
+       expr ...))))
+(define test-end #t)
+|#
 (test-begin "Concurrent utilities")
 
 ;; for my laziness...
@@ -103,6 +113,31 @@
   (test-equal "results" '(w r) results)
   )
 
+;; lock / unlock
+(let ((sq (make-shared-queue 0)))
+  (test-assert (shared-queue-lock! sq))
+  (test-assert (shared-queue-locked? sq))
+  (test-assert (shared-queue-unlock! sq)))
+
+;; remove!
+(define (test-remove! lis o)
+  (define len (length lis))
+  (let ((sq (make-shared-queue)))
+    (for-each (lambda (o) (shared-queue-put! sq o)) lis)
+    (test-assert `(shared-queue-remove! sq ,o) (shared-queue-remove! sq o))
+    (test-assert `(not (shared-queue-remove! sq ,o))
+		 (not (shared-queue-remove! sq o)))
+    (test-equal `(,lis ,o) (- len 1) (shared-queue-size sq))
+    (test-equal `(,lis ,o)
+		(remove o lis)
+		(let loop ((r '()))
+		  (if (shared-queue-empty? sq)
+		      (reverse r)
+		      (loop (cons (shared-queue-get! sq) r)))))))
+(test-remove! '(1 2 3 4 5) 3)
+(test-remove! '(1 2 3 4 5) 1)
+(test-remove! '(1 2 3 4 5) 5)
+
 ;; shared-priority-queue
 (let ()
   (define spq (make-shared-priority-queue compare))
@@ -179,6 +214,7 @@
   (test-equal "idling count" 5 (thread-pool-idling-count pool))
   (test-assert "push!" (thread-pool-push-task! pool (lambda () #t)))
   (test-assert "wait!" (thread-pool-wait-all! pool))
+
   (let ((sq (make-shared-queue)))
     (do ((i 0 (+ i 1)))
 	((= i 10)
@@ -197,6 +233,7 @@
 					;; just wait
 					(lambda () (thread-sleep! 1))
 					custom-add-to-back)))
+  (test-assert (thread-pool-release! pool))
   )
 
 (let* ((pool (make-thread-pool 1 raise))
@@ -205,8 +242,7 @@
   (test-assert "wait after error" (thread-pool-wait-all! pool))
   (test-assert "no task is running" 
 	       (not (thread-pool-thread-task-running? pool id)))
-  ;; no need to re-throw handled exception.
-  ;; (test-error "thread-pool error-handler" error? (thread-pool-release! pool))
+  (test-assert (thread-pool-release! pool))
   )
 
 ;; simple future
@@ -222,7 +258,8 @@
   (test-assert "executor?" (executor? executor))
   (test-equal "max pool size" 1 (executor-max-pool-size executor))
   (test-equal "pool size (1)" 0 (executor-pool-size executor))
-  (test-equal "state" 'running (executor-state executor)))
+  (test-equal "state" 'running (executor-state executor))
+  (test-assert "shutdown! (1)" (shutdown-executor! executor)))
 
 (let ((future (make-executor-future (lambda () 1))))
   (test-assert "future?" (future? future))
@@ -250,6 +287,7 @@
   (test-assert "future-cancelled? (2)" (future-cancelled? f2))
   (test-error "future-terminated?" future-terminated? (future-get f2))
   (test-equal "pool size (3)" 0 (executor-pool-size e))
+  (test-assert "shutdown! (2)" (shutdown-executor! e))
   )
 
 ;; shutdown
@@ -288,14 +326,8 @@
   (test-assert "avoiding &abandoned-mutex-exception"
 	       (dotimes (i 100)
 		 (let ((f1 (future (class <executor-future>) 
-				   (thread-sleep! 10)))
-		       (f2 (future (class <executor-future>) 
-				   (thread-sleep! 10)))
-		       (f3 (future (class <executor-future>) 
 				   (thread-sleep! 10))))
-		   (execute-future! e f1)
-		   (execute-future! e f2)
-		   (execute-future! e f3))))
+		   (execute-future! e f1))))
   (test-assert "shutdown for god sake" (shutdown-executor! e)))
 
 (let* ((e (make-executor 1 push-future-handler))

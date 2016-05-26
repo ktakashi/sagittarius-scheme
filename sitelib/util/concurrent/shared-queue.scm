@@ -39,9 +39,12 @@
 	    shared-queue-max-length
 	    shared-queue-overflows?
 	    shared-queue-put! shared-queue-get!
+	    shared-queue-remove!
 	    shared-queue-clear!
 	    shared-queue-find
 	    shared-queue-locked?
+	    shared-queue-lock!
+	    shared-queue-unlock!
 
 	    ;; shared-priority-queue
 	    ;; even thought the name is queue but it's not a
@@ -55,6 +58,8 @@
 	    shared-priority-queue-remove!
 	    shared-priority-queue-clear!
 	    shared-priority-queue-locked? ;; for consistency
+	    shared-priority-queue-lock!
+	    shared-priority-queue-unlock!
 	    )
     (import (rnrs)
 	    (rnrs mutable-pairs)
@@ -146,6 +151,37 @@
     (and (>= (shared-queue-max-length sq) 0)
 	 (> (+ count (shared-queue-size sq)) (shared-queue-max-length sq))))
 
+  (define (shared-queue-remove! sq o . maybe=)
+    (define = (if (null? maybe=) equal? (car maybe=)))
+    (define (find-it prev cur)
+      (cond ((null? cur) #f)
+	    ;; this works because cdr of cur won't be '()
+	    ;; (last element is already checked)
+	    ((= (car cur) o) (set-cdr! prev (cdr cur)) #t)
+	    (else (find-it (cdr prev) (cdr cur)))))
+    (define (remove-it sq)
+      (let ((h (shared-queue-head sq))
+	    (t (shared-queue-tail sq)))
+	(cond ((null? h) #f) ;; ok not there
+	      ((= (car h) o)
+	       (let ((n (cdr h)))
+		 (shared-queue-head-set! sq n)
+		 (when (null? n) (shared-queue-tail-set! sq '()))
+		 #t))
+	      ((= (car t) o)
+	       (let loop ((h h))
+		 (cond ((eq? (cdr h) t)
+			(set-cdr! h '())
+			(shared-queue-tail-set! sq h) #t)
+		       (else (loop (cdr h))))))
+	      (else (find-it h (cdr h))))))
+    
+    (mutex-lock! (%lock sq))
+    (let ((r (remove-it sq)))
+      (when r (shared-queue-size-set! sq (- (shared-queue-size sq) 1)))
+      (mutex-unlock! (%lock sq))
+      r))
+  
   (define (shared-queue-clear! sq)
     (mutex-lock! (%lock sq))
     (shared-queue-size-set! sq 0)
@@ -179,7 +215,8 @@
 		 (mutex-unlock! (%lock sq))
 		 #f)
 	       #t))))
-	  
+  (define (shared-queue-lock! sq) (mutex-lock! (%lock sq)))
+  (define (shared-queue-unlock! sq) (mutex-unlock! (%lock sq)))
 
   ;; priority queue
   ;; we do simply B-tree
@@ -368,7 +405,10 @@
 		 (mutex-lock! (%spq-lock sq))
 		 (mutex-unlock! (%spq-lock sq))
 		 #f)
-	       #t))))  
+	       #t))))
+  (define (shared-priority-queue-lock! sq) (mutex-lock! (%spq-lock sq)))
+  (define (shared-priority-queue-unlock! sq) (mutex-unlock! (%spq-lock sq)))
+  
   )
 
 ;; Local Variables:

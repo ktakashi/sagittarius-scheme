@@ -207,12 +207,37 @@
   (let ((t (vector-ref threads id))
 	(q (vector-ref queues id))
 	(nq (make-shared-queue)))
+    ;; we don't need old queue anymore
+    (vector-set! queues id nq)
+    ;; the operation may cause abondaned mutex so we need to handle
+    ;; carefully.
+    ;; on thread-pool, the lock is going like this:
+    ;;   1. lock idlings -> release
+    ;;   2. lock shared-queue -> release/wait (waiting is also released)
+    ;; so what we need to do here is making sure 2 shared queues are
+    ;; not locked. we do it like this:
+    ;;   1. first clear the task queue
+    ;;   2. lock idlings
+    ;;   3. lock task queue
+    ;;   4. terminate thread
+    ;;   5. unlock idlings and task queue.
+    ;;   6. remove thread id from idlings
+    
     ;; clear all pending tasks.
     ;; the thread is terminated, so it's not interesting anymore
     (shared-queue-clear! q)
-    (shared-queue-locked? idlings #t)
+    (shared-queue-lock! idlings)
+    (shared-queue-lock! q)
+
+    ;; ok both mutex are held by this thread so terminate the
+    ;; pooled thread.
     (thread-terminate! t) ;; this is dangerous, don't do it casually!
-    (vector-set! queues id nq)
+    
+    ;; post termination
+    (shared-queue-unlock! q)
+    (shared-queue-unlock! idlings)
+    (shared-queue-remove! idlings id)
+    
     ;; prepare for next time
     (vector-set! threads id
 		 (thread-start! 
