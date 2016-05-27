@@ -548,6 +548,16 @@ or time object defined in SRFI-19. If the queue didn't get any object within
 the @var{timeout}, then @var{timeout-val} is returned.
 }
 
+@define[Function]{@name{shared-queue-remove!}
+ @args{shared-queue obj :optional (= equal?)}}
+@desc{Removes the given @var{obj} from the @var{shared-queue}. The procedure
+returns #t if @var{obj} is removed, otherwise #f.
+
+Optional argument @var{=}, must be a comparison procedure, specifies how to
+compare the element of the @var{shared-queue} and given @var{obj}. Default
+value is @code{equal?}.
+}
+
 @define[Function]{@name{shared-queue-clear!} @args{shared-queue}}
 @desc{Clears all element inside of @var{shared-queue}.}
 
