@@ -175,12 +175,15 @@
 			(shared-queue-tail-set! sq h) #t)
 		       (else (loop (cdr h))))))
 	      (else (find-it h (cdr h))))))
-    
-    (mutex-lock! (%lock sq))
-    (let ((r (remove-it sq)))
-      (when r (shared-queue-size-set! sq (- (shared-queue-size sq) 1)))
-      (mutex-unlock! (%lock sq))
-      r))
+    ;; comparison procedure may raise an error. keep mutex unlocked
+    ;; after this procedure returned, we need to wrap with dynamic-wind
+    (dynamic-wind
+	(lambda () (mutex-lock! (%lock sq)))
+	(lambda ()
+	  (let ((r (remove-it sq)))
+	    (when r (shared-queue-size-set! sq (- (shared-queue-size sq) 1)))
+	    r))
+	(lambda () (mutex-unlock! (%lock sq)))))
   
   (define (shared-queue-clear! sq)
     (mutex-lock! (%lock sq))
