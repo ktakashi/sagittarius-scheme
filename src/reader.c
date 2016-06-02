@@ -2278,14 +2278,12 @@ static void init_readtable(readtable_t *table, int type)
   r['\\'].type = CT_SINGLE_ESCAPE;
 
   SET_TERM_MACRO(r, '"', read_double_quote);
-  SET_TERM_MACRO(r, '\'', read_quote);
   SET_TERM_MACRO(r, '(', read_open_paren);
   SET_TERM_MACRO(r, ')', read_close_paren);
   SET_TERM_MACRO(r, '[', read_open_bracket);
   SET_TERM_MACRO(r, ']', read_close_bracket);
   SET_TERM_MACRO(r, ';', read_semicolon);
-  SET_TERM_MACRO(r, '`', read_quasiquote);
-  SET_TERM_MACRO(r, ',', read_unquote); 
+  
 
   r['#'].disp = d;
 
@@ -2297,11 +2295,22 @@ static void init_readtable(readtable_t *table, int type)
   if (type == INIT_R6RS) {
     SET_DISP_MACRO(d, 'v', read_hash_v);
     SET_TERM_MACRO(r, '#', dispmacro_reader);
+    /* tread these as nonterm and let validator raise an error
+       for "foo'bar" case.
+     */
+    SET_NONTERM_MACRO(r, '\'', read_quote);
+    SET_NONTERM_MACRO(r, '`', read_quasiquote);
+    SET_NONTERM_MACRO(r, ',', read_unquote); 
+
     table->symbol_reader = read_r6rs_symbol;
   } else {
     SET_NONTERM_MACRO(r, '#', dispmacro_reader);
     SET_DISP_MACRO(d, 'u', read_hash_u);
     SET_NONTERM_MACRO(r, '|', read_vertical_bar);
+    SET_TERM_MACRO(r, '\'', read_quote);
+    SET_TERM_MACRO(r, '`', read_quasiquote);
+    SET_TERM_MACRO(r, ',', read_unquote); 
+
     table->symbol_reader = read_compatible_symbol;
   }
 

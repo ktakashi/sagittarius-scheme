@@ -563,5 +563,12 @@
 	     '(#\a 0 #\b))
   (delete-file file))
 
+;; invalid identifer
+(test-error "read identifier(quote)" lexical-violation?
+	    (read (open-string-input-port "#!r6rs foo'bar")))
+(test-error "read identifier(unquote)" lexical-violation?
+	    (read (open-string-input-port "#!r6rs foo,bar")))
+(test-error "read identifier(quasiquote)" lexical-violation?
+	    (read (open-string-input-port "#!r6rs foo`bar")))
 
 (test-end)
