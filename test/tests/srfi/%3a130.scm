@@ -1,4 +1,5 @@
 (import (rnrs)
+	(rnrs mutable-strings)
 	(srfi :130)
 	(srfi :64))
 
