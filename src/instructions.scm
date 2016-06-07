@@ -186,11 +186,17 @@
 	 (call-one-arg-with-insn-value Sg_Sub c))))
 
 (define-inst MUL (0 0 #t)
-  (call-two-args-proc (POP (SP vm)) Sg_Mul))
+  (let ((obj (POP (SP vm))))
+    (cond ((or (and (SG_FLONUMP (AC vm)) (SG_REALP obj))
+	       (and (SG_FLONUMP obj) (SG_REALP (AC vm))))
+	   ($result:f (* (Sg_GetDouble obj) (Sg_GetDouble (AC vm)))))
+	  (else (call-two-args-proc obj Sg_Mul)))))
 
 (define-inst MULI (1 0 #t)
   (INSN_VAL1 val1 c)
-  (call-one-arg-with-insn-value Sg_Mul c))
+  (cond ((SG_FLONUMP (AC vm))
+	 ($result:f (* (cast double val1) (SG_FLONUM_VALUE (AC vm)))))
+	(else (call-one-arg-with-insn-value Sg_Mul c))))
 
 ;;
 ;; R6RS requires &assertion exception when divisor was 0.
@@ -201,9 +207,12 @@
 (define-inst DIV (0 0 #t)
   (let* ((obj (POP (SP vm)))
 	 (exact::int (and (Sg_ExactP obj) (Sg_ExactP (AC vm)))))
-    (if (and exact (Sg_ZeroP (AC vm)))
-	(assertion-violation "/" "undefined for 0" (SG_LIST2 obj (AC vm)))
-	(call-two-args-proc obj Sg_Div))))
+    (cond ((and exact (Sg_ZeroP (AC vm)))
+	   (assertion-violation "/" "undefined for 0" (SG_LIST2 obj (AC vm))))
+	  ((or (and (SG_FLONUMP (AC vm)) (SG_REALP obj))
+	       (and (SG_FLONUMP obj) (SG_REALP (AC vm))))
+	   ($result:f (/ (Sg_GetDouble obj) (Sg_GetDouble (AC vm)))))
+	  (else (call-two-args-proc obj Sg_Div)))))
 
 (define-inst DIVI (1 0 #t)
   (INSN_VAL1 val1 c)
