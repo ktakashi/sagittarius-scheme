@@ -259,9 +259,8 @@
 	     (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
-	    ((or (and (SG_FLONUMP (AC vm)) (SG_REALP s))
-		 (and (SG_FLONUMP s) (SG_REALP (AC vm))))
-	     (if (,op (Sg_GetDouble s) (Sg_GetDouble (AC vm)))
+	    ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP s))
+	     (if (,op (SG_FLONUM_VALUE s) (SG_FLONUM_VALUE (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
 	    (else
