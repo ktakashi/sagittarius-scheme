@@ -2257,6 +2257,7 @@ void Sg_VMExecute(SgObject toplevel)
  */
 static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
+  /* TODO Use SIMD? */
 #if 1
   int i;
   SgObject *f = fp + m;
@@ -2538,7 +2539,7 @@ void Sg_VMPrintFrameOf(SgVM *vm)
   print_frames(vm, CONT(vm));
 }
 
-#if PROF_INSN
+#ifdef PROF_INSN
 #define COUNT_INSN(c)   if (vm->state == RUNNING) called_instructions[INSN(c)]++
 static int called_instructions[INSTRUCTION_COUNT] = {0};
 static void show_inst_count(void *data)
@@ -2671,7 +2672,7 @@ void Sg__InitVM()
     SG_MAKE_STRING("default-exception-handler");
   Sg_InitMutex(&global_lock, TRUE);
 
-#if PROF_INSN
+#ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
 }

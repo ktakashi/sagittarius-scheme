@@ -148,9 +148,9 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   ($result:n (+ (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
-	   ($result (Sg_MakeFlonum (+ (SG_FLONUM_VALUE obj)
-				      (SG_FLONUM_VALUE (AC vm))))))
+	  ((or (and (SG_FLONUMP (AC vm)) (SG_REALP obj))
+	       (and (SG_FLONUMP obj) (SG_REALP (AC vm))))
+	   ($result:f (+ (Sg_GetDouble obj) (Sg_GetDouble (AC vm)))))
 	  (else
 	   (call-two-args-proc obj Sg_Add)))))
 
@@ -171,8 +171,9 @@
   (let ((obj (POP (SP vm))))
     (cond ((and (SG_INTP (AC vm)) (SG_INTP obj))
 	   ($result:n (- (SG_INT_VALUE obj) (SG_INT_VALUE (AC vm)))))
-	  ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP obj))
-	   ($result:f (- (SG_FLONUM_VALUE obj) (SG_FLONUM_VALUE (AC vm)))))
+	  ((or (and (SG_FLONUMP (AC vm)) (SG_REALP obj))
+	       (and (SG_FLONUMP obj) (SG_REALP (AC vm))))
+	   ($result:f (- (Sg_GetDouble obj) (Sg_GetDouble (AC vm)))))
 	  (else
 	   (call-two-args-proc obj Sg_Sub)))))
 
@@ -244,10 +245,9 @@
 
 (define-cise-expr branch-number-test-helper
   ((_ p)
-   (let ((n (gensym "cise__")))
-     `(begin
-	(set! (AC vm) SG_FALSE)
-	(+= (PC vm) ,p))))
+   `(begin
+      (set! (AC vm) SG_FALSE)
+      (+= (PC vm) ,p)))
   ((_)
    `(begin
       (set! (AC vm) SG_TRUE)
@@ -259,8 +259,9 @@
 	     (if (,op (cast intptr_t s) (cast intptr_t (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
-	    ((and (SG_FLONUMP (AC vm)) (SG_FLONUMP s))
-	     (if (,op (SG_FLONUM_VALUE s) (SG_FLONUM_VALUE (AC vm)))
+	    ((or (and (SG_FLONUMP (AC vm)) (SG_REALP s))
+		 (and (SG_FLONUMP s) (SG_REALP (AC vm))))
+	     (if (,op (Sg_GetDouble s) (Sg_GetDouble (AC vm)))
 		 (branch-number-test-helper)
 		 (branch-number-test-helper (PEEK_OPERAND (PC vm)))))
 	    (else
