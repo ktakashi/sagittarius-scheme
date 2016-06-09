@@ -194,7 +194,15 @@ SgObject Sg_LocalTimezoneName()
   /* try /etc/localtime */
   if (lstat(ETC_LOCALTIME, &statbuf) == 0) {
     if (S_ISLNK(statbuf.st_mode)) {
-      char linkbuf[PATH_MAX+1];
+      /* 
+	 readlink on OS X (Yosemite 10.10.5) seems to return count+1
+	 length. so putting null character on the returning position
+	 doesn't work properly.  so for sanity, we initilise the
+	 buffer with null characters.
+
+	 NB: this is not needed any other POSIX environment but OS X.
+       */
+      char linkbuf[PATH_MAX+1] = {0, };
       const char *r;
       int len;
       if ((len = readlink(ETC_LOCALTIME, linkbuf, sizeof(linkbuf)-1)) == 0) {
