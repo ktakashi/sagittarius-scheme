@@ -2,7 +2,7 @@
 ;;;
 ;;; process.scm - process library
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2016  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -63,7 +63,10 @@
 	    open-shared-memory
 	    close-shared-memory
 	    shared-memory->bytevector
-	    ;; TODO semaphore
+
+	    ;; reader
+	    sync-process-read
+	    async-process-read
 	    )
     (import (rnrs)
 	    (clos user)
@@ -113,18 +116,23 @@
     (make <process> :name #f :args '() :pid (%pid->sys-process pid)
 	  :input #f :output #f :error #f :directory #f))
 
+  ;; FIXME
+  ;; This API is getting inconsistent. The decision if the process should
+  ;; be waited or not is done by reader. 
   (define (create-process name args :key (stdout #f)
 			                 (stderr #f)
 					 (call? #t)
-					 (reader async-process-read)
+					 (reader #f)
 					 (transcoder #f)
 					 (directory #f)
 					 (detach? #f))
-    (when (and (not call?) (not (output-port? stdout)))
-      (assertion-violation 
-       'create-process
-       "keyword argument :stdout must be output port, when :call? is #f"
-       stdout call?))
+    ;; Some of my script uses create-process with :call? #f
+    ;; in that case it expects to wait process with reading all
+    ;; output from process. so just switch it here.
+    (define %reader
+      (cond ((procedure? reader) reader)
+	    (call? async-process-read)
+	    (else sync-process-read)))
     (let-values (((pid input output error)
 		  (sys-process-call name args
 				    :directory directory
@@ -133,54 +141,44 @@
 			   :input input :output output :error error
 			   :pid pid :directory (or directory
 						   (current-directory)))))
-	(cond ((and call? stdout)
-	       (reader process stdout (if stderr stderr stdout) transcoder)
-	       process)
-	      (call? process)
-	      (else
-	       (reader process stdout (if stderr stderr stdout) transcoder)
-	       (let ((r (sys-process-wait pid)))
-		 (let loop ()
-		   (when (port-ready? output) (sys-nanosleep 1000) (loop)))
-		 r))))))
+	(if (and (output-port? stdout) (procedure? %reader))
+	    (%reader process stdout (if stderr stderr stdout) transcoder)
+	    process))))
+	    
 
   ;; handle both stdout and stderr
   (define (async-process-read process stdout stderr transcoder)
-    (define (pipe-read in out reader converter)
+    (define (pipe-read in out reader writer)
       (let loop ()
 	(let ((r (reader in)))
-	  (cond ((eof-object? r) (close-input-port in))
-		(else
-		 (display (converter r) out)
-		 (loop))))))
-    (let ((out-thread (make-thread
-		       (lambda ()
-			 (let ((in (process-output-port process)))
-			   (if transcoder
-			       (pipe-read (transcoded-port in transcoder)
-					  stdout
-					  get-char
-					  (lambda (x) x))
-			       (pipe-read in stdout get-u8 integer->char))))))
-	  (err-thread (make-thread
-		       (lambda ()
-			 (let ((in (process-error-port process)))
-			   (if transcoder
-			       (pipe-read (transcoded-port in transcoder)
-					  stderr
-					  get-char
-					  (lambda (x) x))
-			       (pipe-read in stderr get-u8 integer->char)))))))
-      (thread-start! out-thread)
-      (thread-start! err-thread)))
+	  (cond ((eof-object? r) (flush-output-port out) (close-input-port in))
+		(else (writer out r) (loop))))))
+    (define (make-task in)
+      (lambda ()
+	(if transcoder
+	    (pipe-read (transcoded-port in transcoder)
+		       stdout
+		       get-char
+		       put-char)
+	    (pipe-read in stdout get-u8 put-u8))))
+    (thread-start! (make-thread (make-task (process-output-port process))))
+    (thread-start! (make-thread (make-task (process-error-port process))))
+    process)
+
+  ;; handle both stdout and stderr
+  ;; this reader blocks
+  ;; FIXME I want to make sure this procedure reads all outputs and error
+  ;;       outputs, but this may truncate some of the outputs.
+  (define (sync-process-read process stdout stderr transcoder)
+    (process-wait (async-process-read process stdout stderr transcoder)))
 
   (define (run name . args)
     (create-process name
 		    args
+		    :reader sync-process-read
 		    :stdout (current-output-port)
 		    :stderr (current-error-port)
-		    :transcoder (native-transcoder)
-		    :call? #f))
+		    :transcoder (native-transcoder)))
 
   (define (call name . args)
     (create-process name
