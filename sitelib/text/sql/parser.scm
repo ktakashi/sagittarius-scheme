@@ -93,6 +93,37 @@
       v
       `(,(car e) ,v ,(cadr e))))
 
+;; Strictly speaking, all SQL keywords can be an identifier
+;; according to the BNF. But if we do it, it'd be much hastle. So
+;; we only allow only not so much hastle making keywords
+;; NB: Most of them are not properly tested, so this list might be
+;;     reduced in the future.
+(define-constant +allowed-sql-keywords+
+  '(allocate are asensitive asymmetric at atomic authorization
+    begin bigint binary blob boolean both call called cascaded 
+    char character clob close column connect continue corresponding 
+    current current_date current_default_transform_group current_path 
+    current_role current_time current_timestamp 
+    current_transform_group_for_type current_user
+    cursor cycle date day deallocate dec decimal declare deref describe
+    deterministic disconnect double dynamic each element end end-exec exec
+    execute external false fetch filter float for free function get
+    global grant hold hour identity immediate indicator
+    inout input insensitive int integer interval isolation language large
+    lateral leading like local localtime localtimestamp match member
+    merge method minute modifies module month national
+    nchar nclob new no none numeric of old only open out output
+    over overlaps parameter partition precision prepare procedure range
+    reads real recursive ref referencing regr_avgx regr_avgy regr_count
+    regr_intercept regr_r2 regr_slope regr_sxx regr_sxy regr_syy release
+    result return returns revoke rollback row rows savepoint
+    scroll search second sensitive session_user similar smallint
+    specific specifictype sql sqlexception sqlstate sqlwarning start static
+    submultiset symmetric system system_user time timestamp timezone_hour
+    timezone_minute trailing translation treat trigger true uescape unknown
+    unnest upper user value var_pop var_samp varchar varying whenever
+    width_bucket window with within without year))
+
 ;; handling operators
 ;;
 ;; form numeric 
@@ -115,6 +146,13 @@
 (define sql-parser
   (packrat-parser
    (begin
+     (define (allowed-keyword? results)
+       (let ((s (parse-results-token-value results)))
+	 (if (memq s +allowed-sql-keywords+)
+	     (make-result s (parse-results-next results))
+	     (make-expected-result
+	      (parse-results-position results)
+	      "SQL keyword is not allowed to be an identifier"))))
      ;; some keyword looks like symbols are not reserved keyword
      ;; e.g.) SETS, used by GROUPING SETS
      ;; to avoid adding unnecessary keyword in scanner, we need to
@@ -1803,7 +1841,7 @@
     (('#\, c <- contextually-typed-row-value-expression-list) c)
     (() '()))
 
-   ;; 7.7 joine table
+   ;; 7.7 joined table
    (joined-table ((t1 <- table-primary j <- cross-join)     (cons t1 j))
 		 ((t1 <- table-primary j <- qualified-join) (cons t1 j))
 		 ((t1 <- table-primary j <- natural-join)   (cons t1 j))
@@ -2224,7 +2262,8 @@
 					 "invalid use of UESCAPE" #f #f))
 		;; (unicode (! "foo") uescape "c")
 		`(,@i uescape ,c))
-	       ((i <- 'identifier) i))
+	       ((i <- 'identifier) i)
+	       ((i <- allowed-keyword?) i))
 
    ;; string the same as above trick
    (string ((s <- 'string 'uescape c <- 'string)

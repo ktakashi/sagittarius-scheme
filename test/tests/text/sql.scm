@@ -138,6 +138,22 @@
 	    '(select * (from (t (right-join a (on (= (~ t id) (~ a id))))))))
 (test-parse "select * from t full join a on t.id = a.id"
 	    '(select * (from (t (full-join a (on (= (~ t id) (~ a id))))))))
+
+(test-parse "select * from t natural join a"
+	    '(select * (from (t (natural-join a)))))
+(test-parse "select * from t natural left join a"
+	    '(select * (from (t (natural-left-join a)))))
+(test-parse "select * from t natural right join a"
+	    '(select * (from (t (natural-right-join a)))))
+(test-parse "select * from t natural full join a"
+	    '(select * (from (t (natural-full-join a)))))
+
+(test-parse "select * from t cross join a"
+	    '(select * (from (t (cross-join a)))))
+(test-parse "select * from t union join a"
+	    '(select * (from (t (union-join a)))))
+
+
 (test-parse "select * \
              from t inner join a on t.id = a.id \
              left join b on t.id = b.id"
@@ -445,6 +461,12 @@
 (test-parse "create table t (a varchar array[1])"
 	    '(create-table t ((a (varchar array 1)))))
 
+(test-parse "create table t (a varchar default user)"
+	    '(create-table t ((a varchar (default user)))))
+
+(test-parse "create table t (user varchar default user)"
+	    '(create-table t ((user varchar (default user)))))
+
 ;; create sequence
 (test-parse "create sequence s" '(create-sequence s))
 (test-parse "create sequence p.s" '(create-sequence (~ p s)))
@@ -479,6 +501,8 @@
 	    '(alter-table t (alter-column b (set-default 1))))
 (test-parse "alter table t alter column b drop default"
 	    '(alter-table t (alter-column b drop-default)))
+(test-parse "alter table t alter column b set default user"
+	    '(alter-table t (alter-column b (set-default user))))
 (test-parse "alter table t alter column b add scope s"
 	    '(alter-table t (alter-column b (add-scope s))))
 (test-parse "alter table t alter column b drop scope"
