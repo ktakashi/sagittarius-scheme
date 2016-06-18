@@ -280,13 +280,21 @@
     (let ((class (slot-ref rtd 'class)))
       (let-values (((i name) (search-kth-slot class k)))
 	(let ((acc (%make-slot-accessor class name i #f #f #f)))
-	  (lambda (o) (slot-ref-using-accessor o acc))))))
+	  (lambda (o) 
+	    (unless (is-a? o class)
+	      (assertion-violation 'record-mutator "object is not a record type"
+				   rtd o))
+	    (slot-ref-using-accessor o acc))))))
       
   (define (record-mutator rtd k)
     (let ((class (slot-ref rtd 'class)))
       (let-values (((i name) (search-kth-slot class k)))
 	(let ((acc (%make-slot-accessor class name i #f #f #f)))
-	  (lambda (o v) (slot-set-using-accessor! o acc v))))))
+	  (lambda (o v) 
+	    (unless (is-a? o class)
+	      (assertion-violation 'record-mutator "object is not a record type"
+				   rtd o))
+	    (slot-set-using-accessor! o acc v))))))
 
   (define (record? o)
     (and-let* (( (%record? o) )
