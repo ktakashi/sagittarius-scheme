@@ -219,4 +219,33 @@
 		    (syntax-rules ...1 () 
 		      ((enn args ...1) (quote (args ...1)))))))
 	      (environment '(scheme base))))
+
+;; From https://groups.google.com/forum/#!topic/scheme-reports-wg2/GaOyVX2faAg
+(let ()
+  (define-syntax define-tuple-type
+    (syntax-rules ()
+      ((define-tuple-type name make pred x->vec (defaults ...))
+       (deftuple name (make) pred x->vec (defaults ...) (defaults ...) ()))))
+
+  (define-syntax deftuple
+    (syntax-rules ()
+      ((deftuple name (make args ...) pred x->vec defaults (default . rest)
+	 (fields ...))
+       (deftuple name (make args ... tmp) pred x->vec  defaults rest
+	 (fields ... (tmp tmp))))
+      ((deftuple name (make args ...) pred x->vec (defaults ...) ()
+	 ((field-name get) ...))
+       (begin
+	 (define-record-type name (make-tmp args ...) pred
+	   (field-name get) ...)
+	 (define (make . o)
+	   (if (pair? o) (apply make-tmp o) (make-tmp defaults ...)))
+	 (define (x->vec x)
+	   (vector (get x) ...))))))
+
+  (define-tuple-type point make-point point? point->vector (0 0))
+
+  (test-equal "point->vector (1)" #(0 0) (point->vector (make-point)))
+  (test-equal "point->vector (2)" #(1 2) (point->vector (make-point 1 2))))
+
 (test-end)
