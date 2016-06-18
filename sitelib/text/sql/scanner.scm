@@ -31,6 +31,7 @@
 (library (text sql scanner)
     (export make-sql-scanner
 	    *preserve-case*
+	    sql-keyword?
 	    (rename specials +sql-special-character-set+))
     (import (rnrs) 
 	    (srfi :14 char-sets)
@@ -173,6 +174,8 @@
     unnest update upper user using value values var_pop var_samp varchar
     varying when whenever where width_bucket window with within without
     year))
+
+(define (sql-keyword? s) (memq s *sql:keywords*))
 
 ;; normal identifier
 (define (%read-identifier ch port) 

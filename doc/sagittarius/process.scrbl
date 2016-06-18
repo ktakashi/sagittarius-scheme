@@ -59,43 +59,15 @@ port.
 error of the process. This can be either binary output port or textual output
 port. If this argument is #f, then @var{stdout} will be used.
 
-@var{call?} keyword argument decides the behaviour. If this is #t, then the
-process will be waited until its end. Otherwise just invokes it and returns
-process object.
+@var{call?} keyword argument decides the default behaviour. If this is #t and
+@var{reader} is not a procedure, then the @code{create-process} uses
+@code{async-process-read}. If this is #f and @var{reader} is not a procedure,
+then it uses @code{sync-process-read}. If @var{reader} is provided, then it
+uses given @var{reader}.
 
 @var{reader} keyword argument must be procedure which takes 4 arguments,
 process object, redirection of standard output and error, and transcoder
-respectively. This procedure decides how to handle the output. the default
-implementation is like this:
-@codeblock{
-(define (async-process-read process stdout stderr transcoder)
-  (define (pipe-read in out reader converter)
-    (let loop ((r (reader in)))
-      (unless (eof-object? r)
-	(display (converter r) out)
-	(loop (reader in)))))
-  (let ((out-thread (make-thread
-		     (lambda ()
-		       (let ((in (process-output-port process)))
-			 (if transcoder
-			     (pipe-read (transcoded-port in transcoder)
-					stdout
-					get-char
-					(lambda (x) x))
-			     (pipe-read in stdout get-u8 integer->char))))))
-	(err-thread (make-thread
-		     (lambda ()
-		       (let ((in (process-error-port process)))
-			 (if transcoder
-			     (pipe-read (transcoded-port in transcoder)
-					stderr
-					get-char
-					(lambda (x) x))
-			     (pipe-read in stderr get-u8 integer->char)))))))
-    (thread-start! out-thread)
-    (thread-start! err-thread)))
-}
-This might not be efficient, so user can specify how to behave.
+respectively. This procedure decides how to handle the output. 
 
 Note: on Windows, both standard output end error has limitation. So if you
 replace the default behaviour, make sure you must read the output from the
@@ -103,7 +75,25 @@ process, otherwise it can cause deat lock.
 
 @var{transcoder} keyword argument must be transcoder or #f. This can be used in
 the procedure which specified @var{reader} keyword argument.
+
+The procedure @code{create-process} creates a process and call it. The
+returning value is depending on the above keyword parameters. If @var{reader}
+and @var{stdout} is provided, then the result value is the value returned from
+@var{reader} procedure. Otherwise the created process object.
 }
+
+@define[Function]{@name{async-process-read}
+ @args{process stdout stderr transcoder}}
+@desc{Process output reader. This reader creates 2 threads to read standard
+ouput and standard error. The reader returns immediately after the threads are
+executed.
+}
+
+@define[Function]{@name{sync-process-read}
+ @args{process stdout stderr transcoder}}
+@desc{Process output reader. This reader creates 2 threads to read standard
+ouput and standard error. The reader waits until the given process is
+finished.}
 
 @subsubsection{Low level APIs}
 
