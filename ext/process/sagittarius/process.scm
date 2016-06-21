@@ -160,7 +160,7 @@
 		       out
 		       get-char
 		       put-char)
-	    (pipe-read in stdout get-u8 put-u8))))
+	    (pipe-read in out get-u8 put-u8))))
     (thread-start!
      (make-thread (make-task (process-output-port process) stdout)))
     (thread-start!
