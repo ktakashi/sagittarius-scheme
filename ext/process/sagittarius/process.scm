@@ -153,16 +153,18 @@
 	(let ((r (reader in)))
 	  (cond ((eof-object? r) (flush-output-port out) (close-input-port in))
 		(else (writer out r) (loop))))))
-    (define (make-task in)
+    (define (make-task in out)
       (lambda ()
 	(if transcoder
 	    (pipe-read (transcoded-port in transcoder)
-		       stdout
+		       out
 		       get-char
 		       put-char)
-	    (pipe-read in stdout get-u8 put-u8))))
-    (thread-start! (make-thread (make-task (process-output-port process))))
-    (thread-start! (make-thread (make-task (process-error-port process))))
+	    (pipe-read in out get-u8 put-u8))))
+    (thread-start!
+     (make-thread (make-task (process-output-port process) stdout)))
+    (thread-start!
+     (make-thread (make-task (process-error-port process) stderr)))
     process)
 
   ;; handle both stdout and stderr
