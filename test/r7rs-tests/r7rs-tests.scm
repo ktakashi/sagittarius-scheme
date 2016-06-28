@@ -493,6 +493,16 @@
 
 (test 'ok (let ((=> #f)) (cond (#t => 'ok))))
 
+(let ()
+  (define-syntax foo
+    (syntax-rules ()
+      ((foo bar y)
+       (define-syntax bar
+	 (syntax-rules ()
+	   ((bar x) 'y))))))
+  (foo bar x)
+  (test 'x (bar 1)))
+
 (test-end)
 
 (test-begin "5 Program structure")
