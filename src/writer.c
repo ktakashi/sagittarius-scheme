@@ -702,12 +702,20 @@ static int symbol_need_bar(const SgChar *s, int n)
 #define CASE_ITAG(obj, str)				\
   case SG_ITAG(obj): Sg_PutuzUnsafe(port, str); break;
 
-/* character name table (first 33 chars of ASCII)*/
+/* character name table (first 33 chars of ASCII) */
 static const char *char_names[] = {
-    "nul",    "x01",   "x02",    "x03",   "x04",   "x05",   "x06",   "x07",
-    "x08",    "tab",   "newline","x0b",   "x0c",   "return","x0e",   "x0f",
-    "x10",    "x11",   "x12",    "x13",   "x14",   "x15",   "x16",   "x17",
-    "x18",    "x19",   "x1a",    "esc",   "x1c",   "x1d",   "x1e",   "x1f",
+    "nul",      "x01",   "x02",    "x03",   "x04",   "x05",   "x06",   "alarm",
+    "backspace","tab",   "newline","vtab",  "page",   "return","x0e",   "x0f",
+    "x10",      "x11",   "x12",    "x13",   "x14",   "x15",   "x16",   "x17",
+    "x18",      "x19",   "x1a",    "esc",   "x1c",   "x1d",   "x1e",   "x1f",
+    "space"
+};
+/* R7RS defines slightly different name (e.g. nul vs null) */
+static const char *r7rs_char_names[] = {
+    "null",     "x01",   "x02",    "x03",   "x04",   "x05",   "x06",   "alarm",
+    "backspace","tab",   "newline","x0b",   "x0c",   "return","x0e",   "x0f",
+    "x10",      "x11",   "x12",    "x13",   "x14",   "x15",   "x16",   "x17",
+    "x18",      "x19",   "x1a",    "escape","x1c",   "x1d",   "x1e",   "x1f",
     "space"
 };
 
@@ -759,7 +767,14 @@ static void write_noptr(SgObject obj, SgPort *port, SgWriteContext *ctx)
       Sg_PutcUnsafe(port, ch);
     } else {
       Sg_PutuzUnsafe(port, UC("#\\"));
-      if (ch <= 0x20)      Sg_PutzUnsafe(port, char_names[ch]);
+      /* FIXME this is ugly */
+      if (ch <= 0x20) {
+	if (SG_VM_IS_SET_FLAG(Sg_VM(), SG_R7RS_MODE)) {
+	  Sg_PutzUnsafe(port, r7rs_char_names[ch]);
+	} else {
+	  Sg_PutzUnsafe(port, char_names[ch]);
+	}
+      }
       else if (ch == 0x7f) Sg_PutuzUnsafe(port, UC("delete"));
       else switch (Sg_CharGeneralCategory(ch)) {
 	case Mn: case Mc: case Me: /* Marks  */

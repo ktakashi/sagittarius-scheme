@@ -2071,4 +2071,45 @@
 	    (cond ((values 1 2) (lambda (a b) #t) =>
 		   (lambda (a b) (list a b)))))
 
+;; character difference between R6RS and R7RS
+;; NB: we are using #!r6rs directives so the evaluation must be done
+;;     on top level (otherwise the VM mode will be changed before eval)
+(define r6rs-chars
+  '("#\\nul"
+    "#\\alarm"
+    "#\\backspace"
+    "#\\tab"  
+    ("#\\linefeed" . "#\\newline")
+    "#\\newline"
+    "#\\vtab"
+    "#\\page"
+    "#\\return"
+    "#\\esc"
+    "#\\space"
+    "#\\delete"))
+(define r7rs-chars
+  '("#\\null"
+    "#\\alarm"
+    "#\\backspace"
+    "#\\tab"  
+    "#\\newline"
+    "#\\return"
+    "#\\escape"
+    "#\\space"
+    "#\\delete"))
+(define (check who chars)
+  (define (check1 c)
+    (let ((r (if (pair? c) (car c) c))
+	  (w (if (pair? c) (cdr c) c)))
+      (test-equal (format "~a ~s" who c)
+		  w
+		  (call-with-port (open-string-input-port r)
+		    (lambda (in) 
+		      (call-with-string-output-port
+		       (lambda (out)
+			 (write (read in) out))))))))
+  (for-each check1 chars))
+#!r6rs (check 'r6rs r6rs-chars)
+#!r7rs (check 'r7rs r7rs-chars)
+  
 (test-end)
