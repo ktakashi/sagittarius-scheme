@@ -71,7 +71,6 @@
 	    (srfi :39 parameters)
 	    (math)
 	    (pp))
-  (define interaction-environment (find-library 'user #t))
   (define (send-datum socket datum) (socket-send socket datum))
 
   (define (make-remote-repl-input-port source)
@@ -247,6 +246,7 @@
 			    (certificates '())
 			    (private-key #f)
 			    (authority #f)
+			    (environment (find-library 'user #t))
 			    (log (current-output-port)))
     (define-syntax logging
       (syntax-rules ()
@@ -308,7 +308,7 @@
 			   (set! current-expression e)
 			   (if (eof-object? e)
 			       (set! stop? #t)
-			       (receive r (eval e interaction-environment)
+			       (receive r (eval e environment)
 				 (let ((output (extract))
 				       (errout (eextract)))
 				   (unless (zero? (string-length output))

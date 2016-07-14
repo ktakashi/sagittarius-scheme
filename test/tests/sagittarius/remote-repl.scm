@@ -9,7 +9,8 @@
 
 (test-begin "Remote REPL")
 
-(define-values (thunk server) (make-remote-repl "10000" :log #f))
+(define-values (thunk server)
+  (make-remote-repl "10000" :log #f :environment (environment '(rnrs))))
 (define t (thread-start! (make-thread thunk)))
 
 (define (test-repl-port in)
