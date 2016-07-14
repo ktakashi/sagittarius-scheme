@@ -1,4 +1,5 @@
 (import (rnrs)
+	(rnrs eval)
 	(sagittarius remote-repl)
 	(sagittarius control)
 	(sagittarius interactive)
