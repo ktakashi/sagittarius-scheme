@@ -28,6 +28,29 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+(library (sagittarius remote-repl input)
+    (export :export-reader-macro
+	    make-directive
+	    directive?
+	    directive-name)
+    (import (rnrs)
+	    (sagittarius)
+	    (sagittarius reader))
+  ;; internal record to detect if read datum is directive or not
+  (define-record-type directive
+    (fields name))
+  ;; create reader macro
+  (define hash-bang-reader (get-dispatch-macro-character #\# #\!))
+  (define-dispatch-macro #\# #\!
+    (remote-repl-hashbang-reader in subchar param ctx)
+    (let ((name (read in)))
+      (unless (symbol? name)
+	;; FIXME this must be &lexical
+	(assertion-violation 'hash-bang-reader "invalid #! expression" name))
+      (make-directive (apply-directive! in name ctx))))
+
+  )
+
 (library (sagittarius remote-repl)
     (export connect-remote-repl
 	    make-remote-repl
@@ -41,6 +64,7 @@
 	    (sagittarius socket)
 	    (sagittarius vm)
 	    (sagittarius stty)
+	    (sagittarius remote-repl input)
 	    (rfc tls)
 	    (srfi :18 multithreading)
 	    (srfi :26 cut)
@@ -50,10 +74,27 @@
   (define interaction-environment (find-library 'user #t))
   (define (send-datum socket datum) (socket-send socket datum))
 
+  (define (make-remote-repl-input-port source)
+    (define (read! str start count)
+      (let ((r (get-string-n! source str start count)))
+	(if (eof-object? r)
+	    0
+	    r)))
+    (define (close) #t) ;; do nothing
+    (define (position) (port-position source))
+    (define (set-position! p) (set-port-position! source p))
+    (define pos? (port-has-port-position? source))
+    (define set-pos? (port-has-set-port-position!? source))
+    (make-custom-textual-input-port "remote-repl-port" read!
+				    (and pos? position)
+				    (and set-pos? set-position!)
+				    close))
+  
   ;; remote repl protocol
   ;; client
   ;;   send datum: (:datum <datum>)
   ;;   exit      : (:exit)
+  ;;   directive : (:directive name)
   ;; server
   ;;   on auth   : (:request-authenticate) for authenticate
   ;;               (:response-authenticate <result>)
@@ -79,10 +120,13 @@
 
   (define (connect-remote-repl node service
 			       :key (secure #f)
-			       (authority #f))
+				    (authority #f)
+				    (quiet #f))
     (define (make-evaluator socket)
       (lambda (form env)
-	(send-packed-data socket :datum form)))
+	(if (directive? form)
+	    (send-packed-data socket :directive (directive-name form))
+	    (send-packed-data socket :datum form))))
     (define (handle-values v)
       (for-each (lambda (v) (display v) (newline)) v))
     (define (make-printer port)
@@ -147,15 +191,21 @@
 	(define in/out (transcoded-port (socket-port socket #f) 
 					(native-transcoder)))
 	(let-values (((name ip port) (socket-info-values socket)))
-	  (format #t "~%connect: ~a:~a (enter ^D to exit) ~%~%"
-		  name port))
+	  (unless quiet
+	    (format #t "~%connect: ~a:~a (enter ^D to exit) ~%~%"
+		    name port)))
 	(when (authenticate socket in/out)
 	  (parameterize ((current-evaluator (make-evaluator socket))
 			 (current-printer   (make-printer in/out))
 			 (current-exit (lambda ()
-					 (send-packed-data socket :exit))))
+					 (send-packed-data socket :exit)))
+			 (current-input-port (make-remote-repl-input-port
+					      (current-input-port))))
+	    (apply-directive! (current-input-port)
+			      'read-macro=sagittarius/remote-repl/input
+			      (make-read-context :change-mode #t))
 	    (read-eval-print-loop #f)))))
-    (format #t "~%[exit]~%")
+    (unless quiet (format #t "~%[exit]~%"))
     (flush-output-port))
 
   ;; TODO what should we get?
@@ -201,12 +251,14 @@
     (define-syntax logging
       (syntax-rules ()
 	((_ socket fmt args ...)
-	 (let-values (((name ip port) (socket-info-values socket)))
-	   (format log (string-append "remote-repl: [~a(~a):~a] " fmt "~%")
-		   name (ip-address->string ip) port args ...)))))
+	 (when log
+	   (let-values (((name ip port) (socket-info-values socket)))
+	     (format log (string-append "remote-repl: [~a(~a):~a] " fmt "~%")
+		     name (ip-address->string ip) port args ...))))))
     (define (detach socket)
       (define in/out (transcoded-port (socket-port socket #f) 
 				      (native-transcoder)))
+      (define *context* (make-read-context :change-mode #t))
       (define (main-loop in out err)
 	(define (set-ports! p out err)
 	  (current-input-port p)
@@ -237,7 +289,15 @@
 		(lambda ()
 		  (let ((command (read/ss in/out)))
 		    (case (car command)
-		      ((:datum)
+		      ;; we need to handle both keyword and symbol
+		      ;; since directive can be evaluated on the
+		      ;; socket port. (c.f. #!r6rs invalidates keyword
+		      ;; reading)
+		      ((:directive |:directive|)
+		       (let ((n (cadr command)))
+			 (apply-directive! in/out n *context*)
+			 (send-datum socket (pack-data :values))))
+		      ((:datum |:datum|)
 		       (let ((e (cadr command))
 			     (p in/out))
 			 (let-values (((out extract)
@@ -261,15 +321,16 @@
 				  socket
 				  (apply pack-data
 					 :values (data->string r))))))))
-		      ((:exit)
+		      ((:exit |:exit|)
 		       (logging socket "disconnect")
 		       (send-packed-data socket :exit)
 		       (set! stop? #t))
 		      (else 
-		       => (^t 
+		       => (^t
 			   ;; invalid protocol
 			   (send-packed-data 
-			    socket :error (format "unknown tag ~s" t))))))))))
+			    socket :error "[internal]"
+			    (format "unknown tag ~s" t))))))))))
 	    (restore-ports!)
 	    (unless stop? (loop)))))
       (define (do-authenticate socket)

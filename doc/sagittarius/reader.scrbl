@@ -56,20 +56,30 @@ can not execute the definition of reader macro inside during reading it.
 @define[Library]{@name{(sagittarius reader)}}
 @desc{This library provides reader macro procedures and macros.}
 
+@define[Macro]{@name{define-reader-macro} 
+  @args{char (name args @dots{}) body @dots{}}}
 @define[Macro]{@name{define-reader-macro} @args{name char proc}}
 @define[Macro]{@name{define-reader-macro} @args{name char proc non-term?}}
-@desc{@var{Name} must be self evaluated expression. @var{Proc} must accept two
-arguments, the first one is a port, the second one is a character which is
-defined as reader macro character.
+
+@desc{@var{Name} must be self evaluated expression. @var{Proc} must accept 2 or
+3 arguments, the first one is a port, the second one is a character which is
+defined as reader macro character, and the third one which is an optional
+argument is a read context.
 
 @code{define-reader-macro} macro associates @var{char} and @var{proc} as a
 reader macro. Once it is associated and Sagittarius' reader reads it, then
 dispatches to the @var{proc} with 2 arguments.
 
-If @var{non-term?} argument is given and not #f, the @var{char} is marked as non
-terminated character. So reader reads as one identifier even it it contains the
-given
-@var{char} in it.
+If @var{non-term?} argument is given and not #f, the @var{char} is marked as
+non terminated character. So reader reads as one identifier even it it contains
+the given @var{char} in it.
+
+The first form is a convenient form. Users can write a reader macro without
+explicitly writing @code{lambda}. The form is expanded to like this:
+@codeblock{
+(define-reader-macro #\$ ($-reader args @dots{}) body @dots{})
+;; -> (define-reader-macro $-reader #\$ (lambda (args @dots{}) body @dots{}))
+}
 
 Note: the @var{name} is only for error message. It does not affect anything.
 }

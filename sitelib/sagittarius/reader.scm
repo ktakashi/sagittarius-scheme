@@ -23,6 +23,8 @@
 
   (define-syntax define-reader-macro
     (syntax-rules ()
+      ((_ c (name . args) body ...)
+       (define-reader-macro :define name c (lambda args body ...)))
       ((_ name c proc)
        (define-reader-macro :define name c proc #f))
       ((_ name c proc non-term?)

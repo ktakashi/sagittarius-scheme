@@ -997,6 +997,9 @@
       (set! (-> (SG_READ_CONTEXT ctx) flags) flags)
       (result ctx)))
 
+  (define-c-proc apply-directive! (p::<port> directive::<symbol> ctx::<read-context>)
+    Sg_ApplyDirective)
+  
   (define-c-proc open-output-bytevector (:optional (t::<transcoder> #f))
     (let ((bp (Sg_MakeByteArrayOutputPort -1)))
       (if (SG_FALSEP t)

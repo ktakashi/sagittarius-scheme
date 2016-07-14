@@ -106,6 +106,9 @@ SG_EXTERN int      Sg_DelimitedCharP(SgChar c);
 /* misc */
 SG_EXTERN SgObject Sg_MakeDefaultReadContext();
 SG_EXTERN SgObject Sg_MakeReadContextForLoad();
+SG_EXTERN SgObject Sg_ApplyDirective(SgPort *port, SgObject name,
+				     SgReadContext *ctx);
+
 
 SG_CDECL_END
 
