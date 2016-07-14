@@ -17,7 +17,7 @@
     (parameterize ((current-input-port in)
 		   (current-prompter (lambda () #t))
 		   (current-output-port out))
-      (connect-remote-repl "localhost" "8501" :quiet #t))
+      (connect-remote-repl "localhost" "10000" :quiet #t))
     (extract)))
 (define (test-repl command) (test-repl-port (open-string-input-port command)))
 
