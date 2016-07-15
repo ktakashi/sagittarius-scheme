@@ -1,4 +1,10 @@
-(import (scheme base) (scheme eval) (scheme char) (scheme lazy) (srfi 64))
+(import (scheme base)
+	(scheme eval)
+	(scheme char)
+	(scheme lazy)
+	(scheme read)
+	(scheme file)
+	(srfi 64))
 
 (test-begin "R7RS extra")
 
@@ -247,5 +253,13 @@
 
   (test-equal "point->vector (1)" #(0 0) (point->vector (make-point)))
   (test-equal "point->vector (2)" #(1 2) (point->vector (make-point 1 2))))
+
+(test-assert "symbol (:)" (symbol? (read (open-input-string ":"))))
+
+(let ((file "r7rs.read.tmp"))
+  (when (file-exists? file) (delete-file file))
+  (call-with-output-file file (lambda (out) (put-string out ":")))
+  (test-assert "symbol (:) file" (symbol? (call-with-input-file file read)))
+  (test-assert "symbol (:) file (2)" (with-input-from-file file read)))
 
 (test-end)

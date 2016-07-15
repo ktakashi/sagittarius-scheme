@@ -82,14 +82,13 @@
 	  (compat r7rs)
 	  (srfi :0)
 	  (rename (srfi :1) (make-list srfi:make-list))
-	  (srfi :6)
 	  (srfi :9)
 	  (srfi :23)
 	  (srfi :39)
 	  (only (core) equal?)
 	  (only (scheme private) define-values)
-	  ;; for undefined, square and read-line
-	  (sagittarius))
+	  (rename (sagittarius)
+		  (open-output-string r6rs:open-output-string)))
 
   (define-syntax let-syntax
     (syntax-rules ()
@@ -164,6 +163,14 @@
 	 (not (port-closed? p))))
 
   (define (open-input-bytevector bv) (open-bytevector-input-port bv))
+  (define (open-input-string s)
+    (let ((r (open-string-input-port s)))
+      (apply-directive! r 'r7rs)
+      r))
+  (define (open-output-string)
+    (let ((r (r6rs:open-output-string)))
+      (apply-directive! r 'r7rs)
+      r))
 
   (define (exact-integer? i) (and (integer? i) (exact? i)))
 

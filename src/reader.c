@@ -120,6 +120,7 @@ static SgReadContext * make_read_context()
   SG_SET_CLASS(ctx, SG_CLASS_READ_CONTEXT);
   return ctx;
 }
+static SgReadContext *DEFAULT_CONTEXT = NULL;
 
 SgObject Sg_MakeDefaultReadContext()
 {
@@ -985,6 +986,10 @@ static SgObject construct_lib_name(SgObject s)
 SgObject Sg_ApplyDirective(SgPort *port, SgObject desc, SgReadContext *ctx)
 {
   SgString *tag = SG_SYMBOL(desc)->name;
+  
+  if (!ctx) {
+    ctx = DEFAULT_CONTEXT;
+  }
   /* a bit of optimisation... */
   switch (SG_STRING_VALUE_AT(tag, 0)) {
   case 'c':
@@ -2426,6 +2431,7 @@ void Sg__InitReaderClass()
   /* for now no slot def */
   CINIT(SG_CLASS_READ_CONTEXT, "<read-context>");
 
+  DEFAULT_CONTEXT = Sg_MakeDefaultReadContext();
   SYM_CONST = SG_INTERN("const");
   SYM_SOURCE_INFO = SG_INTERN("source-info");
 }
