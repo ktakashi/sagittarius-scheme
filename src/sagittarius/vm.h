@@ -234,10 +234,7 @@ struct SgVMRec
   SgObject commandLineArgs;
   /*
     Stack:
-    TODO: if we use child vm, do I need to create a new stack or
-    share this?
    */
-
   SgObject  *stack;		/* for convenient */
   SgObject  *stackEnd;
 
@@ -254,8 +251,6 @@ struct SgVMRec
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
   SgObject   defaultEscapeHandler; /* for multi threading */
-  /* error */
-  SgObject   error;
 
   /* libraries */
   SgLibrary   *currentLibrary;
