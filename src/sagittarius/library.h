@@ -114,12 +114,13 @@ SG_EXTERN SgGloc*  Sg_FindBinding(SgObject library, SgObject name,
 				  SgObject callback);
 SG_EXTERN void     Sg_InsertBinding(SgLibrary *library, SgObject name,
 				    SgObject value);
-SG_EXTERN SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP);
+SG_EXTERN SgObject Sg_AddLoadSuffix(SgObject suffix, int appendP);
 /* make library immutable
    this operation, for now, is one way. (and not used)
  */
 SG_EXTERN void     Sg_LockLibrary(SgLibrary *library);
 
+SG_EXTERN SgObject Sg_FindDefaultDirectiveByPath(SgObject path);
 #define Sg_ImportLibrary(t, f)  Sg_ImportLibraryFullSpec((t), (f), SG_NIL)
 
 SG_CDECL_END

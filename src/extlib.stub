@@ -208,8 +208,11 @@
 	  (set! (-> (Sg_VM) loadPath) paths)
 	  (result SG_UNDEF))))
 
-  (define-c-proc add-load-suffix (suffix::<string> :key (append::<boolean> #f))
-    (result (Sg_AddLoadSuffix suffix append)))
+  (define-c-proc add-load-suffix (suffix::<string>
+				  :key (append::<boolean> #f)
+				       (directive::<symbol> #f))
+    (when (SG_FALSEP directive) (set! directive 'compatible))
+    (result (Sg_AddLoadSuffix (Sg_Cons suffix directive) append)))
 
   (define-c-proc load (path::<string>) Sg_VMLoad)
   (define-c-proc load-from-port (port::<port>) Sg_VMLoadFromPort)
@@ -421,6 +424,9 @@
   (define-c-proc current-load-path () :no-side-effect
     (result (-> (Sg_VM) currentLoadPath)))
 
+  (define-c-proc find-default-directive-by-path (path) :no-side-effect
+    Sg_FindDefaultDirectiveByPath)
+  
   ;; should we make this constant?
   (define-c-proc directory-name (p::<string>) :no-side-effect Sg_DirectoryName)
 

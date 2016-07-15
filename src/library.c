@@ -62,6 +62,8 @@ char *alloca ();
 #define LIBSAGITTARIUS_BODY
 #include "sagittarius/library.h"
 #include "sagittarius/core.h"
+#include "sagittarius/codec.h"
+#include "sagittarius/transcoder.h"
 #include "sagittarius/pair.h"
 #include "sagittarius/file.h"
 #include "sagittarius/hashtable.h"
@@ -483,7 +485,7 @@ static SgObject userlib = NULL;
     (offset) += (len);						\
   } while(0)
 
-static SgObject get_possible_paths(SgVM *vm, SgObject name)
+static SgObject get_possible_paths(SgVM *vm, SgObject name, int needDirectiveP)
 {
   /* length of '.sagittarius' */
 #define SPECIFIC_SIZE 12
@@ -516,12 +518,16 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name)
       check_length(SPECIFIC_SIZE);
       copy_uz(buf, specific, offset, SPECIFIC_SIZE);
     second:
-      check_length(SG_STRING_SIZE(SG_CAR(ext)));
-      copy_string0(buf, SG_CAR(ext), offset);
+      check_length(SG_STRING_SIZE(SG_CAAR(ext)));
+      copy_string0(buf, SG_CAAR(ext), offset);
       SG_STRING_VALUE_AT(buf, offset) = 0;
       SG_STRING_SIZE(buf) = offset;
       if (Sg_FileExistP(buf)) {
-	SG_APPEND1(paths, t, Sg_AbsolutePath(buf));
+	if (needDirectiveP) {
+	  SG_APPEND1(paths, t, Sg_Cons(Sg_AbsolutePath(buf), SG_CDAR(ext)));
+	} else {
+	  SG_APPEND1(paths, t, Sg_AbsolutePath(buf));
+	}
       }
       if (first) {
 	first = FALSE;
@@ -535,6 +541,34 @@ static SgObject get_possible_paths(SgVM *vm, SgObject name)
   }
 #undef check_length
   return paths;
+}
+
+/* FIXME this should be in load.c */
+static SgTranscoder *default_load_transcoder = SG_UNDEF;
+static void load_library(SgVM *vm, SgObject path, SgObject directive)
+{
+  SgObject file;
+  SgObject bport;
+  SgObject tport;
+  int save = vm->flags;
+  /* dummy context to change VM mode for directive. */
+  SgReadContext context = SG_STATIC_READ_CONTEXT;
+  context.flags = SG_CHANGE_VM_MODE;
+  
+  file = Sg_OpenFile(path, SG_READ);
+  if (!SG_FILEP(file)) {
+    /* file is error message */
+    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR,
+	       SG_INTERN("load"),
+	       Sg_Sprintf(UC("given file was not able to open: %A"), file),
+	       path, SG_FALSE);
+  }
+  bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
+  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
+
+  Sg_ApplyDirective(tport, directive, &context);
+  Sg_LoadFromPort(tport);
+  vm->flags = save;
 }
 
 static SgObject search_library_unsafe(SgObject name, SgObject olibname,
@@ -553,10 +587,10 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
     /* if not threre then create, don't search */
     return Sg_MakeLibrary(olibname);
   }
-  paths = get_possible_paths(vm, name);
+  paths = get_possible_paths(vm, name, TRUE);
   SG_FOR_EACH(paths, paths) {
     SgObject r;
-    SgObject path = SG_STRING(SG_CAR(paths));
+    SgObject path = SG_STRING(SG_CAAR(paths));
     /* this must creates a new library */
     if (Sg_FileExistP(path)) {
       int state, save;
@@ -586,7 +620,9 @@ static SgObject search_library_unsafe(SgObject name, SgObject olibname,
 	/* if find-library called inside of library and the library does not
 	   import (sagittarius) it can not compile.*/
 	vm->currentLibrary = userlib;
-	Sg_Load(path);		/* check again, or flag? */
+	
+	load_library(vm, path, SG_CDAR(paths)); /* check again, or flag? */
+	
 	vm->currentLibrary = saveLib;
 	/* if Sg_ReadCache returns INVALID_CACHE, then we don't have to write
 	   it. it's gonna be invalid anyway.
@@ -639,7 +675,7 @@ static SgObject search_library(SgObject name, SgObject libname, int *loadedp)
 SgObject Sg_SearchLibraryPath(SgObject name)
 {
   SgObject id_version = library_name_to_id_version(name);
-  return get_possible_paths(Sg_VM(), SG_CAR(id_version));
+  return get_possible_paths(Sg_VM(), SG_CAR(id_version), FALSE);
 }
 
 SgObject Sg_FindLibrary(SgObject name, int createp)
@@ -990,19 +1026,54 @@ void Sg_InsertBinding(SgLibrary *library, SgObject name, SgObject value_or_gloc)
   }
 }
 
-static SgInternalMutex suffix_mutex;
-SgObject Sg_AddLoadSuffix(SgString *suffix, int appendP)
+SgObject Sg_FindDefaultDirectiveByPath(SgObject path)
 {
+  SgObject cp;
+  if (SG_STRINGP(path)) {
+    SG_FOR_EACH(cp, extensions) {
+      SgObject conf = SG_CAR(cp);
+      int length = SG_STRING_SIZE(SG_CAR(conf));
+      int plen = SG_STRING_SIZE(path);
+      int i,j;
+      if (plen < length) goto fallback;
+      for (i = length-1, j = plen-1; i >= 0; i--, j--) {
+	if (SG_STRING_VALUE_AT(SG_CAR(conf), i) != SG_STRING_VALUE_AT(path, j))
+	  break;
+      }
+      if (i < 0) return SG_CDR(conf);
+    }
+  }
+ fallback:
+  return SG_INTERN("compatible");
+}
+
+static SgInternalMutex suffix_mutex;
+SgObject Sg_AddLoadSuffix(SgObject conf, int appendP)
+{
+  SgObject o = SG_UNDEF;
+  if (SG_STRINGP(conf)) {
+    o = Sg_Cons(SG_STRING(conf), SG_INTERN("compatible"));
+  } else if (SG_PAIRP(conf)) {
+    if (SG_STRINGP(SG_CAR(conf)) && SG_SYMBOLP(SG_CDR(conf))) {
+      o = conf;
+    } else {
+      goto err;
+    }
+  } else {
+  err:
+    Sg_Error(UC("string or pair of string and symbol required but got %S"),
+	     conf);
+  }
   /* check if this looks like a suffix */
-  if (SG_STRING_VALUE_AT(suffix, 0) != '.') {
+  if (SG_STRING_VALUE_AT(SG_CAR(o), 0) != '.') {
     return SG_FALSE;
   }
   Sg_LockMutex(&suffix_mutex);
   if (appendP && !SG_NULLP(extensions)) {
     extensions = Sg_AddConstantLiteral(Sg_Append2X(extensions,
-						   SG_LIST1(suffix)));
+						   SG_LIST1(o)));
   } else {
-    extensions = Sg_AddConstantLiteral(Sg_Cons(suffix, extensions));
+    extensions = Sg_AddConstantLiteral(Sg_Cons(o, extensions));
   }
   Sg_UnlockMutex(&suffix_mutex);
   return extensions;
@@ -1015,13 +1086,18 @@ void Sg__InitLibrary()
   Sg_InitMutex(&suffix_mutex, FALSE);
   ALL_LIBRARIES = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   
-  extensions = SG_LIST4(SG_MAKE_STRING(".ss"),
-			SG_MAKE_STRING(".sls"),
-			/* well, i don't like this but for my convenience */
-			SG_MAKE_STRING(".sld"),
-			SG_MAKE_STRING(".scm"));
+  extensions =
+    SG_LIST4(Sg_Cons(SG_MAKE_STRING(".ss"), SG_INTERN("r6rs")),
+	     Sg_Cons(SG_MAKE_STRING(".sls"), SG_INTERN("r6rs")),
+	     /* well, i don't like this but for my convenience */
+	     Sg_Cons(SG_MAKE_STRING(".sld"), SG_INTERN("r7rs")),
+	     Sg_Cons(SG_MAKE_STRING(".scm"), SG_INTERN("compatible")));
   extensions = Sg_AddConstantLiteral(extensions);
   userlib = Sg_MakeMutableLibrary(SG_INTERN("user"));
+
+  default_load_transcoder = SG_TRANSCODER(Sg_MakeTranscoder(Sg_MakeUtf8Codec(),
+							    Sg_NativeEol(),
+							    SG_RAISE_ERROR));
 }
 
 /*

@@ -261,7 +261,7 @@
   frames
   exp-name
   current-proc
-  (source-path (current-load-path)) 
+  (source-path (current-load-path))
   )
 
 ;;;;;;;;;;;
@@ -2784,8 +2784,7 @@
 		(rec `(,@(imap (lambda (form&path)
 				 (let ((expr (car form&path))
 				       (path (cdr form&path)))
-				   (cons expr (p1env-swap-source p1env
-						 (directory-name path)))))
+				   (cons expr (p1env-swap-source p1env path))))
 			       form&paths)
 		       ,@(cdr form&envs)) r exists?)))
 
@@ -3083,16 +3082,22 @@
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
     (syntax-error "include requires string" file))
-  (let ((path (p1env-source-path p1env)))
+  (let* ((path (p1env-source-path p1env))
+	 (directive (find-default-directive-by-path path))
+	 (dir (directory-name path)))
     (let loop ((files files)
 	       (forms '()))
       (if (null? files)
 	  (reverse! forms)
-	  (let-values (((p dir) (pass1/open-include-file (car files) path))
+	  (let-values (((p dir) (pass1/open-include-file (car files) dir))
 		       ;; context must be per file
 		       ((ctx) 	(make-read-context :source-info #t
 						   :no-case case-insensitive?
 						   :shared #t)))
+	    ;; applying directive to the included file port should not
+	    ;; change VM mode since the parent file should have control
+	    ;; of it. so don't specify read context.
+	    (apply-directive! p directive)
 	    (unwind-protect
 		(let loop2 ((r (read-with-context p ctx)) (form '()))
 		  (if (eof-object? r)
@@ -3106,7 +3111,7 @@
   (imap (lambda (form&path)
 	  (let ((expr (car form&path))
 		(path (cdr form&path)))
-	    (pass1 expr (p1env-swap-source p1env (directory-name path)))))
+	    (pass1 expr (p1env-swap-source p1env path))))
 	form&path))
 
 (define-pass1-syntax (include form p1env) :sagittarius
@@ -3253,8 +3258,7 @@
 				    (pass1/include args p1env 
 						   (eq? type 'include-ci))))
 			       (ifor-each (lambda (e&p)
-					    (let ((p (directory-name 
-						      (cdr e&p))))
+					    (let ((p (cdr e&p)))
 					      (set-cdr! e&p (p1env-swap-source
 							     env p))))
 					  expr&path)

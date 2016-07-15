@@ -716,6 +716,7 @@ int real_main(int argc, tchar **argv)
       break;
     }
     case 'S': case 'F': {
+      /* FIXME add directive somewhat! */
       SgObject exp = make_scheme_string(optarg_s);
       int appendP = (opt == 'F');
       SgObject suffixs = Sg_AddLoadSuffix(SG_STRING(exp), appendP);

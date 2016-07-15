@@ -107,6 +107,18 @@ static SgObject load_body(SgObject *args, int argc, void *data)
   return load_cc(SG_NIL, &data);
 }
 
+static SgObject load_info_cc(SgObject result, void **data)
+{
+  SgObject path = data[0];
+  SgObject real = data[1];
+  SgObject out = data[2];
+  uint64_t er, r;
+  Sg_TimeUsage(&er, NULL, NULL);
+  r = Sg_GetIntegerU64Clamp(real, SG_CLAMP_NONE, NULL);
+  Sg_Printf(out, UC(";; loaded %S [%d ms]\n"), path, (er - r)/1000);
+  return result;
+}
+
 SgObject Sg_VMLoadFromPort(SgPort *port)
 {
   /* save vm flags */
@@ -125,7 +137,17 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
        return proper load path but entry file path (eg. sash 'this-file'.scm).
        Let's not use unnecessary memory for useless stuff. */
     /* if (!Sg_AbsolutePathP(file)) file = Sg_AbsolutePath(file); */
-    vm->currentLoadPath = Sg_DirectoryName(file);
+    vm->currentLoadPath = file;
+    
+    if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+      void *data[3];
+      uint64_t r;
+      Sg_TimeUsage(&r, NULL, NULL);
+      data[0] = file;
+      data[1] = Sg_MakeIntegerFromU64(r);
+      data[2] = vm->logPort;
+      Sg_VMPushCC(load_info_cc, data, 3);
+    }
   }
   vm->currentLoadingPort = port;
   /* TODO put macro in vm.h */
@@ -138,22 +160,11 @@ SgObject Sg_VMLoadFromPort(SgPort *port)
    */
   if (vm->state == IMPORTING)
     vm->flags = vm->flags & (SG_LOG_LEVEL_MASK | SG_CACHE_MASK);
+
   return Sg_VMDynamicWindC(NULL, load_body, load_after, lc);
 }
 
 static SgTranscoder *default_load_transcoder = SG_UNDEF;
-
-static SgObject load_info_cc(SgObject result, void **data)
-{
-  SgObject path = data[0];
-  SgObject real = data[1];
-  SgObject out = data[2];
-  uint64_t er, r;
-  Sg_TimeUsage(&er, NULL, NULL);
-  r = Sg_GetIntegerU64Clamp(real, SG_CLAMP_NONE, NULL);
-  Sg_Printf(out, UC(";; loaded %S [%d ms]\n"), path, (er - r)/1000);
-  return result;
-}
 
 SgObject Sg_VMLoad(SgString *path)
 {
@@ -184,16 +195,7 @@ SgObject Sg_VMLoad(SgString *path)
   }
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
   tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
-  
-  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    void *data[3];
-    uint64_t r;
-    Sg_TimeUsage(&r, NULL, NULL);
-    data[0] = path;
-    data[1] = Sg_MakeIntegerFromU64(r);
-    data[2] = vm->logPort;
-    Sg_VMPushCC(load_info_cc, data, 3);
-  }
+
   return Sg_VMLoadFromPort(SG_PORT(tport));
 }
 

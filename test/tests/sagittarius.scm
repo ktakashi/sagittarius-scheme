@@ -2111,5 +2111,16 @@
   (for-each check1 chars))
 #!r6rs (check 'r6rs r6rs-chars)
 #!r7rs (check 'r7rs r7rs-chars)
-  
+
+(define (test-directives alist)
+  (for-each (lambda (p)
+	      (test-equal (car p) (cdr p)
+			  (find-default-directive-by-path (car p))))
+	    alist))
+
+(test-directives '(("foo/foo.sld" . r7rs)
+		   ("foo/foo.sls" . r6rs)
+		   ("foo/foo.ss" . r6rs)
+		   ("foo/foo.scm" . compatible)))
+
 (test-end)
