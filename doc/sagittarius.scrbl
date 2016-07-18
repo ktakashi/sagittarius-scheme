@@ -784,6 +784,21 @@ equivalent to:
 @snipet{(apply string-append @var{list-of-strings})}
 }
 
+@define[Function]{@name{istring?} @args{obj}}
+@desc{Returns #t if the given @var{obj} is an immutable string, otherwise #f.
+
+Immutable strings are one of the followings:
+@itemlist{
+@item{String literals. (c.f. @code{"abc"})}
+@item{Strings converted to immutable string by @code{string->istring}}
+}
+}
+
+@define[Function]{@name{string->istring} @args{string}}
+@desc{Returns copy of the given @var{string}. The returning string is
+converted to immutable string.
+}
+
 @subsubsection{Load path}
 
 @define[Function]{@name{add-load-path} @args{path :key (append #f)}}
