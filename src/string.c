@@ -222,7 +222,7 @@ int Sg_LiteralStringP(SgString *s)
   Sg_LockMutex(&smutex);
   r = Sg_HashTableRef(stable, SG_OBJ(s), SG_FALSE);
   Sg_UnlockMutex(&smutex);
-  return !SG_FALSEP(r);
+  return SG_EQ(s, r);
 }
 /* converts given string to immutable string if it's not */
 SgObject Sg_StringToIString(SgString *s)

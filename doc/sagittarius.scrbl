@@ -794,9 +794,13 @@ Immutable strings are one of the followings:
 }
 }
 
-@define[Function]{@name{string->istring} @args{string}}
+@define[Function]{@name{string->istring} 
+ @args{string :optional start end}}
 @desc{Returns copy of the given @var{string}. The returning string is
 converted to immutable string.
+
+The optional argument @var{start} and @var{end} are given, then the
+returing string is contains only the range of given @var{string}.
 }
 
 @subsubsection{Load path}

@@ -2126,12 +2126,22 @@
 
 ;; string literal and immutable string
 (test-assert "literal-string? (1)" (literal-string? "abc"))
-(test-assert "literal-string? (2)" (not (literal-string? (string #\a #\b))))
-(test-error "string->istring (1)" assertion-violation?
-	    (string-set! (string->istring (string #\a #\b)) 0 #\b))
+(test-assert "literal-string? (2)"
+	     ;; "abc" is interend above but this is not a literal string
+	     (not (literal-string? (string #\a #\b #\c))))
 (test-assert "istring? (1)" (istring? "abc"))
 (test-assert "istring? (2)" (not (istring? (string #\a #\b))))
 (test-assert "istring? (3)" (istring? (string->istring (string #\a #\b))))
 
-	     
+(define (test-istring es s . opt)
+  (let ((is (apply string->istring s opt)))
+    (test-equal (format "string->istring ~s" `(string->istring s ,@opt)) es is)
+    (test-error (format "string->istring ~s" `(string->istring s ,@opt))
+		assertion-violation? (string-set! is 0 #\b))))
+(test-istring "abc" (string #\a #\b #\c))
+(test-istring "bc" (string #\a #\b #\c) 1)
+(test-istring "ab" (string #\a #\b #\c) 0 2)
+(test-istring "bc" (string #\a #\b #\c #\d) 1 3)
+
+
 (test-end)
