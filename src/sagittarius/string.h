@@ -39,14 +39,16 @@ SG_CLASS_DECL(Sg_StringClass);
 struct SgStringRec
 {
   SG_HEADER;
-  unsigned int literalp: 1;
+  unsigned int immutablep: 1;
   int size             : (SIZEOF_INT*CHAR_BIT-1);
   SgChar value[1];
 };
 
+/* construction flag */
 typedef enum {
   SG_LITERAL_STRING,
   SG_HEAP_STRING,
+  SG_IMMUTABLE_STRING,
 } SgStringType;
 
 typedef enum {
@@ -61,17 +63,18 @@ typedef enum {
 #define READ_STRING_MAX_SIZE  2048
 #define SG_STRINGP(obj)       SG_XTYPEP(obj, SG_CLASS_STRING)
 #define SG_STRING(obj)         	((SgString*)(obj))
-#define SG_LITERAL_STRINGP(obj) (SG_STRINGP(obj) && SG_STRING(obj)->literalp)
+#define SG_IMMUTABLE_STRINGP(obj)			\
+  (SG_STRINGP(obj) && SG_STRING(obj)->immutablep)
 
 #define SG_STRING_SIZE(obj)     (SG_STRING(obj)->size)
 #define SG_STRING_VALUE(obj)    (SG_STRING(obj)->value)
 #define SG_STRING_VALUE_AT(obj, index)    (SG_STRING(obj)->value[index])
 
 #define SG_MAKE_STRING(str)					\
-  SG_STRING(Sg_MakeString(UC(str), SG_LITERAL_STRING, -1))
+  SG_STRING(Sg_MakeString(UC(str), SG_IMMUTABLE_STRING, -1))
 
 #define Sg_String(str)					\
-  SG_STRING(Sg_MakeString(str, SG_LITERAL_STRING, -1))
+  SG_STRING(Sg_MakeString(str, SG_IMMUTABLE_STRING, -1))
 
 #define Sg_HeapString(str)				\
   SG_STRING(Sg_MakeString(str, SG_HEAP_STRING, -1))
@@ -127,6 +130,13 @@ SG_EXTERN void     Sg_StringSet(SgString *s, int k, SgChar c);
 SG_EXTERN void     Sg_StringFill(SgString *s, SgChar c, int start, int end);
 /* for srfi-13 */
 SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, int start, int end);
+
+/* check if the string is literal (not immutable) string */
+SG_EXTERN int      Sg_LiteralStringP(SgString *s);
+/* converts given string to immutable string if it's not */
+SG_EXTERN SgObject Sg_StringToIString(SgString *s);
+/* mostly for cache */
+SG_EXTERN SgObject Sg_StringIntern(SgString *s);
 
 SG_CDECL_END
 

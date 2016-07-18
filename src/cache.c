@@ -1276,8 +1276,7 @@ static SgString* read_string(SgPort *in, int length)
   buf[length] = 0;
   /* This is kinda awkward */
   utf32 = Sg_Utf8sToUtf32s(buf, length);
-  return Sg_MakeString(SG_STRING_VALUE(utf32), SG_LITERAL_STRING,
-		       SG_STRING_SIZE(utf32));
+  return Sg_StringIntern(utf32);
 #else
   SgChar *buf, tmp[1024];
   buf = tmp;

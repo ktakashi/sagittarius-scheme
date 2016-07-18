@@ -508,7 +508,7 @@
   (define-c-proc symbol->string (z::<symbol>) :constant 
     (.if "defined(USE_WEAK_SYMBOL)"
 	 (result (SG_SYMBOL_NAME z))
-	 (if (SG_LITERAL_STRINGP (SG_SYMBOL_NAME z))
+	 (if (SG_IMMUTABLE_STRINGP (SG_SYMBOL_NAME z))
 	     (result (SG_SYMBOL_NAME z))
 	     ;; don't store it
 	     (result (Sg_CopyString (SG_SYMBOL_NAME z))))))
@@ -2054,9 +2054,9 @@
     (check-non-negative-fixnum get-string-n! count)
     (check-fixnum-range get-string-n! (SG_STRING_SIZE s) (+ start count) >=)
     ;; string must not be literal
-    (when (SG_LITERAL_STRINGP s)
+    (when (SG_IMMUTABLE_STRINGP s)
       (assertion-violation 'get-string-n!
-			   "attempt to modify a literal string" s))
+			   "attempt to modify an immutable string" s))
     (if (== count 0)
 	(result (SG_MAKE_INT 0))
 	(let ((ch::SgChar (Sg_Peekc p)))
@@ -3571,7 +3571,7 @@
     (when (> k (SG_STRING_SIZE s))
       (assertion-violation 'string-set! "index out of bounds"
 			   (SG_LIST3 s (SG_MAKE_INT k) (SG_MAKE_CHAR c))))
-    (when (SG_LITERAL_STRINGP s)
+    (when (SG_IMMUTABLE_STRINGP s)
       (assertion-violation 'string-set!
 			   "attempted to modify an immutable string"
 			   s))
@@ -3581,7 +3581,7 @@
   (define-c-proc string-fill! (s::<string> c::<char> :optional
 					   (start::<fixnum> 0)
 					   (end::<fixnum> -1)) ::<void>
-    (when (SG_LITERAL_STRINGP s)
+    (when (SG_IMMUTABLE_STRINGP s)
       (assertion-violation 'string-set!
 			   "attempted to modify an immutable string"
 			   s))

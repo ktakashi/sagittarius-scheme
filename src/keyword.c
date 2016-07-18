@@ -86,7 +86,7 @@ SgObject Sg_MakeKeyword(SgString *name)
 
   k = SG_NEW(SgKeyword);
   SG_SET_CLASS(k, SG_CLASS_KEYWORD);
-  if (SG_LITERAL_STRINGP(name)) {
+  if (SG_IMMUTABLE_STRINGP(name)) {
     k->name = name;
   } else {
     k->name = SG_STRING(Sg_CopyString(name));

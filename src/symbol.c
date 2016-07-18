@@ -92,13 +92,12 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
       return e;
     }
   }
-  if (SG_LITERAL_STRINGP(name)) {
+  if (SG_IMMUTABLE_STRINGP(name)) {
     sname = name;
   } else {
 #ifdef USE_WEAK_SYMBOL
     sname = Sg_CopyString(name);
-    /* FIXME: we only want immutable flag. */
-    SG_STRING(sname)->literalp = TRUE;
+    SG_STRING(sname)->immutablep = TRUE;
 #else
     sname = Sg_MakeString(SG_STRING_VALUE(name), SG_LITERAL_STRING,
 			  SG_STRING_SIZE(name));

@@ -3,6 +3,7 @@
 
 (import (except (rnrs) equal?)
 	(rnrs mutable-pairs)
+	(rnrs mutable-strings)
 	(rename (rnrs eval) (eval r6rs:eval))
 	(rnrs r5rs)
 	(sagittarius)
@@ -2123,4 +2124,14 @@
 		   ("foo/foo.ss" . r6rs)
 		   ("foo/foo.scm" . compatible)))
 
+;; string literal and immutable string
+(test-assert "literal-string? (1)" (literal-string? "abc"))
+(test-assert "literal-string? (2)" (not (literal-string? (string #\a #\b))))
+(test-error "string->istring (1)" assertion-violation?
+	    (string-set! (string->istring (string #\a #\b)) 0 #\b))
+(test-assert "istring? (1)" (istring? "abc"))
+(test-assert "istring? (2)" (not (istring? (string #\a #\b))))
+(test-assert "istring? (3)" (istring? (string->istring (string #\a #\b))))
+
+	     
 (test-end)

@@ -507,6 +507,12 @@
     :no-side-effect
     (result (Sg_StringTitleCase (Sg_MaybeSubstring s start end) TRUE)))
 
+  (define-c-proc literal-string? (s::<string>) ::<boolean> :constant Sg_LiteralStringP)
+  ;; for SRFI-135 and SRFI-140
+  (define-c-proc string->istring (s::<string>) :no-side-effect
+    Sg_StringToIString)
+  (define-c-proc istring? (s) ::<boolean> :constant SG_IMMUTABLE_STRINGP)
+  
 
   ;; hashtable
   ;; FIXME this is also in null.stub but we don't want to make it extern...

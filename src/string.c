@@ -116,7 +116,7 @@ static SgString* make_string(int size)
   SgString *z = SG_NEW_ATOMIC2(SgString *, SG_STRING_ALLOC_SIZE(size));
   SG_SET_CLASS(z, SG_CLASS_STRING);
   z->size = size;
-  z->literalp = FALSE;
+  z->immutablep = FALSE;
   return z;
 }
 
@@ -163,10 +163,12 @@ static SgObject makestring(const SgChar *value, SgStringType flag, int length)
   COPY_STRING(z, value, z->size, 0);
   z->value[z->size] = 0;
 
+  if (flag == SG_LITERAL_STRING || flag == SG_IMMUTABLE_STRING) {
+    z->immutablep = TRUE;
+  }
   /* store it if it's literal */
   if (flag == SG_LITERAL_STRING) {
     Sg_LockMutex(&smutex);
-    z->literalp = TRUE;
     r = Sg_HashTableSet(stable, SG_OBJ(z), SG_OBJ(z),
 			SG_HASH_NO_OVERWRITE);
     Sg_UnlockMutex(&smutex);
@@ -212,6 +214,40 @@ SgObject Sg_MakeEmptyString()
   SgString *z = make_string(0);
   return SG_OBJ(z);
 }
+
+int Sg_LiteralStringP(SgString *s)
+{
+  /* TODO should we lock the table? */
+  SgObject r;
+  Sg_LockMutex(&smutex);
+  r = Sg_HashTableRef(stable, SG_OBJ(s), SG_FALSE);
+  Sg_UnlockMutex(&smutex);
+  return !SG_FALSEP(r);
+}
+/* converts given string to immutable string if it's not */
+SgObject Sg_StringToIString(SgString *s)
+{
+  SgObject r;
+  if (SG_IMMUTABLE_STRINGP(s)) return s;
+  r = Sg_CopyString(s);
+  SG_STRING(r)->immutablep = TRUE;
+  return r;
+}
+/* mostly for cache */
+SgObject Sg_StringIntern(SgString *s)
+{
+  SgObject r;
+  Sg_LockMutex(&smutex);
+  r = Sg_HashTableRef(stable, SG_OBJ(s), SG_FALSE);
+  if (SG_FALSEP(r)) {
+    SG_STRING(r)->immutablep = TRUE;
+    r = Sg_HashTableSet(stable, SG_OBJ(r), SG_OBJ(r),
+			SG_HASH_NO_OVERWRITE);
+  }
+  Sg_UnlockMutex(&smutex);
+  return r; 
+}
+
 
 static int string_equal(SgChar *s1, int size1, SgChar *s2, int size2)
 {
@@ -508,7 +544,7 @@ SgObject Sg_Substring(SgString *x, int start, int end)
 
 void Sg_StringSet(SgString *s, int k, SgChar c)
 {
-  if (SG_LITERAL_STRINGP(s)) {
+  if (SG_IMMUTABLE_STRINGP(s)) {
     Sg_Error(UC("attemped to modify a immutable string %S"), s);
   }
   SG_STRING_VALUE_AT(s, k) = c;
