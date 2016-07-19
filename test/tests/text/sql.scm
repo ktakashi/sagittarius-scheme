@@ -10,11 +10,12 @@
 (test-begin "SQL")
 
 (define (test-parse sql expected)
-  (let ((p (parse-sql (open-string-input-port sql))))
-    (test-equal sql expected p)
-    (test-equal (format "~a (validate)" sql)
-		expected
-		(parse-sql (open-string-input-port (ssql->sql p))))))
+  (guard (e (else (test-assert sql #f)))
+    (let ((p (parse-sql (open-string-input-port sql))))
+      (test-equal sql expected p)
+      (test-equal (format "~a (validate)" sql)
+		  expected
+		  (parse-sql (open-string-input-port (ssql->sql p)))))))
 
 (test-parse "/* comment */ select b.U&\"$42\" uescape '$' from a,b as b1(a,b)"
 	    '(select ((~ b (unicode (! "$42") uescape "$")))
@@ -166,6 +167,10 @@
 
 (test-parse "select * from t full join a using (a, b, c)"
 	    '(select * (from (t (full-join a (using a b c))))))
+
+;; values
+(test-parse "select * from (values ('a'), ('b')) as c(a,b)"
+	    '(select * (from (as (values ("a") ("b")) (c a b)))))
 
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
@@ -412,6 +417,14 @@
 	    '(update f (set! (= (~ a m) 1) (= b 2)) (where (= i 0))))
 (test-parse "update f set a=null where i=0" 
 	    '(update f (set! (= a null)) (where (= i 0))))
+
+;; with
+(test-parse "with a as (select *), b as (select * from t2) select * from a, b"
+	    '(with ((as  a (select *)) (as b (select * (from t2))))
+		   (select * (from a b))))
+(test-parse "insert into t (a, b) with a as (select *) select * from a"
+	    '(insert-into t (a b)
+	      (with ((as a (select *))) (select * (from a)))))
 
 ;; create table
 (test-parse "create table t (a int)" '(create-table t ((a int))))

@@ -152,7 +152,8 @@
 	     (make-result s (parse-results-next results))
 	     (make-expected-result
 	      (parse-results-position results)
-	      "SQL keyword is not allowed to be an identifier"))))
+	      (format "SQL keyword ~a is not allowed to be an identifier"
+		      s)))))
      ;; some keyword looks like symbols are not reserved keyword
      ;; e.g.) SETS, used by GROUPING SETS
      ;; to avoid adding unnecessary keyword in scanner, we need to
