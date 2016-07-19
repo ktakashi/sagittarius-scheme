@@ -8,7 +8,7 @@ rem the execution until either hits executed properly or
 rem reached to max retry count.
 
 set RETRY=0
-set MAX_RETRY=10
+set MAX_RETRY=1
 
 set COMMAND=%1
 rem Make it look like Windows command
