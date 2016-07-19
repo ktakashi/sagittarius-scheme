@@ -505,13 +505,7 @@
   (define-c-proc last-pair (lst) :constant Sg_LastPair)
 
   ;; 11.10 symbols
-  (define-c-proc symbol->string (z::<symbol>) :constant 
-    (.if "defined(USE_WEAK_SYMBOL)"
-	 (result (SG_SYMBOL_NAME z))
-	 (if (SG_IMMUTABLE_STRINGP (SG_SYMBOL_NAME z))
-	     (result (SG_SYMBOL_NAME z))
-	     ;; don't store it
-	     (result (Sg_CopyString (SG_SYMBOL_NAME z))))))
+  (define-c-proc symbol->string (z::<symbol>) :constant SG_SYMBOL_NAME)
 
   (define-cise-stmt check-symbol
     ((_ name s)

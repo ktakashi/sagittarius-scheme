@@ -225,11 +225,15 @@ int Sg_LiteralStringP(SgString *s)
   return SG_EQ(s, r);
 }
 /* converts given string to immutable string if it's not */
-SgObject Sg_StringToIString(SgString *s)
+SgObject Sg_StringToIString(SgString *s, int start, int end)
 {
   SgObject r;
-  if (SG_IMMUTABLE_STRINGP(s)) return s;
-  r = Sg_CopyString(s);
+  int size = SG_STRING_SIZE(s);
+  SG_CHECK_START_END(start, end, size);
+  
+  if (start == 0 && end == size && SG_IMMUTABLE_STRINGP(s)) return s;
+  
+  r = Sg_Substring(s, start, end);
   SG_STRING(r)->immutablep = TRUE;
   return r;
 }

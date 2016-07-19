@@ -134,7 +134,7 @@ SG_EXTERN SgObject Sg_MaybeSubstring(SgString *s, int start, int end);
 /* check if the string is literal (not immutable) string */
 SG_EXTERN int      Sg_LiteralStringP(SgString *s);
 /* converts given string to immutable string if it's not */
-SG_EXTERN SgObject Sg_StringToIString(SgString *s);
+SG_EXTERN SgObject Sg_StringToIString(SgString *s, int start, int end);
 /* mostly for cache */
 SG_EXTERN SgObject Sg_StringIntern(SgString *s);
 

@@ -512,9 +512,7 @@
   (define-c-proc string->istring
     (s::<string> :optional (start::<fixnum> 0) (end::<fixnum> -1))
     :no-side-effect
-    (if (and (== start 0) (or (< end 0) (== (SG_STRING_SIZE s) end)))
-	(result (Sg_StringToIString s))
-	(result (Sg_StringToIString (Sg_Substring s start end)))))
+    Sg_StringToIString)
   (define-c-proc istring? (s) ::<boolean> :constant SG_IMMUTABLE_STRINGP)
   
 

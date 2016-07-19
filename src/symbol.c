@@ -95,13 +95,7 @@ SgObject Sg_MakeSymbol(SgString *name, int interned)
   if (SG_IMMUTABLE_STRINGP(name)) {
     sname = name;
   } else {
-#ifdef USE_WEAK_SYMBOL
-    sname = Sg_CopyString(name);
-    SG_STRING(sname)->immutablep = TRUE;
-#else
-    sname = Sg_MakeString(SG_STRING_VALUE(name), SG_LITERAL_STRING,
-			  SG_STRING_SIZE(name));
-#endif
+    sname = Sg_StringToIString(name, 0, -1);
   }
   sym = make_symbol(sname, interned);
   if (!interned) return SG_OBJ(sym);
