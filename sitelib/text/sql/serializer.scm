@@ -139,10 +139,10 @@
 	(args (cdr ssql)))
     ;; reset indent to 0 so that it values won't get too many spaces
     (apply maybe-with-parenthesis (car args) out :indent 0 opt)
-    (put-indent out indent)
+    (put-char out #\space)
     (write/case name out)
-    (put-indent out indent)
-    (apply maybe-with-parenthesis (cadr args) out :indent 0 opt)))
+    (put-char out #\space)
+    (apply maybe-with-parenthesis (cadr args) out :indent indent opt)))
 
 (define (write-args args out . opt)
   (put-char out '#\()
@@ -719,7 +719,7 @@
     (define offset (match condition
 		     (('and rest ...) 2)
 		     (('or  rest ...) 3)
-		     (else 0)))
+		     (else 1)))
     (apply write-ssql condition out :indent (next-indent indent offset) opt))
   (('where condition)
    (write/case "WHERE " out)
