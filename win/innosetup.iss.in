@@ -73,6 +73,8 @@ Source: "{#SrcDir}\ext\ffi\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,lib
 Source: "{#SrcDir}\ext\crypto\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,libtom*"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\odbc\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SrcDir}\ext\zlib\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm,zlib-*"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SrcDir}\ext\termios\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SrcDir}\ext\filewatch\*.scm"; DestDir: "{app}\lib"; Excludes: "test.scm"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\reference.html"; Filename: "{app}\doc\sagittarius-ref.html"
