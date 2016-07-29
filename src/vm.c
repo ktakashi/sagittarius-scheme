@@ -1872,15 +1872,21 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
     } else {
       Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
       if (!SG_NULLP(SG_CDR(vm->exceptionHandler))) {
-	return Sg_Apply1(SG_CADR(vm->exceptionHandler), 
-			 Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
-					       Sg_MakeWhoCondition(SG_INTERN("raise")),
-					       Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
-					       Sg_MakeIrritantsCondition(SG_LIST1(exception)))));
+	SgObject c = Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
+					   Sg_MakeWhoCondition(SG_INTERN("raise")),
+					   Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
+					   Sg_MakeIrritantsCondition(SG_LIST1(exception))));
+	Sg_Apply1(SG_CADR(vm->exceptionHandler), c);
+	vm->exceptionHandler = SG_CDDR(vm->exceptionHandler);
+      } else {
+	/* should never happen but in case. */
+	vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
       }
-      vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-      Sg_Error(UC("error in raise: returned from non-continuable exception\n\n"
-		  "irritants:\n%A"), exception);
+      exception =
+	Sg_Condition(SG_LIST3(Sg_MakeError(SG_MAKE_STRING("error in raise: returned from non-continuable exception")),
+			      Sg_MakeWhoCondition(SG_INTERN("raise")),
+			      Sg_MakeIrritantsCondition(SG_LIST1(exception))));
+      return Sg_VMThrowException(vm, exception, FALSE);
     }
   }
   Sg_VMDefaultExceptionHandler(exception);

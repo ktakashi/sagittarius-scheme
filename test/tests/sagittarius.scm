@@ -2143,5 +2143,15 @@
 (test-istring "ab" (string #\a #\b #\c) 0 2)
 (test-istring "bc" (string #\a #\b #\c #\d) 1 3)
 
+;; issue 190
+(test-error "non continuable condition"
+	    condition?
+	    (with-exception-handler
+	     (lambda (k) #t)
+	     (lambda ()
+	       (with-exception-handler
+		(lambda (k) #t)
+		(lambda ()
+		  (raise 'a))))))
 
 (test-end)
