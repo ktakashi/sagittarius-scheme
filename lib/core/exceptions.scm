@@ -9,6 +9,19 @@
 	    (core errors)
 	    (sagittarius))
 
+ (define (with-exception-handler handler thunk)
+   (let* ((old (current-exception-handler))
+	  (new (lambda (c)
+		 (let ((save (current-exception-handler)))
+		   (dynamic-wind
+		       (lambda () (current-exception-handler old))
+		       (lambda () (handler c))
+		       (lambda () (current-exception-handler save)))))))
+     (dynamic-wind
+	 (lambda () (current-exception-handler (cons new old)))
+	 thunk
+	 (lambda () (current-exception-handler old)))))
+ 
   (define-syntax guard
     (lambda (x)
       (syntax-case x (else)

@@ -258,7 +258,6 @@ struct SgVMRec
   SgObject    dynamicWinders;
   /* exception handler */
   SgObject    exceptionHandler;
-  SgObject    parentExHandler;
 
   /* parameters */
   SgObject    parameters;
@@ -422,7 +421,6 @@ SG_EXTERN SgObject Sg_GetStackTraceFromCont(SgContFrame *cont);
 SG_EXTERN SgObject Sg_VMThrowException(SgVM *vm, SgObject exception,
 				       int continuableP);
 SG_EXTERN void     Sg_VMDefaultExceptionHandler(SgObject exception);
-SG_EXTERN SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk);
 SG_EXTERN SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 					 int rewindBefore);
 SG_EXTERN void     Sg_ReportError(SgObject e, SgObject out);

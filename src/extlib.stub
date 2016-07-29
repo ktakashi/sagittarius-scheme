@@ -111,20 +111,16 @@
     :no-side-effect
     (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
 
-  (define-c-proc current-exception-handler (:optional handle)
-    (if (SG_UNBOUNDP handle)
+  (define-c-proc current-exception-handler (:optional handler)
+    (if (SG_UNBOUNDP handler)
 	(result (-> (Sg_VM) exceptionHandler))
 	(begin
-	  (set! (-> (Sg_VM) exceptionHandler) handle)
+	  (if (SG_PAIRP handler)
+	      (set! (-> (Sg_VM) exceptionHandler) handler)
+	      (wrong-type-of-argument-violation 'current-exception-handler
+						"list of handlers"
+						handler))
 	  (result SG_UNDEF))))
-
-  (define-c-proc parent-exception-handler (:optional handle)
-    (if (SG_UNBOUNDP handle)
-	(result (-> (Sg_VM) parentExHandler))
-	(begin
-	  (set! (-> (Sg_VM) parentExHandler) handle)
-	  (result SG_UNDEF))))
-
   ;; misc
   (define-c-proc variable? (o) ::<boolean> :constant
     (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))

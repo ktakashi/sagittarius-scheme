@@ -1546,8 +1546,9 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
-  (define-c-proc with-exception-handler (handler thunk) 
-    Sg_VMWithExceptionHandler)
+;; this is moved in Scheme
+;;  (define-c-proc with-exception-handler (handler thunk) 
+;;    Sg_VMWithExceptionHandler)
 
   (define-c-proc raise (c) 
     (result (Sg_Raise c FALSE)))

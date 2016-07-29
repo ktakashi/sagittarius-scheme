@@ -75,7 +75,12 @@ static pthread_key_t the_vm_key;
 #endif
 
 static SgSubr default_exception_handler_rec;
-#define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler_rec)
+static SgPair default_exception_handler = {
+  SG_OBJ(&default_exception_handler_rec),
+  SG_NIL,
+  SG_NIL
+};
+#define DEFAULT_EXCEPTION_HANDLER SG_OBJ(&default_exception_handler)
 
 static void box_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
@@ -177,7 +182,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->cstack = NULL;
 
   v->dynamicWinders = SG_NIL;
-  v->parentExHandler = SG_FALSE;
   v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   v->commandLineArgs = SG_NIL;
 
@@ -1302,75 +1306,9 @@ SgObject Sg_VMDynamicWindC(SgSubrProc *before,
 /* 
 ;; with-expantion-handler
 ;; image of with-exception-handler implementation
-(define with-exception-handler 
-  (lambda (handler thunk)
-    (let ((parent (current-exception-handler)))
-      (let ((parent-save (parent-exception-handler))
-	    (current-save (current-exception-handler))
-	    (new-current (lambda (condition)
-			   (let ((current-save2 (current-exception-handler)))
-			     (dynamic-wind
-				 (lambda ()
-				   (current-exception-handler parent))
-				 (lambda () (handler condition))
-				 (lambda () (current-exception-handler current-save2)))))))
-	(dynamic-wind
-	    (lambda () 
-	      (parent-exception-handler parent)
-	      (current-exception-handler new-current))
-	    thunk
-	    (lambda ()
-	      (parent-exception-handler parent-save)
-	      (current-exception-handler current-save)))))))
+;; NB: current-exception-handler is a list
+
  */
-static SgObject install_xhandler(SgObject *args, int argc, void *data)
-{
-  SgVM *vm = Sg_VM();
-  if (SG_PAIRP(SG_OBJ(data))) {
-    vm->parentExHandler = SG_CAR(SG_OBJ(data));
-    vm->exceptionHandler = SG_CDR(SG_OBJ(data));
-  } else {
-    vm->exceptionHandler = SG_OBJ(data);
-  }
-  return vm->ac;
-}
-
-static SgObject handler_runner(SgObject *args, int argc, void *data)
-{
-  SgObject handler = SG_CAR(SG_OBJ(data));
-  SgObject condition = SG_CDR(SG_OBJ(data));
-  return Sg_VMApply1(handler, condition);
-}
-
-static SgObject handler_body(SgObject *args, int argc, void *data)
-{
-  SgVM *vm = Sg_VM();
-  SgObject save = vm->exceptionHandler;
-  SgObject parent = SG_CAR(SG_OBJ(data));
-  SgObject handler = SG_CDR(SG_OBJ(data));
-  SgObject before  = Sg_MakeSubr(install_xhandler, parent, 0, 0, SG_FALSE);
-  SgObject after   = Sg_MakeSubr(install_xhandler, save, 0, 0, SG_FALSE);
-  SgObject thunk   = Sg_MakeSubr(handler_runner, Sg_Cons(handler, args[0]),
-				 0, 0, SG_FALSE);
-  return Sg_VMDynamicWind(before, thunk, after);
-}
-
-SgObject Sg_VMWithExceptionHandler(SgObject handler, SgObject thunk)
-{
-  SgVM *vm = Sg_VM();
-  SgObject parent = vm->exceptionHandler;
-  SgObject psave  = vm->parentExHandler;
-  SgObject csave  = vm->exceptionHandler;
-  SgObject new_current = Sg_MakeSubr(handler_body, Sg_Cons(parent, handler),
-				     1, 0, SG_FALSE);
-  SgObject before      = Sg_MakeSubr(install_xhandler,
-				     Sg_Cons(parent, new_current),
-				     0, 0, SG_FALSE);
-  SgObject after       = Sg_MakeSubr(install_xhandler, Sg_Cons(psave, csave),
-				     0, 0, SG_FALSE);
-  return Sg_VMDynamicWind(before, thunk, after);
-}
-
 
 static SgObject install_ehandler(SgObject *args, int argc, void *data)
 {
@@ -1929,12 +1867,12 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
   exception = Sg_AddStackTrace(exception, vm);
   if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
     if (continuableP) {
-      vm->ac = Sg_Apply1(vm->exceptionHandler, exception);
+      vm->ac = Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
       return vm->ac;
     } else {
-      Sg_Apply1(vm->exceptionHandler, exception);
-      if (!SG_FALSEP(vm->parentExHandler)) {
-	return Sg_Apply1(vm->parentExHandler, 
+      Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
+      if (!SG_NULLP(SG_CDR(vm->exceptionHandler))) {
+	return Sg_Apply1(SG_CADR(vm->exceptionHandler), 
 			 Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
 					       Sg_MakeWhoCondition(SG_INTERN("raise")),
 					       Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
@@ -2137,7 +2075,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   vm->escapeReason = SG_VM_ESCAPE_NONE;
   if (setjmp(cstack.jbuf) == 0) {
     run_loop();
-    AC(vm) = vm->ac;
     /* RUN_FINALIZER(vm); */
     if (vm->cont == cstack.cont) {
       POP_CONT();
@@ -2204,7 +2141,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	Sg_Exit(EX_SOFTWARE);
       } else {
 	CONT(vm) = cstack.cont;
-	AC(vm) = vm->ac;
 	POP_CONT();
 	vm->cstack = vm->cstack->prev;
 	vm->usageEnv = usave;
