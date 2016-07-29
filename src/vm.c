@@ -1302,14 +1302,6 @@ SgObject Sg_VMDynamicWindC(SgSubrProc *before,
   return Sg_VMDynamicWind(beforeproc, bodyproc, afterproc);
 }
 
-
-/* 
-;; with-expantion-handler
-;; image of with-exception-handler implementation
-;; NB: current-exception-handler is a list
-
- */
-
 static SgObject install_ehandler(SgObject *args, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
@@ -1845,6 +1837,27 @@ SgObject Sg_GetStackTraceFromCont(SgContFrame *cont)
   return get_stack_trace(cont, cont->cl, cont->pc);
 }
 
+/*
+;; image of the definitions
+(define (raise-continuable c) ((car (current-exception-handler)) c))
+(define (raise c)
+  (let* ((eh* (current-exception-handler))
+	 (eh (car eh*)))
+    (eh c)
+    (unless (null? (cdr eh*))
+      ((cadr eh*)
+       (condition (make-non-continuable-violation)
+		  (make-who-condition 'raise)
+		  (make-message-condition
+		   "returned from non-continuable exception")
+		  (make-irritants-condition (list c))))
+      (current-exception-handler (cddr eh*)))
+    (raise (condition (make-error)
+		      (make-message-condition
+		       "error in raise: returned from non-continuable")
+		      (make-who-condition 'raise)
+		      (make-irritants-condition (list c))))))
+ */
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
   /*
@@ -1863,34 +1876,32 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
     Not sure if this happens in near future but we may review the current
     implementation of call/cc if the performance would be an issue.
   */
-  save_cont(vm);
-  exception = Sg_AddStackTrace(exception, vm);
-  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
-    if (continuableP) {
-      vm->ac = Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
-      return vm->ac;
-    } else {
-      Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
-      if (!SG_NULLP(SG_CDR(vm->exceptionHandler))) {
-	SgObject c = Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
-					   Sg_MakeWhoCondition(SG_INTERN("raise")),
-					   Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
-					   Sg_MakeIrritantsCondition(SG_LIST1(exception))));
-	Sg_Apply1(SG_CADR(vm->exceptionHandler), c);
-	vm->exceptionHandler = SG_CDDR(vm->exceptionHandler);
-      } else {
-	/* should never happen but in case. */
-	vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
-      }
-      exception =
-	Sg_Condition(SG_LIST3(Sg_MakeError(SG_MAKE_STRING("error in raise: returned from non-continuable exception")),
-			      Sg_MakeWhoCondition(SG_INTERN("raise")),
-			      Sg_MakeIrritantsCondition(SG_LIST1(exception))));
-      return Sg_VMThrowException(vm, exception, FALSE);
-    }
+  if (Sg_CompoundConditionP(exception)) {
+    save_cont(vm);
+    exception = Sg_AddStackTrace(exception, vm);
   }
-  Sg_VMDefaultExceptionHandler(exception);
-  return SG_UNDEF;		/* dummy */
+  /* should never happen but I usually make mistake so lean to safer side. */
+  if (SG_NULLP(vm->exceptionHandler)) {
+    vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  }
+  if (continuableP) {
+    return Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
+  } else {
+    Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
+    if (!SG_NULLP(SG_CDR(vm->exceptionHandler))) {
+      SgObject c = Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
+					 Sg_MakeWhoCondition(SG_INTERN("raise")),
+					 Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
+					 Sg_MakeIrritantsCondition(SG_LIST1(exception))));
+      Sg_Apply1(SG_CADR(vm->exceptionHandler), c);
+      vm->exceptionHandler = SG_CDDR(vm->exceptionHandler);
+    }
+    exception =
+      Sg_Condition(SG_LIST3(Sg_MakeError(SG_MAKE_STRING("error in raise: returned from non-continuable exception")),
+			    Sg_MakeWhoCondition(SG_INTERN("raise")),
+			    Sg_MakeIrritantsCondition(SG_LIST1(exception))));
+    return Sg_VMThrowException(vm, exception, FALSE);
+  }
 }
 
 #ifndef EX_SOFTWARE
