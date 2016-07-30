@@ -146,7 +146,7 @@ static int handle_events(SgFileWatchContext *ctx, int fd, SgObject wds)
 
     for (ptr = buf; ptr < buf + len;
 	 ptr += sizeof(struct inotify_event) + event->len) {
-      SgObject handler, name = SG_FALSE, flag, cp;
+      SgObject handler, name = SG_FALSE, flag = SG_FALSE, cp;
       
       event = (const struct inotify_event *) ptr;
       SG_FOR_EACH(cp, wds) {
@@ -170,6 +170,9 @@ static int handle_events(SgFileWatchContext *ctx, int fd, SgObject wds)
       /* TODO how to handle it? */
       if (event->mask & IN_MOVED_FROM) flag = SG_RENAMED;
       if (event->mask & IN_MOVED_TO)   flag = SG_RENAMED;
+      /* ok, we don't know this event */
+      if (SG_FALSEP(flag)) continue;
+
       if (event->len && Sg_DirectoryP(name)) {
 	/* monitoring directory so construct file path 
 	   NB: we don't support IN_OPEN or IN_CLOSE so, i believe, 
