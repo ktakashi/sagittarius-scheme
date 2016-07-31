@@ -155,7 +155,6 @@ typedef struct ptw32_cleanup_rec_t
 {
   ptw32_cleanup_callback_t routine;
   void *arg;
-  struct ptw32_cleanup_rec_t *prev;
 } ptw32_cleanup_t;
 # define thread_cleanup_push(_rout, _arg)			\
   {								\
