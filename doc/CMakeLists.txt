@@ -19,7 +19,7 @@ SET(GENDOC ${GENDOC}
   ${PROJECT_BINARY_DIR}/build/${REAL_SASH_NAME}
   -L${PROJECT_SOURCE_DIR}/lib -L${PROJECT_SOURCE_DIR}/sitelib
   -L${PROJECT_SOURCE_DIR}/ext/time -D${PROJECT_BINARY_DIR}/build 
-  gendoc)
+  "${CMAKE_CURRENT_SOURCE_DIR}/gendoc")
 
 # CAUTION
 # this doesn't pick up newly added files. 
@@ -32,21 +32,25 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   COMMAND ${GENDOC}
   --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl
-  DEPENDS ${SCRBL_FILES})
+  DEPENDS ${SCRBL_FILES}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_CUSTOM_TARGET(doc ALL
-  DEPENDS sagittarius--time ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
+  DEPENDS sagittarius--time 
+          ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
+)
 
 ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
   COMMAND ${GENDOC} 
   --output=${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
   --style=lib/style.css --separate=2 sagittarius-ref.scrbl
-  DEPENDS ${SCRBL_FILES})
+  DEPENDS ${SCRBL_FILES}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 ADD_CUSTOM_TARGET(online-doc
-  DEPENDS sagittarius--time ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/doc)
+  DEPENDS sagittarius--time 
+          ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html
+)
 
 INSTALL(FILES ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   DESTINATION ${SAGITTARIUS_CURRENT_SHARE}/doc)
