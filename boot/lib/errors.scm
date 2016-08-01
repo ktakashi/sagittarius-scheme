@@ -1,5 +1,7 @@
 (library (core errors)
-    (export describe-condition
+    (export raise
+	    raise-continuable
+	    describe-condition
 	    assertion-violation
 	    undefined-violation
 	    lexical-violation
@@ -24,6 +26,25 @@
     (import (core)
 	    (core base)
 	    (sagittarius))
+
+(define (raise-continuable c) ((car (current-exception-handler)) c))
+(define (raise c)
+  (let* ((eh* (current-exception-handler))
+	 (eh (car eh*)))
+    (eh c)
+    (unless (null? (cdr eh*))
+      ((cadr eh*)
+       (condition (make-non-continuable-violation)
+		  (make-who-condition 'raise)
+		  (make-message-condition
+		   "returned from non-continuable exception")
+		  (make-irritants-condition (list c))))
+      (current-exception-handler (cddr eh*)))
+    (raise (condition (make-non-continuable-violation)
+		      (make-who-condition 'raise)
+		      (make-message-condition
+		       "error in raise: returned from non-continuable")
+		      (make-irritants-condition (list c))))))
 
 (define undefined-violation
   (lambda (who . message)

@@ -1830,25 +1830,18 @@ SgObject Sg_GetStackTraceFromCont(SgContFrame *cont)
 
 /*
 ;; image of the definitions
-(define (raise-continuable c) ((car (current-exception-handler)) c))
-(define (raise c)
-  (let* ((eh* (current-exception-handler))
-	 (eh (car eh*)))
-    (eh c)
-    (unless (null? (cdr eh*))
-      ((cadr eh*)
-       (condition (make-non-continuable-violation)
-		  (make-who-condition 'raise)
-		  (make-message-condition
-		   "returned from non-continuable exception")
-		  (make-irritants-condition (list c))))
-      (current-exception-handler (cddr eh*)))
-    (raise (condition (make-error)
-		      (make-message-condition
-		       "error in raise: returned from non-continuable")
-		      (make-who-condition 'raise)
-		      (make-irritants-condition (list c))))))
+
  */
+static SgObject raise_proc = SG_FALSE;
+static SgObject raise_continuable_proc = SG_FALSE;
+
+static SgObject raise_cc(SgObject result, void **data)
+{
+  SgObject e = SG_OBJ(data[0]);
+  SgObject p = SG_OBJ(data[1]);
+  return Sg_VMApply1(p, e);
+}
+
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
   /*
@@ -1875,24 +1868,32 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
   if (SG_NULLP(vm->exceptionHandler)) {
     vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
   }
-  if (continuableP) {
-    return Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
-  } else {
-    Sg_Apply1(SG_CAR(vm->exceptionHandler), exception);
-    if (!SG_NULLP(SG_CDR(vm->exceptionHandler))) {
-      SgObject c = Sg_Condition(SG_LIST4(Sg_MakeNonContinuableViolation(),
-					 Sg_MakeWhoCondition(SG_INTERN("raise")),
-					 Sg_MakeMessageCondition(SG_MAKE_STRING("returned from non-continuable exception")),
-					 Sg_MakeIrritantsCondition(SG_LIST1(exception))));
-      Sg_Apply1(SG_CADR(vm->exceptionHandler), c);
-      vm->exceptionHandler = SG_CDDR(vm->exceptionHandler);
+
+  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
+    /* 
+       To avoid calling exception handers outside of current continuation
+       (c.f. using Sg_Apply families), we need call raise/raise-continuable
+       defined in Scheme (see boot/lib/errors.scm). To do it, we set flag
+       here and escape from current C stack. If the run_loop procedure
+       sees the flag, then it handles this call properly.
+     */
+    void *data[2];
+    data[0] = exception;
+    if (continuableP) {
+      data[1] = raise_continuable_proc;
+    } else {
+      data[1] = raise_proc;
     }
-    exception =
-      Sg_Condition(SG_LIST3(Sg_MakeError(SG_MAKE_STRING("error in raise: returned from non-continuable exception")),
-			    Sg_MakeWhoCondition(SG_INTERN("raise")),
-			    Sg_MakeIrritantsCondition(SG_LIST1(exception))));
-    return Sg_VMThrowException(vm, exception, FALSE);
+    vm->escapeReason = SG_VM_ESCAPE_RAISE;
+    Sg_VMPushCC(raise_cc, data, 2);
+    PC(vm) = PC_TO_RETURN;
+    longjmp(vm->cstack->jbuf, 1);
   }
+  /* short cut, if there's no exception handlers, then we don't have to
+     call it. we know what should happen.
+   */
+  Sg_VMDefaultExceptionHandler(exception);
+  return SG_UNDEF;		/* dummy */
 }
 
 #ifndef EX_SOFTWARE
@@ -2155,6 +2156,9 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	vm->macroEnv = msave;
 	longjmp(vm->cstack->jbuf, 1);
       }
+    } else if (vm->escapeReason == SG_VM_ESCAPE_RAISE) {
+      /* ok simply restart it */
+      goto restart;
     } else {
       Sg_Panic("invalid longjmp");
     }
@@ -2619,6 +2623,21 @@ void Sg__InitVM()
 #ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
+}
+
+void Sg__PostInitVM()
+{
+  SgObject coreErrors = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
+  SgObject b = Sg_FindBinding(coreErrors, SG_INTERN("raise"), SG_UNBOUND);
+  if (SG_UNBOUNDP(b)) {
+    Sg_Panic("`raise` was not found.");
+  }
+  raise_proc = SG_GLOC_GET(SG_GLOC(b));
+  b = Sg_FindBinding(coreErrors, SG_INTERN("raise-continuable"), SG_UNBOUND);
+  if (SG_UNBOUNDP(b)) {
+    Sg_Panic("`raise-continuable` was not found.");
+  }
+  raise_continuable_proc = SG_GLOC_GET(SG_GLOC(b));
 }
 
 /*

@@ -1546,15 +1546,15 @@
 
   ;; 7 Exceptions and conditions
   ;; 7.1 exceptions
-;; this is moved in Scheme
+;; these are moved to Scheme
 ;;  (define-c-proc with-exception-handler (handler thunk) 
 ;;    Sg_VMWithExceptionHandler)
-
-  (define-c-proc raise (c) 
-    (result (Sg_Raise c FALSE)))
-
-  (define-c-proc raise-continuable (c) 
-    (result (Sg_Raise c TRUE)))
+;;
+;;  (define-c-proc raise (c) 
+;;    (result (Sg_Raise c FALSE)))
+;;
+;;  (define-c-proc raise-continuable (c) 
+;;    (result (Sg_Raise c TRUE)))
 
   ;; 8 I/O
   ;; 8.2 port i/o

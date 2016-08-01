@@ -123,7 +123,7 @@ typedef enum {
   SG_VM_ESCAPE_NONE,
   SG_VM_ESCAPE_CONT,
   SG_VM_ESCAPE_ERROR,
-  SG_VM_ESCAPE_EXIT
+  SG_VM_ESCAPE_RAISE
 } SgVMEscapeReason;
 
 enum {

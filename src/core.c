@@ -97,6 +97,8 @@ extern void Sg__Init_core_arithmetic();
 extern void Sg__InitExtFeatures();
 extern void Sg__InitComparator();
 
+extern void Sg__PostInitVM();
+
 #ifdef USE_BOEHM_GC
 static GC_warn_proc warn_proc = NULL;
 static void no_warning(char * msg, GC_word arg)
@@ -206,7 +208,6 @@ void Sg_Init()
   Sg__Init_sagittarius_compiler();
   /* even these files need to be ordered */
   Sg__Init_core_arithmetic();
-  /* Sg__Init_match_core(); */
 
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
@@ -232,6 +233,9 @@ void Sg_Init()
 				    SG_UNBOUND));
   }
   init_cond_features();
+
+  /* Sg__Port* will be called after all initialisations are done. */
+  Sg__PostInitVM();
 }
 
 /* GC related */

@@ -534,6 +534,7 @@ void abort_handler(int signum, siginfo_t* si, void* unused )
 #ifdef SIGFPE
   case SIGFPE:  name = "SIGFPE";   break;
 #endif
+  case SIGINT:  name = "SIGINT";   break;
   }
  
   if (name) fprintf(stderr, "Caught signal %d (%s)\n", signum, name );
@@ -566,6 +567,9 @@ int main(int argc, char **argv)
 #endif
 #ifdef SIGFPE
   sigaction(SIGFPE,  &sa, NULL );
+#endif
+#if 0
+  sigaction(SIGINT,  &sa, NULL );
 #endif
   return real_main(argc, argv);
 }

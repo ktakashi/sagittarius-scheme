@@ -2154,4 +2154,26 @@
 		(lambda ()
 		  (raise 'a))))))
 
+;; issue 189
+(test-equal "with-exception-handler (1)" 'ok
+	    (with-exception-handler
+	     (lambda (k) 'ok)
+	     (lambda ()
+	       (guard (con ((error? con) 'ng) (#f #f))
+		 (raise-continuable 'test)))))
+
+(test-error "with-exception-handler (2)" non-continuable-violation?
+	    (with-exception-handler
+	     (lambda (k) #f)
+	     (lambda ()
+	       (guard (con ((error? con) 'ng) (#f #f))
+		 (raise 'test)))))
+
+(test-error "with-exception-handler (3)" non-continuable-violation?
+	    (with-exception-handler
+	     (lambda (k) #f)
+	     (lambda ()
+	       (guard (con (#f #f))
+		 (error 'who "msg")))))
+
 (test-end)
