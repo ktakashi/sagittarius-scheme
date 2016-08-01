@@ -1324,8 +1324,8 @@ static SgObject discard_ehandler(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-static SgObject with_error_handler(SgObject handler, SgObject thunk,
-				   int rewindBefore)
+SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
+			       int rewindBefore)
 {
   SgContinuation *c = SG_NEW(SgContinuation);
   SgObject before, after;
@@ -1341,19 +1341,10 @@ static SgObject with_error_handler(SgObject handler, SgObject thunk,
   c->errorReporting = SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_REPORTED);
   c->rewindBefore = rewindBefore;
 
-  vm->escapePoint = c;
-
   before = Sg_MakeSubr(install_ehandler, c, 0, 0, SG_FALSE);
   after  = Sg_MakeSubr(discard_ehandler, c, 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, thunk, after);
 }
-
-SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
-			       int rewindBefore)
-{
-  return with_error_handler(handler, thunk, rewindBefore);
-}
-
 
 static SgWord boundaryFrameMark = NOP;
 #define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
@@ -2111,7 +2102,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	   (define (thunk) (guard (e (else (raise e))) (print 'ok)))
 	   (thread-join! (thread-start! (make-thread thunk)))
 
-	 Above case the last the second last frame's prev indicates
+	 Above case the last and the second last frame's prev indicates
 	 the last frame as it should be, however the last frame's
 	 prev indicates the second last frame.
 	 To detect such situation, we need to allow cyclic boundaries. 
