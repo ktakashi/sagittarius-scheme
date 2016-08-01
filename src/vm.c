@@ -1886,7 +1886,6 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
     }
     vm->escapeReason = SG_VM_ESCAPE_RAISE;
     Sg_VMPushCC(raise_cc, data, 2);
-    PC(vm) = PC_TO_RETURN;
     longjmp(vm->cstack->jbuf, 1);
   }
   /* short cut, if there's no exception handlers, then we don't have to
@@ -2157,7 +2156,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	longjmp(vm->cstack->jbuf, 1);
       }
     } else if (vm->escapeReason == SG_VM_ESCAPE_RAISE) {
-      /* ok simply restart it */
+      PC(vm) = PC_TO_RETURN;
       goto restart;
     } else {
       Sg_Panic("invalid longjmp");
