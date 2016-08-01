@@ -27,24 +27,32 @@
 	    (core base)
 	    (sagittarius))
 
+(define (%condition-message c)
+  (cond ((not (message-condition? c)) #f)
+	((simple-condition? c) (&message-message c))
+	(else
+	 (let loop ((cp (&compound-condition-components c)))
+	   (cond ((null? cp) #f)
+		 ((%condition-message (car cp)))
+		 (else (loop (cdr cp))))))))
+	    
 (define (raise-continuable c) ((car (current-exception-handler)) c))
 (define (raise c)
-  (let* ((eh* (current-exception-handler))
-	 (eh (car eh*)))
-    (eh c)
-    (unless (null? (cdr eh*))
-      ((cadr eh*)
-       (condition (make-non-continuable-violation)
-		  (make-who-condition 'raise)
-		  (make-message-condition
-		   "returned from non-continuable exception")
-		  (make-irritants-condition (list c))))
-      (current-exception-handler (cddr eh*)))
-    (raise (condition (make-non-continuable-violation)
-		      (make-who-condition 'raise)
-		      (make-message-condition
-		       "error in raise: returned from non-continuable")
-		      (make-irritants-condition (list c))))))
+  (let ((eh* (current-exception-handler)))
+    ;; invoke the first one. if it's the default-exception-handler
+    ;; then it won't return.
+    ((car eh*) c)
+    ;; if it's returned, then pop the invoked handler.
+    (current-exception-handler (cdr eh*))
+    ;; we use sort Sagittarius specific here to avoit
+    ;; deeply nested &non-continuable
+    (let ((msg "error in raise: returned from non-continuable"))
+      (if (and (non-continuable-violation? c) (eq? (%condition-message c) msg))
+	  (raise c)
+	  (raise (condition (make-non-continuable-violation)
+			    (make-who-condition 'raise)
+			    (make-message-condition msg)
+			    (make-irritants-condition (list c))))))))
 
 (define undefined-violation
   (lambda (who . message)

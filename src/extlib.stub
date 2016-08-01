@@ -112,14 +112,15 @@
     (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
 
   (define-c-proc current-exception-handler (:optional handler)
+    ;; Don't raise an error here, in case of this type of this
+    ;;   (current-exception-handler (list (lambda (e) #t)))
+    ;; above case is actually not recommended but it's allowed
+    ;; (more precicely, there's no way to prohibit). if we raise
+    ;; an error here, then it'd go into infinite loop.
     (if (SG_UNBOUNDP handler)
 	(result (-> (Sg_VM) exceptionHandler))
 	(begin
-	  (if (SG_PAIRP handler)
-	      (set! (-> (Sg_VM) exceptionHandler) handler)
-	      (wrong-type-of-argument-violation 'current-exception-handler
-						"list of handlers"
-						handler))
+	  (set! (-> (Sg_VM) exceptionHandler) handler)
 	  (result SG_UNDEF))))
   ;; misc
   (define-c-proc variable? (o) ::<boolean> :constant
