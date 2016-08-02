@@ -111,21 +111,22 @@
 		    data))
 	       ;; receiving the other should be done by application
 	       ;; since we don't know if it's sent immediately or not.
-	       (websocket-send-frame! conn opcode
+	       (websocket-send-frame! (websocket-connection-port conn) opcode
 				      (*websocket-mask-data?*) data #t))))))))
 (define-control-frame ping)
 (define-control-frame pong)
 
 ;; returns raw status
 (define (websocket-send-close conn :optional (data #vu8()) (wait? #t))
+  (define in/out (websocket-connection-port conn))
   ;; receiving the other should be done by application
   ;; since we don't know if it's sent immediately or not.
-  (websocket-send-frame! conn +websocket-close-frame+ #t data #t)
+  (websocket-send-frame! in/out +websocket-close-frame+ #t data #t)
   (websocket-connection-state-set! conn 'closing)
   ;; waits until server returns close
   (when wait?
     (let loop ()
-      (let-values (((fin? op data) (websocket-recv-frame conn)))
+      (let-values (((fin? op data) (websocket-recv-frame in/out)))
 	(if (eqv? op +websocket-close-frame+)
 	    (begin (websocket-connection-close! conn) data)
 	    (loop))))))
@@ -144,9 +145,10 @@
 (define (%websocket-send-binary conn data start split opcode)
   (define (rec conn data start split opcode)
     (define mask? (*websocket-mask-data?*))
+    (define out (websocket-connection-port conn))
     (let loop ((start start) (opcode opcode))
       (let-values (((len end?) (split data start)))
-	(websocket-send-frame! conn opcode mask? data end? start
+	(websocket-send-frame! out opcode mask? data end? start
 			       (+ start len))
 	(unless end? (loop (+ start len) +websocket-continuation-frame+)))))
 
@@ -202,9 +204,10 @@
     (if (eqv? opcode +websocket-text-frame+)
 	(utf8->string data)
 	data))
-  
+  (define in (websocket-connection-port conn))
+
   (let loop ((first? #t) (opcode #f) (r #vu8()))
-    (let-values (((fin? op data) (websocket-recv-frame conn)))
+    (let-values (((fin? op data) (websocket-recv-frame in)))
       (cond ((control-opcode? op)
 	     (let-values (((cont? data) (handle-control-frame conn op data)))
 	       (if cont? (loop first? opcode r) data)))
@@ -223,30 +226,27 @@
 		       (bytevector-u8-ref key (mod j +masking-key-length+)))))
       data))
 
-(define (websocket-recv-frame conn)
-  (define in/out (websocket-connection-port conn))
-
+(define (websocket-recv-frame in)
   (define (get-payload-length len in)
     (cond ((< len 126) len)
 	  ((= len 126) (get-u16 in (endianness big)))
 	  (else        (get-u64 in (endianness big)))))
   
-  (let* ((b1 (get-u8 in/out))
-	 (b2 (get-u8 in/out))
-	 (payload-length (get-payload-length (bitwise-and b2 #x7F) in/out))
+  (let* ((b1 (get-u8 in))
+	 (b2 (get-u8 in))
+	 (payload-length (get-payload-length (bitwise-and b2 #x7F) in))
 	 ;; TODO remove magic number here
 	 (masking-key (and (bitwise-bit-set? b2 7)
-			   (get-bytevector-n in/out +masking-key-length+)))
+			   (get-bytevector-n in +masking-key-length+)))
 	 (payload (if (zero? payload-length)
 		      #vu8()
-		      (get-bytevector-n in/out payload-length))))
+		      (get-bytevector-n in payload-length))))
     (values (fxbit-set? b1 7)
 	    (fxand b1 #x0F)
 	    (mask masking-key payload 0 payload-length))))
 
-(define (websocket-send-frame! conn opcode mask? data last?
+(define (websocket-send-frame! out opcode mask? data last?
 			       :optional (start 0) (end -1))
-  (define out (websocket-connection-port conn))
   (define bvlen (bytevector-length data))
   (define len (if (< end 0) (- bvlen start) (- end start)))
   
