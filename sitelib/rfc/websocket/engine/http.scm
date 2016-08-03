@@ -130,9 +130,18 @@
     (unless (equal? expected (rfc5322-header-ref headers field))
       (websocket-http-engine-error 'http-websocket-handshake
 				   "Unexpected field value" field)))
-  (let* ((socket (if (string=? scheme "wss")
-		     (make-client-tls-socket host port)
-		     (make-client-socket host port)))
+
+  (define (make-socket scheme host port)
+    (define (rec ai-family)
+      (if (string=? scheme "wss")
+	  (make-client-tls-socket host port)
+	  (make-client-socket host port)))
+    ;; default IPv6, IPv4 is fallback
+    ;; NB: some platforms do fallback automatically and some are not
+    ;;     so keep it like this.
+    (guard (e (else (rec AF_INET)))
+      (rec AF_INET6)))
+  (let* ((socket (make-socket scheme host port))
 	 (in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
 	 (key (base64-encode (read-sys-random (* 16 8)))))
     (guard (e (else
