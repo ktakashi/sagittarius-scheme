@@ -186,9 +186,9 @@
 
   ;; TODO control frame may increase in future so make this extensible.
   (define (handle-control-frame conn op data)
-    ;; we don't handle pong
     (cond ((eqv? op +websocket-ping-frame+)
 	   (values (websocket-pong conn data) data))
+	  ((eqv? op +websocket-pong-frame+) (values #f data))
 	  ((eqv? op +websocket-close-frame+)
 	   ;; if closing? is #t, then we already sent close message.
 	   (let ((closing? (websocket-connection-closing? conn)))
@@ -273,7 +273,10 @@
     (put-u8 out b2)
     (cond ((= l 126) (put-u16 len (endianness big)))
 	  ((= l 127) (put-u64 len (endianness big))))
-    (and mask? (put-bytevector out masking-key))
-    (put-bytevector out (mask masking-key data start len) start len)
+    (if mask?
+	(let ((data (bytevector-copy data start end)))
+	  (put-bytevector out masking-key)
+	  (put-bytevector out (mask masking-key data 0 len)))
+	(put-bytevector out data start len))
     (flush-output-port out)))
 )
