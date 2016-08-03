@@ -104,6 +104,8 @@
 (define-condition-type &websocket-pong &websocket
   make-websocket-pong-error websocket-pong-error?
   (pong-data websocket-error-pong-data))
+(define-condition-type &websocket-close-timeout &websocket
+  make-websocket-close-timeout-error websocket-close-timeout-error)
 
 (define (invoke-event websocket event . opt)
   (define dispatchers (websocket-dispatchers websocket))
@@ -166,13 +168,19 @@
   (invoke-event websocket 'open))
 
 (define-websocket (websocket-close websocket
-				   :optional (status #f) (message ""))
+				   :key (status #f) (message "") (timeout #f))
   (let ((data (cond (status (websocket-compose-close-status status message))
 		    (else #vu8()))))
     ;; we don't wait, let dispatch thread handle it
     (websocket-send-close (websocket-connection websocket) data #f)
-    (guard (e ((uncaught-exception? e) (raise (uncaught-exception-reason e))))
-      (thread-join! (websocket-thread websocket))))
+    (guard (e ((uncaught-exception? e) (raise (uncaught-exception-reason e)))
+	      ((join-timeout-exception? e)
+	       ;; sorry then die
+	       (thread-terminate! (websocket-thread websocket))
+	       (raise (condition (make-websocket-close-timeout-error)
+				 (make-who-condition 'websocket-close)
+				 (make-message-condition "timeout!")))))
+      (thread-join! (websocket-thread websocket) timeout)))
   (invoke-event websocket 'close))
 
 (define-websocket (websocket-send websocket data . opt)
