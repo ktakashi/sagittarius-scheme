@@ -207,7 +207,8 @@
 
 (define (set-event-handler websocket event handler)
   (define dispatchers (websocket-dispatchers websocket))
-  (hashtable-set! dispatchers event handler))
+  (hashtable-set! dispatchers event handler)
+  websocket)
 
 (define (websocket-on-text-message websocket handler)
   (set-event-handler websocket 'text handler))
