@@ -202,15 +202,18 @@
 
   (define (convert opcode data)
     (if (eqv? opcode +websocket-text-frame+)
-	(utf8->string data)
-	data))
+	(values opcode (utf8->string data))
+	(values opcode data)))
+  
   (define in (websocket-connection-port conn))
 
   (let loop ((first? #t) (opcode #f) (r #vu8()))
     (let-values (((fin? op data) (websocket-recv-frame in)))
       (cond ((control-opcode? op)
 	     (let-values (((cont? data) (handle-control-frame conn op data)))
-	       (if cont? (loop first? opcode r) data)))
+	       (if cont?
+		   (loop first? opcode r)
+		   (values op data))))
 	    (fin? (convert (or opcode op)
 			   (if first? data (bytevector-append r data))))
 	    (else (loop #f (or opcode op) (bytevector-append r data)))))))
