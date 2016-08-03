@@ -173,18 +173,26 @@
 
 (define-websocket (websocket-close websocket
 				   :key (status #f) (message "") (timeout #f))
+  (define conn (websocket-connection websocket))
   (let ((data (cond (status (websocket-compose-close-status status message))
 		    (else #vu8()))))
     ;; we don't wait, let dispatch thread handle it
-    (websocket-send-close (websocket-connection websocket) data #f)
-    (guard (e ((uncaught-exception? e) (raise (uncaught-exception-reason e)))
+    (websocket-send-close conn data #f)
+    (guard (e ((uncaught-exception? e)
+	       ;; make sure it's closed... should we?
+	       (websocket-connection-close! conn)
+	       (raise (uncaught-exception-reason e)))
 	      ((join-timeout-exception? e)
+	       ;; close it first, then terminate thread
+	       (websocket-connection-close! conn)
 	       ;; sorry then die
 	       (thread-terminate! (websocket-thread websocket))
 	       (raise (condition (make-websocket-close-timeout-error)
 				 (make-who-condition 'websocket-close)
 				 (make-message-condition "timeout!")))))
-      (thread-join! (websocket-thread websocket) timeout)))
+      (thread-join! (websocket-thread websocket) timeout)
+      ;; close connection. NB: dispatcher thread doesn't close
+      (websocket-connection-close! conn)))
   (invoke-event websocket 'close))
 
 (define-websocket (websocket-send websocket data . opt)
