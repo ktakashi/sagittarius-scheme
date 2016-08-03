@@ -95,6 +95,8 @@
       (put-bytevector* in/out #*"Upgrade: websocket\r\n")
       (put-bytevector* in/out #*"Connection: Upgrade\r\n")
       (put-bytevector* in/out #*"Sec-WebSocket-Accept: " key #*"\r\n")
+      (when (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
+	(put-bytevector* in/out #*"Sec-WebSocket-Protocol: chat\r\n"))
       (put-bytevector* in/out #*"\r\n")
       (flush-output-port in/out))
     (thread-start! (make-thread (keep-sending in/out)))
@@ -113,45 +115,59 @@
   (define config (make-server-config :use-ipv6? #t))
   (make-simple-server "9000" websocket-handler :config config))
 
-(let* ((count 5)
-       (tsq (make-shared-queue))
-       (sq (make-shared-queue))
-       (server (make-test-websocket-server count))
-       (websocket (make-websocket "ws://localhost:9000"))
-       (on-open #f)
-       (on-close #f))
-  (server-start! server :background #t)
-  
-  (test-assert (websocket? websocket))
-  (test-assert (websocket? (websocket-on-text-message websocket
-			    (lambda (ws text) (shared-queue-put! tsq text)))))
-  (test-assert (websocket? (websocket-on-binary-message websocket
-			    (lambda (ws bin) (shared-queue-put! sq bin)))))
-  (test-assert (websocket? (websocket-on-open websocket
-			    (lambda (ws) (set! on-open #t)))))
-  (test-assert (websocket? (websocket-on-close websocket
-			    (lambda (ws) (set! on-close #t)))))
-  (test-assert (websocket? (websocket-on-error websocket
-			    (lambda (ws e)
-			      (test-assert (websocket-error? e))
-			      (raise e)))))
-  ;; not yet
-  (test-assert (not on-open))
-  (test-assert (not on-close))
-  (test-assert (websocket? (websocket-open websocket)))
-  (test-assert on-open)
-  (test-assert (websocket? (websocket-send websocket #*"binary")))
+(define (test-websocket uri count)
+  (let ((tsq (make-shared-queue))
+	(sq (make-shared-queue))
+	(websocket (make-websocket uri))
+	(on-open #f)
+	(on-close #f))
+    (test-assert (websocket? websocket))
+    (test-assert (websocket? (websocket-on-text-message websocket
+			      (lambda (ws text) 
+				(shared-queue-put! tsq text)))))
+    (test-assert (websocket? (websocket-on-binary-message websocket
+			      (lambda (ws bin) (shared-queue-put! sq bin)))))
+    (test-assert (websocket? (websocket-on-open websocket
+			      (lambda (ws) (set! on-open #t)))))
+    (test-assert (websocket? (websocket-on-close websocket
+			      (lambda (ws) (set! on-close #t)))))
+    (test-assert (websocket? (websocket-on-error websocket
+			      (lambda (ws e)
+				(test-assert (websocket-error? e))
+				(raise e)))))
+    ;; not yet opened
+    (test-assert (not on-open))
+    (test-assert (not on-close))
+    (test-assert (websocket? (websocket-open websocket)))
+    (test-assert on-open)
+    (test-assert (websocket? (websocket-send websocket #*"binary")))
 
-  ;; wait until all text messages are sent
-  (do ((i 0 (+ i 1))) ((= i count))
-    (test-equal "Hello" (shared-queue-get! tsq)))
-  (test-equal #*"binary" (shared-queue-get! sq))
-  (test-assert (websocket? (websocket-ping websocket #*"data")))
-  (test-error "websocket ping" websocket-pong-error?
-	      (websocket-ping websocket #*"invalid"))
+    ;; wait until all text messages are sent
+    (do ((i 0 (+ i 1))) ((= i count))
+      (test-equal "Hello" (shared-queue-get! tsq)))
+    (test-equal #*"binary" (shared-queue-get! sq))
+    (test-assert (websocket? (websocket-ping websocket #*"data")))
+    (test-error "websocket ping" websocket-pong-error?
+		(websocket-ping websocket #*"invalid"))
+    
+    (test-assert (websocket? (websocket-close websocket)))
+    (test-assert on-close)))
+
+(let ()
+  (define count 5)
+  (define server (make-test-websocket-server count))
+  (define uri "ws://localhost:9000")
+  (server-start! server :background #t)
+  ;; normal test
+  (test-websocket uri count)
+
+  ;; protocol
+  (let ((websocket (make-websocket uri :protocols '("chat"))))
+    (test-assert (websocket? (websocket-open websocket)))
+    (test-assert (websocket-close websocket)))
+  (let ((websocket (make-websocket uri :protocols '("not-exist"))))
+    (test-error websocket-engine-error? (websocket-open websocket)))
   
-  (test-assert (websocket? (websocket-close websocket)))
-  (test-assert on-close)
   (server-stop! server))
 
 

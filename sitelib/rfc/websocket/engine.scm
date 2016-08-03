@@ -40,14 +40,17 @@
 	  websocket-engine?
 	  websocket-engine-socket
 	  websocket-engine-handshake
-
+	  websocket-engine-extensions ;; for validation?
+	  
 	  ;; internal for underlying engine implementation
-	  websocket-engine-socket-set!)
+	  websocket-engine-socket-set!
+	  websocket-engine-extensions-set!)
   (import (rnrs))
   
 (define-record-type websocket-engine
   (fields (mutable socket)
-	  handshake)
-  (protocol (lambda (p) (lambda (socket handshake) (p socket handshake)))))
+	  handshake
+	  (mutable extensions))
+  (protocol (lambda (p) (lambda (socket handshake) (p socket handshake #f)))))
 
 )

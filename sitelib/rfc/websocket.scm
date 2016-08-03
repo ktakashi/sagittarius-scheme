@@ -118,7 +118,11 @@
 (define-syntax with-error-handling
   (syntax-rules ()
     ((_ websocket exprs ...)
-     (guard (e ((websocket-error? e)
+     ;; engine error can not be recoverable so re-raise.
+     (guard (e ((websocket-engine-error? e)
+		(invoke-event websocket 'error e)
+		(raise e))
+	       ((websocket-error? e)
 		(invoke-event websocket 'error e)
 		websocket))
        exprs ...))))

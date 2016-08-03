@@ -42,6 +42,7 @@
 	  (rfc :5322)
 	  (rfc tls)
 	  (rfc base64)
+	  (srfi :2 and-let*)
 	  (srfi :13 strings)
 	  (prefix (binary io) binary:)
 	  (sagittarius)
@@ -86,7 +87,9 @@
 
 (define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
-(define (http-websocket-handshake engine . opt)
+(define (http-websocket-handshake engine
+				  :optional (protocols '()) (extensions '())
+				  :rest others)
   (define scheme (http-websocket-engine-scheme engine))
   (define host (http-websocket-engine-host engine))
   (define port (http-websocket-engine-port engine))
@@ -95,6 +98,8 @@
 
   (define (put-bytevector* out . bvs)
     (for-each (lambda (bv) (put-bytevector out bv)) bvs))
+  (define (put-comma-string out s)
+    (put-bytevector out (string->utf8 (string-join s ", "))))
 
   (define (send-websocket-handshake in/out key)
     (let ((request-path
@@ -108,10 +113,20 @@
       (put-bytevector* in/out #*"Upgrade: websocket\r\n")
       (put-bytevector* in/out #*"Sec-WebSocket-Key: " key #*"\r\n")
       (put-bytevector* in/out #*"Sec-WebSocket-Version: 13\r\n")
-      ;; TODO
-      ;; (put-bytevector* in/out #*"Sec-WebSocket-Protocol: \r\n")
-      ;; (put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
-      ;; TODO other headers
+      (unless (null? protocols)
+	(put-bytevector* in/out #*"Sec-WebSocket-Protocol: ")
+	(put-comma-string in/out protocols)
+	(put-bytevector* in/out #*"\r\n"))
+      (unless (null? extensions)
+	(put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
+	(put-comma-string in/out extensions)
+	(put-bytevector* in/out #*"\r\n"))
+      (for-each (lambda (h&v)
+		  (put-bytevector* in/out
+				   (string->utf8 (car h&v))
+				   #*": "
+				   (string->utf8 (cadr h&v))
+				   #*"\r\n")) others)
       (put-bytevector* in/out #*"\r\n")
       (flush-output-port in/out)))
 
@@ -130,7 +145,12 @@
     (unless (equal? expected (rfc5322-header-ref headers field))
       (websocket-http-engine-error 'http-websocket-handshake
 				   "Unexpected field value" field)))
-
+  (define (check-header-contains headers field oneof)
+    (or (and-let* ((v (rfc5322-header-ref headers field)))
+	  (member v oneof))
+	(websocket-http-engine-error 'http-websocket-handshake
+				     "Unexpected field value" field)))
+  
   (define (make-socket scheme host port)
     (define (rec ai-family)
       (if (string=? scheme "wss")
@@ -157,9 +177,13 @@
 	(check-header headers "Upgrade" "websocket")
 	(check-header headers "Connection" "Upgrade")
 	(check-header headers "Sec-WebSocket-Accept" expected-accept)
-	;; TODO
-	;;(check-header headers "Sec-WebSocket-Protocol" protocols)
-	;;(check-header headers "Sec-WebSocket-Extensions" extensions)
+	(if (null? protocols)
+	    (or (not (rfc5322-header-ref headers "Sec-WebSocket-Protocol"))
+		(check-header headers "Sec-WebSocket-Protocol" ""))
+	    (check-header-contains headers "Sec-WebSocket-Protocol" protocols))
+	(cond ((rfc5322-header-ref headers "Sec-WebSocket-Extensions") =>
+	       (lambda (v) (websocket-engine-extensions-set! v))))
+	
 	;; TODO handling other header such as cookies
 	(websocket-engine-socket-set! engine socket)
 	engine))))
