@@ -112,11 +112,13 @@
     (websocket-send-frame! out +websocket-binary-frame+ #t data #t))
   
   (define (websocket-handler server socket)
-    ;; (define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
+    ;; for some reason closing this wouldn't remove
+    ;; from buffered port lists. i don't know why.
+    ;;(define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
     (define in/out (socket-port socket #f))
-    (get-line in/out) ;; discard
     (unwind-protect
      (begin
+       (get-line in/out) ;; discard
        (let* ((headers (rfc5322-read-headers in/out))
 	      (key (calculate-key headers)))
 	 (put-bytevector* in/out #*"HTTP/1.1 101 Switch protocol\r\n")
@@ -128,8 +130,6 @@
 	 (put-bytevector* in/out #*"\r\n")
 	 (flush-output-port in/out))
        (thread-start! (make-thread (keep-sending in/out)))
-       ;; FIXME use above
-       ;;((keep-sending in/out))
        (let loop ()
 	 (let-values (((fin? op data) (websocket-recv-frame in/out)))
 	   (cond ((= op +websocket-close-frame+) (send-close in/out))

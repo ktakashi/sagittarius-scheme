@@ -110,8 +110,10 @@
 
 (define (websocket-connection-port c)
   (or (websocket-connection-socket-port c)
-      (let ((p (buffered-port (socket-port (websocket-connection-socket c) #f)
-			      (buffer-mode block))))
+      (let ((p (or (websocket-engine-port (websocket-connection-engine c))
+		   (buffered-port (socket-port 
+				   (websocket-connection-socket c) #f)
+				  (buffer-mode block)))))
 	(websocket-connection-socket-port-set! c p)
 	p)))
 (define (websocket-connection-socket c)

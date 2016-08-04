@@ -41,6 +41,7 @@
 	  websocket-engine-socket
 	  websocket-engine-handshake
 	  websocket-engine-extensions ;; for validation?
+	  websocket-engine-port
 
 	  &websocket-engine-scheme
 	  make-websocket-engine-scheme-error
@@ -56,6 +57,7 @@
 	  websocket-error-port
 	  ;; internal for underlying engine implementation
 	  websocket-engine-socket-set!
+	  websocket-engine-port-set!
 	  websocket-engine-extensions-set!)
   (import (rnrs)
 	  (rfc websocket conditions))
@@ -63,8 +65,11 @@
 (define-record-type websocket-engine
   (fields (mutable socket)
 	  handshake
-	  (mutable extensions))
-  (protocol (lambda (p) (lambda (socket handshake) (p socket handshake #f)))))
+	  (mutable extensions)
+	  ;; engine can set
+	  (mutable port))
+  (protocol 
+   (lambda (p) (lambda (socket handshake) (p socket handshake #f #f)))))
 
 (define-condition-type &websocket-engine-scheme &websocket-engine
   make-websocket-engine-scheme-error websocket-engine-scheme-error?

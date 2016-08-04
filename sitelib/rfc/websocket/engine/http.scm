@@ -188,8 +188,8 @@
 	(cond ((rfc5322-header-ref headers "Sec-WebSocket-Extensions") =>
 	       (lambda (v) (websocket-engine-extensions-set! v))))
 	;; TODO handling other header such as cookies
-	(close-port in/out)
 	(websocket-engine-socket-set! engine socket)
+	(websocket-engine-port-set! engine in/out)
 	engine))))
     
 
