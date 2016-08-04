@@ -96,20 +96,15 @@
 	  (loop (+ i 1))))))
 
   (define (send-close out)
-    (put-bytevector out #vu8(#x88 #x00))
-    (flush-output-port out)
+    (websocket-send-frame! out +websocket-close-frame+ #t #vu8() #t)
     (close-port out))
   
   (define (send-pong out data)
-    (put-u8 out #x8A)
-    (put-u8 out (bytevector-length data))
-    (put-bytevector out data)
+    (websocket-send-frame! out +websocket-pong-frame+ #f data #t)
     (flush-output-port out))
   ;; don't mask for my sake
   (define (send-binary out data)
-    (put-u8 out #x82)
-    (put-u8 out (bytevector-length data))
-    (put-bytevector out data)
+    (websocket-send-frame! out +websocket-binary-frame+ #t data #t)
     (flush-output-port out))
   
   (define (websocket-handler server socket)
