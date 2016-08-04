@@ -159,7 +159,9 @@
 		   (websocket-send-close conn
 		    (websocket-compose-close-status 1002) #f)
 		   (loop))))))
-      (unless finish? (restart))))
+      (if finish?
+	  (websocket-thread-set! websocket #f)
+	  (restart))))
   (let ((t (make-thread dispatch)))
     (websocket-thread-set! websocket t)
     (thread-start! t)))
