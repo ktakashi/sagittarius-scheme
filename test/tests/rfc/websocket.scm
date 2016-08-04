@@ -72,7 +72,8 @@
 
   (define (send-close out)
     (put-bytevector out #vu8(#x88 #x00))
-    (flush-output-port out))
+    (flush-output-port out)
+    (close-port out))
   
   (define (send-pong out data)
     (put-u8 out #x8A)
