@@ -169,9 +169,7 @@
 		   (websocket-send-close conn
 		    (websocket-compose-close-status 1002) #f)
 		   (loop))))))
-      (if finish?
-	  (websocket-thread-set! websocket #f)
-	  (restart))))
+      (unless finish? (restart))))
   (let ((t (make-thread dispatch)))
     (websocket-thread-set! websocket t)
     (thread-start! t)))
@@ -193,16 +191,19 @@
     (guard (e ((uncaught-exception? e)
 	       ;; make sure it's closed... should we?
 	       (websocket-connection-close! conn)
+	       (websocket-thread-set! websocket #f)
 	       (raise (uncaught-exception-reason e)))
 	      ((join-timeout-exception? e)
 	       ;; close it first, then terminate thread
 	       (websocket-connection-close! conn)
 	       ;; sorry then die
 	       (thread-terminate! (websocket-thread websocket))
+	       (websocket-thread-set! websocket #f)
 	       (raise (condition (make-websocket-close-timeout-error)
 				 (make-who-condition 'websocket-close)
 				 (make-message-condition "timeout!")))))
       (thread-join! (websocket-thread websocket) timeout)
+      (websocket-thread-set! websocket #f)
       ;; close connection. NB: dispatcher thread doesn't close
       (websocket-connection-close! conn)))
   (invoke-event websocket 'close))
