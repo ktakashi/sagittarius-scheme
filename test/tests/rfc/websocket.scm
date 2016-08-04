@@ -100,46 +100,48 @@
       (let loop ((i 0))
 	(unless (= i count)
 	  (websocket-send-frame! out +websocket-text-frame+ #f #*"Hello" #t)
-	  (flush-output-port out)
 	  (loop (+ i 1))))))
 
   (define (send-close out)
-    (websocket-send-frame! out +websocket-close-frame+ #t #vu8() #t)
-    (close-port out))
+    (websocket-send-frame! out +websocket-close-frame+ #t #vu8() #t))
   
   (define (send-pong out data)
-    (websocket-send-frame! out +websocket-pong-frame+ #f data #t)
-    (flush-output-port out))
+    (websocket-send-frame! out +websocket-pong-frame+ #f data #t))
   ;; don't mask for my sake
   (define (send-binary out data)
-    (websocket-send-frame! out +websocket-binary-frame+ #t data #t)
-    (flush-output-port out))
+    (websocket-send-frame! out +websocket-binary-frame+ #t data #t))
   
   (define (websocket-handler server socket)
-    (define in/out (buffered-port (socket-port socket) (buffer-mode block)))
+    ;; (define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
+    (define in/out (socket-port socket #f))
     (get-line in/out) ;; discard
-    (let* ((headers (rfc5322-read-headers in/out))
-	   (key (calculate-key headers)))
-      (put-bytevector* in/out #*"HTTP/1.1 101 Switch protocol\r\n")
-      (put-bytevector* in/out #*"Upgrade: websocket\r\n")
-      (put-bytevector* in/out #*"Connection: Upgrade\r\n")
-      (put-bytevector* in/out #*"Sec-WebSocket-Accept: " key #*"\r\n")
-      (when (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
-	(put-bytevector* in/out #*"Sec-WebSocket-Protocol: chat\r\n"))
-      (put-bytevector* in/out #*"\r\n")
-      (flush-output-port in/out))
-    (thread-start! (make-thread (keep-sending in/out)))
-    (let loop ()
-      (let-values (((fin? op data) (websocket-recv-frame in/out)))
-	(cond ((= op +websocket-close-frame+) (send-close in/out))
-	      ((= op +websocket-ping-frame+)
-	       (if (bytevector=? #*"invalid" data)
-		   (send-pong in/out #*"fail")
-		   (send-pong in/out data))
-	       (loop))
-	      (else
-	       (send-binary in/out data)
-	       (loop))))))
+    (unwind-protect
+     (begin
+       (let* ((headers (rfc5322-read-headers in/out))
+	      (key (calculate-key headers)))
+	 (put-bytevector* in/out #*"HTTP/1.1 101 Switch protocol\r\n")
+	 (put-bytevector* in/out #*"Upgrade: websocket\r\n")
+	 (put-bytevector* in/out #*"Connection: Upgrade\r\n")
+	 (put-bytevector* in/out #*"Sec-WebSocket-Accept: " key #*"\r\n")
+	 (when (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
+	   (put-bytevector* in/out #*"Sec-WebSocket-Protocol: chat\r\n"))
+	 (put-bytevector* in/out #*"\r\n")
+	 (flush-output-port in/out))
+       (thread-start! (make-thread (keep-sending in/out)))
+       ;; FIXME use above
+       ;;((keep-sending in/out))
+       (let loop ()
+	 (let-values (((fin? op data) (websocket-recv-frame in/out)))
+	   (cond ((= op +websocket-close-frame+) (send-close in/out))
+		 ((= op +websocket-ping-frame+)
+		  (if (bytevector=? #*"invalid" data)
+		      (send-pong in/out #*"fail")
+		      (send-pong in/out data))
+		  (loop))
+		 (else
+		  (send-binary in/out data)
+		  (loop))))))
+     (close-port in/out)))
 
   (define config (make-server-config :use-ipv6? #t))
   (make-simple-server "9000" websocket-handler :config config))
@@ -177,11 +179,15 @@
     (test-assert (websocket? (websocket-send websocket bv126)))
     ;;(test-assert (websocket? (websocket-send websocket bvFFFF)))
 
-    ;; wait until all text messages are sent
+    ;; wait until all text messages are sent.
+    ;; for some reason, server may not send text data
+    ;; and in that case shared-queue would block forever.
+    ;; to avoid this, we need to set timeout.
+    ;; FIXME is this socket port problem?
     (do ((i 0 (+ i 1))) ((= i count))
-      (test-equal "Hello" (shared-queue-get! tsq)))
-    (test-equal #*"binary" (shared-queue-get! sq))
-    (test-equal bv126 (shared-queue-get! sq))
+      (test-equal "Hello" (shared-queue-get! tsq 1)))
+    (test-equal #*"binary" (shared-queue-get! sq 1))
+    (test-equal bv126 (shared-queue-get! sq 1))
     ;;    (test-equal bvFFFF (shared-queue-get! sq))
     (test-assert (websocket? (websocket-ping websocket #*"data")))
     (test-error "websocket ping" websocket-pong-error?
