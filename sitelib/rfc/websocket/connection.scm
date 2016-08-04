@@ -70,6 +70,11 @@
 
 (define (websocket-connection-close! c)
   (define socket (websocket-engine-socket (websocket-connection-engine c)))
+  (define (close-socket-port p)
+    (close-port p)
+    (websocket-connection-socket-port-set! c #f))
+  ;; closing buffered port
+  (cond ((websocket-connection-socket-port c) => close-socket-port))
   (socket-shutdown socket SHUT_RDWR)
   (socket-close socket)
   (websocket-connection-state-set! c 'closed))
