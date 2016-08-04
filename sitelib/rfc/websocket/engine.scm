@@ -41,11 +41,24 @@
 	  websocket-engine-socket
 	  websocket-engine-handshake
 	  websocket-engine-extensions ;; for validation?
-	  
+
+	  &websocket-engine-scheme
+	  make-websocket-engine-scheme-error
+	  websocket-engine-scheme-error
+	  websocket-engine-scheme-error?
+	  websocket-error-scheme
+
+	  &websocket-engine-connection
+	  make-websocket-engine-connection-error
+	  websocket-engine-connection-error
+	  websocket-engine-connection-error?
+	  websocket-error-host
+	  websocket-error-port
 	  ;; internal for underlying engine implementation
 	  websocket-engine-socket-set!
 	  websocket-engine-extensions-set!)
-  (import (rnrs))
+  (import (rnrs)
+	  (rfc websocket conditions))
   
 (define-record-type websocket-engine
   (fields (mutable socket)
@@ -53,4 +66,21 @@
 	  (mutable extensions))
   (protocol (lambda (p) (lambda (socket handshake) (p socket handshake #f)))))
 
+(define-condition-type &websocket-engine-scheme &websocket-engine
+  make-websocket-engine-scheme-error websocket-engine-scheme-error?
+  (scheme websocket-error-scheme))
+(define (websocket-engine-scheme-error who scheme uri)
+  (raise (condition (make-websocket-engine-scheme-error scheme)
+		    (make-who-condition who)
+		    (make-message-condition "unknown URI scheme")
+		    (make-irritants-condition uri))))
+
+(define-condition-type &websocket-engine-connection &websocket-engine
+  make-websocket-engine-connection-error websocket-engine-connection-error?
+  (host websocket-error-host)
+  (port websocket-error-port))
+(define (websocket-engine-connection-error who host port)
+  (raise (condition (make-websocket-engine-connection-error host port)
+		    (make-who-condition who)
+		    (make-message-condition "Failed to connect"))))
 )

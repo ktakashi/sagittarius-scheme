@@ -68,12 +68,22 @@
 	  ;; conditions
 	  websocket-error?
 	  websocket-engine-error?
+	  websocket-engine-not-found-error?
+	  websocket-error-engine
+	  websocket-error-reason
 	  websocket-closed-error?
 	  websocket-error-status
 	  websocket-error-message
 
 	  websocket-pong-error?
 	  websocket-error-pong-data
+
+	  websocket-engine-scheme-error
+	  websocket-engine-scheme-error?
+	  websocket-error-scheme
+	  websocket-engine-connection-error?
+	  websocket-error-host
+	  websocket-error-port
 	  
 	  *websocket-mask-data?*
 	  )

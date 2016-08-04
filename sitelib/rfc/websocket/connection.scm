@@ -36,7 +36,17 @@
 	  websocket-connection-close!
 	  websocket-connection-closed?
 	  websocket-connection-closing?
-	  
+
+	  websocket-engine-not-found-error?
+	  websocket-error-engine
+	  websocket-error-reason
+	  ;; re-export from (rfc websocket engine)
+	  websocket-engine-scheme-error
+	  websocket-engine-scheme-error?
+	  websocket-error-scheme
+	  websocket-engine-connection-error?
+	  websocket-error-host
+	  websocket-error-port
 	  ;; internal
 	  websocket-connection-port
 	  websocket-connection-socket
@@ -46,17 +56,29 @@
   (import (rnrs)
 	  (rnrs eval)
 	  (rfc websocket engine)
+	  (rfc websocket conditions)
 	  (sagittarius io) ;; for buffered-port
 	  (sagittarius socket)
 	  ;; underlying socket might be a TLS socket
 	  ;; so import this after (sagittarius socket)
 	  (rfc tls))
 
+(define-condition-type &websocket-engine-not-found &websocket-engine
+  make-websocket-engine-not-found-error websocket-engine-not-found-error?
+  (engine websocket-error-engine)
+  (reason websocket-error-reason))
+(define (websocket-engine-not-found-error engine e)
+  (raise (condition (make-websocket-engine-not-found-error engine e)
+		    (make-who-condition 'websocket-connection)
+		    (make-message-condition "Handshake engine not found"))))
+
 (define (websocket-connection-protocol p)
   (lambda (uri :optional (engine 'http))
-    (let ((make-engine (eval 'make-websocket-engine
-			     (environment `(rfc websocket engine ,engine)))))
-      (p (make-engine uri) uri #f 'created))))
+    (guard (e ((websocket-engine-error? e) (raise e))
+	      (else (websocket-engine-not-found-error engine e)))
+      (let ((make-engine (eval 'make-websocket-engine
+			       (environment `(rfc websocket engine ,engine)))))
+	(p (make-engine uri) uri #f 'created)))))
   
 (define-record-type websocket-connection
   (fields engine uri (mutable socket-port) (mutable state))

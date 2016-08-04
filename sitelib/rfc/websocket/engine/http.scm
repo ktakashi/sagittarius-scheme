@@ -81,8 +81,8 @@
     (let ((port (or (and port (number->string port))
 		    (and scheme (string=? scheme "ws") "80")
 		    (and scheme (string=? scheme "wss") "443")
-		    (assertion-violation 'make-websocket-engine
-					 "unknown URI scheme" scheme))))
+		    (websocket-engine-scheme-error 'make-websocket-engine
+						   scheme uri))))
       (make-http-websocket-engine scheme host port path query))))
 
 (define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
@@ -153,18 +153,22 @@
   
   (define (make-socket scheme host port)
     (define (rec ai-family)
-      (if (string=? scheme "wss")
-	  (make-client-tls-socket host port)
-	  (make-client-socket host port)))
+      (guard (e (else #f))
+	(if (string=? scheme "wss")
+	    (make-client-tls-socket host port)
+	    (make-client-socket host port))))
     ;; default IPv6, IPv4 is fallback
     ;; NB: some platforms do fallback automatically and some are not
     ;;     so keep it like this.
-    (guard (e (else (rec AF_INET)))
-      (rec AF_INET6)))
+    (or (rec AF_INET6)
+	(rec AF_INET)
+	(websocket-engine-connection-error
+	 'http-websocket-handshake host port)))
   (let* ((socket (make-socket scheme host port))
 	 (in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
 	 (key (base64-encode (read-sys-random (* 16 8)))))
     (guard (e (else
+	       (close-port in/out)
 	       (socket-shutdown socket SHUT_RDWR)
 	       (socket-close socket)
 	       (raise e)))
@@ -183,8 +187,8 @@
 	    (check-header-contains headers "Sec-WebSocket-Protocol" protocols))
 	(cond ((rfc5322-header-ref headers "Sec-WebSocket-Extensions") =>
 	       (lambda (v) (websocket-engine-extensions-set! v))))
-	
 	;; TODO handling other header such as cookies
+	(close-port in/out)
 	(websocket-engine-socket-set! engine socket)
 	engine))))
     

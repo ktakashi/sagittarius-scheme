@@ -47,9 +47,34 @@
 			 #vu8(#x82 #x05 #x48 #x65 #x6c #x6c #x6f))))
 
 ;; TODO add more tests for low level APIs here
-
+(test-error "Non supported handshake engine"
+	    websocket-engine-not-found-error?
+	    (make-websocket-connection "ws://localhost" 'not-found))
+(test-error "Invalid scheme"
+	    websocket-engine-scheme-error?
+	    (make-websocket-connection "http://localhost"))
+(test-error "Connection failed"
+	    websocket-engine-connection-error?
+	    (websocket-connection-handshake!
+	     (make-websocket-connection "ws://this.should.not.exist")))
 
 ;; high level APIs test
+;; condition tests
+(test-error "Non supported handshake engine (high)"
+	    websocket-engine-not-found-error?
+	    (make-websocket "ws://localhost" :engine 'not-found))
+(test-error "Invalid scheme (high)"
+	    websocket-engine-scheme-error?
+	    (make-websocket "http://localhost"))
+(test-error "Connection failed (high)"
+	    websocket-engine-connection-error?
+	    (websocket-open
+	     (websocket-on-error
+	      (make-websocket "ws://this.should.not.exist")
+	      (lambda (ws e)
+		(test-assert "&websocket-engine"
+			     (websocket-engine-error? e))))))
+
 (define (make-test-websocket-server count)
   (define (put-bytevector* out bv . bvs)
     (put-bytevector out bv)
