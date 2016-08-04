@@ -40,9 +40,9 @@
 	    port-map
 	    copy-binary-port
 	    ;; lock port
-	    lock-port!
-	    unlock-port!
-	    call-with-port-lock
+	    lock-port-resource!
+	    unlock-port-resource!
+	    call-with-resource-locked-port
 
 	    ;; port data
 	    add-port-data!
@@ -124,12 +124,12 @@
 		     (loop (+ r n)))))))))
 
   ;; lock file port
-  (define (call-with-port-lock port proc . opt)
+  (define (call-with-resource-locked-port port proc . opt)
     ;; the lock must be unlocked after proc no matter what
-    (apply lock-port! port opt)
+    (apply lock-port-resource! port opt)
     (dynamic-wind values
 	(lambda () (proc port))
-	(lambda () (unlock-port! port)))
+	(lambda () (unlock-port-resource! port)))
     )
 
   ;; make all port data alist

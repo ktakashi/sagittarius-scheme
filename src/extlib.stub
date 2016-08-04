@@ -438,7 +438,7 @@
      `(when (Sg_PortClosedP ,p)
 	(wrong-type-of-argument-violation ',name "opened port" ,p))))
 
-  (define-c-proc lock-port!
+  (define-c-proc lock-port-resource!
     (port::<port> :key (lock-type::<symbol> shared) (wait::<boolean> #t)
 		  (raise::<boolean> #t))
     (check-port-open lock-port! port)
@@ -450,15 +450,15 @@
 				  "unsupported lock-type" lock-type)))
       (unless wait (set! flags (logior flags SG_DONT_WAIT)))
       (result SG_FALSE)
-      (if (Sg_LockPort port flags)
+      (if (Sg_LockPortResource port flags)
 	  (result port)
 	  (when raise
 	    (Sg_IOError -1 'lock-port! (Sg_GetLastErrorMessage)
 			NULL port)))))
 
-  (define-c-proc unlock-port! (port::<port>)
-    ;; should we raise an error?
-    (Sg_UnlockPort port)
+  (define-c-proc unlock-port-resource! (port::<port>)
+    ;; should we raise an error if failed?
+    (Sg_UnlockPortResouce port)
     (result port))
 
   (define-c-proc get-bytevector-until (port::<port> bv::<bytevector>)

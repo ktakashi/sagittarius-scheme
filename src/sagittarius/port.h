@@ -626,8 +626,8 @@ SG_EXTERN SgObject Sg_PortTranscoder(SgObject port);
 SG_EXTERN int      Sg_ReadOncePortP(SgPort *port);
 
 /* utility methods */
-SG_EXTERN int      Sg_LockPort(SgPort *port, SgPortLockType lockType);
-SG_EXTERN int      Sg_UnlockPort(SgPort *port);
+SG_EXTERN int      Sg_LockPortResource(SgPort *port, SgPortLockType lockType);
+SG_EXTERN int      Sg_UnlockPortResouce(SgPort *port);
 SG_EXTERN int      Sg_PortReady(SgPort *port);
 SG_EXTERN int      Sg_UTF16ConsolePortP(SgPort *port);
 SG_EXTERN void     Sg_FlushPort(SgPort *port);

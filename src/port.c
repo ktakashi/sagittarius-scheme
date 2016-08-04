@@ -1382,13 +1382,13 @@ static int trans_ready(SgObject self)
 static int trans_lock(SgObject self, SgPortLockType type)
 {
   SgPort *src = SG_TPORT_PORT(self);
-  return Sg_LockPort(src, type);
+  return Sg_LockPortResource(src, type);
 }
 
 static int trans_unlock(SgObject self)
 {
   SgPort *src = SG_TPORT_PORT(self);
-  return Sg_UnlockPort(src);
+  return Sg_UnlockPortResouce(src);
 }
 
 static int64_t trans_put_string(SgObject self, SgChar *str, int64_t count)
@@ -3128,7 +3128,7 @@ int Sg_ReadOncePortP(SgPort *port)
   }
 }
 
-int Sg_LockPort(SgPort *port, SgPortLockType lockType)
+int Sg_LockPortResource(SgPort *port, SgPortLockType lockType)
 {
   if (SG_PORT_VTABLE(port)->lockPort) {
     return SG_PORT_VTABLE(port)->lockPort(port, lockType);
@@ -3138,7 +3138,7 @@ int Sg_LockPort(SgPort *port, SgPortLockType lockType)
   }
 }
 
-int Sg_UnlockPort(SgPort *port)
+int Sg_UnlockPortResouce(SgPort *port)
 {
   if (SG_PORT_VTABLE(port)->unlockPort) {
     return SG_PORT_VTABLE(port)->unlockPort(port);
