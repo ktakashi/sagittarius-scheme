@@ -275,14 +275,33 @@
   ;; should never happen since we can't make such a huge bytevector
   (when (> len #xFFFFFFFFFFFFFFFF)
     (assertion-violation 'websocket-send-frame! "payload is too big" data))
-  
+
   (let* ((b1 (fxior (if last? #x80 0) opcode))
 	 (l  (cond ((< len 126) len)
 		   ((< len #xFFFF) 126)
 		   (else 127)))
 	 (b2 (fxior (if mask? #x80 0) l))
 	 (masking-key
-	  (and mask? (read-sys-random (* +masking-key-length+ 8)))))
+	  (or (and mask? (read-sys-random (* +masking-key-length+ 8))) #vu8()))
+	 (klen (bytevector-length masking-key))
+	 (plen (cond ((= l 126) 2) ((= l 127) 8) (else 0)))
+	 (bv (make-bytevector (+ 2 plen klen len))))
+
+    (bytevector-u8-set! bv 0 b1)
+    (bytevector-u8-set! bv 1 b2)
+    (cond ((= l 126) (bytevector-u16-set! bv 2 len (endianness big)))
+	  ((= l 127) (bytevector-u64-set! bv 2 len (endianness big))))
+    (bytevector-copy! masking-key 0 bv (+ 2 plen) klen)
+    (bytevector-copy! data start  bv (+ 2 plen klen) len)
+    (mask masking-key bv (+ 2 plen klen) len)
+    (put-bytevector out bv)
+    
+    ;; blow should not be used due to the race condition.
+    ;; if we want to use it, then we need to either; lock the port or
+    ;; call this procedure in atomic environment. the first one was
+    ;; ugly, the latter one was not good for performance. so
+    ;; make temporary buffer and put it in one go.
+    #|
     (put-u8 out b1)
     (put-u8 out b2)
     (cond ((= l 126) (put-u16 len (endianness big)))
@@ -292,5 +311,6 @@
 	  (put-bytevector out masking-key)
 	  (put-bytevector out (mask masking-key data 0 len)))
 	(put-bytevector out data start len))
+    |#
     (flush-output-port out)))
 )

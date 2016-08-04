@@ -44,7 +44,15 @@
 		  #vu8(#x01 #x03 #x48 #x65 #x6c #x80 #x02 #x6c #x6f))
 
     (test-binary-message conn #*"Hello"
-			 #vu8(#x82 #x05 #x48 #x65 #x6c #x6c #x6f))))
+			 #vu8(#x82 #x05 #x48 #x65 #x6c #x6c #x6f))
+    (let ((bv126 (make-bytevector 126 1))
+	  (bvFFFF (make-bytevector #xFFFF 2)))
+      (test-binary-message conn bv126
+			   (bytevector-append #vu8(#x82 #x7E #x00 #x7E) bv126))
+      (test-binary-message conn bvFFFF
+			   (bytevector-append
+			    #vu8(#x82 #x7F #x00 #x00 #x00 #x00 #x00 #x00 #xFF #xFF)
+			    bvFFFF)))))
 
 ;; TODO add more tests for low level APIs here
 (test-error "Non supported handshake engine"
@@ -91,7 +99,7 @@
     (lambda ()
       (let loop ((i 0))
 	(unless (= i count)
-	  (put-bytevector out #vu8(#x81 #x05 #x48 #x65 #x6c #x6c #x6f))
+	  (websocket-send-frame! out +websocket-text-frame+ #f #*"Hello" #t)
 	  (flush-output-port out)
 	  (loop (+ i 1))))))
 
@@ -141,7 +149,11 @@
 	(sq (make-shared-queue))
 	(websocket (make-websocket uri))
 	(on-open #f)
-	(on-close #f))
+	(on-close #f)
+	(bv126 (make-bytevector 126 1))
+	;; FIXME causes stack corruption.
+	;;(bvFFFF (make-bytevector #xFFFF 2))
+	)
     (test-assert (websocket? websocket))
     (test-assert (websocket? (websocket-on-text-message websocket
 			      (lambda (ws text) 
@@ -162,11 +174,15 @@
     (test-assert (websocket? (websocket-open websocket)))
     (test-assert on-open)
     (test-assert (websocket? (websocket-send websocket #*"binary")))
+    (test-assert (websocket? (websocket-send websocket bv126)))
+    ;;(test-assert (websocket? (websocket-send websocket bvFFFF)))
 
     ;; wait until all text messages are sent
     (do ((i 0 (+ i 1))) ((= i count))
       (test-equal "Hello" (shared-queue-get! tsq)))
     (test-equal #*"binary" (shared-queue-get! sq))
+    (test-equal bv126 (shared-queue-get! sq))
+    ;;    (test-equal bvFFFF (shared-queue-get! sq))
     (test-assert (websocket? (websocket-ping websocket #*"data")))
     (test-error "websocket ping" websocket-pong-error?
 		(websocket-ping websocket #*"invalid"))
