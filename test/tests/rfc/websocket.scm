@@ -189,11 +189,6 @@
     ;; using splitter
     (test-assert (websocket? (websocket-send websocket bvFFFF 0 #x3FFF)))
 
-    ;; wait until all text messages are sent.
-    ;; for some reason, server may not send text data
-    ;; and in that case shared-queue would block forever.
-    ;; to avoid this, we need to set timeout.
-    ;; FIXME is this socket port problem?
     (do ((i 0 (+ i 1))) ((= i count))
       (test-equal "Hello" (shared-queue-get! tsq 1)))
     (test-equal #*"binary" (shared-queue-get! sq 1))
