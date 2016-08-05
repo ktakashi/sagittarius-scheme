@@ -55,7 +55,7 @@
   (fields scheme host port path query)
   (protocol (lambda (n)
 	      (lambda (scheme host port path query)
-		((n #f http-websocket-handshake)
+		((n http-websocket-handshake)
 		 scheme host port path query)))))
 
 (define-condition-type &websocket-http-engine &websocket-engine
@@ -185,13 +185,9 @@
 	    (or (not (rfc5322-header-ref headers "Sec-WebSocket-Protocol"))
 		(check-header headers "Sec-WebSocket-Protocol" ""))
 	    (check-header-contains headers "Sec-WebSocket-Protocol" protocols))
-	(cond ((rfc5322-header-ref headers "Sec-WebSocket-Extensions") =>
-	       (lambda (v) (websocket-engine-extensions-set! v))))
-	;; TODO handling other header such as cookies
-	(websocket-engine-socket-set! engine socket)
-	(websocket-engine-port-set! engine in/out)
-	engine))))
-    
 
-  
+	(values socket in/out
+		(rfc5322-header-ref headers "Sec-WebSocket-Protocol")
+		(rfc5322-header-ref headers "Sec-WebSocket-Extensions")
+		headers)))))
 )

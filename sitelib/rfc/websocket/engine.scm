@@ -63,13 +63,7 @@
 	  (rfc websocket conditions))
   
 (define-record-type websocket-engine
-  (fields (mutable socket)
-	  handshake
-	  (mutable extensions)
-	  ;; engine can set
-	  (mutable port))
-  (protocol 
-   (lambda (p) (lambda (socket handshake) (p socket handshake #f #f)))))
+  (fields handshake))
 
 (define-condition-type &websocket-engine-scheme &websocket-engine
   make-websocket-engine-scheme-error websocket-engine-scheme-error?

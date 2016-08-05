@@ -18,7 +18,7 @@
 ;; for testing, we need this
 (define websocket-connection-socket-port-set!
   (with-library (rfc websocket connection)
-		websocket-connection-socket-port-set!))
+		websocket-connection-port-set!))
 
 (test-begin "RFC Websocket")
 

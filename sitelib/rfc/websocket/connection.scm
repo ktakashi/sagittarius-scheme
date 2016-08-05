@@ -47,7 +47,10 @@
 	  websocket-engine-connection-error?
 	  websocket-error-host
 	  websocket-error-port
-	  ;; internal
+	  ;; low APIs
+	  websocket-connection-protocol
+	  websocket-connection-extensions
+	  ;; should be internal
 	  websocket-connection-port
 	  websocket-connection-socket
 	  websocket-connection-state ;; not really needed
@@ -72,33 +75,50 @@
 		    (make-who-condition 'websocket-connection)
 		    (make-message-condition "Handshake engine not found"))))
 
-(define (websocket-connection-protocol p)
-  (lambda (uri :optional (engine 'http))
-    (guard (e ((websocket-engine-error? e) (raise e))
-	      (else (websocket-engine-not-found-error engine e)))
-      (let ((make-engine (eval 'make-websocket-engine
-			       (environment `(rfc websocket engine ,engine)))))
-	(p (make-engine uri) uri #f 'created)))))
-  
 (define-record-type websocket-connection
-  (fields engine uri (mutable socket-port) (mutable state))
-  (protocol websocket-connection-protocol))
+  (fields engine uri
+	  (mutable socket)
+	  (mutable port)
+	  (mutable protocol) ;; subprotocol but we know this is websocket
+	  (mutable extensions)
+	  (mutable raw-headers)
+	  (mutable state))
+  (protocol
+   (lambda (p)
+     (lambda (uri :optional (engine 'http))
+       (guard (e ((websocket-engine-error? e) (raise e))
+		 (else (websocket-engine-not-found-error engine e)))
+	 (let* ((env (environment `(rfc websocket engine ,engine)))
+		(make-engine (eval 'make-websocket-engine env)))
+	   (p (make-engine uri) uri #f #f #f #f '() 'created)))))))
 
 (define (websocket-connection-handshake! c . opt)
   (define engine (websocket-connection-engine c))
-  (apply (websocket-engine-handshake engine) engine opt)
-  (websocket-connection-state-set! c 'open)
+  ;; sends only connection is closed
+  (when (websocket-connection-closed? c)
+    (let-values (((socket port protocol extensions raw-headers)
+		  (apply (websocket-engine-handshake engine) engine opt)))
+      (websocket-connection-socket-set! c socket)
+      (websocket-connection-port-set! c
+	(buffered-port (or port (socket-port socket #f)) (buffer-mode block)))
+      (websocket-connection-protocol-set! c protocol)
+      (websocket-connection-extensions-set! c extensions)
+      (websocket-connection-raw-headers-set! c raw-headers)
+      (websocket-connection-state-set! c 'open)))
   c)
 
 (define (websocket-connection-close! c)
-  (define socket (websocket-engine-socket (websocket-connection-engine c)))
-  (define (close-socket-port p)
-    (close-port p)
-    (websocket-connection-socket-port-set! c #f))
+  (define socket (websocket-connection-socket c))
+  (define port   (websocket-connection-port c))
   ;; closing buffered port
-  (cond ((websocket-connection-socket-port c) => close-socket-port))
-  (socket-shutdown socket SHUT_RDWR)
-  (socket-close socket)
+  (when port
+    (close-port port)
+    (websocket-connection-port-set! c #f))
+  ;; closing socket
+  (when socket
+    (socket-shutdown socket SHUT_RDWR)
+    (socket-close socket)
+    (websocket-connection-socket-set! c #f))
   (websocket-connection-state-set! c 'closed))
 
 (define (websocket-connection-closing? c)
@@ -107,17 +127,5 @@
 
 (define (websocket-connection-closed? c)
   (memq (websocket-connection-state c) '(created closed)))
-
-(define (websocket-connection-port c)
-  (or (websocket-connection-socket-port c)
-      (let ((p (or (websocket-engine-port (websocket-connection-engine c))
-		   (buffered-port (socket-port 
-				   (websocket-connection-socket c) #f)
-				  (buffer-mode block)))))
-	(websocket-connection-socket-port-set! c p)
-	p)))
-(define (websocket-connection-socket c)
-  (websocket-engine-socket (websocket-connection-engine c)))
-
 
   )
