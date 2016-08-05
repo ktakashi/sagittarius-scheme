@@ -33,7 +33,9 @@
 (test-equal "hashbang on remote REPL(2)" "#vu8(97 97 97)\n"
 	    (test-repl "#!read-macro=sagittarius/bv-string #*\"aaa\""))
 
+(socket-shutdown server SHUT_RDWR)
 (socket-close server)
-(guard (e (else #t)) (thread-join! t))
+(guard (e ((join-timeout-exception? e) (thread-terminate! t)) (else #t))
+  (thread-join! t 1))
 
 (test-end)
