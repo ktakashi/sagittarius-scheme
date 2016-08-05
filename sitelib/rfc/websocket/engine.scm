@@ -38,10 +38,7 @@
 (library (rfc websocket engine)
   (export websocket-engine
 	  websocket-engine?
-	  websocket-engine-socket
 	  websocket-engine-handshake
-	  websocket-engine-extensions ;; for validation?
-	  websocket-engine-port
 
 	  &websocket-engine-scheme
 	  make-websocket-engine-scheme-error
@@ -54,11 +51,7 @@
 	  websocket-engine-connection-error
 	  websocket-engine-connection-error?
 	  websocket-error-host
-	  websocket-error-port
-	  ;; internal for underlying engine implementation
-	  websocket-engine-socket-set!
-	  websocket-engine-port-set!
-	  websocket-engine-extensions-set!)
+	  websocket-error-port)
   (import (rnrs)
 	  (rfc websocket conditions))
   
