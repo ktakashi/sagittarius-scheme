@@ -108,8 +108,11 @@
   (define (send-pong out data)
     (websocket-send-frame! out +websocket-pong-frame+ #f data #t))
   ;; don't mask for my sake
-  (define (send-binary out data)
-    (websocket-send-frame! out +websocket-binary-frame+ #t data #t))
+  (define (send-binary out data op fin?)
+    (websocket-send-frame! out op #t data fin?))
+
+  (define (send-ping out data)
+    (websocket-send-frame! out +websocket-ping-frame+ #f data #t))
   
   (define (websocket-handler server socket)
     ;; for some reason closing this wouldn't remove
@@ -139,7 +142,13 @@
 		      (send-pong in/out data))
 		  (loop))
 		 (else
-		  (send-binary in/out data)
+		  (send-binary in/out data op fin?)
+		  (unless fin?
+		    (let lp ()
+		      (let-values (((fin? op data)
+				    (websocket-recv-frame in/out)))
+			(send-binary in/out data op fin?)
+			(unless fin? (lp)))))
 		  (loop))))))
      (close-port in/out)))
 
@@ -153,8 +162,7 @@
 	(on-open #f)
 	(on-close #f)
 	(bv126 (make-bytevector 126 1))
-	;; FIXME causes stack corruption.
-	;;(bvFFFF (make-bytevector #xFFFF 2))
+	(bvFFFF (make-bytevector #xFFFF 2))
 	)
     (test-assert (websocket? websocket))
     (test-assert (websocket? (websocket-on-text-message websocket
@@ -177,7 +185,10 @@
     (test-assert on-open)
     (test-assert (websocket? (websocket-send websocket #*"binary")))
     (test-assert (websocket? (websocket-send websocket bv126)))
+    ;; FIXME this seems to corrupt C stack..
     ;;(test-assert (websocket? (websocket-send websocket bvFFFF)))
+    ;; using splitter
+    (test-assert (websocket? (websocket-send websocket bvFFFF 0 #x3FFF)))
 
     ;; wait until all text messages are sent.
     ;; for some reason, server may not send text data
@@ -188,11 +199,12 @@
       (test-equal "Hello" (shared-queue-get! tsq 1)))
     (test-equal #*"binary" (shared-queue-get! sq 1))
     (test-equal bv126 (shared-queue-get! sq 1))
-    ;;    (test-equal bvFFFF (shared-queue-get! sq))
+    ;;(test-equal bvFFFF (shared-queue-get! sq 1))
+    (test-equal bvFFFF (shared-queue-get! sq 1))
     (test-assert (websocket? (websocket-ping websocket #*"data")))
     (test-error "websocket ping" websocket-pong-error?
 		(websocket-ping websocket #*"invalid"))
-    
+
     (test-assert (websocket? (websocket-close websocket)))
     ;; double close doesn't effect anything
     (test-assert (websocket? (websocket-close websocket)))
