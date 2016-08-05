@@ -89,6 +89,7 @@
 	  )
   (import (rnrs)
 	  (srfi :18)
+	  (sagittarius control)
 	  (rfc websocket conditions)
 	  (rfc websocket connection)
 	  (rfc websocket messages)
@@ -100,8 +101,7 @@
 	  connection
 	  dispatchers
 	  (mutable thread)
-	  mutex
-	  pong-channel)
+	  mutex)
   (protocol
    (lambda (p)
      (lambda (uri :key (protocols '()) (extensions '()) (engine 'http))
@@ -109,8 +109,7 @@
 	  (make-websocket-connection uri engine)
 	  (make-eq-hashtable)
 	  #f
-	  (make-mutex)
-	  (make-shared-queue 1))))))
+	  (make-mutex))))))
 (define-condition-type &websocket-pong &websocket
   make-websocket-pong-error websocket-pong-error?
   (pong-data websocket-error-pong-data))
@@ -151,36 +150,37 @@
       (guard (e ((websocket-closed-error? e) (raise e))
 		((websocket-error? e) (invoke-event websocket 'error e)))
 	(let loop ()
-	  (let-values (((opcode data) (websocket-receive conn)))
-	    (cond ((eqv? opcode +websocket-close-frame+)
-		   (set! finish? #t))
-		  ((eqv? opcode +websocket-text-frame+)
-		   (invoke-event websocket 'text data)
-		   (loop))
-		  ((eqv? opcode +websocket-binary-frame+)
-		   (invoke-event websocket 'binary data)
-		   (loop))
-		  ((eqv? opcode +websocket-pong-frame+)
-		   (shared-queue-put!
-		    (websocket-pong-channel websocket) data)
-		   (loop))
-		  (else
-		   ;; TODO should we raise an error?
-		   (websocket-send-close conn
-		    (websocket-compose-close-status 1002) #f)
-		   (loop))))))
+	  (let-values (((opcode data) (websocket-receive conn :push-pong? #t)))
+	    (if (eqv? opcode +websocket-close-frame+)
+		(set! finish? #t)
+		(begin
+		  (cond ((eqv? opcode +websocket-text-frame+)
+			 (invoke-event websocket 'text data))
+			((eqv? opcode +websocket-binary-frame+)
+			 (invoke-event websocket 'binary data))
+			(else
+			 ;; TODO should we raise an error?
+			 (websocket-send-close conn
+			    (websocket-compose-close-status 1002) #f)))
+		  (loop))))))
       (unless finish? (restart))))
   (let ((t (make-thread dispatch)))
     (websocket-thread-set! websocket t)
     (thread-start! t)))
 
+;; Opens given websocket iff it's not opened yet
 (define-websocket (websocket-open websocket)
-  (websocket-connection-handshake! (websocket-connection websocket)
-				   (websocket-protocols websocket)
-				   (websocket-extensions websocket))
-  (start-dispatch-thread websocket)
-  (invoke-event websocket 'open))
+  (define conn (websocket-connection websocket))
+  (if (websocket-connection-closed? conn)
+      (begin
+	(websocket-connection-handshake! conn
+					 (websocket-protocols websocket)
+					 (websocket-extensions websocket))
+	(start-dispatch-thread websocket)
+	(invoke-event websocket 'open))
+      websocket))
 
+;; Closes given websocket iff it's open
 (define-websocket (websocket-close websocket
 				   :key (status #f) (message "") (timeout #f))
   (define conn (websocket-connection websocket))
@@ -213,25 +213,32 @@
 
 (define-websocket (websocket-send websocket data . opt)
   (define conn (websocket-connection websocket))
-  (cond ((string? data) (apply websocket-send-text conn data opt))
-	((bytevector? data) (apply websocket-send-binary conn data opt))
-	(else (assertion-violation 'websocket-send "invalid data" data)))
+  (define mutex (websocket-mutex websocket))
+  (mutex-lock! mutex)
+  (unwind-protect
+   (cond ((string? data) (apply websocket-send-text conn data opt))
+	 ((bytevector? data) (apply websocket-send-binary conn data opt))
+	 (else (assertion-violation 'websocket-send "invalid data" data)))
+   (mutex-unlock! mutex))
   websocket)
 
 (define-websocket (websocket-ping websocket data . opt)
   (define mutex (websocket-mutex websocket))
-  (let try ()
-    (mutex-lock! mutex)
-    (websocket-send-ping (websocket-connection websocket) data)
-    (let ((r (apply shared-queue-get! (websocket-pong-channel websocket) opt)))
-      (mutex-unlock! mutex)
-      ;; Should we raise an exception?
-      ;; if so, what kind of exception? &websocket would be caught
-      (unless (and (bytevector? r) (bytevector=? data r))
-	(raise (condition (make-websocket-pong-error r)
-			  (make-who-condition 'websocket-ping)
-			  (make-message-condition "unknown pong"))))
-      websocket)))
+  (define conn (websocket-connection websocket))
+  (mutex-lock! mutex)
+  (unwind-protect
+   (begin
+     (websocket-send-ping conn data)
+     (let ((r (apply shared-queue-get!
+		     (websocket-connection-pong-queue conn) opt)))
+       ;; Should we raise an exception?
+       ;; if so, what kind of exception? &websocket would be caught
+       (unless (and (bytevector? r) (bytevector=? data r))
+	 (raise (condition (make-websocket-pong-error r)
+			   (make-who-condition 'websocket-ping)
+			   (make-message-condition "unknown pong"))))))
+   (mutex-unlock! mutex))
+  websocket)
 
 (define (set-event-handler websocket event handler)
   (define dispatchers (websocket-dispatchers websocket))

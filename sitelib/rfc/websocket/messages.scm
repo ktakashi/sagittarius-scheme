@@ -65,7 +65,8 @@
 	  (sagittarius)
 	  (prefix (binary io) b:)
 	  (math random)
-	  (srfi :39 parameters))
+	  (srfi :39 parameters)
+	  (util concurrent shared-queue))
 
 (define *websocket-mask-data?* (make-parameter #t))
   
@@ -195,14 +196,29 @@
     (%websocket-send-binary conn (string->utf8 data) start split
 			    +websocket-text-frame+))))
 
-(define (websocket-receive conn)
+;; Receive message
+(define (websocket-receive conn :key (push-pong? #f))
   (define (control-opcode? op) (>= op #x8)) ;; >= %x8 are opcode
 
+  ;; Controle frames are basically ignored unless it's close.
+  ;; (may raise an error). if push-pong? is true value, then
+  ;; it'd push the pong data to the queue so that caller can
+  ;; check the response value.
   ;; TODO control frame may increase in future so make this extensible.
   (define (handle-control-frame conn op data)
     (cond ((eqv? op +websocket-ping-frame+)
+	   ;; 5.4.  Fragmentation
+	   ;; * Control frames (see Section 5.5) MAY be injected in the
+	   ;;   middle of a fragmented message.  Control frames themselves
+	   ;;   MUST NOT be fragmented.
 	   (values (websocket-pong conn data) data))
-	  ((eqv? op +websocket-pong-frame+) (values #f data))
+	  ((eqv? op +websocket-pong-frame+)
+	   ;; 5.4.  Fragmentation
+	   ;; * An endpoint MUST be capable of handling control frames in the
+	   ;;   middle of a fragmented message.
+	   (when push-pong?
+	     (shared-queue-put! (websocket-connection-pong-queue conn) data))
+	   (values #t data))
 	  ((eqv? op +websocket-close-frame+)
 	   ;; if closing? is #t, then we already sent close message.
 	   (let ((closing? (websocket-connection-closing? conn)))

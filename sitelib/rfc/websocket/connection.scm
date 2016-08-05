@@ -50,6 +50,7 @@
 	  ;; low APIs
 	  websocket-connection-protocol
 	  websocket-connection-extensions
+	  websocket-connection-pong-queue
 	  ;; should be internal
 	  websocket-connection-port
 	  websocket-connection-socket
@@ -64,7 +65,8 @@
 	  (sagittarius socket)
 	  ;; underlying socket might be a TLS socket
 	  ;; so import this after (sagittarius socket)
-	  (rfc tls))
+	  (rfc tls)
+	  (util concurrent shared-queue))
 
 (define-condition-type &websocket-engine-not-found &websocket-engine
   make-websocket-engine-not-found-error websocket-engine-not-found-error?
@@ -82,7 +84,8 @@
 	  (mutable protocol) ;; subprotocol but we know this is websocket
 	  (mutable extensions)
 	  (mutable raw-headers)
-	  (mutable state))
+	  (mutable state)
+	  pong-queue)
   (protocol
    (lambda (p)
      (lambda (uri :optional (engine 'http))
@@ -90,7 +93,8 @@
 		 (else (websocket-engine-not-found-error engine e)))
 	 (let* ((env (environment `(rfc websocket engine ,engine)))
 		(make-engine (eval 'make-websocket-engine env)))
-	   (p (make-engine uri) uri #f #f #f #f '() 'created)))))))
+	   (p (make-engine uri) uri #f #f #f #f '() 'created
+	      (make-shared-queue))))))))
 
 (define (websocket-connection-handshake! c . opt)
   (define engine (websocket-connection-engine c))
@@ -126,6 +130,7 @@
 
 
 (define (websocket-connection-closed? c)
-  (memq (websocket-connection-state c) '(created closed)))
+  (cond ((memq (websocket-connection-state c) '(created closed)) #t)
+	(else #f)))
 
   )
