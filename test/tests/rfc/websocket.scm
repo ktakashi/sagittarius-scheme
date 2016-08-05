@@ -61,6 +61,9 @@
 (test-error "Invalid scheme"
 	    websocket-engine-scheme-error?
 	    (make-websocket-connection "http://localhost"))
+(test-error "Invalid scheme (2)"
+	    websocket-engine-scheme-error?
+	    (make-websocket-connection "http://localhost:8080"))
 (test-error "Connection failed"
 	    websocket-engine-connection-error?
 	    (websocket-connection-handshake!

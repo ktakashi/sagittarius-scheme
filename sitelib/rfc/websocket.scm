@@ -48,6 +48,9 @@
 	  make-websocket-connection
 	  websocket-connection?
 	  websocket-connection-handshake!
+	  websocket-connection-close!
+	  websocket-connection-closed?
+	  websocket-connection-pong-queue
 	  
 	  websocket-send-text
 	  websocket-send-binary
@@ -79,13 +82,12 @@
 	  websocket-pong-error?
 	  websocket-error-pong-data
 
-	  websocket-engine-scheme-error
 	  websocket-engine-scheme-error?
 	  websocket-error-scheme
 	  websocket-engine-connection-error?
 	  websocket-error-host
 	  websocket-error-port
-	  
+	  websocket-close-timeout-error?
 	  *websocket-mask-data?*
 	  )
   (import (rnrs)
@@ -115,7 +117,7 @@
   make-websocket-pong-error websocket-pong-error?
   (pong-data websocket-error-pong-data))
 (define-condition-type &websocket-close-timeout &websocket
-  make-websocket-close-timeout-error websocket-close-timeout-error)
+  make-websocket-close-timeout-error websocket-close-timeout-error?)
 
 (define (invoke-event websocket event . opt)
   (define dispatchers (websocket-dispatchers websocket))

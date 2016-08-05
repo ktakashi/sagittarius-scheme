@@ -78,6 +78,8 @@
 
 (define (make-websocket-engine uri)
   (let-values (((scheme ui host port path query frag) (uri-parse uri)))
+    (unless (member scheme '("ws" "wss"))
+      (websocket-engine-scheme-error 'make-websocket-engine scheme uri))
     (let ((port (or (and port (number->string port))
 		    (and scheme (string=? scheme "ws") "80")
 		    (and scheme (string=? scheme "wss") "443")

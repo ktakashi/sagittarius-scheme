@@ -40,6 +40,7 @@
 @include-section["utils/rfc/tls.scrbl"]
 @include-section["utils/rfc/uri.scrbl"]
 @include-section["utils/rfc/uuid.scrbl"]
+@include-section["utils/rfc/websocket.scrbl"]
 @include-section["utils/rfc/x.509.scrbl"]
 @include-section["utils/rfc/zlib.scrbl"]
 @include-section["utils/rpc.scrbl"]
