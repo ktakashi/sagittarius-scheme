@@ -56,6 +56,7 @@
 	  websocket-send-pong
 
 	  websocket-receive
+	  websocket-receive-fragments
 	  websocket-compose-close-status
 	  websocket-parse-close-status
 	  

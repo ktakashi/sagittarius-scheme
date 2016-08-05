@@ -185,8 +185,7 @@
     (test-assert on-open)
     (test-assert (websocket? (websocket-send websocket #*"binary")))
     (test-assert (websocket? (websocket-send websocket bv126)))
-    ;; FIXME this seems to corrupt C stack..
-    ;;(test-assert (websocket? (websocket-send websocket bvFFFF)))
+    (test-assert (websocket? (websocket-send websocket bvFFFF)))
     ;; using splitter
     (test-assert (websocket? (websocket-send websocket bvFFFF 0 #x3FFF)))
 
@@ -199,7 +198,7 @@
       (test-equal "Hello" (shared-queue-get! tsq 1)))
     (test-equal #*"binary" (shared-queue-get! sq 1))
     (test-equal bv126 (shared-queue-get! sq 1))
-    ;;(test-equal bvFFFF (shared-queue-get! sq 1))
+    (test-equal bvFFFF (shared-queue-get! sq 1))
     (test-equal bvFFFF (shared-queue-get! sq 1))
     (test-assert (websocket? (websocket-ping websocket #*"data")))
     (test-error "websocket ping" websocket-pong-error?

@@ -37,6 +37,7 @@
 	  websocket-send-pong
 
 	  websocket-receive
+	  websocket-receive-fragments
 	  websocket-compose-close-status
 	  websocket-parse-close-status
 
@@ -198,6 +199,18 @@
 
 ;; Receive message
 (define (websocket-receive conn :key (push-pong? #f))
+  (define (convert opcode data)
+    (if (eqv? opcode +websocket-text-frame+)
+	(values opcode (utf8->string data))
+	(values opcode data)))
+  (let-values (((out extract) (open-bytevector-output-port)))
+    (websocket-receive-fragments conn
+     (lambda (fin? opcode data)
+       (put-bytevector out data)
+       (if fin? (convert opcode (extract)) (values opcode #f)))
+     :push-pong? push-pong?)))
+
+(define (websocket-receive-fragments conn proc :key (push-pong? #f))
   (define (control-opcode? op) (>= op #x8)) ;; >= %x8 are opcode
 
   ;; Controle frames are basically ignored unless it's close.
@@ -211,7 +224,7 @@
 	   ;; * Control frames (see Section 5.5) MAY be injected in the
 	   ;;   middle of a fragmented message.  Control frames themselves
 	   ;;   MUST NOT be fragmented.
-	   (values (websocket-pong conn data) data))
+	   (values (websocket-send-pong conn data) data))
 	  ((eqv? op +websocket-pong-frame+)
 	   ;; 5.4.  Fragmentation
 	   ;; * An endpoint MUST be capable of handling control frames in the
@@ -230,23 +243,20 @@
 		 (websocket-closed-error 'websocket-receive
 					 "Server sent close frame" data))))))
 
-  (define (convert opcode data)
-    (if (eqv? opcode +websocket-text-frame+)
-	(values opcode (utf8->string data))
-	(values opcode data)))
-  
-  (define in (websocket-connection-port conn))
+    (define in (websocket-connection-port conn))
 
-  (let loop ((first? #t) (opcode #f) (r #vu8()))
+  (let loop ((opcode #f))
     (let-values (((fin? op data) (websocket-recv-frame in)))
       (cond ((control-opcode? op)
 	     (let-values (((cont? data) (handle-control-frame conn op data)))
 	       (if cont?
-		   (loop first? opcode r)
-		   (values op data))))
-	    (fin? (convert (or opcode op)
-			   (if first? data (bytevector-append r data))))
-	    (else (loop #f (or opcode op) (bytevector-append r data)))))))
+		   (loop opcode)
+		   (proc #t op data))))
+	    (fin? (proc #t (or opcode op) data))
+	    (else
+	     (let ((next-op (or opcode op)))
+	       (proc #f next-op data)
+	       (loop next-op)))))))
 
 
 ;;; Low level APIs
@@ -262,8 +272,8 @@
 (define (websocket-recv-frame in)
   (define (get-payload-length len in)
     (cond ((< len 126) len)
-	  ((= len 126) (get-u16 in (endianness big)))
-	  (else        (get-u64 in (endianness big)))))
+	  ((= len 126) (b:get-u16 in (endianness big)))
+	  (else        (b:get-u64 in (endianness big)))))
   
   (let* ((b1 (get-u8 in))
 	 (b2 (get-u8 in))
