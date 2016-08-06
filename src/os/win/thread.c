@@ -143,11 +143,6 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry,
   return TRUE;
 }
 
-void Sg_InternalThreadYield()
-{
-  Sleep(1);
-}
-
 void Sg_SetCurrentThread(SgInternalThread *ret)
 {
   ret->thread = GetCurrentThread();

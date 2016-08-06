@@ -45,53 +45,7 @@
 
 #include <time.h>
 
-/* thread function and some macros */
-#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
-typedef struct SgInternalMutexRec
-{
-  HANDLE mutex;
-} SgInternalMutex;
-typedef struct SgInternalThreadRec
-{
-  HANDLE  thread;
-  void   *returnValue;
-  HANDLE  event;
-  uintptr_t stackBase;
-  jmp_buf jbuf;
-} SgInternalThread;
-typedef unsigned int SgThreadEntryFunc(void *);
-#define SG_INTERNAL_THREAD_INIT(thr)				\
-  do {								\
-    (thr)->thread = (HANDLE)NULL;				\
-    (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
-  } while (0)
-#define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
-typedef struct SgInternalCondRec
-{
-  int waiters_count;
-  CRITICAL_SECTION waiters_count_lock;
-  HANDLE semaphore;
-  HANDLE waiters_done;
-  SgInternalMutex *mutex;
-  size_t was_broadcast;
-} SgInternalCond;
-
-typedef struct SgInternalSemaphoreRec
-{
-  SgObject name;		/* #f unnamed semaphore */
-  HANDLE semaphore;
-} SgInternalSemaphore;
-
-#define SG_INTERNAL_COND_TIMEDOUT 1
-#define SG_INTERNAL_COND_INTR     2
-
-/* dummies */
-#define SG_INTERRUPTED_THREAD()	     if (TRUE)
-#define SG_INTERRUPTED_THREAD_ELSE() else
-#define SG_INTERRUPTED_THREAD_END()
-#define SG_RESET_INTERRUPTED_THREAD(vm) /* dummy */
-
-#else
+#if (!defined(_WIN32) && !defined(_SG_WIN_SUPPORT)) || defined(__CYGWIN__)
 #include <errno.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -144,11 +98,56 @@ typedef struct SgInternalSemaphoreRec
 
 #define SG_RESET_INTERRUPTED_THREAD(vm)		\
   ((&(vm)->thread)->interrupted = FALSE)
-  
-#endif
 
-/* emulate pthread_cleanup_push/pop*/
-#if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+#define thread_cleanup_push pthread_cleanup_push
+#define thread_cleanup_pop  pthread_cleanup_pop
+
+/* thread function and some macros */
+#elif defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
+typedef struct SgInternalMutexRec
+{
+  HANDLE mutex;
+} SgInternalMutex;
+typedef struct SgInternalThreadRec
+{
+  HANDLE  thread;
+  void   *returnValue;
+  HANDLE  event;
+  uintptr_t stackBase;
+  jmp_buf jbuf;
+} SgInternalThread;
+typedef unsigned int SgThreadEntryFunc(void *);
+#define SG_INTERNAL_THREAD_INIT(thr)				\
+  do {								\
+    (thr)->thread = (HANDLE)NULL;				\
+    (thr)->event = CreateEvent(NULL, TRUE, FALSE, NULL);	\
+  } while (0)
+#define SG_INTERNAL_THREAD_INITIALIZED_P(thr) ((thr)->thread != (HANDLE)NULL)
+typedef struct SgInternalCondRec
+{
+  int waiters_count;
+  CRITICAL_SECTION waiters_count_lock;
+  HANDLE semaphore;
+  HANDLE waiters_done;
+  SgInternalMutex *mutex;
+  size_t was_broadcast;
+} SgInternalCond;
+
+typedef struct SgInternalSemaphoreRec
+{
+  SgObject name;		/* #f unnamed semaphore */
+  HANDLE semaphore;
+} SgInternalSemaphore;
+
+#define SG_INTERNAL_COND_TIMEDOUT 1
+#define SG_INTERNAL_COND_INTR     2
+
+/* dummies */
+#define SG_INTERRUPTED_THREAD()	     if (TRUE)
+#define SG_INTERRUPTED_THREAD_ELSE() else
+#define SG_INTERRUPTED_THREAD_END()
+#define SG_RESET_INTERRUPTED_THREAD(vm) /* dummy */
+
 /* emulation code from pthread for win32 */
 typedef void (* ptw32_cleanup_callback_t)(void *);
 typedef struct ptw32_cleanup_rec_t
@@ -171,13 +170,8 @@ typedef struct ptw32_cleanup_rec_t
     }							\
   }
 
-#elif !defined(_WIN32) && !defined(_WIN64)
-/* Assume we are using pthread */
-# include <pthread.h>
-# define thread_cleanup_push pthread_cleanup_push
-# define thread_cleanup_pop  pthread_cleanup_pop
 #else
-# error FIXME: non VC compiler on Windows are not supported!
+# error "pthread.h or MSC is required"
 #endif
 
 #define SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(mutex)	\
@@ -196,7 +190,6 @@ SG_EXTERN void Sg_DestroyMutex(SgInternalMutex *mutex);
 
 SG_EXTERN int  Sg_InternalThreadStart(SgInternalThread *thread,
 				      SgThreadEntryFunc *entry, void *param);
-SG_EXTERN void Sg_InternalThreadYield();
 SG_EXTERN void Sg_SetCurrentThread(SgInternalThread *ret);
 
 SG_EXTERN void Sg_InitCond(SgInternalCond *cond);

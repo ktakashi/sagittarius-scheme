@@ -100,11 +100,6 @@ int Sg_InternalThreadStart(SgInternalThread *thread, SgThreadEntryFunc *entry, v
   return ok;
 }
 
-void Sg_InternalThreadYield()
-{
-  sched_yield();
-}
-
 void Sg_SetCurrentThread(SgInternalThread *ret)
 {
   ret->thread = pthread_self();
