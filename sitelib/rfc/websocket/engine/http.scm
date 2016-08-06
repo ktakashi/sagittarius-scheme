@@ -81,14 +81,15 @@
 
 (define (make-websocket-engine uri)
   (let-values (((scheme ui host port path query frag) (uri-parse uri)))
-    (unless (member scheme '("ws" "wss"))
-      (websocket-engine-scheme-error 'make-websocket-engine scheme uri))
-    (let ((port (or (and port (number->string port))
-		    (and scheme (string=? scheme "ws") "80")
-		    (and scheme (string=? scheme "wss") "443")
-		    (websocket-engine-scheme-error 'make-websocket-engine
-						   scheme uri))))
-      (make-http-websocket-engine scheme host port path query))))
+    (let ((default-port 
+	    (or (and scheme (string=? scheme "ws") "80")
+		(and scheme (string=? scheme "wss") "443")
+		(websocket-engine-scheme-error 'make-websocket-engine
+					       scheme uri))))
+      (make-http-websocket-engine scheme host
+				  (or (and port (number->string port))
+				      default-port)
+				  path query))))
 
 (define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
