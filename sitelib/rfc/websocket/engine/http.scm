@@ -110,10 +110,11 @@
 	       "Failed to write headers")
 	   (or (and (irritants-condition? e) (condition-irritants e)
 	       others))))
-  (guard (e (else (re-raise e)))
-    (let-values (((out extract) (open-string-output-port)))
-      (rfc5322-write-headers others :output out :continue #t)
-      (put-bytevector in/out (string->utf8 (extract))))))
+  (unless (null? others)
+    (guard (e (else (re-raise e)))
+      (let-values (((out extract) (open-string-output-port)))
+	(rfc5322-write-headers others :output out :continue #t)
+	(put-bytevector in/out (string->utf8 (extract)))))))
 
 (define (http-websocket-handshake engine
 				  :optional (protocols '()) (extensions '())
