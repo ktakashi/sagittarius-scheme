@@ -32,6 +32,8 @@
 #!read-macro=sagittarius/regex
 (library (rfc websocket engine http)
   (export make-websocket-engine
+	  (rename (make-http-websocket-server-engine 
+		   make-websocket-server-engine))
 	  websocket-error-http-status
 	  websocket-error-http-message)
   (import (rnrs)
@@ -42,6 +44,7 @@
 	  (rfc :5322)
 	  (rfc tls)
 	  (rfc base64)
+	  (srfi :1 lists)
 	  (srfi :2 and-let*)
 	  (srfi :13 strings)
 	  (prefix (binary io) binary:)
@@ -89,6 +92,21 @@
 
 (define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
 
+;; utility
+(define-syntax put-bytevector*
+  (syntax-rules ()
+    ((_ out) (begin))
+    ((_ out bv bvs ...)
+     (begin 
+       (put-bytevector out bv)
+       (put-bytevector* out bvs ...)))))
+(define (put-comma-string out s)
+  (put-bytevector out (string->utf8 (string-join s ", "))))
+(define (put-other-headers in/out others)
+  (for-each (lambda (h&v)
+	      (put-bytevector* in/out
+			       (string->utf8 (car h&v)) #*": "
+			       (string->utf8 (cadr h&v)) #*"\r\n")) others))
 (define (http-websocket-handshake engine
 				  :optional (protocols '()) (extensions '())
 				  :rest others)
@@ -97,11 +115,6 @@
   (define port (http-websocket-engine-port engine))
   (define path (http-websocket-engine-path engine))
   (define query (http-websocket-engine-query engine))
-
-  (define (put-bytevector* out . bvs)
-    (for-each (lambda (bv) (put-bytevector out bv)) bvs))
-  (define (put-comma-string out s)
-    (put-bytevector out (string->utf8 (string-join s ", "))))
 
   (define (send-websocket-handshake in/out key)
     (let ((request-path
@@ -123,12 +136,7 @@
 	(put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
 	(put-comma-string in/out extensions)
 	(put-bytevector* in/out #*"\r\n"))
-      (for-each (lambda (h&v)
-		  (put-bytevector* in/out
-				   (string->utf8 (car h&v))
-				   #*": "
-				   (string->utf8 (cadr h&v))
-				   #*"\r\n")) others)
+      (put-other-headers in/out others)
       (put-bytevector* in/out #*"\r\n")
       (flush-output-port in/out)))
 
@@ -192,4 +200,82 @@
 		(rfc5322-header-ref headers "Sec-WebSocket-Protocol")
 		(rfc5322-header-ref headers "Sec-WebSocket-Extensions")
 		headers)))))
+
+(define-record-type http-websocket-server-engine
+  (parent websocket-engine)
+  (fields socket)
+  (protocol (lambda (n)
+	      (lambda (socket)
+		((n http-websocket-server-handshake) socket)))))
+
+;; Assume the first line is already read.
+;; NB: the path should already be processed by the server
+;;     otherwise it can't see if the requested path is
+;;     for WebSocket or not.
+;; Caveat: if that's the case, how could we know on HTTP/2?
+(define (http-websocket-server-handshake engine 
+		      :optional (protocols '()) (extensions '())
+		      :rest others)
+  (define socket (http-websocket-server-engine-socket engine))
+  (define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
+  ;; read it here, it's needed anyway
+  (define headers (rfc5322-read-headers in/out))
+  (define (string-not-null? s) (not (string-null? s)))
+  (define (emit-bad-request msg)
+    ;; do we need more?
+    (put-bytevector in/out #*"HTTP/1.1 400 Bad request\r\n\r\n")
+    (websocket-http-engine-error 'http-websocket-server-handshake msg))
+  (define (check-headers headers)
+    (define (check-header field expected)
+      (equal? (rfc5322-header-ref headers field) expected))
+    (and (check-header "Connection" "Upgrade")
+	 (check-header "Upgrade" "websocket")
+	 (check-header "Sec-WebSocket-Version" "13")
+	 (string-not-null? (rfc5322-header-ref headers "Host" ""))
+	 (rfc5322-header-ref headers "Sec-WebSocket-Key")))
+  (define (split-header field)
+    (string-split (rfc5322-header-ref headers field "") #/\s*,\s*/))
+  (define (take-one-of l1 l2)
+    (cond ((and (null? l1) (null? l2)) #f)
+	  ((or (null? l1) (null? l2))
+	   (emit-bad-request "Bad sub protocol request"))
+	  (else
+	   (let ((l (lset-intersection string=? l1 l2)))
+	     (if (null? l)
+		 (emit-bad-request "Sub protocol not supported")
+		 (car l))))))
+    
+  (define (verify-key key)
+    (define (calculate-key key)
+      (base64-encode 
+       (hash SHA-1 (bytevector-append (string->utf8 key) *uuid*))))
+    (when (string-null? key) (emit-bad-request "Empty Sec-WebSocket-Key"))
+
+    (let* ((server-key (calculate-key key))
+	   (client-protocols (split-header "Sec-WebSocket-Protocol"))
+	   ;; this isn't properly done
+	   (client-extensions (split-header "Sec-WebSocket-Extensions"))
+	   (accepted-protocol (take-one-of client-protocols protocols))
+	   ;; TODO like this?
+	   (accepted-extensions
+	    (lset-intersection string=? client-extensions extensions)))
+      (put-bytevector* in/out #*"HTTP/1.1 101 Switch protocol\r\n")
+      (put-bytevector* in/out #*"Upgrade: websocket\r\n")
+      (put-bytevector* in/out #*"Connection: Upgrade\r\n")
+      (put-bytevector* in/out #*"Sec-WebSocket-Accept: " server-key #*"\r\n")
+      (when accepted-protocol
+	(put-bytevector* in/out #*"Sec-WebSocket-Protocol: "
+			 (string->utf8 accepted-protocol) "r\n"))
+      (unless (null? accepted-extensions)
+	(put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
+	(put-comma-string in/out accepted-extensions)
+	(put-bytevector* in/out #*"\r\n"))
+      (put-other-headers in/out others)
+      (put-bytevector* in/out #*"\r\n")
+      (flush-output-port in/out)
+      (values socket in/out accepted-protocol accepted-extensions headers)))
+  
+  (cond ((check-headers headers) => verify-key)
+	(else (emit-bad-request "Missing request headers")))
+  )
 )

@@ -32,7 +32,10 @@
 (library (rfc websocket connection)
   (export make-websocket-connection
 	  websocket-connection?
+	  websocket-reconnectable-connection?
+	  server-socket->websocket-connection
 	  websocket-connection-handshake!
+	  websocket-connection-accept-handshake!
 	  websocket-connection-close!
 	  websocket-connection-closed?
 	  websocket-connection-closing?
@@ -77,8 +80,9 @@
 		    (make-who-condition 'websocket-connection)
 		    (make-message-condition "Handshake engine not found"))))
 
-(define-record-type websocket-connection
-  (fields engine uri
+(define-record-type (websocket-connection make-websocket-base-connection
+					  websocket-connection?)
+  (fields engine
 	  (mutable socket)
 	  (mutable port)
 	  (mutable protocol) ;; subprotocol but we know this is websocket
@@ -86,30 +90,58 @@
 	  (mutable raw-headers)
 	  (mutable state)
 	  pong-queue)
-  (protocol
-   (lambda (p)
-     (lambda (uri :optional (engine 'http))
-       (guard (e ((websocket-engine-error? e) (raise e))
-		 (else (websocket-engine-not-found-error engine e)))
-	 (let* ((env (environment `(rfc websocket engine ,engine)))
-		(make-engine (eval 'make-websocket-engine env)))
-	   (p (make-engine uri) uri #f #f #f #f '() 'created
-	      (make-shared-queue))))))))
+  (protocol (lambda (p)
+	      (lambda (engine)
+		(p engine #f #f #f #f '() 'created (make-shared-queue))))))
 
-(define (websocket-connection-handshake! c . opt)
+(define-record-type websocket-reconnectable-connection
+  (parent websocket-connection)
+  (fields uri)
+  (protocol (lambda (n) (lambda (uri engine) ((n engine) uri)))))
+
+(define (make-websocket-connection uri :optional (engine 'http))
+  (guard (e ((websocket-engine-error? e) (raise e))
+	    (else (websocket-engine-not-found-error engine e)))
+    (let* ((env (environment `(rfc websocket engine ,engine)))
+	   (make-engine (eval 'make-websocket-engine env)))
+      (make-websocket-reconnectable-connection uri (make-engine uri)))))
+
+(define (server-socket->websocket-connection socket :optional (engine 'http))
+  (guard (e ((websocket-engine-error? e) (raise e))
+	    (else (websocket-engine-not-found-error engine e)))
+    (let* ((env (environment `(rfc websocket engine ,engine)))
+	   (make-engine (eval 'make-websocket-server-engine env)))
+      ;; it's not reconnectable
+      (make-websocket-base-connection (make-engine socket)))))
+
+(define (do-handshake c opt)
   (define engine (websocket-connection-engine c))
+  (let-values (((socket port protocol extensions raw-headers)
+		(apply (websocket-engine-handshake engine) engine opt)))
+    (websocket-connection-socket-set! c socket)
+    (websocket-connection-port-set! c
+     (buffered-port (or port (socket-port socket #f)) (buffer-mode block)))
+    (websocket-connection-protocol-set! c protocol)
+    (websocket-connection-extensions-set! c extensions)
+    (websocket-connection-raw-headers-set! c raw-headers)
+    (websocket-connection-state-set! c 'open)
+    c))
+(define (websocket-connection-handshake! c . opt)
   ;; sends only connection is closed
-  (when (websocket-connection-closed? c)
-    (let-values (((socket port protocol extensions raw-headers)
-		  (apply (websocket-engine-handshake engine) engine opt)))
-      (websocket-connection-socket-set! c socket)
-      (websocket-connection-port-set! c
-	(buffered-port (or port (socket-port socket #f)) (buffer-mode block)))
-      (websocket-connection-protocol-set! c protocol)
-      (websocket-connection-extensions-set! c extensions)
-      (websocket-connection-raw-headers-set! c raw-headers)
-      (websocket-connection-state-set! c 'open)))
-  c)
+  (if (websocket-connection-closed? c) 
+      (do-handshake c opt)
+      c))
+
+(define (websocket-connection-accept-handshake! c . opt)
+  (define engine (websocket-connection-engine c))
+  (when (websocket-reconnectable-connection? c)
+    (assertion-violation 'websocket-connection-accept-handshake!
+			 "reconnectable connection can't wait handshake" c))
+  (unless (eq? (websocket-connection-state c) 'created)
+    (assertion-violation 'websocket-connection-accept-handshake!
+			 "invalid state of connection" 
+			 (websocket-connection-state c) c))
+  (do-handshake c opt))
 
 (define (websocket-connection-close! c)
   (define socket (websocket-connection-socket c))
