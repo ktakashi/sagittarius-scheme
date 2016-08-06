@@ -237,8 +237,8 @@
 	   (let ((closing? (websocket-connection-closing? conn)))
 	     (unless closing? (websocket-send-close conn #vu8() #f))
 	     (websocket-connection-close! conn)
-	     ;; TODO proper condition
-	     (if closing?
+	     ;; TODO should we assume?
+	     (if (or closing? (not (websocket-reconnectable-connection? conn)))
 		 (values #f data)
 		 (websocket-closed-error 'websocket-receive
 					 "Server sent close frame" data))))))

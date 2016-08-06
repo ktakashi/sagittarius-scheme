@@ -106,19 +106,29 @@
 	   (make-engine (eval 'make-websocket-engine env)))
       (make-websocket-reconnectable-connection uri (make-engine uri)))))
 
+;; if the socket has already handshaked, then we just need
+;; to convertion. means, we also need to set port and so.
 (define (server-socket->websocket-connection socket :optional (engine 'http))
+  (define (set-socket&port conn)
+    (websocket-connection-socket-set! conn socket)
+    (websocket-connection-port-set! conn
+     (buffered-port (socket-port socket #f) (buffer-mode block)))
+    conn)
   (guard (e ((websocket-engine-error? e) (raise e))
 	    (else (websocket-engine-not-found-error engine e)))
     (let* ((env (environment `(rfc websocket engine ,engine)))
 	   (make-engine (eval 'make-websocket-server-engine env)))
       ;; it's not reconnectable
-      (make-websocket-base-connection (make-engine socket)))))
+      (set-socket&port (make-websocket-base-connection (make-engine socket))))))
 
 (define (do-handshake c opt)
   (define engine (websocket-connection-engine c))
   (let-values (((socket port protocol extensions raw-headers)
 		(apply (websocket-engine-handshake engine) engine opt)))
     (websocket-connection-socket-set! c socket)
+    ;; if the port is already set and engine returned a port
+    ;; then we need to close the previous port.
+    (cond ((and port (websocket-connection-port c)) => close-port))
     (websocket-connection-port-set! c
      (buffered-port (or port (socket-port socket #f)) (buffer-mode block)))
     (websocket-connection-protocol-set! c protocol)
@@ -126,6 +136,8 @@
     (websocket-connection-raw-headers-set! c raw-headers)
     (websocket-connection-state-set! c 'open)
     c))
+
+;; TODO should we raise an error if it's not a reconnectable connection?
 (define (websocket-connection-handshake! c . opt)
   ;; sends only connection is closed
   (if (websocket-connection-closed? c) 

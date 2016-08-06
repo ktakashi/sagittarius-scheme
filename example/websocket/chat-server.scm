@@ -31,8 +31,10 @@
 #!read-macro=sagittarius/bv-string
 #!read-macro=sagittarius/regex
 (import (rnrs)
+	(sagittarius)
 	(sagittarius socket)
 	(sagittarius regex)
+	(rfc websocket connection)
 	(rfc websocket messages)
 	(net server)
 	(prefix (binary io) binary:)
@@ -42,100 +44,79 @@
 	(math hash)
 	(getopt))
 
-(define (put-bytevector* out bv . bvs)
-  (put-bytevector out bv)
-  (for-each (lambda (bv) (put-bytevector out bv)) bvs))
-
-(define *uuid* #*"258EAFA5-E914-47DA-95CA-C5AB0DC85B11")
-
 (define (make-chat-server port)
-  (define (calculate-key headers)
-    (let ((key (rfc5322-header-ref headers "Sec-WebSocket-Key")))
-      (base64-encode
-       (hash SHA-1 (bytevector-append (string->utf8 key) *uuid*)))))
-
-  (define (send-close out)
-    (put-bytevector out #vu8(#x88 #x00))
-    (flush-output-port out))
-
   ;; path : list
   (define chat-members (make-string-hashtable))
   ;; socket : path
   (define managed-sockets (make-eq-hashtable))
 
-  (define (handshake socket in/out)
+  (define (handshake socket)
+    (define (socket-read-line socket)
+      (define buf (make-bytevector 1 0))
+      (define (get-u8 sokcket) 
+	(socket-recv! socket buf 0 1)
+	(bytevector-u8-ref buf 0))
+      (let-values (((out extract) (open-bytevector-output-port)))
+	(let loop ((u8 (get-u8 socket)) (cr #f))
+	  (cond ((= u8 #x0d) (loop (get-u8 socket) #t))
+		((= u8 #x0a)
+		 (cond (cr (extract))
+		       (else
+			(put-bytevector out #*"\r\n")
+			(loop (get-u8 socket) #f))))
+		(else (put-u8 out u8) (loop (get-u8 socket) #f))))))
+
     (define (parse-request-line line)
       ;; use [[:graph:]] for my laziness
       (cond ((#/GET\s+([[:graph:]]+?)\s+HTTP\/1.1/ line) =>
 	     (lambda (m) (utf8->string (m 1))))
 	    (else #t)))
-    (define (check-headers headers)
-      (define (check-header field expected)
-	(equal? (rfc5322-header-ref headers field) expected))
-      (and (check-header "Connection" "Upgrade")
-	   (check-header "Upgrade" "websocket")
-	   (check-header "Sec-WebSocket-Version" "13")
-	   (rfc5322-header-ref headers "Sec-WebSocket-Key")))
-    
-    (let* ((path (parse-request-line (binary:get-line in/out :eol #*"\r\n")))
-	   (headers (rfc5322-read-headers in/out)))
-      (if (and path (check-headers headers))
-	  (let* ((key (calculate-key headers)))
-	    (put-bytevector* in/out #*"HTTP/1.1 101 Switch protocol\r\n")
-	    (put-bytevector* in/out #*"Upgrade: websocket\r\n")
-	    (put-bytevector* in/out #*"Connection: Upgrade\r\n")
-	    (put-bytevector* in/out #*"Sec-WebSocket-Accept: " key #*"\r\n")
-	    (put-bytevector* in/out #*"\r\n")
-	    (flush-output-port in/out)
-	    (hashtable-set! managed-sockets socket path)
-	    (hashtable-update! chat-members path
-			       (lambda (v) (cons socket v))
-			       '()))
-	  (put-bytevector* in/out #*"HTTP/1.1 400 Bad request\r\n"))))
+    (let ((path (parse-request-line (socket-read-line socket))))
+      (if path
+	  (let ((conn (server-socket->websocket-connection socket)))
+	    (websocket-connection-accept-handshake! conn)
+	    (hashtable-set! managed-sockets socket (cons path conn))
+	    (hashtable-update! chat-members path 
+			       (lambda (v) (cons conn v)) '()))
+	  (put-bytevector in/out #*"HTTP/1.1 400 Bad request\r\n\r\n"))))
 
   (define (cleanup socket)
-    (let ((p (hashtable-ref managed-sockets socket #f)))
+    (and-let* ((p&c (hashtable-ref managed-sockets socket #f)))
       (hashtable-delete! managed-sockets socket)
-      (when p
-	(hashtable-update! chat-members p (lambda (v) (remq socket v)) '())))
-    (socket-shutdown socket SHUT_RDWR)
-    (socket-close socket))
+      (when p&c
+	(hashtable-update! chat-members (car p&c)
+			   (lambda (v) (remq (cdr p&c) v)) '()))
+      (websocket-connection-close! (cdr p&c))))
 
-  (define (broad-cast op data me sockets)
-    (define (send-it socket)
-      (unless (eq? socket me)
-	(let ((out (buffered-port (socket-port socket #f) (buffer-mode block))))
-	  (websocket-send-frame! out op #t data #t))))
-    (for-each send-it sockets))
+  (define (broad-cast op data me conns)
+    (define (send-it conn)
+      (unless (eq? conn me)
+	(if (string? data)
+	    (websocket-send-text conn data)
+	    (websocket-send-binary conn data))))
+    (for-each send-it conns))
 
   (define (websocket-handler server socket)
-    (define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
-    (guard (e (else (cleanup socket)))
-      (if (hashtable-contains? managed-sockets socket)
-	  (let-values (((fin? op data) (websocket-recv-frame in/out)))
-	    (cond ((= op +websocket-close-frame+)
-		   (send-close in/out)
-		   (cleanup socket))
-		  ((or (= op +websocket-text-frame+)
-		       (= op +websocket-binary-frame+))
-		   (let* ((path (hashtable-ref managed-sockets socket))
-			  (sockets (hashtable-ref chat-members path '())))
-		     (broad-cast op data socket sockets)))
-		  ((= op +websocket-ping-frame+)
-		   (websocket-send-frame! in/out +websocket-pong-frame+ #f
-					  data #t))
-		  (else
-		   (websocket-send-frame! in/out +websocket-close-frame+ #t
-					  (websocket-compose-close-status 1002)
-					  #t)
-		   (cleanup socket))))
-	  (handshake socket in/out)))
-    ;; close the port. this is needed to prevent buffered-port flush
-    ;; during error reporting.
-    (close-port in/out))
+    (guard (e (else (report-error e) (cleanup socket)))
+      (cond ((hashtable-ref managed-sockets socket #f) =>
+	     (lambda (p&c)
+	       (let-values (((op data) (websocket-receive (cdr p&c))))
+		 (cond ((= op +websocket-close-frame+) (cleanup socket))
+		       ((or (= op +websocket-text-frame+)
+			    (= op +websocket-binary-frame+))
+			(let* ((path (car p&c))
+			       (conns (hashtable-ref chat-members path '())))
+			  (broad-cast op data (cdr p&c) conns)))
+		       (else
+			;; unknown
+			(websocket-send-close (cdr p&c)
+			  (websocket-compose-close-status 1002) #f)
+			(cleanup socket))))))
+	    (else (handshake socket)))))
 
   (define config (make-server-config :non-blocking? #t :use-ipv6? #t
-				     :exception-handler print))
+				     :exception-handler (lambda (sr so e)
+							  (report-error e))))
   (make-simple-server port websocket-handler :config config))
 
 (define (main args)
