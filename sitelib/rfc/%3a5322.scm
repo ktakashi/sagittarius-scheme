@@ -264,7 +264,7 @@
       (assertion-violation 'rfc5322-write-headers
 			   (format "Illegal RFC5322 header field data (~a)"
 				   reason)
-			   (format " ~a: ~,,,,80:a" reason name body)))
+			   (format " ~a: ~,,,,80:a" name body)))
     (if (memv check '(#f :ignore))
 	(process headers)
 	(let loop ((hs headers)
