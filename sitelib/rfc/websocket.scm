@@ -172,13 +172,13 @@
     (thread-start! t)))
 
 ;; Opens given websocket iff it's not opened yet
-(define-websocket (websocket-open websocket)
+(define-websocket (websocket-open websocket . headers)
   (define conn (websocket-connection websocket))
   (if (websocket-connection-closed? conn)
       (begin
-	(websocket-connection-handshake! conn
-					 (websocket-protocols websocket)
-					 (websocket-extensions websocket))
+	(apply websocket-connection-handshake! conn
+	       (websocket-protocols websocket) (websocket-extensions websocket)
+	       headers)
 	(start-dispatch-thread websocket)
 	(invoke-event websocket 'open))
       websocket))
