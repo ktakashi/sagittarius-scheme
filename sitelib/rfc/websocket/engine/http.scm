@@ -103,10 +103,18 @@
 (define (put-comma-string out s)
   (put-bytevector out (string->utf8 (string-join s ", "))))
 (define (put-other-headers in/out others)
-  (for-each (lambda (h&v)
-	      (put-bytevector* in/out
-			       (string->utf8 (car h&v)) #*": "
-			       (string->utf8 (cadr h&v)) #*"\r\n")) others))
+  (define (re-raise e)
+    (apply websocket-http-engine-error 
+	   'websocket-http-handshake
+	   (or (and (message-condition? e) (condition-message e))
+	       "Failed to write headers")
+	   (or (and (irritants-condition? e) (condition-irritants e)
+	       others))))
+  (guard (e (else (re-raise e)))
+    (let-values (((out extract) (open-string-output-port)))
+      (rfc5322-write-headers others :output out :continue #t)
+      (put-bytevector in/out (string->utf8 (extract))))))
+
 (define (http-websocket-handshake engine
 				  :optional (protocols '()) (extensions '())
 				  :rest others)
@@ -123,6 +131,8 @@
 	    ;; drop //
 	    (string-drop (uri-compose :path path :query query) 2))))
       (put-bytevector* in/out #*"GET " request-path #*" HTTP/1.1\r\n")
+      ;; put it here, so that if the headers are not valid, then
+      ;; it'd fail (e.g. header contains ("\r\n" "\r\n") or so)
       (put-bytevector* in/out #*"Host: " (string->utf8 host) #*"\r\n")
       (put-bytevector* in/out #*"Connection: Upgrade\r\n")
       (put-bytevector* in/out #*"Upgrade: websocket\r\n")
@@ -141,7 +151,10 @@
       (flush-output-port in/out)))
 
   (define (check-first-line line)
-    (cond ((#/HTTP\/1.1 101 [\w\s]+/ line) #t)
+    (cond ((eof-object? line)
+	   (websocket-http-engine-error 'http-websocket-handshake
+					"Unexpected EOF"))
+	  ((#/HTTP\/1.1 101 [\w\s]+/ line) #t)
 	  ((#/HTTP\/1.1 (\d\d\d) ([\w\s]+)?/ line) =>
 	   (lambda (m)
 	     (websocket-http-status-error 'http-websocket-handshake
