@@ -35,7 +35,7 @@
     (newline port))
   (let ((log  (test-runner-aux-value runner))
 	(kind (test-result-ref runner 'result-kind)))
-    (when (memq kind '(xpass fail))
+    (when (memq kind '(fail))
       (let* ((results (test-result-alist runner))
 	     (source-file (assq 'source-file results))
 	     (source-line (assq 'source-line results))

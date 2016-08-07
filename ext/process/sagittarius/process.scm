@@ -78,9 +78,9 @@
   (define-class <process> ()
     ((name :init-keyword :name)
      (args :init-keyword :args)
-     (input  :init-keyword :input  :reader process-input-port)
-     (output :init-keyword :output :reader process-output-port)
-     (error  :init-keyword :error  :reader process-error-port)
+     (input  :init-keyword :input  :reader process-input-port :init-value #f)
+     (output :init-keyword :output :reader process-output-port :init-value #f)
+     (error  :init-keyword :error  :reader process-error-port :init-value #f)
      (directory :init-keyword :directory)
      (pid    :init-keyword :pid)))
 

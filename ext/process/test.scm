@@ -1,45 +1,55 @@
 (add-load-path "./threads/")
 (add-load-path "./process/")
 (import (rnrs)
+	(sagittarius)
 	(sagittarius process)
 	(sagittarius threads) ;; for semaphore
 	(srfi :64 testing))
 
 (test-begin "process tests")
 
+(cond-expand
+ (cygwin (test-expect-fail (lambda (o) #t)))
+ (else #t))
+
 (define-constant *process-name* (build-path build-directory-path "test-proc.bin"))
+
+(define (safe-process-wait p) (guard (e (else #f)) (process-wait p)))
+(define (safe-call p . args) (guard (e (else #f)) (apply call p args)))
 
 (let ((proc (make-process *process-name* '("process"))))
   (test-assert "process?" (process? proc))
   ;; some how this doesn't work, why?
   ;; on debugger it works... i don't get it.
   (test-assert "call (1)" (integer? (process-call proc)))
-  (let ((r (process-wait proc)))
+  (let ((r (safe-process-wait proc)))
     (test-assert "status" (integer? r))
     (test-equal "process-wait" 0 r)
-    (let* ((out (process-output-port proc))
-	   (r (get-line (transcoded-port out (native-transcoder)))))
-      (test-equal "output from process (1)" "process" r))))
+    (or (and-let* ((out (process-output-port proc))
+		   (r (get-line (transcoded-port out (native-transcoder)))))
+	  (test-equal "output from process (1)" "process" r))
+	(test-assert "Failed to retrieve output port" #f))))
 
 ;; error case
 (let ((proc (make-process *process-name* '())))
   ;; some how this doesn't work, why?
   ;; on debugger it works... i don't get it.
   (test-assert "call (2)" (integer? (process-call proc)))
-  (let ((r (process-wait proc)))
+  (let ((r (safe-process-wait proc)))
     ;; we don't interpret
     (cond-expand
      (windows (test-equal "process-wait (error)" -1 r))
      (else (test-equal "process-wait (error)" 255 r)))
-    (let* ((out (process-error-port proc))
-	   (r (get-line (transcoded-port out (native-transcoder)))))
-      (test-equal "output from process (2)" "error" r))))
+    (or (and-let* ((out (process-error-port proc))
+		   (r (get-line (transcoded-port out (native-transcoder)))))
+	  (test-equal "output from process (2)" "error" r))
+	(test-assert "Failed to retrieve error port" #f))))
 
 (test-error "passing non string"
 	    condition?
 	    (run *process-name* 'foo))
 
-(let ((p (call *process-name* "sleep")))
+(let ((p (safe-call *process-name* "sleep")))
   (test-equal "wait timeout" #f (process-wait p :timeout 1)) ;; 1 sec
   (test-assert "still alive" (process-active? p))
   (test-equal "process-kill" -1 (process-kill p)))
@@ -77,15 +87,18 @@
 	(utf8->string (bytevector-copy (shared-memory->bytevector shm) 0 7))))))
   ;; other process
   (let ((p (make-process (build-path build-directory-path "test-sem.bin") '())))
-    (process-call p)
-    (process-wait p)
-    (test-equal "IPC" "process" (thread-join! thread))
+    (guard (e (else 
+	       (thread-terminate! thread)
+	       (test-assert "Failed IPC" #f)))
+      (process-call p)
+      (process-wait p)
+      (test-equal "IPC" "process" (thread-join! thread)))
     (close-shared-memory shm)
     (semaphore-destroy! sem)))
 
 ;; process-kill
 (let ((p (make-process (build-path build-directory-path "test-kill.bin") '())))
-  (process-call p)
+  (test-assert "process-call (process-kill)" (process-call p))
   (test-assert "process-active?" (process-active? p))
   (test-equal "process-kill" -1 (process-kill p)))
 
@@ -99,17 +112,19 @@
   (test-assert "call (3)" (integer? (process-call proc :output outfile)))
   (test-equal "process-wait (3)" 0 (process-wait proc))
   (test-assert "file created" (file-exists? outfile))
-  (let* ((out (process-output-port proc))
-	 (r (get-line (transcoded-port out (native-transcoder)))))
-    (test-equal "output from process (3)" "process" r)))
+  (or (and-let* ((out (process-output-port proc))
+		 (r (get-line (transcoded-port out (native-transcoder)))))
+	(test-equal "output from process (3)" "process" r))
+      (test-assert "Failed to retrieve output port" #f)))
 
 (let ((proc (make-process *process-name* '()))
       (outfile "perr"))
   (test-assert "call (4)" (integer? (process-call proc :error outfile)))
-  (process-wait proc)
+  (test-assert "process-wait" (process-wait proc))
   (test-assert "file created" (file-exists? outfile))
-  (let* ((out (process-error-port proc))
-	 (r (get-line (transcoded-port out (native-transcoder)))))
-    (test-equal "output from process (4)" "error" r)))
+  (or (and-let* ((out (process-error-port proc))
+		 (r (get-line (transcoded-port out (native-transcoder)))))
+	(test-equal "output from process (4)" "error" r))
+      (test-assert "Failed to retrieve error port" #f)))
 
 (test-end)
