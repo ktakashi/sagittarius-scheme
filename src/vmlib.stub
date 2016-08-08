@@ -83,17 +83,6 @@
       (set! (SG_IDENTIFIER_LIBRARY id) (Sg_VMCurrentLibrary)))
     (result id))
 
-  (define-c-proc make-pattern-identifier (name envs maybe-library)
-    (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
-      (wrong-type-of-argument-violation 'make-identifier 
-					"symbol or identifier" name))
-    (unless (SG_LIBRARYP maybe-library)
-      (set! maybe-library (Sg_FindLibrary maybe-library FALSE)))
-    (let ((id (Sg_MakeIdentifier name envs maybe-library)))
-      (set! (SG_IDENTIFIER_ENVS id) envs)
-      ;;(set! (SG_IDENTIFIER_PENDING id) TRUE)
-      (result id)))
-
   (define-c-proc id-envs (id::<identifier>) SG_IDENTIFIER_ENVS)
   (define-c-proc id-library (id::<identifier>) SG_IDENTIFIER_LIBRARY)
   (define-c-proc id-identity (id::<identifier>) SG_IDENTIFIER_IDENTITY)
