@@ -250,7 +250,6 @@ struct SgVMRec
   SgContinuation *escapePointFloating;
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
-  SgObject   defaultEscapeHandler; /* for multi threading */
 
   /* libraries */
   SgLibrary   *currentLibrary;

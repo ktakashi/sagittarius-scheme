@@ -41,14 +41,6 @@
 #include "threads.h"
 
 
-static SgObject thread_error_handler(SgObject *args, int argc, void *data)
-{
-  return SG_UNDEF;
-}
-
-static SG_DEFINE_SUBR(thread_error_handler_STUB, 2, 0, thread_error_handler,
-		      SG_FALSE, NULL);
-
 SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
 {
   SgVM *current = Sg_VM(), *vm;
@@ -57,7 +49,6 @@ SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name)
   }
   vm = Sg_NewVM(current, name);
   vm->thunk = thunk;
-  vm->defaultEscapeHandler = SG_OBJ(&thread_error_handler_STUB);
   return SG_OBJ(vm);
 }
 
@@ -99,7 +90,6 @@ static void* thread_entry(void *data)
       case SG_VM_ESCAPE_ERROR:
 	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
 	vm->resultException = exc;
-	Sg_ReportErrorInternal(SG_OBJ(vm->escapeData[1]), vm->currentErrorPort);
 	break;
       }
     } SG_END_PROTECT;
@@ -413,9 +403,6 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__threads()
 			     NULL, SG_FALSE, NULL, 0);
   Sg__InitMutex(lib);
   Sg__Init_threads_stub(lib);
-  SG_PROCEDURE_NAME(&thread_error_handler_STUB) 
-    = SG_MAKE_STRING("thread-exception-handler");
-  
 }
 
 /*

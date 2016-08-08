@@ -177,7 +177,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->escapeReason = SG_VM_ESCAPE_NONE;
   v->escapeData[0] = NULL;
   v->escapeData[1] = NULL;
-  v->defaultEscapeHandler = SG_FALSE;
   v->cache = SG_NIL;
   v->cstack = NULL;
 
@@ -672,9 +671,7 @@ void Sg_ReportErrorInternal(volatile SgObject e, SgObject out)
   }
   SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   SG_UNWIND_PROTECT {
-    if (SG_PROCEDUREP(vm->defaultEscapeHandler)) {
-      Sg_Apply2(vm->defaultEscapeHandler, e, out);
-    } else {
+    if (Sg_MainThreadP()) {
       Sg_FlushAllPort(FALSE);
       Sg_ReportError(e, out);
     }
