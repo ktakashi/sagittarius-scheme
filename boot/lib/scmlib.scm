@@ -92,7 +92,7 @@
 	(define (ensure-id id env)
 	  (if (identifier? id)
 	      id
-	      (make-identifier id (vector-ref env 1) (vector-ref env 0))))
+	      (er-rename id env #f)))
 	(cond ((and (pair? a) (pair? b))
 	       (and (compare (car a) (car b))
 		    (compare (cdr a) (cdr b))))

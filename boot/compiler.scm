@@ -1563,17 +1563,18 @@
   (pass1/letrec-syntax form p1env))
 
 ;; 'rename' procedure - we just return a resolved identifier
+;; NB: when dict is #f, means caller wants to only rename but not store.
 (define (er-rename symid p1env dict)
   (define (rename symid dict env lib)
     (let ((id (make-identifier symid env lib)))
-      (hashtable-set! dict symid id)
+      (when dict (hashtable-set! dict symid id))
       id))
   (unless (variable? symid)
     (scheme-error 
      'er-macro-transformer
      "rename procedure requires a symbol or an identifier, but got " symid))
   (if (symbol? symid)
-      (or (hashtable-ref dict symid #f)
+      (or (and dict (hashtable-ref dict symid #f))
 	  (rename symid dict (p1env-frames p1env) (p1env-library p1env)))
       ;; the same renaming rule as syntax-case
       ;; TODO should we only rename when the `symid` is a pending identifier
@@ -1581,7 +1582,7 @@
       ;;      the above is actually depending on non existing er-macro-expander
       ;;      specification. we can decide when the spec is there.
       (or (and (not (pending-identifier? symid))
-	       (or (hashtable-ref dict symid #f)
+	       (or (and dict (hashtable-ref dict symid #f))
 		   (rename symid dict (p1env-frames p1env) (id-library symid))))
 	  symid)))
 
