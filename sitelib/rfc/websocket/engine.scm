@@ -36,43 +36,14 @@
 ;; NB: the purpose of this library is handling multiple protocols
 ;;     other than HTTP1.1 (e.g. HTTP2)
 (library (rfc websocket engine)
-  (export websocket-engine
+  (export make-websocket-engine
+	  websocket-engine
 	  websocket-engine?
-	  websocket-engine-handshake
-
-	  &websocket-engine-scheme
-	  make-websocket-engine-scheme-error
-	  websocket-engine-scheme-error
-	  websocket-engine-scheme-error?
-	  websocket-error-scheme
-
-	  &websocket-engine-connection
-	  make-websocket-engine-connection-error
-	  websocket-engine-connection-error
-	  websocket-engine-connection-error?
-	  websocket-error-host
-	  websocket-error-port)
+	  websocket-engine-handshake)
   (import (rnrs)
 	  (rfc websocket conditions))
   
 (define-record-type websocket-engine
   (fields handshake))
 
-(define-condition-type &websocket-engine-scheme &websocket-engine
-  make-websocket-engine-scheme-error websocket-engine-scheme-error?
-  (scheme websocket-error-scheme))
-(define (websocket-engine-scheme-error who scheme uri)
-  (raise (condition (make-websocket-engine-scheme-error scheme)
-		    (make-who-condition who)
-		    (make-message-condition "unknown URI scheme")
-		    (make-irritants-condition uri))))
-
-(define-condition-type &websocket-engine-connection &websocket-engine
-  make-websocket-engine-connection-error websocket-engine-connection-error?
-  (host websocket-error-host)
-  (port websocket-error-port))
-(define (websocket-engine-connection-error who host port)
-  (raise (condition (make-websocket-engine-connection-error host port)
-		    (make-who-condition who)
-		    (make-message-condition "Failed to connect"))))
 )

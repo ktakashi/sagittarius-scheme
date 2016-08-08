@@ -59,13 +59,13 @@
 	    websocket-engine-not-found-error?
 	    (make-websocket-connection "ws://localhost" 'not-found))
 (test-error "Invalid scheme"
-	    websocket-engine-scheme-error?
+	    websocket-scheme-error?
 	    (make-websocket-connection "http://localhost"))
 (test-error "Invalid scheme (2)"
-	    websocket-engine-scheme-error?
+	    websocket-scheme-error?
 	    (make-websocket-connection "http://localhost:8080"))
 (test-error "Connection failed"
-	    websocket-engine-connection-error?
+	    websocket-connection-error?
 	    (websocket-connection-handshake!
 	     (make-websocket-connection "ws://this.should.not.exist")))
 
@@ -75,16 +75,19 @@
 	    websocket-engine-not-found-error?
 	    (make-websocket "ws://localhost" :engine 'not-found))
 (test-error "Invalid scheme (high)"
-	    websocket-engine-scheme-error?
+	    websocket-scheme-error?
 	    (make-websocket "http://localhost"))
 (test-error "Connection failed (high)"
-	    websocket-engine-connection-error?
+	    websocket-connection-error?
 	    (websocket-open
 	     (websocket-on-error
 	      (make-websocket "ws://this.should.not.exist")
 	      (lambda (ws e)
-		(test-assert "&websocket-engine"
-			     (websocket-engine-error? e))))))
+		(test-assert "&websocket-connection"
+			     (websocket-connection-error? e))))))
+
+(test-assert "reconnectable?" (websocket-reconnectable?
+			       (make-websocket "ws://localhost")))
 
 (define (make-test-websocket-server count)
   (define (put-bytevector* out bv . bvs)
@@ -231,5 +234,6 @@
   
   (server-stop! server))
 
+;; TODO server socket conversion tests.
 
 (test-end)

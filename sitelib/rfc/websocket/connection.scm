@@ -40,20 +40,25 @@
 	  websocket-connection-closed?
 	  websocket-connection-closing?
 
+	  websocket-engine-error?
 	  websocket-engine-not-found-error?
 	  websocket-error-engine
 	  websocket-error-reason
 	  ;; re-export from (rfc websocket engine)
-	  websocket-engine-scheme-error
-	  websocket-engine-scheme-error?
+	  websocket-scheme-error
+	  websocket-scheme-error?
 	  websocket-error-scheme
-	  websocket-engine-connection-error?
+	  
+	  websocket-connection-error?
 	  websocket-error-host
 	  websocket-error-port
 	  ;; low APIs
 	  websocket-connection-protocol
 	  websocket-connection-extensions
 	  websocket-connection-pong-queue
+
+	  websocket-validate-uri
+	  
 	  ;; should be internal
 	  websocket-connection-port
 	  websocket-connection-socket
@@ -64,11 +69,13 @@
 	  (rnrs eval)
 	  (rfc websocket engine)
 	  (rfc websocket conditions)
+	  (srfi :2 and-let*)
 	  (sagittarius io) ;; for buffered-port
 	  (sagittarius socket)
 	  ;; underlying socket might be a TLS socket
 	  ;; so import this after (sagittarius socket)
 	  (rfc tls)
+	  (rfc uri)
 	  (util concurrent shared-queue))
 
 (define-condition-type &websocket-engine-not-found &websocket-engine
@@ -99,49 +106,112 @@
   (fields uri)
   (protocol (lambda (n) (lambda (uri engine) ((n engine) uri)))))
 
+;; conditions related to connection
+(define-condition-type &websocket-scheme &websocket
+  make-websocket-scheme-error websocket-scheme-error?
+  (scheme websocket-error-scheme))
+
+(define (websocket-scheme-error who scheme uri)
+  (raise (condition (make-websocket-scheme-error scheme)
+		    (make-who-condition who)
+		    (make-message-condition "unknown URI scheme")
+		    (make-irritants-condition uri))))
+
+(define-condition-type &websocket-connection &websocket
+  make-websocket-connection-error websocket-connection-error?
+  (host websocket-error-host)
+  (port websocket-error-port))
+(define (websocket-connection-error who host port)
+  (raise (condition (make-websocket-connection-error host port)
+		    (make-who-condition who)
+		    (make-message-condition "Failed to connect"))))
+
+(define (websocket-validate-uri uri)
+    ;; TODO maybe we should use regular expression instead of parsing
+  (let-values (((scheme ui host port path query frag) (uri-parse uri)))
+    (or (and scheme (or (string=? scheme "ws") (string=? scheme "wss")))
+	(websocket-scheme-error 'make-websocket-connection scheme uri))))
+
 (define (make-websocket-connection uri :optional (engine 'http))
+  ;; inittial check
+  (websocket-validate-uri uri)
   (guard (e ((websocket-engine-error? e) (raise e))
 	    (else (websocket-engine-not-found-error engine e)))
     (let* ((env (environment `(rfc websocket engine ,engine)))
-	   (make-engine (eval 'make-websocket-engine env)))
-      (make-websocket-reconnectable-connection uri (make-engine uri)))))
-
+	   (make-engine (eval 'make-websocket-client-engine env)))
+      (make-websocket-reconnectable-connection uri (make-engine)))))
+  
 ;; if the socket has already handshaked, then we just need
 ;; to convertion. means, we also need to set port and so.
 (define (server-socket->websocket-connection socket :optional (engine 'http))
-  (define (set-socket&port conn)
+  (define (set-socket conn)
     (websocket-connection-socket-set! conn socket)
-    (websocket-connection-port-set! conn
-     (buffered-port (socket-port socket #f) (buffer-mode block)))
     conn)
   (guard (e ((websocket-engine-error? e) (raise e))
 	    (else (websocket-engine-not-found-error engine e)))
     (let* ((env (environment `(rfc websocket engine ,engine)))
 	   (make-engine (eval 'make-websocket-server-engine env)))
       ;; it's not reconnectable
-      (set-socket&port (make-websocket-base-connection (make-engine socket))))))
+      (set-socket (make-websocket-base-connection (make-engine))))))
 
-(define (do-handshake c opt)
+(define (do-handshake c opt close?)
   (define engine (websocket-connection-engine c))
-  (let-values (((socket port protocol extensions raw-headers)
-		(apply (websocket-engine-handshake engine) engine opt)))
-    (websocket-connection-socket-set! c socket)
-    ;; if the port is already set and engine returned a port
-    ;; then we need to close the previous port.
-    (cond ((and port (websocket-connection-port c)) => close-port))
-    (websocket-connection-port-set! c
-     (buffered-port (or port (socket-port socket #f)) (buffer-mode block)))
-    (websocket-connection-protocol-set! c protocol)
-    (websocket-connection-extensions-set! c extensions)
-    (websocket-connection-raw-headers-set! c raw-headers)
-    (websocket-connection-state-set! c 'open)
-    c))
+
+  (define (make-socket scheme host port)
+    (define (rec ai-family)
+      (guard (e (else #f))
+	(if (string=? scheme "wss")
+	    (make-client-tls-socket host port)
+	    (make-client-socket host port))))
+    ;; default IPv6, IPv4 is fallback
+    ;; NB: some platforms do fallback automatically and some are not
+    ;;     so keep it like this.
+    (or (rec AF_INET6)
+	(rec AF_INET)
+	(websocket-connection-error 'http-websocket-handshake host port)))
+
+  (define (retrieve-socket c)
+    (or (websocket-connection-socket c)
+	(and-let* (( (websocket-reconnectable-connection? c) )
+		   (uri (websocket-reconnectable-connection-uri c)))
+	  (let-values (((scheme ui host port path query frag) (uri-parse uri)))
+	    (let* ((default-port 
+		     (or (and scheme (string=? scheme "ws") "80")
+			 (and scheme (string=? scheme "wss") "443")
+			 (websocket-scheme-error 'make-websocket-engine
+						 scheme uri)))
+		   (s (make-socket scheme host
+				   (or (and port (number->string port))
+				       default-port))))
+	      (websocket-connection-socket-set! c s)
+	      s)))))
+  (define (retrieve-port c)
+    (or (websocket-connection-port c)
+	(and-let* ((s (retrieve-socket c))
+		   (p (buffered-port (socket-port s #f) (buffer-mode block))))
+	  (websocket-connection-port-set! c p)
+	  p)))
+
+  (guard (e (else
+	     (when close? (websocket-connection-close! c))
+	     (raise e)))
+    (let ((in/out (retrieve-port c))
+	  (uri (and (websocket-reconnectable-connection? c)
+		    (websocket-reconnectable-connection-uri c))))
+      (let-values (((protocol extensions raw-headers)
+		    (apply (websocket-engine-handshake engine)
+			   engine in/out uri opt)))
+	(websocket-connection-protocol-set! c protocol)
+	(websocket-connection-extensions-set! c extensions)
+	(websocket-connection-raw-headers-set! c raw-headers)
+	(websocket-connection-state-set! c 'open)
+	c))))
 
 ;; TODO should we raise an error if it's not a reconnectable connection?
 (define (websocket-connection-handshake! c . opt)
   ;; sends only connection is closed
   (if (websocket-connection-closed? c) 
-      (do-handshake c opt)
+      (do-handshake c opt #t)
       c))
 
 (define (websocket-connection-accept-handshake! c . opt)
@@ -153,7 +223,9 @@
     (assertion-violation 'websocket-connection-accept-handshake!
 			 "invalid state of connection" 
 			 (websocket-connection-state c) c))
-  (do-handshake c opt))
+  ;; to let server cleanup, we don't close connection when
+  ;; handshake failed
+  (do-handshake c opt #f))
 
 (define (websocket-connection-close! c)
   (define socket (websocket-connection-socket c))

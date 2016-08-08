@@ -71,14 +71,24 @@
       (cond ((#/GET\s+([[:graph:]]+?)\s+HTTP\/1.1/ line) =>
 	     (lambda (m) (utf8->string (m 1))))
 	    (else #t)))
-    (let ((path (parse-request-line (socket-read-line socket))))
-      (if path
-	  (let ((conn (server-socket->websocket-connection socket)))
-	    (websocket-connection-accept-handshake! conn)
-	    (hashtable-set! managed-sockets socket (cons path conn))
-	    (hashtable-update! chat-members path 
-			       (lambda (v) (cons conn v)) '()))
-	  (put-bytevector in/out #*"HTTP/1.1 400 Bad request\r\n\r\n"))))
+    (define (close-socket socket response)
+      (socket-send socket response)
+      (socket-shutdown socket SHUT_RDWR)
+      (socket-close socket))
+    
+    (guard (e ((websocket-engine-error? e)
+	       (close-socket socket #*"HTTP/1.1 400 Bad request\r\n\r\n"))
+	      (else
+	       (close-socket socket
+		#*"HTTP/1.1 500 Internal server error\r\n\r\n")))
+      (let ((path (parse-request-line (socket-read-line socket))))
+	(if path
+	    (let ((conn (server-socket->websocket-connection socket)))
+	      (websocket-connection-accept-handshake! conn)
+	      (hashtable-set! managed-sockets socket (cons path conn))
+	      (hashtable-update! chat-members path 
+				 (lambda (v) (cons conn v)) '()))
+	    (close-socket socket #*"HTTP/1.1 400 Bad request\r\n\r\n")))))
 
   (define (cleanup socket)
     (and-let* ((p&c (hashtable-ref managed-sockets socket #f)))

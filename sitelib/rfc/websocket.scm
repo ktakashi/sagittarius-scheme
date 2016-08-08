@@ -34,6 +34,7 @@
   (export ;; User level APIs
 	  make-websocket
 	  websocket?
+	  websocket-reconnectable?
 	  websocket-open
 	  websocket-close
 	  websocket-send
@@ -82,9 +83,9 @@
 	  websocket-pong-error?
 	  websocket-error-pong-data
 
-	  websocket-engine-scheme-error?
+	  websocket-scheme-error?
 	  websocket-error-scheme
-	  websocket-engine-connection-error?
+	  websocket-connection-error?
 	  websocket-error-host
 	  websocket-error-port
 	  websocket-close-timeout-error?
@@ -113,6 +114,10 @@
 	  (make-eq-hashtable)
 	  #f
 	  (make-mutex))))))
+
+(define (websocket-reconnectable? websocket)
+  (websocket-reconnectable-connection? (websocket-connection websocket)))
+
 (define-condition-type &websocket-pong &websocket
   make-websocket-pong-error websocket-pong-error?
   (pong-data websocket-error-pong-data))
@@ -131,7 +136,8 @@
   (syntax-rules ()
     ((_ websocket exprs ...)
      ;; engine error can not be recoverable so re-raise.
-     (guard (e ((websocket-engine-error? e)
+     (guard (e ((or (websocket-engine-error? e)
+		    (websocket-connection-error? e))
 		(invoke-event websocket 'error e)
 		(raise e))
 	       ((websocket-error? e)
