@@ -182,7 +182,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->cstack = NULL;
 
   v->dynamicWinders = SG_NIL;
-  v->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  v->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
   v->commandLineArgs = SG_NIL;
 
   /* from proto */
@@ -1306,7 +1306,7 @@ static SgObject install_ehandler(SgObject *args, int argc, void *data)
 {
   SgContinuation *c = (SgContinuation*)data;
   SgVM *vm = Sg_VM();
-  vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
   vm->escapePoint = c;
   SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
   return SG_UNDEF;
@@ -1317,7 +1317,7 @@ static SgObject discard_ehandler(SgObject *args, int argc, void *data)
   SgContinuation *c = (SgContinuation*)data;
   SgVM *vm = Sg_VM();
   vm->escapePoint = c->prev;
-  vm->exceptionHandler = c->xhandler;
+  vm->exceptionHandlers = c->xhandler;
   if (c->errorReporting) {
     SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   }
@@ -1333,7 +1333,7 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 
   c->prev = vm->escapePoint;
   c->ehandler = handler;
-  c->xhandler = vm->exceptionHandler;
+  c->xhandler = vm->exceptionHandlers;
   c->winders = vm->dynamicWinders;
   c->cstack = vm->cstack;
   c->cont = vm->cont;
@@ -1865,11 +1865,11 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
     exception = Sg_AddStackTrace(exception, vm);
   }
   /* should never happen but I usually make mistake so lean to safer side. */
-  if (SG_NULLP(vm->exceptionHandler)) {
-    vm->exceptionHandler = DEFAULT_EXCEPTION_HANDLER;
+  if (SG_NULLP(vm->exceptionHandlers)) {
+    vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
   }
 
-  if (vm->exceptionHandler != DEFAULT_EXCEPTION_HANDLER) {
+  if (vm->exceptionHandlers != DEFAULT_EXCEPTION_HANDLER) {
     /* 
        To avoid calling exception handers outside of current continuation
        (c.f. using Sg_Apply families), we need call raise/raise-continuable

@@ -36,14 +36,14 @@
 		 ((%condition-message (car cp)))
 		 (else (loop (cdr cp))))))))
 	    
-(define (raise-continuable c) ((car (current-exception-handler)) c))
+(define (raise-continuable c) ((car (current-exception-handlers)) c))
 (define (raise c)
-  (let ((eh* (current-exception-handler)))
+  (let ((eh* (current-exception-handlers)))
     ;; invoke the first one. if it's the default-exception-handler
     ;; then it won't return.
     ((car eh*) c)
     ;; if it's returned, then pop the invoked handler.
-    (current-exception-handler (cdr eh*))
+    (current-exception-handlers (cdr eh*))
     ;; we use sort Sagittarius specific here to avoit
     ;; deeply nested &non-continuable
     (let ((msg "error in raise: returned from non-continuable"))

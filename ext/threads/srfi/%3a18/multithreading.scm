@@ -60,8 +60,7 @@
 	    time?
 	    time->seconds
 	    seconds->time
-	    (rename (srfi:current-exception-handler current-exception-handler))
-	    ;; this conflicts R6RS
+	    current-exception-handler
 	    with-exception-handler
 	    raise
 	    join-timeout-exception?
@@ -71,13 +70,10 @@
 	    uncaught-exception-reason)
     (import (only (core) define car)
 	    (only (core errors) raise)
+	    (only (core exceptions) with-exception-handler)
 	    (sagittarius threads)
-	    (only (rename (sagittarius)
-			  (with-error-handler with-exception-handler)) 
-		  current-exception-handler
-		  with-exception-handler)
+	    (only (sagittarius) current-exception-handlers)
 	    (only (sagittarius time) 
 		  current-time time? time->seconds seconds->time))
-  (define (srfi:current-exception-handler)
-    (car (current-exception-handler)))
+  (define (current-exception-handler) (car (current-exception-handlers)))
 )

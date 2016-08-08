@@ -256,8 +256,11 @@ struct SgVMRec
   SgLibrary   *currentLibrary;
   /* dynamic winders */
   SgObject    dynamicWinders;
-  /* exception handler */
-  SgObject    exceptionHandler;
+  /* 
+     exception handlers
+     this is a list of procedures
+   */
+  SgObject    exceptionHandlers;
 
   /* parameters */
   SgObject    parameters;

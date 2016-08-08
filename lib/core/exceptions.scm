@@ -10,17 +10,17 @@
 	    (sagittarius))
 
   (define (with-exception-handler handler thunk)
-    (let* ((old (current-exception-handler))
+    (let* ((old (current-exception-handlers))
 	   (new (lambda (c)
-		  (let ((save (current-exception-handler)))
+		  (let ((save (current-exception-handlers)))
 		   (dynamic-wind
-		       (lambda () (current-exception-handler old))
+		       (lambda () (current-exception-handlers old))
 		       (lambda () (handler c))
-		       (lambda () (current-exception-handler save)))))))
+		       (lambda () (current-exception-handlers save)))))))
       (dynamic-wind
-	  (lambda () (current-exception-handler (cons new old)))
+	  (lambda () (current-exception-handlers (cons new old)))
 	  thunk
-	  (lambda () (current-exception-handler old)))))
+	  (lambda () (current-exception-handlers old)))))
   
   (define-syntax guard
     (lambda (x)
