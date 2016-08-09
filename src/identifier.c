@@ -64,14 +64,6 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_IdentifierClass, id_print);
 
-static SgIdentifier* make_identifier()
-{
-  SgIdentifier *id = SG_NEW(SgIdentifier);
-  SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
-  id->pending = FALSE;		/* for sanity */
-  return id;
-}
-
 SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs, SgObject identity,
 			      SgLibrary *library, int pendingP)
 {
@@ -87,16 +79,10 @@ SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs, SgObject identity,
 
 /* 
    this is used from builtin libraries and the envs must be '() 
-   the name must be Sg_MakeGlobalIdentifier.
 */
-SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
+SgObject Sg_MakeGlobalIdentifier(SgObject name, SgLibrary *library)
 {
-  SgIdentifier *id = make_identifier();
-  id->name = id_or_sm;
-  id->library = library;
-  id->envs = SG_NIL;
-  SG_IDENTIFIER_IDENTITY(id) = SG_FALSE; /* global */
-  return SG_OBJ(id);
+  return Sg_MakeRawIdentifier(name, SG_NIL, SG_FALSE, library, FALSE);
 }
 
 void Sg__InitIdentifier()
