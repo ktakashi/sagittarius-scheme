@@ -66,7 +66,7 @@
   (cond ((identifier? o)
 	 (cond ((assq (id-name o) (current-transformer-env)) =>
 		(lambda (r)
-		  (and (eq? (id-library o) (car r)) (cdr r))))
+		  (and (pair? (cdr r)) (eq? (id-library o) (cadr r)) (cddr r))))
 	       (else #f)))
 	((symbol? o)
 	 (cond ((assq o (current-transformer-env)) =>
@@ -96,9 +96,8 @@
 	(lib (if (library? maybe-library)
 		 maybe-library
 		 (find-library maybe-library #f)))
-	(new-env (cond ((identifier? name)
-			(cons envs (id-envs name)))
-		       ((null? envs) '())
+	(new-env (cond ((null? envs) '())
+		       ((identifier? name) (cons envs (id-envs name)))
 		       (else (list envs))))
 	(identity (cond ((null? envs) #f)
 			((identifier? name)
@@ -1119,12 +1118,13 @@
 	  (msave (current-macro-env))
 	  (isave (current-identity)))
       (current-usage-env p1env)
-      (current-macro-env env)
+      (current-macro-env (macro-env me))
       (current-identity (generate-identity))
       (current-transformer-env '()) ;; we don't need the value.
       (dynamic-wind values
 	  (lambda () (transformer expr))
 	  (lambda ()
+	    (current-transformer-env '())
 	    (current-usage-env usave)
 	    (current-macro-env msave)
 	    (current-identity  isave)))))
