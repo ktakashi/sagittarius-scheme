@@ -1122,7 +1122,7 @@
       (current-identity (generate-identity))
       (current-transformer-env '()) ;; we don't need the value.
       (dynamic-wind values
-	  (lambda () (transformer expr))
+	  (lambda () ((macro-data me) expr))
 	  (lambda ()
 	    (current-transformer-env '())
 	    (current-usage-env usave)
