@@ -8,7 +8,7 @@
  (imports (core) (sagittarius) (sagittarius vm)))
 ;; (core syntax-case)
 ((target macro)
- (library . (core syntax-case))
+ (library . (core macro))
  (file . "../boot/lib/macro.scm")
  (construct)
  (imports (core) (core base) (core errors) (sagittarius)
@@ -20,7 +20,6 @@
  (file . "../boot/compiler-aux.scm")
  (construct)
  (imports (core) (core errors) (sagittarius)
-	  ;;(for (core syntax-case) expand) ???
 	  (for (smatch) expand) (sagittarius vm))
  (additionals "../boot/lib/smatch.scm"))
 ;; compiler
@@ -29,7 +28,7 @@
  (file . "../boot/compiler.scm")
  (construct)
  (imports (core) (core base) (core errors) (sagittarius)
-	  (core syntax-case)
+	  (core macro)
 	  (for (except (rnrs) syntax-rules) expand)
 	  (for (smatch) expand) 
 	  (for (core misc) expand) 

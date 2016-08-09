@@ -85,7 +85,7 @@ extern void Sg__InitInstruction();
 /* compiled libraries */
 extern void Sg__Init_core();
 extern void Sg__Init_core_base();
-extern void Sg__Init_core_syntax_case();
+extern void Sg__Init_core_macro();
 extern void Sg__Init_sagittarius_compiler_util();
 extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
@@ -202,7 +202,7 @@ void Sg_Init()
   Sg_ImportLibrary(coreBase, nullsym);
 
   Sg__Init_core_errors();
-  Sg__Init_core_syntax_case();
+  Sg__Init_core_macro();
   Sg__Init_sagittarius_compiler_util();
   Sg__Init_sagittarius_compiler_procedure();
   Sg__Init_sagittarius_compiler();
@@ -221,14 +221,15 @@ void Sg_Init()
      (sagittarius) so insert it to the library here.
    */
   {
-    SgLibrary *core_base_lib = SG_LIBRARY(Sg_FindLibrary(coreBase, FALSE));
+    SgObject core_macro = SG_INTERN("(core macro)");
+    SgLibrary *core_macro_lib = SG_LIBRARY(Sg_FindLibrary(core_macro, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
     SgObject er_rename = SG_INTERN("er-rename");
-    Sg_InsertBinding(core_base_lib,
+    Sg_InsertBinding(core_macro_lib,
 		     er_rename, Sg_FindBinding(compsym, er_rename, SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
-		     Sg_FindBinding(core_base_lib, 
+		     Sg_FindBinding(core_macro_lib, 
 				    SG_SYMBOL_ER_MACRO_TRANSFORMER,
 				    SG_UNBOUND));
   }

@@ -9,7 +9,7 @@
 	    ;;     identifiers belong to the library. if these are not
 	    ;;     exported, then it raises unbound variable.
 	    length* cons-source error check-length
-	    format strip-syntactic-closures)
+	    format strip-syntactic-closures er-macro-transformer)
     (import (rename (except (core) identifier? error)
 		    (number->string %number->string))
 	    (rename (sagittarius)
@@ -18,6 +18,7 @@
 		    ;; object. so we need to provide this.
 		    (variable? identifier?))
 	    (core base)
+	    (only (core macro) er-macro-transformer)
 	    (rename (core errors) (error core:error))
 	    (only (sagittarius vm debug) source-info-set!))
 ;; Chibi allow 'ls' to be non pair as its extension.

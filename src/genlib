@@ -22,12 +22,13 @@
 (procedure-inliner-set! (find-procedure 'map '(core base)) #f)
 (procedure-inliner-set! (find-procedure 'for-each '(core base)) #f)
 
-;; Remove after 0.6.10
-(with-library (core) (define vm-error-unbound?
-		       (let ((dummy #f))
-			 (lambda ()
-			   (set! dummy #f)
-			   dummy))))
+;; remove after 0.7.8
+(cond ((find-library '(core syntax-case) #f)
+       (eval '(library (core macro)
+		(export :all)
+		(import (except (core syntax-case) LEXICAL .list)))
+	     (environment '(sagittarius)))))
+
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 
@@ -38,8 +39,7 @@
 (define-constant +default-imports+ '((except (core) er-rename)
 				     (except (core base) er-rename)
 				     (core syntax)
-				     (except (core syntax-case)
-					     LEXICAL .list)
+				     (except (core macro) LEXICAL .list)
 				     (core errors)
 				     (core misc)
 				     (rename (match) (match smatch))

@@ -50,7 +50,7 @@
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
 
-(define .vars (make-identifier '.vars '() '(core syntax-case)))
+(define .vars (make-identifier '.vars '() '(core macro)))
 
 ;; in case of (rename (rnrs) (_ __)) or so...
 ;; _ and ... are defined in (core) library
@@ -152,9 +152,9 @@
 
 ;; for global call.
 (define .match-syntax-case (make-identifier 'match-syntax-case '()
-					    '(core syntax-case)))
-(define .list (make-identifier 'list '() '(core syntax-case)))
-(define .lambda (make-identifier 'lambda '() '(core syntax-case)))
+					    '(core macro)))
+(define .list (make-identifier 'list '() '(core macro)))
+(define .lambda (make-identifier 'lambda '() '(core macro)))
 
 ;; exclude '...
 (define (collect-unique-ids expr)
@@ -459,7 +459,7 @@
 		  (loop (cdr lst)))))))))
 
 ;; compile (syntax ...)
-(define .expand-syntax (make-identifier 'expand-syntax '() '(core syntax-case)))
+(define .expand-syntax (make-identifier 'expand-syntax '() '(core macro)))
 (define (collect-rename-ids template ranks)
   (let ((ids (collect-unique-ids template)))
     (let loop ((lst ids))
@@ -1023,3 +1023,53 @@
 	      '()
 	      (current-macro-env)))
 
+
+;; er-macro-transformer
+(define (er-macro-transformer f)
+  (lambda (expr)
+    (let ((dict (make-eq-hashtable)))
+      ;; renames given form not only symbol/identifier
+      (define (rename s) 
+	(define macro-env (current-macro-env))
+	(define (rec form)
+	  (cond ((pair? form)
+		 (let ((a (rec (car form)))
+		       (d (rec (cdr form))))
+		   (if (and (eq? a (car form)) (eq? d (cdr form)))
+		       form
+		       (cons a d))))
+		((vector? form)
+		 (let ((len (vector-length form)))
+		   (let loop ((i 0) (vec #f))
+		     (if (= i len)
+			 (or vec form)
+			 (let ((e (rec (vector-ref form i))))
+			   (if (eq? e (vector-ref form i))
+			       (loop (+ i 1) vec)
+			       (let ((v (or vec (vector-copy form))))
+				 (vector-set! v i e)
+				 (loop (+ i 1) v))))))))
+		((variable? form) (er-rename form macro-env dict))
+		(else form)))
+	(rec s))
+      (define (compare a b)
+	(define (ensure-id id env)
+	  (if (identifier? id)
+	      id
+	      (er-rename id env #f)))
+	(cond ((and (pair? a) (pair? b))
+	       (and (compare (car a) (car b))
+		    (compare (cdr a) (cdr b))))
+	      ((and (variable? a) (variable? b))
+	       (let ((env (current-usage-env)))
+		 (free-identifier=? (ensure-id a env) (ensure-id b env))))
+	      ((and (vector? a) (vector? b))
+	       (let ((al (vector-length a))
+		     (bl (vector-length b)))
+		 (and (= al bl)
+		      (let loop ((i 0))
+			(or (= i al)
+			    (and (compare (vector-ref a i) (vector-ref b i))
+				 (loop (+ i 1))))))))
+	      (else (equal? a b))))
+      (f expr rename compare))))

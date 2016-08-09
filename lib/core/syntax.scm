@@ -19,7 +19,7 @@
     (import (core)
 	    (core base)
 	    (core errors)
-	    (core syntax-case)
+	    (core macro)
 	    (sagittarius))
 
   (define-syntax unsyntax
