@@ -62,8 +62,6 @@ struct SgMacroRec
   void     *data;
   SgObject  env;		/* macro defined time p1env */
   SgObject  maybeLibrary;
-  /* keep extracted procedure here, this won't be cached */
-  SgObject  extracted;
 };
 
 #define SG_MACRO(obj)    ((SgMacro*)(obj))

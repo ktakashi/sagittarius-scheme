@@ -78,7 +78,6 @@ SgObject Sg_MakeMacro(SgObject name, SgObject transformer,
   z->data = data;
   z->env = env;
   z->maybeLibrary = maybeLibrary;
-  z->extracted = SG_FALSE;
   return SG_OBJ(z);
 }
 

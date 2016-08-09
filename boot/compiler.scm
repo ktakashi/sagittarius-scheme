@@ -2313,7 +2313,7 @@
      (let ((var (pass1/lookup-head name p1env)))
        (define (do-macro m name form p1env)
 	 (if (variable-transformer? m)
-	     (pass1 ($history (call-macro-expander (macro-data m) form p1env)
+	     (pass1 ($history (call-macro-expander m form p1env)
 			      form) p1env)
 	     (syntax-error "misplaced syntactic keyword as variable"
 			   form name)))

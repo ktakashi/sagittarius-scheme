@@ -152,26 +152,6 @@
        (eq? (id-name id1) (id-name id2))
        (compare id1 id2)))
 
-;; make-macro-transformer
-(define (make-macro-transformer name thunk env library)
-  (define transformer (thunk))
-  (define (macro-transform me expr p1env data)
-    (let ((usave (current-usage-env))
-	  (msave (current-macro-env))
-	  (isave (current-identity)))
-      (current-usage-env p1env)
-      (current-macro-env env)
-      (current-identity (generate-identity))
-      (current-transformer-env '()) ;; we don't need the value.
-      (dynamic-wind values
-	  (lambda () (transformer expr))
-	  (lambda ()
-	    (current-usage-env usave)
-	    (current-macro-env msave)
-	    (current-identity  isave)))))
-  (make-macro name macro-transform transformer env library))
-
-
 (define .vars (make-identifier '.vars '() '(core macro)))
 
 ;; in case of (rename (rnrs) (_ __)) or so...
@@ -1129,8 +1109,30 @@
 (define *variable-transformer-mark* (list 'variable-transformer))
 (define (variable-transformer? o)
   (and (macro? o)
-       (macro? (macro-data o))
-       (eq? (macro-name (macro-data o)) *variable-transformer-mark*)))
+       (eq? (macro-data o) *variable-transformer-mark*)))
+
+;; make-macro-transformer
+(define (make-macro-transformer name thunk env library)
+  (define transformer (thunk))
+  (define (macro-transform me expr p1env data)
+    (let ((usave (current-usage-env))
+	  (msave (current-macro-env))
+	  (isave (current-identity)))
+      (current-usage-env p1env)
+      (current-macro-env env)
+      (current-identity (generate-identity))
+      (current-transformer-env '()) ;; we don't need the value.
+      (dynamic-wind values
+	  (lambda () (transformer expr))
+	  (lambda ()
+	    (current-usage-env usave)
+	    (current-macro-env msave)
+	    (current-identity  isave)))))
+  (if (macro? transformer)
+      (make-macro name (macro-transformer transformer)
+		  *variable-transformer-mark* (macro-env transformer)
+		  library)
+      (make-macro name macro-transform transformer env library)))
 
 (define (make-variable-transformer proc)
   (make-macro *variable-transformer-mark*
