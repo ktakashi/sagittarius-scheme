@@ -1453,7 +1453,7 @@
 (define (pass1/eval-macro-rhs who name expr p1env)
   (let ((transformer (make-toplevel-closure 
 		      ;; set boundary of the macro compile
-		      (compile expr (p1env-extend p1env '() BOUNDARY)))))
+		      (compile-entry expr (p1env-extend p1env '() BOUNDARY)))))
     (make-macro-transformer name transformer p1env (p1env-library p1env))))
 
 ;; syntax-case
@@ -2313,7 +2313,8 @@
      (let ((var (pass1/lookup-head name p1env)))
        (define (do-macro m name form p1env)
 	 (if (variable-transformer? m)
-	     (pass1 ($history (call-macro-expander m form p1env) form) p1env)
+	     (pass1 ($history (call-macro-expander (macro-data m) form p1env)
+			      form) p1env)
 	     (syntax-error "misplaced syntactic keyword as variable"
 			   form name)))
        (cond ((lvar? var)
@@ -2971,7 +2972,7 @@
 	     ;; the library is not yet executed; thus, the bindings can't be
 	     ;; found. Therefore, we'd get unbound variable error. to avoid
 	     ;; such a situation, we need to execute all libraries here.
-	     (vm-execute! (compile (car forms) p1env))
+	     (vm-execute! (compile-entry (car forms) p1env))
 	     (loop (cdr forms) seq))
 	    (((? import? -) rest ___)
 	     (pass1/import (car forms) exec-lib)
@@ -5939,7 +5940,7 @@
 (define (pass2-4 iform library)
   (pass4 (pass3 (pass2 iform library)) library))
 
-(define (compile program env)
+(define (compile-entry program env)
   (let ((env (cond ((vector? env) env);; must be p1env
 		   ((library? env) (make-bottom-p1env env))
 		   (else (make-bottom-p1env)))))
@@ -5957,6 +5958,20 @@
 	       (make-renv)
 	       'tail
 	       RET)))))
+
+(define (compile program env)
+  (let ((lsave (and (library? env) (vm-current-library)))
+	(usave (current-usage-env))
+	(msave (current-macro-env))
+	;; TODO history
+	)
+    (when lsave (vm-current-library env))
+    (dynamic-wind values
+	(lambda () (compile-entry program env))
+	(lambda ()
+	  (when lsave (vm-current-library lsave))
+	  (current-usage-env usave)
+	  (current-macro-env msave)))))
 
 ;; for debug
 (define (compile-p1 program)

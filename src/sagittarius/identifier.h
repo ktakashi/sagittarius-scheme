@@ -58,6 +58,9 @@ SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeIdentifier(SgObject id_or_sym, SgObject envs,
 				     SgLibrary *library);
+SG_EXTERN SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs,
+					SgObject identity,
+					SgLibrary *library, int pendingP);
 
 SG_CDECL_END
 

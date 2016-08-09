@@ -780,20 +780,14 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
 			cache_ctx *ctx)
 {
   SgObject closure;
-  int subrP = SG_SUBRP(SG_MACRO(macro)->transformer);
-
-  put_word(out, subrP, MACRO_TAG);
+  put_word(out, FALSE, MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
 
-  if (subrP) {
-    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->data)->code,
-		      closures, ctx);
-  } else {
-    write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
-		      closures, ctx);
-  }
+  write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
+		    closures, ctx);
+
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), macro); */
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
     SgObject slot = SG_CAR(closure);
@@ -1497,9 +1491,9 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
 static SgObject read_macro(SgPort *in, read_ctx *ctx)
 {
-  int transP, tag;
+  int tag;
   SgObject name, data, env, lib;
-  transP = read_word(in, MACRO_TAG, ctx);
+  read_word(in, MACRO_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
   env  = read_object_rec(in, ctx);
@@ -1513,13 +1507,8 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   data = read_toplevel(in, MACRO_END_TAG, ctx);
   tag = Sg_GetbUnsafe(in);
   ASSERT(tag == MACRO_END_TAG);
-  if (transP) {
-    ASSERT(SG_CODE_BUILDERP(data));
-    return Sg_MakeMacroTransformer(name, Sg_MakeClosure(data, NULL), env, lib);
-  } else {
-    ASSERT(SG_CODE_BUILDERP(data));
-    return Sg_MakeMacro(name, Sg_MakeClosure(data, NULL), SG_NIL, env, lib);
-  }
+  ASSERT(SG_CODE_BUILDERP(data));
+  return Sg_MakeMacro(name, Sg_MakeClosure(data, NULL), SG_NIL, env, lib);
 }
 
 

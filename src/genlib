@@ -29,6 +29,20 @@
 		(import (except (core syntax-case) LEXICAL .list)))
 	     (environment '(sagittarius)))))
 
+(point-cut
+ (sagittarius)
+ current-usage-env
+ (lambda args
+   (if (null? args)
+       (proceed)
+       (%set-current-usage-env! (car args)))))
+(point-cut
+ (sagittarius)
+ current-macro-env
+ (lambda args
+   (if (null? args)
+       (proceed)
+       (%set-current-macro-env! (car args)))))
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 

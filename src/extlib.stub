@@ -1249,11 +1249,6 @@
     ::<boolean> :constant
     (bytevector-compare >= 0 bytevector>? bv1 bv2 rest))
 
-
-  (define-c-proc current-usage-env () (result (-> (Sg_VM) usageEnv)))
-
-  (define-c-proc current-macro-env () (result (-> (Sg_VM) macroEnv)))
-
   ;; time
   (define-c-proc time-usage () :no-side-effect Sg_VMTimeUsage)
 

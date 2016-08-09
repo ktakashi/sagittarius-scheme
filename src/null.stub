@@ -3329,68 +3329,8 @@
   ;; 12.5 identifier predicates
   (define-c-proc identifier? (id) ::<boolean> :constant SG_IDENTIFIERP)
 
-  ;; p1env-lookup-rec is defined in vmlib.stub
-  "extern SgObject p1env_lookup_rec(SgVector *, SgObject, SgObject);"
-  (define-cfn variable? (o) ::int :static
-    (return (or (SG_IDENTIFIERP o) (SG_SYMBOLP o))))
-
-  ;; FIXME this is also in vmlib.stub
-  (define-cfn list-eq? (l1 l2) ::int :static
-    (while (and (SG_PAIRP l1) (SG_PAIRP l2))
-      (unless (SG_EQ (SG_CAR l1) (SG_CAR l2)) (return FALSE))
-      (set! l1 (SG_CDR l1))
-      (set! l2 (SG_CDR l2)))
-    (return (SG_EQ l1 l2)))
-  (define-cfn identity-eq? (identity1 identity2) ::int :static
-    (cond ((SG_EQ identity1 identity2) (return TRUE))
-	  ((or (SG_FALSEP identity1) (SG_FALSEP identity2))
-	   (return FALSE))
-	  (else (return (list-eq? identity1 identity2)))))
-
-  (define-cfn id-env-compare (id1::SgIdentifier* id2::SgIdentifier*)
-    ::int :static
-    (when (SG_EQ id1 id2) (return TRUE)) ;; obvious case.
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-	  (let ((v1 (p1env-lookup-rec (-> vm usageEnv)
-				      id1 (SG_MAKE_INT 0)))
-		(v2 (p1env-lookup-rec (-> vm usageEnv)
-				      id2 (SG_MAKE_INT 0))))
-	    ;; if local variable is found then it must be lvar
-	    (if (and (variable? v1) (variable? v2))
-		;; both identifiers are not locally bounded, 
-		;; check if they have the same bindings
-		(let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
-					  (SG_IDENTIFIER_NAME id1) #f))
-		      (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
-					  (SG_IDENTIFIER_NAME id2) #f)))
-		  (return (SG_EQ g1 g2)))
-		(return (SG_EQ v1 v2))))
-	  (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
-				    (SG_IDENTIFIER_NAME id1) #f))
-		(g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
-				    (SG_IDENTIFIER_NAME id2) #f)))
-	    (if (or (SG_FALSEP g1) (SG_FALSEP g2))
-		(return FALSE)
-		(return (SG_EQ g1 g2)))))))
-
-  ;; free-identifier=? compares if the given 2 identifier indicates the
-  ;; same object.
-  (define-c-proc free-identifier=? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (result (id-env-compare id1 id2)))
-
-  ;; TODO
-  ;; bound-identifier=? must compare if it's the same syntax object or not
-  ;; otherwise it won't work properly.
-  (define-c-proc bound-identifier=? (id1::<identifier> id2::<identifier>)
-    ::<boolean>
-    (result 
-     (and (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
-	  (identity-eq? (SG_IDENTIFIER_IDENTITY id1)
-			(SG_IDENTIFIER_IDENTITY id2))
-	  (SG_EQ (SG_IDENTIFIER_LIBRARY id1) (SG_IDENTIFIER_LIBRARY id2)))))
-
+  ;; free-identifier=? and bound-identifier=? are moved to Scheme
+  
   ;; 13 Hashtables
   ;; 13.1 constructors
   (define-cfn retrieve-weakness (weakness) ::SgWeakness :static

@@ -216,11 +216,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
     : v->currentInputPort;
 
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
-  /* macro env */
-  v->usageEnv = proto ? proto->usageEnv : SG_FALSE;
-  v->macroEnv = proto ? proto->macroEnv : SG_FALSE;
-  v->transEnv = v->history = SG_NIL;
-  v->identity = proto ? proto->identity : SG_GENERATE_IDENTITY;
 
   /* thread, mutex, etc */
   SG_INTERNAL_THREAD_INIT(&v->thread);
@@ -815,14 +810,12 @@ static void init_compiler()
 /* compiler */
 SgObject Sg_Compile(SgObject o, SgObject e)
 {
-  SgObject r, save, usave, msave;
+  SgObject r, save;
   /* compiler is initialized after VM. so we need to look it up first */
   if (SG_UNDEFP(compiler)) {
     init_compiler();
   }
   save = Sg_VM()->currentLibrary;
-  usave = Sg_VM()->usageEnv;
-  msave = Sg_VM()->macroEnv;
   Sg_VM()->history = SG_NIL;
   if (SG_LIBRARYP(e)) {
     Sg_VM()->currentLibrary = e;
@@ -831,8 +824,6 @@ SgObject Sg_Compile(SgObject o, SgObject e)
   do {						\
     Sg_VM()->history = SG_NIL;			\
     Sg_VM()->currentLibrary = save;		\
-    Sg_VM()->usageEnv = usave;			\
-    Sg_VM()->macroEnv = msave;			\
   } while(0)
 
   SG_UNWIND_PROTECT {
@@ -2057,7 +2048,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   SgCStack cstack;
   SgVM * volatile vm = Sg_VM();
   SgWord * volatile prev_pc = PC(vm);
-  SgObject usave = vm->usageEnv, msave = vm->macroEnv;
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
   PUSH_CONT(vm, &boundaryFrameMark);
@@ -2131,8 +2121,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	AC(vm) = vm->ac;
 	POP_CONT();
 	vm->cstack = vm->cstack->prev;
-	vm->usageEnv = usave;
-	vm->macroEnv = msave;
 	longjmp(vm->cstack->jbuf, 1);
       }
     } else if (vm->escapeReason == SG_VM_ESCAPE_ERROR) {
@@ -2148,8 +2136,6 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
 	CONT(vm) = cstack.cont;
 	POP_CONT();
 	vm->cstack = vm->cstack->prev;
-	vm->usageEnv = usave;
-	vm->macroEnv = msave;
 	longjmp(vm->cstack->jbuf, 1);
       }
     } else if (vm->escapeReason == SG_VM_ESCAPE_RAISE) {
@@ -2585,7 +2571,6 @@ SgObject run_loop()
 void Sg__InitVM()
 {
   /* this env is p1env and it must be 5 elements vector for now. */
-  SgObject initialEnv = Sg_MakeVector(5, SG_UNDEF);
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
   rootVM = theVM = Sg_NewVM(NULL, SG_MAKE_STRING("root"));
 #else
@@ -2601,13 +2586,6 @@ void Sg__InitVM()
   /* mark as this is toplevel library. */
   SG_LIBRARY_DEFINEED(rootVM->currentLibrary) = SG_FALSE;
   
-  /* env */
-  SG_VECTOR_ELEMENT(initialEnv, 0) = rootVM->currentLibrary;
-  SG_VECTOR_ELEMENT(initialEnv, 1) = SG_NIL;
-  SG_VECTOR_ELEMENT(initialEnv, 4) = SG_FALSE;
-  rootVM->usageEnv = initialEnv;
-  rootVM->macroEnv = initialEnv;
-
   /* load path */
   rootVM->loadPath = Sg_GetDefaultLoadPath();
   rootVM->dynamicLoadPath = Sg_GetDefaultDynamicLoadPath();

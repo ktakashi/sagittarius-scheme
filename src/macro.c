@@ -131,109 +131,12 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   return form;
 }
 
-static SgObject macro_restore_env_cc(SgObject result, void **data)
-{
-  SgVM *vm = Sg_VM();
-  vm->usageEnv = SG_OBJ(data[0]);
-  vm->macroEnv = SG_OBJ(data[1]);
-  vm->transEnv = SG_NIL;	/* gc friendliness */
-  /* use macro... */
-  vm->identity = SG_OBJ(data[2]);
-  return result;
-}
-
-#define MACRO_NEED_EXTRACT(o) SG_FALSEP(SG_MACRO(o)->extracted)
-
-static SgObject macro_transform_cc(SgObject result, void **data)
-{
-  SgVM *vm = Sg_VM();
-  SgObject macro, form, p1env, mac_env;
-  void *next_data[3];
-  
-  macro = data[0];
-  form = data[1];
-  p1env = data[2];
-
-  next_data[0] = vm->usageEnv;
-  next_data[1] = vm->macroEnv;
-  next_data[2] = vm->identity;	/* TODO use macro... */
-
-  mac_env = SG_MACRO(macro)->env;
-
-  vm->usageEnv = p1env;
-  vm->macroEnv = mac_env;
-  vm->transEnv = SG_NIL;
-
-  vm->identity = SG_GENERATE_IDENTITY;
-  
-  Sg_VMPushCC(macro_restore_env_cc, next_data, 3);
-  if (SG_MACROP(result)) {
-    /* variable transformer */
-    return Sg_VMApply4(SG_MACRO(result)->transformer,
-		       result, form, mac_env, SG_MACRO(result)->data);
-  } else {
-    return Sg_VMApply1(result, form);
-  }
-}
-
-static SgObject macro_extract3_cc(SgObject result, void **data)
-{
-  SG_MACRO(data[0])->extracted = result;
-  Sg_VMPushCC(macro_transform_cc, data, 3);
-  return result;
-}
-
-static SgObject macro_tranform(SgObject *args, int argc, void *data_)
-{
-  if (MACRO_NEED_EXTRACT(args[0])) {
-    Sg_VMPushCC(macro_extract3_cc, args, 3);
-    return Sg_VMApply0(args[3]);
-  } else {
-    return macro_transform_cc(SG_MACRO(args[0])->extracted, args);
-  }
-}
-
-static SG_DEFINE_SUBR(macro_tranform_Stub, 4, 0, macro_tranform, 
-		      SG_FALSE, NULL);
-
-SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc,
-				 SgObject env, SgObject library)
-{
-  if (SG_FALSEP(SG_PROCEDURE_NAME(&macro_tranform_Stub))) {
-    SG_PROCEDURE_NAME(&macro_tranform_Stub) = 
-      SG_MAKE_STRING("macro-transform");
-  }
-  return Sg_MakeMacro(name, &macro_tranform_Stub, proc, env, library);
-}
-
-static SgObject macro_extract1_cc(SgObject result, void **data)
-{
-  SG_MACRO(data[0])->extracted = result;
-  return Sg_VMVariableTransformerP(data[0]);
-}
-
-SgObject Sg_VMVariableTransformerP(SgObject o)
-{
-  if (SG_MACROP(o)) {
-    if (MACRO_NEED_EXTRACT(o)) {
-      void *data[1];
-      data[0] = o;
-      Sg_VMPushCC(macro_extract1_cc, data, 1);
-      return Sg_VMApply0(SG_MACRO(o)->data);
-    } else {
-      return SG_MAKE_BOOL(SG_MACROP(SG_MACRO(o)->extracted));
-    }
-  } else {
-    return SG_FALSE;
-  }
-}
 
 static SgObject macro_expand_cc(SgObject result, void **data)
 {
   SgObject env = SG_OBJ(data[0]);
   return Sg_MacroExpand(result, env, FALSE);
 }
-
 
 static SgObject p1env_lookup(SgVector *p1env, SgObject name, SgObject lookup_as)
 {
