@@ -13,6 +13,17 @@
  (construct)
  (imports (core) (core base) (core errors) (sagittarius)
 	  (for (smatch) expand) (sagittarius vm))
+ (exports compile-syntax-case compile-syntax
+	  current-usage-env current-macro-env
+	  make-macro-transformer
+	  variable-transformer?
+	  make-core-parameter
+	  make-identifier
+	  ;; aboves are needed for compiler
+	  make-variable-transformer
+	  free-identifier=? bound-identifier=?
+	  datum->syntax syntax->datum generate-temporaries
+	  er-macro-transformer)
  (additionals "../boot/lib/smatch.scm"))
 ;; compiler-aux
 ((target compile-aux)
