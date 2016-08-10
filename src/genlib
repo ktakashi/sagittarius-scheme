@@ -43,7 +43,8 @@
 		   (if (null? args)
 		       (proceed)
 		       (%set-current-macro-env! (car args))))))
-	     (environment '(sagittarius aspect) '(core)))))
+	     (environment '(sagittarius aspect) '(core)
+			  '(sagittarius) '(sagittarius vm)))))
 ;; need both (core) and (sagittarius) so (core base) is the best place
 (with-library (core base)
   (define (make-core-parameter init-value)
