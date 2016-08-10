@@ -64,50 +64,25 @@ static void id_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_IdentifierClass, id_print);
 
-static SgIdentifier* make_identifier()
+SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs, SgObject identity,
+			      SgLibrary *library, int pendingP)
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
-  id->pending = FALSE;		/* for sanity */
-  return id;
+  id->pending = pendingP;
+  id->name = name;
+  id->envs = envs;
+  id->identity = identity,
+  id->library = library;
+  return SG_OBJ(id);
 }
 
-/* should we move this to vm.c so that SG_CURRENT_IDENTITY can be hidden? */
-/*
-  This procedure actually does 2 things depending on the given arguments.
-  1. creating global identifier
-  2. renaming the given identifier.
-  TODO the second part should be separated but for now.
- */
-SgObject Sg_MakeIdentifier(SgObject id_or_sm, SgObject envs, SgLibrary *library)
+/* 
+   this is used from builtin libraries and the envs must be '() 
+*/
+SgObject Sg_MakeGlobalIdentifier(SgObject name, SgLibrary *library)
 {
-  SgIdentifier *id = make_identifier();
-  id->name = (SG_IDENTIFIERP(id_or_sm))
-    ? SG_IDENTIFIER_NAME(id_or_sm) : id_or_sm;
-  id->library = library;
-
-  if (SG_IDENTIFIERP(id_or_sm)) {
-    id->envs = Sg_Cons(envs, SG_IDENTIFIER_ENVS(id_or_sm));
-  } else {
-    /* just wrap it */
-    if (SG_NULLP(envs)) {
-      id->envs = SG_NIL;
-    } else {
-      id->envs = SG_LIST1(envs);
-    }
-  }
-  if (SG_NULLP(envs)) {
-    SG_IDENTIFIER_IDENTITY(id) = SG_FALSE; /* global */
-  } else {
-    if (SG_IDENTIFIERP(id_or_sm)) {
-      SG_IDENTIFIER_IDENTITY(id) = Sg_Cons(SG_CURRENT_IDENTITY, 
-					   SG_IDENTIFIER_IDENTITY(id_or_sm));
-    } else {
-      /* fake it as if renamed from global identifier */
-      SG_IDENTIFIER_IDENTITY(id) = Sg_Cons(SG_CURRENT_IDENTITY, SG_FALSE);
-    }
-  }
-  return SG_OBJ(id);
+  return Sg_MakeRawIdentifier(name, SG_NIL, SG_FALSE, library, FALSE);
 }
 
 void Sg__InitIdentifier()

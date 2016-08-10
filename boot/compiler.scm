@@ -19,6 +19,13 @@
   (include "lib/smatch.scm"))
  (else #t))
 
+(define *history* (make-core-parameter '()))
+(define (history o) (assq o (*history*)))
+(define (history! n o)
+  (let ((o (cond ((assq o (*history*)) => cdr) (else o))))
+    (*history* (acons n o (*history*)))
+    n))
+
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm
 ;; this does not use call/cc
@@ -67,9 +74,9 @@
 (define-syntax $history
   (syntax-rules ()
     ((_ n o)
-     (save-expansion-history! ($src n o) o))
+     (history! ($src n o) o))
     ((_ n)
-     (let ((s (lookup-expansion-history n)))
+     (let ((s (history n)))
        (if s (cdr s) n)))))
 
 ;; utility macros
@@ -1450,11 +1457,13 @@
 ;; creates an closure with free variables and cache can't handle
 ;; any closure with free variable. so it is better let expander
 ;; retrieve real transformer.
+;; NB: we pass code builder to make-macro-transformer for cache
+;;     so that macro itself can call the thunk ahead
 (define (pass1/eval-macro-rhs who name expr p1env)
-  (let ((transformer (make-toplevel-closure 
-		      ;; set boundary of the macro compile
-		      (compile expr (p1env-extend p1env '() BOUNDARY)))))
-    (make-macro-transformer name transformer p1env (p1env-library p1env))))
+  ;; set boundary of the macro compile
+  (let* ((cb (compile-entry expr (p1env-extend p1env '() BOUNDARY)))
+	 (transformer (make-toplevel-closure cb)))
+    (make-macro-transformer name transformer p1env cb)))
 
 ;; syntax-case
 ;; `compile-syntax-case` is defined in boot/lib/macro.scm
@@ -2313,7 +2322,8 @@
      (let ((var (pass1/lookup-head name p1env)))
        (define (do-macro m name form p1env)
 	 (if (variable-transformer? m)
-	     (pass1 ($history (call-macro-expander m form p1env) form) p1env)
+	     (pass1 ($history (call-macro-expander m form p1env)
+			      form) p1env)
 	     (syntax-error "misplaced syntactic keyword as variable"
 			   form name)))
        (cond ((lvar? var)
@@ -2971,7 +2981,7 @@
 	     ;; the library is not yet executed; thus, the bindings can't be
 	     ;; found. Therefore, we'd get unbound variable error. to avoid
 	     ;; such a situation, we need to execute all libraries here.
-	     (vm-execute! (compile (car forms) p1env))
+	     (vm-execute! (compile-entry (car forms) p1env))
 	     (loop (cdr forms) seq))
 	    (((? import? -) rest ___)
 	     (pass1/import (car forms) exec-lib)
@@ -5939,7 +5949,7 @@
 (define (pass2-4 iform library)
   (pass4 (pass3 (pass2 iform library)) library))
 
-(define (compile program env)
+(define (compile-entry program env)
   (let ((env (cond ((vector? env) env);; must be p1env
 		   ((library? env) (make-bottom-p1env env))
 		   (else (make-bottom-p1env)))))
@@ -5957,6 +5967,19 @@
 	       (make-renv)
 	       'tail
 	       RET)))))
+
+(define (compile program env)
+  (let ((lsave (and (library? env) (vm-current-library)))
+	(usave (current-usage-env))
+	(msave (current-macro-env)))
+    (when lsave (vm-current-library env))
+    (*history* '()) ;; always null
+    (dynamic-wind values
+	(lambda () (compile-entry program env))
+	(lambda ()
+	  (when lsave (vm-current-library lsave))
+	  (current-usage-env usave)
+	  (current-macro-env msave)))))
 
 ;; for debug
 (define (compile-p1 program)

@@ -210,17 +210,6 @@ struct SgVMRec
   SgObject values[DEFAULT_VALUES_SIZE];
   SgValuesBuffer *extra_values;
 
-  /* macro expansion 
-     FIXME these registers should not be in VM it's compiler thing.
-           to make VM size a bit smaller (5 words) we should define
-           them somewhere else.
-   */
-  SgObject usageEnv;		/* current usage env */
-  SgObject macroEnv;		/* current macro env */
-  SgObject transEnv;		/* just a storage for macro expansion */
-  SgObject identity;		/* macro expansion identity */
-  /* to store macro expansion history alist */
-  SgObject history;
   /* 
      load path
    */
@@ -333,9 +322,6 @@ typedef enum {
 #define SG_VM_IS_SET_FLAG(vm, flag) (((vm)->flags & (flag)))
 
 #define SG_VM_LOG_LEVEL(vm, level)  (((vm)->flags & SG_LOG_LEVEL_MASK) >= level)
-
-#define SG_CURRENT_IDENTITY  (Sg_VM()->identity)
-#define SG_GENERATE_IDENTITY (Sg_Gensym(SG_MAKE_STRING("id.")))
 
 #define SG_CCONT_DATA_SIZE 6
 

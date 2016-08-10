@@ -68,8 +68,8 @@ static void macro_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MacroClass, macro_print);
 
-SgObject Sg_MakeMacro(SgObject name, SgObject transformer, 
-		      void *data, SgObject env, SgObject maybeLibrary)
+SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer, 
+		      SgObject data, SgObject env, SgCodeBuilder *compiledCode)
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_CLASS(z, SG_CLASS_MACRO);
@@ -77,8 +77,7 @@ SgObject Sg_MakeMacro(SgObject name, SgObject transformer,
   z->transformer = transformer;
   z->data = data;
   z->env = env;
-  z->maybeLibrary = maybeLibrary;
-  z->extracted = SG_FALSE;
+  z->compiledCode = compiledCode;
   return SG_OBJ(z);
 }
 
@@ -131,109 +130,12 @@ static SgObject unwrap_rec(SgObject form, SgObject history)
   return form;
 }
 
-static SgObject macro_restore_env_cc(SgObject result, void **data)
-{
-  SgVM *vm = Sg_VM();
-  vm->usageEnv = SG_OBJ(data[0]);
-  vm->macroEnv = SG_OBJ(data[1]);
-  vm->transEnv = SG_NIL;	/* gc friendliness */
-  /* use macro... */
-  vm->identity = SG_OBJ(data[2]);
-  return result;
-}
-
-#define MACRO_NEED_EXTRACT(o) SG_FALSEP(SG_MACRO(o)->extracted)
-
-static SgObject macro_transform_cc(SgObject result, void **data)
-{
-  SgVM *vm = Sg_VM();
-  SgObject macro, form, p1env, mac_env;
-  void *next_data[3];
-  
-  macro = data[0];
-  form = data[1];
-  p1env = data[2];
-
-  next_data[0] = vm->usageEnv;
-  next_data[1] = vm->macroEnv;
-  next_data[2] = vm->identity;	/* TODO use macro... */
-
-  mac_env = SG_MACRO(macro)->env;
-
-  vm->usageEnv = p1env;
-  vm->macroEnv = mac_env;
-  vm->transEnv = SG_NIL;
-
-  vm->identity = SG_GENERATE_IDENTITY;
-  
-  Sg_VMPushCC(macro_restore_env_cc, next_data, 3);
-  if (SG_MACROP(result)) {
-    /* variable transformer */
-    return Sg_VMApply4(SG_MACRO(result)->transformer,
-		       result, form, mac_env, SG_MACRO(result)->data);
-  } else {
-    return Sg_VMApply1(result, form);
-  }
-}
-
-static SgObject macro_extract3_cc(SgObject result, void **data)
-{
-  SG_MACRO(data[0])->extracted = result;
-  Sg_VMPushCC(macro_transform_cc, data, 3);
-  return result;
-}
-
-static SgObject macro_tranform(SgObject *args, int argc, void *data_)
-{
-  if (MACRO_NEED_EXTRACT(args[0])) {
-    Sg_VMPushCC(macro_extract3_cc, args, 3);
-    return Sg_VMApply0(args[3]);
-  } else {
-    return macro_transform_cc(SG_MACRO(args[0])->extracted, args);
-  }
-}
-
-static SG_DEFINE_SUBR(macro_tranform_Stub, 4, 0, macro_tranform, 
-		      SG_FALSE, NULL);
-
-SgObject Sg_MakeMacroTransformer(SgObject name, SgObject proc,
-				 SgObject env, SgObject library)
-{
-  if (SG_FALSEP(SG_PROCEDURE_NAME(&macro_tranform_Stub))) {
-    SG_PROCEDURE_NAME(&macro_tranform_Stub) = 
-      SG_MAKE_STRING("macro-transform");
-  }
-  return Sg_MakeMacro(name, &macro_tranform_Stub, proc, env, library);
-}
-
-static SgObject macro_extract1_cc(SgObject result, void **data)
-{
-  SG_MACRO(data[0])->extracted = result;
-  return Sg_VMVariableTransformerP(data[0]);
-}
-
-SgObject Sg_VMVariableTransformerP(SgObject o)
-{
-  if (SG_MACROP(o)) {
-    if (MACRO_NEED_EXTRACT(o)) {
-      void *data[1];
-      data[0] = o;
-      Sg_VMPushCC(macro_extract1_cc, data, 1);
-      return Sg_VMApply0(SG_MACRO(o)->data);
-    } else {
-      return SG_MAKE_BOOL(SG_MACROP(SG_MACRO(o)->extracted));
-    }
-  } else {
-    return SG_FALSE;
-  }
-}
 
 static SgObject macro_expand_cc(SgObject result, void **data)
 {
   SgObject env = SG_OBJ(data[0]);
   return Sg_MacroExpand(result, env, FALSE);
 }
-
 
 static SgObject p1env_lookup(SgVector *p1env, SgObject name, SgObject lookup_as)
 {
@@ -336,7 +238,6 @@ static SgObject macro_trans(SgMacro *m)
   return m->transformer;
 }
 
-/* be careful */
 static SgObject macro_data(SgMacro *m)
 {
   return m->data;
@@ -346,17 +247,12 @@ static SgObject macro_env(SgMacro *m)
   return m->env;
 }
 
-static SgObject macro_library(SgMacro *m)
-{
-  return m->maybeLibrary;
-}
 
 static SgSlotAccessor macro_slots[] = {
   SG_CLASS_SLOT_SPEC("name", 0, macro_name, NULL),
   SG_CLASS_SLOT_SPEC("transformer", 1, macro_trans, NULL),
   SG_CLASS_SLOT_SPEC("data", 2, macro_data, NULL),
   SG_CLASS_SLOT_SPEC("env", 3, macro_env, NULL),
-  SG_CLASS_SLOT_SPEC("library", 4, macro_library, NULL),
   { { NULL } }
 };
 

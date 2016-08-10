@@ -54,10 +54,15 @@ struct SgIdentifierRec
 #define SG_IDENTIFIER_PENDING(obj)  (SG_IDENTIFIER(obj)->pending)
 #define SG_IDENTIFIER_IDENTITY(obj) (SG_IDENTIFIER(obj)->identity)
 
+/* for my sake, remove this after 0.7.8. */
+#define Sg_MakeIdentifier(name, env, lib) Sg_MakeGlobalIdentifier(name, lib)
+
 SG_CDECL_BEGIN
 
-SG_EXTERN SgObject Sg_MakeIdentifier(SgObject id_or_sym, SgObject envs,
-				     SgLibrary *library);
+SG_EXTERN SgObject Sg_MakeGlobalIdentifier(SgObject name, SgLibrary *library);
+SG_EXTERN SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs,
+					SgObject identity,
+					SgLibrary *library, int pendingP);
 
 SG_CDECL_END
 

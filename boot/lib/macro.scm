@@ -50,6 +50,107 @@
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
 
+;; simple parameter
+;; TODO maybe we want to move this somewhere
+(define (make-core-parameter init-value)
+  (define (p . v)
+    (if (null? v)
+	(hashtable-ref  (current-dynamic-environment) p init-value)
+	(hashtable-set! (current-dynamic-environment) p (car v))))
+  p)
+(define *root-env* (vector (find-library 'user #f) '() #f #f #f))
+(define current-usage-env (make-core-parameter *root-env*))
+(define current-macro-env (make-core-parameter *root-env*))
+(define current-transformer-env (make-core-parameter '()))
+(define (lookup-transformer-env o)
+  (cond ((identifier? o)
+	 (cond ((assq (id-name o) (current-transformer-env)) =>
+		(lambda (r)
+		  (and (pair? (cdr r)) (eq? (id-library o) (cadr r)) (cddr r))))
+	       (else #f)))
+	((symbol? o)
+	 (cond ((assq o (current-transformer-env)) =>
+		(lambda (r)
+		  (and (not (pair? (cdr r)))
+		       (cdr r))))
+	       (else #f)))))
+(define (add-to-transformer-env! o n)
+  (let ((cte (current-transformer-env)))
+    (if (identifier? o)
+	(current-transformer-env (acons (id-name o)
+					(cons (id-library o) n)
+					cte))
+	(current-transformer-env (acons o n cte)))
+    n))
+
+(define current-identity (make-core-parameter #f))
+(define (generate-identity) (gensym "id."))
+
+;;; identifier
+;; we emulate current subr here, so it's rather ugly.
+(define (%make-identifier name envs maybe-library pending?)
+  (unless (or (symbol? name) (identifier? name))
+    (assertion-violation 'make-identifier "symbol or identifier is required"
+			 name))
+  (let ((n (if (identifier? name) (id-name name) name))
+	(lib (if (library? maybe-library)
+		 maybe-library
+		 (find-library maybe-library #f)))
+	(new-env (cond ((null? envs) '())
+		       ((identifier? name) (cons envs (id-envs name)))
+		       (else (list envs))))
+	(identity (cond ((null? envs) #f)
+			((identifier? name)
+			 (cons (current-identity) (id-identity name)))
+			(else (cons (current-identity) #f)))))
+    (make-raw-identifier n new-env identity lib pending?)))
+(define (make-identifier name envs maybe-library)
+  (%make-identifier name envs maybe-library #f))
+(define (make-pending-identifier name envs maybe-library)
+  (%make-identifier name envs maybe-library #t))
+
+
+
+;; free-identifier=?
+;; this needs to be here since it requires both usage and macro env
+(define (free-identifier=? id1 id2)
+  (define (compare id1 id2)
+    (define uenv (current-usage-env))
+    (if (and uenv (eq? (id-name id1) (id-name id2)))
+	(let ((v1 (p1env-lookup uenv id1 LEXICAL))
+	      (v2 (p1env-lookup uenv id2 LEXICAL)))
+	  (if (and (identifier? v1) (identifier? v2))
+	      (let ((g1 (find-binding (id-library id1) (id-name id1) #f))
+		    (g2 (find-binding (id-library id2) (id-name id2) #f)))
+		(eq? g1 g2))
+	      (eq? v1 v2)))
+	(let ((g1 (find-binding (id-library id1) (id-name id1) #f))
+	      (g2 (find-binding (id-library id2) (id-name id2) #f)))
+	  (and g1 g2 (eq? g1 g2)))))
+  (and (or (identifier? id1)
+	   (assertion-violation 'free-identifier=? "identifier required" id1))
+       (or (identifier? id2)
+	   (assertion-violation 'free-identifier=? "identifier required" id2))
+       (compare id1 id2)))
+
+(define (bound-identifier=? id1 id2)
+  (define (compare id1 id2)
+    (define identity1 (id-identity id1))
+    (define identity2 (id-identity id2))
+    (cond ((eq? identity1 identity2))
+	  ((or (not identity1) (not identity2)) #f)
+	  (else (let loop ((l1 identity1) (l2 identity2))
+		  (if (and (pair? l1) (pair? l2))
+		      (and (eq? (car l1) (car l2))
+			   (loop (cdr l1) (cdr l2)))
+		      (eq? l1 l2))))))
+  (and (or (identifier? id1)
+	   (assertion-violation 'bound-identifier=? "identifier required" id1))
+       (or (identifier? id2)
+	   (assertion-violation 'bound-identifier=? "identifier required" id2))
+       (eq? (id-name id1) (id-name id2))
+       (compare id1 id2)))
+
 (define .vars (make-identifier '.vars '() '(core macro)))
 
 ;; in case of (rename (rnrs) (_ __)) or so...
@@ -248,8 +349,8 @@
 		    (lambda (id) #f)))
     ;; set both macro and usage env so that free-identifier=? can
     ;; use this env for compilation
-    (%set-current-macro-env! mac-env)
-    (%set-current-usage-env! mac-env)
+    (current-macro-env mac-env)
+    (current-usage-env mac-env)
     (let ((lites (rewrite-literals literals mac-env)))
       (define (rewrite oexpr patvars p1env)
 	(define seen (make-eq-hashtable))
@@ -314,8 +415,8 @@
 				 env)))))
 		    clauses)))
 	;; restore it
-	(%set-current-macro-env! mac-save)
-	(%set-current-usage-env! use-save)
+	(current-macro-env mac-save)
+	(current-usage-env use-save)
 	(values .match-syntax-case
 		lites
 		(p1env-lookup mac-env .vars LEXICAL BOUNDARY)
@@ -1004,8 +1105,66 @@
 		       '() lib)
 		      r))))))
 
+(define *variable-transformer-mark* (list 'variable-transformer))
+(define (variable-transformer? o)
+  (and (macro? o) (macro? (macro-data o))))
+;; see blow
+;; (define (variable-transformer? o)
+;;   (and (macro? o)
+;;        (eq? (macro-data o) *variable-transformer-mark*)))
+
+;; make-macro-transformer
+;; TODO use this when I'm done with cache refactoring.
+;; NB: this version makes cache break. the (thunk) must not be
+;;     called sint it may contain lifted lambda.
+;; (define (make-macro-transformer name thunk env cb)
+;;   (define transformer (thunk))
+;;   (define (macro-transform me expr p1env data)
+;;     (let ((usave (current-usage-env))
+;; 	  (msave (current-macro-env))
+;; 	  (isave (current-identity)))
+;;       (current-usage-env p1env)
+;;       (current-macro-env (macro-env me))
+;;       (current-identity (generate-identity))
+;;       (current-transformer-env '()) ;; we don't need the value.
+;;       (dynamic-wind values
+;; 	  (lambda () ((macro-data me) expr))
+;; 	  (lambda ()
+;; 	    (current-transformer-env '())
+;; 	    (current-usage-env usave)
+;; 	    (current-macro-env msave)
+;; 	    (current-identity  isave)))))
+;;   (if (macro? transformer)
+;;       (make-macro name (macro-transformer transformer)
+;; 		  *variable-transformer-mark* (macro-env transformer)
+;; 		  cb)
+;;       (make-macro name macro-transform transformer env cb)))
+
+(define (make-macro-transformer name thunk env cb)
+  (define (macro-transform me expr p1env data)
+    (let ((transformer data)
+	  (usave (current-usage-env))
+	  (msave (current-macro-env))
+	  (isave (current-identity)))
+      (current-usage-env p1env)
+      (current-macro-env (macro-env me))
+      (current-identity (generate-identity))
+      (current-transformer-env '()) ;; we don't need the value.
+      (dynamic-wind values
+	  (lambda ()
+	    (if (macro? transformer)
+		((macro-transformer transformer) transformer
+		 expr (macro-env me) (macro-data transformer))
+		(transformer expr)))
+	  (lambda ()
+	    (current-transformer-env '())
+	    (current-usage-env usave)
+	    (current-macro-env msave)
+	    (current-identity  isave)))))
+  (make-macro name macro-transform (thunk) env cb))
+
 (define (make-variable-transformer proc)
-  (make-macro 'variable-transformer
+  (make-macro *variable-transformer-mark*
 	      (lambda (m expr p1env data)
 		(define (rewrite expr env)
 		  (rewrite-form expr (make-eq-hashtable) (vector-ref env 1)
@@ -1022,7 +1181,6 @@
 		(proc (rewrite expr (current-usage-env))))
 	      '()
 	      (current-macro-env)))
-
 
 ;; er-macro-transformer
 (define (er-macro-transformer f)

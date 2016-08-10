@@ -229,7 +229,7 @@
 		   ;; most likely (with-library (lib) var)
 		   ;; and it must return identifier bounded in the given
 		   ;; library otherwise breaks cache.
-		   (make-identifier (syntax->datum (car e)) '() real-lib)
+		   (make-global-identifier (syntax->datum (car e)) real-lib)
 		   (let ((r (eval (syntax->datum (car e)) real-lib)))
 		     (datum->syntax #'k r)))
 	       (begin
