@@ -124,7 +124,7 @@ SG_EXTERN void     Sg_CodeBuilderFlush(SgCodeBuilder *cb);
 SG_EXTERN void     Sg_CodeBuilderLabelSet(SgCodeBuilder *cb, SgObject label);
 SG_EXTERN SgObject Sg_CodeBuilderFinishBuilder(SgCodeBuilder *cb, int last);
 SG_EXTERN SgObject Sg_CodeBuilderFullName(SgCodeBuilder *cb);
-SG_EXTERN void     Sg_VMExecute(SgObject toplevel);
+SG_EXTERN SgObject Sg_VMExecute(SgObject toplevel);
 
 /* for compiled cache */
 SG_EXTERN SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size,

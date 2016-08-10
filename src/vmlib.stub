@@ -93,13 +93,12 @@
 
   ;; macro
   (define-c-proc macro? (obj) ::<boolean> SG_MACROP)
-  (define-c-proc make-macro 
-    (name transformer data p1env :optional (maybe_library #f))
+  (define-c-proc make-macro (name transformer data p1env
+				  :optional (cb::<code-builder> NULL))
     (unless (SG_CLOSUREP transformer)
       (wrong-type-of-argument-violation 'make-macro "closure" transformer))
-    (result (Sg_MakeMacro name (SG_CLOSURE transformer) data p1env
-			  maybe_library)))
-
+    (result (Sg_MakeMacro name (SG_CLOSURE transformer) data p1env cb)))
+  
   (define-c-proc macro-env (m::<macro>) (result (-> m env)))
   (define-c-proc macro-name (m::<macro>) (result (-> m name)))
   ;; ... this is dangerous.

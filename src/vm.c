@@ -2159,7 +2159,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
   one R6RS library is one S-expression.
   So, just make a closure and apply it with '()
  */
-void Sg_VMExecute(SgObject toplevel)
+SgObject Sg_VMExecute(SgObject toplevel)
 {
   ASSERT(SG_CODE_BUILDERP(toplevel));
   /* NB: compiled libraries don't need any frame. */

@@ -61,7 +61,7 @@ struct SgMacroRec
   SgClosure *transformer;
   SgObject   data;
   SgObject   env;		/* macro defined time p1env */
-  SgObject   maybeLibrary;
+  SgCodeBuilder *compiledCode;	/* for cache */
 };
 
 #define SG_MACRO(obj)    ((SgMacro*)(obj))
@@ -72,7 +72,7 @@ SG_CDECL_BEGIN
 SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc);
 SG_EXTERN SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer,
 				SgObject data, SgObject env,
-				SgObject maybeLibrary);
+				SgCodeBuilder *compiledCode);
 
 SG_EXTERN SgObject Sg_UnwrapSyntax(SgObject form);
 SG_EXTERN SgObject Sg_MacroExpand(SgObject form, SgObject p1env, int onceP);

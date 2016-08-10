@@ -1450,11 +1450,13 @@
 ;; creates an closure with free variables and cache can't handle
 ;; any closure with free variable. so it is better let expander
 ;; retrieve real transformer.
+;; NB: we pass code builder to make-macro-transformer for cache
+;;     so that macro itself can call the thunk ahead
 (define (pass1/eval-macro-rhs who name expr p1env)
-  (let ((transformer (make-toplevel-closure 
-		      ;; set boundary of the macro compile
-		      (compile-entry expr (p1env-extend p1env '() BOUNDARY)))))
-    (make-macro-transformer name transformer p1env (p1env-library p1env))))
+  ;; set boundary of the macro compile
+  (let* ((cb (compile-entry expr (p1env-extend p1env '() BOUNDARY)))
+	 (transformer (make-toplevel-closure cb)))
+    (make-macro-transformer name transformer p1env cb)))
 
 ;; syntax-case
 ;; `compile-syntax-case` is defined in boot/lib/macro.scm

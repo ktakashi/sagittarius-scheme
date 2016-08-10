@@ -1107,7 +1107,7 @@
 
 (define *variable-transformer-mark* (list 'variable-transformer))
 (define (variable-transformer? o)
-  (and (macro? o) (macro? ((macro-data o)))))
+  (and (macro? o) (macro? (macro-data o))))
 ;; see blow
 ;; (define (variable-transformer? o)
 ;;   (and (macro? o)
@@ -1117,7 +1117,7 @@
 ;; TODO use this when I'm done with cache refactoring.
 ;; NB: this version makes cache break. the (thunk) must not be
 ;;     called sint it may contain lifted lambda.
-;; (define (make-macro-transformer name thunk env library)
+;; (define (make-macro-transformer name thunk env cb)
 ;;   (define transformer (thunk))
 ;;   (define (macro-transform me expr p1env data)
 ;;     (let ((usave (current-usage-env))
@@ -1137,12 +1137,12 @@
 ;;   (if (macro? transformer)
 ;;       (make-macro name (macro-transformer transformer)
 ;; 		  *variable-transformer-mark* (macro-env transformer)
-;; 		  library)
-;;       (make-macro name macro-transform transformer env library)))
+;; 		  cb)
+;;       (make-macro name macro-transform transformer env cb)))
 
-(define (make-macro-transformer name thunk env library)
+(define (make-macro-transformer name thunk env cb)
   (define (macro-transform me expr p1env data)
-    (let ((transformer (data))
+    (let ((transformer data)
 	  (usave (current-usage-env))
 	  (msave (current-macro-env))
 	  (isave (current-identity)))
@@ -1161,7 +1161,7 @@
 	    (current-usage-env usave)
 	    (current-macro-env msave)
 	    (current-identity  isave)))))
-  (make-macro name macro-transform thunk env library))
+  (make-macro name macro-transform (thunk) env cb))
 
 (define (make-variable-transformer proc)
   (make-macro *variable-transformer-mark*

@@ -69,7 +69,7 @@ static void macro_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MacroClass, macro_print);
 
 SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer, 
-		      SgObject data, SgObject env, SgObject maybeLibrary)
+		      SgObject data, SgObject env, SgCodeBuilder *compiledCode)
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_CLASS(z, SG_CLASS_MACRO);
@@ -77,7 +77,7 @@ SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer,
   z->transformer = transformer;
   z->data = data;
   z->env = env;
-  z->maybeLibrary = maybeLibrary;
+  z->compiledCode = compiledCode;
   return SG_OBJ(z);
 }
 
@@ -238,7 +238,6 @@ static SgObject macro_trans(SgMacro *m)
   return m->transformer;
 }
 
-/* be careful */
 static SgObject macro_data(SgMacro *m)
 {
   return m->data;
@@ -248,17 +247,12 @@ static SgObject macro_env(SgMacro *m)
   return m->env;
 }
 
-static SgObject macro_library(SgMacro *m)
-{
-  return m->maybeLibrary;
-}
 
 static SgSlotAccessor macro_slots[] = {
   SG_CLASS_SLOT_SPEC("name", 0, macro_name, NULL),
   SG_CLASS_SLOT_SPEC("transformer", 1, macro_trans, NULL),
   SG_CLASS_SLOT_SPEC("data", 2, macro_data, NULL),
   SG_CLASS_SLOT_SPEC("env", 3, macro_env, NULL),
-  SG_CLASS_SLOT_SPEC("library", 4, macro_library, NULL),
   { { NULL } }
 };
 

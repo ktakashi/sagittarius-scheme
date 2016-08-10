@@ -561,13 +561,24 @@ static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
 
   cbs = write_cache_scan(m->name, cbs, ctx);
   cbs = write_cache_scan(m->env, cbs, ctx);
+  /* for current make-macro-transformer implementation,
+     data is the result of thunk (macro itself).
+     and the compiledCode should contain the code builder
+     of the thunk. so we don't have to scan it.
+   */
+#if 0
   if (SG_CLOSUREP(m->data)) {
     cbs = write_cache_scan(m->data, cbs, ctx);
   }
+#endif
   if (SG_CLOSUREP(m->transformer)) {
     cbs = write_cache_scan(m->transformer, cbs, ctx);
   }
-  cbs = write_cache_scan(m->maybeLibrary, cbs, ctx);
+  /* NB: variable-transformer doesn't have it */
+  if (m->compiledCode) {
+    cbs = Sg_Acons(m->compiledCode, SG_MAKE_INT(ctx->index++), cbs);
+    cbs = write_cache_pass1(m->compiledCode, cbs, NULL, ctx);
+  }
   return cbs;
 }
 
@@ -783,9 +794,14 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
   put_word(out, Sg_Length(SG_CDR(closures)), MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->transformer, closures, ctx);
-  write_object_cache(out, SG_MACRO(macro)->data, closures, ctx);
+  /* write_object_cache(out, SG_MACRO(macro)->data, closures, ctx); */
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
-  write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
+  if (SG_MACRO(macro)->compiledCode) {
+    write_cache_pass2(out, SG_MACRO(macro)->compiledCode, closures, ctx);
+  } else {
+    write_object_cache(out, SG_FALSE, closures, ctx);
+  }
+  /* write_object_cache(out, SG_MACRO(macro)->compiledCode, closures, ctx); */
 
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), macro); */
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
@@ -1494,8 +1510,8 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
 static SgObject read_macro(SgPort *in, read_ctx *ctx)
 {
-  int tag, len, i;
-  SgObject name, data, env, lib, transformer, cls = SG_NIL;
+  int tag, len;
+  SgObject name, env, transformer, cc, data;
   len = read_word(in, MACRO_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
@@ -1503,36 +1519,33 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   if (!SG_CODE_BUILDERP(transformer)) {
     ESCAPE(ctx, "broken cache: %A (macro transformer)\n", transformer);
   }
-  data = read_object(in, ctx);
+  /* data = read_object(in, ctx); */
   env  = read_object_rec(in, ctx);
-
+  cc = read_object(in, ctx);
+  
   if (!SG_VECTORP(env)) {
     ESCAPE(ctx, "broken cache: %A (macro env)\n", env);
   }
   SG_VECTOR_ELEMENT(env, 0) = Sg_FindLibrary(SG_VECTOR_ELEMENT(env, 0), FALSE);
 
-  /* just name, so we need to look it up */
-  lib = Sg_FindLibrary(read_object_rec(in, ctx), FALSE);
-  if (!SG_LIBRARYP(lib)) {
-    ESCAPE(ctx, "broken cache: %A (macro library)\n", lib);
-  }
   /* read closures of this macro */
   while (Sg_PeekbUnsafe(in) != MACRO_END_TAG) {
-    SgObject cl = read_object(in, ctx);
-    cls = Sg_Cons(cl, cls);
+    read_object(in, ctx);
   }
   
   link_cb(SG_CODE_BUILDER(transformer), ctx);
   transformer = Sg_MakeClosure(transformer, NULL);
-  if (SG_CODE_BUILDERP(data)) {
-    link_cb(SG_CODE_BUILDER(data), ctx);
-    data = Sg_MakeClosure(data, NULL);
+
+  if (SG_CODE_BUILDERP(cc)) {
+    link_cb(SG_CODE_BUILDER(cc), ctx);
+    data = Sg_VMExecute(cc);
+  } else {
+    data = SG_NIL;
   }
-  
   tag = Sg_GetbUnsafe(in);
   CLOSE_TAG_CHECK(ctx, MACRO_END_TAG, tag);
 
-  return Sg_MakeMacro(name, transformer, data, env, lib);
+  return Sg_MakeMacro(name, transformer, data, env, NULL);
 }
 
 
