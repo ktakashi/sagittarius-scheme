@@ -43,6 +43,17 @@
    (if (null? args)
        (proceed)
        (%set-current-macro-env! (car args)))))
+;; need both (core) and (sagittarius) so (core base) is the best place
+(with-library (core base)
+  (define (make-core-parameter init-value)
+    (define (p . v)
+      (if (null? v)
+	  (hashtable-ref  (current-dynamic-environment) p init-value)
+	  (hashtable-set! (current-dynamic-environment) p (car v))))
+    p))
+;; bug on with-library...
+(with-library (core base) (export make-core-parameter))
+
 
 (define-constant +default-compiler+ "../boot/compiler.scm")
 ;; import specs for compiler 

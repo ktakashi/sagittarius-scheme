@@ -816,13 +816,11 @@ SgObject Sg_Compile(SgObject o, SgObject e)
     init_compiler();
   }
   save = Sg_VM()->currentLibrary;
-  Sg_VM()->history = SG_NIL;
   if (SG_LIBRARYP(e)) {
     Sg_VM()->currentLibrary = e;
   }
 #define restore_vm()				\
   do {						\
-    Sg_VM()->history = SG_NIL;			\
     Sg_VM()->currentLibrary = save;		\
   } while(0)
 

@@ -19,6 +19,13 @@
   (include "lib/smatch.scm"))
  (else #t))
 
+(define *history* (make-core-parameter '()))
+(define (history o) (assq o (*history*)))
+(define (history! n o)
+  (let ((o (cond ((assq o (*history*)) => cdr) (else o))))
+    (*history* (acons n o (*history*)))
+    n))
+
 ;; to avoid unneccessary stack trace, we use guard.
 ;; this is not the same as the one in exceptions.scm
 ;; this does not use call/cc
@@ -67,9 +74,9 @@
 (define-syntax $history
   (syntax-rules ()
     ((_ n o)
-     (save-expansion-history! ($src n o) o))
+     (history! ($src n o) o))
     ((_ n)
-     (let ((s (lookup-expansion-history n)))
+     (let ((s (history n)))
        (if s (cdr s) n)))))
 
 ;; utility macros
@@ -5964,10 +5971,9 @@
 (define (compile program env)
   (let ((lsave (and (library? env) (vm-current-library)))
 	(usave (current-usage-env))
-	(msave (current-macro-env))
-	;; TODO history
-	)
+	(msave (current-macro-env)))
     (when lsave (vm-current-library env))
+    (*history* '()) ;; always null
     (dynamic-wind values
 	(lambda () (compile-entry program env))
 	(lambda ()

@@ -210,8 +210,6 @@ struct SgVMRec
   SgObject values[DEFAULT_VALUES_SIZE];
   SgValuesBuffer *extra_values;
 
-  /* FIXME remove this */
-  SgObject history;
   /* 
      load path
    */
