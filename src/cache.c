@@ -369,7 +369,7 @@ static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx);
 #define CLOSE_TAG_CHECK(ctx, expect, tag)				\
   do {									\
     if ((expect) != (tag))						\
-      ESCAPE((ctx), "unexpected closing tag (expected %d, got %d)\n",	\
+      ESCAPE((ctx), "unexpected closing tag (expected %x, got %x)\n",	\
 	     expect, tag);						\
   } while (0)
 
@@ -780,13 +780,12 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
 			cache_ctx *ctx)
 {
   SgObject closure;
-  put_word(out, FALSE, MACRO_TAG);
+  put_word(out, Sg_Length(SG_CDR(closures)), MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
+  write_object_cache(out, SG_MACRO(macro)->transformer, closures, ctx);
+  write_object_cache(out, SG_MACRO(macro)->data, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->maybeLibrary, closures, ctx);
-
-  write_cache_pass2(out, SG_CLOSURE(SG_MACRO(macro)->transformer)->code,
-		    closures, ctx);
 
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%S\n"), macro); */
   SG_FOR_EACH(closure, SG_CDR(Sg_Reverse(closures))) {
@@ -1069,7 +1068,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SgFile file, tagfile;
   SgPort *out;
   SgFilePort bp;
-  /* SgBufferedPort bfp; */
+  SgBufferedPort bfp;
   SgObject cache, size;
   int index = 0;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
@@ -1092,7 +1091,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   }
   /* lock first, then truncate */
   Sg_FileTruncate(&file, 0);
-  out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, NULL, 
+  out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, &bfp, 
 			      SG_BUFFER_MODE_BLOCK,
 			      portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
@@ -1120,7 +1119,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SG_OPEN_FILE(&tagfile, cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
-  out = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, NULL, 
+  out = Sg_InitFileBinaryPort(&bp, &tagfile, SG_OUTPUT_PORT, &bfp, 
 			      SG_BUFFER_MODE_NONE,
 			      NULL, 0);
 
@@ -1201,7 +1200,11 @@ static SgObject link_cb(SgObject cb, read_ctx *ctx)
 	  SgObject index = SG_SHAREDREF(o)->index;
 	  SgObject new_cb = Sg_HashTableRef(ctx->seen, index, SG_FALSE);
 	  debug_print("linking ... %A\n", o);
-	  ASSERT(SG_CODE_BUILDERP(new_cb));
+	  if (SG_FALSEP(new_cb)) continue;
+	  
+	  if (!SG_CODE_BUILDERP(new_cb)) {
+	    ESCAPE(ctx, "linking code builder failed. %A", new_cb);
+	  }
 	  code[i+j+1] = SG_WORD(new_cb);
 	  link_cb(new_cb, ctx);
 	}
@@ -1491,24 +1494,45 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
 static SgObject read_macro(SgPort *in, read_ctx *ctx)
 {
-  int tag;
-  SgObject name, data, env, lib;
-  read_word(in, MACRO_TAG, ctx);
+  int tag, len, i;
+  SgObject name, data, env, lib, transformer, cls = SG_NIL;
+  len = read_word(in, MACRO_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
+  transformer = read_object(in, ctx);
+  if (!SG_CODE_BUILDERP(transformer)) {
+    ESCAPE(ctx, "broken cache: %A (macro transformer)\n", transformer);
+  }
+  data = read_object(in, ctx);
   env  = read_object_rec(in, ctx);
-  ASSERT(SG_VECTORP(env));
+
+  if (!SG_VECTORP(env)) {
+    ESCAPE(ctx, "broken cache: %A (macro env)\n", env);
+  }
   SG_VECTOR_ELEMENT(env, 0) = Sg_FindLibrary(SG_VECTOR_ELEMENT(env, 0), FALSE);
 
   /* just name, so we need to look it up */
   lib = Sg_FindLibrary(read_object_rec(in, ctx), FALSE);
-  ASSERT(SG_LIBRARYP(lib));
-
-  data = read_toplevel(in, MACRO_END_TAG, ctx);
+  if (!SG_LIBRARYP(lib)) {
+    ESCAPE(ctx, "broken cache: %A (macro library)\n", lib);
+  }
+  /* read closures of this macro */
+  while (Sg_PeekbUnsafe(in) != MACRO_END_TAG) {
+    SgObject cl = read_object(in, ctx);
+    cls = Sg_Cons(cl, cls);
+  }
+  
+  link_cb(SG_CODE_BUILDER(transformer), ctx);
+  transformer = Sg_MakeClosure(transformer, NULL);
+  if (SG_CODE_BUILDERP(data)) {
+    link_cb(SG_CODE_BUILDER(data), ctx);
+    data = Sg_MakeClosure(data, NULL);
+  }
+  
   tag = Sg_GetbUnsafe(in);
-  ASSERT(tag == MACRO_END_TAG);
-  ASSERT(SG_CODE_BUILDERP(data));
-  return Sg_MakeMacro(name, Sg_MakeClosure(data, NULL), SG_NIL, env, lib);
+  CLOSE_TAG_CHECK(ctx, MACRO_END_TAG, tag);
+
+  return Sg_MakeMacro(name, transformer, data, env, lib);
 }
 
 
@@ -1732,8 +1756,10 @@ static SgObject read_object_rec(SgPort *in, read_ctx *ctx)
     return lookup_library(in, ctx);
   case USER_DEFINED_OBJECT_TAG:
     return read_user_defined_object(in, ctx);
+  case CODE_BUILDER_TAG:
+    return read_code(in, ctx);
   default:
-    ESCAPE(ctx, "unknown tag appeared. tag: %d, file: %A, pos: %d\n",
+    ESCAPE(ctx, "unknown tag appeared. tag: %x, file: %A, pos: %d\n",
 	   tag, ctx->file, Sg_PortPosition(in));
     return SG_FALSE;
   }

@@ -68,8 +68,8 @@ static void macro_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_MacroClass, macro_print);
 
-SgObject Sg_MakeMacro(SgObject name, SgObject transformer, 
-		      void *data, SgObject env, SgObject maybeLibrary)
+SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer, 
+		      SgObject data, SgObject env, SgObject maybeLibrary)
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_CLASS(z, SG_CLASS_MACRO);

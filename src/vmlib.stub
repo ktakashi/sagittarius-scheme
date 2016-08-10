@@ -39,6 +39,8 @@
   (define-c-proc make-raw-identifier
     (name envs identity library::<library> pending?::<boolean>)
     Sg_MakeRawIdentifier)
+  (define-c-proc make-global-identifier (name::<symbol> library::<library>)
+    Sg_MakeGlobalIdentifier)
 
   (define-c-proc copy-identifier (name id::<identifier>)
     (unless (or (SG_SYMBOLP name) (SG_IDENTIFIERP name))
@@ -93,7 +95,10 @@
   (define-c-proc macro? (obj) ::<boolean> SG_MACROP)
   (define-c-proc make-macro 
     (name transformer data p1env :optional (maybe_library #f))
-    Sg_MakeMacro)
+    (unless (SG_CLOSUREP transformer)
+      (wrong-type-of-argument-violation 'make-macro "closure" transformer))
+    (result (Sg_MakeMacro name (SG_CLOSURE transformer) data p1env
+			  maybe_library)))
 
   (define-c-proc macro-env (m::<macro>) (result (-> m env)))
   (define-c-proc macro-name (m::<macro>) (result (-> m name)))

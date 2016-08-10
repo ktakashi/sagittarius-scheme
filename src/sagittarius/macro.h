@@ -57,11 +57,11 @@ struct SgSyntaxRec
 struct SgMacroRec
 {
   SG_HEADER;
-  SgObject  name;
-  SgObject  transformer;
-  void     *data;
-  SgObject  env;		/* macro defined time p1env */
-  SgObject  maybeLibrary;
+  SgObject   name;
+  SgClosure *transformer;
+  SgObject   data;
+  SgObject   env;		/* macro defined time p1env */
+  SgObject   maybeLibrary;
 };
 
 #define SG_MACRO(obj)    ((SgMacro*)(obj))
@@ -70,8 +70,8 @@ struct SgMacroRec
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeSyntax(SgSymbol *name, SgObject proc);
-SG_EXTERN SgObject Sg_MakeMacro(SgObject name, SgObject transformer,
-				void *data, SgObject env,
+SG_EXTERN SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer,
+				SgObject data, SgObject env,
 				SgObject maybeLibrary);
 
 SG_EXTERN SgObject Sg_UnwrapSyntax(SgObject form);
