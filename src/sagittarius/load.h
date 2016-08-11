@@ -36,8 +36,6 @@ SG_CDECL_BEGIN
 
 SG_EXTERN int      Sg_Load(SgString *path);
 SG_EXTERN int      Sg_LoadFromPort(SgPort *path);
-SG_EXTERN SgObject Sg_VMLoad(SgString *path);
-SG_EXTERN SgObject Sg_VMLoadFromPort(SgPort *port);
 
 SG_EXTERN SgObject Sg_DynLoad(SgString *filename, SgObject initfn, unsigned long flags);
 /* for FFI interface */

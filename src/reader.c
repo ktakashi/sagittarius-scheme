@@ -1732,17 +1732,6 @@ static void link_graph(SgPort *port, SgReadContext *ctx, SgObject obj)
   }
 }
 
-#if 0
-static void extends_loading_table(SgObject port)
-{
-  SgObject loadingPort = Sg_CurrentLoadingPort();
-  if (!DEFAULT_TABLEP(loadingPort)) {
-    ENSURE_COPIED_TABLE(port);
-    add_read_table(SG_PORT_READTABLE(loadingPort), SG_PORT_READTABLE(port));
-  }
-}
-#endif
-
 SgObject Sg_ReadWithContext(SgObject port, SgReadContext *ctx)
 {
   SgObject obj;
@@ -1972,9 +1961,9 @@ SgObject Sg_AddConstantLiteral(SgObject o)
   return o;
 }
 
-int Sg_DelimitedCharP(SgChar c)
+int Sg_DelimitedCharP(SgChar c, SgPort *p)
 {
-  return delimited(Sg_CurrentLoadingPort(), c);
+  return delimited(p, c);
 }
 
 #define SCHEME_OBJ(NAME) SG_CPP_CAT(NAME, _stub)

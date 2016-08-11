@@ -233,9 +233,91 @@
     (when (SG_FALSEP directive) (set! directive 'compatible))
     (result (Sg_AddLoadSuffix (Sg_Cons suffix directive) append)))
 
-  (define-c-proc load (path::<string>) Sg_VMLoad)
-  (define-c-proc load-from-port (port::<port>) Sg_VMLoadFromPort)
+  ;; simpler parameter. will be used in (core macro) and compiler.
+  (define (make-core-parameter init-value)
+    (define (p . v)
+      (if (null? v)
+	  (hashtable-ref  (current-dynamic-environment) p init-value)
+	  (hashtable-set! (current-dynamic-environment) p (car v))))
+    p)
+  (define *current-load-path* (make-core-parameter #f))
+  (define *current-loading-port* (make-core-parameter #f))
+  (define (current-load-path) (*current-load-path*))
+  (define (current-loading-port)
+    (or (*current-loading-port*) (current-input-port)))
+  (define *current-load-transcoder* (make-core-parameter
+				     (make-transcoder (utf-8-codec)
+						      (native-eol-style)
+						      'raise)))
+  (define-c-proc vm-log-level (level::<symbol>) ::<boolean> :no-side-effect
+    (let ((f::int -1))
+      (cond ((SG_EQ level 'info)  (set! f SG_INFO_LEVEL))
+	    ((SG_EQ level 'debug) (set! f SG_DEBUG_LEVEL))
+	    ((SG_EQ level 'trace) (set! f SG_TRACE_LEVEL))
+	    ((SG_EQ level 'warn)  (set! f SG_WARN_LEVEL))
+	    ((SG_EQ level 'fatal) (set! f SG_FATAL_LEVEL))
+	    (else (return SG_FALSE)))
+      (result (SG_VM_LOG_LEVEL (Sg_VM) f))))
+  (define-c-proc vm-log-port () :no-side-effect (result (-> (Sg_VM) logPort)))
+  (define-c-proc vm-load-flags (:optional f)
+    (cond ((SG_UNBOUNDP f) (result (SG_MAKE_INT (-> (Sg_VM) flags))))
+	  ((SG_INTP f)     (set! (-> (Sg_VM) flags) (SG_INT_VALUE f)))
+	  ((SG_FALSEP f)   (set! (-> (Sg_VM) flags)
+				 (logand (-> (Sg_VM) flags)
+					 (logior SG_LOG_LEVEL_MASK
+						 SG_CACHE_MASK))))))
+  (define-c-proc find-file-on-paths
+    (path::<string> paths :optional (suffix::<string> #f) (raise::<boolean> #f))
+    (result (Sg_FindFile path paths (?: (SG_FALSEP #f) NULL suffix) raise)))
   
+  (define (load path)
+    (define (ensure-path path)
+      (if (file-exists? path)
+	  path
+	  (find-file-on-paths path (load-path) #f #t)))
+      
+    (let* ((real-path (ensure-path path))
+	   (in (open-file-input-port real-path #f
+				     'block (*current-load-transcoder*))))
+      (load-from-port in)))
+
+  (define (load-from-port port)
+    (let ((saved-port (current-loading-port))
+	  (saved-flag (vm-load-flags))
+	  (saved-path (current-load-path))
+	  (rc (make-read-context :source-info #t :change-mode #t :shared #t)))
+      (define (restore)
+	(*current-load-path* saved-path)
+	(*current-loading-port* saved-port)
+	(vm-load-flags saved-flag)
+	;; should we?
+	(close-port port))
+      (define (main-loop)
+	(let loop ()
+	  (let* ((reader (port-reader port))
+		 (expr (if reader
+			   (reader port)
+			   (read-with-context port rc))))
+	    (if (eof-object? expr)
+		#t
+		(begin
+		  (eval expr #f)
+		  (loop))))))
+      (cond ((port-filename port) => *current-load-path*))
+      (*current-loading-port* port)
+      (vm-load-flags #f)
+      (if (vm-log-level 'info)
+	  (let-values (((sr su ss) (time-usage)))
+	    (dynamic-wind values
+		main-loop
+		(lambda ()
+		  (let-values (((er eu es) (time-usage)))
+		    (format (vm-log-port) ";; loaded ~s [~a ms]~%"
+			    (or (current-load-path) port)
+			    (round (* (- er sr) 1000))))
+		  (restore))))
+	  (dynamic-wind values main-loop restore))))
+      
   (define-c-proc gensym (:optional prefix::<string>) :no-side-effect
     (when (SG_UNBOUNDP prefix) (set! prefix NULL))
     (result (Sg_Gensym prefix)))
@@ -249,15 +331,7 @@
 	(begin
 	  (set! (-> (Sg_VM) parameters) other)
 	  (result SG_UNDEF))))
-  
-  ;; simpler parameter. will be used in (core macro) and compiler.
-  (define (make-core-parameter init-value)
-    (define (p . v)
-      (if (null? v)
-	  (hashtable-ref  (current-dynamic-environment) p init-value)
-	  (hashtable-set! (current-dynamic-environment) p (car v))))
-    p)
-  
+    
   (define-c-proc add-dynamic-load-path
     (path::<string> :key (append::<boolean> #f))
     (result (Sg_AddDynamicLoadPath path append)))
@@ -447,9 +521,6 @@
   (define-c-proc glob (path::<string> :rest flags) :no-side-effect
     ;; for now
     (result (Sg_Glob path (retrieve-flags flags))))
-
-  (define-c-proc current-load-path () :no-side-effect
-    (result (-> (Sg_VM) currentLoadPath)))
 
   (define-c-proc find-default-directive-by-path (path) :no-side-effect
     Sg_FindDefaultDirectiveByPath)
@@ -1009,6 +1080,7 @@
 	   (assertion-violation 'utf-32-codec "unsupported endianness" 
 				endian))))
 
+  (define-c-proc port-filename (p::<port>) :no-side-effect Sg_FileName)
   (define-c-proc port-info (p::<port>) :no-side-effect
     (let ((file (Sg_FileName p))
 	  (line #f)
@@ -1019,6 +1091,8 @@
 	(set! pos (SG_MAKE_INT (Sg_PortPosition p))))
       (result (SG_LIST3 file line pos))))
 
+  (define-c-proc port-reader (p::<port>) :no-side-effect SG_PORT_READER)
+  
   (define-c-proc read-with-context (p::<port> ctx::<read-context>)
     (check-port-open read-with-context p)
     (check-input-port read-with-context p)
@@ -1343,30 +1417,42 @@
   (define-c-proc %char-set-complement! (cs::<char-set>) Sg_CharSetComplement)
   (define-c-proc %char-set-ranges (cs::<char-set>) Sg_CharSetRanges)
 
-  (define-c-proc get-macro-character (c::<char>)
-    (result (Sg_GetMacroCharacter 
-	     c (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
+  ;;; Reader macro related
+  (define-c-proc %get-macro-character (c::<char> p::<port>)
+    (result (Sg_GetMacroCharacter c (Sg_PortReadTable p))))
 
-  (define-c-proc set-macro-character
-    (c::<char> proc::<procedure> :optional (non_termP::<boolean> #f)) ::<void>
-    (Sg_SetMacroCharacter c proc non_termP 
-			  (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))
+  (define-c-proc %set-macro-character
+    (c::<char> proc::<procedure> non_termP::<boolean> p::<port>) ::<void>
+    (Sg_SetMacroCharacter c proc non_termP (Sg_EnsureCopiedReadTable p)))
 
-  (define-c-proc make-dispatch-macro-character
-    (c::<char> :optional (non_termP::<boolean> #f)) ::<boolean>
+  (define-c-proc %make-dispatch-macro-character
+    (c::<char> non_termP::<boolean> p::<port>) ::<boolean>
     (result (Sg_MakeDispatchMacroCharacter 
-	     c non_termP 
-	     (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort)))))
+	     c non_termP (Sg_EnsureCopiedReadTable p))))
 
-  (define-c-proc get-dispatch-macro-character (c::<char> subc::<char>)
-    (result (Sg_GetDispatchMacroCharacter 
-	     c subc (Sg_PortReadTable (Sg_CurrentLoadingPort)))))
+  (define-c-proc %get-dispatch-macro-character 
+    (c::<char> subc::<char> p::<port>)
+    (result (Sg_GetDispatchMacroCharacter c subc (Sg_PortReadTable p))))
 
-  (define-c-proc set-dispatch-macro-character 
-    (c::<char> subc::<char> proc::<procedure>) ::<void>
+  (define-c-proc %set-dispatch-macro-character 
+    (c::<char> subc::<char> proc::<procedure> p::<port>) ::<void>
     (Sg_SetDispatchMacroCharacter 
-     c subc proc
-     (Sg_EnsureCopiedReadTable (Sg_CurrentLoadingPort))))
+     c subc proc (Sg_EnsureCopiedReadTable p)))
+  
+  (define (get-macro-character c)
+    (%get-macro-character c (current-loading-port)))
+
+  (define (set-macro-character c proc :optional (non-term? #f))
+    (%set-macro-character c proc non-term? (current-loading-port)))
+
+  (define (make-dispatch-macro-character c :optional (non-term? #f))
+    (%make-dispatch-macro-character c non-term? (current-loading-port)))
+
+  (define (get-dispatch-macro-character c subc)
+    (%get-dispatch-macro-character c subc (current-loading-port)))
+  
+  (define (set-dispatch-macro-character c subc proc)
+    (set-dispatch-macro-character c subc (current-loading-port)))
 
   ;; for (sagittarius reader) library's define-reader-macro related
   (define-c-proc %insert-macro-character
@@ -1397,8 +1483,10 @@
 	       (shareP::<boolean> #t))
     (return (Sg_ReadDelimitedList p c shareP)))
 
-  (define-c-proc delimited-char? (c::<char>) ::<boolean> :no-side-effect
+  (define-c-proc %delimited-char? (c::<char> p::<port>)
+    ::<boolean> :no-side-effect
     Sg_DelimitedCharP)
+  (define (delimited-char? c) (%delimited-char? c (current-loading-port)))
 
   (define-c-proc constant-literal? (o) ::<boolean> :constant
     Sg_ConstantLiteralP)

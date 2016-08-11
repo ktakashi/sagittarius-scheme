@@ -186,7 +186,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   /* from proto */
   /* if proto was NULL, this will be initialized Sg__InitVM */
-  v->currentLoadPath = SG_FALSE; /* should this be inherited from proto? */
   if (proto) {
     SgObject nl = 
       Sg_MakeChildLibrary(v, Sg_MakeSymbol(SG_MAKE_STRING("child"), FALSE));
@@ -210,10 +209,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->currentInputPort = proto ? proto->currentInputPort : NULL;
   v->currentOutputPort = proto ? proto->currentOutputPort : NULL;
   v->currentErrorPort = proto ? proto->currentErrorPort : NULL;
-
-  v->currentLoadingPort = proto
-    ? proto->currentLoadingPort
-    : v->currentInputPort;
 
   v->logPort = proto ? proto->logPort : v->currentErrorPort;
 
@@ -780,14 +775,6 @@ SgObject Sg_CurrentInputPort()
 {
   SgVM *vm = Sg_VM();
   return vm->currentInputPort;
-}
-
-SgObject Sg_CurrentLoadingPort()
-{
-  SgVM *vm = Sg_VM();
-  SgObject p = vm->currentLoadingPort;
-  /* if it's set then return it, otherwise current-input-port */
-  return p ? p : vm->currentInputPort;
 }
 
 SgObject Sg_VMCurrentLibrary()

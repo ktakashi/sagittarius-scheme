@@ -215,7 +215,6 @@ struct SgVMRec
    */
   SgObject loadPath;
   SgObject dynamicLoadPath;
-  SgObject currentLoadPath;
   /* 
      command line args.
      this is a list of args
@@ -275,9 +274,6 @@ struct SgVMRec
      when importing a library, first list will be appended.
    */
   SgObject cache;
-
-  /* current loading port */
-  SgObject currentLoadingPort;
 };
 
 /*
@@ -399,7 +395,6 @@ SG_EXTERN SgObject Sg_VMDynamicWindC(SgSubrProc *before, SgSubrProc *body, SgSub
 SG_EXTERN SgObject Sg_CurrentOutputPort();
 SG_EXTERN SgObject Sg_CurrentErrorPort();
 SG_EXTERN SgObject Sg_CurrentInputPort();
-SG_EXTERN SgObject Sg_CurrentLoadingPort();
 
 SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
