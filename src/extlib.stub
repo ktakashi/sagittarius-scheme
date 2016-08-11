@@ -268,7 +268,8 @@
 						 SG_CACHE_MASK))))))
   (define-c-proc find-file-on-paths
     (path::<string> paths :optional (suffix::<string> #f) (raise::<boolean> #f))
-    (result (Sg_FindFile path paths (?: (SG_FALSEP #f) NULL suffix) raise)))
+    (result (Sg_FindFile path paths (?: (SG_FALSEP #f) NULL suffix)
+			 (not raise))))
   
   (define (load path)
     (define (ensure-path path)
