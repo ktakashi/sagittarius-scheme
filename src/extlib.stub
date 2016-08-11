@@ -1,4 +1,4 @@
-;; extlib.stub                                -*- mode:scheme; coding;utf-8; -*-
+;; extlib.stub                                -*- mode:scheme; coding:utf-8; -*-
 ;;
 ;;  Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
 ;;
@@ -240,9 +240,10 @@
 	  (hashtable-ref  (current-dynamic-environment) p init-value)
 	  (hashtable-set! (current-dynamic-environment) p (car v))))
     p)
-  (define *current-load-path* (make-core-parameter #f))
   (define *current-loading-port* (make-core-parameter #f))
-  (define (current-load-path) (*current-load-path*))
+  (define (current-load-path) 
+    (cond ((*current-loading-port*) => port-filename)
+	  (else #f)))
   (define (current-loading-port)
     (or (*current-loading-port*) (current-input-port)))
   (define *current-load-transcoder* (make-core-parameter
@@ -281,14 +282,20 @@
 	   (in (open-file-input-port real-path #f
 				     'block (*current-load-transcoder*))))
       (load-from-port in)))
-
+  ;; for performance
+  (define-c-proc make-read-context-for-load () Sg_MakeReadContextForLoad)
+  (define-c-proc usec-time-usage ()
+    (let ((r::uint64_t) (u::uint64_t) (s::uint64_t))
+      (if (Sg_TimeUsage (& r) (& u) (& s))
+	  (result (Sg_Values3 (SG_MAKE_INT 0) (SG_MAKE_INT 0) (SG_MAKE_INT 0)))
+	  (result (Sg_Values3 (Sg_MakeIntegerFromU64 r)
+			      (Sg_MakeIntegerFromU64 u)
+			      (Sg_MakeIntegerFromU64 s))))))
   (define (load-from-port port)
     (let ((saved-port (current-loading-port))
 	  (saved-flag (vm-load-flags))
-	  (saved-path (current-load-path))
-	  (rc (make-read-context :source-info #t :change-mode #t :shared #t)))
+	  (rc (make-read-context-for-load)))
       (define (restore)
-	(*current-load-path* saved-path)
 	(*current-loading-port* saved-port)
 	(vm-load-flags saved-flag)
 	;; should we?
@@ -304,18 +311,17 @@
 		(begin
 		  (eval expr #f)
 		  (loop))))))
-      (cond ((port-filename port) => *current-load-path*))
       (*current-loading-port* port)
       (vm-load-flags #f)
       (if (vm-log-level 'info)
-	  (let-values (((sr su ss) (time-usage)))
+	  (let-values (((sr su ss) (usec-time-usage)))
 	    (dynamic-wind values
 		main-loop
 		(lambda ()
-		  (let-values (((er eu es) (time-usage)))
+		  (let-values (((er eu es) (usec-time-usage)))
 		    (format (vm-log-port) ";; loaded ~s [~a ms]~%"
 			    (or (current-load-path) port)
-			    (round (* (- er sr) 1000))))
+			    (round (div (- er sr) 1000))))
 		  (restore))))
 	  (dynamic-wind values main-loop restore))))
       
