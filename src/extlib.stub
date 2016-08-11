@@ -38,7 +38,7 @@
 
 
   ;; for library dependency
-  (define-c-proc id-name (id::<identifier>) SG_IDENTIFIER_NAME) :no-side-effect
+  (define-c-proc id-name (id::<identifier>) :constant SG_IDENTIFIER_NAME)
 
   (define-c-proc identifier->symbol (id) :no-side-effect
     (unless (or (SG_SYMBOLP id) (SG_IDENTIFIERP id))
@@ -54,7 +54,7 @@
 	(result (Sg_Memq id lst))))
 
   ;; closure?
-  (define-c-proc closure? (cl) ::<boolean> SG_CLOSUREP) :constant
+  (define-c-proc closure? (cl) ::<boolean> :constant SG_CLOSUREP)
 
   ;; list
   (define-c-proc dotted-list? (lst) ::<boolean> :constant SG_DOTTED_LISTP)

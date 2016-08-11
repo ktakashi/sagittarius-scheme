@@ -326,8 +326,8 @@
 	   (check-real-valued atan n2)
 	   (result (Sg_Atan2 n n2)))))
 
-  (define-c-proc sqrt (n::<number>) :constant Sg_Sqrt) :constant
-  (define-c-proc exact-integer-sqrt (n::<number>) 
+  (define-c-proc sqrt (n::<number>) :constant Sg_Sqrt)
+  (define-c-proc exact-integer-sqrt (n::<number>) :constant
     (when (or (Sg_NegativeP n) (not (SG_EXACT_INTP n)))
       (wrong-type-of-argument-violation 'exact-integer-sqrt
 					"non-negative exact integer required"

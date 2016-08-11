@@ -107,7 +107,7 @@
     (match form
       ((? string?) (cgen-body form))
       (((= cgen-stub-parser (? values p)) . _) (p form))
-      (_ error 'cgen-stub-parse-form "invalid stub form" form)))
+      (_ (error 'cgen-stub-parse-form "invalid stub form" form))))
 
   (define-form-parser library (name export import . body)
     (define (library->init name)
