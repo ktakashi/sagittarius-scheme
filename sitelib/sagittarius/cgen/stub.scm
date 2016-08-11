@@ -5,7 +5,8 @@
 	    <cgen-stub-unit>
 	    ;; for custom generation
 	    cgen-stub-parse-form
-	    define-form-parser)
+	    define-form-parser
+	    <c-proc>)
     (import (rnrs)
 	    (rnrs eval)
 	    (core base) ;; for print
