@@ -26,7 +26,8 @@
 (cond ((find-library '(core syntax-case) #f)
        (eval '(library (core macro)
 		(export :all)
-		(import (except (core syntax-case) LEXICAL .list)))
+		(import (except (core syntax-case)
+				BOUNDARY LEXICAL .list)))
 	     (environment '(sagittarius)))
        (eval '(begin
 		(point-cut
@@ -67,7 +68,9 @@
 (define-constant +default-imports+ '((except (core) er-rename)
 				     (except (core base) er-rename)
 				     (core syntax)
-				     (except (core macro) LEXICAL .list)
+				     (except (core macro)
+					     BOUNDARY
+					     LEXICAL .list)
 				     (core errors)
 				     (core misc)
 				     (rename (match) (match smatch))
