@@ -158,6 +158,7 @@
 ;; so that both Scheme and C can share the value.
 ;; it's a
 (define-constant LEXICAL    0)
+(define-constant BOUNDARY   3)
 (define-constant ENV-BOTTOM 4)
 ;;(define-constant PATTERN 2)
 ;; library defined variable need this for macro
