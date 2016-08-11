@@ -2,7 +2,10 @@
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen stub)
     (export cgen-genstub
-	    <cgen-stub-unit>)
+	    <cgen-stub-unit>
+	    ;; for custom generation
+	    cgen-stub-parse-form
+	    define-form-parser)
     (import (rnrs)
 	    (rnrs eval)
 	    (core base) ;; for print
@@ -74,14 +77,13 @@
   (define *instance-pool* '())
 
   (define-syntax define-form-parser
-    (er-macro-transformer
-     (lambda (form rename compare)
-       (match form
-	 ((_ name args . body)
-	  (let ((p (gensym)))
-	    `(let ((,p (make <form-parser> :name ',name :args ',args
-			     :handler (lambda ,args ,@body))))
-	       (set! *instance-pool* (append *instance-pool* (list ,p))))))))))
+    (lambda (x)
+      (syntax-case x ()
+	((_ name args . body)
+	 #'(set! *instance-pool*
+		 (cons (make <form-parser> :name 'name :args 'args
+			     :handler (lambda args . body))
+		       *instance-pool*))))))
 
   (define-method invoke ((self <form-parser>) form)
     (define (badform)
