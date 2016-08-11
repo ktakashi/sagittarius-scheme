@@ -1,6 +1,6 @@
 /* library.c                                       -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -836,6 +836,12 @@ void Sg_LibraryExportedSet(SgObject lib, SgObject exportSpec)
   SG_LIBRARY_EXPORTED(l) = exportSpec;
 }
 
+static int library_export_all_p(SgLibrary *lib)
+{
+  if (SG_FALSEP(SG_LIBRARY_EXPORTED(lib))) return TRUE;
+  return !SG_FALSEP(Sg_Memq(SG_KEYWORD_ALL, SG_CAR(SG_LIBRARY_EXPORTED(lib))));
+}
+
 SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
 		       SgObject value, int flags)
 {
@@ -854,6 +860,15 @@ SgGloc* Sg_MakeBinding(SgLibrary *lib, SgSymbol *symbol,
     g = SG_GLOC(Sg_MakeGloc(symbol, lib));
     Sg_HashTableSet(lib->table, symbol, SG_OBJ(g), 0);
   }
+  
+  if (SG_LIBRARY_AUTO_EXPORT(lib) && !library_export_all_p(lib)) {
+    /* now we need to push to exported */
+    SgObject exported = SG_LIBRARY_EXPORTED(lib);
+    if (SG_FALSEP(Sg_Memq(symbol, SG_CAR(exported)))) {
+      SG_SET_CAR(exported, Sg_Cons(symbol, SG_CAR(exported)));
+    }
+  }
+  
   Sg_UnlockMutex(&lib->lock);
 
   SG_GLOC_SET(g, value);
@@ -889,6 +904,7 @@ static SgObject two_memq(SgObject v1, SgObject v2, SgObject l)
   }
   return SG_FALSE;
 }
+
 
 /*
   To save some memory allocation, we resolve variables renaming at runtime.

@@ -169,8 +169,7 @@ void Sg_Init()
   coreBase = SG_INTERN("(core base)");
   compsym = SG_INTERN("(sagittarius compiler)");
   sgsym = SG_INTERN("(sagittarius)");
-  /* (sagittarius) library is not provided by file. so create it here */
-  Sg_FindLibrary(sgsym, TRUE);
+
   /* for (core syntax-case) we need compler library to create global id.
      so create it here
    */
@@ -178,6 +177,7 @@ void Sg_Init()
 
   Sg__InitInstruction();
   Sg__Init_core();
+  Sg__Init_sagittarius();
   Sg__InitPair();
   Sg__InitCharSet();
   Sg__InitFile();
@@ -187,7 +187,6 @@ void Sg_Init()
   /* for Windows but call it */
   Sg__InitSystem();
 
-  Sg__Init_sagittarius();
   Sg__InitComparator();		/* need (core) and (sagittarius) */
   Sg__Init_sagittarius_vm();
   Sg__Init_sagittarius_vm_debug();

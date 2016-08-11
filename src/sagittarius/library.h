@@ -1,6 +1,6 @@
 /* library.h                                       -*- mode:c; coding;utf-8; -*-
  *
- *   Copyright (c) 2010-2015  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -59,10 +59,14 @@ struct SgLibraryRec
 				 */
   readtable_t *readtable;
   SgObject     reader;		/* custom reader */
-  int          mutableP;	/* if this is TRUE then redefinition is
+    /* library behaviour flags */
+  int          mutableP: 1;	/* if this is TRUE then redefinition is
 				   always allowed.
 				   c.f) user, eval environment and child
 				*/
+  int          autoExport: 1;	/* automatically exports bindings */
+  int          reserved:   30;
+
   SgObject     holder;		/* #f or VM.
 				   if this is not #f then the library
 				   is child library.
@@ -93,6 +97,8 @@ struct SgLibraryRec
 
 #define SG_CHILD_LIBRARYP(obj)					\
   (SG_LIBRARYP(obj)&&!SG_FALSEP(SG_LIBRARY(obj)->holder))
+
+#define SG_LIBRARY_AUTO_EXPORT(obj) SG_LIBRARY(obj)->autoExport
 
 SG_CDECL_BEGIN
 

@@ -1,9 +1,35 @@
-;; -*- scheme -*-
-;; for Ypsilon
-#!compatible
-(library (sagittarius) ;; redefine but no problem
-    (export :all)
-    (import :null)
+;; extlib.stub                                     -*- mode:c; coding;utf-8; -*-
+;;
+;;  Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+;;
+;;  Redistribution and use in source and binary forms, with or without
+;;  modification, are permitted provided that the following conditions
+;;  are met:
+;;
+;;  1. Redistributions of source code must retain the above copyright
+;;     notice, this list of conditions and the following disclaimer.
+;;
+;;  2. Redistributions in binary form must reproduce the above copyright
+;;     notice, this list of conditions and the following disclaimer in the
+;;     documentation and/or other materials provided with the distribution.
+;;
+;;  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;
+;; $Id: $
+;;
+(library (sagittarius)
+    (export :only-bindings)
+    (import (core))
 
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
@@ -14,10 +40,6 @@
    (.typedef "unsigned long" "ulong"))
 
   (define-type <read-context> "SgReadContext*" "read-context")
-  ;; weak-box
-  ;; TODO remove this after 0.6.8
-  (define-type <weak-box> "SgWeakBox*" "weak-box"
-    "SG_WEAK_BOXP" "SG_WEAK_BOX")
 
   (define-cise-stmt assertion-violation
     ((_ who msg)
@@ -87,7 +109,7 @@
       (result h)))
 
   (define-c-proc list-copy (lst) Sg_CopyList)
-  
+ 
   ;; vector
   (define-c-proc vector-copy (vec::<vector> :optional (start::<fixnum> 0)
 					            (end::<fixnum> -1)
@@ -213,21 +235,29 @@
 
   (define-c-proc load (path::<string>) Sg_VMLoad)
   (define-c-proc load-from-port (port::<port>) Sg_VMLoadFromPort)
-
+  
   (define-c-proc gensym (:optional prefix::<string>) :no-side-effect
     (when (SG_UNBOUNDP prefix) (set! prefix NULL))
     (result (Sg_Gensym prefix)))
 
   (define-c-proc unwrap-syntax (form) :no-side-effect Sg_UnwrapSyntax)
 
-  (define-c-proc current-dynamic-environment (:optional other::<weak-hashtable>)
-    ::<top>
+  (define-c-proc current-dynamic-environment
+    (:optional other::<weak-hashtable>)
     (if (SG_UNBOUNDP other)
 	(result (-> (Sg_VM) parameters))
 	(begin
 	  (set! (-> (Sg_VM) parameters) other)
 	  (result SG_UNDEF))))
-
+  
+  ;; simpler parameter. will be used in (core macro) and compiler.
+  (define (make-core-parameter init-value)
+    (define (p . v)
+      (if (null? v)
+	  (hashtable-ref  (current-dynamic-environment) p init-value)
+	  (hashtable-set! (current-dynamic-environment) p (car v))))
+    p)
+  
   (define-c-proc add-dynamic-load-path
     (path::<string> :key (append::<boolean> #f))
     (result (Sg_AddDynamicLoadPath path append)))

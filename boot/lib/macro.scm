@@ -50,14 +50,6 @@
 (define-constant PATTERN 2)		; not LEXICAL nor SYNTAX
 (define-constant BOUNDARY 3)
 
-;; simple parameter
-;; TODO maybe we want to move this somewhere
-(define (make-core-parameter init-value)
-  (define (p . v)
-    (if (null? v)
-	(hashtable-ref  (current-dynamic-environment) p init-value)
-	(hashtable-set! (current-dynamic-environment) p (car v))))
-  p)
 (define *root-env* (vector (find-library 'user #f) '() #f #f #f))
 (define current-usage-env (make-core-parameter *root-env*))
 (define current-macro-env (make-core-parameter *root-env*))

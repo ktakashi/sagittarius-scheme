@@ -51,7 +51,7 @@
     (cgen-literal cb)))
 
 ;; at this point all units are compiled
-(define (emit-toplevel-executor name imports topcb)
+(define (emit-toplevel-executor name imports oexports topcb)
   (define (gen-exports unit)
     (define (collect-names defs)
       (filter-map (match-lambda (('define (name . args) rest ...) name)
@@ -67,7 +67,9 @@
   (cgen-body "static SgCodeBuilder *toplevel = ")
   (cgen-body (format "   SG_CODE_BUILDER(~a);" (cgen-cexpr topcb)))
   (let ((lib (find-library name #f)) ;; get the library
-	(exports (gen-exports (cgen-current-unit))))
+	(exports (or (and (memq :only-bindings oexports)
+			  (gen-exports (cgen-current-unit)))
+		     oexports)))
     ;; emit imports
     (for-each (lambda (i)
 		;; we don't resolve any condition but for
@@ -90,8 +92,12 @@
 		(cgen-init (format "  SG_APPEND1(h, t, ~a); /* ~a */"
 				   (cgen-cexpr (cgen-literal e))
 				   (cgen-safe-comment e)))) exports)
+
     (cgen-init (format "  Sg_LibraryExportedSet(~a, Sg_Cons(h, SG_NIL));~%"
 		       (cgen-cexpr (cgen-literal lib))))
+    (when (memq :only-bindings oexports)
+      (cgen-init (format "  SG_LIBRARY_AUTO_EXPORT(~a) = TRUE;~%"
+			 (cgen-cexpr (cgen-literal lib)))))
     (cgen-init (format "  Sg_VM()->currentLibrary = ~a;" 
 		       (cgen-cexpr (cgen-literal lib))))
     (cgen-init (format "  Sg_VMExecute(SG_OBJ(toplevel));"))
@@ -118,13 +124,14 @@
 	(for-each cgen-define predef-syms)
 	(cgen-stub-parse-form form)
 	(unless (null? *scheme-definitions*)
-	  (emit-toplevel-executor names imports
+	  (emit-toplevel-executor names imports exports
 				  (compile-scheme-definitions names imports))
 	  (cond ((cgen-unit-init-prologue (cgen-current-unit)) =>
 		 (lambda (prev)
 		   (cgen-unit-init-prologue (cgen-current-unit)
 		     (string-append prev
-		       "\n  SgObject save = Sg_VM()->currentLibrary;\n"))))))
+		       "\n  SgObject save = Sg_VM()->currentLibrary;\n"
+		       "SgObject t = SG_NIL, h = SG_NIL;\n"))))))
 	(cgen-emit-c (cgen-current-unit)))))))
 
 (define (read-with-source :optional (in (current-input-port)))
