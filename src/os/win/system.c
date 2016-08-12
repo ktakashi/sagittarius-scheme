@@ -811,6 +811,18 @@ int Sg_CPUCount()
   return cpu_count;
 }
 
+SgObject Sg_GetProcessTimes()
+{
+  /* use GetProcessTimes */
+  return SG_FALSE;
+}
+
+SgObject Sg_GetThreadTimes(SgVM *vm)
+{
+  /* use GetThreadTimes */
+  return SG_FALSE;
+}
+
 /* for stack trace */
 #include <dbghelp.h>
 /* we want to track stack trace as well */

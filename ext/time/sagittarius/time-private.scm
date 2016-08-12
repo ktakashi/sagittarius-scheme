@@ -80,10 +80,10 @@
 		    (* usec 1000) (+ sec (leap-second-delta sec))))
 	((time-process)
 	 (let-values (((vsec vusec) (vm-process-time)))
-	   (make-time 'time-process (* (- usec vusec) 1000) (- sec vsec))))
+	   (make-time 'time-process (* vusec 1000) sec)))
 	((time-thread)
 	 (let-values (((vsec vusec) (vm-thread-time)))
-	   (make-time 'time-thread (* (- usec vusec) 1000) (- sec vsec))))
+	   (make-time 'time-thread (* vusec 1000) sec)))
 	(else
 	 (error 'current-time
 		"TIME-ERROR type current-time: invalid clock type"
