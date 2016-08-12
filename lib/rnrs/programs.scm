@@ -1,7 +1,7 @@
 ;; -*- scheme -*-
 (library (rnrs programs (6))
     (export command-line exit)
-    (import (core))
+    (import (core) (core program))
 
 ) ; [end]
 ;; end of file

@@ -37,6 +37,7 @@
 #include "sagittarius/core.h"
 #include "sagittarius/vm.h"
 #include "sagittarius/builtin-symbols.h"
+#include "sagittarius/keyword.h"
 
 #include "gc-incl.inc"
 
@@ -91,6 +92,7 @@ extern void Sg__Init_sagittarius_compiler();
 /* these must be the last */
 extern void Sg__Init_core_errors();
 extern void Sg__Init_core_arithmetic();
+extern void Sg__Init_core_program();
 /* extern void Sg__Init_match_core(); */
 /* extern void Sg__Init_sagittarius_interactive(); */
 
@@ -207,7 +209,7 @@ void Sg_Init()
   Sg__Init_sagittarius_compiler();
   /* even these files need to be ordered */
   Sg__Init_core_arithmetic();
-
+  Sg__Init_core_program();
   /* we need to put basic syntaxes to compiler. */
   Sg_ImportLibrary(compsym, nullsym);
   Sg_ImportLibrary(compsym, sgsym);
@@ -623,6 +625,45 @@ static void init_cond_features()
   Sg__InitExtFeatures();
 }
 
+/* Starting point of the Sagittarius engine */
+void Sg_Start(SgObject fileOrPort, SgObject commandLine,
+	      const char *fmt, SgObject rest)
+{
+  SgVM *vm = Sg_VM();
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(core program)"), FALSE);
+  SgObject args = SG_NIL;
+  SgObject start = Sg_FindBinding(lib, SG_INTERN("start"), SG_UNBOUND);
+  
+  /* this is required to even import or so on user library */
+  Sg_ImportLibraryFullSpec(vm->currentLibrary, SG_INTERN("(sagittarius)"),
+			   SG_LIST1(SG_LIST4(SG_INTERN("only"),
+					     SG_INTERN("import"),
+					     SG_INTERN("library"),
+					     SG_INTERN("define-library"))));
+
+  if (SG_UNBOUNDP(start)) Sg_Panic("`start` is not found");
+  if (SG_LISTP(rest)) {
+    while (*fmt) {
+      if (SG_NULLP(rest)) break;
+#define CASE(_c, _k)							\
+      case _c:								\
+	args = Sg_Acons(SG_MAKE_KEYWORD(_k), SG_CAR(rest), args);	\
+	rest = SG_CDR(rest);						\
+	break
+      
+      switch (*fmt++) {
+	CASE('s', "standard");
+	CASE('p', "preimports");
+	CASE('e', "expressions");
+	CASE('m', "main?");
+	CASE('i', "interactive?");
+      default: break;
+      }
+    }
+  }
+  Sg_Apply3(SG_GLOC_GET(SG_GLOC(start)), fileOrPort, commandLine, args);
+
+}
 /* somehow Visual Studio 2010 requires this to create dll.*/
 #ifdef _MSC_VER
 int main()

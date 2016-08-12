@@ -56,3 +56,4 @@
 ;; else
 ((target errors) (file . "../boot/lib/errors.scm"))
 ((target arith) (file . "../boot/lib/arith.scm"))
+((target program) (file . "../boot/lib/program.scm"))

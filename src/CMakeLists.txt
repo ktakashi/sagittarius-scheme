@@ -31,7 +31,7 @@ ENDIF()
 SET(STUB_SOURCES null.c closlib.c proclib.c vmlib.c vmdebug.c extlib.c)
 SET(BUILTIN_SOURCES 
   compiler.c   compiler-aux.c
-  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c)
+  lib_scmlib.c lib_errors.c   lib_arith.c lib_macro.c lib_program.c)
 
 CONFIGURE_FILE(${CMAKE_CURRENT_SOURCE_DIR}/regex_match.c
   ${CMAKE_CURRENT_BINARY_DIR}/regex_text_match.c  COPYONLY)

@@ -32,6 +32,7 @@
 
 #include "sagittariusdefs.h"
 #include "clos.h"
+#include "string.h"
 
 SG_CLASS_DECL(Sg_KeywordClass);
 #define SG_CLASS_KEYWORD (&Sg_KeywordClass)
@@ -45,6 +46,8 @@ struct SgKeywordRec
 #define SG_KEYWORD(obj)      ((SgKeyword*)(obj))
 #define SG_KEYWORDP(obj)     SG_XTYPEP(obj, SG_CLASS_KEYWORD)
 #define SG_KEYWORD_NAME(obj) (SG_KEYWORD(obj)->name)
+
+#define SG_MAKE_KEYWORD(k) Sg_MakeKeyword(SG_MAKE_STRING(k))
 
 SG_CDECL_BEGIN
 

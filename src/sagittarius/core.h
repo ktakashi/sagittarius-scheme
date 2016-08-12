@@ -82,6 +82,11 @@ SG_EXTERN void  Sg_AddGCRoots(void *start, void *end);
 SG_EXTERN void  Sg_AddCondFeature(const SgChar *feature);
 SG_EXTERN SgObject Sg_CondFeatures();
 
+/* convenient function to start */
+SG_EXTERN void Sg_Start(SgObject in, SgObject args,
+			const char *fmt, SgObject rest);
+
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_STUB_H_ */

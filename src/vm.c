@@ -182,7 +182,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 
   v->dynamicWinders = SG_NIL;
   v->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
-  v->commandLineArgs = SG_NIL;
 
   /* from proto */
   /* if proto was NULL, this will be initialized Sg__InitVM */

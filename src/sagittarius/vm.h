@@ -215,11 +215,6 @@ struct SgVMRec
    */
   SgObject loadPath;
   SgObject dynamicLoadPath;
-  /* 
-     command line args.
-     this is a list of args
-   */
-  SgObject commandLineArgs;
   /*
     Stack:
    */
