@@ -71,13 +71,13 @@ is raised. If the @var{thread} terminated normally, the content of the
 end-result field is returned, otherwise the content of the end-exception
 field is raised.}
 
-@define[Function]{@name{thread-stop!}
+@define[Function]{@name{thread-suspend!}
  @args{thread :optional timeout timeout-val}}
-@desc{Stops execution of the @var{thread}. Users can resume the @var{thread}
-by calling @code{thread-cont!}.
+@desc{Suspends execution of the @var{thread}. Users can resume the @var{thread}
+by calling @code{thread-resume!}.
 }
 
-@define[Function]{@name{thread-cont!} @args{thread}}
+@define[Function]{@name{thread-resume!} @args{thread}}
 @desc{Resumes execution of the @var{thread}.
 
 If the caller thread is not the one stopped the target thread, then

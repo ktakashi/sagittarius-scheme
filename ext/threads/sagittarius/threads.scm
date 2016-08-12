@@ -40,7 +40,10 @@
 	    ;;thread-priority-boost thread-priority-boost-set!
 	    ;;thread-quantum thread-quantum-set!
 	    thread-start! thread-join! thread-yield! thread-sleep!
-	    thread-stop! thread-cont!
+	    thread-suspend! thread-resume!
+	    ;; backwad compatibility
+	    (rename (thread-suspend! thread-stop!)
+		    (thread-resume! thread-cont!))
 	    thread-terminate!
 	    thread-interrupt!
 

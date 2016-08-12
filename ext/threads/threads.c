@@ -172,7 +172,7 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
   return result;
 }
 
-SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
+SgObject Sg_ThreadSuspend(SgVM *target, SgObject timeout, SgObject timeoutval)
 {
   int invalid_state = FALSE;
   SgVM *taker = NULL;
@@ -217,7 +217,7 @@ SgObject Sg_ThreadStop(SgVM *target, SgObject timeout, SgObject timeoutval)
   return SG_OBJ(target);
 }
 
-SgObject Sg_ThreadCont(SgVM *target)
+SgObject Sg_ThreadResume(SgVM *target)
 {
   int not_stopped = FALSE;
   SgVM *stopped_by_other = NULL;

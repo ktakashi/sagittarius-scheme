@@ -67,10 +67,11 @@
 (define-c-proc thread-yield! () ::<void> Sg_YieldCPU)
 (define-c-proc thread-sleep! (time) ::<void> Sg_ThreadSleep)
 
-(define-c-proc thread-stop! (vm::<thread> :optional (timeout #f) timeoutval) 
-  Sg_ThreadStop)
+(define-c-proc thread-suspend!
+  (vm::<thread> :optional (timeout #f) timeoutval) 
+  Sg_ThreadSuspend)
 
-(define-c-proc thread-cont! (vm::<thread>) Sg_ThreadCont)
+(define-c-proc thread-resume! (vm::<thread>) Sg_ThreadResume)
 
 (define-c-proc thread-terminate! (vm::<thread>) ::<void> Sg_ThreadTerminate)
 

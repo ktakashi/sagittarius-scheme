@@ -138,8 +138,8 @@ SG_CDECL_BEGIN
 extern SgObject Sg_MakeThread(SgProcedure *thunk, SgObject name);
 extern SgObject Sg_ThreadStart(SgVM *vm);
 extern SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval);
-extern SgObject Sg_ThreadStop(SgVM *vm, SgObject timeout, SgObject timeoutval);
-extern SgObject Sg_ThreadCont(SgVM *vm);
+extern SgObject Sg_ThreadSuspend(SgVM *vm, SgObject timeout, SgObject timeoutval);
+extern SgObject Sg_ThreadResume(SgVM *vm);
 extern SgObject Sg_ThreadSleep(SgObject timeout);
 extern SgObject Sg_ThreadTerminate(SgVM *vm);
 extern SgObject Sg_ThreadInterrupt(SgVM *vm);
