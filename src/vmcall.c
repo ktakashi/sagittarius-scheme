@@ -29,6 +29,9 @@
  */
 /* This file is included at vm.c */
 
+#define MAKE_CALL_IRRITANTS()			\
+  Sg_Cons(SG_PROCEDURE_NAME(AC(vm)), Sg_ArrayToList(FP(vm), SP(vm)-FP(vm)))
+
 #undef ADJUST_ARGUMENT_FRAME
 #if !defined(APPLY_CALL)
 #define ADJUST_ARGUMENT_FRAME(proc, argc)				\
@@ -38,8 +41,9 @@
     if (optargs) {							\
       SgObject p = SG_NIL, a;						\
       if (argc < required) {						\
+	SgObject irr = MAKE_CALL_IRRITANTS();				\
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required, argc, SG_NIL);	\
+					   required, argc, irr);	\
       }									\
       /* fold rest args */						\
       while (argc > required+optargs-1) {				\
@@ -50,8 +54,9 @@
       PUSH(SP(vm), p);							\
       argc++;								\
     } else if (argc != required) {					\
+      SgObject irr = MAKE_CALL_IRRITANTS();				\
       Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					 required, argc, SG_NIL);	\
+					 required, argc, irr);		\
     }									\
     FP(vm) = SP(vm) - argc;						\
   } while (0)
@@ -65,8 +70,9 @@
     if (optargs) {							\
       int __i, req_opt, oargc;						\
       if ((rargc+argc-1) < required) {					\
+	SgObject irr = MAKE_CALL_IRRITANTS();				\
       	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   rargc+argc-1, argc, SG_NIL); \
+					   required, rargc+argc-1, irr); \
       }									\
       req_opt = required+optargs;					\
       p = POP(SP(vm)); /* tail of arglist */				\
@@ -98,8 +104,9 @@
     } else {								\
       /* not optargs */							\
       if ((rargc+argc-1) != required) {					\
+	SgObject irr = MAKE_CALL_IRRITANTS();				\
 	Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(AC(vm)),	\
-					   required, rargc, SG_NIL);	\
+					   required, rargc+argc-1, irr); \
       }									\
       p = POP(SP(vm));							\
       argc--;								\
