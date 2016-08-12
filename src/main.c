@@ -793,12 +793,18 @@ int real_main(int argc, tchar **argv)
       break;
     }
   }
+  /* add cleanup here */
+  Sg_AddCleanupHandler(cleanup_main, NULL);
+  /* set profiler */
+  if (profiler_mode) Sg_ProfilerStart();
+    
   vm->commandLineArgs = argsToList(argc, optind_s, argv);
   /* import all necessary stuff first, otherwise profiler doesn't work. */
   if (load_base_library) {
-    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core)"));
-    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(core base)"));
-    Sg_ImportLibrary(vm->currentLibrary, SG_INTERN("(sagittarius)"));
+    SgObject base = SG_LIST3(SG_INTERN("(core)"), SG_INTERN("(core base)"),
+			     SG_INTERN("(sagittarius)"));
+    if (SG_NULLP(preimport)) preimport = base;
+    else preimport = Sg_Append2X(base, Sg_ReverseX(preimport));
   } else {
     /* only toplevel syntaxes such as import library and define-library */
     Sg_ImportLibraryFullSpec(vm->currentLibrary, SG_INTERN("(sagittarius)"),
@@ -807,23 +813,14 @@ int real_main(int argc, tchar **argv)
 					       SG_INTERN("library"),
 					       SG_INTERN("define-library"))));
   }
-  /* add cleanup here */
-  Sg_AddCleanupHandler(cleanup_main, NULL);
   if (!SG_NULLP(preimport)) {
-    SG_FOR_EACH(preimport, Sg_ReverseX(preimport)) {
+    SG_FOR_EACH(preimport, preimport) {
       Sg_ImportLibrary(vm->currentLibrary, SG_CAR(preimport));
     }
   }
   if (!SG_FALSEP(expr)) {
     SgObject in = Sg_MakeStringInputPort(SG_STRING(expr), 0, -1);
     Sg_LoadFromPort(in);
-  }
-
-  /* set profiler */
-  if (profiler_mode) {
-    Sg_ImportLibrary(vm->currentLibrary,
-		     SG_INTERN("(sagittarius vm profiler)"));
-    Sg_ProfilerStart();
   }
 
   if (optind_s < argc) {
