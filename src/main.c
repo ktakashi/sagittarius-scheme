@@ -690,6 +690,8 @@ int real_main(int argc, tchar **argv)
 	Sg_Error(UC("Unsupported standard for -r option: %A"),
 		 make_scheme_string(optarg_s));
       }
+      /* set reader mode etc. */
+      set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
       break;
     case 'L': case 'A': {
       SgObject exp = make_scheme_string(optarg_s);
@@ -823,10 +825,6 @@ int real_main(int argc, tchar **argv)
 		     SG_INTERN("(sagittarius vm profiler)"));
     Sg_ProfilerStart();
   }
-
-  /* set reader mode etc. */
-  if (standard_given)
-    set_vm_mode(vm, standard_given, SG_PORT(Sg_CurrentInputPort()));
 
   if (optind_s < argc) {
     SgObject proc;
