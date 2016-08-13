@@ -70,20 +70,22 @@
           (lsd  +leap-second-table+))))
 
   (define (current-time :optional (type 'time-utc))
+    (define (make-time-from-times type times)
+      (let ((cpu  (+ (vector-ref times 0) (vector-ref times 1)))
+	    (tick (vector-ref times 2)))
+	;; we may loose some of the precesion but since
+	;; make-time doesn't accept inexact or rational
+	;; numbers, we don't have any choice.
+	(make-time type (* (div tm:nano tick) (mod cpu tick)) (div cpu tick))))
     (let-values (((sec usec) (get-time-of-day)))
       (case type
-	((time-utc) (make-time 'time-utc (* usec 1000) sec))
+	((time-utc) (make-time type (* usec 1000) sec))
 	((time-tai) 
-	 (make-time 'time-tai (* usec 1000) (+ sec (leap-second-delta sec))))
+	 (make-time type (* usec 1000) (+ sec (leap-second-delta sec))))
 	((time-monotonic)
-	 (make-time 'time-monotonic
-		    (* usec 1000) (+ sec (leap-second-delta sec))))
-	((time-process)
-	 (let-values (((vsec vusec) (vm-process-time)))
-	   (make-time 'time-process (* vusec 1000) sec)))
-	((time-thread)
-	 (let-values (((vsec vusec) (vm-thread-time)))
-	   (make-time 'time-thread (* vusec 1000) sec)))
+	 (make-time type (* usec 1000) (+ sec (leap-second-delta sec))))
+	((time-process) (make-time-from-times type (get-process-times)))
+	((time-thread)  (make-time-from-times type (get-thread-times)))
 	(else
 	 (error 'current-time
 		"TIME-ERROR type current-time: invalid clock type"

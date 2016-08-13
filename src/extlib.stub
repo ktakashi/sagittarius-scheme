@@ -1734,8 +1734,8 @@
   (define-c-proc cpu-count () ::<fixnum> Sg_CPUCount)
 
   (define-c-proc get-process-times () :no-side-effect Sg_GetProcessTimes)
-  (define-c-proc get-thread-times (vm::<thread>) :no-side-effect
-    Sg_GetThreadTimes)
+  (define-c-proc get-thread-times (:optional (vm::<thread> (Sg_VM)))
+    :no-side-effect Sg_GetThreadTimes)
   
   ;; compare
   (define-c-proc compare (x y) ::<fixnum> :no-side-effect Sg_Compare)

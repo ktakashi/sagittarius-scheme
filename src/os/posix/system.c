@@ -1014,7 +1014,12 @@ SgObject Sg_GetProcessTimes()
 
 SgObject Sg_GetThreadTimes(SgVM *vm)
 {
-  /* is there pthread_times or so? */
+  /* TODO getrusage on linux with RUSAGE_THREAD */
+  /* TODO Can we use this on OSX?
+     http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
+   */
+  /* TODO *BSD */
+  /* TODO Cygwin */
   return Sg_GetProcessTimes();
 }
 

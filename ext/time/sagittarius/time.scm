@@ -236,11 +236,6 @@
   (define-constant tm:locale-short-date-format "~m/~d/~y")
   (define-constant tm:locale-time-format "~H:~M:~S")
   (define-constant tm:iso-8601-date-time-format "~Y-~m-~dT~H:~M:~S~z")
-  ;;-- Miscellaneous Constants.
-  ;;-- only the tm:tai-epoch-in-jd might need changing if
-  ;;   a different epoch is used.
-
-  (define-constant tm:nano (expt 10 9))
 
   ;; going from tai seconds to utc seconds ...
   (define (tm:leap-second-neg-delta tai-seconds)
