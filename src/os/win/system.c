@@ -234,6 +234,14 @@ SgObject Sg_GetTemporaryDirectory()
   return utf16ToUtf32(value);
 }
 
+static uint64_t ft2u64(FILETIME *ft)
+{
+  ULARGE_INTEGER ui;
+  ui.LowPart = ft->dwLowDateTime;
+  ui.HighPart = ft->dwHighDateTime;
+  return ui.QuadPart;
+}
+
 int Sg_TimeUsage(uint64_t *real, uint64_t *user, uint64_t *sys)
 {
   FILETIME real_time;
@@ -244,18 +252,11 @@ int Sg_TimeUsage(uint64_t *real, uint64_t *user, uint64_t *sys)
   GetSystemTimeAsFileTime(&real_time);
   if (GetProcessTimes(GetCurrentProcess(), &creation_time,
 		      &exit_time, &kernel_time, &user_time)) {
-    if (real)
-      *real = ((uint64_t)real_time.dwLowDateTime
-	       + real_time.dwHighDateTime
-	       * UINT32_MAX);
-    if (user)
-      *user = ((uint64_t)user_time.dwLowDateTime
-	       + user_time.dwHighDateTime
-	       * UINT32_MAX);
-    if (sys)
-      *sys = ((uint64_t)kernel_time.dwLowDateTime
-	      + kernel_time.dwHighDateTime
-	      * UINT32_MAX);
+    /* make it usec */
+    if (real) *real = ft2u64(&real_time)/10;
+    if (user) *user = ft2u64(&user_time)/10;
+    if (sys)  *sys  = ft2u64(&kernel_time)/10;
+
     return 0;
   }
   
@@ -809,6 +810,54 @@ static int cpu_count = -1;
 int Sg_CPUCount()
 {
   return cpu_count;
+}
+/* 
+   10000 tick in millisecond. so we return 10000000 as its tick
+   to calculate second easier. (returning value devided by tick
+   is second)
+   https://msdn.microsoft.com/en-us/library/system.datetime.ticks.aspx
+ */
+static SgObject to_vector3(FILETIME *kernel_time, FILETIME *user_time)
+{
+  SgObject vec = Sg_MakeVector(3, SG_UNDEF);
+  SG_VECTOR_ELEMENT(vec, 0) = Sg_MakeIntegerFromU64(ft2u64(user_time));
+  SG_VECTOR_ELEMENT(vec, 1) = Sg_MakeIntegerFromU64(ft2u64(kernel_time));
+  SG_VECTOR_ELEMENT(vec, 2) = SG_MAKE_INT(10000000);
+  return vec;
+}
+SgObject Sg_GetProcessTimes()
+{
+  FILETIME creation_time;
+  FILETIME exit_time;
+  FILETIME kernel_time;
+  FILETIME user_time;
+  if (!GetProcessTimes(GetCurrentProcess(), &creation_time,
+		      &exit_time, &kernel_time, &user_time)) {
+    int e = GetLastError();
+    Sg_SystemError(e, UC("Failed to retrieve process cpu time: %A"),
+		   Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  return to_vector3(&kernel_time, &user_time);
+}
+
+SgObject Sg_GetThreadTimes(SgVM *vm)
+{
+  FILETIME creation_time;
+  FILETIME exit_time;
+  FILETIME kernel_time;
+  FILETIME user_time;
+  /* ok avoid it */
+  if (Sg_MainThreadP()) return Sg_GetProcessTimes();
+  /* initialised to NULL see thread.h */
+  if (!vm->thread.thread) Sg_Error(UC("thread %S is not created."), vm);
+
+  if (!GetThreadTimes(vm->thread.thread, &creation_time,
+		      &exit_time, &kernel_time, &user_time)) {
+    int e = GetLastError();
+    Sg_SystemError(e, UC("Failed to retrieve thread cpu time: %A"),
+		   Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  return to_vector3(&kernel_time, &user_time);
 }
 
 /* for stack trace */

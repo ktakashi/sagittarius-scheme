@@ -42,6 +42,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/times.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <fcntl.h>
@@ -985,6 +986,42 @@ int Sg_CPUCount()
 {
   return cpu_count;
 }
+/* does this even change? */
+static long tick = 100;
+SgObject Sg_GetProcessTimes()
+{
+  /* times */
+  struct tms info;
+  clock_t r = times(&info);
+  SgObject vec;
+  if (r == (clock_t)-1) {
+    int e = errno;
+    Sg_SystemError(e, UC("failed to kill process: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));
+  }
+  vec = Sg_MakeVector(3, SG_UNDEF);
+  SG_VECTOR_ELEMENT(vec, 0) = Sg_MakeInteger(info.tms_utime);
+  SG_VECTOR_ELEMENT(vec, 1) = Sg_MakeInteger(info.tms_stime);
+  /* we can't return children's user/system time
+     since Windows doesn't have it. Moreover, on
+     POSIX, thread times and process times are the
+     same so we can't do it.
+   */
+  /* set tick */
+  SG_VECTOR_ELEMENT(vec, 2) = Sg_MakeInteger(tick);
+  return vec;
+}
+
+SgObject Sg_GetThreadTimes(SgVM *vm)
+{
+  /* TODO getrusage on linux with RUSAGE_THREAD */
+  /* TODO Can we use this on OSX?
+     http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
+   */
+  /* TODO *BSD */
+  /* TODO Cygwin */
+  return Sg_GetProcessTimes();
+}
 
 extern void Sg__InitThread();
 
@@ -1009,6 +1046,13 @@ void Sg__InitSystem()
   cpu_count = mpctl(MPC_GETNUMSPUS, NULL, NULL); 
 #endif
 
+#if defined(_SC_CLK_TCK)
+  tick = sysconf(_SC_CLK_TCK);
+#elif defined (CLK_TCK)
+  tick = CLK_TCK
+#endif
+
+  
   Sg_InitMutex(&pid_list.mutex, TRUE);
   Sg_AddCleanupHandler(finish_child_process, NULL);
   Sg__InitThread();

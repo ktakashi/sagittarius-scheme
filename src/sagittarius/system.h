@@ -119,6 +119,9 @@ SG_EXTERN uintptr_t Sg_PidToSysProcess(uintptr_t pid);
  */
 SG_EXTERN int       Sg_CPUCount();
 
+SG_EXTERN SgObject Sg_GetProcessTimes();
+SG_EXTERN SgObject Sg_GetThreadTimes(SgVM *vm);
+
 #ifdef _WIN32
 SG_EXTERN void      Sg_DumpNativeStackTrace(EXCEPTION_POINTERS *ep);
 SG_EXTERN void      Sg_ShowAddressFunction(void *addr);

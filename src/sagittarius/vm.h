@@ -256,9 +256,6 @@ struct SgVMRec
   SgVMState state;
   int profilerRunning;
   SgVMProfiler *profiler;
-  /* for threads modules */
-  unsigned long uptimeSec;
-  unsigned long uptimeUsec;
 
   /* temporary storage for compiled cache
      storage structure:
@@ -412,9 +409,6 @@ SG_EXTERN SgObject Sg_VMFinalizerRun(SgVM *vm);
 /* debuging */
 SG_EXTERN void     Sg_VMPrintFrame();
 SG_EXTERN void     Sg_VMPrintFrameOf(SgVM *vm);
-
-/* process time */
-SG_EXTERN void     Sg_VMProcessTime(unsigned long *sec, unsigned long *usec);
 
 /* root? */
 SG_EXTERN int      Sg_MainThreadP();
