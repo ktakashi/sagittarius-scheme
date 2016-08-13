@@ -30,7 +30,7 @@
 /* This file is included at vm.c */
 
 #define MAKE_CALL_IRRITANTS()			\
-  Sg_Cons(SG_PROCEDURE_NAME(AC(vm)), Sg_ArrayToList(FP(vm), SP(vm)-FP(vm)))
+  Sg_Cons(SG_PROCEDURE_NAME(AC(vm)), Sg_ArrayToList(FP(vm), argc))
 
 #undef ADJUST_ARGUMENT_FRAME
 #if !defined(APPLY_CALL)
