@@ -75,15 +75,6 @@
   (let ((sec::ulong 0) (usec::ulong 0))
     (Sg_GetTimeOfDay (& sec) (& usec))
     (result (Sg_Values2 (Sg_MakeIntegerU sec) (Sg_MakeIntegerU usec)))))
-;; internal but don't put % for my sake (may expose in future)
-(define-c-proc vm-process-time () :no-side-effect
-  (let ((sec::ulong 0) (usec::ulong 0))
-    (Sg_VMProcessTime (& sec) (& usec))
-    (result (Sg_Values2 (Sg_MakeIntegerU sec) (Sg_MakeIntegerU usec)))))
-(define-c-proc vm-thread-time () :no-side-effect
-  (let ((vm::SgVM* (Sg_VM)))
-    (result (Sg_Values2 (Sg_MakeIntegerU (-> vm uptimeSec))
-			(Sg_MakeIntegerU (-> vm uptimeUsec))))))
 
 (define-c-proc time->seconds (o::<time>) :no-side-effect
   Sg_TimeToSeconds)

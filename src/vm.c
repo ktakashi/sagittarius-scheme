@@ -155,7 +155,6 @@ static SgObject copy_generics(SgObject lib)
 SgVM* Sg_NewVM(SgVM *proto, SgObject name)
 {
   SgVM *v = SG_NEW(SgVM);
-  unsigned long sec, usec;
   int i;
   SG_SET_CLASS(v, SG_CLASS_VM);
 
@@ -221,11 +220,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->specific = SG_FALSE;
   v->result = SG_UNDEF;
   v->resultException = SG_UNDEF;
-
-  /* uptime */
-  Sg_GetTimeOfDay(&sec, &usec);
-  v->uptimeSec = sec;
-  v->uptimeUsec = usec;
 
   Sg_RegisterFinalizer(SG_OBJ(v), vm_finalize, NULL);
   return v;
@@ -670,13 +664,6 @@ void Sg_ReportErrorInternal(volatile SgObject e, SgObject out)
   }
   SG_END_PROTECT;
   SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_REPORTED);
-}
-
-void Sg_VMProcessTime(unsigned long *sec, unsigned long *usec)
-{
-  /* we need to get process time from rootVM */
-  *sec = rootVM->uptimeSec;
-  *usec = rootVM->uptimeUsec;
 }
 
 static void vm_dump_code_rec(SgCodeBuilder *cb, int indent)
