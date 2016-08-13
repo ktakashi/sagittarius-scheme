@@ -2147,8 +2147,8 @@ SgObject Sg_VMExecute(SgObject toplevel)
 {
   ASSERT(SG_CODE_BUILDERP(toplevel));
   /* NB: compiled libraries don't need any frame. */
-  evaluate_safe(SG_OBJ(&internal_toplevel_closure),
-		SG_CODE_BUILDER(toplevel)->code);
+  return evaluate_safe(SG_OBJ(&internal_toplevel_closure),
+		       SG_CODE_BUILDER(toplevel)->code);
 }
 
 /*
