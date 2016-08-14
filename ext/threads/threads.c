@@ -57,7 +57,8 @@ static void thread_cleanup_inner(SgVM *vm)
   vm->threadState = SG_VM_TERMINATED;
   if (vm->canceller) {
     /* this thread is cancelled */
-    vm->resultException = Sg_MakeTerminatedThreadException(vm, vm->canceller);
+    vm->result = Sg_MakeTerminatedThreadException(vm, vm->canceller);
+    vm->threadErrorP = TRUE;
   }
   Sg_NotifyAll(&vm->cond);
 }
@@ -83,13 +84,15 @@ static void* thread_entry(void *data)
       SgObject exc;
       switch (vm->escapeReason) {
       case SG_VM_ESCAPE_CONT:
-	vm->resultException = SG_MAKE_STRING("stale continuation throws");
+	vm->result = SG_MAKE_STRING("stale continuation throws");
+	vm->threadErrorP = TRUE;
 	break;
       default:
 	Sg_Panic("unknown escape");
       case SG_VM_ESCAPE_ERROR:
 	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
-	vm->resultException = exc;
+	vm->result = exc;
+	vm->threadErrorP = TRUE;
 	break;
       }
     } SG_END_PROTECT;
@@ -98,7 +101,8 @@ static void* thread_entry(void *data)
     /* if this happen, we can not use any Sg_Apply related methods such as
        error creations. so just create string.
      */
-    vm->resultException = SG_MAKE_STRING("set-current-vm failed");
+    vm->result = SG_MAKE_STRING("set-current-vm failed");
+    vm->threadErrorP = TRUE;
   }
   thread_cleanup_pop(TRUE);
   return NULL;
@@ -128,8 +132,8 @@ SgObject Sg_ThreadStart(SgVM *vm)
 SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
 {
   struct timespec ts;
-  int intr = FALSE, tout = FALSE;
-  SgObject result = SG_FALSE, resultx = SG_FALSE;
+  int intr = FALSE, tout = FALSE, errorP;
+  SgObject result = SG_FALSE;
 
   struct timespec *pts = Sg_GetTimeSpec(timeout, &ts);
   SG_INTERNAL_MUTEX_SAFE_LOCK_BEGIN(vm->vmlock);
@@ -149,8 +153,11 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
   }
   if (!tout) {
     result = vm->result;
-    resultx = vm->resultException;
-    vm->resultException = SG_FALSE;
+    errorP = vm->threadErrorP;
+    if (errorP) {
+      vm->result = SG_UNDEF;
+      vm->threadErrorP = FALSE;
+    }
   }
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
 
@@ -166,8 +173,9 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
     } else {
       result = timeoutval;
     }
-  } else if (Sg_ConditionP(resultx)) {
-    result = Sg_Raise(resultx, FALSE);
+  } else if (errorP) {
+    /* TODO raise for only non-continuable? */
+    result = Sg_Raise(result, FALSE);
   }
   return result;
 }

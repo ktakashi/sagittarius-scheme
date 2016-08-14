@@ -159,6 +159,7 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   SG_SET_CLASS(v, SG_CLASS_VM);
 
   v->name = name;
+  v->threadErrorP = FALSE;
   v->threadState = SG_VM_NEW;
   v->stack = SG_NEW_ARRAY(SgObject, SG_VM_STACK_SIZE);
   v->sp = v->fp = v->stack;
@@ -219,7 +220,6 @@ SgVM* Sg_NewVM(SgVM *proto, SgObject name)
   v->thunk = NULL;
   v->specific = SG_FALSE;
   v->result = SG_UNDEF;
-  v->resultException = SG_UNDEF;
 
   Sg_RegisterFinalizer(SG_OBJ(v), vm_finalize, NULL);
   return v;
@@ -781,48 +781,18 @@ static void init_compiler()
 }
 
 /* compiler */
-SgObject Sg_Compile(SgObject o, SgObject e)
-{
-  SgObject r, save;
-  /* compiler is initialized after VM. so we need to look it up first */
-  if (SG_UNDEFP(compiler)) {
-    init_compiler();
+#define define_compiler(name, apply)				\
+  SgObject SG_CPP_CAT(Sg_, name)(SgObject o, SgObject e)	\
+  {								\
+    /* compiler is initialized after VM. so we need to		\
+       look it up first */					\
+    if (SG_UNDEFP(compiler)) {					\
+      init_compiler();						\
+    }								\
+    return apply(compiler, o, e);				\
   }
-  save = Sg_VM()->currentLibrary;
-  if (SG_LIBRARYP(e)) {
-    Sg_VM()->currentLibrary = e;
-  }
-#define restore_vm()				\
-  do {						\
-    Sg_VM()->currentLibrary = save;		\
-  } while(0)
-
-  SG_UNWIND_PROTECT {
-    r = Sg_Apply2(compiler, o, e);
-    restore_vm();
-  }
-  SG_WHEN_ERROR {
-    restore_vm();
-    r = SG_UNDEF;
-    SG_NEXT_HANDLER;
-  }
-  SG_END_PROTECT;
-
-#undef restore_vm
-  return r;
-}
-
-/* I think making Sg_VMEval using Sg_VMPushCC wouldn't improve performance. 
-   NOTE: using Sg_VMPushCC on Sg_VMEval requires dynamic-wind. Thus, we need
-         to allocate bunch of subrs for each compilation. I believe this
-         is more expensive than creating continuation boundary.*/
-#if 0
-SgObject Sg_VMCompile(SgObject o, SgObject e)
-{
-  
-}
-#endif
-
+define_compiler(Compile, Sg_Apply2)
+define_compiler(VMCompile, Sg_VMApply2)
 /* 
    env: library for now.
  */
@@ -857,13 +827,10 @@ static SgObject eval_restore_env(SgObject *args, int argc, void *data)
   return SG_UNDEF;
 }
 
-SgObject Sg_VMEval(SgObject sexp, SgObject env)
+static SgObject next_eval_cc(SgObject v, void **data)
 {
-  SgObject v = SG_NIL, body, before, after;
+  SgObject body, before, after, env = data[0];
   SgVM *vm = theVM;
-
-  if (vm->state != IMPORTING) vm->state = COMPILING;
-  v = Sg_Compile(sexp, env);
   /* Now we are checking with this defined variable during compilation,
      and if a macro have eval in it blow resets the defined variables.
      to avoid it we need to keep it. */
@@ -875,7 +842,7 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
   if (vm->state != IMPORTING) vm->state = RUNNING;
   CLEAR_STACK(vm);
 
-  ASSERT(SG_CODE_BUILDERP(v));
+  /* ASSERT(SG_CODE_BUILDERP(v)); */
   if (SG_VM_LOG_LEVEL(vm, SG_DEBUG_LEVEL)) {
     Sg_VMDumpCode(v);
   }
@@ -889,6 +856,16 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
   }
   after = Sg_MakeSubr(eval_restore_env, vm->currentLibrary, 0, 0, SG_FALSE);
   return Sg_VMDynamicWind(before, body, after);
+}
+
+SgObject Sg_VMEval(SgObject sexp, SgObject env)
+{
+  SgVM *vm = theVM;
+  void *data[1];
+  data[0] = env;
+  Sg_VMPushCC(next_eval_cc, data, 1);
+  if (vm->state != IMPORTING) vm->state = COMPILING;
+  return Sg_VMCompile(sexp, env);
 }
 
 static SgObject pass1_import = SG_UNDEF;

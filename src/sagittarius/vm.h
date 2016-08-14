@@ -185,7 +185,8 @@ struct SgVMRec
 {
   SG_HEADER;
   SgInternalThread thread;	/* the system thread executing this VM. */
-  int threadState;		/* thread state. */
+  int threadErrorP: 1;		/* if thread ended with exception or not */
+  int threadState: 31;		/* thread state. */
   SgInternalMutex  vmlock;	/* mutex to be used to lock this VM. */
   SgInternalCond   cond;
   SgVM *canceller;
@@ -194,7 +195,6 @@ struct SgVMRec
   SgObject specific;		/* Scheme thread specific data. */
   SgProcedure *thunk;		/* Entry point of this VM */
   SgObject result;		/* thread result */
-  SgObject resultException;	/* thread exception */
 
   unsigned int flags;		/* flags */
   unsigned int runtimeFlags;	/* flags for runtime */
