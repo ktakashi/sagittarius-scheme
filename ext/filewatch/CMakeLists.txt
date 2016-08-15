@@ -10,7 +10,7 @@ INCLUDE(${CMAKE_ROOT}/Modules/CheckCSourceCompiles.cmake)
 # check for event
 CHECK_INCLUDE_FILE(sys/inotify.h               HAVE_SYS_INOTIFY_H)
 # needs to be like this, otherwise CMake on FreeBSD doesn't find
-CHECK_INCLUDE_FILES("sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)
+CHECK_INCLUDE_FILES("stdint.h;sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)
 CHECK_INCLUDE_FILE(windows.h                   HAVE_WINDOWS_H)
 
 OPTION(USE_LIBKQUEUE "Use libkqueue if exists" OFF)
