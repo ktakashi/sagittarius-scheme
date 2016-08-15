@@ -1024,7 +1024,7 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
     return Sg_GetProcessTimes();
   } else {
     SgObject vec;
-#if __APPLE__
+#if defined(__APPLE__)
     /* 
        http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
     */
@@ -1050,10 +1050,37 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
 		     Sg_GetLastErrorMessageWithErrorCode(e));
       return SG_UNDEF;		/* dummy */
     }
+#elif defined(HAVE_CLOCK_GETTIME)
+    /* 
+       POSIX portable.
+       This uses pthread_getcpuclockid. The result of function doesn't have
+       difference between user space and kernel space, so we put them into
+       user space.
+       NB: Linux may have pthread_getrusage or something.
+           see: https://lkml.org/lkml/2008/1/17/42
+	   Once it has this type of function (rusage per thread), then
+	   we should use it. but for now they don't, I guess.
+     */
+    clockid_t cid;
+    uint64_t user;
+    struct timespec ts;
+    if (pthread_getcpuclockid(vm->thread.thread, &cid)) {
+      int e = errno;
+      Sg_SystemError(e, UC("Failed to retrieve thread cpu time: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));
+    }
+    if (clock_gettime(cid, &ts)) {
+      int e = errno;
+      Sg_SystemError(e, UC("Failed to retrieve thread cpu time: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));
+    }
+    user = ts.tv_sec * 1000000000 + ts.tv_nsec;
+    vec = Sg_MakeVector(3, SG_MAKE_INT(0));
+    SG_VECTOR_ELEMENT(vec, 0) = Sg_MakeIntegerFromU64(user);
+    SG_VECTOR_ELEMENT(vec, 2) = Sg_MakeInteger(1000000000);
+    return vec;
 #else
-    /* TODO getrusage on linux with RUSAGE_THREAD */
-    /* TODO *BSD */
-    /* TODO Cygwin */
+    /* should never happen but in case */
     return Sg_GetProcessTimes();
 #endif
   }
@@ -1072,6 +1099,7 @@ void Sg__InitSystem()
 # if defined(HAVE_SCHED_GETAFFINITY) && defined(HAVE_CPU_COUNT)
   {
     cpu_set_t mask;
+    struct timespec ts;
     if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == 0) {
       cpu_count = CPU_COUNT(&mask);
     }
