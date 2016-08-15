@@ -263,6 +263,11 @@ int Sg_MainThreadP()
   return theVM == rootVM;
 }
 
+int Sg_RootVMP(SgVM *vm)
+{
+  return vm == rootVM;
+}
+
 #define Sg_VM() theVM
 
 /* some convenient accessors */

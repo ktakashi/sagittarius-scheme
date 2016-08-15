@@ -73,11 +73,17 @@
  */
 #include <sys/utsname.h>
 
-#ifdef __APPLE__ 
+#ifdef __APPLE__
 /*
  * For OSX environemnt variable access
  */
 #include <crt_externs.h>
+/* 
+   For mach_thread (get-thread-times)
+ */
+#include <mach/mach_init.h>
+#include <mach/thread_act.h>
+#include <mach/mach_port.h>
 #endif
 
 #define LIBSAGITTARIUS_BODY
@@ -996,7 +1002,7 @@ SgObject Sg_GetProcessTimes()
   SgObject vec;
   if (r == (clock_t)-1) {
     int e = errno;
-    Sg_SystemError(e, UC("failed to kill process: %A"),
+    Sg_SystemError(e, UC("Failed to retrieve process cpu time: %A"),
 		     Sg_GetLastErrorMessageWithErrorCode(e));
   }
   vec = Sg_MakeVector(3, SG_UNDEF);
@@ -1014,13 +1020,43 @@ SgObject Sg_GetProcessTimes()
 
 SgObject Sg_GetThreadTimes(SgVM *vm)
 {
-  /* TODO getrusage on linux with RUSAGE_THREAD */
-  /* TODO Can we use this on OSX?
-     http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
-   */
-  /* TODO *BSD */
-  /* TODO Cygwin */
-  return Sg_GetProcessTimes();
+  if (Sg_RootVMP(vm)) {
+    return Sg_GetProcessTimes();
+  } else {
+    SgObject vec;
+#if __APPLE__
+    /* 
+       http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
+    */
+    mach_port_t tid = pthread_mach_thread_np(vm->thread.thread);
+    kern_return_t kr;
+    mach_msg_type_number_t count;
+    thread_basic_info_data_t info;
+    count = THREAD_BASIC_INFO_COUNT;
+    kr = thread_info(tid, THREAD_BASIC_INFO, (thread_info_t) &info, &count);
+
+    if (kr == KERN_SUCCESS && (info.flags & TH_FLAGS_IDLE) == 0) {
+      uint64_t user, sys;
+      vec = Sg_MakeVector(3, SG_UNDEF);
+      user = info.user_time.seconds * 1000000 + info.user_time.microseconds;
+      sys = info.system_time.seconds * 1000000 + info.system_time.microseconds;
+      SG_VECTOR_ELEMENT(vec, 0) = Sg_MakeIntegerFromU64(user);
+      SG_VECTOR_ELEMENT(vec, 1) = Sg_MakeIntegerFromU64(sys);
+      SG_VECTOR_ELEMENT(vec, 2) = SG_MAKE_INT(1000000);
+      return vec;
+    } else {
+      int e = errno;
+      Sg_SystemError(e, UC("Failed to retrieve thread cpu time: %A"),
+		     Sg_GetLastErrorMessageWithErrorCode(e));
+      return SG_UNDEF;		/* dummy */
+    }
+#else
+    /* TODO getrusage on linux with RUSAGE_THREAD */
+    /* TODO *BSD */
+    /* TODO Cygwin */
+    return Sg_GetProcessTimes();
+#endif
+  }
 }
 
 extern void Sg__InitThread();

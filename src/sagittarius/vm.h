@@ -412,6 +412,7 @@ SG_EXTERN void     Sg_VMPrintFrameOf(SgVM *vm);
 
 /* root? */
 SG_EXTERN int      Sg_MainThreadP();
+SG_EXTERN int      Sg_RootVMP(SgVM *vm);
 
 /* values */
 SG_EXTERN SgObject Sg_VMValues(SgVM *vm, SgObject args);

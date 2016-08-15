@@ -847,7 +847,7 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
   FILETIME kernel_time;
   FILETIME user_time;
   /* ok avoid it */
-  if (Sg_MainThreadP()) return Sg_GetProcessTimes();
+  if (Sg_RootVMP(vm)) return Sg_GetProcessTimes();
   /* initialised to NULL see thread.h */
   if (!vm->thread.thread) Sg_Error(UC("thread %S is not created."), vm);
 
