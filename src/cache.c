@@ -791,7 +791,7 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
 			cache_ctx *ctx)
 {
   SgObject closure;
-  put_word(out, Sg_Length(SG_CDR(closures)), MACRO_TAG);
+  put_word(out, 0, MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
   write_object_cache(out, SG_MACRO(macro)->transformer, closures, ctx);
   /* write_object_cache(out, SG_MACRO(macro)->data, closures, ctx); */
@@ -1510,9 +1510,9 @@ static SgObject read_dlist(SgPort *in, read_ctx *ctx)
 
 static SgObject read_macro(SgPort *in, read_ctx *ctx)
 {
-  int tag, len;
+  int tag;
   SgObject name, env, transformer, cc, data;
-  len = read_word(in, MACRO_TAG, ctx);
+  read_word(in, MACRO_TAG, ctx);
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
   transformer = read_object(in, ctx);
