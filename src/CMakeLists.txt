@@ -118,6 +118,10 @@ IF(NOT WIN32)
   ELSE()
     TARGET_LINK_LIBRARIES(sagittarius dl)
   ENDIF()
+  IF (${SAGITTARIUS_OS} STREQUAL "linux")
+    # for clock_gettime
+    TARGET_LINK_LIBRARIES(sagittarius rt)
+  ENDIF()
   # linux needs this
   TARGET_LINK_LIBRARIES(sagittarius m)
 ENDIF()
