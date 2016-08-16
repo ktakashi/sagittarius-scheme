@@ -51,7 +51,7 @@
 
 #cmakedefine HAVE_MUTEX_RECURSIVE
 #cmakedefine HAVE_MUTEX_RECURSIVE_NP
-
+#cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 /* for CPU count */
 #cmakedefine HAVE__SC_NPROCESSORS_ONLN
 #cmakedefine HAVE__SC_NPROCESSORS_CONF

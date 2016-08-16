@@ -1023,11 +1023,11 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
   if (Sg_RootVMP(vm)) {
     return Sg_GetProcessTimes();
   } else {
-    SgObject vec;
 #if defined(__APPLE__)
     /* 
        http://stackoverflow.com/questions/13893134/get-current-pthread-cpu-usage-mac-os-x
     */
+    SgObject vec;
     mach_port_t tid = pthread_mach_thread_np(vm->thread.thread);
     kern_return_t kr;
     mach_msg_type_number_t count;
@@ -1050,7 +1050,7 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
 		     Sg_GetLastErrorMessageWithErrorCode(e));
       return SG_UNDEF;		/* dummy */
     }
-#elif defined(HAVE_CLOCK_GETTIME)
+#elif defined(HAVE_CLOCK_GETTIME) && defined(HAVE_PTHREAD_GETCPUCLOCKID)
     /* 
        POSIX portable.
        This uses pthread_getcpuclockid. The result of function doesn't have
@@ -1061,6 +1061,7 @@ SgObject Sg_GetThreadTimes(SgVM *vm)
 	   Once it has this type of function (rusage per thread), then
 	   we should use it. but for now they don't, I guess.
      */
+    SgObject vec;
     clockid_t cid;
     uint64_t user;
     struct timespec ts;
