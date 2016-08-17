@@ -705,9 +705,28 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
   SOCKET fd = -1;
-
+  
+#ifdef _WIN32
+  SgVM *vm = Sg_VM();
+  HANDLE hEvents[2];
+  int r;
+#endif
+  
   CLOSE_SOCKET("socket-accept", socket);
 
+#ifdef _WIN32
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  hEvents[1] = (&vm->thread)->event;
+  
+  r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  CloseHandle(hEvents[0]);
+  if (r != WAIT_OBJECT_0) {
+    ResetEvent(hEvents[1]);
+    WSASetLastError(EINTR);
+    return SG_FALSE;		/* interrupted! */
+  }
+#endif
+  
   for (;;) {
     fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
     if (-1 == fd) {
@@ -716,7 +735,11 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
 	 seems we can retry.
        */
       if (!last_error || last_error == EINTR) {
-	continue;
+	SG_INTERRUPTED_THREAD() {
+	  return SG_FALSE;
+	} SG_INTERRUPTED_THREAD_ELSE() {
+	  continue;
+	} SG_INTERRUPTED_THREAD_END();
       } else {
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),

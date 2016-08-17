@@ -12,6 +12,8 @@
 	(sagittarius) ;; for format
 	;; use thread for testing
 	(sagittarius threads)
+	(prefix (binary io) b:)
+	(util bytevector)
 	(srfi :106))
 
 (define (shutdown&close s)
@@ -22,25 +24,29 @@
 
 ;; addr is client socket
 (define (server-run)
+  (define stop? #f)
   (let loop ()
-    (guard (e (else ;; shouldn't happen but happens so put like this
-	       (loop)))
+    (guard (e (else #t))
       (let ((addr (socket-accept echo-server-socket)))
 	(call-with-socket addr
 	  (lambda (sock)
-	    (let ((p (transcoded-port (socket-port sock) (native-transcoder))))
+	    (let ((p (socket-port sock)))
 	      (call-with-port p
 		(lambda (p)
-		  (let lp2 ((r (get-line p)))
-		    (cond ((or (not (string? r)) (string=? r "end")))
-			  ((or (not (string? r)) (string=? r "test-end"))
-			   (put-string p "") (loop))
-			  (else
-			   (let ((res (string->utf8 (string-append r "\r\n"))))
-			     ;; wait one sec
-			     (when (string=? r "wait") (thread-sleep! 1))
-			     (put-bytevector p res 0 (bytevector-length res) #t)
-			     (lp2 (get-line p)))))))))))))))
+		  (let lp2 ((l (b:get-line p)))
+		    (let ((r (bytevector-trim-right l)))
+		      (cond
+		       ((or (eof-object? r) (bytevector=? r #*"end"))
+			(set! stop? #t))
+		       ((bytevector=? r #*"test-end")
+			(put-bytevector p #vu8()))
+		       (else
+			(let ((res (bytevector-append r #*"\r\n")))
+			  ;; wait one sec
+			  (when (bytevector=? r #*"wait") (thread-sleep! 1))
+			  (put-bytevector p res 0 (bytevector-length res))
+			  (lp2 (b:get-line p))))))))))))))
+    (unless stop? (loop))))
 (define server-thread (make-thread server-run))
 
 (test-begin "Sagittarius socket")
@@ -98,7 +104,7 @@
   (test-equal "raw socket-recv"
 	      (string->utf8 "hello\r\n")
 	      (socket-recv client-socket (+ (string-length "hello") 2) 0))
-  
+
   (test-equal "raw socket-send (2)"
 	      (+ (string-length "hello") 2) ;; for \r\n
 	      (socket-send client-socket (string->utf8 "hello\r\n") 0))
@@ -259,7 +265,7 @@
 ;; ditto
 (let ()
   (define server (make-server-socket "5001"))
-  (define interrupted? #f)
+  (define interrupting? #f)
   (define accepted #f)
   (define recieved #f)
   (define (yield!)
@@ -267,16 +273,24 @@
     (thread-sleep! 1))
   (define (invoke-gc)
     (gc) ;; this uses signal on Linux
+    (set! interrupting? #t)
     (thread-interrupt! t) ;; interrupted flag on
     (yield!))
   (define t (thread-start!
 	     (make-thread
 	      (lambda ()
-		(let ((client (socket-accept server)))
-		  (set! accepted #t)
-		  (set! recieved (socket-recv client 1))
-		  (socket-close client)
-		  recieved)))))
+		(let loop ()
+		  (let ((client (socket-accept server)))
+		    (cond (client
+			   (set! accepted #t)
+			   (set! recieved (socket-recv client 1))
+			   (socket-close client)
+			   recieved)
+			  (else
+			   (if interrupting?
+			       (test-assert "socket-accept (interrupt)" #t)
+			       (test-assert "socket-accept (interrupt)" #f))
+			   (loop)))))))))
   (invoke-gc)
   (test-assert "not accepted" (not accepted))
   (let ((client (make-client-socket "localhost" "5001")))
