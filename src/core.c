@@ -100,6 +100,7 @@ extern void Sg__InitExtFeatures();
 extern void Sg__InitComparator();
 
 extern void Sg__PostInitVM();
+extern void Sg__PostInitCache();
 
 #ifdef USE_BOEHM_GC
 static GC_warn_proc warn_proc = NULL;
@@ -238,6 +239,7 @@ void Sg_Init()
 
   /* Sg__Port* will be called after all initialisations are done. */
   Sg__PostInitVM();
+  Sg__PostInitCache();
 }
 
 /* GC related */

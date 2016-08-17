@@ -1140,27 +1140,27 @@
 ;; 		  cb)
 ;;       (make-macro name macro-transform transformer env cb)))
 
+(define (macro-transform me expr p1env data)
+  (let ((transformer data)
+	(usave (current-usage-env))
+	(msave (current-macro-env))
+	(isave (current-identity)))
+    (current-usage-env p1env)
+    (current-macro-env (macro-env me))
+    (current-identity (generate-identity))
+    (current-transformer-env '()) ;; we don't need the value.
+    (dynamic-wind values
+	(lambda ()
+	  (if (macro? transformer)
+	      ((macro-transformer transformer) transformer
+	       expr (macro-env me) (macro-data transformer))
+	      (transformer expr)))
+	(lambda ()
+	  (current-transformer-env '())
+	  (current-usage-env usave)
+	  (current-macro-env msave)
+	  (current-identity  isave)))))
 (define (make-macro-transformer name thunk env cb)
-  (define (macro-transform me expr p1env data)
-    (let ((transformer data)
-	  (usave (current-usage-env))
-	  (msave (current-macro-env))
-	  (isave (current-identity)))
-      (current-usage-env p1env)
-      (current-macro-env (macro-env me))
-      (current-identity (generate-identity))
-      (current-transformer-env '()) ;; we don't need the value.
-      (dynamic-wind values
-	  (lambda ()
-	    (if (macro? transformer)
-		((macro-transformer transformer) transformer
-		 expr (macro-env me) (macro-data transformer))
-		(transformer expr)))
-	  (lambda ()
-	    (current-transformer-env '())
-	    (current-usage-env usave)
-	    (current-macro-env msave)
-	    (current-identity  isave)))))
   (make-macro name macro-transform (thunk) env cb))
 
 (define (make-variable-transformer proc)
