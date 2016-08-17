@@ -555,6 +555,15 @@ static SgObject write_cache_scan(SgObject obj, SgObject cbs, cache_ctx *ctx)
   return cbs;
 }
 
+/* a bit of cache size optimisation.
+   all cached macros, for now at least, have the same transformer
+   `macro-transform` defined in (core macro). if we cache it per
+   macro, it would be waste of file size. so instead of cacheing
+   it, we used the one looked up during initialisation.
+   see Sg_PostInitCache.
+ */
+static SgObject macro_transform = SG_UNDEF;
+
 static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
 {
   SG_VECTOR_ELEMENT(m->env, 3) = SG_FALSE;
@@ -571,7 +580,7 @@ static SgObject write_macro_scan(SgMacro *m, SgObject cbs, cache_ctx *ctx)
     cbs = write_cache_scan(m->data, cbs, ctx);
   }
 #endif
-  if (SG_CLOSUREP(m->transformer)) {
+  if (SG_CLOSUREP(m->transformer) && !SG_EQ(macro_transform, m->transformer)) {
     cbs = write_cache_scan(m->transformer, cbs, ctx);
   }
   /* NB: variable-transformer doesn't have it */
@@ -793,7 +802,11 @@ static void write_macro(SgPort *out, SgMacro *macro, SgObject closures,
   SgObject closure;
   put_word(out, 0, MACRO_TAG);
   write_object_cache(out, SG_MACRO(macro)->name, closures, ctx);
-  write_object_cache(out, SG_MACRO(macro)->transformer, closures, ctx);
+  if (!SG_EQ(macro_transform, SG_MACRO(macro)->transformer)) {
+    write_object_cache(out, SG_MACRO(macro)->transformer, closures, ctx);
+  } else {
+    write_object_cache(out, SG_FALSE, closures, ctx);
+  }
   /* write_object_cache(out, SG_MACRO(macro)->data, closures, ctx); */
   write_object_cache(out, SG_MACRO(macro)->env, closures, ctx);
   if (SG_MACRO(macro)->compiledCode) {
@@ -1516,7 +1529,7 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   name = read_object_rec(in, ctx);
   /* env must be p1env, so the first element must be library */
   transformer = read_object(in, ctx);
-  if (!SG_CODE_BUILDERP(transformer)) {
+  if (!SG_CODE_BUILDERP(transformer) && !SG_FALSEP(transformer)) {
     ESCAPE(ctx, "broken cache: %A (macro transformer)\n", transformer);
   }
   /* data = read_object(in, ctx); */
@@ -1532,9 +1545,12 @@ static SgObject read_macro(SgPort *in, read_ctx *ctx)
   while (Sg_PeekbUnsafe(in) != MACRO_END_TAG) {
     read_object(in, ctx);
   }
-  
-  link_cb(SG_CODE_BUILDER(transformer), ctx);
-  transformer = Sg_MakeClosure(transformer, NULL);
+  if (SG_FALSEP(transformer)) {
+    transformer = macro_transform;
+  } else {
+    link_cb(SG_CODE_BUILDER(transformer), ctx);
+    transformer = Sg_MakeClosure(transformer, NULL);
+  }
 
   if (SG_CODE_BUILDERP(cc)) {
     link_cb(SG_CODE_BUILDER(cc), ctx);
@@ -2217,4 +2233,12 @@ void Sg__InitCache()
     SG_VM_SET_FLAG(Sg_VM(), SG_DISABLE_CACHE);
   }
 
+}
+
+void Sg__PostInitCache()
+{
+  SgObject lib = Sg_FindLibrary(SG_INTERN("(core macro)"), FALSE);
+  SgObject g = Sg_FindBinding(lib, SG_INTERN("macro-transform"), SG_UNBOUND);
+  if (SG_UNBOUNDP(g)) Sg_Panic("macro-transform wasn't found");
+  macro_transform = SG_GLOC_GET(SG_GLOC(g));
 }

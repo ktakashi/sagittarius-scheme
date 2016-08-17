@@ -149,13 +149,18 @@ output or input connection of a socket associated with @var{port} respectively.
 }
 
 @define[Function]{@name{socket-accept} @args{socket}}
-@desc{@var{Socket} must be a socket object created by @code{make-server-socket}.
+@desc{@var{Socket} must be a socket object created by
+@code{make-server-socket}.
 
 Wait for an incoming connection request and returns a fresh connected client
 socket.
 
 This procedures is a thin wrapper of POSIX's @code{accept(2)}.
+
+If the calling thread is interrupted by @code{thread-interrupt!}, then
+the procedure returns #f.
 }
+
 @define[Function]{@name{socket-recv} @args{socket size :optional (flags 0)}}
 @desc{@var{Socket} must be a socket object.
 
@@ -387,7 +392,7 @@ value is not #f, then the procedure waits only specified amount of time or
 something interesting happens. Otherwise infinite time or something
 interesting happens.
 
-This procedure blocks the thread and can be interrupted by
+This procedure blocks the calling thread, and it can be interrupted by
 @code{thread-interrupt!}.
 
 This procedure is a thin wrapper of @code{select (2)}.

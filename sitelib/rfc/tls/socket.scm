@@ -304,16 +304,17 @@
 			       :version version :authorities authorities)))
 
   (define (tls-socket-accept socket :key (handshake #t) (raise-error #t))
-    (let* ((raw-socket (socket-accept (~ socket 'raw-socket)))
-	   (new-socket (make <tls-server-socket> :raw-socket raw-socket
-			     :version (~ socket 'version)
-			     :prng (~ socket 'prng)
-			     :session (make-initial-session 
-				       (~ socket 'prng)
-				       <tls-server-session>)
-			     :private-key (~ socket 'private-key)
-			     :certificates (~ socket 'certificates)
-			     :authorities (~ socket 'authorities))))
+    ;; socket-accept may return #f when thread is interrupted
+    (and-let* ((raw-socket (socket-accept (~ socket 'raw-socket)))
+	       (new-socket (make <tls-server-socket> :raw-socket raw-socket
+				 :version (~ socket 'version)
+				 :prng (~ socket 'prng)
+				 :session (make-initial-session 
+					   (~ socket 'prng)
+					   <tls-server-session>)
+				 :private-key (~ socket 'private-key)
+				 :certificates (~ socket 'certificates)
+				 :authorities (~ socket 'authorities))))
       (if handshake
 	  (tls-server-handshake new-socket :raise-error raise-error)
 	  new-socket)))

@@ -718,14 +718,34 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
   return sizeSent;
 }
 
-SgSocket* Sg_SocketAccept(SgSocket *socket)
+SgObject Sg_SocketAccept(SgSocket *socket)
 {
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
   SOCKET fd = -1;
-
+  
+#ifdef _WIN32
+  SgVM *vm = Sg_VM();
+  HANDLE hEvents[2];
+  int r;
+#endif
+  
   CLOSE_SOCKET("socket-accept", socket);
 
+#ifdef _WIN32
+  hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+  hEvents[1] = (&vm->thread)->event;
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
+  r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
+  CloseHandle(hEvents[0]);
+  if (r != WAIT_OBJECT_0) {
+    ResetEvent(hEvents[1]);
+    WSASetLastError(EINTR);
+    return SG_FALSE;		/* interrupted! */
+  }
+#endif
+  
   for (;;) {
     fd = accept(socket->socket, (struct sockaddr *)&addr, &addrlen);
     if (-1 == fd) {
@@ -734,12 +754,16 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
 	 seems we can retry.
        */
       if (!last_error || last_error == EINTR) {
-	continue;
+	SG_INTERRUPTED_THREAD() {
+	  return SG_FALSE;
+	} SG_INTERRUPTED_THREAD_ELSE() {
+	  continue;
+	} SG_INTERRUPTED_THREAD_END();
       } else {
 	raise_socket_error(SG_INTERN("socket-accept"), 
 			   Sg_GetLastErrorMessageWithErrorCode(last_error),
 			   Sg_MakeConditionSocket(socket), socket);
-	return NULL;		/* dummy */
+	return SG_UNDEF;	/* dummy */
       }
     } else {
       break;
