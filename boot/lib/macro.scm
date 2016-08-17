@@ -106,6 +106,7 @@
 ;; free-identifier=?
 ;; this needs to be here since it requires both usage and macro env
 (define (free-identifier=? id1 id2)
+  #|
   (define (compare id1 id2)
     (define uenv (current-usage-env))
     (if (and uenv (eq? (id-name id1) (id-name id2)))
@@ -123,25 +124,32 @@
 	   (assertion-violation 'free-identifier=? "identifier required" id1))
        (or (identifier? id2)
 	   (assertion-violation 'free-identifier=? "identifier required" id2))
-       (compare id1 id2)))
+       (compare id1 id2))
+  |#
+  ;; above works but super slow
+  ;; (aprox twice slower than the one implemented in C)
+  ;; NB: yet still slower than it used (about twice)
+  (vm-free-identifier=? id1 id2 (current-usage-env))
+  )
 
-(define (bound-identifier=? id1 id2)
-  (define (compare id1 id2)
-    (define identity1 (id-identity id1))
-    (define identity2 (id-identity id2))
-    (cond ((eq? identity1 identity2))
-	  ((or (not identity1) (not identity2)) #f)
-	  (else (let loop ((l1 identity1) (l2 identity2))
-		  (if (and (pair? l1) (pair? l2))
-		      (and (eq? (car l1) (car l2))
-			   (loop (cdr l1) (cdr l2)))
-		      (eq? l1 l2))))))
-  (and (or (identifier? id1)
-	   (assertion-violation 'bound-identifier=? "identifier required" id1))
-       (or (identifier? id2)
-	   (assertion-violation 'bound-identifier=? "identifier required" id2))
-       (eq? (id-name id1) (id-name id2))
-       (compare id1 id2)))
+;; implemented in C (see vmlib.stub) and exported from here.
+;; (define (bound-identifier=? id1 id2)
+;;   (define (compare id1 id2)
+;;     (define identity1 (id-identity id1))
+;;     (define identity2 (id-identity id2))
+;;     (cond ((eq? identity1 identity2))
+;; 	  ((or (not identity1) (not identity2)) #f)
+;; 	  (else (let loop ((l1 identity1) (l2 identity2))
+;; 		  (if (and (pair? l1) (pair? l2))
+;; 		      (and (eq? (car l1) (car l2))
+;; 			   (loop (cdr l1) (cdr l2)))
+;; 		      (eq? l1 l2))))))
+;;   (and (or (identifier? id1)
+;; 	   (assertion-violation 'bound-identifier=? "identifier required" id1))
+;;        (or (identifier? id2)
+;; 	   (assertion-violation 'bound-identifier=? "identifier required" id2))
+;;        (eq? (id-name id1) (id-name id2))
+;;        (compare id1 id2)))
 
 (define .vars (make-identifier '.vars '() '(core macro)))
 

@@ -11,6 +11,7 @@
 
   ;; TODO duplicated definition in Scheme
   (decl-code
+   (.define "LEXICAL"    "SG_MAKE_INT(0)")
    (.define "BOUNDARY"   "SG_MAKE_INT(3)")
    (.define "ENV_BOTTOM" "SG_MAKE_INT(4)"))
 
@@ -370,6 +371,35 @@
 	       (result (Sg_MakeIdentifier (SG_SYMBOL r) '() (SG_LIBRARY lib)))))
 	    (else (result r)))))
 
+  (define-c-proc vm-free-identifier=?
+    (id1::<identifier> id2::<identifier> use-env::<vector>)
+    ::<boolean>
+    (if (SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+	(let ((v1 (p1env-lookup-inner use-env id1 LEXICAL #f))
+	      (v2 (p1env-lookup-inner use-env id2 LEXICAL #f)))
+	  (if (and (not (SG_PAIRP v1)) (not (SG_PAIRP v2)))
+	      (let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+					(SG_IDENTIFIER_NAME id1) #f))
+		    (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+					(SG_IDENTIFIER_NAME id2) #f)))
+		(result (SG_EQ g1 g2)))
+	      (result (SG_EQ v1 v2))))
+	(let ((g1 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id1)
+					(SG_IDENTIFIER_NAME id1) #f))
+	      (g2 (Sg_FindBinding (SG_IDENTIFIER_LIBRARY id2)
+				  (SG_IDENTIFIER_NAME id2) #f)))
+	  (result (and (not (SG_FALSEP g1))
+		       (not (SG_FALSEP g2))
+		       (SG_EQ g1 g2))))))
+
+  (define-c-proc bound-identifier=?
+    (id1::<identifier> id2::<identifier>)
+    ::<boolean>
+    (cond ((SG_EQ id1 id2) (result TRUE))
+	  ((SG_EQ (SG_IDENTIFIER_NAME id1) (SG_IDENTIFIER_NAME id2))
+	   (result (identity-eq? (SG_IDENTIFIER_IDENTITY id1) id2)))
+	  (else (result FALSE))))
+  
   ;; check all env frames are macro
   (define-cfn check-env-frame (frames) ::int :static
     ;; if the frame is null then it's definitely
