@@ -717,7 +717,7 @@ SgObject Sg_SocketAccept(SgSocket *socket)
 #ifdef _WIN32
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
   hEvents[1] = (&vm->thread)->event;
-  
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
   r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
   CloseHandle(hEvents[0]);
   if (r != WAIT_OBJECT_0) {
