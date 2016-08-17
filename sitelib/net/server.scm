@@ -184,8 +184,10 @@
 	    (thread-interrupt! thread))))))
   
   (define (stop-server server)
+    (mutex-lock! (~ server 'lock))
     (set! (~ server 'stop-request) #t)
-    (for-each thread-interrupt! (~ server 'server-threads)))
+    (for-each thread-interrupt! (~ server 'server-threads))
+    (mutex-unlock! (~ server 'lock)))
   
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
@@ -248,18 +250,38 @@
 	       (make-thread
 		(lambda ()
 		  (define stop? #f)
+		  (define (stop) (close-socket socket) (set! stop? #t))
 		  (thread-specific-set! (current-thread) 'done)
 		  (let loop ()
 		    (guard (e (else
 			       (when (~ config 'exception-handler)
 				 ((~ config 'exception-handler) server #f e))))
-		      (let ((client-socket (socket-accept socket)))
-			(cond ((and (not client-socket)
-				    (~ server 'stop-request))
-			       (close-socket socket)
-			       (set! stop? #t))
-			      (client-socket
-			       (dispatch server client-socket)))))
+		      ;; we need to check if the server is stopping or not
+		      ;; before we call socket-accept. to avoid race condition
+		      ;; we need to get lock first then check.
+		      ;; 
+		      ;; the reason why we use thread-interrrupt! now is that
+		      ;; on FreeBSD 11 or later, IPv6 and IPv4 sockets can 
+		      ;; exist on the same port and seems platform can merge
+		      ;; it into one. and when we tried to stop server which
+		      ;; has both IPv6 and IPv4 sockets, it failed due to the
+		      ;; get-address-info failure and went into infinite
+		      ;; waiting. to avoid that we switched to use thread
+		      ;; interruption.
+		      ;; 
+		      ;; FIXME this would be slow...
+		      (mutex-lock! (~ server 'lock))
+		      (if (~ server 'stop-request)
+			  (begin (mutex-unlock! (~ server 'lock)) (stop))
+			  (begin
+			    (mutex-unlock! (~ server 'lock))
+			    (let ((client-socket (socket-accept socket)))
+			      (cond ((~ server 'stop-request)
+				     (when client-socket
+				       (close-socket client-socket))
+				     (stop))
+				    (client-socket
+				     (dispatch server client-socket)))))))
 		    (unless stop? (loop))))))
 	     sockets))
 
@@ -280,22 +302,26 @@
 		 (set! (~ server 'stopper-socket) stop-socket)
 		 ;; lock it here
 		 (mutex-lock! (~ server 'stop-lock))
-		 (let loop ((sock (socket-accept stop-socket)))
-		   ;; to avoid passing #f to socket close
-		   (mutex-lock! (~ server 'lock))
-		   ;; ignore all errors
-		   (guard (e (else #t))
-		     (when ((~ config 'shutdown-handler) server sock)
-		       (stop-server server)
-		       (for-each thread-join! server-threads)
-		       (set! (~ server 'server-sockets) #f)
-		       (condition-variable-broadcast! (~ server 'stop-waiter))
-		       (mutex-unlock! (~ server 'stop-lock))))
-		   (mutex-unlock! (~ server 'lock))
-		   (close-socket sock)
-		   (if (server-stopped? server)
-		       (close-socket stop-socket)
-		       (loop (socket-accept stop-socket))))))))
+		 (let loop ()
+		   (let ((sock (socket-accept stop-socket)))
+		     (cond (sock
+			    ;; ignore all errors
+			    (guard (e (else #t))
+			      (when ((~ config 'shutdown-handler) server sock)
+				(stop-server server)
+				(for-each thread-join! server-threads)
+				;; lock to avoid race condition here
+				(mutex-lock! (~ server 'lock))		
+				(set! (~ server 'server-sockets) #f)
+				(mutex-unlock! (~ server 'lock))
+				(condition-variable-broadcast!
+				 (~ server 'stop-waiter))
+				(mutex-unlock! (~ server 'stop-lock))))
+			    (close-socket sock)
+			    (if (server-stopped? server)
+				(close-socket stop-socket)
+				(loop)))
+			   (else (loop)))))))))
       server))
 
 
