@@ -203,6 +203,62 @@ SG_CLASS_DECL(Sg_SocketPortClass);
   (ret) = operation;
 #endif
 
+/* condition &socket 
+   &i/o
+    + &host-not-found (node, service)
+    + &socket (socket)
+       + &socket-connection
+       + &socket-closed
+       + &socket-port (port)
+*/
+SG_CLASS_DECL(Sg_HostNotFoundClass);
+SG_CLASS_DECL(Sg_ConditionSocketClass);
+SG_CLASS_DECL(Sg_ConditionSocketConnectionClass);
+SG_CLASS_DECL(Sg_ConditionSocketClosedClass);
+SG_CLASS_DECL(Sg_ConditionSocketPortClass);
+
+#define SG_CLASS_HOST_NOT_FOUND          (&Sg_HostNotFoundClass)
+#define SG_CLASS_CONDITION_SOCKET        (&Sg_ConditionSocketClass)
+#define SG_CLASS_CONDITION_SOCKET_CONNECTION \
+  (&Sg_ConditionSocketConnectionClass)
+#define SG_CLASS_CONDITION_SOCKET_CLOSED (&Sg_ConditionSocketClosedClass)
+#define SG_CLASS_CONDITION_SOCKET_PORT   (&Sg_ConditionSocketPortClass)
+
+typedef struct SgHostNotFoundRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject node;
+  SgObject service;
+} SgHostNotFound;
+#define SG_HOST_NOT_FOUND(o) ((SgHostNotFound *)o)
+#define SG_HOST_NOT_FOUNDP(o) SG_ISA(o, SG_CLASS_HOST_NOT_FOUND)
+
+typedef struct SgConditionSocketRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject socket;
+} SgConditionSocket;
+#define SG_CONDITION_SOCKET(o)  ((SgConditionSocket *)o)
+#define SG_CONDITION_SOCKETP(o) SG_ISA(o, SG_CLASS_CONDITION_SOCKET)
+
+typedef SgConditionSocket SgConditionSocketConnection;
+#define SG_CONDITION_SOCKET_CONNECTION(o)  ((SgConditionSocketConnection *)o)
+#define SG_CONDITION_SOCKET_CONNECTIONP(o)		\
+  SG_ISA(o, SG_CLASS_CONDITION_SOCKET_CONNECTION)
+
+typedef SgConditionSocket SgConditionSocketClosed;
+#define SG_CONDITION_SOCKET_CLOSED(o)  ((SgConditionSocketClosed *)o)
+#define SG_CONDITION_SOCKET_CLOSEDP(o)		\
+  SG_ISA(o, SG_CLASS_CONDITION_SOCKET_CLOSED)
+
+typedef struct SgConditionSocketPortRec
+{
+  SgConditionSocket parent;
+  SgObject port;
+} SgConditionSocketPort;
+#define SG_CONDITION_SOCKET_PORT(o)  ((SgConditionSocketPort *)o)
+#define SG_CONDITION_SOCKET_PORTP(o) SG_ISA(o, SG_CLASS_CONDITION_SOCKET_PORT)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgAddrinfo* Sg_MakeAddrinfo();
@@ -260,6 +316,13 @@ SG_EXTERN SgObject  Sg_SocketPeer(SgObject socket);
 SG_EXTERN SgObject  Sg_SocketName(SgObject socket);
 SG_EXTERN SgObject  Sg_SocketInfo(SgObject socket);
 SG_EXTERN SgObject  Sg_IpAddressToString(SgObject ip);
+
+/* conditions */
+SG_EXTERN SgObject  Sg_MakeHostNotFound(SgObject node, SgObject service);
+SG_EXTERN SgObject  Sg_MakeConditionSocket(SgObject socket);
+SG_EXTERN SgObject  Sg_MakeConditionSocketConnection(SgObject socket);
+SG_EXTERN SgObject  Sg_MakeConditionSocketClosed(SgObject socket);
+SG_EXTERN SgObject  Sg_MakeConditionSocketPort(SgObject socket, SgObject port);
 
 SG_CDECL_END
 

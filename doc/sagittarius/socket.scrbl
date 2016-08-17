@@ -481,3 +481,27 @@ If the @var{flags} is #t, then the procedure sets the @var{socket}.
 
 @define[Function]{@name{collect-sockets} @args{fdset}}
 @desc{Returns a list of socket which are set on @var{fdset}.}
+
+
+@sub*section{Socket conditions}
+
+Above APIs may raise either @code{&socket} or @code{&host-not-found}. The first
+condition is raised when socket related operation failed, for example
+@code{socket-send}. The latter condition is raised when @code{get-addrinfo} is
+failed.
+
+NOTE: @code{make-client-socket} and @code{make-server-socket} may raise
+@code{&host-not-found} when the given @var{node} or @var{service} is not a
+valid value.
+
+The condition hierarchy is the following:
+
+@codeblock{
+&i/o
+ + &host-not-found (node service)
+ + &socket (socket)
+    + &socket-connection
+    + &socket-closed
+    + &socket-port (port)
+}
+@; TBD

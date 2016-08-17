@@ -332,4 +332,13 @@
       (vector-for-each shutdown&close vec)
       (shutdown&close server))))
 
+;; condition
+(test-error "&host-not-found" host-not-found-error?
+	    (make-client-socket "localhost" "123456789"))
+(guard (e ((host-not-found-error? e)
+	   (test-assert "localhost" (host-not-found-error-node e))
+	   (test-assert "123456789" (host-not-found-error-service e)))
+	  (else (test-assert "unexpected condition" #f)))
+  (make-client-socket "localhost" "123456789"))
+
 (test-end)

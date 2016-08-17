@@ -391,16 +391,31 @@ SgAddrinfo* Sg_MakeAddrinfo()
   return info;
 }
 
-static void raise_io_error(SgObject who, int ret, SgObject irr)
+static void raise_socket_error(SgObject who, SgObject msg, 
+			       SgObject c, SgObject irr)
+{
+  SgObject sc;
+  if (SG_NULLP(irr)) {
+    sc = Sg_Condition(SG_LIST3(c,
+			       Sg_MakeWhoCondition(who),
+			       Sg_MakeMessageCondition(msg)));
+  } else {
+    sc = Sg_Condition(SG_LIST4(c,
+			       Sg_MakeWhoCondition(who),
+			       Sg_MakeMessageCondition(msg),
+			       Sg_MakeIrritantsCondition(irr)));
+  }
+  Sg_Raise(sc, FALSE);
+}
+
+static void raise_io_error(SgObject who, int ret, SgObject c, SgObject irr)
 {
 #ifdef _WIN32
   const char *msg = gai_strerrorA(ret);
 #else
   const char *msg = gai_strerror(ret);
 #endif
-  Sg_IOError((SgIOErrorType)-1, who,
-	     Sg_Utf8sToUtf32s(msg, (int)strlen(msg)),
-	     SG_FALSE, irr);
+  raise_socket_error(who, Sg_Utf8sToUtf32s(msg, (int)strlen(msg)), c, irr);
 }
 
 SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
@@ -418,6 +433,7 @@ SgAddrinfo* Sg_GetAddrinfo(SgObject node, SgObject service, SgAddrinfo *hints)
 
   if (ret != 0) {
     raise_io_error(SG_INTERN("get-addrinfo"), ret,
+		   Sg_MakeHostNotFound(node, service),
 		   SG_LIST2(SG_OBJ(node), SG_OBJ(service)));
     return NULL;
   }
@@ -478,7 +494,8 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
     socklen_t len = p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
-      raise_io_error(SG_INTERN("socket-connect!"), r, socket);
+      raise_io_error(SG_INTERN("socket-connect!"), r, 
+		     Sg_MakeConditionSocket(socket), socket);
       return SG_FALSE;		/* dummy */
     }
     socket->type = SG_SOCKET_SERVER;
@@ -499,12 +516,13 @@ SgObject Sg_SocketListen(SgSocket *socket, int backlog)
   return SG_FALSE;
 }
 
-#define CLOSE_SOCKET(who, socket)			\
-  do {							\
-    if (!Sg_SocketOpenP(socket))			\
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN(who),	\
-		 SG_MAKE_STRING("socket is closed"),	\
-		 SG_FALSE, socket);			\
+#define CLOSE_SOCKET(who, socket)				\
+  do {								\
+    if (!Sg_SocketOpenP(socket))				\
+      raise_socket_error(SG_INTERN(who),			\
+			 SG_MAKE_STRING("socket is closed"),	\
+			 Sg_MakeConditionSocketClosed(socket),	\
+			 socket);				\
   } while (0)
 
 
@@ -540,9 +558,9 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
     r = getsockopt(socket->socket, level, name, 
 		   (char *)SG_BVECTOR_ELEMENTS(bvec), &rrsize);
     if (r < 0) {
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
-		 Sg_GetLastErrorMessageWithErrorCode(last_error),
-		 SG_FALSE, SG_NIL);
+      raise_socket_error(SG_INTERN("socket-getsockopt"), 
+			 Sg_GetLastErrorMessageWithErrorCode(last_error),
+			 Sg_MakeConditionSocket(socket), SG_NIL);
     }
     SG_BVECTOR_SIZE(bvec) = rrsize;
     return SG_OBJ(bvec);
@@ -551,9 +569,9 @@ SgObject Sg_SocketGetopt(SgSocket *socket, int level, int name, int rsize)
     rrsize = sizeof(int);
     r = getsockopt(socket->socket, level, name, (char *)&val, &rrsize);
     if (r < 0) {
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-getsockopt"), 
-		 Sg_GetLastErrorMessageWithErrorCode(last_error),
-		 SG_FALSE, SG_NIL);
+      raise_socket_error(SG_INTERN("socket-getsockopt"), 
+			 Sg_GetLastErrorMessageWithErrorCode(last_error),
+			 Sg_MakeConditionSocket(socket), SG_NIL);
     }
     return Sg_MakeInteger(val);
   }
@@ -579,9 +597,9 @@ int Sg_SocketReceive(SgSocket *socket, uint8_t *data, int size, int flags)
 	/* most probably non-blocking socket */
 	return ret;
       }
-      Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
-		 Sg_GetLastErrorMessageWithErrorCode(last_error),
-		 SG_FALSE, SG_NIL);
+      raise_socket_error(SG_INTERN("socket-recv"), 
+			 Sg_GetLastErrorMessageWithErrorCode(last_error),
+			 Sg_MakeConditionSocket(socket), SG_NIL);
       return ret;		/* dummy */
     }
     return ret;
@@ -612,9 +630,9 @@ int Sg_SocketReceiveFrom(SgSocket *socket, uint8_t *data, int size, int flags,
 	return ret;
       } else {
       err:
-	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-recv"), 
-		   Sg_GetLastErrorMessageWithErrorCode(last_error),
-		   SG_FALSE, SG_NIL);
+	raise_socket_error(SG_INTERN("socket-recv"), 
+			   Sg_GetLastErrorMessageWithErrorCode(last_error),
+			   Sg_MakeConditionSocket(socket), SG_NIL);
 	return ret;
       }
     }
@@ -646,9 +664,9 @@ int Sg_SocketSend(SgSocket *socket, uint8_t *data, int size, int flags)
 	continue;
       } else {
       err:
-	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-send"), 
-		   Sg_GetLastErrorMessageWithErrorCode(last_error),
-		   SG_FALSE, SG_NIL);
+	raise_socket_error(SG_INTERN("socket-send"), 
+			   Sg_GetLastErrorMessageWithErrorCode(last_error),
+			   Sg_MakeConditionSocket(socket), SG_NIL);
 	return ret;
       }
     }
@@ -686,9 +704,9 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
 	continue;
       } else {
       err:
-	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-sendto"), 
-		   Sg_GetLastErrorMessageWithErrorCode(last_error),
-		   SG_FALSE, SG_NIL);
+	raise_socket_error(SG_INTERN("socket-sendto"), 
+			   Sg_GetLastErrorMessageWithErrorCode(last_error),
+			   Sg_MakeConditionSocket(socket), SG_NIL);
 	return ret;
       }
     }
@@ -718,9 +736,9 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
       if (!last_error || last_error == EINTR) {
 	continue;
       } else {
-	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
-		   Sg_GetLastErrorMessageWithErrorCode(last_error),
-		   SG_FALSE, socket);
+	raise_socket_error(SG_INTERN("socket-accept"), 
+			   Sg_GetLastErrorMessageWithErrorCode(last_error),
+			   Sg_MakeConditionSocket(socket), socket);
 	return NULL;		/* dummy */
       }
     } else {
@@ -1006,9 +1024,10 @@ static SgObject socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #endif
       } SG_INTERRUPTED_THREAD_END();
     }
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-select"), 
-	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_NIL);
+    raise_socket_error(SG_INTERN("socket-select"), 
+		       Sg_GetLastErrorMessageWithErrorCode(last_error),
+		       /* TODO should we make different condition? */
+		       Sg_MakeConditionSocket(SG_FALSE), SG_NIL);
   }
   return Sg_Values4(Sg_MakeInteger(numfds),
 		    (rfds ? SG_OBJ(rfds) : SG_FALSE),
@@ -1110,9 +1129,9 @@ int Sg_SocketNonblocking(SgSocket *socket)
 #endif
   return TRUE;
  err:
-  Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-nonblocking!"), 
-	     Sg_GetLastErrorMessageWithErrorCode(last_error),
-	     SG_FALSE, socket);
+  raise_socket_error(SG_INTERN("socket-nonblocking!"), 
+		     Sg_GetLastErrorMessageWithErrorCode(last_error),
+		     Sg_MakeConditionSocket(socket), socket);
   return FALSE;			/* dummy */
 }
 int Sg_SocketBlocking(SgSocket *socket)
@@ -1133,9 +1152,9 @@ int Sg_SocketBlocking(SgSocket *socket)
 #endif
   return TRUE;
  err:
-  Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-blocking!"), 
-	     Sg_GetLastErrorMessageWithErrorCode(last_error),
-	     SG_FALSE, socket);
+  raise_socket_error(SG_INTERN("socket-blocking!"), 
+		     Sg_GetLastErrorMessageWithErrorCode(last_error),
+		     Sg_MakeConditionSocket(socket), socket);
   return FALSE;			/* dummy */  
 }
 
@@ -1162,7 +1181,7 @@ static void socket_flush(SgObject self)
 {
 }
 
-static int socket_ready_int(SgObject socket, struct timeval *tm)
+static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 {
   fd_set fds;
   int state;
@@ -1177,9 +1196,9 @@ static int socket_ready_int(SgObject socket, struct timeval *tm)
 #endif
   if (state < 0) {
     if (last_error == EINTR) return FALSE;
-    Sg_IOError((SgIOErrorType)-1, SG_INTERN("port-ready?"), 
-	       Sg_GetLastErrorMessageWithErrorCode(last_error),
-	       SG_FALSE, SG_NIL);
+    raise_socket_error(SG_INTERN("port-ready?"), 
+		       Sg_GetLastErrorMessageWithErrorCode(last_error),
+		       Sg_MakeConditionSocketPort(socket, port), SG_NIL);
     return FALSE;
   }
   return FD_ISSET(SG_SOCKET(socket)->socket, &fds);
@@ -1247,7 +1266,7 @@ static int64_t socket_read_u8(SgObject self, uint8_t *buf, int64_t size)
        something to be read.
        FIXME: this may cause issue on TLS socket... */
 #if 0
-    ready = socket_ready_int(SG_PORT_SOCKET(self), &tm);
+    ready = socket_ready_int(self, SG_PORT_SOCKET(self), &tm);
     if (!ready) {
       /* most likely nothing is waiting. i hope... */
       break;
@@ -1269,7 +1288,7 @@ static int64_t socket_read_u8_all(SgObject self, uint8_t **buf)
   
   buffer = SG_PORT(Sg_InitByteArrayOutputPort(&bp, 1024));
 
-  ready = socket_ready_int(SG_PORT_SOCKET(self), &tm);
+  ready = socket_ready_int(self, SG_PORT_SOCKET(self), &tm);
   if (ready) {
     for (;;) {
       SgSocket *sock = SG_PORT_SOCKET(self);
@@ -1315,7 +1334,7 @@ static int socket_ready(SgObject self)
 {
   SgObject socket = SG_PORT_SOCKET(self);
   struct timeval tm = {0, 0};
-  return socket_ready_int(socket, &tm);
+  return socket_ready_int(self, socket, &tm);
 }
 
 static SgPortTable socket_close_table = {
@@ -1391,6 +1410,112 @@ void Sg_ShutdownPort(SgPort *port, int how)
   }
 }
 
+/* conditions */
+static SgClass *error_cpl[] = {
+  SG_CLASS_IO_ERROR,
+  SG_ERROR_CONDITION_CPL,
+  NULL
+};
+
+static void hnf_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_HOST_NOT_FOUND(o)->node,
+	    SG_HOST_NOT_FOUND(o)->service);
+}
+
+SG_DEFINE_CONDITION_ALLOCATOR(hnf_allocate, SgHostNotFound);
+SG_DEFINE_CONDITION_ACCESSOR(hnf_node, SgHostNotFound,
+			     SG_HOST_NOT_FOUNDP, node);
+SG_DEFINE_CONDITION_ACCESSOR(hnf_service, SgHostNotFound,
+			     SG_HOST_NOT_FOUNDP, service);
+static SgSlotAccessor hnf_slots[] = {
+  SG_CLASS_SLOT_SPEC("node",    0, hnf_node, hnf_node_set),
+  SG_CLASS_SLOT_SPEC("service", 1, hnf_service, hnf_service_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_HostNotFoundClass, SgHostNotFound,
+		     hnf_printer, NULL, NULL, hnf_allocate, error_cpl);
+
+static void exc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<%A %A>"), SG_CLASS(Sg_ClassOf(o))->name,
+	    SG_CONDITION_SOCKET(o)->socket);
+}
+
+SG_DEFINE_CONDITION_ALLOCATOR(parent_allocate, SgConditionSocket);
+SG_DEFINE_CONDITION_ACCESSOR(socket_socket, SgConditionSocket,
+			     SG_CONDITION_SOCKETP, socket);
+static SgSlotAccessor parent_slots[] = {
+  SG_CLASS_SLOT_SPEC("socket", 0, socket_socket, socket_socket_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_ConditionSocketClass, SgConditionSocket,
+		     exc_printer, NULL, NULL, parent_allocate, error_cpl);
+
+static SgClass *socket_exc_cpl[] = {
+  SG_CLASS_CONDITION_SOCKET,
+  SG_CLASS_IO_ERROR,
+  SG_ERROR_CONDITION_CPL,
+  NULL
+};
+
+SG_DEFINE_BASE_CLASS(Sg_ConditionSocketConnectionClass,
+		     SgConditionSocketConnection,
+		     exc_printer, NULL, NULL, parent_allocate,
+		     socket_exc_cpl);
+
+SG_DEFINE_BASE_CLASS(Sg_ConditionSocketClosedClass, SgConditionSocketClosed,
+		     exc_printer, NULL, NULL, parent_allocate,
+		     socket_exc_cpl);
+
+SG_DEFINE_CONDITION_ALLOCATOR(cport_allocate, SgConditionSocketPort);
+SG_DEFINE_CONDITION_ACCESSOR(csocket_port, SgConditionSocketPort,
+			     SG_CONDITION_SOCKET_PORTP, port);
+static SgSlotAccessor cport_slots[] = {
+  SG_CLASS_SLOT_SPEC("port", 0, csocket_port, csocket_port_set),
+  { { NULL } }
+};
+SG_DEFINE_BASE_CLASS(Sg_ConditionSocketPortClass, SgConditionSocketPort,
+		     exc_printer, NULL, NULL, cport_allocate,
+		     socket_exc_cpl);
+
+SgObject Sg_MakeHostNotFound(SgObject node, SgObject service)
+{
+  SgObject c = hnf_allocate(SG_CLASS_HOST_NOT_FOUND, SG_NIL);
+  SG_HOST_NOT_FOUND(c)->node = node;
+  SG_HOST_NOT_FOUND(c)->service = service;
+  return c;
+}
+
+SgObject Sg_MakeConditionSocket(SgObject socket)
+{
+  SgObject c = parent_allocate(SG_CLASS_CONDITION_SOCKET, SG_NIL);
+  SG_CONDITION_SOCKET(c)->socket = socket;
+  return c;
+}
+
+SgObject Sg_MakeConditionSocketConnection(SgObject socket)
+{
+  SgObject c = parent_allocate(SG_CLASS_CONDITION_SOCKET_CONNECTION, SG_NIL);
+  SG_CONDITION_SOCKET(c)->socket = socket;
+  return c;
+}
+
+SgObject Sg_MakeConditionSocketClosed(SgObject socket)
+{
+  SgObject c = parent_allocate(SG_CLASS_CONDITION_SOCKET_CLOSED, SG_NIL);
+  SG_CONDITION_SOCKET(c)->socket = socket;
+  return c;
+}
+SgObject Sg_MakeConditionSocketPort(SgObject socket, SgObject port)
+{
+  SgObject c = cport_allocate(SG_CLASS_CONDITION_SOCKET_PORT, SG_NIL);
+  SG_CONDITION_SOCKET(c)->socket = socket;
+  SG_CONDITION_SOCKET_PORT(c)->port = port;
+  return c;
+}
+
 extern void Sg__Init_socket_stub(SgLibrary *lib);
 
 #ifdef _WIN32
@@ -1428,6 +1553,43 @@ SG_EXTENSION_ENTRY void CDECL Sg_Init_sagittarius__socket()
 			     SG_FALSE, NULL, 0);
   /* TODO should we add socket slot? */
   Sg_InitStaticClass(SG_CLASS_SOCKET_PORT, UC("<socket-port>"), lib, NULL, 0);
+
+  SG_INIT_CONDITION(SG_CLASS_HOST_NOT_FOUND, lib, 
+		    "&host-not-found", hnf_slots);
+  SG_INIT_CONDITION(SG_CLASS_CONDITION_SOCKET, lib, "&socket", parent_slots);
+  SG_INIT_CONDITION(SG_CLASS_CONDITION_SOCKET_CONNECTION, lib, 
+		    "&socket-connection", NULL);
+  SG_INIT_CONDITION(SG_CLASS_CONDITION_SOCKET_CLOSED, lib, 
+		    "&socket-closed", NULL);
+  SG_INIT_CONDITION(SG_CLASS_CONDITION_SOCKET_PORT, lib, 
+		    "&socket-port", cport_slots);
+
+  SG_INIT_CONDITION_PRED(SG_CLASS_HOST_NOT_FOUND, lib, "host-not-found-error?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_HOST_NOT_FOUND, lib, 
+			"make-host-not-found-error", 2);
+  SG_INIT_CONDITION_ACC(hnf_node, lib, "&host-not-found-error-node");
+  SG_INIT_CONDITION_ACC(hnf_service, lib, "&host-not-found-error-service");
+
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONDITION_SOCKET, lib, "socket-error?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONDITION_SOCKET, lib, "make-socket-error", 1);
+  SG_INIT_CONDITION_ACC(socket_socket, lib, "&socket-error-socket");
+
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONDITION_SOCKET_CONNECTION, lib,
+			 "socket-connection-error?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONDITION_SOCKET_CONNECTION, lib,
+			"make-socket-connection-error", 1);
+
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONDITION_SOCKET_CLOSED, lib,
+			 "socket-closed-error?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONDITION_SOCKET_CLOSED, lib,
+			"make-socket-closed-error", 1);
+
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONDITION_SOCKET_PORT, lib, 
+			 "socket-port-error?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONDITION_SOCKET_PORT, lib, 
+			"make-socket-port-error", 1);
+  SG_INIT_CONDITION_ACC(csocket_port, lib, "&socket-error-port");
+
   /* from Ypsilon */
 #define ARCH_CCONST(name)					\
   Sg_MakeBinding(lib, SG_SYMBOL(SG_INTERN(#name)), SG_MAKE_INT(name), TRUE)

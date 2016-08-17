@@ -133,14 +133,41 @@
 	    <socket>
 	    <addrinfo>
 	    <socket-info>
+	    
+	    ;; conditions
+	    &host-not-found host-not-found-error? make-host-not-found-error
+	    host-not-found-error-node host-not-found-error-service
+	    &socket socket-error? make-socket-error
+	    &socket-socket socket-error-socket
+	    &socket-connection socket-connection-error? 
+	    make-socket-connection-error
+	    &socket-closed socket-closed-error? make-socket-closed-error
+	    &socket-port socket-port-error? make-socket-port-error
+	    &socket-port socket-error-port
 	    )
     (import (core)
 	    (core errors)
+	    (core conditions)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius dynamic-module)
 	    )
   (load-dynamic-module "sagittarius--socket")
+
+  (initialize-builtin-condition &host-not-found &i/o node service)
+  (initialize-builtin-condition &socket &i/o socket)
+  (initialize-builtin-condition &socket-connection &socket)
+  (initialize-builtin-condition &socket-closed &socket)
+  (initialize-builtin-condition &socket-port &socket port)
+
+  (define-condition-accessor host-not-found-error-node &host-not-found 
+    &host-not-found-error-node)
+  (define-condition-accessor host-not-found-error-service &host-not-found 
+    &host-not-found-error-service)
+
+  (define-condition-accessor socket-error-socket &socket &socket-error-socket)
+  (define-condition-accessor socket-error-port &socket-port &socket-error-port)
+
   (define (call-with-socket socket proc)
     (receive args (proc socket)
       (socket-close socket)
@@ -180,17 +207,23 @@
 	  (let ((next (slot-ref info 'next)))
 	    (if next
 		(loop (create-socket next) next)
-		(assertion-violation 'make-client-socket "no next addrinfo"
-				     node service))))
+		(raise (condition (make-host-not-found-error node service)
+				  (make-who-condition 'make-client-socket)
+				  (make-message-condition "no next addrinfo")
+				  (make-irritants-condition 
+				   (list node service)))))))
 	(or (and-let* (( socket )
 		       ( info ))
 	      (socket-connect! socket info))
 	    (and info (and socket (socket-close socket)) (retry info))
-	    (raise-i/o-error 'make-client-socket
-				(if socket
-				    (socket-error-message socket)
-				    "creating a socket failed")
-				node service)))))
+	    (raise (condition (make-socket-error socket)
+			      (make-who-condition 'make-client-socket)
+			      (make-message-condition
+			       (if socket
+				   (socket-error-message socket)
+				   "creating a socket failed"))
+			      (make-irritants-condition 
+			       (list node service))))))))
 
   (define (make-server-socket service 
 			      :optional (ai-family AF_INET)
@@ -206,8 +239,11 @@
 	  (let ((next (slot-ref info 'next)))
 	    (if next
 		(loop (create-socket next) next)
-		(assertion-violation 'make-server-socket 
-				     "no next addrinfo" service))))
+		(raise (condition (make-host-not-found-error node service)
+				  (make-who-condition 'make-client-socket)
+				  (make-message-condition "no next addrinfo")
+				  (make-irritants-condition
+				   (list node service)))))))
 
 	(or (and-let* (( socket )
 		       ( info )
@@ -218,11 +254,13 @@
 			     #t) ))
 	      socket)
 	    (and info (and socket (socket-close socket)) (retry info))
-	    (raise-i/o-error 'make-server-socket
-			     (if socket
-				 (socket-error-message socket)
-				 "creating a socket failed")
-			     service)))))
+	    (raise (condition (make-socket-error socket)
+			      (make-who-condition 'make-server-socket)
+			      (make-message-condition 
+			       (if socket
+				   (socket-error-message socket)
+				   "creating a socket failed"))
+			      (make-irritants-condition service)))))))
   ;; for convenience
   (define (socket-read-select timeout . rest)
     (let ((rfds (sockets->fdset rest)))
