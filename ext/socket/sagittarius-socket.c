@@ -700,7 +700,7 @@ int Sg_SocketSendTo(SgSocket *socket, uint8_t *data, int size, int flags,
   return sizeSent;
 }
 
-SgSocket* Sg_SocketAccept(SgSocket *socket)
+SgObject Sg_SocketAccept(SgSocket *socket)
 {
   struct sockaddr_storage addr;
   socklen_t addrlen = sizeof(addr);
@@ -744,7 +744,7 @@ SgSocket* Sg_SocketAccept(SgSocket *socket)
 	Sg_IOError((SgIOErrorType)-1, SG_INTERN("socket-accept"), 
 		   Sg_GetLastErrorMessageWithErrorCode(last_error),
 		   SG_FALSE, socket);
-	return NULL;		/* dummy */
+	return SG_UNDEF;	/* dummy */
       }
     } else {
       break;

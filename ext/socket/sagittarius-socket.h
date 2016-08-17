@@ -228,7 +228,7 @@ SG_EXTERN int       Sg_SocketSend(SgSocket *socket, uint8_t *data,
 				  int size, int flags);
 SG_EXTERN int       Sg_SocketSendTo(SgSocket *socket, uint8_t *data,
 				    int size, int flags, SgSockaddr *addr);
-SG_EXTERN SgSocket* Sg_SocketAccept(SgSocket *socket);
+SG_EXTERN SgObject  Sg_SocketAccept(SgSocket *socket);
 SG_EXTERN void      Sg_SocketShutdown(SgSocket *socket, int how);
 SG_EXTERN void      Sg_SocketClose(SgSocket *socket);
 SG_EXTERN int       Sg_SocketOpenP(SgSocket *socket);
