@@ -719,6 +719,7 @@ SgObject Sg_SocketAccept(SgSocket *socket)
   hEvents[1] = (&vm->thread)->event;
   SG_SET_SOCKET_EVENT(socket, hEvents[0], FD_ACCEPT);
   r = WaitForMultipleObjects(2, hEvents, FALSE, INFINITE);
+  SG_SET_SOCKET_EVENT(socket, hEvents[0], 0);
   CloseHandle(hEvents[0]);
   if (r != WAIT_OBJECT_0) {
     ResetEvent(hEvents[1]);
