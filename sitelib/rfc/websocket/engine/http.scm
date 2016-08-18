@@ -234,7 +234,7 @@
       (put-bytevector* in/out #*"Sec-WebSocket-Accept: " server-key #*"\r\n")
       (when accepted-protocol
 	(put-bytevector* in/out #*"Sec-WebSocket-Protocol: "
-			 (string->utf8 accepted-protocol) #*"r\n"))
+			 (string->utf8 accepted-protocol) #*"\r\n"))
       (unless (null? accepted-extensions)
 	(put-bytevector* in/out #*"Sec-WebSocket-Extensions: ")
 	(put-comma-string in/out accepted-extensions)
