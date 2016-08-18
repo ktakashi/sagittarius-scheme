@@ -95,7 +95,6 @@
      (stop-lock      :init-form (make-mutex))
      (stop-waiter    :init-form (make-condition-variable))
      ;; private slot not to use thread-terminate!
-     (stop-request   :init-value #f)
      (port           :init-keyword :port)
      (dispatch       :init-keyword :dispatch)
      ;; set if non-blocking mode
@@ -184,10 +183,7 @@
 	    (thread-interrupt! thread))))))
   
   (define (stop-server server)
-    (mutex-lock! (~ server 'lock))
-    (set! (~ server 'stop-request) #t)
-    (for-each thread-interrupt! (~ server 'server-threads))
-    (mutex-unlock! (~ server 'lock)))
+    (for-each close-socket (~ server 'server-sockets)))
   
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
@@ -209,7 +205,7 @@
 		(guard (e (else 
 			   (when (~ config 'exception-handler)
 			     ((~ config 'exception-handler) server socket e))
-			   (socket-close socket)
+			   (close-socket socket)
 			   #t))
 		  (call-with-socket socket 
 		    (lambda (sock) (handler server sock)))))
@@ -253,35 +249,21 @@
 		  (define (stop) (close-socket socket) (set! stop? #t))
 		  (thread-specific-set! (current-thread) 'done)
 		  (let loop ()
-		    (guard (e (else
+		    (guard (e ((and (socket-error? e)
+				    ;; Don't check, TLS socket wouldn't
+				    ;; be the same since the condition
+				    ;; contains raw socket
+				    ;; (eq? socket (socket-error-socket e))
+				    (socket-closed? socket))
+			       ;; the socket is closed, so we can't process
+			       ;; anymore.
+			       (set! stop? #t))
+			      (else
 			       (when (~ config 'exception-handler)
 				 ((~ config 'exception-handler) server #f e))))
-		      ;; we need to check if the server is stopping or not
-		      ;; before we call socket-accept. to avoid race condition
-		      ;; we need to get lock first then check.
-		      ;; 
-		      ;; the reason why we use thread-interrrupt! now is that
-		      ;; on FreeBSD 11 or later, IPv6 and IPv4 sockets can 
-		      ;; exist on the same port and seems platform can merge
-		      ;; it into one. and when we tried to stop server which
-		      ;; has both IPv6 and IPv4 sockets, it failed due to the
-		      ;; get-address-info failure and went into infinite
-		      ;; waiting. to avoid that we switched to use thread
-		      ;; interruption.
-		      ;; 
-		      ;; FIXME this would be slow...
-		      (mutex-lock! (~ server 'lock))
-		      (if (~ server 'stop-request)
-			  (begin (mutex-unlock! (~ server 'lock)) (stop))
-			  (begin
-			    (mutex-unlock! (~ server 'lock))
-			    (let ((client-socket (socket-accept socket)))
-			      (cond ((~ server 'stop-request)
-				     (when client-socket
-				       (close-socket client-socket))
-				     (stop))
-				    (client-socket
-				     (dispatch server client-socket)))))))
+		      (let ((client-socket (socket-accept socket)))
+			(when client-socket
+			  (dispatch server client-socket))))
 		    (unless stop? (loop))))))
 	     sockets))
 
@@ -306,17 +288,17 @@
 		   (let ((sock (socket-accept stop-socket)))
 		     (cond (sock
 			    ;; ignore all errors
+			    (mutex-lock! (~ server 'lock))
 			    (guard (e (else #t))
 			      (when ((~ config 'shutdown-handler) server sock)
+				;; lock to avoid race condition here
 				(stop-server server)
 				(for-each thread-join! server-threads)
-				;; lock to avoid race condition here
-				(mutex-lock! (~ server 'lock))		
 				(set! (~ server 'server-sockets) #f)
-				(mutex-unlock! (~ server 'lock))
 				(condition-variable-broadcast!
 				 (~ server 'stop-waiter))
 				(mutex-unlock! (~ server 'stop-lock))))
+			    (mutex-unlock! (~ server 'lock))
 			    (close-socket sock)
 			    (if (server-stopped? server)
 				(close-socket stop-socket)

@@ -57,6 +57,7 @@
 	    *tls-version-1.0*
 
 	    socket-close
+	    socket-closed?
 	    socket-shutdown
 	    socket-send
 	    socket-recv
