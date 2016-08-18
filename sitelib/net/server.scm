@@ -95,6 +95,7 @@
      (stop-lock      :init-form (make-mutex))
      (stop-waiter    :init-form (make-condition-variable))
      ;; private slot not to use thread-terminate!
+     (stop-request   :init-value #f)
      (port           :init-keyword :port)
      (dispatch       :init-keyword :dispatch)
      ;; set if non-blocking mode
@@ -183,8 +184,22 @@
 	    (thread-interrupt! thread))))))
   
   (define (stop-server server)
-    (for-each close-socket (~ server 'server-sockets)))
-  
+;;    (define (connect ai-family)
+;;      (guard (e (else #t))
+;;	(if (~ server 'config 'secure?)
+;;	    (make-client-tls-socket "localhost" (~ server 'port) ai-family)
+;;	    (make-client-socket "localhost" (~ server 'port) ai-family))))
+    (define (safe-interrupt! t)
+      (guard (e (else #t)) (thread-interrupt! t)))
+    (set! (~ server 'stop-request) #t)
+    (for-each close-socket (~ server 'server-sockets))
+    ;; On FreeBSD, accept(2) can go on even the server
+    ;; socket is closed during the process. So we need
+    ;; to make sure this would stop
+;;    (when (~ server 'config 'use-ipv6?) (connect AF_INET6))
+;;    (connect AF_INET)
+    (for-each safe-interrupt! (~ server 'server-threads)))
+    
   (define (make-simple-server port handler
 			      :key (server-class <simple-server>)
 				   ;; must have default config
@@ -261,9 +276,11 @@
 			      (else
 			       (when (~ config 'exception-handler)
 				 ((~ config 'exception-handler) server #f e))))
-		      (let ((client-socket (socket-accept socket)))
-			(when client-socket
-			  (dispatch server client-socket))))
+		      (if (socket-closed? socket)
+			  (set! stop? #t)
+			  (let ((client-socket (socket-accept socket)))
+			    (cond ((~ server 'stop-request) (stop))
+				  (client-socket (dispatch server client-socket))))))
 		    (unless stop? (loop))))))
 	     sockets))
 
