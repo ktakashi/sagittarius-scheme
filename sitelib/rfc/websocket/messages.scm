@@ -64,6 +64,7 @@
 	  (rfc websocket conditions)
 	  (rfc tls)
 	  (sagittarius)
+	  (sagittarius socket)
 	  (prefix (binary io) b:)
 	  (math random)
 	  (srfi :39 parameters)
@@ -137,7 +138,8 @@
     ;; received the close frame in the situation, it would raise
     ;; an error.
     (websocket-connection-state-set! conn 'closing)
-    (websocket-send-frame! in/out +websocket-close-frame+ #t data #t))
+    (websocket-send-frame! in/out +websocket-close-frame+ #t data #t)
+    (socket-shutdown (websocket-connection-socket conn) SHUT_WR))
   
   ;; waits until server returns close
   (when wait?
