@@ -70,6 +70,12 @@ int i= GC_get_parallel();
 return 0;
 }
 " GC_GET_PARALLEL_WORKS)
+  # clean up the variable. otherwise it'd be used for others.
+  UNSET(CMAKE_REQUIRED_LIBRARIES)
+  UNSET(CMAKE_REQUIRED_DEFINITIONS)
+  UNSET(CMAKE_REQUIRED_INCLUDES)
+  UNSET(CMAKE_REQUIRED_FLAGS)
+  
   IF (NOT GC_GET_PARALLEL_WORKS)
     MESSAGE(STATUS "Try gc-threaded")
 
