@@ -858,6 +858,27 @@ contains 6 elements.
 If optional argument specifies which NIC's MAC address should be returned.
 }
 
+@define[Function]{@name{get-process-times}}
+@define[Function]{@name{get-thread-times} @args{:optional thread}}
+@desc{Returns a vector having 3 elements; @var{user time}, @var{system time}
+and @var{tick}.
+
+The first procedure returns process CPU time, the second procedure returns
+thread CPU time. If the optional argument @var{thread} is given, then the
+procedure retrieves CPU time of given thread. Otherwise current thread.
+
+@var{tick} is a clock tick. Users can compute CPU second Dividing
+@var{user time} or @var{system time} by this value.
+
+NOTE: @var{tick} may not be the same even on the same platform. For example,
+@code{get-process-times} returns value of @code{_SC_CLK_TCK}, and
+@code{get-thread-times} returns 1000000 (on OSX), 1000000000 (on other POSIX
+environments which have @code{pthread_getcpuclockid}), or @code{_SC_CLK_TCK}
+(on other POSIX environments which don't have @code{pthread_getcpuclockid}). So
+users must not assume the value is one of them and calculate CPU second with
+assumed value.
+}
+
 @define[Function]{@name{gc} @args{}}
 @desc{Invokes garbage collection manually.}
 
