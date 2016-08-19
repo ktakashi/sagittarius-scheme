@@ -5970,38 +5970,51 @@
 	       RET)))))
 
 (define (compile program env)
-  (let ((lsave (and (library? env) (vm-current-library)))
+  (let ((lsave (vm-current-library))
 	(usave (current-usage-env))
 	(msave (current-macro-env)))
-    (when lsave (vm-current-library env))
+    (when env (vm-current-library env))
     (*history* '()) ;; always null
     (dynamic-wind values
 	(lambda () (compile-entry program env))
 	(lambda ()
-	  (when lsave (vm-current-library lsave))
+	  (vm-current-library lsave)
 	  (current-usage-env usave)
 	  (current-macro-env msave)))))
 
 ;; for debug
-(define (compile-p1 program)
+(define (make-entry proc)
+  (lambda (program)
+    (let ((lsave (vm-current-library))
+	  (usave (current-usage-env))
+	  (msave (current-macro-env)))
+      (*history* '()) ;; always null
+      (dynamic-wind values
+	  (lambda () (proc program))
+	  (lambda ()
+	    (vm-current-library lsave)
+	    (current-usage-env usave)
+	    (current-macro-env msave))))))
+  
+(define (%compile-p1 program)
   (let ((env (make-bottom-p1env)))
     (pp-iform (pass1 (pass0 program env) env))))
 
-(define (compile-p2 program)
+(define (%compile-p2 program)
   (let ((env (make-bottom-p1env)))
     (pp-iform (pass2 (pass1 (pass0 program env) env)
 		     (p1env-library env)))))
 
-(define (compile-p3 program)
+(define (%compile-p3 program)
   (let ((env (make-bottom-p1env)))
     (pp-iform (pass3 (pass2 (pass1 (pass0 program env) env)
 			    (p1env-library env))))))
 
-(define (compile-p4 program)
+(define (%compile-p4 program)
   (let ((env (make-bottom-p1env)))
     (pp-iform (pass2-4 (pass1 (pass0 program env) env) (p1env-library env)))))
 
-(define (compile-p5 program)
+(define (%compile-p5 program)
   (let ((env (make-bottom-p1env)))
     (let* ((p1 (pass1 (pass0 program env) env))
 	   (p5 (pass5 (pass2-4 p1 (p1env-library env))
@@ -6010,5 +6023,11 @@
 		      'tail
 		      RET)))
       (vm-dump-code p5))))
+
+(define compile-p1 (make-entry %compile-p1))
+(define compile-p2 (make-entry %compile-p2))
+(define compile-p3 (make-entry %compile-p3))
+(define compile-p4 (make-entry %compile-p4))
+(define compile-p5 (make-entry %compile-p5))
 
 (define (init-compiler) #f)

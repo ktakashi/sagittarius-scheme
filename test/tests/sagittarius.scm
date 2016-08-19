@@ -988,7 +988,7 @@
 	     (r6rs:eval '(cond-expand ((and (library (rnrs)) 
 				       (or sagittarius something)) 
 				  #t))
-		   '(sagittarius)))
+			(environment '(sagittarius))))
 
 ;; issue 132
 ;; to avoid unbound variable on R6RS mode...
