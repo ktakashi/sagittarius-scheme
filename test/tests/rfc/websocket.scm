@@ -5,6 +5,8 @@
 	(rfc websocket messages)
 	(sagittarius control)
 	(sagittarius socket)
+	(sagittarius io)
+	(clos user)
 	(net server)
 	(binary io)
 	(srfi :18)
@@ -21,6 +23,29 @@
 		websocket-connection-port-set!))
 
 (test-begin "RFC Websocket")
+
+(define-class <one-shot-binary-port>
+  (<custom-binary-input-port> <read-once-port>)
+  ())
+
+(define (make-lazy-binary-input-port data)
+  (define pos 0)
+  (define len (bytevector-length data))
+  (define (read! bv start count)
+    (cond ((= pos len) 0)
+	  ((zero? count) 0)
+	  (else
+	   (bytevector-u8-set! bv start (bytevector-u8-ref data pos))
+	   (set! pos (+ pos 1))
+	   1)))
+  (define (close))
+  (make <one-shot-binary-port> :read read!))
+
+(test-equal "websocket-recv-frame"
+	    '(#t 1 #*"Hello")
+	    (let ((in (make-lazy-binary-input-port #vu8(#x81 #x05 #x48 #x65 #x6c #x6c #x6f))))
+	      (let-values ((r (websocket-recv-frame in)))
+		r)))
 
 (define (test-message conn populate expect)
   (websocket-connection-socket-port-set! conn (open-output-bytevector))

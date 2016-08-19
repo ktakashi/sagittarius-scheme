@@ -276,16 +276,26 @@
     (cond ((< len 126) len)
 	  ((= len 126) (b:get-u16 in (endianness big)))
 	  (else        (b:get-u64 in (endianness big)))))
+  ;; if the input port is a socket port, then it may return incomplete
+  ;; length of the data. so we need to make sure reading the given number
+  ;; of octets.
+  (define (read-n-octets in n)
+    (define bv (make-bytevector n))
+    (let loop ((c 0))
+      (if (= c n)
+	  bv
+	  (let ((r (get-bytevector-n! in bv c (- n c))))
+	    (loop (+ c r))))))
   
   (let* ((b1 (get-u8 in))
 	 (b2 (get-u8 in))
 	 (payload-length (get-payload-length (bitwise-and b2 #x7F) in))
 	 ;; TODO remove magic number here
 	 (masking-key (and (bitwise-bit-set? b2 7)
-			   (get-bytevector-n in +masking-key-length+)))
+			   (read-n-octets in +masking-key-length+)))
 	 (payload (if (zero? payload-length)
 		      #vu8()
-		      (get-bytevector-n in payload-length))))
+		      (read-n-octets in payload-length))))
     (values (fxbit-set? b1 7)
 	    (fxand b1 #x0F)
 	    (mask masking-key payload 0 payload-length))))
