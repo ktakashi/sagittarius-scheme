@@ -509,4 +509,44 @@ The condition hierarchy is the following:
     + &socket-closed
     + &socket-port (port)
 }
-@; TBD
+
+
+@define["Condition Type"]{@name{&host-not-found}}
+@define[Function]{@name{host-not-found-error?} @args{obj}}
+@define[Function]{@name{make-host-not-found-error} @args{node service}}
+@define[Function]{@name{host-not-found-error-node} @args{host-not-found}}
+@define[Function]{@name{host-not-found-error-service} @args{host-not-found}}
+@desc{This condition describes the combination of @var{node} and @var{service}
+does not exist.
+}
+
+@define["Condition Type"]{@name{&socket}}
+@define[Function]{@name{socket-error? @args{obj}}
+@define[Function]{@name{make-socket-error} @args{socket}}
+@define[Function]{@name{socket-error-socket} @args{socket-error}}
+@desc{This condition describes general socket operation error.}
+
+@define["Condition Type"]{@name{&socket-connection}}
+@define[Function]{@name{socket-connection-error?}  @args{obj}}
+@define[Function]{@name{make-socket-connection-error} @args{socket}}
+@desc{This condition describes socket connection error.}
+
+@define["Condition Type"]{@name{&socket-closed}}
+@define[Function]{@name{socket-closed-error?} @args{obj}}
+@define[Function]{@name{make-socket-closed-error} @args{socket}}
+@desc{This condition describes socket closed error.}
+
+@define["Condition Type"]{@name{&socket-port}}
+@define[Function]{@name{socket-port-error?} @args{obj}}
+@define[Function]{@name{make-socket-port-error} @args{socket port}}
+@define[Function]{@name{socket-error-port} @args{socket-port-error}}
+@desc{This condition describes error of socket port operation. Particularly,
+when @code{port-ready} procedure is called on socket port and
+@code{select (2)} failed.
+
+NOTE: Read or write failure of socket port raises @code{&i/o-read} or
+@code{&i/o-write} the same as other ports for compatibility.
+
+NOTE2: This condition may be signalled when @code{get-bytevector-all} is
+called on socket port since it checks whether or not the given port is ready. 
+}

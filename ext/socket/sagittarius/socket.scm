@@ -137,13 +137,16 @@
 	    ;; conditions
 	    &host-not-found host-not-found-error? make-host-not-found-error
 	    host-not-found-error-node host-not-found-error-service
+	    
 	    &socket socket-error? make-socket-error
-	    &socket-socket socket-error-socket
+	    socket-error-socket
+	    
 	    &socket-connection socket-connection-error? 
 	    make-socket-connection-error
+	    
 	    &socket-closed socket-closed-error? make-socket-closed-error
 	    &socket-port socket-port-error? make-socket-port-error
-	    &socket-port socket-error-port
+	    socket-error-port
 	    )
     (import (core)
 	    (core errors)
