@@ -20,22 +20,6 @@
 	(match)
 	(getopt))
 
-;; remove after 0.7.8
-(with-library (sagittarius cgen stub)
-  (define-syntax define-form-parser
-    (lambda (x)
-      (syntax-case x ()
-	((_ name args . body)
-	 #'(set! *instance-pool*
-		 (cons (make <form-parser> :name 'name :args 'args
-			     :handler (lambda args . body))
-		       *instance-pool*)))))))
-(with-library (sagittarius cgen stub)
-  (export define-form-parser cgen-stub-parse-form))
-;; end
-;; TODO should we export <c-proc>? 
-(define <c-proc> (with-library (sagittarius cgen stub) <c-proc>))
-
 (define-form-parser define (name . body)
   (set! *scheme-definitions*
 	(cons `(define ,name . ,body) *scheme-definitions*)))
