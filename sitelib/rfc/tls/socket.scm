@@ -339,8 +339,16 @@
 
   (define (handle-error socket e :key (raise-error #t))
     (define (finish socket e)
-      (cond (raise-error (%tls-socket-close socket) (raise e))
-	    (else (%tls-socket-close socket) socket)))
+      (define (close socket)
+	;; I have no idea which path this could happen
+	;; but it happened...
+	(when (~ socket 'raw-socket)
+	  (socket-shutdown (~ socket 'raw-socket) SHUT_RDWR))
+	(%tls-socket-close socket))
+      (cond (raise-error (close socket) (raise e))
+	    ;; if raise-error is #f, then don't close
+	    ;; otherwise returning closed socket.
+	    (else socket)))
     (cond ((tls-alert? e) (finish socket e))
 	  (else
 	   (when (~ socket 'raw-socket)
@@ -1621,7 +1629,8 @@
 		   ( (bytevector? record) )
 		   (in (open-bytevector-input-port record)))
 	  (set! (~ socket 'buffer) in)
-	  (get-bytevector-n! in bv start len))
+	  (let ((r (get-bytevector-n! in bv start len)))
+	    (if (eof-object? r) 0 r)))
 	;; TODO check if the raw socket is nonblocking mode or not.
 	;; (tls-error 'tls-socket-recv "invalid socket state" *internal-error*)
 	))
