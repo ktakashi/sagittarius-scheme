@@ -42,8 +42,8 @@
 	    (sagittarius io)
 	    (clos user))
 
-  (define-class <one-shot-port> (<custom-binary-bidirectional-port> 
-				 <read-once-port>) ())
+    (define-class <tls-socket-port> (<custom-binary-bidirectional-port> 
+				     <read-once-port>) ())
 
   ;; make custom port
   (define (%tls-socket-port socket ctr)
@@ -58,7 +58,9 @@
       ;; for sagittarius implementation bv starts always 0, but just in case
       (let ((buf (bytevector-copy bv start (+ start count))))
 	(tls-socket-send socket buf 0)))
-    (define (close) (tls-socket-close socket))
+    (define (close)
+      (tls-socket-shutdown socket SHUT_RDWR)
+      (tls-socket-close socket))
     (define (ready?) 
       (not (null? (socket-read-select 0 (~ socket 'raw-socket)))))
     (ctr read! write! close ready?))
@@ -66,7 +68,7 @@
   (define (tls-socket-port socket :optional (close? #t))
     (%tls-socket-port socket
 		      (lambda (read! write! close ready?)
-			(make <one-shot-port>
+			(make <tls-socket-port>
 			  :id "tls-socket-port"
 			  :read read!
 			  :write write! 
