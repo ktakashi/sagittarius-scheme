@@ -242,11 +242,10 @@
 	  (let ((next (slot-ref info 'next)))
 	    (if next
 		(loop (create-socket next) next)
-		(raise (condition (make-host-not-found-error node service)
+		(raise (condition (make-host-not-found-error #f service)
 				  (make-who-condition 'make-client-socket)
 				  (make-message-condition "no next addrinfo")
-				  (make-irritants-condition
-				   (list node service)))))))
+				  (make-irritants-condition service))))))
 
 	(or (and-let* (( socket )
 		       ( info )
