@@ -2035,48 +2035,18 @@ static int check_timestamp(SgString* id, SgString *cache_path)
   return CACHE_READ;
 }
 
-int Sg_ReadCache(SgString *id)
+int Sg_ReadCacheFromPort(SgPort *in)
 {
   SgVM *vm = Sg_VM();
-  SgString *cache_path = id_to_filename(id);
-  SgFile file;
-  SgPort *in;
-  SgFilePort bp;
-  /* SgBufferedPort bfp; */
   SgObject obj;
   SgHashTable seen, shared;
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
-  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
   int b, ret;
-  /* for statistic */
-  uint64_t real;
-
-  if (!cache_path) return INVALID_CACHE;
 
   if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
     return INVALID_CACHE;
   }
-
-  if (!Sg_FileExistP(cache_path)) {
-    return RE_CACHE_NEEDED;
-  }
-  ret = check_timestamp(id, cache_path);
-  if (ret != CACHE_READ) return ret;
-  /* a bit of statistic for reading cache */
-  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
-    Sg_TimeUsage(&real, NULL, NULL);
-    /* Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id); */
-  }
-
-  SG_OPEN_FILE(&file, cache_path, SG_READ);
-  Sg_LockFile(&file, SG_SHARED);
-  /* Now I/O is not so slow so we can use file input port.
-     This uses less memory :) */
-  in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
-			     NULL, SG_BUFFER_MODE_BLOCK,
-			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
-
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
 
@@ -2088,7 +2058,7 @@ int Sg_ReadCache(SgString *id)
   ctx.sharedObjects = &shared;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
-  ctx.file = cache_path;
+  ctx.file = Sg_FileName(in);
   ctx.links = SG_NIL;
   SG_PORT_LOCK_READ(in);
   /* check if it's invalid cache or not */
@@ -2159,6 +2129,45 @@ int Sg_ReadCache(SgString *id)
  end:
   vm->currentLibrary = save;
   SG_PORT_UNLOCK_READ(in);
+  return ret;
+}
+
+int Sg_ReadCache(SgString *id)
+{
+  SgVM *vm = Sg_VM();
+  SgString *cache_path = id_to_filename(id);
+  SgFile file;
+  SgPort *in;
+  SgFilePort bp;
+  /* SgBufferedPort bfp; */
+  uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE] = {0,};
+  /* for statistic */
+  uint64_t real;
+  int ret;
+
+  if (!cache_path) return INVALID_CACHE;
+
+  if (!Sg_FileExistP(cache_path)) {
+    return RE_CACHE_NEEDED;
+  }
+  ret = check_timestamp(id, cache_path);
+  if (ret != CACHE_READ) return ret;
+  /* a bit of statistic for reading cache */
+  if (SG_VM_LOG_LEVEL(vm, SG_INFO_LEVEL)) {
+    Sg_TimeUsage(&real, NULL, NULL);
+    /* Sg_Printf(vm->logPort, UC(";; reading cache of %S\n"), id); */
+  }
+
+  SG_OPEN_FILE(&file, cache_path, SG_READ);
+  Sg_LockFile(&file, SG_SHARED);
+  /* Now I/O is not so slow so we can use file input port.
+     This uses less memory :) */
+  in = Sg_InitFileBinaryPort(&bp, &file, SG_INPUT_PORT, 
+			     NULL, SG_BUFFER_MODE_BLOCK,
+			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
+
+  ret = Sg_ReadCacheFromPort(in);
+
   Sg_UnlockFile(&file);
   Sg_ClosePort(in);
   /* SG_CLEAN_BINARY_PORT(&bp); */
