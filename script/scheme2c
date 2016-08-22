@@ -1,0 +1,202 @@
+#!/bin/sh
+#| -*- mode:scheme; coding:utf-8; -*-
+exec sagittarius $0 "$@"
+|#
+#!read-macro=sagittarius/regex
+(import (rnrs)
+	(sagittarius)
+	(sagittarius control)
+	(sagittarius process)
+	(sagittarius io)
+	(util file)
+	(util port)
+	(match)
+	(clos user)
+	(sagittarius cgen unit)
+	(sagittarius cgen precomp)
+	(srfi :1)
+	(binary io) ;; including get-line as well
+	(math)
+	(getopt))
+
+(define (print . args)
+  (for-each (lambda (l) (display l)) args) (newline))
+
+(define (printe . args)
+  (for-each (lambda (l) (display l (current-error-port))) args)
+  (newline (current-error-port)))
+
+(define (collect-imports&exprs exprs)
+  (let-values (((imports exprs)
+		(partition (match-lambda (('import rest ...) #t) (_ #f))
+			   exprs)))
+    (values (append-map (lambda (i) (cdr i)) imports) exprs)))
+
+(define (error-reader process stdout stderr transcoder)
+  (let ((perr (process-error-port process)))
+    (let loop ((l (get-line perr)))
+      (unless (#/loaded/ l)
+	(put-bytevector stderr l)
+	(put-u8 stderr #x0a)
+	(loop (get-line perr))))
+    process))
+
+(define +sagittarius+
+  (or (getenv "SAGITTARIUS")
+      (cond-expand
+       ;; for Windows it must be this
+       (windows "sash")
+       (else "sagittarius"))))
+(define (cache-imports imports :key (stderr #f))
+  (define expr (format "(begin ~a) (exit)" (cons 'import imports)))
+  (let ((p (create-process +sagittarius+
+			   (if stderr
+			       (list "-Einfo" "-e" expr)
+			       (list "-e" expr))
+			   :stdout (current-output-port)
+			   :stderr stderr
+			   :transcoder #f
+			   :reader (if stderr error-reader #f))))
+    (process-run p)))
+
+
+(define (retrieve-caches imports)
+  (define in/out (open-chunked-binary-input/output-port))
+  (define expr '(begin (display "version: " (current-error-port))
+		       (display (sagittarius-version) (current-error-port))
+		       (newline (current-error-port))))
+  (define (->cache line)
+    (cond ((#/read cache of "(.+?)"/ line) =>
+	   (lambda (m)
+	     (let* ((file (utf8->string (m 1)))
+		    (func (string-append "_"
+			   (cgen-safe-name (number->string
+					    (bytevector->integer
+					     (hash SHA-1 (m 1)))
+					    32)))))
+	       (cons func (file->bytevector (file->cache-file file))))))
+	  (else #f)))
+  (cache-imports imports :stderr in/out)
+  (set-port-position! in/out 0)
+  (reverse!
+   (port-fold (lambda (line r)
+		(let ((cache (->cache line)))
+		  (if cache (cons cache r) r)))
+	      '() (lambda () (get-line in/out)))))
+   
+(define (generate-unique-library-name) (list (gensym)))
+
+(define (emit-raw code)
+  (if (list? code)
+      (for-each print code)
+      (print code)))
+
+(define-method cgen-emit-c ((unit <cgen-precomp-unit>))
+  (cond ((cgen-unit-preamble unit) => emit-raw))
+  (cgen-emit-part unit 'decl)
+  (cgen-emit-static-data unit)
+  (cgen-emit-part unit 'body)
+  (cond ((cgen-unit-init-prologue unit) => emit-raw)
+	(else
+	 (print "void Sg__Init_" (cgen-safe-name (cgen-unit-name unit))
+		"()")
+	 (print "{")))
+  (cgen-emit-part unit 'init)
+  (cond ((cgen-unit-init-epilogue unit) => emit-raw)
+	(else (print "}"))))
+
+(define (emit-static-caches caches)
+  (define (emit-static-cache cache)
+    (define image (cdr cache))
+    (print "static uint8_t " (car cache) "[] = {")
+    (dotimes (i (bytevector-length image))
+      (unless (zero? i) (display ", "))
+      (when (and (not (zero? i)) (zero? (mod i 15))) (newline))
+      (format #t "0x~2,'0x" (bytevector-u8-ref image i)))
+    (print "};"))
+  (print "#include <stdint.h>")
+  (for-each emit-static-cache caches))
+
+(define library-name->string
+  (with-library (sagittarius cgen precomp) library-name->string))
+
+(define (emit-execution-code lib caches)
+  (let ((init-this (format "Sg__Init_~a()" (library-name->string lib))))
+    (print "static SgObject argsToList(char** argv, int argc)")
+    (print "{")
+    (print "  SgObject h = SG_NIL, t = SG_NIL;")
+    (print "  int i;")
+    (print "  for (i = 0; i < argc; i++) {")
+    (print "    SG_APPEND1(h, t, Sg_MakeStringC(argv[i]));")
+    (print "  }")
+    (print "  return h;")
+    (print "}")
+
+    (print "int main(int argc, char **argv)")
+    (print "{")
+    (print "  SgObject lib, m, r;")
+    (print "  Sg_Init();")
+    (print "  SG_VM_SET_FLAG(Sg_VM(), SG_WARN_LEVEL);")
+    (for-each (lambda (cache)
+		(format #t "  Sg_ReadCacheFromImage(~a, ~a);~%"
+			(car cache) (bytevector-length (cdr cache)))) caches)
+    (print "  " init-this ";")
+    (format #t  "  lib = Sg_FindLibrary(SG_INTERN(\"~a\"), FALSE);~%"
+	    (encode-library-name lib))
+    (print  "  m = Sg_FindBinding(lib, SG_INTERN(\"main\"), SG_UNBOUND);")
+    (print  "  if (SG_UNBOUNDP(m)) return 0;")
+    (print  "  r = Sg_Apply1(SG_GLOC_GET(SG_GLOC(m)), argsToList(argv, argc));")
+    (print  "  return SG_INTP(r)? SG_INT_VALUE(r): 0;")
+    (print "}")))
+
+(define (usage)
+  (printe "sagittarius-executable [OPTIONS] file")
+  (printe "OPTIONS")
+  (printe " -h,--help")
+  (printe"     show this message and quit")
+  (printe " -o $OUTPUT,--output=$OUTPUT")
+  (printe "    specifying output C file")
+  (exit -1))
+
+(define (main args)
+  (define (get-out o)
+    (if o
+	(open-file-output-port
+	   o (file-options no-fail) (buffer-mode block) (native-transcoder))
+	(current-output-port)))
+  (with-args (cdr args)
+      ((h (#\h "help") #f #f)
+       (o (#\o "output") #t #f)
+       (verbose (#\V "verbose") #f #f)
+       . rest)
+    (when h (usage))
+    (let ((file (car rest)))
+      (unless (file-exists? file)
+	(printe "Specified file does not exists: " file)
+	(exit -1))
+      (when verbose (printe "file: " file))
+      (let ((exprs (file->sexp-list file))
+	    (library-name (generate-unique-library-name)))
+	(let-values (((imports exprs) (collect-imports&exprs exprs)))
+	  (when verbose (printe "caching " imports "... "))
+	  (cache-imports imports)
+	  (when verbose (printe "done! "))
+	  (let ((c-body (with-output-to-string
+			  (lambda ()
+			    (cgen-precompile `(library ,library-name
+						;; may get warning but
+						;; need this
+						(export main)
+						(import ,@imports)
+						,@exprs)
+					     :in-file file))))
+		(caches (retrieve-caches imports))
+		(out (get-out o)))
+	    (with-output-to-port out
+	      (lambda ()
+		(emit-static-caches caches)
+		(print c-body)
+		(emit-execution-code library-name caches)))
+	    (flush-output-port out)
+	    (close-port out)))))))
+			
