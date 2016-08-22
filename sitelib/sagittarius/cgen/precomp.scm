@@ -336,7 +336,7 @@
 	(format (current-error-port) 
 		"*WARNING* identifier '~a' in ~a contains environment~%    \
                  assume the identifier can be resolved in the \
-                 target library. ~,,,20s~%"
+                 target library. ~,,,,20s~%"
 		(id-name value) (library-name (id-library value))
 		(id-envs value)))
       (let1 libname (symbol->string (library-name (id-library value)))
