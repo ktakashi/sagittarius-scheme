@@ -3,6 +3,7 @@
 (library (sagittarius cgen unit)
     (export <cgen-unit> cgen-current-unit
 	    ;; accessors
+	    cgen-unit-name
 	    cgen-unit-c-file
 	    cgen-unit-h-file
 	    cgen-unit-toplevel-nodes

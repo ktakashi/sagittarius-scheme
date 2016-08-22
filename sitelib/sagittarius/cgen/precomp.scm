@@ -39,6 +39,8 @@
 	    default-name-generator
 	    +replace-prefix+
 	    <cgen-precomp-unit>
+	    encode-library-name
+	    decode-library-name
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -379,8 +381,7 @@
 	      :c-name (cgen-allocate-static-datum)
 	      :id-name (cgen-literal (id-name value))
 	      :library (cgen-literal 
-			(if (and (null? (id-envs value))
-				 (not (replace-pattern libname)))
+			(if (not (replace-pattern libname))
 			    (id-library value)
 			    (find-library (~ (cgen-current-unit) 'library)
 					  #f))))))
