@@ -462,4 +462,20 @@
 	  (print "  } while (0);")))
   (static (self) #f))
 
+(define-cgen-literal <cgen-scheme-regex> <pattern>
+  ((pattern :init-keyword :pattern))
+  (make (value)
+    (make <cgen-scheme-regex> :value value
+	  :c-name (cgen-allocate-static-datum)
+	  :pattern (cgen-literal (regex-pattern value))))
+  (init (self)
+	(let ((pattern (~ self 'value))
+	      (lite (~ self 'pattern))
+	      (cname (~ self 'c-name)))
+	  (format #t "  ~a = Sg_CompileRegex(~a, ~a, FALSE); /* ~a */~%" cname
+		  (cgen-cexpr lite)
+		  (regex-flags pattern)
+		  pattern)))
+  (static (self) #f))
+
 )

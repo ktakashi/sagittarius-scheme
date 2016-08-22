@@ -398,7 +398,7 @@
 	:c-name (cgen-allocate-static-datum)
 	:value value))
     (init (self)
-      (format #t "  ~a = SG_MAKE_STRING(\"~a\");~%"
+      (format #t "  ~a = SG_MAKE_STRING(~s);~%"
 	      (cgen-c-name self)
 	      (slot-ref self 'value)))
     (static (self) #f))
