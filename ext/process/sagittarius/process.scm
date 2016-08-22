@@ -154,13 +154,13 @@
 	  (cond ((eof-object? r) (flush-output-port out) (close-input-port in))
 		(else (writer out r) (loop))))))
     (define (make-task in out)
-      (lambda ()
-	(if transcoder
+      (if transcoder
+	  (lambda ()
 	    (pipe-read (transcoded-port in transcoder)
 		       out
 		       get-char
-		       put-char)
-	    (pipe-read in out get-u8 put-u8))))
+		       put-char))
+	  (lambda () (pipe-read in out get-u8 put-u8))))
     (thread-start!
      (make-thread (make-task (process-output-port process) stdout)))
     (thread-start!
