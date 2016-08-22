@@ -76,11 +76,8 @@ struct SgByteVectorRec
   do { (var) = Sg_MakeByteVector(size, 0); } while (0)
 #endif
 
-/* TODO should we? */
-/*
-#define SG_STATIC_BYTEVECTOR(size_, elements_)	\
+#define SG_STATIC_BYTEVECTOR(size_, elements_)				\
   { SG_CLASS_STATIC_TAG(Sg_ByteVectorClass), TRUE, (size_), (elements_) }
-*/
 
 SG_CDECL_BEGIN
 

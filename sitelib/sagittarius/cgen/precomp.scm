@@ -54,6 +54,7 @@
 	    (sagittarius cgen unit)
 	    (sagittarius cgen literal)
 	    (match)
+	    (util bytevector)
 	    (core base) ;; for print
 	    (srfi :1 lists)
 	    (srfi :13 strings)
@@ -426,4 +427,22 @@
 		    (cgen-safe-comment (vector-ref vec i))))
 	  (print "  } while (0);")))
   (static (self) #f))
+
+(define-cgen-literal <cgen-scheme-bytevector> <bytevector>
+  ()
+  (make (value)
+    (define (init)
+      (define len (bytevector-length value))
+      (define (dump bv)
+	(define len (bytevector-length bv))
+	(display "    \"")
+	(dotimes (i len) (format #t "\\x~2,'0x" (bytevector-u8-ref bv i)))
+	(display "\"") (newline))
+      (format #t "    SG_STATIC_BYTEVECTOR(~a, (uint8_t*)~%" len)
+      (let1 bvs (bytevector-slices value 8)
+	(for-each dump bvs))
+      (display   "    )"))
+    (make <cgen-scheme-bytevector> :value value
+	  :c-name (cgen-allocate-static-datum 'runtime 'SgByteVector init)))
+  (static (self) #t))
 )
