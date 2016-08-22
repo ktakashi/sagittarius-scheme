@@ -2035,18 +2035,14 @@ static int check_timestamp(SgString* id, SgString *cache_path)
   return CACHE_READ;
 }
 
-int Sg_ReadCacheFromPort(SgPort *in)
+static int read_cache_from_port(SgVM *vm, SgPort *in)
 {
-  SgVM *vm = Sg_VM();
   SgObject obj;
   SgHashTable seen, shared;
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   int b, ret;
 
-  if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
-    return INVALID_CACHE;
-  }
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
 
@@ -2132,6 +2128,18 @@ int Sg_ReadCacheFromPort(SgPort *in)
   return ret;
 }
 
+int Sg_ReadCacheFromPort(SgPort *in)
+{
+  return read_cache_from_port(Sg_VM(), in);
+}
+
+int Sg_ReadCacheFromImage(uint8_t *image, size_t len)
+{
+  SgBytePort bp;
+  SgObject in = Sg_InitByteArrayInputPort(&bp, image, 0, len);
+  return read_cache_from_port(Sg_VM(), in);
+}
+
 int Sg_ReadCache(SgString *id)
 {
   SgVM *vm = Sg_VM();
@@ -2146,6 +2154,10 @@ int Sg_ReadCache(SgString *id)
   int ret;
 
   if (!cache_path) return INVALID_CACHE;
+
+  if (SG_VM_IS_SET_FLAG(vm, SG_DISABLE_CACHE)) {
+    return INVALID_CACHE;
+  }
 
   if (!Sg_FileExistP(cache_path)) {
     return RE_CACHE_NEEDED;
@@ -2166,7 +2178,7 @@ int Sg_ReadCache(SgString *id)
 			     NULL, SG_BUFFER_MODE_BLOCK,
 			     portBuffer, SG_PORT_DEFAULT_BUFFER_SIZE);
 
-  ret = Sg_ReadCacheFromPort(in);
+  ret = read_cache_from_port(vm, in);
 
   Sg_UnlockFile(&file);
   Sg_ClosePort(in);

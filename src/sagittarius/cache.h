@@ -90,6 +90,7 @@ SG_CDECL_BEGIN
 SG_EXTERN int  Sg_WriteCache(SgObject name, SgString *id, SgObject cache);
 SG_EXTERN int  Sg_ReadCache(SgString *id);
 SG_EXTERN int  Sg_ReadCacheFromPort(SgPort *port);
+SG_EXTERN int  Sg_ReadCacheFromImage(uint8_t *image, size_t len);
 SG_EXTERN void Sg_CleanCache(SgObject target);
 
 /* cache helper */
