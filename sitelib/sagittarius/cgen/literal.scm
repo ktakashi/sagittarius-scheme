@@ -17,6 +17,7 @@
 	    (sagittarius control)
 	    (sagittarius cgen unit)
 	    (util hashtables)
+	    (util bytevector)
 	    (srfi :26 cut)
 	    (srfi :42 eager-comprehensions))
 
@@ -296,12 +297,13 @@
     (cexpr (self) "SG_NIL"))
 
   ;; fixnum
+  ;; FIXME this won't create portable code between 32 and 64 bit environment.
   (define-cgen-literal <cgen-scheme-integer> <integer>
     ((string-rep :init-keyword :string-rep :init-value #f))
     (make (value)
       (cond ((fixnum? value)
 	     (make <cgen-scheme-integer> :c-name #f :value value))
-	    ((< (- expt 2 31) value (- (expt 2 32)))
+	    ((< (- (expt 2 31)) value (expt 2 32))
 	     (make <cgen-scheme-integer>
 	       :c-name (cgen-allocate-static-datum)
 	       :value value))
@@ -313,26 +315,81 @@
     (pred (self)
       (let ((value (slot-ref self'value)))
 	(cond ((fixnum? value) "SG_INTP")
-	      (else "Sg_IntegerP"))))
+	      (else "SG_EXACT_INTP"))))
     (cexpr (self)
       (or (cgen-c-name self)
 	  (if (positive? (slot-ref self'value))
 	      (format "SG_MAKE_INT(~aU)" (slot-ref self'value))
 	      (format "SG_MAKE_INT(~a)" (slot-ref self'value)))))
     (init (self)
+      (when (cgen-c-name self)
+	(let ((val (slot-ref self'value))
+	      (cname (cgen-c-name self)))
+	  (cond ((< (- (expt 2 31)) val 0)
+		 (print "  " cname " = Sg_MakeInteger("val");"))
+		((<= 0 val (expt 2 32))
+		 (print "  " cname " = Sg_MakeIntegerU("val");"))
+		(else
+		 (print "  " cname " = Sg_StringToNumber(SG_MAKE_STRING("
+			(cgen-cexpr (slot-ref self'string-rep))
+			"), 16 TRUE);"))))))
+    (static (self) (not (cgen-c-name self))))
+
+  (define-cgen-literal <cgen-scheme-rational> <rational>
+    ((numerator :init-keyword :numerator)
+     (denominator :init-keyword :denominator))
+    (make (value)
+      (let ((n (cgen-literal (numerator value)))
+	    (d (cgen-literal (denominator value))))
+	(make <cgen-scheme-rational>
+	  :c-name (cgen-allocate-static-datum)
+	  :value value
+	  :numerator n
+	  :denominator d)))
+    (pred (self) "SG_RATIONALP")
+    (init (self)
+      (let ((n (slot-ref self 'numerator))
+	    (d (slot-ref self 'denominator))
+	    (cname (cgen-c-name self)))
+	(format #t "  ~a = Sg_MakeRational(~a, ~a);~%"
+		cname
+		(or (cgen-c-name n) (cgen-cexpr n))
+		(or (cgen-c-name d) (cgen-cexpr d)))))
+    (static (self) #f))
+  
+  (define-cgen-literal <cgen-scheme-flonum> <real>
+    ()
+    (make (value)
+      (let1 c-name (cgen-allocate-static-datum)
+	(make <cgen-scheme-flonum> :c-name c-name :value value)))
+    (pred (self) "SG_FLONUMP")
+    (init (self)
       (let ((val (slot-ref self'value))
 	    (cname (cgen-c-name self)))
-	(cond ((< (- expt 2 31) val 0)
-	       (print "  " cname " = Sg_MakeInteger("val");"))
-	      ((<= 0 val (- expt 2 32))
-	       (print "  " cname " = Sg_MakeIntegerU("val");"))
-	      (else
-	       (print "  " cname " = Sg_StringToNumber(SG_MAKE_STRING("
-		      (cgen-cexpr (slot-ref self'string-rep)) "), 16 TRUE);")))
-	))
-    (static (self)
-      (if (cgen-c-name self) #f #t)))
-
+	(print "  " cname " = Sg_MakeFlonum("val");")))
+    (static (self) #f))
+  
+  (define-cgen-literal <cgen-scheme-complex> <complex>
+    ((real :init-keyword :real)
+     (imag :init-keyword :imag))
+    (make (value)
+      (let1 c-name (cgen-allocate-static-datum)
+	(make <cgen-scheme-complex>
+	  :c-name c-name
+	  :value value
+	  :real (cgen-literal (real-part value))
+	  :imag (cgen-literal (imag-part value)))))
+    (pred (self) "SG_COMPLEXP")
+    (init (self)
+      (let ((real (slot-ref self 'real))
+	    (imag (slot-ref self 'imag))
+	    (cname (cgen-c-name self)))
+	(format #t "  ~a = Sg_MakeComplex(~a, ~a);~%"
+		cname
+		(or (cgen-c-name real) (cgen-cexpr real))
+		(or (cgen-c-name imag) (cgen-cexpr imag)))))
+    (static (self) #f))
+  
   ;; string
   (define-cgen-literal <cgen-scheme-string> <string>
     ()
@@ -380,4 +437,23 @@
 	     (cgen-cexpr (slot-ref self 'keyword-name))
 	     ")); /* " (cgen-safe-comment (slot-ref self 'value)) " */"))
     (static (self) #f))
+
+  (define-cgen-literal <cgen-scheme-bytevector> <bytevector>
+    ()
+    (make (value)
+      (define (init)
+	(define len (bytevector-length value))
+	(define (dump bv)
+	  (define len (bytevector-length bv))
+	  (display "    \"")
+	  (dotimes (i len) (format #t "\\x~2,'0x" (bytevector-u8-ref bv i)))
+	  (display "\"") (newline))
+	(format #t "    SG_STATIC_BYTEVECTOR(~a, (uint8_t*)~%" len)
+	(let1 bvs (bytevector-slices value 8)
+	  (for-each dump bvs))
+	(display   "    )"))
+      (make <cgen-scheme-bytevector> :value value
+	    :c-name (cgen-allocate-static-datum 'runtime 'SgByteVector init)))
+    (pred (self) "SG_BVECTORP")
+    (static (self) #t))
 )

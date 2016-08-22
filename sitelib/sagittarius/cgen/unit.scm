@@ -1,5 +1,5 @@
 ;; -*- mode: scheme; coding: utf-8; -*-
-#<(sagittarius regex)>
+#!read-macro=sagittarius/regex
 (library (sagittarius cgen unit)
     (export <cgen-unit> cgen-current-unit
 	    ;; accessors
