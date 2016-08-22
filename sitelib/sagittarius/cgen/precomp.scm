@@ -127,22 +127,56 @@
     (cgen-body 
      (format "   SG_CODE_BUILDER(~a);" (cgen-cexpr topcb)))
     (let1 library (find-library name #f) ;; get the library
+      ;; from compiler.scm
+      (define (parse-spec spec)
+	(define (check-expand-phase phases)
+	  (not (exists (lambda (phase)
+			 (or (eq? phase 'run) (equal? phase '(meta 0))))
+		       phases)))
+	(match spec
+	  ;; library
+	  (((? (lambda (x) (eq? 'library x)) _) ref)
+	   (values ref '() #f))
+	  ;; rename
+	  (((? (lambda (x) (eq? 'rename x)) _) set renames ...)
+	   (receive (ref resolved trans?) (parse-spec set)
+	     (values ref `(,@resolved (rename ,@renames)) trans?)))
+	  ;; only
+	  (((? (lambda (x) (eq? 'only x)) _) set ids ...)
+	   (receive (ref resolved trans?) (parse-spec set)
+	     (values ref `(,@resolved (only ,@ids)) trans?)))
+	  ;; except
+	  (((? (lambda (x) (eq? 'except x)) _) set ids ...)
+	   (receive (ref resolved trans?) (parse-spec set)
+	     (values ref `(,@resolved (except ,@ids)) trans?)))
+	  ;; prefix
+	  (((? (lambda (x) (eq? 'prefix x)) _) set prefix)
+	   (unless (symbol? prefix) (error 'import "bad prefix" form))
+	   (receive (ref resolved trans?) (parse-spec set)
+	     (values ref `(,@resolved (prefix . ,prefix)) trans?)))
+	  ;; for
+	  ;; basically, this will be ignored
+	  (((? (lambda (x) (eq? 'for x)) _) set phase ...)
+	   (receive (ref resolved trans?) (parse-spec set)
+	     (values ref resolved (check-expand-phase phase))))
+	  (_ (values spec '() #f))))
+      
       ;; emit imports
       (for-each (lambda (i)
-		  ;; we don't resolve any condition but for
-		  ;; and for will be ignored
-		  (cond ((not (pair? i))
-			 (cgen-init (format "  Sg_ImportLibrary(~a, ~a);~%"
-					    (cgen-cexpr (cgen-literal library))
-					    (cgen-cexpr (cgen-literal i)))))
-			((eq? (car i) 'for))
-			(else
-			 (cgen-init 
-			  (format "  Sg_ImportLibrary(~a, ~a);~%"
-				  (cgen-cexpr (cgen-literal library))
-				  (cgen-cexpr 
-				   (cgen-literal 
-				    (string->symbol (format "~a" i)))))))))
+		  (if (symbol? i)
+		      (cgen-init (format "  Sg_ImportLibrary(~a, ~a);~%"
+					 (cgen-cexpr (cgen-literal library))
+					 (cgen-cexpr (cgen-literal i))))
+		      (let-values (((ref resolved-spec trans?)
+				    (parse-spec i)))
+			(and-let* (( (not  trans?) )
+				   (spec (reverse! resolved-spec))
+				   (l (string->symbol (format "~s" ref))))
+			  (cgen-init
+			   (format "  Sg_ImportLibraryFullSpec(~a, ~a, ~a);~%"
+				   (cgen-cexpr (cgen-literal library))
+				   (cgen-cexpr (cgen-literal l))
+				   (cgen-cexpr (cgen-literal spec))))))))
 		imports)
       ;; emit exports
       (for-each (lambda (e)
