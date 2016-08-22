@@ -103,6 +103,9 @@ SG_EXTERN SgObject Sg_ReadCacheObject(SgPort *p, SgReadCacheCtx *ctx);
 /* for compiler */
 SG_EXTERN int  Sg_CachableP(SgObject o);
 
+/* target file to cache path */
+SG_EXTERN SgObject Sg_FileToCacheFile(SgString *o);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_CACHE_H_ */

@@ -1250,7 +1250,7 @@
   (define-type <read-cache-ctx> "SgReadCacheCtx*")
 
   (define-c-proc clean-cache (:optional (target #f)) ::<void> Sg_CleanCache)
-  (define-c-proc cachable? (o) ::<boolean> Sg_CachableP)
+  (define-c-proc cachable? (o) ::<boolean> :constant Sg_CachableP)
 
   (define-c-proc scan-cache-object (o cbs ctx::<write-cache-ctx>)
     Sg_WriteCacheScanRec)
@@ -1262,6 +1262,9 @@
   (define-c-proc read-cache-object (in::<port> ctx::<read-cache-ctx>)
     Sg_ReadCacheObject)
 
+  (define-c-proc file->cache-file (id::<string>) :no-side-effect
+    Sg_FileToCacheFile)
+  
   ;; getenv
   (define-c-proc getenv (path::<string>) :no-side-effect
     (result (Sg_Getenv (SG_STRING_VALUE path))))

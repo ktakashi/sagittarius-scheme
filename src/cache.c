@@ -1286,7 +1286,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
       return read_macro_section(in, ctx);
     default:
       /* broken cache */
-      ESCAPE(ctx, "Broken cache file %A\n", ctx->file);
+      ESCAPE(ctx, "Broken cache file %A (%x)\n", ctx->file, b);
       return SG_FALSE;
     }
   }
@@ -2190,6 +2190,11 @@ int Sg_ReadCache(SgString *id)
 	      (end_real - real)/1000);
   }
   return ret;
+}
+
+SgObject Sg_FileToCacheFile(SgString *o)
+{
+  return id_to_filename(o);
 }
 
 void Sg_CleanCache(SgObject target)
