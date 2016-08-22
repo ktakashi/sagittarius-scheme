@@ -7,7 +7,9 @@
 	    cgen-unit-h-file
 	    cgen-unit-toplevel-nodes
 	    cgen-unit-init-prologue
-	    
+	    cgen-unit-preamble
+	    cgen-unit-init-prologue
+	    cgen-unit-init-epilogue
 	    cgen-add! cgen-emit-h cgen-emit-c
 
 	    <cgen-node> cgen-body cgen-extern cgen-decl cgen-init
@@ -16,7 +18,8 @@
 	    cgen-safe-name
 	    cgen-safe-name-friendly
 	    cgen-safe-comment
-	    
+
+	    cgen-emit-part
 	    cgen-emit-xtrn
 	    cgen-emit-decl
 	    cgen-emit-body

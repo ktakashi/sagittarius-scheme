@@ -38,6 +38,7 @@
     (export cgen-precompile cgen-precompile-file
 	    default-name-generator
 	    +replace-prefix+
+	    <cgen-precomp-unit>
 	    )
     (import (rnrs)
 	    (rnrs eval)
