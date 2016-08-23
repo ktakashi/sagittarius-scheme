@@ -418,10 +418,10 @@
 			    (map (lambda (literal)
 				   `("case " ,(render-rec literal eenv) ": "))
 				 literals))
-		      ,@(render-rec `(begin ,@clause
+		      ,@(render-rec `(begin ,@clauses
 					    ,@(if fallthrough? '() '((break))))
 				    env)))
-		  literalss clause)
+		  literalss clauses)
 	   "}")))))
 
   (define-cise-macro (case form env)

@@ -184,7 +184,7 @@
 	     (values ref `(,@resolved (except ,@ids)) trans?)))
 	  ;; prefix
 	  (((? (lambda (x) (eq? 'prefix x)) _) set prefix)
-	   (unless (symbol? prefix) (error 'import "bad prefix" form))
+	   (unless (symbol? prefix) (error 'import "bad prefix" spec))
 	   (receive (ref resolved trans?) (parse-spec set)
 	     (values ref `(,@resolved (prefix . ,prefix)) trans?)))
 	  ;; for

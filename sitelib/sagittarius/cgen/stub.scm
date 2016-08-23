@@ -322,7 +322,7 @@
 	((:allow-other-keys . specs)
 	 (error 'define-c-proc
 		"misplaced :allow-other-keys parameter"
-		argspec name))
+		argspecs name))
 	(((? symbol? sym) . specs)
 	 (required specs
 		   (cons (make-arg <required-arg> sym nreqs) args)
