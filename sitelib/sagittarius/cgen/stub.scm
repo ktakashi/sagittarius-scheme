@@ -84,7 +84,6 @@
   (define-generic process-setter)
   (define-generic process-body-inner)
   (define-generic emit-arg-unbox)
-  (define-generic render-literal)
   
   (define-syntax define-form-parser
     (lambda (x)
