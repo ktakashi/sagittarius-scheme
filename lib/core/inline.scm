@@ -22,9 +22,28 @@
 
   (define-syntax define-raw-inliner
     (lambda (x)
+      (define (rename-it lib form)
+	(define k (make-global-identifier 'template
+		    (find-library (syntax->datum lib) #f)))
+	(define seen (make-eq-hashtable))
+	(define (rename id)
+	  (let ((i (datum->syntax k (syntax->datum id))))
+	    (hashtable-set! seen id i)
+	    i))
+	(let loop ((form form))
+	  (syntax-case form ()
+	    (() '())
+	    ((a . d) (cons (loop #'a) (loop #'d)))
+	    (i (identifier? #'i) (or (hashtable-ref seen #'i) (rename #'i)))
+	    (e #'e))))
       (syntax-case x ()
-	((k name library inliner)
-	 (with-syntax ((debug-name (datum->syntax #'k
+	((k name library where? ?inliner)
+	 (with-syntax ((inline (if (and (eq? (syntax->datum #'where?) :origin)
+					;; library can be #f
+					#'library)
+				   (rename-it #'library #'?inliner)
+				   #'?inliner))
+		       (debug-name (datum->syntax #'k
 				    (string->symbol (format "inliner/~a"
 							    (datum name))))))
 	   #'(define dummy
@@ -33,6 +52,7 @@
 						'library 
 						(current-library))))
 		      (orig (procedure-inliner proc))
+		      (inliner inline)
 		      (debug-name (lambda (form p1env)
 				    (define (const-value expr)
 				      (let ((iform (pass1 expr p1env)))
@@ -52,7 +72,9 @@
 					  (pass1 form2 p1env))))))
 		 (when (integer? orig)
 		   (error 'name "Can't overwrite insn inliner"))
-		 (procedure-inliner-set! proc debug-name))))))))
+		 (procedure-inliner-set! proc debug-name)))))
+	((k name library ?inliner)
+	 #'(k name library #f ?inliner)))))
 
   (define-syntax define-inliner
     (lambda (x)
@@ -64,14 +86,17 @@
 	   (parse (cdr patterns) (cons (list #'p #'#t #'t) acc)))
 	  (() (reverse! acc))))
       (syntax-case x ()
-	((_ name lib pattern* ...)
+	((_ name lib where? pattern* ...)
+	 (memq (syntax->datum #'where?) '(#f :origin))
 	 (with-syntax ((((pattern fender template) ...) 
 			(parse #'(pattern* ...) '())))
-	   #'(define-raw-inliner name lib
+	   #'(define-raw-inliner name lib where?
 	       (lambda (form const-value)
 		 (syntax-case form ()
 		   (pattern fender (syntax template)) ...
-		   (_ (undefined))))))))))
+		   (_ (undefined)))))))
+	((k name lib pattern* ...)
+	 #'(k name lib #f pattern* ...)))))
 
   ;; for convenience
   ;; we define 2 things, one is a macro which is the real name

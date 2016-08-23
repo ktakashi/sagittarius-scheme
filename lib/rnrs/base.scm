@@ -64,7 +64,7 @@
   ;; we can make simple inliner here
   ;; hope nobody use (core base) directly... well no promise though...
 
-  (define-inliner map (core base)
+  (define-inliner map (core base) :origin
     ((_ p arg)
      (let ((map-proc p))
        (let loop ((l arg) (r '()))
@@ -75,7 +75,7 @@
 		 (wrong-type-argument-message "proper list" l)
 		 (list map-proc arg))))))))
 
-  (define-inliner for-each (core base)
+  (define-inliner for-each (core base) :origin
     ((_ p arg)
      (let ((proc p))
        (let loop ((l arg))
