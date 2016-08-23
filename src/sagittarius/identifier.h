@@ -55,7 +55,8 @@ struct SgIdentifierRec
 #define SG_IDENTIFIER_IDENTITY(obj) (SG_IDENTIFIER(obj)->identity)
 
 /* for my sake, remove this after 0.7.8. */
-#define Sg_MakeIdentifier(name, env, lib) Sg_MakeGlobalIdentifier(name, lib)
+#define Sg_MakeIdentifier(name, env, lib)	\
+  Sg_MakeGlobalIdentifier(name, SG_LIBRARY(lib))
 
 SG_CDECL_BEGIN
 

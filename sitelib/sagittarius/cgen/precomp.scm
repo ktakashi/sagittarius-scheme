@@ -211,13 +211,9 @@
 				   (cgen-cexpr (cgen-literal l))
 				   (cgen-cexpr (cgen-literal spec))))))))
 		imports)
-      ;; emit exports
-      (for-each (lambda (e)
-		  (cgen-init (format "  SG_APPEND1(h, t, ~a); /* ~a */"
-				     (cgen-cexpr (cgen-literal e))
-				     (cgen-safe-comment e)))) exports)
-      (cgen-init (format "  Sg_LibraryExportedSet(~a, Sg_Cons(h, SG_NIL));~%"
-			 (cgen-cexpr (cgen-literal library))))
+      (cgen-init (format "  Sg_LibraryExportedSet(~a, ~a);~%"
+			 (cgen-cexpr (cgen-literal library))
+			 (cgen-cexpr (cgen-literal (library-exported library)))))
       (cgen-init (format "  Sg_VM()->currentLibrary = ~a;" 
 			 (cgen-cexpr (cgen-literal library))))
       (cgen-init (format "  Sg_VMExecute(SG_OBJ(~a));"

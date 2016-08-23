@@ -421,7 +421,7 @@
 		 (cgen-c-name self)
 		 (cgen-c-name (slot-ref self 'symbol-name))
 		 (cgen-safe-comment (slot-ref self 'value)))
-	 (format #t "  ~a = Sg_MakeSymbol(~a, FALSE); /* ~a */~%"
+	 (format #t "  ~a = Sg_MakeSymbol(SG_STRING(~a), FALSE); /* ~a */~%"
 		 (cgen-c-name self)
 		 (cgen-c-name (slot-ref self 'symbol-name))
 		 (cgen-safe-comment (slot-ref self 'value)))))

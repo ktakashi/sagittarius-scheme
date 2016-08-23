@@ -235,17 +235,17 @@ struct SgVMRec
   void      *escapeData[2];
 
   /* libraries */
-  SgLibrary   *currentLibrary;
+  SgObject   currentLibrary;
   /* dynamic winders */
-  SgObject    dynamicWinders;
+  SgObject   dynamicWinders;
   /* 
      exception handlers
      this is a list of procedures
    */
-  SgObject    exceptionHandlers;
+  SgObject   exceptionHandlers;
 
   /* parameters */
-  SgObject    parameters;
+  SgObject   parameters;
 
   /* gc related */
   int finalizerPending;
