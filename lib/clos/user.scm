@@ -305,17 +305,8 @@
 					     (slot-ref cm 'next-method?))
 					   body ...))))
 	    #`(begin
-		(let* ((gf
-			;; for cache perspective, we can't use library
-			;; object directly...
-			(or (and-let* ((lib-name '#,(library-name 
-						     (id-library #'true-name)))
-				       (g (find-binding lib-name 'true-name #f))
-				       (gf (gloc-ref g))
-				       ( (is-a? gf <generic>) ))
-			      gf)
-			    (%ensure-generic-function 'true-name 
-						      (current-library))))
+		(let* ((gf (%ensure-generic-function 'true-name 
+						     (current-library)))
 		       (m (make <method>
 			    :specializers  (list specializers ...)
 			    :qualifier     #,qualifier
@@ -405,10 +396,11 @@
 	     ;; to avoid duplicated definition...
 	     (%ensure-generic-function (syntax->datum #'true-name)
 				       (current-library))
-	     #'(begin
-		 (define true-name (make class-name 
-				     :definition-name 'true-name))
-		 (set! (setter name) true-name)))))
+	     #'(define true-name
+		 (let ((m (make class-name 
+			    :definition-name 'true-name)))
+		   (set! (setter name) m)
+		   m)))))
 	((k name . options)
 	 (let ((class (get-keyword :class (syntax->datum #'options)
 				   #'<generic>)))
