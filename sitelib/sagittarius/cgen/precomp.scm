@@ -229,7 +229,7 @@
   ;; but we can use it anyway...
   (define (encode-library-name name)
     (string->symbol
-     (string-join (map (lambda (s) (format "~a" s)) name) ".")))
+     (string-join (map (lambda (s) (format "~s" s)) name) ".")))
 
   (define (decode-library-name name)
     (define (encoded? name)
@@ -382,7 +382,7 @@
 		    cvn i (cgen-cexpr lit)))))))
 
   (define (library-name->string lib)
-    (define str (regex-replace-all #/[^a-zA-Z0-9_]/ (format "~a" lib)
+    (define str (regex-replace-all #/[^a-zA-Z0-9_]/ (format "~s" lib)
 		   (lambda (m)
 		     (let ((c (string-ref (m 0) 0)))
 		       (cond ((or (char=? c #\() (char=? c #\))) " ")
