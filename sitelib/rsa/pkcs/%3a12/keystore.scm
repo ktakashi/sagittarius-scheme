@@ -86,6 +86,7 @@
     ((content-type :init-keyword :content-type)
      (content      :init-keyword :content)))
   (define (content-info? o) (is-a? o <content-info>))
+  (define-generic make-content-info)
   (define-method make-content-info ((s <asn.1-sequence>))
     ;; assume it has both
     (let ((info (asn.1-sequence-get s 0))
@@ -104,6 +105,7 @@
   (define-class <digest-info> (<asn.1-encodable>)
     ((digest :init-keyword :digest)
      (algorithm-identifier :init-keyword :algorithm-identifier)))
+  (define-generic make-digest-info)
   (define-method make-digest-info ((s <asn.1-sequence>))
     (make <digest-info> 
       :digest (der-octet-string-octets (asn.1-sequence-get s 1))
@@ -121,6 +123,7 @@
     ((digest-info :init-keyword :digest-info)
      (salt        :init-keyword :salt)
      (iteration-count :init-keyword :iteration-count :init-value 1)))
+  (define-generic make-mac-data)
   (define-method make-mac-data ((s <asn.1-sequence>))
     (let ((di (make-digest-info (asn.1-sequence-get s 0)))
 	  (salt (der-octet-string-octets (asn.1-sequence-get s 1)))
@@ -144,6 +147,7 @@
 
   (define-class <authenticated-safe> (<asn.1-encodable>)
     ((info :init-keyword :info)))
+  (define-generic make-authenticated-safe)
   (define-method make-authenticated-safe ((s <asn.1-sequence>))
     (let* ((len (asn.1-sequence-size s))
 	   (info (make-vector len)))
@@ -168,6 +172,7 @@
     ((content-info :init-keyword :content-info)
      (mac-data     :init-keyword :mac-data)))
 
+  (define-generic make-pfx)
   (define-method make-pfx ((seq <asn.1-sequence>))
     (let ((v (asn.1-sequence-get seq 0)))
       (unless (= (der-integer->integer v) 3)
@@ -214,6 +219,7 @@
     ((id    :init-keyword :id)
      (value :init-keyword :value)
      (attributes :init-keyword :attributes :init-value #f)))
+  (define-generic make-safe-bag)
   (define-method make-safe-bag ((s <asn.1-sequence>))
     (let* ((len (asn.1-sequence-size s))
 	   (id  (asn.1-sequence-get s 0))
@@ -239,6 +245,7 @@
      (content-type :init-keyword :content-type)
      (id           :init-keyword :id)
      (content      :init-keyword :content)))
+  (define-generic make-encrypted-data)
   (define-method make-encrypted-data ((s <asn.1-sequence>))
     (let ((version (der-integer->integer (asn.1-sequence-get s 0))))
       (unless (zero? version)
@@ -274,6 +281,7 @@
     ((seq :init-keyword :seq)
      (id  :init-keyword :id)
      (value :init-keyword :value)))
+  (define-generic make-cert-bag)
   (define-method make-cert-bag ((s <asn.1-sequence>))
     (make <cert-bag>
       :seq s
@@ -290,6 +298,7 @@
   (define-class <pkcs12-pbe-params> (<asn.1-encodable>)
     ((iterations :init-keyword :iterations)
      (iv :init-keyword :iv)))
+  (define-generic make-pkcs12-pbe-params)
   (define-method make-pkcs12-pbe-params ((s <asn.1-sequence>))
     (make <pkcs12-pbe-params>
       :iv (asn.1-sequence-get s 0)
@@ -310,6 +319,7 @@
   ;; helper class
   (define-class <cert-id> ()
     ((id :init-keyword :id)))
+  (define-generic make-cert-id)
   (define-method make-cert-id ((key <public-key>))
     (make <cert-id> :id (subject-key-identifier-key-identifier
 			 (create-subject-key-id key))))

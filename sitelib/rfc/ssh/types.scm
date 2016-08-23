@@ -94,13 +94,18 @@
   ;; base class for SSH message
   (define-class <ssh-type> () ()
     :metaclass <ssh-type-meta>)
+
+  ;; generic method for message reading
+  (define-generic write-message)
+  (define-generic read-message)
+  
   #;
   (define-method write-message ((m <ssh-type>) . ignore)
     (error 'write-message "sub class must implement this"))
   #;
   (define-method read-message ((t <ssh-type-meta>) . ignore)
     (error 'read-message "sub class meta class must implement this" t))
-
+  
   ;; handle primitives
   (define-method write-message ((type (eql :byte)) o out array-size?)
     (if array-size?

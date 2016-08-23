@@ -335,6 +335,8 @@
 	(loop))))
 
   ;; default do nothing
+  (define-generic on-server-start!)
+  (define-generic on-server-stop!)
   (define-method on-server-start! ((s <simple-server>) . ignore))
   (define-method on-server-stop! ((s <simple-server>) . ignore))
 

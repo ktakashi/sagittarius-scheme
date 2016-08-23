@@ -134,6 +134,7 @@
 	     (assertion-violation 'process-parsed-csv
 				  "invalid csv list" lst)))))
 
+  (define-generic csv-read)
   (define-method csv-read ((p <port>) . opt)
     (let ((csv-list (apply csv->list p opt)))
       ;; get two lists, header and records
@@ -143,6 +144,7 @@
   (define-method csv-read ((s <string>) . opt)
     (apply csv-read (open-string-input-port s) opt))
 
+  (define-generic csv-write)
   (define-method csv-write ((csv <csv>) . opt)
     (let ((out (if (null? opt) (current-output-port) (car opt))))
       (let ((header (csv-header csv))

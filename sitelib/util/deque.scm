@@ -225,6 +225,7 @@
   (define (list->deque lst :optional (class <deque>) :rest initargs)
     (rlet1 q (apply make class initargs)
       (%deque-set-content! q lst)))
+  (define-generic copy-deque)
   (define-method copy-deque ((q <deque>))
     (list->deque (deque->list q) (class-of q)))
   (define-method copy-deque ((q <mtdeque>))

@@ -228,8 +228,10 @@
   ;; it's legal on Sagittarius for historical reason
   ;; but we can use it anyway...
   (define (encode-library-name name)
-    (string->symbol
-     (string-join (map (lambda (s) (format "~s" s)) name) ".")))
+    (if (and (pair? name) (null? (cdr name)))
+	(string->symbol (format "~s." (car name)))
+	(string->symbol
+	 (string-join (map (lambda (s) (format "~s" s)) name) "."))))
 
   (define (decode-library-name name)
     (define (encoded? name)

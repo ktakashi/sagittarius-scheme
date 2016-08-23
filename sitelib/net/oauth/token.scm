@@ -79,6 +79,8 @@
      ;; Application-specific data associated
      (user-data :init-keyword :user-data :init-value #f
 		:accessor token-user-data)))
+  (define-generic token-key)
+  (define-generic token-secret)
   (define-method token-key ((t <token>)) (slot-ref t 'key))
   (define-method token-secret ((t <token>)) (slot-ref t 'secret))
 
@@ -101,6 +103,8 @@
 			:accessor request-token-verification-code
 			:init-form (random-verification-code))
      (authorized? :init-value #f)))
+  (define-generic request-token-authorized?)
+  (define-generic request-token-authorized-set!)
   (define-method request-token-authorized? ((t <request-token>))
     (slot-ref t 'authorized?))
   (define-method request-token-authorized-set! ((t <request-token>)
@@ -125,12 +129,16 @@
 			    :init-value #f :validator time-validator)
      ;; URI this access token has been obtained form. Needed for refresh.
      (origin-uri :init-keyword :origin-uri :init-value #f)))
+  (define-generic access-token-session-handle)
   (define-method access-token-session-handle ((t <access-token>))
     (slot-ref t 'session-handle))
+  (define-generic access-token-expires)
   (define-method access-token-expires ((t <access-token>))
     (slot-ref t 'expires))
+  (define-generic access-token-authorization-expires)
   (define-method access-token-authorization-expires ((t <access-token>))
     (slot-ref t 'authorization-expires))
+  (define-generic access-token-origin-uri)
   (define-method access-token-origin-uri ((t <access-token>))
     (slot-ref t 'origin-uri))
 

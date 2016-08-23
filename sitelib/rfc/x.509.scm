@@ -72,6 +72,7 @@
   ;; these might be somewhere
   (define-class <rdn> (<asn.1-encodable>)
     ((values :init-keyword :values)))
+  (define-generic make-rdn)
   (define-method make-rdn ((s <asn.1-set>))
     (make <rdn> :values s))
   (define-method make-rdn ((oid <der-object-identifier>) (name <string>))
@@ -108,6 +109,7 @@
   (define-class <x500-name> (<asn.1-encodable>)
     ((style :init-keyword :style :init-value #f)
      (rdns  :init-keyword :rdns)))
+  (define-generic make-x500-name)
   (define-method make-x500-name ((s <asn.1-sequence>))
     (let* ((len (asn.1-sequence-size s))
 	   (rdns (make-vector len)))
@@ -158,6 +160,7 @@
   ;; base on boucycasle's x509 package.
 
   (define-class <x509-principal> (<x500-name>) ())
+  (define-generic make-x509-principal)
   (define-method make-x509-principal ((o <x500-name>))
     (make <x509-principal> :rdns (~ o 'rdns)))
   (define-method object-equal? ((a <x500-name>) (b <x500-name>))
@@ -165,16 +168,20 @@
 
   (define-class <x509-time> (<asn.1-encodable>)
     ((time :init-keyword :time)))
+  (define-generic make-x509-time)
   (define-method make-x509-time ((o <der-utc-time>))
     (make <x509-time> :time o))
   (define-method make-x509-time ((o <der-generalized-time>))
     (make <x509-time> :time o))
+  
+  (define-generic x509-time->date)
   (define-method x509-time->date ((o <x509-time>))
     (der-time->date (~ o 'time)))
 
   (define-class <x509-extension> (<asn.1-encodable>)
     ((critical :init-keyword :critical)
      (value    :init-keyword :value)))
+  (define-generic make-x509-extension)
   (define-method make-x509-extension ((critical <der-boolean>)
 				      (value <asn.1-octet-string>))
     (make-x509-extension (der-boolean->boolean critical) value))
@@ -184,6 +191,7 @@
 
   (define-class <x509-extensions> (<asn.1-encodable>)
     ((extensions :init-keyword :extensions)))
+  (define-generic make-x509-extensions)
   (define-method make-x509-extensions ((o <asn.1-tagged-object>))
     (make-x509-extensions (der-encodable->der-object o)))
   (define-method make-x509-extensions ((o <asn.1-sequence>))
@@ -203,6 +211,7 @@
 					       "bas sequense size" size)))))
 		(~ o 'sequence))))
       (make <x509-extensions> :extensions extensions)))
+  (define-generic get-x509-extension)
   (define-method get-x509-extension ((o <x509-extensions>)
 				     (oid <der-object-identifier>))
     (and-let* ((ext (assoc oid (~ o 'extensions))))
@@ -211,6 +220,7 @@
   (define-class <subject-key-identifier> (<asn.1-encodable>)
     ((key-identifier :init-keyword :key-identifier)))
   (define (subject-key-identifier? o) (is-a? o <subject-key-identifier>))
+  (define-generic make-subject-key-identifier)
   (define-method make-subject-key-identifier ((keyid <bytevector>))
     (make <subject-key-identifier> :key-identifier keyid))
   (define-method asn.1-encodable->asn.1-object ((o <subject-key-identifier>))
@@ -231,6 +241,7 @@
      (issuer-unique-id :init-keyword :issuer-id)
      (subject-unique-id :init-keyword :subject-id)
      (extensions    :init-keyword :extensions)))
+  (define-generic make-tbs-certificate-structure)
   (define-method make-tbs-certificate-structure ((s <asn.1-sequence>))
     (let* ((start 0)
 	   (version (cond ((is-a? (asn.1-sequence-get s 0) <der-tagged-object>)
@@ -278,6 +289,7 @@
      (tbs-cert :init-keyword :tbs-cert)
      (algorithm-identifier :init-keyword :algorithm-identifier)
      (signature :init-keyword :signature)))
+  (define-generic make-x509-certificate-structure)
   (define-method make-x509-certificate-structure ((s <asn.1-sequence>))
     (make <x509-certificate-structure>
       :sequence s
@@ -291,6 +303,7 @@
   (define-class <basic-constraints> (<asn.1-encodable>)
     ((ca :init-keyword :ca :init-form (make-der-boolean #f))
      (path-length-constraint :init-keyword :path-length-constraint)))
+  (define-generic make-basic-constrains)
   (define-method make-basic-constrains ((s <asn.1-sequence>))
     (case (asn.1-sequence-size s)
       ((0)
@@ -317,6 +330,7 @@
     ((c :init-keyword :c)
      (basic-constraints :init-keyword :basic-constraints)
      (key-usage :init-keyword :key-usage)))
+  (define-generic make-x509-certificate)
   (define-method make-x509-certificate ((bv <bytevector>))
     (make-x509-certificate (open-bytevector-input-port bv)))
   (define-method make-x509-certificate ((p <port>))

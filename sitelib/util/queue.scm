@@ -80,6 +80,7 @@
 				    <mtdeque>
 				    <deque>)
 				initargs))))
+  (define-generic copy-queue)
   (define-method copy-queue ((q <queue>))
     (list->queue (deque->list (~ q 'deque)) (class-of q)))
   (define-method copy-queue ((q <mtqueue>))

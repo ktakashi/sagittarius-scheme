@@ -58,6 +58,7 @@
     ((algorithm-identifier :init-keyword :algorithm-identifier)
      (key-data :init-keyword :key-data)))
   (define (subject-public-key-info? o) (is-a? o <subject-public-key-info>))
+  (define-generic make-subject-public-key-info)
   (define-method make-subject-public-key-info ((s <asn.1-sequence>))
     ;; TODO check length
     (let ((id (asn.1-sequence-get s 0)))
@@ -81,6 +82,7 @@
 		 :reader algorithm-identifier-parameters)
      (parameters-defined? :init-keyword :defined? :init-value #f)))
   (define (algorithm-identifier? o) (is-a? o <algorithm-identifier>))
+  (define-generic make-algorithm-identifier)
   (define-method make-algorithm-identifier ((o <der-object-identifier>))
     (make <algorithm-identifier> :object-id o))
   (define-method make-algorithm-identifier ((s <asn.1-sequence>))

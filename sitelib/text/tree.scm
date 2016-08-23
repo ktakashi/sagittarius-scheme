@@ -10,6 +10,7 @@
 	    tree->string)
     (import (rnrs) (clos user) (sagittarius io))
 
+  (define-generic write-tree)
   (define-method write-tree (tree)
     (write-tree tree (current-output-port)))
 

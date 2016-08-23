@@ -67,6 +67,22 @@
      (unit-id :init-form (gensym "cgen"))))
 
   (define cgen-current-unit (make-parameter #f))
+  ;; generic methods
+  (define-generic cgen-unit-c-file)
+  (define-generic cgen-emit-part)
+  (define-generic cgen-emit-preamble)
+  (define-generic cgen-emit-prologue)
+  (define-generic cgen-emit-epilogue)
+  (define-generic cgen-emit-h)
+  (define-generic cgen-emit-c)
+  (define-generic cgen-decl-common)
+  (define-generic cgen-emit-xtrn)
+  (define-generic cgen-emit-decl)
+  (define-generic cgen-emit-body)
+  (define-generic cgen-emit-init)
+  (define-generic cgen-node-traverse)
+  (define-generic cgen-emit)
+  
   (define-method cgen-unit-c-file ((unit <cgen-unit>))
     (or (slot-ref unit 'c-file)
 	(format "~a.c" (cgen-unit-name unit))))

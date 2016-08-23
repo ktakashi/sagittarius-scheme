@@ -97,11 +97,13 @@
 
   ;; Consumer management
   (define *registered-consumers* (make-parameter (make-equal-hashtable)))
-  
+
+  (define-generic register-token)
   (define-method register-token ((token <consumer-token>))
     (hashtable-set! (*registered-consumers*) (token-key token) token)
     token)
 
+  (define-generic unregister-token)
   (define-method unregister-token ((token <consumer-token>))
     (hashtable-delete! (*registered-consumers*) (token-key token)))
 

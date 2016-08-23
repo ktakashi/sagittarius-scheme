@@ -488,6 +488,7 @@
     (set! (~ link 'remote-delivery-count) (~ flow 'delivery-count))
     link)
 
+  (define-generic flow-control)
   (define-method flow-control ((link <amqp-sender-link>) k)
     (define session (~ link 'session))
     (define conn (~ session 'connection))

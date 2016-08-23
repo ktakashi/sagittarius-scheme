@@ -96,6 +96,11 @@
 (define (cache-values cache)
   (hashtable-values-list (slot-ref cache 'storage)))
 
+(define-generic cache-evict!)
+(define-generic cache-clear!)
+(define-generic cache-pop!)
+(define-generic cache-access)
+
 (define-method cache-evict! ((o <cache>) k)
   (let ((storage (slot-ref o 'storage)))
     (let-values (((v found?) (hashtable-lookup storage k)))

@@ -214,15 +214,18 @@
 	   body ...)))))
 
   ;; simply one, sub library can extend
+  (define-generic dbi-query-fold)
   (define-method dbi-query-fold ((q <dbi-query>) proc knil)
     (let loop ((r (dbi-fetch! q)) (knil knil))
       (if r
 	  (loop (dbi-fetch! q) (proc r knil))
 	  knil)))
 
+  (define-generic dbi-query-map)
   (define-method dbi-query-map ((q <dbi-query>) proc)
     (reverse!
      (dbi-query-fold q (lambda (record seed) (cons (proc record) seed)) '())))
+  (define-generic dbi-query-for-each)
   (define-method dbi-query-for-each ((q <dbi-query>) proc)
     (dbi-query-fold q (lambda (record seed) (proc record)) '()))
 
@@ -239,6 +242,8 @@
   (define-generic dbi-close)
 
   ;; default just return empty list
+  (define-generic dbi-tables)
+  (define-generic dbi-table-columns)
   (define-method dbi-tables ((conn <dbi-connection>) . args) '())
   (define-method dbi-table-columns ((t <dbi-table>) . args) '())
 

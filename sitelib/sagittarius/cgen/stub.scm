@@ -77,6 +77,15 @@
 
   (define *instance-pool* '())
 
+  ;; generics
+  (define-generic invoke)
+  (define-generic c-stub-name)
+  (define-generic process-body)
+  (define-generic process-setter)
+  (define-generic process-body-inner)
+  (define-generic emit-arg-unbox)
+  (define-generic render-literal)
+  
   (define-syntax define-form-parser
     (lambda (x)
       (syntax-case x ()
@@ -193,7 +202,7 @@
 		 (cise-render-to-string default 'expr)
 		 (cgen-cexpr default))))
 	  (else "SG_UNBOUND")))
-
+  
   ;; literal
   ;;(define-class <special-literal> () ())
   ;;(define-cgen-literal <raw-c-literal> <special-literal>

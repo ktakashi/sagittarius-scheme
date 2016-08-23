@@ -316,6 +316,7 @@
   ;; ((tag . value))
   ;; tag must be integer
   ;; value can be list or bytevector
+  (define-generic ->tlv)
   (define-method ->tlv ((o <list>))
     (define (convert e)
       (define (->valid-data data)

@@ -44,6 +44,21 @@
 	    (dbm private)
 	    (srfi :26 cut))
 
+  (define-generic dbm-open)
+  (define-generic dbm-close)
+  (define-generic dbm-closed?)
+  (define-generic dbm-get)
+  (define-generic dbm-put!)
+  (define-generic dbm-delete!)
+  (define-generic dbm-exists?)
+  (define-generic dbm-fold)
+  (define-generic dbm-for-each)
+  (define-generic dbm-map)
+  (define-generic dbm-db-exists?)
+  (define-generic dbm-db-remove)
+  (define-generic dbm-db-copy)
+  (define-generic dbm-db-move)
+
   (define-method dbm-open ((class <dbm-meta>) . initargs)
     (dbm-open (apply make class initargs)))
 

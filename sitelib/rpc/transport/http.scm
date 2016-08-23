@@ -63,6 +63,12 @@
 		   (rpc-http-response-type message) header body))
 	  (values status header body))))
 
+  (define-generic rpc-http-method)
+  (define-generic rpc-http-content-type)
+  (define-generic rpc-http-sender)
+  (define-generic rpc-http-receiver)
+  (define-generic rpc-http-response-type)
+  
   ;; default configuration for message
   (define-method rpc-http-method (o) 'POST)
   (define-method rpc-http-content-type (o) "application/octet-stream")

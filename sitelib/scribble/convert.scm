@@ -43,6 +43,7 @@
 	    (scribble plugin)
 	    (srfi :39 parameters))
 
+  (define-generic scribble->sxml)
   (define-method scribble->sxml ((in <port>))
     (scrib->sxml (scribble-parse in)))
 

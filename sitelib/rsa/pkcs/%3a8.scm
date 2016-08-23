@@ -73,6 +73,7 @@
      (attributes :init-keyword :attributes)
      (private-key :init-keyword :private-key)))
   (define (private-key-info? o) (is-a? o <private-key-info>))
+  (define-generic make-private-key-info)
   (define-method make-private-key-info ((s <asn.1-sequence>))
     (unless (zero? (der-integer->integer (asn.1-sequence-get s 0)))
       (assertion-violation 'make-private-key-info

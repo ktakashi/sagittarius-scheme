@@ -53,6 +53,10 @@
 	       (put-u8 p (bitwise-and (rash len i) #xff)))))
 	  (else (put-u8 p len))))
 
+  (define-generic der-write-object)
+  (define-generic der-write-encoded)
+  (define-generic der-write-tag)
+  
   (define-method der-write-object ((o <object>) (p <port>))
     (if (null? o)			;; TODO '() or #f?
 	(write-null p)

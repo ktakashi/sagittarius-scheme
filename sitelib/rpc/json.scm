@@ -151,7 +151,6 @@
   ;; TODO implement rpc-http-unmarshall-message to  lookup encoding
   ;; and decide which transcoder but for now this is enough
   ;;(define-method rpc-http-unmarshall-message ((type (eql 'json)) header body))
-  
   (define-method rpc-unmarshall-message ((type (eql 'json)) body)
     (json-string->json-response (utf8->string body)))
 )

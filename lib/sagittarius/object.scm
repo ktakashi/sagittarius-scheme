@@ -38,6 +38,9 @@
 	    (sagittarius)
 	    (clos user))
 
+  (define-generic ref)
+  (define-generic (setter ref))
+  
   (define-method ref ((o <top>) (slot <symbol>))
     (slot-ref o slot))
   (define-method ref ((o <top>) (slot <symbol>) fallback)
@@ -94,6 +97,7 @@
        (apply (setter ~) (ref obj selector) selector2 rest)))))
 
   ;; From R6RS ->... is standard identifier, so we can simply use this.
+  (define-generic ->string)
   (define-method ->string ((obj <string>)) obj)
   (define-method ->string ((obj <number>) (radix <integer>))
     (number->string obj radix))
@@ -103,13 +107,15 @@
   (define-method ->string ((obj <top>))
     (call-with-string-output-port (lambda (o) (display obj o))))
 
+  (define-generic ->integer)
   (define-method ->integer ((obj <bytevector>)) (bytevector->integer obj))
   (define-method ->integer ((obj <integer>)) obj)
   (define-method ->integer ((obj <real>))   (round (exact obj)))
   (define-method ->integer ((obj <number>)) 0) ; complex numbers to 0
   (define-method ->integer ((obj <char>))   (char->integer obj))
   (define-method ->integer ((obj <top>))    (->integer (->number obj)))
-  
+
+  (define-generic ->number)
   (define-method ->number ((obj <number>)) obj)
   (define-method ->number ((obj <string>) (radix <integer>))
     (string->number obj radix))

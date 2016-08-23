@@ -53,6 +53,13 @@
 
   (define *max-length* 1000)
 
+  (define-generic make-ber-constructed-octet-string)
+  (define-generic make-ber-application-specific)
+  (define-generic make-ber-tagged-object)
+  (define-generic make-ber-sequence)
+  (define-generic make-ber-set)
+  (define-generic make-ber-null)
+  
   (define-class <ber-constructed-octet-string> (<der-octet-string>)
     ((octs :init-keyword :octs)))
   (define-method make-ber-constructed-octet-string ((b <bytevector>))

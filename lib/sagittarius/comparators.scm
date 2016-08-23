@@ -88,6 +88,7 @@
   ;; comparator and index order. But for now.
   ;;
   ;; Default value is taken from reference implementation
+  (define-generic disjoint-order)
   (define-method disjoint-order (obj) 32767)
   ;; compare and equal-hash are extensible.
   (define (object-type obj)
