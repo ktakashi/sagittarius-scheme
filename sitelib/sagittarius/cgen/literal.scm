@@ -41,10 +41,13 @@
     (slot-set! self 'cpp-conditions (cgen-cpp-conditions)))
 
   (define (static-data-c-struct-name category)
-    (case category
-      ((constant) "sg__sc")
-      ((runtime)  "sg__rc")
-      (else (error "[cgen internal] invalid category" category))))
+    (define unit (cgen-current-unit))
+    (format "~a_~a"
+	    (case category
+	      ((constant) "sg__sc")
+	      ((runtime)  "sg__rc")
+	      (else (error "[cgen internal] invalid category" category)))
+	    (slot-ref unit 'unit-id)))
 
   (define (cgen-allocate-static-datum :optional (category 'runtime)
 				                (c-type 'SgObject)
@@ -448,10 +451,13 @@
 	  (display "    \"")
 	  (dotimes (i len) (format #t "\\x~2,'0x" (bytevector-u8-ref bv i)))
 	  (display "\"") (newline))
-	(format #t "    SG_STATIC_BYTEVECTOR(~a, (uint8_t*)~%" len)
-	(let1 bvs (bytevector-slices value 8)
-	  (for-each dump bvs))
-	(display   "    )"))
+	(format #t "    SG_STATIC_BYTEVECTOR(~a, (uint8_t*)" len)
+	(if (zero? (bytevector-length value))
+	    (print "\"\")")
+	    (let1 bvs (bytevector-slices value 8)
+	      (newline)
+	      (for-each dump bvs)
+	      (display   "    )"))))
       (make <cgen-scheme-bytevector> :value value
 	    :c-name (cgen-allocate-static-datum 'runtime 'SgByteVector init)))
     (pred (self) "SG_BVECTORP")

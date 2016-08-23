@@ -36,11 +36,15 @@
 #!read-macro=sagittarius/regex
 (library (sagittarius cgen precomp)
     (export cgen-precompile cgen-precompile-file
+	    (rename (default-name-generator cgen-default-name-generator)
+		    (+replace-prefix+ +cgen-replace-prefix+))
+	    <cgen-precomp-unit>
+	    (rename (encode-library-name cgen-encode-library-name)
+		    (decode-library-name cgen-decode-library-name))
+	    *cgen-show-warning*
+	    ;; for backward compatibility
 	    default-name-generator
 	    +replace-prefix+
-	    <cgen-precomp-unit>
-	    encode-library-name
-	    decode-library-name
 	    )
     (import (rnrs)
 	    (rnrs eval)
@@ -65,6 +69,7 @@
 	    (util file)
 	    (util list))
 
+  (define *cgen-show-warning* (make-parameter #t))
   ;; if library name starts this then the library will be replaced
   ;; to current library.
   ;; mostly for hygine macro so make sure the compiling library
@@ -75,8 +80,8 @@
   (define-class <cgen-precomp-unit> (<cgen-stub-unit>)
     ((library :init-keyword :library)
      (imports :init-keyword :imports)
-     ;; not used...
-     (exports :init-keyword :exports)))
+     (exports :init-keyword :exports)
+     (toplevel :init-keyword :toplevel :init-value "toplevel")))
 
   ;; for future though
   (define (read-with-source in) (read in :source-info? #t))
@@ -98,10 +103,10 @@
 			   :key (name-generator default-name-generator) 
 			   (in-file #f)
 			   (predef-syms '())
-			   (compiler compile))
+			   (compiler compile)
+			   (unit-class <cgen-precomp-unit>)
+			   :rest retry)
     (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
-    ;; for now we only support library form
-    ;; define-library is a bit too much to handle
     (match form
       (('library name 
 	   ('export exports ...) 
@@ -109,15 +114,38 @@
 	 toplevels ...)
        (let-values (((out-file initialiser) (name-generator in-file name)))
 	 (let1 safe-name (encode-library-name name)
-	   (parameterize ((cgen-current-unit (get-unit in-file initialiser
-						       out-file predef-syms)))
+	   (parameterize ((cgen-current-unit
+			   (get-unit unit-class in-file initialiser
+				     out-file predef-syms)))
 	     ;; should be handled in get-unit but i'm lazy...
 	     (set! (~ (cgen-current-unit) 'library) safe-name)
 	     (set! (~ (cgen-current-unit) 'imports) imports)
 	     (set! (~ (cgen-current-unit) 'exports) exports)
 	     (do-it safe-name exports imports toplevels compiler)))))
-      (_ (error 'cgen-precompile "invalid form"  form))))
+      (('define-library name rest ...)
+       (apply cgen-precompile (define-library->library form) retry))
+      (_ (error 'cgen-precompile "invalid form" form))))
 
+  (define (define-library->library form)
+    (define (traverse specs)
+      (let loop ((specs specs) (exports '()) (imports '()) (body '()))
+	(match specs
+	  (() (values exports imports body))
+	  ((('export e ...) next ...)
+	   (loop next (append e exports) imports body))
+	  ((('import e ...) next ...)
+	   (loop next exports (append e imports) body))
+	  ((('begin e ...) next ...)
+	   (loop next exports imports (append e body)))
+	  ;; TOOD handle rest
+	  (_ (error 'define-library->library "not supported yet"
+		    (car specs) form)))))
+	  
+    (match form
+      (('define-library name rest ...)
+       (let-values (((exports imports body) (traverse rest)))
+	 `(library ,name (export ,@exports) (import ,@imports) ,@body)))))
+    
   (define (do-it safe-name exports imports toplevels compiler)
     (emit-toplevel-executor safe-name imports exports
      (compile-form
@@ -126,7 +154,9 @@
     (cgen-emit-c (cgen-current-unit)))
   
   (define (emit-toplevel-executor name imports exports topcb)
-    (cgen-body "static SgCodeBuilder *toplevel = ")
+    (define unit (cgen-current-unit))
+    (cgen-body (format "static SgCodeBuilder *~a = "
+		       (slot-ref unit 'toplevel)))
     (cgen-body 
      (format "   SG_CODE_BUILDER(~a);" (cgen-cexpr topcb)))
     (let1 library (find-library name #f) ;; get the library
@@ -190,7 +220,8 @@
 			 (cgen-cexpr (cgen-literal library))))
       (cgen-init (format "  Sg_VM()->currentLibrary = ~a;" 
 			 (cgen-cexpr (cgen-literal library))))
-      (cgen-init (format "  Sg_VMExecute(SG_OBJ(toplevel));"))
+      (cgen-init (format "  Sg_VMExecute(SG_OBJ(~a));"
+			 (slot-ref unit 'toplevel)))
       (cgen-init "  Sg_VM()->currentLibrary = save;")))
 
   ;; use '.' joined library form...
@@ -198,7 +229,7 @@
   ;; but we can use it anyway...
   (define (encode-library-name name)
     (string->symbol
-     (string-join (map (lambda (s) (symbol->string s)) name) ".")))
+     (string-join (map (lambda (s) (format "~a" s)) name) ".")))
 
   (define (decode-library-name name)
     (define (encoded? name)
@@ -219,11 +250,11 @@
     (let1 cb (compiler form (environment '(only (sagittarius) library)))
       (cgen-literal cb)))
 
-  (define (get-unit in-file initfun-name out.c predef-syms)
+  (define (get-unit unit-class in-file initfun-name out.c predef-syms)
     (let* ((base (path-sans-extension (path-basename out.c)))
 	   (safe-name (regex-replace-all #/[-+]/ base "_")))
       (rlet1 u 
-	  (make <cgen-precomp-unit>
+	  (make unit-class
 	    :name base :c-name-prefix safe-name
 	    :preamble 
 	    `(,(format "/* Generated automatically from ~a. DO NOT EDIT! */"
@@ -351,31 +382,35 @@
 		    cvn i (cgen-cexpr lit)))))))
 
   (define (library-name->string lib)
-    (let ((s (string-map (lambda (c)
-			   (cond ((char=? c #\space) #\_)
-				 ((or (char=? c #\()
-				      (char=? c #\))) #\space)
-				 ((char=? c #\-) #\_)
-				 (else c))) (format "~a" lib))))
-      (string-trim-both s)))
+    (define str (regex-replace-all #/[^a-zA-Z0-9_]/ (format "~a" lib)
+		   (lambda (m)
+		     (let ((c (string-ref (m 0) 0)))
+		       (cond ((or (char=? c #\() (char=? c #\))) " ")
+			     ((char=? c #\space) "_")
+			     ((char=? c #\-) "_")
+			     (else (number->string (char->integer c) 16)))))))
+    (string-trim-both
+       (string-map (lambda (c) (if (char=? c #\space) #\_ c)) str)
+       #\_))
 
   (define-cgen-literal <cgen-scheme-identifier> <identifier>
     ((id-name :init-keyword :id-name)
      (library :init-keyword :library)) ;; name
     (make (value)
-      ;; FIXME this warning message is a bit oversight since 
-      ;;       identifiers are now compared by it's identity
-      (unless (or (null? (id-envs value))
-		  ;; FIXME comparing this is a bit too much depending on
-		  ;;       the structure of compiler environment.
-		  (and (null? (cdr (id-envs value)))
-		       (equal? (car (id-envs value)) '((4)))))
-	(format (current-error-port) 
-		"*WARNING* identifier '~a' in ~a contains environment~%    \
-                 assume the identifier can be resolved in the \
-                 target library. ~,,,,20s~%"
-		(id-name value) (library-name (id-library value))
-		(id-envs value)))
+      (when (*cgen-show-warning*)
+	;; FIXME this warning message is a bit oversight since 
+	;;       identifiers are now compared by it's identity
+	(unless (or (null? (id-envs value))
+		    ;; FIXME comparing this is a bit too much depending on
+		    ;;       the structure of compiler environment.
+		    (and (null? (cdr (id-envs value)))
+			 (equal? (car (id-envs value)) '((4)))))
+	  (format (current-error-port) 
+		  "*WARNING* identifier '~a' in ~a contains environment~%    \
+                   assume the identifier can be resolved in the \
+                   target library. ~,,,,20s~%"
+		  (id-name value) (library-name (id-library value))
+		  (id-envs value))))
       (let1 libname (symbol->string (library-name (id-library value)))
 	(make <cgen-scheme-identifier> :value value
 	      :c-name (cgen-allocate-static-datum)
@@ -455,10 +490,10 @@
 	       (s     (vector-length values)))
 	  (print "  do {")
 	  (format #t "     ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
-	  (do ((i 0 (+ i 1)) (l values (cdr values)))
+	  (do ((i 0 (+ i 1)))
 	      ((= i s))
 	    (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
-		    cname i (cgen-cexpr (vector-ref l i)) 
+		    cname i (cgen-cexpr (vector-ref values i)) 
 		    (cgen-safe-comment (vector-ref vec i))))
 	  (print "  } while (0);")))
   (static (self) #f))
@@ -473,10 +508,28 @@
 	(let ((pattern (~ self 'value))
 	      (lite (~ self 'pattern))
 	      (cname (~ self 'c-name)))
-	  (format #t "  ~a = Sg_CompileRegex(~a, ~a, FALSE); /* ~a */~%" cname
+	  (format #t "  ~a = Sg_CompileRegex(~a, ~a, FALSE); /* ~s */~%" cname
 		  (cgen-cexpr lite)
 		  (regex-flags pattern)
-		  pattern)))
+		  (regex-pattern pattern))))
+  (static (self) #f))
+
+(define-cgen-literal <cgen-scheme-char-set> <char-set>
+  ((ranges :init-keyword :ranges))
+  (make (value)
+    (make <cgen-scheme-char-set> :value value
+	  :c-name (cgen-allocate-static-datum)
+	  :ranges (%char-set-ranges value)))
+  (init (self)
+	(let ((cs (~ self 'value))
+	      (ranges (~ self 'ranges))
+	      (cname (~ self 'c-name)))
+	  (format #t "  ~a = Sg_MakeEmptyCharSet(); /* ~a */~%" cname cs)
+	  (dolist (range ranges)
+	    (format #t "  Sg_CharSetAddRange(~a, ~a, ~a);~%"
+		    cname
+		    (car range)
+		    (cdr range)))))
   (static (self) #f))
 
 )

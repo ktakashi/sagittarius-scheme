@@ -15,9 +15,12 @@ exec sagittarius $0 "$@"
 	(sagittarius cgen unit)
 	(sagittarius cgen precomp)
 	(srfi :1)
+	(srfi :39 parameters)
 	(binary io) ;; including get-line as well
 	(math)
 	(getopt))
+
+(define *verbose* (make-parameter #f))
 
 (define (print . args)
   (for-each (lambda (l) (display l)) args) (newline))
@@ -25,6 +28,8 @@ exec sagittarius $0 "$@"
 (define (printe . args)
   (for-each (lambda (l) (display l (current-error-port))) args)
   (newline (current-error-port)))
+
+(define (printv . args) (when (*verbose*) (apply printe args)))
 
 (define (collect-imports&exprs exprs)
   (let-values (((imports exprs)
@@ -59,8 +64,26 @@ exec sagittarius $0 "$@"
 			   :reader (if stderr error-reader #f))))
     (process-run p)))
 
+(define-class <image-cache> ()
+  ((image :init-keyword :image)
+   (name  :init-keyword :name)))
+(define-class <c-code> ()
+  ((code :init-keyword :code)
+   (initfun :init-keyword :initfun)))
 
-(define (retrieve-caches imports)
+(define (genenerate-toplevel)
+  (string-append "_" (number->string (microsecond) 32)))
+(define-class <scheme2c-unit> (<cgen-precomp-unit>)
+  ((toplevel :init-thunk genenerate-toplevel)))
+
+(define (name-generator-generator box)
+  (lambda args
+    (let-values (((out-file init-fun)
+		  (apply cgen-default-name-generator args)))
+      (vector-set! box 0 init-fun)
+      (values out-file init-fun))))
+
+(define (retrieve-caches imports need-eval?)
   (define in/out (open-chunked-binary-input/output-port))
   (define expr '(begin (display "version: " (current-error-port))
 		       (display (sagittarius-version) (current-error-port))
@@ -68,20 +91,47 @@ exec sagittarius $0 "$@"
   (define (->cache line)
     (cond ((#/read cache of "(.+?)"/ line) =>
 	   (lambda (m)
-	     (let* ((file (utf8->string (m 1)))
-		    (func (string-append "_"
-			   (cgen-safe-name (number->string
-					    (bytevector->integer
-					     (hash SHA-1 (m 1)))
-					    32)))))
-	       (cons func (file->bytevector (file->cache-file file))))))
+	     (let ((file (utf8->string (m 1))))
+	       (if need-eval?
+		   (let ((func (string-append "_"
+				(cgen-safe-name (number->string
+						 (bytevector->integer
+						  (hash SHA-1 (m 1)))
+						 32)))))
+		     (printv "Cache file: " (file->cache-file file))
+		     (make <image-cache> :name func
+			   :image (file->bytevector (file->cache-file file))))
+		   (let* ((exprs (file->sexp-list file))
+			  (boxes (map (lambda (e) (make-vector 1)) exprs))
+			  (code* (map (lambda (expr box)
+					(printv "Compiling: " file)
+					(let ((generator
+					       (name-generator-generator box)))
+					  (with-output-to-string
+					    (lambda ()
+					      (cgen-precompile expr
+					       :in-file file
+					       :name-generator generator
+					       :unit-class <scheme2c-unit>)))))
+				      exprs boxes)))
+		     (if (null? (cdr code*))
+			 (list (make <c-code> :code (car code*)
+				     :initfun (vector-ref (car boxes) 0)))
+			 ;; needs to be reversed
+			 (reverse!
+			  (map (lambda (code box)
+				 (make <c-code> :code code
+				       :initfun (vector-ref box 0)))
+			       code* boxes))))))))
 	  (else #f)))
   (cache-imports imports :stderr in/out)
   (set-port-position! in/out 0)
   (reverse!
    (port-fold (lambda (line r)
 		(let ((cache (->cache line)))
-		  (if cache (cons cache r) r)))
+		  (cond ((not cache) r)
+			((pair? cache) (append cache r))
+			(else (cons cache r)))))
 	      '() (lambda () (get-line in/out)))))
    
 (define (generate-unique-library-name) (list (gensym)))
@@ -92,28 +142,35 @@ exec sagittarius $0 "$@"
       (print code)))
 
 (define-method cgen-emit-c ((unit <cgen-precomp-unit>))
-  (cond ((cgen-unit-preamble unit) => emit-raw))
+  (cgen-emit-preamble unit)
   (cgen-emit-part unit 'decl)
   (cgen-emit-static-data unit)
   (cgen-emit-part unit 'body)
-  (cond ((cgen-unit-init-prologue unit) => emit-raw)
-	(else
-	 (print "void Sg__Init_" (cgen-safe-name (cgen-unit-name unit))
-		"()")
-	 (print "{")))
+  (cgen-emit-prologue unit)
   (cgen-emit-part unit 'init)
-  (cond ((cgen-unit-init-epilogue unit) => emit-raw)
-	(else (print "}"))))
+  (cgen-emit-epilogue unit))
+
+(define-method emit-static-cache ((cache <image-cache>))
+  (define image (slot-ref cache 'image))
+  (print "static uint8_t " (slot-ref cache 'name) "[] = {")
+  (dotimes (i (bytevector-length image))
+    (unless (zero? i) (display ", "))
+    (when (and (not (zero? i)) (zero? (mod i 15))) (newline))
+    (format #t "0x~2,'0x" (bytevector-u8-ref image i)))
+  (print "};"))
+
+(define-method emit-static-cache ((cache <c-code>))
+  (print (slot-ref cache 'code)))
+
+(define-method emit-cache-init ((cache <image-cache>))
+  (format #t "  Sg_ReadCacheFromImage(~a, ~a);~%"
+	  (slot-ref cache 'name)
+	  (bytevector-length (slot-ref cache 'image))))
+
+(define-method emit-cache-init ((cache <c-code>))
+  (format #t "  Sg__Init_~a();~%" (slot-ref cache 'initfun)))
 
 (define (emit-static-caches caches)
-  (define (emit-static-cache cache)
-    (define image (cdr cache))
-    (print "static uint8_t " (car cache) "[] = {")
-    (dotimes (i (bytevector-length image))
-      (unless (zero? i) (display ", "))
-      (when (and (not (zero? i)) (zero? (mod i 15))) (newline))
-      (format #t "0x~2,'0x" (bytevector-u8-ref image i)))
-    (print "};"))
   (print "#include <stdint.h>")
   (for-each emit-static-cache caches))
 
@@ -137,12 +194,10 @@ exec sagittarius $0 "$@"
     (print "  SgObject lib, m, r;")
     (print "  Sg_Init();")
     (print "  SG_VM_SET_FLAG(Sg_VM(), SG_WARN_LEVEL);")
-    (for-each (lambda (cache)
-		(format #t "  Sg_ReadCacheFromImage(~a, ~a);~%"
-			(car cache) (bytevector-length (cdr cache)))) caches)
+    (for-each emit-cache-init caches)
     (print "  " init-this ";")
     (format #t  "  lib = Sg_FindLibrary(SG_INTERN(\"~a\"), FALSE);~%"
-	    (encode-library-name lib))
+	    (cgen-encode-library-name lib))
     (print  "  m = Sg_FindBinding(lib, SG_INTERN(\"main\"), SG_UNBOUND);")
     (print  "  if (SG_UNBOUNDP(m)) return 0;")
     (print  "  r = Sg_Apply1(SG_GLOC_GET(SG_GLOC(m)), argsToList(argv, argc));")
@@ -165,22 +220,25 @@ exec sagittarius $0 "$@"
 	   o (file-options no-fail) (buffer-mode block) (native-transcoder))
 	(current-output-port)))
   (with-args (cdr args)
-      ((h (#\h "help") #f #f)
-       (o (#\o "output") #t #f)
+      ((h          (#\h "help") #f #f)
+       (o          (#\o "output") #t #f)
+       (need-eval? (#\e "enable-eval") #f #t)
        (verbose (#\V "verbose") #f #f)
        . rest)
     (when h (usage))
+    (*cgen-show-warning* #f)
+    (*verbose* verbose)
     (let ((file (car rest)))
       (unless (file-exists? file)
 	(printe "Specified file does not exists: " file)
 	(exit -1))
-      (when verbose (printe "file: " file))
+      (printv "file: " file)
       (let ((exprs (file->sexp-list file))
 	    (library-name (generate-unique-library-name)))
 	(let-values (((imports exprs) (collect-imports&exprs exprs)))
-	  (when verbose (printe "caching " imports "... "))
+	  (printv "caching " imports "... ")
 	  (cache-imports imports)
-	  (when verbose (printe "done! "))
+	  (printv "done! ")
 	  (let ((c-body (with-output-to-string
 			  (lambda ()
 			    (cgen-precompile `(library ,library-name
@@ -190,7 +248,7 @@ exec sagittarius $0 "$@"
 						(import ,@imports)
 						,@exprs)
 					     :in-file file))))
-		(caches (retrieve-caches imports))
+		(caches (retrieve-caches imports need-eval?))
 		(out (get-out o)))
 	    (with-output-to-port out
 	      (lambda ()

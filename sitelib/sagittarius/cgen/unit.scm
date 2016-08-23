@@ -11,7 +11,9 @@
 	    cgen-unit-preamble
 	    cgen-unit-init-prologue
 	    cgen-unit-init-epilogue
+	    
 	    cgen-add! cgen-emit-h cgen-emit-c
+	    cgen-emit-preamble cgen-emit-prologue cgen-emit-epilogue
 
 	    <cgen-node> cgen-body cgen-extern cgen-decl cgen-init
 	    cgen-include cgen-define cgen-cpp-conditions
@@ -61,7 +63,8 @@
      (toplevels :init-value () :accessor cgen-unit-toplevel-nodes)
      (transients :init-value ())
      (literals :init-value #f)
-     (static-data-list :init-value ())))
+     (static-data-list :init-value ())
+     (unit-id :init-form (gensym "cgen"))))
 
   (define cgen-current-unit (make-parameter #f))
   (define-method cgen-unit-c-file ((unit <cgen-unit>))
@@ -83,29 +86,36 @@
 	  (cgen-emit node part)))
       (for-each walker (cgen-unit-toplevel-nodes unit))))
 
+  (define-method cgen-emit-preamble ((unit <cgen-unit>))
+    (cond ((cgen-unit-preamble unit) => emit-raw)))
+  (define-method cgen-emit-prologue ((unit <cgen-unit>))
+    (cond ((cgen-unit-init-prologue unit) => emit-raw)
+	  (else
+	   (print "void Sg__Init_" (cgen-safe-name (cgen-unit-name unit))
+		  "()")
+	   (print "{"))))
+  (define-method cgen-emit-epilogue ((unit <cgen-unit>))
+    (cond ((cgen-unit-init-epilogue unit) => emit-raw)
+	  (else (print "}"))))
+  
   (define-method cgen-emit-h ((unit <cgen-unit>))
     (and-let* ((h-file (cgen-unit-h-file unit)))
       (cgen-with-output-file h-file
        (lambda ()
-	 (cond ((cgen-unit-preamble unit) => emit-raw))
+	 (cgen-emit-preamble unit)
 	 (cgen-emit-part unit 'extern)))))
 
   (define-method cgen-emit-c ((unit <cgen-unit>))
     (and-let* ((c-file (cgen-unit-c-file unit)))
       (cgen-with-output-file c-file
        (lambda ()
-	 (cond ((cgen-unit-preamble unit) => emit-raw))
+	 (cgen-emit-preamble unit)
 	 (cgen-emit-part unit 'decl)
 	 (cgen-emit-static-data unit)
 	 (cgen-emit-part unit 'body)
-	 (cond ((cgen-unit-init-prologue unit) => emit-raw)
-	       (else
-		(print "void Sg__Init_" (cgen-safe-name (cgen-unit-name unit))
-		       "()")
-		(print "{")))
+	 (cgen-emit-prologue unit)
 	 (cgen-emit-part unit 'init)
-	 (cond ((cgen-unit-init-epilogue unit) => emit-raw)
-	       (else (print "}")))))))
+	 (cgen-emit-epilogue unit)))))
 
 
   (define-class <cgen-node> ()
