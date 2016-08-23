@@ -40,10 +40,9 @@ exec sagittarius $0 "$@"
 (define (error-reader process stdout stderr transcoder)
   (let ((perr (process-error-port process)))
     (let loop ((l (get-line perr)))
-      (unless (#/loaded/ l)
-	(put-bytevector stderr l)
-	(put-u8 stderr #x0a)
-	(loop (get-line perr))))
+      (put-bytevector stderr l)
+      (put-u8 stderr #x0a)
+      (unless (#/loaded/ l) (loop (get-line perr))))
     process))
 
 (define +sagittarius+
@@ -53,7 +52,7 @@ exec sagittarius $0 "$@"
        (windows "sash")
        (else "sagittarius"))))
 (define (cache-imports imports :key (stderr #f))
-  (define expr (format "(begin ~a) (exit)" (cons 'import imports)))
+  (define expr (format "(begin ~s) (exit)" (cons 'import imports)))
   (let ((p (create-process +sagittarius+
 			   (if stderr
 			       (list "-Einfo" "-e" expr)
@@ -197,7 +196,7 @@ exec sagittarius $0 "$@"
     (for-each emit-cache-init caches)
     (print "  " init-this ";")
     (format #t  "  lib = Sg_FindLibrary(SG_INTERN(\"~a\"), FALSE);~%"
-	    (cgen-encode-library-name lib))
+	    (cgen-decode-library-name (cgen-encode-library-name lib)))
     (print  "  m = Sg_FindBinding(lib, SG_INTERN(\"main\"), SG_UNBOUND);")
     (print  "  if (SG_UNBOUNDP(m)) return 0;")
     (print  "  r = Sg_Apply1(SG_GLOC_GET(SG_GLOC(m)), argsToList(argv, argc));")
@@ -222,8 +221,8 @@ exec sagittarius $0 "$@"
   (with-args (cdr args)
       ((h          (#\h "help") #f #f)
        (o          (#\o "output") #t #f)
-       (need-eval? (#\e "enable-eval") #f #t)
-       (verbose (#\V "verbose") #f #f)
+       (need-eval? (#\e "enable-eval") #f #f)
+       (verbose    (#\V "verbose") #f #f)
        . rest)
     (when h (usage))
     (*cgen-show-warning* #f)
