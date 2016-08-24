@@ -534,9 +534,9 @@
 			    (res2 (sob-empty-copy sob ?class)))
 			(hashtable-for-each
 			 (lambda (key value)
-			   (unless (pred key)
-			     (sob-increment! res1 key value)
-			     (sob-increment! res2 key value)))
+			   (if (pred key)
+			       (sob-increment! res1 key value)
+			       (sob-increment! res2 key value)))
 			 (slot-ref sob 'hashtable))
 			(values res1 res2)))))))
     (define-partition set-partition <set>)
@@ -658,7 +658,8 @@
        (lambda (key value1)
 	 (let ((value2 (hashtable-ref sob2-ht key 0)))
 	   (hashtable-set! result-ht key (min value1 value2))))
-       sob1-ht)))
+       sob1-ht)
+      (sob-cleanup! result)))
   (define (sob-difference! result sob1 sob2)
     (let ((sob1-ht (slot-ref sob1 'hashtable))
 	  (sob2-ht (slot-ref sob2 'hashtable))
@@ -667,40 +668,41 @@
        (lambda (key value1)
 	 (let ((value2 (hashtable-ref sob2-ht key 0)))
 	   (hashtable-set! result-ht key (- value1 value2))))
-       sob1-ht)))
+       sob1-ht)
+      (sob-cleanup! result)))
   (let-syntax ((define-theory
 		 (syntax-rules ()
-		   ((_ ?name ?name2 ?class ?op ?cleanup)
+		   ((_ ?name ?name2 ?class ?op)
 		    (begin
-		      (define (?name sob1 sob2 . sobs)
+		      (define (?name sob1 . sobs)
 			(check-type ?name sob1 ?class)
-			(check-type ?name sob2 ?class)
-			(check-comparator ?name sob1 sob2)
 			(for-each (lambda (sob)
 				    (check-type ?name sob ?class)
 				    (check-comparator ?name sob sob1))
 				  sobs)
-			(?op sob1 sob1 sob2)
-			(for-each
-			 (lambda (sob) (?op sob1 sob1 sob))
-			 sobs)
-			;; sucks...
-			(if ?cleanup
-			    (sob-cleanup! sob1)
-			    sob1))
-		      (define (?name2 sob1 sob2 . sobs)
-			(apply ?name (sob-empty-copy sob1 ?class) sob2 sobs)))
-		    ))))
-    (define-theory set-union! set-union <set> sob-union! #f)
-    (define-theory bag-union! bag-union <bag> sob-union! #f)
+			(for-each (lambda (sob) (?op sob1 sob1 sob)) sobs)
+			sob1)
+		      (define (?name2 sob1 . sobs)
+			(check-type ?name sob1 ?class)
+			(if (null? sobs)
+			    sob1
+			    (let ((result (sob-empty-copy sob1 ?class)))
+			      (check-type ?name (car sobs) ?class)
+			      (check-comparator ?name (car sobs) sob1)
+			      (?op result sob1 (car sobs))
+			      (if (null? (cdr sobs))
+				  result
+				  (apply ?name result (cdr sobs)))))))))))
+    (define-theory set-union! set-union <set> sob-union!)
+    (define-theory bag-union! bag-union <bag> sob-union!)
     (define-theory set-intersection! set-intersection
-      <set> sob-intersection! #t)
+      <set> sob-intersection!)
     (define-theory bag-intersection! bag-intersection
-      <bag> sob-intersection! #t)
+      <bag> sob-intersection!)
     (define-theory set-difference! set-difference
-      <set> sob-difference! #t)
+      <set> sob-difference!)
     (define-theory bag-difference! bag-difference
-      <bag> sob-difference! #t))
+      <bag> sob-difference!))
 
   (define (sob-xor! result sob1 sob2)
     (let ((sob1-ht (slot-ref sob1 'hashtable))
@@ -746,7 +748,7 @@
   
   ;; bag specific
   ;; bag-sum
-  (define (bag-sum! bag1 bag2 . bags)
+  (define (bag-sum! bag1 . bags)
     (define (sum! result sob1 sob2)
       (let ((sob1-ht (slot-ref sob1 'hashtable))
 	    (sob2-ht (slot-ref sob2 'hashtable))
@@ -763,14 +765,11 @@
 	       (hashtable-set! result-ht key value2))))
 	 sob2-ht)))
     (check-type bag-sum! bag1 <bag>)
-    (check-type bag-sum! bag2 <bag>)
-    (for-each (lambda (bag)
-		(check-type bag-sum! bag <bag>)) bags)
-    (sum! bag1 bag1 bag2)
+    (for-each (lambda (bag) (check-type bag-sum! bag <bag>)) bags)
     (for-each (lambda (bag) (sum! bag1 bag1 bag)) bags)
     bag1)
-  (define (bag-sum bag1 bag2 . bags)
-    (apply bag-sum! (bag-copy bag1) bag2 bags))
+  (define (bag-sum bag1 . bags)
+    (apply bag-sum! (bag-copy bag1) bags))
 
   ;; bag-product
   (define (bag-product! n bag)

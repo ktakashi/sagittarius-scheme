@@ -1,12 +1,15 @@
 (import (rnrs)
 	(srfi :113 sets)
 	(srfi :114 comparators)
-	(srfi :39)
+	(only (srfi :128 comparators) make-default-comparator)
+	(prefix (srfi :39) srfi:)
 	(clos user)
 	(prefix (srfi :64) srfi:)
-	(only (scheme base) define-values))
+	(sagittarius control))
 
 (srfi:test-begin "SRFI-113 Sets and bags")
+
+(define current-test-comparator (srfi:make-parameter equal?))
 
 (define-syntax test-group
   (syntax-rules ()
@@ -18,9 +21,9 @@
 (define-syntax test
   (syntax-rules ()
     ((_ expect expr)
-     (srfi:test-equal 'expr expect expr))
+     (test 'expr expect expr))
     ((_ name expect expr)
-     (srfi:test-equal name expect expr))))
+     (srfi:test-assert name ((current-test-comparator) expect expr)))))
 
 (define-syntax test-assert
   (syntax-rules ()
@@ -31,6 +34,21 @@
   (syntax-rules ()
     ((_ expr)
      (srfi:test-error 'expr condition? expr))))
+
+(define-syntax parameterize
+  (syntax-rules (define)
+    ((_ "order" bindings (def* ...) (expr* ...) ())
+     (srfi:parameterize  bindings
+       def* ... 
+       expr* ...))
+    ((_ "order" bindings (def* ...) (expr* ...) ((define v ...) e* ...))
+     (parameterize "order" bindings (def* ... (define v ...)) (expr* ...)
+		   (e* ...)))
+    ((_ "order" bindings (def* ...) (expr* ...) (e e* ...))
+     (parameterize "order" bindings (def* ...) (expr* ... e) (e* ...)))
+    ;; entry point
+    ((_ ((var val) ...) exprs ...)
+     (parameterize "order" ((var val) ...) () () (exprs ...)))))
 
 ;;(srfi:test-assert "dummy" #t)
 
@@ -87,7 +105,7 @@
   (set! nums (set eqv-comparator 10 20 30 40 50))
   ;; nums is now {10, 20, 30, 40, 50}
   (test-assert
-   (set=? nums (set-unfold
+    (set=? nums (set-unfold
        (lambda (i) (= i 0))
        (lambda (i) (* i 10))
        (lambda (i) (- i 1))
@@ -173,39 +191,43 @@
   (define abefgh (set eq-comparator 'a 'b 'e 'f 'g 'h))
   (test-assert (set-disjoint? abcd efgh))
   (test-assert (not (set-disjoint? abcd ab)))
-  #;
   (parameterize ((current-test-comparator set=?))
+    (test abcd (set-union abcd))
     (test all (set-union abcd efgh))
     (test abcdgh (set-union abcd abgh))
     (test abefgh (set-union efgh abgh))
-    (let ()
-      (define efgh2 (set-copy efgh))
-      (set-union! efgh2 abgh)
-      (test abefgh efgh2)
-      (test none (set-intersection abcd efgh))
-      (let ()
-	(define abcd2 (set-copy abcd))
-	(set-intersection! abcd2 efgh)
-	(test none abcd2)
-	(test ab (set-intersection abcd abgh))
-	(test ab (set-intersection abgh abcd))
-	(test cd (set-difference abcd ab))
-	(test abcd (set-difference abcd gh))
-	(test none (set-difference abcd abcd))
-	(let ()
-	  (define abcd3 (set-copy abcd))
-	  (set-difference! abcd3 abcd)
-	  (test none abcd3)
-	  (test cdgh (set-xor abcd abgh))
-	  (test all (set-xor abcd efgh))
-	  (test none (set-xor abcd other-abcd))
-	  (let ()
-	    (define abcd4 (set-copy abcd))
-	    ;; don't test xor! effect
-	    (test none (set-xor! abcd4 other-abcd))
-	    (test "abcd smashed?" other-abcd abcd)
-	    (test "efgh smashed?" other-efgh efgh)
-	    (test "abgh smashed?" other-abgh abgh))))))
+    (define efgh2 (set-copy efgh))
+    (set-union! efgh2)
+    (test efgh efgh2)
+    (set-union! efgh2 abgh)
+    (test abefgh efgh2)
+    (test abcd (set-intersection abcd))
+    (test none (set-intersection abcd efgh))
+    (define abcd2 (set-copy abcd))
+    (set-intersection! abcd2)
+    (test abcd abcd2)
+    (set-intersection! abcd2 efgh)
+    (test none abcd2)
+    (test ab (set-intersection abcd abgh))
+    (test ab (set-intersection abgh abcd))
+    (test abcd (set-difference abcd))
+    (test cd (set-difference abcd ab))
+    (test abcd (set-difference abcd gh))
+    (test none (set-difference abcd abcd))
+    (define abcd3 (set-copy abcd))
+    (set-difference! abcd3)
+    (test abcd abcd3)
+    (set-difference! abcd3 abcd)
+    (test none abcd3)
+    (test cdgh (set-xor abcd abgh))
+    (test all (set-xor abcd efgh))
+    (test none (set-xor abcd other-abcd))
+    (define abcd4 (set-copy abcd))
+    ;; don't test xor! effect
+    (test none (set-xor! abcd4 other-abcd))
+    (test "abcd smashed?" other-abcd abcd)
+    (test "efgh smashed?" other-efgh efgh)
+    (test "abgh smashed?" other-abgh abgh))
 ) ; end sets/subsets
 
 (test-group "sets/mismatch"
@@ -236,7 +258,6 @@
   (define-values (topx bottomx)
     (set-partition big whole))
   (set-partition! big whole4)
-  #;
   (parameterize ((current-test-comparator set=?))
     (test top (set-filter big whole))
     (test bottom (set-remove big whole))
@@ -277,15 +298,9 @@
   (test-assert (set-any? inexact? nums))
   (define sos
     (set set-comparator
-      (set eqv-comparator 1 2)
-      (set eqv-comparator 1 2)))
+      (set equal-comparator '(2 . 1) '(1 . 1) '(0 . 2) '(0 . 0))
+      (set equal-comparator '(2 . 1) '(1 . 1) '(0 . 0) '(0 . 2))))
   (test 1 (set-size sos))
-
-  (define sos2
-    (set set-comparator
-      (set equal-comparator '(1 . 1) '(2 . 1) '(0 . 0) '(0 . 2))
-      (set equal-comparator '(2 . 1) '(1 . 1) '(0 . 2) '(0 . 0))))
-  (test 1 (set-size sos2))
 ) ; end sets/lowlevel
 
 ) ; end sets
@@ -451,49 +466,53 @@
   (define abefgh (bag eq-comparator 'a 'b 'e 'f 'g 'h))
   (test-assert (bag-disjoint? abcd efgh))
   (test-assert (not (bag-disjoint? abcd ab)))
-  #;
   (parameterize ((current-test-comparator bag=?))
+    (test abcd (bag-union abcd))
     (test all (bag-union abcd efgh))
     (test abcdgh (bag-union abcd abgh))
     (test abefgh (bag-union efgh abgh))
-    (let ()
-      (define efgh2 (bag-copy efgh))
-      (bag-union! efgh2 abgh)
-      (test abefgh efgh2)
-      (test none (bag-intersection abcd efgh))
-      (let ()
-	(define abcd2 (bag-copy abcd))
-	(bag-intersection! abcd2 efgh)
-	(test none abcd2)
-	(test ab (bag-intersection abcd abgh))
-	(test ab (bag-intersection abgh abcd))
-	(test cd (bag-difference abcd ab))
-	(test abcd (bag-difference abcd gh))
-	(test none (bag-difference abcd abcd))
-	(let ()
-	  (define abcd3 (bag-copy abcd))
-	  (bag-difference! abcd3 abcd)
-	  (test none abcd3)
-	  (test cdgh (bag-xor abcd abgh))
-	  (test all (bag-xor abcd efgh))
-	  (test none (bag-xor abcd other-abcd))
-	  (let ()
-	    (define abcd4 (bag-copy abcd))
-	    (test none (bag-xor! abcd4 other-abcd))
-	    (let ()
-	      (define abab (bag eq-comparator 'a 'b 'a 'b))
-	      (define ab2 (bag-copy ab))
-	      (test abab (bag-sum! ab2 ab))
-	      (test abab ab2)
-	      (test abab (bag-product 2 ab))
-	      (let ()
-		(define ab3 (bag-copy ab))
-		(bag-product! 2 ab3)
-		(test abab ab3)
-		(test "abcd smashed?" other-abcd abcd)
-		(test "abcd smashed?" other-abcd abcd)
-		(test "efgh smashed?" other-efgh efgh)
-		(test "abgh smashed?" other-abgh abgh))))))))
+    (define efgh2 (bag-copy efgh))
+    (bag-union! efgh2)
+    (test efgh efgh2)
+    (bag-union! efgh2 abgh)
+    (test abefgh efgh2)
+    (test abcd (bag-intersection abcd))
+    (test none (bag-intersection abcd efgh))
+    (define abcd2 (bag-copy abcd))
+    (bag-intersection! abcd2)
+    (test abcd abcd2)
+    (bag-intersection! abcd2 efgh)
+    (test none abcd2)
+    (test ab (bag-intersection abcd abgh))
+    (test ab (bag-intersection abgh abcd))
+    (test abcd (bag-difference abcd))
+    (test cd (bag-difference abcd ab))
+    (test abcd (bag-difference abcd gh))
+    (test none (bag-difference abcd abcd))
+    (define abcd3 (bag-copy abcd))
+    (bag-difference! abcd3)
+    (test abcd abcd3)
+    (bag-difference! abcd3 abcd)
+    (test none abcd3)
+    (test cdgh (bag-xor abcd abgh))
+    (test all (bag-xor abcd efgh))
+    (test none (bag-xor abcd other-abcd))
+    (define abcd4 (bag-copy abcd))
+    (test none (bag-xor! abcd4 other-abcd))
+    (define abab (bag eq-comparator 'a 'b 'a 'b))
+    (test ab (bag-sum ab))
+    (define ab2 (bag-copy ab))
+    (test ab (bag-sum! ab2))
+    (test abab (bag-sum! ab2 ab))
+    (test abab ab2)
+    (test abab (bag-product 2 ab))
+    (define ab3 (bag-copy ab))
+    (bag-product! 2 ab3)
+    (test abab ab3)
+    (test "abcd smashed?" other-abcd abcd)
+    (test "abcd smashed?" other-abcd abcd)
+    (test "efgh smashed?" other-efgh efgh)
+    (test "abgh smashed?" other-abgh abgh))
 ) ; end bags/ops
 
 (test-group "bags/mismatch"
@@ -523,7 +542,6 @@
   (define-values (topx bottomx)
     (bag-partition big whole))
   (bag-partition! big whole4)
-  #;
   (parameterize ((current-test-comparator bag=?))
     (test top (bag-filter big whole))
     (test bottom (bag-remove big whole))
@@ -639,10 +657,11 @@
   (test-assert (not (=? bag-comparator aa bb)))
   (test-assert (=? bag-comparator aa (bag-copy aa)))
   (test-error (<? bag-comparator aa bb))
-  (test-assert (not (=? default-comparator a aa)))
+  (test-assert (not (=? (make-default-comparator) a aa)))
 ) ; end comparators
 
 ) ; end r7rs-sets
+
 
 ;; from comp.lang.scheme
 ;; https://groups.google.com/forum/#!topic/comp.lang.scheme/s1PIxpSn2Ts
