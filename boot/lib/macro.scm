@@ -101,7 +101,9 @@
 (define (make-pending-identifier name envs maybe-library)
   (%make-identifier name envs maybe-library #t))
 
-
+;; This will be inlined since these are not exported.
+(define (p1env-library p1env) (vector-ref p1env 0))
+(define (p1env-frames p1env) (vector-ref p1env 1))
 
 ;; free-identifier=?
 ;; this needs to be here since it requires both usage and macro env
@@ -443,7 +445,7 @@
     (define (ensure-id id env)
       (if (identifier? id)
 	  id
-	  (make-identifier id (vector-ref env 1) (vector-ref env 0))))
+	  (make-identifier id (p1env-frames env) (p1env-library env))))
     ;; pat is pattern variable so it's always identifier
     ;; but in case...
     (let ((p-id (ensure-id pat  (current-macro-env)))
@@ -677,7 +679,7 @@
     (rewrite-form tmpl 
 		  (make-eq-hashtable) 
 		  env
-		  (vector-ref mac-env 0)
+		  (p1env-library mac-env)
 		  (lambda (name env library)
 		    (make-identifier name (if (symbol? name) '() env)
 				     library))
@@ -736,7 +738,7 @@
     ;; wrap the given symbol with current usage env frame.
     (define (wrap-symbol sym)
       (define (finish new) (add-to-transformer-env! sym new))
-      (let ((use-lib (vector-ref use-env 0)))
+      (let ((use-lib (p1env-library use-env)))
 	(finish (make-identifier sym '() use-lib))))
 
     (define (partial-identifier olst)
@@ -778,8 +780,8 @@
     (define (rewrite template)
       (rewrite-form template
 		    (make-eq-hashtable)
-		    (vector-ref mac-env 1)
-		    (vector-ref mac-env 0)
+		    (p1env-frames mac-env)
+		    (p1env-library mac-env)
 		    (lambda (name env lib)
 		      (cond ((lookup-transformer-env name))
 			    (else
@@ -1167,8 +1169,8 @@
   (make-macro *variable-transformer-mark*
 	      (lambda (m expr p1env data)
 		(define (rewrite expr env)
-		  (rewrite-form expr (make-eq-hashtable) (vector-ref env 1)
-				(vector-ref env 0) 
+		  (rewrite-form expr (make-eq-hashtable) (p1env-frames env)
+				(p1env-library env) 
 				;; the same as syntax-case
 				(lambda (name env library)
 				  (make-identifier name
@@ -1181,6 +1183,30 @@
 		(proc (rewrite expr (current-usage-env))))
 	      '()
 	      (current-macro-env)))
+
+;; 'rename' procedure - we just return a resolved identifier
+;; NB: when dict is #f, means caller wants to only rename but not store.
+(define (er-rename symid p1env dict)
+  (define (rename symid dict env lib)
+    (let ((id (make-identifier symid env lib)))
+      (when dict (hashtable-set! dict symid id))
+      id))
+  (unless (variable? symid)
+    (assertion-violation 'er-macro-transformer
+     (wrong-type-argument-message "a symbol or an identifier" symid 0)))
+  (if (symbol? symid)
+      (or (and dict (hashtable-ref dict symid #f))
+	  (rename symid dict (p1env-frames p1env) (p1env-library p1env)))
+      ;; the same renaming rule as syntax-case
+      ;; TODO should we only rename when the `symid` is a pending identifier
+      ;;      and locally bound the same as compile-syntax?
+      ;;      the above is actually depending on non existing er-macro-expander
+      ;;      specification. we can decide when the spec is there.
+      (or (and (not (pending-identifier? symid))
+	       (or (and dict (hashtable-ref dict symid #f))
+		   (rename symid dict (p1env-frames p1env)
+			   (id-library symid))))
+	  symid)))
 
 ;; er-macro-transformer
 (define (er-macro-transformer f)

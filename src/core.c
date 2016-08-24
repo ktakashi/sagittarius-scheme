@@ -226,9 +226,6 @@ void Sg_Init()
     SgObject core_macro = SG_INTERN("(core macro)");
     SgLibrary *core_macro_lib = SG_LIBRARY(Sg_FindLibrary(core_macro, FALSE));
     SgLibrary *sagittarius_lib = SG_LIBRARY(Sg_FindLibrary(sgsym, FALSE));
-    SgObject er_rename = SG_INTERN("er-rename");
-    Sg_InsertBinding(core_macro_lib,
-		     er_rename, Sg_FindBinding(compsym, er_rename, SG_FALSE));
     Sg_InsertBinding(sagittarius_lib,
 		     SG_SYMBOL_ER_MACRO_TRANSFORMER,
 		     Sg_FindBinding(core_macro_lib, 

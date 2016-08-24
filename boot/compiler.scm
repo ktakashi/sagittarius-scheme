@@ -1572,34 +1572,6 @@
 (define-pass1-syntax (letrec-syntax form p1env) :null
   (pass1/letrec-syntax form p1env))
 
-;; 'rename' procedure - we just return a resolved identifier
-;; NB: when dict is #f, means caller wants to only rename but not store.
-(define (er-rename symid p1env dict)
-  (define (rename symid dict env lib)
-    (let ((id (make-identifier symid env lib)))
-      (when dict (hashtable-set! dict symid id))
-      id))
-  (unless (variable? symid)
-    (scheme-error 
-     'er-macro-transformer
-     "rename procedure requires a symbol or an identifier, but got " symid))
-  (if (symbol? symid)
-      (or (and dict (hashtable-ref dict symid #f))
-	  (rename symid dict (p1env-frames p1env) (p1env-library p1env)))
-      ;; the same renaming rule as syntax-case
-      ;; TODO should we only rename when the `symid` is a pending identifier
-      ;;      and locally bound the same as compile-syntax?
-      ;;      the above is actually depending on non existing er-macro-expander
-      ;;      specification. we can decide when the spec is there.
-      (or (and (not (pending-identifier? symid))
-	       (or (and dict (hashtable-ref dict symid #f))
-		   (rename symid dict (p1env-frames p1env) (id-library symid))))
-	  symid)))
-
-;; we need to export er-macro-transformer and er-rename
-(let ((lib (ensure-library-name :null)))
-  (%insert-binding lib 'er-rename er-rename))
-
 (define-pass1-syntax (%macroexpand form p1env) :sagittarius
   (smatch form
     ((- expr) ($const (iform->sexp (pass1 expr p1env))))

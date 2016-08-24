@@ -259,8 +259,7 @@
 		       (or in-file in-file "<anonymous>")))
 	    :init-prologue 
 	    (format "void Sg__Init_~a() {~%  \
-                       SgObject save = Sg_VM()->currentLibrary;~%  \
-                       SgObject h = SG_NIL, t = SG_NIL; /* for exports */ ~%" 
+                       SgObject save = Sg_VM()->currentLibrary;~%"
 		    initfun-name))
 	(parameterize ((cgen-current-unit u))
 	  (for-each cgen-define predef-syms)
