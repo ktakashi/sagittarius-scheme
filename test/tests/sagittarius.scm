@@ -2176,4 +2176,8 @@
 	       (guard (con (#f #f))
 		 (error 'who "msg")))))
 
+(test-error "toplevel check"
+	    (eval '(let () (export foo) 'ng)
+		  (environment '(rnrs) '(sagittarius))))
+
 (test-end)

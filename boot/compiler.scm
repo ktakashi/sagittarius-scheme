@@ -1531,6 +1531,7 @@
 
 (define (pass1/compile-let-syntax form p1env)
   (smatch form
+    ((- () body ___) (values p1env form)) ;; don't create scope
     ((- ((name trans-spec) ___) body ___)
      (let ((trans (imap2 (lambda (n x)
 			   (pass1/eval-macro-rhs 'let-syntax (variable-name n)
@@ -1554,6 +1555,7 @@
 
 (define (pass1/compile-letrec-syntax form p1env)
   (smatch form
+    ((- () body ___) (values p1env form)) ;; don't create scope
     ((- ((name trans-spec) ___) body ___)
      (let* ((newenv (p1env-extend p1env
 				  (%map-cons name trans-spec) LEXICAL))

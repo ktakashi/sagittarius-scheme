@@ -405,7 +405,7 @@
     ;; if the frame is null then it's definitely
     ;; (let () ...) thing. let(rec)-syntax's bindings are
     ;; merged to the environment
-    ;;(when (SG_NULLP frames) (return TRUE))
+    (when (SG_NULLP frames) (return TRUE))
     (dolist (frame frames)
       (unless (and (SG_PAIRP frame) (SG_MACROP (SG_CDR frame)))
 	(return TRUE)))
@@ -413,7 +413,7 @@
 
   (define-c-proc p1env-toplevel? (p1env) ::<boolean>
     (dolist (fp (SG_VECTOR_ELEMENT p1env 1))
-      (when (and (== (SG_CAR fp) (SG_MAKE_INT 0))
+      (when (and (== (SG_CAR fp) LEXICAL)
 		 ;; if we slice let-syntax then however env contains
 		 ;; frame already so we need to check if the frame only
 		 ;; contains macro in that case it's toplevel let(rec)-syntax
