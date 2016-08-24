@@ -75,48 +75,49 @@
 (define server-done? #f)
 (define (http-server socket)
   (let loop ()
-    (let* ([client  (tls-socket-accept socket)]
-	   [in/out  (transcoded-port (buffered-port (tls-socket-port client)
-						    (buffer-mode block))
-				     (make-transcoder (utf-8-codec) 'lf))]
-	   [request-line (get-line in/out)])
+    (let ([client  (tls-socket-accept socket)])
+      (guard (e (else (socket-shutdown client SHUT_RDWR) (socket-close client)))
+	(let* ([in/out  (transcoded-port (buffered-port (tls-socket-port client)
+							(buffer-mode block))
+					 (make-transcoder (utf-8-codec) 'lf))]
+	       [request-line (get-line in/out)])
 
-      (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
-	     => (lambda (m)
-		  (let* ([method (m 1)]
-			 [request-uri (m 2)]
-			 [headers (rfc5322-read-headers in/out)]
-			 [bodylen
-			  (cond [(and-let* ((slot (assoc "content-length" headers)))
-				   (cdr slot))
-				 => (lambda (e) (string->number (car e)))]
-				[else 0])]
-			 [body (get-bytevector-n in/out bodylen #t)])
-		    (cond
-		     [(equal? request-uri "/exit")
-		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
-		      (display "exit" in/out)
-		      (set! server-done? #t)
-		      (close-port in/out)]
-		     [(hashtable-ref %predefined-contents request-uri #f)
-		      => (lambda (x)
-			   (for-each (cut display <> in/out) x)
-			   (close-port in/out)
-			   (loop))]
-		     [else
-		      (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
-		      ;; to avoid SIGPIPE
-		      (unless (string=? method "HEAD")
-			(write `(("method" ,method)
-				 ("request-uri" ,request-uri)
-				 ("request-body" ,(utf8->string body))
-				 ,@headers)
-			       in/out))
-		      (flush-output-port in/out)
-		      (close-port in/out)
-		      (loop)]))))
-	    (else
-	     (error 'http-server "malformed request line:" request-line))))))
+	  (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
+		 => (lambda (m)
+		      (let* ([method (m 1)]
+			     [request-uri (m 2)]
+			     [headers (rfc5322-read-headers in/out)]
+			     [bodylen
+			      (cond [(and-let* ((slot (assoc "content-length" headers)))
+				       (cdr slot))
+				     => (lambda (e) (string->number (car e)))]
+				    [else 0])]
+			     [body (get-bytevector-n in/out bodylen #t)])
+			(cond
+			 [(equal? request-uri "/exit")
+			  (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
+			  (display "exit" in/out)
+			  (set! server-done? #t)
+			  (close-port in/out)]
+			 [(hashtable-ref %predefined-contents request-uri #f)
+			  => (lambda (x)
+			       (for-each (cut display <> in/out) x)
+			       (close-port in/out)
+			       (loop))]
+			 [else
+			  (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
+			  ;; to avoid SIGPIPE
+			  (unless (string=? method "HEAD")
+			    (write `(("method" ,method)
+				     ("request-uri" ,request-uri)
+				     ("request-body" ,(utf8->string body))
+				     ,@headers)
+				   in/out))
+			  (flush-output-port in/out)
+			  (close-port in/out)
+			  (loop)]))))
+		(else
+		 (error 'http-server "malformed request line:" request-line))))))))
 
 (define server-thread
   (make-thread (lambda ()

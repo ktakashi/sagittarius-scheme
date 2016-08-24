@@ -1636,9 +1636,13 @@
 	))
 
   (define (send-alert socket level description)
-    (let1 alert (make-tls-alert level description)
-      (tls-socket-send-inner socket alert 0 *alert*
-			     (~ socket 'session 'session-encrypted?))))
+    (when (and (~ socket 'has-peer?)
+	       (not (null? (socket-write-select 0 (~ socket 'raw-socket)))))
+      ;; yet still this would happen, so ignore
+      (guard (e (else #t))
+	(let1 alert (make-tls-alert level description)
+	  (tls-socket-send-inner socket alert 0 *alert*
+				 (~ socket 'session 'session-encrypted?))))))
 
   (define (%tls-socket-close socket)
     (when (~ socket 'raw-socket)
@@ -1646,23 +1650,20 @@
     ;; if we don't have any socket, we can't reconnect
     (set! (~ socket 'raw-socket) #f)
     (set! (~ socket 'session 'closed?) #t))
+
   (define (tls-socket-close socket)
     ;; the combination of socket conversion and call-with-tls-socket
     ;; calls this twice and raises an error. so if the socket is
     ;; already closed, then we need not to do twice.
     (unless (tls-socket-closed? socket)
       (unless (~ socket 'sent-close?)
-	(when (~ socket 'has-peer?)
-	  (send-alert socket *warning* *close-notify*)))
+	(send-alert socket *warning* *close-notify*))
       (%tls-socket-close socket)))
 
   (define (tls-socket-shutdown socket how)
     (unless (~ socket 'sent-close?)
       (when (~ socket 'raw-socket) ;; may already be handled
-	(when (and (~ socket 'has-peer?)
-		   ;; TODO should this be here or send-alert?
-		   (socket-write-select 0 (~ socket 'raw-socket)))
-	  (send-alert socket *warning* *close-notify*))
+	;; (send-alert socket *warning* *close-notify*)
 	(socket-shutdown (~ socket 'raw-socket) how))
       (set! (~ socket 'sent-close?) #t)))
 
