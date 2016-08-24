@@ -602,16 +602,18 @@
 			     (d 4)
 			     (e 4)
 			     ))))
-  (test-error "duplicate name" assertion-violation?
-	      (let ()
-		(define-c-struct foo
-		  (bit-field unsigned-short
-			     (a 4) 
-			     (b 4) 
-			     (c 4)
-			     (d 4)
-			     (d 4)
-			     ))))
+  ;; This test now raises &compile since foo-d-ref and foo-d-set! are
+  ;; duplicate variables.
+  ;;  (test-error "duplicate name" assertion-violation?
+  ;;	      (let ()
+  ;;		(define-c-struct foo
+  ;;		  (bit-field unsigned-short
+  ;;			     (a 4) 
+  ;;			     (b 4) 
+  ;;			     (c 4)
+  ;;			     (d 4)
+  ;;			     (d 4)
+  ;;			     ))))
   (test-error "not an integer" assertion-violation?
 	      (let ()
 		(define-c-struct foo

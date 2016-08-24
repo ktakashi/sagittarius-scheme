@@ -2180,4 +2180,28 @@
 	    (eval '(let () (export foo) 'ng)
 		  (environment '(rnrs) '(sagittarius))))
 
+#!compatible
+;; better variable checks
+(define (test-compile-error-expr expr)
+  (test-error expr condition? (eval expr (environment '(rnrs)))))
+
+(test-compile-error-expr '(let ((a 1) (a 1)) a))
+(test-compile-error-expr '(letrec ((a 1) (a 1)) a))
+(test-compile-error-expr '(letrec* ((a 1) (a 1)) a))
+(test-compile-error-expr '(let () (define a 1) (define a 1) a))
+(test-compile-error-expr '(lambda (a a) a))
+(test-compile-error-expr '(lambda (a :key (b 1) b) a))
+(test-compile-error-expr '(do ((i 0) (i 1)) (#t #f)))
+(test-compile-error-expr
+ '(let () (define a 1) (define-syntax a (lambda (x) x)) a))
+(test-compile-error-expr
+ '(let-syntax ((a (lambda (x) x)) (a (lambda (x) x))) 'ok))
+(test-compile-error-expr
+ '(letrec-syntax ((a (lambda (x) x)) (a (lambda (x) x))) 'ok))
+
+(test-compile-error-expr '(let ((1 1) (a 1)) a))
+(test-compile-error-expr '(letrec ((1 1) (a 1)) a))
+(test-compile-error-expr '(letrec* ((1 1) (a 1)) a))
+(test-compile-error-expr '(lambda (a 1) a))
+
 (test-end)

@@ -1164,8 +1164,9 @@
 ;; Used in procedure inlining and local call optimization.
 (define (adjust-arglist src reqargs optarg iargs name)
   (unless (argcount-ok? iargs reqargs (> optarg 0))
-    (raise (condition (make-compile-error (source-info src)
-					  (unwrap-syntax src))
+    (raise (condition (make-compile-error
+		       (format-source-info (source-info src))
+		       (truncate-program src))
 		      (make-who-condition name)
 		      (make-message-condition 
 		       (format 
@@ -1176,6 +1177,23 @@
       (receive (reqs opts) (split-at iargs reqargs)
 	(append! reqs (list ($list #f opts))))))
 
+(define (check-duplicate-variable form vars = msg)
+  (or (null? vars)
+      (null? (cdr vars))
+      (or (and (member (car vars) (cdr vars) =)
+	       (raise (condition (make-compile-error
+				  (format-source-info (source-info form))
+				  (truncate-program form))
+				 (make-message-condition msg)
+				 (make-irritants-condition (car vars)))))
+	  (check-duplicate-variable form (cdr vars) = msg))))
+
+(define (variable=? a b)
+  (or (and (variable? a) (variable? b))
+      (syntax-error "variables must be an identifier or a symbol" a b))
+  (or (eq? a b)
+      (and (identifier? a) (identifier? b) (bound-identifier=? a b))))
+      
 ;; Make global identifier.
 (define (global-id id) (make-identifier id '() '(sagittarius compiler)))
 
@@ -1533,6 +1551,7 @@
   (smatch form
     ((- () body ___) (values p1env form)) ;; don't create scope
     ((- ((name trans-spec) ___) body ___)
+     (check-duplicate-variable form name variable=? "duplicate variable")
      (let ((trans (imap2 (lambda (n x)
 			   (pass1/eval-macro-rhs 'let-syntax (variable-name n)
 			    x (p1env-add-name p1env (variable-name n))))
@@ -1557,6 +1576,7 @@
   (smatch form
     ((- () body ___) (values p1env form)) ;; don't create scope
     ((- ((name trans-spec) ___) body ___)
+     (check-duplicate-variable form name variable=? "duplicate variable")
      (let* ((newenv (p1env-extend p1env
 				  (%map-cons name trans-spec) LEXICAL))
 	    (trans (imap2 (lambda (n x)
@@ -1602,6 +1622,7 @@
 	     
 (define (pass1/lambda form formals body p1env flag)
   (receive (vars reqargs opt kargs) (parse-lambda-args formals)
+    (check-duplicate-variable form vars variable=? "duplicate variable")
     (cond ((null? kargs)
 	   (let* ((this-lvars (imap make-lvar+ vars))
 		  (intform ($lambda form (p1env-exp-name p1env)
@@ -1709,6 +1730,7 @@
   (smatch form
     ((- formals expr body ___)
      (receive (args reqargs opt kargs) (parse-lambda-args formals)
+       (check-duplicate-variable form args variable=? "duplicate variable")
        (unless (null? kargs)
 	 (syntax-error "exptended lambda list isn't allowed in receive" form))
        (let* ((lvars (imap make-lvar+ args))
@@ -1921,11 +1943,13 @@
 		     (cons default defaults)
 		     (cons (gensym "tmps") tmps))))
 	    (else (finish (or specs #t))))))
+
   (let ((argvar (gensym "args")) (loop (gensym "loop"))
 	(_undefined? (global-id 'undefined?))
 	(_cond  (global-id 'cond))  (_case  (global-id 'case))
 	(_else  (global-id 'else)))
     (receive (vars keys defaults tmps restvar) (process-specs specs)
+      (check-duplicate-variable form keys eq? "duplicate keyword")
       (pass1 ($src
 	      `(,let. ,loop ((,argvar ,arg)
 			     ,@(if (boolean? restvar) '() `((,restvar '())))
@@ -1997,6 +2021,7 @@
      ;; to make env lookup work properly, we need to extend it
      (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
+     (check-duplicate-variable form var variable=? "duplicate variable")
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env (%map-cons var lvars) LEXICAL)))
        ($let form 'let lvars
@@ -2010,6 +2035,7 @@
 	     (pass1/body body newenv))))
     ((- name ((var expr) ___) body ___)
      (unless (variable? name) (syntax-error "bad name for named let" name))
+     (check-duplicate-variable form var variable=? "duplicate variable")
      (let* ((lvar (make-lvar name))
 	    (args (imap make-lvar+ var))
 	    (argenv (p1env-sans-name p1env)))
@@ -2057,6 +2083,7 @@
      ;; see let
      (pass1/body body p1env))
     ((- ((var expr) ___) body ___)
+     (check-duplicate-variable form var variable=? "duplicate variable")
      (let* ((lvars (imap make-lvar+ var))
 	    (newenv (p1env-extend p1env (%map-cons var lvars) LEXICAL)))
        ($let form name lvars
@@ -2073,6 +2100,7 @@
 (define-pass1-syntax (do form p1env) :null
   (smatch form
     ((- ((var init . update) ___) (test expr ___) body ___)
+     (check-duplicate-variable form var variable=? "duplicate variable")
      (let* ((tmp (make-lvar 'do-proc))
 	    (args (imap make-lvar+ var))
 	    (newenv (p1env-extend/proc p1env (%map-cons var args)
@@ -3176,7 +3204,7 @@
 (define (pass1/body exprs p1env)
   ;; add dummy env so that we can just extend!
   (let ((newenv (p1env-extend p1env '() LEXICAL)))
-    (pass1/body-rec (imap (lambda (e) (cons e newenv)) exprs) 
+    (pass1/body-rec exprs (imap (lambda (e) (cons e newenv)) exprs) 
 		    '() '() newenv)))
 
 ;;; 
@@ -3195,7 +3223,7 @@
 ;; 
 ;;  the structure of intmacros
 ;;  (((name expr) (name . #t) . meta-env) ...)
-(define (pass1/body-rec exprs intdefs intmacros p1env)
+(define (pass1/body-rec oexpr exprs intdefs intmacros p1env)
   (define (p1env-extend! p1env p)
     (let ((frame (car (p1env-frames p1env))))
       (set-cdr! frame (append! (cdr frame) (list p)))
@@ -3206,13 +3234,14 @@
        (cond ((and (not (assq op intdefs)) (pass1/lookup-head op env)) =>
 	      (lambda (head)
 		(cond ((lvar? head)
-		       (pass1/body-finish intdefs intmacros exprs env))
+		       (pass1/body-finish oexpr intdefs intmacros exprs env))
 		      ((macro? head)
 		       (let ((e (call-macro-expander head (caar exprs) env)))
-			 (pass1/body-rec `((,e . ,env) . ,rest)
+			 (pass1/body-rec oexpr `((,e . ,env) . ,rest)
 					 intdefs intmacros p1env)))
 		      ;; when (let-syntax ((xif if) (xif ...)) etc.
-		      ((syntax? head) (pass1/body-finish intdefs exprs env))
+		      ((syntax? head)
+		       (pass1/body-finish oexpr intdefs exprs env))
 		      ((global-eq? head 'define p1env)
 		       (let* ((def (smatch args
 				     (((name . formals) . body)
@@ -3227,13 +3256,13 @@
 					 "malformed internal define"
 					 (caar exprs)))))
 			      (frame (cons (car def) (make-lvar (car def)))))
-			 (pass1/body-rec rest 
+			 (pass1/body-rec oexpr rest 
 					 (cons (cons* def frame env) intdefs)
 					 intmacros
 					 ;; we initialise internal define later
 					 (p1env-extend! p1env frame))))
 		      ((global-eq? head 'begin p1env)
-		       (pass1/body-rec 
+		       (pass1/body-rec oexpr
 			(append! (imap (lambda (x) (cons x env)) args)
 				 rest)
 			intdefs intmacros p1env))
@@ -3248,7 +3277,7 @@
 					      (set-cdr! e&p (p1env-swap-source
 							     env p))))
 					  expr&path)
-			       (pass1/body-rec (append! expr&path rest)
+			       (pass1/body-rec oexpr (append! expr&path rest)
 					       intdefs intmacros p1env))))
 		      ;; 11.2.2 syntax definition (R6RS)
 		      ;; 5.3 Syntax definition (R7RS)
@@ -3265,7 +3294,7 @@
 				       "malformed internal define-syntax"
 				       (caar exprs)))))
 			      (frame (cons (car args) m)))
-			 (pass1/body-rec rest intdefs intmacros
+			 (pass1/body-rec oexpr rest intdefs intmacros
 					 ;;(cons (cons* m frame env) intmacros)
 					 ;; this can see from meta-env as well
 					 (p1env-extend! p1env frame))))
@@ -3276,7 +3305,7 @@
 				pass1/compile-letrec-syntax))
 		       => (lambda (compile)
 			    (receive (new body) (compile (caar exprs) env)
-			      (pass1/body-rec 
+			      (pass1/body-rec oexpr
 			       `(((,begin. ,@body) . ,new) . ,rest)
 			       intdefs intmacros p1env))))
 		      ((identifier? head)
@@ -3285,17 +3314,18 @@
 				      ( (macro? gval) ))
 			     (let ((expr (call-macro-expander gval (caar exprs) 
 							      env)))
-			       (pass1/body-rec `((,expr . ,env) . ,rest)
+			       (pass1/body-rec oexpr `((,expr . ,env) . ,rest)
 					       intdefs intmacros p1env)))
-			   (pass1/body-finish intdefs intmacros exprs env)))
+			   (pass1/body-finish oexpr intdefs intmacros
+					      exprs env)))
 		      (else
 		       (error 'pass1/body 
 			      "[internal] p1env-lookup returned weird obj"
 			      head `(,op . ,args))))))
-	     (else (pass1/body-finish intdefs intmacros exprs env)))))
-    (- (pass1/body-finish intdefs intmacros exprs p1env))))
+	     (else (pass1/body-finish oexpr intdefs intmacros exprs env)))))
+    (- (pass1/body-finish oexpr intdefs intmacros exprs p1env))))
 
-(define (pass1/body-finish intdefs intmacros exprs p1env)
+(define (pass1/body-finish oexpr intdefs intmacros exprs p1env)
   (define (finish exprs) (pass1/body-rest exprs p1env))
   (define (collect-lvars intdefs) (imap cdadr intdefs))
   #;
@@ -3315,7 +3345,13 @@
 	       intmacros))
   (cond ((null? intdefs) (finish exprs))
 	(else
-	 (let ((intdefs. (reverse! intdefs)))
+	 (let ((frame (car (p1env-frames p1env)))
+	       (intdefs. (reverse! intdefs)))
+	   ;; check top frame which contains all names of internal definition
+	   ;; and internal macro definitions
+	   (check-duplicate-variable oexpr (imap car (cdr frame))
+				     variable=? "duplicate variable")
+	   
 	   ;; Below isn't needed anymore (I don't remember why we needed this
 	   ;; if we rename it here, then it causes some issue.
 	   ;; See test case for call #106 in test/tests/syntax-case.scm.
