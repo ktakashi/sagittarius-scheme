@@ -371,4 +371,26 @@
 (test-error "local-method1" condition? (local-method1 'a))
 (test-error "local-method2" condition? (local-method2 'a 2))
 
+;; Issue #193
+(test-error "local generic function (1)" undefined-violation?
+	    (begin (let () (define-generic foo)) foo))
+
+(test-equal "local generic function (2)" 0
+	    (let ()
+	      (define-generic foo)
+	      (let ()
+		(define-generic foo)
+		(define-method foo (o) o)
+		'ok)
+	      (length (generic-methods foo))))
+
+(test-equal "local generic function (3)" 1
+	    (let ()
+	      (define-generic foo)
+	      (let ()
+		(define-method foo (o) o)
+		'ok)
+	      (length (generic-methods foo))))
+
+
 (test-end)

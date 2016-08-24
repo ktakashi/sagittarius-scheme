@@ -3,7 +3,7 @@
 ;; helper library to be able to use define-generic and define-method
 ;; in the (clos user) library.
 (library (clos helper)
-    (export %make-setter-name %check-setter-name)
+    (export %make-setter-name %check-setter-name LEXICAL)
     (import (core) (core syntax) (sagittarius))
   ;;(define-syntax setter (syntax-rules ()))
 
@@ -20,6 +20,8 @@
        (eq? (id-name #'?setter) 'setter)
        #`(#,(%make-setter-name #'name) name))
       (n #'(n #f))))
+
+  (define-constant LEXICAL 0)
 )
 
 (library (clos user)
@@ -72,6 +74,7 @@
 	    )
     (import (core)
 	    (core base)
+	    (core macro)
 	    (core syntax)
 	    (core exceptions)
 	    (sagittarius)
@@ -304,21 +307,25 @@
 					   (define (nm)
 					     (slot-ref cm 'next-method?))
 					   body ...))))
-	    #`(begin
-		(let* ((gf (%ensure-generic-function 'true-name 
-						     (current-library)))
-		       (m (make <method>
-			    :specializers  (list specializers ...)
-			    :qualifier     #,qualifier
-			    :generic       true-name
-			    :lambda-list   '(reqargs ... . rest)
-			    :procedure     real-body)))
-		  (add-method gf m)
-		  #,@(if #'getter-name
-			 #'((unless (has-setter? getter-name)
-			      (set! (setter getter-name) gf)))
-			 #'())
-		  m)))))
+	    (let ((global? (identifier? (p1env-lookup (current-usage-env)
+						     #'true-name LEXICAL))))
+	      #`(begin
+		  (let* ((gf #,(if global?
+				   #'(%ensure-generic-function 'true-name 
+					(current-library))
+				   #'true-name))
+			 (m (make <method>
+			      :specializers  (list specializers ...)
+			      :qualifier     #,qualifier
+			      :generic       true-name
+			      :lambda-list   '(reqargs ... . rest)
+			      :procedure     real-body)))
+		    (add-method gf m)
+		    #,@(if #'getter-name
+			   #'((unless (has-setter? getter-name)
+				(set! (setter getter-name) gf)))
+			   #'())
+		    m))))))
       (syntax-case x ()
 	;; k will be passed from upper macro otherwise it's not R6RS compliant
 	((_ k ?qualifier ?generic ?args . ?body)
@@ -337,9 +344,12 @@
 	(let ((name (syntax->datum id))
 	      (lib (id-library id)))
 	  (cond ((find-binding lib name #f) #'())
-		(else
+		;; If there's already the same binding, then it will be
+		;; an error. thus no need to create generic function here.
+		((identifier? (p1env-lookup (current-usage-env) id LEXICAL))
 		 (%ensure-generic-function name lib)
-		 #`((define-generic #,id))))))
+		 #`((define-generic #,id)))
+		(else #'()))))
       (syntax-case x ()
 	((k ?qualifier ?generic ?args . ?body)
 	 (keyword? #'?qualifier)
@@ -394,8 +404,9 @@
 					 class
 					 (datum->syntax #'k class))))
 	     ;; to avoid duplicated definition...
-	     (%ensure-generic-function (syntax->datum #'true-name)
-				       (current-library))
+	     (when (p1env-toplevel? (current-usage-env))
+	       (%ensure-generic-function (syntax->datum #'true-name)
+					 (current-library)))
 	     #'(define true-name
 		 (let ((m (make class-name 
 			    :definition-name 'true-name)))
@@ -406,7 +417,9 @@
 				   #'<generic>)))
 	   ;; to avoid duplicated definition...
 	   ;; FIXME this smells bugs
-	   (%ensure-generic-function (syntax->datum #'name) (current-library))
+	   (when (p1env-toplevel? (current-usage-env))
+	     (%ensure-generic-function (syntax->datum #'name)
+				       (current-library)))
 	   (with-syntax ((class-name (if (identifier? class)
 					 class
 					 (datum->syntax #'k class))))
