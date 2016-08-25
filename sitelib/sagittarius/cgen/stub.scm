@@ -6,6 +6,8 @@
 	    ;; for custom generation
 	    cgen-stub-parse-form
 	    define-form-parser
+	    (rename (<c-proc> <cgen-c-proc>))
+	    ;; TODO remove me
 	    <c-proc>)
     (import (rnrs)
 	    (rnrs eval)
@@ -677,4 +679,18 @@
   ;; keyword handler
   (define-method render-literal ((k <keyword>) env)
     (cgen-cexpr (cgen-literal k)))
+
+  ;; constants
+  (define-form-parser define-c-constant (scheme-name value . opt)
+    (define export? (memq :export opt))
+    (let ((cname (get-c-name "" scheme-name))
+	  (literal (cgen-literal value)))
+      (cgen-decl (format "#define ~a ~a~%" cname (cgen-cexpr literal)))
+      (when export?
+	(let ((name-literal (cgen-literal scheme-name)))
+	  (cgen-init (format "  Sg_InsertBinding(lib, ~a, ~a);~%"
+			     (cgen-cexpr name-literal)
+			     (cgen-cexpr literal)))))))
+
+
 )

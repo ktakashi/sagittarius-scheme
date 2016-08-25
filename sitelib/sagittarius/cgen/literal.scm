@@ -136,7 +136,7 @@
 	(cgen-unit-toplevel-nodes unit (append (cgen-unit-toplevel-nodes unit)
 					       (list node))))))
 
-  (define-generic cgen-cname)
+  (define-generic cgen-c-name)
   (define-method cgen-c-name ((node <cgen-literal>))
     (and-let* ((n (slot-ref node 'c-name)))
       (if (string? n) n (n))))

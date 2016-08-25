@@ -720,7 +720,8 @@
 		    ('* "[]")
 		  (x `("[" ,(render-rec x (expr-env env)) "]")))
 		dim)))
-      ((x ...) `(,(intersperse " " (map (cut format "~a" <>) x))))
+      ((x ...) `(,(intersperse " " (map (cut format "~a" <>) x))
+		 ,(cise-render-identifier var)))
       (x `(,(format "~a" x) " " ,(cise-render-identifier var)))))
 
   (define (cise-render-identifier sym)
