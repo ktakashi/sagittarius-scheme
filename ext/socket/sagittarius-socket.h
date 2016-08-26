@@ -63,6 +63,7 @@ typedef enum {
 
 #ifndef _WIN32
 typedef int SOCKET;
+# define INVALID_SOCKET ((SOCKET)-1)
 #endif
 
 typedef struct SgSockaddrRec SgSockaddr;
@@ -74,7 +75,6 @@ typedef struct SgSocketRec
   int lastError;
   SgSocketType type;
   SgSockaddr *address;		/* for sockaddr */
-  SgVM   *thread;		/* for pthread_kill */
 #ifdef _WIN32
   int nonblocking;		/* blocking or not */
 #endif

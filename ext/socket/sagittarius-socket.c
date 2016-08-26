@@ -297,7 +297,6 @@ static SgSocket* make_socket_inner(SOCKET fd)
   Sg_RegisterFinalizer(s, socket_finalizer, NULL);
   s->type = SG_SOCKET_UNKNOWN;
   s->address = NULL;
-  s->thread = NULL;
   return s;
 }
 
@@ -794,9 +793,11 @@ void Sg_SocketClose(SgSocket *socket)
   closesocket(socket->socket);
 #else
   close(socket->socket);
-  /* socket->socket = -1; */
 #endif
+  /* in case of double closing, we need to set invalid socket here. */
+  socket->socket = INVALID_SOCKET;
   socket->type = SG_SOCKET_CLOSED;
+  Sg_UnregisterFinalizer(SG_OBJ(socket));
 }
 
 /* fdset */
