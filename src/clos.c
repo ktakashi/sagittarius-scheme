@@ -2957,7 +2957,8 @@ static SgObject unbound_variable_subr(SgObject *argv, int argc, void *data)
   message = Sg_Sprintf(UC("unbound variable %S in library %A"),
 		       variable, SG_LIBRARY_NAME(lib));
   SG_APPEND1(h, t, Sg_MakeMessageCondition(message));
-  return Sg_Condition(h);
+  Sg_Raise(Sg_Condition(h), FALSE);
+  return SG_UNDEF;
 }
 SG_DEFINE_SUBR(unbound_variable_subr_rec, 3, 0, unbound_variable_subr,
 	       SG_FALSE, NULL);
