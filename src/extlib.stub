@@ -1127,7 +1127,7 @@
     (let ((bp (Sg_MakeByteArrayOutputPort -1)))
       (if (SG_FALSEP t)
 	  (result bp)
-	  (result (Sg_MakeTranscodedOutputPort bp t)))))
+	  (result (Sg_MakeTranscodedPort bp t)))))
 
   ;; SRFI-6
   ;; only if the given port is completely closed.

@@ -555,17 +555,8 @@ SG_EXTERN SgObject Sg_MakeByteArrayOutputPort(int bufferSize);
 SG_EXTERN SgObject Sg_InitByteArrayOutputPort(SgBytePort *port,
 					      int bufferSize);
 
-/* these are obsolated but still there */
-SG_EXTERN SgObject Sg_MakeTranscodedInputPort(SgPort *port,
-					      SgTranscoder *transcoder);
-SG_EXTERN SgObject Sg_MakeTranscodedOutputPort(SgPort *port,
-					       SgTranscoder *transcoder);
-SG_EXTERN SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port,
-						    SgTranscoder *transcoder);
-SG_EXTERN SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port,
-						     SgTranscoder *transcoder);
-
-SG_EXTERN SgObject Sg_TranscodedPort(SgPort *port, SgTranscoder *transcoder);
+SG_EXTERN SgObject Sg_MakeTranscodedPort(SgPort *port,
+					 SgTranscoder *transcoder);
 SG_EXTERN SgObject Sg_InitTranscodedPort(SgTranscodedPort *port,
 					 SgPort *src, 
 					 SgTranscoder *transcoder,
@@ -683,8 +674,6 @@ SG_EXTERN SgObject Sg_PortFile(SgPort *port);
 
 /* for user defined port */
 SG_EXTERN int      Sg_AddPortCleanup(SgPort *port);
-SG_EXTERN void     Sg_RegisterBufferedPort(SgPort *port);
-SG_EXTERN void     Sg_UnregisterBufferedPort(SgPort *port);
 
 /* misc */
 SG_EXTERN int      Sg_PortCaseInsensitiveP(SgPort *port);

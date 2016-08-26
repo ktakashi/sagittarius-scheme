@@ -207,13 +207,13 @@ static void port_cleanup(SgPort *port)
   port->closed = SG_PORT_CLOSED;
   /* in case */
   SG_CLEAN_PORT_LOCK(port);
-  Sg_UnregisterFinalizer(SG_OBJ(port));
 }
 
 
 static void port_finalize(SgObject obj, void *data)
 {
   port_cleanup(SG_PORT(obj));
+  Sg_UnregisterFinalizer(SG_OBJ(obj));
 }
 
 int Sg_AddPortCleanup(SgPort *port)
@@ -249,7 +249,7 @@ static struct {
   (((((uintptr_t)(port)>>3) * 2654435761UL)>>16) % PORT_VECTOR_SIZE)
 
 
-static void register_buffered_port(SgPort *port)
+static void register_buffered_port(SgBufferedPort *port)
 {
   int i, h, c;
   int tried_gc = FALSE;
@@ -290,7 +290,7 @@ static void register_buffered_port(SgPort *port)
   }
 }
 
-static void unregister_buffered_port(SgPort *port)
+static void unregister_buffered_port(SgBufferedPort *port)
 {
   int i, h, c;
   SgObject p;
@@ -307,16 +307,6 @@ static void unregister_buffered_port(SgPort *port)
     i -= ++c; while (i < 0) i += PORT_VECTOR_SIZE;
   } while (i != h);
   Sg_UnlockMutex(&active_buffered_ports.lock);
-}
-
-void Sg_RegisterBufferedPort(SgPort *port)
-{
-  register_buffered_port(port);
-}
-
-void Sg_UnregisterBufferedPort(SgPort *port)
-{
-  unregister_buffered_port(port);
 }
 
 /* at some point, we changed port implementation strategy and removed
@@ -548,7 +538,7 @@ static int buffered_close(SgObject self)
     /* I believe calling GC_REGISTER_FINALIZER_NO_ORDER with
        non GC pointer is safe. But just in case. */
     if (Sg_GCBase(self)) {
-      unregister_buffered_port(SG_PORT(self));
+      unregister_buffered_port(bp);
       if (Sg_FinalizerRegisteredP(self)) {
 	Sg_UnregisterFinalizer(self);
       }
@@ -740,7 +730,7 @@ static SgObject init_buffered_port(SgBufferedPort *bp,
   SG_PORT(bp)->position = src->position;
   /* we don't want to add stack allocated ones */
   if (registerP && Sg_GCBase(bp)) {
-    register_buffered_port(SG_PORT(bp));
+    register_buffered_port(bp);
     /* 
        If the source port has finalizer registered, then we
        first remove it then register this buffered port.
@@ -1527,30 +1517,7 @@ static SgObject make_trans_port(SgPort *port, SgTranscoder *transcoder,
   return SG_OBJ(z);
 }
 
-SgObject Sg_MakeTranscodedInputPort(SgPort *port, SgTranscoder *transcoder)
-{
-  return make_trans_port(port, transcoder, SG_INPUT_PORT);
-}
-
-
-SgObject Sg_MakeTranscodedOutputPort(SgPort *port, SgTranscoder *transcoder)
-{
-  return make_trans_port(port, transcoder, SG_OUTPUT_PORT);
-}
-
-SgObject Sg_MakeTranscodedInputOutputPort(SgPort *port, 
-					  SgTranscoder *transcoder)
-{
-  return make_trans_port(port, transcoder, SG_IN_OUT_PORT);
-}
-
-SgObject Sg_MakeTranscodedBidrectionalPort(SgPort *port, 
-					   SgTranscoder *transcoder)
-{
-  return make_trans_port(port, transcoder, SG_BIDIRECTIONAL_PORT);
-}
-
-SgObject Sg_TranscodedPort(SgPort *port, SgTranscoder *transcoder)
+SgObject Sg_MakeTranscodedPort(SgPort *port, SgTranscoder *transcoder)
 {
   return make_trans_port(port, transcoder, port->direction);
 }
@@ -2471,13 +2438,7 @@ SgObject Sg_GetStringFromStringPort(SgStringPort *port)
 
 void Sg_ClosePort(SgPort *port)
 {
-  SG_PORT_VTABLE(port)->close(port);
-  if (port->closed == SG_PORT_CLOSED) {
-    /* destroy mutex */
-    SG_CLEAN_PORT_LOCK(port);
-    /* following must be useless */
-    /*   port_cleanup(port); */
-  }
+  port_cleanup(port);
 }
 
 /* this doesn't close port, just pseudo.
@@ -3208,15 +3169,15 @@ void Sg__InitPort()
   sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(),
 					  SG_BUFFER_MODE_NONE);
 
-  vm->currentInputPort = Sg_MakeTranscodedInputPort(sg_stdin,
+  vm->currentInputPort = Sg_MakeTranscodedPort(sg_stdin,
 			    Sg_IsUTF16Console(Sg_StandardIn())
 			      ? Sg_MakeNativeConsoleTranscoder()
 			      : Sg_MakeNativeTranscoder());
-  vm->currentOutputPort = Sg_MakeTranscodedOutputPort(sg_stdout,
+  vm->currentOutputPort = Sg_MakeTranscodedPort(sg_stdout,
 			     Sg_IsUTF16Console(Sg_StandardOut())
 			      ? Sg_MakeNativeConsoleTranscoder()
 			      : Sg_MakeNativeTranscoder());
-  vm->currentErrorPort = Sg_MakeTranscodedOutputPort(sg_stderr,
+  vm->currentErrorPort = Sg_MakeTranscodedPort(sg_stderr,
 			     Sg_IsUTF16Console(Sg_StandardError())
 			      ? Sg_MakeNativeConsoleTranscoder()
 			      : Sg_MakeNativeTranscoder());

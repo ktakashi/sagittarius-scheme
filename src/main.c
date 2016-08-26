@@ -659,7 +659,7 @@ int real_main(int argc, tchar **argv)
 	  Sg_Warn(UC("given log file could not open. log port was not set!"));
 	} else {
 	  bp = Sg_MakeFileBinaryOutputPort(SG_FILE(log), SG_BUFFER_MODE_NONE);
-	  vm->logPort = SG_PORT(Sg_MakeTranscodedOutputPort(SG_PORT(bp),
+	  vm->logPort = SG_PORT(Sg_MakeTranscodedPort(SG_PORT(bp),
 				    SG_TRANSCODER(Sg_MakeNativeTranscoder())));
 	}
 	break;

@@ -564,7 +564,7 @@ static void load_library(SgVM *vm, SgObject path, SgObject directive)
 	       path, SG_FALSE);
   }
   bport = Sg_MakeFileBinaryInputPort(SG_FILE(file), SG_BUFFER_MODE_BLOCK);
-  tport = Sg_MakeTranscodedInputPort(SG_PORT(bport), default_load_transcoder);
+  tport = Sg_MakeTranscodedPort(SG_PORT(bport), default_load_transcoder);
 
   Sg_ApplyDirective(tport, directive, &context);
   Sg_LoadFromPort(tport);

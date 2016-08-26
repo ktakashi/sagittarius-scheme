@@ -534,7 +534,7 @@ SgObject Sg_WCharTsToString(wchar_t *s, int size)
 #endif
   SgTranscoder *transcoder = Sg_MakeTranscoder(codec, LF, SG_REPLACE_ERROR);
   SgObject bin = Sg_MakeByteArrayInputPort((uint8_t *)s, size*sizeof(wchar_t));
-  SgObject tin = Sg_MakeTranscodedInputPort(bin, transcoder);
+  SgObject tin = Sg_MakeTranscodedPort(bin, transcoder);
   SgObject accum = Sg_MakeStringOutputPort(size);
   int64_t total_size = 0;
   int64_t len;
