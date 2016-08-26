@@ -76,12 +76,12 @@
 (define (http-server socket)
   (let loop ()
     (and-let* ([client (tls-socket-accept socket)])
-      (guard (e (else (socket-shutdown client SHUT_RDWR)
-		      (socket-close client)
-		      (raise e)))
-	(let* ([in/out  (transcoded-port (buffered-port (tls-socket-port client)
-							(buffer-mode block))
-					 (make-transcoder (utf-8-codec) 'lf))]
+      (guard (e (else (report-error e)
+		      (socket-shutdown client SHUT_RDWR)
+		      (socket-close client)))
+	(let* ([in/out (transcoded-port (buffered-port (tls-socket-port client)
+						       (buffer-mode block))
+					(make-transcoder (utf-8-codec) 'lf))]
 	       [request-line (get-line in/out)])
 
 	  (cond ((eof-object? request-line)
@@ -102,12 +102,12 @@
 			  (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 			  (display "exit" in/out)
 			  (set! server-done? #t)
+			  (flush-output-port in/out)
 			  (close-port in/out)]
 			 [(hashtable-ref %predefined-contents request-uri #f)
 			  => (lambda (x)
 			       (for-each (cut display <> in/out) x)
-			       (close-port in/out)
-			       (loop))]
+			       (close-port in/out))]
 			 [else
 			  (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
 			  ;; to avoid SIGPIPE
@@ -118,22 +118,17 @@
 				     ,@headers)
 				   in/out))
 			  (flush-output-port in/out)
-			  (close-port in/out)
-			  (loop)]))))
+			  (close-port in/out)]))))
 		(else
-		 (error 'http-server "malformed request line:" request-line))))))))
+		 (error 'http-server "malformed request line"
+			request-line))))))
+    (unless server-done? (loop))))
 
 (define server-thread
   (make-thread (lambda ()
 		 (let1 socket (make-server-tls-socket *http-port* (list cert))
 		   (set! server-up? #t)
-		   (let loop ()
-		     ;; somehow socket connection is lost and
-		     ;; failed to send packet. why?
-		     ;; NB: on Windows or Cygwin. So anti virus?
-		     (guard (e (else (report-error e))) (http-server socket))
-		     ;; /exit is not called yet, retry
-		     (unless server-done? (loop)))
+		   (http-server socket)
 		   (socket-shutdown socket SHUT_RDWR)
 		   (socket-close socket)))))
 

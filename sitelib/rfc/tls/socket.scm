@@ -1535,7 +1535,8 @@
   ;; SSL/TLS send packet on record layer protocl
   (define (tls-socket-send socket data :optional (flags 0))
     (when (tls-socket-closed? socket)
-      (assertion-violation 'tls-socket-send "tls socket is alredy closed"))
+      (assertion-violation 'tls-socket-send "tls socket is alredy closed"
+			   socket))
     (tls-socket-send-inner socket data flags *application-data* #t)
     (bytevector-length data))
 
@@ -1618,7 +1619,8 @@
 
   (define (tls-socket-recv! socket bv start len :optional (flags 0))
     (when (tls-socket-closed? socket)
-      (assertion-violation 'tls-socket-recv! "tls socket is alredy closed"))
+      (assertion-violation 'tls-socket-recv! "tls socket is alredy closed"
+			   socket))
     (with-exception-handler
      (lambda (e) (handle-error socket e))
      (lambda () (%tls-socket-recv socket bv start len flags))))
@@ -1644,6 +1646,7 @@
 
   (define (send-alert socket level description)
     (when (and (~ socket 'has-peer?)
+	       (~ socket 'raw-socket)
 	       (not (null? (socket-write-select 0 (~ socket 'raw-socket)))))
       ;; yet still this would happen, so ignore
       (guard (e (else #t))
@@ -1652,8 +1655,7 @@
 				 (~ socket 'session 'session-encrypted?))))))
 
   (define (%tls-socket-close socket)
-    (when (~ socket 'raw-socket)
-      (socket-close (~ socket 'raw-socket)))
+    (when (~ socket 'raw-socket) (socket-close (~ socket 'raw-socket)))
     ;; if we don't have any socket, we can't reconnect
     (set! (~ socket 'raw-socket) #f)
     (set! (~ socket 'session 'closed?) #t))
