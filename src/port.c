@@ -144,12 +144,56 @@ SG_DEFINE_BUILTIN_CLASS(Sg_StringPortClass,
 			port_print, NULL, NULL, NULL,
 			port_cpl);
 
+static void trans_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgTranscodedPort *p = SG_TRANSCODED_PORT(obj);
+  SgObject transcoder = Sg_PortTranscoder(p);
+
+  SG_PORT_LOCK_WRITE(port);
+  Sg_PutuzUnsafe(port, UC("#<transcoded-port"));
+
+  Sg_PutcUnsafe(port, ' ');
+  Sg_PutsUnsafe(port, SG_CODEC_NAME(SG_TRANSCODER_CODEC(transcoder)));
+  Sg_Printf(port, UC(" %A"), p->port);
+  
+  switch (SG_PORT(p)->closed) {
+  case SG_PORT_CLOSED:
+    Sg_PutuzUnsafe(port, UC(" closed"));
+    break;
+  case SG_PORT_PSEUDO:
+    Sg_PutuzUnsafe(port, UC(" pseudo-closed"));
+    break;
+  default: break;
+  }
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK_WRITE(port);
+}
 SG_DEFINE_BUILTIN_CLASS(Sg_TranscodedPortClass,
-			port_print, NULL, NULL, NULL,
+			trans_port_print, NULL, NULL, NULL,
 			port_cpl);
 
+static void buf_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgBufferedPort *p = SG_BUFFERED_PORT(obj);
+  SG_PORT_LOCK_WRITE(port);
+  Sg_PutuzUnsafe(port, UC("#<buffered-port"));
+
+  Sg_Printf(port, UC(" %A"), p->src);
+  
+  switch (SG_PORT(p)->closed) {
+  case SG_PORT_CLOSED:
+    Sg_PutuzUnsafe(port, UC(" closed"));
+    break;
+  case SG_PORT_PSEUDO:
+    Sg_PutuzUnsafe(port, UC(" pseudo-closed"));
+    break;
+  default: break;
+  }
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK_WRITE(port);  
+}
 SG_DEFINE_BUILTIN_CLASS(Sg_BufferedPortClass,
-			port_print, NULL, NULL, NULL,
+			buf_port_print, NULL, NULL, NULL,
 			port_cpl);
 
 /* custom can be extended */
