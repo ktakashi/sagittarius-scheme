@@ -112,6 +112,10 @@
 	(call-with-port
 	    (open-file-input-port *resource-file* #f 'block (native-transcoder))
 	  (lambda (p)
+	    ;; resource will be read as if it's #!compatible
+	    ;; NB: it doesn't change VM mode, thus #!r6rs won't
+	    ;;     make VM raise unbound error during compiation
+	    (apply-directive! p 'compatible)
 	    (let loop ((form (read/ss p)))
 	      (unless (eof-object? form)
 		((current-evaluator) form interactive-environment)

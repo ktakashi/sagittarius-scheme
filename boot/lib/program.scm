@@ -73,17 +73,28 @@
       (if (assq :interactive? opt)
 	  (repl)
 	  (exit exit-code)))
+    
+    (define (load-r7rs file/port)
+      (define (ensure-port file/port)
+	(if (port? file/port)
+	    file/port
+	    (open-file-input-port file/port
+				  #f 'block (*current-load-transcoder*))))
+      (let ((in (ensure-port file/port)))
+	(apply-directive! in 'r7rs *r6rs-read-context*)
+	(load-from-port in)))
+    
     (cond ((assq :preimports opt) =>
 	   (lambda (preimports) (for-each import-it (cdr preimports)))))
     (cond ((assq :expressions opt) =>
 	   (lambda (expr)
 	     (call-with-port (open-string-input-port (cdr expr))
 	       load-from-port))))
-    
+      
     (if file/port
-	(let ((exit-code (if (port? file/port)
-			     (load-from-port file/port)
-			     (load file/port))))
+	(let ((exit-code (cond ((eq? prompt 'r7rs) (load-r7rs file/port))
+			       ((port? file/port) (load-from-port file/port))
+			       (else (load file/port)))))
 	  (or (and-let* ((main? (assq :main? opt))
 			 ( (cdr main?) )
 			 (main (find-binding (current-library) 'main #f))
