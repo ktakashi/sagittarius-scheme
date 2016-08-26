@@ -109,11 +109,11 @@
     ((write-mac-secret :init-keyword :write-mac-secret)
      (write-key  :init-keyword :write-key)
      (write-iv   :init-keyword :write-iv)
-     (final-wirte-key :init-value #f)
+     ;; (final-write-key :init-value #f)
      (read-mac-secret :init-keyword :read-mac-secret)
      (read-key  :init-keyword :read-key)
      (read-iv   :init-keyword :read-iv)
-     (final-read-key :init-value #f)))
+     #;(final-read-key :init-value #f)))
 
   (define-class <dh-params> ()
     ;; The following url was comprehensive
@@ -352,9 +352,11 @@
     (cond ((tls-alert? e) (finish socket e))
 	  (else
 	   (when (~ socket 'raw-socket)
-	     (tls-socket-send-inner socket
-	       (make-tls-alert *fatal* *internal-error*)
-	       0 *alert* #f))
+	     ;; don't raise an error here.
+	     (guard (e (else #f))
+	       (tls-socket-send-inner socket
+		 (make-tls-alert *fatal* *internal-error*)
+		 0 *alert* #f)))
 	   (finish socket e))))
 
   (define (verify-message socket message signature)
@@ -1114,7 +1116,7 @@
 	       (loop (+ read-length len) (- diff len))))))))
 
     ;; todo what if the record has more than 1 application data?
-    (define (read-record-rec session type in)
+    (define (read-record-rec socket session type in)
       (set! (~ session 'last-record-type) type)
       (rlet1 record (cond ((= type *handshake*)
 			   (let-values (((message record)
@@ -1135,7 +1137,11 @@
 			   (let1 alert (read-alert in)
 			     (cond ((= *close-notify* (~ alert 'description))
 				    ;; session closed
-				    (set! (~ session 'closed?) #t)
+				    ;;(set! (~ session 'closed?) #t)
+				    ;; we don't support reconnect
+				    ;; so just close socket.
+				    (tls-socket-shutdown socket SHUT_RDWR)
+				    (%tls-socket-close socket)
 				    ;; user wants application data
 				    #vu8())
 				   (else alert))))
@@ -1152,7 +1158,7 @@
       (if (~ session 'buffer)
 	  ;; there are still something to read in the buffer
 	  ;; TODO does this happen after handshake?
-	  (read-record-rec session
+	  (read-record-rec socket session
 			   (~ session 'last-record-type) 
 			   (~ session 'buffer))
 	  ;; analyse the record
@@ -1191,8 +1197,8 @@
 		  (if (= type *application-data*)
 		      message
 		      (let1 in (open-bytevector-input-port message)
-			(read-record-rec session type in))))
-	     #vu8())))))
+			(read-record-rec socket session type in))))
+		#vu8())))))
 
   (define (read-variable-vector in n)
     (let* ((size (case n
@@ -1494,42 +1500,42 @@
 		   derive-read-mac-secret body))
 
   ;; until here the key-block must be calculated
-  (define (derive-final-write-key session label)
-    (let1 session-key (~ session 'session-key)
-      (if (exportable? session)
-	  (or (and-let* ((key (~ session-key 'final-wirte-key)))
-		key)
-	      (let* ((keysize (lookup-cipher&keysize session))
-		     (key (PRF session (cdr keysize)
-			       (~ session-key 'write-key)
-			       label 
-			       (random->bytevector
-				(~ session 'client-random)
-				(~ session 'server-random)))))
-		(set! (~ session-key 'final-wirte-key) key)
-		key)))))
-
-  (define (derive-final-read-key session label)
-    (let1 session-key (~ session 'session-key)
-      (if (exportable? session)
-	  (or (and-let* ((key (~ session-key 'final-read-key)))
-		key)
-	      (let* ((keysize (lookup-cipher&keysize session))
-		     (key (PRF session (cdr keysize)
-			       (~ session-key 'read-key)
-			       label 
-			       (random->bytevector
-				(~ session 'client-random)
-				(~ session 'server-random)))))
-		(set! (~ session-key 'final-read-key) key)
-		key))
-	  (~ session-key 'read-key))))
+;; these are not used...
+;;   (define (derive-final-write-key session label)
+;;     (let1 session-key (~ session 'session-key)
+;;       (if (exportable? session)
+;; 	  (or (and-let* ((key (~ session-key 'final-wirte-key)))
+;; 		key)
+;; 	      (let* ((keysize (lookup-cipher&keysize session))
+;; 		     (key (PRF session (cdr keysize)
+;; 			       (~ session-key 'write-key)
+;; 			       label 
+;; 			       (random->bytevector
+;; 				(~ session 'client-random)
+;; 				(~ session 'server-random)))))
+;; 		(set! (~ session-key 'final-wirte-key) key)
+;; 		key)))))
+;; 
+;;   (define (derive-final-read-key session label)
+;;     (let1 session-key (~ session 'session-key)
+;;       (if (exportable? session)
+;; 	  (or (and-let* ((key (~ session-key 'final-read-key)))
+;; 		key)
+;; 	      (let* ((keysize (lookup-cipher&keysize session))
+;; 		     (key (PRF session (cdr keysize)
+;; 			       (~ session-key 'read-key)
+;; 			       label 
+;; 			       (random->bytevector
+;; 				(~ session 'client-random)
+;; 				(~ session 'server-random)))))
+;; 		(set! (~ session-key 'final-read-key) key)
+;; 		key))
+;; 	  (~ session-key 'read-key))))
   
   ;; SSL/TLS send packet on record layer protocl
   (define (tls-socket-send socket data :optional (flags 0))
     (when (tls-socket-closed? socket)
-      (assertion-violation 'tls-socket-send
-			   "tls socket is alredy closed"))
+      (assertion-violation 'tls-socket-send "tls socket is alredy closed"))
     (tls-socket-send-inner socket data flags *application-data* #t)
     (bytevector-length data))
 
@@ -1606,12 +1612,13 @@
     (let* ((bv (make-bytevector size))
 	   (r (tls-socket-recv! socket bv 0 size flags)))
       (cond ((not r) r) ;; non blocking socket
-	    ((eof-object? r) #vu8()) ;; get-bytevector-n! may return EOF
 	    ((= r size) bv)
 	    ((< r 0) #f) ;; non blocking?
 	    (else (bytevector-copy bv 0 r)))))
 
   (define (tls-socket-recv! socket bv start len :optional (flags 0))
+    (when (tls-socket-closed? socket)
+      (assertion-violation 'tls-socket-recv! "tls socket is alredy closed"))
     (with-exception-handler
      (lambda (e) (handle-error socket e))
      (lambda () (%tls-socket-recv socket bv start len flags))))
@@ -1661,11 +1668,9 @@
       (%tls-socket-close socket)))
 
   (define (tls-socket-shutdown socket how)
-    (unless (~ socket 'sent-close?)
-      (when (~ socket 'raw-socket) ;; may already be handled
-	;; (send-alert socket *warning* *close-notify*)
-	(socket-shutdown (~ socket 'raw-socket) how))
-      (set! (~ socket 'sent-close?) #t)))
+    (when (~ socket 'raw-socket) ;; may already be handled
+      ;; (send-alert socket *warning* *close-notify*)
+      (socket-shutdown (~ socket 'raw-socket) how)))
 
   ;; utilities
   (define (find-tls-extension type extensions)

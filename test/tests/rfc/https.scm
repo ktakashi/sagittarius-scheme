@@ -75,14 +75,18 @@
 (define server-done? #f)
 (define (http-server socket)
   (let loop ()
-    (let ([client  (tls-socket-accept socket)])
-      (guard (e (else (socket-shutdown client SHUT_RDWR) (socket-close client)))
+    (and-let* ([client (tls-socket-accept socket)])
+      (guard (e (else (socket-shutdown client SHUT_RDWR)
+		      (socket-close client)
+		      (raise e)))
 	(let* ([in/out  (transcoded-port (buffered-port (tls-socket-port client)
 							(buffer-mode block))
 					 (make-transcoder (utf-8-codec) 'lf))]
 	       [request-line (get-line in/out)])
 
-	  (cond ((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
+	  (cond ((eof-object? request-line)
+		 (error 'http-server "unexpected EOF" client in/out))
+		((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
 		 => (lambda (m)
 		      (let* ([method (m 1)]
 			     [request-uri (m 2)]
@@ -150,11 +154,7 @@
       [host (format "localhost:~a" *http-port*)])
   (define (req-body . args)
     (receive (s h b) (apply http-request args) b))
-(receive (code headers body)
-		    (http-request 'GET host "/get" :secure #t :my-header "foo")
-		  (and (equal? code "200")
-		       (equal? headers '(("content-type" "text/plain")))
-		       (read-from-string body)))
+
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
 		expected
@@ -245,6 +245,8 @@
 		(http-request 'GET (format "localhost:~a" *http-port*) "/exit"
 			      :secure #t)
 	      b))
+(set! server-done? #t)
+(guard (e (else #t)) (thread-interrupt! server-thread))
 (test-assert (thread-join! server-thread 10))
 
 
