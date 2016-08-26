@@ -1290,42 +1290,6 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 static SgWord boundaryFrameMark = NOP;
 #define BOUNDARY_FRAME_MARK_P(cont) ((cont)->pc == &boundaryFrameMark)
 
-#define SKIP(vm, n)        (PC(vm) += (n))
-#define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
-#define PEEK_OPERAND(pc)   ((intptr_t)(*(pc)))
-
-#define FIND_GLOBAL(vm, id, ret)					\
-  do {									\
-    (ret) = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id),			\
-			   SG_IDENTIFIER_NAME(id),			\
-			   SG_UNBOUND);					\
-    if (SG_UNBOUNDP(ret)) {						\
-      (ret) = Sg_Apply3(&Sg_GenericUnboundVariable,			\
-			SG_IDENTIFIER_NAME(id),				\
-			SG_IDENTIFIER_LIBRARY(id), (id));		\
-      if (Sg_ConditionP(ret)) {						\
-	Sg_Raise(ret, FALSE);						\
-      }									\
-    }									\
-  } while (0)
-
-#define REFER_LOCAL(vm, n)   *(FP(vm) + n)
-#define INDEX_CLOSURE(vm, n)  SG_CLOSURE(CL(vm))->frees[n]
-#define REFER_GLOBAL(vm, ret)			\
-  do {						\
-    SgObject id = FETCH_OPERAND(PC(vm));	\
-    if (SG_GLOCP(id)) {				\
-      ret = SG_GLOC_GET(SG_GLOC(id));		\
-    } else {					\
-      FIND_GLOBAL(vm, id, ret);			\
-      if (SG_GLOCP(ret)) {			\
-	*(PC(vm)-1) = SG_WORD(ret);		\
-	(ret) = SG_GLOC_GET(SG_GLOC(ret));	\
-      }						\
-    }						\
-  } while (0)
-
-
 #define FORWARDED_CONT_P(c) ((c)&&((c)->size == -1))
 #define FORWARDED_CONT(c)   ((c)->prev)
 
@@ -2439,6 +2403,8 @@ static void show_inst_count(void *data)
 #define COUNT_INSN(c)		/* dummy */
 #endif
 
+#define FETCH_OPERAND(pc)  SG_OBJ((*(pc)++))
+#define PEEK_OPERAND(pc)   ((intptr_t)(*(pc)))
 
 #ifdef __GNUC__
 # define SWITCH(val)        goto *dispatch_table[val];
@@ -2516,6 +2482,9 @@ SgObject run_loop()
 
   }
   return SG_UNDEF;		/* dummy */
+
+#undef REFER_GLOBAL
+#undef FIND_GLOBAL
 }
 #ifdef _MSC_VER
 # pragma warning( pop )

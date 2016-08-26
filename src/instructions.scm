@@ -82,31 +82,62 @@
   ;;(INSN_VAL1 val1 c)
   ($result:i (INSN_VALUE1 c)))
 
+;; local variable referencing
+(define-cise-expr REFER-LOCAL
+  ((_ vm n) `(pointer (+ (FP ,vm) ,n))))
+
 (define-inst LREF (1 0 #t)
   (INSN_VAL1 val1 c)
-  ($result (REFER_LOCAL vm val1)))
+  ($result (REFER-LOCAL vm val1)))
 
 (define-inst LSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (-> (SG_BOX (REFER_LOCAL vm val1)) value) (AC vm)
+  (set! (-> (SG_BOX (REFER-LOCAL vm val1)) value) (AC vm)
 	(AC vm) SG_UNDEF
 	(-> vm valuesCount) 1)
   NEXT)
+
+(define-cise-expr INDEX-CLOSURE
+  ((_ vm n)
+   `(aref (-> (SG_CLOSURE (CL ,vm)) frees) ,n)))
 
 (define-inst FREF (1 0 #t)
   (INSN_VAL1 val1 c)
-  ($result (INDEX_CLOSURE vm val1)))
+  ($result (INDEX-CLOSURE vm val1)))
 
 (define-inst FSET (1 0 #t)
   (INSN_VAL1 val1 c)
-  (set! (-> (SG_BOX (INDEX_CLOSURE vm val1)) value) (AC vm)
+  (set! (-> (SG_BOX (INDEX-CLOSURE vm val1)) value) (AC vm)
 	(AC vm) SG_UNDEF
 	(-> vm valuesCount) 1)
   NEXT)
 
+(define-cise-stmt FIND-GLOBAL
+  ((_ vm id ret)
+   `(begin
+      (set! ,ret (Sg_FindBinding (SG_IDENTIFIER_LIBRARY ,id)
+				 (SG_IDENTIFIER_NAME ,id)
+				 SG_UNBOUND))
+      (when (SG_UNBOUNDP ,ret)
+	(set! ,ret (Sg_Apply3 (& Sg_GenericUnboundVariable)
+			      (SG_IDENTIFIER_NAME ,id)
+			      (SG_IDENTIFIER_LIBRARY ,id)
+			      ,id))))))
+(define-cise-stmt REFER-GLOBAL
+  ((_ vm ret)
+   (let ((v (gensym "id")))
+     `(let ((,v (FETCH_OPERAND (PC ,vm))))
+	(cond ((SG_GLOCP ,v)
+	       (set! ,ret (SG_GLOC_GET (SG_GLOC ,v))))
+	      (else
+	       (FIND-GLOBAL ,vm ,v ,ret)
+	       (when (SG_GLOCP ,ret)
+		 (set! (pointer (- (PC ,vm) 1)) (SG_WORD ,ret)
+		       ,ret (SG_GLOC_GET (SG_GLOC ,ret))))))))))
+
 (define-inst GREF (0 1 #t)
   (let ((v ))
-    (REFER_GLOBAL vm v)
+    (REFER-GLOBAL vm v)
     ($result v)))
 
 (define-inst GSET (0 1 #t)
@@ -114,7 +145,7 @@
     (if (SG_GLOCP var)
 	(SG_GLOC_SET (SG_GLOC var) (AC vm))
 	(let ((oldval ))
-	  (FIND_GLOBAL vm var oldval)
+	  (FIND-GLOBAL vm var oldval)
 	  (let ((g (Sg_MakeBinding (SG_IDENTIFIER_LIBRARY var)
 				   (SG_IDENTIFIER_NAME var)
 				   (AC vm)
@@ -495,7 +526,7 @@
 ;;   insert AC to nth place of stack from FP
 (define-inst INST_STACK (1 0 #f)
   (INSN_VAL1 val1 c)
-  (set! (REFER_LOCAL vm val1) (AC vm))
+  (set! (REFER-LOCAL vm val1) (AC vm))
   NEXT)
 
 (define-inst LEAVE (1 0 #f)
