@@ -79,8 +79,8 @@
       (guard (e (else (report-error e)
 		      (socket-shutdown client SHUT_RDWR)
 		      (socket-close client)))
-	(let* ([in/out (transcoded-port (buffered-port (tls-socket-port client)
-						       (buffer-mode block))
+	(let* ([p (tls-socket-port client)]
+	       [in/out (transcoded-port (buffered-port p (buffer-mode block))
 					(make-transcoder (utf-8-codec) 'lf))]
 	       [request-line (get-line in/out)])
 
