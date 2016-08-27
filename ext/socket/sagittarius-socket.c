@@ -1236,7 +1236,7 @@ static int socket_open(SgObject self)
 
 static int socket_close(SgObject self)
 {
-  if (!SG_PORT(self)->closed) {
+  if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
     SG_PORT(self)->closed = SG_PORT_CLOSED;
     Sg_SocketShutdown(SG_PORT_SOCKET(self), SHUT_RDWR);
     Sg_SocketClose(SG_PORT_SOCKET(self));
@@ -1246,7 +1246,7 @@ static int socket_close(SgObject self)
 
 static int socket_close_only_port(SgObject self)
 {
-  if (!SG_PORT(self)->closed) {
+  if (SG_PORT(self)->closed != SG_PORT_CLOSED) {
     SG_PORT(self)->closed = SG_PORT_CLOSED;
   }
   return TRUE;
