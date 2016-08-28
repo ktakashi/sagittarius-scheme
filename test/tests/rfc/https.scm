@@ -76,10 +76,8 @@
 (define (http-server socket)
   (let loop ()
     (and-let* ([client (tls-socket-accept socket)])
-      (guard (e (else (report-error e)
-		      (socket-shutdown client SHUT_RDWR)
-		      (socket-close client)))
-	(let* ([p (tls-socket-port client)]
+      (guard (e (else (report-error e)))
+	(let* ([p (tls-socket-port client #f)]
 	       [in/out (transcoded-port (buffered-port p (buffer-mode block))
 					(make-transcoder (utf-8-codec) 'lf))]
 	       [request-line (get-line in/out)])
@@ -121,7 +119,9 @@
 			  (close-port in/out)]))))
 		(else
 		 (error 'http-server "malformed request line"
-			request-line))))))
+			request-line)))))
+      (socket-shutdown client SHUT_RDWR)
+      (socket-close client))
     (unless server-done? (loop))))
 
 (define server-thread
