@@ -5328,7 +5328,7 @@
       (values lambda-cb free (+ body-size frsiz nargs (vm-frame-size))))))
 
 ;;;;
-;; Basically this doesn't work for some case
+;; Basically this doesn't work for some cases
 ;; e.g)
 ;; (let ()
 ;;    (define x 5)
@@ -5353,8 +5353,8 @@
   ;;    (b))
   ;; the 'b' won't be resolved without implicit boxing. however 'a' can still
   ;; be resolved without boxing. so we try to minimise the allocation.
-  (define (collect-cross-reference ovars renv)
-    (let ((all-frees (ifilter-map 
+  (define (collect-cross-reference ovars args renv)
+    (let ((all-frees (imap 
 		      (lambda (var)
 			(pass5/find-free (lvar-initval var) ovars renv cb))
 		      ovars))
@@ -5364,15 +5364,14 @@
 			       var))
 			ovars)))
       ;; debug prints
-      ;;(ifor-each (lambda (frees) (print (imap lvar-name frees))) all-frees)
+      ;; (ifor-each (lambda (frees) (print (imap lvar-name frees))) all-frees)
       ;;(print (imap lvar-name ovars))
       (let loop ((all-frees all-frees)
 		 (vars ovars)
+		 (args args)
 		 (acc '()))
 	(if (or (null? vars) (null? all-frees))
-	    ;; merge non-lambda
-	    (lset-eq-union2 non-lambdas acc)
-	    ;; we don't need self
+	    acc
 	    ;; NB: we use lset-intersection from (core base) unlike lset-union
 	    ;;     this is because, exists procedure used in lset-union took
 	    ;;     rather large amount of time and lset-intersection itself
@@ -5380,11 +5379,14 @@
 	    ;;     so for now, don't get bother. if we faced other performance
 	    ;;     issue because of this, then we can always make specific
 	    ;;     version of this.
-	    (let ((frees (lset-intersection eq? (cdr vars) (car all-frees))))
+	    (let ((frees (if ($lambda? (car args))
+			     (lset-intersection eq? (cdr vars) (car all-frees))
+			     (lset-intersection eq? vars (car all-frees)))))
 	      ;; if one or more vars are in the frees then it needs
 	      ;; to be boxed
 	      (loop (cdr all-frees)
 		    (cdr vars)
+		    (cdr args)
 		    (lset-eq-union2 frees acc)))))))
   (define (compile-inits renv args vars sets locals)
     (define (handle-lambda lm cb renv sets var)
@@ -5440,15 +5442,16 @@
   (let* ((vars ($let-lvars iform))
 	 (body ($let-body iform))
 	 (args ($let-inits iform))
-	 (cross-vars (collect-cross-reference 
-		      vars (renv-add-can-free renv vars (renv-frees renv))))
+	 (cross-vars (collect-cross-reference vars args
+		      (renv-add-can-free renv vars (renv-frees renv))))
 	 (sets (append cross-vars
 		       (pass5/find-sets body vars)
 		       ($append-map1 (lambda (i) (pass5/find-sets i vars))
 				     args)))
 	 (nargs (length vars))
 	 (total (+ nargs (length (renv-locals renv)))))
-    ;;(print "cross vars " (imap lvar-name cross-vars))
+    ;; (print "cross vars " (imap lvar-name cross-vars))
+    ;; (print "sets " (imap lvar-name sets))
     (cb-emit1! cb RESV_STACK (length vars))
     (pass5/make-boxes cb sets vars)
     (let* ((new-renv (make-new-renv renv 

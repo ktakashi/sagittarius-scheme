@@ -282,8 +282,9 @@
 	(let ((acc (%make-slot-accessor class name i #f #f #f)))
 	  (lambda (o) 
 	    (unless (is-a? o class)
-	      (assertion-violation 'record-mutator "object is not a record type"
-				   rtd o))
+	      (assertion-violation 'record-accessor
+		(format "object is not a record type of ~a"
+			(record-type-name rtd)) o))
 	    (slot-ref-using-accessor o acc))))))
       
   (define (record-mutator rtd k)
@@ -292,8 +293,9 @@
 	(let ((acc (%make-slot-accessor class name i #f #f #f)))
 	  (lambda (o v) 
 	    (unless (is-a? o class)
-	      (assertion-violation 'record-mutator "object is not a record type"
-				   rtd o))
+	      (assertion-violation 'record-mutator
+		(format "object is not a record type of ~a"
+			(record-type-name rtd)) o))
 	    (slot-set-using-accessor! o acc v))))))
 
   (define (record? o)
