@@ -123,31 +123,34 @@
 (define (websocket-send-close conn :optional (data #vu8()) (wait? #t))
   (define in/out (websocket-connection-port conn))
   (define state (websocket-connection-state conn))
+  (define socket (websocket-connection-socket conn))
   (define (restore) (websocket-connection-state-set! conn state) #f)
   ;; receiving the other should be done by application
   ;; since we don't know if it's sent immediately or not.
   (unless (<= (bytevector-length data) 125)
     (assertion-violation 'websocket-send-close "data is too big" data))
-  ;; if sending frame failed for some reason, then we
-  ;; restore the state.
-  ;; TODO should we?
-  (guard (e ((restore) #f))
-      ;; first set status
-    ;; if the server is fast enough, then it would send response
-    ;; before the procedure ends. And if user level APIs' dispatcher
-    ;; received the close frame in the situation, it would raise
-    ;; an error.
-    (websocket-connection-state-set! conn 'closing)
-    (websocket-send-frame! in/out +websocket-close-frame+ #t data #t)
-    (socket-shutdown (websocket-connection-socket conn) SHUT_WR))
   
-  ;; waits until server returns close
-  (when wait?
-    (let loop ()
-      (let-values (((fin? op data) (websocket-recv-frame in/out)))
-	(if (eqv? op +websocket-close-frame+)
-	    (begin (websocket-connection-close! conn) data)
-	    (loop))))))
+  ;; don't do anything if the connection is already closed.
+  (when (and in/out socket)
+    ;; if sending frame failed for some reason, then we
+    ;; restore the state.
+    ;; TODO should we?
+    (guard (e ((restore) #f))
+      ;; first set status
+      ;; if the server is fast enough, then it would send response
+      ;; before the procedure ends. And if user level APIs' dispatcher
+      ;; received the close frame in the situation, it would raise
+      ;; an error.
+      (websocket-connection-state-set! conn 'closing)
+      (websocket-send-frame! in/out +websocket-close-frame+ #t data #t)
+      (socket-shutdown socket SHUT_WR))
+    ;; waits until server returns close
+    (when wait?
+      (let loop ()
+	(let-values (((fin? op data) (websocket-recv-frame in/out)))
+	  (if (eqv? op +websocket-close-frame+)
+	      (begin (websocket-connection-close! conn) data)
+	      (loop)))))))
 
 (define websocket-compose-close-status
   (case-lambda
@@ -245,7 +248,7 @@
 		 (websocket-closed-error 'websocket-receive
 					 "Server sent close frame" data))))))
 
-    (define in (websocket-connection-port conn))
+  (define in (websocket-connection-port conn))
 
   (let loop ((opcode #f))
     (let-values (((fin? op data) (websocket-recv-frame in)))

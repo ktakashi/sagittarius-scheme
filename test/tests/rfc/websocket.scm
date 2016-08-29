@@ -233,9 +233,9 @@
     (test-error "websocket ping" websocket-pong-error?
 		(websocket-ping websocket #*"invalid"))
 
-    (test-assert (websocket? (websocket-close websocket)))
+    (test-assert (websocket? (websocket-close websocket :timeout 1)))
     ;; double close doesn't effect anything
-    (test-assert (websocket? (websocket-close websocket)))
+    (test-assert (websocket? (websocket-close websocket :timeout 1)))
     (test-assert on-close)))
 
 (let ()
@@ -249,10 +249,10 @@
   ;; protocol
   (let ((websocket (make-websocket uri :protocols '("chat"))))
     (test-assert (websocket? (websocket-open websocket)))
-    (test-assert (websocket-close websocket))
+    (test-assert (websocket-close websocket :timeout 1))
     ;; re-open
     (test-assert (websocket? (websocket-open websocket)))
-    (test-assert (websocket-close websocket))
+    (test-assert (websocket-close websocket :timeout 1))
     )
   (let ((websocket (make-websocket uri :protocols '("not-exist"))))
     (test-error websocket-engine-error? (websocket-open websocket)))
