@@ -17,6 +17,7 @@
 	(srfi :19 time)
 	(srfi :26 cut)
 	(srfi :64 testing)
+	(only (binary io) open-chunked-binary-input/output-port)
 	(crypto)
 	(rfc tls)
 	(rfc x.509)
@@ -77,11 +78,19 @@
   (let loop ()
     (and-let* ([client (tls-socket-accept socket)])
       (guard (e (else (report-error e)))
+	;; At least OSX, GC would collect TLS socket port once
+	;; it's invokded. Thus if the port is created with the
+	;; flag close? then the socket and port would be closed
+	;; during reading/writing data. This causes unexpected
+	;; test failure. To avoid such a situation, we need to
+	;; create socket port without socket closing so that
+	;; even the port is GCed yet still it would work.
+	;; NB: buffered port doesn't check source port is closed
+	;;     or not. (not a good design but works).
 	(let* ([p (tls-socket-port client #f)]
 	       [in/out (transcoded-port (buffered-port p (buffer-mode block))
 					(make-transcoder (utf-8-codec) 'lf))]
 	       [request-line (get-line in/out)])
-
 	  (cond ((eof-object? request-line)
 		 (error 'http-server "unexpected EOF" client in/out))
 		((#/^(\S+) (\S+) HTTP\/1\.1$/ request-line)
@@ -105,6 +114,7 @@
 			 [(hashtable-ref %predefined-contents request-uri #f)
 			  => (lambda (x)
 			       (for-each (cut display <> in/out) x)
+			       (flush-output-port in/out)
 			       (close-port in/out))]
 			 [else
 			  (display "HTTP/1.x 200 OK\nContent-Type: text/plain\n\n" in/out)
@@ -149,6 +159,25 @@
       [host (format "localhost:~a" *http-port*)])
   (define (req-body . args)
     (receive (s h b) (apply http-request args) b))
+  (define (read-result retr)
+    (define in/out (open-chunked-binary-input/output-port))
+    (let loop ()
+      (receive (port size) (retr)
+	(cond ((and size (= size 0))
+	       (set-port-position! in/out 0)
+	       (let ((in (transcoded-port in/out (native-transcoder))))
+		 (let loop2  ((r '()))
+		   (let ((e (read in)))
+		     (if (eof-object? e)
+			 r
+			 (loop2 (append r e)))))))
+	      (size
+	       (put-bytevector in/out (get-bytevector-n port size))
+	       (loop))
+	      (else
+	       (put-bytevector in/out (get-bytevector-all port size))
+	       (loop))))))
+  
 
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
@@ -157,8 +186,7 @@
 		    (http-request 'GET host "/get" :secure #t :my-header "foo")
 		  (and (equal? code "200")
 		       (equal? headers '(("content-type" "text/plain")))
-		       (read-from-string body))))
-	       )
+		       (read-from-string body)))))
 
   (test-assert "http-get, custom receiver"
 	       (alist-equal?
@@ -166,14 +194,8 @@
 		(req-body 'GET host "/get"
 			  :secure #t
 			  :receiver 
-			  (lambda (code hdrs total retr)
-			    (let loop ((result '()))
-			      (receive (port size) (retr)
-				(if (and size (= size 0))
-				    result
-				    (loop (append result (read (transcoded-port port (native-transcoder)))))))))
-			  :my-header "foo"))
-	       )
+			  (lambda (code hdrs total retr) (read-result retr))
+			  :my-header "foo")))
 
   (if (file-exists? "test.o") (delete-file "test.o"))
   (test-assert "http-get, file receiver" 
@@ -213,13 +235,7 @@
                        [(and size (= size 0)) (close-output-port sink) 404]
                        [else (copy-binary-port sink port :size size)
 			     (loop)])))))]
-       ["200" (lambda (code hdrs total retr)
-                (let loop ((result '()))
-                  (receive (port size) (retr)
-                    (if (and size (= size 0))
-                      result
-                      (loop (append result 
-				    (read (transcoded-port port (native-transcoder)))))))))]
+       ["200" (lambda (code hdrs total retr) (read-result retr))]
        ))
 
     (test-equal "http-get, cond-receiver" expected

@@ -187,7 +187,7 @@
      ;; both server and client need these slots
      (certificates :init-value '() :init-keyword :certificates)
      (private-key  :init-value #f  :init-keyword :private-key)
-     (sent-close?  :init-value #f)
+     (sent-shutdown? :init-value #f)
      ;; root server socket doesn't have peer
      ;; this is for sending close notify
      (has-peer?    :init-keyword :has-peer? :init-value #t)
@@ -1644,16 +1644,6 @@
 	;; (tls-error 'tls-socket-recv "invalid socket state" *internal-error*)
 	))
 
-  (define (send-alert socket level description)
-    (when (and (~ socket 'has-peer?)
-	       (~ socket 'raw-socket)
-	       (not (null? (socket-write-select 0 (~ socket 'raw-socket)))))
-      ;; yet still this would happen, so ignore
-      (guard (e (else #t))
-	(let1 alert (make-tls-alert level description)
-	  (tls-socket-send-inner socket alert 0 *alert*
-				 (~ socket 'session 'session-encrypted?))))))
-
   (define (%tls-socket-close socket)
     (when (~ socket 'raw-socket) (socket-close (~ socket 'raw-socket)))
     ;; if we don't have any socket, we can't reconnect
@@ -1665,13 +1655,30 @@
     ;; calls this twice and raises an error. so if the socket is
     ;; already closed, then we need not to do twice.
     (unless (tls-socket-closed? socket)
-      (unless (~ socket 'sent-close?)
-	(send-alert socket *warning* *close-notify*))
       (%tls-socket-close socket)))
 
   (define (tls-socket-shutdown socket how)
+    (define (send-alert socket level description)
+      (when (and (~ socket 'has-peer?)
+		 (~ socket 'raw-socket)
+		 (not (~ socket 'sent-shutdown?)))
+	;; yet still this would happen, so ignore
+	(guard (e (else #t))
+	  (let1 alert (make-tls-alert level description)
+	    (tls-socket-send-inner socket alert 0 *alert*
+				   (~ socket 'session 'session-encrypted?))))))
     (when (~ socket 'raw-socket) ;; may already be handled
-      ;; (send-alert socket *warning* *close-notify*)
+      (when (or (eqv? how SHUT_WR) (eqv? how SHUT_RDWR))
+	;; close_notify
+	;;    This message notifies the recipient that the sender will not send
+	;;    any more messages on this connection.  Note that as of TLS 1.1,
+	;;    failure to properly close a connection no longer requires that a
+	;;    session not be resumed.  This is a change from TLS 1.0 to conform
+	;;    with widespread implementation practice.
+	;; so we send close_notify if the write side of socket is requested to
+	;; shut down.
+	(send-alert socket *warning* *close-notify*)
+	(set! (~ socket 'sent-shutdown?) #t))
       (socket-shutdown (~ socket 'raw-socket) how)))
 
   ;; utilities

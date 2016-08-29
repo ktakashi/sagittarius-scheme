@@ -42,9 +42,11 @@
 	    (sagittarius io)
 	    (clos user))
 
-    (define-class <tls-socket-port> (<custom-binary-bidirectional-port> 
-				     <read-once-port>) ())
-
+  (define-class <tls-socket-port> (<custom-binary-bidirectional-port> 
+				   <read-once-port>) ())
+  (define-method write-object ((p <tls-socket-port>) out)
+    (format out "#<tls-socket-port~a>" (if (port-closed? p) " closed" "")))
+  
   ;; make custom port
   (define (%tls-socket-port socket ctr)
     (define (read! bv start count)

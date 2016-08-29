@@ -13,6 +13,7 @@
 	(shorten)
 	(clos user)
 	(util port)
+	(only (binary io) open-chunked-binary-input/output-port)
 	(srfi :18 multithreading)
 	(srfi :26 cut)
 	(srfi :64 testing))
@@ -69,7 +70,7 @@
 (define (http-server socket)
   (let loop ()
     (let* ([client  (socket-accept socket)]
-	   [in/out  (transcoded-port (buffered-port (socket-port client)
+	   [in/out  (transcoded-port (buffered-port (socket-port client #f)
 						    (buffer-mode block))
 				     (make-transcoder (utf-8-codec) 'lf))]
 	   [request-line (get-line in/out)])
@@ -146,6 +147,24 @@
       [host (format "localhost:~a" *http-port*)])
   (define (req-body . args)
     (receive (s h b) (apply http-request args) b))
+  (define (read-result retr)
+    (define in/out (open-chunked-binary-input/output-port))
+    (let loop ()
+      (receive (port size) (retr)
+	(cond ((and size (= size 0))
+	       (set-port-position! in/out 0)
+	       (let ((in (transcoded-port in/out (native-transcoder))))
+		 (let loop2  ((r '()))
+		   (let ((e (read in)))
+		     (if (eof-object? e)
+			 r
+			 (loop2 (append r e)))))))
+	      (size
+	       (put-bytevector in/out (get-bytevector-n port size))
+	       (loop))
+	      (else
+	       (put-bytevector in/out (get-bytevector-all port size))
+	       (loop))))))
   (test-assert "http-get, default string receiver"
 	       (alist-equal? 
 		expected
@@ -161,12 +180,7 @@
 		expected
 		(req-body 'GET host "/get"
 			  :receiver 
-			  (lambda (code hdrs total retr)
-			    (let loop ((result '()))
-			      (receive (port size) (retr)
-				(if (and size (= size 0))
-				    result
-				    (loop (append result (read (transcoded-port port (native-transcoder)))))))))
+			  (lambda (code hdrs total retr) (read-result retr))
 			  :my-header "foo"))
 	       )
 
@@ -206,13 +220,7 @@
                        [(and size (= size 0)) (close-output-port sink) 404]
                        [else (copy-binary-port sink port :size size)
 			     (loop)])))))]
-       ["200" (lambda (code hdrs total retr)
-                (let loop ((result '()))
-                  (receive (port size) (retr)
-                    (if (and size (= size 0))
-                      result
-                      (loop (append result 
-				    (read (transcoded-port port (native-transcoder)))))))))]
+       ["200" (lambda (code hdrs total retr) (read-result retr))]
        ))
 
     (test-equal "http-get, cond-receiver" expected
