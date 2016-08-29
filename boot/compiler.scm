@@ -5372,7 +5372,12 @@
 		 (acc '()))
 	(if (or (null? vars) (null? all-frees))
 	    acc
+	    ;; If the initial value of the variable is $lambda then
+	    ;; we can remove the variable itself not to make imlicit
+	    ;; boxing. see compile-inits.
+	    ;; 
 	    ;; NB: we use lset-intersection from (core base) unlike lset-union
+	    ;;     which has specific procedure in this file.
 	    ;;     this is because, exists procedure used in lset-union took
 	    ;;     rather large amount of time and lset-intersection itself
 	    ;;     isn't called that much (1/10 of lset-union)
