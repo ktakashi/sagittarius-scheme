@@ -48,6 +48,7 @@
 #include "sagittarius/string.h"
 #include "sagittarius/error.h"
 #include "sagittarius/symbol.h"
+#include "sagittarius/port.h"
 #include "sagittarius/number.h"
 #include "sagittarius/system.h"
 
@@ -697,12 +698,88 @@ int Sg_AbsolutePathP(SgString *path)
   return (SG_STRING_VALUE_AT(path, 0) == '/');
 }
 
+static int search_separator(SgObject path, int off)
+{
+  int i;
+  for (i = off; i >= 0; i--) {
+    if (SG_STRING_VALUE_AT(path, i) == '/') break;
+  }
+  return i;
+}
+
+static SgObject strip_trailing_slash(SgObject path)
+{
+  size_t s = SG_STRING_SIZE(path);
+  if (s == 1) return path;
+  if (SG_STRING_VALUE_AT(path, --s) == '/') {
+    while (SG_STRING_VALUE_AT(path, s-1) == '/') s--;
+    SG_STRING_SIZE(path) = s;
+  }
+  return path;
+}
+
+/* TODO maybe try not to use string port? */
+static SgObject normalise_path(SgObject fullpath)
+{
+  SgStringPort sp;
+  SgObject out = Sg_InitStringOutputPort(&sp, SG_STRING_SIZE(fullpath));
+  int64_t pos = 0;
+  int i = 0;
+  while (i < SG_STRING_SIZE(fullpath)) {
+    SgChar c = SG_STRING_VALUE_AT(fullpath, i++);
+    if (c == '.') {
+      if (i != SG_STRING_SIZE(fullpath)) {
+	SgChar c2 = SG_STRING_VALUE_AT(fullpath, i++);
+	if (c2 == '.') {
+	  if (SG_STRING_VALUE_AT(fullpath, i) == '/' ||
+	      SG_STRING_SIZE(fullpath) == i) {
+	    if (pos-2 > 0) {
+	      SgObject tmp = Sg_GetStringFromStringPort(out);
+	      /* skip previous '.' and '/' */
+	      pos = search_separator(tmp, pos-2);
+	    } else {
+	      pos = 1;		/* root */
+	    }
+	    if (pos <= 0) pos = 1; /* root */
+	    Sg_SetPortPosition(out, pos, SG_BEGIN);
+	    if (pos == 1) i++;
+	  } else {
+	    /* ok just a file named '..?' or longer*/
+	    Sg_PutcUnsafe(out, '.');
+	    Sg_PutcUnsafe(out, '.');
+	    pos += 2;
+	    for (; i < SG_STRING_SIZE(fullpath); i++) {
+	      SgChar c3 = SG_STRING_VALUE_AT(fullpath, i);
+	      if (c3 != '.') break;
+	      Sg_PutcUnsafe(out, c3);
+	      pos++;
+	    }
+	  }
+	} else if (c2 != '/') {
+	  Sg_PutcUnsafe(out, '.');
+	  Sg_PutcUnsafe(out, c2);
+	  pos += 2;
+	}
+      }
+    } else {
+      Sg_PutcUnsafe(out, c);
+      pos++;
+    }
+  }
+  return strip_trailing_slash(Sg_GetStringFromStringPort(out));
+}
+
 SgObject Sg_AbsolutePath(SgString *path)
 {
   char buf[PATH_MAX];
   char *ret = realpath(Sg_Utf32sToUtf8s(path), buf);
   if (ret) {
-    return Sg_MakeStringC(buf);
+    return Sg_Utf8sToUtf32s(buf, strlen(buf));
+  }
+  if (errno == ENOENT) {
+    /* do some trick here */
+    if (Sg_AbsolutePathP(path)) return normalise_path(path);
+    return normalise_path(Sg_BuildPath(Sg_CurrentDirectory(), path));
   }
   return SG_FALSE;
 }

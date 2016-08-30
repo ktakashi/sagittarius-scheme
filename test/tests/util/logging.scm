@@ -21,23 +21,23 @@
 	      (lambda ()
 		(print-log (make-logger +info-level+ (make-appender "~l"))))))
 
-(test-assert (logger? (make-async-logger +debug-level+)))
-(test-assert (async-logger? (make-async-logger +debug-level+)))
-(test-equal "debug\ninfo\nwarn\nerror\nfatal\n"
-	    (with-output-to-string
-	      (lambda ()
-		(print-log (make-async-logger
-			    +debug-level+ 
-			    (make-appender "~l")
-			    (make-file-appender "~l" "log.log"))))))
+(let ((file  "log.log"))
+  (when (file-exists? file) (delete-file file))
+  (test-assert (logger? (make-async-logger +debug-level+)))
+  (test-assert (async-logger? (make-async-logger +debug-level+)))
 
+  (test-equal "debug\ninfo\nwarn\nerror\nfatal\n"
+	      (with-output-to-string
+		(lambda ()
+		  (print-log (make-async-logger
+			      +debug-level+ 
+			      (make-appender "~l")
+			      (make-file-appender "~l" file))))))
+  (test-equal "debug\ninfo\nwarn\nerror\nfatal\n" (file->string file))
 
-
-(test-equal "debug\ninfo\nwarn\nerror\nfatal\n" (file->string "log.log"))
-
-(test-assert (appender? (make-appender "appender")))
-(test-assert (not (file-appender? (make-appender "appender"))))
-(test-assert (appender? (make-file-appender "appender" "log.log")))
-(test-assert (file-appender? (make-file-appender "appender" "log.log")))
+  (test-assert (appender? (make-appender "appender")))
+  (test-assert (not (file-appender? (make-appender "appender"))))
+  (test-assert (appender? (make-file-appender "appender" file)))
+  (test-assert (file-appender? (make-file-appender "appender" file))))
 
 (test-end)

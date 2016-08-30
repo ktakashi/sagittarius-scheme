@@ -114,21 +114,22 @@
 
 ;; file appender
 (define-record-type (<file-appender> make-file-appender file-appender?)
-  (fields (immutable filename file-appender-filename)
-	  sink)
+  (fields (immutable path file-appender-path))
   (parent <appender>)
   (protocol (lambda (p)
 	      (lambda (format filename)
-		(let ((out (open-file-output-port filename
-			    (file-options no-fail)
-			    (buffer-mode block) (native-transcoder))))
-		  ((p format) filename out))))))
+		;; get absolute path of given file so that
+		;; changing current directory won't affect
+		;; the file
+		((p format) (absolute-path filename))))))
 (define-method append-log ((appender <file-appender>) log)
-  (let ((out (<file-appender>-sink appender)))
-    (display (format-log appender log) out)
-    (newline out)))
-(define-method appender-finish ((appender <file-appender>))
-  (close-port (<file-appender>-sink appender)))
+  (call-with-port (open-file-output-port (file-appender-path appender)
+					 (file-options no-fail no-truncate append)
+					 (buffer-mode block)
+					 (native-transcoder))
+    (lambda (out)
+      (display (format-log appender log) out)
+      (newline out))))
 
 ;; loggers
 (define-generic push-log)
