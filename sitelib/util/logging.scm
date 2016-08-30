@@ -42,7 +42,7 @@
 
 	  ;; Appenders
 	  <appender> make-appender appender?
-	  <file-appender> make-file-appender file-appender?
+	  <file-appender> make-file-appender file-appender? 
 	  
 	  ;; For extension
 	  push-log
@@ -68,8 +68,7 @@
 	  (immutable message log-message)))
 
 ;; Log formatter. It handles log object
-;; TODO should we make this a method so that users can extend the behaviour?
-(define (format-log log format)
+(define (builtin-format-log log format)
   (define when (time-utc->date (log-when log)))
   (define level (log-level log))
   (define message (log-message log))
@@ -96,16 +95,22 @@
 ;; Appender APIs
 (define-generic append-log)
 (define-generic appender-finish)
+(define-generic format-log)
 
 ;; abstract appender
 ;; all appenders must inherit <appender>
 (define-record-type (<appender> make-appender appender?)
   (fields (immutable log-format appender-format)))
+
+(define-method format-log ((a <appender>) log)
+  (builtin-format-log log (appender-format a)))
+
 ;; but you can use it for traial
 ;; default just print
 (define-method append-log ((appender <appender>) log)
-  (display (format-log log (appender-format appender))) (newline))
+  (display (format-log appender log)) (newline))
 (define-method appender-finish ((appender <appender>)) #t) ;; do nothing
+
 
 ;; file appender
 (define-record-type (<file-appender> make-file-appender file-appender?)
@@ -120,7 +125,8 @@
 		  ((p format) filename out))))))
 (define-method append-log ((appender <file-appender>) log)
   (let ((out (<file-appender>-sink appender)))
-    (display (format-log log (appender-format appender)) out) (newline out)))
+    (display (format-log appender log) out)
+    (newline out)))
 (define-method appender-finish ((appender <file-appender>))
   (close-port (<file-appender>-sink appender)))
 
