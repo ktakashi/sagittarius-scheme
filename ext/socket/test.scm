@@ -247,14 +247,17 @@
 (let ()
   (define server (make-server-socket "5001"))
   (define interrupted? #f)
+  (define started? #f)
   (define t (thread-start!
 	     (make-thread
 	      (lambda ()
+		(set! started? #t)
 		(socket-read-select #f server)
 		(set! interrupted? #t)))))
+  (unless started?
+    (thread-yield!)
+    (thread-sleep! 1))
   (gc) ;; this uses signal on Linux
-  (thread-yield!)
-  (thread-sleep! 1)
   (test-assert "not interrupted" (not interrupted?))
   (test-assert "thread-interrupt!" (thread-interrupt! t))
   (thread-yield!)
