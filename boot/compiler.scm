@@ -1681,7 +1681,7 @@
   (define (too-many key)
     (syntax-error 
      (format "too many ~s keywords in extended lambda ~s" key kargs)
-     name body))
+     (cadr form) body))
   (define (expand-opt os ks r a)
     (if (null? os)
 	(if r
@@ -3095,7 +3095,7 @@
 
 (define (pass1/include files p1env case-insensitive?)
   (unless (for-all string? files)
-    (syntax-error "include requires string" file))
+    (syntax-error "include requires string" files))
   (let* ((path (p1env-source-path p1env))
 	 (directive (find-default-directive-by-path path))
 	 (dir (directory-name path)))
@@ -3766,7 +3766,8 @@
 			  ($let-src iform)
 			  (unwrap-syntax (lvar-name lvar))))))
 		  (else
-		   (loop (cdr lvars) (cdr inits) (cons (car lvars) seen)))))))))
+		   (loop (cdr lvars) (cdr inits)
+			 (cons (car lvars) seen)))))))))
   (receive (lvars inits) (process-inits ($let-lvars iform) ($let-inits iform))
     (ifor-each2 (lambda (lv in) (lvar-initval-set! lv in)) lvars inits)
     (let ((obody (pass2/rec ($let-body iform) penv tail?)))
@@ -3787,7 +3788,7 @@
 (define (pass2/shrink-let-frame iform lvars obody)
   ;; for now, we don't do this optimisation for letrec*
   (receive (new-lvars new-inits removed-inits)
-      (pass2/remove-unused-lvars lvars ($let-type iform))
+      (pass2/remove-unused-lvars iform lvars ($let-type iform))
     (cond ((null? new-lvars)
 	   ;; if initial variables were removed, but still we need to
 	   ;; evaluate it. so put it in front of body
@@ -3806,24 +3807,29 @@
 		   ($seq (append removed-inits (list obody))))))
 	   iform))))
 
-(define (pass2/remove-unused-lvars lvars type)
+(define (pass2/remove-unused-lvars iform lvars type)
+  (define (unused-warning lvar)
+    (vm-warn (format "unused variable ~a in ~s"
+		     (lvar-name lvar)
+		     (or ($let-src iform)
+			 (iform->sexp iform)))))
   (let loop ((lvars lvars)
 	     (rl '())  ;; result lvars
 	     (ri '())  ;; result inits
 	     (rr '())) ;; result removed
-    (cond ((null? lvars)
-	   (values (reverse rl) (reverse ri) (reverse rr)))
+    (cond ((null? lvars) (values (reverse rl) (reverse ri) (reverse rr)))
 	  ((and (= (lvar-ref-count (car lvars)) -1)
 		(zero? (lvar-set-count (car lvars))))
+	   (unused-warning (car lvars))
 	   ;; need to skip
 	   (loop (cdr lvars) rl ri rr))
 	  ((and (zero? (lvar-ref-count (car lvars)))
 		(zero? (lvar-set-count (car lvars))))
 	   (let ((init (lvar-initval (car lvars))))
+	     (unused-warning (car lvars))
 	     (if (and (eq? type 'rec*)
 		      (not (transparent? init)))
-		 (loop (cdr lvars) (cons (car lvars) rl)
-		       (cons init ri) rr)
+		 (loop (cdr lvars) (cons (car lvars) rl) (cons init ri) rr)
 		 ;; TODO: if I remove $LREF from inits, do I need to decrement
 		 ;; refcount?
 		 (loop (cdr lvars) rl ri
@@ -5179,7 +5185,7 @@
 		(memq name (library-defined lib)))
       (if (vm-error-unbound?)
 	  (undefined-violation name "unbound identifier")
-	  (vm-warn (format 
+	  (vm-warn (format/ss 
 		    "reference to undefined variable: '~a' in ~a (source: ~a)"
 		    name 
 		    (library-name lib)
@@ -5328,22 +5334,18 @@
       (values lambda-cb free (+ body-size frsiz nargs (vm-frame-size))))))
 
 ;;;;
-;; Basically this doesn't work for some cases
-;; e.g)
-;; (let ()
-;;    (define x 5)
-;;    (define count 0)
-;;    (define p
-;;      (delay (begin (set! count (+ count 1))
-;; 		   (if (> count x)
-;; 		       count
-;; 		       (force p)))))
-;;    (print (force p))
-;;    (print (begin (set! x 10) (force p))))
-;; This case can't handle `p` properly. `delay` creates a thunk however
-;; in the thunk `p` is closure and outside `p` is promise. I don't have
-;; any better way to resolve this other than implicit boxing. So for now
-;; we only optimise it if the initial value is `lambda`
+;; letrec uses INST_STACK if possible so that it won't make implicit box.
+;; The case we need to handle specially is self reference. For example,
+;;   (define (foo) (define (bar) (bar)) (bar))
+;; In this case, bar is self referencing and if we implement naive way, it
+;; uses box. Now we are using self position argument of CLOSURE instruction
+;; so it won't create box.
+;; NB: above case wouldn't even create CLOSURE but local call.
+;; NB2: this wouldn't work
+;;      (define (foo)
+;;        (define bar (let ((buz 'a)) (lambda (a) (bar buz))))
+;;        (bar a))
+;;      we can make it work, but i'm lazy for now to handle.
 (define (pass5/letrec iform cb renv ctx)
   ;; if the letrec has cross reference then it needs to have implicit boxing
   ;; otherwiese one of the procedure can't resolve the other one.
