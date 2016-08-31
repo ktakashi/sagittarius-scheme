@@ -1,6 +1,7 @@
 (import (rnrs)
 	(util file)
 	(sagittarius io)
+	(srfi :13)
 	(srfi :64)
 	(util logging))
 ;; tests
@@ -39,5 +40,24 @@
   (test-assert (not (file-appender? (make-appender "appender"))))
   (test-assert (appender? (make-file-appender "appender" file)))
   (test-assert (file-appender? (make-file-appender "appender" file))))
+
+(let ((file "rolling.log")
+      (expects '("12345678901" "12345678902" "12345678903" "12345678904")))
+  (define logger
+    (make-logger +trace-level+
+		 (make-rolling-file-appender "~m" file 10)))
+  (when (file-exists? file) (delete-file file))
+  (for-each (lambda (v) (trace-log logger v)) expects)
+  (let ((log-files (find-files "." :pattern file)))
+    (define (comp a b)
+      (if (= (string-length a) (string-length b))
+	  (string<? a b)
+	  (> (string-length a) (string-length b))))
+    (for-each (lambda (e v) 
+		(test-equal "rolling file appender" e (string-trim-right v)))
+	      expects
+	      (map file->string (list-sort comp log-files)))
+    (for-each delete-file log-files)))
+
 
 (test-end)

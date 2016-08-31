@@ -43,7 +43,10 @@
 	  ;; Appenders
 	  <appender> make-appender appender?
 	  <file-appender> make-file-appender file-appender? 
-	  
+	  file-appender-filename
+	  <rolling-file-appender> make-rolling-file-appender 
+	  rolling-file-appender? rolling-file
+
 	  ;; For extension
 	  push-log
 	  terminate-logger!
@@ -113,6 +116,7 @@
 
 
 ;; file appender
+(define-generic file-appender-filename)
 (define-record-type (<file-appender> make-file-appender file-appender?)
   (fields (immutable path file-appender-path))
   (parent <appender>)
@@ -122,14 +126,41 @@
 		;; changing current directory won't affect
 		;; the file
 		((p format) (absolute-path filename))))))
+(define-method file-appender-filename ((appender <file-appender>))
+  (file-appender-path appender))
+
 (define-method append-log ((appender <file-appender>) log)
-  (call-with-port (open-file-output-port (file-appender-path appender)
-					 (file-options no-fail no-truncate append)
-					 (buffer-mode block)
-					 (native-transcoder))
+  (call-with-port (open-file-output-port 
+		   (file-appender-filename appender)
+		   (file-options no-fail no-truncate append)
+		   (buffer-mode block)
+		   (native-transcoder))
     (lambda (out)
       (display (format-log appender log) out)
       (newline out))))
+
+(define-record-type (<rolling-file-appender> make-rolling-file-appender
+					     rolling-file-appender?)
+  (fields (immutable rolling-size rolling-file-appender-rolling-size)
+	  (mutable current-backup-index
+		   rolling-file-appender-current-backup-index
+		   rolling-file-appender-current-backup-index-set!))
+  (parent <file-appender>)
+  (protocol (lambda (p)
+	      (lambda (format filename :optional (rolling-size 10485760))
+		((p format filename) rolling-size 0)))))
+(define-generic rolling-file)
+(define-method rolling-file ((a <rolling-file-appender>) file)
+  (let* ((index (rolling-file-appender-current-backup-index a))
+	 (backup (format "~a.~a" file index)))
+    (rolling-file-appender-current-backup-index-set! a (+ index 1))
+    (rename-file file backup)))
+(define-method file-appender-filename ((a <rolling-file-appender>))
+  (let ((file (call-next-method))
+	(rolling-size (rolling-file-appender-rolling-size a)))
+    (when (and (file-exists? file) (>= (file-size-in-bytes file) rolling-size))
+      (rolling-file a file))
+    file))
 
 ;; loggers
 (define-generic push-log)
