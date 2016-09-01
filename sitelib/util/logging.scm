@@ -45,7 +45,9 @@
 	  <file-appender> make-file-appender file-appender? 
 	  file-appender-filename
 	  <rolling-file-appender> make-rolling-file-appender 
-	  rolling-file-appender? rolling-file
+	  rolling-file-appender?
+	  <daily-rolling-file-appender> make-daily-rolling-file-appender
+	  daily-rolling-file-appender?
 
 	  ;; For extension
 	  push-log
@@ -149,17 +151,36 @@
   (protocol (lambda (p)
 	      (lambda (format filename :optional (rolling-size 10485760))
 		((p format filename) rolling-size 0)))))
-(define-generic rolling-file)
-(define-method rolling-file ((a <rolling-file-appender>) file)
-  (let* ((index (rolling-file-appender-current-backup-index a))
-	 (backup (format "~a.~a" file index)))
-    (rolling-file-appender-current-backup-index-set! a (+ index 1))
-    (rename-file file backup)))
 (define-method file-appender-filename ((a <rolling-file-appender>))
   (let ((file (call-next-method))
 	(rolling-size (rolling-file-appender-rolling-size a)))
     (when (and (file-exists? file) (>= (file-size-in-bytes file) rolling-size))
-      (rolling-file a file))
+      (let* ((index (rolling-file-appender-current-backup-index a))
+	     (backup (format "~a.~a" file index)))
+	(rolling-file-appender-current-backup-index-set! a (+ index 1))
+	(rename-file file backup)))
+    file))
+
+(define-record-type (<daily-rolling-file-appender> 
+		     make-daily-rolling-file-appender
+		     daily-rolling-file-appender?)
+  (fields (immutable date-pattern daily-rolling-file-appender-date-pattern)
+	  (mutable creation-time
+		   daily-rolling-file-appender-creation-time
+		   daily-rolling-file-appender-creation-time-set!))
+  (parent <file-appender>)
+  (protocol (lambda (p)
+	      (lambda (format filename :optional (date-pattern "~Y-~m-~d"))
+		((p format filename) date-pattern 
+		 (date->string (current-date) date-pattern))))))
+(define-method file-appender-filename ((a <daily-rolling-file-appender>))
+  (let ((file (call-next-method))
+	(now (date->string (current-date) 
+			   (daily-rolling-file-appender-date-pattern a)))
+	(creation-time (daily-rolling-file-appender-creation-time a)))
+    (when (and (file-exists? file) (not (string=? now creation-time)))
+      (daily-rolling-file-appender-creation-time-set! a now)
+      (rename-file file (format "~a.~a" file creation-time)))
     file))
 
 ;; loggers
