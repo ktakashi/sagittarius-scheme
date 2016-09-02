@@ -164,23 +164,23 @@
 (define-record-type (<daily-rolling-file-appender> 
 		     make-daily-rolling-file-appender
 		     daily-rolling-file-appender?)
-  (fields (immutable date-pattern daily-rolling-file-appender-date-pattern)
-	  (mutable creation-time
-		   daily-rolling-file-appender-creation-time
-		   daily-rolling-file-appender-creation-time-set!))
+  (fields (immutable date-pattern daily-rolling-file-appender-date-pattern))
   (parent <file-appender>)
   (protocol (lambda (p)
 	      (lambda (format filename :optional (date-pattern "~Y-~m-~d"))
-		((p format filename) date-pattern 
-		 (date->string (current-date) date-pattern))))))
+		((p format filename) date-pattern)))))
 (define-method file-appender-filename ((a <daily-rolling-file-appender>))
-  (let ((file (call-next-method))
-	(now (date->string (current-date) 
-			   (daily-rolling-file-appender-date-pattern a)))
-	(creation-time (daily-rolling-file-appender-creation-time a)))
-    (when (and (file-exists? file) (not (string=? now creation-time)))
-      (daily-rolling-file-appender-creation-time-set! a now)
-      (rename-file file (format "~a.~a" file creation-time)))
+  (define (check-timestamp a file)
+    (define pattern (daily-rolling-file-appender-date-pattern a))
+    (define (mtime->date file)
+      (time-utc->date (make-time time-utc (file-stat-mtime file) 0)))
+    (let ((now (date->string (current-date) pattern))
+	  (this (date->string (mtime->date file) pattern)))
+      (and (not (string=? now this)) this)))
+  (let ((file (call-next-method)))
+    (cond ((and (file-exists? file) (check-timestamp a file)) =>
+	   (lambda (backup-date)
+	     (rename-file file (format "~a.~a" file backup-date)))))
     file))
 
 ;; loggers
