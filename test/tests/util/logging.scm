@@ -85,5 +85,13 @@
 	      (map file->string (list-sort comp log-files)))
     (for-each delete-file log-files)))
 
+(let ()
+  (define-logger-storage (lookup register)
+    (loggers (test-logger make-logger +info-level+ (make-appender "~m"))))
+  (test-assert "lookup(1)" (logger? (lookup 'test-logger)))
+  (test-assert "register" (register 'test-logger2 (make-logger +warn-level+)))
+  (test-assert "lookup(2)" (eq? (lookup 'test-logger) (lookup 'test-logger)))
+  (test-assert "lookup(3)"
+	       (not (eq? (lookup 'test-logger) (lookup 'test-logger2)))))
 
 (test-end)

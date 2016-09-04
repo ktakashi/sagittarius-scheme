@@ -29,42 +29,45 @@
 ;;;  
 
 (library (util logging)
-  (export ;; Loggers
-	  make-logger        logger?
-	  make-async-logger  async-logger?
-	  ;; Logger APIs
-	  +trace-level+ trace-log logger-trace?
-	  +debug-level+ debug-log logger-debug?
-	  +info-level+  info-log  logger-info?
-	  +warn-level+  warn-log  logger-warn?
-	  +error-level+ error-log logger-error?
-	  +fatal-level+ fatal-log logger-fatal?
+    (export ;; Loggers
+	    make-logger        logger?
+	    make-async-logger  async-logger?
+	    ;; Logger APIs
+	    +trace-level+ trace-log logger-trace?
+	    +debug-level+ debug-log logger-debug?
+	    +info-level+  info-log  logger-info?
+	    v	  +warn-level+  warn-log  logger-warn?
+	    +error-level+ error-log logger-error?
+	    +fatal-level+ fatal-log logger-fatal?
 
-	  ;; Appenders
-	  <appender> make-appender appender?
-	  <file-appender> make-file-appender file-appender? 
-	  file-appender-filename
-	  <rolling-file-appender> make-rolling-file-appender 
-	  rolling-file-appender?
-	  <daily-rolling-file-appender> make-daily-rolling-file-appender
-	  daily-rolling-file-appender?
+	    ;; Appenders
+	    <appender> make-appender appender?
+	    <file-appender> make-file-appender file-appender? 
+	    file-appender-filename
+	    <rolling-file-appender> make-rolling-file-appender 
+	    rolling-file-appender?
+	    <daily-rolling-file-appender> make-daily-rolling-file-appender
+	    daily-rolling-file-appender?
 
-	  ;; For extension
-	  push-log
-	  terminate-logger!
-	  append-log
-	  appender-finish
-	  
-	  format-log
-	  <log> make-log log? ;; for push-log
-	  )
-  (import (rnrs)
-	(sagittarius)
-	(sagittarius control)
-	(util concurrent)
-	(clos user)
-	(srfi :18)
-	(srfi :19))
+	    ;; For extension
+	    push-log
+	    terminate-logger!
+	    append-log
+	    appender-finish
+	    
+	    format-log
+	    <log> make-log log? ;; for push-log
+
+	    ;; logger storage
+	    define-logger-storage loggers
+	    )
+    (import (rnrs)
+	    (sagittarius)
+	    (sagittarius control)
+	    (util concurrent)
+	    (clos user)
+	    (srfi :18)
+	    (srfi :19))
 
 ;; Log object.
 (define-record-type (<log> make-log log?)
@@ -274,4 +277,36 @@
 (define-logging-api warn)
 (define-logging-api error)
 (define-logging-api fatal)
+
+;; In some cases, the same loggers mustn't be created (e.g. asyn logger).
+;; The following might be better to be handled by user code but it seems
+;; sort of common use case so why not.
+(define-syntax loggers (syntax-rules ()))
+(define-syntax define-logger-storage
+  (lambda (x)
+    (define (parse-clause clause*)
+      (syntax-case clause* (loggers)
+	(((loggers (logger-name make-logger args ...) ...))
+	 #'((logger-name make-logger args ...) ...))))
+    (define (parse-name k name)
+      (syntax-case name ()
+	((lookup register) (list #'lookup #'register))
+	;; TODO should we make implicit register name instead hiding?
+	(_ (list name #'register))))
+    (syntax-case x ()
+      ((k name clause* ...)
+       (with-syntax ((((logger-name make-logger args ...) ...)
+		      (parse-clause #'(clause* ...)))
+		     ((lookup register) (parse-name #'k #'name)))
+	 #'(define-values (lookup register)
+	     (let ((storage (make-eq-hashtable))
+		   (lock (make-mutex)))
+	       (define (lookup n) (hashtable-ref storage n))
+	       (define (register n logger)
+		 (mutex-lock! lock)
+		 (unless (hashtable-ref storage n)
+		   (hashtable-set! storage n logger))
+		 (mutex-unlock! lock))
+	       (hashtable-set! storage 'logger-name (make-logger args ...)) ...
+	       (values lookup register))))))))
 )
