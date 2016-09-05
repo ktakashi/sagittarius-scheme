@@ -286,8 +286,8 @@
   (lambda (x)
     (define (parse-clause clause*)
       (syntax-case clause* (loggers)
-	(((loggers (logger-name make-logger args ...) ...))
-	 #'((logger-name make-logger args ...) ...))))
+	(((loggers (logger-name make-logger) ...))
+	 #'((logger-name make-logger) ...))))
     (define (parse-name k name)
       (syntax-case name ()
 	((lookup register) (list #'lookup #'register))
@@ -295,7 +295,7 @@
 	(_ (list name #'register))))
     (syntax-case x ()
       ((k name clause* ...)
-       (with-syntax ((((logger-name make-logger args ...) ...)
+       (with-syntax ((((logger-name make-logger) ...)
 		      (parse-clause #'(clause* ...)))
 		     ((lookup register) (parse-name #'k #'name)))
 	 #'(define-values (lookup register)
@@ -307,6 +307,6 @@
 		 (unless (hashtable-ref storage n)
 		   (hashtable-set! storage n logger))
 		 (mutex-unlock! lock))
-	       (hashtable-set! storage 'logger-name (make-logger args ...)) ...
+	       (hashtable-set! storage 'logger-name (make-logger)) ...
 	       (values lookup register))))))))
 )
