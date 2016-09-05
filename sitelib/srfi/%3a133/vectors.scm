@@ -123,7 +123,7 @@
       (s:vector-count (lambda (i e) (pred? e)) vec)
       (apply s:vector-count (lambda (i . e*) (apply pred? e*)) vec vecs)))
 
-(define (vector-cumulate f vec knil)
+(define (vector-cumulate f knil vec)
   (define len (vector-length vec))
   (let loop ((i 0) (knil knil) (r '()))
     (if (= i len)
