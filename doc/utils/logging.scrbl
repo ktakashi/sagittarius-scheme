@@ -270,8 +270,8 @@ fixed format. If you need to use it, you need to modify.
 
 Only what users need to do to create an appender is the followings:
 @itemlist{
-  @item{Creates a record type inherits @code{<appender>}}.
-  @item{Specialising @code{append-log} method with the above record}.
+  @item{Creates a record type inherits @code{<appender>}.}
+  @item{Specialising @code{append-log} method with the above record.}
 }
 
 @define["Generic Function"]{@name{append-log} @args{appender log}}
