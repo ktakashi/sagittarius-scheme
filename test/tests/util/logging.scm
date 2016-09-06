@@ -16,6 +16,30 @@
   (terminate-logger! logger))
 
 (test-begin "Logging")
+
+(test-assert trace-log)
+(test-assert logger-trace?)
+(test-assert debug-log)
+(test-assert logger-debug?)
+(test-assert info-log)
+(test-assert logger-info?)
+(test-assert warn-log)
+(test-assert logger-warn?)
+(test-assert error-log)
+(test-assert logger-error?)
+(test-assert fatal-log)
+(test-assert logger-fatal?)
+
+(test-assert (integer? +trace-level+))
+(test-assert (integer? +debug-level+))
+(test-assert (integer? +info-level+ ))
+(test-assert (integer? +warn-level+ ))
+(test-assert (integer? +error-level+))
+(test-assert (integer? +fatal-level+))
+
+(test-assert (< +trace-level+ +debug-level+ +info-level+
+		+warn-level+ +error-level+ +fatal-level+))
+
 (test-assert (logger? (make-logger +info-level+)))
 (test-assert (not (async-logger? (make-logger +info-level+))))
 (test-equal "info\nwarn\nerror\nfatal\n"

@@ -30,13 +30,13 @@
 
 (library (util logging)
     (export ;; Loggers
-	    make-logger        logger?
-	    make-async-logger  async-logger?
+	    make-logger        logger?       <logger>
+	    make-async-logger  async-logger? <async-logger>
 	    ;; Logger APIs
 	    +trace-level+ trace-log logger-trace?
 	    +debug-level+ debug-log logger-debug?
 	    +info-level+  info-log  logger-info?
-	    v	  +warn-level+  warn-log  logger-warn?
+	    +warn-level+  warn-log  logger-warn?
 	    +error-level+ error-log logger-error?
 	    +fatal-level+ fatal-log logger-fatal?
 
@@ -201,14 +201,14 @@
 (define-generic push-log)
 (define-generic terminate-logger!)
 (define-record-type (<logger> make-logger logger?)
-  (fields (immutable threashold logger-threashold)
-	  (immutable appenders  logger-appenders))
+  (fields (immutable threshold logger-threshold)
+	  (immutable appenders logger-appenders))
   (protocol (lambda (p)
-	      (lambda (threashold . appenders)
+	      (lambda (threshold . appenders)
 		(unless (for-all appender? appenders)
 		  (assertion-violation 'make-logger "appender required"
 				       appenders))
-		(p threashold appenders)))))
+		(p threshold appenders)))))
 (define-method push-log ((l <logger>) log)
   (for-each (lambda (appender) (append-log appender log))
 	    (logger-appenders l)))
@@ -258,7 +258,7 @@
       (->s k (string->symbol (format "+~a-level+" (syntax->datum level)))))
     (define (make-names k level)
       (let ((n (syntax->datum level)))
-	(->s k (list (string->symbol (format "logger-~a" n))
+	(->s k (list (string->symbol (format "logger-~a?" n))
 		     (string->symbol (format "~a-log" n))))))
     (syntax-case x ()
       ((k level)
@@ -266,7 +266,7 @@
 		     ((check logging) (make-names #'k #'level)))
 		      
 	 #'(begin
-	     (define (check logger) (>= c (logger-threashold logger)))
+	     (define (check logger) (>= c (logger-threshold logger)))
 	     (define (logging logger msg)
 	       (when (check logger)
 		 (push-log logger (make-log (current-time) 'level msg))))))))))
