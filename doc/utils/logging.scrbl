@@ -259,8 +259,8 @@ The following example shows how to create an Email appender.
                 (smtp-disconnect! conn)
                 (error 'append-log "not supported")))))
       (smtp-send! conn (smtp:mail
-                        (smtp:from "Takashi Kato" "ktakashi@ymail.com")
-                        (smtp:to "Takashi Kato" "ktakashi@ymail.com")
+                        (smtp:from "Takashi Kato" "ktakashi@atmark{}ymail.com")
+                        (smtp:to "Takashi Kato" "ktakashi@atmark{}ymail.com")
                         (smtp:subject "Logging with email")
                         message))
       (smtp-disconnect! conn))))
@@ -320,5 +320,6 @@ logger.
 @define["Generic Function"]{@name{push-log} @args{logger log}}
 @desc{Pushes @var{log} to appenders of the @var{logger}.}
 
-@;@subsubsection{Singleton logger}
-@;TBD
+@; @subsubsection{Singleton logger}
+
+@; Asynchronous logger or other loggers should sometimes be singleton. 
