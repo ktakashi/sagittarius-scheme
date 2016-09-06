@@ -19,6 +19,7 @@
 @include-section["utils/hashtables.scrbl"]
 @include-section["utils/heap.scrbl"]
 @include-section["utils/list.scrbl"]
+@include-section["utils/logging.scrbl"]
 @include-section["utils/math.scrbl"]
 @include-section["utils/net/amqp.scrbl"]
 @include-section["utils/net/mqtt.scrbl"]

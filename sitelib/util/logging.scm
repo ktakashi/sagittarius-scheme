@@ -39,7 +39,8 @@
 	    +warn-level+  warn-log  logger-warn?
 	    +error-level+ error-log logger-error?
 	    +fatal-level+ fatal-log logger-fatal?
-
+	    terminate-logger!
+	    
 	    ;; Appenders
 	    <appender> make-appender appender?
 	    <file-appender> make-file-appender file-appender? 
@@ -51,12 +52,12 @@
 
 	    ;; For extension
 	    push-log
-	    terminate-logger!
 	    append-log
 	    appender-finish
 	    
-	    format-log
+	    format-log (rename (appender-format appender-log-format))
 	    <log> make-log log? ;; for push-log
+	    log-when log-level log-message
 
 	    ;; logger storage
 	    define-logger-storage loggers
