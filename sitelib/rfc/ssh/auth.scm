@@ -66,10 +66,12 @@
 				   (open-bytevector-input-port payload))))
 	    (else (callback payload)))))
 
-  ;; TODO required method so do it
-  (define (auth-pub-key transport user-name public-key
-			:key (private-key #f)
-			(service-name +ssh-connection+))
+  ;; private-key can be #f to check if the server has the public-key.
+  ;; in that case 2 values, failure result and <ssh-msg-userauth-pk-ok>,
+  ;; will be returned.
+  ;; TODO should we?
+  (define (auth-pub-key transport user-name private-key public-key
+			:key (service-name +ssh-connection+))
     (define (make-signer mark name options)
       (if private-key
 	  (lambda (msg)
@@ -94,7 +96,7 @@
 	 :e (~ public-key 'exponent) :n (~ public-key 'modulus))
        (make-signer RSA "ssh-rsa" (list :encode pkcs1-emsa-v1.5-encode))))
 
-    ;; we don't check private-key type but public-key for detect the
+    ;; we don't check private-key type but public-key to detect the
     ;; algorithm name
     (let-values (((name blob signer)
 		  (let1 name (symbol->string (~ (class-of public-key) 'name))
@@ -111,10 +113,11 @@
 		:blob (ssh-message->bytevector blob))
 	;; signature
 	(set! (~ m 'signature)
-	      (let1 sid (~ transport 'session-id)
-		(signer (bytevector-append (pack "!L" (bytevector-length sid))
-					   sid
-					   (ssh-message->bytevector m)))))
+	      (and private-key
+		   (let1 sid (~ transport 'session-id)
+		     (signer (bytevector-append 
+			      (pack "!L" (bytevector-length sid)) sid
+			      (ssh-message->bytevector m))))))
 	(ssh-write-ssh-message transport m)
 	;; read the responce
 	(read-auth-response transport
