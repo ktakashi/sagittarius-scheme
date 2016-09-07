@@ -303,11 +303,14 @@
 			   :data (if (= r buffer-size)
 				     buf
 				     (bytevector-copy buf 0 r))))
-		   (b (cond (buffer
+		   ;; if the read size differes from buffer size
+		   ;; then it's the last chunk,
+		   (b (cond ((and buffer (= r buffer-size))
 			     (set-port-position! in/out 5)
 			     (write-message <sftp-fxp-write> data in/out)
 			     (set-port-position! in/out 0)
 			     buffer)
+			    ;; do it for initial and the last.
 			    (else (get-initial-buffer data)))))
 	      (ssh-send-channel-data (~ conn 'channel) b)
 	      (recv-sftp-packet1 conn)
