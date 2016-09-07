@@ -188,7 +188,7 @@
 				   ;; keep it backward compatible
 				   ;; at least this layer
 				   :key (username #f) (password #f)
-				   :allow-other-keys rest)
+				   :allow-other-keys opts)
   (define conn (make-client-sftp-connection server port))
   
   (let ((conn (if (and username password)
