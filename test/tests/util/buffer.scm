@@ -183,4 +183,21 @@
   (test-assert "reset!" (pre-allocated-buffer-reset! buf))
   (test-assert "can-store?" (binary-pre-allocated-buffer-can-store? buf 5)))
 
+(let* ((bv (make-bytevector 10))
+       (buf (make-binary-pre-allocated-buffer bv))
+       (out (->binary-pre-allocated-buffer-input/output-port buf)))
+  (test-assert "put-bytevector (0)" (put-bytevector out #vu8(1 2 3 4 5)))
+  (set-port-position! out 0)
+  (test-equal "get-bytevector-n" #vu8(1 2 3 4 5) (get-bytevector-n out 5))
+  
+  (test-assert "can-store?" (binary-pre-allocated-buffer-can-store? buf 5))
+  (test-assert "put-bytevector (1)" (put-bytevector out #vu8(1 2 3 4 5)))
+  (test-assert "can-store?" 
+	       (not (binary-pre-allocated-buffer-can-store? buf 1)))
+  (test-error "overflow" pre-allocated-buffer-overflow? (put-u8 out 1))
+  
+  (test-equal "crop" #vu8(1 2 3 4 5 1 2 3 4 5) (crop-binary-buffer buf))
+  (test-assert "reset!" (pre-allocated-buffer-reset! buf))
+  (test-assert "can-store?" (binary-pre-allocated-buffer-can-store? buf 5)))
+
 (test-end)
