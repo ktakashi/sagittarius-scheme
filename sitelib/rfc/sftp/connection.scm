@@ -149,8 +149,9 @@
     (close-port in/out)))
 
 (define (make-client-sftp-connection server port)
-  (let ((transport (make-client-ssh-transport server port)))
-    (make <sftp-connection> :transport transport)))
+  (make <sftp-connection>
+    :transport (open-client-ssh-transport!
+		(make-client-ssh-transport server port))))
 
 (define (sftp-password-authentication username password)
   (lambda (transport)
@@ -175,14 +176,14 @@
       ;; assume rest is empty
       (unless (and (is-a? r <sftp-fxp-version>)
 		   (= (~ r 'version) +sftp-version3+))
-	(error 'make-client-ssh-transport
+	(error 'open-client-sftp-connection!
 	       "server respond non supported version" r))
       connection)))
 
 (define (close-client-sftp-connection! connection)
   (close-ssh-channel (~ connection 'channel))
   (set! (~ connection 'channel) #f)
-  (ssh-disconnect (~ connection 'transport)))
+  (close-client-ssh-transport! (~ connection 'transport)))
 
 (define (call-with-sftp-connection server port proc
 				   ;; keep it backward compatible

@@ -31,10 +31,11 @@
 #!read-macro=sagittarius/regex
 (library (rfc ssh transport)
     (export make-client-ssh-transport
+	    open-client-ssh-transport!
+	    socket->client-ssh-transport
+	    close-client-ssh-transport!
 	    ;; parameter
 	    *ssh-version-string*
-	    *ssh-strict-version-exchange*
-	    ssh-disconnect
 	    ssh-data-ready?
 
 	    (rename (write-packet ssh-write-packet)
@@ -70,41 +71,30 @@
 	    (binary io))
 
   ;; must do until handshake but for now
-  (define (make-client-ssh-transport server port . options)
-    (let* ((socket (make-client-socket server port))
-	   (transport (make <ssh-transport> :socket socket)))
-      ;; didn't make performance better
-      ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
-      ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
-      (version-exchange transport)
-      (key-exchange transport)
-      transport))
-
+  (define (make-client-ssh-transport server port)
+    (make <ssh-transport> :server server :port port))
+  ;; should work but not tested
+  (define (socket->client-ssh-transport socket)
+    (make <ssh-transport> :socket socket))
+  
+  (define (open-client-ssh-transport! transport)
+    (unless (~ transport 'socket)
+      (let ((server (~ transport 'server))
+	    (port (~ transport 'port)))
+	(set! (~ transport 'socket) (make-client-socket server port))))
+    ;; didn't make performance better
+    ;; (socket-setsockopt! socket IPPROTO_TCP TCP_NODELAY 1)
+    ;; (socket-setsockopt! socket SOL_SOCKET SO_RCVBUF #x40000)
+    (version-exchange transport)
+    (key-exchange transport)
+    transport)
+  
   (define-constant cr #x0D)
   (define-constant lf #x0A)
 
   (define-constant +default-version-string+ 
     (string-append "SSH-2.0-Sagittarius_" (sagittarius-version)))
   (define *ssh-version-string* (make-parameter +default-version-string+))
-
-  ;; RFC 4253 defines identification string like the followings;
-  ;;  SSH-protoversion-softwareversion SP comments CR LF
-  ;; Thus 'comments' must be a part of identification string
-  ;; to be used as a part of MAC.
-  ;; 
-  ;; So the following comment is an mistake.
-  ;; RFC 4253 says software version MUST consist of printable
-  ;; US-ASCII character, with the exception of whitespace characters
-  ;; and the minus sign (-). (from 4.2. Protocol Version Exchange)
-  ;; *HOWEVER* some of the SSH server implementation send the
-  ;; software version string *WITH* space and *EXPECT* to be used
-  ;; for mac calculation. In that case, I think we can ignore
-  ;; the comment part since there is no way to determine if it's
-  ;; the starting of comment or a part of software version string.
-  ;; 
-  ;; To keep backward compatibility we need to keep this but
-  ;; do nothing
-  (define *ssh-strict-version-exchange* (make-parameter #f))
 
   ;; utility
   (define (read-ascii-line in)
@@ -128,6 +118,10 @@
     (socket-send out (string->utf8 str))
     (socket-send out #vu8(#x0D #x0A)))
 
+  ;; RFC 4253 defines identification string like the followings;
+  ;;  SSH-protoversion-softwareversion SP comments CR LF
+  ;; Thus 'comments' must be a part of identification string
+  ;; to be used as a part of MAC.
   (define (version-exchange transport)
     (let1 in/out (~ transport 'socket)
       (let loop ()
@@ -139,10 +133,6 @@
 		((#/(SSH-2.0-[\w.-]+)\s*/ vs) => 
 		 (lambda (m)
 		   (set! (~ transport 'target-version) vs)
-		   #;
-		   (if (*ssh-strict-version-exchange*)
-		       (set! (~ transport 'target-version) (m 1))
-		       (set! (~ transport 'target-version) vs))
 		   ;; send
 		   (write-line in/out (*ssh-version-string*))))
 		(else (loop)))))))
@@ -630,13 +620,16 @@
 		(else
 		 (error 'key-exchange "unknown KEX")))))))
 
-  (define (ssh-disconnect transport :key (code +ssh-disconnect-by-application+)
-			  (description "finish"))
+  (define (close-client-ssh-transport! transport
+		       :key (code +ssh-disconnect-by-application+)
+			    (description "finish"))
     (let-values (((in size) (ssh-message->binary-port
 			     (make <ssh-msg-disconnect>
 			       :code code
 			       :description description))))
-      (ssh-write-packet-port transport in size)))
+      (ssh-write-packet-port transport in size)
+      (socket-shutdown (~ transport 'socket) SHUT_RDWR)
+      (socket-close (~ transport 'socket))))
 
   (define (service-request transport name)
     (let-values (((in size) (ssh-message->binary-port 

@@ -212,7 +212,10 @@
 
   ;; SSH context
   (define-class <ssh-transport> ()
-    ((socket   :init-keyword :socket)	; raw socket (in/out port)
+    ((socket   :init-keyword :socket :init-value #f)	; raw socket (in/out port)
+     ;; for reconnection?
+     (server   :init-keyword :server :init-value #f)
+     (port     :init-keyword :port :init-value #f)
      (target-version :init-value #f)	; version string from peer
      (prng     :init-keyword :prng :init-form (secure-random RC4))
      (client-sequence :init-value 0)	; unsigned 32 bit int
