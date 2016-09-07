@@ -32,7 +32,10 @@
 ;;  http://tools.ietf.org/html/draft-ietf-secsh-filexfer-02
 (library (rfc sftp connection)
     (export make-client-sftp-connection
-	    sftp-close-connection
+	    open-client-sftp-connection!
+	    close-client-sftp-connection!
+	    sftp-password-authentication
+	    sftp-public-key-authentication
 	    call-with-sftp-connection
 	    
 	    ;; operations
@@ -145,35 +148,55 @@
     (ssh-send-channel-data (~ connection 'channel) in/out)
     (close-port in/out)))
 
-(define (make-client-sftp-connection server port 
-				     :key (username #f) (password #f))
+(define (make-client-sftp-connection server port)
   (let ((transport (make-client-ssh-transport server port)))
-    ;; TODO supporting other authentication method 
-    (when (and username password)
-      (ssh-authenticate transport +ssh-auth-method-password+ username password))
-    ;; TODO handle error to disconnect!
-    (let* ((channel (open-client-ssh-session-channel transport))
-	   (connection (make <sftp-connection> :transport transport 
-			     :channel channel)))
-      (ssh-request-subsystem channel "sftp")
-      ;; no extension data for now
-      (send-sftp-packet connection 
-			(make <sftp-fxp-init> :version +sftp-version3+))
-      (let1 r (recv-sftp-packet connection)
-	;; assume rest is empty
-	(unless (and (is-a? r <sftp-fxp-version>)
-		     (= (~ r 'version) +sftp-version3+))
-	  (error 'make-client-ssh-transport 
-		 "server respond non supported version" r))
-	connection))))
-(define (sftp-close-connection connection)
+    (make <sftp-connection> :transport transport)))
+
+(define (sftp-password-authentication username password)
+  (lambda (transport)
+    (ssh-authenticate transport +ssh-auth-method-password+ username password)))
+(define (sftp-public-key-authentication username private-key public-key)
+  (lambda (transport)
+    (ssh-authenticate transport +ssh-auth-method-public-key+
+		      username private-key public-key)))
+
+(define (open-client-sftp-connection! connection :key (authenticate #f))
+  (define transport (~ connection 'transport))
+  
+  (when authenticate (authenticate transport))
+  
+  (let ((channel (open-client-ssh-session-channel transport)))
+    (set! (~ connection 'channel) channel)
+    (ssh-request-subsystem channel "sftp")
+    ;; no extension data for now
+    (send-sftp-packet connection
+      (make <sftp-fxp-init> :version +sftp-version3+))
+    (let1 r (recv-sftp-packet connection)
+      ;; assume rest is empty
+      (unless (and (is-a? r <sftp-fxp-version>)
+		   (= (~ r 'version) +sftp-version3+))
+	(error 'make-client-ssh-transport
+	       "server respond non supported version" r))
+      connection)))
+
+(define (close-client-sftp-connection! connection)
   (close-ssh-channel (~ connection 'channel))
+  (set! (~ connection 'channel) #f)
   (ssh-disconnect (~ connection 'transport)))
 
-(define (call-with-sftp-connection server port proc . opts)
-  (let ((conn (apply make-client-sftp-connection server port opts)))
+(define (call-with-sftp-connection server port proc
+				   ;; keep it backward compatible
+				   ;; at least this layer
+				   :key (username #f) (password #f)
+				   :allow-other-keys rest)
+  (define conn (make-client-sftp-connection server port))
+  
+  (let ((conn (if (and username password)
+		  (let1 auth (sftp-password-authentication username password)
+		    (open-client-sftp-connection! conn :authenticate auth))
+		  (apply open-client-sftp-connection! conn opts))))
     (unwind-protect (proc conn)
-      (sftp-close-connection conn))))
+      (close-client-sftp-connection! conn))))
 
 (define (sftp-message-id! conn)
   (rlet1 id (~ conn 'message-id)

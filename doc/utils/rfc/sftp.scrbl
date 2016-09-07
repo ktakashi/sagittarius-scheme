@@ -246,9 +246,29 @@ calling @code{(slot-ref @var{c} 'filename)} or
 
 @subsubsection{Mid level APIs}
 
-@define[Function]{@name{make-client-sftp-connection}
- @args{server port :key (username #f) (password #f)}}
+Mid level APIs are changed since 0.7.8. The changes are not backward
+compatible, so if you are using 0.7.7 API and move to 0.7.8, please be aware.
+
+@define[Function]{@name{make-client-sftp-connection} @args{server port}}
 @desc{Creates a SFTP connection object.}
 
-@define[Function]{@name{sftp-close-connection} @args{connection}}
+@define[Function]{@name{open-client-sftp-connection!}
+ @args{sftp-connection :key (authenticate #f}}}
+@desc{Opens the given @var{sftp-connection}.
+
+If the keyword argument @var{authenticate} is given, it must be a
+procedure which accepts SSH transport, then the procedure calls the
+given procedure as the authentication.
+}
+
+@define[Function]{@name{sftp-password-authentication} @args{username password}}
+@desc{Returns a procedure which accepts SSH transport and provides password
+authentication.}
+
+@define[Function]{@name{sftp-public-key-authentication}
+ @args{username private-key public-key}}
+@desc{Returns a procedure which accepts SSH transport and provides public key
+authentication.}
+
+@define[Function]{@name{close-client-sftp-connection!} @args{connection}}
 @desc{Closes the given SFTP connection object.}
