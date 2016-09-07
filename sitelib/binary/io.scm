@@ -434,7 +434,7 @@
     (define size (bytevector-length src))
     (define pos offset)
     (define (read! bv start count)
-      (let ((n (min (- size offet) count)))
+      (let ((n (min (- size pos) count)))
 	(unless (< n 0)
 	  (bytevector-copy! src pos bv start n)
 	  (set! pos (+ pos n)))

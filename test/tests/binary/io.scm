@@ -207,4 +207,15 @@
   (test-assert "empty chunked input/output port" (set-port-position! in/out 0)))
 
 
+(let ((buffer (make-bytevector 10)))
+  (define in/out (open-bytevector-input/output-port buffer))
+  (test-assert "put-bytevector (0)" (put-bytevector in/out #vu8(1 2 3 4 5)))
+  (test-assert "put-bytevector (1)" (put-bytevector in/out #vu8(1 2 3 4 5)))
+  (test-error "put-bytevector (2)" (put-bytevector in/out #vu8(1 2 3 4 5)))
+  (set-port-position! in/out 0)
+  (test-equal "get-bytevector-n (0)" #vu8(1 2 3 4 5) (get-bytevector-n in/out 5))
+  (test-equal "get-bytevector-n (1)" #vu8(1 2 3 4 5) (get-bytevector-n in/out 5))
+  (test-assert "get-bytevector-n (2)" (eof-object? (get-bytevector-n in/out 5))))
+
+
 (test-end)
