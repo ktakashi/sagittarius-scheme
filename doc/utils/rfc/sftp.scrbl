@@ -30,7 +30,8 @@ Following example code describes how to use in high level.
     ;; upload a file
     (let ((handle (sftp-open conn "boo" 
                     (bitwise-ior +ssh-fxf-creat+ +ssh-fxf-write+))))
-     (call-with-input-file "a/local/file" (cut sftp-write! conn handle <>)))
+     (call-with-input-file "a/local/file" (cut sftp-write! conn handle <>)
+                           :transcoder #f))
 
     ;; rename a file
     (sftp-rename! conn "boo" "foo")
