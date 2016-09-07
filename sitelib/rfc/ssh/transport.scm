@@ -223,13 +223,20 @@
 	;; FIXME we even don't want to do this
 	;; make read-packet return port...
 	(get-bytevector-n pt (- total-size padding-size 1))))
+    (define (recv-n in n)
+      (define buf (make-bytevector n))
+      (let loop ((n n) (start 0))
+	(let ((r (socket-recv! in buf start n)))
+	  (if (= r n)
+	      buf
+	      (loop (- n r) (+ start r))))))
     (define (read-data in)
-      (let* ((sizes (socket-recv in 5))
+      (let* ((sizes (recv-n in 5))
 	     (total (bytevector-u32-ref sizes 0 (endianness big)))
 	     (pad   (bytevector-u8-ref sizes 4)))
-	(rlet1 payload (socket-recv in (- total pad 1))
+	(rlet1 payload (recv-n in (- total pad 1))
 	  ;; discards padding
-	  (socket-recv in pad))))
+	  (recv-n in pad))))
 
     (let* ((mac-length (or (and-let* ((k (~ context 'client-cipher))
 				     (h (~ context 'server-mac)))
