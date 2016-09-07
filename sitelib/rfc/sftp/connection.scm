@@ -132,22 +132,6 @@
 	(put-u8 out type)
 	(put-bytevector out bv))))))
 
-(define (send-sftp-packet-using-port connection data)
-  (let ((in/out (open-chunked-binary-input/output-port))
-	(type (sftp-type-lookup (class-of data))))
-    (unless type (error 'send-sftp-packet "unknown sftp packet type" data))
-    ;;(put-u32 in/out (+ (bytevector-length bv) 1) (endianness big))
-    ;;(put-u8 in/out type)
-    (set-port-position! in/out 5)
-    (write-message (class-of data) data in/out)
-    (let ((p (port-position in/out)))
-      (set-port-position! in/out 0)
-      (put-u32 in/out (- p 4) (endianness big))
-      (put-u8 in/out type))
-    (set-port-position! in/out 0)
-    (ssh-send-channel-data (~ connection 'channel) in/out)
-    (close-port in/out)))
-
 (define (make-client-sftp-connection server port)
   (make <sftp-connection>
     :transport (open-client-ssh-transport!
@@ -308,19 +292,43 @@
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    (let loop ((offset offset))
+    (let loop ((offset offset) (buffer #f) (in/out #f))
       (let ((r (get-bytevector-n! inport buf 0 buffer-size)))
-	(unless (eof-object? r)
-	  (send-sftp-packet-using-port
-	   conn (make <sftp-fxp-write>
-		  :id (sftp-message-id! conn)
-		  :handle hndl
-		  :offset offset
-		  :data (if (= r buffer-size)
-			    buf
-			    (bytevector-copy buf 0 r))))
-	  (recv-sftp-packet1 conn)
-	  (loop (+ offset r)))))))
+	(if (eof-object? r)
+	    (and in/out (close-port in/out))
+	    (let* ((data (make <sftp-fxp-write>
+			   :id (sftp-message-id! conn)
+			   :handle hndl
+			   :offset offset
+			   :data (if (= r buffer-size)
+				     buf
+				     (bytevector-copy buf 0 r))))
+		   (b (cond (buffer
+			     (set-port-position! in/out 5)
+			     (write-message <sftp-fxp-write> data in/out)
+			     (set-port-position! in/out 0)
+			     buffer)
+			    (else (get-initial-buffer data)))))
+	      (ssh-send-channel-data (~ conn 'channel) b)
+	      (recv-sftp-packet1 conn)
+	      (loop (+ offset r) b
+		    (or in/out (open-bytevector-input/output-port b)))))))))
+  
+(define (get-initial-buffer data)
+  (let ((in/out (open-chunked-binary-input/output-port))
+	(type (sftp-type-lookup (class-of data))))
+    (unless type (error 'send-sftp-packet "unknown sftp packet type" data))
+    ;;(put-u32 in/out (+ (bytevector-length bv) 1) (endianness big))
+    ;;(put-u8 in/out type)
+    (set-port-position! in/out 5)
+    (write-message (class-of data) data in/out)
+    (let ((p (port-position in/out)))
+      (set-port-position! in/out 0)
+      (put-u32 in/out (- p 4) (endianness big))
+      (put-u8 in/out type))
+    (set-port-position! in/out 0)
+    (rlet1 r (get-bytevector-all in/out)
+      (close-port in/out))))
 
 ;; 6.5 Removing and Renaming Files
 
