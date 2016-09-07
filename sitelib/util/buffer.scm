@@ -68,7 +68,8 @@
 	    binary-pre-allocated-buffer-swap!
 	    binary-pre-allocated-buffer-get-bytevector-n!
 	    crop-binary-buffer
-	    ->binary-pre-allocated-buffer-output-port)
+	    ->binary-pre-allocated-buffer-output-port
+	    ->binary-pre-allocated-buffer-input/output-port)
     (import (rnrs))
 
   ;; super class
@@ -210,7 +211,8 @@
     (let ((pos (if offset offset (pre-allocated-buffer-size buffer)))
 	  (buf (pre-allocated-buffer-buffer buffer)))
       (get-bytevector-n! in buf pos n)
-      (update-size! buffer (+ pos n))))
+      (update-size! buffer (+ pos n))
+      n))
 
   ;; port conversion
   (define (->binary-pre-allocated-buffer-output-port binary-buffer)
@@ -228,5 +230,30 @@
     (define (close!) #t)
     (make-custom-binary-output-port "binary-pre-allocated-buffer-port"
 				    write! position set-position! close!))
+
+  (define (->binary-pre-allocated-buffer-input/output-port binary-buffer)
+    (define (read! bv start count)
+      (let* ((pos (pre-allocated-buffer-size binary-buffer))
+	     (buf (pre-allocated-buffer-buffer binary-buffer))
+	     (n (min (- (bytevector-length buf) pos) count)))
+	(unless (zero? n)
+	  (bytevector-copy! buf pos bv start n)
+	  (update-size! binary-buffer (+ pos n)))
+	n))
+    (define (write! bv start count)
+      (binary-pre-allocated-buffer-put-bytevector! binary-buffer bv start count)
+      count)
+    (define (position) (pre-allocated-buffer-size binary-buffer))
+    (define (set-position! pos)
+      (define (buffer-size) (pre-allocated-buffer-size binary-buffer))
+      (unless (<= 0 pos (buffer-size))
+	(raise (condition (make-i/o-invalid-position-error pos)
+			  (make-who-condition 'binary-pre-allocated-buffer-port)
+			  (make-message-condition "invalid position"))))
+      (update-size! binary-buffer pos))
+    (define (close!) #t)
+    (make-custom-binary-input/output-port
+     "binary-pre-allocated-buffer-port"
+     read! write! position set-position! close!))
 
 )
