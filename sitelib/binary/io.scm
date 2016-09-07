@@ -54,6 +54,7 @@
 	    +default-chunk-size+
 
 	    ->size-limit-binary-input-port
+	    open-bytevector-input/output-port
 	    )
     (import (except (rnrs) get-line)
 	    (sagittarius)
@@ -428,5 +429,31 @@
     (define (ready) (port-ready? iport))
     (make-custom-binary-input-port "limited-size port" 
 				   read! position set-position! close ready))
+
+  (define (open-bytevector-input/output-port src :key (offset 0))
+    (define size (bytevector-length src))
+    (define pos offset)
+    (define (read! bv start count)
+      (let ((n (min (- size offet) count)))
+	(unless (< n 0)
+	  (bytevector-copy! src pos bv start n)
+	  (set! pos (+ pos n)))
+	n))
+    (define (write! bv start count)
+      (when (> (+ count pos) size)
+	(assertion-violation 'bytevector-input/output-port
+			     "buffer overflow" count))
+      (bytevector-copy! bv start src pos count)
+      (set! pos (+ pos count))
+      count)
+    (define (position) pos)
+    (define (set-position! p)
+      (when (or (> p size) (< p 0))
+	(assertion-violation 'bytevector-input/output-port
+			     "invalid position" p))
+      (set! pos p))
+    (define (close) #t)
+    (make-custom-binary-input/output-port "bytevector-input/output-port"
+     read! write! position set-position! close))
   
 )
