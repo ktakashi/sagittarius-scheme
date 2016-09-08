@@ -12,6 +12,7 @@ OPTION(INSTALL_SYMLINK "installing symlink" ON)
 # would create slow binary
 OPTION(DEBUG_VERSION "build type" ON)
 OPTION(FORCE_USING_BUNDLED_LIBFFI "For testing purpose" OFF)
+OPTION(INSTALL_C_TRANSLATOR "Install scheme2c script" OFF)
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" ON)
   OPTION(USE_CRT_DLL    "dynamic linking of CRT instead of static linking" OFF)
@@ -545,7 +546,25 @@ INSTALL(
     GROUP_READ
     WORLD_READ)
 
-# uninstall target
+
+IF (INSTALL_C_TRANSLATOR)
+  INSTALL(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/scheme2c
+    DESTINATION ${SAGITTARIUS_DYNLIB_PATH}
+    PERMISSIONS 
+      OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      GROUP_READ GROUP_EXECUTE
+      WORLD_READ GROUP_EXECUTE)
+  INSTALL(
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/script/scheme2c
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/${BIN_DIR}
+    PERMISSIONS 
+      OWNER_READ OWNER_WRITE OWNER_EXECUTE
+      GROUP_READ GROUP_EXECUTE
+      WORLD_READ WORLD_EXECUTE)
+ENDIF()
+    
+  # uninstall target
 CONFIGURE_FILE(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake_uninstall.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
