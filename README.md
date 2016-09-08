@@ -185,6 +185,18 @@ click the file `innosetup.iss`.  Go to [Build] - [Compile], then it
 will create the installer.  For more detail, please see Inno Setup's
 document.
 
+# Forums and bug reporting
+
+If you have any question, please ask on the following Google group:
+
+- [sagittarius-scheme](https://groups.google.com/forum/#!forum/sagittarius-scheme)
+
+If you find a bug, please report it on the project bug tracking board:
+
+- [Sagittarius Issues](https://bitbucket.org/ktakashi/sagittarius-scheme/issues)
+
+Or you can report it on Google group.
+
 # How to develop it?
 
 See HACKING file.
