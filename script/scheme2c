@@ -204,7 +204,7 @@ exec sagittarius $0 "$@"
     (print "}")))
 
 (define (usage)
-  (printe "sagittarius-executable [OPTIONS] file")
+  (printe "sagittarius-scheme2c [OPTIONS] file")
   (printe "OPTIONS")
   (printe " -h,--help")
   (printe"     show this message and quit")
@@ -225,6 +225,7 @@ exec sagittarius $0 "$@"
        (verbose    (#\V "verbose") #f #f)
        . rest)
     (when h (usage))
+    (when (null? rest) (usage))
     (*cgen-show-warning* #f)
     (*verbose* verbose)
     (let ((file (car rest)))
