@@ -333,9 +333,9 @@
 		((<= 0 val (expt 2 32))
 		 (print "  " cname " = Sg_MakeIntegerU("val");"))
 		(else
-		 (print "  " cname " = Sg_StringToNumber(SG_MAKE_STRING("
+		 (print "  " cname " = Sg_StringToNumber("
 			(cgen-cexpr (slot-ref self'string-rep))
-			"), 16 TRUE);"))))))
+			", 16, TRUE);"))))))
     (static (self) (not (cgen-c-name self))))
 
   (define-cgen-literal <cgen-scheme-rational> <rational>
