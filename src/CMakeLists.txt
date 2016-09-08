@@ -166,18 +166,6 @@ IF (MSVC OR WATCOM)
   ADD_DEPENDENCIES(sash copy-gc-dll)
 ENDIF()
 
-IF(MSVC OR WATCOM)
-  INSTALL(TARGETS sagittarius DESTINATION .)
-  INSTALL(TARGETS sash DESTINATION .)
-ELSE()
-  INSTALL(TARGETS sagittarius DESTINATION ${LIB_DIR})
-  # For some reason cygwin doesn't pick up from lib.
-  IF (CYGWIN)
-    INSTALL(TARGETS sagittarius DESTINATION ${BIN_DIR})
-  ENDIF()
-  INSTALL(TARGETS sash DESTINATION ${BIN_DIR})
-ENDIF()
-
 # for version control
 # default dynamic load path like /usr/local/lib/sagittarius/${version}/${triple}
 # so let's put it there.
@@ -194,4 +182,57 @@ IF (NOT WIN32 AND INSTALL_SYMLINK)
     "EXECUTE_PROCESS (
   COMMAND ln -sf ${REAL_SASH_NAME} ${LEGACY_SASH_NAME}
   WORKING_DIRECTORY \"\$ENV{DESTDIR}${SAGITTARIUS_DYNLIB_PATH}\" )")
+ENDIF()
+
+IF(MSVC OR WATCOM)
+  INSTALL(TARGETS sagittarius DESTINATION .)
+  INSTALL(TARGETS sash DESTINATION .)
+ELSE()
+  # Installing symbolic link to lib directory.
+  # here we need to numbers of adhoc trick...
+  
+  # INSTALL(CODE) can't handle generator expression
+  # so we need to do some workaround
+  # see: https://gitlab.kitware.com/cmake/cmake/issues/15785
+  SET(LINKING_FILE ${CMAKE_CURRENT_BINARY_DIR}/linking_name)
+  SET(TMP_CMAKE_FILE ${CMAKE_CURRENT_BINARY_DIR}/echo_target.cmake)
+  FILE(WRITE ${TMP_CMAKE_FILE}
+    "FILE(WRITE \${DST} \${LIB})")
+  ADD_CUSTOM_COMMAND(OUTPUT ${LINKING_FILE}
+    COMMAND ${CMAKE_COMMAND}
+    -DDST=${LINKING_FILE}
+    -DLIB=$<TARGET_FILE_NAME:sagittarius>
+    -P ${TMP_CMAKE_FILE}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    VERBATIM)
+  ADD_CUSTOM_TARGET(libname DEPENDS ${LINKING_FILE})
+
+  # CMake's EXECUTE_PROCESS seems can't handle back quote so
+  # make it nested...
+  SET(LIB_LINKING_FILE ${CMAKE_CURRENT_BINARY_DIR}/lib_linking.cmake)
+  SET(LINKING_COMMON_PREFIX "FILE(READ ${LINKING_FILE} LINKING_NAME)")
+  SET(LINKING_COMMON_SUFFIX "
+MESSAGE(\"-- Symbolic link: ${SAGITTARIUS_DYNLIB_PATH}/\${LINKING_NAME} to \${LINKING_DIR}/\${LINKING_NAME}\")
+EXECUTE_PROCESS (
+  COMMAND ln -sf ${SAGITTARIUS_DYNLIB_PATH}/\${LINKING_NAME}
+                 \${LINKING_DIR}/\${LINKING_NAME}
+  WORKING_DIRECTORY \"\$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}\")")
+  FILE(WRITE ${LIB_LINKING_FILE}
+    ${LINKING_COMMON_PREFIX} "\n"
+    "SET(LINKING_DIR \"${LIB_DIR}\")\n"
+    ${LINKING_COMMON_SUFFIX})
+  
+  INSTALL(CODE
+    "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -P ${LIB_LINKING_FILE})")
+  # For some reason cygwin doesn't pick up from lib.
+  IF (CYGWIN)
+    SET(BIN_LINKING_FILE ${CMAKE_CURRENT_BINARY_DIR}/bin_linking.cmake)
+    FILE(WRITE ${BIN_LINKING_FILE}
+      ${LINKING_COMMON_PREFIX} "\n"
+      "SET(LINKING_DIR \"${BIN_DIR}\")\n"
+      ${LINKING_COMMON_SUFFIX})
+    INSTALL(CODE
+    "EXECUTE_PROCESS(COMMAND ${CMAKE_COMMAND} -P ${BIN_LINKING_FILE})")
+  ENDIF()
+  INSTALL(TARGETS sash DESTINATION ${BIN_DIR})
 ENDIF()
