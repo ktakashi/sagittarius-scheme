@@ -106,6 +106,10 @@
 			   (compiler compile)
 			   (unit-class <cgen-precomp-unit>)
 			   :rest retry)
+    (define (get-port in-file)
+      (and in-file
+	   (open-file-input-port in-file (file-options no-fail)
+				 (buffer-mode block) (native-transcoder))))
     (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
     (match form
       (('library name 
@@ -116,7 +120,9 @@
 	 (let1 safe-name (encode-library-name name)
 	   (parameterize ((cgen-current-unit
 			   (get-unit unit-class in-file initialiser
-				     out-file predef-syms)))
+				     out-file predef-syms))
+			  ;; to handle include properly
+			  (*current-loading-port* (get-port in-file)))
 	     ;; should be handled in get-unit but i'm lazy...
 	     (set! (~ (cgen-current-unit) 'library) safe-name)
 	     (set! (~ (cgen-current-unit) 'imports) imports)
