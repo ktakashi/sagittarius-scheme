@@ -1732,22 +1732,23 @@ SgObject Sg_InitStringOutputPort(SgStringPort *port,
 
 SgObject Sg_MakeStringInputPort(SgString *s, int64_t start, int64_t end)
 {
-  SgStringPort *z;
+  SgStringPort *z = SG_NEW(SgStringPort);
+  return Sg_InitStringInputPort(z, s, start, end);
+}
+
+SgObject Sg_InitStringInputPort(SgStringPort *port, SgString *s,
+				int64_t start, int64_t end)
+{
   int64_t len = SG_STRING_SIZE(s);
+  
   SG_CHECK_START_END(start, end, len);
-
-  z = (SgStringPort *)make_port(SgStringPort,
-				SG_INPUT_PORT,
-				SG_CLASS_STRING_PORT,
-				&str_inputs,
-				SG_TRUE);
-
-  z->buffer.buf = SG_STRING_VALUE(s);
-  z->buffer.end = SG_STRING_VALUE(s) + end;
-  z->buffer.index = start;
-  SG_PORT(z)->lineNo = 1;
-
-  return SG_OBJ(z); 
+  
+  SG_INIT_PORT(port, SG_CLASS_STRING_PORT, SG_INPUT_PORT, &str_inputs, SG_TRUE);
+  port->buffer.buf = SG_STRING_VALUE(s);
+  port->buffer.end = SG_STRING_VALUE(s) + end;
+  port->buffer.index = start;
+  SG_PORT(port)->lineNo = 1;
+  return SG_OBJ(port);
 }
 
 /*

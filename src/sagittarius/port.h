@@ -568,6 +568,8 @@ SG_EXTERN SgObject Sg_InitStringOutputPort(SgStringPort *port,
 					   int bufferSize);
 SG_EXTERN SgObject Sg_MakeStringInputPort(SgString *in,
 					  int64_t start, int64_t end);
+SG_EXTERN SgObject Sg_InitStringInputPort(SgStringPort *port, SgString *in,
+					  int64_t start, int64_t end);
 /* For convenience and future improvement */
 SG_EXTERN SgObject Sg_ConvertToStringOutputPort(SgChar *buf, int bufferSize);
 

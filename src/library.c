@@ -170,9 +170,23 @@ static SgObject library_name_to_id_version(SgObject name)
       /* no version number */
       return Sg_Cons(h, SG_NIL);
     }
-    /* fall throughw */
+    /* fall through */
   } else if (SG_SYMBOLP(name)) {
-    /* must be 'null' or 'user' but we won't check */
+    /* We may get library with version such as |(rnrs (6))|.
+       In this case we need to create (rnrs) library not (rnrs (6)).
+       So we need to do some trick here
+     */
+    SgString *s = SG_SYMBOL_NAME(name);
+    int len = SG_STRING_SIZE(s);
+    if (SG_STRING_VALUE_AT(s, len-1) == ')' &&
+	SG_STRING_VALUE_AT(s, len-2) == ')') {
+      /* ok we need to strip version number. 
+	 for now, we do rather stupid way.*/
+      SgStringPort sp;
+      SgObject in = Sg_InitStringInputPort(&sp, s, 0, len);
+      return library_name_to_id_version(Sg_Read(in, FALSE));
+    }
+    /* trust... */
     return Sg_Cons(name, SG_NIL);
   }
   Sg_Error(UC("malformed library name %S"), name);
