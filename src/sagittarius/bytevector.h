@@ -77,7 +77,7 @@ struct SgByteVectorRec
 #endif
 
 #define SG_STATIC_BYTEVECTOR(size_, elements_)				\
-  { SG_CLASS_STATIC_TAG(Sg_ByteVectorClass), TRUE, (size_), (elements_) }
+  { { SG_CLASS_STATIC_TAG(Sg_ByteVectorClass) }, TRUE, (size_), (elements_) }
 
 SG_CDECL_BEGIN
 
