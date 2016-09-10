@@ -878,7 +878,7 @@ static SgMatcher* reset_matcher(SgMatcher *m)
   MATCHER(m)->match_ctx->lastp = TEXT_ELEMENTS(MATCHER(m)->text);
   MATCHER(m)->match_ctx->matched = FALSE;
   m->first = -1;
-  m->last = 0;
+  m->last = m->from;
   m->lastAppendPosition = 0;
   return m;
 }
