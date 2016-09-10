@@ -1902,5 +1902,11 @@
 (test-equal "escape slash (1)" "#/a\\/b/" (regex->string (regex "a/b")))
 (test-equal "escape slash (2)" "#/a\\/b/" (regex->string #/a\/b/))
 
-
+;; regex-find doesn't find from start
+(test-equal '(#t #t #t)
+	    (let ((m (regex-matcher #// "abc" 1)))
+	      (let loop ((r '()))
+		(if (regex-find m)
+		    (loop (cons #t r))
+		    r))))
 (test-end)
