@@ -112,40 +112,53 @@
 	  (only (scheme base) string->vector vector->string string-map)
 	  (srfi :1 lists)
 	  (except (srfi :13 strings) string-map string-for-each)
-	  (srfi :115 regexp))
+	  (text sre)
+	  (sagittarius regex))
   
 ;; One of the requirements of the SRFI is type disjointness between
 ;; text and string. Thus we can't use istring as text.
 (define-record-type (<text> %make-text text?)
   (fields (immutable string text-string))
   (protocol (lambda (p) (lambda (str) (p str)))))
+;; internal
+(define (%textual->string s) (if (text? s) (text-string s) s))
 
 ;; Predicates
 (define (textual? obj) (or (text? obj) (string? obj)))
 
 ;; this seems exceptional naming convention
-(define (textual-null? text) (string-null? (text-string text)))
+(define (textual-null? text) 
+  (if (text? text)
+      (string-null? (text-string text))
+      (string-null? text)))
 
 (define-syntax define-textual0
   (syntax-rules ()
-    ((_ (name text args ...) srfi-procedure)
+    ((_ "body" () body) body)
+    ((_ "body" (#t) body) (%make-text body))
+    ((_ (name text args ...) srfi-procedure . mark)
      (define (name text args ...)
-       (if (text? text)
-	   (srfi-procedure (text-string text) args ...)
-	   (srfi-procedure text args ...))))
-    ((_ (name text args ... . opt) srfi-procedure)
+       (define-textual0 "body" mark
+	 (if (text? text)
+	     (srfi-procedure (text-string text) args ...)
+	     (srfi-procedure text args ...)))))
+    ((_ (name text args ... . opt) srfi-procedure . mark)
      (define (name text args ... . opt)
-       (if (text? text)
-	   (apply srfi-procedure (text-string text) args ... opt)
-	   (apply srfi-procedure text args ... opt))))))
+       (define-textual0 "body" mark
+	 (if (text? text)
+	     (apply srfi-procedure (text-string text) args ... opt)
+	     (apply srfi-procedure text args ... opt)))))))
 
 (define-syntax define-textual1
   (syntax-rules ()
-    ((_ (name arg text args ... . opt) srfi-procedure)
+    ((_ "body" () body) body)
+    ((_ "body" (#t) body) (%make-text body))
+    ((_ (name arg text args ... . opt) srfi-procedure . mark)
      (define (name arg text args ... . opt)
-       (if (text? text)
-	   (apply srfi-procedure arg (text-string text) args ... opt)
-	   (apply srfi-procedure arg text args ... opt))))))
+       (define-textual1 "body" mark
+	 (if (text? text)
+	     (apply srfi-procedure arg (text-string text) args ... opt)
+	     (apply srfi-procedure arg text args ... opt)))))))
 
 (define-textual1 (textual-every pred textual . opt) string-every)
 (define-textual1 (textual-any pred textual . opt) string-any)
@@ -230,19 +243,20 @@
   (string->utf16 (apply string-copy s opt) (endianness little)))
 (define-textual0 (textual->utf16le s . opt) string->utf16le)
 (define (string->utf16bom s . opt)
-  (bytevector-append #vu8(#xFE #xFF) (string->utf16 (apply string-copy s opt))))
+  (bytevector-append #vu8(#xFE #xFF) 
+    (string->utf16 (apply string-copy s opt) (endianness big))))
 (define-textual0 (textual->utf16 s . opt) string->utf16bom)
 
 (define (utf8->text bv . opt) (%make-text (apply utf8->string bv opt)))
 (define (utf16->text bv . opt)
   (let ((bv (if (null? opt) bv (apply bytevector-copy bv opt))))
-    (%make-text (utf16->string bv (endianness native)))))
+    (%make-text (utf16->string bv (endianness big)))))
 (define (utf16be->text bv . opt)
   (let ((bv (if (null? opt) bv (apply bytevector-copy bv opt))))
-    (%make-text (utf16->string bv (endianness big)))))
+    (%make-text (utf16->string bv (endianness big) #t))))
 (define (utf16le->text bv . opt)
   (let ((bv (if (null? opt) bv (apply bytevector-copy bv opt))))
-    (%make-text (utf16->string bv (endianness little)))))
+    (%make-text (utf16->string bv (endianness little) #t))))
 
 ;; Selection
 (define (text-length text) (string-length (text-string text)))
@@ -250,26 +264,29 @@
 (define-textual0 (textual-length text) string-length)
 (define-textual0 (textual-ref text index) string-ref)
 
-(define (subtext text start end) (substring (text-string text) start end))
-(define-textual0 (subtextual text start end) substring)
+(define (subtext text start end) 
+  (%make-text (substring (text-string text) start end)))
+(define-textual0 (subtextual text start end) substring #t)
 
-(define-textual0 (textual-copy text . opt) string-copy)
-(define-textual0 (textual-take text n) string-take)
-(define-textual0 (textual-drop text n) string-drop)
-(define-textual0 (textual-take-right text n) string-take-right)
-(define-textual0 (textual-drop-right text n) string-drop-right)
+(define-textual0 (textual-copy text . opt) string-copy #t)
+(define-textual0 (textual-take text n)     string-take #t)
+(define-textual0 (textual-drop text n)     string-drop #t)
+(define-textual0 (textual-take-right text n) string-take-right #t)
+(define-textual0 (textual-drop-right text n) string-drop-right #t)
 
-(define-textual0 (textual-pad text len . opt) string-pad)
-(define-textual0 (textual-pad-right text len . opt) string-pad-right)
+(define-textual0 (textual-pad text len . opt) string-pad #t)
+(define-textual0 (textual-pad-right text len . opt) string-pad-right #t)
 
-(define-textual0 (textual-trim text . opt) string-trim)
-(define-textual0 (textual-trim-right text . opt) string-trim-right)
-(define-textual0 (textual-trim-both text . opt) string-trim-both)
+(define-textual0 (textual-trim text . opt)       string-trim #t)
+(define-textual0 (textual-trim-right text . opt) string-trim-right #t)
+(define-textual0 (textual-trim-both text . opt)  string-trim-both #t)
 
-(define-textual0 (textual-replace t1 t2 s1 e1 . opt) string-replace)
+(define (textual-replace t1 t2 s1 e1 . opt) 
+  (%make-text
+   (apply string-replace (%textual->string t1) (%textual->string t2)
+	  s1 e1 opt)))
 
 ;; Comparison
-(define (%textual->string s) (if (text? s) (text-string s) s))
 (define-syntax define-textual-comparison
   (syntax-rules ()
     ((_ name comp)
@@ -317,19 +334,21 @@
 				         (s2 0) (e2 (string-length t2)))
 
   (let ((n1 (- e1 s1)) (n2 (- e2 s2)))
-    (let loop ((i (- e1 s2)))
-      (cond ((< i s1) #f)
-	    ((string-prefix? t2 t1 s2 e2 i e1) i)
-	    (else (loop (- i 1)))))))
+    (if (zero? n2)
+	e1
+	(let loop ((i (- e1 s2)))
+	  (cond ((< i s1) #f)
+		((string-prefix? t2 t1 s2 e2 i e1) i)
+		(else (loop (- i 1))))))))
   
 (define (textual-contains-right t1 t2 . opt)
   (apply string-contains-right (%textual->string t1) (%textual->string t2) opt))
 
 ;; Case conversion
-(define-textual0 (textual-upcase t) string-upcase)
-(define-textual0 (textual-downcase t) string-downcase)
-(define-textual0 (textual-foldcase t) string-foldcase)
-(define-textual0 (textual-titlecase t) string-titlecase)
+(define-textual0 (textual-upcase t)   string-upcase #t)
+(define-textual0 (textual-downcase t) string-downcase #t)
+(define-textual0 (textual-foldcase t) string-foldcase #t)
+(define-textual0 (textual-titlecase t) string-titlecase #t)
 
 ;; Concatenation
 (define (textual-append . textual) (textual-concatenate textual))
@@ -363,55 +382,92 @@
    (text-list->string
     (if (null? opt)
 	(map proc (textual->list t1))
-	(apply map (textual->list t1) (map textual->list opt))))))
+	(apply map proc (textual->list t1) (map textual->list opt))))))
 (define (textual-for-each proc t1 . opt)
   (if (null? opt)
       (for-each proc (textual->list t1))
-      (apply for-each (textual->list t1) (map textual->list opt))))
+      (apply for-each proc (textual->list t1) (map textual->list opt))))
 
 (define (textual-map-index proc t :optional (start 0) (end (textual-length t)))
   (define s (%textual->string t))
   (let ((len (- end start)))
     (do ((i (- end 1) (- i 1))
 	 (j (- len 1) (- j 1))
-	 (ans '() (proc i (string-ref s i))))
-	((< j 0) (%make-text (list->string ans))))))
-(define (textual-for-each-index proc t . opt)
-  (apply string-for-each proc (%textual->string t) opt))
+	 (ans '() (cons (proc i) ans)))
+	((< j 0) (%make-text (text-list->string ans))))))
+(define (textual-for-each-index proc t
+				:optional (start 0) (end (textual-length t)))
+  (define s (%textual->string t))
+  (do ((i start (+ i 1)))
+      ((= i end))
+    (proc i)))
 
 (define-textual0 (textual-count t p . opt) string-count)
-(define-textual1 (textual-filter p t . opt) string-filter)
-(define-textual1 (textual-remove p t . opt) string-delete)
+(define-textual1 (textual-filter p t . opt) string-filter #t)
+(define-textual1 (textual-remove p t . opt) string-delete #t)
 
 ;; Replication & splitting
-(define (textual-replace t from to . opt)
+(define (textual-replicate t from to . opt)
   (%make-text
-   (apply string-replace (%textual->string t) (%textual->string from) to opt)))
+   (apply xsubstring (%textual->string t) (%textual->string from) to opt)))
 
 (define textual-split
   (case-lambda
-   ((textual delimiter grammer limit start end)
-    (textual-split (subtextual textual start end) delimiter grammer limit))
-   ((textual delimiter grammer limit start)
-    (textual-split (subtextual textual start (textual-length textual))
-		   delimiter grammer limit))
-   ((textual delimiter grammer) (textual-split textual delimiter grammer #f))
-   ((textual delimiter) (textual-split textual delimiter grammer 'infix #f))
-   ((textual delimiter grammer limit)
+   ((textual delimiter grammar limit)
+    (textual-split textual delimiter grammar limit 0 (textual-length textual)))
+   ((textual delimiter grammar limit start)
+    (textual-split textual delimiter grammar limit start
+		   (textual-length textual)))
+   ((textual delimiter grammar) 
+    (textual-split textual delimiter grammar #f 0 (textual-length textual)))
+   ((textual delimiter) 
+    (textual-split textual delimiter 'infix #f 0 (textual-length textual)))
+   ((textual delimiter grammar limit start end)
     (define (bad msg)
-      (assertion-violation 'textual-split msg textual delimieter grammer limit))
-    (when (and (eq? grammer 'strict-infix) (textual-null? textual))
-      (bad "grammer strict-infix but got null length textual"))
-    (let* ((re (regexp (%textual->string delimiter)))
-	   (splits (regexp-split re (%textual->string texutal))))
-      (case grammer
-	((infix strict-infix) splits)
-	((prefix) (if (and (pair? splits) (string-null? (car splits)))
-		      (cdr splits)
-		      splits))
-	((suffix) (if (and (pair? splits)
-			   (string-null? (car (last-pair splits))))
-		      (reverse! (cdr (reverse! splits)))
-		      splits))
-	(else (bad "unknown grammer")))))))
+      (assertion-violation 'textual-split msg textual delimieter grammar limit))
+    (when (and (eq? grammar 'strict-infix) (textual-null? textual))
+      (bad "grammar strict-infix but got null length textual"))
+    (let* ((re (sre->regex (%textual->string delimiter)))
+	   (splits (allow-emmpty-string-split re (%textual->string textual)
+					      limit start end)))
+      (map %make-text
+	   (case grammar
+	     ((infix strict-infix) splits)
+	     ((prefix) (if (and (pair? splits) (string-null? (car splits)))
+			   (cdr splits)
+			   splits))
+	     ((suffix) (if (and (pair? splits)
+				(string-null? (car (last-pair splits))))
+			   (reverse! (cdr (reverse! splits)))
+			   splits))
+	     (else (bad "unknown grammar"))))))))
+
+(define (allow-emmpty-string-split p text limit start end)
+  (define (regex-fold/limit rx kons knil str finish start end)
+    (let ((m (regex-matcher rx str start end)))
+      (let loop ((acc knil) (from start) (i 0))
+	(cond ((or (eqv? limit i) (>= from end)) (finish from #f str acc))
+	      ((regex-find m)
+	       (let ((first (regex-first m))
+		     (last  (regex-last m)))
+		 (let ((off (if (= first last) 1 0)))
+		   (loop (kons from m str acc) (+ last off) (+ i 1)))))
+	      (else (finish from #f str acc))))))
+  (regex-fold/limit
+   p
+   (lambda (from md str a) 
+     (let* ((i (regex-first md))
+	    (e (regex-last md))
+	    (off (if (= from e) 1 0)))
+       ;; we need to check the last match or not to add
+       ;; empty string.
+       (if (= e end)
+	   (cons* "" (substring str from (+ i off)) a)
+	   (cons (substring str from (+ i off)) a))))
+   '()
+   text
+   (lambda (from md str a)
+     (reverse! (if (< from end) (cons (substring str from end) a) a)))
+   start
+   end))
 )
