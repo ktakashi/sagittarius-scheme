@@ -320,6 +320,35 @@ logger.
 @define["Generic Function"]{@name{push-log} @args{logger log}}
 @desc{Pushes @var{log} to appenders of the @var{logger}.}
 
-@; @subsubsection{Singleton logger}
+@subsubsection{Singleton logger}
 
-@; Asynchronous logger or other loggers should sometimes be singleton. 
+Asynchronous logger or other loggers should sometimes be singleton. This type
+of thing might need to be done in users responsibility however I think it's
+common idiom. So the very simple one is added to the library.
+
+@define[Macro]{@name{define-logger-storage} @args{lookup clause* @dots{}}}
+@define[Macro]{@name{define-logger-storage}
+ @args{(lookup register) clause* @dots{}}}
+
+@desc{This macro defines a logger lookup procedure. If the second form is used
+then, a registration procedure.
+
+The generated procedures have the following signatures
+@dl-list{
+  @dl-item["(@var{lookup} @var{name})"]{Looks up the logger named @var{name}}
+  @dl-item["(@var{register} @var{name} @var{logger})"]{
+   Registers the given logger with name, @var{name}}
+}
+
+The registration procedure stores the given logger to hidden storage. If 
+the procedure called the same name argument twice, then the latter logger
+overwrites the previous one.
+
+@code{clause*} must the following form:
+@itemlist{
+  @item{@code{(loggers (@var{logger-name} @var{make-logger}) @dots{})}}
+}
+@code{loggers} is an auxiliary syntax. If the @code{loggers}
+clause is specified, then the macro stores the logger @var{logger-name} which
+is created by @var{make-logger} thunk as its predefined loggers.
+}
