@@ -33,6 +33,7 @@
     (export make-client-ssh-transport
 	    open-client-ssh-transport!
 	    socket->client-ssh-transport
+	    ssh-transport?
 	    close-client-ssh-transport!
 	    ;; parameter
 	    *ssh-version-string*
@@ -76,7 +77,8 @@
   ;; should work but not tested
   (define (socket->client-ssh-transport socket)
     (make <ssh-transport> :socket socket))
-  
+  (define (ssh-transport? transport) (is-a? <ssh-transport> transport))
+
   (define (open-client-ssh-transport! transport)
     (unless (~ transport 'socket)
       (let ((server (~ transport 'server))
