@@ -95,20 +95,21 @@
 
 (define (read-sftp-packet-data type in)
   (ssh-read-message (sftp-class-lookup type) in))
+
 (define (recv-sftp-packet connection)
   (define channel (~ connection 'channel))
-  ;; TODO use chunked port...
   (define (receive-rest first size)
-    (define (finish bv)
-      (define (read-as-chunk size)
-	(list->vector (align-bytevectors bv size)))
-      (->chunked-binary-input-port read-as-chunk))
-    (let loop ((read-size (bytevector-length first)) (bv (list first)))
+    (define in/out (open-chunked-binary-input/output-port))
+    (define (finish in/out)
+      (set-port-position! in/out 0)
+      in/out)
+    (put-bytevector in/out first 5)
+    (let loop ((read-size (- (bytevector-length first) 5)))
       (if (>= read-size size)
-	  (finish (reverse! bv))
+	  (finish in/out)
 	  (let1 next (ssh-recv-channel-data channel)
-	    (loop (+ read-size (bytevector-length next))
-		  (cons next bv))))))
+	    (put-bytevector in/out next)
+	    (loop (+ read-size (bytevector-length next)))))))
   ;; packet format
   ;;   uint32          length
   ;;   byte            type
@@ -117,7 +118,7 @@
   (let*-values (((first) (ssh-recv-channel-data channel))
 		((len type) (unpack "!LC" first)))
     ;; skip length and type bytes
-    (let1 in (receive-rest (bytevector-copy first 5) (- len 1))
+    (let1 in (receive-rest first (- len 1))
       (read-sftp-packet-data type in))))
 
 (define (send-sftp-packet connection data)
@@ -235,23 +236,32 @@
     ;; ok now read it
     ;; read may be multiple part so we need to read it until
     ;; server respond <sftp-fxp-status>
-    (let loop ((offset offset))
-      (send-sftp-packet conn (make <sftp-fxp-read>
-			       :id (sftp-message-id! conn)
-			       :handle handle
-			       :offset offset
-			       :len buffer-size))
-      (let1 r (recv-sftp-packet conn)
-	(if (is-a? r <sftp-fxp-status>)
-	    (begin 
-	      (unless (is-a? handle/filename <sftp-fxp-handle>)
-		(sftp-close conn ohandle))
-	      (let-values (((ignore r)
-			    (receiver -1 (open-bytevector-input-port #vu8()))))
-		r))
-	    ;; must be <sftp-fxp-data>
-	    (let-values (((n ignore) (receiver offset (~ r 'data))))
-	      (loop (+ offset n))))))))
+    (let loop ((offset offset) (buffer #f) (in/out #f))
+      (let* ((data (make <sftp-fxp-read>
+		     :id (sftp-message-id! conn)
+		     :handle handle
+		     :offset offset
+		     :len buffer-size))
+	     (b (cond (buffer (set-port-position! in/out 5)
+			      (write-message <sftp-fxp-read> data in/out)
+			      (set-port-position! in/out 0)
+			      buffer)
+		      (else (get-initial-buffer data)))))
+	;;(send-sftp-packet conn )
+	(ssh-send-channel-data (~ conn 'channel) b)
+	(let1 r (recv-sftp-packet conn)
+	  (if (is-a? r <sftp-fxp-status>)
+	      (begin 
+		(unless (is-a? handle/filename <sftp-fxp-handle>)
+		  (sftp-close conn ohandle))
+		(let-values (((ignore r)
+			      (receiver -1
+					(open-bytevector-input-port #vu8()))))
+		  r))
+	      ;; must be <sftp-fxp-data>
+	      (let-values (((n ignore) (receiver offset (~ r 'data))))
+		(loop (+ offset n) b
+		      (or in/out (open-bytevector-input/output-port b))))))))))
 (define (sftp-binary-receiver)
   (let-values (((out extract) (open-bytevector-output-port)))
     (lambda (offset data)
