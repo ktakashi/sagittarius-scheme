@@ -58,7 +58,7 @@
       (if interactive
 	  (case prompt
 	    ((r7rs)
-	     (eval '(import (scheme base)) interactive)
+	     (eval '(*import-libraries* '((scheme base))) interactive)
 	     (eval '(current-prompter (lambda () (display "sash[r7rs]> ")))
 		   interactive)
 	     (eval `(read-eval-print-loop) interactive))

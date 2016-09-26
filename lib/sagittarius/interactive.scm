@@ -43,6 +43,9 @@
 	    current-evaluator
 	    current-prompter
 	    current-exit
+
+	    *import-libraries*
+	    
 	    default-exception-printer
 	    default-evaluator
 	    default-printer
@@ -99,12 +102,14 @@
     (define-parameter (prompter) (display "sash> "))
     (define-parameter (exit) (exit 0)))
 
+  (define *import-libraries* (make-parameter '((rnrs))))
+  
   ;; removed :optional keyword ...
   ;; now opt is load-resource optional argument.
   (define (read-eval-print-loop . opt)
     (define interactive-environment
       (let ((env (find-library 'user #f)))
-	(eval '(import (rnrs)) env)
+	(eval `(import ,@(*import-libraries*)) env)
 	env))
     (let ((plugged (getenv "EMACS")))
       ;; load resource file
