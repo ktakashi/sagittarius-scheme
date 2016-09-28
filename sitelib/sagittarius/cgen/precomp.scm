@@ -479,24 +479,19 @@
 	(let-values (((l last) (last-pair* values))
 		     ((v vlast) (last-pair* (~ self 'value))))
 	  (for-each (lambda (v o)
-		      (cond
-		       ((eq? v cname)
-			(format #t "    SG_APPEND1(~a, ~a, ~a); ~%" h t h))
-		       ((string? v)
-			(format #t "    SG_APPEND1(~a, ~a, ~a); ~%" h t v))
-		       (else
-			(format/ss #t
-				   "    SG_APPEND1(~a, ~a, ~a); /* ~a */ ~%"
-				   h t (cgen-cexpr v)
-				   (cgen-safe-comment o))))) l v)
+		      (let1 n (cond ((eq? v cname) h)
+				    ((string? v) v)
+				    (else (cgen-cexpr v)))
+			(format/ss #t "    SG_APPEND1(~a, ~a, ~a); /* ~a */ ~%"
+				   h t n
+				   (cgen-safe-comment (format/ss "~s" o)))))
+		    l v)
 	  (unless (null? last)
-	    (cond ((eq? last cname)
-		   (format #t "    SG_SET_CDR(~a, ~a); ~a */~%" t t))
-		  ((string? v)
-		   (format #t "    SG_SET_CDR(~a, ~a); ~a */~%" t v))
-		  (else
-		   (format #t "    SG_SET_CDR(~a, ~a); /* ~a */~%"
-			   t (cgen-cexpr last) (cgen-safe-comment vlast))))))
+	    (let1 n (cond ((eq? last cname) t)
+			  ((string? last) last)
+			  (else (cgen-cexpr last)))
+	      (format #t "    SG_SET_CDR(~a, ~a); /* ~a */~%"
+		      t n (cgen-safe-comment (format/ss "~s" last))))))
 	(format #t "    ~a = ~a;~%" cname h)
 	(print "  } while (0);")))
     (static (self) #f))
@@ -504,21 +499,35 @@
 (define-cgen-literal <cgen-scheme-vector> <vector>
   ((values-vec :init-keyword :values-vec))
   (make (value)
-    (make <cgen-scheme-vector> :value value
-	  :c-name (cgen-allocate-static-datum)
-	  :values-vec (vector-map cgen-literal value)))
+    (define (make-values-vector c-name value)
+      (define len (vector-length value))
+      (define r (make-vector len))
+      (do ((i 0 (+ i 1)))
+	  ((= i len) r)
+	(let1 v (vector-ref value i)
+	  (if (eq? v value)
+	      (vector-set! r i c-name)
+	      (vector-set! r i (cgen-literal v))))))
+    (let1 cname (cgen-allocate-static-datum)
+      (make <cgen-scheme-vector> :value value
+	    :c-name cname
+	    :values-vec (make-values-vector cname value))))
   (init (self)
 	(let* ((values (~ self 'values-vec))
 	       (vec    (~ self 'value))
 	       (cname (~ self 'c-name))
 	       (s     (vector-length values)))
 	  (print "  do {")
-	  (format #t "     ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
+	  (format #t "    ~a = Sg_MakeVector(~a, SG_FALSE);~%" cname s)
 	  (do ((i 0 (+ i 1)))
 	      ((= i s))
-	    (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
-		    cname i (cgen-cexpr (vector-ref values i)) 
-		    (cgen-safe-comment (vector-ref vec i))))
+	    (let* ((v (vector-ref values i))
+		   (n (cond ((eq? v cname) cname)
+			    ((string? v) v)
+			    (else (cgen-cexpr v)))))
+	      (format #t "    SG_VECTOR_ELEMENT(~a, ~a) = ~a; /* ~a */~%"
+		      cname i n
+		      (cgen-safe-comment (format/ss "~s" (vector-ref vec i))))))
 	  (print "  } while (0);")))
   (static (self) #f))
 
