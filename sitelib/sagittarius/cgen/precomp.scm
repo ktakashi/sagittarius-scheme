@@ -364,7 +364,7 @@
 		      ((not (zero? argc))
 		       (let ((v (vector-ref lv (+ count 1)))
 			     (c (cgen-safe-comment 
-				 (format "~a" (vector-ref cv (+ count 1))))))
+				 (format/ss "~a" (vector-ref cv (+ count 1))))))
 			 (alloc-word
 			  (if (cgen-literal-static? v)
 			      (format "SG_WORD(~a) /* ~a */" (cgen-cexpr v) c)
@@ -454,28 +454,49 @@
   (define-cgen-literal <cgen-scheme-pair> <pair>
     ((values-list :init-keyword :values-list))
     (make (value)
-      (make <cgen-scheme-pair> :value value
-	    :c-name (cgen-allocate-static-datum)
-	    :values-list (let-values (((l last) (last-pair* value)))
-			   (if (null? last)
-			       (map cgen-literal l)
-			       (append! (map cgen-literal l)
-					(cgen-literal last))))))
+      (define (make-values-list c-name value)
+	(let loop ((l value) (r '()))
+	  (cond ((null? l) (reverse! r))
+		;; #0=(a #0# b) case
+		((eq? (car l) value) (loop (cdr l) (cons c-name r)))
+		;; #0=(a . #0#) case
+		((and (not (null? r)) (eq? l value)) (cons (reverse! r) c-name))
+		((not (pair? l)) (cons (reverse! r) (cgen-literal l)))
+		(else (loop (cdr l) (cons (cgen-literal (car l)) r))))))
+      (let1 c-name (cgen-allocate-static-datum)
+	(make <cgen-scheme-pair> :value value
+	      :c-name c-name
+	      :values-list (make-values-list c-name value))))
     (init (self)
       (let ((values (~ self 'values-list))
 	    (cname (~ self 'c-name))
 	    (h     (gensym))
 	    (t     (gensym)))
 	(print "  do {")
+	(format #t "    /* ~a */ ~%"
+		(cgen-safe-comment (format/ss "~s" (~ self'value))))
 	(format #t "    SgObject ~a = SG_NIL, ~a = SG_NIL;~%" h t)
 	(let-values (((l last) (last-pair* values))
 		     ((v vlast) (last-pair* (~ self 'value))))
 	  (for-each (lambda (v o)
-		      (format #t "    SG_APPEND1(~a, ~a, ~a); /* ~a */ ~%"
-			      h t (cgen-cexpr v) (cgen-safe-comment o))) l v)
+		      (cond
+		       ((eq? v cname)
+			(format #t "    SG_APPEND1(~a, ~a, ~a); ~%" h t h))
+		       ((string? v)
+			(format #t "    SG_APPEND1(~a, ~a, ~a); ~%" h t v))
+		       (else
+			(format/ss #t
+				   "    SG_APPEND1(~a, ~a, ~a); /* ~a */ ~%"
+				   h t (cgen-cexpr v)
+				   (cgen-safe-comment o))))) l v)
 	  (unless (null? last)
-	    (format #t "    SG_SET_CDR(~a, ~a); /* ~a */~%"
-		    t (cgen-cexpr last) (cgen-safe-comment vlast))))
+	    (cond ((eq? last cname)
+		   (format #t "    SG_SET_CDR(~a, ~a); ~a */~%" t t))
+		  ((string? v)
+		   (format #t "    SG_SET_CDR(~a, ~a); ~a */~%" t v))
+		  (else
+		   (format #t "    SG_SET_CDR(~a, ~a); /* ~a */~%"
+			   t (cgen-cexpr last) (cgen-safe-comment vlast))))))
 	(format #t "    ~a = ~a;~%" cname h)
 	(print "  } while (0);")))
     (static (self) #f))
