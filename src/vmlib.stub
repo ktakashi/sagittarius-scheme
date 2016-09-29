@@ -105,6 +105,9 @@
   ;; ... this is dangerous.
   (define-c-proc macro-data (m::<macro>) (result (-> m data)))
   (define-c-proc macro-transformer (m::<macro>) (result (-> m transformer)))
+  (define-c-proc macro-compiled-code (m::<macro>)
+    (let ((cb::SgCodeBuilder* (-> m compiledCode)))
+      (if cb (result cb) (result SG_FALSE))))
 
   (define-c-proc call-macro-expander (macro::<macro> expr p1env)
     (result (Sg_VMApply4 (-> macro transformer)

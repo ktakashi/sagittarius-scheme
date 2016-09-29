@@ -111,7 +111,8 @@ exec sagittarius $0 "$@"
 					      (cgen-precompile expr
 					       :in-file file
 					       :name-generator generator
-					       :unit-class <scheme2c-unit>)))))
+					       :unit-class <scheme2c-unit>
+					       :need-macro? #t)))))
 				      exprs boxes)))
 		     (if (null? (cdr code*))
 			 (list (make <c-code> :code (car code*)
@@ -199,6 +200,7 @@ exec sagittarius $0 "$@"
 	    (cgen-decode-library-name (cgen-encode-library-name lib)))
     (print  "  m = Sg_FindBinding(lib, SG_INTERN(\"main\"), SG_UNBOUND);")
     (print  "  if (SG_UNBOUNDP(m)) return 0;")
+    (print  "  Sg_VM()->currentLibrary = lib;")
     (print  "  r = Sg_Apply1(SG_GLOC_GET(SG_GLOC(m)), argsToList(argv, argc));")
     (print  "  return SG_INTP(r)? SG_INT_VALUE(r): 0;")
     (print "}")))
@@ -247,6 +249,7 @@ exec sagittarius $0 "$@"
 						(export main)
 						(import ,@imports)
 						,@exprs)
+					     :need-macro? #t
 					     :in-file file))))
 		(caches (retrieve-caches imports need-eval?))
 		(out (get-out o)))

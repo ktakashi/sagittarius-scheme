@@ -246,6 +246,11 @@ static SgObject macro_env(SgMacro *m)
 {
   return m->env;
 }
+static SgObject macro_code(SgMacro *m)
+{
+  SgCodeBuilder *cb = m->compiledCode;
+  return (cb) ? cb: SG_FALSE;
+}
 
 
 static SgSlotAccessor macro_slots[] = {
@@ -253,6 +258,7 @@ static SgSlotAccessor macro_slots[] = {
   SG_CLASS_SLOT_SPEC("transformer", 1, macro_trans, NULL),
   SG_CLASS_SLOT_SPEC("data", 2, macro_data, NULL),
   SG_CLASS_SLOT_SPEC("env", 3, macro_env, NULL),
+  SG_CLASS_SLOT_SPEC("compiled-code", 4, macro_code, NULL),
   { { NULL } }
 };
 

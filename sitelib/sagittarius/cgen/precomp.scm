@@ -70,6 +70,9 @@
 	    (util list))
 
   (define *cgen-show-warning* (make-parameter #t))
+  ;; internal parameter
+  (define *cgen-macro-emit-phase* (make-parameter #f))
+  (define *cgen-macro-library*   (make-parameter #f))
   ;; if library name starts this then the library will be replaced
   ;; to current library.
   ;; mostly for hygine macro so make sure the compiling library
@@ -105,6 +108,7 @@
 			   (predef-syms '())
 			   (compiler compile)
 			   (unit-class <cgen-precomp-unit>)
+			   (need-macro? #f)
 			   :rest retry)
     (define (get-port in-file)
       (and in-file
@@ -127,7 +131,8 @@
 	     (set! (~ (cgen-current-unit) 'library) safe-name)
 	     (set! (~ (cgen-current-unit) 'imports) imports)
 	     (set! (~ (cgen-current-unit) 'exports) exports)
-	     (do-it safe-name exports imports toplevels compiler)))))
+	     (do-it safe-name exports imports toplevels compiler
+		    need-macro?)))))
       (('define-library name rest ...)
        (apply cgen-precompile (define-library->library form) retry))
       (_ (error 'cgen-precompile "invalid form" form))))
@@ -152,14 +157,46 @@
        (let-values (((exports imports body) (traverse rest)))
 	 `(library ,name (export ,@exports) (import ,@imports) ,@body)))))
     
-  (define (do-it safe-name exports imports toplevels compiler)
+  (define (do-it safe-name exports imports toplevels compiler need-macro?)
     (emit-toplevel-executor safe-name imports exports
      (compile-form
       (construct-safe-library safe-name exports imports toplevels)
-      compiler))
+      compiler)
+     need-macro?)
     (cgen-emit-c (cgen-current-unit)))
+
+  (define (emit-macro lib)
+    (define (literalise m)
+      (let1 ml (cgen-literal m)
+	(cgen-init (format "    Sg_InsertBinding(~a, ~a, ~a);~%"
+			   (cgen-cexpr (cgen-literal lib))
+			   (cgen-cexpr (cgen-literal (macro-name m)))
+			   (cgen-cexpr ml)))))
+    (define (collect-macro lib)
+      (define (gloc-macro? g)
+	(and-let* ((m (gloc-ref g))
+		   ( (macro? m) ))
+	  m))
+      (let1 table (library-table lib)
+	(filter-map gloc-macro? (hashtable-values-list table))))
+    (let* ((core-macro (gensym))
+	   (gloc (gensym))
+	   (unit (cgen-current-unit))
+	   (prologue (~ unit 'init-prologue)))
+      (set! (~ unit 'init-prologue)
+	    (string-append
+	     prologue
+	     (format "  SgObject ~a = Sg_FindLibrary(SG_INTERN(~s), FALSE);~%"
+		     core-macro "(core macro)")
+	     (format "  SgObject ~a = Sg_FindBinding(~a, SG_INTERN(~s), SG_UNDEF);~%"
+		     gloc core-macro "macro-transform")
+	     (format "  SgObject macro_transform = SG_GLOC_GET(SG_GLOC(~a));~%"
+		     gloc))))
+    (parameterize ((*cgen-macro-emit-phase* #t)
+		   (*cgen-macro-library* (cgen-literal lib)))
+      (map literalise (collect-macro lib))))
   
-  (define (emit-toplevel-executor name imports exports topcb)
+  (define (emit-toplevel-executor name imports exports topcb need-macro?)
     (define unit (cgen-current-unit))
     (cgen-body (format "static SgCodeBuilder *~a = "
 		       (slot-ref unit 'toplevel)))
@@ -199,7 +236,7 @@
 	   (receive (ref resolved trans?) (parse-spec set)
 	     (values ref resolved (check-expand-phase phase))))
 	  (_ (values spec '() #f))))
-      
+      (when need-macro? (emit-macro library))
       ;; emit imports
       (for-each (lambda (i)
 		  (if (symbol? i)
@@ -457,11 +494,11 @@
       (define (make-values-list c-name value)
 	(let loop ((l value) (r '()))
 	  (cond ((null? l) (reverse! r))
+		;; #0=(a . #0#) case
+		((and (not (pair? l)) (eq? l value)) (cons (reverse! r) c-name))
+		((not (pair? l)) (append (reverse! r) (cgen-literal l)))
 		;; #0=(a #0# b) case
 		((eq? (car l) value) (loop (cdr l) (cons c-name r)))
-		;; #0=(a . #0#) case
-		((and (not (null? r)) (eq? l value)) (cons (reverse! r) c-name))
-		((not (pair? l)) (cons (reverse! r) (cgen-literal l)))
 		(else (loop (cdr l) (cons (cgen-literal (car l)) r))))))
       (let1 c-name (cgen-allocate-static-datum)
 	(make <cgen-scheme-pair> :value value
@@ -564,5 +601,41 @@
 		    (car range)
 		    (cdr range)))))
   (static (self) #f))
+
+(define-cgen-literal <cgen-scheme-macro> <macro>
+  ((name :init-keyword :name)
+   (env :init-keyword :env)
+   (code :init-keyword :code)
+   (library :init-keyword :library))
+  (make (value)
+    (let ((mn (cgen-literal (macro-name value)))
+	  (me (cgen-literal (macro-env value)))
+	  ;; maybe for future...
+	  ;;(mt (cgen-literal (macro-transformer macro)))
+	  (mc (cgen-literal (macro-compiled-code value))))
+      (make <cgen-scheme-macro> :value value
+	    :c-name (cgen-allocate-static-datum)
+	    :name mn
+	    :env me
+	    :code mc
+	    :library (*cgen-macro-library*))))
+  (init (self)
+	(let ((cname (~ self 'c-name))
+	      (mn (~ self 'name))
+	      (me (~ self 'env))
+	      (mc (~ self 'code))
+	      (ml (~ self 'library))
+	      (d (gensym)))
+	  (print     "  do {")
+	  (format #t "    Sg_VM()->currentLibrary = ~a;~%" (cgen-cexpr ml))
+	  (format #t "    SgObject ~a = Sg_VMExecute(~a);~%" d (cgen-cexpr mc))
+	  (format #t "    ~a = Sg_MakeMacro(~a, ~a, ~a, ~a, ~a);~%"
+		  cname
+		  (cgen-cexpr mn)
+		  "macro_transform";;(cgen-cexpr mt)
+		  d
+		  (cgen-cexpr me)
+		  (cgen-cexpr mc))
+	  (print     "  } while (0);"))))
 
 )
