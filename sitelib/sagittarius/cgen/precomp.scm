@@ -72,7 +72,7 @@
   (define *cgen-show-warning* (make-parameter #t))
   ;; internal parameter
   (define *cgen-macro-emit-phase* (make-parameter #f))
-  (define *cgen-macro-library*   (make-parameter #f))
+
   ;; if library name starts this then the library will be replaced
   ;; to current library.
   ;; mostly for hygine macro so make sure the compiling library
@@ -192,8 +192,7 @@
 		     gloc core-macro "macro-transform")
 	     (format "  SgObject macro_transform = SG_GLOC_GET(SG_GLOC(~a));~%"
 		     gloc))))
-    (parameterize ((*cgen-macro-emit-phase* #t)
-		   (*cgen-macro-library* (cgen-literal lib)))
+    (parameterize ((*cgen-macro-emit-phase* #t))
       (map literalise (collect-macro lib))))
   
   (define (emit-toplevel-executor name imports exports topcb need-macro?)
@@ -236,7 +235,6 @@
 	   (receive (ref resolved trans?) (parse-spec set)
 	     (values ref resolved (check-expand-phase phase))))
 	  (_ (values spec '() #f))))
-      (when need-macro? (emit-macro library))
       ;; emit imports
       (for-each (lambda (i)
 		  (if (symbol? i)
@@ -259,6 +257,9 @@
 			 (cgen-cexpr (cgen-literal (library-exported library)))))
       (cgen-init (format "  Sg_VM()->currentLibrary = ~a;" 
 			 (cgen-cexpr (cgen-literal library))))
+      ;; Macro creation and execution need to be here after importing
+      ;; all dependency.
+      (when need-macro? (emit-macro library))
       (cgen-init (format "  Sg_VMExecute(SG_OBJ(~a));"
 			 (slot-ref unit 'toplevel)))
       (cgen-init "  Sg_VM()->currentLibrary = save;")))
@@ -605,8 +606,7 @@
 (define-cgen-literal <cgen-scheme-macro> <macro>
   ((name :init-keyword :name)
    (env :init-keyword :env)
-   (code :init-keyword :code)
-   (library :init-keyword :library))
+   (code :init-keyword :code))
   (make (value)
     (let ((mn (cgen-literal (macro-name value)))
 	  (me (cgen-literal (macro-env value)))
@@ -617,25 +617,19 @@
 	    :c-name (cgen-allocate-static-datum)
 	    :name mn
 	    :env me
-	    :code mc
-	    :library (*cgen-macro-library*))))
+	    :code mc)))
   (init (self)
 	(let ((cname (~ self 'c-name))
 	      (mn (~ self 'name))
 	      (me (~ self 'env))
-	      (mc (~ self 'code))
-	      (ml (~ self 'library))
-	      (d (gensym)))
-	  (print     "  do {")
-	  (format #t "    Sg_VM()->currentLibrary = ~a;~%" (cgen-cexpr ml))
-	  (format #t "    SgObject ~a = Sg_VMExecute(~a);~%" d (cgen-cexpr mc))
-	  (format #t "    ~a = Sg_MakeMacro(~a, ~a, ~a, ~a, ~a);~%"
+	      (mc (~ self 'code)))
+	  (format #t "  ~a = Sg_MakeMacro(~a, ~a, Sg_VMExecute(~a), ~a, ~a);~%"
 		  cname
 		  (cgen-cexpr mn)
-		  "macro_transform";;(cgen-cexpr mt)
-		  d
+		  ;; for now...
+		  "macro_transform" ;;(cgen-cexpr mt)
+		  (cgen-cexpr mc)
 		  (cgen-cexpr me)
-		  (cgen-cexpr mc))
-	  (print     "  } while (0);"))))
+		  (cgen-cexpr mc)))))
 
 )
