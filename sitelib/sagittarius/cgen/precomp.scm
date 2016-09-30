@@ -72,6 +72,7 @@
   (define *cgen-show-warning* (make-parameter #t))
   ;; internal parameter
   (define *cgen-macro-emit-phase* (make-parameter #f))
+  (define *cgen-cyclic-objects* (make-parameter #f))
 
   ;; if library name starts this then the library will be replaced
   ;; to current library.
@@ -509,6 +510,30 @@
 	    ((not (pair? l)) (values (reverse! r) l))
 	    (else (loop (cdr l) (cons (car l) r))))))
 
+  (define-class <shared> ()
+    ((object :init-keyword :object)
+     literal))
+  (define-method write-object ((o <shared>) out)
+    (format/ss out "#<shared ~s (~a)>"
+	       (slot-ref o 'object) (slot-bound? o 'literal)))
+  (define (make-shared v) (make <shared> :object v))
+  (define (shared? v) (is-a? v <shared>))
+  (define (get-literal v)
+    (cond ((hashtable-ref (*cgen-cyclic-objects*) v))
+	  ((and (not (macro? v)) (not (identifier? v))) (cgen-literal v))
+	  (else
+	   (let1 s (make-shared v)
+	     (hashtable-set! (*cgen-cyclic-objects*) v s)
+	     (let1 cl (cgen-literal v)
+	       (set! (~ s 'literal) cl)
+	       cl)))))
+  (define (get-shared v)
+    (if (and (shared? v) (slot-bound? v 'literal))
+	(~ v 'literal)
+	v))
+  ;; FIXME ugly
+  (define-method cgen-cexpr ((o <shared>)) (cgen-cexpr (~ o 'literal)))
+  
   (define-cgen-literal <cgen-scheme-pair> <pair>
     ((values-list :init-keyword :values-list))
     (make (value)
@@ -516,15 +541,19 @@
 	(let loop ((l value) (r '()))
 	  (cond ((null? l) (reverse! r))
 		;; #0=(a . #0#) case
-		((and (not (pair? l)) (eq? l value)) (cons (reverse! r) c-name))
-		((not (pair? l)) (append (reverse! r) (cgen-literal l)))
+		((and (not (pair? l)) (eq? l value))
+		 (cons (reverse! r) c-name))
+		((not (pair? l)) (append (reverse! r) (get-literal l)))
 		;; #0=(a #0# b) case
 		((eq? (car l) value) (loop (cdr l) (cons c-name r)))
-		(else (loop (cdr l) (cons (cgen-literal (car l)) r))))))
+		(else (loop (cdr l) (cons (get-literal (car l)) r))))))
       (let1 c-name (cgen-allocate-static-datum)
 	(make <cgen-scheme-pair> :value value
 	      :c-name c-name
-	      :values-list (make-values-list c-name value))))
+	      :values-list
+	      (parameterize ((*cgen-cyclic-objects* (or (*cgen-cyclic-objects*)
+							(make-eq-hashtable))))
+		(make-values-list c-name value)))))
     (init (self)
       (let ((values (~ self 'values-list))
 	    (cname (~ self 'c-name))
@@ -565,11 +594,14 @@
 	(let1 v (vector-ref value i)
 	  (if (eq? v value)
 	      (vector-set! r i c-name)
-	      (vector-set! r i (cgen-literal v))))))
+	      (vector-set! r i (get-literal v))))))
     (let1 cname (cgen-allocate-static-datum)
       (make <cgen-scheme-vector> :value value
 	    :c-name cname
-	    :values-vec (make-values-vector cname value))))
+	    :values-vec
+	    (parameterize ((*cgen-cyclic-objects* (or (*cgen-cyclic-objects*)
+						      (make-eq-hashtable))))
+	      (make-values-vector cname value)))))
   (init (self)
 	(let* ((values (~ self 'values-vec))
 	       (vec    (~ self 'value))
@@ -640,16 +672,18 @@
 	    :code mc)))
   (init (self)
 	(let ((cname (~ self 'c-name))
+	      (macro (~ self 'value))
 	      (mn (~ self 'name))
 	      (me (~ self 'env))
 	      (mc (~ self 'code)))
-	  (format #t "  ~a = Sg_MakeMacro(~a, ~a, Sg_VMExecute(~a), ~a, ~a);~%"
+	  (format #t "  ~a = Sg_MakeMacro(~a, ~a, Sg_VMExecute(~a), ~a, ~a); /* ~a */~%"
 		  cname
 		  (cgen-cexpr mn)
 		  ;; for now...
 		  "macro_transform" ;;(cgen-cexpr mt)
 		  (cgen-cexpr mc)
 		  (cgen-cexpr me)
-		  (cgen-cexpr mc)))))
+		  (cgen-cexpr mc)
+		  (cgen-safe-comment (format "~s" (macro-name macro)))))))
 
 )
