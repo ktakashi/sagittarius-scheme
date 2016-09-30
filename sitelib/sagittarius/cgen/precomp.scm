@@ -169,7 +169,7 @@
   (define (emit-macro lib)
     (define (literalise m)
       (let1 ml (cgen-literal m)
-	(cgen-init (format "    Sg_InsertBinding(~a, ~a, ~a);~%"
+	(cgen-init (format "    Sg_InsertBinding(SG_LIBRARY(~a), ~a, ~a);~%"
 			   (cgen-cexpr (cgen-literal lib))
 			   (cgen-cexpr (cgen-literal (macro-name m)))
 			   (cgen-cexpr ml)))))
@@ -529,7 +529,7 @@
     (init (self)
 	  (let ((name (cgen-cexpr (~ self 'name)))
 		(cname (~ self 'c-name)))
-	    (format #t "  ~a = Sg_MakeGlobalIdentifier(SG_SYMBOL(~a), (~a));~%"
+	    (format #t "  ~a = Sg_MakeGlobalIdentifier(SG_SYMBOL(~a), SG_LIBRARY(~a));~%"
 		    cname name (cgen-cexpr (~ self 'library)))))
     (static (self) #f))
 

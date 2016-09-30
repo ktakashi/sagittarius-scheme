@@ -62,10 +62,10 @@ struct SgIdentifierRec
 #define SG_INIT_IDENTIFIER(id, n, e, i, l, p)	\
   do {						\
     SG_IDENTIFIER(id)->pending = (p);		\
-    SG_IDENTIFIER(id)->name = (n);		\
+    SG_IDENTIFIER(id)->name = SG_SYMBOL(n);	\
     SG_IDENTIFIER(id)->envs = (e);		\
     SG_IDENTIFIER(id)->identity = (i);		\
-    SG_IDENTIFIER(id)->library = (l);		\
+    SG_IDENTIFIER(id)->library = SG_LIBRARY(l);	\
   } while (0)
 
 SG_CDECL_BEGIN
