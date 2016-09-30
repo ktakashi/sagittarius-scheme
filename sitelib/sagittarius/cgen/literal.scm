@@ -387,15 +387,20 @@
     (static (self) #f))
   
   (define-cgen-literal <cgen-scheme-flonum> <real>
-    ()
+    ((string-rep :init-keyword :string-rep))
     (make (value)
       (let1 c-name (cgen-allocate-static-datum)
-	(make <cgen-scheme-flonum> :c-name c-name :value value)))
+	(make <cgen-scheme-flonum> :c-name c-name :value value
+	      :string-rep (and (or (infinite? value) (nan? value))
+			       (cgen-literal (number->string value))))))
     (pred (self) "SG_FLONUMP")
     (init (self)
-      (let ((val (slot-ref self'value))
-	    (cname (cgen-c-name self)))
-	(print "  " cname " = Sg_MakeFlonum("val");")))
+      (let ((val (slot-ref self 'value))
+	    (cname (cgen-c-name self))
+	    (sl (slot-ref self 'string-rep)))
+	(cond (sl (print "  " cname " = Sg_StringToNumber("(cgen-cexpr sl)
+			 ", 10, TRUE);"))
+	      (else (print "  " cname " = Sg_MakeFlonum(" val ");")))))
     (static (self) #f))
   
   (define-cgen-literal <cgen-scheme-complex> <complex>

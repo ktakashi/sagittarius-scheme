@@ -467,6 +467,26 @@
 	(format #t "  ~a = Sg_MakeIdentifier(SG_SYMBOL(~a), SG_NIL, (~a));~%"
 		cname name (cgen-cexpr (~ self 'library)))))
     (static (self) #f))
+  
+  (define-cgen-literal <cgen-scheme-gloc> <gloc>
+    ((name :init-keyword :name)
+     (library :init-keyword :library)) ;; name
+    (make (value)
+      (let1 libname (symbol->string (library-name (gloc-library value)))
+	(make <cgen-scheme-gloc> :value value
+	      :c-name (cgen-allocate-static-datum)
+	      :name (cgen-literal (gloc-name value))
+	      :library (cgen-literal 
+			(if (not (replace-pattern libname))
+			    (gloc-library value)
+			    (find-library (~ (cgen-current-unit) 'library)
+					  #f))))))
+    (init (self)
+	  (let ((name (cgen-cexpr (~ self 'name)))
+		(cname (~ self 'c-name)))
+	    (format #t "  ~a = Sg_MakeGlobalIdentifier(SG_SYMBOL(~a), (~a));~%"
+		    cname name (cgen-cexpr (~ self 'library)))))
+    (static (self) #f))
 
   (define-cgen-literal <cgen-scheme-library> <library>
     ((name :init-keyword :name))
