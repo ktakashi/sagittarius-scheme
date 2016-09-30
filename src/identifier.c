@@ -69,11 +69,7 @@ SgObject Sg_MakeRawIdentifier(SgObject name, SgObject envs, SgObject identity,
 {
   SgIdentifier *id = SG_NEW(SgIdentifier);
   SG_SET_CLASS(id, SG_CLASS_IDENTIFIER);
-  id->pending = pendingP;
-  id->name = name;
-  id->envs = envs;
-  id->identity = identity,
-  id->library = library;
+  SG_INIT_IDENTIFIER(id, name, envs, identity, library, pendingP);
   return SG_OBJ(id);
 }
 

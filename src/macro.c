@@ -73,11 +73,7 @@ SgObject Sg_MakeMacro(SgObject name, SgClosure *transformer,
 {
   SgMacro *z = SG_NEW(SgMacro);
   SG_SET_CLASS(z, SG_CLASS_MACRO);
-  z->name = name;
-  z->transformer = transformer;
-  z->data = data;
-  z->env = env;
-  z->compiledCode = compiledCode;
+  SG_INIT_MACRO(z, name, transformer, data, env, compiledCode);
   return SG_OBJ(z);
 }
 

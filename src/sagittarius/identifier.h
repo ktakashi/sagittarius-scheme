@@ -58,6 +58,16 @@ struct SgIdentifierRec
 #define Sg_MakeIdentifier(name, env, lib)	\
   Sg_MakeGlobalIdentifier(name, SG_LIBRARY(lib))
 
+/* for C translator */
+#define SG_INIT_IDENTIFIER(id, n, e, i, l, p)	\
+  do {						\
+    SG_IDENTIFIER(id)->pending = (p);		\
+    SG_IDENTIFIER(id)->name = (n);		\
+    SG_IDENTIFIER(id)->envs = (e);		\
+    SG_IDENTIFIER(id)->identity = (i);		\
+    SG_IDENTIFIER(id)->library = (l);		\
+  } while (0)
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeGlobalIdentifier(SgObject name, SgLibrary *library);

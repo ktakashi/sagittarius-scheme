@@ -436,10 +436,29 @@
        #\_))
 
   (define-cgen-literal <cgen-scheme-identifier> <identifier>
-    ((id-name :init-keyword :id-name)
+    ((name :init-keyword :name)
+     (envs :init-keyword :envs)
+     (identity :init-keyword :identity)
+     (pending :init-keyword :pending)
      (library :init-keyword :library)) ;; name
     (make (value)
-      (when (*cgen-show-warning*)
+      (define (strip-envs envs)
+	(define (strip-frame frame)
+	  ;; (type . ((var . val) ...))
+	  (for-each (lambda (rib)
+		      (and-let* ((v (cdr rib))
+				 ( (vector? v) )
+				 ( (eq? (vector-ref v 0) 'lvar) ))
+			(vector-set! v 2 '()))) (cdr frame)))
+	(define (strip-env env)
+	  (for-each strip-frame env))
+	;; now we only need the unique ness of lvar, thus we can
+	;; strip off init value
+	;; FIXME this is too much depending on the compiler internal
+	(for-each strip-env envs)
+	envs)
+	
+      (when (and (*cgen-show-warning*) (not (*cgen-macro-emit-phase*)))
 	;; FIXME this warning message is a bit oversight since 
 	;;       identifiers are now compared by it's identity
 	(unless (or (null? (id-envs value))
@@ -453,20 +472,45 @@
                    target library. ~,,,,20s~%"
 		  (id-name value) (library-name (id-library value))
 		  (id-envs value))))
-      (let1 libname (symbol->string (library-name (id-library value)))
-	(make <cgen-scheme-identifier> :value value
-	      :c-name (cgen-allocate-static-datum)
-	      :id-name (cgen-literal (id-name value))
-	      :library (cgen-literal 
-			(if (not (replace-pattern libname))
-			    (id-library value)
-			    (find-library (~ (cgen-current-unit) 'library)
-					  #f))))))
+      (let1 cname (cgen-allocate-static-datum)
+	(cgen-init (format "  ~a = Sg_MakeRawIdentifier(NULL, NULL, NULL, NULL, 0);~%"
+			   cname))
+	(let ((libname (symbol->string (library-name (id-library value))))
+	      (envs (if (*cgen-macro-emit-phase*)
+			(cgen-literal (strip-envs (id-envs value)))
+			'()))
+	      (identity (if (*cgen-macro-emit-phase*)
+			    (cgen-literal (id-identity value))
+			    #f))
+	      (pending (if (*cgen-macro-emit-phase*)
+			   (pending-identifier? value)
+			   #f)))
+	  (make <cgen-scheme-identifier> :value value
+		:c-name cname
+		:name (cgen-literal (id-name value))
+		:envs envs
+		:identity identity
+		:pending pending
+		:library (cgen-literal 
+			  (if (not (replace-pattern libname))
+			      (id-library value)
+			      (find-library (~ (cgen-current-unit) 'library)
+					    #f)))))))
     (init (self)
-      (let ((name (cgen-cexpr (~ self 'id-name)))
-	    (cname (~ self 'c-name)))
-	(format #t "  ~a = Sg_MakeIdentifier(SG_SYMBOL(~a), SG_NIL, (~a));~%"
-		cname name (cgen-cexpr (~ self 'library)))))
+      (let ((name (cgen-cexpr (~ self 'name)))
+	    (value (~ self 'value))
+	    (cname (~ self 'c-name))
+	    (envs (~ self 'envs))
+	    (identity (~ self 'identity))
+	    (pending? (~ self 'pending)))
+	(format #t "  SG_INIT_IDENTIFIER(~a,~a,~a,~a,SG_LIBRARY(~a),~a); /* ~a */~%"
+		cname
+		name
+		(if (null? envs) 'SG_NIL (cgen-cexpr envs))
+		(if identity (cgen-cexpr identity) 'SG_FALSE)
+		(cgen-cexpr (~ self 'library))
+		(if pending? 'TRUE 'FALSE)
+		(cgen-safe-comment (id-name value)))))
     (static (self) #f))
   
   (define-cgen-literal <cgen-scheme-gloc> <gloc>
@@ -565,6 +609,10 @@
 	(format #t "    SgObject ~a = SG_NIL, ~a = SG_NIL;~%" h t)
 	(let-values (((l last) (last-pair* values))
 		     ((v vlast) (last-pair* (~ self 'value))))
+	  (define (unwrap shared)
+	    (if (shared? shared)
+		(~ shared 'object)
+		shared))
 	  (for-each (lambda (v o)
 		      (let1 n (cond ((eq? v cname) h)
 				    ((string? v) v)
@@ -578,7 +626,7 @@
 			  ((string? last) last)
 			  (else (cgen-cexpr last)))
 	      (format #t "    SG_SET_CDR(~a, ~a); /* ~a */~%"
-		      t n (cgen-safe-comment (format/ss "~s" last))))))
+		      t n (cgen-safe-comment (format/ss "~s" (unwrap last)))))))
 	(format #t "    ~a = ~a;~%" cname h)
 	(print "  } while (0);")))
     (static (self) #f))
@@ -660,23 +708,26 @@
    (env :init-keyword :env)
    (code :init-keyword :code))
   (make (value)
-    (let ((mn (cgen-literal (macro-name value)))
-	  (me (cgen-literal (macro-env value)))
-	  ;; maybe for future...
-	  ;;(mt (cgen-literal (macro-transformer macro)))
-	  (mc (cgen-literal (macro-compiled-code value))))
-      (make <cgen-scheme-macro> :value value
-	    :c-name (cgen-allocate-static-datum)
-	    :name mn
-	    :env me
-	    :code mc)))
+    (let1 cname  (cgen-allocate-static-datum)
+      (cgen-init (format "  ~a = Sg_MakeMacro(NULL, NULL, NULL, NULL, NULL);~%"
+			 cname))
+      (let ((mn (cgen-literal (macro-name value)))
+	    (me (cgen-literal (macro-env value)))
+	    ;; maybe for future...
+	    ;;(mt (cgen-literal (macro-transformer macro)))
+	    (mc (cgen-literal (macro-compiled-code value))))
+	(make <cgen-scheme-macro> :value value
+	      :c-name cname
+	      :name mn
+	      :env me
+	      :code mc))))
   (init (self)
 	(let ((cname (~ self 'c-name))
 	      (macro (~ self 'value))
 	      (mn (~ self 'name))
 	      (me (~ self 'env))
 	      (mc (~ self 'code)))
-	  (format #t "  ~a = Sg_MakeMacro(~a, ~a, Sg_VMExecute(~a), ~a, ~a); /* ~a */~%"
+	  (format #t "  SG_INIT_MACRO(~a, ~a, ~a, Sg_VMExecute(~a), ~a, ~a); /* ~a */~%"
 		  cname
 		  (cgen-cexpr mn)
 		  ;; for now...
