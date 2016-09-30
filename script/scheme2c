@@ -22,6 +22,9 @@ exec sagittarius $0 "$@"
 
 (define *verbose* (make-parameter #f))
 
+(define *cache-load-path* (make-parameter '()))
+(define *cache-load-path-append* (make-parameter '()))
+
 (define (print . args)
   (for-each (lambda (l) (display l)) args) (newline))
 
@@ -53,15 +56,20 @@ exec sagittarius $0 "$@"
        (else "sagittarius"))))
 (define (cache-imports imports :key (stderr #f))
   (define expr (format "(begin ~s) (exit)" (cons 'import imports)))
+  (define (construct-args expr)
+    `(,@(if stderr '("-Einfo") '())
+      "-e" ,expr
+      ,@(map (lambda (p) (string-append "-L" p)) (*cache-load-path*))
+      ,@(map (lambda (p) (string-append "-A" p)) (*cache-load-path-append*))))
+  
   (let ((p (create-process +sagittarius+
-			   (if stderr
-			       (list "-Einfo" "-e" expr)
-			       (list "-e" expr))
+			   (construct-args expr)
 			   :stdout (current-output-port)
 			   :stderr stderr
 			   :transcoder #f
 			   :reader (if stderr error-reader #f))))
-    (process-run p)))
+    (unless (zero? (process-run p))
+      (error "library caching" "failed to execute sagittarius process"))))
 
 (define-class <image-cache> ()
   ((image :init-keyword :image)
@@ -225,20 +233,30 @@ exec sagittarius $0 "$@"
        (o          (#\o "output") #t #f)
        (need-eval? (#\e "enable-eval") #f #f)
        (verbose    (#\V "verbose") #f #f)
+       (load-path  (#\L "loadpath") * '())
+       (append-load-path  (#\A "append-loadpath") * '())
        . rest)
     (when h (usage))
     (when (null? rest) (usage))
     (*cgen-show-warning* #f)
     (*verbose* verbose)
+    (*cache-load-path* load-path)
+    (*cache-load-path-append* append-load-path)
+    
     (let ((file (car rest)))
       (unless (file-exists? file)
 	(printe "Specified file does not exists: " file)
 	(exit -1))
       (printv "file: " file)
+      (unless (null? load-path) (for-each add-load-path load-path))
+      (unless (null? append-load-path)
+	(for-each (lambda (p) (add-load-path p #t)) append-load-path))
       (let ((exprs (file->sexp-list file))
 	    (library-name (generate-unique-library-name)))
 	(let-values (((imports exprs) (collect-imports&exprs exprs)))
-	  (printv "caching " imports "... ")
+	  (printv "caching ")
+	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
+	  (printv "...")
 	  (cache-imports imports)
 	  (printv "done! ")
 	  (let ((c-body (with-output-to-string
