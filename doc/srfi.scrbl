@@ -338,6 +338,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{texts} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-139/srfi-139.html"]{SRFI-139}}
+    @td{(srfi :139 syntax-parameters)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :139)}. So for the portability it's better to use the
+    @code{(srfi :139)}.
+
+    The name @code{syntax-parameters} is taken from sample implementation.
+    }}
 }
 
 

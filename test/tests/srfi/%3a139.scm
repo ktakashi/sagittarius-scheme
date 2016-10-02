@@ -1,5 +1,4 @@
 (import (rnrs)
-	(rnrs eval)
 	(srfi :139)
 	(srfi :64))
 
