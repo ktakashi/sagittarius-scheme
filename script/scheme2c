@@ -90,6 +90,7 @@ exec sagittarius $0 "$@"
       (vector-set! box 0 init-fun)
       (values out-file init-fun))))
 
+;; FIXME it's possible not to call sagittarius process to cache.
 (define (retrieve-caches imports need-eval?)
   (define in/out (open-chunked-binary-input/output-port))
   (define expr '(begin (display "version: " (current-error-port))
@@ -99,38 +100,29 @@ exec sagittarius $0 "$@"
     (cond ((#/read cache of "(.+?)"/ line) =>
 	   (lambda (m)
 	     (let ((file (utf8->string (m 1))))
-	       (if need-eval?
-		   (let ((func (string-append "_"
-				(cgen-safe-name (number->string
-						 (bytevector->integer
-						  (hash SHA-1 (m 1)))
-						 32)))))
-		     (printv "Cache file: " (file->cache-file file))
-		     (make <image-cache> :name func
-			   :image (file->bytevector (file->cache-file file))))
-		   (let* ((exprs (file->sexp-list file))
-			  (boxes (map (lambda (e) (make-vector 1)) exprs))
-			  (code* (map (lambda (expr box)
-					(printv "Compiling: " file)
-					(let ((generator
-					       (name-generator-generator box)))
-					  (with-output-to-string
-					    (lambda ()
-					      (cgen-precompile expr
-					       :in-file file
-					       :name-generator generator
-					       :unit-class <scheme2c-unit>
-					       :need-macro? #t)))))
-				      exprs boxes)))
-		     (if (null? (cdr code*))
-			 (list (make <c-code> :code (car code*)
-				     :initfun (vector-ref (car boxes) 0)))
-			 ;; needs to be reversed
-			 (reverse!
-			  (map (lambda (code box)
-				 (make <c-code> :code code
-				       :initfun (vector-ref box 0)))
-			       code* boxes))))))))
+	       (let* ((exprs (file->sexp-list file))
+		      (boxes (map (lambda (e) (make-vector 1)) exprs))
+		      (code* (map (lambda (expr box)
+				    (printv "Compiling: " file)
+				    (let ((generator
+					   (name-generator-generator box)))
+				      (with-output-to-string
+					(lambda ()
+					  (cgen-precompile expr
+					     :in-file file
+					     :name-generator generator
+					     :unit-class <scheme2c-unit>
+					     :need-macro? need-eval?)))))
+				  exprs boxes)))
+		 (if (null? (cdr code*))
+		     (list (make <c-code> :code (car code*)
+				 :initfun (vector-ref (car boxes) 0)))
+		     ;; needs to be reversed
+		     (reverse!
+		      (map (lambda (code box)
+			     (make <c-code> :code code
+				   :initfun (vector-ref box 0)))
+			   code* boxes)))))))
 	  (else #f)))
   (cache-imports imports :stderr in/out)
   (set-port-position! in/out 0)
@@ -258,11 +250,12 @@ exec sagittarius $0 "$@"
       (let ((exprs (file->sexp-list file))
 	    (library-name (generate-unique-library-name)))
 	(let-values (((imports exprs) (collect-imports&exprs exprs)))
-	  (printv "caching ")
-	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
-	  (printv "...")
-	  (cache-imports imports)
-	  (printv "done! ")
+;; we don't have to cache since we don't use cache anymore.
+;; 	  (printv "caching ")
+;; 	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
+;; 	  (printv "...")
+;; 	  (cache-imports imports)
+;; 	  (printv "done! ")
 	  (let ((c-body (with-output-to-string
 			  (lambda ()
 			    (cgen-precompile `(library ,library-name
@@ -271,7 +264,7 @@ exec sagittarius $0 "$@"
 						(export main)
 						(import ,@imports)
 						,@exprs)
-					     :need-macro? #t
+					     :need-macro? need-eval?
 					     :in-file file))))
 		(caches (retrieve-caches imports need-eval?))
 		(out (get-out o)))
