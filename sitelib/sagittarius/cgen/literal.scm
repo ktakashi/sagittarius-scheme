@@ -244,7 +244,6 @@
     (define (has-seen? seen x y)
       (cond ((hashtable-ref seen x #f) =>
 	     (lambda (o)
-	       (display o (current-error-port)) (newline(current-error-port))
 	       (or (exists (lambda (o) (eq? o y)) o)
 		   (and (hashtable-set! seen x (cons y o)) #f))))
 	    (else
