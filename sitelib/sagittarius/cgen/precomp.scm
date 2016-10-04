@@ -503,7 +503,7 @@
 	    (envs (~ self 'envs))
 	    (identity (~ self 'identity))
 	    (pending? (~ self 'pending)))
-	(format #t "  SG_INIT_IDENTIFIER(~a,~a,~a,~a,SG_LIBRARY(~a),~a); /* ~a */~%"
+	(format #t "  SG_INIT_IDENTIFIER(~a,SG_SYMBOL(~a),~a,~a,SG_LIBRARY(~a),~a); /* ~a */~%"
 		cname
 		name
 		(if (null? envs) 'SG_NIL (cgen-cexpr envs))
@@ -727,7 +727,7 @@
 	      (mn (~ self 'name))
 	      (me (~ self 'env))
 	      (mc (~ self 'code)))
-	  (format #t "  SG_INIT_MACRO(~a, ~a, ~a, Sg_VMExecute(~a), ~a, ~a); /* ~a */~%"
+	  (format #t "  SG_INIT_MACRO(~a, ~a, SG_CLOSURE(~a), Sg_VMExecute(~a), ~a, SG_CODE_BUILDER(~a)); /* ~a */~%"
 		  cname
 		  (cgen-cexpr mn)
 		  ;; for now...

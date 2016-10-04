@@ -68,13 +68,13 @@ struct SgMacroRec
 #define SG_MACROP(obj)   SG_XTYPEP(obj, SG_CLASS_MACRO)
 
 /* for C translator */
-#define SG_INIT_MACRO(m, n, t, d, e, c)		\
-  do {						\
-    SG_MACRO(m)->name = (n);			\
-    SG_MACRO(m)->transformer = SG_CLOSURE(t);	\
-    SG_MACRO(m)->data = (d);			\
-    SG_MACRO(m)->env = (e);			\
-    SG_MACRO(m)->compiledCode = SG_CODE_BUILDER(c);	\
+#define SG_INIT_MACRO(m, n, t, d, e, c)	\
+  do {					\
+    SG_MACRO(m)->name = (n);		\
+    SG_MACRO(m)->transformer = (t);	\
+    SG_MACRO(m)->data = (d);		\
+    SG_MACRO(m)->env = (e);		\
+    SG_MACRO(m)->compiledCode =(c);	\
   } while (0)
 
 SG_CDECL_BEGIN
