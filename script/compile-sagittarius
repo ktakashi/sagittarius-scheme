@@ -1,0 +1,67 @@
+#!/bin/sh
+
+set -e
+
+if [ -n "$COMPILE_R7RS" -a "$0" != "$COMPILE_R7RS" ]; then
+    exec "$COMPILE_R7RS" "$@"
+fi
+
+CC=${CC:-"gcc"}
+CXX=${CXX:-"g++"}
+
+SAGITTARIUS=${SAGITTARIUS:-"sagittarius"}
+LOADPATH=
+OUTPUT="a.out"
+DONT_TRANSLATE=${DONT_TRANSLATE:-""}
+
+ME=$(basename $0)
+
+while getopts :A:D:I:o name
+do
+    case $name in
+	A) LOADPATH="$LOADPATH -A $OPTARG" ;;
+	D) printf "%s: error: -D options is not supported on Sagittarius\n" $ME
+	   exit 2;;
+	I) LOADPATH="$LOADPATH -L $OPTARG" ;;
+	o) OUTPUT="$OPTARG" ;;
+	:) printf "%s: error: argument missing after `-%s`\n" $ME $OPTARG
+	   exit 2;;
+	?) printf "%s: error: unrecognized command line option `-%s`\n" $ME $OPTARG
+	exit 2;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+if [ -z "$1" ]; then
+    printf "%s: error: no input file\n" $ME
+    exit 1
+fi
+
+SCHEME2C=`which sagittarius-scheme2c`
+if [ $? -ne 0 -o x"$DONT_TRANSLATE" != x"" ]; then
+    INVOKE_OPTION="-t"
+    
+    if [ x"$ME" = x"compile-r7rs" ]; then
+	INVOKE_OPTION="-r7"
+    fi
+    
+    cat  <<EOF >"$OUTPUT"
+#!/bin/sh
+#|
+exec $SAGITTARIUS $INVOKE_OPTION $LOADPATH "\$0" "\$@"
+|#
+EOF
+    cat "$1" >>"$OUTPUT"
+    chmod a+x "$OUTPUT"
+else
+    TMPFILE=$(mktemp /tmp/scheme2c.XXXXXX.c)
+    $SCHEME2C -o $TMPFILE $LOADPATH -e $1
+    COMPILER_FLAGS=`sagittarius-config -L -I -l --c-flags`
+    case `uname` in
+	Cygwin) $CXX -o $OUTPUT -O2 $TMPFILE $COMPILER_FLAGS;;
+	*) $CC -o $OUTPUT -O2 $TMPFILE $COMPILER_FLAGS;;
+    esac
+    rm $TMPFILE
+fi
+	   
