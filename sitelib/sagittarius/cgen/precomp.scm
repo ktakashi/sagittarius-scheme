@@ -83,9 +83,7 @@
 
   (define-class <cgen-precomp-unit> (<cgen-stub-unit>)
     ((library :init-keyword :library)
-     (imports :init-keyword :imports)
-     (exports :init-keyword :exports)
-     (toplevel :init-keyword :toplevel :init-value "toplevel")))
+     (toplevel :init-keyword :toplevel :init-form (gensym))))
 
   ;; for future though
   (define (read-with-source in) (read in :source-info? #t))
@@ -115,12 +113,10 @@
       (and in-file
 	   (open-file-input-port in-file (file-options no-fail)
 				 (buffer-mode block) (native-transcoder))))
+    (define (library-keyword? l) (memq l '(library define-library)))
     (unless (pair? form) (error 'cgen-precompile "form must be a list" form))
     (match form
-      (('library name 
-	   ('export exports ...) 
-	   ('import imports ...)
-	 toplevels ...)
+      (((? library-keyword? l) name rest ...)
        (let-values (((out-file initialiser) (name-generator in-file name)))
 	 (let1 safe-name (encode-library-name name)
 	   (parameterize ((cgen-current-unit
@@ -130,39 +126,14 @@
 			  (*current-loading-port* (get-port in-file)))
 	     ;; should be handled in get-unit but i'm lazy...
 	     (set! (~ (cgen-current-unit) 'library) safe-name)
-	     (set! (~ (cgen-current-unit) 'imports) imports)
-	     (set! (~ (cgen-current-unit) 'exports) exports)
-	     (do-it safe-name exports imports toplevels compiler
+	     (do-it safe-name `(,l ,safe-name ,@rest) compiler
 		    need-macro?)))))
-      (('define-library name rest ...)
-       (apply cgen-precompile (define-library->library form) retry))
       (_ (error 'cgen-precompile "invalid form" form))))
 
-  (define (define-library->library form)
-    (define (traverse specs)
-      (let loop ((specs specs) (exports '()) (imports '()) (body '()))
-	(match specs
-	  (() (values exports imports body))
-	  ((('export e ...) next ...)
-	   (loop next (append e exports) imports body))
-	  ((('import e ...) next ...)
-	   (loop next exports (append e imports) body))
-	  ((('begin e ...) next ...)
-	   (loop next exports imports (append e body)))
-	  ;; TOOD handle rest
-	  (_ (error 'define-library->library "not supported yet"
-		    (car specs) form)))))
-	  
-    (match form
-      (('define-library name rest ...)
-       (let-values (((exports imports body) (traverse rest)))
-	 `(library ,name (export ,@exports) (import ,@imports) ,@body)))))
     
-  (define (do-it safe-name exports imports toplevels compiler need-macro?)
-    (emit-toplevel-executor safe-name imports exports
-     (compile-form
-      (construct-safe-library safe-name exports imports toplevels)
-      compiler)
+  (define (do-it safe-name library-form compiler need-macro?)
+    (emit-toplevel-executor safe-name
+     (compile-form library-form compiler)
      need-macro?)
     (cgen-emit-c (cgen-current-unit)))
 
@@ -196,63 +167,28 @@
     (parameterize ((*cgen-macro-emit-phase* #t))
       (map literalise (collect-macro lib))))
   
-  (define (emit-toplevel-executor name imports exports topcb need-macro?)
+  (define (emit-toplevel-executor name topcb need-macro?)
     (define unit (cgen-current-unit))
     (cgen-body (format "static SgCodeBuilder *~a = "
 		       (slot-ref unit 'toplevel)))
     (cgen-body 
      (format "   SG_CODE_BUILDER(~a);" (cgen-cexpr topcb)))
     (let1 library (find-library name #f) ;; get the library
-      ;; from compiler.scm
-      (define (parse-spec spec)
-	(define (check-expand-phase phases)
-	  (not (exists (lambda (phase)
-			 (or (eq? phase 'run) (equal? phase '(meta 0))))
-		       phases)))
-	(match spec
-	  ;; library
-	  (((? (lambda (x) (eq? 'library x)) _) ref)
-	   (values ref '() #f))
-	  ;; rename
-	  (((? (lambda (x) (eq? 'rename x)) _) set renames ...)
-	   (receive (ref resolved trans?) (parse-spec set)
-	     (values ref `(,@resolved (rename ,@renames)) trans?)))
-	  ;; only
-	  (((? (lambda (x) (eq? 'only x)) _) set ids ...)
-	   (receive (ref resolved trans?) (parse-spec set)
-	     (values ref `(,@resolved (only ,@ids)) trans?)))
-	  ;; except
-	  (((? (lambda (x) (eq? 'except x)) _) set ids ...)
-	   (receive (ref resolved trans?) (parse-spec set)
-	     (values ref `(,@resolved (except ,@ids)) trans?)))
-	  ;; prefix
-	  (((? (lambda (x) (eq? 'prefix x)) _) set prefix)
-	   (unless (symbol? prefix) (error 'import "bad prefix" spec))
-	   (receive (ref resolved trans?) (parse-spec set)
-	     (values ref `(,@resolved (prefix . ,prefix)) trans?)))
-	  ;; for
-	  ;; basically, this will be ignored
-	  (((? (lambda (x) (eq? 'for x)) _) set phase ...)
-	   (receive (ref resolved trans?) (parse-spec set)
-	     (values ref resolved (check-expand-phase phase))))
-	  (_ (values spec '() #f))))
       ;; emit imports
       (for-each (lambda (i)
-		  (if (symbol? i)
-		      (cgen-init (format "  Sg_ImportLibrary(~a, ~a);~%"
-					 (cgen-cexpr (cgen-literal library))
-					 (cgen-cexpr (cgen-literal i))))
-		      (let-values (((ref resolved-spec trans?)
-				    (parse-spec i)))
-			(and-let* (( (not  trans?) )
-				   (spec (reverse! resolved-spec))
-				   (l (string->symbol (format "~s" ref))))
-			  (cgen-init
-			   (format "  Sg_ImportLibraryFullSpec(~a, ~a, ~a);~%"
-				   (cgen-cexpr (cgen-literal library))
-				   (cgen-cexpr (cgen-literal l))
-				   (cgen-cexpr (cgen-literal spec))))))))
-		imports)
+		  (let1 t (library-name (car i))
+		    (cond ((null? (cdr i))
+			   (cgen-init
+			    (format "  Sg_ImportLibrary(~a, ~a);~%"
+				    (cgen-cexpr (cgen-literal library))
+				    (cgen-cexpr (cgen-literal t)))))
+			  (else
+			   (cgen-init
+			    (format "  Sg_ImportLibraryFullSpec(~a, ~a, ~a);~%"
+				    (cgen-cexpr (cgen-literal library))
+				    (cgen-cexpr (cgen-literal t))
+				    (cgen-cexpr (cgen-literal (cdr i)))))))))
+		(reverse (library-imported library)))
       (cgen-init (format "  Sg_LibraryExportedSet(~a, ~a);~%"
 			 (cgen-cexpr (cgen-literal library))
 			 (cgen-cexpr (cgen-literal (library-exported library)))))
@@ -290,7 +226,8 @@
        ,@toplevels))
   
   (define (compile-form form compiler)
-    (let1 cb (compiler form (environment '(only (sagittarius) library)))
+    (let1 cb (compiler form (environment
+			     '(only (sagittarius) library define-library)))
       (cgen-literal cb)))
 
   (define (get-unit unit-class in-file initfun-name out.c predef-syms)

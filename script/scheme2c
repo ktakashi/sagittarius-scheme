@@ -250,12 +250,11 @@ exec sagittarius $0 "$@"
       (let ((exprs (file->sexp-list file))
 	    (library-name (generate-unique-library-name)))
 	(let-values (((imports exprs) (collect-imports&exprs exprs)))
-;; we don't have to cache since we don't use cache anymore.
-;; 	  (printv "caching ")
-;; 	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
-;; 	  (printv "...")
-;; 	  (cache-imports imports)
-;; 	  (printv "done! ")
+ 	  (printv "caching ")
+ 	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
+ 	  (printv "...")
+ 	  (cache-imports imports)
+ 	  (printv "done! ")
 	  (let ((c-body (with-output-to-string
 			  (lambda ()
 			    (cgen-precompile `(library ,library-name
