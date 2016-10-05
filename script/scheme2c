@@ -22,9 +22,6 @@ exec sagittarius $0 "$@"
 
 (define *verbose* (make-parameter #f))
 
-(define *cache-load-path* (make-parameter '()))
-(define *cache-load-path-append* (make-parameter '()))
-
 (define (print . args)
   (for-each (lambda (l) (display l)) args) (newline))
 
@@ -109,15 +106,10 @@ exec sagittarius $0 "$@"
 						  :unit-class <scheme2c-unit>
 						  :need-macro? need-eval?)))))
 			 exprs boxes)))
-	(if (null? (cdr code*))
-	    (list (make <c-code> :code (car code*)
-			:initfun (vector-ref (car boxes) 0)))
-	    ;; needs to be reversed
-	    (reverse!
-	     (map (lambda (code box)
-		    (make <c-code> :code code
-			  :initfun (vector-ref box 0)))
-		  code* boxes))))))
+	(map (lambda (code box)
+	       (make <c-code> :code code
+		     :initfun (vector-ref box 0)))
+	     code* boxes))))
   (append-map ->cache (resolve-library-paths imports)))
    
 (define (generate-unique-library-name) (list (gensym)))
@@ -208,8 +200,6 @@ exec sagittarius $0 "$@"
     (when (null? rest) (usage))
     (*cgen-show-warning* #f)
     (*verbose* verbose)
-    (*cache-load-path* load-path)
-    (*cache-load-path-append* append-load-path)
     
     (let ((file (car rest)))
       (unless (file-exists? file)
