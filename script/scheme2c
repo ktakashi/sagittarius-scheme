@@ -6,14 +6,14 @@ exec sagittarius $0 "$@"
 (import (rnrs)
 	(sagittarius)
 	(sagittarius control)
-	(sagittarius process)
 	(sagittarius io)
+	(sagittarius vm)
+	(sagittarius cgen unit)
+	(sagittarius cgen precomp)
 	(util file)
 	(util port)
 	(match)
 	(clos user)
-	(sagittarius cgen unit)
-	(sagittarius cgen precomp)
 	(srfi :1)
 	(srfi :39 parameters)
 	(binary io) ;; including get-line as well
@@ -40,40 +40,7 @@ exec sagittarius $0 "$@"
 			   exprs)))
     (values (append-map (lambda (i) (cdr i)) imports) exprs)))
 
-(define (error-reader process stdout stderr transcoder)
-  (let ((perr (process-error-port process)))
-    (let loop ((l (get-line perr)))
-      (put-bytevector stderr l)
-      (put-u8 stderr #x0a)
-      (unless (#/loaded/ l) (loop (get-line perr))))
-    process))
 
-(define +sagittarius+
-  (or (getenv "SAGITTARIUS")
-      (cond-expand
-       ;; for Windows it must be this
-       (windows "sash")
-       (else "sagittarius"))))
-(define (cache-imports imports :key (stderr #f))
-  (define expr (format "(begin ~s) (exit)" (cons 'import imports)))
-  (define (construct-args expr)
-    `(,@(if stderr '("-Einfo") '())
-      "-e" ,expr
-      ,@(map (lambda (p) (string-append "-L" p)) (*cache-load-path*))
-      ,@(map (lambda (p) (string-append "-A" p)) (*cache-load-path-append*))))
-  
-  (let ((p (create-process +sagittarius+
-			   (construct-args expr)
-			   :stdout (current-output-port)
-			   :stderr stderr
-			   :transcoder #f
-			   :reader (if stderr error-reader #f))))
-    (unless (zero? (process-run p))
-      (error "library caching" "failed to execute sagittarius process"))))
-
-(define-class <image-cache> ()
-  ((image :init-keyword :image)
-   (name  :init-keyword :name)))
 (define-class <c-code> ()
   ((code :init-keyword :code)
    (initfun :init-keyword :initfun)))
@@ -90,49 +57,68 @@ exec sagittarius $0 "$@"
       (vector-set! box 0 init-fun)
       (values out-file init-fun))))
 
-;; FIXME it's possible not to call sagittarius process to cache.
-(define (retrieve-caches imports need-eval?)
-  (define in/out (open-chunked-binary-input/output-port))
-  (define expr '(begin (display "version: " (current-error-port))
-		       (display (sagittarius-version) (current-error-port))
-		       (newline (current-error-port))))
-  (define (->cache line)
-    (cond ((#/read cache of "(.+?)"/ line) =>
-	   (lambda (m)
-	     (let ((file (utf8->string (m 1))))
-	       (let* ((exprs (file->sexp-list file))
-		      (boxes (map (lambda (e) (make-vector 1)) exprs))
-		      (code* (map (lambda (expr box)
-				    (printv "Compiling: " file)
-				    (let ((generator
-					   (name-generator-generator box)))
-				      (with-output-to-string
-					(lambda ()
-					  (cgen-precompile expr
-					     :in-file file
-					     :name-generator generator
-					     :unit-class <scheme2c-unit>
-					     :need-macro? need-eval?)))))
-				  exprs boxes)))
-		 (if (null? (cdr code*))
-		     (list (make <c-code> :code (car code*)
-				 :initfun (vector-ref (car boxes) 0)))
-		     ;; needs to be reversed
-		     (reverse!
-		      (map (lambda (code box)
-			     (make <c-code> :code code
-				   :initfun (vector-ref box 0)))
-			   code* boxes)))))))
-	  (else #f)))
-  (cache-imports imports :stderr in/out)
-  (set-port-position! in/out 0)
-  (reverse!
-   (port-fold (lambda (line r)
-		(let ((cache (->cache line)))
-		  (cond ((not cache) r)
-			((pair? cache) (append cache r))
-			(else (cons cache r)))))
-	      '() (lambda () (get-line in/out)))))
+(define (resolve-library-paths imports)
+  (define sandbox (environment '(only (sagittarius) import)))
+  (define (->imported lib) (map car (reverse (library-imported lib))))
+  
+  (define (resolve-dependency lib seen)
+    (hashtable-set! seen lib #t)
+    (let loop ((dependency (->imported lib)) (r '()))
+      (cond ((null? dependency)
+	     (if (library->path (library-name lib))
+		 (cons lib r)
+		 r))
+	    ((hashtable-contains? seen (car dependency))
+	     (loop (cdr dependency) r))
+	    ((null? (library-imported (car dependency)))
+	     (hashtable-set! seen (car dependency) #t)
+	     (loop (cdr dependency) r))
+	    (else
+	     (hashtable-set! seen (car dependency) #t)
+	     (if (library->path (library-name (car dependency)))
+		 (let ((parent (resolve-dependency (car dependency) seen)))
+		   (loop (cdr dependency) (append parent r)))
+		 (loop (cdr dependency) r))))))
+
+  (for-each (lambda (import) (eval `(import ,import) sandbox)) imports)
+  ;; the first one is initial import of the sandbox (see above)
+  (let ((libraries (cdr (->imported sandbox)))
+	(seen (make-eq-hashtable)))
+    (append-map (lambda (lib)
+		  (if (hashtable-contains? seen lib)
+		      '()
+		      (reverse! (resolve-dependency lib seen))))
+		libraries)))
+
+
+(define (compile-imports imports need-eval?)
+  (define (->cache lib)
+    (define (->library-path lib) (library->path (library-name lib)))
+    (let ((file (->library-path lib)))
+      (printv "Compiling: " file)
+      (let* ((exprs (file->sexp-list file))
+	     (boxes (map (lambda (e) (make-vector 1)) exprs))
+	     (code* (map (lambda (expr box)			   
+			   (let ((generator
+				  (name-generator-generator box)))
+			     (with-output-to-string
+			       (lambda ()
+				 (cgen-precompile expr
+						  :in-file file
+						  :name-generator generator
+						  :unit-class <scheme2c-unit>
+						  :need-macro? need-eval?)))))
+			 exprs boxes)))
+	(if (null? (cdr code*))
+	    (list (make <c-code> :code (car code*)
+			:initfun (vector-ref (car boxes) 0)))
+	    ;; needs to be reversed
+	    (reverse!
+	     (map (lambda (code box)
+		    (make <c-code> :code code
+			  :initfun (vector-ref box 0)))
+		  code* boxes))))))
+  (append-map ->cache (resolve-library-paths imports)))
    
 (define (generate-unique-library-name) (list (gensym)))
 
@@ -150,22 +136,8 @@ exec sagittarius $0 "$@"
   (cgen-emit-part unit 'init)
   (cgen-emit-epilogue unit))
 
-(define-method emit-static-cache ((cache <image-cache>))
-  (define image (slot-ref cache 'image))
-  (print "static uint8_t " (slot-ref cache 'name) "[] = {")
-  (dotimes (i (bytevector-length image))
-    (unless (zero? i) (display ", "))
-    (when (and (not (zero? i)) (zero? (mod i 15))) (newline))
-    (format #t "0x~2,'0x" (bytevector-u8-ref image i)))
-  (print "};"))
-
 (define-method emit-static-cache ((cache <c-code>))
   (print (slot-ref cache 'code)))
-
-(define-method emit-cache-init ((cache <image-cache>))
-  (format #t "  Sg_ReadCacheFromImage(~a, ~a);~%"
-	  (slot-ref cache 'name)
-	  (bytevector-length (slot-ref cache 'image))))
 
 (define-method emit-cache-init ((cache <c-code>))
   (format #t "  Sg__Init_~a();~%" (slot-ref cache 'initfun)))
@@ -250,11 +222,6 @@ exec sagittarius $0 "$@"
       (let ((exprs (file->sexp-list file))
 	    (library-name (generate-unique-library-name)))
 	(let-values (((imports exprs) (collect-imports&exprs exprs)))
- 	  (printv "caching ")
- 	  (when verbose (for-each (lambda (i) (printv "  " i)) imports))
- 	  (printv "...")
- 	  (cache-imports imports)
- 	  (printv "done! ")
 	  (let ((c-body (with-output-to-string
 			  (lambda ()
 			    (cgen-precompile `(library ,library-name
@@ -265,7 +232,7 @@ exec sagittarius $0 "$@"
 						,@exprs)
 					     :need-macro? need-eval?
 					     :in-file file))))
-		(caches (retrieve-caches imports need-eval?))
+		(caches (compile-imports imports need-eval?))
 		(out (get-out o)))
 	    (with-output-to-port out
 	      (lambda ()
