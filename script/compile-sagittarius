@@ -20,8 +20,7 @@ while getopts :A:D:I:o name
 do
     case $name in
 	A) LOADPATH="$LOADPATH -A $OPTARG" ;;
-	D) printf "%s: error: -D options is not supported on Sagittarius\n" $ME
-	   exit 2;;
+	D) printf "%s: warning: -D options is not supported on Sagittarius\n" $ME
 	I) LOADPATH="$LOADPATH -L $OPTARG" ;;
 	o) OUTPUT="$OPTARG" ;;
 	:) printf "%s: error: argument missing after `-%s`\n" $ME $OPTARG
