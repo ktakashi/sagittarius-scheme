@@ -32,6 +32,7 @@ exec sagittarius $0 "$@"
 ;;;
 #!read-macro=sagittarius/regex
 (import (rnrs)
+	(rnrs eval)
 	(sagittarius)
 	(sagittarius control)
 	(sagittarius io)
@@ -39,13 +40,9 @@ exec sagittarius $0 "$@"
 	(sagittarius cgen unit)
 	(sagittarius cgen precomp)
 	(util file)
-	(util port)
-	(match)
 	(clos user)
 	(srfi :1)
 	(srfi :39 parameters)
-	(binary io) ;; including get-line as well
-	(math)
 	(getopt))
 
 (define *verbose* (make-parameter #f))
@@ -60,9 +57,8 @@ exec sagittarius $0 "$@"
 (define (printv . args) (when (*verbose*) (apply printe args)))
 
 (define (collect-imports&exprs exprs)
-  (let-values (((imports exprs)
-		(partition (match-lambda (('import rest ...) #t) (_ #f))
-			   exprs)))
+  (define (import? l) (and (pair? l) (eq? (car l) 'import)))
+  (let-values (((imports exprs) (partition import? exprs)))
     (values (append-map (lambda (i) (cdr i)) imports) exprs)))
 
 
