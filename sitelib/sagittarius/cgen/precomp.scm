@@ -151,21 +151,23 @@
 	  m))
       (let1 table (library-table lib)
 	(filter-map gloc-macro? (hashtable-values-list table))))
-    (let* ((core-macro (gensym))
-	   (gloc (gensym))
-	   (unit (cgen-current-unit))
-	   (prologue (~ unit 'init-prologue)))
-      (set! (~ unit 'init-prologue)
-	    (string-append
-	     prologue
-	     (format "  SgObject ~a = Sg_FindLibrary(SG_INTERN(~s), FALSE);~%"
-		     core-macro "(core macro)")
-	     (format "  SgObject ~a = Sg_FindBinding(~a, SG_INTERN(~s), SG_UNDEF);~%"
-		     gloc core-macro "macro-transform")
-	     (format "  SgObject macro_transform = SG_GLOC_GET(SG_GLOC(~a));~%"
-		     gloc))))
-    (parameterize ((*cgen-macro-emit-phase* #t))
-      (map literalise (collect-macro lib))))
+    (let1 macros (collect-macro lib)
+      (unless (null? macros)
+	(let* ((core-macro (gensym))
+	       (gloc (gensym))
+	       (unit (cgen-current-unit))
+	       (prologue (~ unit 'init-prologue)))
+	  (set! (~ unit 'init-prologue)
+		(string-append
+		 prologue
+		 (format "  SgObject ~a = Sg_FindLibrary(SG_INTERN(~s), FALSE);~%"
+			 core-macro "(core macro)")
+		 (format "  SgObject ~a = Sg_FindBinding(~a, SG_INTERN(~s), SG_UNDEF);~%"
+			 gloc core-macro "macro-transform")
+		 (format "  SgObject macro_transform = SG_GLOC_GET(SG_GLOC(~a));~%"
+			 gloc))))
+	(parameterize ((*cgen-macro-emit-phase* #t))
+	  (for-each literalise macros)))))
   
   (define (emit-toplevel-executor name topcb need-macro?)
     (define unit (cgen-current-unit))
