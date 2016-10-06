@@ -47,7 +47,7 @@ while getopts :A:D:I:o name
 do
     case $name in
 	A) LOADPATH="$LOADPATH -A $OPTARG" ;;
-	D) printf "%s: warning: -D options is not supported on Sagittarius\n" $ME
+	D) printf "%s: warning: -D options is not supported on Sagittarius\n" $ME;;
 	I) LOADPATH="$LOADPATH -L $OPTARG" ;;
 	o) OUTPUT="$OPTARG" ;;
 	:) printf "%s: error: argument missing after `-%s`\n" $ME $OPTARG
@@ -85,7 +85,7 @@ else
     $SCHEME2C -o $TMPFILE $LOADPATH -e $1
     COMPILER_FLAGS=`sagittarius-config -L -I -l --c-flags`
     case `uname` in
-	Cygwin) $CXX -o $OUTPUT -O2 $TMPFILE $COMPILER_FLAGS;;
+	CYGWIN*) $CXX -o $OUTPUT -O2 $TMPFILE $COMPILER_FLAGS;;
 	*) $CC -o $OUTPUT -O2 $TMPFILE $COMPILER_FLAGS;;
     esac
     rm $TMPFILE
