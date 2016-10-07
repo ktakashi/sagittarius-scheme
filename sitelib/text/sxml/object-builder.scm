@@ -29,18 +29,19 @@
 ;;;  
 
 (library (text sxml object-builder)
-  (export sxml->object ? * +
-	  ;; object->sxml
+    (export sxml->object ? * +
+	    ;; object->sxml
 
-	  sxml-object-builder
+	    sxml-object-builder
 
-	  object-builder object-builder?
-	  make-simple-object-builder simple-object-builder?
-	  make-set-object-builder set-object-builder? 
-	  )
-  (import (rnrs)
-	  (text sxml tools))
+	    object-builder object-builder?
+	    make-simple-object-builder simple-object-builder?
+	    make-set-object-builder set-object-builder? 
+	    )
+    (import (rnrs)
+	    (text sxml tools))
 
+  ;; TODO maybe we can make this more generic?
   (define-record-type object-builder
     (fields build-object))
   
@@ -83,7 +84,7 @@
       (define (check-tag s) (eq? (if (pair? s) (cadr s) s) tag))
       (cond ((assp check-tag builders) => cdr)
 	    (else #f)))
-    			 
+    ;; FIXME There must be a better way to do it
     (define (order-objects objects)
       (define builder-vec (list->vector builders))
       (define len (vector-length builder-vec))
@@ -109,7 +110,6 @@
 		  #f
 		  (assertion-violation 'sxml->object
 				       "Required element is missing" tag)))))
-      
       ;; init tables
       (do ((i 0 (+ i 1)))
 	  ((= i len))
@@ -127,7 +127,7 @@
 		objects)
       (do ((i 0 (+ i 1)) (r '() (cons (box-ref (vector-ref vec i) i) r)))
 	  ((= i len) (reverse r))))
-    
+
     (let loop ((contents (sxml:content sxml)) (objects '()))
       (if (null? contents)
 	  (order-objects objects)
@@ -167,27 +167,27 @@
        (sxml-set-object-builder "parse"
 	(tcn ... ((? tag) ctr (sxml-object-builder)))
 	(next ...)))
-      ((_ "parse" (tcn ...) ((? tag ctr nb) next ...))
+      ((_ "parse" (tcn ...) ((? tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((? tag) ctr (sxml-object-builder nb)))
+	(tcn ... ((? tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       ;; *
       ((_ "parse" (tcn ...) ((* tag ctr) next ...))
        (sxml-set-object-builder "parse"
 	(tcn ... ((* tag) ctr (sxml-object-builder)))
 	(next ...)))
-      ((_ "parse" (tcn ...) ((* tag ctr nb) next ...))
+      ((_ "parse" (tcn ...) ((* tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((* tag) ctr (sxml-object-builder nb)))
+	(tcn ... ((* tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       ;; +
       ((_ "parse" (tcn ...) ((+ tag ctr) next ...))
        (sxml-set-object-builder "parse"
 	(tcn ... ((+ tag) ctr (sxml-object-builder)))
 	(next ...)))
-      ((_ "parse" (tcn ...) ((+ tag ctr nb) next ...))
+      ((_ "parse" (tcn ...) ((+ tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((+ tag) ctr (sxml-object-builder nb)))
+	(tcn ... ((+ tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       
       ((_ "parse" (tcn ...) ((tag ctr) next ...))
@@ -209,7 +209,7 @@
       ((_ (+ spec ...)) (sxml-set-object-builder (+ spec ...)))
       ((_ (tag ctr . next))
        (sxml-object-builder-helper tag ctr (sxml-object-builder . next)))
-      ((_ spec specs ...) (sxml-set-object-builder spec specs ...))
-      ((_ builder) builder)))
+      ((_ builder) builder)
+      ((_ spec specs ...) (sxml-set-object-builder spec specs ...))))
   
   )
