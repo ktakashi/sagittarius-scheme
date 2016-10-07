@@ -30,37 +30,89 @@
 
 ;; reference: http://cyber.harvard.edu/rss/rss.html
 (library (net rss)
-  (export parse-rss-feed
-	  )
-  (import (rnrs)
-	  (srfi :19)
-	  (text sxml object-builder))
+    (export rss->object
 
+	    ;; RSS objects
+	    (rename (attributed-object? rss-object?)) rss-attribute
+	    rss-simple? rss-simple-content
+	    title? make-title
+	    link? make-link
+	    description? make-description
+	    managing-editor? make-managing-editor
+	    web-master? make-web-master
+	    pub-date? make-pub-date
+	    last-build-date? make-last-build-date
+	    generator? make-generator
+	    docs? make-docs
+	    ttl? make-ttl
+	    skip-hours? make-skip-hours
+	    skip-days? make-skip-days
+	    comments? make-comments
+	    author? make-author
+	    width? make-width
+	    height? make-height
+	    rating? make-rating
+	    name? make-name
+	    language? make-language
+	    copyright? make-copyright
+	    url? make-url
 
-(define (assertion-protocol pred)
-  (lambda (n)
-    (lambda (attrs . item)
-      (unless (apply pred item)
-	(assertion-violation 'rss "unexpected object" item pred))
-      (apply (n attrs) item))))
+	    cloud? make-cloud cloud-domain cloud-port cloud-path
+	    cloud-register-procedure cloud-protocol
+	    guid? make-guid guid-parmalink?
+	    category? make-category category-domain
+	    source? make-source source-url
+	    enclosure? make-enclosure enclosure-url enclosure-length
+	    enclosure-type
+
+	    image? make-image image-url image-title image-link
+	    image-width image-height image-description
+
+	    text-input? make-text-input text-input-title text-input-description
+	    text-input-name text-input-link
+
+	    item? make-item item-title item-link item-description
+	    item-author item-category item-comments item-enclosure
+	    item-guid item-pub-date item-source
+
+	    channel? make-channel channel-title channel-link
+	    channel-description channel-language channel-copyright
+	    channel-managing-editor channel-web-master
+	    channel-pub-date channel-last-build-date
+	    channel-category channel-generator channel-docs
+	    channel-cloud channel-ttl channel-image
+	    channel-rating channel-text-input
+	    channel-skip-hours channel-skip-days
+	    channel-item
+
+	    rss? make-rss
+	    )
+    (import (rnrs)
+	    (only (srfi :1) filter-map)
+	    (srfi :19)
+	    (text sxml object-builder))
 
 (define-record-type attributed-object
   (fields (immutable attributes rss-attributes)))
 
 ;; for now, immutable object
-(define-syntax define-single-value-tag
-  (syntax-rules ()
-    ((_ (tag pred))
-     (define-record-type tag
-       (fields content)
-       (parent attributed-object)
-       (protocol (assertion-protocol pred))))
-    ((_ tag)
-     (define-single-value-tag (tag string?)))))
+(define-record-type rss-simple
+  (fields content)
+  (parent attributed-object))
 (define-syntax define-single-value-tags
-  (syntax-rules ()
-    ((_ tag ...)
-     (begin (define-single-value-tag tag) ...))))
+  (lambda (x)
+    (syntax-case x ()
+      ((k "define" (tag pred)) 
+       #'(define-record-type tag
+	   (parent rss-simple)
+	   (protocol (lambda (p)
+		       (lambda (attr item)
+			 (unless (and (list? item) (pred (car item)))
+			   (assertion-violation 'tag "unexpected object"
+						item pred))
+			 ((p attr (car item))))))))
+      ((k "define" tag) #'(k "define" (tag string?)))
+      ((k tag ...)      #'(begin (k "define" tag) ...)))))
 
 (define-single-value-tags
   title
@@ -82,7 +134,10 @@
   (height integer?)
   ;; FIXME i don't how it should look like...
   rating
-  name)
+  name
+  language
+  copyright
+  url)
 
 (define (maybe pred . check)
   (if (null? check)
@@ -93,25 +148,35 @@
 (define (not-pred p c) (not (p c)))
 (define (maybe-composite . preds)
   (define maybe-preds (map maybe preds))
-  (lambda items (null? (filter-map not-pred maybe-preds items))))
+  (lambda (items) (null? (filter-map not-pred maybe-preds items))))
+(define (apply-assertion-protocol pred)
+  (lambda (n)
+    (lambda (attrs item)
+      (unless (pred item)
+	(assertion-violation 'rss "unexpected object" item pred))
+      (apply (n attrs) item))))
 (define-syntax define-rss/attribute
   (syntax-rules ()
     ((_ "emit" tag ((attr pred) ...))
      (define-record-type tag
        (fields attr ...)
        (parent attributed-object)
-       (protocol (assertion-protocol (maybe-composite pred ...)))))
+       (protocol (apply-assertion-protocol (maybe-composite pred ...)))))
     ((k "collect" tag (result ...) ())
-     (k "emit" tag (result ...)))
+     (define-rss/attribute
+       "emit" tag (result ...)))
     ((k "collect" tag (result ...) ((attr pred) next ...))
-     (k "collect" tag (result ... (attr pred)) (next ...)))
+     (define-rss/attribute
+       "collect" tag (result ... (attr pred)) (next ...)))
     ((k "collect" tag (result ...) (attr next ...))
-     (k "collect" tag (result ... (attr string?)) (next ...)))
-    ((k tag attrs ...) (k "collect" tag () (attrs ...))))
+     (define-rss/attribute 
+       "collect" tag (result ... (attr string?)) (next ...)))
+    ((k tag attrs ...) (define-rss/attribute "collect" tag () (attrs ...)))))
 (define-rss/attribute cloud domain port path register-procedure protocol)
 (define-rss/attribute guid (permalink? boolean?))
 (define-rss/attribute category domain)
 (define-rss/attribute source url)
+(define-rss/attribute enclosure url length type)
 
 (define item-predicate
   (maybe-composite title?
@@ -124,7 +189,7 @@
 		   guid?
 		   pub-date?
 		   source?))
-(define (item-contents . contents)
+(define (item-contents contents)
   (define (title/description? c) (or (title? c) (description? c)))
   (and (exists title/description? contents)
        (item-predicate contents)))
@@ -141,14 +206,17 @@
 	  pub-date
 	  source)
   (parent attributed-object)
-  (protocol (assertion-protocol item-contents)))
+  (protocol (apply-assertion-protocol item-contents)))
 
 (define-record-type image
   (fields url title link width height description)
-  (parent attributed-object))
+  (parent attributed-object)
+  ;; TODO proper predicate
+  (protocol (apply-assertion-protocol values)))
 (define-record-type text-input
   (fields title description name link)
-  (parent attributed-object))
+  (parent attributed-object)
+  (protocol (apply-assertion-protocol values)))
 
 (define channel-predicates
   (list title?
@@ -170,8 +238,8 @@
 	(maybe text-input?)
 	(maybe skip-hours?)
 	(maybe skip-days?)
-	(maybe item null?)))
-(define (channel-contents . contents)
+	(maybe (lambda (items) (for-all item? items)) null?)))
+(define (channel-contents contents)
   (null? (filter-map not-pred channel-predicates contents)))
     
 (define-record-type channel
@@ -197,15 +265,16 @@
 	  skip-days
 	  item)
   (parent attributed-object)
-  (protocol (assertion-protocol channel-contents)))
+  (protocol (apply-assertion-protocol channel-contents)))
 
 (define-record-type (<rss> make-rss rss?)
   (fields channel)
   (parent attributed-object)
-  (protocol (assertion-protocol channel?)))
-
-(define (channel-content-builder attr content)
-  
+  (protocol (lambda (n)
+	      (lambda (attrs item)
+		(unless (channel? (car item))
+		  (assertion-violation 'channel "unexpected object" item))
+		((n attrs) (car item))))))
 
 (define rss-builder
   (sxml-object-builder
@@ -232,14 +301,27 @@
 	  (? width make-width)
 	  (? height make-height)
 	  (? description make-description))
-	(? rating make-rating)
-	(? textInput make-text-input
-	   (title make-title)
-	   (description make-description)
-	   (name make-name)
-	   (link make-link))
-	(? skipHours make-skip-hours)
-	(? skipDays make-skip-days)
-	(* item make-item))))))
+       (? rating make-rating)
+       (? textInput make-text-input
+	  (title make-title)
+	  (description make-description)
+	  (name make-name)
+	  (link make-link))
+       (? skipHours make-skip-hours)
+       (? skipDays make-skip-days)
+       (* item make-item
+	  (? title make-title)
+	  (? link make-link)
+	  (? description make-description)
+	  (? author make-author)
+	  (? category make-category)
+	  (? comments make-comments)
+	  (? enclosure make-enclosure)
+	  (? guid make-guid)
+	  (? pubDate make-pub-date)
+	  (? source make-source))))))
 
+;; TODO unknown tag handling
+(define (rss->object sxml) (sxml->object sxml rss-builder))
 )
+
