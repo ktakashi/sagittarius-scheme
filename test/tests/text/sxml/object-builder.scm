@@ -22,17 +22,17 @@
 
 (let ()
   (define grand-child-builder
-    (make-object-builder
+    (make-simple-object-builder
      (lambda (tag) (eq? tag 'grand-child))
      make-grand-child
      #f))
   (define child-builder
-    (make-object-builder
+    (make-simple-object-builder
      (lambda (tag) (eq? tag 'child))
      make-child
      grand-child-builder))
   (define root-builder
-    (make-object-builder
+    (make-simple-object-builder
      (lambda (tag) (eq? tag 'root))
      make-root
      child-builder))
@@ -65,6 +65,20 @@
   (let ((root (sxml->object '(root (child)) root-builder)))
     (test-equal 1 (length (xml-object-contents root)))
     (test-equal '(#t) (map child? (xml-object-contents root))))
+  )
+
+(let ()
+  (define root-builder
+    (sxml-object-builder
+     (root make-root
+       (* child make-child (grand-child make-grand-child)))))
+
+  (test-assert (root? (sxml->object '(root (child (grand-child))
+				       (child (grand-child)))
+				    root-builder)))
+  (let ((root (sxml->object '(root (child) (child)) root-builder)))
+    (test-equal 2 (length (car (xml-object-contents root))))
+    (test-equal '(#t #t) (map child? (car (xml-object-contents root)))))
   )
 
 (test-end)
