@@ -68,7 +68,14 @@
 	    sxml:attr->html
 	    sxml:string->html
 	    sxml:non-terminated-html-tag?
-	    sxml:sxml->html)
+	    sxml:sxml->html
+	    ;; from private
+	    sxml:element?
+	    nodeset?
+	    ntype-names??
+	    ntype??
+	    sxml:filter
+	    as-nodeset)
     (import (rnrs)
 	    (rnrs mutable-pairs)
 	    (core misc)			; for define-macro
