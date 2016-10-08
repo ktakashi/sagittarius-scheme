@@ -90,7 +90,8 @@
     (import (rnrs)
 	    (only (srfi :1) filter-map)
 	    (srfi :19)
-	    (text sxml object-builder))
+	    (text sxml object-builder)
+	    (rfc :5322))
 
 (define-record-type attributed-object
   (fields (immutable attributes rss-attributes)))
@@ -102,36 +103,42 @@
 (define-syntax define-single-value-tags
   (lambda (x)
     (syntax-case x ()
-      ((k "define" (tag pred)) 
+      ((k "define" (tag pred conv)) 
        #'(define-record-type tag
 	   (parent rss-simple)
 	   (protocol (lambda (p)
-		       (lambda (name attr item)
-			 (unless (and (list? item) (pred (car item)))
+		       (case-lambda 
+			((attr item)
+			 (unless (pred item)
 			   (assertion-violation 'tag "unexpected object"
 						item pred))
-			 ((p attr (car item))))))))
-      ((k "define" tag) #'(k "define" (tag string?)))
+			 ((p attr item)))
+			((name attr item)
+			 ((p attr (conv (car item))))))))))
+      ((k "define" tag) #'(k "define" (tag string? values)))
       ((k tag ...)      #'(begin (k "define" tag) ...)))))
 
+(define (rfc822-date->date s)
+  (let-values (((y M d h m s tz dow) (rfc5322-parse-date s)))
+    (make-date 0 s m h d M y (* tz 36))))
 (define-single-value-tags
   title
   link
   description
   managing-editor
   web-master
-  (pub-date date?)
-  (last-build-date date?)
+  (pub-date date? rfc822-date->date)
+  (last-build-date date? rfc822-date->date)
   generator
   docs
-  (ttl integer?)
-  (skip-hours integer?)
+  (ttl integer? string->number)
+  (skip-hours integer? string->number)
   skip-days
   comments
   author
   ;; TODO validate?
-  (width integer?)
-  (height integer?)
+  (width integer? string->number)
+  (height integer? string->number)
   ;; FIXME i don't how it should look like...
   rating
   name
@@ -149,30 +156,62 @@
 (define (maybe-composite . preds)
   (define maybe-preds (map maybe preds))
   (lambda (items) (null? (filter-map not-pred maybe-preds items))))
-(define (apply-assertion-protocol pred)
+(define (composite . conv) (lambda (items) (map conv items)))
+(define (apply-assertion-protocol pred conv)
   (lambda (n)
-    (lambda (name attrs item)
+    (case-lambda 
+     ((name attrs item)
+      (apply (n attrs) (conv item)))
+     ((attrs . item)
       (unless (pred item)
 	(assertion-violation 'rss "unexpected object" item pred))
-      (apply (n attrs) item))))
+      (apply (n attrs) item)))))
 (define-syntax define-rss/attribute
-  (syntax-rules ()
-    ((_ "emit" tag ((attr pred) ...))
-     (define-record-type tag
-       (fields attr ...)
-       (parent attributed-object)
-       (protocol (apply-assertion-protocol (maybe-composite pred ...)))))
-    ((k "collect" tag (result ...) ())
-     (define-rss/attribute
-       "emit" tag (result ...)))
-    ((k "collect" tag (result ...) ((attr pred) next ...))
-     (define-rss/attribute
-       "collect" tag (result ... (attr pred)) (next ...)))
-    ((k "collect" tag (result ...) (attr next ...))
-     (define-rss/attribute 
-       "collect" tag (result ... (attr string?)) (next ...)))
-    ((k tag attrs ...) (define-rss/attribute "collect" tag () (attrs ...)))))
+  (lambda (x)
+    (define (retrievers k name attrs)
+      (define sname (symbol->string (syntax->datum name)))
+      (define (->name attr)
+	(string->symbol
+	 (string-append sname "-" (symbol->string (syntax->datum attr)))))
+      (define (generate attr)
+	(with-syntax ((name (datum->syntax k (->name #'attr)))
+		      (attr attr))
+	  #'(define (name obj) 
+	      (cond ((assq 'attr (rss-attributes obj)) => cadr)
+		    (else #f)))))
+      (let loop ((r '()) (attrs attrs))
+	(syntax-case attrs ()
+	  (() r)
+	  (((attr pred conv) rest ...)
+	   (loop (cons (generate #'attr) r) #'(rest ...)))
+	  ((attr rest ...)
+	   (loop (cons (generate #'attr) r) #'(rest ...))))))
+    (define (collect attrs)
+      (let loop ((r '()) (attrs attrs))
+	(syntax-case attrs ()
+	  (() (reverse r))
+	  (((name p) rest ...) (loop (cons #'name r) #'(rest ...)))
+	  ((name rest ...) (loop (cons #'name r) #'(rest ...))))))
+    (syntax-case x ()
+      ((k name attrs ...)
+       (with-syntax (((attribute-retrievers ...)
+		      (retrievers #'k #'name #'(attrs ...)))
+		     ((attr-names ...) (collect #'(attrs ...))))
+	 #'(begin
+	     (define-record-type name
+	       (parent rss-simple)
+	       (protocol (lambda (n)
+			   (define (convert attrbutes)
+			     (map list attrbutes '(attr-names ...)))
+			   (case-lambda
+			    ((name attributes item) 
+			     ((n attributes) (car item)))
+			    ((value . attributes)
+			     ((n (convert attributes)) value))))))
+	     attribute-retrievers ...))))))
+
 (define-rss/attribute cloud domain port path register-procedure protocol)
+(define (string->boolean s) (string=? "true" s))
 (define-rss/attribute guid (permalink? boolean?))
 (define-rss/attribute category domain)
 (define-rss/attribute source url)
@@ -206,17 +245,17 @@
 	  pub-date
 	  source)
   (parent attributed-object)
-  (protocol (apply-assertion-protocol item-contents)))
+  (protocol (apply-assertion-protocol item-contents values)))
 
 (define-record-type image
   (fields url title link width height description)
   (parent attributed-object)
   ;; TODO proper predicate
-  (protocol (apply-assertion-protocol values)))
+  (protocol (apply-assertion-protocol values values)))
 (define-record-type text-input
   (fields title description name link)
   (parent attributed-object)
-  (protocol (apply-assertion-protocol values)))
+  (protocol (apply-assertion-protocol values values)))
 
 (define channel-predicates
   (list title?
@@ -265,16 +304,19 @@
 	  skip-days
 	  item)
   (parent attributed-object)
-  (protocol (apply-assertion-protocol channel-contents)))
+  (protocol (apply-assertion-protocol channel-contents values)))
 
 (define-record-type (<rss> make-rss rss?)
   (fields channel)
   (parent attributed-object)
   (protocol (lambda (n)
-	      (lambda (name attrs item)
-		(unless (channel? (car item))
+	      (case-lambda 
+	       ((attrs item)
+		(unless (channel? item)
 		  (assertion-violation 'channel "unexpected object" item))
-		((n attrs) (car item))))))
+		((n attrs) item))
+	       ((name attrs item)
+		((n attrs) (car item)))))))
 
 (define rss-builder
   (sxml-object-builder
@@ -300,13 +342,15 @@
 	  (link make-link)
 	  (? width make-width)
 	  (? height make-height)
-	  (? description make-description))
+	  (? description make-description)
+	  #;(* (?? values) make-xml-object))
        (? rating make-rating)
        (? textInput make-text-input
 	  (title make-title)
 	  (description make-description)
 	  (name make-name)
-	  (link make-link))
+	  (link make-link)
+	  #;(* (?? values) make-xml-object))
        (? skipHours make-skip-hours)
        (? skipDays make-skip-days)
        (* item make-item
@@ -319,7 +363,9 @@
 	  (? enclosure make-enclosure)
 	  (? guid make-guid)
 	  (? pubDate make-pub-date)
-	  (? source make-source))))))
+	  (? source make-source)
+	  #;(* (?? values) make-xml-object))
+       #;(* (?? values) make-xml-object)))))
 
 ;; TODO unknown tag handling
 (define (rss->object sxml) (sxml->object sxml rss-builder))
