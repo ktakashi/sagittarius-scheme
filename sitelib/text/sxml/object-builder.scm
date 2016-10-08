@@ -81,7 +81,7 @@
   (define (build-set-object sxml builder handler)
     (define builders (set-object-builder-object-builders builder))
     (define (find-builder builders tag)
-      (define (check-tag s) (eq? (if (pair? s) (cadr s) s) tag))
+      (define (check-tag s) (eq? (cadr s) tag))
       (cond ((assp check-tag builders) => cdr)
 	    (else #f)))
     ;; FIXME There must be a better way to do it
@@ -92,21 +92,25 @@
       (define index-table (make-eqv-hashtable))
       (define order-table (make-eq-hashtable))
       (define (try-set! vec where object)
-	(if (and (pair? where) (memq (cdr where) '(* +)))
+	(if (caddr where)
+	    (let ((index (car where)))
+	      (when (vector-ref vec index)
+		(assertion-violation 'sxml->object "Too many objects" object))
+	      (vector-set! vec index (vector object)))
 	    (if (vector-ref vec (car where))
 		(let ((box (vector-ref vec (car where))))
 		  (vector-set! box 0 (cons object (vector-ref box 0))))
-		(vector-set! vec (car where) (vector (list object))))
-	    (let ((index (if (pair? where) (car where) where)))
-	      (when (vector-ref vec index)
-		(assertion-violation 'sxml->object "Too many object" object))
-	      (vector-set! vec index (vector object)))))
+		(vector-set! vec (car where) (vector (list object))))))
       ;; check if the box can be #f
       (define (box-ref box index)
-	(if box
-	    (vector-ref box 0)
-	    (let ((tag (hashtable-ref index-table index #f)))
-	      (if (and (pair? tag) (memq (car tag) '(* ?)))
+	(let ((tag (hashtable-ref index-table index #f)))
+	  (if box
+	      (let ((v (vector-ref box 0))
+		    (required (cadr (car tag))))
+		(unless (or (not required) (<= (length v) required))
+		  (assertion-violation 'sxml->object "Too many objects" tag v))
+		v)
+	      (if (zero? (caar tag))
 		  #f
 		  (assertion-violation 'sxml->object
 				       "Required element is missing" tag)))))
@@ -114,9 +118,7 @@
       (do ((i 0 (+ i 1)))
 	  ((= i len))
 	(let ((tag (car (vector-ref builder-vec i))))
-	  (if (pair? tag)
-	      (hashtable-set! order-table (cadr tag) (cons i (car tag)))
-	      (hashtable-set! order-table tag i))
+	  (hashtable-set! order-table (cadr tag) (cons i (car tag)))
 	  (hashtable-set! index-table i tag)))
       (for-each (lambda (object)
 		  (let ((tag (car object))
@@ -161,43 +163,26 @@
        (make-set-object-builder '(tag ...)
 	 (sxml-object-builder-helper tag ctr next)
 	 ...))
-      ;; FIXME duplication. maybe we should write this with syntax-case
       ;; ?
-      ((_ "parse" (tcn ...) ((? tag ctr) next ...))
-       (sxml-set-object-builder "parse"
-	(tcn ... ((? tag) ctr (sxml-object-builder)))
-	(next ...)))
       ((_ "parse" (tcn ...) ((? tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((? tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((0 1) tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       ;; *
-      ((_ "parse" (tcn ...) ((* tag ctr) next ...))
-       (sxml-set-object-builder "parse"
-	(tcn ... ((* tag) ctr (sxml-object-builder)))
-	(next ...)))
       ((_ "parse" (tcn ...) ((* tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((* tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((0 #f) tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       ;; +
-      ((_ "parse" (tcn ...) ((+ tag ctr) next ...))
-       (sxml-set-object-builder "parse"
-	(tcn ... ((+ tag) ctr (sxml-object-builder)))
-	(next ...)))
       ((_ "parse" (tcn ...) ((+ tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... ((+ tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((1 #f) tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
       
-      ((_ "parse" (tcn ...) ((tag ctr) next ...))
+      ((_ "parse" (tcn ...) ((tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... (tag ctr (sxml-object-builder)))
+	(tcn ... (((1 1) tag) ctr (sxml-object-builder nb ...)))
 	(next ...)))
-      ((_ "parse" (tcn ...) ((tag ctr nb) next ...))
-       (sxml-set-object-builder "parse"
-	(tcn ... (tag ctr (sxml-object-builder nb)))
-	(next ...)))		
       ((_ specs ...)
        (sxml-set-object-builder "parse" () (specs ...)))))
   
