@@ -8,7 +8,7 @@
   (fields tag attr contents))
 (define (make-protocol tag)
   (lambda (n)
-    (lambda (attr content)
+    (lambda (name attr content)
       ((n tag attr content)))))
 (define-record-type root
   (parent xml-object)

@@ -106,7 +106,7 @@
        #'(define-record-type tag
 	   (parent rss-simple)
 	   (protocol (lambda (p)
-		       (lambda (attr item)
+		       (lambda (name attr item)
 			 (unless (and (list? item) (pred (car item)))
 			   (assertion-violation 'tag "unexpected object"
 						item pred))
@@ -151,7 +151,7 @@
   (lambda (items) (null? (filter-map not-pred maybe-preds items))))
 (define (apply-assertion-protocol pred)
   (lambda (n)
-    (lambda (attrs item)
+    (lambda (name attrs item)
       (unless (pred item)
 	(assertion-violation 'rss "unexpected object" item pred))
       (apply (n attrs) item))))
@@ -271,7 +271,7 @@
   (fields channel)
   (parent attributed-object)
   (protocol (lambda (n)
-	      (lambda (attrs item)
+	      (lambda (name attrs item)
 		(unless (channel? (car item))
 		  (assertion-violation 'channel "unexpected object" item))
 		((n attrs) (car item))))))

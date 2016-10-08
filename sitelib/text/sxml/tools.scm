@@ -8,7 +8,7 @@
 	    sxml:attr-as-list
 	    sxml:aux-list-node
 	    sxml:aux-as-list
-	    sxml:find-name-separator
+	    ;; sxml:find-name-separator
 	    sxml:error
 	    sxml:empty-element?
 	    sxml:shallow-normalized?
@@ -172,7 +172,6 @@
        ((negative? pos) #f) 	
        ((char=? #\: (string-ref name pos)) pos)
        (else (rpt (-- pos))))))
-  
 
 ; sxml error message
 (define (sxml:error . messages)

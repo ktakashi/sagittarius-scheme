@@ -32,11 +32,15 @@
     (export sxml->object ? * +
 	    ;; object->sxml
 
+	    ;; XML object
+	    xml-object xml-object? make-xml-object
+	    xml-object-name xml-object-attribute xml-object-contents 
+
 	    sxml-object-builder
 
 	    object-builder object-builder?
 	    make-simple-object-builder simple-object-builder?
-	    make-set-object-builder set-object-builder? 
+	    make-set-object-builder set-object-builder?
 	    )
     (import (rnrs)
 	    (text sxml tools))
@@ -71,9 +75,11 @@
     (define next-builder (simple-object-builder-next-builder builder))
     (cond ((sxml:element? sxml)
 	   (let ((content (sxml:content sxml))
-		 (attrs   (sxml:attr-list sxml)))
-	     (if (check-tag? (sxml:name sxml))
-		 (->object attrs (sxml->object content next-builder handler))
+		 (attrs   (sxml:attr-list sxml))
+		 (name    (sxml:name sxml)))
+	     (if (check-tag? name)
+		 (->object name attrs 
+			   (sxml->object content next-builder handler))
 		 (handler builder sxml))))
 	  (else (map (lambda (c) (sxml->object c builder))
 		     (sxml:content sxml)))))
