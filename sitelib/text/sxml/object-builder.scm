@@ -29,18 +29,20 @@
 ;;;  
 
 (library (text sxml object-builder)
-    (export sxml->object ? * +
+    (export sxml->object ? * + ?? <!>
 	    ;; object->sxml
 
 	    ;; XML object
 	    xml-object xml-object? make-xml-object
-	    xml-object-name xml-object-attribute xml-object-contents 
+	    xml-object-name xml-object-attributes xml-object-contents
+	    sxml->xml-object
 
 	    sxml-object-builder
 
 	    object-builder object-builder?
 	    make-simple-object-builder simple-object-builder?
 	    make-set-object-builder set-object-builder?
+	    make-recursive-object-builder recursive-object-builder?
 	    )
     (import (rnrs)
 	    (text sxml tools))
@@ -52,7 +54,8 @@
   (define-record-type simple-object-builder
     (fields tag?
 	    >object
-	    next-builder)
+	    (mutable next-builder simple-object-builder-next-builder
+		     %simple-object-builder-next-builder-set!))
     (parent object-builder)
     (protocol (lambda (n)
 		(lambda (tag? ->object next-builder)
@@ -65,6 +68,16 @@
 		  ((n build-set-object)
 		   (map cons accept-tags object-builders))))))
   
+  (define-record-type recursive-object-builder
+    (parent simple-object-builder)
+    (protocol (lambda (n)
+		(lambda (sob)
+		  (define tag? (simple-object-builder-tag? sob))
+		  (define ->object (simple-object-builder->object sob))
+		  (let ((r ((n tag? ->object #f))))
+		    (%simple-object-builder-next-builder-set! r r)
+		    r)))))
+
   (define (default-unknown-tag-handler builder sxml)
     (assertion-violation 'sxml->object "unknown tag" sxml builder))
 
@@ -81,7 +94,8 @@
 		 (->object name attrs 
 			   (sxml->object content next-builder handler))
 		 (handler builder sxml))))
-	  (else (map (lambda (c) (sxml->object c builder))
+	  ((string? sxml) sxml)
+	  (else (map (lambda (c) (sxml->object c builder handler))
 		     (sxml:content sxml)))))
 
   (define (build-set-object sxml builder handler)
@@ -155,18 +169,20 @@
 	  (else (rec sxml builder))))
 
   (define-syntax ? (syntax-rules ()))
+  (define-syntax ?? (syntax-rules ()))
+  (define-syntax <!> (syntax-rules ()))
   
   (define-syntax sxml-object-builder-helper
-    (syntax-rules ()
-      ((_ (ignore tag) ctr next)
-       (make-simple-object-builder (lambda (t) (eq? t 'tag)) ctr next))
+    (syntax-rules (??)
+      ((_ (?? pred) ctr next)
+       (make-simple-object-builder pred ctr next))
       ((_ tag ctr next)
-       (make-simple-object-builder (lambda (t) (eq? t 'tag)) ctr next))))
+       (sxml-object-builder-helper (?? (lambda (t) (eq? t 'tag))) ctr next))))
 
   (define-syntax sxml-set-object-builder
     (syntax-rules (? * +)
-      ((_ "parse" ((tag ctr next) ...) ())
-       (make-set-object-builder '(tag ...)
+      ((_ "parse" (((count tag) ctr next) ...) ())
+       (make-set-object-builder '((count tag) ...)
 	 (sxml-object-builder-helper tag ctr next)
 	 ...))
       ;; ?
@@ -193,14 +209,27 @@
        (sxml-set-object-builder "parse" () (specs ...)))))
   
   (define-syntax sxml-object-builder
-    (syntax-rules (* ? +)
+    (syntax-rules (* ? + <!>)
       ((_) #f)
       ((_ (* spec ...)) (sxml-set-object-builder (* spec ...)))
       ((_ (? spec ...)) (sxml-object-builder (spec ...)))
       ((_ (+ spec ...)) (sxml-set-object-builder (+ spec ...)))
+      ((_ (<!> tag builder))
+       (make-recursive-object-builder
+	(sxml-object-builder-helper tag builder #f)))
       ((_ (tag ctr . next))
        (sxml-object-builder-helper tag ctr (sxml-object-builder . next)))
       ((_ builder) builder)
       ((_ spec specs ...) (sxml-set-object-builder spec specs ...))))
+
+  ;; XML object
+  (define-record-type xml-object
+    (fields name attributes contents))
+  (define xml-object-builder
+    (sxml-object-builder
+     (<!> (?? values) make-xml-object)))
+
+  (define (sxml->xml-object sxml . maybe-handler)
+    (apply sxml->object sxml xml-object-builder maybe-handler))
   
   )

@@ -4,8 +4,6 @@
 
 (test-begin "SXML to Scheme object")
 
-(define-record-type xml-object
-  (fields tag attr contents))
 (define (make-protocol tag)
   (lambda (n)
     (lambda (name attr content)
@@ -80,5 +78,21 @@
     (test-equal 2 (length (car (xml-object-contents root))))
     (test-equal '(#t #t) (map child? (car (xml-object-contents root)))))
   )
+
+(let ()
+  (define sxml
+    '(*TOP* (*PI* xml "version=\"1.0\"")
+	    (tag (@ (attr "val"))
+		 "foo"
+		 (tag (@) "bar"))))
+  (test-assert (xml-object? (sxml->xml-object sxml)))
+  (let ((o (sxml->xml-object sxml)))
+    (test-equal 'tag (xml-object-name o))
+    (test-equal 2 (length (xml-object-contents o)))
+    (test-equal '((attr "val")) (xml-object-attributes o))
+    (let ((c (cadr (xml-object-contents o))))
+      (test-equal 'tag (xml-object-name c))
+      (test-equal 1 (length (xml-object-contents c)))
+      (test-equal '("bar") (xml-object-contents c)))))
 
 (test-end)
