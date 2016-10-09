@@ -131,15 +131,17 @@
 	#f)
       (map (lambda (v b) (if v (vector-ref v 0) (check-required b)))
 	   (vector->list objects) builders))
-
     (let loop ((contents (sxml:content sxml)))
       (if (null? contents)
 	  (retrieve-objects)
 	  (let ((tag (sxml:name (car contents))))
 	    (let-values (((conf index) (find-builder builders tag)))
-	      (let ((object (sxml->object (car contents) (car conf) handler)))
-		(set-in-order tag object index (cddr conf))
-		(loop (cdr contents))))))))
+	      (if conf
+		  (let ((object (sxml->object (car contents) 
+					      (car conf) handler)))
+		    (set-in-order tag object index (cddr conf))
+		    (loop (cdr contents)))
+		  (handler builder sxml)))))))
 
   ;; API
   (define (sxml->object sxml builder . opt)

@@ -332,7 +332,7 @@
        (? pubDate make-pub-date)
        (? lastBuildDate make-last-build-date)
        (? category make-category)
-       (? generactor make-generator)
+       (? generator make-generator)
        (? docs make-docs)
        (? cloud make-cloud)
        (? ttl make-ttl)
