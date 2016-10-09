@@ -64,9 +64,9 @@
     (fields object-builders)
     (parent object-builder)
     (protocol (lambda (n)
-		(lambda (accept-tags . object-builders)
-		  ((n build-set-object)
-		   (map cons accept-tags object-builders))))))
+		;; ((builder pred min max) ...)
+		(lambda (object-builders)
+		  ((n build-set-object) object-builders)))))
   
   (define-record-type recursive-object-builder
     (parent simple-object-builder)
@@ -100,63 +100,46 @@
 
   (define (build-set-object sxml builder handler)
     (define builders (set-object-builder-object-builders builder))
+    (define len (length builders))
+    (define objects (make-vector len #f))
     (define (find-builder builders tag)
-      (define (check-tag s) (eq? (cadr s) tag))
-      (cond ((assp check-tag builders) => cdr)
-	    (else #f)))
-    ;; FIXME There must be a better way to do it
-    (define (order-objects objects)
-      (define builder-vec (list->vector builders))
-      (define len (vector-length builder-vec))
-      (define vec (make-vector len #f))
-      (define index-table (make-eqv-hashtable))
-      (define order-table (make-eq-hashtable))
-      (define (try-set! vec where object)
-	(if (caddr where)
-	    (let ((index (car where)))
-	      (when (vector-ref vec index)
-		(assertion-violation 'sxml->object "Too many objects" object))
-	      (vector-set! vec index (vector object)))
-	    (if (vector-ref vec (car where))
-		(let ((box (vector-ref vec (car where))))
-		  (vector-set! box 0 (cons object (vector-ref box 0))))
-		(vector-set! vec (car where) (vector (list object))))))
-      ;; check if the box can be #f
-      (define (box-ref box index)
-	(let ((tag (hashtable-ref index-table index #f)))
-	  (if box
-	      (let ((v (vector-ref box 0))
-		    (required (cadr (car tag))))
-		(unless (or (not required) (<= (length v) required))
-		  (assertion-violation 'sxml->object "Too many objects" tag v))
-		v)
-	      (if (zero? (caar tag))
-		  #f
-		  (assertion-violation 'sxml->object
-				       "Required element is missing" tag)))))
-      ;; init tables
-      (do ((i 0 (+ i 1)))
-	  ((= i len))
-	(let ((tag (car (vector-ref builder-vec i))))
-	  (hashtable-set! order-table (cadr tag) (cons i (car tag)))
-	  (hashtable-set! index-table i tag)))
-      (for-each (lambda (object)
-		  (let ((tag (car object))
-			(object (cdr object)))
-		    (cond ((hashtable-ref order-table tag #f) =>
-			   (lambda (where) (try-set! vec where object)))
-			  (else (handler builder sxml)))))
-		objects)
-      (do ((i 0 (+ i 1)) (r '() (cons (box-ref (vector-ref vec i) i) r)))
-	  ((= i len) (reverse r))))
+      (let loop ((builders builders) (index 0))
+	(if (null? builders)
+	    (values #f #f)
+	    (let ((pred (cadar builders)))
+	      (if (pred tag)
+		  (values (car builders) index)
+		  (loop (cdr builders) (+ index 1)))))))
 
-    (let loop ((contents (sxml:content sxml)) (objects '()))
+    (define (set-in-order who o index min&max)
+      (define min (car min&max))
+      (define max (cadr min&max))
+      (cond ((vector-ref objects index) =>
+	     (lambda (box)
+	       (let ((v* (vector-ref box 0)))
+		 (if (or (not max) (<= (length v*) max))
+		     (vector-set! box 0 (cons o v*))
+		     (assertion-violation who "Too many elements" o sxml)))))
+	    (else
+	     (vector-set! objects index `#(,(if (eqv? max 1) o (list o)))))))
+
+    (define (retrieve-objects)
+      (define (check-required conf)
+	(unless (zero? (caddr conf))
+	  (assertion-violation 'sxml->object "Required element is missing"
+			       (cadr conf)))
+	#f)
+      (map (lambda (v b) (if v (vector-ref v 0) (check-required b)))
+	   (vector->list objects) builders))
+
+    (let loop ((contents (sxml:content sxml)))
       (if (null? contents)
-	  (order-objects objects)
-	  (let* ((tag (sxml:name (car contents)))
-		 (object (sxml->object (car contents)
-				       (find-builder builders tag) handler)))
-	    (loop (cdr contents) (cons (cons tag object) objects))))))
+	  (retrieve-objects)
+	  (let ((tag (sxml:name (car contents))))
+	    (let-values (((conf index) (find-builder builders tag)))
+	      (let ((object (sxml->object (car contents) (car conf) handler)))
+		(set-in-order tag object index (cddr conf))
+		(loop (cdr contents))))))))
 
   ;; API
   (define (sxml->object sxml builder . opt)
@@ -172,19 +155,23 @@
   (define-syntax ?? (syntax-rules ()))
   (define-syntax <!> (syntax-rules ()))
   
+  (define-syntax sxml-object-builder-predicate
+    (syntax-rules (??)
+      ((_ (?? pred)) pred)
+      ((_ tag) (let ((tag (lambda (t) (eq? t 'tag)))) tag))))
   (define-syntax sxml-object-builder-helper
     (syntax-rules (??)
-      ((_ (?? pred) ctr next)
-       (make-simple-object-builder pred ctr next))
       ((_ tag ctr next)
-       (sxml-object-builder-helper (?? (lambda (t) (eq? t 'tag))) ctr next))))
+       (make-simple-object-builder 
+	(sxml-object-builder-predicate tag) ctr next))))
 
   (define-syntax sxml-set-object-builder
     (syntax-rules (? * +)
       ((_ "parse" (((count tag) ctr next) ...) ())
-       (make-set-object-builder '((count tag) ...)
-	 (sxml-object-builder-helper tag ctr next)
-	 ...))
+       (make-set-object-builder 
+	(list (cons* (sxml-object-builder-helper tag ctr next)
+		     (sxml-object-builder-predicate tag)
+		     'count) ...)))
       ;; ?
       ((_ "parse" (tcn ...) ((? tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
