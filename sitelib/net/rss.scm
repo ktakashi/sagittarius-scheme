@@ -28,6 +28,22 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
+(library (net rss helper)
+    (export make-name
+	    make-build
+	    make-make
+	    make-record-name)
+    (import (rnrs))
+
+(define (make-name k prefix name)
+  (datum->syntax k
+   (string->symbol 
+    (string-append prefix (symbol->string (syntax->datum name))))))
+(define (make-build k name) (make-name k "rss:" name))
+(define (make-make k name) (make-name k "make-rss-" name))
+(define (make-record-name k name) (make-name k "rss-" name))
+
+)
 ;; reference: http://cyber.harvard.edu/rss/rss.html
 (library (net rss)
     (export sxml->rss-object
@@ -35,88 +51,89 @@
 	    ;; RSS objects
 	    (rename (attributed-object? rss-object?)) rss-attribute
 	    rss-simple? rss-simple-content
-	    title? make-title
-	    link? make-link
-	    description? make-description
-	    managing-editor? make-managing-editor
-	    web-master? make-web-master
-	    pub-date? make-pub-date
-	    last-build-date? make-last-build-date
-	    generator? make-generator
-	    docs? make-docs
-	    ttl? make-ttl
-	    skip-hours? make-skip-hours
-	    skip-days? make-skip-days
-	    comments? make-comments
-	    author? make-author
-	    width? make-width
-	    height? make-height
-	    rating? make-rating
-	    name? make-name
-	    language? make-language
-	    copyright? make-copyright
-	    url? make-url
+	    rss-title? make-rss-title
+	    rss-link? make-rss-link
+	    rss-description? make-rss-description
+	    rss-managing-editor? make-rss-managing-editor
+	    rss-web-master? make-rss-web-master
+	    rss-pub-date? make-rss-pub-date
+	    rss-last-build-date? make-rss-last-build-date
+	    rss-generator? make-rss-generator
+	    rss-docs? make-rss-docs
+	    rss-ttl? make-rss-ttl
+	    rss-skip-hours? make-rss-skip-hours
+	    rss-skip-days? make-rss-skip-days
+	    rss-comments? make-rss-comments
+	    rss-author? make-rss-author
+	    rss-width? make-rss-width
+	    rss-height? make-rss-height
+	    rss-rating? make-rss-rating
+	    rss-name? make-rss-name
+	    rss-language? make-rss-language
+	    rss-copyright? make-rss-copyright
+	    rss-url? make-rss-url
 	    
-	    cloud? make-cloud cloud-domain cloud-port cloud-path
-	    cloud-register-procedure cloud-protocol
-	    guid? make-guid guid-permalink?
-	    category? make-category category-domain
-	    source? make-source source-url
-	    enclosure? make-enclosure enclosure-url enclosure-length
-	    enclosure-type
+	    rss-cloud? make-rss-cloud rss-cloud-domain rss-cloud-port 
+	    rss-cloud-path rss-cloud-register-procedure rss-cloud-protocol
+	    rss-guid? make-rss-guid rss-guid-permalink?
+	    rss-category? make-rss-category rss-category-domain
+	    rss-source? make-rss-source rss-source-url
+	    rss-enclosure? make-rss-enclosure rss-enclosure-url 
+	    rss-enclosure-length rss-enclosure-type
 
 	    ;; containers
 	    rss-container? rss-container-extensions
 	    rss-container-extensions-set!
-	    image? make-image
-	    image-url         image-url-set!
-	    image-title	      image-title-set!
-	    image-link	      image-link-set!
-	    image-width	      image-width-set!
-	    image-height      image-height-set!
-	    image-description image-description-set!
+	    rss-image? make-rss-image
+	    rss-image-url         rss-image-url-set!
+	    rss-image-title       rss-image-title-set!
+	    rss-image-link        rss-image-link-set!
+	    rss-image-width       rss-image-width-set!
+	    rss-image-height      rss-image-height-set!
+	    rss-image-description rss-image-description-set!
 
-	    text-input? make-text-input
-	    text-input-title       text-input-title-set!
-	    text-input-description text-input-description-set!
-	    text-input-name	   text-input-name-set!
-	    text-input-link        text-input-link-set!
+	    rss-text-input? make-rss-text-input
+	    rss-text-input-title       rss-text-input-title-set!
+	    rss-text-input-description rss-text-input-description-set!
+	    rss-text-input-name	       rss-text-input-name-set!
+	    rss-text-input-link        rss-text-input-link-set!
 
-	    item? make-item
-	    item-title       item-title-set!
-	    item-link	     item-link-set!
-	    item-description item-description-set!
-	    item-author	     item-author-set!
-	    item-category    item-category-set!
-	    item-comments    item-comments-set!
-	    item-enclosure   item-enclosure-set!
-	    item-guid	     item-guid-set!
-	    item-pub-date    item-pub-date-set!
-	    item-source      item-source-set!
+	    rss-item? make-rss-item
+	    rss-item-title       rss-item-title-set!
+	    rss-item-link        rss-item-link-set!
+	    rss-item-description rss-item-description-set!
+	    rss-item-author      rss-item-author-set!
+	    rss-item-category    rss-item-category-set!
+	    rss-item-comments    rss-item-comments-set!
+	    rss-item-enclosure   rss-item-enclosure-set!
+	    rss-item-guid        rss-item-guid-set!
+	    rss-item-pub-date    rss-item-pub-date-set!
+	    rss-item-source      rss-item-source-set!
 
-	    channel? make-channel
-	    channel-title           channel-title-set!
-	    channel-link	    channel-link-set!
-	    channel-description	    channel-description-set!
-	    channel-language	    channel-language-set!
-	    channel-copyright	    channel-copyright-set!
-	    channel-managing-editor channel-managing-editor-set!
-	    channel-web-master	    channel-web-master-set!
-	    channel-pub-date	    channel-pub-date-set!
-	    channel-last-build-date channel-last-build-date-set!
-	    channel-category	    channel-category-set!
-	    channel-generator	    channel-generator-set!
-	    channel-docs	    channel-docs-set!
-	    channel-cloud	    channel-cloud-set!
-	    channel-ttl		    channel-ttl-set!
-	    channel-image	    channel-image-set!
-	    channel-rating	    channel-rating-set!
-	    channel-text-input	    channel-text-input-set!
-	    channel-skip-hours	    channel-skip-hours-set!
-	    channel-skip-days	    channel-skip-days-set!
-	    channel-item            channel-item-set!
+	    rss-channel? make-rss-channel
+	    rss-channel-title           rss-channel-title-set!
+	    rss-channel-link            rss-channel-link-set!
+	    rss-channel-description     rss-channel-description-set!
+	    rss-channel-language        rss-channel-language-set!
+	    rss-channel-copyright       rss-channel-copyright-set!
+	    rss-channel-managing-editor rss-channel-managing-editor-set!
+	    rss-channel-web-master      rss-channel-web-master-set!
+	    rss-channel-pub-date        rss-channel-pub-date-set!
+	    rss-channel-last-build-date rss-channel-last-build-date-set!
+	    rss-channel-category        rss-channel-category-set!
+	    rss-channel-generator       rss-channel-generator-set!
+	    rss-channel-docs            rss-channel-docs-set!
+	    rss-channel-cloud           rss-channel-cloud-set!
+	    rss-channel-ttl             rss-channel-ttl-set!
+	    rss-channel-image           rss-channel-image-set!
+	    rss-channel-rating          rss-channel-rating-set!
+	    rss-channel-text-input      rss-channel-text-input-set!
+	    rss-channel-skip-hours      rss-channel-skip-hours-set!
+	    rss-channel-skip-days       rss-channel-skip-days-set!
+	    rss-channel-item            rss-channel-item-set!
 
-	    rss? make-rss
+	    (rename (rss-rss? rss?) 
+		    (make-rss-rss make-rss))
 
 	    ;; constructors
 	    rss:title
@@ -157,7 +174,8 @@
 	    (only (srfi :1) filter-map split-at iota drop)
 	    (srfi :19)
 	    (text sxml object-builder)
-	    (rfc :5322))
+	    (rfc :5322)
+	    (net rss helper))
 
 (define-record-type attributed-object
   (fields (immutable attributes rss-attributes)))
@@ -167,26 +185,20 @@
   (fields content)
   (parent attributed-object))
 (define-syntax define-single-value-tags
-  (lambda (x)
-    (define (make-name k prefix name)
-      (datum->syntax k
-       (string->symbol 
-	(string-append prefix (symbol->string (syntax->datum name))))))
-    (define (make-build k name) (make-name k "rss:" name))
-    (define (make-make k name) (make-name k "make-" name))
-    
+  (lambda (x)    
     (syntax-case x ()
       ((k "define" (tag pred conv))
        (with-syntax ((builder (make-build #'k #'tag))
-		     (make (make-make #'k #'tag)))
+		     (make (make-make #'k #'tag))
+		     (record-name (make-record-name #'k #'tag)))
 	 #'(begin
-	     (define-record-type tag
+	     (define-record-type record-name
 	       (parent rss-simple)
 	       (protocol (lambda (p)
 			   (case-lambda
 			    ((attr item)
 			     (unless (pred item)
-			       (assertion-violation 'tag "unexpected object"
+			       (assertion-violation 'tag "unexpected object" 
 						    item pred))
 			     ((p attr item)))
 			    ((name attr item)
@@ -234,12 +246,6 @@
 
 (define-syntax define-rss/attribute-builder
   (lambda (x)
-    (define (make-name k prefix name)
-      (datum->syntax k
-       (string->symbol 
-	(string-append prefix (symbol->string (syntax->datum name))))))
-    (define (make-build k name) (make-name k "rss:" name))
-    (define (make-make k name) (make-name k "make-" name))
     (define (count attrs)
       (let loop ((acc 0) (attrs attrs))
 	(syntax-case attrs ()
@@ -283,7 +289,9 @@
     (define (make-getter k sname field attr conv?)
       (define (->name field)
 	(string->symbol
-	 (string-append sname "-" (symbol->string (syntax->datum field)))))
+	 (string-append "rss-" sname "-" 
+			(symbol->string (syntax->datum field)))))
+      (define (make-record-name k name) (make-name k "rss-" name))
       (with-syntax ((name (datum->syntax k (->name field)))
 		    (attr attr))
 	(if conv?
@@ -321,10 +329,11 @@
       ((k name attrs ...)
        (with-syntax ((((attr-names ...) (getters ...) (->sxml ...))
 		      (collect #'k #'name #'(attrs ...)))
+		     (record-name (make-record-name #'k #'name))
 		     (define-rss/attribute-builder
 		       (datum->syntax #'k 'define-rss/attribute-builder)))
 	 #'(begin
-	     (define-record-type name
+	     (define-record-type record-name
 	       (parent rss-simple)
 	       (protocol (lambda (n)
 			   (define converters (list ->sxml ...))
@@ -333,7 +342,7 @@
 			     (map (lambda (n v c) (list n (c v)))
 				  names attrbutes converters))
 			   (case-lambda
-			    ((name attributes item)
+			    ((tag attributes item)
 			     ((n attributes) (car item)))
 			    ((value . attributes)
 			     ((n (convert attributes)) value))))))
@@ -369,7 +378,7 @@
     (define (collect-retrievers k fields)
       (define (make-predicate field)
 	(define sname (symbol->string (syntax->datum field)))
-	(datum->syntax k (string->symbol (string-append sname "?"))))
+	(datum->syntax k (string->symbol (string-append "rss-" sname "?"))))
       (define (make-retriever field)
 	(with-syntax ((pred (make-predicate field)))
 	  #'(lambda (content)
@@ -383,12 +392,7 @@
 	  ((name next ...)
 	   (loop required (cons (list #'name (make-retriever #'name)) optional)
 		 #'(next ...))))))
-    (define (make-name k prefix name)
-      (datum->syntax k
-       (string->symbol 
-	(string-append prefix (symbol->string (syntax->datum name))))))
-    (define (make-build k name) (make-name k "rss:" name))
-    (define (make-make k name) (make-name k "make-" name))
+
     (syntax-case x ()
       ((k name field* ...)
        (with-syntax ((((required ...) ((optional optional-retriever) ...))
@@ -415,7 +419,7 @@
     (define (make-predicates k fields)
       (define (make-predicate field)
 	(define sname (symbol->string (syntax->datum field)))
-	(datum->syntax k (string->symbol (string-append sname "?"))))
+	(datum->syntax k (string->symbol (string-append "rss-" sname "?"))))
       (let loop ((r '()) (fields fields))
 	(syntax-case fields ()
 	  (() (reverse r))
@@ -432,6 +436,7 @@
       ((k name (fields ?field* ...) (validator proc))
        (with-syntax ((((field* predicates) ...)
 		      (make-predicates #'k #'(?field* ...)))
+		     (record-name (make-record-name #'k #'name))
 		     ;; To make accessor visible...
 		     (define-record-type
 		       (datum->syntax #'k 'define-record-type))
@@ -442,7 +447,7 @@
 			    #'(#t (lambda field (let ((v proc)) (v field))))
 			    #'(#f #t))))
 	   #'(begin
-	       (define-record-type name
+	       (define-record-type record-name
 		 (fields (mutable field*) ...)
 		 (parent rss-container)
 		 (protocol
@@ -465,7 +470,7 @@
 	       (define-builder name ?field* ...))))))))
 
 (define (title/description-validator contents)
-  (define (title/description? c) (or (title? c) (description? c)))
+  (define (title/description? c) (or (rss-title? c) (rss-description? c)))
   (unless (exists title/description? contents)
     (assertion-violation 'item "title or description is required" contents)))
 (define-rss/container item
@@ -518,50 +523,50 @@
 
 (define rss-builder
   (sxml-object-builder
-   (rss make-rss
-     (channel make-channel
-       (title make-title)
-       (link make-link)
-       (description make-description)
-       (? language make-language)
-       (? copyright make-copyright)
-       (? managingEditor make-managing-editor)
-       (? webMaster make-web-master)
-       (? pubDate make-pub-date)
-       (? lastBuildDate make-last-build-date)
-       (? category make-category)
-       (? generator make-generator)
-       (? docs make-docs)
-       (? cloud make-cloud)
-       (? ttl make-ttl)
-       (? image make-image
-	  (url make-url)
-	  (title make-title)
-	  (link make-link)
-	  (? width make-width)
-	  (? height make-height)
-	  (? description make-description)
+   (rss make-rss-rss
+     (channel make-rss-channel
+       (title make-rss-title)
+       (link make-rss-link)
+       (description make-rss-description)
+       (? language make-rss-language)
+       (? copyright make-rss-copyright)
+       (? managingEditor make-rss-managing-editor)
+       (? webMaster make-rss-web-master)
+       (? pubDate make-rss-pub-date)
+       (? lastBuildDate make-rss-last-build-date)
+       (? category make-rss-category)
+       (? generator make-rss-generator)
+       (? docs make-rss-docs)
+       (? cloud make-rss-cloud)
+       (? ttl make-rss-ttl)
+       (? image make-rss-image
+	  (url make-rss-url)
+	  (title make-rss-title)
+	  (link make-rss-link)
+	  (? width make-rss-width)
+	  (? height make-rss-height)
+	  (? description make-rss-description)
 	  (* (?? values) make-raw-sxml))
-       (? rating make-rating)
-       (? textInput make-text-input
-	  (title make-title)
-	  (description make-description)
-	  (name make-name)
-	  (link make-link)
+       (? rating make-rss-rating)
+       (? textInput make-rss-text-input
+	  (title make-rss-title)
+	  (description make-rss-description)
+	  (name make-rss-name)
+	  (link make-rss-link)
 	  (* (?? values) make-raw-sxml))
-       (? skipHours make-skip-hours)
-       (? skipDays make-skip-days)
-       (* item make-item
-	  (? title make-title)
-	  (? link make-link)
-	  (? description make-description)
-	  (? author make-author)
-	  (? category make-category)
-	  (? comments make-comments)
-	  (? enclosure make-enclosure)
-	  (? guid make-guid)
-	  (? pubDate make-pub-date)
-	  (? source make-source)
+       (? skipHours make-rss-skip-hours)
+       (? skipDays make-rss-skip-days)
+       (* item make-rss-item
+	  (? title make-rss-title)
+	  (? link make-rss-link)
+	  (? description make-rss-description)
+	  (? author make-rss-author)
+	  (? category make-rss-category)
+	  (? comments make-rss-comments)
+	  (? enclosure make-rss-enclosure)
+	  (? guid make-rss-guid)
+	  (? pubDate make-rss-pub-date)
+	  (? source make-rss-source)
 	  (* (?? values) make-raw-sxml))
        (* (?? values) make-raw-sxml))
      ;; TODO should we?
