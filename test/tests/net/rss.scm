@@ -51,6 +51,10 @@
 			       (make-name '() "link")
 			       (make-link '() "link"))))
 
+(test-assert (guid? (make-guid "guid" #t)))
+(let ((guid (make-guid "guid" #t)))
+  (test-assert (guid-permalink? guid)))
+
 (define rss-text "
  <?xml version=\"1.0\" encoding=\"UTF-8\" ?>
 <rss version=\"2.0\">

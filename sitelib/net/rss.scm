@@ -59,7 +59,7 @@
 
 	    cloud? make-cloud cloud-domain cloud-port cloud-path
 	    cloud-register-procedure cloud-protocol
-	    guid? make-guid guid-parmalink?
+	    guid? make-guid guid-permalink?
 	    category? make-category category-domain
 	    source? make-source source-url
 	    enclosure? make-enclosure enclosure-url enclosure-length
@@ -166,53 +166,72 @@
       (unless (pred item)
 	(assertion-violation 'rss "unexpected object" item pred))
       (apply (n attrs) item)))))
+
 (define-syntax define-rss/attribute
   (lambda (x)
-    (define (retrievers k name attrs)
-      (define sname (symbol->string (syntax->datum name)))
-      (define (->name attr)
+    (define (make-getter k sname field attr conv?)
+      (define (->name field)
 	(string->symbol
-	 (string-append sname "-" (symbol->string (syntax->datum attr)))))
-      (define (generate attr)
-	(with-syntax ((name (datum->syntax k (->name #'attr)))
-		      (attr attr))
-	  #'(define (name obj) 
-	      (cond ((assq 'attr (rss-attributes obj)) => cadr)
-		    (else #f)))))
-      (let loop ((r '()) (attrs attrs))
+	 (string-append sname "-" (symbol->string (syntax->datum field)))))
+      (with-syntax ((name (datum->syntax k (->name field)))
+		    (attr attr))
+	(if conv?
+	    (with-syntax ((conv conv?))
+	      #'(define (name obj)
+		  (cond ((assq 'attr (rss-attributes obj)) =>
+			 (lambda (slot) (conv (cadr slot))))
+			(else #f))))
+	    #'(define (name obj) 
+		(cond ((assq 'attr (rss-attributes obj)) => cadr)
+		      (else #f))))))
+    
+    (define (collect k name attrs)
+      (define sname (symbol->string (syntax->datum name)))
+      (let loop ((n '()) (g '()) (s '()) (attrs attrs))
 	(syntax-case attrs ()
-	  (() r)
-	  (((attr pred conv) rest ...)
-	   (loop (cons (generate #'attr) r) #'(rest ...)))
-	  ((attr rest ...)
-	   (loop (cons (generate #'attr) r) #'(rest ...))))))
-    (define (collect attrs)
-      (let loop ((r '()) (attrs attrs))
-	(syntax-case attrs ()
-	  (() (reverse r))
-	  (((name p) rest ...) (loop (cons #'name r) #'(rest ...)))
-	  ((name rest ...) (loop (cons #'name r) #'(rest ...))))))
+	  (()
+	   (list (reverse n) (reverse g) (reverse s)))
+	  (((field name) rest ...)
+	   (loop (cons #'name n)
+		 (cons (make-getter k sname #'field #'name #f) g)
+		 (cons #'values s)
+		 #'(rest ...)))
+	  (((field name ->scheme ->sxml) rest ...)
+	   (loop (cons #'name n)
+		 (cons (make-getter k sname #'field #'name #'->scheme) g)
+		 (cons #'->sxml s)
+		 #'(rest ...)))
+	  ((name rest ...)
+	   (loop (cons #'name n)
+		 (cons (make-getter k sname #'name #'name #f) g)
+		 (cons #'values s)
+		 #'(rest ...))))))
     (syntax-case x ()
       ((k name attrs ...)
-       (with-syntax (((attribute-retrievers ...)
-		      (retrievers #'k #'name #'(attrs ...)))
-		     ((attr-names ...) (collect #'(attrs ...))))
+       (with-syntax ((((attr-names ...) (getters ...) (->sxml ...))
+		      (collect #'k #'name #'(attrs ...))))
 	 #'(begin
 	     (define-record-type name
 	       (parent rss-simple)
 	       (protocol (lambda (n)
+			   (define converters (list ->sxml ...))
+			   (define names '(attr-names ...))
 			   (define (convert attrbutes)
-			     (map list attrbutes '(attr-names ...)))
+			     (map (lambda (n v c) (list n (c v)))
+				  names attrbutes converters))
 			   (case-lambda
 			    ((name attributes item) 
 			     ((n attributes) (car item)))
 			    ((value . attributes)
 			     ((n (convert attributes)) value))))))
-	     attribute-retrievers ...))))))
+	     getters ...))))))
 
-(define-rss/attribute cloud domain port path register-procedure protocol)
+(define-rss/attribute cloud domain port path
+  (register-procedure registerProcedure) protocol)
 (define (string->boolean s) (string=? "true" s))
-(define-rss/attribute guid (permalink? boolean?))
+(define (boolean->string b) (if b "true" "false"))
+(define-rss/attribute guid
+  (permalink? isPermaLink string->boolean boolean->string))
 (define-rss/attribute category domain)
 (define-rss/attribute source url)
 (define-rss/attribute enclosure url length type)
