@@ -51,9 +51,41 @@
 			       (make-name '() "link")
 			       (make-link '() "link"))))
 
+;; attributes
 (test-assert (guid? (make-guid "guid" #t)))
+(test-error assertion-violation? (make-guid "guid" "true"))
 (let ((guid (make-guid "guid" #t)))
+  (test-equal "guid" (rss-simple-content guid))
   (test-assert (guid-permalink? guid)))
+
+(test-assert (cloud? (make-cloud "cloud" "domain" "22" "/path" "proc" "http")))
+(let ((cloud (make-cloud "cloud" "domain" "22" "/path" "proc" "http")))
+  (test-equal "cloud"  (rss-simple-content cloud))
+  (test-equal "domain" (cloud-domain cloud))
+  (test-equal "22"     (cloud-port cloud))
+  (test-equal "/path"  (cloud-path cloud))
+  (test-equal "proc"   (cloud-register-procedure cloud))
+  (test-equal "http"   (cloud-protocol cloud)))
+
+(test-assert (category? (make-category "category" "domain")))
+(let ((category (make-category "category" "domain")))
+  (test-equal "category" (rss-simple-content category))
+  (test-equal "domain" (category-domain category)))
+
+(test-assert (source? (make-source "source" "url")))
+(let ((source (make-source "source" "url")))
+  (test-equal "source" (rss-simple-content source))
+  (test-equal "url" (source-url source)))
+
+(test-assert (enclosure? (make-enclosure "enclosure" "url" 1024 "type")))
+(test-error assertion-violation?
+	    (make-enclosure "enclosure" "url" "1024" "type"))
+(let ((enclosure (make-enclosure "enclosure" "url" 1024 "type")))
+  (test-equal "enclosure" (rss-simple-content enclosure))
+  (test-equal "url" (enclosure-url enclosure))
+  (test-equal 1024 (enclosure-length enclosure))
+  (test-equal "type" (enclosure-type enclosure)))
+
 
 (define rss-text "
  <?xml version=\"1.0\" encoding=\"UTF-8\" ?>

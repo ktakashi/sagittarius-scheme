@@ -229,12 +229,20 @@
 (define-rss/attribute cloud domain port path
   (register-procedure registerProcedure) protocol)
 (define (string->boolean s) (string=? "true" s))
-(define (boolean->string b) (if b "true" "false"))
+(define (boolean->string b)
+  (unless (boolean? b)
+    (assertion-violation 'make-guid "permlink? must be a boolean value" b))
+  (if b "true" "false"))
 (define-rss/attribute guid
   (permalink? isPermaLink string->boolean boolean->string))
 (define-rss/attribute category domain)
 (define-rss/attribute source url)
-(define-rss/attribute enclosure url length type)
+(define (integer->string i)
+  (unless (integer? i)
+    (assertion-violation 'make-enclosure "length must be a integer value" i))
+  (number->string i))
+(define-rss/attribute enclosure url
+  (length length string->number integer->string) type)
 
 (define item-predicate
   (maybe-composite title?
