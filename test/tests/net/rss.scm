@@ -86,6 +86,19 @@
   (test-equal 1024 (enclosure-length enclosure))
   (test-equal "type" (enclosure-type enclosure)))
 
+(test-assert (item? (make-item '() (make-title '() "title")
+			       #f #f #f #f #f #f #f #f #f)))
+(test-error assertion-violation? (make-item '() #f #f #f #f #f #f #f #f #f #f))
+
+(test-assert (rss?
+	      (make-rss '()
+	       (make-channel '()
+			     (make-title '() "title")
+			     (make-link '() "link")
+			     (make-description '() "description")
+			     #f #f #f #f #f #f #f #f #f #f
+			     #f #f #f #f #f #f #f))))
+(test-error assertion-violation? (make-rss '() #f))
 
 (define rss-text "
  <?xml version=\"1.0\" encoding=\"UTF-8\" ?>

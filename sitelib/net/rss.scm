@@ -1,20 +1,20 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
 ;;; net/rss.scm - RSS 2.0 parser/generator
-;;;  
+;;;
 ;;;   Copyright (c) 2016  Takashi Kato  <ktakashi@ymail.com>
-;;;   
+;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
 ;;;   are met:
-;;;   
+;;;
 ;;;   1. Redistributions of source code must retain the above copyright
 ;;;      notice, this list of conditions and the following disclaimer.
-;;;  
+;;;
 ;;;   2. Redistributions in binary form must reproduce the above copyright
 ;;;      notice, this list of conditions and the following disclaimer in the
 ;;;      documentation and/or other materials provided with the distribution.
-;;;  
+;;;
 ;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 ;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 ;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
@@ -26,7 +26,7 @@
 ;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;;  
+;;;
 
 ;; reference: http://cyber.harvard.edu/rss/rss.html
 (library (net rss)
@@ -65,30 +65,61 @@
 	    enclosure? make-enclosure enclosure-url enclosure-length
 	    enclosure-type
 
-	    image? make-image image-url image-title image-link
-	    image-width image-height image-description
+	    ;; containers
+	    rss-container? rss-container-extensions
+	    rss-container-extensions-set!
+	    image? make-image
+	    image-url         image-url-set!
+	    image-title	      image-title-set!
+	    image-link	      image-link-set!
+	    image-width	      image-width-set!
+	    image-height      image-height-set!
+	    image-description image-description-set!
 
-	    text-input? make-text-input text-input-title text-input-description
-	    text-input-name text-input-link
+	    text-input? make-text-input
+	    text-input-title       text-input-title-set!
+	    text-input-description text-input-description-set!
+	    text-input-name	   text-input-name-set!
+	    text-input-link        text-input-link-set!
 
-	    item? make-item item-title item-link item-description
-	    item-author item-category item-comments item-enclosure
-	    item-guid item-pub-date item-source
+	    item? make-item
+	    item-title       item-title-set!
+	    item-link	     item-link-set!
+	    item-description item-description-set!
+	    item-author	     item-author-set!
+	    item-category    item-category-set!
+	    item-comments    item-comments-set!
+	    item-enclosure   item-enclosure-set!
+	    item-guid	     item-guid-set!
+	    item-pub-date    item-pub-date-set!
+	    item-source      item-source-set!
 
-	    channel? make-channel channel-title channel-link
-	    channel-description channel-language channel-copyright
-	    channel-managing-editor channel-web-master
-	    channel-pub-date channel-last-build-date
-	    channel-category channel-generator channel-docs
-	    channel-cloud channel-ttl channel-image
-	    channel-rating channel-text-input
-	    channel-skip-hours channel-skip-days
-	    channel-item
+	    channel? make-channel
+	    channel-title           channel-title-set!
+	    channel-link	    channel-link-set!
+	    channel-description	    channel-description-set!
+	    channel-language	    channel-language-set!
+	    channel-copyright	    channel-copyright-set!
+	    channel-managing-editor channel-managing-editor-set!
+	    channel-web-master	    channel-web-master-set!
+	    channel-pub-date	    channel-pub-date-set!
+	    channel-last-build-date channel-last-build-date-set!
+	    channel-category	    channel-category-set!
+	    channel-generator	    channel-generator-set!
+	    channel-docs	    channel-docs-set!
+	    channel-cloud	    channel-cloud-set!
+	    channel-ttl		    channel-ttl-set!
+	    channel-image	    channel-image-set!
+	    channel-rating	    channel-rating-set!
+	    channel-text-input	    channel-text-input-set!
+	    channel-skip-hours	    channel-skip-hours-set!
+	    channel-skip-days	    channel-skip-days-set!
+	    channel-item            channel-item-set!
 
 	    rss? make-rss
 	    )
     (import (rnrs)
-	    (only (srfi :1) filter-map)
+	    (only (srfi :1) filter-map split-at)
 	    (srfi :19)
 	    (text sxml object-builder)
 	    (rfc :5322))
@@ -103,11 +134,11 @@
 (define-syntax define-single-value-tags
   (lambda (x)
     (syntax-case x ()
-      ((k "define" (tag pred conv)) 
+      ((k "define" (tag pred conv))
        #'(define-record-type tag
 	   (parent rss-simple)
 	   (protocol (lambda (p)
-		       (case-lambda 
+		       (case-lambda
 			((attr item)
 			 (unless (pred item)
 			   (assertion-violation 'tag "unexpected object"
@@ -159,7 +190,7 @@
 (define (composite . conv) (lambda (items) (map conv items)))
 (define (apply-assertion-protocol pred conv)
   (lambda (n)
-    (case-lambda 
+    (case-lambda
      ((name attrs item)
       (apply (n attrs) (conv item)))
      ((attrs . item)
@@ -181,10 +212,10 @@
 		  (cond ((assq 'attr (rss-attributes obj)) =>
 			 (lambda (slot) (conv (cadr slot))))
 			(else #f))))
-	    #'(define (name obj) 
+	    #'(define (name obj)
 		(cond ((assq 'attr (rss-attributes obj)) => cadr)
 		      (else #f))))))
-    
+
     (define (collect k name attrs)
       (define sname (symbol->string (syntax->datum name)))
       (let loop ((n '()) (g '()) (s '()) (attrs attrs))
@@ -220,7 +251,7 @@
 			     (map (lambda (n v c) (list n (c v)))
 				  names attrbutes converters))
 			   (case-lambda
-			    ((name attributes item) 
+			    ((name attributes item)
 			     ((n attributes) (car item)))
 			    ((value . attributes)
 			     ((n (convert attributes)) value))))))
@@ -244,23 +275,66 @@
 (define-rss/attribute enclosure url
   (length length string->number integer->string) type)
 
-(define item-predicate
-  (maybe-composite title?
-		   link?
-		   description?
-		   author?
-		   category?
-		   comments?
-		   enclosure?
-		   guid?
-		   pub-date?
-		   source?))
-(define (item-contents contents)
-  (define (title/description? c) (or (title? c) (description? c)))
-  (and (exists title/description? contents)
-       (item-predicate contents)))
 
-(define-record-type item
+;; RSS container
+(define-record-type rss-container
+  (parent attributed-object)
+  (fields (mutable extensions)))
+
+(define-syntax define-rss/container
+  (lambda (x)
+    (define (make-predicates k fields)
+      (define (make-predicate field)
+	(define sname (symbol->string (syntax->datum field)))
+	(datum->syntax k (string->symbol (string-append sname "?"))))
+      (let loop ((r '()) (fields fields))
+	(syntax-case fields ()
+	  (() (reverse r))
+	  (((field #t) next ...)
+	   (with-syntax ((pred (make-predicate #'field)))
+	     (loop (cons #'(field pred) r) #'(next ...))))
+	  ((field next ...)
+	   (with-syntax ((pred (make-predicate #'field)))
+	     (loop (cons #'(field (maybe pred)) r) #'(next ...)))))))
+    (syntax-case x (fields validator)
+      ((k name (fields field* ...))
+       #'(k name (fields field* ...) (validator #f)))
+      ((k name (fields field* ...) (validator proc))
+       (with-syntax ((((field* predicates) ...)
+		      (make-predicates #'k #'(field* ...)))
+		     ;; To make accessor visible...
+		     (define-record-type
+		       (datum->syntax #'k 'define-record-type)))
+	 (with-syntax (((has-validate? validate)
+			(if (syntax->datum #'proc)
+			    #'(#t (lambda field (let ((v proc)) (v field))))
+			    #'(#f #t))))
+	 #'(define-record-type name
+	     (fields (mutable field*) ...)
+	     (parent rss-container)
+	     (protocol
+	      (lambda (n)
+		(case-lambda
+		 ((tag attrs contents)
+		  (let-values (((fields extensions)
+				(split-at contents (length '(field* ...)))))
+		    (when has-validate? (apply validate fields))
+		    (let ((p (if (car extensions)
+				 (n attrs (car extensions))
+				 (n attrs '()))))
+		      (apply p fields))))
+		 ((attrs field* ... . extensions)
+		  (unless (and (predicates field*) ...)
+		    (assertion-violation 'name "Invalid field value"
+					 (list field* ...)))
+		  (when has-validate? (validate field* ...))
+		  ((n attrs extensions) field* ...))))))))))))
+
+(define (title/description-validator contents)
+  (define (title/description? c) (or (title? c) (description? c)))
+  (unless (exists title/description? contents)
+    (assertion-violation 'item "title or description is required" contents)))
+(define-rss/container item
   (fields title
 	  link
 	  description
@@ -271,47 +345,17 @@
 	  guid
 	  pub-date
 	  source)
-  (parent attributed-object)
-  (protocol (apply-assertion-protocol item-contents values)))
+  (validator title/description-validator))
 
-(define-record-type image
-  (fields url title link width height description)
-  (parent attributed-object)
-  ;; TODO proper predicate
-  (protocol (apply-assertion-protocol values values)))
-(define-record-type text-input
-  (fields title description name link)
-  (parent attributed-object)
-  (protocol (apply-assertion-protocol values values)))
+(define-rss/container image
+  (fields url title link width height description))
+(define-rss/container text-input
+  (fields title description name link))
 
-(define channel-predicates
-  (list title?
-	link?
-	description?
-	(maybe language?)
-	(maybe copyright?)
-	(maybe managing-editor?)
-	(maybe web-master?)
-	(maybe pub-date?)
-	(maybe last-build-date?)
-	(maybe category?)
-	(maybe generator?)
-	(maybe docs?)
-	(maybe cloud?)
-	(maybe ttl?)
-	(maybe image?)
-	(maybe rating?)
-	(maybe text-input?)
-	(maybe skip-hours?)
-	(maybe skip-days?)
-	(maybe (lambda (items) (for-all item? items)) null?)))
-(define (channel-contents contents)
-  (null? (filter-map not-pred channel-predicates contents)))
-    
-(define-record-type channel
-  (fields title
-	  link
-	  description
+(define-rss/container channel
+  (fields (title #t)
+	  (link #t)
+	  (description #t)
 	  ;; these are optional
 	  language
 	  copyright
@@ -329,26 +373,18 @@
 	  text-input
 	  skip-hours
 	  skip-days
-	  item)
-  (parent attributed-object)
-  (protocol (apply-assertion-protocol channel-contents values)))
+	  item))
 
-(define-record-type (<rss> make-rss rss?)
-  (fields channel)
-  (parent attributed-object)
-  (protocol (lambda (n)
-	      (case-lambda 
-	       ((attrs item)
-		(unless (channel? item)
-		  (assertion-violation 'channel "unexpected object" item))
-		((n attrs) item))
-	       ((name attrs item)
-		((n attrs) (car item)))))))
+(define-rss/container rss
+  (fields (channel #t)))
+
+(define (make-raw-sxml name attr contents)
+  `(,name (@ ,attr) ,@contents))
 
 (define rss-builder
   (sxml-object-builder
    (rss make-rss
-     (channel make-channel 
+     (channel make-channel
        (title make-title)
        (link make-link)
        (description make-description)
@@ -370,14 +406,14 @@
 	  (? width make-width)
 	  (? height make-height)
 	  (? description make-description)
-	  #;(* (?? values) make-xml-object))
+	  (* (?? values) make-raw-sxml))
        (? rating make-rating)
        (? textInput make-text-input
 	  (title make-title)
 	  (description make-description)
 	  (name make-name)
 	  (link make-link)
-	  #;(* (?? values) make-xml-object))
+	  (* (?? values) make-raw-sxml))
        (? skipHours make-skip-hours)
        (? skipDays make-skip-days)
        (* item make-item
@@ -391,10 +427,11 @@
 	  (? guid make-guid)
 	  (? pubDate make-pub-date)
 	  (? source make-source)
-	  #;(* (?? values) make-xml-object))
-       #;(* (?? values) make-xml-object)))))
+	  (* (?? values) make-raw-sxml))
+       (* (?? values) make-raw-sxml))
+     ;; TODO should we?
+     (* (?? values) make-raw-sxml))))
 
-;; TODO unknown tag handling
-(define (rss->object sxml) (sxml->object sxml rss-builder))
+(define (rss->object sxml . maybe-handler)
+  (apply sxml->object sxml rss-builder maybe-handler))
 )
-
