@@ -30,7 +30,7 @@
 
 ;; reference: http://cyber.harvard.edu/rss/rss.html
 (library (net rss)
-    (export rss->object
+    (export sxml->rss-object
 
 	    ;; RSS objects
 	    (rename (attributed-object? rss-object?)) rss-attribute
@@ -378,6 +378,8 @@
 (define-rss/container rss
   (fields (channel #t)))
 
+
+;; SXML->RSS-OBJECT
 (define (make-raw-sxml name attr contents)
   `(,name (@ ,attr) ,@contents))
 
@@ -432,6 +434,6 @@
      ;; TODO should we?
      (* (?? values) make-raw-sxml))))
 
-(define (rss->object sxml . maybe-handler)
+(define (sxml->rss-object sxml . maybe-handler)
   (apply sxml->object sxml rss-builder maybe-handler))
 )

@@ -122,9 +122,7 @@
 
 </rss>")
 
-(rss? (rss->object 
-		    (ssax:xml->sxml (open-string-input-port rss-text) '())))
-(test-assert (rss? (rss->object 
+(test-assert (rss? (sxml->rss-object
 		    (ssax:xml->sxml (open-string-input-port rss-text) '()))))
 
 (test-end)
