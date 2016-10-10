@@ -139,12 +139,21 @@
 	  (assertion-violation 'sxml->object "Required element is missing"
 			       (cadr conf)))
 	#f)
-      (map (lambda (v b) (if v (vector-ref v 0) (check-required b)))
+      (define (check-reverse v conf)
+	(if (eqv? (cadddr conf) 1)
+	    v
+	    (reverse v)))
+      (map (lambda (v b)
+	     (if v
+		 (check-reverse (vector-ref v 0) b)
+		 (check-required b)))
 	   (vector->list objects) builders))
     (let loop ((contents (sxml:content sxml)))
       (if (null? contents)
 	  (retrieve-objects)
-	  (let ((tag (sxml:name (car contents))))
+	  (let ((tag (if (sxml:element? (car contents))
+			 (sxml:name (car contents))
+			 (car contents))))
 	    (let-values (((conf index) (find-builder builders tag)))
 	      (if conf
 		  (let ((object (sxml->object (car contents) 
