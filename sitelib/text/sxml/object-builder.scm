@@ -141,7 +141,10 @@
 					      (car conf) handler)))
 		    (set-in-order tag object index (cddr conf))
 		    (loop (cdr contents)))
-		  (handler builder sxml)))))))
+		  (begin
+		    ;; discards the result if returned
+		    (handler builder (car contents))
+		    (loop (cdr contents)))))))))
 
   ;; API
   (define (sxml->object sxml builder . opt)
