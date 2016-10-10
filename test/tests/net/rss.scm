@@ -100,6 +100,20 @@
 			     #f #f #f #f #f #f #f))))
 (test-error assertion-violation? (make-rss '() #f))
 
+(test-assert (rss?
+	      (rss:rss
+	       (rss:channel
+		(rss:title "title")
+		(rss:link "link")
+		(rss:description "description")
+		(rss:item
+		 (rss:title "item-title"))))))
+
+(test-assert (item?
+	      (rss:item
+	       (rss:link "link")
+	       (rss:title "item-title"))))
+
 (define rss-text "
  <?xml version=\"1.0\" encoding=\"UTF-8\" ?>
 <rss version=\"2.0\">

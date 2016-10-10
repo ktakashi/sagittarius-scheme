@@ -56,7 +56,7 @@
 	    language? make-language
 	    copyright? make-copyright
 	    url? make-url
-
+	    
 	    cloud? make-cloud cloud-domain cloud-port cloud-path
 	    cloud-register-procedure cloud-protocol
 	    guid? make-guid guid-permalink?
@@ -117,9 +117,44 @@
 	    channel-item            channel-item-set!
 
 	    rss? make-rss
+
+	    ;; constructors
+	    rss:title
+	    rss:link
+	    rss:description
+	    rss:managing-editor
+	    rss:web-master
+	    rss:pub-date
+	    rss:last-build-date
+	    rss:generator
+	    rss:docs
+	    rss:ttl
+	    rss:skip-hours
+	    rss:skip-days
+	    rss:comments
+	    rss:author
+	    rss:width
+	    rss:height
+	    rss:rating
+	    rss:name
+	    rss:language
+	    rss:copyright
+	    rss:url
+
+	    rss:cloud
+	    rss:guid
+	    rss:category
+	    rss:source
+	    rss:enclosure
+	    
+	    rss:item
+	    rss:image
+	    rss:text-input
+	    rss:channel
+	    rss:rss
 	    )
     (import (rnrs)
-	    (only (srfi :1) filter-map split-at)
+	    (only (srfi :1) filter-map split-at iota drop)
 	    (srfi :19)
 	    (text sxml object-builder)
 	    (rfc :5322))
@@ -133,19 +168,33 @@
   (parent attributed-object))
 (define-syntax define-single-value-tags
   (lambda (x)
+    (define (make-name k prefix name)
+      (datum->syntax k
+       (string->symbol 
+	(string-append prefix (symbol->string (syntax->datum name))))))
+    (define (make-build k name) (make-name k "rss:" name))
+    (define (make-make k name) (make-name k "make-" name))
+    
     (syntax-case x ()
       ((k "define" (tag pred conv))
-       #'(define-record-type tag
-	   (parent rss-simple)
-	   (protocol (lambda (p)
-		       (case-lambda
-			((attr item)
-			 (unless (pred item)
-			   (assertion-violation 'tag "unexpected object"
-						item pred))
-			 ((p attr item)))
-			((name attr item)
-			 ((p attr (conv (car item))))))))))
+       (with-syntax ((builder (make-build #'k #'tag))
+		     (make (make-make #'k #'tag)))
+	 #'(begin
+	     (define-record-type tag
+	       (parent rss-simple)
+	       (protocol (lambda (p)
+			   (case-lambda
+			    ((attr item)
+			     (unless (pred item)
+			       (assertion-violation 'tag "unexpected object"
+						    item pred))
+			     ((p attr item)))
+			    ((name attr item)
+			     ((p attr (conv (car item)))))))))
+	     (define-syntax builder
+	       (syntax-rules (@)
+		 ((_ (@ attr) item) (make attr item))
+		 ((_ item) (make '() item)))))))
       ((k "define" tag) #'(k "define" (tag string? values)))
       ((k tag ...)      #'(begin (k "define" tag) ...)))))
 
@@ -183,21 +232,52 @@
       (let ((p (car check)))
 	(lambda (i) (or (p i) (pred i))))))
 
-(define (not-pred p c) (not (p c)))
-(define (maybe-composite . preds)
-  (define maybe-preds (map maybe preds))
-  (lambda (items) (null? (filter-map not-pred maybe-preds items))))
-(define (composite . conv) (lambda (items) (map conv items)))
-(define (apply-assertion-protocol pred conv)
-  (lambda (n)
-    (case-lambda
-     ((name attrs item)
-      (apply (n attrs) (conv item)))
-     ((attrs . item)
-      (unless (pred item)
-	(assertion-violation 'rss "unexpected object" item pred))
-      (apply (n attrs) item)))))
-
+(define-syntax define-rss/attribute-builder
+  (lambda (x)
+    (define (make-name k prefix name)
+      (datum->syntax k
+       (string->symbol 
+	(string-append prefix (symbol->string (syntax->datum name))))))
+    (define (make-build k name) (make-name k "rss:" name))
+    (define (make-make k name) (make-name k "make-" name))
+    (define (count attrs)
+      (let loop ((acc 0) (attrs attrs))
+	(syntax-case attrs ()
+	  (() acc)
+	  ((attr next ...) (loop (+ acc 1) #'(next ...))))))
+    (define (collect attrs)
+      (let loop ((r '()) (attrs attrs))
+	(syntax-case attrs ()
+	  (() (reverse r))
+	  (((attr rest ...) next ...) (loop (cons #'attr r) #'(next ...)))
+	  ((attr next ...) (loop (cons #'attr r) #'(next ...))))))
+    (syntax-case x ()
+      ((k name attrs ...)
+       (with-syntax ((build (make-build #'k #'name))
+		     (make (make-make #'k #'name))
+		     ((field* ...) (collect #'(attrs ...)))
+		     ((n ...) (datum->syntax #'k (iota (count #'(attrs ...))))))
+	 #'(define-syntax build
+	     (lambda (xx)
+	       (define field-order '((field* . n) ...))
+	       (define (order attr)
+		 (define vec (make-vector (length field-order)))
+		 (let loop ((attr attr))
+		   (syntax-case attr ()
+		     (() (vector->list vec))
+		     (((name value) next (... ...))
+		      (let ((index (cond ((assq '#'name field-order) => cdr)
+					 (else (syntax-violation 'build xx)))))
+			(vector-set! vec index #'value)
+			(loop #'(next (... ...))))))))
+	       (syntax-case xx (@ field* ...)
+		 ((_ (@ attr) item)
+		  (with-syntax (((ordered (... ...)) (order #'attr)))
+		    #'(make item ordered (... ...))))
+		 ((_ item)
+		  #'(make item))))))))))
+	     
+	 
 (define-syntax define-rss/attribute
   (lambda (x)
     (define (make-getter k sname field attr conv?)
@@ -240,7 +320,9 @@
     (syntax-case x ()
       ((k name attrs ...)
        (with-syntax ((((attr-names ...) (getters ...) (->sxml ...))
-		      (collect #'k #'name #'(attrs ...))))
+		      (collect #'k #'name #'(attrs ...)))
+		     (define-rss/attribute-builder
+		       (datum->syntax #'k 'define-rss/attribute-builder)))
 	 #'(begin
 	     (define-record-type name
 	       (parent rss-simple)
@@ -255,7 +337,8 @@
 			     ((n attributes) (car item)))
 			    ((value . attributes)
 			     ((n (convert attributes)) value))))))
-	     getters ...))))))
+	     getters ...
+	     (define-rss/attribute-builder name attrs ...)))))))
 
 (define-rss/attribute cloud domain port path
   (register-procedure registerProcedure) protocol)
@@ -281,6 +364,52 @@
   (parent attributed-object)
   (fields (mutable extensions)))
 
+(define-syntax define-builder
+  (lambda (x)
+    (define (collect-retrievers k fields)
+      (define (make-predicate field)
+	(define sname (symbol->string (syntax->datum field)))
+	(datum->syntax k (string->symbol (string-append sname "?"))))
+      (define (make-retriever field)
+	(with-syntax ((pred (make-predicate field)))
+	  #'(lambda (content)
+	      (cond ((memp pred content) => car)
+		    (else #f)))))
+      (let loop ((required '()) (optional '()) (fields fields))
+	(syntax-case fields ()
+	  (() (list (reverse required) (reverse optional)))
+	  (((name #t) next ...)
+	   (loop (cons #'name required) optional #'(next ...)))
+	  ((name next ...)
+	   (loop required (cons (list #'name (make-retriever #'name)) optional)
+		 #'(next ...))))))
+    (define (make-name k prefix name)
+      (datum->syntax k
+       (string->symbol 
+	(string-append prefix (symbol->string (syntax->datum name))))))
+    (define (make-build k name) (make-name k "rss:" name))
+    (define (make-make k name) (make-name k "make-" name))
+    (syntax-case x ()
+      ((k name field* ...)
+       (with-syntax ((((required ...) ((optional optional-retriever) ...))
+		      (collect-retrievers #'k #'(field* ...)))
+		     (build (make-build #'k #'name))
+		     (make (make-make #'k #'name)))
+	 #'(begin
+	     (define (real attr required ... . contents)
+	       (define optional (optional-retriever contents)) ...
+	       (define extension
+		 (if (> (length contents) (length '(field* ...)))
+		     (drop contents (length '(field* ...)))
+		     '()))
+	       (apply make attr required ... optional ... extension))
+	     (define-syntax build
+	       (syntax-rules (@)
+		 ((_ (@ attr) required ... rest (... ...))
+		  (real attr required ... rest (... ...)))
+		 ((_ required ... rest (... ...))
+		  (real '() required ... rest (... ...)))))))))))
+       
 (define-syntax define-rss/container
   (lambda (x)
     (define (make-predicates k fields)
@@ -296,39 +425,44 @@
 	  ((field next ...)
 	   (with-syntax ((pred (make-predicate #'field)))
 	     (loop (cons #'(field (maybe pred)) r) #'(next ...)))))))
+    
     (syntax-case x (fields validator)
       ((k name (fields field* ...))
        #'(k name (fields field* ...) (validator #f)))
-      ((k name (fields field* ...) (validator proc))
+      ((k name (fields ?field* ...) (validator proc))
        (with-syntax ((((field* predicates) ...)
-		      (make-predicates #'k #'(field* ...)))
+		      (make-predicates #'k #'(?field* ...)))
 		     ;; To make accessor visible...
 		     (define-record-type
-		       (datum->syntax #'k 'define-record-type)))
+		       (datum->syntax #'k 'define-record-type))
+		     (define-builder
+		       (datum->syntax #'k 'define-builder)))
 	 (with-syntax (((has-validate? validate)
 			(if (syntax->datum #'proc)
 			    #'(#t (lambda field (let ((v proc)) (v field))))
 			    #'(#f #t))))
-	 #'(define-record-type name
-	     (fields (mutable field*) ...)
-	     (parent rss-container)
-	     (protocol
-	      (lambda (n)
-		(case-lambda
-		 ((tag attrs contents)
-		  (let-values (((fields extensions)
-				(split-at contents (length '(field* ...)))))
-		    (when has-validate? (apply validate fields))
-		    (let ((p (if (car extensions)
-				 (n attrs (car extensions))
-				 (n attrs '()))))
-		      (apply p fields))))
-		 ((attrs field* ... . extensions)
-		  (unless (and (predicates field*) ...)
-		    (assertion-violation 'name "Invalid field value"
-					 (list field* ...)))
-		  (when has-validate? (validate field* ...))
-		  ((n attrs extensions) field* ...))))))))))))
+	   #'(begin
+	       (define-record-type name
+		 (fields (mutable field*) ...)
+		 (parent rss-container)
+		 (protocol
+		  (lambda (n)
+		    (case-lambda
+		     ((tag attrs contents)
+		      (let-values (((fields extensions)
+				    (split-at contents (length '(field* ...)))))
+			(when has-validate? (apply validate fields))
+			(let ((p (if (car extensions)
+				     (n attrs (car extensions))
+				     (n attrs '()))))
+			  (apply p fields))))
+		     ((attrs field* ... . extensions)
+		      (unless (and (predicates field*) ...)
+			(assertion-violation 'name "Invalid field value"
+					     (list field* ...)))
+		      (when has-validate? (validate field* ...))
+		      ((n attrs extensions) field* ...))))))
+	       (define-builder name ?field* ...))))))))
 
 (define (title/description-validator contents)
   (define (title/description? c) (or (title? c) (description? c)))
@@ -377,7 +511,6 @@
 
 (define-rss/container rss
   (fields (channel #t)))
-
 
 ;; SXML->RSS-OBJECT
 (define (make-raw-sxml name attr contents)
