@@ -79,6 +79,45 @@
     (test-equal '(#t #t) (map child? (car (xml-object-contents root)))))
   )
 
+
+(let ()
+  (define-record-type choice1
+    (parent xml-object)
+    (protocol (make-protocol 'choice1)))
+  (define-record-type choice2
+    (parent xml-object)
+    (protocol (make-protocol 'choice2)))
+  (define-record-type choice3
+    (parent xml-object)
+    (protocol (make-protocol 'choice3)))
+  ;; simple case
+  (let ()
+    (define choice-builder
+      (sxml-object-builder
+       (/ (choice1 make-choice1)
+	  (choice2 make-choice2)
+	  (choice3 make-choice3))))
+
+    (test-assert (choice1? (sxml->object '(choice1) choice-builder)))
+    (test-assert (choice2? (sxml->object '(choice2) choice-builder)))
+    (test-assert (choice3? (sxml->object '(choice3) choice-builder)))
+    (test-error assertion-violation? (sxml->object '(choice4) choice-builder)))
+  ;; combination
+  (let ()
+    (define choice-builder
+      (sxml-object-builder
+       (root make-root
+	 (child make-child)
+	 (/ (choice1 make-choice1)
+	    (choice2 make-choice2)
+	    (choice3 make-choice3)))))
+    (define (test-choice sxml pred?)
+      (let ((obj (sxml->object sxml choice-builder)))
+	(test-assert (pred? (cadr (xml-object-contents obj))))))
+    (test-choice '(root (child) (choice1)) choice1?)
+    (test-choice '(root (child) (choice2)) choice2?)
+    (test-choice '(root (child) (choice3)) choice3?)))
+
 (let ()
   (define sxml
     '(*TOP* (*PI* xml "version=\"1.0\"")

@@ -29,7 +29,7 @@
 ;;;  
 
 (library (text sxml object-builder)
-    (export sxml->object ? * + ?? <!>
+    (export sxml->object ? * + / ?? <!>
 	    ;; object->sxml
 
 	    ;; XML object
@@ -42,6 +42,7 @@
 	    object-builder object-builder?
 	    make-simple-object-builder simple-object-builder?
 	    make-set-object-builder set-object-builder?
+	    make-choice-object-builder choice-object-builder?
 	    make-recursive-object-builder recursive-object-builder?
 	    )
     (import (rnrs)
@@ -67,6 +68,14 @@
 		;; ((builder pred min max) ...)
 		(lambda (object-builders)
 		  ((n build-set-object) object-builders)))))
+
+    (define-record-type choice-object-builder
+    (fields object-builders)
+    (parent object-builder)
+    (protocol (lambda (n)
+		;; ((builder pred) ...)
+		(lambda (object-builders)
+		  ((n build-choice-object) object-builders)))))
   
   (define-record-type recursive-object-builder
     (parent simple-object-builder)
@@ -98,6 +107,7 @@
 	  (else (map (lambda (c) (sxml->object c builder handler))
 		     (sxml:content sxml)))))
 
+  ;; Build set object
   (define (build-set-object sxml builder handler)
     (define builders (set-object-builder-object-builders builder))
     (define len (length builders))
@@ -146,6 +156,22 @@
 		    (handler builder (car contents))
 		    (loop (cdr contents)))))))))
 
+  ;; Build choice object
+  (define (build-choice-object sxml builder handler)
+    ;; the SXML must only have one content
+    (unless (sxml:element? sxml)
+      (assertion-violation 'sxml->object
+			   "SXML element required for choice" sxml))
+    ;; ((builder pred) ...)
+    (let loop ((builders (choice-object-builder-object-builders builder)))
+      (if (null? builder)
+	  (handler builder sxml)
+	  (let ((builder (car builders))
+		(tag (sxml:name sxml)))
+	    (if ((cadr builder) tag)
+		(sxml->object sxml (car builder) handler)
+		(loop (cdr builders)))))))
+  
   ;; API
   (define (sxml->object sxml builder . opt)
     (define handler (if (null? opt) default-unknown-tag-handler (car opt)))
@@ -155,7 +181,7 @@
 	  ((and (pair? sxml) (eq? (car sxml) '*TOP*))
 	   (rec (car (sxml:content sxml)) builder))
 	  (else (rec sxml builder))))
-
+  
   (define-syntax ? (syntax-rules ()))
   (define-syntax ?? (syntax-rules ()))
   (define-syntax <!> (syntax-rules ()))
@@ -171,41 +197,67 @@
 	(sxml-object-builder-predicate tag) ctr next))))
 
   (define-syntax sxml-set-object-builder
-    (syntax-rules (? * +)
-      ((_ "parse" (((count tag) ctr next) ...) ())
+    (syntax-rules (? * + /)
+      ((_ "parse" (((count tag) builder) ...) ())
        (make-set-object-builder 
-	(list (cons* (sxml-object-builder-helper tag ctr next)
-		     (sxml-object-builder-predicate tag)
-		     'count) ...)))
+	(list (cons* builder (sxml-object-builder-predicate tag) 'count) ...)))
       ;; ?
       ((_ "parse" (tcn ...) ((? tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... (((0 1) tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((0 1) tag)
+		  (sxml-object-builder-helper
+		   tag ctr (sxml-object-builder nb ...))))
 	(next ...)))
       ;; *
       ((_ "parse" (tcn ...) ((* tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... (((0 #f) tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((0 #f) tag)
+		  (sxml-object-builder-helper
+		   tag ctr (sxml-object-builder nb ...))))
 	(next ...)))
       ;; +
       ((_ "parse" (tcn ...) ((+ tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... (((1 #f) tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((1 #f) tag)
+		  (sxml-object-builder-helper
+		   tag ctr (sxml-object-builder nb ...))))
+	(next ...)))
+      ;; /
+      ((_ "parse" (tcn ...) ((/ (tag ctr nb ...) ...) next ...))
+       (sxml-set-object-builder "parse"
+	(tcn ... (((1 1) (lambda (t)
+			   (or ((sxml-object-builder-predicate tag) t)...)))
+		  (sxml-object-builder (/ (tag ctr nb ...) ...))))
 	(next ...)))
       
       ((_ "parse" (tcn ...) ((tag ctr nb ...) next ...))
        (sxml-set-object-builder "parse"
-	(tcn ... (((1 1) tag) ctr (sxml-object-builder nb ...)))
+	(tcn ... (((1 1) tag) 
+		  (sxml-object-builder-helper
+		   tag ctr (sxml-object-builder nb ...))))
 	(next ...)))
       ((_ specs ...)
        (sxml-set-object-builder "parse" () (specs ...)))))
+
+  (define-syntax sxml-choice-object-builder
+    (syntax-rules ()
+      ((_ "parse" ((b p) ...) ())
+       (make-choice-object-builder (list (list b p) ...)))
+      ((_ "parse" (bp ...) ((tag ctr nb ...) next ...))
+       (sxml-choice-object-builder "parse"
+	(bp ... ((sxml-object-builder (tag ctr nb ...))
+		 (sxml-object-builder-predicate tag)))
+	(next ...)))
+      ((_ spec specs ...)
+       (sxml-choice-object-builder "parse" () (spec specs ...)))))
   
   (define-syntax sxml-object-builder
-    (syntax-rules (* ? + <!>)
+    (syntax-rules (* ? + <!> /)
       ((_) #f)
       ((_ (* spec ...)) (sxml-set-object-builder (* spec ...)))
       ((_ (? spec ...)) (sxml-object-builder (spec ...)))
       ((_ (+ spec ...)) (sxml-set-object-builder (+ spec ...)))
+      ((_ (/ spec specs ...)) (sxml-choice-object-builder spec specs ...))
       ((_ (<!> tag builder))
        (make-recursive-object-builder
 	(sxml-object-builder-helper tag builder #f)))
