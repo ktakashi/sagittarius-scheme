@@ -171,6 +171,21 @@
   
   (define (emit-toplevel-executor name topcb need-macro?)
     (define unit (cgen-current-unit))
+    (define (strip-expand imported)
+      (define (strip-it import)
+	(define (check import)
+	  (cond ((assq 'for (cdr import)) =>
+		 (lambda (slot)
+		   (let ((phases (delete-duplicates (cdr slot))))
+		     (cond ((and (null? (cdr phases))
+				 (member (car phases) '(ran (meta 0))))
+			    imported)
+			   (else #f)))))
+		(else imported)))
+	(if (null? (cdr import))
+	    import
+	    (check import)))
+      (filter-map strip-it imported))
     (cgen-body (format "static SgCodeBuilder *~a = "
 		       (slot-ref unit 'toplevel)))
     (cgen-body 
@@ -190,7 +205,7 @@
 				    (cgen-cexpr (cgen-literal library))
 				    (cgen-cexpr (cgen-literal t))
 				    (cgen-cexpr (cgen-literal (cdr i)))))))))
-		(reverse (library-imported library)))
+		(strip-expand (reverse (library-imported library))))
       (cgen-init (format "  Sg_LibraryExportedSet(~a, ~a);~%"
 			 (cgen-cexpr (cgen-literal library))
 			 (cgen-cexpr (cgen-literal (library-exported library)))))

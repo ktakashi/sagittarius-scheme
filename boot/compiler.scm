@@ -1011,13 +1011,13 @@
       (let ((test (rec ($if-test iform)))
 	    (then (rec ($if-then iform)))
 	    (els  (rec ($if-else iform))))
-	(define (emit test then else)
+	(define (emit test then els)
 	  ;; if (if test then #<unspecified>) then when
 	  ;; if (if test #<unspecified> else) then unless
 	  ;; TODO can we assume this?
-	  (cond ((undefined? then) `(unless ,test ,else))
-		((undefined? else) `(when ,test ,then))
-		(else `(if ,test ,then ,else))))
+	  (cond ((undefined? then) `(unless ,test ,els))
+		((undefined? els)  `(when ,test ,then))
+		(else `(if ,test ,then ,els))))
 	(if (or ($it? ($if-then iform))
 		($it? ($if-else iform)))
 	    (let ((it (gen-name 'it)))
@@ -2447,7 +2447,7 @@
       ;; basically, this will be ignored
       (((? (lambda (x) (eq? 'for (variable-name x))) -) set phase ___)
        (receive (ref resolved trans?) (parse-spec set)
-	 (values ref resolved (check-expand-phase phase))))
+	 (values ref `(,@resolved (for . ,phase)) (check-expand-phase phase))))
       (- (values spec '() #f))))
 
   (define (process-spec spec)
