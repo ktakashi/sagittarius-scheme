@@ -258,11 +258,12 @@
 	  (((attr rest ...) next ...) (loop (cons #'attr r) #'(next ...)))
 	  ((attr next ...) (loop (cons #'attr r) #'(next ...))))))
     (syntax-case x ()
-      ((k name attrs ...)
-       (with-syntax ((build (make-build #'k #'name))
-		     (make (make-make #'k #'name))
+      ((_ name attrs ...)
+       (with-syntax ((build (make-build #'name #'name))
+		     (make (make-make #'name #'name))
 		     ((field* ...) (collect #'(attrs ...)))
-		     ((n ...) (datum->syntax #'k (iota (count #'(attrs ...))))))
+		     ((n ...) (datum->syntax #'name
+					     (iota (count #'(attrs ...))))))
 	 #'(define-syntax build
 	     (lambda (xx)
 	       (define field-order '((field* . n) ...))
@@ -329,9 +330,7 @@
       ((k name attrs ...)
        (with-syntax ((((attr-names ...) (getters ...) (->sxml ...))
 		      (collect #'k #'name #'(attrs ...)))
-		     (record-name (make-record-name #'k #'name))
-		     (define-rss/attribute-builder
-		       (datum->syntax #'k 'define-rss/attribute-builder)))
+		     (record-name (make-record-name #'k #'name)))
 	 #'(begin
 	     (define-record-type record-name
 	       (parent rss-simple)
@@ -394,11 +393,11 @@
 		 #'(next ...))))))
 
     (syntax-case x ()
-      ((k name field* ...)
+      ((_ name field* ...)
        (with-syntax ((((required ...) ((optional optional-retriever) ...))
-		      (collect-retrievers #'k #'(field* ...)))
-		     (build (make-build #'k #'name))
-		     (make (make-make #'k #'name)))
+		      (collect-retrievers #'name #'(field* ...)))
+		     (build (make-build #'name #'name))
+		     (make (make-make #'name #'name)))
 	 #'(begin
 	     (define (real attr required ... . contents)
 	       (define optional (optional-retriever contents)) ...
@@ -436,12 +435,7 @@
       ((k name (fields ?field* ...) (validator proc))
        (with-syntax ((((field* predicates) ...)
 		      (make-predicates #'k #'(?field* ...)))
-		     (record-name (make-record-name #'k #'name))
-		     ;; To make accessor visible...
-		     (define-record-type
-		       (datum->syntax #'k 'define-record-type))
-		     (define-builder
-		       (datum->syntax #'k 'define-builder)))
+		     (record-name (make-record-name #'k #'name)))
 	 (with-syntax (((has-validate? validate)
 			(if (syntax->datum #'proc)
 			    #'(#t (lambda field (let ((v proc)) (v field))))

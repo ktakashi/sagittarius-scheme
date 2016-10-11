@@ -115,6 +115,11 @@
 	      (rss:item
 	       (rss:link "link")
 	       (rss:title "item-title"))))
+(test-assert (rss-title?
+	      (rss-item-title
+	       (rss:item
+		(rss:link "link")
+		(rss:title "item-title")))))
 
 (define rss-text "
  <?xml version=\"1.0\" encoding=\"UTF-8\" ?>
