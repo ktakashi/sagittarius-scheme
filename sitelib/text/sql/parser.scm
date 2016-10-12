@@ -740,10 +740,21 @@
    ;; be specified in the specification itself but not in BNF. So
    ;; we just need to put like this.
    ;; TODO: should we put this in `table-expression`?
-   (select-clause ((s <- select-w/o-order o <- order-by-clause)
-		   `(,@s ,o))
+   ;; LIMIT and OFFSET are not in SQL 2003 but it's good to have
+   (select-clause ((s <- select-w/o-order o <- order-by-clause
+		    l <- limit/offset-clause)
+		   `(,@s ,o ,@l))
+		  ((s <- select-w/o-order o <- order-by-clause) `(,@s ,o))
+		  ((s <- select-w/o-order l <- limit/offset-clause) `(,@s ,@l))
 		  ((s <- select-w/o-order) s))
-
+   (limit/offset-clause ((l <- limit-clause o <- offset-clause) (list l o))
+			((l <- limit-clause) (list l))
+			((o <- offset-clause) (list o)))
+			 
+   (limit-clause (('limit n <- 'number) (list 'limit n))
+		 (('limit 'all) (list 'limit 'all)))
+   (offset-clause (('offset n <- 'number) (list 'offset n)))
+   
    ;; 14.1 order by clause
    (order-by-clause (('order 'by s <- sort-specification-list) 
 		     (cons 'order-by s)))

@@ -171,6 +171,8 @@
 ;; values
 (test-parse "select * from (values ('a'), ('b')) as c(a,b)"
 	    '(select * (from (as (values ("a") ("b")) (c a b)))))
+(test-parse "select v.i from (values (?)) as v(i)"
+	    '(select ((~ v i)) (from (as (values (?)) (v i)))))
 
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
@@ -384,6 +386,13 @@
 (test-parse "select ((select 1) union (select 2) intersect (select 3))"
 	    '(select ((union (select (1)) 
 			     (intersect (select (2)) (select (3)))))))
+
+;; limit & offset
+(test-parse "select * from foo limit 0" '(select * (from foo) (limit 0)))
+(test-parse "select * from foo limit all" '(select * (from foo) (limit all)))
+(test-parse "select * from foo offset 1" '(select * (from foo) (offset 1)))
+(test-parse "select * from foo limit 10 offset 1"
+	    '(select * (from foo) (limit 10) (offset 1)))
 
 ;; delete from
 (test-parse "delete from t" '(delete-from t))

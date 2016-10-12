@@ -173,7 +173,11 @@
     to trailing translation treat trigger true uescape union unique unknown
     unnest update upper user using value values var_pop var_samp varchar
     varying when whenever where width_bucket window with within without
-    year))
+    year
+
+    ;; additional
+    limit offset
+    ))
 
 (define (sql-keyword? s) (memq s *sql:keywords*))
 

@@ -745,6 +745,15 @@
 	       (write-column column out))
 	     columns)))
 
+(define-sql-writer (limit ssql out . opt)
+  (('limit n)
+   (write/case "LIMIT " out)
+   (write-value n out)))
+(define-sql-writer (offset ssql out . opt)
+  (('offset n)
+   (write/case "OFFSET " out)
+   (write-value n out)))
+
 (define (set-quantifier? x) (or (eq? x 'distinct) (eq? x 'all)))
 
 (define-sql-writer (group-by ssql out :key (indent #f) :allow-other-keys opt)
