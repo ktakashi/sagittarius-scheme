@@ -134,6 +134,7 @@
 
 	    (rename (rss-rss? rss?) 
 		    (make-rss-rss make-rss))
+	    rss-rss-channel
 
 	    ;; constructors
 	    rss:title
@@ -202,7 +203,10 @@
 						    item pred))
 			     ((p attr item)))
 			    ((name attr item)
-			     ((p attr (conv (car item)))))))))
+			     ;; can also be empty tag...
+			     ((p attr (conv (if (null? item)
+						""
+						(car item))))))))))
 	     (define-syntax builder
 	       (syntax-rules (@)
 		 ((_ (@ attr) item) (make attr item))
