@@ -1758,7 +1758,10 @@ static SgObject internal_ffi_call(SgObject *args, int argc, void *data)
     FFI_RET_CASE_REC(FFI_RETURN_TYPE_STRING, intptr_t,
 		     if (ret == 0) {
 		       return make_pointer((uintptr_t)NULL);
-		     } else return Sg_MakeStringC((char *)ret));
+		     } else {
+		       return Sg_Utf8sToUtf32s((char *)ret,
+					       strlen((char *)ret));
+		     });
 
     FFI_RET_CASE_REC(FFI_RETURN_TYPE_CALLBACK, intptr_t,
 		     return Sg_HashTableRef(callbacks, SG_OBJ(ret), SG_FALSE));
