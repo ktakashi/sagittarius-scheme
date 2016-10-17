@@ -1603,9 +1603,41 @@
     ((- expr) ($const (iform->sexp (pass1 expr p1env))))
     (- (syntax-error "malformed %macroexpand" form))))
 
+(define (internal-macroexpand expr p1env once?)
+  (define (find-global op)
+    (and-let* ((g (if (identifier? op)
+		      (find-binding (id-library op) (id-name op) #f)
+		      (find-binding (p1env-library p1env) op #f)))
+	       (m (gloc-ref g))
+	       ( (macro? m) ))
+      m))
+
+  (define (get-macro op)
+    (cond ((macro? op) op)
+	  ((not (or (identifier? op) (symbol? op))) #f)
+	  (else
+	   (let ((v (p1env-lookup p1env expr LEXICAL)))
+	     (if (not (macro? v))
+		 (find-global op)
+		 v)))))
+  (cond ((not (pair? expr)) expr)
+	((pair? (car expr)) 
+	 (cons (%internal-macro-expand (car expr) p1env once?)
+	       (%internal-macro-expand (cdr expr) p1env once?)))
+	((get-macro (car expr)) =>
+	 (lambda (mac)
+	   (if once?
+	       (call-macro-expander mac expr p1env)
+	       (%internal-macro-expand (call-macro-expander mac expr p1env)))))
+	(else 
+	 (if once?
+	     expr
+	     (cons (car expr)
+		   (%internal-macro-expand (cdr expr) p1env once?))))))
+
 (define-pass1-syntax (%macroexpand-1 form p1env) :sagittarius
   (smatch form
-    ((- expr) ($const (%internal-macro-expand expr p1env #t)))
+    ((- expr) ($const (internal-macroexpand expr p1env #t)))
     (- (syntax-error "malformed %macroexpand" form))))
 
 

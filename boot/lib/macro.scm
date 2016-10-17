@@ -1257,3 +1257,5 @@
 				 (loop (+ i 1))))))))
 	      (else (equal? a b))))
       (f expr rename compare))))
+
+	 
