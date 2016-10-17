@@ -83,7 +83,7 @@
 			name))))
 	      (else expr))))
     (load-expander library '%macroexpand-1)
-    (do ((i 0 (+ i 1)) (expr (expand expr library) (expand expr library)))
+    (do ((i 0 (+ i 1)) (expr expr (expand expr library)))
 	((= i n) (if strip? (strip expr) expr))))
 
 
