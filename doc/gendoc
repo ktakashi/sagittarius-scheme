@@ -1,7 +1,11 @@
 ;; -*- mode: scheme; coding: utf-8 -*- 
 (import (rnrs)
 	(getopt)
+	(srfi :39)
+	(scribble plugin)
 	(sagittarius document html))
+
+(define *lang* (make-parameter #f))
 
 (define (usage)
   (print "gendoc [OPTIONS] file"))
@@ -13,6 +17,15 @@
       (when (for-all (lambda (file) (< (file-stat-mtime file) doc-mtime)) files)
 	(print "Document is not changed. " output)
 	(exit 0)))))
+(define default-include-section (scribble-lookup-macro 'include-section))
+(define-scribble-macro (include-section file)
+  (let ((l (*lang*)))
+    (if (eqv? l #t) 
+	(default-include-section file)
+	(let ((localed-file (string-append file "." l)))
+	  (if (file-exists? localed-file)
+	      (default-include-section localed-file)
+	      (default-include-section file))))))
 
 (define (main args)
   (with-args args
@@ -20,11 +33,13 @@
        (style  	   (#\s "style") #t #f)
        (javascript (#\j "javascript") #t #f)
        (separate   (#\p "separate") #t #f)
+       (lang       (#\l "lang") #t "en")
        . files)
     (unless (file-exists? (cadr files))
       (usage)
       (exit -1))
     (check-older output)
+    (*lang* (or (string=? lang "en") lang))
     (scribble-file->html (cadr files)
 			 :output output
 			 :style style
