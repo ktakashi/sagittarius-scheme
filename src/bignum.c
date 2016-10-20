@@ -2115,9 +2115,9 @@ static SgObject binary_gcd(SgBignum *bx, SgBignum *by)
     if (SG_BIGNUM_GET_COUNT(u) < 2 && SG_BIGNUM_GET_COUNT(v) < 2) {
       unsigned long x = u->elements[0], y = v->elements[0];
       x = (x >= y) ? gcd_fixfix(x, y) : gcd_fixfix(y, x);
-      ret = Sg_MakeInteger(x);
+      ret = Sg_MakeIntegerU(x);
       if (k > 0) {
-	/* Sg_Printf(Sg_StandardErrorPort(), UC(";; r=%A, k=%d\n"), r, k); */
+	/* Sg_Printf(Sg_StandardErrorPort(), UC(";; r=%A, k=%d\n"), ret, k); */
 	ret = Sg_Ash(ret, k);
       }
       goto end;

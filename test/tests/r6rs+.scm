@@ -571,4 +571,9 @@
 (test-error "read identifier(quasiquote)" lexical-violation?
 	    (read (open-string-input-port "#!r6rs foo`bar")))
 
+;; negative result of gcd
+(test-equal "gcd returns non-negative integer"
+	    2182600451
+	    (gcd -165543184715050652143983385447792 15946333291432216432322993695213691))
+
 (test-end)
