@@ -1,93 +1,88 @@
 @; -*- mode:scribble; coding: utf-8 -*-
-@title{Sagittarius Users' Reference}
+@title{Sagittarius ユーザーガイド}
 
-This document is a manual for Sagittarius, an R6RS/R7RS Scheme implementation.
-This is for version @eval{(sagittarius-version)}.
+このドキュメントはR6RS/R7RS Scheme処理系Sagittariusバージョン@eval{(sagittarius-version)}のマニュアルです。
 
 @table-of-contents[:id "table-of-contents"]
 
-@section{Introduction}
+@section{はじめに}
 
-This is a users' guide and reference manual of Sagittarius Scheme system. Here
-I tried to describe the points which are not conformed to R6RS.
+これはScheme処理系Sagittariusのユーザーガイド兼リファレンスマニュアルです。ここでは
+R6RSに準拠していない部分の説明をします。
 
-The target readers are those who already know Scheme and want to write useful
-programs in Sagittarius.
+この文書の対象読者は既にSchemeを知っていて何らかのプログラムをSagittarius上で書こう
+としている人としています。
 
-@; -- for now, forget this.
-@; This manual only deals with Scheme side of things. Sagittarius has another
-@; face, a C interface. Details of it will be discussed in a separate document
-@; yet to be written. Those who wants to use Sagittarius as an embedded language,
-@; or wants to write an extension, need that volume.
+@subsection{Sagittariusの概要}
 
-@subsection{Overview of Sagittarius}
+SagittariusはSchemeスクリプトエンジンです。Schemeプログラムを読み込み、コンパイ
+ルし仮想マシン上で実行します。Sagittariusは"Revised^6 Report on the Algorithmic
+Language Scheme"(R6RS)に及び"Revised^7 Report on the Algorithmic Language
+Scheme"(R7RS)に準拠し、またいくつかの"Scheme Requests for　Implementation"
+(SRFI)で定められたライブラリを提供します。
 
-Sagittarius is a Scheme script engine; it reads Scheme programs, compiles it
-on-the-fly and executes it on a virtual machine. Sagittarius conforms the
-language standard "Revised^6 Report on the Algorithmic Language Scheme" (R6RS),
-"Revised^7 Report on the Algorithmic Language Scheme" (R7RS), and supports
-various common libraries defined in "Scheme Requests for Implementation"
-(SRFI)s.
+Scheme処理系は沢山あり、それぞれ特徴があります。Sagittariusは「柔軟性」と「扱い
+やすさ」を念頭に置いて作成されています。R6RSは仕様上厳しい要求を処理系に課して
+いますが、それは時として足枷になることがあります。そこで、Sagittariusはデフォル
+トではそれらのいくつかの要求を緩めていることがあります。この振る舞いは起動オプ
+ションで変えることが可能です。
 
-There are a lot of Scheme implementations and they have different strong and
-weak points. Sagittarius focuses on "Flexibility" and "Easy to Use". R6RS
-specifies strict requirements, but sometimes you may think this is too
-much. For that purpose, Sagittarius has less strictness. There are invocation
-options that make Sagittarius run on strict RnRS mode.
-
-To avoid to lose portability or write miss-working code, you may want to know
-what are the non conformed points.
+可搬性の喪失や意図しない振る舞いを避けるため、ここでデフォルトで標準に準拠しな
+い部分を挙げます。
 
 @dl-list[]{
-@dl-item["Reader"]{
- Basically reader has 3 modes. One is R6RS mode, one is R7RS mode and the 
- last one is compatible mode. Although, user can modify reader with reader
- macro. These modes can be switched via @code{#!r6rs}, @code{#!r7rs} or
- @code{#!compatible}. For more details, see
- @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}.
+@dl-item["リーダー(Reader)"]{
+
+リーダーは3つのモードがあります。一つはR6RSモード。一つはR7RSモード。そしてコン
+ パチブルモードです。ユーザーはリーダーマクロでリーダーの振る舞いを変えることが
+ できるので、これらのモードはあくまでデフォルトこのように振る舞うリーダーが3つ
+ あるとだけといえます。これら3つのモードは@code{#!r6rs}、 @code{#!r7rs} もしく
+ は @code{#!compatible}ディレクティブで切り替えることが可能です。詳しくは
+ @secref["lib.sagittarius.reader.predefined"]{Predefined reader macros}を参照し
+ てください。
+ }
+ 
+ @dl-item["その他"]{
+
+エクスポートされた束縛再定義が可能です。この振る舞いは起動オプションで@code{-r6}を指定することで禁止することが可能です。
+
+また、複数のインポート句での同名シンボルのインポートもエラーを挙げません。その際には最も最後にインポートされたライブラリの束縛が使用されます。
 }
-@dl-item["Miscellaneous"]{
- Redefinition of exported values are allowed on script file. This can be
- restricted by @code{-r6} option to run the script strict R6RS mode.
-
- Multiple import of the same identifier is allowed. The value which 
- imported at the last will be used.}
 }
 
-@subsection{Notations}
+@subsection{表記}
 
-In this manual, each entry is represented like this.
+このマニュアルではそれぞれのエントリーは以下のように表示されます。
 
-@define[Category]{@name{foo} @args{arg1 arg2}}
-@desc{[spec] Description foo @dots{}}
+@define[カテゴリ]{@name{foo} @args{arg1 arg2}}
+@desc{[標準] 説明 @dots{}}
 
-@var{Category} denotes category of the entry @b{foo}. The following category
-will appear in this manual.
+@var{カテゴリ} はエントリ@b{foo}のカテゴリを意味します。以下のカテゴリがこのマ
+ニュアルでは使用されます。
 
 @dl-list[
-@dl-item["Program"]{A command line program}
-@dl-item["Function"]{A Scheme function}
-@dl-item["Syntax"]{A syntax}
-@dl-item["Auxiliary Syntax"]{A auxiliary syntax}
-@dl-item["Macro"]{A macro}
-@dl-item["Auxiliary Macro"]{A auxiliary macro}
-@dl-item["Library"]{A library}
-@dl-item["Condition Type"]{A condition type}
-@dl-item["Reader Macro"]{A reader macro}
-@dl-item["Class"]{A CLOS class}
-@dl-item["Generic"]{A generic function}
-@dl-item["Method"]{A method}
+@dl-item["Program"]{コマンドラインプログラム}
+@dl-item["Function"]{Schemeの手続き}
+@dl-item["Syntax"]{構文}
+@dl-item["Auxiliary Syntax"]{補助構文}
+@dl-item["Macro"]{マクロ}
+@dl-item["Auxiliary Macro"]{補助マクロ}
+@dl-item["Library"]{ライブラリ}
+@dl-item["Condition Type"]{コンディション型}
+@dl-item["Reader Macro"]{リーダーマクロ}
+@dl-item["Class"]{CLOSのクラス}
+@dl-item["Generic"]{総称関数}
+@dl-item["Method"]{メソッド}
 ]
 
-For functions, syntaxes, or macros, the the entry may be followed by one or more
-arguments. In the arguments list, following notations may appear.
+手続き、構文及びマクロではエントリーは一つ以上の引数を持つことがあります。引数
+のリストでは以下の表記が用いられます。
 
 @dl-list[
-@dl-item[@var{arg @dots{}}]{Indicates zero or more arguments}
+@dl-item[@var{arg @dots{}}]{0個以上の引数を受け取ることを示します。}
 @dl-itemx[2 @var{:optional x y z} 
 	    @var{:optional (x x-default) (y y-default) (z z-default)}]{
-Indicates is may take up to three optional arguments. The second form specifies
-default values for x, y and z.}
+3つまでのオプショナル引数を受け取ることを示します。二つ目のフォームは@var{x}、@var{y}及び@var{z}の既定の値を明示しています。}
 ]
 
 The description of the entry follows the entry line. If the specification of the
