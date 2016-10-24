@@ -782,8 +782,8 @@
 		     ;; select (distinct|all) column from table
 		     (('select q <- set-quantifier 
 			       c <- select-list 
-			       t <- table-expression) 
-		      (cons* 'select q c t))
+			       t <- table-expression)
+		      (cons* (symbol-append 'select- q) c t))
 		     ;; extension: select 1+1; or so
 		     (('select c <- select-list) (list 'select c)))
    (select-list (('#\*) '*)
@@ -813,7 +813,7 @@
    (column-name ((i <- identifier) i))
 
    (set-quantifier (('distinct) 'distinct)
-		    (('all) 'all))
+		   (('all) 'all))
 
    ;; didn't know 'select (select * from foo).*;' is valid...
    (all-field-reference ((c <- value-expression-primary '#\. '#\*

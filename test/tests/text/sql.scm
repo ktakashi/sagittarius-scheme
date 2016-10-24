@@ -394,6 +394,9 @@
 (test-parse "select * from foo limit 10 offset 1"
 	    '(select * (from foo) (limit 10) (offset 1)))
 
+;; distinct
+(test-parse "select distinct * from foo" '(select-distinct * (from foo)))
+
 ;; delete from
 (test-parse "delete from t" '(delete-from t))
 (test-parse "delete from t where a = 1" '(delete-from t (where (= a 1))))

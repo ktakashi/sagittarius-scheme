@@ -164,6 +164,7 @@ static int handle_events(SgFileWatchContext *ctx, int fd, SgObject wds)
 	 for extra, we can also add access.
        */
       if (event->mask & IN_ACCESS) flag = SG_ACCESSED;
+      if (event->mask & IN_CREATE) flag = SG_ACCESSED;
       if (event->mask & IN_MODIFY) flag = SG_MODIFIED;
       if (event->mask & IN_ATTRIB) flag = SG_ATTRIBUTE;
       if (event->mask & IN_DELETE) flag = SG_REMOVED;
