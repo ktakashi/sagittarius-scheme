@@ -44,9 +44,11 @@ Scheme処理系は沢山あり、それぞれ特徴があります。Sagittarius
  
  @dl-item["その他"]{
 
-エクスポートされた束縛再定義が可能です。この振る舞いは起動オプションで@code{-r6}を指定することで禁止することが可能です。
+エクスポートされた束縛再定義が可能です。この振る舞いは起動オプションで
+@code{-r6} を指定することで禁止することが可能です。
 
-また、複数のインポート句での同名シンボルのインポートもエラーを挙げません。その際には最も最後にインポートされたライブラリの束縛が使用されます。
+また、複数のインポート句での同名シンボルのインポートもエラーを挙げません。
+その際には最も最後にインポートされたライブラリの束縛が使用されます。
 }
 }
 
@@ -57,8 +59,8 @@ Scheme処理系は沢山あり、それぞれ特徴があります。Sagittarius
 @define[カテゴリ]{@name{foo} @args{arg1 arg2}}
 @desc{[標準] 説明 @dots{}}
 
-@var{カテゴリ} はエントリ@b{foo}のカテゴリを意味します。以下のカテゴリがこのマ
-ニュアルでは使用されます。
+@var{カテゴリ} はエントリ@b{foo}のカテゴリを意味します。以下のカテゴリがこの
+マニュアルでは使用されます。
 
 @dl-list[
 @dl-item["Program"]{コマンドラインプログラム}
@@ -82,73 +84,74 @@ Scheme処理系は沢山あり、それぞれ特徴があります。Sagittarius
 @dl-item[@var{arg @dots{}}]{0個以上の引数を受け取ることを示します。}
 @dl-itemx[2 @var{:optional x y z} 
 	    @var{:optional (x x-default) (y y-default) (z z-default)}]{
-3つまでのオプショナル引数を受け取ることを示します。二つ目のフォームは@var{x}、@var{y}及び@var{z}の既定の値を明示しています。}
+3つまでのオプショナル引数を受け取ることを示します。二つ目のフォームは@var{x}、
+@var{y}及び@var{z}の既定の値を明示しています。}
 ]
 
-The description of the entry follows the entry line. If the specification of the
-entry comes from some standard or implementation, its origin is noted in the
-bracket at the beginning of the description. The following origins are noted:
+エントリーの説明が続きます。もしエントリーが標準または実装に基づいている場合、
+以下に列挙される元となった項目が説明の先頭に付きます。
 
 @dl-list[
 @dl-itemx[2 "[R6RS]" "[R6RS+]"]{
-The entry works as specified in "Revised^6 Report on the Algorithmic Language
-Scheme.". If it is marked as "[R6RS+]", the entry has additional functionality.}
+R6RSで定義されているエントリーを意味します。
+もし[R6RS+]となっていた場合は追加の機能を有します。
+}
 @dl-item["[R7RS]"]{
-The entry works as specified in "Revised^7 Report on the Algorithmic Language
-Scheme."(draft 5).}
-@dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If
-it is marked as "[SRFI-n+]", the entry has additional functionality.}
+R7RSで定義されているエントリーを意味します。
+}
+@dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{
+SRFI-@var{n}で定義されているエントリーを意味します。
+もし[SRFI-n+]となっていた場合は追加の機能を有します。
+}
 ]
 
-@section{Programming in Sagittarius}
+@section{Sagittarius上でのプログラミン}
 
-@subsection{Invoking Sagittarius}
+@subsection{Sagittariusの起動}
 
-Sagittarius can be used either as an independent Schame interpreter or an
-embedded Scheme library. The interpreter which comes with Sagittarius
-distribution is a program named @code{sagittarius} on Unix like environment
-and @code{sash} on Windows environment. 
+Sagittariusは独立したScheme処理系として使用することができます。処理系はUNIX環境
+では@code{sagittarius}という名前で、Windows上では@code{sash}という名前で配布さ
+れます。
 
 @define[Program]{@name{sagittarius} @args{[options] scheme-file arg @dots{}}}
-@desc{Invoking sagittarius. If @var{scheme-file} is not given, it runs with
-interactive mode.
+@desc{@code{sagittarius}を起動します。@var{scheme-file}が与えられなかった
+場合は、対話モードで起動します。
 
-Specifying @code{-r} option with Scheme standard number, currently @code{6}
-and @code{7} are supported, forces to run Sagittarius on strict standard
-mode. For example, entire script is read then evaluated on R6RS 
-(@code{-r6} option) mode. Thus macros can be located below the main script.
+Scheme標準の番号、現状では@code{6}と@code{7}をサポート、を@code{-r}で指定した場
+合、Sagittariusを標準準拠モードで起動します。例えば、R6RSモードで起動した場合は
+一度すべてのスクリプトを読み込んでから評価をします。これによりマクロ展開が評価
+に先んじて行われることを保証します。
 
-Detail options are given with option @code{"-h"}.}
+詳細なオプションは@code{"-h"}を渡して起動することで確認することができます。}
 
-For backward compatibility, symbolic link @code{sash} is also provided
-on Unix like environment. However this may not exist if Sagittarius is built
-with disabling symbolic link option.
+後方互換のためにUNIX環境では@code{sash}がシンボリックリンクで提供されます。これ
+はビルド時に抑制することが可能です。
 
-@subsection{Writing Scheme scripts}
+@subsection{Schemeスクリプトを書く}
 
-When a Scheme file is given to @code{sash}, it bounds an internal variable to
-list of the remaining command-line arguments which you can get with the 
-@code{command-line} procedure, then loads the Scheme program. If the first line
-of scheme-file begins with @code{"#!"}, then sash ignores the entire line. This 
-is useful to write a Scheme program that works as an executable script in
-unix-like systems.
+@code{sagittarius}がSchemeファイルを受け取って起動した場合、ファイル以降のコマ
+ンドラインオプションが@code{command-line}手続きでアクセスすることが可能な内部変
+数にリストとして束縛された後にファイルに記述されたSchemeプログラムを読み込みま
+す。もしファイルの先頭の行が@code{"#!"}で始まっていた場合、Sagittariusはその行
+を無視します。この振る舞いはUNIX環境で実行可能なスクリプトをSchemeで書く際に便
+利です。
 
-Typical Sagittarius script has the first line like this:
+以下は先頭行の典型的な例です。
 
 @snipet{#!/usr/local/bin/sagittarius}
 
-or
+または、
 
 @snipet{#!/bin/env sagittarius}
 
-The second form uses "shell trampoline" technique so that the script works as
-far as sash is in the PATH.
+2つ目はシェルトランポリンと呼ばれるテクニックで、これを使うことによりPATH上に
+@code{sagittarius}を使用することが可能です。
 
-After the script file is successfully loaded, then sash will process all
-toplevel expression the same as Perl.
+スクリプトファイルが読み込まれると、Sagittariusは全てのトップレベルにある式を実
+行します。
 
-Now I show a simple example below. This script works like @code{cat(1)}, without
-any command-line option processing and error handling.
+簡単な例を見てみましょう。このスクリプトはごく単純な@code{cat(1)}コマンドのよう
+な振る舞いをします。
 
 @codeblock{
 #!/usr/local/bin/sagittarius
@@ -163,11 +166,10 @@ any command-line option processing and error handling.
   0)
 }
 
-If the script file contains @code{main} procedure, then Sagittarius execute
-it as well with one argument which contains all command line arguments. This
-feature is defined in 
-@hyperlink[:href "http://srfi.schemers.org/srfi-22/"]{SRFI-22}. So the
-above example can also be written like the following:
+もしスクリプトファイルが@code{main}手続きを持っていた場合、Sagittariusはこの手
+続きをリストにパックされたコマンドラインオプションを渡して実行します。これは
+@hyperlink[:href "http://srfi.schemers.org/srfi-22/"]{SRFI-22}で定義されている
+機能です。この機能を使うと、上記の例は以下のように書くことができます。
 
 @codeblock{
 #!/usr/local/bin/sagittarius
@@ -182,31 +184,29 @@ above example can also be written like the following:
   0)
 }
 
-NOTE: the @code{main} procedure is called after all toplevel expressions
-are executed.
+注意: @code{main}手続きは全てのトップレベルにある式が実行された後に呼ばれます。
 
-@subsection{Working on REPL}
+@subsection{REPLを使う}
 
-If @code{sagittarius} does not get any script file to process, then it will
-go in to REPL (read-eval-print-loop). For developers' convenience, REPL
-imports some libraries by default such as @code{(rnrs)}.
+@code{sagittarius}コマンドがファイルなしで起動された場合、REPL
+(read-eval-print-loop)に入ります。開発者の利便性のため、REPLは@code{(rnrs)}
+といったいくつかのライブラリを起動時に読み込みます。
 
-If @code{.sashrc} file is located in the directory indicated @code{HOME} or
-@code{USERPROFILE} environment variable, then REPL reads it before evaluating
-user input. So developer can pre-load some more libraries, instead of typing
-each time.
+もし@code{.sashrc}ファイルが@code{HOME}もしくは@code{USERPROFILE}環境変数が指す
+ディレクトリにあった場合、REPLはそのファイルを起動時に読み込みます。これによっ
+て開発者はREPL上で頻繁に使うライブラリや手続きを予め読み込むことが可能です。
 
-NOTE: @code{.sashrc} is only for REPL, it is developers duty to load all
-libraries on script file.
+注意: @code{.sashrc}はREPL上でのみ有効です。スクリプトファイルではライブラリの
+読み込みを行う必要があります。
 
-@subsection{Writing a library}
+@subsection{ライブラリを書く}
 
-Sagittarius provides 2 styles to write a library, one is R6RS style and other
-one is R7RS style. Both styles are processed the same and users can use it
-without losing code portability.
+Sagittariusはライブラリの形式としてR6RS及びR7RSの両方を提供します。どちらの形式
+も同様に処理されるのでユーザーは可搬性を損なうことなく両方の形式で書かれたライ
+ブラリを使用することが可能です。
 
-Following example is written in R6RS style, for the detail of @code{library}
-syntax please see the R6RS document described in bellow sections.
+以下の例はR6RS形式で書かれたライブラリです。詳しい構文については先に続くR6RSの
+章を参照してください。
 @codeblock{
 (library (foo)
   (export bar)
@@ -215,17 +215,20 @@ syntax please see the R6RS document described in bellow sections.
  (define bar 'bar)
 )
 }
-The library named @code{(foo)} must be saved the file named @code{foo.scm},
-@code{foo.ss} or @code{foo.sls} (I use @code{.scm} for all examples) and
-located on the loading path, the value is returned by calling
-@code{add-load-path} with 0 length string.
+ライブラリ@code{(foo)}は@code{foo.scm}、@code{foo.ss}、@code{foo.sls}もしくは
+@code{foo.sld}という名前のファイルでロードパス上に保存されている必要があります。
+このドキュメントの例では@code{.scm}を使います。
 
-If you want to write portable code, then you can write implementation specific
-code separately using @code{.sagittarius.scm}, @code{.sagittarius.ss} or
-@code{.sagittarius.sls} extensions.
+もしSagittarius特有の機能を使った可搬性のあるコード(いささか矛盾がありますが)を
+書きたい場合、処理系特有のコードは@code{.sagittarius.scm}、
+@code{.sagittarius.ss}、@code{.sagittarius.sls}もしくは@code{.sagittarius.sld}
+といったファイルに保存することで分けて書くことが可能です。これはほぼ全てのR6RS
+処理系で実装されているデファクトスタンダードな機能です。もしR7RS形式のライブラ
+リ構文を使うのであれば、@code{cond-expand}を使って同様のことが可能です。
 
-If you don't want to share a library but only used in specific one, you can
-write both in one file and name the file you want to show. For example;
+もしライブラリをある特定のライブラリ以外で使用したくない場合(例えば低レベルマク
+ロの補助ライブラリなど)、以下のように2つのライブラリを一つのファイルに記述する
+ことも可能です。
 @codeblock{
 (library (not showing)
   ;; exports all internal use procedures
@@ -241,56 +244,56 @@ write both in one file and name the file you want to show. For example;
 ;; write shared procedures here
 )
 }
-Above script must be saved the file named @code{shared.scm}. The order of
-libraries are important. Top most dependency must be the first and next is
-second most, so on.
 
-Note: This style can hide some private procedures however if you want to write
-portable code, some implementations do not allow you to write this style.
+上記のスクリプトは@code{shared.scm}で保存されている必要があります。また、ライブ
+ラリの記載順序の重要です、一番上のライブラリが依存関係の最も上、2つめが依存関係
+の二番目といった具合です。
 
-@subsection{Compiled cache}
+注意: この形式はある程度プライベートな手続きを隠すことができますが可搬性があり
+ません。処理系によっては許容していない可能性があるからです。
 
-For better starting time, Sagittarius caches compiled libraries. The cache files
-are stored in one of the following environment variables;
+@subsection{コンパイル済みキャッシュ}
 
-For Unix like (POSIX) environment:
+起動時間短縮のためSagittariusはコンパイルされたライブラリを独自のバイナリファイルにキャッシュします。キャシュファイルは以下の環境変数で指定されたディレクトリに保存されます。
+
+UNIX環境下
 @itemlist[
   @item{@code{SAGITTARIUS_CACHE_DIR}}
   @item{@code{HOME}}
 ]
 
-For Windows environment:
+Windows環境下
 @itemlist[
   @item{@code{SAGITTARIUS_CACHE_DIR}}
   @item{@code{TEMP}}
   @item{@code{TMP}}
 ]
 
-Sagittarius will use the variables respectively, so if the
-@code{SAGITTARIUS_CACHE_DIR} is found then it will be used.
+Sagittariusは上記の順番通りにチェックします。なので、
+@code{SAGITTARIUS_CACHE_DIR}が見つかればそれを使用します。
 
-The caching compiled file is carefully designed however the cache file might be
-stored in broken state. In that case use @code{-c} option with
-@code{sagittarius}, then it will wipe all cache files. If you don't want to use
-it, pass @code{-d} option then Sagittarius won't use it.
+キャッシュ機構は慎重に設計されていますが、キャッシュファイルは壊れる可能性があ
+ちます。そのような場合にはSagittariusを@code{-c}オプションをつけて起動すること
+でキャッシュファイルをクリアすることが可能です。また、キャッシュファイルを使用
+したくない場合は@code{-d}オプションをつけることでキャッシュの使用を抑制すること
+ができます。
 
-@subsubsection{Precompiling cache file}
+@subsubsection{キャッシュファイルの事前生成}
 
-Users can provide own library with precompile script. The script looks like
-this;
+ユーザーは自身のライブラリを予めキャッシュにするスクリプトを提供することも可能
+です。以下はその例です。
 
 @codeblock{
 (import (the-library-1)
         (the-library-2))
 }
 
-When this script is run, then the libraries will be cached in the cache
-directory.
+このスクリプトを走らせることでライブラリ@code{(the-library-1)}及び
+@code{(the-library-2)}はキャッシュされます。
 
-Note: The cache files are stored with the names converted from original library
-files' absolute path. So it is important that users' libraries are already
-installed before precompiling, otherwise Sagittarius won't use the precompiled
-cache files.
+注意: キャッシュファイル名は元のファイルの絶対パスから導出されます。なので、事
+前コンパイルするライブラリが既に予定の位置に配布されていることが重要になります。
+そうでなければSagittariusは事前にコンパイルされたファイルを使用しません。
 
 @include-section["r6rs.scrbl"]
 @include-section["r7rs.scrbl"]

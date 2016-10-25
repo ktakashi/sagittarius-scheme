@@ -100,7 +100,7 @@ The entry works as specified in "Revised^6 Report on the Algorithmic Language
 Scheme.". If it is marked as "[R6RS+]", the entry has additional functionality.}
 @dl-item["[R7RS]"]{
 The entry works as specified in "Revised^7 Report on the Algorithmic Language
-Scheme."(draft 5).}
+Scheme.".}
 @dl-itemx[2 "[SRFI-n]" "[SRFI-n+]"]{The entry works as specified in SRFI-n. If
 it is marked as "[SRFI-n+]", the entry has additional functionality.}
 ]
@@ -109,10 +109,9 @@ it is marked as "[SRFI-n+]", the entry has additional functionality.}
 
 @subsection{Invoking Sagittarius}
 
-Sagittarius can be used either as an independent Schame interpreter or an
-embedded Scheme library. The interpreter which comes with Sagittarius
-distribution is a program named @code{sagittarius} on Unix like environment
-and @code{sash} on Windows environment. 
+Sagittarius can be used as an independent Schame interpreter. The interpreter
+which comes with Sagittarius distribution is a program named @code{sagittarius}
+on Unix like environment and @code{sash} on Windows environment.
 
 @define[Program]{@name{sagittarius} @args{[options] scheme-file arg @dots{}}}
 @desc{Invoking sagittarius. If @var{scheme-file} is not given, it runs with
@@ -131,12 +130,12 @@ with disabling symbolic link option.
 
 @subsection{Writing Scheme scripts}
 
-When a Scheme file is given to @code{sash}, it bounds an internal variable to
-list of the remaining command-line arguments which you can get with the 
-@code{command-line} procedure, then loads the Scheme program. If the first line
-of scheme-file begins with @code{"#!"}, then sash ignores the entire line. This 
-is useful to write a Scheme program that works as an executable script in
-unix-like systems.
+When a Scheme file is given to @code{sagittarius}, it bounds an internal
+variable to list of the remaining command-line arguments which you can get with
+the @code{command-line} procedure, then loads the Scheme program. If the first
+line of scheme-file begins with @code{"#!"}, then Sagittarius ignores the
+entire line. This is useful to write a Scheme program that works as an
+executable script in unix-like systems.
 
 Typical Sagittarius script has the first line like this:
 
@@ -147,9 +146,9 @@ or
 @snipet{#!/bin/env sagittarius}
 
 The second form uses "shell trampoline" technique so that the script works as
-far as sash is in the PATH.
+far as @code{sagittarius} is in the PATH.
 
-After the script file is successfully loaded, then sash will process all
+After the script file is successfully loaded, then Sagittarius will process all
 toplevel expression the same as Perl.
 
 Now I show a simple example below. This script works like @code{cat(1)}, without
@@ -217,17 +216,18 @@ syntax please see the R6RS document described in bellow sections.
   (export bar)
   (import (rnrs))
 
- (define bar 'bar)
-)
-}
-The library named @code{(foo)} must be saved the file named @code{foo.scm},
-@code{foo.ss} or @code{foo.sls} (I use @code{.scm} for all examples) and
-located on the loading path, the value is returned by calling
-@code{add-load-path} with 0 length string.
+ (define bar 'bar) ) } The library named @code{(foo)} must be saved the file
+named @code{foo.scm}, @code{foo.ss}, @code{foo.sls} or @code{foo.sld} (I use
+@code{.scm} for all examples) and located on the loading path, the value is
+returned by calling @code{add-load-path} with 0 length string.
 
-If you want to write portable code, then you can write implementation specific
-code separately using @code{.sagittarius.scm}, @code{.sagittarius.ss} or
-@code{.sagittarius.sls} extensions.
+If you want to write portable code yet want to use Sagittarius specific
+functionality, then you can write implementation specific code separately using
+@code{.sagittarius.scm}, @code{.sagittarius.ss}, @code{.sagittarius.sls} or
+@code{.sagittarius.sld} extensions. This functionality is implemented almost
+all R6RS implementation. If you use R7RS style library syntax, then you can
+also use @code{cond-expand} to separate implementation specific
+functionalities.
 
 If you don't want to share a library but only used in specific one, you can
 write both in one file and name the file you want to show. For example;
