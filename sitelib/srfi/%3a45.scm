@@ -1,5 +1,4 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
-#!core
 (library (srfi :45)
-    (export lazy eager delay force)
+    (export :all)
     (import (srfi :45 lazy)))

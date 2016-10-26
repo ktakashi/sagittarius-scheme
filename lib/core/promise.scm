@@ -27,13 +27,15 @@
        (delay-force (promise #t expr)))))
 
   (define (force promise)
-    (if (promise-done? promise)
-	(promise-value promise)
-	(let ((promise* ((promise-value promise))))
-	  (unless (promise-done? promise)
-	    (promise-update! promise* promise))
-	  (force promise))))
-
+    (if (promise? promise)
+	(if (promise-done? promise)
+	    (promise-value promise)
+	    (let ((promise* ((promise-value promise))))
+	      (unless (promise-done? promise)
+		(promise-update! promise* promise))
+	      (force promise)))
+	promise))
+    
   (define (make-promise obj) (if (promise? obj) obj (delay obj)))
 
   (define (promise-update! new old)
