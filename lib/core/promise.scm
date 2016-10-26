@@ -1,6 +1,6 @@
 ;; -*- mode:scheme; coding: utf-8; -*-
 (library (core promise)
-    (export delay force delay-force make-promise promise?)
+    (export delay force delay-force make-promise promise? eager)
     (import (core)
 	    (core record)
 	    (core syntax))
@@ -16,6 +16,9 @@
   (define (promise-done? p) (car (promise-box p)))
   (define (promise-value p) (cdr (promise-box p)))
 
+  ;; for SRFI-45
+  (define (eager expr) (promise #t expr))
+
   (define-syntax delay-force
     (syntax-rules ()
       ((_ expr)
@@ -24,16 +27,18 @@
   (define-syntax delay
     (syntax-rules ()
       ((_ expr)
-       (delay-force (promise #t expr)))))
-
+       (delay-force (eager expr)))))
+  
   (define (force promise)
     (if (promise? promise)
 	(if (promise-done? promise)
 	    (promise-value promise)
 	    (let ((promise* ((promise-value promise))))
-	      (unless (promise-done? promise)
-		(promise-update! promise* promise))
-	      (force promise)))
+	      (cond ((promise? promise*)
+		     (unless (promise-done? promise)
+		       (promise-update! promise* promise))
+		     (force promise))
+		    (else promise*))))
 	promise))
     
   (define (make-promise obj) (if (promise? obj) obj (delay obj)))
