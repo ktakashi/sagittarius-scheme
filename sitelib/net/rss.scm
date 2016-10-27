@@ -346,7 +346,9 @@
 				  names attrbutes converters))
 			   (case-lambda
 			    ((tag attributes item)
-			     ((n attributes) (car item)))
+			     ((n attributes) (if (null? item)
+						 ""
+						 (car item))))
 			    ((value . attributes)
 			     ((n (convert attributes)) value))))))
 	     getters ...
