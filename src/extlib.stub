@@ -263,10 +263,14 @@
   (define-c-proc vm-load-flags (:optional f)
     (cond ((SG_UNBOUNDP f) (result (SG_MAKE_INT (-> (Sg_VM) flags))))
 	  ((SG_INTP f)     (set! (-> (Sg_VM) flags) (SG_INT_VALUE f)))
-	  ((SG_FALSEP f)   (set! (-> (Sg_VM) flags)
-				 (logand (-> (Sg_VM) flags)
-					 (logior SG_LOG_LEVEL_MASK
-						 SG_CACHE_MASK))))))
+	  ((SG_FALSEP f)
+	   ;; Reset only during importing otherwise main script would
+	   ;; also get affected.
+	   (when (== (-> (Sg_VM) state) IMPORTING)
+	     (set! (-> (Sg_VM) flags)
+		   (logand (-> (Sg_VM) flags)
+			   (logior SG_LOG_LEVEL_MASK
+				   SG_CACHE_MASK)))))))
   (define-c-proc find-file-on-paths
     (path::<string> paths :optional (suffix::<string> #f) (raise::<boolean> #f))
     (result (Sg_FindFile path paths (?: (SG_FALSEP #f) NULL suffix)

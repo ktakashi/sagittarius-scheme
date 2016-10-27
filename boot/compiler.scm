@@ -66,10 +66,6 @@
 	 (h)
 	 (apply values r))))))
 
-(define-syntax %vm-warn
-  (syntax-rules ()
-    ((_ msg) (when (vm-log-level 'debug) (vm-warn msg)))))
-
 (define-syntax $src
   (syntax-rules ()
     ((_ n o)
@@ -2928,7 +2924,7 @@
 	      (if (vm-error-unbound?)
 		  (error 'check-exports "attempt to export unbound variable(s)"
 			 diff lib)
-		  (%vm-warn (format 
+		  (vm-warn (format 
 			    "attempt to export unbound variable(s) ~a at ~a"
 			    diff (library-name lib)))))))))
 
@@ -3845,7 +3841,7 @@
 
 (define (pass2/remove-unused-lvars iform lvars type)
   (define (unused-warning lvar)
-    (%vm-warn (format "unused variable ~a in ~s"
+    (vm-warn (format "unused variable ~a in ~s"
 		     (lvar-name lvar)
 		     (or ($let-src iform)
 			 (iform->sexp iform)))))
@@ -4209,7 +4205,7 @@
 
 ;; args must be a list of $const node.
 (define (constant-folding-warning src who args)
-  (%vm-warn (format/ss "~s: gave up constant folding with given argument(s)."
+  (vm-warn (format/ss "~s: gave up constant folding with given argument(s)."
 		      ;; should be fine right?
 		      (if (circular-list? src) src (unwrap-syntax src))
 		      #;`(,(if (symbol? who)
@@ -5221,7 +5217,7 @@
 		(memq name (library-defined lib)))
       (if (vm-error-unbound?)
 	  (undefined-violation name "unbound identifier")
-	  (%vm-warn (format/ss 
+	  (vm-warn (format/ss 
 		    "reference to undefined variable: '~a' in ~a (source: ~a)"
 		    name 
 		    (library-name lib)
