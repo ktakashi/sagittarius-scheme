@@ -181,7 +181,7 @@
 				 (member (car phases) '(ran (meta 0))))
 			    imported)
 			   (else #f)))))
-		(else imported)))
+		(else import)))
 	(if (null? (cdr import))
 	    import
 	    (check import)))
