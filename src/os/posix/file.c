@@ -69,7 +69,7 @@ typedef struct FDRec
 static SgObject get_last_error_message(SgObject file)
 {
   const char *msg = strerror(SG_FD(file)->errorno);
-  return Sg_MakeStringC(msg);  
+  return Sg_Utf8sToUtf32s(msg, strlen(msg));  
 }
 
 static int posix_open(SgObject self, SgString *path, int flags)
@@ -639,7 +639,7 @@ SgObject Sg_ReadDirectory(SgString *path)
     return SG_FALSE;
   }
   for (entry = readdir(dir); entry != NULL; entry = readdir(dir)) {
-    SG_APPEND1(h, t, Sg_MakeStringC(entry->d_name));
+    SG_APPEND1(h, t, Sg_Utf8sToUtf32s(entry->d_name, strlen(entry->d_name)));
   }
   closedir(dir);
   return h;
