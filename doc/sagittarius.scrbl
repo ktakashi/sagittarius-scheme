@@ -59,8 +59,8 @@ procedure.
 @subsubsection{Macro transformer}
 
 @define[Function]{@name{er-macro-transformer} @args{proc}}
-@desc{@var{Proc} must take 3 arguments, @var{form}, @var{rename} and
-@var{compare}.
+@desc{@var{Proc} must be a procedure which accepts 3 arguments, @var{form},
+@var{rename} and @var{compare}.
 
 @dl-list[
 @dl-item[@var{form}]{The input form of this macro. It is mere s-expression.}

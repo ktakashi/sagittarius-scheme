@@ -54,21 +54,21 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @subsubsection{マクロ展開器}
 
 @define[Function]{@name{er-macro-transformer} @args{proc}}
-@desc{@var{Proc} must take 3 arguments, @var{form}, @var{rename} and
-@var{compare}.
+@desc{@var{Proc}は3つの引数、@var{form}、@var{rename}そして@var{compare}を受け
+取る手続きでなければいけません。
 
 @dl-list[
-@dl-item[@var{form}]{The input form of this macro. It is mere s-expression.}
-@dl-item[@var{rename}]{A procedure. It takes an object as its argument and
-convert it to a syntax object. The procedure is similar with 
-@code{datum->syntax}, it doesn't require template identifier.}
-@dl-item[@var{compare}]{A procedure. It takes 2 arguments and compares if they
-are the same object in sense of @code{free-identifier=?}. If the given
-arguments are list or vector, then the procedure checks its elements.}
+@dl-item[@var{form}]{このマクロ展開器の入力式(S式)です。}
+@dl-item[@var{rename}]{手続き。Schemeオブジェクトを受け取り構文オブジェクトにし
+ます。@code{datum->syntax}と似ていますが、テンプレート手続きを必要としません。
+変換に使用される環境はマクロが定義された際の環境です。}
+@dl-item[@var{compare}]{手続き。二つの引数を受け取り、それらを
+@code{free-identifier=?}で比較します。引数がリストもしくはベクタだった場合、こ
+の手続きはそれらの要素の比較もします。}
 ]
 
-The @code{er-macro-transformer} returns explicit renaming macro transformer, so
-you can write both hygine and non-hygine macro with it. For example:
+@code{er-macro-transformer}はexplicit renamingマクロ展開器を返します。この展開器は
+健全、非健全両方のマクロを書くことが可能です。例えば以下のように：
 @codeblock[=> (a a a)]{
 (define-syntax loop
   (er-macro-transformer
@@ -84,15 +84,14 @@ you can write both hygine and non-hygine macro with it. For example:
     (set! ls (cons 'a ls))
     (set! n (- n 1))))
 }
-This example has the same functionality as the example written in
-@code{datum->syntax} description. The basic of @code{er-macro-transformer} is
-the opposite way of the @code{syntax-case}. The @code{syntax-case} always makes
-macro hygine, however the @code{er-macro-transformer} can make macro hygine.
-Moreover, if you do not use @var{rename}, it always makes it non-hygine.
-
+この例は@code{datum->syntax}の説明で示された例と同等の機能を実装しています。
+@code{er-macro-transformer}の基本は@code{syntax-case}の逆と言えます。
+@code{syntax-case}は基本健全にしますが、@code{er-macro-transformer}ではユーザが
+明示的に健全にする必要があります。もう少し言えば、ユーザが@var{rename}を使わなければ
+マクロの展開結果は常に非健全になります。
 }
 
-@subsubsection{Arithmetic operations}
+@subsubsection{算術操作}
 
 @define[Function]{@name{+.} @args{z @dots{}}}
 @define[Function]{@name{*.} @args{z @dots{}}}
@@ -100,24 +99,24 @@ Moreover, if you do not use @var{rename}, it always makes it non-hygine.
 @define[Function]{@name{-.} @args{z1 z2 @dots{}}}
 @define[Function]{@name{/.} @args{z @dots{}}}
 @define[Function]{@name{/.} @args{z1 z2 @dots{}}}
-@desc{The same as @code{+}, @code{*}, @code{-} and @code{/}. The difference is
-these procedures converts given arguments inexact number.}
+@desc{@code{+}, @code{*}, @code{-} and @code{/}とほぼ同じです。違いは計算結果が
+必ず非正確数になることです。}
 
 @define[Function]{@name{mod-inverse} @args{x m}}
-@desc{@var{x} and @var{m} must be exact integer.
+@desc{@var{x}と@var{m}は正確数でなければなりません。
 
-Returns @code{@var{x} ^ -1 mod @var{m}}}
+@code{@var{x} ^ -1 mod @var{m}}の結果を返します。}
 
 @define[Function]{@name{mod-expt} @args{x e m}}
-@desc{@var{x}, @var{e} and @var{m} must be exact integer.
+@desc{@var{x}、@var{e}及び@var{m}はすべて正確数でなければなりません。
 
-Returns @code{@var{x} ^ @var{e} mod @var{m}}}
+@code{@var{x} ^ @var{e} mod @var{m}}の結果をを返します。}
 
-@subsubsection{File system operations}
+@subsubsection{ファイルシステム操作}
 
 @define[Function]{@name{file-size-in-bytes} @args{filename}}
-@desc{Returns file size of filename in bytes. If filename does not exist, it
-raises @code{&assertion} condition.
+@desc{@var{filename}のファイルサイズをバイト数で返します。もしファイルが存在し
+なければ@code{&assertion}例外を投げます。
 }
 
 @define[Function]{@name{file-regular?} @args{filename}}
@@ -126,35 +125,36 @@ raises @code{&assertion} condition.
 @define[Function]{@name{file-readable?} @args{filename}}
 @define[Function]{@name{file-writable?} @args{filename}}
 @define[Function]{@name{file-executable?} @args{filename}}
-@desc{Returns file type or permission of given @var{filename}.}
+@desc{与えられたファイルの種類、または権限を返します。}
 
 @define[Function]{@name{file-stat-ctime} @args{filename}}
 @define[Function]{@name{file-stat-mtime} @args{filename}}
 @define[Function]{@name{file-stat-atime} @args{filename}}
-@desc{Returns file statistics time in nano sec.
+@desc{与えられたファイルの時間統計をナノセカンドで返します。
 
-The @code{file-stat-ctime} procedure returns last change time of @var{filename}.
+@code{file-stat-ctime}手続きは最終変更時間を返します。
 
-The @code{file-stat-mtime} returns last modified time of @var{filename}.
+@code{file-stat-mtime}手続きは最終更新時間を返します。
 
-The @code{file-stat-atime} returns last accesse time of @var{filename}.
+@code{file-stat-atime}手続きは最終アクセス時間を返します。
 }
 
 @define[Function]{@name{create-symbolic-link} @args{old-filename new-filename}}
-@desc{Creates symbolic link of @var{old-filename} as @var{new-filename}.}
+@desc{@var{old-filename}のシンボリックリンクを@var{new-filename}という名前で作
+成します}
 
 @define[Function]{@name{rename-file} @args{old-filename new-filename}}
-@desc{Renames given @var{old-filename} to @var{new-filename}.
+@desc{@var{old-filename}を@var{new-filename}に変更します。
 
-If @var{old-filename} does not exist, it raises @code{&assertion}.
+@var{old-filename}が存在しない場合@code{&assertion}例外が投げられます。
 
-If @var{new-filename} exists, it overwrite the existing file.
+@var{new-filename}が存在する場合、古いファイルを上書きします。
 }
 
 @define[Function]{@name{create-directory} @args{path}}
 @define[Function]{@name{delete-directory} @args{path}}
-@desc{Creates/deletes given directory. If it fails, it raises condition
-@code{&assertion}.
+@desc{与えられたディレクトリ名を作成または削除します。失敗した場合は@code{&assertion}
+例外が投げられます。
 }
 
 @define[Function]{@name{read-directory} @args{path}}
