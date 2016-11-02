@@ -31,6 +31,9 @@
 #include <wchar.h>
 #include <io.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <errno.h>
 #define LIBSAGITTARIUS_BODY
 #include <sagittarius/file.h>
 #include <sagittarius/codec.h>
@@ -659,8 +662,28 @@ int Sg_FileRename(SgString *oldpath, SgString *newpath)
 
 int Sg_ChangeFileMode(SgString *path, int mode)
 {
-  /* no operation on windows */
-  return Sg_FileExistP(path) ? 0: ERROR_FILE_NOT_FOUND;
+  /* TODO
+     It's better to use AddAccessAllowedAce to set ACE and access rights
+     however that's really hard task to do it here since Windows has
+     totally different access control mechanism. So for now, we do simple
+     way.
+     NB: FFI is always enabled on Windows, so if users need more control
+         they just need to write binding...
+   */
+  /* We only care about user level, thus 0700 */
+  int win_mode = 0;
+  if (mode & 0400) win_mode |= _S_IREAD;
+  if (mode & 0200) win_mode |= _S_IWRITE;
+
+  if (_wchmod(utf32ToUtf16(path), win_mode) != 0) {
+    if (errno == ENOENT) {
+      SetLastError(ERROR_FILE_NOT_FOUND);
+      return ERROR_FILE_NOT_FOUND;
+    }
+    SetLastError(ERROR_INVALID_PARAMETER);
+    return ERROR_INVALID_PARAMETER;
+  }
+  return 0;
 }
 
 typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
