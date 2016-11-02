@@ -122,7 +122,7 @@ Returns @code{@var{x} ^ @var{e} mod @var{m}}}
 
 @define[Function]{@name{file-size-in-bytes} @args{filename}}
 @desc{Returns file size of filename in bytes. If filename does not exist, it
-raises @code{&assertion} condition.
+raises @code{&i/o} condition.
 }
 
 @define[Function]{@name{file-regular?} @args{filename}}
@@ -151,7 +151,7 @@ The @code{file-stat-atime} returns last accesse time of @var{filename}.
 @define[Function]{@name{rename-file} @args{old-filename new-filename}}
 @desc{Renames given @var{old-filename} to @var{new-filename}.
 
-If @var{old-filename} does not exist, it raises @code{&assertion}.
+If @var{old-filename} does not exist, it raises @code{&i/o}.
 
 If @var{new-filename} exists, it overwrite the existing file.
 }
@@ -159,7 +159,7 @@ If @var{new-filename} exists, it overwrite the existing file.
 @define[Function]{@name{create-directory} @args{path}}
 @define[Function]{@name{delete-directory} @args{path}}
 @desc{Creates/deletes given directory. If it fails, it raises condition
-@code{&assertion}.
+@code{&i/o}.
 }
 
 @define[Function]{@name{read-directory} @args{path}}
