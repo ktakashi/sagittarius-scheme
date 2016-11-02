@@ -574,7 +574,8 @@ int Sg_DeleteFile(SgString *path)
 
 int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 {
-  return CopyFileW(utf32ToUtf16(src), utf32ToUtf16(dst), !overwriteP);
+  return CopyFileW(utf32ToUtf16(src), utf32ToUtf16(dst), !overwriteP)
+    ? 0 : GetLastError();
 }
 
 /* Originally from Mosh start */
@@ -643,9 +644,9 @@ int Sg_DeleteFileOrDirectory(SgString *path)
 {
   wchar_t *wpath = utf32ToUtf16(path);
   if (directory_p(wpath)) {
-    return RemoveDirectoryW(wpath);
+    return RemoveDirectoryW(wpath) ? 0 : GetLastError();
   } else {
-    return DeleteFileW(wpath);
+    return DeleteFileW(wpath) ? 0 : GetLastError();
   }
 }
 
@@ -653,16 +654,13 @@ int Sg_FileRename(SgString *oldpath, SgString *newpath)
 {
   return MoveFileExW(utf32ToUtf16(oldpath),
 		     utf32ToUtf16(newpath),
-		     MOVEFILE_REPLACE_EXISTING);
+		     MOVEFILE_REPLACE_EXISTING) ? 0 : GetLastError();
 }
 
-void Sg_ChangeFileMode(SgString *path, int mode)
+int Sg_ChangeFileMode(SgString *path, int mode)
 {
   /* no operation on windows */
-  if (!Sg_FileExistP(path)) {
-    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("change-file-mode"),
-	       Sg_GetLastErrorMessage(), path, SG_FALSE);
-  }
+  return Sg_FileExistP(path) ? 0: ERROR_FILE_NOT_FOUND;
 }
 
 typedef BOOL (WINAPI* ProcCreateSymbolicLink) (LPCWSTR, LPCWSTR, DWORD);
@@ -678,15 +676,17 @@ int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
       /* SYMBOLIC_LINK_FLAG_DIRECTORY == 1 */
       DWORD flag = directory_p(oldPathW) ? 1 : 0;
       if (win32CreateSymbolicLink(newPathW, oldPathW, flag)) {
-	return TRUE;
+	return 0;
       }
+      return GetLastError();
     }
-    return FALSE;
+    /* not supported (but never happend after Vista...) */
+    return ERROR_INVALID_FUNCTION;
 }
 
 int Sg_CreateDirectory(SgString *path)
 {
-  return CreateDirectoryW(utf32ToUtf16(path), NULL);
+  return CreateDirectoryW(utf32ToUtf16(path), NULL) ? 0 : GetLastError();
 }
 
 #define DEFINE_FILE_STAD(name, prop)					\
@@ -697,6 +697,7 @@ int Sg_CreateDirectory(SgString *path)
 			    flags, NULL);				\
     if (fd != INVALID_HANDLE_VALUE) {					\
       BY_HANDLE_FILE_INFORMATION fileInfo;				\
+      int e;								\
       if (GetFileInformationByHandle(fd, &fileInfo)) {			\
 	int64_t tm;							\
 	FILETIME *time;							\
@@ -709,9 +710,11 @@ int Sg_CreateDirectory(SgString *path)
 	tm = li.QuadPart - adjust.QuadPart;				\
 	return Sg_MakeIntegerFromS64(tm * 100);				\
       }									\
+      e = GetLastError();						\
       CloseHandle(fd);							\
+      SetLastError(e);							\
     }									\
-    return SG_UNDEF;							\
+    return SG_FALSE;							\
   }
 
 DEFINE_FILE_STAD(Sg_FileModifyTime, LastWrite)
@@ -726,13 +729,16 @@ SgObject Sg_FileSize(SgString *path)
 			  NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
   if (fd != INVALID_HANDLE_VALUE) {
     LARGE_INTEGER bsize = {0};
+    int e;
     if (GetFileSizeEx(fd, &bsize)) {
       CloseHandle(fd);
       return Sg_MakeIntegerFromS64(bsize.QuadPart);
     }
+    e = GetLastError();
     CloseHandle(fd);
+    SetLastError(e);
   }
-  return SG_UNDEF;
+  return SG_FALSE;
 }
 
 SgObject Sg_ReadDirectory(SgString *path)
@@ -965,6 +971,20 @@ SgObject Sg_SitelibPath()
   return win_sitelib_path;
 }
 
+SgIOErrorType Sg_ErrnoToIOErrorType(int e)
+{
+  /* TODO add more */
+  switch (e) {
+  case ERROR_FILE_NOT_FOUND:
+  case ERROR_PATH_NOT_FOUND:
+    return SG_IO_FILE_NOT_EXIST_ERROR;
+  case ERROR_ACCESS_DENIED:
+    return SG_IO_FILE_PROTECTION_ERROR;
+  default:
+    return SG_IO_UNKNOWN_ERROR;
+  }
+}
+ 
 /*
   end of file
   Local Variables:

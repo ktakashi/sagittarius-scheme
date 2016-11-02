@@ -2204,4 +2204,17 @@
 (test-compile-error-expr '(letrec* ((1 1) (a 1)) a))
 (test-compile-error-expr '(lambda (a 1) a))
 
+(define-syntax test-i/o-error
+  (syntax-rules ()
+    ((_ expr) (test-error i/o-error? expr))))
+(test-i/o-error (copy-file "doesn't-exist" "doesn't-exist-as-well"))
+(test-i/o-error (file-stat-ctime "doesn't-exist"))
+(test-i/o-error (file-stat-mtime "doesn't-exist"))
+(test-i/o-error (file-stat-atime "doesn't-exist"))
+(test-i/o-error (create-symbolic-link "" "no:such:path"))
+(test-i/o-error (rename-file "doesn't-exist" "no:such:path"))
+(test-i/o-error (change-file-mode "doesn't-exist" #o666))
+(test-i/o-error (delete-directory "doesn't-exist"))
+(test-i/o-error (create-directory "doesn't/exist"))
+
 (test-end)

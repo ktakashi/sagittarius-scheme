@@ -162,7 +162,6 @@ static int64_t posix_read(SgObject self, uint8_t *buf, int64_t size)
   } while (result < 0 && errno == EINTR);
   setLastError(self);
   if (result < 0) {
-    /* TODO this must be &io/error */
     SgObject err = get_last_error_message(self);
     Sg_IOReadError(SG_INTERN("file reader"), err, SG_FALSE, self);
   }
@@ -391,6 +390,11 @@ static SgIOErrorType io_error_type(int errno_)
   return SG_IO_UNKNOWN_ERROR;
 }
 
+SgIOErrorType Sg_ErrnoToIOErrorType(int e)
+{
+  return io_error_type(e);
+}
+
 int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 {
 #define check_file_exists					\
@@ -406,48 +410,36 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 
   check_file_exists;
   if((fps = open(source, O_RDONLY)) == -1) {
-    SgIOErrorType type = io_error_type(errno);
-    Sg_IOError(type, SG_INTERN("copy-file"),
-	       SG_MAKE_STRING("failed to open src file"),
-	       src, SG_FALSE);
-    return FALSE;		/* dummy */
+    return errno;
   }
   if((fpd = open(dest, O_RDWR | O_CREAT | O_TRUNC, 0644)) == -1) {
-    SgIOErrorType type = io_error_type(errno);
+    e = errno;
     close(fps);
-    Sg_IOError(type, SG_INTERN("copy-file"),
-	       SG_MAKE_STRING("failed to open dst file"),
-	       dst, SG_FALSE);
-    return FALSE;		/* dummy */
+    return e;
   }
   if(fstat(fps, &st) == -1) {
     e = errno;
     close(fpd);
     close(fps);
-    Sg_SystemError(e, UC("failed to fstat"));
-    return FALSE;
+    return e;
   }
   if(pwrite(fpd, "", 1, st.st_size - 1) != 1) {
+    e = errno;
     close(fpd);
     close(fps);
-    Sg_IOError(-1, SG_INTERN("copy-file"),
-	       SG_MAKE_STRING("failed to create dst buffer"),
-	       SG_FALSE, dst);
-    return FALSE;		/* dummy */
+    return e;
   }
   if((bufs=mmap(0, st.st_size, PROT_READ, MAP_SHARED, fps, 0)) == MAP_FAILED) {
     e = errno;
     close(fpd);
     close(fps);
-    Sg_SystemError(e, UC("failed to mmap (src)"));
-    return FALSE;		/* dummy */
+    return e;
   }
   if((bufd=mmap(0, st.st_size, PROT_WRITE, MAP_SHARED, fpd, 0)) == MAP_FAILED) {
     e = errno;
     close(fpd);
     close(fps);
-    Sg_SystemError(e, UC("failed to mmap (dst)"));
-    return FALSE;		/* dummy */
+    return e;
   }
 
   memcpy(bufd, bufs, st.st_size);
@@ -462,26 +454,18 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 
   check_file_exists;
   if((fps = open(source, O_RDONLY)) == -1) {
-    SgIOErrorType type = io_error_type(errno);
-    Sg_IOError(type, SG_INTERN("copy-file"),
-	       SG_MAKE_STRING("failed to open src file"),
-	       src, SG_FALSE);
-    return FALSE;		/* dummy */
+    return errno;
   }
   if((fpd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1) {
-    SgIOErrorType type = io_error_type(errno);
+    e = errno;
     close(fps);
-    Sg_IOError(type, SG_INTERN("copy-file"),
-	       SG_MAKE_STRING("failed to open dst file"),
-	       dst, SG_FALSE);
-    return FALSE;		/* dummy */
+    return e;
   }
   if(fstat(fps, &st) == -1) {
     e = errno;
     close(fpd);
     close(fps);
-    Sg_SystemError(e, UC("failed to fstat"));
-    return FALSE;
+    return e;
   }
 
   while((bytes = read(fps, buffer, BSIZE)) > 0)
@@ -496,10 +480,9 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
   close(fps);
 
   if (r < 0) {
-    Sg_SystemError(e, UC("chown: %A"), Sg_GetLastErrorMessageWithErrorCode(e));
-    return FALSE;
+    return e;
   }
-  return TRUE;
+  return 0;
 }
 
 /* Originally from Mosh start */
@@ -519,7 +502,7 @@ int Sg_FileRegularP(SgString *path)
   if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
     return S_ISREG(st.st_mode);
   }
-  return FALSE;
+  return errno;
 }
 
 int Sg_FileSymbolicLinkP(SgString *path)
@@ -547,30 +530,42 @@ int Sg_DirectoryP(SgString *path)
 
 int Sg_DeleteFileOrDirectory(SgString *path)
 {
-  return remove(Sg_Utf32sToUtf8s(path)) == 0;
+  if (remove(Sg_Utf32sToUtf8s(path)) == 0) {
+    return 0;
+  }
+  return errno;
 }
 
 int Sg_FileRename(SgString *oldpath, SgString *newpath)
 {
-  return rename(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;
+  if (rename(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0) {
+    return 0;
+  }
+  return errno;
 }
 
-void Sg_ChangeFileMode(SgString *path, int mode)
+int Sg_ChangeFileMode(SgString *path, int mode)
 {
   if (chmod(Sg_Utf32sToUtf8s(path), mode) < 0) {
-    Sg_IOError(SG_IO_FILE_NOT_EXIST_ERROR, SG_INTERN("change-file-mode"),
-	       Sg_GetLastErrorMessage(), path, SG_FALSE);
+    return errno;
   }
+  return 0;
 }
 
 int Sg_CreateSymbolicLink(SgString *oldpath, SgString *newpath)
 {
-  return symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0;
+  if (symlink(Sg_Utf32sToUtf8s(oldpath), Sg_Utf32sToUtf8s(newpath)) == 0) {
+    return 0;
+  }
+  return errno;
 }
 
 int Sg_CreateDirectory(SgString *path)
 {
-  return mkdir(Sg_Utf32sToUtf8s(path), S_IRWXU | S_IRWXG | S_IRWXO) == 0;
+  if (mkdir(Sg_Utf32sToUtf8s(path), S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+    return 0;
+  }
+  return errno;
 }
 
 SgObject Sg_FileModifyTime(SgString *path)
@@ -590,7 +585,7 @@ SgObject Sg_FileModifyTime(SgString *path)
 		      Sg_MakeIntegerFromS64(st.st_mtime));
 #endif
     }
-    return SG_UNDEF;
+    return SG_FALSE;
 }
 
 SgObject Sg_FileAccessTime(SgString *path)
@@ -610,7 +605,7 @@ SgObject Sg_FileAccessTime(SgString *path)
 		      Sg_MakeIntegerFromS64(st.st_atime));
 #endif
     }
-    return SG_UNDEF;
+    return SG_FALSE;
 }
 
 SgObject Sg_FileChangeTime(SgString *path)
@@ -630,7 +625,7 @@ SgObject Sg_FileChangeTime(SgString *path)
 		      Sg_MakeIntegerFromS64(st.st_ctime));
 #endif
     }
-    return SG_UNDEF;
+    return SG_FALSE;
 }
 
 SgObject Sg_FileSize(SgString *path)
@@ -639,7 +634,7 @@ SgObject Sg_FileSize(SgString *path)
   if (stat(Sg_Utf32sToUtf8s(path), &st) == 0) {
     return Sg_MakeIntegerFromS64(st.st_size);
   }
-  return SG_UNDEF;
+  return SG_FALSE;
 }
 
 SgObject Sg_ReadDirectory(SgString *path)
@@ -661,7 +656,7 @@ SgObject Sg_CurrentDirectory()
 {
   char buf[MAXPATHLEN];
   if (getcwd(buf, MAXPATHLEN) == NULL) {
-    Sg_IOError(-1, SG_INTERN("current-directory"),
+    Sg_IOError(io_error_type(errno), SG_INTERN("current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
     return SG_UNDEF;
   }
@@ -671,7 +666,7 @@ SgObject Sg_CurrentDirectory()
 void Sg_SetCurrentDirectory(SgString *path)
 {
   if (chdir(Sg_Utf32sToUtf8s(path)) < 0) {
-    Sg_IOError(-1, SG_INTERN("set-current-directory"),
+    Sg_IOError(io_error_type(errno), SG_INTERN("set-current-directory"),
 	       Sg_GetLastErrorMessage(), SG_FALSE, SG_FALSE);
   }
 }

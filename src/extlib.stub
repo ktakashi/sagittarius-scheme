@@ -412,17 +412,27 @@
   (define-c-proc has-setter? (proc) ::<boolean> :no-side-effect Sg_HasSetter)
 
   ;; filesystem
+  (define-cise-stmt raise-i/o-error
+    ((_ who filename)
+     (let ((r (gensym)))
+       `(let ((,(string->symbol (format "~a::int" r)) (Sg_GetLastError)))
+	  (raise-i/o-error ,who ,r ,filename))))
+    ((_ who e filename)
+     `(Sg_IOError (Sg_ErrnoToIOErrorType ,e)
+		  ',who
+		  (Sg_GetLastErrorMessageWithErrorCode ,e)
+		  ,filename SG_FALSE)))
+  
   (define-c-proc copy-file
-    (srd::<string> dst::<string> :optional (overwrite?::<boolean> #f)) 
+    (src::<string> dst::<string> :optional (overwrite?::<boolean> #f)) 
     ::<boolean>
-    Sg_CopyFile)
+    (let ((r::int (Sg_CopyFile src dst overwrite?)))
+      (when r (raise-i/o-error copy-file r src))
+      (result TRUE)))
 
   (define-c-proc file-size-in-bytes (path::<string>) :no-side-effect
     (let ((size (Sg_FileSize path)))
-      (if (SG_UNDEFP size)
-	  (Sg_AssertionViolation 'file-size-in-bytes
-				 (Sg_GetLastErrorMessage)
-				 path))
+      (when (SG_FALSEP size) (raise-i/o-error file-size-in-bytes path))
       (result size)))
   
   (define-c-proc file-regular? (path::<string>) ::<boolean> :no-side-effect
@@ -445,55 +455,39 @@
 
   (define-c-proc file-stat-ctime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileChangeTime path)))
-      (if (SG_UNDEFP tm)
-	  (Sg_AssertionViolation 'file-stat-ctime
-				 (Sg_GetLastErrorMessage)
-				 path))
+      (when (SG_FALSEP tm) (raise-i/o-error file-stat-ctime path))
       (result tm)))
 
   (define-c-proc file-stat-mtime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileModifyTime path)))
-      (if (SG_UNDEFP tm)
-	  (Sg_AssertionViolation 'file-stat-mtime
-				 (Sg_GetLastErrorMessage)
-				 path))
+      (when (SG_FALSEP tm) (raise-i/o-error file-stat-mtime path))
       (result tm)))
 
   (define-c-proc file-stat-atime (path::<string>) :no-side-effect
     (let ((tm (Sg_FileAccessTime path)))
-      (if (SG_UNDEFP tm)
-	  (Sg_AssertionViolation 'file-stat-atime
-				 (Sg_GetLastErrorMessage)
-				 path))
+      (when (SG_FALSEP tm) (raise-i/o-error file-stat-atime path))
       (result tm)))
 
   (define-c-proc create-symbolic-link (oldpath::<string> newpath::<string>)
     ::<void>
-    (unless (Sg_CreateSymbolicLink oldpath newpath)
-      (Sg_AssertionViolation 'create-symbolic-link
-			     (Sg_GetLastErrorMessage)
-			     (SG_LIST2 oldpath newpath))))
+    (let ((r::int (Sg_CreateSymbolicLink oldpath newpath)))
+      (when r (raise-i/o-error create-symbolic-link r oldpath))))
 
   (define-c-proc rename-file (oldpath::<string> newpath::<string>) ::<void>
-    (unless (Sg_FileRename oldpath newpath)
-      (Sg_AssertionViolation 'rename-file
-			     (Sg_GetLastErrorMessage)
-			     (SG_LIST2 oldpath newpath))))
+    (let ((r::int (Sg_FileRename oldpath newpath)))
+      (when r (raise-i/o-error rename-file r oldpath))))
 
   (define-c-proc change-file-mode (file::<string> mode::<fixnum>) ::<void>
-    (Sg_ChangeFileMode file mode))
+    (let ((r::int (Sg_ChangeFileMode file mode)))
+      (when r (raise-i/o-error change-file-mode r file))))
 
   (define-c-proc delete-directory (path::<string>) ::<void>
-    (unless (Sg_DeleteFileOrDirectory path)
-      (Sg_AssertionViolation 'delete-directory
-			     (Sg_GetLastErrorMessage)
-			     path)))
+    (let ((r::int (Sg_DeleteFileOrDirectory path)))
+      (when r (raise-i/o-error delete-directory r path))))
 
   (define-c-proc create-directory (path::<string>) ::<void>
-    (unless (Sg_CreateDirectory path)
-      (Sg_AssertionViolation 'create-directory
-			     (Sg_GetLastErrorMessage)
-			     path)))
+    (let ((r::int (Sg_CreateDirectory path)))
+      (when r (raise-i/o-error create-directory r path))))
 
   (define-c-proc read-directory (path::<string>) :no-side-effect
     Sg_ReadDirectory)

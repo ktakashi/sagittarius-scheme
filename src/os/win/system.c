@@ -86,6 +86,11 @@ void Sg_YieldCPU()
   /* Sleep(10) */
 }
 
+int Sg_GetLastError()
+{
+  return GetLastError();
+}
+
 SgObject Sg_GetLastErrorMessage()
 {
   return get_last_error(GetLastError());

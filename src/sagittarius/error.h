@@ -98,6 +98,8 @@ SG_EXTERN void Sg_WrongNumberOfArgumentsBetweenViolation(SgObject who,
 
 SG_EXTERN SgObject Sg_Raise(SgObject condition, int continuableP);
 
+SG_EXTERN SgIOErrorType Sg_ErrnoToIOErrorType(int e);
+
 SG_CDECL_END
 
 #endif /* SAGITTARIUS_ERROR_HPP_ */

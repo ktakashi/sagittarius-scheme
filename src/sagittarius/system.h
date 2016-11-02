@@ -63,6 +63,7 @@ SG_CDECL_BEGIN
 
 SG_EXTERN const SgChar* Sg_NativeFileSeparator();
 
+SG_EXTERN int           Sg_GetLastError();
 SG_EXTERN SgObject      Sg_GetLastErrorMessage();
 SG_EXTERN SgObject      Sg_GetLastErrorMessageWithErrorCode(int code);
 

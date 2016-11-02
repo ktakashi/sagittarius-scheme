@@ -112,6 +112,11 @@ const SgChar* Sg_NativeFileSeparator()
   return UC("/");
 }
 
+int Sg_GetLastError()
+{
+  return errno;
+}
+
 SgObject Sg_GetLastErrorMessageWithErrorCode(int code)
 {
   char *msg = strerror(code);
