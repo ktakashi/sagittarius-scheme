@@ -42,6 +42,7 @@
 #include "sagittarius/library.h"
 #include "sagittarius/keyword.h"
 #include "sagittarius/string.h"
+#include "sagittarius/number.h"
 
 static SgClass *Sg_ConditionCPL[] = {
   SG_CLASS_CONDITION,
@@ -400,8 +401,8 @@ SG_DEFINE_BASE_CLASS(Sg_IOPortErrorClass, SgIOPortError,
 static void enc_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
 {
   Sg_Printf(p, UC("#<%A %A:%S>"), SG_CLASS(Sg_ClassOf(o))->name,
-	    SG_IO_ENCODING_ERROR(o)->port,
-	    SG_IO_ENCODING_ERROR(o)->char_);
+	    SG_IO_PORT_ERROR_PORT(o),
+	    SG_IO_ENCODING_ERROR_CHAR(o));
 }
 static SgObject enc_allocate(SgClass *klass, SgObject initargs)
 {
@@ -684,25 +685,16 @@ SG_DEFINE_BASE_CLASS(Sg_StackTraceConditionClass, SgStackTraceCondition,
 		     Sg_ConditionCPL);
 
 
-SgObject Sg_MakeNonContinuableViolation()
-{
-  return Sg_ConditionAllocate(SG_CLASS_NON_CONTINUABLE, SG_NIL);
-}
+#define DEFINE_CONDITION_CTR0(name, clazz)		\
+  SgObject name() {					\
+    return Sg_ConditionAllocate(clazz, SG_NIL);		\
+  }
 
-SgObject Sg_MakeAssertionViolation()
-{
-  return Sg_ConditionAllocate(SG_CLASS_ASSERTION, SG_NIL);
-}
-
-SgObject Sg_MakeUndefinedViolation()
-{
-  return Sg_ConditionAllocate(SG_CLASS_UNDEFINED_CONDITION, SG_NIL);
-}
-
-SgObject Sg_MakeImplementationRestrictionViolation()
-{
-  return Sg_ConditionAllocate(SG_CLASS_IMPLEMENTATION_RESTRICTION, SG_NIL);
-}
+DEFINE_CONDITION_CTR0(Sg_MakeNonContinuableViolation, SG_CLASS_NON_CONTINUABLE)
+DEFINE_CONDITION_CTR0(Sg_MakeAssertionViolation, SG_CLASS_ASSERTION)
+DEFINE_CONDITION_CTR0(Sg_MakeUndefinedViolation, SG_CLASS_UNDEFINED_CONDITION)
+DEFINE_CONDITION_CTR0(Sg_MakeImplementationRestrictionViolation,
+		      SG_CLASS_IMPLEMENTATION_RESTRICTION)
 
 SgObject Sg_MakeWhoCondition(SgObject who)
 {
@@ -720,15 +712,12 @@ SgObject Sg_MakeMessageCondition(SgObject msg)
 
 SgObject Sg_MakeIrritantsCondition(SgObject irritants)
 {
-  SgObject c = message_allocate(SG_CLASS_IRRITANTS_CONDITION, SG_NIL);
+  SgObject c = irr_allocate(SG_CLASS_IRRITANTS_CONDITION, SG_NIL);
   SG_IRRITATNS_CONDITION(c)->irritants = irritants;
   return SG_OBJ(c);
 }
 
-SgObject Sg_MakeWarning()
-{
-  return Sg_ConditionAllocate(SG_CLASS_WARNING, SG_NIL);
-}
+DEFINE_CONDITION_CTR0(Sg_MakeWarning, SG_CLASS_WARNING)
 
 SgObject Sg_MakeReaderCondition(SgObject msg)
 {
@@ -761,6 +750,52 @@ SgObject Sg_MakeSystemError(int errno_)
 {
   SgObject c = system_allocate(SG_CLASS_SYSTEM_ERROR, SG_NIL);
   SG_SYSTEM_ERROR(c)->errno_ = SG_MAKE_INT(errno_);
+  return c;
+}
+
+DEFINE_CONDITION_CTR0(Sg_MakeIOError, SG_CLASS_IO_ERROR);
+DEFINE_CONDITION_CTR0(Sg_MakeIOReadError, SG_CLASS_IO_READ_ERROR)
+DEFINE_CONDITION_CTR0(Sg_MakeIOWriteError, SG_CLASS_IO_WRITE_ERROR)
+
+SgObject Sg_MakeIOInvalidPosition(int64_t position)
+{
+  SgObject c = pos_allocate(SG_CLASS_IO_INVALID_POSITION, SG_NIL);
+  SgObject p = Sg_MakeIntegerFromS64(position);
+  SG_IO_INVALID_POSITION(c)->position = p;
+  return c;
+}
+
+#define DEFINE_IO_FILENAME_CTR(name, clazz)	\
+  SgObject name(SgObject filename) {		\
+    SgObject c = fn_allocate(clazz, SG_NIL);	\
+    SG_IO_FILENAME(c)->filename = filename;	\
+    return c;					\
+  }
+DEFINE_IO_FILENAME_CTR(Sg_MakeIOFilename, SG_CLASS_IO_FILENAME)
+DEFINE_IO_FILENAME_CTR(Sg_MakeIOFileProtection, SG_CLASS_IO_FILE_PROTECTION)
+DEFINE_IO_FILENAME_CTR(Sg_MakeIOFileIsReadOnly, SG_CLASS_IO_FILE_IS_READ_ONLY)
+DEFINE_IO_FILENAME_CTR(Sg_MakeIOFileAlreadyExists,
+		       SG_CLASS_IO_FILE_ALREADY_EXISTS)
+DEFINE_IO_FILENAME_CTR(Sg_MakeIOFileDoesNotExist,
+		       SG_CLASS_IO_FILE_DOES_NOT_EXIST)
+
+SgObject Sg_MakeIOPort(SgObject port)
+{
+  SgObject c = port_allocate(SG_CLASS_IO_PORT_ERROR, SG_NIL);
+  SG_IO_PORT_ERROR(c)->port = port;
+  return c;
+}
+SgObject Sg_MakeIOEncoding(SgObject port, SgChar ch)
+{
+  SgObject c = enc_allocate(SG_CLASS_IO_ENCODING_ERROR, SG_NIL);
+  SG_IO_PORT_ERROR(c)->port = port;
+  SG_IO_ENCODING_ERROR_CHAR(c) = SG_MAKE_CHAR(ch);
+  return c;
+}
+SgObject Sg_MakeIODecoding(SgObject port)
+{
+  SgObject c = port_allocate(SG_CLASS_IO_DECODING_ERROR, SG_NIL);
+  SG_IO_PORT_ERROR(c)->port = port;
   return c;
 }
 

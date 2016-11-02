@@ -39,7 +39,9 @@ typedef enum {
   SG_IO_FILE_ALREADY_EXIST_ERROR,
   SG_IO_DECODE_ERROR,
   SG_IO_ENCODE_ERROR,
-  SG_IO_FILENAME_ERROR
+  SG_IO_FILENAME_ERROR,
+  SG_IO_FILE_PROTECTION_ERROR,
+  SG_IO_UNKNOWN_ERROR = -1		/* for convenience */
 } SgIOErrorType;
 
 SG_CDECL_BEGIN
@@ -57,6 +59,17 @@ SG_EXTERN void Sg_IOReadError(SgObject who, SgObject msg, SgObject port,
 			      SgObject irr);
 SG_EXTERN void Sg_IOWriteError(SgObject who, SgObject msg, SgObject port,
 			       SgObject irr);
+SG_EXTERN void Sg_IOFileDoesNotExistError(SgObject file, SgObject who,
+					  SgObject msg);
+SG_EXTERN void Sg_IOFileAlreadyExistsError(SgObject file, SgObject who,
+				      SgObject msg);
+SG_EXTERN void Sg_IODecodingError(SgObject port, SgObject who, SgObject msg);
+SG_EXTERN void Sg_IOEncodingError(SgObject port, SgChar c, SgObject who,
+				  SgObject msg);
+SG_EXTERN void Sg_IOFilenameError(SgObject file, SgObject who, SgObject msg);
+SG_EXTERN void Sg_IOFileProtectionError(SgObject file, SgObject who,
+					SgObject msg);
+
 SG_EXTERN void Sg_AssertionViolation(SgObject who, SgObject message, 
 				     SgObject irritants);
 SG_EXTERN void Sg_UndefinedViolation(SgObject who, SgObject message);

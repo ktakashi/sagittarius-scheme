@@ -383,6 +383,14 @@ int Sg_DeleteFile(SgString *path)
   return 0;
 }
 
+static SgIOErrorType io_error_type(int errno_)
+{
+  if (errno_ == ENOENT) return SG_IO_FILE_NOT_EXIST_ERROR;
+  if (errno_ == EACCES) return SG_IO_FILE_PROTECTION_ERROR;
+  if (errno_ == EEXIST) return SG_IO_FILE_ALREADY_EXIST_ERROR;
+  return SG_IO_UNKNOWN_ERROR;
+}
+
 int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 {
 #define check_file_exists					\
@@ -398,16 +406,18 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 
   check_file_exists;
   if((fps = open(source, O_RDONLY)) == -1) {
-    Sg_IOError(-1, SG_INTERN("copy-file"),
+    SgIOErrorType type = io_error_type(errno);
+    Sg_IOError(type, SG_INTERN("copy-file"),
 	       SG_MAKE_STRING("failed to open src file"),
-	       SG_FALSE, dst);
+	       src, SG_FALSE);
     return FALSE;		/* dummy */
   }
   if((fpd = open(dest, O_RDWR | O_CREAT | O_TRUNC, 0644)) == -1) {
+    SgIOErrorType type = io_error_type(errno);
     close(fps);
-    Sg_IOError(-1, SG_INTERN("copy-file"),
+    Sg_IOError(type, SG_INTERN("copy-file"),
 	       SG_MAKE_STRING("failed to open dst file"),
-	       SG_FALSE, dst);
+	       dst, SG_FALSE);
     return FALSE;		/* dummy */
   }
   if(fstat(fps, &st) == -1) {
@@ -452,16 +462,18 @@ int Sg_CopyFile(SgString *src, SgString *dst, int overwriteP)
 
   check_file_exists;
   if((fps = open(source, O_RDONLY)) == -1) {
-    Sg_IOError(-1, SG_INTERN("copy-file"),
+    SgIOErrorType type = io_error_type(errno);
+    Sg_IOError(type, SG_INTERN("copy-file"),
 	       SG_MAKE_STRING("failed to open src file"),
-	       SG_FALSE, dst);
+	       src, SG_FALSE);
     return FALSE;		/* dummy */
   }
   if((fpd = open(dest, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1) {
+    SgIOErrorType type = io_error_type(errno);
     close(fps);
-    Sg_IOError(-1, SG_INTERN("copy-file"),
+    Sg_IOError(type, SG_INTERN("copy-file"),
 	       SG_MAKE_STRING("failed to open dst file"),
-	       SG_FALSE, dst);
+	       dst, SG_FALSE);
     return FALSE;		/* dummy */
   }
   if(fstat(fps, &st) == -1) {

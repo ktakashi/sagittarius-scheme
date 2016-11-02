@@ -238,16 +238,17 @@ typedef struct SgIOPortErrorRec
 } SgIOPortError;
 #define SG_IO_PORT_ERROR(o)  ((SgIOPortError *)o)
 #define SG_IO_PORT_ERRORP(o) SG_ISA(o, SG_CLASS_IO_PORT_ERROR)
+#define SG_IO_PORT_ERROR_PORT(o) SG_IO_PORT_ERROR(o)->port
 
 #define SG_IO_DECODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_DECODING_ERROR)
 typedef struct SgIOEncodingErrorRec
 {
-  SG_INSTANCE_HEADER;
-  SgObject port;
+  SgIOPortError base;
   SgObject char_;
 } SgIOEncodingError;
 #define SG_IO_ENCODING_ERROR(o)  ((SgIOEncodingError *)o)
 #define SG_IO_ENCODING_ERRORP(o) SG_ISA(o, SG_CLASS_IO_ENCODING_ERROR)
+#define SG_IO_ENCODING_ERROR_CHAR(o) SG_IO_ENCODING_ERROR(o)->char_
 
 typedef struct SgCompileConditionRec
 {
@@ -372,6 +373,18 @@ SG_EXTERN SgObject Sg_MakeError(SgObject msg);
 SG_EXTERN SgObject Sg_MakeSyntaxError(SgObject msg, SgObject form);
 SG_EXTERN SgObject Sg_MakeUndefinedViolation();
 SG_EXTERN SgObject Sg_MakeSystemError(int errno_);
+SG_EXTERN SgObject Sg_MakeIOError();
+SG_EXTERN SgObject Sg_MakeIOReadError();
+SG_EXTERN SgObject Sg_MakeIOWriteError();
+SG_EXTERN SgObject Sg_MakeIOInvalidPosition(int64_t position);
+SG_EXTERN SgObject Sg_MakeIOFilename(SgObject filename);
+SG_EXTERN SgObject Sg_MakeIOFileProtection(SgObject filename);
+SG_EXTERN SgObject Sg_MakeIOFileIsReadOnly(SgObject filename);
+SG_EXTERN SgObject Sg_MakeIOFileAlreadyExists(SgObject filename);
+SG_EXTERN SgObject Sg_MakeIOFileDoesNotExist(SgObject filename);
+SG_EXTERN SgObject Sg_MakeIOPort(SgObject port);
+SG_EXTERN SgObject Sg_MakeIOEncoding(SgObject port, SgChar c);
+SG_EXTERN SgObject Sg_MakeIODecoding(SgObject port);
 
 SG_EXTERN SgObject Sg_AddStackTrace(SgObject e, SgVM* vm);
 
