@@ -173,6 +173,7 @@
 	    )
     (import (rnrs)
 	    (only (srfi :1) filter-map split-at iota drop)
+	    (only (srfi :13) string-null?)
 	    (srfi :19)
 	    (text sxml object-builder)
 	    (rfc :5322)
@@ -215,8 +216,10 @@
       ((k tag ...)      #'(begin (k "define" tag) ...)))))
 
 (define (rfc822-date->date s)
-  (let-values (((y M d h m s tz dow) (rfc5322-parse-date s)))
-    (make-date 0 s m h d M y (* tz 36))))
+  (if (string-null? s)
+      (current-date)
+      (let-values (((y M d h m s tz dow) (rfc5322-parse-date s)))
+	(make-date 0 s m h d M y (* tz 36)))))
 (define-single-value-tags
   title
   link
