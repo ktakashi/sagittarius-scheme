@@ -219,7 +219,12 @@
   (if (string-null? s)
       (current-date)
       (let-values (((y M d h m s tz dow) (rfc5322-parse-date s)))
-	(make-date 0 s m h d M y (* tz 36)))))
+	(if (and y M d h m)
+	    ;; second and timezone can be optional
+	    ;; NB: there are loads of invalid timezone (e.g. +01:00)
+	    ;;     handling them is pain in the ass, so just ignore.
+	    (make-date 0 (or s 0) m h d M y (or (and tz (* tz 36)) 0))
+	    (current-date)))))
 (define-single-value-tags
   title
   link
