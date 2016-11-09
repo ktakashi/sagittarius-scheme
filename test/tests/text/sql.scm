@@ -177,8 +177,11 @@
 ;; group by
 (test-parse "select * from t group by c1, (c2, c3), rollup (c4), cube (c5), grouping sets (c6, rollup(c7), cube(c8));"
 	    '(select * (from t) (group-by c1 (c2 c3) (rollup c4) (cube c5) (grouping-sets c6 (rollup c7) (cube c8)))))
-(test-parse "select * from t group by ()"
-	    '(select * (from t) (group-by ())))
+(test-parse "select * from t group by ()" '(select * (from t) (group-by ())))
+(test-parse "select * from t f group by t.a"
+	    '(select * (from (as t f)) (group-by (~ t a))))
+(test-parse "select * from t f group by t.a, t.b"
+	    '(select * (from (as t f)) (group-by (~ t a) (~ t b))))
 
 ;; order by
 (test-parse "select * from f order by a" '(select * (from f) (order-by a)))
@@ -195,6 +198,10 @@
 	    '(select * (from f) (order-by (a desc) (b nulls-last))))
 (test-parse "select * from f order by a desc, b asc nulls last"
 	    '(select * (from f) (order-by (a desc) (b asc nulls-last))))
+(test-parse "select * from t f order by f.a"
+	    '(select * (from (as t f)) (order-by (~ f a))))
+(test-parse "select * from t f order by f.a desc"
+	    '(select * (from (as t f)) (order-by ((~ f a) desc))))
 
 
 ;; where

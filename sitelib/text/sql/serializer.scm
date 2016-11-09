@@ -731,7 +731,7 @@
 (define-sql-writer (order-by ssql out :key (indent #f) :allow-other-keys opt)
   (define order-by-indent (next-indent indent 9))
   (define (write-column column out)
-    (if (pair? column)
+    (if (and (pair? column) (not (eq? (car column) '~)))
 	(let ((name (car column))
 	      (attrs (cdr column)))
 	  (apply write-ssql name out opt)
@@ -768,6 +768,7 @@
       (match column
 	(((? group-by-keyword? x) rest ...)
 	 (apply write-ssql column out :indent nl opt))
+	(('~ rest ...) (apply write-ssql column out :indent nl opt))
 	((c1 c2 ...)
 	 (with-parenthesis out (apply write/comma out c1 c2 opt)))
 	(() (display "()" out))
