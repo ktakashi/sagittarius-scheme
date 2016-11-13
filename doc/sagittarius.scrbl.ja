@@ -146,46 +146,47 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @define[Function]{@name{rename-file} @args{old-filename new-filename}}
 @desc{@var{old-filename}を@var{new-filename}に変更します。
 
-@var{old-filename}が存在しない場合@code{&assertion}例外が投げられます。
+@var{old-filename}が存在しない場合@code{&i/o}例外が投げられます。
 
 @var{new-filename}が存在する場合、古いファイルを上書きします。
 }
 
 @define[Function]{@name{create-directory} @args{path}}
 @define[Function]{@name{delete-directory} @args{path}}
-@desc{与えられたディレクトリ名を作成または削除します。失敗した場合は@code{&assertion}
+@desc{与えられたディレクトリ名を作成または削除します。失敗した場合は@code{&i/o}
 例外が投げられます。
 }
 
 @define[Function]{@name{read-directory} @args{path}}
-@desc{Reads directory and returns contents as a string list. If @var{path} does
-not exist, it returns #f.
+@desc{与えられたディレクトリ@var{path}内にあるファイルおよびディレクトリ名を文
+字列のリストで返します。@var{path}が存在しない場合には#fを返します。
 }
 
 @define[Function]{@name{copy-file} @args{src dst :optional overwrite}}
-@desc{@var{src} and @var{dst} must be string and indicating existing file path.
+@desc{@var{src}と@var{dst}は文字列でなければなりません。また@var{src}は存在する
+ファイル名でなければなりません。
 
-Copies given @var{src} file to @var{dst} and returns #t if it's copied otherwise
-#t.
+与えられた@var{src}を@var{dst}にコピーします。コピーが成功すれば#t、失敗すれば#f
+を返します。
 
-If optional argument @var{overwrite} is #t then it will over write the file even
-if it exists.
+オプショナル引数@var{overwrite}に真の値が渡された場合、@var{dst}が既に存在していても
+上書きコピーを行います。
 }
 
 @define[Function]{@name{current-directory} @args{:optional path}}
-@desc{Returns current working directory.
+@desc{現在の作業ディレクトリを返します。
 
-If optional argument @var{path} is given, the @code{current-directory} sets
-current working directory to @var{path} and returns unspecified value.
+オプショナル引数@var{path}が与えられた場合、@code{current-directory}は
+作業ディレクトリを与えられた@var{path}に変更し未定義値を返します。
 }
 
 @define[Function]{@name{set-current-directory} @args{path}}
-@desc{Sets current working directory to @var{path}.}
+@desc{作業ディレクトリを@var{path}に変更します。}
 
 @define[Function]{@name{build-path} @args{path1 path2}}
-@desc{@var{path1} and @var{path2} must be string.
+@desc{@var{path1}及び@var{path2}は文字列でなければなりません。
 
-Concatenate given parameter with platform dependent path separator.
+与えられた二つのパス文字列をプラットフォーム依存の文字を用いて連結します。
 }
 
 
@@ -193,32 +194,31 @@ Concatenate given parameter with platform dependent path separator.
 
 @define[Function]{@name{make-equal-hashtable} @args{:optional k weakness}}
 @define[Function]{@name{make-string-hashtable} @args{:optional k weakness}}
-@desc{Creates a hashtable. The same as @code{make-eq-hashtable} and
-@code{make-eqv-hashtable}. It uses @code{equal?} or @code{string=?} as
-comparing procedure, respectively.}
+@desc{ハッシュテーブルを作成します。
+
+@code{make-eq-hashtable}や@code{make-eqv-hashtable}と同様ですが、こちらは
+@code{equal?}または@code{string=?}を比較手続きとして使用します。}
 
 @define[Function]{@name{hashtable-values} @args{hashtable}}
-@desc{Returns all @var{hashtable}'s values. This procedure is for consistancy of
-@code{hashtable-keys}.}
+@desc{@var{hashtable}のすべての値をベクタで返します。
+
+この手続きは@code{hashtable-keys}との一貫性のために提供されています。}
 
 @define[Function]{@name{hashtable-keys-list} @args{hashtable}}
 @define[Function]{@name{hashtable-values-list} @args{hashtable}}
-@desc{Returns given @var{hashtable}'s @var{keys} or @var{values}, respectively.
-
-The R6RS required procedure @code{hashtable-keys} and @code{hashtable-values}
-are implemented with these procedures.
-}
+@desc{@var{hashtable}に含まれる@var{キー}または@var{値}をリストで返します。}
 
 @define[Function]{@name{hashtable-type} @args{hashtable}}
-@desc{Returns @var{hashtable}'s hash type as a symbol. The possible return
-values are @code{eq}, @code{eqv}, @code{equal}, @code{string} and
-@code{general}.
+@desc{@var{hashtable}の種類をシンボルで返します。戻り値は@code{eq}、@code{eqv}、
+@code{equal}、@code{string}または@code{general}のいずれかになります。
 }
 
 @define[Function]{@name{hashtable-weakness} @args{hashtable}} 
-@desc{Returns @var{hashtable}'s hash weakness as a symbol if the given
-@var{hashtable} is weak hashtable, otherwise #f. The possible return values are
-@code{key}, @code{value} and @code{both}.  }
+@desc{@var{hashtable}の弱さをシンボルで返します。@var{hashtable}が
+弱いハッシュテーブルでなかった場合は#fが返ります。
+
+戻り値は@code{key}、@code{value}または@code{both}のいずれかになります。
+}
 
 @subsubsection{I/O}
 

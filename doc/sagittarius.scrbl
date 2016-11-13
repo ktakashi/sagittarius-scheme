@@ -168,10 +168,11 @@ not exist, it returns #f.
 }
 
 @define[Function]{@name{copy-file} @args{src dst :optional overwrite}}
-@desc{@var{src} and @var{dst} must be string and indicating existing file path.
+@desc{@var{src} and @var{dst} must be string and @var{src} must indicate
+existing file path.
 
 Copies given @var{src} file to @var{dst} and returns #t if it's copied otherwise
-#t.
+#f.
 
 If optional argument @var{overwrite} is #t then it will over write the file even
 if it exists.
@@ -198,7 +199,9 @@ Concatenate given parameter with platform dependent path separator.
 
 @define[Function]{@name{make-equal-hashtable} @args{:optional k weakness}}
 @define[Function]{@name{make-string-hashtable} @args{:optional k weakness}}
-@desc{Creates a hashtable. The same as @code{make-eq-hashtable} and
+@desc{Creates a hashtable.
+
+The same as @code{make-eq-hashtable} and
 @code{make-eqv-hashtable}. It uses @code{equal?} or @code{string=?} as
 comparing procedure, respectively.}
 
