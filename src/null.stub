@@ -3410,9 +3410,7 @@
 
   (define-c-proc hashtable-contains? (ht::<hashtable> key) ::<boolean>
     :no-side-effect
-    (let ((r (Sg_HashTableRef ht key NULL)))
-      ;; bit awkward...
-      (result (not (not r)))))
+    (result (!= (Sg_HashTableRef ht key NULL) NULL)))
 
   (define-c-proc hashtable-copy
     (ht::<hashtable> :optional (mutableP::<boolean> #f)) 
@@ -3424,8 +3422,28 @@
     (Sg_HashCoreClear (SG_HASHTABLE_CORE ht) k))
 
   (define-c-proc hashtable-keys (ht::<hashtable>) :no-side-effect
-    (result (Sg_ListToVector (Sg_HashTableKeys ht) 0 -1)))
+    (let ((itr::SgHashIter)
+	  (r (Sg_MakeVector (-> (SG_HASHTABLE_CORE ht) entryCount) SG_UNDEF))
+	  (v)
+	  (i::int 0))
+      (Sg_HashIterInit ht (& itr))
+      (while (!= (Sg_HashIterNext (& itr) (& v) NULL) NULL)
+	(set! (SG_VECTOR_ELEMENT r (post++ i)) v))
+      (result r)))
 
+  (define-c-proc hashtable-entries (ht::<hashtable>) :no-side-effect
+    (let ((itr::SgHashIter)
+	  (rk (Sg_MakeVector (-> (SG_HASHTABLE_CORE ht) entryCount) SG_UNDEF))
+	  (rv (Sg_MakeVector (-> (SG_HASHTABLE_CORE ht) entryCount) SG_UNDEF))
+	  (v)
+	  (k)
+	  (i::int 0))
+      (Sg_HashIterInit ht (& itr))
+      (while (!= (Sg_HashIterNext (& itr) (& k) (& v)) NULL)
+	(set! (SG_VECTOR_ELEMENT rk i) k)
+	(set! (SG_VECTOR_ELEMENT rv (post++ i)) v))
+      (result (Sg_Values2 rk rv))))
+  
   ;; 13.3 inspection
   (define-c-proc hashtable-mutable? (ht::<hashtable>) ::<boolean> :constant
     (result (not (SG_IMMUTABLE_HASHTABLE_P ht))))

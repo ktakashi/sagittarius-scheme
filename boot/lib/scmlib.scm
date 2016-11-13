@@ -1010,23 +1010,6 @@
 
 ;;;;;
 ;; 13 hashtable
-;; 13.2 procedures
-;; it's defined in extlib.stub now.
-#;
-(define (hashtable-update! ht key proc default)
-  (or (and (hashtable? ht)
-	   (hashtable-mutable? ht))
-      (assertion-violation
-       'hashtable-update!
-       (wrong-type-argument-message "mutable hashtable" ht 1)))
-  (hashtable-set! ht key (proc (hashtable-ref ht key default))))
-
-(define (hashtable-entries ht)
-  (or (hashtable? ht)
-      (assertion-violation 'hashtable-entries
-			   (wrong-type-argument-message "hashtable" ht)))
-  (values (hashtable-keys ht) (hashtable-values ht)))
-
 ;; 13.3 inspection
 (define (hashtable-equivalence-function ht)
   (or (hashtable? ht)

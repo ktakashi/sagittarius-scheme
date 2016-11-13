@@ -695,7 +695,14 @@
 
   ;; just for consistancy
   (define-c-proc hashtable-values (ht::<hashtable>) :no-side-effect
-    (result (Sg_ListToVector (Sg_HashTableValues ht) 0 -1)))
+    (let ((itr::SgHashIter)
+	  (r (Sg_MakeVector (-> (SG_HASHTABLE_CORE ht) entryCount) SG_UNDEF))
+	  (v)
+	  (i::int 0))
+      (Sg_HashIterInit ht (& itr))
+      (while (!= (Sg_HashIterNext (& itr) NULL (& v)) NULL)
+	(set! (SG_VECTOR_ELEMENT r (post++ i)) v))
+      (result r)))
 
   (define-c-proc hashtable-weakness (ht::<hashtable>) :no-side-effect
     (if (SG_WEAK_HASHTABLE_P ht)
