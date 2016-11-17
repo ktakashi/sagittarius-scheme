@@ -223,55 +223,54 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @subsubsection{I/O}
 
 @define[Function]{@name{port-closed?} @args{port}}
-@desc{Returns #t if given @var{port} is closed, otherwise #f.}
+@desc{与えられたポート@var{port}が閉じていれば#tをそうでなければ#fを返します。}
 
 @define[Function]{@name{put-u16} @args{out v endian}}
 @define[Function]{@name{put-s16} @args{out v endian}}
 @define[Function]{@name{put-u32} @args{out v endian}}
 @define[Function]{@name{put-s32} @args{out v endian}}
-@desc{@var{out} must be binary output port. @var{endian} must be a value
-returned from @code{endianness} macro.
+@desc{@var{out}はバイナリ出力ポートでなければなりません。@var{endian}は
+@code{endianness}マクロが返す値でなければなりません。
 
-Write @var{v} to @var{out} as unsigned/signed 16/32 bit integer.}
+与えられた@var{v}を出力ポート@var{out}に符号付きまたは符号なし16ビットまたは32ビット
+整数として書き出します。}
 
 @define[Function]{@name{get-u16} @args{in endian}}
 @define[Function]{@name{get-s16} @args{in endian}}
 @define[Function]{@name{get-u32} @args{in endian}}
 @define[Function]{@name{get-s32} @args{in endian}}
-@desc{@var{in} must be binary input port. @var{endian} must be a value
-returned from @code{endianness} macro.
+@desc{@var{in}はバイナリ入力ポートでなければなりません。@var{endian}は
+@code{endianness}マクロが返す値でなければなりません。
 
-Read a number from @var{in} as unsigned/signed 16/32.}
+入力ポート@var{in}から符号付きまたは符号なし16ビットまたは32ビット整数を読み取ります。}
 
-NOTE: above @code{put-*} and @code{get-*} have only 16 and 32 bit integers.
-This is because benchmark told us there's not much difference between C and
-Scheme implementation. We may add 64 bit integers and floting number 
-versions in future if there's enough demand.
+注意：上記の@code{put-*}または@code{get-*}手続きは16ビット及び32ビットのみが提供
+されています。これはベンチマークの結果Cでの実装とSchemeでの実装に大きな差異がなかった
+為です。64ビット整数や浮動小数点の読み取りは十分な要求があればCで実装されるかもしれません。
 
 @define[Function]{@name{read/ss}
  @args{:optional (port @code{(current-input-port)})}}
 @define[Function]{@name{write/ss}
  @args{obj :optional (port @code{(current-output-port)})}}
-@desc{[SRFI-38] The @code{read/ss} reads a datum from given @var{port}.
+@desc{[SRFI-38]@code{read/ss}手続きはSchemeオブジェクトを与えられた入力ポート
+@var{port}から読み取ります。
 
-The @code{write/ss} writes @var{obj} to given @var{port}.
+@code{write/ss}手続きは与えられた @var{obj}を出力ポート@var{port}に書き出します。
 
-These are the same as @code{read} and @code{write} procedure, but it can handle
-circular list.
+これらは循環構造を検知する点を除いて@code{read}及び@code{write}手続きと同様です。
 }
 
 @define[Function]{@name{format} @args{port string arg @dots{}}}
 @define[Function]{@name{format} @args{string arg @dots{}}}
-@desc{[SRFI-28+] Formats @var{arg} accoding to @var{string}. @var{Port}
-specifies the destination; if it is an output port, the formatted result is
-written to it; if it is #t, the result is written to current output port; if it
-is #f, the formatted result is returned as a string. @var{Port} can be omitted
-and the result is the same as when #f is given.
+@desc{[SRFI-28+] 与えられた@var{arg}を@var{string}に従って整形します。@var{Port}
+引数は出力先を指定します。もし出力ポートなら整形された結果はそこに書き込まれます。もし
+#tであれば、現在の出力ポートに書き込まれます。もし#fであれば整形された結果は文字列として
+返されます。@var{Port}引数は省略することも可能です。その場合は#fが指定された場合と
+同様に振る舞います。(すなわち文字列を返します。)
 
-@var{String} is a string that contains format directives. A format directive is
-a character sequence begins with tilda @code{'~'}, and ends with some specific
-characters. A format directive takes the corresponding arg and formats it. The
-rest of string is copied to the output as is.
+@var{String}は整形ディレクティブを含む文字列です。整形ディレクティブはチルダ
+@code{'~'}から始まるり特定の文字で終わる文字並びです。整形ディレクティブは対応する
+引数を受け取りそれを整形します。残りの文字列は出力にそのままコピーされます。
 
 @snipet[=> "the anser is 48"]{(format #f "the answer is ~a" 48)}
 

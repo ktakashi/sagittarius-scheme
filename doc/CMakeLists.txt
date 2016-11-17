@@ -26,7 +26,9 @@ SET(GENDOC ${GENDOC}
 # TODO: somewhat resolve above.
 FILE(GLOB_RECURSE SCRBL_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/*.scrbl"
-  "${CMAKE_CURRENT_SOURCE_DIR}/**/*.scrbl")
+  "${CMAKE_CURRENT_SOURCE_DIR}/**/*.scrbl"
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.scrbl.ja"
+  "${CMAKE_CURRENT_SOURCE_DIR}/**/*.scrbl.ja")
 
 ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
   COMMAND ${GENDOC}
@@ -38,6 +40,18 @@ ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
 ADD_CUSTOM_TARGET(doc ALL
   DEPENDS sagittarius--time 
           ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.html
+)
+
+ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.ja.html
+  COMMAND ${GENDOC}
+  --output=${PROJECT_BINARY_DIR}/doc/sagittarius-ref.ja.html --lang=ja
+  --style=lib/style.css --javascript=lib/tools.js sagittarius-ref.scrbl.ja
+  DEPENDS ${SCRBL_FILES}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+
+ADD_CUSTOM_TARGET(doc-ja
+  DEPENDS sagittarius--time 
+          ${PROJECT_BINARY_DIR}/doc/sagittarius-ref.ja.html
 )
 
 ADD_CUSTOM_COMMAND(OUTPUT ${PROJECT_BINARY_DIR}/doc/sagittarius-online-ref.html

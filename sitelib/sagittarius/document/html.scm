@@ -512,7 +512,8 @@
 
   (define (generate-html-metas title style javascript)
     `(html
-      (head (meta (@ (http-eqiv "Content-Type")
+      (head (meta (@ (charset "utf-8")))
+	    (meta (@ (http-eqiv "Content-Type")
 		     (content   "text/html; charset=utf-8")))
 	    ,@(filter values
 		      (list (and style
