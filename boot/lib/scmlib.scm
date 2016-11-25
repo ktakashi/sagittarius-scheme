@@ -60,12 +60,6 @@
 (define (call-with-values producer consumer)
   (receive vals (producer) (apply consumer vals)))
 
-(define (safe-length lst)
-  (let loop ((lst lst) (n 0))
-    (if (pair? lst)
-        (loop (cdr lst) (+ n 1))
-        (or (and (null? lst) n) -1))))
-
 ;; print
 (define (print . args)
   (for-each display args)

@@ -617,7 +617,7 @@
 	    ((vector? lst)
 	     (loop (vector->list lst))))))
 
-  (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
+  (if (and (= (length tmpl) 2) (ellipsis? (car tmpl)))
       (check-escaped (cadr tmpl) 0)
       (let loop ((lst tmpl) (depth 0))
 	(cond ((variable? lst)
@@ -1060,7 +1060,7 @@
 	       (list->vector (expand-template (vector->list tmpl) depth vars)))
 	      (else tmpl)))
 
-      (if (and (= (safe-length tmpl) 2) (ellipsis? (car tmpl)))
+      (if (and (= (length tmpl) 2) (ellipsis? (car tmpl)))
 	  (expand-escaped-template (cadr tmpl) 0 vars)
 	  (expand-template tmpl 0 vars)))))
 
