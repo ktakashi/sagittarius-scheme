@@ -318,58 +318,25 @@
 
 ;; 1 Unicode
 ;; 1.1 characters
-;; from Ypsilon
-(define char-ci=? (lambda lst (apply char=? (map char-foldcase lst))))
-(define char-ci<? (lambda lst (apply char<? (map char-foldcase lst))))
-(define char-ci>? (lambda lst (apply char>? (map char-foldcase lst))))
-(define char-ci<=? (lambda lst (apply char<=? (map char-foldcase lst))))
-(define char-ci>=? (lambda lst (apply char>=? (map char-foldcase lst))))
+(define (make-ci-comparison = foldcase)
+  (lambda (e1 e2 . rest)
+    (let loop ((e1 (foldcase e1)) (e2 (foldcase e2)) (e* rest))
+      (and (= e1 e2)
+	   (or (null? e*)
+	       (loop e2 (foldcase (car e*)) (cdr e*)))))))
+
+(define char-ci=? (make-ci-comparison char=? char-foldcase))
+(define char-ci<? (make-ci-comparison char<? char-foldcase))
+(define char-ci>? (make-ci-comparison char>? char-foldcase))
+(define char-ci<=? (make-ci-comparison char<=? char-foldcase))
+(define char-ci>=? (make-ci-comparison char>=? char-foldcase))
 
 ;; 1.2 strings
-(define string-ci=?
-  (lambda (s1 s2 . strings)
-    (let loop ((s1 (string-foldcase s1))
-	       (s2 (string-foldcase s2))
-	       (s* strings))
-      (and (string=? s1 s2)
-	   (or (null? s*)
-	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
-
-(define string-ci<?
-  (lambda (s1 s2 . strings)
-    (let loop ((s1 (string-foldcase s1))
-	       (s2 (string-foldcase s2))
-	       (s* strings))
-      (and (string<? s1 s2)
-	   (or (null? s*)
-	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
-
-(define string-ci>?
-  (lambda (s1 s2 . strings)
-    (let loop ((s1 (string-foldcase s1))
-	       (s2 (string-foldcase s2))
-	       (s* strings))
-      (and (string>? s1 s2)
-	   (or (null? s*)
-	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
-
-(define string-ci<=?
-  (lambda (s1 s2 . strings)
-    (let loop ((s1 (string-foldcase s1))
-	       (s2 (string-foldcase s2))
-	       (s* strings))
-      (and (string<=? s1 s2)
-	   (or (null? s*)
-	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
-
-(define string-ci>=?
-  (lambda (s1 s2 . strings)
-    (let loop ((s1 (string-foldcase s1))
-	       (s2 (string-foldcase s2))
-	       (s* strings))
-      (and (string>=? s1 s2)
-	   (or (null? s*)
-	       (loop s2 (string-foldcase (car s*)) (cdr s*)))))))
+(define string-ci=? (make-ci-comparison string=? string-foldcase))
+(define string-ci<? (make-ci-comparison string<? string-foldcase))
+(define string-ci>? (make-ci-comparison string>? string-foldcase))
+(define string-ci<=? (make-ci-comparison string<=? string-foldcase))
+(define string-ci>=? (make-ci-comparison string>=? string-foldcase))
 
 ;; 2 Bytevectors
 ;; 2.4 operations on integers of arbitary size
