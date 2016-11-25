@@ -1105,7 +1105,6 @@ void Sg__InitSystem()
 # if defined(HAVE_SCHED_GETAFFINITY) && defined(HAVE_CPU_COUNT)
   {
     cpu_set_t mask;
-    struct timespec ts;
     if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) == 0) {
       cpu_count = CPU_COUNT(&mask);
     }
