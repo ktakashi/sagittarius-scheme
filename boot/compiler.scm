@@ -1618,18 +1618,17 @@
 		 v)))))
   (cond ((not (pair? expr)) expr)
 	((pair? (car expr)) 
-	 (cons (%internal-macro-expand (car expr) p1env once?)
-	       (%internal-macro-expand (cdr expr) p1env once?)))
+	 (cons (internal-macroexpand (car expr) p1env once?)
+	       (internal-macroexpand (cdr expr) p1env once?)))
 	((get-macro (car expr)) =>
 	 (lambda (mac)
 	   (if once?
 	       (call-macro-expander mac expr p1env)
-	       (%internal-macro-expand (call-macro-expander mac expr p1env)))))
+	       (internal-macroexpand (call-macro-expander mac expr p1env)))))
 	(else 
 	 (if once?
 	     expr
-	     (cons (car expr)
-		   (%internal-macro-expand (cdr expr) p1env once?))))))
+	     (cons (car expr) (internal-macroexpand (cdr expr) p1env once?))))))
 
 (define-pass1-syntax (%macroexpand-1 form p1env) :sagittarius
   (smatch form
