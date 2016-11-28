@@ -274,37 +274,33 @@ Sagittariusは独自の拡張ライブラリを持っています。
 
 @snipet[=> "the anser is 48"]{(format #f "the answer is ~a" 48)}
 
-The format directive can take one or more parameters, separated by comma
-characters. A parameter may be an integer or a character; if it is a character, 
-it should be preceded by a quote character. Parameter can be omitted, in such
-case the system default value is used. The interpretation of the parameters
-depends on the format directive.
+整形ディレクティブはコンマで区切られた一つ以上の引数を受け取ることができます。
+引数は整数もしくは文字である必要があります。もし文字ならクオート付き文字として
+与えら得れる必要があります。引数は省略可能です、その場合は規定の値が使われます。
+引数の解釈は整形ディレクティブによって異なります。
 
-Furthermore, a format directive can take two additional flags: atmark
-@code{'@atmark{}'} and colon @code{':'}. One or both of them may modify the
-behaviour of the format directive. Those flags must be placed immediately
-before the directive character.
+更に、整形ディレクティブは@code{'@atmark{}'}と@code{':'}を追加フラグとして受け
+取ることができます。どちらも整形ディレクティブの振る舞いを変えることが可能です。
+これらは整形ディレクティブのすぐ後ろに配置されている必要があります。
 
-The following complete list of the supported directives. Either upper case or
-lower case character can be used for the format directive; usually they have no
-distinction, except noted.
+以下はサポートされているディレクティブです。大文字、小文字のどちらも使用可能で
+す。通常は意味に違いがありませんが、違いがある場合はそのように書いてあります。
 
 @dl-list[
 @dl-item[@string{~@var{mincol},@var{colinc},@var{minpad},@var{padchar},@var{maxcol}@b{A}}]{
-Ascii output. The corresponding argument is printed by @code{display}. If an
-integer @var{mincol} is given, it specifies the minimum number of characters to
-be output; if the formatted result is shorter than @var{mincol}, a whitespace is
-padded to the right (i.e. the result is left justified).
+アスキー出力。
 
-The @var{colinc}, @var{minpad} and @var{padchar} parameters control, if given,
-further padding. A character padchar replaces the padding character for the
-whitespace. If an integer @var{minpad} is given and greater than 0, at least
-@var{minpad} padding character is used, regardless of the resulting width. If an
-integer @var{colinc} is given, the padding character is added (after minpad) in
-chunk of @var{colinc} characters, until the entire width exceeds @var{mincol}.
+渡された引数は@code{display}手続きでプリントされます。もし、@var{mincol}が整数
+で渡された場合、この引数は最低文字数を指定します。もし出力された結果が
+@var{mincol}より短い場合は、空白が右側に追加されます。結果は左寄せされます。
 
-If atmark-flag is given, the format result is right justified, i.e. padding is
-added to the left.
+もし@var{colinc}、@var{minpad}及び、@var{padchar}が渡された場合、これらは更に詳
+細なパディングの調整をします。文字@var{padchar}はパディング文字を置き換えます。
+もし整数@var{minpad}に0より大きい値が渡された場合、出力結果に関係なく少なくとも
+@var{minpad}パディング文字が使用されます。もし整数@var{colinc}が与えられた場合、
+この値は@var{padchar}の数が@var{colinc}倍になるように調整します。
+
+アットマーク@code{'@atmark{}'}が与えられた場合、整形結果は右寄せになります。
 
 The @var{maxcol} parameter, if given, limits the maximum number of characters to
 be written. If the length of formatted string exceeds @var{maxcol}, only

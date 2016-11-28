@@ -312,8 +312,8 @@ whitespace. If an integer @var{minpad} is given and greater than 0, at least
 integer @var{colinc} is given, the padding character is added (after minpad) in
 chunk of @var{colinc} characters, until the entire width exceeds @var{mincol}.
 
-If atmark-flag is given, the format result is right justified, i.e. padding is
-added to the left.
+If atmark-flag @code{'@atmark{}'} is given, the format result is right
+justified, i.e. padding is added to the left.
 
 The @var{maxcol} parameter, if given, limits the maximum number of characters to
 be written. If the length of formatted string exceeds @var{maxcol}, only
