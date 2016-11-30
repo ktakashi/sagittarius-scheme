@@ -48,4 +48,30 @@
       (fold-left (lambda (n o) (if (zero? n) (return 0) (* n o))) 1 list)))
   (test-equal "product" 120 (product '(1 2 3 4 5))))
 
+(define-syntax-parameter *input* (syntax-rules () ((_) '())))
+
+(define-syntax aux (syntax-rules () ((_) (*input*))))
+(define-syntax foo
+  (syntax-rules (*input*)
+    ((_ (*input* alist) body ...)
+     (syntax-parameterize ((*input* (syntax-rules () ((_) 'alist))))
+       (foo body ...)))
+    ((_ body ...) (aux))))
+
+(test-equal '((a b) (c d)) (foo (*input* ((a b) (c d))) 'ok))
+(test-equal '() (*input*))
+
+(let ()
+  (define-syntax-parameter *in* (syntax-rules () ((_) '())))
+  (define-syntax aux (syntax-rules () ((_ body ...) (*in*))))
+  (define-syntax foo
+    (syntax-rules (in)
+      ((_ (in alist) body ...)
+       (syntax-parameterize ((*in* (syntax-rules () ((_) 'alist))))
+	  (foo body ...)))
+      ((_ body ...) (aux))))
+  (test-equal '((a b) (c d)) (foo (in ((a b) (c d))) 'ok))
+  (test-equal '() (*in*)))
+
+
 (test-end)

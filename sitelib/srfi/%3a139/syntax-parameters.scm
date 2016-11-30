@@ -28,48 +28,14 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;
 
-;; NOTE:
-;; This implementation violates some of 'MUST' specified in the SRFI.
-;;  -  keyword bound on syntax-parameterize doesn't have to be syntax 
-;;     parameter. (on the SRFI it MUST be)
-;;  -  keyword on syntax-parameterize doesn't have to have binding.
-;; 
-;; And these are the sloppy part:
-;;  -  define-syntax-parameter does nothing
-;;  -  syntax-parameterize traverses the given expression.
-;; 
-;; The violation part should be fixed (not sure how, though)
 (library (srfi :139 syntax-parameters)
   (export define-syntax-parameter
           syntax-parameterize)
-  (import (rnrs))
+  (import (rnrs) (sagittarius))
 
+;; For now, we don't create syntax parameter so just a macro
 (define-syntax define-syntax-parameter
   (syntax-rules ()
     ((_ keyword transformer)
      (define-syntax keyword transformer))))
-
-(define-syntax syntax-parameterize
-  (lambda (x)
-    (define (rewrite k body keys)
-      (syntax-case body ()
-        (() '())
-        ((a . d)
-         #`(#,(rewrite k #'a keys). #,(rewrite k #'d keys)))
-        (#(e ...)
-         #`#(#,@(rewrite k #'(e ...) keys)))
-        (e
-         (and (identifier? #'e)
-              (exists (lambda (o) (free-identifier=? #'e o)) keys))
-         (datum->syntax k (syntax->datum #'e)))
-        (e #'e)))
-    
-    (syntax-case x ()
-      ((k ((keyword spec) ...) body1 body* ...)
-       (with-syntax (((n* ...)
-                      (map (lambda (n) (datum->syntax #'k (syntax->datum n)))
-                           #'(keyword ...)))
-                     ((nb1 nb* ...)
-                      (rewrite #'k #'(body1 body* ...) #'(keyword ...))))
-         #'(letrec-syntax ((n* spec) ...) nb1 nb* ...))))))
 )

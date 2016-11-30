@@ -179,10 +179,11 @@
 		(((item) . body)
 		 `((eqv? ,tmp ,item) ,@body))
 		(((item1 . more) . body)
-		 (let ((ilist (list 'quasiquote
-				    (append (list (list 'unquote item1))
-					    (map (lambda (x) (list 'unquote x)) 
-						 more)))))
+		 (let ((ilist (list
+			       'quasiquote
+			       (append (list (list 'unquote item1))
+				       (imap (lambda (x) (list 'unquote x)) 
+					     more)))))
 		   `((memv ,tmp ,ilist) ,@body)))
 		((else . body)
 		 (or (else? else)
@@ -190,7 +191,7 @@
 				   (unwrap-syntax clause)))
 		 `(else ,@body)))))
 	  `(let ((,tmp ,obj))
-	     (cond ,@(map expand-clause clauses)))))))))
+	     (cond ,@(imap expand-clause clauses)))))))))
 
 (define-syntax define-simple-struct
   (er-macro-transformer
@@ -202,10 +203,10 @@
      (define (make-constructor name tag constructor slot-defs)
        (let ((args (gensym))
 	     (num-slots  (length slot-defs))
-	     (slot-names (map (lambda (s) (if (symbol? s) s (car s)))
-			      slot-defs))
-	     (init-vals  (map (lambda (s) (if (symbol? s) #f (cadr s)))
-			      slot-defs)))
+	     (slot-names (imap (lambda (s) (if (symbol? s) s (car s)))
+			       slot-defs))
+	     (init-vals  (imap (lambda (s) (if (symbol? s) #f (cadr s)))
+			       slot-defs)))
 	 `(define-syntax ,constructor
 	    (syntax-rules ()
 	      ,@(let loop ((n 0) (r '()))
@@ -217,8 +218,8 @@
 				      (vector
 				       ,@(if tag `(,tag) '())
 				       ,@carg
-				       ,@(map (lambda (x) x)
-					      (list-tail init-vals n))))
+				       ,@(imap (lambda (x) x)
+					       (list-tail init-vals n))))
 				    r)))))))))
      (smatch form
        ((_ name tag constructor . slot-defs)
@@ -337,11 +338,11 @@
    (lambda (form rename compare)
      (smatch form
        ((_ prefix)
-	`(vector ,@(map (lambda (p)
-			  (string->symbol (string-append
-					   (symbol->string prefix) "/"
-					   (symbol->string (car p)))))
-			.intermediate-tags.)))))))
+	`(vector ,@(imap (lambda (p)
+			   (string->symbol (string-append
+					    (symbol->string prefix) "/"
+					    (symbol->string (car p)))))
+			 .intermediate-tags.)))))))
 
 (define-syntax iform-tag
   (syntax-rules ()
@@ -802,12 +803,12 @@
 		  (id-name ($lambda-name iform))
 		  ($lambda-name iform))
 	      (length ($lambda-calls iform))
-	      (map lvar->string ($lambda-lvars iform)))
+	      (imap lvar->string ($lambda-lvars iform)))
       (nl (+ ind 2))
       (rec (+ ind 2) ($lambda-body iform))
       (display ")"))
      ((has-tag? iform $RECEIVE)
-      (format #t "($receive ~a" (map lvar->string ($receive-lvars iform)))
+      (format #t "($receive ~a" (imap lvar->string ($receive-lvars iform)))
       (nl (+ ind 4))
       (rec (+ ind 4) ($receive-expr iform)) (nl (+ ind 2))
       (rec (+ ind 2) ($receive-body iform)) (display ")"))
@@ -923,13 +924,13 @@
      ((has-tag? iform $UNDEF) (undefined)) ;; what should we do?
      ((has-tag? iform $LAMBDA) ;; construct formal
       (let ((opt ($lambda-option iform))
-	    (lvs  (map lvar->string ($lambda-lvars iform))))
+	    (lvs  (imap lvar->string ($lambda-lvars iform))))
 	`(lambda ,(cond ((zero? opt) lvs)
 			 (else ;; need to be dotted pair
 			  (apply cons* lvs)))
 	 ,(rec ($lambda-body iform)))))
      ((has-tag? iform $RECEIVE)
-      `(receive ,(map lvar->string ($receive-lvars iform))
+      `(receive ,(imap lvar->string ($receive-lvars iform))
 	   ,(rec ($receive-expr iform))
 	 ,(rec ($receive-body iform))))
      ((has-tag? iform $LABEL)
@@ -943,7 +944,7 @@
 	       `(label ,num (rec ($label-body iform)))))))
      ((has-tag? iform $SEQ)
       `(begin
-	 ,@(map (lambda (node) (rec node)) ($seq-body iform))))
+	 ,@(imap (lambda (node) (rec node)) ($seq-body iform))))
      ((has-tag? iform $LREF) (lvar->string ($lref-lvar iform)))
      ((has-tag? iform $GREF) (id-name ($gref-id iform)))
      ((has-tag? iform $DEFINE)
@@ -954,7 +955,7 @@
 	   ,(rec ($define-expr iform)))))
      ((has-tag? iform $CALL)
       `(,(rec ($call-proc iform))
-	,@(map (lambda (node) (rec  node)) ($call-args iform))))
+	,@(imap (lambda (node) (rec  node)) ($call-args iform))))
      ((has-tag? iform $ASM)
       ;; assemble asm to usual call
       `(,(case (string->symbol (insn-name (car ($asm-insn iform))))
@@ -993,12 +994,12 @@
 	   ((NUM_GT)  '>)
 	   ((NUM_GE)  '>=)
 	   (else => values))
-	,@(map (lambda (node) (rec node)) ($asm-args iform))))
+	,@(imap (lambda (node) (rec node)) ($asm-args iform))))
      ((has-tag? iform $LET)
       `(,(case ($let-type iform)
 	   ((let) 'let) 
 	   (else => (lambda (x) (string->symbol (format "let~a" x)))))
-	,(map (lambda (var init)
+	,(imap2 (lambda (var init)
 		(list (lvar->string var)
 		      (rec  init)))
 	      ($let-lvars iform) ($let-inits iform))
@@ -1028,7 +1029,7 @@
      ((has-tag? iform $GSET)
       `(set! ,(id-name ($gset-id iform)) ,(rec ($lset-expr iform))))
      ((has-tag? iform $LIST)
-      `(list ,@(map (lambda (elt) (rec elt)) ($list-args iform))))
+      `(list ,@(imap (lambda (elt) (rec elt)) ($list-args iform))))
      ((has-tag? iform $LIBRARY) (undefined)) ;; for now ignore.
      (else 
       (scheme-error 'pp-iform "unknown tag:" (iform-tag iform)))))
@@ -3231,6 +3232,58 @@
        (pass1 `(,begin. ,@exprs) p1env)))
     (- (syntax-error "malformed cond-expand" form)))
   )
+
+;; SRFI-139 stuff
+;; NOTE: 
+;;   We don't define define-syntax-parameter to avoid unnecessary complexity
+;;   (c.f. if we add this, we need to handle it body-rec as well).
+;;
+;; syntax-parameterized
+;;   What we do here is simple replace binding which is bound to the
+;;   given variable. The binding must be a macro, thus auxiliay syntax
+;;   define in the compile such as '=>' can't be used as a syntax parameter
+;;   this would be a limitation but since it's not a syntax parameter
+;;   it doesn't violate the SRFI. (though, there's a proposal which says
+;;   there's no diffrerence between syntax parameters and usual macros...)
+;;
+;; FIXME: this isn't thread safe
+(define-pass1-syntax (syntax-parameterize form p1env) :sagittarius
+  (define (replace-bindings! vars trans)
+    (define (global-binding var)
+      (if (identifier? var)
+	  (find-binding (id-library var) (id-name var) #f)
+	  (find-binding (p1env-library var) var #f)))
+    (define (bound-to-macro? var)
+      (or (macro? (pass1/lookup-head var p1env))
+	  (and-let* ((g (global-binding var)))
+	    (macro? (gloc-ref g)))))
+    (unless (for-all bound-to-macro? vars)
+      (syntax-error "all variables must be bound to syntax parameter (macro)"
+		    (unwrap-syntax form)))
+    (imap2 (lambda (var m)
+	     (cond ((p1env-lookup-rib p1env var LEXICAL) =>
+		    (lambda (rib)
+		      (let ((org (cdr rib)))
+			(set-cdr! rib m)
+			(lambda () (set-cdr! rib org)))))
+		   (else
+		    (let* ((g (global-binding var))
+			   (org (gloc-ref g)))
+		      (gloc-set! g m)
+		      (lambda () (gloc-set! g org))))))
+	   vars (imap2 (lambda (var trans)
+			   (let ((n (variable-name var)))
+			     (pass1/eval-macro-rhs 'syntax-parameterize n
+			       trans (p1env-add-name p1env n))))
+			 vars trans)))
+    (smatch form
+    ((- ((vars trans) ___) body ___)
+     (let ((thunks (replace-bindings! vars trans)))
+       (dynamic-wind values
+	   (lambda () (pass1 `(,begin. ,@body) p1env))
+	   (lambda () (do ((thunks thunks (cdr thunks)))
+			  ((null? thunks))
+			((car thunks)))))))))
 
 (define (pass1/body exprs p1env)
   ;; add dummy env so that we can just extend!
