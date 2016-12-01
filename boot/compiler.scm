@@ -3246,7 +3246,7 @@
 ;;   it doesn't violate the SRFI. (though, there's a proposal which says
 ;;   there's no diffrerence between syntax parameters and usual macros...)
 ;;
-;; FIXME: this isn't thread safe
+;; FIXME: locking globally isn't nice...
 (define-pass1-syntax (syntax-parameterize form p1env) :sagittarius
   (define (replace-bindings! vars trans)
     (define (global-binding var)
@@ -3277,13 +3277,17 @@
 			       trans (p1env-add-name p1env n))))
 			 vars trans)))
     (smatch form
-    ((- ((vars trans) ___) body ___)
-     (let ((thunks (replace-bindings! vars trans)))
-       (dynamic-wind values
-	   (lambda () (pass1 `(,begin. ,@body) p1env))
-	   (lambda () (do ((thunks thunks (cdr thunks)))
-			  ((null? thunks))
-			((car thunks)))))))))
+      ((- ((vars trans) ___) body ___)
+       (let ((thunks '()))
+	 (dynamic-wind
+	     (lambda ()
+	       (acquire-global-lock!)
+	       (set! thunks (replace-bindings! vars trans)))
+	     (lambda () (pass1 `(,begin. ,@body) p1env))
+	     (lambda ()
+	       (do ((thunks thunks (cdr thunks)))
+		   ((null? thunks) (release-global-lock!))
+		 ((car thunks)))))))))
 
 (define (pass1/body exprs p1env)
   ;; add dummy env so that we can just extend!

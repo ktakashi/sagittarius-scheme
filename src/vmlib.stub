@@ -493,4 +493,10 @@
 
   ;; this is required on compiler
   (define-c-proc vm-execute! (cb::<code-builder>) Sg_VMExecute)
+
+
+  ;; don't use this casually
+  (define-c-proc acquire-global-lock! () ::<void> Sg_VMAcquireGlobalLock())
+  (define-c-proc release-global-lock! () ::<void> Sg_VMReleaseGlobalLock())
+
 )

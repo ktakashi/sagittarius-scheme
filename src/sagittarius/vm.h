@@ -424,6 +424,10 @@ SG_EXTERN SgObject Sg_VMValues4(SgVM *vm, SgObject v1,
 SG_EXTERN SgObject Sg_VMValues5(SgVM *vm, SgObject v1,
 				SgObject v2, SgObject v3, SgObject v4,
 				SgObject v5);
+
+SG_EXTERN void Sg_VMAcquireGlobalLock();
+SG_EXTERN void Sg_VMReleaseGlobalLock();
+
 /* it would be too dangerous to exporse */
 /* SG_EXTERN SgObject Sg_RootVM(); */
 

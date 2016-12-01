@@ -773,6 +773,17 @@ SgObject Sg_VMCurrentLibrary()
   return Sg_VM()->currentLibrary;
 }
 
+
+void Sg_VMAcquireGlobalLock()
+{
+  Sg_LockMutex(&global_lock);
+}
+
+void Sg_VMReleaseGlobalLock()
+{
+  Sg_UnlockMutex(&global_lock);
+}
+
 static SgObject compiler = SG_UNDEF;
 static void init_compiler()
 {
