@@ -29,7 +29,7 @@
 ;;;  
 
 (library (text sxml object-builder)
-    (export sxml->object ? * + / ?? <!>
+    (export sxml->object ? * + / ?? <!> *namespace*
 	    ;; object->sxml
 
 	    ;; XML object
@@ -46,7 +46,8 @@
 	    make-recursive-object-builder recursive-object-builder?
 	    )
     (import (rnrs)
-	    (text sxml tools))
+	    (text sxml tools)
+	    (srfi :139))
 
   ;; TODO maybe we can make this more generic?
   (define-record-type object-builder
@@ -194,11 +195,26 @@
   (define-syntax ? (syntax-rules ()))
   (define-syntax ?? (syntax-rules ()))
   (define-syntax <!> (syntax-rules ()))
+  (define-syntax-parameter *namespace* (syntax-rules () ((_) '())))
   
   (define-syntax sxml-object-builder-predicate
     (syntax-rules (??)
       ((_ (?? pred)) pred)
-      ((_ tag) (let ((tag (lambda (t) (eq? t 'tag)))) tag))))
+      ((_ tag)
+       (let ((ns (*namespace*)))
+	 (if (or (null? ns) (not (sxml:name->ns-id 'tag)))
+	     (let ((tag (lambda (t) (eq? t 'tag)))) tag)
+	     (let ((ns-id (cond ((assq (string->symbol (sxml:name->ns-id 'tag))
+				       ns) => cadr)
+				;; tag has namespace but not defined
+				(else #f)))
+		   (lcname (sxml:ncname '(tag))))
+	       (let ((tag (lambda (t)
+			    (or (and ns-id
+				     (string=? (sxml:name->ns-id t) ns-id)
+				     (string=? lcname (sxml:ncname (list t))))
+				(eq? t 'tag)))))
+		 tag)))))))
   (define-syntax sxml-object-builder-helper
     (syntax-rules (??)
       ((_ tag ctr next)
@@ -261,8 +277,12 @@
        (sxml-choice-object-builder "parse" () (spec specs ...)))))
   
   (define-syntax sxml-object-builder
-    (syntax-rules (* ? + <!> /)
+    (syntax-rules (* ? + <!> / *namespace*)
       ((_) #f)
+      ((_ (*namespace* ((ns uri) ...)) specs ...)
+       (syntax-parameterize ((*namespace* (syntax-rules ()
+					    ((_) '((ns uri) ...)))))
+	 (sxml-object-builder specs ...)))
       ((_ (* spec ...)) (sxml-set-object-builder (* spec ...)))
       ((_ (? spec ...)) (sxml-object-builder (spec ...)))
       ((_ (+ spec ...)) (sxml-set-object-builder (+ spec ...)))

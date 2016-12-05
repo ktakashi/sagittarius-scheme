@@ -134,4 +134,14 @@
       (test-equal 1 (length (xml-object-contents c)))
       (test-equal '("bar") (xml-object-contents c)))))
 
+(let ()
+  (define xml
+    (sxml-object-builder
+     (*namespace* ((ns "urn:foo")))
+     (ns:bar make-xml-object)))
+
+  (test-equal 'urn:foo:bar
+	      (xml-object-name (sxml->object '(*TOP* (urn:foo:bar "boo")) xml))))
+
+
 (test-end)
