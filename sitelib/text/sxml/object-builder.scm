@@ -211,7 +211,7 @@
 		   (lcname (sxml:ncname '(tag))))
 	       (let ((tag (lambda (t)
 			    (or (and ns-id
-				     (string=? (sxml:name->ns-id t) ns-id)
+				     (equal? (sxml:name->ns-id t) ns-id)
 				     (string=? lcname (sxml:ncname (list t))))
 				(eq? t 'tag)))))
 		 tag)))))))
