@@ -62,16 +62,16 @@ The following shows how to use this DSL macro
 @codeblock{
 (define builder
   (sxml-object-builder
-    (*namespace* ((ns "urn:foo"))
-    (ns:bar
+    (*namespace* ((ns "urn:foo")))
+    (ns:bar list
       (ns:buz list)
-      (foo list)))))
+      (foo list))))
 }
 The above definition can build an object from the following SXML
 @codeblock{
 (*TOP*
   (urn:foo:bar
-    (urn:buz "buz")
+    (urn:foo:buz "buz")
     (foo "foo")))
 }
 }
