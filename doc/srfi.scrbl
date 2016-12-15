@@ -347,6 +347,15 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{syntax-parameters} is taken from sample implementation.
     }}
+@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-141/srfi-141.html"]{SRFI-141}}
+    @td{(srfi :141 integer-division)
+
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :141)}. So for the portability it's better to use the
+    @code{(srfi :141)}.
+
+    The name @code{integer-division} is taken from the name of the SRFI.
+    }}
 }
 
 
