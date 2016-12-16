@@ -165,13 +165,12 @@
 		 record?)
 	       (eq? (record-type-descriptor (make-record)) (<record>))))
 
-;; waiting for reply but should be invalid
-;;(test-assert "Record-type predicate"
-;;	     (let ()
-;;	       (define-record-type <record>
-;;		 (make-record)
-;;		 record?)
-;;	       (eq? (record-type-predicate (<record>)) record?)))
+(test-assert "Record-type predicate"
+	     (let ()
+	       (define-record-type <record>
+		 (make-record)
+		 record?)
+	       ((record-type-predicate (<record>)) (make-record))))
 
 (test-equal "Introspection of record-type name"
 	    '<record>
@@ -206,20 +205,27 @@
 	      (list (list-ref field-foo 0) (bar record))))
 
 (test-equal "Procedural generation of record types"
-	    '(#t 1 2)
+	    '(#t 1 2 #t #t)
 	    (let ()
 	      (define-record-type <parent>
 		#f
 		parent?
 		(bar bar))
 	      (define child-rtd (make-record-type-descriptor '<child>
-							     '((foo foo))
+							     '((mutable foo)
+							       qux
+							       (immutable baz))
 							     (<parent>)))
 	      (define child (make-record child-rtd #(1 2)))
 	      (define foo (list-ref (car (record-type-fields child-rtd)) 1))
+	      (define qux-field (list-ref (record-type-fields child-rtd) 1))
+	      (define baz-field (list-ref (record-type-fields child-rtd) 2))
 	      (list (parent? child)
 		    (bar child)
-		    (foo child))))
+		    (foo child)
+		    (procedure? (list-ref qux-field 2))
+		    (not (list-ref baz-field 2)))))
+
 
 (test-equal "Constructor name in subrecord-type"
 	    '(#t 3 4)

@@ -59,14 +59,13 @@
     (map (lambda (field)
 	   (if (pair? field)
 	       (let ((len (length field))
-		     (name (car field)))
-		 (unless (<= 2 len 3)
+		     (name (cadr field)))
+		 (unless (= len 2)
 		   (assertion-violation 'make-record-type-descriptor
 					"invalid field spec" field))
-		 (list name :mutable (= (length len) 3)
+		 (list name :mutable (eq? (car field) 'mutable)
 		       :init-keyword (make-keyword name)))
-	       (assertion-violation 'make-record-type-descriptor
-				    "invalid field" field))) fields))
+	       (list name :mutable #t :init-keyword field))) fields))
   (define type (make <record-type-meta>
 		 :definition-name name
 		 :direct-supers (or (and parent
@@ -76,10 +75,9 @@
 		 :define-library (current-library)))
   (define (->field-vector fields)
     (list->vector (map (lambda (field)
-			 (if (null? (cddr field))
-			     `(immutable ,(car field))
-			     `(mutable ,(car field)))) fields)))
-  
+			 (if (symbol? field)
+			     `(mutable ,field)
+			     field)) fields)))
   (let ((rtd (make <record-type-descriptor>
 	       :name name :parent parent :uid #f :sealed? #f :opaque? #f
 	       :fields (->field-vector fields)
