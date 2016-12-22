@@ -1,5 +1,7 @@
 @; -*- coding: utf-8 -*-
-@subsection[:tag "text.object-builder"]{(text sxml object-builder) - SXML to Scheme object builder}
+
+@subsection[:tag "text.object-builder"]{(text sxml object-builder) - SXML to
+Scheme object builder}
 
 @define[Library]{@name{(text sxml object-builder)}}
 @desc{This library provides APIs to build Scheme object from SXML.}
@@ -47,8 +49,8 @@ The @var{spec} must be one of the followings:
 @var{attributes} and @var{contents}. These are SXML's tagname, list of
 attributes and SXML contents, respectively.
 
-The first form of the @var{spec} specifies aliases of namespaces. Users can write
-qualified name with prefixed instead of unprefixed qualified name.
+The first form of the @var{spec} specifies aliases of namespaces. Users can
+write qualified name with prefixed instead of unprefixed qualified name.
 
 The second to forth form of @var{spec} specify the amount of nested
 @var{spec @dots{}} existence. The @code{*} means 0 or more.
@@ -74,4 +76,34 @@ The above definition can build an object from the following SXML
     (urn:foo:buz "buz")
     (foo "foo")))
 }
+
+A generic SXML builder can be written like this:
+@codeblock{
+(define-record-type xml-object
+  (fields name attributes contents))
+
+(define xml-object-builder
+  (sxml-object-builder
+   (<!> (?? values) make-xml-object)))
 }
+
+}
+
+@sub*section{XML object}
+
+This section describes convenience record type and procedures.
+
+@define["Record Type"]{@name{xml-object}}
+@define[Function]{@name{xml-object?} @args{obj}}
+@define[Function]{@name{make-xml-object} @args{name attributes contents}}
+@define[Function]{@name{xml-object-name} @args{xml-object}}
+@define[Function]{@name{xml-object-attributes} @args{xml-object}}
+@define[Function]{@name{xml-object-contents} @args{xml-object}}
+@desc{A very simple XML object type. An instance of this record type
+holds tag name (@var{name}), attribute as alist (@var{attributes}) and
+contents which must be a valid SXML or other XML objects (@var{contents}).
+}
+
+@define[Function]{@name{sxml->xml-object} @args{sxml :optional handler}}
+@desc{Builds XML object described above from given @var{sxml}.}
+
