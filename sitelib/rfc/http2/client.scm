@@ -32,6 +32,7 @@
 (library (rfc http2 client)
     (export http2-client-connection?
 	    make-http2-client-connection
+	    close-http2-client-connection!
 	    http2-construct-header
 	    ;; expose them as well
 	    http2-add-request!
@@ -203,6 +204,11 @@
 	   (,+http2-settings-max-concurrent-streams+ 100)))
 	(http2-handle-server-settings conn))))
 
+  (define (close-http2-client-connection! conn)
+    ;; Closing port would also close socket
+    ;; see creation of the port
+    (close-port (%h2-source conn)))
+  
   (define-constant +http2-preface+ #*"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
   (define (http2-send-preface conn)
     (let1 in/out (%h2-source conn)
