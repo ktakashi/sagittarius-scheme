@@ -70,6 +70,7 @@
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
+	    (rfc gzip)
 	    (srfi :1)
 	    (srfi :18))
 
@@ -296,7 +297,7 @@
 		   #f))
 	  (read-http2-frame in/out (%h2-buffer conn) res-hpack)))
       (define (get-header sid alist)
-	(cond ((assv sid alist) => car)
+	(cond ((assv sid alist) => cadr)
 	      ;; TODO should we allow this?
 	      (else '())))
       (define (call-receiver sid stream alist frame)
@@ -506,13 +507,32 @@
   (define (http2-null-receiver) 
     (lambda (stream header frame end-stream?) #vu8()))
 
+  (define (http2-gzip-receiver receiver)
+    (let ((in/out (open-chunked-binary-input/output-port)))
+      (lambda (stream headers frame end-stream?)
+	(define (handle-compressed-stream)
+	  (define (call-next)
+	    (set-port-position! in/out 0)
+	    (let* ((gin (open-gzip-input-port in/out :owner? #t))
+		   (frame (make-http2-frame-data 0 stream
+						 (get-bytevector-all gin))))
+	      (receiver stream headers frame #t)))
+	  (when (http2-frame-data? frame)
+	    (put-bytevector in/out (http2-frame-data-data frame)))
+	  (and end-stream? (call-next)))
+	(if (equal? (http2-header-ref #*"content-encoding" headers) #*"gzip")
+	    (handle-compressed-stream)
+	    (receiver stream headers frame end-stream?)))))
+  
   ;; TODO more receivers
 
 
 ;;; common APIs
+  (define (make-gzip-receiver)
+    (http2-gzip-receiver (http2-binary-receiver)))
   ;; GET
   (define (http2-get conn uri 
-		     :key (receiver (http2-binary-receiver))
+		     :key (receiver (make-gzip-receiver))
 			  (redirect-handler http2-redirect-handler)
 		     :allow-other-keys headers)
     ;; discards the stored streams first
@@ -524,7 +544,7 @@
 
   ;; HEAD
   (define (http2-head conn uri 
-		      :key (receiver (http2-binary-receiver))
+		      :key (receiver (make-gzip-receiver))
 			   (redirect-handler http2-redirect-handler)
 		     :allow-other-keys headers)
     ;; discards the stored streams first
@@ -536,7 +556,7 @@
 
   ;; POST (not properly tested)
   (define (http2-post conn uri data 
-		      :key (receiver (http2-binary-receiver))
+		      :key (receiver (make-gzip-receiver))
 			   (redirect-handler http2-redirect-handler)
 		      :allow-other-keys headers)
     ;; discards the stored streams first
