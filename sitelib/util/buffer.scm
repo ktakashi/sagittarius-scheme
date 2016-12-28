@@ -210,9 +210,9 @@
 							 :optional (offset #f))
     (let ((pos (if offset offset (pre-allocated-buffer-size buffer)))
 	  (buf (pre-allocated-buffer-buffer buffer)))
-      (get-bytevector-n! in buf pos n)
-      (update-size! buffer (+ pos n))
-      n))
+      (let ((r (get-bytevector-n! in buf pos n)))
+	(update-size! buffer (+ pos r))
+	r)))
 
   ;; port conversion
   (define (->binary-pre-allocated-buffer-output-port binary-buffer)
