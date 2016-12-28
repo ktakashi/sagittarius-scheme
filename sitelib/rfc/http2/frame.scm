@@ -186,11 +186,11 @@
 	(http2-frame-size-error 'fill-http2-frame-buffer!
 				"Frame size exceed SETTINGS_MAX_FRAME_SIZE"
 				len))
-      (let loop ((n len))
-	(let ((r (binary-pre-allocated-buffer-get-bytevector-n! buffer in n 0)))
+      (let loop ((n len) (i 0))
+	(let ((r (binary-pre-allocated-buffer-get-bytevector-n! buffer in n i)))
 	  (if (= r n)
 	      (values type flags si)
-	      (loop (- n r)))))))
+	      (loop (- n r) (+ i r)))))))
 
   (define-record-type http2-frame
     ;; fields are immutable for reading
