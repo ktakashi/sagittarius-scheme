@@ -113,10 +113,10 @@
     lateral leading like local localtime localtimestamp match member
     merge method minute modifies module month national
     nchar nclob new no none numeric of old only open out output
-    over overlaps parameter partition precision prepare procedure range
+    over overlaps parameter precision prepare procedure
     reads real recursive ref referencing regr_avgx regr_avgy regr_count
     regr_intercept regr_r2 regr_slope regr_sxx regr_sxy regr_syy release
-    result return returns revoke rollback row rows savepoint
+    result return returns revoke rollback row savepoint
     scroll search second sensitive session_user similar smallint
     specific specifictype sql sqlexception sqlstate sqlwarning start static
     submultiset symmetric system system_user time timestamp timezone_hour
@@ -976,7 +976,7 @@
    (window-specification-details ((e <- identifier?
 				   p <- window-partition-clause?
 				   o <- window-order-clause?
-				   f <- window-frame-caluse?)
+				   f <- window-frame-clause?)
 				  `(,@e ,@p ,@o ,@f)))
    (identifier? ((i <- identifier) (list i))
 		(() '()))
@@ -1000,10 +1000,11 @@
 			  (list (cons 'order-by s)))
 			 (() '()))
 
-   (window-frame-caluse? ((u <- window-frame-units
+   (window-frame-clause? ((u <- window-frame-units
 			   e <- window-frame-extent
-			   w <- window-frame-exclusion)
-			  (cons* u e w)))
+			   w <- window-frame-exclusion?)
+			  (list (cons* u e w)))
+			 (() '()))
    (window-frame-units (('rows) 'rows)
 		       (('range) 'range))
    (window-frame-extent ((s <- window-frame-start) s)
@@ -1021,11 +1022,15 @@
 		       ((w <- window-frame-following) w))
    (window-frame-following ((u <- unsigned-value-specification (=? 'following))
 			    (list 'following u)))
-   (window-frame-exclusion (((=? 'exclude) 'current 'row) 'exclude-current-row)
-			   (((=? 'exclude) 'group)        'exclude-group)
-			   (((=? 'exclude) 'ties)         'exclude-group)
-			   (((=? 'exclude) 'no (=? 'others))
-			    'exclude-no-others))
+   (window-frame-exclusion? (((=? 'exclude) 'current 'row)
+			     '(exclude-current-row))
+			    (((=? 'exclude) 'group)
+			     '(exclude-group))
+			    (((=? 'exclude) 'ties)
+			     '(exclude-group))
+			    (((=? 'exclude) 'no (=? 'others))
+			     '(exclude-no-others))
+			    (() '()))
 
    ;; 6.25 value expression
    ;; value
@@ -1529,9 +1534,9 @@
    (window-function ((t <- window-function-type 'over 
 		      w <- window-name-or-specification)
 		     ;; TODO should we do like this?
-		     `(,t 'over ,w)))
+		     `(,t over ,w)))
    (window-function-type ((t <- rank-function-type '#\( '#\)) (list t))
-			 (((=? 'row_number)) (list 'row_number))
+			 (((=? 'row_number) '#\( '#\)) (list 'row_number))
 			 ((a <- aggregate-function) a))
    (rank-function-type (((=? 'rank))         'rank)
 		       (((=? 'dense_rank))   'dense_rank)
