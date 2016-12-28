@@ -364,8 +364,14 @@
 ;;     (buffer-converter-push-promise frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-ping+
 ;;     (buffer-converter-ping frame buffer end? ctx))
-;;   (define-buffer-converter +http2-frame-type-goaway+
-;;     (buffer-converter-goaway frame buffer end? ctx))
+   (define-buffer-converter +http2-frame-type-goaway+
+     (buffer-converter-goaway frame buffer end? ctx)
+     (let ((lsi (http2-frame-goaway-last-stream-id frame))
+	   (ec (http2-frame-goaway-error-code frame))
+	   (debug (http2-frame-goaway-data frame)))
+       (binary-pre-allocated-buffer-put-u32! buffer lsi (endianness big))
+       (binary-pre-allocated-buffer-put-u32! buffer ec (endianness big))
+       #f))
 ;;   (define-buffer-converter +http2-frame-type-window-update+
 ;;     (buffer-converter-window-update frame buffer end? ctx))
 ;;   (define-buffer-converter +http2-frame-type-continuation+

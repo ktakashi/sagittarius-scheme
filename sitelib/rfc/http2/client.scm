@@ -268,10 +268,10 @@
       (define (send-frame frame)
 	(write-http2-frame in/out (%h2-buffer conn)
 			   frame #t (%h2-req-hpack conn)))
-      (define (send-goaway e stream-id)
+      (define (send-goaway e ec stream-id)
 	(send-frame (make-http2-frame-goaway 
 		     0 stream-id stream-id
-		     (http2-error-code e)
+		     ec
 		     (if (message-condition? e)
 			 (string->utf8 (condition-message e))
 			 #vu8())))
@@ -283,10 +283,10 @@
       (define (read-frame)
 	(guard (e ((http2-error? e)
 		   ;; treat as connection error.
-		   (send-goaway (http2-error-code e) 0))
+		   (send-goaway e (http2-error-code e) 0))
 		  (else
 		   ;; internal error. just close the session
-		   (send-goaway +http2-error-code-internal-error+ 0)
+		   (send-goaway e +http2-error-code-internal-error+ 0)
 		   #f))
 	  (read-http2-frame in/out (%h2-buffer conn) res-hpack)))
       (define (get-header sid alist)
