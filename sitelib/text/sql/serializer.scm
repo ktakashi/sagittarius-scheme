@@ -789,6 +789,46 @@
   (('group-by  column columns ...)
    (write-group-by #f column columns)))
 
+(define-sql-writer (partition-by ssql out . opt)
+  (('partition-by id)
+   (write/case "PARTITION BY " out)
+   (apply write-ssql id out opt)))
+
+(define (write-window-function func* out indent opt)
+  (put-char out #\()
+  (do ((func* func* (cdr func*)) (first #t #f))
+      ((null? func*))
+    (unless first (put-newline/space out #f))
+    (apply write-ssql (car func*) out opt))
+  (put-char out #\)))
+
+(define-sql-writer (window ssql out :key (indent #f) :allow-other-keys opt)
+  (define write-as
+    (match-lambda
+     (('as name defs ...)
+      (apply write-ssql name out opt)
+      (write/case " AS " out)
+      (write-window-function defs out #f opt))))
+  (('window def)
+   (write/case "WINDOW " out)
+   (write-as def))
+  (('window def defs ...)
+   (write/case "WINDOW" out)
+   (let ((nl (next-indent indent 2)))
+     (for-each (lambda (def)
+		 (put-newline/space out nl)
+		 (write-as def)) (cdr ssql)))))
+
+(define-sql-writer (over ssql out . opt)
+  (('over agg (? symbol? x))
+   (apply write-ssql agg out opt)
+   (write/case " OVER " out)
+   (apply write-ssql x out opt))
+  (('over agg specs ...)
+   (apply write-ssql agg out opt)
+   (write/case " OVER " out)
+   (write-window-function specs out #f opt)))
+
 (define-sql-writer (case ssql out :key (indent #f) :allow-other-keys opt)
   (define nl (next-indent indent 2))
   (define write-when

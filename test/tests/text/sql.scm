@@ -404,6 +404,18 @@
 ;; distinct
 (test-parse "select distinct * from foo" '(select-distinct * (from foo)))
 
+;; window function
+(test-parse "select row_number() over w" '(select ((over (row_number) w))))
+(test-parse "select row_number() over (w)" '(select ((over (row_number) w))))
+(test-parse "select row_number() over (w partition by i)"
+	    '(select ((over (row_number) w (partition-by i)))))
+(test-parse "select row_number() over (partition by i)"
+	    '(select ((over (row_number) (partition-by i)))))
+(test-parse "select row_number() over (partition by i order by s)"
+	    '(select ((over (row_number) (partition-by i) (order-by s)))))
+(test-parse "select * from t window w as (partition by c)"
+	    '(select * (from t) (window (as w (partition-by c)))))
+
 ;; delete from
 (test-parse "delete from t" '(delete-from t))
 (test-parse "delete from t where a = 1" '(delete-from t (where (= a 1))))

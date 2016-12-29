@@ -122,7 +122,7 @@
     submultiset symmetric system system_user time timestamp timezone_hour
     timezone_minute trailing translation treat trigger true uescape unknown
     unnest upper user value var_pop var_samp varchar varying whenever
-    width_bucket window with within without year))
+    width_bucket with within without year))
 
 ;; handling operators
 ;;
@@ -965,7 +965,7 @@
 		  (() '()))
 
    (window-definition ((n <- identifier 'as w <- window-specification)
-		       (list 'as n w)))
+		       (cons* 'as n w)))
    (window-definition-list ((w <- window-definition
 			     w* <- window-definition-list*)
 			    (cons w w*)))
@@ -1533,8 +1533,9 @@
    ;; 6.10 window function
    (window-function ((t <- window-function-type 'over 
 		      w <- window-name-or-specification)
-		     ;; TODO should we do like this?
-		     `(,t over ,w)))
+		     (if (pair? w)
+			 `(over ,t ,@w)
+			 `(over ,t ,w))))
    (window-function-type ((t <- rank-function-type '#\( '#\)) (list t))
 			 (((=? 'row_number) '#\( '#\)) (list 'row_number))
 			 ((a <- aggregate-function) a))
