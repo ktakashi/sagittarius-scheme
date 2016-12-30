@@ -230,7 +230,7 @@
   (define first-indent (if (*in-parenthesis*) 0 indent))
   ((name '* rest ...)
    (write/case (symbol-upcase name) out :indent first-indent)
-   (write/case " * " out :indent first-indent)
+   (write/case " *" out :indent first-indent)
    (for-each (lambda (clause) 
 	       (put-newline/space out indent)
 	       (apply write-ssql clause out :indent indent opt)) rest))
@@ -260,12 +260,13 @@
     (write/case "VALUES " out)
     (with-parenthesis out 
       (apply write/comma* out (car vals) :indent #f opt))
-    (for-each (lambda (v) 
-		(put-char out #\,)
-		(put-newline/space out ni)
-		(with-parenthesis out 
-		  (apply write/comma* out v :indent #f opt)))
-	      (cdr vals))))
+    (let ((vi (next-indent indent 7)))
+      (for-each (lambda (v) 
+		  (put-char out #\,)
+		  (put-newline/space out vi)
+		  (with-parenthesis out 
+		    (apply write/comma* out v :indent #f opt)))
+		(cdr vals)))))
 (define (query-insert out table cols overriding? query :key (indent #f) 
 		      :allow-other-keys opt)
   (write/case "INSERT INTO " out)
@@ -649,13 +650,18 @@
       ;; normal or query
       (apply write-ssql table out opt)))
 
-(define-sql-writer (from ssql out :key (indent #f) :allow-other-keys :rest opt)
+(define-sql-writer (from ssql out :key (indent #f) :allow-other-keys opt)  
   (('from table rest ...)
    (write/case "FROM " out)
-   (apply write-table-reference table out :indent indent opt)
-   (for-each (lambda (table) 
-	       (put-char out #\,)
-	       (write-table-reference table out opt)) rest)))
+   (if (null? rest)
+       (apply write-table-reference table out :indent indent opt)
+       (let ((ni (next-indent indent 5)))
+	 (apply write-table-reference table out :indent ni opt)
+	 (for-each (lambda (table) 
+		     (put-char out #\,)
+		     (put-newline/space out ni)
+		     (write-table-reference table out :indent ni opt))
+		   rest)))))
 
 ;; we don't check join type for alias
 (define (symbol-upcase s) (string->symbol (string-upcase (symbol->string s))))
