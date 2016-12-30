@@ -55,9 +55,9 @@
 (define (default-converter ch)
   (let* ((s (number->string (char->integer ch) 16))
 	 (l (string-length s)))
-    (cond ((< l 4) (string-pad s 4))
+    (cond ((< l 4) (string-pad s 4 #\0))
 	  ((= l 4) s)
-	  ((< l 6) (string-pad s 6))
+	  ((< l 6) (string-pad s 6 #\0))
 	  ((= l 6) s)
 	  (else (error 'default-converter "Can't convert character" ch)))))
     
@@ -75,7 +75,7 @@
 ;; character for UESCAPE
 (define *unicode-escape*
   (make-parameter #f (lambda (v) 
-		       (cond ((not v) v)
+		       (cond ((not v) #\\)
 			     ((char? v) v)
 			     (else (assertion-violation '*unicode-escape*
 				    "char or #f is required" v))))))
@@ -1365,8 +1365,9 @@
 	  (uescape? (or uescape (and charset (not (string-every charset s)))))
 	  (delimited? (or delimited 
 			  (string-any non-identifier-chars s))))
-      (when uescape? (write/case "U&\"" out))
-      (when (and (not uescape?) delimited?) (put-char out #\"))
+      (if uescape?
+	  (write/case "U&\"" out)
+	  (if delimited? (put-char out #\")))
       (let-values (((sout extract) (open-string-output-port)))
 	(let loop ()
 	  (let ((ch (get-char in)))
@@ -1378,11 +1379,9 @@
 		  ((or (not charset) (char-set-contains? charset ch))
 		   (put-char sout ch)
 		   (loop))
-		  (else 
+		  (else
 		   (let ((r (converter ch)))
-		     (if escape
-			 (put-char out escape)
-			 (put-char out #\\))
+		     (put-char sout escape)
 		     (when (= (string-length r) 6) (put-char sout #\+))
 		     (write/case r sout)
 		     (loop)))))))
@@ -1431,9 +1430,7 @@
 		 (loop uescape?))
 		(else
 		 (let ((r (converter ch)))
-		   (if escape
-		       (put-char out escape)
-		       (put-char out #\\))
+		   (put-char out escape)
 		   (when (= (string-length r) 6) (put-char out #\+))
 		   (write/case r out)
 		   (loop #t))))))))
