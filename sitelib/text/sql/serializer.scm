@@ -637,25 +637,34 @@
    (apply maybe-with-parenthesis b out :indent indent opt)))
 
 (define (write-table-reference table out :key (indent #f) :allow-other-keys opt)
-  (if (and (pair? table) 
-	   (not (eq? (car table) 'as))
-	   (not (eq? (car table) '~)))
-      ;; join
-      (begin 
-	(apply write-ssql (car table) out opt)
-	(for-each (lambda (join)
-		    (put-newline/space out indent)
-		    (apply write-ssql join out :indent indent opt))
-		  (cdr table)))
-      ;; normal or query
-      (apply write-ssql table out opt)))
+  (define (join? s)
+    (and (symbol? s)
+	 (or (eq? s 'join)
+	     (eq? s 'inner-join)
+	     ;; ok the rest is not really used so check like this
+	     (string-suffix? "-join" (symbol->string s)))))
+  (match table
+    ((name ((? join? join) join-table ...) rest ...)
+     (apply write-table-reference name out :indent indent opt)
+     (for-each (lambda (join)
+		 (put-newline/space out indent)
+		 (apply write-table-reference join out :indent indent opt))
+	       (cdr table)))
+    (('as ('select rest ...) name)
+     ;; add indent of '('
+     (let ((ni (next-indent indent 1)))
+       (apply write-ssql table out :indent ni opt)))
+    (('as ('values rest ...) name)
+     (apply write-ssql table out :indent indent opt))
+    (else (apply write-ssql table out opt))))
 
-(define-sql-writer (from ssql out :key (indent #f) :allow-other-keys opt)  
+(define-sql-writer (from ssql out :key (indent #f) :allow-other-keys opt)
+  (define ni (next-indent indent 5))
   (('from table rest ...)
    (write/case "FROM " out)
    (if (null? rest)
-       (apply write-table-reference table out :indent indent opt)
-       (let ((ni (next-indent indent 5)))
+       (apply write-table-reference table out :indent ni opt)
+       (begin
 	 (apply write-table-reference table out :indent ni opt)
 	 (for-each (lambda (table) 
 		     (put-char out #\,)
@@ -711,15 +720,15 @@
    (put-char out #\))))
 
 (define-sql-writer (values ssql out :key (indent #f) :allow-other-keys opt)
-  (define ni (next-indent indent))
+  (define ni (next-indent indent 8))
   (('values val vals ...)
    (write/case "(VALUES " out)
-   (with-parenthesis out (apply write/comma* out val :indent ni opt))
+   (with-parenthesis out (apply write/comma* out val opt))
    (for-each (lambda (v)
 	       (put-char out #\,)
 	       (put-newline/space out ni)
 	       (with-parenthesis out
-		 (apply write/comma* out v :indent ni opt)))
+		 (apply write/comma* out v opt)))
 	     vals)
    (put-char out #\))))
 
@@ -728,7 +737,7 @@
     (define offset (match condition
 		     (('and rest ...) 2)
 		     (('or  rest ...) 3)
-		     (else 1)))
+		     (else 6)))
     (apply write-ssql condition out :indent (next-indent indent offset) opt))
   (('where condition)
    (write/case "WHERE " out)
