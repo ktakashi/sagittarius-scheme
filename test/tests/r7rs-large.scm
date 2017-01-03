@@ -1,0 +1,31 @@
+(import (rnrs)
+	(srfi :64)
+	(pp))
+
+(define (test-library name . bindings)
+  (test-assert name (eval `(let ((t #f))
+			     ,@(map (lambda (b) `(set! t ,b)) bindings))
+			  (environment '(only (rnrs) let set!) name))))
+
+(test-begin "R7RS-large")
+
+(test-library '(scheme list) 'alist-cons)
+(test-library '(scheme vector) 'vector-empty?)
+(test-library '(scheme sorting) 'list-sorted?)
+(test-library '(scheme set) 'set 'bag)
+(test-library '(scheme set char) 'char-set:ascii)
+(test-library '(scheme hash-table) 'make-hash-table)
+(test-library '(scheme list immutable) 'ipair)
+(test-library '(scheme list random-access) 'make-rlist 'rlist->list 'list->rlist
+	      'rpair?)
+(test-library '(scheme deque immutable) 'ideque)
+(test-library '(scheme textual) 'text?)
+(test-library '(scheme generator) 'generator)
+(test-library '(scheme lazy-seq) 'lseq?)
+(test-library '(scheme stream) 'stream-null 'stream? 'stream-take)
+(test-library '(scheme box) 'box?)
+(test-library '(scheme list queue) 'make-list-queue)
+(test-library '(scheme ephemeron) 'ephemeron?)
+(test-library '(scheme comparator) 'make-comparator)
+
+(test-end)

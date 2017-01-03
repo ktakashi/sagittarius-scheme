@@ -5,8 +5,64 @@
 	(sagittarius control)
 	(getopt))
 
+(define r7rs-large-lists
+  '(
+    (1   (scheme list) #f)
+    (133 (scheme vector) #f)
+    (132 (scheme sorting) #f)
+    (113 (scheme set) #f)
+    (14  (scheme set char) #f)
+    (125 (scheme hash-table) #f)
+    (116 (scheme list immutable) #f)
+    (101 (scheme list random-access)
+	 ((prefix r)
+	  (rename (rmake-list make-rlist)
+		  (rrandom-access-list->linear-access-list
+		   rlist->list)
+		  (rlinear-access-list->random-access-list
+		   list->rlist))))
+    (134 (scheme deque immutable) #f)
+    (135 (scheme textual) #f)
+    (121 (scheme generator) #f)
+    (127 (scheme lazy-seq) #f)
+    (41  (scheme stream) #f)
+    (111 (scheme box) #f)
+    (117 (scheme list queue) #f)
+    (124 (scheme ephemeron) #f)
+    (128 (scheme comparator) #f)
+    ))
+
+(define (generate-r7rs-large sitelib-dir)
+  (define (library-name->file name)
+    (string-append (apply build-path* (map symbol->string name)) ".scm"))
+  (define (->import-spec num spec)
+    (define base-lib `(srfi ,num))
+    (if spec
+	(do ((spec spec (cdr spec))
+	     (lib base-lib (cons* (caar spec) lib (cdar spec))))
+	    ((null? spec) lib))
+	base-lib))
+  (define (ensure-dir file)
+    (let-values (((base name ext) (decompose-path file)))
+      (unless (file-exists? base) (create-directory* base))))
+  (dolist (lib r7rs-large-lists)
+    (let ((num (car lib))
+	  (file (build-path sitelib-dir (library-name->file (cadr lib))))
+	  (lib-name (cadr lib))
+	  (import-spec (caddr lib)))
+      (ensure-dir file)
+      (when (file-exists? file) (delete-file file))
+      (call-with-output-file file
+	(lambda (out)
+	  (display +prelude+ out) (newline out)
+	  (pp `(define-library ,lib-name
+		 (export :all :export-reader-macro)
+		 (import ,(->import-spec num import-spec)))
+	      out))))))
+  
+
 (define (usage args)
-  (print "Usage: r7rs-srfi-gen.scm -p [SRFI dir]")
+  (print "Usage: r7rs-srfi-gen.scm -p [SRFI dir] [-s sitelib-dir]")
   (exit -1))
 
 (define-constant +prelude+ 
@@ -15,6 +71,7 @@
 (define (main args)
   (with-args (cdr args) 
       ((p* (#\p "path") * (usage args))
+       (sitelib (#\s "sitelib") #t "sitelib")
        (clean? (#\c "clean") #f #f))
     (dolist (p p*)
      (let ((files (find-files p :pattern #/^%3a\d+\.scm/)))
@@ -34,4 +91,5 @@
 			    (export :all :export-reader-macro)
 			    (import 
 			     (srfi ,(make-keyword (string->symbol num)))))
-			 out))))))))))))
+			 out))))))))))
+    (generate-r7rs-large sitelib)))
