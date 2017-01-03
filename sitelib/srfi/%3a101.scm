@@ -2,7 +2,7 @@
 ;;;
 ;;; srfi/%3a101.scm - Purely Functional Random-Access Pairs and Lists
 ;;;
-;;;   Copyright (c) 2016  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
