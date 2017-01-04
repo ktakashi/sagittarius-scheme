@@ -731,3 +731,120 @@ not provide a particular library such as the complex library, the
 corresponding identifiers will not appear in this library either. This
 library exports procedures for writing Scheme objects.
 }
+
+@subsection{R7RS-large}
+
+R7RS-large makes Scheme specification more practical. It contains
+lots of useful libraries as well. This section lists supporting
+R7RS-large libraries.
+
+@subsubsection{List library}
+@define[Library]{@name{(scheme list)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-1 @code{(srfi :1)}.
+}
+
+@subsubsection{Vector library}
+@define[Library]{@name{(scheme vector)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-133 @code{(srfi :133)}.
+}
+
+@subsubsection{Sorting library}
+@define[Library]{@name{(scheme sorting)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-132 @code{(srfi :132)}.
+}
+
+@subsubsection{Set library}
+@define[Library]{@name{(scheme set)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-113 @code{(srfi :113)}.
+}
+
+@subsubsection{Character set library}
+@define[Library]{@name{(scheme set char)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-14 @code{(srfi :14)}.
+}
+
+@subsubsection{Hashtable library}
+@define[Library]{@name{(scheme hash-table)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-125 @code{(srfi :125)}.
+}
+
+@subsubsection{Immutable list library}
+@define[Library]{@name{(scheme list immutable)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-116 @code{(srfi :116)}.
+}
+
+@subsubsection{Random access list library}
+@define[Library]{@name{(scheme list random-access)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-101 @code{(srfi :101)} with the following exceptions:
+
+@code{make-list} is renamed to @code{make-rlist}.
+
+@code{random-access-list->linear-access-list} is renamed to @code{rlist->list}.
+
+@code{linear-access-list->random-access-list} is renamed to @code{list->rlist}.
+
+All other procedures are prefixed with @code{r}. For example, @code{pair?}
+exported from @code{(srfi :101)} is @code{rpair?}.
+}
+
+@subsubsection{Immutable deque library}
+@define[Library]{@name{(scheme deque immutable)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-134 @code{(srfi :134)}.
+}
+
+@subsubsection{Immutable text library}
+@define[Library]{@name{(scheme textual)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-135 @code{(srfi :135)}.
+}
+
+@subsubsection{Generator library}
+@define[Library]{@name{(scheme generator)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-121 @code{(srfi :121)}.
+}
+
+@subsubsection{Lazy sequence library}
+@define[Library]{@name{(scheme lazy-seq)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-127 @code{(srfi :127)}.
+}
+
+@subsubsection{Stream library}
+@define[Library]{@name{(scheme stream)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-41 @code{(srfi :41)}.
+}
+
+@subsubsection{Box library}
+@define[Library]{@name{(scheme box)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-111 @code{(srfi :111)}.
+}
+
+@subsubsection{List queue library}
+@define[Library]{@name{(scheme list queue)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-117 @code{(srfi :117)}.
+}
+
+@subsubsection{Ephemeron library}
+@define[Library]{@name{(scheme ephemeron)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-124 @code{(srfi :124)}.
+}
+
+@subsubsection{Comparator library}
+@define[Library]{@name{(scheme comparator)}}
+@desc{This library exports the procedures and macros defined in
+SRFI-128 @code{(srfi :128)}.
+}

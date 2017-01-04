@@ -96,6 +96,14 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
     @code{(srfi :100)}.
 
     The name @code{define-lambda-object} is taken from the SRFI name.}}
+@tr{@td{@hyperlink[:href "http://srfi.schemers.org/srfi-101/srfi-101.html"]{SRFI-101}}
+    @td{(srfi :101 random-access-lists)
+    The long name is Sagittarius specific and the specified library name 
+    is @code{(srfi :101)}. So for the portability it's better to use the
+    @code{(srfi :101)}.
+
+    The name @code{random-access-lists} is taken from the sample
+    implementation.}}
 @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-105/srfi-105.html"]{SRFI-105}}
     @td{(srfi :105)
 
