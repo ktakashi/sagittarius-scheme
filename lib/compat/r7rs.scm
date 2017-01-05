@@ -84,8 +84,9 @@
         (_vector->list (rename 'vector->list))
         (_list->vector (rename 'list->vector))
         (_cons3 (rename 'cons-source))
-	   (_check-length (rename 'check-length))
-	   (_format (rename 'format)))
+	(_underscore (rename '_))
+	(_check-length (rename 'check-length))
+	(_format (rename 'format)))
     (define ellipsis (if ellipsis-specified? (cadr expr) (rename '...)))
     (define lits (if ellipsis-specified? (car (cddr expr)) (cadr expr)))
     (define forms (if ellipsis-specified? (cdr (cddr expr)) (cddr expr)))
@@ -104,11 +105,15 @@
            _let (list (list v x))
            (cond
             ((identifier? p)
-             (if (any (lambda (l) (compare p l)) lits)
-                 (list _and
-                       (list _compare v (list _rename (list _quote p)))
-                       (k vars))
-                 (list _let (list (list p v)) (k (cons (cons p dim) vars)))))
+             (cond ((any (lambda (l) (compare p l)) lits)
+		    (list _and
+			  (list _compare v (list _rename (list _quote p)))
+			  (k vars)))
+		   ((compare _underscore p)
+		    (k vars))
+		   (else
+		    (list _let (list (list p v))
+			  (k (cons (cons p dim) vars))))))
             ((ellipsis? p)
              (cond
               ((not (null? (cddr p)))
