@@ -12,12 +12,13 @@ Sagittariusは独自の拡張ライブラリを持っています。
 
 @subsubsection[:tag "lib.sagittarius.builtin.syntax"]{固有構文}
 @define[Syntax]{@name{define-constant} @args{variable expression}}
-@desc{@code{define}と似ていますが、@code{define-constant}は与えられた@var{variable}
-を定数として束縛します。束縛された値は可能であればコンパイル時に定数として畳み込まれます。
+@desc{@code{define}と似ていますが、@code{define-constant}は与えられた
+@var{variable}を定数として束縛します。束縛された値は可能であればコンパイル時に
+定数として畳み込まれます。
 
 もし定義された@var{variable}が上書きされた場合、VMが警告メッセージを標準エラー
-に表示します。また、@code{#!no-overwite}ディレクティブ等で上書き禁止フラグがセット
-された場合、コンパイラはエラーを投げます。
+に表示します。また、@code{#!no-overwite}ディレクティブ等で上書き禁止フラグが
+セットされた場合、コンパイラはエラーを投げます。
 }
 
 @define[Syntax]{@name{receive} @args{formals expression body}}
@@ -67,8 +68,8 @@ Sagittariusは独自の拡張ライブラリを持っています。
 の手続きはそれらの要素の比較もします。}
 ]
 
-@code{er-macro-transformer}はexplicit renamingマクロ展開器を返します。この展開器は
-健全、非健全両方のマクロを書くことが可能です。例えば以下のように：
+@code{er-macro-transformer}はexplicit renamingマクロ展開器を返します。
+この展開器は健全、非健全両方のマクロを書くことが可能です。例えば以下のように：
 @codeblock[=> (a a a)]{
 (define-syntax loop
   (er-macro-transformer
@@ -87,8 +88,8 @@ Sagittariusは独自の拡張ライブラリを持っています。
 この例は@code{datum->syntax}の説明で示された例と同等の機能を実装しています。
 @code{er-macro-transformer}の基本は@code{syntax-case}の逆と言えます。
 @code{syntax-case}は基本健全にしますが、@code{er-macro-transformer}ではユーザが
-明示的に健全にする必要があります。もう少し言えば、ユーザが@var{rename}を使わなければ
-マクロの展開結果は常に非健全になります。
+明示的に健全にする必要があります。もう少し言えば、ユーザが@var{rename}を
+使わなければマクロの展開結果は常に非健全になります。
 }
 
 @subsubsection{算術操作}
@@ -169,8 +170,8 @@ Sagittariusは独自の拡張ライブラリを持っています。
 与えられた@var{src}を@var{dst}にコピーします。コピーが成功すれば#t、失敗すれば#f
 を返します。
 
-オプショナル引数@var{overwrite}に真の値が渡された場合、@var{dst}が既に存在していても
-上書きコピーを行います。
+オプショナル引数@var{overwrite}に真の値が渡された場合、@var{dst}が既に存在して
+いても上書きコピーを行います。
 }
 
 @define[Function]{@name{current-directory} @args{:optional path}}
@@ -232,8 +233,8 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @desc{@var{out}はバイナリ出力ポートでなければなりません。@var{endian}は
 @code{endianness}マクロが返す値でなければなりません。
 
-与えられた@var{v}を出力ポート@var{out}に符号付きまたは符号なし16ビットまたは32ビット
-整数として書き出します。}
+与えられた@var{v}を出力ポート@var{out}に符号付きまたは符号なし16ビットまたは
+32ビット整数として書き出します。}
 
 @define[Function]{@name{get-u16} @args{in endian}}
 @define[Function]{@name{get-s16} @args{in endian}}
@@ -242,11 +243,13 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @desc{@var{in}はバイナリ入力ポートでなければなりません。@var{endian}は
 @code{endianness}マクロが返す値でなければなりません。
 
-入力ポート@var{in}から符号付きまたは符号なし16ビットまたは32ビット整数を読み取ります。}
+入力ポート@var{in}から符号付きまたは符号なし16ビットまたは32ビット整数を
+読み取ります。}
 
 注意：上記の@code{put-*}または@code{get-*}手続きは16ビット及び32ビットのみが提供
-されています。これはベンチマークの結果Cでの実装とSchemeでの実装に大きな差異がなかった
-為です。64ビット整数や浮動小数点の読み取りは十分な要求があればCで実装されるかもしれません。
+されています。これはベンチマークの結果Cでの実装とSchemeでの実装に大きな差異が
+なかった為です。64ビット整数や浮動小数点の読み取りは十分な要求があればCで
+実装されるかもしれません。
 
 @define[Function]{@name{read/ss}
  @args{:optional (port @code{(current-input-port)})}}
@@ -255,22 +258,26 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @desc{[SRFI-38]@code{read/ss}手続きはSchemeオブジェクトを与えられた入力ポート
 @var{port}から読み取ります。
 
-@code{write/ss}手続きは与えられた @var{obj}を出力ポート@var{port}に書き出します。
+@code{write/ss}手続きは与えられた @var{obj}を出力ポート@var{port}に
+書き出します。
 
-これらは循環構造を検知する点を除いて@code{read}及び@code{write}手続きと同様です。
+これらは循環構造を検知する点を除いて@code{read}及び@code{write}手続きと
+同様です。
 }
 
 @define[Function]{@name{format} @args{port string arg @dots{}}}
 @define[Function]{@name{format} @args{string arg @dots{}}}
 @desc{[SRFI-28+] 与えられた@var{arg}を@var{string}に従って整形します。@var{Port}
-引数は出力先を指定します。もし出力ポートなら整形された結果はそこに書き込まれます。もし
-#tであれば、現在の出力ポートに書き込まれます。もし#fであれば整形された結果は文字列として
-返されます。@var{Port}引数は省略することも可能です。その場合は#fが指定された場合と
-同様に振る舞います。(すなわち文字列を返します。)
+引数は出力先を指定します。もし出力ポートなら整形された結果はそこに
+書き込まれます。もし#tであれば、現在の出力ポートに書き込まれます。
+もし#fであれば整形された結果は文字列として返されます。@var{Port}引数は
+省略することも可能です。その場合は#fが指定された場合と同様に振る舞います。
+(すなわち文字列を返します。)
 
 @var{String}は整形ディレクティブを含む文字列です。整形ディレクティブはチルダ
-@code{'~'}から始まるり特定の文字で終わる文字並びです。整形ディレクティブは対応する
-引数を受け取りそれを整形します。残りの文字列は出力にそのままコピーされます。
+@code{'~'}から始まるり特定の文字で終わる文字並びです。整形ディレクティブは
+対応する引数を受け取りそれを整形します。残りの文字列は出力にそのまま
+コピーされます。
 
 @snipet[=> "the anser is 48"]{(format #f "the answer is ~a" 48)}
 
@@ -302,11 +309,10 @@ Sagittariusは独自の拡張ライブラリを持っています。
 
 アットマーク@code{'@atmark{}'}が与えられた場合、整形結果は右寄せになります。
 
-The @var{maxcol} parameter, if given, limits the maximum number of characters to
-be written. If the length of formatted string exceeds @var{maxcol}, only
-@var{maxcol} characters are written. If colon-flag is given as well and the
-length of formatted string exceeds @var{maxcol}, @var{maxcol} - 4 characters
-are written and a string @code{" @dots{}"} is attached after it.
+引数@var{maxcol}が与えられた場合、この引数は書き出される最大文字数を制限します。
+もし整形済み文字列の長さが@var{maxcol}を超えた場合、@var{maxcol}で指定された
+長さだけが書き出されます。もしコロンフラグも渡されて、かつ出力文字数の上限を
+超えた場合、@var{maxcol} - 4 文字と@code{" @dots{}"}が続いて出力されます。
 
 @snipet[=> "|oops|"       ]{(format #f "|~a|" "oops")}
 @snipet[=> "|oops      |" ]{(format #f "|~10a|" "oops")}
@@ -374,11 +380,11 @@ from Gauche.
 
 @define[Function]{@name{port-ready?}
  @args{:optional (port (current-input-port))}}
-@desc{Returns #t when port data are ready, otherwise #f.
+@desc{与えられたポートが読取りまたは各込み可能であれば#tをそうでなければ
+#fを返します。
 
-If the given @var{port} implementation does not support this functionality,
-the return value will be always #t. Following example describes when this
-always returns #t;
+もし、与えられたポート@var{port}がこの機能をサポートしていなかった場合、
+この手続きは常に#tを返します。以下は常に#tを返す例です。
 @codeblock[=> #t]{
 ;; Assume read! is provided.
 (define user-port (make-custom-binary-input-port "my-port" read! #f #f))
