@@ -95,6 +95,24 @@
 		    (eq? (vector-ref o 0) 'type)))
 	     acc ...))))))
 
+  ;;; Finite field
+  ;; Fp
+  (define-vector-type ec-field-fp (make-ec-field-fp p) ec-field-fp?
+    (p ec-field-fp-p))
+
+  ;; F2m
+  ;; TODO check valid reduction polynominal
+  ;;      It must be either trinominal (X^m + X^k + 1 with m > k >= 1) or
+  ;;      pentanominal (X^m X^k3 + X^k2 + X^k1 + 1 with m > k3 > k2 > k1 >= 1)
+  (define-vector-type ec-field-f2m (make-ec-field-f2m m rp) ec-field-f2m?
+    (m  ec-field-f2m-m)
+    (rp ec-field-f2m-rp))
+
+  (define-vector-type ec-curve (make-elliptic-curve field a b) elliptic-curve?
+    (field elliptic-curve-field)
+    (a     elliptic-curve-a)
+    (b     elliptic-curve-b))
+  
   (define-vector-type fp-curve (make-fp-curve q a b) fp-curve?
     (q fp-curve-q)
     (a fp-curve-a)
