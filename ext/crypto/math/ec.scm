@@ -33,6 +33,7 @@
 	    (core errors)
 	    (core syntax)
 	    (core inline)
+	    (core record)
 	    (sagittarius))
 
   ;; modular arithmetic
@@ -114,6 +115,46 @@
     (b     elliptic-curve-b))
   
 
+  (define-record-type predicate-generic
+    (fields name table)
+    (protocol (lambda (p)
+		(lambda (n)
+		  (p n (make-eq-hashtable))))))
+  (define-syntax define-predicate-generic
+    (syntax-rules ()
+      ((_ name)
+       (begin
+	 (define dummy (make-predicate-generic 'name))
+	 (define-syntax name
+	   (lambda (x)
+	     (syntax-case x ()
+	       ((_ self args (... ...))
+		#'(let* ((table (predicate-generic-table dummy))
+			 (target self)
+			 (eof (cons #f #f))
+			 (itr (%hashtable-iter table)))
+		    (let loop ()
+		      (let-values (((k v) (itr eof)))
+			(when (eq? k eof)
+			  (assertion-violation 'name
+			   "predicate for given argument is not registered"
+			   self))
+			(if (k target)
+			    (v target args (... ...))
+			    (loop))))))
+	       (n (identifier? #'n) #'dummy))))))))
+  (define-syntax define-predicate-method
+    (syntax-rules ()
+      ((_ name pred (self args ...) body ...)
+       (define dummy
+	 (let ((table (predicate-generic-table name))
+	       (method (lambda (self args ...) body ...)))
+	   (when (hashtable-contains? table pred)
+	     (assertion-violation 'name
+				  "specified predicate is already registered"
+				  pred))
+	   (hashtable-set! table pred method))))))
+
   (define (ec-curve=? a b) (equal? a b))
 
   ;; EC point
@@ -130,50 +171,47 @@
   
   (define (ec-point=? a b) (equal? a b))
 
+  ;; Twice
+  (define-predicate-generic field-ec-point-twice)
+  (define-predicate-method field-ec-point-twice ec-field-fp? (field curve x)
+    (let* ((xx (ec-point-x x))
+	   (xy (ec-point-y x))
+	   (p (ec-field-fp-p field))
+	   ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
+	   (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
+				    (elliptic-curve-a curve)
+				    p)
+			   (mod-mul xy 2 p) p))
+	   ;; x3 = gamma^2 - x*2
+	   (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
+	   ;; y3 = gamma*(xx - x3) - xy
+	   (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+      (make-ec-point x3 y3)))
+  
   (define (ec-point-twice curve x)
-    (define (fp-ec-point-twice curve field x)
-      (let* ((xx (ec-point-x x))
-	     (xy (ec-point-y x))
-	     (p (ec-field-fp-p field))
-	     ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
-	     (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
-				      (elliptic-curve-a curve)
-				      p)
-			     (mod-mul xy 2 p) p))
-	     ;; x3 = gamma^2 - x*2
-	     (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
-	     ;; y3 = gamma*(xx - x3) - xy
-	     (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
-	(make-ec-point x3 y3)))
-    
-    (define (f2m-ec-point-twice curve field x)
-      (error 'ec-point-twice "not supported yet" x))
     (cond ((ec-point-infinity? x) x)
 	  ((zero? (ec-point-y x)) ec-infinity-point)
 	  (else
-	   ;; TODO dispatch
-	   (let ((field (elliptic-curve-field curve)))
-	     (if (ec-field-fp? field)
-		 (fp-ec-point-twice curve field x)
-		 (f2m-ec-point-twice curve field x))))))
+	   (field-ec-point-twice (elliptic-curve-field curve) curve x))))
 
+  ;; Add
+  (define-predicate-generic field-ec-point-add)
+  (define-predicate-method field-ec-point-add ec-field-fp? (field x y)
+    (let* ((xx (ec-point-x x))
+	   (xy (ec-point-y x))
+	   (yx (ec-point-x y))
+	   (yy (ec-point-y y))
+	   ;; if the curve are the same then p are the same
+	   (p (ec-field-fp-p field))
+	   ;; gamma = (yy - xy)/(yx-xx)
+	   (gamma (mod-div (mod-sub yy xy p) (mod-sub yx xx p) p))
+	   ;; x3 = gamma^2 - xx - yx
+	   (x3 (mod-sub (mod-sub (mod-square gamma p) xx p) yx p))
+	   ;; y3 = gamma*(xx - x3) - xy
+	   (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+      (make-ec-point x3 y3)))
+  
   (define (ec-point-add curve x y)
-    (define (fp-ec-point-add field x y)
-      (let* ((xx (ec-point-x x))
-	     (xy (ec-point-y x))
-	     (yx (ec-point-x y))
-	     (yy (ec-point-y y))
-	     ;; if the curve are the same then p are the same
-	     (p (ec-field-fp-p field))
-	     ;; gamma = (yy - xy)/(yx-xx)
-	     (gamma (mod-div (mod-sub yy xy p) (mod-sub yx xx p) p))
-	     ;; x3 = gamma^2 - xx - yx
-	     (x3 (mod-sub (mod-sub (mod-square gamma p) xx p) yx p))
-	     ;; y3 = gamma*(xx - x3) - xy
-	     (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
-	(make-ec-point x3 y3)))
-    (define (f2m-ec-point-add field x y)
-      (error 'ec-point-add "not supported yet" x y))
     (cond ((ec-point-infinity? x) y)
 	  ((ec-point-infinity? y) x)
 	  ((= (ec-point-x x) (ec-point-x y))
@@ -181,19 +219,15 @@
 	       (ec-point-twice x)
 	       ec-infinity-point))
 	  (else
-	   ;; TODO dispatch
-	   (let ((field (elliptic-curve-field curve)))
-	     (if (ec-field-fp? field)
-		 (fp-ec-point-add field x y)
-		 (f2m-ec-point-add field x y))))))
+	   (field-ec-point-add (elliptic-curve-field curve) x y))))
 
+  ;; Negate
+  (define-predicate-generic field-ec-point-negate)
+  (define-predicate-method field-ec-point-negate ec-field-fp? (field x)
+    (make-ec-point (ec-point-x x) 
+		   (mod-negate (ec-point-y x) (ec-field-fp-p field))))
   (define (ec-point-negate curve x)
-    ;; TODO dispatch
-    (let ((field (elliptic-curve-field curve)))
-      (if (ec-field-fp? field)
-	  (make-ec-point (ec-point-x x) 
-			 (mod-negate (ec-point-y x) (ec-field-fp-p field)))
-	  (error 'ec-point-negate "not supported yet"))))
+    (field-ec-point-negate (elliptic-curve-field curve) x))
 
   (define (ec-point-sub curve x y)
     (if (ec-point-infinity? y)
