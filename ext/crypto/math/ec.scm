@@ -25,6 +25,10 @@
 	    NIST-P-192 (rename (NIST-P-192 secp192r1))
 	    NIST-P-224 (rename (NIST-P-224 secp224r1))
 
+	    ;; SEC 2 parameters
+	    sect113r1
+	    sect163k1
+	    
 	    ec-parameter?
 	    ec-parameter-curve
 	    )
@@ -367,6 +371,7 @@
 	 (eq? (vector-ref o 0) 'ec-parameter)))
   (define (ec-parameter-curve o) (vector-ref o 1))
 
+  ;;; Parameters
   ;; from
   ;;   https://www.nsa.gov/ia/_files/nist-routines.pdf (gone)
   ;;   http://csrc.nist.gov/groups/ST/toolkit/documents/dss/NISTReCur.pdf (*)
@@ -374,6 +379,8 @@
   ;;   http://www.secg.org/sec2-v2.pdf
   ;; 
   ;; (*) is not used
+  ;;; Fp
+  ;; #(tag #(curve fp a b) #(E x y) n h S) = #(#(#(p) a b)) #(G G) n h S)
   (define-constant NIST-P-192
     `#(ec-parameter
        ,(make-elliptic-curve 
@@ -383,7 +390,7 @@
        ,(make-ec-point #x188DA80EB03090F67CBF20EB43A18800F4FF0AFD82FF1012
 		       #x07192B95FFC8DA78631011ED6B24CDD573F977A11E794811)
        #xFFFFFFFFFFFFFFFFFFFFFFFF99DEF836146BC9B1B4D22831
-       ,(div (- 192 1) 160)
+       1
        ;;3045AE6FC8422F64ED579528D38120EAE12196D5
        #vu8(#x30 #x45 #xAE #x6F #xC8 #x42 #x2F #x64 #xED #x57
 	    #x95 #x28 #xD3 #x81 #x20 #xEA #xE1 #x21 #x96 #xD5)))
@@ -399,12 +406,27 @@
 	 #xB70E0CBD6BB4BF7F321390B94A03C1D356C21122343280D6115C1D21
 	 #xBD376388B5F723FB4C22DFE6CD4375A05A07476444D5819985007E34)
        #xFFFFFFFFFFFFFFFFFFFFFFFFFFFF16A2E0B8F03E13DD29455C5C2A3D
-       ,(div (- 224 1) 160)
+       1
        ;; BD71344799D5C7FCDC45B59FA3B9AB8F6A948BC5
        #vu8(#xBD #x71 #x34 #x47 #x99 #xD5 #xC7 #xFC #xDC #x45
-		 #xB5 #x9F #xA3 #xB9 #xAB #x8F #x6A #x94 #x8B #xC5)))
+	    #xB5 #x9F #xA3 #xB9 #xAB #x8F #x6A #x94 #x8B #xC5)))
 
 
+  ;;; F2m
+  ;; #(tag #(curve #(m k1 k2 k3) a b) #(E x y) n h S)
+  ;; f(x) = x^113 + x^9 + 1
+  (define-constant sect113r1
+    `(ec-parameter
+      ,(make-elliptic-curve (make-ec-field-f2m 163 0 0 9)
+			    #x003088250CA6E7C7FE649CE85820F7
+			    #x00E8BEE4D3E2260744188BE0E9C723)
+      ,(make-ec-point #x009D73616F35F4AB1407D73562C10F
+		      #x00A52830277958EE84D1315ED31886)
+      #x0100000000000000D9CCEC8A39E56F
+      2
+      #vu8(#x10 #xE7 #x23 #xAB #x14 #xD6 #x96 #xE6 #x76 #x87
+	   #x56 #x15 #x17 #x56 #xFE #xBF #x8F #xCB #x49 #xA9)))
+  
   ;; f(x) = x^163 + x^7 + x^6 + x^3 + 1
   (define-constant sect163k1
     `(ec-parameter
@@ -413,5 +435,6 @@
 		      #x0289070FB05D38FF58321F2E800536D538CCDAA3D9)
       #x04000000000000000000020108A2E0CC0D99F8A5EF
       2
-      #f))
+      #vu8(#x85 #xE2 #x5B #xFE #x5C #x86 #x22 #x6C #xDB #x12
+	   #x01 #x6F #x75 #x53 #xF9 #xD0 #xE6 #x93 #xA2 #x68)))
 )
