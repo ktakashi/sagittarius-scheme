@@ -409,38 +409,69 @@
 
 ;; EC arithmetic
 ;; from example calculation
-;; https://www.nsa.gov/ia/_files/nist-routines.pdf
+;; https://www.nsa.gov/ia/_files/nist-routines.pdf (N/A)
+;; http://koclab.cs.ucsb.edu/teaching/cren/docs/w02/nist-routines.pdf
 ;; P-192
-(test-assert (ec-parameter? P-192))
-(let ((S (make-ec-point #xD458E7D127AE671B0C330266D246769353A012073E97ACF8
-			#x325930500D851F336BDDC050CF7FB11B5673A1645086DF3B))
-      (T (make-ec-point #xF22C4395213E9EBE67DDECDD87FDBD01BE16FB059B9753A4
-			#x264424096AF2B3597796DB48F8DFB41FA9CECC97691A9C79))
-      (curve (ec-parameter-curve P-192)))
-  (let ((R (make-ec-point #x48E1E4096B9B8E5CA9D0F1F077B8ABF58E843894DE4D0290
-			  #x408FA77C797CD7DBFB16AA48A3648D3D63C94117D7B6AA4B)))
-    (test-equal "EC add P-192" R (ec-point-add curve S T)))
+(test-assert (ec-parameter? NIST-P-192))
+(define-syntax test-ec
+  (syntax-rules ()
+    ((_ curve? S? T? Radd? Rsub? 2R? d? Rmul? e? Raddmull?)
+     (let ((S S?)
+	   (T T?)
+	   (curve (ec-parameter-curve curve?)))
+       (test-equal (format "EC add ~a" 'curve?) Radd? (ec-point-add curve S T))
+       (test-equal (format "EC sub ~a" 'curve?) Rsub? (ec-point-sub curve S T))
+       (test-equal (format "EC twice ~a" 'curve?) 2R? (ec-point-twice curve S))
+       (test-equal (format "EC multiply ~a" 'curve?) Rmul?
+		   (ec-point-mul curve S d?))
+       (test-equal (format "EC multiply ~a (2)" 'curve?) Raddmull? 
+		   (ec-point-add curve Rmul? (ec-point-mul curve T e?)))))))
 
-  (let ((R (make-ec-point #xFC9683CC5ABFB4FE0CC8CC3BC9F61EABC4688F11E9F64A2E
-			  #x093e31d00fb78269732b1bd2a73c23cdd31745d0523d816b)))
-    (test-equal "EC sub P-192" R (ec-point-sub curve S T)))
-  
-  (let ((2R (make-ec-point #x30C5BC6B8C7DA25354B373DC14DD8A0EBA42D25A3F6E6962
-			   #x0DDE14BC4249A721C407AEDBF011E2DDBBCB2968C9D889CF)))
-    (test-equal "EC twice P-192" 2R
-		(ec-point-twice curve S)))
+(test-ec NIST-P-192
+	 (make-ec-point #xD458E7D127AE671B0C330266D246769353A012073E97ACF8
+			#x325930500D851F336BDDC050CF7FB11B5673A1645086DF3B)
+	 (make-ec-point #xF22C4395213E9EBE67DDECDD87FDBD01BE16FB059B9753A4
+			#x264424096AF2B3597796DB48F8DFB41FA9CECC97691A9C79)
+	 (make-ec-point #x48E1E4096B9B8E5CA9D0F1F077B8ABF58E843894DE4D0290
+			#x408FA77C797CD7DBFB16AA48A3648D3D63C94117D7B6AA4B)
+	 (make-ec-point #xFC9683CC5ABFB4FE0CC8CC3BC9F61EABC4688F11E9F64A2E
+			#x093e31d00fb78269732b1bd2a73c23cdd31745d0523d816b)
+	 (make-ec-point #x30C5BC6B8C7DA25354B373DC14DD8A0EBA42D25A3F6E6962
+			#x0DDE14BC4249A721C407AEDBF011E2DDBBCB2968C9D889CF)
+	 #xA78A236D60BAEC0C5DD41B33A542463A8255391AF64C74EE
+	 (make-ec-point #x1FAEE4205A4F669D2D0A8F25E3BCEC9A62A6952965BF6D31
+			#x5FF2CDFA508A2581892367087C696F179E7A4D7E8260FB06)
+	 #xC4BE3D53EC3089E71E4DE8CEAB7CCE889BC393CD85B972BC
+	 (make-ec-point #x019F64EED8FA9B72B7DFEA82C17C9BFA60ECB9E1778B5BDE
+			#x16590C5FCD8655FA4CED33FB800E2A7E3C61F35D83503644))
 
-  (let ((d #xA78A236D60BAEC0C5DD41B33A542463A8255391AF64C74EE)
-	(R (make-ec-point #x1FAEE4205A4F669D2D0A8F25E3BCEC9A62A6952965BF6D31
-			  #x5FF2CDFA508A2581892367087C696F179E7A4D7E8260FB06)))
-    (test-equal "EC multiply P-192" R
-		(ec-point-mul curve S d))
-    (let ((e #xC4BE3D53EC3089E71E4DE8CEAB7CCE889BC393CD85B972BC)
-	  (r (make-ec-point #x019F64EED8FA9B72B7DFEA82C17C9BFA60ECB9E1778B5BDE
-			    #x16590C5FCD8655FA4CED33FB800E2A7E3C61F35D83503644)))
-      (test-equal "EC multiply P-192 (2)" r 
-		  (ec-point-add curve R (ec-point-mul curve T e)))))
-  )
+;; P-224
+(test-assert (ec-parameter? NIST-P-224))
+(test-ec NIST-P-224
+	 (make-ec-point
+	  #x6eca814ba59a930843dc814edd6c97da95518df3c6fdf16e9a10bb5b
+	  #xef4b497f0963bc8b6aec0ca0f259b89cd80994147e05dc6b64d7bf22)
+	 (make-ec-point
+	  #xb72b25aea5cb03fb88d7e842002969648e6ef23c5d39ac903826bd6d
+	  #xc42a8a4d34984f0b71b5b4091af7dceb33ea729c1a2dc8b434f10c34)
+	 (make-ec-point
+	  #x236f26d9e84c2f7d776b107bd478ee0a6d2bcfcaa2162afae8d2fd15
+	  #xe53cc0a7904ce6c3746f6a97471297a0b7d5cdf8d536ae25bb0fda70)
+	 (make-ec-point
+	  #xdb4112bcc8f34d4f0b36047bca1054f3615413852a7931335210b332
+	  #x90c6e8304da4813878c1540b2396f411facf787a520a0ffb55a8d961)
+	 (make-ec-point
+	  #xa9c96f2117dee0f27ca56850ebb46efad8ee26852f165e29cb5cdfc7
+	  #xadf18c84cf77ced4d76d4930417d9579207840bf49bfbf5837dfdd7d)
+	 #xa78ccc30eaca0fcc8e36b2dd6fbb03df06d37f52711e6363aaf1d73b
+	 (make-ec-point
+	  #x96a7625e92a8d72bff1113abdb95777e736a14c6fdaacc392702bca4
+	  #x0f8e5702942a3c5e13cd2fd5801915258b43dfadc70d15dbada3ed10)
+	 #x54d549ffc08c96592519d73e71e8e0703fc8177fa88aa77a6ed35736
+	 (make-ec-point
+	  #xdbfe2958c7b2cda1302a67ea3ffd94c918c5b350ab838d52e288c83e
+	  #x2f521b83ac3b0549ff4895abcc7f0c5a861aacb87acbc5b8147bb18b))
+
 
 ;; call #98 restoring value properly
 (let ()

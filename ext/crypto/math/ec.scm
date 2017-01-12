@@ -22,8 +22,8 @@
 	    ec-point-sub
 	    ec-point-mul
 	    ;; NIST parameters
-	    P-192
-	    P-224
+	    NIST-P-192 (rename (NIST-P-192 secp192r1))
+	    NIST-P-224 (rename (NIST-P-224 secp224r1))
 
 	    ec-parameter?
 	    ec-parameter-curve
@@ -105,10 +105,72 @@
   ;; TODO check valid reduction polynominal
   ;;      It must be either trinominal (X^m + X^k + 1 with m > k >= 1) or
   ;;      pentanominal (X^m X^k3 + X^k2 + X^k1 + 1 with m > k3 > k2 > k1 >= 1)
-  (define-vector-type ec-field-f2m (make-ec-field-f2m m rp) ec-field-f2m?
+  (define-vector-type ec-field-f2m (make-ec-field-f2m m k1 k2 k3) ec-field-f2m?
     (m  ec-field-f2m-m)
-    (rp ec-field-f2m-rp))
-
+    (k1 ec-field-f2m-k1)
+    (k2 ec-field-f2m-k2)
+    (k3 ec-field-f2m-k3))
+  (define-vector-type f2m-element (make-f2m-element m x) f2m-element?
+    (m f2m-m)
+    (x f2m-x))
+  
+  ;; F2m field operations
+  (define (f2m-ppb? f)
+    (not (or (zero? (ec-field-f2m-k2 f)) (zero? (ec-field-f2m-k3 f)))))
+  (define (f2m-zero? field x) (zero? (f2m-x x)))
+  (define (f2m-add field x y)
+    (if (zero? (f2m-x y))
+	x
+	(make-f2m-element (f2m-m x) (bitwise-xor (f2m-x x) (f2m-x y)))))
+  (define (f2m-mul field x y)
+    (define ax (f2m-x x))
+    (define bx (f2m-x y))
+    (define cz (if (bitwise-bit-set? ax 0) bx 1))
+    (define m (f2m-m x))
+    (define k1 (ec-field-f2m-k1 field))
+    (define k2 (ec-field-f2m-k2 field))
+    (define k3 (ec-field-f2m-k3 field))
+    (define (mult-z-mod a)
+      (define az (bitwise-arithmetic-shift-left a 1))
+      (if (bitwise-bit-set? az m)
+	  (let* ((bl (bitwise-length az))
+		 (bm (- (bitwise-arithmetic-shift-left 1 bl) 1))
+		 (cm (- bm 1))
+		 (k1m (- bm (bitwise-arithmetic-shift-left 1 k1))))
+	    (if (f2m-ppb? field)
+		(let ((k2m (- bm (bitwise-arithmetic-shift-left 1 k2)))
+		      (k3m (- bm (bitwise-arithmetic-shift-left 1 k3))))
+		  (bitwise-and az bm cm k1m k2m k3m))
+		(bitwise-and az bm cm k1m)))
+	  az))
+    (do ((i 1 (+ i 1)) (bx bx (mult-z-mod bx))
+	 (cz cz (if (bitwise-bit-set? ax i)
+		    (bitwise-xor cz bx)
+		    cz)))
+	((= i m)
+	 (make-f2m-element (f2m-m x) cz))))
+  (define (f2m-div field x y) (f2m-mul field x (f2m-inverse field y)))
+  (define (f2m-square field x) (f2m-mul field x x))
+  (define (f2m-inverse field x)
+    (define k1 (ec-field-f2m-k1 field))
+    (define uz (f2m-x x))
+    (define vz (bitwise-ior (bitwise-arithmetic-shift-left 1 (f2m-m x))
+			    1
+			    (bitwise-arithmetic-shift-left 1 k1)))
+    (when (<= uz 0)
+      (assertion-violation 'f2m-inverse "x is zero or negative" x))
+    (let loop ((uz uz) (g1z 1) (g2z 0))
+      (if (zero? uz)
+	  (make-f2m-element (f2m-m x) g2z)
+	  (let ((j (- (bitwise-length uz) (bitwise-length vz))))
+	    (let-values (((uz vz g1z g2z j)
+			  (if (< j 0)
+			      (values vz uz g2z g1z (- j))
+			      (values uz vz g1z g2z j))))
+	      (loop (bitwise-xor uz (bitwise-arithmetic-shift-left vz j))
+		    (bitwise-xor g1z (bitwise-arithmetic-shift-left g2z j))
+		    g2z))))))
+    
   (define-vector-type ec-curve (make-elliptic-curve field a b) elliptic-curve?
     (field elliptic-curve-field)
     (a     elliptic-curve-a)
@@ -174,34 +236,47 @@
   ;; Twice
   (define-predicate-generic field-ec-point-twice)
   (define-predicate-method field-ec-point-twice ec-field-fp? (field curve x)
-    (let* ((xx (ec-point-x x))
-	   (xy (ec-point-y x))
-	   (p (ec-field-fp-p field))
-	   ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
-	   (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
-				    (elliptic-curve-a curve)
-				    p)
-			   (mod-mul xy 2 p) p))
-	   ;; x3 = gamma^2 - x*2
-	   (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
-	   ;; y3 = gamma*(xx - x3) - xy
-	   (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
-      (make-ec-point x3 y3)))
+    (if (zero? (ec-point-y x))
+	ec-infinity-point
+	(let* ((xx (ec-point-x x))
+	       (xy (ec-point-y x))
+	       (p (ec-field-fp-p field))
+	       ;; gamma = ((xx^2)*3 + curve.a)/(xy*2)
+	       (gamma (mod-div (mod-add (mod-mul (mod-square xx p) 3 p)
+					(elliptic-curve-a curve)
+					p)
+			       (mod-mul xy 2 p) p))
+	       ;; x3 = gamma^2 - x*2
+	       (x3 (mod-sub (mod-square gamma p) (mod-mul xx 2 p) p))
+	       ;; y3 = gamma*(xx - x3) - xy
+	       (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
+	  (make-ec-point x3 y3))))
+	
+  (define-predicate-method field-ec-point-twice ec-field-f2m? (field curve x)
+    (if (f2m-zero? field x)
+	ec-infinity-point
+	(let* ((xx (ec-point-x x))
+	       (xy (ec-point-y x))
+	       (l1 (f2m-add field (f2m-div field xy xx) xx))
+	       (x3 (f2m-add field (f2m-add field (f2m-square field l1) l1)
+			    (elliptic-curve-a curve)))
+	       (y3 (f2m-add field (f2m-add field (f2m-square field xx)
+					   (f2m-mul field l1 x3))
+			    x3)))
+	  (make-ec-point x3 y3))))
   
   (define (ec-point-twice curve x)
-    (cond ((ec-point-infinity? x) x)
-	  ((zero? (ec-point-y x)) ec-infinity-point)
-	  (else
-	   (field-ec-point-twice (elliptic-curve-field curve) curve x))))
+    (if (ec-point-infinity? x)
+	x
+	(field-ec-point-twice (elliptic-curve-field curve) curve x)))
 
   ;; Add
   (define-predicate-generic field-ec-point-add)
-  (define-predicate-method field-ec-point-add ec-field-fp? (field x y)
+  (define-predicate-method field-ec-point-add ec-field-fp? (field curve x y)
     (let* ((xx (ec-point-x x))
 	   (xy (ec-point-y x))
 	   (yx (ec-point-x y))
 	   (yy (ec-point-y y))
-	   ;; if the curve are the same then p are the same
 	   (p (ec-field-fp-p field))
 	   ;; gamma = (yy - xy)/(yx-xx)
 	   (gamma (mod-div (mod-sub yy xy p) (mod-sub yx xx p) p))
@@ -210,6 +285,30 @@
 	   ;; y3 = gamma*(xx - x3) - xy
 	   (y3 (mod-sub (mod-mul gamma (mod-sub xx x3 p) p) xy p)))
       (make-ec-point x3 y3)))
+
+  (define-predicate-method field-ec-point-add ec-field-f2m? (field curve x y)
+    (let* ((xx (ec-point-x x))
+	   (xy (ec-point-y x))
+	   (yx (ec-point-x y))
+	   (yy (ec-point-y y))
+	   (dx (f2m-add field xx yx))
+	   (dy (f2m-add field xy yy)))
+      (if (f2m-zero? field dx)
+	  (if (f2m-zero? field dy)
+	      (ec-point-twice curve x)
+	      ec-infinity-point)
+	  (let* ((L (f2m-div field dy dx))
+		 (x3 (f2m-add field
+			      (f2m-add field
+				       (f2m-add field (f2m-square field L) L)
+				       dx)
+			      (elliptic-curve-a curve)))
+		 (y3 (f2m-add field
+			      (f2m-add field
+				       (f2m-mul field L (f2m-add field xx x3))
+				       x3)
+			      xy)))
+	    (make-ec-point x3 y3)))))
   
   (define (ec-point-add curve x y)
     (cond ((ec-point-infinity? x) y)
@@ -219,13 +318,17 @@
 	       (ec-point-twice x)
 	       ec-infinity-point))
 	  (else
-	   (field-ec-point-add (elliptic-curve-field curve) x y))))
+	   (field-ec-point-add (elliptic-curve-field curve) curve x y))))
 
   ;; Negate
   (define-predicate-generic field-ec-point-negate)
   (define-predicate-method field-ec-point-negate ec-field-fp? (field x)
-    (make-ec-point (ec-point-x x) 
+    (make-ec-point (ec-point-x x)
 		   (mod-negate (ec-point-y x) (ec-field-fp-p field))))
+  (define-predicate-method field-ec-point-negate ec-field-f2m? (field x)
+    (let ((xx (ec-point-x x)))
+      (make-ec-point xx (f2m-add field xx (ec-point-y x)))))
+  
   (define (ec-point-negate curve x)
     (field-ec-point-negate (elliptic-curve-field curve) x))
 
@@ -264,9 +367,14 @@
 	 (eq? (vector-ref o 0) 'ec-parameter)))
   (define (ec-parameter-curve o) (vector-ref o 1))
 
-  ;; from https://www.nsa.gov/ia/_files/nist-routines.pdf
-  ;;      http://csrc.nist.gov/groups/ST/toolkit/documents/dss/NISTReCur.pdf
-  (define-constant P-192
+  ;; from
+  ;;   https://www.nsa.gov/ia/_files/nist-routines.pdf (gone)
+  ;;   http://csrc.nist.gov/groups/ST/toolkit/documents/dss/NISTReCur.pdf (*)
+  ;;   http://koclab.cs.ucsb.edu/teaching/cren/docs/w02/nist-routines.pdf
+  ;;   http://www.secg.org/sec2-v2.pdf
+  ;; 
+  ;; (*) is not used
+  (define-constant NIST-P-192
     `#(ec-parameter
        ,(make-elliptic-curve 
 	 (make-ec-field-fp #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF)
@@ -275,12 +383,12 @@
        ,(make-ec-point #x188DA80EB03090F67CBF20EB43A18800F4FF0AFD82FF1012
 		       #x07192B95FFC8DA78631011ED6B24CDD573F977A11E794811)
        #xFFFFFFFFFFFFFFFFFFFFFFFF99DEF836146BC9B1B4D22831
-       1 ;; (div (- 192 1) 160)
+       ,(div (- 192 1) 160)
        ;;3045AE6FC8422F64ED579528D38120EAE12196D5
        #vu8(#x30 #x45 #xAE #x6F #xC8 #x42 #x2F #x64 #xED #x57
 	    #x95 #x28 #xD3 #x81 #x20 #xEA #xE1 #x21 #x96 #xD5)))
 
-  (define-constant P-224
+  (define-constant NIST-P-224
     `#(ec-parameter
        ,(make-elliptic-curve 
 	 (make-ec-field-fp
@@ -291,8 +399,19 @@
 	 #xB70E0CBD6BB4BF7F321390B94A03C1D356C21122343280D6115C1D21
 	 #xBD376388B5F723FB4C22DFE6CD4375A05A07476444D5819985007E34)
        #xFFFFFFFFFFFFFFFFFFFFFFFFFFFF16A2E0B8F03E13DD29455C5C2A3D
-       1 ;; (div (- 224 1) 160)
+       ,(div (- 224 1) 160)
        ;; BD71344799D5C7FCDC45B59FA3B9AB8F6A948BC5
        #vu8(#xBD #x71 #x34 #x47 #x99 #xD5 #xC7 #xFC #xDC #x45
-	    #xB5 #x9F #xA3 #xB9 #xAB #x8F #x6A #x94 #x8B #xC5)))
+		 #xB5 #x9F #xA3 #xB9 #xAB #x8F #x6A #x94 #x8B #xC5)))
+
+
+  ;; f(x) = x^163 + x^7 + x^6 + x^3 + 1
+  (define-constant sect163k1
+    `(ec-parameter
+      ,(make-elliptic-curve (make-ec-field-f2m 163 3 6 7) 1 1)
+      ,(make-ec-point #x02FE13C0537BBC11ACAA07D793DE4E6D5E5C94EEE8
+		      #x0289070FB05D38FF58321F2E800536D538CCDAA3D9)
+      #x04000000000000000000020108A2E0CC0D99F8A5EF
+      2
+      #f))
 )
