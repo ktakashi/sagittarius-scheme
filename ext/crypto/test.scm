@@ -434,8 +434,6 @@
 
 ;; The original code was written in Java. Translated into Scheme by
 ;; Takashi Kato
-;; It doesn't work
-#;
 (let ((prng (secure-random RC4)))
   (define-record-type fp
     (fields q a b n h curve point-source p)

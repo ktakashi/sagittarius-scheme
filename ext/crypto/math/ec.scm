@@ -149,7 +149,8 @@
       (define az (bitwise-arithmetic-shift-left a 1))
       (if (bitwise-bit-set? az m)
 	  (let* ((bl (bitwise-length az))
-		 (bm (- (bitwise-arithmetic-shift-left 1 bl) 1))
+		 (bm (- (- (bitwise-arithmetic-shift-left 1 bl) 1)
+			(bitwise-arithmetic-shift-left 1 m)))
 		 (cm 1)
 		 (k1m (bitwise-arithmetic-shift-left 1 k1))
 		 (r (bitwise-and az bm)))
@@ -163,7 +164,7 @@
 	 (cz cz (if (bitwise-bit-set? ax i)
 		    (bitwise-xor cz bx)
 		    cz)))
-	((= i m) (make-f2m-element (f2m-m x) cz))))
+	((= i m) (make-f2m-element m cz))))
   
   (define (f2m-div field x y) (f2m-mul field x (f2m-inverse field y)))
   (define (f2m-square field x) (f2m-mul field x x))
@@ -315,38 +316,6 @@
 	  (make-ec-point x3 y3))))
 
   (define-predicate-method field-ec-point-add ec-field-f2m? (field curve x y)
-    #;(let* ((xx (ec-point-x x))
-	   (xy (ec-point-y x))
-	   (yx (ec-point-x y))
-	   (yy (ec-point-y y)))
-      (if (equal? xx yx)
-	  (if (equal? xy yy)
-	      (ec-point-twice curve x)
-	      ec-infinity-point)
-	  (let* ((L (f2m-div field (f2m-add field xy yy)
-			     (f2m-add field xx yx)))
-		 (t0 (print (f2m-add field xy yy)))
-		 (t (print L))
-		 (x3 (f2m-add field
-		      (f2m-add field
-		       (f2m-add field
-			(f2m-add field
-			 (f2m-square field L) L)
-			xx)
-		       yx)
-		      (make-f2m-element (ec-field-f2m-m field)
-					(elliptic-curve-a curve))))
-		 (y3 (f2m-add field
-		      (f2m-add field
-		       (f2m-mul field L 
-			(f2m-add field xx x3))
-		       x3)
-		      xy)))
-	    (print 	 (f2m-square field L))
-	    (print x3)
-	    (print y3)
-	    (make-ec-point x3 y3))))
-    
     (let* ((xx (ec-point-x x))
 	   (xy (ec-point-y x))
 	   (yx (ec-point-x y))
