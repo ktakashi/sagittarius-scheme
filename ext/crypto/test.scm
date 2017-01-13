@@ -408,9 +408,101 @@
 	      (import-private-key RSA epri)))
 
 ;; EC arithmetic
-;; from example calculation
-;; https://www.nsa.gov/ia/_files/nist-routines.pdf (N/A)
-;; http://koclab.cs.ucsb.edu/teaching/cren/docs/w02/nist-routines.pdf
+;; EC point test (from bouncycastle ECPointTest.java) start
+
+;; Copyright (c) 2000-2016 The Legion of the Bouncy Castle Inc.
+;; (http://www.bouncycastle.org)
+;; Permission is hereby granted, free of charge, to any person
+;; obtaining a copy of this software and associated documentation
+;; files (the "Software"), to deal in the Software without
+;; restriction, including without limitation the rights to use, copy,
+;; modify, merge, publish,;; distribute, sublicense, and/or sell
+;; copies of the Software, and to permit persons to whom the Software
+;; is furnished to do so, subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be
+;; included in all copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+;; NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+;; BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+;; ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+;; SOFTWARE.
+
+;; The original code was written in Java. Translated into Scheme by
+;; Takashi Kato
+;; It doesn't work
+#;
+(let ((prng (secure-random RC4)))
+  (define-record-type fp
+    (fields q a b n h curve point-source p)
+    (protocol (lambda (p)
+		(lambda ()
+		  (let* ((ps #(5 22 16 27 13 6 14 5))
+			 (len (div (vector-length ps) 2))
+			 (field (make-ec-field-fp 29)))
+		    (do ((i 0 (+ i 1)) (p* (make-vector len)))
+			((>= i len)
+			 (p 29 4 20 38 1
+			    (make-elliptic-curve field 4 20) ps p*))
+		      (vector-set! p* i
+		       (make-ec-point (vector-ref ps (* i 2))
+				      (vector-ref ps (+ (* i 2) 1))))))))))
+
+  (define-record-type f2m
+    (fields m k1 a-tbp b-tbp n h curve point-source p)
+    (protocol (lambda (p)
+		(lambda ()
+		  (let* ((ps #(#b0010 #b1111 #b1100 #b1100
+			       #b0001 #b0001 #b1011 #b0010))
+			 (len (div (vector-length ps) 2))
+			 (field (make-ec-field-f2m 4 1 0 0)))
+		    (do ((i 0 (+ i 1)) (p* (make-vector len)))
+			((>= i len)
+			 (p 4 1 #b1000 #b1101 23 1
+			    (make-elliptic-curve field #b1000 #b1101) ps p*))
+		      (vector-set! p* i
+		       (make-f2m-ec-point 4 (vector-ref ps (* i 2))
+					  (vector-ref ps (+ (* i 2) 1))))))))))
+
+  (define (assert-points-equals msg a b)
+    (test-equal msg a b)
+    (test-equal msg b a))
+  (define (test-add)
+    (define (impl-test-add curve p)
+      (assert-points-equals "p0 plus p1 does not equal p2" (vector-ref p 2)
+			    (ec-point-add curve (vector-ref p 0)
+					  (vector-ref p 1)))
+      (assert-points-equals "p1 plus p0 does not equal p2" (vector-ref p 2)
+			    (ec-point-add curve (vector-ref p 1)
+					  (vector-ref p 0)))
+      (do ((len (vector-length p)) (i 0 (+ i 1)))
+	  ((= i len))
+	(assert-points-equals "Adding infinity field"
+			      (vector-ref p i)
+			      (ec-point-add curve (vector-ref p i)
+					    ec-infinity-point))
+	(assert-points-equals "Adding to infinity field"
+			      (vector-ref p i)
+			      (ec-point-add curve ec-infinity-point
+					    (vector-ref p i)))))
+    (define fp (make-fp))
+    (define f2m (make-f2m))
+    (impl-test-add (fp-curve fp) (fp-p fp))
+    (impl-test-add (f2m-curve f2m) (f2m-p f2m)))
+
+  (test-add)
+  )
+
+;; from bouncycastle end
+
+;; from the example calculation of the followings
+;;   https://www.nsa.gov/ia/_files/nist-routines.pdf (N/A)
+;;   http://koclab.cs.ucsb.edu/teaching/cren/docs/w02/nist-routines.pdf
+
 ;; P-192
 (test-assert (ec-parameter? NIST-P-192))
 (define-syntax test-ec
