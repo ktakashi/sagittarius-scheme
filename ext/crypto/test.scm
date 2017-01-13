@@ -463,8 +463,8 @@
 			 (p 4 1 #b1000 #b1101 23 1
 			    (make-elliptic-curve field #b1000 #b1101) ps p*))
 		      (vector-set! p* i
-		       (make-f2m-ec-point 4 (vector-ref ps (* i 2))
-					  (vector-ref ps (+ (* i 2) 1))))))))))
+		       (make-ec-point (vector-ref ps (* i 2))
+				      (vector-ref ps (+ (* i 2) 1))))))))))
 
   (define (assert-points-equals msg a b)
     (test-equal msg a b)

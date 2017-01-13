@@ -15,8 +15,7 @@
 ;;   y^2 + xy = x^3 + ax^2 + b (mod p)
 #!core
 (library (math ec)
-    (export make-ec-point (rename (make-ec-point make-fp-ec-point))
-	    make-f2m-ec-point
+    (export make-ec-point
 	    ec-point-add
 	    ec-point-twice
 	    ec-point-negate
@@ -121,27 +120,21 @@
     (k1 ec-field-f2m-k1)
     (k2 ec-field-f2m-k2)
     (k3 ec-field-f2m-k3))
-  (define-vector-type f2m-element (make-f2m-element m x) f2m-element?
-    (m f2m-m)
-    (x f2m-x))
 
-  (define (make-f2m-ec-point m x y)
-    (make-ec-point (make-f2m-element m x) (make-f2m-element m y)))
-  
   ;; F2m field operations
   (define (f2m-ppb? f)
     (not (or (zero? (ec-field-f2m-k2 f)) (zero? (ec-field-f2m-k3 f)))))
-  (define (f2m-zero? field x) (zero? (f2m-x x)))
+  (define (f2m-zero? field x) (zero? x))
   (define (f2m-add field x y)
-    (if (zero? (f2m-x y))
+    (if (zero? y)
 	x
-	(make-f2m-element (f2m-m x) (bitwise-xor (f2m-x x) (f2m-x y)))))
+	(bitwise-xor x y)))
   
   (define (f2m-mul field x y)
-    (define ax (f2m-x x))
-    (define bx (f2m-x y))
+    (define ax x)
+    (define bx y)
     (define cz (if (bitwise-bit-set? ax 0) bx 0))
-    (define m (f2m-m x))
+    (define m  (ec-field-f2m-m field))
     (define k1 (ec-field-f2m-k1 field))
     (define k2 (ec-field-f2m-k2 field))
     (define k3 (ec-field-f2m-k3 field))
@@ -164,18 +157,19 @@
 	 (cz cz (if (bitwise-bit-set? ax i)
 		    (bitwise-xor cz bx)
 		    cz)))
-	((= i m) (make-f2m-element m cz))))
+	((= i m) cz)))
   
   (define (f2m-div field x y) (f2m-mul field x (f2m-inverse field y)))
   (define (f2m-square field x) (f2m-mul field x x))
   (define (f2m-inverse field x)
+    (define m  (ec-field-f2m-m field))
     (define k1 (ec-field-f2m-k1 field))
     (define k2 (ec-field-f2m-k2 field))
     (define k3 (ec-field-f2m-k3 field))
-    (define uz (f2m-x x))
+    (define uz x)
     (define vz
       (let ((ppb? (f2m-ppb? field)))
-	(bitwise-ior (bitwise-arithmetic-shift-left 1 (f2m-m x))
+	(bitwise-ior (bitwise-arithmetic-shift-left 1 m)
 		     1
 		     (bitwise-arithmetic-shift-left 1 k1)
 		     (if ppb? (bitwise-arithmetic-shift-left 1 k2) 0)
@@ -184,7 +178,7 @@
       (assertion-violation 'f2m-inverse "x is zero or negative" x))
     (let loop ((uz uz) (vz vz) (g1z 1) (g2z 0))
       (if (= uz 0)
-	  (make-f2m-element (f2m-m x) g2z)
+	  g2z
 	  (let ((j (- (bitwise-length uz) (bitwise-length vz))))
 	    (let-values (((uz vz g1z g2z j)
 			  (if (< j 0)
@@ -332,8 +326,7 @@
 		       (f2m-add field
 			(f2m-square field L) L)
 		       dx)
-		      (make-f2m-element (ec-field-f2m-m field)
-					(elliptic-curve-a curve))))
+		      (elliptic-curve-a curve)))
 		 (y3 (f2m-add field
 		      (f2m-add field
 		       (f2m-mul field L 
