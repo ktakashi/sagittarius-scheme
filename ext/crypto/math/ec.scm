@@ -417,7 +417,7 @@
   ;; f(x) = x^113 + x^9 + 1
   (define-constant sect113r1
     `(ec-parameter
-      ,(make-elliptic-curve (make-ec-field-f2m 163 0 0 9)
+      ,(make-elliptic-curve (make-ec-field-f2m 163 9 0 0)
 			    #x003088250CA6E7C7FE649CE85820F7
 			    #x00E8BEE4D3E2260744188BE0E9C723)
       ,(make-ec-point #x009D73616F35F4AB1407D73562C10F
