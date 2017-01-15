@@ -16,7 +16,8 @@ have it on your platform, please install it.
 
 If your environment already has required libraries and just want to
 install to default location, run the following commands in the
-directory contains Sagittarius source code;
+directory where all distributed files are expanded (c.f. By default
+it'd be `sagittarius-X.X.X`, `X.X.X` is the version you downloaded):
 
     % cmake .
     % make
