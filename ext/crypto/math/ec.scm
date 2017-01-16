@@ -15,7 +15,7 @@
 ;;   y^2 + xy = x^3 + ax^2 + b (mod p)
 #!core
 (library (math ec)
-    (export make-ec-point
+    (export make-ec-point ec-point-infinity?
 	    ec-point-add
 	    ec-point-twice
 	    ec-point-negate
@@ -124,7 +124,6 @@
   ;; F2m field operations
   (define (f2m-ppb? f)
     (not (or (zero? (ec-field-f2m-k2 f)) (zero? (ec-field-f2m-k3 f)))))
-  (define (f2m-zero? field x) (zero? x))
   (define (f2m-add field x y)
     (if (zero? y)
 	x
@@ -228,12 +227,12 @@
       ((_ name pred (self args ...) body ...)
        (define dummy
 	 (let ((table (predicate-generic-table name))
-	       (method (lambda (self args ...) body ...)))
+	       (name (lambda (self args ...) body ...)))
 	   (when (hashtable-contains? table pred)
 	     (assertion-violation 'name
 				  "specified predicate is already registered"
 				  pred))
-	   (hashtable-set! table pred method))))))
+	   (hashtable-set! table pred name))))))
 
   (define (ec-curve=? a b) (equal? a b))
 
@@ -272,7 +271,7 @@
 	  (make-ec-point x3 y3))))
 	
   (define-predicate-method field-ec-point-twice ec-field-f2m? (field curve x)
-    (if (f2m-zero? field x)
+    (if (zero? (ec-point-x x))
 	ec-infinity-point
 	(let* ((xx (ec-point-x x))
 	       (xy (ec-point-y x))
@@ -294,7 +293,7 @@
   (define-predicate-method field-ec-point-add ec-field-fp? (field curve x y)
     (if (equal? (ec-point-x x) (ec-point-x y))
 	(if (equal? (ec-point-y x) (ec-point-y y))
-	    (ec-point-twice x)
+	    (ec-point-twice curve x)
 	    ec-infinity-point)
 	(let* ((xx (ec-point-x x))
 	       (xy (ec-point-y x))
@@ -316,8 +315,8 @@
 	   (yy (ec-point-y y))
 	   (dx (f2m-add field xx yx))
 	   (dy (f2m-add field xy yy)))
-      (if (f2m-zero? field dx)
-	  (if (f2m-zero? field dy)
+      (if (zero? dx)
+	  (if (zero? dy)
 	      (ec-point-twice curve x)
 	      ec-infinity-point)
 	  (let* ((L (f2m-div field dy dx))
