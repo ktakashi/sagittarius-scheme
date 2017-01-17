@@ -751,7 +751,7 @@ SRFI-133 @code{(srfi :133)}.
 }
 
 @subsubsection{Sorting library}
-@define[Library]{@name{(scheme sorting)}}
+@define[Library]{@name{(scheme sort)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-132 @code{(srfi :132)}.
 }
@@ -763,7 +763,7 @@ SRFI-113 @code{(srfi :113)}.
 }
 
 @subsubsection{Character set library}
-@define[Library]{@name{(scheme set char)}}
+@define[Library]{@name{(scheme charset)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-14 @code{(srfi :14)}.
 }
@@ -775,13 +775,13 @@ SRFI-125 @code{(srfi :125)}.
 }
 
 @subsubsection{Immutable list library}
-@define[Library]{@name{(scheme list immutable)}}
+@define[Library]{@name{(scheme ilist)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-116 @code{(srfi :116)}.
 }
 
 @subsubsection{Random access list library}
-@define[Library]{@name{(scheme list random-access)}}
+@define[Library]{@name{(scheme rlist)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-101 @code{(srfi :101)} with the following exceptions:
 
@@ -796,13 +796,13 @@ exported from @code{(srfi :101)} is @code{rpair?}.
 }
 
 @subsubsection{Immutable deque library}
-@define[Library]{@name{(scheme deque immutable)}}
+@define[Library]{@name{(scheme ideque)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-134 @code{(srfi :134)}.
 }
 
 @subsubsection{Immutable text library}
-@define[Library]{@name{(scheme textual)}}
+@define[Library]{@name{(scheme text)}}
 @desc{This library exports the procedures and macros defined in
 SRFI-135 @code{(srfi :135)}.
 }
