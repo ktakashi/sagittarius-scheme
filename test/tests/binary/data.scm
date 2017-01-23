@@ -12,8 +12,9 @@
      (test-equal 'set (conv v) (call-with-bytevector-output-port 
 			 (lambda (out) (set out v)))))
     ((_ set conv size v endian)
-     (test-equal 'set (conv v size) (call-with-bytevector-output-port 
-				     (lambda (out) (set out v endian)))))))
+     (test-equal '(set conv) (conv v size)
+		 (call-with-bytevector-output-port 
+		  (lambda (out) (set out v endian)))))))
 
 (define-syntax test-get
   (syntax-rules ()
@@ -21,7 +22,7 @@
      (test-equal 'get v 
 		 (get (open-bytevector-input-port (conv v)))))
     ((_ get conv size v endian)
-     (test-equal 'get v 
+     (test-equal '(get conv) v 
 		 (get (open-bytevector-input-port (conv v size)) endian)))))
 (define-syntax test-range-big
   (syntax-rules ()

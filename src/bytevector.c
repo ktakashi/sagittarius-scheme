@@ -980,10 +980,13 @@ static SgObject integer2bytevector(SgObject num, int size, int sign)
   int bitlen, len, fill = 0;
   SgByteVector *bv;
   unsigned long left;
-
+  
   /* calculate size without 2 complement */
   bitlen = Sg_BitSize(num);
   len = (bitlen>>3) + ((bitlen & 7) == 0 ? 0 : 1);
+  /* if num == 0, then we need to add one */
+  if (len == 0) len++;
+  
   /* check if it's negative */
   if (sign) {
 #define ROUNDUP8(v) (((v)+7)&(~7))
