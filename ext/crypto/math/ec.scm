@@ -16,6 +16,7 @@
 #!core
 (library (math ec)
     (export make-ec-point ec-point-infinity?
+	    ec-point?
 	    ec-point-add
 	    ec-point-twice
 	    ec-point-negate
@@ -28,9 +29,24 @@
 	    ;; SEC 2 parameters
 	    sect113r1
 	    sect163k1
+
+	    ;; ellitic curve accessors
+	    elliptic-curve?
+	    elliptic-curve-field
+	    elliptic-curve-a
+	    elliptic-curve-b
+
+	    ;; field
+	    ec-field-fp?
+	    ec-field-f2m?
 	    
+	    ;; parameter accessors
 	    ec-parameter?
 	    ec-parameter-curve
+	    ec-parameter-g
+	    ec-parameter-n
+	    ec-parameter-h
+	    ec-parameter-seed
 
 	    ;; for testing
 	    make-elliptic-curve
@@ -386,6 +402,10 @@
     (and (vector? o) (= (vector-length o) 6) 
 	 (eq? (vector-ref o 0) 'ec-parameter)))
   (define (ec-parameter-curve o) (vector-ref o 1))
+  (define (ec-parameter-g o)     (vector-ref o 2)) ;; as EC point
+  (define (ec-parameter-n o)     (vector-ref o 3))
+  (define (ec-parameter-h o)     (vector-ref o 4))
+  (define (ec-parameter-seed o)  (vector-ref o 5))
 
   ;;; Parameters
   ;; from
