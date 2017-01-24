@@ -39,9 +39,8 @@
 	    (rfc hmac)
 	    (sagittarius))
 
-    (define (generate-hmac-one-time-password K C digits)
-      ;; for future extension? (we might have other then SHA-1)
-      (define hmac (hash-algorithm HMAC :key K))
+    (define (generate-hmac-one-time-password K C digits :key (algo :hash SHA-1))
+      (define hmac (hash-algorithm HMAC :key K :hash algo))
       (define size 4)
       (define (dynamic-truncate HS)
 	(define last (- (hash-size hmac) 1))
