@@ -5,7 +5,7 @@
 (test-begin "RFC HOTP")
 
 (test-assert hotp)
-(test-assert generate-hmac-one-time-password)
+(test-assert generate-hmac-based-one-time-password)
 
 ;; From Appendix D
 (let ((secret (string->utf8 "12345678901234567890")))

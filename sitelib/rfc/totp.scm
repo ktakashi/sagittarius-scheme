@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8; -*-
 ;;;
-;;; rfc/hotp.scm - An HMAC-Based One-Time Password Algorithm
+;;; rfc/totp.scm - Time-Based One-Time Password Algorithm
 ;;;  
 ;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
@@ -29,32 +29,21 @@
 ;;;  
 
 ;; reference
-;;  - https://tools.ietf.org/html/rfc4226
-
-(library (rfc hotp)
-    (export generate-hmac-based-one-time-password
-	    (rename (generate-hmac-based-one-time-password hotp)))
+;;  - https://tools.ietf.org/html/rfc6238
+(library (rfc totp)
+    (export generate-time-based-one-time-password
+	    (rename (generate-time-based-one-time-password totp)))
     (import (rnrs)
-	    (math)
-	    (rfc hmac)
-	    (sagittarius))
+	    (rfc hotp)
+	    (srfi :19))
 
-    (define (generate-hmac-based-one-time-password K C digits :key (mode SHA-1))
-      (define hmac (hash-algorithm HMAC :key K :hash mode))
-      (define size 4)
-      (define (dynamic-truncate HS)
-	(define last (- (hash-size hmac) 1))
-	(let* ((offset (bitwise-and (bytevector-u8-ref HS last) #x0F)))
-	  (do ((bv (make-bytevector size)) (i 0 (+ i 1)))
-	      ((= i size)
-	       ;; make it only last 31 bits (big endian)
-	       (bytevector-u8-set! bv 0
-		(bitwise-and (bytevector-u8-ref bv 0) #x7F))
-	       bv)
-	    (bytevector-u8-set! bv i (bytevector-u8-ref HS (+ i offset))))))
-      (let* ((c (integer->bytevector C 8))
-	     (HS (hash hmac c))
-	     (Sbits (dynamic-truncate HS))
-	     (Snum (bytevector->uinteger Sbits)))
-	(mod Snum (expt 10 digits))))
-  )
+  (define *base-time* (make-time time-utc 0 0))
+  (define (generate-time-based-one-time-password K digits
+	   :key (time (current-time)) (start-time *base-time*) (step 30)
+	   :allow-other-keys opts)
+    (define T1  (time-second time))
+    (define T0 (time-second start-time))
+    (define T (div (- T1 T0) step))
+    (apply generate-hmac-based-one-time-password
+	   K (bitwise-and T #xFFFFFFFF) digits opts))
+)
