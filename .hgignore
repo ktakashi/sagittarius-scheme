@@ -1,0 +1,14 @@
+syntax: glob
+
+build/
+CMakeFiles/
+unicode/
+CMakeCache.txt
+cmake_install.cmake
+cmake_uninstall.cmake
+
+*.bin
+*.pc
+*.orig
+*.log
+*.tmp
