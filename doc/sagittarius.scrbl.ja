@@ -322,8 +322,8 @@ Sagittariusは独自の拡張ライブラリを持っています。
 @snipet[=> "|abc de ...|" ]{(format #f "|~,,,,10:a|" '(abc def ghi jkl))}
 }
 @dl-item[@string{~@var{mincol},@var{colinc},@var{minpad},@var{padchar},@var{maxcol}@b{S}}]{
-S-expression output. The corresponding argument is printed by @code{write}. The
-semantics of parameters and flags are the same as @b{~A} directive.
+S式の出力。与えられた引数は@code{write}手続きを使った際と同様に表示されます。
+追加引数とフラグの意味は@b{~A}ディレクティブと同様です。
 
 @snipet[=> "|\"oops\"|"	   ]{(format #f "|~s|" "oops")}
 @snipet[=> "|\"oops\"    |"]{(format #f "|~10s|" "oops")}
@@ -332,50 +332,46 @@ semantics of parameters and flags are the same as @b{~A} directive.
 }
 
 @dl-item[@string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{D}}]{
-Decimal output. The argument is formatted as an decimal integer. If the argument
-is not an integer, all parameters are ignored and it is formatted by @b{~A}
-directive.
+十進数の出力。引数は十進数に整形されます。もし、引数が整数でなかった場合はすべての追加
+引数は無視され、あたかも@b{~A}が指定されたかのように振る舞います。
 
-If an integer parameter @var{mincol} is given, it specifies minimum width of the
-formatted result; if the result is shorter than it, @var{padchar} is padded on
-the left (i.e. the result is right justified). The default of padchar is a
-whitespace.
+もし@var{mincol}が整数で与えられた場合、この引数は最小幅を指定します。もし整形結果が
+@var{mincol}より短い場合、@var{padchar}が左側に追加されます。(つまり右寄せです。)
+@var{padchar}の既定値は空白です。
 
 @snipet[=> "|12345|"     ]{(format #f "|~d|" 12345)}
 @snipet[=> "|     12345|"]{(format #f "|~10d|" 12345)}
 @snipet[=> "|0000012345|"]{(format #f "|~10,'0d|" 12345)}
 
-If atmark-flag is given, the sign @code{'+'} is printed for the positive
-argument.
+もしアットマークフラグ@code{@atmark}が与えられれかつ引数が正の整数だった場合、
+符号@code{'+'}が数値の先頭に付与されて出力されます。
 
-If colon-flag is given, every @var{interval}th digit of the result is grouped
-and commachar is inserted between them. The default of @var{commachar} is
-@code{','}, and the default of @var{interval} is 3.
+もしコロンフラグ@code{:}が与えられた場合、全ての@var{interval}番目にある数値は
+まとめられ@var{commachar}が間に挿入されます。@var{commachar}の規定値は@code{','}で、
+@var{interval}の規定値は@code{3}です。
 
 @snipet[=> "|12,345|"    ]{(format #f "|~:d|" 12345)}
 @snipet[=> "|-1234_5678|"]{(format #f "|~,,'_,4:d|" -12345678)}
 }
 @dl-item[@string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{B}}]{
-Binary output. The argument is formatted as a binary integer. The semantics of
-parameters and flags are the same as the @b{~D} directive.
+二進数出力。引数は二進数に整形されます。追加引数及びフラグの意味は@b{~D}ディレクティブ
+と同様です。
 }
 @dl-item[@string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{O}}]{
-Octet output. The argument is formatted as a octal integer. The semantics of
-parameters and flags are the same as the @b{~D} directive.
+八進数出力。引数は八進数に整形されます。追加引数及びフラグの意味は@b{~D}ディレクティブ
+と同様です。
 }
 @dl-itemx[2
 @string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{X}}
 @string{~@var{mincol},@var{padchar},@var{commachar},@var{interval}@b{x}}]{
-Hexadecimal output. The argument is formatted as a hexadecimal integer. If
-@code{'X'} is used, upper case alphabets are used for the digits larger than 10.
-If @code{'x'} is used, lower case alphabets are used. The semantics of
-parameters and flags are the same as the @b{~D} directive.
+十六進数出力。引数は十六進数に整形されます。大文字の@code{'X'}が渡された場合は
+アルファベットの大文字が10以上の数字に使われます。小文字の@code{'x'}ならば
+アルファベットの小文字が使われます。追加引数及びフラグの意味は@b{~D}ディレクティブ
+と同様です。
 @snipet[=> "0f7cf5a8"]{(format #f "~8,'0x" 259847592)}
 @snipet[=> "0F7CF5A8"]{(format #f "~8,'0X" 259847592)}
 }
 ]
-Note: The format procedure's implementation and most of documentation is quoted
-from Gauche.
 }
 
 @define[Function]{@name{port-ready?}
@@ -394,24 +390,23 @@ from Gauche.
 }
 
 @define[Function]{@name{buffered-port} @args{port buffer-mode :key buffer}}
-@desc{@var{port} must be binary port.
+@desc{@var{port}はバイナリポートでなければなりません。
 
-Converts given @var{port} to buffered port if the @var{port} is not
-buffered port.
+与えられた@var{port}がバッファーポートでなければバッファーポートに変換します。
 
-Buffered port is a type of port which does not read or write immediately
-but uses internal buffer. For example, file port with 
-@code{(buffer-mode block)} or @code{(buffer-mode line)} uses the buffered
-port. This is useful when actual I/O is more expensive than memory access.
+バッファーポートはポートの一種です。このポートは入出力を内部のバッファに保持します。
+例えば@code{(buffer-mode block)}もしくは@code{(buffer-mode line)}を指定して
+作られたファイルポートはバッファーポートです。入出力のコストが高い場合にこのポートを
+使用することでパフォーマンスの向上が得られます。
 
-The @var{buffer-mode} must be a symbol the macro @code{buffer-mode} can
-return. Converted port uses the specified buffer. If the @code{buffer-mode}
-is @code{none}, then the procedure does not convert the given @var{port}.
+@var{buffer-mode}引数は@code{buffer-mode}マクロが返すシンボルでなければなりません。
+もし@code{buffer-mode}がシンボル@code{none}の場合、この手続きは与えられたポートを
+そのまま返します。
 
-If the keyword argument @var{buffer} is specified, it must be
-a bytevector, then the converted buffered port uses specified bytevector
-as its internal buffer. If the bytevector size is zero or literal bytevector
-then @code{&assertion} is raised.
+キーワード引数@var{buffer}はバイトベクタでなければなりません。もしこのキーワード引数が
+指定された場合、変換されたバッファーポートは指定されたバイトベクタを内部バッファとして
+使用します。もし与えられたバイトベクタのサイズが0またはリテラルのバイトベクタだった
+場合、@code{&assertion}例外が送出されます。
 }
 
 @define[Function]{@name{make-codec} @args{symbol getc putc data}}

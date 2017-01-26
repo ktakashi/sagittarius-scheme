@@ -412,8 +412,8 @@ but uses internal buffer. For example, file port with
 port. This is useful when actual I/O is more expensive than memory access.
 
 The @var{buffer-mode} must be a symbol the macro @code{buffer-mode} can
-return. Converted port uses the specified buffer. If the @code{buffer-mode}
-is @code{none}, then the procedure does not convert the given @var{port}.
+return. If the @code{buffer-mode} is @code{none}, then the procedure does not
+convert the given @var{port}.
 
 If the keyword argument @var{buffer} is specified, it must be
 a bytevector, then the converted buffered port uses specified bytevector
