@@ -1089,4 +1089,8 @@ Tag = 267a3ba3670ff076
     (test-rfc3686 i (car v))
     (loop (+ i 1) (cdr v))))
 
+;; ECDSA tests
+(include "test-ecdsa.scm")
+
+
 (test-end)

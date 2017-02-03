@@ -17,6 +17,8 @@
 (library (math ec)
     (export make-ec-point ec-point-infinity?
 	    ec-point?
+	    ec-point-x
+	    ec-point-y
 	    ec-point-add
 	    ec-point-twice
 	    ec-point-negate

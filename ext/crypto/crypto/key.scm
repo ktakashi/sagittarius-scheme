@@ -33,6 +33,23 @@
 	    <dsa-private-key>
 	    <dsa-public-key>
 
+	    ;; ECDSA
+	    ECDSA
+	    <ecdsa-private-key>
+	    <ecdsa-public-key>
+
+	    ;; NIST parameters
+	    NIST-P-192
+	    NIST-P-224
+	    NIST-P-256
+
+	    ;; SEC 2 parameters
+	    sect113r1
+	    sect163k1
+	    secp192r1 ;; the same as NIST-P-192
+	    secp224r1 ;; the same as NIST-P-224
+	    secp256r1 ;; the same as NIST-P-256
+	    
 	    ;; external representive
 	    export-public-key
 	    export-private-key
@@ -50,4 +67,5 @@
 	    (crypto key rsa)
 	    (crypto key dsa)
 	    (crypto key des)
+	    (crypto key ecdsa)
 	    (crypto key component)))
