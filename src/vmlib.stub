@@ -496,7 +496,7 @@
 
 
   ;; don't use this casually
-  (define-c-proc acquire-global-lock! () ::<void> Sg_VMAcquireGlobalLock())
-  (define-c-proc release-global-lock! () ::<void> Sg_VMReleaseGlobalLock())
+  (define-c-proc acquire-global-lock! () ::<void> Sg_VMAcquireGlobalLock)
+  (define-c-proc release-global-lock! () ::<void> Sg_VMReleaseGlobalLock)
 
 )
