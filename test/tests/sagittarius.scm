@@ -428,12 +428,17 @@
 		     (phi (* (- p 1) (- q 1))))
 		(test-assert "mod-inverse" (mod-inverse #x10001 phi)))) ps qs)
 
-
   (test-equal "mod-inverse (recursion)"
 	      #xa3a790f0b7d2bea3a81dc676032cf99c23c28bee
 	      (mod-inverse #x1a1eb1e6b8f115eee3dc1334afc7de2f7efbd568
 			   #xde09f1902cf484f232fee5d27262372d1c6072d7))
 
+  (test-equal "mod-inverse (32bit long environment)"
+	      84793287459004005994083570264676611930995373170935977255695558296701128546491
+	      (mod-inverse
+	       59791678501913488631701617161572303141620876383029885416585973023996318696896
+	       115792089210356248762697446949407573530086143415290314195533631308867097853951)
+	      )
   )
 ;; mod-expt
 ;; TODO bignum
