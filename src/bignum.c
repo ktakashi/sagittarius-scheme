@@ -2387,6 +2387,12 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
     u1 = v1; v1 = t1; u3 = v3; v3 = t3;
     sign = -sign;
     /* reset buffer */
+    /* clear the content as well since bignum_gdiv may not clear the
+       array. (got the bug due to the non cleared stack area...)
+
+       NB: element size number is sufficient since it's initialised to 0.
+    */
+    memset(q->elements, 0, SG_BIGNUM_GET_COUNT(q) * sizeof(long));
     SG_BIGNUM_SET_COUNT(q, size);
     SG_BIGNUM_SET_SIGN(q, 1);
   }

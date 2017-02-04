@@ -3657,7 +3657,7 @@ SgObject Sg_ModInverse(SgObject x, SgObject m)
   while (!SG_EQ(v3, SG_MAKE_INT(0))) {
     SgObject t3, w, t1, q;
     t3 = Sg_IntegerMod(u3, v3);
-    q = Sg_IntegerDiv(u3, v3);
+    q = Sg_Quotient(u3, v3, NULL);
     w = Sg_Mul(q, v1);
     t1 = Sg_Add(u1, w);
     u1 = v1; v1 = t1; u3 = v3; v3 = t3;
