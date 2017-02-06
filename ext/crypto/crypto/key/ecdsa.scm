@@ -40,13 +40,41 @@
 	    NIST-P-192
 	    NIST-P-224
 	    NIST-P-256
+	    NIST-P-384
+	    NIST-P-521
+	              
+	    NIST-K-163
+	    NIST-K-233
+	    NIST-K-283
+	    NIST-K-409
+	    NIST-K-571
+	              
+	    NIST-B-163
+	    NIST-B-233
+	    NIST-B-283
+	    NIST-B-409
+	    NIST-B-571
 
 	    ;; SEC 2 parameters
 	    sect113r1
-	    sect163k1
-	    secp192r1 ;; the same as NIST-P-192
-	    secp224r1 ;; the same as NIST-P-224
-	    secp256r1 ;; the same as NIST-P-256
+	    
+	    secp192r1 ;; the same as NIST-P-*
+	    secp224r1
+	    secp256r1
+	    secp384r1
+	    secp521r1
+	             
+	    sect163k1 ;; the same as NIST-K-*
+	    sect233k1
+	    sect283k1
+	    sect409k1
+	    sect571k1
+	             
+	    sect163r2 ;; the same as NIST-B-*
+	    sect233r1
+	    sect283r1
+	    sect409r1
+	    sect571r1
 	    )
     (import (rnrs)
 	    (sagittarius)
