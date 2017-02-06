@@ -2189,177 +2189,20 @@ static SgBignum * bignum_mod(SgBignum *a, SgBignum *b, SgBignum *q)
   return r;
 }
 
-/* These something from Java was actually really slow. */
-#if 0
-static int bignum_compare_elements(SgBignum *x, SgBignum *m)
-{
-  int i;
-  if (SG_BIGNUM_GET_COUNT(x) < SG_BIGNUM_GET_COUNT(m)) return -1;
-  if (SG_BIGNUM_GET_COUNT(x) > SG_BIGNUM_GET_COUNT(m)) return 1;
-  for (i = 0; i < SG_BIGNUM_GET_COUNT(x); i++) {
-    if (x->elements[i] != m->elements[i]) {
-      return (x->elements[i] < m->elements[i]) ? -1 : 1;
-    }
-  }
-  return 0;
-}
+/* 
+   Using extended Euclidean algorithm.
 
-static SgBignum * bignum_fixup(SgBignum *c, SgBignum *p, int k)
-{
-  int r, i, numWords = k >> SHIFT_MAGIC, numBits;
-  SgBignum *t;
-  r = -inverse_mod_long(p->elements[0]);
-  c = Sg_BignumCopy(c);
-  for (i = 0; i <numWords; i++) {
-    /* V = R * c (mod 2^j) */
-    int v = r * c->elements[0];
-    /* c = c + (v * p) */
-    t = bignum_mul_si(p, v);
-    c = bignum_add(c, t);
-    /* c = c / 2 */
-    bignum_rshift(c, c, 1);
-    bignum_normalize(c);
-    /* SG_BIGNUM_SET_COUNT(c, SG_BIGNUM_GET_COUNT(c)-1); */
-  }
-  numBits = k & 0x1F;
-  if (numBits != 0) {
-    /* V = R * c (mod 2^j) */
-    int v = r * c->elements[0];
-    v &= ((1<<numBits) -1);
-    /* c = c + (v * p) */
-    t = bignum_mul_si(p, v);
-    c = bignum_add(c, t);
-    /* c = c / 2^j */
-    bignum_rshift(c, c, numBits);
-    bignum_normalize(c);
-  }
-  /* in theory, c maybe greater than p at this point (very rare!) */
-  while (Sg_BignumCmp(c, p) >= 0) {
-    c = bignum_sub(c, p);
-  }
-  return c;
-}
+   The complexity of the compuation is O(log(m)^2).
 
-static SgBignum * odd_mod_inverse(SgBignum *x, SgBignum *m)
-{
-  SgBignum *f = Sg_BignumCopy(x), *p = m, *g = p,
-    *c = Sg_MakeBignumFromSI(1), *d = Sg_MakeBignumFromSI(0), *t;
-  int k = 0, trailingZeros, dsize;
-  if ((f->elements[0] & 1) == 0) {
-    trailingZeros = Sg_BignumFirstBitSet(f);
-    bignum_rshift(f, f, trailingZeros);
-    bignum_normalize(f);
-    k = trailingZeros;
-  }
-  /* the almost inverse algorithm */
-  while (Sg_BignumCmp(f, ONE) != 0) {
-    /* if gcd(f, g) != 1, number is not invertible modulo mod */
-    if (SG_BIGNUM_GET_SIGN(f) == 0) {
-      Sg_Error(UC("not invertible(%S, %S)"), x, m);
-    }
-    if (Sg_BignumCmp(f, g) < 0) {
-      SgBignum *temp = f;
-      f = g; g = temp;
-      temp = d; d = c; c = temp;
-    }
-    /* if f != g (mod 4) */
-    if (((f->elements[0] ^ g->elements[0]) & 3)) {
-      f = bignum_sub(f, g);
-      c = bignum_sub(c, d);
-    } else {			/* if f == g (mod 4) */
-      f = bignum_add(f, g);
-      c = bignum_add(c, d);
-    }
-    trailingZeros = Sg_BignumFirstBitSet(f);
-    bignum_rshift(f, f, trailingZeros);
-    bignum_normalize(f);
-    dsize = SG_BIGNUM_GET_COUNT(d)+(trailingZeros+WORD_BITS-1)/WORD_BITS;
-    /* can we use alloca here? */
-    t = make_bignum(dsize);
-    bignum_lshift(t, d, trailingZeros);
-    d = t;
-    k += trailingZeros;
-  }
-  while (SG_BIGNUM_GET_SIGN(c) < 0) {
-    c = bignum_add(c, p);
-  }
-  return bignum_fixup(c, p, k);
-}
-
-static SgBignum * mod_inverse_bp2(SgBignum *x, int k)
-{
-  return bignum_fixup(ONE, x, k);
-}
-
-static SgBignum * mod_inverse_mp2(SgBignum *x, int k)
-{
-  SgBignum *r;
-  dlong t, p = (dlong)x->elements[0];
-  if ((p & 1) == 0) {
-    Sg_Error(UC("%S not invertible. (CD != 1)"), x);
-  }
-  t = (dlong)inverse_mod_long(x->elements[0]);
-  if (k < 33) {
-    t = (k == 32) ? t : (t & ((1 << k) -1));
-  }
-  t = t * (2 - p * 5);
-  t = (k == 64) ? t : (t & ((1ULL << k) -1));
-
-  r = make_bignum(2);
-  r->elements[0] = (ulong)t;
-  r->elements[1] = (ulong)(t >> WORD_BITS);
-  return bignum_normalize(r);
-}
-
-static SgBignum * even_mod_inverse(SgBignum *x, SgBignum *m)
-{
-  int powersOf2 = Sg_BignumFirstBitSet(m);
-  int rsize = SG_BIGNUM_GET_COUNT(m) + (-powersOf2)/WORD_BITS, lsize;
-  SgBignum *oddMod, *oddPart, *evenPart, *y1, *y2, *temp, *r;
-  ALLOC_TEMP_BIGNUM(oddMod, rsize);
-  bignum_rshift(oddMod, m, powersOf2);
-  bignum_normalize(oddMod);
-  if (Sg_BignumCmp(oddMod, ONE) == 0) {
-    return mod_inverse_mp2(x, powersOf2);
-  }
-  /* 1/a mod oddMod */
-  oddPart = odd_mod_inverse(x, oddMod);
-  /* 1/a mod evenMod */
-  evenPart = mod_inverse_mp2(x, powersOf2);
-  y1 = mod_inverse_bp2(oddMod, powersOf2);
-  y2 = mod_inverse_mp2(oddMod, powersOf2);
-
-  lsize = SG_BIGNUM_GET_COUNT(oddPart) + (powersOf2 + WORD_BITS - 1)/WORD_BITS;
-  ALLOC_TEMP_BIGNUM(temp, lsize);
-  bignum_lshift(temp, oddPart, powersOf2);
-  r = bignum_mul(temp, y1);
-  temp = bignum_mul(evenPart, oddMod);
-  temp = bignum_mul(temp, y2);
-  r = bignum_add(r, temp);
-  return bignum_gdiv(r, m, NULL);
-}
-
-static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
-{
-  SgBignum *modVal = x;
-  if (SG_BIGNUM_GET_SIGN(m) < 0) {
-    Sg_Error(UC("modulus not positive %S"), m);
-  }
-  if (BIGNUM_ONEP(m)) return Sg_MakeBignumFromSI(0);
-  if (SG_BIGNUM_GET_SIGN(x) < 0 || bignum_compare_elements(x, m) >= 0) {
-    modVal = bignum_mod(x, m, NULL);
-  }
-  if (BIGNUM_ONEP(modVal)) return Sg_MakeBignumFromSI(1);
-  if (m->elements[0] & 1) return bignum_normalize(odd_mod_inverse(modVal, m));
-  if ((x->elements[0] & 1) == 0) {
-    /* base and modulus are even */
-    Sg_Error(UC("given number %S and %S is not invertible"), x, m);
-  }
-  return bignum_normalize(even_mod_inverse(modVal, m));
-}
-
-#else
-
+   For now this is actually good enough since both x and m are not
+   really huge. If we got a huge number (e.g. 2048 bits) we can think
+   about other algorithm.
+   Alternatives:
+   - The Montgomery inverse and its applications, Burton S. Kaliski:
+   
+   - Constant Time Modular Inversion, Joppe W Bos: 
+     http://www.joppebos.com/files/CTInversion.pdf
+*/
 static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
 {
   SgBignum *u1, *u3, *v1, *v3, *q;
@@ -2406,7 +2249,6 @@ static SgBignum * bignum_mod_inverse(SgBignum *x, SgBignum *m)
     return bignum_normalize(u1);
   }
 }
-#endif
 
 #define EXPMOD_MAX_WINDOWS 7
 static ulong exp_mod_threadh_table[EXPMOD_MAX_WINDOWS] = {
