@@ -1121,19 +1121,26 @@ Tag = 267a3ba3670ff076
 
 (define (%test-ecdsa name param hash msg d Qx Qy k R S)
   (define priv (generate-private-key ECDSA d param))
-  (define pub (generate-public-key ECDSA Qx Qy))
+  (define pub (generate-public-key ECDSA Qx Qy param))
   (define cipher (make-cipher ECDSA priv))
   (define algo (hash-algorithm hash))
-
-  (let ((sig (cipher-signature cipher
-			       (uinteger->bytevector msg (hash-size algo))
-			       :hash algo
-			       :k-generator (lambda (n d) k)
-			       :der-encode #f)))
-    (test-equal name
-		(bytevector-append (uinteger->bytevector R)
-				   (uinteger->bytevector S))
-		sig)))
+  (define size (ceiling (/ (bitwise-length (ec-parameter-n param)) 8)))
+  
+  (let ((signature (bytevector-append (uinteger->bytevector R size)
+				      (uinteger->bytevector S size)))
+	(message (uinteger->bytevector msg (hash-size algo))))
+    (test-equal (format "~a (~a) sign" name hash)
+		signature
+		(cipher-signature cipher
+				  message
+				  :hash algo
+				  :k-generator (lambda (n d) k)
+				  :der-encode #f))
+    (let ((verifier (make-cipher ECDSA pub)))
+      (test-assert (format "~a (~a) verify" name hash)
+		   (cipher-verify verifier message signature
+				  :hash algo
+				  :der-encode #f)))))
 
 (define-syntax test-ecdsa
   (syntax-rules ()

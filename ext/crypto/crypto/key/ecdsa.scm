@@ -55,7 +55,8 @@
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
-	    (asn.1))
+	    (asn.1)
+	    (util bytevector))
   (define ECDSA :ecdsa)
 
   (define-class <ecdsa-private-key> (<private-key>)
@@ -63,7 +64,8 @@
      (parameter :init-keyword :parameter :init-keyword #f) ;; domain parameter
      (public-key :init-keyword :public-key :init-value #f))) ;; public key
   (define-class <ecdsa-public-key> (<public-key>)
-    ((Q :init-keyword :Q)))
+    ((Q :init-keyword :Q)
+     (parameter :init-keyword :parameter :init-keyword #f))) ;; domain parameter
 
   (define (read-random-bits prng nbits)
     (bytevector->uinteger (read-random-bytes prng (div nbits 8))))
@@ -87,8 +89,9 @@
     (make <ecdsa-private-key> :d d :parameter parameter
 	  :public-key publick-key))
 
-  (define-method generate-public-key ((m (eql ECDSA)) x y)
-    (make <ecdsa-public-key> :Q (make-ec-point x y)))
+  (define-method generate-public-key ((m (eql ECDSA)) x y
+				      :optional (parameter secp256r1))
+    (make <ecdsa-public-key> :Q (make-ec-point x y) :parameter parameter))
   
   (define (random-k-generator prng)
     (lambda (n d)
@@ -99,20 +102,21 @@
   ;; RFC 6979
   (define (determistic-k-generator digest message)
     (error 'determistic-k-generator "not supported yet"))
+
+  (define (compute-e digest n bv)
+    (define M (hash digest bv))
+    (let ((len (bitwise-length n))
+	  (M-bits (* (bytevector-length M) 8)))
+      (let ((e (bytevector->uinteger M)))
+	(if (< len M-bits)
+	    (bitwise-arithmetic-shift-right e (- M-bits len))
+	    e))))
   
   (define (ecdsa-sign bv key
 		      :key (k-generator
 			    (random-k-generator (secure-random RC4)))
 			   (der-encode #t)
 			   (digest :hash SHA-1))
-    (define (compute-e n bv)
-      (define M (hash digest bv))
-      (let ((len (bitwise-length n))
-	    (M-bits (* (bytevector-length M) 8)))
-	(let ((e (bytevector->uinteger M)))
-	  (if (< len M-bits)
-	      (bitwise-arithmetic-shift-right e (- M-bits len))
-	      e))))
     (define (compute-r ec n d)
       (define G (ec-parameter-g ec))
       (define curve (ec-parameter-curve ec))
@@ -126,7 +130,7 @@
     (define (compute-s r k e d n) (mod (* (mod-inverse k n) (+ e (* d r))) n))
     (let* ((ec-param (slot-ref key 'parameter))
 	   (n (ec-parameter-n ec-param))
-	   (e (compute-e n bv))
+	   (e (compute-e digest n bv))
 	   (d (slot-ref key 'd)))
       (let loop ()
 	(let-values (((r k) (compute-r ec-param n d)))
@@ -135,11 +139,45 @@
 		  (der-encode (encode (make-der-sequence
 				       (make-der-integer r)
 				       (make-der-integer s))))
-		  (else (bytevector-append (integer->bytevector r)
-					   (integer->bytevector s)))))))))
+		  (else
+		   (let ((size (ceiling (/ (bitwise-length n) 8))))
+		     (bytevector-append (integer->bytevector r size)
+					(integer->bytevector s size))))))))))
   
-  (define (ecdsa-verify . ignroe) (error 'verify "not supported"))
-
+  (define (ecdsa-verify M S key
+			:key (der-encode #t)
+			     (digest :hash SHA-1))
+    ;; FIXME this is almost copy&paste...
+    (define (parse-r&s S n)
+      (if der-encode
+	  (let ((r&s (read-asn.1-object (open-bytevector-input-port S))))
+	    (unless (and (is-a? r&s <asn.1-sequence>)
+			 (= 2 (length (slot-ref r&s 'sequence))))
+	      (error 'ecdsa-verify "invalid signature"))
+	    (values (der-integer->integer (car (slot-ref r&s 'sequence)))
+		    (der-integer->integer (cadr (slot-ref r&s 'sequence)))))
+	  (let ((size  (ceiling (/ (bitwise-length n) 8))))
+	    (let*-values (((r s) (bytevector-split-at* S size)))
+	      (values (bytevector->integer r) (bytevector->integer s))))))
+    (unless (is-a? key <ecdsa-public-key>) (error 'ecdsa-verify "invalid key"))
+    (let* ((ec (slot-ref key 'parameter))
+	   (n (ec-parameter-n ec))
+	   (e (compute-e digest n M)))
+      (let-values (((r s) (parse-r&s S n)))
+	(when (or (< r 1) (< n r)  ;; r in range [1, n-1]
+		  (< s 1) (< n s)) ;; s in range [1, n-1]
+	  (error 'ecdsa-verify "inconsistent"))
+	(let* ((w  (mod-inverse s n))
+	       (u1 (mod (* e w) n))
+	       (u2 (mod (* r w) n))
+	       (G (ec-parameter-g ec))
+	       (Q (slot-ref key 'Q))
+	       (curve (ec-parameter-curve ec)))
+	  (let ((point (ec-point-add curve
+				     (ec-point-mul curve G u1)
+				     (ec-point-mul curve Q u2))))
+	    (or (= (mod (ec-point-x point) n) (mod r n))
+		(error 'ecdsa-verify "inconsistent")))))))
   
   (define-class <ecdsa-cipher-spi> (<cipher-spi>) ())
   (define-method initialize ((o <ecdsa-cipher-spi>) initargs)
