@@ -1090,6 +1090,56 @@ Tag = 267a3ba3670ff076
     (loop (+ i 1) (cdr v))))
 
 ;; ECDSA tests
+;; no hash
+(define-syntax define-no-hash
+  (syntax-rules ()
+    ((_ name marker size)
+     (begin
+       (define-class <no-hash> (<user-hash-algorithm>)
+	 ((buffer :init-form (make-bytevector size))))
+       (define-method initialize ((o <no-hash>) initargs)
+	 (call-next-method)
+	   (slot-set! o 'init values)
+	   (slot-set! o 'process
+		      (lambda (h bv)
+			(bytevector-copy! bv 0 (slot-ref h 'buffer) 0 size)))
+	   (slot-set! o 'done
+		      (lambda (h out)
+			(bytevector-copy! (slot-ref h 'buffer) 0 out 0 size)))
+	   (slot-set! o 'block-size 16)
+	   (slot-set! o 'hash-size size)
+	   (slot-set! o 'oid #f)
+	   (slot-set! o 'state #f))
+       (define name marker)
+       (define dummy (register-hash name <no-hash>))))))
+
+(define-no-hash no-20 :no-20 20) ;; sha1
+(define-no-hash no-28 :no-38 28) ;; sha224
+(define-no-hash no-32 :no-32 32) ;; sha256
+(define-no-hash no-48 :no-48 48) ;; sha384
+(define-no-hash no-64 :no-64 64) ;; sha512
+
+(define (%test-ecdsa name param hash msg d Qx Qy k R S)
+  (define priv (generate-private-key ECDSA d param))
+  (define pub (generate-public-key ECDSA Qx Qy))
+  (define cipher (make-cipher ECDSA priv))
+  (define algo (hash-algorithm hash))
+
+  (let ((sig (cipher-signature cipher
+			       (uinteger->bytevector msg (hash-size algo))
+			       :hash algo
+			       :k-generator (lambda (n d) k)
+			       :der-encode #f)))
+    (test-equal name
+		(bytevector-append (uinteger->bytevector R)
+				   (uinteger->bytevector S))
+		sig)))
+
+(define-syntax test-ecdsa
+  (syntax-rules ()
+    ((_ param hash msg d Qx Qy k R S)
+     (%test-ecdsa 'param param hash msg d Qx Qy k R S))))
+
 (include "test-ecdsa.scm")
 
 
