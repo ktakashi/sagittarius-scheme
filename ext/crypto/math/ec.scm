@@ -24,6 +24,10 @@
 	    ec-point-negate
 	    ec-point-sub
 	    ec-point-mul
+
+	    encode-ec-point
+	    decode-ec-point
+	    
 	    ;; NIST parameters
 	    NIST-P-192 (rename (NIST-P-192 secp192r1))
 	    NIST-P-224 (rename (NIST-P-224 secp224r1))
@@ -54,6 +58,7 @@
 	    ;; field
 	    ec-field-fp?
 	    ec-field-f2m?
+	    ec-field-size
 	    
 	    ;; parameter accessors
 	    ec-parameter?
@@ -268,6 +273,13 @@
 
   (define (ec-curve=? a b) (equal? a b))
 
+  (define-predicate-generic field-size)
+  (define-predicate-method field-size ec-field-fp? (field)
+    (bitwise-length (ec-field-fp-p field)))
+  (define-predicate-method field-size ec-field-f2m? (field)
+    (ec-field-f2m-m field))
+  (define (ec-field-size field) (field-size field))
+  
   ;; EC point
   (define-vector-type ec-point (make-ec-point x y) ec-point?
     (x     ec-point-x)
@@ -283,6 +295,27 @@
   
   (define (ec-point=? a b) (equal? a b))
 
+  (define (encode-ec-point curve ep)
+    (if (ec-point-infinity? ep)
+	#vu8(00)
+	(let ((size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8)))
+	  (bytevector-append #vu8(#x04)
+			     (integer->bytevector (ec-point-x ep) size)
+			     (integer->bytevector (ec-point-y ep) size)))))
+
+  (define (decode-ec-point curve bv)
+    (define size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8))
+    (case (bytevector-u8-ref bv 0)
+      ((#x00) ec-infinity-point)
+      ;; TODO support compressed 0x02 and 0x03
+      ((#x04)
+       (let ((x (bytevector->integer bv 1 (+ 1 size)))
+	     (y (bytevector->integer bv (+ 1 size))))
+	 (make-ec-point x y)))
+      (else
+       (implementation-restriction-violation 'decode-ec-point
+					     "not supported"))))
+  
   ;; Twice
   (define-predicate-generic field-ec-point-twice)
   (define-predicate-method field-ec-point-twice ec-field-fp? (field curve x)

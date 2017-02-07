@@ -618,6 +618,11 @@
 	  #xd867b4679221009234939221b8046245efcf58413daacbeff857b8588341f6b8
 	  #xf2504055c03cede12d22720dad69c745106b6607ec7e50dd35d54bd80f615275))
 
+(let ((curve (make-elliptic-curve (make-ec-field-f2m 1 0 0 0) 0 0))
+      (ep (make-ec-point 1 2)))
+  (test-equal "EC point decode" ep (decode-ec-point curve #vu8(#x04 #x1 #x2)))
+  (test-equal "EC point encode" #vu8(#x04 #x1 #x2) (encode-ec-point curve ep)))
+
 
 ;; call #98 restoring value properly
 (let ()
