@@ -330,7 +330,6 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 			  FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OVERLAPPED, 
 			  NULL);
 
-    /* TODO this must be an error */
     if (dirs[i] == INVALID_HANDLE_VALUE) goto err;
     ols[i].hEvent = events[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
     /* is this correct? */
@@ -348,7 +347,8 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
 #endif
   while (1) {
     if (ctx->stopRequest) goto end;
-    
+    /* reset thread event before wait. this avoids unexpected interruption. */
+    ResetEvent(events[n]);
     r = WaitForMultipleObjects(n+1, events, FALSE, INFINITE);
     /* reset event no matter what */
     ResetEvent(events[r - WAIT_OBJECT_0]);
@@ -358,7 +358,7 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
     } else {
       int w = r - WAIT_OBJECT_0;
       DWORD bytes;
-      BOOL b = GetOverlappedResult(dirs[w], &ols[w], &bytes, TRUE); 
+      BOOL b = GetOverlappedResult(dirs[w], &ols[w], &bytes, TRUE);
       if (b) {
 	FILE_NOTIFY_INFORMATION *fn = (FILE_NOTIFY_INFORMATION *)buf[w];
 	SG_FILE_WATCH_CONTEXT_LOCK(ctx);
@@ -370,7 +370,6 @@ void Sg_StartMonitoring(SgFileWatchContext *ctx)
       if (!b) goto err;
     }
   }
-
  err:
   e = GetLastError();
  end:
