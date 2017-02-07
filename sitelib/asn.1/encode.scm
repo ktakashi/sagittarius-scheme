@@ -30,10 +30,10 @@
 
 ;; For now we just implemented only the part which RKCS#1 v1.5 encode requires.
 (library (asn.1 encode)
-    (export encode)
+    (export asn.1-encode (rename (asn.1-encode encode)))
     (import (rnrs)
 	    (asn.1 der encode))
-  (define (encode obj :key (encoder der-encode))
+  (define (asn.1-encode obj :key (encoder der-encode))
     (call-with-bytevector-output-port
      (lambda (p)
        (encoder obj p)))))
