@@ -618,10 +618,22 @@
 	  #xd867b4679221009234939221b8046245efcf58413daacbeff857b8588341f6b8
 	  #xf2504055c03cede12d22720dad69c745106b6607ec7e50dd35d54bd80f615275))
 
-(let ((curve (make-elliptic-curve (make-ec-field-f2m 1 0 0 0) 0 0))
-      (ep (make-ec-point 1 2)))
-  (test-equal "EC point decode" ep (decode-ec-point curve #vu8(#x04 #x1 #x2)))
-  (test-equal "EC point encode" #vu8(#x04 #x1 #x2) (encode-ec-point curve ep)))
+(define (test-ec-point-encode&decode curve x y)
+  (let* ((ep (make-ec-point x y))
+	 (size (div (+ (ec-field-size (elliptic-curve-field curve)) 7) 8))
+	 (bv (bytevector-append #vu8(#x04)
+				(integer->bytevector x size)
+				(integer->bytevector y size))))
+    (test-equal "EC point decode" ep (decode-ec-point curve bv))
+    (test-equal "EC point encode" bv (encode-ec-point curve ep))))
+
+(test-ec-point-encode&decode
+ (make-elliptic-curve (make-ec-field-f2m 1 0 0 0) 0 0)
+ 1 2)
+
+(test-ec-point-encode&decode (ec-parameter-curve NIST-P-192)
+			     #x64210519E59C80E70FA7E9AB72243049FEB8DEECC146B9B1
+			     #x188DA80EB03090F67CBF20EB43A18800F4FF0AFD82FF1012)
 
 
 ;; call #98 restoring value properly
