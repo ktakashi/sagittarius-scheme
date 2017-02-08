@@ -43,14 +43,15 @@
 	    random-source-make-reals)
     (import (rnrs)
 	    (sagittarius)
+	    (sagittarius parameters)
 	    (math)
 	    (math mt-random))
-  ;; default random source is mt-random without seed
-  (define default-random-source (pseudo-random MT))
   ;; we supports other random number generators, so take optional arguments
   (define (make-random-source :key (prng MT) :allow-other-keys rest)
-    (apply pseudo-random prng rest))
-  (define (random-source? obj) (prng? obj))
+    (make-parameter (apply pseudo-random prng rest)))
+  (define (random-source? obj)
+    (and (parameter? obj) (prng? (obj))))
+  (define default-random-source (make-random-source))
   ;; states
   ;; if given ransom-source is implementes <secure-random> then, we don't
   ;; return state. well, this is just an excuse not to return state for
@@ -59,12 +60,12 @@
     (unless (random-source? s)
       (assertion-violation 'random-source-state-ref
 			   "random-source required" s))
-    (prng-state s))
+    (prng-state (s)))
   (define (random-source-state-set! s state)
     (unless (random-source? s)
       (assertion-violation 'random-source-state-ref
 			   "random-source required" s))
-    (prng-state s state))
+    (prng-state (s) state))
   
   (define (random-source-randomize! s)
     (unless (random-source? s)
@@ -72,7 +73,7 @@
 			   "random-source required" s))
     ;; well mt-random uses 64 bit seed, so read 16 bytes from system random
     (let ((seed (read-sys-random (* 16 8))))
-      (random-seed-set! s seed)))
+      (random-seed-set! (s) seed)))
 
   ;; implementation based on Gauche
   (define (random-source-pseudo-randomize! s i j)
@@ -108,9 +109,9 @@
 			   "random-source required" s))
     ;; to avoid useless calculation, we check if given source supports
     ;; prng-state
-    (if (prng-state s)
+    (if (prng-state (s))
 	(random-seed-set! 
-	 s (u64-list->bytevector (interleave-i i j '(#xFFFFFFFFFFFFFFFF))))
+	 (s) (u64-list->bytevector (interleave-i i j '(#xFFFFFFFFFFFFFFFF))))
 	;; well, i don't know if this is correct or not...
 	#f))
 
@@ -119,7 +120,7 @@
     (unless (random-source? s)
       (assertion-violation 'random-source-make-integers
 			   "random-source required" s))
-    (lambda (n) (random s n)))
+    (lambda (n) (random (s) n)))
 
   (define (random-real-helper s)
     ;; for mt-random, we only read 8 bytes, should be enough, right?
@@ -132,7 +133,7 @@
       (assertion-violation 'random-source-make-reals
 			   "random-source required" s))
     (if (null? maybe-uint)
-	(lambda () (random-real-helper s))
+	(lambda () (random-real-helper (s)))
 	(let ((uint (car maybe-uint)))
 	  (unless (< 0 uint 1)
 	    (assertion-violation 'random-source-make-reals
@@ -141,12 +142,12 @@
 	  (let* ((1/uint (inexact (/ uint)))
 		 (range  (exact (ceiling 1/uint))))
 	    (lambda ()
-	      (/ (random s range) 1/uint))))))
+	      (/ (random (s) range) 1/uint))))))
 
   ;; random generators
   (define (random-integer n)
-    (random default-random-source n))
+    (random (default-random-source) n))
 
   (define (random-real)
-    (random-real-helper default-random-source))
+    (random-real-helper (default-random-source)))
 )

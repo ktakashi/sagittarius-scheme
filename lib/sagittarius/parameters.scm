@@ -30,7 +30,7 @@
 
 ;; to make current-dynamic-environment weak-hashtable
 (library (sagittarius parameters)
-    (export make-parameter parameterize <parameter>)
+    (export make-parameter parameterize <parameter> parameter?)
     (import (rnrs)
 	    (clos user)
 	    (sagittarius)
@@ -43,7 +43,8 @@
   (define-class <parameter> ()
     ((converter :init-keyword :converter)
      (init :init-keyword :init)))
-
+  (define (parameter? o) (is-a? o <parameter>))
+  
   (define-method object-apply ((p <parameter>))
     (let ((r (weak-hashtable-ref (current-dynamic-environment) p mark)))
       (if (eq? r mark)
