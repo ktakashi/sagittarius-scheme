@@ -14,6 +14,7 @@
 	(sagittarius threads)
 	(prefix (binary io) b:)
 	(util bytevector)
+	(util concurrent)
 	(srfi :106))
 
 (define (shutdown&close s)
@@ -21,7 +22,7 @@
   (socket-close s))
 
 (define echo-server-socket (make-server-socket "5000"))
-
+(define echo-server-queue (make-shared-queue))
 ;; addr is client socket
 (define (server-run)
   (define stop? #f)
@@ -44,6 +45,8 @@
 			(let ((res (bytevector-append r #*"\r\n")))
 			  ;; wait one sec
 			  (when (bytevector=? r #*"wait") (thread-sleep! 1))
+			  (when (bytevector=? r #*"push")
+			    (shared-queue-put! echo-server-queue #t))
 			  (put-bytevector p res 0 (bytevector-length res))
 			  (lp2 (b:get-line p))))))))))))))
     (unless stop? (loop))))
@@ -59,9 +62,9 @@
 (let ((client-socket (make-client-socket "localhost" "5000")))
   (test-assert "socket?"(socket? client-socket))
   (test-equal "raw socket-send"
-	      (+ (string-length "hello") 2) ;; for \r\n
-	      (socket-send client-socket (string->utf8 "hello\r\n") 0))
-
+	      (+ (string-length "push") 2) ;; for \r\n
+	      (socket-send client-socket (string->utf8 "push\r\n") 0))
+  (shared-queue-get! echo-server-queue)
   ;; these are not documented
   (test-assert "socket-read-select"
 	       (not (null? (socket-read-select #f client-socket))))
@@ -102,8 +105,8 @@
       (test-assert "sockets->fdset" (fdset? (sockets->fdset l)))))
 
   (test-equal "raw socket-recv"
-	      (string->utf8 "hello\r\n")
-	      (socket-recv client-socket (+ (string-length "hello") 2) 0))
+	      (string->utf8 "push\r\n")
+	      (socket-recv client-socket (+ (string-length "push") 2) 0))
 
   (test-equal "raw socket-send (2)"
 	      (+ (string-length "hello") 2) ;; for \r\n
