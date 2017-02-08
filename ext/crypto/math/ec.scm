@@ -68,7 +68,11 @@
 	    ec-parameter-h
 	    ec-parameter-seed
 	    ec-parameter-oid
-
+	    lookup-ec-parameter
+	    make-ec-parameter
+	    make-fp-ec-parameter
+	    make-f2m-ec-parameter
+	    
 	    ;; for testing
 	    make-elliptic-curve
 	    make-ec-field-fp
@@ -458,6 +462,12 @@
   (define (ec-parameter-oid o)   (vector-ref o 6))
  
   ;;; Parameters
+  (define *lookup-table* (make-string-hashtable))
+  (define (register-ec-parameter oid value)
+    (when (string? oid)
+      (hashtable-set! *lookup-table* oid value)))
+  (define (lookup-ec-parameter oid) (hashtable-ref *lookup-table* oid #f))
+  
   ;; from
   ;;   https://www.nsa.gov/ia/_files/nist-routines.pdf (gone)
   ;;   http://csrc.nist.gov/groups/ST/toolkit/documents/dss/NISTReCur.pdf (*)
@@ -465,18 +475,22 @@
   ;;   http://www.secg.org/sec2-v2.pdf
   ;; 
   ;; (*) is not used
+
+  (define (make-ec-parameter curve base n h S :optional (oid #f))
+    (let ((p `#(ec-parameter ,curve ,base ,n ,h ,S ,oid)))
+      (when oid (register-ec-parameter oid p))
+      p))
   
+  (define (make-fp-ec-parameter p a b Gx Gy n h S :optional (oid #f))
+    (make-ec-parameter (make-elliptic-curve (make-ec-field-fp p) a b)
+		       (make-ec-point Gx Gy)
+		       n h S oid))
   ;;; Fp
   (define-syntax define-fp-parameter
     (syntax-rules ()
       ((_ name p a b Gx Gy n h S oid)
        (define-constant name
-	 `#(ec-parameter ,(make-elliptic-curve (make-ec-field-fp p) a b)
-			 ,(make-ec-point Gx Gy)
-			 n
-			 h
-			 ,(uinteger->bytevector S)
-			 oid)))))
+	 (make-fp-ec-parameter p a b Gx Gy n h (uinteger->bytevector S) oid)))))
   (define-fp-parameter NIST-P-192
     #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFF
     #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFFFFFFFFFFFC
@@ -531,23 +545,21 @@
     1
     #xD09E8800291CB85396CC6717393284AAA0DA64BA
     "1.3.132.0.35")
-    
   
   ;;; F2m
+  (define (make-f2m-ec-parameter m k1 k2 k3 a b Gx Gy n h S :optional (oid #f))
+    (make-ec-parameter (make-elliptic-curve (make-ec-field-f2m m k1 k2 k3) a b)
+		       (make-ec-point Gx Gy)
+		       n h S oid))
+  
   (define-syntax define-f2m-parameter
     (syntax-rules ()
       ((_ "body" name (m k1 k2 k3) a b Gx Gy n h S oid)
        (define-constant name
-	 `#(ec-parameter
-	    ,(make-elliptic-curve (make-ec-field-f2m m k1 k2 k3) a b)
-	    ,(make-ec-point Gx Gy)
-	    n
-	    h
-	    S
-	    oid)))
+	 (make-f2m-ec-parameter m k1 k2 k3 a b Gx Gy n h S oid)))
       ((_ name (m k1 k2 k3) a b Gx Gy n h S oid)
        (define-f2m-parameter "body" name (m k1 k2 k3) a b Gx Gy n h
-	 ,(uinteger->bytevector S)
+	 (uinteger->bytevector S)
 	 oid))
       ((_ name (m k1 k2 k3) a b Gx Gy n h oid)
        (define-f2m-parameter "body" name (m k1 k2 k3) a b Gx Gy n h #vu8()
