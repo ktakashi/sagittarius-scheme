@@ -118,11 +118,6 @@
   (test-assert (release-filesystem-watcher! w)))
 )
 
-;; disabling tests on CI environment...
-;; Drone and AppVeyor always go to infinite waiting.
-;; This for some reason not reproducible on my local
-;; environment. So disable it for now.
-(let ((v (getenv "CI")))
-  (unless (and v (string-ci=? v "true")) (run-tests)))
+(run-tests)
 
 (test-end)
