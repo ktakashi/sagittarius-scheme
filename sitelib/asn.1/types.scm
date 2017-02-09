@@ -580,7 +580,7 @@
     ((bytes :init-keyword :bytes)))
   (define-method make-der-integer ((i <integer>))
     (make <der-integer> :bytes 
-	  (if (zero? i) #vu8(0) (integer->bytevector i))))
+	  (if (zero? i) #vu8(0) (sinteger->bytevector i))))
   (define-method make-der-integer ((b <bytevector>))
     (make <der-integer> :bytes b))
   (define-method make-der-integer ((obj <asn.1-tagged-object>)
