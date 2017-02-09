@@ -64,4 +64,10 @@
     (let ((key (import-public-key RSA p)))
       (test-assert "public-key?" (public-key? key))))
   :transcoder #f)
+
+(test-equal "der integer (unsigned)" #vu8(2 2 0 255)
+	    (asn.1-encode (make-der-integer #xFF)))
+(test-equal "der integer (signed)" #vu8(2 1 255)
+	    (asn.1-encode (make-der-integer -1)))
+
 (test-end)
