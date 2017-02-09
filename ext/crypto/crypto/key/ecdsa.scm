@@ -249,7 +249,9 @@
        (make-der-sequence
 	(make-der-sequence
 	 id-ec-public-key
-	 (make-der-object-identifier (ec-parameter-oid param)))
+	 (if (ec-parameter-oid param)
+	     (make-der-object-identifier (ec-parameter-oid param))
+	     (ec-parameter->asn.1-object param)))
 	(make-der-bit-string encoded)))))
   
   (define-method export-public-key ((key <ecdsa-public-key>))

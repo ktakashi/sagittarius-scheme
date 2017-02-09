@@ -1124,6 +1124,22 @@ PmkKfA8SLO+yiHr2N0Q31/9xF1Twi6yWfjZyUw==")
   (test-equal "Export ECDSA" bv
 	      (export-private-key ECDSA (import-private-key ECDSA bv))))
 
+;; import public key
+(let ()
+  (define b64 "MIIBSzCCAQMGByqGSM49AgEwgfcCAQEwLAYHKoZIzj0BAQIhAP////8AAAABAAAA
+AAAAAAAAAAAA////////////////MFsEIP////8AAAABAAAAAAAAAAAAAAAA////
+///////////8BCBaxjXYqjqT57PrvVV2mIa8ZR0GsMxTsPY7zjw+J9JgSwMVAMSd
+NgiG5wSTamZ44ROdJreBn36QBEEEaxfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5
+RdiYwpZP40Li/hp/m47n60p8D54WK84zV2sxXs7LtkBoN79R9QIhAP////8AAAAA
+//////////+85vqtpxeehPO5ysL8YyVRAgEBA0IABBxNYftpUb8twUQcQSVh2HIg
+PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
+
+  (define bv (base64-decode-string b64 :transcoder #f))
+  (test-assert "Import ECDSA pub" (public-key? (import-public-key ECDSA bv)))
+  (test-equal "Export ECDSA pub" bv
+	      (export-public-key ECDSA (import-public-key ECDSA bv))))
+
+;; TODO named curve...
 
 ;; no hash
 (define-syntax define-no-hash
