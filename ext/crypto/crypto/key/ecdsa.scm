@@ -107,7 +107,8 @@
 	   (curve (ec-parameter-curve ec-parameter)))
       (do ((d (read-random-bits prng nbits) (read-random-bits prng nbits)))
 	  ((and (> d 2) (< d n))
-	   (let ((pub (make <ecdsa-public-key> :Q (ec-point-mul curve G d))))
+	   (let ((pub (make <ecdsa-public-key> :Q (ec-point-mul curve G d)
+			    :parameter ec-parameter)))
 	     (make-keypair (make <ecdsa-private-key> :d d
 				 :parameter ec-parameter :public-key pub)
 			   pub))))))

@@ -1141,6 +1141,17 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
 
 ;; TODO named curve...
 
+;; simple test
+(let ()
+  (define keypair (generate-key-pair ECDSA :ec-parameter NIST-P-521))
+  (define msg "this message requires digital signature")
+  (define ec-signer (make-cipher ECDSA (keypair-private keypair)))
+  (define signature (cipher-signature ec-signer (string->utf8 msg)))
+  (define ec-verifier (make-cipher ECDSA (keypair-public keypair)))
+
+  (test-assert "ECDSA sign&verify"
+	       (cipher-verify ec-verifier (string->utf8 msg) signature)))
+
 ;; no hash
 (define-syntax define-no-hash
   (syntax-rules ()

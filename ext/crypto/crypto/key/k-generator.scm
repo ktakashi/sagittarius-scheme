@@ -7,7 +7,9 @@
 (library (crypto key k-generator)
     (export random-k-generator
 	    determistic-k-generator)
-    (import (rnrs) (math))
+    (import (rnrs)
+	    (sagittarius)
+	    (math))
   (define (read-random-bits prng nbits)
     (bytevector->uinteger (read-random-bytes prng (div nbits 8))))
   
