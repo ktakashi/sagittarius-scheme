@@ -244,7 +244,7 @@
     (unless curve
       (assertion-violation 'export-public-key
 			   "No EC parameter is set for the key"))
-    (let ((encoded (encode-ec-point curve (slot-ref m 'Q))))
+    (let ((encoded (encode-ec-point curve (slot-ref key 'Q))))
       (asn.1-encode
        (make-der-sequence
 	(make-der-sequence
@@ -307,7 +307,6 @@
 	    ((equal? id-f2m-field field-type)
 	     (let* ((f2m (slot-ref field-param 'sequence))
 		    (m (der-integer->integer (car f2m))))
-	       (display f2m) (newline)
 	       (let-values (((k1 k2 k3) (parse-f2m-parameter f2m)))
 		 (make-elliptic-curve (make-ec-field-f2m m k1 k2 k3) a b))))
 	    (else
@@ -321,6 +320,54 @@
 	     (curve (make-curve field-type field-param a b))
 	     (base (decode-ec-point curve (slot-ref Gxy 'string))))
 	(make-ec-parameter curve base n h S))))
+
+  (define (ec-parameter->asn.1-object ep)
+    (define curve (ec-parameter-curve ep))
+    (define field (elliptic-curve-field curve))
+    (define (make-asn.1-curve curve)
+      (define (uinteger->der-octet-string a)
+	(make-der-octet-string (uinteger->bytevector a)))
+      (let ((base (make-der-sequence
+		   (uinteger->der-octet-string (elliptic-curve-a curve))
+		   (uinteger->der-octet-string (elliptic-curve-b curve)))))
+	(and-let* ((S (ec-parameter-seed ep)))
+	  (asn.1-sequence-add base (make-der-bit-string S)))
+	base))
+    (define (make-asn.1-field field)
+      (if (ec-field-fp? field)
+	  (let ((p (ec-field-fp-p field)))
+	    (make-der-sequence id-prime-field (make-der-integer p)))
+	  (let ((m (ec-field-f2m-m field))
+		(k1 (ec-field-f2m-k1 field))
+		(k2 (ec-field-f2m-k2 field))
+		(k3 (ec-field-f2m-k3 field))
+		(param (make-der-sequence (make-der-integer m)))
+		(base (make-der-sequence id-f2m-field param)))
+	    (cond ((and (zero? k1) (zero? k2) (zero? k3))
+		   (asn.1-sequence-add param
+		     (make-der-object-identifier "1.2.840.10045.1.2.3.1"))
+		   (asn.1-sequence-add param (make-der-null)))
+		  ((and (zero? k2) (zero? k3))
+		   (asn.1-sequence-add param
+		     (make-der-object-identifier "1.2.840.10045.1.2.3.2"))
+		   (asn.1-sequence-add param (make-der-integer k1)))
+		  (else
+		   (asn.1-sequence-add param
+		     (make-der-object-identifier "1.2.840.10045.1.2.3.3"))
+		   (asn.1-sequence-add param 
+		    (make-der-sequence
+		     (make-der-integer k1)
+		     (make-der-integer k2)
+		     (make-der-integer k3)))))
+	    base)))
+    (make-der-sequence
+     (make-der-integer 1)
+     (make-asn.1-field field)
+     (make-asn.1-curve curve)
+     (make-der-octet-string (encode-ec-point curve (ec-parameter-g ep)))
+     (make-der-integer (ec-parameter-n ep))
+     (make-der-integer (ec-parameter-h ep))))
+  
   (define-method import-public-key ((marker (eql ECDSA)) (in <asn.1-sequence>))
     (let ((objs (slot-ref in 'sequence)))
       (unless (= (length objs) 2)
@@ -354,18 +401,22 @@
   |#
   (define-method export-private-key ((m (eql ECDSA)) (key <ecdsa-private-key>))
     (define param (slot-ref key 'parameter))
+    (define curve (ec-parameter-curve param))
     (define oid (and param (ec-parameter-oid param)))
     (define pub (slot-ref key 'public-key))
-    (unless oid
-      (assertion-violation 'export-private-key
-			   "EC Private key must have oid in its parameter"))
     (asn.1-encode
-     (make-der-sequence
+     (apply make-der-sequence
       (cons* (make-der-integer 1)
 	     (make-der-octet-string (integer->bytevector (slot-ref key 'd)))
-	     (make-der-object-identifier oid)
+	     (make-der-tagged-object #t 0
+	      (if oid
+		  (make-der-object-identifier oid)
+		  (ec-parameter->asn.1-object param)))
 	     (if (and pub (slot-ref pub 'parameter))
-		 (list (export-public-key ECDSA pub))
+		 (list
+		  (make-der-tagged-object #t 1
+		   (make-der-bit-string
+		    (encode-ec-point curve (slot-ref pub 'Q)))))
 		 '())))))
       
   (define-method export-private-key ((key <ecdsa-private-key>))
@@ -376,19 +427,29 @@
   (define-method import-private-key ((marker (eql ECDSA)) (in <port>))
     (import-private-key ECDSA (read-asn.1-object in)))
   (define-method import-private-key ((marker (eql ECDSA)) (in <asn.1-sequence>))
+    (define (find-tag objs n)
+      (exists (lambda (obj)
+		(and (is-a? obj <asn.1-tagged-object>)
+		     (= (slot-ref obj 'tag-no) n)
+		     (slot-ref obj 'obj))) objs))
     (let ((objs (slot-ref in 'sequence)))
-      (unless (< (length objs) 3) 
+      (when (< (length objs) 3) 
 	(assertion-violation 'import-private-key "invalid sequence size" in))
       (unless (= 1 (der-integer->integer (car objs)))
 	(assertion-violation 'import-private-key "invalid version"))
-      (make <ecdsa-private-key>
-	:d (bytevector->uinteger (der-octet-string-octets (cadr objs)))
-	:parameter (let ((p (caddr objs)))
-		     (if (is-a? p <der-object-identifier>)
-			 (lookup-named-curve-parameter p)
-			 (->ec-parameter p)))
-	:public-key (and (= (length objs) 4)
-			 (import-public-key ECDSA
-					    (slot-ref (cadddr objs) 'data))))))
+      (let* ((tag0 (find-tag (cddr objs) 0))
+	     (param (and tag0
+			 (if (is-a? tag0 <der-object-identifier>)
+			     (lookup-named-curve-parameter tag0)
+			     (->ec-parameter tag0)))))
+	(make <ecdsa-private-key>
+	  :d (bytevector->uinteger (der-octet-string-octets (cadr objs)))
+	  :parameter param
+	  :public-key (and-let* (( param )
+				 (p (find-tag (cddr objs) 1)))
+			(make <ecdsa-public-key>
+			  :Q (decode-ec-point (ec-parameter-curve param)
+					      (slot-ref p 'data))
+			  :parameter param))))))
   
   )

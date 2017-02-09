@@ -9,6 +9,7 @@
 	(math prime)
 	(math hash)
 	(math ec)
+	(rfc base64)
 	(clos user))
 
 ;; plain value for all test cases
@@ -1107,6 +1108,23 @@ Tag = 267a3ba3670ff076
     (loop (+ i 1) (cdr v))))
 
 ;; ECDSA tests
+;; import private key
+(let ()
+  (define b64 "MIIBaAIBAQQgspVz8SYOcEa7W3/CmRmiwsrAXC9fQczupivKOnoLKZiggfowgfcC
+AQEwLAYHKoZIzj0BAQIhAP////8AAAABAAAAAAAAAAAAAAAA////////////////
+MFsEIP////8AAAABAAAAAAAAAAAAAAAA///////////////8BCBaxjXYqjqT57Pr
+vVV2mIa8ZR0GsMxTsPY7zjw+J9JgSwMVAMSdNgiG5wSTamZ44ROdJreBn36QBEEE
+axfR8uEsQkf4vOblY6RA8ncDfYEt6zOg9KE5RdiYwpZP40Li/hp/m47n60p8D54W
+K84zV2sxXs7LtkBoN79R9QIhAP////8AAAAA//////////+85vqtpxeehPO5ysL8
+YyVRAgEBoUQDQgAEHE1h+2lRvy3BRBxBJWHYciA+k7XOqTlRrnREu6EUqP2f7Q64
+PmkKfA8SLO+yiHr2N0Q31/9xF1Twi6yWfjZyUw==")
+  (define bv (base64-decode-string b64 :transcoder #f))
+    
+  (test-assert "Import ECDSA" (private-key? (import-private-key ECDSA bv)))
+  (test-equal "Export ECDSA" bv
+	      (export-private-key ECDSA (import-private-key ECDSA bv))))
+
+
 ;; no hash
 (define-syntax define-no-hash
   (syntax-rules ()

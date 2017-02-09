@@ -57,7 +57,12 @@
 
 	    ;; field
 	    ec-field-fp?
+	    ec-field-fp-p
 	    ec-field-f2m?
+	    ec-field-f2m-m
+	    ec-field-f2m-k1
+	    ec-field-f2m-k2
+	    ec-field-f2m-k3
 	    ec-field-size
 	    
 	    ;; parameter accessors
