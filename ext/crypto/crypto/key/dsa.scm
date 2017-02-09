@@ -14,6 +14,7 @@
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
+	    (crypto key k-generator)
 	    (asn.1)
 	    (util bytevector))
 
@@ -110,7 +111,8 @@
     (cond ((assv (bitwise-length p) +key-length+) => cdr)
 	  (else (error who "can't determine the hash algorithm"))))
 
-  (define (dsa-sign bv key :key (prng (secure-random RC4))
+  (define default-k-generator (random-k-generator (secure-random RC4)))
+  (define (dsa-sign bv key :key (k-generator default-k-generator)
 		    (der-encode #t))
     (unless (is-a? key <dsa-private-key>)
       (raise-encrypt-error 'dsa-sign "invalid key" 'DSA))
@@ -119,7 +121,7 @@
 	   (g (slot-ref key 'g))
 	   (x (slot-ref key 'X))
 	   (digester (get-digester 'dsa-sign p))
-	   (k (random prng q))
+	   (k (k-generator q x))
 	   (r (mod (mod-expt g k p) q))
 	   (xr+h (mod (+ (bytevector->integer (hash digester bv)) (* x r)) q))
 	   (kinv (mod-inverse k q))

@@ -77,13 +77,17 @@
 	    sect283r1
 	    sect409r1
 	    sect571r1
-	    
+
 	    ;; external representive
 	    export-public-key
 	    export-private-key
 	    import-public-key
 	    import-private-key
 
+	    ;; other
+	    random-k-generator
+	    determistic-k-generator
+	    
 	    ;; key components
 	    split-key
 	    combine-key-components
@@ -96,4 +100,5 @@
 	    (crypto key dsa)
 	    (crypto key des)
 	    (crypto key ecdsa)
+	    (crypto key k-generator)
 	    (crypto key component)))

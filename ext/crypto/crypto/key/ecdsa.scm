@@ -83,6 +83,7 @@
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
+	    (crypto key k-generator)
 	    (asn.1)
 	    (util bytevector))
   (define ECDSA :ecdsa)
@@ -121,16 +122,6 @@
 				      :optional (parameter secp256r1))
     (make <ecdsa-public-key> :Q (make-ec-point x y) :parameter parameter))
   
-  (define (random-k-generator prng)
-    (lambda (n d)
-      (let ((bits (bitwise-length n)))
-	(do ((r (read-random-bits prng bits) (read-random-bits prng bits)))
-	    ((and (not (zero? r)) (< r n)) r)))))
-
-  ;; RFC 6979
-  (define (determistic-k-generator digest message)
-    (error 'determistic-k-generator "not supported yet"))
-
   (define (compute-e digest n bv)
     (define M (hash digest bv))
     (let ((len (bitwise-length n))
@@ -139,10 +130,10 @@
 	(if (< len M-bits)
 	    (bitwise-arithmetic-shift-right e (- M-bits len))
 	    e))))
-  
+
+  (define default-k-generator (random-k-generator (secure-random RC4)))
   (define (ecdsa-sign bv key
-		      :key (k-generator
-			    (random-k-generator (secure-random RC4)))
+		      :key (k-generator default-k-generator)
 			   (der-encode #t)
 			   (digest :hash SHA-1))
     (define (compute-r ec n d)
