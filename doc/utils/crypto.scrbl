@@ -62,6 +62,8 @@ The symmetric key algorithms.
 @define[Constant]{@name{Camellia}}
 
 The public key algorithm
+@define[Constant]{@name{DSA}}
+@define[Constant]{@name{ECDSA}}
 @define[Constant]{@name{RSA}}
 
 @var{key} must be a key object which will be created by key generate procedures
@@ -640,7 +642,8 @@ NOTE: We recommend to make @var{mark} the same as example code does and export
 the registered @var{mark}. And the @var{mark} must be unique enough not to
 overwrite existing SPI names. 
 
-e.g. @code{:rsa} and @code{:dsa} is already used for RSA and DSA.
+e.g. @code{:rsa}, @code{:dsa} and @code{:ecdsa} are already used for
+RSA, DSA and ECDSA
 }
 
 The concept of this SPI is influenced by Java's JCE. The toplevel of cipher is
