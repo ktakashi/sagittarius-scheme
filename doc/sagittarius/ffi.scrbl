@@ -39,7 +39,7 @@ Following is the simple example to use;
   ;; usual procedures.
   (quick-sort array (bytevector-length array) 1 compare)
   ;; release callback procedure.
-  ;; NOTE: this will be release at GC time.
+  ;; NOTE: callback won't be GCed so users need to release it manually
   (free-c-callback compare)
   array)
 
@@ -293,6 +293,12 @@ it is users responsibility to handle it.
 
 @var{proc} must be a procedure takes the same number of arguments as
 @var{argument-types} list.
+
+Created callbacks are stored intarnal static storage to avoid to get GCed.
+This is because C functions which accept callback may hold the given callback
+in their storage which could be outside of Sagittarius GC root. So it is
+users' responsibility to release created callback to avoid memory leak. To
+release callbacks, you need to use @coe{free-c-callback}.
 }
 
 @define[Macro]{@name{make-c-callback}
