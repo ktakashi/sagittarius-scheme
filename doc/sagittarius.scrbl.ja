@@ -410,34 +410,35 @@ S式の出力。与えられた引数は@code{write}手続きを使った際と�
 }
 
 @define[Function]{@name{make-codec} @args{symbol getc putc data}}
-@desc{Creates a custom codec. @var{Symbol} is the name of the codec. @var{Getc}
-and @var{putc} must be procedures. @var{Data} is an user data used in @var{getc}
-and @var{putc}.
+@desc{カスタムコーデックを作ります。シンボル@var{Symbol}は作られるコーデックの名前。
+@var{Getc}及び@var{putc}は手続きでなければなりません。@var{Data}は
+@var{getc}及び@var{putc}で参照することが可能なユーザデータです。
 
-@var{Getc} must take 4 arguments, @var{input-port}, @var{error-handling-mode},
-@var{check-bom?} and @var{userdata}. @var{Input-port} is binary input port.
-@var{Error-handling-mode} is symbol can be @code{ignore}, @code{raise} or
-@code{replace} depending on a transcoder which uses this custom codec.
-@var{Check-bom?} is boolean, if @var{getc} is being called first time, it is #t,
-otherwise #f. @var{Userdata} is user defined data which is given when the codec
-is created.
+@var{Getc}手続きは4つの引数、@var{input-port}、 @var{error-handling-mode}、
+@var{check-bom?}そして@var{userdata}を受け取ります。@var{Input-port}は
+バイナリ入力ポート。@var{Error-handling-mode}シンボルで、@code{ignore}、
+@code{raise}または@code{replace}のいずれかです。値は作成されたコーデックと使用する
+トランスコーダによって決定されます。@var{Check-bom?}は真偽値です。@var{getc}の
+初回呼び出しの際に#tそれ以外は#fを受け取ります。@var{Userdata}はコーデック作成時に
+渡されたユーザ定義のデータです。
 
-The basic process of @var{getc} is reading binary data from @var{input-port} and
-converting the data to UCS4. Returning UCS4 must be integer and does not have to
-be 4 byte.
+@var{Getc}手続きの基本的なプロセスは、@var{input-port}からバイナリデータを読み取り
+それをUCS4に変換することです。返されるUCS4のコードポイントは整数である必要がありますが、
+必ずしも4バイトである必要はありません。
 
-@var{Putc} must take 4 arguments, @var{output-port}, @var{char}, 
-@var{error-handling-mode} and @var{userdata}. @var{Output-port} is binary output
-port. @var{Char} is character object which needs to be converted from UCS4.
-@var{Error-handling-mode} is symbol can be @code{ignore}, @code{raise} or
-@code{replace} depending on a transcoder which uses this custom codec.
-@var{Userdata} is user defined data which is given when the codec is created.
+@var{Putc}手続きは4つの引数、@var{output-port}、@var{char}、
+@var{error-handling-mode}及び@var{userdata}を受け取ります。@var{Output-port}は
+バイナリ出力ポートです。@var{Char}は対象の文字コードポイントに変換されるべき文字です。
+@var{Error-handling-mode}はシンボルで、@code{ignore}、@code{raise}または
+@code{replace}のいずれかです。 値は作成されたコーデックと使用するトランスコーダ
+によって決定されます。@var{Userdata}はコーデック作成時に渡されたユーザ定義の
+データです。
 
-The basic process of @var{putc} is converting given UCS4 charactner to target
-encoding data and putting it to @var{output-port} as binary data.
+@var{Putc}手続きのの基本的なプロセスは、与えられたUCS4文字を対象のコードポイントに
+変換し、@var{output-port}に書き出すことです。
 
-For sample implementation, see sitelib/encoding directory. You can find some
-custom codecs.
+例としては@code{sitelib/encoding}を見るのがいいでしょう。いくつかのカスタムコーデックが
+実装されています。
 }
 
 @subsubsection{Symbols}
