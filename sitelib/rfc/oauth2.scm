@@ -35,6 +35,15 @@
     (export oauth2-request-password-credentials-access-token
 	    oauth2-request-client-credentials-access-token
 	    oauth2-request-access-token
+
+	    make-oauth2-access-token
+	    oauth2-access-token?
+	    oauth2-access-token-access-token
+	    oauth2-access-token-token-type
+	    oauth2-access-token-expires-in
+	    oauth2-access-token-refresh-token
+	    oauth2-access-token-scope
+	    
 	    oauth2-connection?
 	    oauth2-http-connection?
 	    oauth2-http2-connection?
@@ -44,6 +53,8 @@
 	    (sagittarius)
 	    (srfi :1)
 	    (srfi :13)
+	    (srfi :39)
+	    (text json)
 	    (rfc uri)
 	    (rfc base64)
 	    (rfc http)
@@ -79,12 +90,53 @@
 
 
   (define (oauth2-request-access-token connection path headers parameters)
-    ((oauth2-connection-http-post connection)
-     connection path headers parameters))
+    (let-values (((status header body)
+		  ((oauth2-connection-http-post connection)
+		   connection path headers parameters)))
+      (if (string=? status "200")
+	  (json-string->access-token (utf8->string body))
+	  (error 'oauth2-request-access-token
+		 "Failed to retrieve access token"
+		 (utf8->string body)))))
   
   (define (create-basic-authorization value)
     (list "Authorization" (string-append "Basic " value)))
 
+;;; Access token
+  (define-record-type oauth2-access-token
+    (fields access-token token-type expires-in refresh-token scope)
+    (protocol (lambda (p)
+		(lambda (access-token token-type expires-in refresh-token scope)
+		  (define (->time v)
+		    (let ((sec (if (string? v)
+				   (string->number v)
+				   v)))
+		      (make-time time-duration 0 sec)))		  
+		  (unless access-token
+		    (assertion-violation 'make-oauth2-access-token
+					 "access_token is required"))
+		  (unless token-type
+		    (assertion-violation 'make-oauth2-access-token
+					 "token_type is required"))
+		  (p access-token token-type
+		     (and expires-in
+			  (or (and (time? expires-in) expires-in)
+			      (->time expires-in)))
+		     refresh-token scope)))))
+  
+  (define (json-string->access-token json)
+    (define (assoc-ref alist v)
+      (cond ((assoc v alist) => cdr)
+	    (else #f)))
+    (parameterize ((*json-map-type* 'alist))
+      (let ((json (json-read (open-string-input-port json))))
+	(make-oauth2-access-token
+	 (assoc-ref json "access_token")
+	 (assoc-ref json "token_type")
+	 (assoc-ref json "expires_in")
+	 (assoc-ref json "refresh_token")
+	 (assoc-ref json "scope")))))
+  
 ;;; Connection
   (define-record-type oauth2-connection
     (fields http-get http-post))
@@ -118,9 +170,10 @@
 	      :extra-headers headers))
   (define (oauth2-http-post connection path headers parameters)
     (http-post (oauth2-http-connection-server connection)
-	      path parameters
-	      :secure #t
-	      :extra-headers (cons content-type headers)))
+	       path parameters
+	       :receiver (http-binary-receiver)
+	       :secure #t
+	       :extra-headers (cons content-type headers)))
 
   (define (oauth2-http2-get connection path headers parameters)
     (apply http2-get (oauth2-http2-connection-connection connection)
