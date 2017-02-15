@@ -447,62 +447,60 @@ S式の出力。与えられた引数は@code{write}手続きを使った際と�
 @define[Function]{@name{symbol<=?} @args{symbol1 symbol2 symbols @dots{}}}
 @define[Function]{@name{symbol>?} @args{symbol1 symbol2 symbols @dots{}}}
 @define[Function]{@name{symbol>=?} @args{symbol1 symbol2 symbols @dots{}}}
-@desc{Return #t if given @var{symbol1} is less than, less than or equal to,
-greater than or greater than or equal to @var{symbol2}. If @var{symbols} are
-not null, then the procedures continue to compare until the given arguments
-are exhausted.
+@desc{与えられたシンボル@var{symbol1}がシンボル@var{symbol2}と比較して、
+未満、以下、より大きい、以上であれば#tを返し、そうでなければ#fを返します。もし
+@var{symbols}が与えられた場合、それらすべてに対して同様に比較します。
 
-These procedures are analogy of @code{string<?}, @code{string<=?},
-@code{string>?} and @code{string>=?}.
+これら手続きは@code{string<?}、@code{string<=?}、@code{string>?}及び
+@code{string>=?}と似た手続きです。
 
-These can also be implemented as follows:
+これらは以下のようにも実装可能です。
 @snipet{(define (symbol<? . syms) (apply string<? (map symbol->string syms)))}
-However, this build-in version won't converts given symbols to strings.
+しかし、組み込みの手続きではシンボルから文字列への返還を行いません。
 }
 
 @subsubsection{Keywords}
 
-Sagittarius has keyword objects which starts with @code{':'}. It has almost the
-same feature as symbol, however it can not be bounded with any values. The 
-keyword objects are self quoting so users don't have to put @code{'} explicitly.
+Sagittariusはキーワードを持っています。これは@code{':'}から始まる識別子です。
+キーワードはシンボルとよく似た特徴を持っていますが、キーワードにはいかなる値も束縛
+することはできません。キーワードは自己評価するオブジェクトなので、ユーザーは
+明示的に@code{'}をつける必要はありません。(もちろんつけても構いません)
 
-The keyword notation is *NOT* available on R6RS or R7RS reader mode. Thus
-@code{#!r6rs} or @code{#!r7rs} directive and @code{-r6} or @code{-r7}
-command line option disable it.
+キーワードはリーダーモードR6RSまたはR7RSでは使用できません。つまり
+@code{#!r6rs}または@code{#!r7rs}ディレクティブ、そして@code{-r6}または@code{-r7}
+の起動オプションを与えると無効化されます。
 
 @define[Function]{@name{make-keyword} @args{symbol}}
 @define[Function]{@name{symbol->keyword} @args{symbol}}
-@desc{Creates a new keyword from @var{symbol}.}
+@desc{与えられたシンボル@var{symbol}からキーワードを作ります。}
 
 @define[Function]{@name{string->keyword} @args{string}}
-@desc{Creates a new keyword from @var{string}.}
+@desc{与えられた文字列@var{string}からキーワードを作ります。}
 
 @define[Function]{@name{keyword?} @args{obj}}
-@desc{Returns #t if @var{obj} is keyword, otherwise #f.
-}
+@desc{与えられた@var{obj}がキーワードなら#tをそれ以外なら#fを返します。}
 
 @define[Function]{@name{keyword->symbol} @args{keyword}}
-@desc{Returns a symbol representation of given keyword @var{keyword}.}
+@desc{与えられたキーワード@var{keyword}のシンボル表現を返します。}
 
 @define[Function]{@name{keyword->string} @args{keyword}}
-@desc{Returns a string representation of given keyword @var{keyword}.}
+@desc{与えられたキーワード@var{keyword}の文字列表現を返します。}
 
 @define[Function]{@name{get-keyword} @args{keyword list :optional fallback}}
-@desc{Returns the element after given @var{keyword} from given @var{list}.
+@desc{与えられたリスト@var{list}から与えられたキーワード@var{keyword}のすぐ後ろに
+ある要素を返します。
 
-The elements count of the @var{list} should be even number, otherwise the
-procedure might raise @code{&error} when @var{keyword} is not found in
-@var{list}.
+@var{list}の要素数は偶数でなければなりません。要素数が奇数でかつ与えられた
+@var{keyword}が@var{list}内に存在しない場合は@code{&error}が送出されます。
 
-If @var{fallback} is given and the procedure could not find the @var{keyword}
-from the @var{list}, the @var{fallback} will be return. Otherwise it raises
-@code{&error}.
+もし@var{fallback}が与えられかつ@var{keyword}が@var{list}内に存在しない場合、
+@var{fallback}が戻り値として返されます。@var{fallback}が与えられなかった場合は
+@code{&error}が送出されます。
 
 @snipet[=> d]{(get-keyword :key '(a b c :key d))}
 @snipet[=> &error]{(get-keyword :key '(a b c d e))}
 @snipet[=> &error]{(get-keyword :key '(a b c d e) 'fallback)}
 @snipet[=> fallback]{(get-keyword :key '(a b c d e f) 'fallback)}
-
 }
 
 @subsubsection{Weak box}
