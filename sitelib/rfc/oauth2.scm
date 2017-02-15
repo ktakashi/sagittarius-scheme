@@ -153,7 +153,7 @@
   (define (make-http-oauth2-connection server)
     (make-oauth2-http-connection oauth2-http-get oauth2-http-post server))
 
-  (define content-type '("Content-Type" "application/x-www-form-urlencoded"))
+  (define content-type "application/x-www-form-urlencoded")
   (define (oauth2-http-get connection path headers parameters)
     (http-get (oauth2-http-connection-server connection)
 	      (if (null? parameters)
@@ -166,7 +166,8 @@
 	       path parameters
 	       :receiver (http-binary-receiver)
 	       :secure #t
-	       :extra-headers (cons content-type headers)))
+	       :content-type content-type
+	       :extra-headers headers))
 
 
   (define (make-http2-oauth2-connection server)
@@ -203,6 +204,7 @@
     (apply http2-post (oauth2-http2-connection-connection connection)
 	   path
 	   (string->utf8 parameters)
+	   :content-type content-type
 	   (append-map (lambda (h&v)
 			 (list (string->keyword (car h&v)) (cadr h&v)))
 		       headers)))
