@@ -97,7 +97,8 @@
 	  (json-string->access-token (utf8->string body))
 	  (error 'oauth2-request-access-token
 		 "Failed to retrieve access token"
-		 (utf8->string body)))))
+		 `((status: ,status)
+		   (body: ,(and body (utf8->string body))))))))
   
   (define (create-basic-authorization value)
     (list "Authorization" (string-append "Basic " value)))
@@ -151,14 +152,6 @@
 
   (define (make-http-oauth2-connection server)
     (make-oauth2-http-connection oauth2-http-get oauth2-http-post server))
-  (define (make-http2-oauth2-connection server)
-    (define (parse-port server)
-      (cond ((string-index-right server #\:) =>
-	     (lambda (p) (string-copy server (+ p 1))))
-	    (else #f)))
-    (let ((port (or (parse-port server) "443")))
-      (make-oauth2-http2-connection oauth2-http2-get oauth2-http2-post
-	(make-http2-client-connection server port :secure? #t))))
 
   (define content-type '("Content-Type" "application/x-www-form-urlencoded"))
   (define (oauth2-http-get connection path headers parameters)
@@ -174,6 +167,28 @@
 	       :receiver (http-binary-receiver)
 	       :secure #t
 	       :extra-headers (cons content-type headers)))
+
+
+  (define (make-http2-oauth2-connection server)
+    (define (parse-port server)
+      (cond ((string-index-right server #\:) =>
+	     (lambda (p) (string-copy server (+ p 1))))
+	    (else #f)))
+    (define (w proc)
+      (lambda (c u h p)
+	(let-values (((h b) (proc c u h p)))
+	  (http2-response->http1-compatible h b))))
+    (let ((port (or (parse-port server) "443")))
+      (make-oauth2-http2-connection (w oauth2-http2-get) (w oauth2-http2-post)
+       (make-http2-client-connection server port :secure? #t))))
+  
+  (define (http2-response->http1-compatible header body)
+    (define (bv-header->string-header n&b)
+      (list (utf8->string (car n&b)) (utf8->string (cadr n&b))))
+    (let ((headers (map bv-header->string-header header)))
+      (values (cond ((assoc ":status" headers) => cadr))
+	      headers
+	      body)))
 
   (define (oauth2-http2-get connection path headers parameters)
     (apply http2-get (oauth2-http2-connection-connection connection)
