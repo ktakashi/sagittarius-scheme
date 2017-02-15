@@ -440,11 +440,15 @@
   (define (http2-construct-header stream . extras)
     (define conn (http2-stream-connection stream))
     (define ->bv string->utf8)
+    (define (construct-authority host secure?)
+      (->bv (string-append (if secure? "https://" "http://") host)))
     (let1 secure? (%h2-secure? conn)
       `((#*":method" ,(->bv (symbol->string (http2-stream-method stream))))
 	(#*":scheme" ,(if secure? #*"https" #*"http"))
 	(#*":path"   ,(->bv (http2-stream-uri stream)))
-	(#*"host"    ,(->bv (http2-client-connection-server conn)))
+	(#*":authority" ,(construct-authority
+			  (http2-client-connection-server conn) secure?))
+	;;(#*"host"    ,(->bv (http2-client-connection-server conn)))
 	(#*"user-agent" ,(->bv (%h2-agent conn)))
 	,@(let loop ((h extras) (r '()))
 	    (match h
