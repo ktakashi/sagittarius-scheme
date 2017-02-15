@@ -561,13 +561,16 @@
 		      :allow-other-keys headers)
     ;; discards the stored streams first
     (when (http2-has-pending-streams? conn) (http2-invoke-requests! conn))
-    (http2-add-request! conn 'POST uri
-			(http2-composite-sender 
-			 (apply http2-headers-sender headers)
-			 (http2-data-sender data))
-			receiver
-			:redirect-handler redirect-handler)
-    (apply values (car (http2-invoke-requests! conn))))
+    (let ((size (number->string (bytevector-length data))))
+      (http2-add-request! conn 'POST uri
+			  (http2-composite-sender 
+			   (apply http2-headers-sender
+				  :content-length size
+				  headers)
+			   (http2-data-sender data))
+			  receiver
+			  :redirect-handler redirect-handler)
+      (apply values (car (http2-invoke-requests! conn)))))
 
 
 ;;; handlers
