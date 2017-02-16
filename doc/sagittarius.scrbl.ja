@@ -503,60 +503,55 @@ Sagittariusはキーワードを持っています。これは@code{':'}から�
 @snipet[=> fallback]{(get-keyword :key '(a b c d e f) 'fallback)}
 }
 
-@subsubsection{Weak box}
+@subsubsection{Weak box(弱ボックス)}
 
-A weak  box is a reference  to an object  that doesn’t prevent the  object from
-being garbage-collected.
+弱ボックスはGCを阻害しないようにオブジェクトへの参照を保持します。つまり、弱ボックスの
+要素はGCが発生した際し弱ボックス以外から参照されていなかった場合に回収されます。
 
 @define[Function]{@name{weak-box?} @args{obj}}
-@desc{Returns #t if @var{obj} is weak box otherwise #f.}
+@desc{与えられた@var{obj}が弱ボックスなら#tをそれ以外なら#fを返します。}
 
 @define[Function]{@name{make-weak-box} @args{obj}}
-@desc{Returns a weak box whose value is @var{obj}.}
+@desc{与えられた@var{obj}を保持する弱ボックスを作ります。}
 
 @define[Function]{@name{weak-box-empty?} @args{wb}}
-@desc{Returns #t if the value of given weak box @var{wb} is garbage collocted.
-Otherwise #f.}
+@desc{与えられた弱ボックス@var{wb}の保持する要素がGCによって回収されたならば#tを
+そうでなければ#fを返します。}
 
 @define[Function]{@name{weak-box-ref} @args{wb :optional (fallback #f)}}
-@desc{Returns the value of given weak box @var{wb} if it's not garbage 
-collocted. Otherwise returns @var{fallback}.}
+@desc{与えられた弱ボックス@var{wb}の保持する要素を返します。既にGCによって回収
+されている場合は@var{fallback}を返します。}
 
 @define[Function]{@name{weak-box-set!} @args{wb obj}}
-@desc{Replace the value of given @var{wb} with @var{obj}.}
+@desc{与えられた弱ボックス@var{wb}の保持する要素を@var{obj}で置き替えます。}
 
 
-@subsubsection{Weak vector}
+@subsubsection{Weak vector(弱ベクター)}
 
-A weak vector  is like a vector  of objects, except each object  can be garbage
-collected if it is not referenced from objects other than weak vectors.  If the
-object is collected, the entry of the weak vector is replaced to #f.
+弱ベクターはベクターとよく似たオブジェクトですが、保持する要素がGCの対象になります。
 
 @define[Function]{@name{weak-vector?} @args{obj}}
-@desc{Returns #t if @var{obj} is weak vector otherwise #f.}
+@desc{与えられた@var{obj}が弱ベクターなら♯tをそれ以外なら#fを返します。}
 
 @define[Function]{@name{make-weak-vector} @args{size}}
-@desc{Creates and returns a weak vector of size @var{size}.}
+@desc{サイズが@var{size}の弱ベクターを作ります。}
 
 @define[Function]{@name{weak-vector-length} @args{wvec}}
-@desc{Returns the length of given weak vector @var{wvec}}
+@desc{与えられた弱ベクター@var{wvec}の長さを返します。}
 
 @define[Function]{@name{weak-vector-ref} @args{wvec k :optional fallback}}
-@desc{Returns @var{k}-th element of a weak vector @var{wvec}.
+@desc{弱ベクター@var{wvec}の@var{k}番目の要素を返します。
 
-By default, @code{weak-vector-ref} raise an @code{&assertion} if @var{k} is
-negative, or greater than or equal to the size of @var{wvec}. However, if an
-optional argument @var{fallback} is given, it is returned for such case.
+@var{k}が負の値または@var{wvec}の長さより大きな値であった場合、
+@code{weak-vector-ref}は通常@code{&assertion}を送出します。しかし、オプショナル引数
+@var{fallback}が与えられた場合、そのような場合でも@var{fallback}を返します。
 
-If the element has been garbage collected, this procedure returns @var{fallback}
-if it is given, #f otherwise. 
+もし要素がGCによって回収されている場合@code{weak-vector-ref}手続きは@var{fallback}
+を返します。もし@var{fallback}が与えられていない場合は#fを返します。
 }
 
 @define[Function]{@name{weak-vector-set!} @args{wvec k value}}
-@desc{Sets @var{k}-th element of the weak vector @var{wvec} to @var{value}. It
-raises an @code{&assertion} if @var{k} is negative or greater than or equal to
-the size of @var{wvec}. 
-}
+@desc{弱ベクター@var{wvec}の@var{k}番目に@var{value}をセットします。}
 
 @subsubsection{Weak hashtable}
 
