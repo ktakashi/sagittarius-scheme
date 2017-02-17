@@ -45,9 +45,9 @@
 			(let ((res (bytevector-append r #*"\r\n")))
 			  ;; wait one sec
 			  (when (bytevector=? r #*"wait") (thread-sleep! 1))
+			  (put-bytevector p res 0 (bytevector-length res))
 			  (when (bytevector=? r #*"push")
 			    (shared-queue-put! echo-server-queue #t))
-			  (put-bytevector p res 0 (bytevector-length res))
 			  (lp2 (b:get-line p))))))))))))))
     (unless stop? (loop))))
 (define server-thread (make-thread server-run))
