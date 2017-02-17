@@ -48,8 +48,9 @@
       (apply-directive! port 'r6rs *r6rs-read-context*)
       (let loop ((e (read port)) (r '()))
 	(if (eof-object? e)
-	    (eval `(program ,@(reverse! r) (exit))
-		  (environment '(r6rs-script)))
+	    (begin
+	      (eval `(program . ,(reverse! r)) (environment '(r6rs-script)))
+	      (exit))
 	    (loop (read port) (cons e r))))))
   
   (define (script file/port prompt opt)
