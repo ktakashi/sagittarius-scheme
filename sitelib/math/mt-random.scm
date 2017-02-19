@@ -108,83 +108,70 @@
   (define (mt-set-seed prng seed)
     (define (64-bit-bytevector? seed)
       (zero? (mod (bytevector-length seed) 8)))
-    (cond ((and (integer? seed)
-		(positive? seed))
+    (cond ((and (integer? seed) (positive? seed))
 	   (init-genrand prng seed))
-	  ((and (bytevector? seed)
-		(64-bit-bytevector? seed))
+	  ((and (bytevector? seed) (64-bit-bytevector? seed))
 	   (init-by-array64 prng seed))
-	  (else
-	   (assertion-violation 'set-seed
-				"invalid seed" seed))))
+	  (else (assertion-violation 'set-seed "invalid seed" seed))))
+  
   ;; generates a random number on [0, 2^64-1]-interval
   ;; I actually don't know how to treat this. for now, generate full number
   ;; and convert to bytevector.
   (define (mt-read-random! prng buf bytes)
     (define (reset prng)
+      (define (update-mt! mt start end ref)
+	(let loop ((j start))
+	  (unless (= j end)
+	    (let* ((x (bitwise-ior
+		       (bitwise-and (mt-ref mt j) UM)
+		       (bitwise-and (mt-ref mt (+ j 1)) LM)))
+		   (v (bitwise-xor (mt-ref mt (+ j ref))
+				   (bitwise-arithmetic-shift-right x 1)
+				   (mt-ref mag01 (bitwise-and x 1)))))
+	      (mt-set! mt j v)
+	      (loop (+ j 1))))))
       (let ((mt (slot-ref prng 'state))
-	    (mti (slot-ref prng 'mti))
-	    (i 0) (x 0))
-	(when (= mti (+ NN 1))
-	  ;; if init-genrand has not been called,
-	  ;; a default initial seed is used
-	  (init-genrand prng 5489))	
-	(let ((x 0))
-	  (do ((j 0 (+ j 1)))
-	      ((= j (- NN MM)) (set! i j))
-	    (set! x (bitwise-ior
-		     (bitwise-and (mt-ref mt j) UM)
-		     (bitwise-and (mt-ref mt (+ j 1)) LM)))
-	    (let ((v (bitwise-xor (mt-ref mt (+ j MM))
-				  (bitwise-arithmetic-shift-right x 1)
-				  (mt-ref mag01 (bitwise-and x 1)))))
-	      (mt-set! mt j v)))
-	  (do ((j i (+ j 1)))
-	      ((= j (- NN 1)))
-	    (set! x (bitwise-ior
-		     (bitwise-and (mt-ref mt j) UM)
-		     (bitwise-and (mt-ref mt (+ j 1)) LM)))
-	    (let ((v (bitwise-xor (mt-ref mt (+ j (- MM NN)))
-				  (bitwise-arithmetic-shift-right x 1)
-				  (mt-ref mag01 (bitwise-and x 1)))))
-	      (mt-set! mt j v)))
-	  (set! x (bitwise-ior
+	    (mti (slot-ref prng 'mti)))
+	(update-mt! mt 0 (- NN MM) MM)
+	(update-mt! mt (- NN MM) (- NN 1) (- MM NN))
+	(let* ((x (bitwise-ior
 		   (bitwise-and (mt-ref mt (- NN 1)) UM)
 		   (bitwise-and (mt-ref mt 0) LM)))
-	  (let ((v (bitwise-xor (mt-ref mt (- MM 1))
-				(bitwise-arithmetic-shift-right x 1)
-				(mt-ref mag01 (bitwise-and x 1)))))
-	    (mt-set! mt (- NN 1) v))
+	       (v (bitwise-xor (mt-ref mt (- MM 1))
+			       (bitwise-arithmetic-shift-right x 1)
+			       (mt-ref mag01 (bitwise-and x 1)))))
+	  (mt-set! mt (- NN 1) v)
+	  ;;(slot-set! prng 'state mt)
 	  (slot-set! prng 'mti 0))))
 
-    (define (read-random! bv count)	
+    (define (read-random! bv count)
       (let ((len (bytevector-length bv)))
 	(let loop ((i 0) (offset 0))
 	  (unless (= i count)
-	    (let ((mt (slot-ref prng 'state)))
-	      (when (>= (slot-ref prng 'mti) NN)
-		(reset prng))
-	      (let* ((mti (slot-ref prng 'mti))
-		     (x (mt-ref mt mti)))
-		(slot-set! prng 'mti (+ mti 1))
-		(set! x (bitwise-xor x
-			 (bitwise-and (bitwise-arithmetic-shift-right x 29)
-				      #x5555555555555555)))
-		(set! x (bitwise-xor x
-			 (bitwise-and (bitwise-arithmetic-shift x 17)
-				      #x71D67FFFEDA60000)))
-		(set! x (bitwise-xor x
-			 (bitwise-and (bitwise-arithmetic-shift x 37)
-				      #xFFF7EEE000000000)))
-		(set! x (bitwise-xor x (bitwise-arithmetic-shift-right x 43)))
-		;; copy to result buffer
-		;; ensure src has 8 bytes
-		(let* ((src (integer->bytevector x 8))
-		       (off offset))
-		  (if (>= (- len off) 8)
-		      (bytevector-copy! src 0 bv off (bytevector-length src))
-		      (bytevector-copy! src 0 bv off (- len off)))
-		  (loop (+ i 1) (+ offset 8)))))))))
+	    (when (>= (slot-ref prng 'mti) NN) (reset prng))
+	    (let* ((mt (slot-ref prng 'state))
+		   (mti (slot-ref prng 'mti))
+		   (x0 (mt-ref mt mti)))
+	      (slot-set! prng 'mti (+ mti 1))
+	      ;; copy to result buffer
+	      ;; ensure src has 8 bytes
+	      (let* ((x1 (bitwise-xor x0
+			   (bitwise-and (bitwise-arithmetic-shift-right x0 29)
+					#x5555555555555555)))
+		     (x2 (bitwise-xor x1
+			   (bitwise-and (bitwise-arithmetic-shift x1 17)
+					#x71D67FFFEDA60000)))
+		     (x3 (bitwise-xor x2
+			   (bitwise-and (bitwise-arithmetic-shift x2 37)
+					#xFFF7EEE000000000)))
+		     (x4 (bitwise-xor x3
+			   (bitwise-arithmetic-shift-right x3 43)))
+		     (src (integer->bytevector x4 8))
+		     (off offset))
+		(if (>= (- len off) 8)
+		    (bytevector-copy! src 0 bv off (bytevector-length src))
+		    (bytevector-copy! src 0 bv off (- len off)))
+		(loop (+ i 1) (+ offset 8))))))))
     ;; check size the reading process read 8 byte in once.
     (let ((count (ceiling (/ bytes 8))))
       (read-random! buf count)
@@ -195,15 +182,15 @@
     (;; The array for the state vector
      ;; using bytevector, it needs to be 64 bit aligned.
      (state :init-keyword :state :init-form (make-bytevector (* NN 8)))
-     ;; mti==NN+1 means MT[NN] is not initialized
-     (mti   :init-keyword :mti   :init-form (+ NN 1))))
+     (mti   :init-keyword :mti   :init-value #f)))
   (define-method initialize ((o <mersenne-twister>) initargs)
     (call-next-method)
     (let ((seed (get-keyword :seed initargs #f)))
       (slot-set! o 'set-seed! mt-set-seed)
       (slot-set! o 'read-random! mt-read-random!)
-      (when seed
-	(mt-set-seed o seed))))
+      (if seed
+	  (mt-set-seed o seed)
+	  (init-genrand o 5489))))
 
   (define-method prng-state ((prng <mersenne-twister>))
     (let ((bv (make-bytevector (*8 (+ NN 1))))
