@@ -2,10 +2,9 @@
 (import (rnrs)
 	(math)
 	(math mt-random)
-	(srfi :64 testing))
+	(srfi :64 testing)
+	(srfi :18))
 
-#;
-(define seed #vu8(69 35 1 0 0 0 0 0 86 52 2 0 0 0 0 0 103 69 3 0 0 0 0 0 120 86 4 0 0 0 0 0))
 (define seed (uint-list->bytevector '(#x12345 #x23456 #x34567 #x45678)
 				    (endianness native) 8)) 
 
@@ -1013,4 +1012,23 @@
 (test-equal "time 997"  9831652587047067687 (bytevector->integer (read-random-bytes prng 8)))
 (test-equal "time 998"  7619315254749630976 (bytevector->integer (read-random-bytes prng 8)))
 (test-equal "time 999"   994412663058993407 (bytevector->integer (read-random-bytes prng 8)))
+
+
+(let ()
+  (define prng (pseudo-random MT))
+  (define bytes '(256 256 256 256))
+
+  (define threads
+    (map (lambda (n)
+	   (make-thread
+	    (lambda ()
+	      (let loop ((i 0))
+		(or (= i n)
+		    (and (read-random-bytes prng n)
+			 (loop (+ i 1)))))))) bytes))
+  (test-equal "thread safe"
+	      '(#t #t #t #t)
+	      (map thread-join! (map thread-start! threads))))
+
+
 (test-end)

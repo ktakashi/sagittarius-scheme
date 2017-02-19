@@ -37,7 +37,8 @@
     (import (rnrs)
 	    (sagittarius)
 	    (clos user)
-	    (math))
+	    (math)
+	    (srfi :18))
 
   (define-constant NN       312)
   (define-constant MM       156)
@@ -141,7 +142,6 @@
 			       (bitwise-arithmetic-shift-right x 1)
 			       (mt-ref mag01 (bitwise-and x 1)))))
 	  (mt-set! mt (- NN 1) v)
-	  ;;(slot-set! prng 'state mt)
 	  (slot-set! prng 'mti 0))))
 
     (define (read-random! bv count)
@@ -173,8 +173,11 @@
 		    (bytevector-copy! src 0 bv off (- len off)))
 		(loop (+ i 1) (+ offset 8))))))))
     ;; check size the reading process read 8 byte in once.
-    (let ((count (ceiling (/ bytes 8))))
+    (let ((count (ceiling (/ bytes 8)))
+	  (lock (slot-ref prng 'lock)))
+      (mutex-lock! lock)
       (read-random! buf count)
+      (mutex-unlock! lock)
       buf))
 
   ;; MT random is not secure random, so we do not implement <secure-random>
@@ -182,7 +185,8 @@
     (;; The array for the state vector
      ;; using bytevector, it needs to be 64 bit aligned.
      (state :init-keyword :state :init-form (make-bytevector (* NN 8)))
-     (mti   :init-keyword :mti   :init-value #f)))
+     (mti   :init-keyword :mti   :init-value #f)
+     (lock  :init-form (make-mutex))))
   (define-method initialize ((o <mersenne-twister>) initargs)
     (call-next-method)
     (let ((seed (get-keyword :seed initargs #f)))
@@ -193,10 +197,13 @@
 	  (init-genrand o 5489))))
 
   (define-method prng-state ((prng <mersenne-twister>))
+    (define lock (slot-ref prng 'lock))
+    (mutex-lock! lock)
     (let ((bv (make-bytevector (*8 (+ NN 1))))
 	  (state (slot-ref prng 'state)))
       (bytevector-copy! state 0 bv 0 (bytevector-length state))
       (bytevector-u64-native-set! bv (* 8 NN) (slot-ref prng 'mti))
+      (mutex-unlock! lock)
       bv))
 
   (define-method prng-state ((prng <mersenne-twister>) state)
@@ -204,6 +211,8 @@
 			 state))
   (define-method prng-state ((prng <mersenne-twister>)
 			     (state <bytevector>))
+    (define lock (slot-ref prng 'lock))
+    (mutex-lock! lock)
     ;; assume state is proper state
     (unless (= (*8 (+ NN 1)) (bytevector-length state))
       (assertion-violation 
@@ -212,7 +221,8 @@
 	"64 bit aligned bytevector of length ~a is required, but got length ~d"
 	(*8 (+ NN 1)) (bytevector-length state))))
     (slot-set! prng 'state (bytevector-copy state 0 (*8 NN)))
-    (slot-set! prng 'mti (mt-ref state NN)))
+    (slot-set! prng 'mti (mt-ref state NN))
+    (mutex-unlock! lock))
 
   ;; register
   (define-class <mt> () ())
