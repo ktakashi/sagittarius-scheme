@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/oauth2.scm - OAuth2 client
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2017  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -36,6 +36,11 @@
 	    oauth2-request-client-credentials-access-token
 	    oauth2-request-access-token
 
+	    oauth2-get-request
+	    oauth2-post-request
+	    oauth2-access-protected-resource
+	    
+
 	    make-oauth2-access-token
 	    oauth2-access-token?
 	    oauth2-access-token-access-token
@@ -50,6 +55,7 @@
 	    make-http-oauth2-connection
 	    make-http2-oauth2-connection)
     (import (rnrs)
+	    (rnrs eval)
 	    (sagittarius)
 	    (srfi :1)
 	    (srfi :13)
@@ -137,6 +143,28 @@
 	 (assoc-ref json "expires_in")
 	 (assoc-ref json "refresh_token")
 	 (assoc-ref json "scope")))))
+
+;;; Section 7. Accessing Protected Resources
+  (define (oauth2-access-token->authorization access-token)
+    (let ((type (string->symbol
+		 (string-downcase
+		  (oauth2-access-token-token-type access-token))))
+	  (token (oauth2-access-token-access-token access-token)))
+      (eval `(oauth2-generate-authorization ,token)
+	    (environment `(rfc oauth2 ,type)))))
+
+  (define (oauth2-get-request conn access-token path)
+    (oauth2-access-protected-resource conn 'GET access-token path))
+
+  (define (oauth2-access-protected-resource conn method access-token path
+					    :key (content #f))
+    (let-values (((header query)
+		  (oauth2-access-token->authorization access-token)))
+      (case method
+	((GET)
+	 ((oauth2-connection-http-get conn) conn path (list header) '()))
+	((POST)
+	 ((oauth2-connection-http-post conn) conn path (list header) content)))))
   
 ;;; Connection
   (define-record-type oauth2-connection
