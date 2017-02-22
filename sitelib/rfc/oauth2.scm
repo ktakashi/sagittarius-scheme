@@ -30,16 +30,17 @@
 
 ;; reference
 ;;  RFC 6749: https://tools.ietf.org/html/rfc6749
-
+;;  RFC 7009: https://tools.ietf.org/html/rfc7009 (revocation)
 (library (rfc oauth2)
     (export oauth2-request-password-credentials-access-token
 	    oauth2-request-client-credentials-access-token
-	    oauth2-request-access-token
+	    oauth2-request-authorization-server
 
 	    oauth2-get-request
 	    oauth2-post-request
 	    oauth2-access-protected-resource
-	    
+
+	    oauth2-revoke-access-token
 
 	    make-oauth2-access-token
 	    oauth2-access-token?
@@ -70,45 +71,57 @@
   ;; section 4.3
   (define (oauth2-request-password-credentials-access-token 
 	   connection path username password :optional (scope #f))
-    (oauth2-request-access-token connection path
-     (list (create-basic-authorization 
-	    (base64-encode-string (string-append username ":" password))))
-     (string-join
-      (cons* "grant_type=password"
-	     (string-append "username=" (uri-encode-string username))
-	     (string-append "password=" (uri-encode-string password))
-	     (if scope
-		 (list (string-append "scope=" (uri-encode-string scope)))
-		 '()))
-      "&")))
+    (json-string->access-token
+     (oauth2-request-authorization-server connection path
+      (base64-encode-string (string-append username ":" password))
+      (string-join
+       (cons* "grant_type=password"
+	      (string-append "username=" (uri-encode-string username))
+	      (string-append "password=" (uri-encode-string password))
+	      (if scope
+		  (list (string-append "scope=" (uri-encode-string scope)))
+		  '()))
+       "&"))))
 
   ;; section 4.4
   (define (oauth2-request-client-credentials-access-token
 	   connection path credential :optional (scope #f))
-    (oauth2-request-access-token connection path
-     (list (create-basic-authorization credential))
-     (string-join
-      (cons* "grant_type=client_credentials"
-	     (if scope
-		 (list (string-append "scope=" (uri-encode-string scope)))
-		 '()))
-      "&")))
+    (json-string->access-token 
+     (oauth2-request-authorization-server connection path
+      credential
+      (string-join
+       (cons* "grant_type=client_credentials"
+	      (if scope
+		  (list (string-append "scope=" (uri-encode-string scope)))
+		  '()))
+       "&"))))
 
-
-  (define (oauth2-request-access-token connection path headers parameters)
+;;; OAuth 2.0 Token Revocation
+  (define (oauth2-revoke-access-token connection path credential access-token)
+    (define (do-revoke auth token type)
+      (oauth2-request-authorization-server connection path credential
+       (string-append "token=" token "&token_type_hint=" type)))
+    (let ((token (oauth2-access-token-access-token access-token))
+	  (refresh-token (oauth2-access-token-refresh-token access-token)))
+      ;; TODO should we make this optional?
+      (when refresh-token (do-revoke auth refresh-token "refresh_token"))
+      (do-revoke auth token "access_token")))
+  
+  (define (oauth2-request-authorization-server
+	   connection path credential parameters)
+    (define content-type "application/x-www-form-urlencoded")
     (let-values (((status header body)
 		  ((oauth2-connection-http-post connection)
-		   connection path headers parameters)))
+		   connection path parameters
+		   :content-type content-type
+		   :authorization (string-append "Basic " credential))))
       (if (string=? status "200")
-	  (json-string->access-token (utf8->string body))
-	  (error 'oauth2-request-access-token
-		 "Failed to retrieve access token"
+	  (utf8->string body)
+	  (error 'oauth2-request-authorization-server
+		 "Failed to access to authorization server"
 		 `((status: ,status)
 		   (body: ,(and body (utf8->string body))))))))
-  
-  (define (create-basic-authorization value)
-    (list "Authorization" (string-append "Basic " value)))
-
+    
 ;;; Access token
   (define-record-type oauth2-access-token
     (fields access-token token-type expires-in refresh-token scope)
@@ -156,15 +169,19 @@
   (define (oauth2-get-request conn access-token path)
     (oauth2-access-protected-resource conn 'GET access-token path))
 
+  (define (oauth2-post-request conn access-token path body)
+    (oauth2-access-protected-resource conn 'POST access-token path
+				      :content body))
+
   (define (oauth2-access-protected-resource conn method access-token path
 					    :key (content #f))
     (let-values (((header query)
 		  (oauth2-access-token->authorization access-token)))
       (case method
 	((GET)
-	 ((oauth2-connection-http-get conn) conn path (list header) '()))
+	 (apply (oauth2-connection-http-get conn) conn path header))
 	((POST)
-	 ((oauth2-connection-http-post conn) conn path (list header) content)))))
+	 (apply (oauth2-connection-http-post conn) conn path content header)))))
   
 ;;; Connection
   (define-record-type oauth2-connection
@@ -181,34 +198,27 @@
   (define (make-http-oauth2-connection server)
     (make-oauth2-http-connection oauth2-http-get oauth2-http-post server))
 
-  (define content-type "application/x-www-form-urlencoded")
-  (define (oauth2-http-get connection path headers parameters)
-    (http-get (oauth2-http-connection-server connection)
-	      (if (null? parameters)
-		  path
-		  (string-append path "?" parameters))
-	      :secure #t
-	      :extra-headers headers))
-  (define (oauth2-http-post connection path headers parameters)
-    (http-post (oauth2-http-connection-server connection)
-	       path parameters
+  (define (oauth2-http-get connection path . headers)
+    (apply http-get (oauth2-http-connection-server connection)
+	   path
+	   :receiver (http-binary-receiver)
+	   :secure #t
+	   headers))
+  (define (oauth2-http-post connection path body . headers)
+    (apply http-post (oauth2-http-connection-server connection)
+	       path body
 	       :receiver (http-binary-receiver)
 	       :secure #t
-	       :content-type content-type
-	       :extra-headers headers))
+	       headers))
 
-
+;;; http2
   (define (make-http2-oauth2-connection server)
     (define (parse-port server)
       (cond ((string-index-right server #\:) =>
 	     (lambda (p) (string-copy server (+ p 1))))
 	    (else #f)))
-    (define (w proc)
-      (lambda (c u h p)
-	(let-values (((h b) (proc c u h p)))
-	  (http2-response->http1-compatible h b))))
     (let ((port (or (parse-port server) "443")))
-      (make-oauth2-http2-connection (w oauth2-http2-get) (w oauth2-http2-post)
+      (make-oauth2-http2-connection oauth2-http2-get oauth2-http2-post
        (make-http2-client-connection server port :secure? #t))))
   
   (define (http2-response->http1-compatible header body)
@@ -219,24 +229,20 @@
 	      headers
 	      body)))
 
-  (define (oauth2-http2-get connection path headers parameters)
-    (apply http2-get (oauth2-http2-connection-connection connection)
-	   (if (null? parameters)
-	       path
-	       (string-append path "?" parameters))
-	   (append-map (lambda (h&v)
-			 (list (string->keyword (car h&v)) (cadr h&v)))
-		       headers)))
+  (define (oauth2-http2-get connection path . headers)
+    (let-values (((h b)
+		  (apply http2-get
+			 (oauth2-http2-connection-connection connection)
+			 path
+			 headers)))
+      (http2-response->http1-compatible h b)))
 
-  (define (oauth2-http2-post connection path headers parameters)
-    (apply http2-post (oauth2-http2-connection-connection connection)
-	   path
-	   (string->utf8 parameters)
-	   :content-type content-type
-	   (append-map (lambda (h&v)
-			 (list (string->keyword (car h&v)) (cadr h&v)))
-		       headers)))
-					   
-	       
-  
-  )				    
+  (define (oauth2-http2-post connection path body . headers)
+    (let-values (((h b)
+		  (apply http2-post
+			 (oauth2-http2-connection-connection connection)
+			 path
+			 (string->utf8 body)
+			 headers)))
+      (http2-response->http1-compatible h b)))
+)
