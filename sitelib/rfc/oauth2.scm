@@ -54,7 +54,9 @@
 	    oauth2-http-connection?
 	    oauth2-http2-connection?
 	    make-http-oauth2-connection
-	    make-http2-oauth2-connection)
+	    make-http2-oauth2-connection
+	    oauth2-connection-close!
+	    )
     (import (rnrs)
 	    (rnrs eval)
 	    (sagittarius)
@@ -185,7 +187,7 @@
   
 ;;; Connection
   (define-record-type oauth2-connection
-    (fields http-get http-post))
+    (fields http-get http-post close))
   
   (define-record-type oauth2-http-connection
     (parent oauth2-connection)
@@ -193,11 +195,16 @@
 
   (define-record-type oauth2-http2-connection
     (parent oauth2-connection)
-    (fields connection))
+    (fields http2-connection))
 
   (define (make-http-oauth2-connection server)
-    (make-oauth2-http-connection oauth2-http-get oauth2-http-post server))
+    (define (nothing conn) #t)
+    (make-oauth2-http-connection oauth2-http-get oauth2-http-post
+				 nothing server))
 
+  (define (oauth2-connection-close! connection)
+    ((oauth2-connection-close connection) connection))
+  
   (define (oauth2-http-get connection path . headers)
     (apply http-get (oauth2-http-connection-server connection)
 	   path
@@ -219,7 +226,12 @@
 	    (else #f)))
     (let ((port (or (parse-port server) "443")))
       (make-oauth2-http2-connection oauth2-http2-get oauth2-http2-post
+       oauth2-http2-close
        (make-http2-client-connection server port :secure? #t))))
+
+  (define (oauth2-http2-close conn)
+    (close-http2-client-connection!
+     (oauth2-http2-connection-http2-connection conn)))
   
   (define (http2-response->http1-compatible header body)
     (define (bv-header->string-header n&b)
@@ -232,7 +244,7 @@
   (define (oauth2-http2-get connection path . headers)
     (let-values (((h b)
 		  (apply http2-get
-			 (oauth2-http2-connection-connection connection)
+			 (oauth2-http2-connection-http2-connection connection)
 			 path
 			 headers)))
       (http2-response->http1-compatible h b)))
@@ -240,7 +252,7 @@
   (define (oauth2-http2-post connection path body . headers)
     (let-values (((h b)
 		  (apply http2-post
-			 (oauth2-http2-connection-connection connection)
+			 (oauth2-http2-connection-http2-connection connection)
 			 path
 			 (string->utf8 body)
 			 headers)))
