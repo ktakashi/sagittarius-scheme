@@ -3,7 +3,7 @@
 ;;; dsa.scm Cryptographic library
 ;;; 
 #!core
-(library (crypto key dsa)
+(library (crypto dsa)
     (export DSA
 	    generate-dsa-parameter
 	    <dsa-private-key>
@@ -14,7 +14,7 @@
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
-	    (crypto key k-generator)
+	    (crypto k-generator)
 	    (asn.1)
 	    (util bytevector))
 

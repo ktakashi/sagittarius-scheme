@@ -31,7 +31,7 @@
 ;;  - https://tools.ietf.org/html/rfc5915
 ;;  - https://tools.ietf.org/html/rfc5480
 ;;  - https://tools.ietf.org/html/rfc6090
-(library (crypto key ecdsa)
+(library (crypto ecdsa)
     (export ECDSA
 	    <ecdsa-private-key>
 	    <ecdsa-public-key>
@@ -83,7 +83,7 @@
 	    (clos user)
 	    (sagittarius crypto)
 	    (crypto key pair)
-	    (crypto key k-generator)
+	    (crypto k-generator)
 	    (asn.1)
 	    (util bytevector))
   (define ECDSA :ecdsa)

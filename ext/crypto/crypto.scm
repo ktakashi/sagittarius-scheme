@@ -12,6 +12,10 @@
 	    (crypto key)
 	    (crypto pkcs)
 	    (crypto mac)
+	    (crypto rsa)
+	    (crypto dsa)
+	    (crypto ecdsa)
+	    (crypto k-generator)
 	    ;; for conditions
 	    (sagittarius crypto))
 )

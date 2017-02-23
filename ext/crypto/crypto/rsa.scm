@@ -3,7 +3,7 @@
 ;;; rsa.scm Cryptographic library
 ;;; 
 #!core
-(library (crypto key rsa)
+(library (crypto rsa)
     (export ;; padding block type
 	    pkcs-v1.5-padding
 	    PKCS-1-EME

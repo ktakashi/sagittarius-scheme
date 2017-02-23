@@ -4,7 +4,7 @@
 ;;;
 
 ;; ref https://tools.ietf.org/html/rfc6979
-(library (crypto key k-generator)
+(library (crypto k-generator)
     (export random-k-generator
 	    determistic-k-generator)
     (import (rnrs)
