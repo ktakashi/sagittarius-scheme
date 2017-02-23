@@ -1187,22 +1187,23 @@ PpO1zqk5Ua50RLuhFKj9n+0OuD5pCnwPEizvsoh69jdEN9f/cRdU8Iusln42clM=")
   (define cipher (make-cipher ECDSA priv))
   (define algo (hash-algorithm hash))
   (define size (ceiling (/ (bitwise-length (ec-parameter-n param)) 8)))
-  
-  (let ((signature (bytevector-append (uinteger->bytevector R size)
-				      (uinteger->bytevector S size)))
-	(message (uinteger->bytevector msg (hash-size algo))))
-    (test-equal (format "~a (~a) sign" name hash)
-		signature
-		(cipher-signature cipher
-				  message
-				  :hash algo
-				  :k-generator (lambda (n d) k)
-				  :der-encode #f))
-    (let ((verifier (make-cipher ECDSA pub)))
-      (test-assert (format "~a (~a) verify" name hash)
-		   (cipher-verify verifier message signature
-				  :hash algo
-				  :der-encode #f)))))
+  ;; do only SHA-1 (the unsecure one) for test time
+  (when (eq? hash :no-20)
+    (let ((signature (bytevector-append (uinteger->bytevector R size)
+					(uinteger->bytevector S size)))
+	  (message (uinteger->bytevector msg (hash-size algo))))
+      (test-equal (format "~a (~a) sign" name hash)
+		  signature
+		  (cipher-signature cipher
+				    message
+				    :hash algo
+				    :k-generator (lambda (n d) k)
+				    :der-encode #f))
+      (let ((verifier (make-cipher ECDSA pub)))
+	(test-assert (format "~a (~a) verify" name hash)
+		     (cipher-verify verifier message signature
+				    :hash algo
+				    :der-encode #f))))))
 
 (define-syntax test-ecdsa
   (syntax-rules ()
