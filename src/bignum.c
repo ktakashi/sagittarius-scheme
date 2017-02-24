@@ -740,6 +740,32 @@ int Sg_BignumAbsCmp(SgBignum *bx, SgBignum *by)
   return 0;
 }
 
+/* returns bignum, so weird name... */
+SgObject Sg_BignumAshSI(long lx, long count)
+{
+  SgBignum *x;
+  if (count > 0 && lx == 1) {
+    long size = SG_LEFT_SHIFT_SPACE(1, count);
+    long words = count / WORD_BITS;
+    long nbits = count % WORD_BITS;
+    ulong t = (ulong)lx << nbits;
+    x = make_bignum(size);
+    x->elements[words] = t;
+    return Sg_NormalizeBignum(x);
+  } else if (lx == 0) {
+    return Sg_MakeBignumFromSI(0);
+  } else {
+    ALLOC_TEMP_BIGNUM(x, 1);
+    if (lx < 0) {
+      x->elements[0] = -lx;
+      x->sign = -1;
+    } else {
+      x->elements[0] = lx;
+    }
+    return Sg_BignumAsh(x, count);
+  }
+}
+
 SgObject Sg_BignumAsh(SgBignum *b, long count)
 {
   if (count == 0) return Sg_NormalizeBignum(b);

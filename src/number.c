@@ -1770,10 +1770,7 @@ SgObject Sg_Ash(SgObject x, long count)
 	}
       }
     }
-    {
-      SgObject big = Sg_MakeBignumFromSI(ix);
-      return Sg_BignumAsh(SG_BIGNUM(big), count);
-    }
+    return Sg_BignumAshSI(ix, count);
   } else if (SG_BIGNUMP(x)) {
     return Sg_BignumAsh(SG_BIGNUM(x), count);
   }
