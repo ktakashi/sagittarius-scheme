@@ -826,7 +826,7 @@ SgObject Sg_BignumShiftRight(SgBignum *b, long shift)
     int xs = SG_BIGNUM_GET_COUNT(x);					\
     int ys = SG_BIGNUM_GET_COUNT(y);					\
     int zs = SG_BIGNUM_GET_COUNT(z);					\
-    for (i = 0; i < zs; i++) {						\
+    for (i = zs-1; i >= 0; i--) {					\
       ulong lx = (i < xs) ? x->elements[i] : (x2sc ? SG_ULONG_MAX : 0); \
       ulong ly = (i < ys) ? y->elements[i] : (y2sc ? SG_ULONG_MAX : 0); \
       z->elements[i] = lx op ly;					\
