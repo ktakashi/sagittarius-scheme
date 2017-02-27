@@ -752,8 +752,6 @@ SgObject Sg_BignumAshSI(long lx, long count)
     x = make_bignum(size);
     x->elements[words] = t;
     return Sg_NormalizeBignum(x);
-  } else if (lx == 0) {
-    return Sg_MakeBignumFromSI(0);
   } else {
     ALLOC_TEMP_BIGNUM(x, 1);
     if (lx < 0) {

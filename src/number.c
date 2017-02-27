@@ -1747,7 +1747,9 @@ SgObject Sg_Ash(SgObject x, long count)
 {
   if (SG_INTP(x)) {
     long ix = SG_INT_VALUE(x);
-    if (count <= -(SIZEOF_LONG * 8)) {
+    if (x == 0) {
+      return SG_MAKE_INT(0);
+    } else if (count <= -(SIZEOF_LONG * 8)) {
       ix = (ix < 0) ? -1 : 0;
       return Sg_MakeInteger(ix);
     } else if (count < 0) {
