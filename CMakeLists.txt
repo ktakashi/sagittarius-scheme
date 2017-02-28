@@ -14,6 +14,7 @@ OPTION(DEBUG_VERSION "build type" ON)
 OPTION(FORCE_USING_BUNDLED_LIBFFI "For testing purpose" OFF)
 OPTION(INSTALL_C_TRANSLATOR "Install scheme2c script" OFF)
 OPTION(INSTALL_SRFI_138 "Create symlink of SRFI-138 (compile-r7rs) script" ON)
+OPTION(USE_SSE "Try to use SSE or AVX if supported (only on POSIX)" ON)
 
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" ON)

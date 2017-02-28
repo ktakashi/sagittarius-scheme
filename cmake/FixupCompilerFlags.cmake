@@ -27,7 +27,11 @@
 #   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # 
 
+INCLUDE(${PROJECT_SOURCE_DIR}/cmake/FindSSE.cmake)
+
 MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
+  FindSSE()
+  
   MESSAGE(STATUS "Fixup compiler flags ${${_PROCESSOR}}")
   IF (CMAKE_C_COMPILER_ID STREQUAL "Clang" OR
       CMAKE_COMPILER_IS_GNUCC OR
@@ -62,6 +66,33 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
 	SET(CMAKE_CXX_FLAGS "-march=armv6 ${CMAKE_CXX_FLAGS}")
     ENDIF()
 
+    IF (USE_SSE)
+      IF (SSE2_FOUND)
+	SET(CMAKE_C_FLAGS "-msse2 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-msse2 ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+      IF (SSE3_FOUND)
+	SET(CMAKE_C_FLAGS "-msse3 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-msse3 ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+      IF (SSSE3_FOUND)
+	SET(CMAKE_C_FLAGS "-mssse3 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-mssse3 ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+      IF (SSE4_1_FOUND)
+	SET(CMAKE_C_FLAGS "-msse4.1 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-msse4.1 ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+      IF (SSE4_2_FOUND)
+	SET(CMAKE_C_FLAGS "-msse4.2 ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-msse4.2 ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+      IF (AVX_FOUND)
+	SET(CMAKE_C_FLAGS "-mavx ${CMAKE_C_FLAGS}")
+	SET(CMAKE_CXX_FLAGS "-mavx ${CMAKE_CXX_FLAGS}")
+      ENDIF()
+    ENDIF()
+    
     # it didn't improve performance much and makes compilation time
     # really long. so for now disable it
     #  CHECK_C_COMPILER_FLAG(-flto HAS_LTO_FLAG)
