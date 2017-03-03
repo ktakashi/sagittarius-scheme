@@ -2419,7 +2419,10 @@ SgObject Sg_Quotient(SgObject x, SgObject y, SgObject *rem)
 
  start_again:
   if (SG_INTP(x)) {
-    if (SG_INT_VALUE(x) == 0) return SG_MAKE_INT(0);
+    if (SG_INT_VALUE(x) == 0)  {
+      if (rem) *rem = SG_MAKE_INT(0);
+      return SG_MAKE_INT(0);
+    }
   fixnum_again:
     if (SG_INTP(y)) {
       long q, r;
