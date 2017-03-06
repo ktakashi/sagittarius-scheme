@@ -73,6 +73,28 @@ typedef enum {
   The whole purpose of this hierarchy is to make adding a new algorithm easier.
   The name spi is actually Service Provider Interface but in this case we do 
   not have any other providers, so actually just for algorithm.
+
+  TODO
+  we want to make cipher like this:
+     +----------- <crypto> --------+---------------------------+
+     |               |             |                           |
+  <cipher>   <basic-cipher-spi>   <key>                        |
+                     |                                         |
+          +----------+--------------+                          |
+          |                         |                          |
+  <builtin-cipher-spi>      <user-cipher-spi>                  |
+                                    |                          |
+                              <cipher-spi> -+- <signer-spi> ---+
+                              *1)           |                  |
+                                            +  <verifier-spi> -+
+  *1) for backward compatibility
+  To do so, we need rather big structure change which at least
+  contains the following:
+   - <crypto> object itself must hold key
+     but somewhat spi it self must also be able to refer the key...
+   - 'spi's should just be a collection of procedures
+     means don't hold any state
+
  */
 /* class declaration */
 SG_CLASS_DECL(Sg_CryptoClass);
