@@ -29,7 +29,7 @@
 ;;;  
 
 (library (text json object-builder)
-    (export json-string->object json:builder?
+    (export json-string->object json:builder? @ ?
 	    json-object-builder)
     (import (rnrs)
 	    (text json parse))
@@ -132,6 +132,9 @@
  (define (simple-build builder json) json)
  (define simple-json-builder (make-json:builder simple-build))
 
+ (define-syntax @ (syntax-rules ()))
+ (define-syntax ? (syntax-rules ()))
+ 
  (define-syntax json-object-object-builder
    (syntax-rules (?)
      ((_ "parse" ctr n (mapping ...) ((? key spec) rest ...))
