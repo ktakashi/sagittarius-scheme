@@ -86,7 +86,7 @@
 		     "->array must be a procedure" ->array))
 		 ((p build-json-array) ->array builder)))))
 
- (define undefined (if #f #t))
+ (define undefined)
  ;; #t if the object is not provided by JSON string
  ;; maybe we should get rid of the portability and use undefined?
  ;; procedure
