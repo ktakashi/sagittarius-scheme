@@ -48,7 +48,7 @@
 		     "precision"
 		     "Latitude"
 		     "Longitude"
-		     (? "Address")
+		     (? "Address" #f)
 		     "City"
 		     "State"
 		     "Zip"
@@ -72,7 +72,7 @@
   (check-location (car v) "zip" 37.7668 -122.3959
 		  "" "SAN FRANCISCO" "CA" "94107" "US")
   (check-location (cadr v)
-		  "zip" 37.371991 -122.026020 (if #f #t) "SUNNYVALE"
+		  "zip" 37.371991 -122.026020 #f "SUNNYVALE"
 		  "CA" "94085" "US"))
 
 

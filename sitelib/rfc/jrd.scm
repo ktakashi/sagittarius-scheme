@@ -86,16 +86,16 @@
     (json-object-builder
      (make-jrd
       "subject"
-      (? "aliases" (@ list))
-      (? "properties" ->properties)
-      (? "links"
+      (? "aliases" '() (@ list))
+      (? "properties" '() ->properties)
+      (? "links" '()
 	 (@ list
 	    (make-jrd:link
 	     "rel"
-	     (? "type")
-	     (? "href")
-	     (? "titles" ->titles)
-	     (? "properties" ->properties)))))))
+	     (? "type" #f)
+	     (? "href" #f)
+	     (? "titles" '() ->titles)
+	     (? "properties" '() ->properties)))))))
   
   (define (json-string->jrd json-string)
     (json-string->object json-string jrd-builder))

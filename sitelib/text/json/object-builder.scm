@@ -30,10 +30,7 @@
 
 (library (text json object-builder)
     (export json-string->object json:builder? @ ?
-	    json-object-builder
-
-	    json:object-undefined? ;; undefined check
-	    )
+	    json-object-builder)
     (import (rnrs)
 	    (text json parse))
 
@@ -41,9 +38,9 @@
    (fields build-object))
  
  (define-record-type json:mapping
-   (fields order key builder optional?)
+   (fields order key builder optional? default)
    (protocol (lambda (p)
-	       (lambda (order key builder optional?)
+	       (lambda (order key builder optional? default)
 		 (unless (and (fixnum? order) (>= order 0))
 		   (assertion-violation 'make-json:mapping 
 		     "order must be a non negative fixnum" order))
@@ -53,7 +50,7 @@
 		 (unless (json:builder? builder)
 		   (assertion-violation 'make-json:mapping 
 		     "builder must be a json:builder" builder))
-		 (p order key builder optional?)))))
+		 (p order key builder optional? default)))))
 
  (define-record-type json:object-builder
    (fields constructor mappings)
@@ -86,12 +83,6 @@
 		     "->array must be a procedure" ->array))
 		 ((p build-json-array) ->array builder)))))
 
- (define undefined)
- ;; #t if the object is not provided by JSON string
- ;; maybe we should get rid of the portability and use undefined?
- ;; procedure
- (define (json:object-undefined? obj) (eq? obj undefined))
-  
  (define (build-json-object builder json)
    (define mappings (json:object-builder-mappings builder))
    (define mapping-length (length mappings))
@@ -105,12 +96,13 @@
 	 ((null? mappings))
        (let ((m (car mappings))
 	     (val (vector-ref v i)))
-	 (when (eq? val undefined)
-	   (unless (json:mapping-optional? m)
-	     (error 'json-string->object "missing key"
-		    (json:mapping-key m))(vector-set! v i #f))))))
+	 (when (eq? val ctr)
+	   (if (json:mapping-optional? m)
+	       (vector-set! v i (json:mapping-default m))
+	       (error 'json-string->object "missing key"
+		      (json:mapping-key m)))))))
 
-   (do ((i 0 (+ i 1)) (v (make-vector mapping-length undefined)))
+   (do ((i 0 (+ i 1)) (v (make-vector mapping-length ctr)))
        ((= i len)
 	(check-existence v mappings)
 	(apply ctr (vector->list v)))
@@ -145,25 +137,25 @@
  
  (define-syntax json-object-object-builder
    (syntax-rules (?)
-     ((_ "parse" ctr n (mapping ...) ((? key spec) rest ...))
+     ((_ "parse" ctr n (mapping ...) ((? key default spec) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-        (mapping ... (n key (json-object-builder spec) #t))
+        (mapping ... (n key (json-object-builder spec) #t default))
 	(rest ...)))
-     ((_ "parse" ctr n (mapping ...) ((? key) rest ...))
+     ((_ "parse" ctr n (mapping ...) ((? key default) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-        (mapping ... (n key simple-json-builder #t))
+        (mapping ... (n key simple-json-builder #t default))
 	(rest ...)))
      ((_ "parse" ctr n (mapping ...) ((key spec) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-        (mapping ... (n key (json-object-builder spec) #f))
+        (mapping ... (n key (json-object-builder spec) #f #f))
 	(rest ...)))
      ((_ "parse" ctr n (mapping ...) (key rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-	(mapping ... (n key simple-json-builder #f))
+	(mapping ... (n key simple-json-builder #f #f))
 	(rest ...)))
-     ((_ "parse" ctr n ((order key builder optional?) ...) ())
+     ((_ "parse" ctr n ((order key builder optional? default) ...) ())
       (make-json:object-builder ctr
-	(list (make-json:mapping order key builder optional?) ...)))
+	(list (make-json:mapping order key builder optional? default) ...)))
      ((_ ctr spec ...)
       (json-object-object-builder "parse" ctr 0 () (spec ...)))))
  
