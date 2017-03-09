@@ -30,7 +30,10 @@
 
 (library (text json object-builder)
     (export json-string->object json:builder? @ ?
-	    json-object-builder)
+	    json-object-builder
+
+	    json:object-undefined? ;; undefined check
+	    )
     (import (rnrs)
 	    (text json parse))
 
@@ -83,6 +86,12 @@
 		     "->array must be a procedure" ->array))
 		 ((p build-json-array) ->array builder)))))
 
+ (define undefined (if #f #t))
+ ;; #t if the object is not provided by JSON string
+ ;; maybe we should get rid of the portability and use undefined?
+ ;; procedure
+ (define (json:object-undefined? obj) (eq? obj undefined))
+  
  (define (build-json-object builder json)
    (define mappings (json:object-builder-mappings builder))
    (define mapping-length (length mappings))
@@ -96,13 +105,12 @@
 	 ((null? mappings))
        (let ((m (car mappings))
 	     (val (vector-ref v i)))
-	 (when (eq? val ctr)
-	   (if (json:mapping-optional? m)
-	       (vector-set! v i #f)
-	       (error 'json-string->object "missing key"
-		      (json:mapping-key m)))))))
+	 (when (eq? val undefined)
+	   (unless (json:mapping-optional? m)
+	     (error 'json-string->object "missing key"
+		    (json:mapping-key m))(vector-set! v i #f))))))
 
-   (do ((i 0 (+ i 1)) (v (make-vector mapping-length ctr)))
+   (do ((i 0 (+ i 1)) (v (make-vector mapping-length undefined)))
        ((= i len)
 	(check-existence v mappings)
 	(apply ctr (vector->list v)))
