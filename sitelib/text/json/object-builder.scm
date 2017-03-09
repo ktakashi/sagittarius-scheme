@@ -168,19 +168,4 @@
       (json-object-object-builder ctr kb* ...))
      ;; top level string or number?
      ((_ ctr) (make-json:builder (lambda (builder json) (ctr json))))))
- #|
-e.g. JRD
-(json-object-builder
- (make-jrd
-  "subject"
-  (? "aliases" (@ list))
-  (? "properties" (@ list make-jrd:property))
-  (? "links"
-     (@ list
-	("rel"
-	 (? "type")
-	 (? "href")
-	 (? "titles" (@ list make-jrd:title))
-	 (? "properties" (@ list make-jrd:property)))))))
- |#
  )

@@ -36,7 +36,7 @@
 ;;     RFC as JRD (more precisely, JRD is just an extraction of the
 ;;     RFC)
 (library (rfc jrd)
-    (export json->jrd jrd->json
+    (export json-string->jrd jrd->json-string
 	    
 	    <jrd> jrd? make-jrd
 	    jrd-subject jrd-aliases jrd-properties jrd-links
@@ -52,7 +52,8 @@
 	    jrd:title-language jrd:title-title
 	    )
     (import (rnrs)
-	    (text json))
+	    (text json)
+	    (text json object-builder))
 
   (define-record-type (<jrd:property> make-jrd:property jrd:property?)
     (fields (immutable name  jrd:property-name)
@@ -62,11 +63,7 @@
     (fields (immutable subject jrd-subject)
 	    (immutable aliases jrd-aliases)
 	    (immutable properties jrd-properties)
-	    (immutable links jrd-links))
-    (protocol
-     (lambda (p)
-       (lambda (subject :key (aliases '()) (properties '()) (links '()))
-	 (p subject aliases properties links)))))
+	    (immutable links jrd-links)))
 
   (define-record-type (<jrd:title> make-jrd:title jrd:title?)
     (fields (immutable language jrd:title-language)
@@ -77,66 +74,33 @@
 	    (immutable type   jrd:link-type)
 	    (immutable href   jrd:link-href)
 	    (immutable titles jrd:link-titles)
-	    (immutable properties jrd:link-properties))
-    (protocol
-     (lambda (p)
-       (lambda (rel :key (type #f) (href #f) (titles '()) (properties '()))
-	 (p rel type href titles properties)))))
+	    (immutable properties jrd:link-properties)))
 
-  (define (json->jrd json-string)
+  (define (->properties json)
     (define (->property kv) (make-jrd:property (car kv) (cdr kv)))
-    (define (->link link)
-      (define len (vector-length link))
-      (let loop ((i 0) (rel #f) (type #f) (href #f) (titles '()) (props '()))
-	(if (= i len)
-	    (if (not rel)
-		(error 'json->jrd "link must contain rel" link)
-		(make-jrd:link rel :type type :href href :titles titles
-			       :properties props))
-	    (let ((kv (vector-ref link i)))
-	      (cond ((string=? (car kv) "rel")
-		     (loop (+ i 1) (cdr kv) type href titles props))
-		    ((string=? (car kv) "type")
-		     (loop (+ i 1) rel (cdr kv) href titles props))
-		    ((string=? (car kv) "href")
-		     (loop (+ i 1) rel type (cdr kv) titles props))
-		    ((string=? (car kv) "titles")
-		     (loop (+ i 1) rel type href
-			   (map ->titles (vector->list (cdr kv)))
-			   props))
-		    ((string=? (car kv) "properties")
-		     (loop (+ i 1) rel type href
-			   titles
-			   (map ->property (vector->list (cdr kv)))))
-		    (else
-		     (error 'json->jrd "link contains unknown tag"
-			    (car kv))))))))
+    (map ->property (vector->list json)))
+  (define (->titles json)
+    (define (->title kv) (make-jrd:title (car kv) (cdr kv)))
+    (map ->title (vector->list json)))
+  (define jrd-builder
+    (json-object-builder
+     (make-jrd
+      "subject"
+      (? "aliases" (@ list))
+      (? "properties" ->properties)
+      (? "links"
+	 (@ list
+	    (make-jrd:link
+	     "rel"
+	     (? "type")
+	     (? "href")
+	     (? "titles" ->titles)
+	     (? "properties" ->properties)))))))
+  
+  (define (json-string->jrd json-string)
+    (json-string->object json-string jrd-builder))
 
-    (define (analyse-json json)
-      (define len (vector-length json))	
-      (let loop ((i 0) (sub #f) (aliases '()) (props '()) (links '()))
-	(if (= i len)
-	    (values sub aliases props links)
-	    (let ((kv (vector-ref json i)))
-	      (cond ((string=? (car kv) "subject")
-		     (loop (+ i 1) (cdr kv) aliases props links))
-		    ((string=? (car kv) "aliases")
-		     (loop (+ i 1) sub (cdr kv) props links))
-		    ((string=? (car kv) "properties")
-		     (loop (+ i 1) sub aliases
-			   (map ->property (vector->list (cdr kv)))
-			   links))
-		    ((string=? (car kv) "links")
-		     (loop (+ i 1) sub aliases props
-			   (map ->link (cdr kv))))
-		    (else
-		     (error 'json->jrd "unknown property" (car kv))))))))
-    (let ((json (json-read (open-string-input-port json-string))))
-      (let-values (((subject aliases properties links) (analyse-json json)))
-	(make-jrd subject :aliases aliases
-		  :properties properties :links links))))
-
-  (define (jrd->json jrd)
+  (define (jrd->json-string jrd)
     (define (alist/nil obj name acc)
       (let ((v (acc obj)))
 	(if (and v (not (null? v)))
