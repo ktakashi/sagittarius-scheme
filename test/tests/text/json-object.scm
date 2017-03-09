@@ -19,7 +19,9 @@
 				 "Zip"
 				 "Country")))))
 
-(define json-string "[
+
+
+(let* ((json-string "[
  {
  \"precision\": \"zip\",
  \"Latitude\":  37.7668,
@@ -40,8 +42,7 @@
  \"Country\":   \"US\"
  }
 ]")
-
-(let* ((builder (json-object-builder
+       (builder (json-object-builder
 		 (@ list
 		    (make-location
 		     "precision"
@@ -74,6 +75,52 @@
 		  "zip" 37.371991 -122.026020 #f "SUNNYVALE"
 		  "CA" "94085" "US"))
 
+
+(define-record-type image-holder
+  (fields image))
+(define-record-type image
+  (fields width height title thumbnail animated ids))
+(define-record-type thumbnail
+  (fields url height width))
+
+(let* ((json-string "{
+  \"Image\": {
+    \"Width\":  800,
+    \"Height\": 600,
+    \"Title\":  \"View from 15th Floor\",
+    \"Thumbnail\": {
+      \"Url\":    \"http://www.example.com/image/481989943\",
+      \"Height\": 125,
+      \"Width\":  100
+  },
+    \"Animated\" : false,
+    \"IDs\": [116, 943, 234, 38793]
+  }
+}"
+)
+       (builder (json-object-builder
+		 (make-image-holder
+		  ("Image"
+		  (make-image
+		   "Width"
+		   "Height"
+		   "Title"
+		   ("Thumbnail"
+		    (make-thumbnail
+		     "Url"
+		     "Height"
+		     "Width"))
+		   "Animated"
+		   ("IDs" (@ list)))))))
+       (v (json-string->object json-string builder)))
+  (test-assert (image-holder? v))
+  (let ((image (image-holder-image v)))
+    (test-assert (image? image))
+    (test-equal '(116 943 234 38793) (image-ids image))
+    (let ((thumbnail (image-thumbnail image)))
+      (test-assert (thumbnail? thumbnail))
+      (test-equal "http://www.example.com/image/481989943"
+		  (thumbnail-url thumbnail)))))
 
 
 (test-end)

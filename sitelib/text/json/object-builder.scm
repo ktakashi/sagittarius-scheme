@@ -134,17 +134,17 @@
 
  (define-syntax json-object-object-builder
    (syntax-rules (?)
-     ((_ "parse" ctr n (mapping ...) ((? key (spec ...)) rest ...))
+     ((_ "parse" ctr n (mapping ...) ((? key spec) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-        (mapping ... (n key (json-object-builder spec ...) #t))
+        (mapping ... (n key (json-object-builder spec) #t))
 	(rest ...)))
      ((_ "parse" ctr n (mapping ...) ((? key) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
         (mapping ... (n key simple-json-builder #t))
 	(rest ...)))
-     ((_ "parse" ctr n (mapping ...) ((key (spec ...)) rest ...))
+     ((_ "parse" ctr n (mapping ...) ((key spec) rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
-        (mapping ... (n key (json-object-builder spec ...) #f))
+        (mapping ... (n key (json-object-builder spec) #f))
 	(rest ...)))
      ((_ "parse" ctr n (mapping ...) (key rest ...))
       (json-object-object-builder "parse" ctr (+ n 1)
@@ -159,18 +159,19 @@
  (define-syntax json-object-builder
    (syntax-rules (@)
      ;; top level array
-     ((_ (@ ->array (spec ...)))
-      (make-json:array-builder ->array (json-object-builder spec ...)))
+     ((_ (@ ->array spec))
+      (make-json:array-builder ->array (json-object-builder spec)))
      ((_ (@ ->array))
       (make-json:array-builder ->array simple-json-builder))
      ;; kv
-     ((_ ctr kb* ...)
+     ((_ (ctr kb* ...))
       (json-object-object-builder ctr kb* ...))
      ;; top level string or number?
-     ((_ ctr) (make-json:builder ctr))))
+     ((_ ctr) (make-json:builder (lambda (builder json) (ctr json))))))
  #|
 e.g. JRD
-(json-object-builder make-jrd
+(json-object-builder
+ (make-jrd
   "subject"
   (? "aliases" (@ list))
   (? "properties" (@ list make-jrd:property))
@@ -180,21 +181,6 @@ e.g. JRD
 	 (? "type")
 	 (? "href")
 	 (? "titles" (@ list make-jrd:title))
-	 (? "properties" (@ list make-jrd:property))))))
-
-e.g. location (from RFC7159)
-(json-object-builder 
- (@ list
-    (make-location
-     "precision"
-     "Latitude"
-     "Longitude"
-     "Address"
-     "City"
-     "State"
-     "Zip"
-     "Country")))
-
-     
+	 (? "properties" (@ list make-jrd:property)))))))
  |#
  )
