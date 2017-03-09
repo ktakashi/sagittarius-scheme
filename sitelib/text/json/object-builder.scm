@@ -91,7 +91,7 @@
 
    (define (find-mapping key mappings)
      (find (lambda (m) (string=? key (json:mapping-key m))) mappings))
-   (define (check-existance v mappings)
+   (define (check-existence v mappings)
      (do ((i 0 (+ i 1)) (mappings mappings (cdr mappings)))
 	 ((null? mappings))
        (let ((m (car mappings))
@@ -104,7 +104,7 @@
 
    (do ((i 0 (+ i 1)) (v (make-vector mapping-length ctr)))
        ((= i len)
-	(check-existance v mappings)
+	(check-existence v mappings)
 	(apply ctr (vector->list v)))
      (let* ((kv (vector-ref json i))
 	    (mapping (find-mapping (car kv) mappings)))
