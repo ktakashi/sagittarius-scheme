@@ -29,9 +29,13 @@
 ;;;  
 
 (library (text json object-builder)
-    (export json-string->object json-port->object
+    (export json-string->object read-object-from-json
 	    json:builder? @ ?
-	    json-object-builder)
+	    json-object-builder
+
+	    object->json-string write-object-as-json
+	    json:serializer? ->
+	    json-object-serializer)
     (import (rnrs)
 	    (text json parse))
 
@@ -126,11 +130,13 @@
  (define (json->object json builder)
    ((json:builder-build-object builder) builder json))
 
- (define (json-port->object port builder)
-   (json->object (json-read port) builder))
+ (define read-object-from-json
+   (case-lambda
+    ((builder) (read-object-from-json builder (current-input-port)))
+    ((builder port) (json->object (json-read port) builder))))
  
  (define (json-string->object json-string builder)
-   (json-port->object (open-string-input-port json-string) builder))
+   (read-object-from-json builder (open-string-input-port json-string)))
 
  (define (simple-build builder json) json)
  (define simple-json-builder (make-json:builder simple-build))
@@ -186,14 +192,14 @@
    (parent json:array-serializer)
    (fields car cdr null?)
    (protocol (lambda (p)
-	       (lambda (next serializer)
-		 ((p serialize-list-like-object serializer) next)))))
+	       (lambda (car cdr null? serializer)
+		 ((p serialize-list-like-object serializer) car cdr null?)))))
  (define-record-type json:random-access-array-serializer
    (parent json:array-serializer)
    (fields ref length)
    (protocol (lambda (p)
-	       (lambda (next builder)
-		 ((p serialize-vector-like-object serializer) next)))))
+	       (lambda (ref length serializer)
+		 ((p serialize-vector-like-object serializer) ref length)))))
 
  (define-record-type json:serializer-mapping
    (fields name ref serializer optional? absent))
@@ -202,23 +208,25 @@
    (fields mappings)
    (protocol (lambda (p)
 	       (lambda (mappings)
-		 ((p serialze-object) mappings)))))
+		 ((p serialize-object) mappings)))))
 
  (define (serialize-object serializer obj)
    (define mappings (json:object-serializer-mappings serializer))
    (define (serialize-element mapping obj)
-     (define absent-value (json:serializer-mapping mapping))
+     (define absent-value (json:serializer-mapping-absent mapping))
+     (define optional? (json:serializer-mapping-optional? mapping))
      (let ((val ((json:serializer-mapping-ref mapping) obj)))
-       (if (or (and (procedure? absent-value) (absent-value val))
-	       (equal? absent-value val))
+       (if (and optional?
+		(or (and (procedure? absent-value) (absent-value val))
+		    (equal? absent-value val)))
 	   (values #t #f)
 	   (let* ((serializer (json:serializer-mapping-serializer mapping))
 		  (json (object->json val serializer)))
-	     (cons (json:serializer-mapping-name mapping) json)))))
+	     (values #f (cons (json:serializer-mapping-name mapping) json))))))
    (let loop ((mappings mappings) (r '()))
      (if (null? mappings)
 	 (list->vector (reverse r))
-	 (let-values (((absent? json) (serialize-element (car mapping) obj)))
+	 (let-values (((absent? json) (serialize-element (car mappings) obj)))
 	   (if absent?
 	       (loop (cdr mappings) r)
 	       (loop (cdr mappings) (cons json r)))))))
@@ -246,14 +254,22 @@
  
  (define (object->json obj serializer)
    ((json:serializer-serialize-object serializer) serializer obj))
+
+ (define write-object-as-json
+   (case-lambda
+    ((obj serializer)
+     (write-object-as-json obj serializer (current-output-port)))
+    ((obj serializer out)
+     (json-write (object->json obj serializer) out))))
  
  (define (object->json-string obj serializer)
    (let-values (((out extract) (open-string-output-port)))
-     (json-write (json:serialize-object obj serializer) out)
+     (write-object-as-json obj serializer out)
      (extract)))
 
- (define simple-json-serializer (make-json:serializer (lambda (obj _) obj)))
- 
+ (define simple-json-serializer (make-json:serializer (lambda (_ obj) obj)))
+
+ (define-syntax -> (syntax-rules ()))
  (define-syntax json-object-object-serializer
    (syntax-rules (?)
      ((_ "parse" (mapping ...) ((? name absent ref spec) rest ...))
@@ -308,8 +324,7 @@
       (make-json:random-access-array-serializer
        vector-ref vector-length simple-json-serializer))
      ((_ (mapping mapping* ...))
-      (json-object-object-serializer mapping mapping*...))
+      (json-object-object-serializer mapping mapping* ...))
      ((_ serializer)
-      (make-json:serializer (lambda (o _) (serializer o))))))
- 
+      (make-json:serializer (lambda (o _) (serializer o)))))) 
  )

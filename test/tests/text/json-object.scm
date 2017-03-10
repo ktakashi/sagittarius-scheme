@@ -1,5 +1,6 @@
 (import (rnrs)
 	(text json object-builder)
+	(text json)
 	(srfi :64 testing))
 
 (test-begin "JSON object")
@@ -18,8 +19,6 @@
 				 "State"
 				 "Zip"
 				 "Country")))))
-
-
 
 (let* ((json-string "[
  {
@@ -53,6 +52,15 @@
 		     "State"
 		     "Zip"
 		     "Country"))))
+       (serializer (json-object-serializer
+		    (-> (("precision" location-precision)
+			 ("Latitude" location-latitude)
+			 ("Longitude" location-longitude)
+			 (? "Address" #f location-address)
+			 ("City" location-city)
+			 ("State" location-state)
+			 ("Zip" location-zip)
+			 ("Country" location-country)))))
        (v (json-string->object json-string builder)))
   (define-syntax check-location
     (syntax-rules ()
@@ -73,8 +81,13 @@
 		  "" "SAN FRANCISCO" "CA" "94107" "US")
   (check-location (cadr v)
 		  "zip" 37.371991 -122.026020 #f "SUNNYVALE"
-		  "CA" "94085" "US"))
+		  "CA" "94085" "US")
 
+  (test-assert (json:serializer? serializer))
+  (let ((s (object->json-string v serializer)))
+    (test-assert (string? s))
+    (test-equal (json-read (open-string-input-port json-string))
+		(json-read (open-string-input-port s)))))
 
 (define-record-type image-holder
   (fields image))
@@ -112,6 +125,17 @@
 		     "Width"))
 		   "Animated"
 		   ("IDs" (@ list)))))))
+       (serializer (json-object-serializer
+		    (("Image" image-holder-image
+		      (("Width" image-width)
+		       ("Height" image-height)
+		       ("Title" image-title)
+		       ("Thumbnail" image-thumbnail
+			(("Url" thumbnail-url)
+			 ("Height" thumbnail-height)
+			 ("Width" thumbnail-width)))
+		       ("Animated" image-animated)
+		       ("IDs" image-ids (->)))))))
        (v (json-string->object json-string builder)))
   (test-assert (image-holder? v))
   (let ((image (image-holder-image v)))
@@ -120,7 +144,30 @@
     (let ((thumbnail (image-thumbnail image)))
       (test-assert (thumbnail? thumbnail))
       (test-equal "http://www.example.com/image/481989943"
-		  (thumbnail-url thumbnail)))))
+		  (thumbnail-url thumbnail))))
+
+  (let ((s (object->json-string v serializer)))
+    (test-equal (json-read (open-string-input-port json-string))
+		(json-read (open-string-input-port s)))))
+
+;; other tests
+(let ()
+  (define-record-type foo
+    (fields bar))
+  (define serializer
+    (json-object-serializer
+     (("bar" foo-bar (@)))))
+  (test-equal "{\"bar\": [1, 2, 3]}"
+	      (object->json-string (make-foo '#(1 2 3)) serializer)))
+
+(let ()
+  (define-record-type foo
+    (fields bar))
+  (define serializer
+    (json-object-serializer
+     (("bar" foo-bar (@ bytevector-u8-ref bytevector-length)))))
+  (test-equal "{\"bar\": [1, 2, 3]}"
+	      (object->json-string (make-foo '#vu8(1 2 3)) serializer)))
 
 
 (test-end)
