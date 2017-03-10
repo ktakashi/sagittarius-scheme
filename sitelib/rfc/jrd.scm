@@ -28,7 +28,6 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
-
 ;; reference:
 ;;   - https://tools.ietf.org/html/rfc7033
 
@@ -100,40 +99,25 @@
   (define (json-string->jrd json-string)
     (json-string->object json-string jrd-builder))
 
+  (define (properties->json props)
+    (define (property->json prop)
+      (cons (jrd:property-name prop) (jrd:property-value prop)))
+    (list->vector (map property->json props)))
+  (define (titles->json titles)
+    (define (title->json title)
+      (cons (jrd:title-language title) (jrd:title-title title)))
+    (list->vector (map title->json titles)))
+  (define jrd-serializer
+    (json-object-serializer
+     (("subject" jrd-subject)
+      (? "aliases" '() jrd-aliases (->))
+      (? "properties" '() jrd-properties properties->json)
+      (? "links" '() jrd-links
+	 (-> (("rel" jrd:link-rel)
+	      (? "type" #f jrd:link-type)
+	      (? "href" #f jrd:link-href)
+	      (? "titles" '() jrd:link-titles titles->json)
+	      (? "properties" '() jrd:link-properties properties->json)))))))
   (define (jrd->json-string jrd)
-    (define (alist/nil obj name acc)
-      (let ((v (acc obj)))
-	(if (and v (not (null? v)))
-	    (list (cons name v))
-	    '())))
-    (define (->properties props)
-      (define (->property prop)
-	(cons (jrd:property-name prop) (jrd:property-value prop)))
-      (if (null? props)
-	  '()
-	  (list (cons "properties" (list->vector (map ->property props))))))
-    (define (->titles titles)
-      (define (->titles title)
-	(cons (jrd:title-language title) (jrd:title-title title)))
-      (if (null? titles)
-	  '()
-	  (list (cons "titles" (vector (map ->title titles))))))
-    (define (->links links)
-      (define (->link link)
-	`#(("rel" . ,(jrd:link-rel link))
-	   ,@(alist/nil link "type" jrd:link-type)
-	   ,@(alist/nil link "href" jrd:link-href)
-	   ,@(->titles (jrd:link-titles link))
-	   ,@(->properties (jrd:link-properties link))))
-      (if (null? links)
-	  '()
-	  (list (cons "links" (map ->link links)))))
-    (call-with-string-output-port
-     (lambda (out)
-       (json-write
-	`#(,@(alist/nil jrd "subject" jrd-subject)
-	   ,@(alist/nil jrd "aliases" jrd-aliases)
-	   ,@(->properties (jrd-properties jrd))
-	   ,@(->links (jrd-links jrd)))
-	out))))
+    (object->json-string jrd jrd-serializer))
  )

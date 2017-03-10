@@ -1,4 +1,4 @@
-(import (rnrs) (rfc jrd) (srfi :64))
+(import (rnrs) (rfc jrd) (srfi :64) (text json))
 
 (test-begin "RFC 7033 - JRD")
 
@@ -80,6 +80,10 @@
 		  (test-equal (car kv) (jrd:property-name p))
 		  (test-equal (cdr kv) (jrd:property-value p)))
 		props
-		'(("http://example.com/role" . "editor"))))))
+		'(("http://example.com/role" . "editor")))))
+
+  (let ((s (jrd->json-string jrd)))
+    (test-equal (json-read (open-string-input-port json-string))
+		(json-read (open-string-input-port s)))))
 
 (test-end)
