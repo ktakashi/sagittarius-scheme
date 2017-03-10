@@ -326,5 +326,5 @@
      ((_ (mapping mapping* ...))
       (json-object-object-serializer mapping mapping* ...))
      ((_ serializer)
-      (make-json:serializer (lambda (o _) (serializer o)))))) 
+      (make-json:serializer (lambda (_ o) (serializer o)))))) 
  )
