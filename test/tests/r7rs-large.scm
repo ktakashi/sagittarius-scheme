@@ -1,6 +1,6 @@
 (import (rnrs)
-	(srfi :64)
-	(pp))
+	(rnrs eval)
+	(srfi :64))
 
 (define (test-library name . bindings)
   (test-assert name (eval `(let ((t #f))

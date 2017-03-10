@@ -67,6 +67,7 @@
 ;;            (or expr1 expr ...)))))
 
 (import (rnrs)
+	(rnrs mutable-strings)
 	(sagittarius)
 	(srfi :135 texts)
 	(srfi :64))
