@@ -42,18 +42,18 @@
  (define-record-type json:builder
    (fields build-object))
  
- (define-record-type json:mapping
+ (define-record-type json:builder-mapping
    (fields order key builder optional? default)
    (protocol (lambda (p)
 	       (lambda (order key builder optional? default)
 		 (unless (and (fixnum? order) (>= order 0))
-		   (assertion-violation 'make-json:mapping 
+		   (assertion-violation 'make-json:builder-mapping 
 		     "order must be a non negative fixnum" order))
 		 (unless (string? key)
-		   (assertion-violation 'make-json:mapping 
+		   (assertion-violation 'make-json:builder-mapping 
 		     "key must be a string" key))
 		 (unless (json:builder? builder)
-		   (assertion-violation 'make-json:mapping 
+		   (assertion-violation 'make-json:builder-mapping 
 		     "builder must be a json:builder" builder))
 		 (p order key builder optional? default)))))
 
@@ -65,15 +65,16 @@
 		 (unless (procedure? ctr)
 		   (assertion-violation 'make-json:object-builder
 		     "constructor must be a procedure" ctr))
-		 (unless (for-all json:mapping? mappings)
+		 (unless (for-all json:builder-mapping? mappings)
 		   (assertion-violation 'make-json:object-builder
-		     "mappings must be a list of json:mapping" mappings))
+		     "mappings must be a list of json:builder-mapping"
+		     mappings))
 		 ;; TODO check order duplication
 		 ((p build-json-object) ctr
-		  (list-sort
-		   (lambda (a b)
-		     (< (json:mapping-order a) (json:mapping-order b)))
-		   mappings))))))
+		  (list-sort (lambda (a b)
+			       (< (json:builder-mapping-order a)
+				  (json:builder-mapping-order b)))
+			     mappings))))))
  
  (define-record-type json:array-builder
    (fields >array builder)
@@ -95,17 +96,17 @@
    (define len (vector-length json))
 
    (define (find-mapping key mappings)
-     (find (lambda (m) (string=? key (json:mapping-key m))) mappings))
+     (find (lambda (m) (string=? key (json:builder-mapping-key m))) mappings))
    (define (check-existence v mappings)
      (do ((i 0 (+ i 1)) (mappings mappings (cdr mappings)))
 	 ((null? mappings))
        (let ((m (car mappings))
 	     (val (vector-ref v i)))
 	 (when (eq? val ctr)
-	   (if (json:mapping-optional? m)
-	       (vector-set! v i (json:mapping-default m))
+	   (if (json:builder-mapping-optional? m)
+	       (vector-set! v i (json:builder-mapping-default m))
 	       (error 'json-string->object "missing key"
-		      (json:mapping-key m)))))))
+		      (json:builder-mapping-key m)))))))
 
    (do ((i 0 (+ i 1)) (v (make-vector mapping-length ctr)))
        ((= i len)
@@ -116,9 +117,9 @@
        (unless mapping
 	 (assertion-violation 'json-string->object "no mapping found for key"
 			      (car kv)))
-
-       (vector-set! v (json:mapping-order mapping)
-		    (json->object (cdr kv) (json:mapping-builder mapping))))))
+       (vector-set! v (json:builder-mapping-order mapping)
+		    (json->object (cdr kv)
+				  (json:builder-mapping-builder mapping))))))
 
  ;; array must contain the same object in sense of builder creates
  (define (build-json-array builder json)
@@ -164,7 +165,8 @@
 	(rest ...)))
      ((_ "parse" ctr n ((order key builder optional? default) ...) ())
       (make-json:object-builder ctr
-	(list (make-json:mapping order key builder optional? default) ...)))
+	(list (make-json:builder-mapping order key builder optional? default)
+	      ...)))
      ((_ ctr spec ...)
       (json-object-object-builder "parse" ctr 0 () (spec ...)))))
  
@@ -179,7 +181,11 @@
      ((_ (ctr kb* ...))
       (json-object-object-builder ctr kb* ...))
      ;; top level string or number?
-     ((_ ctr) (make-json:builder (lambda (builder json) (ctr json))))))
+     ((_ ctr)
+      (let ((t ctr))
+	(if (json:builder? t)
+	    t
+	    (make-json:builder (lambda (builder json) (t json))))))))
 
 ;;; Serializer
  (define-record-type json:serializer
@@ -326,5 +332,8 @@
      ((_ (mapping mapping* ...))
       (json-object-object-serializer mapping mapping* ...))
      ((_ serializer)
-      (make-json:serializer (lambda (_ o) (serializer o)))))) 
+      (let ((t serializer))
+	(if (json:serializer? t)
+	    t
+	    (make-json:serializer (lambda (_ o) (t o))))))))
  )

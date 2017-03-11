@@ -170,4 +170,24 @@
 	      (object->json-string (make-foo '#vu8(1 2 3)) serializer)))
 
 
+(let ((json-string "{\"bar\": {\"buz\": 1}}"))
+  (define-record-type foo
+    (fields bar))
+  (define-record-type bar
+    (fields buz))
+  (define bar-serializer
+    (json-object-serializer
+     (("buz" bar-buz))))
+  (define serializer
+    (json-object-serializer
+     (("bar" foo-bar bar-serializer))))
+
+  (define bar-builder (json-object-builder (make-bar "buz")))
+  (define builder (json-object-builder (make-foo ("bar" bar-builder))))
+
+  (test-equal json-string
+	      (object->json-string
+	       (json-string->object json-string builder)
+	       serializer)))
+
 (test-end)
