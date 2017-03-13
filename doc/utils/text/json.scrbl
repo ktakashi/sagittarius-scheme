@@ -40,3 +40,160 @@ This parameter affects the read and write procedures.
 @desc{Writes the given S-expression JSON representing object to given
 @var{port}.
 }
+
+@subsection[:tag "text.json.object-builder"]{(text json object-builder) -- JSON
+object builder/serializer}
+
+@define[Library]{@name{(text json object-builder)}}
+@desc{This library provides Scheme object -> JSON string and vice versa
+utilities.
+}
+
+@subsubsection{JSON object builder}
+
+JSON object builder is a Schem object which contains information to
+construct a Scheme object from JSON string. Currently this can be
+created only via @code{json-object-builder} macro.
+
+@define[Function]{@name{json:builder?} @args{obj}}
+@desc{Returns #t if the given @var{obj} is a JSON object builder.}
+
+@define[Macro]{@name{json-object-builder} @args{ctr spec @dots{}}}
+@define["Auxiliary syntax"]{@name{?}}
+@;@define["Auxiliary syntax"]{@name{@atmark{}}}
+@desc{A DSL which constructs JSON object builder.
+
+The @var{spec} must be one of the followings:
+@itemlist[
+  @item{@code{(@ ->array spec)}}
+  @item{@code{(@ ->array)}}
+  @item{@code{(ctr mapping @dots{})}}
+  @item{@code{ctr/builder}}
+]
+@var{->array} must be a procedure which accepts variable length of
+arguments, such as @code{list} or @code{vector}.
+
+@var{ctr} must be a procedure which accepts the same number of the
+specified keys in the @var{mapping} and constucts object.
+
+@var{ctr/builder} must be either object constructor described above
+or JSON object builder created by the @code{json-object-builder}.
+
+If the first 2 form is used, then the created builder handles JSON
+array.
+
+If the 3rd form is used, then the created builder handles JSON object
+(a.k.a map).
+
+If the lsst form is used, then the created builder handles simple
+JSON values, such as JSON string and number.
+
+The @var{mapping} must be one of the followings:
+@itemlist[
+  @item{@code{(? key default spec)}}
+  @item{@code{(? key default)}}
+  @item{@code{(key spec)}}
+  @item{@code{key}}
+]
+@var{key} must be a string represents the JSON object's key.
+
+@var{default} must be a Scheme object which is used when the @var{key} is
+absent.
+
+The first 2 forms represetns optional values. If the JSON object key
+@var{key} is not present, then @var{default} is mapped to the result
+Scheme object.
+
+Here are some of examples:
+@codeblock{
+(json-object-builder
+ (make-image-holder
+  ("Image"
+  (make-image
+   "Width"
+   "Height"
+   "Title"
+   ("Thumbnail"
+    (make-thumbnail
+     "Url"
+     "Height"
+     "Width"))
+   "Animated"
+   ("IDs" (@ list))))))
+#|
+Above construct Scheme object from JSON like the following:
+{
+  "Image": {
+    "Width":  800,
+    "Height": 600,
+    "Title":  "View from 15th Floor",
+    "Thumbnail": {
+      "Url":    "http://www.example.com/image/481989943",
+      "Height": 125,
+      "Width":  100
+  },
+    "Animated" : false,
+    "IDs": [116, 943, 234, 38793]
+  }
+}
+|#
+}
+
+@codeblock{
+(json-object-builder
+ (@ list
+    (make-location
+     "precision"
+     "Latitude"
+     "Longitude"
+     (? "Address" #f)
+     "City"
+     "State"
+     "Zip"
+     "Country")))
+#|
+Above construct Scheme object from JSON like the following:
+[
+  {
+    "precision": "zip",
+    "Latitude":  37.7668,
+    "Longitude": -122.3959,
+    "Address":   "",
+    "City":      "SAN FRANCISCO",
+    "State":     "CA",
+    "Zip":       "94107",
+    "Country":   "US"
+  },
+  {
+    "precision": "zip",
+    "Latitude":  37.371991,
+    "Longitude": -122.026020,
+    "City":      "SUNNYVALE",
+    "State":     "CA",
+    "Zip":       "94085",
+    "Country":   "US"
+  }
+]
+|#
+}
+
+}
+
+@define[Function]{@name{json-string->object} @args{json-string builder}}
+@define[Function]{@name{read-object-from-json}
+ @args{json-string builder :optional (in-port (current-input-port))}}
+@desc{Constructs Scheme object from given @var{json-string} or @var{in-port},
+according to the given @var{builder}.
+
+@codeblock[=> foo]{
+(let ((json-string "{\"bar\": {\"buz\": 1}}"))
+  (define-record-type foo
+    (fields bar))
+  (define-record-type bar
+    (fields buz))
+  (define bar-builder (json-object-builder (make-bar "buz")))
+  (define builder (json-object-builder (make-foo ("bar" bar-builder))))
+
+  (json-string->object json-string builder))
+}
+}
