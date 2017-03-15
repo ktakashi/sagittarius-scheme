@@ -35,9 +35,18 @@
 
 	    object->json-string write-object-as-json
 	    json:serializer? ->
-	    json-object-serializer)
+	    json-object-serializer
+
+	    *post-json-object-build*
+	    *post-json-array-build*
+
+	    ;; don't want to expose but no choice...
+	    json->object
+	    object->json
+	    )
     (import (rnrs)
-	    (text json parse))
+	    (text json parse)
+	    (srfi :39))
 
  (define-record-type json:builder
    (fields build-object))
@@ -89,7 +98,12 @@
 		     "->array must be a procedure" ->array))
 		 ((p build-json-array) ->array builder)))))
 
- (define (build-json-object builder json)
+ (define (default-no-mapping-handler key value)
+   (assertion-violation 'json-string->object "no mapping found for key"
+			key value))
+
+ (define *post-json-object-build* (make-parameter values))
+ (define (build-json-object builder json handler)
    (define mappings (json:object-builder-mappings builder))
    (define mapping-length (length mappings))
    (define ctr (json:object-builder-constructor builder))
@@ -111,35 +125,52 @@
    (do ((i 0 (+ i 1)) (v (make-vector mapping-length ctr)))
        ((= i len)
 	(check-existence v mappings)
-	(apply ctr (vector->list v)))
+	((*post-json-object-build*) (apply ctr (vector->list v))))
      (let* ((kv (vector-ref json i))
 	    (mapping (find-mapping (car kv) mappings)))
-       (unless mapping
-	 (assertion-violation 'json-string->object "no mapping found for key"
-			      (car kv)))
-       (vector-set! v (json:builder-mapping-order mapping)
-		    (json->object (cdr kv)
-				  (json:builder-mapping-builder mapping))))))
+       (if mapping
+	   (vector-set! v (json:builder-mapping-order mapping)
+			(json->object (cdr kv)
+				      (json:builder-mapping-builder mapping)
+				      handler))
+	   (handler (car kv) (cdr kv))))))
 
  ;; array must contain the same object in sense of builder creates
- (define (build-json-array builder json)
+ (define *post-json-array-build* (make-parameter values))
+ (define (build-json-array builder json handler)
    (define ->array (json:array-builder->array builder))
    (define element-builder (json:array-builder-builder builder))
-   (apply ->array (map (lambda (j) (json->object j element-builder)) json)))
+   ((*post-json-array-build*)
+    (apply ->array
+	   (map (lambda (j) (json->object j element-builder handler)) json))))
  
  ;; internal use only since we don't have THE representation for JSON.
- (define (json->object json builder)
-   ((json:builder-build-object builder) builder json))
+ (define json->object
+   (case-lambda
+    ((json builder)
+     ((json:builder-build-object builder)
+      builder json default-no-mapping-handler))
+    ((json builder handler)
+     ((json:builder-build-object builder) builder json handler))))
 
  (define read-object-from-json
    (case-lambda
-    ((builder) (read-object-from-json builder (current-input-port)))
-    ((builder port) (json->object (json-read port) builder))))
+    ((builder)
+     (read-object-from-json builder (current-input-port)))
+    ((builder port)
+     (json->object (json-read port) builder))
+    ((builder port handler)
+     (json->object (json-read port) builder handler))))
  
- (define (json-string->object json-string builder)
-   (read-object-from-json builder (open-string-input-port json-string)))
+ (define json-string->object
+   (case-lambda
+    ((json-string builder)
+     (json-string->object json-string builder default-no-mapping-handler))
+    ((json-string builder handler)
+     (read-object-from-json builder (open-string-input-port json-string)
+			    handler))))
 
- (define (simple-build builder json) json)
+ (define (simple-build builder json handler) json)
  (define simple-json-builder (make-json:builder simple-build))
 
  (define-syntax @ (syntax-rules ()))
@@ -185,7 +216,7 @@
       (let ((t ctr))
 	(if (json:builder? t)
 	    t
-	    (make-json:builder (lambda (builder json) (t json))))))))
+	    (make-json:builder (lambda (builder json handler) (t json))))))))
 
 ;;; Serializer
  (define-record-type json:serializer
