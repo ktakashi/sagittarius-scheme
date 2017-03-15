@@ -65,8 +65,8 @@ created only via @code{json-object-builder} macro.
 
 The @var{spec} must be one of the followings:
 @itemlist[
-  @item{@code{(@ ->array spec)}}
-  @item{@code{(@ ->array)}}
+  @item{@code{(@atmark{} ->array spec)}}
+  @item{@code{(@atmark{} ->array)}}
   @item{@code{(ctr mapping @dots{})}}
   @item{@code{ctr/builder}}
 ]
@@ -179,9 +179,10 @@ Above construct Scheme object from JSON like the following:
 
 }
 
-@define[Function]{@name{json-string->object} @args{json-string builder}}
+@define[Function]{@name{json-string->object}
+ @args{json-string builder :optional missing-key-handler}}
 @define[Function]{@name{read-object-from-json}
- @args{json-string builder :optional (in-port (current-input-port))}}
+ @args{builder :optional (in-port (current-input-port)) missing-key-handler}}
 @desc{Constructs Scheme object from given @var{json-string} or @var{in-port},
 according to the given @var{builder}.
 
@@ -196,4 +197,9 @@ according to the given @var{builder}.
 
   (json-string->object json-string builder))
 }
+
+If @var{missing-key-handler} is given, then it must be a procedure accepts 2
+arguments. This procedure is called when the conversion procedure met keys
+which is not defined in @var{builder}. The default behaviour is raising an
+error.
 }
