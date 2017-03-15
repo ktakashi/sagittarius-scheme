@@ -57,7 +57,7 @@
      (lambda (e)
        (display (describe-condition e) (current-error-port))
        (newline (current-error-port))
-       (if (warning? e) msg #f))
+       (if (warning? e) msg (raise e)))
      (lambda ()
        (if (pair? item)
 	   (cond ((scribble-lookup-macro (car item))

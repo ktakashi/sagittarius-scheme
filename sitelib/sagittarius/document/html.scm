@@ -119,10 +119,10 @@
       (string-concatenate 
        (map (^i (cond ((symbol? i) (symbol->string i))
 		      ((string? i) i)
+		      ((and (pair? i) (null? (cdr i)))
+		       (scribble->sxml-inner i))
 		      ((pair? i)   (car (sxml:content i)))
-		      (else (assertion-violation 'name
-						 "bogus data"
-						 i))))
+		      (else (assertion-violation 'name "bogus data" i))))
 	    body)))
     (let* ((name (body->name body))
 	   (tag (symbol->string (gensym name))))

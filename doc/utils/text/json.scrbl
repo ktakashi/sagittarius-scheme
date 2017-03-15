@@ -60,7 +60,7 @@ created only via @code{json-object-builder} macro.
 
 @define[Macro]{@name{json-object-builder} @args{ctr spec @dots{}}}
 @define["Auxiliary syntax"]{@name{?}}
-@;@define["Auxiliary syntax"]{@name{@atmark{}}}
+@define["Auxiliary syntax"]{@name{@atmark{}}}
 @desc{A DSL which constructs JSON object builder.
 
 The @var{spec} must be one of the followings:
