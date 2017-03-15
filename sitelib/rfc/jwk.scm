@@ -92,7 +92,9 @@
   (define-record-type jwk:oct
     (parent jwk)
     (fields k))
-  
+
+  (define (base64-url-string->bytevector s)
+    (base64-url-decode (string->utf8 s)))
   (define jwk-builder
     (json-object-builder
      (make-jwk-set
@@ -105,7 +107,7 @@
 	   (? "alg" #f)
 	   (? "kid" #f)
 	   (? "x5u" #f)
-	   (? "x5c" #f (@ list))
+	   (? "x5c" #f (@ list base64-url-string->bytevector))
 	   (? "x5t" #f)
 	   (? "x5t#S256" #f)))))))
 
@@ -113,7 +115,7 @@
   ;; we could make our life much easier but no choice. fxxk!!!
   (define (make-jwk-by-type jwk key-param)
     (define (ctr&params jwk key-param)
-      (define (decode-b64 s) (base64-url-decode (string->utf8 s)))
+      (define decode-b64 base64-url-string->bytevector)
       (define (pref k) (hashtable-ref key-param k #f))
       (define (maybe->integer v)
 	(and v (bytevector->integer (decode-b64 v))))
@@ -185,7 +187,7 @@
 	 (? "alg" #f jwk-alg)
 	 (? "kid" #f jwk-kid)
 	 (? "x5u" #f jwk-x5u)
-	 (? "x5c" #f jwk-x5c (->))
+	 (? "x5c" #f jwk-x5c (-> bytevector->b64-string))
 	 (? "x5t" #f jwk-x5t)
 	 (? "x5t#S256" #f jwk-x5t-s256))))))
 
