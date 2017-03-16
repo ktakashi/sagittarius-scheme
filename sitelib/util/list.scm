@@ -40,7 +40,7 @@
 	    combine
 	    fold2
 	    fold3
-	    cond-list)
+	    cond-list => @)
     (import (rnrs)
 	    (core base)
 	    (sagittarius)
@@ -131,7 +131,8 @@
       (cond ((= i k) lis)
 	    ((null? lis) '())
 	    (else (loop (+ i 1) (cdr lis))))))
-  
+
+  (define-syntax @ (syntax-rules ()))
   (define-syntax cond-list
     (syntax-rules (=> @)
       ((_) '())
