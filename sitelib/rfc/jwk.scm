@@ -41,19 +41,24 @@
 	    jwk:ec? make-jwk:ec jwk:ec-crv jwk:ec-x jwk:ec-y
 	    jwk:ec-private? make-jwk:ec-private jwk:ec-private-d
 	    ;; RSA
-	    jwk:rsa?
-	    jwk:rsa-public? make-jwk:rsa-public
-	    jwk:rsa-public-n jwk:rsa-public-e
+	    jwk:rsa? jwk:rsa-n jwk:rsa-e
 	    jwk:rsa-private? make-jwk:rsa-private jwk:rsa-private-d
 	    jwk:rsa-crt-private? make-jwk:rsa-crt-private
 	    jwk:rsa-private-crt-p jwk:rsa-private-crt-q jwk:rsa-private-crt-dp
 	    jwk:rsa-private-crt-dq jwk:rsa-private-crt-qi
 	    ;; oct
-	    jwk:oct? make-jwk:oct jwk-oct-k)
+	    jwk:oct? make-jwk:oct jwk-oct-k
+
+	    jwk->certificate-chain
+	    jwk->public-key
+	    jwk->private-key
+	    jwk->secret-key
+	    )
     (import (rnrs)
 	    (text json object-builder)
 	    (sagittarius)
 	    (rfc jose)
+	    (rfc jwa)
 	    (srfi :39))
 
   (define-record-type jwk
@@ -74,9 +79,7 @@
     (fields d))
   ;; RSA
   (define-record-type jwk:rsa
-    (parent jwk))
-  (define-record-type jwk:rsa-public
-    (parent jwk:rsa)
+    (parent jwk)
     (fields n e))
   (define-record-type jwk:rsa-private
     (parent jwk:rsa)
@@ -103,11 +106,11 @@
 	  (make-jwk
 	   "kty"
 	   (? "use" #f)
-	   (? "key-ops" #f (@ list))
+	   (? "key-ops" '() (@ list))
 	   (? "alg" #f)
 	   (? "kid" #f)
 	   (? "x5u" #f)
-	   (? "x5c" #f (@ list base64-url-string->bytevector))
+	   (? "x5c" '() (@ list base64-url-string->bytevector))
 	   (? "x5t" #f)
 	   (? "x5t#S256" #f)))))))
 
@@ -121,39 +124,41 @@
 	(and v (bytevector->integer (decode-b64 v))))
       (case (string->symbol (jwk-kty jwk))
 	((EC)
-	 (let ((crv (hashtable-ref key-param 'crv))
-	       (x (decode-b64 (pref 'x)))
-	       (y (decode-b64 (pref 'y))))
+	 (let ((crv (string->symbol (hashtable-ref key-param 'crv)))
+	       (x (maybe->integer (pref 'x)))
+	       (y (maybe->integer (pref 'y))))
 	   (cond ((pref 'd) =>
 		  (lambda (d)
-		    (values make-jwk:ec-private crv x y (decode-b64 d))))
+		    (values make-jwk:ec-private crv x y (maybe->integer d))))
 		 (else (values make-jwk:ec crv x y)))))
 	((RSA)
-	 (cond ((pref 'n) =>
-		(lambda (n)
-		  (values make-jwk:rsa-public
-			  (bytevector->integer (decode-b64 n))
-			  (bytevector->integer (decode-b64 (pref 'e))))))
-	       (else
-		(let ((d (bytevector->integer (decode-b64 (pref 'd)))))
-		  (cond ((pref 'p) =>
-			 (lambda (p)
-			   (values make-jwk:rsa-crt-private
-				   d
-				   (maybe->integer p)
-				   (maybe->integer (pref 'q))
-				   (maybe->integer (pref 'dp))
-				   (maybe->integer (pref 'dq))
-				   (maybe->integer (pref 'di))
-				   ;; TODO oth
-				   )))
-			(else (values make-jwk:rsa-private d)))))))
+	 (let ((n (maybe->integer (pref 'n)))
+	       (e (maybe->integer (pref 'e))))
+	   (cond ((maybe->integer (pref 'd)) =>
+		  (lambda (d)
+		    (cond ((maybe->integer (pref 'p)) =>
+			   (lambda (p)
+			     ;; TODO should we fallback if there's
+			     ;; missing values?
+			     (values make-jwk:rsa-crt-private
+				     n
+				     e
+				     d
+				     p
+				     (maybe->integer (pref 'q))
+				     (maybe->integer (pref 'dp))
+				     (maybe->integer (pref 'dq))
+				     (maybe->integer (pref 'qi))
+				     ;; TODO oth
+				     )))
+			  (else (values make-jwk:rsa-private n e d)))))
+		 (else (values make-jwk:rsa n e)))))
 	((oct) (values make-jwk:oct (decode-b64 (pref 'k))))
 	(else => (lambda (t) (error 'read-jwk-set "unsupported key type" t)))))
     (let-values (((ctr . param) (ctr&params jwk key-param)))
       (let ((use (jwk-use jwk))
 	    (key-ops (jwk-key-ops jwk)))
-	(when (and use key-ops)
+	(when (and use (not (null? key-ops)))
 	  (error 'read-jwk-set "use and key_ops must not be together"))
 	(apply ctr (jwk-kty jwk) use key-ops
 	       (jwk-alg jwk) (jwk-kid jwk) (jwk-x5u jwk) (jwk-x5c jwk)
@@ -183,35 +188,40 @@
 	(("kty" jwk-kty)
 	 (key acc ...) ...
 	 (? "use" #f jwk-use)
-	 (? "key_ops" #f jwk-key-ops (->))
+	 (? "key_ops" '() jwk-key-ops (->))
 	 (? "alg" #f jwk-alg)
 	 (? "kid" #f jwk-kid)
 	 (? "x5u" #f jwk-x5u)
-	 (? "x5c" #f jwk-x5c (-> bytevector->b64-string))
+	 (? "x5c" '() jwk-x5c (-> bytevector->b64-string))
 	 (? "x5t" #f jwk-x5t)
 	 (? "x5t#S256" #f jwk-x5t-s256))))))
 
   (define (bytevector->b64-string bv)
     (utf8->string (base64-url-encode bv)))
-  (define jwk:ec-serializer
-    (jwk-serializer ("crv" jwk:ec-crv)
-		    ("x" jwk:ec-x bytevector->b64-string)
-		    ("y" jwk:ec-y bytevector->b64-string)))
-  (define jwk:ec-private-serializer
-    (jwk-serializer ("crv" jwk:ec-crv)
-		    ("x" jwk:ec-x bytevector->b64-string)
-		    ("y" jwk:ec-y bytevector->b64-string)
-		    ("d" jwk:ec-private-d bytevector->b64-string)))
-  ;; RSA
   (define (integer->b64-string i)
     (utf8->string (base64-url-encode (integer->bytevector i))))
-  (define jwk:rsa-public-serializer
-    (jwk-serializer ("n" jwk:rsa-public-n integer->b64-string)
-		    ("e" jwk:rsa-public-e integer->b64-string)))
+  
+  (define jwk:ec-serializer
+    (jwk-serializer ("crv" jwk:ec-crv symbol->string)
+		    ("x" jwk:ec-x integer->b64-string)
+		    ("y" jwk:ec-y integer->b64-string)))
+  (define jwk:ec-private-serializer
+    (jwk-serializer ("crv" jwk:ec-crv)
+		    ("x" jwk:ec-x integer->b64-string)
+		    ("y" jwk:ec-y integer->b64-string)
+		    ("d" jwk:ec-private-d integer->b64-string)))
+  ;; RSA
+  (define jwk:rsa-serializer
+    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
+		    ("e" jwk:rsa-e integer->b64-string)))
   (define jwk:rsa-private-serializer
-    (jwk-serializer ("d" jwk:rsa-private-d integer->b64-string)))
+    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
+		    ("e" jwk:rsa-e integer->b64-string)
+		    ("d" jwk:rsa-private-d integer->b64-string)))
   (define jwk:rsa-crt-private-serializer
-    (jwk-serializer ("d" jwk:rsa-private-d integer->b64-string)
+    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
+		    ("e" jwk:rsa-e integer->b64-string)
+		    ("d" jwk:rsa-private-d integer->b64-string)
 		    ("p" jwk:rsa-crt-private-p integer->b64-string)
 		    ("q" jwk:rsa-crt-private-q integer->b64-string)
 		    ("dp" jwk:rsa-crt-private-dp integer->b64-string)
@@ -224,8 +234,10 @@
   (define (dispatch-jwk o)
     (cond ((jwk:ec-private? o) (object->json o jwk:ec-private-serializer))
 	  ((jwk:ec? o) (object->json o jwk:ec-serializer))
-	  ((jwk:rsa-public? o) (object->json o jwk:rsa-public-serializer))
+	  ((jwk:rsa-crt-private? o)
+	   (object->json o jwk:rsa-crt-private-serializer))
 	  ((jwk:rsa-private? o) (object->json o jwk:rsa-private-serializer))
+	  ((jwk:rsa? o) (object->json o jwk:rsa-serializer))
 	  ((jwk:oct? o) (object->json o jwk:oct-serializer))
 	  (else (error 'jwk-set-serializer "unknown object" o))))
   (define jwk-set-serializer
@@ -234,5 +246,50 @@
 
   (define (jwk-set->json-string jwk-set)
     (object->json-string jwk-set jwk-set-serializer))
-    
+
+  ;; usages
+  (define (jwk->certificate-chain jwk)
+    (x5c-parameter->x509-certificates (jwk-x5c jwk)))
+
+  (define (jwk->public-key jwk)
+    ;; jwk:ec-private or jwk:rsa-private can also be a public key
+    ;; TODO should it?
+    (cond ((jwk:ec? jwk)
+	   (jwa:make-ec-public-key
+	    (jwk:ec-crv jwk) (jwk:ec-x jwk) (jwk:ec-y jwk)))
+	  ((jwk:rsa? jwk)
+	   (jwa:make-rsa-public-key
+	    (jwk:rsa-n jwk) (jwk:rsa-e jwk)))
+	  (else
+	   (assertion-violation 'jwk->public-key
+				"given JWK object is not a public key" jwk))))
+  (define (jwk->private-key jwk)
+    (cond ((jwk:ec-private? jwk)
+	   (jwa:make-ec-private-key
+	    (jwk:ec-crv jwk) (jwk:ec-private-d jwk)
+	    (jwk:ec-x jwk) (jwk:ec-y jwk)))
+	  ((jwk:rsa-private? jwk)
+	   (let ((n (jwk:rsa-n jwk))
+		 (e (jwk:rsa-e jwk))
+		 (d (jwk:rsa-private-d jwk)))
+	     (if (jwk:rsa-crt-private? jwk)
+		 (jwa:make-rsa-crt-private-key
+		  n
+		  e
+		  d
+		  (jwk:rsa-crt-private-p jwk)
+		  (jwk:rsa-crt-private-q jwk)
+		  (jwk:rsa-crt-private-dp jwk)
+		  (jwk:rsa-crt-private-dq jwk)
+		  (jwk:rsa-crt-private-qi jwk))
+		 (jwa:make-rsa-private-key n e d))))
+	  (else
+	   (assertion-violation 'jwk->private-key
+				"given JWK object is not a private key" jwk))))
+  (define (jwk->secret-key jwk)
+    (if (jwk:oct? jwk)
+	(jwa:make-secret-key (jwk-alg jwk) (jwk:oct-k jwk))
+	(assertion-violation 'jwk->secret-key
+			     "given JWK object is not a oct type object" jwk)))
+  
   )

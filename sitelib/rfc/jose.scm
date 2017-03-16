@@ -48,9 +48,13 @@
 	    ;; put utility here...
 	    base64-url-encode
 	    base64-url-decode
+
+	    x5c-parameter->x509-certificates
+	    
 	    )
     (import (rnrs)
-	    (rfc base64))
+	    (rfc base64)
+	    (rfc x.509))
 
   (define-record-type jose-header
     ;; only these 2 are the same amoung JWS, JWS and JWE
@@ -104,4 +108,8 @@
 	(put-bytevector bout bv)
 	(close-output-port bout)
 	(extract))))
+
+
+  (define (x5c-parameter->x509-certificates x5c)
+    (map make-x509-certificate x5c))
 )
