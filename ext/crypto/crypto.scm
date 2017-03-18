@@ -17,6 +17,7 @@
 	    (crypto ecdsa)
 	    (crypto k-generator)
 	    (crypto ecdh)
+	    (crypto wrap)
 	    ;; for conditions
 	    (sagittarius crypto))
 )
