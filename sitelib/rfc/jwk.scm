@@ -104,10 +104,10 @@
       ("keys"
        (@ list
 	  (make-jwk
-	   "kty"
+	   ("kty" string->symbol)
 	   (? "use" #f)
 	   (? "key-ops" '() (@ list))
-	   (? "alg" #f)
+	   (? "alg" #f string->symbol)
 	   (? "kid" #f)
 	   (? "x5u" #f)
 	   (? "x5c" '() (@ list base64-url-string->bytevector))
@@ -122,7 +122,7 @@
       (define (pref k) (hashtable-ref key-param k #f))
       (define (maybe->integer v)
 	(and v (bytevector->integer (decode-b64 v))))
-      (case (string->symbol (jwk-kty jwk))
+      (case (jwk-kty jwk)
 	((EC)
 	 (let ((crv (string->symbol (hashtable-ref key-param 'crv)))
 	       (x (maybe->integer (pref 'x)))
@@ -185,11 +185,11 @@
     (syntax-rules ()
       ((_ (key acc ...) ...)
        (json-object-serializer
-	(("kty" jwk-kty)
+	(("kty" jwk-kty symbol->string)
 	 (key acc ...) ...
 	 (? "use" #f jwk-use)
 	 (? "key_ops" '() jwk-key-ops (->))
-	 (? "alg" #f jwk-alg)
+	 (? "alg" #f jwk-alg symbol->string)
 	 (? "kid" #f jwk-kid)
 	 (? "x5u" #f jwk-x5u)
 	 (? "x5c" '() jwk-x5c (-> bytevector->b64-string))
