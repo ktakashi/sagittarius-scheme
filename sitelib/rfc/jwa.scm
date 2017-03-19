@@ -34,8 +34,7 @@
 	    jwa:make-ec-private-key
 	    jwa:make-rsa-public-key
 	    jwa:make-rsa-private-key
-	    jwa:make-rsa-crt-private-key
-	    jwa:make-secret-key)
+	    jwa:make-rsa-crt-private-key)
     (import (rnrs)
 	    (sagittarius)
 	    (crypto))
@@ -60,7 +59,6 @@
   (define (jwa:make-rsa-private-key n e d) (generate-private-key RSA n d))
   (define (jwa:make-rsa-crt-private-key n e d p q dp dq qi)
     (generate-private-key RSA n d :public-exponent e :p p :q q))
-  (define (jwa:make-secret-key alg k)
-    (error 'jwa:make-secret-key "not supported yet"))
+  
   )
 	    

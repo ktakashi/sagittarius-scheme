@@ -52,7 +52,7 @@
 	    jwk->certificate-chain
 	    jwk->public-key
 	    jwk->private-key
-	    jwk->secret-key
+	    jwk->octet-key
 	    )
     (import (rnrs)
 	    (text json object-builder)
@@ -286,9 +286,9 @@
 	  (else
 	   (assertion-violation 'jwk->private-key
 				"given JWK object is not a private key" jwk))))
-  (define (jwk->secret-key jwk)
+  (define (jwk->octet-key jwk)
     (if (jwk:oct? jwk)
-	(jwa:make-secret-key (jwk-alg jwk) (jwk:oct-k jwk))
+	(jwk:oct-k jwk)
 	(assertion-violation 'jwk->secret-key
 			     "given JWK object is not a oct type object" jwk)))
   
