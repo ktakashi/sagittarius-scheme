@@ -2,7 +2,6 @@
 	(rfc jwk)
 	(srfi :64)
 	(rfc x.509)
-	(pp)
 	(crypto))
 
 (test-begin "RFC - JWK")
@@ -192,7 +191,6 @@
 
       (test-assert (public-key? (jwk->public-key jwk)))
       (test-error (jwk->private-key jwk))
-      (print (jwk-x5c jwk))
       (test-equal '(#t) (map x509-certificate? (jwk->certificate-chain jwk))))
     (test-equal "jwk-set->json jwk:rsa x5c "json
 		(jwk-set->json jwk-set))))
