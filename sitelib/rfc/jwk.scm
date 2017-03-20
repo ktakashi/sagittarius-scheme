@@ -31,12 +31,13 @@
 ;; ref: https://tools.ietf.org/html/rfc7517
 
 (library (rfc jwk)
-    (export json-string->jwk-set read-jwk-set
-	    jwk-set->json-string
+    (export json-string->jwk-set read-jwk-set json->jwk-set
+	    jwk-set->json-string write-jwk-set jwk-set->json
 	    ;; key set
 	    jwk-set-keys jwk-set? make-jwk-set
 	    
 	    ;; keys
+	    jwk? jwk-use jwk-kid jwk-kty jwk-alg jwk-x5c
 	    ;; EC
 	    jwk:ec? make-jwk:ec jwk:ec-crv jwk:ec-x jwk:ec-y
 	    jwk:ec-private? make-jwk:ec-private jwk:ec-private-d
@@ -44,8 +45,8 @@
 	    jwk:rsa? jwk:rsa-n jwk:rsa-e
 	    jwk:rsa-private? make-jwk:rsa-private jwk:rsa-private-d
 	    jwk:rsa-crt-private? make-jwk:rsa-crt-private
-	    jwk:rsa-private-crt-p jwk:rsa-private-crt-q jwk:rsa-private-crt-dp
-	    jwk:rsa-private-crt-dq jwk:rsa-private-crt-qi
+	    jwk:rsa-crt-private-p  jwk:rsa-crt-private-q jwk:rsa-crt-private-dp
+	    jwk:rsa-crt-private-dq jwk:rsa-crt-private-qi
 	    ;; oct
 	    jwk:oct? make-jwk:oct jwk-oct-k
 
@@ -55,10 +56,12 @@
 	    jwk->octet-key
 	    )
     (import (rnrs)
+	    (text json parse)
 	    (text json object-builder)
 	    (sagittarius)
 	    (rfc jose)
 	    (rfc jwa)
+	    (rfc base64)
 	    (srfi :39))
 
   (define-record-type jwk
@@ -98,6 +101,7 @@
 
   (define (base64-url-string->bytevector s)
     (base64-url-decode (string->utf8 s)))
+  (define (base64-string->bytevector s) (base64-decode-string s :transcoder #f))
   (define jwk-builder
     (json-object-builder
      (make-jwk-set
@@ -110,7 +114,7 @@
 	   (? "alg" #f string->symbol)
 	   (? "kid" #f)
 	   (? "x5u" #f)
-	   (? "x5c" '() (@ list base64-url-string->bytevector))
+	   (? "x5c" '() (@ list base64-string->bytevector))
 	   (? "x5t" #f)
 	   (? "x5t#S256" #f)))))))
 
@@ -163,8 +167,8 @@
 	(apply ctr (jwk-kty jwk) use key-ops
 	       (jwk-alg jwk) (jwk-kid jwk) (jwk-x5u jwk) (jwk-x5c jwk)
 	       (jwk-x5t jwk) (jwk-x5t-s256 jwk) param))))
-	     
-  (define (read-jwk-set port)
+
+  (define (json->jwk-set json)
     (define key-parameters (make-eq-hashtable))
     (define (parameter-handler k v)
       (hashtable-set! key-parameters (string->symbol k) v))
@@ -176,11 +180,16 @@
 	    r)
 	  obj))
     (parameterize ((*post-json-object-build* post-object-build))
-      (read-object-from-json jwk-builder port parameter-handler)))
+      (json->object json jwk-builder parameter-handler)))
+  
+  (define (read-jwk-set port)
+    (json->jwk-set (json-read port)))
     
   (define (json-string->jwk-set json-string)
     (read-jwk-set (open-string-input-port json-string)))
 
+  (define (bytevector->b64-string bv)
+    (utf8->string (base64-encode bv :line-width #f)))
   (define-syntax jwk-serializer
     (syntax-rules ()
       ((_ (key acc ...) ...)
@@ -196,40 +205,40 @@
 	 (? "x5t" #f jwk-x5t)
 	 (? "x5t#S256" #f jwk-x5t-s256))))))
 
-  (define (bytevector->b64-string bv)
+  (define (bytevector->b64u-string bv)
     (utf8->string (base64-url-encode bv)))
-  (define (integer->b64-string i)
+  (define (integer->b64u-string i)
     (utf8->string (base64-url-encode (integer->bytevector i))))
   
   (define jwk:ec-serializer
     (jwk-serializer ("crv" jwk:ec-crv symbol->string)
-		    ("x" jwk:ec-x integer->b64-string)
-		    ("y" jwk:ec-y integer->b64-string)))
+		    ("x" jwk:ec-x integer->b64u-string)
+		    ("y" jwk:ec-y integer->b64u-string)))
   (define jwk:ec-private-serializer
-    (jwk-serializer ("crv" jwk:ec-crv)
-		    ("x" jwk:ec-x integer->b64-string)
-		    ("y" jwk:ec-y integer->b64-string)
-		    ("d" jwk:ec-private-d integer->b64-string)))
+    (jwk-serializer ("crv" jwk:ec-crv symbol->string)
+		    ("x" jwk:ec-x integer->b64u-string)
+		    ("y" jwk:ec-y integer->b64u-string)
+		    ("d" jwk:ec-private-d integer->b64u-string)))
   ;; RSA
   (define jwk:rsa-serializer
-    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
-		    ("e" jwk:rsa-e integer->b64-string)))
+    (jwk-serializer ("n" jwk:rsa-n integer->b64u-string)
+		    ("e" jwk:rsa-e integer->b64u-string)))
   (define jwk:rsa-private-serializer
-    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
-		    ("e" jwk:rsa-e integer->b64-string)
-		    ("d" jwk:rsa-private-d integer->b64-string)))
+    (jwk-serializer ("n" jwk:rsa-n integer->b64u-string)
+		    ("e" jwk:rsa-e integer->b64u-string)
+		    ("d" jwk:rsa-private-d integer->b64u-string)))
   (define jwk:rsa-crt-private-serializer
-    (jwk-serializer ("n" jwk:rsa-n integer->b64-string)
-		    ("e" jwk:rsa-e integer->b64-string)
-		    ("d" jwk:rsa-private-d integer->b64-string)
-		    ("p" jwk:rsa-crt-private-p integer->b64-string)
-		    ("q" jwk:rsa-crt-private-q integer->b64-string)
-		    ("dp" jwk:rsa-crt-private-dp integer->b64-string)
-		    ("dq" jwk:rsa-crt-private-dq integer->b64-string)
-		    ("qi" jwk:rsa-crt-private-qi integer->b64-string)))
+    (jwk-serializer ("n" jwk:rsa-n integer->b64u-string)
+		    ("e" jwk:rsa-e integer->b64u-string)
+		    ("d" jwk:rsa-private-d integer->b64u-string)
+		    ("p" jwk:rsa-crt-private-p integer->b64u-string)
+		    ("q" jwk:rsa-crt-private-q integer->b64u-string)
+		    ("dp" jwk:rsa-crt-private-dp integer->b64u-string)
+		    ("dq" jwk:rsa-crt-private-dq integer->b64u-string)
+		    ("qi" jwk:rsa-crt-private-qi integer->b64u-string)))
   ;; oct
   (define jwk:oct-serializer
-    (jwk-serializer ("k" jwk:oct-k bytevector->b64-string)))
+    (jwk-serializer ("k" jwk:oct-k bytevector->b64u-string)))
 
   (define (dispatch-jwk o)
     (cond ((jwk:ec-private? o) (object->json o jwk:ec-private-serializer))
@@ -244,8 +253,16 @@
     (json-object-serializer
      (("keys" jwk-set-keys (-> dispatch-jwk)))))
 
+  (define (jwk-set->json jwk-set) (object->json jwk-set jwk-set-serializer))
+  (define write-jwk-set
+    (case-lambda
+     ((jwk-set) (write-jwk-set jwk-set (current-output-port)))
+     ((jwk-set out)
+      (json-write (jwk-set->json jwk-set) out))))
   (define (jwk-set->json-string jwk-set)
-    (object->json-string jwk-set jwk-set-serializer))
+    (let-values (((out extract) (open-string-output-port)))
+      (write-jwk-set jwk-set out)
+      (extract)))
 
   ;; usages
   (define (jwk->certificate-chain jwk)
