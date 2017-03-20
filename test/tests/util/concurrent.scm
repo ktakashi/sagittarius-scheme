@@ -60,7 +60,8 @@
       (lambda ()
 	(test-equal "shared-queue-get (wait)" '(100 . 900)
 		    (shared-queue-get! recepit))))))
-
+  ;; wait until the eager client is ready
+  (shared-queue-locked? recepit #t)
   (shared-queue-put! client '(withdrow 100))
   (shared-queue-put! client '(deposite 100))
   (shared-queue-put! client '(close))
