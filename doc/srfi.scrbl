@@ -364,16 +364,22 @@ For now, I just put pointer to @hyperlink[:href "http://srfi.schemers.org/"]{the
 
     The name @code{integer-division} is taken from the name of the SRFI.
     }}
-@tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-147/srfi-147.html"]{SRFI-147}}
-    @td{(srfi :147 custom-macro-transformers)
-
-    The long name is Sagittarius specific and the specified library name 
-    is @code{(srfi :147)}. So for the portability it's better to use the
-    @code{(srfi :147)}.
-
-    The name @code{custom-macro-transformers} is taken from the name of the
-    SRFI.
-    }}
+@; > In order to facilitate writing sophisticated custom macro transformers, it
+@; > is allowed that a transformer spec expands into a sequence of multiple
+@; > definitions eventually followed by a transformer spec (whose expansion may
+@; > make use of the introduced definitions).
+@; Above sentence makes this srfi more trouble than gain so don't dare.
+@;
+@; @tr{@td[:style "vertical-align: top;"]{@hyperlink[:href "http://srfi.schemers.org/srfi-147/srfi-147.html"]{SRFI-147}}
+@;     @td{(srfi :147 custom-macro-transformers)
+@; 
+@;     The long name is Sagittarius specific and the specified library name 
+@;     is @code{(srfi :147)}. So for the portability it's better to use the
+@;     @code{(srfi :147)}.
+@; 
+@;     The name @code{custom-macro-transformers} is taken from the name of the
+@;     SRFI.
+@;     }}
 }
 
 
