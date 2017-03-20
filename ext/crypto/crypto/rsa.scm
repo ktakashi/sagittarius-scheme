@@ -54,14 +54,13 @@
      (dP :init-keyword :dP)	;; e*dP = 1 mod p-1P
      (dQ :init-keyword :dQ)	;; e*dQ = 1 mod q-1
      (qP :init-keyword :qP)))	;; q*qP = 1/q mod p
-  (define (make-rsa-private-crt-key m e d p q)
+  (define (make-rsa-private-crt-key m e d p q
+				    :key (dP (mod d (- p 1)))
+					 (dQ (mod d (- q 1)))
+					 (qP (mod-inverse q p)))
     (make <rsa-private-crt-key>
-      :modulus m :private-exponent d
-      :public-exponent e
-      :p p :q q
-      :dP (mod d (- p 1))
-      :dQ (mod d (- q 1))
-      :qP (mod-inverse q p)))
+      :modulus m :private-exponent d :public-exponent e
+      :p p :q q :dP dP :dQ dQ :qP qP))
   (define (rsa-private-crt-key? o) (is-a? o <rsa-private-crt-key>))
   (define-method object-equal? ((o1 <rsa-private-key>) (o2 <rsa-private-key>))
     (and (eqv? (slot-ref o1 'modulus) (slot-ref o2 'modulus))
@@ -122,15 +121,11 @@
   (define (rsa-generate-private-key modulus private-exponent
 				    :key (public-exponent #f)
 					 (p #f)
-					 (q #f))
-    ;; if crt-key missing one of them
-    (when (and (or public-exponent p q)
-	       (not (and public-exponent p q)))
-      (assertion-violation 'rsa-generate-private-key
-			   "invalid crt-key generation"
-			   public-exponent p q))
+					 (q #f)
+				    :allow-other-keys rest)
     (if (and public-exponent p q)
-	(make-rsa-private-crt-key modulus public-exponent private-exponent p q)
+	(apply make-rsa-private-crt-key modulus public-exponent
+	       private-exponent p q rest)
 	(make-rsa-private-key modulus private-exponent)))
   
   (define-method generate-private-key ((marker (eql RSA))
