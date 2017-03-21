@@ -9,7 +9,7 @@
 @define[Function]{@name{base64-encode}
  @args{in :key (line-width 76) (padding? #t)}}
 @define[Function]{@name{base64url-encode}
- @args{in :key (line-width 76) (padding? #f)}}
+ @args{in :key (line-width #f) (padding? #f)}}
 @desc{@var{in} must be either a bytevector or binary input port.
 
 Encodes given input @var{in} to Base 64 encoded bytevector.
@@ -30,7 +30,7 @@ encoded bytevector. Which doesn't use @code{+} and @code{/}.
  @args{string :key (line-width 76) (transcoder (native-transcoder))
  (padding? #t)}}
 @define[Function]{@name{base64url-encode-string}
- @args{string :key (line-width 76) (transcoder (native-transcoder))
+ @args{string :key (line-width #f) (transcoder (native-transcoder))
  (padding? #f)}}
 @desc{Convenient procedure for string.
 

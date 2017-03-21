@@ -153,9 +153,9 @@
 
   (define-syntax define-encode-string
     (syntax-rules ()
-      ((_ name encoder pad)
+      ((_ name encoder lw pad)
        (define (name string :key (transcoder (native-transcoder))
-				 (line-width 76)
+				 (line-width lw)
 				 (padding? pad))
 	 (or (string? string)
 	     (assertion-violation 'name
@@ -164,21 +164,21 @@
 	 (utf8->string
 	  (encoder (string->bytevector string transcoder)
 		   :line-width line-width :padding? padding?))))))
-  (define-encode-string base64-encode-string base64-encode #t)
-  (define-encode-string base64url-encode-string base64url-encode #f)
+  (define-encode-string base64-encode-string base64-encode 76 #t)
+  (define-encode-string base64url-encode-string base64url-encode #f #f)
 
   (define-syntax define-encode
     (syntax-rules ()
-      ((_ name table pad)
-       (define (name in :key (line-width 76) (padding? pad))
+      ((_ name table lw pad)
+       (define (name in :key (line-width lw) (padding? pad))
 	 (if (bytevector? in)
 	     (name (open-bytevector-input-port in) 
 			    :line-width line-width :padding? padding?)
 	     (call-with-bytevector-output-port
 	      (lambda (out)
 		(base64-encode-impl in out line-width padding? table))))))))
-  (define-encode base64-encode *encode-table* #t)
-  (define-encode base64url-encode *encode-url-table* #f)
+  (define-encode base64-encode *encode-table* 76 #t)
+  (define-encode base64url-encode *encode-url-table* #f #f)
 
   (define (base64-encode-impl in out line-width padding? encode-table)
     (define (put i)
