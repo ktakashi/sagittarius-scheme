@@ -105,7 +105,7 @@
 	      ((< b3 0) (decoder b0 b1 b2 -1))
 	      (else     (decoder b0 b1 b2 b3) (loop))))))
 
-  (define (base64-encode-string string :key (transcoder utf8-transcoder)
+  (define (base64-encode-string string :key (transcoder (native-transcoder))
 					    (line-width 76)
 					    (padding? #t))
     (or (string? string)
