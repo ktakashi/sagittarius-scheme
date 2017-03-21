@@ -69,9 +69,8 @@
        ;;pad 
        #\= )))
 
-  (define (base64-decode-string string
-				:key (transcoder (make-transcoder 
-						  (utf-8-codec) 'none)))
+  (define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
+  (define (base64-decode-string string :key (transcoder utf8-transcoder))
       (or (string? string)
 	  (assertion-violation 'base64-decode-string
 			       (format "string required, but got ~s" string)
@@ -86,48 +85,29 @@
 	(base64-decode (open-bytevector-input-port in))
 	(call-with-bytevector-output-port
 	 (lambda (out)
-	   (base64-decode-impl in out)))))
+	   (base64-decode-impl in out *decode-table*)))))
 
-  (define (base64-decode-impl in out)
-    (let-syntax ((lookup (syntax-rules ()
-			   ((_ b)
-			    (and (< 32 b 128)
-				 (vector-ref *decode-table* (- b 32)))))))
-      (define (d0 b)
-	(cond ((eof-object? b))
-	      ((= b #x1d)) ;; =
-	      ((lookup b) => (lambda (v) (d1 (get-u8 in) v)))
-	      (else (d0 (get-u8 in)))))
-      
-      (define (d1 b hi)
-	(cond ((eof-object? b))
-	      ((= b #x1d)) ;; =
-	      ((lookup b) => (lambda (lo)
-			       (put-u8 out (+ (* hi 4) (quotient lo 16)))
-			       (d2 (get-u8 in) (modulo lo 16))))
-	      (else (d1 (get-u8 in) hi))))
+  (define (base64-decode-impl in out decode-table)
+    (define (put b) (put-u8 out b))
+    (define decoder (make-base64-decoder put))
+    (define (get in)
+      (let loop ((b (get-u8 in)))
+	(cond ((eof-object? b) -1)
+	      ((and (< 32 b 128) (vector-ref decode-table (- b 32))))
+	      (else (loop (get-u8 in))))))
+    (let loop ()
+      (let* ((b0 (get in))
+	     (b1 (get in))
+	     (b2 (get in))
+	     (b3 (get in)))
+	(cond ((< b0 0))
+	      ((< b1 0) (decoder b0 -1 -1 -1))
+	      ((< b2 0) (decoder b0 b1 -1 -1))
+	      ((< b3 0) (decoder b0 b1 b2 -1))
+	      (else     (decoder b0 b1 b2 b3) (loop))))))
 
-      (define (d2 b hi)
-	(cond ((eof-object? b))
-	      ((= b #x1d)) ;; =
-	      ((lookup b) => (lambda (lo)
-			       (put-u8 out (+ (* hi 16) (quotient lo 4)))
-			       (d3 (get-u8 in) (modulo lo 4))))
-	      (else (d2 (get-u8 in) hi))))
-
-      (define (d3 b hi)
-	(cond ((eof-object? b))
-	      ((= b #x1d)) ;; =
-	      ((lookup b) => (lambda (lo)
-			       (put-u8 out (+ (* hi 64) lo))
-			       (d0 (get-u8 in))))
-	      (else (d3 (get-u8 in) hi))))
-      (d0 (get-u8 in))))    
-
-  (define (base64-encode-string string :key
-				(transcoder (make-transcoder 
-					     (utf-8-codec) 'none))
-				(line-width 76))
+  (define (base64-encode-string string :key (transcoder utf8-transcoder)
+					    (line-width 76))
     (or (string? string)
 	(assertion-violation 'base64-encode-string
 			     (format "string required, but got ~s" string)
@@ -141,42 +121,22 @@
 	(base64-encode (open-bytevector-input-port in) :line-width line-width)
 	(call-with-bytevector-output-port
 	 (lambda (out)
-	   (base64-encode-impl in out line-width)))))
+	   (base64-encode-impl in out line-width *encode-table*)))))
 
-  (define (base64-encode-impl in out line-width)
-    (define max-col (and line-width
-			 (> line-width 0)
-			 (- line-width 1)))
-    (letrec-syntax ((emit* (syntax-rules ()
-			     ((_ col) col)
-			     ((_ col idx idx2 ...)
-			      (begin
-				(put-u8 out (vector-ref *encode-table* idx))
-				(let ((col2 (cond ((eqv? col max-col)
-						   ;; newline
-						   (put-u8 out #x0a) 0)
-						  (else (+ col 1)))))
-				  (emit* col2 idx2 ...)))))))
-      (define (e0 c col)
-	(cond ((eof-object? c))
-	      (else
-	       (e1 (get-u8 in) (modulo c 4) (emit* col (quotient c 4))))))
-
-      (define (e1 c hi col)
-	(cond ((eof-object? c)
-	       (emit* col (* hi 16) 64 64))
-	      (else
-	       (e2 (get-u8 in) (modulo c 16)
-		   (emit* col (+ (* hi 16) (quotient c 16)))))))
-
-      (define (e2 c hi col)
-	(cond ((eof-object? c)
-	       (emit* col (* hi 4) 64))
-	      (else
-	       (e0 (get-u8 in)
-		   (emit* col (+ (* hi 4) (quotient c 64)) (modulo c 64))))))
-
-      (e0 (get-u8 in) 0)))
+  (define (base64-encode-impl in out line-width encode-table)
+    (define (put i)
+      (if (negative? i)
+	  (put-u8 out #x0a)
+	  (put-u8 out (vector-ref encode-table i))))
+    (define encoder (make-base64-encoder put line-width))
+    (let loop ()
+      (let* ((b0 (get-u8 in))
+	     (b1 (get-u8 in))
+	     (b2 (get-u8 in)))
+	(cond ((eof-object? b0))
+	      ((eof-object? b1) (encoder b0 -1 -1))
+	      ((eof-object? b2) (encoder b0 b1 -1))
+	      (else (encoder b0 b1 b2) (loop))))))
 
   ;; basically the same as above but it input length is unknown
   ;; always encode 3 bytes to 4 bytes
@@ -213,6 +173,11 @@
 			  (put (bitwise-and #x3F b2)))))))))))
 
   (define (open-base64-encode-output-port sink :key (owner? #f) (line-width #f))
+    (open-base64-encode-output-port/encode-table sink *encode-table*
+      :owner? owner? :line-width line-width))
+
+  (define (open-base64-encode-output-port/encode-table
+	   sink encode-table :key (owner? #f) (line-width #f))
     (define buffer (make-bytevector 3 0))
     (define buffer-count 0)
 
@@ -225,7 +190,7 @@
     (define (put i) 
       (if (negative? i)
 	  (put-u8 sink #x0a)
-	  (put-u8 sink (vector-ref *encode-table* i))))
+	  (put-u8 sink (vector-ref encode-table i))))
     (define encoder (make-base64-encoder put line-width))
 
     (define (process-encode)
@@ -251,10 +216,15 @@
       (flush-output-port sink)
       (when owner? (close-port sink)))
     (make-custom-binary-output-port "base64-encode-output-port"
-				    write! #f #f close))
-
+				    write! #f #f close))    
+  
   ;; TODO I don't think this has good performance
   (define (open-base64-encode-input-port source
+					 :key (owner? #f) (line-width #f))
+    (open-base64-encode-input-port/encode-table source *encode-table*
+     :owner? owner? :line-width line-width))
+
+  (define (open-base64-encode-input-port/encode-table source encode-table
 					 :key (owner? #f) (line-width #f))
     ;; max length = when line-width is 1
     (define buffer (make-bytevector 8 0))
@@ -271,7 +241,7 @@
       (bytevector-u8-set! buffer buffer-count 
 			  (if (negative? i)
 			      #x0a
-			      (vector-ref *encode-table* i)))
+			      (vector-ref encode-table i)))
       (set! buffer-count (+ buffer-count 1)))
 
     (define encoder (make-base64-encoder put line-width))
@@ -323,6 +293,11 @@
       
   ;; TODO maybe we want to make buffer size bigger for performance?
   (define (open-base64-decode-input-port source :key (owner? #f))
+    (open-base64-decode-input-port/decode-table source *decode-table*
+     :owner? owner?))
+
+  (define (open-base64-decode-input-port/decode-table source decode-table
+						      :key (owner? #f))
     (define output-buffer (make-bytevector 3))
     (define output-buffer-size 0)
     (define (put b)
@@ -334,7 +309,7 @@
       (define (get)
 	(let ((b (get-u8 source)))
 	  (cond ((eof-object? b) -1)
-		((and (< 32 b 128) (vector-ref *decode-table* (- b 32))))
+		((and (< 32 b 128) (vector-ref decode-table (- b 32))))
 		(else (get)))))
       (define b0 (get))
       (define b1 (get))
@@ -368,8 +343,13 @@
 
     (make-custom-binary-input-port "base64-decode-input-port"
 				   read! #f #f close))
-  
+
   (define (open-base64-decode-output-port sink :key (owner? #f))
+    (open-base64-decode-output-port/decode-table sink *decode-table*
+      :owner? owner?))
+
+  (define (open-base64-decode-output-port/decode-table sink decode-table
+						       :key (owner? #f))
     (define (put b) (put-u8 sink b))
     (define decoder (make-base64-decoder put))
     
@@ -381,7 +361,7 @@
 	(if (= i size)
 	    size
 	    (let ((b (bytevector-u8-ref bv (+ start i))))
-	      (cond ((and (< 32 b 128) (vector-ref *decode-table* (- b 32))) =>
+	      (cond ((and (< 32 b 128) (vector-ref decode-table (- b 32))) =>
 		     (lambda (b) 
 		       (bytevector-u8-set! buffer buffer-size b)
 		       (set! buffer-size (+ buffer-size 1)))))
