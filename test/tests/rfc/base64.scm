@@ -29,8 +29,9 @@
 (test-equal "base64 decode long"
 	    *long-string* (base64-decode-string *encoded-long-string*))
 
+(define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
 (define (test-encode-port name open-in open-out expect v
-			  :key (transcoder (native-transcoder))
+			  :key (transcoder utf8-transcoder)
 			  :allow-other-keys opt)
   (define (test-out)
     (define (all)
@@ -143,7 +144,7 @@
        (base64-encode-string "01234" :line-width 0))
 
 (define (test-decode-port name open-in open-out expect v
-			  :key (transcoder (native-transcoder)))
+			  :key (transcoder utf8-transcoder))
   (define (test-input)
     (define (test-all)
       (define in (open-bytevector-input-port (string->utf8 v)))
@@ -263,18 +264,18 @@
 			 open-base64url-encode-output-port
 			 expect v opt ...)))))
 
-(test-url-encode "encode" "" (base64-encode-string ""))
-(test-url-encode "encode" "YQ" (base64-encode-string "a"))
-(test-url-encode "encode" "MA" (base64-encode-string "0"))
-(test-url-encode "encode" "Cg" (base64-encode-string "\n"))
-(test-url-encode "encode" "YTA" (base64-encode-string "a0"))
-(test-url-encode "encode" "YTAK" (base64-encode-string "a0\n"))
-(test-url-encode "encode" "PQk0" (base64-encode-string "=\t4"))
-(test-url-encode "encode" "eTQ5YQ" (base64-encode-string "y49a"))
-(test-url-encode "encode" "RWdqYWk" (base64-encode-string "Egjai"))
-(test-url-encode "encode" "OTNiamFl" (base64-encode-string "93bjae"))
-(test-url-encode "encode" "QkFSMGVyOQ" (base64-encode-string "BAR0er9"))
-(test-url-encode "encode" "9fb3-Pn6-_z9_g"
+(test-url-encode "encode url" "" (base64-encode-string ""))
+(test-url-encode "encode url" "YQ" (base64-encode-string "a"))
+(test-url-encode "encode url" "MA" (base64-encode-string "0"))
+(test-url-encode "encode url" "Cg" (base64-encode-string "\n"))
+(test-url-encode "encode url" "YTA" (base64-encode-string "a0"))
+(test-url-encode "encode url" "YTAK" (base64-encode-string "a0\n"))
+(test-url-encode "encode url" "PQk0" (base64-encode-string "=\t4"))
+(test-url-encode "encode url" "eTQ5YQ" (base64-encode-string "y49a"))
+(test-url-encode "encode url" "RWdqYWk" (base64-encode-string "Egjai"))
+(test-url-encode "encode url" "OTNiamFl" (base64-encode-string "93bjae"))
+(test-url-encode "encode url" "QkFSMGVyOQ" (base64-encode-string "BAR0er9"))
+(test-url-encode "encode url" "9fb3-Pn6-_z9_g"
 		 (base64-encode-string "\xf5;\xf6;\xf7;\xf8;\xf9;\xfa;\xfb;\xfc;\xfd;\xfe;" :transcoder (make-transcoder (latin-1-codec))))
 
 (define-syntax test-url-decode
@@ -286,20 +287,20 @@
 			 open-base64url-decode-input-port
 			 open-base64url-decode-output-port
 			 expect v opt ...)))))
-(test-url-decode "decode" "" (base64-decode-string ""))
-(test-url-decode "decode" "a" (base64-decode-string "YQ=="))
-(test-url-decode "decode" "a" (base64-decode-string "YQ="))
-(test-url-decode "decode" "a" (base64-decode-string "YQ"))
-(test-url-decode "decode" "a0" (base64-decode-string "YTA="))
-(test-url-decode "decode" "a0" (base64-decode-string "YTA"))
-(test-url-decode "decode" "a0\n" (base64-decode-string "YTAK"))
-(test-url-decode "decode" "y49a" (base64-decode-string "eTQ5YQ=="))
-(test-url-decode "decode" "Egjai" (base64-decode-string "RWdqYWk="))
-(test-url-decode "decode" "93bjae" (base64-decode-string "OTNiamFl"))
-(test-url-decode "decode" "BAR0er9" (base64-decode-string "QkFSMGVyOQ=="))
-(test-url-decode "decode" "BAR0er9"
+(test-url-decode "decode url" "" (base64-decode-string ""))
+(test-url-decode "decode url" "a" (base64-decode-string "YQ=="))
+(test-url-decode "decode url" "a" (base64-decode-string "YQ="))
+(test-url-decode "decode url" "a" (base64-decode-string "YQ"))
+(test-url-decode "decode url" "a0" (base64-decode-string "YTA="))
+(test-url-decode "decode url" "a0" (base64-decode-string "YTA"))
+(test-url-decode "decode url" "a0\n" (base64-decode-string "YTAK"))
+(test-url-decode "decode url" "y49a" (base64-decode-string "eTQ5YQ=="))
+(test-url-decode "decode url" "Egjai" (base64-decode-string "RWdqYWk="))
+(test-url-decode "decode url" "93bjae" (base64-decode-string "OTNiamFl"))
+(test-url-decode "decode url" "BAR0er9" (base64-decode-string "QkFSMGVyOQ=="))
+(test-url-decode "decode url" "BAR0er9"
 		 (base64-decode-string "QkFS\r\nMGVyOQ\r\n=="))
-(test-url-decode "decode" "\xf5;\xf6;\xf7;\xf8;\xf9;\xfa;\xfb;\xfc;\xfd;\xfe;"
+(test-url-decode "decode url" "\xf5;\xf6;\xf7;\xf8;\xf9;\xfa;\xfb;\xfc;\xfd;\xfe;"
 		 (base64-decode-string "9fb3-Pn6-_z9_g"
 		   :transcoder (make-transcoder (latin-1-codec))))
 

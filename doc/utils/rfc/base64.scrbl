@@ -27,18 +27,17 @@ encoded bytevector. Which doesn't use @code{+} and @code{/}.
 }
 
 @define[Function]{@name{base64-encode-string}
- @args{string :key (line-width 76) (transcoder (native-transcoder))
- (padding? #t)}}
+ @args{string :key (line-width 76) transcoder (padding? #t)}}
 @define[Function]{@name{base64url-encode-string}
- @args{string :key (line-width #f) (transcoder (native-transcoder))
- (padding? #f)}}
+ @args{string :key (line-width #f) transcoder (padding? #f)}}
 @desc{Convenient procedure for string.
 
 Encodes given @var{string} to Base 64 encoded string.
 
 The keyword argument @var{transcoder} is used to convert given string to
 bytevector. The converted bytevector will be passed to the @code{base64-encode}
-procedure.
+procedure. The default value is a transcoder with UTF-8 codec with EOL
+style none.
 
 The keyword argument @var{padding?} is the same as @code{base64-encode}.
 

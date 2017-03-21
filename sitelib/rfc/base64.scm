@@ -154,7 +154,7 @@
   (define-syntax define-encode-string
     (syntax-rules ()
       ((_ name encoder lw pad)
-       (define (name string :key (transcoder (native-transcoder))
+       (define (name string :key (transcoder utf8-transcoder)
 				 (line-width lw)
 				 (padding? pad))
 	 (or (string? string)
