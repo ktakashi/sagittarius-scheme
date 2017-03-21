@@ -4,6 +4,7 @@
 	(rfc base64)
 	(sagittarius regex)
 	(srfi :0 cond-expand)
+	(srfi :1)
 	(srfi :64 testing))
 
 (define *long-string* 
@@ -28,19 +29,21 @@
 (test-equal "base64 decode long"
 	    *long-string* (base64-decode-string *encoded-long-string*))
 
-(define (test-encode-port name expect v . opt)
+(define (test-encode-port name open-in open-out expect v
+			  :key (transcoder (native-transcoder))
+			  :allow-other-keys opt)
   (define (test-out)
     (define (all)
       (define out (open-output-bytevector))
-      (define bout (apply open-base64-encode-output-port out opt))
-      (put-bytevector bout (string->utf8 v))
+      (define bout (apply open-out out opt))
+      (put-bytevector bout (string->bytevector v transcoder))
       (close-port bout)
       (test-equal (format "~a (output port all)" name) expect 
 		  (utf8->string (get-output-bytevector out))))
     (define (one)
       (define out (open-output-bytevector))
-      (define bout (apply open-base64-encode-output-port out opt))
-      (let ((bv (string->utf8 v)))
+      (define bout (apply open-out out opt))
+      (let ((bv (string->bytevector v transcoder)))
 	(do ((len (bytevector-length bv)) (i 0 (+ i 1)))
 	    ((= i len) (close-port bout))
 	  (put-u8 bout (bytevector-u8-ref bv i))))
@@ -50,16 +53,16 @@
     (one))
   (define (test-in)
     (define (all)
-      (define in (open-bytevector-input-port (string->utf8 v)))
-      (define bin (apply open-base64-encode-input-port in opt))
+      (define in (open-bytevector-input-port (string->bytevector v transcoder)))
+      (define bin (apply open-in in opt))
       (let ((bv (get-bytevector-all bin)))
 	(close-port bin)
 	(unless (eof-object? bv)
 	  (test-equal (format "~a (input port all)" name) expect 
 		      (utf8->string bv)))))
     (define (one)
-      (define in (open-bytevector-input-port (string->utf8 v)))
-      (define bin (apply open-base64-encode-input-port in opt))
+      (define in (open-bytevector-input-port (string->bytevector v transcoder)))
+      (define bin (apply open-in in opt))
       (let-values (((out extract) (open-bytevector-output-port)))
 	(do ((b (get-u8 bin) (get-u8 bin)))
 	    ((eof-object? b) (close-port bin))
@@ -77,7 +80,10 @@
     ((_ name expect (base64-encode-string v opt ...))
      (begin
        (test-equal name expect (base64-encode-string v opt ...))
-       (test-encode-port name expect v opt ...)))))
+       (test-encode-port name
+			 open-base64-encode-input-port
+			 open-base64-encode-output-port
+			 expect v opt ...)))))
 
 (test-encode "encode" "" (base64-encode-string ""))
 (test-encode "encode" "YQ==" (base64-encode-string "a"))
@@ -136,19 +142,20 @@
        "MDEyMzQ="
        (base64-encode-string "01234" :line-width 0))
 
-(define (test-decode-port name expect v)
+(define (test-decode-port name open-in open-out expect v
+			  :key (transcoder (native-transcoder)))
   (define (test-input)
     (define (test-all)
       (define in (open-bytevector-input-port (string->utf8 v)))
-      (define bin (open-base64-decode-input-port in))
+      (define bin (open-in in))
       (let ((e (get-bytevector-all bin)))
 	(unless (eof-object? e)
 	  (test-equal (format "~a (input port all)" name) expect 
-		      (utf8->string e))))
+		      (bytevector->string e transcoder))))
       (close-port bin)) ;; just for GC friendliness...
     (define (test1)
       (define in (open-bytevector-input-port (string->utf8 v)))
-      (define bin (open-base64-decode-input-port in))
+      (define bin (open-in in))
       (let-values (((out extract) (open-string-output-port)))
 	(let loop ()
 	  (let ((b (get-u8 bin)))
@@ -164,21 +171,21 @@
   (define (test-output)
     (define (test-all)
       (define out (open-output-bytevector))
-      (define bout (open-base64-decode-output-port out))
+      (define bout (open-out out))
       (put-bytevector bout (string->utf8 v))
       (close-port bout)
       (test-equal (format "~a (output port all)" name) expect 
-		  (utf8->string (get-output-bytevector out))))
+		  (bytevector->string (get-output-bytevector out) transcoder)))
     (define (test1)
       (define out (open-output-bytevector))
-      (define bout (open-base64-decode-output-port out))
+      (define bout (open-out out))
       (let ((bv (string->utf8 v)))
 	(do ((len (bytevector-length bv))
 	     (i 0 (+ i 1)))
 	    ((= i len) (close-port bout))
 	  (put-u8 bout (bytevector-u8-ref bv i)))) 
-      (test-equal (format "~a (output port one)" name) expect 
-		  (utf8->string (get-output-bytevector out))))
+      (test-equal (format "~a (output port one)" name) expect
+		  (bytevector->string (get-output-bytevector out) transcoder)))
 
     (test-all)
     (test1))
@@ -190,7 +197,10 @@
     ((_ name expect (base64-decode-string v))
      (begin
        (test-equal name expect (base64-decode-string v))
-       (test-decode-port name expect v)))))
+       (test-decode-port name
+			 open-base64-decode-input-port
+			 open-base64-decode-output-port
+			 expect v)))))
 
 (test-decode "decode" "" (base64-decode-string ""))
 (test-decode "decode" "a" (base64-decode-string "YQ=="))
@@ -231,5 +241,66 @@
 		 (base64-decode-string (regex-replace-all #/\s/ b64 "")
 				       :transcoder #f))))
 
+
+;; base64url
+(let ((bv (u8-list->bytevector (iota 256)))
+      (b64url "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWltcXV5fYGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn-AgYKDhIWGh4iJiouMjY6PkJGSk5SVlpeYmZqbnJ2en6ChoqOkpaanqKmqq6ytrq-wsbKztLW2t7i5uru8vb6_wMHCw8TFxsfIycrLzM3Oz9DR0tPU1dbX2Nna29zd3t_g4eLj5OXm5-jp6uvs7e7v8PHy8_T19vf4-fr7_P3-_w"))
+  (test-equal b64url (utf8->string (base64url-encode bv :line-width #f)))
+  (test-equal (string-append b64url "==")
+	      (utf8->string (base64url-encode bv :line-width #f :padding? #t)))
+  (test-equal bv (base64url-decode-string b64url :transcoder #f))
+  (test-equal bv (base64url-decode-string (string-append b64url "==") :transcoder #f))
+
+  )
+
+(define-syntax test-url-encode
+  (syntax-rules (base64-encode-string)
+    ((_ name expect (base64-encode-string v opt ...))
+     (begin
+       (test-equal name expect (base64url-encode-string v opt ...))
+       (test-encode-port name
+			 open-base64url-encode-input-port
+			 open-base64url-encode-output-port
+			 expect v opt ...)))))
+
+(test-url-encode "encode" "" (base64-encode-string ""))
+(test-url-encode "encode" "YQ" (base64-encode-string "a"))
+(test-url-encode "encode" "MA" (base64-encode-string "0"))
+(test-url-encode "encode" "Cg" (base64-encode-string "\n"))
+(test-url-encode "encode" "YTA" (base64-encode-string "a0"))
+(test-url-encode "encode" "YTAK" (base64-encode-string "a0\n"))
+(test-url-encode "encode" "PQk0" (base64-encode-string "=\t4"))
+(test-url-encode "encode" "eTQ5YQ" (base64-encode-string "y49a"))
+(test-url-encode "encode" "RWdqYWk" (base64-encode-string "Egjai"))
+(test-url-encode "encode" "OTNiamFl" (base64-encode-string "93bjae"))
+(test-url-encode "encode" "QkFSMGVyOQ" (base64-encode-string "BAR0er9"))
+(test-url-encode "encode" "9fb3-Pn6-_z9_g"
+		 (base64-encode-string "\xf5;\xf6;\xf7;\xf8;\xf9;\xfa;\xfb;\xfc;\xfd;\xfe;" :transcoder (make-transcoder (latin-1-codec))))
+
+(define-syntax test-url-decode
+  (syntax-rules (base64-decode-string)
+    ((_ name expect (base64-decode-string v opt ...))
+     (begin
+       (test-equal name expect (base64url-decode-string v opt ...))
+       (test-decode-port name
+			 open-base64url-decode-input-port
+			 open-base64url-decode-output-port
+			 expect v opt ...)))))
+(test-url-decode "decode" "" (base64-decode-string ""))
+(test-url-decode "decode" "a" (base64-decode-string "YQ=="))
+(test-url-decode "decode" "a" (base64-decode-string "YQ="))
+(test-url-decode "decode" "a" (base64-decode-string "YQ"))
+(test-url-decode "decode" "a0" (base64-decode-string "YTA="))
+(test-url-decode "decode" "a0" (base64-decode-string "YTA"))
+(test-url-decode "decode" "a0\n" (base64-decode-string "YTAK"))
+(test-url-decode "decode" "y49a" (base64-decode-string "eTQ5YQ=="))
+(test-url-decode "decode" "Egjai" (base64-decode-string "RWdqYWk="))
+(test-url-decode "decode" "93bjae" (base64-decode-string "OTNiamFl"))
+(test-url-decode "decode" "BAR0er9" (base64-decode-string "QkFSMGVyOQ=="))
+(test-url-decode "decode" "BAR0er9"
+		 (base64-decode-string "QkFS\r\nMGVyOQ\r\n=="))
+(test-url-decode "decode" "\xf5;\xf6;\xf7;\xf8;\xf9;\xfa;\xfb;\xfc;\xfd;\xfe;"
+		 (base64-decode-string "9fb3-Pn6-_z9_g"
+		   :transcoder (make-transcoder (latin-1-codec))))
 
 (test-end)

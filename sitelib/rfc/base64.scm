@@ -32,12 +32,19 @@
 (library (rfc base64)
     (export base64-encode base64-encode-string
 	    base64-decode base64-decode-string
-
+	    
+	    base64url-encode base64url-encode-string
+	    base64url-decode base64url-decode-string
+	    
 	    open-base64-encode-output-port
 	    open-base64-encode-input-port
+	    open-base64url-encode-output-port
+	    open-base64url-encode-input-port
 
 	    open-base64-decode-output-port
-	    open-base64-decode-input-port)
+	    open-base64-decode-input-port
+	    open-base64url-decode-output-port
+	    open-base64url-decode-input-port)
     (import (rnrs))
 
   (define *decode-table*
@@ -68,23 +75,62 @@
        ;;pad 
        #\= )))
 
-  (define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
-  (define (base64-decode-string string :key (transcoder utf8-transcoder))
-      (or (string? string)
-	  (assertion-violation 'base64-decode-string
-			       (format "string required, but got ~s" string)
-			       string))
-      (let ((bv (base64-decode (string->utf8 string))))
-	(if transcoder
-	    (bytevector->string bv transcoder)
-	    bv)))
+  ;; base64url
+  (define *decode-url-table*
+    ;;    !   "   #   $   %   &   '   (   )   *   +   ,   -   .   /
+    #(#f  #f  #f  #f  #f  #f  #f  #f  #f  #f  #f  #f  #f  62  #f  #f  
+    ;;0   1   2   3   4   5   6   7   8   9   :   ;   <   =   >   ?
+      52  53  54  55  56  57  58  59  60  61  #f  #f  #f  #f  #f  #f
+    ;;@   A   B   C   D   E   F   G   H   I   J   K   L   M   N   O
+      #f  0   1   2   3   4   5   6   7   8   9   10  11  12  13  14
+    ;;P   Q   R   S   T   U   V   W   X   Y   Z   [   \   ]   ^   _
+      15  16  17  18  19  20  21  22  23  24  25  #f  #f  #f  #f  63
+    ;;`   a   b   c   d   e   f   g   h   i   j   k   l   m   n   o
+      #f  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40
+    ;;p   q   r   s   t   u   v   w   x   y   z   {   |   }   ~
+      41  42  43  44  45  46  47  48  49  50  51  #f  #f  #f  #f  #f
+      ))
 
-  (define (base64-decode in)
-    (if (bytevector? in)
-	(base64-decode (open-bytevector-input-port in))
-	(call-with-bytevector-output-port
-	 (lambda (out)
-	   (base64-decode-impl in out *decode-table*)))))
+  (define *encode-url-table*
+    (vector-map char->integer
+       ;;0   1   2   3   4   5   6   7   8   9   10  11  12  13  14  15
+     #(#\A #\B #\C #\D #\E #\F #\G #\H #\I #\J #\K #\L #\M #\N #\O #\P
+       ;;16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31
+       #\Q #\R #\S #\T #\U #\V #\W #\X #\Y #\Z #\a #\b #\c #\d #\e #\f
+       ;;32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47
+       #\g #\h #\i #\j #\k #\l #\m #\n #\o #\p #\q #\r #\s #\t #\u #\v
+       ;;48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63
+       #\w #\x #\y #\z #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\- #\_
+       ;;pad 
+       #\= )))
+
+  (define utf8-transcoder (make-transcoder (utf-8-codec) 'none))
+  (define-syntax define-decode-string
+    (syntax-rules ()
+      ((_ name decoder)
+       (define (name string :key (transcoder utf8-transcoder))
+	 (or (string? string)
+	     (assertion-violation 'name
+				  (format "string required, but got ~s" string)
+				  string))
+	 (let ((bv (decoder (string->utf8 string))))
+	   (if transcoder
+	       (bytevector->string bv transcoder)
+	       bv))))))
+  (define-decode-string base64-decode-string base64-decode)
+  (define-decode-string base64url-decode-string base64url-decode)
+
+  (define-syntax define-decode
+    (syntax-rules ()
+      ((_ name table)
+       (define (name in)
+	 (if (bytevector? in)
+	     (name (open-bytevector-input-port in))
+	     (call-with-bytevector-output-port
+	      (lambda (out)
+		(base64-decode-impl in out table))))))))
+  (define-decode base64-decode *decode-table*)
+  (define-decode base64url-decode *decode-url-table*)
 
   (define (base64-decode-impl in out decode-table)
     (define (put b) (put-u8 out b))
@@ -105,24 +151,34 @@
 	      ((< b3 0) (decoder b0 b1 b2 -1))
 	      (else     (decoder b0 b1 b2 b3) (loop))))))
 
-  (define (base64-encode-string string :key (transcoder (native-transcoder))
-					    (line-width 76)
-					    (padding? #t))
-    (or (string? string)
-	(assertion-violation 'base64-encode-string
-			     (format "string required, but got ~s" string)
-			     string))
-    (utf8->string
-     (base64-encode (string->bytevector string transcoder)
-		    :line-width line-width :padding? padding?)))
+  (define-syntax define-encode-string
+    (syntax-rules ()
+      ((_ name encoder pad)
+       (define (name string :key (transcoder (native-transcoder))
+				 (line-width 76)
+				 (padding? pad))
+	 (or (string? string)
+	     (assertion-violation 'name
+				  (format "string required, but got ~s" string)
+				  string))
+	 (utf8->string
+	  (encoder (string->bytevector string transcoder)
+		   :line-width line-width :padding? padding?))))))
+  (define-encode-string base64-encode-string base64-encode #t)
+  (define-encode-string base64url-encode-string base64url-encode #f)
 
-  (define (base64-encode in :key (line-width 76) (padding? #t))
-    (if (bytevector? in)
-	(base64-encode (open-bytevector-input-port in) 
-		       :line-width line-width :padding? padding?)
-	(call-with-bytevector-output-port
-	 (lambda (out)
-	   (base64-encode-impl in out line-width padding? *encode-table*)))))
+  (define-syntax define-encode
+    (syntax-rules ()
+      ((_ name table pad)
+       (define (name in :key (line-width 76) (padding? pad))
+	 (if (bytevector? in)
+	     (name (open-bytevector-input-port in) 
+			    :line-width line-width :padding? padding?)
+	     (call-with-bytevector-output-port
+	      (lambda (out)
+		(base64-encode-impl in out line-width padding? table))))))))
+  (define-encode base64-encode *encode-table* #t)
+  (define-encode base64url-encode *encode-url-table* #f)
 
   (define (base64-encode-impl in out line-width padding? encode-table)
     (define (put i)
@@ -176,6 +232,11 @@
 					       (padding? #t))
     (open-base64-encode-output-port/encode-table sink *encode-table*
       :owner? owner? :line-width line-width :padding? padding?))
+  (define (open-base64url-encode-output-port sink
+					  :key (owner? #f) (line-width #f)
+					       (padding? #f))
+    (open-base64-encode-output-port/encode-table sink *encode-url-table*
+      :owner? owner? :line-width line-width :padding? padding?))
 
   (define (open-base64-encode-output-port/encode-table
 	   sink encode-table :key (owner? #f) (line-width #f) (padding? #t))
@@ -225,7 +286,11 @@
 					      (padding? #t))
     (open-base64-encode-input-port/encode-table source *encode-table*
      :owner? owner? :line-width line-width :padding? padding?))
-
+  (define (open-base64url-encode-input-port source
+					 :key (owner? #f) (line-width #f)
+					      (padding? #f))
+    (open-base64-encode-input-port/encode-table source *encode-url-table*
+     :owner? owner? :line-width line-width :padding? padding?))
   (define (open-base64-encode-input-port/encode-table source encode-table
 					 :key (owner? #f) (line-width #f)  
 					      (padding? #t))
@@ -297,7 +362,10 @@
   ;; TODO maybe we want to make buffer size bigger for performance?
   (define (open-base64-decode-input-port source :key (owner? #f))
     (open-base64-decode-input-port/decode-table source *decode-table*
-     :owner? owner?))
+						:owner? owner?))
+  (define (open-base64url-decode-input-port source :key (owner? #f))
+    (open-base64-decode-input-port/decode-table source *decode-url-table*
+						:owner? owner?))
 
   (define (open-base64-decode-input-port/decode-table source decode-table
 						      :key (owner? #f))
@@ -349,7 +417,10 @@
 
   (define (open-base64-decode-output-port sink :key (owner? #f))
     (open-base64-decode-output-port/decode-table sink *decode-table*
-      :owner? owner?))
+						 :owner? owner?))
+  (define (open-base64url-decode-output-port sink :key (owner? #f))
+    (open-base64-decode-output-port/decode-table sink *decode-url-table*
+						 :owner? owner?))
 
   (define (open-base64-decode-output-port/decode-table sink decode-table
 						       :key (owner? #f))
@@ -394,5 +465,5 @@
 
     (make-custom-binary-output-port "base64-decode-output-port"
 				    write! #f #f close))
-
+  
 )
