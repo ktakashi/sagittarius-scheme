@@ -121,7 +121,7 @@
 	      ((lookup b) => (lambda (lo)
 			       (put-u8 out (+ (* hi 64) lo))
 			       (d0 (get-u8 in))))
-	      (else (d2 (get-u8 in) hi))))
+	      (else (d3 (get-u8 in) hi))))
       (d0 (get-u8 in))))    
 
   (define (base64-encode-string string :key
